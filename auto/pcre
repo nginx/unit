@@ -1,0 +1,49 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+NXT_REGEX=NO
+NXT_PCRE_CFLAGS=
+NXT_PCRE_LIB=
+
+
+if [ $NXT_PCRE = YES ]; then
+
+    nxt_found=no
+
+    if /bin/sh -c "(pcre-config --version)" >> $NXT_AUTOCONF_ERR 2>&1; then
+
+        NXT_PCRE_CFLAGS=`pcre-config --cflags`
+        NXT_PCRE_LIB=`pcre-config --libs`
+
+        nxt_feature="PCRE library"
+        nxt_feature_name=NXT_HAVE_PCRE
+        nxt_feature_run=no
+        nxt_feature_incs=$NXT_PCRE_CFLAGS
+        nxt_feature_libs=$NXT_PCRE_LIB
+        nxt_feature_test="#include <pcre.h>
+
+                          int main() {
+                              pcre  *re;
+
+                              re = pcre_compile(NULL, 0, NULL, 0, NULL);
+                              if (re == NULL)
+                                  return 1;
+                              return 0;
+                          }"
+        . auto/feature
+    fi
+
+    if [ $nxt_found = no ]; then
+        $echo
+        $echo $0: error: no PCRE library found.
+        $echo
+        exit 1;
+    fi
+
+    NXT_REGEX=YES
+    nxt_have=NXT_REGEX . auto/have
+
+    $echo " + PCRE version: `pcre-config --version`"
+fi

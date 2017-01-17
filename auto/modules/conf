@@ -1,0 +1,50 @@
+
+# Copyright (C) NGINX, Inc.
+# Copyright (C) Valentin V. Bartenev
+
+
+NXT_MODULES_INIT=
+NXT_MODULES_SRCS=
+
+
+if [ $NXT_PYTHON_MODULE != NO ]; then
+    . auto/modules/python/conf
+fi
+
+
+NXT_MODULES_SRC=$NXT_BUILD_DIR/nxt_modules.c
+
+
+cat << END                                            > $NXT_MODULES_SRC
+
+#include <nxt_main.h>
+#include <nxt_cycle.h>
+
+
+END
+
+
+for nxt_init in $NXT_MODULES_INIT
+do
+    $echo "extern nxt_int_t $nxt_init(nxt_thread_t *thr, nxt_cycle_t *cycle);" \
+                                                     >> $NXT_MODULES_SRC
+done
+
+
+cat << END                                           >> $NXT_MODULES_SRC
+
+
+nxt_module_init_t  nxt_init_modules[] = {
+END
+
+for nxt_init in $NXT_MODULES_INIT
+do
+    $echo "    $nxt_init,"                           >> $NXT_MODULES_SRC
+done
+
+cat << END                                           >> $NXT_MODULES_SRC
+};
+
+
+nxt_uint_t  nxt_init_modules_n = nxt_nitems(nxt_init_modules);
+END

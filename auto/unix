@@ -1,0 +1,153 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+nxt_feature="arc4random()"
+nxt_feature_name=NXT_HAVE_ARC4RANDOM
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <stdlib.h>
+
+                  int main() {
+
+                      (void) arc4random();
+
+                      return 0;
+                  }"
+. auto/feature
+
+
+# Linux 3.17 getrandom().
+
+nxt_feature="getrandom()"
+nxt_feature_name=NXT_HAVE_GETRANDOM
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <linux/random.h>
+
+                  int main() {
+                      char  buf[4];
+
+                      (void) getrandom(buf, 4, 0);
+
+                      return 0;
+                  }"
+. auto/feature
+
+
+nxt_feature="ucontext"
+nxt_feature_name=NXT_HAVE_UCONTEXT
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <stdlib.h>
+                  #include <ucontext.h>
+
+                  int main() {
+                      ucontext_t  uc;
+
+                      if (getcontext(&uc) == 0) {
+                          makecontext(&uc, NULL, 0);
+                          setcontext(&uc);
+                      }
+
+                      return 0;
+                  }"
+. auto/feature
+
+
+if [ $nxt_found = no ]; then
+
+    # MacOSX 10.6 (Snow Leopard) has deprecated ucontext
+    # and requires _XOPEN_SOURCE to be defined.
+
+    nxt_feature="_XOPEN_SOURCE ucontext"
+    nxt_feature_name=NXT_HAVE_UCONTEXT
+    nxt_feature_run=
+    nxt_feature_incs=
+    nxt_feature_libs=
+    nxt_feature_test="#define _XOPEN_SOURCE
+                      #include <stdlib.h>
+                      #include <ucontext.h>
+
+                      int main() {
+                          ucontext_t  uc;
+
+                          if (getcontext(&uc) == 0) {
+                              makecontext(&uc, NULL, 0);
+                              setcontext(&uc);
+                          }
+
+                          return 0;
+                      }"
+    . auto/feature
+fi
+
+
+# FreeBSD dlopen() is in libc.
+# MacOSX libdl.dylib is a symlink to libSystem.dylib.
+
+NXT_LIBDL=
+
+nxt_feature="dlopen()"
+nxt_feature_name=NXT_HAVE_DLOPEN
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <stdlib.h>
+                  #include <dlfcn.h>
+
+                  int main() {
+                      dlopen(NULL, 0);
+                      return 0;
+                  }"
+. auto/feature
+
+if [ $nxt_found = no ]; then
+
+    # Linux and Solaris prior to 10 require libdl.
+    # Solaris 10 libdl.so.1 is a filter to /usr/lib/ld.so.1.
+
+    nxt_feature="dlopen() in libdl"
+    nxt_feature_libs="-ldl"
+    . auto/feature
+
+    if [ $nxt_found = yes ]; then
+        NXT_LIBDL="-ldl"
+    fi
+fi
+
+
+nxt_feature="posix_spawn()"
+nxt_feature_name=NXT_HAVE_POSIX_SPAWN
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <spawn.h>
+                  #include <unistd.h>
+
+                  int main() {
+                      (void) posix_spawn(NULL, NULL, NULL, NULL, NULL, NULL);
+                      return 0;
+                  }"
+. auto/feature
+
+
+# NetBSD 1.0, OpenBSD 1.0, FreeBSD 2.2 setproctitle().
+
+nxt_feature="setproctitle()"
+nxt_feature_name=NXT_HAVE_SETPROCTITLE
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <stdlib.h>
+                  #include <unistd.h>
+
+                  int main() {
+                      setproctitle(\"%s\", \"title\");
+                      return 0;
+                  }"
+. auto/feature

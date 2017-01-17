@@ -1,0 +1,108 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) Valentin V. Bartenev
+# Copyright (C) NGINX, Inc.
+
+
+CC=${CC:-cc}
+
+NXT_BUILD_DIR=build
+NXT_CONFIGURE_OPTIONS=
+NXT_CFLAGS=
+NXT_CC_OPT=
+NXT_LD_OPT=
+
+NXT_DEBUG=NO
+NXT_THREADS=YES
+
+NXT_INET6=NO
+NXT_UNIX_DOMAIN=YES
+
+NXT_REGEX=NO
+NXT_PCRE=NO
+
+NXT_SSLTLS=NO
+NXT_OPENSSL=NO
+NXT_GNUTLS=NO
+NXT_CYASSL=NO
+NXT_POLARSSL=NO
+
+NXT_TEST_BUILD_EPOLL=NO
+NXT_TEST_BUILD_EVENTPORT=NO
+NXT_TEST_BUILD_DEVPOLL=NO
+NXT_TEST_BUILD_POLLSET=NO
+
+NXT_TEST_BUILD_FREEBSD_SENDFILE=NO
+NXT_TEST_BUILD_LINUX_SENDFILE=NO
+NXT_TEST_BUILD_MACOSX_SENDFILE=NO
+NXT_TEST_BUILD_SOLARIS_SENDFILEV=NO
+NXT_TEST_BUILD_AIX_SEND_FILE=NO
+NXT_TEST_BUILD_HPUX_SENDFILE=NO
+
+NXT_LIB_UNIT_TEST=NO
+
+NXT_PYTHON=python
+NXT_PYTHON_MODULE=NO
+
+
+for nxt_option
+do
+    case "$nxt_option" in
+        -*=*) value=`$echo "$nxt_option" | sed -e 's/[-_a-zA-Z0-9]*=//'`     ;;
+           *) value="" ;;
+    esac
+
+    case "$nxt_option" in
+        --with-cc=*)                     CC="$value"                         ;;
+        --with-cc-opt=*)                 NXT_CC_OPT="$value"                 ;;
+        --with-ld-opt=*)                 NXT_LD_OPT="$value"                 ;;
+
+        --build-dir=*)                   NXT_BUILD_DIR="$value"              ;;
+
+        --with-debug)                    NXT_DEBUG=YES                       ;;
+
+        --with-threads)                  NXT_THREADS=YES                     ;;
+        --without-threads)               NXT_THREADS=NO                      ;;
+
+        --with-ipv6)                     NXT_INET6=YES                       ;;
+        --with-inet6)                    NXT_INET6=YES                       ;;
+        --without-unix-domain)           NXT_UNIX_DOMAIN=NO                  ;;
+
+        --with-pcre)                     NXT_PCRE=YES                        ;;
+
+        --with-ssltls)                   NXT_SSLTLS=YES                      ;;
+        --with-openssl)                  NXT_OPENSSL=YES                     ;;
+        --with-gnutls)                   NXT_GNUTLS=YES                      ;;
+        --with-cyassl)                   NXT_CYASSL=YES                      ;;
+        --with-polarssl)                 NXT_POLARSSL=YES                    ;;
+
+        --test-build-epoll)              NXT_TEST_BUILD_EPOLL=YES            ;;
+        --test-build-eventport)          NXT_TEST_BUILD_EVENTPORT=YES        ;;
+        --test-build-devpoll)            NXT_TEST_BUILD_DEVPOLL=YES          ;;
+        --test-build-pollset)            NXT_TEST_BUILD_POLLSET=YES          ;;
+
+        --test-build-freebsd-sendfile)   NXT_TEST_BUILD_FREEBSD_SENDFILE=YES ;;
+        --test-build-linux-sendfile)     NXT_TEST_BUILD_LINUX_SENDFILE=YES   ;;
+        --test-build-solaris-sendfilev)  NXT_TEST_BUILD_SOLARIS_SENDFILEV=YES ;;
+        --test-build-macosx-sendfile)    NXT_TEST_BUILD_MACOSX_SENDFILE=YES  ;;
+        --test-build-aix-send_file)      NXT_TEST_BUILD_AIX_SEND_FILE=YES    ;;
+        --test-build-hpux-sendfile)      NXT_TEST_BUILD_HPUX_SENDFILE=YES    ;;
+
+        --with-lib-unit-tests)           NXT_LIB_UNIT_TEST=YES               ;;
+
+        --with-python=*)                 NXT_PYTHON="$value"                 ;;
+        --with-python_module)            NXT_PYTHON_MODULE=YES               ;;
+
+        *)
+            $echo
+            $echo "$0: error: invalid option \"$nxt_option\"".
+            $echo
+            exit 1
+        ;;
+    esac
+
+    nxt_opt=`$echo $nxt_option | sed -e "s/\(--[^=]*=\)\(.* .*\)/\1'\2'/"`
+
+    NXT_CONFIGURE_OPTIONS="$NXT_CONFIGURE_OPTIONS $nxt_opt"
+
+done

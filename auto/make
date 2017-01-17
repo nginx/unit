@@ -1,0 +1,255 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) Valentin V. Bartenev
+# Copyright (C) NGINX, Inc.
+
+
+$echo "creating $NXT_MAKEFILE"
+
+mkdir -p $NXT_BUILD_DIR/src \
+         $NXT_BUILD_DIR/test
+
+
+cat << END > $NXT_MAKEFILE
+
+CC =			$CC
+
+CFLAGS = 		$CFLAGS $NXT_CFLAGS $NXT_CC_OPT
+
+NXT_EXEC_LINK =		$NXT_EXEC_LINK $NXT_LD_OPT
+NXT_SHARED_LOCAL_LINK =	$NXT_SHARED_LOCAL_LINK $NXT_LD_OPT
+NXT_MODULE_LINK =	$NXT_MODULE_LINK $NXT_LD_OPT
+
+END
+
+
+# The include paths list.
+
+$echo -n "NXT_LIB_INCS =" >> $NXT_MAKEFILE
+
+for nxt_inc in src $NXT_BUILD_DIR
+do
+    $echo -n " -I $nxt_inc" >> $NXT_MAKEFILE
+done
+
+$echo >> $NXT_MAKEFILE
+$echo >> $NXT_MAKEFILE
+
+
+# The include files dependences list.
+
+$echo "NXT_LIB_DEPS = \\" >> $NXT_MAKEFILE
+
+for nxt_dep in $NXT_LIB_DEPS $NXT_LIB_UNIT_TEST_DEPS $NXT_AUTO_CONFIG_H
+do
+    $echo "	$nxt_dep \\" >> $NXT_MAKEFILE
+done
+
+$echo >> $NXT_MAKEFILE
+$echo >> $NXT_MAKEFILE
+
+
+# Library object files list.
+
+$echo "NXT_LIB_OBJS = \\" >> $NXT_MAKEFILE
+
+for nxt_src in $NXT_LIB_SRCS
+do
+    nxt_obj=`$echo $nxt_src | sed -e "s/\.c$/\.o/"`
+    $echo "	$NXT_BUILD_DIR/$nxt_obj \\" >> $NXT_MAKEFILE
+done
+
+$echo >> $NXT_MAKEFILE
+
+
+# Shared and static library.
+
+cat << END >> $NXT_MAKEFILE
+
+libnxt:	$NXT_BUILD_DIR/$NXT_LIB_SHARED $NXT_BUILD_DIR/$NXT_LIB_STATIC
+
+$NXT_BUILD_DIR/$NXT_LIB_SHARED:	\$(NXT_LIB_OBJS)
+	\$(NXT_SHARED_LOCAL_LINK) -o $NXT_BUILD_DIR/$NXT_LIB_SHARED \\
+		\$(NXT_LIB_OBJS) \\
+		$NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
+
+$NXT_BUILD_DIR/$NXT_LIB_STATIC:	\$(NXT_LIB_OBJS)
+	$NXT_STATIC_LINK $NXT_BUILD_DIR/$NXT_LIB_STATIC \\
+		\$(NXT_LIB_OBJS)
+
+END
+
+
+# Object files.
+
+for nxt_src in $NXT_LIB_SRCS $NXT_LIB_UNIT_TEST_SRCS
+do
+    nxt_obj=`$echo $nxt_src | sed -e "s/\.c$/\.o/"`
+    cat << END >> $NXT_MAKEFILE
+
+$NXT_BUILD_DIR/$nxt_obj: $nxt_src \$(NXT_LIB_DEPS)
+	\$(CC) -c \$(CFLAGS) \$(NXT_LIB_INCS) $NXT_LIB_AUX_CFLAGS \\
+	-o $NXT_BUILD_DIR/$nxt_obj \\
+	$nxt_src
+END
+
+done
+
+$echo >> $NXT_MAKEFILE
+
+
+# Unit test object files list.
+
+$echo "NXT_LIB_UNIT_TEST_OBJS = \\" >> $NXT_MAKEFILE
+
+for nxt_src in $NXT_LIB_UNIT_TEST_SRCS
+do
+    nxt_obj=`$echo $nxt_src | sed -e "s/\.c$/\.o/"`
+    $echo "	$NXT_BUILD_DIR/$nxt_obj \\" >> $NXT_MAKEFILE
+done
+
+
+# Unit test and utf8 test executables.
+
+cat << END >> $NXT_MAKEFILE
+
+$NXT_BUILD_DIR/lib_unit_test: \$(NXT_LIB_UNIT_TEST_OBJS) \\
+			$NXT_BUILD_DIR/$NXT_LIB_STATIC \$(NXT_LIB_DEPS)
+	\$(NXT_EXEC_LINK) -o $NXT_BUILD_DIR/lib_unit_test \\
+		\$(NXT_LIB_UNIT_TEST_OBJS) \\
+		$NXT_BUILD_DIR/$NXT_LIB_STATIC \\
+		$NXT_LD_OPT $NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
+
+$NXT_BUILD_DIR/utf8_file_name_test: $NXT_LIB_UTF8_FILE_NAME_TEST_SRCS \\
+			$NXT_BUILD_DIR/$NXT_LIB_STATIC \$(NXT_LIB_DEPS)
+	\$(CC) \$(CFLAGS) \$(NXT_LIB_INCS) $NXT_LIB_AUX_CFLAGS \\
+		-o $NXT_BUILD_DIR/utf8_file_name_test \\
+		$NXT_LIB_UTF8_FILE_NAME_TEST_SRCS \\
+		$NXT_BUILD_DIR/$NXT_LIB_STATIC \\
+		$NXT_LD_OPT $NXT_LIBM $NXT_LIBS
+
+END
+
+
+if [ $NXT_LIB_UNIT_TEST = YES ]; then
+    NXT_UNIT_TEST_TARGETS="$NXT_UNIT_TEST_TARGETS lib_test"
+fi
+
+
+NXT_MAKE_INCS="src $NXT_BUILD_DIR"
+NXT_MAKE_DEPS="\$(NXT_LIB_DEPS) $NXT_DEPS"
+NXT_MAKE_SRCS="$NXT_SRCS"
+
+
+# The include pathes list.
+
+$echo -n "NXT_INCS =" >> $NXT_MAKEFILE
+
+for nxt_inc in $NXT_MAKE_INCS
+do
+    $echo -n " -I $nxt_inc" >> $NXT_MAKEFILE
+done
+
+$echo >> $NXT_MAKEFILE
+$echo >> $NXT_MAKEFILE
+
+
+# The include files dependences list.
+
+$echo "NXT_DEPS = \\" >> $NXT_MAKEFILE
+
+for nxt_dep in $NXT_MAKE_DEPS
+do
+    $echo "	$nxt_dep \\" >> $NXT_MAKEFILE
+done
+
+$echo >> $NXT_MAKEFILE
+$echo >> $NXT_MAKEFILE
+
+
+# Object files list.
+
+nxt_modules_obj=`$echo $NXT_MODULES_SRC | sed -e "s/\.c$/\.o/"`
+
+$echo "NXT_OBJS = \\" >> $NXT_MAKEFILE
+
+for nxt_src in $NXT_MAKE_SRCS $NXT_MODULES_SRCS
+do
+    nxt_obj=`$echo $nxt_src | sed -e "s/\.c$/\.o/"`
+    $echo "	$NXT_BUILD_DIR/$nxt_obj \\" >> $NXT_MAKEFILE
+done
+
+$echo "	$nxt_modules_obj" >> $NXT_MAKEFILE
+$echo >> $NXT_MAKEFILE
+
+
+# nginext executable.
+
+NXT_BIN=nginext
+
+cat << END >> $NXT_MAKEFILE
+
+$NXT_BUILD_DIR/$NXT_BIN:	$NXT_BUILD_DIR/$NXT_LIB_STATIC \\
+				\$(NXT_OBJS)
+	\$(NXT_EXEC_LINK) -o $NXT_BUILD_DIR/$NXT_BIN \\
+		\$(NXT_OBJS) $NXT_BUILD_DIR/$NXT_LIB_STATIC \\
+		$NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
+
+END
+
+
+# nginext object files.
+
+for nxt_src in $NXT_MAKE_SRCS
+do
+    nxt_obj=`$echo $nxt_src | sed -e "s/\.c$/\.o/"`
+    cat << END >> $NXT_MAKEFILE
+
+$NXT_BUILD_DIR/$nxt_obj:	$nxt_src \$(NXT_DEPS)
+	\$(CC) -c \$(CFLAGS) \$(NXT_INCS) \\
+		$NXT_LIB_AUX_CFLAGS \\
+		-o $NXT_BUILD_DIR/$nxt_obj \\
+		$nxt_src
+END
+
+done
+
+
+# nxt_modules.c.
+
+cat << END >> $NXT_MAKEFILE
+
+$nxt_modules_obj:	$NXT_MODULES_SRC \$(NXT_DEPS)
+	\$(CC) -c \$(CFLAGS) \$(NXT_INCS) \\
+	 	$NXT_LIB_AUX_CFLAGS \\
+		-o $nxt_modules_obj \\
+		$NXT_MODULES_SRC
+END
+
+
+if [ $NXT_PYTHON_MODULE != NO ]; then
+    . auto/modules/python/make
+fi
+
+
+# Makefile.
+# *.dSYM is MacOSX Clang debug information.
+
+cat << END > Makefile
+
+all:	libnxt $NXT_BIN
+
+libnxt:
+	make -f $NXT_MAKEFILE libnxt
+
+lib_test:
+	make -f $NXT_MAKEFILE $NXT_BUILD_DIR/lib_unit_test
+	make -f $NXT_MAKEFILE $NXT_BUILD_DIR/utf8_file_name_test
+
+clean:
+	rm -rf $NXT_BUILD_DIR *.dSYM Makefile
+
+$NXT_BIN:
+	make -f $NXT_MAKEFILE $NXT_BUILD_DIR/$NXT_BIN
+
+END

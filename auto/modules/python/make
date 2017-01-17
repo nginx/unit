@@ -1,0 +1,24 @@
+
+# Copyright (C) NGINX, Inc.
+# Copyright (C) Valentin V. Bartenev
+
+
+$echo >> $NXT_MAKEFILE
+$echo >> $NXT_MAKEFILE
+
+
+# The python module object files.
+
+for nxt_src in $NXT_PYTHON_MODULE_SRCS
+do
+    nxt_obj=`$echo $nxt_src | sed -e "s/\.c$/\.o/"`
+    cat << END >> $NXT_MAKEFILE
+
+$NXT_BUILD_DIR/$nxt_obj:	$nxt_src
+	\$(CC) -c \$(CFLAGS) \$(NXT_INCS) -I $NXT_PYTHON_INCLUDE \\
+		$NXT_LIB_AUX_CFLAGS \\
+	-o $NXT_BUILD_DIR/$nxt_obj \\
+	$nxt_src
+END
+
+done

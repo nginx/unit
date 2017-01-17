@@ -1,0 +1,76 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+NXT_TEST_BUILD=NO
+
+
+if [ $NXT_TEST_BUILD_EPOLL = YES ]; then
+    nxt_have=NXT_TEST_BUILD_EPOLL . auto/have
+    nxt_have=NXT_TEST_BUILD . auto/have
+    NXT_TEST_BUILD=YES
+fi
+
+
+if [ $NXT_TEST_BUILD_EVENTPORT = YES ]; then
+    nxt_have=NXT_TEST_BUILD_EVENTPORT . auto/have
+    nxt_have=NXT_TEST_BUILD . auto/have
+    NXT_TEST_BUILD=YES
+fi
+
+
+if [ $NXT_TEST_BUILD_DEVPOLL = YES ]; then
+    nxt_have=NXT_TEST_BUILD_DEVPOLL . auto/have
+    nxt_have=NXT_TEST_BUILD . auto/have
+    NXT_TEST_BUILD=YES
+fi
+
+
+if [ $NXT_TEST_BUILD_POLLSET = YES ]; then
+    nxt_have=NXT_TEST_BUILD_POLLSET . auto/have
+    nxt_have=NXT_TEST_BUILD . auto/have
+    NXT_TEST_BUILD=YES
+fi
+
+
+if [ $NXT_TEST_BUILD_LINUX_SENDFILE = YES ]; then
+    nxt_have=NXT_TEST_BUILD_LINUX_SENDFILE . auto/have
+    nxt_have=NXT_TEST_BUILD . auto/have
+    NXT_TEST_BUILD=YES
+fi
+
+
+if [ $NXT_TEST_BUILD_FREEBSD_SENDFILE = YES ]; then
+    nxt_have=NXT_TEST_BUILD_FREEBSD_SENDFILE . auto/have
+    nxt_have=NXT_TEST_BUILD . auto/have
+    NXT_TEST_BUILD=YES
+fi
+
+
+if [ $NXT_TEST_BUILD_SOLARIS_SENDFILEV = YES ]; then
+    nxt_have=NXT_TEST_BUILD_SOLARIS_SENDFILEV . auto/have
+    nxt_have=NXT_TEST_BUILD . auto/have
+    NXT_TEST_BUILD=YES
+fi
+
+
+if [ $NXT_TEST_BUILD_MACOSX_SENDFILE = YES ]; then
+    nxt_have=NXT_TEST_BUILD_MACOSX_SENDFILE . auto/have
+    nxt_have=NXT_TEST_BUILD . auto/have
+    NXT_TEST_BUILD=YES
+fi
+
+
+if [ $NXT_TEST_BUILD_AIX_SEND_FILE = YES ]; then
+    nxt_have=NXT_TEST_BUILD_AIX_SEND_FILE . auto/have
+    nxt_have=NXT_TEST_BUILD . auto/have
+    NXT_TEST_BUILD=YES
+fi
+
+
+if [ $NXT_TEST_BUILD_HPUX_SENDFILE = YES ]; then
+    nxt_have=NXT_TEST_BUILD_HPUX_SENDFILE . auto/have
+    nxt_have=NXT_TEST_BUILD . auto/have
+    NXT_TEST_BUILD=YES
+fi

@@ -1,0 +1,54 @@
+
+# Copyright (C) NGINX, Inc.
+# Copyright (C) Valentin V. Bartenev
+
+
+NXT_PYTHON_VERSION=`${NXT_PYTHON} -c \
+    'import sysconfig, sys; \
+     sys.stdout.write(sysconfig.get_python_version())'`
+
+NXT_PYTHON_INCLUDE=`${NXT_PYTHON} -c \
+    'import sysconfig, sys; \
+     sys.stdout.write(sysconfig.get_path("platinclude"))'`
+
+NXT_PYTHON_LIB="-lpython${NXT_PYTHON_VERSION}"
+
+NXT_PYTHON_LIBS=`${NXT_PYTHON} -c \
+    'import sysconfig, sys; \
+     sys.stdout.write(sysconfig.get_config_var("SYSLIBS") \
+                      + " " + sysconfig.get_config_var("LIBS"))'`
+
+
+nxt_feature="Python"
+nxt_feature_name=NXT_HAVE_PYTHON
+nxt_feature_run=no
+nxt_feature_incs="-I${NXT_PYTHON_INCLUDE}"
+nxt_feature_libs="$NXT_PYTHON_LIB $NXT_PYTHON_LIBS"
+nxt_feature_test="#include <Python.h>
+
+    int main() {
+        Py_Initialize();
+    }"
+
+. auto/feature
+
+if [ $nxt_found = no ]; then
+    $echo
+    $echo $0: error: no Python found.
+    $echo
+    exit 1;
+fi
+
+
+$echo " + Python version: ${NXT_PYTHON_VERSION}"
+
+
+NXT_PYTHON_MODULE_SRCS=" \
+    src/nxt_python_wsgi.c \
+"
+
+
+NXT_MODULES_INIT="$NXT_MODULES_INIT nxt_python_wsgi_init"
+NXT_MODULES_SRCS="$NXT_MODULES_SRCS $NXT_PYTHON_MODULE_SRCS"
+
+NXT_LIB_AUX_LIBS="$NXT_LIB_AUX_LIBS $NXT_PYTHON_LIB $NXT_PYTHON_LIBS"

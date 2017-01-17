@@ -1,0 +1,326 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+NXT_LIB_DEPS=" \
+    src/nxt_main.h \
+    src/nxt_clang.h \
+    src/nxt_types.h \
+    src/nxt_atomic.h \
+    src/nxt_errno.h \
+    src/nxt_time.h \
+    src/nxt_unix.h \
+    src/nxt_malloc.h \
+    src/nxt_file.h \
+    src/nxt_mem_map.h \
+    src/nxt_socket.h \
+    src/nxt_process.h \
+    src/nxt_signal.h \
+    src/nxt_chan.h \
+    src/nxt_dyld.h \
+    src/nxt_thread.h \
+    src/nxt_thread_id.h \
+    src/nxt_spinlock.h \
+    src/nxt_random.h \
+    src/nxt_queue.h \
+    src/nxt_rbtree.h \
+    src/nxt_string.h \
+    src/nxt_utf8.h \
+    src/nxt_unicode_lowcase.h \
+    src/nxt_parse.h \
+    src/nxt_mem_pool.h \
+    src/nxt_mem_pool_cleanup.h \
+    src/nxt_mem_cache_pool.h \
+    src/nxt_mem_zone.h \
+    src/nxt_sprintf.h \
+    src/nxt_file_name.h \
+    src/nxt_log.h \
+    src/nxt_djb_hash.h \
+    src/nxt_murmur_hash.h \
+    src/nxt_lvlhsh.h \
+    src/nxt_hash.h \
+    src/nxt_sort.h \
+    src/nxt_array.h \
+    src/nxt_vector.h \
+    src/nxt_list.h \
+    src/nxt_buf.h \
+    src/nxt_buf_pool.h \
+    src/nxt_buf_filter.h \
+    src/nxt_recvbuf.h \
+    src/nxt_sendbuf.h \
+    src/nxt_thread_log.h \
+    src/nxt_thread_time.h \
+    src/nxt_work_queue.h \
+    src/nxt_service.h \
+    src/nxt_fiber.h \
+    src/nxt_log_moderation.h \
+    src/nxt_event_set.h \
+    src/nxt_event_engine.h \
+    src/nxt_event_timer.h \
+    src/nxt_event_fd.h \
+    src/nxt_event_conn.h \
+    src/nxt_event_file.h \
+    src/nxt_job.h \
+    src/nxt_job_file.h \
+    src/nxt_sockaddr.h \
+    src/nxt_job_resolve.h \
+    src/nxt_listen_socket.h \
+"
+
+NXT_LIB_SRCS=" \
+    src/nxt_lib.c \
+    src/nxt_gmtime.c \
+    src/nxt_errno.c \
+    src/nxt_time.c \
+    src/nxt_malloc.c \
+    src/nxt_file.c \
+    src/nxt_mem_map.c \
+    src/nxt_socket.c \
+    src/nxt_socketpair.c \
+    src/nxt_process.c \
+    src/nxt_process_title.c \
+    src/nxt_signal.c \
+    src/nxt_chan.c \
+    src/nxt_dyld.c \
+    src/nxt_random.c \
+    src/nxt_queue.c \
+    src/nxt_rbtree.c \
+    src/nxt_mem_pool.c \
+    src/nxt_mem_pool_cleanup.c \
+    src/nxt_mem_cache_pool.c \
+    src/nxt_mem_zone.c \
+    src/nxt_string.c \
+    src/nxt_utf8.c \
+    src/nxt_parse.c \
+    src/nxt_sprintf.c \
+    src/nxt_file_name.c \
+    src/nxt_log.c \
+    src/nxt_djb_hash.c \
+    src/nxt_murmur_hash.c \
+    src/nxt_lvlhsh.c \
+    src/nxt_lvlhsh_pool.c \
+    src/nxt_array.c \
+    src/nxt_vector.c \
+    src/nxt_list.c \
+    src/nxt_buf.c \
+    src/nxt_buf_pool.c \
+    src/nxt_buf_filter.c \
+    src/nxt_recvbuf.c \
+    src/nxt_sendbuf.c \
+    src/nxt_thread_time.c \
+    src/nxt_time_parse.c \
+    src/nxt_work_queue.c \
+    src/nxt_service.c \
+    src/nxt_fiber.c \
+    src/nxt_log_moderation.c \
+    src/nxt_event_set.c \
+    src/nxt_event_engine.c \
+    src/nxt_event_timer.c \
+    src/nxt_event_conn.c \
+    src/nxt_event_conn_connect.c \
+    src/nxt_event_conn_accept.c \
+    src/nxt_event_conn_read.c \
+    src/nxt_event_conn_write.c \
+    src/nxt_event_conn_job_sendfile.c \
+    src/nxt_event_conn_proxy.c \
+    src/nxt_job.c \
+    src/nxt_job_file.c \
+    src/nxt_sockaddr.c \
+    src/nxt_job_resolve.c \
+    src/nxt_listen_socket.c \
+"
+
+NXT_LIB_THREAD_DEPS=" \
+    src/nxt_semaphore.h \
+    src/nxt_thread_pool.h \
+"
+
+NXT_LIB_THREAD_SRCS=" \
+    src/nxt_thread.c \
+    src/nxt_thread_id.c \
+    src/nxt_thread_mutex.c \
+    src/nxt_thread_cond.c \
+    src/nxt_spinlock.c \
+    src/nxt_semaphore.c \
+    src/nxt_thread_pool.c \
+"
+
+NXT_LIB_SSLTLS_DEPS="src/nxt_ssltls.h"
+NXT_LIB_SSLTLS_SRCS="src/nxt_ssltls.c"
+NXT_LIB_OPENSSL_SRCS="src/nxt_openssl.c"
+NXT_LIB_GNUTLS_SRCS="src/nxt_gnutls.c"
+NXT_LIB_CYASSL_SRCS="src/nxt_cyassl.c"
+NXT_LIB_POLARSSL_SRCS="src/nxt_polarssl.c"
+
+NXT_LIB_EPOLL_SRCS="src/nxt_epoll.c"
+NXT_LIB_KQUEUE_SRCS="src/nxt_kqueue.c"
+NXT_LIB_EVENTPORT_SRCS="src/nxt_eventport.c"
+NXT_LIB_DEVPOLL_SRCS="src/nxt_devpoll.c"
+NXT_LIB_POLLSET_SRCS="src/nxt_pollset.c"
+NXT_LIB_POLL_SRCS="src/nxt_poll.c"
+NXT_LIB_SELECT_SRCS="src/nxt_select.c"
+
+NXT_LIB_LINUX_SENDFILE_SRCS="src/nxt_linux_sendfile.c"
+NXT_LIB_FREEBSD_SENDFILE_SRCS="src/nxt_freebsd_sendfile.c"
+NXT_LIB_SOLARIS_SENDFILEV_SRCS="src/nxt_solaris_sendfilev.c"
+NXT_LIB_MACOSX_SENDFILE_SRCS="src/nxt_macosx_sendfile.c"
+NXT_LIB_AIX_SEND_FILE_SRCS="src/nxt_aix_send_file.c"
+NXT_LIB_HPUX_SENDFILE_SRCS="src/nxt_hpux_sendfile.c"
+
+NXT_LIB_TEST_BUILD_DEPS="src/nxt_test_build.h"
+NXT_LIB_TEST_BUILD_SRCS="src/nxt_test_build.c"
+
+NXT_LIB_UNIT_TEST_DEPS="test/nxt_lib_unit_test.h \
+    test/nxt_rbtree1.h \
+"
+
+NXT_LIB_UNIT_TEST_SRCS=" \
+    test/nxt_lib_unit_test.c \
+    test/nxt_rbtree1.c \
+    test/nxt_rbtree_unit_test.c \
+    test/nxt_term_parse_unit_test.c \
+    test/nxt_msec_diff_unit_test.c \
+    test/nxt_exp_approximation.c \
+    test/nxt_mem_cache_pool_unit_test.c \
+    test/nxt_mem_zone_unit_test.c \
+    test/nxt_lvlhsh_unit_test.c \
+    test/nxt_gmtime_unit_test.c \
+    test/nxt_sprintf_unit_test.c \
+    test/nxt_malloc_unit_test.c \
+    test/nxt_utf8_unit_test.c \
+    test/nxt_rbtree1_unit_test.c \
+"
+
+NXT_LIB_UTF8_FILE_NAME_TEST_SRCS=" \
+    test/nxt_utf8_file_name_test.c \
+"
+
+
+if [ $NXT_THREADS = YES ]; then
+    NXT_LIB_DEPS="$NXT_LIB_DEPS $NXT_LIB_THREAD_DEPS"
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_THREAD_SRCS"
+fi
+
+
+if [ $NXT_SSLTLS = YES ]; then
+    nxt_have=NXT_SSLTLS . auto/have
+    NXT_LIB_DEPS="$NXT_LIB_DEPS $NXT_LIB_SSLTLS_DEPS"
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_SSLTLS_SRCS"
+fi
+
+
+if [ $NXT_OPENSSL = YES ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_OPENSSL_SRCS"
+fi
+
+
+if [ $NXT_GNUTLS = YES ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_GNUTLS_SRCS"
+fi
+
+
+if [ $NXT_CYASSL = YES ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_CYASSL_SRCS"
+fi
+
+
+if [ $NXT_POLARSSL = YES ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_POLARSSL_SRCS"
+fi
+
+
+if [ "$NXT_HAVE_EPOLL" = "YES" -o "$NXT_TEST_BUILD_EPOLL" = "YES" ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_EPOLL_SRCS"
+fi
+
+
+if [ "$NXT_HAVE_KQUEUE" = "YES" ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_KQUEUE_SRCS"
+fi
+
+
+if [ "$NXT_HAVE_EVENTPORT" = "YES" -o "$NXT_TEST_BUILD_EVENTPORT" = "YES" ];
+then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_EVENTPORT_SRCS"
+fi
+
+
+if [ "$NXT_HAVE_DEVPOLL" = "YES" -o "$NXT_TEST_BUILD_DEVPOLL" = "YES" ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_DEVPOLL_SRCS"
+fi
+
+
+if [ "$NXT_HAVE_POLLSET" = "YES" -o "$NXT_TEST_BUILD_POLLSET" = "YES" ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_POLLSET_SRCS"
+fi
+
+
+NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_POLL_SRCS"
+NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_SELECT_SRCS"
+
+
+if [ "$NXT_HAVE_LINUX_SENDFILE" = "YES" \
+     -o "$NXT_TEST_BUILD_LINUX_SENDFILE" = "YES" ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_LINUX_SENDFILE_SRCS"
+fi
+
+
+if [ "$NXT_HAVE_FREEBSD_SENDFILE" = "YES" \
+     -o "$NXT_TEST_BUILD_FREEBSD_SENDFILE" = "YES" ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_FREEBSD_SENDFILE_SRCS"
+fi
+
+
+if [ "$NXT_HAVE_SOLARIS_SENDFILEV" = "YES" \
+     -o "$NXT_TEST_BUILD_SOLARIS_SENDFILEV" = "YES" ];
+then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_SOLARIS_SENDFILEV_SRCS"
+fi
+
+
+if [ "$NXT_HAVE_MACOSX_SENDFILE" = "YES" \
+     -o "$NXT_TEST_BUILD_MACOSX_SENDFILE" = "YES" ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_MACOSX_SENDFILE_SRCS"
+fi
+
+
+if [ "$NXT_HAVE_AIX_SEND_FILE" = "YES" \
+     -o "$NXT_TEST_BUILD_AIX_SEND_FILE" = "YES" ];
+then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_AIX_SEND_FILE_SRCS"
+fi
+
+
+if [ "$NXT_HAVE_HPUX_SENDFILE" = "YES" \
+     -o "$NXT_TEST_BUILD_HPUX_SENDFILE" = "YES" ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_HPUX_SENDFILE_SRCS"
+fi
+
+
+if [ "$NXT_TEST_BUILD" = "YES" ]; then
+    NXT_LIB_DEPS="$NXT_LIB_DEPS $NXT_LIB_TEST_BUILD_DEPS"
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_TEST_BUILD_SRCS"
+fi
+
+
+if [ $NXT_LIB_UNIT_TEST = YES ]; then
+    nxt_have=NXT_LIB_UNIT_TEST . auto/have
+fi
+
+NXT_DEPS=" \
+    src/nxt_cycle.h \
+    src/nxt_process_chan.h \
+    src/nxt_application.h \
+    src/nxt_master_process.h \
+"
+
+NXT_SRCS=" \
+    src/nxt_main.c \
+    src/nxt_app_log.c \
+    src/nxt_cycle.c \
+    src/nxt_process_chan.c \
+    src/nxt_application.c \
+    src/nxt_master_process.c \
+    src/nxt_worker_process.c \
+"

@@ -1,0 +1,116 @@
+#!/bin/sh
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+# Disable localized program messages.
+LANG=C
+export LANG
+
+# Stop on error exit status.
+set -e
+
+# Stop on uninitialized variable.
+set -u
+
+# Initialize variables with null values if they are not defined.
+CFLAGS=${CFLAGS=}
+NXT_TEST_CFLAGS=${NXT_TEST_CFLAGS=}
+NXT_TEST_LIBS=${NXT_TEST_LIBS=}
+NXT_UNIT_TEST_TARGETS=${NXT_UNIT_TEST_TARGETS=}
+
+. auto/os/test
+. auto/options
+
+test -d $NXT_BUILD_DIR || mkdir $NXT_BUILD_DIR
+
+NXT_AUTOTEST=$NXT_BUILD_DIR/autotest
+NXT_AUTOCONF_ERR=$NXT_BUILD_DIR/autoconf.err
+NXT_AUTO_CONFIG_H=$NXT_BUILD_DIR/nxt_auto_config.h
+NXT_MAKEFILE=$NXT_BUILD_DIR/Makefile
+
+> $NXT_AUTOCONF_ERR
+> $NXT_AUTO_CONFIG_H
+
+. auto/cc/test
+
+
+cat << END >> $NXT_AUTO_CONFIG_H
+
+#define NXT_CONFIGURE_OPTIONS  "$NXT_CONFIGURE_OPTIONS"
+#define NXT_SYSTEM_VERSION     "$NXT_SYSTEM $NXT_SYSTEM_VERSION $NXT_SYSTEM_PLATFORM"
+#define NXT_COMPILER_VERSION   "$NXT_CC_VERSION"
+
+END
+
+
+if [ $echo = echo ]; then
+    # Build a portable "echo" program that supports only "-n" option.
+    # This also tests C compiler ability to create executables.
+    . auto/echo/build
+fi
+
+
+nxt_have=NXT_UNIX . auto/have
+
+if [ $NXT_UNIX_DOMAIN = YES ]; then
+    nxt_have=NXT_HAVE_UNIX_DOMAIN . auto/have
+fi
+
+. auto/types
+. auto/clang
+. auto/atomic
+. auto/malloc
+. auto/mmap
+. auto/time
+
+if [ $NXT_THREADS = YES ]; then
+    . auto/threads
+else
+    NXT_PTHREAD=
+fi
+
+. auto/events
+. auto/sockets
+. auto/sendfile
+. auto/files
+. auto/unix
+. auto/os/conf
+. auto/ssltls
+. auto/pcre
+
+
+case "$NXT_SYSTEM_PLATFORM" in
+    i386 | amd64 | x86_64)
+        nxt_have=NXT_HAVE_LITTLE_ENDIAN . auto/have
+        nxt_have=NXT_HAVE_NONALIGNED . auto/have
+    ;;
+esac
+
+
+if [ $NXT_DEBUG = YES ]; then
+    nxt_have=NXT_DEBUG . auto/have
+fi
+
+
+if [ $NXT_THREADS = YES ]; then
+    nxt_have=NXT_THREADS . auto/have
+fi
+
+
+. auto/test_build
+. auto/sources
+
+# LOOK
+
+NXT_LIB_AUX_CFLAGS="$NXT_OPENSSL_CFLAGS $NXT_GNUTLS_CFLAGS \\
+                    $NXT_CYASSL_CFLAGS $NXT_POLARSSL_CFLAGS \\
+                    $NXT_PCRE_CFLAGS"
+
+NXT_LIB_AUX_LIBS="$NXT_OPENSSL_LIBS $NXT_GNUTLS_LIBS \\
+                    $NXT_CYASSL_LIBS $NXT_POLARSSL_LIBS \\
+                    $NXT_PCRE_LIB"
+
+. auto/modules/conf
+. auto/make
