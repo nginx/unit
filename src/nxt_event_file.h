@@ -11,6 +11,7 @@ typedef struct {
     void                *data;
     nxt_file_t          *file;
     nxt_work_handler_t  handler;
+    nxt_task_t          *task;
 } nxt_event_file_t;
 
 

@@ -97,6 +97,8 @@ struct nxt_event_fd_s {
     int32_t                 kq_available;
 #endif
 
+    nxt_task_t              *task;
+
     nxt_work_queue_t        *read_work_queue;
     nxt_work_handler_t      read_handler;
     nxt_work_queue_t        *write_work_queue;

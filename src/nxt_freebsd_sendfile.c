@@ -50,7 +50,7 @@ nxt_freebsd_event_conn_io_sendfile(nxt_event_conn_t *c, nxt_buf_t *b,
     sb.size = 0;
     sb.limit = limit;
 
-    nhd = nxt_sendbuf_mem_coalesce(&sb);
+    nhd = nxt_sendbuf_mem_coalesce(c->socket.task, &sb);
 
     if (nhd == 0 && sb.sync) {
         return 0;
@@ -70,7 +70,7 @@ nxt_freebsd_event_conn_io_sendfile(nxt_event_conn_t *c, nxt_buf_t *b,
 
     sb.iobuf = tr;
 
-    ntr = nxt_sendbuf_mem_coalesce(&sb);
+    ntr = nxt_sendbuf_mem_coalesce(c->socket.task, &sb);
 
     /*
      * Disposal of surplus kernel operations

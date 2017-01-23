@@ -17,13 +17,13 @@ static nxt_int_t nxt_fastcgi_buffer(nxt_fastcgi_parse_t *fp, nxt_buf_t ***tail,
 
 
 void
-nxt_fastcgi_record_parse(nxt_fastcgi_parse_t *fp, nxt_buf_t *in)
+nxt_fastcgi_record_parse(nxt_task_t *task, nxt_fastcgi_parse_t *fp,
+    nxt_buf_t *in)
 {
     u_char        ch;
     nxt_int_t     ret, stream;
     nxt_buf_t     *b, *nb, **tail[2];
     const char    *msg;
-    nxt_thread_t  *thr;
     enum {
         sw_fastcgi_version = 0,
         sw_fastcgi_type,
@@ -208,9 +208,9 @@ nxt_fastcgi_record_parse(nxt_fastcgi_parse_t *fp, nxt_buf_t *in)
 
         if (b->retain == 0) {
             /* No record data was found in a buffer. */
-            thr = nxt_thread();
-            nxt_thread_current_work_queue_add(thr, b->completion_handler,
-                                              b, b->parent, thr->log);
+            nxt_thread_current_work_queue_add(task->thread,
+                                              b->completion_handler,
+                                              task, b, b->parent);
         }
 
     next:

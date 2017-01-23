@@ -82,11 +82,13 @@ struct nxt_fastcgi_source_s {
 };
 
 
-NXT_EXPORT void nxt_fastcgi_source_handler(nxt_upstream_source_t *us,
+NXT_EXPORT void nxt_fastcgi_source_handler(nxt_task_t *task,
+    nxt_upstream_source_t *us,
     nxt_fastcgi_source_request_create_t request_create);
 NXT_EXPORT nxt_int_t nxt_fastcgi_source_hash_create(nxt_mem_pool_t *mp,
     nxt_lvlhsh_t *lh);
-void nxt_fastcgi_record_parse(nxt_fastcgi_parse_t *fp, nxt_buf_t *in);
+void nxt_fastcgi_record_parse(nxt_task_t *task, nxt_fastcgi_parse_t *fp,
+    nxt_buf_t *in);
 
 
 #endif /* _NXT_FASTCGI_SOURCE_H_INCLUDED_ */

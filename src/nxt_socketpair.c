@@ -82,8 +82,7 @@ nxt_socketpair_send(nxt_event_fd_t *ev, nxt_fd_t fd, nxt_iobuf_t *iob,
 
         err = (n == -1) ? nxt_socket_errno : 0;
 
-        nxt_log_debug(ev->log, "sendmsg(%d, %FD, %ui): %z",
-                               ev->fd, fd, niob, n);
+        nxt_debug(ev->task, "sendmsg(%d, %FD, %ui): %z", ev->fd, fd, niob, n);
 
         if (n > 0) {
             return n;
@@ -94,18 +93,19 @@ nxt_socketpair_send(nxt_event_fd_t *ev, nxt_fd_t fd, nxt_iobuf_t *iob,
         switch (err) {
 
         case NXT_EAGAIN:
-            nxt_log_debug(ev->log, "sendmsg(%d) not ready", ev->fd);
+            nxt_debug(ev->task, "sendmsg(%d) not ready", ev->fd);
             ev->write_ready = 0;
+
             return NXT_AGAIN;
 
         case NXT_EINTR:
-            nxt_log_debug(ev->log, "sendmsg(%d) interrupted", ev->fd);
+            nxt_debug(ev->task, "sendmsg(%d) interrupted", ev->fd);
             continue;
 
         default:
-            nxt_log_error(NXT_LOG_CRIT, ev->log,
-                          "sendmsg(%d, %FD, %ui) failed %E",
-                          ev->fd, fd, niob, err);
+            nxt_log(ev->task, NXT_LOG_CRIT, "sendmsg(%d, %FD, %ui) failed %E",
+                    ev->fd, fd, niob, err);
+
             return NXT_ERROR;
         }
     }
@@ -124,8 +124,7 @@ nxt_socketpair_recv(nxt_event_fd_t *ev, nxt_fd_t *fd, nxt_iobuf_t *iob,
 
         err = (n == -1) ? nxt_socket_errno : 0;
 
-        nxt_log_debug(ev->log, "recvmsg(%d, %FD, %ui): %z",
-                               ev->fd, *fd, niob, n);
+        nxt_debug(ev->task, "recvmsg(%d, %FD, %ui): %z", ev->fd, *fd, niob, n);
 
         if (n > 0) {
             return n;
@@ -134,6 +133,7 @@ nxt_socketpair_recv(nxt_event_fd_t *ev, nxt_fd_t *fd, nxt_iobuf_t *iob,
         if (n == 0) {
             ev->closed = 1;
             ev->read_ready = 0;
+
             return n;
         }
 
@@ -142,18 +142,19 @@ nxt_socketpair_recv(nxt_event_fd_t *ev, nxt_fd_t *fd, nxt_iobuf_t *iob,
         switch (err) {
 
         case NXT_EAGAIN:
-            nxt_log_debug(ev->log, "recvmsg(%d) not ready", ev->fd);
+            nxt_debug(ev->task, "recvmsg(%d) not ready", ev->fd);
             ev->read_ready = 0;
+
             return NXT_AGAIN;
 
         case NXT_EINTR:
-            nxt_log_debug(ev->log, "recvmsg(%d) interrupted", ev->fd);
+            nxt_debug(ev->task, "recvmsg(%d) interrupted", ev->fd);
             continue;
 
         default:
-            nxt_log_error(NXT_LOG_CRIT, ev->log,
-                          "recvmsg(%d, %p, %ui) failed %E",
-                          ev->fd, fd, niob, err);
+            nxt_log(ev->task, NXT_LOG_CRIT, "recvmsg(%d, %p, %ui) failed %E",
+                    ev->fd, fd, niob, err);
+
             return NXT_ERROR;
         }
     }

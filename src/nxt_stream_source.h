@@ -10,7 +10,8 @@
 
 typedef struct nxt_stream_source_s  nxt_stream_source_t;
 
-typedef void (*nxt_stream_source_handler_t)(nxt_stream_source_t *u);
+typedef void (*nxt_stream_source_handler_t)(nxt_task_t *task,
+    nxt_stream_source_t *s);
 
 struct nxt_stream_source_s {
     nxt_event_conn_t             *conn;
@@ -25,7 +26,7 @@ struct nxt_stream_source_s {
 };
 
 
-void nxt_stream_source_connect(nxt_stream_source_t *stream);
+void nxt_stream_source_connect(nxt_task_t *task, nxt_stream_source_t *stream);
 
 
 #endif /* _NXT_STREAM_SOURCE_H_INCLUDED_ */

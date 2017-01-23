@@ -44,25 +44,25 @@ typedef union {
 } nxt_process_chan_data_t;
 
 
-typedef void (*nxt_process_chan_handler_t)(nxt_thread_t *thr,
+typedef void (*nxt_process_chan_handler_t)(nxt_task_t *task,
     nxt_chan_recv_msg_t *msg);
 
 
 void nxt_process_chan_create(nxt_thread_t *thr, nxt_process_chan_t *proc,
     nxt_process_chan_handler_t *handlers);
-void nxt_process_chan_write(nxt_cycle_t *cycle, nxt_uint_t type,
-    nxt_fd_t fd, uint32_t stream, nxt_buf_t *b);
-void nxt_process_new_chan(nxt_cycle_t *cycle, nxt_process_chan_t *proc);
-void nxt_process_chan_change_log_file(nxt_cycle_t *cycle, nxt_uint_t slot,
-    nxt_fd_t fd);
+void nxt_process_chan_write(nxt_task_t *task, nxt_cycle_t *cycle,
+    nxt_uint_t type, nxt_fd_t fd, uint32_t stream, nxt_buf_t *b);
+void nxt_process_new_chan(nxt_task_t *task, nxt_cycle_t *cycle,
+    nxt_process_chan_t *proc);
+void nxt_process_chan_change_log_file(nxt_task_t *task, nxt_cycle_t *cycle,
+    nxt_uint_t slot, nxt_fd_t fd);
 
-void nxt_process_chan_quit_handler(nxt_thread_t *thr, nxt_chan_recv_msg_t *msg);
-void nxt_process_chan_new_handler(nxt_thread_t *thr, nxt_chan_recv_msg_t *msg);
-void nxt_process_chan_change_log_file_handler(nxt_thread_t *thr,
+void nxt_process_chan_quit_handler(nxt_task_t *task, nxt_chan_recv_msg_t *msg);
+void nxt_process_chan_new_handler(nxt_task_t *task, nxt_chan_recv_msg_t *msg);
+void nxt_process_chan_change_log_file_handler(nxt_task_t *task,
     nxt_chan_recv_msg_t *msg);
-void nxt_process_chan_data_handler(nxt_thread_t *thr, nxt_chan_recv_msg_t *msg);
-void nxt_process_chan_empty_handler(nxt_thread_t *thr,
-    nxt_chan_recv_msg_t *msg);
+void nxt_process_chan_data_handler(nxt_task_t *task, nxt_chan_recv_msg_t *msg);
+void nxt_process_chan_empty_handler(nxt_task_t *task, nxt_chan_recv_msg_t *msg);
 
 
 #endif /* _NXT_PROCESS_CHAN_H_INCLUDED_ */

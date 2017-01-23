@@ -184,8 +184,9 @@ nxt_thread_exit(nxt_thread_t *thr)
 
     if (thr->link != NULL) {
         nxt_event_engine_post(thr->link->engine, thr->link->exit,
-                              (void *) (uintptr_t) thr->handle, NULL,
-                              &nxt_main_log);
+                              &thr->link->engine->task,
+                              (void *) (uintptr_t) thr->handle,
+                              NULL, &nxt_main_log);
 
         nxt_free(thr->link);
         thr->link = NULL;

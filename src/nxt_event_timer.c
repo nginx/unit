@@ -141,8 +141,8 @@ nxt_event_timer_change(nxt_event_timers_t *timers, nxt_event_timer_t *ev,
 void
 nxt_event_timer_disable(nxt_event_timer_t *ev)
 {
-    nxt_log_debug(ev->log, "event timer disable: %D: %d:%M",
-                  ev->ident, ev->state, ev->time);
+    nxt_debug(ev->task, "event timer disable: %D: %d:%M",
+              ev->ident, ev->state, ev->time);
 
     ev->state = NXT_EVENT_TIMER_DISABLED;
 }
@@ -314,7 +314,7 @@ nxt_event_timer_expire(nxt_thread_t *thr, nxt_msec_t now)
             ev->state = NXT_EVENT_TIMER_DISABLED;
 
             nxt_thread_work_queue_add(thr, ev->work_queue, ev->handler,
-                                      ev, NULL, ev->log);
+                                      ev->task, ev, NULL);
         }
     }
 }

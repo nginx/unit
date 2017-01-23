@@ -10,14 +10,14 @@
 #include <nxt_master_process.h>
 
 
-static void nxt_worker_process_quit(nxt_thread_t *thr);
-static void nxt_worker_process_quit_handler(nxt_thread_t *thr,
+static void nxt_worker_process_quit(nxt_task_t *task);
+static void nxt_worker_process_quit_handler(nxt_task_t *task,
     nxt_chan_recv_msg_t *msg);
-static void nxt_worker_process_signal_handler(nxt_thread_t *thr, void *obj,
+static void nxt_worker_process_signal_handler(nxt_task_t *task, void *obj,
     void *data);
-static void nxt_worker_process_sigterm_handler(nxt_thread_t *thr, void *obj,
+static void nxt_worker_process_sigterm_handler(nxt_task_t *task, void *obj,
     void *data);
-static void nxt_worker_process_sigquit_handler(nxt_thread_t *thr, void *obj,
+static void nxt_worker_process_sigquit_handler(nxt_task_t *task, void *obj,
     void *data);
 
 
@@ -82,7 +82,7 @@ nxt_worker_process_start(void *data)
         goto fail;
     }
 
-    if (nxt_event_engine_change(thr, event_set, cycle->batch) != NXT_OK) {
+    if (nxt_event_engine_change(thr, &nxt_main_task, event_set, cycle->batch) != NXT_OK) {
         goto fail;
     }
 
@@ -96,7 +96,7 @@ nxt_worker_process_start(void *data)
 
     /* A master process chan. */
     nxt_chan_read_close(proc[0].chan);
-    nxt_chan_write_enable(thr, proc[0].chan);
+    nxt_chan_write_enable(&nxt_main_task, proc[0].chan);
 
     /* A worker process chan. */
     nxt_process_chan_create(thr, &proc[cycle->current_process],
@@ -127,7 +127,7 @@ fail:
 
 
 static void
-nxt_worker_process_quit(nxt_thread_t *thr)
+nxt_worker_process_quit(nxt_task_t *task)
 {
     nxt_uint_t               n;
     nxt_cycle_t              *cycle;
@@ -138,9 +138,9 @@ nxt_worker_process_quit(nxt_thread_t *thr)
 
     cycle = nxt_thread_cycle();
 
-    nxt_log_debug(thr->log, "close listen connections");
+    nxt_debug(task, "close listen connections");
 
-    listen = &thr->engine->listen_connections;
+    listen = &task->thread->engine->listen_connections;
 
     for (link = nxt_queue_first(listen);
          link != nxt_queue_tail(listen);
@@ -150,7 +150,7 @@ nxt_worker_process_quit(nxt_thread_t *thr)
         cls = nxt_queue_link_data(link, nxt_event_conn_listen_t, link);
         nxt_queue_remove(link);
 
-        nxt_event_fd_close(thr->engine, &cls->socket);
+        nxt_event_fd_close(task->thread->engine, &cls->socket);
     }
 
     if (cycle->listen_sockets != NULL) {
@@ -169,45 +169,44 @@ nxt_worker_process_quit(nxt_thread_t *thr)
         cycle->listen_sockets->nelts = 0;
     }
 
-    nxt_cycle_quit(thr, cycle);
+    nxt_cycle_quit(task, cycle);
 }
 
 
 static void
-nxt_worker_process_signal_handler(nxt_thread_t *thr, void *obj, void *data)
+nxt_worker_process_signal_handler(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_log_error(NXT_LOG_INFO, thr->log,
-                  "signal signo:%d (%s) recevied, ignored",
-                  (int) (uintptr_t) obj, data);
+    nxt_trace(task, "signal signo:%d (%s) recevied, ignored",
+              (int) (uintptr_t) obj, data);
 }
 
 
 static void
-nxt_worker_process_quit_handler(nxt_thread_t *thr, nxt_chan_recv_msg_t *msg)
+nxt_worker_process_quit_handler(nxt_task_t *task, nxt_chan_recv_msg_t *msg)
 {
-    nxt_worker_process_quit(thr);
+    nxt_worker_process_quit(task);
 }
 
 
 static void
-nxt_worker_process_sigterm_handler(nxt_thread_t *thr, void *obj, void *data)
+nxt_worker_process_sigterm_handler(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_log_debug(thr->log, "sigterm handler signo:%d (%s)",
-                  (int) (uintptr_t) obj, data);
+    nxt_debug(task, "sigterm handler signo:%d (%s)",
+              (int) (uintptr_t) obj, data);
 
     /* A fast exit. */
 
-    nxt_cycle_quit(thr, NULL);
+    nxt_cycle_quit(task, NULL);
 }
 
 
 static void
-nxt_worker_process_sigquit_handler(nxt_thread_t *thr, void *obj, void *data)
+nxt_worker_process_sigquit_handler(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_log_debug(thr->log, "sigquit handler signo:%d (%s)",
-                  (int) (uintptr_t) obj, data);
+    nxt_debug(task, "sigquit handler signo:%d (%s)",
+              (int) (uintptr_t) obj, data);
 
     /* A graceful exit. */
 
-    nxt_worker_process_quit(thr);
+    nxt_worker_process_quit(task);
 }

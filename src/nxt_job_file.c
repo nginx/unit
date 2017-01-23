@@ -8,8 +8,7 @@
 #include <nxt_main.h>
 
 
-static void nxt_job_file_open_and_read(nxt_thread_t *thr, void *obj,
-    void *data);
+static void nxt_job_file_open_and_read(nxt_task_t *task, void *obj, void *data);
 static nxt_int_t nxt_job_file_open(nxt_job_file_t *jbf);
 static nxt_int_t nxt_job_file_info(nxt_job_file_t *jbf);
 static nxt_int_t nxt_job_file_mmap(nxt_job_file_t *jbf, size_t size);
@@ -51,14 +50,14 @@ nxt_job_file_init(nxt_job_file_t *jbf)
  */
 
 void
-nxt_job_file_read(nxt_thread_t *thr, nxt_job_t *job)
+nxt_job_file_read(nxt_task_t *task, nxt_job_t *job)
 {
-    nxt_job_start(thr, job, nxt_job_file_open_and_read);
+    nxt_job_start(task, job, nxt_job_file_open_and_read);
 }
 
 
 static void
-nxt_job_file_open_and_read(nxt_thread_t *thr, void *obj, void *data)
+nxt_job_file_open_and_read(nxt_task_t *task, void *obj, void *data)
 {
     size_t              size;
     nxt_int_t           n;
@@ -70,7 +69,7 @@ nxt_job_file_open_and_read(nxt_thread_t *thr, void *obj, void *data)
     jbf = obj;
     file = &jbf->file;
 
-    nxt_log_debug(thr->log, "file job read: \"%FN\"", file->name);
+    nxt_debug(task, "file job read: \"%FN\"", file->name);
 
     if (file->fd != NXT_FILE_INVALID && jbf->close_before_open) {
         nxt_file_close(file);
@@ -135,7 +134,7 @@ nxt_job_file_open_and_read(nxt_thread_t *thr, void *obj, void *data)
         }
     }
 
-    nxt_job_return(thr, &jbf->job, jbf->ready_handler);
+    nxt_job_return(task, &jbf->job, jbf->ready_handler);
     return;
 
 done:
@@ -145,7 +144,7 @@ done:
         file->fd = NXT_FILE_INVALID;
     }
 
-    nxt_job_return(thr, &jbf->job, handler);
+    nxt_job_return(task, &jbf->job, handler);
 }
 
 

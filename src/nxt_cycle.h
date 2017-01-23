@@ -17,7 +17,7 @@ typedef enum {
 
 
 typedef struct nxt_cycle_s  nxt_cycle_t;
-typedef void (*nxt_cycle_cont_t)(nxt_thread_t *thr, nxt_cycle_t *cycle);
+typedef void (*nxt_cycle_cont_t)(nxt_task_t *task, nxt_cycle_t *cycle);
 
 
 struct nxt_cycle_s {
@@ -120,9 +120,9 @@ nxt_thread_cycle(void)
 }
 
 
-nxt_int_t nxt_cycle_create(nxt_thread_t *thr, nxt_cycle_t *previous,
-    nxt_cycle_cont_t start, nxt_str_t *config_name, nxt_bool_t test_config);
-void nxt_cycle_quit(nxt_thread_t *thr, nxt_cycle_t *cycle);
+nxt_int_t nxt_cycle_create(nxt_thread_t *thr, nxt_task_t *task,
+    nxt_cycle_t *previous, nxt_cycle_cont_t start, nxt_str_t *config_name);
+void nxt_cycle_quit(nxt_task_t *task, nxt_cycle_t *cycle);
 
 void nxt_cycle_event_engine_free(nxt_cycle_t *cycle);
 
@@ -138,8 +138,7 @@ nxt_int_t nxt_cycle_pid_file_create(nxt_file_name_t *pid_file, nxt_bool_t test);
 
 nxt_listen_socket_t *nxt_cycle_listen_socket_add(nxt_cycle_t *cycle,
     nxt_sockaddr_t *sa);
-nxt_int_t nxt_cycle_listen_sockets_enable(nxt_thread_t *thr,
-    nxt_cycle_t *cycle);
+nxt_int_t nxt_cycle_listen_sockets_enable(nxt_task_t *task, nxt_cycle_t *cycle);
 nxt_file_t *nxt_cycle_log_file_add(nxt_cycle_t *cycle, nxt_str_t *name);
 
 nxt_int_t nxt_cycle_shm_zone_add(nxt_cycle_t *cycle, nxt_str_t *name,

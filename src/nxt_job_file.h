@@ -68,7 +68,7 @@ struct nxt_job_file_s {
 
 NXT_EXPORT nxt_job_file_t *nxt_job_file_create(nxt_mem_pool_t *mp);
 NXT_EXPORT void nxt_job_file_init(nxt_job_file_t *jbf);
-NXT_EXPORT void nxt_job_file_read(nxt_thread_t *thr, nxt_job_t *job);
+NXT_EXPORT void nxt_job_file_read(nxt_task_t *task, nxt_job_t *job);
 
 
 #endif /* _NXT_JOB_FILE_H_INCLUDED_ */

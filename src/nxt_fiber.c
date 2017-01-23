@@ -7,19 +7,17 @@
 #include <nxt_main.h>
 
 
-static char *nxt_fiber_create_stack(nxt_fiber_t *fib);
+static char *nxt_fiber_create_stack(nxt_task_t *task, nxt_fiber_t *fib);
 static void nxt_fiber_switch_stack(nxt_fiber_t *fib, jmp_buf *parent);
-static void nxt_fiber_switch_handler(nxt_thread_t *thr, void *obj,
-    void *data);
-static void nxt_fiber_switch(nxt_thread_t *thr, nxt_fiber_t *fib);
-static void nxt_fiber_timer_handler(nxt_thread_t *thr, void *obj,
-    void *data);
+static void nxt_fiber_switch_handler(nxt_task_t *task, void *obj, void *data);
+static void nxt_fiber_switch(nxt_task_t *task, nxt_fiber_t *fib);
+static void nxt_fiber_timer_handler(nxt_task_t *task, void *obj, void *data);
 
 
 #define                                                                       \
-nxt_fiber_enqueue(thr, fib)                                                   \
+nxt_fiber_enqueue(thr, task, fib)                                             \
     nxt_thread_work_queue_add(thr, &(thr)->work_queue.main,                   \
-                              nxt_fiber_switch_handler, fib, NULL, thr->log)
+                              nxt_fiber_switch_handler, task, fib, NULL)
 
 
 nxt_fiber_main_t *
@@ -32,6 +30,7 @@ nxt_fiber_main_create(nxt_event_engine_t *engine)
         return NULL;
     }
 
+    fm->engine = engine;
     fm->stack_size = 512 * 1024 - nxt_pagesize;
     fm->idle = NULL;
 
@@ -67,8 +66,14 @@ nxt_fiber_create(nxt_fiber_start_t start, void *data, size_t stack)
         fib->data = data;
         fib->main = fm;
 
-        nxt_log_debug(thr->log, "fiber create cached: %PF", fib->fid);
-        nxt_fiber_enqueue(thr, fib);
+        fib->task.thread = thr;
+        fib->task.log = thr->log;
+        fib->task.ident = nxt_task_next_ident();
+
+        nxt_debug(&fib->task, "fiber create cached: %PF", fib->fid);
+
+        nxt_fiber_enqueue(thr, &fm->engine->task, fib);
+
         return NXT_OK;
     }
 
@@ -85,7 +90,11 @@ nxt_fiber_create(nxt_fiber_start_t start, void *data, size_t stack)
     fib->stack_size = fm->stack_size;
     fib->main = fm;
 
-    fib->stack = nxt_fiber_create_stack(fib);
+    fib->task.thread = thr;
+    fib->task.log = thr->log;
+    fib->task.ident = nxt_task_next_ident();
+
+    fib->stack = nxt_fiber_create_stack(&fib->task, fib);
 
     if (nxt_fast_path(fib->stack != NULL)) {
 
@@ -113,7 +122,7 @@ nxt_fiber_create(nxt_fiber_start_t start, void *data, size_t stack)
 #if (NXT_LINUX)
 
 static char *
-nxt_fiber_create_stack(nxt_fiber_t *fib)
+nxt_fiber_create_stack(nxt_task_t *task, nxt_fiber_t *fib)
 {
     char    *s;
     size_t  size;
@@ -124,21 +133,24 @@ nxt_fiber_create_stack(nxt_fiber_t *fib)
              MAP_PRIVATE | MAP_ANON | MAP_GROWSDOWN, -1, 0);
 
     if (nxt_slow_path(s == MAP_FAILED)) {
-        nxt_thread_log_alert("fiber stack "
-                   "mmap(%uz, MAP_PRIVATE|MAP_ANON|MAP_GROWSDOWN) failed %E",
-                   size, nxt_errno);
+        nxt_log(task, NXT_LOG_CRIT, "fiber stack "
+                "mmap(%uz, MAP_PRIVATE|MAP_ANON|MAP_GROWSDOWN) failed %E",
+                size, nxt_errno);
+
         return NULL;
     }
 
     if (nxt_slow_path(mprotect(s, nxt_pagesize, PROT_NONE) != 0)) {
-        nxt_thread_log_alert("fiber stack mprotect(%uz, PROT_NONE) failed %E",
-                             size, nxt_errno);
+        nxt_log(task, NXT_LOG_CRIT,
+                "fiber stack mprotect(%uz, PROT_NONE) failed %E",
+                size, nxt_errno);
+
         return NULL;
     }
 
     s += nxt_pagesize;
 
-    nxt_thread_log_debug("fiber stack mmap: %p", s);
+    nxt_debug(task, "fiber stack mmap: %p", s);
 
     return s;
 }
@@ -146,7 +158,7 @@ nxt_fiber_create_stack(nxt_fiber_t *fib)
 #else /* Generic version. */
 
 static char *
-nxt_fiber_create_stack(nxt_fiber_t *fib)
+nxt_fiber_create_stack(nxt_task_t *task, nxt_fiber_t *fib)
 {
     char    *s;
     size_t   size;
@@ -156,21 +168,24 @@ nxt_fiber_create_stack(nxt_fiber_t *fib)
     s = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
 
     if (nxt_slow_path(s == MAP_FAILED)) {
-        nxt_thread_log_alert("fiber stack "
-                             "mmap(%uz, MAP_PRIVATE|MAP_ANON) failed %E",
-                             size, nxt_errno);
+        nxt_log(task, NXT_LOG_CRIT,
+                "fiber stack mmap(%uz, MAP_PRIVATE|MAP_ANON) failed %E",
+                size, nxt_errno);
+
         return NULL;
     }
 
     if (nxt_slow_path(mprotect(s, nxt_pagesize, PROT_NONE) != 0)) {
-        nxt_thread_log_alert("fiber stack mprotect(%uz, PROT_NONE) failed %E",
-                              size, nxt_errno);
+        nxt_log(task, NXT_LOG_CRIT,
+               "fiber stack mprotect(%uz, PROT_NONE) failed %E",
+               size, nxt_errno);
+
         return NULL;
     }
 
     s += nxt_pagesize;
 
-    nxt_thread_log_debug("fiber stack mmap: %p", s);
+    nxt_debug(task, "fiber stack mmap: %p", s);
 
     return s;
 }
@@ -194,10 +209,10 @@ nxt_fiber_switch_stack(nxt_fiber_t *fib, jmp_buf *parent)
 {
     ucontext_t  uc;
 
-    nxt_thread_log_debug("fiber switch to stack: %p", fib->stack);
+    nxt_debug(&fib->task, "fiber switch to stack: %p", fib->stack);
 
     if (nxt_slow_path(getcontext(&uc) != 0)) {
-        nxt_thread_log_alert("getcontext() failed");
+        nxt_log(&fib->task, NXT_LOG_CRIT, "getcontext() failed");
         return;
     }
 
@@ -213,35 +228,38 @@ nxt_fiber_switch_stack(nxt_fiber_t *fib, jmp_buf *parent)
 
     setcontext(&uc);
 
-    nxt_thread_log_alert("setcontext() failed");
+    nxt_log(&fib->task, NXT_LOG_CRIT, "setcontext() failed");
 }
 
 
 static void
 nxt_fiber_trampoline(uint32_t fh, uint32_t fl, uint32_t ph, uint32_t pl)
 {
-    jmp_buf       *parent;
-    nxt_fiber_t   *fib;
-    nxt_thread_t  *thr;
+    jmp_buf      *parent;
+    nxt_task_t   *task;
+    nxt_fiber_t  *fib;
 
     fib = (nxt_fiber_t *) (((uintptr_t) fh << 32) + fl);
     parent = (jmp_buf *) (((uintptr_t) ph << 32) + pl);
 
-    thr = nxt_thread();
+    task = &fib->task;
 
     if (_setjmp(fib->jmp) == 0) {
-        nxt_log_debug(thr->log, "fiber return to parent stack");
+        nxt_debug(task, "fiber return to parent stack");
 
-        nxt_fiber_enqueue(thr, fib);
+        nxt_fiber_enqueue(task->thread, task, fib);
+
         _longjmp(*parent, 1);
+
         nxt_unreachable();
     }
 
-    nxt_log_debug(thr->log, "fiber start");
+    nxt_debug(task, "fiber start");
 
     fib->start(fib->data);
 
-    nxt_fiber_exit(&fib->main->fiber, NULL);
+    nxt_fiber_exit(task, &fib->main->fiber, NULL);
+
     nxt_unreachable();
 }
 
@@ -257,10 +275,10 @@ nxt_fiber_switch_stack(nxt_fiber_t *fib, jmp_buf *parent)
 {
     ucontext_t  uc;
 
-    nxt_thread_log_debug("fiber switch to stack: %p", fib->stack);
+    nxt_debug(&fib->task, "fiber switch to stack: %p", fib->stack);
 
     if (nxt_slow_path(getcontext(&uc) != 0)) {
-        nxt_thread_log_alert("getcontext() failed");
+        nxt_log(&fib->task, NXT_LOG_CRIT, "getcontext() failed");
         return;
     }
 
@@ -275,7 +293,7 @@ nxt_fiber_switch_stack(nxt_fiber_t *fib, jmp_buf *parent)
 #if !(NXT_SOLARIS)
     /* Solaris declares setcontext() as __NORETURN. */
 
-    nxt_thread_log_alert("setcontext() failed");
+    nxt_log(&fib->task, NXT_LOG_CRIT, "setcontext() failed");
 #endif
 }
 
@@ -283,23 +301,26 @@ nxt_fiber_switch_stack(nxt_fiber_t *fib, jmp_buf *parent)
 static void
 nxt_fiber_trampoline(nxt_fiber_t *fib, jmp_buf *parent)
 {
-    nxt_thread_t  *thr;
+    nxt_task_t  *task;
 
-    thr = nxt_thread();
+    task = &fib->task;
 
     if (_setjmp(fib->jmp) == 0) {
-        nxt_log_debug(thr->log, "fiber return to parent stack");
+        nxt_debug(task, "fiber return to parent stack");
 
-        nxt_fiber_enqueue(thr, fib);
+        nxt_fiber_enqueue(task->thread, task, fib);
+
         _longjmp(*parent, 1);
+
         nxt_unreachable();
     }
 
-    nxt_log_debug(thr->log, "fiber start");
+    nxt_debug(task, "fiber start");
 
     fib->start(fib->data);
 
-    nxt_fiber_exit(&fib->main->fiber, NULL);
+    nxt_fiber_exit(task, &fib->main->fiber, NULL);
+
     nxt_unreachable();
 }
 
@@ -311,24 +332,26 @@ nxt_fiber_trampoline(nxt_fiber_t *fib, jmp_buf *parent)
 
 
 static void
-nxt_fiber_switch_handler(nxt_thread_t *thr, void *obj, void *data)
+nxt_fiber_switch_handler(nxt_task_t *task, void *obj, void *data)
 {
     nxt_fiber_t  *fib;
 
     fib = obj;
 
-    nxt_fiber_switch(thr, fib);
+    nxt_fiber_switch(task, fib);
     nxt_unreachable();
 }
 
 
 static void
-nxt_fiber_switch(nxt_thread_t *thr, nxt_fiber_t *fib)
+nxt_fiber_switch(nxt_task_t *task, nxt_fiber_t *fib)
 {
-    nxt_log_debug(thr->log, "fiber switch: %PF", fib->fid);
+    nxt_debug(task, "fiber switch: %PF", fib->fid);
 
-    thr->fiber = fib;
+    task->thread->fiber = fib;
+
     _longjmp(fib->jmp, 1);
+
     nxt_unreachable();
 }
 
@@ -341,106 +364,106 @@ nxt_fiber_self(nxt_thread_t *thr)
 
 
 void
-nxt_fiber_yield(void)
+nxt_fiber_yield(nxt_task_t *task)
 {
-    nxt_fiber_t   *fib;
-    nxt_thread_t  *thr;
+    nxt_fiber_t  *fib;
 
-    thr = nxt_thread();
-    fib = thr->fiber;
+    fib = task->thread->fiber;
 
     if (_setjmp(fib->jmp) == 0) {
 
-        nxt_log_debug(thr->log, "fiber yield");
+        nxt_debug(task, "fiber yield");
 
-        nxt_fiber_enqueue(thr, fib);
-        nxt_fiber_switch(thr, &fib->main->fiber);
+        nxt_fiber_enqueue(task->thread, &fib->main->engine->task, fib);
+
+        nxt_fiber_switch(task, &fib->main->fiber);
+
         nxt_unreachable();
     }
 
-    nxt_log_debug(thr->log, "fiber yield return");
+    nxt_debug(task, "fiber yield return");
 }
 
 
 void
-nxt_fiber_sleep(nxt_msec_t timeout)
+nxt_fiber_sleep(nxt_task_t *task, nxt_msec_t timeout)
 {
-    nxt_fiber_t   *fib;
-    nxt_thread_t  *thr;
+    nxt_fiber_t  *fib;
 
-    thr = nxt_thread();
-    fib = thr->fiber;
+    fib = task->thread->fiber;
 
-    fib->timer.work_queue = &thr->work_queue.main;
+    fib->timer.work_queue = &task->thread->work_queue.main;
     fib->timer.handler = nxt_fiber_timer_handler;
     fib->timer.log = &nxt_main_log;
 
-    nxt_event_timer_add(thr->engine, &fib->timer, timeout);
+    task = &fib->task;
+
+    nxt_event_timer_add(task->thread->engine, &fib->timer, timeout);
 
     if (_setjmp(fib->jmp) == 0) {
 
-        nxt_log_debug(thr->log, "fiber sleep: %T", timeout);
+        nxt_debug(task, "fiber sleep: %T", timeout);
 
-        nxt_fiber_switch(thr, &fib->main->fiber);
+        nxt_fiber_switch(task, &fib->main->fiber);
+
         nxt_unreachable();
     }
 
-    nxt_log_debug(thr->log, "fiber sleep return");
+    nxt_debug(task, "fiber sleep return");
 }
 
 
 static void
-nxt_fiber_timer_handler(nxt_thread_t *thr, void *obj, void *data)
+nxt_fiber_timer_handler(nxt_task_t *task, void *obj, void *data)
 {
     nxt_fiber_t        *fib;
     nxt_event_timer_t  *ev;
 
     ev = obj;
 
-    nxt_log_debug(thr->log, "fiber timer handler");
+    nxt_debug(task, "fiber timer handler");
 
     fib = nxt_event_timer_data(ev, nxt_fiber_t, timer);
 
-    nxt_fiber_switch(thr, fib);
+    nxt_fiber_switch(task, fib);
+
     nxt_unreachable();
 }
 
 
 void
-nxt_fiber_wait(void)
+nxt_fiber_wait(nxt_task_t *task)
 {
-    nxt_fiber_t   *fib;
-    nxt_thread_t  *thr;
+    nxt_fiber_t  *fib;
 
-    thr = nxt_thread();
-    fib = thr->fiber;
+    fib = task->thread->fiber;
 
     if (_setjmp(fib->jmp) == 0) {
-        nxt_log_debug(thr->log, "fiber wait");
+        nxt_debug(task, "fiber wait");
 
-        nxt_fiber_switch(thr, &fib->main->fiber);
+        nxt_fiber_switch(task, &fib->main->fiber);
+
         nxt_unreachable();
     }
 
-    nxt_log_debug(thr->log, "fiber wait return");
+    nxt_debug(task, "fiber wait return");
 }
 
 
 void
-nxt_fiber_exit(nxt_fiber_t *next, void *data)
+nxt_fiber_exit(nxt_task_t *task, nxt_fiber_t *next, void *data)
 {
-    nxt_fiber_t   *fib;
-    nxt_thread_t  *thr;
+    nxt_fiber_t  *fib;
 
-    thr = nxt_thread();
-    fib = thr->fiber;
+    fib = task->thread->fiber;
 
-    nxt_log_debug(thr->log, "fiber exit");
+    nxt_debug(task, "fiber exit");
 
     /* TODO: limit idle fibers. */
     fib->next = fib->main->idle;
     fib->main->idle = fib;
 
-    nxt_fiber_switch(thr, next);
+    nxt_fiber_switch(task, next);
+
     nxt_unreachable();
 }

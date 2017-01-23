@@ -8,43 +8,46 @@
 
 
 void
-nxt_event_conn_read(nxt_thread_t *thr, nxt_event_conn_t *c)
+nxt_event_conn_read(nxt_task_t *task, nxt_event_conn_t *c)
 {
     nxt_work_queue_t    *wq;
     nxt_work_handler_t  handler;
 
     handler = c->io->read;
 
-    if (thr->engine->batch != 0) {
+    if (task->thread->engine->batch != 0) {
 
-        wq = &thr->engine->read_work_queue;
+        wq = &task->thread->engine->read_work_queue;
         c->socket.read_work_queue = wq;
 
-        nxt_thread_work_queue_add(thr, wq, handler, c, c->socket.data,
-                                  c->socket.log);
+        nxt_thread_work_queue_add(task->thread, wq, handler, task, c,
+                                  c->socket.data);
         return;
     }
 
-    handler(thr, c, c->socket.data);
+    handler(task, c, c->socket.data);
 }
 
 
 void
-nxt_event_conn_io_read(nxt_thread_t *thr, void *obj, void *data)
+nxt_event_conn_io_read(nxt_task_t *task, void *obj, void *data)
 {
     ssize_t                       n;
     nxt_buf_t                     *b;
     nxt_bool_t                    batch;
     nxt_event_conn_t              *c;
+    nxt_event_engine_t            *engine;
     nxt_work_handler_t            handler;
     const nxt_event_conn_state_t  *state;
 
     c = obj;
 
-    nxt_log_debug(thr->log, "event conn read fd:%d rdy:%d cl:%d",
-                  c->socket.fd, c->socket.read_ready, c->socket.closed);
+    nxt_debug(task, "event conn read fd:%d rdy:%d cl:%d",
+              c->socket.fd, c->socket.read_ready, c->socket.closed);
 
-    batch = (thr->engine->batch != 0);
+    engine = task->thread->engine;
+
+    batch = (engine->batch != 0);
     state = c->read_state;
 
     if (c->socket.read_ready) {
@@ -83,7 +86,7 @@ nxt_event_conn_io_read(nxt_thread_t *thr, void *obj, void *data)
         }
 
         if (n != NXT_AGAIN) {
-            nxt_event_fd_block_read(thr->engine, &c->socket);
+            nxt_event_fd_block_read(engine, &c->socket);
             nxt_event_timer_disable(&c->read_timer);
 
             if (n == 0) {
@@ -109,10 +112,10 @@ nxt_event_conn_io_read(nxt_thread_t *thr, void *obj, void *data)
         || nxt_event_fd_is_disabled(c->socket.read))
     {
         /* Timer may be set or reset. */
-        nxt_event_conn_timer(thr->engine, c, state, &c->read_timer);
+        nxt_event_conn_timer(engine, c, state, &c->read_timer);
 
         if (nxt_event_fd_is_disabled(c->socket.read)) {
-            nxt_event_fd_enable_read(thr->engine, &c->socket);
+            nxt_event_fd_enable_read(engine, &c->socket);
         }
     }
 
@@ -120,7 +123,7 @@ nxt_event_conn_io_read(nxt_thread_t *thr, void *obj, void *data)
 
 ready:
 
-    nxt_event_fd_block_read(thr->engine, &c->socket);
+    nxt_event_fd_block_read(engine, &c->socket);
 
     if (state->autoreset_timer) {
         nxt_event_timer_disable(&c->read_timer);
@@ -131,10 +134,10 @@ ready:
 done:
 
     if (batch) {
-        nxt_thread_work_queue_add(thr, c->read_work_queue, handler,
-                                  c, data, thr->log);
+        nxt_thread_work_queue_add(task->thread, c->read_work_queue, handler,
+                                  task, c, data);
     } else {
-        handler(thr, c, data);
+        handler(task, c, data);
     }
 }
 
@@ -165,8 +168,7 @@ nxt_event_conn_io_recvbuf(nxt_event_conn_t *c, nxt_buf_t *b)
 
         err = (n == -1) ? nxt_socket_errno : 0;
 
-        nxt_log_debug(c->socket.log, "readv(%d, %ui): %z",
-                      c->socket.fd, niov, n);
+        nxt_debug(c->socket.task, "readv(%d, %ui): %z", c->socket.fd, niov, n);
 
         if (n > 0) {
             if ((size_t) n < rb.size) {
@@ -187,12 +189,12 @@ nxt_event_conn_io_recvbuf(nxt_event_conn_t *c, nxt_buf_t *b)
         switch (err) {
 
         case NXT_EAGAIN:
-            nxt_log_debug(c->socket.log, "readv() %E", err);
+            nxt_debug(c->socket.task, "readv() %E", err);
             c->socket.read_ready = 0;
             return NXT_AGAIN;
 
         case NXT_EINTR:
-            nxt_log_debug(c->socket.log, "readv() %E", err);
+            nxt_debug(c->socket.task, "readv() %E", err);
             continue;
 
         default:
@@ -218,8 +220,8 @@ nxt_event_conn_io_recv(nxt_event_conn_t *c, void *buf, size_t size,
 
         err = (n == -1) ? nxt_socket_errno : 0;
 
-        nxt_log_debug(c->socket.log, "recv(%d, %p, %uz, 0x%ui): %z",
-                      c->socket.fd, buf, size, flags, n);
+        nxt_debug(c->socket.task, "recv(%d, %p, %uz, 0x%ui): %z",
+                  c->socket.fd, buf, size, flags, n);
 
         if (n > 0) {
             if ((size_t) n < size) {

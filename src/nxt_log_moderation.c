@@ -7,7 +7,7 @@
 #include <nxt_main.h>
 
 
-static void nxt_log_moderate_timer_handler(nxt_thread_t *thr, void *obj,
+static void nxt_log_moderate_timer_handler(nxt_task_t *task, void *obj,
     void *data);
 
 
@@ -70,7 +70,7 @@ nxt_log_moderate_allow(nxt_log_moderation_t *mod)
 
 
 static void
-nxt_log_moderate_timer_handler(nxt_thread_t *thr, void *obj, void *data)
+nxt_log_moderate_timer_handler(nxt_task_t *task, void *obj, void *data)
 {
     nxt_bool_t            msg;
     nxt_atomic_uint_t     n;
@@ -82,7 +82,7 @@ nxt_log_moderate_timer_handler(nxt_thread_t *thr, void *obj, void *data)
 
     nxt_thread_spin_lock(&mod->lock);
 
-    mod->last = nxt_thread_time(thr);
+    mod->last = nxt_thread_time(task->thread);
     n = mod->count;
     mod->count = 0;
     msg = (mod->pid == nxt_pid);

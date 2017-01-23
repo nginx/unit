@@ -62,7 +62,7 @@ nxt_linux_event_conn_io_sendfile(nxt_event_conn_t *c, nxt_buf_t *b,
     sb.size = 0;
     sb.limit = limit;
 
-    niov = nxt_sendbuf_mem_coalesce(&sb);
+    niov = nxt_sendbuf_mem_coalesce(c->socket.task, &sb);
 
     if (niov == 0 && sb.sync) {
         return 0;

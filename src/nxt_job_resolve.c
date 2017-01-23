@@ -121,5 +121,5 @@ fail:
         freeaddrinfo(res);
     }
 
-    nxt_job_return(nxt_thread(), &jbr->job, handler);
+    nxt_job_return(&jbr->job.task, &jbr->job, handler);
 }

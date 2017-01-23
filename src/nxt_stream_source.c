@@ -7,22 +7,22 @@
 #include <nxt_main.h>
 
 
-static void nxt_stream_source_connected(nxt_thread_t *thr, void *obj,
+static void nxt_stream_source_connected(nxt_task_t *task, void *obj,
     void *data);
-static void nxt_stream_source_write_ready(nxt_thread_t *thr, void *obj,
+static void nxt_stream_source_write_ready(nxt_task_t *task, void *obj,
     void *data);
-static void nxt_stream_source_read_ready(nxt_thread_t *thr, void *obj,
+static void nxt_stream_source_read_ready(nxt_task_t *task, void *obj,
     void *data);
 static nxt_buf_t *nxt_stream_source_process_buffers(nxt_stream_source_t *stream,
     nxt_event_conn_t *c);
-static void nxt_stream_source_buf_completion(nxt_thread_t *thr, void *obj,
+static void nxt_stream_source_buf_completion(nxt_task_t *task, void *obj,
     void *data);
-static void nxt_stream_source_read_done(nxt_thread_t *thr, void *obj,
+static void nxt_stream_source_read_done(nxt_task_t *task, void *obj,
     void *data);
-static void nxt_stream_source_refused(nxt_thread_t *thr, void *obj, void *data);
-static void nxt_stream_source_closed(nxt_thread_t *thr, void *obj, void *data);
-static void nxt_stream_source_error(nxt_thread_t *thr, void *obj, void *data);
-static void nxt_stream_source_close(nxt_thread_t *thr,
+static void nxt_stream_source_refused(nxt_task_t *task, void *obj, void *data);
+static void nxt_stream_source_closed(nxt_task_t *task, void *obj, void *data);
+static void nxt_stream_source_error(nxt_task_t *task, void *obj, void *data);
+static void nxt_stream_source_close(nxt_task_t *task,
     nxt_stream_source_t *stream);
 
 
@@ -33,7 +33,7 @@ static const nxt_event_conn_state_t  nxt_stream_source_response_read_state;
 
 
 void
-nxt_stream_source_connect(nxt_stream_source_t *stream)
+nxt_stream_source_connect(nxt_task_t *task, nxt_stream_source_t *stream)
 {
     nxt_thread_t          *thr;
     nxt_event_conn_t      *c;
@@ -44,9 +44,9 @@ nxt_stream_source_connect(nxt_stream_source_t *stream)
     us = stream->upstream;
 
     if (nxt_slow_path(!nxt_buf_pool_obtainable(&us->buffers))) {
-        nxt_thread_log_error(NXT_LOG_ERR, "%d buffers %uDK each "
-                             "are not enough to read upstream response",
-                             us->buffers.max, us->buffers.size / 1024);
+        nxt_log(task, NXT_LOG_ERR,
+                "%d buffers %uDK each are not enough to read upstream response",
+                us->buffers.max, us->buffers.size / 1024);
         goto fail;
     }
 
@@ -63,12 +63,12 @@ nxt_stream_source_connect(nxt_stream_source_t *stream)
     c->remote = us->peer->sockaddr;
     c->write_state = &nxt_stream_source_connect_state;
 
-    nxt_event_conn_connect(thr, c);
+    nxt_event_conn_connect(task, c);
     return;
 
 fail:
 
-    stream->error_handler(stream);
+    stream->error_handler(task, stream);
 }
 
 
@@ -89,7 +89,7 @@ static const nxt_event_conn_state_t  nxt_stream_source_connect_state
 
 
 static void
-nxt_stream_source_connected(nxt_thread_t *thr, void *obj, void *data)
+nxt_stream_source_connected(nxt_task_t *task, void *obj, void *data)
 {
     nxt_event_conn_t     *c;
     nxt_stream_source_t  *stream;
@@ -97,21 +97,22 @@ nxt_stream_source_connected(nxt_thread_t *thr, void *obj, void *data)
     c = obj;
     stream = data;
 
-    nxt_log_debug(thr->log, "stream source connected fd:%d", c->socket.fd);
+    nxt_debug(task, "stream source connected fd:%d", c->socket.fd);
 
     c->read_state = &nxt_stream_source_response_ready_state;
     c->write = stream->out;
     c->write_state = &nxt_stream_source_request_write_state;
 
-    if (thr->engine->batch != 0) {
-        nxt_event_conn_write(thr, c);
+    if (task->thread->engine->batch != 0) {
+        nxt_event_conn_write(task, c);
 
     } else {
         stream->read_queued = 1;
-        nxt_thread_work_queue_add(thr, &thr->engine->read_work_queue,
-                                  c->io->read, c, stream, thr->log);
+        nxt_thread_work_queue_add(task->thread,
+                                  &task->thread->engine->read_work_queue,
+                                  c->io->read, task, c, stream);
 
-        c->io->write(thr, c, stream);
+        c->io->write(task, c, stream);
     }
 }
 
@@ -149,20 +150,20 @@ static const nxt_event_conn_state_t nxt_stream_source_response_ready_state
 
 
 static void
-nxt_stream_source_write_ready(nxt_thread_t *thr, void *obj, void *data)
+nxt_stream_source_write_ready(nxt_task_t *task, void *obj, void *data)
 {
     nxt_event_conn_t  *c;
 
     c = obj;
 
-    nxt_log_debug(thr->log, "stream source write ready fd:%d", c->socket.fd);
+    nxt_debug(task, "stream source write ready fd:%d", c->socket.fd);
 
-    nxt_event_conn_read(thr, c);
+    nxt_event_conn_read(task, c);
 }
 
 
 static void
-nxt_stream_source_read_ready(nxt_thread_t *thr, void *obj, void *data)
+nxt_stream_source_read_ready(nxt_task_t *task, void *obj, void *data)
 {
     nxt_int_t            ret;
     nxt_buf_t            *b;
@@ -174,7 +175,7 @@ nxt_stream_source_read_ready(nxt_thread_t *thr, void *obj, void *data)
     stream = data;
     stream->read_queued = 0;
 
-    nxt_log_debug(thr->log, "stream source read ready fd:%d", c->socket.fd);
+    nxt_debug(task, "stream source read ready fd:%d", c->socket.fd);
 
     if (c->read == NULL) {
 
@@ -190,7 +191,7 @@ nxt_stream_source_read_ready(nxt_thread_t *thr, void *obj, void *data)
 
             /* ret == NXT_AGAIN */
 
-            nxt_log_debug(thr->log, "stream source flush");
+            nxt_debug(task, "stream source flush");
 
             b = nxt_buf_sync_alloc(buffers->mem_pool, NXT_BUF_SYNC_NOBUF);
 
@@ -198,9 +199,10 @@ nxt_stream_source_read_ready(nxt_thread_t *thr, void *obj, void *data)
                 goto fail;
             }
 
-            nxt_event_fd_block_read(thr->engine, &c->socket);
+            nxt_event_fd_block_read(task->thread->engine, &c->socket);
 
-            nxt_source_filter(thr, c->write_work_queue, stream->next, b);
+            nxt_source_filter(task->thread, c->write_work_queue, task,
+                              stream->next, b);
             return;
         }
 
@@ -210,12 +212,12 @@ nxt_stream_source_read_ready(nxt_thread_t *thr, void *obj, void *data)
 
     c->read_state = &nxt_stream_source_response_read_state;
 
-    nxt_event_conn_read(thr, c);
+    nxt_event_conn_read(task, c);
     return;
 
 fail:
 
-    nxt_stream_source_close(thr, stream);
+    nxt_stream_source_close(task, stream);
 }
 
 
@@ -236,7 +238,7 @@ static const nxt_event_conn_state_t nxt_stream_source_response_read_state
 
 
 static void
-nxt_stream_source_read_done(nxt_thread_t *thr, void *obj, void *data)
+nxt_stream_source_read_done(nxt_task_t *task, void *obj, void *data)
 {
     nxt_buf_t            *b;
     nxt_bool_t           batch;
@@ -246,33 +248,35 @@ nxt_stream_source_read_done(nxt_thread_t *thr, void *obj, void *data)
     c = obj;
     stream = data;
 
-    nxt_log_debug(thr->log, "stream source read done fd:%d", c->socket.fd);
+    nxt_debug(task, "stream source read done fd:%d", c->socket.fd);
 
     if (c->read != NULL) {
         b = nxt_stream_source_process_buffers(stream, c);
 
         if (nxt_slow_path(b == NULL)) {
-            nxt_stream_source_close(thr, stream);
+            nxt_stream_source_close(task, stream);
             return;
         }
 
-        batch = (thr->engine->batch != 0);
+        batch = (task->thread->engine->batch != 0);
 
         if (batch) {
-            nxt_thread_work_queue_add(thr, stream->upstream->work_queue,
+            nxt_thread_work_queue_add(task->thread,
+                                      stream->upstream->work_queue,
                                       nxt_source_filter_handler,
-                                      stream->next, b, thr->log);
+                                      task, stream->next, b);
         }
 
         if (!stream->read_queued) {
             stream->read_queued = 1;
-            nxt_thread_work_queue_add(thr, stream->upstream->work_queue,
+            nxt_thread_work_queue_add(task->thread,
+                                      stream->upstream->work_queue,
                                       nxt_stream_source_read_ready,
-                                      c, stream, thr->log);
+                                      task, c, stream);
         }
 
         if (!batch) {
-            stream->next->filter(thr, stream->next->context, b);
+            stream->next->filter(task, stream->next->context, b);
         }
     }
 }
@@ -335,7 +339,7 @@ nxt_stream_source_process_buffers(nxt_stream_source_t *stream,
 
 
 static void
-nxt_stream_source_buf_completion(nxt_thread_t *thr, void *obj, void *data)
+nxt_stream_source_buf_completion(nxt_task_t *task, void *obj, void *data)
 {
     size_t               size;
     nxt_buf_t            *b, *parent;
@@ -345,7 +349,7 @@ nxt_stream_source_buf_completion(nxt_thread_t *thr, void *obj, void *data)
     parent = data;
 
 #if 0
-    nxt_log_debug(thr->log,
+    nxt_debug(thr->log,
                   "stream source buf completion: %p parent:%p retain:%uD",
                   b, parent, parent->retain);
 #endif
@@ -375,11 +379,11 @@ nxt_stream_source_buf_completion(nxt_thread_t *thr, void *obj, void *data)
 
             if (!stream->read_queued) {
                 stream->read_queued = 1;
-                nxt_thread_work_queue_add(thr, stream->upstream->work_queue,
+                nxt_thread_work_queue_add(task->thread,
+                                          stream->upstream->work_queue,
                                           nxt_stream_source_read_ready,
-                                          stream->conn,
-                                          stream->conn->socket.data,
-                                          stream->conn->socket.log);
+                                          task, stream->conn,
+                                          stream->conn->socket.data);
             }
         }
     }
@@ -389,7 +393,7 @@ nxt_stream_source_buf_completion(nxt_thread_t *thr, void *obj, void *data)
 
 
 static void
-nxt_stream_source_refused(nxt_thread_t *thr, void *obj, void *data)
+nxt_stream_source_refused(nxt_task_t *task, void *obj, void *data)
 {
     nxt_stream_source_t  *stream;
 
@@ -401,16 +405,16 @@ nxt_stream_source_refused(nxt_thread_t *thr, void *obj, void *data)
 
         c = obj;
 
-        nxt_log_debug(thr->log, "stream source refused fd:%d", c->socket.fd);
+        nxt_debug(task, "stream source refused fd:%d", c->socket.fd);
     }
 #endif
 
-    nxt_stream_source_close(thr, stream);
+    nxt_stream_source_close(task, stream);
 }
 
 
 static void
-nxt_stream_source_closed(nxt_thread_t *thr, void *obj, void *data)
+nxt_stream_source_closed(nxt_task_t *task, void *obj, void *data)
 {
     nxt_buf_t            *b;
     nxt_event_conn_t     *c;
@@ -419,24 +423,24 @@ nxt_stream_source_closed(nxt_thread_t *thr, void *obj, void *data)
     c = obj;
     stream = data;
 
-    nxt_log_debug(thr->log, "stream source closed fd:%d", c->socket.fd);
+    nxt_debug(task, "stream source closed fd:%d", c->socket.fd);
 
-    nxt_event_conn_close(thr, c);
+    nxt_event_conn_close(task, c);
 
     b = nxt_buf_sync_alloc(stream->upstream->buffers.mem_pool,
                            NXT_BUF_SYNC_LAST);
 
     if (nxt_slow_path(b == NULL)) {
-        stream->error_handler(stream);
+        stream->error_handler(task, stream);
         return;
     }
 
-    nxt_source_filter(thr, c->write_work_queue, stream->next, b);
+    nxt_source_filter(task->thread, c->write_work_queue, task, stream->next, b);
 }
 
 
 static void
-nxt_stream_source_error(nxt_thread_t *thr, void *obj, void *data)
+nxt_stream_source_error(nxt_task_t *task, void *obj, void *data)
 {
     nxt_stream_source_t  *stream;
 
@@ -448,29 +452,29 @@ nxt_stream_source_error(nxt_thread_t *thr, void *obj, void *data)
 
         ev = obj;
 
-        nxt_log_debug(thr->log, "stream source error fd:%d", ev->fd);
+        nxt_debug(task, "stream source error fd:%d", ev->fd);
     }
 #endif
 
-    nxt_stream_source_close(thr, stream);
+    nxt_stream_source_close(task, stream);
 }
 
 
 static void
-nxt_stream_source_close(nxt_thread_t *thr, nxt_stream_source_t *stream)
+nxt_stream_source_close(nxt_task_t *task, nxt_stream_source_t *stream)
 {
-    nxt_event_conn_close(thr, stream->conn);
+    nxt_event_conn_close(task, stream->conn);
 
-    stream->error_handler(stream);
+    stream->error_handler(task, stream);
 }
 
 
 void
-nxt_source_filter_handler(nxt_thread_t *thr, void *obj, void *data)
+nxt_source_filter_handler(nxt_task_t *task, void *obj, void *data)
 {
     nxt_source_hook_t  *next;
 
     next = obj;
 
-    next->filter(thr, next->context, data);
+    next->filter(task, next->context, data);
 }

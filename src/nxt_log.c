@@ -8,6 +8,8 @@
 
 
 nxt_uint_t  nxt_debug;
+nxt_uint_t  nxt_trace;
+
 
 nxt_log_t   nxt_main_log = {
     NXT_LOG_INFO,

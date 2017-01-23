@@ -23,6 +23,7 @@ struct nxt_event_engine_s {
 
     nxt_event_timers_t         timers;
 
+    nxt_task_t                 task;
     /* The engine ID, the main engine has ID 0. */
     uint32_t                   id;
 
@@ -44,6 +45,7 @@ struct nxt_event_engine_s {
 
     nxt_event_signals_t        *signals;
 
+    nxt_thread_t               *thread;
     nxt_fiber_main_t           *fibers;
 
     uint8_t                    shutdown;  /* 1 bit */
@@ -61,12 +63,13 @@ NXT_EXPORT nxt_event_engine_t *nxt_event_engine_create(nxt_thread_t *thr,
     const nxt_event_set_ops_t *event_set, const nxt_event_sig_t *signals,
     nxt_uint_t flags, nxt_uint_t batch);
 NXT_EXPORT nxt_int_t nxt_event_engine_change(nxt_thread_t *thr,
-    const nxt_event_set_ops_t *event_set, nxt_uint_t batch);
+    nxt_task_t *task, const nxt_event_set_ops_t *event_set, nxt_uint_t batch);
 NXT_EXPORT void nxt_event_engine_free(nxt_event_engine_t *engine);
 NXT_EXPORT void nxt_event_engine_start(nxt_event_engine_t *engine);
 
 NXT_EXPORT void nxt_event_engine_post(nxt_event_engine_t *engine,
-    nxt_work_handler_t handler, void *obj, void *data, nxt_log_t *log);
+    nxt_work_handler_t handler, nxt_task_t *task, void *obj, void *data,
+    nxt_log_t *log);
 NXT_EXPORT void nxt_event_engine_signal(nxt_event_engine_t *engine,
     nxt_uint_t signo);
 

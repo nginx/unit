@@ -495,7 +495,7 @@ nxt_job_sockaddr_parse(nxt_job_sockaddr_parse_t *jbs)
         return;
     }
 
-    nxt_job_return(nxt_thread(), &jbs->resolve.job, handler);
+    nxt_job_return(&jbs->resolve.job.task, &jbs->resolve.job, handler);
 }
 
 

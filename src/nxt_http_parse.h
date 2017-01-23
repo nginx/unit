@@ -72,8 +72,8 @@ typedef struct {
 } nxt_http_chunk_parse_t;
 
 
-NXT_EXPORT nxt_buf_t *nxt_http_chunk_parse(nxt_http_chunk_parse_t *hcp,
-    nxt_buf_t *in);
+NXT_EXPORT nxt_buf_t *nxt_http_chunk_parse(nxt_task_t *task,
+    nxt_http_chunk_parse_t *hcp, nxt_buf_t *in);
 
 
 #endif /* _NXT_HTTP_PARSE_H_INCLUDED_ */

@@ -58,7 +58,7 @@ static nxt_int_t nxt_poll_set_change(nxt_thread_t *thr,
     nxt_poll_event_set_t *ps, nxt_poll_change_t *ch);
 static nxt_int_t nxt_poll_set_delete(nxt_thread_t *thr,
     nxt_poll_event_set_t *ps, nxt_poll_change_t *ch);
-static void nxt_poll_set_poll(nxt_thread_t *thr, nxt_event_set_t *event_set,
+static void nxt_poll_set_poll(nxt_task_t *task, nxt_event_set_t *event_set,
     nxt_msec_t timeout);
 static nxt_poll_hash_entry_t *nxt_poll_fd_hash_get(nxt_poll_event_set_t *ps,
     nxt_fd_t fd);
@@ -398,7 +398,7 @@ nxt_poll_commit_changes(nxt_thread_t *thr, nxt_poll_event_set_t *ps)
         }
 
         nxt_thread_work_queue_add(thr, &thr->work_queue.main,
-                                  ev->error_handler, ev, ev->data, ev->log);
+                                  ev->error_handler, ev->task, ev, ev->data);
 
         ret = NXT_ERROR;
 
@@ -534,7 +534,7 @@ nxt_poll_set_delete(nxt_thread_t *thr, nxt_poll_event_set_t *ps,
 
 
 static void
-nxt_poll_set_poll(nxt_thread_t *thr, nxt_event_set_t *event_set,
+nxt_poll_set_poll(nxt_task_t *task, nxt_event_set_t *event_set,
     nxt_msec_t timeout)
 {
     int                    nevents;
@@ -556,19 +556,19 @@ nxt_poll_set_poll(nxt_thread_t *thr, nxt_event_set_t *event_set,
         }
     }
 
-    nxt_log_debug(thr->log, "poll() events:%ui timeout:%M", ps->nfds, timeout);
+    nxt_debug(task, "poll() events:%ui timeout:%M", ps->nfds, timeout);
 
     nevents = poll(ps->poll_set, ps->nfds, timeout);
 
     err = (nevents == -1) ? nxt_errno : 0;
 
-    nxt_thread_time_update(thr);
+    nxt_thread_time_update(task->thread);
 
-    nxt_log_debug(thr->log, "poll(): %d", nevents);
+    nxt_debug(task, "poll(): %d", nevents);
 
     if (nevents == -1) {
         level = (err == NXT_EINTR) ? NXT_LOG_INFO : NXT_LOG_ALERT;
-        nxt_log_error(level, thr->log, "poll() failed %E", err);
+        nxt_log(task, level, "poll() failed %E", err);
         return;
     }
 
@@ -586,9 +586,9 @@ nxt_poll_set_poll(nxt_thread_t *thr, nxt_event_set_t *event_set,
         phe = nxt_poll_fd_hash_get(ps, fd);
 
         if (nxt_slow_path(phe == NULL)) {
-            nxt_log_alert(thr->log,
-                          "poll() returned invalid fd:%d ev:%04Xd rev:%04uXi",
-                          fd, pfd->events, events);
+            nxt_log(task, NXT_LOG_CRIT,
+                    "poll() returned invalid fd:%d ev:%04Xd rev:%04uXi",
+                    fd, pfd->events, events);
 
             /* Mark the poll entry to ignore it by the kernel. */
             pfd->fd = -1;
@@ -597,18 +597,21 @@ nxt_poll_set_poll(nxt_thread_t *thr, nxt_event_set_t *event_set,
 
         ev = phe->event;
 
-        nxt_log_debug(ev->log, "poll: fd:%d ev:%04uXi rd:%d %wr:%d",
-                      fd, events, ev->read, ev->write);
+        nxt_debug(ev->task, "poll: fd:%d ev:%04uXi rd:%d %wr:%d",
+                  fd, events, ev->read, ev->write);
 
         if (nxt_slow_path((events & POLLNVAL) != 0)) {
-            nxt_log_alert(ev->log, "poll() error fd:%d ev:%04Xd rev:%04uXi",
-                          fd, pfd->events, events);
+            nxt_log(ev->task, NXT_LOG_CRIT,
+                    "poll() error fd:%d ev:%04Xd rev:%04uXi",
+                    fd, pfd->events, events);
 
             /* Mark the poll entry to ignore it by the kernel. */
             pfd->fd = -1;
 
-            nxt_thread_work_queue_add(thr, &thr->work_queue.main,
-                                      ev->error_handler, ev, ev->data, ev->log);
+            nxt_thread_work_queue_add(task->thread,
+                                      &task->thread->work_queue.main,
+                                      ev->error_handler,
+                                      ev->task, ev, ev->data);
             goto next;
         }
 
@@ -650,8 +653,8 @@ nxt_poll_set_poll(nxt_thread_t *thr, nxt_event_set_t *event_set,
                 nxt_poll_change(event_set, ev, NXT_POLL_DELETE, 0);
             }
 
-            nxt_thread_work_queue_add(thr, ev->read_work_queue,
-                                      ev->read_handler, ev, ev->data, ev->log);
+            nxt_thread_work_queue_add(task->thread, ev->read_work_queue,
+                                      ev->read_handler, ev->task, ev, ev->data);
         }
 
         if ((events & POLLOUT) || (error && ev->write_handler != NULL)) {
@@ -662,8 +665,9 @@ nxt_poll_set_poll(nxt_thread_t *thr, nxt_event_set_t *event_set,
                 nxt_poll_change(event_set, ev, NXT_POLL_DELETE, 0);
             }
 
-            nxt_thread_work_queue_add(thr, ev->write_work_queue,
-                                      ev->write_handler, ev, ev->data, ev->log);
+            nxt_thread_work_queue_add(task->thread, ev->write_work_queue,
+                                      ev->write_handler,
+                                      ev->task, ev, ev->data);
         }
 
     next:

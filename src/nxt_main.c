@@ -32,7 +32,7 @@ main(int argc, char **argv)
 
     nxt_log_error(NXT_LOG_INFO, thr->log, "nginman started");
 
-    ret = nxt_cycle_create(thr, NULL, NULL, &nxt_config_name, 0);
+    ret = nxt_cycle_create(thr, &nxt_main_task, NULL, NULL, &nxt_config_name);
 
     if (ret != NXT_OK) {
         return 1;

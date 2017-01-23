@@ -174,6 +174,8 @@ NXT_EXPORT void nxt_lib_stop(void);
 
 NXT_EXPORT extern nxt_uint_t    nxt_ncpu;
 NXT_EXPORT extern nxt_uint_t    nxt_pagesize;
+NXT_EXPORT extern nxt_task_t    nxt_main_task;
+NXT_EXPORT extern nxt_atomic_t  nxt_task_ident;
 NXT_EXPORT extern nxt_random_t  nxt_random_data;
 
 

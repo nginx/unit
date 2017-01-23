@@ -163,7 +163,7 @@ typedef struct {
                                       nxt_uint_t signo);
 
     /* Poll an event set for new event notifications. */
-    void                          (*poll)(nxt_thread_t *thr,
+    void                          (*poll)(nxt_task_t *task,
                                       nxt_event_set_t *event_set,
                                       nxt_msec_t timeout);
 

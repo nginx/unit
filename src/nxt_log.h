@@ -66,6 +66,27 @@ nxt_log_alert(_log, ...)                                                      \
     } while (0)
 
 
+#define nxt_log(task, _level, ...)                                            \
+    do {                                                                      \
+        nxt_log_t   *log = (task)->log;                                       \
+        nxt_uint_t  _level_ = (_level);                                       \
+                                                                              \
+        if (nxt_slow_path(log->level >= _level_)) {                           \
+            log->handler(_level_, log, __VA_ARGS__);                          \
+        }                                                                     \
+    } while (0)
+
+
+#define nxt_trace(task, ...)                                                  \
+    do {                                                                      \
+        nxt_log_t  *log = (task)->log;                                        \
+                                                                              \
+        if (nxt_slow_path(log->level >= NXT_LOG_NOTICE || nxt_trace)) {       \
+            log->handler(NXT_LOG_NOTICE, log, __VA_ARGS__);                   \
+        }                                                                     \
+    } while (0)
+
+
 #define                                                                       \
 nxt_log_error(_level, _log, ...)                                              \
     do {                                                                      \
@@ -80,6 +101,16 @@ nxt_log_error(_level, _log, ...)                                              \
 
 #if (NXT_DEBUG)
 
+#define nxt_debug(task, ...)                                                  \
+    do {                                                                      \
+        nxt_log_t  *log = (task)->log;                                        \
+                                                                              \
+        if (nxt_slow_path(log->level == NXT_LOG_DEBUG || nxt_debug)) {        \
+            log->handler(NXT_LOG_DEBUG, log, __VA_ARGS__);                    \
+        }                                                                     \
+    } while (0)
+
+
 #define                                                                       \
 nxt_log_debug(_log, ...)                                                      \
     do {                                                                      \
@@ -91,6 +122,8 @@ nxt_log_debug(_log, ...)                                                      \
     } while (0)
 
 #else
+
+#define nxt_log_debug(...)
 
 #define                                                                       \
 nxt_log_debug(...)
@@ -119,6 +152,7 @@ nxt_main_log_debug(...)                                                       \
 
 
 NXT_EXPORT extern nxt_uint_t  nxt_debug;
+NXT_EXPORT extern nxt_uint_t  nxt_trace;
 NXT_EXPORT extern nxt_log_t   nxt_main_log;
 NXT_EXPORT extern nxt_str_t   nxt_log_levels[];
 

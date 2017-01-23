@@ -234,7 +234,7 @@
 
 
 #if (NXT_TEST_BUILD)
-#include <unix/nxt_test_build.h>
+#include <nxt_test_build.h>
 #endif
 
 

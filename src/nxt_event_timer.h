@@ -15,11 +15,11 @@
 
 #if (NXT_DEBUG)
 #define NXT_EVENT_TIMER       { NXT_RBTREE_NODE_INIT, 0, 0, 0,                \
-                                NULL, NULL, NULL, -1 }
+                                NULL, NULL, NULL, NULL, -1 }
 
 #else
 #define NXT_EVENT_TIMER       { NXT_RBTREE_NODE_INIT, 0, 0, 0,                \
-                                NULL, NULL, NULL }
+                                NULL, NULL, NULL, NULL }
 #endif
 
 
@@ -34,6 +34,7 @@ typedef struct {
     nxt_work_queue_t          *work_queue;
     nxt_work_handler_t        handler;
 
+    nxt_task_t                *task;
     nxt_log_t                 *log;
 #if (NXT_DEBUG)
     int32_t                   ident;

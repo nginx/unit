@@ -7,7 +7,7 @@
 #include <nxt_main.h>
 
 
-static void nxt_buf_completion(nxt_thread_t *thr, void *obj, void *data);
+static void nxt_buf_completion(nxt_task_t *task, void *obj, void *data);
 
 
 nxt_buf_t *
@@ -144,7 +144,7 @@ nxt_buf_chain_length(nxt_buf_t *b)
 
 
 static void
-nxt_buf_completion(nxt_thread_t *thr, void *obj, void *data)
+nxt_buf_completion(nxt_task_t *task, void *obj, void *data)
 {
     nxt_buf_t       *b, *parent;
     nxt_mem_pool_t  *mp;
@@ -152,20 +152,20 @@ nxt_buf_completion(nxt_thread_t *thr, void *obj, void *data)
     b = obj;
     parent = data;
 
-    nxt_log_debug(thr->log, "buf completion: %p %p", b, b->mem.start);
+    nxt_debug(task, "buf completion: %p %p", b, b->mem.start);
 
     mp = b->data;
     nxt_buf_free(mp, b);
 
     if (parent != NULL) {
-        nxt_log_debug(thr->log, "parent retain:%uD", parent->retain);
+        nxt_debug(task, "parent retain:%uD", parent->retain);
 
         parent->retain--;
 
         if (parent->retain == 0) {
             parent->mem.pos = parent->mem.free;
 
-            parent->completion_handler(thr, parent, parent->parent);
+            parent->completion_handler(task, parent, parent->parent);
         }
     }
 }

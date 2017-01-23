@@ -88,7 +88,8 @@ ssize_t nxt_event_conn_io_sendbuf(nxt_event_conn_t *c, nxt_buf_t *b,
     size_t limit);
 
 
-nxt_uint_t nxt_sendbuf_mem_coalesce(nxt_sendbuf_coalesce_t *sb);
+nxt_uint_t nxt_sendbuf_mem_coalesce(nxt_task_t *task,
+    nxt_sendbuf_coalesce_t *sb);
 size_t nxt_sendbuf_file_coalesce(nxt_sendbuf_coalesce_t *sb);
 
 /*
@@ -101,7 +102,7 @@ ssize_t nxt_sendbuf_copy_coalesce(nxt_event_conn_t *c, nxt_buf_mem_t *bm,
     nxt_buf_t *b, size_t limit);
 
 nxt_buf_t *nxt_sendbuf_update(nxt_buf_t *b, size_t sent);
-nxt_buf_t *nxt_sendbuf_completion(nxt_thread_t *thr, nxt_work_queue_t *wq,
+nxt_buf_t *nxt_sendbuf_completion(nxt_task_t *task, nxt_work_queue_t *wq,
     nxt_buf_t *b, size_t sent);
 
 

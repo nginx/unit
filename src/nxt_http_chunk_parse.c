@@ -22,12 +22,12 @@ static nxt_int_t nxt_http_chunk_buffer(nxt_http_chunk_parse_t *hcp,
 
 
 nxt_buf_t *
-nxt_http_chunk_parse(nxt_http_chunk_parse_t *hcp, nxt_buf_t *in)
+nxt_http_chunk_parse(nxt_task_t *task, nxt_http_chunk_parse_t *hcp,
+    nxt_buf_t *in)
 {
     u_char        c, ch;
     nxt_int_t     ret;
     nxt_buf_t     *b, *out, *nb, **tail;
-    nxt_thread_t  *thr;
     enum {
         sw_start = 0,
         sw_chunk_size,
@@ -168,9 +168,9 @@ nxt_http_chunk_parse(nxt_http_chunk_parse_t *hcp, nxt_buf_t *in)
 
         if (b->retain == 0) {
             /* No chunk data was found in a buffer. */
-            thr = nxt_thread();
-            nxt_thread_current_work_queue_add(thr, b->completion_handler,
-                                              b, b->parent, thr->log);
+            nxt_thread_current_work_queue_add(task->thread,
+                                              b->completion_handler,
+                                              task, b, b->parent);
 
         }
 

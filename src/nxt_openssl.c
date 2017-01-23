@@ -22,19 +22,18 @@ typedef struct {
 
 static nxt_int_t nxt_openssl_server_init(nxt_ssltls_conf_t *conf);
 
-static void nxt_openssl_conn_init(nxt_thread_t *thr, nxt_ssltls_conf_t *conf,
+static void nxt_openssl_conn_init(nxt_task_t *task, nxt_ssltls_conf_t *conf,
     nxt_event_conn_t *c);
 static void nxt_openssl_session_cleanup(void *data);
-static void nxt_openssl_conn_handshake(nxt_thread_t *thr, void *obj,
+static void nxt_openssl_conn_handshake(nxt_task_t *task, void *obj, void *data);
+static void nxt_openssl_conn_io_read(nxt_task_t *task, void *obj, void *data);
+static void nxt_openssl_conn_io_shutdown(nxt_task_t *task, void *obj,
     void *data);
-static void nxt_openssl_conn_io_read(nxt_thread_t *thr, void *obj, void *data);
-static void nxt_openssl_conn_io_shutdown(nxt_thread_t *thr, void *obj,
-    void *data);
-static ssize_t nxt_openssl_conn_io_write_chunk(nxt_thread_t *thr,
-    nxt_event_conn_t *c, nxt_buf_t *b, size_t limit);
+static ssize_t nxt_openssl_conn_io_write_chunk(nxt_event_conn_t *c,
+    nxt_buf_t *b, size_t limit);
 static ssize_t nxt_openssl_conn_io_send(nxt_event_conn_t *c, void *buf,
     size_t size);
-static nxt_int_t nxt_openssl_conn_test_error(nxt_thread_t *thr,
+static nxt_int_t nxt_openssl_conn_test_error(nxt_task_t *task,
     nxt_event_conn_t *c, int ret, nxt_err_t sys_err,
     nxt_work_handler_t handler);
 static void nxt_cdecl nxt_openssl_conn_error(nxt_event_conn_t *c, nxt_err_t err,
@@ -250,7 +249,7 @@ fail:
 
 
 static void
-nxt_openssl_conn_init(nxt_thread_t *thr, nxt_ssltls_conf_t *conf,
+nxt_openssl_conn_init(nxt_task_t *task, nxt_ssltls_conf_t *conf,
     nxt_event_conn_t *c)
 {
     int                     ret;
@@ -305,13 +304,14 @@ nxt_openssl_conn_init(nxt_thread_t *thr, nxt_ssltls_conf_t *conf,
     c->io = &nxt_openssl_event_conn_io;
     c->sendfile = NXT_CONN_SENDFILE_OFF;
 
-    nxt_openssl_conn_handshake(thr, c, c->socket.data);
+    nxt_openssl_conn_handshake(task, c, c->socket.data);
     return;
 
 fail:
 
-    nxt_event_conn_io_handle(thr, c->read_work_queue,
-                             c->read_state->error_handler, c, c->socket.data);
+    nxt_event_conn_io_handle(task->thread, c->read_work_queue,
+                             c->read_state->error_handler,
+                             task, c, c->socket.data);
 }
 
 
@@ -331,7 +331,7 @@ nxt_openssl_session_cleanup(void *data)
 
 
 static void
-nxt_openssl_conn_handshake(nxt_thread_t *thr, void *obj, void *data)
+nxt_openssl_conn_handshake(nxt_task_t *task, void *obj, void *data)
 {
     int                 ret;
     nxt_int_t           n;
@@ -342,7 +342,7 @@ nxt_openssl_conn_handshake(nxt_thread_t *thr, void *obj, void *data)
     c = obj;
     ssltls = c->u.ssltls;
 
-    nxt_log_debug(thr->log, "openssl conn handshake: %d", ssltls->times);
+    nxt_debug(task, "openssl conn handshake: %d", ssltls->times);
 
     /* "ssltls->times == 1" is suitable to run SSL_do_handshake() in job. */
 
@@ -350,26 +350,26 @@ nxt_openssl_conn_handshake(nxt_thread_t *thr, void *obj, void *data)
 
     err = (ret <= 0) ? nxt_socket_errno : 0;
 
-    nxt_thread_time_debug_update(thr);
+    nxt_thread_time_debug_update(task->thread);
 
-    nxt_log_debug(thr->log, "SSL_do_handshake(%d): %d err:%d",
-                  c->socket.fd, ret, err);
+    nxt_debug(task, "SSL_do_handshake(%d): %d err:%d", c->socket.fd, ret, err);
 
     if (ret > 0) {
         /* ret == 1, the handshake was successfully completed. */
-        nxt_openssl_conn_io_read(thr, c, data);
+        nxt_openssl_conn_io_read(task, c, data);
         return;
     }
 
-    n = nxt_openssl_conn_test_error(thr, c, ret, err,
+    n = nxt_openssl_conn_test_error(task, c, ret, err,
                                     nxt_openssl_conn_handshake);
 
     if (n == NXT_ERROR) {
         nxt_openssl_conn_error(c, err, "SSL_do_handshake(%d) failed",
                                c->socket.fd);
 
-        nxt_event_conn_io_handle(thr, c->read_work_queue,
-                                 c->read_state->error_handler, c, data);
+        nxt_event_conn_io_handle(task->thread, c->read_work_queue,
+                                 c->read_state->error_handler,
+                                 task, c, data);
 
     } else if (ssltls->ssl_error == SSL_ERROR_WANT_READ && ssltls->times < 2) {
         ssltls->times++;
@@ -378,7 +378,7 @@ nxt_openssl_conn_handshake(nxt_thread_t *thr, void *obj, void *data)
 
 
 static void
-nxt_openssl_conn_io_read(nxt_thread_t *thr, void *obj, void *data)
+nxt_openssl_conn_io_read(nxt_task_t *task, void *obj, void *data)
 {
     int                 ret;
     nxt_buf_t           *b;
@@ -390,7 +390,7 @@ nxt_openssl_conn_io_read(nxt_thread_t *thr, void *obj, void *data)
 
     c = obj;
 
-    nxt_log_debug(thr->log, "openssl conn read");
+    nxt_debug(task, "openssl conn read");
 
     handler = c->read_state->ready_handler;
     b = c->read;
@@ -404,9 +404,9 @@ nxt_openssl_conn_io_read(nxt_thread_t *thr, void *obj, void *data)
 
         err = (ret <= 0) ? nxt_socket_errno : 0;
 
-        nxt_log_debug(thr->log, "SSL_read(%d, %p, %uz): %d err:%d",
-                      c->socket.fd, b->mem.free, b->mem.end - b->mem.free,
-                      ret, err);
+        nxt_debug(task, "SSL_read(%d, %p, %uz): %d err:%d",
+                  c->socket.fd, b->mem.free, b->mem.end - b->mem.free,
+                  ret, err);
 
         if (ret > 0) {
             /* c->socket.read_ready is kept. */
@@ -414,7 +414,7 @@ nxt_openssl_conn_io_read(nxt_thread_t *thr, void *obj, void *data)
             handler = c->read_state->ready_handler;
 
         } else {
-            n = nxt_openssl_conn_test_error(thr, c, ret, err,
+            n = nxt_openssl_conn_test_error(task, c, ret, err,
                                             nxt_openssl_conn_io_read);
 
             if (nxt_fast_path(n != NXT_ERROR)) {
@@ -429,17 +429,17 @@ nxt_openssl_conn_io_read(nxt_thread_t *thr, void *obj, void *data)
         }
     }
 
-    nxt_event_conn_io_handle(thr, c->read_work_queue, handler, c, data);
+    nxt_event_conn_io_handle(task->thread, c->read_work_queue, handler,
+                             task, c, data);
 }
 
 
 static ssize_t
-nxt_openssl_conn_io_write_chunk(nxt_thread_t *thr, nxt_event_conn_t *c,
-    nxt_buf_t *b, size_t limit)
+nxt_openssl_conn_io_write_chunk(nxt_event_conn_t *c, nxt_buf_t *b, size_t limit)
 {
     nxt_openssl_conn_t  *ssltls;
 
-    nxt_log_debug(thr->log, "openssl conn write chunk");
+    nxt_debug(c->socket.task, "openssl conn write chunk");
 
     ssltls = c->u.ssltls;
 
@@ -474,7 +474,7 @@ nxt_openssl_conn_io_send(nxt_event_conn_t *c, void *buf, size_t size)
         return ret;
     }
 
-    n = nxt_openssl_conn_test_error(nxt_thread(), c, ret, err,
+    n = nxt_openssl_conn_test_error(c->socket.task, c, ret, err,
                                     nxt_event_conn_io_write);
 
     if (n == NXT_ERROR) {
@@ -487,7 +487,7 @@ nxt_openssl_conn_io_send(nxt_event_conn_t *c, void *buf, size_t size)
 
 
 static void
-nxt_openssl_conn_io_shutdown(nxt_thread_t *thr, void *obj, void *data)
+nxt_openssl_conn_io_shutdown(nxt_task_t *task, void *obj, void *data)
 {
     int                 ret, mode;
     SSL                 *s;
@@ -500,7 +500,7 @@ nxt_openssl_conn_io_shutdown(nxt_thread_t *thr, void *obj, void *data)
 
     c = obj;
 
-    nxt_log_debug(thr->log, "openssl conn shutdown");
+    nxt_debug(task, "openssl conn shutdown");
 
     ssltls = c->u.ssltls;
     s = ssltls->session;
@@ -533,8 +533,8 @@ nxt_openssl_conn_io_shutdown(nxt_thread_t *thr, void *obj, void *data)
 
         err = (ret <= 0) ? nxt_socket_errno : 0;
 
-        nxt_log_debug(thr->log, "SSL_shutdown(%d, %d, %b): %d err:%d",
-                      c->socket.fd, mode, quiet, ret, err);
+        nxt_debug(task, "SSL_shutdown(%d, %d, %b): %d err:%d",
+                  c->socket.fd, mode, quiet, ret, err);
 
         if (ret > 0) {
             /* ret == 1, the shutdown was successfully completed. */
@@ -565,7 +565,7 @@ nxt_openssl_conn_io_shutdown(nxt_thread_t *thr, void *obj, void *data)
         break;
     }
 
-    n = nxt_openssl_conn_test_error(thr, c, ret, err,
+    n = nxt_openssl_conn_test_error(task, c, ret, err,
                                     nxt_openssl_conn_io_shutdown);
 
     if (nxt_fast_path(n == 0)) {
@@ -574,7 +574,7 @@ nxt_openssl_conn_io_shutdown(nxt_thread_t *thr, void *obj, void *data)
 
     if (n != NXT_ERROR) {  /* n == NXT_AGAIN */
         c->socket.error_handler = c->read_state->error_handler;
-        nxt_event_timer_add(thr->engine, &c->read_timer, 5000);
+        nxt_event_timer_add(task->thread->engine, &c->read_timer, 5000);
         return;
     }
 
@@ -584,12 +584,13 @@ nxt_openssl_conn_io_shutdown(nxt_thread_t *thr, void *obj, void *data)
 
 done:
 
-    nxt_event_conn_io_handle(thr, c->write_work_queue, handler, c, data);
+    nxt_event_conn_io_handle(task->thread, c->write_work_queue, handler,
+                             task, c, data);
 }
 
 
 static nxt_int_t
-nxt_openssl_conn_test_error(nxt_thread_t *thr, nxt_event_conn_t *c, int ret,
+nxt_openssl_conn_test_error(nxt_task_t *task, nxt_event_conn_t *c, int ret,
     nxt_err_t sys_err, nxt_work_handler_t handler)
 {
     u_long              lib_err;
@@ -605,25 +606,25 @@ nxt_openssl_conn_test_error(nxt_thread_t *thr, nxt_event_conn_t *c, int ret,
     switch (ssltls->ssl_error) {
 
     case SSL_ERROR_WANT_READ:
-        nxt_event_fd_block_write(thr->engine, &c->socket);
+        nxt_event_fd_block_write(task->thread->engine, &c->socket);
 
         c->socket.read_ready = 0;
         c->socket.read_handler = handler;
 
         if (nxt_event_fd_is_disabled(c->socket.read)) {
-            nxt_event_fd_enable_read(thr->engine, &c->socket);
+            nxt_event_fd_enable_read(task->thread->engine, &c->socket);
         }
 
         return NXT_AGAIN;
 
     case SSL_ERROR_WANT_WRITE:
-        nxt_event_fd_block_read(thr->engine, &c->socket);
+        nxt_event_fd_block_read(task->thread->engine, &c->socket);
 
         c->socket.write_ready = 0;
         c->socket.write_handler = handler;
 
         if (nxt_event_fd_is_disabled(c->socket.write)) {
-            nxt_event_fd_enable_write(thr->engine, &c->socket);
+            nxt_event_fd_enable_write(task->thread->engine, &c->socket);
         }
 
         return NXT_AGAIN;
@@ -632,7 +633,7 @@ nxt_openssl_conn_test_error(nxt_thread_t *thr, nxt_event_conn_t *c, int ret,
 
         lib_err = ERR_peek_error();
 
-        nxt_log_debug(c->socket.log, "ERR_peek_error(): %l", lib_err);
+        nxt_debug(task, "ERR_peek_error(): %l", lib_err);
 
         if (sys_err != 0 || lib_err != 0) {
             return NXT_ERROR;
@@ -655,7 +656,8 @@ nxt_openssl_conn_test_error(nxt_thread_t *thr, nxt_event_conn_t *c, int ret,
             handler = c->write_state->close_handler;
         }
 
-        nxt_event_conn_io_handle(thr, wq, handler, c, c->socket.data);
+        nxt_event_conn_io_handle(task->thread, wq, handler,
+                                 task, c, c->socket.data);
 
         return 0;
 

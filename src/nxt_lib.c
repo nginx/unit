@@ -9,6 +9,8 @@
 
 nxt_uint_t    nxt_ncpu = 1;
 nxt_uint_t    nxt_pagesize;
+nxt_task_t    nxt_main_task;
+nxt_atomic_t  nxt_task_ident;
 nxt_random_t  nxt_random_data;
 
 nxt_thread_declare_data(nxt_thread_t, nxt_thread_context);
@@ -69,6 +71,10 @@ nxt_lib_start(const char *app, char **argv, char ***envp)
     thr->handle = nxt_thread_handle();
     thr->time.signal = -1;
 #endif
+
+    nxt_main_task.thread = thr;
+    nxt_main_task.log = thr->log;
+    nxt_main_task.ident = nxt_task_next_ident();
 
     if (nxt_strerror_start() != NXT_OK) {
         return NXT_ERROR;

@@ -16,8 +16,7 @@ static void nxt_select_enable_read(nxt_event_set_t *event_set,
     nxt_event_fd_t *ev);
 static void nxt_select_enable_write(nxt_event_set_t *event_set,
     nxt_event_fd_t *ev);
-static void nxt_select_error_handler(nxt_thread_t *thr, void *obj,
-    void *data);
+static void nxt_select_error_handler(nxt_task_t *task, void *obj, void *data);
 static void nxt_select_disable_read(nxt_event_set_t *event_set,
     nxt_event_fd_t *ev);
 static void nxt_select_disable_write(nxt_event_set_t *event_set,
@@ -30,7 +29,7 @@ static void nxt_select_oneshot_read(nxt_event_set_t *event_set,
     nxt_event_fd_t *ev);
 static void nxt_select_oneshot_write(nxt_event_set_t *event_set,
     nxt_event_fd_t *ev);
-static void nxt_select_poll(nxt_thread_t *thr, nxt_event_set_t *event_set,
+static void nxt_select_poll(nxt_task_t *task, nxt_event_set_t *event_set,
     nxt_msec_t timeout);
 
 
@@ -144,7 +143,7 @@ nxt_select_enable_read(nxt_event_set_t *event_set, nxt_event_fd_t *ev)
         thr = nxt_thread();
         nxt_thread_work_queue_add(thr, &thr->work_queue.main,
                                   nxt_select_error_handler,
-                                  ev, ev->data, ev->log);
+                                  ev->task, ev, ev->data);
         return;
     }
 
@@ -177,7 +176,7 @@ nxt_select_enable_write(nxt_event_set_t *event_set, nxt_event_fd_t *ev)
         thr = nxt_thread();
         nxt_thread_work_queue_add(thr, &thr->work_queue.main,
                                   nxt_select_error_handler,
-                                  ev, ev->data, ev->log);
+                                  ev->task, ev, ev->data);
         return;
     }
 
@@ -194,7 +193,7 @@ nxt_select_enable_write(nxt_event_set_t *event_set, nxt_event_fd_t *ev)
 
 
 static void
-nxt_select_error_handler(nxt_thread_t *thr, void *obj, void *data)
+nxt_select_error_handler(nxt_task_t *task, void *obj, void *data)
 {
     nxt_event_fd_t  *ev;
 
@@ -203,7 +202,7 @@ nxt_select_error_handler(nxt_thread_t *thr, void *obj, void *data)
     ev->read = NXT_EVENT_INACTIVE;
     ev->write = NXT_EVENT_INACTIVE;
 
-    ev->error_handler(thr, ev, data);
+    ev->error_handler(task, ev, data);
 }
 
 
@@ -296,7 +295,7 @@ nxt_select_oneshot_write(nxt_event_set_t *event_set, nxt_event_fd_t *ev)
 
 
 static void
-nxt_select_poll(nxt_thread_t *thr, nxt_event_set_t *event_set,
+nxt_select_poll(nxt_task_t *task, nxt_event_set_t *event_set,
     nxt_msec_t timeout)
 {
     int                     nevents, nfds, found;
@@ -333,20 +332,20 @@ nxt_select_poll(nxt_thread_t *thr, nxt_event_set_t *event_set,
 
     nfds = ss->nfds + 1;
 
-    nxt_log_debug(thr->log, "select() nfds:%d timeout:%M", nfds, timeout);
+    nxt_debug(task, "select() nfds:%d timeout:%M", nfds, timeout);
 
     nevents = select(nfds, &ss->work_read_fd_set, &ss->work_write_fd_set,
                      NULL, tp);
 
     err = (nevents == -1) ? nxt_errno : 0;
 
-    nxt_thread_time_update(thr);
+    nxt_thread_time_update(task->thread);
 
-    nxt_log_debug(thr->log, "select(): %d", nevents);
+    nxt_debug(task, "select(): %d", nevents);
 
     if (nevents == -1) {
         level = (err == NXT_EINTR) ? NXT_LOG_INFO : NXT_LOG_ALERT;
-        nxt_log_error(level, thr->log, "select() failed %E", err);
+        nxt_log(task, level, "select() failed %E", err);
         return;
     }
 
@@ -357,8 +356,8 @@ nxt_select_poll(nxt_thread_t *thr, nxt_event_set_t *event_set,
         if (FD_ISSET(fd, &ss->work_read_fd_set)) {
             ev = ss->events[fd];
 
-            nxt_log_debug(ev->log, "select() fd:%ui read rd:%d wr:%d",
-                          fd, ev->read, ev->write);
+            nxt_debug(ev->task, "select() fd:%ui read rd:%d wr:%d",
+                      fd, ev->read, ev->write);
 
             ev->read_ready = 1;
 
@@ -366,8 +365,8 @@ nxt_select_poll(nxt_thread_t *thr, nxt_event_set_t *event_set,
                 nxt_select_disable_read(event_set, ev);
             }
 
-            nxt_thread_work_queue_add(thr, ev->read_work_queue,
-                                      ev->read_handler, ev, ev->data, ev->log);
+            nxt_thread_work_queue_add(task->thread, ev->read_work_queue,
+                                      ev->read_handler, ev->task, ev, ev->data);
             found = 1;
         }
 
@@ -383,8 +382,9 @@ nxt_select_poll(nxt_thread_t *thr, nxt_event_set_t *event_set,
                 nxt_select_disable_write(event_set, ev);
             }
 
-            nxt_thread_work_queue_add(thr, ev->write_work_queue,
-                                      ev->write_handler, ev, ev->data, ev->log);
+            nxt_thread_work_queue_add(task->thread, ev->write_work_queue,
+                                      ev->write_handler,
+                                      ev->task, ev, ev->data);
             found = 1;
         }
 

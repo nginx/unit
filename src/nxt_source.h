@@ -23,20 +23,20 @@ typedef void (*nxt_source_handler_t)(void *source_context,
 
 
 #define                                                                       \
-nxt_source_filter(thr, wq, next, out)                                         \
+nxt_source_filter(thr, wq, task, next, out)                                   \
     do {                                                                      \
         if (thr->engine->batch != 0) {                                        \
             nxt_thread_work_queue_add(thr, wq, nxt_source_filter_handler,     \
-                                      next, out, thr->log);                   \
+                                      task, next, out);                       \
                                                                               \
         } else {                                                              \
-            (next)->filter(thr, (next)->context, out);                        \
+            (next)->filter(task, (next)->context, out);                       \
         }                                                                     \
                                                                               \
     } while (0)
 
 
-NXT_EXPORT void nxt_source_filter_handler(nxt_thread_t *thr, void *obj,
+NXT_EXPORT void nxt_source_filter_handler(nxt_task_t *task, void *obj,
     void *data);
 
 

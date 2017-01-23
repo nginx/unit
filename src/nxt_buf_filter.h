@@ -77,8 +77,7 @@ typedef struct {
     nxt_int_t                    (*filter_sync_last)(nxt_buf_filter_t *f);
 
     void                         (*filter_next)(nxt_buf_filter_t *f);
-    void                         (*filter_error)(nxt_thread_t *thr, void *obj,
-                                     void *data);
+    nxt_work_handler_t           filter_error;
 
     nxt_buf_filter_file_t        *(*job_file_create)(nxt_buf_filter_t *f);
     void                         (*job_file_retain)(nxt_buf_filter_t *f);
@@ -107,10 +106,10 @@ struct nxt_buf_filter_s {
 };
 
 
-NXT_EXPORT void nxt_buf_filter_add(nxt_thread_t *thr, nxt_buf_filter_t *f,
+NXT_EXPORT void nxt_buf_filter_add(nxt_task_t *task, nxt_buf_filter_t *f,
     nxt_buf_t *b);
-NXT_EXPORT void nxt_buf_filter(nxt_thread_t *thr, void *obj, void *data);
-NXT_EXPORT void nxt_buf_filter_enqueue(nxt_thread_t *thr, nxt_buf_filter_t *f);
+NXT_EXPORT void nxt_buf_filter(nxt_task_t *task, void *obj, void *data);
+NXT_EXPORT void nxt_buf_filter_enqueue(nxt_task_t *task, nxt_buf_filter_t *f);
 
 
 #endif /* _NXT_BUF_FILTER_H_INCLUDED_ */

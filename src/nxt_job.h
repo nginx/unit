@@ -33,6 +33,8 @@
 typedef struct {
     void                *data;
 
+    nxt_task_t          task;
+
     nxt_work_handler_t  abort_handler;
 
     uint16_t            cache_size;
@@ -59,9 +61,9 @@ NXT_EXPORT void nxt_job_init(nxt_job_t *job, size_t size);
 NXT_EXPORT void nxt_job_destroy(void *data);
 NXT_EXPORT nxt_int_t nxt_job_cleanup_add(nxt_mem_pool_t *mp, nxt_job_t *job);
 
-NXT_EXPORT void nxt_job_start(nxt_thread_t *thr, nxt_job_t *job,
+NXT_EXPORT void nxt_job_start(nxt_task_t *task, nxt_job_t *job,
     nxt_work_handler_t handler);
-NXT_EXPORT void nxt_job_return(nxt_thread_t *thr, nxt_job_t *job,
+NXT_EXPORT void nxt_job_return(nxt_task_t *task, nxt_job_t *job,
     nxt_work_handler_t handler);
 
 
