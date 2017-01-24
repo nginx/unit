@@ -9,7 +9,7 @@ NXT_PYTHON_VERSION=`${NXT_PYTHON} -c \
 
 NXT_PYTHON_INCLUDE=`${NXT_PYTHON} -c \
     'import sysconfig, sys; \
-     sys.stdout.write(sysconfig.get_path("platinclude"))'`
+     sys.stdout.write(sysconfig.get_config_var("INCLUDEPY"))'`
 
 NXT_PYTHON_LIB="-lpython${NXT_PYTHON_VERSION}"
 
