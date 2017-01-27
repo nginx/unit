@@ -313,8 +313,7 @@ nxt_event_timer_expire(nxt_thread_t *thr, nxt_msec_t now)
         if (ev->state != NXT_EVENT_TIMER_DISABLED) {
             ev->state = NXT_EVENT_TIMER_DISABLED;
 
-            nxt_thread_work_queue_add(thr, ev->work_queue, ev->handler,
-                                      ev->task, ev, NULL);
+            nxt_work_queue_add(ev->work_queue, ev->handler, ev->task, ev, NULL);
         }
     }
 }

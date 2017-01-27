@@ -20,8 +20,7 @@ nxt_event_conn_read(nxt_task_t *task, nxt_event_conn_t *c)
         wq = &task->thread->engine->read_work_queue;
         c->socket.read_work_queue = wq;
 
-        nxt_thread_work_queue_add(task->thread, wq, handler, task, c,
-                                  c->socket.data);
+        nxt_work_queue_add( wq, handler, task, c, c->socket.data);
         return;
     }
 
@@ -134,8 +133,8 @@ ready:
 done:
 
     if (batch) {
-        nxt_thread_work_queue_add(task->thread, c->read_work_queue, handler,
-                                  task, c, data);
+        nxt_work_queue_add(c->read_work_queue, handler, task, c, data);
+
     } else {
         handler(task, c, data);
     }

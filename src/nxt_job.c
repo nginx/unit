@@ -44,8 +44,6 @@ nxt_job_create(nxt_mem_pool_t *mp, size_t size)
     /* Allow safe nxt_queue_remove() in nxt_job_destroy(). */
     nxt_queue_self(&job->link);
 
-    job->task.ident = nxt_task_next_ident();
-
     return job;
 }
 
@@ -58,8 +56,6 @@ nxt_job_init(nxt_job_t *job, size_t size)
     nxt_job_set_name(job, "job");
 
     nxt_queue_self(&job->link);
-
-    job->task.ident = nxt_task_next_ident();
 }
 
 
@@ -118,8 +114,11 @@ nxt_job_start(nxt_task_t *task, nxt_job_t *job, nxt_work_handler_t handler)
 
         job->engine = task->thread->engine;
 
-        ret = nxt_thread_pool_post(job->thread_pool, nxt_job_thread_trampoline,
-                                   &job->task, job, (void *) handler);
+        nxt_work_set(&job->work, nxt_job_thread_trampoline,
+                     job->task, job, (void *) handler);
+
+        ret = nxt_thread_pool_post(job->thread_pool, &job->work);
+
         if (ret == NXT_OK) {
             return;
         }
@@ -129,7 +128,7 @@ nxt_job_start(nxt_task_t *task, nxt_job_t *job, nxt_work_handler_t handler)
 
 #endif
 
-    handler(&job->task, job, job->data);
+    handler(job->task, job, job->data);
 }
 
 
@@ -146,15 +145,13 @@ nxt_job_thread_trampoline(nxt_task_t *task, void *obj, void *data)
     job = obj;
     handler = (nxt_work_handler_t) data;
 
-    job->task.log = job->log;
-
     nxt_debug(task, "%s thread", job->name);
 
     if (nxt_slow_path(job->cancel)) {
         nxt_job_return(task, job, job->abort_handler);
 
     } else {
-        handler(&job->task, job, job->data);
+        handler(job->task, job, job->data);
     }
 }
 
@@ -170,8 +167,12 @@ nxt_job_return(nxt_task_t *task, nxt_job_t *job, nxt_work_handler_t handler)
 
     if (job->engine != NULL) {
         /* A return function is called in thread pool thread context. */
-        nxt_event_engine_post(job->engine, nxt_job_thread_return_handler,
-                              &job->task, job, (void *) handler, job->log);
+
+        nxt_work_set(&job->work, nxt_job_thread_return_handler,
+                     job->task, job, (void *) handler);
+
+        nxt_event_engine_post(job->engine, &job->work);
+
         return;
     }
 
@@ -182,8 +183,8 @@ nxt_job_return(nxt_task_t *task, nxt_job_t *job, nxt_work_handler_t handler)
         handler = job->abort_handler;
     }
 
-    nxt_thread_work_queue_push(task->thread, &task->thread->work_queue.main,
-                               handler, &job->task, job, job->data);
+    nxt_work_queue_add(&task->thread->engine->fast_work_queue,
+                       handler, job->task, job, job->data);
 }
 
 
@@ -198,14 +199,14 @@ nxt_job_thread_return_handler(nxt_task_t *task, void *obj, void *data)
     job = obj;
     handler = (nxt_work_handler_t) data;
 
-    job->task.thread = task->thread;
+    job->task->thread = task->thread;
 
     if (nxt_slow_path(job->cancel)) {
         nxt_debug(task, "%s cancellation", job->name);
         handler = job->abort_handler;
     }
 
-    handler(&job->task, job, job->data);
+    handler(job->task, job, job->data);
 }
 
 #endif

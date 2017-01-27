@@ -226,6 +226,7 @@ nxt_buf_used_size(b)                                                          \
                           nxt_buf_mem_used_size(&(b)->mem))
 
 
+NXT_EXPORT void nxt_buf_mem_init(nxt_buf_t *b, void *start, size_t size);
 NXT_EXPORT nxt_buf_t *nxt_buf_mem_alloc(nxt_mem_pool_t *mp, size_t size,
     nxt_uint_t flags);
 NXT_EXPORT nxt_buf_t *nxt_buf_file_alloc(nxt_mem_pool_t *mp, size_t size,

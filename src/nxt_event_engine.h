@@ -33,6 +33,9 @@ struct nxt_event_engine_s {
      */
     nxt_event_engine_pipe_t    *pipe;
 
+    nxt_work_queue_cache_t     work_queue_cache;
+    nxt_work_queue_t           *current_work_queue;
+    nxt_work_queue_t           fast_work_queue;
     nxt_work_queue_t           accept_work_queue;
     nxt_work_queue_t           read_work_queue;
     nxt_work_queue_t           socket_work_queue;
@@ -40,8 +43,9 @@ struct nxt_event_engine_s {
     nxt_work_queue_t           write_work_queue;
     nxt_work_queue_t           shutdown_work_queue;
     nxt_work_queue_t           close_work_queue;
+    nxt_work_queue_t           final_work_queue;
 
-    nxt_locked_work_queue_t    work_queue;
+    nxt_locked_work_queue_t    locked_work_queue;
 
     nxt_event_signals_t        *signals;
 
@@ -68,8 +72,7 @@ NXT_EXPORT void nxt_event_engine_free(nxt_event_engine_t *engine);
 NXT_EXPORT void nxt_event_engine_start(nxt_event_engine_t *engine);
 
 NXT_EXPORT void nxt_event_engine_post(nxt_event_engine_t *engine,
-    nxt_work_handler_t handler, nxt_task_t *task, void *obj, void *data,
-    nxt_log_t *log);
+    nxt_work_t *work);
 NXT_EXPORT void nxt_event_engine_signal(nxt_event_engine_t *engine,
     nxt_uint_t signo);
 
@@ -81,16 +84,6 @@ nxt_thread_event_engine(void)
 
     thr = nxt_thread();
     return thr->engine;
-}
-
-
-nxt_inline nxt_work_queue_t *
-nxt_thread_main_work_queue(void)
-{
-    nxt_thread_t  *thr;
-
-    thr = nxt_thread();
-    return &thr->work_queue.main;
 }
 
 

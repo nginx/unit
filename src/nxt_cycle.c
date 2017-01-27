@@ -153,8 +153,8 @@ nxt_cycle_create(nxt_thread_t *thr, nxt_task_t *task, nxt_cycle_t *previous,
 
     nxt_log_debug(thr->log, "new cycle: %p", cycle);
 
-    nxt_thread_work_queue_add(thr, &thr->work_queue.main, nxt_cycle_start,
-                              task, cycle, NULL);
+    nxt_work_queue_add(&thr->engine->fast_work_queue, nxt_cycle_start,
+                       task, cycle, NULL);
 
     return NXT_OK;
 
@@ -583,8 +583,8 @@ nxt_cycle_quit(nxt_task_t *task, nxt_cycle_t *cycle)
     nxt_cycle_close_idle_connections(thr, task);
 
     if (done) {
-        nxt_thread_work_queue_add(thr, &thr->work_queue.main, nxt_cycle_exit,
-                                  task, cycle, NULL);
+        nxt_work_queue_add(&thr->engine->fast_work_queue, nxt_cycle_exit,
+                           task, cycle, NULL);
     }
 }
 

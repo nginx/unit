@@ -157,9 +157,10 @@ done:
 
 fast:
 
-    nxt_thread_pool_post(task->thread->thread_pool,
-                         nxt_event_conn_job_sendfile_handler,
-                         &jbs->job.task, jbs, c);
+    nxt_work_set(&jbs->job.work, nxt_event_conn_job_sendfile_handler,
+                 jbs->job.task, jbs, c);
+
+    nxt_thread_pool_post(task->thread->thread_pool, &jbs->job.work);
 }
 
 
@@ -257,8 +258,8 @@ nxt_event_conn_job_sendfile_completion(nxt_task_t *task, nxt_event_conn_t *c,
             break;
         }
 
-        nxt_thread_work_queue_add(task->thread, c->write_work_queue,
-                                  b->completion_handler, task, b, b->parent);
+        nxt_work_queue_add(c->write_work_queue,
+                           b->completion_handler, task, b, b->parent);
 
         b = b->next;
     }

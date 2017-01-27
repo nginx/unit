@@ -141,9 +141,8 @@ nxt_select_enable_read(nxt_event_set_t *event_set, nxt_event_fd_t *ev)
 
     if (fd < 0 || fd >= (nxt_fd_t) FD_SETSIZE) {
         thr = nxt_thread();
-        nxt_thread_work_queue_add(thr, &thr->work_queue.main,
-                                  nxt_select_error_handler,
-                                  ev->task, ev, ev->data);
+        nxt_work_queue_add(&thr->engine->fast_work_queue,
+                           nxt_select_error_handler, ev->task, ev, ev->data);
         return;
     }
 
@@ -174,9 +173,8 @@ nxt_select_enable_write(nxt_event_set_t *event_set, nxt_event_fd_t *ev)
 
     if (fd < 0 || fd >= (nxt_fd_t) FD_SETSIZE) {
         thr = nxt_thread();
-        nxt_thread_work_queue_add(thr, &thr->work_queue.main,
-                                  nxt_select_error_handler,
-                                  ev->task, ev, ev->data);
+        nxt_work_queue_add(&thr->engine->fast_work_queue,
+                           nxt_select_error_handler, ev->task, ev, ev->data);
         return;
     }
 
@@ -365,8 +363,8 @@ nxt_select_poll(nxt_task_t *task, nxt_event_set_t *event_set,
                 nxt_select_disable_read(event_set, ev);
             }
 
-            nxt_thread_work_queue_add(task->thread, ev->read_work_queue,
-                                      ev->read_handler, ev->task, ev, ev->data);
+            nxt_work_queue_add(ev->read_work_queue, ev->read_handler,
+                               ev->task, ev, ev->data);
             found = 1;
         }
 
@@ -382,9 +380,8 @@ nxt_select_poll(nxt_task_t *task, nxt_event_set_t *event_set,
                 nxt_select_disable_write(event_set, ev);
             }
 
-            nxt_thread_work_queue_add(task->thread, ev->write_work_queue,
-                                      ev->write_handler,
-                                      ev->task, ev, ev->data);
+            nxt_work_queue_add(ev->write_work_queue, ev->write_handler,
+                               ev->task, ev, ev->data);
             found = 1;
         }
 

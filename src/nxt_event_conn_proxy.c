@@ -456,9 +456,9 @@ nxt_event_conn_proxy_read_process(nxt_task_t *task, nxt_event_conn_proxy_t *p,
         }
 
         if (rb->mem.start != rb->mem.end) {
-            nxt_thread_work_queue_push(task->thread, source->read_work_queue,
-                                       nxt_event_conn_proxy_read,
-                                       task, source, source->socket.data);
+            nxt_work_queue_add(source->read_work_queue,
+                               nxt_event_conn_proxy_read,
+                               task, source, source->socket.data);
             break;
         }
 
@@ -665,9 +665,9 @@ nxt_event_conn_proxy_write_process(nxt_task_t *task, nxt_event_conn_proxy_t *p,
         nxt_buf_free(sink->mem_pool, wb);
     }
 
-    nxt_thread_work_queue_push(task->thread, source->read_work_queue,
-                               nxt_event_conn_proxy_read, task, source,
-                               source->socket.data);
+    nxt_work_queue_add(source->read_work_queue,
+                       nxt_event_conn_proxy_read, task, source,
+                       source->socket.data);
 }
 
 
@@ -1008,8 +1008,6 @@ nxt_event_conn_proxy_complete(nxt_task_t *task, nxt_event_conn_proxy_t *p)
         nxt_event_conn_close(task, p->peer);
 
     } else if (p->delayed) {
-        nxt_thread_work_queue_drop(task->thread, &p->peer->write_timer);
-
         nxt_queue_remove(&p->peer->link);
         nxt_event_timer_delete(task->thread->engine, &p->peer->write_timer);
     }

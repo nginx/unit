@@ -85,8 +85,8 @@ nxt_event_conn_create(nxt_mem_pool_t *mp, nxt_log_t *log)
     c->max_chunk = NXT_INT32_T_MAX;
     c->sendfile = NXT_CONN_SENDFILE_UNSET;
 
-    c->socket.read_work_queue = &thr->work_queue.main;
-    c->socket.write_work_queue = &thr->work_queue.main;
+    c->socket.read_work_queue = &thr->engine->fast_work_queue;
+    c->socket.write_work_queue = &thr->engine->fast_work_queue;
 
     nxt_event_conn_timer_init(&c->read_timer, c, c->socket.read_work_queue);
     nxt_event_conn_timer_init(&c->write_timer, c, c->socket.write_work_queue);
@@ -143,10 +143,6 @@ nxt_event_conn_close(nxt_task_t *task, nxt_event_conn_t *c)
 
     thr = task->thread;
 
-    nxt_thread_work_queue_drop(thr, c);
-    nxt_thread_work_queue_drop(thr, &c->read_timer);
-    nxt_thread_work_queue_drop(thr, &c->write_timer);
-
     engine = thr->engine;
 
     nxt_event_timer_delete(engine, &c->read_timer);
@@ -168,8 +164,8 @@ nxt_event_conn_close(nxt_task_t *task, nxt_event_conn_t *c)
             handler = nxt_event_conn_shutdown_socket;
         }
 
-        nxt_thread_work_queue_add(thr, wq, handler, task,
-                                  (void *) (uintptr_t) c->socket.fd, NULL);
+        nxt_work_queue_add(wq, handler, task,
+                           (void *) (uintptr_t) c->socket.fd, NULL);
 
     } else {
         nxt_socket_close(c->socket.fd);
@@ -188,10 +184,9 @@ nxt_event_conn_shutdown_socket(nxt_task_t *task, void *obj, void *data)
 
     nxt_socket_shutdown(s, SHUT_RDWR);
 
-    nxt_thread_work_queue_add(task->thread,
-                              &task->thread->engine->close_work_queue,
-                              nxt_event_conn_close_socket, task,
-                              (void *) (uintptr_t) s, NULL);
+    nxt_work_queue_add(&task->thread->engine->close_work_queue,
+                       nxt_event_conn_close_socket, task,
+                       (void *) (uintptr_t) s, NULL);
 }
 
 

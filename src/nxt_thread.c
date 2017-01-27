@@ -180,16 +180,22 @@ nxt_thread_time_cleanup(void *data)
 void
 nxt_thread_exit(nxt_thread_t *thr)
 {
+    nxt_thread_link_t  *link;
+
     nxt_log_debug(thr->log, "thread exit");
 
-    if (thr->link != NULL) {
-        nxt_event_engine_post(thr->link->engine, thr->link->exit,
-                              &thr->link->engine->task,
-                              (void *) (uintptr_t) thr->handle,
-                              NULL, &nxt_main_log);
+    link = thr->link;
+    thr->link = NULL;
 
-        nxt_free(thr->link);
-        thr->link = NULL;
+    if (link != NULL) {
+        /*
+         * link->handler is already set to an exit handler,
+         * and link->task is already set to engine->task.
+         * The link should be freed by the exit handler.
+         */
+        link->work.obj =  thr->handle;
+
+        nxt_event_engine_post(link->engine, &link->work);
     }
 
     nxt_thread_time_free(thr);

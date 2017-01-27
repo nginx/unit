@@ -648,10 +648,9 @@ nxt_epoll_commit_changes(nxt_task_t *task, nxt_epoll_event_set_t *es)
             nxt_log(ev->task, NXT_LOG_CRIT, "epoll_ctl(%d, %d, %d) failed %E",
                     es->epoll, ch->op, ch->fd, nxt_errno);
 
-            nxt_thread_work_queue_add(task->thread,
-                                      &task->thread->work_queue.main,
-                                      nxt_epoll_error_handler,
-                                      ev->task, ev, ev->data);
+            nxt_work_queue_add(&task->thread->engine->fast_work_queue,
+                               nxt_epoll_error_handler,
+                               ev->task, ev, ev->data);
 
             ret = NXT_ERROR;
         }
@@ -719,12 +718,12 @@ nxt_epoll_add_signal(nxt_epoll_event_set_t *es, nxt_event_signals_t *signals)
 
     nxt_main_log_debug("signalfd(): %d", fd);
 
+    thr = nxt_thread();
+
     es->signalfd.data = signals->handler;
-    es->signalfd.read_work_queue = nxt_thread_main_work_queue();
+    es->signalfd.read_work_queue = &thr->engine->fast_work_queue;
     es->signalfd.read_handler = nxt_epoll_signalfd_handler;
     es->signalfd.log = &nxt_main_log;
-
-    thr = nxt_thread();
     es->signalfd.task = &thr->engine->task;
 
     ee.events = EPOLLIN;
@@ -805,12 +804,12 @@ nxt_epoll_enable_post(nxt_event_set_t *event_set, nxt_work_handler_t handler)
 
     nxt_main_log_debug("eventfd(): %d", es->eventfd.fd);
 
-    es->eventfd.read_work_queue = nxt_thread_main_work_queue();
+    thr = nxt_thread();
+
+    es->eventfd.read_work_queue = &thr->engine->fast_work_queue;
     es->eventfd.read_handler = nxt_epoll_eventfd_handler;
     es->eventfd.data = es;
     es->eventfd.log = &nxt_main_log;
-
-    thr = nxt_thread();
     es->eventfd.task = &thr->engine->task;
 
     ee.events = EPOLLIN | EPOLLET;
@@ -960,9 +959,8 @@ nxt_epoll_poll(nxt_task_t *task, nxt_event_set_t *event_set,
 
                 error = 0;
 
-                nxt_thread_work_queue_add(task->thread, ev->read_work_queue,
-                                          ev->read_handler,
-                                          ev->task, ev, ev->data);
+                nxt_work_queue_add(ev->read_work_queue, ev->read_handler,
+                                   ev->task, ev, ev->data);
 
             } else if (event_set->epoll.mode == 0) {
                 /* Level-triggered mode. */
@@ -981,9 +979,8 @@ nxt_epoll_poll(nxt_task_t *task, nxt_event_set_t *event_set,
 
                 error = 0;
 
-                nxt_thread_work_queue_add(task->thread, ev->write_work_queue,
-                                          ev->write_handler,
-                                          ev->task, ev, ev->data);
+                nxt_work_queue_add(ev->write_work_queue, ev->write_handler,
+                                   ev->task, ev, ev->data);
 
             } else if (event_set->epoll.mode == 0) {
                 /* Level-triggered mode. */

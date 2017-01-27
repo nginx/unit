@@ -65,20 +65,11 @@ typedef struct nxt_work_queue_s  nxt_work_queue_t;
 struct nxt_work_queue_s {
     nxt_work_t                  *head;
     nxt_work_t                  *tail;
-    nxt_work_queue_t            *next;
+    nxt_work_queue_cache_t      *cache;
 #if (NXT_DEBUG)
     const char                  *name;
 #endif
 };
-
-
-typedef struct {
-    nxt_work_queue_t            *head;
-    nxt_work_queue_t            *tail;
-    nxt_work_queue_t            main;
-    nxt_work_queue_t            last;
-    nxt_work_queue_cache_t      cache;
-} nxt_thread_work_queue_t;
 
 
 typedef struct {
@@ -89,33 +80,25 @@ typedef struct {
 } nxt_locked_work_queue_t;
 
 
-NXT_EXPORT void nxt_thread_work_queue_create(nxt_thread_t *thr,
+NXT_EXPORT void nxt_work_queue_cache_create(nxt_work_queue_cache_t *cache,
     size_t chunk_size);
-NXT_EXPORT void nxt_thread_work_queue_destroy(nxt_thread_t *thr);
-NXT_EXPORT void nxt_thread_work_queue_add(nxt_thread_t *thr,
-    nxt_work_queue_t *wq, nxt_work_handler_t handler, nxt_task_t *task,
-    void *obj, void *data);
-NXT_EXPORT void nxt_thread_work_queue_push(nxt_thread_t *thr,
-    nxt_work_queue_t *wq, nxt_work_handler_t handler, nxt_task_t *task,
-    void *obj, void *data);
-NXT_EXPORT void nxt_work_queue_attach(nxt_thread_t *thr, nxt_work_queue_t *wq);
-NXT_EXPORT nxt_work_handler_t nxt_thread_work_queue_pop(nxt_thread_t *thr,
+NXT_EXPORT void nxt_work_queue_cache_destroy(nxt_work_queue_cache_t *cache);
+
+NXT_EXPORT void nxt_work_queue_add(nxt_work_queue_t *wq,
+    nxt_work_handler_t handler, nxt_task_t *task, void *obj, void *data);
+NXT_EXPORT nxt_work_handler_t nxt_work_queue_pop(nxt_work_queue_t *wq,
     nxt_task_t **task, void **obj, void **data);
-NXT_EXPORT void nxt_thread_work_queue_drop(nxt_thread_t *thr, void *data);
 
 
-#define                                                                       \
-nxt_thread_current_work_queue_add(thr, handler, task, obj, data)              \
+#define nxt_work_set(_work, _handler, _task, _obj, _data)                     \
     do {                                                                      \
-        nxt_thread_t  *_thr = thr;                                            \
+        nxt_work_t  *work = _work;                                            \
                                                                               \
-        nxt_thread_work_queue_add(_thr, _thr->work_queue.head,                \
-                                  handler, task, obj, data);                  \
+        work->handler = _handler;                                             \
+        work->task = _task;                                                   \
+        work->obj = _obj;                                                     \
+        work->data = _data;                                                   \
     } while (0)
-
-
-NXT_EXPORT void nxt_work_queue_destroy(nxt_work_queue_t *wq);
-
 
 #if (NXT_DEBUG)
 
@@ -131,17 +114,8 @@ nxt_work_queue_name(_wq, _name)
 #endif
 
 
-NXT_EXPORT void nxt_thread_last_work_queue_add(nxt_thread_t *thr,
-    nxt_work_handler_t handler, void *obj, void *data);
-NXT_EXPORT nxt_work_handler_t nxt_thread_last_work_queue_pop(nxt_thread_t *thr,
-    nxt_task_t **task, void **obj, void **data);
-
-
-NXT_EXPORT void nxt_locked_work_queue_create(nxt_locked_work_queue_t *lwq,
-    size_t chunk_size);
-NXT_EXPORT void nxt_locked_work_queue_destroy(nxt_locked_work_queue_t *lwq);
 NXT_EXPORT void nxt_locked_work_queue_add(nxt_locked_work_queue_t *lwq,
-    nxt_work_handler_t handler, nxt_task_t *task, void *obj, void *data);
+    nxt_work_t *work);
 NXT_EXPORT nxt_work_handler_t nxt_locked_work_queue_pop(
     nxt_locked_work_queue_t *lwq, nxt_task_t **task, void **obj, void **data);
 NXT_EXPORT void nxt_locked_work_queue_move(nxt_thread_t *thr,

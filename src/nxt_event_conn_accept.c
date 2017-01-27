@@ -50,7 +50,7 @@ nxt_event_conn_listen(nxt_task_t *task, nxt_listen_socket_t *ls)
             cls->socket.read_work_queue = &engine->accept_work_queue;
 
         } else {
-            cls->socket.read_work_queue = &task->thread->work_queue.main;
+            cls->socket.read_work_queue = &engine->fast_work_queue;
             cls->batch = 1;
         }
 
@@ -62,7 +62,7 @@ nxt_event_conn_listen(nxt_task_t *task, nxt_listen_socket_t *ls)
 
         cls->listen = ls;
 
-        cls->timer.work_queue = &task->thread->work_queue.main;
+        cls->timer.work_queue = &engine->fast_work_queue;
         cls->timer.handler = nxt_event_conn_listen_timer_handler;
         cls->timer.log = &nxt_main_log;
 
@@ -221,15 +221,15 @@ nxt_event_conn_accept(nxt_task_t *task, nxt_event_conn_listen_t *cls,
         c->listen->handler(task, c, NULL);
 
     } else {
-        nxt_thread_work_queue_add(task->thread, c->write_work_queue,
-                                  c->listen->handler, task, c, NULL);
+        nxt_work_queue_add(c->write_work_queue, c->listen->handler,
+                           task, c, NULL);
     }
 
     next = nxt_event_conn_accept_next(task, cls);
 
     if (next != NULL && cls->socket.read_ready) {
-        nxt_thread_work_queue_add(task->thread, cls->socket.read_work_queue,
-                                  cls->accept, task, cls, next);
+        nxt_work_queue_add(cls->socket.read_work_queue,
+                           cls->accept, task, cls, next);
     }
 }
 

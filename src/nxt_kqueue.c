@@ -531,11 +531,13 @@ static void
 nxt_kqueue_error(nxt_kqueue_event_set_t *ks)
 {
     struct kevent     *kev, *end;
-    nxt_thread_t      *thr;
+    nxt_thread_t      *thread;
     nxt_event_fd_t    *ev;
     nxt_event_file_t  *fev;
+    nxt_work_queue_t  *wq;
 
-    thr = nxt_thread();
+    thread = nxt_thread();
+    wq = &thread->engine->fast_work_queue;
     end = &ks->changes[ks->nchanges];
 
     for (kev = ks->changes; kev < end; kev++) {
@@ -545,16 +547,14 @@ nxt_kqueue_error(nxt_kqueue_event_set_t *ks)
         case EVFILT_READ:
         case EVFILT_WRITE:
             ev = nxt_kevent_get_udata(kev->udata);
-            nxt_thread_work_queue_add(thr, &thr->work_queue.main,
-                                      nxt_kqueue_fd_error_handler,
-                                      ev->task, ev, ev->data);
+            nxt_work_queue_add(wq, nxt_kqueue_fd_error_handler,
+                               ev->task, ev, ev->data);
             break;
 
         case EVFILT_VNODE:
             fev = nxt_kevent_get_udata(kev->udata);
-            nxt_thread_work_queue_add(thr, &thr->work_queue.main,
-                                      nxt_kqueue_file_error_handler,
-                                      fev->task, fev, fev->data);
+            nxt_work_queue_add(wq, nxt_kqueue_file_error_handler,
+                               fev->task, fev, fev->data);
             break;
         }
     }
@@ -768,7 +768,7 @@ nxt_kqueue_poll(nxt_task_t *task, nxt_event_set_t *event_set,
         }
 
         event_task = task;
-        wq = &task->thread->work_queue.main;
+        wq = &task->thread->engine->fast_work_queue;
         handler = nxt_kqueue_fd_error_handler;
         obj = nxt_kevent_get_udata(kev->udata);
 
@@ -871,8 +871,7 @@ nxt_kqueue_poll(nxt_task_t *task, nxt_event_set_t *event_set,
             continue;
         }
 
-        nxt_thread_work_queue_add(task->thread, wq, handler,
-                                  event_task, obj, data);
+        nxt_work_queue_add(wq, handler, event_task, obj, data);
     }
 }
 
@@ -938,8 +937,8 @@ nxt_kqueue_event_conn_connected(nxt_task_t *task, void *obj, void *data)
         nxt_event_timer_disable(&c->write_timer);
     }
 
-    nxt_thread_work_queue_add(task->thread, c->write_work_queue,
-                              c->write_state->ready_handler, task, c, data);
+    nxt_work_queue_add(c->write_work_queue, c->write_state->ready_handler,
+                       task, c, data);
 }
 
 
@@ -1020,8 +1019,8 @@ nxt_kqueue_event_conn_io_read(nxt_task_t *task, void *obj, void *data)
         nxt_debug(task, "kevent fd:%d eof", c->socket.fd);
 
         c->socket.closed = 1;
-        nxt_thread_work_queue_add(task->thread, c->read_work_queue,
-                                  c->read_state->close_handler, task, c, data);
+        nxt_work_queue_add(c->read_work_queue, c->read_state->close_handler,
+                           task, c, data);
         return;
     }
 

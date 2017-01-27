@@ -192,7 +192,7 @@ typedef struct {
 nxt_event_conn_io_handle(thr, wq, handler, task, c, data)                     \
     do {                                                                      \
         if (thr->engine->batch != 0) {                                        \
-            nxt_thread_work_queue_add(thr, wq, handler, task, c, data);       \
+            nxt_work_queue_add(wq, handler, task, c, data);                   \
                                                                               \
         } else {                                                              \
             handler(task, c, data);                                           \
@@ -301,9 +301,8 @@ NXT_EXPORT void nxt_event_conn_job_sendfile(nxt_task_t *task,
 
 #define                                                                       \
 nxt_event_conn_connect_enqueue(thr, task, c)                                  \
-    nxt_thread_work_queue_add(thr, &thr->engine->socket_work_queue,           \
-                              nxt_event_conn_batch_socket,                    \
-                              task, c, c->socket.data)
+    nxt_work_queue_add(&thr->engine->socket_work_queue,                       \
+                       nxt_event_conn_batch_socket, task, c, c->socket.data)
 
 
 #define                                                                       \
@@ -311,8 +310,8 @@ nxt_event_conn_read_enqueue(thr, task, c)                                     \
     do {                                                                      \
         c->socket.read_work_queue = &thr->engine->read_work_queue;            \
                                                                               \
-        nxt_thread_work_queue_add(thr, &thr->engine->read_work_queue,         \
-                                  c->io->read, task, c, c->socket.data);      \
+        nxt_work_queue_add(&thr->engine->read_work_queue,                     \
+                           c->io->read, task, c, c->socket.data);             \
     } while (0)
 
 
@@ -321,8 +320,8 @@ nxt_event_conn_write_enqueue(thr, task, c)                                    \
     do {                                                                      \
         c->socket.write_work_queue = &thr->engine->write_work_queue;          \
                                                                               \
-        nxt_thread_work_queue_add(thr, &thr->engine->write_work_queue,        \
-                                  c->io->write, task, c, c->socket.data);     \
+        nxt_work_queue_add(&thr->engine->write_work_queue,                    \
+                           c->io->write, task, c, c->socket.data);            \
     } while (0)
 
 

@@ -17,8 +17,8 @@ nxt_event_conn_connect(nxt_task_t *task, nxt_event_conn_t *c)
     engine = task->thread->engine;
 
     if (engine->batch != 0) {
-        nxt_thread_work_queue_add(task->thread, &engine->socket_work_queue,
-                                  nxt_event_conn_batch_socket, task, c, data);
+        nxt_work_queue_add(&engine->socket_work_queue,
+                           nxt_event_conn_batch_socket, task, c, data);
         return;
     }
 
@@ -47,9 +47,8 @@ nxt_event_conn_batch_socket(nxt_task_t *task, void *obj, void *data)
         handler = c->write_state->error_handler;
     }
 
-    nxt_thread_work_queue_add(task->thread,
-                              &task->thread->engine->connect_work_queue,
-                              handler, task, c, data);
+    nxt_work_queue_add(&task->thread->engine->connect_work_queue,
+                       handler, task, c, data);
 }
 
 

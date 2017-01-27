@@ -92,7 +92,7 @@ typedef struct {
     nxt_thread_start_t       start;
     void                     *data;
     nxt_event_engine_t       *engine;
-    nxt_work_handler_t       exit;
+    nxt_work_t               work;
 } nxt_thread_link_t;
 
 
@@ -179,7 +179,6 @@ struct nxt_thread_s {
     nxt_thread_time_t        time;
 
     nxt_event_engine_t       *engine;
-    nxt_thread_work_queue_t  work_queue;
 
     /*
      * Although pointer to a current fiber should be a property of

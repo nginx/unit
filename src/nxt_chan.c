@@ -141,7 +141,7 @@ nxt_chan_write_enable(nxt_task_t *task, nxt_chan_t *chan)
 
     chan->socket.task = &chan->task;
 
-    chan->socket.write_work_queue = &task->thread->work_queue.main;
+    chan->socket.write_work_queue = &task->thread->engine->fast_work_queue;
     chan->socket.write_handler = nxt_chan_write_handler;
     chan->socket.error_handler = nxt_chan_error_handler;
 }
@@ -290,9 +290,8 @@ nxt_chan_write_handler(nxt_task_t *task, void *obj, void *data)
 
 fail:
 
-    nxt_thread_work_queue_add(task->thread, &task->thread->work_queue.main,
-                              nxt_chan_error_handler, task, &chan->socket,
-                              NULL);
+    nxt_work_queue_add(&task->thread->engine->fast_work_queue,
+                       nxt_chan_error_handler, task, &chan->socket, NULL);
 }
 
 
@@ -308,7 +307,7 @@ nxt_chan_read_enable(nxt_task_t *task, nxt_chan_t *chan)
 
     chan->socket.task = &chan->task;
 
-    chan->socket.read_work_queue = &task->thread->work_queue.main;
+    chan->socket.read_work_queue = &task->thread->engine->fast_work_queue;
     chan->socket.read_handler = nxt_chan_read_handler;
     chan->socket.error_handler = nxt_chan_error_handler;
 
@@ -378,9 +377,8 @@ nxt_chan_read_handler(nxt_task_t *task, void *obj, void *data)
 
         /* n == 0 || n == NXT_ERROR */
 
-        nxt_thread_work_queue_add(task->thread, &task->thread->work_queue.main,
-                                  nxt_chan_error_handler, task,
-                                  &chan->socket, NULL);
+        nxt_work_queue_add(&task->thread->engine->fast_work_queue,
+                           nxt_chan_error_handler, task, &chan->socket, NULL);
         return;
     }
 }

@@ -105,7 +105,6 @@ NXT_LIB_SRCS=" \
     src/nxt_list.c \
     src/nxt_buf.c \
     src/nxt_buf_pool.c \
-    src/nxt_buf_filter.c \
     src/nxt_recvbuf.c \
     src/nxt_sendbuf.c \
     src/nxt_thread_time.c \
@@ -125,10 +124,14 @@ NXT_LIB_SRCS=" \
     src/nxt_event_conn_job_sendfile.c \
     src/nxt_event_conn_proxy.c \
     src/nxt_job.c \
-    src/nxt_job_file.c \
     src/nxt_job_resolve.c \
     src/nxt_sockaddr.c \
     src/nxt_listen_socket.c \
+"
+
+NXT_LIB_SRC0=" \
+    src/nxt_buf_filter.c \
+    src/nxt_job_file.c \
     src/nxt_stream_source.c \
     src/nxt_upstream_source.c \
     src/nxt_http_source.c \

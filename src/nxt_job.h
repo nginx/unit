@@ -33,7 +33,7 @@
 typedef struct {
     void                *data;
 
-    nxt_task_t          task;
+    nxt_task_t          *task;
 
     nxt_work_handler_t  abort_handler;
 
@@ -48,6 +48,8 @@ typedef struct {
     nxt_event_engine_t  *engine;
     nxt_log_t           *log;
 #endif
+
+    nxt_work_t          work;
 
 #if (NXT_DEBUG)
     const char          *name;

@@ -123,7 +123,7 @@ nxt_log_debug(_log, ...)                                                      \
 
 #else
 
-#define nxt_log_debug(...)
+#define nxt_debug(...)
 
 #define                                                                       \
 nxt_log_debug(...)

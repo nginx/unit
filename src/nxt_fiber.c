@@ -16,7 +16,7 @@ static void nxt_fiber_timer_handler(nxt_task_t *task, void *obj, void *data);
 
 #define                                                                       \
 nxt_fiber_enqueue(thr, task, fib)                                             \
-    nxt_thread_work_queue_add(thr, &(thr)->work_queue.main,                   \
+    nxt_work_queue_add(&(thr)->engine->fast_work_queue,                       \
                               nxt_fiber_switch_handler, task, fib, NULL)
 
 
@@ -392,7 +392,7 @@ nxt_fiber_sleep(nxt_task_t *task, nxt_msec_t timeout)
 
     fib = task->thread->fiber;
 
-    fib->timer.work_queue = &task->thread->work_queue.main;
+    fib->timer.work_queue = &task->thread->engine->fast_work_queue;
     fib->timer.handler = nxt_fiber_timer_handler;
     fib->timer.log = &nxt_main_log;
 

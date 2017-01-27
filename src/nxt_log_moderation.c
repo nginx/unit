@@ -58,7 +58,7 @@ nxt_log_moderate_allow(nxt_log_moderation_t *mod)
     nxt_thread_spin_unlock(&mod->lock);
 
     if (timer) {
-        mod->timer.work_queue = &thr->work_queue.main;
+        mod->timer.work_queue = &thr->engine->fast_work_queue;
         mod->timer.handler = nxt_log_moderate_timer_handler;
         mod->timer.log = &nxt_main_log;
 

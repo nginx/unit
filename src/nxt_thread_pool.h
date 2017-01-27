@@ -20,6 +20,7 @@ struct nxt_thread_pool_s {
     nxt_sem_t                sem;
     nxt_nsec_t               timeout;
 
+    nxt_work_t               work;
     nxt_task_t               task;
 
     nxt_locked_work_queue_t  work_queue;
@@ -37,7 +38,7 @@ NXT_EXPORT nxt_thread_pool_t *nxt_thread_pool_create(nxt_uint_t max_threads,
     nxt_event_engine_t *engine, nxt_work_handler_t exit);
 NXT_EXPORT void nxt_thread_pool_destroy(nxt_thread_pool_t *tp);
 NXT_EXPORT nxt_int_t nxt_thread_pool_post(nxt_thread_pool_t *tp,
-    nxt_work_handler_t handler, nxt_task_t *task, void *obj, void *data);
+    nxt_work_t *work);
 
 
 #endif /* _NXT_UNIX_THREAD_POOL_H_INCLUDED_ */

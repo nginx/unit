@@ -397,8 +397,8 @@ nxt_poll_commit_changes(nxt_thread_t *thr, nxt_poll_event_set_t *ps)
             break;
         }
 
-        nxt_thread_work_queue_add(thr, &thr->work_queue.main,
-                                  ev->error_handler, ev->task, ev, ev->data);
+        nxt_work_queue_add(&thr->engine->fast_work_queue, ev->error_handler,
+                           ev->task, ev, ev->data);
 
         ret = NXT_ERROR;
 
@@ -608,10 +608,9 @@ nxt_poll_set_poll(nxt_task_t *task, nxt_event_set_t *event_set,
             /* Mark the poll entry to ignore it by the kernel. */
             pfd->fd = -1;
 
-            nxt_thread_work_queue_add(task->thread,
-                                      &task->thread->work_queue.main,
-                                      ev->error_handler,
-                                      ev->task, ev, ev->data);
+            nxt_work_queue_add(&ev->task->thread->engine->fast_work_queue,
+                               ev->error_handler,
+                               ev->task, ev, ev->data);
             goto next;
         }
 
@@ -653,8 +652,8 @@ nxt_poll_set_poll(nxt_task_t *task, nxt_event_set_t *event_set,
                 nxt_poll_change(event_set, ev, NXT_POLL_DELETE, 0);
             }
 
-            nxt_thread_work_queue_add(task->thread, ev->read_work_queue,
-                                      ev->read_handler, ev->task, ev, ev->data);
+            nxt_work_queue_add(ev->read_work_queue, ev->read_handler,
+                               ev->task, ev, ev->data);
         }
 
         if ((events & POLLOUT) || (error && ev->write_handler != NULL)) {
@@ -665,9 +664,8 @@ nxt_poll_set_poll(nxt_task_t *task, nxt_event_set_t *event_set,
                 nxt_poll_change(event_set, ev, NXT_POLL_DELETE, 0);
             }
 
-            nxt_thread_work_queue_add(task->thread, ev->write_work_queue,
-                                      ev->write_handler,
-                                      ev->task, ev, ev->data);
+            nxt_work_queue_add(ev->write_work_queue, ev->write_handler,
+                               ev->task, ev, ev->data);
         }
 
     next:

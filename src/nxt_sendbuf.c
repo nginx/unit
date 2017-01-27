@@ -343,8 +343,7 @@ nxt_sendbuf_completion(nxt_task_t *task, nxt_work_queue_t *wq, nxt_buf_t *b,
             }
         }
 
-        nxt_thread_work_queue_add(task->thread, wq, b->completion_handler, task,
-                                  b, b->parent);
+        nxt_work_queue_add(wq, b->completion_handler, task, b, b->parent);
 
         b = b->next;
     }
