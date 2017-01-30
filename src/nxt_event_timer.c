@@ -22,7 +22,7 @@
  * the changes array and should be used only if the timer memory must be freed.
  */
 
-static nxt_int_t nxt_event_timer_rbtree_compare(nxt_rbtree_node_t *node1,
+static intptr_t nxt_event_timer_rbtree_compare(nxt_rbtree_node_t *node1,
     nxt_rbtree_node_t *node2);
 static void nxt_event_timer_change(nxt_event_timers_t *timers,
     nxt_event_timer_t *ev, nxt_msec_t time);
@@ -34,7 +34,7 @@ static void nxt_event_timer_drop_changes(nxt_event_timers_t *timers,
 nxt_int_t
 nxt_event_timers_init(nxt_event_timers_t *timers, nxt_uint_t mchanges)
 {
-    nxt_rbtree_init(&timers->tree, nxt_event_timer_rbtree_compare, NULL);
+    nxt_rbtree_init(&timers->tree, nxt_event_timer_rbtree_compare);
 
     timers->mchanges = mchanges;
 
@@ -48,7 +48,7 @@ nxt_event_timers_init(nxt_event_timers_t *timers, nxt_uint_t mchanges)
 }
 
 
-static nxt_int_t
+static intptr_t
 nxt_event_timer_rbtree_compare(nxt_rbtree_node_t *node1,
     nxt_rbtree_node_t *node2)
 {

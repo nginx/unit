@@ -11,44 +11,44 @@
 typedef struct nxt_rbtree_node_s  nxt_rbtree_node_t;
 
 struct nxt_rbtree_node_s {
-    nxt_rbtree_node_t  *left;
-    nxt_rbtree_node_t  *right;
-    nxt_rbtree_node_t  *parent;
+    nxt_rbtree_node_t         *left;
+    nxt_rbtree_node_t         *right;
+    nxt_rbtree_node_t         *parent;
 
-    uint8_t            color;
-    uint8_t            spare;
+    uint8_t                   color;
 };
 
 
 typedef struct {
-    nxt_rbtree_node_t  *left;
-    nxt_rbtree_node_t  *right;
-    nxt_rbtree_node_t  *parent;
+    nxt_rbtree_node_t         *left;
+    nxt_rbtree_node_t         *right;
+    nxt_rbtree_node_t         *parent;
 } nxt_rbtree_part_t;
 
 
 #define NXT_RBTREE_NODE(node)                                                 \
-    nxt_rbtree_part_t  node;                                                  \
-    uint8_t            color
+    nxt_rbtree_part_t         node;                                           \
+    uint8_t                   node##_color
 
 
 #define NXT_RBTREE_NODE_INIT  { NULL, NULL, NULL }, 0
 
 
 typedef struct {
-    nxt_rbtree_node_t  sentinel;
+    nxt_rbtree_node_t         sentinel;
 } nxt_rbtree_t;
 
 
-typedef void (*nxt_rbtree_insert_t)(nxt_rbtree_node_t *root,
-    nxt_rbtree_node_t *node, nxt_rbtree_node_t *sentinel);
-
-typedef nxt_int_t (*nxt_rbtree_compare_t)(nxt_rbtree_node_t *node1,
+/*
+ * A comparison function should return intptr_t result because
+ * this eliminates overhead required to implement correct addresses
+ * comparison without result truncation.
+ */
+typedef intptr_t (*nxt_rbtree_compare_t)(nxt_rbtree_node_t *node1,
     nxt_rbtree_node_t *node2);
 
 
-#define                                                                       \
-nxt_rbtree_root(tree)                                                         \
+#define nxt_rbtree_root(tree)                                                 \
     ((tree)->sentinel.left)
 
 
@@ -105,14 +105,14 @@ nxt_rbtree_node_successor(nxt_rbtree_t *tree, nxt_rbtree_node_t *node)
 
 
 NXT_EXPORT void nxt_rbtree_init(nxt_rbtree_t *tree,
-    nxt_rbtree_compare_t compare, nxt_rbtree_insert_t insert);
+    nxt_rbtree_compare_t compare);
 NXT_EXPORT void nxt_rbtree_insert(nxt_rbtree_t *tree, nxt_rbtree_part_t *node);
 NXT_EXPORT nxt_rbtree_node_t *nxt_rbtree_find(nxt_rbtree_t *tree,
     nxt_rbtree_part_t *node);
 NXT_EXPORT nxt_rbtree_node_t *nxt_rbtree_find_less_or_equal(nxt_rbtree_t *tree,
     nxt_rbtree_part_t *node);
-NXT_EXPORT nxt_rbtree_node_t *
-    nxt_rbtree_find_greater_or_equal(nxt_rbtree_t *tree,
+NXT_EXPORT nxt_rbtree_node_t
+    *nxt_rbtree_find_greater_or_equal(nxt_rbtree_t *tree,
     nxt_rbtree_part_t *node);
 NXT_EXPORT void nxt_rbtree_delete(nxt_rbtree_t *tree, nxt_rbtree_part_t *node);
 

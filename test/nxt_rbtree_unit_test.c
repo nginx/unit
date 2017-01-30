@@ -7,24 +7,14 @@
 #include <nxt_main.h>
 
 
-#define NXT_RBTREE_COMPARISON  1
-
-
 typedef struct {
     NXT_RBTREE_NODE  (node);
     uint32_t         key;
 } nxt_rbtree_test_t;
 
 
-#if (NXT_RBTREE_COMPARISON)
-static nxt_int_t nxt_rbtree_unit_test_comparison(nxt_rbtree_node_t *node1,
+static intptr_t nxt_rbtree_unit_test_comparison(nxt_rbtree_node_t *node1,
     nxt_rbtree_node_t *node2);
-#else
-static void nxt_rbtree_unit_test_insertion(nxt_rbtree_node_t *node,
-    nxt_rbtree_node_t *new_node, nxt_rbtree_node_t *sentinel);
-static nxt_rbtree_test_t *nxt_rbtree_unit_test_find(nxt_rbtree_t *tree,
-    uint32_t key);
-#endif
 static nxt_int_t nxt_rbtree_unit_test_compare(uint32_t key1, uint32_t key2);
 static int nxt_cdecl nxt_rbtree_unit_test_sort_cmp(const void *one,
     const void *two);
@@ -45,11 +35,7 @@ nxt_rbtree_unit_test(nxt_thread_t *thr, nxt_uint_t n)
 
     nxt_log_error(NXT_LOG_NOTICE, thr->log, "rbtree unit test started: %ui", n);
 
-#if (NXT_RBTREE_COMPARISON)
-    nxt_rbtree_init(&tree, nxt_rbtree_unit_test_comparison, NULL);
-#else
-    nxt_rbtree_init(&tree, NULL, nxt_rbtree_unit_test_insertion);
-#endif
+    nxt_rbtree_init(&tree, nxt_rbtree_unit_test_comparison);
 
     mark = tree.sentinel.right;
 
@@ -83,13 +69,9 @@ nxt_rbtree_unit_test(nxt_thread_t *thr, nxt_uint_t n)
     }
 
     for (i = 0; i < n; i++) {
-#if (NXT_RBTREE_COMPARISON)
         node = nxt_rbtree_find(&tree, &items[i].node);
 
         if (node != (nxt_rbtree_node_t *) &items[i].node) {
-#else
-        if (nxt_rbtree_unit_test_find(&tree, items[i].key) != &items[i]) {
-#endif
             nxt_log_alert(thr->log, "rbtree unit test failed: %08XD not found",
                           items[i].key);
             goto fail;
@@ -155,9 +137,7 @@ fail:
 }
 
 
-#if (NXT_RBTREE_COMPARISON)
-
-static nxt_int_t
+static intptr_t
 nxt_rbtree_unit_test_comparison(nxt_rbtree_node_t *node1,
     nxt_rbtree_node_t *node2)
 {
@@ -168,71 +148,6 @@ nxt_rbtree_unit_test_comparison(nxt_rbtree_node_t *node1,
 
     return nxt_rbtree_unit_test_compare(item1->key, item2->key);
 }
-
-#else
-
-static void
-nxt_rbtree_unit_test_insertion(nxt_rbtree_node_t *node,
-    nxt_rbtree_node_t *new_node, nxt_rbtree_node_t *sentinel)
-{
-    nxt_int_t          n;
-    nxt_rbtree_node_t  **child;
-    nxt_rbtree_test_t  *item, *new_item;
-
-    new_item = (nxt_rbtree_test_t *) new_node;
-    child = &node;
-
-    while (*child != sentinel) {
-        node = *child;
-
-        nxt_prefetch(node->left);
-        nxt_prefetch(node->right);
-
-        item = (nxt_rbtree_test_t *) node;
-
-        n = nxt_rbtree_unit_test_compare(new_item->key, item->key);
-        child = (n < 0) ? &node->left : &node->right;
-    }
-
-    *child = new_node;
-
-    new_node->parent = node;
-}
-
-
-static nxt_rbtree_test_t *
-nxt_rbtree_unit_test_find(nxt_rbtree_t *tree, uint32_t key)
-{
-    nxt_int_t          n;
-    nxt_rbtree_node_t  *next, *sentinel;
-    nxt_rbtree_test_t  *item;
-
-    next = nxt_rbtree_root(tree);
-    sentinel = nxt_rbtree_sentinel(tree);
-
-    while (next != sentinel) {
-        nxt_prefetch(next->left);
-        nxt_prefetch(next->right);
-
-        item = (nxt_rbtree_test_t *) next;
-
-        n = nxt_rbtree_unit_test_compare(key, item->key);
-
-        if (n < 0) {
-            next = next->left;
-
-        } else if (n > 0) {
-            next = next->right;
-
-        } else {
-            return (nxt_rbtree_test_t *) next;
-        }
-    }
-
-    return NULL;
-}
-
-#endif
 
 
 /*
@@ -298,11 +213,7 @@ nxt_rbtree_mb_start(nxt_thread_t *thr)
         return NXT_ERROR;
     }
 
-#if (NXT_RBTREE_COMPARISON)
-    nxt_rbtree_init(&mb_tree, nxt_rbtree_unit_test_comparison, NULL);
-#else
-    nxt_rbtree_init(&mb_tree, NULL, nxt_rbtree_unit_test_insertion);
-#endif
+    nxt_rbtree_init(&mb_tree, nxt_rbtree_unit_test_comparison);
 
     key = 0;
 

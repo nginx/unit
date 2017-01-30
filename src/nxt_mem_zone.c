@@ -138,7 +138,7 @@ static void *nxt_mem_zone_slots_init(nxt_mem_zone_t *zone,
     nxt_uint_t page_size);
 static void nxt_mem_zone_slot_init(nxt_mem_zone_slot_t *slot,
     nxt_uint_t page_size);
-static nxt_int_t nxt_mem_zone_rbtree_compare(nxt_rbtree_node_t *node1,
+static intptr_t nxt_mem_zone_rbtree_compare(nxt_rbtree_node_t *node1,
     nxt_rbtree_node_t *node2);
 static void *nxt_mem_zone_alloc_small(nxt_mem_zone_t *zone,
     nxt_mem_zone_slot_t *slot, size_t size);
@@ -204,7 +204,7 @@ nxt_mem_zone_init(u_char *start, size_t zone_size, nxt_uint_t page_size)
 
     /* rbtree of free pages. */
 
-    nxt_rbtree_init(&zone->free_pages, nxt_mem_zone_rbtree_compare, NULL);
+    nxt_rbtree_init(&zone->free_pages, nxt_mem_zone_rbtree_compare);
 
     block = (nxt_mem_zone_free_block_t *) zone->start;
     block->size = pages;
@@ -391,7 +391,7 @@ nxt_next_highest_power_of_two(uint32_t n)
 }
 
 
-static nxt_int_t
+static intptr_t
 nxt_mem_zone_rbtree_compare(nxt_rbtree_node_t *node1, nxt_rbtree_node_t *node2)
 {
     u_char                     *start1, *end1, *start2, *end2;

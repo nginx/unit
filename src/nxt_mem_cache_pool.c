@@ -123,7 +123,7 @@ static nxt_mem_cache_block_t *
     nxt_mem_cache_alloc_cluster(nxt_mem_cache_pool_t *pool);
 static void *nxt_mem_cache_alloc_large(nxt_mem_cache_pool_t *pool,
     size_t alignment, size_t size);
-static nxt_int_t nxt_mem_cache_rbtree_compare(nxt_rbtree_node_t *node1,
+static intptr_t nxt_mem_cache_rbtree_compare(nxt_rbtree_node_t *node1,
     nxt_rbtree_node_t *node2);
 static nxt_mem_cache_block_t *nxt_mem_cache_find_block(nxt_rbtree_t *tree,
     u_char *p);
@@ -202,7 +202,7 @@ nxt_mem_cache_pool_fast_create(size_t cluster_size, size_t page_alignment,
         pool->chunk_size_shift = nxt_mem_cache_shift(min_chunk_size);
         pool->page_size_shift = nxt_mem_cache_shift(page_size);
 
-        nxt_rbtree_init(&pool->pages, nxt_mem_cache_rbtree_compare, NULL);
+        nxt_rbtree_init(&pool->pages, nxt_mem_cache_rbtree_compare);
 
         nxt_queue_init(&pool->free_pages);
     }
@@ -572,7 +572,7 @@ nxt_mem_cache_alloc_large(nxt_mem_cache_pool_t *pool, size_t alignment,
 }
 
 
-static nxt_int_t
+static intptr_t
 nxt_mem_cache_rbtree_compare(nxt_rbtree_node_t *node1, nxt_rbtree_node_t *node2)
 {
     nxt_mem_cache_block_t  *block1, *block2;
