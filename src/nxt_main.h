@@ -71,7 +71,7 @@ typedef struct {
 #include <nxt_thread_time.h>
 
 typedef struct nxt_event_engine_s    nxt_event_engine_t;
-#include <nxt_event_timer.h>
+#include <nxt_timer.h>
 #include <nxt_fiber.h>
 
 typedef struct nxt_thread_pool_s     nxt_thread_pool_t;

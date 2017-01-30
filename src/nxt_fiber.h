@@ -32,7 +32,7 @@ struct nxt_fiber_s {
     nxt_fiber_main_t        *main;
     nxt_fiber_t             *next;
 
-    nxt_event_timer_t       timer;
+    nxt_timer_t             timer;
 };
 
 

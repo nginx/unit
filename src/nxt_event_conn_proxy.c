@@ -797,8 +797,8 @@ nxt_event_conn_proxy_error(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_event_conn_proxy_read_timeout(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_event_conn_t   *c;
-    nxt_event_timer_t  *ev;
+    nxt_timer_t       *ev;
+    nxt_event_conn_t  *c;
 
     ev = obj;
 
@@ -815,8 +815,8 @@ nxt_event_conn_proxy_read_timeout(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_event_conn_proxy_write_timeout(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_event_conn_t   *c;
-    nxt_event_timer_t  *ev;
+    nxt_timer_t       *ev;
+    nxt_event_conn_t  *c;
 
     ev = obj;
 
@@ -870,16 +870,16 @@ nxt_event_conn_proxy_refused(nxt_task_t *task, void *obj, void *data)
     p->delayed = 1;
 
     peer->write_timer.handler = nxt_event_conn_proxy_reconnect_handler;
-    nxt_event_timer_add(task->thread->engine, &peer->write_timer,
-                        p->reconnect_timeout);
+    nxt_timer_add(task->thread->engine, &peer->write_timer,
+                  p->reconnect_timeout);
 }
 
 
 static void
 nxt_event_conn_proxy_reconnect_handler(nxt_task_t *task, void *obj, void *data)
 {
+    nxt_timer_t             *ev;
     nxt_event_conn_t        *peer;
-    nxt_event_timer_t       *ev;
     nxt_event_conn_proxy_t  *p;
 
     ev = obj;
@@ -1009,7 +1009,7 @@ nxt_event_conn_proxy_complete(nxt_task_t *task, nxt_event_conn_proxy_t *p)
 
     } else if (p->delayed) {
         nxt_queue_remove(&p->peer->link);
-        nxt_event_timer_delete(task->thread->engine, &p->peer->write_timer);
+        nxt_timer_delete(task->thread->engine, &p->peer->write_timer);
     }
 
     nxt_mem_free(p->client->mem_pool, p->client_buffer);

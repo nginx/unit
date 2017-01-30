@@ -90,7 +90,7 @@ nxt_event_conn_io_write(nxt_task_t *task, void *obj, void *data)
 
     if (sent != 0) {
         if (c->write_state->autoreset_timer) {
-            nxt_event_timer_disable(&c->write_timer);
+            nxt_timer_disable(&c->write_timer);
         }
     }
 
@@ -103,7 +103,7 @@ nxt_event_conn_io_write(nxt_task_t *task, void *obj, void *data)
              * process other recevied events and to get new events.
              */
             c->write_timer.handler = nxt_event_conn_write_timer_handler;
-            nxt_event_timer_add(engine, &c->write_timer, 0);
+            nxt_timer_add(engine, &c->write_timer, 0);
 
         } else if (ret == NXT_AGAIN) {
             /*
@@ -204,7 +204,7 @@ nxt_event_conn_write_delayed(nxt_event_engine_t *engine, nxt_event_conn_t *c,
             nxt_event_fd_block_write(engine, &c->socket);
 
             c->write_timer.handler = nxt_event_conn_write_timer_handler;
-            nxt_event_timer_add(engine, &c->write_timer, timer);
+            nxt_timer_add(engine, &c->write_timer, timer);
 
             return 1;
         }
@@ -288,8 +288,8 @@ nxt_event_conn_exponential_approximation(double x)
 static void
 nxt_event_conn_write_timer_handler(nxt_task_t *task, void *obj, void *data)
 {
+    nxt_timer_t        *ev;
     nxt_event_conn_t   *c;
-    nxt_event_timer_t  *ev;
 
     ev = obj;
 

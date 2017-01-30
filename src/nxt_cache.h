@@ -109,7 +109,7 @@ struct nxt_cache_query_s {
     nxt_time_t                now;
 
     nxt_msec_t                timeout;
-    nxt_event_timer_t         timer;
+    nxt_timer_t               timer;
 };
 
 

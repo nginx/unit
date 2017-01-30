@@ -57,7 +57,7 @@ NXT_LIB_DEPS=" \
     src/nxt_log_moderation.h \
     src/nxt_event_set.h \
     src/nxt_event_engine.h \
-    src/nxt_event_timer.h \
+    src/nxt_timer.h \
     src/nxt_event_fd.h \
     src/nxt_event_conn.h \
     src/nxt_event_file.h \
@@ -115,7 +115,7 @@ NXT_LIB_SRCS=" \
     src/nxt_log_moderation.c \
     src/nxt_event_set.c \
     src/nxt_event_engine.c \
-    src/nxt_event_timer.c \
+    src/nxt_timer.c \
     src/nxt_event_conn.c \
     src/nxt_event_conn_connect.c \
     src/nxt_event_conn_accept.c \

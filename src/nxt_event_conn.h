@@ -110,13 +110,13 @@ struct nxt_event_conn_s {
     nxt_buf_t                     *read;
     const nxt_event_conn_state_t  *read_state;
     nxt_work_queue_t              *read_work_queue;
-    nxt_event_timer_t             read_timer;
+    nxt_timer_t                   read_timer;
 
     nxt_buf_t                     *write;
     const nxt_event_conn_state_t  *write_state;
     nxt_work_queue_t              *write_work_queue;
     nxt_event_write_rate_t        *rate;
-    nxt_event_timer_t             write_timer;
+    nxt_timer_t                   write_timer;
 
     nxt_off_t                     sent;
     uint32_t                      max_chunk;
@@ -182,7 +182,7 @@ typedef struct {
 
     nxt_listen_socket_t           *listen;
 
-    nxt_event_timer_t             timer;
+    nxt_timer_t                   timer;
 
     nxt_queue_link_t              link;
 } nxt_event_conn_listen_t;
@@ -205,19 +205,19 @@ nxt_event_conn_timer_init(ev, c, wq)                                          \
     do {                                                                      \
         (ev)->work_queue = (wq);                                              \
         (ev)->log = &(c)->log;                                                \
-        (ev)->precision = NXT_EVENT_TIMER_DEFAULT_PRECISION;                  \
-        nxt_event_timer_ident((ev), (c)->socket.fd);                          \
+        (ev)->precision = NXT_TIMER_DEFAULT_PRECISION;                        \
+        nxt_timer_ident((ev), (c)->socket.fd);                                \
     } while (0)
 
 
 #define                                                                       \
 nxt_event_read_timer_conn(ev)                                                 \
-    nxt_event_timer_data(ev, nxt_event_conn_t, read_timer)
+    nxt_timer_data(ev, nxt_event_conn_t, read_timer)
 
 
 #define                                                                       \
 nxt_event_write_timer_conn(ev)                                                \
-    nxt_event_timer_data(ev, nxt_event_conn_t, write_timer)
+    nxt_timer_data(ev, nxt_event_conn_t, write_timer)
 
 
 #if (NXT_HAVE_UNIX_DOMAIN)
@@ -258,8 +258,7 @@ void nxt_event_conn_io_shutdown(nxt_task_t *task, void *obj, void *data);
 NXT_EXPORT void nxt_event_conn_close(nxt_task_t *task, nxt_event_conn_t *c);
 
 NXT_EXPORT void nxt_event_conn_timer(nxt_event_engine_t *engine,
-    nxt_event_conn_t *c, const nxt_event_conn_state_t *state,
-    nxt_event_timer_t *tev);
+    nxt_event_conn_t *c, const nxt_event_conn_state_t *state, nxt_timer_t *tev);
 NXT_EXPORT void nxt_event_conn_work_queue_set(nxt_event_conn_t *c,
     nxt_work_queue_t *wq);
 

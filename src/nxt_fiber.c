@@ -398,7 +398,7 @@ nxt_fiber_sleep(nxt_task_t *task, nxt_msec_t timeout)
 
     task = &fib->task;
 
-    nxt_event_timer_add(task->thread->engine, &fib->timer, timeout);
+    nxt_timer_add(task->thread->engine, &fib->timer, timeout);
 
     if (_setjmp(fib->jmp) == 0) {
 
@@ -416,14 +416,14 @@ nxt_fiber_sleep(nxt_task_t *task, nxt_msec_t timeout)
 static void
 nxt_fiber_timer_handler(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_fiber_t        *fib;
-    nxt_event_timer_t  *ev;
+    nxt_fiber_t  *fib;
+    nxt_timer_t  *ev;
 
     ev = obj;
 
     nxt_debug(task, "fiber timer handler");
 
-    fib = nxt_event_timer_data(ev, nxt_fiber_t, timer);
+    fib = nxt_timer_data(ev, nxt_fiber_t, timer);
 
     nxt_fiber_switch(task, fib);
 

@@ -66,7 +66,7 @@ struct nxt_cycle_s {
 
     void                   **core_ctx;
 
-    nxt_event_timer_t      timer;
+    nxt_timer_t            timer;
 
     uint8_t                daemon;
     uint8_t                batch;

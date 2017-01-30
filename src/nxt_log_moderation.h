@@ -16,11 +16,11 @@ typedef struct {
     nxt_pid_t              pid;
     nxt_uint_t             count;
     nxt_time_t             last;
-    nxt_event_timer_t      timer;
+    nxt_timer_t            timer;
 } nxt_log_moderation_t;
 
 
-#define NXT_LOG_MODERATION  0, -1, 0, 0, NXT_EVENT_TIMER
+#define NXT_LOG_MODERATION  0, -1, 0, 0, NXT_TIMER
 
 
 #define                                                                       \

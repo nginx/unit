@@ -574,7 +574,7 @@ nxt_openssl_conn_io_shutdown(nxt_task_t *task, void *obj, void *data)
 
     if (n != NXT_ERROR) {  /* n == NXT_AGAIN */
         c->socket.error_handler = c->read_state->error_handler;
-        nxt_event_timer_add(task->thread->engine, &c->read_timer, 5000);
+        nxt_timer_add(task->thread->engine, &c->read_timer, 5000);
         return;
     }
 

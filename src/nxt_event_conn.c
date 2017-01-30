@@ -145,8 +145,8 @@ nxt_event_conn_close(nxt_task_t *task, nxt_event_conn_t *c)
 
     engine = thr->engine;
 
-    nxt_event_timer_delete(engine, &c->read_timer);
-    nxt_event_timer_delete(engine, &c->write_timer);
+    nxt_timer_delete(engine, &c->read_timer);
+    nxt_timer_delete(engine, &c->write_timer);
 
     nxt_event_fd_close(engine, &c->socket);
     engine->connections--;
@@ -203,7 +203,7 @@ nxt_event_conn_close_socket(nxt_task_t *task, void *obj, void *data)
 
 void
 nxt_event_conn_timer(nxt_event_engine_t *engine, nxt_event_conn_t *c,
-    const nxt_event_conn_state_t *state, nxt_event_timer_t *tev)
+    const nxt_event_conn_state_t *state, nxt_timer_t *tev)
 {
     nxt_msec_t  timer;
 
@@ -212,7 +212,7 @@ nxt_event_conn_timer(nxt_event_engine_t *engine, nxt_event_conn_t *c,
 
         if (timer != 0) {
             tev->handler = state->timer_handler;
-            nxt_event_timer_add(engine, tev, timer);
+            nxt_timer_add(engine, tev, timer);
         }
     }
 }

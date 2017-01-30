@@ -62,7 +62,7 @@ nxt_log_moderate_allow(nxt_log_moderation_t *mod)
         mod->timer.handler = nxt_log_moderate_timer_handler;
         mod->timer.log = &nxt_main_log;
 
-        nxt_event_timer_add(thr->engine, &mod->timer, 1000);
+        nxt_timer_add(thr->engine, &mod->timer, 1000);
     }
 
     return allow;
@@ -73,12 +73,12 @@ static void
 nxt_log_moderate_timer_handler(nxt_task_t *task, void *obj, void *data)
 {
     nxt_bool_t            msg;
+    nxt_timer_t           *ev;
     nxt_atomic_uint_t     n;
-    nxt_event_timer_t     *ev;
     nxt_log_moderation_t  *mod;
 
     ev = obj;
-    mod = nxt_event_timer_data(ev, nxt_log_moderation_t, timer);
+    mod = nxt_timer_data(ev, nxt_log_moderation_t, timer);
 
     nxt_thread_spin_lock(&mod->lock);
 

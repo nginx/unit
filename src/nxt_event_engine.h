@@ -21,7 +21,7 @@ struct nxt_event_engine_s {
     const nxt_event_set_ops_t  *event;
     nxt_event_set_t            *event_set;
 
-    nxt_event_timers_t         timers;
+    nxt_timers_t               timers;
 
     nxt_task_t                 task;
     /* The engine ID, the main engine has ID 0. */

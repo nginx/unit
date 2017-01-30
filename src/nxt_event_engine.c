@@ -109,7 +109,7 @@ nxt_event_engine_create(nxt_thread_t *thr, const nxt_event_set_ops_t *event_set,
         goto post_fail;
     }
 
-    if (nxt_event_timers_init(&engine->timers, 4 * events) != NXT_OK) {
+    if (nxt_timers_init(&engine->timers, 4 * events) != NXT_OK) {
         goto timers_fail;
     }
 
@@ -521,7 +521,7 @@ nxt_event_engine_start(nxt_event_engine_t *engine)
 
         /* Attach some event engine work queues in preferred order. */
 
-        timeout = nxt_event_timer_find(engine);
+        timeout = nxt_timer_find(engine);
 
         engine->event->poll(&engine->task, engine->event_set, timeout);
 
@@ -535,7 +535,7 @@ nxt_event_engine_start(nxt_event_engine_t *engine)
         now = nxt_thread_monotonic_time(thr) / 1000000;
 
         if (timeout == 0 || now != engine->timers.now) {
-            nxt_event_timer_expire(thr, now);
+            nxt_timer_expire(thr, now);
         }
     }
 }

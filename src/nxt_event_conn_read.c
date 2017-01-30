@@ -86,7 +86,7 @@ nxt_event_conn_io_read(nxt_task_t *task, void *obj, void *data)
 
         if (n != NXT_AGAIN) {
             nxt_event_fd_block_read(engine, &c->socket);
-            nxt_event_timer_disable(&c->read_timer);
+            nxt_timer_disable(&c->read_timer);
 
             if (n == 0) {
                 handler = state->close_handler;
@@ -107,7 +107,7 @@ nxt_event_conn_io_read(nxt_task_t *task, void *obj, void *data)
     c->socket.read_handler = c->io->read;
     c->socket.error_handler = state->error_handler;
 
-    if (c->read_timer.state == NXT_EVENT_TIMER_DISABLED
+    if (c->read_timer.state == NXT_TIMER_DISABLED
         || nxt_event_fd_is_disabled(c->socket.read))
     {
         /* Timer may be set or reset. */
@@ -125,7 +125,7 @@ ready:
     nxt_event_fd_block_read(engine, &c->socket);
 
     if (state->autoreset_timer) {
-        nxt_event_timer_disable(&c->read_timer);
+        nxt_timer_disable(&c->read_timer);
     }
 
     handler = state->ready_handler;
