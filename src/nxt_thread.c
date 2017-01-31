@@ -193,7 +193,7 @@ nxt_thread_exit(nxt_thread_t *thr)
          * and link->task is already set to engine->task.
          * The link should be freed by the exit handler.
          */
-        link->work.obj =  thr->handle;
+        link->work.obj = (void *) (uintptr_t) thr->handle;
 
         nxt_event_engine_post(link->engine, &link->work);
     }

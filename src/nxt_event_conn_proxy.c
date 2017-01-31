@@ -85,6 +85,8 @@ nxt_event_conn_proxy_create(nxt_event_conn_t *client)
 
     thr = nxt_thread();
 
+    client->read_work_queue = &thr->engine->read_work_queue;
+    client->write_work_queue = &thr->engine->write_work_queue;
     client->socket.read_work_queue = &thr->engine->read_work_queue;
     client->socket.write_work_queue = &thr->engine->write_work_queue;
     peer->socket.read_work_queue = &thr->engine->read_work_queue;

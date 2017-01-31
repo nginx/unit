@@ -459,24 +459,38 @@ static nxt_work_handler_t
 nxt_event_engine_queue_pop(nxt_event_engine_t *engine, nxt_task_t **task,
     void **obj, void **data)
 {
-    nxt_work_queue_t  *wq;
+    nxt_work_queue_t  *wq, *last;
 
     wq = engine->current_work_queue;
+    last = wq;
 
     if (wq->head == NULL) {
         wq = &engine->fast_work_queue;
 
-        while (wq->head == NULL) {
-            engine->current_work_queue++;
-            wq = engine->current_work_queue;
+        if (wq->head == NULL) {
 
-            if (wq > &engine->final_work_queue) {
-                engine->current_work_queue = &engine->fast_work_queue;
+            do {
+                engine->current_work_queue++;
+                wq = engine->current_work_queue;
 
-                return NULL;
-            }
+                if (wq > &engine->final_work_queue) {
+                    wq = &engine->fast_work_queue;
+                    engine->current_work_queue = wq;
+                }
+
+                if (wq->head != NULL) {
+                    goto found;
+                }
+
+            } while (wq != last);
+
+            engine->current_work_queue = &engine->fast_work_queue;
+
+            return NULL;
         }
     }
+
+found:
 
     nxt_debug(&engine->task, "work queue: %s", wq->name);
 
