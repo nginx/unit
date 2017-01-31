@@ -84,10 +84,6 @@ nxt_event_conn_job_sendfile_start(nxt_task_t *task, void *obj, void *data)
 
             c->blocked = 1;
 
-            if (c->write_timer.state != NXT_TIMER_DISABLED) {
-                c->write_timer.state = NXT_TIMER_BLOCKED;
-            }
-
             nxt_job_start(task, &jbs->job, nxt_event_conn_job_sendfile_handler);
             return;
         }
@@ -210,10 +206,7 @@ nxt_event_conn_job_sendfile_return(nxt_task_t *task, void *obj, void *data)
     }
 
     if (sent != 0 && c->write_state->autoreset_timer) {
-        nxt_timer_disable(&c->write_timer);
-
-    } else if (c->write_timer.state == NXT_TIMER_BLOCKED) {
-        c->write_timer.state = NXT_TIMER_ACTIVE;
+        nxt_timer_disable(task->thread->engine, &c->write_timer);
     }
 
     if (c->socket.error == 0

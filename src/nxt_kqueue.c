@@ -934,7 +934,7 @@ nxt_kqueue_event_conn_connected(nxt_task_t *task, void *obj, void *data)
     c->socket.write = NXT_EVENT_BLOCKED;
 
     if (c->write_state->autoreset_timer) {
-        nxt_timer_disable(&c->write_timer);
+        nxt_timer_disable(task->thread->engine, &c->write_timer);
     }
 
     nxt_work_queue_add(c->write_work_queue, c->write_state->ready_handler,

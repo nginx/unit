@@ -13,21 +13,19 @@
 //#define NXT_TIMER_DEFAULT_PRECISION  1
 
 
-#if (NXT_DEBUG)
-#define NXT_TIMER             { NXT_RBTREE_NODE_INIT, 0, 0, 0,                \
-                                NULL, NULL, NULL, NULL, -1 }
-
-#else
-#define NXT_TIMER             { NXT_RBTREE_NODE_INIT, 0, 0, 0,                \
-                                NULL, NULL, NULL, NULL }
-#endif
+typedef enum {
+    NXT_TIMER_DISABLED = 0,
+    NXT_TIMER_CHANGING,
+    NXT_TIMER_WAITING,
+    NXT_TIMER_ENQUEUED,
+} nxt_timer_state_t;
 
 
 typedef struct {
     /* The rbtree node must be the first field. */
     NXT_RBTREE_NODE           (node);
 
-    uint8_t                   state;
+    nxt_timer_state_t         state:8;
     uint8_t                   precision;
     nxt_msec_t                time;
 
@@ -36,13 +34,22 @@ typedef struct {
 
     nxt_task_t                *task;
     nxt_log_t                 *log;
-#if (NXT_DEBUG)
-    int32_t                   ident;
-#endif
 } nxt_timer_t;
 
 
+#define NXT_TIMER             { NXT_RBTREE_NODE_INIT, NXT_TIMER_DISABLED,     \
+                                0, 0, NULL, NULL, NULL, NULL }
+
+
+typedef enum {
+    NXT_TIMER_ADD = 0,
+    NXT_TIMER_DISABLE,
+    NXT_TIMER_DELETE,
+} nxt_timer_operation_t;
+
+
 typedef struct {
+    nxt_timer_operation_t     change:8;
     nxt_msec_t                time;
     nxt_timer_t               *timer;
 } nxt_timer_change_t;
@@ -53,6 +60,7 @@ typedef struct {
 
     /* An overflown milliseconds counter. */
     nxt_msec_t                now;
+    nxt_msec_t                minimum;
 
     nxt_uint_t                mchanges;
     nxt_uint_t                nchanges;
@@ -80,60 +88,16 @@ typedef struct {
     (timer)->node.parent = NULL
 
 
-#define NXT_TIMER_DISABLED  0
-#define NXT_TIMER_BLOCKED   1
-#define NXT_TIMER_ACTIVE    2
-
-
-#if (NXT_DEBUG)
-
-#define nxt_timer_ident(timer, val)                                           \
-    (timer)->ident = (val)
-
-#else
-
-#define nxt_timer_ident(timer, val)
-
-#endif
-
-
-nxt_inline nxt_timer_t *
-nxt_timer_create(int32_t ident)
-{
-    nxt_timer_t  *timer;
-
-    timer = nxt_zalloc(sizeof(nxt_timer_t));
-    if (timer == NULL) {
-        return NULL;
-    }
-
-    timer->precision = NXT_TIMER_DEFAULT_PRECISION;
-#if (NXT_DEBUG)
-    timer->ident = ident;
-#endif
-
-    return timer;
-}
-
-
 nxt_int_t nxt_timers_init(nxt_timers_t *timers, nxt_uint_t mchanges);
+nxt_msec_t nxt_timer_find(nxt_event_engine_t *engine);
+void nxt_timer_expire(nxt_event_engine_t *engine, nxt_msec_t now);
+
 NXT_EXPORT void nxt_timer_add(nxt_event_engine_t *engine, nxt_timer_t *timer,
     nxt_msec_t timeout);
-NXT_EXPORT void nxt_timer_delete(nxt_event_engine_t *engine,
+NXT_EXPORT void nxt_timer_disable(nxt_event_engine_t *engine,
     nxt_timer_t *timer);
-nxt_msec_t nxt_timer_find(nxt_event_engine_t *engine);
-void nxt_timer_expire(nxt_thread_t *thr, nxt_msec_t now);
-
-#if (NXT_DEBUG)
-
-NXT_EXPORT void nxt_timer_disable(nxt_timer_t *timer);
-
-#else
-
-#define nxt_timer_disable(timer)                                              \
-    (timer)->state = NXT_TIMER_DISABLED
-
-#endif
+NXT_EXPORT nxt_bool_t nxt_timer_delete(nxt_event_engine_t *engine,
+    nxt_timer_t *timer);
 
 
 #endif /* _NXT_TIMER_H_INCLUDED_ */

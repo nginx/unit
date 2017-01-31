@@ -525,17 +525,8 @@ nxt_event_engine_start(nxt_event_engine_t *engine)
 
         engine->event->poll(&engine->task, engine->event_set, timeout);
 
-        /*
-         * Look up expired timers only if a new zero timer has been
-         * just added before the event poll or if the event poll slept
-         * at least 1 millisecond, because all old eligible timers were
-         * processed in the previous iterations.
-         */
-
         now = nxt_thread_monotonic_time(thr) / 1000000;
 
-        if (timeout == 0 || now != engine->timers.now) {
-            nxt_timer_expire(thr, now);
-        }
+        nxt_timer_expire(engine, now);
     }
 }

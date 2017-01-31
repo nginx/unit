@@ -66,8 +66,6 @@ nxt_event_conn_listen(nxt_task_t *task, nxt_listen_socket_t *ls)
         cls->timer.handler = nxt_event_conn_listen_timer_handler;
         cls->timer.log = &nxt_main_log;
 
-        nxt_timer_ident(&cls->timer, cls->socket.fd);
-
         cls->task.thread = task->thread;
         cls->task.log = &nxt_main_log;
         cls->task.ident = nxt_task_next_ident();
@@ -201,9 +199,6 @@ nxt_event_conn_accept(nxt_task_t *task, nxt_event_conn_listen_t *cls,
     nxt_event_conn_t *c)
 {
     nxt_event_conn_t  *next;
-
-    nxt_timer_ident(&c->read_timer, c->socket.fd);
-    nxt_timer_ident(&c->write_timer, c->socket.fd);
 
     /* This allocation cannot fail. */
     (void) nxt_sockaddr_text(c->mem_pool, c->remote, 0);

@@ -124,8 +124,6 @@ nxt_event_conn_socket(nxt_task_t *task, nxt_event_conn_t *c)
 #endif
 
     c->socket.fd = s;
-    nxt_timer_ident(&c->read_timer, s);
-    nxt_timer_ident(&c->write_timer, s);
 
     c->socket.task = task;
     c->read_timer.task = task;
@@ -156,7 +154,7 @@ nxt_event_conn_connect_test(nxt_task_t *task, void *obj, void *data)
     nxt_event_fd_block_write(task->thread->engine, &c->socket);
 
     if (c->write_state->autoreset_timer) {
-        nxt_timer_disable(&c->write_timer);
+        nxt_timer_disable(task->thread->engine, &c->write_timer);
     }
 
     err = 0;

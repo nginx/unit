@@ -90,7 +90,7 @@ nxt_event_conn_io_write(nxt_task_t *task, void *obj, void *data)
 
     if (sent != 0) {
         if (c->write_state->autoreset_timer) {
-            nxt_timer_disable(&c->write_timer);
+            nxt_timer_disable(engine, &c->write_timer);
         }
     }
 

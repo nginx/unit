@@ -226,7 +226,6 @@ nxt_master_process_new_cycle(nxt_task_t *task, nxt_cycle_t *cycle)
          */
         cycle->timer.handler = nxt_master_stop_previous_worker_processes;
         cycle->timer.log = &nxt_main_log;
-        nxt_timer_ident(&cycle->timer, -1);
 
         cycle->timer.work_queue = &thr->engine->fast_work_queue;
 

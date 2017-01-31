@@ -206,7 +206,6 @@ nxt_event_conn_timer_init(ev, c, wq)                                          \
         (ev)->work_queue = (wq);                                              \
         (ev)->log = &(c)->log;                                                \
         (ev)->precision = NXT_TIMER_DEFAULT_PRECISION;                        \
-        nxt_timer_ident((ev), (c)->socket.fd);                                \
     } while (0)
 
 
