@@ -6,13 +6,13 @@
 
 #include <nxt_main.h>
 #include <nxt_cycle.h>
-#include <nxt_process_chan.h>
+#include <nxt_port.h>
 #include <nxt_master_process.h>
 
 
 static void nxt_worker_process_quit(nxt_task_t *task);
 static void nxt_worker_process_quit_handler(nxt_task_t *task,
-    nxt_chan_recv_msg_t *msg);
+    nxt_port_recv_msg_t *msg);
 static void nxt_worker_process_signal_handler(nxt_task_t *task, void *obj,
     void *data);
 static void nxt_worker_process_sigterm_handler(nxt_task_t *task, void *obj,
@@ -21,11 +21,11 @@ static void nxt_worker_process_sigquit_handler(nxt_task_t *task, void *obj,
     void *data);
 
 
-static nxt_process_chan_handler_t  nxt_worker_process_chan_handlers[] = {
+static nxt_process_port_handler_t  nxt_worker_process_port_handlers[] = {
     nxt_worker_process_quit_handler,
-    nxt_process_chan_new_handler,
-    nxt_process_chan_change_log_file_handler,
-    nxt_process_chan_data_handler,
+    nxt_process_port_new_handler,
+    nxt_process_port_change_log_file_handler,
+    nxt_process_port_data_handler,
 };
 
 
@@ -47,7 +47,7 @@ nxt_worker_process_start(void *data)
     nxt_int_t                  n;
     nxt_cycle_t                *cycle;
     nxt_thread_t               *thr;
-    nxt_process_chan_t         *proc;
+    nxt_process_port_t         *proc;
     const nxt_event_set_ops_t  *event_set;
 
     cycle = data;
@@ -94,13 +94,13 @@ nxt_worker_process_start(void *data)
 
     proc = cycle->processes->elts;
 
-    /* A master process chan. */
-    nxt_chan_read_close(proc[0].chan);
-    nxt_chan_write_enable(&nxt_main_task, proc[0].chan);
+    /* A master process port. */
+    nxt_port_read_close(proc[0].port);
+    nxt_port_write_enable(&nxt_main_task, proc[0].port);
 
-    /* A worker process chan. */
-    nxt_process_chan_create(thr, &proc[cycle->current_process],
-                            nxt_worker_process_chan_handlers);
+    /* A worker process port. */
+    nxt_process_port_create(thr, &proc[cycle->current_process],
+                            nxt_worker_process_port_handlers);
 
 #if (NXT_THREADS)
     {
@@ -182,7 +182,7 @@ nxt_worker_process_signal_handler(nxt_task_t *task, void *obj, void *data)
 
 
 static void
-nxt_worker_process_quit_handler(nxt_task_t *task, nxt_chan_recv_msg_t *msg)
+nxt_worker_process_quit_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
     nxt_worker_process_quit(task);
 }

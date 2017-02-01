@@ -47,7 +47,7 @@ struct nxt_cycle_s {
     nxt_cycle_cont_t       continuation;
 #endif
 
-    nxt_array_t            *processes;          /* of nxt_process_chan_t */
+    nxt_array_t            *processes;          /* of nxt_process_port_t */
 
     nxt_list_t             *log_files;          /* of nxt_file_t */
 

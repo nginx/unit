@@ -17,7 +17,7 @@ NXT_LIB_DEPS=" \
     src/nxt_socket.h \
     src/nxt_process.h \
     src/nxt_signal.h \
-    src/nxt_chan.h \
+    src/nxt_port_socket.h \
     src/nxt_dyld.h \
     src/nxt_thread.h \
     src/nxt_thread_id.h \
@@ -81,7 +81,7 @@ NXT_LIB_SRCS=" \
     src/nxt_process.c \
     src/nxt_process_title.c \
     src/nxt_signal.c \
-    src/nxt_chan.c \
+    src/nxt_port_socket.c \
     src/nxt_dyld.c \
     src/nxt_random.c \
     src/nxt_queue.c \
@@ -320,7 +320,7 @@ fi
 
 NXT_DEPS=" \
     src/nxt_cycle.h \
-    src/nxt_process_chan.h \
+    src/nxt_port.h \
     src/nxt_application.h \
     src/nxt_master_process.h \
 "
@@ -329,7 +329,7 @@ NXT_SRCS=" \
     src/nxt_main.c \
     src/nxt_app_log.c \
     src/nxt_cycle.c \
-    src/nxt_process_chan.c \
+    src/nxt_port.c \
     src/nxt_application.c \
     src/nxt_master_process.c \
     src/nxt_worker_process.c \

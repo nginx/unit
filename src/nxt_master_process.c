@@ -6,11 +6,11 @@
 
 #include <nxt_main.h>
 #include <nxt_cycle.h>
-#include <nxt_process_chan.h>
+#include <nxt_port.h>
 #include <nxt_master_process.h>
 
 
-static nxt_int_t nxt_master_process_chan_create(nxt_task_t *task,
+static nxt_int_t nxt_master_process_port_create(nxt_task_t *task,
     nxt_cycle_t *cycle);
 static void nxt_master_process_title(void);
 static nxt_int_t nxt_master_start_worker_processes(nxt_task_t *task,
@@ -58,7 +58,7 @@ nxt_master_process_start(nxt_thread_t *thr, nxt_task_t *task,
 {
     cycle->type = NXT_PROCESS_MASTER;
 
-    if (nxt_master_process_chan_create(task, cycle) != NXT_OK) {
+    if (nxt_master_process_port_create(task, cycle) != NXT_OK) {
         return NXT_ERROR;
     }
 
@@ -69,9 +69,9 @@ nxt_master_process_start(nxt_thread_t *thr, nxt_task_t *task,
 
 
 static nxt_int_t
-nxt_master_process_chan_create(nxt_task_t *task, nxt_cycle_t *cycle)
+nxt_master_process_port_create(nxt_task_t *task, nxt_cycle_t *cycle)
 {
-    nxt_process_chan_t  *proc;
+    nxt_process_port_t  *proc;
 
     proc = nxt_array_add(cycle->processes);
     if (nxt_slow_path(proc == NULL)) {
@@ -81,16 +81,16 @@ nxt_master_process_chan_create(nxt_task_t *task, nxt_cycle_t *cycle)
     proc->pid = nxt_pid;
     proc->engine = 0;
 
-    proc->chan = nxt_chan_create(0);
-    if (nxt_slow_path(proc->chan == NULL)) {
+    proc->port = nxt_port_create(0);
+    if (nxt_slow_path(proc->port == NULL)) {
         return NXT_ERROR;
     }
 
     /*
-     * A master process chan.  A write chan is not closed
+     * A master process port.  A write port is not closed
      * since it should be inherited by worker processes.
      */
-    nxt_chan_read_enable(task, proc->chan);
+    nxt_port_read_enable(task, proc->port);
 
     return NXT_OK;
 }
@@ -144,7 +144,7 @@ static nxt_int_t
 nxt_master_create_worker_process(nxt_task_t *task, nxt_cycle_t *cycle)
 {
     nxt_pid_t           pid;
-    nxt_process_chan_t  *proc;
+    nxt_process_port_t  *proc;
 
     proc = nxt_array_add(cycle->processes);
     if (nxt_slow_path(proc == NULL)) {
@@ -156,8 +156,8 @@ nxt_master_create_worker_process(nxt_task_t *task, nxt_cycle_t *cycle)
     proc->engine = 0;
     proc->generation = cycle->process_generation;
 
-    proc->chan = nxt_chan_create(0);
-    if (nxt_slow_path(proc->chan == NULL)) {
+    proc->port = nxt_port_create(0);
+    if (nxt_slow_path(proc->port == NULL)) {
         return NXT_ERROR;
     }
 
@@ -177,10 +177,10 @@ nxt_master_create_worker_process(nxt_task_t *task, nxt_cycle_t *cycle)
         /* The master process created a new process. */
         proc->pid = pid;
 
-        nxt_chan_read_close(proc->chan);
-        nxt_chan_write_enable(task, proc->chan);
+        nxt_port_read_close(proc->port);
+        nxt_port_write_enable(task, proc->port);
 
-        nxt_process_new_chan(task, cycle, proc);
+        nxt_process_new_port(task, cycle, proc);
         return NXT_OK;
     }
 }
@@ -253,7 +253,7 @@ nxt_master_stop_previous_worker_processes(nxt_task_t *task, void *obj,
     uint32_t            generation;
     nxt_uint_t          i, n;
     nxt_cycle_t         *cycle;
-    nxt_process_chan_t  *proc;
+    nxt_process_port_t  *proc;
 
     cycle = nxt_thread_cycle();
 
@@ -266,7 +266,7 @@ nxt_master_stop_previous_worker_processes(nxt_task_t *task, void *obj,
 
     for (i = 1; i < n; i++) {
         if (proc[i].generation == generation) {
-            (void) nxt_chan_write(task, proc[i].chan, NXT_CHAN_MSG_QUIT,
+            (void) nxt_port_write(task, proc[i].port, NXT_PORT_MSG_QUIT,
                                   -1, 0, NULL);
         }
     }
@@ -278,7 +278,7 @@ nxt_master_stop_previous_worker_processes(nxt_task_t *task, void *obj,
 void
 nxt_master_stop_worker_processes(nxt_task_t *task, nxt_cycle_t *cycle)
 {
-    nxt_process_chan_write(task, cycle, NXT_CHAN_MSG_QUIT, -1, 0, NULL);
+    nxt_process_port_write(task, cycle, NXT_PORT_MSG_QUIT, -1, 0, NULL);
 }
 
 
@@ -366,7 +366,7 @@ nxt_master_process_sigusr1_handler(nxt_task_t *task, void *obj, void *data)
 
         nxt_list_each(file, cycle->log_files) {
 
-            nxt_process_chan_change_log_file(task, cycle, n, new_file[n].fd);
+            nxt_process_port_change_log_file(task, cycle, n, new_file[n].fd);
             /*
              * The old log file descriptor must be closed at the moment
              * when no other threads use it.  dup2() allows to use the
@@ -619,7 +619,7 @@ nxt_master_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid)
 {
     nxt_uint_t          i, n, generation;
     nxt_cycle_t         *cycle;
-    nxt_process_chan_t  *proc;
+    nxt_process_port_t  *proc;
 
     cycle = nxt_thread_cycle();
 

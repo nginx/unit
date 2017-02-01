@@ -120,7 +120,7 @@ nxt_thread_extern_data(nxt_thread_t, nxt_thread_context);
 
 #include <nxt_event_fd.h>
 
-#include <nxt_chan.h>
+#include <nxt_port_socket.h>
 #if (NXT_THREADS)
 #include <nxt_thread_pool.h>
 #endif

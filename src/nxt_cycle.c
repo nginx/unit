@@ -7,7 +7,7 @@
 
 #include <nxt_main.h>
 #include <nxt_cycle.h>
-#include <nxt_process_chan.h>
+#include <nxt_port.h>
 #include <nxt_master_process.h>
 
 
@@ -344,7 +344,7 @@ static nxt_int_t
 nxt_cycle_processes(nxt_cycle_t *cycle)
 {
     nxt_uint_t          n;
-    nxt_process_chan_t  *proc, *prev;
+    nxt_process_port_t  *proc, *prev;
 
     /*
      * Preallocate double number of previous cycle
@@ -353,7 +353,7 @@ nxt_cycle_processes(nxt_cycle_t *cycle)
     n = (cycle->previous != NULL) ? cycle->previous->processes->nelts : 1;
 
     cycle->processes = nxt_array_create(cycle->mem_pool, 2 * n,
-                                        sizeof(nxt_process_chan_t));
+                                        sizeof(nxt_process_port_t));
 
     if (nxt_slow_path(cycle->processes == NULL)) {
         return NXT_ERROR;
