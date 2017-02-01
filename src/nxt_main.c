@@ -17,9 +17,7 @@ main(int argc, char **argv)
     nxt_int_t     ret;
     nxt_thread_t  *thr;
 
-    static nxt_str_t   nxt_config_name = nxt_string_zero("nginx.conf");
-
-    if (nxt_lib_start("nginman", argv, &environ) != NXT_OK) {
+    if (nxt_lib_start("nginext", argv, &environ) != NXT_OK) {
         return 1;
     }
 
@@ -30,9 +28,9 @@ main(int argc, char **argv)
 
     nxt_main_log.handler = nxt_log_time_handler;
 
-    nxt_log_error(NXT_LOG_INFO, thr->log, "nginman started");
+    nxt_log_error(NXT_LOG_INFO, thr->log, "nginext started");
 
-    ret = nxt_cycle_create(thr, &nxt_main_task, NULL, NULL, &nxt_config_name);
+    ret = nxt_cycle_create(thr, &nxt_main_task, NULL, NULL);
 
     if (ret != NXT_OK) {
         return 1;

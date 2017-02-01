@@ -63,7 +63,7 @@ static int nxt_php_read_post(char *buffer, uint count_bytes TSRMLS_DC);
 static sapi_module_struct  nxt_php_sapi_module =
 {
     (char *) "cli-server",
-    (char *) "nginman",
+    (char *) "nginext",
 
     nxt_php_startup,             /* startup */
     php_module_shutdown_wrapper, /* shutdown */
@@ -351,13 +351,13 @@ nxt_php_send_headers(sapi_headers_struct *sapi_headers TSRMLS_DC)
 
     static const u_char default_repsonse[]
         = "HTTP/1.1 200 OK\r\n"
-          "Server: nginman/0.1\r\n"
+          "Server: nginext/0.1\r\n"
           "Content-Type: text/html; charset=UTF-8\r\n"
           "Connection: close\r\n"
           "\r\n";
 
     static const u_char default_headers[]
-        = "Server: nginman/0.1\r\n"
+        = "Server: nginext/0.1\r\n"
           "Connection: close\r\n";
 
     r = SG(server_context);

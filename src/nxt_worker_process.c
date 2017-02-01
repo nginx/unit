@@ -59,7 +59,7 @@ nxt_worker_process_start(void *data)
 
     nxt_log_error(NXT_LOG_INFO, thr->log, "worker process");
 
-    nxt_process_title("nginman: worker process");
+    nxt_process_title("nginext: worker process");
 
     cycle->type = NXT_PROCESS_WORKER;
 

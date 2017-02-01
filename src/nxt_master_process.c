@@ -105,7 +105,7 @@ nxt_master_process_title(void)
 
     end = title + sizeof(title);
 
-    p = nxt_sprintf(title, end, "nginman: master process %s",
+    p = nxt_sprintf(title, end, "nginext: master process %s",
                     nxt_process_argv[0]);
 
     for (i = 1; nxt_process_argv[i] != NULL; i++) {
@@ -199,8 +199,7 @@ nxt_master_process_sighup_handler(nxt_task_t *task, void *obj, void *data)
 
     if (!cycle->reconfiguring) {
         (void) nxt_cycle_create(task->thread, task, cycle,
-                                nxt_master_process_new_cycle,
-                                cycle->config_name);
+                                nxt_master_process_new_cycle);
     }
 }
 
@@ -430,8 +429,8 @@ nxt_master_process_sigusr2_handler(nxt_task_t *task, void *obj, void *data)
          * tested explicitly.  There is no workaround for this race condition
          * in Solaris zons.  To eliminate this race condition in Solaris
          * zone the old master process should be quit only when both
-         * "nginman.pid.oldbin" (created by the old master process) and
-         * "nginman.pid" (created by the new master process) files exists.
+         * "nginext.pid.oldbin" (created by the old master process) and
+         * "nginext.pid" (created by the new master process) files exists.
          */
         ignore = 1;
     }

@@ -33,8 +33,6 @@ struct nxt_cycle_s {
 
     nxt_cycle_cont_t       start;
 
-    nxt_str_t              *config_name;
-
     nxt_str_t              *conf_prefix;
     nxt_str_t              *prefix;
 
@@ -121,7 +119,7 @@ nxt_thread_cycle(void)
 
 
 nxt_int_t nxt_cycle_create(nxt_thread_t *thr, nxt_task_t *task,
-    nxt_cycle_t *previous, nxt_cycle_cont_t start, nxt_str_t *config_name);
+    nxt_cycle_t *previous, nxt_cycle_cont_t start);
 void nxt_cycle_quit(nxt_task_t *task, nxt_cycle_t *cycle);
 
 void nxt_cycle_event_engine_free(nxt_cycle_t *cycle);

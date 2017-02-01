@@ -59,7 +59,7 @@ nxt_thread_declare_data(nxt_cycle_t *, nxt_thread_cycle_data);
 
 nxt_int_t
 nxt_cycle_create(nxt_thread_t *thr, nxt_task_t *task, nxt_cycle_t *previous,
-    nxt_cycle_cont_t start, nxt_str_t *config_name)
+    nxt_cycle_cont_t start)
 {
     nxt_int_t           ret;
     nxt_cycle_t         *cycle;
@@ -78,7 +78,6 @@ nxt_cycle_create(nxt_thread_t *thr, nxt_task_t *task, nxt_cycle_t *previous,
 
     cycle->mem_pool = mp;
     cycle->previous = previous;
-    cycle->config_name = config_name;
 
     if (previous == NULL) {
         cycle->prefix = nxt_current_directory(mp);
@@ -803,7 +802,7 @@ nxt_cycle_conf_init(nxt_thread_t *thr, nxt_cycle_t *cycle)
     cycle->auxiliary_threads = 2;
     cycle->user_cred.user = "nobody";
     cycle->group = NULL;
-    cycle->pid = "nginman.pid";
+    cycle->pid = "nginext.pid";
     cycle->error_log = "error.log";
 
     if (nxt_cycle_conf_read_cmd(thr, cycle) != NXT_OK) {
