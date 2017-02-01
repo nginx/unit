@@ -37,7 +37,7 @@ nxt_strerror_start(void)
 {
     char        *msg;
     u_char      *p;
-    size_t      size, len, n;
+    size_t      size, length, n;
     nxt_uint_t  err, invalid;
 
     /* The last entry. */
@@ -73,10 +73,10 @@ nxt_strerror_start(void)
             continue;
         }
 
-        len = nxt_strlen(msg);
-        size += len;
+        length = nxt_strlen(msg);
+        size += length;
 
-        if (len == 0  /* HP-UX empty strings. */
+        if (length == 0  /* HP-UX empty strings. */
             || nxt_errno == NXT_EINVAL
             || nxt_memcmp(msg, "Unknown error", 13) == 0)
         {
@@ -87,7 +87,7 @@ nxt_strerror_start(void)
 #if (NXT_AIX)
 
         if (nxt_memcmp(msg, "Error ", 6) == 0
-            && nxt_memcmp(msg + len - 10, " occurred.", 9) == 0)
+            && nxt_memcmp(msg + length - 10, " occurred.", 9) == 0)
         {
             invalid++;
             continue;
@@ -111,16 +111,16 @@ nxt_strerror_start(void)
 
     for (err = 0; err < nxt_sys_nerr; err++) {
         msg = strerror((int) err);
-        len = nxt_strlen(msg);
+        length = nxt_strlen(msg);
 
-        nxt_sys_errlist[err].len = len;
-        nxt_sys_errlist[err].data = p;
+        nxt_sys_errlist[err].length = length;
+        nxt_sys_errlist[err].start = p;
 
-        p = nxt_cpymem(p, msg, len);
+        p = nxt_cpymem(p, msg, length);
     }
 
-    nxt_sys_errlist[err].len = 13;
-    nxt_sys_errlist[err].data = p;
+    nxt_sys_errlist[err].length = 13;
+    nxt_sys_errlist[err].start = p;
     nxt_memcpy(p, "Unknown error", 13);
 
     nxt_strerror = nxt_runtime_strerror;
@@ -146,7 +146,7 @@ nxt_runtime_strerror(nxt_err_t err, u_char *errstr, size_t size)
 
     msg = &nxt_sys_errlist[n];
 
-    size = nxt_min(size, msg->len);
+    size = nxt_min(size, msg->length);
 
-    return nxt_cpymem(errstr, msg->data, size);
+    return nxt_cpymem(errstr, msg->start, size);
 }

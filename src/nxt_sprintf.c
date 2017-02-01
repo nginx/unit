@@ -101,7 +101,7 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
     u_char               *p;
     int                  d;
     double               f, i;
-    size_t               len;
+    size_t               length;
     int64_t              i64;
     uint64_t             ui64, frac;
     nxt_str_t            *v;
@@ -143,8 +143,8 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
             v = va_arg(args, nxt_str_t *);
 
             if (nxt_fast_path(v != NULL)) {
-                len = v->len;
-                p = v->data;
+                length = v->length;
+                p = v->start;
                 goto copy;
             }
 
@@ -163,7 +163,7 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
             continue;
 
         case '*':
-            len = va_arg(args, u_int);
+            length = va_arg(args, u_int);
 
             fmt++;
 
@@ -380,13 +380,13 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
 
             if (nxt_slow_path(isnan(f))) {
                 p = (u_char *) nan;
-                len = sizeof(nan) - 1;
+                length = sizeof(nan) - 1;
 
                 goto copy;
 
             } else if (nxt_slow_path(isinf(f))) {
                 p = (u_char *) infinity;
-                len = sizeof(infinity) - 1;
+                length = sizeof(infinity) - 1;
 
                 goto copy;
             }
@@ -555,7 +555,7 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
 
     copy:
 
-        buf = nxt_cpymem(buf, p, nxt_min((size_t) (end - buf), len));
+        buf = nxt_cpymem(buf, p, nxt_min((size_t) (end - buf), length));
         continue;
     }
 
@@ -567,7 +567,7 @@ static u_char *
 nxt_integer(nxt_sprintf_t *spf, u_char *buf, uint64_t ui64)
 {
     u_char  *p, *end;
-    size_t  len;
+    size_t  length;
     u_char  temp[NXT_INT64_T_LEN];
 
     p = temp + NXT_INT64_T_LEN;
@@ -652,8 +652,8 @@ nxt_integer(nxt_sprintf_t *spf, u_char *buf, uint64_t ui64)
 
     if (spf->width != 0) {
 
-        len = (temp + NXT_INT64_T_LEN) - p;
-        end = buf + (spf->width - len);
+        length = (temp + NXT_INT64_T_LEN) - p;
+        end = buf + (spf->width - length);
         end = nxt_min(end, spf->end);
 
         while (buf < end) {
@@ -663,8 +663,8 @@ nxt_integer(nxt_sprintf_t *spf, u_char *buf, uint64_t ui64)
 
     /* Number copying. */
 
-    len = (temp + NXT_INT64_T_LEN) - p;
-    end = buf + len;
+    length = (temp + NXT_INT64_T_LEN) - p;
+    end = buf + length;
     end = nxt_min(end, spf->end);
 
     while (buf < end) {
@@ -679,7 +679,7 @@ static u_char *
 nxt_number(nxt_sprintf_t *spf, u_char *buf, double n)
 {
     u_char  *p, *end;
-    size_t  len;
+    size_t  length;
     u_char  temp[NXT_DOUBLE_LEN];
 
     p = temp + NXT_DOUBLE_LEN;
@@ -692,8 +692,8 @@ nxt_number(nxt_sprintf_t *spf, u_char *buf, double n)
     /* Zero or space padding. */
 
     if (spf->width != 0) {
-        len = (temp + NXT_DOUBLE_LEN) - p;
-        end = buf + (spf->width - len);
+        length = (temp + NXT_DOUBLE_LEN) - p;
+        end = buf + (spf->width - length);
         end = nxt_min(end, spf->end);
 
         while (buf < end) {
@@ -703,9 +703,9 @@ nxt_number(nxt_sprintf_t *spf, u_char *buf, double n)
 
     /* Number copying. */
 
-    len = (temp + NXT_DOUBLE_LEN) - p;
+    length = (temp + NXT_DOUBLE_LEN) - p;
 
-    end = buf + len;
+    end = buf + length;
     end = nxt_min(end, spf->end);
 
     while (buf < end) {

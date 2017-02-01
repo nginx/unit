@@ -868,8 +868,8 @@ nxt_cycle_conf_read_cmd(nxt_thread_t *thr, nxt_cycle_t *cycle)
 
             p = *argv++;
 
-            addr.len = nxt_strlen(p);
-            addr.data = (u_char *) p;
+            addr.length = nxt_strlen(p);
+            addr.start = (u_char *) p;
 
             sa = nxt_cycle_sockaddr_parse(&addr, cycle->mem_pool, thr->log);
 
@@ -967,16 +967,16 @@ static nxt_sockaddr_t *
 nxt_cycle_sockaddr_parse(nxt_str_t *addr, nxt_mem_pool_t *mp, nxt_log_t *log)
 {
     u_char  *p;
-    size_t  len;
+    size_t  length;
 
-    len = addr->len;
-    p = addr->data;
+    length = addr->length;
+    p = addr->start;
 
-    if (len >= 5 && nxt_memcmp(p, (u_char *) "unix:", 5) == 0) {
+    if (length >= 5 && nxt_memcmp(p, (u_char *) "unix:", 5) == 0) {
         return nxt_cycle_sockaddr_unix_parse(addr, mp, log);
     }
 
-    if (len != 0 && *p == '[') {
+    if (length != 0 && *p == '[') {
         return nxt_cycle_sockaddr_inet6_parse(addr, mp, log);
     }
 
@@ -990,7 +990,7 @@ nxt_cycle_sockaddr_unix_parse(nxt_str_t *addr, nxt_mem_pool_t *mp,
 {
 #if (NXT_HAVE_UNIX_DOMAIN)
     u_char          *p;
-    size_t          len, socklen;
+    size_t          length, socklen;
     nxt_sockaddr_t  *sa;
 
     /*
@@ -1006,20 +1006,20 @@ nxt_cycle_sockaddr_unix_parse(nxt_str_t *addr, nxt_mem_pool_t *mp,
                            - offsetof(struct sockaddr_un, sun_path) - 1;
 
     /* cutting "unix:" */
-    len = addr->len - 5;
-    p = addr->data + 5;
+    length = addr->length - 5;
+    p = addr->start + 5;
 
-    if (len == 0) {
+    if (length == 0) {
         nxt_log_emerg(log, "unix domain socket \"%V\" name is invalid", addr);
         return NULL;
     }
 
-    if (len > max_len) {
+    if (length > max_len) {
         nxt_log_emerg(log, "unix domain socket \"%V\" name is too long", addr);
         return NULL;
     }
 
-    socklen = offsetof(struct sockaddr_un, sun_path) + len + 1;
+    socklen = offsetof(struct sockaddr_un, sun_path) + length + 1;
 
 #if (NXT_LINUX)
 
@@ -1048,7 +1048,7 @@ nxt_cycle_sockaddr_unix_parse(nxt_str_t *addr, nxt_mem_pool_t *mp,
     sa->type = SOCK_STREAM;
 
     sa->u.sockaddr_un.sun_family = AF_UNIX;
-    nxt_memcpy(sa->u.sockaddr_un.sun_path, p, len);
+    nxt_memcpy(sa->u.sockaddr_un.sun_path, p, length);
 
     return sa;
 
@@ -1068,16 +1068,16 @@ nxt_cycle_sockaddr_inet6_parse(nxt_str_t *addr, nxt_mem_pool_t *mp,
 {
 #if (NXT_INET6)
     u_char           *p, *addr, *addr_end;
-    size_t           len;
+    size_t           length;
     nxt_int_t        port;
     nxt_mem_pool_t   *mp;
     nxt_sockaddr_t   *sa;
     struct in6_addr  *in6_addr;
 
-    len = addr->len - 1;
-    p = addr->data + 1;
+    length = addr->length - 1;
+    p = addr->start + 1;
 
-    addr_end = nxt_memchr(p, ']', len);
+    addr_end = nxt_memchr(p, ']', length);
 
     if (addr_end == NULL) {
         goto invalid_address;
@@ -1096,14 +1096,14 @@ nxt_cycle_sockaddr_inet6_parse(nxt_str_t *addr, nxt_mem_pool_t *mp,
     }
 
     p = addr_end + 1;
-    len = (p + len) - p;
+    length = (p + length) - p;
 
-    if (len == 0) {
+    if (length == 0) {
         goto found;
     }
 
     if (*p == ':') {
-        port = nxt_int_parse(p + 1, len - 1);
+        port = nxt_int_parse(p + 1, length - 1);
 
         if (port >= 1 && port <= 65535) {
             goto found;
@@ -1144,23 +1144,23 @@ nxt_cycle_sockaddr_inet_parse(nxt_str_t *addr, nxt_mem_pool_t *mp,
     nxt_log_t *log)
 {
     u_char          *p, *ip;
-    size_t          len;
+    size_t          length;
     in_addr_t       s_addr;
     nxt_int_t       port;
     nxt_sockaddr_t  *sa;
 
     s_addr = INADDR_ANY;
 
-    len = addr->len;
-    ip = addr->data;
+    length = addr->length;
+    ip = addr->start;
 
-    p = nxt_memchr(ip, ':', len);
+    p = nxt_memchr(ip, ':', length);
 
     if (p == NULL) {
 
         /* single value port, or address */
 
-        port = nxt_int_parse(ip, len);
+        port = nxt_int_parse(ip, length);
 
         if (port > 0) {
             /* "*:XX" */
@@ -1172,7 +1172,7 @@ nxt_cycle_sockaddr_inet_parse(nxt_str_t *addr, nxt_mem_pool_t *mp,
         } else {
             /* "x.x.x.x" */
 
-            s_addr = nxt_inet_addr(ip, len);
+            s_addr = nxt_inet_addr(ip, length);
 
             if (s_addr == INADDR_NONE) {
                 goto invalid_port;
@@ -1186,17 +1186,17 @@ nxt_cycle_sockaddr_inet_parse(nxt_str_t *addr, nxt_mem_pool_t *mp,
         /* x.x.x.x:XX */
 
         p++;
-        len = (ip + len) - p;
-        port = nxt_int_parse(p, len);
+        length = (ip + length) - p;
+        port = nxt_int_parse(p, length);
 
         if (port < 1 || port > 65535) {
             goto invalid_port;
         }
 
-        len = (p - 1) - ip;
+        length = (p - 1) - ip;
 
-        if (len != 1 || ip[0] != '*') {
-            s_addr = nxt_inet_addr(ip, len);
+        if (length != 1 || ip[0] != '*') {
+            s_addr = nxt_inet_addr(ip, length);
 
             if (s_addr == INADDR_NONE) {
                 goto invalid_addr;
@@ -1356,7 +1356,7 @@ nxt_cycle_listen_socket_add(nxt_cycle_t *cycle, nxt_sockaddr_t *sa)
 static nxt_int_t
 nxt_cycle_hostname(nxt_thread_t *thr, nxt_cycle_t *cycle)
 {
-    size_t  len;
+    size_t  length;
     char    hostname[NXT_MAXHOSTNAMELEN + 1];
 
     if (gethostname(hostname, NXT_MAXHOSTNAMELEN) != 0) {
@@ -1374,13 +1374,13 @@ nxt_cycle_hostname(nxt_thread_t *thr, nxt_cycle_t *cycle)
      */
     hostname[NXT_MAXHOSTNAMELEN] = '\0';
 
-    len = nxt_strlen(hostname);
-    cycle->hostname.len = len;
+    length = nxt_strlen(hostname);
+    cycle->hostname.length = length;
 
-    cycle->hostname.data = nxt_mem_nalloc(cycle->mem_pool, len);
+    cycle->hostname.start = nxt_mem_nalloc(cycle->mem_pool, length);
 
-    if (cycle->hostname.data != NULL) {
-        nxt_memcpy_lowcase(cycle->hostname.data, (u_char *) hostname, len);
+    if (cycle->hostname.start != NULL) {
+        nxt_memcpy_lowcase(cycle->hostname.start, (u_char *) hostname, length);
         return NXT_OK;
     }
 
@@ -1424,7 +1424,7 @@ nxt_cycle_log_file_add(nxt_cycle_t *cycle, nxt_str_t *name)
     nxt_file_t           *file;
     nxt_file_name_str_t  file_name;
 
-    prefix = nxt_file_name_is_absolute(name->data) ? NULL : cycle->prefix;
+    prefix = nxt_file_name_is_absolute(name->start) ? NULL : cycle->prefix;
 
     ret = nxt_file_name_create(cycle->mem_pool, &file_name, "%V%V%Z",
                                prefix, name);
@@ -1588,18 +1588,18 @@ nxt_cycle_listen_sockets_enable(nxt_task_t *task, nxt_cycle_t *cycle)
 nxt_str_t *
 nxt_current_directory(nxt_mem_pool_t *mp)
 {
-    size_t     len;
+    size_t     length;
     u_char     *p;
     nxt_str_t  *name;
     char       buf[NXT_MAX_PATH_LEN];
 
-    len = nxt_dir_current(buf, NXT_MAX_PATH_LEN);
+    length = nxt_dir_current(buf, NXT_MAX_PATH_LEN);
 
-    if (nxt_fast_path(len != 0)) {
-        name = nxt_str_alloc(mp, len + 1);
+    if (nxt_fast_path(length != 0)) {
+        name = nxt_str_alloc(mp, length + 1);
 
         if (nxt_fast_path(name != NULL)) {
-            p = nxt_cpymem(name->data, buf, len);
+            p = nxt_cpymem(name->start, buf, length);
             *p = '/';
 
             return name;
@@ -1613,7 +1613,7 @@ nxt_current_directory(nxt_mem_pool_t *mp)
 nxt_int_t
 nxt_cycle_pid_file_create(nxt_file_name_t *pid_file, nxt_bool_t test)
 {
-    ssize_t     len;
+    ssize_t     length;
     nxt_int_t   n;
     nxt_uint_t  create;
     nxt_file_t  file;
@@ -1632,9 +1632,9 @@ nxt_cycle_pid_file_create(nxt_file_name_t *pid_file, nxt_bool_t test)
     }
 
     if (!test) {
-        len = nxt_sprintf(pid, pid + sizeof(pid), "%PI%n", nxt_pid) - pid;
+        length = nxt_sprintf(pid, pid + sizeof(pid), "%PI%n", nxt_pid) - pid;
 
-        if (nxt_file_write(&file, pid, len, 0) != len) {
+        if (nxt_file_write(&file, pid, length, 0) != length) {
             return NXT_ERROR;
         }
     }

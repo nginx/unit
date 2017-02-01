@@ -36,47 +36,48 @@ nxt_strlen(s)                                                                 \
 
 
 #define                                                                       \
-nxt_memzero(buf, len)                                                         \
-    (void) memset(buf, 0, len)
+nxt_memzero(buf, length)                                                      \
+    (void) memset(buf, 0, length)
 
 
 #define                                                                       \
-nxt_memset(buf, c, len)                                                       \
-    (void) memset(buf, c, len)
+nxt_memset(buf, c, length)                                                    \
+    (void) memset(buf, c, length)
 
 
 #define                                                                       \
-nxt_memcpy(dst, src, len)                                                     \
-    (void) memcpy(dst, src, len)
+nxt_memcpy(dst, src, length)                                                  \
+    (void) memcpy(dst, src, length)
 
 
-NXT_EXPORT void nxt_memcpy_lowcase(u_char *dst, const u_char *src, size_t len);
+NXT_EXPORT void nxt_memcpy_lowcase(u_char *dst, const u_char *src,
+    size_t length);
 
 
 /*
- * nxt_cpymem() is an inline function but not macro to
- * eliminate possible double evaluation of length "len".
+ * nxt_cpymem() is an inline function but not a macro to
+ * eliminate possible double evaluation of length "length".
  */
 nxt_inline void *
-nxt_cpymem(void *dst, const void *src, size_t len)
+nxt_cpymem(void *dst, const void *src, size_t length)
 {
-    return ((u_char *) memcpy(dst, src, len)) + len;
+    return ((u_char *) memcpy(dst, src, length)) + length;
 }
 
 
 #define                                                                       \
-nxt_memmove(dst, src, len)                                                    \
-    (void) memmove(dst, src, len)
+nxt_memmove(dst, src, length)                                                 \
+    (void) memmove(dst, src, length)
 
 
 #define                                                                       \
-nxt_memcmp(s1, s2, len)                                                       \
-    memcmp((char *) s1, (char *) s2, len)
+nxt_memcmp(s1, s2, length)                                                    \
+    memcmp((char *) s1, (char *) s2, length)
 
 
 #define                                                                       \
-nxt_memchr(s, c, len)                                                         \
-    memchr((char *) s, c, len)
+nxt_memchr(s, c, length)                                                      \
+    memchr((char *) s, c, length)
 
 
 #define                                                                       \
@@ -85,29 +86,29 @@ nxt_strcmp(s1, s2)                                                            \
 
 
 #define                                                                       \
-nxt_strncmp(s1, s2, len)                                                      \
-    strncmp((char *) s1, (char *) s2, len)
+nxt_strncmp(s1, s2, length)                                                   \
+    strncmp((char *) s1, (char *) s2, length)
 
 
-NXT_EXPORT u_char *nxt_cpystrn(u_char *dst, const u_char *src, size_t len);
+NXT_EXPORT u_char *nxt_cpystrn(u_char *dst, const u_char *src, size_t length);
 NXT_EXPORT nxt_int_t nxt_strcasecmp(const u_char *s1, const u_char *s2);
 NXT_EXPORT nxt_int_t nxt_strncasecmp(const u_char *s1, const u_char *s2,
-    size_t len);
+    size_t length);
 NXT_EXPORT nxt_int_t nxt_memcasecmp(const u_char *s1, const u_char *s2,
-    size_t len);
+    size_t length);
 
 NXT_EXPORT u_char *nxt_memstrn(const u_char *s, const u_char *end,
-    const char *ss, size_t len);
+    const char *ss, size_t length);
 NXT_EXPORT u_char *nxt_memcasestrn(const u_char *s, const u_char *end,
-    const char *ss, size_t len);
+    const char *ss, size_t length);
 NXT_EXPORT u_char *nxt_rmemstrn(const u_char *s, const u_char *end,
-    const char *ss, size_t len);
+    const char *ss, size_t length);
 NXT_EXPORT size_t nxt_str_strip(u_char *start, u_char *end);
 
 
 typedef struct {
-    size_t                    len;
-    u_char                    *data;
+    size_t                    length;
+    u_char                    *start;
 } nxt_str_t;
 
 
@@ -119,20 +120,20 @@ typedef struct {
 #define                                                                       \
 nxt_str_set(str, text)                                                        \
     do {                                                                      \
-        (str)->len = sizeof(text) - 1;                                        \
-        (str)->data = (u_char *) text;                                        \
+        (str)->length = sizeof(text) - 1;                                     \
+        (str)->start = (u_char *) text;                                       \
     } while (0)
 
 
 #define                                                                       \
 nxt_str_null(str)                                                             \
     do {                                                                      \
-        (str)->len = 0;                                                       \
-        (str)->data = NULL;                                                   \
+        (str)->length = 0;                                                    \
+        (str)->start = NULL;                                                  \
     } while (0)
 
 
-NXT_EXPORT nxt_str_t *nxt_str_alloc(nxt_mem_pool_t *mp, size_t len);
+NXT_EXPORT nxt_str_t *nxt_str_alloc(nxt_mem_pool_t *mp, size_t length);
 NXT_EXPORT nxt_str_t *nxt_str_dup(nxt_mem_pool_t *mp, nxt_str_t *dst,
     const nxt_str_t *src);
 NXT_EXPORT char *nxt_str_copy(nxt_mem_pool_t *mp, const nxt_str_t *src);
@@ -140,34 +141,34 @@ NXT_EXPORT char *nxt_str_copy(nxt_mem_pool_t *mp, const nxt_str_t *src);
 
 #define                                                                       \
 nxt_strstr_eq(s1, s2)                                                         \
-    (((s1)->len == (s2)->len)                                                 \
-      && (nxt_memcmp((s1)->data, (s2)->data, (s1)->len) == 0))
+    (((s1)->length == (s2)->length)                                           \
+      && (nxt_memcmp((s1)->start, (s2)->start, (s1)->length) == 0))
 
 
 #define                                                                       \
 nxt_strcasestr_eq(s1, s2)                                                     \
-    (((s1)->len == (s2)->len)                                                 \
-      && (nxt_memcasecmp((s1)->data, (s2)->data, (s1)->len) == 0))
+    (((s1)->length == (s2)->length)                                           \
+      && (nxt_memcasecmp((s1)->start, (s2)->start, (s1)->length) == 0))
 
 
 #define                                                                       \
-nxt_str_eq(s, p, _len)                                                        \
-    (((s)->len == _len) && (nxt_memcmp((s)->data, p, _len) == 0))
+nxt_str_eq(s, p, _length)                                                     \
+    (((s)->length == _length) && (nxt_memcmp((s)->start, p, _length) == 0))
 
 
 #define                                                                       \
-nxt_str_start(s, p, _len)                                                     \
-    (((s)->len > _len) && (nxt_memcmp((s)->data, p, _len) == 0))
+nxt_str_start(s, p, _length)                                                  \
+    (((s)->length > _length) && (nxt_memcmp((s)->start, p, _length) == 0))
 
 
 #define                                                                       \
 nxt_strchr_eq(s, c)                                                           \
-    (((s)->len == 1) && ((s)->data[0] == c))
+    (((s)->length == 1) && ((s)->start[0] == c))
 
 
 #define                                                                       \
 nxt_strchr_start(s, c)                                                        \
-    (((s)->len != 0) && ((s)->data[0] == c))
+    (((s)->length != 0) && ((s)->start[0] == c))
 
 
 #endif /* _NXT_STRING_H_INCLUDED_ */

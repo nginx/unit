@@ -277,8 +277,8 @@ nxt_app_http_parse_request(nxt_app_request_t *r, u_char *buf, size_t size)
             continue;
 
         case NXT_DONE:
-            r->body_preread.len = end - state.pos;
-            r->body_preread.data = state.pos;
+            r->body_preread.length = end - state.pos;
+            r->body_preread.start = state.pos;
 
             return NXT_OK;
 
@@ -326,8 +326,8 @@ nxt_app_http_parse_request_line(nxt_app_request_header_t *h, u_char *start,
         }
     }
 
-    h->method.len = p - start;
-    h->method.data = start;
+    h->method.length = p - start;
+    h->method.start = start;
 
     start = p + 1;
 
@@ -337,8 +337,8 @@ nxt_app_http_parse_request_line(nxt_app_request_header_t *h, u_char *start,
         return NXT_AGAIN;
     }
 
-    h->path.len = p - start;
-    h->path.data = start;
+    h->path.length = p - start;
+    h->path.start = start;
 
     start = p + 1;
 
@@ -346,8 +346,8 @@ nxt_app_http_parse_request_line(nxt_app_request_header_t *h, u_char *start,
         return NXT_AGAIN;
     }
 
-    h->version.len = sizeof("HTTP/1.1") - 1;
-    h->version.data = start;
+    h->version.length = sizeof("HTTP/1.1") - 1;
+    h->version.start = start;
 
     p = start + sizeof("HTTP/1.1") - 1;
 
@@ -400,8 +400,8 @@ nxt_app_http_parse_field_name(nxt_app_request_header_t *h, u_char *start,
 
     fld = &h->fields[h->fields_num];
 
-    fld->name.len = p - start;
-    fld->name.data = start;
+    fld->name.length = p - start;
+    fld->name.start = start;
 
     return nxt_app_http_parse_field_value(h, p + 1, end, state);
 
@@ -441,10 +441,10 @@ nxt_app_http_parse_field_value(nxt_app_request_header_t *h, u_char *start,
 
     fld = &h->fields[h->fields_num];
 
-    fld->value.len = p - start;
-    fld->value.data = start;
+    fld->value.length = p - start;
+    fld->value.start = start;
 
-    fld->value.len -= (p[-1] == '\r');
+    fld->value.length -= (p[-1] == '\r');
 
     h->fields_num++;
 
@@ -474,17 +474,17 @@ nxt_app_http_process_headers(nxt_app_request_t *r)
     for (i = 0; i < r->header.fields_num; i++) {
         fld = &r->header.fields[i];
 
-        if (fld->name.len == sizeof(content_length)
-            && nxt_memcasecmp(fld->name.data, content_length,
+        if (fld->name.length == sizeof(content_length)
+            && nxt_memcasecmp(fld->name.start, content_length,
                               sizeof(content_length)) == 0)
         {
             r->header.content_length = &fld->value;
-            r->body_rest = nxt_off_t_parse(fld->value.data, fld->value.len);
+            r->body_rest = nxt_off_t_parse(fld->value.start, fld->value.length);
             continue;
         }
 
-        if (fld->name.len == sizeof(content_type)
-            && nxt_memcasecmp(fld->name.data, content_type,
+        if (fld->name.length == sizeof(content_type)
+            && nxt_memcasecmp(fld->name.start, content_type,
                               sizeof(content_type)) == 0)
         {
             r->header.content_type = &fld->value;
@@ -533,43 +533,43 @@ nxt_app_conn_update(nxt_thread_t *thr, nxt_event_conn_t *c, nxt_log_t *log)
 
 
 nxt_int_t
-nxt_app_http_read_body(nxt_app_request_t *r, u_char *data, size_t len)
+nxt_app_http_read_body(nxt_app_request_t *r, u_char *start, size_t length)
 {
     size_t     preread;
     ssize_t    n;
     nxt_err_t  err;
 
-    if ((off_t) len > r->body_rest) {
-        len = (size_t) r->body_rest;
+    if ((off_t) length > r->body_rest) {
+        length = (size_t) r->body_rest;
     }
 
     preread = 0;
 
-    if (r->body_preread.len != 0) {
-        preread = nxt_min(r->body_preread.len, len);
+    if (r->body_preread.length != 0) {
+        preread = nxt_min(r->body_preread.length, length);
 
-        nxt_memcpy(data, r->body_preread.data, preread);
+        nxt_memcpy(start, r->body_preread.start, preread);
 
-        r->body_preread.len -= preread;
-        r->body_preread.data += preread;
+        r->body_preread.length -= preread;
+        r->body_preread.start += preread;
 
         r->body_rest -= preread;
 
-        len -= preread;
+        length -= preread;
     }
 
-    if (len == 0) {
+    if (length == 0) {
         return NXT_OK;
     }
 
-    n = recv(r->event_conn->socket.fd, data + preread, len, 0);
+    n = recv(r->event_conn->socket.fd, start + preread, length, 0);
 
-    if (nxt_slow_path(n < (ssize_t) len)) {
+    if (nxt_slow_path(n < (ssize_t) length)) {
         if (n <= 0) {
             err = (n == 0) ? 0 : nxt_socket_errno;
 
             nxt_log_error(NXT_LOG_ERR, r->log, "recv(%d, %uz) failed %E",
-                          r->event_conn->socket.fd, len, err);
+                          r->event_conn->socket.fd, length, err);
 
             return NXT_ERROR;
         }
@@ -587,7 +587,7 @@ nxt_app_http_read_body(nxt_app_request_t *r, u_char *data, size_t len)
 
 
 nxt_int_t
-nxt_app_write(nxt_app_request_t *r, const u_char *data, size_t len)
+nxt_app_write(nxt_app_request_t *r, const u_char *data, size_t length)
 {
     void           *start;
     size_t         free;
@@ -611,20 +611,20 @@ nxt_app_write(nxt_app_request_t *r, const u_char *data, size_t len)
     for ( ;; ) {
         free = nxt_buf_mem_free_size(&b->mem);
 
-        if (free > len) {
-            b->mem.free = nxt_cpymem(b->mem.free, data, len);
+        if (free > length) {
+            b->mem.free = nxt_cpymem(b->mem.free, data, length);
             break;
         }
 
         b->mem.free = nxt_cpymem(b->mem.free, data, free);
 
         data += free;
-        len -= free;
+        length -= free;
 
         *next = b;
         next = &b->next;
 
-        if (len == 0) {
+        if (length == 0) {
             b = NULL;
             break;
         }

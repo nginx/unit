@@ -454,8 +454,8 @@ nxt_poll_set_add(nxt_thread_t *thr, nxt_poll_event_set_t *ps,
 
     lhq.key_hash = nxt_murmur_hash2(&ch->fd, sizeof(nxt_fd_t));
     lhq.replace = 0;
-    lhq.key.len = sizeof(nxt_fd_t);
-    lhq.key.data = (u_char *) &ch->fd;
+    lhq.key.length = sizeof(nxt_fd_t);
+    lhq.key.start = (u_char *) &ch->fd;
     lhq.value = phe;
     lhq.proto = &nxt_poll_fd_hash_proto;
     lhq.data = ps->poll_set;
@@ -501,8 +501,8 @@ nxt_poll_set_delete(nxt_thread_t *thr, nxt_poll_event_set_t *ps,
     nxt_log_debug(thr->log, "poll delete event: fd:%d", ch->fd);
 
     lhq.key_hash = nxt_murmur_hash2(&ch->fd, sizeof(nxt_fd_t));
-    lhq.key.len = sizeof(nxt_fd_t);
-    lhq.key.data = (u_char *) &ch->fd;
+    lhq.key.length = sizeof(nxt_fd_t);
+    lhq.key.start = (u_char *) &ch->fd;
     lhq.proto = &nxt_poll_fd_hash_proto;
     lhq.data = ps->poll_set;
 
@@ -682,8 +682,8 @@ nxt_poll_fd_hash_get(nxt_poll_event_set_t *ps, nxt_fd_t fd)
     nxt_poll_hash_entry_t  *phe;
 
     lhq.key_hash = nxt_murmur_hash2(&fd, sizeof(nxt_fd_t));
-    lhq.key.len = sizeof(nxt_fd_t);
-    lhq.key.data = (u_char *) &fd;
+    lhq.key.length = sizeof(nxt_fd_t);
+    lhq.key.start = (u_char *) &fd;
     lhq.proto = &nxt_poll_fd_hash_proto;
     lhq.data = ps->poll_set;
 
@@ -706,7 +706,7 @@ nxt_poll_fd_hash_test(nxt_lvlhsh_query_t *lhq, void *data)
 
     phe = data;
 
-    if (*(nxt_fd_t *) lhq->key.data == phe->fd) {
+    if (*(nxt_fd_t *) lhq->key.start == phe->fd) {
         poll_set = lhq->data;
 
         if (nxt_fast_path(phe->fd == poll_set[phe->index].fd)) {
@@ -740,8 +740,8 @@ nxt_poll_fd_hash_destroy(nxt_lvlhsh_t *lh)
         }
 
         lhq.key_hash = nxt_murmur_hash2(&phe->fd, sizeof(nxt_fd_t));
-        lhq.key.len = sizeof(nxt_fd_t);
-        lhq.key.data = (u_char *) &phe->fd;
+        lhq.key.length = sizeof(nxt_fd_t);
+        lhq.key.start = (u_char *) &phe->fd;
 
         if (nxt_lvlhsh_delete(lh, &lhq) != NXT_OK) {
             nxt_thread_log_alert("event fd %d not found in hash", phe->fd);

@@ -8,16 +8,16 @@
 
 
 nxt_str_t *
-nxt_str_alloc(nxt_mem_pool_t *mp, size_t len)
+nxt_str_alloc(nxt_mem_pool_t *mp, size_t length)
 {
     nxt_str_t  *s;
 
-    /* The string data is allocated aligned to be close to nxt_str_t. */
-    s = nxt_mem_alloc(mp, sizeof(nxt_str_t) + len);
+    /* The string start is allocated aligned to be close to nxt_str_t. */
+    s = nxt_mem_alloc(mp, sizeof(nxt_str_t) + length);
 
     if (nxt_fast_path(s != NULL)) {
-        s->len = len;
-        s->data = (u_char *) s + sizeof(nxt_str_t);
+        s->length = length;
+        s->start = (u_char *) s + sizeof(nxt_str_t);
     }
 
     return s;
@@ -36,25 +36,25 @@ nxt_str_dup(nxt_mem_pool_t *mp, nxt_str_t *dst, const nxt_str_t *src)
     u_char  *p;
 
     if (dst == NULL) {
-        /* The string data is allocated aligned to be close to nxt_str_t. */
-        dst = nxt_mem_alloc(mp, sizeof(nxt_str_t) + src->len);
+        /* The string start is allocated aligned to be close to nxt_str_t. */
+        dst = nxt_mem_alloc(mp, sizeof(nxt_str_t) + src->length);
         if (nxt_slow_path(dst == NULL)) {
             return NULL;
         }
 
         p = (u_char *) dst;
         p += sizeof(nxt_str_t);
-        dst->data = p;
+        dst->start = p;
 
     } else {
-        dst->data = nxt_mem_nalloc(mp, src->len);
-        if (nxt_slow_path(dst->data == NULL)) {
+        dst->start = nxt_mem_nalloc(mp, src->length);
+        if (nxt_slow_path(dst->start == NULL)) {
             return NULL;
         }
     }
 
-    nxt_memcpy(dst->data, src->data, src->len);
-    dst->len = src->len;
+    nxt_memcpy(dst->start, src->start, src->length);
+    dst->length = src->length;
 
     return dst;
 }
@@ -73,10 +73,10 @@ nxt_str_copy(nxt_mem_pool_t *mp, const nxt_str_t *src)
 {
     char  *p, *dst;
 
-    dst = nxt_mem_align(mp, 2, src->len + 1);
+    dst = nxt_mem_align(mp, 2, src->length + 1);
 
     if (nxt_fast_path(dst != NULL)) {
-        p = nxt_cpymem(dst, src->data, src->len);
+        p = nxt_cpymem(dst, src->start, src->length);
         *p = '\0';
     }
 
@@ -85,26 +85,26 @@ nxt_str_copy(nxt_mem_pool_t *mp, const nxt_str_t *src)
 
 
 void
-nxt_memcpy_lowcase(u_char *dst, const u_char *src, size_t len)
+nxt_memcpy_lowcase(u_char *dst, const u_char *src, size_t length)
 {
     u_char  c;
 
-    while (len != 0) {
+    while (length != 0) {
         c = *src++;
         *dst++ = nxt_lowcase(c);
-        len--;
+        length--;
     }
 }
 
 
 u_char *
-nxt_cpystrn(u_char *dst, const u_char *src, size_t len)
+nxt_cpystrn(u_char *dst, const u_char *src, size_t length)
 {
-    if (len == 0) {
+    if (length == 0) {
         return dst;
     }
 
-    while (--len != 0) {
+    while (--length != 0) {
         *dst = *src;
 
         if (*dst == '\0') {
@@ -148,12 +148,12 @@ nxt_strcasecmp(const u_char *s1, const u_char *s2)
 
 
 nxt_int_t
-nxt_strncasecmp(const u_char *s1, const u_char *s2, size_t len)
+nxt_strncasecmp(const u_char *s1, const u_char *s2, size_t length)
 {
     u_char     c1, c2;
     nxt_int_t  n;
 
-    while (len-- != 0) {
+    while (length-- != 0) {
         c1 = *s1++;
         c2 = *s2++;
 
@@ -176,12 +176,12 @@ nxt_strncasecmp(const u_char *s1, const u_char *s2, size_t len)
 
 
 nxt_int_t
-nxt_memcasecmp(const u_char *s1, const u_char *s2, size_t len)
+nxt_memcasecmp(const u_char *s1, const u_char *s2, size_t length)
 {
     u_char     c1, c2;
     nxt_int_t  n;
 
-    while (len-- != 0) {
+    while (length-- != 0) {
         c1 = *s1++;
         c2 = *s2++;
 
@@ -201,29 +201,29 @@ nxt_memcasecmp(const u_char *s1, const u_char *s2, size_t len)
 
 /*
  * nxt_memstrn() is intended for search of static substring "ss"
- * with known length "len" in string "s" limited by parameter "end".
+ * with known length "length" in string "s" limited by parameter "end".
  * Zeros are ignored in both strings.
  */
 
 u_char *
-nxt_memstrn(const u_char *s, const u_char *end, const char *ss, size_t len)
+nxt_memstrn(const u_char *s, const u_char *end, const char *ss, size_t length)
 {
     u_char  c1, c2, *s2;
 
     s2 = (u_char *) ss;
     c2 = *s2++;
-    len--;
+    length--;
 
     while (s < end) {
         c1 = *s++;
 
         if (c1 == c2) {
 
-            if (s + len > end) {
+            if (s + length > end) {
                 return NULL;
             }
 
-            if (nxt_memcmp(s, s2, len) == 0) {
+            if (nxt_memcmp(s, s2, length) == 0) {
                 return (u_char *) s - 1;
             }
         }
@@ -235,19 +235,20 @@ nxt_memstrn(const u_char *s, const u_char *end, const char *ss, size_t len)
 
 /*
  * nxt_strcasestrn() is intended for caseless search of static substring
- * "ss" with known length "len" in string "s" limited by parameter "end".
+ * "ss" with known length "length" in string "s" limited by parameter "end".
  * Zeros are ignored in both strings.
  */
 
 u_char *
-nxt_memcasestrn(const u_char *s, const u_char *end, const char *ss, size_t len)
+nxt_memcasestrn(const u_char *s, const u_char *end, const char *ss,
+    size_t length)
 {
     u_char  c1, c2, *s2;
 
     s2 = (u_char *) ss;
     c2 = *s2++;
     c2 = nxt_lowcase(c2);
-    len--;
+    length--;
 
     while (s < end) {
         c1 = *s++;
@@ -255,11 +256,11 @@ nxt_memcasestrn(const u_char *s, const u_char *end, const char *ss, size_t len)
 
         if (c1 == c2) {
 
-            if (s + len > end) {
+            if (s + length > end) {
                 return NULL;
             }
 
-            if (nxt_memcasecmp(s, s2, len) == 0) {
+            if (nxt_memcasecmp(s, s2, length) == 0) {
                 return (u_char *) s - 1;
             }
         }
@@ -271,26 +272,26 @@ nxt_memcasestrn(const u_char *s, const u_char *end, const char *ss, size_t len)
 
 /*
  * nxt_rstrstrn() is intended to search for static substring "ss"
- * with known length "len" in string "s" limited by parameter "end"
+ * with known length "length" in string "s" limited by parameter "end"
  * in reverse order.  Zeros are ignored in both strings.
  */
 
 u_char *
-nxt_rmemstrn(const u_char *s, const u_char *end, const char *ss, size_t len)
+nxt_rmemstrn(const u_char *s, const u_char *end, const char *ss, size_t length)
 {
     u_char        c1, c2;
     const u_char  *s1, *s2;
 
-    s1 = end - len;
+    s1 = end - length;
     s2 = (u_char *) ss;
     c2 = *s2++;
-    len--;
+    length--;
 
     while (s < s1) {
         c1 = *s1;
 
         if (c1 == c2) {
-            if (nxt_memcmp(s1 + 1, s2, len) == 0) {
+            if (nxt_memcmp(s1 + 1, s2, length) == 0) {
                 return (u_char *) s1;
             }
         }

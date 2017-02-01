@@ -13,12 +13,12 @@
  */
 
 nxt_int_t
-nxt_int_parse(const u_char *p, size_t len)
+nxt_int_parse(const u_char *p, size_t length)
 {
     u_char      c;
     nxt_uint_t  val;
 
-    if (nxt_fast_path(len != 0)) {
+    if (nxt_fast_path(length != 0)) {
 
         val = 0;
 
@@ -39,9 +39,9 @@ nxt_int_parse(const u_char *p, size_t len)
                 return -2;
             }
 
-            len--;
+            length--;
 
-        } while (len != 0);
+        } while (length != 0);
 
         return val;
     }
@@ -56,12 +56,12 @@ nxt_int_parse(const u_char *p, size_t len)
  */
 
 ssize_t
-nxt_size_t_parse(const u_char *p, size_t len)
+nxt_size_t_parse(const u_char *p, size_t length)
 {
     u_char  c;
     size_t  val;
 
-    if (nxt_fast_path(len != 0)) {
+    if (nxt_fast_path(length != 0)) {
 
         val = 0;
 
@@ -82,9 +82,9 @@ nxt_size_t_parse(const u_char *p, size_t len)
                 return -2;
             }
 
-            len--;
+            length--;
 
-        } while (len != 0);
+        } while (length != 0);
 
         return val;
     }
@@ -99,18 +99,18 @@ nxt_size_t_parse(const u_char *p, size_t len)
  */
 
 ssize_t
-nxt_size_parse(const u_char *p, size_t len)
+nxt_size_parse(const u_char *p, size_t length)
 {
     u_char      c, unit;
     size_t      val, max;
     nxt_uint_t  shift;
 
-    if (nxt_fast_path(len != 0)) {
+    if (nxt_fast_path(length != 0)) {
 
-        len--;
+        length--;
 
         /* Upper case. */
-        unit = p[len] & ~0x20;
+        unit = p[length] & ~0x20;
 
         switch (unit) {
 
@@ -132,11 +132,11 @@ nxt_size_parse(const u_char *p, size_t len)
         default:
             max = NXT_SIZE_T_MAX;
             shift = 0;
-            len++;
+            length++;
             break;
         }
 
-        if (nxt_fast_path(len != 0)) {
+        if (nxt_fast_path(length != 0)) {
 
             val = 0;
 
@@ -157,9 +157,9 @@ nxt_size_parse(const u_char *p, size_t len)
                     return -2;
                 }
 
-                len--;
+                length--;
 
-            } while (len != 0);
+            } while (length != 0);
 
             return val << shift;
         }
@@ -175,12 +175,12 @@ nxt_size_parse(const u_char *p, size_t len)
  */
 
 nxt_off_t
-nxt_off_t_parse(const u_char *p, size_t len)
+nxt_off_t_parse(const u_char *p, size_t length)
 {
     u_char      c;
     nxt_uoff_t  val;
 
-    if (nxt_fast_path(len != 0)) {
+    if (nxt_fast_path(length != 0)) {
 
         val = 0;
 
@@ -201,9 +201,9 @@ nxt_off_t_parse(const u_char *p, size_t len)
                 return -2;
             }
 
-            len--;
+            length--;
 
-        } while (len != 0);
+        } while (length != 0);
 
         return val;
     }
@@ -221,16 +221,16 @@ nxt_int_t
 nxt_str_int_parse(nxt_str_t *s)
 {
     u_char      c, *p;
-    size_t      len;
+    size_t      length;
     nxt_uint_t  val;
 
-    len = s->len;
+    length = s->length;
 
-    if (nxt_slow_path(len == 0)) {
+    if (nxt_slow_path(length == 0)) {
         return -1;
     }
 
-    p = s->data;
+    p = s->start;
     val = 0;
 
     do {
@@ -251,12 +251,12 @@ nxt_str_int_parse(nxt_str_t *s)
         }
 
         p++;
-        len--;
+        length--;
 
-    } while (len != 0);
+    } while (length != 0);
 
-    s->len = len;
-    s->data = p;
+    s->length = length;
+    s->start = p;
 
     return val;
 }

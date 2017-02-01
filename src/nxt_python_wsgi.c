@@ -605,8 +605,8 @@ nxt_python_get_environ(nxt_app_request_t *r)
         return NULL;
     }
 
-    value = PyString_FromStringAndSize((char *) r->header.version.data,
-                                       r->header.version.len);
+    value = PyString_FromStringAndSize((char *) r->header.version.start,
+                                       r->header.version.length);
 
     if (nxt_slow_path(value == NULL)) {
         nxt_log_error(NXT_LOG_ERR, r->log,
@@ -624,8 +624,8 @@ nxt_python_get_environ(nxt_app_request_t *r)
 
     Py_DECREF(value);
 
-    value = PyString_FromStringAndSize((char *) r->header.method.data,
-                                       r->header.method.len);
+    value = PyString_FromStringAndSize((char *) r->header.method.start,
+                                       r->header.method.length);
 
     if (nxt_slow_path(value == NULL)) {
         nxt_log_error(NXT_LOG_ERR, r->log,
@@ -643,8 +643,8 @@ nxt_python_get_environ(nxt_app_request_t *r)
 
     Py_DECREF(value);
 
-    value = PyString_FromStringAndSize((char *) r->header.path.data,
-                                       r->header.path.len);
+    value = PyString_FromStringAndSize((char *) r->header.path.start,
+                                       r->header.path.length);
 
     if (nxt_slow_path(value == NULL)) {
         nxt_log_error(NXT_LOG_ERR, r->log,
@@ -662,17 +662,17 @@ nxt_python_get_environ(nxt_app_request_t *r)
 
     Py_DECREF(value);
 
-    query = nxt_memchr(r->header.path.data, '?', r->header.path.len);
+    query = nxt_memchr(r->header.path.start, '?', r->header.path.length);
 
     if (query != NULL) {
-        value = PyString_FromStringAndSize((char *) r->header.path.data,
-                                           query - r->header.path.data);
+        value = PyString_FromStringAndSize((char *) r->header.path.start,
+                                           query - r->header.path.start);
 
         query++;
 
     } else {
-        value = PyString_FromStringAndSize((char *) r->header.path.data,
-                                           r->header.path.len);
+        value = PyString_FromStringAndSize((char *) r->header.path.start,
+                                           r->header.path.length);
     }
 
     if (nxt_slow_path(value == NULL)) {
@@ -691,8 +691,8 @@ nxt_python_get_environ(nxt_app_request_t *r)
 
     if (query != NULL) {
         value = PyString_FromStringAndSize((char *) query,
-                                           r->header.path.data
-                                           + r->header.path.len - query);
+                                           r->header.path.start
+                                           + r->header.path.length - query);
 
         if (nxt_slow_path(value == NULL)) {
             nxt_log_error(NXT_LOG_ERR, r->log,
@@ -714,7 +714,7 @@ nxt_python_get_environ(nxt_app_request_t *r)
     if (r->header.content_length != NULL) {
         str = r->header.content_length;
 
-        value = PyString_FromStringAndSize((char *) str->data, str->len);
+        value = PyString_FromStringAndSize((char *) str->start, str->length);
 
         if (nxt_slow_path(value == NULL)) {
             nxt_log_error(NXT_LOG_ERR, r->log,
@@ -736,7 +736,7 @@ nxt_python_get_environ(nxt_app_request_t *r)
     if (r->header.content_type != NULL) {
         str = r->header.content_type;
 
-        value = PyString_FromStringAndSize((char *) str->data, str->len);
+        value = PyString_FromStringAndSize((char *) str->start, str->length);
 
         if (nxt_slow_path(value == NULL)) {
             nxt_log_error(NXT_LOG_ERR, r->log,
@@ -761,9 +761,9 @@ nxt_python_get_environ(nxt_app_request_t *r)
         fld = &r->header.fields[i];
         p = key + sizeof(prefix);
 
-        for (n = 0; n < fld->name.len; n++, p++) {
+        for (n = 0; n < fld->name.length; n++, p++) {
 
-            ch = fld->name.data[n];
+            ch = fld->name.start[n];
 
             if (ch >= 'a' && ch <= 'z') {
                 *p = ch & ~0x20;
@@ -780,8 +780,8 @@ nxt_python_get_environ(nxt_app_request_t *r)
 
         *p = '\0';
 
-        value = PyString_FromStringAndSize((char *) fld->value.data,
-                                           fld->value.len);
+        value = PyString_FromStringAndSize((char *) fld->value.start,
+                                           fld->value.length);
 
         if (nxt_slow_path(PyDict_SetItemString(environ, (char *) key, value)
             != 0))
@@ -832,11 +832,11 @@ nxt_py_start_resp(PyObject *self, PyObject *args)
                             "the first argument is not a string");
     }
 
-    str.len = PyString_GET_SIZE(string);
-    str.data = (u_char *) PyString_AS_STRING(string);
+    str.length = PyString_GET_SIZE(string);
+    str.start = (u_char *) PyString_AS_STRING(string);
 
     p = nxt_cpymem(buf, resp, sizeof(resp) - 1);
-    p = nxt_cpymem(p, str.data, str.len);
+    p = nxt_cpymem(p, str.start, str.length);
 
     *p++ = '\r'; *p++ = '\n';
 
@@ -869,10 +869,10 @@ nxt_py_start_resp(PyObject *self, PyObject *args)
                                 "all response headers names must be strings");
         }
 
-        str.len = PyString_GET_SIZE(string);
-        str.data = (u_char *) PyString_AS_STRING(string);
+        str.length = PyString_GET_SIZE(string);
+        str.start = (u_char *) PyString_AS_STRING(string);
 
-        p = nxt_cpymem(p, str.data, str.len);
+        p = nxt_cpymem(p, str.start, str.length);
 
         *p++ = ':'; *p++ = ' ';
 
@@ -883,10 +883,10 @@ nxt_py_start_resp(PyObject *self, PyObject *args)
                                 "all response headers values must be strings");
         }
 
-        str.len = PyString_GET_SIZE(string);
-        str.data = (u_char *) PyString_AS_STRING(string);
+        str.length = PyString_GET_SIZE(string);
+        str.start = (u_char *) PyString_AS_STRING(string);
 
-        p = nxt_cpymem(p, str.data, str.len);
+        p = nxt_cpymem(p, str.start, str.length);
 
         *p++ = '\r'; *p++ = '\n';
     }

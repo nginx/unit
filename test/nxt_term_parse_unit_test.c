@@ -44,7 +44,7 @@ nxt_term_parse_unit_test(nxt_thread_t *thr)
     for (i = 0; i < nxt_nitems(terms); i++) {
 
         s = &terms[i].string;
-        val = nxt_term_parse(s->data, s->len, terms[i].is_sec);
+        val = nxt_term_parse(s->start, s->length, terms[i].is_sec);
 
         if (val != terms[i].value) {
             nxt_log_alert(thr->log,

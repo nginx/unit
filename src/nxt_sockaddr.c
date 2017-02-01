@@ -17,7 +17,7 @@ static nxt_int_t nxt_job_sockaddr_inet_parse(nxt_job_sockaddr_parse_t *jbs);
 
 
 nxt_sockaddr_t *
-nxt_sockaddr_alloc(nxt_mem_pool_t *mp, socklen_t len)
+nxt_sockaddr_alloc(nxt_mem_pool_t *mp, socklen_t length)
 {
     nxt_sockaddr_t  *sa;
 
@@ -28,10 +28,10 @@ nxt_sockaddr_alloc(nxt_mem_pool_t *mp, socklen_t len)
      * If 128-bit alignment will be required then nxt_mem_malloc() and
      * nxt_memzero() should be used instead.
      */
-    sa = nxt_mem_zalloc(mp, offsetof(nxt_sockaddr_t, u) + len);
+    sa = nxt_mem_zalloc(mp, offsetof(nxt_sockaddr_t, u) + length);
 
     if (nxt_fast_path(sa != NULL)) {
-        nxt_socklen_set(sa, len);
+        nxt_socklen_set(sa, length);
     }
 
     return sa;
@@ -40,13 +40,13 @@ nxt_sockaddr_alloc(nxt_mem_pool_t *mp, socklen_t len)
 
 nxt_sockaddr_t *
 nxt_sockaddr_create(nxt_mem_pool_t *mp, struct sockaddr *sockaddr,
-    socklen_t len)
+    socklen_t length)
 {
     size_t          size, copy;
     nxt_sockaddr_t  *sa;
 
-    size = len;
-    copy = len;
+    size = length;
+    copy = length;
 
 #if (NXT_HAVE_UNIX_DOMAIN)
 
@@ -110,7 +110,7 @@ nxt_sockaddr_create(nxt_mem_pool_t *mp, struct sockaddr *sockaddr,
 
 #if (NXT_HAVE_UNIX_DOMAIN && NXT_OPENBSD)
 
-        if (len == 0) {
+        if (length == 0) {
             sa->u.sockaddr.sa_family = AF_UNIX;
         }
 
@@ -124,15 +124,15 @@ nxt_sockaddr_create(nxt_mem_pool_t *mp, struct sockaddr *sockaddr,
 nxt_sockaddr_t *
 nxt_sockaddr_copy(nxt_mem_pool_t *mp, nxt_sockaddr_t *src)
 {
-    size_t          len;
+    size_t          length;
     nxt_sockaddr_t  *dst;
 
-    len = offsetof(nxt_sockaddr_t, u) + nxt_socklen(src);
+    length = offsetof(nxt_sockaddr_t, u) + nxt_socklen(src);
 
-    dst = nxt_mem_alloc(mp, len);
+    dst = nxt_mem_alloc(mp, length);
 
     if (nxt_fast_path(dst != NULL)) {
-        nxt_memcpy(dst, src, len);
+        nxt_memcpy(dst, src, length);
     }
 
     return dst;
@@ -164,21 +164,21 @@ nxt_getsockname(nxt_mem_pool_t *mp, nxt_socket_t s)
 nxt_int_t
 nxt_sockaddr_text(nxt_mem_pool_t *mp, nxt_sockaddr_t *sa, nxt_bool_t port)
 {
-    size_t  len;
+    size_t  length;
     u_char  *p;
     u_char  buf[NXT_SOCKADDR_STR_LEN + NXT_SOCKPORT_STR_LEN];
 
-    len = NXT_SOCKADDR_STR_LEN + NXT_SOCKPORT_STR_LEN;
+    length = NXT_SOCKADDR_STR_LEN + NXT_SOCKPORT_STR_LEN;
 
-    len = nxt_sockaddr_ntop(sa, buf, buf + len, port);
+    length = nxt_sockaddr_ntop(sa, buf, buf + length, port);
 
-    p = nxt_mem_alloc(mp, len);
+    p = nxt_mem_alloc(mp, length);
 
     if (nxt_fast_path(p != NULL)) {
 
         sa->text = p;
-        sa->text_len = len;
-        nxt_memcpy(p, buf, len);
+        sa->text_len = length;
+        nxt_memcpy(p, buf, length);
 
         return NXT_OK;
     }
@@ -262,12 +262,12 @@ nxt_sockaddr_cmp(nxt_sockaddr_t *sa1, nxt_sockaddr_t *sa2)
 
     case AF_UNIX:
         {
-            size_t  len;
+            size_t  length;
 
-            len = nxt_socklen(sa1) - offsetof(struct sockaddr_un, sun_path);
+            length = nxt_socklen(sa1) - offsetof(struct sockaddr_un, sun_path);
 
             if (nxt_memcmp(&sa1->u.sockaddr_un.sun_path,
-                           &sa2->u.sockaddr_un.sun_path, len)
+                           &sa2->u.sockaddr_un.sun_path, length)
                 != 0)
             {
                 return 0;
@@ -343,12 +343,13 @@ nxt_sockaddr_ntop(nxt_sockaddr_t *sa, u_char *buf, u_char *end, nxt_bool_t port)
         p = (u_char *) sa->u.sockaddr_un.sun_path;
 
         if (p[0] == '\0') {
-            int  len;
+            int  length;
 
             /* Linux abstract socket address has no trailing zero. */
 
-            len = nxt_socklen(sa) - offsetof(struct sockaddr_un, sun_path) - 1;
-            p = nxt_sprintf(buf, end, "unix:\\0%*s", len, p + 1);
+            length = nxt_socklen(sa)
+                     - offsetof(struct sockaddr_un, sun_path) - 1;
+            p = nxt_sprintf(buf, end, "unix:\\0%*s", length, p + 1);
 
         } else {
             p = nxt_sprintf(buf, end, "unix:%s", p);
@@ -462,19 +463,19 @@ void
 nxt_job_sockaddr_parse(nxt_job_sockaddr_parse_t *jbs)
 {
     u_char              *p;
-    size_t              len;
+    size_t              length;
     nxt_int_t           ret;
     nxt_work_handler_t  handler;
 
     nxt_job_set_name(&jbs->resolve.job, "job sockaddr parse");
 
-    len = jbs->addr.len;
-    p = jbs->addr.data;
+    length = jbs->addr.length;
+    p = jbs->addr.start;
 
-    if (len > 6 && nxt_memcmp(p, (u_char *) "unix:", 5) == 0) {
+    if (length > 6 && nxt_memcmp(p, (u_char *) "unix:", 5) == 0) {
         ret = nxt_job_sockaddr_unix_parse(jbs);
 
-    } else if (len != 0 && *p == '[') {
+    } else if (length != 0 && *p == '[') {
         ret = nxt_job_sockaddr_inet6_parse(jbs);
 
     } else {
@@ -503,7 +504,7 @@ static nxt_int_t
 nxt_job_sockaddr_unix_parse(nxt_job_sockaddr_parse_t *jbs)
 {
 #if (NXT_HAVE_UNIX_DOMAIN)
-    size_t          len, socklen;
+    size_t          length, socklen;
     u_char          *path;
     nxt_mem_pool_t  *mp;
     nxt_sockaddr_t  *sa;
@@ -521,17 +522,17 @@ nxt_job_sockaddr_unix_parse(nxt_job_sockaddr_parse_t *jbs)
                            - offsetof(struct sockaddr_un, sun_path) - 1;
 
     /* cutting "unix:" */
-    len = jbs->addr.len - 5;
-    path = jbs->addr.data + 5;
+    length = jbs->addr.length - 5;
+    path = jbs->addr.start + 5;
 
-    if (len > max_len) {
+    if (length > max_len) {
         nxt_thread_log_error(jbs->resolve.log_level,
                              "unix domain socket \"%V\" name is too long",
                              &jbs->addr);
         return NXT_ERROR;
     }
 
-    socklen = offsetof(struct sockaddr_un, sun_path) + len + 1;
+    socklen = offsetof(struct sockaddr_un, sun_path) + length + 1;
 
 #if (NXT_LINUX)
 
@@ -562,7 +563,7 @@ nxt_job_sockaddr_unix_parse(nxt_job_sockaddr_parse_t *jbs)
             jbs->resolve.sockaddrs[0] = sa;
 
             sa->u.sockaddr_un.sun_family = AF_UNIX;
-            nxt_memcpy(sa->u.sockaddr_un.sun_path, path, len);
+            nxt_memcpy(sa->u.sockaddr_un.sun_path, path, length);
 
             return NXT_OK;
         }
@@ -586,16 +587,16 @@ nxt_job_sockaddr_inet6_parse(nxt_job_sockaddr_parse_t *jbs)
 {
 #if (NXT_INET6)
     u_char           *p, *addr, *addr_end;
-    size_t           len;
+    size_t           length;
     nxt_int_t        port;
     nxt_mem_pool_t   *mp;
     nxt_sockaddr_t   *sa;
     struct in6_addr  *in6_addr;
 
-    len = jbs->addr.len - 1;
-    addr = jbs->addr.data + 1;
+    length = jbs->addr.length - 1;
+    addr = jbs->addr.start + 1;
 
-    addr_end = nxt_memchr(addr, ']', len);
+    addr_end = nxt_memchr(addr, ']', length);
 
     if (addr_end == NULL) {
         goto invalid_address;
@@ -625,16 +626,16 @@ nxt_job_sockaddr_inet6_parse(nxt_job_sockaddr_parse_t *jbs)
     }
 
     p = addr_end + 1;
-    len = (addr + len) - p;
+    length = (addr + length) - p;
 
-    if (len == 0) {
+    if (length == 0) {
         jbs->no_port = 1;
         port = jbs->resolve.port;
         goto found;
     }
 
     if (*p == ':') {
-        port = nxt_int_parse(p + 1, len - 1);
+        port = nxt_int_parse(p + 1, length - 1);
 
         if (port >= 1 && port <= 65535) {
             port = htons((in_port_t) port);
@@ -678,7 +679,7 @@ static nxt_int_t
 nxt_job_sockaddr_inet_parse(nxt_job_sockaddr_parse_t *jbs)
 {
     u_char          *p, *host;
-    size_t          len;
+    size_t          length;
     in_addr_t       addr;
     nxt_int_t       port;
     nxt_mem_pool_t  *mp;
@@ -686,16 +687,16 @@ nxt_job_sockaddr_inet_parse(nxt_job_sockaddr_parse_t *jbs)
 
     addr = INADDR_ANY;
 
-    len = jbs->addr.len;
-    host = jbs->addr.data;
+    length = jbs->addr.length;
+    host = jbs->addr.start;
 
-    p = nxt_memchr(host, ':', len);
+    p = nxt_memchr(host, ':', length);
 
     if (p == NULL) {
 
         /* single value port, address, or host name */
 
-        port = nxt_int_parse(host, len);
+        port = nxt_int_parse(host, length);
 
         if (port > 0) {
             if (port < 1 || port > 65535) {
@@ -709,11 +710,11 @@ nxt_job_sockaddr_inet_parse(nxt_job_sockaddr_parse_t *jbs)
         } else {
             jbs->no_port = 1;
 
-            addr = nxt_inet_addr(host, len);
+            addr = nxt_inet_addr(host, length);
 
             if (addr == INADDR_NONE) {
-                jbs->resolve.name.len = len;
-                jbs->resolve.name.data = host;
+                jbs->resolve.name.length = length;
+                jbs->resolve.name.start = host;
 
                 nxt_job_resolve(&jbs->resolve);
                 return NXT_AGAIN;
@@ -728,8 +729,8 @@ nxt_job_sockaddr_inet_parse(nxt_job_sockaddr_parse_t *jbs)
         /* x.x.x.x:XX or host:XX */
 
         p++;
-        len = (host + len) - p;
-        port = nxt_int_parse(p, len);
+        length = (host + length) - p;
+        port = nxt_int_parse(p, length);
 
         if (port < 1 || port > 65535) {
             goto invalid_port;
@@ -737,14 +738,14 @@ nxt_job_sockaddr_inet_parse(nxt_job_sockaddr_parse_t *jbs)
 
         port = htons((in_port_t) port);
 
-        len = (p - 1) - host;
+        length = (p - 1) - host;
 
-        if (len != 1 || host[0] != '*') {
-            addr = nxt_inet_addr(host, len);
+        if (length != 1 || host[0] != '*') {
+            addr = nxt_inet_addr(host, length);
 
             if (addr == INADDR_NONE) {
-                jbs->resolve.name.len = len;
-                jbs->resolve.name.data = host;
+                jbs->resolve.name.length = length;
+                jbs->resolve.name.start = host;
                 jbs->resolve.port = (in_port_t) port;
 
                 nxt_job_resolve(&jbs->resolve);
@@ -789,7 +790,7 @@ invalid_port:
 
 
 in_addr_t
-nxt_inet_addr(u_char *buf, size_t len)
+nxt_inet_addr(u_char *buf, size_t length)
 {
     u_char      c, *end;
     in_addr_t   addr;
@@ -799,7 +800,7 @@ nxt_inet_addr(u_char *buf, size_t len)
     octet = 0;
     dots = 0;
 
-    end = buf + len;
+    end = buf + length;
 
     while (buf < end) {
 
@@ -835,16 +836,16 @@ nxt_inet_addr(u_char *buf, size_t len)
 #if (NXT_INET6)
 
 nxt_int_t
-nxt_inet6_addr(struct in6_addr *in6_addr, u_char *buf, size_t len)
+nxt_inet6_addr(struct in6_addr *in6_addr, u_char *buf, size_t length)
 {
     u_char      c, *addr, *zero_start, *ipv4, *dst, *src, *end;
     nxt_uint_t  digit, group, nibbles, groups_left;
 
-    if (len == 0) {
+    if (length == 0) {
         return NXT_ERROR;
     }
 
-    end = buf + len;
+    end = buf + length;
 
     if (buf[0] == ':') {
         buf++;

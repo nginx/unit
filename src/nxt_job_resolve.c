@@ -12,7 +12,7 @@ nxt_job_resolve(nxt_job_resolve_t *jbr)
 {
     int                 err;
     u_char              *host;
-    size_t              len;
+    size_t              length;
     nxt_uint_t          n;
     nxt_mem_pool_t      *mp;
     nxt_sockaddr_t      *sa;
@@ -25,19 +25,19 @@ nxt_job_resolve(nxt_job_resolve_t *jbr)
     handler = jbr->error_handler;
     res = NULL;
 
-    len = jbr->name.len + 1;
+    length = jbr->name.length + 1;
 
-    if (nxt_fast_path(len <= NXT_BUFSIZE)) {
+    if (nxt_fast_path(length <= NXT_BUFSIZE)) {
         host = buf;
 
     } else {
-        host = nxt_mem_alloc(jbr->job.mem_pool, len);
+        host = nxt_mem_alloc(jbr->job.mem_pool, length);
         if (nxt_slow_path(host == NULL)) {
             goto fail;
         }
     }
 
-    nxt_cpystrn(host, jbr->name.data, len);
+    nxt_cpystrn(host, jbr->name.start, length);
 
     nxt_memzero(&hint, sizeof(struct addrinfo));
     hint.ai_socktype = SOCK_STREAM;

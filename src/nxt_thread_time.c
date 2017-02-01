@@ -102,7 +102,7 @@ nxt_thread_time_free(nxt_thread_t *thr)
         thr->time.no_cache = 1;
 
         for (i = 0; i < thr->time.nstrings; i++) {
-            nxt_free(tsc[i].string.data);
+            nxt_free(tsc[i].string.start);
         }
 
         nxt_free(tsc);
@@ -353,7 +353,7 @@ nxt_thread_time_string(nxt_thread_t *thr, nxt_time_string_t *ts, u_char *buf)
 
         }
 
-        p = tsc->string.data;
+        p = tsc->string.start;
 
         if (nxt_slow_path(p == NULL)) {
 
@@ -365,21 +365,21 @@ nxt_thread_time_string(nxt_thread_t *thr, nxt_time_string_t *ts, u_char *buf)
                 return buf;
             }
 
-            tsc->string.data = p;
+            tsc->string.start = p;
         }
 
         p = ts->handler(p, &thr->time.now.realtime, tm, ts->size, ts->format);
 
-        tsc->string.len = p - tsc->string.data;
+        tsc->string.length = p - tsc->string.start;
 
-        if (nxt_slow_path(tsc->string.len == 0)) {
+        if (nxt_slow_path(tsc->string.length == 0)) {
             return buf;
         }
 
         tsc->last = s;
     }
 
-    return nxt_cpymem(buf, tsc->string.data, tsc->string.len);
+    return nxt_cpymem(buf, tsc->string.start, tsc->string.length);
 }
 
 
@@ -441,7 +441,7 @@ nxt_thread_time_string_cache(nxt_thread_t *thr, nxt_atomic_uint_t slot)
 
     if (nxt_fast_path(slot < thr->time.nstrings)) {
         tsc = &thr->time.strings[slot];
-        nxt_prefetch(tsc->string.data);
+        nxt_prefetch(tsc->string.start);
         return tsc;
     }
 
@@ -458,7 +458,7 @@ nxt_thread_time_string_cache(nxt_thread_t *thr, nxt_atomic_uint_t slot)
 
     for (i = thr->time.nstrings; i < nstrings; i++) {
         tsc[i].last = -1;
-        tsc[i].string.data = NULL;
+        tsc[i].string.start = NULL;
     }
 
     thr->time.strings = tsc;
