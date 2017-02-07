@@ -31,7 +31,7 @@ typedef void (*nxt_port_handler_t)(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 
 typedef struct {
     /* Must be the first field. */
-    nxt_event_fd_t      socket;
+    nxt_fd_event_t      socket;
 
     nxt_task_t          task;
 

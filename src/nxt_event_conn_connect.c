@@ -79,7 +79,7 @@ nxt_event_conn_io_connect(nxt_task_t *task, void *obj, void *data)
 
         nxt_event_conn_timer(engine, c, state, &c->write_timer);
 
-        nxt_event_fd_enable_write(engine, &c->socket);
+        nxt_fd_event_enable_write(engine, &c->socket);
         return;
 
     case NXT_DECLINED:
@@ -151,7 +151,7 @@ nxt_event_conn_connect_test(nxt_task_t *task, void *obj, void *data)
 
     nxt_debug(task, "event connect test fd:%d", c->socket.fd);
 
-    nxt_event_fd_block_write(task->thread->engine, &c->socket);
+    nxt_fd_event_block_write(task->thread->engine, &c->socket);
 
     if (c->write_state->autoreset_timer) {
         nxt_timer_disable(task->thread->engine, &c->write_timer);

@@ -26,7 +26,7 @@ static nxt_int_t nxt_signal_action(int signo, void (*handler)(int));
 
 
 nxt_event_signals_t *
-nxt_event_engine_signals(const nxt_event_sig_t *sigev)
+nxt_event_engine_signals(const nxt_sig_event_t *sigev)
 {
     nxt_event_signals_t  *signals;
 
@@ -115,7 +115,7 @@ nxt_int_t
 nxt_signal_thread_start(nxt_event_engine_t *engine)
 {
     nxt_thread_link_t      *link;
-    const nxt_event_sig_t  *sigev;
+    const nxt_sig_event_t  *sigev;
 
     if (engine->signals->process == nxt_pid) {
         return NXT_OK;
@@ -202,7 +202,7 @@ nxt_signal_thread_stop(nxt_event_engine_t *engine)
 nxt_int_t
 nxt_signal_handlers_start(nxt_event_engine_t *engine)
 {
-    const nxt_event_sig_t  *sigev;
+    const nxt_sig_event_t  *sigev;
 
     for (sigev = engine->signals->sigev; sigev->signo != 0; sigev++) {
         if (nxt_signal_action(sigev->signo, nxt_signal_handler) != NXT_OK) {

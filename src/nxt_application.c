@@ -516,7 +516,7 @@ nxt_app_conn_update(nxt_thread_t *thr, nxt_event_conn_t *c, nxt_log_t *log)
     c->task.log = &c->log;
     c->task.ident = c->log.ident;
 
-    c->io = thr->engine->event->io;
+    c->io = thr->engine->event.io;
     c->max_chunk = NXT_INT32_T_MAX;
     c->sendfile = NXT_CONN_SENDFILE_UNSET;
 
@@ -831,10 +831,27 @@ nxt_app_delivery_ready(nxt_task_t *task, void *obj, void *data)
 }
 
 
+static const nxt_event_conn_state_t  nxt_app_delivery_close_state
+    nxt_aligned(64) =
+{
+    NXT_EVENT_NO_BUF_PROCESS,
+    NXT_EVENT_TIMER_NO_AUTORESET,
+
+    nxt_app_close_request,
+    NULL,
+    NULL,
+
+    NULL,
+    NULL,
+    0,
+};
+
+
 static void
 nxt_app_delivery_completion(nxt_task_t *task, void *obj, void *data)
 {
     nxt_buf_t          *b, *bn, *free;
+    nxt_event_conn_t   *c;
     nxt_app_request_t  *r;
 
     nxt_debug(task, "app delivery completion");
@@ -857,8 +874,10 @@ nxt_app_delivery_completion(nxt_task_t *task, void *obj, void *data)
         if (nxt_buf_is_last(b)) {
             r = (nxt_app_request_t *) b->parent;
 
-            nxt_work_queue_add(&task->thread->engine->final_work_queue,
-                               nxt_app_close_request, task, r, NULL);
+            c = r->event_conn;
+            c->write_state = &nxt_app_delivery_close_state;
+
+            nxt_event_conn_close(task->thread->engine, c);
         }
     }
 
@@ -940,12 +959,11 @@ nxt_app_close_request(nxt_task_t *task, void *obj, void *data)
     nxt_event_conn_t   *c;
     nxt_app_request_t  *r;
 
-    r = obj;
-    c = r->event_conn;
+    c = obj;
 
     nxt_debug(task, "app close connection");
 
-    nxt_event_conn_close(task, c);
+    r = c->socket.data;
 
     nxt_mem_pool_destroy(c->mem_pool);
     nxt_mem_pool_destroy(r->mem_pool);

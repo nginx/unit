@@ -31,7 +31,7 @@ static nxt_buf_t *nxt_event_conn_job_sendfile_completion(nxt_task_t *task,
 void
 nxt_event_conn_job_sendfile(nxt_task_t *task, nxt_event_conn_t *c)
 {
-    nxt_event_fd_disable(task->thread->engine, &c->socket);
+    nxt_fd_event_disable(task->thread->engine, &c->socket);
 
     /* A work item data is not used in nxt_event_conn_job_sendfile_start(). */
     nxt_event_conn_job_sendfile_start(task, c, NULL);
@@ -215,7 +215,7 @@ nxt_event_conn_job_sendfile_return(nxt_task_t *task, void *obj, void *data)
         nxt_event_conn_timer(task->thread->engine, c, c->write_state,
                              &c->write_timer);
 
-        nxt_event_fd_oneshot_write(task->thread->engine, &c->socket);
+        nxt_fd_event_oneshot_write(task->thread->engine, &c->socket);
     }
 
     if (sent != 0) {

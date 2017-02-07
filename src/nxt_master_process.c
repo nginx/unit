@@ -37,7 +37,7 @@ static void nxt_master_process_sigchld_handler(nxt_task_t *task, void *obj,
 static void nxt_master_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid);
 
 
-const nxt_event_sig_t  nxt_master_process_signals[] = {
+const nxt_sig_event_t  nxt_master_process_signals[] = {
     nxt_event_signal(SIGHUP,  nxt_master_process_sighup_handler),
     nxt_event_signal(SIGINT,  nxt_master_process_sigterm_handler),
     nxt_event_signal(SIGQUIT, nxt_master_process_sigquit_handler),

@@ -606,25 +606,25 @@ nxt_openssl_conn_test_error(nxt_task_t *task, nxt_event_conn_t *c, int ret,
     switch (ssltls->ssl_error) {
 
     case SSL_ERROR_WANT_READ:
-        nxt_event_fd_block_write(task->thread->engine, &c->socket);
+        nxt_fd_event_block_write(task->thread->engine, &c->socket);
 
         c->socket.read_ready = 0;
         c->socket.read_handler = handler;
 
-        if (nxt_event_fd_is_disabled(c->socket.read)) {
-            nxt_event_fd_enable_read(task->thread->engine, &c->socket);
+        if (nxt_fd_event_is_disabled(c->socket.read)) {
+            nxt_fd_event_enable_read(task->thread->engine, &c->socket);
         }
 
         return NXT_AGAIN;
 
     case SSL_ERROR_WANT_WRITE:
-        nxt_event_fd_block_read(task->thread->engine, &c->socket);
+        nxt_fd_event_block_read(task->thread->engine, &c->socket);
 
         c->socket.write_ready = 0;
         c->socket.write_handler = handler;
 
-        if (nxt_event_fd_is_disabled(c->socket.write)) {
-            nxt_event_fd_enable_write(task->thread->engine, &c->socket);
+        if (nxt_fd_event_is_disabled(c->socket.write)) {
+            nxt_fd_event_enable_write(task->thread->engine, &c->socket);
         }
 
         return NXT_AGAIN;

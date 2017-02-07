@@ -71,7 +71,7 @@ nxt_socketpair_close(nxt_socket_t *pair)
 
 
 ssize_t
-nxt_socketpair_send(nxt_event_fd_t *ev, nxt_fd_t fd, nxt_iobuf_t *iob,
+nxt_socketpair_send(nxt_fd_event_t *ev, nxt_fd_t fd, nxt_iobuf_t *iob,
     nxt_uint_t niob)
 {
     ssize_t    n;
@@ -113,7 +113,7 @@ nxt_socketpair_send(nxt_event_fd_t *ev, nxt_fd_t fd, nxt_iobuf_t *iob,
 
 
 ssize_t
-nxt_socketpair_recv(nxt_event_fd_t *ev, nxt_fd_t *fd, nxt_iobuf_t *iob,
+nxt_socketpair_recv(nxt_fd_event_t *ev, nxt_fd_t *fd, nxt_iobuf_t *iob,
     nxt_uint_t niob)
 {
     ssize_t    n;

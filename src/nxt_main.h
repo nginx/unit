@@ -43,7 +43,7 @@ typedef struct nxt_log_s             nxt_log_t;
 
 /* TODO: remove unused */
 
-typedef struct nxt_event_fd_s           nxt_event_fd_t;
+typedef struct nxt_fd_event_s           nxt_fd_event_t;
 typedef struct nxt_sockaddr_s           nxt_sockaddr_t;
 
 
@@ -118,7 +118,7 @@ nxt_thread_extern_data(nxt_thread_t, nxt_thread_context);
 
 #include <nxt_thread_log.h>
 
-#include <nxt_event_fd.h>
+#include <nxt_fd_event.h>
 
 #include <nxt_port_socket.h>
 #if (NXT_THREADS)
@@ -131,10 +131,7 @@ typedef void (*nxt_event_conn_handler_t)(nxt_thread_t *thr,
 #include <nxt_listen_socket.h>
 
 #include <nxt_event_conn.h>
-
 #include <nxt_event_file.h>
-
-#include <nxt_event_set.h>
 #include <nxt_event_engine.h>
 
 #include <nxt_job.h>

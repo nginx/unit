@@ -297,8 +297,8 @@ nxt_cycle_systemd_listen_sockets(nxt_thread_t *thr, nxt_cycle_t *cycle)
 static nxt_int_t
 nxt_cycle_event_engines(nxt_thread_t *thr, nxt_cycle_t *cycle)
 {
-    nxt_event_engine_t         *engine, **e, **engines;
-    const nxt_event_set_ops_t  *event_set;
+    nxt_event_engine_t           *engine, **e, **engines;
+    const nxt_event_interface_t  *interface;
 
     cycle->engines = nxt_array_create(cycle->mem_pool, 1,
                                       sizeof(nxt_event_engine_t *));
@@ -318,14 +318,14 @@ nxt_cycle_event_engines(nxt_thread_t *thr, nxt_cycle_t *cycle)
         *e = engines[0];
 
     } else {
-        event_set = nxt_service_get(cycle->services, "engine", NULL);
+        interface = nxt_service_get(cycle->services, "engine", NULL);
 
-        if (nxt_slow_path(event_set == NULL)) {
+        if (nxt_slow_path(interface == NULL)) {
             /* TODO: log */
             return NXT_ERROR;
         }
 
-        engine = nxt_event_engine_create(thr, event_set,
+        engine = nxt_event_engine_create(thr, interface,
                                          nxt_master_process_signals, 0, 0);
 
         if (nxt_slow_path(engine == NULL)) {
@@ -464,9 +464,9 @@ fail:
 static void
 nxt_cycle_initial_start(nxt_task_t *task, nxt_cycle_t *cycle)
 {
-    nxt_int_t                  ret;
-    nxt_thread_t               *thr;
-    const nxt_event_set_ops_t  *event_set;
+    nxt_int_t                    ret;
+    nxt_thread_t                 *thr;
+    const nxt_event_interface_t  *interface;
 
     thr = task->thread;
 
@@ -482,12 +482,12 @@ nxt_cycle_initial_start(nxt_task_t *task, nxt_cycle_t *cycle)
          * 1) inherited kqueue descriptor is invalid,
          * 2) the signal thread is not inherited.
          */
-        event_set = nxt_service_get(cycle->services, "engine", cycle->engine);
-        if (event_set == NULL) {
+        interface = nxt_service_get(cycle->services, "engine", cycle->engine);
+        if (interface == NULL) {
             goto fail;
         }
 
-        ret = nxt_event_engine_change(thr, task, event_set, cycle->batch);
+        ret = nxt_event_engine_change(thr, task, interface, cycle->batch);
         if (ret != NXT_OK) {
             goto fail;
         }
@@ -608,7 +608,7 @@ nxt_cycle_close_idle_connections(nxt_thread_t *thr, nxt_task_t *task)
 
         if (!c->socket.read_ready) {
             nxt_queue_remove(link);
-            nxt_event_conn_close(task, c);
+            nxt_event_conn_close(thr->engine, c);
         }
     }
 }
@@ -635,7 +635,7 @@ nxt_cycle_exit(nxt_task_t *task, void *obj, void *data)
         nxt_cycle_pid_file_delete(cycle);
     }
 
-    if (!task->thread->engine->event->signal_support) {
+    if (!task->thread->engine->event.signal_support) {
         nxt_event_engine_signals_stop(task->thread->engine);
     }
 
@@ -650,17 +650,17 @@ static nxt_int_t
 nxt_cycle_event_engine_change(nxt_thread_t *thr, nxt_task_t *task,
     nxt_cycle_t *cycle)
 {
-    const nxt_event_set_ops_t  *event_set;
+    const nxt_event_interface_t  *interface;
 
     if (thr->engine->batch == cycle->batch
-        && nxt_strcmp(thr->engine->event->name, cycle->engine) == 0)
+        && nxt_strcmp(thr->engine->event.name, cycle->engine) == 0)
     {
         return NXT_OK;
     }
 
-    event_set = nxt_service_get(cycle->services, "engine", cycle->engine);
-    if (event_set != NULL) {
-        return nxt_event_engine_change(thr, task, event_set, cycle->batch);
+    interface = nxt_service_get(cycle->services, "engine", cycle->engine);
+    if (interface != NULL) {
+        return nxt_event_engine_change(thr, task, interface, cycle->batch);
     }
 
     return NXT_ERROR;
@@ -789,11 +789,11 @@ nxt_cycle_thread_pool_exit(nxt_task_t *task, void *obj, void *data)
 static nxt_int_t
 nxt_cycle_conf_init(nxt_thread_t *thr, nxt_cycle_t *cycle)
 {
-    nxt_int_t                  ret;
-    nxt_str_t                  *prefix;
-    nxt_file_t                 *file;
-    nxt_file_name_str_t        file_name;
-    const nxt_event_set_ops_t  *event_set;
+    nxt_int_t                    ret;
+    nxt_str_t                    *prefix;
+    nxt_file_t                   *file;
+    nxt_file_name_str_t          file_name;
+    const nxt_event_interface_t  *interface;
 
     cycle->daemon = 1;
     cycle->master_process = 1;
@@ -815,12 +815,12 @@ nxt_cycle_conf_init(nxt_thread_t *thr, nxt_cycle_t *cycle)
 
     /* An engine's parameters. */
 
-    event_set = nxt_service_get(cycle->services, "engine", cycle->engine);
-    if (event_set == NULL) {
+    interface = nxt_service_get(cycle->services, "engine", cycle->engine);
+    if (interface == NULL) {
         return NXT_ERROR;
     }
 
-    cycle->engine = event_set->name;
+    cycle->engine = interface->name;
 
     prefix = nxt_file_name_is_absolute(cycle->pid) ? NULL : cycle->prefix;
 

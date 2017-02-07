@@ -219,7 +219,7 @@ nxt_port_write_handler(nxt_task_t *task, void *obj, void *data)
         link = nxt_queue_first(&port->messages);
 
         if (link == nxt_queue_tail(&port->messages)) {
-            nxt_event_fd_block_write(task->thread->engine, &port->socket);
+            nxt_fd_event_block_write(task->thread->engine, &port->socket);
             return;
         }
 
@@ -282,8 +282,8 @@ nxt_port_write_handler(nxt_task_t *task, void *obj, void *data)
 
     } while (port->socket.write_ready);
 
-    if (nxt_event_fd_is_disabled(port->socket.write)) {
-        nxt_event_fd_enable_write(task->thread->engine, &port->socket);
+    if (nxt_fd_event_is_disabled(port->socket.write)) {
+        nxt_fd_event_enable_write(task->thread->engine, &port->socket);
     }
 
     return;
@@ -311,7 +311,7 @@ nxt_port_read_enable(nxt_task_t *task, nxt_port_t *port)
     port->socket.read_handler = nxt_port_read_handler;
     port->socket.error_handler = nxt_port_error_handler;
 
-    nxt_event_fd_enable_read(task->thread->engine, &port->socket);
+    nxt_fd_event_enable_read(task->thread->engine, &port->socket);
 }
 
 
@@ -371,7 +371,7 @@ nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
         if (n == NXT_AGAIN) {
             nxt_port_buf_free(port, b);
 
-            nxt_event_fd_enable_read(task->thread->engine, &port->socket);
+            nxt_fd_event_enable_read(task->thread->engine, &port->socket);
             return;
         }
 

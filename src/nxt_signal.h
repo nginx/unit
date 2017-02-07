@@ -4,17 +4,15 @@
  * Copyright (C) NGINX, Inc.
  */
 
-#ifndef _NXT_UNIX_SIGNAL_H_INCLUDED_
-#define _NXT_UNIX_SIGNAL_H_INCLUDED_
+#ifndef _NXT_SIGNAL_H_INCLUDED_
+#define _NXT_SIGNAL_H_INCLUDED_
 
 
-typedef struct nxt_event_sig_s  nxt_event_sig_t;
-
-struct nxt_event_sig_s {
+typedef struct {
     int                         signo;
     nxt_work_handler_t          handler;
     const char                  *name;
-};
+} nxt_sig_event_t;
 
 #define nxt_event_signal(sig, handler)                                        \
     { sig, handler, #sig }
@@ -27,7 +25,7 @@ typedef struct {
     /* Used by epoll and eventport. */
     nxt_work_handler_t          handler;
 
-    const nxt_event_sig_t       *sigev;
+    const nxt_sig_event_t       *sigev;
     sigset_t                    sigmask;
 
 #if (NXT_THREADS)
@@ -38,7 +36,7 @@ typedef struct {
 } nxt_event_signals_t;
 
 
-nxt_event_signals_t *nxt_event_engine_signals(const nxt_event_sig_t *sigev);
+nxt_event_signals_t *nxt_event_engine_signals(const nxt_sig_event_t *sigev);
 
 #if (NXT_THREADS)
 
@@ -71,4 +69,4 @@ NXT_EXPORT void nxt_signal_handlers_stop(nxt_event_engine_t *engine);
 #endif
 
 
-#endif /* _NXT_UNIX_SIGNAL_H_INCLUDED_ */
+#endif /* _NXT_SIGNAL_H_INCLUDED_ */

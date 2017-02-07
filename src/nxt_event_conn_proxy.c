@@ -928,14 +928,10 @@ nxt_event_conn_proxy_shutdown(nxt_task_t *task, nxt_event_conn_proxy_t *p,
     }
 
     if (sink->socket.error != 0 || sink->socket.closed) {
-        /*
-         * A socket is already closed or half-closed by
-         * remote side so the shutdown() syscall is surplus
-         * since the close() syscall also sends FIN.
-         */
-        nxt_event_conn_close(task, sink);
+        nxt_event_conn_close(task->thread->engine, sink);
 
     } else {
+        sink->socket.shutdown = 1;
         nxt_socket_shutdown(sink->socket.fd, SHUT_WR);
     }
 
@@ -984,7 +980,7 @@ nxt_event_conn_proxy_write_error(nxt_task_t *task, void *obj, void *data)
 
     /* Block the direction source. */
     source = (sink == p->client) ? p->peer : p->client;
-    nxt_event_fd_block_read(task->thread->engine, &source->socket);
+    nxt_fd_event_block_read(task->thread->engine, &source->socket);
 
     if (source->write == NULL) {
         /*
@@ -999,19 +995,23 @@ nxt_event_conn_proxy_write_error(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_event_conn_proxy_complete(nxt_task_t *task, nxt_event_conn_proxy_t *p)
 {
+    nxt_event_engine_t  *engine;
+
+    engine = task->thread->engine;
+
     nxt_debug(p->client->socket.task, "event conn proxy complete %d:%d",
               p->client->socket.fd, p->peer->socket.fd);
 
     if (p->client->socket.fd != -1) {
-        nxt_event_conn_close(task, p->client);
+        nxt_event_conn_close(engine, p->client);
     }
 
     if (p->peer->socket.fd != -1) {
-        nxt_event_conn_close(task, p->peer);
+        nxt_event_conn_close(engine, p->peer);
 
     } else if (p->delayed) {
         nxt_queue_remove(&p->peer->link);
-        nxt_timer_delete(task->thread->engine, &p->peer->write_timer);
+        nxt_timer_delete(engine, &p->peer->write_timer);
     }
 
     nxt_mem_free(p->client->mem_pool, p->client_buffer);

@@ -10,34 +10,34 @@
 static const nxt_service_t  nxt_services[] = {
 
 #if (NXT_HAVE_KQUEUE)
-    { "engine", "kqueue", &nxt_kqueue_event_set },
+    { "engine", "kqueue", &nxt_kqueue_engine },
 #endif
 
 #if (NXT_HAVE_EPOLL_EDGE)
-    { "engine", "epoll", &nxt_epoll_edge_event_set },
-    { "engine", "epoll_edge", &nxt_epoll_edge_event_set },
-    { "engine", "epoll_level", &nxt_epoll_level_event_set },
+    { "engine", "epoll", &nxt_epoll_edge_engine },
+    { "engine", "epoll_edge", &nxt_epoll_edge_engine },
+    { "engine", "epoll_level", &nxt_epoll_level_engine },
 
 #elif (NXT_HAVE_EPOLL)
-    { "engine", "epoll", &nxt_epoll_level_event_set },
-    { "engine", "epoll_level", &nxt_epoll_level_event_set },
+    { "engine", "epoll", &nxt_epoll_level_engine },
+    { "engine", "epoll_level", &nxt_epoll_level_engine },
 #endif
 
 #if (NXT_HAVE_EVENTPORT)
-    { "engine", "eventport", &nxt_eventport_event_set },
+    { "engine", "eventport", &nxt_eventport_engine },
 #endif
 
 #if (NXT_HAVE_DEVPOLL)
-    { "engine", "devpoll", &nxt_devpoll_event_set },
-    { "engine", "/dev/poll", &nxt_devpoll_event_set },
+    { "engine", "devpoll", &nxt_devpoll_engine },
+    { "engine", "/dev/poll", &nxt_devpoll_engine },
 #endif
 
 #if (NXT_HAVE_POLLSET)
-    { "engine", "pollset", &nxt_pollset_event_set },
+    { "engine", "pollset", &nxt_pollset_engine },
 #endif
 
-    { "engine", "poll", &nxt_poll_event_set },
-    { "engine", "select", &nxt_select_event_set },
+    { "engine", "poll", &nxt_poll_engine },
+    { "engine", "select", &nxt_select_engine },
 
 #if (NXT_HAVE_OPENSSL)
     { "SSL/TLS", "OpenSSL", &nxt_openssl_lib },

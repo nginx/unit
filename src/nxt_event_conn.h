@@ -102,10 +102,10 @@ typedef struct {
 
 struct nxt_event_conn_s {
     /*
-     * Must be the first field, since nxt_event_fd_t
+     * Must be the first field, since nxt_fd_event_t
      * and nxt_event_conn_t are used interchangeably.
      */
-    nxt_event_fd_t                socket;
+    nxt_fd_event_t                socket;
 
     nxt_buf_t                     *read;
     const nxt_event_conn_state_t  *read_state;
@@ -170,7 +170,7 @@ struct nxt_event_conn_s {
  */
 typedef struct {
     /* Must be the first field. */
-    nxt_event_fd_t                socket;
+    nxt_fd_event_t                socket;
 
     nxt_task_t                    task;
 
@@ -254,7 +254,8 @@ nxt_event_conn_tcp_nodelay_on(c)                                              \
 NXT_EXPORT nxt_event_conn_t *nxt_event_conn_create(nxt_mem_pool_t *mp,
     nxt_log_t *log);
 void nxt_event_conn_io_shutdown(nxt_task_t *task, void *obj, void *data);
-NXT_EXPORT void nxt_event_conn_close(nxt_task_t *task, nxt_event_conn_t *c);
+NXT_EXPORT void nxt_event_conn_close(nxt_event_engine_t *engine,
+    nxt_event_conn_t *c);
 
 NXT_EXPORT void nxt_event_conn_timer(nxt_event_engine_t *engine,
     nxt_event_conn_t *c, const nxt_event_conn_state_t *state, nxt_timer_t *tev);
@@ -292,6 +293,9 @@ ssize_t nxt_event_conn_io_write_chunk(nxt_event_conn_t *c, nxt_buf_t *b,
 ssize_t nxt_event_conn_io_writev(nxt_event_conn_t *c, nxt_iobuf_t *iob,
     nxt_uint_t niob);
 ssize_t nxt_event_conn_io_send(nxt_event_conn_t *c, void *buf, size_t size);
+
+NXT_EXPORT void nxt_event_conn_io_close(nxt_task_t *task, void *obj,
+    void *data);
 
 NXT_EXPORT void nxt_event_conn_job_sendfile(nxt_task_t *task,
     nxt_event_conn_t *c);

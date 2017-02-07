@@ -76,7 +76,7 @@ nxt_event_conn_io_write(nxt_task_t *task, void *obj, void *data)
         }
 
         if (b == NULL) {
-            nxt_event_fd_block_write(engine, &c->socket);
+            nxt_fd_event_block_write(engine, &c->socket);
             break;
         }
 
@@ -129,7 +129,7 @@ nxt_event_conn_io_write(nxt_task_t *task, void *obj, void *data)
     }
 
     if (nxt_slow_path(ret == NXT_ERROR)) {
-        nxt_event_fd_block_write(engine, &c->socket);
+        nxt_fd_event_block_write(engine, &c->socket);
 
         nxt_event_conn_io_handle(task->thread, c->write_work_queue,
                                  c->write_state->error_handler, task, c, data);
@@ -201,7 +201,7 @@ nxt_event_conn_write_delayed(nxt_event_engine_t *engine, nxt_event_conn_t *c,
         if (timer != 0) {
             c->delayed = 1;
 
-            nxt_event_fd_block_write(engine, &c->socket);
+            nxt_fd_event_block_write(engine, &c->socket);
 
             c->write_timer.handler = nxt_event_conn_write_timer_handler;
             nxt_timer_add(engine, &c->write_timer, timer);
@@ -310,9 +310,9 @@ nxt_event_conn_io_write_chunk(nxt_event_conn_t *c, nxt_buf_t *b, size_t limit)
     ret = c->io->sendbuf(c, b, limit);
 
     if ((ret == NXT_AGAIN || !c->socket.write_ready)
-        && nxt_event_fd_is_disabled(c->socket.write))
+        && nxt_fd_event_is_disabled(c->socket.write))
     {
-        nxt_event_fd_enable_write(c->socket.task->thread->engine, &c->socket);
+        nxt_fd_event_enable_write(c->socket.task->thread->engine, &c->socket);
     }
 
     return ret;

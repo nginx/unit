@@ -55,10 +55,9 @@ NXT_LIB_DEPS=" \
     src/nxt_service.h \
     src/nxt_fiber.h \
     src/nxt_log_moderation.h \
-    src/nxt_event_set.h \
     src/nxt_event_engine.h \
     src/nxt_timer.h \
-    src/nxt_event_fd.h \
+    src/nxt_fd_event.h \
     src/nxt_event_conn.h \
     src/nxt_event_file.h \
     src/nxt_job.h \
@@ -113,9 +112,9 @@ NXT_LIB_SRCS=" \
     src/nxt_service.c \
     src/nxt_fiber.c \
     src/nxt_log_moderation.c \
-    src/nxt_event_set.c \
     src/nxt_event_engine.c \
     src/nxt_timer.c \
+    src/nxt_fd_event.c \
     src/nxt_event_conn.c \
     src/nxt_event_conn_connect.c \
     src/nxt_event_conn_accept.c \
@@ -163,13 +162,13 @@ NXT_LIB_GNUTLS_SRCS="src/nxt_gnutls.c"
 NXT_LIB_CYASSL_SRCS="src/nxt_cyassl.c"
 NXT_LIB_POLARSSL_SRCS="src/nxt_polarssl.c"
 
-NXT_LIB_EPOLL_SRCS="src/nxt_epoll.c"
-NXT_LIB_KQUEUE_SRCS="src/nxt_kqueue.c"
-NXT_LIB_EVENTPORT_SRCS="src/nxt_eventport.c"
-NXT_LIB_DEVPOLL_SRCS="src/nxt_devpoll.c"
-NXT_LIB_POLLSET_SRCS="src/nxt_pollset.c"
-NXT_LIB_POLL_SRCS="src/nxt_poll.c"
-NXT_LIB_SELECT_SRCS="src/nxt_select.c"
+NXT_LIB_EPOLL_SRCS="src/nxt_epoll_engine.c"
+NXT_LIB_KQUEUE_SRCS="src/nxt_kqueue_engine.c"
+NXT_LIB_EVENTPORT_SRCS="src/nxt_eventport_engine.c"
+NXT_LIB_DEVPOLL_SRCS="src/nxt_devpoll_engine.c"
+NXT_LIB_POLLSET_SRCS="src/nxt_pollset_engine.c"
+NXT_LIB_POLL_SRCS="src/nxt_poll_engine.c"
+NXT_LIB_SELECT_SRCS="src/nxt_select_engine.c"
 
 NXT_LIB_LINUX_SENDFILE_SRCS="src/nxt_linux_sendfile.c"
 NXT_LIB_FREEBSD_SENDFILE_SRCS="src/nxt_freebsd_sendfile.c"

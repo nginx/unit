@@ -4,8 +4,8 @@
  * Copyright (C) NGINX, Inc.
  */
 
-#ifndef _NXT_EVENT_FD_H_INCLUDED_
-#define _NXT_EVENT_FD_H_INCLUDED_
+#ifndef _NXT_FD_EVENT_H_INCLUDED_
+#define _NXT_FD_EVENT_H_INCLUDED_
 
 
 typedef enum {
@@ -33,22 +33,28 @@ typedef enum {
     /* An active level-triggered event.  Used by eventport. */
     NXT_EVENT_LEVEL,
 
-    /* An active event. */
+    /*
+     * An active default event.  The event type depends on interface:
+     *    edge-triggered for kqueue, and modern epoll;
+     *    level-triggered for old epoll, devpoll, pollset, poll, and select;
+     *    oneshot for kqueue and eventport.
+     */
     NXT_EVENT_DEFAULT,
-} nxt_event_fd_state_t;
+    NXT_EVENT_ACTIVE = NXT_EVENT_DEFAULT,
+} nxt_fd_event_state_t;
 
 
 #define                                                                       \
-nxt_event_fd_is_disabled(state)                                               \
+nxt_fd_event_is_disabled(state)                                               \
     ((state) < NXT_EVENT_ONESHOT)
 
 
 #define                                                                       \
-nxt_event_fd_is_active(state)                                                 \
+nxt_fd_event_is_active(state)                                                 \
     ((state) >= NXT_EVENT_ONESHOT)
 
 
-struct nxt_event_fd_s {
+struct nxt_fd_event_s {
     void                    *data;
 
     /* Both are int's. */
@@ -58,12 +64,14 @@ struct nxt_event_fd_s {
     /* The flags should also be prefetched by nxt_work_queue_pop(). */
 
 #if (NXT_64BIT)
-    uint8_t                   read;
-    uint8_t                   write;
-    uint8_t                   log_error;
+    nxt_fd_event_state_t      read:8;       /* 3 bits. */
+    nxt_fd_event_state_t      write:8;      /* 3 bits. */
+    nxt_socket_error_level_t  log_error:8;  /* 3 bits. */
     uint8_t                   read_ready;
     uint8_t                   write_ready;
+    uint8_t                   changing;
     uint8_t                   closed;
+    uint8_t                   shutdown;
     uint8_t                   timedout;
 #if (NXT_HAVE_EPOLL)
     uint8_t                   epoll_eof:1;
@@ -74,19 +82,21 @@ struct nxt_event_fd_s {
 #endif
 
 #else /* NXT_32BIT */
-    nxt_event_fd_state_t      read:3;
-    nxt_event_fd_state_t      write:3;
+    nxt_fd_event_state_t      read:3;
+    nxt_fd_event_state_t      write:3;
     nxt_socket_error_level_t  log_error:3;
-    unsigned                  read_ready:1;
-    unsigned                  write_ready:1;
-    unsigned                  closed:1;
-    unsigned                  timedout:1;
+    uint8_t                   read_ready:1;
+    uint8_t                   write_ready:1;
+    uint8_t                   changing:1;
+    uint8_t                   closed:1;
+    uint8_t                   shutdown:1;
+    uint8_t                   timedout:1;
 #if (NXT_HAVE_EPOLL)
-    unsigned                  epoll_eof:1;
-    unsigned                  epoll_error:1;
+    uint8_t                   epoll_eof:1;
+    uint8_t                   epoll_error:1;
 #endif
 #if (NXT_HAVE_KQUEUE)
-    unsigned                  kq_eof:1;
+    uint8_t                   kq_eof:1;
 #endif
 #endif /* NXT_64BIT */
 
@@ -109,4 +119,4 @@ struct nxt_event_fd_s {
 };
 
 
-#endif /* _NXT_EVENT_FD_H_INCLUDED_ */
+#endif /* _NXT_FD_EVENT_H_INCLUDED_ */

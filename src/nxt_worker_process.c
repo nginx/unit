@@ -29,7 +29,7 @@ static nxt_process_port_handler_t  nxt_worker_process_port_handlers[] = {
 };
 
 
-static const nxt_event_sig_t  nxt_worker_process_signals[] = {
+static const nxt_sig_event_t  nxt_worker_process_signals[] = {
     nxt_event_signal(SIGHUP,  nxt_worker_process_signal_handler),
     nxt_event_signal(SIGINT,  nxt_worker_process_sigterm_handler),
     nxt_event_signal(SIGQUIT, nxt_worker_process_sigterm_handler),
@@ -44,11 +44,11 @@ static const nxt_event_sig_t  nxt_worker_process_signals[] = {
 void
 nxt_worker_process_start(void *data)
 {
-    nxt_int_t                  n;
-    nxt_cycle_t                *cycle;
-    nxt_thread_t               *thr;
-    nxt_process_port_t         *proc;
-    const nxt_event_set_ops_t  *event_set;
+    nxt_int_t                    n;
+    nxt_cycle_t                  *cycle;
+    nxt_thread_t                 *thr;
+    nxt_process_port_t           *proc;
+    const nxt_event_interface_t  *interface;
 
     cycle = data;
 
@@ -77,12 +77,12 @@ nxt_worker_process_start(void *data)
     /* Update inherited master process event engine and signals processing. */
     thr->engine->signals->sigev = nxt_worker_process_signals;
 
-    event_set = nxt_service_get(cycle->services, "engine", cycle->engine);
-    if (event_set == NULL) {
+    interface = nxt_service_get(cycle->services, "engine", cycle->engine);
+    if (interface == NULL) {
         goto fail;
     }
 
-    if (nxt_event_engine_change(thr, &nxt_main_task, event_set, cycle->batch) != NXT_OK) {
+    if (nxt_event_engine_change(thr, &nxt_main_task, interface, cycle->batch) != NXT_OK) {
         goto fail;
     }
 
@@ -150,7 +150,7 @@ nxt_worker_process_quit(nxt_task_t *task)
         cls = nxt_queue_link_data(link, nxt_event_conn_listen_t, link);
         nxt_queue_remove(link);
 
-        nxt_event_fd_close(task->thread->engine, &cls->socket);
+        nxt_fd_event_close(task->thread->engine, &cls->socket);
     }
 
     if (cycle->listen_sockets != NULL) {

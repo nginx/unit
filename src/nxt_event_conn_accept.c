@@ -58,7 +58,7 @@ nxt_event_conn_listen(nxt_task_t *task, nxt_listen_socket_t *ls)
         cls->socket.error_handler = nxt_event_conn_listen_event_error;
         cls->socket.log = &nxt_main_log;
 
-        cls->accept = engine->event->io->accept;
+        cls->accept = engine->event.io->accept;
 
         cls->listen = ls;
 
@@ -73,7 +73,7 @@ nxt_event_conn_listen(nxt_task_t *task, nxt_listen_socket_t *ls)
         cls->timer.task = &cls->task;
 
         if (nxt_event_conn_accept_alloc(task, cls) != NULL) {
-            nxt_event_fd_enable_accept(engine, &cls->socket);
+            nxt_fd_event_enable_accept(engine, &cls->socket);
 
             nxt_queue_insert_head(&engine->listen_connections, &cls->link);
         }
@@ -255,15 +255,18 @@ nxt_event_conn_accept_next(nxt_task_t *task, nxt_event_conn_listen_t *cls)
 static nxt_int_t
 nxt_event_conn_accept_close_idle(nxt_task_t *task, nxt_event_conn_listen_t *cls)
 {
-    nxt_queue_t       *idle;
-    nxt_queue_link_t  *link;
-    nxt_event_conn_t  *c;
+    nxt_queue_t         *idle;
+    nxt_queue_link_t    *link;
+    nxt_event_conn_t    *c;
+    nxt_event_engine_t  *engine;
 
     static nxt_log_moderation_t  nxt_idle_close_log_moderation = {
         NXT_LOG_INFO, 2, "idle connections closed", NXT_LOG_MODERATION
     };
 
-    idle = &task->thread->engine->idle_connections;
+    engine = task->thread->engine;
+
+    idle = &engine->idle_connections;
 
     for (link = nxt_queue_last(idle);
          link != nxt_queue_head(idle);
@@ -276,15 +279,15 @@ nxt_event_conn_accept_close_idle(nxt_task_t *task, nxt_event_conn_listen_t *cls)
                              task->log, "no available connections, "
                              "close idle connection");
             nxt_queue_remove(link);
-            nxt_event_conn_close(task, c);
+            nxt_event_conn_close(engine, c);
 
             return NXT_OK;
         }
     }
 
-    nxt_timer_add(task->thread->engine, &cls->timer, 1000);
+    nxt_timer_add(engine, &cls->timer, 1000);
 
-    nxt_event_fd_disable_read(task->thread->engine, &cls->socket);
+    nxt_fd_event_disable_read(engine, &cls->socket);
 
     return NXT_DECLINED;
 }
@@ -352,7 +355,7 @@ nxt_event_conn_listen_timer_handler(nxt_task_t *task, void *obj, void *data)
         }
     }
 
-    nxt_event_fd_enable_accept(task->thread->engine, &cls->socket);
+    nxt_fd_event_enable_accept(task->thread->engine, &cls->socket);
 
     cls->accept(task, cls, c);
 }
@@ -361,7 +364,7 @@ nxt_event_conn_listen_timer_handler(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_event_conn_listen_event_error(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_event_fd_t  *ev;
+    nxt_fd_event_t  *ev;
 
     ev = obj;
 

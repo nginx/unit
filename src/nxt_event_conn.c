@@ -7,9 +7,9 @@
 #include <nxt_main.h>
 
 
-static void nxt_event_conn_shutdown_socket(nxt_task_t *task, void *obj,
-    void *data);
-static void nxt_event_conn_close_socket(nxt_task_t *task, void *obj,
+static void nxt_conn_shutdown_handler(nxt_task_t *task, void *obj, void *data);
+static void nxt_conn_close_handler(nxt_task_t *task, void *obj, void *data);
+static void nxt_conn_close_timer_handler(nxt_task_t *task, void *obj,
     void *data);
 
 
@@ -81,7 +81,7 @@ nxt_event_conn_create(nxt_mem_pool_t *mp, nxt_log_t *log)
     c->read_timer.task = &c->task;
     c->write_timer.task = &c->task;
 
-    c->io = thr->engine->event->io;
+    c->io = thr->engine->event.io;
     c->max_chunk = NXT_INT32_T_MAX;
     c->sendfile = NXT_CONN_SENDFILE_UNSET;
 
@@ -132,72 +132,124 @@ nxt_event_conn_io_shutdown(nxt_task_t *task, void *obj, void *data)
 
 
 void
-nxt_event_conn_close(nxt_task_t *task, nxt_event_conn_t *c)
+nxt_event_conn_close(nxt_event_engine_t *engine, nxt_event_conn_t *c)
 {
-    nxt_thread_t        *thr;
+    int                 ret;
+    socklen_t           len;
+    struct linger       linger;
     nxt_work_queue_t    *wq;
-    nxt_event_engine_t  *engine;
     nxt_work_handler_t  handler;
+
+    if (c->socket.timedout) {
+        /*
+         * Resetting of timed out connection on close
+         * releases kernel memory associated with socket.
+         * This also causes sending TCP/IP RST to a peer.
+         */
+        linger.l_onoff = 1;
+        linger.l_linger = 0;
+        len = sizeof(struct linger);
+
+        ret = setsockopt(c->socket.fd, SOL_SOCKET, SO_LINGER, &linger, len);
+
+        if (nxt_slow_path(ret != 0)) {
+            nxt_log(c->socket.task, NXT_LOG_CRIT,
+                    "setsockopt(%d, SO_LINGER) failed %E",
+                    c->socket.fd, nxt_socket_errno);
+        }
+    }
+
+    if (c->socket.error == 0 && !c->socket.closed && !c->socket.shutdown) {
+        wq = &engine->shutdown_work_queue;
+        handler = nxt_conn_shutdown_handler;
+
+    } else{
+        wq = &engine->close_work_queue;
+        handler = nxt_conn_close_handler;
+    }
+
+    nxt_work_queue_add(wq, handler, c->socket.task, c, engine);
+}
+
+
+static void
+nxt_conn_shutdown_handler(nxt_task_t *task, void *obj, void *data)
+{
+    nxt_event_conn_t    *c;
+    nxt_event_engine_t  *engine;
+
+    c = obj;
+    engine = data;
+
+    nxt_debug(task, "event conn shutdown fd:%d", c->socket.fd);
+
+    c->socket.shutdown = 1;
+
+    nxt_socket_shutdown(c->socket.fd, SHUT_RDWR);
+
+    nxt_work_queue_add(&engine->close_work_queue, nxt_conn_close_handler,
+                       task, c, engine);
+}
+
+
+static void
+nxt_conn_close_handler(nxt_task_t *task, void *obj, void *data)
+{
+    nxt_uint_t          events_pending, timers_pending;
+    nxt_event_conn_t    *c;
+    nxt_event_engine_t  *engine;
+
+    c = obj;
+    engine = data;
 
     nxt_debug(task, "event conn close fd:%d", c->socket.fd);
 
-    thr = task->thread;
+    timers_pending = nxt_timer_delete(engine, &c->read_timer);
+    timers_pending += nxt_timer_delete(engine, &c->write_timer);
 
-    engine = thr->engine;
+    events_pending = nxt_fd_event_close(engine, &c->socket);
 
-    nxt_timer_delete(engine, &c->read_timer);
-    nxt_timer_delete(engine, &c->write_timer);
-
-    nxt_event_fd_close(engine, &c->socket);
-    engine->connections--;
-
-    nxt_debug(task, "event connections: %uD", engine->connections);
-
-    if (engine->batch != 0) {
-
-        if (c->socket.closed || c->socket.error != 0) {
-            wq = &engine->close_work_queue;
-            handler = nxt_event_conn_close_socket;
-
-        } else {
-            wq = &engine->shutdown_work_queue;
-            handler = nxt_event_conn_shutdown_socket;
-        }
-
-        nxt_work_queue_add(wq, handler, task,
-                           (void *) (uintptr_t) c->socket.fd, NULL);
-
-    } else {
+    if (events_pending == 0) {
         nxt_socket_close(c->socket.fd);
+        c->socket.fd = -1;
+
+        if (timers_pending == 0) {
+            nxt_work_queue_add(&engine->fast_work_queue,
+                               c->write_state->ready_handler,
+                               task, c, c->socket.data);
+            return;
+        }
     }
 
-    c->socket.fd = -1;
+    c->write_timer.handler = nxt_conn_close_timer_handler;
+    c->write_timer.work_queue = &engine->fast_work_queue;
+
+    nxt_timer_add(engine, &c->write_timer, 0);
 }
 
 
 static void
-nxt_event_conn_shutdown_socket(nxt_task_t *task, void *obj, void *data)
+nxt_conn_close_timer_handler(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_socket_t  s;
+    nxt_timer_t         *ev;
+    nxt_event_conn_t    *c;
+    nxt_event_engine_t  *engine;
 
-    s = (nxt_socket_t) (uintptr_t) obj;
+    ev = obj;
 
-    nxt_socket_shutdown(s, SHUT_RDWR);
+    c = nxt_event_write_timer_conn(ev);
 
-    nxt_work_queue_add(&task->thread->engine->close_work_queue,
-                       nxt_event_conn_close_socket, task,
-                       (void *) (uintptr_t) s, NULL);
-}
+    nxt_debug(task, "event conn close handler fd:%d", c->socket.fd);
 
+    if (c->socket.fd != -1) {
+        nxt_socket_close(c->socket.fd);
+        c->socket.fd = -1;
+    }
 
-static void
-nxt_event_conn_close_socket(nxt_task_t *task, void *obj, void *data)
-{
-    nxt_socket_t  s;
+    engine = task->thread->engine;
 
-    s = (nxt_socket_t) (uintptr_t) obj;
-
-    nxt_socket_close(s);
+    nxt_work_queue_add(&engine->fast_work_queue, c->write_state->ready_handler,
+                       task, c, c->socket.data);
 }
 
 
@@ -221,18 +273,6 @@ nxt_event_conn_timer(nxt_event_engine_t *engine, nxt_event_conn_t *c,
 void
 nxt_event_conn_work_queue_set(nxt_event_conn_t *c, nxt_work_queue_t *wq)
 {
-#if 0
-    nxt_thread_t      *thr;
-    nxt_work_queue_t  *owq;
-
-    thr = nxt_thread();
-    owq = c->socket.work_queue;
-
-    nxt_thread_work_queue_move(thr, owq, wq, c);
-    nxt_thread_work_queue_move(thr, owq, wq, &c->read_timer);
-    nxt_thread_work_queue_move(thr, owq, wq, &c->write_timer);
-#endif
-
     c->read_work_queue = wq;
     c->write_work_queue = wq;
     c->read_timer.work_queue = wq;
