@@ -24,28 +24,30 @@ typedef struct {
 } nxt_upstream_round_robin_t;
 
 
-static void nxt_upstream_round_robin_create(nxt_thread_t *thr, void *obj,
+static void nxt_upstream_round_robin_create(nxt_task_t *task, void *obj,
     void *data);
-static void nxt_upstream_round_robin_peer_error(nxt_thread_t *thr, void *obj,
+static void nxt_upstream_round_robin_peer_error(nxt_task_t *task, void *obj,
     void *data);
-static void nxt_upstream_round_robin_get_peer(nxt_upstream_peer_t *up);
+static void nxt_upstream_round_robin_get_peer(nxt_task_t *task,
+    nxt_upstream_peer_t *up);
 
 
 void
-nxt_upstream_round_robin_peer(nxt_upstream_peer_t *up)
+nxt_upstream_round_robin_peer(nxt_task_t *task, nxt_upstream_peer_t *up)
 {
     nxt_job_sockaddr_parse_t  *jbs;
 
     if (up->upstream != NULL) {
-        nxt_upstream_round_robin_get_peer(up);
+        nxt_upstream_round_robin_get_peer(task, up);
     }
 
     jbs = nxt_job_create(up->mem_pool, sizeof(nxt_job_sockaddr_parse_t));
     if (nxt_slow_path(jbs == NULL)) {
-        up->ready_handler(up);
+        up->ready_handler(task, up);
         return;
     }
 
+    jbs->resolve.job.task = task;
     jbs->resolve.job.data = up;
     jbs->resolve.port = up->port;
     jbs->resolve.log_level = NXT_LOG_ERR;
@@ -58,7 +60,7 @@ nxt_upstream_round_robin_peer(nxt_upstream_peer_t *up)
 
 
 static void
-nxt_upstream_round_robin_create(nxt_thread_t *thr, void *obj, void *data)
+nxt_upstream_round_robin_create(nxt_task_t *task, void *obj, void *data)
 {
     nxt_uint_t                       i;
     nxt_sockaddr_t                   *sa;
@@ -94,10 +96,10 @@ nxt_upstream_round_robin_create(nxt_thread_t *thr, void *obj, void *data)
         /* STUB */
         sa->type = SOCK_STREAM;
 
-        /* TODO: test ret */
-        (void) nxt_sockaddr_text(up->mem_pool, sa, 1);
+        nxt_sockaddr_text(sa);
 
-        nxt_log_debug(thr->log, "upstream peer: %*s", sa->text_len, sa->text);
+        nxt_debug(task, "upstream peer: %*s",
+                  sa->length, nxt_sockaddr_start(sa));
 
         /* TODO: memcpy to shared memory pool. */
         peer[i].sockaddr = sa;
@@ -109,7 +111,7 @@ nxt_upstream_round_robin_create(nxt_thread_t *thr, void *obj, void *data)
     up->sockaddr = peer[0].sockaddr;
 
     nxt_job_destroy(jbs);
-    up->ready_handler(up);
+    up->ready_handler(task, up);
 
     //nxt_upstream_round_robin_get_peer(up);
     return;
@@ -118,12 +120,12 @@ fail:
 
     nxt_job_destroy(jbs);
 
-    up->ready_handler(up);
+    up->ready_handler(task, up);
 }
 
 
 static void
-nxt_upstream_round_robin_peer_error(nxt_thread_t *thr, void *obj, void *data)
+nxt_upstream_round_robin_peer_error(nxt_task_t *task, void *obj, void *data)
 {
     nxt_upstream_peer_t       *up;
     nxt_job_sockaddr_parse_t  *jbs;
@@ -131,24 +133,22 @@ nxt_upstream_round_robin_peer_error(nxt_thread_t *thr, void *obj, void *data)
     jbs = obj;
     up = jbs->resolve.job.data;
 
-    up->ready_handler(up);
+    up->ready_handler(task, up);
 }
 
 
 static void
-nxt_upstream_round_robin_get_peer(nxt_upstream_peer_t *up)
+nxt_upstream_round_robin_get_peer(nxt_task_t *task, nxt_upstream_peer_t *up)
 {
     int32_t                          effective_weights;
     nxt_uint_t                       i;
     nxt_msec_t                       now;
-    nxt_event_engine_t               *engine;
     nxt_upstream_round_robin_t       *urr;
     nxt_upstream_round_robin_peer_t  *peer, *best;
 
     urr = up->upstream;
 
-    engine = nxt_thread_event_engine();
-    now = engine->timers.now;
+    now = task->thread->engine->timers.now;
 
     nxt_thread_spin_lock(&urr->lock);
 
@@ -196,5 +196,5 @@ nxt_upstream_round_robin_get_peer(nxt_upstream_peer_t *up)
 
     nxt_thread_spin_unlock(&urr->lock);
 
-    up->ready_handler(up);
+    up->ready_handler(task, up);
 }

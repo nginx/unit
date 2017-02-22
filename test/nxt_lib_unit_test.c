@@ -77,10 +77,6 @@ main(int argc, char **argv)
         return 1;
     }
 
-    if (nxt_exp_approximation(thr) != NXT_OK) {
-        return 1;
-    }
-
     if (nxt_rbtree_unit_test(thr, 100 * 1000) != NXT_OK) {
         return 1;
     }

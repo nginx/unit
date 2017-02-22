@@ -320,7 +320,7 @@ nxt_file_rename(nxt_file_name_t *old_name, nxt_file_name_t *new_name)
 #if (NXT_HAVE_FIONBIO)
 
 nxt_int_t
-nxt_fd_nonblocking(nxt_fd_t fd)
+nxt_fd_nonblocking(nxt_task_t *task, nxt_fd_t fd)
 {
     int  nb;
 
@@ -330,7 +330,7 @@ nxt_fd_nonblocking(nxt_fd_t fd)
         return NXT_OK;
     }
 
-    nxt_thread_log_alert("ioctl(%d, FIONBIO) failed %E", fd, nxt_errno);
+    nxt_log(task, NXT_LOG_CRIT, "ioctl(%d, FIONBIO) failed %E", fd, nxt_errno);
 
     return NXT_ERROR;
 
@@ -338,7 +338,7 @@ nxt_fd_nonblocking(nxt_fd_t fd)
 
 
 nxt_int_t
-nxt_fd_blocking(nxt_fd_t fd)
+nxt_fd_blocking(nxt_task_t *task, nxt_fd_t fd)
 {
     int  nb;
 
@@ -348,7 +348,7 @@ nxt_fd_blocking(nxt_fd_t fd)
         return NXT_OK;
     }
 
-    nxt_thread_log_alert("ioctl(%d, !FIONBIO) failed %E", fd, nxt_errno);
+    nxt_log(task, NXT_LOG_CRIT, "ioctl(%d, !FIONBIO) failed %E", fd, nxt_errno);
 
     return NXT_ERROR;
 }
@@ -356,22 +356,23 @@ nxt_fd_blocking(nxt_fd_t fd)
 #else /* !(NXT_HAVE_FIONBIO) */
 
 nxt_int_t
-nxt_fd_nonblocking(nxt_fd_t fd)
+nxt_fd_nonblocking(nxt_task_t *task, nxt_fd_t fd)
 {
     int  flags;
 
     flags = fcntl(fd, F_GETFL);
 
     if (nxt_slow_path(flags == -1)) {
-        nxt_thread_log_alert("fcntl(%d, F_GETFL) failed %E", fd, nxt_errno);
+        nxt_log(task, NXT_LOG_CRIT, "fcntl(%d, F_GETFL) failed %E",
+                fd, nxt_errno);
         return NXT_ERROR;
     }
 
     flags |= O_NONBLOCK;
 
     if (nxt_slow_path(fcntl(fd, F_SETFL, flags) == -1)) {
-        nxt_thread_log_alert("fcntl(%d, F_SETFL, O_NONBLOCK) failed %E",
-                             fd, nxt_errno);
+        nxt_log(task, NXT_LOG_CRIT, "fcntl(%d, F_SETFL, O_NONBLOCK) failed %E",
+                fd, nxt_errno);
         return NXT_ERROR;
     }
 
@@ -380,23 +381,23 @@ nxt_fd_nonblocking(nxt_fd_t fd)
 
 
 nxt_int_t
-nxt_fd_blocking(nxt_fd_t fd)
+nxt_fd_blocking(nxt_task_t *task, nxt_fd_t fd)
 {
     int  flags;
 
     flags = fcntl(fd, F_GETFL);
 
     if (nxt_slow_path(flags == -1)) {
-        nxt_thread_log_alert("fcntl(%d, F_GETFL) failed %E",
-                             fd, nxt_errno);
+        nxt_log(task, NXT_LOG_CRIT, "fcntl(%d, F_GETFL) failed %E",
+                fd, nxt_errno);
         return NXT_ERROR;
     }
 
     flags &= O_NONBLOCK;
 
     if (nxt_slow_path(fcntl(fd, F_SETFL, flags) == -1)) {
-        nxt_thread_log_alert("fcntl(%d, F_SETFL, !O_NONBLOCK) failed %E",
-                             fd, nxt_errno);
+        nxt_log(task, NXT_LOG_CRIT, "fcntl(%d, F_SETFL, !O_NONBLOCK) failed %E",
+                fd, nxt_errno);
         return NXT_ERROR;
     }
 
@@ -547,24 +548,25 @@ nxt_stderr_start(void)
 
 
 nxt_int_t
-nxt_pipe_create(nxt_fd_t *pp, nxt_bool_t nbread, nxt_bool_t nbwrite)
+nxt_pipe_create(nxt_task_t *task, nxt_fd_t *pp, nxt_bool_t nbread,
+    nxt_bool_t nbwrite)
 {
     if (pipe(pp) != 0) {
-        nxt_thread_log_alert("pipe() failed %E", nxt_errno);
+        nxt_log(task, NXT_LOG_CRIT, "pipe() failed %E", nxt_errno);
 
         return NXT_ERROR;
     }
 
-    nxt_thread_log_debug("pipe(): %FD:%FD", pp[0], pp[1]);
+    nxt_debug(task, "pipe(): %FD:%FD", pp[0], pp[1]);
 
     if (nbread) {
-        if (nxt_fd_nonblocking(pp[0]) != NXT_OK) {
+        if (nxt_fd_nonblocking(task, pp[0]) != NXT_OK) {
             return NXT_ERROR;
         }
     }
 
     if (nbwrite) {
-        if (nxt_fd_nonblocking(pp[1]) != NXT_OK) {
+        if (nxt_fd_nonblocking(task, pp[1]) != NXT_OK) {
             return NXT_ERROR;
         }
     }
@@ -574,16 +576,18 @@ nxt_pipe_create(nxt_fd_t *pp, nxt_bool_t nbread, nxt_bool_t nbwrite)
 
 
 void
-nxt_pipe_close(nxt_fd_t *pp)
+nxt_pipe_close(nxt_task_t *task, nxt_fd_t *pp)
 {
-    nxt_thread_log_debug("pipe close(%FD:%FD)", pp[0], pp[1]);
+    nxt_debug(task, "pipe close(%FD:%FD)", pp[0], pp[1]);
 
     if (close(pp[0]) != 0) {
-        nxt_thread_log_alert("pipe close (%FD) failed %E", pp[0], nxt_errno);
+        nxt_log(task, NXT_LOG_CRIT, "pipe close (%FD) failed %E",
+                pp[0], nxt_errno);
     }
 
     if (close(pp[1]) != 0) {
-        nxt_thread_log_alert("pipe close(%FD) failed %E", pp[1], nxt_errno);
+        nxt_log(task, NXT_LOG_CRIT, "pipe close(%FD) failed %E",
+                pp[1], nxt_errno);
     }
 }
 

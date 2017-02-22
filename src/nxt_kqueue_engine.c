@@ -119,7 +119,7 @@ static nxt_event_conn_io_t  nxt_kqueue_event_conn_io = {
     nxt_kqueue_event_conn_io_recvbuf,
     nxt_event_conn_io_recv,
 
-    nxt_event_conn_io_write,
+    nxt_conn_io_write,
     nxt_event_conn_io_write_chunk,
 
 #if (NXT_HAVE_FREEBSD_SENDFILE)
@@ -524,7 +524,7 @@ nxt_kqueue_fd_error_handler(nxt_task_t *task, void *obj, void *data)
 
     if (ev->kq_eof && ev->kq_errno != 0) {
         ev->error = ev->kq_errno;
-        nxt_log(task, nxt_socket_error_level(ev->kq_errno, ev->log_error),
+        nxt_log(task, nxt_socket_error_level(ev->kq_errno),
                 "kevent() reported error on descriptor %d %E",
                 ev->fd, ev->kq_errno);
     }
@@ -848,7 +848,7 @@ nxt_kqueue_event_conn_io_connect(nxt_task_t *task, void *obj, void *data)
 
     state = c->write_state;
 
-    switch (nxt_socket_connect(c->socket.fd, c->remote) ){
+    switch (nxt_socket_connect(task, c->socket.fd, c->remote) ){
 
     case NXT_OK:
         c->socket.write_ready = 1;
@@ -874,8 +874,7 @@ nxt_kqueue_event_conn_io_connect(nxt_task_t *task, void *obj, void *data)
         break;
     }
 
-    nxt_event_conn_io_handle(task->thread, c->write_work_queue, handler, task,
-                             c, data);
+    nxt_work_queue_add(c->write_work_queue, handler, task, c, data);
 }
 
 
@@ -909,7 +908,7 @@ nxt_kqueue_listen_handler(nxt_task_t *task, void *obj, void *data)
     nxt_debug(task, "kevent fd:%d avail:%D",
               cls->socket.fd, cls->socket.kq_available);
 
-    cls->ready = nxt_min(cls->batch, (uint32_t) cls->socket.kq_available);
+    cls->ready = nxt_min(cls->batch0, (uint32_t) cls->socket.kq_available);
 
     nxt_kqueue_event_conn_io_accept(task, cls, data);
 }
@@ -933,7 +932,7 @@ nxt_kqueue_event_conn_io_accept(nxt_task_t *task, void *obj, void *data)
     cls->socket.kq_available--;
     cls->socket.read_ready = (cls->socket.kq_available != 0);
 
-    len = nxt_socklen(c->remote);
+    len = c->remote->socklen;
 
     if (len >= sizeof(struct sockaddr)) {
         sa = &c->remote->u.sockaddr;

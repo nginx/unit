@@ -36,6 +36,21 @@
 
 
 typedef struct {
+    nxt_buf_t     *buf;
+    nxt_socket_t  socket;
+    nxt_err_t     error;
+    nxt_off_t     sent;
+    size_t        size;
+    size_t        limit;
+
+    uint8_t       ready;   /* 1 bit */
+    uint8_t       once;    /* 1 bit */
+    uint8_t       sync;    /* 1 bit */
+    uint8_t       last;    /* 1 bit */
+} nxt_sendbuf_t;
+
+
+typedef struct {
     nxt_buf_t    *buf;
     nxt_iobuf_t  *iobuf;
 
@@ -88,6 +103,8 @@ ssize_t nxt_event_conn_io_sendbuf(nxt_event_conn_t *c, nxt_buf_t *b,
     size_t limit);
 
 
+nxt_uint_t nxt_sendbuf_mem_coalesce0(nxt_task_t *task, nxt_sendbuf_t *sb,
+    struct iovec *iov, nxt_uint_t niov_max);
 nxt_uint_t nxt_sendbuf_mem_coalesce(nxt_task_t *task,
     nxt_sendbuf_coalesce_t *sb);
 size_t nxt_sendbuf_file_coalesce(nxt_sendbuf_coalesce_t *sb);

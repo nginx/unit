@@ -77,7 +77,10 @@ struct nxt_cycle_s {
     const char             *group;
     const char             *pid;
     const char             *error_log;
-    nxt_sockaddr_t         *listen;
+
+    nxt_sockaddr_t         *app_listen;
+    nxt_sockaddr_t         *stream_listen;
+    nxt_str_t              upstream;
 };
 
 
@@ -146,6 +149,7 @@ nxt_int_t nxt_cycle_shm_zone_add(nxt_cycle_t *cycle, nxt_str_t *name,
 void nxt_cdecl nxt_log_time_handler(nxt_uint_t level, nxt_log_t *log,
     const char *fmt, ...);
 
+void nxt_stream_connection_init(nxt_task_t *task, void *obj, void *data);
 nxt_int_t nxt_app_start(nxt_cycle_t *cycle);
 
 

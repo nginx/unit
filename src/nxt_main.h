@@ -16,6 +16,7 @@
 #include <nxt_time.h>
 #include <nxt_process.h>
 
+typedef struct nxt_task_s            nxt_task_t;
 typedef struct nxt_thread_s          nxt_thread_t;
 #include <nxt_thread_id.h>
 

@@ -86,11 +86,9 @@ nxt_worker_process_start(void *data)
         goto fail;
     }
 
-#if 0
-    if (nxt_cycle_listen_sockets_enable(thr, cycle) != NXT_OK) {
+    if (nxt_cycle_listen_sockets_enable(&thr->engine->task, cycle) != NXT_OK) {
         goto fail;
     }
-#endif
 
     proc = cycle->processes->elts;
 
@@ -159,7 +157,7 @@ nxt_worker_process_quit(nxt_task_t *task)
         n = cycle->listen_sockets->nelts;
 
         while (n != 0) {
-            nxt_socket_close(ls->socket);
+            nxt_socket_close(task, ls->socket);
             ls->socket = -1;
 
             ls++;

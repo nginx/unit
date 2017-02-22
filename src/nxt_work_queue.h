@@ -10,14 +10,14 @@
 
 typedef struct nxt_work_s  nxt_work_t;
 
-typedef struct {
+struct nxt_task_s {
      nxt_thread_t  *thread;
      nxt_log_t     *log;
      uint32_t      ident;
      nxt_work_t    *next_work;
 
      /* TODO: exception_handler, prev/next task, subtasks. */
-} nxt_task_t;
+};
 
 
 #define nxt_task_next_ident()                                                 \

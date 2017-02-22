@@ -38,8 +38,6 @@ nxt_rdtsc(void)
 
 nxt_int_t nxt_term_parse_unit_test(nxt_thread_t *thr);
 nxt_int_t nxt_msec_diff_unit_test(nxt_thread_t *thr, nxt_msec_less_t);
-nxt_int_t nxt_exp_approximation(nxt_thread_t *thr);
-double nxt_event_conn_exponential_approximation(double n);
 
 nxt_int_t nxt_rbtree_unit_test(nxt_thread_t *thr, nxt_uint_t n);
 nxt_int_t nxt_rbtree1_unit_test(nxt_thread_t *thr, nxt_uint_t n);

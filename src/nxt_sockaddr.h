@@ -14,25 +14,38 @@
  *    nxt_sockaddr_alloc(pool, sizeof(struct sockaddr_in))
  */
 
-struct nxt_sockaddr_s {
-    /*
-     * A sockaddr textual representation is optional and may be in two forms:
-     * with port or without port.  If a nxt_sockaddr_t is intended to listen(),
-     * bind() or connect() then the textual representation must be present and
-     * must include the port.  nxt_event_conn_accept() creates a textual
-     * representation without the port.
-     */
-    u_char                        *text;
+/*
+ * A textual sockaddr representation is stored after struct sockaddr union
+ * and allocated as a whole.
+ */
 
+struct nxt_sockaddr_s {
+    /* Socket type: SOCKS_STREAM, SOCK_DGRAM, etc. */
+    uint8_t                       type;
+    /* Size of struct sockaddr. */
+    uint8_t                       socklen;
     /*
-     * text_len, socket type and socklen are stored
-     * together on 64-bit platforms without sockaddr.sa_len.
+     * Textual sockaddr representation, e.g.: "127.0.0.1:8000",
+     * "[::1]:8000", and "unix:/path/to/socket".
      */
-    uint16_t                      text_len;
-    uint16_t                      type;
-#if !(NXT_SOCKADDR_SA_LEN)
-    socklen_t                     _socklen;
-#endif
+    uint8_t                       start;
+    uint8_t                       length;
+    /*
+     * Textual address representation, e.g: "127.0.0.1", "::1",
+     * and "unix:/path/to/socket".
+     */
+    uint8_t                       address_start;
+    uint8_t                       address_length;
+    /*
+     * Textual port representation, e.g. "8000".
+     * Port length is length - port_start.
+     */
+    uint8_t                       port_start;
+    /*
+     * Size of the whole structure: struct sockaddr union and maximal textual
+     * representation, used to place sockaddr into appropriate free list.
+     */
+    uint8_t                       sockaddr_size;
 
     union {
         struct sockaddr           sockaddr;
@@ -56,51 +69,26 @@ typedef struct {
 } nxt_job_sockaddr_parse_t;
 
 
-NXT_EXPORT nxt_sockaddr_t *nxt_sockaddr_alloc(nxt_mem_pool_t *mp, socklen_t len)
+NXT_EXPORT nxt_sockaddr_t *nxt_sockaddr_alloc(nxt_mem_pool_t *mp,
+    socklen_t socklen, size_t address_length)
     NXT_MALLOC_LIKE;
 NXT_EXPORT nxt_sockaddr_t *nxt_sockaddr_create(nxt_mem_pool_t *mp,
-    struct sockaddr *sockaddr, socklen_t len)
+    struct sockaddr *sockaddr, socklen_t socklen, size_t address_length)
     NXT_MALLOC_LIKE;
 NXT_EXPORT nxt_sockaddr_t *nxt_sockaddr_copy(nxt_mem_pool_t *mp,
     nxt_sockaddr_t *src)
     NXT_MALLOC_LIKE;
-NXT_EXPORT nxt_sockaddr_t *nxt_getsockname(nxt_mem_pool_t *mp, nxt_socket_t s)
+NXT_EXPORT nxt_sockaddr_t *nxt_getsockname(nxt_task_t *task,
+    nxt_mem_pool_t *mp, nxt_socket_t s)
     NXT_MALLOC_LIKE;
-NXT_EXPORT nxt_int_t nxt_sockaddr_text(nxt_mem_pool_t *mp, nxt_sockaddr_t *sa,
-    nxt_bool_t port);
+NXT_EXPORT void nxt_sockaddr_text(nxt_sockaddr_t *sa);
 
 
-#if (NXT_SOCKADDR_SA_LEN)
-
-#define                                                                       \
-nxt_socklen_set(sa, len)                                                      \
-    (sa)->u.sockaddr.sa_len = (socklen_t) (len)
-
-
-#define                                                                       \
-nxt_socklen(sa)                                                               \
-    ((sa)->u.sockaddr.sa_len)
-
-#else
-
-#define                                                                       \
-nxt_socklen_set(sa, len)                                                      \
-    (sa)->_socklen = (socklen_t) (len)
-
-
-#define                                                                       \
-nxt_socklen(sa)                                                               \
-    ((sa)->_socklen)
-
-#endif
-
-
-NXT_EXPORT uint32_t nxt_sockaddr_port(nxt_sockaddr_t *sa);
+NXT_EXPORT uint32_t nxt_sockaddr_port_number(nxt_sockaddr_t *sa);
 NXT_EXPORT nxt_bool_t nxt_sockaddr_cmp(nxt_sockaddr_t *sa1,
     nxt_sockaddr_t *sa2);
 NXT_EXPORT size_t nxt_sockaddr_ntop(nxt_sockaddr_t *sa, u_char *buf,
-    u_char *end,
-    nxt_bool_t port);
+    u_char *end, nxt_bool_t port);
 NXT_EXPORT void nxt_job_sockaddr_parse(nxt_job_sockaddr_parse_t *jbs);
 NXT_EXPORT in_addr_t nxt_inet_addr(u_char *buf, size_t len);
 #if (NXT_INET6)
@@ -108,60 +96,17 @@ NXT_EXPORT nxt_int_t nxt_inet6_addr(struct in6_addr *in6_addr, u_char *buf,
     size_t len);
 #endif
 
-#if (NXT_HAVE_UNIX_DOMAIN)
-#define nxt_unix_addr_path_len(sa)                                            \
-    (nxt_socklen(sa) - offsetof(struct sockaddr_un, sun_path))
-#endif
 
-
-#define NXT_INET_ADDR_STR_LEN     (sizeof("255.255.255.255") - 1)
+#define NXT_INET_ADDR_STR_LEN     (sizeof("255.255.255.255:65535") - 1)
 
 #define NXT_INET6_ADDR_STR_LEN                                                \
-    (sizeof("ffff:ffff:ffff:ffff:ffff:ffff:255.255.255.255") - 1)
-
-#define NXT_UNIX_ADDR_STR_LEN                                                 \
-    ((sizeof("unix:") - 1)                                                    \
-     + (sizeof(struct sockaddr_un) - offsetof(struct sockaddr_un, sun_path)))
+    (sizeof("[ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]:65535") - 1)
 
 
-#if (NXT_HAVE_UNIX_DOMAIN)
-#define NXT_SOCKADDR_STR_LEN      NXT_UNIX_ADDR_STR_LEN
-
-#elif (NXT_INET6)
-#define NXT_SOCKADDR_STR_LEN      NXT_INET6_ADDR_STR_LEN
-
-#else
-#define NXT_SOCKADDR_STR_LEN      NXT_INET_ADDR_STR_LEN
-#endif
-
-
-#if (NXT_INET6)
-#define NXT_SOCKPORT_STR_LEN      (sizeof("[]:65535") - 1)
-
-#else
-#define NXT_SOCKPORT_STR_LEN      (sizeof(":65535") - 1)
-#endif
-
-
-nxt_inline size_t
-nxt_sockaddr_text_len(nxt_sockaddr_t *sa)
-{
-    switch (sa->u.sockaddr.sa_family) {
-
-#if (NXT_INET6)
-    case AF_INET6:
-        return NXT_INET6_ADDR_STR_LEN;
-#endif
-
-#if (NXT_HAVE_UNIX_DOMAIN)
-    case AF_UNIX:
-        return NXT_UNIX_ADDR_STR_LEN;
-#endif
-
-    default:
-        return NXT_INET_ADDR_STR_LEN;
-    }
-}
+#define nxt_sockaddr_start(sa)    ((u_char *) (sa) + (sa)->start)
+#define nxt_sockaddr_address(sa)  ((u_char *) (sa) + (sa)->address_start)
+#define nxt_sockaddr_port(sa)     ((u_char *) (sa) + (sa)->port_start)
+#define nxt_sockaddr_length(sa)   ((sa)->length - (sa)->port_start)
 
 
 #endif /* _NXT_SOCKADDR_H_INCLUDED_ */

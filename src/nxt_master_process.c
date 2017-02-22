@@ -81,7 +81,7 @@ nxt_master_process_port_create(nxt_task_t *task, nxt_cycle_t *cycle)
     proc->pid = nxt_pid;
     proc->engine = 0;
 
-    proc->port = nxt_port_create(0);
+    proc->port = nxt_port_create(task, 0);
     if (nxt_slow_path(proc->port == NULL)) {
         return NXT_ERROR;
     }
@@ -156,7 +156,7 @@ nxt_master_create_worker_process(nxt_task_t *task, nxt_cycle_t *cycle)
     proc->engine = 0;
     proc->generation = cycle->process_generation;
 
-    proc->port = nxt_port_create(0);
+    proc->port = nxt_port_create(task, 0);
     if (nxt_slow_path(proc->port == NULL)) {
         return NXT_ERROR;
     }

@@ -27,16 +27,16 @@ static ssize_t nxt_recvmsg(nxt_socket_t s, nxt_fd_t *fd, nxt_iobuf_t *iob,
 
 
 nxt_int_t
-nxt_socketpair_create(nxt_socket_t *pair)
+nxt_socketpair_create(nxt_task_t *task, nxt_socket_t *pair)
 {
     if (nxt_slow_path(socketpair(AF_UNIX, NXT_UNIX_SOCKET, 0, pair) != 0)) {
-        nxt_thread_log_alert("socketpair() failed %E", nxt_errno);
+        nxt_log(task, NXT_LOG_CRIT, "socketpair() failed %E", nxt_errno);
         return NXT_ERROR;
     }
 
-    nxt_thread_log_debug("socketpair(): %d:%d", pair[0], pair[1]);
+    nxt_debug(task, "socketpair(): %d:%d", pair[0], pair[1]);
 
-    if (nxt_slow_path(nxt_socket_nonblocking(pair[0]) != NXT_OK)) {
+    if (nxt_slow_path(nxt_socket_nonblocking(task, pair[0]) != NXT_OK)) {
         goto fail;
     }
 
@@ -44,7 +44,7 @@ nxt_socketpair_create(nxt_socket_t *pair)
         goto fail;
     }
 
-    if (nxt_slow_path(nxt_socket_nonblocking(pair[1]) != NXT_OK)) {
+    if (nxt_slow_path(nxt_socket_nonblocking(task, pair[1]) != NXT_OK)) {
         goto fail;
     }
 
@@ -56,17 +56,17 @@ nxt_socketpair_create(nxt_socket_t *pair)
 
 fail:
 
-    nxt_socketpair_close(pair);
+    nxt_socketpair_close(task, pair);
 
     return NXT_ERROR;
 }
 
 
 void
-nxt_socketpair_close(nxt_socket_t *pair)
+nxt_socketpair_close(nxt_task_t *task, nxt_socket_t *pair)
 {
-    nxt_socket_close(pair[0]);
-    nxt_socket_close(pair[1]);
+    nxt_socket_close(task, pair[0]);
+    nxt_socket_close(task, pair[1]);
 }
 
 

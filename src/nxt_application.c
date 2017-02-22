@@ -20,7 +20,6 @@ static void nxt_app_conn_update(nxt_thread_t *thr, nxt_event_conn_t *c,
     nxt_log_t *log);
 static nxt_int_t nxt_app_write_finish(nxt_app_request_t *r);
 static void nxt_app_buf_send(nxt_event_conn_t *c, nxt_buf_t *out);
-static void nxt_app_buf_completion(nxt_task_t *task, void *obj, void *data);
 static void nxt_app_delivery_handler(nxt_task_t *task, void *obj, void *data);
 static void nxt_app_delivery_ready(nxt_task_t *task, void *obj, void *data);
 static void nxt_app_delivery_completion(nxt_task_t *task, void *obj,
@@ -683,7 +682,7 @@ nxt_app_write(nxt_app_request_t *r, const u_char *data, size_t length)
 
             nxt_buf_mem_init(b, start, 4096);
 
-            b->completion_handler = nxt_app_buf_completion;
+            b->completion_handler = NULL;
 
             nxt_app_buf_current_number++;
         }
@@ -713,7 +712,7 @@ nxt_app_write_finish(nxt_app_request_t *r)
         return NXT_ERROR;
     }
 
-    b->completion_handler = nxt_app_buf_completion;
+    b->completion_handler = NULL;
     b->parent = (nxt_buf_t *) r;
 
     out = r->output_buf;
@@ -742,20 +741,6 @@ nxt_app_buf_send(nxt_event_conn_t *c, nxt_buf_t *out)
     nxt_work_set(&ab->work, nxt_app_delivery_handler, &c->task, c, out);
 
     nxt_event_engine_post(nxt_app_engine, &ab->work);
-}
-
-
-static void
-nxt_app_buf_completion(nxt_task_t *task, void *obj, void *data)
-{
-    nxt_buf_t  *b;
-
-    b = obj;
-
-    nxt_debug(task, "app buf completion");
-
-    b->next = nxt_app_buf_done;
-    nxt_app_buf_done = b;
 }
 
 
@@ -797,14 +782,14 @@ nxt_app_delivery_handler(nxt_task_t *task, void *obj, void *data)
     c->write = b;
     c->write_state = &nxt_app_delivery_write_state;
 
-    nxt_event_conn_write(task, c);
+    nxt_event_conn_write(task->thread->engine, c);
 }
 
 
 static const nxt_event_conn_state_t  nxt_app_delivery_write_state
     nxt_aligned(64) =
 {
-    NXT_EVENT_BUF_PROCESS,
+    NXT_EVENT_NO_BUF_PROCESS,
     NXT_EVENT_TIMER_AUTORESET,
 
     nxt_app_delivery_ready,
@@ -820,11 +805,25 @@ static const nxt_event_conn_state_t  nxt_app_delivery_write_state
 static void
 nxt_app_delivery_ready(nxt_task_t *task, void *obj, void *data)
 {
+    nxt_buf_t         *b, *next;
     nxt_event_conn_t  *c;
 
     c = obj;
 
     nxt_debug(task, "app delivery ready");
+
+    for (b = c->write; b != NULL; b = next) {
+
+        if (nxt_buf_is_mem(b)) {
+            if (b->mem.pos != b->mem.free) {
+                break;
+            }
+        }
+
+        next = b->next;
+        b->next = nxt_app_buf_done;
+        nxt_app_buf_done = b;
+    }
 
     nxt_work_queue_add(c->write_work_queue,
                        nxt_app_delivery_completion, task, c, NULL);

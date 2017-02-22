@@ -44,16 +44,9 @@ nxt_event_conn_listen(nxt_task_t *task, nxt_listen_socket_t *ls)
         cls->socket.fd = ls->socket;
 
         engine = task->thread->engine;
-        cls->batch = engine->batch;
+        cls->batch0 = engine->batch0;
 
-        if (cls->batch != 0) {
-            cls->socket.read_work_queue = &engine->accept_work_queue;
-
-        } else {
-            cls->socket.read_work_queue = &engine->fast_work_queue;
-            cls->batch = 1;
-        }
-
+        cls->socket.read_work_queue = &engine->accept_work_queue;
         cls->socket.read_handler = nxt_event_conn_listen_handler;
         cls->socket.error_handler = nxt_event_conn_listen_event_error;
         cls->socket.log = &nxt_main_log;
@@ -102,7 +95,7 @@ nxt_event_conn_accept_alloc(nxt_task_t *task, nxt_event_conn_listen_t *cls)
 
         if (nxt_fast_path(mp != NULL)) {
             /* This allocation cannot fail. */
-            c = nxt_event_conn_create(mp, cls->socket.log);
+            c = nxt_event_conn_create(mp, cls->socket.task);
 
             cls->socket.data = c;
             c->socket.read_work_queue = cls->socket.read_work_queue;
@@ -112,7 +105,7 @@ nxt_event_conn_accept_alloc(nxt_task_t *task, nxt_event_conn_listen_t *cls)
             c->listen = ls;
 
             /* This allocation cannot fail. */
-            remote = nxt_sockaddr_alloc(mp, ls->socklen);
+            remote = nxt_sockaddr_alloc(mp, ls->socklen, ls->address_length);
             c->remote = remote;
 
             sa = ls->sockaddr;
@@ -137,7 +130,7 @@ nxt_event_conn_listen_handler(nxt_task_t *task, void *obj, void *data)
     nxt_event_conn_listen_t  *cls;
 
     cls = obj;
-    cls->ready = cls->batch;
+    cls->ready = cls->batch0;
 
     cls->accept(task, cls, data);
 }
@@ -158,7 +151,7 @@ nxt_event_conn_io_accept(nxt_task_t *task, void *obj, void *data)
     cls->ready--;
     cls->socket.read_ready = (cls->ready != 0);
 
-    len = nxt_socklen(c->remote);
+    len = c->remote->socklen;
 
     if (len >= sizeof(struct sockaddr)) {
         sa = &c->remote->u.sockaddr;
@@ -182,8 +175,8 @@ nxt_event_conn_io_accept(nxt_task_t *task, void *obj, void *data)
      * Linux does not inherit non-blocking mode
      * from listen socket for accept()ed socket.
      */
-    if (nxt_slow_path(nxt_socket_nonblocking(s) != NXT_OK)) {
-        nxt_socket_close(s);
+    if (nxt_slow_path(nxt_socket_nonblocking(task, s) != NXT_OK)) {
+        nxt_socket_close(task, s);
     }
 
 #endif
@@ -200,10 +193,10 @@ nxt_event_conn_accept(nxt_task_t *task, nxt_event_conn_listen_t *cls,
 {
     nxt_event_conn_t  *next;
 
-    /* This allocation cannot fail. */
-    (void) nxt_sockaddr_text(c->mem_pool, c->remote, 0);
+    nxt_sockaddr_text(c->remote);
 
-    nxt_debug(task, "client: %*s", c->remote->text_len, c->remote->text);
+    nxt_debug(task, "client: %*s",
+              c->remote->address_length, nxt_sockaddr_address(c->remote));
 
     nxt_queue_insert_head(&task->thread->engine->idle_connections, &c->link);
 

@@ -44,7 +44,7 @@ nxt_event_engine_create(nxt_thread_t *thr,
     thr->engine = engine;
     thr->fiber = &engine->fibers->fiber;
 
-    engine->batch = batch;
+    engine->batch0 = batch;
 
     if (flags & NXT_ENGINE_FIBERS) {
         engine->fibers = nxt_fiber_main_create(engine);
@@ -190,7 +190,7 @@ nxt_event_engine_signal_pipe_create(nxt_event_engine_t *engine)
      * and in non-blocking node for reader.
      */
 
-    if (nxt_pipe_create(pipe->fds, 1, 0) != NXT_OK) {
+    if (nxt_pipe_create(&engine->task, pipe->fds, 1, 0) != NXT_OK) {
         nxt_free(pipe);
         return NXT_ERROR;
     }
@@ -220,7 +220,7 @@ nxt_event_engine_signal_pipe_free(nxt_event_engine_t *engine)
 
         if (pipe->event.read_work_queue != NULL) {
             nxt_fd_event_close(engine, &pipe->event);
-            nxt_pipe_close(pipe->fds);
+            nxt_pipe_close(pipe->event.task, pipe->fds);
         }
 
         nxt_free(pipe);
@@ -235,7 +235,7 @@ nxt_event_engine_signal_pipe_close(nxt_task_t *task, void *obj, void *data)
 
     pipe = obj;
 
-    nxt_pipe_close(pipe->fds);
+    nxt_pipe_close(pipe->event.task, pipe->fds);
     nxt_free(pipe);
 }
 
@@ -331,15 +331,17 @@ nxt_event_engine_post_handler(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_event_engine_signal_pipe_error(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_event_engine_t  *engine;
+    nxt_event_engine_t       *engine;
+    nxt_event_engine_pipe_t  *pipe;
 
     engine = task->thread->engine;
+    pipe = engine->pipe;
 
     nxt_log(task, NXT_LOG_CRIT, "engine pipe(%FD:%FD) event error",
-            engine->pipe->fds[0], engine->pipe->fds[1]);
+            pipe->fds[0], pipe->fds[1]);
 
-    nxt_fd_event_close(engine, &engine->pipe->event);
-    nxt_pipe_close(engine->pipe->fds);
+    nxt_fd_event_close(engine, &pipe->event);
+    nxt_pipe_close(pipe->event.task, pipe->fds);
 }
 
 
@@ -373,7 +375,7 @@ nxt_event_engine_change(nxt_thread_t *thr, nxt_task_t *task,
     nxt_event_engine_t  *engine;
 
     engine = thr->engine;
-    engine->batch = batch;
+    engine->batch0 = batch;
 
     if (!engine->event.signal_support && interface->signal_support) {
         /*

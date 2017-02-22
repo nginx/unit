@@ -161,8 +161,8 @@ NXT_EXPORT nxt_int_t nxt_file_set_access(nxt_file_name_t *name,
 NXT_EXPORT nxt_int_t nxt_file_rename(nxt_file_name_t *old_name,
     nxt_file_name_t *new_name);
 
-NXT_EXPORT nxt_int_t nxt_fd_nonblocking(nxt_fd_t fd);
-NXT_EXPORT nxt_int_t nxt_fd_blocking(nxt_fd_t fd);
+NXT_EXPORT nxt_int_t nxt_fd_nonblocking(nxt_task_t *task, nxt_fd_t fd);
+NXT_EXPORT nxt_int_t nxt_fd_blocking(nxt_task_t *task, nxt_fd_t fd);
 NXT_EXPORT ssize_t nxt_fd_write(nxt_fd_t fd, u_char *buf, size_t size);
 NXT_EXPORT ssize_t nxt_fd_read(nxt_fd_t fd, u_char *buf, size_t size);
 NXT_EXPORT void nxt_fd_close(nxt_fd_t fd);
@@ -185,9 +185,9 @@ nxt_write_syslog(priority, message)                                           \
     syslog(priority, "%s", message)
 
 
-NXT_EXPORT nxt_int_t nxt_pipe_create(nxt_fd_t *pp, nxt_bool_t nbread,
-    nxt_bool_t nbwrite);
-NXT_EXPORT void nxt_pipe_close(nxt_fd_t *pp);
+NXT_EXPORT nxt_int_t nxt_pipe_create(nxt_task_t *task, nxt_fd_t *pp,
+    nxt_bool_t nbread, nxt_bool_t nbwrite);
+NXT_EXPORT void nxt_pipe_close(nxt_task_t *task, nxt_fd_t *pp);
 
 NXT_EXPORT size_t nxt_dir_current(char *buf, size_t len);
 

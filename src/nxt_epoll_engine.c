@@ -106,7 +106,7 @@ static nxt_event_conn_io_t  nxt_epoll_edge_event_conn_io = {
     nxt_epoll_edge_event_conn_io_recvbuf,
     nxt_event_conn_io_recv,
 
-    nxt_event_conn_io_write,
+    nxt_conn_io_write,
     nxt_event_conn_io_write_chunk,
 
 #if (NXT_HAVE_LINUX_SENDFILE)
@@ -697,7 +697,7 @@ nxt_epoll_add_signal(nxt_event_engine_t *engine)
 
     engine->u.epoll.signalfd.fd = fd;
 
-    if (nxt_fd_nonblocking(fd) != NXT_OK) {
+    if (nxt_fd_nonblocking(&engine->task, fd) != NXT_OK) {
         return NXT_ERROR;
     }
 
@@ -779,7 +779,8 @@ nxt_epoll_enable_post(nxt_event_engine_t *engine, nxt_work_handler_t handler)
         return NXT_ERROR;
     }
 
-    if (nxt_fd_nonblocking(engine->u.epoll.eventfd.fd) != NXT_OK) {
+    ret = nxt_fd_nonblocking(&engine->task, engine->u.epoll.eventfd.fd);
+    if (nxt_slow_path(ret != NXT_OK)) {
         return NXT_ERROR;
     }
 
@@ -998,7 +999,7 @@ nxt_epoll_event_conn_io_accept4(nxt_task_t *task, void *obj, void *data)
     cls->ready--;
     cls->socket.read_ready = (cls->ready != 0);
 
-    len = nxt_socklen(c->remote);
+    len = c->remote->socklen;
 
     if (len >= sizeof(struct sockaddr)) {
         sa = &c->remote->u.sockaddr;
@@ -1049,7 +1050,7 @@ nxt_epoll_edge_event_conn_io_connect(nxt_task_t *task, void *obj, void *data)
 
     state = c->write_state;
 
-    switch (nxt_socket_connect(c->socket.fd, c->remote) ){
+    switch (nxt_socket_connect(task, c->socket.fd, c->remote) ){
 
     case NXT_OK:
         c->socket.write_ready = 1;
@@ -1105,8 +1106,7 @@ nxt_epoll_edge_event_conn_io_connect(nxt_task_t *task, void *obj, void *data)
         break;
     }
 
-    nxt_event_conn_io_handle(task->thread, c->write_work_queue, handler,
-                             task, c, data);
+    nxt_work_queue_add(c->write_work_queue, handler, task, c, data);
 }
 
 
@@ -1126,8 +1126,8 @@ nxt_epoll_edge_event_conn_connected(nxt_task_t *task, void *obj, void *data)
             nxt_timer_disable(task->thread->engine, &c->write_timer);
         }
 
-        nxt_event_conn_io_handle(task->thread, c->write_work_queue,
-                                 c->write_state->ready_handler, task, c, data);
+        nxt_work_queue_add(c->write_work_queue, c->write_state->ready_handler,
+                           task, c, data);
         return;
     }
 

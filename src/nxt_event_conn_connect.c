@@ -8,31 +8,7 @@
 
 
 void
-nxt_event_conn_connect(nxt_task_t *task, nxt_event_conn_t *c)
-{
-    void                *data;
-    nxt_event_engine_t  *engine;
-
-    data = c->socket.data;
-    engine = task->thread->engine;
-
-    if (engine->batch != 0) {
-        nxt_work_queue_add(&engine->socket_work_queue,
-                           nxt_event_conn_batch_socket, task, c, data);
-        return;
-    }
-
-    if (nxt_event_conn_socket(task, c) == NXT_OK) {
-        c->io->connect(task, c, data);
-        return;
-    }
-
-    c->write_state->error_handler(task, c, data);
-}
-
-
-void
-nxt_event_conn_batch_socket(nxt_task_t *task, void *obj, void *data)
+nxt_event_conn_sys_socket(nxt_task_t *task, void *obj, void *data)
 {
     nxt_event_conn_t    *c;
     nxt_work_handler_t  handler;
@@ -64,7 +40,7 @@ nxt_event_conn_io_connect(nxt_task_t *task, void *obj, void *data)
 
     state = c->write_state;
 
-    switch (nxt_socket_connect(c->socket.fd, c->remote)) {
+    switch (nxt_socket_connect(task, c->socket.fd, c->remote)) {
 
     case NXT_OK:
         c->socket.write_ready = 1;
@@ -91,8 +67,7 @@ nxt_event_conn_io_connect(nxt_task_t *task, void *obj, void *data)
         break;
     }
 
-    nxt_event_conn_io_handle(task->thread, c->write_work_queue, handler, task,
-                             c, data);
+    nxt_work_queue_add(c->write_work_queue, handler, task, c, data);
 }
 
 
@@ -106,7 +81,7 @@ nxt_event_conn_socket(nxt_task_t *task, nxt_event_conn_t *c)
 
     family = c->remote->u.sockaddr.sa_family;
 
-    s = nxt_socket_create(family, c->remote->type, 0, NXT_NONBLOCK);
+    s = nxt_socket_create(task, family, c->remote->type, 0, NXT_NONBLOCK);
 
     if (nxt_slow_path(s == -1)) {
         return NXT_ERROR;
@@ -130,8 +105,8 @@ nxt_event_conn_socket(nxt_task_t *task, nxt_event_conn_t *c)
     c->write_timer.task = task;
 
     if (c->local != NULL) {
-        if (nxt_slow_path(nxt_socket_bind(s, c->local, 0) != NXT_OK)) {
-            nxt_socket_close(s);
+        if (nxt_slow_path(nxt_socket_bind(task, s, c->local, 0) != NXT_OK)) {
+            nxt_socket_close(task, s);
             return NXT_ERROR;
         }
     }
@@ -172,16 +147,15 @@ nxt_event_conn_connect_test(nxt_task_t *task, void *obj, void *data)
     }
 
     if (err == 0) {
-        nxt_event_conn_io_handle(task->thread, c->write_work_queue,
-                                 c->write_state->ready_handler, task, c, data);
+        nxt_work_queue_add(c->write_work_queue, c->write_state->ready_handler,
+                           task, c, data);
         return;
     }
 
     c->socket.error = err;
 
-    nxt_log(task, nxt_socket_error_level(err, c->socket.log_error),
-            "connect(%d, %*s) failed %E",
-            c->socket.fd, c->remote->text_len, c->remote->text, err);
+    nxt_log(task, nxt_socket_error_level(err), "connect(%d, %*s) failed %E",
+            c->socket.fd, c->remote->length, nxt_sockaddr_start(c->remote));
 
     nxt_event_conn_connect_error(task, c, data);
 }
@@ -216,6 +190,5 @@ nxt_event_conn_connect_error(nxt_task_t *task, void *obj, void *data)
         break;
     }
 
-    nxt_event_conn_io_handle(task->thread, c->write_work_queue, handler,
-                             task, c, data);
+    nxt_work_queue_add(c->write_work_queue, handler, task, c, data);
 }

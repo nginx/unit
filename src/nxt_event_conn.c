@@ -21,7 +21,7 @@ nxt_event_conn_io_t  nxt_unix_event_conn_io = {
     nxt_event_conn_io_recvbuf,
     nxt_event_conn_io_recv,
 
-    nxt_event_conn_io_write,
+    nxt_conn_io_write,
     nxt_event_conn_io_write_chunk,
 
 #if (NXT_HAVE_LINUX_SENDFILE)
@@ -48,7 +48,7 @@ nxt_event_conn_io_t  nxt_unix_event_conn_io = {
 
 
 nxt_event_conn_t *
-nxt_event_conn_create(nxt_mem_pool_t *mp, nxt_log_t *log)
+nxt_event_conn_create(nxt_mem_pool_t *mp, nxt_task_t *task)
 {
     nxt_thread_t      *thr;
     nxt_event_conn_t  *c;
@@ -63,7 +63,7 @@ nxt_event_conn_create(nxt_mem_pool_t *mp, nxt_log_t *log)
     c->socket.fd = -1;
 
     c->socket.log = &c->log;
-    c->log = *log;
+    c->log = *task->log;
 
     /* The while loop skips possible uint32_t overflow. */
 
@@ -185,7 +185,7 @@ nxt_conn_shutdown_handler(nxt_task_t *task, void *obj, void *data)
 
     c->socket.shutdown = 1;
 
-    nxt_socket_shutdown(c->socket.fd, SHUT_RDWR);
+    nxt_socket_shutdown(task, c->socket.fd, SHUT_RDWR);
 
     nxt_work_queue_add(&engine->close_work_queue, nxt_conn_close_handler,
                        task, c, engine);
@@ -210,7 +210,7 @@ nxt_conn_close_handler(nxt_task_t *task, void *obj, void *data)
     events_pending = nxt_fd_event_close(engine, &c->socket);
 
     if (events_pending == 0) {
-        nxt_socket_close(c->socket.fd);
+        nxt_socket_close(task, c->socket.fd);
         c->socket.fd = -1;
 
         if (timers_pending == 0) {
@@ -242,7 +242,7 @@ nxt_conn_close_timer_handler(nxt_task_t *task, void *obj, void *data)
     nxt_debug(task, "event conn close handler fd:%d", c->socket.fd);
 
     if (c->socket.fd != -1) {
-        nxt_socket_close(c->socket.fd);
+        nxt_socket_close(task, c->socket.fd);
         c->socket.fd = -1;
     }
 

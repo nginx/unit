@@ -219,9 +219,8 @@ nxt_event_conn_job_sendfile_return(nxt_task_t *task, void *obj, void *data)
     }
 
     if (sent != 0) {
-        nxt_event_conn_io_handle(task->thread, c->write_work_queue,
-                                 c->write_state->ready_handler,
-                                 task, c, c->socket.data);
+        nxt_work_queue_add(c->write_work_queue, c->write_state->ready_handler,
+                           task, c, c->socket.data);
         /*
          * Fall through if first operations were
          * successful but the last one failed.
@@ -229,9 +228,8 @@ nxt_event_conn_job_sendfile_return(nxt_task_t *task, void *obj, void *data)
     }
 
     if (nxt_slow_path(c->socket.error != 0)) {
-        nxt_event_conn_io_handle(task->thread, c->write_work_queue,
-                                 c->write_state->error_handler,
-                                 task, c, c->socket.data);
+        nxt_work_queue_add(c->write_work_queue, c->write_state->error_handler,
+                           task, c, c->socket.data);
     }
 }
 

@@ -66,31 +66,29 @@ struct nxt_fd_event_s {
 #if (NXT_64BIT)
     nxt_fd_event_state_t      read:8;       /* 3 bits. */
     nxt_fd_event_state_t      write:8;      /* 3 bits. */
-    nxt_socket_error_level_t  log_error:8;  /* 3 bits. */
     uint8_t                   read_ready;
     uint8_t                   write_ready;
     uint8_t                   changing;
     uint8_t                   closed;
-    uint8_t                   shutdown;
     uint8_t                   timedout;
+    uint8_t                   shutdown:1;
 #if (NXT_HAVE_EPOLL)
     uint8_t                   epoll_eof:1;
     uint8_t                   epoll_error:1;
 #endif
 #if (NXT_HAVE_KQUEUE)
-    uint8_t                   kq_eof;
+    uint8_t                   kq_eof:1;
 #endif
 
 #else /* NXT_32BIT */
     nxt_fd_event_state_t      read:3;
     nxt_fd_event_state_t      write:3;
-    nxt_socket_error_level_t  log_error:3;
     uint8_t                   read_ready:1;
     uint8_t                   write_ready:1;
     uint8_t                   changing:1;
     uint8_t                   closed:1;
-    uint8_t                   shutdown:1;
     uint8_t                   timedout:1;
+    uint8_t                   shutdown:1;
 #if (NXT_HAVE_EPOLL)
     uint8_t                   epoll_eof:1;
     uint8_t                   epoll_error:1;

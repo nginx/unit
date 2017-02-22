@@ -28,10 +28,12 @@ typedef struct {
     uint8_t                   ipv6only;            /* 2 bits */
 #endif
 
-    void                      *servers;
+    uint8_t                   socklen;
+    uint8_t                   address_length;
 
-    socklen_t                 socklen;
     uint32_t                  mem_pool_size;
+
+    void                      *servers;
 } nxt_listen_socket_t;
 
 
@@ -51,10 +53,10 @@ typedef struct {
 #endif
 
 
-NXT_EXPORT nxt_int_t nxt_listen_socket_create(nxt_listen_socket_t *ls,
-    nxt_bool_t bind_test);
-NXT_EXPORT nxt_int_t nxt_listen_socket_update(nxt_listen_socket_t *ls,
-    nxt_listen_socket_t *prev);
+NXT_EXPORT nxt_int_t nxt_listen_socket_create(nxt_task_t *task,
+    nxt_listen_socket_t *ls, nxt_bool_t bind_test);
+NXT_EXPORT nxt_int_t nxt_listen_socket_update(nxt_task_t *task,
+    nxt_listen_socket_t *ls, nxt_listen_socket_t *prev);
 NXT_EXPORT size_t nxt_listen_socket_pool_min_size(nxt_listen_socket_t *ls);
 
 

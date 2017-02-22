@@ -126,6 +126,7 @@ NXT_LIB_SRCS=" \
     src/nxt_job_resolve.c \
     src/nxt_sockaddr.c \
     src/nxt_listen_socket.c \
+    src/nxt_upstream_round_robin.c \
 "
 
 NXT_LIB_SRC0=" \
@@ -190,7 +191,6 @@ NXT_LIB_UNIT_TEST_SRCS=" \
     test/nxt_rbtree_unit_test.c \
     test/nxt_term_parse_unit_test.c \
     test/nxt_msec_diff_unit_test.c \
-    test/nxt_exp_approximation.c \
     test/nxt_mem_cache_pool_unit_test.c \
     test/nxt_mem_zone_unit_test.c \
     test/nxt_lvlhsh_unit_test.c \
@@ -330,6 +330,7 @@ NXT_SRCS=" \
     src/nxt_cycle.c \
     src/nxt_port.c \
     src/nxt_application.c \
+    src/nxt_stream_module.c \
     src/nxt_master_process.c \
     src/nxt_worker_process.c \
 "

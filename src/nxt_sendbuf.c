@@ -12,6 +12,77 @@ static nxt_bool_t nxt_sendbuf_copy(nxt_buf_mem_t *bm, nxt_buf_t *b,
 
 
 nxt_uint_t
+nxt_sendbuf_mem_coalesce0(nxt_task_t *task, nxt_sendbuf_t *sb,
+    struct iovec *iov, nxt_uint_t niov_max)
+{
+    u_char      *last;
+    size_t      size, total;
+    nxt_buf_t   *b;
+    nxt_uint_t  n;
+
+    total = sb->size;
+    last = NULL;
+    n = (nxt_uint_t) -1;
+
+    for (b = sb->buf; b != NULL && total < sb->limit; b = b->next) {
+
+        nxt_prefetch(b->next);
+
+        if (nxt_buf_is_file(b)) {
+            break;
+        }
+
+        if (nxt_buf_is_mem(b)) {
+
+            size = b->mem.free - b->mem.pos;
+
+            if (size != 0) {
+
+                if (total + size > sb->limit) {
+                    size = sb->limit - total;
+
+                    if (size == 0) {
+                        break;
+                    }
+                }
+
+                if (b->mem.pos != last) {
+
+                    if (++n >= niov_max) {
+                        goto done;
+                    }
+
+                    iov[n].iov_base =  b->mem.pos;
+                    iov[n].iov_len = size;
+
+                } else {
+                    iov[n].iov_len += size;
+                }
+
+                nxt_debug(task, "sendbuf: %ui, %p, %uz",
+                          n, iov[n].iov_base, iov[n].iov_len);
+
+                total += size;
+                last = b->mem.pos + size;
+            }
+
+        } else {
+            sb->sync = 1;
+            sb->last |= nxt_buf_is_last(b);
+        }
+    }
+
+    n++;
+
+done:
+
+    sb->buf = b;
+
+    return n;
+}
+
+
+nxt_uint_t
 nxt_sendbuf_mem_coalesce(nxt_task_t *task, nxt_sendbuf_coalesce_t *sb)
 {
     u_char      *last;

@@ -4,8 +4,8 @@
  * Copyright (C) NGINX, Inc.
  */
 
-#ifndef _NXT_UNIX_SOCKET_H_INCLUDED_
-#define _NXT_UNIX_SOCKET_H_INCLUDED_
+#ifndef _NXT_SOCKET_H_INCLUDED_
+#define _NXT_SOCKET_H_INCLUDED_
 
 
 typedef int  nxt_socket_t;
@@ -91,29 +91,24 @@ typedef union {
 #define NXT_MAXHOSTNAMELEN  MAXHOSTNAMELEN
 
 
-typedef enum {
-    NXT_SOCKET_ERROR_IGNORE       = 0x1,
-    NXT_SOCKET_ECONNRESET_IGNORE  = 0x2,
-    NXT_SOCKET_EINVAL_IGNORE      = 0x4,
-} nxt_socket_error_level_t;
+NXT_EXPORT nxt_socket_t nxt_socket_create(nxt_task_t *task, nxt_uint_t family,
+    nxt_uint_t type, nxt_uint_t protocol, nxt_uint_t flags);
+NXT_EXPORT void nxt_socket_close(nxt_task_t *task, nxt_socket_t s);
+NXT_EXPORT nxt_int_t nxt_socket_getsockopt(nxt_task_t *task, nxt_socket_t s,
+    nxt_uint_t level, nxt_uint_t sockopt);
+NXT_EXPORT nxt_int_t nxt_socket_setsockopt(nxt_task_t *task, nxt_socket_t s,
+    nxt_uint_t level, nxt_uint_t sockopt, int val);
+NXT_EXPORT nxt_int_t nxt_socket_bind(nxt_task_t *task, nxt_socket_t s,
+    nxt_sockaddr_t *sa, nxt_bool_t test);
+NXT_EXPORT nxt_int_t nxt_socket_connect(nxt_task_t *task, nxt_socket_t s,
+    nxt_sockaddr_t *sa);
+NXT_EXPORT void nxt_socket_shutdown(nxt_task_t *task, nxt_socket_t s,
+    nxt_uint_t how);
+nxt_uint_t nxt_socket_error_level(nxt_err_t err);
 
-
-NXT_EXPORT nxt_socket_t nxt_socket_create(nxt_uint_t family, nxt_uint_t type,
-    nxt_uint_t protocol, nxt_uint_t flags);
-NXT_EXPORT void nxt_socket_close(nxt_socket_t s);
-NXT_EXPORT nxt_int_t nxt_socket_getsockopt(nxt_socket_t s, nxt_uint_t level,
-    nxt_uint_t sockopt);
-NXT_EXPORT nxt_int_t nxt_socket_setsockopt(nxt_socket_t s, nxt_uint_t level,
-    nxt_uint_t sockopt, int val);
-NXT_EXPORT nxt_int_t nxt_socket_bind(nxt_socket_t s, nxt_sockaddr_t *sa,
-   nxt_bool_t test);
-NXT_EXPORT nxt_int_t nxt_socket_connect(nxt_socket_t s, nxt_sockaddr_t *sa);
-NXT_EXPORT void nxt_socket_shutdown(nxt_socket_t s, nxt_uint_t how);
-nxt_uint_t nxt_socket_error_level(nxt_err_t err,
-    nxt_socket_error_level_t level);
-
-NXT_EXPORT nxt_int_t nxt_socketpair_create(nxt_socket_t *pair);
-NXT_EXPORT void nxt_socketpair_close(nxt_socket_t *pair);
+NXT_EXPORT nxt_int_t nxt_socketpair_create(nxt_task_t *task,
+    nxt_socket_t *pair);
+NXT_EXPORT void nxt_socketpair_close(nxt_task_t *task, nxt_socket_t *pair);
 NXT_EXPORT ssize_t nxt_socketpair_send(nxt_fd_event_t *ev, nxt_fd_t fd,
    nxt_iobuf_t *iob, nxt_uint_t niob);
 NXT_EXPORT ssize_t nxt_socketpair_recv(nxt_fd_event_t *ev, nxt_fd_t *fd,
@@ -121,12 +116,12 @@ NXT_EXPORT ssize_t nxt_socketpair_recv(nxt_fd_event_t *ev, nxt_fd_t *fd,
 
 
 #define                                                                       \
-nxt_socket_nonblocking(fd)                                                    \
-    nxt_fd_nonblocking(fd)
+nxt_socket_nonblocking(task, fd)                                              \
+    nxt_fd_nonblocking(task, fd)
 
 #define                                                                       \
-nxt_socket_blocking(fd)                                                       \
-    nxt_fd_blocking(fd)
+nxt_socket_blocking(task, fd)                                                 \
+    nxt_fd_blocking(task, fd)
 
 
-#endif /* _NXT_UNIX_SOCKET_H_INCLUDED_ */
+#endif /* _NXT_SOCKET_H_INCLUDED_ */

@@ -17,9 +17,12 @@ static nxt_int_t nxt_job_sockaddr_inet_parse(nxt_job_sockaddr_parse_t *jbs);
 
 
 nxt_sockaddr_t *
-nxt_sockaddr_alloc(nxt_mem_pool_t *mp, socklen_t length)
+nxt_sockaddr_alloc(nxt_mem_pool_t *mp, socklen_t socklen, size_t address_length)
 {
+    size_t          size;
     nxt_sockaddr_t  *sa;
+
+    size = offsetof(nxt_sockaddr_t, u) + socklen + address_length;
 
     /*
      * The current struct sockaddr's define 32-bit fields at maximum
@@ -28,10 +31,13 @@ nxt_sockaddr_alloc(nxt_mem_pool_t *mp, socklen_t length)
      * If 128-bit alignment will be required then nxt_mem_malloc() and
      * nxt_memzero() should be used instead.
      */
-    sa = nxt_mem_zalloc(mp, offsetof(nxt_sockaddr_t, u) + length);
+
+    sa = nxt_mem_zalloc(mp, size);
 
     if (nxt_fast_path(sa != NULL)) {
-        nxt_socklen_set(sa, length);
+        sa->socklen = socklen;
+        sa->length = address_length;
+        sa->sockaddr_size = size;
     }
 
     return sa;
@@ -40,7 +46,7 @@ nxt_sockaddr_alloc(nxt_mem_pool_t *mp, socklen_t length)
 
 nxt_sockaddr_t *
 nxt_sockaddr_create(nxt_mem_pool_t *mp, struct sockaddr *sockaddr,
-    socklen_t length)
+    socklen_t length, size_t address_length)
 {
     size_t          size, copy;
     nxt_sockaddr_t  *sa;
@@ -95,18 +101,10 @@ nxt_sockaddr_create(nxt_mem_pool_t *mp, struct sockaddr *sockaddr,
 
 #endif  /* NXT_HAVE_UNIX_DOMAIN */
 
-    sa = nxt_sockaddr_alloc(mp, size);
+    sa = nxt_sockaddr_alloc(mp, size, address_length);
 
     if (nxt_fast_path(sa != NULL)) {
-
         nxt_memcpy(&sa->u.sockaddr, sockaddr, copy);
-
-#if (NXT_SOCKADDR_SA_LEN)
-
-        /* Update shortcut sockaddr length overwritten by nxt_memcpy(). */
-        nxt_socklen_set(sa, size);
-
-#endif
 
 #if (NXT_HAVE_UNIX_DOMAIN && NXT_OPENBSD)
 
@@ -127,7 +125,7 @@ nxt_sockaddr_copy(nxt_mem_pool_t *mp, nxt_sockaddr_t *src)
     size_t          length;
     nxt_sockaddr_t  *dst;
 
-    length = offsetof(nxt_sockaddr_t, u) + nxt_socklen(src);
+    length = offsetof(nxt_sockaddr_t, u) + src->socklen;
 
     dst = nxt_mem_alloc(mp, length);
 
@@ -140,9 +138,10 @@ nxt_sockaddr_copy(nxt_mem_pool_t *mp, nxt_sockaddr_t *src)
 
 
 nxt_sockaddr_t *
-nxt_getsockname(nxt_mem_pool_t *mp, nxt_socket_t s)
+nxt_getsockname(nxt_task_t *task, nxt_mem_pool_t *mp, nxt_socket_t s)
 {
     int                 ret;
+    size_t              length;
     socklen_t           socklen;
     nxt_sockaddr_buf_t  sockaddr;
 
@@ -151,44 +150,148 @@ nxt_getsockname(nxt_mem_pool_t *mp, nxt_socket_t s)
     ret = getsockname(s, &sockaddr.buf, &socklen);
 
     if (nxt_fast_path(ret == 0)) {
-        return nxt_sockaddr_create(mp, &sockaddr.buf, socklen);
+
+        switch (sockaddr.buf.sa_family) {
+#if (NXT_INET6)
+        case AF_INET6:
+             length = NXT_INET6_ADDR_STR_LEN;
+             break;
+#endif
+
+#if (NXT_HAVE_UNIX_DOMAIN)
+        case AF_UNIX:
+             length = sizeof("unix:") - 1 + socklen;
+#endif
+             break;
+
+        case AF_INET:
+             length = NXT_INET_ADDR_STR_LEN;
+             break;
+
+        default:
+             length = 0;
+             break;
+        }
+
+        return nxt_sockaddr_create(mp, &sockaddr.buf, socklen, length);
     }
 
-    nxt_thread_log_error(NXT_LOG_ERR, "getsockname(%d) failed %E",
-                         s, nxt_errno);
+    nxt_log(task, NXT_LOG_ERR, "getsockname(%d) failed %E", s, nxt_errno);
 
     return NULL;
 }
 
 
-nxt_int_t
-nxt_sockaddr_text(nxt_mem_pool_t *mp, nxt_sockaddr_t *sa, nxt_bool_t port)
+void
+nxt_sockaddr_text(nxt_sockaddr_t *sa)
 {
-    size_t  length;
-    u_char  *p;
-    u_char  buf[NXT_SOCKADDR_STR_LEN + NXT_SOCKPORT_STR_LEN];
+    size_t    offset;
+    u_char    *p, *start, *end, *octet;
+    uint32_t  port;
 
-    length = NXT_SOCKADDR_STR_LEN + NXT_SOCKPORT_STR_LEN;
+    end = (u_char *) sa + sa->sockaddr_size;
 
-    length = nxt_sockaddr_ntop(sa, buf, buf + length, port);
+    switch (sa->u.sockaddr.sa_family) {
 
-    p = nxt_mem_alloc(mp, length);
+    case AF_INET:
+        offset = offsetof(nxt_sockaddr_t, u) + sizeof(struct sockaddr_in);
 
-    if (nxt_fast_path(p != NULL)) {
+        sa->start = offset;
+        sa->address_start = offset;
 
-        sa->text = p;
-        sa->text_len = length;
-        nxt_memcpy(p, buf, length);
+        start = (u_char *) sa + offset;
+        octet = (u_char *) &sa->u.sockaddr_in.sin_addr;
 
-        return NXT_OK;
+        p = nxt_sprintf(start, end, "%ud.%ud.%ud.%ud",
+                        octet[0], octet[1], octet[2], octet[3]);
+
+        sa->address_length = p - start;
+        sa->port_start = sa->address_length + 1;
+
+        port = sa->u.sockaddr_in.sin_port;
+
+        break;
+
+#if (NXT_INET6)
+
+    case AF_INET6:
+        offset = offsetof(nxt_sockaddr_t, u) + sizeof(struct sockaddr_in6);
+
+        sa->start = offset;
+        sa->address_start = offset;
+
+        start = (u_char *) sa + offset;
+        p = start;
+
+        *p++ = '[';
+
+        p = nxt_inet6_ntop(sa->u.sockaddr_in6.sin6_addr.s6_addr, p, end);
+
+        sa->address_length = p - (start + 1);
+        sa->port_start = sa->address_length + 2;
+        
+        *p++ = ']';
+
+        port = sa->u.sockaddr_in6.sin6_port;
+
+        break;
+
+#endif
+
+#if (NXT_HAVE_UNIX_DOMAIN)
+
+    case AF_UNIX:
+
+        offset = offsetof(nxt_sockaddr_t, u) + sizeof(struct sockaddr_un);
+
+        sa->start = offset;
+        sa->address_start = offset;
+
+        start = (u_char *) sa + offset;
+        p = start;
+
+#if (NXT_LINUX)
+
+        p = (u_char *) sa->u.sockaddr_un.sun_path;
+
+        if (p[0] == '\0') {
+            int  length;
+
+            /* Linux abstract socket address has no trailing zero. */
+            length = sa->socklen - offsetof(struct sockaddr_un, sun_path);
+
+            p = nxt_sprintf(start, end, "unix:@%*s", length - 1, p + 1);
+
+        } else {
+            p = nxt_sprintf(start, end, "unix:%s", p);
+        }
+
+#else  /* !(NXT_LINUX) */
+
+        p = nxt_sprintf(start, end, "unix:%s", p);
+
+#endif
+
+        sa->address_length = p - start;
+        sa->port_start = sa->address_length;
+        sa->length = p - start;
+
+        return;
+
+#endif  /* NXT_HAVE_UNIX_DOMAIN */
+
+    default:
+        return;
     }
 
-    return NXT_ERROR;
+    p = nxt_sprintf(p, end, ":%d", ntohs(port));
+
+    sa->length = p - start;
 }
 
 
 uint32_t
-nxt_sockaddr_port(nxt_sockaddr_t *sa)
+nxt_sockaddr_port_number(nxt_sockaddr_t *sa)
 {
     uint32_t  port;
 
@@ -221,7 +324,7 @@ nxt_sockaddr_port(nxt_sockaddr_t *sa)
 nxt_bool_t
 nxt_sockaddr_cmp(nxt_sockaddr_t *sa1, nxt_sockaddr_t *sa2)
 {
-    if (nxt_socklen(sa1) != nxt_socklen(sa2)) {
+    if (sa1->socklen != sa2->socklen) {
         return 0;
     }
 
@@ -264,7 +367,7 @@ nxt_sockaddr_cmp(nxt_sockaddr_t *sa1, nxt_sockaddr_t *sa2)
         {
             size_t  length;
 
-            length = nxt_socklen(sa1) - offsetof(struct sockaddr_un, sun_path);
+            length = sa1->socklen - offsetof(struct sockaddr_un, sun_path);
 
             if (nxt_memcmp(&sa1->u.sockaddr_un.sun_path,
                            &sa2->u.sockaddr_un.sun_path, length)
@@ -347,8 +450,7 @@ nxt_sockaddr_ntop(nxt_sockaddr_t *sa, u_char *buf, u_char *end, nxt_bool_t port)
 
             /* Linux abstract socket address has no trailing zero. */
 
-            length = nxt_socklen(sa)
-                     - offsetof(struct sockaddr_un, sun_path) - 1;
+            length = sa->socklen - offsetof(struct sockaddr_un, sun_path) - 1;
             p = nxt_sprintf(buf, end, "unix:\\0%*s", length, p + 1);
 
         } else {
@@ -556,7 +658,7 @@ nxt_job_sockaddr_unix_parse(nxt_job_sockaddr_parse_t *jbs)
     jbs->resolve.sockaddrs = nxt_mem_alloc(mp, sizeof(void *));
 
     if (nxt_fast_path(jbs->resolve.sockaddrs != NULL)) {
-        sa = nxt_sockaddr_alloc(mp, socklen);
+        sa = nxt_sockaddr_alloc(mp, socklen, jbs->addr.length);
 
         if (nxt_fast_path(sa != NULL)) {
             jbs->resolve.count = 1;
@@ -763,7 +865,8 @@ nxt_job_sockaddr_inet_parse(nxt_job_sockaddr_parse_t *jbs)
         return NXT_ERROR;
     }
 
-    sa = nxt_sockaddr_alloc(mp, sizeof(struct sockaddr_in));
+    sa = nxt_sockaddr_alloc(mp, sizeof(struct sockaddr_in),
+                            NXT_INET_ADDR_STR_LEN);
 
     if (nxt_fast_path(sa != NULL)) {
         jbs->resolve.count = 1;

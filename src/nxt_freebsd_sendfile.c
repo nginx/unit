@@ -92,7 +92,7 @@ nxt_freebsd_event_conn_io_sendfile(nxt_event_conn_t *c, nxt_buf_t *b,
         hdtr.trl_cnt = ntr;
     }
 
-    nxt_log_debug(c->socket.log, "sendfile(%FD, %d, @%O, %uz) hd:%ui tr:%ui",
+    nxt_debug(c->socket.task, "sendfile(%FD, %d, @%O, %uz) hd:%ui tr:%ui",
                   fb->file->fd, c->socket.fd, fb->file_pos, file_size,
                   nhd, ntr);
 
@@ -102,7 +102,7 @@ nxt_freebsd_event_conn_io_sendfile(nxt_event_conn_t *c, nxt_buf_t *b,
 
     err = (n == -1) ? nxt_errno : 0;
 
-    nxt_log_debug(c->socket.log, "sendfile(): %d sent:%O", n, sent);
+    nxt_debug(c->socket.task, "sendfile(): %d sent:%O", n, sent);
 
     if (n == -1) {
         switch (err) {
@@ -116,23 +116,21 @@ nxt_freebsd_event_conn_io_sendfile(nxt_event_conn_t *c, nxt_buf_t *b,
 
         default:
             c->socket.error = err;
-            nxt_log_error(nxt_socket_error_level(err, c->socket.log_error),
-                          c->socket.log, "sendfile(%FD, %d, %O, %uz) failed "
-                          "%E \"%FN\" hd:%ui tr:%ui", fb->file->fd,
-                          c->socket.fd, fb->file_pos, file_size,
-                          err, fb->file->name, nhd, ntr);
+            nxt_log(c->socket.task, nxt_socket_error_level(err),
+                "sendfile(%FD, %d, %O, %uz) failed %E \"%FN\" hd:%ui tr:%ui",
+                fb->file->fd, c->socket.fd, fb->file_pos, file_size, err,
+                fb->file->name, nhd, ntr);
 
             return NXT_ERROR;
         }
 
-        nxt_log_debug(c->socket.log, "sendfile() %E", err);
+        nxt_debug(c->socket.task, "sendfile() %E", err);
 
         return sent;
 
     } else if (sent == 0) {
-        nxt_log_error(NXT_LOG_ERR, c->socket.log,
-                      "file \"%FN\" was truncated while sendfile()",
-                      fb->file->name);
+        nxt_log(c->socket.task, NXT_LOG_ERR,
+                "file \"%FN\" was truncated while sendfile()", fb->file->name);
 
         return NXT_ERROR;
     }

@@ -42,7 +42,7 @@ nxt_solaris_event_conn_io_sendfilev(nxt_event_conn_t *c, nxt_buf_t *b,
 
     size = nxt_solaris_buf_coalesce(b, sfv, &nsfv, &sync, limit);
 
-    nxt_log_debug(c->socket.log, "sendfilev(%d, %D)", c->socket.fd, nsfv);
+    nxt_debug(c->socket.task, "sendfilev(%d, %D)", c->socket.fd, nsfv);
 
     if (nsfv == 0 && sync) {
         return 0;
@@ -53,7 +53,7 @@ nxt_solaris_event_conn_io_sendfilev(nxt_event_conn_t *c, nxt_buf_t *b,
 
     err = (n == -1) ? nxt_errno : 0;
 
-    nxt_log_debug(c->socket.log, "sendfilev(): %d sent:%uz", n, sent);
+    nxt_debug(c->socket.task, "sendfilev(): %d sent:%uz", n, sent);
 
     if (n == -1) {
         switch (err) {
@@ -67,14 +67,13 @@ nxt_solaris_event_conn_io_sendfilev(nxt_event_conn_t *c, nxt_buf_t *b,
 
         default:
             c->socket.error = err;
-            nxt_log_error(nxt_socket_error_level(err, c->socket.log_error),
-                          c->socket.log, "sendfilev(%d, %D) failed %E",
-                          c->socket.fd, nsfv, err);
+            nxt_log(c->socket.task, nxt_socket_error_level(err),
+                    "sendfilev(%d, %D) failed %E", c->socket.fd, nsfv, err);
 
             return NXT_ERROR;
         }
 
-        nxt_log_debug(c->socket.log, "sendfilev() %E", err);
+        nxt_debug(c->socket.task, "sendfilev() %E", err);
 
         return sent;
     }

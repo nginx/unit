@@ -81,15 +81,18 @@ nxt_job_resolve(nxt_job_resolve_t *jbr)
         switch (r->ai_addr->sa_family) {
 #if (NXT_INET6)
         case AF_INET6:
+             length = NXT_INET6_ADDR_STR_LEN;
+             break;
 #endif
         case AF_INET:
+             length = NXT_INET_ADDR_STR_LEN;
              break;
 
         default:
              continue;
         }
 
-        sa = nxt_sockaddr_create(mp, r->ai_addr, r->ai_addrlen);
+        sa = nxt_sockaddr_create(mp, r->ai_addr, r->ai_addrlen, length);
         if (nxt_slow_path(sa == NULL)) {
             goto fail;
         }

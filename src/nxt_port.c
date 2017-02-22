@@ -153,7 +153,7 @@ nxt_process_port_new_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         return;
     }
 
-    port = nxt_port_alloc();
+    port = nxt_port_alloc(task);
     if (nxt_slow_path(port == NULL)) {
         return;
     }

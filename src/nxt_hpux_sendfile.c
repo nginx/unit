@@ -48,7 +48,7 @@ nxt_hpux_event_conn_io_sendfile(nxt_event_conn_t *c, nxt_buf_t *b, size_t limit)
     sb.size = 0;
     sb.limit = limit;
 
-    nhd = nxt_sendbuf_mem_coalesce(&sb);
+    nhd = nxt_sendbuf_mem_coalesce(c->socket.task, &sb);
 
     if (nhd == 0 && sb.sync) {
         return 0;
@@ -69,7 +69,7 @@ nxt_hpux_event_conn_io_sendfile(nxt_event_conn_t *c, nxt_buf_t *b, size_t limit)
     sb.iobuf = &iov[1];
     sb.nmax = 1;
 
-    ntr = nxt_sendbuf_mem_coalesce(&sb);
+    ntr = nxt_sendbuf_mem_coalesce(c->socket.task, &sb);
 
     /*
      * Disposal of surplus kernel operations
@@ -93,7 +93,7 @@ nxt_hpux_event_conn_io_sendfile(nxt_event_conn_t *c, nxt_buf_t *b, size_t limit)
         hdtrl = iov;
     }
 
-    nxt_log_debug(c->socket.log, "sendfile(%d, %FD, @%O, %uz) hd:%ui tr:%ui",
+    nxt_debug(c->socket.task, "sendfile(%d, %FD, @%O, %uz) hd:%ui tr:%ui",
                   c->socket.fd, fb->file->fd, fb->file_pos, file_size,
                   nhd, ntr);
 
@@ -102,7 +102,7 @@ nxt_hpux_event_conn_io_sendfile(nxt_event_conn_t *c, nxt_buf_t *b, size_t limit)
 
     err = (n == -1) ? nxt_errno : 0;
 
-    nxt_log_debug(c->socket.log, "sendfile(): %uz", n);
+    nxt_debug(c->socket.task, "sendfile(): %uz", n);
 
     if (n == -1) {
         switch (err) {
@@ -116,16 +116,15 @@ nxt_hpux_event_conn_io_sendfile(nxt_event_conn_t *c, nxt_buf_t *b, size_t limit)
 
         default:
             c->socket.error = err;
-            nxt_log_error(nxt_socket_error_level(err, c->socket.log_error),
-                          c->socket.log, "sendfile(%d, %FD, @%O, %uz) failed "
-                          "%E \"%FN\" hd:%ui tr:%ui", c->socket.fd,
-                          fb->file->fd, fb->file_pos, file_size,
-                          err, &fb->file->name, nhd, ntr);
+            nxt_log(c->socket.task, nxt_socket_error_level(err),
+                    "sendfile(%d, %FD, @%O, %uz) failed \"%FN\" hd:%ui tr:%ui",
+                    c->socket.fd, fb->file_pos, file_size, &fb->file->name,
+                    nhd, ntr);
 
             return NXT_ERROR;
         }
 
-        nxt_log_debug(c->socket.log, "sendfile() %E", err);
+        nxt_debug(c->socket.task, "sendfile() %E", err);
 
         return 0;
     }

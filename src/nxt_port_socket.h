@@ -33,8 +33,6 @@ typedef struct {
     /* Must be the first field. */
     nxt_fd_event_t      socket;
 
-    nxt_task_t          task;
-
     nxt_queue_t         messages;   /* of nxt_port_send_msg_t */
 
     /* Maximum size of message part. */
@@ -61,8 +59,8 @@ struct nxt_port_recv_msg_s {
 };
 
 
-NXT_EXPORT nxt_port_t *nxt_port_alloc(void);
-NXT_EXPORT nxt_port_t *nxt_port_create(size_t bufsize);
+NXT_EXPORT nxt_port_t *nxt_port_alloc(nxt_task_t *task);
+NXT_EXPORT nxt_port_t *nxt_port_create(nxt_task_t *task, size_t bufsize);
 NXT_EXPORT void nxt_port_destroy(nxt_port_t *port);
 NXT_EXPORT void nxt_port_write_enable(nxt_task_t *task, nxt_port_t *port);
 NXT_EXPORT void nxt_port_write_close(nxt_port_t *port);

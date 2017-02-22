@@ -477,7 +477,7 @@ struct nxt_event_engine_s {
 
     uint8_t                    shutdown;  /* 1 bit */
 
-    uint32_t                   batch;
+    uint32_t                   batch0;
     uint32_t                   connections;
     uint32_t                   max_connections;
 
