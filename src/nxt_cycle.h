@@ -16,7 +16,6 @@ typedef enum {
 } nxt_process_type_e;
 
 
-typedef struct nxt_cycle_s  nxt_cycle_t;
 typedef void (*nxt_cycle_cont_t)(nxt_task_t *task, nxt_cycle_t *cycle);
 
 
@@ -47,7 +46,7 @@ struct nxt_cycle_s {
     nxt_cycle_cont_t       continuation;
 #endif
 
-    nxt_array_t            *processes;          /* of nxt_process_port_t */
+    nxt_array_t            *ports;              /* of nxt_port_t */
 
     nxt_list_t             *log_files;          /* of nxt_file_t */
 

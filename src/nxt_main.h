@@ -121,7 +121,8 @@ nxt_thread_extern_data(nxt_thread_t, nxt_thread_context);
 
 #include <nxt_fd_event.h>
 
-#include <nxt_port_socket.h>
+typedef struct nxt_cycle_s  nxt_cycle_t;
+#include <nxt_port.h>
 #if (NXT_THREADS)
 #include <nxt_thread_pool.h>
 #endif
@@ -153,6 +154,7 @@ typedef struct nxt_upstream_source_s  nxt_upstream_source_t;
 #include <nxt_http_parse.h>
 #include <nxt_http_source.h>
 #include <nxt_fastcgi_source.h>
+#include <nxt_cycle.h>
 
 
 #if (NXT_LIB_UNIT_TEST)

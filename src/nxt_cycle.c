@@ -344,34 +344,33 @@ nxt_cycle_event_engines(nxt_thread_t *thr, nxt_cycle_t *cycle)
 static nxt_int_t
 nxt_cycle_processes(nxt_cycle_t *cycle)
 {
-    nxt_uint_t          n;
-    nxt_process_port_t  *proc, *prev;
+    nxt_uint_t  n;
+    nxt_port_t  *port, *prev;
 
     /*
      * Preallocate double number of previous cycle
      * process slots or 2 process slots for initial cycle.
      */
-    n = (cycle->previous != NULL) ? cycle->previous->processes->nelts : 1;
+    n = (cycle->previous != NULL) ? cycle->previous->ports->nelts : 1;
 
-    cycle->processes = nxt_array_create(cycle->mem_pool, 2 * n,
-                                        sizeof(nxt_process_port_t));
+    cycle->ports = nxt_array_create(cycle->mem_pool, 2 * n, sizeof(nxt_port_t));
 
-    if (nxt_slow_path(cycle->processes == NULL)) {
+    if (nxt_slow_path(cycle->ports == NULL)) {
         return NXT_ERROR;
     }
 
     if (cycle->previous != NULL) {
         cycle->process_generation = cycle->previous->process_generation;
 
-        prev = cycle->previous->processes->elts;
+        prev = cycle->previous->ports->elts;
 
         while (n != 0) {
-            proc = nxt_array_add(cycle->processes);
-            if (nxt_slow_path(proc == NULL)) {
+            port = nxt_array_add(cycle->ports);
+            if (nxt_slow_path(port == NULL)) {
                 return NXT_ERROR;
             }
 
-            *proc = *prev++;
+            *port = *prev++;
             n--;
         }
     }

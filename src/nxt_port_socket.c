@@ -16,44 +16,26 @@ static void nxt_port_buf_free(nxt_port_t *port, nxt_buf_t *b);
 static void nxt_port_error_handler(nxt_task_t *task, void *obj, void *data);
 
 
-nxt_port_t *
-nxt_port_alloc(nxt_task_t *task)
+nxt_int_t
+nxt_port_socket_init(nxt_task_t *task, nxt_port_t *port, size_t max_size)
 {
-    nxt_port_t      *port;
+    nxt_int_t       sndbuf, rcvbuf, size;
+    nxt_socket_t    snd, rcv;
     nxt_mem_pool_t  *mp;
 
+    port->socket.task = task;
+
+    port->pair[0] = -1;
+    port->pair[1] = -1;
+
+    nxt_queue_init(&port->messages);
+
     mp = nxt_mem_pool_create(1024);
-
-    if (nxt_fast_path(mp != NULL)) {
-        /* This allocation cannot fail. */
-        port = nxt_mem_zalloc(mp, sizeof(nxt_port_t));
-        port->mem_pool = mp;
-
-        port->socket.task = task;
-
-        port->pair[0] = -1;
-        port->pair[1] = -1;
-
-        nxt_queue_init(&port->messages);
-
-        return port;
+    if (nxt_slow_path(mp == NULL)) {
+        return NXT_ERROR;
     }
 
-    return NULL;
-}
-
-
-nxt_port_t *
-nxt_port_create(nxt_task_t *task, size_t max_size)
-{
-    nxt_int_t     sndbuf, rcvbuf, size;
-    nxt_port_t    *port;
-    nxt_socket_t  snd, rcv;
-
-    port = nxt_port_alloc(task);
-    if (nxt_slow_path(port == NULL)) {
-        return NULL;
-    }
+    port->mem_pool = mp;
 
     if (nxt_slow_path(nxt_socketpair_create(task, port->pair) != NXT_OK)) {
         goto socketpair_fail;
@@ -109,7 +91,7 @@ nxt_port_create(nxt_task_t *task, size_t max_size)
     port->max_size = nxt_min(max_size, (size_t) sndbuf);
     port->max_share = (64 * 1024);
 
-    return port;
+    return NXT_OK;
 
 getsockopt_fail:
 
@@ -120,7 +102,7 @@ socketpair_fail:
 
     nxt_mem_pool_destroy(port->mem_pool);
 
-    return NULL;
+    return NXT_ERROR;
 }
 
 
@@ -154,7 +136,7 @@ nxt_port_write_close(nxt_port_t *port)
 
 
 nxt_int_t
-nxt_port_write(nxt_task_t *task, nxt_port_t *port, nxt_uint_t type,
+nxt_port_socket_write(nxt_task_t *task, nxt_port_t *port, nxt_uint_t type,
     nxt_fd_t fd, uint32_t stream, nxt_buf_t *b)
 {
     nxt_queue_link_t     *link;
@@ -204,9 +186,9 @@ static void
 nxt_port_write_handler(nxt_task_t *task, void *obj, void *data)
 {
     ssize_t                 n;
-    nxt_uint_t              niob;
+    nxt_uint_t              niov;
     nxt_port_t              *port;
-    struct iovec            iob[NXT_IOBUF_MAX];
+    struct iovec            iov[NXT_IOBUF_MAX];
     nxt_queue_link_t        *link;
     nxt_port_send_msg_t     *msg;
     nxt_sendbuf_coalesce_t  sb;
@@ -223,21 +205,22 @@ nxt_port_write_handler(nxt_task_t *task, void *obj, void *data)
 
         msg = (nxt_port_send_msg_t *) link;
 
-        nxt_iobuf_set(&iob[0], &msg->port_msg, sizeof(nxt_port_msg_t));
+        iov[0].iov_base = &msg->port_msg;
+        iov[0].iov_len = sizeof(nxt_port_msg_t);
 
         sb.buf = msg->buf;
-        sb.iobuf = &iob[1];
+        sb.iobuf = &iov[1];
         sb.nmax = NXT_IOBUF_MAX - 1;
         sb.sync = 0;
         sb.last = 0;
         sb.size = sizeof(nxt_port_msg_t);
         sb.limit = port->max_size;
 
-        niob = nxt_sendbuf_mem_coalesce(task, &sb);
+        niov = nxt_sendbuf_mem_coalesce(task, &sb);
 
         msg->port_msg.last = sb.last;
 
-        n = nxt_socketpair_send(&port->socket, msg->fd, iob, niob + 1);
+        n = nxt_socketpair_send(&port->socket, msg->fd, iov, niov + 1);
 
         if (n > 0) {
             if (nxt_slow_path((size_t) n != sb.size)) {
@@ -322,7 +305,7 @@ nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
     nxt_fd_t        fd;
     nxt_buf_t       *b;
     nxt_port_t      *port;
-    nxt_iobuf_t     iob[2];
+    struct iovec    iov[2];
     nxt_port_msg_t  msg;
 
     port = obj;
@@ -335,10 +318,13 @@ nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
             /* TODO: disable event for some time */
         }
 
-        nxt_iobuf_set(&iob[0], &msg, sizeof(nxt_port_msg_t));
-        nxt_iobuf_set(&iob[1], b->mem.pos, port->max_size);
+        iov[0].iov_base = &msg;
+        iov[0].iov_len = sizeof(nxt_port_msg_t);
 
-        n = nxt_socketpair_recv(&port->socket, &fd, iob, 2);
+        iov[1].iov_base = b->mem.pos;
+        iov[1].iov_len = port->max_size;
+
+        n = nxt_socketpair_recv(&port->socket, &fd, iov, 2);
 
         if (n > 0) {
             nxt_port_read_msg_process(task, port, &msg, fd, b, n);

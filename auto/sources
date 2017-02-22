@@ -17,7 +17,7 @@ NXT_LIB_DEPS=" \
     src/nxt_socket.h \
     src/nxt_process.h \
     src/nxt_signal.h \
-    src/nxt_port_socket.h \
+    src/nxt_port.h \
     src/nxt_dyld.h \
     src/nxt_thread.h \
     src/nxt_thread_id.h \
@@ -319,7 +319,6 @@ fi
 
 NXT_DEPS=" \
     src/nxt_cycle.h \
-    src/nxt_port.h \
     src/nxt_application.h \
     src/nxt_master_process.h \
 "

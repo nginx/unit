@@ -122,15 +122,15 @@ nxt_sendbuf_mem_coalesce(nxt_task_t *task, nxt_sendbuf_coalesce_t *sb)
                         goto done;
                     }
 
-                    nxt_iobuf_set(&sb->iobuf[n], b->mem.pos, size);
+                    sb->iobuf[n].iov_base =  b->mem.pos;
+                    sb->iobuf[n].iov_len = size;
 
                 } else {
-                    nxt_iobuf_add(&sb->iobuf[n], size);
+                    sb->iobuf[n].iov_len += size;
                 }
 
-                nxt_debug(task, "sendbuf: %ui, %p, %uz", n,
-                          nxt_iobuf_data(&sb->iobuf[n]),
-                          nxt_iobuf_size(&sb->iobuf[n]));
+                nxt_debug(task, "sendbuf: %ui, %p, %uz",
+                          n, sb->iobuf[n].iov_base, sb->iobuf[n].iov_len);
 
                 total += size;
                 last = b->mem.pos + size;

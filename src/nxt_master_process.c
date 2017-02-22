@@ -71,26 +71,27 @@ nxt_master_process_start(nxt_thread_t *thr, nxt_task_t *task,
 static nxt_int_t
 nxt_master_process_port_create(nxt_task_t *task, nxt_cycle_t *cycle)
 {
-    nxt_process_port_t  *proc;
+    nxt_int_t   ret;
+    nxt_port_t  *port;
 
-    proc = nxt_array_add(cycle->processes);
-    if (nxt_slow_path(proc == NULL)) {
+    port = nxt_array_zero_add(cycle->ports);
+    if (nxt_slow_path(port == NULL)) {
         return NXT_ERROR;
     }
 
-    proc->pid = nxt_pid;
-    proc->engine = 0;
-
-    proc->port = nxt_port_create(task, 0);
-    if (nxt_slow_path(proc->port == NULL)) {
-        return NXT_ERROR;
+    ret = nxt_port_socket_init(task, port, 0);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        return ret;
     }
+
+    port->pid = nxt_pid;
+    port->engine = 0;
 
     /*
      * A master process port.  A write port is not closed
      * since it should be inherited by worker processes.
      */
-    nxt_port_read_enable(task, proc->port);
+    nxt_port_read_enable(task, port);
 
     return NXT_OK;
 }
@@ -143,23 +144,24 @@ nxt_master_start_worker_processes(nxt_task_t *task, nxt_cycle_t *cycle)
 static nxt_int_t
 nxt_master_create_worker_process(nxt_task_t *task, nxt_cycle_t *cycle)
 {
-    nxt_pid_t           pid;
-    nxt_process_port_t  *proc;
+    nxt_int_t   ret;
+    nxt_pid_t   pid;
+    nxt_port_t  *port;
 
-    proc = nxt_array_add(cycle->processes);
-    if (nxt_slow_path(proc == NULL)) {
+    port = nxt_array_zero_add(cycle->ports);
+    if (nxt_slow_path(port == NULL)) {
         return NXT_ERROR;
     }
 
-    cycle->current_process = cycle->processes->nelts - 1;
+    cycle->current_process = cycle->ports->nelts - 1;
 
-    proc->engine = 0;
-    proc->generation = cycle->process_generation;
-
-    proc->port = nxt_port_create(task, 0);
-    if (nxt_slow_path(proc->port == NULL)) {
-        return NXT_ERROR;
+    ret = nxt_port_socket_init(task, port, 0);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        return ret;
     }
+
+    port->engine = 0;
+    port->generation = cycle->process_generation;
 
     pid = nxt_process_create(nxt_worker_process_start, cycle,
                              "start worker process");
@@ -175,12 +177,12 @@ nxt_master_create_worker_process(nxt_task_t *task, nxt_cycle_t *cycle)
 
     default:
         /* The master process created a new process. */
-        proc->pid = pid;
+        port->pid = pid;
 
-        nxt_port_read_close(proc->port);
-        nxt_port_write_enable(task, proc->port);
+        nxt_port_read_close(port);
+        nxt_port_write_enable(task, port);
 
-        nxt_process_new_port(task, cycle, proc);
+        nxt_port_send_new_port(task, cycle, port);
         return NXT_OK;
     }
 }
@@ -250,24 +252,24 @@ static void
 nxt_master_stop_previous_worker_processes(nxt_task_t *task, void *obj,
     void *data)
 {
-    uint32_t            generation;
-    nxt_uint_t          i, n;
-    nxt_cycle_t         *cycle;
-    nxt_process_port_t  *proc;
+    uint32_t     generation;
+    nxt_uint_t   i, n;
+    nxt_port_t   *port;
+    nxt_cycle_t  *cycle;
 
     cycle = nxt_thread_cycle();
 
-    proc = cycle->processes->elts;
-    n = cycle->processes->nelts;
+    port = cycle->ports->elts;
+    n = cycle->ports->nelts;
 
     generation = cycle->process_generation - 1;
 
-    /* The proc[0] is the master process. */
+    /* The port[0] is the master process port. */
 
     for (i = 1; i < n; i++) {
-        if (proc[i].generation == generation) {
-            (void) nxt_port_write(task, proc[i].port, NXT_PORT_MSG_QUIT,
-                                  -1, 0, NULL);
+        if (port[i].generation == generation) {
+            (void) nxt_port_socket_write(task, &port[i],
+                                         NXT_PORT_MSG_QUIT, -1, 0, NULL);
         }
     }
 
@@ -278,7 +280,7 @@ nxt_master_stop_previous_worker_processes(nxt_task_t *task, void *obj,
 void
 nxt_master_stop_worker_processes(nxt_task_t *task, nxt_cycle_t *cycle)
 {
-    nxt_process_port_write(task, cycle, NXT_PORT_MSG_QUIT, -1, 0, NULL);
+    nxt_port_write(task, cycle, NXT_PORT_MSG_QUIT, -1, 0, NULL);
 }
 
 
@@ -366,7 +368,7 @@ nxt_master_process_sigusr1_handler(nxt_task_t *task, void *obj, void *data)
 
         nxt_list_each(file, cycle->log_files) {
 
-            nxt_process_port_change_log_file(task, cycle, n, new_file[n].fd);
+            nxt_port_change_log_file(task, cycle, n, new_file[n].fd);
             /*
              * The old log file descriptor must be closed at the moment
              * when no other threads use it.  dup2() allows to use the
@@ -617,9 +619,9 @@ nxt_master_process_sigchld_handler(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_master_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid)
 {
-    nxt_uint_t          i, n, generation;
-    nxt_cycle_t         *cycle;
-    nxt_process_port_t  *proc;
+    nxt_uint_t   i, n, generation;
+    nxt_port_t   *port;
+    nxt_cycle_t  *cycle;
 
     cycle = nxt_thread_cycle();
 
@@ -630,15 +632,15 @@ nxt_master_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid)
         return;
     }
 
-    proc = cycle->processes->elts;
-    n = cycle->processes->nelts;
+    port = cycle->ports->elts;
+    n = cycle->ports->nelts;
 
     for (i = 0; i < n; i++) {
 
-        if (pid == proc[i].pid) {
-            generation = proc[i].generation;
+        if (pid == port[i].pid) {
+            generation = port[i].generation;
 
-            nxt_array_remove(cycle->processes, &proc[i]);
+            nxt_array_remove(cycle->ports, &port[i]);
 
             if (nxt_exiting) {
                 nxt_debug(task, "processes %d", n);

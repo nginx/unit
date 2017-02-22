@@ -21,11 +21,11 @@ static void nxt_worker_process_sigquit_handler(nxt_task_t *task, void *obj,
     void *data);
 
 
-static nxt_process_port_handler_t  nxt_worker_process_port_handlers[] = {
+static nxt_port_handler_t  nxt_worker_process_port_handlers[] = {
     nxt_worker_process_quit_handler,
-    nxt_process_port_new_handler,
-    nxt_process_port_change_log_file_handler,
-    nxt_process_port_data_handler,
+    nxt_port_new_port_handler,
+    nxt_port_change_log_file_handler,
+    nxt_port_data_handler,
 };
 
 
@@ -45,9 +45,9 @@ void
 nxt_worker_process_start(void *data)
 {
     nxt_int_t                    n;
+    nxt_port_t                   *port;
     nxt_cycle_t                  *cycle;
     nxt_thread_t                 *thr;
-    nxt_process_port_t           *proc;
     const nxt_event_interface_t  *interface;
 
     cycle = data;
@@ -90,15 +90,15 @@ nxt_worker_process_start(void *data)
         goto fail;
     }
 
-    proc = cycle->processes->elts;
+    port = cycle->ports->elts;
 
     /* A master process port. */
-    nxt_port_read_close(proc[0].port);
-    nxt_port_write_enable(&nxt_main_task, proc[0].port);
+    nxt_port_read_close(&port[0]);
+    nxt_port_write_enable(&nxt_main_task, &port[0]);
 
     /* A worker process port. */
-    nxt_process_port_create(thr, &proc[cycle->current_process],
-                            nxt_worker_process_port_handlers);
+    nxt_port_create(thr, &port[cycle->current_process],
+                    nxt_worker_process_port_handlers);
 
 #if (NXT_THREADS)
     {
