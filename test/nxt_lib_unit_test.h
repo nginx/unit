@@ -65,6 +65,7 @@ nxt_int_t nxt_gmtime_unit_test(nxt_thread_t *thr);
 nxt_int_t nxt_sprintf_unit_test(nxt_thread_t *thr);
 nxt_int_t nxt_malloc_unit_test(nxt_thread_t *thr);
 nxt_int_t nxt_utf8_unit_test(nxt_thread_t *thr);
+nxt_int_t nxt_http_parse_unit_test(nxt_thread_t *thr);
 
 
 #endif /* _NXT_LIB_UNIT_TEST_H_INCLUDED_ */

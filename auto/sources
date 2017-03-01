@@ -65,6 +65,7 @@ NXT_LIB_DEPS=" \
     src/nxt_sockaddr.h \
     src/nxt_job_resolve.h \
     src/nxt_listen_socket.h \
+    src/nxt_http_parse.h \
 "
 
 NXT_LIB_SRCS=" \
@@ -127,6 +128,7 @@ NXT_LIB_SRCS=" \
     src/nxt_sockaddr.c \
     src/nxt_listen_socket.c \
     src/nxt_upstream_round_robin.c \
+    src/nxt_http_parse.c \
 "
 
 NXT_LIB_SRC0=" \
@@ -198,6 +200,7 @@ NXT_LIB_UNIT_TEST_SRCS=" \
     test/nxt_malloc_unit_test.c \
     test/nxt_utf8_unit_test.c \
     test/nxt_rbtree1_unit_test.c \
+    test/nxt_http_parse_unit_test.c \
 "
 
 NXT_LIB_UTF8_FILE_NAME_TEST_SRCS=" \
