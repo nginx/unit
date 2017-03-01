@@ -34,8 +34,6 @@ struct nxt_http_source_s {
 
     union {
         nxt_http_source_request_t      request;
-        nxt_http_status_parse_t        status_parse;
-        nxt_http_split_header_parse_t  header;
     } u;
 };
 

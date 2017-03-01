@@ -135,7 +135,6 @@ NXT_LIB_SRC0=" \
     src/nxt_stream_source.c \
     src/nxt_upstream_source.c \
     src/nxt_http_source.c \
-    src/nxt_http_parse.c \
     src/nxt_http_chunk_parse.c \
     src/nxt_fastcgi_source.c \
     src/nxt_fastcgi_record_parse.c \

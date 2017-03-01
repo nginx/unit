@@ -77,7 +77,6 @@ struct nxt_fastcgi_source_s {
 
     union {
         nxt_fastcgi_source_request_t     request;
-        nxt_http_split_header_parse_t    header;
     } u;
 };
 
