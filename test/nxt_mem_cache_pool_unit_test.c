@@ -68,6 +68,8 @@ nxt_mem_cache_pool_unit_test(nxt_thread_t *thr, nxt_uint_t runs,
 
     nxt_mem_cache_pool_destroy(pool);
 
+    nxt_free(blocks);
+
     nxt_thread_time_update(thr);
     nxt_log_error(NXT_LOG_NOTICE, thr->log, "mem cache pool unit test passed");
 
