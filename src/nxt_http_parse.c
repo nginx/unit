@@ -6,10 +6,6 @@
 
 #include <nxt_main.h>
 
-#ifdef __SSE4_2__
-#include <x86intrin.h>
-#endif
-
 
 typedef struct {
     nxt_http_field_handler_t  handler;
@@ -128,47 +124,6 @@ nxt_http_parse_target(u_char **pos, u_char *end)
 }
 
 
-#ifdef __SSE4_2__
-
-nxt_inline nxt_http_target_traps_e
-nxt_http_parse_target_rest(u_char **pos, u_char *end)
-{
-    int         n;
-    u_char      *p;
-    nxt_uint_t  i;
-
-    static const u_char  stop_chars[16] nxt_aligned(16) = " #\r\n";
-
-    __m128i pattern = _mm_load_si128((__m128i *) stop_chars);
-
-    p = *pos;
-
-    for (n = (end - p) / 16; nxt_fast_path(n != 0); n--) {
-
-        __m128i test = _mm_loadu_si128((__m128i *) p);
-
-        i = _mm_cmpistri(pattern, test, _SIDD_LEAST_SIGNIFICANT
-                                        | _SIDD_CMP_EQUAL_ANY
-                                        | _SIDD_UBYTE_OPS);
-
-        p += i;
-
-        if (i != 16) {
-            *pos = p;
-            return nxt_http_target_chars[*p];
-        }
-    }
-
-    *pos = p;
-
-    return nxt_http_parse_target(pos, end);
-}
-
-#else
-#define nxt_http_parse_target_rest  nxt_http_parse_target
-#endif
-
-
 nxt_int_t
 nxt_http_parse_request(nxt_http_request_parse_t *rp, nxt_buf_mem_t *b)
 {
@@ -258,10 +213,6 @@ nxt_http_parse_request_line(nxt_http_request_parse_t *rp, u_char **pos,
 
     /* target */
 
-    nxt_prefetch(&nxt_http_target_chars[' ']);
-    nxt_prefetch(&nxt_http_target_chars['@']);
-    nxt_prefetch(&nxt_http_target_chars['`']);
-
     ch = *p;
 
     if (nxt_slow_path(ch != '/')) {
@@ -337,7 +288,7 @@ rest_of_target:
     for ( ;; ) {
         p++;
 
-        trap = nxt_http_parse_target_rest(&p, end);
+        trap = nxt_http_parse_target(&p, end);
 
         switch (trap) {
         case NXT_HTTP_TARGET_SPACE:
@@ -476,44 +427,66 @@ nxt_http_parse_field_name(nxt_http_request_parse_t *rp, u_char **pos,
     p = *pos;
 
     size = end - p;
+    i = rp->offset;
 
-    for (i = rp->offset; i != size; i++) {
-
-        ch = p[i];
-
-        c = normal[ch];
-
-        if (nxt_fast_path(c != '\0')) {
-            rp->field_name_key.str[i % 32] = c;
-            continue;
-        }
-
-        if (nxt_fast_path(ch == ':')) {
-            if (nxt_slow_path(i == 0)) {
-                return NXT_ERROR;
-            }
-
-            *pos = &p[i] + 1;
-
-            rp->field_name.start = p;
-            rp->field_name.length = i;
-
-            rp->offset = 0;
-
-            return nxt_http_parse_field_value(rp, pos, end);
-        }
-
-        *pos = &p[i];
-
-        rp->field_name.length = 0;
-
-        return nxt_http_parse_field_end(rp, pos, end);
+#define nxt_http_parse_field_name_step                                        \
+    {                                                                         \
+        ch = p[i];                                                            \
+        c = normal[ch];                                                       \
+                                                                              \
+        if (nxt_slow_path(c == '\0')) {                                       \
+            goto name_end;                                                    \
+        }                                                                     \
+                                                                              \
+        rp->field_name_key.str[i % 32] = c;                                   \
+        i++;                                                                  \
     }
+
+    while (nxt_fast_path(size - i >= 8)) {
+        nxt_http_parse_field_name_step
+        nxt_http_parse_field_name_step
+        nxt_http_parse_field_name_step
+        nxt_http_parse_field_name_step
+
+        nxt_http_parse_field_name_step
+        nxt_http_parse_field_name_step
+        nxt_http_parse_field_name_step
+        nxt_http_parse_field_name_step
+    }
+
+    while (nxt_fast_path(i != size)) {
+        nxt_http_parse_field_name_step
+    }
+
+#undef nxt_http_parse_field_name_step
 
     rp->offset = i;
     rp->handler = &nxt_http_parse_field_name;
 
     return NXT_AGAIN;
+
+name_end:
+
+    if (nxt_fast_path(ch == ':')) {
+        if (nxt_slow_path(i == 0)) {
+            return NXT_ERROR;
+        }
+
+        *pos = &p[i] + 1;
+
+        rp->field_name.start = p;
+        rp->field_name.length = i;
+
+        rp->offset = 0;
+
+        return nxt_http_parse_field_value(rp, pos, end);
+    }
+
+    *pos = &p[i];
+
+    rp->field_name.length = 0;
+
+    return nxt_http_parse_field_end(rp, pos, end);
 }
 
 
@@ -584,44 +557,39 @@ static u_char *
 nxt_http_lookup_field_end(u_char *p, u_char *end)
 {
     nxt_uint_t  n;
-#ifdef __SSE4_2__
-    nxt_uint_t  i;
-
-    static const u_char  end_chars[16] nxt_aligned(16) = "\r\n";
-
-    __m128i pattern = _mm_load_si128((__m128i *) end_chars);
-
-    for (n = (end - p) / 16; nxt_fast_path(n != 0); n--) {
-
-        __m128i test = _mm_loadu_si128((__m128i *) p);
-
-        i = _mm_cmpistri(pattern, test, _SIDD_LEAST_SIGNIFICANT
-                                        | _SIDD_CMP_EQUAL_ANY
-                                        | _SIDD_UBYTE_OPS);
-
-        p += i;
-
-        if (i != 16) {
-            return p;
-        }
-    }
-#endif
 
 #define nxt_http_lookup_field_end_step                                        \
     {                                                                         \
-        if (nxt_slow_path(*p <= '\r')) {                                      \
+        if (nxt_slow_path(*p < 0x10)) {                                       \
             return p;                                                         \
         }                                                                     \
                                                                               \
         p++;                                                                  \
     }
 
-    for (n = (end - p) / 8; nxt_fast_path(n != 0); n--) {
+    for (n = (end - p) / 16; nxt_fast_path(n != 0); n--) {
         nxt_http_lookup_field_end_step
         nxt_http_lookup_field_end_step
         nxt_http_lookup_field_end_step
         nxt_http_lookup_field_end_step
 
+        nxt_http_lookup_field_end_step
+        nxt_http_lookup_field_end_step
+        nxt_http_lookup_field_end_step
+        nxt_http_lookup_field_end_step
+
+        nxt_http_lookup_field_end_step
+        nxt_http_lookup_field_end_step
+        nxt_http_lookup_field_end_step
+        nxt_http_lookup_field_end_step
+
+        nxt_http_lookup_field_end_step
+        nxt_http_lookup_field_end_step
+        nxt_http_lookup_field_end_step
+        nxt_http_lookup_field_end_step
+    }
+
+    for (n = (end - p) / 4; nxt_fast_path(n != 0); n--) {
         nxt_http_lookup_field_end_step
         nxt_http_lookup_field_end_step
         nxt_http_lookup_field_end_step
@@ -629,14 +597,6 @@ nxt_http_lookup_field_end(u_char *p, u_char *end)
     }
 
     switch (end - p) {
-    case 7:
-        nxt_http_lookup_field_end_step
-    case 6:
-        nxt_http_lookup_field_end_step
-    case 5:
-        nxt_http_lookup_field_end_step
-    case 4:
-        nxt_http_lookup_field_end_step
     case 3:
         nxt_http_lookup_field_end_step
     case 2:
@@ -679,8 +639,8 @@ nxt_http_parse_field_end(nxt_http_request_parse_t *rp, u_char **pos,
 
         if (rp->field_name.length != 0) {
             entry = nxt_http_fields_hash_lookup(rp->hash,
-                                                  rp->field_name_key.ui64,
-                                                  &rp->field_name);
+                                                rp->field_name_key.ui64,
+                                                &rp->field_name);
 
             if (entry != NULL) {
                 rc = entry->handler(rp->ctx, &rp->field_name, &rp->field_value,
