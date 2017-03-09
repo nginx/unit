@@ -60,7 +60,7 @@ nxt_job_init(nxt_job_t *job, size_t size)
 
 
 void
-nxt_job_destroy(void *data)
+nxt_job_destroy(nxt_task_t *task, void *data)
 {
     nxt_job_t  *job;
 

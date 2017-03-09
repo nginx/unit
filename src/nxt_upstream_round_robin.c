@@ -110,7 +110,7 @@ nxt_upstream_round_robin_create(nxt_task_t *task, void *obj, void *data)
     /* STUB */
     up->sockaddr = peer[0].sockaddr;
 
-    nxt_job_destroy(jbs);
+    nxt_job_destroy(task, jbs);
     up->ready_handler(task, up);
 
     //nxt_upstream_round_robin_get_peer(up);
@@ -118,7 +118,7 @@ nxt_upstream_round_robin_create(nxt_task_t *task, void *obj, void *data)
 
 fail:
 
-    nxt_job_destroy(jbs);
+    nxt_job_destroy(task, jbs);
 
     up->ready_handler(task, up);
 }

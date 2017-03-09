@@ -507,62 +507,62 @@ nxt_php_register_variables(zval *track_vars_array TSRMLS_DC)
     nxt_log_debug(r->log, "php register variables");
 
     php_register_variable_safe((char *) "PHP_SELF",
-                               (char *) r->header.path.data,
-                               ctx->script_name_len, track_vars_array TSRMLS_CC);
+                          (char *) r->header.path.data,
+                          ctx->script_name_len, track_vars_array TSRMLS_CC);
 
     php_register_variable_safe((char *) "SERVER_PROTOCOL",
-                               (char *) r->header.version.data,
-                               r->header.version.len, track_vars_array TSRMLS_CC);
+                          (char *) r->header.version.data,
+                          r->header.version.len, track_vars_array TSRMLS_CC);
 
 #if ABS_MODE
     php_register_variable_safe((char *) "SCRIPT_NAME",
-                               (char *) nxt_php_script.data,
-                               nxt_php_script.len, track_vars_array TSRMLS_CC);
+                          (char *) nxt_php_script.data,
+                          nxt_php_script.len, track_vars_array TSRMLS_CC);
 
     php_register_variable_safe((char *) "SCRIPT_FILENAME",
-                               (char *) nxt_php_path.data,
-                               nxt_php_path.len, track_vars_array TSRMLS_CC);
+                          (char *) nxt_php_path.data,
+                          nxt_php_path.len, track_vars_array TSRMLS_CC);
 
     php_register_variable_safe((char *) "DOCUMENT_ROOT",
-                               (char *) nxt_php_root.data,
-                               nxt_php_root.len, track_vars_array TSRMLS_CC);
+                          (char *) nxt_php_root.data,
+                          nxt_php_root.len, track_vars_array TSRMLS_CC);
 #else
     php_register_variable_safe((char *) "SCRIPT_NAME",
-                               (char *) r->header.path.data,
-                               ctx->script_name_len, track_vars_array TSRMLS_CC);
+                          (char *) r->header.path.data,
+                          ctx->script_name_len, track_vars_array TSRMLS_CC);
 
     php_register_variable_safe((char *) "SCRIPT_FILENAME",
-                               (char *) ctx->script.data, ctx->script.len,
-                               track_vars_array TSRMLS_CC);
+                          (char *) ctx->script.data, ctx->script.len,
+                          track_vars_array TSRMLS_CC);
 
     php_register_variable_safe((char *) "DOCUMENT_ROOT", (char *) root,
-                               sizeof(root) - 1, track_vars_array TSRMLS_CC);
+                          sizeof(root) - 1, track_vars_array TSRMLS_CC);
 #endif
 
     php_register_variable_safe((char *) "REQUEST_METHOD",
-                               (char *) r->header.method.data,
-                               r->header.method.len, track_vars_array TSRMLS_CC);
+                          (char *) r->header.method.data,
+                          r->header.method.len, track_vars_array TSRMLS_CC);
 
     php_register_variable_safe((char *) "REQUEST_URI",
-                               (char *) r->header.path.data,
-                               r->header.path.len, track_vars_array TSRMLS_CC);
+                          (char *) r->header.path.data,
+                          r->header.path.len, track_vars_array TSRMLS_CC);
 
     if (ctx->query.data != NULL) {
         php_register_variable_safe((char *) "QUERY_STRING",
-                                   (char *) ctx->query.data,
-                                   ctx->query.len, track_vars_array TSRMLS_CC);
+                          (char *) ctx->query.data,
+                          ctx->query.len, track_vars_array TSRMLS_CC);
     }
 
     if (ctx->content_type != NULL) {
         php_register_variable_safe((char *) "CONTENT_TYPE",
-                                   (char *) ctx->content_type->data,
-                                   ctx->content_type->len, track_vars_array TSRMLS_CC);
+                          (char *) ctx->content_type->data,
+                          ctx->content_type->len, track_vars_array TSRMLS_CC);
     }
 
     if (ctx->content_length != NULL) {
         php_register_variable_safe((char *) "CONTENT_LENGTH",
-                                   (char *) ctx->content_length->data,
-                                   ctx->content_length->len, track_vars_array TSRMLS_CC);
+                          (char *) ctx->content_length->data,
+                          ctx->content_length->len, track_vars_array TSRMLS_CC);
     }
 
     var = nxt_mem_nalloc(r->mem_pool, sizeof(prefix) + ctx->max_name + 1);

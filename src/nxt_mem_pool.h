@@ -11,7 +11,7 @@
 #define NXT_MEM_POOL_MIN_EXT_SIZE      nxt_pagesize
 
 
-typedef void (*nxt_mem_pool_cleanup_handler_t)(void *data);
+typedef void (*nxt_mem_pool_cleanup_handler_t)(nxt_task_t *task, void *data);
 typedef struct nxt_mem_pool_cleanup_s  nxt_mem_pool_cleanup_t;
 typedef struct nxt_mem_pool_cache_s    nxt_mem_pool_cache_t;
 typedef struct nxt_mem_pool_chunk_s    nxt_mem_pool_chunk_t;

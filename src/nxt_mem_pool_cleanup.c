@@ -7,7 +7,7 @@
 #include <nxt_main.h>
 
 
-static void nxt_mem_pool_file_cleanup_handler(void *data);
+static void nxt_mem_pool_file_cleanup_handler(nxt_task_t *task, void *data);
 
 
 nxt_mem_pool_cleanup_t *
@@ -27,13 +27,13 @@ nxt_mem_pool_file_cleanup(nxt_mem_pool_t *mp, nxt_file_t *file)
 
 
 static void
-nxt_mem_pool_file_cleanup_handler(void *data)
+nxt_mem_pool_file_cleanup_handler(nxt_task_t *task, void *data)
 {
     nxt_file_t  *file;
 
     file = data;
 
     if (file->fd != NXT_FILE_INVALID) {
-        nxt_file_close(file);
+        nxt_file_close(task, file);
     }
 }

@@ -5,7 +5,7 @@
  */
 
 #include <nxt_main.h>
-#include <nxt_cycle.h>
+#include <nxt_runtime.h>
 
 
 static nxt_time_string_t  nxt_log_error_time_cache;

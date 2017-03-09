@@ -14,13 +14,22 @@
 #include <nxt_clang.h>
 #include <nxt_types.h>
 #include <nxt_time.h>
+
+typedef struct nxt_mem_pool_s        nxt_mem_pool_t;
+#include <nxt_array.h>
+
+typedef struct nxt_port_s            nxt_port_t;
+typedef struct nxt_task_s            nxt_task_t;
+typedef struct nxt_port_recv_msg_s   nxt_port_recv_msg_t;
+typedef void (*nxt_port_handler_t)(nxt_task_t *task, nxt_port_recv_msg_t *msg);
+typedef struct nxt_sig_event_s       nxt_sig_event_t;
+typedef struct nxt_runtime_s         nxt_runtime_t;
+
 #include <nxt_process.h>
 
-typedef struct nxt_task_s            nxt_task_t;
 typedef struct nxt_thread_s          nxt_thread_t;
 #include <nxt_thread_id.h>
 
-typedef struct nxt_mem_pool_s        nxt_mem_pool_t;
 #include <nxt_mem_pool.h>
 
 #include <nxt_errno.h>
@@ -89,7 +98,6 @@ typedef struct nxt_thread_pool_s     nxt_thread_pool_t;
 #include <nxt_hash.h>
 
 #include <nxt_sort.h>
-#include <nxt_array.h>
 #include <nxt_vector.h>
 #include <nxt_list.h>
 
@@ -110,8 +118,7 @@ typedef struct nxt_event_conn_s         nxt_event_conn_t;
 #endif
 
 
-#define                                                                       \
-nxt_thread()                                                                  \
+#define nxt_thread()                                                          \
     (nxt_thread_t *) nxt_thread_get_data(nxt_thread_context)
 
 nxt_thread_extern_data(nxt_thread_t, nxt_thread_context);
@@ -121,7 +128,6 @@ nxt_thread_extern_data(nxt_thread_t, nxt_thread_context);
 
 #include <nxt_fd_event.h>
 
-typedef struct nxt_cycle_s  nxt_cycle_t;
 #include <nxt_port.h>
 #if (NXT_THREADS)
 #include <nxt_thread_pool.h>
@@ -154,7 +160,7 @@ typedef struct nxt_upstream_source_s  nxt_upstream_source_t;
 #include <nxt_upstream_source.h>
 #include <nxt_http_source.h>
 #include <nxt_fastcgi_source.h>
-#include <nxt_cycle.h>
+#include <nxt_runtime.h>
 
 
 #if (NXT_LIB_UNIT_TEST)

@@ -60,7 +60,7 @@ typedef struct {
 
 NXT_EXPORT void *nxt_job_create(nxt_mem_pool_t *mp, size_t size);
 NXT_EXPORT void nxt_job_init(nxt_job_t *job, size_t size);
-NXT_EXPORT void nxt_job_destroy(void *data);
+NXT_EXPORT void nxt_job_destroy(nxt_task_t *task, void *data);
 NXT_EXPORT nxt_int_t nxt_job_cleanup_add(nxt_mem_pool_t *mp, nxt_job_t *job);
 
 NXT_EXPORT void nxt_job_start(nxt_task_t *task, nxt_job_t *job,

@@ -126,16 +126,19 @@ nxt_mem_pool_create(size_t size)
 void
 nxt_mem_pool_destroy(nxt_mem_pool_t *mp)
 {
+    nxt_task_t              *task;
     nxt_mem_pool_ext_t      *ext;
     nxt_mem_pool_chunk_t    *chunk, *next;
     nxt_mem_pool_cleanup_t  *mpcl;
+
+    task = NULL;
 
     nxt_mem_pool_thread_assert(mp);
 
     for (mpcl = mp->cleanup; mpcl != NULL; mpcl = mpcl->next) {
         if (mpcl->handler != NULL) {
             nxt_thread_log_debug("mem pool cleanup: %p", mpcl);
-            mpcl->handler(mpcl->data);
+            mpcl->handler(task, mpcl->data);
         }
     }
 

@@ -8,11 +8,9 @@
 
 
 nxt_int_t
-nxt_file_open(nxt_file_t *file, nxt_uint_t mode, nxt_uint_t create,
-    nxt_file_access_t access)
+nxt_file_open(nxt_task_t *task, nxt_file_t *file, nxt_uint_t mode,
+    nxt_uint_t create, nxt_file_access_t access)
 {
-    nxt_thread_debug(thr);
-
 #ifdef __CYGWIN__
     mode |= O_BINARY;
 #endif
@@ -24,18 +22,20 @@ nxt_file_open(nxt_file_t *file, nxt_uint_t mode, nxt_uint_t create,
 
     file->error = (file->fd == -1) ? nxt_errno : 0;
 
-    nxt_thread_time_debug_update(thr);
+#if (NXT_DEBUG)
+    nxt_thread_time_update(task->thread);
+#endif
 
-    nxt_log_debug(thr->log, "open(\"%FN\", 0x%uXi, 0x%uXi): %FD err:%d",
-                  file->name, mode, access, file->fd, file->error);
+    nxt_debug(task, "open(\"%FN\", 0x%uXi, 0x%uXi): %FD err:%d",
+              file->name, mode, access, file->fd, file->error);
 
     if (file->fd != -1) {
         return NXT_OK;
     }
 
     if (file->log_level != 0) {
-        nxt_thread_log_error(file->log_level, "open(\"%FN\") failed %E",
-                             file->name, file->error);
+        nxt_log(task, file->log_level, "open(\"%FN\") failed %E",
+                file->name, file->error);
     }
 
     return NXT_ERROR;
@@ -43,13 +43,13 @@ nxt_file_open(nxt_file_t *file, nxt_uint_t mode, nxt_uint_t create,
 
 
 void
-nxt_file_close(nxt_file_t *file)
+nxt_file_close(nxt_task_t *task, nxt_file_t *file)
 {
-    nxt_thread_log_debug("close(%FD)", file->fd);
+    nxt_debug(task, "close(%FD)", file->fd);
 
     if (close(file->fd) != 0) {
-        nxt_thread_log_error(NXT_LOG_CRIT, "close(%FD, \"%FN\") failed %E",
-                             file->fd, file->name, nxt_errno);
+        nxt_log(task, NXT_LOG_CRIT, "close(%FD, \"%FN\") failed %E",
+                file->fd, file->name, nxt_errno);
     }
 }
 

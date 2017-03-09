@@ -44,7 +44,7 @@ nxt_event_conn_listen(nxt_task_t *task, nxt_listen_socket_t *ls)
         cls->socket.fd = ls->socket;
 
         engine = task->thread->engine;
-        cls->batch0 = engine->batch0;
+        cls->batch = engine->batch;
 
         cls->socket.read_work_queue = &engine->accept_work_queue;
         cls->socket.read_handler = nxt_event_conn_listen_handler;
@@ -130,7 +130,7 @@ nxt_event_conn_listen_handler(nxt_task_t *task, void *obj, void *data)
     nxt_event_conn_listen_t  *cls;
 
     cls = obj;
-    cls->ready = cls->batch0;
+    cls->ready = cls->batch;
 
     cls->accept(task, cls, data);
 }

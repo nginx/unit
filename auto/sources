@@ -82,6 +82,7 @@ NXT_LIB_SRCS=" \
     src/nxt_process_title.c \
     src/nxt_signal.c \
     src/nxt_port_socket.c \
+    src/nxt_port.c \
     src/nxt_dyld.c \
     src/nxt_random.c \
     src/nxt_queue.c \
@@ -320,7 +321,7 @@ if [ $NXT_LIB_UNIT_TEST = YES ]; then
 fi
 
 NXT_DEPS=" \
-    src/nxt_cycle.h \
+    src/nxt_runtime.h \
     src/nxt_application.h \
     src/nxt_master_process.h \
 "
@@ -328,10 +329,11 @@ NXT_DEPS=" \
 NXT_SRCS=" \
     src/nxt_main.c \
     src/nxt_app_log.c \
-    src/nxt_cycle.c \
-    src/nxt_port.c \
-    src/nxt_application.c \
+    src/nxt_runtime.c \
     src/nxt_stream_module.c \
     src/nxt_master_process.c \
     src/nxt_worker_process.c \
+    src/nxt_controller.c \
+    src/nxt_router.c \
+    src/nxt_application.c \
 "

@@ -53,7 +53,8 @@ typedef struct {
 extern nxt_application_module_t  nxt_python_module;
 
 
-nxt_int_t nxt_app_http_read_body(nxt_app_request_t *r, u_char *data, size_t len);
+nxt_int_t nxt_app_http_read_body(nxt_app_request_t *r, u_char *data,
+    size_t len);
 nxt_int_t nxt_app_write(nxt_app_request_t *r, const u_char *data, size_t len);
 
 

@@ -477,7 +477,7 @@ struct nxt_event_engine_s {
 
     uint8_t                    shutdown;  /* 1 bit */
 
-    uint32_t                   batch0;
+    uint32_t                   batch;
     uint32_t                   connections;
     uint32_t                   max_connections;
 
@@ -486,11 +486,11 @@ struct nxt_event_engine_s {
 };
 
 
-NXT_EXPORT nxt_event_engine_t *nxt_event_engine_create(nxt_thread_t *thr,
+NXT_EXPORT nxt_event_engine_t *nxt_event_engine_create(nxt_task_t *task,
     const nxt_event_interface_t *interface, const nxt_sig_event_t *signals,
     nxt_uint_t flags, nxt_uint_t batch);
-NXT_EXPORT nxt_int_t nxt_event_engine_change(nxt_thread_t *thr,
-    nxt_task_t *task, const nxt_event_interface_t *interface, nxt_uint_t batch);
+NXT_EXPORT nxt_int_t nxt_event_engine_change(nxt_event_engine_t *engine,
+    const nxt_event_interface_t *interface, nxt_uint_t batch);
 NXT_EXPORT void nxt_event_engine_free(nxt_event_engine_t *engine);
 NXT_EXPORT void nxt_event_engine_start(nxt_event_engine_t *engine);
 

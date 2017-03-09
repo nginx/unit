@@ -1039,7 +1039,7 @@ static void
 nxt_event_conn_proxy_completion(nxt_task_t *task, void *obj, void *data)
 {
     nxt_event_conn_proxy_t  *p;
-    
+
     p = data;
 
     nxt_debug(p->client->socket.task, "event conn proxy completion %d:%d:%d",

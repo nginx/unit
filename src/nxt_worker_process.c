@@ -5,7 +5,7 @@
  */
 
 #include <nxt_main.h>
-#include <nxt_cycle.h>
+#include <nxt_runtime.h>
 #include <nxt_port.h>
 #include <nxt_master_process.h>
 
@@ -21,7 +21,7 @@ static void nxt_worker_process_sigquit_handler(nxt_task_t *task, void *obj,
     void *data);
 
 
-static nxt_port_handler_t  nxt_worker_process_port_handlers[] = {
+nxt_port_handler_t  nxt_worker_process_port_handlers[] = {
     nxt_worker_process_quit_handler,
     nxt_port_new_port_handler,
     nxt_port_change_log_file_handler,
@@ -29,112 +29,29 @@ static nxt_port_handler_t  nxt_worker_process_port_handlers[] = {
 };
 
 
-static const nxt_sig_event_t  nxt_worker_process_signals[] = {
+const nxt_sig_event_t  nxt_worker_process_signals[] = {
     nxt_event_signal(SIGHUP,  nxt_worker_process_signal_handler),
     nxt_event_signal(SIGINT,  nxt_worker_process_sigterm_handler),
     nxt_event_signal(SIGQUIT, nxt_worker_process_sigterm_handler),
     nxt_event_signal(SIGTERM, nxt_worker_process_sigquit_handler),
     nxt_event_signal(SIGCHLD, nxt_worker_process_signal_handler),
     nxt_event_signal(SIGUSR1, nxt_worker_process_signal_handler),
-    nxt_event_signal(SIGUSR1, nxt_worker_process_signal_handler),
+    nxt_event_signal(SIGUSR2, nxt_worker_process_signal_handler),
     nxt_event_signal_end,
 };
-
-
-void
-nxt_worker_process_start(void *data)
-{
-    nxt_int_t                    n;
-    nxt_port_t                   *port;
-    nxt_cycle_t                  *cycle;
-    nxt_thread_t                 *thr;
-    const nxt_event_interface_t  *interface;
-
-    cycle = data;
-
-    nxt_thread_init_data(nxt_thread_cycle_data);
-    nxt_thread_cycle_set(cycle);
-
-    thr = nxt_thread();
-
-    nxt_log_error(NXT_LOG_INFO, thr->log, "worker process");
-
-    nxt_process_title("nginext: worker process");
-
-    cycle->type = NXT_PROCESS_WORKER;
-
-    nxt_random_init(&nxt_random_data);
-
-    if (getuid() == 0) {
-        /* Super-user. */
-
-        n = nxt_user_cred_set(&cycle->user_cred);
-        if (n != NXT_OK) {
-            goto fail;
-        }
-    }
-
-    /* Update inherited master process event engine and signals processing. */
-    thr->engine->signals->sigev = nxt_worker_process_signals;
-
-    interface = nxt_service_get(cycle->services, "engine", cycle->engine);
-    if (interface == NULL) {
-        goto fail;
-    }
-
-    if (nxt_event_engine_change(thr, &nxt_main_task, interface, cycle->batch) != NXT_OK) {
-        goto fail;
-    }
-
-    if (nxt_cycle_listen_sockets_enable(&thr->engine->task, cycle) != NXT_OK) {
-        goto fail;
-    }
-
-    port = cycle->ports->elts;
-
-    /* A master process port. */
-    nxt_port_read_close(&port[0]);
-    nxt_port_write_enable(&nxt_main_task, &port[0]);
-
-    /* A worker process port. */
-    nxt_port_create(thr, &port[cycle->current_process],
-                    nxt_worker_process_port_handlers);
-
-#if (NXT_THREADS)
-    {
-        nxt_int_t  ret;
-
-        ret = nxt_cycle_thread_pool_create(thr, cycle, cycle->auxiliary_threads,
-                                           60000 * 1000000LL);
-
-        if (nxt_slow_path(ret != NXT_OK)) {
-            goto fail;
-        }
-    }
-
-    nxt_app_start(cycle);
-#endif
-
-    return;
-
-fail:
-
-    exit(1);
-    nxt_unreachable();
-}
 
 
 static void
 nxt_worker_process_quit(nxt_task_t *task)
 {
     nxt_uint_t               n;
-    nxt_cycle_t              *cycle;
     nxt_queue_t              *listen;
+    nxt_runtime_t            *rt;
     nxt_queue_link_t         *link, *next;
     nxt_listen_socket_t      *ls;
     nxt_event_conn_listen_t  *cls;
 
-    cycle = nxt_thread_cycle();
+    rt = task->thread->runtime;
 
     nxt_debug(task, "close listen connections");
 
@@ -151,10 +68,10 @@ nxt_worker_process_quit(nxt_task_t *task)
         nxt_fd_event_close(task->thread->engine, &cls->socket);
     }
 
-    if (cycle->listen_sockets != NULL) {
+    if (rt->listen_sockets != NULL) {
 
-        ls = cycle->listen_sockets->elts;
-        n = cycle->listen_sockets->nelts;
+        ls = rt->listen_sockets->elts;
+        n = rt->listen_sockets->nelts;
 
         while (n != 0) {
             nxt_socket_close(task, ls->socket);
@@ -164,10 +81,10 @@ nxt_worker_process_quit(nxt_task_t *task)
             n--;
         }
 
-        cycle->listen_sockets->nelts = 0;
+        rt->listen_sockets->nelts = 0;
     }
 
-    nxt_cycle_quit(task, cycle);
+    nxt_runtime_quit(task);
 }
 
 
@@ -194,7 +111,7 @@ nxt_worker_process_sigterm_handler(nxt_task_t *task, void *obj, void *data)
 
     /* A fast exit. */
 
-    nxt_cycle_quit(task, NULL);
+    nxt_runtime_quit(task);
 }
 
 

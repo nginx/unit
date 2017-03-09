@@ -36,7 +36,7 @@ nxt_lib_start(const char *app, char **argv, char ***envp)
     int           n;
     nxt_int_t     flags;
     nxt_bool_t    update;
-    nxt_thread_t  *thr;
+    nxt_thread_t  *thread;
 
     flags = nxt_stderr_start();
 
@@ -64,16 +64,15 @@ nxt_lib_start(const char *app, char **argv, char ***envp)
     /* Thread log is required for nxt_malloc() in nxt_strerror_start(). */
 
     nxt_thread_init_data(nxt_thread_context);
-    thr = nxt_thread();
-    thr->log = &nxt_main_log;
+    thread = nxt_thread();
+    thread->log = &nxt_main_log;
 
-#if (NXT_THREADS)
-    thr->handle = nxt_thread_handle();
-    thr->time.signal = -1;
-#endif
+    thread->handle = nxt_thread_handle();
+    thread->time.signal = -1;
+    nxt_thread_time_update(thread);
 
-    nxt_main_task.thread = thr;
-    nxt_main_task.log = thr->log;
+    nxt_main_task.thread = thread;
+    nxt_main_task.log = thread->log;
     nxt_main_task.ident = nxt_task_next_ident();
 
     if (nxt_strerror_start() != NXT_OK) {
@@ -81,7 +80,7 @@ nxt_lib_start(const char *app, char **argv, char ***envp)
     }
 
     if (flags != -1) {
-        nxt_log_debug(thr->log, "stderr flags: 0x%04Xd", flags);
+        nxt_debug(&nxt_main_task, "stderr flags: 0x%04Xd", flags);
     }
 
 #ifdef _SC_NPROCESSORS_ONLN
@@ -93,7 +92,7 @@ nxt_lib_start(const char *app, char **argv, char ***envp)
 
 #endif
 
-    nxt_log_debug(thr->log, "ncpu: %ui", n);
+    nxt_debug(&nxt_main_task, "ncpu: %ui", n);
 
     if (n > 1) {
         nxt_ncpu = n;
@@ -105,12 +104,12 @@ nxt_lib_start(const char *app, char **argv, char ***envp)
 
     nxt_pagesize = getpagesize();
 
-    nxt_log_debug(thr->log, "pagesize: %ui", nxt_pagesize);
+    nxt_debug(&nxt_main_task, "pagesize: %ui", nxt_pagesize);
 
     if (argv != NULL) {
         update = (argv[0] == app);
 
-        nxt_process_arguments(argv, envp);
+        nxt_process_arguments(&nxt_main_task, argv, envp);
 
         if (update) {
             nxt_log_start(nxt_process_argv[0]);
@@ -131,12 +130,12 @@ nxt_lib_stop(void)
     for ( ;; ) {
         nxt_thread_pool_t  *tp;
 
-        nxt_thread_spin_lock(&cycle->lock);
+        nxt_thread_spin_lock(&rt->lock);
 
-        tp = cycle->thread_pools;
-        cycle->thread_pools = (tp != NULL) ? tp->next : NULL;
+        tp = rt->thread_pools;
+        rt->thread_pools = (tp != NULL) ? tp->next : NULL;
 
-        nxt_thread_spin_unlock(&cycle->lock);
+        nxt_thread_spin_unlock(&rt->lock);
 
         if (tp == NULL) {
             break;

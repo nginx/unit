@@ -43,7 +43,7 @@ static u_char  *nxt_process_title_end;
 
 
 void
-nxt_process_arguments(char **orig_argv, char ***orig_envp)
+nxt_process_arguments(nxt_task_t *task, char **orig_argv, char ***orig_envp)
 {
     u_char      *p, *end, *argv_end, **argv, **env;
     size_t      size, argv_size, environ_size, strings_size;
@@ -126,7 +126,7 @@ nxt_process_arguments(char **orig_argv, char ***orig_envp)
          * There is no reason to modify environ if arguments
          * and environment are not contiguous.
          */
-        nxt_thread_log_debug("arguments and environment are not contiguous");
+        nxt_debug(task, "arguments and environment are not contiguous");
         goto done;
     }
 
@@ -187,9 +187,10 @@ done:
 
 
 void
-nxt_process_title(const char *title)
+nxt_process_title(nxt_task_t *task, const char *fmt, ...)
 {
-    u_char  *p, *start, *end;
+    u_char   *p, *start, *end;
+    va_list  args;
 
     start = nxt_process_title_start;
 
@@ -199,7 +200,9 @@ nxt_process_title(const char *title)
 
     end = nxt_process_title_end;
 
-    p = nxt_sprintf(start, end, "%s", title);
+    va_start(args, fmt);
+    p = nxt_vsprintf(start, end, fmt, args);
+    va_end(args);
 
 #if (NXT_SOLARIS)
     /*
@@ -238,7 +241,7 @@ nxt_process_title(const char *title)
      */
     nxt_memset(p, '\0', end - p);
 
-    nxt_thread_log_debug("setproctitle: \"%s\"", start);
+    nxt_debug(task, "setproctitle: \"%s\"", start);
 }
 
 #else /* !(NXT_SETPROCTITLE_ARGV) */

@@ -65,7 +65,7 @@ typedef struct {
 
     /*
      * The write() is an interface to write a buffer chain with a given rate
-     * limit.  It calls write_chunk() in a cycle and handles write event timer.
+     * limit.  It calls write_chunk() in a loop and handles write event timer.
      */
     nxt_work_handler_t            write;
 
@@ -175,7 +175,7 @@ typedef struct {
     nxt_task_t                    task;
 
     uint32_t                      ready;
-    uint32_t                      batch0;
+    uint32_t                      batch;
 
     /* An accept() interface is cached to minimize memory accesses. */
     nxt_work_handler_t            accept;
@@ -299,13 +299,13 @@ NXT_EXPORT void nxt_event_conn_job_sendfile(nxt_task_t *task,
                        c->socket.task, c, c->socket.data)
 
 
-#define nxt_event_conn_read(e, c)                                             \
+#define nxt_event_conn_read(engine, c)                                        \
     do {                                                                      \
-        nxt_event_engine_t  *engine = e;                                      \
+        nxt_event_engine_t  *e = engine;                                      \
                                                                               \
-        c->socket.read_work_queue = &engine->read_work_queue;                 \
+        c->socket.read_work_queue = &e->read_work_queue;                      \
                                                                               \
-        nxt_work_queue_add(&engine->read_work_queue, c->io->read,             \
+        nxt_work_queue_add(&e->read_work_queue, c->io->read,                  \
                            c->socket.task, c, c->socket.data);                \
     } while (0)
 

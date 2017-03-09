@@ -6,13 +6,14 @@
  */
 
 #include <nxt_main.h>
-#include <nxt_cycle.h>
+#include <nxt_runtime.h>
 #include <nxt_application.h>
 
 
 #define NXT_PARSE_AGAIN  (u_char *) -1
 
 
+static nxt_int_t nxt_app_listen_socket(nxt_task_t *task, nxt_runtime_t *rt);
 static void nxt_app_thread(void *ctx);
 static nxt_app_request_t *nxt_app_request_create(nxt_socket_t s,
     nxt_log_t *log);
@@ -77,10 +78,14 @@ static nxt_uint_t                nxt_app_buf_max_number = 16;
 
 
 nxt_int_t
-nxt_app_start(nxt_cycle_t *cycle)
+nxt_app_start(nxt_task_t *task, nxt_runtime_t *rt)
 {
     nxt_thread_link_t    *link;
     nxt_thread_handle_t  handle;
+
+    if (nxt_app_listen_socket(task, rt) != NXT_OK) {
+        return NXT_ERROR;
+    }
 
     if (nxt_slow_path(nxt_thread_mutex_create(&nxt_app_mutex) != NXT_OK)) {
         return NXT_ERROR;
@@ -94,12 +99,45 @@ nxt_app_start(nxt_cycle_t *cycle)
 
     if (nxt_fast_path(link != NULL)) {
         link->start = nxt_app_thread;
-        link->data = cycle;
+        link->data = rt;
 
         return nxt_thread_create(&handle, link);
     }
 
     return NXT_ERROR;
+}
+
+
+static nxt_int_t
+nxt_app_listen_socket(nxt_task_t *task, nxt_runtime_t *rt)
+{
+    nxt_sockaddr_t       *sa;
+    nxt_listen_socket_t  *ls;
+
+    sa = nxt_sockaddr_alloc(rt->mem_pool, sizeof(struct sockaddr_in),
+                            NXT_INET_ADDR_STR_LEN);
+    if (sa == NULL) {
+        return NXT_ERROR;
+    }
+
+    sa->type = SOCK_STREAM;
+    sa->u.sockaddr_in.sin_family = AF_INET;
+    sa->u.sockaddr_in.sin_port = htons(8080);
+
+    nxt_sockaddr_text(sa);
+
+    ls = nxt_runtime_listen_socket_add(rt, sa);
+    if (ls == NULL) {
+        return NXT_ERROR;
+    }
+
+    ls->read_after_accept = 1;
+
+    if (nxt_listen_socket_create(task, ls, 0) != NXT_OK) {
+        return NXT_ERROR;
+    }
+
+    return NXT_OK;
 }
 
 
@@ -110,9 +148,9 @@ nxt_app_thread(void *ctx)
 {
     ssize_t                 n;
     nxt_err_t               err;
-    nxt_cycle_t             *cycle;
     nxt_socket_t            s;
     nxt_thread_t            *thr;
+    nxt_runtime_t           *rt;
     nxt_app_request_t       *r;
     nxt_event_engine_t      **engines;
     nxt_listen_socket_t     *ls;
@@ -124,8 +162,8 @@ nxt_app_thread(void *ctx)
 
     nxt_log_debug(thr->log, "app thread");
 
-    cycle = ctx;
-    engines = cycle->engines->elts;
+    rt = ctx;
+    engines = rt->engines->elts;
 
     nxt_app_engine = engines[0];
 
@@ -138,7 +176,7 @@ nxt_app_thread(void *ctx)
         nxt_log_debug(thr->log, "application init failed");
     }
 
-    ls = cycle->listen_sockets->elts;
+    ls = rt->listen_sockets->elts;
 
     for ( ;; ) {
         nxt_log_debug(thr->log, "wait on accept");

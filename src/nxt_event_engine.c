@@ -25,11 +25,12 @@ static nxt_work_handler_t nxt_event_engine_queue_pop(nxt_event_engine_t *engine,
 
 
 nxt_event_engine_t *
-nxt_event_engine_create(nxt_thread_t *thr,
+nxt_event_engine_create(nxt_task_t *task,
     const nxt_event_interface_t *interface, const nxt_sig_event_t *signals,
     nxt_uint_t flags, nxt_uint_t batch)
 {
     nxt_uint_t          events;
+    nxt_thread_t        *thread;
     nxt_event_engine_t  *engine;
 
     engine = nxt_zalloc(sizeof(nxt_event_engine_t));
@@ -37,14 +38,16 @@ nxt_event_engine_create(nxt_thread_t *thr,
         return NULL;
     }
 
-    engine->task.thread = thr;
-    engine->task.log = thr->log;
+    thread = task->thread;
+
+    engine->task.thread = thread;
+    engine->task.log = thread->log;
     engine->task.ident = nxt_task_next_ident();
 
-    thr->engine = engine;
-    thr->fiber = &engine->fibers->fiber;
+    thread->engine = engine;
+    thread->fiber = &engine->fibers->fiber;
 
-    engine->batch0 = batch;
+    engine->batch = batch;
 
     if (flags & NXT_ENGINE_FIBERS) {
         engine->fibers = nxt_fiber_main_create(engine);
@@ -111,8 +114,10 @@ nxt_event_engine_create(nxt_thread_t *thr,
         goto timers_fail;
     }
 
-    nxt_thread_time_update(thr);
-    engine->timers.now = nxt_thread_monotonic_time(thr) / 1000000;
+    thread = task->thread;
+
+    nxt_thread_time_update(thread);
+    engine->timers.now = nxt_thread_monotonic_time(thread) / 1000000;
 
     engine->max_connections = 0xffffffff;
 
@@ -122,7 +127,7 @@ nxt_event_engine_create(nxt_thread_t *thr,
 #if !(NXT_THREADS)
 
     if (interface->signal_support) {
-        thr->time.signal = -1;
+        thread->time.signal = -1;
     }
 
 #endif
@@ -368,14 +373,12 @@ nxt_event_engine_signal_handler(nxt_task_t *task, void *obj, void *data)
 
 
 nxt_int_t
-nxt_event_engine_change(nxt_thread_t *thr, nxt_task_t *task,
+nxt_event_engine_change(nxt_event_engine_t *engine,
     const nxt_event_interface_t *interface, nxt_uint_t batch)
 {
-    nxt_uint_t          events;
-    nxt_event_engine_t  *engine;
+    nxt_uint_t  events;
 
-    engine = thr->engine;
-    engine->batch0 = batch;
+    engine->batch = batch;
 
     if (!engine->event.signal_support && interface->signal_support) {
         /*
@@ -388,7 +391,7 @@ nxt_event_engine_change(nxt_thread_t *thr, nxt_task_t *task,
          * Add to engine fast work queue the signal events possibly
          * received before the blocking signal processing.
          */
-        nxt_event_engine_signal_pipe(task, &engine->pipe->event, NULL);
+        nxt_event_engine_signal_pipe(&engine->task, &engine->pipe->event, NULL);
     }
 
     if (engine->pipe != NULL && interface->enable_post != NULL) {

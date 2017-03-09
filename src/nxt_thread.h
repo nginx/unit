@@ -178,6 +178,7 @@ struct nxt_thread_s {
 
     nxt_thread_time_t        time;
 
+    nxt_runtime_t            *runtime;
     nxt_event_engine_t       *engine;
 
     /*

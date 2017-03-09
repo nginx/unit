@@ -237,7 +237,7 @@ fi
 
 cat << END > Makefile
 
-all:	libnxt $NXT_BIN
+all:	$NXT_BIN
 
 libnxt:
 	make -f $NXT_MAKEFILE libnxt

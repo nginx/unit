@@ -738,7 +738,7 @@ nxt_kqueue_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
             ev->kq_errno = err;
             ev->kq_eof = eof;
 
-            if (ev->read == NXT_EVENT_BLOCKED) {
+            if (ev->read <= NXT_EVENT_BLOCKED) {
                 nxt_debug(ev->task, "blocked read event fd:%d", ev->fd);
                 continue;
             }
@@ -769,7 +769,7 @@ nxt_kqueue_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
             ev->kq_errno = err;
             ev->kq_eof = eof;
 
-            if (ev->write == NXT_EVENT_BLOCKED) {
+            if (ev->write <= NXT_EVENT_BLOCKED) {
                 nxt_debug(ev->task, "blocked write event fd:%d", ev->fd);
                 continue;
             }
@@ -908,7 +908,7 @@ nxt_kqueue_listen_handler(nxt_task_t *task, void *obj, void *data)
     nxt_debug(task, "kevent fd:%d avail:%D",
               cls->socket.fd, cls->socket.kq_available);
 
-    cls->ready = nxt_min(cls->batch0, (uint32_t) cls->socket.kq_available);
+    cls->ready = nxt_min(cls->batch, (uint32_t) cls->socket.kq_available);
 
     nxt_kqueue_event_conn_io_accept(task, cls, data);
 }

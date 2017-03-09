@@ -28,7 +28,7 @@ struct nxt_task_s {
  * A work handler with just the obj and data arguments instead
  * of pointer to a possibly large a work struct allows to call
  * the handler not only via a work queue but also directly.
- * The only obj argument is enough for the most cases expect the
+ * The only obj argument is enough for the most cases except the
  * source filters, so the data argument has been introduced and
  * is used where appropriate.
  */

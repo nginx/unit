@@ -15,7 +15,7 @@
 #endif
 
 #include <nxt_main.h>
-#include <nxt_cycle.h>
+#include <nxt_runtime.h>
 #include <nxt_application.h>
 
 
@@ -45,7 +45,7 @@ static PyObject *nxt_py_input_readline(nxt_py_input_t *self, PyObject *args);
 static PyObject *nxt_py_input_readlines(nxt_py_input_t *self, PyObject *args);
 
 
-extern nxt_int_t nxt_python_wsgi_init(nxt_thread_t *thr, nxt_cycle_t *cycle);
+extern nxt_int_t nxt_python_wsgi_init(nxt_thread_t *thr, nxt_runtime_t *rt);
 
 
 nxt_application_module_t  nxt_python_module = {
@@ -130,7 +130,7 @@ static nxt_app_request_t  *nxt_app_request;
 
 
 nxt_int_t
-nxt_python_wsgi_init(nxt_thread_t *thr, nxt_cycle_t *cycle)
+nxt_python_wsgi_init(nxt_thread_t *thr, nxt_runtime_t *rt)
 {
     char    **argv;
     u_char  *p, *dir;
@@ -295,7 +295,8 @@ nxt_python_init(nxt_thread_t *thr)
         return NXT_ERROR;
     }
 
-    pModule = PyImport_ExecCodeModuleEx((char *) "_wsgi_nginext", co, (char *) script);
+    pModule = PyImport_ExecCodeModuleEx((char *) "_wsgi_nginext", co,
+                                        (char *) script);
 
     Py_XDECREF(co);
 #endif

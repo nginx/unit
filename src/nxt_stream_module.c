@@ -5,7 +5,7 @@
  */
 
 #include <nxt_main.h>
-#include <nxt_cycle.h>
+#include <nxt_runtime.h>
 
 
 static void nxt_stream_connection_peer(nxt_task_t *task,
@@ -17,7 +17,7 @@ static void nxt_stream_connection_close(nxt_task_t *task, void *obj,
 void
 nxt_stream_connection_init(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_cycle_t          *cycle;
+    nxt_runtime_t        *rt;
     nxt_event_conn_t     *c;
     nxt_upstream_peer_t  *up;
 
@@ -32,10 +32,10 @@ nxt_stream_connection_init(nxt_task_t *task, void *obj, void *data)
 
     up->data = c;
 
-    cycle = nxt_thread_cycle();
+    rt = task->thread->runtime;
 
-    if (cycle->upstream.length != 0) {
-        up->addr = cycle->upstream;
+    if (rt->upstream.length != 0) {
+        up->addr = rt->upstream;
 
     } else {
         nxt_str_set(&up->addr, "127.0.0.1:8080");

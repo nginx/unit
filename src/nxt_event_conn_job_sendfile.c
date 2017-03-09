@@ -182,7 +182,7 @@ nxt_event_conn_job_sendfile_return(nxt_task_t *task, void *obj, void *data)
     b = jbs->out;
 
     /* The job must be destroyed before connection error handler. */
-    nxt_job_destroy(jbs);
+    nxt_job_destroy(task, jbs);
 
     if (c->write_state->process_buffers) {
         b = nxt_event_conn_job_sendfile_completion(task, c, b);

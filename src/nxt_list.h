@@ -75,7 +75,7 @@ nxt_list_elt(nxt_list_t *list, nxt_uint_t n)
 
 #define nxt_list_each(elt, list)                                              \
     do {                                                                      \
-        if (nxt_fast_path((list) != NULL)) {                                                 \
+        if (nxt_fast_path((list) != NULL)) {                                  \
             void             *_end;                                           \
             nxt_list_part_t  *_part = nxt_list_part(list);                    \
                                                                               \

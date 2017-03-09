@@ -106,10 +106,8 @@ typedef struct {
 } nxt_file_t;
 
 
-NXT_EXPORT nxt_int_t nxt_file_open(nxt_file_t *file, nxt_uint_t mode,
-    nxt_uint_t create, nxt_file_access_t access);
-
-#define nxt_file_open_n             "open"
+NXT_EXPORT nxt_int_t nxt_file_open(nxt_task_t *task, nxt_file_t *file,
+    nxt_uint_t mode, nxt_uint_t create, nxt_file_access_t access);
 
 
 /* The file open access modes. */
@@ -128,7 +126,7 @@ NXT_EXPORT nxt_int_t nxt_file_open(nxt_file_t *file, nxt_uint_t mode,
 #define NXT_FILE_OWNER_ACCESS       0600
 
 
-NXT_EXPORT void nxt_file_close(nxt_file_t *file);
+NXT_EXPORT void nxt_file_close(nxt_task_t *task, nxt_file_t *file);
 NXT_EXPORT ssize_t nxt_file_write(nxt_file_t *file, const u_char *buf,
     size_t size, nxt_off_t offset);
 NXT_EXPORT ssize_t nxt_file_read(nxt_file_t *file, u_char *buf, size_t size,

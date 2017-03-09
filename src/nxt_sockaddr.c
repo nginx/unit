@@ -229,7 +229,7 @@ nxt_sockaddr_text(nxt_sockaddr_t *sa)
 
         sa->address_length = p - (start + 1);
         sa->port_start = sa->address_length + 2;
-        
+
         *p++ = ']';
 
         port = sa->u.sockaddr_in6.sin6_port;

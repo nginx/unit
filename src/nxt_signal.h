@@ -8,11 +8,11 @@
 #define _NXT_SIGNAL_H_INCLUDED_
 
 
-typedef struct {
+struct nxt_sig_event_s {
     int                         signo;
     nxt_work_handler_t          handler;
     const char                  *name;
-} nxt_sig_event_t;
+};
 
 #define nxt_event_signal(sig, handler)                                        \
     { sig, handler, #sig }

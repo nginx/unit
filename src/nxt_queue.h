@@ -68,7 +68,7 @@ nxt_queue_is_empty(queue)                                                     \
  *
  *  for (lnk = nxt_queue_last(queue);
  *       lnk != nxt_queue_head(queue);
- *       lnk = nxt_queue_next(lnk))
+ *       lnk = nxt_queue_prev(lnk))
  *  {
  *      tp = nxt_queue_link_data(lnk, nxt_type_t, link);
  */
