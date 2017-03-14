@@ -242,6 +242,8 @@ nxt_python_wsgi_init(nxt_thread_t *thr, nxt_runtime_t *rt)
 
     Py_DECREF(obj);
 
+    nxt_app = &nxt_python_module;
+
     return NXT_OK;
 
 fail:

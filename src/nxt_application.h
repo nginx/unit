@@ -50,7 +50,8 @@ typedef struct {
 } nxt_application_module_t;
 
 
-extern nxt_application_module_t  nxt_python_module;
+extern nxt_application_module_t  *nxt_app;
+
 
 
 nxt_int_t nxt_app_http_read_body(nxt_app_request_t *r, u_char *data,

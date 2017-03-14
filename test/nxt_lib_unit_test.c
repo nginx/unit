@@ -9,6 +9,9 @@
 
 extern char  **environ;
 
+nxt_module_init_t  nxt_init_modules[0];
+nxt_uint_t         nxt_init_modules_n;
+
 
 /* The function is defined here to prevent inline optimizations. */
 static nxt_bool_t

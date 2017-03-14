@@ -66,6 +66,9 @@ NXT_LIB_DEPS=" \
     src/nxt_job_resolve.h \
     src/nxt_listen_socket.h \
     src/nxt_http_parse.h \
+    src/nxt_runtime.h \
+    src/nxt_application.h \
+    src/nxt_master_process.h \
 "
 
 NXT_LIB_SRCS=" \
@@ -130,6 +133,14 @@ NXT_LIB_SRCS=" \
     src/nxt_listen_socket.c \
     src/nxt_upstream_round_robin.c \
     src/nxt_http_parse.c \
+    src/nxt_app_log.c \
+    src/nxt_runtime.c \
+    src/nxt_stream_module.c \
+    src/nxt_master_process.c \
+    src/nxt_worker_process.c \
+    src/nxt_controller.c \
+    src/nxt_router.c \
+    src/nxt_application.c \
 "
 
 NXT_LIB_SRC0=" \
@@ -321,19 +332,8 @@ if [ $NXT_LIB_UNIT_TEST = YES ]; then
 fi
 
 NXT_DEPS=" \
-    src/nxt_runtime.h \
-    src/nxt_application.h \
-    src/nxt_master_process.h \
 "
 
 NXT_SRCS=" \
     src/nxt_main.c \
-    src/nxt_app_log.c \
-    src/nxt_runtime.c \
-    src/nxt_stream_module.c \
-    src/nxt_master_process.c \
-    src/nxt_worker_process.c \
-    src/nxt_controller.c \
-    src/nxt_router.c \
-    src/nxt_application.c \
 "

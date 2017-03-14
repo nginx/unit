@@ -62,7 +62,7 @@ static nxt_int_t nxt_app_http_process_headers(nxt_app_request_t *r);
 
 static const nxt_event_conn_state_t  nxt_app_delivery_write_state;
 
-static nxt_application_module_t  *nxt_app = &nxt_python_module;
+nxt_application_module_t         *nxt_app;
 
 static nxt_thread_mutex_t        nxt_app_mutex;
 static nxt_thread_cond_t         nxt_app_cond;
