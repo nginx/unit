@@ -13,7 +13,7 @@ nxt_mem_cache_pool_unit_test(nxt_thread_t *thr, nxt_uint_t runs,
 {
     void                  **blocks;
     size_t                total;
-    uint32_t              size;
+    uint32_t              value, size;
     nxt_uint_t            i, n;
     nxt_mem_cache_pool_t  *pool;
 
@@ -37,17 +37,23 @@ nxt_mem_cache_pool_unit_test(nxt_thread_t *thr, nxt_uint_t runs,
         return NXT_ERROR;
     }
 
-    size = 0;
+    value = 0;
 
     for (i = 0; i < runs; i++) {
 
         total = 0;
 
         for (n = 0; n < nblocks; n++) {
-            size = nxt_murmur_hash2(&size, sizeof(uint32_t));
+            value = nxt_murmur_hash2(&value, sizeof(uint32_t));
 
-            total += size & max_size;
-            blocks[n] = nxt_mem_cache_alloc(pool, size & max_size);
+            size = value & max_size;
+
+            if (size == 0) {
+                size++;
+            }
+
+            total += size;
+            blocks[n] = nxt_mem_cache_alloc(pool, size);
 
             if (blocks[n] == NULL) {
                 nxt_log_error(NXT_LOG_NOTICE, thr->log,
