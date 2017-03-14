@@ -128,7 +128,7 @@ nxt_master_process_title(nxt_task_t *task)
 
     *p = '\0';
 
-    nxt_process_title(task, (char *) title);
+    nxt_process_title(task, "%s", (char *) title);
 }
 
 

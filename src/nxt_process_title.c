@@ -247,7 +247,7 @@ nxt_process_title(nxt_task_t *task, const char *fmt, ...)
 #else /* !(NXT_SETPROCTITLE_ARGV) */
 
 void
-nxt_process_arguments(char **orig_argv, char ***orig_envp)
+nxt_process_arguments(nxt_task_t *task, char **orig_argv, char ***orig_envp)
 {
     nxt_process_argv = orig_argv;
     nxt_process_environ = orig_envp;
