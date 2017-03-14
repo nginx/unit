@@ -1106,18 +1106,18 @@ invalid_address:
 
 static nxt_sockaddr_t *
 nxt_runtime_sockaddr_inet_parse(nxt_task_t *task, nxt_mem_pool_t *mp,
-    nxt_str_t *addr)
+    nxt_str_t *string)
 {
     u_char          *p, *ip;
     size_t          length;
-    in_addr_t       s_addr;
+    in_addr_t       addr;
     nxt_int_t       port;
     nxt_sockaddr_t  *sa;
 
-    s_addr = INADDR_ANY;
+    addr = INADDR_ANY;
 
-    length = addr->length;
-    ip = addr->start;
+    length = string->length;
+    ip = string->start;
 
     p = nxt_memchr(ip, ':', length);
 
@@ -1137,9 +1137,9 @@ nxt_runtime_sockaddr_inet_parse(nxt_task_t *task, nxt_mem_pool_t *mp,
         } else {
             /* "x.x.x.x" */
 
-            s_addr = nxt_inet_addr(ip, length);
+            addr = nxt_inet_addr(ip, length);
 
-            if (s_addr == INADDR_NONE) {
+            if (addr == INADDR_NONE) {
                 goto invalid_port;
             }
 
@@ -1161,9 +1161,9 @@ nxt_runtime_sockaddr_inet_parse(nxt_task_t *task, nxt_mem_pool_t *mp,
         length = (p - 1) - ip;
 
         if (length != 1 || ip[0] != '*') {
-            s_addr = nxt_inet_addr(ip, length);
+            addr = nxt_inet_addr(ip, length);
 
-            if (s_addr == INADDR_NONE) {
+            if (addr == INADDR_NONE) {
                 goto invalid_addr;
             }
 
@@ -1181,19 +1181,19 @@ nxt_runtime_sockaddr_inet_parse(nxt_task_t *task, nxt_mem_pool_t *mp,
 
     sa->u.sockaddr_in.sin_family = AF_INET;
     sa->u.sockaddr_in.sin_port = htons((in_port_t) port);
-    sa->u.sockaddr_in.sin_addr.s_addr = s_addr;
+    sa->u.sockaddr_in.sin_addr.s_addr = addr;
 
     return sa;
 
 invalid_port:
 
-    nxt_log(task, NXT_LOG_CRIT, "invalid port in \"%V\"", addr);
+    nxt_log(task, NXT_LOG_CRIT, "invalid port in \"%V\"", string);
 
     return NULL;
 
 invalid_addr:
 
-    nxt_log(task, NXT_LOG_CRIT, "invalid address in \"%V\"", addr);
+    nxt_log(task, NXT_LOG_CRIT, "invalid address in \"%V\"", string);
 
     return NULL;
 }

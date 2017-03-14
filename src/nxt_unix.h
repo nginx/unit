@@ -69,7 +69,9 @@
 #define _REENTRANT                  /* Thread safe errno. */
 #endif
 
+#ifndef _POSIX_PTHREAD_SEMANTICS
 #define _POSIX_PTHREAD_SEMANTICS    /* 2 arguments in sigwait(). */
+#endif
 
 /*
  * Solaris provides two sockets API:
@@ -84,7 +86,9 @@
 #define _XOPEN_SOURCE
 #define _XOPEN_SOURCE_EXTENDED  1
 /* Enable Solaris extensions disabled by _XOPEN_SOURCE. */
+#ifndef __EXTENSIONS__
 #define __EXTENSIONS__
+#endif
 
 #endif /* NXT_SOLARIS */
 
@@ -92,7 +96,9 @@
 #if (NXT_MACOSX)
 
 #define _XOPEN_SOURCE               /* ucontext(3). */
+#ifndef _DARWIN_C_SOURCE
 #define _DARWIN_C_SOURCE            /* pthread_threadid_np(), mach_port_t. */
+#endif
 
 #include <mach/mach_time.h>         /* mach_absolute_time(). */
 #include <malloc/malloc.h>          /* malloc_size(). */

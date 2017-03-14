@@ -10,10 +10,6 @@
 #include <compile.h>
 #include <node.h>
 
-#ifdef _DARWIN_C_SOURCE
-#undef _DARWIN_C_SOURCE
-#endif
-
 #include <nxt_main.h>
 #include <nxt_runtime.h>
 #include <nxt_application.h>
@@ -426,7 +422,7 @@ nxt_python_run(nxt_app_request_t *r)
 static PyObject *
 nxt_python_create_environ(nxt_thread_t *thr)
 {
-    PyObject  *obj, *stderr, *environ;
+    PyObject  *obj, *err, *environ;
 
     environ = PyDict_New();
 
@@ -527,14 +523,14 @@ nxt_python_create_environ(nxt_thread_t *thr)
     obj = NULL;
 
 
-    stderr = PySys_GetObject((char *) "stderr");
+    err = PySys_GetObject((char *) "stderr");
 
-    if (nxt_slow_path(stderr == NULL)) {
+    if (nxt_slow_path(err == NULL)) {
         nxt_log_alert(thr->log, "Python failed to get \"sys.stderr\" object");
         goto fail;
     }
 
-    if (nxt_slow_path(PyDict_SetItemString(environ, "wsgi.error", stderr) != 0))
+    if (nxt_slow_path(PyDict_SetItemString(environ, "wsgi.error", err) != 0))
     {
         nxt_log_alert(thr->log,
                       "Python failed to set the \"wsgi.error\" environ value");

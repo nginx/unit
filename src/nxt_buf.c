@@ -18,7 +18,7 @@ nxt_buf_mem_init(nxt_buf_t *b, void *start, size_t size)
     b->mem.start = start;
     b->mem.pos = start;
     b->mem.free = start;
-    b->mem.end = start + size;
+    b->mem.end = (u_char *) start + size;
 }
 
 
