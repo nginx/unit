@@ -492,3 +492,37 @@ nxt_rbtree_parent_relink(nxt_rbtree_node_t *subst, nxt_rbtree_node_t *node)
     link = (node == parent->left) ? &parent->left : &parent->right;
     *link = subst;
 }
+
+
+nxt_rbtree_node_t *
+nxt_rbtree_destroy_next(nxt_rbtree_t *tree, nxt_rbtree_node_t **next)
+{
+    nxt_rbtree_node_t  *node, *subst, *parent, *sentinel;
+
+    sentinel = nxt_rbtree_sentinel(tree);
+
+    /* Find the leftmost node. */
+    for (node = *next; node->left != sentinel; node = node->left);
+
+    /* Replace the leftmost node with its right child. */
+    subst = node->right;
+    parent = node->parent;
+
+    parent->left = subst;
+    subst->parent = parent;
+
+    /*
+     * The right child is used as the next start node.  If the right child
+     * is the sentinel then parent of the leftmost node is used as the next
+     * start node.  The parent of the root node is the sentinel so after
+     * the single root node will be replaced with the sentinel, the next
+     * start node will be equal to the sentinel and iteration will stop.
+     */
+    if (subst == sentinel) {
+        subst = parent;
+    }
+
+    *next = subst;
+
+    return node;
+}

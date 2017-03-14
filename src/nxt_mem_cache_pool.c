@@ -13,114 +13,127 @@
  * size.  Page size must be a power of 2.  A page can be used entirely or
  * can be divided on chunks of equal size.  Chunk size must be a power of 2.
  * A cluster can contains pages with different chunk sizes.  Cluster size
- * must be multiple of page size and may be not a power of 2.  Allocations
+ * must be a multiple of page size and may be not a power of 2.  Allocations
  * greater than page are allocated outside clusters.  Start addresses and
- * sizes of clusters and large allocations are stored in rbtree to find
- * them on free operations.  The rbtree nodes are sorted by start addresses.
+ * sizes of the clusters and large allocations are stored in rbtree blocks
+ * to find them on free operations.  The rbtree nodes are sorted by start
+ * addresses.
  */
 
 
-typedef struct nxt_mem_cache_page_s  nxt_mem_cache_page_t;
-
-struct nxt_mem_cache_page_s {
-    /* Chunk bitmap.  There can be no more than 32 chunks in a page. */
-    uint8_t                  map[4];
-
-    /* Number of free chunks of a chunked page. */
-    uint8_t                  chunks;
+typedef struct {
+    /*
+     * Used to link pages with free chunks in pool chunk slot list
+     * or to link free pages in clusters.
+     */
+    nxt_queue_link_t            link;
 
     /*
      * Size of chunks or page shifted by pool->chunk_size_shift.
      * Zero means that page is free.
      */
-    uint8_t                  size;
+    uint8_t                     size;
 
     /*
      * Page number in page cluster.
-     * There can be no more than 65536 pages in a cluster.
+     * There can be no more than 256 pages in a cluster.
      */
-    uint16_t                 number;
+    uint8_t                     number;
 
+    /* Number of free chunks of a chunked page. */
+    uint8_t                     chunks;
+
+    uint8_t                     _unused;
+
+    /* Chunk bitmap.  There can be no more than 32 chunks in a page. */
+    uint8_t                     map[4];
+} nxt_mem_cache_page_t;
+
+
+typedef enum {
+    /* Block of cluster.  The block is allocated apart of the cluster. */
+    NXT_MEM_CACHE_CLUSTER_BLOCK = 0,
     /*
-     * Used to link pages with free chunks in pool chunk slot list
-     * or to link free pages in clusters.
+     * Block of large allocation.
+     * The block is allocated apart of the allocation.
      */
-    nxt_queue_link_t         link;
-};
+    NXT_MEM_CACHE_DISCRETE_BLOCK,
+    /*
+     * Block of large allocation.
+     * The block is allocated just after of the allocation.
+     */
+    NXT_MEM_CACHE_EMBEDDED_BLOCK,
+} nxt_mem_cache_block_type_t;
 
 
 typedef struct {
-    NXT_RBTREE_NODE          (node);
-    uint8_t                  type;
-    uint32_t                 size;
+    NXT_RBTREE_NODE             (node);
+    nxt_mem_cache_block_type_t  type:8;
 
-    u_char                   *start;
-    nxt_mem_cache_page_t     pages[];
+    /* Block size must be less than 4G. */
+    uint32_t                    size;
+
+    u_char                      *start;
+    nxt_mem_cache_page_t        pages[];
 } nxt_mem_cache_block_t;
 
 
 typedef struct {
-    nxt_queue_t              pages;
+    nxt_queue_t                 pages;
+
+    /* Size of page chunks. */
 #if (NXT_64BIT)
-    uint32_t                 size;
-    uint32_t                 chunks;
+    uint32_t                    size;
 #else
-    uint16_t                 size;
-    uint16_t                 chunks;
+    uint16_t                    size;
 #endif
+
+    /* Maximum number of free chunks in chunked page. */
+    uint8_t                     chunks;
 } nxt_mem_cache_slot_t;
 
 
 struct nxt_mem_cache_pool_s {
     /* rbtree of nxt_mem_cache_block_t. */
-    nxt_rbtree_t             pages;
+    nxt_rbtree_t                blocks;
 
-    nxt_queue_t              free_pages;
+    nxt_queue_t                 free_pages;
 
-    uint8_t                  chunk_size_shift;
-    uint8_t                  page_size_shift;
-    uint32_t                 page_size;
-    uint32_t                 page_alignment;
-    uint32_t                 cluster_size;
+    uint8_t                     chunk_size_shift;
+    uint8_t                     page_size_shift;
+    uint32_t                    page_size;
+    uint32_t                    page_alignment;
+    uint32_t                    cluster_size;
 
-    nxt_mem_cache_slot_t     slots[];
+    nxt_mem_cache_slot_t        slots[];
 };
 
 
-/* A cluster cache block. */
-#define NXT_MEM_CACHE_CLUSTER_BLOCK   0
-
-/* A discrete cache block of large allocation. */
-#define NXT_MEM_CACHE_DISCRETE_BLOCK  1
-/*
- * An embedded cache block allocated together with large allocation
- * just after the allocation.
- */
-#define NXT_MEM_CACHE_EMBEDDED_BLOCK  2
-
-
-#define                                                                       \
-nxt_mem_cache_chunk_is_free(map, chunk)                                       \
+#define nxt_mem_cache_chunk_is_free(map, chunk)                               \
     ((map[chunk / 8] & (0x80 >> (chunk & 7))) == 0)
 
 
-#define                                                                       \
-nxt_mem_cache_chunk_set_free(map, chunk)                                      \
+#define nxt_mem_cache_chunk_set_free(map, chunk)                              \
     map[chunk / 8] &= ~(0x80 >> (chunk & 7))
 
 
-#define                                                                       \
-nxt_mem_cache_free_junk(p, size)                                              \
-    nxt_memset((p), 0x5A, size)
+#define nxt_mem_cache_free_junk(p, size)                                      \
+    memset((p), 0x5A, size)
+
+
+#define nxt_is_power_of_two(value)                                            \
+    ((((value) - 1) & (value)) == 0)
 
 
 static nxt_uint_t nxt_mem_cache_shift(nxt_uint_t n);
+#if !(NXT_DEBUG_MEMORY)
 static void *nxt_mem_cache_alloc_small(nxt_mem_cache_pool_t *pool, size_t size);
 static nxt_uint_t nxt_mem_cache_alloc_chunk(u_char *map, nxt_uint_t size);
 static nxt_mem_cache_page_t *
     nxt_mem_cache_alloc_page(nxt_mem_cache_pool_t *pool);
 static nxt_mem_cache_block_t *
     nxt_mem_cache_alloc_cluster(nxt_mem_cache_pool_t *pool);
+#endif
 static void *nxt_mem_cache_alloc_large(nxt_mem_cache_pool_t *pool,
     size_t alignment, size_t size);
 static intptr_t nxt_mem_cache_rbtree_compare(nxt_rbtree_node_t *node1,
@@ -137,9 +150,9 @@ nxt_mem_cache_pool_create(size_t cluster_size, size_t page_alignment,
 {
     /* Alignment and sizes must be a power of 2. */
 
-    if (nxt_slow_path((page_alignment & (page_alignment - 1)) != 0
-                      || (page_size & (page_size - 1)) != 0
-                      || (min_chunk_size & (min_chunk_size - 1)) != 0))
+    if (nxt_slow_path(!nxt_is_power_of_two(page_alignment)
+                     || !nxt_is_power_of_two(page_size)
+                     || !nxt_is_power_of_two(min_chunk_size)))
     {
         return NULL;
     }
@@ -147,11 +160,12 @@ nxt_mem_cache_pool_create(size_t cluster_size, size_t page_alignment,
     page_alignment = nxt_max(page_alignment, NXT_MAX_ALIGNMENT);
 
     if (nxt_slow_path(page_size < 64
-                      || page_size < page_alignment
-                      || page_size < min_chunk_size
-                      || min_chunk_size * 32 < page_size
-                      || cluster_size < page_size
-                      || cluster_size % page_size != 0))
+                     || page_size < page_alignment
+                     || page_size < min_chunk_size
+                     || min_chunk_size * 32 < page_size
+                     || cluster_size < page_size
+                     || cluster_size / page_size > 256
+                     || cluster_size % page_size != 0))
     {
         return NULL;
     }
@@ -163,7 +177,7 @@ nxt_mem_cache_pool_create(size_t cluster_size, size_t page_alignment,
 
 nxt_mem_cache_pool_t *
 nxt_mem_cache_pool_fast_create(size_t cluster_size, size_t page_alignment,
-    size_t page_size, size_t min_chunk_size)
+     size_t page_size, size_t min_chunk_size)
 {
     nxt_uint_t            slots, chunk_size;
     nxt_mem_cache_slot_t  *slot;
@@ -181,7 +195,6 @@ nxt_mem_cache_pool_fast_create(size_t cluster_size, size_t page_alignment,
                       + slots * sizeof(nxt_mem_cache_slot_t));
 
     if (nxt_fast_path(pool != NULL)) {
-
         pool->page_size = page_size;
         pool->page_alignment = nxt_max(page_alignment, NXT_MAX_ALIGNMENT);
         pool->cluster_size = cluster_size;
@@ -202,7 +215,7 @@ nxt_mem_cache_pool_fast_create(size_t cluster_size, size_t page_alignment,
         pool->chunk_size_shift = nxt_mem_cache_shift(min_chunk_size);
         pool->page_size_shift = nxt_mem_cache_shift(page_size);
 
-        nxt_rbtree_init(&pool->pages, nxt_mem_cache_rbtree_compare);
+        nxt_rbtree_init(&pool->blocks, nxt_mem_cache_rbtree_compare);
 
         nxt_queue_init(&pool->free_pages);
     }
@@ -231,7 +244,7 @@ nxt_mem_cache_shift(nxt_uint_t n)
 nxt_bool_t
 nxt_mem_cache_pool_is_empty(nxt_mem_cache_pool_t *pool)
 {
-    return (nxt_rbtree_is_empty(&pool->pages)
+    return (nxt_rbtree_is_empty(&pool->blocks)
             && nxt_queue_is_empty(&pool->free_pages));
 }
 
@@ -243,15 +256,12 @@ nxt_mem_cache_pool_destroy(nxt_mem_cache_pool_t *pool)
     nxt_rbtree_node_t      *node, *next;
     nxt_mem_cache_block_t  *block;
 
-    for (node = nxt_rbtree_min(&pool->pages);
-         nxt_rbtree_is_there_successor(&pool->pages, node);
-         node = next)
-    {
-        next = nxt_rbtree_node_successor(&pool->pages, node);
+    next = nxt_rbtree_root(&pool->blocks);
 
+    while (next != nxt_rbtree_sentinel(&pool->blocks)) {
+
+        node = nxt_rbtree_destroy_next(&pool->blocks, &next);
         block = (nxt_mem_cache_block_t *) node;
-
-        nxt_rbtree_delete(&pool->pages, &block->node);
 
         p = block->start;
 
@@ -266,27 +276,18 @@ nxt_mem_cache_pool_destroy(nxt_mem_cache_pool_t *pool)
 }
 
 
-nxt_inline u_char *
-nxt_mem_cache_page_addr(nxt_mem_cache_pool_t *pool, nxt_mem_cache_page_t *page)
-{
-    nxt_mem_cache_block_t  *block;
-
-    block = (nxt_mem_cache_block_t *)
-                ((u_char *) page - page->number * sizeof(nxt_mem_cache_page_t)
-                 - offsetof(nxt_mem_cache_block_t, pages));
-
-    return block->start + (page->number << pool->page_size_shift);
-}
-
-
 void *
 nxt_mem_cache_alloc(nxt_mem_cache_pool_t *pool, size_t size)
 {
-    nxt_thread_log_debug("mem cache alloc: %uz", size);
+//    nxt_debug(task, "mem cache alloc: %zd", size);
+
+#if !(NXT_DEBUG_MEMORY)
 
     if (size <= pool->page_size) {
         return nxt_mem_cache_alloc_small(pool, size);
     }
+
+#endif
 
     return nxt_mem_cache_alloc_large(pool, NXT_MAX_ALIGNMENT, size);
 }
@@ -300,7 +301,7 @@ nxt_mem_cache_zalloc(nxt_mem_cache_pool_t *pool, size_t size)
     p = nxt_mem_cache_alloc(pool, size);
 
     if (nxt_fast_path(p != NULL)) {
-        nxt_memzero(p, size);
+        memset(p, 0, size);
     }
 
     return p;
@@ -310,11 +311,13 @@ nxt_mem_cache_zalloc(nxt_mem_cache_pool_t *pool, size_t size)
 void *
 nxt_mem_cache_align(nxt_mem_cache_pool_t *pool, size_t alignment, size_t size)
 {
-    nxt_thread_log_debug("mem cache align: @%uz:%uz", alignment, size);
+//    nxt_debug(task, "mem cache align: @%zd:%zd", alignment, size);
 
     /* Alignment must be a power of 2. */
 
-    if (nxt_fast_path((alignment - 1) & alignment) == 0) {
+    if (nxt_fast_path(nxt_is_power_of_two(alignment))) {
+
+#if !(NXT_DEBUG_MEMORY)
 
         if (size <= pool->page_size && alignment <= pool->page_alignment) {
             size = nxt_max(size, alignment);
@@ -323,6 +326,8 @@ nxt_mem_cache_align(nxt_mem_cache_pool_t *pool, size_t alignment, size_t size)
                 return nxt_mem_cache_alloc_small(pool, size);
             }
         }
+
+#endif
 
         return nxt_mem_cache_alloc_large(pool, alignment, size);
     }
@@ -339,10 +344,25 @@ nxt_mem_cache_zalign(nxt_mem_cache_pool_t *pool, size_t alignment, size_t size)
     p = nxt_mem_cache_align(pool, alignment, size);
 
     if (nxt_fast_path(p != NULL)) {
-        nxt_memzero(p, size);
+        memset(p, 0, size);
     }
 
     return p;
+}
+
+
+#if !(NXT_DEBUG_MEMORY)
+
+nxt_inline u_char *
+nxt_mem_cache_page_addr(nxt_mem_cache_pool_t *pool, nxt_mem_cache_page_t *page)
+{
+    nxt_mem_cache_block_t  *block;
+
+    block = (nxt_mem_cache_block_t *)
+                ((u_char *) page - page->number * sizeof(nxt_mem_cache_page_t)
+                 - offsetof(nxt_mem_cache_block_t, pages));
+
+    return block->start + (page->number << pool->page_size_shift);
 }
 
 
@@ -416,7 +436,7 @@ nxt_mem_cache_alloc_small(nxt_mem_cache_pool_t *pool, size_t size)
 #endif
     }
 
-    nxt_thread_log_debug("mem cache chunk:%uz alloc: %p", size, p);
+//    nxt_debug(task, "mem cache chunk:%uz alloc: %p", size, p);
 
     return p;
 }
@@ -519,10 +539,12 @@ nxt_mem_cache_alloc_cluster(nxt_mem_cache_pool_t *pool)
                                 &cluster->pages[n].link);
     }
 
-    nxt_rbtree_insert(&pool->pages, &cluster->node);
+    nxt_rbtree_insert(&pool->blocks, &cluster->node);
 
     return cluster;
 }
+
+#endif
 
 
 static void *
@@ -534,39 +556,43 @@ nxt_mem_cache_alloc_large(nxt_mem_cache_pool_t *pool, size_t alignment,
     uint8_t                type;
     nxt_mem_cache_block_t  *block;
 
-    if (nxt_slow_path((size - 1) & size) != 0) {
+    /* Allocation must be less than 4G. */
+    if (nxt_slow_path(size >= 0xffffffff)) {
+        return NULL;
+    }
+
+    if (nxt_is_power_of_two(size)) {
+        block = nxt_malloc(sizeof(nxt_mem_cache_block_t));
+        if (nxt_slow_path(block == NULL)) {
+            return NULL;
+        }
+
+        p = nxt_memalign(alignment, size);
+        if (nxt_slow_path(p == NULL)) {
+            nxt_free(block);
+            return NULL;
+        }
+
+        type = NXT_MEM_CACHE_DISCRETE_BLOCK;
+
+    } else {
         aligned_size = nxt_align_size(size, sizeof(uintptr_t));
 
         p = nxt_memalign(alignment,
                          aligned_size + sizeof(nxt_mem_cache_block_t));
-
         if (nxt_slow_path(p == NULL)) {
             return NULL;
         }
 
         block = (nxt_mem_cache_block_t *) (p + aligned_size);
         type = NXT_MEM_CACHE_EMBEDDED_BLOCK;
-
-    } else {
-        block = nxt_malloc(sizeof(nxt_mem_cache_block_t));
-        if (nxt_slow_path(block == NULL)) {
-            nxt_free(block);
-            return NULL;
-        }
-
-        p = nxt_memalign(alignment, size);
-        if (nxt_slow_path(p == NULL)) {
-            return NULL;
-        }
-
-        type = NXT_MEM_CACHE_DISCRETE_BLOCK;
     }
 
     block->type = type;
     block->size = size;
     block->start = p;
 
-    nxt_rbtree_insert(&pool->pages, &block->node);
+    nxt_rbtree_insert(&pool->blocks, &block->node);
 
     return p;
 }
@@ -590,17 +616,21 @@ nxt_mem_cache_free(nxt_mem_cache_pool_t *pool, void *p)
     const char             *err;
     nxt_mem_cache_block_t  *block;
 
-    nxt_thread_log_debug("mem cache free %p", p);
+//    nxt_debug(task, "mem cache free %p", p);
 
-    block = nxt_mem_cache_find_block(&pool->pages, p);
+    block = nxt_mem_cache_find_block(&pool->blocks, p);
 
     if (nxt_fast_path(block != NULL)) {
 
         if (block->type == NXT_MEM_CACHE_CLUSTER_BLOCK) {
             err = nxt_mem_cache_chunk_free(pool, block, p);
 
+            if (nxt_fast_path(err == NULL)) {
+                return;
+            }
+
         } else if (nxt_fast_path(p == block->start)) {
-            nxt_rbtree_delete(&pool->pages, &block->node);
+            nxt_rbtree_delete(&pool->blocks, &block->node);
 
             if (block->type == NXT_MEM_CACHE_DISCRETE_BLOCK) {
                 nxt_free(block);
@@ -608,19 +638,17 @@ nxt_mem_cache_free(nxt_mem_cache_pool_t *pool, void *p)
 
             nxt_free(p);
 
-            err = NULL;
+            return;
 
         } else {
-            err = "pointer to wrong page";
+            err = "freed pointer points to middle of block: %p";
         }
 
     } else {
-        err = "pointer is out of pool";
+        err = "freed pointer is out of pool: %p";
     }
 
-    if (nxt_slow_path(err != NULL)) {
-        nxt_thread_log_alert("nxt_mem_cache_pool_free(%p): %s", p, err);
-    }
+//    nxt_log(task, NXT_LOG_CRIT, err, p);
 }
 
 
@@ -668,7 +696,7 @@ nxt_mem_cache_chunk_free(nxt_mem_cache_pool_t *pool,
     page = &cluster->pages[n];
 
     if (page->size == 0) {
-        return "page is already free";
+        return "freed pointer points to already free page: %p";
     }
 
     size = page->size << pool->chunk_size_shift;
@@ -679,11 +707,11 @@ nxt_mem_cache_chunk_free(nxt_mem_cache_pool_t *pool,
         chunk = offset / size;
 
         if (nxt_slow_path(offset != chunk * size)) {
-            return "pointer to wrong chunk";
+            return "freed pointer points to wrong chunk: %p";
         }
 
         if (nxt_slow_path(nxt_mem_cache_chunk_is_free(page->map, chunk))) {
-            return "chunk is already free";
+            return "freed pointer points to already free chunk: %p";
         }
 
         nxt_mem_cache_chunk_set_free(page->map, chunk);
@@ -715,7 +743,7 @@ nxt_mem_cache_chunk_free(nxt_mem_cache_pool_t *pool,
         }
 
     } else if (nxt_slow_path(p != start)) {
-        return "invalid pointer to chunk";
+        return "invalid pointer to chunk: %p";
     }
 
     /* Add the free page to the pool's free pages tree. */
@@ -750,7 +778,7 @@ nxt_mem_cache_chunk_free(nxt_mem_cache_pool_t *pool,
          n--;
     } while (n != 0);
 
-    nxt_rbtree_delete(&pool->pages, &cluster->node);
+    nxt_rbtree_delete(&pool->blocks, &cluster->node);
 
     p = cluster->start;
 
@@ -759,9 +787,3 @@ nxt_mem_cache_chunk_free(nxt_mem_cache_pool_t *pool,
 
     return NULL;
 }
-
-
-const nxt_mem_proto_t  nxt_mem_cache_proto = {
-    (nxt_mem_proto_alloc_t) nxt_mem_cache_alloc,
-    (nxt_mem_proto_free_t) nxt_mem_cache_free,
-};

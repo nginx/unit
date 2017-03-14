@@ -116,5 +116,16 @@ NXT_EXPORT nxt_rbtree_node_t
     nxt_rbtree_part_t *node);
 NXT_EXPORT void nxt_rbtree_delete(nxt_rbtree_t *tree, nxt_rbtree_part_t *node);
 
+/*
+ * nxt_rbtree_destroy_next() is iterator to use only while rbtree destruction.
+ * It deletes a node from rbtree and returns the node.  The rbtree is not
+ * rebalanced after deletion.  At the beginning the "next" parameter should
+ * be equal to rbtree root.  The iterator should be called in loop until
+ * the "next" parameter will be equal to the rbtree sentinel.  No other
+ * operations must be performed on the rbtree while destruction.
+ */
+NXT_EXPORT nxt_rbtree_node_t *nxt_rbtree_destroy_next(nxt_rbtree_t *tree,
+    nxt_rbtree_node_t **next);
+
 
 #endif /* _NXT_RBTREE_H_INCLUDED_ */
