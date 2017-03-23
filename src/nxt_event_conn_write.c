@@ -46,6 +46,9 @@ nxt_conn_io_write(nxt_task_t *task, void *obj, void *data)
     do {
         ret = nxt_conn_io_sendbuf(task, &sb);
 
+        c->socket.write_ready = sb.ready;
+        c->socket.error = sb.error;
+
         if (ret < 0) {
             /* ret == NXT_AGAIN || ret == NXT_ERROR. */
             break;
@@ -60,6 +63,8 @@ nxt_conn_io_write(nxt_task_t *task, void *obj, void *data)
             nxt_fd_event_block_write(engine, &c->socket);
             break;
         }
+
+        sb.buf = b;
 
         if (!c->socket.write_ready) {
             ret = NXT_AGAIN;
@@ -95,6 +100,10 @@ nxt_conn_io_write(nxt_task_t *task, void *obj, void *data)
              * direction.
              */
             nxt_event_conn_timer(engine, c, c->write_state, &c->write_timer);
+
+            if (nxt_fd_event_is_disabled(c->socket.write)) {
+                nxt_fd_event_enable_write(engine, &c->socket);
+            }
         }
     }
 
