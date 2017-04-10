@@ -69,6 +69,20 @@ static u_char *nxt_conf_json_parse_number(u_char *pos, u_char *end,
     nxt_conf_json_value_t *value, nxt_mem_pool_t *pool);
 
 
+static uintptr_t nxt_conf_json_print_value(u_char *pos,
+    nxt_conf_json_value_t *value);
+static uintptr_t nxt_conf_json_print_integer(u_char *pos,
+    nxt_conf_json_value_t *value);
+static uintptr_t nxt_conf_json_print_string(u_char *pos,
+    nxt_conf_json_value_t *value);
+static uintptr_t nxt_conf_json_print_array(u_char *pos,
+    nxt_conf_json_value_t *value);
+static uintptr_t nxt_conf_json_print_object(u_char *pos,
+    nxt_conf_json_value_t *value);
+
+static uintptr_t nxt_conf_json_escape(u_char *dst, u_char *src, size_t size);
+
+
 static const nxt_lvlhsh_proto_t nxt_conf_json_object_hash_proto
     nxt_aligned(64) =
 {
@@ -773,4 +787,319 @@ nxt_conf_json_parse_number(u_char *pos, u_char *end,
 #endif
 
     return NULL;
+}
+
+
+nxt_buf_t *
+nxt_conf_json_print(nxt_conf_json_value_t *value, nxt_mem_pool_t *pool)
+{
+    size_t     size;
+    nxt_buf_t  *b;
+
+    size = nxt_conf_json_print_value(NULL, value);
+
+    b = nxt_buf_mem_alloc(pool, size, 0);
+    if (nxt_slow_path(b == NULL)) {
+        return NULL;
+    }
+
+    b->mem.free = (u_char *) nxt_conf_json_print_value(b->mem.free, value);
+
+    return b;
+}
+
+
+static uintptr_t
+nxt_conf_json_print_value(u_char *pos, nxt_conf_json_value_t *value)
+{
+    static const u_char null[4] = "null";
+    static const u_char true[4] = "true";
+    static const u_char false[5] = "false";
+
+    switch (value->type) {
+
+    case NXT_CONF_JSON_NULL:
+
+        if (pos == NULL) {
+            return sizeof(null);
+        }
+
+        return (uintptr_t) nxt_cpymem(pos, null, sizeof(null));
+
+    case NXT_CONF_JSON_BOOLEAN:
+
+        if (pos == NULL) {
+            return value->u.boolean ? 4 : 5;
+        }
+
+        if (value->u.boolean) {
+            return (uintptr_t) nxt_cpymem(pos, true, sizeof(true));
+        }
+
+        return (uintptr_t) nxt_cpymem(pos, false, sizeof(false));
+
+    case NXT_CONF_JSON_INTEGER:
+        return nxt_conf_json_print_integer(pos, value);
+
+    case NXT_CONF_JSON_NUMBER:
+        /* TODO */
+        return (pos == NULL) ? 0 : (uintptr_t) pos;
+
+    case NXT_CONF_JSON_SHORT_STRING:
+    case NXT_CONF_JSON_STRING:
+        return nxt_conf_json_print_string(pos, value);
+
+    case NXT_CONF_JSON_ARRAY:
+        return nxt_conf_json_print_array(pos, value);
+
+    case NXT_CONF_JSON_OBJECT:
+        return nxt_conf_json_print_object(pos, value);
+    }
+
+    nxt_unreachable();
+
+    return (pos == NULL) ? 0 : (uintptr_t) pos;
+}
+
+
+static uintptr_t
+nxt_conf_json_print_integer(u_char *pos, nxt_conf_json_value_t *value)
+{
+    int64_t  num;
+
+    num = value->u.integer;
+
+    if (pos == NULL) {
+        num = llabs(num);
+
+        if (num <= 9999) {
+            return sizeof("-9999") - 1;
+        }
+
+        if (num <= 99999999999) {
+            return sizeof("-99999999999") - 1;
+        }
+
+        return NXT_INT64_T_LEN;
+    }
+
+    return (uintptr_t) nxt_sprintf(pos, pos + NXT_INT64_T_LEN, "%L", num);
+}
+
+
+static uintptr_t
+nxt_conf_json_print_string(u_char *pos, nxt_conf_json_value_t *value)
+{
+    size_t  len;
+    u_char  *s;
+
+    if (value->type == NXT_CONF_JSON_SHORT_STRING) {
+        len = value->u.str[0];
+        s = &value->u.str[1];
+
+    } else {
+        len = value->u.string->length;
+        s = value->u.string->start;
+    }
+
+    if (pos == NULL) {
+        return 2 + len + nxt_conf_json_escape(NULL, s, len);
+    }
+
+    *pos++ = '"';
+
+    pos = (u_char *) nxt_conf_json_escape(pos, s, len);
+
+    *pos++ = '"';
+
+    return (uintptr_t) pos;
+}
+
+
+static uintptr_t
+nxt_conf_json_print_array(u_char *pos, nxt_conf_json_value_t *value)
+{
+    size_t       len;
+    uint32_t     n;
+    nxt_array_t  *array;
+
+    array = value->u.array;
+
+    if (pos == NULL) {
+        len = 2;
+
+        value = array->elts;
+
+        for (n = 0; n < array->nelts; n++) {
+            len += nxt_conf_json_print_value(NULL, &value[n]);
+        }
+
+        return n + len;
+    }
+
+    *pos++ = '[';
+
+    if (array->nelts != 0) {
+        value = array->elts;
+
+        pos = (u_char *) nxt_conf_json_print_value(pos, &value[0]);
+
+        for (n = 1; n < array->nelts; n++) {
+            *pos++ = ',';
+            pos = (u_char *) nxt_conf_json_print_value(pos, &value[n]);
+        }
+    }
+
+    *pos++ = ']';
+
+    return (uintptr_t) pos;
+}
+
+
+static uintptr_t
+nxt_conf_json_print_object(u_char *pos, nxt_conf_json_value_t *value)
+{
+    size_t                      len;
+    nxt_lvlhsh_t                *object;
+    nxt_lvlhsh_each_t           lhe;
+    nxt_conf_json_obj_member_t  *member;
+
+    nxt_memzero(&lhe, sizeof(nxt_lvlhsh_each_t));
+
+    lhe.proto = &nxt_conf_json_object_hash_proto;
+
+    object = value->u.object;
+
+    if (pos == NULL) {
+        len = 2;
+
+        for ( ;; ) {
+            member = nxt_lvlhsh_each(object, &lhe);
+
+            if (member == NULL) {
+                break;
+            }
+
+            len += nxt_conf_json_print_string(NULL, &member->name) + 1
+                   + nxt_conf_json_print_value(NULL, &member->value) + 1;
+        }
+
+        return len;
+    }
+
+    *pos++ = '{';
+
+    member = nxt_lvlhsh_each(object, &lhe);
+
+    if (member != NULL) {
+
+        for ( ;; ) {
+            pos = (u_char *) nxt_conf_json_print_string(pos, &member->name);
+
+            *pos++ = ':';
+
+            pos = (u_char *) nxt_conf_json_print_value(pos, &member->value);
+
+            member = nxt_lvlhsh_each(object, &lhe);
+
+            if (member == NULL) {
+                break;
+            }
+
+            *pos++ = ',';
+        }
+    }
+
+    *pos++ = '}';
+
+    return (uintptr_t) pos;
+}
+
+
+static uintptr_t
+nxt_conf_json_escape(u_char *dst, u_char *src, size_t size)
+{
+    u_char  ch;
+    size_t  len;
+
+    if (dst == NULL) {
+        len = 0;
+
+        while (size) {
+            ch = *src++;
+
+            if (ch == '\\' || ch == '"') {
+                len++;
+
+            } else if (ch <= 0x1f) {
+
+                switch (ch) {
+                case '\n':
+                case '\r':
+                case '\t':
+                case '\b':
+                case '\f':
+                    len++;
+                    break;
+
+                default:
+                    len += sizeof("\\u001F") - 2;
+                }
+            }
+
+            size--;
+        }
+
+        return len;
+    }
+
+    while (size) {
+        ch = *src++;
+
+        if (ch > 0x1f) {
+
+            if (ch == '\\' || ch == '"') {
+                *dst++ = '\\';
+            }
+
+            *dst++ = ch;
+
+        } else {
+            *dst++ = '\\';
+
+            switch (ch) {
+            case '\n':
+                *dst++ = 'n';
+                break;
+
+            case '\r':
+                *dst++ = 'r';
+                break;
+
+            case '\t':
+                *dst++ = 't';
+                break;
+
+            case '\b':
+                *dst++ = 'b';
+                break;
+
+            case '\f':
+                *dst++ = 'f';
+                break;
+
+            default:
+                *dst++ = 'u'; *dst++ = '0'; *dst++ = '0';
+                *dst++ = '0' + (ch >> 4);
+
+                ch &= 0xf;
+
+                *dst++ = (ch < 10) ? ('0' + ch) : ('A' + ch - 10);
+            }
+        }
+
+        size--;
+    }
+
+    return (uintptr_t) dst;
 }

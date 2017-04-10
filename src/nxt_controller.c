@@ -14,6 +14,8 @@
 typedef struct {
     nxt_http_request_parse_t  parser;
     size_t                    length;
+
+    nxt_conf_json_value_t     *conf;
 } nxt_controller_request_t;
 
 
@@ -41,7 +43,9 @@ static nxt_int_t nxt_controller_request_content_length(void *ctx,
 static void nxt_controller_process_request(nxt_task_t *task,
     nxt_event_conn_t *c, nxt_controller_request_t *r);
 static nxt_int_t nxt_controller_request_body_parse(nxt_task_t *task,
-    nxt_event_conn_t *c);
+    nxt_event_conn_t *c, nxt_controller_request_t *r);
+static void nxt_controller_conf_output(nxt_task_t *task, nxt_event_conn_t *c,
+    nxt_controller_request_t *r);
 
 
 static nxt_http_fields_t  nxt_controller_request_fields[] = {
@@ -513,29 +517,28 @@ static void
 nxt_controller_process_request(nxt_task_t *task, nxt_event_conn_t *c,
     nxt_controller_request_t *r)
 {
-    nxt_str_t  response;
     nxt_buf_t  *b;
 
-    static const u_char response_good[]
-        = "HTTP/1.0 200 OK\r\n\r\ndone\r\n";
+    static const nxt_str_t resp418
+        = nxt_string("HTTP/1.0 418 I'm a teapot\r\n\r\nerror\r\n");
 
-    static const u_char response_bad[]
-        = "HTTP/1.0 418 I'm a teapot\r\n\r\nerror\r\n";
-
-    if (nxt_controller_request_body_parse(task, c) == NXT_OK) {
-        nxt_str_set(&response, response_good);
-
-    } else {
-        nxt_str_set(&response, response_bad);
+    if (nxt_controller_request_body_parse(task, c, r) != NXT_OK) {
+        goto error;
     }
 
-    b = nxt_buf_mem_alloc(c->mem_pool, response.length, 0);
+    nxt_controller_conf_output(task, c, r);
+
+    return;
+
+error:
+
+    b = nxt_buf_mem_alloc(c->mem_pool, resp418.length, 0);
     if (nxt_slow_path(b == NULL)) {
         nxt_controller_conn_close(task, c, r);
         return;
     }
 
-    b->mem.free = nxt_cpymem(b->mem.free, response.start, response.length);
+    b->mem.free = nxt_cpymem(b->mem.free, resp418.start, resp418.length);
 
     c->write = b;
     c->write_state = &nxt_controller_conn_write_state;
@@ -545,7 +548,8 @@ nxt_controller_process_request(nxt_task_t *task, nxt_event_conn_t *c,
 
 
 static nxt_int_t
-nxt_controller_request_body_parse(nxt_task_t *task, nxt_event_conn_t *c)
+nxt_controller_request_body_parse(nxt_task_t *task, nxt_event_conn_t *c,
+    nxt_controller_request_t *r)
 {
     nxt_buf_t              *b;
     nxt_conf_json_value_t  *value;
@@ -558,5 +562,40 @@ nxt_controller_request_body_parse(nxt_task_t *task, nxt_event_conn_t *c)
         return NXT_ERROR;
     }
 
+    r->conf = value;
+
     return NXT_OK;
+}
+
+
+static void
+nxt_controller_conf_output(nxt_task_t *task, nxt_event_conn_t *c,
+    nxt_controller_request_t *r)
+{
+    nxt_buf_t  *b;
+
+    static const nxt_str_t head = nxt_string("HTTP/1.0 200 OK\r\n\r\n");
+
+    b = nxt_buf_mem_alloc(c->mem_pool, head.length, 0);
+    if (nxt_slow_path(b == NULL)) {
+        nxt_controller_conn_close(task, c, r);
+        return;
+    }
+
+    b->mem.free = nxt_cpymem(b->mem.free, head.start, head.length);
+
+    c->write = b;
+
+    b = nxt_conf_json_print(r->conf, c->mem_pool);
+
+    if (b == NULL) {
+        nxt_controller_conn_close(task, c, r);
+        return;
+    }
+
+    c->write->next = b;
+    c->write_state = &nxt_controller_conn_write_state;
+
+    nxt_event_conn_write(task->thread->engine, c);
+    return;
 }
