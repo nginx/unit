@@ -8,6 +8,7 @@
 #include <nxt_main.h>
 #include <nxt_runtime.h>
 #include <nxt_master_process.h>
+#include <nxt_conf.h>
 
 
 typedef struct {
@@ -39,7 +40,8 @@ static nxt_int_t nxt_controller_request_content_length(void *ctx,
 
 static void nxt_controller_process_request(nxt_task_t *task,
     nxt_event_conn_t *c, nxt_controller_request_t *r);
-static nxt_int_t nxt_controller_request_body_parse(nxt_buf_mem_t *b);
+static nxt_int_t nxt_controller_request_body_parse(nxt_task_t *task,
+    nxt_event_conn_t *c);
 
 
 static nxt_http_fields_t  nxt_controller_request_fields[] = {
@@ -511,27 +513,31 @@ static void
 nxt_controller_process_request(nxt_task_t *task, nxt_event_conn_t *c,
     nxt_controller_request_t *r)
 {
-    size_t     size;
-    nxt_buf_t  *b, *wb;
+    nxt_str_t  response;
+    nxt_buf_t  *b;
 
-    static const u_char response[] = "HTTP/1.0 200 OK\r\n\r\n";
+    static const u_char response_good[]
+        = "HTTP/1.0 200 OK\r\n\r\ndone\r\n";
 
-    b = c->read;
+    static const u_char response_bad[]
+        = "HTTP/1.0 418 I'm a teapot\r\n\r\nerror\r\n";
 
-    nxt_controller_request_body_parse(&b->mem);
+    if (nxt_controller_request_body_parse(task, c) == NXT_OK) {
+        nxt_str_set(&response, response_good);
 
-    size = nxt_buf_mem_used_size(&b->mem);
+    } else {
+        nxt_str_set(&response, response_bad);
+    }
 
-    wb = nxt_buf_mem_alloc(c->mem_pool, sizeof(response) - 1 + size, 0);
-    if (nxt_slow_path(wb == NULL)) {
+    b = nxt_buf_mem_alloc(c->mem_pool, response.length, 0);
+    if (nxt_slow_path(b == NULL)) {
         nxt_controller_conn_close(task, c, r);
         return;
     }
 
-    wb->mem.free = nxt_cpymem(wb->mem.free, response, sizeof(response) - 1);
-    wb->mem.free = nxt_cpymem(wb->mem.free, b->mem.pos, size);
+    b->mem.free = nxt_cpymem(b->mem.free, response.start, response.length);
 
-    c->write = wb;
+    c->write = b;
     c->write_state = &nxt_controller_conn_write_state;
 
     nxt_event_conn_write(task->thread->engine, c);
@@ -539,8 +545,18 @@ nxt_controller_process_request(nxt_task_t *task, nxt_event_conn_t *c,
 
 
 static nxt_int_t
-nxt_controller_request_body_parse(nxt_buf_mem_t *b)
+nxt_controller_request_body_parse(nxt_task_t *task, nxt_event_conn_t *c)
 {
-    /* TODO */
+    nxt_buf_t              *b;
+    nxt_conf_json_value_t  *value;
+
+    b = c->read;
+
+    value = nxt_conf_json_parse(&b->mem, c->mem_pool);
+
+    if (value == NULL) {
+        return NXT_ERROR;
+    }
+
     return NXT_OK;
 }
