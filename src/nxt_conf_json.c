@@ -533,6 +533,8 @@ nxt_conf_json_parse_string(u_char *pos, u_char *end,
 
     } else {
         value->type = NXT_CONF_JSON_SHORT_STRING;
+        value->u.str[0] = size;
+
         s = &value->u.str[1];
     }
 
