@@ -82,17 +82,6 @@ typedef struct {
 
 
 typedef struct {
-    nxt_lvlhsh_test_t         test;
-    nxt_lvlhsh_alloc_t        alloc;
-    nxt_lvlhsh_free_t         free;
-
-    /* The maximum allowed aligned shift. */
-    uint32_t                  max_shift;
-    uint32_t                  nalloc;
-} nxt_lvlhsh_ctx_t;
-
-
-typedef struct {
     void                      *slot;
 } nxt_lvlhsh_t;
 
