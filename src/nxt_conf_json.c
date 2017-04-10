@@ -279,10 +279,12 @@ nxt_conf_json_parse_object(u_char *pos, u_char *end,
     nxt_lvlhsh_t                *object;
     nxt_conf_json_obj_member_t  *member;
 
-    object = nxt_mem_zalloc(pool, sizeof(nxt_lvlhsh_t));
+    object = nxt_mem_alloc(pool, sizeof(nxt_lvlhsh_t));
     if (nxt_slow_path(object == NULL)) {
         return NULL;
     }
+
+    nxt_lvlhsh_init(object);
 
     value->type = NXT_CONF_JSON_OBJECT;
     value->u.object = object;
@@ -365,7 +367,7 @@ static u_char *
 nxt_conf_json_parse_array(u_char *pos, u_char *end,
     nxt_conf_json_value_t *value, nxt_mem_pool_t *pool)
 {
-    nxt_array_t            *array;
+    nxt_array_t  *array;
 
     array = nxt_array_create(pool, 8, sizeof(nxt_conf_json_value_t));
     if (nxt_slow_path(array == NULL)) {
@@ -471,11 +473,11 @@ nxt_conf_json_parse_string(u_char *pos, u_char *end,
             case '"':
             case '\\':
             case '/':
-            case 'b':
-            case 'f':
             case 'n':
             case 'r':
             case 't':
+            case 'b':
+            case 'f':
                 surplus++;
                 state = sw_usual;
                 continue;
@@ -558,14 +560,6 @@ nxt_conf_json_parse_string(u_char *pos, u_char *end,
             *s++ = ch;
             continue;
 
-        case 'b':
-            *s++ = '\b';
-            continue;
-
-        case 'f':
-            *s++ = '\f';
-            continue;
-
         case 'n':
             *s++ = '\n';
             continue;
@@ -576,6 +570,14 @@ nxt_conf_json_parse_string(u_char *pos, u_char *end,
 
         case 't':
             *s++ = '\t';
+            continue;
+
+        case 'b':
+            *s++ = '\b';
+            continue;
+
+        case 'f':
+            *s++ = '\f';
             continue;
         }
 
