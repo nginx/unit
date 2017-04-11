@@ -812,31 +812,27 @@ nxt_conf_json_print(nxt_conf_json_value_t *value, nxt_mem_pool_t *pool)
 static uintptr_t
 nxt_conf_json_print_value(u_char *pos, nxt_conf_json_value_t *value)
 {
-    static const u_char null[4] = "null";
-    static const u_char true[4] = "true";
-    static const u_char false[5] = "false";
-
     switch (value->type) {
 
     case NXT_CONF_JSON_NULL:
 
         if (pos == NULL) {
-            return sizeof(null);
+            return sizeof("null") - 1;
         }
 
-        return (uintptr_t) nxt_cpymem(pos, null, sizeof(null));
+        return (uintptr_t) nxt_cpymem(pos, "null", 4);
 
     case NXT_CONF_JSON_BOOLEAN:
 
         if (pos == NULL) {
-            return value->u.boolean ? 4 : 5;
+            return value->u.boolean ? sizeof("true") - 1 : sizeof("false") - 1;
         }
 
         if (value->u.boolean) {
-            return (uintptr_t) nxt_cpymem(pos, true, sizeof(true));
+            return (uintptr_t) nxt_cpymem(pos, "true", 4);
         }
 
-        return (uintptr_t) nxt_cpymem(pos, false, sizeof(false));
+        return (uintptr_t) nxt_cpymem(pos, "false", 5);
 
     case NXT_CONF_JSON_INTEGER:
         return nxt_conf_json_print_integer(pos, value);
