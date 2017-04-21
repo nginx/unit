@@ -51,6 +51,14 @@ nxt_atomic_release(lock)                                                      \
     __sync_lock_release(lock)
 
 
+#define nxt_atomic_or_fetch(ptr, val)                                         \
+    __sync_or_and_fetch(ptr, val)
+
+
+#define nxt_atomic_and_fetch(ptr, val)                                        \
+    __sync_and_and_fetch(ptr, val)
+
+
 #if (__i386__ || __i386 || __amd64__ || __amd64)
 #define                                                                       \
 nxt_cpu_pause()                                                               \
@@ -84,6 +92,15 @@ nxt_atomic_xchg(lock, set)                                                    \
 #define                                                                       \
 nxt_atomic_fetch_add(value, add)                                              \
     (atomic_add_long_nv(value, add) - add)
+
+
+#define nxt_atomic_or_fetch(ptr, val)                                         \
+    atomic_or_ulong_nv(ptr, val)
+
+
+#define nxt_atomic_and_fetch(ptr, val)                                        \
+    atomic_and_ulong_nv(ptr, val)
+
 
 /*
  * Solaris uses SPARC Total Store Order model.  In this model:

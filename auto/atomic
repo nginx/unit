@@ -21,6 +21,10 @@ nxt_feature_test="int main() {
                           return 1;
                       if (n != 5)
                           return 1;
+                      if (__sync_or_and_fetch(&n, 2) != 7)
+                          return 1;
+                      if (__sync_and_and_fetch(&n, 5) != 5)
+                          return 1;
                       __sync_lock_release(&n);
                       if (n != 0)
                           return 1;
@@ -50,6 +54,10 @@ if [ $nxt_found = no ]; then
                           if (atomic_swap_ulong(&n, 5) != 4)
                               return 1;
                           if (n != 5)
+                              return 1;
+                          if (atomic_or_ulong_nv(&n, 2) != 7)
+                              return 1;
+                          if (atomic_and_ulong_nv(&n, 5) != 5)
                               return 1;
                           return 0;
                       }"
