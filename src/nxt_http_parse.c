@@ -771,7 +771,7 @@ nxt_http_fields_hash(nxt_http_fields_t *fields, nxt_mem_pool_t *mp)
     nxt_http_fields_hash_t        *hash;
     nxt_http_fields_hash_entry_t  *entry;
 
-    min_length = 0;
+    min_length = 32 + 1;
     max_length = 0;
 
     for (i = 0; fields[i].handler != NULL; i++) {
@@ -786,11 +786,14 @@ nxt_http_fields_hash(nxt_http_fields_t *fields, nxt_mem_pool_t *mp)
         max_length = nxt_max(length, max_length);
     }
 
-    size = (max_length - min_length + 1)
-           * sizeof(nxt_http_fields_hash_entry_t *);
+    size = sizeof(nxt_http_fields_hash_t);
 
-    hash = nxt_mem_zalloc(mp, sizeof(nxt_http_fields_hash_t) + size);
+    if (min_length <= 32) {
+        size += (max_length - min_length + 1)
+                * sizeof(nxt_http_fields_hash_entry_t *);
+    }
 
+    hash = nxt_mem_zalloc(mp, size);
     if (nxt_slow_path(hash == NULL)) {
         return NULL;
     }
