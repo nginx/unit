@@ -72,6 +72,7 @@ nxt_lvlhsh_unit_test_add(nxt_lvlhsh_t *lh, const nxt_lvlhsh_proto_t *proto,
     case NXT_DECLINED:
         nxt_thread_log_alert("lvlhsh unit test failed: "
                              "key %p is already in hash", key);
+        /* Fall through. */
     default:
         return NXT_ERROR;
     }
