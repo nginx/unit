@@ -599,10 +599,13 @@ nxt_http_lookup_field_end(u_char *p, u_char *end)
     switch (end - p) {
     case 3:
         nxt_http_lookup_field_end_step
+        /* Fall through. */
     case 2:
         nxt_http_lookup_field_end_step
+        /* Fall through. */
     case 1:
         nxt_http_lookup_field_end_step
+        /* Fall through. */
     case 0:
         break;
     default:
