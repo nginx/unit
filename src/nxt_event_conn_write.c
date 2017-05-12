@@ -36,6 +36,7 @@ nxt_conn_io_write(nxt_task_t *task, void *obj, void *data)
     b = c->write;
 
     sb.socket = c->socket.fd;
+    sb.error = 0;
     sb.sent = 0;
     sb.size = 0;
     sb.buf = b;
