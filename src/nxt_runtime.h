@@ -35,7 +35,11 @@ struct nxt_runtime_s {
     nxt_runtime_cont_t     continuation;
 #endif
 
-    nxt_array_t            *processes;          /* of nxt_process_t */
+    nxt_process_t          *mprocess;
+    size_t                 nprocesses;
+    nxt_lvlhsh_t           processes;           /* of nxt_process_t */
+
+    nxt_lvlhsh_t           ports;               /* of nxt_port_t */
 
     nxt_list_t             *log_files;          /* of nxt_file_t */
 
@@ -78,7 +82,30 @@ nxt_int_t nxt_runtime_thread_pool_create(nxt_thread_t *thr, nxt_runtime_t *rt,
 #endif
 
 
-nxt_process_t *nxt_runtime_new_process(nxt_runtime_t *rt);
+nxt_process_t *nxt_runtime_process_new(nxt_runtime_t *rt);
+
+nxt_process_t *nxt_runtime_process_get(nxt_runtime_t *rt, nxt_pid_t pid);
+
+void nxt_runtime_process_add(nxt_runtime_t *rt, nxt_process_t *process);
+
+nxt_process_t *nxt_runtime_process_find(nxt_runtime_t *rt, nxt_pid_t pid);
+
+void nxt_runtime_process_remove(nxt_runtime_t *rt, nxt_process_t *process);
+
+nxt_process_t *nxt_runtime_process_first(nxt_runtime_t *rt,
+    nxt_lvlhsh_each_t *lhe);
+
+#define nxt_runtime_process_next(rt, lhe)                                     \
+    nxt_lvlhsh_each(&rt->processes, lhe)
+
+
+void nxt_runtime_port_add(nxt_runtime_t *rt, nxt_port_t *port);
+
+void nxt_runtime_port_remove(nxt_runtime_t *rt, nxt_port_t *port);
+
+nxt_port_t *nxt_runtime_port_find(nxt_runtime_t *rt, nxt_pid_t pid,
+    nxt_port_id_t port_id);
+
 
 /* STUB */
 nxt_int_t nxt_runtime_controller_socket(nxt_task_t *task, nxt_runtime_t *rt);
@@ -99,6 +126,19 @@ void nxt_cdecl nxt_log_time_handler(nxt_uint_t level, nxt_log_t *log,
 
 void nxt_stream_connection_init(nxt_task_t *task, void *obj, void *data);
 nxt_int_t nxt_app_start(nxt_task_t *task, nxt_runtime_t *rt);
+
+
+#define nxt_runtime_process_each(rt, process)                                 \
+    do {                                                                      \
+        nxt_lvlhsh_each_t  _lhe;                                              \
+                                                                              \
+        for (process = nxt_runtime_process_first(rt, &_lhe);                  \
+             process != NULL;                                                 \
+             process = nxt_runtime_process_next(rt, &_lhe)) {                 \
+
+#define nxt_runtime_process_loop                                              \
+        }                                                                     \
+    } while(0)
 
 
 extern nxt_module_init_t  nxt_init_modules[];

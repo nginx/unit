@@ -216,4 +216,19 @@ NXT_EXPORT void nxt_queue_sort(nxt_queue_t *queue,
     const nxt_queue_link_t *), const void *data);
 
 
+#define nxt_queue_each(elt, queue, type, link)                                \
+    do {                                                                      \
+        nxt_queue_link_t  *_lnk;                                              \
+                                                                              \
+        for (_lnk = nxt_queue_first(queue);                                   \
+             _lnk != nxt_queue_tail(queue);                                   \
+             _lnk = nxt_queue_next(_lnk)) {                                   \
+                                                                              \
+            elt = nxt_queue_link_data(_lnk, type, link);                      \
+
+#define nxt_queue_loop                                                        \
+        }                                                                     \
+    } while(0)
+
+
 #endif /* _NXT_QUEUE_H_INCLUDED_ */

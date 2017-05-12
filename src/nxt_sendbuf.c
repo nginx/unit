@@ -148,6 +148,7 @@ done:
 
     sb->buf = b;
     sb->size = total;
+    sb->niov = n;
 
     return n;
 }
@@ -388,6 +389,14 @@ nxt_sendbuf_completion(nxt_task_t *task, nxt_work_queue_t *wq, nxt_buf_t *b,
 
                 if (sent == 0) {
                     break;
+                }
+
+                if (nxt_buf_is_port_mmap(b)) {
+                    /*
+                     * buffer has been sent to other side which is now
+                     * responsible for shared memory bucket release
+                     */
+                    b->is_port_mmap_sent = 1;
                 }
 
                 if (sent < size) {

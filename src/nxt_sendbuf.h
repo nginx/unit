@@ -53,6 +53,7 @@ typedef struct {
 typedef struct {
     nxt_buf_t    *buf;
     nxt_iobuf_t  *iobuf;
+    nxt_uint_t   niov;
 
     uint32_t     nmax;
     uint8_t      sync;   /* 1 bit */

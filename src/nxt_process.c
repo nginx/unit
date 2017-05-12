@@ -506,3 +506,22 @@ nxt_user_cred_set(nxt_task_t *task, nxt_user_cred_t *uc)
 
     return NXT_OK;
 }
+
+
+nxt_port_t *
+nxt_process_port_new(nxt_process_t *process)
+{
+    nxt_port_t  *port;
+
+    port = nxt_mem_cache_zalloc0(process->mem_pool, sizeof(nxt_port_t));
+    if (nxt_fast_path(port != NULL)) {
+        port->id = process->last_port_id++;
+        port->pid = process->pid;
+        port->process = process;
+
+        nxt_process_port_add(process, port);
+    }
+
+    return port;
+}
+

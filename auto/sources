@@ -18,6 +18,7 @@ NXT_LIB_DEPS=" \
     src/nxt_process.h \
     src/nxt_signal.h \
     src/nxt_port.h \
+    src/nxt_port_memory.h \
     src/nxt_dyld.h \
     src/nxt_thread.h \
     src/nxt_thread_id.h \
@@ -86,6 +87,7 @@ NXT_LIB_SRCS=" \
     src/nxt_process_title.c \
     src/nxt_signal.c \
     src/nxt_port_socket.c \
+    src/nxt_port_memory.c \
     src/nxt_port.c \
     src/nxt_dyld.c \
     src/nxt_random.c \

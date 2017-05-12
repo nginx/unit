@@ -24,7 +24,9 @@ typedef struct nxt_port_recv_msg_s   nxt_port_recv_msg_t;
 typedef void (*nxt_port_handler_t)(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 typedef struct nxt_sig_event_s       nxt_sig_event_t;
 typedef struct nxt_runtime_s         nxt_runtime_t;
+typedef uint16_t                     nxt_port_id_t;
 
+#include <nxt_queue.h>
 #include <nxt_process.h>
 
 typedef struct nxt_thread_s          nxt_thread_t;
@@ -45,7 +47,6 @@ typedef struct nxt_log_s             nxt_log_t;
 
 
 #include <nxt_atomic.h>
-#include <nxt_queue.h>
 #include <nxt_rbtree.h>
 #include <nxt_sprintf.h>
 #include <nxt_parse.h>
@@ -104,6 +105,7 @@ typedef struct nxt_thread_pool_s     nxt_thread_pool_t;
 #include <nxt_service.h>
 
 typedef struct nxt_buf_s                nxt_buf_t;
+typedef struct nxt_port_mmap_s          nxt_port_mmap_t;
 #include <nxt_buf.h>
 #include <nxt_buf_pool.h>
 #include <nxt_recvbuf.h>
@@ -129,6 +131,7 @@ nxt_thread_extern_data(nxt_thread_t, nxt_thread_context);
 #include <nxt_fd_event.h>
 
 #include <nxt_port.h>
+#include <nxt_port_memory.h>
 #if (NXT_THREADS)
 #include <nxt_thread_pool.h>
 #endif

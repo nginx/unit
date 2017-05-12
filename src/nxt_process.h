@@ -49,9 +49,15 @@ struct nxt_process_init_s {
 
 
 typedef struct {
+    nxt_mem_pool_t      *mem_pool;
+
     nxt_pid_t           pid;
-    nxt_array_t         *ports;   /* of nxt_port_t */
+    nxt_queue_t         ports;      /* of nxt_port_t */
+    nxt_port_id_t       last_port_id;
+
     nxt_process_init_t  *init;
+    nxt_array_t         *incoming;  /* of nxt_mmap_t */
+    nxt_array_t         *outgoing;  /* of nxt_mmap_t */
 } nxt_process_t;
 
 
@@ -65,6 +71,22 @@ NXT_EXPORT void nxt_nanosleep(nxt_nsec_t ns);
 NXT_EXPORT void nxt_process_arguments(nxt_task_t *task, char **orig_argv,
     char ***orig_envp);
 
+NXT_EXPORT nxt_port_t * nxt_process_port_new(nxt_process_t *process);
+
+#define nxt_process_port_remove(port)                                         \
+    nxt_queue_remove(&port->link)
+
+#define nxt_process_port_first(process)                                       \
+    nxt_queue_link_data(nxt_queue_first(&process->ports), nxt_port_t, link)
+
+#define nxt_process_port_add(process, port)                                   \
+    nxt_queue_insert_tail(&process->ports, &port->link)
+
+#define nxt_process_port_each(process, port)                                   \
+    nxt_queue_each(port, &process->ports, nxt_port_t, link)
+
+#define nxt_process_port_loop                                                 \
+    nxt_queue_loop
 
 #if (NXT_HAVE_SETPROCTITLE)
 

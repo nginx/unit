@@ -63,6 +63,7 @@ fi
 . auto/atomic
 . auto/malloc
 . auto/mmap
+. auto/shmem
 . auto/time
 
 if [ $NXT_THREADS = YES ]; then

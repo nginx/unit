@@ -67,7 +67,7 @@ typedef struct {
 struct nxt_buf_s {
     void                    *data;
     nxt_work_handler_t      completion_handler;
-    nxt_buf_t               *parent;
+    void                    *parent;
 
     /*
      * The next link, flags, and nxt_buf_mem_t should
@@ -85,11 +85,13 @@ struct nxt_buf_s {
     uint8_t                 is_file;     /* 1 bit */
 
     uint16_t                is_mmap:1;
+    uint16_t                is_port_mmap:1;
 
     uint16_t                is_sync:1;
     uint16_t                is_nobuf:1;
     uint16_t                is_flush:1;
     uint16_t                is_last:1;
+    uint16_t                is_port_mmap_sent:1;
 
     nxt_buf_mem_t           mem;
 
@@ -103,10 +105,11 @@ struct nxt_buf_s {
 };
 
 
-#define NXT_BUF_MEM_SIZE    offsetof(nxt_buf_t, file)
-#define NXT_BUF_SYNC_SIZE   NXT_BUF_MEM_SIZE
-#define NXT_BUF_MMAP_SIZE   sizeof(nxt_buf_t)
-#define NXT_BUF_FILE_SIZE   sizeof(nxt_buf_t)
+#define NXT_BUF_MEM_SIZE        offsetof(nxt_buf_t, file)
+#define NXT_BUF_SYNC_SIZE       NXT_BUF_MEM_SIZE
+#define NXT_BUF_FILE_SIZE       sizeof(nxt_buf_t)
+#define NXT_BUF_MMAP_SIZE       NXT_BUF_FILE_SIZE
+#define NXT_BUF_PORT_MMAP_SIZE  NXT_BUF_MEM_SIZE
 
 
 #define NXT_BUF_SYNC_NOBUF  1
@@ -143,6 +146,19 @@ nxt_buf_set_mmap(b)                                                           \
 #define                                                                       \
 nxt_buf_clear_mmap(b)                                                         \
     (b)->is_mmap = 0
+
+
+#define                                                                       \
+nxt_buf_is_port_mmap(b)                                                       \
+    ((b)->is_port_mmap)
+
+#define                                                                       \
+nxt_buf_set_port_mmap(b)                                                      \
+    (b)->is_port_mmap = 1
+
+#define                                                                       \
+nxt_buf_clear_port_mmap(b)                                                    \
+    (b)->is_port_mmap = 0
 
 
 #define                                                                       \

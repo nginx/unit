@@ -1,0 +1,60 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+# Linux, FreeBSD, MacOSX
+
+nxt_feature="shm_open()"
+nxt_feature_name=NXT_HAVE_SHM_OPEN
+nxt_feature_run=yes
+nxt_feature_incs=
+nxt_feature_libs=
+
+if [ "$NXT_SYSTEM" = "Linux" ]; then
+    nxt_feature_libs=-lrt
+fi
+
+nxt_feature_test="#include <sys/mman.h>
+                  #include <fcntl.h>
+                  #include <sys/stat.h>
+                  #include <sys/types.h>
+
+                  int main() {
+                      static char name[] = \"/nginext.configure\";
+
+                      shm_unlink(name);
+
+                      int fd = shm_open(name, O_CREAT | O_EXCL | O_RDWR,
+                          S_IRUSR | S_IWUSR);
+                      if (fd == -1)
+                          return 1;
+
+                      shm_unlink(name);
+                      return 0;
+                  }"
+. auto/feature
+
+
+# Linux
+
+nxt_feature="memfd_create()"
+nxt_feature_name=NXT_HAVE_MEMFD_CREATE
+nxt_feature_run=yes
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <linux/memfd.h>
+                  #include <unistd.h>
+                  #include <sys/syscall.h>
+
+                  int main() {
+                      static char name[] = \"/nginext.configure\";
+
+                      int fd = syscall(SYS_memfd_create, name, MFD_CLOEXEC);
+                      if (fd == -1)
+                          return 1;
+
+                      return 0;
+                  }"
+. auto/feature
+
