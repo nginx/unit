@@ -9,7 +9,7 @@
 
 extern char  **environ;
 
-nxt_module_init_t  nxt_init_modules[0];
+nxt_module_init_t  nxt_init_modules[1];
 nxt_uint_t         nxt_init_modules_n;
 
 

@@ -12,7 +12,7 @@ extern char  **environ;
 static nxt_int_t nxt_utf8_file_name_test(nxt_thread_t *thr);
 
 
-nxt_module_init_t  nxt_init_modules[0];
+nxt_module_init_t  nxt_init_modules[1];
 nxt_uint_t         nxt_init_modules_n;
 
 
