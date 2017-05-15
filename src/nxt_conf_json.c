@@ -169,9 +169,9 @@ nxt_conf_json_object_member_get(nxt_lvlhsh_t *lvlhsh, u_char *name,
 
 
 nxt_conf_json_value_t *
-nxt_conf_json_parse(nxt_buf_mem_t *b, nxt_mem_pool_t *pool)
+nxt_conf_json_parse(u_char *pos, size_t length, nxt_mem_pool_t *pool)
 {
-    u_char                 *pos, *end;
+    u_char                 *end;
     nxt_conf_json_value_t  *value;
 
     value = nxt_mem_alloc(pool, sizeof(nxt_conf_json_value_t));
@@ -179,8 +179,7 @@ nxt_conf_json_parse(nxt_buf_mem_t *b, nxt_mem_pool_t *pool)
         return NULL;
     }
 
-    pos = b->pos;
-    end = b->free;
+    end = pos + length;
 
     pos = nxt_conf_json_skip_space(pos, end);
 
