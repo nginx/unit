@@ -69,18 +69,32 @@ static u_char *nxt_conf_json_parse_number(u_char *pos, u_char *end,
     nxt_conf_json_value_t *value, nxt_mem_pool_t *pool);
 
 
-static uintptr_t nxt_conf_json_print_value(u_char *pos,
-    nxt_conf_json_value_t *value);
 static uintptr_t nxt_conf_json_print_integer(u_char *pos,
     nxt_conf_json_value_t *value);
 static uintptr_t nxt_conf_json_print_string(u_char *pos,
     nxt_conf_json_value_t *value);
 static uintptr_t nxt_conf_json_print_array(u_char *pos,
-    nxt_conf_json_value_t *value);
+    nxt_conf_json_value_t *value, nxt_conf_json_pretty_t *pretty);
 static uintptr_t nxt_conf_json_print_object(u_char *pos,
-    nxt_conf_json_value_t *value);
+    nxt_conf_json_value_t *value, nxt_conf_json_pretty_t *pretty);
 
 static uintptr_t nxt_conf_json_escape(u_char *dst, u_char *src, size_t size);
+
+
+#define nxt_conf_json_newline(pos)                                            \
+    ((pos)[0] = '\r', (pos)[1] = '\n', (pos) + 2)
+
+nxt_inline u_char *
+nxt_conf_json_indentation(u_char *pos, nxt_conf_json_pretty_t *pretty)
+{
+    nxt_uint_t  i;
+
+    for (i = 0; i < pretty->level; i++) {
+        pos[i] = '\t';
+    }
+
+    return pos + pretty->level;
+}
 
 
 static const nxt_lvlhsh_proto_t nxt_conf_json_object_hash_proto
@@ -789,27 +803,9 @@ nxt_conf_json_parse_number(u_char *pos, u_char *end,
 }
 
 
-nxt_buf_t *
-nxt_conf_json_print(nxt_conf_json_value_t *value, nxt_mem_pool_t *pool)
-{
-    size_t     size;
-    nxt_buf_t  *b;
-
-    size = nxt_conf_json_print_value(NULL, value);
-
-    b = nxt_buf_mem_alloc(pool, size, 0);
-    if (nxt_slow_path(b == NULL)) {
-        return NULL;
-    }
-
-    b->mem.free = (u_char *) nxt_conf_json_print_value(b->mem.free, value);
-
-    return b;
-}
-
-
-static uintptr_t
-nxt_conf_json_print_value(u_char *pos, nxt_conf_json_value_t *value)
+uintptr_t
+nxt_conf_json_print_value(u_char *pos, nxt_conf_json_value_t *value,
+    nxt_conf_json_pretty_t *pretty)
 {
     switch (value->type) {
 
@@ -845,10 +841,10 @@ nxt_conf_json_print_value(u_char *pos, nxt_conf_json_value_t *value)
         return nxt_conf_json_print_string(pos, value);
 
     case NXT_CONF_JSON_ARRAY:
-        return nxt_conf_json_print_array(pos, value);
+        return nxt_conf_json_print_array(pos, value, pretty);
 
     case NXT_CONF_JSON_OBJECT:
-        return nxt_conf_json_print_object(pos, value);
+        return nxt_conf_json_print_object(pos, value, pretty);
     }
 
     nxt_unreachable();
@@ -912,7 +908,8 @@ nxt_conf_json_print_string(u_char *pos, nxt_conf_json_value_t *value)
 
 
 static uintptr_t
-nxt_conf_json_print_array(u_char *pos, nxt_conf_json_value_t *value)
+nxt_conf_json_print_array(u_char *pos, nxt_conf_json_value_t *value,
+    nxt_conf_json_pretty_t *pretty)
 {
     size_t       len;
     uint32_t     n;
@@ -921,15 +918,35 @@ nxt_conf_json_print_array(u_char *pos, nxt_conf_json_value_t *value)
     array = value->u.array;
 
     if (pos == NULL) {
+        /* [] */
         len = 2;
+
+        if (pretty != NULL) {
+            pretty->level++;
+        }
 
         value = array->elts;
 
         for (n = 0; n < array->nelts; n++) {
-            len += nxt_conf_json_print_value(NULL, &value[n]);
+            len += nxt_conf_json_print_value(NULL, &value[n], pretty);
+
+            if (pretty != NULL) {
+                /* indentation and new line */
+                len += pretty->level + 2;
+            }
         }
 
-        return n + len;
+        if (pretty != NULL) {
+            pretty->level--;
+
+            if (n != 0) {
+                /* indentation and new line */
+                len += pretty->level + 2;
+            }
+        }
+
+        /* reserve space for "n" commas */
+        return len + n;
     }
 
     *pos++ = '[';
@@ -937,11 +954,35 @@ nxt_conf_json_print_array(u_char *pos, nxt_conf_json_value_t *value)
     if (array->nelts != 0) {
         value = array->elts;
 
-        pos = (u_char *) nxt_conf_json_print_value(pos, &value[0]);
+        if (pretty != NULL) {
+            pos = nxt_conf_json_newline(pos);
+
+            pretty->level++;
+            pos = nxt_conf_json_indentation(pos, pretty);
+        }
+
+        pos = (u_char *) nxt_conf_json_print_value(pos, &value[0], pretty);
 
         for (n = 1; n < array->nelts; n++) {
             *pos++ = ',';
-            pos = (u_char *) nxt_conf_json_print_value(pos, &value[n]);
+
+            if (pretty != NULL) {
+                pos = nxt_conf_json_newline(pos);
+                pos = nxt_conf_json_indentation(pos, pretty);
+
+                pretty->more_space = 0;
+            }
+
+            pos = (u_char *) nxt_conf_json_print_value(pos, &value[n], pretty);
+        }
+
+        if (pretty != NULL) {
+            pos = nxt_conf_json_newline(pos);
+
+            pretty->level--;
+            pos = nxt_conf_json_indentation(pos, pretty);
+
+            pretty->more_space = 1;
         }
     }
 
@@ -952,7 +993,8 @@ nxt_conf_json_print_array(u_char *pos, nxt_conf_json_value_t *value)
 
 
 static uintptr_t
-nxt_conf_json_print_object(u_char *pos, nxt_conf_json_value_t *value)
+nxt_conf_json_print_object(u_char *pos, nxt_conf_json_value_t *value,
+    nxt_conf_json_pretty_t *pretty)
 {
     size_t                      len;
     nxt_lvlhsh_t                *object;
@@ -966,7 +1008,12 @@ nxt_conf_json_print_object(u_char *pos, nxt_conf_json_value_t *value)
     object = value->u.object;
 
     if (pos == NULL) {
+        /* {} */
         len = 2;
+
+        if (pretty != NULL) {
+            pretty->level++;
+        }
 
         for ( ;; ) {
             member = nxt_lvlhsh_each(object, &lhe);
@@ -976,7 +1023,23 @@ nxt_conf_json_print_object(u_char *pos, nxt_conf_json_value_t *value)
             }
 
             len += nxt_conf_json_print_string(NULL, &member->name) + 1
-                   + nxt_conf_json_print_value(NULL, &member->value) + 1;
+                   + nxt_conf_json_print_value(NULL, &member->value, pretty)
+                   + 1;
+
+            if (pretty != NULL) {
+                /*
+                 * indentation, space after ":", new line, and possible
+                 * additional empty line between non-empty objects
+                 */
+                len += pretty->level + 1 + 2 + 2;
+            }
+        }
+
+        if (pretty != NULL) {
+            pretty->level--;
+
+            /* indentation and new line */
+            len += pretty->level + 2;
         }
 
         return len;
@@ -988,12 +1051,26 @@ nxt_conf_json_print_object(u_char *pos, nxt_conf_json_value_t *value)
 
     if (member != NULL) {
 
+        if (pretty != NULL) {
+            pos = nxt_conf_json_newline(pos);
+            pretty->level++;
+        }
+
         for ( ;; ) {
+            if (pretty != NULL) {
+                pos = nxt_conf_json_indentation(pos, pretty);
+            }
+
             pos = (u_char *) nxt_conf_json_print_string(pos, &member->name);
 
             *pos++ = ':';
 
-            pos = (u_char *) nxt_conf_json_print_value(pos, &member->value);
+            if (pretty != NULL) {
+                *pos++ = ' ';
+            }
+
+            pos = (u_char *) nxt_conf_json_print_value(pos, &member->value,
+                                                       pretty);
 
             member = nxt_lvlhsh_each(object, &lhe);
 
@@ -1002,6 +1079,24 @@ nxt_conf_json_print_object(u_char *pos, nxt_conf_json_value_t *value)
             }
 
             *pos++ = ',';
+
+            if (pretty != NULL) {
+                pos = nxt_conf_json_newline(pos);
+
+                if (pretty->more_space) {
+                    pretty->more_space = 0;
+                    pos = nxt_conf_json_newline(pos);
+                }
+            }
+        }
+
+        if (pretty != NULL) {
+            pos = nxt_conf_json_newline(pos);
+
+            pretty->level--;
+            pos = nxt_conf_json_indentation(pos, pretty);
+
+            pretty->more_space = 1;
         }
     }
 

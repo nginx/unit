@@ -59,6 +59,8 @@ static nxt_int_t nxt_controller_request_body_parse(nxt_task_t *task,
     nxt_event_conn_t *c, nxt_controller_request_t *r);
 static nxt_int_t nxt_controller_response(nxt_task_t *task, nxt_event_conn_t *c,
     nxt_controller_response_t *resp);
+static nxt_buf_t *nxt_controller_response_body(nxt_controller_response_t *resp,
+    nxt_mem_pool_t *pool);
 
 
 static nxt_http_fields_t  nxt_controller_request_fields[] = {
@@ -624,9 +626,7 @@ nxt_controller_response(nxt_task_t *task, nxt_event_conn_t *c,
     size_t     size;
     nxt_buf_t  *b;
 
-    size = sizeof("HTTP/1.0 " "\r\n\r\n") - 1
-           + resp->status_line.length
-           + resp->json_string.length;
+    size = sizeof("HTTP/1.0 " "\r\n\r\n") - 1 + resp->status_line.length;
 
     b = nxt_buf_mem_alloc(c->mem_pool, size, 0);
     if (nxt_slow_path(b == NULL)) {
@@ -639,25 +639,58 @@ nxt_controller_response(nxt_task_t *task, nxt_event_conn_t *c,
 
     b->mem.free = nxt_cpymem(b->mem.free, "\r\n\r\n", sizeof("\r\n\r\n") - 1);
 
-    if (resp->json_string.length > 0) {
-        b->mem.free = nxt_cpymem(b->mem.free, resp->json_string.start,
-                                 resp->json_string.length);
+    b->next = nxt_controller_response_body(resp, c->mem_pool);
+
+    if (nxt_slow_path(b->next == NULL)) {
+        return NXT_ERROR;
     }
 
     c->write = b;
     c->write_state = &nxt_controller_conn_write_state;
 
-    if (resp->json_value != NULL) {
-        b = nxt_conf_json_print(resp->json_value, c->mem_pool);
-
-        if (b == NULL) {
-            return NXT_ERROR;
-        }
-
-        c->write->next = b;
-    }
-
     nxt_event_conn_write(task->thread->engine, c);
 
     return NXT_OK;
+}
+
+
+static nxt_buf_t *
+nxt_controller_response_body(nxt_controller_response_t *resp,
+    nxt_mem_pool_t *pool)
+{
+    size_t                  size;
+    nxt_buf_t               *b;
+    nxt_conf_json_value_t   *value;
+    nxt_conf_json_pretty_t  pretty;
+
+    if (resp->json_value) {
+        value = resp->json_value;
+
+    } else {
+        value = nxt_conf_json_parse(resp->json_string.start,
+                                    resp->json_string.length, pool);
+
+        if (nxt_slow_path(value == NULL)) {
+            return NULL;
+        }
+    }
+
+    nxt_memzero(&pretty, sizeof(nxt_conf_json_pretty_t));
+
+    size = nxt_conf_json_print_value(NULL, value, &pretty) + 2;
+
+    b = nxt_buf_mem_alloc(pool, size, 0);
+    if (nxt_slow_path(b == NULL)) {
+        return NULL;
+    }
+
+    nxt_memzero(&pretty, sizeof(nxt_conf_json_pretty_t));
+
+    b->mem.free = (u_char *) nxt_conf_json_print_value(b->mem.free, value,
+                                                       &pretty);
+
+    *b->mem.free++ = '\r';
+    *b->mem.free++ = '\n';
+
+    return b;
 }

@@ -12,10 +12,16 @@
 typedef struct nxt_conf_json_value_s  nxt_conf_json_value_t;
 
 
+typedef struct {
+    nxt_uint_t  level;
+    nxt_bool_t  more_space;  /* 1 bit. */
+} nxt_conf_json_pretty_t;
+
+
 nxt_conf_json_value_t *nxt_conf_json_parse(u_char *pos, size_t length,
     nxt_mem_pool_t *pool);
-nxt_buf_t *nxt_conf_json_print(nxt_conf_json_value_t *value,
-    nxt_mem_pool_t *pool);
+uintptr_t nxt_conf_json_print_value(u_char *pos, nxt_conf_json_value_t *value,
+    nxt_conf_json_pretty_t *pretty);
 
 
 #endif /* _NXT_CONF_INCLUDED_ */
