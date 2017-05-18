@@ -554,13 +554,34 @@ static void
 nxt_controller_process_request(nxt_task_t *task, nxt_event_conn_t *c,
     nxt_controller_request_t *req)
 {
+    nxt_str_t                  path;
+    nxt_conf_json_value_t      *value;
     nxt_controller_response_t  resp;
 
     nxt_memzero(&resp, sizeof(nxt_controller_response_t));
 
     if (nxt_str_eq(&req->parser.method, "GET", 3)) {
-        nxt_str_set(&resp.status_line, "200 OK");
-        resp.json_value = nxt_controller_conf.root;
+
+        path.start = req->parser.target_start;
+
+        if (req->parser.args_start != NULL) {
+            path.length = req->parser.args_start - path.start;
+
+        } else {
+            path.length = req->parser.target_end - path.start;
+        }
+
+        value = nxt_conf_json_value_get(nxt_controller_conf.root, &path);
+
+        if (value != NULL) {
+            nxt_str_set(&resp.status_line, "200 OK");
+            resp.json_value = value;
+
+        } else {
+            nxt_str_set(&resp.status_line, "404 Not Found");
+            nxt_str_set(&resp.json_string,
+                        "{ \"error\": \"Requested value doesn't exist\" }");
+        }
 
     } else if (nxt_str_eq(&req->parser.method, "PUT", 3)) {
 

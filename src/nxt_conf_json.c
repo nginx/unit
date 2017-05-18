@@ -50,10 +50,8 @@ static nxt_int_t nxt_conf_json_object_hash_test(nxt_lvlhsh_query_t *lhq,
     void *data);
 static nxt_int_t nxt_conf_json_object_member_add(nxt_lvlhsh_t *lvlhsh,
     nxt_conf_json_obj_member_t *member, nxt_mem_pool_t *pool);
-#if 0
 static nxt_conf_json_value_t *nxt_conf_json_object_member_get(
     nxt_lvlhsh_t *lvlhsh, u_char *name, size_t length);
-#endif
 
 
 static u_char *nxt_conf_json_skip_space(u_char *pos, u_char *end);
@@ -159,7 +157,6 @@ nxt_conf_json_object_member_add(nxt_lvlhsh_t *lvlhsh,
 }
 
 
-#if 0
 static nxt_conf_json_value_t *
 nxt_conf_json_object_member_get(nxt_lvlhsh_t *lvlhsh, u_char *name,
     size_t length)
@@ -179,7 +176,42 @@ nxt_conf_json_object_member_get(nxt_lvlhsh_t *lvlhsh, u_char *name,
 
     return NULL;
 }
-#endif
+
+
+nxt_conf_json_value_t *
+nxt_conf_json_value_get(nxt_conf_json_value_t *value, nxt_str_t *path)
+{
+    u_char  *p, *start, *end;
+
+    p = path->start;
+    end = p + path->length;
+
+    if (p != end && end[-1] == '/') {
+        end--;
+    }
+
+    while (p != end) {
+        start = p + 1;
+        p = start;
+
+        while (p != end && *p != '/') {
+            p++;
+        }
+
+        if (value->type != NXT_CONF_JSON_OBJECT) {
+            return NULL;
+        }
+
+        value = nxt_conf_json_object_member_get(value->u.object, start,
+                                                p - start);
+
+        if (value == NULL) {
+            return NULL;
+        }
+    }
+
+    return value;
+}
 
 
 nxt_conf_json_value_t *
