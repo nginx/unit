@@ -20,6 +20,8 @@ typedef struct {
 
 nxt_conf_json_value_t *nxt_conf_json_value_get(nxt_conf_json_value_t *value,
     nxt_str_t *path);
+nxt_conf_json_value_t *nxt_conf_json_object_get_member(
+    nxt_conf_json_value_t *value, u_char *name, size_t length);
 nxt_conf_json_value_t *nxt_conf_json_parse(u_char *pos, size_t length,
     nxt_mem_pool_t *pool);
 uintptr_t nxt_conf_json_print_value(u_char *pos, nxt_conf_json_value_t *value,
