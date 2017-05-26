@@ -18,7 +18,7 @@ typedef struct {
 } nxt_conf_json_pretty_t;
 
 
-nxt_conf_json_value_t *nxt_conf_json_value_get(nxt_conf_json_value_t *value,
+nxt_conf_json_value_t *nxt_conf_json_get_value(nxt_conf_json_value_t *value,
     nxt_str_t *path);
 nxt_conf_json_value_t *nxt_conf_json_object_get_member(
     nxt_conf_json_value_t *value, u_char *name, size_t length);

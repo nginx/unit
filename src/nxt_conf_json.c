@@ -108,7 +108,7 @@ nxt_conf_json_indentation(u_char *pos, nxt_conf_json_pretty_t *pretty)
 
 
 nxt_conf_json_value_t *
-nxt_conf_json_value_get(nxt_conf_json_value_t *value, nxt_str_t *path)
+nxt_conf_json_get_value(nxt_conf_json_value_t *value, nxt_str_t *path)
 {
     u_char  *p, *start, *end;
 
@@ -397,7 +397,7 @@ nxt_conf_json_parse_object(u_char *pos, u_char *end,
     object = nxt_mem_alloc(pool, sizeof(nxt_conf_json_object_t)
                                  + count * sizeof(nxt_conf_json_obj_member_t));
     if (nxt_slow_path(object == NULL)) {
-        return NULL;
+        goto error;
     }
 
     value->u.object = object;

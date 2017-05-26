@@ -571,7 +571,7 @@ nxt_controller_process_request(nxt_task_t *task, nxt_event_conn_t *c,
             path.length = req->parser.target_end - path.start;
         }
 
-        value = nxt_conf_json_value_get(nxt_controller_conf.root, &path);
+        value = nxt_conf_json_get_value(nxt_controller_conf.root, &path);
 
         if (value != NULL) {
             nxt_str_set(&resp.status_line, "200 OK");
