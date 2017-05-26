@@ -126,11 +126,15 @@ nxt_rbtree_insert_fixup(nxt_rbtree_node_t *node)
                     nxt_rbtree_left_rotate(node);
                 }
 
+                /*
+                 * nxt_rbtree_left_rotate() swaps parent and
+                 * child whilst keeps grandparent the same.
+                 */
                 parent = node->parent;
-                parent->color = NXT_RBTREE_BLACK;
 
-                grandparent = parent->parent;
+                parent->color = NXT_RBTREE_BLACK;
                 grandparent->color = NXT_RBTREE_RED;
+
                 nxt_rbtree_right_rotate(grandparent);
                 /*
                  * nxt_rbtree_right_rotate() does not change node->parent
@@ -150,11 +154,12 @@ nxt_rbtree_insert_fixup(nxt_rbtree_node_t *node)
                     nxt_rbtree_right_rotate(node);
                 }
 
+                /* See the comment in the symmetric branch above. */
                 parent = node->parent;
-                parent->color = NXT_RBTREE_BLACK;
 
-                grandparent = parent->parent;
+                parent->color = NXT_RBTREE_BLACK;
                 grandparent->color = NXT_RBTREE_RED;
+
                 nxt_rbtree_left_rotate(grandparent);
 
                 /* See the comment in the symmetric branch above. */
