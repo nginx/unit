@@ -399,7 +399,7 @@ nxt_rbtree_delete_fixup(nxt_rbtree_t *tree, nxt_rbtree_node_t *node)
 
             nxt_rbtree_left_rotate(parent);
 
-            break;
+            return;
 
         } else {
             sibling = parent->left;
@@ -437,7 +437,7 @@ nxt_rbtree_delete_fixup(nxt_rbtree_t *tree, nxt_rbtree_node_t *node)
 
             nxt_rbtree_right_rotate(parent);
 
-            break;
+            return;
         }
     }
 
