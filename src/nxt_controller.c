@@ -55,8 +55,6 @@ static nxt_int_t nxt_controller_request_content_length(void *ctx,
 
 static void nxt_controller_process_request(nxt_task_t *task,
     nxt_event_conn_t *c, nxt_controller_request_t *r);
-static nxt_int_t nxt_controller_request_body_parse(nxt_task_t *task,
-    nxt_event_conn_t *c, nxt_controller_request_t *r);
 static nxt_int_t nxt_controller_response(nxt_task_t *task, nxt_event_conn_t *c,
     nxt_controller_response_t *resp);
 static nxt_buf_t *nxt_controller_response_body(nxt_controller_response_t *resp,
@@ -554,89 +552,192 @@ static void
 nxt_controller_process_request(nxt_task_t *task, nxt_event_conn_t *c,
     nxt_controller_request_t *req)
 {
+    nxt_int_t                  rc;
     nxt_str_t                  path;
+    nxt_uint_t                 status;
+    nxt_buf_mem_t              *mbuf;
+    nxt_mem_pool_t             *mp;
+    nxt_conf_json_op_t         *ops;
     nxt_conf_json_value_t      *value;
     nxt_controller_response_t  resp;
+
+    static const nxt_str_t empty_obj = nxt_string("{}");
+
+    path.start = req->parser.target_start;
+
+    if (req->parser.args_start != NULL) {
+        path.length = req->parser.args_start - path.start;
+
+    } else {
+        path.length = req->parser.target_end - path.start;
+    }
+
+    if (path.length > 1 && path.start[path.length - 1] == '/') {
+        path.length--;
+    }
 
     nxt_memzero(&resp, sizeof(nxt_controller_response_t));
 
     if (nxt_str_eq(&req->parser.method, "GET", 3)) {
 
-        path.start = req->parser.target_start;
-
-        if (req->parser.args_start != NULL) {
-            path.length = req->parser.args_start - path.start;
-
-        } else {
-            path.length = req->parser.target_end - path.start;
-        }
-
         value = nxt_conf_json_get_value(nxt_controller_conf.root, &path);
 
-        if (value != NULL) {
-            nxt_str_set(&resp.status_line, "200 OK");
-            resp.json_value = value;
-
-        } else {
-            nxt_str_set(&resp.status_line, "404 Not Found");
-            nxt_str_set(&resp.json_string,
-                        "{ \"error\": \"Requested value doesn't exist\" }");
+        if (value == NULL) {
+            status = 404;
+            goto done;
         }
 
-    } else if (nxt_str_eq(&req->parser.method, "PUT", 3)) {
+        resp.json_value = value;
 
-        if (nxt_controller_request_body_parse(task, c, req) == NXT_OK) {
+        status = 200;
+        goto done;
+    }
 
-            nxt_mem_pool_destroy(nxt_controller_conf.pool);
-            nxt_controller_conf = req->conf;
+    if (nxt_str_eq(&req->parser.method, "PUT", 3)) {
 
-            nxt_str_set(&resp.status_line, "201 Created");
-            nxt_str_set(&resp.json_string,
-                        "{ \"success\": \"Configuration updated\" }");
+        mp = nxt_mem_pool_create(512);
 
-        } else {
-            nxt_str_set(&resp.status_line, "400 Bad Request");
-            nxt_str_set(&resp.json_string,
-                        "{ \"error\": \"Invalid JSON\" }");
+        if (nxt_slow_path(mp == NULL)) {
+            status = 500;
+            goto done;
         }
 
-    } else {
+        mbuf = &c->read->mem;
+
+        value = nxt_conf_json_parse(mbuf->pos, mbuf->free - mbuf->pos, mp);
+
+        if (value == NULL) {
+            nxt_mem_pool_destroy(mp);
+            status = 400;
+            goto done;
+        }
+
+        if (path.length != 1) {
+            rc = nxt_conf_json_op_compile(nxt_controller_conf.root, value,
+                                          &ops, &path, c->mem_pool);
+
+            if (rc != NXT_OK) {
+                if (rc == NXT_DECLINED) {
+                    status = 404;
+                    goto done;
+                }
+
+                status = 500;
+                goto done;
+            }
+
+            value = nxt_conf_json_clone_value(nxt_controller_conf.root,
+                                              ops, mp);
+
+            if (nxt_slow_path(value == NULL)) {
+                nxt_mem_pool_destroy(mp);
+                status = 500;
+                goto done;
+            }
+        }
+
+        nxt_mem_pool_destroy(nxt_controller_conf.pool);
+
+        nxt_controller_conf.root = value;
+        nxt_controller_conf.pool = mp;
+
+        nxt_str_set(&resp.json_string, "{ \"success\": \"Updated.\" }");
+
+        status = 200;
+        goto done;
+    }
+
+    if (nxt_str_eq(&req->parser.method, "DELETE", 6)) {
+
+        if (path.length == 1) {
+            mp = nxt_mem_pool_create(128);
+
+            if (nxt_slow_path(mp == NULL)) {
+                status = 500;
+                goto done;
+            }
+
+            value = nxt_conf_json_parse(empty_obj.start, empty_obj.length, mp);
+
+        } else {
+            rc = nxt_conf_json_op_compile(nxt_controller_conf.root, NULL, &ops,
+                                          &path, c->mem_pool);
+
+            if (rc != NXT_OK) {
+                if (rc == NXT_DECLINED) {
+                    status = 404;
+                    goto done;
+                }
+
+                status = 500;
+                goto done;
+            }
+
+            mp = nxt_mem_pool_create(512);
+
+            if (nxt_slow_path(mp == NULL)) {
+                status = 500;
+                goto done;
+            }
+
+            value = nxt_conf_json_clone_value(nxt_controller_conf.root,
+                                              ops, mp);
+        }
+
+        if (nxt_slow_path(value == NULL)) {
+            nxt_mem_pool_destroy(mp);
+            status = 500;
+            goto done;
+        }
+
+        nxt_mem_pool_destroy(nxt_controller_conf.pool);
+
+        nxt_controller_conf.root = value;
+        nxt_controller_conf.pool = mp;
+
+        nxt_str_set(&resp.json_string, "{ \"success\": \"Deleted.\" }");
+
+        status = 200;
+        goto done;
+    }
+
+    status = 405;
+
+done:
+
+    switch (status) {
+
+    case 200:
+        nxt_str_set(&resp.status_line, "200 OK");
+        break;
+
+    case 400:
+        nxt_str_set(&resp.status_line, "400 Bad Request");
+        nxt_str_set(&resp.json_string,
+                    "{ \"error\": \"Invalid JSON.\" }");
+        break;
+
+    case 404:
+        nxt_str_set(&resp.status_line, "404 Not Found");
+        nxt_str_set(&resp.json_string,
+                    "{ \"error\": \"Value doesn't exist.\" }");
+        break;
+
+    case 405:
         nxt_str_set(&resp.status_line, "405 Method Not Allowed");
-        nxt_str_set(&resp.json_string, "{ \"error\": \"Invalid method\" }");
+        nxt_str_set(&resp.json_string, "{ \"error\": \"Invalid method.\" }");
+        break;
+
+    case 500:
+        nxt_str_set(&resp.status_line, "500 Internal Server Error");
+        nxt_str_set(&resp.json_string,
+                    "{ \"error\": \"Memory allocation failed.\" }");
+        break;
     }
 
     if (nxt_controller_response(task, c, &resp) != NXT_OK) {
         nxt_controller_conn_close(task, c, req);
     }
-}
-
-
-static nxt_int_t
-nxt_controller_request_body_parse(nxt_task_t *task, nxt_event_conn_t *c,
-    nxt_controller_request_t *r)
-{
-    nxt_buf_mem_t          *mbuf;
-    nxt_mem_pool_t         *mp;
-    nxt_conf_json_value_t  *value;
-
-    mp = nxt_mem_pool_create(512);
-
-    if (nxt_slow_path(mp == NULL)) {
-        return NXT_ERROR;
-    }
-
-    mbuf = &c->read->mem;
-
-    value = nxt_conf_json_parse(mbuf->pos, mbuf->free - mbuf->pos, mp);
-
-    if (value == NULL) {
-        return NXT_ERROR;
-    }
-
-    r->conf.root = value;
-    r->conf.pool = mp;
-
-    return NXT_OK;
 }
 
 
