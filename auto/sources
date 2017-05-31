@@ -71,6 +71,7 @@ NXT_LIB_DEPS=" \
     src/nxt_conf.h \
     src/nxt_application.h \
     src/nxt_master_process.h \
+    src/nxt_router.h \
 "
 
 NXT_LIB_SRCS=" \
@@ -128,6 +129,7 @@ NXT_LIB_SRCS=" \
     src/nxt_event_conn_accept.c \
     src/nxt_event_conn_read.c \
     src/nxt_event_conn_write.c \
+    src/nxt_conn_close.c \
     src/nxt_event_conn_job_sendfile.c \
     src/nxt_event_conn_proxy.c \
     src/nxt_job.c \

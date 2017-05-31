@@ -173,6 +173,10 @@ nxt_container_of(p, type, field)                                              \
     (type *) ((u_char *) (p) - offsetof(type, field))
 
 
+#define nxt_value_at(type, p, offset)                                         \
+    *(type *) ((u_char *) p + offset)
+
+
 #define                                                                       \
 nxt_nitems(x)                                                                 \
     (sizeof(x) / sizeof((x)[0]))

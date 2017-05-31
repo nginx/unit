@@ -19,7 +19,7 @@ struct nxt_runtime_s {
     nxt_array_t            *listen_sockets;     /* of nxt_listen_socket_t */
 
     nxt_array_t            *services;           /* of nxt_service_t */
-    nxt_array_t            *engines;            /* of nxt_event_engine_t */
+    void                   *data;
 
     nxt_runtime_cont_t     start;
 
@@ -60,6 +60,8 @@ struct nxt_runtime_s {
     const char             *group;
     const char             *pid;
     const char             *error_log;
+
+    nxt_queue_t            engines;            /* of nxt_event_engine_t */
 
     nxt_sockaddr_t         *controller_listen;
     nxt_listen_socket_t    *controller_socket;

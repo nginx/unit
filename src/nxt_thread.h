@@ -90,7 +90,6 @@ typedef void (*nxt_thread_start_t)(void *data);
 
 typedef struct {
     nxt_thread_start_t       start;
-    void                     *data;
     nxt_event_engine_t       *engine;
     nxt_work_t               work;
 } nxt_thread_link_t;
@@ -180,6 +179,7 @@ struct nxt_thread_s {
 
     nxt_runtime_t            *runtime;
     nxt_event_engine_t       *engine;
+    void                     *data;
 
     /*
      * Although pointer to a current fiber should be a property of

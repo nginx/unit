@@ -141,7 +141,7 @@ nxt_signal_thread_start(nxt_event_engine_t *engine)
 
     if (nxt_fast_path(link != NULL)) {
         link->start = nxt_signal_thread;
-        link->data = engine;
+        link->work.data = engine;
 
         if (nxt_thread_create(&engine->signals->thread, link) == NXT_OK) {
             engine->signals->process = nxt_pid;

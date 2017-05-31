@@ -123,7 +123,7 @@ nxt_time_thread_start(nxt_msec_t interval)
 
     if (nxt_fast_path(link != NULL)) {
         link->start = nxt_time_thread;
-        link->data = (void *) (uintptr_t) interval;
+        link->work.data = (void *) (uintptr_t) interval;
 
         (void) nxt_thread_create(&handle, link);
     }

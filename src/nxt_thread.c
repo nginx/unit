@@ -114,9 +114,9 @@ nxt_thread_trampoline(void *data)
     pthread_cleanup_push(nxt_thread_time_cleanup, thr);
 
     start = link->start;
-    data = link->data;
+    data = link->work.data;
 
-    if (link->engine != NULL) {
+    if (link->work.handler != NULL) {
         thr->link = link;
 
     } else {
@@ -180,7 +180,8 @@ nxt_thread_time_cleanup(void *data)
 void
 nxt_thread_exit(nxt_thread_t *thr)
 {
-    nxt_thread_link_t  *link;
+    nxt_thread_link_t   *link;
+    nxt_event_engine_t  *engine;
 
     nxt_log_debug(thr->log, "thread exit");
 
@@ -189,13 +190,14 @@ nxt_thread_exit(nxt_thread_t *thr)
 
     if (link != NULL) {
         /*
-         * link->handler is already set to an exit handler,
-         * and link->task is already set to engine->task.
+         * link->work.handler is already set to an exit handler,
+         * and link->work.task is already set to the correct engine->task.
          * The link should be freed by the exit handler.
          */
         link->work.obj = (void *) (uintptr_t) thr->handle;
+        engine = nxt_container_of(link->work.task, nxt_event_engine_t, task);
 
-        nxt_event_engine_post(link->engine, &link->work);
+        nxt_event_engine_post(engine, &link->work);
     }
 
     nxt_thread_time_free(thr);

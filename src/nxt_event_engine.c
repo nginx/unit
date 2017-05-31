@@ -44,9 +44,6 @@ nxt_event_engine_create(nxt_task_t *task,
     engine->task.log = thread->log;
     engine->task.ident = nxt_task_next_ident();
 
-    thread->engine = engine;
-    thread->fiber = &engine->fibers->fiber;
-
     engine->batch = batch;
 
     if (flags & NXT_ENGINE_FIBERS) {
@@ -121,6 +118,7 @@ nxt_event_engine_create(nxt_task_t *task,
 
     engine->max_connections = 0xffffffff;
 
+    nxt_queue_init(&engine->joints);
     nxt_queue_init(&engine->listen_connections);
     nxt_queue_init(&engine->idle_connections);
 

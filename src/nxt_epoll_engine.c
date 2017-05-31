@@ -994,7 +994,7 @@ nxt_epoll_event_conn_io_accept4(nxt_task_t *task, void *obj, void *data)
     nxt_event_conn_listen_t  *cls;
 
     cls = obj;
-    c = data;
+    c = cls->next;
 
     cls->ready--;
     cls->socket.read_ready = (cls->ready != 0);

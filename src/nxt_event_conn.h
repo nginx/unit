@@ -100,6 +100,35 @@ typedef struct {
 } nxt_event_conn_io_t;
 
 
+/*
+ * The nxt_event_conn_listen_t is separated from nxt_listen_socket_t
+ * because nxt_listen_socket_t is one per process whilst each worker
+ * thread uses own nxt_event_conn_listen_t.
+ */
+typedef struct {
+    /* Must be the first field. */
+    nxt_fd_event_t                socket;
+
+    nxt_task_t                    task;
+
+    uint32_t                      ready;
+    uint32_t                      batch;
+
+    /* An accept() interface is cached to minimize memory accesses. */
+    nxt_work_handler_t            accept;
+
+    nxt_listen_socket_t           *listen;
+    nxt_event_conn_t              *next;   /* STUB */;
+    nxt_work_queue_t              *work_queue;
+
+    nxt_timer_t                   timer;
+
+    nxt_queue_link_t              link;
+} nxt_event_conn_listen_t;
+
+typedef nxt_event_conn_listen_t  nxt_listen_event_t;
+
+
 struct nxt_event_conn_s {
     /*
      * Must be the first field, since nxt_fd_event_t
@@ -143,7 +172,7 @@ struct nxt_event_conn_s {
     nxt_task_t                    task;
     nxt_log_t                     log;
 
-    nxt_listen_socket_t           *listen;
+    nxt_event_conn_listen_t       *listen;
     nxt_sockaddr_t                *remote;
     nxt_sockaddr_t                *local;
     const char                    *action;
@@ -161,31 +190,6 @@ struct nxt_event_conn_s {
 
     nxt_queue_link_t              link;
 };
-
-
-/*
- * The nxt_event_conn_listen_t is separated from nxt_listen_socket_t
- * because nxt_listen_socket_t is one per process whilst each worker
- * thread uses own nxt_event_conn_listen_t.
- */
-typedef struct {
-    /* Must be the first field. */
-    nxt_fd_event_t                socket;
-
-    nxt_task_t                    task;
-
-    uint32_t                      ready;
-    uint32_t                      batch;
-
-    /* An accept() interface is cached to minimize memory accesses. */
-    nxt_work_handler_t            accept;
-
-    nxt_listen_socket_t           *listen;
-
-    nxt_timer_t                   timer;
-
-    nxt_queue_link_t              link;
-} nxt_event_conn_listen_t;
 
 
 #define                                                                       \
@@ -256,6 +260,8 @@ nxt_int_t nxt_event_conn_socket(nxt_task_t *task, nxt_event_conn_t *c);
 void nxt_event_conn_connect_test(nxt_task_t *task, void *obj, void *data);
 void nxt_event_conn_connect_error(nxt_task_t *task, void *obj, void *data);
 
+NXT_EXPORT nxt_event_conn_listen_t *nxt_listen_event(nxt_task_t *task,
+    nxt_listen_socket_t *ls);
 NXT_EXPORT nxt_int_t nxt_event_conn_listen(nxt_task_t *task,
     nxt_listen_socket_t *ls);
 void nxt_event_conn_io_accept(nxt_task_t *task, void *obj, void *data);

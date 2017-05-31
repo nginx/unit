@@ -10,6 +10,7 @@
 static nxt_int_t nxt_thread_pool_init(nxt_thread_pool_t *tp);
 static void nxt_thread_pool_exit(nxt_task_t *task, void *obj, void *data);
 static void nxt_thread_pool_start(void *ctx);
+static void nxt_thread_pool_loop(void *ctx);
 static void nxt_thread_pool_wait(nxt_thread_pool_t *tp);
 
 
@@ -86,13 +87,8 @@ nxt_thread_pool_init(nxt_thread_pool_t *tp)
 
             if (nxt_fast_path(link != NULL)) {
                 link->start = nxt_thread_pool_start;
-                link->data = tp;
-                link->engine = tp->engine;
-                /*
-                 * link->exit is not used.  link->engine is used just to
-                 * set thr->link by nxt_thread_trampoline() and the link
-                 * is a mark of the first thread of pool.
-                 */
+                link->work.data = tp;
+
                 if (nxt_thread_create(&handle, link) == NXT_OK) {
                     tp->ready = 1;
                     goto done;
@@ -118,6 +114,22 @@ done:
 static void
 nxt_thread_pool_start(void *ctx)
 {
+    nxt_thread_t       *thr;
+    nxt_thread_pool_t  *tp;
+
+    tp = ctx;
+    thr = nxt_thread();
+
+    tp->main = thr->handle;
+    tp->task.thread = thr;
+
+    nxt_thread_pool_loop(ctx);
+}
+
+
+static void
+nxt_thread_pool_loop(void *ctx)
+{
     void                *obj, *data;
     nxt_task_t          *task;
     nxt_thread_t        *thr;
@@ -126,17 +138,6 @@ nxt_thread_pool_start(void *ctx)
 
     tp = ctx;
     thr = nxt_thread();
-
-    if (thr->link != NULL) {
-        /* Only the first thread has a link. */
-        tp->main = thr->handle;
-        nxt_free(thr->link);
-        thr->link = NULL;
-
-        tp->task.thread = thr;
-    }
-
-    thr->thread_pool = tp;
 
     if (tp->init != NULL) {
         tp->init();
@@ -215,8 +216,8 @@ nxt_thread_pool_wait(nxt_thread_pool_t *tp)
     link = nxt_zalloc(sizeof(nxt_thread_link_t));
 
     if (nxt_fast_path(link != NULL)) {
-        link->start = nxt_thread_pool_start;
-        link->data = tp;
+        link->start = nxt_thread_pool_loop;
+        link->work.data = tp;
 
         if (nxt_thread_create(&handle, link) != NXT_OK) {
             (void) nxt_atomic_fetch_add(&tp->threads, -1);
@@ -231,6 +232,8 @@ nxt_thread_pool_destroy(nxt_thread_pool_t *tp)
     nxt_thread_t  *thr;
 
     thr = nxt_thread();
+
+    nxt_log_debug(thr->log, "thread pool destroy: %d", tp->ready);
 
     if (!tp->ready) {
         nxt_work_queue_add(&thr->engine->fast_work_queue, tp->exit,

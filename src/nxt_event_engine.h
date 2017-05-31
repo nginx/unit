@@ -355,6 +355,11 @@ nxt_fd_event_disable(engine, ev)                                              \
 
 
 #define                                                                       \
+nxt_fd_event_delete(engine, ev)                                               \
+    (engine)->event.delete(engine, ev)
+
+
+#define                                                                       \
 nxt_fd_event_close(engine, ev)                                                \
     (engine)->event.close(engine, ev)
 
@@ -481,8 +486,13 @@ struct nxt_event_engine_s {
     uint32_t                   connections;
     uint32_t                   max_connections;
 
+    nxt_port_t                 *port;
+    nxt_mem_cache_pool_t       *mem_pool;
+    nxt_queue_t                joints;
     nxt_queue_t                listen_connections;
     nxt_queue_t                idle_connections;
+
+    nxt_queue_link_t           link;
 };
 
 

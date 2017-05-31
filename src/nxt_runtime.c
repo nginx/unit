@@ -253,19 +253,9 @@ nxt_runtime_systemd_listen_sockets(nxt_task_t *task, nxt_runtime_t *rt)
 static nxt_int_t
 nxt_runtime_event_engines(nxt_task_t *task, nxt_runtime_t *rt)
 {
-    nxt_event_engine_t           *engine, **e;
+    nxt_thread_t                 *thread;
+    nxt_event_engine_t           *engine;
     const nxt_event_interface_t  *interface;
-
-    rt->engines = nxt_array_create(rt->mem_pool, 1,
-                                   sizeof(nxt_event_engine_t *));
-    if (nxt_slow_path(rt->engines == NULL)) {
-        return NXT_ERROR;
-    }
-
-    e = nxt_array_add(rt->engines);
-    if (nxt_slow_path(e == NULL)) {
-        return NXT_ERROR;
-    }
 
     interface = nxt_service_get(rt->services, "engine", NULL);
 
@@ -281,8 +271,14 @@ nxt_runtime_event_engines(nxt_task_t *task, nxt_runtime_t *rt)
         return NXT_ERROR;
     }
 
+    thread = task->thread;
+    thread->engine = engine;
+    thread->fiber = &engine->fibers->fiber;
+
     engine->id = rt->last_engine_id++;
-    *e = engine;
+
+    nxt_queue_init(&rt->engines);
+    nxt_queue_insert_tail(&rt->engines, &engine->link);
 
     return NXT_OK;
 }
@@ -587,12 +583,13 @@ nxt_runtime_event_engine_change(nxt_task_t *task, nxt_runtime_t *rt)
 void
 nxt_runtime_event_engine_free(nxt_runtime_t *rt)
 {
-    nxt_event_engine_t  *engine, **engines;
+    nxt_queue_link_t    *link;
+    nxt_event_engine_t  *engine;
 
-    engines = rt->engines->elts;
-    engine = engines[0];
-    nxt_array_remove(rt->engines, &engines[0]);
+    link = nxt_queue_first(&rt->engines);
+    nxt_queue_remove(link);
 
+    engine = nxt_queue_link_data(link, nxt_event_engine_t, link);
     nxt_event_engine_free(engine);
 }
 

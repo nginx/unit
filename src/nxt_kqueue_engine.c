@@ -522,6 +522,8 @@ nxt_kqueue_fd_error_handler(nxt_task_t *task, void *obj, void *data)
 
     ev = obj;
 
+    nxt_debug(task, "kqueue fd error handler fd:%d", ev->fd);
+
     if (ev->kq_eof && ev->kq_errno != 0) {
         ev->error = ev->kq_errno;
         nxt_log(task, nxt_socket_error_level(ev->kq_errno),
@@ -543,6 +545,8 @@ nxt_kqueue_file_error_handler(nxt_task_t *task, void *obj, void *data)
     nxt_event_file_t  *ev;
 
     ev = obj;
+
+    nxt_debug(task, "kqueue file error handler fd:%d", ev->file->fd);
 
     ev->handler(task, ev, data);
 }
@@ -924,7 +928,7 @@ nxt_kqueue_event_conn_io_accept(nxt_task_t *task, void *obj, void *data)
     nxt_event_conn_listen_t  *cls;
 
     cls = obj;
-    c = data;
+    c = cls->next;
 
     cls->ready--;
     cls->socket.read_ready = (cls->ready != 0);

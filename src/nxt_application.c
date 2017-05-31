@@ -99,7 +99,7 @@ nxt_app_start(nxt_task_t *task, nxt_runtime_t *rt)
 
     if (nxt_fast_path(link != NULL)) {
         link->start = nxt_app_thread;
-        link->data = rt;
+        link->work.data = rt;
 
         return nxt_thread_create(&handle, link);
     }
@@ -151,8 +151,8 @@ nxt_app_thread(void *ctx)
     nxt_socket_t            s;
     nxt_thread_t            *thr;
     nxt_runtime_t           *rt;
+    nxt_queue_link_t        *link;
     nxt_app_request_t       *r;
-    nxt_event_engine_t      **engines;
     nxt_listen_socket_t     *ls;
     u_char                  buf[SIZE];
     const size_t            size = SIZE;
@@ -163,9 +163,9 @@ nxt_app_thread(void *ctx)
     nxt_log_debug(thr->log, "app thread");
 
     rt = ctx;
-    engines = rt->engines->elts;
 
-    nxt_app_engine = engines[0];
+    link = nxt_queue_first(&rt->engines);
+    nxt_app_engine = nxt_queue_link_data(link, nxt_event_engine_t, link);
 
     nxt_app_mem_pool = nxt_mem_pool_create(512);
     if (nxt_slow_path(nxt_app_mem_pool == NULL)) {
