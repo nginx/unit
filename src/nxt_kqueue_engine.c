@@ -293,17 +293,26 @@ nxt_kqueue_delete(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
  *   Calling close() on a file descriptor will remove any kevents that
  *   reference the descriptor.
  *
- * nxt_kqueue_close() always returns true as there are pending events on
- * closing file descriptor because kevent() passes whole change list at once.
+ * So nxt_kqueue_close() returns true only if there are pending events.
  */
 
 static nxt_bool_t
 nxt_kqueue_close(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 {
+    struct kevent  *kev, *end;
+
     ev->read = NXT_EVENT_INACTIVE;
     ev->write = NXT_EVENT_INACTIVE;
 
-    return 1;
+    end = &engine->u.kqueue.changes[engine->u.kqueue.nchanges];
+
+    for (kev = engine->u.kqueue.changes; kev < end; kev++) {
+        if (kev->ident == (uintptr_t) ev->fd) {
+            return 1;
+        }
+    }
+
+    return 0;
 }
 
 
