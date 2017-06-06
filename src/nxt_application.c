@@ -827,16 +827,13 @@ nxt_app_delivery_handler(nxt_task_t *task, void *obj, void *data)
 static const nxt_event_conn_state_t  nxt_app_delivery_write_state
     nxt_aligned(64) =
 {
-    NXT_EVENT_NO_BUF_PROCESS,
-    NXT_EVENT_TIMER_AUTORESET,
+    .ready_handler = nxt_app_delivery_ready,
+    .error_handler = nxt_app_delivery_error,
 
-    nxt_app_delivery_ready,
-    NULL,
-    nxt_app_delivery_error,
-
-    nxt_app_delivery_timeout,
-    nxt_app_delivery_timer_value,
-    0,
+    .timer_handler = nxt_app_delivery_timeout,
+    .timer_value = nxt_app_delivery_timer_value,
+    .timer_data = 0,
+    .timer_autoreset = 1,
 };
 
 
@@ -871,16 +868,7 @@ nxt_app_delivery_ready(nxt_task_t *task, void *obj, void *data)
 static const nxt_event_conn_state_t  nxt_app_delivery_close_state
     nxt_aligned(64) =
 {
-    NXT_EVENT_NO_BUF_PROCESS,
-    NXT_EVENT_TIMER_NO_AUTORESET,
-
-    nxt_app_close_request,
-    NULL,
-    NULL,
-
-    NULL,
-    NULL,
-    0,
+    .ready_handler = nxt_app_close_request,
 };
 
 

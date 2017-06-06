@@ -184,7 +184,7 @@ nxt_event_conn_job_sendfile_return(nxt_task_t *task, void *obj, void *data)
     /* The job must be destroyed before connection error handler. */
     nxt_job_destroy(task, jbs);
 
-    if (c->write_state->process_buffers) {
+    if (0 /* STUB: c->write_state->process_buffers */) {
         b = nxt_event_conn_job_sendfile_completion(task, c, b);
 
         done = (b == NULL);
@@ -205,7 +205,7 @@ nxt_event_conn_job_sendfile_return(nxt_task_t *task, void *obj, void *data)
         }
     }
 
-    if (sent != 0 && c->write_state->autoreset_timer) {
+    if (sent != 0 && c->write_state->timer_autoreset) {
         nxt_timer_disable(task->thread->engine, &c->write_timer);
     }
 

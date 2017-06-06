@@ -128,7 +128,7 @@ nxt_event_conn_connect_test(nxt_task_t *task, void *obj, void *data)
 
     nxt_fd_event_block_write(task->thread->engine, &c->socket);
 
-    if (c->write_state->autoreset_timer) {
+    if (c->write_state->timer_autoreset) {
         nxt_timer_disable(task->thread->engine, &c->write_timer);
     }
 

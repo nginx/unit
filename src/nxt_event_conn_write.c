@@ -77,7 +77,7 @@ nxt_conn_io_write(nxt_task_t *task, void *obj, void *data)
     nxt_debug(task, "event conn: %i sent:%z", ret, sb.sent);
 
     if (sb.sent != 0) {
-        if (c->write_state->autoreset_timer) {
+        if (c->write_state->timer_autoreset) {
             nxt_timer_disable(engine, &c->write_timer);
         }
     }

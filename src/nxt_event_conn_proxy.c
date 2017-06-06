@@ -142,16 +142,13 @@ nxt_event_conn_proxy(nxt_task_t *task, nxt_event_conn_proxy_t *p)
 static const nxt_event_conn_state_t  nxt_event_conn_proxy_client_wait_state
     nxt_aligned(64) =
 {
-    NXT_EVENT_NO_BUF_PROCESS,
-    NXT_EVENT_TIMER_NO_AUTORESET,
+    .ready_handler = nxt_event_conn_proxy_client_buffer_alloc,
+    .close_handler = nxt_event_conn_proxy_close,
+    .error_handler = nxt_event_conn_proxy_error,
 
-    nxt_event_conn_proxy_client_buffer_alloc,
-    nxt_event_conn_proxy_close,
-    nxt_event_conn_proxy_error,
-
-    nxt_event_conn_proxy_read_timeout,
-    nxt_event_conn_proxy_timeout_value,
-    offsetof(nxt_event_conn_proxy_t, client_wait_timeout),
+    .timer_handler = nxt_event_conn_proxy_read_timeout,
+    .timer_value = nxt_event_conn_proxy_timeout_value,
+    .timer_data = offsetof(nxt_event_conn_proxy_t, client_wait_timeout),
 };
 
 
@@ -210,16 +207,14 @@ static const nxt_event_conn_state_t
     nxt_event_conn_proxy_client_first_read_state
     nxt_aligned(64) =
 {
-    NXT_EVENT_BUF_PROCESS,
-    NXT_EVENT_TIMER_AUTORESET,
+    .ready_handler = nxt_event_conn_proxy_peer_connect,
+    .close_handler = nxt_event_conn_proxy_close,
+    .error_handler = nxt_event_conn_proxy_error,
 
-    nxt_event_conn_proxy_peer_connect,
-    nxt_event_conn_proxy_close,
-    nxt_event_conn_proxy_error,
-
-    nxt_event_conn_proxy_read_timeout,
-    nxt_event_conn_proxy_timeout_value,
-    offsetof(nxt_event_conn_proxy_t, client_wait_timeout),
+    .timer_handler = nxt_event_conn_proxy_read_timeout,
+    .timer_value = nxt_event_conn_proxy_timeout_value,
+    .timer_data = offsetof(nxt_event_conn_proxy_t, client_wait_timeout),
+    .timer_autoreset = 1,
 };
 
 
@@ -250,16 +245,14 @@ nxt_event_conn_proxy_peer_connect(nxt_task_t *task, void *obj, void *data)
 static const nxt_event_conn_state_t  nxt_event_conn_proxy_peer_connect_state
     nxt_aligned(64) =
 {
-    NXT_EVENT_NO_BUF_PROCESS,
-    NXT_EVENT_TIMER_AUTORESET,
+    .ready_handler = nxt_event_conn_proxy_connected,
+    .close_handler = nxt_event_conn_proxy_refused,
+    .error_handler = nxt_event_conn_proxy_error,
 
-    nxt_event_conn_proxy_connected,
-    nxt_event_conn_proxy_refused,
-    nxt_event_conn_proxy_error,
-
-    nxt_event_conn_proxy_write_timeout,
-    nxt_event_conn_proxy_timeout_value,
-    offsetof(nxt_event_conn_proxy_t, connect_timeout),
+    .timer_handler = nxt_event_conn_proxy_write_timeout,
+    .timer_value = nxt_event_conn_proxy_timeout_value,
+    .timer_data = offsetof(nxt_event_conn_proxy_t, connect_timeout),
+    .timer_autoreset = 1,
 };
 
 
@@ -303,16 +296,13 @@ nxt_event_conn_proxy_connected(nxt_task_t *task, void *obj, void *data)
 static const nxt_event_conn_state_t  nxt_event_conn_proxy_peer_wait_state
     nxt_aligned(64) =
 {
-    NXT_EVENT_NO_BUF_PROCESS,
-    NXT_EVENT_TIMER_NO_AUTORESET,
+    .ready_handler = nxt_event_conn_proxy_peer_read,
+    .close_handler = nxt_event_conn_proxy_close,
+    .error_handler = nxt_event_conn_proxy_error,
 
-    nxt_event_conn_proxy_peer_read,
-    nxt_event_conn_proxy_close,
-    nxt_event_conn_proxy_error,
-
-    nxt_event_conn_proxy_read_timeout,
-    nxt_event_conn_proxy_timeout_value,
-    offsetof(nxt_event_conn_proxy_t, peer_wait_timeout),
+    .timer_handler = nxt_event_conn_proxy_read_timeout,
+    .timer_value = nxt_event_conn_proxy_timeout_value,
+    .timer_data = offsetof(nxt_event_conn_proxy_t, peer_wait_timeout),
 };
 
 
@@ -357,16 +347,9 @@ nxt_event_conn_proxy_peer_read(nxt_task_t *task, void *obj, void *data)
 static const nxt_event_conn_state_t  nxt_event_conn_proxy_client_read_state
     nxt_aligned(64) =
 {
-    NXT_EVENT_BUF_PROCESS,
-    NXT_EVENT_TIMER_NO_AUTORESET,
-
-    nxt_event_conn_proxy_client_read_ready,
-    nxt_event_conn_proxy_close,
-    nxt_event_conn_proxy_read_error,
-
-    NULL,
-    NULL,
-    0,
+    .ready_handler = nxt_event_conn_proxy_client_read_ready,
+    .close_handler = nxt_event_conn_proxy_close,
+    .error_handler = nxt_event_conn_proxy_read_error,
 };
 
 
@@ -389,16 +372,9 @@ nxt_event_conn_proxy_client_read_ready(nxt_task_t *task, void *obj, void *data)
 static const nxt_event_conn_state_t  nxt_event_conn_proxy_peer_read_state
     nxt_aligned(64) =
 {
-    NXT_EVENT_BUF_PROCESS,
-    NXT_EVENT_TIMER_NO_AUTORESET,
-
-    nxt_event_conn_proxy_peer_read_ready,
-    nxt_event_conn_proxy_close,
-    nxt_event_conn_proxy_read_error,
-
-    NULL,
-    NULL,
-    0,
+    .ready_handler = nxt_event_conn_proxy_peer_read_ready,
+    .close_handler = nxt_event_conn_proxy_close,
+    .error_handler = nxt_event_conn_proxy_read_error,
 };
 
 
@@ -556,16 +532,13 @@ nxt_event_conn_proxy_read(nxt_task_t *task, void *obj, void *data)
 static const nxt_event_conn_state_t  nxt_event_conn_proxy_client_write_state
     nxt_aligned(64) =
 {
-    NXT_EVENT_NO_BUF_PROCESS,
-    NXT_EVENT_TIMER_AUTORESET,
+    .ready_handler = nxt_event_conn_proxy_client_write_ready,
+    .error_handler = nxt_event_conn_proxy_write_error,
 
-    nxt_event_conn_proxy_client_write_ready,
-    NULL,
-    nxt_event_conn_proxy_write_error,
-
-    nxt_event_conn_proxy_write_timeout,
-    nxt_event_conn_proxy_timeout_value,
-    offsetof(nxt_event_conn_proxy_t, client_write_timeout),
+    .timer_handler = nxt_event_conn_proxy_write_timeout,
+    .timer_value = nxt_event_conn_proxy_timeout_value,
+    .timer_data = offsetof(nxt_event_conn_proxy_t, client_write_timeout),
+    .timer_autoreset = 1,
 };
 
 
@@ -588,16 +561,13 @@ nxt_event_conn_proxy_client_write_ready(nxt_task_t *task, void *obj, void *data)
 static const nxt_event_conn_state_t  nxt_event_conn_proxy_peer_write_state
     nxt_aligned(64) =
 {
-    NXT_EVENT_NO_BUF_PROCESS,
-    NXT_EVENT_TIMER_AUTORESET,
+    .ready_handler = nxt_event_conn_proxy_peer_write_ready,
+    .error_handler = nxt_event_conn_proxy_write_error,
 
-    nxt_event_conn_proxy_peer_write_ready,
-    NULL,
-    nxt_event_conn_proxy_write_error,
-
-    nxt_event_conn_proxy_write_timeout,
-    nxt_event_conn_proxy_timeout_value,
-    offsetof(nxt_event_conn_proxy_t, peer_write_timeout),
+    .timer_handler = nxt_event_conn_proxy_write_timeout,
+    .timer_value = nxt_event_conn_proxy_timeout_value,
+    .timer_data = offsetof(nxt_event_conn_proxy_t, peer_write_timeout),
+    .timer_autoreset = 1,
 };
 
 
@@ -993,16 +963,7 @@ nxt_event_conn_proxy_write_error(nxt_task_t *task, void *obj, void *data)
 static const nxt_event_conn_state_t  nxt_event_conn_proxy_close_state
     nxt_aligned(64) =
 {
-    NXT_EVENT_NO_BUF_PROCESS,
-    NXT_EVENT_TIMER_NO_AUTORESET,
-
-    nxt_event_conn_proxy_completion,
-    NULL,
-    NULL,
-
-    NULL,
-    NULL,
-    0,
+    .ready_handler = nxt_event_conn_proxy_completion,
 };
 
 

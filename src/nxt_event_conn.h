@@ -12,18 +12,7 @@ typedef nxt_msec_t (*nxt_event_conn_timer_val_t)(nxt_event_conn_t *c,
     uintptr_t data);
 
 
-#define NXT_EVENT_NO_BUF_PROCESS      0
-#define NXT_EVENT_BUF_PROCESS         1
-#define NXT_EVENT_BUF_COMPLETION      1
-
-#define NXT_EVENT_TIMER_AUTORESET     1
-#define NXT_EVENT_TIMER_NO_AUTORESET  0
-
-
 typedef struct {
-    uint8_t                       process_buffers;
-    uint8_t                       autoreset_timer;
-
     nxt_work_handler_t            ready_handler;
     nxt_work_handler_t            close_handler;
     nxt_work_handler_t            error_handler;
@@ -31,6 +20,8 @@ typedef struct {
     nxt_work_handler_t            timer_handler;
     nxt_event_conn_timer_val_t    timer_value;
     uintptr_t                     timer_data;
+
+    uint8_t                       timer_autoreset;
 } nxt_event_conn_state_t;
 
 

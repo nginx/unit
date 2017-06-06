@@ -72,7 +72,7 @@ nxt_event_conn_io_read(nxt_task_t *task, void *obj, void *data)
 
             nxt_fd_event_block_read(engine, &c->socket);
 
-            if (state->autoreset_timer) {
+            if (state->timer_autoreset) {
                 nxt_timer_disable(engine, &c->read_timer);
             }
 

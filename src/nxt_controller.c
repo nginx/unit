@@ -240,16 +240,13 @@ nxt_controller_conn_init(nxt_task_t *task, void *obj, void *data)
 static const nxt_event_conn_state_t  nxt_controller_conn_read_state
     nxt_aligned(64) =
 {
-    NXT_EVENT_NO_BUF_PROCESS,
-    NXT_EVENT_TIMER_NO_AUTORESET,
+    .ready_handler = nxt_controller_conn_read,
+    .close_handler = nxt_controller_conn_close,
+    .error_handler = nxt_controller_conn_read_error,
 
-    nxt_controller_conn_read,
-    nxt_controller_conn_close,
-    nxt_controller_conn_read_error,
-
-    nxt_controller_conn_read_timeout,
-    nxt_controller_conn_timeout_value,
-    60 * 1000,
+    .timer_handler = nxt_controller_conn_read_timeout,
+    .timer_value = nxt_controller_conn_timeout_value,
+    .timer_data = 60 * 1000,
 };
 
 
@@ -365,16 +362,14 @@ nxt_controller_conn_read_timeout(nxt_task_t *task, void *obj, void *data)
 static const nxt_event_conn_state_t  nxt_controller_conn_body_read_state
     nxt_aligned(64) =
 {
-    NXT_EVENT_NO_BUF_PROCESS,
-    NXT_EVENT_TIMER_AUTORESET,
+    .ready_handler = nxt_controller_conn_body_read,
+    .close_handler = nxt_controller_conn_close,
+    .error_handler = nxt_controller_conn_read_error,
 
-    nxt_controller_conn_body_read,
-    nxt_controller_conn_close,
-    nxt_controller_conn_read_error,
-
-    nxt_controller_conn_read_timeout,
-    nxt_controller_conn_timeout_value,
-    60 * 1000,
+    .timer_handler = nxt_controller_conn_read_timeout,
+    .timer_value = nxt_controller_conn_timeout_value,
+    .timer_data = 60 * 1000,
+    .timer_autoreset = 1,
 };
 
 
@@ -409,16 +404,13 @@ nxt_controller_conn_body_read(nxt_task_t *task, void *obj, void *data)
 static const nxt_event_conn_state_t  nxt_controller_conn_write_state
     nxt_aligned(64) =
 {
-    NXT_EVENT_NO_BUF_PROCESS,
-    NXT_EVENT_TIMER_AUTORESET,
+    .ready_handler = nxt_controller_conn_write,
+    .error_handler = nxt_controller_conn_write_error,
 
-    nxt_controller_conn_write,
-    NULL,
-    nxt_controller_conn_write_error,
-
-    nxt_controller_conn_write_timeout,
-    nxt_controller_conn_timeout_value,
-    60 * 1000,
+    .timer_handler = nxt_controller_conn_write_timeout,
+    .timer_value = nxt_controller_conn_timeout_value,
+    .timer_data = 60 * 1000,
+    .timer_autoreset = 1,
 };
 
 
@@ -479,16 +471,7 @@ nxt_controller_conn_write_timeout(nxt_task_t *task, void *obj, void *data)
 static const nxt_event_conn_state_t  nxt_controller_conn_close_state
     nxt_aligned(64) =
 {
-    NXT_EVENT_NO_BUF_PROCESS,
-    NXT_EVENT_TIMER_NO_AUTORESET,
-
-    nxt_controller_conn_free,
-    NULL,
-    NULL,
-
-    NULL,
-    NULL,
-    0,
+    .ready_handler = nxt_controller_conn_free,
 };
 
 
