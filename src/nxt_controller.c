@@ -98,7 +98,7 @@ nxt_controller_start(nxt_task_t *task, nxt_runtime_t *rt)
 
     nxt_controller_request_fields_hash = hash;
 
-    if (nxt_event_conn_listen(task, rt->controller_socket) != NXT_OK) {
+    if (nxt_listen_event(task, rt->controller_socket) == NULL) {
         return NXT_ERROR;
     }
 

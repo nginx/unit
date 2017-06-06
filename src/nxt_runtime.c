@@ -1392,7 +1392,7 @@ nxt_runtime_listen_sockets_enable(nxt_task_t *task, nxt_runtime_t *rt)
 
     for (i = 0; i < n; i++) {
         if (ls[i].flags == NXT_NONBLOCK) {
-            if (nxt_event_conn_listen(task, &ls[i]) != NXT_OK) {
+            if (nxt_listen_event(task, &ls[i]) == NULL) {
                 return NXT_ERROR;
             }
         }
