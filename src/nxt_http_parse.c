@@ -482,7 +482,9 @@ name_end:
         return nxt_http_parse_field_value(rp, pos, end);
     }
 
-    *pos = &p[i];
+    if (nxt_slow_path(i != 0)) {
+        return NXT_ERROR;
+    }
 
     rp->field_name.length = 0;
 
