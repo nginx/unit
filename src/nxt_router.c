@@ -681,11 +681,9 @@ static void
 nxt_router_listen_socket_create(nxt_task_t *task, void *obj, void *data)
 {
     nxt_listen_event_t       *listen;
-    nxt_event_engine_t       *engine;
     nxt_listen_socket_t      *ls;
     nxt_socket_conf_joint_t  *joint;
 
-    engine = obj;
     joint = data;
 
     ls = &joint->socket_conf->listen;
@@ -864,7 +862,7 @@ nxt_router_thread_exit_handler(nxt_task_t *task, void *obj, void *data)
     nxt_event_engine_t   *engine;
     nxt_thread_handle_t  handle;
 
-    handle = obj;
+    handle = (nxt_thread_handle_t) obj;
     link = data;
 
     nxt_thread_wait(handle);
