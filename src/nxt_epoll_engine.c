@@ -1122,7 +1122,7 @@ nxt_epoll_edge_event_conn_connected(nxt_task_t *task, void *obj, void *data)
     if (!c->socket.epoll_error) {
         c->socket.write = NXT_EVENT_BLOCKED;
 
-        if (c->write_state->autoreset_timer) {
+        if (c->write_state->timer_autoreset) {
             nxt_timer_disable(task->thread->engine, &c->write_timer);
         }
 
