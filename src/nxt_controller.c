@@ -51,7 +51,7 @@ static void nxt_controller_conn_close(nxt_task_t *task, void *obj, void *data);
 static void nxt_controller_conn_free(nxt_task_t *task, void *obj, void *data);
 
 static nxt_int_t nxt_controller_request_content_length(void *ctx,
-    nxt_str_t *name, nxt_str_t *value, uintptr_t data);
+    nxt_http_field_t *field, uintptr_t data, nxt_log_t *log);
 
 static void nxt_controller_process_request(nxt_task_t *task,
     nxt_event_conn_t *c, nxt_controller_request_t *r);
@@ -61,14 +61,14 @@ static nxt_buf_t *nxt_controller_response_body(nxt_controller_response_t *resp,
     nxt_mem_pool_t *pool);
 
 
-static nxt_http_fields_t  nxt_controller_request_fields[] = {
+static nxt_http_fields_hash_entry_t  nxt_controller_request_fields[] = {
     { nxt_string("Content-Length"),
       &nxt_controller_request_content_length, 0 },
 
     { nxt_null_string, NULL, 0 }
 };
 
-static nxt_http_fields_hash_t  *nxt_controller_request_fields_hash;
+static nxt_http_fields_hash_t  *nxt_controller_fields_hash;
 
 
 static nxt_controller_conf_t  nxt_controller_conf;
@@ -90,13 +90,13 @@ nxt_controller_start(nxt_task_t *task, nxt_runtime_t *rt)
     static const nxt_str_t json
         = nxt_string("{ \"sockets\": {}, \"applications\": {} }");
 
-    hash = nxt_http_fields_hash(nxt_controller_request_fields, rt->mem_pool);
-
+    hash = nxt_http_fields_hash_create(nxt_controller_request_fields,
+                                       rt->mem_pool);
     if (nxt_slow_path(hash == NULL)) {
         return NXT_ERROR;
     }
 
-    nxt_controller_request_fields_hash = hash;
+    nxt_controller_fields_hash = hash;
 
     if (nxt_listen_event(task, rt->controller_socket) == NULL) {
         return NXT_ERROR;
@@ -215,8 +215,12 @@ nxt_controller_conn_init(nxt_task_t *task, void *obj, void *data)
         return;
     }
 
-    r->parser.hash = nxt_controller_request_fields_hash;
-    r->parser.ctx = r;
+    if (nxt_slow_path(nxt_http_parse_request_init(&r->parser, c->mem_pool)
+                      != NXT_OK))
+    {
+        nxt_controller_conn_free(task, c, NULL);
+        return;
+    }
 
     b = nxt_buf_mem_alloc(c->mem_pool, 1024, 0);
     if (nxt_slow_path(b == NULL)) {
@@ -288,6 +292,14 @@ nxt_controller_conn_read(nxt_task_t *task, void *obj, void *data)
 
         nxt_log(task, NXT_LOG_ERR, "parsing error");
 
+        nxt_controller_conn_close(task, c, r);
+        return;
+    }
+
+    rc = nxt_http_fields_process(r->parser.fields, nxt_controller_fields_hash,
+                                 r, task->log);
+
+    if (nxt_slow_path(rc != NXT_OK)) {
         nxt_controller_conn_close(task, c, r);
         return;
     }
@@ -508,24 +520,24 @@ nxt_controller_conn_free(nxt_task_t *task, void *obj, void *data)
 
 
 static nxt_int_t
-nxt_controller_request_content_length(void *ctx, nxt_str_t *name,
-    nxt_str_t *value, uintptr_t data)
+nxt_controller_request_content_length(void *ctx, nxt_http_field_t *field,
+    uintptr_t data, nxt_log_t *log)
 {
     off_t                     length;
     nxt_controller_request_t  *r;
 
     r = ctx;
 
-    length = nxt_off_t_parse(value->start, value->length);
+    length = nxt_off_t_parse(field->value.start, field->value.length);
 
     if (nxt_fast_path(length > 0)) {
-        /* TODO length too big */
+        nxt_log_error(NXT_LOG_ERR, log, "Content-Length is too big");
 
         r->length = length;
         return NXT_OK;
     }
 
-    /* TODO logging (task?) */
+    nxt_log_error(NXT_LOG_ERR, log, "Content-Length is invalid");
 
     return NXT_ERROR;
 }
