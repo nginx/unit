@@ -79,7 +79,7 @@ const nxt_event_interface_t  nxt_pollset_engine = {
     NULL,
     nxt_pollset_poll,
 
-    &nxt_unix_event_conn_io,
+    &nxt_unix_conn_io,
 
     NXT_NO_FILE_EVENTS,
     NXT_NO_SIGNAL_EVENTS,

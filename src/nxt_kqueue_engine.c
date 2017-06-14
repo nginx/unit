@@ -78,9 +78,9 @@ static void nxt_kqueue_oneshot_write(nxt_event_engine_t *engine,
 static void nxt_kqueue_enable_accept(nxt_event_engine_t *engine,
     nxt_fd_event_t *ev);
 static void nxt_kqueue_enable_file(nxt_event_engine_t *engine,
-    nxt_event_file_t *ev);
+    nxt_file_event_t *ev);
 static void nxt_kqueue_close_file(nxt_event_engine_t *engine,
-    nxt_event_file_t *ev);
+    nxt_file_event_t *ev);
 static void nxt_kqueue_fd_set(nxt_event_engine_t *engine, nxt_fd_event_t *ev,
     nxt_int_t filter, nxt_uint_t flags);
 static struct kevent *nxt_kqueue_get_kevent(nxt_event_engine_t *engine);
@@ -98,26 +98,25 @@ static void nxt_kqueue_signal(nxt_event_engine_t *engine, nxt_uint_t signo);
 #endif
 static void nxt_kqueue_poll(nxt_event_engine_t *engine, nxt_msec_t timeout);
 
-static void nxt_kqueue_event_conn_io_connect(nxt_task_t *task, void *obj,
+static void nxt_kqueue_conn_io_connect(nxt_task_t *task, void *obj,
     void *data);
-static void nxt_kqueue_event_conn_connected(nxt_task_t *task, void *obj,
+static void nxt_kqueue_conn_connected(nxt_task_t *task, void *obj,
     void *data);
 static void nxt_kqueue_listen_handler(nxt_task_t *task, void *obj, void *data);
-static void nxt_kqueue_event_conn_io_accept(nxt_task_t *task, void *obj,
+static void nxt_kqueue_conn_io_accept(nxt_task_t *task, void *obj,
     void *data);
-static void nxt_kqueue_event_conn_io_read(nxt_task_t *task, void *obj,
+static void nxt_kqueue_conn_io_read(nxt_task_t *task, void *obj,
     void *data);
-static ssize_t nxt_kqueue_event_conn_io_recvbuf(nxt_event_conn_t *c,
-    nxt_buf_t *b);
+static ssize_t nxt_kqueue_conn_io_recvbuf(nxt_conn_t *c, nxt_buf_t *b);
 
 
-static nxt_event_conn_io_t  nxt_kqueue_event_conn_io = {
-    nxt_kqueue_event_conn_io_connect,
-    nxt_kqueue_event_conn_io_accept,
+static nxt_conn_io_t  nxt_kqueue_conn_io = {
+    nxt_kqueue_conn_io_connect,
+    nxt_kqueue_conn_io_accept,
 
-    nxt_kqueue_event_conn_io_read,
-    nxt_kqueue_event_conn_io_recvbuf,
-    nxt_event_conn_io_recv,
+    nxt_kqueue_conn_io_read,
+    nxt_kqueue_conn_io_recvbuf,
+    nxt_conn_io_recv,
 
     nxt_conn_io_write,
     nxt_event_conn_io_write_chunk,
@@ -133,7 +132,7 @@ static nxt_event_conn_io_t  nxt_kqueue_event_conn_io = {
     nxt_event_conn_io_writev,
     nxt_event_conn_io_send,
 
-    nxt_event_conn_io_shutdown,
+    nxt_conn_io_shutdown,
 };
 
 
@@ -165,7 +164,7 @@ const nxt_event_interface_t  nxt_kqueue_engine = {
 #endif
     nxt_kqueue_poll,
 
-    &nxt_kqueue_event_conn_io,
+    &nxt_kqueue_conn_io,
 
     NXT_FILE_EVENTS,
     NXT_SIGNAL_EVENTS,
@@ -414,7 +413,7 @@ nxt_kqueue_enable_accept(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 
 
 static void
-nxt_kqueue_enable_file(nxt_event_engine_t *engine, nxt_event_file_t *ev)
+nxt_kqueue_enable_file(nxt_event_engine_t *engine, nxt_file_event_t *ev)
 {
     struct kevent  *kev;
 
@@ -437,7 +436,7 @@ nxt_kqueue_enable_file(nxt_event_engine_t *engine, nxt_event_file_t *ev)
 
 
 static void
-nxt_kqueue_close_file(nxt_event_engine_t *engine, nxt_event_file_t *ev)
+nxt_kqueue_close_file(nxt_event_engine_t *engine, nxt_file_event_t *ev)
 {
     /* TODO: pending event. */
 }
@@ -497,7 +496,7 @@ nxt_kqueue_error(nxt_event_engine_t *engine)
 {
     struct kevent     *kev, *end;
     nxt_fd_event_t    *ev;
-    nxt_event_file_t  *fev;
+    nxt_file_event_t  *fev;
     nxt_work_queue_t  *wq;
 
     wq = &engine->fast_work_queue;
@@ -551,7 +550,7 @@ nxt_kqueue_fd_error_handler(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_kqueue_file_error_handler(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_event_file_t  *ev;
+    nxt_file_event_t  *ev;
 
     ev = obj;
 
@@ -678,7 +677,7 @@ nxt_kqueue_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
     nxt_fd_event_t      *ev;
     nxt_sig_event_t     *sigev;
     struct timespec     ts, *tp;
-    nxt_event_file_t    *fev;
+    nxt_file_event_t    *fev;
     nxt_work_queue_t    *wq;
     nxt_work_handler_t  handler;
 
@@ -850,9 +849,9 @@ nxt_kqueue_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
  */
 
 static void
-nxt_kqueue_event_conn_io_connect(nxt_task_t *task, void *obj, void *data)
+nxt_kqueue_conn_io_connect(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_event_conn_t              *c;
+    nxt_conn_t                    *c;
     nxt_event_engine_t            *engine;
     nxt_work_handler_t            handler;
     const nxt_event_conn_state_t  *state;
@@ -869,11 +868,11 @@ nxt_kqueue_event_conn_io_connect(nxt_task_t *task, void *obj, void *data)
         break;
 
     case NXT_AGAIN:
-        c->socket.write_handler = nxt_kqueue_event_conn_connected;
-        c->socket.error_handler = nxt_event_conn_connect_error;
+        c->socket.write_handler = nxt_kqueue_conn_connected;
+        c->socket.error_handler = nxt_conn_connect_error;
 
         engine = task->thread->engine;
-        nxt_event_conn_timer(engine, c, state, &c->write_timer);
+        nxt_conn_timer(engine, c, state, &c->write_timer);
 
         nxt_kqueue_enable_write(engine, &c->socket);
         return;
@@ -892,13 +891,13 @@ nxt_kqueue_event_conn_io_connect(nxt_task_t *task, void *obj, void *data)
 
 
 static void
-nxt_kqueue_event_conn_connected(nxt_task_t *task, void *obj, void *data)
+nxt_kqueue_conn_connected(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_event_conn_t  *c;
+    nxt_conn_t  *c;
 
     c = obj;
 
-    nxt_debug(task, "kqueue event conn connected fd:%d", c->socket.fd);
+    nxt_debug(task, "kqueue conn connected fd:%d", c->socket.fd);
 
     c->socket.write = NXT_EVENT_BLOCKED;
 
@@ -914,36 +913,36 @@ nxt_kqueue_event_conn_connected(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_kqueue_listen_handler(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_event_conn_listen_t  *cls;
+    nxt_listen_event_t  *lev;
 
-    cls = obj;
+    lev = obj;
 
     nxt_debug(task, "kevent fd:%d avail:%D",
-              cls->socket.fd, cls->socket.kq_available);
+              lev->socket.fd, lev->socket.kq_available);
 
-    cls->ready = nxt_min(cls->batch, (uint32_t) cls->socket.kq_available);
+    lev->ready = nxt_min(lev->batch, (uint32_t) lev->socket.kq_available);
 
-    nxt_kqueue_event_conn_io_accept(task, cls, data);
+    nxt_kqueue_conn_io_accept(task, lev, data);
 }
 
 
 static void
-nxt_kqueue_event_conn_io_accept(nxt_task_t *task, void *obj, void *data)
+nxt_kqueue_conn_io_accept(nxt_task_t *task, void *obj, void *data)
 {
-    socklen_t                len;
-    nxt_socket_t             s;
-    struct sockaddr          *sa;
-    nxt_event_conn_t         *c;
-    nxt_event_conn_listen_t  *cls;
+    socklen_t           len;
+    nxt_conn_t          *c;
+    nxt_socket_t        s;
+    struct sockaddr     *sa;
+    nxt_listen_event_t  *lev;
 
-    cls = obj;
-    c = cls->next;
+    lev = obj;
+    c = lev->next;
 
-    cls->ready--;
-    cls->socket.read_ready = (cls->ready != 0);
+    lev->ready--;
+    lev->socket.read_ready = (lev->ready != 0);
 
-    cls->socket.kq_available--;
-    cls->socket.read_ready = (cls->socket.kq_available != 0);
+    lev->socket.kq_available--;
+    lev->socket.read_ready = (lev->socket.kq_available != 0);
 
     len = c->remote->socklen;
 
@@ -955,34 +954,34 @@ nxt_kqueue_event_conn_io_accept(nxt_task_t *task, void *obj, void *data)
         len = 0;
     }
 
-    s = accept(cls->socket.fd, sa, &len);
+    s = accept(lev->socket.fd, sa, &len);
 
     if (s != -1) {
         c->socket.fd = s;
 
-        nxt_debug(task, "accept(%d): %d", cls->socket.fd, s);
+        nxt_debug(task, "accept(%d): %d", lev->socket.fd, s);
 
-        nxt_event_conn_accept(task, cls, c);
+        nxt_conn_accept(task, lev, c);
         return;
     }
 
-    nxt_event_conn_accept_error(task, cls, "accept", nxt_errno);
+    nxt_conn_accept_error(task, lev, "accept", nxt_errno);
 }
 
 
 /*
- * nxt_kqueue_event_conn_io_read() is just a wrapper to eliminate the
+ * nxt_kqueue_conn_io_read() is just a wrapper to eliminate the
  * readv() or recv() syscall if a remote side just closed connection.
  */
 
 static void
-nxt_kqueue_event_conn_io_read(nxt_task_t *task, void *obj, void *data)
+nxt_kqueue_conn_io_read(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_event_conn_t  *c;
+    nxt_conn_t  *c;
 
     c = obj;
 
-    nxt_debug(task, "kqueue event conn read fd:%d", c->socket.fd);
+    nxt_debug(task, "kqueue conn read fd:%d", c->socket.fd);
 
     if (c->socket.kq_available == 0 && c->socket.kq_eof) {
         nxt_debug(task, "kevent fd:%d eof", c->socket.fd);
@@ -993,18 +992,18 @@ nxt_kqueue_event_conn_io_read(nxt_task_t *task, void *obj, void *data)
         return;
     }
 
-    nxt_event_conn_io_read(task, c, data);
+    nxt_conn_io_read(task, c, data);
 }
 
 
 /*
- * nxt_kqueue_event_conn_io_recvbuf() is just wrapper around standard
- * nxt_event_conn_io_recvbuf() to eliminate the readv() or recv() syscalls
+ * nxt_kqueue_conn_io_recvbuf() is just wrapper around standard
+ * nxt_conn_io_recvbuf() to eliminate the readv() or recv() syscalls
  * if there is no pending data or a remote side closed connection.
  */
 
 static ssize_t
-nxt_kqueue_event_conn_io_recvbuf(nxt_event_conn_t *c, nxt_buf_t *b)
+nxt_kqueue_conn_io_recvbuf(nxt_conn_t *c, nxt_buf_t *b)
 {
     ssize_t  n;
 
@@ -1013,7 +1012,7 @@ nxt_kqueue_event_conn_io_recvbuf(nxt_event_conn_t *c, nxt_buf_t *b)
         return 0;
     }
 
-    n = nxt_event_conn_io_recvbuf(c, b);
+    n = nxt_conn_io_recvbuf(c, b);
 
     if (n > 0) {
         c->socket.kq_available -= n;

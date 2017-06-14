@@ -8,10 +8,10 @@
 
 
 void
-nxt_conn_wait(nxt_event_conn_t *c)
+nxt_conn_wait(nxt_conn_t *c)
 {
-    nxt_event_engine_t            *engine;
-    const nxt_event_conn_state_t  *state;
+    nxt_event_engine_t      *engine;
+    const nxt_conn_state_t  *state;
 
     nxt_debug(c->socket.task, "conn wait fd:%d rdy:%d",
               c->socket.fd, c->socket.read_ready);
@@ -28,26 +28,26 @@ nxt_conn_wait(nxt_event_conn_t *c)
     c->socket.read_handler = state->ready_handler;
     c->socket.error_handler = state->error_handler;
 
-    nxt_event_conn_timer(engine, c, state, &c->read_timer);
+    nxt_conn_timer(engine, c, state, &c->read_timer);
 
     nxt_fd_event_enable_read(engine, &c->socket);
 }
 
 
 void
-nxt_event_conn_io_read(nxt_task_t *task, void *obj, void *data)
+nxt_conn_io_read(nxt_task_t *task, void *obj, void *data)
 {
-    ssize_t                       n;
-    nxt_buf_t                     *b;
-    nxt_work_queue_t              *wq;
-    nxt_event_conn_t              *c;
-    nxt_event_engine_t            *engine;
-    nxt_work_handler_t            handler;
-    const nxt_event_conn_state_t  *state;
+    ssize_t                 n;
+    nxt_buf_t               *b;
+    nxt_conn_t              *c;
+    nxt_work_queue_t        *wq;
+    nxt_event_engine_t      *engine;
+    nxt_work_handler_t      handler;
+    const nxt_conn_state_t  *state;
 
     c = obj;
 
-    nxt_debug(task, "event conn read fd:%d rdy:%d cl:%d",
+    nxt_debug(task, "conn read fd:%d rdy:%d cl:%d",
               c->socket.fd, c->socket.read_ready, c->socket.closed);
 
     engine = task->thread->engine;
@@ -99,9 +99,8 @@ nxt_event_conn_io_read(nxt_task_t *task, void *obj, void *data)
     }
 
     /*
-     * Here c->io->read() is assigned instead of direct
-     * nxt_event_conn_io_read() because the function can
-     * be called by nxt_kqueue_event_conn_io_read().
+     * Here c->io->read() is assigned instead of direct nxt_conn_io_read()
+     * because the function can be called by nxt_kqueue_conn_io_read().
      */
     c->socket.read_handler = c->io->read;
     c->socket.error_handler = state->error_handler;
@@ -110,7 +109,7 @@ nxt_event_conn_io_read(nxt_task_t *task, void *obj, void *data)
         || nxt_fd_event_is_disabled(c->socket.read))
     {
         /* Timer may be set or reset. */
-        nxt_event_conn_timer(engine, c, state, &c->read_timer);
+        nxt_conn_timer(engine, c, state, &c->read_timer);
 
         if (nxt_fd_event_is_disabled(c->socket.read)) {
             nxt_fd_event_enable_read(engine, &c->socket);
@@ -122,7 +121,7 @@ nxt_event_conn_io_read(nxt_task_t *task, void *obj, void *data)
 
 
 ssize_t
-nxt_event_conn_io_recvbuf(nxt_event_conn_t *c, nxt_buf_t *b)
+nxt_conn_io_recvbuf(nxt_conn_t *c, nxt_buf_t *b)
 {
     ssize_t                 n;
     nxt_err_t               err;
@@ -139,7 +138,7 @@ nxt_event_conn_io_recvbuf(nxt_event_conn_t *c, nxt_buf_t *b)
 
     if (niov == 1) {
         /* Disposal of surplus kernel iovec copy-in operation. */
-        return nxt_event_conn_io_recv(c, iov->iov_base, iov->iov_len, 0);
+        return nxt_conn_io_recv(c, iov->iov_base, iov->iov_len, 0);
     }
 
     for ( ;; ) {
@@ -188,8 +187,7 @@ nxt_event_conn_io_recvbuf(nxt_event_conn_t *c, nxt_buf_t *b)
 
 
 ssize_t
-nxt_event_conn_io_recv(nxt_event_conn_t *c, void *buf, size_t size,
-    nxt_uint_t flags)
+nxt_conn_io_recv(nxt_conn_t *c, void *buf, size_t size, nxt_uint_t flags)
 {
     ssize_t    n;
     nxt_err_t  err;

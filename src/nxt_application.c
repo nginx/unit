@@ -17,19 +17,19 @@ static nxt_int_t nxt_app_listen_socket(nxt_task_t *task, nxt_runtime_t *rt);
 static void nxt_app_thread(void *ctx);
 static nxt_app_request_t *nxt_app_request_create(nxt_socket_t s,
     nxt_log_t *log);
-static void nxt_app_conn_update(nxt_thread_t *thr, nxt_event_conn_t *c,
+static void nxt_app_conn_update(nxt_thread_t *thr, nxt_conn_t *c,
     nxt_log_t *log);
 static nxt_int_t nxt_app_write_finish(nxt_app_request_t *r);
-static void nxt_app_buf_send(nxt_event_conn_t *c, nxt_buf_t *out);
+static void nxt_app_buf_send(nxt_conn_t *c, nxt_buf_t *out);
 static void nxt_app_delivery_handler(nxt_task_t *task, void *obj, void *data);
 static void nxt_app_delivery_ready(nxt_task_t *task, void *obj, void *data);
 static void nxt_app_delivery_completion(nxt_task_t *task, void *obj,
     void *data);
 static void nxt_app_delivery_error(nxt_task_t *task, void *obj, void *data);
 static void nxt_app_delivery_timeout(nxt_task_t *task, void *obj, void *data);
-static nxt_msec_t nxt_app_delivery_timer_value(nxt_event_conn_t *c,
+static nxt_msec_t nxt_app_delivery_timer_value(nxt_conn_t *c,
     uintptr_t data);
-static void nxt_app_delivery_done(nxt_task_t *task, nxt_event_conn_t *c);
+static void nxt_app_delivery_done(nxt_task_t *task, nxt_conn_t *c);
 static void nxt_app_close_request(nxt_task_t *task, void *obj, void *data);
 
 
@@ -256,8 +256,8 @@ nxt_app_thread(void *ctx)
 static nxt_app_request_t *
 nxt_app_request_create(nxt_socket_t s, nxt_log_t *log)
 {
+    nxt_conn_t         *c;
     nxt_mem_pool_t     *mp;
-    nxt_event_conn_t   *c;
     nxt_app_request_t  *r;
 
     mp = nxt_mem_pool_create(1024);
@@ -270,7 +270,7 @@ nxt_app_request_create(nxt_socket_t s, nxt_log_t *log)
         return NULL;
     }
 
-    c = nxt_mem_zalloc(mp, sizeof(nxt_event_conn_t));
+    c = nxt_mem_zalloc(mp, sizeof(nxt_conn_t));
     if (nxt_slow_path(c == NULL)) {
         return NULL;
     }
@@ -534,7 +534,7 @@ nxt_app_http_process_headers(nxt_app_request_t *r)
 
 
 static void
-nxt_app_conn_update(nxt_thread_t *thr, nxt_event_conn_t *c, nxt_log_t *log)
+nxt_app_conn_update(nxt_thread_t *thr, nxt_conn_t *c, nxt_log_t *log)
 {
     c->socket.write_ready = 1;
 
@@ -562,8 +562,8 @@ nxt_app_conn_update(nxt_thread_t *thr, nxt_event_conn_t *c, nxt_log_t *log)
     c->read_work_queue = &thr->engine->read_work_queue;
     c->write_work_queue = &thr->engine->write_work_queue;
 
-    nxt_event_conn_timer_init(&c->read_timer, c, c->socket.read_work_queue);
-    nxt_event_conn_timer_init(&c->write_timer, c, c->socket.write_work_queue);
+    nxt_conn_timer_init(&c->read_timer, c, c->socket.read_work_queue);
+    nxt_conn_timer_init(&c->write_timer, c, c->socket.write_work_queue);
 
     nxt_log_debug(&c->log, "event connections: %uD", thr->engine->connections);
 }
@@ -770,7 +770,7 @@ nxt_app_write_finish(nxt_app_request_t *r)
 
 
 static void
-nxt_app_buf_send(nxt_event_conn_t *c, nxt_buf_t *out)
+nxt_app_buf_send(nxt_conn_t *c, nxt_buf_t *out)
 {
     nxt_app_buf_t  *ab;
 
@@ -785,9 +785,9 @@ nxt_app_buf_send(nxt_event_conn_t *c, nxt_buf_t *out)
 static void
 nxt_app_delivery_handler(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_buf_t         *b;
-    nxt_mem_pool_t    *mp;
-    nxt_event_conn_t  *c;
+    nxt_buf_t       *b;
+    nxt_conn_t      *c;
+    nxt_mem_pool_t  *mp;
 
     c = obj;
     b = data;
@@ -820,7 +820,7 @@ nxt_app_delivery_handler(nxt_task_t *task, void *obj, void *data)
     c->write = b;
     c->write_state = &nxt_app_delivery_write_state;
 
-    nxt_event_conn_write(task->thread->engine, c);
+    nxt_conn_write(task->thread->engine, c);
 }
 
 
@@ -840,8 +840,8 @@ static const nxt_event_conn_state_t  nxt_app_delivery_write_state
 static void
 nxt_app_delivery_ready(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_buf_t         *b, *next;
-    nxt_event_conn_t  *c;
+    nxt_buf_t   *b, *next;
+    nxt_conn_t  *c;
 
     c = obj;
 
@@ -875,8 +875,8 @@ static const nxt_event_conn_state_t  nxt_app_delivery_close_state
 static void
 nxt_app_delivery_completion(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_buf_t          *b, *bn, *free;
-    nxt_event_conn_t   *c;
+    nxt_buf_t    *b, *bn, *free;
+    nxt_conn_t   *c;
     nxt_app_request_t  *r;
 
     nxt_debug(task, "app delivery completion");
@@ -902,7 +902,7 @@ nxt_app_delivery_completion(nxt_task_t *task, void *obj, void *data)
             c = r->event_conn;
             c->write_state = &nxt_app_delivery_close_state;
 
-            nxt_event_conn_close(task->thread->engine, c);
+            nxt_conn_close(task->thread->engine, c);
         }
     }
 
@@ -929,7 +929,7 @@ nxt_app_delivery_completion(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_app_delivery_error(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_event_conn_t  *c;
+    nxt_conn_t  *c;
 
     c = obj;
 
@@ -942,7 +942,7 @@ nxt_app_delivery_error(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_app_delivery_timeout(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_event_conn_t  *c;
+    nxt_conn_t  *c;
 
     c = obj;
 
@@ -953,7 +953,7 @@ nxt_app_delivery_timeout(nxt_task_t *task, void *obj, void *data)
 
 
 static nxt_msec_t
-nxt_app_delivery_timer_value(nxt_event_conn_t *c, uintptr_t data)
+nxt_app_delivery_timer_value(nxt_conn_t *c, uintptr_t data)
 {
     /* 30000 ms */
     return 30000;
@@ -961,7 +961,7 @@ nxt_app_delivery_timer_value(nxt_event_conn_t *c, uintptr_t data)
 
 
 static void
-nxt_app_delivery_done(nxt_task_t *task, nxt_event_conn_t *c)
+nxt_app_delivery_done(nxt_task_t *task, nxt_conn_t *c)
 {
     if (c->write == NULL) {
         return;
@@ -981,7 +981,7 @@ nxt_app_delivery_done(nxt_task_t *task, nxt_event_conn_t *c)
 static void
 nxt_app_close_request(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_event_conn_t   *c;
+    nxt_conn_t         *c;
     nxt_app_request_t  *r;
 
     c = obj;

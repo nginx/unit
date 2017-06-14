@@ -7,13 +7,13 @@
 #include <nxt_main.h>
 
 
-nxt_event_conn_io_t  nxt_unix_event_conn_io = {
-    nxt_event_conn_io_connect,
-    nxt_event_conn_io_accept,
+nxt_conn_io_t  nxt_unix_conn_io = {
+    nxt_conn_io_connect,
+    nxt_conn_io_accept,
 
-    nxt_event_conn_io_read,
-    nxt_event_conn_io_recvbuf,
-    nxt_event_conn_io_recv,
+    nxt_conn_io_read,
+    nxt_conn_io_recvbuf,
+    nxt_conn_io_recv,
 
     nxt_conn_io_write,
     nxt_event_conn_io_write_chunk,
@@ -37,17 +37,17 @@ nxt_event_conn_io_t  nxt_unix_event_conn_io = {
     nxt_event_conn_io_writev,
     nxt_event_conn_io_send,
 
-    nxt_event_conn_io_shutdown,
+    nxt_conn_io_shutdown,
 };
 
 
-nxt_event_conn_t *
-nxt_event_conn_create(nxt_mem_pool_t *mp, nxt_task_t *task)
+nxt_conn_t *
+nxt_conn_create(nxt_mem_pool_t *mp, nxt_task_t *task)
 {
-    nxt_thread_t      *thr;
-    nxt_event_conn_t  *c;
+    nxt_conn_t    *c;
+    nxt_thread_t  *thr;
 
-    c = nxt_mem_zalloc(mp, sizeof(nxt_event_conn_t));
+    c = nxt_mem_zalloc(mp, sizeof(nxt_conn_t));
     if (nxt_slow_path(c == NULL)) {
         return NULL;
     }
@@ -82,22 +82,22 @@ nxt_event_conn_create(nxt_mem_pool_t *mp, nxt_task_t *task)
     c->socket.read_work_queue = &thr->engine->fast_work_queue;
     c->socket.write_work_queue = &thr->engine->fast_work_queue;
 
-    nxt_event_conn_timer_init(&c->read_timer, c, c->socket.read_work_queue);
-    nxt_event_conn_timer_init(&c->write_timer, c, c->socket.write_work_queue);
+    nxt_conn_timer_init(&c->read_timer, c, c->socket.read_work_queue);
+    nxt_conn_timer_init(&c->write_timer, c, c->socket.write_work_queue);
 
-    nxt_log_debug(&c->log, "event connections: %uD", thr->engine->connections);
+    nxt_log_debug(&c->log, "connections: %uD", thr->engine->connections);
 
     return c;
 }
 
 
 void
-nxt_event_conn_io_shutdown(nxt_task_t *task, void *obj, void *data)
+nxt_conn_io_shutdown(nxt_task_t *task, void *obj, void *data)
 {
-    int               ret;
-    socklen_t         len;
-    struct linger     linger;
-    nxt_event_conn_t  *c;
+    int            ret;
+    socklen_t      len;
+    nxt_conn_t     *c;
+    struct linger  linger;
 
     c = obj;
 
@@ -126,24 +126,24 @@ nxt_event_conn_io_shutdown(nxt_task_t *task, void *obj, void *data)
 
 
 void
-nxt_event_conn_timer(nxt_event_engine_t *engine, nxt_event_conn_t *c,
-    const nxt_event_conn_state_t *state, nxt_timer_t *tev)
+nxt_conn_timer(nxt_event_engine_t *engine, nxt_conn_t *c,
+    const nxt_conn_state_t *state, nxt_timer_t *timer)
 {
-    nxt_msec_t  timer;
+    nxt_msec_t  value;
 
     if (state->timer_value != NULL) {
-        timer = state->timer_value(c, state->timer_data);
+        value = state->timer_value(c, state->timer_data);
 
-        if (timer != 0) {
-            tev->handler = state->timer_handler;
-            nxt_timer_add(engine, tev, timer);
+        if (value != 0) {
+            timer->handler = state->timer_handler;
+            nxt_timer_add(engine, timer, value);
         }
     }
 }
 
 
 void
-nxt_event_conn_work_queue_set(nxt_event_conn_t *c, nxt_work_queue_t *wq)
+nxt_conn_work_queue_set(nxt_conn_t *c, nxt_work_queue_t *wq)
 {
     c->read_work_queue = wq;
     c->write_work_queue = wq;

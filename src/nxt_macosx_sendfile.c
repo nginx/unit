@@ -26,8 +26,7 @@ static int nxt_sys_sendfile(int fd, int s, off_t offset, off_t *len,
 
 
 ssize_t
-nxt_macosx_event_conn_io_sendfile(nxt_event_conn_t *c, nxt_buf_t *b,
-    size_t limit)
+nxt_macosx_event_conn_io_sendfile(nxt_conn_t *c, nxt_buf_t *b, size_t limit)
 {
     size_t                  hd_size, file_size;
     ssize_t                 n;

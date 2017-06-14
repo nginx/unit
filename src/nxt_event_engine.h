@@ -123,13 +123,13 @@ typedef struct {
      * events.
      */
     void                          (*enable_file)(nxt_event_engine_t *engine,
-                                      nxt_event_file_t *fev);
+                                      nxt_file_event_t *ev);
 
     /*
      * Delete a file from an event set before closing the file descriptor.
      */
     void                          (*close_file)(nxt_event_engine_t *engine,
-                                      nxt_event_file_t *fev);
+                                      nxt_file_event_t *ev);
 
     /*
      * Enable post event notifications and set a post handler to handle
@@ -157,7 +157,7 @@ typedef struct {
                                       nxt_msec_t timeout);
 
     /* I/O operations suitable to underlying event facility. */
-    nxt_event_conn_io_t           *io;
+    nxt_conn_io_t                 *io;
 
     /* True if an event facility supports file change event notifications. */
     uint8_t                       file_support;   /* 1 bit */

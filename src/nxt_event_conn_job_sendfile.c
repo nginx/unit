@@ -25,11 +25,11 @@ static void nxt_event_conn_job_sendfile_handler(nxt_task_t *task, void *obj,
 static void nxt_event_conn_job_sendfile_return(nxt_task_t *task, void *obj,
     void *data);
 static nxt_buf_t *nxt_event_conn_job_sendfile_completion(nxt_task_t *task,
-    nxt_event_conn_t *c, nxt_buf_t *b);
+    nxt_conn_t *c, nxt_buf_t *b);
 
 
 void
-nxt_event_conn_job_sendfile(nxt_task_t *task, nxt_event_conn_t *c)
+nxt_event_conn_job_sendfile(nxt_task_t *task, nxt_conn_t *c)
 {
     nxt_fd_event_disable(task->thread->engine, &c->socket);
 
@@ -41,8 +41,8 @@ nxt_event_conn_job_sendfile(nxt_task_t *task, nxt_event_conn_t *c)
 static void
 nxt_event_conn_job_sendfile_start(nxt_task_t *task, void *obj, void *data)
 {
+    nxt_conn_t              *c;
     nxt_iobuf_t             b;
-    nxt_event_conn_t        *c;
     nxt_job_sendfile_t      *jbs;
     nxt_sendbuf_coalesce_t  sb;
 
@@ -99,7 +99,7 @@ nxt_event_conn_job_sendfile_handler(nxt_task_t *task, void *obj, void *data)
     ssize_t             ret;
     nxt_buf_t           *b;
     nxt_bool_t          first;
-    nxt_event_conn_t    *c;
+    nxt_conn_t          *c;
     nxt_job_sendfile_t  *jbs;
 
     jbs = obj;
@@ -166,7 +166,7 @@ nxt_event_conn_job_sendfile_return(nxt_task_t *task, void *obj, void *data)
     size_t              sent;
     nxt_buf_t           *b;
     nxt_bool_t          done;
-    nxt_event_conn_t    *c;
+    nxt_conn_t          *c;
     nxt_job_sendfile_t  *jbs;
 
     jbs = obj;
@@ -212,8 +212,8 @@ nxt_event_conn_job_sendfile_return(nxt_task_t *task, void *obj, void *data)
     if (c->socket.error == 0
         && !nxt_event_conn_write_delayed(task->thread->engine, c, sent))
     {
-        nxt_event_conn_timer(task->thread->engine, c, c->write_state,
-                             &c->write_timer);
+        nxt_conn_timer(task->thread->engine, c, c->write_state,
+                       &c->write_timer);
 
         nxt_fd_event_oneshot_write(task->thread->engine, &c->socket);
     }
@@ -235,7 +235,7 @@ nxt_event_conn_job_sendfile_return(nxt_task_t *task, void *obj, void *data)
 
 
 static nxt_buf_t *
-nxt_event_conn_job_sendfile_completion(nxt_task_t *task, nxt_event_conn_t *c,
+nxt_event_conn_job_sendfile_completion(nxt_task_t *task, nxt_conn_t *c,
     nxt_buf_t *b)
 {
     while (b != NULL) {

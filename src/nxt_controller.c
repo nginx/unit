@@ -34,7 +34,7 @@ typedef struct {
 
 static void nxt_controller_conn_init(nxt_task_t *task, void *obj, void *data);
 static void nxt_controller_conn_read(nxt_task_t *task, void *obj, void *data);
-static nxt_msec_t nxt_controller_conn_timeout_value(nxt_event_conn_t *c,
+static nxt_msec_t nxt_controller_conn_timeout_value(nxt_conn_t *c,
     uintptr_t data);
 static void nxt_controller_conn_read_error(nxt_task_t *task, void *obj,
     void *data);
@@ -54,8 +54,8 @@ static nxt_int_t nxt_controller_request_content_length(void *ctx,
     nxt_http_field_t *field, uintptr_t data, nxt_log_t *log);
 
 static void nxt_controller_process_request(nxt_task_t *task,
-    nxt_event_conn_t *c, nxt_controller_request_t *r);
-static nxt_int_t nxt_controller_response(nxt_task_t *task, nxt_event_conn_t *c,
+    nxt_conn_t *c, nxt_controller_request_t *r);
+static nxt_int_t nxt_controller_response(nxt_task_t *task, nxt_conn_t *c,
     nxt_controller_response_t *resp);
 static nxt_buf_t *nxt_controller_response_body(nxt_controller_response_t *resp,
     nxt_mem_pool_t *pool);
@@ -184,7 +184,7 @@ nxt_runtime_controller_socket(nxt_task_t *task, nxt_runtime_t *rt)
      */
     ls->mem_pool_size = nxt_listen_socket_pool_min_size(ls)
                         + sizeof(nxt_event_conn_proxy_t)
-                        + sizeof(nxt_event_conn_t)
+                        + sizeof(nxt_conn_t)
                         + 4 * sizeof(nxt_buf_t);
 
     if (nxt_listen_socket_create(task, ls, 0) != NXT_OK) {
@@ -201,7 +201,7 @@ static void
 nxt_controller_conn_init(nxt_task_t *task, void *obj, void *data)
 {
     nxt_buf_t                 *b;
-    nxt_event_conn_t          *c;
+    nxt_conn_t                *c;
     nxt_event_engine_t        *engine;
     nxt_controller_request_t  *r;
 
@@ -237,7 +237,7 @@ nxt_controller_conn_init(nxt_task_t *task, void *obj, void *data)
     c->read_work_queue = &engine->read_work_queue;
     c->write_work_queue = &engine->write_work_queue;
 
-    nxt_event_conn_read(engine, c);
+    nxt_conn_read(engine, c);
 }
 
 
@@ -260,7 +260,7 @@ nxt_controller_conn_read(nxt_task_t *task, void *obj, void *data)
     size_t                    preread;
     nxt_buf_t                 *b;
     nxt_int_t                 rc;
-    nxt_event_conn_t          *c;
+    nxt_conn_t                *c;
     nxt_controller_request_t  *r;
 
     c = obj;
@@ -284,7 +284,7 @@ nxt_controller_conn_read(nxt_task_t *task, void *obj, void *data)
                 return;
             }
 
-            nxt_event_conn_read(task->thread->engine, c);
+            nxt_conn_read(task->thread->engine, c);
             return;
         }
 
@@ -329,12 +329,12 @@ nxt_controller_conn_read(nxt_task_t *task, void *obj, void *data)
 
     c->read_state = &nxt_controller_conn_body_read_state;
 
-    nxt_event_conn_read(task->thread->engine, c);
+    nxt_conn_read(task->thread->engine, c);
 }
 
 
 static nxt_msec_t
-nxt_controller_conn_timeout_value(nxt_event_conn_t *c, uintptr_t data)
+nxt_controller_conn_timeout_value(nxt_conn_t *c, uintptr_t data)
 {
     return (nxt_msec_t) data;
 }
@@ -343,7 +343,7 @@ nxt_controller_conn_timeout_value(nxt_event_conn_t *c, uintptr_t data)
 static void
 nxt_controller_conn_read_error(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_event_conn_t  *c;
+    nxt_conn_t  *c;
 
     c = obj;
 
@@ -356,12 +356,12 @@ nxt_controller_conn_read_error(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_controller_conn_read_timeout(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_timer_t       *ev;
-    nxt_event_conn_t  *c;
+    nxt_timer_t  *timer;
+    nxt_conn_t   *c;
 
-    ev = obj;
+    timer = obj;
 
-    c = nxt_event_read_timer_conn(ev);
+    c = nxt_read_timer_conn(timer);
     c->socket.timedout = 1;
     c->socket.closed = 1;
 
@@ -388,9 +388,9 @@ static const nxt_event_conn_state_t  nxt_controller_conn_body_read_state
 static void
 nxt_controller_conn_body_read(nxt_task_t *task, void *obj, void *data)
 {
-    size_t            rest;
-    nxt_buf_t         *b;
-    nxt_event_conn_t  *c;
+    size_t      rest;
+    nxt_buf_t   *b;
+    nxt_conn_t  *c;
 
     c = obj;
 
@@ -409,7 +409,7 @@ nxt_controller_conn_body_read(nxt_task_t *task, void *obj, void *data)
 
     nxt_debug(task, "controller conn body read again, rest: %uz", rest);
 
-    nxt_event_conn_read(task->thread->engine, c);
+    nxt_conn_read(task->thread->engine, c);
 }
 
 
@@ -429,8 +429,8 @@ static const nxt_event_conn_state_t  nxt_controller_conn_write_state
 static void
 nxt_controller_conn_write(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_buf_t         *b;
-    nxt_event_conn_t  *c;
+    nxt_buf_t   *b;
+    nxt_conn_t  *c;
 
     c = obj;
 
@@ -439,7 +439,7 @@ nxt_controller_conn_write(nxt_task_t *task, void *obj, void *data)
     b = c->write;
 
     if (b->mem.pos != b->mem.free) {
-        nxt_event_conn_write(task->thread->engine, c);
+        nxt_conn_write(task->thread->engine, c);
         return;
     }
 
@@ -452,7 +452,7 @@ nxt_controller_conn_write(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_controller_conn_write_error(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_event_conn_t  *c;
+    nxt_conn_t  *c;
 
     c = obj;
 
@@ -465,12 +465,12 @@ nxt_controller_conn_write_error(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_controller_conn_write_timeout(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_timer_t       *ev;
-    nxt_event_conn_t  *c;
+    nxt_conn_t   *c;
+    nxt_timer_t  *timer;
 
-    ev = obj;
+    timer = obj;
 
-    c = nxt_event_write_timer_conn(ev);
+    c = nxt_write_timer_conn(timer);
     c->socket.timedout = 1;
     c->socket.closed = 1;
 
@@ -490,7 +490,7 @@ static const nxt_event_conn_state_t  nxt_controller_conn_close_state
 static void
 nxt_controller_conn_close(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_event_conn_t  *c;
+    nxt_conn_t  *c;
 
     c = obj;
 
@@ -500,14 +500,14 @@ nxt_controller_conn_close(nxt_task_t *task, void *obj, void *data)
 
     c->write_state = &nxt_controller_conn_close_state;
 
-    nxt_event_conn_close(task->thread->engine, c);
+    nxt_conn_close(task->thread->engine, c);
 }
 
 
 static void
 nxt_controller_conn_free(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_event_conn_t  *c;
+    nxt_conn_t  *c;
 
     c = obj;
 
@@ -544,7 +544,7 @@ nxt_controller_request_content_length(void *ctx, nxt_http_field_t *field,
 
 
 static void
-nxt_controller_process_request(nxt_task_t *task, nxt_event_conn_t *c,
+nxt_controller_process_request(nxt_task_t *task, nxt_conn_t *c,
     nxt_controller_request_t *req)
 {
     nxt_int_t                  rc;
@@ -737,7 +737,7 @@ done:
 
 
 static nxt_int_t
-nxt_controller_response(nxt_task_t *task, nxt_event_conn_t *c,
+nxt_controller_response(nxt_task_t *task, nxt_conn_t *c,
     nxt_controller_response_t *resp)
 {
     size_t     size;
@@ -765,7 +765,7 @@ nxt_controller_response(nxt_task_t *task, nxt_event_conn_t *c,
     c->write = b;
     c->write_state = &nxt_controller_conn_write_state;
 
-    nxt_event_conn_write(task->thread->engine, c);
+    nxt_conn_write(task->thread->engine, c);
 
     return NXT_OK;
 }

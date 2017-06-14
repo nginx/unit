@@ -17,8 +17,8 @@ static void nxt_stream_connection_close(nxt_task_t *task, void *obj,
 void
 nxt_stream_connection_init(nxt_task_t *task, void *obj, void *data)
 {
+    nxt_conn_t           *c;
     nxt_runtime_t        *rt;
-    nxt_event_conn_t     *c;
     nxt_upstream_peer_t  *up;
 
     c = obj;
@@ -57,8 +57,8 @@ fail:
 static void
 nxt_stream_connection_peer(nxt_task_t *task, nxt_upstream_peer_t *up)
 {
-    nxt_event_conn_t        *c;
-    nxt_event_conn_proxy_t  *p;
+    nxt_conn_t        *c;
+    nxt_conn_proxy_t  *p;
 
     c = up->data;
 
@@ -67,7 +67,7 @@ nxt_stream_connection_peer(nxt_task_t *task, nxt_upstream_peer_t *up)
     nxt_log_debug(c->socket.log, "stream connection peer %*s",
                   up->sockaddr->length, nxt_sockaddr_start(up->sockaddr));
 
-    p = nxt_event_conn_proxy_create(c);
+    p = nxt_conn_proxy_create(c);
     if (nxt_slow_path(p == NULL)) {
         goto fail;
     }
@@ -107,7 +107,7 @@ nxt_stream_connection_peer(nxt_task_t *task, nxt_upstream_peer_t *up)
         rate->last = engine->timers.now;
     }
 
-    nxt_event_conn_proxy(task, p);
+    nxt_conn_proxy(task, p);
     return;
 
 fail:

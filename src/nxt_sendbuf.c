@@ -202,8 +202,8 @@ nxt_sendbuf_file_coalesce(nxt_sendbuf_coalesce_t *sb)
 
 
 ssize_t
-nxt_sendbuf_copy_coalesce(nxt_event_conn_t *c, nxt_buf_mem_t *bm,
-    nxt_buf_t *b, size_t limit)
+nxt_sendbuf_copy_coalesce(nxt_conn_t *c, nxt_buf_mem_t *bm, nxt_buf_t *b,
+    size_t limit)
 {
     size_t      size, bsize, copied;
     ssize_t     n;

@@ -66,41 +66,41 @@ typedef struct {
 
 #if (NXT_HAVE_LINUX_SENDFILE)
 #define NXT_HAVE_SENDFILE  1
-ssize_t nxt_linux_event_conn_io_sendfile(nxt_event_conn_t *c, nxt_buf_t *b,
+ssize_t nxt_linux_event_conn_io_sendfile(nxt_conn_t *c, nxt_buf_t *b,
     size_t limit);
 #endif
 
 #if (NXT_HAVE_FREEBSD_SENDFILE)
 #define NXT_HAVE_SENDFILE  1
-ssize_t nxt_freebsd_event_conn_io_sendfile(nxt_event_conn_t *c, nxt_buf_t *b,
+ssize_t nxt_freebsd_event_conn_io_sendfile(nxt_conn_t *c, nxt_buf_t *b,
     size_t limit);
 #endif
 
 #if (NXT_HAVE_SOLARIS_SENDFILEV)
 #define NXT_HAVE_SENDFILE  1
-ssize_t nxt_solaris_event_conn_io_sendfilev(nxt_event_conn_t *c, nxt_buf_t *b,
+ssize_t nxt_solaris_event_conn_io_sendfilev(nxt_conn_t *c, nxt_buf_t *b,
     size_t limit);
 #endif
 
 #if (NXT_HAVE_MACOSX_SENDFILE)
 #define NXT_HAVE_SENDFILE  1
-ssize_t nxt_macosx_event_conn_io_sendfile(nxt_event_conn_t *c, nxt_buf_t *b,
+ssize_t nxt_macosx_event_conn_io_sendfile(nxt_conn_t *c, nxt_buf_t *b,
     size_t limit);
 #endif
 
 #if (NXT_HAVE_AIX_SEND_FILE)
 #define NXT_HAVE_SENDFILE  1
-ssize_t nxt_aix_event_conn_io_send_file(nxt_event_conn_t *c, nxt_buf_t *b,
+ssize_t nxt_aix_event_conn_io_send_file(nxt_conn_t *c, nxt_buf_t *b,
     size_t limit);
 #endif
 
 #if (NXT_HAVE_HPUX_SENDFILE)
 #define NXT_HAVE_SENDFILE  1
-ssize_t nxt_hpux_event_conn_io_sendfile(nxt_event_conn_t *c, nxt_buf_t *b,
+ssize_t nxt_hpux_event_conn_io_sendfile(nxt_conn_t *c, nxt_buf_t *b,
     size_t limit);
 #endif
 
-ssize_t nxt_event_conn_io_sendbuf(nxt_event_conn_t *c, nxt_buf_t *b,
+ssize_t nxt_event_conn_io_sendbuf(nxt_conn_t *c, nxt_buf_t *b,
     size_t limit);
 
 
@@ -116,7 +116,7 @@ size_t nxt_sendbuf_file_coalesce(nxt_sendbuf_coalesce_t *sb);
  * SSL/TLS libraries which lack vector I/O interface yet add noticeable
  * overhead to each SSL/TLS record.
  */
-ssize_t nxt_sendbuf_copy_coalesce(nxt_event_conn_t *c, nxt_buf_mem_t *bm,
+ssize_t nxt_sendbuf_copy_coalesce(nxt_conn_t *c, nxt_buf_mem_t *bm,
     nxt_buf_t *b, size_t limit);
 
 nxt_buf_t *nxt_sendbuf_update(nxt_buf_t *b, size_t sent);

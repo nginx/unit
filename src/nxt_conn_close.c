@@ -16,7 +16,7 @@ static void nxt_conn_close_error_ignore(nxt_task_t *task, void *obj,
 
 
 void
-nxt_event_conn_close(nxt_event_engine_t *engine, nxt_event_conn_t *c)
+nxt_conn_close(nxt_event_engine_t *engine, nxt_conn_t *c)
 {
     int                 ret;
     socklen_t           len;
@@ -69,7 +69,7 @@ nxt_event_conn_close(nxt_event_engine_t *engine, nxt_event_conn_t *c)
 static void
 nxt_conn_shutdown_handler(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_event_conn_t    *c;
+    nxt_conn_t          *c;
     nxt_event_engine_t  *engine;
 
     c = obj;
@@ -90,7 +90,7 @@ static void
 nxt_conn_close_handler(nxt_task_t *task, void *obj, void *data)
 {
     nxt_uint_t          events_pending, timers_pending;
-    nxt_event_conn_t    *c;
+    nxt_conn_t          *c;
     nxt_event_engine_t  *engine;
 
     c = obj;
@@ -132,12 +132,12 @@ nxt_conn_close_handler(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_conn_close_timer_handler(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_timer_t       *timer;
-    nxt_event_conn_t  *c;
+    nxt_conn_t   *c;
+    nxt_timer_t  *timer;
 
     timer = obj;
 
-    c = nxt_event_write_timer_conn(timer);
+    c = nxt_write_timer_conn(timer);
 
     nxt_debug(task, "conn close timer handler fd:%d", c->socket.fd);
 

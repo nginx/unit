@@ -497,9 +497,9 @@ nxt_runtime_quit(nxt_task_t *task)
 static void
 nxt_runtime_close_idle_connections(nxt_event_engine_t *engine)
 {
+    nxt_conn_t        *c;
     nxt_queue_t       *idle;
     nxt_queue_link_t  *link, *next;
-    nxt_event_conn_t  *c;
 
     nxt_debug(&engine->task, "close idle connections");
 
@@ -510,11 +510,11 @@ nxt_runtime_close_idle_connections(nxt_event_engine_t *engine)
          link = next)
     {
         next = nxt_queue_next(link);
-        c = nxt_queue_link_data(link, nxt_event_conn_t, link);
+        c = nxt_queue_link_data(link, nxt_conn_t, link);
 
         if (!c->socket.read_ready) {
             nxt_queue_remove(link);
-            nxt_event_conn_close(engine, c);
+            nxt_conn_close(engine, c);
         }
     }
 }

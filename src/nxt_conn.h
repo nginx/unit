@@ -4,12 +4,11 @@
  * Copyright (C) NGINX, Inc.
  */
 
-#ifndef _NXT_EVENT_CONN_H_INCLUDED_
-#define _NXT_EVENT_CONN_H_INCLUDED_
+#ifndef _NXT_CONN_H_INCLUDED_
+#define _NXT_CONN_H_INCLUDED_
 
 
-typedef nxt_msec_t (*nxt_event_conn_timer_val_t)(nxt_event_conn_t *c,
-    uintptr_t data);
+typedef nxt_msec_t (*nxt_conn_timer_value_t)(nxt_conn_t *c, uintptr_t data);
 
 
 typedef struct {
@@ -18,11 +17,11 @@ typedef struct {
     nxt_work_handler_t            error_handler;
 
     nxt_work_handler_t            timer_handler;
-    nxt_event_conn_timer_val_t    timer_value;
+    nxt_conn_timer_value_t        timer_value;
     uintptr_t                     timer_data;
 
     uint8_t                       timer_autoreset;
-} nxt_event_conn_state_t;
+} nxt_conn_state_t;
 
 
 typedef struct {
@@ -49,9 +48,9 @@ typedef struct {
      */
     nxt_work_handler_t            read;
 
-    ssize_t                       (*recvbuf)(nxt_event_conn_t *c, nxt_buf_t *b);
+    ssize_t                       (*recvbuf)(nxt_conn_t *c, nxt_buf_t *b);
 
-    ssize_t                       (*recv)(nxt_event_conn_t *c, void *buf,
+    ssize_t                       (*recv)(nxt_conn_t *c, void *buf,
                                       size_t size, nxt_uint_t flags);
 
     /*
@@ -66,35 +65,35 @@ typedef struct {
      * buffers data and calls the library specific send() interface to write
      * the buffered data eventually.
      */
-    ssize_t                       (*write_chunk)(nxt_event_conn_t *c,
+    ssize_t                       (*write_chunk)(nxt_conn_t *c,
                                       nxt_buf_t *b, size_t limit);
 
     /*
      * The sendbuf() is an interface for OS-specific sendfile
      * implementations or simple writev().
      */
-    ssize_t                       (*sendbuf)(nxt_event_conn_t *c, nxt_buf_t *b,
+    ssize_t                       (*sendbuf)(nxt_conn_t *c, nxt_buf_t *b,
                                       size_t limit);
     /*
      * The writev() is an interface to write several nxt_iobuf_t buffers.
      */
-    ssize_t                       (*writev)(nxt_event_conn_t *c,
+    ssize_t                       (*writev)(nxt_conn_t *c,
                                       nxt_iobuf_t *iob, nxt_uint_t niob);
     /*
      * The send() is an interface to write a single buffer.  SSL/TLS
      * libraries' send() interface handles also the libraries' errors.
      */
-    ssize_t                       (*send)(nxt_event_conn_t *c, void *buf,
+    ssize_t                       (*send)(nxt_conn_t *c, void *buf,
                                       size_t size);
 
     nxt_work_handler_t            shutdown;
-} nxt_event_conn_io_t;
+} nxt_conn_io_t;
 
 
 /*
- * The nxt_event_conn_listen_t is separated from nxt_listen_socket_t
+ * The nxt_listen_event_t is separated from nxt_listen_socket_t
  * because nxt_listen_socket_t is one per process whilst each worker
- * thread uses own nxt_event_conn_listen_t.
+ * thread uses own nxt_listen_event_t.
  */
 typedef struct {
     /* Must be the first field. */
@@ -109,31 +108,29 @@ typedef struct {
     nxt_work_handler_t            accept;
 
     nxt_listen_socket_t           *listen;
-    nxt_event_conn_t              *next;   /* STUB */;
+    nxt_conn_t                    *next;   /* STUB */;
     nxt_work_queue_t              *work_queue;
 
     nxt_timer_t                   timer;
 
     nxt_queue_link_t              link;
-} nxt_event_conn_listen_t;
-
-typedef nxt_event_conn_listen_t  nxt_listen_event_t;
+} nxt_listen_event_t;
 
 
-struct nxt_event_conn_s {
+struct nxt_conn_s {
     /*
      * Must be the first field, since nxt_fd_event_t
-     * and nxt_event_conn_t are used interchangeably.
+     * and nxt_conn_t are used interchangeably.
      */
     nxt_fd_event_t                socket;
 
     nxt_buf_t                     *read;
-    const nxt_event_conn_state_t  *read_state;
+    const nxt_conn_state_t        *read_state;
     nxt_work_queue_t              *read_work_queue;
     nxt_timer_t                   read_timer;
 
     nxt_buf_t                     *write;
-    const nxt_event_conn_state_t  *write_state;
+    const nxt_conn_state_t        *write_state;
     nxt_work_queue_t              *write_work_queue;
     nxt_event_write_rate_t        *rate;
     nxt_timer_t                   write_timer;
@@ -142,7 +139,7 @@ struct nxt_event_conn_s {
     uint32_t                      max_chunk;
     uint32_t                      nbytes;
 
-    nxt_event_conn_io_t           *io;
+    nxt_conn_io_t                 *io;
 
 #if (NXT_SSLTLS || NXT_THREADS)
     /* SunC does not support "zero-sized struct/union". */
@@ -163,7 +160,7 @@ struct nxt_event_conn_s {
     nxt_task_t                    task;
     nxt_log_t                     log;
 
-    nxt_event_conn_listen_t       *listen;
+    nxt_listen_event_t            *listen;
     nxt_sockaddr_t                *remote;
     nxt_sockaddr_t                *local;
     const char                    *action;
@@ -183,8 +180,7 @@ struct nxt_event_conn_s {
 };
 
 
-#define                                                                       \
-nxt_event_conn_timer_init(ev, c, wq)                                          \
+#define nxt_conn_timer_init(ev, c, wq)                                        \
     do {                                                                      \
         (ev)->work_queue = (wq);                                              \
         (ev)->log = &(c)->log;                                                \
@@ -192,20 +188,17 @@ nxt_event_conn_timer_init(ev, c, wq)                                          \
     } while (0)
 
 
-#define                                                                       \
-nxt_event_read_timer_conn(ev)                                                 \
-    nxt_timer_data(ev, nxt_event_conn_t, read_timer)
+#define nxt_read_timer_conn(ev)                                               \
+    nxt_timer_data(ev, nxt_conn_t, read_timer)
 
 
-#define                                                                       \
-nxt_event_write_timer_conn(ev)                                                \
-    nxt_timer_data(ev, nxt_event_conn_t, write_timer)
+#define nxt_write_timer_conn(ev)                                              \
+    nxt_timer_data(ev, nxt_conn_t, write_timer)
 
 
 #if (NXT_HAVE_UNIX_DOMAIN)
 
-#define                                                                       \
-nxt_event_conn_tcp_nodelay_on(task, c)                                        \
+#define nxt_conn_tcp_nodelay_on(task, c)                                      \
     do {                                                                      \
         nxt_int_t  ret;                                                       \
                                                                               \
@@ -220,8 +213,7 @@ nxt_event_conn_tcp_nodelay_on(task, c)                                        \
 
 #else
 
-#define                                                                       \
-nxt_event_conn_tcp_nodelay_on(task, c)                                        \
+#define nxt_conn_tcp_nodelay_on(task, c)                                      \
     do {                                                                      \
         nxt_int_t  ret;                                                       \
                                                                               \
@@ -234,39 +226,34 @@ nxt_event_conn_tcp_nodelay_on(task, c)                                        \
 #endif
 
 
-NXT_EXPORT nxt_event_conn_t *nxt_event_conn_create(nxt_mem_pool_t *mp,
-    nxt_task_t *task);
-void nxt_event_conn_io_shutdown(nxt_task_t *task, void *obj, void *data);
-NXT_EXPORT void nxt_event_conn_close(nxt_event_engine_t *engine,
-    nxt_event_conn_t *c);
+NXT_EXPORT nxt_conn_t *nxt_conn_create(nxt_mem_pool_t *mp, nxt_task_t *task);
+void nxt_conn_io_shutdown(nxt_task_t *task, void *obj, void *data);
+NXT_EXPORT void nxt_conn_close(nxt_event_engine_t *engine, nxt_conn_t *c);
 
-NXT_EXPORT void nxt_event_conn_timer(nxt_event_engine_t *engine,
-    nxt_event_conn_t *c, const nxt_event_conn_state_t *state, nxt_timer_t *tev);
-NXT_EXPORT void nxt_event_conn_work_queue_set(nxt_event_conn_t *c,
-    nxt_work_queue_t *wq);
+NXT_EXPORT void nxt_conn_timer(nxt_event_engine_t *engine, nxt_conn_t *c,
+    const nxt_conn_state_t *state, nxt_timer_t *tev);
+NXT_EXPORT void nxt_conn_work_queue_set(nxt_conn_t *c, nxt_work_queue_t *wq);
 
-void nxt_event_conn_sys_socket(nxt_task_t *task, void *obj, void *data);
-void nxt_event_conn_io_connect(nxt_task_t *task, void *obj, void *data);
-nxt_int_t nxt_event_conn_socket(nxt_task_t *task, nxt_event_conn_t *c);
-void nxt_event_conn_connect_test(nxt_task_t *task, void *obj, void *data);
-void nxt_event_conn_connect_error(nxt_task_t *task, void *obj, void *data);
+void nxt_conn_sys_socket(nxt_task_t *task, void *obj, void *data);
+void nxt_conn_io_connect(nxt_task_t *task, void *obj, void *data);
+nxt_int_t nxt_conn_socket(nxt_task_t *task, nxt_conn_t *c);
+void nxt_conn_connect_test(nxt_task_t *task, void *obj, void *data);
+void nxt_conn_connect_error(nxt_task_t *task, void *obj, void *data);
 
-NXT_EXPORT nxt_event_conn_listen_t *nxt_listen_event(nxt_task_t *task,
+NXT_EXPORT nxt_listen_event_t *nxt_listen_event(nxt_task_t *task,
     nxt_listen_socket_t *ls);
-NXT_EXPORT nxt_int_t nxt_event_conn_listen(nxt_task_t *task,
-    nxt_listen_socket_t *ls);
-void nxt_event_conn_io_accept(nxt_task_t *task, void *obj, void *data);
-NXT_EXPORT void nxt_event_conn_accept(nxt_task_t *task,
-    nxt_event_conn_listen_t *cls, nxt_event_conn_t *c);
-void nxt_event_conn_accept_error(nxt_task_t *task, nxt_event_conn_listen_t *cls,
+void nxt_conn_io_accept(nxt_task_t *task, void *obj, void *data);
+NXT_EXPORT void nxt_conn_accept(nxt_task_t *task, nxt_listen_event_t *lev,
+    nxt_conn_t *c);
+void nxt_conn_accept_error(nxt_task_t *task, nxt_listen_event_t *lev,
     const char *accept_syscall, nxt_err_t err);
 
-void nxt_conn_wait(nxt_event_conn_t *c);
+void nxt_conn_wait(nxt_conn_t *c);
 
-void nxt_event_conn_io_read(nxt_task_t *task, void *obj, void *data);
-ssize_t nxt_event_conn_io_recvbuf(nxt_event_conn_t *c, nxt_buf_t *b);
-ssize_t nxt_event_conn_io_recv(nxt_event_conn_t *c, void *buf,
-    size_t size, nxt_uint_t flags);
+void nxt_conn_io_read(nxt_task_t *task, void *obj, void *data);
+ssize_t nxt_conn_io_recvbuf(nxt_conn_t *c, nxt_buf_t *b);
+ssize_t nxt_conn_io_recv(nxt_conn_t *c, void *buf, size_t size,
+    nxt_uint_t flags);
 
 void nxt_conn_io_write(nxt_task_t *task, void *obj, void *data);
 ssize_t nxt_conn_io_sendbuf(nxt_task_t *task, nxt_sendbuf_t *sb);
@@ -275,28 +262,25 @@ ssize_t nxt_conn_io_writev(nxt_task_t *task, nxt_sendbuf_t *sb,
 ssize_t nxt_conn_io_send(nxt_task_t *task, nxt_sendbuf_t *sb, void *buf,
     size_t size);
 
-size_t nxt_event_conn_write_limit(nxt_event_conn_t *c);
+size_t nxt_event_conn_write_limit(nxt_conn_t *c);
 nxt_bool_t nxt_event_conn_write_delayed(nxt_event_engine_t *engine,
-    nxt_event_conn_t *c, size_t sent);
-ssize_t nxt_event_conn_io_write_chunk(nxt_event_conn_t *c, nxt_buf_t *b,
+    nxt_conn_t *c, size_t sent);
+ssize_t nxt_event_conn_io_write_chunk(nxt_conn_t *c, nxt_buf_t *b,
     size_t limit);
-ssize_t nxt_event_conn_io_writev(nxt_event_conn_t *c, nxt_iobuf_t *iob,
+ssize_t nxt_event_conn_io_writev(nxt_conn_t *c, nxt_iobuf_t *iob,
     nxt_uint_t niob);
-ssize_t nxt_event_conn_io_send(nxt_event_conn_t *c, void *buf, size_t size);
-
-NXT_EXPORT void nxt_event_conn_io_close(nxt_task_t *task, void *obj,
-    void *data);
+ssize_t nxt_event_conn_io_send(nxt_conn_t *c, void *buf, size_t size);
 
 NXT_EXPORT void nxt_event_conn_job_sendfile(nxt_task_t *task,
-    nxt_event_conn_t *c);
+    nxt_conn_t *c);
 
 
-#define nxt_event_conn_connect(engine, c)                                     \
-    nxt_work_queue_add(&engine->socket_work_queue, nxt_event_conn_sys_socket, \
+#define nxt_conn_connect(engine, c)                                           \
+    nxt_work_queue_add(&engine->socket_work_queue, nxt_conn_sys_socket,       \
                        c->socket.task, c, c->socket.data)
 
 
-#define nxt_event_conn_read(engine, c)                                        \
+#define nxt_conn_read(engine, c)                                              \
     do {                                                                      \
         nxt_event_engine_t  *e = engine;                                      \
                                                                               \
@@ -307,7 +291,7 @@ NXT_EXPORT void nxt_event_conn_job_sendfile(nxt_task_t *task,
     } while (0)
 
 
-#define nxt_event_conn_write(e, c)                                            \
+#define nxt_conn_write(e, c)                                                  \
     do {                                                                      \
         nxt_event_engine_t  *engine = e;                                      \
                                                                               \
@@ -318,7 +302,7 @@ NXT_EXPORT void nxt_event_conn_job_sendfile(nxt_task_t *task,
     } while (0)
 
 
-extern nxt_event_conn_io_t       nxt_unix_event_conn_io;
+extern nxt_conn_io_t             nxt_unix_conn_io;
 
 
 typedef struct {
@@ -326,8 +310,8 @@ typedef struct {
      * Client and peer connections are not embedded because already
      * existent connections can be switched to the event connection proxy.
      */
-    nxt_event_conn_t             *client;
-    nxt_event_conn_t             *peer;
+    nxt_conn_t                   *client;
+    nxt_conn_t                   *peer;
     nxt_buf_t                    *client_buffer;
     nxt_buf_t                    *peer_buffer;
 
@@ -347,13 +331,20 @@ typedef struct {
     uint8_t                      retain;     /* 2 bits */
 
     nxt_work_handler_t           completion_handler;
-} nxt_event_conn_proxy_t;
+} nxt_conn_proxy_t;
 
 
-NXT_EXPORT nxt_event_conn_proxy_t *nxt_event_conn_proxy_create(
-    nxt_event_conn_t *c);
-NXT_EXPORT void nxt_event_conn_proxy(nxt_task_t *task,
-    nxt_event_conn_proxy_t *p);
+NXT_EXPORT nxt_conn_proxy_t *nxt_conn_proxy_create(nxt_conn_t *c);
+NXT_EXPORT void nxt_conn_proxy(nxt_task_t *task, nxt_conn_proxy_t *p);
 
 
-#endif /* _NXT_EVENT_CONN_H_INCLUDED_ */
+/* STUB */
+#define nxt_event_conn_t         nxt_conn_t
+#define nxt_event_conn_state_t   nxt_conn_state_t
+#define nxt_event_conn_proxy_t   nxt_conn_proxy_t
+#define nxt_event_conn_read      nxt_conn_read
+#define nxt_event_conn_write     nxt_conn_write
+#define nxt_event_conn_close     nxt_conn_close
+
+
+#endif /* _NXT_CONN_H_INCLUDED_ */

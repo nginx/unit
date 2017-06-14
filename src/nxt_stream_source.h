@@ -14,7 +14,7 @@ typedef void (*nxt_stream_source_handler_t)(nxt_task_t *task,
     nxt_stream_source_t *s);
 
 struct nxt_stream_source_s {
-    nxt_event_conn_t             *conn;
+    nxt_conn_t                   *conn;
     nxt_source_hook_t            *next;
     nxt_upstream_source_t        *upstream;
 

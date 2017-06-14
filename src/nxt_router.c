@@ -71,8 +71,7 @@ static void nxt_router_conn_close(nxt_task_t *task, void *obj, void *data);
 static void nxt_router_conn_free(nxt_task_t *task, void *obj, void *data);
 static void nxt_router_conn_error(nxt_task_t *task, void *obj, void *data);
 static void nxt_router_conn_timeout(nxt_task_t *task, void *obj, void *data);
-static nxt_msec_t nxt_router_conn_timeout_value(nxt_event_conn_t *c,
-    uintptr_t data);
+static nxt_msec_t nxt_router_conn_timeout_value(nxt_conn_t *c, uintptr_t data);
 
 
 nxt_int_t
@@ -207,8 +206,8 @@ nxt_router_stub_conf(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
 
     skcf->listen.handler = nxt_router_conn_init;
     skcf->listen.mem_pool_size = nxt_listen_socket_pool_min_size(&skcf->listen)
-                        + sizeof(nxt_event_conn_proxy_t)
-                        + sizeof(nxt_event_conn_t)
+                        + sizeof(nxt_conn_proxy_t)
+                        + sizeof(nxt_conn_t)
                         + 4 * sizeof(nxt_buf_t);
 
     skcf->header_buffer_size = 2048;
@@ -222,8 +221,8 @@ nxt_router_stub_conf(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
 
     skcf->listen.handler = nxt_stream_connection_init;
     skcf->listen.mem_pool_size = nxt_listen_socket_pool_min_size(&skcf->listen)
-                        + sizeof(nxt_event_conn_proxy_t)
-                        + sizeof(nxt_event_conn_t)
+                        + sizeof(nxt_conn_proxy_t)
+                        + sizeof(nxt_conn_t)
                         + 4 * sizeof(nxt_buf_t);
 
     skcf->header_read_timeout = 5000;
@@ -881,7 +880,7 @@ nxt_router_thread_exit_handler(nxt_task_t *task, void *obj, void *data)
 }
 
 
-static const nxt_event_conn_state_t  nxt_router_conn_read_state
+static const nxt_conn_state_t  nxt_router_conn_read_state
     nxt_aligned(64) =
 {
     .ready_handler = nxt_router_conn_http_header_parse,
@@ -898,7 +897,7 @@ static void
 nxt_router_conn_init(nxt_task_t *task, void *obj, void *data)
 {
     size_t                   size;
-    nxt_event_conn_t         *c;
+    nxt_conn_t               *c;
     nxt_event_engine_t       *engine;
     nxt_socket_conf_joint_t  *joint;
 
@@ -920,11 +919,11 @@ nxt_router_conn_init(nxt_task_t *task, void *obj, void *data)
 
     c->read_state = &nxt_router_conn_read_state;
 
-    nxt_event_conn_read(engine, c);
+    nxt_conn_read(engine, c);
 }
 
 
-static const nxt_event_conn_state_t  nxt_router_conn_write_state
+static const nxt_conn_state_t  nxt_router_conn_write_state
     nxt_aligned(64) =
 {
     .ready_handler = nxt_router_conn_close,
@@ -939,7 +938,7 @@ nxt_router_conn_http_header_parse(nxt_task_t *task, void *obj, void *data)
     size_t                    size;
     nxt_int_t                 ret;
     nxt_buf_t                 *b;
-    nxt_event_conn_t          *c;
+    nxt_conn_t                *c;
     nxt_socket_conf_joint_t   *joint;
     nxt_http_request_parse_t  *rp;
 
@@ -996,7 +995,7 @@ nxt_router_conn_http_header_parse(nxt_task_t *task, void *obj, void *data)
             c->read = b;
         }
 
-        nxt_event_conn_read(task->thread->engine, c);
+        nxt_conn_read(task->thread->engine, c);
         return;
     }
 
@@ -1004,11 +1003,11 @@ nxt_router_conn_http_header_parse(nxt_task_t *task, void *obj, void *data)
     c->write->mem.pos = c->write->mem.start;
     c->write_state = &nxt_router_conn_write_state;
 
-    nxt_event_conn_write(task->thread->engine, c);
+    nxt_conn_write(task->thread->engine, c);
 }
 
 
-static const nxt_event_conn_state_t  nxt_router_conn_close_state
+static const nxt_conn_state_t  nxt_router_conn_close_state
     nxt_aligned(64) =
 {
     .ready_handler = nxt_router_conn_free,
@@ -1018,7 +1017,7 @@ static const nxt_event_conn_state_t  nxt_router_conn_close_state
 static void
 nxt_router_conn_close(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_event_conn_t  *c;
+    nxt_conn_t  *c;
 
     c = obj;
 
@@ -1026,14 +1025,14 @@ nxt_router_conn_close(nxt_task_t *task, void *obj, void *data)
 
     c->write_state = &nxt_router_conn_close_state;
 
-    nxt_event_conn_close(task->thread->engine, c);
+    nxt_conn_close(task->thread->engine, c);
 }
 
 
 static void
 nxt_router_conn_free(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_event_conn_t         *c;
+    nxt_conn_t               *c;
     nxt_socket_conf_joint_t  *joint;
 
     c = obj;
@@ -1050,7 +1049,7 @@ nxt_router_conn_free(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_router_conn_error(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_event_conn_t  *c;
+    nxt_conn_t  *c;
 
     c = obj;
 
@@ -1058,30 +1057,30 @@ nxt_router_conn_error(nxt_task_t *task, void *obj, void *data)
 
     c->write_state = &nxt_router_conn_close_state;
 
-    nxt_event_conn_close(task->thread->engine, c);
+    nxt_conn_close(task->thread->engine, c);
 }
 
 
 static void
 nxt_router_conn_timeout(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_timer_t       *timer;
-    nxt_event_conn_t  *c;
+    nxt_conn_t   *c;
+    nxt_timer_t  *timer;
 
     timer = obj;
 
     nxt_debug(task, "router conn timeout");
 
-    c = nxt_event_read_timer_conn(timer);
+    c = nxt_read_timer_conn(timer);
 
     c->write_state = &nxt_router_conn_close_state;
 
-    nxt_event_conn_close(task->thread->engine, c);
+    nxt_conn_close(task->thread->engine, c);
 }
 
 
 static nxt_msec_t
-nxt_router_conn_timeout_value(nxt_event_conn_t *c, uintptr_t data)
+nxt_router_conn_timeout_value(nxt_conn_t *c, uintptr_t data)
 {
     nxt_socket_conf_joint_t  *joint;
 

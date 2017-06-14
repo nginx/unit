@@ -45,12 +45,12 @@ const nxt_sig_event_t  nxt_worker_process_signals[] = {
 static void
 nxt_worker_process_quit(nxt_task_t *task)
 {
-    nxt_uint_t               n;
-    nxt_queue_t              *listen;
-    nxt_runtime_t            *rt;
-    nxt_queue_link_t         *link, *next;
-    nxt_listen_socket_t      *ls;
-    nxt_event_conn_listen_t  *cls;
+    nxt_uint_t           n;
+    nxt_queue_t          *listen;
+    nxt_runtime_t        *rt;
+    nxt_queue_link_t     *link, *next;
+    nxt_listen_event_t   *lev;
+    nxt_listen_socket_t  *ls;
 
     rt = task->thread->runtime;
 
@@ -63,10 +63,10 @@ nxt_worker_process_quit(nxt_task_t *task)
          link = next)
     {
         next = nxt_queue_next(link);
-        cls = nxt_queue_link_data(link, nxt_event_conn_listen_t, link);
+        lev = nxt_queue_link_data(link, nxt_listen_event_t, link);
         nxt_queue_remove(link);
 
-        nxt_fd_event_close(task->thread->engine, &cls->socket);
+        nxt_fd_event_close(task->thread->engine, &lev->socket);
     }
 
     if (rt->listen_sockets != NULL) {

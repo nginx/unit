@@ -8,14 +8,14 @@
 
 
 void
-nxt_event_conn_sys_socket(nxt_task_t *task, void *obj, void *data)
+nxt_conn_sys_socket(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_event_conn_t    *c;
+    nxt_conn_t          *c;
     nxt_work_handler_t  handler;
 
     c = obj;
 
-    if (nxt_event_conn_socket(task, c) == NXT_OK) {
+    if (nxt_conn_socket(task, c) == NXT_OK) {
         c->socket.write_work_queue = c->write_work_queue;
         handler = c->io->connect;
 
@@ -29,12 +29,12 @@ nxt_event_conn_sys_socket(nxt_task_t *task, void *obj, void *data)
 
 
 void
-nxt_event_conn_io_connect(nxt_task_t *task, void *obj, void *data)
+nxt_conn_io_connect(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_event_conn_t              *c;
-    nxt_work_handler_t            handler;
-    nxt_event_engine_t            *engine;
-    const nxt_event_conn_state_t  *state;
+    nxt_conn_t              *c;
+    nxt_work_handler_t      handler;
+    nxt_event_engine_t      *engine;
+    const nxt_conn_state_t  *state;
 
     c = obj;
 
@@ -48,12 +48,12 @@ nxt_event_conn_io_connect(nxt_task_t *task, void *obj, void *data)
         break;
 
     case NXT_AGAIN:
-        c->socket.write_handler = nxt_event_conn_connect_test;
+        c->socket.write_handler = nxt_conn_connect_test;
         c->socket.error_handler = state->error_handler;
 
         engine = task->thread->engine;
 
-        nxt_event_conn_timer(engine, c, state, &c->write_timer);
+        nxt_conn_timer(engine, c, state, &c->write_timer);
 
         nxt_fd_event_enable_write(engine, &c->socket);
         return;
@@ -72,7 +72,7 @@ nxt_event_conn_io_connect(nxt_task_t *task, void *obj, void *data)
 
 
 nxt_int_t
-nxt_event_conn_socket(nxt_task_t *task, nxt_event_conn_t *c)
+nxt_conn_socket(nxt_task_t *task, nxt_conn_t *c)
 {
     nxt_uint_t    family;
     nxt_socket_t  s;
@@ -116,11 +116,11 @@ nxt_event_conn_socket(nxt_task_t *task, nxt_event_conn_t *c)
 
 
 void
-nxt_event_conn_connect_test(nxt_task_t *task, void *obj, void *data)
+nxt_conn_connect_test(nxt_task_t *task, void *obj, void *data)
 {
-    int               ret, err;
-    socklen_t         len;
-    nxt_event_conn_t  *c;
+    int         ret, err;
+    socklen_t   len;
+    nxt_conn_t  *c;
 
     c = obj;
 
@@ -157,16 +157,16 @@ nxt_event_conn_connect_test(nxt_task_t *task, void *obj, void *data)
     nxt_log(task, nxt_socket_error_level(err), "connect(%d, %*s) failed %E",
             c->socket.fd, c->remote->length, nxt_sockaddr_start(c->remote));
 
-    nxt_event_conn_connect_error(task, c, data);
+    nxt_conn_connect_error(task, c, data);
 }
 
 
 void
-nxt_event_conn_connect_error(nxt_task_t *task, void *obj, void *data)
+nxt_conn_connect_error(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_event_conn_t              *c;
-    nxt_work_handler_t            handler;
-    const nxt_event_conn_state_t  *state;
+    nxt_conn_t              *c;
+    nxt_work_handler_t      handler;
+    const nxt_conn_state_t  *state;
 
     c = obj;
 

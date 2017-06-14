@@ -29,7 +29,7 @@ typedef struct {
 typedef struct {
     nxt_event_engine_t         *engine;
     nxt_mem_pool_t             *mem_pool;
-    nxt_event_conn_t           *event_conn;
+    nxt_conn_t                 *event_conn;
     nxt_log_t                  *log;
 
     nxt_buf_t                  *output_buf;

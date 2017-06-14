@@ -59,8 +59,8 @@ NXT_LIB_DEPS=" \
     src/nxt_event_engine.h \
     src/nxt_timer.h \
     src/nxt_fd_event.h \
-    src/nxt_event_conn.h \
-    src/nxt_event_file.h \
+    src/nxt_file_event.h \
+    src/nxt_conn.h \
     src/nxt_job.h \
     src/nxt_job_file.h \
     src/nxt_sockaddr.h \
@@ -124,14 +124,14 @@ NXT_LIB_SRCS=" \
     src/nxt_event_engine.c \
     src/nxt_timer.c \
     src/nxt_fd_event.c \
-    src/nxt_event_conn.c \
-    src/nxt_event_conn_connect.c \
-    src/nxt_event_conn_accept.c \
-    src/nxt_event_conn_read.c \
-    src/nxt_event_conn_write.c \
+    src/nxt_conn.c \
+    src/nxt_conn_connect.c \
+    src/nxt_conn_accept.c \
+    src/nxt_conn_read.c \
+    src/nxt_conn_write.c \
     src/nxt_conn_close.c \
     src/nxt_event_conn_job_sendfile.c \
-    src/nxt_event_conn_proxy.c \
+    src/nxt_conn_proxy.c \
     src/nxt_job.c \
     src/nxt_job_resolve.c \
     src/nxt_sockaddr.c \

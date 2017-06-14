@@ -3,8 +3,8 @@
  * Copyright (C) NGINX, Inc.
  */
 
-#ifndef _NXT_EVENT_FILE_H_INCLUDED_
-#define _NXT_EVENT_FILE_H_INCLUDED_
+#ifndef _NXT_FILE_EVENT_H_INCLUDED_
+#define _NXT_FILE_EVENT_H_INCLUDED_
 
 
 typedef struct {
@@ -12,7 +12,7 @@ typedef struct {
     nxt_file_t          *file;
     nxt_work_handler_t  handler;
     nxt_task_t          *task;
-} nxt_event_file_t;
+} nxt_file_event_t;
 
 
-#endif /* _NXT_EVENT_FILE_H_INCLUDED_ */
+#endif /* _NXT_FILE_EVENT_H_INCLUDED_ */

@@ -38,10 +38,9 @@ static nxt_int_t nxt_epoll_edge_create(nxt_event_engine_t *engine,
 static nxt_int_t nxt_epoll_level_create(nxt_event_engine_t *engine,
     nxt_uint_t mchanges, nxt_uint_t mevents);
 static nxt_int_t nxt_epoll_create(nxt_event_engine_t *engine,
-    nxt_uint_t mchanges, nxt_uint_t mevents, nxt_event_conn_io_t *io,
-    uint32_t mode);
+    nxt_uint_t mchanges, nxt_uint_t mevents, nxt_conn_io_t *io, uint32_t mode);
 static void nxt_epoll_test_accept4(nxt_event_engine_t *engine,
-    nxt_event_conn_io_t *io);
+    nxt_conn_io_t *io);
 static void nxt_epoll_free(nxt_event_engine_t *engine);
 static void nxt_epoll_enable(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
 static void nxt_epoll_disable(nxt_event_engine_t *engine, nxt_fd_event_t *ev);
@@ -83,28 +82,27 @@ static void nxt_epoll_signal(nxt_event_engine_t *engine, nxt_uint_t signo);
 static void nxt_epoll_poll(nxt_event_engine_t *engine, nxt_msec_t timeout);
 
 #if (NXT_HAVE_ACCEPT4)
-static void nxt_epoll_event_conn_io_accept4(nxt_task_t *task, void *obj,
+static void nxt_epoll_conn_io_accept4(nxt_task_t *task, void *obj,
     void *data);
 #endif
 
 
 #if (NXT_HAVE_EPOLL_EDGE)
 
-static void nxt_epoll_edge_event_conn_io_connect(nxt_task_t *task, void *obj,
+static void nxt_epoll_edge_conn_io_connect(nxt_task_t *task, void *obj,
     void *data);
-static void nxt_epoll_edge_event_conn_connected(nxt_task_t *task, void *obj,
+static void nxt_epoll_edge_conn_connected(nxt_task_t *task, void *obj,
     void *data);
-static ssize_t nxt_epoll_edge_event_conn_io_recvbuf(nxt_event_conn_t *c,
-    nxt_buf_t *b);
+static ssize_t nxt_epoll_edge_conn_io_recvbuf(nxt_conn_t *c, nxt_buf_t *b);
 
 
-static nxt_event_conn_io_t  nxt_epoll_edge_event_conn_io = {
-    nxt_epoll_edge_event_conn_io_connect,
-    nxt_event_conn_io_accept,
+static nxt_conn_io_t  nxt_epoll_edge_conn_io = {
+    nxt_epoll_edge_conn_io_connect,
+    nxt_conn_io_accept,
 
-    nxt_event_conn_io_read,
-    nxt_epoll_edge_event_conn_io_recvbuf,
-    nxt_event_conn_io_recv,
+    nxt_conn_io_read,
+    nxt_epoll_edge_conn_io_recvbuf,
+    nxt_conn_io_recv,
 
     nxt_conn_io_write,
     nxt_event_conn_io_write_chunk,
@@ -118,7 +116,7 @@ static nxt_event_conn_io_t  nxt_epoll_edge_event_conn_io = {
     nxt_event_conn_io_writev,
     nxt_event_conn_io_send,
 
-    nxt_event_conn_io_shutdown,
+    nxt_conn_io_shutdown,
 };
 
 
@@ -150,7 +148,7 @@ const nxt_event_interface_t  nxt_epoll_edge_engine = {
 #endif
     nxt_epoll_poll,
 
-    &nxt_epoll_edge_event_conn_io,
+    &nxt_epoll_edge_conn_io,
 
 #if (NXT_HAVE_INOTIFY)
     NXT_FILE_EVENTS,
@@ -196,7 +194,7 @@ const nxt_event_interface_t  nxt_epoll_level_engine = {
 #endif
     nxt_epoll_poll,
 
-    &nxt_unix_event_conn_io,
+    &nxt_unix_conn_io,
 
 #if (NXT_HAVE_INOTIFY)
     NXT_FILE_EVENTS,
@@ -218,8 +216,7 @@ static nxt_int_t
 nxt_epoll_edge_create(nxt_event_engine_t *engine, nxt_uint_t mchanges,
     nxt_uint_t mevents)
 {
-    return nxt_epoll_create(engine, mchanges, mevents,
-                            &nxt_epoll_edge_event_conn_io,
+    return nxt_epoll_create(engine, mchanges, mevents, &nxt_epoll_edge_conn_io,
                             EPOLLET | EPOLLRDHUP);
 }
 
@@ -231,13 +228,13 @@ nxt_epoll_level_create(nxt_event_engine_t *engine, nxt_uint_t mchanges,
     nxt_uint_t mevents)
 {
     return nxt_epoll_create(engine, mchanges, mevents,
-                            &nxt_unix_event_conn_io, 0);
+                            &nxt_unix_conn_io, 0);
 }
 
 
 static nxt_int_t
 nxt_epoll_create(nxt_event_engine_t *engine, nxt_uint_t mchanges,
-    nxt_uint_t mevents, nxt_event_conn_io_t *io, uint32_t mode)
+    nxt_uint_t mevents, nxt_conn_io_t *io, uint32_t mode)
 {
     engine->u.epoll.fd = -1;
     engine->u.epoll.mode = mode;
@@ -290,7 +287,7 @@ fail:
 
 
 static void
-nxt_epoll_test_accept4(nxt_event_engine_t *engine, nxt_event_conn_io_t *io)
+nxt_epoll_test_accept4(nxt_event_engine_t *engine, nxt_conn_io_t *io)
 {
     static nxt_work_handler_t  handler;
 
@@ -303,7 +300,7 @@ nxt_epoll_test_accept4(nxt_event_engine_t *engine, nxt_event_conn_io_t *io)
         (void) accept4(-1, NULL, NULL, SOCK_NONBLOCK);
 
         if (nxt_errno != NXT_ENOSYS) {
-            handler = nxt_epoll_event_conn_io_accept4;
+            handler = nxt_epoll_conn_io_accept4;
 
         } else {
             nxt_log(&engine->task, NXT_LOG_INFO, "accept4() failed %E",
@@ -985,19 +982,19 @@ nxt_epoll_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
 #if (NXT_HAVE_ACCEPT4)
 
 static void
-nxt_epoll_event_conn_io_accept4(nxt_task_t *task, void *obj, void *data)
+nxt_epoll_conn_io_accept4(nxt_task_t *task, void *obj, void *data)
 {
-    socklen_t                len;
-    nxt_socket_t             s;
-    struct sockaddr          *sa;
-    nxt_event_conn_t         *c;
-    nxt_event_conn_listen_t  *cls;
+    socklen_t           len;
+    nxt_conn_t          *c;
+    nxt_socket_t        s;
+    struct sockaddr     *sa;
+    nxt_listen_event_t  *lev;
 
-    cls = obj;
-    c = cls->next;
+    lev = obj;
+    c = lev->next;
 
-    cls->ready--;
-    cls->socket.read_ready = (cls->ready != 0);
+    lev->ready--;
+    lev->socket.read_ready = (lev->ready != 0);
 
     len = c->remote->socklen;
 
@@ -1009,18 +1006,18 @@ nxt_epoll_event_conn_io_accept4(nxt_task_t *task, void *obj, void *data)
         len = 0;
     }
 
-    s = accept4(cls->socket.fd, sa, &len, SOCK_NONBLOCK);
+    s = accept4(lev->socket.fd, sa, &len, SOCK_NONBLOCK);
 
     if (s != -1) {
         c->socket.fd = s;
 
-        nxt_debug(task, "accept4(%d): %d", cls->socket.fd, s);
+        nxt_debug(task, "accept4(%d): %d", lev->socket.fd, s);
 
-        nxt_event_conn_accept(task, cls, c);
+        nxt_conn_accept(task, lev, c);
         return;
     }
 
-    nxt_event_conn_accept_error(task, cls, "accept4", nxt_errno);
+    nxt_conn_accept_error(task, lev, "accept4", nxt_errno);
 }
 
 #endif
@@ -1039,9 +1036,9 @@ nxt_epoll_event_conn_io_accept4(nxt_task_t *task, void *obj, void *data)
  */
 
 static void
-nxt_epoll_edge_event_conn_io_connect(nxt_task_t *task, void *obj, void *data)
+nxt_epoll_edge_conn_io_connect(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_event_conn_t              *c;
+    nxt_conn_t                    *c;
     nxt_event_engine_t            *engine;
     nxt_work_handler_t            handler;
     const nxt_event_conn_state_t  *state;
@@ -1058,11 +1055,11 @@ nxt_epoll_edge_event_conn_io_connect(nxt_task_t *task, void *obj, void *data)
         break;
 
     case NXT_AGAIN:
-        c->socket.write_handler = nxt_epoll_edge_event_conn_connected;
-        c->socket.error_handler = nxt_event_conn_connect_error;
+        c->socket.write_handler = nxt_epoll_edge_conn_connected;
+        c->socket.error_handler = nxt_conn_connect_error;
 
         engine = task->thread->engine;
-        nxt_event_conn_timer(engine, c, state, &c->write_timer);
+        nxt_conn_timer(engine, c, state, &c->write_timer);
 
         nxt_epoll_enable(engine, &c->socket);
         c->socket.read = NXT_EVENT_BLOCKED;
@@ -1070,7 +1067,7 @@ nxt_epoll_edge_event_conn_io_connect(nxt_task_t *task, void *obj, void *data)
 
 #if 0
     case NXT_AGAIN:
-        nxt_event_conn_timer(engine, c, state, &c->write_timer);
+        nxt_conn_timer(engine, c, state, &c->write_timer);
 
         /* Fall through. */
 
@@ -1111,9 +1108,9 @@ nxt_epoll_edge_event_conn_io_connect(nxt_task_t *task, void *obj, void *data)
 
 
 static void
-nxt_epoll_edge_event_conn_connected(nxt_task_t *task, void *obj, void *data)
+nxt_epoll_edge_conn_connected(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_event_conn_t  *c;
+    nxt_conn_t  *c;
 
     c = obj;
 
@@ -1131,22 +1128,22 @@ nxt_epoll_edge_event_conn_connected(nxt_task_t *task, void *obj, void *data)
         return;
     }
 
-    nxt_event_conn_connect_test(task, c, data);
+    nxt_conn_connect_test(task, c, data);
 }
 
 
 /*
- * nxt_epoll_edge_event_conn_io_recvbuf() is just wrapper around
- * standard nxt_event_conn_io_recvbuf() to enforce to read a pending EOF
+ * nxt_epoll_edge_conn_io_recvbuf() is just wrapper around
+ * standard nxt_conn_io_recvbuf() to enforce to read a pending EOF
  * in edge-triggered mode.
  */
 
 static ssize_t
-nxt_epoll_edge_event_conn_io_recvbuf(nxt_event_conn_t *c, nxt_buf_t *b)
+nxt_epoll_edge_conn_io_recvbuf(nxt_conn_t *c, nxt_buf_t *b)
 {
     ssize_t  n;
 
-    n = nxt_event_conn_io_recvbuf(c, b);
+    n = nxt_conn_io_recvbuf(c, b);
 
     if (n > 0 && c->socket.epoll_eof) {
         c->socket.read_ready = 1;

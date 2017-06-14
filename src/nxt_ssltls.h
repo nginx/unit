@@ -35,8 +35,7 @@ typedef struct {
 struct nxt_ssltls_conf_s {
     void                          *ctx;
     void                          (*conn_init)(nxt_task_t *task,
-                                      nxt_ssltls_conf_t *conf,
-                                      nxt_event_conn_t *c);
+                                      nxt_ssltls_conf_t *conf, nxt_conn_t *c);
 
     const nxt_ssltls_lib_t        *lib;
 

@@ -241,7 +241,7 @@ nxt_listen_socket_pool_min_size(nxt_listen_socket_t *ls)
 #endif
 
     return size + sizeof(nxt_mem_pool_t)
-                + sizeof(nxt_event_conn_t)
+                + sizeof(nxt_conn_t)
                 + sizeof(nxt_log_t);
 }
 

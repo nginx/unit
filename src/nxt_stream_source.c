@@ -58,7 +58,7 @@ nxt_stream_source_connect(nxt_task_t *task, nxt_stream_source_t *stream)
     stream->conn = c;
     c->socket.data = stream;
 
-    nxt_event_conn_work_queue_set(c, us->work_queue);
+    nxt_conn_work_queue_set(c, us->work_queue);
 
     c->remote = us->peer->sockaddr;
     c->write_state = &nxt_stream_source_connect_state;
@@ -158,7 +158,7 @@ nxt_stream_source_write_ready(nxt_task_t *task, void *obj, void *data)
 
     nxt_debug(task, "stream source write ready fd:%d", c->socket.fd);
 
-    nxt_event_conn_read(task, c);
+    nxt_conn_read(task, c);
 }
 
 
@@ -212,7 +212,7 @@ nxt_stream_source_read_ready(nxt_task_t *task, void *obj, void *data)
 
     c->read_state = &nxt_stream_source_response_read_state;
 
-    nxt_event_conn_read(task, c);
+    nxt_conn_read(task, c);
     return;
 
 fail:
@@ -425,7 +425,7 @@ nxt_stream_source_closed(nxt_task_t *task, void *obj, void *data)
 
     nxt_debug(task, "stream source closed fd:%d", c->socket.fd);
 
-    nxt_event_conn_close(task, c);
+    nxt_conn_close(task, c);
 
     b = nxt_buf_sync_alloc(stream->upstream->buffers.mem_pool,
                            NXT_BUF_SYNC_LAST);
@@ -463,7 +463,7 @@ nxt_stream_source_error(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_stream_source_close(nxt_task_t *task, nxt_stream_source_t *stream)
 {
-    nxt_event_conn_close(task, stream->conn);
+    nxt_conn_close(task, stream->conn);
 
     stream->error_handler(task, stream);
 }

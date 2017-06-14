@@ -110,7 +110,7 @@ typedef struct nxt_port_mmap_s          nxt_port_mmap_t;
 #include <nxt_buf_pool.h>
 #include <nxt_recvbuf.h>
 
-typedef struct nxt_event_conn_s         nxt_event_conn_t;
+typedef struct nxt_conn_s               nxt_conn_t;
 #include <nxt_sendbuf.h>
 
 #include <nxt_log_moderation.h>
@@ -129,6 +129,7 @@ nxt_thread_extern_data(nxt_thread_t, nxt_thread_context);
 #include <nxt_thread_log.h>
 
 #include <nxt_fd_event.h>
+#include <nxt_file_event.h>
 
 #include <nxt_port.h>
 #include <nxt_port_memory.h>
@@ -137,12 +138,10 @@ nxt_thread_extern_data(nxt_thread_t, nxt_thread_context);
 #endif
 
 
-typedef void (*nxt_event_conn_handler_t)(nxt_thread_t *thr,
-    nxt_event_conn_t *c);
+typedef void (*nxt_event_conn_handler_t)(nxt_thread_t *thr, nxt_conn_t *c);
 #include <nxt_listen_socket.h>
 
-#include <nxt_event_conn.h>
-#include <nxt_event_file.h>
+#include <nxt_conn.h>
 #include <nxt_event_engine.h>
 
 #include <nxt_job.h>
