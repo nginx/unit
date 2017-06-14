@@ -956,6 +956,12 @@ nxt_router_conn_http_header_parse(nxt_task_t *task, void *obj, void *data)
         }
 
         c->socket.data = rp;
+
+        ret = nxt_http_parse_request_init(rp, c->mem_pool);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            nxt_router_conn_close(task, c, data);
+            return;
+        }
     }
 
     ret = nxt_http_parse_request(rp, &c->read->mem);
