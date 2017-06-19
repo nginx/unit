@@ -487,7 +487,7 @@ struct nxt_event_engine_s {
     uint32_t                   max_connections;
 
     nxt_port_t                 *port;
-    nxt_mem_cache_pool_t       *mem_pool;
+    nxt_mp_t                   *mem_pool;
     nxt_queue_t                joints;
     nxt_queue_t                listen_connections;
     nxt_queue_t                idle_connections;

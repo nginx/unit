@@ -76,7 +76,7 @@ typedef struct {
 } nxt_mem_proto_t;
 
 
-#include <nxt_mem_cache_pool.h>
+#include <nxt_mp.h>
 #include <nxt_mem_zone.h>
 #include <nxt_mem_pool_cleanup.h>
 #include <nxt_thread_time.h>

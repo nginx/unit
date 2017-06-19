@@ -21,14 +21,14 @@ nxt_lvlhsh_unit_test_key_test(nxt_lvlhsh_query_t *lhq, void *data)
 static void *
 nxt_lvlhsh_unit_test_pool_alloc(void *pool, size_t size, nxt_uint_t nalloc)
 {
-    return nxt_mem_cache_align(pool, size, size);
+    return nxt_mp_align(pool, size, size);
 }
 
 
 static void
 nxt_lvlhsh_unit_test_pool_free(void *pool, void *p, size_t size)
 {
-    nxt_mem_cache_free(pool, p);
+    nxt_mp_free(pool, p);
 }
 
 
@@ -132,11 +132,11 @@ nxt_int_t
 nxt_lvlhsh_unit_test(nxt_thread_t *thr, nxt_uint_t n, nxt_bool_t use_pool)
 {
     uintptr_t                 key;
+    nxt_mp_t                  *mp;
     nxt_nsec_t                start, end;
     nxt_uint_t                i;
     nxt_lvlhsh_t              lh;
     nxt_lvlhsh_each_t         lhe;
-    nxt_mem_cache_pool_t      *pool;
     const nxt_lvlhsh_proto_t  *proto;
 
     const size_t              min_chunk_size = 32;
@@ -148,9 +148,9 @@ nxt_lvlhsh_unit_test(nxt_thread_t *thr, nxt_uint_t n, nxt_bool_t use_pool)
     start = nxt_thread_monotonic_time(thr);
 
     if (use_pool) {
-        pool = nxt_mem_cache_pool_create(cluster_size, page_alignment,
-                                        page_size, min_chunk_size);
-        if (pool == NULL) {
+        mp = nxt_mp_create(cluster_size, page_alignment, page_size,
+                           min_chunk_size);
+        if (mp == NULL) {
             return NXT_ERROR;
         }
 
@@ -162,7 +162,7 @@ nxt_lvlhsh_unit_test(nxt_thread_t *thr, nxt_uint_t n, nxt_bool_t use_pool)
         nxt_log_error(NXT_LOG_NOTICE, thr->log,
                       "lvlhsh unit test started: %uD malloc", n);
         proto = &malloc_proto;
-        pool = NULL;
+        mp = NULL;
     }
 
     nxt_memzero(&lh, sizeof(nxt_lvlhsh_t));
@@ -171,7 +171,7 @@ nxt_lvlhsh_unit_test(nxt_thread_t *thr, nxt_uint_t n, nxt_bool_t use_pool)
     for (i = 0; i < n; i++) {
         key = nxt_murmur_hash2(&key, sizeof(uint32_t));
 
-        if (nxt_lvlhsh_unit_test_add(&lh, proto, pool, key) != NXT_OK) {
+        if (nxt_lvlhsh_unit_test_add(&lh, proto, mp, key) != NXT_OK) {
             nxt_log_error(NXT_LOG_NOTICE, thr->log,
                           "lvlhsh add unit test failed at %ui", i);
             return NXT_ERROR;
@@ -206,19 +206,18 @@ nxt_lvlhsh_unit_test(nxt_thread_t *thr, nxt_uint_t n, nxt_bool_t use_pool)
     for (i = 0; i < n; i++) {
         key = nxt_murmur_hash2(&key, sizeof(uint32_t));
 
-        if (nxt_lvlhsh_unit_test_delete(&lh, proto, pool, key) != NXT_OK) {
+        if (nxt_lvlhsh_unit_test_delete(&lh, proto, mp, key) != NXT_OK) {
             return NXT_ERROR;
         }
     }
 
-    if (pool != NULL) {
-        if (!nxt_mem_cache_pool_is_empty(pool)) {
-            nxt_log_error(NXT_LOG_NOTICE, thr->log,
-                          "mem cache pool is not empty");
+    if (mp != NULL) {
+        if (!nxt_mp_is_empty(mp)) {
+            nxt_log_error(NXT_LOG_NOTICE, thr->log, "mem pool is not empty");
             return NXT_ERROR;
         }
 
-        nxt_mem_cache_pool_destroy(pool);
+        nxt_mp_destroy(mp);
     }
 
     nxt_thread_time_update(thr);

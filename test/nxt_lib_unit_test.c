@@ -24,6 +24,7 @@ nxt_msec_less(nxt_msec_t first, nxt_msec_t second)
 int nxt_cdecl
 main(int argc, char **argv)
 {
+    nxt_task_t    task;
     nxt_thread_t  *thr;
 
     if (nxt_lib_start("lib_unit_test", argv, &environ) != NXT_OK) {
@@ -31,8 +32,10 @@ main(int argc, char **argv)
     }
 
     nxt_main_log.level = NXT_LOG_INFO;
+    task.log  = &nxt_main_log;
 
     thr = nxt_thread();
+    thr->task = &task;
 
 #if (NXT_UNIT_TEST_RTDTSC)
 
@@ -96,15 +99,15 @@ main(int argc, char **argv)
         return 1;
     }
 
-    if (nxt_mem_cache_pool_unit_test(thr, 100, 40000, 128 - 1) != NXT_OK) {
+    if (nxt_mp_unit_test(thr, 100, 40000, 128 - 1) != NXT_OK) {
         return 1;
     }
 
-    if (nxt_mem_cache_pool_unit_test(thr, 100, 1000, 4096 - 1) != NXT_OK) {
+    if (nxt_mp_unit_test(thr, 100, 1000, 4096 - 1) != NXT_OK) {
         return 1;
     }
 
-    if (nxt_mem_cache_pool_unit_test(thr, 1000, 100, 64 * 1024 - 1) != NXT_OK) {
+    if (nxt_mp_unit_test(thr, 1000, 100, 64 * 1024 - 1) != NXT_OK) {
         return 1;
     }
 

@@ -528,6 +528,8 @@ nxt_event_engine_start(nxt_event_engine_t *engine)
                 break;
             }
 
+            thr->task = task;
+
             handler(task, obj, data);
         }
 

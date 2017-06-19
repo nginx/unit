@@ -668,9 +668,10 @@ nxt_router_thread_start(void *data)
     engine->task.thread = thread;
     engine->task.log = thread->log;
     thread->engine = engine;
+    thread->task = &engine->task;
     thread->fiber = &engine->fibers->fiber;
 
-    engine->mem_pool = nxt_mem_cache_pool_create(4096, 1024, 1024, 64);
+    engine->mem_pool = nxt_mp_create(4096, 128, 1024, 64);
 
     nxt_event_engine_start(engine);
 }
@@ -870,7 +871,7 @@ nxt_router_thread_exit_handler(nxt_task_t *task, void *obj, void *data)
 
     nxt_queue_remove(&engine->link);
 
-    nxt_mem_cache_pool_destroy(engine->mem_pool);
+    nxt_mp_destroy(engine->mem_pool);
 
     nxt_event_engine_free(engine);
 

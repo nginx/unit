@@ -32,7 +32,7 @@ NXT_LIB_DEPS=" \
     src/nxt_parse.h \
     src/nxt_mem_pool.h \
     src/nxt_mem_pool_cleanup.h \
-    src/nxt_mem_cache_pool.h \
+    src/nxt_mp.h \
     src/nxt_mem_zone.h \
     src/nxt_sprintf.h \
     src/nxt_file_name.h \
@@ -96,7 +96,7 @@ NXT_LIB_SRCS=" \
     src/nxt_rbtree.c \
     src/nxt_mem_pool.c \
     src/nxt_mem_pool_cleanup.c \
-    src/nxt_mem_cache_pool.c \
+    src/nxt_mp.c \
     src/nxt_mem_zone.c \
     src/nxt_string.c \
     src/nxt_utf8.c \
@@ -210,7 +210,7 @@ NXT_LIB_UNIT_TEST_SRCS=" \
     test/nxt_rbtree_unit_test.c \
     test/nxt_term_parse_unit_test.c \
     test/nxt_msec_diff_unit_test.c \
-    test/nxt_mem_cache_pool_unit_test.c \
+    test/nxt_mp_unit_test.c \
     test/nxt_mem_zone_unit_test.c \
     test/nxt_lvlhsh_unit_test.c \
     test/nxt_gmtime_unit_test.c \

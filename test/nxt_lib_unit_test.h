@@ -54,7 +54,7 @@ void nxt_rbtree1_mb_delete(nxt_thread_t *thr);
 
 #endif
 
-nxt_int_t nxt_mem_cache_pool_unit_test(nxt_thread_t *thr, nxt_uint_t runs,
+nxt_int_t nxt_mp_unit_test(nxt_thread_t *thr, nxt_uint_t runs,
     nxt_uint_t nblocks, size_t max_size);
 nxt_int_t nxt_mem_zone_unit_test(nxt_thread_t *thr, nxt_uint_t runs,
     nxt_uint_t nblocks, size_t max_size);

@@ -168,6 +168,8 @@ struct nxt_thread_s {
     nxt_log_t                *log;
     nxt_log_t                main_log;
 
+    nxt_task_t               *task;
+
     nxt_tid_t                tid;
     nxt_thread_handle_t      handle;
 #if (NXT_THREADS)
