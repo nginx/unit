@@ -415,7 +415,7 @@ nxt_buf_filter_buf_completion(nxt_task_t *task, void *obj, void *data)
 
     fb = ctx->buf;
 
-    nxt_mem_cache_free0(f->mem_pool, ctx, sizeof(nxt_buf_filter_ctx_t));
+    nxt_mp_free(f->mem_pool, ctx);
     nxt_buf_pool_free(&f->filter_file->buffers, b);
 
     if (fb->file_pos < fb->file_end) {

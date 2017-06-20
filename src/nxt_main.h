@@ -14,8 +14,7 @@
 #include <nxt_clang.h>
 #include <nxt_types.h>
 #include <nxt_time.h>
-
-typedef struct nxt_mem_pool_s        nxt_mem_pool_t;
+#include <nxt_mp.h>
 #include <nxt_array.h>
 
 typedef struct nxt_port_s            nxt_port_t;
@@ -31,8 +30,6 @@ typedef uint16_t                     nxt_port_id_t;
 
 typedef struct nxt_thread_s          nxt_thread_t;
 #include <nxt_thread_id.h>
-
-#include <nxt_mem_pool.h>
 
 #include <nxt_errno.h>
 #include <nxt_file.h>
@@ -76,9 +73,7 @@ typedef struct {
 } nxt_mem_proto_t;
 
 
-#include <nxt_mp.h>
 #include <nxt_mem_zone.h>
-#include <nxt_mem_pool_cleanup.h>
 #include <nxt_thread_time.h>
 
 typedef struct nxt_event_engine_s    nxt_event_engine_t;

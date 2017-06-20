@@ -28,13 +28,13 @@ static nxt_int_t nxt_runtime_event_engine_change(nxt_task_t *task,
 static nxt_int_t nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt);
 static nxt_int_t nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt);
 static nxt_sockaddr_t *nxt_runtime_sockaddr_parse(nxt_task_t *task,
-    nxt_mem_pool_t *mp, nxt_str_t *addr);
+    nxt_mp_t *mp, nxt_str_t *addr);
 static nxt_sockaddr_t *nxt_runtime_sockaddr_unix_parse(nxt_task_t *task,
-    nxt_mem_pool_t *mp, nxt_str_t *addr);
+    nxt_mp_t *mp, nxt_str_t *addr);
 static nxt_sockaddr_t *nxt_runtime_sockaddr_inet6_parse(nxt_task_t *task,
-    nxt_mem_pool_t *mp, nxt_str_t *addr);
+    nxt_mp_t *mp, nxt_str_t *addr);
 static nxt_sockaddr_t *nxt_runtime_sockaddr_inet_parse(nxt_task_t *task,
-    nxt_mem_pool_t *mp, nxt_str_t *addr);
+    nxt_mp_t *mp, nxt_str_t *addr);
 static nxt_int_t nxt_runtime_hostname(nxt_task_t *task, nxt_runtime_t *rt);
 static nxt_int_t nxt_runtime_log_files_init(nxt_runtime_t *rt);
 static nxt_int_t nxt_runtime_log_files_create(nxt_task_t *task,
@@ -51,19 +51,21 @@ static void nxt_runtime_thread_pool_destroy(nxt_task_t *task, nxt_runtime_t *rt,
 nxt_int_t
 nxt_runtime_create(nxt_task_t *task)
 {
-    nxt_int_t       ret;
-    nxt_array_t     *listen_sockets;
-    nxt_runtime_t   *rt;
-    nxt_mem_pool_t  *mp;
+    nxt_mp_t       *mp;
+    nxt_int_t      ret;
+    nxt_array_t    *listen_sockets;
+    nxt_runtime_t  *rt;
 
-    mp = nxt_mem_pool_create(1024);
+    mp = nxt_mp_create(1024, 128, 256, 32);
 
     if (nxt_slow_path(mp == NULL)) {
         return NXT_ERROR;
     }
 
-    /* This alloction cannot fail. */
-    rt = nxt_mem_zalloc(mp, sizeof(nxt_runtime_t));
+    rt = nxt_mp_zget(mp, sizeof(nxt_runtime_t));
+    if (nxt_slow_path(rt == NULL)) {
+        return NXT_ERROR;
+    }
 
     task->thread->runtime = rt;
     rt->mem_pool = mp;
@@ -117,7 +119,7 @@ nxt_runtime_create(nxt_task_t *task)
 
 fail:
 
-    nxt_mem_pool_destroy(mp);
+    nxt_mp_destroy(mp);
 
     return NXT_ERROR;
 }
@@ -320,8 +322,6 @@ nxt_runtime_start(nxt_task_t *task, void *obj, void *data)
     rt = obj;
 
     nxt_debug(task, "rt conf done");
-
-    nxt_mem_pool_debug_lock(rt->mem_pool, nxt_thread_tid(task->thread));
 
     task->thread->log->ctx_handler = NULL;
     task->thread->log->ctx = NULL;
@@ -905,8 +905,7 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
 
 
 static nxt_sockaddr_t *
-nxt_runtime_sockaddr_parse(nxt_task_t *task, nxt_mem_pool_t *mp,
-    nxt_str_t *addr)
+nxt_runtime_sockaddr_parse(nxt_task_t *task, nxt_mp_t *mp, nxt_str_t *addr)
 {
     u_char  *p;
     size_t  length;
@@ -927,8 +926,7 @@ nxt_runtime_sockaddr_parse(nxt_task_t *task, nxt_mem_pool_t *mp,
 
 
 static nxt_sockaddr_t *
-nxt_runtime_sockaddr_unix_parse(nxt_task_t *task, nxt_mem_pool_t *mp,
-    nxt_str_t *addr)
+nxt_runtime_sockaddr_unix_parse(nxt_task_t *task, nxt_mp_t *mp, nxt_str_t *addr)
 {
 #if (NXT_HAVE_UNIX_DOMAIN)
     u_char          *p;
@@ -1008,14 +1006,14 @@ nxt_runtime_sockaddr_unix_parse(nxt_task_t *task, nxt_mem_pool_t *mp,
 
 
 static nxt_sockaddr_t *
-nxt_runtime_sockaddr_inet6_parse(nxt_task_t *task, nxt_mem_pool_t *mp,
+nxt_runtime_sockaddr_inet6_parse(nxt_task_t *task, nxt_mp_t *mp,
     nxt_str_t *addr)
 {
 #if (NXT_INET6)
     u_char           *p, *addr, *addr_end;
     size_t           length;
+    nxt_mp_t         *mp;
     nxt_int_t        port;
-    nxt_mem_pool_t   *mp;
     nxt_sockaddr_t   *sa;
     struct in6_addr  *in6_addr;
 
@@ -1085,7 +1083,7 @@ invalid_address:
 
 
 static nxt_sockaddr_t *
-nxt_runtime_sockaddr_inet_parse(nxt_task_t *task, nxt_mem_pool_t *mp,
+nxt_runtime_sockaddr_inet_parse(nxt_task_t *task, nxt_mp_t *mp,
     nxt_str_t *string)
 {
     u_char          *p, *ip;
@@ -1182,7 +1180,7 @@ invalid_addr:
 nxt_listen_socket_t *
 nxt_runtime_listen_socket_add(nxt_runtime_t *rt, nxt_sockaddr_t *sa)
 {
-    nxt_mem_pool_t       *mp;
+    nxt_mp_t             *mp;
     nxt_listen_socket_t  *ls;
 
     ls = nxt_array_zero_add(rt->listen_sockets);
@@ -1233,7 +1231,7 @@ nxt_runtime_hostname(nxt_task_t *task, nxt_runtime_t *rt)
     length = nxt_strlen(hostname);
     rt->hostname.length = length;
 
-    rt->hostname.start = nxt_mem_nalloc(rt->mem_pool, length);
+    rt->hostname.start = nxt_mp_nget(rt->mem_pool, length);
 
     if (rt->hostname.start != NULL) {
         nxt_memcpy_lowcase(rt->hostname.start, (u_char *) hostname, length);
@@ -1403,7 +1401,7 @@ nxt_runtime_listen_sockets_enable(nxt_task_t *task, nxt_runtime_t *rt)
 
 
 nxt_str_t *
-nxt_current_directory(nxt_mem_pool_t *mp)
+nxt_current_directory(nxt_mp_t *mp)
 {
     size_t     length;
     u_char     *p;
@@ -1465,7 +1463,7 @@ nxt_runtime_process_new(nxt_runtime_t *rt)
 
     /* TODO: memory failures. */
 
-    process = nxt_mem_cache_zalloc0(rt->mem_pool, sizeof(nxt_process_t));
+    process = nxt_mp_zalloc(rt->mem_pool, sizeof(nxt_process_t));
     if (nxt_slow_path(process == NULL)) {
         return NULL;
     }
@@ -1496,7 +1494,6 @@ nxt_runtime_lvlhsh_pid_test(nxt_lvlhsh_query_t *lhq, void *data)
 
 static const nxt_lvlhsh_proto_t  lvlhsh_processes_proto  nxt_aligned(64) = {
     NXT_LVLHSH_DEFAULT,
-    0,
     nxt_runtime_lvlhsh_pid_test,
     nxt_lvlhsh_alloc,
     nxt_lvlhsh_free,
@@ -1528,7 +1525,6 @@ nxt_runtime_lvlhsh_port_test(nxt_lvlhsh_query_t *lhq, void *data)
 
 static const nxt_lvlhsh_proto_t  lvlhsh_ports_proto  nxt_aligned(64) = {
     NXT_LVLHSH_DEFAULT,
-    0,
     nxt_runtime_lvlhsh_port_test,
     nxt_lvlhsh_alloc,
     nxt_lvlhsh_free,

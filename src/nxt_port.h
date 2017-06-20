@@ -66,7 +66,7 @@ struct nxt_port_s {
     nxt_port_handler_t  handler;
     void                *data;
 
-    nxt_mem_pool_t      *mem_pool;
+    nxt_mp_t            *mem_pool;
     nxt_buf_t           *free_bufs;
     nxt_socket_t        pair[2];
 

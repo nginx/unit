@@ -167,7 +167,7 @@ nxt_php_request_init(nxt_app_request_t *r)
 {
     nxt_php_ctx_t  *ctx;
 
-    ctx = nxt_mem_zalloc(r->mem_pool, sizeof(nxt_php_ctx_t));
+    ctx = nxt_mp_zget(r->mem_pool, sizeof(nxt_php_ctx_t));
     if (nxt_slow_path(ctx == NULL)) {
         return NXT_ERROR;
     }
@@ -261,7 +261,7 @@ nxt_php_handler(nxt_app_request_t *r)
 
 #if !ABS_MODE
     ctx->script.len = sizeof(root) - 1 + ctx->script_name_len;
-    ctx->script.data = nxt_mem_nalloc(r->mem_pool, ctx->script.len + 1);
+    ctx->script.data = nxt_mp_nget(r->mem_pool, ctx->script.len + 1);
 
     if (nxt_slow_path(ctx->script.data == NULL)) {
         return NXT_ERROR;
@@ -565,7 +565,7 @@ nxt_php_register_variables(zval *track_vars_array TSRMLS_DC)
                           ctx->content_length->len, track_vars_array TSRMLS_CC);
     }
 
-    var = nxt_mem_nalloc(r->mem_pool, sizeof(prefix) + ctx->max_name + 1);
+    var = nxt_mp_nget(r->mem_pool, sizeof(prefix) + ctx->max_name + 1);
 
     if (nxt_slow_path(var == NULL)) {
         return;

@@ -14,7 +14,6 @@ static void nxt_fd_event_hash_error(nxt_task_t *task, nxt_fd_t fd);
 static const nxt_lvlhsh_proto_t  nxt_event_set_fd_hash_proto  nxt_aligned(64) =
 {
     NXT_LVLHSH_LARGE_MEMALIGN,
-    0,
     nxt_fd_event_hash_test,
     nxt_lvlhsh_alloc,
     nxt_lvlhsh_free,

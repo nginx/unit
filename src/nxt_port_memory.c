@@ -100,9 +100,9 @@ static void
 nxt_port_mmap_buf_completion(nxt_task_t *task, void *obj, void *data)
 {
     u_char                  *p;
+    nxt_mp_t                *mp;
     nxt_buf_t               *b;
     nxt_chunk_id_t          c;
-    nxt_mem_pool_t          *mp;
     nxt_port_mmap_t         *port_mmap;
     nxt_port_mmap_header_t  *hdr;
 
@@ -448,7 +448,7 @@ nxt_port_mmap_get_buf(nxt_task_t *task, nxt_port_t *port, size_t size)
 
     nxt_debug(task, "request %z bytes shm buffer", size);
 
-    b = nxt_mem_cache_zalloc0(port->mem_pool, NXT_BUF_PORT_MMAP_SIZE);
+    b = nxt_mp_zalloc(port->mem_pool, NXT_BUF_PORT_MMAP_SIZE);
     if (nxt_slow_path(b == NULL)) {
         return NULL;
     }
@@ -508,7 +508,7 @@ nxt_port_mmap_get_incoming_buf(nxt_task_t *task, nxt_port_t *port,
     nxt_buf_t               *b;
     nxt_port_mmap_t         *port_mmap;
 
-    b = nxt_mem_cache_zalloc0(port->mem_pool, NXT_BUF_PORT_MMAP_SIZE);
+    b = nxt_mp_zalloc(port->mem_pool, NXT_BUF_PORT_MMAP_SIZE);
     if (nxt_slow_path(b == NULL)) {
         return NULL;
     }

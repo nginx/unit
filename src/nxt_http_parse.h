@@ -71,7 +71,7 @@ typedef struct {
 
 
 nxt_inline nxt_int_t
-nxt_http_parse_request_init(nxt_http_request_parse_t *rp, nxt_mem_pool_t *mp)
+nxt_http_parse_request_init(nxt_http_request_parse_t *rp, nxt_mp_t *mp)
 {
     rp->fields = nxt_list_create(mp, 8, sizeof(nxt_http_field_t));
     if (nxt_slow_path(rp->fields == NULL)){
@@ -86,7 +86,7 @@ nxt_int_t nxt_http_parse_request(nxt_http_request_parse_t *rp,
     nxt_buf_mem_t *b);
 
 nxt_http_fields_hash_t *nxt_http_fields_hash_create(
-    nxt_http_fields_hash_entry_t *entries, nxt_mem_pool_t *mp);
+    nxt_http_fields_hash_entry_t *entries, nxt_mp_t *mp);
 nxt_http_fields_hash_entry_t *nxt_http_fields_hash_lookup(
     nxt_http_fields_hash_t *hash, nxt_http_field_t *field);
 

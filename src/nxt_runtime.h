@@ -13,7 +13,7 @@ typedef void (*nxt_runtime_cont_t)(nxt_task_t *task);
 
 
 struct nxt_runtime_s {
-    nxt_mem_pool_t         *mem_pool;
+    nxt_mp_t               *mem_pool;
 
     nxt_array_t            *inherited_sockets;  /* of nxt_listen_socket_t */
     nxt_array_t            *listen_sockets;     /* of nxt_listen_socket_t */
@@ -112,7 +112,7 @@ nxt_port_t *nxt_runtime_port_find(nxt_runtime_t *rt, nxt_pid_t pid,
 /* STUB */
 nxt_int_t nxt_runtime_controller_socket(nxt_task_t *task, nxt_runtime_t *rt);
 
-nxt_str_t *nxt_current_directory(nxt_mem_pool_t *mp);
+nxt_str_t *nxt_current_directory(nxt_mp_t *mp);
 
 nxt_listen_socket_t *nxt_runtime_listen_socket_add(nxt_runtime_t *rt,
     nxt_sockaddr_t *sa);

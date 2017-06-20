@@ -25,7 +25,7 @@ typedef struct {
     uint16_t                    size;
     uint16_t                    nalloc;
 #endif
-    nxt_mem_pool_t              *mem_pool;
+    nxt_mp_t                    *mem_pool;
     nxt_list_part_t             part;
 } nxt_list_t;
 
@@ -94,8 +94,7 @@ nxt_list_elt(nxt_list_t *list, nxt_uint_t n)
     } while (0)
 
 
-NXT_EXPORT nxt_list_t *nxt_list_create(nxt_mem_pool_t *mp, nxt_uint_t n,
-    size_t size);
+NXT_EXPORT nxt_list_t *nxt_list_create(nxt_mp_t *mp, nxt_uint_t n, size_t size);
 NXT_EXPORT void *nxt_list_add(nxt_list_t *list);
 NXT_EXPORT void *nxt_list_zero_add(nxt_list_t *list);
 

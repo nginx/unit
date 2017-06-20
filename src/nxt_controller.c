@@ -13,7 +13,7 @@
 
 typedef struct {
     nxt_conf_json_value_t  *root;
-    nxt_mem_pool_t         *pool;
+    nxt_mp_t               *pool;
 } nxt_controller_conf_t;
 
 
@@ -58,7 +58,7 @@ static void nxt_controller_process_request(nxt_task_t *task,
 static nxt_int_t nxt_controller_response(nxt_task_t *task, nxt_conn_t *c,
     nxt_controller_response_t *resp);
 static nxt_buf_t *nxt_controller_response_body(nxt_controller_response_t *resp,
-    nxt_mem_pool_t *pool);
+    nxt_mp_t *pool);
 
 
 static nxt_http_fields_hash_entry_t  nxt_controller_request_fields[] = {
@@ -83,7 +83,7 @@ static const nxt_event_conn_state_t  nxt_controller_conn_close_state;
 nxt_int_t
 nxt_controller_start(nxt_task_t *task, nxt_runtime_t *rt)
 {
-    nxt_mem_pool_t          *mp;
+    nxt_mp_t                *mp;
     nxt_conf_json_value_t   *conf;
     nxt_http_fields_hash_t  *hash;
 
@@ -102,7 +102,7 @@ nxt_controller_start(nxt_task_t *task, nxt_runtime_t *rt)
         return NXT_ERROR;
     }
 
-    mp = nxt_mem_pool_create(256);
+    mp = nxt_mp_create(1024, 128, 256, 32);
 
     if (nxt_slow_path(mp == NULL)) {
         return NXT_ERROR;
@@ -145,7 +145,7 @@ nxt_runtime_controller_socket(nxt_task_t *task, nxt_runtime_t *rt)
         rt->controller_listen = sa;
     }
 
-    ls = nxt_mem_alloc(rt->mem_pool, sizeof(nxt_listen_socket_t));
+    ls = nxt_mp_alloc(rt->mem_pool, sizeof(nxt_listen_socket_t));
     if (ls == NULL) {
         return NXT_ERROR;
     }
@@ -167,7 +167,7 @@ nxt_runtime_controller_socket(nxt_task_t *task, nxt_runtime_t *rt)
 
 #if 0
     /* STUB */
-    wq = nxt_mem_zalloc(cf->mem_pool, sizeof(nxt_work_queue_t));
+    wq = nxt_mp_zget(cf->mem_pool, sizeof(nxt_work_queue_t));
     if (wq == NULL) {
         return NXT_ERROR;
     }
@@ -177,15 +177,6 @@ nxt_runtime_controller_socket(nxt_task_t *task, nxt_runtime_t *rt)
     ls->work_queue = wq;
 #endif
     ls->handler = nxt_controller_conn_init;
-
-    /*
-     * Connection memory pool chunk size is tunned to
-     * allocate the most data in one mem_pool chunk.
-     */
-    ls->mem_pool_size = nxt_listen_socket_pool_min_size(ls)
-                        + sizeof(nxt_event_conn_proxy_t)
-                        + sizeof(nxt_conn_t)
-                        + 4 * sizeof(nxt_buf_t);
 
     if (nxt_listen_socket_create(task, ls, 0) != NXT_OK) {
         return NXT_ERROR;
@@ -209,7 +200,7 @@ nxt_controller_conn_init(nxt_task_t *task, void *obj, void *data)
 
     nxt_debug(task, "controller conn init fd:%d", c->socket.fd);
 
-    r = nxt_mem_zalloc(c->mem_pool, sizeof(nxt_controller_request_t));
+    r = nxt_mp_zget(c->mem_pool, sizeof(nxt_controller_request_t));
     if (nxt_slow_path(r == NULL)) {
         nxt_controller_conn_free(task, c, NULL);
         return;
@@ -513,7 +504,7 @@ nxt_controller_conn_free(nxt_task_t *task, void *obj, void *data)
 
     nxt_debug(task, "controller conn free");
 
-    nxt_mem_pool_destroy(c->mem_pool);
+    nxt_mp_destroy(c->mem_pool);
 
     //nxt_free(c);
 }
@@ -547,11 +538,11 @@ static void
 nxt_controller_process_request(nxt_task_t *task, nxt_conn_t *c,
     nxt_controller_request_t *req)
 {
+    nxt_mp_t                   *mp;
     nxt_int_t                  rc;
     nxt_str_t                  path;
     nxt_uint_t                 status;
     nxt_buf_mem_t              *mbuf;
-    nxt_mem_pool_t             *mp;
     nxt_conf_json_op_t         *ops;
     nxt_conf_json_value_t      *value;
     nxt_controller_response_t  resp;
@@ -590,7 +581,7 @@ nxt_controller_process_request(nxt_task_t *task, nxt_conn_t *c,
 
     if (nxt_str_eq(&req->parser.method, "PUT", 3)) {
 
-        mp = nxt_mem_pool_create(512);
+        mp = nxt_mp_create(1024, 128, 256, 32);
 
         if (nxt_slow_path(mp == NULL)) {
             status = 500;
@@ -602,7 +593,7 @@ nxt_controller_process_request(nxt_task_t *task, nxt_conn_t *c,
         value = nxt_conf_json_parse(mbuf->pos, mbuf->free - mbuf->pos, mp);
 
         if (value == NULL) {
-            nxt_mem_pool_destroy(mp);
+            nxt_mp_destroy(mp);
             status = 400;
             goto done;
         }
@@ -625,13 +616,13 @@ nxt_controller_process_request(nxt_task_t *task, nxt_conn_t *c,
                                               ops, mp);
 
             if (nxt_slow_path(value == NULL)) {
-                nxt_mem_pool_destroy(mp);
+                nxt_mp_destroy(mp);
                 status = 500;
                 goto done;
             }
         }
 
-        nxt_mem_pool_destroy(nxt_controller_conf.pool);
+        nxt_mp_destroy(nxt_controller_conf.pool);
 
         nxt_controller_conf.root = value;
         nxt_controller_conf.pool = mp;
@@ -645,7 +636,7 @@ nxt_controller_process_request(nxt_task_t *task, nxt_conn_t *c,
     if (nxt_str_eq(&req->parser.method, "DELETE", 6)) {
 
         if (path.length == 1) {
-            mp = nxt_mem_pool_create(128);
+            mp = nxt_mp_create(1024, 128, 256, 32);
 
             if (nxt_slow_path(mp == NULL)) {
                 status = 500;
@@ -668,7 +659,7 @@ nxt_controller_process_request(nxt_task_t *task, nxt_conn_t *c,
                 goto done;
             }
 
-            mp = nxt_mem_pool_create(512);
+            mp = nxt_mp_create(1024, 128, 256, 32);
 
             if (nxt_slow_path(mp == NULL)) {
                 status = 500;
@@ -680,12 +671,12 @@ nxt_controller_process_request(nxt_task_t *task, nxt_conn_t *c,
         }
 
         if (nxt_slow_path(value == NULL)) {
-            nxt_mem_pool_destroy(mp);
+            nxt_mp_destroy(mp);
             status = 500;
             goto done;
         }
 
-        nxt_mem_pool_destroy(nxt_controller_conf.pool);
+        nxt_mp_destroy(nxt_controller_conf.pool);
 
         nxt_controller_conf.root = value;
         nxt_controller_conf.pool = mp;
@@ -772,8 +763,7 @@ nxt_controller_response(nxt_task_t *task, nxt_conn_t *c,
 
 
 static nxt_buf_t *
-nxt_controller_response_body(nxt_controller_response_t *resp,
-    nxt_mem_pool_t *pool)
+nxt_controller_response_body(nxt_controller_response_t *resp, nxt_mp_t *pool)
 {
     size_t                  size;
     nxt_buf_t               *b;

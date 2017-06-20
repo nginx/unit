@@ -144,10 +144,10 @@ nxt_port_new_port_buf_completion(nxt_task_t *task, void *obj, void *data)
 void
 nxt_port_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
+    nxt_mp_t                 *mp;
     nxt_port_t               *port;
     nxt_process_t            *process;
     nxt_runtime_t            *rt;
-    nxt_mem_pool_t           *mp;
     nxt_port_msg_new_port_t  *new_port_msg;
 
     rt = task->thread->runtime;
@@ -165,7 +165,7 @@ nxt_port_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         return;
     }
 
-    mp = nxt_mem_pool_create(1024);
+    mp = nxt_mp_create(1024, 128, 256, 32);
     if (nxt_slow_path(mp == NULL)) {
         return;
     }

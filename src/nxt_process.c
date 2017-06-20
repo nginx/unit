@@ -513,7 +513,7 @@ nxt_process_port_new(nxt_process_t *process)
 {
     nxt_port_t  *port;
 
-    port = nxt_mem_cache_zalloc0(process->mem_pool, sizeof(nxt_port_t));
+    port = nxt_mp_zalloc(process->mem_pool, sizeof(nxt_port_t));
     if (nxt_fast_path(port != NULL)) {
         port->id = process->last_port_id++;
         port->pid = process->pid;

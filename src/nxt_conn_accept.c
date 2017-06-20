@@ -82,9 +82,9 @@ nxt_listen_event(nxt_task_t *task, nxt_listen_socket_t *ls)
 static nxt_conn_t *
 nxt_conn_accept_alloc(nxt_task_t *task, nxt_listen_event_t *lev)
 {
+    nxt_mp_t             *mp;
     nxt_conn_t           *c;
     nxt_sockaddr_t       *sa, *remote;
-    nxt_mem_pool_t       *mp;
     nxt_event_engine_t   *engine;
     nxt_listen_socket_t  *ls;
 
@@ -92,11 +92,13 @@ nxt_conn_accept_alloc(nxt_task_t *task, nxt_listen_event_t *lev)
 
     if (engine->connections < engine->max_connections) {
 
-        mp = nxt_mem_pool_create(lev->listen->mem_pool_size);
+        mp = nxt_mp_create(1024, 128, 256, 32);
 
         if (nxt_fast_path(mp != NULL)) {
-            /* This allocation cannot fail. */
             c = nxt_conn_create(mp, lev->socket.task);
+            if (nxt_slow_path(c == NULL)) {
+                goto fail;
+            }
 
             lev->next = c;
             c->socket.read_work_queue = lev->socket.read_work_queue;
@@ -104,8 +106,12 @@ nxt_conn_accept_alloc(nxt_task_t *task, nxt_listen_event_t *lev)
             c->listen = lev;
 
             ls = lev->listen;
-            /* This allocation cannot fail. */
+
             remote = nxt_sockaddr_alloc(mp, ls->socklen, ls->address_length);
+            if (nxt_slow_path(remote == NULL)) {
+                goto fail;
+            }
+
             c->remote = remote;
 
             sa = ls->sockaddr;
@@ -118,6 +124,10 @@ nxt_conn_accept_alloc(nxt_task_t *task, nxt_listen_event_t *lev)
 
             return c;
         }
+
+    fail:
+
+        nxt_mp_destroy(mp);
     }
 
     return NULL;

@@ -40,7 +40,7 @@ typedef struct {
     uint16_t            cache_size;
     uint8_t             cancel;          /* 1 bit */
 
-    nxt_mem_pool_t      *mem_pool;
+    nxt_mp_t            *mem_pool;
     nxt_queue_link_t    link;
 
 #if (NXT_THREADS)
@@ -58,10 +58,10 @@ typedef struct {
 } nxt_job_t;
 
 
-NXT_EXPORT void *nxt_job_create(nxt_mem_pool_t *mp, size_t size);
+NXT_EXPORT void *nxt_job_create(nxt_mp_t *mp, size_t size);
 NXT_EXPORT void nxt_job_init(nxt_job_t *job, size_t size);
 NXT_EXPORT void nxt_job_destroy(nxt_task_t *task, void *data);
-NXT_EXPORT nxt_int_t nxt_job_cleanup_add(nxt_mem_pool_t *mp, nxt_job_t *job);
+NXT_EXPORT nxt_int_t nxt_job_cleanup_add(nxt_mp_t *mp, nxt_job_t *job);
 
 NXT_EXPORT void nxt_job_start(nxt_task_t *task, nxt_job_t *job,
     nxt_work_handler_t handler);

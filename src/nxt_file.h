@@ -34,7 +34,7 @@ nxt_file_name_str_set(file_name, mem_pool, name)                              \
 
 #define                                                                       \
 nxt_file_name_alloc(mem_pool, len)                                            \
-    nxt_mem_nalloc(mem_pool, len)
+    nxt_mp_nget(mem_pool, len)
 
 
 #define                                                                       \

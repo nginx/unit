@@ -17,7 +17,7 @@ static nxt_int_t nxt_job_file_read_required(nxt_job_file_t *jbf);
 
 
 nxt_job_file_t *
-nxt_job_file_create(nxt_mem_pool_t *mp)
+nxt_job_file_create(nxt_mp_t *mp)
 {
     nxt_job_file_t  *jbf;
 

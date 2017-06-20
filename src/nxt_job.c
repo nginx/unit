@@ -15,23 +15,22 @@ static void nxt_job_thread_return_handler(nxt_task_t *task, void *obj,
 
 
 void *
-nxt_job_create(nxt_mem_pool_t *mp, size_t size)
+nxt_job_create(nxt_mp_t *mp, size_t size)
 {
     size_t     cache_size;
     nxt_job_t  *job;
 
     if (mp == NULL) {
-        mp = nxt_mem_pool_create(256);
-
+        mp = nxt_mp_create(1024, 128, 256, 32);
         if (nxt_slow_path(mp == NULL)) {
             return NULL;
         }
 
-        job = nxt_mem_zalloc(mp, size);
+        job = nxt_mp_zget(mp, size);
         cache_size = 0;
 
     } else {
-        job = nxt_mem_cache_zalloc0(mp, size);
+        job = nxt_mp_zalloc(mp, size);
         cache_size = size;
     }
 
@@ -71,17 +70,19 @@ nxt_job_destroy(nxt_task_t *task, void *data)
     if (job->cache_size == 0) {
 
         if (job->mem_pool != NULL) {
-            nxt_mem_pool_destroy(job->mem_pool);
+            nxt_mp_destroy(job->mem_pool);
         }
 
     } else {
-        nxt_mem_cache_free0(job->mem_pool, job, job->cache_size);
+        nxt_mp_free(job->mem_pool, job);
     }
 }
 
 
+#if 0
+
 nxt_int_t
-nxt_job_cleanup_add(nxt_mem_pool_t *mp, nxt_job_t *job)
+nxt_job_cleanup_add(nxt_mp_t *mp, nxt_job_t *job)
 {
     nxt_mem_pool_cleanup_t  *mpcl;
 
@@ -95,6 +96,8 @@ nxt_job_cleanup_add(nxt_mem_pool_t *mp, nxt_job_t *job)
 
     return NXT_ERROR;
 }
+
+#endif
 
 
 /*

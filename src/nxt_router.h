@@ -25,7 +25,7 @@ typedef struct {
     uint32_t               count;
     uint32_t               threads;
     nxt_router_t           *router;
-    nxt_mem_pool_t         *mem_pool;
+    nxt_mp_t               *mem_pool;
 } nxt_router_conf_t;
 
 
@@ -49,7 +49,7 @@ typedef struct {
 
     nxt_array_t            *engines;
     nxt_router_conf_t      *conf;
-    nxt_mem_pool_t         *mem_pool;
+    nxt_mp_t               *mem_pool;
 } nxt_router_temp_conf_t;
 
 

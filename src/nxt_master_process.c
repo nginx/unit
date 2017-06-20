@@ -137,7 +137,7 @@ nxt_master_start_controller_process(nxt_task_t *task, nxt_runtime_t *rt)
 {
     nxt_process_init_t  *init;
 
-    init = nxt_mem_alloc(rt->mem_pool, sizeof(nxt_process_init_t));
+    init = nxt_mp_get(rt->mem_pool, sizeof(nxt_process_init_t));
     if (nxt_slow_path(init == NULL)) {
         return NXT_ERROR;
     }
@@ -158,7 +158,7 @@ nxt_master_start_router_process(nxt_task_t *task, nxt_runtime_t *rt)
 {
     nxt_process_init_t  *init;
 
-    init = nxt_mem_alloc(rt->mem_pool, sizeof(nxt_process_init_t));
+    init = nxt_mp_get(rt->mem_pool, sizeof(nxt_process_init_t));
     if (nxt_slow_path(init == NULL)) {
         return NXT_ERROR;
     }
@@ -181,7 +181,7 @@ nxt_master_start_worker_processes(nxt_task_t *task, nxt_runtime_t *rt)
     nxt_uint_t          n;
     nxt_process_init_t  *init;
 
-    init = nxt_mem_alloc(rt->mem_pool, sizeof(nxt_process_init_t));
+    init = nxt_mp_get(rt->mem_pool, sizeof(nxt_process_init_t));
     if (nxt_slow_path(init == NULL)) {
         return NXT_ERROR;
     }
@@ -331,17 +331,17 @@ nxt_master_process_sigquit_handler(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_master_process_sigusr1_handler(nxt_task_t *task, void *obj, void *data)
 {
+    nxt_mp_t        *mp;
     nxt_int_t       ret;
     nxt_uint_t      n;
     nxt_file_t      *file, *new_file;
     nxt_runtime_t   *rt;
     nxt_array_t     *new_files;
-    nxt_mem_pool_t  *mp;
 
     nxt_log(task, NXT_LOG_NOTICE, "signal %d (%s) recevied, %s",
             (int) (uintptr_t) obj, data, "log files rotation");
 
-    mp = nxt_mem_pool_create(1024);
+    mp = nxt_mp_create(1024, 128, 256, 32);
     if (mp == NULL) {
         return;
     }
@@ -352,7 +352,7 @@ nxt_master_process_sigusr1_handler(nxt_task_t *task, void *obj, void *data)
 
     new_files = nxt_array_create(mp, n, sizeof(nxt_file_t));
     if (new_files == NULL) {
-        nxt_mem_pool_destroy(mp);
+        nxt_mp_destroy(mp);
         return;
     }
 
@@ -396,7 +396,7 @@ nxt_master_process_sigusr1_handler(nxt_task_t *task, void *obj, void *data)
 
         } nxt_list_loop;
 
-        nxt_mem_pool_destroy(mp);
+        nxt_mp_destroy(mp);
         return;
    }
 
@@ -414,7 +414,7 @@ fail:
         n--;
     }
 
-    nxt_mem_pool_destroy(mp);
+    nxt_mp_destroy(mp);
 }
 
 

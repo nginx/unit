@@ -8,11 +8,11 @@
 
 
 nxt_array_t *
-nxt_array_create(nxt_mem_pool_t *mp, nxt_uint_t n, size_t size)
+nxt_array_create(nxt_mp_t *mp, nxt_uint_t n, size_t size)
 {
     nxt_array_t  *array;
 
-    array = nxt_mem_alloc(mp, sizeof(nxt_array_t) + n * size);
+    array = nxt_mp_alloc(mp, sizeof(nxt_array_t) + n * size);
 
     if (nxt_slow_path(array == NULL)) {
         return NULL;
@@ -47,13 +47,15 @@ nxt_array_add(nxt_array_t *array)
             new_alloc = nalloc + nalloc / 2;
         }
 
-        p = nxt_mem_alloc(array->mem_pool, array->size * new_alloc);
+        p = nxt_mp_alloc(array->mem_pool, array->size * new_alloc);
 
         if (nxt_slow_path(p == NULL)) {
             return NULL;
         }
 
         nxt_memcpy(p, array->elts, array->size * nalloc);
+
+        nxt_mp_free(array->mem_pool, array->elts);
 
         array->elts = p;
         array->nalloc = new_alloc;

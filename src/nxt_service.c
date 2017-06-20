@@ -58,7 +58,7 @@ static const nxt_service_t  nxt_services[] = {
 
 
 nxt_array_t *
-nxt_services_init(nxt_mem_pool_t *mp)
+nxt_services_init(nxt_mp_t *mp)
 {
     nxt_uint_t           n;
     nxt_array_t          *services;

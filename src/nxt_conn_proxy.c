@@ -63,7 +63,7 @@ nxt_conn_proxy_create(nxt_conn_t *client)
     nxt_thread_t      *thr;
     nxt_conn_proxy_t  *p;
 
-    p = nxt_mem_zalloc(client->mem_pool, sizeof(nxt_conn_proxy_t));
+    p = nxt_mp_zget(client->mem_pool, sizeof(nxt_conn_proxy_t));
     if (nxt_slow_path(p == NULL)) {
         return NULL;
     }
@@ -152,9 +152,7 @@ nxt_conn_proxy_client_buffer_alloc(nxt_task_t *task, void *obj, void *data)
 
     nxt_debug(task, "conn proxy client first read fd:%d", client->socket.fd);
 
-    b = nxt_buf_mem_alloc(client->mem_pool, p->client_buffer_size,
-                          NXT_MEM_BUF_CUTBACK | NXT_MEM_BUF_USABLE);
-
+    b = nxt_buf_mem_alloc(client->mem_pool, p->client_buffer_size, 0);
     if (nxt_slow_path(b == NULL)) {
         /* An error completion. */
         nxt_conn_proxy_complete(task, p);
@@ -303,9 +301,7 @@ nxt_conn_proxy_peer_read(nxt_task_t *task, void *obj, void *data)
 
     nxt_debug(task, "conn proxy peer read fd:%d", peer->socket.fd);
 
-    b = nxt_buf_mem_alloc(peer->mem_pool, p->peer_buffer_size,
-                          NXT_MEM_BUF_CUTBACK | NXT_MEM_BUF_USABLE);
-
+    b = nxt_buf_mem_alloc(peer->mem_pool, p->peer_buffer_size, 0);
     if (nxt_slow_path(b == NULL)) {
         /* An error completion. */
         nxt_conn_proxy_complete(task, p);
@@ -894,7 +890,7 @@ nxt_conn_proxy_shutdown(nxt_task_t *task, nxt_conn_proxy_t *p,
 
     /* Free the direction's buffer. */
     b = (source == p->client) ? p->client_buffer : p->peer_buffer;
-    nxt_mem_free(source->mem_pool, b);
+    nxt_mp_free(source->mem_pool, b);
 }
 
 
@@ -990,8 +986,8 @@ nxt_conn_proxy_completion(nxt_task_t *task, void *obj, void *data)
     p->retain--;
 
     if (p->retain == 0) {
-        nxt_mem_free(p->client->mem_pool, p->client_buffer);
-        nxt_mem_free(p->client->mem_pool, p->peer_buffer);
+        nxt_mp_free(p->client->mem_pool, p->client_buffer);
+        nxt_mp_free(p->client->mem_pool, p->peer_buffer);
 
         p->completion_handler(task, p, NULL);
     }

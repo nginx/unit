@@ -25,7 +25,7 @@ nxt_stream_connection_init(nxt_task_t *task, void *obj, void *data)
 
     nxt_debug(task, "stream connection init");
 
-    up = nxt_mem_zalloc(c->mem_pool, sizeof(nxt_upstream_peer_t));
+    up = nxt_mp_zget(c->mem_pool, sizeof(nxt_upstream_peer_t));
     if (nxt_slow_path(up == NULL)) {
         goto fail;
     }
@@ -91,7 +91,7 @@ nxt_stream_connection_peer(nxt_task_t *task, nxt_upstream_peer_t *up)
         nxt_event_engine_t      *engine;
         nxt_event_write_rate_t  *rate;
 
-        rate = nxt_mem_alloc(c->mem_pool, sizeof(nxt_event_write_rate_t));
+        rate = nxt_mp_get(c->mem_pool, sizeof(nxt_event_write_rate_t));
 
         if (nxt_slow_path(rate == NULL)) {
             goto fail;
@@ -126,5 +126,5 @@ nxt_stream_connection_close(nxt_task_t *task, void *obj, void *data)
 
     nxt_log_debug(p->client->socket.log, "stream connection close");
 
-    nxt_mem_pool_destroy(p->client->mem_pool);
+    nxt_mp_destroy(p->client->mem_pool);
 }

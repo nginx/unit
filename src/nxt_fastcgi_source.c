@@ -125,7 +125,7 @@ nxt_fastcgi_source_handler(nxt_task_t *task, nxt_upstream_source_t *us,
     nxt_stream_source_t   *stream;
     nxt_fastcgi_source_t  *fs;
 
-    fs = nxt_mem_zalloc(us->buffers.mem_pool, sizeof(nxt_fastcgi_source_t));
+    fs = nxt_mp_zget(us->buffers.mem_pool, sizeof(nxt_fastcgi_source_t));
     if (nxt_slow_path(fs == NULL)) {
         goto fail;
     }
@@ -145,8 +145,7 @@ nxt_fastcgi_source_handler(nxt_task_t *task, nxt_upstream_source_t *us,
     stream = us->stream;
 
     if (stream == NULL) {
-        stream = nxt_mem_zalloc(us->buffers.mem_pool,
-                                sizeof(nxt_stream_source_t));
+        stream = nxt_mp_zget(us->buffers.mem_pool, sizeof(nxt_stream_source_t));
         if (nxt_slow_path(stream == NULL)) {
             goto fail;
         }
@@ -605,7 +604,7 @@ static const nxt_upstream_name_value_t  nxt_fastcgi_source_headers[]
 
 
 nxt_int_t
-nxt_fastcgi_source_hash_create(nxt_mem_pool_t *mp, nxt_lvlhsh_t *lh)
+nxt_fastcgi_source_hash_create(nxt_mp_t *mp, nxt_lvlhsh_t *lh)
 {
     return nxt_upstream_header_hash_add(mp, lh, nxt_fastcgi_source_headers,
                                         nxt_nitems(nxt_fastcgi_source_headers));

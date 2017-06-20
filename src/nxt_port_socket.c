@@ -19,9 +19,9 @@ static void nxt_port_error_handler(nxt_task_t *task, void *obj, void *data);
 nxt_int_t
 nxt_port_socket_init(nxt_task_t *task, nxt_port_t *port, size_t max_size)
 {
-    nxt_int_t       sndbuf, rcvbuf, size;
-    nxt_socket_t    snd, rcv;
-    nxt_mem_pool_t  *mp;
+    nxt_mp_t      *mp;
+    nxt_int_t     sndbuf, rcvbuf, size;
+    nxt_socket_t  snd, rcv;
 
     port->socket.task = task;
 
@@ -30,7 +30,7 @@ nxt_port_socket_init(nxt_task_t *task, nxt_port_t *port, size_t max_size)
 
     nxt_queue_init(&port->messages);
 
-    mp = nxt_mem_pool_create(1024);
+    mp = nxt_mp_create(1024, 128, 256, 32);
     if (nxt_slow_path(mp == NULL)) {
         return NXT_ERROR;
     }
@@ -100,7 +100,7 @@ getsockopt_fail:
 
 socketpair_fail:
 
-    nxt_mem_pool_destroy(port->mem_pool);
+    nxt_mp_destroy(port->mem_pool);
 
     return NXT_ERROR;
 }
@@ -110,7 +110,7 @@ void
 nxt_port_destroy(nxt_port_t *port)
 {
     nxt_socket_close(port->socket.task, port->socket.fd);
-    nxt_mem_pool_destroy(port->mem_pool);
+    nxt_mp_destroy(port->mem_pool);
 }
 
 
@@ -159,7 +159,7 @@ nxt_port_socket_write(nxt_task_t *task, nxt_port_t *port, nxt_uint_t type,
         }
     }
 
-    msg = nxt_mem_cache_zalloc0(port->mem_pool, sizeof(nxt_port_send_msg_t));
+    msg = nxt_mp_zalloc(port->mem_pool, sizeof(nxt_port_send_msg_t));
     if (nxt_slow_path(msg == NULL)) {
         return NXT_ERROR;
     }
@@ -289,8 +289,7 @@ nxt_port_write_handler(nxt_task_t *task, void *obj, void *data)
 
             } else {
                 nxt_queue_remove(link);
-                nxt_mem_cache_free0(port->mem_pool, msg,
-                                    sizeof(nxt_port_send_msg_t));
+                nxt_mp_free(port->mem_pool, msg);
             }
 
         } else if (nxt_slow_path(n == NXT_ERROR)) {

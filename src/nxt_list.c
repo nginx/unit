@@ -8,11 +8,11 @@
 
 
 nxt_list_t *
-nxt_list_create(nxt_mem_pool_t *mp, nxt_uint_t n, size_t size)
+nxt_list_create(nxt_mp_t *mp, nxt_uint_t n, size_t size)
 {
     nxt_list_t  *list;
 
-    list = nxt_mem_alloc(mp, sizeof(nxt_list_t) + n * size);
+    list = nxt_mp_get(mp, sizeof(nxt_list_t) + n * size);
 
     if (nxt_fast_path(list != NULL)) {
         list->last = &list->part;
@@ -39,8 +39,8 @@ nxt_list_add(nxt_list_t *list)
 
         /* The last list part is filled up, allocating a new list part. */
 
-        last = nxt_mem_alloc(list->mem_pool,
-                       sizeof(nxt_list_part_t) + list->nalloc * list->size);
+        last = nxt_mp_get(list->mem_pool,
+                          sizeof(nxt_list_part_t) + list->nalloc * list->size);
 
         if (nxt_slow_path(last == NULL)) {
             return NULL;

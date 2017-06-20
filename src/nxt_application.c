@@ -71,7 +71,7 @@ static nxt_buf_t                 *nxt_app_buf_free;
 static nxt_buf_t                 *nxt_app_buf_done;
 
 static nxt_event_engine_t        *nxt_app_engine;
-static nxt_mem_pool_t            *nxt_app_mem_pool;
+static nxt_mp_t                  *nxt_app_mem_pool;
 
 static nxt_uint_t                nxt_app_buf_current_number;
 static nxt_uint_t                nxt_app_buf_max_number = 16;
@@ -167,7 +167,7 @@ nxt_app_thread(void *ctx)
     link = nxt_queue_first(&rt->engines);
     nxt_app_engine = nxt_queue_link_data(link, nxt_event_engine_t, link);
 
-    nxt_app_mem_pool = nxt_mem_pool_create(512);
+    nxt_app_mem_pool = nxt_mp_create(1024, 128, 256, 32);
     if (nxt_slow_path(nxt_app_mem_pool == NULL)) {
         return;
     }
@@ -225,13 +225,13 @@ nxt_app_thread(void *ctx)
 
         if (nxt_app_http_parse_request(r, buf, n) != NXT_OK) {
             nxt_log_debug(thr->log, "nxt_app_http_parse_request() failed");
-            nxt_mem_pool_destroy(r->mem_pool);
+            nxt_mp_destroy(r->mem_pool);
             goto fail;
         }
 
         if (nxt_app_http_process_headers(r) != NXT_OK) {
             nxt_log_debug(thr->log, "nxt_app_http_process_headers() failed");
-            nxt_mem_pool_destroy(r->mem_pool);
+            nxt_mp_destroy(r->mem_pool);
             goto fail;
         }
 
@@ -256,21 +256,21 @@ nxt_app_thread(void *ctx)
 static nxt_app_request_t *
 nxt_app_request_create(nxt_socket_t s, nxt_log_t *log)
 {
+    nxt_mp_t           *mp;
     nxt_conn_t         *c;
-    nxt_mem_pool_t     *mp;
     nxt_app_request_t  *r;
 
-    mp = nxt_mem_pool_create(1024);
+    mp = nxt_mp_create(1024, 128, 256, 32);
     if (nxt_slow_path(mp == NULL)) {
         return NULL;
     }
 
-    r = nxt_mem_zalloc(mp, sizeof(nxt_app_request_t));
+    r = nxt_mp_zalloc(mp, sizeof(nxt_app_request_t));
     if (nxt_slow_path(r == NULL)) {
         return NULL;
     }
 
-    c = nxt_mem_zalloc(mp, sizeof(nxt_conn_t));
+    c = nxt_mp_zalloc(mp, sizeof(nxt_conn_t));
     if (nxt_slow_path(c == NULL)) {
         return NULL;
     }
@@ -785,9 +785,9 @@ nxt_app_buf_send(nxt_conn_t *c, nxt_buf_t *out)
 static void
 nxt_app_delivery_handler(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_buf_t       *b;
-    nxt_conn_t      *c;
-    nxt_mem_pool_t  *mp;
+    nxt_mp_t    *mp;
+    nxt_buf_t   *b;
+    nxt_conn_t  *c;
 
     c = obj;
     b = data;
@@ -800,7 +800,7 @@ nxt_app_delivery_handler(nxt_task_t *task, void *obj, void *data)
     }
 
     if (c->mem_pool == NULL) {
-        mp = nxt_mem_pool_create(256);
+        mp = nxt_mp_create(1024, 128, 256, 32);
         if (nxt_slow_path(mp == NULL)) {
             close(c->socket.fd);
             return;
@@ -990,6 +990,6 @@ nxt_app_close_request(nxt_task_t *task, void *obj, void *data)
 
     r = c->socket.data;
 
-    nxt_mem_pool_destroy(c->mem_pool);
-    nxt_mem_pool_destroy(r->mem_pool);
+    nxt_mp_destroy(c->mem_pool);
+    nxt_mp_destroy(r->mem_pool);
 }

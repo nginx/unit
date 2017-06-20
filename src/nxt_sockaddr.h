@@ -69,17 +69,16 @@ typedef struct {
 } nxt_job_sockaddr_parse_t;
 
 
-NXT_EXPORT nxt_sockaddr_t *nxt_sockaddr_alloc(nxt_mem_pool_t *mp,
-    socklen_t socklen, size_t address_length)
+NXT_EXPORT nxt_sockaddr_t *nxt_sockaddr_alloc(nxt_mp_t *mp, socklen_t socklen,
+    size_t address_length)
     NXT_MALLOC_LIKE;
-NXT_EXPORT nxt_sockaddr_t *nxt_sockaddr_create(nxt_mem_pool_t *mp,
+NXT_EXPORT nxt_sockaddr_t *nxt_sockaddr_create(nxt_mp_t *mp,
     struct sockaddr *sockaddr, socklen_t socklen, size_t address_length)
     NXT_MALLOC_LIKE;
-NXT_EXPORT nxt_sockaddr_t *nxt_sockaddr_copy(nxt_mem_pool_t *mp,
-    nxt_sockaddr_t *src)
+NXT_EXPORT nxt_sockaddr_t *nxt_sockaddr_copy(nxt_mp_t *mp, nxt_sockaddr_t *src)
     NXT_MALLOC_LIKE;
-NXT_EXPORT nxt_sockaddr_t *nxt_getsockname(nxt_task_t *task,
-    nxt_mem_pool_t *mp, nxt_socket_t s)
+NXT_EXPORT nxt_sockaddr_t *nxt_getsockname(nxt_task_t *task, nxt_mp_t *mp,
+    nxt_socket_t s)
     NXT_MALLOC_LIKE;
 NXT_EXPORT void nxt_sockaddr_text(nxt_sockaddr_t *sa);
 

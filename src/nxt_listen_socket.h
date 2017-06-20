@@ -32,7 +32,6 @@ typedef struct {
     uint8_t                   address_length;
 
     uint32_t                  count;
-    uint32_t                  mem_pool_size;
 } nxt_listen_socket_t;
 
 

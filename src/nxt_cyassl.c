@@ -182,7 +182,7 @@ nxt_cyassl_conn_init(nxt_thread_t *thr, nxt_ssltls_conf_t *conf,
 
     nxt_log_debug(c->socket.log, "cyassl conn init");
 
-    ssltls = nxt_mem_zalloc(c->mem_pool, sizeof(nxt_cyassl_conn_t));
+    ssltls = nxt_mp_zget(c->mem_pool, sizeof(nxt_cyassl_conn_t));
     if (ssltls == NULL) {
         goto fail;
     }

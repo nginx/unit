@@ -72,7 +72,7 @@ struct nxt_upstream_source_s {
 #define nxt_upstream_name_value(s)   sizeof(s) - 1, s
 
 
-NXT_EXPORT nxt_int_t nxt_upstream_header_hash_add(nxt_mem_pool_t *mp,
+NXT_EXPORT nxt_int_t nxt_upstream_header_hash_add(nxt_mp_t *mp,
     nxt_lvlhsh_t *lh, const nxt_upstream_name_value_t *unv, nxt_uint_t n);
 NXT_EXPORT nxt_int_t nxt_upstream_name_value_ignore(nxt_upstream_source_t *us,
     nxt_name_value_t *nv);

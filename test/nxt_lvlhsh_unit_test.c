@@ -19,14 +19,14 @@ nxt_lvlhsh_unit_test_key_test(nxt_lvlhsh_query_t *lhq, void *data)
 
 
 static void *
-nxt_lvlhsh_unit_test_pool_alloc(void *pool, size_t size, nxt_uint_t nalloc)
+nxt_lvlhsh_unit_test_pool_alloc(void *pool, size_t size)
 {
     return nxt_mp_align(pool, size, size);
 }
 
 
 static void
-nxt_lvlhsh_unit_test_pool_free(void *pool, void *p, size_t size)
+nxt_lvlhsh_unit_test_pool_free(void *pool, void *p)
 {
     nxt_mp_free(pool, p);
 }
@@ -35,7 +35,6 @@ nxt_lvlhsh_unit_test_pool_free(void *pool, void *p, size_t size)
 static const nxt_lvlhsh_proto_t  malloc_proto  nxt_aligned(64) = {
     //NXT_LVLHSH_LARGE_MEMALIGN,
     NXT_LVLHSH_DEFAULT,
-    0,
     nxt_lvlhsh_unit_test_key_test,
     nxt_lvlhsh_alloc,
     nxt_lvlhsh_free,
@@ -43,7 +42,6 @@ static const nxt_lvlhsh_proto_t  malloc_proto  nxt_aligned(64) = {
 
 static const nxt_lvlhsh_proto_t  pool_proto  nxt_aligned(64) = {
     NXT_LVLHSH_LARGE_SLAB,
-    0,
     nxt_lvlhsh_unit_test_key_test,
     nxt_lvlhsh_unit_test_pool_alloc,
     nxt_lvlhsh_unit_test_pool_free,

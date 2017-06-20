@@ -8,7 +8,7 @@
 #define _NXT_FILE_NAME_H_INCLUDED_
 
 
-NXT_EXPORT nxt_int_t nxt_file_name_create(nxt_mem_pool_t *mp,
+NXT_EXPORT nxt_int_t nxt_file_name_create(nxt_mp_t *mp,
     nxt_file_name_str_t *fn, const char *format, ...);
 
 

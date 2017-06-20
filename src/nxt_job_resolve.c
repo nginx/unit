@@ -13,8 +13,8 @@ nxt_job_resolve(nxt_job_resolve_t *jbr)
     int                 err;
     u_char              *host;
     size_t              length;
+    nxt_mp_t            *mp;
     nxt_uint_t          n;
-    nxt_mem_pool_t      *mp;
     nxt_sockaddr_t      *sa;
     struct addrinfo     hint, *res, *r;
     nxt_work_handler_t  handler;
@@ -31,7 +31,7 @@ nxt_job_resolve(nxt_job_resolve_t *jbr)
         host = buf;
 
     } else {
-        host = nxt_mem_alloc(jbr->job.mem_pool, length);
+        host = nxt_mp_alloc(jbr->job.mem_pool, length);
         if (nxt_slow_path(host == NULL)) {
             goto fail;
         }
@@ -70,7 +70,7 @@ nxt_job_resolve(nxt_job_resolve_t *jbr)
     jbr->count = n;
     mp = jbr->job.mem_pool;
 
-    jbr->sockaddrs = nxt_mem_alloc(mp, n * sizeof(nxt_sockaddr_t *));
+    jbr->sockaddrs = nxt_mp_alloc(mp, n * sizeof(nxt_sockaddr_t *));
     if (nxt_slow_path(jbr->sockaddrs == NULL)) {
         goto fail;
     }
@@ -122,6 +122,10 @@ fail:
 
     if (nxt_fast_path(res != NULL)) {
         freeaddrinfo(res);
+    }
+
+    if (host != buf) {
+        nxt_mp_free(jbr->job.mem_pool, host);
     }
 
     nxt_job_return(jbr->job.task, &jbr->job, handler);

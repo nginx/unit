@@ -9,16 +9,16 @@
 
 
 typedef struct {
-    void            *elts;
+    void      *elts;
     /* nelts has uint32_t type because it is used most often. */
-    uint32_t        nelts;
-    uint16_t        size;
-    uint16_t        nalloc;
-    nxt_mem_pool_t  *mem_pool;
+    uint32_t  nelts;
+    uint16_t  size;
+    uint16_t  nalloc;
+    nxt_mp_t  *mem_pool;
 } nxt_array_t;
 
 
-NXT_EXPORT nxt_array_t *nxt_array_create(nxt_mem_pool_t *mp, nxt_uint_t n,
+NXT_EXPORT nxt_array_t *nxt_array_create(nxt_mp_t *mp, nxt_uint_t n,
     size_t size);
 NXT_EXPORT void *nxt_array_add(nxt_array_t *array);
 NXT_EXPORT void *nxt_array_zero_add(nxt_array_t *array);

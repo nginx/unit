@@ -17,7 +17,7 @@ static nxt_int_t nxt_job_sockaddr_inet_parse(nxt_job_sockaddr_parse_t *jbs);
 
 
 nxt_sockaddr_t *
-nxt_sockaddr_alloc(nxt_mem_pool_t *mp, socklen_t socklen, size_t address_length)
+nxt_sockaddr_alloc(nxt_mp_t *mp, socklen_t socklen, size_t address_length)
 {
     size_t          size;
     nxt_sockaddr_t  *sa;
@@ -27,12 +27,12 @@ nxt_sockaddr_alloc(nxt_mem_pool_t *mp, socklen_t socklen, size_t address_length)
     /*
      * The current struct sockaddr's define 32-bit fields at maximum
      * and may define 64-bit AF_INET6 fields in the future.  Alignment
-     * of memory allocated by nxt_mem_zalloc() is enough for these fields.
+     * of memory allocated by nxt_mp_zalloc() is enough for these fields.
      * If 128-bit alignment will be required then nxt_mem_malloc() and
      * nxt_memzero() should be used instead.
      */
 
-    sa = nxt_mem_zalloc(mp, size);
+    sa = nxt_mp_zalloc(mp, size);
 
     if (nxt_fast_path(sa != NULL)) {
         sa->socklen = socklen;
@@ -45,8 +45,8 @@ nxt_sockaddr_alloc(nxt_mem_pool_t *mp, socklen_t socklen, size_t address_length)
 
 
 nxt_sockaddr_t *
-nxt_sockaddr_create(nxt_mem_pool_t *mp, struct sockaddr *sockaddr,
-    socklen_t length, size_t address_length)
+nxt_sockaddr_create(nxt_mp_t *mp, struct sockaddr *sockaddr, socklen_t length,
+    size_t address_length)
 {
     size_t          size, copy;
     nxt_sockaddr_t  *sa;
@@ -120,14 +120,14 @@ nxt_sockaddr_create(nxt_mem_pool_t *mp, struct sockaddr *sockaddr,
 
 
 nxt_sockaddr_t *
-nxt_sockaddr_copy(nxt_mem_pool_t *mp, nxt_sockaddr_t *src)
+nxt_sockaddr_copy(nxt_mp_t *mp, nxt_sockaddr_t *src)
 {
     size_t          length;
     nxt_sockaddr_t  *dst;
 
     length = offsetof(nxt_sockaddr_t, u) + src->socklen;
 
-    dst = nxt_mem_alloc(mp, length);
+    dst = nxt_mp_alloc(mp, length);
 
     if (nxt_fast_path(dst != NULL)) {
         nxt_memcpy(dst, src, length);
@@ -138,7 +138,7 @@ nxt_sockaddr_copy(nxt_mem_pool_t *mp, nxt_sockaddr_t *src)
 
 
 nxt_sockaddr_t *
-nxt_getsockname(nxt_task_t *task, nxt_mem_pool_t *mp, nxt_socket_t s)
+nxt_getsockname(nxt_task_t *task, nxt_mp_t *mp, nxt_socket_t s)
 {
     int                 ret;
     size_t              length;
@@ -608,7 +608,7 @@ nxt_job_sockaddr_unix_parse(nxt_job_sockaddr_parse_t *jbs)
 #if (NXT_HAVE_UNIX_DOMAIN)
     size_t          length, socklen;
     u_char          *path;
-    nxt_mem_pool_t  *mp;
+    nxt_mp_t        *mp;
     nxt_sockaddr_t  *sa;
 
     /*
@@ -655,7 +655,7 @@ nxt_job_sockaddr_unix_parse(nxt_job_sockaddr_parse_t *jbs)
 
     mp = jbs->resolve.job.mem_pool;
 
-    jbs->resolve.sockaddrs = nxt_mem_alloc(mp, sizeof(void *));
+    jbs->resolve.sockaddrs = nxt_mp_alloc(mp, sizeof(void *));
 
     if (nxt_fast_path(jbs->resolve.sockaddrs != NULL)) {
         sa = nxt_sockaddr_alloc(mp, socklen, jbs->addr.length);
@@ -690,8 +690,8 @@ nxt_job_sockaddr_inet6_parse(nxt_job_sockaddr_parse_t *jbs)
 #if (NXT_INET6)
     u_char           *p, *addr, *addr_end;
     size_t           length;
+    nxt_mp_t         *mp;
     nxt_int_t        port;
-    nxt_mem_pool_t   *mp;
     nxt_sockaddr_t   *sa;
     struct in6_addr  *in6_addr;
 
@@ -706,7 +706,7 @@ nxt_job_sockaddr_inet6_parse(nxt_job_sockaddr_parse_t *jbs)
 
     mp = jbs->resolve.job.mem_pool;
 
-    jbs->resolve.sockaddrs = nxt_mem_alloc(mp, sizeof(void *));
+    jbs->resolve.sockaddrs = nxt_mp_alloc(mp, sizeof(void *));
 
     if (nxt_slow_path(jbs->resolve.sockaddrs == NULL)) {
         return NXT_ERROR;
@@ -782,9 +782,9 @@ nxt_job_sockaddr_inet_parse(nxt_job_sockaddr_parse_t *jbs)
 {
     u_char          *p, *host;
     size_t          length;
-    in_addr_t       addr;
+    nxt_mp_t        *mp;
     nxt_int_t       port;
-    nxt_mem_pool_t  *mp;
+    in_addr_t       addr;
     nxt_sockaddr_t  *sa;
 
     addr = INADDR_ANY;
@@ -860,7 +860,7 @@ nxt_job_sockaddr_inet_parse(nxt_job_sockaddr_parse_t *jbs)
 
     mp = jbs->resolve.job.mem_pool;
 
-    jbs->resolve.sockaddrs = nxt_mem_alloc(mp, sizeof(void *));
+    jbs->resolve.sockaddrs = nxt_mp_alloc(mp, sizeof(void *));
     if (nxt_slow_path(jbs->resolve.sockaddrs == NULL)) {
         return NXT_ERROR;
     }

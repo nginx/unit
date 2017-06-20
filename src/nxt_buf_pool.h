@@ -20,7 +20,7 @@
 typedef struct {
     nxt_buf_t       *current;
     nxt_buf_t       *free;
-    nxt_mem_pool_t  *mem_pool;
+    nxt_mp_t        *mem_pool;
 
     uint16_t        num;
     uint16_t        max;

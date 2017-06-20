@@ -658,7 +658,7 @@ nxt_http_parse_field_end(nxt_http_request_parse_t *rp, u_char **pos,
 
 nxt_http_fields_hash_t *
 nxt_http_fields_hash_create(nxt_http_fields_hash_entry_t *entries,
-    nxt_mem_pool_t *mp)
+    nxt_mp_t *mp)
 {
     size_t                      min_length, max_length, length, size;
     nxt_uint_t                  i, j, n;
@@ -687,7 +687,7 @@ nxt_http_fields_hash_create(nxt_http_fields_hash_entry_t *entries,
                 * sizeof(nxt_http_fields_hash_elt_t *);
     }
 
-    hash = nxt_mem_zalloc(mp, size);
+    hash = nxt_mp_zget(mp, size);
     if (nxt_slow_path(hash == NULL)) {
         return NULL;
     }
@@ -713,8 +713,7 @@ nxt_http_fields_hash_create(nxt_http_fields_hash_entry_t *entries,
 
         size = sizeof(nxt_http_fields_hash_elt_t) + nxt_align_size(length, 8);
 
-        elt = nxt_mem_zalloc(mp, n * size
-                                 + sizeof(nxt_http_fields_hash_elt_t));
+        elt = nxt_mp_zget(mp, n * size + sizeof(nxt_http_fields_hash_elt_t));
 
         if (nxt_slow_path(elt == NULL)) {
             return NULL;

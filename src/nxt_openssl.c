@@ -256,7 +256,7 @@ nxt_openssl_conn_init(nxt_task_t *task, nxt_ssltls_conf_t *conf, nxt_conn_t *c)
 
     nxt_log_debug(c->socket.log, "openssl conn init");
 
-    ssltls = nxt_mem_zalloc(c->mem_pool, sizeof(nxt_openssl_conn_t));
+    ssltls = nxt_mp_zget(c->mem_pool, sizeof(nxt_openssl_conn_t));
     if (ssltls == NULL) {
         goto fail;
     }

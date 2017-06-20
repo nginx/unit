@@ -50,7 +50,7 @@ nxt_http_source_handler(nxt_task_t *task, nxt_upstream_source_t *us,
     nxt_http_source_t    *hs;
     nxt_stream_source_t  *stream;
 
-    hs = nxt_mem_zalloc(us->buffers.mem_pool, sizeof(nxt_http_source_t));
+    hs = nxt_mp_zget(us->buffers.mem_pool, sizeof(nxt_http_source_t));
     if (nxt_slow_path(hs == NULL)) {
         goto fail;
     }
@@ -70,8 +70,7 @@ nxt_http_source_handler(nxt_task_t *task, nxt_upstream_source_t *us,
     stream = us->stream;
 
     if (stream == NULL) {
-        stream = nxt_mem_zalloc(us->buffers.mem_pool,
-                                sizeof(nxt_stream_source_t));
+        stream = nxt_mp_zget(us->buffers.mem_pool, sizeof(nxt_stream_source_t));
         if (nxt_slow_path(stream == NULL)) {
             goto fail;
         }
@@ -382,7 +381,7 @@ static const nxt_upstream_name_value_t  nxt_http_source_headers[]
 
 
 nxt_int_t
-nxt_http_source_hash_create(nxt_mem_pool_t *mp, nxt_lvlhsh_t *lh)
+nxt_http_source_hash_create(nxt_mp_t *mp, nxt_lvlhsh_t *lh)
 {
     return nxt_upstream_header_hash_add(mp, lh, nxt_http_source_headers,
                                         nxt_nitems(nxt_http_source_headers));
@@ -444,8 +443,8 @@ nxt_http_source_header_ready(nxt_task_t *task, nxt_http_source_t *hs,
     if (nxt_fast_path(nxt_buf_pool_available(&us->buffers))) {
 
         if (hs->chunked) {
-            hsc = nxt_mem_zalloc(hs->upstream->buffers.mem_pool,
-                                 sizeof(nxt_http_source_chunk_t));
+            hsc = nxt_mp_zalloc(hs->upstream->buffers.mem_pool,
+                                sizeof(nxt_http_source_chunk_t));
             if (nxt_slow_path(hsc == NULL)) {
                 goto fail;
             }

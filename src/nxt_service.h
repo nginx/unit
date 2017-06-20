@@ -20,7 +20,7 @@ nxt_service_is_module(s)                                                      \
     ((s)->type == NULL)
 
 
-NXT_EXPORT nxt_array_t *nxt_services_init(nxt_mem_pool_t *mp);
+NXT_EXPORT nxt_array_t *nxt_services_init(nxt_mp_t *mp);
 NXT_EXPORT nxt_int_t nxt_service_add(nxt_array_t *services,
     const nxt_service_t *service);
 NXT_EXPORT const void *nxt_service_get(nxt_array_t *services, const char *type,

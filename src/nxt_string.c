@@ -8,12 +8,12 @@
 
 
 nxt_str_t *
-nxt_str_alloc(nxt_mem_pool_t *mp, size_t length)
+nxt_str_alloc(nxt_mp_t *mp, size_t length)
 {
     nxt_str_t  *s;
 
     /* The string start is allocated aligned to be close to nxt_str_t. */
-    s = nxt_mem_alloc(mp, sizeof(nxt_str_t) + length);
+    s = nxt_mp_get(mp, sizeof(nxt_str_t) + length);
 
     if (nxt_fast_path(s != NULL)) {
         s->length = length;
@@ -31,13 +31,13 @@ nxt_str_alloc(nxt_mem_pool_t *mp, size_t length)
  */
 
 nxt_str_t *
-nxt_str_dup(nxt_mem_pool_t *mp, nxt_str_t *dst, const nxt_str_t *src)
+nxt_str_dup(nxt_mp_t *mp, nxt_str_t *dst, const nxt_str_t *src)
 {
     u_char  *p;
 
     if (dst == NULL) {
         /* The string start is allocated aligned to be close to nxt_str_t. */
-        dst = nxt_mem_alloc(mp, sizeof(nxt_str_t) + src->length);
+        dst = nxt_mp_get(mp, sizeof(nxt_str_t) + src->length);
         if (nxt_slow_path(dst == NULL)) {
             return NULL;
         }
@@ -47,7 +47,7 @@ nxt_str_dup(nxt_mem_pool_t *mp, nxt_str_t *dst, const nxt_str_t *src)
         dst->start = p;
 
     } else {
-        dst->start = nxt_mem_nalloc(mp, src->length);
+        dst->start = nxt_mp_nget(mp, src->length);
         if (nxt_slow_path(dst->start == NULL)) {
             return NULL;
         }
@@ -69,11 +69,11 @@ nxt_str_dup(nxt_mem_pool_t *mp, nxt_str_t *dst, const nxt_str_t *src)
  */
 
 char *
-nxt_str_copy(nxt_mem_pool_t *mp, const nxt_str_t *src)
+nxt_str_copy(nxt_mp_t *mp, const nxt_str_t *src)
 {
     char  *p, *dst;
 
-    dst = nxt_mem_align(mp, 2, src->length + 1);
+    dst = nxt_mp_align(mp, 2, src->length + 1);
 
     if (nxt_fast_path(dst != NULL)) {
         p = nxt_cpymem(dst, src->start, src->length);

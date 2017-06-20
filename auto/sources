@@ -30,8 +30,6 @@ NXT_LIB_DEPS=" \
     src/nxt_utf8.h \
     src/nxt_unicode_lowcase.h \
     src/nxt_parse.h \
-    src/nxt_mem_pool.h \
-    src/nxt_mem_pool_cleanup.h \
     src/nxt_mp.h \
     src/nxt_mem_zone.h \
     src/nxt_sprintf.h \
@@ -94,8 +92,6 @@ NXT_LIB_SRCS=" \
     src/nxt_random.c \
     src/nxt_queue.c \
     src/nxt_rbtree.c \
-    src/nxt_mem_pool.c \
-    src/nxt_mem_pool_cleanup.c \
     src/nxt_mp.c \
     src/nxt_mem_zone.c \
     src/nxt_string.c \
@@ -107,7 +103,6 @@ NXT_LIB_SRCS=" \
     src/nxt_djb_hash.c \
     src/nxt_murmur_hash.c \
     src/nxt_lvlhsh.c \
-    src/nxt_lvlhsh_pool.c \
     src/nxt_array.c \
     src/nxt_vector.c \
     src/nxt_list.c \
@@ -158,6 +153,9 @@ NXT_LIB_SRC0=" \
     src/nxt_http_chunk_parse.c \
     src/nxt_fastcgi_source.c \
     src/nxt_fastcgi_record_parse.c \
+\
+    src/nxt_mem_pool_cleanup.h \
+    src/nxt_mem_pool_cleanup.c \
 "
 
 NXT_LIB_THREAD_DEPS=" \

@@ -243,17 +243,17 @@ nxt_buf_used_size(b)                                                          \
 
 
 NXT_EXPORT void nxt_buf_mem_init(nxt_buf_t *b, void *start, size_t size);
-NXT_EXPORT nxt_buf_t *nxt_buf_mem_alloc(nxt_mem_pool_t *mp, size_t size,
+NXT_EXPORT nxt_buf_t *nxt_buf_mem_alloc(nxt_mp_t *mp, size_t size,
     nxt_uint_t flags);
-NXT_EXPORT nxt_buf_t *nxt_buf_file_alloc(nxt_mem_pool_t *mp, size_t size,
+NXT_EXPORT nxt_buf_t *nxt_buf_file_alloc(nxt_mp_t *mp, size_t size,
     nxt_uint_t flags);
-NXT_EXPORT nxt_buf_t *nxt_buf_mmap_alloc(nxt_mem_pool_t *mp, size_t size);
-NXT_EXPORT nxt_buf_t *nxt_buf_sync_alloc(nxt_mem_pool_t *mp, nxt_uint_t flags);
+NXT_EXPORT nxt_buf_t *nxt_buf_mmap_alloc(nxt_mp_t *mp, size_t size);
+NXT_EXPORT nxt_buf_t *nxt_buf_sync_alloc(nxt_mp_t *mp, nxt_uint_t flags);
 
 
 #define                                                                       \
 nxt_buf_free(mp, b)                                                           \
-    nxt_mem_cache_free0((mp), (b), (b)->size)
+    nxt_mp_free((mp), (b))
 
 
 NXT_EXPORT void nxt_buf_chain_add(nxt_buf_t **head, nxt_buf_t *in);

@@ -21,7 +21,7 @@ const nxt_lvlhsh_proto_t  nxt_upstream_header_hash_proto  nxt_aligned(64) = {
 
 
 nxt_int_t
-nxt_upstream_header_hash_add(nxt_mem_pool_t *mp, nxt_lvlhsh_t *lh,
+nxt_upstream_header_hash_add(nxt_mp_t *mp, nxt_lvlhsh_t *lh,
     const nxt_upstream_name_value_t *unv, nxt_uint_t n)
 {
     nxt_lvlhsh_query_t  lhq;

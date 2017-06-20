@@ -49,7 +49,7 @@ struct nxt_process_init_s {
 
 
 typedef struct {
-    nxt_mem_pool_t      *mem_pool;
+    nxt_mp_t            *mem_pool;
 
     nxt_pid_t           pid;
     nxt_queue_t         ports;      /* of nxt_port_t */

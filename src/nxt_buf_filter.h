@@ -94,7 +94,7 @@ struct nxt_buf_filter_s {
     nxt_work_queue_t             *work_queue;
     nxt_buf_filter_file_t        *filter_file;
     void                         *data;
-    nxt_mem_pool_t               *mem_pool;
+    nxt_mp_t                     *mem_pool;
 
     const nxt_buf_filter_ops_t   *run;
 

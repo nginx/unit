@@ -11,8 +11,8 @@
 typedef struct nxt_lvlhsh_query_s  nxt_lvlhsh_query_t;
 
 typedef nxt_int_t (*nxt_lvlhsh_test_t)(nxt_lvlhsh_query_t *lhq, void *data);
-typedef void *(*nxt_lvlhsh_alloc_t)(void *ctx, size_t size, nxt_uint_t nalloc);
-typedef void (*nxt_lvlhsh_free_t)(void *ctx, void *p, size_t size);
+typedef void *(*nxt_lvlhsh_alloc_t)(void *ctx, size_t size);
+typedef void (*nxt_lvlhsh_free_t)(void *ctx, void *p);
 
 
 #if (NXT_64BIT)
@@ -73,7 +73,6 @@ typedef struct {
     uint32_t                  bucket_size;
     uint32_t                  bucket_mask;
     uint8_t                   shift[8];
-    uint32_t                  nalloc;
 
     nxt_lvlhsh_test_t         test;
     nxt_lvlhsh_alloc_t        alloc;
@@ -166,12 +165,8 @@ typedef struct {
 NXT_EXPORT void *nxt_lvlhsh_each(nxt_lvlhsh_t *lh, nxt_lvlhsh_each_t *le);
 
 
-NXT_EXPORT void *nxt_lvlhsh_alloc(void *data, size_t size, nxt_uint_t nalloc);
-NXT_EXPORT void nxt_lvlhsh_free(void *data, void *p, size_t size);
-
-NXT_EXPORT void *nxt_lvlhsh_pool_alloc(void *ctx, size_t size,
-    nxt_uint_t nalloc);
-NXT_EXPORT void nxt_lvlhsh_pool_free(void *ctx, void *p, size_t size);
+NXT_EXPORT void *nxt_lvlhsh_alloc(void *data, size_t size);
+NXT_EXPORT void nxt_lvlhsh_free(void *data, void *p);
 
 
 #endif /* _NXT_LEVEL_HASH_H_INCLUDED_ */

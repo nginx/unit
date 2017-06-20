@@ -24,7 +24,7 @@ struct nxt_upstream_peer_s {
     in_port_t       port;
 
     nxt_str_t       addr;
-    nxt_mem_pool_t  *mem_pool;
+    nxt_mp_t        *mem_pool;
     void            (*ready_handler)(nxt_task_t *task, nxt_upstream_peer_t *up);
 
     void            (*protocol_handler)(nxt_upstream_source_t *us);

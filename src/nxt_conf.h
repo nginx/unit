@@ -26,12 +26,12 @@ nxt_conf_json_value_t *nxt_conf_json_object_get_member(
 
 nxt_int_t nxt_conf_json_op_compile(nxt_conf_json_value_t *object,
     nxt_conf_json_value_t *value, nxt_conf_json_op_t **ops, nxt_str_t *path,
-    nxt_mem_pool_t *pool);
+    nxt_mp_t *pool);
 nxt_conf_json_value_t *nxt_conf_json_clone_value(nxt_conf_json_value_t *value,
-    nxt_conf_json_op_t *op, nxt_mem_pool_t *pool);
+    nxt_conf_json_op_t *op, nxt_mp_t *pool);
 
 nxt_conf_json_value_t *nxt_conf_json_parse(u_char *pos, size_t length,
-    nxt_mem_pool_t *pool);
+    nxt_mp_t *pool);
 
 uintptr_t nxt_conf_json_print_value(u_char *pos, nxt_conf_json_value_t *value,
     nxt_conf_json_pretty_t *pretty);

@@ -302,8 +302,7 @@ nxt_lvlhsh_new_bucket(nxt_lvlhsh_query_t *lhq, void **slot)
 {
     uint32_t  *bucket;
 
-    bucket = lhq->proto->alloc(lhq->pool, nxt_lvlhsh_bucket_size(lhq->proto),
-                               lhq->proto->nalloc);
+    bucket = lhq->proto->alloc(lhq->pool, nxt_lvlhsh_bucket_size(lhq->proto));
 
     if (nxt_fast_path(bucket != NULL)) {
 
@@ -476,7 +475,7 @@ nxt_lvlhsh_convert_bucket_to_level(nxt_lvlhsh_query_t *lhq, void **slot,
     proto = lhq->proto;
     size = nxt_lvlhsh_level_size(proto, nlvl);
 
-    lvl = proto->alloc(lhq->pool, size * (sizeof(void *)), proto->nalloc);
+    lvl = proto->alloc(lhq->pool, size * (sizeof(void *)));
 
     if (nxt_slow_path(lvl == NULL)) {
         return NXT_ERROR;
@@ -516,7 +515,7 @@ nxt_lvlhsh_convert_bucket_to_level(nxt_lvlhsh_query_t *lhq, void **slot,
 
     *slot = lvl;
 
-    proto->free(lhq->pool, bucket, nxt_lvlhsh_bucket_size(proto));
+    proto->free(lhq->pool, bucket);
 
     return NXT_OK;
 }
@@ -615,12 +614,10 @@ nxt_lvlhsh_bucket_convertion_insert(nxt_lvlhsh_query_t *lhq, void **slot,
 static nxt_int_t
 nxt_lvlhsh_free_level(nxt_lvlhsh_query_t *lhq, void **level, nxt_uint_t size)
 {
-    size_t                    bsize;
     nxt_uint_t                i;
     const nxt_lvlhsh_proto_t  *proto;
 
     proto = lhq->proto;
-    bsize = nxt_lvlhsh_bucket_size(proto);
 
     for (i = 0; i < size; i++) {
 
@@ -630,11 +627,11 @@ nxt_lvlhsh_free_level(nxt_lvlhsh_query_t *lhq, void **level, nxt_uint_t size)
              * in the worst case one bucket cannot be converted
              * in two chained buckets but remains the same bucket.
              */
-            proto->free(lhq->pool, nxt_lvlhsh_bucket(proto, level[i]), bsize);
+            proto->free(lhq->pool, nxt_lvlhsh_bucket(proto, level[i]));
         }
     }
 
-    proto->free(lhq->pool, level, size * (sizeof(void *)));
+    proto->free(lhq->pool, level);
 
     return NXT_ERROR;
 }
@@ -660,7 +657,6 @@ static nxt_int_t
 nxt_lvlhsh_level_delete(nxt_lvlhsh_query_t *lhq, void **parent, uint32_t key,
     nxt_uint_t nlvl)
 {
-    size_t      size;
     void        **slot, **lvl;
     uintptr_t   mask;
     nxt_int_t   ret;
@@ -687,8 +683,7 @@ nxt_lvlhsh_level_delete(nxt_lvlhsh_query_t *lhq, void **parent, uint32_t key,
 
             if (nxt_lvlhsh_level_entries(*parent, mask) == 0) {
                 *parent = NULL;
-                size = nxt_lvlhsh_level_size(lhq->proto, nlvl);
-                lhq->proto->free(lhq->pool, lvl, size * sizeof(void *));
+                lhq->proto->free(lhq->pool, lvl);
             }
         }
 
@@ -703,7 +698,6 @@ static nxt_int_t
 nxt_lvlhsh_bucket_delete(nxt_lvlhsh_query_t *lhq, void **bkt)
 {
     void                      *value;
-    size_t                    size;
     uint32_t                  *bucket, *e;
     uintptr_t                 n;
     const nxt_lvlhsh_proto_t  *proto;
@@ -726,8 +720,7 @@ nxt_lvlhsh_bucket_delete(nxt_lvlhsh_query_t *lhq, void **bkt)
 
                         if (nxt_lvlhsh_bucket_entries(proto, *bkt) == 1) {
                             *bkt = *nxt_lvlhsh_next_bucket(proto, bucket);
-                            size = nxt_lvlhsh_bucket_size(proto);
-                            proto->free(lhq->pool, bucket, size);
+                            proto->free(lhq->pool, bucket);
 
                         } else {
                             nxt_lvlhsh_count_dec(*bkt);
@@ -877,14 +870,14 @@ nxt_lvlhsh_bucket_each(nxt_lvlhsh_each_t *lhe)
 
 
 void *
-nxt_lvlhsh_alloc(void *data, size_t size, nxt_uint_t nalloc)
+nxt_lvlhsh_alloc(void *data, size_t size)
 {
     return nxt_memalign(size, size);
 }
 
 
 void
-nxt_lvlhsh_free(void *data, void *p, size_t size)
+nxt_lvlhsh_free(void *data, void *p)
 {
     nxt_free(p);
 }

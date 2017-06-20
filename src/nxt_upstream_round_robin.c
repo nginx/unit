@@ -72,15 +72,15 @@ nxt_upstream_round_robin_create(nxt_task_t *task, void *obj, void *data)
     jbs = obj;
     up = jbs->resolve.job.data;
 
-    urr = nxt_mem_zalloc(up->mem_pool, sizeof(nxt_upstream_round_robin_t));
+    urr = nxt_mp_zget(up->mem_pool, sizeof(nxt_upstream_round_robin_t));
     if (nxt_slow_path(urr == NULL)) {
         goto fail;
     }
 
     urr->npeers = jbs->resolve.count;
 
-    peer = nxt_mem_zalloc(up->mem_pool,
-                   urr->npeers * sizeof(nxt_upstream_round_robin_peer_t));
+    peer = nxt_mp_zget(up->mem_pool,
+                       urr->npeers * sizeof(nxt_upstream_round_robin_peer_t));
     if (nxt_slow_path(peer == NULL)) {
         goto fail;
     }

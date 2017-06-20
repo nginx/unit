@@ -42,12 +42,12 @@ nxt_conn_io_t  nxt_unix_conn_io = {
 
 
 nxt_conn_t *
-nxt_conn_create(nxt_mem_pool_t *mp, nxt_task_t *task)
+nxt_conn_create(nxt_mp_t *mp, nxt_task_t *task)
 {
     nxt_conn_t    *c;
     nxt_thread_t  *thr;
 
-    c = nxt_mem_zalloc(mp, sizeof(nxt_conn_t));
+    c = nxt_mp_zget(mp, sizeof(nxt_conn_t));
     if (nxt_slow_path(c == NULL)) {
         return NULL;
     }

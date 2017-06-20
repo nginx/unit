@@ -98,7 +98,6 @@ const nxt_event_interface_t  nxt_poll_engine = {
 static const nxt_lvlhsh_proto_t  nxt_poll_fd_hash_proto  nxt_aligned(64) =
 {
     NXT_LVLHSH_LARGE_MEMALIGN,
-    0,
     nxt_poll_fd_hash_test,
     nxt_lvlhsh_alloc,
     nxt_lvlhsh_free,

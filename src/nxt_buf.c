@@ -23,11 +23,11 @@ nxt_buf_mem_init(nxt_buf_t *b, void *start, size_t size)
 
 
 nxt_buf_t *
-nxt_buf_mem_alloc(nxt_mem_pool_t *mp, size_t size, nxt_uint_t flags)
+nxt_buf_mem_alloc(nxt_mp_t *mp, size_t size, nxt_uint_t flags)
 {
     nxt_buf_t  *b;
 
-    b = nxt_mem_cache_zalloc0(mp, NXT_BUF_MEM_SIZE);
+    b = nxt_mp_zalloc(mp, NXT_BUF_MEM_SIZE);
     if (nxt_slow_path(b == NULL)) {
         return NULL;
     }
@@ -37,7 +37,7 @@ nxt_buf_mem_alloc(nxt_mem_pool_t *mp, size_t size, nxt_uint_t flags)
     b->size = NXT_BUF_MEM_SIZE;
 
     if (size != 0) {
-        b->mem.start = nxt_mem_buf(mp, &size, flags);
+        b->mem.start = nxt_mp_alloc(mp, size);
         if (nxt_slow_path(b->mem.start == NULL)) {
             return NULL;
         }
@@ -52,11 +52,11 @@ nxt_buf_mem_alloc(nxt_mem_pool_t *mp, size_t size, nxt_uint_t flags)
 
 
 nxt_buf_t *
-nxt_buf_file_alloc(nxt_mem_pool_t *mp, size_t size, nxt_uint_t flags)
+nxt_buf_file_alloc(nxt_mp_t *mp, size_t size, nxt_uint_t flags)
 {
     nxt_buf_t  *b;
 
-    b = nxt_mem_cache_zalloc0(mp, NXT_BUF_FILE_SIZE);
+    b = nxt_mp_zalloc(mp, NXT_BUF_FILE_SIZE);
     if (nxt_slow_path(b == NULL)) {
         return NULL;
     }
@@ -67,7 +67,7 @@ nxt_buf_file_alloc(nxt_mem_pool_t *mp, size_t size, nxt_uint_t flags)
     nxt_buf_set_file(b);
 
     if (size != 0) {
-        b->mem.start = nxt_mem_buf(mp, &size, flags);
+        b->mem.start = nxt_mp_alloc(mp, size);
         if (nxt_slow_path(b->mem.start == NULL)) {
             return NULL;
         }
@@ -82,11 +82,11 @@ nxt_buf_file_alloc(nxt_mem_pool_t *mp, size_t size, nxt_uint_t flags)
 
 
 nxt_buf_t *
-nxt_buf_mmap_alloc(nxt_mem_pool_t *mp, size_t size)
+nxt_buf_mmap_alloc(nxt_mp_t *mp, size_t size)
 {
     nxt_buf_t  *b;
 
-    b = nxt_mem_cache_zalloc0(mp, NXT_BUF_MMAP_SIZE);
+    b = nxt_mp_zalloc(mp, NXT_BUF_MMAP_SIZE);
 
     if (nxt_fast_path(b != NULL)) {
         b->data = mp;
@@ -103,11 +103,11 @@ nxt_buf_mmap_alloc(nxt_mem_pool_t *mp, size_t size)
 
 
 nxt_buf_t *
-nxt_buf_sync_alloc(nxt_mem_pool_t *mp, nxt_uint_t flags)
+nxt_buf_sync_alloc(nxt_mp_t *mp, nxt_uint_t flags)
 {
     nxt_buf_t  *b;
 
-    b = nxt_mem_cache_zalloc0(mp, NXT_BUF_SYNC_SIZE);
+    b = nxt_mp_zalloc(mp, NXT_BUF_SYNC_SIZE);
 
     if (nxt_fast_path(b != NULL)) {
         b->data = mp;
@@ -158,8 +158,8 @@ nxt_buf_chain_length(nxt_buf_t *b)
 static void
 nxt_buf_completion(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_buf_t       *b, *parent;
-    nxt_mem_pool_t  *mp;
+    nxt_mp_t   *mp;
+    nxt_buf_t  *b, *parent;
 
     b = obj;
     parent = data;

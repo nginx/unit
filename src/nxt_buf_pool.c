@@ -148,7 +148,7 @@ nxt_buf_pool_free(nxt_buf_pool_t *bp, nxt_buf_t *b)
         }
 
         if (!bp->mmap) {
-            nxt_mem_free(bp->mem_pool, b->mem.start);
+            nxt_mp_free(bp->mem_pool, b->mem.start);
         }
 
         nxt_buf_free(bp->mem_pool, b);
@@ -184,7 +184,7 @@ nxt_buf_pool_destroy(nxt_buf_pool_t *bp)
     for (b = bp->free; b != NULL; b = b->next) {
         p = b->mem.start;
         nxt_buf_free(bp->mem_pool, b);
-        nxt_mem_free(bp->mem_pool, p);
+        nxt_mp_free(bp->mem_pool, p);
     }
 
     bp->free = b; /* NULL */

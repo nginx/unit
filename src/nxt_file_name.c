@@ -17,7 +17,7 @@
  */
 
 nxt_int_t
-nxt_file_name_create(nxt_mem_pool_t *mp, nxt_file_name_str_t *file_name,
+nxt_file_name_create(nxt_mp_t *mp, nxt_file_name_str_t *file_name,
     const char *format, ...)
 {
     u_char           ch, *p;

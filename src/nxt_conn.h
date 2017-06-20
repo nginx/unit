@@ -155,7 +155,7 @@ struct nxt_conn_s {
 
 #endif
 
-    nxt_mem_pool_t                *mem_pool;
+    nxt_mp_t                      *mem_pool;
 
     nxt_task_t                    task;
     nxt_log_t                     log;
@@ -226,7 +226,7 @@ struct nxt_conn_s {
 #endif
 
 
-NXT_EXPORT nxt_conn_t *nxt_conn_create(nxt_mem_pool_t *mp, nxt_task_t *task);
+NXT_EXPORT nxt_conn_t *nxt_conn_create(nxt_mp_t *mp, nxt_task_t *task);
 void nxt_conn_io_shutdown(nxt_task_t *task, void *obj, void *data);
 NXT_EXPORT void nxt_conn_close(nxt_event_engine_t *engine, nxt_conn_t *c);
 
