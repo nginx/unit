@@ -428,9 +428,9 @@ static nxt_str_t nxt_http_unit_test_big_request = nxt_string(
 nxt_int_t
 nxt_http_parse_unit_test(nxt_thread_t *thr)
 {
+    nxt_mp_t                         *mp;
     nxt_int_t                        rc;
     nxt_uint_t                       i;
-    nxt_mem_pool_t                   *mp;
     nxt_http_fields_hash_t           *hash;
     nxt_http_request_parse_t         rp;
     nxt_http_parse_unit_test_case_t  *test;
@@ -442,7 +442,7 @@ nxt_http_parse_unit_test(nxt_thread_t *thr)
 
         nxt_memzero(&rp, sizeof(nxt_http_request_parse_t));
 
-        mp = nxt_mem_pool_create(512);
+        mp = nxt_mp_create(1024, 128, 256, 32);
         if (mp == NULL) {
             return NXT_ERROR;
         }
@@ -468,12 +468,12 @@ nxt_http_parse_unit_test(nxt_thread_t *thr)
             return NXT_ERROR;
         }
 
-        nxt_mem_pool_destroy(mp);
+        nxt_mp_destroy(mp);
     }
 
     nxt_log_error(NXT_LOG_NOTICE, thr->log, "http parse unit test passed");
 
-    mp = nxt_mem_pool_create(512);
+    mp = nxt_mp_create(1024, 128, 256, 32);
     if (mp == NULL) {
         return NXT_ERROR;
     }
@@ -497,7 +497,7 @@ nxt_http_parse_unit_test(nxt_thread_t *thr)
         return NXT_ERROR;
     }
 
-    nxt_mem_pool_destroy(mp);
+    nxt_mp_destroy(mp);
 
     return NXT_OK;
 }
@@ -528,10 +528,10 @@ static nxt_int_t
 nxt_http_parse_unit_test_bench(nxt_thread_t *thr, nxt_str_t *request,
     nxt_http_fields_hash_t *hash, const char *name, nxt_uint_t n)
 {
+    nxt_mp_t                  *mp;
     nxt_nsec_t                start, end;
     nxt_uint_t                i;
     nxt_buf_mem_t             buf;
-    nxt_mem_pool_t            *mp;
     nxt_http_request_parse_t  rp;
 
     nxt_log_error(NXT_LOG_NOTICE, thr->log,
@@ -548,7 +548,7 @@ nxt_http_parse_unit_test_bench(nxt_thread_t *thr, nxt_str_t *request,
     for (i = 0; nxt_fast_path(i < n); i++) {
         nxt_memzero(&rp, sizeof(nxt_http_request_parse_t));
 
-        mp = nxt_mem_pool_create(512);
+        mp = nxt_mp_create(1024, 128, 256, 32);
         if (nxt_slow_path(mp == NULL)) {
             return NXT_ERROR;
         }
@@ -575,7 +575,7 @@ nxt_http_parse_unit_test_bench(nxt_thread_t *thr, nxt_str_t *request,
             return NXT_ERROR;
         }
 
-        nxt_mem_pool_destroy(mp);
+        nxt_mp_destroy(mp);
     }
 
     nxt_thread_time_update(thr);
@@ -696,13 +696,13 @@ static nxt_int_t
 nxt_http_parse_unit_test_fields(nxt_http_request_parse_t *rp,
     nxt_http_parse_unit_test_data_t *data, nxt_str_t *request, nxt_log_t *log)
 {
+    nxt_mp_t                *mp;
     nxt_int_t               rc;
-    nxt_mem_pool_t          *mp;
     nxt_http_fields_hash_t  *hash;
 
     nxt_http_parse_unit_test_fields_t  *test = &data->fields;
 
-    mp = nxt_mem_pool_create(256);
+    mp = nxt_mp_create(1024, 128, 256, 32);
     if (mp == NULL) {
         return NXT_ERROR;
     }
@@ -723,7 +723,7 @@ nxt_http_parse_unit_test_fields(nxt_http_request_parse_t *rp,
         return NXT_ERROR;
     }
 
-    nxt_mem_pool_destroy(mp);
+    nxt_mp_destroy(mp);
 
     return NXT_OK;
 }
