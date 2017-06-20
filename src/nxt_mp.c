@@ -189,6 +189,8 @@ nxt_mp_create(size_t cluster_size, size_t page_alignment, size_t page_size,
         nxt_rbtree_init(&mp->blocks, nxt_mp_rbtree_compare);
 
         nxt_queue_init(&mp->free_pages);
+        nxt_queue_init(&mp->nget_pages);
+        nxt_queue_init(&mp->get_pages);
     }
 
     return mp;
