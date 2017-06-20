@@ -51,7 +51,7 @@ static void nxt_controller_conn_close(nxt_task_t *task, void *obj, void *data);
 static void nxt_controller_conn_free(nxt_task_t *task, void *obj, void *data);
 
 static nxt_int_t nxt_controller_request_content_length(void *ctx,
-    nxt_http_field_t *field, uintptr_t data, nxt_log_t *log);
+    nxt_http_field_t *field, nxt_log_t *log);
 
 static void nxt_controller_process_request(nxt_task_t *task,
     nxt_conn_t *c, nxt_controller_request_t *r);
@@ -213,6 +213,8 @@ nxt_controller_conn_init(nxt_task_t *task, void *obj, void *data)
         return;
     }
 
+    r->parser.fields_hash = nxt_controller_fields_hash;
+
     b = nxt_buf_mem_alloc(c->mem_pool, 1024, 0);
     if (nxt_slow_path(b == NULL)) {
         nxt_controller_conn_free(task, c, NULL);
@@ -287,8 +289,7 @@ nxt_controller_conn_read(nxt_task_t *task, void *obj, void *data)
         return;
     }
 
-    rc = nxt_http_fields_process(r->parser.fields, nxt_controller_fields_hash,
-                                 r, task->log);
+    rc = nxt_http_fields_process(r->parser.fields, r, task->log);
 
     if (nxt_slow_path(rc != NXT_OK)) {
         nxt_controller_conn_close(task, c, r);
@@ -512,7 +513,7 @@ nxt_controller_conn_free(nxt_task_t *task, void *obj, void *data)
 
 static nxt_int_t
 nxt_controller_request_content_length(void *ctx, nxt_http_field_t *field,
-    uintptr_t data, nxt_log_t *log)
+    nxt_log_t *log)
 {
     off_t                     length;
     nxt_controller_request_t  *r;

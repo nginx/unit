@@ -26,14 +26,12 @@ typedef struct {
 
 
 typedef struct {
-    nxt_http_fields_hash_entry_t  *entries;
-    nxt_int_t                     result;
 } nxt_http_parse_unit_test_fields_t;
 
 
 typedef union {
     void                                     *pointer;
-    nxt_http_parse_unit_test_fields_t        fields;
+    nxt_int_t                                result;
     nxt_http_parse_unit_test_request_line_t  request_line;
 } nxt_http_parse_unit_test_data_t;
 
@@ -62,21 +60,8 @@ static nxt_int_t nxt_http_parse_unit_test_fields(
     nxt_str_t *request, nxt_log_t *log);
 
 
-static nxt_int_t nxt_http_unit_test_header_return(void *ctx, nxt_http_field_t *field,
-    uintptr_t data, nxt_log_t *log);
-
-
-static nxt_http_fields_hash_entry_t  nxt_http_unit_test_fields[] = {
-    { nxt_string("X-Bad-Header"),
-      &nxt_http_unit_test_header_return,
-      (uintptr_t) NXT_ERROR },
-
-    { nxt_string("X-Good-Header"),
-      &nxt_http_unit_test_header_return,
-      (uintptr_t) NXT_OK },
-
-    { nxt_null_string, NULL, 0 }
-};
+static nxt_int_t nxt_http_unit_test_header_return(void *ctx,
+    nxt_http_field_t *field, nxt_log_t *log);
 
 
 static nxt_http_parse_unit_test_case_t  nxt_http_unit_test_cases[] = {
@@ -295,10 +280,7 @@ static nxt_http_parse_unit_test_case_t  nxt_http_unit_test_cases[] = {
                    "X-Good-Header: value\r\n\r\n"),
         NXT_DONE,
         &nxt_http_parse_unit_test_fields,
-        { .fields = {
-            nxt_http_unit_test_fields,
-            NXT_OK
-        }}
+        { .result = NXT_OK }
     },
     {
         nxt_string("GET / HTTP/1.1\r\n"
@@ -307,11 +289,21 @@ static nxt_http_parse_unit_test_case_t  nxt_http_unit_test_cases[] = {
                    "X-Bad-Header: value\r\n\r\n"),
         NXT_DONE,
         &nxt_http_parse_unit_test_fields,
-        { .fields = {
-            nxt_http_unit_test_fields,
-            NXT_ERROR
-        }}
+        { .result = NXT_ERROR }
     },
+};
+
+
+static nxt_http_fields_hash_entry_t  nxt_http_unit_test_fields[] = {
+    { nxt_string("X-Bad-Header"),
+      &nxt_http_unit_test_header_return,
+      (uintptr_t) NXT_ERROR },
+
+    { nxt_string("X-Good-Header"),
+      &nxt_http_unit_test_header_return,
+      (uintptr_t) NXT_OK },
+
+    { nxt_null_string, NULL, 0 }
 };
 
 
@@ -428,7 +420,7 @@ static nxt_str_t nxt_http_unit_test_big_request = nxt_string(
 nxt_int_t
 nxt_http_parse_unit_test(nxt_thread_t *thr)
 {
-    nxt_mp_t                         *mp;
+    nxt_mp_t                         *mp, *mp_temp;
     nxt_int_t                        rc;
     nxt_uint_t                       i;
     nxt_http_fields_hash_t           *hash;
@@ -437,19 +429,31 @@ nxt_http_parse_unit_test(nxt_thread_t *thr)
 
     nxt_thread_time_update(thr);
 
+    mp = nxt_mp_create(1024, 128, 256, 32);
+    if (mp == NULL) {
+        return NXT_ERROR;
+    }
+
+    hash = nxt_http_fields_hash_create(nxt_http_unit_test_fields, mp);
+    if (hash == NULL) {
+        return NXT_ERROR;
+    }
+
     for (i = 0; i < nxt_nitems(nxt_http_unit_test_cases); i++) {
         test = &nxt_http_unit_test_cases[i];
 
         nxt_memzero(&rp, sizeof(nxt_http_request_parse_t));
 
-        mp = nxt_mp_create(1024, 128, 256, 32);
-        if (mp == NULL) {
+        mp_temp = nxt_mp_create(1024, 128, 256, 32);
+        if (mp_temp == NULL) {
             return NXT_ERROR;
         }
 
-        if (nxt_http_parse_request_init(&rp, mp) != NXT_OK) {
+        if (nxt_http_parse_request_init(&rp, mp_temp) != NXT_OK) {
             return NXT_ERROR;
         }
+
+        rp.fields_hash = hash;
 
         rc = nxt_http_parse_unit_test_run(&rp, &test->request);
 
@@ -468,15 +472,10 @@ nxt_http_parse_unit_test(nxt_thread_t *thr)
             return NXT_ERROR;
         }
 
-        nxt_mp_destroy(mp);
+        nxt_mp_destroy(mp_temp);
     }
 
     nxt_log_error(NXT_LOG_NOTICE, thr->log, "http parse unit test passed");
-
-    mp = nxt_mp_create(1024, 128, 256, 32);
-    if (mp == NULL) {
-        return NXT_ERROR;
-    }
 
     hash = nxt_http_fields_hash_create(nxt_http_unit_test_bench_fields, mp);
     if (hash == NULL) {
@@ -557,6 +556,8 @@ nxt_http_parse_unit_test_bench(nxt_thread_t *thr, nxt_str_t *request,
             return NXT_ERROR;
         }
 
+        rp.fields_hash = hash;
+
         buf.pos = buf.start;
         buf.free = buf.end;
 
@@ -566,8 +567,7 @@ nxt_http_parse_unit_test_bench(nxt_thread_t *thr, nxt_str_t *request,
             return NXT_ERROR;
         }
 
-        if (nxt_slow_path(nxt_http_fields_process(rp.fields, hash, NULL,
-                                                  thr->log)
+        if (nxt_slow_path(nxt_http_fields_process(rp.fields, NULL, thr->log)
                           != NXT_OK))
         {
             nxt_log_alert(thr->log, "http parse unit %s request bench failed "
@@ -696,34 +696,17 @@ static nxt_int_t
 nxt_http_parse_unit_test_fields(nxt_http_request_parse_t *rp,
     nxt_http_parse_unit_test_data_t *data, nxt_str_t *request, nxt_log_t *log)
 {
-    nxt_mp_t                *mp;
-    nxt_int_t               rc;
-    nxt_http_fields_hash_t  *hash;
+    nxt_int_t  rc;
 
-    nxt_http_parse_unit_test_fields_t  *test = &data->fields;
+    rc = nxt_http_fields_process(rp->fields, NULL, log);
 
-    mp = nxt_mp_create(1024, 128, 256, 32);
-    if (mp == NULL) {
-        return NXT_ERROR;
-    }
-
-    hash = nxt_http_fields_hash_create(test->entries, mp);
-    if (hash == NULL) {
-        nxt_log_alert(log, "unable to create hash");
-        return NXT_ERROR;
-    }
-
-    rc = nxt_http_fields_process(rp->fields, hash, NULL, log);
-
-    if (rc != test->result) {
+    if (rc != data->result) {
         nxt_log_alert(log, "http parse unit test hash failed:\n"
                            " - request:\n\"%V\"\n"
                            " - result: %i (expected: %i)",
-                           request, rc, test->result);
+                           request, rc, data->result);
         return NXT_ERROR;
     }
-
-    nxt_mp_destroy(mp);
 
     return NXT_OK;
 }
@@ -731,7 +714,7 @@ nxt_http_parse_unit_test_fields(nxt_http_request_parse_t *rp,
 
 static nxt_int_t
 nxt_http_unit_test_header_return(void *ctx, nxt_http_field_t *field,
-    uintptr_t data, nxt_log_t *log)
+    nxt_log_t *log)
 {
-    return (nxt_int_t) data;
+    return (nxt_int_t) field->data;
 }
