@@ -913,7 +913,7 @@ nxt_runtime_sockaddr_parse(nxt_task_t *task, nxt_mp_t *mp, nxt_str_t *addr)
     length = addr->length;
     p = addr->start;
 
-    if (length >= 5 && nxt_memcmp(p, (u_char *) "unix:", 5) == 0) {
+    if (length >= 5 && nxt_memcmp(p, "unix:", 5) == 0) {
         return nxt_runtime_sockaddr_unix_parse(task, mp, addr);
     }
 

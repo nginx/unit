@@ -574,7 +574,7 @@ nxt_job_sockaddr_parse(nxt_job_sockaddr_parse_t *jbs)
     length = jbs->addr.length;
     p = jbs->addr.start;
 
-    if (length > 6 && nxt_memcmp(p, (u_char *) "unix:", 5) == 0) {
+    if (length > 6 && nxt_memcmp(p, "unix:", 5) == 0) {
         ret = nxt_job_sockaddr_unix_parse(jbs);
 
     } else if (length != 0 && *p == '[') {
