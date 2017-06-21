@@ -446,6 +446,12 @@ nxt_conf_json_copy_object(nxt_conf_json_value_t *dst,
 
     pass_op = NULL;
 
+    /*
+     * This initialization is needed only to
+     * suppress a warning on GCC 4.8 and older.
+     */
+    index = 0;
+
     do {
         if (pass_op == NULL) {
             index = (op == NULL || op->action == NXT_CONF_JSON_OP_CREATE)
