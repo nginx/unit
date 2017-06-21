@@ -138,8 +138,8 @@ struct nxt_mp_s {
 
 
 #if !(NXT_DEBUG_MEMORY)
-static void *nxt_mp_get_small(nxt_mp_t *mp, nxt_queue_t *pages, size_t size);
 static void *nxt_mp_alloc_small(nxt_mp_t *mp, size_t size);
+static void *nxt_mp_get_small(nxt_mp_t *mp, nxt_queue_t *pages, size_t size);
 static nxt_mp_page_t *nxt_mp_alloc_page(nxt_mp_t *mp);
 static nxt_mp_block_t *nxt_mp_alloc_cluster(nxt_mp_t *mp);
 #endif
@@ -341,23 +341,6 @@ nxt_mp_zalign(nxt_mp_t *mp, size_t alignment, size_t size)
 }
 
 
-#if !(NXT_DEBUG_MEMORY)
-
-nxt_inline u_char *
-nxt_mp_page_addr(nxt_mp_t *mp, nxt_mp_page_t *page)
-{
-    size_t          page_offset;
-    nxt_mp_block_t  *block;
-
-    page_offset = page->number * sizeof(nxt_mp_page_t)
-                  + offsetof(nxt_mp_block_t, pages);
-
-    block = (nxt_mp_block_t *) ((u_char *) page - page_offset);
-
-    return block->start + (page->number << mp->page_size_shift);
-}
-
-
 nxt_inline nxt_uint_t
 nxt_mp_chunk_pages_index(nxt_mp_t *mp, size_t size)
 {
@@ -374,6 +357,23 @@ nxt_mp_chunk_pages_index(nxt_mp_t *mp, size_t size)
     }
 
     return index;
+}
+
+
+#if !(NXT_DEBUG_MEMORY)
+
+nxt_inline u_char *
+nxt_mp_page_addr(nxt_mp_t *mp, nxt_mp_page_t *page)
+{
+    size_t          page_offset;
+    nxt_mp_block_t  *block;
+
+    page_offset = page->number * sizeof(nxt_mp_page_t)
+                  + offsetof(nxt_mp_block_t, pages);
+
+    block = (nxt_mp_block_t *) ((u_char *) page - page_offset);
+
+    return block->start + (page->number << mp->page_size_shift);
 }
 
 
@@ -445,6 +445,55 @@ nxt_mp_alloc_small(nxt_mp_t *mp, size_t size)
 
     nxt_debug_alloc("mp chunk:%uz alloc: %p",
                     page->size << mp->chunk_size_shift, p);
+
+    return p;
+}
+
+
+static void *
+nxt_mp_get_small(nxt_mp_t *mp, nxt_queue_t *pages, size_t size)
+{
+    u_char            *p;
+    uint32_t          available;
+    nxt_mp_page_t     *page;
+    nxt_queue_link_t  *link, *next;
+
+    for (link = nxt_queue_first(pages);
+         link != nxt_queue_tail(pages);
+         link = next)
+    {
+        next = nxt_queue_next(link);
+        page = nxt_queue_link_data(link, nxt_mp_page_t, link);
+
+        available = mp->page_size - page->u.taken;
+
+        if (size <= available) {
+            goto found;
+        }
+
+        if (available == 0 || page->fails++ > 100) {
+            nxt_queue_remove(link);
+        }
+    }
+
+    page = nxt_mp_alloc_page(mp);
+
+    if (nxt_slow_path(page == NULL)) {
+        return page;
+    }
+
+    nxt_queue_insert_head(pages, &page->link);
+
+    page->size = 0xFF;
+
+found:
+
+    p = nxt_mp_page_addr(mp, page);
+
+    p += page->u.taken;
+    page->u.taken += size;
+
+    nxt_debug_alloc("mp get: %p", p);
 
     return p;
 }
@@ -838,55 +887,6 @@ nxt_mp_zget(nxt_mp_t *mp, size_t size)
     if (nxt_fast_path(p != NULL)) {
         memset(p, 0, size);
     }
-
-    return p;
-}
-
-
-static void *
-nxt_mp_get_small(nxt_mp_t *mp, nxt_queue_t *pages, size_t size)
-{
-    u_char            *p;
-    uint32_t          available;
-    nxt_mp_page_t     *page;
-    nxt_queue_link_t  *link, *next;
-
-    for (link = nxt_queue_first(pages);
-         link != nxt_queue_tail(pages);
-         link = next)
-    {
-        next = nxt_queue_next(link);
-        page = nxt_queue_link_data(link, nxt_mp_page_t, link);
-
-        available = mp->page_size - page->u.taken;
-
-        if (size <= available) {
-            goto found;
-        }
-
-        if (available == 0 || page->fails++ > 100) {
-            nxt_queue_remove(link);
-        }
-    }
-
-    page = nxt_mp_alloc_page(mp);
-
-    if (nxt_slow_path(page == NULL)) {
-        return page;
-    }
-
-    nxt_queue_insert_head(pages, &page->link);
-
-    page->size = 0xFF;
-
-found:
-
-    p = nxt_mp_page_addr(mp, page);
-
-    p += page->u.taken;
-    page->u.taken += size;
-
-    nxt_debug_alloc("mp get: %p", p);
 
     return p;
 }
