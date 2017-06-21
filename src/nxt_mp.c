@@ -156,41 +156,37 @@ nxt_mp_create(size_t cluster_size, size_t page_alignment, size_t page_size,
     size_t min_chunk_size)
 {
     nxt_mp_t     *mp;
-    nxt_uint_t   pages, chunk_size;
+    uint32_t     pages, chunk_size_shift, page_size_shift;
     nxt_queue_t  *chunk_pages;
 
-    pages = 0;
-    chunk_size = page_size;
+    chunk_size_shift = nxt_lg2(min_chunk_size);
+    page_size_shift = nxt_lg2(page_size);
 
-    do {
-        pages++;
-        chunk_size /= 2;
-    } while (chunk_size > min_chunk_size);
+    pages = page_size_shift - chunk_size_shift;
 
     mp = nxt_zalloc(sizeof(nxt_mp_t) + pages * sizeof(nxt_queue_t));
 
     if (nxt_fast_path(mp != NULL)) {
         mp->retain = 1;
+        mp->chunk_size_shift = chunk_size_shift;
+        mp->page_size_shift = page_size_shift;
         mp->page_size = page_size;
         mp->page_alignment = nxt_max(page_alignment, NXT_MAX_ALIGNMENT);
         mp->cluster_size = cluster_size;
 
         chunk_pages = mp->chunk_pages;
 
-        do {
+        while (pages != 0) {
             nxt_queue_init(chunk_pages);
             chunk_pages++;
-            chunk_size *= 2;
-        } while (chunk_size < page_size);
-
-        mp->chunk_size_shift = nxt_lg2(min_chunk_size);
-        mp->page_size_shift = nxt_lg2(page_size);
-
-        nxt_rbtree_init(&mp->blocks, nxt_mp_rbtree_compare);
+            pages--;
+        };
 
         nxt_queue_init(&mp->free_pages);
         nxt_queue_init(&mp->nget_pages);
         nxt_queue_init(&mp->get_pages);
+
+        nxt_rbtree_init(&mp->blocks, nxt_mp_rbtree_compare);
     }
 
     return mp;
