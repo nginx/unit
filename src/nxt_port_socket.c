@@ -148,7 +148,8 @@ nxt_port_socket_write(nxt_task_t *task, nxt_port_t *port, nxt_uint_t type,
     {
         msg = (nxt_port_send_msg_t *) link;
 
-        if (msg->port_msg.stream == stream) {
+        if  (msg->port_msg.stream == stream && 
+             msg->port_msg.reply_port == reply_port) {
             /*
              * An fd is ignored since a file descriptor
              * must be sent only in the first message of a stream.
@@ -191,7 +192,7 @@ nxt_port_write_handler(nxt_task_t *task, void *obj, void *data)
 {
     ssize_t                 n;
     nxt_port_t              *port;
-    struct iovec            iov[NXT_IOBUF_MAX];
+    struct iovec            iov[NXT_IOBUF_MAX * 10];
     nxt_queue_link_t        *link;
     nxt_port_send_msg_t     *msg;
     nxt_sendbuf_coalesce_t  sb;
@@ -227,6 +228,7 @@ nxt_port_write_handler(nxt_task_t *task, void *obj, void *data)
 
         if (m == NXT_PORT_METHOD_MMAP) {
             sb.limit = (1ULL << 31) - 1;
+            sb.nmax = NXT_IOBUF_MAX * 10 - 1;
         }
 
         nxt_sendbuf_mem_coalesce(task, &sb);
