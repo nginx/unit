@@ -858,8 +858,8 @@ nxt_lvlhsh_bucket_each(nxt_lvlhsh_each_t *lhe)
     if (lhe->entries == 0) {
         next = *nxt_lvlhsh_next_bucket(lhe->proto, lhe->bucket);
 
-        lhe->bucket = (next == NULL) ? NXT_LVLHSH_BUCKET_DONE:
-                                       nxt_lvlhsh_bucket(lhe->proto, next);
+        lhe->bucket = (next == NULL) ? NXT_LVLHSH_BUCKET_DONE
+                                     : nxt_lvlhsh_bucket(lhe->proto, next);
 
         lhe->entries = nxt_lvlhsh_bucket_entries(lhe->proto, next);
         lhe->entry = 0;

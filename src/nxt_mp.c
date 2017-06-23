@@ -180,7 +180,7 @@ nxt_mp_create(size_t cluster_size, size_t page_alignment, size_t page_size,
             nxt_queue_init(chunk_pages);
             chunk_pages++;
             pages--;
-        };
+        }
 
         nxt_queue_init(&mp->free_pages);
         nxt_queue_init(&mp->nget_pages);

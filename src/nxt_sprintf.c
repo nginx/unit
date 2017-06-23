@@ -51,7 +51,7 @@
  *    %t                        ptrdiff_t
  *    %S                        null-terminated wchar string
  *    %C                        wchar
- *    %[0][width][u][x|X]Q      int182_t/uint128_t
+ *    %[0][width][u][x|X]Q      int128_t/uint128_t
  */
 
 
