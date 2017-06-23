@@ -11,6 +11,10 @@ if [ $NXT_PYTHON_MODULE != NO ]; then
     . auto/modules/python/conf
 fi
 
+if [ $NXT_PHP_MODULE != NO ]; then
+    . auto/modules/php/conf
+fi
+
 
 NXT_MODULES_SRC=$NXT_BUILD_DIR/nxt_modules.c
 

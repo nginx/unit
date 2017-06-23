@@ -44,6 +44,8 @@ NXT_LIB_UNIT_TEST=NO
 NXT_PYTHON=python
 NXT_PYTHON_MODULE=NO
 
+NXT_PHP=php
+NXT_PHP_MODULE=NO
 
 for nxt_option
 do
@@ -92,6 +94,9 @@ do
 
         --with-python=*)                 NXT_PYTHON="$value"                 ;;
         --with-python_module)            NXT_PYTHON_MODULE=YES               ;;
+
+        --with-php=*)                    NXT_PHP="$value"                    ;;
+        --with-php_module)               NXT_PHP_MODULE=YES                  ;;
 
         *)
             $echo

@@ -231,6 +231,10 @@ if [ $NXT_PYTHON_MODULE != NO ]; then
     . auto/modules/python/make
 fi
 
+if [ $NXT_PHP_MODULE != NO ]; then
+    . auto/modules/php/make
+fi
+
 
 # Makefile.
 # *.dSYM is MacOSX Clang debug information.
