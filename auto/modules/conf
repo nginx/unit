@@ -1,6 +1,6 @@
 
-# Copyright (C) NGINX, Inc.
 # Copyright (C) Valentin V. Bartenev
+# Copyright (C) NGINX, Inc.
 
 
 NXT_MODULES_INIT=
@@ -13,6 +13,10 @@ fi
 
 if [ $NXT_PHP_MODULE != NO ]; then
     . auto/modules/php/conf
+fi
+
+if [ $NXT_GO_MODULE != NO ]; then
+    . auto/modules/go/conf
 fi
 
 

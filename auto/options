@@ -47,6 +47,9 @@ NXT_PYTHON_MODULE=NO
 NXT_PHP=php
 NXT_PHP_MODULE=NO
 
+NXT_GO=go
+NXT_GO_MODULE=NO
+
 for nxt_option
 do
     case "$nxt_option" in
@@ -97,6 +100,9 @@ do
 
         --with-php=*)                    NXT_PHP="$value"                    ;;
         --with-php_module)               NXT_PHP_MODULE=YES                  ;;
+
+        --with-go=*)                     NXT_GO="$value"                     ;;
+        --with-go_module)                NXT_GO_MODULE=YES                   ;;
 
         *)
             $echo

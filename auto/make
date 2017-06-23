@@ -235,6 +235,10 @@ if [ $NXT_PHP_MODULE != NO ]; then
     . auto/modules/php/make
 fi
 
+if [ $NXT_GO_MODULE != NO ]; then
+    . auto/modules/go/make
+fi
+
 
 # Makefile.
 # *.dSYM is MacOSX Clang debug information.

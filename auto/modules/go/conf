@@ -1,0 +1,25 @@
+
+# Copyright (C) Max Romanov
+# Copyright (C) NGINX, Inc.
+
+
+NXT_GO_VERSION="`${NXT_GO} version`"
+
+GOPATH=`pwd` CGO_CPPFLAGS="-DNXT_CONFIGURE" "${NXT_GO}" build -o build/nxt_go_gen.a --buildmode=c-archive nginext
+
+if [ "$?" -ne 0 ]; then
+    $echo
+    $echo $0: error: no go found.
+    $echo
+    exit 1;
+fi
+
+$echo " + go version: ${NXT_GO_VERSION}"
+
+NXT_GO_MODULE_SRCS=" \
+    src/nxt_go.c \
+"
+
+
+NXT_MODULES_INIT="$NXT_MODULES_INIT nxt_go_module_init"
+NXT_MODULES_SRCS="$NXT_MODULES_SRCS $NXT_GO_MODULE_SRCS"
