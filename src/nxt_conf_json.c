@@ -81,54 +81,54 @@ struct nxt_conf_json_op_s {
 };
 
 
-static u_char *nxt_conf_json_skip_space(u_char *pos, u_char *end);
-static u_char *nxt_conf_json_parse_value(u_char *pos, u_char *end,
-    nxt_conf_json_value_t *value, nxt_mp_t *pool);
-static u_char *nxt_conf_json_parse_object(u_char *pos, u_char *end,
-    nxt_conf_json_value_t *value, nxt_mp_t *pool);
-static nxt_int_t nxt_conf_json_object_hash_add(nxt_lvlhsh_t *lvlhsh,
-    nxt_conf_json_obj_member_t *member, nxt_mp_t *pool);
+static u_char *nxt_conf_json_skip_space(u_char *start, u_char *end);
+static u_char *nxt_conf_json_parse_value(nxt_mp_t *mp,
+    nxt_conf_json_value_t *value, u_char *start, u_char *end);
+static u_char *nxt_conf_json_parse_object(nxt_mp_t *mp,
+    nxt_conf_json_value_t *value, u_char *start, u_char *end);
+static nxt_int_t nxt_conf_json_object_hash_add(nxt_mp_t *mp,
+    nxt_lvlhsh_t *lvlhsh, nxt_conf_json_obj_member_t *member);
 static nxt_int_t nxt_conf_json_object_hash_test(nxt_lvlhsh_query_t *lhq,
     void *data);
 static void *nxt_conf_json_object_hash_alloc(void *data, size_t size);
 static void nxt_conf_json_object_hash_free(void *data, void *p);
-static u_char *nxt_conf_json_parse_array(u_char *pos, u_char *end,
-    nxt_conf_json_value_t *value, nxt_mp_t *pool);
-static u_char *nxt_conf_json_parse_string(u_char *pos, u_char *end,
-    nxt_conf_json_value_t *value, nxt_mp_t *pool);
-static u_char *nxt_conf_json_parse_number(u_char *pos, u_char *end,
-    nxt_conf_json_value_t *value, nxt_mp_t *pool);
+static u_char *nxt_conf_json_parse_array(nxt_mp_t *mp,
+    nxt_conf_json_value_t *value, u_char *start, u_char *end);
+static u_char *nxt_conf_json_parse_string(nxt_mp_t *mp,
+    nxt_conf_json_value_t *value, u_char *start, u_char *end);
+static u_char *nxt_conf_json_parse_number(nxt_mp_t *mp,
+    nxt_conf_json_value_t *value, u_char *start, u_char *end);
 
-static nxt_int_t nxt_conf_json_copy_value(nxt_conf_json_value_t *dst,
-    nxt_conf_json_value_t *src, nxt_conf_json_op_t *op, nxt_mp_t *pool);
-static nxt_int_t nxt_conf_json_copy_object(nxt_conf_json_value_t *dst,
-    nxt_conf_json_value_t *src, nxt_conf_json_op_t *op, nxt_mp_t *pool);
+static nxt_int_t nxt_conf_json_copy_value(nxt_mp_t *mp, nxt_conf_json_op_t *op,
+    nxt_conf_json_value_t *dst, nxt_conf_json_value_t *src);
+static nxt_int_t nxt_conf_json_copy_object(nxt_mp_t *mp, nxt_conf_json_op_t *op,
+    nxt_conf_json_value_t *dst, nxt_conf_json_value_t *src);
 
-static uintptr_t nxt_conf_json_print_integer(u_char *pos,
+static uintptr_t nxt_conf_json_print_integer(u_char *p,
     nxt_conf_json_value_t *value);
-static uintptr_t nxt_conf_json_print_string(u_char *pos,
+static uintptr_t nxt_conf_json_print_string(u_char *p,
     nxt_conf_json_value_t *value);
-static uintptr_t nxt_conf_json_print_array(u_char *pos,
+static uintptr_t nxt_conf_json_print_array(u_char *p,
     nxt_conf_json_value_t *value, nxt_conf_json_pretty_t *pretty);
-static uintptr_t nxt_conf_json_print_object(u_char *pos,
+static uintptr_t nxt_conf_json_print_object(u_char *p,
     nxt_conf_json_value_t *value, nxt_conf_json_pretty_t *pretty);
 
 static uintptr_t nxt_conf_json_escape(u_char *dst, u_char *src, size_t size);
 
 
-#define nxt_conf_json_newline(pos)                                            \
-    ((pos)[0] = '\r', (pos)[1] = '\n', (pos) + 2)
+#define nxt_conf_json_newline(p)                                              \
+    ((p)[0] = '\r', (p)[1] = '\n', (p) + 2)
+
 
 nxt_inline u_char *
-nxt_conf_json_indentation(u_char *pos, nxt_conf_json_pretty_t *pretty)
+nxt_conf_json_indentation(u_char *p, uint32_t level)
 {
-    nxt_uint_t  i;
-
-    for (i = 0; i < pretty->level; i++) {
-        pos[i] = '\t';
+    while (level) {
+        *p++ = '\t';
+        level--;
     }
 
-    return pos + pretty->level;
+    return p;
 }
 
 
@@ -239,9 +239,9 @@ nxt_conf_json_object_get_member(nxt_conf_json_value_t *value, nxt_str_t *name,
 
 
 nxt_int_t
-nxt_conf_json_op_compile(nxt_conf_json_value_t *object,
-    nxt_conf_json_value_t *value, nxt_conf_json_op_t **ops, nxt_str_t *path,
-    nxt_mp_t *pool)
+nxt_conf_json_op_compile(nxt_mp_t *mp, nxt_conf_json_op_t **ops,
+    nxt_conf_json_value_t *root, nxt_str_t *path,
+    nxt_conf_json_value_t *value)
 {
     nxt_str_t                   token;
     nxt_conf_json_op_t          *op, **parent;
@@ -255,7 +255,7 @@ nxt_conf_json_op_compile(nxt_conf_json_value_t *object,
     parent = ops;
 
     for ( ;; ) {
-        op = nxt_mp_zget(pool, sizeof(nxt_conf_json_op_t));
+        op = nxt_mp_zget(mp, sizeof(nxt_conf_json_op_t));
         if (nxt_slow_path(op == NULL)) {
             return NXT_ERROR;
         }
@@ -265,13 +265,13 @@ nxt_conf_json_op_compile(nxt_conf_json_value_t *object,
 
         nxt_conf_json_path_next_token(&parse, &token);
 
-        object = nxt_conf_json_object_get_member(object, &token, &op->index);
+        root = nxt_conf_json_object_get_member(root, &token, &op->index);
 
         if (parse.last) {
             break;
         }
 
-        if (object == NULL) {
+        if (root == NULL) {
             return NXT_DECLINED;
         }
 
@@ -280,7 +280,7 @@ nxt_conf_json_op_compile(nxt_conf_json_value_t *object,
 
     if (value == NULL) {
 
-        if (object == NULL) {
+        if (root == NULL) {
             return NXT_DECLINED;
         }
 
@@ -289,16 +289,16 @@ nxt_conf_json_op_compile(nxt_conf_json_value_t *object,
         return NXT_OK;
     }
 
-    if (object == NULL) {
+    if (root == NULL) {
 
-        member = nxt_mp_zget(pool, sizeof(nxt_conf_json_obj_member_t));
+        member = nxt_mp_zget(mp, sizeof(nxt_conf_json_obj_member_t));
         if (nxt_slow_path(member == NULL)) {
             return NXT_ERROR;
         }
 
         if (token.length > NXT_CONF_JSON_STR_SIZE) {
 
-            member->name.u.string = nxt_mp_get(pool, sizeof(nxt_str_t));
+            member->name.u.string = nxt_mp_get(mp, sizeof(nxt_str_t));
             if (nxt_slow_path(member->name.u.string == NULL)) {
                 return NXT_ERROR;
             }
@@ -328,19 +328,20 @@ nxt_conf_json_op_compile(nxt_conf_json_value_t *object,
 
 
 nxt_conf_json_value_t *
-nxt_conf_json_clone_value(nxt_conf_json_value_t *value, nxt_conf_json_op_t *op,
-    nxt_mp_t *pool)
+nxt_conf_json_clone_value(nxt_mp_t *mp, nxt_conf_json_op_t *op,
+    nxt_conf_json_value_t *value)
 {
+    nxt_int_t              rc;
     nxt_conf_json_value_t  *copy;
 
-    copy = nxt_mp_get(pool, sizeof(nxt_conf_json_value_t));
+    copy = nxt_mp_get(mp, sizeof(nxt_conf_json_value_t));
     if (nxt_slow_path(copy == NULL)) {
         return NULL;
     }
 
-    if (nxt_slow_path(nxt_conf_json_copy_value(copy, value, op, pool)
-                      != NXT_OK))
-    {
+    rc = nxt_conf_json_copy_value(mp, op, copy, value);
+
+    if (nxt_slow_path(rc != NXT_OK)) {
         return NULL;
     }
 
@@ -349,8 +350,8 @@ nxt_conf_json_clone_value(nxt_conf_json_value_t *value, nxt_conf_json_op_t *op,
 
 
 static nxt_int_t
-nxt_conf_json_copy_value(nxt_conf_json_value_t *dst, nxt_conf_json_value_t *src,
-    nxt_conf_json_op_t *op, nxt_mp_t *pool)
+nxt_conf_json_copy_value(nxt_mp_t *mp, nxt_conf_json_op_t *op,
+    nxt_conf_json_value_t *dst, nxt_conf_json_value_t *src)
 {
     size_t      size;
     nxt_int_t   rc;
@@ -366,7 +367,7 @@ nxt_conf_json_copy_value(nxt_conf_json_value_t *dst, nxt_conf_json_value_t *src,
 
     case NXT_CONF_JSON_STRING:
 
-        dst->u.string = nxt_str_dup(pool, NULL, src->u.string);
+        dst->u.string = nxt_str_dup(mp, NULL, src->u.string);
 
         if (nxt_slow_path(dst->u.string == NULL)) {
             return NXT_ERROR;
@@ -379,7 +380,7 @@ nxt_conf_json_copy_value(nxt_conf_json_value_t *dst, nxt_conf_json_value_t *src,
         size = sizeof(nxt_conf_json_array_t)
                + src->u.array->count * sizeof(nxt_conf_json_value_t);
 
-        dst->u.array = nxt_mp_get(pool, size);
+        dst->u.array = nxt_mp_get(mp, size);
         if (nxt_slow_path(dst->u.array == NULL)) {
             return NXT_ERROR;
         }
@@ -387,9 +388,9 @@ nxt_conf_json_copy_value(nxt_conf_json_value_t *dst, nxt_conf_json_value_t *src,
         dst->u.array->count = src->u.array->count;
 
         for (n = 0; n < src->u.array->count; n++) {
-            rc = nxt_conf_json_copy_value(&dst->u.array->elements[n],
-                                          &src->u.array->elements[n],
-                                          NULL, pool);
+            rc = nxt_conf_json_copy_value(mp, NULL,
+                                          &dst->u.array->elements[n],
+                                          &src->u.array->elements[n]);
 
             if (nxt_slow_path(rc != NXT_OK)) {
                 return NXT_ERROR;
@@ -399,7 +400,7 @@ nxt_conf_json_copy_value(nxt_conf_json_value_t *dst, nxt_conf_json_value_t *src,
         break;
 
     case NXT_CONF_JSON_OBJECT:
-        return nxt_conf_json_copy_object(dst, src, op, pool);
+        return nxt_conf_json_copy_object(mp, op, dst, src);
 
     default:
         dst->u = src->u;
@@ -410,8 +411,8 @@ nxt_conf_json_copy_value(nxt_conf_json_value_t *dst, nxt_conf_json_value_t *src,
 
 
 static nxt_int_t
-nxt_conf_json_copy_object(nxt_conf_json_value_t *dst,
-    nxt_conf_json_value_t *src, nxt_conf_json_op_t *op, nxt_mp_t *pool)
+nxt_conf_json_copy_object(nxt_mp_t *mp, nxt_conf_json_op_t *op,
+    nxt_conf_json_value_t *dst, nxt_conf_json_value_t *src)
 {
     size_t                      size;
     nxt_int_t                   rc;
@@ -434,7 +435,7 @@ nxt_conf_json_copy_object(nxt_conf_json_value_t *dst,
     size = sizeof(nxt_conf_json_object_t)
             + count * sizeof(nxt_conf_json_obj_member_t);
 
-    dst->u.object = nxt_mp_get(pool, size);
+    dst->u.object = nxt_mp_get(mp, size);
     if (nxt_slow_path(dst->u.object == NULL)) {
         return NXT_ERROR;
     }
@@ -459,17 +460,17 @@ nxt_conf_json_copy_object(nxt_conf_json_value_t *dst,
         }
 
         while (s != index) {
-            rc = nxt_conf_json_copy_value(&dst->u.object->members[d].name,
-                                          &src->u.object->members[s].name,
-                                          NULL, pool);
+            rc = nxt_conf_json_copy_value(mp, NULL,
+                                          &dst->u.object->members[d].name,
+                                          &src->u.object->members[s].name);
 
             if (nxt_slow_path(rc != NXT_OK)) {
                 return NXT_ERROR;
             }
 
-            rc = nxt_conf_json_copy_value(&dst->u.object->members[d].value,
-                                          &src->u.object->members[s].value,
-                                          pass_op, pool);
+            rc = nxt_conf_json_copy_value(mp, pass_op,
+                                          &dst->u.object->members[d].value,
+                                          &src->u.object->members[s].value);
 
             if (nxt_slow_path(rc != NXT_OK)) {
                 return NXT_ERROR;
@@ -494,8 +495,9 @@ nxt_conf_json_copy_object(nxt_conf_json_value_t *dst,
             case NXT_CONF_JSON_OP_CREATE:
                 member = op->ctx;
 
-                rc = nxt_conf_json_copy_value(&dst->u.object->members[d].name,
-                                              &member->name, NULL, pool);
+                rc = nxt_conf_json_copy_value(mp, NULL,
+                                              &dst->u.object->members[d].name,
+                                              &member->name);
 
                 if (nxt_slow_path(rc != NXT_OK)) {
                     return NXT_ERROR;
@@ -507,9 +509,9 @@ nxt_conf_json_copy_object(nxt_conf_json_value_t *dst,
                 break;
 
             case NXT_CONF_JSON_OP_REPLACE:
-                rc = nxt_conf_json_copy_value(&dst->u.object->members[d].name,
-                                              &src->u.object->members[s].name,
-                                              NULL, pool);
+                rc = nxt_conf_json_copy_value(mp, NULL,
+                                              &dst->u.object->members[d].name,
+                                              &src->u.object->members[s].name);
 
                 if (nxt_slow_path(rc != NXT_OK)) {
                     return NXT_ERROR;
@@ -540,33 +542,31 @@ nxt_conf_json_copy_object(nxt_conf_json_value_t *dst,
 
 
 nxt_conf_json_value_t *
-nxt_conf_json_parse(u_char *pos, size_t length, nxt_mp_t *pool)
+nxt_conf_json_parse(nxt_mp_t *mp, u_char *start, u_char *end)
 {
-    u_char                 *end;
+    u_char                 *p;
     nxt_conf_json_value_t  *value;
 
-    value = nxt_mp_get(pool, sizeof(nxt_conf_json_value_t));
+    value = nxt_mp_get(mp, sizeof(nxt_conf_json_value_t));
     if (nxt_slow_path(value == NULL)) {
         return NULL;
     }
 
-    end = pos + length;
+    p = nxt_conf_json_skip_space(start, end);
 
-    pos = nxt_conf_json_skip_space(pos, end);
-
-    if (nxt_slow_path(pos == end)) {
+    if (nxt_slow_path(p == end)) {
         return NULL;
     }
 
-    pos = nxt_conf_json_parse_value(pos, end, value, pool);
+    p = nxt_conf_json_parse_value(mp, value, p, end);
 
-    if (nxt_slow_path(pos == NULL)) {
+    if (nxt_slow_path(p == NULL)) {
         return NULL;
     }
 
-    pos = nxt_conf_json_skip_space(pos, end);
+    p = nxt_conf_json_skip_space(p, end);
 
-    if (nxt_slow_path(pos != end)) {
+    if (nxt_slow_path(p != end)) {
         return NULL;
     }
 
@@ -575,11 +575,13 @@ nxt_conf_json_parse(u_char *pos, size_t length, nxt_mp_t *pool)
 
 
 static u_char *
-nxt_conf_json_skip_space(u_char *pos, u_char *end)
+nxt_conf_json_skip_space(u_char *start, u_char *end)
 {
-    for ( /* void */ ; nxt_fast_path(pos != end); pos++) {
+    u_char  *p;
 
-        switch (*pos) {
+    for (p = start; nxt_fast_path(p != end); p++) {
+
+        switch (*p) {
         case ' ':
         case '\t':
         case '\r':
@@ -590,59 +592,65 @@ nxt_conf_json_skip_space(u_char *pos, u_char *end)
         break;
     }
 
-    return pos;
+    return p;
 }
 
 
 static u_char *
-nxt_conf_json_parse_value(u_char *pos, u_char *end,
-    nxt_conf_json_value_t *value, nxt_mp_t *pool)
+nxt_conf_json_parse_value(nxt_mp_t *mp, nxt_conf_json_value_t *value,
+    u_char *start, u_char *end)
 {
     u_char  ch;
 
-    ch = *pos;
+    ch = *start;
 
     switch (ch) {
     case '{':
-        return nxt_conf_json_parse_object(pos, end, value, pool);
+        return nxt_conf_json_parse_object(mp, value, start, end);
 
     case '[':
-        return nxt_conf_json_parse_array(pos, end, value, pool);
+        return nxt_conf_json_parse_array(mp, value, start, end);
 
     case '"':
-        return nxt_conf_json_parse_string(pos, end, value, pool);
+        return nxt_conf_json_parse_string(mp, value, start, end);
 
     case 't':
-        if (nxt_fast_path(end - pos >= 4 && nxt_memcmp(pos, "true", 4) == 0)) {
+        if (nxt_fast_path(end - start >= 4
+                          && nxt_memcmp(start, "true", 4) == 0))
+        {
             value->u.boolean = 1;
             value->type = NXT_CONF_JSON_BOOLEAN;
 
-            return pos + 4;
+            return start + 4;
         }
 
         return NULL;
 
     case 'f':
-        if (nxt_fast_path(end - pos >= 5 && nxt_memcmp(pos, "false", 5) == 0)) {
+        if (nxt_fast_path(end - start >= 5
+                          && nxt_memcmp(start, "false", 5) == 0))
+        {
             value->u.boolean = 0;
             value->type = NXT_CONF_JSON_BOOLEAN;
 
-            return pos + 5;
+            return start + 5;
         }
 
         return NULL;
 
     case 'n':
-        if (nxt_fast_path(end - pos >= 4 && nxt_memcmp(pos, "null", 4) == 0)) {
+        if (nxt_fast_path(end - start >= 4
+                          && nxt_memcmp(start, "null", 4) == 0))
+        {
             value->type = NXT_CONF_JSON_NULL;
-            return pos + 4;
+            return start + 4;
         }
 
         return NULL;
     }
 
     if (nxt_fast_path(ch == '-' || (ch - '0') <= 9)) {
-        return nxt_conf_json_parse_number(pos, end, value, pool);
+        return nxt_conf_json_parse_number(mp, value, start, end);
     }
 
     return NULL;
@@ -660,10 +668,11 @@ static const nxt_lvlhsh_proto_t  nxt_conf_json_object_hash_proto
 
 
 static u_char *
-nxt_conf_json_parse_object(u_char *pos, u_char *end,
-    nxt_conf_json_value_t *value, nxt_mp_t *pool)
+nxt_conf_json_parse_object(nxt_mp_t *mp, nxt_conf_json_value_t *value,
+    u_char *start, u_char *end)
 {
-    nxt_mp_t                    *temp_pool;
+    u_char                      *p;
+    nxt_mp_t                    *mp_temp;
     nxt_int_t                   rc;
     nxt_uint_t                  count;
     nxt_lvlhsh_t                hash;
@@ -671,14 +680,14 @@ nxt_conf_json_parse_object(u_char *pos, u_char *end,
     nxt_conf_json_object_t      *object;
     nxt_conf_json_obj_member_t  *member, *element;
 
-    pos = nxt_conf_json_skip_space(pos + 1, end);
+    p = nxt_conf_json_skip_space(start + 1, end);
 
-    if (nxt_slow_path(pos == end)) {
+    if (nxt_slow_path(p == end)) {
         return NULL;
     }
 
-    temp_pool = nxt_mp_create(1024, 128, 256, 32);
-    if (nxt_slow_path(temp_pool == NULL)) {
+    mp_temp = nxt_mp_create(1024, 128, 256, 32);
+    if (nxt_slow_path(mp_temp == NULL)) {
         return NULL;
     }
 
@@ -686,74 +695,74 @@ nxt_conf_json_parse_object(u_char *pos, u_char *end,
 
     count = 0;
 
-    if (*pos != '}') {
+    if (*p != '}') {
 
         for ( ;; ) {
             count++;
 
-            if (*pos != '"') {
+            if (*p != '"') {
                 goto error;
             }
 
-            member = nxt_mp_get(temp_pool, sizeof(nxt_conf_json_obj_member_t));
+            member = nxt_mp_get(mp_temp, sizeof(nxt_conf_json_obj_member_t));
             if (nxt_slow_path(member == NULL)) {
                 goto error;
             }
 
-            pos = nxt_conf_json_parse_string(pos, end, &member->name, pool);
+            p = nxt_conf_json_parse_string(mp, &member->name, p, end);
 
-            if (nxt_slow_path(pos == NULL)) {
+            if (nxt_slow_path(p == NULL)) {
                 goto error;
             }
 
-            rc = nxt_conf_json_object_hash_add(&hash, member, temp_pool);
+            rc = nxt_conf_json_object_hash_add(mp_temp, &hash, member);
 
             if (nxt_slow_path(rc != NXT_OK)) {
                 goto error;
             }
 
-            pos = nxt_conf_json_skip_space(pos, end);
+            p = nxt_conf_json_skip_space(p, end);
 
-            if (nxt_slow_path(pos == end || *pos != ':')) {
+            if (nxt_slow_path(p == end || *p != ':')) {
                 goto error;
             }
 
-            pos = nxt_conf_json_skip_space(pos + 1, end);
+            p = nxt_conf_json_skip_space(p + 1, end);
 
-            if (nxt_slow_path(pos == end)) {
+            if (nxt_slow_path(p == end)) {
                 goto error;
             }
 
-            pos = nxt_conf_json_parse_value(pos, end, &member->value, pool);
+            p = nxt_conf_json_parse_value(mp, &member->value, p, end);
 
-            if (nxt_slow_path(pos == NULL)) {
+            if (nxt_slow_path(p == NULL)) {
                 goto error;
             }
 
-            pos = nxt_conf_json_skip_space(pos, end);
+            p = nxt_conf_json_skip_space(p, end);
 
-            if (nxt_slow_path(pos == end)) {
+            if (nxt_slow_path(p == end)) {
                 goto error;
             }
 
-            if (*pos == '}') {
+            if (*p == '}') {
                 break;
             }
 
-            if (nxt_slow_path(*pos != ',')) {
+            if (nxt_slow_path(*p != ',')) {
                 goto error;
             }
 
-            pos = nxt_conf_json_skip_space(pos + 1, end);
+            p = nxt_conf_json_skip_space(p + 1, end);
 
-            if (nxt_slow_path(pos == end)) {
+            if (nxt_slow_path(p == end)) {
                 goto error;
             }
         }
     }
 
-    object = nxt_mp_get(pool, sizeof(nxt_conf_json_object_t)
-                              + count * sizeof(nxt_conf_json_obj_member_t));
+    object = nxt_mp_get(mp, sizeof(nxt_conf_json_object_t)
+                            + count * sizeof(nxt_conf_json_obj_member_t));
     if (nxt_slow_path(object == NULL)) {
         goto error;
     }
@@ -777,20 +786,20 @@ nxt_conf_json_parse_object(u_char *pos, u_char *end,
         *member++ = *element;
     }
 
-    nxt_mp_destroy(temp_pool);
+    nxt_mp_destroy(mp_temp);
 
-    return pos + 1;
+    return p + 1;
 
 error:
 
-    nxt_mp_destroy(temp_pool);
+    nxt_mp_destroy(mp_temp);
     return NULL;
 }
 
 
 static nxt_int_t
-nxt_conf_json_object_hash_add(nxt_lvlhsh_t *lvlhsh,
-    nxt_conf_json_obj_member_t *member, nxt_mp_t *pool)
+nxt_conf_json_object_hash_add(nxt_mp_t *mp, nxt_lvlhsh_t *lvlhsh,
+    nxt_conf_json_obj_member_t *member)
 {
     nxt_lvlhsh_query_t     lhq;
     nxt_conf_json_value_t  *name;
@@ -809,7 +818,7 @@ nxt_conf_json_object_hash_add(nxt_lvlhsh_t *lvlhsh,
     lhq.replace = 0;
     lhq.value = member;
     lhq.proto = &nxt_conf_json_object_hash_proto;
-    lhq.pool = pool;
+    lhq.pool = mp;
 
     return nxt_lvlhsh_insert(lvlhsh, &lhq);
 }
@@ -854,34 +863,35 @@ nxt_conf_json_object_hash_free(void *data, void *p)
 
 
 static u_char *
-nxt_conf_json_parse_array(u_char *pos, u_char *end,
-    nxt_conf_json_value_t *value, nxt_mp_t *pool)
+nxt_conf_json_parse_array(nxt_mp_t *mp, nxt_conf_json_value_t *value,
+    u_char *start, u_char *end)
 {
-    nxt_mp_t               *temp_pool;
+    u_char                 *p;
+    nxt_mp_t               *mp_temp;
     nxt_uint_t             count;
     nxt_list_t             *list;
     nxt_conf_json_array_t  *array;
     nxt_conf_json_value_t  *element;
 
-    pos = nxt_conf_json_skip_space(pos + 1, end);
+    p = nxt_conf_json_skip_space(start + 1, end);
 
-    if (nxt_slow_path(pos == end)) {
+    if (nxt_slow_path(p == end)) {
         return NULL;
     }
 
-    temp_pool = nxt_mp_create(1024, 128, 256, 32);
-    if (nxt_slow_path(temp_pool == NULL)) {
+    mp_temp = nxt_mp_create(1024, 128, 256, 32);
+    if (nxt_slow_path(mp_temp == NULL)) {
         return NULL;
     }
 
-    list = nxt_list_create(temp_pool, 8, sizeof(nxt_conf_json_value_t));
+    list = nxt_list_create(mp_temp, 8, sizeof(nxt_conf_json_value_t));
     if (nxt_slow_path(list == NULL)) {
         goto error;
     }
 
     count = 0;
 
-    if (*pos != ']') {
+    if (*p != ']') {
 
         for ( ;; ) {
             count++;
@@ -891,36 +901,36 @@ nxt_conf_json_parse_array(u_char *pos, u_char *end,
                 goto error;
             }
 
-            pos = nxt_conf_json_parse_value(pos, end, element, pool);
+            p = nxt_conf_json_parse_value(mp, element, p, end);
 
-            if (nxt_slow_path(pos == NULL)) {
+            if (nxt_slow_path(p == NULL)) {
                 goto error;
             }
 
-            pos = nxt_conf_json_skip_space(pos, end);
+            p = nxt_conf_json_skip_space(p, end);
 
-            if (nxt_slow_path(pos == end)) {
+            if (nxt_slow_path(p == end)) {
                 goto error;
             }
 
-            if (*pos == ']') {
+            if (*p == ']') {
                 break;
             }
 
-            if (nxt_slow_path(*pos != ',')) {
+            if (nxt_slow_path(*p != ',')) {
                 goto error;
             }
 
-            pos = nxt_conf_json_skip_space(pos + 1, end);
+            p = nxt_conf_json_skip_space(p + 1, end);
 
-            if (nxt_slow_path(pos == end)) {
+            if (nxt_slow_path(p == end)) {
                 goto error;
             }
         }
     }
 
-    array = nxt_mp_get(pool, sizeof(nxt_conf_json_array_t)
-                             + count * sizeof(nxt_conf_json_value_t));
+    array = nxt_mp_get(mp, sizeof(nxt_conf_json_array_t)
+                           + count * sizeof(nxt_conf_json_value_t));
     if (nxt_slow_path(array == NULL)) {
         goto error;
     }
@@ -935,22 +945,22 @@ nxt_conf_json_parse_array(u_char *pos, u_char *end,
         *element++ = *value;
     } nxt_list_loop;
 
-    nxt_mp_destroy(temp_pool);
+    nxt_mp_destroy(mp_temp);
 
-    return pos + 1;
+    return p + 1;
 
 error:
 
-    nxt_mp_destroy(temp_pool);
+    nxt_mp_destroy(mp_temp);
     return NULL;
 }
 
 
 static u_char *
-nxt_conf_json_parse_string(u_char *pos, u_char *end,
-    nxt_conf_json_value_t *value, nxt_mp_t *pool)
+nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_json_value_t *value,
+    u_char *start, u_char *end)
 {
-    u_char      ch, *last, *s;
+    u_char      *p, ch, *last, *s;
     size_t      size, surplus;
     uint32_t    utf, utf_high;
     nxt_uint_t  i;
@@ -963,13 +973,13 @@ nxt_conf_json_parse_string(u_char *pos, u_char *end,
         sw_encoded4,
     } state;
 
-    pos++;
+    start++;
 
     state = 0;
     surplus = 0;
 
-    for (last = pos; last != end; last++) {
-        ch = *last;
+    for (p = start; nxt_fast_path(p != end); p++) {
+        ch = *p;
 
         switch (state) {
 
@@ -1038,15 +1048,18 @@ nxt_conf_json_parse_string(u_char *pos, u_char *end,
         break;
     }
 
-    if (nxt_slow_path(last == end)) {
+    if (nxt_slow_path(p == end)) {
         return NULL;
     }
 
-    size = last - pos - surplus;
+    /* Points to the ending quote mark. */
+    last = p;
+
+    size = last - start - surplus;
 
     if (size > NXT_CONF_JSON_STR_SIZE) {
         value->type = NXT_CONF_JSON_STRING;
-        value->u.string = nxt_str_alloc(pool, size);
+        value->u.string = nxt_str_alloc(mp, size);
 
         if (nxt_slow_path(value->u.string == NULL)) {
             return NULL;
@@ -1062,21 +1075,21 @@ nxt_conf_json_parse_string(u_char *pos, u_char *end,
     }
 
     if (surplus == 0) {
-        nxt_memcpy(s, pos, size);
+        nxt_memcpy(s, start, size);
         return last + 1;
     }
 
-    state = 0;
+    p = start;
 
     do {
-        ch = *pos++;
+        ch = *p++;
 
         if (ch != '\\') {
             *s++ = ch;
             continue;
         }
 
-        ch = *pos++;
+        ch = *p++;
 
         switch (ch) {
         case '"':
@@ -1111,10 +1124,10 @@ nxt_conf_json_parse_string(u_char *pos, u_char *end,
 
         for ( ;; ) {
             for (i = 0; i < 4; i++) {
-                utf = (utf << 4) + (pos[i] - (pos[i] >= 'A' ? 'A' : '0'));
+                utf = (utf << 4) + (p[i] - (p[i] >= 'A' ? 'A' : '0'));
             }
 
-            pos += 4;
+            p += 4;
 
             if (utf < 0xd800 || utf > 0xdbff || utf_high) {
                 break;
@@ -1123,11 +1136,11 @@ nxt_conf_json_parse_string(u_char *pos, u_char *end,
             utf_high = utf;
             utf = 0;
 
-            if (pos[0] != '\\' || pos[1] != 'u') {
+            if (p[0] != '\\' || p[1] != 'u') {
                 break;
             }
 
-            pos += 2;
+            p += 2;
         }
 
         if (utf_high != 0) {
@@ -1145,7 +1158,7 @@ nxt_conf_json_parse_string(u_char *pos, u_char *end,
 
         s = nxt_utf8_encode(s, utf);
 
-    } while (pos != last);
+    } while (p != last);
 
     if (size > NXT_CONF_JSON_STR_SIZE) {
         value->u.string->length = s - value->u.string->start;
@@ -1154,15 +1167,15 @@ nxt_conf_json_parse_string(u_char *pos, u_char *end,
         value->u.str[0] = s - &value->u.str[1];
     }
 
-    return pos + 1;
+    return last + 1;
 }
 
 
 static u_char *
-nxt_conf_json_parse_number(u_char *pos, u_char *end,
-    nxt_conf_json_value_t *value, nxt_mp_t *pool)
+nxt_conf_json_parse_number(nxt_mp_t *mp, nxt_conf_json_value_t *value,
+    u_char *start, u_char *end)
 {
-    u_char     ch, *p;
+    u_char     *p, ch;
     uint64_t   integer;
     nxt_int_t  sign;
 #if 0
@@ -1173,11 +1186,11 @@ nxt_conf_json_parse_number(u_char *pos, u_char *end,
     static const uint64_t cutoff = NXT_INT64_T_MAX / 10;
     static const uint64_t cutlim = NXT_INT64_T_MAX % 10;
 
-    ch = *pos;
+    ch = *start;
 
     if (ch == '-') {
         sign = -1;
-        pos++;
+        start++;
 
     } else {
         sign = 1;
@@ -1185,7 +1198,7 @@ nxt_conf_json_parse_number(u_char *pos, u_char *end,
 
     integer = 0;
 
-    for (p = pos; nxt_fast_path(p != end); p++) {
+    for (p = start; nxt_fast_path(p != end); p++) {
         ch = *p;
 
         /* Values below '0' become >= 208. */
@@ -1204,7 +1217,7 @@ nxt_conf_json_parse_number(u_char *pos, u_char *end,
         integer = integer * 10 + ch;
     }
 
-    if (nxt_slow_path(p == pos || (p > pos + 1 && *pos == '0'))) {
+    if (nxt_slow_path(p == start || (p - start > 1 && *start == '0'))) {
         return NULL;
     }
 
@@ -1215,12 +1228,12 @@ nxt_conf_json_parse_number(u_char *pos, u_char *end,
     }
 
 #if 0
-    pos = p + 1;
+    start = p + 1;
 
     frac = 0;
     power = 1;
 
-    for (p = pos; nxt_fast_path(p != end); p++) {
+    for (p = start; nxt_fast_path(p != end); p++) {
         ch = *p;
 
         /* Values below '0' become >= 208. */
@@ -1233,14 +1246,14 @@ nxt_conf_json_parse_number(u_char *pos, u_char *end,
         if (nxt_slow_path((frac >= cutoff && (frac > cutoff || ch > cutlim))
                           || power > cutoff))
         {
-             return NULL;
+            return NULL;
         }
 
         frac = frac * 10 + ch;
         power *= 10;
     }
 
-    if (nxt_slow_path(p == pos)) {
+    if (nxt_slow_path(p == start)) {
         return NULL;
     }
 
@@ -1250,18 +1263,18 @@ nxt_conf_json_parse_number(u_char *pos, u_char *end,
     value->u.number = copysign(value->u.number, sign);
 
     if (ch == 'e' || ch == 'E') {
-        pos = p + 1;
+        start = p + 1;
 
-        ch = *pos;
+        ch = *start;
 
         if (ch == '-' || ch == '+') {
-            pos++;
+            start++;
         }
 
         negative = (ch == '-') ? 1 : 0;
         e = 0;
 
-        for (p = pos; nxt_fast_path(p != end); p++) {
+        for (p = start; nxt_fast_path(p != end); p++) {
             ch = *p;
 
             /* Values below '0' become >= 208. */
@@ -1278,7 +1291,7 @@ nxt_conf_json_parse_number(u_char *pos, u_char *end,
             }
         }
 
-        if (nxt_slow_path(p == pos)) {
+        if (nxt_slow_path(p == start)) {
             return NULL;
         }
 
@@ -1300,63 +1313,63 @@ nxt_conf_json_parse_number(u_char *pos, u_char *end,
 
 
 uintptr_t
-nxt_conf_json_print_value(u_char *pos, nxt_conf_json_value_t *value,
+nxt_conf_json_print_value(u_char *p, nxt_conf_json_value_t *value,
     nxt_conf_json_pretty_t *pretty)
 {
     switch (value->type) {
 
     case NXT_CONF_JSON_NULL:
 
-        if (pos == NULL) {
+        if (p == NULL) {
             return sizeof("null") - 1;
         }
 
-        return (uintptr_t) nxt_cpymem(pos, "null", 4);
+        return (uintptr_t) nxt_cpymem(p, "null", 4);
 
     case NXT_CONF_JSON_BOOLEAN:
 
-        if (pos == NULL) {
+        if (p == NULL) {
             return value->u.boolean ? sizeof("true") - 1 : sizeof("false") - 1;
         }
 
         if (value->u.boolean) {
-            return (uintptr_t) nxt_cpymem(pos, "true", 4);
+            return (uintptr_t) nxt_cpymem(p, "true", 4);
         }
 
-        return (uintptr_t) nxt_cpymem(pos, "false", 5);
+        return (uintptr_t) nxt_cpymem(p, "false", 5);
 
     case NXT_CONF_JSON_INTEGER:
-        return nxt_conf_json_print_integer(pos, value);
+        return nxt_conf_json_print_integer(p, value);
 
     case NXT_CONF_JSON_NUMBER:
         /* TODO */
-        return (pos == NULL) ? 0 : (uintptr_t) pos;
+        return (p == NULL) ? 0 : (uintptr_t) p;
 
     case NXT_CONF_JSON_SHORT_STRING:
     case NXT_CONF_JSON_STRING:
-        return nxt_conf_json_print_string(pos, value);
+        return nxt_conf_json_print_string(p, value);
 
     case NXT_CONF_JSON_ARRAY:
-        return nxt_conf_json_print_array(pos, value, pretty);
+        return nxt_conf_json_print_array(p, value, pretty);
 
     case NXT_CONF_JSON_OBJECT:
-        return nxt_conf_json_print_object(pos, value, pretty);
+        return nxt_conf_json_print_object(p, value, pretty);
     }
 
     nxt_unreachable();
 
-    return (pos == NULL) ? 0 : (uintptr_t) pos;
+    return (p == NULL) ? 0 : (uintptr_t) p;
 }
 
 
 static uintptr_t
-nxt_conf_json_print_integer(u_char *pos, nxt_conf_json_value_t *value)
+nxt_conf_json_print_integer(u_char *p, nxt_conf_json_value_t *value)
 {
     int64_t  num;
 
     num = value->u.integer;
 
-    if (pos == NULL) {
+    if (p == NULL) {
         num = llabs(num);
 
         if (num <= 9999) {
@@ -1370,12 +1383,12 @@ nxt_conf_json_print_integer(u_char *pos, nxt_conf_json_value_t *value)
         return NXT_INT64_T_LEN;
     }
 
-    return (uintptr_t) nxt_sprintf(pos, pos + NXT_INT64_T_LEN, "%L", num);
+    return (uintptr_t) nxt_sprintf(p, p + NXT_INT64_T_LEN, "%L", num);
 }
 
 
 static uintptr_t
-nxt_conf_json_print_string(u_char *pos, nxt_conf_json_value_t *value)
+nxt_conf_json_print_string(u_char *p, nxt_conf_json_value_t *value)
 {
     size_t  len;
     u_char  *s;
@@ -1389,22 +1402,22 @@ nxt_conf_json_print_string(u_char *pos, nxt_conf_json_value_t *value)
         s = value->u.string->start;
     }
 
-    if (pos == NULL) {
+    if (p == NULL) {
         return 2 + len + nxt_conf_json_escape(NULL, s, len);
     }
 
-    *pos++ = '"';
+    *p++ = '"';
 
-    pos = (u_char *) nxt_conf_json_escape(pos, s, len);
+    p = (u_char *) nxt_conf_json_escape(p, s, len);
 
-    *pos++ = '"';
+    *p++ = '"';
 
-    return (uintptr_t) pos;
+    return (uintptr_t) p;
 }
 
 
 static uintptr_t
-nxt_conf_json_print_array(u_char *pos, nxt_conf_json_value_t *value,
+nxt_conf_json_print_array(u_char *p, nxt_conf_json_value_t *value,
     nxt_conf_json_pretty_t *pretty)
 {
     size_t                 len;
@@ -1413,7 +1426,7 @@ nxt_conf_json_print_array(u_char *pos, nxt_conf_json_value_t *value,
 
     array = value->u.array;
 
-    if (pos == NULL) {
+    if (p == NULL) {
         /* [] */
         len = 2;
 
@@ -1445,51 +1458,51 @@ nxt_conf_json_print_array(u_char *pos, nxt_conf_json_value_t *value,
         return len + n;
     }
 
-    *pos++ = '[';
+    *p++ = '[';
 
     if (array->count != 0) {
         value = array->elements;
 
         if (pretty != NULL) {
-            pos = nxt_conf_json_newline(pos);
+            p = nxt_conf_json_newline(p);
 
             pretty->level++;
-            pos = nxt_conf_json_indentation(pos, pretty);
+            p = nxt_conf_json_indentation(p, pretty->level);
         }
 
-        pos = (u_char *) nxt_conf_json_print_value(pos, &value[0], pretty);
+        p = (u_char *) nxt_conf_json_print_value(p, &value[0], pretty);
 
         for (n = 1; n < array->count; n++) {
-            *pos++ = ',';
+            *p++ = ',';
 
             if (pretty != NULL) {
-                pos = nxt_conf_json_newline(pos);
-                pos = nxt_conf_json_indentation(pos, pretty);
+                p = nxt_conf_json_newline(p);
+                p = nxt_conf_json_indentation(p, pretty->level);
 
                 pretty->more_space = 0;
             }
 
-            pos = (u_char *) nxt_conf_json_print_value(pos, &value[n], pretty);
+            p = (u_char *) nxt_conf_json_print_value(p, &value[n], pretty);
         }
 
         if (pretty != NULL) {
-            pos = nxt_conf_json_newline(pos);
+            p = nxt_conf_json_newline(p);
 
             pretty->level--;
-            pos = nxt_conf_json_indentation(pos, pretty);
+            p = nxt_conf_json_indentation(p, pretty->level);
 
             pretty->more_space = 1;
         }
     }
 
-    *pos++ = ']';
+    *p++ = ']';
 
-    return (uintptr_t) pos;
+    return (uintptr_t) p;
 }
 
 
 static uintptr_t
-nxt_conf_json_print_object(u_char *pos, nxt_conf_json_value_t *value,
+nxt_conf_json_print_object(u_char *p, nxt_conf_json_value_t *value,
     nxt_conf_json_pretty_t *pretty)
 {
     size_t                      len;
@@ -1499,7 +1512,7 @@ nxt_conf_json_print_object(u_char *pos, nxt_conf_json_value_t *value,
 
     object = value->u.object;
 
-    if (pos == NULL) {
+    if (p == NULL) {
         /* {} */
         len = 2;
 
@@ -1533,12 +1546,12 @@ nxt_conf_json_print_object(u_char *pos, nxt_conf_json_value_t *value,
         return len;
     }
 
-    *pos++ = '{';
+    *p++ = '{';
 
     if (object->count != 0) {
 
         if (pretty != NULL) {
-            pos = nxt_conf_json_newline(pos);
+            p = nxt_conf_json_newline(p);
             pretty->level++;
         }
 
@@ -1548,18 +1561,18 @@ nxt_conf_json_print_object(u_char *pos, nxt_conf_json_value_t *value,
 
         for ( ;; ) {
             if (pretty != NULL) {
-                pos = nxt_conf_json_indentation(pos, pretty);
+                p = nxt_conf_json_indentation(p, pretty->level);
             }
 
-            pos = (u_char *) nxt_conf_json_print_string(pos, &member[n].name);
+            p = (u_char *) nxt_conf_json_print_string(p, &member[n].name);
 
-            *pos++ = ':';
+            *p++ = ':';
 
             if (pretty != NULL) {
-                *pos++ = ' ';
+                *p++ = ' ';
             }
 
-            pos = (u_char *) nxt_conf_json_print_value(pos, &member[n].value,
+            p = (u_char *) nxt_conf_json_print_value(p, &member[n].value,
                                                        pretty);
 
             n++;
@@ -1568,31 +1581,31 @@ nxt_conf_json_print_object(u_char *pos, nxt_conf_json_value_t *value,
                 break;
             }
 
-            *pos++ = ',';
+            *p++ = ',';
 
             if (pretty != NULL) {
-                pos = nxt_conf_json_newline(pos);
+                p = nxt_conf_json_newline(p);
 
                 if (pretty->more_space) {
                     pretty->more_space = 0;
-                    pos = nxt_conf_json_newline(pos);
+                    p = nxt_conf_json_newline(p);
                 }
             }
         }
 
         if (pretty != NULL) {
-            pos = nxt_conf_json_newline(pos);
+            p = nxt_conf_json_newline(p);
 
             pretty->level--;
-            pos = nxt_conf_json_indentation(pos, pretty);
+            p = nxt_conf_json_indentation(p, pretty->level);
 
             pretty->more_space = 1;
         }
     }
 
-    *pos++ = '}';
+    *p++ = '}';
 
-    return (uintptr_t) pos;
+    return (uintptr_t) p;
 }
 
 

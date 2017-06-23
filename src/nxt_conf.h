@@ -14,8 +14,8 @@ typedef struct nxt_conf_json_op_s     nxt_conf_json_op_t;
 
 
 typedef struct {
-    nxt_uint_t  level;
-    nxt_bool_t  more_space;  /* 1 bit. */
+    uint32_t  level;
+    uint8_t   more_space;  /* 1 bit. */
 } nxt_conf_json_pretty_t;
 
 
@@ -24,16 +24,19 @@ nxt_conf_json_value_t *nxt_conf_json_get_value(nxt_conf_json_value_t *value,
 nxt_conf_json_value_t *nxt_conf_json_object_get_member(
     nxt_conf_json_value_t *value, nxt_str_t *name, uint32_t *index);
 
-nxt_int_t nxt_conf_json_op_compile(nxt_conf_json_value_t *object,
-    nxt_conf_json_value_t *value, nxt_conf_json_op_t **ops, nxt_str_t *path,
-    nxt_mp_t *pool);
-nxt_conf_json_value_t *nxt_conf_json_clone_value(nxt_conf_json_value_t *value,
-    nxt_conf_json_op_t *op, nxt_mp_t *pool);
+nxt_int_t nxt_conf_json_op_compile(nxt_mp_t *mp, nxt_conf_json_op_t **ops,
+    nxt_conf_json_value_t *root, nxt_str_t *path,
+    nxt_conf_json_value_t *value);
+nxt_conf_json_value_t *nxt_conf_json_clone_value(nxt_mp_t *mp,
+    nxt_conf_json_op_t *op, nxt_conf_json_value_t *value);
 
-nxt_conf_json_value_t *nxt_conf_json_parse(u_char *pos, size_t length,
-    nxt_mp_t *pool);
+nxt_conf_json_value_t *nxt_conf_json_parse(nxt_mp_t *mp, u_char *start,
+    u_char *end);
 
-uintptr_t nxt_conf_json_print_value(u_char *pos, nxt_conf_json_value_t *value,
+#define nxt_conf_json_str_parse(mp, str)                                      \
+    nxt_conf_json_parse(mp, (str)->start, (str)->start + (str)->length)
+
+uintptr_t nxt_conf_json_print_value(u_char *p, nxt_conf_json_value_t *value,
     nxt_conf_json_pretty_t *pretty);
 
 
