@@ -36,6 +36,7 @@ typedef struct {
 typedef struct {
     nxt_queue_link_t    link;
     nxt_buf_t           *buf;
+    nxt_mp_t            *mem_pool;
     size_t              share;
     nxt_fd_t            fd;
     nxt_port_msg_t      port_msg;

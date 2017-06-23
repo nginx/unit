@@ -167,6 +167,7 @@ nxt_port_socket_write(nxt_task_t *task, nxt_port_t *port, nxt_uint_t type,
     msg->buf = b;
     msg->fd = fd;
     msg->share = 0;
+    msg->mem_pool = port->mem_pool;
 
     msg->port_msg.stream = stream;
     msg->port_msg.pid = nxt_pid;
@@ -289,7 +290,7 @@ nxt_port_write_handler(nxt_task_t *task, void *obj, void *data)
 
             } else {
                 nxt_queue_remove(link);
-                nxt_mp_free(port->mem_pool, msg);
+                nxt_mp_free(msg->mem_pool, msg);
             }
 
         } else if (nxt_slow_path(n == NXT_ERROR)) {
