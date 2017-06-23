@@ -158,6 +158,7 @@ typedef struct nxt_upstream_source_s  nxt_upstream_source_t;
 #include <nxt_http_source.h>
 #include <nxt_fastcgi_source.h>
 #include <nxt_runtime.h>
+#include <nxt_port_hash.h>
 
 
 #if (NXT_LIB_UNIT_TEST)

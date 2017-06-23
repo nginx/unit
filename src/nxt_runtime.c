@@ -1499,37 +1499,6 @@ static const nxt_lvlhsh_proto_t  lvlhsh_processes_proto  nxt_aligned(64) = {
     nxt_lvlhsh_free,
 };
 
-// Explicitly using 32 bit types to avoid possible alignment.
-typedef struct {
-    int32_t   pid;
-    uint32_t  port_id;
-} nxt_pid_port_id_t;
-
-static nxt_int_t
-nxt_runtime_lvlhsh_port_test(nxt_lvlhsh_query_t *lhq, void *data)
-{
-    nxt_port_t         *port;
-    nxt_pid_port_id_t  *pid_port_id;
-
-    port = data;
-    pid_port_id = (nxt_pid_port_id_t *) lhq->key.start;
-
-    if (lhq->key.length == sizeof(nxt_pid_port_id_t) &&
-        pid_port_id->pid == port->pid &&
-        pid_port_id->port_id == port->id) {
-        return NXT_OK;
-    }
-
-    return NXT_DECLINED;
-}
-
-static const nxt_lvlhsh_proto_t  lvlhsh_ports_proto  nxt_aligned(64) = {
-    NXT_LVLHSH_DEFAULT,
-    nxt_runtime_lvlhsh_port_test,
-    nxt_lvlhsh_alloc,
-    nxt_lvlhsh_free,
-};
-
 
 nxt_process_t *
 nxt_runtime_process_find(nxt_runtime_t *rt, nxt_pid_t pid)
@@ -1692,73 +1661,25 @@ nxt_runtime_process_first(nxt_runtime_t *rt, nxt_lvlhsh_each_t *lhe)
 nxt_port_t *
 nxt_runtime_port_first(nxt_runtime_t *rt, nxt_lvlhsh_each_t *lhe)
 {
-    nxt_memzero(lhe, sizeof(nxt_lvlhsh_each_t));
-
-    lhe->proto = &lvlhsh_ports_proto;
-
-    return nxt_runtime_port_next(rt, lhe);
+    return nxt_port_hash_first(&rt->ports, lhe);
 }
 
 
 void
 nxt_runtime_port_add(nxt_runtime_t *rt, nxt_port_t *port)
 {
-    nxt_pid_port_id_t   pid_port;
-    nxt_lvlhsh_query_t  lhq;
-
-    pid_port.pid = port->pid;
-    pid_port.port_id = port->id;
-
-    lhq.key_hash = nxt_murmur_hash2(&pid_port, sizeof(pid_port));
-    lhq.key.length = sizeof(pid_port);
-    lhq.key.start = (u_char *) &pid_port;
-    lhq.proto = &lvlhsh_ports_proto;
-    lhq.replace = 0;
-    lhq.value = port;
-    lhq.pool = rt->mem_pool;
-
     /* TODO lock ports */
 
-    switch (nxt_lvlhsh_insert(&rt->ports, &lhq)) {
-
-    case NXT_OK:
-        break;
-
-    default:
-        nxt_thread_log_error(NXT_LOG_WARN, "port #%d for pid %PI add failed",
-                             port->id, port->pid);
-        break;
-    }
+    nxt_port_hash_add(&rt->ports, rt->mem_pool, port);
 }
 
 
 void
 nxt_runtime_port_remove(nxt_runtime_t *rt, nxt_port_t *port)
 {
-    nxt_pid_port_id_t   pid_port;
-    nxt_lvlhsh_query_t  lhq;
-
-    pid_port.pid = port->pid;
-    pid_port.port_id = port->id;
-
-    lhq.key_hash = nxt_murmur_hash2(&pid_port, sizeof(pid_port));
-    lhq.key.length = sizeof(pid_port);
-    lhq.key.start = (u_char *) &pid_port;
-    lhq.proto = &lvlhsh_ports_proto;
-    lhq.replace = 0;
-    lhq.value = port;
-    lhq.pool = rt->mem_pool;
-
     /* TODO lock ports */
 
-    switch (nxt_lvlhsh_delete(&rt->ports, &lhq)) {
-
-    case NXT_OK:
-        break;
-
-    default:
-        break;
-    }
+    nxt_port_hash_remove(&rt->ports, rt->mem_pool, port);
 }
 
 
@@ -1766,25 +1687,7 @@ nxt_port_t *
 nxt_runtime_port_find(nxt_runtime_t *rt, nxt_pid_t pid,
     nxt_port_id_t port_id)
 {
-    nxt_pid_port_id_t   pid_port;
-    nxt_lvlhsh_query_t  lhq;
-
-    pid_port.pid = pid;
-    pid_port.port_id = port_id;
-
-    lhq.key_hash = nxt_murmur_hash2(&pid_port, sizeof(pid_port));
-    lhq.key.length = sizeof(pid_port);
-    lhq.key.start = (u_char *) &pid_port;
-    lhq.proto = &lvlhsh_ports_proto;
-
     /* TODO lock ports */
 
-    if (nxt_lvlhsh_find(&rt->ports, &lhq) == NXT_OK) {
-        nxt_thread_log_debug("process port (%PI, %d) found", pid, port_id);
-        return lhq.value;
-    }
-
-    nxt_thread_log_debug("process port (%PI, %d) not found", pid, port_id);
-
-    return NULL;
+    return nxt_port_hash_find(&rt->ports, pid, port_id);
 }

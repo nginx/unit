@@ -112,7 +112,7 @@ nxt_port_t *nxt_runtime_port_first(nxt_runtime_t *rt,
     nxt_lvlhsh_each_t *lhe);
 
 #define nxt_runtime_port_next(rt, lhe)                                        \
-    nxt_lvlhsh_each(&rt->ports, lhe)
+    nxt_port_hash_next(&rt->ports, lhe)
 
 
 /* STUB */

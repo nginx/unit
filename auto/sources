@@ -18,6 +18,7 @@ NXT_LIB_DEPS=" \
     src/nxt_process.h \
     src/nxt_signal.h \
     src/nxt_port.h \
+    src/nxt_port_hash.h \
     src/nxt_port_memory.h \
     src/nxt_dyld.h \
     src/nxt_thread.h \
@@ -70,6 +71,7 @@ NXT_LIB_DEPS=" \
     src/nxt_application.h \
     src/nxt_master_process.h \
     src/nxt_router.h \
+    src/nxt_port_hash.h \
 "
 
 NXT_LIB_SRCS=" \
@@ -142,6 +144,7 @@ NXT_LIB_SRCS=" \
     src/nxt_controller.c \
     src/nxt_router.c \
     src/nxt_application.c \
+    src/nxt_port_hash.c \
 "
 
 NXT_LIB_SRC0=" \
