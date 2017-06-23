@@ -36,7 +36,9 @@ nxt_conf_json_value_t *nxt_conf_json_parse(nxt_mp_t *mp, u_char *start,
 #define nxt_conf_json_str_parse(mp, str)                                      \
     nxt_conf_json_parse(mp, (str)->start, (str)->start + (str)->length)
 
-uintptr_t nxt_conf_json_print_value(u_char *p, nxt_conf_json_value_t *value,
+size_t nxt_conf_json_value_length(nxt_conf_json_value_t *value,
+    nxt_conf_json_pretty_t *pretty);
+u_char *nxt_conf_json_value_print(u_char *p, nxt_conf_json_value_t *value,
     nxt_conf_json_pretty_t *pretty);
 
 

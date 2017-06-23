@@ -786,7 +786,7 @@ nxt_controller_response_body(nxt_controller_response_t *resp, nxt_mp_t *pool)
 
     nxt_memzero(&pretty, sizeof(nxt_conf_json_pretty_t));
 
-    size = nxt_conf_json_print_value(NULL, value, &pretty) + 2;
+    size = nxt_conf_json_value_length(value, &pretty) + 2;
 
     b = nxt_buf_mem_alloc(pool, size, 0);
     if (nxt_slow_path(b == NULL)) {
@@ -795,8 +795,7 @@ nxt_controller_response_body(nxt_controller_response_t *resp, nxt_mp_t *pool)
 
     nxt_memzero(&pretty, sizeof(nxt_conf_json_pretty_t));
 
-    b->mem.free = (u_char *) nxt_conf_json_print_value(b->mem.free, value,
-                                                       &pretty);
+    b->mem.free = nxt_conf_json_value_print(b->mem.free, value, &pretty);
 
     *b->mem.free++ = '\r';
     *b->mem.free++ = '\n';
