@@ -62,7 +62,7 @@ typedef struct {
 
 
 NXT_EXPORT nxt_pid_t nxt_process_create(nxt_task_t *task,
-    nxt_process_init_t *process);
+    nxt_process_t *process);
 NXT_EXPORT nxt_pid_t nxt_process_execute(nxt_task_t *task, char *name,
     char **argv, char **envp);
 NXT_EXPORT nxt_int_t nxt_process_daemon(nxt_task_t *task);

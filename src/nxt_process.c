@@ -20,9 +20,12 @@ nxt_pid_t  nxt_ppid;
 
 
 nxt_pid_t
-nxt_process_create(nxt_task_t *task, nxt_process_init_t *process)
+nxt_process_create(nxt_task_t *task, nxt_process_t *process)
 {
-    nxt_pid_t  pid;
+    nxt_pid_t      pid;
+    nxt_runtime_t  *rt;
+
+    rt = task->thread->runtime;
 
     pid = fork();
 
@@ -30,7 +33,7 @@ nxt_process_create(nxt_task_t *task, nxt_process_init_t *process)
 
     case -1:
         nxt_log(task, NXT_LOG_CRIT, "fork() failed while creating \"%s\" %E",
-                process->name, nxt_errno);
+                process->init->name, nxt_errno);
         break;
 
     case 0:
@@ -40,12 +43,23 @@ nxt_process_create(nxt_task_t *task, nxt_process_init_t *process)
         /* Clean inherited cached thread tid. */
         task->thread->tid = 0;
 
-        nxt_process_start(task, process);
+        process->pid = nxt_pid;
+        process->init->port->pid = nxt_pid;
+
+        nxt_runtime_process_add(rt, process);
+
+        nxt_process_start(task, process->init);
         break;
 
     default:
         /* A parent. */
-        nxt_debug(task, "fork(\"%s\"): %PI", process->name, pid);
+        nxt_debug(task, "fork(\"%s\"): %PI", process->init->name, pid);
+
+        process->pid = pid;
+        process->init->port->pid = pid;
+
+        nxt_runtime_process_add(rt, process);
+
         break;
     }
 

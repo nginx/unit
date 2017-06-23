@@ -244,7 +244,7 @@ nxt_master_create_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
     port->engine = 0;
     port->type = init->type;
 
-    pid = nxt_process_create(task, init);
+    pid = nxt_process_create(task, process);
 
     switch (pid) {
 
@@ -253,19 +253,10 @@ nxt_master_create_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
 
     case 0:
         /* A worker process, return to the event engine work queue loop. */
-        process->pid = nxt_pid;
-        port->pid = nxt_pid;
-
-        nxt_runtime_process_add(rt, process);
-
         return NXT_AGAIN;
 
     default:
         /* The master process created a new process. */
-        process->pid = pid;
-        port->pid = pid;
-
-        nxt_runtime_process_add(rt, process);
 
         nxt_port_read_close(port);
         nxt_port_write_enable(task, port);
