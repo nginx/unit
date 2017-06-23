@@ -17,6 +17,7 @@ nxt_int_t nxt_router_start(nxt_task_t *task, nxt_runtime_t *rt);
 
 
 extern nxt_port_handler_t  nxt_worker_process_port_handlers[];
+extern nxt_port_handler_t  nxt_app_process_port_handlers[];
 extern const nxt_sig_event_t  nxt_master_process_signals[];
 extern const nxt_sig_event_t  nxt_worker_process_signals[];
 

@@ -30,6 +30,15 @@ nxt_port_handler_t  nxt_worker_process_port_handlers[] = {
 };
 
 
+nxt_port_handler_t  nxt_app_process_port_handlers[] = {
+    nxt_worker_process_quit_handler,
+    nxt_port_new_port_handler,
+    nxt_port_change_log_file_handler,
+    nxt_port_mmap_handler,
+    nxt_port_app_data_handler,
+};
+
+
 const nxt_sig_event_t  nxt_worker_process_signals[] = {
     nxt_event_signal(SIGHUP,  nxt_worker_process_signal_handler),
     nxt_event_signal(SIGINT,  nxt_worker_process_sigterm_handler),

@@ -189,7 +189,7 @@ nxt_master_start_worker_processes(nxt_task_t *task, nxt_runtime_t *rt)
     init->start = nxt_app_start;
     init->name = "worker process";
     init->user_cred = &rt->user_cred;
-    init->port_handlers = nxt_worker_process_port_handlers;
+    init->port_handlers = nxt_app_process_port_handlers;
     init->signals = nxt_worker_process_signals;
     init->type = NXT_PROCESS_WORKER;
 
