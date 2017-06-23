@@ -108,6 +108,12 @@ void nxt_runtime_port_remove(nxt_runtime_t *rt, nxt_port_t *port);
 nxt_port_t *nxt_runtime_port_find(nxt_runtime_t *rt, nxt_pid_t pid,
     nxt_port_id_t port_id);
 
+nxt_port_t *nxt_runtime_port_first(nxt_runtime_t *rt,
+    nxt_lvlhsh_each_t *lhe);
+
+#define nxt_runtime_port_next(rt, lhe)                                        \
+    nxt_lvlhsh_each(&rt->ports, lhe)
+
 
 /* STUB */
 nxt_int_t nxt_runtime_controller_socket(nxt_task_t *task, nxt_runtime_t *rt);
@@ -139,6 +145,19 @@ nxt_int_t nxt_app_start(nxt_task_t *task, nxt_runtime_t *rt);
              process = nxt_runtime_process_next(rt, &_lhe)) {                 \
 
 #define nxt_runtime_process_loop                                              \
+        }                                                                     \
+    } while(0)
+
+
+#define nxt_runtime_port_each(rt, port)                                       \
+    do {                                                                      \
+        nxt_lvlhsh_each_t  _lhe;                                              \
+                                                                              \
+        for (port = nxt_runtime_port_first(rt, &_lhe);                        \
+             port != NULL;                                                    \
+             port = nxt_runtime_port_next(rt, &_lhe)) {                       \
+
+#define nxt_runtime_port_loop                                                 \
         }                                                                     \
     } while(0)
 

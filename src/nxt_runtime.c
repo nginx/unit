@@ -1499,10 +1499,10 @@ static const nxt_lvlhsh_proto_t  lvlhsh_processes_proto  nxt_aligned(64) = {
     nxt_lvlhsh_free,
 };
 
-
+// Explicitly using 32 bit types to avoid possible alignment.
 typedef struct {
-    nxt_pid_t      pid;
-    nxt_port_id_t  port_id;
+    int32_t   pid;
+    uint32_t  port_id;
 } nxt_pid_port_id_t;
 
 static nxt_int_t
@@ -1689,6 +1689,17 @@ nxt_runtime_process_first(nxt_runtime_t *rt, nxt_lvlhsh_each_t *lhe)
 }
 
 
+nxt_port_t *
+nxt_runtime_port_first(nxt_runtime_t *rt, nxt_lvlhsh_each_t *lhe)
+{
+    nxt_memzero(lhe, sizeof(nxt_lvlhsh_each_t));
+
+    lhe->proto = &lvlhsh_ports_proto;
+
+    return nxt_runtime_port_next(rt, lhe);
+}
+
+
 void
 nxt_runtime_port_add(nxt_runtime_t *rt, nxt_port_t *port)
 {
@@ -1714,6 +1725,8 @@ nxt_runtime_port_add(nxt_runtime_t *rt, nxt_port_t *port)
         break;
 
     default:
+        nxt_thread_log_error(NXT_LOG_WARN, "port #%d for pid %PI add failed",
+                             port->id, port->pid);
         break;
     }
 }
