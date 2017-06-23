@@ -106,7 +106,7 @@ nxt_port_send_new_port(nxt_task_t *task, nxt_runtime_t *rt,
         nxt_debug(task, "send new port %FD to process %PI",
                   new_port->socket.fd, process->pid);
 
-        b->data = port;
+        b->data = port->mem_pool;
         b->completion_handler = nxt_port_new_port_buf_completion;
         b->mem.free += sizeof(nxt_port_msg_new_port_t);
         msg = (nxt_port_msg_new_port_t *) b->mem.pos;
@@ -128,15 +128,15 @@ nxt_port_send_new_port(nxt_task_t *task, nxt_runtime_t *rt,
 static void
 nxt_port_new_port_buf_completion(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_buf_t   *b;
-    nxt_port_t  *port;
+    nxt_mp_t   *mp;
+    nxt_buf_t  *b;
 
     b = obj;
-    port = b->data;
+    mp = b->data;
 
     /* TODO: b->mem.pos */
 
-    nxt_buf_free(port->mem_pool, b);
+    nxt_buf_free(mp, b);
 }
 
 

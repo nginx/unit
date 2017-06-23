@@ -90,7 +90,7 @@ nxt_port_mmap_destroy(nxt_port_mmap_t *port_mmap)
     }
 
     if (port_mmap->fd != -1) {
-        close(port_mmap->fd);
+        nxt_fd_close(port_mmap->fd);
         port_mmap->fd = -1;
     }
 }
@@ -112,7 +112,15 @@ nxt_port_mmap_buf_completion(nxt_task_t *task, void *obj, void *data)
 
     mp = b->data;
 
-    port_mmap = (nxt_port_mmap_t *) b->parent;
+#if (NXT_DEBUG)
+    if (nxt_slow_path(data != b->parent)) {
+        nxt_log_alert(task->log, "completion data (%p) != b->parent (%p)",
+                      data, b->parent);
+        nxt_abort();
+    }
+#endif
+
+    port_mmap = data;
     hdr = port_mmap->u.hdr;
 
     if (b->is_port_mmap_sent && b->mem.pos > b->mem.start) {
@@ -240,19 +248,27 @@ static void
 nxt_port_mmap_send_fd_buf_completion(nxt_task_t *task, void *obj, void *data)
 {
     nxt_buf_t        *b;
-    nxt_port_t       *port;
+    nxt_mp_t         *mp;
     nxt_port_mmap_t  *port_mmap;
 
     b = obj;
-    port = b->data;
-    port_mmap = (nxt_port_mmap_t *) b->parent;
+    mp = b->data;
+    port_mmap = data;
 
-    nxt_debug(task, "mmap fd %FD sent to %PI", port_mmap->fd, port->pid);
+#if (NXT_DEBUG)
+    if (nxt_slow_path(data != b->parent)) {
+        nxt_log_alert(task->log, "completion data (%p) != b->parent (%p)",
+                      data, b->parent);
+        nxt_abort();
+    }
+#endif
 
-    close(port_mmap->fd);
+    nxt_debug(task, "mmap fd %FD has been sent", port_mmap->fd);
+
+    nxt_fd_close(port_mmap->fd);
     port_mmap->fd = -1;
 
-    nxt_buf_free(port->mem_pool, b);
+    nxt_buf_free(mp, b);
 }
 
 
@@ -337,6 +353,15 @@ nxt_port_new_port_mmap(nxt_task_t *task, nxt_process_t *process,
         goto remove_fail;
     }
 
+    b = nxt_buf_mem_alloc(port->mem_pool, 0, 0);
+    if (nxt_slow_path(b == NULL)) {
+        goto remove_fail;
+    }
+
+    b->completion_handler = nxt_port_mmap_send_fd_buf_completion;
+    b->data = port->mem_pool;
+    b->parent = port_mmap;
+
     /* Init segment header. */
     hdr = port_mmap->u.hdr;
 
@@ -347,11 +372,6 @@ nxt_port_new_port_mmap(nxt_task_t *task, nxt_process_t *process,
 
     nxt_debug(task, "send mmap fd %FD to process %PI", port_mmap->fd,
               port->pid);
-
-    b = nxt_buf_mem_alloc(port->mem_pool, 0, 0);
-    b->completion_handler = nxt_port_mmap_send_fd_buf_completion;
-    b->data = port;
-    b->parent = port_mmap;
 
     /* TODO handle error */
     (void) nxt_port_socket_write(task, port, NXT_PORT_MSG_MMAP, port_mmap->fd,
