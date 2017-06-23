@@ -20,6 +20,7 @@ NXT_LIB_DEPS=" \
     src/nxt_port.h \
     src/nxt_port_hash.h \
     src/nxt_port_memory.h \
+    src/nxt_port_memory_int.h \
     src/nxt_dyld.h \
     src/nxt_thread.h \
     src/nxt_thread_id.h \

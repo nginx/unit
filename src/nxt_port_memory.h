@@ -1,6 +1,12 @@
 
+/*
+ * Copyright (C) Max Romanov
+ * Copyright (C) NGINX, Inc.
+ */
+
 #ifndef _NXT_PORT_MEMORY_H_INCLUDED_
 #define _NXT_PORT_MEMORY_H_INCLUDED_
+
 
 #define PORT_MMAP_MIN_SIZE (3 * sizeof(uint32_t))
 
@@ -19,7 +25,10 @@ nxt_port_mmap_destroy(nxt_port_mmap_t *port_mmap);
 nxt_buf_t *
 nxt_port_mmap_get_buf(nxt_task_t *task, nxt_port_t *port, size_t size);
 
-nxt_port_mmap_t *
+nxt_int_t nxt_port_mmap_increase_buf(nxt_task_t *task, nxt_buf_t *b,
+    size_t size);
+
+nxt_port_mmap_header_t *
 nxt_port_incoming_port_mmap(nxt_task_t *task, nxt_process_t *process,
     nxt_fd_t fd);
 
@@ -46,5 +55,6 @@ typedef enum nxt_port_method_e nxt_port_method_t;
 
 nxt_port_method_t
 nxt_port_mmap_get_method(nxt_task_t *task, nxt_port_t *port, nxt_buf_t *b);
+
 
 #endif /* _NXT_PORT_MEMORY_H_INCLUDED_ */
