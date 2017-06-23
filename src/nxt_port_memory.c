@@ -287,8 +287,8 @@ nxt_port_new_port_mmap(nxt_task_t *task, nxt_process_t *process,
     port_mmap->id = process->outgoing->nelts - 1;
     port_mmap->pid = process->pid;
 
-    p = nxt_sprintf(name, name + sizeof(name), "/nginext.%PI.%PT.%D",
-                    nxt_pid, task->thread->tid, nxt_random(&nxt_random_data));
+    p = nxt_sprintf(name, name + sizeof(name), "/nginext.%PI.%uxD",
+                    nxt_pid, nxt_random(&nxt_random_data));
     *p = '\0';
 
 #if (NXT_HAVE_MEMFD_CREATE)
