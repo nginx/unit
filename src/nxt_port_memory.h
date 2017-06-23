@@ -43,7 +43,7 @@ nxt_port_mmap_completion(nxt_task_t *task, nxt_work_queue_t *wq, nxt_buf_t *b) {
 
 void
 nxt_port_mmap_read(nxt_task_t *task, nxt_port_t *port,
-    nxt_port_recv_msg_t *msg, size_t size);
+    nxt_port_recv_msg_t *msg);
 
 enum nxt_port_method_e {
     NXT_PORT_METHOD_ANY = 0,

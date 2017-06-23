@@ -47,6 +47,7 @@ struct nxt_port_recv_msg_s {
     nxt_buf_t           *buf;
     nxt_port_t          *port;
     nxt_port_msg_t      port_msg;
+    size_t              size;
 };
 
 

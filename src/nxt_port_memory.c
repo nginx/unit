@@ -594,7 +594,7 @@ nxt_port_mmap_write(nxt_task_t *task, nxt_port_t *port,
 
 void
 nxt_port_mmap_read(nxt_task_t *task, nxt_port_t *port,
-    nxt_port_recv_msg_t *msg, size_t size)
+    nxt_port_recv_msg_t *msg)
 {
     nxt_buf_t            *b, **pb;
     nxt_port_mmap_msg_t  *end, *mmap_msg;
@@ -605,6 +605,7 @@ nxt_port_mmap_read(nxt_task_t *task, nxt_port_t *port,
     end = (nxt_port_mmap_msg_t *) b->mem.free;
 
     pb = &msg->buf;
+    msg->size = 0;
 
     while (mmap_msg < end) {
         nxt_debug(task, "mmap_msg={%D, %D, %D} from %PI",
@@ -619,6 +620,7 @@ nxt_port_mmap_read(nxt_task_t *task, nxt_port_t *port,
             break;
         }
 
+        msg->size += mmap_msg->size;
         pb = &(*pb)->next;
         mmap_msg++;
     }
