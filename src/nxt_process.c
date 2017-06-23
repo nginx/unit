@@ -540,3 +540,29 @@ nxt_process_port_new(nxt_process_t *process)
     return port;
 }
 
+
+void
+nxt_process_connected_port_add(nxt_process_t *process, nxt_port_t *port)
+{
+    /* TODO lock ports */
+
+    nxt_port_hash_add(&process->connected_ports, process->mem_pool, port);
+}
+
+void
+nxt_process_connected_port_remove(nxt_process_t *process, nxt_port_t *port)
+{
+    /* TODO lock ports */
+
+    nxt_port_hash_remove(&process->connected_ports, process->mem_pool, port);
+}
+
+nxt_port_t *
+nxt_process_connected_port_find(nxt_process_t *process, nxt_pid_t pid,
+    nxt_port_id_t port_id)
+{
+    /* TODO lock ports */
+
+    return nxt_port_hash_find(&process->connected_ports, pid, port_id);
+}
+

@@ -142,8 +142,6 @@ nxt_port_new_port_buf_completion(nxt_task_t *task, void *obj, void *data)
     b = obj;
     mp = b->data;
 
-    /* TODO: b->mem.pos */
-
     nxt_buf_free(mp, b);
 }
 

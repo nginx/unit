@@ -58,6 +58,8 @@ typedef struct {
     nxt_process_init_t  *init;
     nxt_array_t         *incoming;  /* of nxt_mmap_t */
     nxt_array_t         *outgoing;  /* of nxt_mmap_t */
+
+    nxt_lvlhsh_t        connected_ports; /* of nxt_port_t */
 } nxt_process_t;
 
 
@@ -87,6 +89,16 @@ NXT_EXPORT nxt_port_t * nxt_process_port_new(nxt_process_t *process);
 
 #define nxt_process_port_loop                                                 \
     nxt_queue_loop
+
+
+void nxt_process_connected_port_add(nxt_process_t *process, nxt_port_t *port);
+
+void nxt_process_connected_port_remove(nxt_process_t *process,
+    nxt_port_t *port);
+
+nxt_port_t *nxt_process_connected_port_find(nxt_process_t *process,
+    nxt_pid_t pid, nxt_port_id_t port_id);
+
 
 #if (NXT_HAVE_SETPROCTITLE)
 

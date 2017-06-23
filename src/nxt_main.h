@@ -26,7 +26,6 @@ typedef struct nxt_runtime_s         nxt_runtime_t;
 typedef uint16_t                     nxt_port_id_t;
 
 #include <nxt_queue.h>
-#include <nxt_process.h>
 
 typedef struct nxt_thread_s          nxt_thread_t;
 #include <nxt_thread_id.h>
@@ -36,6 +35,8 @@ typedef struct nxt_thread_s          nxt_thread_t;
 
 #include <nxt_random.h>
 #include <nxt_string.h>
+#include <nxt_lvlhsh.h>
+#include <nxt_process.h>
 #include <nxt_utf8.h>
 #include <nxt_file_name.h>
 
@@ -90,7 +91,6 @@ typedef struct nxt_thread_pool_s     nxt_thread_pool_t;
 
 #include <nxt_djb_hash.h>
 #include <nxt_murmur_hash.h>
-#include <nxt_lvlhsh.h>
 #include <nxt_hash.h>
 
 #include <nxt_sort.h>
