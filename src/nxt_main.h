@@ -25,9 +25,13 @@ typedef struct nxt_sig_event_s       nxt_sig_event_t;
 typedef struct nxt_runtime_s         nxt_runtime_t;
 typedef uint16_t                     nxt_port_id_t;
 
+typedef struct nxt_thread_s          nxt_thread_t;
+typedef struct nxt_event_engine_s    nxt_event_engine_t;
+typedef struct nxt_log_s             nxt_log_t;
+typedef struct nxt_thread_pool_s     nxt_thread_pool_t;
+
 #include <nxt_queue.h>
 
-typedef struct nxt_thread_s          nxt_thread_t;
 #include <nxt_thread_id.h>
 
 #include <nxt_errno.h>
@@ -36,16 +40,19 @@ typedef struct nxt_thread_s          nxt_thread_t;
 #include <nxt_random.h>
 #include <nxt_string.h>
 #include <nxt_lvlhsh.h>
+#include <nxt_atomic.h>
+#include <nxt_spinlock.h>
+#include <nxt_work_queue.h>
+#include <nxt_log.h>
+#include <nxt_thread_time.h>
+#include <nxt_rbtree.h>
+#include <nxt_timer.h>
+#include <nxt_fiber.h>
+#include <nxt_thread.h>
 #include <nxt_process.h>
 #include <nxt_utf8.h>
 #include <nxt_file_name.h>
 
-typedef struct nxt_log_s             nxt_log_t;
-#include <nxt_log.h>
-
-
-#include <nxt_atomic.h>
-#include <nxt_rbtree.h>
 #include <nxt_sprintf.h>
 #include <nxt_parse.h>
 
@@ -59,10 +66,7 @@ typedef struct nxt_sockaddr_s           nxt_sockaddr_t;
 #include <nxt_malloc.h>
 #include <nxt_mem_map.h>
 #include <nxt_socket.h>
-#include <nxt_spinlock.h>
 #include <nxt_dyld.h>
-
-#include <nxt_work_queue.h>
 
 
 typedef void *(*nxt_mem_proto_alloc_t)(void *pool, size_t size);
@@ -75,15 +79,6 @@ typedef struct {
 
 
 #include <nxt_mem_zone.h>
-#include <nxt_thread_time.h>
-
-typedef struct nxt_event_engine_s    nxt_event_engine_t;
-#include <nxt_timer.h>
-#include <nxt_fiber.h>
-
-typedef struct nxt_thread_pool_s     nxt_thread_pool_t;
-#include <nxt_thread.h>
-
 #include <nxt_signal.h>
 #if (NXT_THREADS)
 #include <nxt_semaphore.h>

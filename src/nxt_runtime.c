@@ -1473,6 +1473,9 @@ nxt_runtime_process_new(nxt_runtime_t *rt)
     /* TODO each process should have it's own mem_pool for ports allocation */
     process->mem_pool = rt->mem_pool;
 
+    nxt_thread_mutex_create(&process->incoming_mutex);
+    nxt_thread_mutex_create(&process->outgoing_mutex);
+
     return process;
 }
 

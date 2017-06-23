@@ -96,6 +96,8 @@ nxt_port_incoming_port_mmap(nxt_task_t *task, nxt_process_t *process,
         return NULL;
     }
 
+    nxt_thread_mutex_lock(&process->incoming_mutex);
+
     if (process->incoming == NULL) {
         process->incoming = nxt_array_create(process->mem_pool, 1,
             sizeof(nxt_port_mmap_t));
@@ -134,6 +136,8 @@ nxt_port_incoming_port_mmap(nxt_task_t *task, nxt_process_t *process,
     }
 
 fail:
+
+    nxt_thread_mutex_unlock(&process->incoming_mutex);
 
     return hdr;
 }
@@ -309,6 +313,8 @@ nxt_port_mmap_get(nxt_task_t *task, nxt_port_t *port, nxt_chunk_id_t *c,
     port_mmap = NULL;
     hdr = NULL;
 
+    nxt_thread_mutex_lock(&process->outgoing_mutex);
+
     if (process->outgoing == NULL) {
         hdr = nxt_port_new_port_mmap(task, process, port);
 
@@ -336,6 +342,8 @@ nxt_port_mmap_get(nxt_task_t *task, nxt_port_t *port, nxt_chunk_id_t *c,
 
 unlock_return:
 
+    nxt_thread_mutex_unlock(&process->outgoing_mutex);
+
     return hdr;
 }
 
@@ -355,6 +363,8 @@ nxt_port_get_port_incoming_mmap(nxt_task_t *task, nxt_pid_t spid, uint32_t id)
 
     hdr = NULL;
 
+    nxt_thread_mutex_lock(&process->incoming_mutex);
+
     incoming = process->incoming;
 
     if (nxt_fast_path(incoming != NULL && incoming->nelts > id)) {
@@ -364,6 +374,8 @@ nxt_port_get_port_incoming_mmap(nxt_task_t *task, nxt_pid_t spid, uint32_t id)
         nxt_log(task, NXT_LOG_WARN,
                 "failed to get incoming mmap #%d for process %PI", id, spid);
     }
+
+    nxt_thread_mutex_unlock(&process->incoming_mutex);
 
     return hdr;
 }
