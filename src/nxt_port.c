@@ -15,16 +15,15 @@ static void nxt_port_new_port_buf_completion(nxt_task_t *task, void *obj,
 
 
 void
-nxt_port_create(nxt_thread_t *thread, nxt_port_t *port,
+nxt_port_create(nxt_task_t *task, nxt_port_t *port,
     nxt_port_handler_t *handlers)
 {
     port->pid = nxt_pid;
-    port->engine = thread->engine->id;
+    port->engine = task->thread->engine->id;
     port->handler = nxt_port_handler;
     port->data = handlers;
 
-    nxt_port_write_close(port);
-    nxt_port_read_enable(&thread->engine->task, port);
+    nxt_port_read_enable(task, port);
 }
 
 

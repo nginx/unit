@@ -100,7 +100,8 @@ nxt_process_start(nxt_task_t *task, nxt_process_init_t *process)
     nxt_port_write_enable(task, process->master_port);
 
     /* A worker process port. */
-    nxt_port_create(thread, process->port, process->port_handlers);
+    nxt_port_write_close(process->port);
+    nxt_port_create(task, process->port, process->port_handlers);
 
     ret = nxt_runtime_thread_pool_create(thread, rt, rt->auxiliary_threads,
                                          60000 * 1000000LL);

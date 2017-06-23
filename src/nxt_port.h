@@ -110,7 +110,7 @@ nxt_int_t nxt_port_socket_write(nxt_task_t *task, nxt_port_t *port,
     nxt_uint_t type, nxt_fd_t fd, uint32_t stream, nxt_port_id_t reply_port,
     nxt_buf_t *b);
 
-void nxt_port_create(nxt_thread_t *thread, nxt_port_t *port,
+void nxt_port_create(nxt_task_t *task, nxt_port_t *port,
     nxt_port_handler_t *handlers);
 void nxt_port_write(nxt_task_t *task, nxt_runtime_t *rt, nxt_uint_t type,
     nxt_fd_t fd, uint32_t stream, nxt_buf_t *b);
