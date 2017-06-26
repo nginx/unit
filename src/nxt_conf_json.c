@@ -236,13 +236,7 @@ nxt_conf_json_object_get_member(nxt_conf_json_value_t *value, nxt_str_t *name,
     for (n = 0; n < object->count; n++) {
         member = &object->members[n];
 
-        if (member->name.type == NXT_CONF_JSON_SHORT_STRING) {
-            str.length = member->name.u.str[0];
-            str.start = &member->name.u.str[1];
-
-        } else {
-            str = *member->name.u.string;
-        }
+        nxt_conf_json_value_get_string(&member->name, &str);
 
         if (nxt_strstr_eq(&str, name)) {
 
