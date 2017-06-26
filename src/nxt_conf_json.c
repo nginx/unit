@@ -44,7 +44,7 @@ struct nxt_conf_json_value_s {
     union {
         uint32_t                boolean;  /* 1 bit. */
         int64_t                 integer;
-     /* double                  number; */
+        double                  number;
         u_char                  str[1 + NXT_CONF_JSON_STR_SIZE];
         nxt_str_t               *string;
         nxt_conf_json_array_t   *array;
@@ -249,6 +249,124 @@ nxt_conf_json_object_get_member(nxt_conf_json_value_t *value, nxt_str_t *name,
     }
 
     return NULL;
+}
+
+
+nxt_int_t
+nxt_conf_json_object_map(nxt_conf_json_value_t *value,
+    nxt_conf_json_object_map_t *map, void *data)
+{
+    nxt_uint_t             i;
+    nxt_conf_json_value_t  *v;
+
+    union {
+        uint8_t    ui8;
+        int32_t    i32;
+        int64_t    i64;
+        nxt_int_t  i;
+        ssize_t    size;
+        off_t      off;
+        double     dbl;
+        nxt_str_t  str;
+        void       *v;
+    } *ptr;
+
+    for (i = 0; map[i].name.length != 0; i++) {
+
+        v = nxt_conf_json_object_get_member(value, &map[i].name, NULL);
+
+        if (v == NULL || v->type == NXT_CONF_JSON_NULL) {
+            continue;
+        }
+
+        ptr = nxt_pointer_to(data, map[i].offset);
+
+        switch (map[i].type) {
+
+        case NXT_CONF_JSON_MAP_INT8:
+
+            if (v->type != NXT_CONF_JSON_BOOLEAN) {
+                return NXT_ERROR;
+            }
+
+            ptr->ui8 = v->u.boolean;
+
+            break;
+
+        case NXT_CONF_JSON_MAP_INT32:
+        case NXT_CONF_JSON_MAP_INT64:
+        case NXT_CONF_JSON_MAP_INT:
+        case NXT_CONF_JSON_MAP_SIZE:
+        case NXT_CONF_JSON_MAP_OFF:
+
+            if (v->type != NXT_CONF_JSON_INTEGER) {
+                return NXT_ERROR;
+            }
+
+            switch (map[i].type) {
+
+            case NXT_CONF_JSON_MAP_INT32:
+                ptr->ui8 = v->u.integer;
+                break;
+
+            case NXT_CONF_JSON_MAP_INT64:
+                ptr->i64 = v->u.integer;
+                break;
+
+            case NXT_CONF_JSON_MAP_INT:
+                ptr->i = v->u.integer;
+                break;
+
+            case NXT_CONF_JSON_MAP_SIZE:
+                ptr->size = v->u.integer;
+                break;
+
+            case NXT_CONF_JSON_MAP_OFF:
+                ptr->off = v->u.integer;
+                break;
+
+            default:
+                nxt_unreachable();
+            }
+
+            break;
+
+        case NXT_CONF_JSON_MAP_DOUBLE:
+
+            if (v->type == NXT_CONF_JSON_NUMBER) {
+                ptr->dbl = v->u.number;
+
+            } else if (v->type == NXT_CONF_JSON_INTEGER) {
+                ptr->dbl = v->u.integer;
+
+            } else {
+                return NXT_ERROR;
+            }
+
+            break;
+
+        case NXT_CONF_JSON_MAP_STR:
+
+            if (v->type != NXT_CONF_JSON_SHORT_STRING
+                && v->type != NXT_CONF_JSON_STRING)
+            {
+                return NXT_ERROR;
+            }
+
+            nxt_conf_json_value_get_string(v, &ptr->str);
+
+            break;
+
+
+        case NXT_CONF_JSON_MAP_PTR:
+
+            ptr->v = v;
+
+            break;
+        }
+    }
+
+    return NXT_OK;
 }
 
 
