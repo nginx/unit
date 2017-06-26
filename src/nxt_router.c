@@ -985,24 +985,20 @@ nxt_router_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     size_t               dump_size;
     nxt_buf_t            *b, *i, *last;
     nxt_conn_t           *c;
-    nxt_work_queue_t     *wq;
     nxt_req_conn_link_t  *rc;
     nxt_event_engine_t   *engine;
 
     b = msg->buf;
     engine = task->thread->engine;
-    wq = &engine->fast_work_queue;
 
     rc = nxt_event_engine_request_find(engine, msg->port_msg.stream);
     if (nxt_slow_path(rc == NULL)) {
 
         nxt_debug(task, "request id %08uxD not found", msg->port_msg.stream);
 
-        /* complete buffer(s) */
+        /* Mark buffers as read. */
         for (i = b; i != NULL; i = i->next) {
             i->mem.pos = i->mem.free;
-
-            nxt_work_queue_add(wq, i->completion_handler, task, i, i->parent);
         }
 
         return;
