@@ -136,6 +136,7 @@ nxt_inline nxt_int_t nxt_php_write(nxt_php_run_ctx_t *ctx,
 static nxt_str_t nxt_php_path;
 static nxt_str_t nxt_php_root;
 static nxt_str_t nxt_php_script;
+static nxt_str_t nxt_php_index_name = nxt_string("index.php");
 
 
 nxt_application_module_t  nxt_php_module = {
@@ -237,6 +238,7 @@ nxt_php_read_request(nxt_task_t *task, nxt_app_rmsg_t *rmsg,
 {
     u_char                    *p;
     size_t                    s;
+    nxt_str_t                 script_name;
     nxt_app_request_header_t  *h;
 
     h = &ctx->r.header;
@@ -257,7 +259,14 @@ nxt_php_read_request(nxt_task_t *task, nxt_app_rmsg_t *rmsg,
     }
 
     if (nxt_php_path.start == NULL) {
-        ctx->script.length = nxt_php_root.length + h->path_no_query.length;
+        if (h->path_no_query.start[h->path_no_query.length - 1] == '/') {
+            script_name = nxt_php_index_name;
+        } else {
+            script_name.length = 0;
+        }
+
+        ctx->script.length = nxt_php_root.length + h->path_no_query.length +
+                             script_name.length;
         ctx->script.start = nxt_mp_nget(ctx->mem_pool,
             ctx->script.length + 1);
 
@@ -265,8 +274,16 @@ nxt_php_read_request(nxt_task_t *task, nxt_app_rmsg_t *rmsg,
 
         nxt_memcpy(p, nxt_php_root.start, nxt_php_root.length);
         p += nxt_php_root.length;
+
         nxt_memcpy(p, h->path_no_query.start, h->path_no_query.length);
-        p[h->path_no_query.length] = '\0';
+        p += h->path_no_query.length;
+
+        if (script_name.length > 0) {
+            nxt_memcpy(p, script_name.start, script_name.length);
+            p += script_name.length;
+        }
+
+        p[0] = '\0';
     } else {
         ctx->script = nxt_php_path;
     }
@@ -279,6 +296,8 @@ nxt_php_read_request(nxt_task_t *task, nxt_app_rmsg_t *rmsg,
 
     nxt_app_msg_read_size(task, rmsg, &s);
     h->parsed_content_length = s;
+
+    nxt_app_msg_read_str(task, rmsg, &ctx->r.body.preread);
 
     /* Further headers read moved to nxt_php_register_variables. */
     return NXT_OK;
@@ -334,6 +353,8 @@ nxt_php_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
 
     RC(nxt_app_msg_write_size(task, wmsg, h->parsed_content_length));
 
+    NXT_WRITE(&r->body.preread);
+
     nxt_list_each(field, h->fields) {
         RC(nxt_app_msg_write_prefixed_upcase(task, wmsg,
                                              &prefix, &field->name));
@@ -343,7 +364,6 @@ nxt_php_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
 
     /* end-of-headers mark */
     NXT_WRITE(&eof);
-    NXT_WRITE(&r->body.preread);
 
 #undef NXT_WRITE
 #undef RC
@@ -620,6 +640,8 @@ nxt_php_read_cookies(TSRMLS_D)
 
     ctx = SG(server_context);
 
+    nxt_debug(ctx->task, "nxt_php_read_cookies");
+
     return (char *) ctx->r.header.cookie.start;
 }
 
@@ -729,18 +751,20 @@ nxt_php_register_variables(zval *track_vars_array TSRMLS_DC)
                           track_vars_array TSRMLS_CC);
     }
 
-    while ( (rc = nxt_app_msg_read_nvp(task, ctx->rmsg, &n, &v)) == NXT_OK) {
+    while (nxt_app_msg_read_str(task, ctx->rmsg, &n) == NXT_OK) {
         if (nxt_slow_path(n.length == 0)) {
             break;
         }
 
+        rc = nxt_app_msg_read_str(task, ctx->rmsg, &v);
+        if (nxt_slow_path(rc != NXT_OK)) {
+            break;
+        }
+
         php_register_variable_safe((char *) n.start,
-                          (char *) n.start,
-                          v.length,
+                          (char *) v.start, v.length,
                           track_vars_array TSRMLS_CC);
     }
-
-    ctx->r.body.preread = v;
 }
 
 
