@@ -63,7 +63,9 @@
 
 #if (NXT_SOLARIS)
 
+#ifndef _FILE_OFFSET_BITS
 #define _FILE_OFFSET_BITS  64       /* Must be before <sys/types.h>. */
+#endif
 
 #ifndef _REENTRANT                  /* May be set by "-mt" options. */
 #define _REENTRANT                  /* Thread safe errno. */

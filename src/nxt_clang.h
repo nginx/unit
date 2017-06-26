@@ -210,9 +210,6 @@ nxt_bswap32(val)                                                              \
 #define nxt_is_power_of_two(value)                                            \
     ((((value) - 1) & (value)) == 0)
 
-#define nxt_lg2(value)                                                        \
-    (31 - __builtin_clz(value))
-
 
 #define                                                                       \
 nxt_align_size(d, a)                                                          \

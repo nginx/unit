@@ -113,7 +113,7 @@ struct nxt_mp_s {
     nxt_queue_t          free_pages;
     nxt_queue_t          nget_pages;
     nxt_queue_t          get_pages;
-    nxt_queue_t          chunk_pages[0];
+    nxt_queue_t          chunk_pages[];
 };
 
 
@@ -149,6 +149,41 @@ static intptr_t nxt_mp_rbtree_compare(nxt_rbtree_node_t *node1,
 static nxt_mp_block_t *nxt_mp_find_block(nxt_rbtree_t *tree, u_char *p);
 static const char *nxt_mp_chunk_free(nxt_mp_t *mp, nxt_mp_block_t *cluster,
     u_char *p);
+
+
+#if (NXT_HAVE_BUILTIN_CLZ)
+
+#define nxt_lg2(value)                                                        \
+    (31 - __builtin_clz(value))
+
+#else
+
+static const int nxt_lg2_tab64[64] = {
+    63,  0, 58,  1, 59, 47, 53,  2,
+    60, 39, 48, 27, 54, 33, 42,  3,
+    61, 51, 37, 40, 49, 18, 28, 20,
+    55, 30, 34, 11, 43, 14, 22,  4,
+    62, 57, 46, 52, 38, 26, 32, 41,
+    50, 36, 17, 19, 29, 10, 13, 21,
+    56, 45, 25, 31, 35, 16,  9, 12,
+    44, 24, 15,  8, 23,  7,  6,  5
+};
+
+static const uint64_t nxt_lg2_magic = 0x07EDD5E59A4E28C2ULL;
+
+static int
+nxt_lg2(uint64_t v)
+{
+    v |= v >> 1;
+    v |= v >> 2;
+    v |= v >> 4;
+    v |= v >> 8;
+    v |= v >> 16;
+    v |= v >> 32;
+    return nxt_lg2_tab64[ ((v - (v >> 1)) * nxt_lg2_magic) >> 58 ];
+}
+
+#endif
 
 
 nxt_mp_t *

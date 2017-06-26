@@ -16,7 +16,8 @@
 #if (NXT_DEBUG)
 
 #define nxt_go_debug(fmt, ARGS...) \
-    fprintf(stdout, "go debug[%p]: " fmt "\n", (void *) pthread_self(), ##ARGS)
+    fprintf(stdout, "go debug[%p]: " fmt "\n", \
+            (void *) (intptr_t) pthread_self(), ##ARGS)
 
 #else
 

@@ -863,7 +863,7 @@ nxt_conf_json_object_hash_alloc(void *data, size_t size)
 static void
 nxt_conf_json_object_hash_free(void *data, void *p)
 {
-    return nxt_mp_free(data, p);
+    nxt_mp_free(data, p);
 }
 
 
