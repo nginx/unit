@@ -764,7 +764,7 @@ nxt_mem_zone_find_free_block(nxt_mem_zone_t *zone, nxt_rbtree_node_t *node,
 
         } else {  /* pages < block->size */
             aligned += pages << zone->page_size_shift;
-            end = (u_char *) block + (block->size << zone->page_size_shift);
+            end = nxt_pointer_to(block, block->size << zone->page_size_shift);
 
             if (aligned <= end) {
                 return block;

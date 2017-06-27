@@ -57,7 +57,7 @@ nxt_go_array_add(nxt_array_t *array)
         array->nalloc = new_alloc;
     }
 
-    p = (char *) array->elts + array->size * array->nelts;
+    p = nxt_pointer_to(array->elts, array->size * array->nelts);
     array->nelts++;
 
     return p;

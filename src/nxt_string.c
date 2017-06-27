@@ -17,7 +17,7 @@ nxt_str_alloc(nxt_mp_t *mp, size_t length)
 
     if (nxt_fast_path(s != NULL)) {
         s->length = length;
-        s->start = (u_char *) s + sizeof(nxt_str_t);
+        s->start = nxt_pointer_to(s, sizeof(nxt_str_t));
     }
 
     return s;

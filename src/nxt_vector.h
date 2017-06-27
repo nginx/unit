@@ -43,9 +43,8 @@ NXT_EXPORT void nxt_vector_remove(nxt_vector_t *vector, void *item);
 
 #define                                                                       \
 nxt_vector_last(vector)                                                       \
-    ((void *)                                                                 \
-        ((char *) (vector)->start                                             \
-                      + (vector)->item_size * ((vector)->items - 1)))
+    nxt_pointer_to((vector)->start,                                           \
+                   (vector)->item_size * ((vector)->items - 1))
 
 
 #define                                                                       \
@@ -62,7 +61,7 @@ nxt_inline void *
 nxt_vector_remove_last(nxt_vector_t *vector)
 {
     vector->items--;
-    return (char *) vector->start + vector->item_size * vector->items;
+    return nxt_pointer_to(vector->start, vector->item_size * vector->items);
 }
 
 

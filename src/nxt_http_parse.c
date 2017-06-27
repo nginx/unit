@@ -746,7 +746,7 @@ nxt_http_fields_hash_create(nxt_http_fields_hash_entry_t *entries,
                 break;
             }
 
-            elt = (nxt_http_fields_hash_elt_t *) ((u_char *) elt + size);
+            elt = nxt_pointer_to(elt, size);
         }
     }
 

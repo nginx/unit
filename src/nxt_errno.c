@@ -107,7 +107,7 @@ nxt_strerror_start(void)
         return NXT_ERROR;
     }
 
-    p = (u_char *) nxt_sys_errlist + n;
+    p = nxt_pointer_to(nxt_sys_errlist, n);
 
     for (err = 0; err < nxt_sys_nerr; err++) {
         msg = strerror((int) err);

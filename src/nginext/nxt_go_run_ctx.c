@@ -96,8 +96,7 @@ nxt_go_ctx_init_msg(nxt_go_msg_t *msg, nxt_port_msg_t *port_msg,
 
     if (nxt_fast_path(port_msg->mmap != 0)) {
         msg->mmap_msg = (nxt_port_mmap_msg_t *) (port_msg + 1);
-        msg->end = (nxt_port_mmap_msg_t *) ( (char *) msg->mmap_msg +
-                                              payload_size );
+        msg->end = nxt_pointer_to(msg->mmap_msg, payload_size);
 
         mmap_msg = msg->mmap_msg;
         while(mmap_msg < msg->end) {

@@ -27,7 +27,7 @@ NXT_EXPORT void nxt_array_remove(nxt_array_t *array, void *elt);
 
 #define                                                                       \
 nxt_array_last(array)                                                         \
-    ((void *) ((char *) (array)->elts + (array)->size * ((array)->nelts - 1)))
+    nxt_pointer_to((array)->elts, (array)->size * ((array)->nelts - 1))
 
 
 #define                                                                       \
@@ -44,7 +44,7 @@ nxt_inline void *
 nxt_array_remove_last(nxt_array_t *array)
 {
     array->nelts--;
-    return (char *) array->elts + array->size * array->nelts;
+    return nxt_pointer_to(array->elts, array->size * array->nelts);
 }
 
 

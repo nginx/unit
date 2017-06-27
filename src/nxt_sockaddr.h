@@ -102,9 +102,9 @@ NXT_EXPORT nxt_int_t nxt_inet6_addr(struct in6_addr *in6_addr, u_char *buf,
     (sizeof("[ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]:65535") - 1)
 
 
-#define nxt_sockaddr_start(sa)    ((u_char *) (sa) + (sa)->start)
-#define nxt_sockaddr_address(sa)  ((u_char *) (sa) + (sa)->address_start)
-#define nxt_sockaddr_port(sa)     ((u_char *) (sa) + (sa)->port_start)
+#define nxt_sockaddr_start(sa)    nxt_pointer_to(sa, (sa)->start)
+#define nxt_sockaddr_address(sa)  nxt_pointer_to(sa, (sa)->address_start)
+#define nxt_sockaddr_port(sa)     nxt_pointer_to(sa, (sa)->port_start)
 #define nxt_sockaddr_length(sa)   ((sa)->length - (sa)->port_start)
 
 

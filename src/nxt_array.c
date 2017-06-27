@@ -18,7 +18,7 @@ nxt_array_create(nxt_mp_t *mp, nxt_uint_t n, size_t size)
         return NULL;
     }
 
-    array->elts = (char *) array + sizeof(nxt_array_t);
+    array->elts = nxt_pointer_to(array, sizeof(nxt_array_t));
     array->nelts = 0;
     array->size = size;
     array->nalloc = n;
@@ -61,7 +61,7 @@ nxt_array_add(nxt_array_t *array)
         array->nalloc = new_alloc;
     }
 
-    p = (char *) array->elts + array->size * array->nelts;
+    p = nxt_pointer_to(array->elts, array->size * array->nelts);
     array->nelts++;
 
     return p;

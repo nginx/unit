@@ -782,14 +782,7 @@ nxt_conn_proxy_write_timeout(nxt_task_t *task, void *obj, void *data)
 static nxt_msec_t
 nxt_conn_proxy_timeout_value(nxt_conn_t *c, uintptr_t data)
 {
-    nxt_msec_t        *timer;
-    nxt_conn_proxy_t  *p;
-
-    p = c->socket.data;
-
-    timer = (nxt_msec_t *) ((char *) p + data);
-
-    return *timer;
+    return nxt_value_at(nxt_msec_t, c->socket.data, data);
 }
 
 

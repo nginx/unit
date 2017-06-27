@@ -43,7 +43,7 @@ nxt_list_part(list)                                                           \
 
 #define                                                                       \
 nxt_list_data(part)                                                           \
-    ((char *) (part) + sizeof(nxt_list_part_t))
+    nxt_pointer_to(part, sizeof(nxt_list_part_t))
 
 
 #define                                                                       \

@@ -189,7 +189,7 @@ nxt_sockaddr_text(nxt_sockaddr_t *sa)
     u_char    *p, *start, *end, *octet;
     uint32_t  port;
 
-    end = (u_char *) sa + sa->sockaddr_size;
+    end = nxt_pointer_to(sa, sa->sockaddr_size);
 
     switch (sa->u.sockaddr.sa_family) {
 
@@ -199,7 +199,7 @@ nxt_sockaddr_text(nxt_sockaddr_t *sa)
         sa->start = offset;
         sa->address_start = offset;
 
-        start = (u_char *) sa + offset;
+        start = nxt_pointer_to(sa, offset);
         octet = (u_char *) &sa->u.sockaddr_in.sin_addr;
 
         p = nxt_sprintf(start, end, "%ud.%ud.%ud.%ud",
@@ -220,7 +220,7 @@ nxt_sockaddr_text(nxt_sockaddr_t *sa)
         sa->start = offset;
         sa->address_start = offset;
 
-        start = (u_char *) sa + offset;
+        start = nxt_pointer_to(sa, offset);
         p = start;
 
         *p++ = '[';
@@ -247,7 +247,7 @@ nxt_sockaddr_text(nxt_sockaddr_t *sa)
         sa->start = offset;
         sa->address_start = offset;
 
-        start = (u_char *) sa + offset;
+        start = nxt_pointer_to(sa, offset);
         p = start;
 
 #if (NXT_LINUX)

@@ -30,7 +30,7 @@ nxt_go_array_zero_add(nxt_array_t *array)
 
 #define                                                                       \
 nxt_go_array_at(array, n)                                                     \
-    ((void *) ((char *) (array)->elts + (array)->size * (n)))
+    nxt_pointer_to((array)->elts, (array)->size * (n))
 
 
 #endif /* _NXT_GO_ARRAY_H_INCLUDED_ */

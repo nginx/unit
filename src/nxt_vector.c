@@ -16,7 +16,7 @@ nxt_vector_create(nxt_uint_t items, size_t item_size,
     vector = proto->alloc(pool, sizeof(nxt_vector_t) + items * item_size);
 
     if (nxt_fast_path(vector != NULL)) {
-        vector->start = (char *) vector + sizeof(nxt_vector_t);
+        vector->start = nxt_pointer_to(vector, sizeof(nxt_vector_t));
         vector->items = 0;
         vector->item_size = item_size;
         vector->avalaible = items;
@@ -112,7 +112,7 @@ nxt_vector_add(nxt_vector_t *vector, const nxt_mem_proto_t *proto, void *pool)
         }
     }
 
-    item = (char *) vector->start + vector->item_size * vector->items;
+    item = nxt_pointer_to(vector->start, vector->item_size * vector->items);
 
     vector->items++;
 
@@ -143,11 +143,11 @@ nxt_vector_remove(nxt_vector_t *vector, void *item)
     uint32_t  item_size;
 
     item_size = vector->item_size;
-    end = (u_char *) vector->start + item_size * vector->items;
+    end = nxt_pointer_to(vector->start, item_size * vector->items);
     last = end - item_size;
 
     if (item != last) {
-        next = (u_char *) item + item_size;
+        next = nxt_pointer_to(item, item_size);
 
         nxt_memmove(item, next, end - next);
     }
