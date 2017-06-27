@@ -11,6 +11,10 @@
 static u_char *nxt_inet6_ntop(u_char *addr, u_char *buf, u_char *end);
 #endif
 
+static nxt_sockaddr_t *nxt_sockaddr_unix_parse(nxt_mp_t *mp, nxt_str_t *addr);
+static nxt_sockaddr_t *nxt_sockaddr_inet6_parse(nxt_mp_t *mp, nxt_str_t *addr);
+static nxt_sockaddr_t *nxt_sockaddr_inet_parse(nxt_mp_t *mp, nxt_str_t *addr);
+
 static nxt_int_t nxt_job_sockaddr_unix_parse(nxt_job_sockaddr_parse_t *jbs);
 static nxt_int_t nxt_job_sockaddr_inet6_parse(nxt_job_sockaddr_parse_t *jbs);
 static nxt_int_t nxt_job_sockaddr_inet_parse(nxt_job_sockaddr_parse_t *jbs);
@@ -561,6 +565,207 @@ nxt_inet6_ntop(u_char *addr, u_char *buf, u_char *end)
 #endif
 
 
+nxt_sockaddr_t *
+nxt_sockaddr_parse(nxt_mp_t *mp, nxt_str_t *addr)
+{
+    nxt_sockaddr_t  *sa;
+
+    if (addr->length > 6 && nxt_memcmp(addr->start, "unix:", 5) == 0) {
+        sa = nxt_sockaddr_unix_parse(mp, addr);
+
+    } else if (addr->length != 0 && addr->start[0] == '[') {
+        sa = nxt_sockaddr_inet6_parse(mp, addr);
+
+    } else {
+        sa = nxt_sockaddr_inet_parse(mp, addr);
+    }
+
+    if (nxt_fast_path(sa != NULL)) {
+        nxt_sockaddr_text(sa);
+    }
+
+    return sa;
+}
+
+
+static nxt_sockaddr_t *
+nxt_sockaddr_unix_parse(nxt_mp_t *mp, nxt_str_t *addr)
+{
+#if (NXT_HAVE_UNIX_DOMAIN)
+    size_t          length, socklen;
+    u_char          *path;
+    nxt_sockaddr_t  *sa;
+
+    /*
+     * Actual sockaddr_un length can be lesser or even larger than defined
+     * struct sockaddr_un length (see comment in unix/nxt_socket.h).  So
+     * limit maximum Unix domain socket address length by defined sun_path[]
+     * length because some OSes accept addresses twice larger than defined
+     * struct sockaddr_un.  Also reserve space for a trailing zero to avoid
+     * ambiguity, since many OSes accept Unix domain socket addresses
+     * without a trailing zero.
+     */
+    const size_t max_len = sizeof(struct sockaddr_un)
+                           - offsetof(struct sockaddr_un, sun_path) - 1;
+
+    /* Cutting "unix:". */
+    length = addr->length - 5;
+    path = addr->start + 5;
+
+    if (length > max_len) {
+        nxt_thread_log_error(NXT_LOG_ERR,
+                             "unix domain socket \"%V\" name is too long",
+                             addr);
+        return NULL;
+    }
+
+    socklen = offsetof(struct sockaddr_un, sun_path) + length + 1;
+
+#if (NXT_LINUX)
+
+    /*
+     * Linux unix(7):
+     *
+     *   abstract: an abstract socket address is distinguished by the fact
+     *   that sun_path[0] is a null byte ('\0').  The socket's address in
+     *   this namespace is given by the additional bytes in sun_path that
+     *   are covered by the specified length of the address structure.
+     *   (Null bytes in the name have no special significance.)
+     */
+    if (path[0] == '@') {
+        path[0] = '\0';
+        socklen--;
+    }
+
+#endif
+
+    sa = nxt_sockaddr_alloc(mp, socklen, addr->length);
+
+    if (nxt_fast_path(sa != NULL)) {
+        sa->u.sockaddr_un.sun_family = AF_UNIX;
+        nxt_memcpy(sa->u.sockaddr_un.sun_path, path, length);
+    }
+
+    return sa;
+
+#else  /* !(NXT_HAVE_UNIX_DOMAIN) */
+
+    nxt_thread_log_error(NXT_LOG_ERR,
+                         "unix domain socket \"%V\" is not supported", addr);
+
+    return NULL;
+
+#endif
+}
+
+
+static nxt_sockaddr_t *
+nxt_sockaddr_inet6_parse(nxt_mp_t *mp, nxt_str_t *addr)
+{
+#if (NXT_INET6)
+    u_char          *p, *start, *end;
+    size_t          length;
+    nxt_int_t       ret, port;
+    nxt_sockaddr_t  *sa;
+
+    length = addr->length - 1;
+    start = addr->start + 1;
+
+    end = nxt_memchr(start, ']', length);
+
+    if (end != NULL) {
+        sa = nxt_sockaddr_alloc(mp, sizeof(struct sockaddr_in6),
+                                NXT_INET6_ADDR_STR_LEN);
+        if (nxt_slow_path(sa == NULL)) {
+            return NULL;
+        }
+
+        ret = nxt_inet6_addr(&sa->u.sockaddr_in6.sin6_addr, start, end - start);
+
+        if (nxt_fast_path(ret == NXT_OK)) {
+            p = end + 1;
+            length = (start + length) - p;
+
+            if (length > 2 && *p == ':') {
+                port = nxt_int_parse(p + 1, length - 1);
+
+                if (port > 0 && port < 65536) {
+                    sa->u.sockaddr_in6.sin6_port = htons((in_port_t) port);
+                    sa->u.sockaddr_in6.sin6_family = AF_INET6;
+
+                    return sa;
+                }
+            }
+
+            nxt_thread_log_error(NXT_LOG_ERR, "invalid port in \"%V\"", addr);
+
+            return NULL;
+        }
+    }
+
+    nxt_thread_log_error(NXT_LOG_ERR, "invalid IPv6 address in \"%V\"", addr);
+
+    return NULL;
+
+#else  /* !(NXT_INET6) */
+
+    nxt_thread_log_error(NXT_LOG_ERR, "IPv6 socket \"%V\" is not supported",
+                         addr);
+    return NULL;
+
+#endif
+}
+
+
+static nxt_sockaddr_t *
+nxt_sockaddr_inet_parse(nxt_mp_t *mp, nxt_str_t *addr)
+{
+    u_char          *p;
+    size_t          length;
+    nxt_int_t       port;
+    in_addr_t       inaddr;
+    nxt_sockaddr_t  *sa;
+
+    p = nxt_memchr(addr->start, ':', addr->length);
+
+    if (nxt_fast_path(p != NULL)) {
+        inaddr = INADDR_ANY;
+        length = p - addr->start;
+
+        if (length != 1 || addr->start[0] != '*') {
+            inaddr = nxt_inet_addr(addr->start, length);
+
+            if (nxt_slow_path(inaddr == INADDR_NONE)) {
+                nxt_thread_log_error(NXT_LOG_ERR, "invalid address \"%V\"",
+                                     addr);
+                return NULL;
+            }
+        }
+
+        p++;
+        length = (addr->start + addr->length) - p;
+        port = nxt_int_parse(p, length);
+
+        if (port > 0 && port < 65536) {
+            sa = nxt_sockaddr_alloc(mp, sizeof(struct sockaddr_in),
+                                    NXT_INET_ADDR_STR_LEN);
+
+            if (nxt_slow_path(sa != NULL)) {
+                sa->u.sockaddr_in.sin_family = AF_INET;
+                sa->u.sockaddr_in.sin_port = htons((in_port_t) port);
+                sa->u.sockaddr_in.sin_addr.s_addr = inaddr;
+            }
+
+            return sa;
+        }
+    }
+
+    nxt_thread_log_error(NXT_LOG_ERR, "invalid port in \"%V\"", addr);
+
+    return NULL;
+}
+
+
 void
 nxt_job_sockaddr_parse(nxt_job_sockaddr_parse_t *jbs)
 {
@@ -712,7 +917,8 @@ nxt_job_sockaddr_inet6_parse(nxt_job_sockaddr_parse_t *jbs)
         return NXT_ERROR;
     }
 
-    sa = nxt_sockaddr_alloc(mp, sizeof(struct sockaddr_in6));
+    sa = nxt_sockaddr_alloc(mp, sizeof(struct sockaddr_in6),
+                            NXT_INET6_ADDR_STR_LEN);
 
     if (nxt_slow_path(sa == NULL)) {
         return NXT_ERROR;
