@@ -245,18 +245,15 @@ nxt_sockaddr_text(nxt_sockaddr_t *sa)
 #if (NXT_HAVE_UNIX_DOMAIN)
 
     case AF_UNIX:
-
-        offset = offsetof(nxt_sockaddr_t, u) + sizeof(struct sockaddr_un);
+        offset = offsetof(nxt_sockaddr_t, u) + sa->socklen;
 
         sa->start = offset;
         sa->address_start = offset;
 
         start = nxt_pointer_to(sa, offset);
-        p = start;
+        p = (u_char *) sa->u.sockaddr_un.sun_path;
 
 #if (NXT_LINUX)
-
-        p = (u_char *) sa->u.sockaddr_un.sun_path;
 
         if (p[0] == '\0') {
             int  length;
