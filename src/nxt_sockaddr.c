@@ -222,7 +222,7 @@ nxt_sockaddr_text(nxt_sockaddr_t *sa)
         offset = offsetof(nxt_sockaddr_t, u) + sizeof(struct sockaddr_in6);
 
         sa->start = offset;
-        sa->address_start = offset;
+        sa->address_start = offset + 1;
 
         start = nxt_pointer_to(sa, offset);
         p = start;
@@ -479,11 +479,14 @@ nxt_sockaddr_ntop(nxt_sockaddr_t *sa, u_char *buf, u_char *end, nxt_bool_t port)
 static u_char *
 nxt_inet6_ntop(u_char *addr, u_char *buf, u_char *end)
 {
-    u_char      *p;
-    size_t      zero_groups, last_zero_groups, ipv6_bytes;
-    nxt_uint_t  i, zero_start, last_zero_start;
+    u_char       *p;
+    size_t       zero_groups, last_zero_groups, ipv6_bytes;
+    nxt_uint_t   i, zero_start, last_zero_start;
 
-    if (buf + NXT_INET6_ADDR_STR_LEN > end) {
+    const size_t  max_inet6_length =
+                      sizeof("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff") - 1;
+
+    if (buf + max_inet6_length > end) {
         return buf;
     }
 
