@@ -240,6 +240,8 @@ nxt_router_socket_conf(nxt_task_t *task, nxt_mp_t *mp, nxt_sockaddr_t *sa)
     }
 
     conf->listen.sockaddr = sa;
+    conf->listen.socklen = sa->socklen;
+    conf->listen.address_length = sa->length;
 
     conf->listen.socket = -1;
     conf->listen.backlog = NXT_LISTEN_BACKLOG;

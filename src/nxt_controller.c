@@ -157,6 +157,8 @@ nxt_runtime_controller_socket(nxt_task_t *task, nxt_runtime_t *rt)
     }
 
     ls->sockaddr->type = sa->type;
+    ls->socklen = sa->socklen;
+    ls->address_length = sa->length;
 
     nxt_sockaddr_text(ls->sockaddr);
 
