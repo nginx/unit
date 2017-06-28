@@ -301,7 +301,7 @@ nxt_controller_conn_read(nxt_task_t *task, void *obj, void *data)
     preread = nxt_buf_mem_used_size(&b->mem);
 
     nxt_debug(task, "controller request header parsing complete, "
-                    "body length: %O, preread: %uz",
+                    "body length: %uz, preread: %uz",
                     r->length, preread);
 
     if (preread >= r->length) {
@@ -382,26 +382,24 @@ static const nxt_event_conn_state_t  nxt_controller_conn_body_read_state
 static void
 nxt_controller_conn_body_read(nxt_task_t *task, void *obj, void *data)
 {
-    size_t      rest;
-    nxt_buf_t   *b;
-    nxt_conn_t  *c;
+    size_t                    read;
+    nxt_buf_t                 *b;
+    nxt_conn_t                *c;
+    nxt_controller_request_t  *r;
 
     c = obj;
-
-    nxt_debug(task, "controller conn body read");
-
+    r = data;
     b = c->read;
 
-    rest = nxt_buf_mem_free_size(&b->mem);
+    read = nxt_buf_mem_used_size(&b->mem);
 
-    if (rest == 0) {
-        nxt_debug(task, "controller conn body read complete");
+    nxt_debug(task, "controller conn body read: %uz of %uz",
+              read, r->length);
 
+    if (read >= r->length) {
         nxt_controller_process_request(task, c, data);
         return;
     }
-
-    nxt_debug(task, "controller conn body read again, rest: %uz", rest);
 
     nxt_conn_read(task->thread->engine, c);
 }
@@ -525,7 +523,11 @@ nxt_controller_request_content_length(void *ctx, nxt_http_field_t *field,
     length = nxt_off_t_parse(field->value.start, field->value.length);
 
     if (nxt_fast_path(length > 0)) {
-        nxt_log_error(NXT_LOG_ERR, log, "Content-Length is too big");
+
+        if (nxt_slow_path(length > NXT_SIZE_T_MAX)) {
+            nxt_log_error(NXT_LOG_ERR, log, "Content-Length is too big");
+            return NXT_ERROR;
+        }
 
         r->length = length;
         return NXT_OK;
