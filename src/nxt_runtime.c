@@ -1010,9 +1010,8 @@ nxt_runtime_sockaddr_inet6_parse(nxt_task_t *task, nxt_mp_t *mp,
     nxt_str_t *addr)
 {
 #if (NXT_INET6)
-    u_char           *p, *addr, *addr_end;
+    u_char           *p, *addr_end;
     size_t           length;
-    nxt_mp_t         *mp;
     nxt_int_t        port;
     nxt_sockaddr_t   *sa;
     struct in6_addr  *in6_addr;
@@ -1026,8 +1025,8 @@ nxt_runtime_sockaddr_inet6_parse(nxt_task_t *task, nxt_mp_t *mp,
         goto invalid_address;
     }
 
-    sa = nxt_sockaddr_alloc(mp, sizeof(struct sockaddr_in6));
-
+    sa = nxt_sockaddr_alloc(mp, sizeof(struct sockaddr_in6),
+                            NXT_INET6_ADDR_STR_LEN);
     if (nxt_slow_path(sa == NULL)) {
         return NULL;
     }
@@ -1038,6 +1037,7 @@ nxt_runtime_sockaddr_inet6_parse(nxt_task_t *task, nxt_mp_t *mp,
         goto invalid_address;
     }
 
+    port = 0;
     p = addr_end + 1;
     length = (p + length) - p;
 
