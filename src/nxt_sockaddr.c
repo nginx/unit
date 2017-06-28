@@ -193,17 +193,17 @@ nxt_sockaddr_text(nxt_sockaddr_t *sa)
     u_char    *p, *start, *end, *octet;
     uint32_t  port;
 
+    offset = offsetof(nxt_sockaddr_t, u) + sa->socklen;
+    sa->start = offset;
+
+    start = nxt_pointer_to(sa, offset);
     end = nxt_pointer_to(sa, sa->sockaddr_size);
 
     switch (sa->u.sockaddr.sa_family) {
 
     case AF_INET:
-        offset = offsetof(nxt_sockaddr_t, u) + sizeof(struct sockaddr_in);
-
-        sa->start = offset;
         sa->address_start = offset;
 
-        start = nxt_pointer_to(sa, offset);
         octet = (u_char *) &sa->u.sockaddr_in.sin_addr;
 
         p = nxt_sprintf(start, end, "%ud.%ud.%ud.%ud",
@@ -219,14 +219,9 @@ nxt_sockaddr_text(nxt_sockaddr_t *sa)
 #if (NXT_INET6)
 
     case AF_INET6:
-        offset = offsetof(nxt_sockaddr_t, u) + sizeof(struct sockaddr_in6);
-
-        sa->start = offset;
         sa->address_start = offset + 1;
 
-        start = nxt_pointer_to(sa, offset);
         p = start;
-
         *p++ = '[';
 
         p = nxt_inet6_ntop(sa->u.sockaddr_in6.sin6_addr.s6_addr, p, end);
@@ -245,12 +240,8 @@ nxt_sockaddr_text(nxt_sockaddr_t *sa)
 #if (NXT_HAVE_UNIX_DOMAIN)
 
     case AF_UNIX:
-        offset = offsetof(nxt_sockaddr_t, u) + sa->socklen;
-
-        sa->start = offset;
         sa->address_start = offset;
 
-        start = nxt_pointer_to(sa, offset);
         p = (u_char *) sa->u.sockaddr_un.sun_path;
 
 #if (NXT_LINUX)
