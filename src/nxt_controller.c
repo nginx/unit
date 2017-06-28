@@ -12,8 +12,8 @@
 
 
 typedef struct {
-    nxt_conf_json_value_t  *root;
-    nxt_mp_t               *pool;
+    nxt_conf_value_t  *root;
+    nxt_mp_t          *pool;
 } nxt_controller_conf_t;
 
 
@@ -26,9 +26,9 @@ typedef struct {
 
 
 typedef struct {
-    nxt_str_t              status_line;
-    nxt_conf_json_value_t  *json_value;
-    nxt_str_t              json_string;
+    nxt_str_t         status_line;
+    nxt_conf_value_t  *conf;
+    nxt_str_t         json;
 } nxt_controller_response_t;
 
 
@@ -84,7 +84,7 @@ nxt_int_t
 nxt_controller_start(nxt_task_t *task, nxt_runtime_t *rt)
 {
     nxt_mp_t                *mp;
-    nxt_conf_json_value_t   *conf;
+    nxt_conf_value_t        *conf;
     nxt_http_fields_hash_t  *hash;
 
     static const nxt_str_t json
@@ -108,7 +108,7 @@ nxt_controller_start(nxt_task_t *task, nxt_runtime_t *rt)
         return NXT_ERROR;
     }
 
-    conf = nxt_conf_json_str_parse(mp, &json);
+    conf = nxt_conf_json_parse_str(mp, &json);
 
     if (conf == NULL) {
         return NXT_ERROR;
@@ -546,8 +546,8 @@ nxt_controller_process_request(nxt_task_t *task, nxt_conn_t *c,
     nxt_str_t                  path;
     nxt_uint_t                 status;
     nxt_buf_mem_t              *mbuf;
-    nxt_conf_json_op_t         *ops;
-    nxt_conf_json_value_t      *value;
+    nxt_conf_op_t              *ops;
+    nxt_conf_value_t           *value;
     nxt_controller_response_t  resp;
 
     static const nxt_str_t empty_obj = nxt_string("{}");
@@ -569,14 +569,14 @@ nxt_controller_process_request(nxt_task_t *task, nxt_conn_t *c,
 
     if (nxt_str_eq(&req->parser.method, "GET", 3)) {
 
-        value = nxt_conf_json_get_value(nxt_controller_conf.root, &path);
+        value = nxt_conf_get_path(nxt_controller_conf.root, &path);
 
         if (value == NULL) {
             status = 404;
             goto done;
         }
 
-        resp.json_value = value;
+        resp.conf = value;
 
         status = 200;
         goto done;
@@ -602,9 +602,9 @@ nxt_controller_process_request(nxt_task_t *task, nxt_conn_t *c,
         }
 
         if (path.length != 1) {
-            rc = nxt_conf_json_op_compile(c->mem_pool, &ops,
-                                          nxt_controller_conf.root,
-                                          &path, value);
+            rc = nxt_conf_op_compile(c->mem_pool, &ops,
+                                     nxt_controller_conf.root,
+                                     &path, value);
 
             if (rc != NXT_OK) {
                 if (rc == NXT_DECLINED) {
@@ -616,8 +616,7 @@ nxt_controller_process_request(nxt_task_t *task, nxt_conn_t *c,
                 goto done;
             }
 
-            value = nxt_conf_json_clone_value(mp, ops,
-                                              nxt_controller_conf.root);
+            value = nxt_conf_clone(mp, ops, nxt_controller_conf.root);
 
             if (nxt_slow_path(value == NULL)) {
                 nxt_mp_destroy(mp);
@@ -631,7 +630,7 @@ nxt_controller_process_request(nxt_task_t *task, nxt_conn_t *c,
         nxt_controller_conf.root = value;
         nxt_controller_conf.pool = mp;
 
-        nxt_str_set(&resp.json_string, "{ \"success\": \"Updated.\" }");
+        nxt_str_set(&resp.json, "{ \"success\": \"Updated.\" }");
 
         status = 200;
         goto done;
@@ -647,12 +646,12 @@ nxt_controller_process_request(nxt_task_t *task, nxt_conn_t *c,
                 goto done;
             }
 
-            value = nxt_conf_json_str_parse(mp, &empty_obj);
+            value = nxt_conf_json_parse_str(mp, &empty_obj);
 
         } else {
-            rc = nxt_conf_json_op_compile(c->mem_pool, &ops,
-                                          nxt_controller_conf.root,
-                                          &path, NULL);
+            rc = nxt_conf_op_compile(c->mem_pool, &ops,
+                                     nxt_controller_conf.root,
+                                     &path, NULL);
 
             if (rc != NXT_OK) {
                 if (rc == NXT_DECLINED) {
@@ -671,8 +670,7 @@ nxt_controller_process_request(nxt_task_t *task, nxt_conn_t *c,
                 goto done;
             }
 
-            value = nxt_conf_json_clone_value(mp, ops,
-                                              nxt_controller_conf.root);
+            value = nxt_conf_clone(mp, ops, nxt_controller_conf.root);
         }
 
         if (nxt_slow_path(value == NULL)) {
@@ -686,7 +684,7 @@ nxt_controller_process_request(nxt_task_t *task, nxt_conn_t *c,
         nxt_controller_conf.root = value;
         nxt_controller_conf.pool = mp;
 
-        nxt_str_set(&resp.json_string, "{ \"success\": \"Deleted.\" }");
+        nxt_str_set(&resp.json, "{ \"success\": \"Deleted.\" }");
 
         status = 200;
         goto done;
@@ -704,25 +702,22 @@ done:
 
     case 400:
         nxt_str_set(&resp.status_line, "400 Bad Request");
-        nxt_str_set(&resp.json_string,
-                    "{ \"error\": \"Invalid JSON.\" }");
+        nxt_str_set(&resp.json, "{ \"error\": \"Invalid JSON.\" }");
         break;
 
     case 404:
         nxt_str_set(&resp.status_line, "404 Not Found");
-        nxt_str_set(&resp.json_string,
-                    "{ \"error\": \"Value doesn't exist.\" }");
+        nxt_str_set(&resp.json, "{ \"error\": \"Value doesn't exist.\" }");
         break;
 
     case 405:
         nxt_str_set(&resp.status_line, "405 Method Not Allowed");
-        nxt_str_set(&resp.json_string, "{ \"error\": \"Invalid method.\" }");
+        nxt_str_set(&resp.json, "{ \"error\": \"Invalid method.\" }");
         break;
 
     case 500:
         nxt_str_set(&resp.status_line, "500 Internal Server Error");
-        nxt_str_set(&resp.json_string,
-                    "{ \"error\": \"Memory allocation failed.\" }");
+        nxt_str_set(&resp.json, "{ \"error\": \"Memory allocation failed.\" }");
         break;
     }
 
@@ -772,14 +767,14 @@ nxt_controller_response_body(nxt_controller_response_t *resp, nxt_mp_t *pool)
 {
     size_t                  size;
     nxt_buf_t               *b;
-    nxt_conf_json_value_t   *value;
+    nxt_conf_value_t        *value;
     nxt_conf_json_pretty_t  pretty;
 
-    if (resp->json_value) {
-        value = resp->json_value;
+    if (resp->conf) {
+        value = resp->conf;
 
     } else {
-        value = nxt_conf_json_str_parse(pool, &resp->json_string);
+        value = nxt_conf_json_parse_str(pool, &resp->json);
 
         if (nxt_slow_path(value == NULL)) {
             return NULL;
@@ -788,7 +783,7 @@ nxt_controller_response_body(nxt_controller_response_t *resp, nxt_mp_t *pool)
 
     nxt_memzero(&pretty, sizeof(nxt_conf_json_pretty_t));
 
-    size = nxt_conf_json_value_length(value, &pretty) + 2;
+    size = nxt_conf_json_length(value, &pretty) + 2;
 
     b = nxt_buf_mem_alloc(pool, size, 0);
     if (nxt_slow_path(b == NULL)) {
@@ -797,7 +792,7 @@ nxt_controller_response_body(nxt_controller_response_t *resp, nxt_mp_t *pool)
 
     nxt_memzero(&pretty, sizeof(nxt_conf_json_pretty_t));
 
-    b->mem.free = nxt_conf_json_value_print(b->mem.free, value, &pretty);
+    b->mem.free = nxt_conf_json_print(b->mem.free, value, &pretty);
 
     *b->mem.free++ = '\r';
     *b->mem.free++ = '\n';

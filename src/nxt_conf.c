@@ -13,111 +13,109 @@
 #endif
 
 
-#define NXT_CONF_JSON_STR_SIZE  14
+#define NXT_CONF_MAX_SHORT_STRING  14
 
 
 typedef enum {
-    NXT_CONF_JSON_NULL = 0,
-    NXT_CONF_JSON_BOOLEAN,
-    NXT_CONF_JSON_INTEGER,
-    NXT_CONF_JSON_NUMBER,
-    NXT_CONF_JSON_SHORT_STRING,
-    NXT_CONF_JSON_STRING,
-    NXT_CONF_JSON_ARRAY,
-    NXT_CONF_JSON_OBJECT,
-} nxt_conf_json_type_t;
+    NXT_CONF_NULL = 0,
+    NXT_CONF_BOOLEAN,
+    NXT_CONF_INTEGER,
+    NXT_CONF_NUMBER,
+    NXT_CONF_SHORT_STRING,
+    NXT_CONF_STRING,
+    NXT_CONF_ARRAY,
+    NXT_CONF_OBJECT,
+} nxt_conf_type_t;
 
 
 typedef enum {
-    NXT_CONF_JSON_OP_PASS = 0,
-    NXT_CONF_JSON_OP_CREATE,
-    NXT_CONF_JSON_OP_REPLACE,
-    NXT_CONF_JSON_OP_DELETE,
-} nxt_conf_json_op_action_t;
+    NXT_CONF_OP_PASS = 0,
+    NXT_CONF_OP_CREATE,
+    NXT_CONF_OP_REPLACE,
+    NXT_CONF_OP_DELETE,
+} nxt_conf_op_action_t;
 
 
-typedef struct nxt_conf_json_array_s   nxt_conf_json_array_t;
-typedef struct nxt_conf_json_object_s  nxt_conf_json_object_t;
+typedef struct nxt_conf_array_s   nxt_conf_array_t;
+typedef struct nxt_conf_object_s  nxt_conf_object_t;
 
 
-struct nxt_conf_json_value_s {
+struct nxt_conf_value_s {
     union {
-        uint32_t                boolean;  /* 1 bit. */
-        int64_t                 integer;
-        double                  number;
-        u_char                  str[1 + NXT_CONF_JSON_STR_SIZE];
-        nxt_str_t               *string;
-        nxt_conf_json_array_t   *array;
-        nxt_conf_json_object_t  *object;
+        uint32_t              boolean;  /* 1 bit. */
+        int64_t               integer;
+        double                number;
+        u_char                str[1 + NXT_CONF_MAX_SHORT_STRING];
+        nxt_str_t             *string;
+        nxt_conf_array_t      *array;
+        nxt_conf_object_t     *object;
     } u;
 
-    nxt_conf_json_type_t        type:8;   /* 3 bits. */
+    nxt_conf_type_t           type:8;   /* 3 bits. */
 };
 
 
-struct nxt_conf_json_array_s {
-    nxt_uint_t                  count;
-    nxt_conf_json_value_t       elements[];
+struct nxt_conf_array_s {
+    nxt_uint_t                count;
+    nxt_conf_value_t          elements[];
 };
 
 
 typedef struct {
-    nxt_conf_json_value_t       name;
-    nxt_conf_json_value_t       value;
-} nxt_conf_json_obj_member_t;
+    nxt_conf_value_t          name;
+    nxt_conf_value_t          value;
+} nxt_conf_object_member_t;
 
 
-struct nxt_conf_json_object_s {
-    nxt_uint_t                  count;
-    nxt_conf_json_obj_member_t  members[];
+struct nxt_conf_object_s {
+    nxt_uint_t                count;
+    nxt_conf_object_member_t  members[];
 };
 
 
-struct nxt_conf_json_op_s {
-    uint32_t            index;
-    uint32_t            action;  /* nxt_conf_json_op_action_t */
-    void                *ctx;
-    nxt_conf_json_op_t  *next;
+struct nxt_conf_op_s {
+    uint32_t                  index;
+    uint32_t                  action;  /* nxt_conf_op_action_t */
+    void                      *ctx;
+    nxt_conf_op_t             *next;
 };
 
 
 static u_char *nxt_conf_json_skip_space(u_char *start, u_char *end);
-static u_char *nxt_conf_json_parse_value(nxt_mp_t *mp,
-    nxt_conf_json_value_t *value, u_char *start, u_char *end);
-static u_char *nxt_conf_json_parse_object(nxt_mp_t *mp,
-    nxt_conf_json_value_t *value, u_char *start, u_char *end);
-static nxt_int_t nxt_conf_json_object_hash_add(nxt_mp_t *mp,
-    nxt_lvlhsh_t *lvlhsh, nxt_conf_json_obj_member_t *member);
-static nxt_int_t nxt_conf_json_object_hash_test(nxt_lvlhsh_query_t *lhq,
+static u_char *nxt_conf_json_parse_value(nxt_mp_t *mp, nxt_conf_value_t *value,
+    u_char *start, u_char *end);
+static u_char *nxt_conf_json_parse_object(nxt_mp_t *mp, nxt_conf_value_t *value,
+    u_char *start, u_char *end);
+static nxt_int_t nxt_conf_object_hash_add(nxt_mp_t *mp,
+    nxt_lvlhsh_t *lvlhsh, nxt_conf_object_member_t *member);
+static nxt_int_t nxt_conf_object_hash_test(nxt_lvlhsh_query_t *lhq,
     void *data);
-static void *nxt_conf_json_object_hash_alloc(void *data, size_t size);
-static void nxt_conf_json_object_hash_free(void *data, void *p);
-static u_char *nxt_conf_json_parse_array(nxt_mp_t *mp,
-    nxt_conf_json_value_t *value, u_char *start, u_char *end);
-static u_char *nxt_conf_json_parse_string(nxt_mp_t *mp,
-    nxt_conf_json_value_t *value, u_char *start, u_char *end);
-static u_char *nxt_conf_json_parse_number(nxt_mp_t *mp,
-    nxt_conf_json_value_t *value, u_char *start, u_char *end);
+static void *nxt_conf_object_hash_alloc(void *data, size_t size);
+static void nxt_conf_object_hash_free(void *data, void *p);
+static u_char *nxt_conf_json_parse_array(nxt_mp_t *mp, nxt_conf_value_t *value,
+    u_char *start, u_char *end);
+static u_char *nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value,
+    u_char *start, u_char *end);
+static u_char *nxt_conf_json_parse_number(nxt_mp_t *mp, nxt_conf_value_t *value,
+    u_char *start, u_char *end);
 
-static nxt_int_t nxt_conf_json_copy_value(nxt_mp_t *mp, nxt_conf_json_op_t *op,
-    nxt_conf_json_value_t *dst, nxt_conf_json_value_t *src);
-static nxt_int_t nxt_conf_json_copy_object(nxt_mp_t *mp, nxt_conf_json_op_t *op,
-    nxt_conf_json_value_t *dst, nxt_conf_json_value_t *src);
+static nxt_int_t nxt_conf_copy_value(nxt_mp_t *mp, nxt_conf_op_t *op,
+    nxt_conf_value_t *dst, nxt_conf_value_t *src);
+static nxt_int_t nxt_conf_copy_object(nxt_mp_t *mp, nxt_conf_op_t *op,
+    nxt_conf_value_t *dst, nxt_conf_value_t *src);
 
-static size_t nxt_conf_json_integer_length(nxt_conf_json_value_t *value);
-static u_char *nxt_conf_json_integer_print(u_char *p,
-    nxt_conf_json_value_t *value);
-static size_t nxt_conf_json_string_length(nxt_conf_json_value_t *value);
-static u_char *nxt_conf_json_string_print(u_char *p,
-    nxt_conf_json_value_t *value);
-static size_t nxt_conf_json_array_length(nxt_conf_json_value_t *value,
+static size_t nxt_conf_json_integer_length(nxt_conf_value_t *value);
+static u_char *nxt_conf_json_print_integer(u_char *p, nxt_conf_value_t *value);
+static size_t nxt_conf_json_string_length(nxt_conf_value_t *value);
+static u_char *nxt_conf_json_print_string(u_char *p, nxt_conf_value_t *value);
+static size_t nxt_conf_json_array_length(nxt_conf_value_t *value,
     nxt_conf_json_pretty_t *pretty);
-static u_char *nxt_conf_json_array_print(u_char *p,
-    nxt_conf_json_value_t *value, nxt_conf_json_pretty_t *pretty);
-static size_t nxt_conf_json_object_length(nxt_conf_json_value_t *value,
+static u_char *nxt_conf_json_print_array(u_char *p, nxt_conf_value_t *value,
     nxt_conf_json_pretty_t *pretty);
-static u_char *nxt_conf_json_object_print(u_char *p,
-    nxt_conf_json_value_t *value, nxt_conf_json_pretty_t *pretty);
+static size_t nxt_conf_json_object_length(nxt_conf_value_t *value,
+    nxt_conf_json_pretty_t *pretty);
+static u_char *nxt_conf_json_print_object(u_char *p, nxt_conf_value_t *value,
+    nxt_conf_json_pretty_t *pretty);
 
 static size_t nxt_conf_json_escape_length(u_char *p, size_t size);
 static u_char *nxt_conf_json_escape(u_char *dst, u_char *src, size_t size);
@@ -140,9 +138,9 @@ nxt_conf_json_indentation(u_char *p, uint32_t level)
 
 
 nxt_inline void
-nxt_conf_json_value_get_string(nxt_conf_json_value_t *value, nxt_str_t *str)
+nxt_conf_get_string(nxt_conf_value_t *value, nxt_str_t *str)
 {
-    if (value->type == NXT_CONF_JSON_SHORT_STRING) {
+    if (value->type == NXT_CONF_SHORT_STRING) {
         str->length = value->u.str[0];
         str->start = &value->u.str[1];
 
@@ -159,12 +157,12 @@ typedef struct {
 } nxt_conf_path_parse_t;
 
 
-static void nxt_conf_json_path_next_token(nxt_conf_path_parse_t *parse,
+static void nxt_conf_path_next_token(nxt_conf_path_parse_t *parse,
     nxt_str_t *token);
 
 
-nxt_conf_json_value_t *
-nxt_conf_json_get_value(nxt_conf_json_value_t *value, nxt_str_t *path)
+nxt_conf_value_t *
+nxt_conf_get_path(nxt_conf_value_t *value, nxt_str_t *path)
 {
     nxt_str_t              token;
     nxt_conf_path_parse_t  parse;
@@ -174,7 +172,7 @@ nxt_conf_json_get_value(nxt_conf_json_value_t *value, nxt_str_t *path)
     parse.last = 0;
 
     do {
-        nxt_conf_json_path_next_token(&parse, &token);
+        nxt_conf_path_next_token(&parse, &token);
 
         if (token.length == 0) {
 
@@ -185,7 +183,7 @@ nxt_conf_json_get_value(nxt_conf_json_value_t *value, nxt_str_t *path)
             return NULL;
         }
 
-        value = nxt_conf_json_object_get_member(value, &token, NULL);
+        value = nxt_conf_get_object_member(value, &token, NULL);
 
         if (value == NULL) {
             return NULL;
@@ -198,7 +196,7 @@ nxt_conf_json_get_value(nxt_conf_json_value_t *value, nxt_str_t *path)
 
 
 static void
-nxt_conf_json_path_next_token(nxt_conf_path_parse_t *parse, nxt_str_t *token)
+nxt_conf_path_next_token(nxt_conf_path_parse_t *parse, nxt_str_t *token)
 {
     u_char  *p, *end;
 
@@ -218,16 +216,16 @@ nxt_conf_json_path_next_token(nxt_conf_path_parse_t *parse, nxt_str_t *token)
 }
 
 
-nxt_conf_json_value_t *
-nxt_conf_json_object_get_member(nxt_conf_json_value_t *value, nxt_str_t *name,
+nxt_conf_value_t *
+nxt_conf_get_object_member(nxt_conf_value_t *value, nxt_str_t *name,
     uint32_t *index)
 {
-    nxt_str_t                   str;
-    nxt_uint_t                  n;
-    nxt_conf_json_object_t      *object;
-    nxt_conf_json_obj_member_t  *member;
+    nxt_str_t                 str;
+    nxt_uint_t                n;
+    nxt_conf_object_t         *object;
+    nxt_conf_object_member_t  *member;
 
-    if (value->type != NXT_CONF_JSON_OBJECT) {
+    if (value->type != NXT_CONF_OBJECT) {
         return NULL;
     }
 
@@ -236,7 +234,7 @@ nxt_conf_json_object_get_member(nxt_conf_json_value_t *value, nxt_str_t *name,
     for (n = 0; n < object->count; n++) {
         member = &object->members[n];
 
-        nxt_conf_json_value_get_string(&member->name, &str);
+        nxt_conf_get_string(&member->name, &str);
 
         if (nxt_strstr_eq(&str, name)) {
 
@@ -253,11 +251,10 @@ nxt_conf_json_object_get_member(nxt_conf_json_value_t *value, nxt_str_t *name,
 
 
 nxt_int_t
-nxt_conf_json_object_map(nxt_conf_json_value_t *value,
-    nxt_conf_json_object_map_t *map, void *data)
+nxt_conf_map_object(nxt_conf_value_t *value, nxt_conf_map_t *map, void *data)
 {
-    nxt_uint_t             i;
-    nxt_conf_json_value_t  *v;
+    nxt_uint_t        i;
+    nxt_conf_value_t  *v;
 
     union {
         uint8_t    ui8;
@@ -273,9 +270,9 @@ nxt_conf_json_object_map(nxt_conf_json_value_t *value,
 
     for (i = 0; map[i].name.length != 0; i++) {
 
-        v = nxt_conf_json_object_get_member(value, &map[i].name, NULL);
+        v = nxt_conf_get_object_member(value, &map[i].name, NULL);
 
-        if (v == NULL || v->type == NXT_CONF_JSON_NULL) {
+        if (v == NULL || v->type == NXT_CONF_NULL) {
             continue;
         }
 
@@ -283,9 +280,9 @@ nxt_conf_json_object_map(nxt_conf_json_value_t *value,
 
         switch (map[i].type) {
 
-        case NXT_CONF_JSON_MAP_INT8:
+        case NXT_CONF_MAP_INT8:
 
-            if (v->type != NXT_CONF_JSON_BOOLEAN) {
+            if (v->type != NXT_CONF_BOOLEAN) {
                 return NXT_ERROR;
             }
 
@@ -293,35 +290,35 @@ nxt_conf_json_object_map(nxt_conf_json_value_t *value,
 
             break;
 
-        case NXT_CONF_JSON_MAP_INT32:
-        case NXT_CONF_JSON_MAP_INT64:
-        case NXT_CONF_JSON_MAP_INT:
-        case NXT_CONF_JSON_MAP_SIZE:
-        case NXT_CONF_JSON_MAP_OFF:
+        case NXT_CONF_MAP_INT32:
+        case NXT_CONF_MAP_INT64:
+        case NXT_CONF_MAP_INT:
+        case NXT_CONF_MAP_SIZE:
+        case NXT_CONF_MAP_OFF:
 
-            if (v->type != NXT_CONF_JSON_INTEGER) {
+            if (v->type != NXT_CONF_INTEGER) {
                 return NXT_ERROR;
             }
 
             switch (map[i].type) {
 
-            case NXT_CONF_JSON_MAP_INT32:
+            case NXT_CONF_MAP_INT32:
                 ptr->ui8 = v->u.integer;
                 break;
 
-            case NXT_CONF_JSON_MAP_INT64:
+            case NXT_CONF_MAP_INT64:
                 ptr->i64 = v->u.integer;
                 break;
 
-            case NXT_CONF_JSON_MAP_INT:
+            case NXT_CONF_MAP_INT:
                 ptr->i = v->u.integer;
                 break;
 
-            case NXT_CONF_JSON_MAP_SIZE:
+            case NXT_CONF_MAP_SIZE:
                 ptr->size = v->u.integer;
                 break;
 
-            case NXT_CONF_JSON_MAP_OFF:
+            case NXT_CONF_MAP_OFF:
                 ptr->off = v->u.integer;
                 break;
 
@@ -331,12 +328,12 @@ nxt_conf_json_object_map(nxt_conf_json_value_t *value,
 
             break;
 
-        case NXT_CONF_JSON_MAP_DOUBLE:
+        case NXT_CONF_MAP_DOUBLE:
 
-            if (v->type == NXT_CONF_JSON_NUMBER) {
+            if (v->type == NXT_CONF_NUMBER) {
                 ptr->dbl = v->u.number;
 
-            } else if (v->type == NXT_CONF_JSON_INTEGER) {
+            } else if (v->type == NXT_CONF_INTEGER) {
                 ptr->dbl = v->u.integer;
 
             } else {
@@ -345,20 +342,20 @@ nxt_conf_json_object_map(nxt_conf_json_value_t *value,
 
             break;
 
-        case NXT_CONF_JSON_MAP_STR:
+        case NXT_CONF_MAP_STR:
 
-            if (v->type != NXT_CONF_JSON_SHORT_STRING
-                && v->type != NXT_CONF_JSON_STRING)
+            if (v->type != NXT_CONF_SHORT_STRING
+                && v->type != NXT_CONF_STRING)
             {
                 return NXT_ERROR;
             }
 
-            nxt_conf_json_value_get_string(v, &ptr->str);
+            nxt_conf_get_string(v, &ptr->str);
 
             break;
 
 
-        case NXT_CONF_JSON_MAP_PTR:
+        case NXT_CONF_MAP_PTR:
 
             ptr->v = v;
 
@@ -370,15 +367,15 @@ nxt_conf_json_object_map(nxt_conf_json_value_t *value,
 }
 
 
-nxt_conf_json_value_t *
-nxt_conf_json_object_next_member(nxt_conf_json_value_t *value, nxt_str_t *name,
+nxt_conf_value_t *
+nxt_conf_next_object_member(nxt_conf_value_t *value, nxt_str_t *name,
     uint32_t *next)
 {
-    uint32_t                    n;
-    nxt_conf_json_object_t      *object;
-    nxt_conf_json_obj_member_t  *member;
+    uint32_t                  n;
+    nxt_conf_object_t         *object;
+    nxt_conf_object_member_t  *member;
 
-    if (value->type != NXT_CONF_JSON_OBJECT) {
+    if (value->type != NXT_CONF_OBJECT) {
         return NULL;
     }
 
@@ -392,21 +389,20 @@ nxt_conf_json_object_next_member(nxt_conf_json_value_t *value, nxt_str_t *name,
     member = &object->members[n];
     *next = n + 1;
 
-    nxt_conf_json_value_get_string(&member->name, name);
+    nxt_conf_get_string(&member->name, name);
 
     return &member->value;
 }
 
 
 nxt_int_t
-nxt_conf_json_op_compile(nxt_mp_t *mp, nxt_conf_json_op_t **ops,
-    nxt_conf_json_value_t *root, nxt_str_t *path,
-    nxt_conf_json_value_t *value)
+nxt_conf_op_compile(nxt_mp_t *mp, nxt_conf_op_t **ops, nxt_conf_value_t *root,
+    nxt_str_t *path, nxt_conf_value_t *value)
 {
-    nxt_str_t                   token;
-    nxt_conf_json_op_t          *op, **parent;
-    nxt_conf_path_parse_t       parse;
-    nxt_conf_json_obj_member_t  *member;
+    nxt_str_t                 token;
+    nxt_conf_op_t             *op, **parent;
+    nxt_conf_path_parse_t     parse;
+    nxt_conf_object_member_t  *member;
 
     parse.start = path->start;
     parse.end = path->start + path->length;
@@ -415,17 +411,17 @@ nxt_conf_json_op_compile(nxt_mp_t *mp, nxt_conf_json_op_t **ops,
     parent = ops;
 
     for ( ;; ) {
-        op = nxt_mp_zget(mp, sizeof(nxt_conf_json_op_t));
+        op = nxt_mp_zget(mp, sizeof(nxt_conf_op_t));
         if (nxt_slow_path(op == NULL)) {
             return NXT_ERROR;
         }
 
         *parent = op;
-        parent = (nxt_conf_json_op_t **) &op->ctx;
+        parent = (nxt_conf_op_t **) &op->ctx;
 
-        nxt_conf_json_path_next_token(&parse, &token);
+        nxt_conf_path_next_token(&parse, &token);
 
-        root = nxt_conf_json_object_get_member(root, &token, &op->index);
+        root = nxt_conf_get_object_member(root, &token, &op->index);
 
         if (parse.last) {
             break;
@@ -435,7 +431,7 @@ nxt_conf_json_op_compile(nxt_mp_t *mp, nxt_conf_json_op_t **ops,
             return NXT_DECLINED;
         }
 
-        op->action = NXT_CONF_JSON_OP_PASS;
+        op->action = NXT_CONF_OP_PASS;
     }
 
     if (value == NULL) {
@@ -444,19 +440,19 @@ nxt_conf_json_op_compile(nxt_mp_t *mp, nxt_conf_json_op_t **ops,
             return NXT_DECLINED;
         }
 
-        op->action = NXT_CONF_JSON_OP_DELETE;
+        op->action = NXT_CONF_OP_DELETE;
 
         return NXT_OK;
     }
 
     if (root == NULL) {
 
-        member = nxt_mp_zget(mp, sizeof(nxt_conf_json_obj_member_t));
+        member = nxt_mp_zget(mp, sizeof(nxt_conf_object_member_t));
         if (nxt_slow_path(member == NULL)) {
             return NXT_ERROR;
         }
 
-        if (token.length > NXT_CONF_JSON_STR_SIZE) {
+        if (token.length > NXT_CONF_MAX_SHORT_STRING) {
 
             member->name.u.string = nxt_mp_get(mp, sizeof(nxt_str_t));
             if (nxt_slow_path(member->name.u.string == NULL)) {
@@ -464,22 +460,22 @@ nxt_conf_json_op_compile(nxt_mp_t *mp, nxt_conf_json_op_t **ops,
             }
 
             *member->name.u.string = token;
-            member->name.type = NXT_CONF_JSON_STRING;
+            member->name.type = NXT_CONF_STRING;
 
         } else {
             member->name.u.str[0] = token.length;
             nxt_memcpy(&member->name.u.str[1], token.start, token.length);
 
-            member->name.type = NXT_CONF_JSON_SHORT_STRING;
+            member->name.type = NXT_CONF_SHORT_STRING;
         }
 
         member->value = *value;
 
-        op->action = NXT_CONF_JSON_OP_CREATE;
+        op->action = NXT_CONF_OP_CREATE;
         op->ctx = member;
 
     } else {
-        op->action = NXT_CONF_JSON_OP_REPLACE;
+        op->action = NXT_CONF_OP_REPLACE;
         op->ctx = value;
     }
 
@@ -487,19 +483,18 @@ nxt_conf_json_op_compile(nxt_mp_t *mp, nxt_conf_json_op_t **ops,
 }
 
 
-nxt_conf_json_value_t *
-nxt_conf_json_clone_value(nxt_mp_t *mp, nxt_conf_json_op_t *op,
-    nxt_conf_json_value_t *value)
+nxt_conf_value_t *
+nxt_conf_clone(nxt_mp_t *mp, nxt_conf_op_t *op, nxt_conf_value_t *value)
 {
-    nxt_int_t              rc;
-    nxt_conf_json_value_t  *copy;
+    nxt_int_t         rc;
+    nxt_conf_value_t  *copy;
 
-    copy = nxt_mp_get(mp, sizeof(nxt_conf_json_value_t));
+    copy = nxt_mp_get(mp, sizeof(nxt_conf_value_t));
     if (nxt_slow_path(copy == NULL)) {
         return NULL;
     }
 
-    rc = nxt_conf_json_copy_value(mp, op, copy, value);
+    rc = nxt_conf_copy_value(mp, op, copy, value);
 
     if (nxt_slow_path(rc != NXT_OK)) {
         return NULL;
@@ -510,14 +505,14 @@ nxt_conf_json_clone_value(nxt_mp_t *mp, nxt_conf_json_op_t *op,
 
 
 static nxt_int_t
-nxt_conf_json_copy_value(nxt_mp_t *mp, nxt_conf_json_op_t *op,
-    nxt_conf_json_value_t *dst, nxt_conf_json_value_t *src)
+nxt_conf_copy_value(nxt_mp_t *mp, nxt_conf_op_t *op, nxt_conf_value_t *dst,
+    nxt_conf_value_t *src)
 {
     size_t      size;
     nxt_int_t   rc;
     nxt_uint_t  n;
 
-    if (op != NULL && src->type != NXT_CONF_JSON_OBJECT) {
+    if (op != NULL && src->type != NXT_CONF_OBJECT) {
         return NXT_ERROR;
     }
 
@@ -525,7 +520,7 @@ nxt_conf_json_copy_value(nxt_mp_t *mp, nxt_conf_json_op_t *op,
 
     switch (src->type) {
 
-    case NXT_CONF_JSON_STRING:
+    case NXT_CONF_STRING:
 
         dst->u.string = nxt_str_dup(mp, NULL, src->u.string);
 
@@ -535,10 +530,10 @@ nxt_conf_json_copy_value(nxt_mp_t *mp, nxt_conf_json_op_t *op,
 
         break;
 
-    case NXT_CONF_JSON_ARRAY:
+    case NXT_CONF_ARRAY:
 
-        size = sizeof(nxt_conf_json_array_t)
-               + src->u.array->count * sizeof(nxt_conf_json_value_t);
+        size = sizeof(nxt_conf_array_t)
+               + src->u.array->count * sizeof(nxt_conf_value_t);
 
         dst->u.array = nxt_mp_get(mp, size);
         if (nxt_slow_path(dst->u.array == NULL)) {
@@ -548,9 +543,8 @@ nxt_conf_json_copy_value(nxt_mp_t *mp, nxt_conf_json_op_t *op,
         dst->u.array->count = src->u.array->count;
 
         for (n = 0; n < src->u.array->count; n++) {
-            rc = nxt_conf_json_copy_value(mp, NULL,
-                                          &dst->u.array->elements[n],
-                                          &src->u.array->elements[n]);
+            rc = nxt_conf_copy_value(mp, NULL, &dst->u.array->elements[n],
+                                               &src->u.array->elements[n]);
 
             if (nxt_slow_path(rc != NXT_OK)) {
                 return NXT_ERROR;
@@ -559,8 +553,8 @@ nxt_conf_json_copy_value(nxt_mp_t *mp, nxt_conf_json_op_t *op,
 
         break;
 
-    case NXT_CONF_JSON_OBJECT:
-        return nxt_conf_json_copy_object(mp, op, dst, src);
+    case NXT_CONF_OBJECT:
+        return nxt_conf_copy_object(mp, op, dst, src);
 
     default:
         dst->u = src->u;
@@ -571,29 +565,29 @@ nxt_conf_json_copy_value(nxt_mp_t *mp, nxt_conf_json_op_t *op,
 
 
 static nxt_int_t
-nxt_conf_json_copy_object(nxt_mp_t *mp, nxt_conf_json_op_t *op,
-    nxt_conf_json_value_t *dst, nxt_conf_json_value_t *src)
+nxt_conf_copy_object(nxt_mp_t *mp, nxt_conf_op_t *op, nxt_conf_value_t *dst,
+    nxt_conf_value_t *src)
 {
-    size_t                      size;
-    nxt_int_t                   rc;
-    nxt_uint_t                  s, d, count, index;
-    nxt_conf_json_op_t          *pass_op;
-    nxt_conf_json_value_t       *value;
-    nxt_conf_json_obj_member_t  *member;
+    size_t                    size;
+    nxt_int_t                 rc;
+    nxt_uint_t                s, d, count, index;
+    nxt_conf_op_t             *pass_op;
+    nxt_conf_value_t          *value;
+    nxt_conf_object_member_t  *member;
 
     count = src->u.object->count;
 
     if (op != NULL) {
-        if (op->action == NXT_CONF_JSON_OP_CREATE) {
+        if (op->action == NXT_CONF_OP_CREATE) {
             count++;
 
-        } else if (op->action == NXT_CONF_JSON_OP_DELETE) {
+        } else if (op->action == NXT_CONF_OP_DELETE) {
             count--;
         }
     }
 
-    size = sizeof(nxt_conf_json_object_t)
-            + count * sizeof(nxt_conf_json_obj_member_t);
+    size = sizeof(nxt_conf_object_t)
+           + count * sizeof(nxt_conf_object_member_t);
 
     dst->u.object = nxt_mp_get(mp, size);
     if (nxt_slow_path(dst->u.object == NULL)) {
@@ -615,22 +609,23 @@ nxt_conf_json_copy_object(nxt_mp_t *mp, nxt_conf_json_op_t *op,
 
     do {
         if (pass_op == NULL) {
-            index = (op == NULL || op->action == NXT_CONF_JSON_OP_CREATE)
-                    ? src->u.object->count : op->index;
+            index = (op == NULL || op->action == NXT_CONF_OP_CREATE)
+                    ? src->u.object->count
+                    : op->index;
         }
 
         while (s != index) {
-            rc = nxt_conf_json_copy_value(mp, NULL,
-                                          &dst->u.object->members[d].name,
-                                          &src->u.object->members[s].name);
+            rc = nxt_conf_copy_value(mp, NULL,
+                                     &dst->u.object->members[d].name,
+                                     &src->u.object->members[s].name);
 
             if (nxt_slow_path(rc != NXT_OK)) {
                 return NXT_ERROR;
             }
 
-            rc = nxt_conf_json_copy_value(mp, pass_op,
-                                          &dst->u.object->members[d].value,
-                                          &src->u.object->members[s].value);
+            rc = nxt_conf_copy_value(mp, pass_op,
+                                     &dst->u.object->members[d].value,
+                                     &src->u.object->members[s].value);
 
             if (nxt_slow_path(rc != NXT_OK)) {
                 return NXT_ERROR;
@@ -647,17 +642,17 @@ nxt_conf_json_copy_object(nxt_mp_t *mp, nxt_conf_json_op_t *op,
 
         if (op != NULL) {
             switch (op->action) {
-            case NXT_CONF_JSON_OP_PASS:
+            case NXT_CONF_OP_PASS:
                 pass_op = op->ctx;
                 index++;
                 break;
 
-            case NXT_CONF_JSON_OP_CREATE:
+            case NXT_CONF_OP_CREATE:
                 member = op->ctx;
 
-                rc = nxt_conf_json_copy_value(mp, NULL,
-                                              &dst->u.object->members[d].name,
-                                              &member->name);
+                rc = nxt_conf_copy_value(mp, NULL,
+                                         &dst->u.object->members[d].name,
+                                         &member->name);
 
                 if (nxt_slow_path(rc != NXT_OK)) {
                     return NXT_ERROR;
@@ -668,10 +663,10 @@ nxt_conf_json_copy_object(nxt_mp_t *mp, nxt_conf_json_op_t *op,
                 d++;
                 break;
 
-            case NXT_CONF_JSON_OP_REPLACE:
-                rc = nxt_conf_json_copy_value(mp, NULL,
-                                              &dst->u.object->members[d].name,
-                                              &src->u.object->members[s].name);
+            case NXT_CONF_OP_REPLACE:
+                rc = nxt_conf_copy_value(mp, NULL,
+                                         &dst->u.object->members[d].name,
+                                         &src->u.object->members[s].name);
 
                 if (nxt_slow_path(rc != NXT_OK)) {
                     return NXT_ERROR;
@@ -685,7 +680,7 @@ nxt_conf_json_copy_object(nxt_mp_t *mp, nxt_conf_json_op_t *op,
                 d++;
                 break;
 
-            case NXT_CONF_JSON_OP_DELETE:
+            case NXT_CONF_OP_DELETE:
                 s++;
                 break;
             }
@@ -701,13 +696,13 @@ nxt_conf_json_copy_object(nxt_mp_t *mp, nxt_conf_json_op_t *op,
 }
 
 
-nxt_conf_json_value_t *
+nxt_conf_value_t *
 nxt_conf_json_parse(nxt_mp_t *mp, u_char *start, u_char *end)
 {
-    u_char                 *p;
-    nxt_conf_json_value_t  *value;
+    u_char            *p;
+    nxt_conf_value_t  *value;
 
-    value = nxt_mp_get(mp, sizeof(nxt_conf_json_value_t));
+    value = nxt_mp_get(mp, sizeof(nxt_conf_value_t));
     if (nxt_slow_path(value == NULL)) {
         return NULL;
     }
@@ -757,8 +752,8 @@ nxt_conf_json_skip_space(u_char *start, u_char *end)
 
 
 static u_char *
-nxt_conf_json_parse_value(nxt_mp_t *mp, nxt_conf_json_value_t *value,
-    u_char *start, u_char *end)
+nxt_conf_json_parse_value(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
+    u_char *end)
 {
     u_char  ch;
 
@@ -779,7 +774,7 @@ nxt_conf_json_parse_value(nxt_mp_t *mp, nxt_conf_json_value_t *value,
                           && nxt_memcmp(start, "true", 4) == 0))
         {
             value->u.boolean = 1;
-            value->type = NXT_CONF_JSON_BOOLEAN;
+            value->type = NXT_CONF_BOOLEAN;
 
             return start + 4;
         }
@@ -791,7 +786,7 @@ nxt_conf_json_parse_value(nxt_mp_t *mp, nxt_conf_json_value_t *value,
                           && nxt_memcmp(start, "false", 5) == 0))
         {
             value->u.boolean = 0;
-            value->type = NXT_CONF_JSON_BOOLEAN;
+            value->type = NXT_CONF_BOOLEAN;
 
             return start + 5;
         }
@@ -802,7 +797,7 @@ nxt_conf_json_parse_value(nxt_mp_t *mp, nxt_conf_json_value_t *value,
         if (nxt_fast_path(end - start >= 4
                           && nxt_memcmp(start, "null", 4) == 0))
         {
-            value->type = NXT_CONF_JSON_NULL;
+            value->type = NXT_CONF_NULL;
             return start + 4;
         }
 
@@ -817,28 +812,28 @@ nxt_conf_json_parse_value(nxt_mp_t *mp, nxt_conf_json_value_t *value,
 }
 
 
-static const nxt_lvlhsh_proto_t  nxt_conf_json_object_hash_proto
+static const nxt_lvlhsh_proto_t  nxt_conf_object_hash_proto
     nxt_aligned(64) =
 {
     NXT_LVLHSH_DEFAULT,
-    nxt_conf_json_object_hash_test,
-    nxt_conf_json_object_hash_alloc,
-    nxt_conf_json_object_hash_free,
+    nxt_conf_object_hash_test,
+    nxt_conf_object_hash_alloc,
+    nxt_conf_object_hash_free,
 };
 
 
 static u_char *
-nxt_conf_json_parse_object(nxt_mp_t *mp, nxt_conf_json_value_t *value,
-    u_char *start, u_char *end)
+nxt_conf_json_parse_object(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
+    u_char *end)
 {
-    u_char                      *p;
-    nxt_mp_t                    *mp_temp;
-    nxt_int_t                   rc;
-    nxt_uint_t                  count;
-    nxt_lvlhsh_t                hash;
-    nxt_lvlhsh_each_t           lhe;
-    nxt_conf_json_object_t      *object;
-    nxt_conf_json_obj_member_t  *member, *element;
+    u_char                    *p;
+    nxt_mp_t                  *mp_temp;
+    nxt_int_t                 rc;
+    nxt_uint_t                count;
+    nxt_lvlhsh_t              hash;
+    nxt_lvlhsh_each_t         lhe;
+    nxt_conf_object_t         *object;
+    nxt_conf_object_member_t  *member, *element;
 
     p = nxt_conf_json_skip_space(start + 1, end);
 
@@ -864,7 +859,7 @@ nxt_conf_json_parse_object(nxt_mp_t *mp, nxt_conf_json_value_t *value,
                 goto error;
             }
 
-            member = nxt_mp_get(mp_temp, sizeof(nxt_conf_json_obj_member_t));
+            member = nxt_mp_get(mp_temp, sizeof(nxt_conf_object_member_t));
             if (nxt_slow_path(member == NULL)) {
                 goto error;
             }
@@ -875,7 +870,7 @@ nxt_conf_json_parse_object(nxt_mp_t *mp, nxt_conf_json_value_t *value,
                 goto error;
             }
 
-            rc = nxt_conf_json_object_hash_add(mp_temp, &hash, member);
+            rc = nxt_conf_object_hash_add(mp_temp, &hash, member);
 
             if (nxt_slow_path(rc != NXT_OK)) {
                 goto error;
@@ -921,20 +916,20 @@ nxt_conf_json_parse_object(nxt_mp_t *mp, nxt_conf_json_value_t *value,
         }
     }
 
-    object = nxt_mp_get(mp, sizeof(nxt_conf_json_object_t)
-                            + count * sizeof(nxt_conf_json_obj_member_t));
+    object = nxt_mp_get(mp, sizeof(nxt_conf_object_t)
+                            + count * sizeof(nxt_conf_object_member_t));
     if (nxt_slow_path(object == NULL)) {
         goto error;
     }
 
     value->u.object = object;
-    value->type = NXT_CONF_JSON_OBJECT;
+    value->type = NXT_CONF_OBJECT;
 
     object->count = count;
     member = object->members;
 
     nxt_memzero(&lhe, sizeof(nxt_lvlhsh_each_t));
-    lhe.proto = &nxt_conf_json_object_hash_proto;
+    lhe.proto = &nxt_conf_object_hash_proto;
 
     for ( ;; ) {
         element = nxt_lvlhsh_each(&hash, &lhe);
@@ -958,17 +953,17 @@ error:
 
 
 static nxt_int_t
-nxt_conf_json_object_hash_add(nxt_mp_t *mp, nxt_lvlhsh_t *lvlhsh,
-    nxt_conf_json_obj_member_t *member)
+nxt_conf_object_hash_add(nxt_mp_t *mp, nxt_lvlhsh_t *lvlhsh,
+    nxt_conf_object_member_t *member)
 {
     nxt_lvlhsh_query_t  lhq;
 
-    nxt_conf_json_value_get_string(&member->name, &lhq.key);
+    nxt_conf_get_string(&member->name, &lhq.key);
 
     lhq.key_hash = nxt_djb_hash(lhq.key.start, lhq.key.length);
     lhq.replace = 0;
     lhq.value = member;
-    lhq.proto = &nxt_conf_json_object_hash_proto;
+    lhq.proto = &nxt_conf_object_hash_proto;
     lhq.pool = mp;
 
     return nxt_lvlhsh_insert(lvlhsh, &lhq);
@@ -976,14 +971,14 @@ nxt_conf_json_object_hash_add(nxt_mp_t *mp, nxt_lvlhsh_t *lvlhsh,
 
 
 static nxt_int_t
-nxt_conf_json_object_hash_test(nxt_lvlhsh_query_t *lhq, void *data)
+nxt_conf_object_hash_test(nxt_lvlhsh_query_t *lhq, void *data)
 {
-    nxt_str_t                   str;
-    nxt_conf_json_obj_member_t  *member;
+    nxt_str_t                 str;
+    nxt_conf_object_member_t  *member;
 
     member = data;
 
-    nxt_conf_json_value_get_string(&member->name, &str);
+    nxt_conf_get_string(&member->name, &str);
 
     if (nxt_strstr_eq(&lhq->key, &str)) {
         return NXT_OK;
@@ -994,29 +989,29 @@ nxt_conf_json_object_hash_test(nxt_lvlhsh_query_t *lhq, void *data)
 
 
 static void *
-nxt_conf_json_object_hash_alloc(void *data, size_t size)
+nxt_conf_object_hash_alloc(void *data, size_t size)
 {
     return nxt_mp_align(data, size, size);
 }
 
 
 static void
-nxt_conf_json_object_hash_free(void *data, void *p)
+nxt_conf_object_hash_free(void *data, void *p)
 {
     nxt_mp_free(data, p);
 }
 
 
 static u_char *
-nxt_conf_json_parse_array(nxt_mp_t *mp, nxt_conf_json_value_t *value,
-    u_char *start, u_char *end)
+nxt_conf_json_parse_array(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
+    u_char *end)
 {
-    u_char                 *p;
-    nxt_mp_t               *mp_temp;
-    nxt_uint_t             count;
-    nxt_list_t             *list;
-    nxt_conf_json_array_t  *array;
-    nxt_conf_json_value_t  *element;
+    u_char            *p;
+    nxt_mp_t          *mp_temp;
+    nxt_uint_t        count;
+    nxt_list_t        *list;
+    nxt_conf_array_t  *array;
+    nxt_conf_value_t  *element;
 
     p = nxt_conf_json_skip_space(start + 1, end);
 
@@ -1029,7 +1024,7 @@ nxt_conf_json_parse_array(nxt_mp_t *mp, nxt_conf_json_value_t *value,
         return NULL;
     }
 
-    list = nxt_list_create(mp_temp, 8, sizeof(nxt_conf_json_value_t));
+    list = nxt_list_create(mp_temp, 8, sizeof(nxt_conf_value_t));
     if (nxt_slow_path(list == NULL)) {
         goto error;
     }
@@ -1074,14 +1069,14 @@ nxt_conf_json_parse_array(nxt_mp_t *mp, nxt_conf_json_value_t *value,
         }
     }
 
-    array = nxt_mp_get(mp, sizeof(nxt_conf_json_array_t)
-                           + count * sizeof(nxt_conf_json_value_t));
+    array = nxt_mp_get(mp, sizeof(nxt_conf_array_t)
+                           + count * sizeof(nxt_conf_value_t));
     if (nxt_slow_path(array == NULL)) {
         goto error;
     }
 
     value->u.array = array;
-    value->type = NXT_CONF_JSON_ARRAY;
+    value->type = NXT_CONF_ARRAY;
 
     array->count = count;
     element = array->elements;
@@ -1102,8 +1097,8 @@ error:
 
 
 static u_char *
-nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_json_value_t *value,
-    u_char *start, u_char *end)
+nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
+    u_char *end)
 {
     u_char      *p, ch, *last, *s;
     size_t      size, surplus;
@@ -1202,8 +1197,8 @@ nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_json_value_t *value,
 
     size = last - start - surplus;
 
-    if (size > NXT_CONF_JSON_STR_SIZE) {
-        value->type = NXT_CONF_JSON_STRING;
+    if (size > NXT_CONF_MAX_SHORT_STRING) {
+        value->type = NXT_CONF_STRING;
         value->u.string = nxt_str_alloc(mp, size);
 
         if (nxt_slow_path(value->u.string == NULL)) {
@@ -1213,7 +1208,7 @@ nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_json_value_t *value,
         s = value->u.string->start;
 
     } else {
-        value->type = NXT_CONF_JSON_SHORT_STRING;
+        value->type = NXT_CONF_SHORT_STRING;
         value->u.str[0] = size;
 
         s = &value->u.str[1];
@@ -1305,7 +1300,7 @@ nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_json_value_t *value,
 
     } while (p != last);
 
-    if (size > NXT_CONF_JSON_STR_SIZE) {
+    if (size > NXT_CONF_MAX_SHORT_STRING) {
         value->u.string->length = s - value->u.string->start;
 
     } else {
@@ -1317,8 +1312,8 @@ nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_json_value_t *value,
 
 
 static u_char *
-nxt_conf_json_parse_number(nxt_mp_t *mp, nxt_conf_json_value_t *value,
-    u_char *start, u_char *end)
+nxt_conf_json_parse_number(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
+    u_char *end)
 {
     u_char     *p, ch;
     uint64_t   integer;
@@ -1367,7 +1362,7 @@ nxt_conf_json_parse_number(nxt_mp_t *mp, nxt_conf_json_value_t *value,
     }
 
     if (ch != '.') {
-        value->type = NXT_CONF_JSON_INTEGER;
+        value->type = NXT_CONF_INTEGER;
         value->u.integer = sign * integer;
         return p;
     }
@@ -1402,7 +1397,7 @@ nxt_conf_json_parse_number(nxt_mp_t *mp, nxt_conf_json_value_t *value,
         return NULL;
     }
 
-    value->type = NXT_CONF_JSON_NUMBER;
+    value->type = NXT_CONF_NUMBER;
     value->u.number = integer + (double) frac / power;
 
     value->u.number = copysign(value->u.number, sign);
@@ -1458,32 +1453,31 @@ nxt_conf_json_parse_number(nxt_mp_t *mp, nxt_conf_json_value_t *value,
 
 
 size_t
-nxt_conf_json_value_length(nxt_conf_json_value_t *value,
-    nxt_conf_json_pretty_t *pretty)
+nxt_conf_json_length(nxt_conf_value_t *value, nxt_conf_json_pretty_t *pretty)
 {
     switch (value->type) {
 
-    case NXT_CONF_JSON_NULL:
+    case NXT_CONF_NULL:
         return sizeof("null") - 1;
 
-    case NXT_CONF_JSON_BOOLEAN:
+    case NXT_CONF_BOOLEAN:
         return value->u.boolean ? sizeof("true") - 1 : sizeof("false") - 1;
 
-    case NXT_CONF_JSON_INTEGER:
+    case NXT_CONF_INTEGER:
         return nxt_conf_json_integer_length(value);
 
-    case NXT_CONF_JSON_NUMBER:
+    case NXT_CONF_NUMBER:
         /* TODO */
         return 0;
 
-    case NXT_CONF_JSON_SHORT_STRING:
-    case NXT_CONF_JSON_STRING:
+    case NXT_CONF_SHORT_STRING:
+    case NXT_CONF_STRING:
         return nxt_conf_json_string_length(value);
 
-    case NXT_CONF_JSON_ARRAY:
+    case NXT_CONF_ARRAY:
         return nxt_conf_json_array_length(value, pretty);
 
-    case NXT_CONF_JSON_OBJECT:
+    case NXT_CONF_OBJECT:
         return nxt_conf_json_object_length(value, pretty);
     }
 
@@ -1494,34 +1488,34 @@ nxt_conf_json_value_length(nxt_conf_json_value_t *value,
 
 
 u_char *
-nxt_conf_json_value_print(u_char *p, nxt_conf_json_value_t *value,
+nxt_conf_json_print(u_char *p, nxt_conf_value_t *value,
     nxt_conf_json_pretty_t *pretty)
 {
     switch (value->type) {
 
-    case NXT_CONF_JSON_NULL:
+    case NXT_CONF_NULL:
         return nxt_cpymem(p, "null", 4);
 
-    case NXT_CONF_JSON_BOOLEAN:
+    case NXT_CONF_BOOLEAN:
         return value->u.boolean ? nxt_cpymem(p, "true", 4)
                                 : nxt_cpymem(p, "false", 5);
 
-    case NXT_CONF_JSON_INTEGER:
-        return nxt_conf_json_integer_print(p, value);
+    case NXT_CONF_INTEGER:
+        return nxt_conf_json_print_integer(p, value);
 
-    case NXT_CONF_JSON_NUMBER:
+    case NXT_CONF_NUMBER:
         /* TODO */
         return p;
 
-    case NXT_CONF_JSON_SHORT_STRING:
-    case NXT_CONF_JSON_STRING:
-        return nxt_conf_json_string_print(p, value);
+    case NXT_CONF_SHORT_STRING:
+    case NXT_CONF_STRING:
+        return nxt_conf_json_print_string(p, value);
 
-    case NXT_CONF_JSON_ARRAY:
-        return nxt_conf_json_array_print(p, value, pretty);
+    case NXT_CONF_ARRAY:
+        return nxt_conf_json_print_array(p, value, pretty);
 
-    case NXT_CONF_JSON_OBJECT:
-        return nxt_conf_json_object_print(p, value, pretty);
+    case NXT_CONF_OBJECT:
+        return nxt_conf_json_print_object(p, value, pretty);
     }
 
     nxt_unreachable();
@@ -1531,7 +1525,7 @@ nxt_conf_json_value_print(u_char *p, nxt_conf_json_value_t *value,
 
 
 static size_t
-nxt_conf_json_integer_length(nxt_conf_json_value_t *value)
+nxt_conf_json_integer_length(nxt_conf_value_t *value)
 {
     int64_t  num;
 
@@ -1550,29 +1544,29 @@ nxt_conf_json_integer_length(nxt_conf_json_value_t *value)
 
 
 static u_char *
-nxt_conf_json_integer_print(u_char *p, nxt_conf_json_value_t *value)
+nxt_conf_json_print_integer(u_char *p, nxt_conf_value_t *value)
 {
     return nxt_sprintf(p, p + NXT_INT64_T_LEN, "%L", value->u.integer);
 }
 
 
 static size_t
-nxt_conf_json_string_length(nxt_conf_json_value_t *value)
+nxt_conf_json_string_length(nxt_conf_value_t *value)
 {
     nxt_str_t  str;
 
-    nxt_conf_json_value_get_string(value, &str);
+    nxt_conf_get_string(value, &str);
 
     return 2 + nxt_conf_json_escape_length(str.start, str.length);
 }
 
 
 static u_char *
-nxt_conf_json_string_print(u_char *p, nxt_conf_json_value_t *value)
+nxt_conf_json_print_string(u_char *p, nxt_conf_value_t *value)
 {
     nxt_str_t  str;
 
-    nxt_conf_json_value_get_string(value, &str);
+    nxt_conf_get_string(value, &str);
 
     *p++ = '"';
 
@@ -1585,12 +1579,12 @@ nxt_conf_json_string_print(u_char *p, nxt_conf_json_value_t *value)
 
 
 static size_t
-nxt_conf_json_array_length(nxt_conf_json_value_t *value,
+nxt_conf_json_array_length(nxt_conf_value_t *value,
     nxt_conf_json_pretty_t *pretty)
 {
-    size_t                 len;
-    nxt_uint_t             n;
-    nxt_conf_json_array_t  *array;
+    size_t            len;
+    nxt_uint_t        n;
+    nxt_conf_array_t  *array;
 
     array = value->u.array;
 
@@ -1604,7 +1598,7 @@ nxt_conf_json_array_length(nxt_conf_json_value_t *value,
     value = array->elements;
 
     for (n = 0; n < array->count; n++) {
-        len += nxt_conf_json_value_length(&value[n], pretty);
+        len += nxt_conf_json_length(&value[n], pretty);
 
         if (pretty != NULL) {
             /* Indentation and new line. */
@@ -1627,11 +1621,11 @@ nxt_conf_json_array_length(nxt_conf_json_value_t *value,
 
 
 static u_char *
-nxt_conf_json_array_print(u_char *p, nxt_conf_json_value_t *value,
+nxt_conf_json_print_array(u_char *p, nxt_conf_value_t *value,
     nxt_conf_json_pretty_t *pretty)
 {
-    nxt_uint_t             n;
-    nxt_conf_json_array_t  *array;
+    nxt_uint_t        n;
+    nxt_conf_array_t  *array;
 
     array = value->u.array;
 
@@ -1647,7 +1641,7 @@ nxt_conf_json_array_print(u_char *p, nxt_conf_json_value_t *value,
             p = nxt_conf_json_indentation(p, pretty->level);
         }
 
-        p = nxt_conf_json_value_print(p, &value[0], pretty);
+        p = nxt_conf_json_print(p, &value[0], pretty);
 
         for (n = 1; n < array->count; n++) {
             *p++ = ',';
@@ -1659,7 +1653,7 @@ nxt_conf_json_array_print(u_char *p, nxt_conf_json_value_t *value,
                 pretty->more_space = 0;
             }
 
-            p = nxt_conf_json_value_print(p, &value[n], pretty);
+            p = nxt_conf_json_print(p, &value[n], pretty);
         }
 
         if (pretty != NULL) {
@@ -1679,13 +1673,13 @@ nxt_conf_json_array_print(u_char *p, nxt_conf_json_value_t *value,
 
 
 static size_t
-nxt_conf_json_object_length(nxt_conf_json_value_t *value,
+nxt_conf_json_object_length(nxt_conf_value_t *value,
     nxt_conf_json_pretty_t *pretty)
 {
-    size_t                      len;
-    nxt_uint_t                  n;
-    nxt_conf_json_object_t      *object;
-    nxt_conf_json_obj_member_t  *member;
+    size_t                    len;
+    nxt_uint_t                n;
+    nxt_conf_object_t         *object;
+    nxt_conf_object_member_t  *member;
 
     object = value->u.object;
 
@@ -1700,7 +1694,7 @@ nxt_conf_json_object_length(nxt_conf_json_value_t *value,
 
     for (n = 0; n < object->count; n++) {
         len += nxt_conf_json_string_length(&member[n].name) + 1
-               + nxt_conf_json_value_length(&member[n].value, pretty) + 1;
+               + nxt_conf_json_length(&member[n].value, pretty) + 1;
 
         if (pretty != NULL) {
             /*
@@ -1723,12 +1717,12 @@ nxt_conf_json_object_length(nxt_conf_json_value_t *value,
 
 
 static u_char *
-nxt_conf_json_object_print(u_char *p, nxt_conf_json_value_t *value,
+nxt_conf_json_print_object(u_char *p, nxt_conf_value_t *value,
     nxt_conf_json_pretty_t *pretty)
 {
-    nxt_uint_t                  n;
-    nxt_conf_json_object_t      *object;
-    nxt_conf_json_obj_member_t  *member;
+    nxt_uint_t                n;
+    nxt_conf_object_t         *object;
+    nxt_conf_object_member_t  *member;
 
     object = value->u.object;
 
@@ -1750,7 +1744,7 @@ nxt_conf_json_object_print(u_char *p, nxt_conf_json_value_t *value,
                 p = nxt_conf_json_indentation(p, pretty->level);
             }
 
-            p = nxt_conf_json_string_print(p, &member[n].name);
+            p = nxt_conf_json_print_string(p, &member[n].name);
 
             *p++ = ':';
 
@@ -1758,7 +1752,7 @@ nxt_conf_json_object_print(u_char *p, nxt_conf_json_value_t *value,
                 *p++ = ' ';
             }
 
-            p = nxt_conf_json_value_print(p, &member[n].value, pretty);
+            p = nxt_conf_json_print(p, &member[n].value, pretty);
 
             n++;
 
