@@ -43,6 +43,8 @@ nxt_conf_json_value_t *nxt_conf_json_get_value(nxt_conf_json_value_t *value,
     nxt_str_t *path);
 nxt_conf_json_value_t *nxt_conf_json_object_get_member(
     nxt_conf_json_value_t *value, nxt_str_t *name, uint32_t *index);
+nxt_conf_json_value_t *nxt_conf_json_object_next_member(
+    nxt_conf_json_value_t *value, nxt_str_t *name, uint32_t *next);
 
 nxt_int_t nxt_conf_json_object_map(nxt_conf_json_value_t *value,
     nxt_conf_json_object_map_t *map, void *data);

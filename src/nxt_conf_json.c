@@ -370,6 +370,34 @@ nxt_conf_json_object_map(nxt_conf_json_value_t *value,
 }
 
 
+nxt_conf_json_value_t *
+nxt_conf_json_object_next_member(nxt_conf_json_value_t *value, nxt_str_t *name,
+    uint32_t *next)
+{
+    uint32_t                    n;
+    nxt_conf_json_object_t      *object;
+    nxt_conf_json_obj_member_t  *member;
+
+    if (value->type != NXT_CONF_JSON_OBJECT) {
+        return NULL;
+    }
+
+    n = *next;
+    object = value->u.object;
+
+    if (n >= object->count) {
+        return NULL;
+    }
+
+    member = &object->members[n];
+    *next = n + 1;
+
+    nxt_conf_json_value_get_string(&member->name, name);
+
+    return &member->value;
+}
+
+
 nxt_int_t
 nxt_conf_json_op_compile(nxt_mp_t *mp, nxt_conf_json_op_t **ops,
     nxt_conf_json_value_t *root, nxt_str_t *path,
