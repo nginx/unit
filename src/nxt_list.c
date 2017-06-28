@@ -53,7 +53,7 @@ nxt_list_add(nxt_list_t *list)
         list->last = last;
     }
 
-    elt = nxt_list_data(last) + last->nelts * list->size;
+    elt = nxt_pointer_to(nxt_list_data(last), last->nelts * list->size);
     last->nelts++;
 
     return elt;

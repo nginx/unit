@@ -61,7 +61,7 @@ nxt_list_elt(nxt_list_t *list, nxt_uint_t n)
 
         while (part != NULL) {
             if (n < (nxt_uint_t) part->nelts) {
-                return ((void *) (nxt_list_data(part) + n * (list)->size));
+                return nxt_pointer_to(nxt_list_data(part), n * (list)->size);
             }
 
             n -= (nxt_uint_t) part->nelts;
@@ -103,7 +103,7 @@ NXT_EXPORT void *nxt_list_next(nxt_list_t *list, nxt_list_next_t *next);
 
 #define                                                                       \
 nxt_list_next_value(list, next)                                               \
-    ((void *) (nxt_list_data((next)->part) + (next)->elt * (list)->size))
+    (nxt_pointer_to(nxt_list_data((next)->part), (next)->elt * (list)->size))
 
 
 nxt_inline nxt_uint_t
