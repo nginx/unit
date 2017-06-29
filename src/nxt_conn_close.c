@@ -19,10 +19,13 @@ void
 nxt_conn_close(nxt_event_engine_t *engine, nxt_conn_t *c)
 {
     int                 ret;
-    socklen_t           len;
-    struct linger       linger;
     nxt_work_queue_t    *wq;
     nxt_work_handler_t  handler;
+
+    static const struct linger  linger_off = {
+        .l_onoff = 1,
+        .l_linger = 0,
+    };
 
     nxt_debug(c->socket.task, "conn close fd:%d, to:%d",
               c->socket.fd, c->socket.timedout);
@@ -33,11 +36,8 @@ nxt_conn_close(nxt_event_engine_t *engine, nxt_conn_t *c)
          * releases kernel memory associated with socket.
          * This also causes sending TCP/IP RST to a peer.
          */
-        linger.l_onoff = 1;
-        linger.l_linger = 0;
-        len = sizeof(struct linger);
-
-        ret = setsockopt(c->socket.fd, SOL_SOCKET, SO_LINGER, &linger, len);
+        ret = setsockopt(c->socket.fd, SOL_SOCKET, SO_LINGER, &linger_off,
+                         sizeof(struct linger));
 
         if (nxt_slow_path(ret != 0)) {
             nxt_log(c->socket.task, NXT_LOG_CRIT,

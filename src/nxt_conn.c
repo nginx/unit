@@ -96,10 +96,13 @@ nxt_conn_create(nxt_mp_t *mp, nxt_task_t *task)
 void
 nxt_conn_io_shutdown(nxt_task_t *task, void *obj, void *data)
 {
-    int            ret;
-    socklen_t      len;
-    nxt_conn_t     *c;
-    struct linger  linger;
+    int         ret;
+    nxt_conn_t  *c;
+
+    static const struct linger  linger_off = {
+        .l_onoff = 1,
+        .l_linger = 0,
+    };
 
     c = obj;
 
@@ -111,11 +114,8 @@ nxt_conn_io_shutdown(nxt_task_t *task, void *obj, void *data)
          * releases kernel memory associated with socket.
          * This also causes sending TCP/IP RST to a peer.
          */
-        linger.l_onoff = 1;
-        linger.l_linger = 0;
-        len = sizeof(struct linger);
-
-        ret = setsockopt(c->socket.fd, SOL_SOCKET, SO_LINGER, &linger, len);
+        ret = setsockopt(c->socket.fd, SOL_SOCKET, SO_LINGER, &linger_off,
+                         sizeof(struct linger));
 
         if (nxt_slow_path(ret != 0)) {
             nxt_log(task, NXT_LOG_CRIT, "setsockopt(%d, SO_LINGER) failed %E",
