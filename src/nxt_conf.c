@@ -257,15 +257,16 @@ nxt_conf_map_object(nxt_conf_value_t *value, nxt_conf_map_t *map, void *data)
     nxt_conf_value_t  *v;
 
     union {
-        uint8_t    ui8;
-        int32_t    i32;
-        int64_t    i64;
-        nxt_int_t  i;
-        ssize_t    size;
-        off_t      off;
-        double     dbl;
-        nxt_str_t  str;
-        void       *v;
+        uint8_t     ui8;
+        int32_t     i32;
+        int64_t     i64;
+        nxt_int_t   i;
+        ssize_t     size;
+        off_t       off;
+        nxt_msec_t  msec;
+        double      dbl;
+        nxt_str_t   str;
+        void        *v;
     } *ptr;
 
     for (i = 0; map[i].name.length != 0; i++) {
@@ -295,6 +296,7 @@ nxt_conf_map_object(nxt_conf_value_t *value, nxt_conf_map_t *map, void *data)
         case NXT_CONF_MAP_INT:
         case NXT_CONF_MAP_SIZE:
         case NXT_CONF_MAP_OFF:
+        case NXT_CONF_MAP_MSEC:
 
             if (v->type != NXT_CONF_INTEGER) {
                 return NXT_ERROR;
@@ -320,6 +322,10 @@ nxt_conf_map_object(nxt_conf_value_t *value, nxt_conf_map_t *map, void *data)
 
             case NXT_CONF_MAP_OFF:
                 ptr->off = v->u.integer;
+                break;
+
+            case NXT_CONF_MAP_MSEC:
+                ptr->msec = v->u.integer;
                 break;
 
             default:
