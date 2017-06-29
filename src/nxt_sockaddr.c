@@ -195,6 +195,7 @@ nxt_sockaddr_text(nxt_sockaddr_t *sa)
 
     offset = offsetof(nxt_sockaddr_t, u) + sa->socklen;
     sa->start = offset;
+    sa->port_start = offset;
 
     start = nxt_pointer_to(sa, offset);
     end = nxt_pointer_to(sa, sa->sockaddr_size);
@@ -210,7 +211,7 @@ nxt_sockaddr_text(nxt_sockaddr_t *sa)
                         octet[0], octet[1], octet[2], octet[3]);
 
         sa->address_length = p - start;
-        sa->port_start = sa->address_length + 1;
+        sa->port_start += sa->address_length + 1;
 
         port = sa->u.sockaddr_in.sin_port;
 
@@ -227,7 +228,7 @@ nxt_sockaddr_text(nxt_sockaddr_t *sa)
         p = nxt_inet6_ntop(sa->u.sockaddr_in6.sin6_addr.s6_addr, p, end);
 
         sa->address_length = p - (start + 1);
-        sa->port_start = sa->address_length + 2;
+        sa->port_start += sa->address_length + 3;
 
         *p++ = ']';
 
@@ -265,7 +266,7 @@ nxt_sockaddr_text(nxt_sockaddr_t *sa)
 #endif
 
         sa->address_length = p - start;
-        sa->port_start = sa->address_length;
+        sa->port_start += sa->address_length;
         sa->length = p - start;
 
         return;

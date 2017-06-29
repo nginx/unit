@@ -38,7 +38,7 @@ struct nxt_sockaddr_s {
     uint8_t                       address_length;
     /*
      * Textual port representation, e.g. "8000".
-     * Port length is length - port_start.
+     * Port length is (start + length) - port_start.
      */
     uint8_t                       port_start;
     /*
@@ -106,7 +106,8 @@ NXT_EXPORT nxt_int_t nxt_inet6_addr(struct in6_addr *in6_addr, u_char *buf,
 #define nxt_sockaddr_start(sa)    nxt_pointer_to(sa, (sa)->start)
 #define nxt_sockaddr_address(sa)  nxt_pointer_to(sa, (sa)->address_start)
 #define nxt_sockaddr_port(sa)     nxt_pointer_to(sa, (sa)->port_start)
-#define nxt_sockaddr_length(sa)   ((sa)->length - (sa)->port_start)
+#define nxt_sockaddr_port_length(sa)                                          \
+    (((sa)->start + (sa)->length) - (sa)->port_start)
 
 
 #endif /* _NXT_SOCKADDR_H_INCLUDED_ */
