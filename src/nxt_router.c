@@ -1047,11 +1047,13 @@ static void
 nxt_router_listen_socket_release(nxt_task_t *task,
     nxt_socket_conf_joint_t *joint)
 {
+    nxt_socket_conf_t      *skcf;
     nxt_router_socket_t    *rtsk;
     nxt_thread_spinlock_t  *lock;
 
-    rtsk = joint->socket_conf->socket;
-    lock = &joint->socket_conf->router_conf->router->lock;
+    skcf = joint->socket_conf;
+    rtsk = skcf->socket;
+    lock = &skcf->router_conf->router->lock;
 
     nxt_thread_spin_lock(lock);
 
@@ -1064,6 +1066,7 @@ nxt_router_listen_socket_release(nxt_task_t *task,
     if (rtsk != NULL) {
         nxt_socket_close(task, rtsk->fd);
         nxt_free(rtsk);
+        skcf->socket = NULL;
     }
 
     nxt_router_conf_release(task, joint);
