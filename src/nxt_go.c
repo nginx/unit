@@ -158,11 +158,16 @@ nxt_go_prepare_msg(nxt_task_t *task, nxt_app_request_t *r, nxt_app_wmsg_t *wmsg)
     /* TODO error handle, async mmap buffer assignment */
 
     NXT_WRITE(&h->method);
-    NXT_WRITE(&h->path);
+    NXT_WRITE(&h->target);
+    if (h->path.start == h->target.start) {
+        NXT_WRITE(&eof);
+    } else {
+        NXT_WRITE(&h->path);
+    }
 
     if (h->query.start != NULL) {
         RC(nxt_app_msg_write_size(task, wmsg,
-                                  h->query.start - h->path.start + 1));
+                                  h->query.start - h->target.start + 1));
     } else {
         RC(nxt_app_msg_write_size(task, wmsg, 0));
     }

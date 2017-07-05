@@ -32,6 +32,10 @@ struct nxt_http_request_parse_s {
     u_char                    *exten_start;
     u_char                    *args_start;
 
+    nxt_str_t                 path;
+    nxt_str_t                 args;
+    nxt_str_t                 exten;
+
     nxt_http_ver_t            version;
 
     union {
@@ -45,6 +49,7 @@ struct nxt_http_request_parse_s {
     nxt_http_fields_hash_t    *fields_hash;
 
     nxt_list_t                *fields;
+    nxt_mp_t                  *mem_pool;
 
     /* target with "/." */
     unsigned                  complex_target:1;
@@ -80,6 +85,8 @@ struct nxt_http_field_s {
 nxt_inline nxt_int_t
 nxt_http_parse_request_init(nxt_http_request_parse_t *rp, nxt_mp_t *mp)
 {
+    rp->mem_pool = mp;
+
     rp->fields = nxt_list_create(mp, 8, sizeof(nxt_http_field_t));
     if (nxt_slow_path(rp->fields == NULL)){
         return NXT_ERROR;

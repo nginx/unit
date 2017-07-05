@@ -554,14 +554,7 @@ nxt_controller_process_request(nxt_task_t *task, nxt_conn_t *c,
 
     static const nxt_str_t empty_obj = nxt_string("{}");
 
-    path.start = req->parser.target_start;
-
-    if (req->parser.args_start != NULL) {
-        path.length = req->parser.args_start - path.start;
-
-    } else {
-        path.length = req->parser.target_end - path.start;
-    }
+    path = req->parser.path;
 
     if (path.length > 1 && path.start[path.length - 1] == '/') {
         path.length--;

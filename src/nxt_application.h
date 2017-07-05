@@ -17,10 +17,10 @@ typedef struct {
 
 typedef struct {
     nxt_str_t                  method;
-    nxt_str_t                  path;
-    nxt_str_t                  path_no_query;
-    nxt_str_t                  query;
+    nxt_str_t                  target;
     nxt_str_t                  version;
+    nxt_str_t                  path;
+    nxt_str_t                  query;
 
     nxt_list_t                 *fields;
 

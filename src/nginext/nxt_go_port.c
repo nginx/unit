@@ -41,22 +41,27 @@ nxt_go_data_handler(nxt_port_msg_t *port_msg, size_t size)
     h = &ctx->r.header;
 
     nxt_go_ctx_read_str(ctx, &h->method);
+    nxt_go_ctx_read_str(ctx, &h->target);
     nxt_go_ctx_read_str(ctx, &h->path);
-    h->path_no_query = h->path;
 
     nxt_go_ctx_read_size(ctx, &s);
     if (s > 0) {
         s--;
-        h->query.start = h->path.start + s;
-        h->query.length = h->path.length - s;
+        h->query.start = h->target.start + s;
+        h->query.length = h->target.length - s;
 
-        if (s > 0) {
-            h->path_no_query.length = s - 1;
+        if (h->path.start == NULL) {
+            h->path.start = h->target.start;
+            h->path.length = s - 1;
         }
     }
 
+    if (h->path.start == NULL) {
+        h->path = h->target;
+    }
+
     nxt_go_new_request(r, port_msg->stream, nxt_go_str(&h->method),
-                       nxt_go_str(&h->path));
+                       nxt_go_str(&h->target));
 
     nxt_go_ctx_read_str(ctx, &h->version);
 

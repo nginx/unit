@@ -477,19 +477,11 @@ nxt_app_http_req_parse(nxt_task_t *task, nxt_app_parse_ctx_t *ctx,
 
         h->method = p->method;
 
-        h->path.start = p->target_start;
-        h->path.length = p->target_end - p->target_start;
+        h->target.start = p->target_start;
+        h->target.length = p->target_end - p->target_start;
 
-        h->path_no_query = h->path;
-
-        if (p->args_start != NULL) {
-            h->query.start = p->args_start;
-            h->query.length = p->target_end - p->args_start;
-
-            if (p->args_start > p->target_start) {
-                h->path_no_query.length = p->args_start - p->target_start - 1;
-            }
-        }
+        h->path = p->path;
+        h->query = p->args;
 
         if (h->parsed_content_length == 0) {
             b->done = 1;

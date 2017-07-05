@@ -49,6 +49,8 @@ static void nxt_http_fields_hash_lookup(nxt_http_fields_hash_t *hash,
 static void nxt_http_fields_hash_lookup_long(nxt_http_fields_hash_t *hash,
     nxt_http_field_t *field);
 
+static nxt_int_t nxt_http_parse_complex_target(nxt_http_request_parse_t *rp);
+
 
 typedef enum {
     NXT_HTTP_TARGET_SPACE = 1,   /* \s  */
@@ -349,10 +351,39 @@ space_after_target:
             }
 
             *pos = p + 1;
+
+        } else {
+            *pos = p + 10;
+        }
+
+        if (rp->complex_target != 0 || rp->quoted_target != 0) {
+            rc = nxt_http_parse_complex_target(rp);
+
+            if (nxt_slow_path(rc != NXT_OK)) {
+                return rc;
+            }
+
             return nxt_http_parse_field_name(rp, pos, end);
         }
 
-        *pos = p + 10;
+        rp->path.start = rp->target_start;
+
+        if (rp->args_start != NULL) {
+            rp->path.length = rp->args_start - rp->target_start - 1;
+
+            rp->args.start = rp->args_start;
+            rp->args.length = rp->target_end - rp->args_start;
+
+        } else {
+            rp->path.length = rp->target_end - rp->target_start;
+        }
+
+        if (rp->exten_start) {
+            rp->exten.length = rp->path.start + rp->path.length -
+                               rp->exten_start;
+            rp->exten.start = rp->exten_start;
+        }
+
         return nxt_http_parse_field_name(rp, pos, end);
     }
 
@@ -882,6 +913,310 @@ nxt_http_fields_process(nxt_list_t *fields, void *ctx, nxt_log_t *log)
         }
 
     } nxt_list_loop;
+
+    return NXT_OK;
+}
+
+
+#define                                                                       \
+nxt_http_is_normal(c)                                                         \
+    (nxt_fast_path((nxt_http_normal[c / 8] & (1 << (c & 7))) != 0))
+
+
+static const uint8_t  nxt_http_normal[32]  nxt_aligned(32) = {
+
+                             /*        \0   \r  \n                         */
+    0xfe, 0xdb, 0xff, 0xff,  /* 1111 1110  1101 1011  1111 1111  1111 1111 */
+
+                             /* '&%$ #"!   /.-, |*)(  7654 3210  ?>=< ;:98 */
+    0xd6, 0x37, 0xff, 0x7f,  /* 1101 0110  0011 0111  1111 1111  0111 1111 */
+
+                             /* GFED CBA@  ONML KJIH  WVUT SRQP  _^]\ [ZYX */
+    0xff, 0xff, 0xff, 0xff,  /* 1111 1111  1111 1111  1111 1111  1111 1111 */
+
+                             /* gfed cba`  onml kjih  wvut srqp   ~}| {zyx */
+    0xff, 0xff, 0xff, 0xff,  /* 1111 1111  1111 1111  1111 1111  1111 1111 */
+
+    0xff, 0xff, 0xff, 0xff,  /* 1111 1111  1111 1111  1111 1111  1111 1111 */
+    0xff, 0xff, 0xff, 0xff,  /* 1111 1111  1111 1111  1111 1111  1111 1111 */
+    0xff, 0xff, 0xff, 0xff,  /* 1111 1111  1111 1111  1111 1111  1111 1111 */
+    0xff, 0xff, 0xff, 0xff,  /* 1111 1111  1111 1111  1111 1111  1111 1111 */
+};
+
+
+static nxt_int_t
+nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
+{
+    u_char  *p, *u, c, ch, high;
+    enum {
+        sw_normal = 0,
+        sw_slash,
+        sw_dot,
+        sw_dot_dot,
+        sw_quoted,
+        sw_quoted_second,
+    } state, saved_state;
+
+    nxt_prefetch(nxt_http_normal);
+
+    state = sw_normal;
+    saved_state = sw_normal;
+    p = rp->target_start;
+
+    u = nxt_mp_alloc(rp->mem_pool, rp->target_end - p + 1);
+
+    if (nxt_slow_path(u == NULL)) {
+        return NXT_ERROR;
+    }
+
+    rp->path.length = 0;
+    rp->path.start = u;
+
+    high = '\0';
+    rp->exten_start = NULL;
+    rp->args_start = NULL;
+
+    while (p < rp->target_end) {
+
+        ch = *p++;
+
+    again:
+
+        switch (state) {
+
+        case sw_normal:
+
+            if (nxt_http_is_normal(ch)) {
+                *u++ = ch;
+                continue;
+            }
+
+            switch (ch) {
+            case '/':
+                rp->exten_start = NULL;
+                state = sw_slash;
+                *u++ = ch;
+                continue;
+            case '%':
+                saved_state = state;
+                state = sw_quoted;
+                continue;
+            case '?':
+                rp->args_start = p;
+                goto args;
+            case '#':
+                goto done;
+            case '.':
+                rp->exten_start = u + 1;
+                *u++ = ch;
+                continue;
+            case '+':
+                rp->plus_in_target = 1;
+                /* Fall through. */
+            default:
+                *u++ = ch;
+                continue;
+            }
+
+            break;
+
+        case sw_slash:
+
+            if (nxt_http_is_normal(ch)) {
+                state = sw_normal;
+                *u++ = ch;
+                continue;
+            }
+
+            switch (ch) {
+            case '/':
+                continue;
+            case '.':
+                state = sw_dot;
+                *u++ = ch;
+                continue;
+            case '%':
+                saved_state = state;
+                state = sw_quoted;
+                continue;
+            case '?':
+                rp->args_start = p;
+                goto args;
+            case '#':
+                goto done;
+            case '+':
+                rp->plus_in_target = 1;
+                /* Fall through. */
+            default:
+                state = sw_normal;
+                *u++ = ch;
+                continue;
+            }
+
+            break;
+
+        case sw_dot:
+
+            if (nxt_http_is_normal(ch)) {
+                state = sw_normal;
+                *u++ = ch;
+                continue;
+            }
+
+            switch (ch) {
+            case '/':
+                state = sw_slash;
+                u--;
+                continue;
+            case '.':
+                state = sw_dot_dot;
+                *u++ = ch;
+                continue;
+            case '%':
+                saved_state = state;
+                state = sw_quoted;
+                continue;
+            case '?':
+                rp->args_start = p;
+                goto args;
+            case '#':
+                goto done;
+            case '+':
+                rp->plus_in_target = 1;
+                /* Fall through. */
+            default:
+                state = sw_normal;
+                *u++ = ch;
+                continue;
+            }
+
+            break;
+
+        case sw_dot_dot:
+
+            if (nxt_http_is_normal(ch)) {
+                state = sw_normal;
+                *u++ = ch;
+                continue;
+            }
+
+            switch (ch) {
+            case '/':
+                state = sw_slash;
+                u -= 5;
+                for ( ;; ) {
+                    if (u < rp->path.start) {
+                        return NXT_ERROR;
+                    }
+                    if (*u == '/') {
+                        u++;
+                        break;
+                    }
+                    u--;
+                }
+                break;
+
+            case '%':
+                saved_state = state;
+                state = sw_quoted;
+                continue;
+            case '?':
+                rp->args_start = p;
+                goto args;
+            case '#':
+                goto done;
+            case '+':
+                rp->plus_in_target = 1;
+                /* Fall through. */
+            default:
+                state = sw_normal;
+                *u++ = ch;
+                continue;
+            }
+
+            break;
+
+        case sw_quoted:
+            rp->quoted_target = 1;
+
+            if (ch >= '0' && ch <= '9') {
+                high = (u_char) (ch - '0');
+                state = sw_quoted_second;
+                continue;
+            }
+
+            c = (u_char) (ch | 0x20);
+            if (c >= 'a' && c <= 'f') {
+                high = (u_char) (c - 'a' + 10);
+                state = sw_quoted_second;
+                continue;
+            }
+
+            return NXT_ERROR;
+
+        case sw_quoted_second:
+            if (ch >= '0' && ch <= '9') {
+                ch = (u_char) ((high << 4) + ch - '0');
+
+                if (ch == '%' || ch == '#') {
+                    state = sw_normal;
+                    *u++ = ch;
+                    continue;
+
+                } else if (ch == '\0') {
+                    return NXT_ERROR;
+                }
+
+                state = saved_state;
+                goto again;
+            }
+
+            c = (u_char) (ch | 0x20);
+            if (c >= 'a' && c <= 'f') {
+                ch = (u_char) ((high << 4) + c - 'a' + 10);
+
+                if (ch == '?') {
+                    state = sw_normal;
+                    *u++ = ch;
+                    continue;
+
+                } else if (ch == '+') {
+                    rp->plus_in_target = 1;
+                }
+
+                state = saved_state;
+                goto again;
+            }
+
+            return NXT_ERROR;
+        }
+    }
+
+    if (state >= sw_quoted) {
+        return NXT_ERROR;
+    }
+
+args:
+
+    for (/* void */; p < rp->target_end; p++) {
+        if (*p == '#') {
+            break;
+        }
+    }
+
+    if (rp->args_start != NULL) {
+        rp->args.length = p - rp->args_start;
+        rp->args.start = rp->args_start;
+    }
+
+done:
+
+    rp->path.length = u - rp->path.start;
+
+    if (rp->exten_start) {
+        rp->exten.length = u - rp->exten_start;
+        rp->exten.start = rp->exten_start;
+    }
 
     return NXT_OK;
 }

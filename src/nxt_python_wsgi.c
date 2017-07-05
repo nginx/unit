@@ -420,11 +420,16 @@ nxt_python_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
     /* TODO error handle, async mmap buffer assignment */
 
     NXT_WRITE(&h->method);
-    NXT_WRITE(&h->path);
+    NXT_WRITE(&h->target);
+    if (h->path.start == h->target.start) {
+        NXT_WRITE(&eof);
+    } else {
+        NXT_WRITE(&h->path);
+    }
 
     if (h->query.start != NULL) {
         RC(nxt_app_msg_write_size(task, wmsg,
-                                  h->query.start - h->path.start + 1));
+                                  h->query.start - h->target.start + 1));
     } else {
         RC(nxt_app_msg_write_size(task, wmsg, 0));
     }
@@ -763,7 +768,7 @@ nxt_python_get_environ(nxt_task_t *task, nxt_app_rmsg_t *rmsg)
     size_t          s;
     PyObject        *environ;
     nxt_int_t       rc;
-    nxt_str_t       n, v, path_no_query, query;
+    nxt_str_t       n, v, target, path, query;
 
     environ = PyDict_Copy(nxt_py_environ_ptyp);
 
@@ -787,22 +792,29 @@ nxt_python_get_environ(nxt_task_t *task, nxt_app_rmsg_t *rmsg)
     NXT_READ("REQUEST_METHOD");
     NXT_READ("REQUEST_URI");
 
-    path_no_query = v; // assume no query
+    target = v;
+    RC(nxt_app_msg_read_str(task, rmsg, &path));
+
     RC(nxt_app_msg_read_size(task, rmsg, &s)); // query length + 1
     if (s > 0) {
         s--;
 
-        query.start = path_no_query.start + s;
-        query.length = path_no_query.length - s;
+        query.start = target.start + s;
+        query.length = target.length - s;
 
         RC(nxt_python_add_env(task, environ, "QUERY_STRING", &query));
 
-        if (s > 0) {
-            path_no_query.length = s - 1;
+        if (path.start == NULL) {
+            path.start = target.start;
+            path.length = s - 1;
         }
     }
 
-    RC(nxt_python_add_env(task, environ, "PATH_INFO", &path_no_query));
+    if (path.start == NULL) {
+        path = target;
+    }
+
+    RC(nxt_python_add_env(task, environ, "PATH_INFO", &path));
 
     NXT_READ("SERVER_PROTOCOL");
 

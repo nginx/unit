@@ -244,28 +244,33 @@ nxt_php_read_request(nxt_task_t *task, nxt_app_rmsg_t *rmsg,
     h = &ctx->r.header;
 
     nxt_app_msg_read_str(task, rmsg, &h->method);
+    nxt_app_msg_read_str(task, rmsg, &h->target);
     nxt_app_msg_read_str(task, rmsg, &h->path);
-    h->path_no_query = h->path;
 
     nxt_app_msg_read_size(task, rmsg, &s);
     if (s > 0) {
         s--;
-        h->query.start = h->path.start + s;
-        h->query.length = h->path.length - s;
+        h->query.start = h->target.start + s;
+        h->query.length = h->target.length - s;
 
-        if (s > 0) {
-            h->path_no_query.length = s - 1;
+        if (h->path.start == NULL) {
+            h->path.start = h->target.start;
+            h->path.length = s - 1;
         }
     }
 
+    if (h->path.start == NULL) {
+        h->path = h->target;
+    }
+
     if (nxt_php_path.start == NULL) {
-        if (h->path_no_query.start[h->path_no_query.length - 1] == '/') {
+        if (h->path.start[h->path.length - 1] == '/') {
             script_name = nxt_php_index_name;
         } else {
             script_name.length = 0;
         }
 
-        ctx->script.length = nxt_php_root.length + h->path_no_query.length +
+        ctx->script.length = nxt_php_root.length + h->path.length +
                              script_name.length;
         ctx->script.start = nxt_mp_nget(ctx->mem_pool,
             ctx->script.length + 1);
@@ -275,8 +280,8 @@ nxt_php_read_request(nxt_task_t *task, nxt_app_rmsg_t *rmsg,
         nxt_memcpy(p, nxt_php_root.start, nxt_php_root.length);
         p += nxt_php_root.length;
 
-        nxt_memcpy(p, h->path_no_query.start, h->path_no_query.length);
-        p += h->path_no_query.length;
+        nxt_memcpy(p, h->path.start, h->path.length);
+        p += h->path.length;
 
         if (script_name.length > 0) {
             nxt_memcpy(p, script_name.start, script_name.length);
@@ -331,11 +336,16 @@ nxt_php_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
     /* TODO error handle, async mmap buffer assignment */
 
     NXT_WRITE(&h->method);
-    NXT_WRITE(&h->path);
+    NXT_WRITE(&h->target);
+    if (h->path.start == h->target.start) {
+        NXT_WRITE(&eof);
+    } else {
+        NXT_WRITE(&h->path);
+    }
 
     if (h->query.start != NULL) {
         RC(nxt_app_msg_write_size(task, wmsg,
-                                  h->query.start - h->path.start + 1));
+                                  h->query.start - h->target.start + 1));
     } else {
         RC(nxt_app_msg_write_size(task, wmsg, 0));
     }
@@ -401,7 +411,7 @@ nxt_php_run(nxt_task_t *task,
     nxt_php_read_request(task, rmsg, &run_ctx);
 
     SG(server_context) = &run_ctx;
-    SG(request_info).request_uri = (char *) h->path.start;
+    SG(request_info).request_uri = (char *) h->target.start;
     SG(request_info).request_method = (char *) h->method.start;
 
     SG(request_info).proto_num = 1001;
@@ -729,8 +739,8 @@ nxt_php_register_variables(zval *track_vars_array TSRMLS_DC)
                           h->method.length, track_vars_array TSRMLS_CC);
 
     php_register_variable_safe((char *) "REQUEST_URI",
-                          (char *) h->path.start,
-                          h->path.length, track_vars_array TSRMLS_CC);
+                          (char *) h->target.start,
+                          h->target.length, track_vars_array TSRMLS_CC);
 
     if (h->query.start != NULL) {
         php_register_variable_safe((char *) "QUERY_STRING",
