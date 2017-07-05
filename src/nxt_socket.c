@@ -145,7 +145,7 @@ nxt_socket_sockopt_name(nxt_uint_t level, nxt_uint_t sockopt)
 
         break;
 
-#if (NXT_INET6 && defined IPV6_V6ONLY)
+#if (NXT_INET6)
     case IPPROTO_IPV6:
 
         switch (sockopt) {

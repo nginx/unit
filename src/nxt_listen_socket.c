@@ -11,6 +11,90 @@ static u_char *nxt_listen_socket_log_handler(void *ctx, u_char *pos,
     u_char *last);
 
 
+nxt_socket_t
+nxt_listen_socket_create0(nxt_task_t *task, nxt_sockaddr_t *sa,
+    nxt_uint_t flags)
+{
+    nxt_int_t     ret;
+    nxt_socket_t  s;
+
+    s = nxt_socket_create(task, sa->u.sockaddr.sa_family, sa->type, 0, flags);
+    if (nxt_slow_path(s == -1)) {
+        return s;
+    }
+
+    ret = nxt_socket_setsockopt(task, s, SOL_SOCKET, SO_REUSEADDR, 1);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        goto fail;
+    }
+
+#if (NXT_INET6)
+
+    if (sa->u.sockaddr.sa_family == AF_INET6) {
+        ret = nxt_socket_setsockopt(task, s, IPPROTO_IPV6, IPV6_V6ONLY, 1);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            goto fail;
+        }
+    }
+
+#endif
+
+#ifdef TCP_DEFER_ACCEPT
+
+    /* Defer Linux accept() up to for 1 second. */
+    (void) nxt_socket_setsockopt(task, s, IPPROTO_TCP, TCP_DEFER_ACCEPT, 1);
+
+#endif
+
+    ret = nxt_socket_bind(task, s, sa, 0);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        goto fail;
+    }
+
+#if (NXT_HAVE_UNIX_DOMAIN)
+
+    if (sa->u.sockaddr.sa_family == AF_UNIX) {
+        nxt_file_name_t     *name;
+        nxt_file_access_t   access;
+
+        name = (nxt_file_name_t *) sa->u.sockaddr_un.sun_path;
+
+        access = (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+
+        ret = nxt_file_set_access(name, access);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            goto fail;
+        }
+    }
+
+#endif
+
+    return s;
+
+fail:
+
+    nxt_socket_close(task, s);
+
+    return -1;
+}
+
+
+nxt_int_t
+nxt_listen_socket(nxt_task_t *task, nxt_socket_t s, int backlog)
+{
+    nxt_debug(task, "listen(%d, %d)", s, backlog);
+
+    if (nxt_fast_path(listen(s, backlog) == 0)) {
+        return NXT_OK;
+    }
+
+    nxt_log(task, NXT_LOG_CRIT, "listen(%d, %d) failed %E",
+            s, backlog, nxt_socket_errno);
+
+    return NXT_ERROR;
+}
+
+
 nxt_int_t
 nxt_listen_socket_create(nxt_task_t *task, nxt_listen_socket_t *ls,
     nxt_bool_t bind_test)

@@ -193,7 +193,11 @@ nxt_queue_truncate(queue, link)                                               \
     } while (0)
 
 
-/* Add the queue "tail" to the queue "queue". */
+/*
+ * Add the queue "tail" to the queue "queue".
+ * If the queue "tail" is intended to be reused again,
+ * it must be initiated with nxt_queue_init(tail).
+ */
 
 #define                                                                       \
 nxt_queue_add(queue, tail)                                                    \

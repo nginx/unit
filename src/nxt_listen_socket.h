@@ -30,8 +30,6 @@ typedef struct {
 
     uint8_t                   socklen;
     uint8_t                   address_length;
-
-    uint32_t                  count;
 } nxt_listen_socket_t;
 
 
@@ -50,6 +48,11 @@ typedef struct {
 #define NXT_LISTEN_BACKLOG    511
 #endif
 
+
+NXT_EXPORT nxt_socket_t nxt_listen_socket_create0(nxt_task_t *task,
+    nxt_sockaddr_t *sa, nxt_uint_t flags);
+NXT_EXPORT nxt_int_t nxt_listen_socket(nxt_task_t *task, nxt_socket_t s,
+    int backlog);
 
 NXT_EXPORT nxt_int_t nxt_listen_socket_create(nxt_task_t *task,
     nxt_listen_socket_t *ls, nxt_bool_t bind_test);

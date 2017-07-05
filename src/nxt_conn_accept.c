@@ -69,7 +69,7 @@ nxt_listen_event(nxt_task_t *task, nxt_listen_socket_t *ls)
         if (nxt_conn_accept_alloc(task, lev) != NULL) {
             nxt_fd_event_enable_accept(engine, &lev->socket);
 
-            nxt_queue_insert_head(&engine->listen_connections, &lev->link);
+            nxt_queue_insert_tail(&engine->listen_connections, &lev->link);
         }
 
         return lev;

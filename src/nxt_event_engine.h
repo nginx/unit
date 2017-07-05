@@ -494,6 +494,8 @@ struct nxt_event_engine_s {
     nxt_lvlhsh_t               requests; /* req_id to nxt_req_conn_link_t */
 
     nxt_queue_link_t           link;
+    // STUB: router link
+    nxt_queue_link_t           link0;
 };
 
 
