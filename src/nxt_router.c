@@ -305,6 +305,10 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         return NXT_ERROR;
     }
 
+    if (tmcf->conf->threads == 0) {
+        tmcf->conf->threads = nxt_ncpu;
+    }
+
     http = nxt_conf_get_path(conf, &http_path);
 
     if (http == NULL) {
