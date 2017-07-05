@@ -436,6 +436,9 @@ nxt_python_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
 
     NXT_WRITE(&h->version);
 
+    NXT_WRITE(&r->remote);
+
+    NXT_WRITE(&h->host);
     NXT_WRITE(&h->content_type);
     NXT_WRITE(&h->content_length);
 
@@ -503,51 +506,82 @@ nxt_python_run(nxt_task_t *task, nxt_app_rmsg_t *rmsg, nxt_app_wmsg_t *wmsg)
         return NXT_ERROR;
     }
 
-    iterator = PyObject_GetIter(result);
+    item = NULL;
+    iterator = NULL;
 
-    /* TODO call result.close() */
-
-    Py_DECREF(result);
-
-    if (nxt_slow_path(iterator == NULL)) {
-        nxt_log_error(NXT_LOG_ERR, task->log,
-                      "the application returned not an iterable object");
-        return NXT_ERROR;
-    }
-
-    while((item = PyIter_Next(iterator))) {
-
-        if (nxt_slow_path(PyBytes_Check(item) == 0)) {
-            nxt_log_error(NXT_LOG_ERR, task->log,
-                          "the application returned not a bytestring object");
-
-            Py_DECREF(item);
-            Py_DECREF(iterator);
-
-            return NXT_ERROR;
-        }
+    /* Shortcut: avoid iterate over result string symbols. */
+    if (PyBytes_Check(result) != 0) {
 
         size = PyBytes_GET_SIZE(item);
         buf = (u_char *) PyBytes_AS_STRING(item);
 
-        nxt_debug(task, "nxt_app_write(fake): %d %*s", (int)size, (int)size,
-                  buf);
-        nxt_python_write(&run_ctx, buf, size, 1, 0);
+        nxt_python_write(&run_ctx, buf, size, 1, 1);
 
-        Py_DECREF(item);
+    } else {
+
+        iterator = PyObject_GetIter(result);
+
+        if (nxt_slow_path(iterator == NULL)) {
+            nxt_log_error(NXT_LOG_ERR, task->log,
+                          "the application returned not an iterable object");
+
+            goto fail;
+        }
+
+        while((item = PyIter_Next(iterator))) {
+
+            if (nxt_slow_path(PyBytes_Check(item) == 0)) {
+                nxt_log_error(NXT_LOG_ERR, task->log,
+                              "the application returned not a bytestring object");
+
+                goto fail;
+            }
+
+            size = PyBytes_GET_SIZE(item);
+            buf = (u_char *) PyBytes_AS_STRING(item);
+
+            nxt_debug(task, "nxt_app_write(fake): %d %*s", (int)size, (int)size,
+                      buf);
+            nxt_python_write(&run_ctx, buf, size, 1, 0);
+
+            Py_DECREF(item);
+        }
+
+        Py_DECREF(iterator);
+
+        nxt_python_write(&run_ctx, NULL, 0, 1, 1);
+
+        if (PyObject_HasAttrString(result, "close")) {
+            PyObject_CallMethod(result, (char *) "close", NULL);
+        }
     }
-
-    Py_DECREF(iterator);
-
-    nxt_python_write(&run_ctx, NULL, 0, 1, 1);
 
     if (nxt_slow_path(PyErr_Occurred() != NULL)) {
         nxt_log_error(NXT_LOG_ERR, task->log, "an application error occurred");
         PyErr_Print();
-        return NXT_ERROR;
     }
 
+    Py_DECREF(result);
+
     return NXT_OK;
+
+fail:
+
+    if (item != NULL) {
+        Py_DECREF(item);
+    }
+
+    if (iterator != NULL) {
+        Py_DECREF(iterator);
+    }
+
+    if (PyObject_HasAttrString(result, "close")) {
+        PyObject_CallMethod(result, (char *) "close", NULL);
+    }
+
+    Py_DECREF(result);
+
+    return NXT_ERROR;
 }
 
 
@@ -669,40 +703,6 @@ nxt_python_create_environ(nxt_thread_t *thr)
         goto fail;
     }
 
-
-    obj = PyString_FromString("localhost");
-
-    if (nxt_slow_path(obj == NULL)) {
-        nxt_log_alert(thr->log,
-                  "Python failed to create the \"SERVER_NAME\" environ value");
-        goto fail;
-    }
-
-    if (nxt_slow_path(PyDict_SetItemString(environ, "SERVER_NAME", obj) != 0)) {
-        nxt_log_alert(thr->log,
-                      "Python failed to set the \"SERVER_NAME\" environ value");
-        goto fail;
-    }
-
-    Py_DECREF(obj);
-
-
-    obj = PyString_FromString("80");
-
-    if (nxt_slow_path(obj == NULL)) {
-        nxt_log_alert(thr->log,
-                  "Python failed to create the \"SERVER_PORT\" environ value");
-        goto fail;
-    }
-
-    if (nxt_slow_path(PyDict_SetItemString(environ, "SERVER_PORT", obj) != 0)) {
-        nxt_log_alert(thr->log,
-                      "Python failed to set the \"SERVER_PORT\" environ value");
-        goto fail;
-    }
-
-    Py_DECREF(obj);
-
     return environ;
 
 fail:
@@ -766,9 +766,14 @@ static PyObject *
 nxt_python_get_environ(nxt_task_t *task, nxt_app_rmsg_t *rmsg)
 {
     size_t          s;
+    u_char          *colon;
     PyObject        *environ;
     nxt_int_t       rc;
     nxt_str_t       n, v, target, path, query;
+    nxt_str_t       host, server_name, server_port;
+
+    static nxt_str_t def_host = nxt_string("localhost");
+    static nxt_str_t def_port = nxt_string("80");
 
     environ = PyDict_Copy(nxt_py_environ_ptyp);
 
@@ -817,6 +822,29 @@ nxt_python_get_environ(nxt_task_t *task, nxt_app_rmsg_t *rmsg)
     RC(nxt_python_add_env(task, environ, "PATH_INFO", &path));
 
     NXT_READ("SERVER_PROTOCOL");
+
+    NXT_READ("REMOTE_ADDR");
+
+    RC(nxt_app_msg_read_str(task, rmsg, &host));
+
+    if (host.length == 0) {
+        host = def_host;
+    }
+
+    server_name = host;
+    colon = nxt_memchr(host.start, ':', host.length);
+
+    if (colon != NULL) {
+        server_name.length = colon - host.start;
+
+        server_port.start = colon + 1;
+        server_port.length = host.length - server_name.length - 1;
+    } else {
+        server_port = def_port;
+    }
+
+    RC(nxt_python_add_env(task, environ, "SERVER_NAME", &server_name));
+    RC(nxt_python_add_env(task, environ, "SERVER_PORT", &server_port));
 
     NXT_READ("CONTENT_TYPE");
     NXT_READ("CONTENT_LENGTH");

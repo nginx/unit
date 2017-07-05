@@ -1105,6 +1105,9 @@ nxt_router_conn_http_header_parse(nxt_task_t *task, void *obj, void *data)
         }
 
         c->socket.data = ap;
+
+        ap->r.remote.start = nxt_sockaddr_address(c->remote);
+        ap->r.remote.length = c->remote->address_length;
     }
 
     h = &ap->r.header;
