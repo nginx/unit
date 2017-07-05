@@ -88,7 +88,7 @@ nxt_controller_start(nxt_task_t *task, nxt_runtime_t *rt)
     nxt_http_fields_hash_t  *hash;
 
     static const nxt_str_t json
-        = nxt_string("{ \"sockets\": {}, \"applications\": {} }");
+        = nxt_string("{ \"listeners\": {}, \"applications\": {} }");
 
     hash = nxt_http_fields_hash_create(nxt_controller_request_fields,
                                        rt->mem_pool);
@@ -593,6 +593,7 @@ nxt_controller_process_request(nxt_task_t *task, nxt_conn_t *c,
         if (value == NULL) {
             nxt_mp_destroy(mp);
             status = 400;
+            nxt_str_set(&resp.json, "{ \"error\": \"Invalid JSON.\" }");
             goto done;
         }
 
@@ -618,6 +619,13 @@ nxt_controller_process_request(nxt_task_t *task, nxt_conn_t *c,
                 status = 500;
                 goto done;
             }
+        }
+
+        if (nxt_slow_path(nxt_conf_validate(value) != NXT_OK)) {
+            status = 400;
+            nxt_str_set(&resp.json,
+                        "{ \"error\": \"Invalid configuration.\" }");
+            goto done;
         }
 
         nxt_mp_destroy(nxt_controller_conf.pool);
@@ -674,6 +682,13 @@ nxt_controller_process_request(nxt_task_t *task, nxt_conn_t *c,
             goto done;
         }
 
+        if (nxt_slow_path(nxt_conf_validate(value) != NXT_OK)) {
+            status = 400;
+            nxt_str_set(&resp.json,
+                        "{ \"error\": \"Invalid configuration.\" }");
+            goto done;
+        }
+
         nxt_mp_destroy(nxt_controller_conf.pool);
 
         nxt_controller_conf.root = value;
@@ -697,7 +712,6 @@ done:
 
     case 400:
         nxt_str_set(&resp.status_line, "400 Bad Request");
-        nxt_str_set(&resp.json, "{ \"error\": \"Invalid JSON.\" }");
         break;
 
     case 404:

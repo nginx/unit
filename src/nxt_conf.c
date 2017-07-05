@@ -17,15 +17,15 @@
 
 
 typedef enum {
-    NXT_CONF_NULL = 0,
-    NXT_CONF_BOOLEAN,
-    NXT_CONF_INTEGER,
-    NXT_CONF_NUMBER,
-    NXT_CONF_SHORT_STRING,
-    NXT_CONF_STRING,
-    NXT_CONF_ARRAY,
-    NXT_CONF_OBJECT,
-} nxt_conf_type_t;
+    NXT_CONF_VALUE_NULL = 0,
+    NXT_CONF_VALUE_BOOLEAN,
+    NXT_CONF_VALUE_INTEGER,
+    NXT_CONF_VALUE_NUMBER,
+    NXT_CONF_VALUE_SHORT_STRING,
+    NXT_CONF_VALUE_STRING,
+    NXT_CONF_VALUE_ARRAY,
+    NXT_CONF_VALUE_OBJECT,
+} nxt_conf_value_type_t;
 
 
 typedef enum {
@@ -51,7 +51,7 @@ struct nxt_conf_value_s {
         nxt_conf_object_t     *object;
     } u;
 
-    nxt_conf_type_t           type:8;   /* 3 bits. */
+    nxt_conf_value_type_t     type:8;   /* 3 bits. */
 };
 
 
@@ -140,13 +140,47 @@ nxt_conf_json_indentation(u_char *p, uint32_t level)
 nxt_inline void
 nxt_conf_get_string(nxt_conf_value_t *value, nxt_str_t *str)
 {
-    if (value->type == NXT_CONF_SHORT_STRING) {
+    if (value->type == NXT_CONF_VALUE_SHORT_STRING) {
         str->length = value->u.str[0];
         str->start = &value->u.str[1];
 
     } else {
         *str = *value->u.string;
     }
+}
+
+
+nxt_uint_t
+nxt_conf_type(nxt_conf_value_t *value)
+{
+    switch (value->type) {
+
+    case NXT_CONF_VALUE_NULL:
+        return NXT_CONF_NULL;
+
+    case NXT_CONF_VALUE_BOOLEAN:
+        return NXT_CONF_BOOLEAN;
+
+    case NXT_CONF_VALUE_INTEGER:
+        return NXT_CONF_INTEGER;
+
+    case NXT_CONF_VALUE_NUMBER:
+        return NXT_CONF_NUMBER;
+
+    case NXT_CONF_VALUE_SHORT_STRING:
+    case NXT_CONF_VALUE_STRING:
+        return NXT_CONF_STRING;
+
+    case NXT_CONF_VALUE_ARRAY:
+        return NXT_CONF_ARRAY;
+
+    case NXT_CONF_VALUE_OBJECT:
+        return NXT_CONF_OBJECT;
+    }
+
+    nxt_unreachable();
+
+    return 0;
 }
 
 
@@ -225,7 +259,7 @@ nxt_conf_get_object_member(nxt_conf_value_t *value, nxt_str_t *name,
     nxt_conf_object_t         *object;
     nxt_conf_object_member_t  *member;
 
-    if (value->type != NXT_CONF_OBJECT) {
+    if (value->type != NXT_CONF_VALUE_OBJECT) {
         return NULL;
     }
 
@@ -273,7 +307,7 @@ nxt_conf_map_object(nxt_conf_value_t *value, nxt_conf_map_t *map, void *data)
 
         v = nxt_conf_get_object_member(value, &map[i].name, NULL);
 
-        if (v == NULL || v->type == NXT_CONF_NULL) {
+        if (v == NULL || v->type == NXT_CONF_VALUE_NULL) {
             continue;
         }
 
@@ -283,7 +317,7 @@ nxt_conf_map_object(nxt_conf_value_t *value, nxt_conf_map_t *map, void *data)
 
         case NXT_CONF_MAP_INT8:
 
-            if (v->type != NXT_CONF_BOOLEAN) {
+            if (v->type != NXT_CONF_VALUE_BOOLEAN) {
                 return NXT_ERROR;
             }
 
@@ -298,7 +332,7 @@ nxt_conf_map_object(nxt_conf_value_t *value, nxt_conf_map_t *map, void *data)
         case NXT_CONF_MAP_OFF:
         case NXT_CONF_MAP_MSEC:
 
-            if (v->type != NXT_CONF_INTEGER) {
+            if (v->type != NXT_CONF_VALUE_INTEGER) {
                 return NXT_ERROR;
             }
 
@@ -336,10 +370,10 @@ nxt_conf_map_object(nxt_conf_value_t *value, nxt_conf_map_t *map, void *data)
 
         case NXT_CONF_MAP_DOUBLE:
 
-            if (v->type == NXT_CONF_NUMBER) {
+            if (v->type == NXT_CONF_VALUE_NUMBER) {
                 ptr->dbl = v->u.number;
 
-            } else if (v->type == NXT_CONF_INTEGER) {
+            } else if (v->type == NXT_CONF_VALUE_INTEGER) {
                 ptr->dbl = v->u.integer;
 
             } else {
@@ -350,8 +384,8 @@ nxt_conf_map_object(nxt_conf_value_t *value, nxt_conf_map_t *map, void *data)
 
         case NXT_CONF_MAP_STR:
 
-            if (v->type != NXT_CONF_SHORT_STRING
-                && v->type != NXT_CONF_STRING)
+            if (v->type != NXT_CONF_VALUE_SHORT_STRING
+                && v->type != NXT_CONF_VALUE_STRING)
             {
                 return NXT_ERROR;
             }
@@ -381,7 +415,7 @@ nxt_conf_next_object_member(nxt_conf_value_t *value, nxt_str_t *name,
     nxt_conf_object_t         *object;
     nxt_conf_object_member_t  *member;
 
-    if (value->type != NXT_CONF_OBJECT) {
+    if (value->type != NXT_CONF_VALUE_OBJECT) {
         return NULL;
     }
 
@@ -466,13 +500,13 @@ nxt_conf_op_compile(nxt_mp_t *mp, nxt_conf_op_t **ops, nxt_conf_value_t *root,
             }
 
             *member->name.u.string = token;
-            member->name.type = NXT_CONF_STRING;
+            member->name.type = NXT_CONF_VALUE_STRING;
 
         } else {
             member->name.u.str[0] = token.length;
             nxt_memcpy(&member->name.u.str[1], token.start, token.length);
 
-            member->name.type = NXT_CONF_SHORT_STRING;
+            member->name.type = NXT_CONF_VALUE_SHORT_STRING;
         }
 
         member->value = *value;
@@ -518,7 +552,7 @@ nxt_conf_copy_value(nxt_mp_t *mp, nxt_conf_op_t *op, nxt_conf_value_t *dst,
     nxt_int_t   rc;
     nxt_uint_t  n;
 
-    if (op != NULL && src->type != NXT_CONF_OBJECT) {
+    if (op != NULL && src->type != NXT_CONF_VALUE_OBJECT) {
         return NXT_ERROR;
     }
 
@@ -526,7 +560,7 @@ nxt_conf_copy_value(nxt_mp_t *mp, nxt_conf_op_t *op, nxt_conf_value_t *dst,
 
     switch (src->type) {
 
-    case NXT_CONF_STRING:
+    case NXT_CONF_VALUE_STRING:
 
         dst->u.string = nxt_str_dup(mp, NULL, src->u.string);
 
@@ -536,7 +570,7 @@ nxt_conf_copy_value(nxt_mp_t *mp, nxt_conf_op_t *op, nxt_conf_value_t *dst,
 
         break;
 
-    case NXT_CONF_ARRAY:
+    case NXT_CONF_VALUE_ARRAY:
 
         size = sizeof(nxt_conf_array_t)
                + src->u.array->count * sizeof(nxt_conf_value_t);
@@ -559,7 +593,7 @@ nxt_conf_copy_value(nxt_mp_t *mp, nxt_conf_op_t *op, nxt_conf_value_t *dst,
 
         break;
 
-    case NXT_CONF_OBJECT:
+    case NXT_CONF_VALUE_OBJECT:
         return nxt_conf_copy_object(mp, op, dst, src);
 
     default:
@@ -780,7 +814,7 @@ nxt_conf_json_parse_value(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
                           && nxt_memcmp(start, "true", 4) == 0))
         {
             value->u.boolean = 1;
-            value->type = NXT_CONF_BOOLEAN;
+            value->type = NXT_CONF_VALUE_BOOLEAN;
 
             return start + 4;
         }
@@ -792,7 +826,7 @@ nxt_conf_json_parse_value(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
                           && nxt_memcmp(start, "false", 5) == 0))
         {
             value->u.boolean = 0;
-            value->type = NXT_CONF_BOOLEAN;
+            value->type = NXT_CONF_VALUE_BOOLEAN;
 
             return start + 5;
         }
@@ -803,7 +837,7 @@ nxt_conf_json_parse_value(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
         if (nxt_fast_path(end - start >= 4
                           && nxt_memcmp(start, "null", 4) == 0))
         {
-            value->type = NXT_CONF_NULL;
+            value->type = NXT_CONF_VALUE_NULL;
             return start + 4;
         }
 
@@ -929,7 +963,7 @@ nxt_conf_json_parse_object(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
     }
 
     value->u.object = object;
-    value->type = NXT_CONF_OBJECT;
+    value->type = NXT_CONF_VALUE_OBJECT;
 
     object->count = count;
     member = object->members;
@@ -1082,7 +1116,7 @@ nxt_conf_json_parse_array(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
     }
 
     value->u.array = array;
-    value->type = NXT_CONF_ARRAY;
+    value->type = NXT_CONF_VALUE_ARRAY;
 
     array->count = count;
     element = array->elements;
@@ -1204,7 +1238,7 @@ nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
     size = last - start - surplus;
 
     if (size > NXT_CONF_MAX_SHORT_STRING) {
-        value->type = NXT_CONF_STRING;
+        value->type = NXT_CONF_VALUE_STRING;
         value->u.string = nxt_str_alloc(mp, size);
 
         if (nxt_slow_path(value->u.string == NULL)) {
@@ -1214,7 +1248,7 @@ nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
         s = value->u.string->start;
 
     } else {
-        value->type = NXT_CONF_SHORT_STRING;
+        value->type = NXT_CONF_VALUE_SHORT_STRING;
         value->u.str[0] = size;
 
         s = &value->u.str[1];
@@ -1368,7 +1402,7 @@ nxt_conf_json_parse_number(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
     }
 
     if (ch != '.') {
-        value->type = NXT_CONF_INTEGER;
+        value->type = NXT_CONF_VALUE_INTEGER;
         value->u.integer = sign * integer;
         return p;
     }
@@ -1403,7 +1437,7 @@ nxt_conf_json_parse_number(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
         return NULL;
     }
 
-    value->type = NXT_CONF_NUMBER;
+    value->type = NXT_CONF_VALUE_NUMBER;
     value->u.number = integer + (double) frac / power;
 
     value->u.number = copysign(value->u.number, sign);
@@ -1463,27 +1497,27 @@ nxt_conf_json_length(nxt_conf_value_t *value, nxt_conf_json_pretty_t *pretty)
 {
     switch (value->type) {
 
-    case NXT_CONF_NULL:
+    case NXT_CONF_VALUE_NULL:
         return sizeof("null") - 1;
 
-    case NXT_CONF_BOOLEAN:
+    case NXT_CONF_VALUE_BOOLEAN:
         return value->u.boolean ? sizeof("true") - 1 : sizeof("false") - 1;
 
-    case NXT_CONF_INTEGER:
+    case NXT_CONF_VALUE_INTEGER:
         return nxt_conf_json_integer_length(value);
 
-    case NXT_CONF_NUMBER:
+    case NXT_CONF_VALUE_NUMBER:
         /* TODO */
         return 0;
 
-    case NXT_CONF_SHORT_STRING:
-    case NXT_CONF_STRING:
+    case NXT_CONF_VALUE_SHORT_STRING:
+    case NXT_CONF_VALUE_STRING:
         return nxt_conf_json_string_length(value);
 
-    case NXT_CONF_ARRAY:
+    case NXT_CONF_VALUE_ARRAY:
         return nxt_conf_json_array_length(value, pretty);
 
-    case NXT_CONF_OBJECT:
+    case NXT_CONF_VALUE_OBJECT:
         return nxt_conf_json_object_length(value, pretty);
     }
 
@@ -1499,28 +1533,28 @@ nxt_conf_json_print(u_char *p, nxt_conf_value_t *value,
 {
     switch (value->type) {
 
-    case NXT_CONF_NULL:
+    case NXT_CONF_VALUE_NULL:
         return nxt_cpymem(p, "null", 4);
 
-    case NXT_CONF_BOOLEAN:
+    case NXT_CONF_VALUE_BOOLEAN:
         return value->u.boolean ? nxt_cpymem(p, "true", 4)
                                 : nxt_cpymem(p, "false", 5);
 
-    case NXT_CONF_INTEGER:
+    case NXT_CONF_VALUE_INTEGER:
         return nxt_conf_json_print_integer(p, value);
 
-    case NXT_CONF_NUMBER:
+    case NXT_CONF_VALUE_NUMBER:
         /* TODO */
         return p;
 
-    case NXT_CONF_SHORT_STRING:
-    case NXT_CONF_STRING:
+    case NXT_CONF_VALUE_SHORT_STRING:
+    case NXT_CONF_VALUE_STRING:
         return nxt_conf_json_print_string(p, value);
 
-    case NXT_CONF_ARRAY:
+    case NXT_CONF_VALUE_ARRAY:
         return nxt_conf_json_print_array(p, value, pretty);
 
-    case NXT_CONF_OBJECT:
+    case NXT_CONF_VALUE_OBJECT:
         return nxt_conf_json_print_object(p, value, pretty);
     }
 

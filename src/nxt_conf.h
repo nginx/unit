@@ -9,6 +9,15 @@
 #define _NXT_CONF_INCLUDED_
 
 
+#define NXT_CONF_NULL     0x01
+#define NXT_CONF_BOOLEAN  0x02
+#define NXT_CONF_INTEGER  0x04
+#define NXT_CONF_NUMBER   0x08
+#define NXT_CONF_STRING   0x10
+#define NXT_CONF_ARRAY    0x20
+#define NXT_CONF_OBJECT   0x40
+
+
 typedef struct nxt_conf_value_s  nxt_conf_value_t;
 typedef struct nxt_conf_op_s     nxt_conf_op_t;
 
@@ -40,6 +49,8 @@ typedef struct {
 } nxt_conf_json_pretty_t;
 
 
+nxt_uint_t nxt_conf_type(nxt_conf_value_t *value);
+
 nxt_conf_value_t *nxt_conf_get_path(nxt_conf_value_t *value, nxt_str_t *path);
 nxt_conf_value_t *nxt_conf_get_object_member(nxt_conf_value_t *value,
     nxt_str_t *name, uint32_t *index);
@@ -63,6 +74,8 @@ size_t nxt_conf_json_length(nxt_conf_value_t *value,
     nxt_conf_json_pretty_t *pretty);
 u_char *nxt_conf_json_print(u_char *p, nxt_conf_value_t *value,
     nxt_conf_json_pretty_t *pretty);
+
+nxt_int_t nxt_conf_validate(nxt_conf_value_t *value);
 
 
 #endif /* _NXT_CONF_INCLUDED_ */
