@@ -339,7 +339,7 @@ nxt_conf_map_object(nxt_conf_value_t *value, nxt_conf_map_t *map, void *data)
             switch (map[i].type) {
 
             case NXT_CONF_MAP_INT32:
-                ptr->ui8 = v->u.integer;
+                ptr->i32 = v->u.integer;
                 break;
 
             case NXT_CONF_MAP_INT64:
