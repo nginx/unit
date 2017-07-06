@@ -8,6 +8,7 @@
 #include <nxt_runtime.h>
 #include <nxt_port.h>
 #include <nxt_master_process.h>
+#include <nxt_router.h>
 
 
 static void nxt_worker_process_quit(nxt_task_t *task);
@@ -36,6 +37,15 @@ nxt_port_handler_t  nxt_app_process_port_handlers[] = {
     nxt_port_change_log_file_handler,
     nxt_port_mmap_handler,
     nxt_port_app_data_handler,
+};
+
+
+nxt_port_handler_t  nxt_router_process_port_handlers[] = {
+    nxt_worker_process_quit_handler,
+    nxt_port_new_port_handler,
+    nxt_port_change_log_file_handler,
+    nxt_port_mmap_handler,
+    nxt_router_conf_data_handler,
 };
 
 

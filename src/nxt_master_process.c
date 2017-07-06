@@ -166,7 +166,7 @@ nxt_master_start_router_process(nxt_task_t *task, nxt_runtime_t *rt)
     init->start = nxt_router_start;
     init->name = "router process";
     init->user_cred = &rt->user_cred;
-    init->port_handlers = nxt_worker_process_port_handlers;
+    init->port_handlers = nxt_router_process_port_handlers;
     init->signals = nxt_worker_process_signals;
     init->type = NXT_PROCESS_ROUTER;
 

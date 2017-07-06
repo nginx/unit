@@ -87,5 +87,7 @@ typedef struct {
 nxt_int_t nxt_router_new_conf(nxt_task_t *task, nxt_runtime_t *rt,
     nxt_router_t *router, u_char *start, u_char *end);
 
+void nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
+
 
 #endif  /* _NXT_ROUTER_H_INCLUDED_ */

@@ -562,6 +562,38 @@ nxt_controller_process_request(nxt_task_t *task, nxt_conn_t *c,
 
     nxt_memzero(&resp, sizeof(nxt_controller_response_t));
 
+    if (nxt_str_eq(&req->parser.method, "POST", 4)) {
+        nxt_port_t     *port;
+        nxt_runtime_t  *rt;
+
+        rt = task->thread->runtime;
+
+        nxt_runtime_port_each(rt, port) {
+
+            if (nxt_pid == port->pid) {
+                continue;
+            }
+
+            if (port->type == NXT_PROCESS_ROUTER) {
+                nxt_buf_t *b, *src;
+
+                src = c->read;
+                b = nxt_port_mmap_get_buf(task, port,
+                                          nxt_buf_mem_used_size(&src->mem));
+
+                nxt_memcpy(b->mem.pos, src->mem.pos,
+                           nxt_buf_mem_used_size(&src->mem));
+                b->mem.free += nxt_buf_mem_used_size(&src->mem);
+
+                (void) nxt_port_socket_write(task, port, NXT_PORT_MSG_DATA,
+                                             -1, 0, 0, b);
+
+                break;
+            }
+
+        } nxt_runtime_port_loop;
+    }
+
     if (nxt_str_eq(&req->parser.method, "GET", 3)) {
 
         value = nxt_conf_get_path(nxt_controller_conf.root, &path);

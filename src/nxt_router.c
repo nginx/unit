@@ -80,6 +80,7 @@ static void nxt_router_conn_error(nxt_task_t *task, void *obj, void *data);
 static void nxt_router_conn_timeout(nxt_task_t *task, void *obj, void *data);
 static nxt_msec_t nxt_router_conn_timeout_value(nxt_conn_t *c, uintptr_t data);
 
+static nxt_router_t  *nxt_router;
 
 nxt_int_t
 nxt_router_start(nxt_task_t *task, nxt_runtime_t *rt)
@@ -99,6 +100,8 @@ nxt_router_start(nxt_task_t *task, nxt_runtime_t *rt)
 
     nxt_queue_init(&router->engines);
     nxt_queue_init(&router->sockets);
+
+    nxt_router = router;
 
     return NXT_OK;
 }
@@ -895,14 +898,14 @@ nxt_router_engine_post(nxt_router_engine_conf_t *recf)
 
 
 static void
-nxt_router_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
+nxt_router_app_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 
-nxt_port_handler_t  nxt_router_process_port_handlers[] = {
+static nxt_port_handler_t  nxt_router_app_port_handlers[] = {
     NULL,
     nxt_port_new_port_handler,
     nxt_port_change_log_file_handler,
     nxt_port_mmap_handler,
-    nxt_router_data_handler,
+    nxt_router_app_data_handler,
 };
 
 
@@ -930,7 +933,7 @@ nxt_router_thread_start(void *data)
     thread->fiber = &engine->fibers->fiber;
 
     engine->port->socket.task = task;
-    nxt_port_create(task, engine->port, nxt_router_process_port_handlers);
+    nxt_port_create(task, engine->port, nxt_router_app_port_handlers);
 
     engine->mem_pool = nxt_mp_create(4096, 128, 1024, 64);
 
@@ -1196,8 +1199,37 @@ static const nxt_conn_state_t  nxt_router_conn_write_state
 };
 
 
+void
+nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
+{
+    size_t     dump_size;
+    nxt_buf_t  *b;
+    nxt_int_t  ret;
+
+    b = msg->buf;
+
+    dump_size = nxt_buf_used_size(b);
+
+    if (dump_size > 300) {
+        dump_size = 300;
+    }
+
+    nxt_debug(task, "router conf data (%z): %*s",
+              msg->size, dump_size, b->mem.pos);
+
+    ret = nxt_router_new_conf(task, task->thread->runtime, nxt_router,
+                              b->mem.pos, b->mem.free);
+
+    b->mem.pos = b->mem.free;
+
+    if (nxt_slow_path(ret != NXT_OK)) {
+        nxt_log_alert(task->log, "Failed to apply new conf");
+    }
+}
+
+
 static void
-nxt_router_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
+nxt_router_app_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
     size_t               dump_size;
     nxt_buf_t            *b, *i, *last;
@@ -1229,7 +1261,7 @@ nxt_router_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         dump_size = 300;
     }
 
-    nxt_debug(task, "%srouter data (%z): %*s",
+    nxt_debug(task, "%srouter app data (%z): %*s",
               msg->port_msg.last ? "last " : "", msg->size, dump_size,
               b->mem.pos);
 
@@ -1268,24 +1300,24 @@ nxt_router_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 nxt_inline nxt_port_t *
 nxt_router_app_port(nxt_task_t *task)
 {
-      nxt_port_t     *port;
-      nxt_runtime_t  *rt;
+    nxt_port_t     *port;
+    nxt_runtime_t  *rt;
 
-      rt = task->thread->runtime;
+    rt = task->thread->runtime;
 
-      nxt_runtime_port_each(rt, port) {
+    nxt_runtime_port_each(rt, port) {
 
-          if (nxt_pid == port->pid) {
-              continue;
-          }
+        if (nxt_pid == port->pid) {
+            continue;
+        }
 
-          if (port->type == NXT_PROCESS_WORKER) {
-              return port;
-          }
+        if (port->type == NXT_PROCESS_WORKER) {
+            return port;
+        }
 
-      } nxt_runtime_port_loop;
+    } nxt_runtime_port_loop;
 
-      return NULL;
+    return NULL;
 }
 
 
