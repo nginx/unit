@@ -59,6 +59,11 @@ static const nxt_conf_vldt_object_t  nxt_conf_application_members[] = {
       &nxt_conf_vldt_app_type,
       NULL },
 
+    { nxt_string("workers"),
+      NXT_CONF_INTEGER,
+      NULL,
+      NULL },
+
     { nxt_string("path"),
       NXT_CONF_STRING,
       NULL,

@@ -77,5 +77,13 @@ u_char *nxt_conf_json_print(u_char *p, nxt_conf_value_t *value,
 
 nxt_int_t nxt_conf_validate(nxt_conf_value_t *value);
 
+void nxt_conf_get_string(nxt_conf_value_t *value, nxt_str_t *str);
+
+// FIXME reimplement and reorder functions below
+nxt_uint_t nxt_conf_object_members_count(nxt_conf_value_t *value);
+nxt_conf_value_t *nxt_conf_create_object(nxt_mp_t *mp, nxt_uint_t count);
+nxt_int_t nxt_conf_set_object_member(nxt_mp_t *mp, nxt_conf_value_t *object,
+    nxt_str_t *name, nxt_conf_value_t *value, uint32_t index);
+
 
 #endif /* _NXT_CONF_INCLUDED_ */

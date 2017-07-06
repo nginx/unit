@@ -137,7 +137,7 @@ nxt_conf_json_indentation(u_char *p, uint32_t level)
 }
 
 
-nxt_inline void
+void
 nxt_conf_get_string(nxt_conf_value_t *value, nxt_str_t *str)
 {
     if (value->type == NXT_CONF_VALUE_SHORT_STRING) {
@@ -147,6 +147,70 @@ nxt_conf_get_string(nxt_conf_value_t *value, nxt_str_t *str)
     } else {
         *str = *value->u.string;
     }
+}
+
+
+nxt_uint_t
+nxt_conf_object_members_count(nxt_conf_value_t *value)
+{
+    return value->u.object->count;
+}
+
+
+nxt_conf_value_t *
+nxt_conf_create_object(nxt_mp_t *mp, nxt_uint_t count)
+{
+    size_t            size;
+    nxt_conf_value_t  *value;
+
+    size = sizeof(nxt_conf_value_t)
+           + sizeof(nxt_conf_object_t)
+           + count * sizeof(nxt_conf_object_member_t);
+
+    value = nxt_mp_get(mp, size);
+    if (nxt_slow_path(value == NULL)) {
+        return NULL;
+    }
+
+    value->u.object = nxt_pointer_to(value, sizeof(nxt_conf_value_t));
+    value->u.object->count = count;
+
+    value->type = NXT_CONF_VALUE_OBJECT;
+
+    return value;
+}
+
+
+nxt_int_t
+nxt_conf_set_object_member(nxt_mp_t *mp, nxt_conf_value_t *object,
+    nxt_str_t *name, nxt_conf_value_t *value, uint32_t index)
+{
+    nxt_conf_value_t          *name_value;
+    nxt_conf_object_member_t  *member;
+
+    member = &object->u.object->members[index];
+    name_value = &member->name;
+
+    if (name->length > NXT_CONF_MAX_SHORT_STRING) {
+        name_value->type = NXT_CONF_VALUE_STRING;
+        name_value->u.string = nxt_str_alloc(mp, 0);
+
+        if (nxt_slow_path(name_value->u.string == NULL)) {
+            return NXT_ERROR;
+        }
+
+        *name_value->u.string = *name;
+
+    } else {
+        name_value->type = NXT_CONF_VALUE_SHORT_STRING;
+        name_value->u.str[0] = name->length;
+
+        nxt_memcpy(&name_value->u.str[1], name->start, name->length);
+    }
+
+    member->value = *value;
+
+    return NXT_OK;
 }
 
 
