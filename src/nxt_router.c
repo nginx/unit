@@ -547,7 +547,7 @@ nxt_router_listener_application(nxt_router_temp_conf_t *tmcf, nxt_str_t *name)
     app = nxt_router_app_find(&tmcf->apps, name);
 
     if (app == NULL) {
-        app = nxt_router_app_find(&tmcf->conf->router->apps, name);
+        app = nxt_router_app_find(&tmcf->previous, name);
     }
 
     return app;
