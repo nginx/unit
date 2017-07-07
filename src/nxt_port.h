@@ -30,7 +30,7 @@ typedef struct {
 
     /* Message data send using mmap, next chunk is a nxt_port_mmap_msg_t. */
     uint8_t              mmap;      /* 1 bit */
-} nxt_port_msg_t;
+} NXT_PACKED nxt_port_msg_t;
 
 
 typedef struct {
@@ -91,7 +91,7 @@ typedef struct {
     size_t              max_size;
     size_t              max_share;
     nxt_process_type_t  type:8;
-} nxt_port_msg_new_port_t;
+} NXT_PACKED nxt_port_msg_new_port_t;
 
 
 /*

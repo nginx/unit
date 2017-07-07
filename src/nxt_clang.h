@@ -230,4 +230,6 @@ nxt_trunc_ptr(p, a)                                                           \
     (u_char *) ((uintptr_t) (p) & ~((uintptr_t) (a) - 1))
 
 
+#define NXT_PACKED  __attribute__((packed))
+
 #endif /* _NXT_CLANG_H_INCLUDED_ */

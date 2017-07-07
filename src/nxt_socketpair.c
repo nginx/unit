@@ -188,6 +188,10 @@ nxt_sendmsg(nxt_socket_t s, nxt_fd_t fd, nxt_iobuf_t *iob, nxt_uint_t niob)
         msg.msg_control = (caddr_t) &cmsg;
         msg.msg_controllen = sizeof(cmsg);
 
+#if (NXT_VALGRIND)
+        nxt_memzero(&cmsg, sizeof(cmsg));
+#endif
+
         cmsg.cm.cmsg_len = CMSG_LEN(sizeof(int));
         cmsg.cm.cmsg_level = SOL_SOCKET;
         cmsg.cm.cmsg_type = SCM_RIGHTS;
@@ -230,6 +234,10 @@ nxt_recvmsg(nxt_socket_t s, nxt_fd_t *fd, nxt_iobuf_t *iob, nxt_uint_t niob)
     msg.msg_controllen = sizeof(cmsg);
 
     *fd = -1;
+
+#if (NXT_VALGRIND)
+    nxt_memzero(&cmsg, sizeof(cmsg));
+#endif
 
     n = recvmsg(s, &msg, 0);
 
