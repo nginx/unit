@@ -68,6 +68,8 @@ struct nxt_work_queue_s {
     nxt_work_queue_cache_t      *cache;
 #if (NXT_DEBUG)
     const char                  *name;
+    int32_t                     pid;
+    nxt_tid_t                   tid;
 #endif
 };
 

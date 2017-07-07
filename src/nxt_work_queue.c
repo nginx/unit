@@ -32,6 +32,39 @@ static void nxt_work_queue_allocate(nxt_work_queue_cache_t *cache);
 static nxt_uint_t  nxt_work_queue_bucket_items = 409;
 
 
+#if (NXT_DEBUG)
+
+nxt_inline void
+nxt_work_queue_thread_assert(nxt_work_queue_t *wq)
+{
+    nxt_tid_t     tid;
+    nxt_thread_t  *thread;
+
+    thread = nxt_thread();
+    tid = nxt_thread_tid(thread);
+
+    if (nxt_fast_path(wq->tid == tid)) {
+        return;
+    }
+
+    if (nxt_slow_path(nxt_pid != wq->pid)) {
+        wq->pid = nxt_pid;
+        wq->tid = tid;
+
+        return;
+    }
+
+    nxt_log_alert(thread->log, "work queue locked by thread %PT", wq->tid);
+    nxt_abort();
+}
+
+#else
+
+#define nxt_work_queue_thread_assert(wq)
+
+#endif
+
+
 void
 nxt_work_queue_cache_create(nxt_work_queue_cache_t *cache, size_t chunk_size)
 {
@@ -109,6 +142,8 @@ nxt_work_queue_add(nxt_work_queue_t *wq, nxt_work_handler_t handler,
 {
     nxt_work_t  *work;
 
+    nxt_work_queue_thread_assert(wq);
+
     for ( ;; ) {
         work = wq->cache->next;
 
@@ -143,6 +178,8 @@ nxt_work_queue_pop(nxt_work_queue_t *wq, nxt_task_t **task, void **obj,
     void **data)
 {
     nxt_work_t  *work;
+
+    nxt_work_queue_thread_assert(wq);
 
     work = wq->head;
 

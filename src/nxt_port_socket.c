@@ -235,6 +235,7 @@ nxt_port_write_handler(nxt_task_t *task, void *obj, void *data)
     ssize_t                 n;
     nxt_port_t              *port;
     struct iovec            iov[NXT_IOBUF_MAX * 10];
+    nxt_work_queue_t        *wq;
     nxt_queue_link_t        *link;
     nxt_port_method_t       m;
     nxt_port_send_msg_t     *msg;
@@ -301,22 +302,19 @@ nxt_port_write_handler(nxt_task_t *task, void *obj, void *data)
                 goto fail;
             }
 
+            wq = &task->thread->engine->fast_work_queue;
+
             if (msg->buf != plain_buf) {
                 /*
                  * Complete crafted mmap_msgs buf and restore msg->buf
                  * for regular completion call.
                  */
-                nxt_port_mmap_completion(task,
-                                         port->socket.write_work_queue,
-                                         msg->buf);
+                nxt_port_mmap_completion(task, wq, msg->buf);
 
                 msg->buf = plain_buf;
             }
 
-            msg->buf = nxt_sendbuf_completion(task,
-                                              port->socket.write_work_queue,
-                                              msg->buf,
-                                              plain_size);
+            msg->buf = nxt_sendbuf_completion(task, wq, msg->buf, plain_size);
 
             if (msg->buf != NULL) {
                 /*
