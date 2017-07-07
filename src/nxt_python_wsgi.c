@@ -66,7 +66,7 @@ static nxt_int_t nxt_python_prepare_msg(nxt_task_t *task,
 static nxt_int_t nxt_python_run(nxt_task_t *task,
                       nxt_app_rmsg_t *rmsg, nxt_app_wmsg_t *msg);
 
-static PyObject *nxt_python_create_environ(nxt_thread_t *thr);
+static PyObject *nxt_python_create_environ(nxt_task_t *task);
 static PyObject *nxt_python_get_environ(nxt_task_t *task,
                       nxt_app_rmsg_t *rmsg);
 
@@ -181,15 +181,13 @@ static nxt_python_run_ctx_t  *nxt_python_run_ctx;
 nxt_int_t
 nxt_python_wsgi_init(nxt_thread_t *thr, nxt_runtime_t *rt)
 {
-    char    **argv;
-    u_char  *p, *dir;
-
-    PyObject  *obj, *pypath;
+    char  **argv;
+    char  *p;
 
     argv = nxt_process_argv;
 
     while (*argv != NULL) {
-        p = (u_char *) *argv++;
+        p = *argv++;
 
         if (nxt_strcmp(p, "--py-module") == 0) {
             if (*argv == NULL) {
@@ -211,28 +209,43 @@ nxt_python_wsgi_init(nxt_thread_t *thr, nxt_runtime_t *rt)
         return NXT_OK;
     }
 
+    nxt_app = &nxt_python_module;
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_python_init(nxt_task_t *task)
+{
+    char      **argv;
+    char      *p, *dir;
+    PyObject  *obj, *pypath, *module;
+
+
     Py_InitializeEx(0);
 
     obj = NULL;
+    module = NULL;
     argv = nxt_process_argv;
 
     while (*argv != NULL) {
-        p = (u_char *) *argv++;
+        p = *argv++;
 
         if (nxt_strcmp(p, "--py-path") == 0) {
             if (*argv == NULL) {
-                nxt_log_emerg(thr->log, "no argument for option \"--py-path\"");
+                nxt_log_emerg(task->log, "no argument for option \"--py-path\"");
                 goto fail;
             }
 
-            dir = (u_char *) *argv++;
+            dir = *argv++;
 
-            nxt_log_error(NXT_LOG_INFO, thr->log, "python path \"%s\"", dir);
+            nxt_log_error(NXT_LOG_INFO, task->log, "python path \"%s\"", dir);
 
             obj = PyString_FromString((char *) dir);
 
             if (nxt_slow_path(obj == NULL)) {
-                nxt_log_alert(thr->log,
+                nxt_log_alert(task->log,
                               "Python failed create string object \"%s\"", dir);
                 goto fail;
             }
@@ -240,13 +253,13 @@ nxt_python_wsgi_init(nxt_thread_t *thr, nxt_runtime_t *rt)
             pypath = PySys_GetObject((char *) "path");
 
             if (nxt_slow_path(pypath == NULL)) {
-                nxt_log_alert(thr->log,
+                nxt_log_alert(task->log,
                               "Python failed to get \"sys.path\" list");
                 goto fail;
             }
 
             if (nxt_slow_path(PyList_Insert(pypath, 0, obj) != 0)) {
-                nxt_log_alert(thr->log,
+                nxt_log_alert(task->log,
                       "Python failed to insert \"%s\" into \"sys.path\"", dir);
                 goto fail;
             }
@@ -261,14 +274,14 @@ nxt_python_wsgi_init(nxt_thread_t *thr, nxt_runtime_t *rt)
     obj = PyCFunction_New(nxt_py_start_resp_method, NULL);
 
     if (nxt_slow_path(obj == NULL)) {
-        nxt_log_alert(thr->log,
+        nxt_log_alert(task->log,
                 "Python failed to initialize the \"start_response\" function");
         goto fail;
     }
 
     nxt_py_start_resp_obj = obj;
 
-    obj = nxt_python_create_environ(thr);
+    obj = nxt_python_create_environ(task);
 
     if (obj == NULL) {
         goto fail;
@@ -276,83 +289,21 @@ nxt_python_wsgi_init(nxt_thread_t *thr, nxt_runtime_t *rt)
 
     nxt_py_environ_ptyp = obj;
 
-
     obj = Py_BuildValue("[s]", "nginext");
     if (obj == NULL) {
-        nxt_log_alert(thr->log,
+        nxt_log_alert(task->log,
                       "Python failed to create the \"sys.argv\" list");
         goto fail;
     }
 
     if (PySys_SetObject((char *) "argv", obj) != 0) {
-        nxt_log_alert(thr->log, "Python failed to set the \"sys.argv\" list");
+        nxt_log_alert(task->log, "Python failed to set the \"sys.argv\" list");
         goto fail;
     }
 
     Py_DECREF(obj);
 
-    nxt_app = &nxt_python_module;
-
-    return NXT_OK;
-
-fail:
-
-    Py_XDECREF(obj);
-    Py_XDECREF(nxt_py_start_resp_obj);
-
-    Py_Finalize();
-
-    return NXT_ERROR;
-}
-
-
-static nxt_int_t
-nxt_python_init(nxt_task_t *task)
-{
-    PyObject  *module, *obj;
-
-#if 0
-    FILE          *fp;
-    PyObject      *co;
-    struct _node  *node;
-
-    chdir((char *) dir);
-    fp = fopen((char *) script, "r");
-
-    if (fp == NULL) {
-        nxt_log_debug(thr->log, "fopen failed");
-        return NXT_ERROR;
-    }
-
-
-    Py_SetProgramName((char *) "python mysite/wsgi.py");
-    Py_InitializeEx(0);
-
-    node = PyParser_SimpleParseFile(fp, (char *) script, Py_file_input);
-
-    fclose(fp);
-
-    if (node == NULL) {
-        nxt_log_debug(thr->log, "BAD node");
-        return NXT_ERROR;
-    }
-
-    co = (PyObject *) PyNode_Compile(node, (char *) script);
-
-    PyNode_Free(node);
-
-    if (co == NULL) {
-        nxt_log_debug(thr->log, "BAD co");
-        return NXT_ERROR;
-    }
-
-    pModule = PyImport_ExecCodeModuleEx((char *) "_wsgi_nginext", co,
-                                        (char *) script);
-
-    Py_XDECREF(co);
-#endif
-
-    PyOS_AfterFork();
+    // PyOS_AfterFork();
 
     module = PyImport_ImportModule(nxt_py_module);
 
@@ -387,6 +338,7 @@ nxt_python_init(nxt_task_t *task)
 
 fail:
 
+    Py_DECREF(obj);
     Py_DECREF(module);
 
     return NXT_ERROR;
@@ -586,14 +538,14 @@ fail:
 
 
 static PyObject *
-nxt_python_create_environ(nxt_thread_t *thr)
+nxt_python_create_environ(nxt_task_t *task)
 {
     PyObject  *obj, *err, *environ;
 
     environ = PyDict_New();
 
     if (nxt_slow_path(environ == NULL)) {
-        nxt_log_alert(thr->log,
+        nxt_log_alert(task->log,
                       "Python failed to create the \"environ\" dictionary");
         return NULL;
     }
@@ -601,14 +553,14 @@ nxt_python_create_environ(nxt_thread_t *thr)
     obj = Py_BuildValue("(ii)", 1, 0);
 
     if (nxt_slow_path(obj == NULL)) {
-        nxt_log_alert(thr->log,
+        nxt_log_alert(task->log,
                   "Python failed to build the \"wsgi.version\" environ value");
         goto fail;
     }
 
     if (nxt_slow_path(PyDict_SetItemString(environ, "wsgi.version", obj) != 0))
     {
-        nxt_log_alert(thr->log,
+        nxt_log_alert(task->log,
                     "Python failed to set the \"wsgi.version\" environ value");
         goto fail;
     }
@@ -621,7 +573,7 @@ nxt_python_create_environ(nxt_thread_t *thr)
                                            Py_False)
         != 0))
     {
-        nxt_log_alert(thr->log,
+        nxt_log_alert(task->log,
                 "Python failed to set the \"wsgi.multithread\" environ value");
         goto fail;
     }
@@ -630,7 +582,7 @@ nxt_python_create_environ(nxt_thread_t *thr)
                                            Py_True)
         != 0))
     {
-        nxt_log_alert(thr->log,
+        nxt_log_alert(task->log,
                "Python failed to set the \"wsgi.multiprocess\" environ value");
         goto fail;
     }
@@ -639,7 +591,7 @@ nxt_python_create_environ(nxt_thread_t *thr)
                                            Py_False)
         != 0))
     {
-        nxt_log_alert(thr->log,
+        nxt_log_alert(task->log,
                    "Python failed to set the \"wsgi.run_once\" environ value");
         goto fail;
     }
@@ -648,7 +600,7 @@ nxt_python_create_environ(nxt_thread_t *thr)
     obj = PyString_FromString("http");
 
     if (nxt_slow_path(obj == NULL)) {
-        nxt_log_alert(thr->log,
+        nxt_log_alert(task->log,
               "Python failed to create the \"wsgi.url_scheme\" environ value");
         goto fail;
     }
@@ -656,7 +608,7 @@ nxt_python_create_environ(nxt_thread_t *thr)
     if (nxt_slow_path(PyDict_SetItemString(environ, "wsgi.url_scheme", obj)
         != 0))
     {
-        nxt_log_alert(thr->log,
+        nxt_log_alert(task->log,
                  "Python failed to set the \"wsgi.url_scheme\" environ value");
         goto fail;
     }
@@ -666,7 +618,7 @@ nxt_python_create_environ(nxt_thread_t *thr)
 
 
     if (nxt_slow_path(PyType_Ready(&nxt_py_input_type) != 0)) {
-        nxt_log_alert(thr->log,
+        nxt_log_alert(task->log,
                  "Python failed to initialize the \"wsgi.input\" type object");
         goto fail;
     }
@@ -674,13 +626,13 @@ nxt_python_create_environ(nxt_thread_t *thr)
     obj = (PyObject *) PyObject_New(nxt_py_input_t, &nxt_py_input_type);
 
     if (nxt_slow_path(obj == NULL)) {
-        nxt_log_alert(thr->log,
+        nxt_log_alert(task->log,
                       "Python failed to create the \"wsgi.input\" object");
         goto fail;
     }
 
     if (nxt_slow_path(PyDict_SetItemString(environ, "wsgi.input", obj) != 0)) {
-        nxt_log_alert(thr->log,
+        nxt_log_alert(task->log,
                       "Python failed to set the \"wsgi.input\" environ value");
         goto fail;
     }
@@ -692,13 +644,13 @@ nxt_python_create_environ(nxt_thread_t *thr)
     err = PySys_GetObject((char *) "stderr");
 
     if (nxt_slow_path(err == NULL)) {
-        nxt_log_alert(thr->log, "Python failed to get \"sys.stderr\" object");
+        nxt_log_alert(task->log, "Python failed to get \"sys.stderr\" object");
         goto fail;
     }
 
     if (nxt_slow_path(PyDict_SetItemString(environ, "wsgi.error", err) != 0))
     {
-        nxt_log_alert(thr->log,
+        nxt_log_alert(task->log,
                       "Python failed to set the \"wsgi.error\" environ value");
         goto fail;
     }
