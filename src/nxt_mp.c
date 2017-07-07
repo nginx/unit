@@ -568,6 +568,7 @@ nxt_mp_get_small(nxt_mp_t *mp, nxt_queue_t *pages, size_t size)
     nxt_queue_insert_head(pages, &page->link);
 
     page->size = 0xFF;
+    page->u.taken = 0;
 
 found:
 
