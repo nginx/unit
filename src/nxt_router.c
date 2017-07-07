@@ -1112,6 +1112,9 @@ nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
 
     if (rtcf != NULL) {
         nxt_debug(task, "old router conf is destroyed");
+
+        nxt_mp_thread_adopt(rtcf->mem_pool);
+
         nxt_mp_destroy(rtcf->mem_pool);
     }
 
@@ -1610,9 +1613,6 @@ nxt_router_conn_free(nxt_task_t *task, void *obj, void *data)
 
     nxt_debug(task, "router conn close done");
 
-    joint = c->listen->socket.data;
-    nxt_router_conf_release(task, joint);
-
     nxt_queue_each(rc, &c->requests, nxt_req_conn_link_t, link) {
 
         nxt_debug(task, "conn %p close, req %uxD", c, rc->req_id);
@@ -1623,7 +1623,13 @@ nxt_router_conn_free(nxt_task_t *task, void *obj, void *data)
 
     nxt_queue_remove(&c->link);
 
+    joint = c->listen->socket.data;
+
+    task = &task->thread->engine->task;
+
     nxt_mp_release(c->mem_pool, c);
+
+    nxt_router_conf_release(task, joint);
 }
 
 

@@ -285,6 +285,8 @@ nxt_mp_destroy(nxt_mp_t *mp)
 
     nxt_debug_alloc("mp destroy");
 
+    nxt_mp_thread_assert(mp);
+
     next = nxt_rbtree_root(&mp->blocks);
 
     while (next != nxt_rbtree_sentinel(&mp->blocks)) {
