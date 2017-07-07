@@ -1522,8 +1522,6 @@ nxt_runtime_process_find(nxt_runtime_t *rt, nxt_pid_t pid)
     lhq.key.start = (u_char *) &pid;
     lhq.proto = &lvlhsh_processes_proto;
 
-    /* TODO lock processes */
-
     if (nxt_lvlhsh_find(&rt->processes, &lhq) == NXT_OK) {
         nxt_thread_log_debug("process %PI found", pid);
         return lhq.value;
@@ -1545,8 +1543,6 @@ nxt_runtime_process_get(nxt_runtime_t *rt, nxt_pid_t pid)
     lhq.key.length = sizeof(pid);
     lhq.key.start = (u_char *) &pid;
     lhq.proto = &lvlhsh_processes_proto;
-
-    /* TODO lock processes */
 
     if (nxt_lvlhsh_find(&rt->processes, &lhq) == NXT_OK) {
         nxt_thread_log_debug("process %PI found", pid);
@@ -1599,8 +1595,6 @@ nxt_runtime_process_add(nxt_runtime_t *rt, nxt_process_t *process)
     lhq.value = process;
     lhq.pool = rt->mem_pool;
 
-    /* TODO lock processes */
-
     switch (nxt_lvlhsh_insert(&rt->processes, &lhq)) {
 
     case NXT_OK:
@@ -1627,7 +1621,9 @@ nxt_runtime_process_add(nxt_runtime_t *rt, nxt_process_t *process)
 void
 nxt_runtime_process_remove(nxt_runtime_t *rt, nxt_process_t *process)
 {
+    uint32_t            i;
     nxt_port_t          *port;
+    nxt_port_mmap_t     *port_mmap;
     nxt_lvlhsh_query_t  lhq;
 
     lhq.key_hash = nxt_murmur_hash2(&process->pid, sizeof(process->pid));
@@ -1637,8 +1633,6 @@ nxt_runtime_process_remove(nxt_runtime_t *rt, nxt_process_t *process)
     lhq.replace = 0;
     lhq.value = process;
     lhq.pool = rt->mem_pool;
-
-    /* TODO lock processes */
 
     switch (nxt_lvlhsh_delete(&rt->processes, &lhq)) {
 
@@ -1650,6 +1644,34 @@ nxt_runtime_process_remove(nxt_runtime_t *rt, nxt_process_t *process)
             nxt_runtime_port_remove(rt, port);
 
         } nxt_process_port_loop;
+
+        if (process->incoming) {
+            nxt_mp_thread_adopt(process->incoming_mp);
+
+            port_mmap = process->incoming->elts;
+
+            for (i = 0; i < process->incoming->nelts; i++) {
+                nxt_port_mmap_destroy(port_mmap);
+            }
+
+            nxt_thread_mutex_destroy(&process->incoming_mutex);
+
+            nxt_mp_destroy(process->incoming_mp);
+        }
+
+        if (process->outgoing) {
+            nxt_mp_thread_adopt(process->outgoing_mp);
+
+            port_mmap = process->outgoing->elts;
+
+            for (i = 0; i < process->outgoing->nelts; i++) {
+                nxt_port_mmap_destroy(port_mmap);
+            }
+
+            nxt_thread_mutex_destroy(&process->outgoing_mutex);
+
+            nxt_mp_destroy(process->outgoing_mp);
+        }
 
         nxt_mp_free(rt->mem_pool, process);
         break;
@@ -1681,8 +1703,6 @@ nxt_runtime_port_first(nxt_runtime_t *rt, nxt_lvlhsh_each_t *lhe)
 void
 nxt_runtime_port_add(nxt_runtime_t *rt, nxt_port_t *port)
 {
-    /* TODO lock ports */
-
     nxt_port_hash_add(&rt->ports, rt->mem_pool, port);
 }
 
@@ -1690,8 +1710,6 @@ nxt_runtime_port_add(nxt_runtime_t *rt, nxt_port_t *port)
 void
 nxt_runtime_port_remove(nxt_runtime_t *rt, nxt_port_t *port)
 {
-    /* TODO lock ports */
-
     nxt_port_hash_remove(&rt->ports, rt->mem_pool, port);
 
     if (port->pair[0] != -1) {
@@ -1714,7 +1732,5 @@ nxt_port_t *
 nxt_runtime_port_find(nxt_runtime_t *rt, nxt_pid_t pid,
     nxt_port_id_t port_id)
 {
-    /* TODO lock ports */
-
     return nxt_port_hash_find(&rt->ports, pid, port_id);
 }

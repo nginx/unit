@@ -109,6 +109,11 @@ struct nxt_mp_s {
     uint32_t             cluster_size;
     uint32_t             retain;
 
+#if (NXT_DEBUG)
+    nxt_pid_t            pid;
+    nxt_tid_t            tid;
+#endif
+
     /* Lists of nxt_mp_page_t. */
     nxt_queue_t          free_pages;
     nxt_queue_t          nget_pages;
@@ -184,6 +189,49 @@ nxt_lg2(uint64_t v)
 }
 
 #endif
+
+
+#if (NXT_DEBUG)
+
+nxt_inline void
+nxt_mp_thread_assert(nxt_mp_t *mp)
+{
+    nxt_tid_t     tid;
+    nxt_thread_t  *thread;
+
+    thread = nxt_thread();
+    tid = nxt_thread_tid(thread);
+
+    if (nxt_fast_path(mp->tid == tid)) {
+        return;
+    }
+
+    if (nxt_slow_path(nxt_pid != mp->pid)) {
+        mp->pid = nxt_pid;
+        mp->tid = tid;
+
+        return;
+    }
+
+    nxt_log_alert(thread->log, "mem_pool locked by thread %PT", mp->tid);
+    nxt_abort();
+}
+
+#else
+
+#define nxt_mp_thread_assert(mp)
+
+#endif
+
+
+void
+nxt_mp_thread_adopt(nxt_mp_t *mp)
+{
+#if (NXT_DEBUG)
+    mp->pid = nxt_pid;
+    mp->tid = nxt_thread_tid(NULL);
+#endif
+}
 
 
 nxt_mp_t *
@@ -417,6 +465,8 @@ nxt_mp_alloc_small(nxt_mp_t *mp, size_t size)
     nxt_mp_page_t     *page;
     nxt_queue_link_t  *link;
 
+    nxt_mp_thread_assert(mp);
+
     p = NULL;
 
     if (size <= mp->page_size / 2) {
@@ -488,6 +538,8 @@ nxt_mp_get_small(nxt_mp_t *mp, nxt_queue_t *pages, size_t size)
     uint32_t          available;
     nxt_mp_page_t     *page;
     nxt_queue_link_t  *link, *next;
+
+    nxt_mp_thread_assert(mp);
 
     for (link = nxt_queue_first(pages);
          link != nxt_queue_tail(pages);
@@ -604,6 +656,8 @@ nxt_mp_alloc_large(nxt_mp_t *mp, size_t alignment, size_t size)
     uint8_t         type;
     nxt_mp_block_t  *block;
 
+    nxt_mp_thread_assert(mp);
+
     /* Allocation must be less than 4G. */
     if (nxt_slow_path(size >= 0xFFFFFFFF)) {
         return NULL;
@@ -663,6 +717,8 @@ nxt_mp_free(nxt_mp_t *mp, void *p)
     const char      *err;
     nxt_thread_t    *thread;
     nxt_mp_block_t  *block;
+
+    nxt_mp_thread_assert(mp);
 
     nxt_debug_alloc("mp free %p", p);
 

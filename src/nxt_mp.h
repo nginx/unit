@@ -109,4 +109,6 @@ NXT_EXPORT void *nxt_mp_zget(nxt_mp_t *mp, size_t size)
     NXT_MALLOC_LIKE;
 
 
+NXT_EXPORT void nxt_mp_thread_adopt(nxt_mp_t *mp);
+
 #endif /* _NXT_MP_H_INCLUDED_ */

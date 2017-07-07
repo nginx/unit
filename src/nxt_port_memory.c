@@ -103,7 +103,8 @@ nxt_port_incoming_port_mmap(nxt_task_t *task, nxt_process_t *process,
     nxt_thread_mutex_lock(&process->incoming_mutex);
 
     if (process->incoming == NULL) {
-        process->incoming = nxt_array_create(process->mem_pool, 1,
+        process->incoming_mp = nxt_mp_create(1024, 128, 256, 32);
+        process->incoming = nxt_array_create(process->incoming_mp, 1,
             sizeof(nxt_port_mmap_t));
     }
 
@@ -112,6 +113,8 @@ nxt_port_incoming_port_mmap(nxt_task_t *task, nxt_process_t *process,
 
         goto fail;
     }
+
+    nxt_mp_thread_adopt(process->incoming_mp);
 
     port_mmap = nxt_array_zero_add(process->incoming);
     if (nxt_slow_path(port_mmap == NULL)) {
@@ -192,7 +195,8 @@ nxt_port_new_port_mmap(nxt_task_t *task, nxt_process_t *process,
     port_mmap = NULL;
 
     if (process->outgoing == NULL) {
-        process->outgoing = nxt_array_create(process->mem_pool, 1,
+        process->outgoing_mp = nxt_mp_create(1024, 128, 256, 32);
+        process->outgoing = nxt_array_create(process->outgoing_mp, 1,
                                              sizeof(nxt_port_mmap_t));
     }
 
@@ -201,6 +205,8 @@ nxt_port_new_port_mmap(nxt_task_t *task, nxt_process_t *process,
 
         return NULL;
     }
+
+    nxt_mp_thread_adopt(process->outgoing_mp);
 
     port_mmap = nxt_array_zero_add(process->outgoing);
     if (nxt_slow_path(port_mmap == NULL)) {

@@ -926,6 +926,8 @@ nxt_router_thread_start(void *data)
     thread->task = &engine->task;
     thread->fiber = &engine->fibers->fiber;
 
+    nxt_mp_thread_adopt(engine->port->mem_pool);
+
     engine->port->socket.task = task;
     nxt_port_create(task, engine->port, nxt_router_app_port_handlers);
 
