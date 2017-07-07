@@ -939,12 +939,6 @@ nxt_conf_json_parse_object(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
     nxt_conf_object_t         *object;
     nxt_conf_object_member_t  *member, *element;
 
-    p = nxt_conf_json_skip_space(start + 1, end);
-
-    if (nxt_slow_path(p == end)) {
-        return NULL;
-    }
-
     mp_temp = nxt_mp_create(1024, 128, 256, 32);
     if (nxt_slow_path(mp_temp == NULL)) {
         return NULL;
@@ -953,70 +947,72 @@ nxt_conf_json_parse_object(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
     nxt_lvlhsh_init(&hash);
 
     count = 0;
+    p = start;
 
-    if (*p != '}') {
+    for ( ;; ) {
+        p = nxt_conf_json_skip_space(p + 1, end);
 
-        for ( ;; ) {
-            count++;
+        if (nxt_slow_path(p == end)) {
+            goto error;
+        }
 
-            if (*p != '"') {
-                goto error;
-            }
-
-            member = nxt_mp_get(mp_temp, sizeof(nxt_conf_object_member_t));
-            if (nxt_slow_path(member == NULL)) {
-                goto error;
-            }
-
-            p = nxt_conf_json_parse_string(mp, &member->name, p, end);
-
-            if (nxt_slow_path(p == NULL)) {
-                goto error;
-            }
-
-            rc = nxt_conf_object_hash_add(mp_temp, &hash, member);
-
-            if (nxt_slow_path(rc != NXT_OK)) {
-                goto error;
-            }
-
-            p = nxt_conf_json_skip_space(p, end);
-
-            if (nxt_slow_path(p == end || *p != ':')) {
-                goto error;
-            }
-
-            p = nxt_conf_json_skip_space(p + 1, end);
-
-            if (nxt_slow_path(p == end)) {
-                goto error;
-            }
-
-            p = nxt_conf_json_parse_value(mp, &member->value, p, end);
-
-            if (nxt_slow_path(p == NULL)) {
-                goto error;
-            }
-
-            p = nxt_conf_json_skip_space(p, end);
-
-            if (nxt_slow_path(p == end)) {
-                goto error;
-            }
-
-            if (*p == '}') {
+        if (*p != '"') {
+            if (nxt_fast_path(*p == '}')) {
                 break;
             }
 
-            if (nxt_slow_path(*p != ',')) {
-                goto error;
+            goto error;
+        }
+
+        count++;
+
+        member = nxt_mp_get(mp_temp, sizeof(nxt_conf_object_member_t));
+        if (nxt_slow_path(member == NULL)) {
+            goto error;
+        }
+
+        p = nxt_conf_json_parse_string(mp, &member->name, p, end);
+
+        if (nxt_slow_path(p == NULL)) {
+            goto error;
+        }
+
+        rc = nxt_conf_object_hash_add(mp_temp, &hash, member);
+
+        if (nxt_slow_path(rc != NXT_OK)) {
+            goto error;
+        }
+
+        p = nxt_conf_json_skip_space(p, end);
+
+        if (nxt_slow_path(p == end || *p != ':')) {
+            goto error;
+        }
+
+        p = nxt_conf_json_skip_space(p + 1, end);
+
+        if (nxt_slow_path(p == end)) {
+            goto error;
+        }
+
+        p = nxt_conf_json_parse_value(mp, &member->value, p, end);
+
+        if (nxt_slow_path(p == NULL)) {
+            goto error;
+        }
+
+        p = nxt_conf_json_skip_space(p, end);
+
+        if (nxt_slow_path(p == end)) {
+            goto error;
+        }
+
+        if (*p != ',') {
+            if (nxt_fast_path(*p == '}')) {
+                break;
             }
 
-            p = nxt_conf_json_skip_space(p + 1, end);
-
-            if (nxt_slow_path(p == end)) {
-                goto error;
-            }
+            goto error;
         }
     }
 
@@ -1117,12 +1113,6 @@ nxt_conf_json_parse_array(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
     nxt_conf_array_t  *array;
     nxt_conf_value_t  *element;
 
-    p = nxt_conf_json_skip_space(start + 1, end);
-
-    if (nxt_slow_path(p == end)) {
-        return NULL;
-    }
-
     mp_temp = nxt_mp_create(1024, 128, 256, 32);
     if (nxt_slow_path(mp_temp == NULL)) {
         return NULL;
@@ -1134,42 +1124,44 @@ nxt_conf_json_parse_array(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
     }
 
     count = 0;
+    p = start;
 
-    if (*p != ']') {
+    for ( ;; ) {
+        p = nxt_conf_json_skip_space(p + 1, end);
 
-        for ( ;; ) {
-            count++;
+        if (nxt_slow_path(p == end)) {
+            goto error;
+        }
 
-            element = nxt_list_add(list);
-            if (nxt_slow_path(element == NULL)) {
-                goto error;
-            }
+        if (*p == ']') {
+            break;
+        }
 
-            p = nxt_conf_json_parse_value(mp, element, p, end);
+        count++;
 
-            if (nxt_slow_path(p == NULL)) {
-                goto error;
-            }
+        element = nxt_list_add(list);
+        if (nxt_slow_path(element == NULL)) {
+            goto error;
+        }
 
-            p = nxt_conf_json_skip_space(p, end);
+        p = nxt_conf_json_parse_value(mp, element, p, end);
 
-            if (nxt_slow_path(p == end)) {
-                goto error;
-            }
+        if (nxt_slow_path(p == NULL)) {
+            goto error;
+        }
 
-            if (*p == ']') {
+        p = nxt_conf_json_skip_space(p, end);
+
+        if (nxt_slow_path(p == end)) {
+            goto error;
+        }
+
+        if (*p != ',') {
+            if (nxt_fast_path(*p == ']')) {
                 break;
             }
 
-            if (nxt_slow_path(*p != ',')) {
-                goto error;
-            }
-
-            p = nxt_conf_json_skip_space(p + 1, end);
-
-            if (nxt_slow_path(p == end)) {
-                goto error;
-            }
+            goto error;
         }
     }
 
