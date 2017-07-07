@@ -11,6 +11,7 @@
 #include <nxt_main.h>
 #include <nxt_runtime.h>
 #include <nxt_master_process.h>
+#include <nxt_application.h>
 
 
 typedef struct {
@@ -18,6 +19,7 @@ typedef struct {
     nxt_queue_t            engines;
 
     nxt_queue_t            sockets;    /* of nxt_socket_conf_t */
+    nxt_queue_t            apps;       /* of nxt_app_t */
 } nxt_router_t;
 
 
@@ -45,12 +47,32 @@ typedef struct {
     nxt_queue_t            keeping;    /* of nxt_socket_conf_t */
     nxt_queue_t            deleting;   /* of nxt_socket_conf_t */
 
+    nxt_queue_t            apps;       /* of nxt_app_t */
+    nxt_queue_t            previous;   /* of nxt_app_t */
+
     uint32_t               new_threads;
 
     nxt_array_t            *engines;
     nxt_router_conf_t      *conf;
     nxt_mp_t               *mem_pool;
 } nxt_router_temp_conf_t;
+
+
+typedef struct {
+    nxt_thread_mutex_t     mutex;
+    nxt_queue_t            ports;
+    nxt_str_t              name;
+
+    uint32_t               workers;
+    uint32_t               max_workers;
+
+    nxt_app_type_t         type:8;
+    uint8_t                live;   /* 1 bit */
+
+    nxt_queue_link_t       link;
+
+    nxt_str_t              conf;
+} nxt_app_t;
 
 
 typedef struct {
@@ -65,6 +87,8 @@ typedef struct {
     nxt_router_socket_t    *socket;
     nxt_router_conf_t      *router_conf;
     nxt_sockaddr_t         *sockaddr;
+
+    nxt_app_t              *application;
 
     nxt_listen_socket_t    listen;
 

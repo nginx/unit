@@ -9,6 +9,14 @@
 #define _NXT_APPLICATION_H_INCLUDED_
 
 
+typedef enum {
+    NXT_APP_PYTHON = 0,
+    NXT_APP_PHP,
+    NXT_APP_RUBY,
+    NXT_APP_GO,
+} nxt_app_type_t;
+
+
 typedef struct {
     nxt_str_t                  name;
     nxt_str_t                  value;
