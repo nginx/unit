@@ -1033,6 +1033,10 @@ nxt_router_listen_socket_close(nxt_task_t *task, void *obj, void *data)
     joint = listen->socket.data;
 
     nxt_queue_remove(&listen->link);
+
+    /* 'task' refers to listen->task and we cannot use after nxt_free() */
+    task = &task->thread->engine->task;
+
     nxt_free(listen);
 
     nxt_router_listen_socket_release(task, joint);
