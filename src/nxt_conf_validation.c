@@ -22,13 +22,12 @@ typedef nxt_int_t (*nxt_conf_vldt_member_t)(nxt_str_t *name,
 static nxt_int_t nxt_conf_vldt_listener(nxt_str_t *name,
     nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_app(nxt_str_t *name, nxt_conf_value_t *value);
-static nxt_int_t nxt_conf_vldt_app_type(nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_object(nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_object_iterator(nxt_conf_value_t *value,
     void *data);
 
 
-static const nxt_conf_vldt_object_t  nxt_conf_root_members[] = {
+static nxt_conf_vldt_object_t  nxt_conf_vldt_root_members[] = {
     { nxt_string("listeners"),
       NXT_CONF_OBJECT,
       &nxt_conf_vldt_object_iterator,
@@ -43,7 +42,7 @@ static const nxt_conf_vldt_object_t  nxt_conf_root_members[] = {
 };
 
 
-static const nxt_conf_vldt_object_t  nxt_conf_listener_members[] = {
+static nxt_conf_vldt_object_t  nxt_conf_vldt_listener_members[] = {
     { nxt_string("application"),
       NXT_CONF_STRING,
       NULL,
@@ -53,10 +52,10 @@ static const nxt_conf_vldt_object_t  nxt_conf_listener_members[] = {
 };
 
 
-static const nxt_conf_vldt_object_t  nxt_conf_application_members[] = {
+static nxt_conf_vldt_object_t  nxt_conf_vldt_python_members[] = {
     { nxt_string("type"),
       NXT_CONF_STRING,
-      &nxt_conf_vldt_app_type,
+      NULL,
       NULL },
 
     { nxt_string("workers"),
@@ -64,7 +63,92 @@ static const nxt_conf_vldt_object_t  nxt_conf_application_members[] = {
       NULL,
       NULL },
 
+    { nxt_string("user"),
+      NXT_CONF_STRING,
+      NULL,
+      NULL },
+
+    { nxt_string("group"),
+      NXT_CONF_STRING,
+      NULL,
+      NULL },
+
     { nxt_string("path"),
+      NXT_CONF_STRING,
+      NULL,
+      NULL },
+
+    { nxt_string("module"),
+      NXT_CONF_STRING,
+      NULL,
+      NULL },
+
+    { nxt_null_string, 0, NULL, NULL }
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_php_members[] = {
+    { nxt_string("type"),
+      NXT_CONF_STRING,
+      NULL,
+      NULL },
+
+    { nxt_string("workers"),
+      NXT_CONF_INTEGER,
+      NULL,
+      NULL },
+
+    { nxt_string("user"),
+      NXT_CONF_STRING,
+      NULL,
+      NULL },
+
+    { nxt_string("group"),
+      NXT_CONF_STRING,
+      NULL,
+      NULL },
+
+    { nxt_string("root"),
+      NXT_CONF_STRING,
+      NULL,
+      NULL },
+
+    { nxt_string("script"),
+      NXT_CONF_STRING,
+      NULL,
+      NULL },
+
+    { nxt_string("index"),
+      NXT_CONF_STRING,
+      NULL,
+      NULL },
+
+    { nxt_null_string, 0, NULL, NULL }
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_go_members[] = {
+    { nxt_string("type"),
+      NXT_CONF_STRING,
+      NULL,
+      NULL },
+
+    { nxt_string("workers"),
+      NXT_CONF_INTEGER,
+      NULL,
+      NULL },
+
+    { nxt_string("user"),
+      NXT_CONF_STRING,
+      NULL,
+      NULL },
+
+    { nxt_string("group"),
+      NXT_CONF_STRING,
+      NULL,
+      NULL },
+
+    { nxt_string("executable"),
       NXT_CONF_STRING,
       NULL,
       NULL },
@@ -80,29 +164,53 @@ nxt_conf_validate(nxt_conf_value_t *value)
         return NXT_ERROR;
     }
 
-    return nxt_conf_vldt_object(value, (void *) nxt_conf_root_members);
+    return nxt_conf_vldt_object(value, nxt_conf_vldt_root_members);
 }
 
 
 static nxt_int_t
 nxt_conf_vldt_listener(nxt_str_t *name, nxt_conf_value_t *value)
 {
-    return nxt_conf_vldt_object(value, (void *) nxt_conf_listener_members);
+    return nxt_conf_vldt_object(value, nxt_conf_vldt_listener_members);
 }
 
 
 static nxt_int_t
 nxt_conf_vldt_app(nxt_str_t *name, nxt_conf_value_t *value)
 {
-    return nxt_conf_vldt_object(value, (void *) nxt_conf_application_members);
-}
+    nxt_str_t         type;
+    nxt_conf_value_t  *type_value;
 
+    static nxt_str_t  type_str = nxt_string("type");
+    static nxt_str_t  python_str = nxt_string("python");
+    static nxt_str_t  php_str = nxt_string("php");
+    static nxt_str_t  go_str = nxt_string("go");
 
-static nxt_int_t
-nxt_conf_vldt_app_type(nxt_conf_value_t *value, void *data)
-{
-    // TODO
-    return NXT_OK;
+    type_value = nxt_conf_get_object_member(value, &type_str, NULL);
+
+    if (nxt_slow_path(type_value == NULL)) {
+        return NXT_ERROR;
+    }
+
+    if (nxt_conf_type(type_value) != NXT_CONF_STRING) {
+        return NXT_ERROR;
+    }
+
+    nxt_conf_get_string(type_value, &type);
+
+    if (nxt_strcasestr_eq(&type, &python_str)) {
+        return nxt_conf_vldt_object(value, nxt_conf_vldt_python_members);
+    }
+
+    if (nxt_strcasestr_eq(&type, &php_str)) {
+        return nxt_conf_vldt_object(value, nxt_conf_vldt_php_members);
+    }
+
+    if (nxt_strcasestr_eq(&type, &go_str)) {
+        return nxt_conf_vldt_object(value, nxt_conf_vldt_go_members);
+    }
+
+    return NXT_ERROR;
 }
 
 
