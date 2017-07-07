@@ -10,8 +10,6 @@
 
 
 static void nxt_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
-static void nxt_port_new_port_buf_completion(nxt_task_t *task, void *obj,
-    void *data);
 
 
 void
@@ -102,13 +100,10 @@ nxt_port_send_new_port(nxt_task_t *task, nxt_runtime_t *rt,
 nxt_int_t
 nxt_port_send_port(nxt_task_t *task, nxt_port_t *port, nxt_port_t *new_port)
 {
-    nxt_mp_t                 *mp;
     nxt_buf_t                *b;
     nxt_port_msg_new_port_t  *msg;
 
-    mp = port->mem_pool;
-
-    b = nxt_buf_mem_alloc(mp, sizeof(nxt_port_data_t), 0);
+    b = nxt_buf_mem_ts_alloc(task, port->mem_pool, sizeof(nxt_port_data_t));
     if (nxt_slow_path(b == NULL)) {
         return NXT_ERROR;
     }
@@ -116,8 +111,6 @@ nxt_port_send_port(nxt_task_t *task, nxt_port_t *port, nxt_port_t *new_port)
     nxt_debug(task, "send port %FD to process %PI",
               new_port->pair[1], port->pid);
 
-    b->data = mp;
-    b->completion_handler = nxt_port_new_port_buf_completion;
     b->mem.free += sizeof(nxt_port_msg_new_port_t);
     msg = (nxt_port_msg_new_port_t *) b->mem.pos;
 
@@ -130,19 +123,6 @@ nxt_port_send_port(nxt_task_t *task, nxt_port_t *port, nxt_port_t *new_port)
 
     return nxt_port_socket_write(task, port, NXT_PORT_MSG_NEW_PORT,
                                  new_port->pair[1], 0, 0, b);
-}
-
-
-static void
-nxt_port_new_port_buf_completion(nxt_task_t *task, void *obj, void *data)
-{
-    nxt_mp_t   *mp;
-    nxt_buf_t  *b;
-
-    b = obj;
-    mp = b->data;
-
-    nxt_buf_free(mp, b);
 }
 
 

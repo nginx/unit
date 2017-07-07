@@ -35,6 +35,10 @@ nxt_port_mmap_buf_completion(nxt_task_t *task, void *obj, void *data)
     nxt_chunk_id_t          c;
     nxt_port_mmap_header_t  *hdr;
 
+    if (nxt_buf_ts_handle(task, obj, data)) {
+        return;
+    }
+
     b = obj;
 
     nxt_debug(task, "mmap buf completion: %p %p", b, b->mem.start);
@@ -71,7 +75,7 @@ nxt_port_mmap_buf_completion(nxt_task_t *task, void *obj, void *data)
         c++;
     }
 
-    nxt_buf_free(mp, b);
+    nxt_mp_release(mp, b);
 }
 
 
@@ -150,6 +154,10 @@ nxt_port_mmap_send_fd_buf_completion(nxt_task_t *task, void *obj, void *data)
     nxt_buf_t  *b;
     nxt_mp_t   *mp;
 
+    if (nxt_buf_ts_handle(task, obj, data)) {
+        return;
+    }
+
     b = obj;
     mp = b->data;
     fd = (nxt_fd_t) (intptr_t) data;
@@ -166,7 +174,7 @@ nxt_port_mmap_send_fd_buf_completion(nxt_task_t *task, void *obj, void *data)
 
     nxt_fd_close(fd);
 
-    nxt_buf_free(mp, b);
+    nxt_mp_release(mp, b);
 }
 
 
@@ -252,13 +260,12 @@ nxt_port_new_port_mmap(nxt_task_t *task, nxt_process_t *process,
 
     port_mmap->hdr = mem;
 
-    b = nxt_buf_mem_alloc(port->mem_pool, 0, 0);
+    b = nxt_buf_mem_ts_alloc(task, port->mem_pool, 0);
     if (nxt_slow_path(b == NULL)) {
         goto remove_fail;
     }
 
     b->completion_handler = nxt_port_mmap_send_fd_buf_completion;
-    b->data = port->mem_pool;
     b->parent = (void *) (intptr_t) fd;
 
     /* Init segment header. */
@@ -396,24 +403,22 @@ nxt_port_mmap_get_buf(nxt_task_t *task, nxt_port_t *port, size_t size)
         return NULL;
     }
 
-    b = nxt_mp_zalloc(port->mem_pool, NXT_BUF_PORT_MMAP_SIZE);
+    b = nxt_buf_mem_ts_alloc(task, port->mem_pool, 0);
     if (nxt_slow_path(b == NULL)) {
         return NULL;
     }
 
-    b->data = port->mem_pool;
     b->completion_handler = nxt_port_mmap_buf_completion;
-    b->size = NXT_BUF_PORT_MMAP_SIZE;
-
     nxt_buf_set_port_mmap(b);
 
     hdr = nxt_port_mmap_get(task, port, &c, size);
     if (nxt_slow_path(hdr == NULL)) {
-        nxt_buf_free(port->mem_pool, b);
+        nxt_mp_release(port->mem_pool, b);
         return NULL;
     }
 
     b->parent = hdr;
+
     b->mem.start = nxt_port_mmap_chunk_start(hdr, c);
     b->mem.pos = b->mem.start;
     b->mem.free = b->mem.start;
@@ -517,14 +522,12 @@ nxt_port_mmap_get_incoming_buf(nxt_task_t *task, nxt_port_t *port,
         return NULL;
     }
 
-    b = nxt_mp_zalloc(port->mem_pool, NXT_BUF_PORT_MMAP_SIZE);
+    b = nxt_buf_mem_ts_alloc(task, port->mem_pool, 0);
     if (nxt_slow_path(b == NULL)) {
         return NULL;
     }
 
-    b->data = port->mem_pool;
     b->completion_handler = nxt_port_mmap_buf_completion;
-    b->size = NXT_BUF_PORT_MMAP_SIZE;
 
     nxt_buf_set_port_mmap(b);
 
@@ -559,7 +562,7 @@ nxt_port_mmap_write(nxt_task_t *task, nxt_port_t *port,
 
     bsize = sb->niov * sizeof(nxt_port_mmap_msg_t);
 
-    b = nxt_buf_mem_alloc(port->mem_pool, bsize, 0);
+    b = nxt_buf_mem_ts_alloc(task, port->mem_pool, bsize);
     if (nxt_slow_path(b == NULL)) {
         return;
     }
