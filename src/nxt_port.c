@@ -52,7 +52,7 @@ nxt_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
     nxt_port_handler_t  *handlers;
 
-    if (nxt_fast_path(msg->port_msg.type <= NXT_PORT_MSG_MAX)) {
+    if (nxt_fast_path(msg->port_msg.type < NXT_PORT_MSG_MAX)) {
 
         nxt_debug(task, "port %d: message type:%uD",
                   msg->port->socket.fd, msg->port_msg.type);
@@ -288,6 +288,26 @@ nxt_port_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_debug(task, "data: %*s", dump_size, b->mem.pos);
 
     b->mem.pos = b->mem.free;
+}
+
+
+void
+nxt_port_remove_pid_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
+{
+    nxt_pid_t           pid;
+    nxt_runtime_t       *rt;
+    nxt_process_t       *process;
+
+    nxt_debug(task, "port remove pid handler");
+
+    rt = task->thread->runtime;
+    pid = msg->port_msg.stream;
+
+    process = nxt_runtime_process_find(rt, pid);
+
+    if (process) {
+        nxt_runtime_process_remove(rt, process);
+    }
 }
 
 

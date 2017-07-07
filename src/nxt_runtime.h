@@ -45,7 +45,7 @@ struct nxt_runtime_s {
 
     uint32_t               last_engine_id;
 
-    nxt_process_type_t     type;
+    uint32_t               types;         /* bitset of nxt_process_type_t */
 
     nxt_timer_t            timer;
 
@@ -82,6 +82,20 @@ void nxt_runtime_event_engine_free(nxt_runtime_t *rt);
 nxt_int_t nxt_runtime_thread_pool_create(nxt_thread_t *thr, nxt_runtime_t *rt,
     nxt_uint_t max_threads, nxt_nsec_t timeout);
 #endif
+
+
+nxt_inline nxt_bool_t
+nxt_runtime_is_type(nxt_runtime_t *rt, nxt_process_type_t type)
+{
+    return (rt->types & (1U << type)) != 0;
+}
+
+
+nxt_inline nxt_bool_t
+nxt_runtime_is_master(nxt_runtime_t *rt)
+{
+    return nxt_runtime_is_type(rt, NXT_PROCESS_MASTER);
+}
 
 
 nxt_process_t *nxt_runtime_process_new(nxt_runtime_t *rt);
@@ -141,10 +155,13 @@ void nxt_port_app_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 #define nxt_runtime_process_each(rt, process)                                 \
     do {                                                                      \
         nxt_lvlhsh_each_t  _lhe;                                              \
+        nxt_process_t      *_nxt;                                             \
                                                                               \
         for (process = nxt_runtime_process_first(rt, &_lhe);                  \
              process != NULL;                                                 \
-             process = nxt_runtime_process_next(rt, &_lhe)) {                 \
+             process = _nxt) {                                                \
+                                                                              \
+            _nxt = nxt_runtime_process_next(rt, &_lhe);                       \
 
 #define nxt_runtime_process_loop                                              \
         }                                                                     \

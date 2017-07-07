@@ -445,7 +445,7 @@ nxt_single_process_start(nxt_thread_t *thr, nxt_task_t *task, nxt_runtime_t *rt)
 
 #endif
 
-    rt->type = NXT_PROCESS_SINGLE;
+    rt->types |= (1U << NXT_PROCESS_SINGLE);
 
     nxt_runtime_listen_sockets_enable(task, rt);
 
@@ -479,7 +479,7 @@ nxt_runtime_quit(nxt_task_t *task)
 
 #endif
 
-        if (rt->type == NXT_PROCESS_MASTER) {
+        if (nxt_runtime_is_master(rt)) {
             nxt_master_stop_worker_processes(task, rt);
             done = 0;
         }
@@ -523,7 +523,8 @@ nxt_runtime_close_idle_connections(nxt_event_engine_t *engine)
 static void
 nxt_runtime_exit(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_runtime_t         *rt;
+    nxt_runtime_t       *rt;
+    nxt_process_t       *process;
     nxt_event_engine_t  *engine;
 
     rt = obj;
@@ -539,7 +540,7 @@ nxt_runtime_exit(nxt_task_t *task, void *obj, void *data)
 
 #endif
 
-    if (rt->type <= NXT_PROCESS_MASTER) {
+    if (nxt_runtime_is_master(rt)) {
         if (rt->pid_file != NULL) {
             nxt_file_delete(rt->pid_file);
         }
@@ -548,6 +549,14 @@ nxt_runtime_exit(nxt_task_t *task, void *obj, void *data)
     if (!engine->event.signal_support) {
         nxt_event_engine_signals_stop(engine);
     }
+
+    nxt_runtime_process_each(rt, process) {
+
+        nxt_runtime_process_remove(rt, process);
+
+    } nxt_runtime_process_loop;
+
+    nxt_mp_destroy(rt->mem_pool);
 
     nxt_debug(task, "exit");
 
@@ -1642,6 +1651,7 @@ nxt_runtime_process_remove(nxt_runtime_t *rt, nxt_process_t *process)
 
         } nxt_process_port_loop;
 
+        nxt_mp_free(rt->mem_pool, process);
         break;
 
     default:
@@ -1683,6 +1693,20 @@ nxt_runtime_port_remove(nxt_runtime_t *rt, nxt_port_t *port)
     /* TODO lock ports */
 
     nxt_port_hash_remove(&rt->ports, rt->mem_pool, port);
+
+    if (port->pair[0] != -1) {
+        nxt_fd_close(port->pair[0]);
+    }
+
+    if (port->pair[1] != -1) {
+        nxt_fd_close(port->pair[1]);
+    }
+
+    if (port->mem_pool) {
+        nxt_mp_destroy(port->mem_pool);
+    }
+
+    nxt_mp_free(port->process->mem_pool, port);
 }
 
 

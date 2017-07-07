@@ -146,7 +146,7 @@ nxt_go_port_on_read(void *buf, size_t buf_size, void *oob, size_t oob_size)
         nxt_go_debug("using data in shared memory");
     }
 
-    if (port_msg->type > NXT_PORT_MSG_MAX) {
+    if (port_msg->type >= NXT_PORT_MSG_MAX) {
         nxt_go_warn("unknown message type (%d)", (int)port_msg->type);
         goto fail;
     }
@@ -180,6 +180,13 @@ nxt_go_port_on_read(void *buf, size_t buf_size, void *oob, size_t oob_size)
         nxt_go_debug("data");
 
         return nxt_go_data_handler(port_msg, buf_size);
+
+    case NXT_PORT_MSG_REMOVE_PID:
+        nxt_go_debug("remove pid");
+
+        /* TODO remove all ports for this pid in Go */
+        /* TODO remove incoming & outgoing mmaps for this pid */
+        break;
 
     default:
         goto fail;

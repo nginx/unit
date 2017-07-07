@@ -222,12 +222,13 @@ NXT_EXPORT void nxt_queue_sort(nxt_queue_t *queue,
 
 #define nxt_queue_each(elt, queue, type, link)                                \
     do {                                                                      \
-        nxt_queue_link_t  *_lnk;                                              \
+        nxt_queue_link_t  *_lnk, *_nxt;                                       \
                                                                               \
         for (_lnk = nxt_queue_first(queue);                                   \
              _lnk != nxt_queue_tail(queue);                                   \
-             _lnk = nxt_queue_next(_lnk)) {                                   \
+             _lnk = _nxt) {                                                   \
                                                                               \
+            _nxt = nxt_queue_next(_lnk);                                      \
             elt = nxt_queue_link_data(_lnk, type, link);                      \
 
 #define nxt_queue_loop                                                        \

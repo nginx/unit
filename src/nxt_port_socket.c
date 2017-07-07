@@ -222,7 +222,7 @@ nxt_port_socket_write(nxt_task_t *task, nxt_port_t *port, nxt_uint_t type,
     nxt_queue_insert_tail(&port->messages, &msg->link);
 
     if (port->socket.write_ready) {
-        nxt_port_write_handler(task, port, NULL);
+        nxt_port_write_handler(task, &port->socket, NULL);
     }
 
     return NXT_OK;
@@ -236,14 +236,14 @@ nxt_port_write_handler(nxt_task_t *task, void *obj, void *data)
     nxt_port_t              *port;
     struct iovec            iov[NXT_IOBUF_MAX * 10];
     nxt_queue_link_t        *link;
+    nxt_port_method_t       m;
     nxt_port_send_msg_t     *msg;
     nxt_sendbuf_coalesce_t  sb;
-    nxt_port_method_t       m;
 
     size_t                  plain_size;
     nxt_buf_t               *plain_buf;
 
-    port = obj;
+    port = nxt_container_of(obj, nxt_port_t, socket);
 
     do {
         link = nxt_queue_first(&port->messages);
@@ -389,7 +389,7 @@ nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
     struct iovec         iov[2];
     nxt_port_recv_msg_t  msg;
 
-    port = msg.port = obj;
+    port = msg.port = nxt_container_of(obj, nxt_port_t, socket);
 
     for ( ;; ) {
 
@@ -522,5 +522,6 @@ nxt_port_buf_free(nxt_port_t *port, nxt_buf_t *b)
 static void
 nxt_port_error_handler(nxt_task_t *task, void *obj, void *data)
 {
+    nxt_debug(task, "port error handler %p", obj);
     /* TODO */
 }

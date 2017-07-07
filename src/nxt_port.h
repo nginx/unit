@@ -14,9 +14,10 @@ typedef enum {
     NXT_PORT_MSG_CHANGE_FILE,
     NXT_PORT_MSG_MMAP,
     NXT_PORT_MSG_DATA,
-} nxt_port_msg_type_t;
+    NXT_PORT_MSG_REMOVE_PID,
 
-#define NXT_PORT_MSG_MAX  NXT_PORT_MSG_DATA
+    NXT_PORT_MSG_MAX,
+} nxt_port_msg_type_t;
 
 
 /* Passed as a first iov chunk. */
@@ -56,10 +57,9 @@ struct nxt_port_recv_msg_s {
 
 
 struct nxt_port_s {
-    /* Must be the first field. */
     nxt_fd_event_t      socket;
 
-    nxt_queue_link_t    link;
+    nxt_queue_link_t    link;       /* for nxt_process_t.ports */
 
     nxt_queue_t         messages;   /* of nxt_port_send_msg_t */
 
@@ -132,6 +132,7 @@ void nxt_port_change_log_file_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
 void nxt_port_mmap_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 void nxt_port_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
+void nxt_port_remove_pid_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 void nxt_port_empty_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 
 

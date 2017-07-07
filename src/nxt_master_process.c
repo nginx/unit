@@ -51,7 +51,7 @@ nxt_master_process_start(nxt_thread_t *thr, nxt_task_t *task,
 {
     nxt_int_t  ret;
 
-    rt->type = NXT_PROCESS_MASTER;
+    rt->types |= (1U << NXT_PROCESS_MASTER);
 
     if (nxt_master_process_port_create(task, rt) != NXT_OK) {
         return NXT_ERROR;
@@ -467,6 +467,7 @@ nxt_master_process_sigchld_handler(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_master_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid)
 {
+    nxt_port_t          *port;
     nxt_runtime_t       *rt;
     nxt_process_t       *process;
     nxt_process_init_t  *init;
@@ -478,9 +479,22 @@ nxt_master_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid)
     if (process) {
         init = process->init;
 
-        /* TODO: free ports fds. */
-
         nxt_runtime_process_remove(rt, process);
+
+        if (!nxt_exiting) {
+            nxt_runtime_process_each(rt, process)
+            {
+                if (process->pid == nxt_pid) {
+                    continue;
+                }
+
+                port = nxt_process_port_first(process);
+
+                nxt_port_socket_write(task, port, NXT_PORT_MSG_REMOVE_PID,
+                                      -1, pid, 0, NULL);
+            }
+            nxt_runtime_process_loop;
+        }
 
         if (nxt_exiting) {
 
