@@ -235,10 +235,6 @@ static nxt_conf_map_t  nxt_router_conf[] = {
         NXT_CONF_MAP_INT32,
         offsetof(nxt_router_conf_t, threads),
     },
-
-    {
-        nxt_null_string, 0, 0,
-    },
 };
 
 
@@ -254,10 +250,6 @@ static nxt_conf_map_t  nxt_router_app_conf[] = {
         NXT_CONF_MAP_INT32,
         offsetof(nxt_router_app_conf_t, workers),
     },
-
-    {
-        nxt_null_string, 0, 0,
-    },
 };
 
 
@@ -266,10 +258,6 @@ static nxt_conf_map_t  nxt_router_listener_conf[] = {
         nxt_string("application"),
         NXT_CONF_MAP_STR,
         offsetof(nxt_router_listener_conf_t, application),
-    },
-
-    {
-        nxt_null_string, 0, 0,
     },
 };
 
@@ -291,10 +279,6 @@ static nxt_conf_map_t  nxt_router_http_conf[] = {
         nxt_string("header_read_timeout"),
         NXT_CONF_MAP_MSEC,
         offsetof(nxt_socket_conf_t, header_read_timeout),
-    },
-
-    {
-        nxt_null_string, 0, 0,
     },
 };
 
@@ -330,7 +314,8 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         return NXT_ERROR;
     }
 
-    ret = nxt_conf_map_object(conf, nxt_router_conf, tmcf->conf);
+    ret = nxt_conf_map_object(conf, nxt_router_conf,
+                              nxt_nitems(nxt_router_conf), tmcf->conf);
     if (ret != NXT_OK) {
         nxt_log(task, NXT_LOG_CRIT, "root map error");
         return NXT_ERROR;
@@ -385,7 +370,8 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             continue;
         }
 
-        ret = nxt_conf_map_object(application, nxt_router_app_conf, &apcf);
+        ret = nxt_conf_map_object(application, nxt_router_app_conf,
+                                  nxt_nitems(nxt_router_app_conf), &apcf);
         if (ret != NXT_OK) {
             nxt_log(task, NXT_LOG_CRIT, "application map error");
             goto app_fail;
@@ -465,7 +451,8 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             goto fail;
         }
 
-        ret = nxt_conf_map_object(listener, nxt_router_listener_conf, &lscf);
+        ret = nxt_conf_map_object(listener, nxt_router_listener_conf,
+                                  nxt_nitems(nxt_router_listener_conf), &lscf);
         if (ret != NXT_OK) {
             nxt_log(task, NXT_LOG_CRIT, "listener map error");
             goto fail;
@@ -479,7 +466,8 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         skcf->header_read_timeout = 5000;
 
         if (http != NULL) {
-            ret = nxt_conf_map_object(http, nxt_router_http_conf, skcf);
+            ret = nxt_conf_map_object(http, nxt_router_http_conf,
+                                      nxt_nitems(nxt_router_http_conf), skcf);
             if (ret != NXT_OK) {
                 nxt_log(task, NXT_LOG_CRIT, "http map error");
                 goto fail;

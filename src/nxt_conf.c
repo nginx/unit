@@ -349,7 +349,8 @@ nxt_conf_get_object_member(nxt_conf_value_t *value, nxt_str_t *name,
 
 
 nxt_int_t
-nxt_conf_map_object(nxt_conf_value_t *value, nxt_conf_map_t *map, void *data)
+nxt_conf_map_object(nxt_conf_value_t *value, nxt_conf_map_t *map, nxt_uint_t n,
+    void *data)
 {
     nxt_uint_t        i;
     nxt_conf_value_t  *v;
@@ -367,7 +368,7 @@ nxt_conf_map_object(nxt_conf_value_t *value, nxt_conf_map_t *map, void *data)
         void        *v;
     } *ptr;
 
-    for (i = 0; map[i].name.length != 0; i++) {
+    for (i = 0; i < n; i++) {
 
         v = nxt_conf_get_object_member(value, &map[i].name, NULL);
 
@@ -381,11 +382,9 @@ nxt_conf_map_object(nxt_conf_value_t *value, nxt_conf_map_t *map, void *data)
 
         case NXT_CONF_MAP_INT8:
 
-            if (v->type != NXT_CONF_VALUE_BOOLEAN) {
-                return NXT_ERROR;
+            if (v->type == NXT_CONF_VALUE_BOOLEAN) {
+                ptr->ui8 = v->u.boolean;
             }
-
-            ptr->ui8 = v->u.boolean;
 
             break;
 
@@ -397,7 +396,7 @@ nxt_conf_map_object(nxt_conf_value_t *value, nxt_conf_map_t *map, void *data)
         case NXT_CONF_MAP_MSEC:
 
             if (v->type != NXT_CONF_VALUE_INTEGER) {
-                return NXT_ERROR;
+                break;
             }
 
             switch (map[i].type) {
@@ -440,21 +439,17 @@ nxt_conf_map_object(nxt_conf_value_t *value, nxt_conf_map_t *map, void *data)
             } else if (v->type == NXT_CONF_VALUE_INTEGER) {
                 ptr->dbl = v->u.integer;
 
-            } else {
-                return NXT_ERROR;
             }
 
             break;
 
         case NXT_CONF_MAP_STR:
 
-            if (v->type != NXT_CONF_VALUE_SHORT_STRING
-                && v->type != NXT_CONF_VALUE_STRING)
+            if (v->type == NXT_CONF_VALUE_SHORT_STRING
+                || v->type == NXT_CONF_VALUE_STRING)
             {
-                return NXT_ERROR;
+                nxt_conf_get_string(v, &ptr->str);
             }
-
-            nxt_conf_get_string(v, &ptr->str);
 
             break;
 
