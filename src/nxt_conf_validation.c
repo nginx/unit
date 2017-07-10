@@ -11,20 +11,26 @@
 typedef struct {
     nxt_str_t   name;
     nxt_uint_t  type;
-    nxt_int_t   (*validator)(nxt_conf_value_t *value, void *data);
+    nxt_int_t   (*validator)(nxt_conf_value_t *conf, nxt_conf_value_t *value,
+                             void *data);
     void        *data;
 } nxt_conf_vldt_object_t;
 
 
-typedef nxt_int_t (*nxt_conf_vldt_member_t)(nxt_str_t *name,
+typedef nxt_int_t (*nxt_conf_vldt_member_t)(nxt_conf_value_t *conf,
+                                            nxt_str_t *name,
                                             nxt_conf_value_t *value);
 
-static nxt_int_t nxt_conf_vldt_listener(nxt_str_t *name,
+static nxt_int_t nxt_conf_vldt_listener(nxt_conf_value_t *conf, nxt_str_t *name,
     nxt_conf_value_t *value);
-static nxt_int_t nxt_conf_vldt_app(nxt_str_t *name, nxt_conf_value_t *value);
-static nxt_int_t nxt_conf_vldt_object(nxt_conf_value_t *value, void *data);
-static nxt_int_t nxt_conf_vldt_object_iterator(nxt_conf_value_t *value,
-    void *data);
+static nxt_int_t nxt_conf_vldt_app_name(nxt_conf_value_t *conf,
+    nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_app(nxt_conf_value_t *conf, nxt_str_t *name,
+    nxt_conf_value_t *value);
+static nxt_int_t nxt_conf_vldt_object(nxt_conf_value_t *conf,
+    nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_object_iterator(nxt_conf_value_t *conf,
+    nxt_conf_value_t *value, void *data);
 
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_root_members[] = {
@@ -45,7 +51,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_root_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_listener_members[] = {
     { nxt_string("application"),
       NXT_CONF_STRING,
-      NULL,
+      &nxt_conf_vldt_app_name,
       NULL },
 
     { nxt_null_string, 0, NULL, NULL }
@@ -164,27 +170,53 @@ nxt_conf_validate(nxt_conf_value_t *value)
         return NXT_ERROR;
     }
 
-    return nxt_conf_vldt_object(value, nxt_conf_vldt_root_members);
+    return nxt_conf_vldt_object(value, value, nxt_conf_vldt_root_members);
 }
 
 
 static nxt_int_t
-nxt_conf_vldt_listener(nxt_str_t *name, nxt_conf_value_t *value)
+nxt_conf_vldt_listener(nxt_conf_value_t *conf, nxt_str_t *name,
+    nxt_conf_value_t *value)
 {
-    return nxt_conf_vldt_object(value, nxt_conf_vldt_listener_members);
+    return nxt_conf_vldt_object(conf, value, nxt_conf_vldt_listener_members);
 }
 
 
 static nxt_int_t
-nxt_conf_vldt_app(nxt_str_t *name, nxt_conf_value_t *value)
+nxt_conf_vldt_app_name(nxt_conf_value_t *conf, nxt_conf_value_t *value,
+    void *data)
+{
+    nxt_str_t         name;
+    nxt_conf_value_t  *apps, *app;
+
+    static nxt_str_t  apps_str = nxt_string("applications");
+
+    apps = nxt_conf_get_object_member(conf, &apps_str, NULL);
+
+    if (nxt_slow_path(apps == NULL)) {
+        return NXT_ERROR;
+    }
+
+    nxt_conf_get_string(value, &name);
+
+    app = nxt_conf_get_object_member(apps, &name, NULL);
+
+    if (nxt_slow_path(app == NULL)) {
+        return NXT_ERROR;
+    }
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_app(nxt_conf_value_t *conf, nxt_str_t *name,
+    nxt_conf_value_t *value)
 {
     nxt_str_t         type;
     nxt_conf_value_t  *type_value;
 
     static nxt_str_t  type_str = nxt_string("type");
-    static nxt_str_t  python_str = nxt_string("python");
-    static nxt_str_t  php_str = nxt_string("php");
-    static nxt_str_t  go_str = nxt_string("go");
 
     type_value = nxt_conf_get_object_member(value, &type_str, NULL);
 
@@ -198,16 +230,16 @@ nxt_conf_vldt_app(nxt_str_t *name, nxt_conf_value_t *value)
 
     nxt_conf_get_string(type_value, &type);
 
-    if (nxt_strcasestr_eq(&type, &python_str)) {
-        return nxt_conf_vldt_object(value, nxt_conf_vldt_python_members);
+    if (nxt_str_eq(&type, "python", 6)) {
+        return nxt_conf_vldt_object(conf, value, nxt_conf_vldt_python_members);
     }
 
-    if (nxt_strcasestr_eq(&type, &php_str)) {
-        return nxt_conf_vldt_object(value, nxt_conf_vldt_php_members);
+    if (nxt_str_eq(&type, "php", 3)) {
+        return nxt_conf_vldt_object(conf, value, nxt_conf_vldt_php_members);
     }
 
-    if (nxt_strcasestr_eq(&type, &go_str)) {
-        return nxt_conf_vldt_object(value, nxt_conf_vldt_go_members);
+    if (nxt_str_eq(&type, "go", 2)) {
+        return nxt_conf_vldt_object(conf, value, nxt_conf_vldt_go_members);
     }
 
     return NXT_ERROR;
@@ -215,7 +247,8 @@ nxt_conf_vldt_app(nxt_str_t *name, nxt_conf_value_t *value)
 
 
 static nxt_int_t
-nxt_conf_vldt_object(nxt_conf_value_t *value, void *data)
+nxt_conf_vldt_object(nxt_conf_value_t *conf, nxt_conf_value_t *value,
+    void *data)
 {
     uint32_t                index;
     nxt_str_t               name;
@@ -248,7 +281,7 @@ nxt_conf_vldt_object(nxt_conf_value_t *value, void *data)
             }
 
             if (vldt->validator != NULL
-                && vldt->validator(member, vldt->data) != NXT_OK)
+                && vldt->validator(conf, member, vldt->data) != NXT_OK)
             {
                 return NXT_ERROR;
             }
@@ -260,7 +293,8 @@ nxt_conf_vldt_object(nxt_conf_value_t *value, void *data)
 
 
 static nxt_int_t
-nxt_conf_vldt_object_iterator(nxt_conf_value_t *value, void *data)
+nxt_conf_vldt_object_iterator(nxt_conf_value_t *conf, nxt_conf_value_t *value,
+    void *data)
 {
     uint32_t                index;
     nxt_str_t               name;
@@ -277,7 +311,7 @@ nxt_conf_vldt_object_iterator(nxt_conf_value_t *value, void *data)
             return NXT_OK;
         }
 
-        if (validator(&name, member) != NXT_OK) {
+        if (validator(conf, &name, member) != NXT_OK) {
             return NXT_ERROR;
         }
     }
