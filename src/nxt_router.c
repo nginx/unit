@@ -1655,7 +1655,7 @@ nxt_router_process_http_request(nxt_task_t *task, nxt_conn_t *c,
     engine = task->thread->engine;
 
     do {
-        req_id = nxt_random(&nxt_random_data);
+        req_id = nxt_random(&task->thread->random);
     } while (nxt_event_engine_request_find(engine, req_id) != NULL);
 
     rc = nxt_conn_request_add(c, req_id);

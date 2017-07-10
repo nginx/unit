@@ -8,8 +8,6 @@
 #include <nxt_main.h>
 
 
-#if !(NXT_HAVE_ARC4RANDOM)
-
 /*
  * The pseudorandom generator based on OpenBSD arc4random.  Although it is
  * usually stated that arc4random uses RC4 pseudorandom generation algorithm
@@ -56,7 +54,7 @@ nxt_random_stir(nxt_random_t *r)
     ssize_t         n;
     struct timeval  tv;
     union {
-        uint32_t    value[3];
+        uint32_t    value[4];
         u_char      bytes[NXT_RANDOM_KEY_SIZE];
     } key;
 
@@ -87,6 +85,7 @@ nxt_random_stir(nxt_random_t *r)
         key.value[0] ^= tv.tv_usec;
         key.value[1] ^= tv.tv_sec;
         key.value[2] ^= nxt_pid;
+        key.value[3] ^= nxt_thread_tid(NULL);
     }
 
     nxt_random_add(r, key.bytes, NXT_RANDOM_KEY_SIZE);
@@ -200,7 +199,5 @@ nxt_random_unit_test(nxt_thread_t *thr)
 
     return NXT_ERROR;
 }
-
-#endif
 
 #endif

@@ -160,6 +160,8 @@ nxt_thread_init(void)
         nxt_thread_time_update(thr);
     }
 
+    nxt_random_init(&thr->random);
+
     return thr;
 }
 

@@ -188,6 +188,8 @@ struct nxt_thread_s {
      * engine->fibers, its placement here eliminates 2 memory accesses.
      */
     nxt_fiber_t              *fiber;
+
+    nxt_random_t             random;
 };
 
 

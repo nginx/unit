@@ -11,7 +11,6 @@ nxt_uint_t    nxt_ncpu = 1;
 nxt_uint_t    nxt_pagesize;
 nxt_task_t    nxt_main_task;
 nxt_atomic_t  nxt_task_ident;
-nxt_random_t  nxt_random_data;
 
 nxt_thread_declare_data(nxt_thread_t, nxt_thread_context);
 
@@ -100,7 +99,7 @@ nxt_lib_start(const char *app, char **argv, char ***envp)
 
     nxt_thread_spin_init(nxt_ncpu, 0);
 
-    nxt_random_init(&nxt_random_data);
+    nxt_random_init(&thread->random);
 
     nxt_pagesize = getpagesize();
 

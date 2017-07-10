@@ -82,7 +82,9 @@ nxt_process_start(nxt_task_t *task, nxt_process_init_t *process)
 
     nxt_process_title(task, "nginext: %s", process->name);
 
-    nxt_random_init(&nxt_random_data);
+    thread = task->thread;
+
+    nxt_random_init(&thread->random);
 
     if (process->user_cred != NULL && getuid() == 0) {
         /* Super-user. */
@@ -93,7 +95,6 @@ nxt_process_start(nxt_task_t *task, nxt_process_init_t *process)
         }
     }
 
-    thread = task->thread;
     rt = thread->runtime;
 
     rt->types |= (1U << process->type);
