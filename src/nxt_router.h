@@ -33,7 +33,6 @@ typedef struct {
 
 typedef struct {
     nxt_event_engine_t     *engine;
-    nxt_task_t             task;
     nxt_array_t            *creating;  /* of nxt_work_t */
     nxt_array_t            *updating;  /* of nxt_work_t */
     nxt_array_t            *deleting;  /* of nxt_work_t */
@@ -51,7 +50,11 @@ typedef struct {
     nxt_queue_t            previous;   /* of nxt_app_t */
 
     uint32_t               new_threads;
+    uint32_t               stream;
+    uint32_t               count;
 
+    nxt_event_engine_t     *engine;
+    nxt_port_t             *port;
     nxt_array_t            *engines;
     nxt_router_conf_t      *conf;
     nxt_mp_t               *mem_pool;
@@ -107,9 +110,6 @@ typedef struct {
     /* Modules configuraitons. */
 } nxt_socket_conf_joint_t;
 
-
-nxt_int_t nxt_router_new_conf(nxt_task_t *task, nxt_runtime_t *rt,
-    nxt_router_t *router, u_char *start, u_char *end);
 
 void nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 
