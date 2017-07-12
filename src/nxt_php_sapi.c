@@ -14,7 +14,7 @@
 #include <nxt_application.h>
 
 
-static nxt_int_t nxt_php_init(nxt_task_t *task);
+static nxt_int_t nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf);
 
 static nxt_int_t nxt_php_prepare_msg(nxt_task_t *task,
                       nxt_app_request_t *r, nxt_app_wmsg_t *wmsg);
@@ -138,7 +138,37 @@ nxt_inline nxt_int_t nxt_php_write(nxt_php_run_ctx_t *ctx,
 static nxt_str_t nxt_php_path;
 static nxt_str_t nxt_php_root;
 static nxt_str_t nxt_php_script;
-static nxt_str_t nxt_php_index_name = nxt_string("index.php");
+static nxt_str_t nxt_php_index = nxt_string("index.php");
+
+static void
+nxt_php_strdup(nxt_str_t *dst, nxt_str_t *src)
+{
+    dst->start = malloc(src->length + 1);
+    nxt_memcpy(dst->start, src->start, src->length);
+    dst->start[src->length] = '\0';
+
+    dst->length = src->length;
+}
+
+static void
+nxt_php_str_trim_trail(nxt_str_t *str, u_char t)
+{
+    while (str->length > 0 && str->start[str->length - 1] == t) {
+        str->length--;
+    }
+
+    str->start[str->length] = '\0';
+}
+
+
+static void
+nxt_php_str_trim_lead(nxt_str_t *str, u_char t)
+{
+    while (str->length > 0 && str->start[0] == t) {
+        str->length--;
+        str->start++;
+    }
+}
 
 
 nxt_application_module_t  nxt_php_module = {
@@ -151,85 +181,78 @@ nxt_application_module_t  nxt_php_module = {
 nxt_int_t
 nxt_php_sapi_init(nxt_thread_t *thr, nxt_runtime_t *rt)
 {
-    char        **argv;
-    u_char      *p;
-    nxt_uint_t  i;
+    nxt_app_modules[NXT_APP_PHP] = &nxt_php_module;
 
-    argv = nxt_process_argv;
+#if PHP_MAJOR_VERSION == 5
+    nxt_app_modules[NXT_APP_PHP5] = &nxt_php_module;
+#endif
 
-    while (*argv != NULL) {
-        p = (u_char *) *argv++;
+#if PHP_MAJOR_VERSION == 7
+    nxt_app_modules[NXT_APP_PHP7] = &nxt_php_module;
+#endif
 
-        if (nxt_strcmp(p, "--php") == 0) {
-            if (*argv == NULL) {
-                nxt_log_error(NXT_LOG_ERR, thr->log,
-                              "no argument for option \"--php\"");
-                return NXT_ERROR;
-            }
-
-            p = (u_char *) *argv;
-
-            nxt_php_root.start = p;
-            nxt_php_path.start = p;
-
-            i = 0;
-
-            for ( /* void */ ; p[i] != '\0'; i++) {
-                if (p[i] == '/') {
-                    nxt_php_script.start = &p[i];
-                    nxt_php_root.length = i;
-                }
-            }
-
-            nxt_php_path.length = i;
-            nxt_php_script.length = i - nxt_php_root.length;
-
-            nxt_log_error(NXT_LOG_INFO, thr->log,
-                          "(ABS_MODE) php script \"%V\" root: \"%V\"",
-                          &nxt_php_script, &nxt_php_root);
-
-            sapi_startup(&nxt_php_sapi_module);
-            nxt_php_startup(&nxt_php_sapi_module);
-
-            nxt_app = &nxt_php_module;
-
-            return NXT_OK;
-        }
-
-        if (nxt_strcmp(p, "--php-root") == 0) {
-            if (*argv == NULL) {
-                nxt_log_error(NXT_LOG_ERR, thr->log,
-                              "no argument for option \"--php\"");
-                return NXT_ERROR;
-            }
-
-            p = (u_char *) *argv;
-
-            nxt_php_root.start = p;
-            nxt_php_root.length = nxt_strlen(p);
-
-            nxt_log_error(NXT_LOG_INFO, thr->log,
-                          "(non ABS_MODE) php root: \"%V\"",
-                          &nxt_php_root);
-
-            sapi_startup(&nxt_php_sapi_module);
-            nxt_php_startup(&nxt_php_sapi_module);
-
-            nxt_app = &nxt_php_module;
-
-            return NXT_OK;
-        }
-    }
-
-    nxt_log_error(NXT_LOG_ERR, thr->log, "no option \"--php\" specified");
-
-    return NXT_ERROR;
+    return NXT_OK;
 }
 
 
 static nxt_int_t
-nxt_php_init(nxt_task_t *task)
+nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 {
+    nxt_str_t           *root, *path, *script, *index;
+    nxt_php_app_conf_t  *c;
+
+    c = &conf->u.php;
+
+    if (c->root.length == 0) {
+        nxt_log_emerg(task->log, "php root is empty");
+        return NXT_ERROR;
+    }
+
+    root = &nxt_php_root;
+    path = &nxt_php_path;
+    script = &nxt_php_script;
+    index = &nxt_php_index;
+
+    nxt_php_strdup(root, &c->root);
+
+    nxt_php_str_trim_trail(root, '/');
+
+    if (c->script.length > 0) {
+        nxt_php_str_trim_lead(&c->script, '/');
+
+        path->length = root->length + c->script.length + 1;
+        path->start = malloc(path->length + 1);
+
+        nxt_memcpy(path->start, root->start, root->length);
+        path->start[root->length] = '/';
+
+        nxt_memcpy(path->start + root->length + 1,
+                   c->script.start, c->script.length);
+
+        path->start[path->length] = '\0';
+
+
+        script->length = c->script.length + 1;
+        script->start = malloc(script->length + 1);
+        script->start[0] = '/';
+        nxt_memcpy(script->start + 1, c->script.start, c->script.length);
+        script->start[script->length] = '\0';
+
+        nxt_log_error(NXT_LOG_INFO, task->log,
+                      "(ABS_MODE) php script \"%V\" root: \"%V\"",
+                      script, root);
+    } else {
+        nxt_log_error(NXT_LOG_INFO, task->log,
+                      "(non ABS_MODE) php root: \"%V\"", root);
+    }
+
+    if (c->index.length > 0) {
+        nxt_php_strdup(index, &c->index);
+    }
+
+    sapi_startup(&nxt_php_sapi_module);
+    nxt_php_startup(&nxt_php_sapi_module);
+
     return NXT_OK;
 }
 
@@ -279,7 +302,7 @@ nxt_php_read_request(nxt_task_t *task, nxt_app_rmsg_t *rmsg,
 
     if (nxt_php_path.start == NULL) {
         if (h->path.start[h->path.length - 1] == '/') {
-            script_name = nxt_php_index_name;
+            script_name = nxt_php_index;
         } else {
             script_name.length = 0;
         }
@@ -464,6 +487,8 @@ nxt_php_run(nxt_task_t *task,
     file_handle.free_filename = 0;
     file_handle.opened_path = NULL;
 
+    nxt_debug(task, "handle.filename = '%s'", run_ctx.script.start);
+
     if (nxt_php_path.start != NULL) {
         nxt_debug(task, "run script %V in absolute mode", &nxt_php_path);
     } else {
@@ -471,6 +496,7 @@ nxt_php_run(nxt_task_t *task,
     }
 
     if (nxt_slow_path(php_request_startup() == FAILURE)) {
+        nxt_debug(task, "php_request_startup() failed");
         goto fail;
     }
 
@@ -747,6 +773,7 @@ nxt_php_register_variables(zval *track_vars_array TSRMLS_DC)
     nxt_debug(task, "php register variables");
 
 #define NXT_PHP_SET(n, v)                                                     \
+    nxt_debug(task, "php: register %s='%V'", n, &v);                          \
     php_register_variable_safe((char *) (n), (char *) (v).start,              \
                                (v).length, track_vars_array TSRMLS_CC)        \
 
