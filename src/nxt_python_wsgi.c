@@ -58,7 +58,7 @@ typedef struct {
 } nxt_py_error_t;
 
 
-static nxt_int_t nxt_python_init(nxt_task_t *task);
+static nxt_int_t nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf);
 
 static nxt_int_t nxt_python_prepare_msg(nxt_task_t *task,
                       nxt_app_request_t *r, nxt_app_wmsg_t *msg);
@@ -167,8 +167,6 @@ static PyTypeObject nxt_py_input_type = {
 };
 
 
-static char               *nxt_py_module;
-
 static PyObject           *nxt_py_application;
 static PyObject           *nxt_py_start_resp_obj;
 static PyObject           *nxt_py_environ_ptyp;
@@ -181,94 +179,67 @@ static nxt_python_run_ctx_t  *nxt_python_run_ctx;
 nxt_int_t
 nxt_python_wsgi_init(nxt_thread_t *thr, nxt_runtime_t *rt)
 {
-    char  **argv;
-    char  *p;
+    nxt_app_modules[NXT_APP_PYTHON] = &nxt_python_module;
 
-    argv = nxt_process_argv;
+#if PY_MAJOR_VERSION == 2
+    nxt_app_modules[NXT_APP_PYTHON2] = &nxt_python_module;
+#endif
 
-    while (*argv != NULL) {
-        p = *argv++;
-
-        if (nxt_strcmp(p, "--py-module") == 0) {
-            if (*argv == NULL) {
-                nxt_log_emerg(thr->log,
-                              "no argument for option \"--py-module\"");
-                return NXT_ERROR;
-            }
-
-            nxt_py_module = *argv++;
-
-            nxt_log_error(NXT_LOG_INFO, thr->log, "python module: \"%s\"",
-                          nxt_py_module);
-
-            break;
-        }
-    }
-
-    if (nxt_py_module == NULL) {
-        return NXT_OK;
-    }
-
-    nxt_app = &nxt_python_module;
+#if PY_MAJOR_VERSION == 3
+    nxt_app_modules[NXT_APP_PYTHON3] = &nxt_python_module;
+#endif
 
     return NXT_OK;
 }
 
 
 static nxt_int_t
-nxt_python_init(nxt_task_t *task)
+nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 {
-    char      **argv;
-    char      *p, *dir;
-    PyObject  *obj, *pypath, *module;
+    char                   *nxt_py_module;
+    PyObject               *obj, *pypath, *module;
+    nxt_python_app_conf_t  *c;
 
+    c = &conf->u.python;
+
+    if (c->module.length == 0) {
+        nxt_log_emerg(task->log, "python module is empty");
+        return NXT_ERROR;
+    }
 
     Py_InitializeEx(0);
 
     obj = NULL;
     module = NULL;
-    argv = nxt_process_argv;
 
-    while (*argv != NULL) {
-        p = *argv++;
+    if (c->path.length > 0) {
+        obj = PyString_FromStringAndSize((char *) c->path.start,
+                                         c->path.length);
 
-        if (nxt_strcmp(p, "--py-path") == 0) {
-            if (*argv == NULL) {
-                nxt_log_emerg(task->log, "no argument for option \"--py-path\"");
-                goto fail;
-            }
-
-            dir = *argv++;
-
-            nxt_log_error(NXT_LOG_INFO, task->log, "python path \"%s\"", dir);
-
-            obj = PyString_FromString((char *) dir);
-
-            if (nxt_slow_path(obj == NULL)) {
-                nxt_log_alert(task->log,
-                              "Python failed create string object \"%s\"", dir);
-                goto fail;
-            }
-
-            pypath = PySys_GetObject((char *) "path");
-
-            if (nxt_slow_path(pypath == NULL)) {
-                nxt_log_alert(task->log,
-                              "Python failed to get \"sys.path\" list");
-                goto fail;
-            }
-
-            if (nxt_slow_path(PyList_Insert(pypath, 0, obj) != 0)) {
-                nxt_log_alert(task->log,
-                      "Python failed to insert \"%s\" into \"sys.path\"", dir);
-                goto fail;
-            }
-
-            Py_DECREF(obj);
-            obj = NULL;
-
-            continue;
+        if (nxt_slow_path(obj == NULL)) {
+            nxt_log_alert(task->log,
+                          "Python failed create string object \"%V\"",
+                          &c->path);
+            goto fail;
         }
+
+        pypath = PySys_GetObject((char *) "path");
+
+        if (nxt_slow_path(pypath == NULL)) {
+            nxt_log_alert(task->log,
+                          "Python failed to get \"sys.path\" list");
+            goto fail;
+        }
+
+        if (nxt_slow_path(PyList_Insert(pypath, 0, obj) != 0)) {
+            nxt_log_alert(task->log,
+                  "Python failed to insert \"%V\" into \"sys.path\"",
+                  &c->path);
+            goto fail;
+        }
+
+        Py_DECREF(obj);
+        obj = NULL;
     }
 
     obj = PyCFunction_New(nxt_py_start_resp_method, NULL);
@@ -303,7 +274,9 @@ nxt_python_init(nxt_task_t *task)
 
     Py_DECREF(obj);
 
-    // PyOS_AfterFork();
+    nxt_py_module = nxt_alloca(c->module.length + 1);
+    nxt_memcpy(nxt_py_module, c->module.start, c->module.length);
+    nxt_py_module[c->module.length] = '\0';
 
     module = PyImport_ImportModule(nxt_py_module);
 

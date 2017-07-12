@@ -14,6 +14,8 @@ typedef enum {
     NXT_PROCESS_CONTROLLER,
     NXT_PROCESS_ROUTER,
     NXT_PROCESS_WORKER,
+
+    NXT_PROCESS_MAX,
 } nxt_process_type_t;
 
 
@@ -31,38 +33,41 @@ typedef struct {
 } nxt_user_cred_t;
 
 typedef struct nxt_process_init_s  nxt_process_init_t;
-typedef nxt_int_t (*nxt_process_star_t)(nxt_task_t *task, nxt_runtime_t *rt);
+typedef nxt_int_t (*nxt_process_start_t)(nxt_task_t *task, void *data);
 
 
 struct nxt_process_init_s {
-    nxt_process_star_t     start;
+    nxt_process_start_t    start;
     const char             *name;
     nxt_user_cred_t        *user_cred;
 
-    nxt_port_t             *port;
-    nxt_port_t             *master_port;
     nxt_port_handler_t     *port_handlers;
     const nxt_sig_event_t  *signals;
 
-    nxt_process_type_t     type:8;   /* 3 bits */
+    nxt_process_type_t     type;
+
+    void                   *data;
+    uint32_t               stream;
+
+    nxt_bool_t             restart;
 };
 
 
 typedef struct {
-    nxt_mp_t            *mem_pool;
-
     nxt_pid_t           pid;
     nxt_queue_t         ports;      /* of nxt_port_t */
-    nxt_port_id_t       last_port_id;
+    nxt_bool_t          ready;
 
     nxt_process_init_t  *init;
+
     nxt_thread_mutex_t  incoming_mutex;
-    nxt_mp_t            *incoming_mp;
     nxt_array_t         *incoming;  /* of nxt_port_mmap_t */
+
     nxt_thread_mutex_t  outgoing_mutex;
-    nxt_mp_t            *outgoing_mp;
     nxt_array_t         *outgoing;  /* of nxt_port_mmap_t */
 
+    nxt_thread_mutex_t  cp_mutex;
+    nxt_mp_t            *cp_mem_pool;
     nxt_lvlhsh_t        connected_ports; /* of nxt_port_t */
 } nxt_process_t;
 
@@ -77,7 +82,8 @@ NXT_EXPORT void nxt_nanosleep(nxt_nsec_t ns);
 NXT_EXPORT void nxt_process_arguments(nxt_task_t *task, char **orig_argv,
     char ***orig_envp);
 
-NXT_EXPORT nxt_port_t * nxt_process_port_new(nxt_process_t *process);
+NXT_EXPORT nxt_port_t * nxt_process_port_new(nxt_runtime_t *rt,
+    nxt_process_t *process, nxt_port_id_t id, nxt_process_type_t type);
 
 #define nxt_process_port_remove(port)                                         \
     nxt_queue_remove(&port->link)

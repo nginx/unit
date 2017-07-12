@@ -917,7 +917,7 @@ nxt_mp_retain(nxt_mp_t *mp, size_t size)
 }
 
 
-void
+uint32_t
 nxt_mp_release(nxt_mp_t *mp, void *p)
 {
     nxt_mp_free(mp, p);
@@ -928,7 +928,11 @@ nxt_mp_release(nxt_mp_t *mp, void *p)
 
     if (mp->retain == 0) {
         nxt_mp_destroy(mp);
+
+        return 0;
     }
+
+    return mp->retain;
 }
 
 

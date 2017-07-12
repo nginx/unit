@@ -10,11 +10,55 @@
 
 
 typedef enum {
-    NXT_APP_PYTHON = 0,
+    NXT_APP_UNKNOWN = 0,
+    NXT_APP_PYTHON,
+    NXT_APP_PYTHON2,
+    NXT_APP_PYTHON3,
     NXT_APP_PHP,
+    NXT_APP_PHP5,
+    NXT_APP_PHP7,
     NXT_APP_RUBY,
     NXT_APP_GO,
+
+    NXT_APP_MAX,
 } nxt_app_type_t;
+
+
+typedef struct nxt_common_app_conf_s nxt_common_app_conf_t;
+
+
+typedef struct {
+    nxt_str_t  path;
+    nxt_str_t  module;
+} nxt_python_app_conf_t;
+
+
+typedef struct {
+    nxt_str_t  root;
+    nxt_str_t  script;
+    nxt_str_t  index;
+} nxt_php_app_conf_t;
+
+
+typedef struct {
+    nxt_str_t  executable;
+} nxt_go_app_conf_t;
+
+
+struct nxt_common_app_conf_s {
+    nxt_str_t       type;
+    nxt_app_type_t  type_id;
+    nxt_str_t       user;
+    nxt_str_t       group;
+
+    uint32_t   workers;
+
+    union {
+        nxt_python_app_conf_t  python;
+        nxt_php_app_conf_t     php;
+        nxt_go_app_conf_t      go;
+    } u;
+};
 
 
 typedef struct {
@@ -138,18 +182,22 @@ nxt_int_t nxt_app_msg_read_size(nxt_task_t *task, nxt_app_rmsg_t *rmsg,
     size_t *size);
 
 
-typedef struct {
-    nxt_int_t                  (*init)(nxt_task_t *task);
+typedef struct nxt_app_module_s  nxt_application_module_t;
+typedef struct nxt_app_module_s  nxt_app_module_t;
+
+struct nxt_app_module_s {
+    nxt_int_t                  (*init)(nxt_task_t *task,
+                                    nxt_common_app_conf_t *conf);
     nxt_int_t                  (*prepare_msg)(nxt_task_t *task,
                                     nxt_app_request_t *r,
                                     nxt_app_wmsg_t *wmsg);
     nxt_int_t                  (*run)(nxt_task_t *task,
                                     nxt_app_rmsg_t *rmsg,
                                     nxt_app_wmsg_t *wmsg);
-} nxt_application_module_t;
+};
 
 
-extern nxt_application_module_t  *nxt_app;
+extern nxt_application_module_t  *nxt_app_modules[NXT_APP_MAX];
 
 
 
@@ -226,5 +274,7 @@ nxt_app_msg_read_length(u_char *src, size_t *length)
     return src;
 }
 
+
+nxt_app_type_t nxt_app_parse_type(nxt_str_t *str);
 
 #endif /* _NXT_APPLICATION_H_INCLIDED_ */

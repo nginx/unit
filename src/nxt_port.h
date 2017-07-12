@@ -15,6 +15,7 @@ typedef enum {
     NXT_PORT_MSG_MMAP,
     NXT_PORT_MSG_DATA,
     NXT_PORT_MSG_REMOVE_PID,
+    NXT_PORT_MSG_READY,
 
     NXT_PORT_MSG_MAX,
 } nxt_port_msg_type_t;
@@ -53,13 +54,19 @@ struct nxt_port_recv_msg_s {
     nxt_port_t          *port;
     nxt_port_msg_t      port_msg;
     size_t              size;
+    nxt_port_t          *new_port;
 };
 
+typedef struct nxt_app_s  nxt_app_t;
 
 struct nxt_port_s {
     nxt_fd_event_t      socket;
 
     nxt_queue_link_t    link;       /* for nxt_process_t.ports */
+    nxt_process_t       *process;
+
+    nxt_queue_link_t    app_link;   /* for nxt_app_t.ports */
+    nxt_app_t           *app;
 
     nxt_queue_t         messages;   /* of nxt_port_send_msg_t */
 
@@ -69,25 +76,24 @@ struct nxt_port_s {
     uint32_t            max_share;
 
     nxt_port_handler_t  handler;
-    void                *data;
+    nxt_port_handler_t  *data;
 
     nxt_mp_t            *mem_pool;
+    nxt_event_engine_t  *engine;
+
     nxt_buf_t           *free_bufs;
     nxt_socket_t        pair[2];
 
     nxt_port_id_t       id;
     nxt_pid_t           pid;
-    uint32_t            engine;
 
-    nxt_process_type_t  type:8;
-    nxt_process_t       *process;
+    nxt_process_type_t  type;
 };
 
 
 typedef struct {
     nxt_port_id_t       id;
     nxt_pid_t           pid;
-    uint32_t            engine;
     size_t              max_size;
     size_t              max_share;
     nxt_process_type_t  type:8;
@@ -104,6 +110,9 @@ typedef union {
 } nxt_port_data_t;
 
 
+nxt_port_id_t nxt_port_get_next_id(void);
+void nxt_port_reset_next_id(void);
+
 nxt_int_t nxt_port_socket_init(nxt_task_t *task, nxt_port_t *port,
     size_t max_size);
 void nxt_port_destroy(nxt_port_t *port);
@@ -115,19 +124,20 @@ nxt_int_t nxt_port_socket_write(nxt_task_t *task, nxt_port_t *port,
     nxt_uint_t type, nxt_fd_t fd, uint32_t stream, nxt_port_id_t reply_port,
     nxt_buf_t *b);
 
-void nxt_port_create(nxt_task_t *task, nxt_port_t *port,
+void nxt_port_enable(nxt_task_t *task, nxt_port_t *port,
     nxt_port_handler_t *handlers);
 void nxt_port_write(nxt_task_t *task, nxt_runtime_t *rt, nxt_uint_t type,
     nxt_fd_t fd, uint32_t stream, nxt_buf_t *b);
 void nxt_port_send_new_port(nxt_task_t *task, nxt_runtime_t *rt,
-    nxt_port_t *port);
+    nxt_port_t *port, uint32_t stream);
 nxt_int_t nxt_port_send_port(nxt_task_t *task, nxt_port_t *port,
-    nxt_port_t *new_port);
+    nxt_port_t *new_port, uint32_t stream);
 void nxt_port_change_log_file(nxt_task_t *task, nxt_runtime_t *rt,
     nxt_uint_t slot, nxt_fd_t fd);
 
 void nxt_port_quit_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 void nxt_port_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
+void nxt_port_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 void nxt_port_change_log_file_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
 void nxt_port_mmap_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);

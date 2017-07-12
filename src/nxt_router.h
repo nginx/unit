@@ -20,6 +20,8 @@ typedef struct {
 
     nxt_queue_t            sockets;    /* of nxt_socket_conf_t */
     nxt_queue_t            apps;       /* of nxt_app_t */
+
+    nxt_lvlhsh_t           start_workers; /* stream to nxt_start_worker_t */
 } nxt_router_t;
 
 
@@ -61,9 +63,13 @@ typedef struct {
 } nxt_router_temp_conf_t;
 
 
-typedef struct {
+typedef struct nxt_app_module_s  nxt_app_module_t;
+typedef struct nxt_app_s  nxt_app_t;
+
+struct nxt_app_s {
     nxt_thread_mutex_t     mutex;
     nxt_queue_t            ports;
+    nxt_queue_t            requests; /* of nxt_req_conn_link_t */
     nxt_str_t              name;
 
     uint32_t               workers;
@@ -75,7 +81,8 @@ typedef struct {
     nxt_queue_link_t       link;
 
     nxt_str_t              conf;
-} nxt_app_t;
+    nxt_app_module_t       *module;
+};
 
 
 typedef struct {
@@ -111,7 +118,9 @@ typedef struct {
 } nxt_socket_conf_joint_t;
 
 
+void nxt_router_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 void nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 
+void nxt_router_app_remove_port(nxt_port_t *port);
 
 #endif  /* _NXT_ROUTER_H_INCLUDED_ */

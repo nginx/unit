@@ -121,7 +121,9 @@ nxt_port_write_enable(nxt_task_t *task, nxt_port_t *port)
     port->socket.log = &nxt_main_log;
     port->socket.write_ready = 1;
 
-    port->socket.write_work_queue = &task->thread->engine->fast_work_queue;
+    port->engine = task->thread->engine;
+
+    port->socket.write_work_queue = &port->engine->fast_work_queue;
     port->socket.write_handler = nxt_port_write_handler;
     port->socket.error_handler = nxt_port_error_handler;
 }
@@ -344,6 +346,7 @@ nxt_port_write_handler(nxt_task_t *task, void *obj, void *data)
     } while (port->socket.write_ready);
 
     if (nxt_fd_event_is_disabled(port->socket.write)) {
+        /* TODO task->thread->engine or port->engine ? */
         nxt_fd_event_enable_write(task->thread->engine, &port->socket);
     }
 
@@ -362,11 +365,13 @@ nxt_port_read_enable(nxt_task_t *task, nxt_port_t *port)
     port->socket.fd = port->pair[0];
     port->socket.log = &nxt_main_log;
 
-    port->socket.read_work_queue = &task->thread->engine->fast_work_queue;
+    port->engine = task->thread->engine;
+
+    port->socket.read_work_queue = &port->engine->fast_work_queue;
     port->socket.read_handler = nxt_port_read_handler;
     port->socket.error_handler = nxt_port_error_handler;
 
-    nxt_fd_event_enable_read(task->thread->engine, &port->socket);
+    nxt_fd_event_enable_read(port->engine, &port->socket);
 }
 
 
@@ -388,6 +393,8 @@ nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
     nxt_port_recv_msg_t  msg;
 
     port = msg.port = nxt_container_of(obj, nxt_port_t, socket);
+
+    nxt_assert(port->engine == task->thread->engine);
 
     for ( ;; ) {
 

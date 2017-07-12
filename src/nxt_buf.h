@@ -258,5 +258,20 @@ nxt_buf_free(mp, b)                                                           \
 NXT_EXPORT void nxt_buf_chain_add(nxt_buf_t **head, nxt_buf_t *in);
 NXT_EXPORT size_t nxt_buf_chain_length(nxt_buf_t *b);
 
+nxt_inline nxt_buf_t *
+nxt_buf_cpy(nxt_buf_t *b, const void *src, size_t length)
+{
+    nxt_memcpy(b->mem.free, src, length);
+    b->mem.free += length;
+
+    return b;
+}
+
+nxt_inline nxt_buf_t *
+nxt_buf_cpystr(nxt_buf_t *b, const nxt_str_t *str)
+{
+    return nxt_buf_cpy(b, str->start, str->length);
+}
+
 
 #endif /* _NXT_BUF_H_INCLIDED_ */

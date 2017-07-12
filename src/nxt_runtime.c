@@ -9,6 +9,7 @@
 #include <nxt_runtime.h>
 #include <nxt_port.h>
 #include <nxt_master_process.h>
+#include <nxt_router.h>
 
 
 static nxt_int_t nxt_runtime_inherited_listen_sockets(nxt_task_t *task,
@@ -1479,13 +1480,31 @@ nxt_runtime_process_new(nxt_runtime_t *rt)
 
     nxt_queue_init(&process->ports);
 
-    /* TODO each process should have it's own mem_pool for ports allocation */
-    process->mem_pool = rt->mem_pool;
-
     nxt_thread_mutex_create(&process->incoming_mutex);
     nxt_thread_mutex_create(&process->outgoing_mutex);
+    nxt_thread_mutex_create(&process->cp_mutex);
 
     return process;
+}
+
+
+void
+nxt_runtime_process_destroy(nxt_runtime_t *rt, nxt_process_t *process)
+{
+    nxt_port_mmaps_destroy(process->incoming, 1);
+    nxt_port_mmaps_destroy(process->outgoing, 1);
+
+    if (process->cp_mem_pool != NULL) {
+        nxt_mp_thread_adopt(process->cp_mem_pool);
+
+        nxt_mp_destroy(process->cp_mem_pool);
+    }
+
+    nxt_thread_mutex_destroy(&process->incoming_mutex);
+    nxt_thread_mutex_destroy(&process->outgoing_mutex);
+    nxt_thread_mutex_destroy(&process->cp_mutex);
+
+    nxt_mp_free(rt->mem_pool, process);
 }
 
 
@@ -1606,6 +1625,8 @@ nxt_runtime_process_add(nxt_runtime_t *rt, nxt_process_t *process)
 
         nxt_process_port_each(process, port) {
 
+            port->pid = process->pid;
+
             nxt_runtime_port_add(rt, port);
 
         } nxt_process_port_loop;
@@ -1621,9 +1642,7 @@ nxt_runtime_process_add(nxt_runtime_t *rt, nxt_process_t *process)
 void
 nxt_runtime_process_remove(nxt_runtime_t *rt, nxt_process_t *process)
 {
-    uint32_t            i;
     nxt_port_t          *port;
-    nxt_port_mmap_t     *port_mmap;
     nxt_lvlhsh_query_t  lhq;
 
     lhq.key_hash = nxt_murmur_hash2(&process->pid, sizeof(process->pid));
@@ -1645,35 +1664,8 @@ nxt_runtime_process_remove(nxt_runtime_t *rt, nxt_process_t *process)
 
         } nxt_process_port_loop;
 
-        if (process->incoming) {
-            nxt_mp_thread_adopt(process->incoming_mp);
+        nxt_runtime_process_destroy(rt, process);
 
-            port_mmap = process->incoming->elts;
-
-            for (i = 0; i < process->incoming->nelts; i++) {
-                nxt_port_mmap_destroy(port_mmap);
-            }
-
-            nxt_thread_mutex_destroy(&process->incoming_mutex);
-
-            nxt_mp_destroy(process->incoming_mp);
-        }
-
-        if (process->outgoing) {
-            nxt_mp_thread_adopt(process->outgoing_mp);
-
-            port_mmap = process->outgoing->elts;
-
-            for (i = 0; i < process->outgoing->nelts; i++) {
-                nxt_port_mmap_destroy(port_mmap);
-            }
-
-            nxt_thread_mutex_destroy(&process->outgoing_mutex);
-
-            nxt_mp_destroy(process->outgoing_mp);
-        }
-
-        nxt_mp_free(rt->mem_pool, process);
         break;
 
     default:
@@ -1704,6 +1696,8 @@ void
 nxt_runtime_port_add(nxt_runtime_t *rt, nxt_port_t *port)
 {
     nxt_port_hash_add(&rt->ports, rt->mem_pool, port);
+
+    rt->port_by_type[port->type] = port;
 }
 
 
@@ -1711,6 +1705,10 @@ void
 nxt_runtime_port_remove(nxt_runtime_t *rt, nxt_port_t *port)
 {
     nxt_port_hash_remove(&rt->ports, rt->mem_pool, port);
+
+    if (rt->port_by_type[port->type] == port) {
+        rt->port_by_type[port->type] = NULL;
+    }
 
     if (port->pair[0] != -1) {
         nxt_fd_close(port->pair[0]);
@@ -1720,11 +1718,15 @@ nxt_runtime_port_remove(nxt_runtime_t *rt, nxt_port_t *port)
         nxt_fd_close(port->pair[1]);
     }
 
+    if (port->type == NXT_PROCESS_WORKER) {
+        nxt_router_app_remove_port(port);
+    }
+
     if (port->mem_pool) {
         nxt_mp_destroy(port->mem_pool);
     }
 
-    nxt_mp_free(port->process->mem_pool, port);
+    nxt_mp_free(rt->mem_pool, port);
 }
 
 

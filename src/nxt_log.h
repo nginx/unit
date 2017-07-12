@@ -162,4 +162,17 @@ NXT_EXPORT extern nxt_log_t   nxt_main_log;
 NXT_EXPORT extern nxt_str_t   nxt_log_levels[];
 
 
+#define nxt_assert(c)                                                         \
+    do {                                                                      \
+        if (nxt_fast_path(c)) {                                               \
+            break;                                                            \
+                                                                              \
+        } else {                                                              \
+            nxt_thread_log_alert("%s:%d assertion failed: %s",                \
+                __FILE__, __LINE__, #c );                                     \
+            nxt_abort();                                                      \
+        }                                                                     \
+    } while (0)
+
+
 #endif /* _NXT_LOG_H_INCLUDED_ */

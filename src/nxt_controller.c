@@ -89,14 +89,17 @@ static const nxt_event_conn_state_t  nxt_controller_conn_close_state;
 
 
 nxt_int_t
-nxt_controller_start(nxt_task_t *task, nxt_runtime_t *rt)
+nxt_controller_start(nxt_task_t *task, void *data)
 {
     nxt_mp_t                *mp;
+    nxt_runtime_t           *rt;
     nxt_conf_value_t        *conf;
     nxt_http_fields_hash_t  *hash;
 
     static const nxt_str_t json
         = nxt_string("{ \"listeners\": {}, \"applications\": {} }");
+
+    rt = task->thread->runtime;
 
     hash = nxt_http_fields_hash_create(nxt_controller_request_fields,
                                        rt->mem_pool);
@@ -853,13 +856,7 @@ nxt_controller_conf_pass(nxt_task_t *task, nxt_conf_value_t *conf)
 
     rt = task->thread->runtime;
 
-    nxt_runtime_port_each(rt, port) {
-
-        if (port->type == NXT_PROCESS_ROUTER) {
-            break;
-        }
-
-    } nxt_runtime_port_loop;
+    port = rt->port_by_type[NXT_PROCESS_ROUTER];
 
     size = nxt_conf_json_length(conf, NULL);
 

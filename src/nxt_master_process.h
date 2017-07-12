@@ -12,9 +12,9 @@ nxt_int_t nxt_master_process_start(nxt_thread_t *thr, nxt_task_t *task,
     nxt_runtime_t *runtime);
 void nxt_master_stop_worker_processes(nxt_task_t *task, nxt_runtime_t *runtime);
 
-nxt_int_t nxt_controller_start(nxt_task_t *task, nxt_runtime_t *rt);
-nxt_int_t nxt_router_start(nxt_task_t *task, nxt_runtime_t *rt);
-
+nxt_int_t nxt_controller_start(nxt_task_t *task, void *data);
+nxt_int_t nxt_router_start(nxt_task_t *task, void *data);
+nxt_int_t nxt_app_start(nxt_task_t *task, void *data);
 
 extern nxt_port_handler_t  nxt_controller_process_port_handlers[];
 extern nxt_port_handler_t  nxt_worker_process_port_handlers[];

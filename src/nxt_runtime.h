@@ -39,6 +39,7 @@ struct nxt_runtime_s {
     size_t                 nprocesses;
     nxt_lvlhsh_t           processes;           /* of nxt_process_t */
 
+    nxt_port_t             *port_by_type[NXT_PROCESS_MAX];
     nxt_lvlhsh_t           ports;               /* of nxt_port_t */
 
     nxt_list_t             *log_files;          /* of nxt_file_t */
@@ -100,6 +101,8 @@ nxt_runtime_is_master(nxt_runtime_t *rt)
 
 nxt_process_t *nxt_runtime_process_new(nxt_runtime_t *rt);
 
+void nxt_runtime_process_destroy(nxt_runtime_t *rt, nxt_process_t *process);
+
 nxt_process_t *nxt_runtime_process_get(nxt_runtime_t *rt, nxt_pid_t pid);
 
 void nxt_runtime_process_add(nxt_runtime_t *rt, nxt_process_t *process);
@@ -150,7 +153,6 @@ void nxt_cdecl nxt_log_time_handler(nxt_uint_t level, nxt_log_t *log,
     const char *fmt, ...);
 
 void nxt_stream_connection_init(nxt_task_t *task, void *obj, void *data);
-nxt_int_t nxt_app_start(nxt_task_t *task, nxt_runtime_t *rt);
 
 void nxt_port_app_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 

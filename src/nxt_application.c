@@ -9,19 +9,27 @@
 #include <nxt_main.h>
 #include <nxt_runtime.h>
 #include <nxt_application.h>
+#include <nxt_master_process.h>
 
 
-nxt_application_module_t         *nxt_app;
+nxt_application_module_t         *nxt_app_modules[NXT_APP_MAX];
 
 static nxt_thread_mutex_t        nxt_app_mutex;
 static nxt_thread_cond_t         nxt_app_cond;
 
 static nxt_http_fields_hash_entry_t  nxt_app_request_fields[];
-static nxt_http_fields_hash_t    *nxt_app_request_fields_hash;
+static nxt_http_fields_hash_t        *nxt_app_request_fields_hash;
+
+static nxt_application_module_t      *nxt_app;
 
 nxt_int_t
-nxt_app_start(nxt_task_t *task, nxt_runtime_t *rt)
+nxt_app_start(nxt_task_t *task, void *data)
 {
+    nxt_int_t             ret;
+    nxt_common_app_conf_t *app_conf;
+
+    app_conf = data;
+
     if (nxt_slow_path(nxt_thread_mutex_create(&nxt_app_mutex) != NXT_OK)) {
         return NXT_ERROR;
     }
@@ -30,11 +38,18 @@ nxt_app_start(nxt_task_t *task, nxt_runtime_t *rt)
         return NXT_ERROR;
     }
 
-    if (nxt_slow_path(nxt_app->init(task) != NXT_OK)) {
+    nxt_app = nxt_app_modules[app_conf->type_id];
+
+    ret = nxt_app->init(task, data);
+
+    if (nxt_slow_path(ret != NXT_OK)) {
         nxt_debug(task, "application init failed");
+
+    } else {
+        nxt_debug(task, "application init done");
     }
 
-    return NXT_OK;
+    return ret;
 }
 
 
@@ -569,4 +584,37 @@ nxt_app_msg_write_raw(nxt_task_t *task, nxt_app_wmsg_t *msg, const u_char *c,
               (int)size, c);
 
     return NXT_OK;
+}
+
+
+nxt_app_type_t
+nxt_app_parse_type(nxt_str_t *str)
+{
+    if (nxt_str_eq(str, "python", 6)) {
+        return NXT_APP_PYTHON;
+
+    } else if (nxt_str_eq(str, "python2", 7)) {
+        return NXT_APP_PYTHON2;
+
+    } else if (nxt_str_eq(str, "python3", 7)) {
+        return NXT_APP_PYTHON3;
+
+    } else if (nxt_str_eq(str, "php", 3)) {
+        return NXT_APP_PHP;
+
+    } else if (nxt_str_eq(str, "php5", 4)) {
+        return NXT_APP_PHP5;
+
+    } else if (nxt_str_eq(str, "php7", 4)) {
+        return NXT_APP_PHP7;
+
+    } else if (nxt_str_eq(str, "ruby", 4)) {
+        return NXT_APP_RUBY;
+
+    } else if (nxt_str_eq(str, "go", 2)) {
+        return NXT_APP_GO;
+
+    }
+
+    return NXT_APP_UNKNOWN;
 }

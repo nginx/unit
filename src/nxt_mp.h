@@ -87,7 +87,7 @@ NXT_EXPORT void *nxt_mp_retain(nxt_mp_t *mp, size_t size)
  * nxt_mp_release() returns freeable memory and decreases memory pool
  * retention counter.  If the counter becomes zero the pool is destroyed.
  */
-NXT_EXPORT void nxt_mp_release(nxt_mp_t *mp, void *p);
+NXT_EXPORT uint32_t nxt_mp_release(nxt_mp_t *mp, void *p);
 
 
 /* nxt_mp_nget() returns non-aligned non-freeable memory. */
