@@ -42,7 +42,7 @@ nxt_go_request_done(nxt_go_request_t r)
 }
 
 void
-nxt_go_listen_and_serve()
+nxt_go_ready()
 {
 }
 
@@ -53,16 +53,6 @@ nxt_go_process_port_msg(void *buf, size_t buf_len, void *oob, size_t oob_len)
 }
 
 #else
-
-#if 0
-
-#include <nxt_runtime.h>
-#include <nxt_master_process.h>
-#include <nxt_application.h>
-
-#include "nxt_go_port.h"
-
-#endif
 
 #include "nxt_go_run_ctx.h"
 #include "nxt_go_log.h"
@@ -181,6 +171,29 @@ nxt_go_request_done(nxt_go_request_t r)
     free(ctx);
 
     return res;
+}
+
+
+void
+nxt_go_ready()
+{
+    char           *go_stream;
+    nxt_port_msg_t port_msg;
+
+    go_stream = getenv("NXT_GO_STREAM");
+
+    if (go_stream == NULL) {
+        return;
+    }
+
+    port_msg.stream = atol(go_stream);
+    port_msg.pid = getpid();
+    port_msg.reply_port = 0;
+    port_msg.type = NXT_PORT_MSG_READY;
+    port_msg.last = 0;
+    port_msg.mmap = 0;
+
+    nxt_go_master_send(&port_msg, sizeof(port_msg), NULL, 0);
 }
 
 

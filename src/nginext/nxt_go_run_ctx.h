@@ -36,6 +36,7 @@ typedef struct {
     nxt_go_msg_t         msg;
 
     nxt_go_process_t     *process;
+    nxt_port_mmap_msg_t  *wmmap_msg;
 
     uint32_t             nrbuf;
     nxt_buf_t            rbuf;
@@ -43,7 +44,7 @@ typedef struct {
     uint32_t             nwbuf;
     nxt_buf_t            wbuf;
     nxt_port_msg_t       wport_msg;
-    nxt_port_mmap_msg_t  wmmap_msg[8];
+    char                 wmmap_msg_buf[ sizeof(nxt_port_mmap_msg_t) * 8 ];
 
     nxt_app_request_t    r;
 

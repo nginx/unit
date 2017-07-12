@@ -8,15 +8,13 @@
 #include <nxt_application.h>
 
 
-static nxt_int_t nxt_go_init(nxt_task_t *task);
+static nxt_int_t nxt_go_init(nxt_task_t *task, nxt_common_app_conf_t *conf);
 
 static nxt_int_t nxt_go_prepare_msg(nxt_task_t *task,
                       nxt_app_request_t *r, nxt_app_wmsg_t *msg);
 
 static nxt_int_t nxt_go_run(nxt_task_t *task,
                       nxt_app_rmsg_t *rmsg, nxt_app_wmsg_t *msg);
-
-static nxt_str_t nxt_go_path;
 
 nxt_application_module_t  nxt_go_module = {
     nxt_go_init,
@@ -31,39 +29,9 @@ nxt_go_module_init(nxt_thread_t *thr, nxt_runtime_t *rt);
 nxt_int_t
 nxt_go_module_init(nxt_thread_t *thr, nxt_runtime_t *rt)
 {
-    char        **argv;
-    u_char      *p;
+    nxt_app_modules[NXT_APP_GO] = &nxt_go_module;
 
-    argv = nxt_process_argv;
-
-    while (*argv != NULL) {
-        p = (u_char *) *argv++;
-
-        if (nxt_strcmp(p, "--go") == 0) {
-            if (*argv == NULL) {
-                nxt_log_error(NXT_LOG_ERR, thr->log,
-                              "no argument for option \"--go\"");
-                return NXT_ERROR;
-            }
-
-            p = (u_char *) *argv;
-
-            nxt_go_path.start = p;
-            nxt_go_path.length = nxt_strlen(p);
-
-            nxt_log_error(NXT_LOG_INFO, thr->log,
-                          "go program \"%V\"",
-                          &nxt_go_path);
-
-            nxt_app = &nxt_go_module;
-
-            return NXT_OK;
-        }
-    }
-
-    nxt_log_error(NXT_LOG_ERR, thr->log, "no option \"--go\" specified");
-
-    return NXT_ERROR;
+    return NXT_OK;
 }
 
 extern char  **environ;
@@ -77,59 +45,70 @@ nxt_sock_no_cloexec(nxt_socket_t fd)
     return fcntl(fd, F_SETFD, 0);
 }
 
+
 static nxt_int_t
-nxt_go_init(nxt_task_t *task)
+nxt_go_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 {
-    char *go_ports = getenv("NXT_GO_PORTS");
+    char               *go_path;
+    char               *argv[2];
+    u_char             buf[256];
+    u_char             *p;
+    u_char             stream_buf[32];
+    nxt_port_t         *port;
+    nxt_runtime_t      *rt;
+    nxt_go_app_conf_t  *c;
 
-    nxt_debug(task, "initialize go app, NXT_GO_PORTS=%s",
-              go_ports ? go_ports : "NULL");
+    c = &conf->u.go;
+    rt = task->thread->runtime;
+    p = buf;
 
-    if (go_ports == NULL) {
-        u_char buf[256];
-        u_char *p = buf;
+    nxt_runtime_port_each(rt, port) {
 
-        nxt_runtime_t *rt = task->thread->runtime;
-        nxt_port_t *port;
+        if (port->pid != nxt_pid && port->type != NXT_PROCESS_MASTER) {
+            continue;
+        }
 
-        nxt_runtime_port_each(rt, port) {
+        if (port->pid == nxt_pid) {
+            nxt_sprintf(stream_buf, stream_buf + sizeof(stream_buf),
+                        "%uD", port->process->init->stream);
 
-            nxt_debug(task, "port %PI, %ud, (%d, %d)", port->pid, port->id,
-                      port->pair[0], port->pair[1]);
+            setenv("NXT_GO_STREAM", (char *)stream_buf, 1);
+        }
 
-            p = nxt_sprintf(p, buf + sizeof(buf), "%PI,%ud,%d,%d,%d;",
-                            port->pid, port->id, (int)port->type,
-                            port->pair[0], port->pair[1]);
+        nxt_debug(task, "port %PI, %ud, (%d, %d)", port->pid, port->id,
+                  port->pair[0], port->pair[1]);
 
-            if (nxt_slow_path(nxt_sock_no_cloexec(port->pair[0]))) {
-                nxt_log(task, NXT_LOG_WARN, "fcntl() failed %E", nxt_errno);
-            }
+        p = nxt_sprintf(p, buf + sizeof(buf), "%PI,%ud,%d,%d,%d;",
+                        port->pid, port->id, (int)port->type,
+                        port->pair[0], port->pair[1]);
 
-            if (nxt_slow_path(nxt_sock_no_cloexec(port->pair[1]))) {
-                nxt_log(task, NXT_LOG_WARN, "fcntl() failed %E", nxt_errno);
-            }
+        if (nxt_slow_path(nxt_sock_no_cloexec(port->pair[0]))) {
+            nxt_log(task, NXT_LOG_WARN, "fcntl() failed %E", nxt_errno);
+        }
 
-        } nxt_runtime_port_loop;
+        if (nxt_slow_path(nxt_sock_no_cloexec(port->pair[1]))) {
+            nxt_log(task, NXT_LOG_WARN, "fcntl() failed %E", nxt_errno);
+        }
 
-        *p = '\0';
-        nxt_debug(task, "update NXT_GO_PORTS=%s", buf);
+    } nxt_runtime_port_loop;
 
-        setenv("NXT_GO_PORTS", (char *)buf, 1);
+    *p = '\0';
+    nxt_debug(task, "update NXT_GO_PORTS=%s", buf);
 
-        char *argv[] = {
-            (char *)nxt_go_path.start,
-            (char *)"--no-daemonize",
-            (char *)"--app", NULL };
+    setenv("NXT_GO_PORTS", (char *)buf, 1);
 
-        (void) execve((char *)nxt_go_path.start, argv, environ);
+    go_path = malloc(c->executable.length + 1);
+    nxt_memcpy(go_path, c->executable.start, c->executable.length);
+    go_path[c->executable.length] = '\0';
 
-        nxt_log(task, NXT_LOG_WARN, "execve(%V) failed %E", &nxt_go_path,
-                nxt_errno);
+    argv[0] = go_path;
+    argv[1] = NULL;
 
-        return NXT_ERROR;
-    }
+    (void) execve(go_path, argv, environ);
 
-    return NXT_OK;
+    nxt_log(task, NXT_LOG_WARN, "execve(%s) failed %E", go_path, nxt_errno);
+
+    return NXT_ERROR;
 }
 
 

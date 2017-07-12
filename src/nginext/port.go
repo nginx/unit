@@ -25,6 +25,7 @@ type port_key struct {
 
 type port struct {
 	key port_key
+	t   int
 	rcv *net.UnixConn
 	snd *net.UnixConn
 }
@@ -32,6 +33,7 @@ type port struct {
 type port_registry struct {
 	sync.RWMutex
 	m map[port_key]*port
+	t [5]*port
 }
 
 var port_registry_ port_registry
@@ -44,6 +46,31 @@ func find_port(key port_key) *port {
 	return res
 }
 
+func remove_by_pid(pid int) {
+	port_registry_.Lock()
+	if port_registry_.m != nil {
+		for k, p := range port_registry_.m {
+			if k.pid == pid {
+				if port_registry_.t[p.t] == p {
+					port_registry_.t[p.t] = nil
+				}
+
+				delete(port_registry_.m, k)
+			}
+		}
+	}
+
+	port_registry_.Unlock()
+}
+
+func master_port() *port {
+	port_registry_.RLock()
+	res := port_registry_.t[1]
+	port_registry_.RUnlock()
+
+	return res
+}
+
 func add_port(p *port) {
 	port_registry_.Lock()
 	if port_registry_.m == nil {
@@ -51,6 +78,7 @@ func add_port(p *port) {
 	}
 
 	port_registry_.m[p.key] = p
+	port_registry_.t[p.t] = p
 
 	port_registry_.Unlock()
 }
@@ -85,7 +113,6 @@ func getUnixConn(fd int) *net.UnixConn {
 		return nil
 	}
 
-	fmt.Printf("Unix-domain socket %d\n", fd)
 	return uc
 }
 
@@ -116,19 +143,35 @@ func nxt_go_port_send(pid C.int, id C.int, buf unsafe.Pointer, buf_size C.int, o
 	return 0
 }
 
+//export nxt_go_master_send
+func nxt_go_master_send(buf unsafe.Pointer, buf_size C.int, oob unsafe.Pointer, oob_size C.int) C.int {
+	p := master_port()
+
+	if p != nil {
+		n, oobn, err := p.snd.WriteMsgUnix(C.GoBytes(buf, buf_size), C.GoBytes(oob, oob_size), nil)
+
+		if err != nil {
+			fmt.Printf("write result %d (%d), %s\n", n, oobn, err)
+		}
+
+		return C.int(n)
+	}
+
+	return 0
+}
+
 func new_port(pid int, id int, t int, rcv int, snd int) *port {
 	p := &port{
 		key: port_key{
 			pid: pid,
 			id:  id,
 		},
+		t: t,
 		rcv: getUnixConn(rcv),
 		snd: getUnixConn(snd),
 	}
 
 	add_port(p)
-
-	fmt.Printf("new_port: %d, %d, %d, %d\n", pid, id, rcv, snd)
 
 	return p
 }
@@ -137,9 +180,7 @@ func (p *port) read() {
 	var buf [16384]byte
 	var oob [1024]byte
 
-	n, oobn, _, _, err := p.rcv.ReadMsgUnix(buf[:], oob[:])
-
-	fmt.Printf("read result %d (%d), %s\n", n, oobn, err)
+	n, oobn, _, _, _ := p.rcv.ReadMsgUnix(buf[:], oob[:])
 
 	m := new_cmsg(buf[:n], oob[:oobn])
 

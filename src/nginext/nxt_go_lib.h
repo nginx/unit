@@ -31,7 +31,7 @@ int nxt_go_request_close(nxt_go_request_t r);
 
 int nxt_go_request_done(nxt_go_request_t r);
 
-void nxt_go_listen_and_serve();
+void nxt_go_ready();
 
 nxt_go_request_t nxt_go_process_port_msg(void *buf, size_t buf_len,
     void *oob, size_t oob_len);

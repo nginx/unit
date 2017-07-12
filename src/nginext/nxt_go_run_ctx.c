@@ -168,6 +168,8 @@ nxt_go_ctx_init(nxt_go_run_ctx_t *ctx, nxt_port_msg_t *port_msg,
     ctx->wport_msg.type = NXT_PORT_MSG_DATA;
     ctx->wport_msg.mmap = 1;
 
+    ctx->wmmap_msg = (nxt_port_mmap_msg_t *) ( &ctx->wport_msg + 1 );
+
     return nxt_go_ctx_init_rbuf(ctx);
 }
 
@@ -197,6 +199,7 @@ nxt_go_ctx_add_msg(nxt_go_run_ctx_t *ctx, nxt_port_msg_t *port_msg, size_t size)
 nxt_int_t
 nxt_go_ctx_flush(nxt_go_run_ctx_t *ctx, int last)
 {
+    int       i;
     nxt_int_t rc;
 
     if (last != 0) {
@@ -204,6 +207,13 @@ nxt_go_ctx_flush(nxt_go_run_ctx_t *ctx, int last)
     }
 
     nxt_go_debug("flush buffers (%d)", last);
+
+    for (i = 0; i < ctx->nwbuf; i++) {
+        nxt_port_mmap_msg_t *m = ctx->wmmap_msg + i;
+
+        nxt_go_debug("  mmap_msg[%d]={%d, %d, %d}", i,
+                     m->mmap_id, m->chunk_id, m->size);
+    }
 
     rc = nxt_go_port_send(ctx->msg.port_msg->pid, ctx->msg.port_msg->reply_port,
                           &ctx->wport_msg, sizeof(nxt_port_msg_t) +

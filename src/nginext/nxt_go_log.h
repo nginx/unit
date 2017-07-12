@@ -16,8 +16,7 @@
 #if (NXT_DEBUG)
 
 #define nxt_go_debug(fmt, ARGS...) \
-    fprintf(stdout, "go debug[%p]: " fmt "\n", \
-            (void *) (intptr_t) pthread_self(), ##ARGS)
+    fprintf(stderr, "[go debug] " fmt "\n", ##ARGS)
 
 #else
 
@@ -26,10 +25,10 @@
 #endif
 
 #define nxt_go_warn(fmt, ARGS...) \
-    fprintf(stdout, "go warn: " fmt "\n", ##ARGS)
+    fprintf(stderr, "[go warn] " fmt "\n", ##ARGS)
 
 #define nxt_go_error(fmt, ARGS...) \
-    fprintf(stdout, "go error: " fmt "\n", ##ARGS)
+    fprintf(stderr, "[go error] " fmt "\n", ##ARGS)
 
 
 #endif /* _NXT_GO_LOG_H_INCLUDED_ */

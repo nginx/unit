@@ -84,7 +84,6 @@ func ListenAndServe() {
 	var read_port *port
 
 	go_ports_env := os.Getenv("NXT_GO_PORTS")
-	fmt.Printf("NXT_GO_PORTS = %s\n", go_ports_env)
 
 	ports := strings.Split(go_ports_env, ";")
 	pid := os.Getpid()
@@ -95,7 +94,6 @@ func ListenAndServe() {
 		}
 
 		attrs := strings.Split(port_str, ",")
-		fmt.Printf("Port = %q\n", attrs)
 
 		var attrsN [5]int
 		var err error
@@ -119,6 +117,8 @@ func ListenAndServe() {
 	}
 
 	if read_port != nil {
+		C.nxt_go_ready()
+
 		for !nxt_go_quit {
 			read_port.read()
 		}
