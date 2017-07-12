@@ -381,6 +381,26 @@ nxt_router_conf_success(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
 static void
 nxt_router_conf_error(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
 {
+    nxt_socket_t       s;
+    nxt_queue_link_t   *qlk;
+    nxt_socket_conf_t  *skcf;
+
+    for (qlk = nxt_queue_first(&tmcf->creating);
+         qlk != nxt_queue_tail(&tmcf->creating);
+         qlk = nxt_queue_next(qlk))
+    {
+        skcf = nxt_queue_link_data(qlk, nxt_socket_conf_t, link);
+        s = skcf->listen.socket;
+
+        if (s != -1) {
+            nxt_socket_close(task, s);
+        }
+
+        nxt_free(skcf->socket);
+    }
+
+    // TODO: new engines and threads
+
     nxt_mp_destroy(tmcf->conf->mem_pool);
 
     nxt_router_conf_send(task, tmcf, (u_char *) "ERROR", 5);
@@ -805,15 +825,7 @@ nxt_router_listen_sockets_stub_create(nxt_task_t *task,
          qlk != nxt_queue_tail(&tmcf->pending);
          qlk = nqlk)
     {
-        rtsk = nxt_malloc(sizeof(nxt_router_socket_t));
-        if (nxt_slow_path(rtsk == NULL)) {
-            return NXT_ERROR;
-        }
-
-        rtsk->count = 0;
-
         skcf = nxt_queue_link_data(qlk, nxt_socket_conf_t, link);
-        skcf->socket = rtsk;
 
         s = nxt_listen_socket_create0(task, skcf->sockaddr, NXT_NONBLOCK);
         if (nxt_slow_path(s == -1)) {
@@ -822,12 +834,19 @@ nxt_router_listen_sockets_stub_create(nxt_task_t *task,
 
         ret = nxt_listen_socket(task, s, NXT_LISTEN_BACKLOG);
         if (nxt_slow_path(ret != NXT_OK)) {
-            return NXT_ERROR;
+            goto fail;
         }
 
         skcf->listen.socket = s;
 
-        rtsk->fd = s;
+        rtsk = nxt_malloc(sizeof(nxt_router_socket_t));
+        if (nxt_slow_path(rtsk == NULL)) {
+            goto fail;
+        }
+
+        rtsk->count = 0;
+        rtsk->fd = skcf->listen.socket;
+        skcf->socket = rtsk;
 
         nqlk = nxt_queue_next(qlk);
         nxt_queue_remove(qlk);
@@ -835,6 +854,12 @@ nxt_router_listen_sockets_stub_create(nxt_task_t *task,
     }
 
     return NXT_OK;
+
+fail:
+
+    nxt_socket_close(task, s);
+
+    return NXT_ERROR;
 }
 
 
