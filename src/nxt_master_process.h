@@ -16,6 +16,7 @@ nxt_int_t nxt_controller_start(nxt_task_t *task, nxt_runtime_t *rt);
 nxt_int_t nxt_router_start(nxt_task_t *task, nxt_runtime_t *rt);
 
 
+extern nxt_port_handler_t  nxt_controller_process_port_handlers[];
 extern nxt_port_handler_t  nxt_worker_process_port_handlers[];
 extern nxt_port_handler_t  nxt_app_process_port_handlers[];
 extern nxt_port_handler_t  nxt_router_process_port_handlers[];

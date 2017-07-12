@@ -323,6 +323,8 @@ nxt_router_conf_send(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         return;
     }
 
+    b->mem.free = nxt_cpymem(b->mem.free, start, size);
+
     b->parent = tmcf->mem_pool;
     b->completion_handler = nxt_router_conf_buf_completion;
 

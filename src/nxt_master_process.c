@@ -145,7 +145,7 @@ nxt_master_start_controller_process(nxt_task_t *task, nxt_runtime_t *rt)
     init->start = nxt_controller_start;
     init->name = "controller process";
     init->user_cred = &rt->user_cred;
-    init->port_handlers = nxt_worker_process_port_handlers;
+    init->port_handlers = nxt_controller_process_port_handlers;
     init->signals = nxt_worker_process_signals;
     init->type = NXT_PROCESS_CONTROLLER;
 
