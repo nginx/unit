@@ -272,6 +272,9 @@ nxt_mp_create(size_t cluster_size, size_t page_alignment, size_t page_size,
         nxt_rbtree_init(&mp->blocks, nxt_mp_rbtree_compare);
     }
 
+    nxt_debug_alloc("mp %p create(%uz, %uz, %uz, %uz)", mp, cluster_size,
+                    page_alignment, page_size, min_chunk_size);
+
     return mp;
 }
 
@@ -283,7 +286,7 @@ nxt_mp_destroy(nxt_mp_t *mp)
     nxt_mp_block_t     *block;
     nxt_rbtree_node_t  *node, *next;
 
-    nxt_debug_alloc("mp destroy");
+    nxt_debug_alloc("mp %p destroy", mp);
 
     nxt_mp_thread_assert(mp);
 
@@ -350,17 +353,28 @@ nxt_mp_is_empty(nxt_mp_t *mp)
 void *
 nxt_mp_alloc(nxt_mp_t *mp, size_t size)
 {
-    nxt_debug_alloc("mp alloc: %uz", size);
+    void  *p;
 
 #if !(NXT_DEBUG_MEMORY)
 
     if (size <= mp->page_size) {
-        return nxt_mp_alloc_small(mp, size);
+        p = nxt_mp_alloc_small(mp, size);
+
+    } else {
+
+#endif
+
+    p = nxt_mp_alloc_large(mp, NXT_MAX_ALIGNMENT, size);
+
+#if !(NXT_DEBUG_MEMORY)
+
     }
 
 #endif
 
-    return nxt_mp_alloc_large(mp, NXT_MAX_ALIGNMENT, size);
+    nxt_debug_alloc("mp %p alloc(%uz): %p", mp, size, p);
+
+    return p;
 }
 
 
@@ -382,7 +396,8 @@ nxt_mp_zalloc(nxt_mp_t *mp, size_t size)
 void *
 nxt_mp_align(nxt_mp_t *mp, size_t alignment, size_t size)
 {
-    nxt_debug_alloc("mp align: @%uz:%uz", alignment, size);
+    void    *p;
+    size_t  aligned_size;
 
     /* Alignment must be a power of 2. */
 
@@ -390,20 +405,31 @@ nxt_mp_align(nxt_mp_t *mp, size_t alignment, size_t size)
 
 #if !(NXT_DEBUG_MEMORY)
 
-        if (size <= mp->page_size && alignment <= mp->page_alignment) {
-            size = nxt_max(size, alignment);
+        aligned_size = nxt_max(size, alignment);
 
-            if (size <= mp->page_size) {
-                return nxt_mp_alloc_small(mp, size);
-            }
+        if (aligned_size <= mp->page_size && alignment <= mp->page_alignment) {
+
+            p = nxt_mp_alloc_small(mp, aligned_size);
+
+        } else {
+
+#endif
+
+        p = nxt_mp_alloc_large(mp, alignment, size);
+
+#if !(NXT_DEBUG_MEMORY)
+
         }
 
 #endif
 
-        return nxt_mp_alloc_large(mp, alignment, size);
+    } else {
+        p = NULL;
     }
 
-    return NULL;
+    nxt_debug_alloc("mp %p align(@%uz:%uz): %p", mp, alignment, size, p);
+
+    return p;
 }
 
 
@@ -526,7 +552,7 @@ nxt_mp_alloc_small(nxt_mp_t *mp, size_t size)
         }
     }
 
-    nxt_debug_alloc("mp chunk:%uz alloc: %p",
+    nxt_debug_alloc("mp %p chunk:%uz alloc: %p", mp,
                     page->size << mp->chunk_size_shift, p);
 
     return p;
@@ -578,8 +604,6 @@ found:
 
     p += page->u.taken;
     page->u.taken += size;
-
-    nxt_debug_alloc("mp get: %p", p);
 
     return p;
 }
@@ -723,7 +747,7 @@ nxt_mp_free(nxt_mp_t *mp, void *p)
 
     nxt_mp_thread_assert(mp);
 
-    nxt_debug_alloc("mp free %p", p);
+    nxt_debug_alloc("mp %p free(%p)", mp, p);
 
     block = nxt_mp_find_block(&mp->blocks, p);
 
@@ -910,7 +934,7 @@ nxt_mp_retain(nxt_mp_t *mp, size_t size)
 
     if (nxt_fast_path(p != NULL)) {
         mp->retain++;
-        nxt_debug_alloc("mp retain: %uD", mp->retain);
+        nxt_debug_alloc("mp %p retain: %uD", mp, mp->retain);
     }
 
     return p;
@@ -924,7 +948,7 @@ nxt_mp_release(nxt_mp_t *mp, void *p)
 
     mp->retain--;
 
-    nxt_debug_alloc("mp release: %uD", mp->retain);
+    nxt_debug_alloc("mp %p release: %uD", mp, mp->retain);
 
     if (mp->retain == 0) {
         nxt_mp_destroy(mp);
@@ -939,35 +963,57 @@ nxt_mp_release(nxt_mp_t *mp, void *p)
 void *
 nxt_mp_nget(nxt_mp_t *mp, size_t size)
 {
-    nxt_debug_alloc("mp nget: %uz", size);
+    void  *p;
 
 #if !(NXT_DEBUG_MEMORY)
 
     if (size <= mp->page_size) {
-        return nxt_mp_get_small(mp, &mp->nget_pages, size);
+        p = nxt_mp_get_small(mp, &mp->nget_pages, size);
+
+    } else {
+
+#endif
+
+    p = nxt_mp_alloc_large(mp, NXT_MAX_ALIGNMENT, size);
+
+#if !(NXT_DEBUG_MEMORY)
+
     }
 
 #endif
 
-    return nxt_mp_alloc_large(mp, NXT_MAX_ALIGNMENT, size);
+    nxt_debug_alloc("mp %p nget(%uz): %p", mp, size, p);
+
+    return p;
 }
 
 
 void *
 nxt_mp_get(nxt_mp_t *mp, size_t size)
 {
-    nxt_debug_alloc("mp get: %uz", size);
+    void  *p;
 
 #if !(NXT_DEBUG_MEMORY)
 
     if (size <= mp->page_size) {
         size = nxt_max(size, NXT_MAX_ALIGNMENT);
-        return nxt_mp_get_small(mp, &mp->get_pages, size);
+        p = nxt_mp_get_small(mp, &mp->get_pages, size);
+
+    } else {
+
+#endif
+
+    p = nxt_mp_alloc_large(mp, NXT_MAX_ALIGNMENT, size);
+
+#if !(NXT_DEBUG_MEMORY)
+
     }
 
 #endif
 
-    return nxt_mp_alloc_large(mp, NXT_MAX_ALIGNMENT, size);
+    nxt_debug_alloc("mp %p get(%uz): %p", mp, size, p);
+
+    return p;
 }
 
 

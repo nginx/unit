@@ -122,16 +122,24 @@ nxt_log_debug(_log, ...)                                                      \
     } while (0)
 
 
-#define nxt_debug_alloc(_fmt, ARGS...)                                        \
-    nxt_thread_log_debug("%08p: " _fmt, mp, ##ARGS)
-
 #else
 
 #define nxt_debug(...)
-#define nxt_debug_alloc(...)
 
 #define                                                                       \
 nxt_log_debug(...)
+
+#endif
+
+
+#if (NXT_DEBUG_ALLOC)
+
+#define nxt_debug_alloc(...)                                                  \
+    nxt_thread_log_debug(__VA_ARGS__)
+
+#else
+
+#define nxt_debug_alloc(...)
 
 #endif
 
