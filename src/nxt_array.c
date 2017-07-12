@@ -28,6 +28,17 @@ nxt_array_create(nxt_mp_t *mp, nxt_uint_t n, size_t size)
 }
 
 
+void
+nxt_array_destroy(nxt_array_t *array)
+{
+    if (array->elts != nxt_pointer_to(array, sizeof(nxt_array_t))) {
+        nxt_mp_free(array->mem_pool, array->elts);
+    }
+
+    nxt_mp_free(array->mem_pool, array);
+}
+
+
 void *
 nxt_array_add(nxt_array_t *array)
 {
@@ -55,7 +66,9 @@ nxt_array_add(nxt_array_t *array)
 
         nxt_memcpy(p, array->elts, array->size * nalloc);
 
-        nxt_mp_free(array->mem_pool, array->elts);
+        if (array->elts != nxt_pointer_to(array, sizeof(nxt_array_t))) {
+            nxt_mp_free(array->mem_pool, array->elts);
+        }
 
         array->elts = p;
         array->nalloc = new_alloc;

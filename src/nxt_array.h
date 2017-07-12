@@ -20,6 +20,7 @@ typedef struct {
 
 NXT_EXPORT nxt_array_t *nxt_array_create(nxt_mp_t *mp, nxt_uint_t n,
     size_t size);
+NXT_EXPORT void nxt_array_destroy(nxt_array_t *array);
 NXT_EXPORT void *nxt_array_add(nxt_array_t *array);
 NXT_EXPORT void *nxt_array_zero_add(nxt_array_t *array);
 NXT_EXPORT void nxt_array_remove(nxt_array_t *array, void *elt);
