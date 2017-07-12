@@ -531,28 +531,28 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
         nxt_debug(task, "application \"%V\"", &name);
 
-        app = nxt_zalloc(sizeof(nxt_app_t));
+        size = nxt_conf_json_length(application, NULL);
+
+        app = nxt_malloc(sizeof(nxt_app_t) + name.length + size);
         if (app == NULL) {
             goto fail;
         }
 
-        size = nxt_conf_json_length(application, NULL);
+        nxt_memzero(app, sizeof(nxt_app_t));
 
-        app->conf.start = nxt_malloc(size);
-        if (app->conf.start == NULL) {
-            nxt_free(app);
-            goto fail;
-        }
+        app->name.start = nxt_pointer_to(app, sizeof(nxt_app_t));
+        app->conf.start = nxt_pointer_to(app, sizeof(nxt_app_t) + name.length);
 
         p = nxt_conf_json_print(app->conf.start, application, NULL);
         app->conf.length = p - app->conf.start;
+
+        nxt_assert(app->conf.length <= size);
 
         nxt_debug(task, "application conf \"%V\"", &app->conf);
 
         prev = nxt_router_app_find(&tmcf->conf->router->apps, &name);
 
         if (prev != NULL && nxt_strstr_eq(&app->conf, &prev->conf)) {
-            nxt_free(app->conf.start);
             nxt_free(app);
 
             nxt_queue_remove(&prev->link);
@@ -592,7 +592,9 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         nxt_queue_init(&app->ports);
         nxt_queue_init(&app->requests);
 
-        app->name = name;
+        app->name.length = name.length;
+        nxt_memcpy(app->name.start, name.start, name.length);
+
         app->type = type;
         app->max_workers = apcf.workers;
         app->live = 1;
@@ -676,7 +678,6 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
 app_fail:
 
-    nxt_free(app->conf.start);
     nxt_free(app);
 
 fail:
@@ -1192,6 +1193,10 @@ nxt_router_apps_sort(nxt_router_t *router, nxt_router_temp_conf_t *tmcf)
         nxt_queue_remove(&app->link);
 
         // TODO RELEASE APP
+#if 0
+        nxt_thread_mutex_destroy(&app->mutex);
+        nxt_free(app);
+#endif
     } nxt_queue_loop;
 
     nxt_queue_add(&router->apps, &tmcf->previous);
