@@ -217,11 +217,11 @@ nxt_conn_accept(nxt_task_t *task, nxt_listen_event_t *lev, nxt_conn_t *c)
         //c->socket.read_ready = 1;
 //        lev->listen->handler(task, c, lev->socket.data);
         nxt_work_queue_add(c->read_work_queue, lev->listen->handler,
-                           task, c, lev->socket.data);
+                           &c->task, c, lev->socket.data);
 
     } else {
         nxt_work_queue_add(c->write_work_queue, lev->listen->handler,
-                           task, c, lev->socket.data);
+                           &c->task, c, lev->socket.data);
     }
 
     next = nxt_conn_accept_next(task, lev);
