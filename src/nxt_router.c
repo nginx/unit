@@ -382,6 +382,7 @@ static void
 nxt_router_conf_error(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
 {
     nxt_socket_t       s;
+    nxt_router_t       *router;
     nxt_queue_link_t   *qlk;
     nxt_socket_conf_t  *skcf;
 
@@ -398,6 +399,11 @@ nxt_router_conf_error(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
 
         nxt_free(skcf->socket);
     }
+
+    router = tmcf->conf->router;
+
+    nxt_queue_add(&router->sockets, &tmcf->keeping);
+    nxt_queue_add(&router->sockets, &tmcf->deleting);
 
     // TODO: new engines and threads
 
