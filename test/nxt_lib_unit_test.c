@@ -69,11 +69,9 @@ main(int argc, char **argv)
 
 #endif
 
-#if !(NXT_HAVE_ARC4RANDOM)
     if (nxt_random_unit_test(thr) != NXT_OK) {
         return 1;
     }
-#endif
 
     if (nxt_term_parse_unit_test(thr) != NXT_OK) {
         return 1;
