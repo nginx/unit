@@ -1029,6 +1029,7 @@ nxt_router_engine_joints_create(nxt_router_temp_conf_t *tmcf,
 {
     nxt_joint_job_t          *job;
     nxt_queue_link_t         *qlk;
+    nxt_socket_conf_t        *skcf;
     nxt_socket_conf_joint_t  *joint;
 
     for (qlk = nxt_queue_first(sockets);
@@ -1060,7 +1061,11 @@ nxt_router_engine_joints_create(nxt_router_temp_conf_t *tmcf,
         job->work.data = joint;
 
         joint->count = 1;
-        joint->socket_conf = nxt_queue_link_data(qlk, nxt_socket_conf_t, link);
+
+        skcf = nxt_queue_link_data(qlk, nxt_socket_conf_t, link);
+        skcf->count++;
+        joint->socket_conf = skcf;
+
         joint->engine = recf->engine;
 
         nxt_queue_insert_tail(&joint->engine->joints, &joint->link);
