@@ -306,25 +306,36 @@ static nxt_int_t
 nxt_master_start_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
     nxt_common_app_conf_t *app_conf, uint32_t stream)
 {
+    char                *user, *group;
     nxt_process_init_t  *init;
 
-    init = nxt_malloc(sizeof(nxt_process_init_t) + 
-                      sizeof(nxt_user_cred_t));
+    init = nxt_malloc(sizeof(nxt_process_init_t)
+                      + sizeof(nxt_user_cred_t)
+                      + app_conf->user.length + 1
+                      + app_conf->group.length + 1);
     if (nxt_slow_path(init == NULL)) {
         return NXT_ERROR;
     }
 
+    user = nxt_pointer_to(init->user_cred, sizeof(nxt_user_cred_t));
+
+    nxt_memcpy(user, app_conf->user.start, app_conf->user.length);
+    user[app_conf->user.length] = '\0';
+
+    group = nxt_pointer_to(user, app_conf->user.length + 1);
+
+    nxt_memcpy(group, app_conf->group.start, app_conf->group.length);
+    group[app_conf->group.length] = '\0';
+
     init->user_cred = (nxt_user_cred_t *) (init + 1);
 
-    init->start = nxt_app_start;
-    init->name = "worker process";
-
-    init->user_cred->user = (char *) app_conf->user.start;
-    if (nxt_user_cred_get(task, init->user_cred,
-                          (char *) app_conf->group.start) != NXT_OK) {
+    init->user_cred->user = user;
+    if (nxt_user_cred_get(task, init->user_cred, group) != NXT_OK) {
         return NXT_ERROR;
     }
 
+    init->start = nxt_app_start;
+    init->name = "worker process";
     init->port_handlers = nxt_app_process_port_handlers;
     init->signals = nxt_worker_process_signals;
     init->type = NXT_PROCESS_WORKER;
