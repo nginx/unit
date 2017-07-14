@@ -83,7 +83,7 @@ nxt_thread_pool_init(nxt_thread_pool_t *tp)
 
         if (nxt_fast_path(nxt_sem_init(&tp->sem, 0) == NXT_OK)) {
 
-            link = nxt_malloc(sizeof(nxt_thread_link_t));
+            link = nxt_zalloc(sizeof(nxt_thread_link_t));
 
             if (nxt_fast_path(link != NULL)) {
                 link->start = nxt_thread_pool_start;
@@ -237,7 +237,7 @@ nxt_thread_pool_destroy(nxt_thread_pool_t *tp)
 
     if (!tp->ready) {
         nxt_work_queue_add(&thr->engine->fast_work_queue, tp->exit,
-                           &tp->task, tp, NULL);
+                           &tp->engine->task, tp, NULL);
         return;
     }
 
@@ -296,7 +296,7 @@ nxt_thread_pool_exit(nxt_task_t *task, void *obj, void *data)
 
         nxt_sem_destroy(&tp->sem);
 
-        nxt_work_set(&tp->work, nxt_thread_pool_exit, &tp->task, tp,
+        nxt_work_set(&tp->work, tp->exit, &tp->engine->task, tp,
                      (void *) (uintptr_t) thread->handle);
 
         nxt_event_engine_post(tp->engine, &tp->work);
