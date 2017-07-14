@@ -35,9 +35,7 @@ typedef struct {
 
 typedef struct {
     nxt_event_engine_t     *engine;
-    nxt_array_t            *creating;  /* of nxt_joint_job_t */
-    nxt_array_t            *updating;  /* of nxt_joint_job_t */
-    nxt_array_t            *deleting;  /* of nxt_joint_job_t */
+    nxt_work_t             *jobs;
 } nxt_router_engine_conf_t;
 
 
