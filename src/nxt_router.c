@@ -1456,6 +1456,7 @@ nxt_router_listen_socket_release(nxt_task_t *task,
 static void
 nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
 {
+    nxt_bool_t             exit;
     nxt_socket_conf_t      *skcf;
     nxt_router_conf_t      *rtcf;
     nxt_thread_spinlock_t  *lock;
@@ -1490,6 +1491,9 @@ nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
     /* TODO remove engine->port */
     /* TODO excude from connected ports */
 
+    /* The joint content can be used before memory pool destruction. */
+    exit = nxt_queue_is_empty(&joint->engine->joints);
+
     if (rtcf != NULL) {
         nxt_debug(task, "old router conf is destroyed");
 
@@ -1498,7 +1502,7 @@ nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
         nxt_mp_destroy(rtcf->mem_pool);
     }
 
-    if (nxt_queue_is_empty(&joint->engine->joints)) {
+    if (exit) {
         nxt_thread_exit(task->thread);
     }
 }
