@@ -35,9 +35,9 @@ typedef struct {
 
 typedef struct {
     nxt_event_engine_t     *engine;
-    nxt_array_t            *creating;  /* of nxt_work_t */
-    nxt_array_t            *updating;  /* of nxt_work_t */
-    nxt_array_t            *deleting;  /* of nxt_work_t */
+    nxt_array_t            *creating;  /* of nxt_joint_job_t */
+    nxt_array_t            *updating;  /* of nxt_joint_job_t */
+    nxt_array_t            *deleting;  /* of nxt_joint_job_t */
 } nxt_router_engine_conf_t;
 
 
@@ -61,6 +61,13 @@ typedef struct {
     nxt_router_conf_t      *conf;
     nxt_mp_t               *mem_pool;
 } nxt_router_temp_conf_t;
+
+
+typedef struct {
+    nxt_task_t              task;
+    nxt_work_t              work;
+    nxt_router_temp_conf_t  *tmcf;
+} nxt_joint_job_t;
 
 
 typedef struct nxt_app_module_s  nxt_app_module_t;
