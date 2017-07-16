@@ -68,9 +68,6 @@ typedef struct {
 } nxt_joint_job_t;
 
 
-typedef struct nxt_app_module_s  nxt_app_module_t;
-typedef struct nxt_app_s  nxt_app_t;
-
 struct nxt_app_s {
     nxt_thread_mutex_t     mutex;
     nxt_queue_t            ports;
