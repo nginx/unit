@@ -262,7 +262,6 @@ nxt_router_temp_conf(nxt_task_t *task)
     }
 
     rtcf->mem_pool = mp;
-    rtcf->count = 1;
 
     tmp = nxt_mp_create(1024, 128, 256, 32);
     if (nxt_slow_path(tmp == NULL)) {
@@ -693,6 +692,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
         skcf->listen.handler = nxt_router_conn_init;
         skcf->router_conf = tmcf->conf;
+        skcf->router_conf->count++;
         skcf->application = nxt_router_listener_application(tmcf,
                                                             &lscf.application);
 
