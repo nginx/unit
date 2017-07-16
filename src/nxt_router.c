@@ -1067,8 +1067,6 @@ nxt_router_engine_joints_create(nxt_router_temp_conf_t *tmcf,
         joint->socket_conf = skcf;
 
         joint->engine = recf->engine;
-
-        nxt_queue_insert_tail(&joint->engine->joints, &joint->link);
     }
 
     return NXT_OK;
@@ -1304,6 +1302,8 @@ nxt_router_listen_socket_create(nxt_task_t *task, void *obj, void *data)
 
     ls = &joint->socket_conf->listen;
 
+    nxt_queue_insert_tail(&task->thread->engine->joints, &joint->link);
+
     listen = nxt_listen_event(task, ls);
     if (nxt_slow_path(listen == NULL)) {
         nxt_router_listen_socket_release(task, joint);
@@ -1356,6 +1356,8 @@ nxt_router_listen_socket_update(nxt_task_t *task, void *obj, void *data)
     joint = data;
 
     engine = task->thread->engine;
+
+    nxt_queue_insert_tail(&engine->joints, &joint->link);
 
     listen = nxt_router_listen_event(&engine->listen_connections,
                                      joint->socket_conf);
