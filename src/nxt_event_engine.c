@@ -660,3 +660,19 @@ nxt_event_engine_request_find_remove(nxt_event_engine_t *engine,
     return NULL;
 }
 
+
+#if (NXT_DEBUG)
+
+void nxt_event_engine_thread_adopt(nxt_event_engine_t *engine)
+{
+    nxt_work_queue_thread_adopt(&engine->fast_work_queue);
+    nxt_work_queue_thread_adopt(&engine->accept_work_queue);
+    nxt_work_queue_thread_adopt(&engine->read_work_queue);
+    nxt_work_queue_thread_adopt(&engine->socket_work_queue);
+    nxt_work_queue_thread_adopt(&engine->connect_work_queue);
+    nxt_work_queue_thread_adopt(&engine->write_work_queue);
+    nxt_work_queue_thread_adopt(&engine->shutdown_work_queue);
+    nxt_work_queue_thread_adopt(&engine->close_work_queue);
+}
+
+#endif

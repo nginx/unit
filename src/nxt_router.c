@@ -1273,6 +1273,8 @@ nxt_router_thread_start(void *data)
 
     thread = nxt_thread();
 
+    nxt_event_engine_thread_adopt(engine);
+
     /* STUB */
     thread->runtime = engine->task.thread->runtime;
 

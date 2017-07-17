@@ -50,6 +50,8 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
 
         nxt_port_reset_next_id();
 
+        nxt_event_engine_thread_adopt(task->thread->engine);
+
         /* Remove not ready processes */
         nxt_runtime_process_each(rt, p) {
 

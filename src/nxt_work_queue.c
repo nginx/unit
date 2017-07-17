@@ -58,6 +58,26 @@ nxt_work_queue_thread_assert(nxt_work_queue_t *wq)
     nxt_abort();
 }
 
+
+void nxt_work_queue_thread_adopt(nxt_work_queue_t *wq)
+{
+    nxt_thread_t  *thread;
+
+    thread = nxt_thread();
+
+    wq->pid = nxt_pid;
+    wq->tid = nxt_thread_tid(thread);
+}
+
+
+void
+nxt_work_queue_name(nxt_work_queue_t *wq, const char* name)
+{
+    nxt_work_queue_thread_assert(wq);
+
+    wq->name = name;
+}
+
 #else
 
 #define nxt_work_queue_thread_assert(wq)

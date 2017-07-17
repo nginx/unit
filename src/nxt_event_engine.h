@@ -531,5 +531,15 @@ nxt_thread_event_engine(void)
     return thr->engine;
 }
 
+#if (NXT_DEBUG)
+
+NXT_EXPORT void nxt_event_engine_thread_adopt(nxt_event_engine_t *engine);
+
+#else
+
+#define nxt_event_engine_thread_adopt(_engine)
+
+#endif
+
 
 #endif /* _NXT_EVENT_ENGINE_H_INCLUDED_ */

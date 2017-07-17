@@ -104,14 +104,15 @@ NXT_EXPORT nxt_work_handler_t nxt_work_queue_pop(nxt_work_queue_t *wq,
 
 #if (NXT_DEBUG)
 
-#define                                                                       \
-nxt_work_queue_name(_wq, _name)                                               \
-    (_wq)->name = _name
+NXT_EXPORT void nxt_work_queue_name(nxt_work_queue_t *wq, const char* name);
+NXT_EXPORT void nxt_work_queue_thread_adopt(nxt_work_queue_t *wq);
 
 #else
 
 #define                                                                       \
 nxt_work_queue_name(_wq, _name)
+
+#define nxt_work_queue_thread_adopt(_wq)
 
 #endif
 
