@@ -57,6 +57,7 @@ typedef struct {
     nxt_pid_t           pid;
     nxt_queue_t         ports;      /* of nxt_port_t */
     nxt_bool_t          ready;
+    nxt_uint_t          port_cleanups;
 
     nxt_process_init_t  *init;
 
@@ -88,7 +89,8 @@ NXT_EXPORT void nxt_process_arguments(nxt_task_t *task, char **orig_argv,
 #define nxt_process_port_first(process)                                       \
     nxt_queue_link_data(nxt_queue_first(&process->ports), nxt_port_t, link)
 
-NXT_EXPORT void nxt_process_port_add(nxt_process_t *process, nxt_port_t *port);
+NXT_EXPORT void nxt_process_port_add(nxt_task_t *task, nxt_process_t *process,
+    nxt_port_t *port);
 
 #define nxt_process_port_each(process, port)                                   \
     nxt_queue_each(port, &process->ports, nxt_port_t, link)

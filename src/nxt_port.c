@@ -245,7 +245,7 @@ nxt_port_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         return;
     }
 
-    nxt_process_port_add(process, port);
+    nxt_process_port_add(task, process, port);
 
     port->pair[0] = -1;
     port->pair[1] = msg->fd;

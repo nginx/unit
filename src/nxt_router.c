@@ -27,7 +27,6 @@ struct nxt_start_worker_s {
     nxt_app_t              *app;
     nxt_req_conn_link_t    *rc;
     nxt_mp_t               *mem_pool;
-    void                   *joint;
 
     nxt_work_t             work;
 };
@@ -160,17 +159,13 @@ nxt_router_start(nxt_task_t *task, void *data)
 static void
 nxt_router_sw_release(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_start_worker_t       *sw;
-    nxt_socket_conf_joint_t  *joint;
+    nxt_start_worker_t  *sw;
 
     sw = obj;
-    joint = sw->joint;
 
     nxt_debug(task, "sw #%uxD release", sw->stream);
 
-    if (nxt_mp_release(sw->mem_pool, sw) == 0) {
-        nxt_router_conf_release(task, joint);
-    }
+    nxt_mp_release(sw->mem_pool, sw);
 }
 
 
@@ -1861,7 +1856,6 @@ nxt_router_app_release_port(nxt_task_t *task, void *obj, void *data)
     nxt_app_t            *app;
     nxt_port_t           *port;
     nxt_work_t           *work;
-    nxt_process_t        *process;
     nxt_queue_link_t     *lnk;
     nxt_req_conn_link_t  *rc;
 
@@ -1913,13 +1907,8 @@ nxt_router_app_release_port(nxt_task_t *task, void *obj, void *data)
         nxt_router_app_free(app);
 
         port->app = NULL;
-        process = port->process;
 
         nxt_port_release(port);
-
-        if (nxt_queue_is_empty(&process->ports)) {
-            nxt_runtime_process_destroy(task->thread->runtime, process);
-        }
 
         return;
     }
@@ -2031,7 +2020,6 @@ nxt_router_app_port(nxt_task_t *task, nxt_req_conn_link_t *rc)
     sw->app = app;
     sw->rc = rc;
     sw->mem_pool = c->mem_pool;
-    sw->joint = c->listen->socket.data;
 
     sw->work.handler = nxt_router_send_sw_request;
     sw->work.task = task;
@@ -2350,6 +2338,17 @@ nxt_router_conn_close(nxt_task_t *task, void *obj, void *data)
 
 
 static void
+nxt_router_conn_mp_cleanup(nxt_task_t *task, void *obj, void *data)
+{
+    nxt_socket_conf_joint_t  *joint;
+
+    joint = obj;
+
+    nxt_router_conf_release(task, joint);
+}
+
+
+static void
 nxt_router_conn_free(nxt_task_t *task, void *obj, void *data)
 {
     nxt_conn_t               *c;
@@ -2380,9 +2379,9 @@ nxt_router_conn_free(nxt_task_t *task, void *obj, void *data)
 
     task = &task->thread->engine->task;
 
-    if (nxt_mp_release(c->mem_pool, c) == 0) {
-        nxt_router_conf_release(task, joint);
-    }
+    nxt_mp_cleanup(c->mem_pool, nxt_router_conn_mp_cleanup, task, joint, NULL);
+
+    nxt_mp_release(c->mem_pool, c);
 }
 
 

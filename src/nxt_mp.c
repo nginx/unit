@@ -114,6 +114,8 @@ struct nxt_mp_s {
     nxt_tid_t            tid;
 #endif
 
+    nxt_work_t           *cleanup;
+
     /* Lists of nxt_mp_page_t. */
     nxt_queue_t          free_pages;
     nxt_queue_t          nget_pages;
@@ -283,12 +285,22 @@ void
 nxt_mp_destroy(nxt_mp_t *mp)
 {
     void               *p;
+    nxt_work_t         *work, *next_work;
     nxt_mp_block_t     *block;
     nxt_rbtree_node_t  *node, *next;
 
     nxt_debug_alloc("mp %p destroy", mp);
 
     nxt_mp_thread_assert(mp);
+
+    while (mp->cleanup != NULL) {
+        work = mp->cleanup;
+        next_work = work->next;
+
+        work->handler(work->task, work->obj, work->data);
+
+        mp->cleanup = next_work;
+    }
 
     next = nxt_rbtree_root(&mp->blocks);
 
@@ -1021,4 +1033,28 @@ nxt_mp_zget(nxt_mp_t *mp, size_t size)
     }
 
     return p;
+}
+
+
+nxt_int_t
+nxt_mp_cleanup(nxt_mp_t *mp, nxt_work_handler_t handler,
+    nxt_task_t *task, void *obj, void *data)
+{
+    nxt_work_t  *work;
+
+    work = nxt_mp_get(mp, sizeof(nxt_work_t));
+
+    if (nxt_slow_path(work == NULL)) {
+        return NXT_ERROR;
+    }
+
+    work->next = mp->cleanup;
+    work->handler = handler;
+    work->task = task;
+    work->obj = obj;
+    work->data = data;
+
+    mp->cleanup = work;
+
+    return NXT_OK;
 }

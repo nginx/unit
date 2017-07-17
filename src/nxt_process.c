@@ -563,11 +563,31 @@ nxt_user_cred_set(nxt_task_t *task, nxt_user_cred_t *uc)
 }
 
 
+static void
+nxt_process_port_mp_cleanup(nxt_task_t *task, void *obj, void *data)
+{
+    nxt_runtime_t  *rt;
+    nxt_process_t  *process;
+
+    process = obj;
+    rt = data;
+
+    process->port_cleanups--;
+
+    if (process->port_cleanups == 0) {
+        nxt_runtime_process_destroy(rt, process);
+    }
+}
+
 void
-nxt_process_port_add(nxt_process_t *process, nxt_port_t *port)
+nxt_process_port_add(nxt_task_t *task, nxt_process_t *process, nxt_port_t *port)
 {
     port->process = process;
     nxt_queue_insert_tail(&process->ports, &port->link);
+
+    nxt_mp_cleanup(port->mem_pool, nxt_process_port_mp_cleanup, task, process,
+                   task->thread->runtime);
+    process->port_cleanups++;
 }
 
 

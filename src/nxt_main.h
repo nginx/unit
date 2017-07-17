@@ -10,6 +10,20 @@
 
 #include <nxt_auto_config.h>
 
+typedef struct nxt_port_s            nxt_port_t;
+typedef struct nxt_task_s            nxt_task_t;
+typedef struct nxt_port_recv_msg_s   nxt_port_recv_msg_t;
+typedef void (*nxt_port_handler_t)(nxt_task_t *task, nxt_port_recv_msg_t *msg);
+typedef struct nxt_sig_event_s       nxt_sig_event_t;
+typedef struct nxt_runtime_s         nxt_runtime_t;
+
+typedef struct nxt_thread_s          nxt_thread_t;
+typedef struct nxt_event_engine_s    nxt_event_engine_t;
+typedef struct nxt_log_s             nxt_log_t;
+typedef struct nxt_thread_pool_s     nxt_thread_pool_t;
+
+typedef void (*nxt_work_handler_t)(nxt_task_t *task, void *obj, void *data);
+
 #include <nxt_unix.h>
 #include <nxt_clang.h>
 #include <nxt_types.h>
@@ -17,18 +31,7 @@
 #include <nxt_mp.h>
 #include <nxt_array.h>
 
-typedef struct nxt_port_s            nxt_port_t;
-typedef struct nxt_task_s            nxt_task_t;
-typedef struct nxt_port_recv_msg_s   nxt_port_recv_msg_t;
-typedef void (*nxt_port_handler_t)(nxt_task_t *task, nxt_port_recv_msg_t *msg);
-typedef struct nxt_sig_event_s       nxt_sig_event_t;
-typedef struct nxt_runtime_s         nxt_runtime_t;
 typedef uint16_t                     nxt_port_id_t;
-
-typedef struct nxt_thread_s          nxt_thread_t;
-typedef struct nxt_event_engine_s    nxt_event_engine_t;
-typedef struct nxt_log_s             nxt_log_t;
-typedef struct nxt_thread_pool_s     nxt_thread_pool_t;
 
 #include <nxt_queue.h>
 

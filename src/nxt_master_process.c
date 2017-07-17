@@ -212,12 +212,12 @@ nxt_master_process_port_create(nxt_task_t *task, nxt_runtime_t *rt)
         return NXT_ERROR;
     }
 
-    nxt_process_port_add(process, port);
-
     ret = nxt_port_socket_init(task, port, 0);
     if (nxt_slow_path(ret != NXT_OK)) {
         return ret;
     }
+
+    nxt_process_port_add(task, process, port);
 
     nxt_runtime_port_add(rt, port);
 
@@ -380,12 +380,11 @@ nxt_master_create_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
         return NXT_ERROR;
     }
 
-    nxt_process_port_add(process, port);
+    nxt_process_port_add(task, process, port);
 
     ret = nxt_port_socket_init(task, port, 0);
     if (nxt_slow_path(ret != NXT_OK)) {
         nxt_mp_release(port->mem_pool, port);
-        nxt_runtime_process_destroy(rt, process);
         return ret;
     }
 

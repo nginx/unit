@@ -1491,6 +1491,8 @@ nxt_runtime_process_new(nxt_runtime_t *rt)
 void
 nxt_runtime_process_destroy(nxt_runtime_t *rt, nxt_process_t *process)
 {
+    nxt_assert(process->port_cleanups == 0);
+
     nxt_port_mmaps_destroy(process->incoming, 1);
     nxt_port_mmaps_destroy(process->outgoing, 1);
 
@@ -1657,6 +1659,10 @@ nxt_runtime_process_remove(nxt_runtime_t *rt, nxt_process_t *process)
     case NXT_OK:
         rt->nprocesses--;
 
+        if (process->port_cleanups == 0) {
+            nxt_runtime_process_destroy(rt, process);
+        }
+
         nxt_process_port_each(process, port) {
 
             nxt_runtime_port_remove(rt, port);
@@ -1664,10 +1670,6 @@ nxt_runtime_process_remove(nxt_runtime_t *rt, nxt_process_t *process)
             nxt_port_release(port);
 
         } nxt_process_port_loop;
-
-        if (nxt_queue_is_empty(&process->ports)) {
-            nxt_runtime_process_destroy(rt, process);
-        }
 
         break;
 
