@@ -173,6 +173,7 @@ void
 nxt_router_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
     nxt_start_worker_t  *sw;
+    nxt_event_engine_t  *engine;
 
     nxt_port_new_port_handler(task, msg);
 
@@ -193,12 +194,15 @@ nxt_router_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
         nxt_router_app_release_port(task, msg->new_port, sw->app);
 
+        engine = sw->work.data;
+
         sw->work.handler = nxt_router_sw_release;
+        sw->work.task = &engine->task;
 
         nxt_debug(task, "post sw #%uxD release to %p", sw->stream,
                   sw->work.data);
 
-        nxt_event_engine_post(sw->work.data, &sw->work);
+        nxt_event_engine_post(engine, &sw->work);
     }
 }
 
@@ -1777,17 +1781,21 @@ nxt_router_send_sw_request(nxt_task_t *task, void *obj, void *data)
     nxt_port_t          *port;
     nxt_runtime_t       *rt;
     nxt_start_worker_t  *sw;
+    nxt_event_engine_t  *engine;
 
     sw = obj;
     app = sw->app;
 
     if (app->workers + app->pending_workers >= app->max_workers) {
+        engine = sw->work.data;
+
         sw->work.handler = nxt_router_sw_release;
+        sw->work.task = &engine->task;
 
         nxt_debug(task, "%uD/%uD running/penging workers, post sw #%uxD "
                   "release to %p", sw->stream, sw->work.data);
 
-        nxt_event_engine_post(sw->work.data, &sw->work);
+        nxt_event_engine_post(engine, &sw->work);
 
         return;
     }
@@ -1876,7 +1884,7 @@ nxt_router_app_release_port(nxt_task_t *task, void *obj, void *data)
 
         work->next = NULL;
         work->handler = nxt_router_app_release_port;
-        work->task = port->socket.task;
+        work->task = &port->engine->task;
         work->obj = port;
         work->data = app;
 
@@ -2023,14 +2031,13 @@ nxt_router_app_port(nxt_task_t *task, nxt_req_conn_link_t *rc)
     sw->rc = rc;
     sw->mem_pool = c->mem_pool;
 
+    rt = task->thread->runtime;
+    master_port = rt->port_by_type[NXT_PROCESS_MASTER];
+
     sw->work.handler = nxt_router_send_sw_request;
-    sw->work.task = task;
+    sw->work.task = &master_port->engine->task;
     sw->work.obj = sw;
     sw->work.data = task->thread->engine;
-
-    rt = task->thread->runtime;
-
-    master_port = rt->port_by_type[NXT_PROCESS_MASTER];
 
     nxt_debug(task, "post send sw %uxD to master engine %p", sw->stream,
               master_port->engine);
