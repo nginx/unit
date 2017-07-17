@@ -437,8 +437,8 @@ nxt_python_run(nxt_task_t *task, nxt_app_rmsg_t *rmsg, nxt_app_wmsg_t *wmsg)
     /* Shortcut: avoid iterate over result string symbols. */
     if (PyBytes_Check(result) != 0) {
 
-        size = PyBytes_GET_SIZE(item);
-        buf = (u_char *) PyBytes_AS_STRING(item);
+        size = PyBytes_GET_SIZE(result);
+        buf = (u_char *) PyBytes_AS_STRING(result);
 
         nxt_python_write(&run_ctx, buf, size, 1, 1);
 
