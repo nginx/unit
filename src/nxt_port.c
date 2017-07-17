@@ -41,6 +41,8 @@ nxt_port_new(nxt_port_id_t id, nxt_pid_t pid, nxt_process_type_t type)
         nxt_mp_destroy(mp);
     }
 
+    nxt_thread_log_debug("port %p %d:%d new, type %d", port, pid, id, type);
+
     return port;
 }
 
@@ -48,6 +50,9 @@ nxt_port_new(nxt_port_id_t id, nxt_pid_t pid, nxt_process_type_t type)
 nxt_bool_t
 nxt_port_release(nxt_port_t *port)
 {
+    nxt_thread_log_debug("port %p %d:%d release, type %d", port, port->pid,
+                         port->id, port->type);
+
     if (port->pair[0] != -1) {
         nxt_fd_close(port->pair[0]);
         port->pair[0] = -1;
