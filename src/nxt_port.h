@@ -88,6 +88,7 @@ struct nxt_port_s {
     nxt_pid_t           pid;
 
     nxt_process_type_t  type;
+    nxt_work_t          work;
 };
 
 
@@ -109,6 +110,10 @@ typedef union {
     nxt_port_msg_new_port_t  new_port;
 } nxt_port_data_t;
 
+
+nxt_port_t *nxt_port_new(nxt_port_id_t id, nxt_pid_t pid,
+    nxt_process_type_t type);
+nxt_bool_t nxt_port_release(nxt_port_t *port);
 
 nxt_port_id_t nxt_port_get_next_id(void);
 void nxt_port_reset_next_id(void);

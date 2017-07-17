@@ -563,30 +563,11 @@ nxt_user_cred_set(nxt_task_t *task, nxt_user_cred_t *uc)
 }
 
 
-nxt_port_t *
-nxt_process_port_new(nxt_runtime_t *rt, nxt_process_t *process,
-    nxt_port_id_t id, nxt_process_type_t type)
+void
+nxt_process_port_add(nxt_process_t *process, nxt_port_t *port)
 {
-    size_t      size;
-    nxt_port_t  *port;
-
-    size = sizeof(nxt_port_t);
-    if (size == NXT_PROCESS_WORKER) {
-        size += sizeof(nxt_work_t);
-    }
-
-    port = nxt_mp_zalloc(rt->mem_pool, size);
-
-    if (nxt_fast_path(port != NULL)) {
-        port->id = id;
-        port->pid = process->pid;
-        port->process = process;
-        port->type = type;
-
-        nxt_process_port_add(process, port);
-    }
-
-    return port;
+    port->process = process;
+    nxt_queue_insert_tail(&process->ports, &port->link);
 }
 
 

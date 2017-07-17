@@ -7,11 +7,72 @@
 #include <nxt_main.h>
 #include <nxt_runtime.h>
 #include <nxt_port.h>
+#include <nxt_router.h>
 
 
 static void nxt_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 
-static nxt_atomic_uint_t nxt_port_last_id;
+static nxt_atomic_uint_t nxt_port_last_id = 1;
+
+
+nxt_port_t *
+nxt_port_new(nxt_port_id_t id, nxt_pid_t pid, nxt_process_type_t type)
+{
+    nxt_mp_t    *mp;
+    nxt_port_t  *port;
+
+    mp = nxt_mp_create(1024, 128, 256, 32);
+
+    if (nxt_slow_path(mp == NULL)) {
+        return NULL;
+    }
+
+    port = nxt_mp_zalloc(mp, sizeof(nxt_port_t));
+
+    if (nxt_fast_path(port != NULL)) {
+        port->id = id;
+        port->pid = pid;
+        port->type = type;
+        port->mem_pool = mp;
+
+        nxt_queue_init(&port->messages);
+
+    } else {
+        nxt_mp_destroy(mp);
+    }
+
+    return port;
+}
+
+
+nxt_bool_t
+nxt_port_release(nxt_port_t *port)
+{
+    if (port->pair[0] != -1) {
+        nxt_fd_close(port->pair[0]);
+        port->pair[0] = -1;
+    }
+
+    if (port->pair[1] != -1) {
+        nxt_fd_close(port->pair[1]);
+        port->pair[1] = -1;
+    }
+
+    if (port->type == NXT_PROCESS_WORKER) {
+        if (nxt_router_app_remove_port(port) == 0) {
+            return 0;
+        }
+    }
+
+    if (port->link.next != NULL) {
+        nxt_process_port_remove(port);
+    }
+
+    nxt_mp_release(port->mem_pool, port);
+
+    return 1;
+}
+
 
 nxt_port_id_t
 nxt_port_get_next_id()
@@ -32,7 +93,6 @@ nxt_port_enable(nxt_task_t *task, nxt_port_t *port,
     nxt_port_handler_t *handlers)
 {
     port->pid = nxt_pid;
-    port->engine = task->thread->engine;
     port->handler = nxt_port_handler;
     port->data = handlers;
 
@@ -151,7 +211,6 @@ nxt_port_send_port(nxt_task_t *task, nxt_port_t *port, nxt_port_t *new_port,
 void
 nxt_port_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
-    nxt_mp_t                 *mp;
     nxt_port_t               *port;
     nxt_process_t            *process;
     nxt_runtime_t            *rt;
@@ -180,25 +239,18 @@ nxt_port_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         return;
     }
 
-    port = nxt_process_port_new(rt, process, new_port_msg->id,
-                                new_port_msg->type);
+    port = nxt_port_new(new_port_msg->id, new_port_msg->pid,
+                        new_port_msg->type);
     if (nxt_slow_path(port == NULL)) {
         return;
     }
 
-    mp = nxt_mp_create(1024, 128, 256, 32);
-    if (nxt_slow_path(mp == NULL)) {
-        return;
-    }
-
-    port->mem_pool = mp;
+    nxt_process_port_add(process, port);
 
     port->pair[0] = -1;
     port->pair[1] = msg->fd;
     port->max_size = new_port_msg->max_size;
     port->max_share = new_port_msg->max_share;
-
-    nxt_queue_init(&port->messages);
 
     port->socket.task = task;
 

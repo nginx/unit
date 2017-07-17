@@ -38,6 +38,8 @@ nxt_event_engine_create(nxt_task_t *task,
         return NULL;
     }
 
+    nxt_debug(task, "create engine %p", engine);
+
     thread = task->thread;
 
     engine->task.thread = thread;
@@ -440,6 +442,8 @@ nxt_event_engine_change(nxt_event_engine_t *engine,
 void
 nxt_event_engine_free(nxt_event_engine_t *engine)
 {
+    nxt_thread_log_debug("free engine %p", engine);
+
     nxt_event_engine_signal_pipe_free(engine);
     nxt_free(engine->signals);
 

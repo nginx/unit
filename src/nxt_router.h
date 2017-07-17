@@ -69,11 +69,13 @@ typedef struct {
 
 
 struct nxt_app_s {
-    nxt_thread_mutex_t     mutex;
-    nxt_queue_t            ports;
+    nxt_thread_mutex_t     mutex;    /* Protects ports queue. */
+    nxt_queue_t            ports;    /* of nxt_port_t.app_link */
+
     nxt_queue_t            requests; /* of nxt_req_conn_link_t */
     nxt_str_t              name;
 
+    uint32_t               pending_workers;
     uint32_t               workers;
     uint32_t               max_workers;
 
@@ -123,6 +125,6 @@ typedef struct {
 void nxt_router_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 void nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 
-void nxt_router_app_remove_port(nxt_port_t *port);
+nxt_bool_t nxt_router_app_remove_port(nxt_port_t *port);
 
 #endif  /* _NXT_ROUTER_H_INCLUDED_ */

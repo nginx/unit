@@ -19,7 +19,6 @@ static void nxt_port_error_handler(nxt_task_t *task, void *obj, void *data);
 nxt_int_t
 nxt_port_socket_init(nxt_task_t *task, nxt_port_t *port, size_t max_size)
 {
-    nxt_mp_t      *mp;
     nxt_int_t     sndbuf, rcvbuf, size;
     nxt_socket_t  snd, rcv;
 
@@ -27,15 +26,6 @@ nxt_port_socket_init(nxt_task_t *task, nxt_port_t *port, size_t max_size)
 
     port->pair[0] = -1;
     port->pair[1] = -1;
-
-    nxt_queue_init(&port->messages);
-
-    mp = nxt_mp_create(1024, 128, 256, 32);
-    if (nxt_slow_path(mp == NULL)) {
-        return NXT_ERROR;
-    }
-
-    port->mem_pool = mp;
 
     if (nxt_slow_path(nxt_socketpair_create(task, port->pair) != NXT_OK)) {
         goto socketpair_fail;
@@ -99,8 +89,6 @@ getsockopt_fail:
     nxt_socket_close(task, port->pair[1]);
 
 socketpair_fail:
-
-    nxt_mp_destroy(port->mem_pool);
 
     return NXT_ERROR;
 }
@@ -172,14 +160,9 @@ nxt_int_t
 nxt_port_socket_write(nxt_task_t *task, nxt_port_t *port, nxt_uint_t type,
     nxt_fd_t fd, uint32_t stream, nxt_port_id_t reply_port, nxt_buf_t *b)
 {
-    nxt_queue_link_t     *link;
     nxt_port_send_msg_t  *msg;
 
-    for (link = nxt_queue_first(&port->messages);
-         link != nxt_queue_tail(&port->messages);
-         link = nxt_queue_next(link))
-    {
-        msg = (nxt_port_send_msg_t *) link;
+    nxt_queue_each(msg, &port->messages, nxt_port_send_msg_t, link) {
 
         if  (msg->port_msg.stream == stream && 
              msg->port_msg.reply_port == reply_port) {
@@ -191,7 +174,8 @@ nxt_port_socket_write(nxt_task_t *task, nxt_port_t *port, nxt_uint_t type,
 
             return NXT_OK;
         }
-    }
+
+    } nxt_queue_loop;
 
     msg = nxt_mp_retain(port->mem_pool, sizeof(nxt_port_send_msg_t));
     if (nxt_slow_path(msg == NULL)) {
@@ -256,7 +240,7 @@ nxt_port_write_handler(nxt_task_t *task, void *obj, void *data)
             return;
         }
 
-        msg = (nxt_port_send_msg_t *) link;
+        msg = nxt_queue_link_data(link, nxt_port_send_msg_t, link);
 
         iov[0].iov_base = &msg->port_msg;
         iov[0].iov_len = sizeof(nxt_port_msg_t);

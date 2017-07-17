@@ -100,11 +100,13 @@ typedef struct {
 } nxt_app_request_t;
 
 
-typedef struct {
+typedef struct nxt_app_parse_ctx_s nxt_app_parse_ctx_t;
+
+struct nxt_app_parse_ctx_s {
     nxt_app_request_t         r;
     nxt_http_request_parse_t  parser;
     nxt_mp_t                  *mem_pool;
-} nxt_app_parse_ctx_t;
+};
 
 
 nxt_int_t nxt_app_http_req_init(nxt_task_t *task, nxt_app_parse_ctx_t *ctx);

@@ -183,15 +183,17 @@ struct nxt_conn_s {
 
 
 typedef uint32_t nxt_req_id_t;
+typedef struct nxt_app_parse_ctx_s nxt_app_parse_ctx_t;
 
 typedef struct {
-    nxt_req_id_t      req_id;
-    nxt_conn_t        *conn;
-    nxt_port_t        *app_port;
-    nxt_port_t        *reply_port;
+    nxt_req_id_t         req_id;
+    nxt_conn_t           *conn;
+    nxt_port_t           *app_port;
+    nxt_port_t           *reply_port;
+    nxt_app_parse_ctx_t  *ap;
 
-    nxt_queue_link_t  link;     /* for nxt_conn_t.requests */
-    nxt_queue_link_t  app_link; /* for nxt_app_t.requests */
+    nxt_queue_link_t     link;     /* for nxt_conn_t.requests */
+    nxt_queue_link_t     app_link; /* for nxt_app_t.requests */
 } nxt_req_conn_link_t;
 
 

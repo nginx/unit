@@ -1542,7 +1542,6 @@ nxt_runtime_process_find(nxt_runtime_t *rt, nxt_pid_t pid)
     lhq.proto = &lvlhsh_processes_proto;
 
     if (nxt_lvlhsh_find(&rt->processes, &lhq) == NXT_OK) {
-        nxt_thread_log_debug("process %PI found", pid);
         return lhq.value;
     }
 
@@ -1662,9 +1661,13 @@ nxt_runtime_process_remove(nxt_runtime_t *rt, nxt_process_t *process)
 
             nxt_runtime_port_remove(rt, port);
 
+            nxt_port_release(port);
+
         } nxt_process_port_loop;
 
-        nxt_runtime_process_destroy(rt, process);
+        if (nxt_queue_is_empty(&process->ports)) {
+            nxt_runtime_process_destroy(rt, process);
+        }
 
         break;
 
@@ -1709,24 +1712,6 @@ nxt_runtime_port_remove(nxt_runtime_t *rt, nxt_port_t *port)
     if (rt->port_by_type[port->type] == port) {
         rt->port_by_type[port->type] = NULL;
     }
-
-    if (port->pair[0] != -1) {
-        nxt_fd_close(port->pair[0]);
-    }
-
-    if (port->pair[1] != -1) {
-        nxt_fd_close(port->pair[1]);
-    }
-
-    if (port->type == NXT_PROCESS_WORKER) {
-        nxt_router_app_remove_port(port);
-    }
-
-    if (port->mem_pool) {
-        nxt_mp_destroy(port->mem_pool);
-    }
-
-    nxt_mp_free(rt->mem_pool, port);
 }
 
 

@@ -82,17 +82,13 @@ NXT_EXPORT void nxt_nanosleep(nxt_nsec_t ns);
 NXT_EXPORT void nxt_process_arguments(nxt_task_t *task, char **orig_argv,
     char ***orig_envp);
 
-NXT_EXPORT nxt_port_t * nxt_process_port_new(nxt_runtime_t *rt,
-    nxt_process_t *process, nxt_port_id_t id, nxt_process_type_t type);
-
 #define nxt_process_port_remove(port)                                         \
     nxt_queue_remove(&port->link)
 
 #define nxt_process_port_first(process)                                       \
     nxt_queue_link_data(nxt_queue_first(&process->ports), nxt_port_t, link)
 
-#define nxt_process_port_add(process, port)                                   \
-    nxt_queue_insert_tail(&process->ports, &port->link)
+NXT_EXPORT void nxt_process_port_add(nxt_process_t *process, nxt_port_t *port);
 
 #define nxt_process_port_each(process, port)                                   \
     nxt_queue_each(port, &process->ports, nxt_port_t, link)
