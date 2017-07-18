@@ -32,7 +32,7 @@ struct nxt_task_s {
  * source filters, so the data argument has been introduced and
  * is used where appropriate.
  */
-typedef void (*nxt_work_handler_t)(nxt_task_t *task, void *obj, void *data);
+//typedef void (*nxt_work_handler_t)(nxt_task_t *task, void *obj, void *data);
 
 
 struct nxt_work_s {
