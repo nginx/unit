@@ -14,6 +14,7 @@
 
 
 #define NXT_CONF_MAX_SHORT_STRING  14
+#define NXT_CONF_MAX_STRING        NXT_INT32_T_MAX
 
 
 typedef enum {
@@ -46,7 +47,12 @@ struct nxt_aligned(8) nxt_conf_value_s {
         int64_t               integer;
         double                number;
         u_char                str[1 + NXT_CONF_MAX_SHORT_STRING];
-        nxt_str_t             *string;
+
+        struct nxt_packed {
+            u_char            *start;
+            uint32_t          length;
+        } string;
+
         nxt_conf_array_t      *array;
         nxt_conf_object_t     *object;
     } u;
@@ -145,7 +151,8 @@ nxt_conf_get_string(nxt_conf_value_t *value, nxt_str_t *str)
         str->start = &value->u.str[1];
 
     } else {
-        *str = *value->u.string;
+        str->length = value->u.string.length;
+        str->start = value->u.string.start;
     }
 }
 
@@ -182,8 +189,8 @@ nxt_conf_create_object(nxt_mp_t *mp, nxt_uint_t count)
 
 
 nxt_int_t
-nxt_conf_set_object_member(nxt_mp_t *mp, nxt_conf_value_t *object,
-    nxt_str_t *name, nxt_conf_value_t *value, uint32_t index)
+nxt_conf_set_object_member(nxt_conf_value_t *object, nxt_str_t *name,
+    nxt_conf_value_t *value, uint32_t index)
 {
     nxt_conf_value_t          *name_value;
     nxt_conf_object_member_t  *member;
@@ -193,13 +200,8 @@ nxt_conf_set_object_member(nxt_mp_t *mp, nxt_conf_value_t *object,
 
     if (name->length > NXT_CONF_MAX_SHORT_STRING) {
         name_value->type = NXT_CONF_VALUE_STRING;
-        name_value->u.string = nxt_str_alloc(mp, 0);
-
-        if (nxt_slow_path(name_value->u.string == NULL)) {
-            return NXT_ERROR;
-        }
-
-        *name_value->u.string = *name;
+        name_value->u.string.length = name->length;
+        name_value->u.string.start = name->start;
 
     } else {
         name_value->type = NXT_CONF_VALUE_SHORT_STRING;
@@ -552,13 +554,9 @@ nxt_conf_op_compile(nxt_mp_t *mp, nxt_conf_op_t **ops, nxt_conf_value_t *root,
         }
 
         if (token.length > NXT_CONF_MAX_SHORT_STRING) {
+            member->name.u.string.length = token.length;
+            member->name.u.string.start = token.start;
 
-            member->name.u.string = nxt_mp_get(mp, sizeof(nxt_str_t));
-            if (nxt_slow_path(member->name.u.string == NULL)) {
-                return NXT_ERROR;
-            }
-
-            *member->name.u.string = token;
             member->name.type = NXT_CONF_VALUE_STRING;
 
         } else {
@@ -621,11 +619,15 @@ nxt_conf_copy_value(nxt_mp_t *mp, nxt_conf_op_t *op, nxt_conf_value_t *dst,
 
     case NXT_CONF_VALUE_STRING:
 
-        dst->u.string = nxt_str_dup(mp, NULL, src->u.string);
-
-        if (nxt_slow_path(dst->u.string == NULL)) {
+        dst->u.string.start = nxt_mp_nget(mp, src->u.string.length);
+        if (nxt_slow_path(dst->u.string.start == NULL)) {
             return NXT_ERROR;
         }
+
+        nxt_memcpy(dst->u.string.start, src->u.string.start,
+                   src->u.string.length);
+
+        dst->u.string.length = src->u.string.length;
 
         break;
 
@@ -1289,14 +1291,21 @@ nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
     size = last - start - surplus;
 
     if (size > NXT_CONF_MAX_SHORT_STRING) {
-        value->type = NXT_CONF_VALUE_STRING;
-        value->u.string = nxt_str_alloc(mp, size);
 
-        if (nxt_slow_path(value->u.string == NULL)) {
+        if (nxt_slow_path(size > NXT_CONF_MAX_STRING)) {
             return NULL;
         }
 
-        s = value->u.string->start;
+        value->type = NXT_CONF_VALUE_STRING;
+
+        value->u.string.start = nxt_mp_nget(mp, size);
+        if (nxt_slow_path(value->u.string.start == NULL)) {
+            return NULL;
+        }
+
+        value->u.string.length = size;
+
+        s = value->u.string.start;
 
     } else {
         value->type = NXT_CONF_VALUE_SHORT_STRING;
@@ -1392,7 +1401,7 @@ nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
     } while (p != last);
 
     if (size > NXT_CONF_MAX_SHORT_STRING) {
-        value->u.string->length = s - value->u.string->start;
+        value->u.string.length = s - value->u.string.start;
 
     } else {
         value->u.str[0] = s - &value->u.str[1];
