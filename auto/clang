@@ -146,3 +146,18 @@ nxt_feature_test="#include <stdlib.h>
                       return 0;
                   }"
 . auto/feature
+
+
+nxt_feature="GCC __attribute__ packed"
+nxt_feature_name=NXT_HAVE_GCC_ATTRIBUTE_PACKED
+nxt_feature_run=
+nxt_feature_path=
+nxt_feature_libs=
+nxt_feature_test="struct __attribute__ ((__packed__)) s {
+                      char c;
+                  };
+
+                  int main() {
+                      return 1;
+                  }"
+. auto/feature
