@@ -46,6 +46,7 @@ typedef struct {
 
 
 struct nxt_common_app_conf_s {
+    nxt_str_t       name;
     nxt_str_t       type;
     nxt_app_type_t  type_id;
     nxt_str_t       user;

@@ -136,6 +136,7 @@ static nxt_conf_map_t  nxt_common_app_conf[] = {
 static void
 nxt_port_master_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
+    u_char            *start;
     size_t            dump_size;
     nxt_mp_t          *mp;
     nxt_int_t         ret;
@@ -156,15 +157,22 @@ nxt_port_master_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     mp = nxt_mp_create(1024, 128, 256, 32);
 
-    conf = nxt_conf_json_parse(mp, b->mem.pos, b->mem.free);
+    nxt_memzero(&app_conf, sizeof(nxt_common_app_conf_t));
+
+    start = b->mem.pos;
+
+    app_conf.name.start = start;
+    app_conf.name.length = nxt_strlen(start);
+
+    start += app_conf.name.length + 1;
+
+    conf = nxt_conf_json_parse(mp, start, b->mem.free);
     b->mem.pos = b->mem.free;
 
     if (conf == NULL) {
         nxt_log(task, NXT_LOG_CRIT, "configuration parsing error");
         return;
     }
-
-    nxt_memzero(&app_conf, sizeof(nxt_common_app_conf_t));
 
     app_conf.user = nobody;
 
@@ -308,30 +316,36 @@ nxt_master_start_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
     nxt_common_app_conf_t *app_conf, uint32_t stream)
 {
     char                *user, *group;
+    u_char              *title, *last, *end;
+    size_t              size;
     nxt_process_init_t  *init;
 
-    init = nxt_malloc(sizeof(nxt_process_init_t)
-                      + sizeof(nxt_user_cred_t)
-                      + app_conf->user.length + 1
-                      + app_conf->group.length + 1);
+    size = sizeof(nxt_process_init_t)
+           + sizeof(nxt_user_cred_t)
+           + app_conf->user.length + 1
+           + app_conf->group.length + 1
+           + app_conf->name.length + sizeof("\"\" application");
+
+    init = nxt_malloc(size);
     if (nxt_slow_path(init == NULL)) {
         return NXT_ERROR;
     }
 
-    init->user_cred = (nxt_user_cred_t *) (init + 1);
-
+    init->user_cred = nxt_pointer_to(init, sizeof(nxt_process_init_t));
     user = nxt_pointer_to(init->user_cred, sizeof(nxt_user_cred_t));
 
     nxt_memcpy(user, app_conf->user.start, app_conf->user.length);
-    user[app_conf->user.length] = '\0';
+    last = nxt_pointer_to(user, app_conf->user.length);
+    *last++ = '\0';
 
     init->user_cred->user = user;
 
     if (app_conf->group.start != NULL) {
-        group = nxt_pointer_to(user, app_conf->user.length + 1);
+        group = (char *) last;
 
         nxt_memcpy(group, app_conf->group.start, app_conf->group.length);
-        group[app_conf->group.length] = '\0';
+        end = nxt_pointer_to(group, app_conf->group.length);
+        *last++ = '\0';
 
     } else {
         group = NULL;
@@ -341,8 +355,13 @@ nxt_master_start_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
         return NXT_ERROR;
     }
 
+    title = last;
+    end = title + app_conf->name.length + sizeof("\"\" application");
+
+    nxt_sprintf(title, end, "\"%V\" application%Z", &app_conf->name);
+
     init->start = nxt_app_start;
-    init->name = "worker process";
+    init->name = (char *) title;
     init->port_handlers = nxt_app_process_port_handlers;
     init->signals = nxt_worker_process_signals;
     init->type = NXT_PROCESS_WORKER;

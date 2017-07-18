@@ -1930,6 +1930,7 @@ nxt_router_gen_error(nxt_task_t *task, nxt_conn_t *c, int code,
 static void
 nxt_router_send_sw_request(nxt_task_t *task, void *obj, void *data)
 {
+    size_t              size;
     nxt_buf_t           *b;
     nxt_app_t           *app;
     nxt_port_t          *port;
@@ -1961,8 +1962,12 @@ nxt_router_send_sw_request(nxt_task_t *task, void *obj, void *data)
     rt = task->thread->runtime;
     port = rt->port_by_type[NXT_PROCESS_MASTER];
 
-    b = nxt_buf_mem_alloc(port->mem_pool, app->conf.length, 0);
+    size = app->name.length + 1 + app->conf.length;
 
+    b = nxt_buf_mem_alloc(port->mem_pool, size, 0);
+
+    nxt_buf_cpystr(b, &app->name);
+    *b->mem.free++ = '\0';
     nxt_buf_cpystr(b, &app->conf);
 
     nxt_port_socket_write(task, port, NXT_PORT_MSG_DATA, -1, sw->stream, 0, b);
