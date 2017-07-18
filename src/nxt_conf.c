@@ -46,7 +46,11 @@ struct nxt_aligned(8) nxt_conf_value_s {
         uint8_t               boolean;  /* 1 bit. */
         int64_t               integer;
         double                number;
-        u_char                str[1 + NXT_CONF_MAX_SHORT_STRING];
+
+        struct {
+            uint8_t           length;
+            u_char            start[NXT_CONF_MAX_SHORT_STRING];
+        } str;
 
         struct nxt_packed {
             u_char            *start;
@@ -147,8 +151,8 @@ void
 nxt_conf_get_string(nxt_conf_value_t *value, nxt_str_t *str)
 {
     if (value->type == NXT_CONF_VALUE_SHORT_STRING) {
-        str->length = value->u.str[0];
-        str->start = &value->u.str[1];
+        str->length = value->u.str.length;
+        str->start = value->u.str.start;
 
     } else {
         str->length = value->u.string.length;
@@ -205,9 +209,9 @@ nxt_conf_set_object_member(nxt_conf_value_t *object, nxt_str_t *name,
 
     } else {
         name_value->type = NXT_CONF_VALUE_SHORT_STRING;
-        name_value->u.str[0] = name->length;
+        name_value->u.str.length = name->length;
 
-        nxt_memcpy(&name_value->u.str[1], name->start, name->length);
+        nxt_memcpy(name_value->u.str.start, name->start, name->length);
     }
 
     member->value = *value;
@@ -560,8 +564,8 @@ nxt_conf_op_compile(nxt_mp_t *mp, nxt_conf_op_t **ops, nxt_conf_value_t *root,
             member->name.type = NXT_CONF_VALUE_STRING;
 
         } else {
-            member->name.u.str[0] = token.length;
-            nxt_memcpy(&member->name.u.str[1], token.start, token.length);
+            member->name.u.str.length = token.length;
+            nxt_memcpy(member->name.u.str.start, token.start, token.length);
 
             member->name.type = NXT_CONF_VALUE_SHORT_STRING;
         }
@@ -1309,9 +1313,9 @@ nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
 
     } else {
         value->type = NXT_CONF_VALUE_SHORT_STRING;
-        value->u.str[0] = size;
+        value->u.str.length = size;
 
-        s = &value->u.str[1];
+        s = value->u.str.start;
     }
 
     if (surplus == 0) {
@@ -1404,7 +1408,7 @@ nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
         value->u.string.length = s - value->u.string.start;
 
     } else {
-        value->u.str[0] = s - &value->u.str[1];
+        value->u.str.length = s - value->u.str.start;
     }
 
     return last + 1;
