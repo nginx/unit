@@ -250,8 +250,7 @@ nxt_master_process_title(nxt_task_t *task)
 
     end = title + sizeof(title);
 
-    p = nxt_sprintf(title, end, "nginext: master process %s",
-                    nxt_process_argv[0]);
+    p = nxt_sprintf(title, end, "nginext: master %s", nxt_process_argv[0]);
 
     for (i = 1; nxt_process_argv[i] != NULL; i++) {
         p = nxt_sprintf(p, end, " %s", nxt_process_argv[i]);
@@ -274,7 +273,7 @@ nxt_master_start_controller_process(nxt_task_t *task, nxt_runtime_t *rt)
     }
 
     init->start = nxt_controller_start;
-    init->name = "controller process";
+    init->name = "controller";
     init->user_cred = &rt->user_cred;
     init->port_handlers = nxt_controller_process_port_handlers;
     init->signals = nxt_worker_process_signals;
@@ -298,7 +297,7 @@ nxt_master_start_router_process(nxt_task_t *task, nxt_runtime_t *rt)
     }
 
     init->start = nxt_router_start;
-    init->name = "router process";
+    init->name = "router";
     init->user_cred = &rt->user_cred;
     init->port_handlers = nxt_router_process_port_handlers;
     init->signals = nxt_worker_process_signals;
