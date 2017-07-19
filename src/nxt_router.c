@@ -1532,6 +1532,7 @@ nxt_router_listen_socket_update(nxt_task_t *task, void *obj, void *data)
 
     old = listen->socket.data;
     listen->socket.data = joint;
+    listen->listen = &joint->socket_conf->listen;
 
     job->work.next = NULL;
     job->work.handler = nxt_router_conf_wait;
