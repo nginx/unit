@@ -347,7 +347,7 @@ nxt_master_start_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
         group = (char *) last;
 
         nxt_memcpy(group, app_conf->group.start, app_conf->group.length);
-        end = nxt_pointer_to(group, app_conf->group.length);
+        last = nxt_pointer_to(group, app_conf->group.length);
         *last++ = '\0';
 
     } else {
