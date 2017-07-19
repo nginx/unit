@@ -248,17 +248,21 @@ nxt_master_process_title(nxt_task_t *task)
     nxt_uint_t  i;
     u_char      title[2048];
 
-    end = title + sizeof(title);
+    end = title + sizeof(title) - 1;
 
-    p = nxt_sprintf(title, end, "nginext: master %s", nxt_process_argv[0]);
+    p = nxt_sprintf(title, end, "nginext: main [%s", nxt_process_argv[0]);
 
     for (i = 1; nxt_process_argv[i] != NULL; i++) {
         p = nxt_sprintf(p, end, " %s", nxt_process_argv[i]);
     }
 
+    if (p < end) {
+        *p++ = ']';
+    }
+
     *p = '\0';
 
-    nxt_process_title(task, "%s", (char *) title);
+    nxt_process_title(task, "%s", title);
 }
 
 
