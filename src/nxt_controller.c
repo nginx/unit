@@ -779,7 +779,7 @@ nxt_controller_conf_apply(nxt_task_t *task, nxt_controller_request_t *req)
 void
 nxt_port_controller_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
-    size_t                     size, dump_size;
+    size_t                     size;
     nxt_buf_t                  *b;
     nxt_controller_request_t   *req;
     nxt_controller_response_t  resp;
@@ -787,9 +787,7 @@ nxt_port_controller_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     b = msg->buf;
     size = b->mem.free - b->mem.pos;
 
-    dump_size = size > 300 ? 300 : size;
-
-    nxt_debug(task, "contoller data: %*s ...", dump_size, b->mem.pos);
+    nxt_debug(task, "contoller data: %*s ...", size, b->mem.pos);
 
     nxt_memzero(&resp, sizeof(nxt_controller_response_t));
 
