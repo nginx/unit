@@ -1540,7 +1540,12 @@ nxt_router_listen_socket_update(nxt_task_t *task, void *obj, void *data)
 
     nxt_event_engine_post(job->tmcf->engine, &job->work);
 
-    nxt_router_conf_release(task, old);
+    /*
+     * The task is allocated from configuration temporary
+     * memory pool so it can be freed after engine post operation.
+     */
+
+    nxt_router_conf_release(&engine->task, old);
 }
 
 
