@@ -2091,6 +2091,7 @@ nxt_router_app_release_port(nxt_task_t *task, void *obj, void *data)
                   &app->name, app, ra->req_id);
 
         ra->app_port = port;
+        port->app_req_id = ra->req_id;
 
         nxt_router_process_http_request_mp(task, ra, port);
 
