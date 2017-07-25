@@ -41,7 +41,7 @@ typedef struct nxt_conf_array_s   nxt_conf_array_t;
 typedef struct nxt_conf_object_s  nxt_conf_object_t;
 
 
-struct nxt_aligned(8) nxt_conf_value_s {
+struct nxt_conf_value_s {
     union nxt_packed {
         uint8_t               boolean;  /* 1 bit. */
         int64_t               integer;
@@ -62,7 +62,7 @@ struct nxt_aligned(8) nxt_conf_value_s {
     } u;
 
     uint8_t                   type;  /* 3 bits. */
-};
+} nxt_aligned(8);
 
 
 struct nxt_conf_array_s {

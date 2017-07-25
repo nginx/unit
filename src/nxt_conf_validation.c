@@ -37,12 +37,12 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_root_members[] = {
     { nxt_string("listeners"),
       NXT_CONF_OBJECT,
       &nxt_conf_vldt_object_iterator,
-      &nxt_conf_vldt_listener },
+      (void *) &nxt_conf_vldt_listener },
 
     { nxt_string("applications"),
       NXT_CONF_OBJECT,
       &nxt_conf_vldt_object_iterator,
-      &nxt_conf_vldt_app },
+      (void *) &nxt_conf_vldt_app },
 
     { nxt_null_string, 0, NULL, NULL }
 };
@@ -301,7 +301,7 @@ nxt_conf_vldt_object_iterator(nxt_conf_value_t *conf, nxt_conf_value_t *value,
     nxt_conf_value_t        *member;
     nxt_conf_vldt_member_t  validator;
 
-    validator = data;
+    validator = (nxt_conf_vldt_member_t) data;
     index = 0;
 
     for ( ;; ) {
@@ -315,6 +315,4 @@ nxt_conf_vldt_object_iterator(nxt_conf_value_t *conf, nxt_conf_value_t *value,
             return NXT_ERROR;
         }
     }
-
-    return NXT_OK;
 }

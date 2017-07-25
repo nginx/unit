@@ -183,7 +183,6 @@ struct nxt_conn_s {
 
 
 typedef uint32_t nxt_req_id_t;
-typedef struct nxt_app_parse_ctx_s nxt_app_parse_ctx_t;
 
 typedef struct {
     nxt_req_id_t         req_id;

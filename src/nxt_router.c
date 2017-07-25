@@ -382,12 +382,13 @@ nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     b->mem.pos = b->mem.free;
 
     if (ret == NXT_OK) {
-        return nxt_router_conf_success(task, tmcf);
+        nxt_router_conf_success(task, tmcf);
+        return;
     }
 
     nxt_log(task, NXT_LOG_CRIT, "failed to apply new conf");
 
-    return nxt_router_conf_error(task, tmcf);
+    nxt_router_conf_error(task, tmcf);
 }
 
 
