@@ -4,22 +4,25 @@
 
 
 $echo -n "checking for Go ..."
-$echo -n "checking for Go ..." >> $NXT_AUTOCONF_ERR
+$echo "checking for Go ..." >> $NXT_AUTOCONF_ERR
 
-NXT_GO_VERSION="`${NXT_GO} version`"
+nxt_go_test="GOPATH=`pwd` CGO_CPPFLAGS=-DNXT_CONFIGURE \
+    \"${NXT_GO}\" build -o build/nxt_go_gen.a --buildmode=c-archive nginext"
 
-if /bin/sh -c "GOPATH=`pwd` CGO_CPPFLAGS=-DNXT_CONFIGURE \
-    \"${NXT_GO}\" build -o build/nxt_go_gen.a --buildmode=c-archive nginext" \
-    >> $NXT_AUTOCONF_ERR 2>&1;
 
-then
+if /bin/sh -c "$nxt_go_test" >> $NXT_AUTOCONF_ERR 2>&1; then
     $echo " found"
+
+    NXT_GO_VERSION="`${NXT_GO} version`"
     $echo " + Go version: ${NXT_GO_VERSION}"
 
 else
+    $echo "----------"    >> $NXT_AUTOCONF_ERR
+    $echo $nxt_go_test    >> $NXT_AUTOCONF_ERR
+    $echo "----------"    >> $NXT_AUTOCONF_ERR
     $echo
     $echo
-    $echo $0: error: Go not found.
+    $echo $0: error: no Go found.
     $echo
     exit 1;
 fi
