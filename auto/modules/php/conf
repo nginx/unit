@@ -3,35 +3,45 @@
 # Copyright (C) NGINX, Inc.
 
 
+$echo "checking for PHP ..." >> $NXT_AUTOCONF_ERR
+
+nxt_found=no
+
 NXT_PHP_CONFIG="${NXT_PHP}-config"
-NXT_PHP_VERSION="`${NXT_PHP_CONFIG} --version`"
-NXT_PHP_INCLUDE="`${NXT_PHP_CONFIG} --includes`"
-NXT_PHP_LIB="-lphp${NXT_PHP_VERSION%%.*}"
-NXT_PHP_LIBS="`${NXT_PHP_CONFIG} --ldflags`"
 
-nxt_feature="PHP"
-nxt_feature_name=NXT_HAVE_PHP
-nxt_feature_run=no
-nxt_feature_incs="${NXT_PHP_INCLUDE}"
-nxt_feature_libs="${NXT_PHP_LIB} ${NXT_PHP_LIBS}"
-nxt_feature_test="#include <php.h>
-    #include <php_main.h>
+if /bin/sh -c "${NXT_PHP_CONFIG} --version"  >> $NXT_AUTOCONF_ERR 2>&1; then
 
-    int main() {
-        php_request_startup();
-        return 0;
-    }"
+    NXT_PHP_VERSION="`${NXT_PHP_CONFIG} --version`"
+    NXT_PHP_INCLUDE="`${NXT_PHP_CONFIG} --includes`"
+    NXT_PHP_LIB="-lphp${NXT_PHP_VERSION%%.*}"
+    NXT_PHP_LIBS="`${NXT_PHP_CONFIG} --ldflags`"
 
-. auto/feature
+    nxt_feature="PHP"
+    nxt_feature_name=NXT_HAVE_PHP
+    nxt_feature_run=no
+    nxt_feature_incs="${NXT_PHP_INCLUDE}"
+    nxt_feature_libs="${NXT_PHP_LIB} ${NXT_PHP_LIBS}"
+    nxt_feature_test="
+        #include <php.h>
+        #include <php_main.h>
+
+        int main() {
+            php_request_startup();
+            return 0;
+        }"
+
+    . auto/feature
+fi
 
 if [ $nxt_found = no ]; then
+    $echo "checking for PHP ..."
     $echo
-    $echo $0: error: no php found.
+    $echo $0: error: no PHP found.
     $echo
     exit 1;
 fi
 
-$echo " + php version: ${NXT_PHP_VERSION}"
+$echo " + PHP version: ${NXT_PHP_VERSION}"
 
 NXT_PHP_MODULE_SRCS=" \
     src/nxt_php_sapi.c \
