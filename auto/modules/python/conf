@@ -3,38 +3,45 @@
 # Copyright (C) NGINX, Inc.
 
 
+$echo "checking for Python ..." >> $NXT_AUTOCONF_ERR
+
+nxt_found=no
+
 NXT_PYTHON_CONFIG="${NXT_PYTHON}-config"
 
-NXT_PYTHON_VERSION=`${NXT_PYTHON} -c \
-    'import sys; \
-     sys.stdout.write(sys.version[:3])'`
+if /bin/sh -c "$NXT_PYTHON_CONFIG --prefix" >> $NXT_AUTOCONF_ERR 2>&1; then
 
-NXT_PYTHON_INCLUDE=`${NXT_PYTHON_CONFIG} --includes`
+    NXT_PYTHON_INCLUDE=`${NXT_PYTHON_CONFIG} --includes`
+    NXT_PYTHON_LIBS=`${NXT_PYTHON_CONFIG} --ldflags`
 
-NXT_PYTHON_LIBS=`${NXT_PYTHON_CONFIG} --ldflags`
+    nxt_feature="Python"
+    nxt_feature_name=NXT_HAVE_PYTHON
+    nxt_feature_run=no
+    nxt_feature_incs="${NXT_PYTHON_INCLUDE}"
+    nxt_feature_libs="${NXT_PYTHON_LIBS}"
+    nxt_feature_test="
+        #include <Python.h>
 
+        int main() {
+            Py_Initialize();
+            return 0;
+        }"
 
-nxt_feature="Python"
-nxt_feature_name=NXT_HAVE_PYTHON
-nxt_feature_run=no
-nxt_feature_incs="${NXT_PYTHON_INCLUDE}"
-nxt_feature_libs="${NXT_PYTHON_LIBS}"
-nxt_feature_test="#include <Python.h>
-
-    int main() {
-        Py_Initialize();
-        return 0;
-    }"
-
-. auto/feature
+    . auto/feature
+fi
 
 if [ $nxt_found = no ]; then
+    $echo "checking for Python ..."
     $echo
     $echo $0: error: no Python found.
     $echo
     exit 1;
 fi
 
+
+NXT_PYTHON_VERSION=`${NXT_PYTHON} -c \
+    'import sys; \
+     sys.stdout.write(sys.version[:3])'`
 
 $echo " + Python version: ${NXT_PYTHON_VERSION}"
 
