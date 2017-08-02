@@ -76,6 +76,10 @@ nxt_port_mmaps_destroy(nxt_array_t *port_mmaps, nxt_bool_t destroy_pool)
 }
 
 
+#define nxt_port_mmap_free_junk(p, size)                                      \
+    memset((p), 0xA5, size)
+
+
 static void
 nxt_port_mmap_buf_completion(nxt_task_t *task, void *obj, void *data)
 {
@@ -118,6 +122,8 @@ nxt_port_mmap_buf_completion(nxt_task_t *task, void *obj, void *data)
         p = b->mem.start;
         c = nxt_port_mmap_chunk_id(hdr, p);
     }
+
+    nxt_port_mmap_free_junk(p, b->mem.end - p);
 
     while (p < b->mem.end) {
         nxt_port_mmap_set_chunk_free(hdr, c);
