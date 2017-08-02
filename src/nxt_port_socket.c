@@ -166,11 +166,16 @@ nxt_port_socket_write(nxt_task_t *task, nxt_port_t *port, nxt_uint_t type,
 
         if  (msg->port_msg.stream == stream && 
              msg->port_msg.reply_port == reply_port) {
+
+            nxt_assert(msg->port_msg.last == 0);
+
             /*
              * An fd is ignored since a file descriptor
              * must be sent only in the first message of a stream.
              */
             nxt_buf_chain_add(&msg->buf, b);
+
+            msg->port_msg.last |= (type & NXT_PORT_MSG_LAST) != 0;
 
             return NXT_OK;
         }
@@ -187,6 +192,7 @@ nxt_port_socket_write(nxt_task_t *task, nxt_port_t *port, nxt_uint_t type,
 
     msg->buf = b;
     msg->fd = fd;
+    msg->close_fd = (type & NXT_PORT_MSG_CLOSE_FD) != 0;
     msg->share = 0;
 
     msg->work.next = NULL;
@@ -201,8 +207,8 @@ nxt_port_socket_write(nxt_task_t *task, nxt_port_t *port, nxt_uint_t type,
     msg->port_msg.stream = stream;
     msg->port_msg.pid = nxt_pid;
     msg->port_msg.reply_port = reply_port;
-    msg->port_msg.type = type;
-    msg->port_msg.last = 0;
+    msg->port_msg.type = type & NXT_PORT_MSG_MASK;
+    msg->port_msg.last = (type & NXT_PORT_MSG_LAST) != 0;
     msg->port_msg.mmap = 0;
 
     nxt_queue_insert_tail(&port->messages, &msg->link);
@@ -276,7 +282,7 @@ nxt_port_write_handler(nxt_task_t *task, void *obj, void *data)
             m = NXT_PORT_METHOD_PLAIN;
         }
 
-        msg->port_msg.last = sb.last;
+        msg->port_msg.last |= sb.last;
 
         n = nxt_socketpair_send(&port->socket, msg->fd, iov, sb.niov + 1);
 
@@ -286,6 +292,12 @@ nxt_port_write_handler(nxt_task_t *task, void *obj, void *data)
                         "port %d: short write: %z instead of %uz",
                         port->socket.fd, n, sb.size + iov[0].iov_len);
                 goto fail;
+            }
+
+            if (msg->fd != -1 && msg->close_fd != 0) {
+                nxt_fd_close(msg->fd);
+
+                msg->fd = -1;
             }
 
             wq = &task->thread->engine->fast_work_queue;

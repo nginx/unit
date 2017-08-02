@@ -165,7 +165,7 @@ nxt_go_ctx_init(nxt_go_run_ctx_t *ctx, nxt_port_msg_t *port_msg,
 
     ctx->wport_msg.stream = port_msg->stream;
     ctx->wport_msg.pid = getpid();
-    ctx->wport_msg.type = NXT_PORT_MSG_DATA;
+    ctx->wport_msg.type = _NXT_PORT_MSG_DATA;
     ctx->wport_msg.mmap = 1;
 
     ctx->wmmap_msg = (nxt_port_mmap_msg_t *) ( &ctx->wport_msg + 1 );

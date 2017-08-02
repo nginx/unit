@@ -9,15 +9,30 @@
 
 
 typedef enum {
-    NXT_PORT_MSG_QUIT = 0,
-    NXT_PORT_MSG_NEW_PORT,
-    NXT_PORT_MSG_CHANGE_FILE,
-    NXT_PORT_MSG_MMAP,
-    NXT_PORT_MSG_DATA,
-    NXT_PORT_MSG_REMOVE_PID,
-    NXT_PORT_MSG_READY,
+    NXT_PORT_MSG_LAST           = 0x100,
+    NXT_PORT_MSG_CLOSE_FD       = 0x200,
+
+    NXT_PORT_MSG_MASK           = 0xFF,
+
+    _NXT_PORT_MSG_QUIT          = 0,
+    _NXT_PORT_MSG_NEW_PORT,
+    _NXT_PORT_MSG_CHANGE_FILE,
+    _NXT_PORT_MSG_MMAP,
+    _NXT_PORT_MSG_DATA,
+    _NXT_PORT_MSG_REMOVE_PID,
+    _NXT_PORT_MSG_READY,
 
     NXT_PORT_MSG_MAX,
+
+    NXT_PORT_MSG_QUIT           = _NXT_PORT_MSG_QUIT | NXT_PORT_MSG_LAST,
+    NXT_PORT_MSG_NEW_PORT       = _NXT_PORT_MSG_NEW_PORT | NXT_PORT_MSG_LAST,
+    NXT_PORT_MSG_CHANGE_FILE    = _NXT_PORT_MSG_CHANGE_FILE | NXT_PORT_MSG_LAST,
+    NXT_PORT_MSG_MMAP           = _NXT_PORT_MSG_MMAP | NXT_PORT_MSG_LAST |
+                                  NXT_PORT_MSG_CLOSE_FD,
+    NXT_PORT_MSG_DATA           = _NXT_PORT_MSG_DATA,
+    NXT_PORT_MSG_DATA_LAST      = _NXT_PORT_MSG_DATA | NXT_PORT_MSG_LAST,
+    NXT_PORT_MSG_REMOVE_PID     = _NXT_PORT_MSG_REMOVE_PID | NXT_PORT_MSG_LAST,
+    NXT_PORT_MSG_READY          = _NXT_PORT_MSG_READY | NXT_PORT_MSG_LAST,
 } nxt_port_msg_type_t;
 
 
@@ -27,7 +42,7 @@ typedef struct {
     nxt_pid_t            pid;
     nxt_port_id_t        reply_port;
 
-    nxt_port_msg_type_t  type:8;
+    uint8_t              type;
     uint8_t              last;      /* 1 bit */
 
     /* Message data send using mmap, next chunk is a nxt_port_mmap_msg_t. */
@@ -40,6 +55,7 @@ typedef struct {
     nxt_buf_t           *buf;
     size_t              share;
     nxt_fd_t            fd;
+    nxt_bool_t          close_fd;
     nxt_port_msg_t      port_msg;
 
     nxt_work_t          work;

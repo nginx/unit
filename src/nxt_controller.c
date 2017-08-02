@@ -862,7 +862,8 @@ nxt_controller_conf_pass(nxt_task_t *task, nxt_conf_value_t *conf)
 
     b->mem.free = nxt_conf_json_print(b->mem.free, conf, NULL);
 
-    return nxt_port_socket_write(task, port, NXT_PORT_MSG_DATA, -1, 0, 0, b);
+    return nxt_port_socket_write(task, port, NXT_PORT_MSG_DATA_LAST, -1, 0,
+                                 0, b);
 }
 
 

@@ -198,37 +198,6 @@ fail:
 }
 
 
-static void
-nxt_port_mmap_send_fd_buf_completion(nxt_task_t *task, void *obj, void *data)
-{
-    nxt_fd_t   fd;
-    nxt_buf_t  *b;
-    nxt_mp_t   *mp;
-
-    if (nxt_buf_ts_handle(task, obj, data)) {
-        return;
-    }
-
-    b = obj;
-    mp = b->data;
-    fd = (nxt_fd_t) (intptr_t) data;
-
-#if (NXT_DEBUG)
-    if (nxt_slow_path(data != b->parent)) {
-        nxt_log_alert(task->log, "completion data (%p) != b->parent (%p)",
-                      data, b->parent);
-        nxt_abort();
-    }
-#endif
-
-    nxt_debug(task, "mmap fd %FD has been sent", fd);
-
-    nxt_fd_close(fd);
-
-    nxt_mp_release(mp, b);
-}
-
-
 static nxt_port_mmap_header_t *
 nxt_port_new_port_mmap(nxt_task_t *task, nxt_process_t *process,
     nxt_port_t *port)
@@ -236,7 +205,6 @@ nxt_port_new_port_mmap(nxt_task_t *task, nxt_process_t *process,
     void                    *mem;
     u_char                  *p, name[64];
     nxt_fd_t                fd;
-    nxt_buf_t               *b;
     nxt_port_mmap_t         *port_mmap;
     nxt_port_mmap_header_t  *hdr;
 
@@ -310,14 +278,6 @@ nxt_port_new_port_mmap(nxt_task_t *task, nxt_process_t *process,
 
     port_mmap->hdr = mem;
 
-    b = nxt_buf_mem_ts_alloc(task, port->mem_pool, 0);
-    if (nxt_slow_path(b == NULL)) {
-        goto remove_fail;
-    }
-
-    b->completion_handler = nxt_port_mmap_send_fd_buf_completion;
-    b->parent = (void *) (intptr_t) fd;
-
     /* Init segment header. */
     hdr = port_mmap->hdr;
 
@@ -336,7 +296,7 @@ nxt_port_new_port_mmap(nxt_task_t *task, nxt_process_t *process,
               port->pid);
 
     /* TODO handle error */
-    (void) nxt_port_socket_write(task, port, NXT_PORT_MSG_MMAP, fd, 0, 0, b);
+    (void) nxt_port_socket_write(task, port, NXT_PORT_MSG_MMAP, fd, 0, 0, NULL);
 
     nxt_log(task, NXT_LOG_DEBUG, "new mmap #%D created for %PI -> %PI",
             hdr->id, nxt_pid, process->pid);

@@ -575,7 +575,7 @@ nxt_router_conf_send(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     b->parent = tmcf->mem_pool;
     b->completion_handler = nxt_router_conf_buf_completion;
 
-    nxt_port_socket_write(task, tmcf->port, NXT_PORT_MSG_DATA, -1,
+    nxt_port_socket_write(task, tmcf->port, NXT_PORT_MSG_DATA_LAST, -1,
                           tmcf->stream, 0, b);
 }
 
@@ -1977,7 +1977,8 @@ nxt_router_send_sw_request(nxt_task_t *task, void *obj, void *data)
     *b->mem.free++ = '\0';
     nxt_buf_cpystr(b, &app->conf);
 
-    nxt_port_socket_write(task, port, NXT_PORT_MSG_DATA, -1, sw->stream, 0, b);
+    nxt_port_socket_write(task, port, NXT_PORT_MSG_DATA_LAST, -1,
+                          sw->stream, 0, b);
 }
 
 

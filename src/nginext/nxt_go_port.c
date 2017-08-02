@@ -152,13 +152,13 @@ nxt_go_port_on_read(void *buf, size_t buf_size, void *oob, size_t oob_size)
     }
 
     switch (port_msg->type) {
-    case NXT_PORT_MSG_QUIT:
+    case _NXT_PORT_MSG_QUIT:
         nxt_go_debug("quit");
 
         nxt_go_set_quit();
         break;
 
-    case NXT_PORT_MSG_NEW_PORT:
+    case _NXT_PORT_MSG_NEW_PORT:
         nxt_go_debug("new port");
         new_port_msg = payload;
 
@@ -166,22 +166,22 @@ nxt_go_port_on_read(void *buf, size_t buf_size, void *oob, size_t oob_size)
             -1, fd);
         break;
 
-    case NXT_PORT_MSG_CHANGE_FILE:
+    case _NXT_PORT_MSG_CHANGE_FILE:
         nxt_go_debug("change file");
         break;
 
-    case NXT_PORT_MSG_MMAP:
+    case _NXT_PORT_MSG_MMAP:
         nxt_go_debug("mmap");
 
         nxt_go_new_incoming_mmap(port_msg->pid, fd);
         break;
 
-    case NXT_PORT_MSG_DATA:
+    case _NXT_PORT_MSG_DATA:
         nxt_go_debug("data");
 
         return nxt_go_data_handler(port_msg, buf_size);
 
-    case NXT_PORT_MSG_REMOVE_PID:
+    case _NXT_PORT_MSG_REMOVE_PID:
         nxt_go_debug("remove pid");
 
         /* TODO remove all ports for this pid in Go */
