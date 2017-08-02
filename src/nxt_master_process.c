@@ -12,6 +12,14 @@
 #include <nxt_application.h>
 
 
+typedef struct {
+    nxt_socket_t        socket;
+    nxt_socket_error_t  error;
+    u_char              *start;
+    u_char              *end;
+} nxt_listening_socket_t;
+
+
 static nxt_int_t nxt_master_process_port_create(nxt_task_t *task,
     nxt_runtime_t *rt);
 static void nxt_master_process_title(nxt_task_t *task);
@@ -32,6 +40,10 @@ static void nxt_master_process_sigusr1_handler(nxt_task_t *task, void *obj,
 static void nxt_master_process_sigchld_handler(nxt_task_t *task, void *obj,
     void *data);
 static void nxt_master_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid);
+static void nxt_master_port_socket_handler(nxt_task_t *task,
+    nxt_port_recv_msg_t *msg);
+static nxt_int_t nxt_master_listening_socket(nxt_sockaddr_t *sa,
+    nxt_listening_socket_t *ls);
 
 
 const nxt_sig_event_t  nxt_master_process_signals[] = {
@@ -206,6 +218,7 @@ static nxt_port_handler_t  nxt_master_process_port_handlers[] = {
     NULL, /* NXT_PORT_MSG_REMOVE_PID   */
     nxt_port_ready_handler,
     nxt_port_master_start_worker_handler,
+    nxt_master_port_socket_handler,
     nxt_port_rpc_handler,
     nxt_port_rpc_handler,
 };
@@ -690,4 +703,188 @@ nxt_master_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid)
             }
         }
     }
+}
+
+
+static void
+nxt_master_port_socket_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
+{
+    size_t                  size;
+    nxt_int_t               ret;
+    nxt_buf_t               *b, *out;
+    nxt_port_t              *port;
+    nxt_sockaddr_t          *sa;
+    nxt_port_msg_type_t     type;
+    nxt_listening_socket_t  ls;
+    u_char                  message[2048];
+
+    b = msg->buf;
+    sa = (nxt_sockaddr_t *) b->mem.pos;
+
+    out = NULL;
+
+    ls.socket = -1;
+    ls.error = NXT_SOCKET_ERROR_SYSTEM;
+    ls.start = message;
+    ls.end = message + sizeof(message);
+
+    port = nxt_runtime_port_find(task->thread->runtime, msg->port_msg.pid,
+                                 msg->port_msg.reply_port);
+
+    nxt_debug(task, "listening socket \"%*s\"",
+              sa->length, nxt_sockaddr_start(sa));
+
+    ret = nxt_master_listening_socket(sa, &ls);
+
+    if (ret == NXT_OK) {
+        nxt_debug(task, "socket(\"%*s\"): %d",
+                  sa->length, nxt_sockaddr_start(sa), ls.socket);
+
+        type = NXT_PORT_MSG_RPC_READY_LAST | NXT_PORT_MSG_CLOSE_FD;
+
+    } else {
+        size = ls.end - ls.start;
+
+        nxt_log(task, NXT_LOG_CRIT, "%*s", size, ls.start);
+
+        out = nxt_buf_mem_alloc(port->mem_pool, size + 1, 0);
+        if (nxt_slow_path(out == NULL)) {
+            return;
+        }
+
+        *out->mem.free++ = (uint8_t) ls.error;
+
+        out->mem.free = nxt_cpymem(out->mem.free, ls.start, size);
+
+        type = NXT_PORT_MSG_RPC_ERROR;
+    }
+
+    nxt_port_socket_write(task, port, type, ls.socket, msg->port_msg.stream,
+                          0, out);
+}
+
+
+static nxt_int_t
+nxt_master_listening_socket(nxt_sockaddr_t *sa, nxt_listening_socket_t *ls)
+{
+    nxt_err_t         err;
+    nxt_socket_t      s;
+
+    const socklen_t   length = sizeof(int);
+    const static int  enable = 1;
+
+    s = socket(sa->u.sockaddr.sa_family, sa->type, 0);
+
+    if (nxt_slow_path(s == -1)) {
+        err = nxt_errno;
+
+#if (NXT_INET6)
+
+        if (err == EAFNOSUPPORT && sa->u.sockaddr.sa_family == AF_INET6) {
+            ls->error = NXT_SOCKET_ERROR_NOINET6;
+        }
+
+#endif
+
+        ls->end = nxt_sprintf(ls->start, ls->end,
+                              "socket(\\\"%*s\\\") failed %E",
+                              sa->length, nxt_sockaddr_start(sa), err);
+
+        return NXT_ERROR;
+    }
+
+    if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &enable, length) != 0) {
+        ls->end = nxt_sprintf(ls->start, ls->end,
+                              "setsockopt(\\\"%*s\\\", SO_REUSEADDR) failed %E",
+                              sa->length, nxt_sockaddr_start(sa), nxt_errno);
+        goto fail;
+    }
+
+#if (NXT_INET6)
+
+    if (sa->u.sockaddr.sa_family == AF_INET6) {
+
+        if (setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &enable, length) != 0) {
+            ls->end = nxt_sprintf(ls->start, ls->end,
+                               "setsockopt(\\\"%*s\\\", IPV6_V6ONLY) failed %E",
+                               sa->length, nxt_sockaddr_start(sa), nxt_errno);
+            goto fail;
+        }
+    }
+
+#endif
+
+    if (bind(s, &sa->u.sockaddr, sa->socklen) != 0) {
+        err = nxt_errno;
+
+#if (NXT_HAVE_UNIX_DOMAIN)
+
+        if (sa->u.sockaddr.sa_family == AF_UNIX) {
+            switch (err) {
+
+            case EACCES:
+                ls->error = NXT_SOCKET_ERROR_ACCESS;
+                break;
+
+            case ENOENT:
+            case ENOTDIR:
+                ls->error = NXT_SOCKET_ERROR_PATH;
+                break;
+            }
+
+            goto next;
+        }
+
+#endif
+
+        switch (err) {
+
+        case EACCES:
+            ls->error = NXT_SOCKET_ERROR_PORT;
+            break;
+
+        case EADDRINUSE:
+            ls->error = NXT_SOCKET_ERROR_INUSE;
+            break;
+
+        case EADDRNOTAVAIL:
+            ls->error = NXT_SOCKET_ERROR_NOADDR;
+            break;
+        }
+
+        ls->end = nxt_sprintf(ls->start, ls->end, "bind(\\\"%*s\\\") failed %E",
+                              sa->length, nxt_sockaddr_start(sa), err);
+        goto fail;
+    }
+
+#if (NXT_HAVE_UNIX_DOMAIN)
+
+next:
+
+    if (sa->u.sockaddr.sa_family == AF_UNIX) {
+        char     *filename;
+        mode_t   access;
+
+        filename = sa->u.sockaddr_un.sun_path;
+        access = (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+
+        if (chmod(filename, access) != 0) {
+            ls->end = nxt_sprintf(ls->start, ls->end,
+                                  "chmod(\\\"%*s\\\") failed %E",
+                                  filename, nxt_errno);
+            goto fail;
+        }
+    }
+
+#endif
+
+    ls->socket = s;
+
+    return NXT_OK;
+
+fail:
+
+    (void) close(s);
+
+    return NXT_ERROR;
 }

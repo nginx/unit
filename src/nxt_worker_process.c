@@ -31,6 +31,7 @@ nxt_port_handler_t  nxt_controller_process_port_handlers[] = {
     nxt_port_remove_pid_handler,
     NULL, /* NXT_PORT_MSG_READY        */
     NULL, /* NXT_PORT_MSG_START_WORKER */
+    NULL, /* NXT_PORT_MSG_SOCKET       */
     nxt_port_rpc_handler,
     nxt_port_rpc_handler,
 };
@@ -45,6 +46,7 @@ nxt_port_handler_t  nxt_worker_process_port_handlers[] = {
     nxt_port_remove_pid_handler,
     NULL, /* NXT_PORT_MSG_READY        */
     NULL, /* NXT_PORT_MSG_START_WORKER */
+    NULL, /* NXT_PORT_MSG_SOCKET       */
     nxt_port_rpc_handler,
     nxt_port_rpc_handler,
 };
@@ -59,6 +61,7 @@ nxt_port_handler_t  nxt_app_process_port_handlers[] = {
     nxt_port_remove_pid_handler,
     NULL, /* NXT_PORT_MSG_READY        */
     NULL, /* NXT_PORT_MSG_START_WORKER */
+    NULL, /* NXT_PORT_MSG_SOCKET       */
     nxt_port_rpc_handler,
     nxt_port_rpc_handler,
 };
@@ -73,6 +76,7 @@ nxt_port_handler_t  nxt_router_process_port_handlers[] = {
     nxt_router_remove_pid_handler,
     NULL, /* NXT_PORT_MSG_READY        */
     NULL, /* NXT_PORT_MSG_START_WORKER */
+    NULL, /* NXT_PORT_MSG_SOCKET       */
     nxt_port_rpc_handler,
     nxt_port_rpc_handler,
 };

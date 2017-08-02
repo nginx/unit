@@ -45,10 +45,15 @@ struct nxt_req_app_link_s {
 };
 
 
+typedef struct {
+    nxt_socket_conf_t       *socket_conf;
+    nxt_router_temp_conf_t  *temp_conf;
+} nxt_socket_rpc_t;
+
+
 static nxt_router_temp_conf_t *nxt_router_temp_conf(nxt_task_t *task);
-static nxt_int_t nxt_router_conf_new(nxt_task_t *task,
-    nxt_router_temp_conf_t *tmcf, u_char *start, u_char *end);
-static void nxt_router_conf_success(nxt_task_t *task,
+static void nxt_router_conf_apply(nxt_task_t *task, void *obj, void *data);
+static void nxt_router_conf_ready(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf);
 static void nxt_router_conf_error(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf);
@@ -62,8 +67,12 @@ static nxt_int_t nxt_router_conf_create(nxt_task_t *task,
 static nxt_app_t *nxt_router_app_find(nxt_queue_t *queue, nxt_str_t *name);
 static nxt_app_t *nxt_router_listener_application(nxt_router_temp_conf_t *tmcf,
     nxt_str_t *name);
-static nxt_int_t nxt_router_listen_sockets_stub_create(nxt_task_t *task,
-    nxt_router_temp_conf_t *tmcf);
+static void nxt_router_listen_socket_rpc_create(nxt_task_t *task,
+    nxt_router_temp_conf_t *tmcf, nxt_socket_conf_t *skcf);
+static void nxt_router_listen_socket_ready(nxt_task_t *task,
+    nxt_port_recv_msg_t *msg, void *data);
+static void nxt_router_listen_socket_error(nxt_task_t *task,
+    nxt_port_recv_msg_t *msg, void *data);
 static nxt_socket_conf_t *nxt_router_socket_conf(nxt_task_t *task, nxt_mp_t *mp,
     nxt_sockaddr_t *sa);
 
@@ -306,8 +315,8 @@ void
 nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
     size_t                  dump_size;
-    nxt_buf_t               *b;
     nxt_int_t               ret;
+    nxt_buf_t               *b;
     nxt_router_temp_conf_t  *tmcf;
 
     b = msg->buf;
@@ -329,18 +338,17 @@ nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     tmcf->conf->router = nxt_router;
     tmcf->stream = msg->port_msg.stream;
     tmcf->port = nxt_runtime_port_find(task->thread->runtime,
-                                       msg->port_msg.pid, 0);
+                                       msg->port_msg.pid,
+                                       msg->port_msg.reply_port);
 
-    ret = nxt_router_conf_new(task, tmcf, b->mem.pos, b->mem.free);
+    ret = nxt_router_conf_create(task, tmcf, b->mem.pos, b->mem.free);
 
-    if (ret == NXT_OK) {
-        nxt_router_conf_success(task, tmcf);
-        return;
+    if (nxt_fast_path(ret == NXT_OK)) {
+        nxt_router_conf_apply(task, tmcf, NULL);
+
+    } else {
+        nxt_router_conf_error(task, tmcf);
     }
-
-    nxt_log(task, NXT_LOG_CRIT, "failed to apply new conf");
-
-    nxt_router_conf_error(task, tmcf);
 }
 
 
@@ -421,41 +429,46 @@ fail:
 }
 
 
-static nxt_int_t
-nxt_router_conf_new(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
-    u_char *start, u_char *end)
+static void
+nxt_router_conf_apply(nxt_task_t *task, void *obj, void *data)
 {
     nxt_int_t                    ret;
     nxt_router_t                 *router;
     nxt_runtime_t                *rt;
+    nxt_queue_link_t             *qlk;
+    nxt_socket_conf_t            *skcf;
+    nxt_router_temp_conf_t       *tmcf;
     const nxt_event_interface_t  *interface;
 
-    ret = nxt_router_conf_create(task, tmcf, start, end);
-    if (nxt_slow_path(ret != NXT_OK)) {
-        return ret;
-    }
+    tmcf = obj;
 
-    router = tmcf->conf->router;
+    qlk = nxt_queue_first(&tmcf->pending);
 
-    nxt_router_listen_sockets_sort(router, tmcf);
+    if (qlk != nxt_queue_tail(&tmcf->pending)) {
+        nxt_queue_remove(qlk);
+        nxt_queue_insert_tail(&tmcf->creating, qlk);
 
-    ret = nxt_router_listen_sockets_stub_create(task, tmcf);
-    if (nxt_slow_path(ret != NXT_OK)) {
-        return ret;
+        skcf = nxt_queue_link_data(qlk, nxt_socket_conf_t, link);
+
+        nxt_router_listen_socket_rpc_create(task, tmcf, skcf);
+
+        return;
     }
 
     rt = task->thread->runtime;
 
     interface = nxt_service_get(rt->services, "engine", NULL);
 
+    router = tmcf->conf->router;
+
     ret = nxt_router_engines_create(task, router, tmcf, interface);
     if (nxt_slow_path(ret != NXT_OK)) {
-        return ret;
+        goto fail;
     }
 
     ret = nxt_router_threads_create(task, rt, tmcf);
     if (nxt_slow_path(ret != NXT_OK)) {
-        return ret;
+        goto fail;
     }
 
     nxt_router_apps_sort(router, tmcf);
@@ -465,7 +478,15 @@ nxt_router_conf_new(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_queue_add(&router->sockets, &tmcf->updating);
     nxt_queue_add(&router->sockets, &tmcf->creating);
 
-    return NXT_OK;
+    nxt_router_conf_ready(task, tmcf);
+
+    return;
+
+fail:
+
+    nxt_router_conf_error(task, tmcf);
+
+    return;
 }
 
 
@@ -476,12 +497,12 @@ nxt_router_conf_wait(nxt_task_t *task, void *obj, void *data)
 
     job = obj;
 
-    nxt_router_conf_success(task, job->tmcf);
+    nxt_router_conf_ready(task, job->tmcf);
 }
 
 
 static void
-nxt_router_conf_success(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
+nxt_router_conf_ready(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
 {
     nxt_debug(task, "temp conf count:%D", tmcf->count);
 
@@ -498,6 +519,8 @@ nxt_router_conf_error(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
     nxt_router_t       *router;
     nxt_queue_link_t   *qlk;
     nxt_socket_conf_t  *skcf;
+
+    nxt_log(task, NXT_LOG_CRIT, "failed to apply new conf");
 
     for (qlk = nxt_queue_first(&tmcf->creating);
          qlk != nxt_queue_tail(&tmcf->creating);
@@ -789,6 +812,8 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         nxt_queue_insert_tail(&tmcf->pending, &skcf->link);
     }
 
+    nxt_router_listen_sockets_sort(tmcf->conf->router, tmcf);
+
     return NXT_OK;
 
 app_fail:
@@ -906,55 +931,159 @@ nxt_router_listen_sockets_sort(nxt_router_t *router,
 }
 
 
-static nxt_int_t
-nxt_router_listen_sockets_stub_create(nxt_task_t *task,
-    nxt_router_temp_conf_t *tmcf)
+static void
+nxt_router_listen_socket_rpc_create(nxt_task_t *task,
+    nxt_router_temp_conf_t *tmcf, nxt_socket_conf_t *skcf)
+{
+    uint32_t          stream;
+    nxt_buf_t         *b;
+    nxt_port_t        *main_port, *router_port;
+    nxt_runtime_t     *rt;
+    nxt_socket_rpc_t  *rpc;
+
+    rpc = nxt_mp_alloc(tmcf->mem_pool, sizeof(nxt_socket_rpc_t));
+    if (rpc == NULL) {
+        goto fail;
+    }
+
+    rpc->socket_conf = skcf;
+    rpc->temp_conf = tmcf;
+
+    b = nxt_buf_mem_alloc(tmcf->mem_pool, skcf->sockaddr->sockaddr_size, 0);
+    if (b == NULL) {
+        goto fail;
+    }
+
+    b->mem.free = nxt_cpymem(b->mem.free, skcf->sockaddr,
+                             skcf->sockaddr->sockaddr_size);
+
+    rt = task->thread->runtime;
+    main_port = rt->port_by_type[NXT_PROCESS_MASTER];
+    router_port = rt->port_by_type[NXT_PROCESS_ROUTER];
+
+    stream = nxt_port_rpc_register_handler(task, router_port,
+                                           nxt_router_listen_socket_ready,
+                                           nxt_router_listen_socket_error,
+                                           main_port->pid, rpc);
+    if (stream == 0) {
+        goto fail;
+    }
+
+    nxt_port_socket_write(task, main_port, NXT_PORT_MSG_SOCKET, -1,
+                          stream, router_port->id, b);
+
+    return;
+
+fail:
+
+    nxt_router_conf_error(task, tmcf);
+}
+
+
+static void
+nxt_router_listen_socket_ready(nxt_task_t *task, nxt_port_recv_msg_t *msg,
+    void *data)
 {
     nxt_int_t            ret;
     nxt_socket_t         s;
-    nxt_queue_link_t     *qlk, *nqlk;
-    nxt_socket_conf_t    *skcf;
+    nxt_socket_rpc_t     *rpc;
     nxt_router_socket_t  *rtsk;
 
-    for (qlk = nxt_queue_first(&tmcf->pending);
-         qlk != nxt_queue_tail(&tmcf->pending);
-         qlk = nqlk)
-    {
-        skcf = nxt_queue_link_data(qlk, nxt_socket_conf_t, link);
+    rpc = data;
 
-        s = nxt_listen_socket_create0(task, skcf->sockaddr, NXT_NONBLOCK);
-        if (nxt_slow_path(s == -1)) {
-            return NXT_ERROR;
-        }
+    s = msg->fd;
 
-        ret = nxt_listen_socket(task, s, NXT_LISTEN_BACKLOG);
-        if (nxt_slow_path(ret != NXT_OK)) {
-            goto fail;
-        }
-
-        skcf->listen.socket = s;
-
-        rtsk = nxt_malloc(sizeof(nxt_router_socket_t));
-        if (nxt_slow_path(rtsk == NULL)) {
-            goto fail;
-        }
-
-        rtsk->count = 0;
-        rtsk->fd = skcf->listen.socket;
-        skcf->socket = rtsk;
-
-        nqlk = nxt_queue_next(qlk);
-        nxt_queue_remove(qlk);
-        nxt_queue_insert_tail(&tmcf->creating, qlk);
+    ret = nxt_socket_nonblocking(task, s);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        goto fail;
     }
 
-    return NXT_OK;
+#ifdef TCP_DEFER_ACCEPT
+
+    /* Defer Linux accept() up to for 1 second. */
+    (void) nxt_socket_setsockopt(task, s, IPPROTO_TCP, TCP_DEFER_ACCEPT, 1);
+
+#endif
+
+    ret = nxt_listen_socket(task, s, NXT_LISTEN_BACKLOG);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        goto fail;
+    }
+
+    rtsk = nxt_malloc(sizeof(nxt_router_socket_t));
+    if (nxt_slow_path(rtsk == NULL)) {
+        goto fail;
+    }
+
+    rtsk->count = 0;
+    rtsk->fd = s;
+
+    rpc->socket_conf->listen.socket = s;
+    rpc->socket_conf->socket = rtsk;
+
+    nxt_work_queue_add(&task->thread->engine->fast_work_queue,
+                       nxt_router_conf_apply, task, rpc->temp_conf, NULL);
+
+    return;
 
 fail:
 
     nxt_socket_close(task, s);
 
-    return NXT_ERROR;
+    nxt_router_conf_error(task, rpc->temp_conf);
+}
+
+
+static void
+nxt_router_listen_socket_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
+    void *data)
+{
+    u_char                  *p;
+    size_t                  size;
+    uint8_t                 error;
+    nxt_buf_t               *in, *out;
+    nxt_sockaddr_t          *sa;
+    nxt_socket_rpc_t        *rpc;
+    nxt_router_temp_conf_t  *tmcf;
+
+    static nxt_str_t  socket_errors[] = {
+        nxt_string("ListenerSystem"),
+        nxt_string("ListenerNoIPv6"),
+        nxt_string("ListenerPort"),
+        nxt_string("ListenerInUse"),
+        nxt_string("ListenerNoAddress"),
+        nxt_string("ListenerNoAccess"),
+        nxt_string("ListenerPath"),
+    };
+
+    rpc = data;
+    sa = rpc->socket_conf->sockaddr;
+
+    in = msg->buf;
+    p = in->mem.pos;
+
+    error = *p++;
+
+    size = sizeof("listen socket error: ") - 1
+           + sizeof("{listener: \"\", code:\"\", message: \"\"}") - 1
+           + sa->length + socket_errors[error].length + (in->mem.free - p);
+
+    tmcf = rpc->temp_conf;
+
+    out = nxt_buf_mem_alloc(tmcf->mem_pool, size, 0);
+    if (nxt_slow_path(out == NULL)) {
+        return;
+    }
+
+    out->mem.free = nxt_sprintf(out->mem.free, out->mem.end,
+                        "listen socket error: "
+                        "{listener: \"%*s\", code:\"%V\", message: \"%*s\"}",
+                        sa->length, nxt_sockaddr_start(sa),
+                        &socket_errors[error], in->mem.free - p, p);
+
+    nxt_debug(task, "%*s", out->mem.free - out->mem.pos, out->mem.pos);
+
+    nxt_router_conf_error(task, tmcf);
 }
 
 
