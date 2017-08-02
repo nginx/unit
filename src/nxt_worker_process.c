@@ -27,7 +27,7 @@ nxt_port_handler_t  nxt_controller_process_port_handlers[] = {
     nxt_port_new_port_handler,
     nxt_port_change_log_file_handler,
     nxt_port_mmap_handler,
-    nxt_port_controller_data_handler,
+    nxt_port_data_handler,
     nxt_port_remove_pid_handler,
     NULL, /* NXT_PORT_MSG_READY        */
     NULL, /* NXT_PORT_MSG_START_WORKER */

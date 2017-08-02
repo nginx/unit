@@ -53,9 +53,7 @@ static void nxt_router_conf_success(nxt_task_t *task,
 static void nxt_router_conf_error(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf);
 static void nxt_router_conf_send(nxt_task_t *task,
-    nxt_router_temp_conf_t *tmcf, u_char *start, size_t size);
-static void nxt_router_conf_buf_completion(nxt_task_t *task, void *obj,
-    void *data);
+    nxt_router_temp_conf_t *tmcf, nxt_port_msg_type_t type);
 static void nxt_router_listen_sockets_sort(nxt_router_t *router,
     nxt_router_temp_conf_t *tmcf);
 
@@ -490,7 +488,7 @@ nxt_router_conf_success(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
     nxt_debug(task, "temp conf count:%D", tmcf->count);
 
     if (--tmcf->count == 0) {
-        nxt_router_conf_send(task, tmcf, (u_char *) "OK", 2);
+        nxt_router_conf_send(task, tmcf, NXT_PORT_MSG_RPC_READY_LAST);
     }
 }
 
@@ -526,40 +524,15 @@ nxt_router_conf_error(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
 
     nxt_mp_destroy(tmcf->conf->mem_pool);
 
-    nxt_router_conf_send(task, tmcf, (u_char *) "ERROR", 5);
+    nxt_router_conf_send(task, tmcf, NXT_PORT_MSG_RPC_ERROR);
 }
 
 
 static void
 nxt_router_conf_send(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
-    u_char *start, size_t size)
+    nxt_port_msg_type_t type)
 {
-    nxt_buf_t  *b;
-
-    b = nxt_buf_mem_alloc(tmcf->mem_pool, size, 0);
-    if (nxt_slow_path(b == NULL)) {
-        return;
-    }
-
-    b->mem.free = nxt_cpymem(b->mem.free, start, size);
-
-    b->parent = tmcf->mem_pool;
-    b->completion_handler = nxt_router_conf_buf_completion;
-
-    nxt_port_socket_write(task, tmcf->port, NXT_PORT_MSG_DATA_LAST, -1,
-                          tmcf->stream, 0, b);
-}
-
-
-static void
-nxt_router_conf_buf_completion(nxt_task_t *task, void *obj, void *data)
-{
-    nxt_mp_t  *mp;
-
-    /* nxt_router_temp_conf_t mem pool. */
-    mp = data;
-
-    nxt_mp_destroy(mp);
+    nxt_port_socket_write(task, tmcf->port, type, -1, tmcf->stream, 0, NULL);
 }
 
 

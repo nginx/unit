@@ -135,9 +135,6 @@ nxt_port_t *nxt_runtime_port_first(nxt_runtime_t *rt,
 /* STUB */
 nxt_int_t nxt_runtime_controller_socket(nxt_task_t *task, nxt_runtime_t *rt);
 
-void nxt_port_controller_data_handler(nxt_task_t *task,
-    nxt_port_recv_msg_t *msg);
-
 nxt_str_t *nxt_current_directory(nxt_mp_t *mp);
 
 nxt_listen_socket_t *nxt_runtime_listen_socket_add(nxt_runtime_t *rt,
