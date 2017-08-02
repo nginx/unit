@@ -42,7 +42,7 @@ typedef struct nxt_conf_object_s  nxt_conf_object_t;
 
 
 struct nxt_conf_value_s {
-    union nxt_packed {
+    union {
         uint8_t               boolean;  /* 1 bit. */
         int64_t               integer;
         double                number;
@@ -52,14 +52,14 @@ struct nxt_conf_value_s {
             u_char            start[NXT_CONF_MAX_SHORT_STRING];
         } str;
 
-        struct nxt_packed {
+        struct {
             u_char            *start;
             uint32_t          length;
-        } string;
+        } nxt_packed string;
 
         nxt_conf_array_t      *array;
         nxt_conf_object_t     *object;
-    } u;
+    } nxt_packed u;
 
     uint8_t                   type;  /* 3 bits. */
 } nxt_aligned(8);

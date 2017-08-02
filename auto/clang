@@ -153,9 +153,10 @@ nxt_feature_name=NXT_HAVE_GCC_ATTRIBUTE_PACKED
 nxt_feature_run=
 nxt_feature_path=
 nxt_feature_libs=
-nxt_feature_test="struct __attribute__ ((__packed__)) s {
+nxt_feature_test="struct s {
                       char c;
-                  };
+                      int i;
+                  } __attribute__ ((__packed__));
 
                   int main() {
                       return 1;
