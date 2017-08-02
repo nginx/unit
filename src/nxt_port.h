@@ -21,6 +21,8 @@ typedef enum {
     _NXT_PORT_MSG_DATA,
     _NXT_PORT_MSG_REMOVE_PID,
     _NXT_PORT_MSG_READY,
+    _NXT_PORT_MSG_RPC_READY,
+    _NXT_PORT_MSG_RPC_ERROR,
 
     NXT_PORT_MSG_MAX,
 
@@ -33,6 +35,9 @@ typedef enum {
     NXT_PORT_MSG_DATA_LAST      = _NXT_PORT_MSG_DATA | NXT_PORT_MSG_LAST,
     NXT_PORT_MSG_REMOVE_PID     = _NXT_PORT_MSG_REMOVE_PID | NXT_PORT_MSG_LAST,
     NXT_PORT_MSG_READY          = _NXT_PORT_MSG_READY | NXT_PORT_MSG_LAST,
+    NXT_PORT_MSG_RPC_READY      = _NXT_PORT_MSG_RPC_READY,
+    NXT_PORT_MSG_RPC_READY_LAST = _NXT_PORT_MSG_RPC_READY | NXT_PORT_MSG_LAST,
+    NXT_PORT_MSG_RPC_ERROR      = _NXT_PORT_MSG_RPC_ERROR | NXT_PORT_MSG_LAST,
 } nxt_port_msg_type_t;
 
 
@@ -103,6 +108,10 @@ struct nxt_port_s {
 
     nxt_port_id_t       id;
     nxt_pid_t           pid;
+
+    nxt_lvlhsh_t        rpc_streams; /* stream to nxt_port_rpc_reg_t */
+    nxt_lvlhsh_t        rpc_peers;   /* peer to queue of nxt_port_rpc_reg_t */
+    uint32_t            next_stream;
 
     nxt_process_type_t  type;
     nxt_work_t          work;

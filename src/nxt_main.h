@@ -126,6 +126,7 @@ nxt_thread_extern_data(nxt_thread_t, nxt_thread_context);
 
 #include <nxt_port.h>
 #include <nxt_port_memory.h>
+#include <nxt_port_rpc.h>
 #if (NXT_THREADS)
 #include <nxt_thread_pool.h>
 #endif

@@ -200,6 +200,8 @@ static nxt_port_handler_t  nxt_master_process_port_handlers[] = {
     nxt_port_master_data_handler,
     NULL,
     nxt_port_ready_handler,
+    nxt_port_rpc_handler,
+    nxt_port_rpc_handler,
 };
 
 

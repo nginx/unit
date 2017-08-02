@@ -34,6 +34,7 @@ nxt_port_new(nxt_port_id_t id, nxt_pid_t pid, nxt_process_type_t type)
         port->pid = pid;
         port->type = type;
         port->mem_pool = mp;
+        port->next_stream = 1;
 
         nxt_queue_init(&port->messages);
 
@@ -420,6 +421,8 @@ nxt_port_remove_pid_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     rt = task->thread->runtime;
     pid = msg->port_msg.stream;
+
+    nxt_port_rpc_remove_peer(task, msg->port, pid);
 
     process = nxt_runtime_process_find(rt, pid);
 

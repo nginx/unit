@@ -90,6 +90,7 @@ NXT_LIB_SRCS=" \
     src/nxt_signal.c \
     src/nxt_port_socket.c \
     src/nxt_port_memory.c \
+    src/nxt_port_rpc.c \
     src/nxt_port.c \
     src/nxt_dyld.c \
     src/nxt_random.c \
