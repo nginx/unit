@@ -22,3 +22,23 @@ $NXT_BUILD_DIR/$nxt_obj:	$nxt_src
 END
 
 done
+
+cat << END >> $NXT_MAKEFILE
+.PHONY: golang-nginext-install
+
+NXT_ROOT = \$(shell pwd)
+
+GOPATH = \$(shell go env GOPATH)
+GOOS = \$(shell go env GOOS)
+GOARCH = \$(shell go env GOARCH)
+
+golang-nginext-install:
+	install -d \$(GOPATH)/src/nginext
+	install -p ./src/nginext/*.c ./src/nginext/*.h ./src/nginext/*.go \$(GOPATH)/src/nginext/
+	CGO_CFLAGS="-I\$(NXT_ROOT)/build -I\$(NXT_ROOT)/src" CGO_LDFLAGS="-L\$(NXT_ROOT)/build" go install -v nginext
+
+golang-nginext-uninstall:
+	rm -rf \$(GOPATH)/src/nginext
+	rm -f \$(GOPATH)/pkg/\$(GOOS)_\$(GOARCH)/nginext.a
+
+END
