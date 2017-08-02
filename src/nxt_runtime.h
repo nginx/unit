@@ -37,6 +37,7 @@ struct nxt_runtime_s {
 
     nxt_process_t          *mprocess;
     size_t                 nprocesses;
+    nxt_thread_mutex_t     processes_mutex;
     nxt_lvlhsh_t           processes;           /* of nxt_process_t */
 
     nxt_port_t             *port_by_type[NXT_PROCESS_MAX];
@@ -100,8 +101,6 @@ nxt_runtime_is_master(nxt_runtime_t *rt)
 
 
 nxt_process_t *nxt_runtime_process_new(nxt_runtime_t *rt);
-
-void nxt_runtime_process_destroy(nxt_runtime_t *rt, nxt_process_t *process);
 
 nxt_process_t *nxt_runtime_process_get(nxt_runtime_t *rt, nxt_pid_t pid);
 

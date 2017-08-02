@@ -577,7 +577,7 @@ nxt_process_port_mp_cleanup(nxt_task_t *task, void *obj, void *data)
     process->port_cleanups--;
 
     if (process->port_cleanups == 0) {
-        nxt_runtime_process_destroy(rt, process);
+        nxt_runtime_process_remove(rt, process);
     }
 }
 

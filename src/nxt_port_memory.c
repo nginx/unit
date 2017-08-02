@@ -379,7 +379,7 @@ nxt_port_get_port_incoming_mmap(nxt_task_t *task, nxt_pid_t spid, uint32_t id)
     nxt_port_mmap_t         *port_mmap;
     nxt_port_mmap_header_t  *hdr;
 
-    process = nxt_runtime_process_get(task->thread->runtime, spid);
+    process = nxt_runtime_process_find(task->thread->runtime, spid);
     if (nxt_slow_path(process == NULL)) {
         return NULL;
     }

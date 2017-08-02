@@ -406,7 +406,7 @@ nxt_master_create_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
 
     port = nxt_port_new(0, 0, init->type);
     if (nxt_slow_path(port == NULL)) {
-        nxt_runtime_process_destroy(rt, process);
+        nxt_runtime_process_remove(rt, process);
         return NXT_ERROR;
     }
 
@@ -658,7 +658,9 @@ nxt_master_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid)
         if (!nxt_exiting) {
             nxt_runtime_process_each(rt, process)
             {
-                if (process->pid == nxt_pid) {
+                if (process->pid == nxt_pid ||
+                    process->pid == pid ||
+                    nxt_queue_is_empty(&process->ports)) {
                     continue;
                 }
 

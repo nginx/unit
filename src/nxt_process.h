@@ -57,6 +57,7 @@ typedef struct {
     nxt_pid_t           pid;
     nxt_queue_t         ports;      /* of nxt_port_t */
     nxt_bool_t          ready;
+    nxt_bool_t          registered;
     nxt_uint_t          port_cleanups;
 
     nxt_process_init_t  *init;

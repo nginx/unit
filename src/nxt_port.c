@@ -106,28 +106,6 @@ nxt_port_enable(nxt_task_t *task, nxt_port_t *port,
 }
 
 
-void
-nxt_port_write(nxt_task_t *task, nxt_runtime_t *rt, nxt_uint_t type,
-    nxt_fd_t fd, uint32_t stream, nxt_buf_t *b)
-{
-    nxt_port_t     *port;
-    nxt_process_t  *process;
-
-    nxt_runtime_process_each(rt, process)
-    {
-        if (nxt_pid != process->pid) {
-            nxt_process_port_each(process, port) {
-
-                (void) nxt_port_socket_write(task, port, type,
-                                             fd, stream, 0, b);
-
-            } nxt_process_port_loop;
-        }
-    }
-    nxt_runtime_process_loop;
-}
-
-
 static void
 nxt_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
@@ -276,6 +254,8 @@ nxt_port_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     rt = task->thread->runtime;
 
+    nxt_assert(nxt_runtime_is_master(rt));
+
     process = nxt_runtime_process_get(rt, msg->port_msg.pid);
     if (nxt_slow_path(process == NULL)) {
         return;
@@ -290,9 +270,7 @@ nxt_port_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     nxt_debug(task, "process %PI ready", msg->port_msg.pid);
 
-    if (nxt_runtime_is_master(rt)) {
-        nxt_port_send_new_port(task, rt, port, msg->port_msg.stream);
-    }
+    nxt_port_send_new_port(task, rt, port, msg->port_msg.stream);
 }
 
 
@@ -310,7 +288,7 @@ nxt_port_mmap_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         return;
     }
 
-    process = nxt_runtime_process_get(rt, msg->port_msg.pid);
+    process = nxt_runtime_process_find(rt, msg->port_msg.pid);
     if (nxt_slow_path(process == NULL)) {
         nxt_log(task, NXT_LOG_WARN, "failed to get process #%PI",
                 msg->port_msg.pid);
@@ -415,13 +393,13 @@ nxt_port_remove_pid_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_runtime_t       *rt;
     nxt_process_t       *process;
 
-    nxt_debug(task, "port remove pid handler");
-
     buf = msg->buf;
 
     nxt_assert(nxt_buf_used_size(buf) == sizeof(pid));
 
     nxt_memcpy(&pid, buf->mem.pos, sizeof(pid));
+
+    nxt_debug(task, "port remove pid %PI handler", pid);
 
     rt = task->thread->runtime;
 
