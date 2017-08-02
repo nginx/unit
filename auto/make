@@ -245,19 +245,18 @@ fi
 
 cat << END > Makefile
 
-all:	$NXT_BIN
+.PHONY: $NXT_BIN lib_test
 
-libnxt:
-	make -f $NXT_MAKEFILE libnxt
+all: $NXT_BIN
 
-lib_test:
-	make -f $NXT_MAKEFILE $NXT_BUILD_DIR/lib_unit_test
-	make -f $NXT_MAKEFILE $NXT_BUILD_DIR/utf8_file_name_test
+include $NXT_MAKEFILE
+
+
+lib_test: $NXT_BUILD_DIR/lib_unit_test $NXT_BUILD_DIR/utf8_file_name_test
 
 clean:
 	rm -rf $NXT_BUILD_DIR *.dSYM Makefile
 
-$NXT_BIN:
-	make -f $NXT_MAKEFILE $NXT_BUILD_DIR/$NXT_BIN
+$NXT_BIN: $NXT_BUILD_DIR/$NXT_BIN
 
 END
