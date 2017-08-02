@@ -415,7 +415,11 @@ nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
 
             nxt_port_read_msg_process(task, port, &msg);
 
-            if (b->mem.pos == b->mem.free) {
+            /*
+             * To disable instant completion or buffer re-usage,
+             * handler should reset 'msg.buf'.
+             */
+            if (msg.buf == b) {
                 nxt_port_buf_free(port, b);
             }
 
@@ -469,14 +473,23 @@ nxt_port_read_msg_process(nxt_task_t *task, nxt_port_t *port,
     port->handler(task, msg);
 
     if (msg->port_msg.mmap && orig_b != b) {
-        /* complete used mmap buffers */
-        for (; b && nxt_buf_used_size(b) == 0;
-            b = b->next) {
-            nxt_debug(task, "complete buffer %p", b);
 
-            nxt_work_queue_add(port->socket.read_work_queue,
-                b->completion_handler, task, b, b->parent);
+        /*
+         * To disable instant buffer completion,
+         * handler should reset 'msg->buf'.
+         */
+        if (msg->buf == b) {
+            /* complete mmap buffers */
+            for (; b != NULL; b = b->next) {
+                nxt_debug(task, "complete buffer %p", b);
+
+                nxt_work_queue_add(port->socket.read_work_queue,
+                    b->completion_handler, task, b, b->parent);
+            }
         }
+
+        /* restore original buf */
+        msg->buf = orig_b;
     }
 
     return;

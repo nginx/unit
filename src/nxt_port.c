@@ -225,7 +225,6 @@ nxt_port_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     rt = task->thread->runtime;
 
     new_port_msg = (nxt_port_msg_new_port_t *) msg->buf->mem.pos;
-    msg->buf->mem.pos = msg->buf->mem.free;
 
     nxt_debug(task, "new port %d received for process %PI:%d",
               msg->fd, new_port_msg->pid, new_port_msg->id);
@@ -405,8 +404,6 @@ nxt_port_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     }
 
     nxt_debug(task, "data: %*s", dump_size, b->mem.pos);
-
-    b->mem.pos = b->mem.free;
 }
 
 

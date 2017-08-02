@@ -333,8 +333,6 @@ nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     ret = nxt_router_conf_new(task, tmcf, b->mem.pos, b->mem.free);
 
-    b->mem.pos = b->mem.free;
-
     if (ret == NXT_OK) {
         nxt_router_conf_success(task, tmcf);
         return;
@@ -1735,7 +1733,7 @@ static void
 nxt_router_app_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
     size_t               dump_size;
-    nxt_buf_t            *b, *i, *last;
+    nxt_buf_t            *b, *last;
     nxt_conn_t           *c;
     nxt_req_conn_link_t  *rc;
     nxt_event_engine_t   *engine;
@@ -1747,11 +1745,6 @@ nxt_router_app_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     if (nxt_slow_path(rc == NULL)) {
 
         nxt_debug(task, "request id %08uxD not found", msg->port_msg.stream);
-
-        /* Mark buffers as read. */
-        for (i = b; i != NULL; i = i->next) {
-            i->mem.pos = i->mem.free;
-        }
 
         return;
     }
@@ -1792,6 +1785,9 @@ nxt_router_app_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     if (b == NULL) {
         return;
     }
+
+    /* Disable instant buffer completion/re-using by port. */
+    msg->buf = NULL;
 
     if (c->write == NULL) {
         c->write = b;
