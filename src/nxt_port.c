@@ -413,14 +413,20 @@ nxt_port_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 void
 nxt_port_remove_pid_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
+    nxt_buf_t           *buf;
     nxt_pid_t           pid;
     nxt_runtime_t       *rt;
     nxt_process_t       *process;
 
     nxt_debug(task, "port remove pid handler");
 
+    buf = msg->buf;
+
+    nxt_assert(nxt_buf_used_size(buf) == sizeof(pid));
+
+    nxt_memcpy(&pid, buf->mem.pos, sizeof(pid));
+
     rt = task->thread->runtime;
-    pid = msg->port_msg.stream;
 
     nxt_port_rpc_remove_peer(task, msg->port, pid);
 

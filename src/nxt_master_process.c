@@ -136,24 +136,32 @@ static nxt_conf_map_t  nxt_common_app_conf[] = {
 static void
 nxt_port_master_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
-    u_char            *start;
-    size_t            dump_size;
-    nxt_mp_t          *mp;
-    nxt_int_t         ret;
-    nxt_buf_t         *b;
-    nxt_conf_value_t  *conf;
+    nxt_buf_t  *b;
+
+    b = msg->buf;
+
+    nxt_debug(task, "master data: %*s", b->mem.free - b->mem.pos, b->mem.pos);
+
+    b->mem.pos = b->mem.free;
+}
+
+
+static void
+nxt_port_master_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
+{
+    u_char                 *start;
+    nxt_mp_t               *mp;
+    nxt_int_t              ret;
+    nxt_buf_t              *b;
+    nxt_conf_value_t       *conf;
     nxt_common_app_conf_t  app_conf;
 
     static nxt_str_t nobody = nxt_string("nobody");
 
     b = msg->buf;
-    dump_size = b->mem.free - b->mem.pos;
 
-    if (dump_size > 300) {
-        dump_size = 300;
-    }
-
-    nxt_debug(task, "master data: %*s", dump_size, b->mem.pos);
+    nxt_debug(task, "master start worker: %*s", b->mem.free - b->mem.pos,
+              b->mem.pos);
 
     mp = nxt_mp_create(1024, 128, 256, 32);
 
@@ -193,13 +201,14 @@ nxt_port_master_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
 
 static nxt_port_handler_t  nxt_master_process_port_handlers[] = {
-    NULL,
-    nxt_port_new_port_handler,
-    NULL,
-    nxt_port_mmap_handler,
+    NULL, /* NXT_PORT_MSG_QUIT         */
+    NULL, /* NXT_PORT_MSG_NEW_PORT     */
+    NULL, /* NXT_PORT_MSG_CHANGE_FILE  */
+    NULL, /* NXT_PORT_MSG_MMAP         */
     nxt_port_master_data_handler,
-    NULL,
+    NULL, /* NXT_PORT_MSG_REMOVE_PID   */
     nxt_port_ready_handler,
+    nxt_port_master_start_worker_handler,
     nxt_port_rpc_handler,
     nxt_port_rpc_handler,
 };
@@ -634,6 +643,7 @@ nxt_master_process_sigchld_handler(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_master_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid)
 {
+    nxt_buf_t           *buf;
     nxt_port_t          *port;
     nxt_runtime_t       *rt;
     nxt_process_t       *process;
@@ -657,8 +667,11 @@ nxt_master_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid)
 
                 port = nxt_process_port_first(process);
 
+                buf = nxt_buf_mem_alloc(port->mem_pool, sizeof(pid), 0);
+                buf->mem.free = nxt_cpymem(buf->mem.free, &pid, sizeof(pid));
+
                 nxt_port_socket_write(task, port, NXT_PORT_MSG_REMOVE_PID,
-                                      -1, pid, 0, NULL);
+                                      -1, init->stream, 0, buf);
             }
             nxt_runtime_process_loop;
         }

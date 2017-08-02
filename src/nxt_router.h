@@ -20,8 +20,6 @@ typedef struct {
 
     nxt_queue_t            sockets;    /* of nxt_socket_conf_t */
     nxt_queue_t            apps;       /* of nxt_app_t */
-
-    nxt_lvlhsh_t           start_workers; /* stream to nxt_start_worker_t */
 } nxt_router_t;
 
 
@@ -124,6 +122,7 @@ typedef struct {
 
 void nxt_router_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 void nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
+void nxt_router_remove_pid_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 
 nxt_bool_t nxt_router_app_remove_port(nxt_port_t *port);
 
