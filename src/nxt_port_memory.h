@@ -38,11 +38,6 @@ void
 nxt_port_mmap_write(nxt_task_t *task, nxt_port_t *port,
     nxt_port_send_msg_t *msg, nxt_sendbuf_coalesce_t *sb);
 
-nxt_inline void
-nxt_port_mmap_completion(nxt_task_t *task, nxt_work_queue_t *wq, nxt_buf_t *b) {
-    nxt_work_queue_add(wq, b->completion_handler, task, b, b->parent);
-}
-
 void
 nxt_port_mmap_read(nxt_task_t *task, nxt_port_t *port,
     nxt_port_recv_msg_t *msg);

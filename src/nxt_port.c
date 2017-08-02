@@ -15,8 +15,32 @@ static void nxt_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 static nxt_atomic_uint_t nxt_port_last_id = 1;
 
 
+static void
+nxt_port_mp_cleanup(nxt_task_t *task, void *obj, void *data)
+{
+    nxt_mp_t    *mp;
+    nxt_port_t  *port;
+
+    port = obj;
+    mp = data;
+
+    nxt_assert(port->pair[0] == -1);
+    nxt_assert(port->pair[1] == -1);
+
+    nxt_assert(port->app_req_id == 0);
+    nxt_assert(port->app_link.next == NULL);
+
+    nxt_assert(nxt_queue_is_empty(&port->messages));
+    nxt_assert(nxt_lvlhsh_is_empty(&port->rpc_streams));
+    nxt_assert(nxt_lvlhsh_is_empty(&port->rpc_peers));
+
+    nxt_mp_free(mp, port);
+}
+
+
 nxt_port_t *
-nxt_port_new(nxt_port_id_t id, nxt_pid_t pid, nxt_process_type_t type)
+nxt_port_new(nxt_task_t *task, nxt_port_id_t id, nxt_pid_t pid,
+    nxt_process_type_t type)
 {
     nxt_mp_t    *mp;
     nxt_port_t  *port;
@@ -35,6 +59,8 @@ nxt_port_new(nxt_port_id_t id, nxt_pid_t pid, nxt_process_type_t type)
         port->type = type;
         port->mem_pool = mp;
         port->next_stream = 1;
+
+        nxt_mp_cleanup(mp, nxt_port_mp_cleanup, task, port, mp);
 
         nxt_queue_init(&port->messages);
 
@@ -74,7 +100,7 @@ nxt_port_release(nxt_port_t *port)
         nxt_process_port_remove(port);
     }
 
-    nxt_mp_release(port->mem_pool, port);
+    nxt_mp_release(port->mem_pool, NULL);
 
     return 1;
 }
@@ -222,7 +248,7 @@ nxt_port_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         return;
     }
 
-    port = nxt_port_new(new_port_msg->id, new_port_msg->pid,
+    port = nxt_port_new(task, new_port_msg->id, new_port_msg->pid,
                         new_port_msg->type);
     if (nxt_slow_path(port == NULL)) {
         return;

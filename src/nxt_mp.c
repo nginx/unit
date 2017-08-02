@@ -952,7 +952,9 @@ nxt_mp_retain(nxt_mp_t *mp, size_t size)
 uint32_t
 nxt_mp_release(nxt_mp_t *mp, void *p)
 {
-    nxt_mp_free(mp, p);
+    if (nxt_fast_path(p != NULL)) {
+        nxt_mp_free(mp, p);
+    }
 
     mp->retain--;
 

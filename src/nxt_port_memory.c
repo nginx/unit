@@ -568,7 +568,7 @@ nxt_port_mmap_write(nxt_task_t *task, nxt_port_t *port,
     nxt_port_send_msg_t *msg, nxt_sendbuf_coalesce_t *sb)
 {
     size_t                  bsize;
-    nxt_buf_t               *b, *bmem;
+    nxt_buf_t               *bmem;
     nxt_uint_t              i;
     nxt_port_mmap_msg_t     *mmap_msg;
     nxt_port_mmap_header_t  *hdr;
@@ -577,13 +577,8 @@ nxt_port_mmap_write(nxt_task_t *task, nxt_port_t *port,
               "via shared memory", sb->size, port->pid);
 
     bsize = sb->niov * sizeof(nxt_port_mmap_msg_t);
+    mmap_msg = port->mmsg_buf;
 
-    b = nxt_buf_mem_ts_alloc(task, port->mem_pool, bsize);
-    if (nxt_slow_path(b == NULL)) {
-        return;
-    }
-
-    mmap_msg = (nxt_port_mmap_msg_t *) b->mem.start;
     bmem = msg->buf;
 
     for (i = 0; i < sb->niov; i++, mmap_msg++) {
@@ -611,10 +606,7 @@ nxt_port_mmap_write(nxt_task_t *task, nxt_port_t *port,
                   port->pid);
     }
 
-    msg->buf = b;
-    b->mem.free += bsize;
-
-    sb->iobuf[0].iov_base = b->mem.pos;
+    sb->iobuf[0].iov_base = port->mmsg_buf;
     sb->iobuf[0].iov_len = bsize;
     sb->niov = 1;
     sb->size = bsize;

@@ -1386,7 +1386,8 @@ nxt_router_thread_start(void *data)
 
     engine->mem_pool = nxt_mp_create(4096, 128, 1024, 64);
 
-    port = nxt_port_new(nxt_port_get_next_id(), nxt_pid, NXT_PROCESS_ROUTER);
+    port = nxt_port_new(task, nxt_port_get_next_id(), nxt_pid,
+                        NXT_PROCESS_ROUTER);
     if (nxt_slow_path(port == NULL)) {
         return;
     }

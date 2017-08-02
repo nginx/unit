@@ -118,6 +118,9 @@ struct nxt_port_s {
 
     nxt_process_type_t  type;
     nxt_work_t          work;
+
+    struct iovec        *iov;
+    void                *mmsg_buf;
 };
 
 
@@ -140,7 +143,7 @@ typedef union {
 } nxt_port_data_t;
 
 
-nxt_port_t *nxt_port_new(nxt_port_id_t id, nxt_pid_t pid,
+nxt_port_t *nxt_port_new(nxt_task_t *task, nxt_port_id_t id, nxt_pid_t pid,
     nxt_process_type_t type);
 nxt_bool_t nxt_port_release(nxt_port_t *port);
 
