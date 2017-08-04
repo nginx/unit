@@ -45,6 +45,7 @@ NXT_PYTHON=python
 NXT_PYTHON_MODULE=NO
 
 NXT_PHP=php
+NXT_PHP_LDFLAGS=
 NXT_PHP_MODULE=NO
 
 NXT_GO=go
@@ -99,6 +100,7 @@ do
         --with-python_module)            NXT_PYTHON_MODULE=YES               ;;
 
         --with-php=*)                    NXT_PHP="$value"                    ;;
+        --with-php-ldflags=*)            NXT_PHP_LDFLAGS="$value"            ;;
         --with-php_module)               NXT_PHP_MODULE=YES                  ;;
 
         --with-go=*)                     NXT_GO="$value"                     ;;

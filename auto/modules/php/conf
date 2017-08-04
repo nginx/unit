@@ -3,6 +3,7 @@
 # Copyright (C) NGINX, Inc.
 
 
+$echo -n "checking for PHP ..."
 $echo "checking for PHP ..." >> $NXT_AUTOCONF_ERR
 
 nxt_found=no
@@ -11,16 +12,21 @@ NXT_PHP_CONFIG="${NXT_PHP}-config"
 
 if /bin/sh -c "${NXT_PHP_CONFIG} --version"  >> $NXT_AUTOCONF_ERR 2>&1; then
 
+    $echo " found"
+
     NXT_PHP_VERSION="`${NXT_PHP_CONFIG} --version`"
+    $echo " + PHP version: ${NXT_PHP_VERSION}"
+    $echo " + PHP SAPI: [`${NXT_PHP_CONFIG} --php-sapis`]"
+
     NXT_PHP_INCLUDE="`${NXT_PHP_CONFIG} --includes`"
     NXT_PHP_LIB="-lphp${NXT_PHP_VERSION%%.*}"
-    NXT_PHP_LIBS="`${NXT_PHP_CONFIG} --ldflags`"
+    # "php-config --ldflags" does not contain path to libphp.
 
-    nxt_feature="PHP"
+    nxt_feature="PHP embed SAPI"
     nxt_feature_name=NXT_HAVE_PHP
     nxt_feature_run=no
     nxt_feature_incs="${NXT_PHP_INCLUDE}"
-    nxt_feature_libs="${NXT_PHP_LIB} ${NXT_PHP_LIBS}"
+    nxt_feature_libs="${NXT_PHP_LIB} ${NXT_PHP_LDFLAGS}"
     nxt_feature_test="
         #include <php.h>
         #include <php_main.h>
@@ -34,14 +40,11 @@ if /bin/sh -c "${NXT_PHP_CONFIG} --version"  >> $NXT_AUTOCONF_ERR 2>&1; then
 fi
 
 if [ $nxt_found = no ]; then
-    $echo "checking for PHP ..."
     $echo
-    $echo $0: error: no PHP found.
+    $echo $0: error: no PHP embed SAPI found.
     $echo
     exit 1;
 fi
-
-$echo " + PHP version: ${NXT_PHP_VERSION}"
 
 NXT_PHP_MODULE_SRCS=" \
     src/nxt_php_sapi.c \
@@ -50,4 +53,4 @@ NXT_PHP_MODULE_SRCS=" \
 NXT_MODULES_INIT="$NXT_MODULES_INIT nxt_php_sapi_init"
 NXT_MODULES_SRCS="$NXT_MODULES_SRCS $NXT_PHP_MODULE_SRCS"
 
-NXT_LIB_AUX_LIBS="$NXT_LIB_AUX_LIBS $NXT_PHP_LIB $NXT_PHP_LIBS"
+NXT_LIB_AUX_LIBS="$NXT_LIB_AUX_LIBS $NXT_PHP_LIB $NXT_PHP_LDFLAGS"
