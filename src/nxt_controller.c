@@ -780,15 +780,11 @@ static void
 nxt_controller_conf_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     void *data)
 {
-    size_t                     size;
-    nxt_buf_t                  *b;
     nxt_controller_request_t   *req;
     nxt_controller_response_t  resp;
 
-    b = msg->buf;
-    size = b->mem.free - b->mem.pos;
-
-    nxt_debug(task, "controller conf ready: %*s ...", size, b->mem.pos);
+    nxt_debug(task, "controller conf ready: %*s",
+              nxt_buf_mem_used_size(&msg->buf->mem), msg->buf->mem.pos);
 
     nxt_memzero(&resp, sizeof(nxt_controller_response_t));
 

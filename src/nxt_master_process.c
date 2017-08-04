@@ -148,11 +148,8 @@ static nxt_conf_map_t  nxt_common_app_conf[] = {
 static void
 nxt_port_master_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
-    nxt_buf_t  *b;
-
-    b = msg->buf;
-
-    nxt_debug(task, "master data: %*s", b->mem.free - b->mem.pos, b->mem.pos);
+    nxt_debug(task, "master data: %*s",
+              nxt_buf_mem_used_size(&msg->buf->mem), msg->buf->mem.pos);
 }
 
 
