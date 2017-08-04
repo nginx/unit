@@ -771,7 +771,7 @@ nxt_master_listening_socket(nxt_sockaddr_t *sa, nxt_listening_socket_t *ls)
     nxt_socket_t      s;
 
     const socklen_t   length = sizeof(int);
-    const static int  enable = 1;
+    static const int  enable = 1;
 
     s = socket(sa->u.sockaddr.sa_family, sa->type, 0);
 
