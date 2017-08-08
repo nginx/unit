@@ -1273,7 +1273,8 @@ nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
         case sw_encoded4:
 
             if (nxt_fast_path((ch >= '0' && ch <= '9')
-                              || (ch >= 'A' && ch <= 'F')))
+                              || (ch >= 'A' && ch <= 'F')
+                              || (ch >= 'a' && ch <= 'f')))
             {
                 state = (state == sw_encoded4) ? sw_usual : state + 1;
                 continue;
@@ -1368,7 +1369,8 @@ nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
 
         for ( ;; ) {
             for (i = 0; i < 4; i++) {
-                utf = (utf << 4) + (p[i] - (p[i] >= 'A' ? 'A' : '0'));
+                utf = (utf << 4) | (p[i] >= 'A' ? 10 + ((p[i] & ~0x20) - 'A')
+                                                : p[i] - '0');
             }
 
             p += 4;
