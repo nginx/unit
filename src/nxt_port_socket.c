@@ -171,10 +171,15 @@ nxt_port_socket_write(nxt_task_t *task, nxt_port_t *port, nxt_uint_t type,
 
     nxt_queue_each(msg, &port->messages, nxt_port_send_msg_t, link) {
 
-        if  (msg->port_msg.stream == stream && 
-             msg->port_msg.reply_port == reply_port) {
+        if ((type & NXT_PORT_MSG_SYNC) != 0) {
+            msg->opened = 0;
+            continue;
+        }
 
-            nxt_assert(msg->port_msg.last == 0);
+        if  (msg->port_msg.stream == stream && 
+             msg->port_msg.reply_port == reply_port &&
+             msg->port_msg.last == 0 &&
+             msg->opened) {
 
             /*
              * An fd is ignored since a file descriptor
@@ -201,6 +206,7 @@ nxt_port_socket_write(nxt_task_t *task, nxt_port_t *port, nxt_uint_t type,
     msg->fd = fd;
     msg->close_fd = (type & NXT_PORT_MSG_CLOSE_FD) != 0;
     msg->share = 0;
+    msg->opened = 1;
 
     msg->work.next = NULL;
     msg->work.handler = nxt_port_release_send_msg;

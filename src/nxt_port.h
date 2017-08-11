@@ -11,6 +11,7 @@
 typedef enum {
     NXT_PORT_MSG_LAST           = 0x100,
     NXT_PORT_MSG_CLOSE_FD       = 0x200,
+    NXT_PORT_MSG_SYNC           = 0x400,
 
     NXT_PORT_MSG_MASK           = 0xFF,
 
@@ -32,7 +33,7 @@ typedef enum {
     NXT_PORT_MSG_NEW_PORT       = _NXT_PORT_MSG_NEW_PORT | NXT_PORT_MSG_LAST,
     NXT_PORT_MSG_CHANGE_FILE    = _NXT_PORT_MSG_CHANGE_FILE | NXT_PORT_MSG_LAST,
     NXT_PORT_MSG_MMAP           = _NXT_PORT_MSG_MMAP | NXT_PORT_MSG_LAST |
-                                  NXT_PORT_MSG_CLOSE_FD,
+                                  NXT_PORT_MSG_CLOSE_FD | NXT_PORT_MSG_SYNC,
     NXT_PORT_MSG_DATA           = _NXT_PORT_MSG_DATA,
     NXT_PORT_MSG_DATA_LAST      = _NXT_PORT_MSG_DATA | NXT_PORT_MSG_LAST,
     NXT_PORT_MSG_REMOVE_PID     = _NXT_PORT_MSG_REMOVE_PID | NXT_PORT_MSG_LAST,
@@ -66,6 +67,7 @@ typedef struct {
     size_t              share;
     nxt_fd_t            fd;
     nxt_bool_t          close_fd;
+    nxt_bool_t          opened;
     nxt_port_msg_t      port_msg;
 
     nxt_work_t          work;
