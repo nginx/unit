@@ -661,7 +661,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     static nxt_str_t  applications_path = nxt_string("/applications");
     static nxt_str_t  listeners_path = nxt_string("/listeners");
 
-    conf = nxt_conf_json_parse(tmcf->mem_pool, start, end);
+    conf = nxt_conf_json_parse(tmcf->mem_pool, start, end, NULL);
     if (conf == NULL) {
         nxt_log(task, NXT_LOG_CRIT, "configuration parsing error");
         return NXT_ERROR;

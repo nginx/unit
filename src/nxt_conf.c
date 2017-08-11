@@ -48,8 +48,8 @@ struct nxt_conf_value_s {
         double                number;
 
         struct {
-            uint8_t           length;
             u_char            start[NXT_CONF_MAX_SHORT_STRING];
+            uint8_t           length;
         } str;
 
         struct {
@@ -93,9 +93,9 @@ struct nxt_conf_op_s {
 
 static u_char *nxt_conf_json_skip_space(u_char *start, u_char *end);
 static u_char *nxt_conf_json_parse_value(nxt_mp_t *mp, nxt_conf_value_t *value,
-    u_char *start, u_char *end);
+    u_char *start, u_char *end, nxt_conf_json_error_t *error);
 static u_char *nxt_conf_json_parse_object(nxt_mp_t *mp, nxt_conf_value_t *value,
-    u_char *start, u_char *end);
+    u_char *start, u_char *end, nxt_conf_json_error_t *error);
 static nxt_int_t nxt_conf_object_hash_add(nxt_mp_t *mp,
     nxt_lvlhsh_t *lvlhsh, nxt_conf_object_member_t *member);
 static nxt_int_t nxt_conf_object_hash_test(nxt_lvlhsh_query_t *lhq,
@@ -103,11 +103,13 @@ static nxt_int_t nxt_conf_object_hash_test(nxt_lvlhsh_query_t *lhq,
 static void *nxt_conf_object_hash_alloc(void *data, size_t size);
 static void nxt_conf_object_hash_free(void *data, void *p);
 static u_char *nxt_conf_json_parse_array(nxt_mp_t *mp, nxt_conf_value_t *value,
-    u_char *start, u_char *end);
+    u_char *start, u_char *end, nxt_conf_json_error_t *error);
 static u_char *nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value,
-    u_char *start, u_char *end);
+    u_char *start, u_char *end, nxt_conf_json_error_t *error);
 static u_char *nxt_conf_json_parse_number(nxt_mp_t *mp, nxt_conf_value_t *value,
-    u_char *start, u_char *end);
+    u_char *start, u_char *end, nxt_conf_json_error_t *error);
+static void nxt_conf_json_parse_error(nxt_conf_json_error_t *error, u_char *pos,
+    const char *detail);
 
 static nxt_int_t nxt_conf_copy_value(nxt_mp_t *mp, nxt_conf_op_t *op,
     nxt_conf_value_t *dst, nxt_conf_value_t *src);
@@ -192,8 +194,8 @@ nxt_conf_create_object(nxt_mp_t *mp, nxt_uint_t count)
 }
 
 
-nxt_int_t
-nxt_conf_set_object_member(nxt_conf_value_t *object, nxt_str_t *name,
+void
+nxt_conf_set_member(nxt_conf_value_t *object, nxt_str_t *name,
     nxt_conf_value_t *value, uint32_t index)
 {
     nxt_conf_value_t          *name_value;
@@ -215,8 +217,71 @@ nxt_conf_set_object_member(nxt_conf_value_t *object, nxt_str_t *name,
     }
 
     member->value = *value;
+}
 
-    return NXT_OK;
+
+void
+nxt_conf_set_member_string(nxt_conf_value_t *object, nxt_str_t *name,
+    nxt_str_t *value, uint32_t index)
+{
+    nxt_conf_value_t          *set;
+    nxt_conf_object_member_t  *member;
+
+    member = &object->u.object->members[index];
+    set = &member->name;
+
+    if (name->length > NXT_CONF_MAX_SHORT_STRING) {
+        set->type = NXT_CONF_VALUE_STRING;
+        set->u.string.length = name->length;
+        set->u.string.start = name->start;
+
+    } else {
+        set->type = NXT_CONF_VALUE_SHORT_STRING;
+        set->u.str.length = name->length;
+
+        nxt_memcpy(set->u.str.start, name->start, name->length);
+    }
+
+    set = &member->value;
+
+    if (value->length > NXT_CONF_MAX_SHORT_STRING) {
+        set->type = NXT_CONF_VALUE_STRING;
+        set->u.string.length = value->length;
+        set->u.string.start = value->start;
+
+    } else {
+        set->type = NXT_CONF_VALUE_SHORT_STRING;
+        set->u.str.length = value->length;
+
+        nxt_memcpy(set->u.str.start, value->start, value->length);
+    }
+}
+
+
+void
+nxt_conf_set_member_integer(nxt_conf_value_t *object, nxt_str_t *name,
+    int64_t value, uint32_t index)
+{
+    nxt_conf_value_t          *name_value;
+    nxt_conf_object_member_t  *member;
+
+    member = &object->u.object->members[index];
+    name_value = &member->name;
+
+    if (name->length > NXT_CONF_MAX_SHORT_STRING) {
+        name_value->type = NXT_CONF_VALUE_STRING;
+        name_value->u.string.length = name->length;
+        name_value->u.string.start = name->start;
+
+    } else {
+        name_value->type = NXT_CONF_VALUE_SHORT_STRING;
+        name_value->u.str.length = name->length;
+
+        nxt_memcpy(name_value->u.str.start, name->start, name->length);
+    }
+
+    member->value.u.integer = value;
+    member->value.type = NXT_CONF_VALUE_INTEGER;
 }
 
 
@@ -802,7 +867,8 @@ nxt_conf_copy_object(nxt_mp_t *mp, nxt_conf_op_t *op, nxt_conf_value_t *dst,
 
 
 nxt_conf_value_t *
-nxt_conf_json_parse(nxt_mp_t *mp, u_char *start, u_char *end)
+nxt_conf_json_parse(nxt_mp_t *mp, u_char *start, u_char *end,
+    nxt_conf_json_error_t *error)
 {
     u_char            *p;
     nxt_conf_value_t  *value;
@@ -815,10 +881,17 @@ nxt_conf_json_parse(nxt_mp_t *mp, u_char *start, u_char *end)
     p = nxt_conf_json_skip_space(start, end);
 
     if (nxt_slow_path(p == end)) {
+
+        nxt_conf_json_parse_error(error, start,
+            "An empty JSON isn't allowed.  It must be either literal "
+            "(null, true, or false), number, string (in double quotes \"\"), "
+            "array (with brackets []), or object (with braces {})."
+        );
+
         return NULL;
     }
 
-    p = nxt_conf_json_parse_value(mp, value, p, end);
+    p = nxt_conf_json_parse_value(mp, value, p, end, error);
 
     if (nxt_slow_path(p == NULL)) {
         return NULL;
@@ -827,6 +900,11 @@ nxt_conf_json_parse(nxt_mp_t *mp, u_char *start, u_char *end)
     p = nxt_conf_json_skip_space(p, end);
 
     if (nxt_slow_path(p != end)) {
+
+        nxt_conf_json_parse_error(error, p,
+            "Unexpected character after the end of valid JSON value."
+        );
+
         return NULL;
     }
 
@@ -858,21 +936,21 @@ nxt_conf_json_skip_space(u_char *start, u_char *end)
 
 static u_char *
 nxt_conf_json_parse_value(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
-    u_char *end)
+    u_char *end, nxt_conf_json_error_t *error)
 {
-    u_char  ch;
+    u_char  ch, *p;
 
     ch = *start;
 
     switch (ch) {
     case '{':
-        return nxt_conf_json_parse_object(mp, value, start, end);
+        return nxt_conf_json_parse_object(mp, value, start, end, error);
 
     case '[':
-        return nxt_conf_json_parse_array(mp, value, start, end);
+        return nxt_conf_json_parse_array(mp, value, start, end, error);
 
     case '"':
-        return nxt_conf_json_parse_string(mp, value, start, end);
+        return nxt_conf_json_parse_string(mp, value, start, end, error);
 
     case 't':
         if (nxt_fast_path(end - start >= 4
@@ -884,7 +962,7 @@ nxt_conf_json_parse_value(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
             return start + 4;
         }
 
-        return NULL;
+        goto error;
 
     case 'f':
         if (nxt_fast_path(end - start >= 5
@@ -896,7 +974,7 @@ nxt_conf_json_parse_value(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
             return start + 5;
         }
 
-        return NULL;
+        goto error;
 
     case 'n':
         if (nxt_fast_path(end - start >= 4
@@ -906,12 +984,46 @@ nxt_conf_json_parse_value(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
             return start + 4;
         }
 
-        return NULL;
+        goto error;
+
+    case '-':
+        if (nxt_fast_path(end - start > 1)) {
+            ch = start[1];
+            break;
+        }
+
+        goto error;
     }
 
-    if (nxt_fast_path(ch == '-' || (ch - '0') <= 9)) {
-        return nxt_conf_json_parse_number(mp, value, start, end);
+    if (nxt_fast_path((ch - '0') <= 9)) {
+        p = nxt_conf_json_parse_number(mp, value, start, end, error);
+
+        if (p == end) {
+            return end;
+        }
+
+        switch (*p) {
+        case ' ':
+        case '\t':
+        case '\r':
+        case '\n':
+        case ',':
+        case '}':
+        case ']':
+        case '{':
+        case '[':
+        case '"':
+            return p;
+        }
     }
+
+error:
+
+    nxt_conf_json_parse_error(error, start,
+        "A valid JSON value is expected here.  It must be either literal "
+        "(null, true, or false), number, string (in double quotes \"\"), "
+        "array (with brackets []), or object (with braces {})."
+    );
 
     return NULL;
 }
@@ -929,9 +1041,9 @@ static const nxt_lvlhsh_proto_t  nxt_conf_object_hash_proto
 
 static u_char *
 nxt_conf_json_parse_object(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
-    u_char *end)
+    u_char *end, nxt_conf_json_error_t *error)
 {
-    u_char                    *p;
+    u_char                    *p, *name;
     nxt_mp_t                  *mp_temp;
     nxt_int_t                 rc;
     nxt_uint_t                count;
@@ -954,6 +1066,12 @@ nxt_conf_json_parse_object(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
         p = nxt_conf_json_skip_space(p + 1, end);
 
         if (nxt_slow_path(p == end)) {
+
+            nxt_conf_json_parse_error(error, p,
+                "Unexpected end of JSON.  There's an object without closing "
+                "brace (})."
+            );
+
             goto error;
         }
 
@@ -962,8 +1080,16 @@ nxt_conf_json_parse_object(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
                 break;
             }
 
+            nxt_conf_json_parse_error(error, p,
+                "A double quote (\") is expected here.  There must be a valid "
+                "JSON object member starts with a name, which is a string "
+                "enclosed in double quotes."
+            );
+
             goto error;
         }
+
+        name = p;
 
         count++;
 
@@ -972,7 +1098,7 @@ nxt_conf_json_parse_object(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
             goto error;
         }
 
-        p = nxt_conf_json_parse_string(mp, &member->name, p, end);
+        p = nxt_conf_json_parse_string(mp, &member->name, p, end, error);
 
         if (nxt_slow_path(p == NULL)) {
             goto error;
@@ -981,22 +1107,52 @@ nxt_conf_json_parse_object(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
         rc = nxt_conf_object_hash_add(mp_temp, &hash, member);
 
         if (nxt_slow_path(rc != NXT_OK)) {
+
+            if (rc == NXT_DECLINED) {
+                nxt_conf_json_parse_error(error, name,
+                    "Duplicate object member.  All JSON object members must "
+                    "have unique names."
+                );
+            }
+
             goto error;
         }
 
         p = nxt_conf_json_skip_space(p, end);
 
-        if (nxt_slow_path(p == end || *p != ':')) {
+        if (nxt_slow_path(p == end)) {
+
+            nxt_conf_json_parse_error(error, p,
+                "Unexpected end of JSON.  There's an object member without "
+                "value."
+            );
+
+            goto error;
+        }
+
+        if (nxt_slow_path(*p != ':')) {
+
+            nxt_conf_json_parse_error(error, p,
+                "A colon (:) is expected here.  There must be a colon between "
+                "JSON member name and value."
+            );
+
             goto error;
         }
 
         p = nxt_conf_json_skip_space(p + 1, end);
 
         if (nxt_slow_path(p == end)) {
+
+            nxt_conf_json_parse_error(error, p,
+                "Unexpected end of JSON.  There's an object member without "
+                "value."
+            );
+
             goto error;
         }
 
-        p = nxt_conf_json_parse_value(mp, &member->value, p, end);
+        p = nxt_conf_json_parse_value(mp, &member->value, p, end, error);
 
         if (nxt_slow_path(p == NULL)) {
             goto error;
@@ -1005,6 +1161,12 @@ nxt_conf_json_parse_object(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
         p = nxt_conf_json_skip_space(p, end);
 
         if (nxt_slow_path(p == end)) {
+
+            nxt_conf_json_parse_error(error, p,
+                "Unexpected end of JSON.  There's an object without closing "
+                "brace (})."
+            );
+
             goto error;
         }
 
@@ -1012,6 +1174,12 @@ nxt_conf_json_parse_object(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
             if (nxt_fast_path(*p == '}')) {
                 break;
             }
+
+            nxt_conf_json_parse_error(error, p,
+                "Either a closing brace (}) or a comma (,) is expected here. "
+                "In JSON, all object members must be enclosed in braces and "
+                "separated by commas."
+            );
 
             goto error;
         }
@@ -1081,11 +1249,7 @@ nxt_conf_object_hash_test(nxt_lvlhsh_query_t *lhq, void *data)
 
     nxt_conf_get_string(&member->name, &str);
 
-    if (nxt_strstr_eq(&lhq->key, &str)) {
-        return NXT_OK;
-    }
-
-    return NXT_DECLINED;
+    return nxt_strstr_eq(&lhq->key, &str) ? NXT_OK : NXT_DECLINED;
 }
 
 
@@ -1105,7 +1269,7 @@ nxt_conf_object_hash_free(void *data, void *p)
 
 static u_char *
 nxt_conf_json_parse_array(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
-    u_char *end)
+    u_char *end, nxt_conf_json_error_t *error)
 {
     u_char            *p;
     nxt_mp_t          *mp_temp;
@@ -1131,6 +1295,12 @@ nxt_conf_json_parse_array(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
         p = nxt_conf_json_skip_space(p + 1, end);
 
         if (nxt_slow_path(p == end)) {
+
+            nxt_conf_json_parse_error(error, p,
+                "Unexpected end of JSON.  There's an array without closing "
+                "bracket (])."
+            );
+
             goto error;
         }
 
@@ -1145,7 +1315,7 @@ nxt_conf_json_parse_array(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
             goto error;
         }
 
-        p = nxt_conf_json_parse_value(mp, element, p, end);
+        p = nxt_conf_json_parse_value(mp, element, p, end, error);
 
         if (nxt_slow_path(p == NULL)) {
             goto error;
@@ -1154,6 +1324,12 @@ nxt_conf_json_parse_array(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
         p = nxt_conf_json_skip_space(p, end);
 
         if (nxt_slow_path(p == end)) {
+
+            nxt_conf_json_parse_error(error, p,
+                "Unexpected end of JSON.  There's an array without closing "
+                "bracket (])."
+            );
+
             goto error;
         }
 
@@ -1161,6 +1337,12 @@ nxt_conf_json_parse_array(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
             if (nxt_fast_path(*p == ']')) {
                 break;
             }
+
+            nxt_conf_json_parse_error(error, p,
+                "Either a closing bracket (]) or a comma (,) is expected here. "
+                "In JSON, all array members must be enclosed in brackets and "
+                "separated by commas."
+            );
 
             goto error;
         }
@@ -1195,7 +1377,7 @@ error:
 
 static u_char *
 nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
-    u_char *end)
+    u_char *end, nxt_conf_json_error_t *error)
 {
     u_char      *p, ch, *last, *s;
     size_t      size, surplus;
@@ -1235,6 +1417,11 @@ nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
                 continue;
             }
 
+            nxt_conf_json_parse_error(error, p,
+                "Unexpected character in string.  All control characters must "
+                "be escaped in JSON strings."
+            );
+
             return NULL;
 
         case sw_escape:
@@ -1265,6 +1452,12 @@ nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
                 continue;
             }
 
+            nxt_conf_json_parse_error(error, p - 1,
+                "Unexpected reverse solidus in string.  Reverse solidus in "
+                "JSON strings must be escaped with a second reverse solidus "
+                "(\\\\)."
+            );
+
             return NULL;
 
         case sw_encoded1:
@@ -1280,6 +1473,12 @@ nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
                 continue;
             }
 
+            nxt_conf_json_parse_error(error, p,
+                "Invalid escape sequence.  In JSON, escape sequences start "
+                "with a reverse solidus, followed by the lowercase letter u, "
+                "followed by four hexadecimal digits (\\uXXXX)."
+            );
+
             return NULL;
         }
 
@@ -1287,6 +1486,12 @@ nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
     }
 
     if (nxt_slow_path(p == end)) {
+
+        nxt_conf_json_parse_error(error, p,
+            "Unexpected end of JSON.  There's a string without ending double "
+            "quote (\")."
+        );
+
         return NULL;
     }
 
@@ -1298,6 +1503,12 @@ nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
     if (size > NXT_CONF_MAX_SHORT_STRING) {
 
         if (nxt_slow_path(size > NXT_CONF_MAX_STRING)) {
+
+            nxt_conf_json_parse_error(error, start,
+                "Too long string.  Such a big JSON string values are not "
+                "supported."
+            );
+
             return NULL;
         }
 
@@ -1377,6 +1588,13 @@ nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
 
             if (utf_high != 0) {
                 if (nxt_slow_path(utf < 0xdc00 || utf > 0xdfff)) {
+
+                    nxt_conf_json_parse_error(error, p - 12,
+                        "Invalid JSON encoding sequence.  There's a 12 bytes "
+                        "sequence that composes an illegal UTF-16 surrogate "
+                        "pair."
+                    );
+
                     return NULL;
                 }
 
@@ -1390,6 +1608,12 @@ nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
             }
 
             if (utf > 0xdbff || p[0] != '\\' || p[1] != 'u') {
+
+                nxt_conf_json_parse_error(error, p - 6,
+                    "Invalid JSON encoding sequence.  There's a 6 bytes "
+                    "sequence that doesn't represent a valid character."
+                );
+
                 return NULL;
             }
 
@@ -1416,7 +1640,7 @@ nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
 
 static u_char *
 nxt_conf_json_parse_number(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
-    u_char *end)
+    u_char *end, nxt_conf_json_error_t *error)
 {
     u_char     *p, ch;
     uint64_t   integer;
@@ -1454,13 +1678,23 @@ nxt_conf_json_parse_number(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
         if (nxt_slow_path(integer >= cutoff
                           && (integer > cutoff || ch > cutlim)))
         {
-             return NULL;
+            nxt_conf_json_parse_error(error, start,
+                "Too big integer.  Such a big JSON integer values are not "
+                "supported."
+            );
+
+            return NULL;
         }
 
         integer = integer * 10 + ch;
     }
 
-    if (nxt_slow_path(p == start || (p - start > 1 && *start == '0'))) {
+    if (nxt_slow_path(p - start > 1 && *start == '0')) {
+
+        nxt_conf_json_parse_error(error, start,
+            "Leading zeros are not allowed in JSON numbers."
+        );
+
         return NULL;
     }
 
@@ -1549,9 +1783,29 @@ nxt_conf_json_parse_number(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
     if (nxt_fast_path(isfinite(value->u.number))) {
         return p;
     }
+#else
+
+    nxt_conf_json_parse_error(error, start,
+        "Invalid number.  Only integer JSON numbers without fraction and "
+        "exponent parts are supported."
+    );
+
 #endif
 
     return NULL;
+}
+
+
+static void
+nxt_conf_json_parse_error(nxt_conf_json_error_t *error, u_char *pos,
+    const char *detail)
+{
+    if (error == NULL) {
+        return;
+    }
+
+    error->pos = pos;
+    error->detail = (u_char *) detail;
 }
 
 
@@ -1982,4 +2236,33 @@ nxt_conf_json_escape(u_char *dst, u_char *src, size_t size)
     }
 
     return dst;
+}
+
+
+void
+nxt_conf_json_position(u_char *start, u_char *pos, nxt_uint_t *line,
+    nxt_uint_t *column)
+{
+    u_char      *p;
+    ssize_t     symbols;
+    nxt_uint_t  lines;
+
+    lines = 1;
+
+    for (p = start; p != pos; p++) {
+
+        if (*p != '\n') {
+            continue;
+        }
+
+        lines++;
+        start = p + 1;
+    }
+
+    symbols = nxt_utf8_length(start, p - start);
+
+    if (symbols != -1) {
+        *line = lines;
+        *column = 1 + symbols;
+    }
 }

@@ -181,7 +181,7 @@ nxt_port_master_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     start += app_conf.name.length + 1;
 
-    conf = nxt_conf_json_parse(mp, start, b->mem.free);
+    conf = nxt_conf_json_parse(mp, start, b->mem.free, NULL);
 
     if (conf == NULL) {
         nxt_log(task, NXT_LOG_CRIT, "configuration parsing error");

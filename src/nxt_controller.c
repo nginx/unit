@@ -27,9 +27,14 @@ typedef struct {
 
 
 typedef struct {
-    nxt_str_t         status_line;
+    nxt_uint_t        status;
     nxt_conf_value_t  *conf;
-    nxt_str_t         json;
+
+    u_char            *title;
+    u_char            *detail;
+    ssize_t           offset;
+    nxt_uint_t        line;
+    nxt_uint_t        column;
 } nxt_controller_response_t;
 
 
@@ -63,8 +68,8 @@ static nxt_int_t nxt_controller_conf_pass(nxt_task_t *task,
     nxt_conf_value_t *conf);
 static void nxt_controller_response(nxt_task_t *task,
     nxt_controller_request_t *req, nxt_controller_response_t *resp);
-static nxt_buf_t *nxt_controller_response_body(nxt_controller_response_t *resp,
-    nxt_mp_t *pool);
+static u_char *nxt_controller_date(u_char *buf, nxt_realtime_t *now,
+    struct tm *tm, size_t size, const char *format);
 
 
 static nxt_http_fields_hash_entry_t  nxt_controller_request_fields[] = {
@@ -561,10 +566,10 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
     nxt_int_t                  rc;
     nxt_str_t                  path;
     nxt_conn_t                 *c;
-    nxt_uint_t                 status;
     nxt_buf_mem_t              *mbuf;
     nxt_conf_op_t              *ops;
     nxt_conf_value_t           *value;
+    nxt_conf_json_error_t      error;
     nxt_controller_response_t  resp;
 
     static const nxt_str_t empty_obj = nxt_string("{}");
@@ -583,14 +588,14 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
         value = nxt_conf_get_path(nxt_controller_conf.root, &path);
 
         if (value == NULL) {
-            status = 404;
-            goto done;
+            goto not_found;
         }
 
+        resp.status = 200;
         resp.conf = value;
 
-        status = 200;
-        goto done;
+        nxt_controller_response(task, req, &resp);
+        return;
     }
 
     if (nxt_str_eq(&req->parser.method, "PUT", 3)) {
@@ -598,19 +603,32 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
         mp = nxt_mp_create(1024, 128, 256, 32);
 
         if (nxt_slow_path(mp == NULL)) {
-            status = 500;
-            goto done;
+            goto alloc_fail;
         }
 
         mbuf = &c->read->mem;
 
-        value = nxt_conf_json_parse(mp, mbuf->pos, mbuf->free);
+        nxt_memzero(&error, sizeof(nxt_conf_json_error_t));
+
+        value = nxt_conf_json_parse(mp, mbuf->pos, mbuf->free, &error);
 
         if (value == NULL) {
             nxt_mp_destroy(mp);
-            status = 400;
-            nxt_str_set(&resp.json, "{ \"error\": \"Invalid JSON.\" }");
-            goto done;
+
+            if (error.pos == NULL) {
+                goto alloc_fail;
+            }
+
+            resp.status = 400;
+            resp.title = (u_char *) "Invalid JSON.";
+            resp.detail = error.detail;
+            resp.offset = error.pos - mbuf->pos;
+
+            nxt_conf_json_position(mbuf->pos, error.pos,
+                                   &resp.line, &resp.column);
+
+            nxt_controller_response(task, req, &resp);
+            return;
         }
 
         if (path.length != 1) {
@@ -620,29 +638,23 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
 
             if (rc != NXT_OK) {
                 if (rc == NXT_DECLINED) {
-                    status = 404;
-                    goto done;
+                    goto not_found;
                 }
 
-                status = 500;
-                goto done;
+                goto alloc_fail;
             }
 
             value = nxt_conf_clone(mp, ops, nxt_controller_conf.root);
 
             if (nxt_slow_path(value == NULL)) {
                 nxt_mp_destroy(mp);
-                status = 500;
-                goto done;
+                goto alloc_fail;
             }
         }
 
         if (nxt_slow_path(nxt_conf_validate(value) != NXT_OK)) {
             nxt_mp_destroy(mp);
-            status = 400;
-            nxt_str_set(&resp.json,
-                        "{ \"error\": \"Invalid configuration.\" }");
-            goto done;
+            goto invalid_conf;
         }
 
         req->conf.root = value;
@@ -650,8 +662,7 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
 
         if (nxt_controller_conf_apply(task, req) != NXT_OK) {
             nxt_mp_destroy(mp);
-            status = 500;
-            goto done;
+            goto alloc_fail;
         }
 
         return;
@@ -663,8 +674,7 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
             mp = nxt_mp_create(1024, 128, 256, 32);
 
             if (nxt_slow_path(mp == NULL)) {
-                status = 500;
-                goto done;
+                goto alloc_fail;
             }
 
             value = nxt_conf_json_parse_str(mp, &empty_obj);
@@ -676,19 +686,16 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
 
             if (rc != NXT_OK) {
                 if (rc == NXT_DECLINED) {
-                    status = 404;
-                    goto done;
+                    goto not_found;
                 }
 
-                status = 500;
-                goto done;
+                goto alloc_fail;
             }
 
             mp = nxt_mp_create(1024, 128, 256, 32);
 
             if (nxt_slow_path(mp == NULL)) {
-                status = 500;
-                goto done;
+                goto alloc_fail;
             }
 
             value = nxt_conf_clone(mp, ops, nxt_controller_conf.root);
@@ -696,16 +703,12 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
 
         if (nxt_slow_path(value == NULL)) {
             nxt_mp_destroy(mp);
-            status = 500;
-            goto done;
+            goto alloc_fail;
         }
 
         if (nxt_slow_path(nxt_conf_validate(value) != NXT_OK)) {
             nxt_mp_destroy(mp);
-            status = 400;
-            nxt_str_set(&resp.json,
-                        "{ \"error\": \"Invalid configuration.\" }");
-            goto done;
+            goto invalid_conf;
         }
 
         req->conf.root = value;
@@ -713,44 +716,45 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
 
         if (nxt_controller_conf_apply(task, req) != NXT_OK) {
             nxt_mp_destroy(mp);
-            status = 500;
-            goto done;
+            goto alloc_fail;
         }
 
         return;
     }
 
-    status = 405;
-
-done:
-
-    switch (status) {
-
-    case 200:
-        nxt_str_set(&resp.status_line, "200 OK");
-        break;
-
-    case 400:
-        nxt_str_set(&resp.status_line, "400 Bad Request");
-        break;
-
-    case 404:
-        nxt_str_set(&resp.status_line, "404 Not Found");
-        nxt_str_set(&resp.json, "{ \"error\": \"Value doesn't exist.\" }");
-        break;
-
-    case 405:
-        nxt_str_set(&resp.status_line, "405 Method Not Allowed");
-        nxt_str_set(&resp.json, "{ \"error\": \"Invalid method.\" }");
-        break;
-
-    case 500:
-        nxt_str_set(&resp.status_line, "500 Internal Server Error");
-        nxt_str_set(&resp.json, "{ \"error\": \"Memory allocation failed.\" }");
-        break;
-    }
+    resp.status = 405;
+    resp.title = (u_char *) "Invalid method.";
+    resp.offset = -1;
 
     nxt_controller_response(task, req, &resp);
+    return;
+
+alloc_fail:
+
+    resp.status = 500;
+    resp.title = (u_char *) "Memory allocation failed.";
+    resp.offset = -1;
+
+    nxt_controller_response(task, req, &resp);
+    return;
+
+not_found:
+
+    resp.status = 404;
+    resp.title = (u_char *) "Value doesn't exist.";
+    resp.offset = -1;
+
+    nxt_controller_response(task, req, &resp);
+    return;
+
+invalid_conf:
+
+    resp.status = 400;
+    resp.title = (u_char *) "Invalid configuration.";
+    resp.offset = -1;
+
+    nxt_controller_response(task, req, &resp);
+    return;
 }
 
 
@@ -796,15 +800,15 @@ nxt_controller_conf_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
         nxt_controller_conf = req->conf;
 
-        nxt_str_set(&resp.status_line, "200 OK");
-        nxt_str_set(&resp.json, "{ \"success\": \"Reconfiguration done.\" }");
+        resp.status = 200;
+        resp.title = (u_char *) "Reconfiguration done.";
 
     } else {
         nxt_mp_destroy(req->conf.pool);
 
-        nxt_str_set(&resp.status_line, "500 Internal Server Error");
-        nxt_str_set(&resp.json,
-                    "{ \"error\": \"Failed to apply new configuration.\" }");
+        resp.status = 500;
+        resp.title = (u_char *) "Failed to apply new configuration.";
+        resp.offset = -1;
     }
 
     nxt_controller_response(task, req, &resp);
@@ -830,9 +834,11 @@ nxt_controller_process_waiting(nxt_task_t *task)
 
         nxt_mp_destroy(req->conf.pool);
 
-        nxt_str_set(&resp.status_line, "500 Internal Server Error");
-        nxt_str_set(&resp.json,
-                    "{ \"error\": \"Memory allocation failed.\" }");
+        nxt_memzero(&resp, sizeof(nxt_controller_response_t));
+
+        resp.status = 500;
+        resp.title = (u_char *) "Memory allocation failed.";
+        resp.offset = -1;
 
         nxt_controller_response(task, req, &resp);
 
@@ -877,18 +883,137 @@ nxt_controller_conf_pass(nxt_task_t *task, nxt_conf_value_t *conf)
 }
 
 
-
 static void
 nxt_controller_response(nxt_task_t *task, nxt_controller_request_t *req,
     nxt_controller_response_t *resp)
 {
-    size_t      size;
-    nxt_buf_t   *b;
-    nxt_conn_t  *c;
+    size_t                  size;
+    nxt_str_t               status_line, str;
+    nxt_buf_t               *b, *body;
+    nxt_conn_t              *c;
+    nxt_uint_t              n;
+    nxt_conf_value_t        *value, *location;
+    nxt_conf_json_pretty_t  pretty;
+
+    static nxt_str_t  success_str = nxt_string("success");
+    static nxt_str_t  error_str = nxt_string("error");
+    static nxt_str_t  detail_str = nxt_string("detail");
+    static nxt_str_t  location_str = nxt_string("location");
+    static nxt_str_t  offset_str = nxt_string("offset");
+    static nxt_str_t  line_str = nxt_string("line");
+    static nxt_str_t  column_str = nxt_string("column");
+
+    static nxt_time_string_t  date_cache = {
+        (nxt_atomic_uint_t) -1,
+        nxt_controller_date,
+        "%s, %02d %s %4d %02d:%02d:%02d GMT",
+        sizeof("Wed, 31 Dec 1986 16:40:00 GMT") - 1,
+        NXT_THREAD_TIME_GMT,
+        NXT_THREAD_TIME_SEC,
+    };
+
+    switch (resp->status) {
+
+    case 200:
+        nxt_str_set(&status_line, "200 OK");
+        break;
+
+    case 400:
+        nxt_str_set(&status_line, "400 Bad Request");
+        break;
+
+    case 404:
+        nxt_str_set(&status_line, "404 Not Found");
+        break;
+
+    case 405:
+        nxt_str_set(&status_line, "405 Method Not Allowed");
+        break;
+
+    case 500:
+        nxt_str_set(&status_line, "500 Internal Server Error");
+        break;
+    }
 
     c = req->conn;
+    value = resp->conf;
 
-    size = sizeof("HTTP/1.0 " "\r\n\r\n") - 1 + resp->status_line.length;
+    if (value == NULL) {
+        n = 1
+            + (resp->detail != NULL)
+            + (resp->status >= 400 && resp->offset != -1);
+
+        value = nxt_conf_create_object(c->mem_pool, n);
+
+        if (nxt_slow_path(value == NULL)) {
+            nxt_controller_conn_close(task, c, req);
+            return;
+        }
+
+        str.length = nxt_strlen(resp->title);
+        str.start = resp->title;
+
+        if (resp->status < 400) {
+            nxt_conf_set_member_string(value, &success_str, &str, 0);
+
+        } else {
+            nxt_conf_set_member_string(value, &error_str, &str, 0);
+        }
+
+        n = 0;
+
+        if (resp->detail != NULL) {
+            str.length = nxt_strlen(resp->detail);
+            str.start = resp->detail;
+
+            n++;
+
+            nxt_conf_set_member_string(value, &detail_str, &str, n);
+        }
+
+        if (resp->status >= 400 && resp->offset != -1) {
+            n++;
+
+            location = nxt_conf_create_object(c->mem_pool,
+                                              resp->line != 0 ? 3 : 1);
+
+            nxt_conf_set_member(value, &location_str, location, n);
+
+            nxt_conf_set_member_integer(location, &offset_str, resp->offset, 0);
+
+            if (resp->line != 0) {
+                nxt_conf_set_member_integer(location, &line_str,
+                                            resp->line, 1);
+
+                nxt_conf_set_member_integer(location, &column_str,
+                                            resp->column, 2);
+            }
+        }
+    }
+
+    nxt_memzero(&pretty, sizeof(nxt_conf_json_pretty_t));
+
+    size = nxt_conf_json_length(value, &pretty) + 2;
+
+    body = nxt_buf_mem_alloc(c->mem_pool, size, 0);
+    if (nxt_slow_path(body == NULL)) {
+        nxt_controller_conn_close(task, c, req);
+        return;
+    }
+
+    nxt_memzero(&pretty, sizeof(nxt_conf_json_pretty_t));
+
+    body->mem.free = nxt_conf_json_print(body->mem.free, value, &pretty);
+
+    body->mem.free = nxt_cpymem(body->mem.free, "\r\n", 2);
+
+    size = sizeof("HTTP/1.1 " "\r\n") - 1 + status_line.length
+           + sizeof("Server: nginext/0.1\r\n") - 1
+           + sizeof("Date: Wed, 31 Dec 1986 16:40:00 GMT\r\n") - 1
+           + sizeof("Content-Type: application/json\r\n") - 1
+           + sizeof("Content-Length: " "\r\n") - 1 + NXT_SIZE_T_LEN
+           + sizeof("Connection: close\r\n") - 1
+           + sizeof("\r\n") - 1;
 
     b = nxt_buf_mem_alloc(c->mem_pool, size, 0);
     if (nxt_slow_path(b == NULL)) {
@@ -896,18 +1021,37 @@ nxt_controller_response(nxt_task_t *task, nxt_controller_request_t *req,
         return;
     }
 
-    b->mem.free = nxt_cpymem(b->mem.free, "HTTP/1.0 ", sizeof("HTTP/1.0 ") - 1);
-    b->mem.free = nxt_cpymem(b->mem.free, resp->status_line.start,
-                             resp->status_line.length);
+    b->next = body;
 
-    b->mem.free = nxt_cpymem(b->mem.free, "\r\n\r\n", sizeof("\r\n\r\n") - 1);
+    nxt_str_set(&str, "HTTP/1.1 ");
 
-    b->next = nxt_controller_response_body(resp, c->mem_pool);
+    b->mem.free = nxt_cpymem(b->mem.free, str.start, str.length);
+    b->mem.free = nxt_cpymem(b->mem.free, status_line.start,
+                             status_line.length);
 
-    if (nxt_slow_path(b->next == NULL)) {
-        nxt_controller_conn_close(task, c, req);
-        return;
-    }
+    nxt_str_set(&str, "\r\n"
+                      "Server: nginext/0.1\r\n"
+                      "Date: ");
+
+    b->mem.free = nxt_cpymem(b->mem.free, str.start, str.length);
+
+    b->mem.free = nxt_thread_time_string(task->thread, &date_cache,
+                                         b->mem.free);
+
+    nxt_str_set(&str, "\r\n"
+                      "Content-Type: application/json\r\n"
+                      "Content-Length: ");
+
+    b->mem.free = nxt_cpymem(b->mem.free, str.start, str.length);
+
+    b->mem.free = nxt_sprintf(b->mem.free, b->mem.end, "%uz",
+                              nxt_buf_mem_used_size(&body->mem));
+
+    nxt_str_set(&str, "\r\n"
+                      "Connection: close\r\n"
+                      "\r\n");
+
+    b->mem.free = nxt_cpymem(b->mem.free, str.start, str.length);
 
     c->write = b;
     c->write_state = &nxt_controller_conn_write_state;
@@ -916,40 +1060,18 @@ nxt_controller_response(nxt_task_t *task, nxt_controller_request_t *req,
 }
 
 
-static nxt_buf_t *
-nxt_controller_response_body(nxt_controller_response_t *resp, nxt_mp_t *pool)
+static u_char *
+nxt_controller_date(u_char *buf, nxt_realtime_t *now, struct tm *tm,
+    size_t size, const char *format)
 {
-    size_t                  size;
-    nxt_buf_t               *b;
-    nxt_conf_value_t        *value;
-    nxt_conf_json_pretty_t  pretty;
+    static const char  *week[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri",
+                                   "Sat" };
 
-    if (resp->conf) {
-        value = resp->conf;
+    static const char  *month[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
-    } else {
-        value = nxt_conf_json_parse_str(pool, &resp->json);
-
-        if (nxt_slow_path(value == NULL)) {
-            return NULL;
-        }
-    }
-
-    nxt_memzero(&pretty, sizeof(nxt_conf_json_pretty_t));
-
-    size = nxt_conf_json_length(value, &pretty) + 2;
-
-    b = nxt_buf_mem_alloc(pool, size, 0);
-    if (nxt_slow_path(b == NULL)) {
-        return NULL;
-    }
-
-    nxt_memzero(&pretty, sizeof(nxt_conf_json_pretty_t));
-
-    b->mem.free = nxt_conf_json_print(b->mem.free, value, &pretty);
-
-    *b->mem.free++ = '\r';
-    *b->mem.free++ = '\n';
-
-    return b;
+    return nxt_sprintf(buf, buf + size, format,
+                       week[tm->tm_wday], tm->tm_mday,
+                       month[tm->tm_mon], tm->tm_year + 1900,
+                       tm->tm_hour, tm->tm_min, tm->tm_sec);
 }

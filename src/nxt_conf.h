@@ -22,6 +22,12 @@ typedef struct nxt_conf_value_s  nxt_conf_value_t;
 typedef struct nxt_conf_op_s     nxt_conf_op_t;
 
 
+typedef struct {
+    u_char               *pos;
+    u_char               *detail;
+} nxt_conf_json_error_t;
+
+
 typedef enum {
     NXT_CONF_MAP_INT8,
     NXT_CONF_MAP_INT32,
@@ -65,15 +71,18 @@ nxt_int_t nxt_conf_op_compile(nxt_mp_t *mp, nxt_conf_op_t **ops,
 nxt_conf_value_t *nxt_conf_clone(nxt_mp_t *mp, nxt_conf_op_t *op,
     nxt_conf_value_t *value);
 
-nxt_conf_value_t *nxt_conf_json_parse(nxt_mp_t *mp, u_char *start, u_char *end);
+nxt_conf_value_t *nxt_conf_json_parse(nxt_mp_t *mp, u_char *start, u_char *end,
+    nxt_conf_json_error_t *error);
 
 #define nxt_conf_json_parse_str(mp, str)                                      \
-    nxt_conf_json_parse(mp, (str)->start, (str)->start + (str)->length)
+    nxt_conf_json_parse(mp, (str)->start, (str)->start + (str)->length, NULL)
 
 size_t nxt_conf_json_length(nxt_conf_value_t *value,
     nxt_conf_json_pretty_t *pretty);
 u_char *nxt_conf_json_print(u_char *p, nxt_conf_value_t *value,
     nxt_conf_json_pretty_t *pretty);
+void nxt_conf_json_position(u_char *start, u_char *pos, nxt_uint_t *line,
+    nxt_uint_t *column);
 
 nxt_int_t nxt_conf_validate(nxt_conf_value_t *value);
 
@@ -82,8 +91,12 @@ void nxt_conf_get_string(nxt_conf_value_t *value, nxt_str_t *str);
 // FIXME reimplement and reorder functions below
 nxt_uint_t nxt_conf_object_members_count(nxt_conf_value_t *value);
 nxt_conf_value_t *nxt_conf_create_object(nxt_mp_t *mp, nxt_uint_t count);
-nxt_int_t nxt_conf_set_object_member(nxt_conf_value_t *object, nxt_str_t *name,
+void nxt_conf_set_member(nxt_conf_value_t *object, nxt_str_t *name,
     nxt_conf_value_t *value, uint32_t index);
+void nxt_conf_set_member_string(nxt_conf_value_t *object, nxt_str_t *name,
+    nxt_str_t *value, uint32_t index);
+void nxt_conf_set_member_integer(nxt_conf_value_t *object, nxt_str_t *name,
+    int64_t value, uint32_t index);
 
 
 #endif /* _NXT_CONF_INCLUDED_ */
