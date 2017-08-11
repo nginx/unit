@@ -373,7 +373,7 @@ nxt_sendbuf_update(nxt_buf_t *b, size_t sent)
 
 nxt_buf_t *
 nxt_sendbuf_completion(nxt_task_t *task, nxt_work_queue_t *wq, nxt_buf_t *b,
-    size_t sent)
+    size_t sent, nxt_bool_t mmap_mode)
 {
     size_t  size;
 
@@ -391,7 +391,7 @@ nxt_sendbuf_completion(nxt_task_t *task, nxt_work_queue_t *wq, nxt_buf_t *b,
                     break;
                 }
 
-                if (nxt_buf_is_port_mmap(b)) {
+                if (nxt_buf_is_port_mmap(b) && mmap_mode) {
                     /*
                      * buffer has been sent to other side which is now
                      * responsible for shared memory bucket release

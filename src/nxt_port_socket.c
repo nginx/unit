@@ -308,7 +308,8 @@ nxt_port_write_handler(nxt_task_t *task, void *obj, void *data)
 
             wq = &task->thread->engine->fast_work_queue;
 
-            msg->buf = nxt_sendbuf_completion(task, wq, msg->buf, plain_size);
+            msg->buf = nxt_sendbuf_completion(task, wq, msg->buf, plain_size,
+                                              m == NXT_PORT_METHOD_MMAP);
 
             if (msg->buf != NULL) {
                 /*
