@@ -1375,31 +1375,28 @@ nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
 
             p += 4;
 
-            if (utf < 0xd800 || utf > 0xdbff || utf_high) {
+            if (utf_high != 0) {
+                if (nxt_slow_path(utf < 0xdc00 || utf > 0xdfff)) {
+                    return NULL;
+                }
+
+                utf = ((utf_high - 0xd800) << 10) + (utf - 0xdc00) + 0x10000;
+
                 break;
             }
 
-            utf_high = utf;
-            utf = 0;
-
-            if (p[0] != '\\' || p[1] != 'u') {
+            if (utf < 0xd800 || utf > 0xdfff) {
                 break;
             }
 
-            p += 2;
-        }
-
-        if (utf_high != 0) {
-            if (nxt_slow_path(utf_high < 0xd800
-                              || utf_high > 0xdbff
-                              || utf < 0xdc00
-                              || utf > 0xdfff))
-            {
-                /* Invalid surrogate pair. */
+            if (utf > 0xdbff || p[0] != '\\' || p[1] != 'u') {
                 return NULL;
             }
 
-            utf = ((utf_high - 0xd800) << 10) + (utf - 0xdc00);
+            p += 2;
+
+            utf_high = utf;
+            utf = 0;
         }
 
         s = nxt_utf8_encode(s, utf);
