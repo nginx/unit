@@ -21,7 +21,6 @@ type request struct {
 	resp     *response
 	c_req    C.nxt_go_request_t
 	id       C.uint32_t
-	read_pos C.off_t
 	msgs     []*cmsg
 	ch       chan *cmsg
 }
@@ -29,18 +28,17 @@ type request struct {
 func (r *request) Read(p []byte) (n int, err error) {
 	c := C.size_t(cap(p))
 	b := C.malloc(c)
-	res := C.nxt_go_request_read(r.c_req, r.read_pos, b, c)
+	res := C.nxt_go_request_read(r.c_req, b, c)
 
 	if res == -2 /* NXT_AGAIN */ {
 		m := <-r.ch
 
-		res = C.nxt_go_request_read_from(r.c_req, r.read_pos, b, c, m.buf.b, m.buf.s)
+		res = C.nxt_go_request_read_from(r.c_req, b, c, m.buf.b, m.buf.s)
 		r.push(m)
 	}
 
 	if res > 0 {
 		copy(p, C.GoBytes(b, res))
-		r.read_pos += C.off_t(res)
 	}
 
 	C.free(b)

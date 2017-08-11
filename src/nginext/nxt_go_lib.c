@@ -17,14 +17,14 @@ nxt_go_response_write(nxt_go_request_t r, void *buf, size_t len)
 }
 
 int
-nxt_go_request_read(nxt_go_request_t r, off_t off, void *dst, size_t dst_len)
+nxt_go_request_read(nxt_go_request_t r, void *dst, size_t dst_len)
 {
     return -1;
 }
 
 int
-nxt_go_request_read_from(nxt_go_request_t r, off_t off, void *dst,
-    size_t dst_len, void *src, size_t src_len)
+nxt_go_request_read_from(nxt_go_request_t r, void *dst, size_t dst_len,
+    void *src, size_t src_len)
 {
     return -1;
 }
@@ -71,7 +71,7 @@ nxt_go_response_write(nxt_go_request_t r, void *buf, size_t len)
         return 0;
     }
 
-    nxt_go_debug("write: %d %.*s", (int) len, (int) len, (char *) buf);
+    nxt_go_debug("write: %d", (int) len);
 
     ctx = (nxt_go_run_ctx_t *) r;
     rc = nxt_go_ctx_write(ctx, buf, len);
@@ -81,44 +81,30 @@ nxt_go_response_write(nxt_go_request_t r, void *buf, size_t len)
 
 
 int
-nxt_go_request_read(nxt_go_request_t r, off_t off, void *dst, size_t dst_len)
+nxt_go_request_read(nxt_go_request_t r, void *dst, size_t dst_len)
 {
-    nxt_go_msg_t              *msg;
-    nxt_go_run_ctx_t          *ctx;
-    nxt_app_request_body_t    *b;
-    nxt_app_request_header_t  *h;
+    size_t            res;
+    nxt_go_run_ctx_t  *ctx;
 
     if (nxt_slow_path(r == 0)) {
         return 0;
     }
 
     ctx = (nxt_go_run_ctx_t *) r;
-    b = &ctx->r.body;
-    h = &ctx->r.header;
 
-    if (off >= h->parsed_content_length) {
-        return 0;
-    }
+    dst_len = nxt_min(dst_len, ctx->r.body.preread_size);
 
-    if (off < b->preread.length) {
-        dst_len = nxt_min(b->preread.length - off, dst_len);
+    res = nxt_go_ctx_read_raw(ctx, dst, dst_len);
 
-        if (dst_len != 0) {
-            nxt_memcpy(dst, b->preread.start + off, dst_len);
-        }
+    ctx->r.body.preread_size -= res;
 
-        return dst_len;
-    }
-
-    /* TODO find msg to read */
-
-    return NXT_AGAIN;
+    return res;
 }
 
 
 int
-nxt_go_request_read_from(nxt_go_request_t r, off_t off, void *dst,
-    size_t dst_len, void *src, size_t src_len)
+nxt_go_request_read_from(nxt_go_request_t r, void *dst, size_t dst_len,
+    void *src, size_t src_len)
 {
     nxt_go_run_ctx_t  *ctx;
 
@@ -130,7 +116,7 @@ nxt_go_request_read_from(nxt_go_request_t r, off_t off, void *dst,
 
     nxt_go_ctx_add_msg(ctx, src, src_len);
 
-    return nxt_go_request_read(r, off, dst, dst_len);
+    return nxt_go_request_read(r, dst, dst_len);
 }
 
 

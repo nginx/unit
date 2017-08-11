@@ -106,7 +106,11 @@ typedef struct {
 
     size_t                 header_buffer_size;
     size_t                 large_header_buffer_size;
+    size_t                 large_header_buffers;
+    size_t                 body_buffer_size;
+    size_t                 max_body_size;
     nxt_msec_t             header_read_timeout;
+    nxt_msec_t             body_read_timeout;
 } nxt_socket_conf_t;
 
 

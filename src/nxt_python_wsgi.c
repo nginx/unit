@@ -57,6 +57,7 @@ typedef struct {
     //nxt_app_request_t  *request;
 } nxt_py_error_t;
 
+typedef struct nxt_python_run_ctx_s nxt_python_run_ctx_t;
 
 static nxt_int_t nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf);
 
@@ -68,7 +69,7 @@ static nxt_int_t nxt_python_run(nxt_task_t *task,
 
 static PyObject *nxt_python_create_environ(nxt_task_t *task);
 static PyObject *nxt_python_get_environ(nxt_task_t *task,
-                      nxt_app_rmsg_t *rmsg);
+                      nxt_app_rmsg_t *rmsg, nxt_python_run_ctx_t *ctx);
 
 static PyObject *nxt_py_start_resp(PyObject *self, PyObject *args);
 
@@ -77,11 +78,13 @@ static PyObject *nxt_py_input_read(nxt_py_input_t *self, PyObject *args);
 static PyObject *nxt_py_input_readline(nxt_py_input_t *self, PyObject *args);
 static PyObject *nxt_py_input_readlines(nxt_py_input_t *self, PyObject *args);
 
-typedef struct {
+struct nxt_python_run_ctx_s {
     nxt_task_t           *task;
     nxt_app_rmsg_t       *rmsg;
     nxt_app_wmsg_t       *wmsg;
-} nxt_python_run_ctx_t;
+
+    size_t               body_preread_size;
+};
 
 nxt_inline nxt_int_t nxt_python_write(nxt_python_run_ctx_t *ctx,
                       const u_char *data, size_t len,
@@ -170,8 +173,6 @@ static PyTypeObject nxt_py_input_type = {
 static PyObject           *nxt_py_application;
 static PyObject           *nxt_py_start_resp_obj;
 static PyObject           *nxt_py_environ_ptyp;
-
-static nxt_str_t          nxt_python_request_body;
 
 static nxt_python_run_ctx_t  *nxt_python_run_ctx;
 
@@ -323,6 +324,7 @@ nxt_python_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
     nxt_app_wmsg_t *wmsg)
 {
     nxt_int_t                 rc;
+    nxt_buf_t                 *b;
     nxt_http_field_t          *field;
     nxt_app_request_header_t  *h;
 
@@ -369,14 +371,20 @@ nxt_python_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
 
     nxt_list_each(field, h->fields) {
         RC(nxt_app_msg_write_prefixed_upcase(task, wmsg,
-            &prefix, &field->name));
+                                             &prefix, &field->name));
         NXT_WRITE(&field->value);
 
     } nxt_list_loop;
 
     /* end-of-headers mark */
     NXT_WRITE(&eof);
-    NXT_WRITE(&r->body.preread);
+
+    RC(nxt_app_msg_write_size(task, wmsg, r->body.preread_size));
+
+    for(b = r->body.buf; b != NULL; b = b->next) {
+        RC(nxt_app_msg_write_raw(task, wmsg, b->mem.pos,
+                                 nxt_buf_mem_used_size(&b->mem)));
+    }
 
 #undef NXT_WRITE
 #undef RC
@@ -395,9 +403,9 @@ nxt_python_run(nxt_task_t *task, nxt_app_rmsg_t *rmsg, nxt_app_wmsg_t *wmsg)
     u_char    *buf;
     size_t    size;
     PyObject  *result, *iterator, *item, *args, *environ;
-    nxt_python_run_ctx_t  run_ctx = {task, rmsg, wmsg};
+    nxt_python_run_ctx_t  run_ctx = {task, rmsg, wmsg, 0};
 
-    environ = nxt_python_get_environ(task, rmsg);
+    environ = nxt_python_get_environ(task, rmsg, &run_ctx);
 
     if (nxt_slow_path(environ == NULL)) {
         return NXT_ERROR;
@@ -465,8 +473,8 @@ nxt_python_run(nxt_task_t *task, nxt_app_rmsg_t *rmsg, nxt_app_wmsg_t *wmsg)
             size = PyBytes_GET_SIZE(item);
             buf = (u_char *) PyBytes_AS_STRING(item);
 
-            nxt_debug(task, "nxt_app_write(fake): %d %*s", (int)size, (int)size,
-                      buf);
+            nxt_debug(task, "nxt_app_write(fake): %uz", size);
+
             nxt_python_write(&run_ctx, buf, size, 1, 0);
 
             Py_DECREF(item);
@@ -688,7 +696,8 @@ nxt_python_read_add_env(nxt_task_t *task, nxt_app_rmsg_t *rmsg,
 
 
 static PyObject *
-nxt_python_get_environ(nxt_task_t *task, nxt_app_rmsg_t *rmsg)
+nxt_python_get_environ(nxt_task_t *task, nxt_app_rmsg_t *rmsg,
+    nxt_python_run_ctx_t *ctx)
 {
     size_t          s;
     u_char          *colon;
@@ -774,21 +783,23 @@ nxt_python_get_environ(nxt_task_t *task, nxt_app_rmsg_t *rmsg)
     NXT_READ("CONTENT_TYPE");
     NXT_READ("CONTENT_LENGTH");
 
-    while ( (rc = nxt_app_msg_read_nvp(task, rmsg, &n, &v)) == NXT_OK) {
+    while (nxt_app_msg_read_str(task, rmsg, &n) == NXT_OK) {
         if (nxt_slow_path(n.length == 0)) {
-            rc = NXT_DONE;
+            break;
+        }
+
+        rc = nxt_app_msg_read_str(task, rmsg, &v);
+        if (nxt_slow_path(rc != NXT_OK)) {
             break;
         }
 
         RC(nxt_python_add_env(task, environ, (char *) n.start, &v));
     }
 
+    RC(nxt_app_msg_read_size(task, rmsg, &ctx->body_preread_size));
+
 #undef NXT_READ
 #undef RC
-
-    if (rc == NXT_DONE && v.length > 0) {
-        nxt_python_request_body = v;
-    }
 
     return environ;
 
@@ -900,11 +911,15 @@ static PyObject *
 nxt_py_input_read(nxt_py_input_t *self, PyObject *args)
 {
     u_char      *buf;
+    size_t      copy_size;
     PyObject    *body, *obj;
     Py_ssize_t  size;
     nxt_uint_t  n;
+    nxt_python_run_ctx_t  *ctx;
 
-    size = nxt_python_request_body.length;
+    ctx = nxt_python_run_ctx;
+
+    size = ctx->body_preread_size;
 
     n = PyTuple_GET_SIZE(args);
 
@@ -926,8 +941,8 @@ nxt_py_input_read(nxt_py_input_t *self, PyObject *args)
                                 "the read body size cannot be zero or less");
         }
 
-        if (size == 0 || size > (Py_ssize_t) nxt_python_request_body.length) {
-            size = nxt_python_request_body.length;
+        if (size == 0 || size > (Py_ssize_t) ctx->body_preread_size) {
+            size = ctx->body_preread_size;
         }
     }
 
@@ -937,16 +952,12 @@ nxt_py_input_read(nxt_py_input_t *self, PyObject *args)
         return NULL;
     }
 
-    if (size > 0) {
-        buf = (u_char *) PyBytes_AS_STRING(body);
+    buf = (u_char *) PyBytes_AS_STRING(body);
 
-        nxt_memcpy(buf, nxt_python_request_body.start, size);
+    copy_size = nxt_min((size_t) size, ctx->body_preread_size);
+    copy_size = nxt_app_msg_read_raw(ctx->task, ctx->rmsg, buf, copy_size);
 
-        nxt_python_request_body.start += size;
-        nxt_python_request_body.length -= size;
-
-        /* TODO wait body */
-    }
+    ctx->body_preread_size -= copy_size;
 
     return body;
 }

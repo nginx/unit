@@ -95,8 +95,6 @@ nxt_port_mmap_buf_completion(nxt_task_t *task, void *obj, void *data)
 
     b = obj;
 
-    nxt_debug(task, "mmap buf completion: %p %p", b, b->mem.start);
-
     mp = b->data;
 
 #if (NXT_DEBUG)
@@ -124,6 +122,10 @@ nxt_port_mmap_buf_completion(nxt_task_t *task, void *obj, void *data)
     }
 
     nxt_port_mmap_free_junk(p, b->mem.end - p);
+
+    nxt_debug(task, "mmap buf completion: %p [%p,%d] (sent=%d), %PI,%d,%d", b,
+              b->mem.start, b->mem.end - b->mem.start, b->is_port_mmap_sent,
+              hdr->pid, hdr->id, c);
 
     while (p < b->mem.end) {
         nxt_port_mmap_set_chunk_free(hdr, c);
@@ -414,11 +416,6 @@ nxt_port_mmap_get_buf(nxt_task_t *task, nxt_port_t *port, size_t size)
 
     nxt_debug(task, "request %z bytes shm buffer", size);
 
-    if (nxt_slow_path(size > PORT_MMAP_DATA_SIZE)) {
-        nxt_debug(task, "requested size (%z bytes) too big", size);
-        return NULL;
-    }
-
     b = nxt_buf_mem_ts_alloc(task, port->mem_pool, 0);
     if (nxt_slow_path(b == NULL)) {
         return NULL;
@@ -445,6 +442,10 @@ nxt_port_mmap_get_buf(nxt_task_t *task, nxt_port_t *port, size_t size)
         nchunks++;
     }
 
+    nxt_debug(task, "outgoing mmap buf allocation: %p [%p,%d] %PI,%d,%d", b,
+              b->mem.start, b->mem.end - b->mem.start,
+              hdr->pid, hdr->id, c);
+
     c++;
     nchunks--;
 
@@ -465,9 +466,10 @@ nxt_port_mmap_get_buf(nxt_task_t *task, nxt_port_t *port, size_t size)
 
 
 nxt_int_t
-nxt_port_mmap_increase_buf(nxt_task_t *task, nxt_buf_t *b, size_t size)
+nxt_port_mmap_increase_buf(nxt_task_t *task, nxt_buf_t *b, size_t size,
+    size_t min_size)
 {
-    size_t                  nchunks;
+    size_t                  nchunks, free_size;
     nxt_chunk_id_t          c, start;
     nxt_port_mmap_header_t  *hdr;
 
@@ -479,7 +481,9 @@ nxt_port_mmap_increase_buf(nxt_task_t *task, nxt_buf_t *b, size_t size)
         return NXT_ERROR;
     }
 
-    if (nxt_slow_path(size <= (size_t) nxt_buf_mem_free_size(&b->mem))) {
+    free_size = nxt_buf_mem_free_size(&b->mem);
+
+    if (nxt_slow_path(size <= free_size)) {
         return NXT_OK;
     }
 
@@ -487,7 +491,7 @@ nxt_port_mmap_increase_buf(nxt_task_t *task, nxt_buf_t *b, size_t size)
 
     start = nxt_port_mmap_chunk_id(hdr, b->mem.end);
 
-    size -= nxt_buf_mem_free_size(&b->mem);
+    size -= free_size;
 
     nchunks = size / PORT_MMAP_CHUNK_SIZE;
     if ((size % PORT_MMAP_CHUNK_SIZE) != 0 || nchunks == 0) {
@@ -507,7 +511,9 @@ nxt_port_mmap_increase_buf(nxt_task_t *task, nxt_buf_t *b, size_t size)
         nchunks--;
     }
 
-    if (nchunks != 0) {
+    if (nchunks != 0 &&
+        min_size > free_size + PORT_MMAP_CHUNK_SIZE * (c - start)) {
+
         c--;
         while (c >= start) {
             nxt_port_mmap_set_chunk_free(hdr, c);
@@ -558,6 +564,10 @@ nxt_port_mmap_get_incoming_buf(nxt_task_t *task, nxt_port_t *port,
     b->mem.end = b->mem.start + nchunks * PORT_MMAP_CHUNK_SIZE;
 
     b->parent = hdr;
+
+    nxt_debug(task, "incoming mmap buf allocation: %p [%p,%d] %PI,%d,%d", b,
+              b->mem.start, b->mem.end - b->mem.start,
+              hdr->pid, hdr->id, mmap_msg->chunk_id);
 
     return b;
 }

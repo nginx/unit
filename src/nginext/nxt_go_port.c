@@ -83,22 +83,23 @@ nxt_go_data_handler(nxt_port_msg_t *port_msg, size_t size)
 
     do {
         rc = nxt_go_ctx_read_str(ctx, &n);
-        rc = nxt_go_ctx_read_str(ctx, &v);
 
         if (n.length == 0) {
             break;
         }
 
+        rc = nxt_go_ctx_read_str(ctx, &v);
         nxt_go_request_add_header(r, nxt_go_str(&n), nxt_go_str(&v));
     } while(1);
 
-    ctx->r.body.preread = v;
+    nxt_go_ctx_read_size(ctx, &s);
+    ctx->r.body.preread_size = s;
 
     if (h->parsed_content_length > 0) {
         nxt_go_request_set_content_length(r, h->parsed_content_length);
     }
 
-    if (v.length < h->parsed_content_length) {
+    if (ctx->r.body.preread_size < h->parsed_content_length) {
         nxt_go_request_create_channel(r);
     }
 

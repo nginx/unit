@@ -116,6 +116,7 @@ static nxt_int_t
 nxt_go_prepare_msg(nxt_task_t *task, nxt_app_request_t *r, nxt_app_wmsg_t *wmsg)
 {
     nxt_int_t                 rc;
+    nxt_buf_t                 *b;
     nxt_http_field_t          *field;
     nxt_app_request_header_t  *h;
 
@@ -168,7 +169,13 @@ nxt_go_prepare_msg(nxt_task_t *task, nxt_app_request_t *r, nxt_app_wmsg_t *wmsg)
 
     /* end-of-headers mark */
     NXT_WRITE(&eof);
-    NXT_WRITE(&r->body.preread);
+
+    RC(nxt_app_msg_write_size(task, wmsg, r->body.preread_size));
+
+    for(b = r->body.buf; b != NULL; b = b->next) {
+        RC(nxt_app_msg_write_raw(task, wmsg, b->mem.pos,
+                                 nxt_buf_mem_used_size(&b->mem)));
+    }
 
 #undef NXT_WRITE
 #undef RC

@@ -128,6 +128,8 @@ typedef struct {
     nxt_str_t            script;
     nxt_app_wmsg_t       *wmsg;
     nxt_mp_t             *mem_pool;
+
+    size_t               body_preread_size;
 } nxt_php_run_ctx_t;
 
 nxt_inline nxt_int_t nxt_php_write(nxt_php_run_ctx_t *ctx,
@@ -342,8 +344,6 @@ nxt_php_read_request(nxt_task_t *task, nxt_app_rmsg_t *rmsg,
     RC(nxt_app_msg_read_size(task, rmsg, &s));
     h->parsed_content_length = s;
 
-    NXT_READ(&ctx->r.body.preread);
-
 #undef NXT_READ
 #undef RC
 
@@ -361,6 +361,7 @@ nxt_php_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
     nxt_app_wmsg_t *wmsg)
 {
     nxt_int_t                 rc;
+    nxt_buf_t                 *b;
     nxt_http_field_t          *field;
     nxt_app_request_header_t  *h;
 
@@ -413,8 +414,6 @@ nxt_php_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
 
     RC(nxt_app_msg_write_size(task, wmsg, h->parsed_content_length));
 
-    NXT_WRITE(&r->body.preread);
-
     nxt_list_each(field, h->fields) {
         RC(nxt_app_msg_write_prefixed_upcase(task, wmsg,
                                              &prefix, &field->name));
@@ -424,6 +423,13 @@ nxt_php_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
 
     /* end-of-headers mark */
     NXT_WRITE(&eof);
+
+    RC(nxt_app_msg_write_size(task, wmsg, r->body.preread_size));
+
+    for(b = r->body.buf; b != NULL; b = b->next) {
+        RC(nxt_app_msg_write_raw(task, wmsg, b->mem.pos,
+                                 nxt_buf_mem_used_size(&b->mem)));
+    }
 
 #undef NXT_WRITE
 #undef RC
@@ -673,23 +679,14 @@ static int
 nxt_php_read_post(char *buffer, uint count_bytes TSRMLS_DC)
 #endif
 {
-    off_t              rest;
-    size_t             size;
-/*
-    ssize_t            n;
-    nxt_err_t          err;
-    nxt_php_ctx_t      *ctx;
-    nxt_app_request_t  *r;
-*/
+    size_t                    size, rest;
     nxt_php_run_ctx_t         *ctx;
-    nxt_app_request_body_t    *b;
     nxt_app_request_header_t  *h;
 
     ctx = SG(server_context);
     h = &ctx->r.header;
-    b = &ctx->r.body;
 
-    rest = h->parsed_content_length - SG(read_post_bytes);
+    rest = (size_t) h->parsed_content_length - SG(read_post_bytes);
 
     nxt_debug(ctx->task, "nxt_php_read_post %O", rest);
 
@@ -697,43 +694,11 @@ nxt_php_read_post(char *buffer, uint count_bytes TSRMLS_DC)
         return 0;
     }
 
-    size = 0;
-#ifdef NXT_PHP7
-    count_bytes = (size_t) nxt_min(rest, (off_t) count_bytes);
-#else
-    count_bytes = (uint) nxt_min(rest, (off_t) count_bytes);
-#endif
+    rest = nxt_min(ctx->body_preread_size, (size_t) count_bytes);
+    size = nxt_app_msg_read_raw(ctx->task, ctx->rmsg, buffer, rest);
 
-    if (b->preread.length != 0) {
-        size = nxt_min(b->preread.length, count_bytes);
+    ctx->body_preread_size -= size;
 
-        nxt_memcpy(buffer, b->preread.start, size);
-
-        b->preread.length -= size;
-        b->preread.start += size;
-
-        if (size == count_bytes) {
-            return size;
-        }
-    }
-
-#if 0
-    nxt_debug(ctx->task, "recv %z", (size_t) count_bytes - size);
-
-    n = recv(r->event_conn->socket.fd, buffer + size, count_bytes - size, 0);
-
-    if (nxt_slow_path(n <= 0)) {
-        err = (n == 0) ? 0 : nxt_socket_errno;
-
-        nxt_log_error(NXT_LOG_ERR, r->log, "recv(%d, %uz) failed %E",
-                      r->event_conn->socket.fd, (size_t) count_bytes - size,
-                      err);
-
-        return size;
-    }
-
-    return size + n;
-#endif
     return size;
 }
 
@@ -867,6 +832,8 @@ nxt_php_register_variables(zval *track_vars_array TSRMLS_DC)
 
         NXT_PHP_SET(n.start, v);
     }
+
+    nxt_app_msg_read_size(task, ctx->rmsg, &ctx->body_preread_size);
 
 #undef NXT_PHP_SET
 }

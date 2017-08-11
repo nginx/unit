@@ -84,12 +84,17 @@ typedef struct {
 
     off_t                      parsed_content_length;
     nxt_bool_t                 done;
+
+    size_t                     bufs;
+    nxt_buf_t                  *buf;
 } nxt_app_request_header_t;
 
 
 typedef struct {
-    nxt_str_t                  preread;
+    size_t                     preread_size;
     nxt_bool_t                 done;
+
+    nxt_buf_t                  *buf;
 } nxt_app_request_body_t;
 
 
@@ -112,8 +117,12 @@ struct nxt_app_parse_ctx_s {
 
 nxt_int_t nxt_app_http_req_init(nxt_task_t *task, nxt_app_parse_ctx_t *ctx);
 
-nxt_int_t nxt_app_http_req_parse(nxt_task_t *task, nxt_app_parse_ctx_t *ctx,
-    nxt_buf_t *buf);
+nxt_int_t nxt_app_http_req_header_parse(nxt_task_t *task,
+    nxt_app_parse_ctx_t *ctx, nxt_buf_t *buf);
+
+nxt_int_t nxt_app_http_req_body_read(nxt_task_t *task,
+    nxt_app_parse_ctx_t *ctx, nxt_buf_t *buf);
+
 
 nxt_int_t nxt_app_http_req_done(nxt_task_t *task, nxt_app_parse_ctx_t *ctx);
 
@@ -177,6 +186,9 @@ nxt_int_t nxt_app_msg_write_raw(nxt_task_t *task, nxt_app_wmsg_t *msg,
 
 nxt_int_t nxt_app_msg_read_str(nxt_task_t *task, nxt_app_rmsg_t *msg,
     nxt_str_t *str);
+
+size_t nxt_app_msg_read_raw(nxt_task_t *task, nxt_app_rmsg_t *msg, void *buf,
+    size_t size);
 
 nxt_int_t nxt_app_msg_read_nvp(nxt_task_t *task, nxt_app_rmsg_t *rmsg,
     nxt_str_t *n, nxt_str_t *v);
