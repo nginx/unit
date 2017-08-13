@@ -930,7 +930,7 @@ nxt_controller_response(nxt_task_t *task, nxt_controller_request_t *req,
         nxt_str_set(&status_line, "405 Method Not Allowed");
         break;
 
-    case 500:
+    default:
         nxt_str_set(&status_line, "500 Internal Server Error");
         break;
     }
