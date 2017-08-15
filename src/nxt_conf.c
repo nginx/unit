@@ -1892,7 +1892,7 @@ nxt_conf_json_integer_length(nxt_conf_value_t *value)
         return sizeof("-9999") - 1;
     }
 
-    if (num <= 99999999999) {
+    if (num <= 99999999999LL) {
         return sizeof("-99999999999") - 1;
     }
 
