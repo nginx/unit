@@ -954,7 +954,7 @@ nxt_runtime_sockaddr_unix_parse(nxt_task_t *task, nxt_mp_t *mp, nxt_str_t *addr)
 
     /*
      * Actual sockaddr_un length can be lesser or even larger than defined
-     * struct sockaddr_un length (see comment in unix/nxt_socket.h).  So
+     * struct sockaddr_un length (see comment in nxt_socket.h).  So
      * limit maximum Unix domain socket address length by defined sun_path[]
      * length because some OSes accept addresses twice larger than defined
      * struct sockaddr_un.  Also reserve space for a trailing zero to avoid

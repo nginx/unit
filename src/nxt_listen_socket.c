@@ -290,7 +290,7 @@ nxt_listen_socket_pool_min_size(nxt_listen_socket_t *ls)
          * A remote socket is usually unbound and thus has unspecified Unix
          * domain sockaddr_un which can be shortcut to 3 bytes.  To handle
          * a bound remote socket correctly ls->socklen should be at least
-         * sizeof(struct sockaddr_un), see comment in unix/nxt_socket.h.
+         * sizeof(struct sockaddr_un), see comment in nxt_socket.h.
          */
         ls->socklen = 3;
         size = ls->socklen + sizeof("unix:") - 1;

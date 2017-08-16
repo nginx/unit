@@ -62,7 +62,7 @@ nxt_sockaddr_create(nxt_mp_t *mp, struct sockaddr *sockaddr, socklen_t length,
 
     /*
      * Unspecified Unix domain sockaddr_un form and length are very
-     * platform depended (see comment in unix/socket.h).  Here they are
+     * platform depended (see comment in nxt_socket.h).  Here they are
      * normalized to the sockaddr_un with single zero byte sun_path[].
      */
 
@@ -590,7 +590,7 @@ nxt_sockaddr_unix_parse(nxt_mp_t *mp, nxt_str_t *addr)
 
     /*
      * Actual sockaddr_un length can be lesser or even larger than defined
-     * struct sockaddr_un length (see comment in unix/nxt_socket.h).  So
+     * struct sockaddr_un length (see comment in nxt_socket.h).  So
      * limit maximum Unix domain socket address length by defined sun_path[]
      * length because some OSes accept addresses twice larger than defined
      * struct sockaddr_un.  Also reserve space for a trailing zero to avoid
@@ -810,7 +810,7 @@ nxt_job_sockaddr_unix_parse(nxt_job_sockaddr_parse_t *jbs)
 
     /*
      * Actual sockaddr_un length can be lesser or even larger than defined
-     * struct sockaddr_un length (see comment in unix/nxt_socket.h).  So
+     * struct sockaddr_un length (see comment in nxt_socket.h).  So
      * limit maximum Unix domain socket address length by defined sun_path[]
      * length because some OSes accept addresses twice larger than defined
      * struct sockaddr_un.  Also reserve space for a trailing zero to avoid
