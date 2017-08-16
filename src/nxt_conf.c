@@ -600,6 +600,25 @@ nxt_conf_next_object_member(nxt_conf_value_t *value, nxt_str_t *name,
 }
 
 
+nxt_conf_value_t *
+nxt_conf_get_array_element(nxt_conf_value_t *value, uint32_t index)
+{
+    nxt_conf_array_t  *array;
+
+    if (value->type != NXT_CONF_VALUE_ARRAY) {
+        return NULL;
+    }
+
+    array = value->u.array;
+
+    if (index >= array->count) {
+        return NULL;
+    }
+
+    return &array->elements[index];
+}
+
+
 nxt_int_t
 nxt_conf_op_compile(nxt_mp_t *mp, nxt_conf_op_t **ops, nxt_conf_value_t *root,
     nxt_str_t *path, nxt_conf_value_t *value)

@@ -64,6 +64,8 @@ nxt_conf_value_t *nxt_conf_get_object_member(nxt_conf_value_t *value,
     nxt_str_t *name, uint32_t *index);
 nxt_conf_value_t *nxt_conf_next_object_member(nxt_conf_value_t *value,
     nxt_str_t *name, uint32_t *next);
+nxt_conf_value_t *nxt_conf_get_array_element(nxt_conf_value_t *value,
+    uint32_t index);
 
 nxt_int_t nxt_conf_map_object(nxt_mp_t *mp, nxt_conf_value_t *value,
     nxt_conf_map_t *map, nxt_uint_t n, void *data);
