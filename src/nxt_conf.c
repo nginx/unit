@@ -420,9 +420,10 @@ nxt_conf_get_object_member(nxt_conf_value_t *value, nxt_str_t *name,
 
 
 nxt_int_t
-nxt_conf_map_object(nxt_conf_value_t *value, nxt_conf_map_t *map, nxt_uint_t n,
-    void *data)
+nxt_conf_map_object(nxt_mp_t *mp, nxt_conf_value_t *value, nxt_conf_map_t *map,
+    nxt_uint_t n, void *data)
 {
+    nxt_str_t         str, *s;
     nxt_uint_t        i;
     nxt_conf_value_t  *v;
 
@@ -436,6 +437,7 @@ nxt_conf_map_object(nxt_conf_value_t *value, nxt_conf_map_t *map, nxt_uint_t n,
         nxt_msec_t  msec;
         double      dbl;
         nxt_str_t   str;
+        char        *cstrz;
         void        *v;
     } *ptr;
 
@@ -515,15 +517,48 @@ nxt_conf_map_object(nxt_conf_value_t *value, nxt_conf_map_t *map, nxt_uint_t n,
             break;
 
         case NXT_CONF_MAP_STR:
+        case NXT_CONF_MAP_STR_COPY:
+        case NXT_CONF_MAP_CSTRZ:
 
-            if (v->type == NXT_CONF_VALUE_SHORT_STRING
-                || v->type == NXT_CONF_VALUE_STRING)
+            if (v->type != NXT_CONF_VALUE_SHORT_STRING
+                && v->type != NXT_CONF_VALUE_STRING)
             {
-                nxt_conf_get_string(v, &ptr->str);
+                break;
+            }
+
+            nxt_conf_get_string(v, &str);
+
+            switch (map[i].type) {
+
+            case NXT_CONF_MAP_STR:
+                ptr->str = str;
+                break;
+
+            case NXT_CONF_MAP_STR_COPY:
+
+                s = nxt_str_dup(mp, &ptr->str, &str);
+
+                if (nxt_slow_path(s == NULL)) {
+                    return NXT_ERROR;
+                }
+
+                break;
+
+            case NXT_CONF_MAP_CSTRZ:
+
+                ptr->cstrz = nxt_str_cstrz(mp, &str);
+
+                if (nxt_slow_path(ptr->cstrz == NULL)) {
+                    return NXT_ERROR;
+                }
+
+                break;
+
+            default:
+                nxt_unreachable();
             }
 
             break;
-
 
         case NXT_CONF_MAP_PTR:
 

@@ -190,7 +190,7 @@ nxt_port_master_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     app_conf.user = nobody;
 
-    ret = nxt_conf_map_object(conf, nxt_common_app_conf,
+    ret = nxt_conf_map_object(mp, conf, nxt_common_app_conf,
                               nxt_nitems(nxt_common_app_conf), &app_conf);
     if (ret != NXT_OK) {
         nxt_log(task, NXT_LOG_CRIT, "root map error");

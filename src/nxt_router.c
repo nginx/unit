@@ -667,7 +667,9 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         return NXT_ERROR;
     }
 
-    ret = nxt_conf_map_object(conf, nxt_router_conf,
+    mp = tmcf->conf->mem_pool;
+
+    ret = nxt_conf_map_object(mp, conf, nxt_router_conf,
                               nxt_nitems(nxt_router_conf), tmcf->conf);
     if (ret != NXT_OK) {
         nxt_log(task, NXT_LOG_CRIT, "root map error");
@@ -723,7 +725,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             continue;
         }
 
-        ret = nxt_conf_map_object(application, nxt_router_app_conf,
+        ret = nxt_conf_map_object(mp, application, nxt_router_app_conf,
                                   nxt_nitems(nxt_router_app_conf), &apcf);
         if (ret != NXT_OK) {
             nxt_log(task, NXT_LOG_CRIT, "application map error");
@@ -782,8 +784,6 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
     next = 0;
 
-    mp = tmcf->conf->mem_pool;
-
     for ( ;; ) {
         listener = nxt_conf_next_object_member(listeners, &name, &next);
         if (listener == NULL) {
@@ -806,7 +806,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             goto fail;
         }
 
-        ret = nxt_conf_map_object(listener, nxt_router_listener_conf,
+        ret = nxt_conf_map_object(mp, listener, nxt_router_listener_conf,
                                   nxt_nitems(nxt_router_listener_conf), &lscf);
         if (ret != NXT_OK) {
             nxt_log(task, NXT_LOG_CRIT, "listener map error");
@@ -825,7 +825,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         skcf->body_read_timeout = 5000;
 
         if (http != NULL) {
-            ret = nxt_conf_map_object(http, nxt_router_http_conf,
+            ret = nxt_conf_map_object(mp, http, nxt_router_http_conf,
                                       nxt_nitems(nxt_router_http_conf), skcf);
             if (ret != NXT_OK) {
                 nxt_log(task, NXT_LOG_CRIT, "http map error");
