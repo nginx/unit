@@ -136,7 +136,7 @@ nxt_str_null(str)                                                             \
 NXT_EXPORT nxt_str_t *nxt_str_alloc(nxt_mp_t *mp, size_t length);
 NXT_EXPORT nxt_str_t *nxt_str_dup(nxt_mp_t *mp, nxt_str_t *dst,
     const nxt_str_t *src);
-NXT_EXPORT char *nxt_str_copy(nxt_mp_t *mp, const nxt_str_t *src);
+NXT_EXPORT char *nxt_str_cstrz(nxt_mp_t *mp, const nxt_str_t *src);
 
 
 #define                                                                       \

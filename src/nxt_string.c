@@ -61,7 +61,7 @@ nxt_str_dup(nxt_mp_t *mp, nxt_str_t *dst, const nxt_str_t *src)
 
 
 /*
- * nxt_str_copy() creates a C style zero-terminated copy of a source
+ * nxt_str_cstrz() creates a C style zero-terminated copy of a source
  * nxt_str_t.  The function is intended to create strings suitable
  * for libc and kernel interfaces so result is pointer to char instead
  * of u_char to minimize casts.  The copy is aligned to 2 bytes thus
@@ -69,7 +69,7 @@ nxt_str_dup(nxt_mp_t *mp, nxt_str_t *dst, const nxt_str_t *src)
  */
 
 char *
-nxt_str_copy(nxt_mp_t *mp, const nxt_str_t *src)
+nxt_str_cstrz(nxt_mp_t *mp, const nxt_str_t *src)
 {
     char  *p, *dst;
 
