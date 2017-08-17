@@ -134,6 +134,12 @@ static void nxt_router_process_http_request(nxt_task_t *task,
     nxt_conn_t *c, nxt_app_parse_ctx_t *ap);
 static void nxt_router_process_http_request_mp(nxt_task_t *task,
     nxt_req_app_link_t *ra, nxt_port_t *port);
+static nxt_int_t nxt_python_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
+    nxt_app_wmsg_t *wmsg);
+static nxt_int_t nxt_php_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
+    nxt_app_wmsg_t *wmsg);
+static nxt_int_t nxt_go_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
+    nxt_app_wmsg_t *wmsg);
 static void nxt_router_conn_ready(nxt_task_t *task, void *obj, void *data);
 static void nxt_router_conn_close(nxt_task_t *task, void *obj, void *data);
 static void nxt_router_conn_free(nxt_task_t *task, void *obj, void *data);
@@ -145,6 +151,14 @@ static void nxt_router_gen_error(nxt_task_t *task, nxt_conn_t *c, int code,
     const char* fmt, ...);
 
 static nxt_router_t  *nxt_router;
+
+
+static nxt_app_prepare_msg_t  nxt_app_prepare_msg[] = {
+    nxt_python_prepare_msg,
+    nxt_php_prepare_msg,
+    nxt_go_prepare_msg,
+};
+
 
 nxt_int_t
 nxt_router_start(nxt_task_t *task, void *data)
@@ -654,6 +668,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_conf_value_t            *applications, *application;
     nxt_conf_value_t            *listeners, *listener;
     nxt_socket_conf_t           *skcf;
+    nxt_app_lang_module_t       *lang;
     nxt_router_app_conf_t       apcf;
     nxt_router_listener_conf_t  lscf;
 
@@ -735,17 +750,27 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         nxt_debug(task, "application type: %V", &apcf.type);
         nxt_debug(task, "application workers: %D", apcf.workers);
 
-        type = nxt_app_parse_type(&apcf.type);
+        lang = nxt_app_lang_module(task->thread->runtime, &apcf.type);
 
-        if (type == NXT_APP_UNKNOWN) {
+        if (lang == NULL) {
             nxt_log(task, NXT_LOG_CRIT, "unknown application type: \"%V\"",
                     &apcf.type);
             goto app_fail;
         }
 
-        if (nxt_app_modules[type] == NULL) {
+        nxt_debug(task, "application language module: \"%s\"", lang->file);
+
+        type = nxt_app_parse_type(&lang->type);
+
+        if (type == NXT_APP_UNKNOWN) {
+            nxt_log(task, NXT_LOG_CRIT, "unknown application type: \"%V\"",
+                    &lang->type);
+            goto app_fail;
+        }
+
+        if (nxt_app_prepare_msg[type] == NULL) {
             nxt_log(task, NXT_LOG_CRIT, "unsupported application type: \"%V\"",
-                    &apcf.type);
+                    &lang->type);
             goto app_fail;
         }
 
@@ -763,7 +788,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         app->type = type;
         app->max_workers = apcf.workers;
         app->live = 1;
-        app->module = nxt_app_modules[type];
+        app->prepare_msg = nxt_app_prepare_msg[type];
 
         nxt_queue_insert_tail(&tmcf->apps, &app->link);
     }
@@ -2687,7 +2712,7 @@ nxt_router_process_http_request_mp(nxt_task_t *task, nxt_req_app_link_t *ra,
     wmsg.buf = &wmsg.write;
     wmsg.stream = ra->req_id;
 
-    res = port->app->module->prepare_msg(task, &ap->r, &wmsg);
+    res = port->app->prepare_msg(task, &ap->r, &wmsg);
 
     if (nxt_slow_path(res != NXT_OK)) {
         nxt_router_gen_error(task, c, 500,
@@ -2707,6 +2732,246 @@ nxt_router_process_http_request_mp(nxt_task_t *task, nxt_req_app_link_t *ra,
                              "Failed to send message to application");
         return;
     }
+}
+
+
+static nxt_int_t
+nxt_python_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
+    nxt_app_wmsg_t *wmsg)
+{
+    nxt_int_t                 rc;
+    nxt_buf_t                 *b;
+    nxt_http_field_t          *field;
+    nxt_app_request_header_t  *h;
+
+    static const nxt_str_t prefix = nxt_string("HTTP_");
+    static const nxt_str_t eof = nxt_null_string;
+
+    h = &r->header;
+
+#define RC(S)                                                                 \
+    do {                                                                      \
+        rc = (S);                                                             \
+        if (nxt_slow_path(rc != NXT_OK)) {                                    \
+            goto fail;                                                        \
+        }                                                                     \
+    } while(0)
+
+#define NXT_WRITE(N)                                                          \
+    RC(nxt_app_msg_write_str(task, wmsg, N))
+
+    /* TODO error handle, async mmap buffer assignment */
+
+    NXT_WRITE(&h->method);
+    NXT_WRITE(&h->target);
+    if (h->path.start == h->target.start) {
+        NXT_WRITE(&eof);
+    } else {
+        NXT_WRITE(&h->path);
+    }
+
+    if (h->query.start != NULL) {
+        RC(nxt_app_msg_write_size(task, wmsg,
+                                  h->query.start - h->target.start + 1));
+    } else {
+        RC(nxt_app_msg_write_size(task, wmsg, 0));
+    }
+
+    NXT_WRITE(&h->version);
+
+    NXT_WRITE(&r->remote);
+
+    NXT_WRITE(&h->host);
+    NXT_WRITE(&h->content_type);
+    NXT_WRITE(&h->content_length);
+
+    nxt_list_each(field, h->fields) {
+        RC(nxt_app_msg_write_prefixed_upcase(task, wmsg,
+                                             &prefix, &field->name));
+        NXT_WRITE(&field->value);
+
+    } nxt_list_loop;
+
+    /* end-of-headers mark */
+    NXT_WRITE(&eof);
+
+    RC(nxt_app_msg_write_size(task, wmsg, r->body.preread_size));
+
+    for(b = r->body.buf; b != NULL; b = b->next) {
+        RC(nxt_app_msg_write_raw(task, wmsg, b->mem.pos,
+                                 nxt_buf_mem_used_size(&b->mem)));
+    }
+
+#undef NXT_WRITE
+#undef RC
+
+    return NXT_OK;
+
+fail:
+
+    return NXT_ERROR;
+}
+
+
+static nxt_int_t
+nxt_php_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
+    nxt_app_wmsg_t *wmsg)
+{
+    nxt_int_t                 rc;
+    nxt_buf_t                 *b;
+    nxt_http_field_t          *field;
+    nxt_app_request_header_t  *h;
+
+    static const nxt_str_t prefix = nxt_string("HTTP_");
+    static const nxt_str_t eof = nxt_null_string;
+
+    h = &r->header;
+
+#define RC(S)                                                                 \
+    do {                                                                      \
+        rc = (S);                                                             \
+        if (nxt_slow_path(rc != NXT_OK)) {                                    \
+            goto fail;                                                        \
+        }                                                                     \
+    } while(0)
+
+#define NXT_WRITE(N)                                                          \
+    RC(nxt_app_msg_write_str(task, wmsg, N))
+
+    /* TODO error handle, async mmap buffer assignment */
+
+    NXT_WRITE(&h->method);
+    NXT_WRITE(&h->target);
+    if (h->path.start == h->target.start) {
+        NXT_WRITE(&eof);
+    } else {
+        NXT_WRITE(&h->path);
+    }
+
+    if (h->query.start != NULL) {
+        RC(nxt_app_msg_write_size(task, wmsg,
+                                  h->query.start - h->target.start + 1));
+    } else {
+        RC(nxt_app_msg_write_size(task, wmsg, 0));
+    }
+
+    NXT_WRITE(&h->version);
+
+    // PHP_SELF
+    // SCRIPT_NAME
+    // SCRIPT_FILENAME
+    // DOCUMENT_ROOT
+
+    NXT_WRITE(&r->remote);
+
+    NXT_WRITE(&h->host);
+    NXT_WRITE(&h->cookie);
+    NXT_WRITE(&h->content_type);
+    NXT_WRITE(&h->content_length);
+
+    RC(nxt_app_msg_write_size(task, wmsg, h->parsed_content_length));
+
+    nxt_list_each(field, h->fields) {
+        RC(nxt_app_msg_write_prefixed_upcase(task, wmsg,
+                                             &prefix, &field->name));
+        NXT_WRITE(&field->value);
+
+    } nxt_list_loop;
+
+    /* end-of-headers mark */
+    NXT_WRITE(&eof);
+
+    RC(nxt_app_msg_write_size(task, wmsg, r->body.preread_size));
+
+    for(b = r->body.buf; b != NULL; b = b->next) {
+        RC(nxt_app_msg_write_raw(task, wmsg, b->mem.pos,
+                                 nxt_buf_mem_used_size(&b->mem)));
+    }
+
+#undef NXT_WRITE
+#undef RC
+
+    return NXT_OK;
+
+fail:
+
+    return NXT_ERROR;
+}
+
+
+static nxt_int_t
+nxt_go_prepare_msg(nxt_task_t *task, nxt_app_request_t *r, nxt_app_wmsg_t *wmsg)
+{
+    nxt_int_t                 rc;
+    nxt_buf_t                 *b;
+    nxt_http_field_t          *field;
+    nxt_app_request_header_t  *h;
+
+    static const nxt_str_t eof = nxt_null_string;
+
+    h = &r->header;
+
+#define RC(S)                                                                 \
+    do {                                                                      \
+        rc = (S);                                                             \
+        if (nxt_slow_path(rc != NXT_OK)) {                                    \
+            goto fail;                                                        \
+        }                                                                     \
+    } while(0)
+
+#define NXT_WRITE(N)                                                          \
+    RC(nxt_app_msg_write_str(task, wmsg, N))
+
+    /* TODO error handle, async mmap buffer assignment */
+
+    NXT_WRITE(&h->method);
+    NXT_WRITE(&h->target);
+    if (h->path.start == h->target.start) {
+        NXT_WRITE(&eof);
+    } else {
+        NXT_WRITE(&h->path);
+    }
+
+    if (h->query.start != NULL) {
+        RC(nxt_app_msg_write_size(task, wmsg,
+                                  h->query.start - h->target.start + 1));
+    } else {
+        RC(nxt_app_msg_write_size(task, wmsg, 0));
+    }
+
+    NXT_WRITE(&h->version);
+
+    NXT_WRITE(&h->host);
+    NXT_WRITE(&h->cookie);
+    NXT_WRITE(&h->content_type);
+    NXT_WRITE(&h->content_length);
+
+    RC(nxt_app_msg_write_size(task, wmsg, h->parsed_content_length));
+
+    nxt_list_each(field, h->fields) {
+        NXT_WRITE(&field->name);
+        NXT_WRITE(&field->value);
+
+    } nxt_list_loop;
+
+    /* end-of-headers mark */
+    NXT_WRITE(&eof);
+
+    RC(nxt_app_msg_write_size(task, wmsg, r->body.preread_size));
+
+    for(b = r->body.buf; b != NULL; b = b->next) {
+        RC(nxt_app_msg_write_raw(task, wmsg, b->mem.pos,
+                                 nxt_buf_mem_used_size(&b->mem)));
+    }
+
+#undef NXT_WRITE
+#undef RC
+
+    return NXT_OK;
+
+fail:
+
+    return NXT_ERROR;
 }
 
 

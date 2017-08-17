@@ -19,6 +19,7 @@ struct nxt_runtime_s {
     nxt_array_t            *listen_sockets;     /* of nxt_listen_socket_t */
 
     nxt_array_t            *services;           /* of nxt_service_t */
+    nxt_array_t            *languages;          /* of nxt_app_lang_module_t */
     void                   *data;
 
     nxt_runtime_cont_t     start;

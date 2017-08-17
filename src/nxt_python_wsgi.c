@@ -61,9 +61,6 @@ typedef struct nxt_python_run_ctx_s nxt_python_run_ctx_t;
 
 static nxt_int_t nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf);
 
-static nxt_int_t nxt_python_prepare_msg(nxt_task_t *task,
-                      nxt_app_request_t *r, nxt_app_wmsg_t *msg);
-
 static nxt_int_t nxt_python_run(nxt_task_t *task,
                       nxt_app_rmsg_t *rmsg, nxt_app_wmsg_t *msg);
 
@@ -93,13 +90,12 @@ nxt_inline nxt_int_t nxt_python_write(nxt_python_run_ctx_t *ctx,
 nxt_inline nxt_int_t nxt_python_write_py_str(nxt_python_run_ctx_t *ctx,
                       PyObject *str, nxt_bool_t flush, nxt_bool_t last);
 
-extern nxt_int_t nxt_python_wsgi_init(nxt_thread_t *thr, nxt_runtime_t *rt);
 
-
-nxt_application_module_t  nxt_python_module = {
+NXT_EXPORT nxt_application_module_t  nxt_app_module = {
+    nxt_string("python"),
+    nxt_string(PY_VERSION),
     nxt_python_init,
-    nxt_python_prepare_msg,
-    nxt_python_run
+    nxt_python_run,
 };
 
 
@@ -175,23 +171,6 @@ static PyObject           *nxt_py_start_resp_obj;
 static PyObject           *nxt_py_environ_ptyp;
 
 static nxt_python_run_ctx_t  *nxt_python_run_ctx;
-
-
-nxt_int_t
-nxt_python_wsgi_init(nxt_thread_t *thr, nxt_runtime_t *rt)
-{
-    nxt_app_modules[NXT_APP_PYTHON] = &nxt_python_module;
-
-#if PY_MAJOR_VERSION == 2
-    nxt_app_modules[NXT_APP_PYTHON2] = &nxt_python_module;
-#endif
-
-#if PY_MAJOR_VERSION == 3
-    nxt_app_modules[NXT_APP_PYTHON3] = &nxt_python_module;
-#endif
-
-    return NXT_OK;
-}
 
 
 static nxt_int_t
@@ -314,84 +293,6 @@ fail:
 
     Py_DECREF(obj);
     Py_DECREF(module);
-
-    return NXT_ERROR;
-}
-
-
-static nxt_int_t
-nxt_python_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
-    nxt_app_wmsg_t *wmsg)
-{
-    nxt_int_t                 rc;
-    nxt_buf_t                 *b;
-    nxt_http_field_t          *field;
-    nxt_app_request_header_t  *h;
-
-    static const nxt_str_t prefix = nxt_string("HTTP_");
-    static const nxt_str_t eof = nxt_null_string;
-
-    h = &r->header;
-
-#define RC(S)                                                                 \
-    do {                                                                      \
-        rc = (S);                                                             \
-        if (nxt_slow_path(rc != NXT_OK)) {                                    \
-            goto fail;                                                        \
-        }                                                                     \
-    } while(0)
-
-#define NXT_WRITE(N)                                                          \
-    RC(nxt_app_msg_write_str(task, wmsg, N))
-
-    /* TODO error handle, async mmap buffer assignment */
-
-    NXT_WRITE(&h->method);
-    NXT_WRITE(&h->target);
-    if (h->path.start == h->target.start) {
-        NXT_WRITE(&eof);
-    } else {
-        NXT_WRITE(&h->path);
-    }
-
-    if (h->query.start != NULL) {
-        RC(nxt_app_msg_write_size(task, wmsg,
-                                  h->query.start - h->target.start + 1));
-    } else {
-        RC(nxt_app_msg_write_size(task, wmsg, 0));
-    }
-
-    NXT_WRITE(&h->version);
-
-    NXT_WRITE(&r->remote);
-
-    NXT_WRITE(&h->host);
-    NXT_WRITE(&h->content_type);
-    NXT_WRITE(&h->content_length);
-
-    nxt_list_each(field, h->fields) {
-        RC(nxt_app_msg_write_prefixed_upcase(task, wmsg,
-                                             &prefix, &field->name));
-        NXT_WRITE(&field->value);
-
-    } nxt_list_loop;
-
-    /* end-of-headers mark */
-    NXT_WRITE(&eof);
-
-    RC(nxt_app_msg_write_size(task, wmsg, r->body.preread_size));
-
-    for(b = r->body.buf; b != NULL; b = b->next) {
-        RC(nxt_app_msg_write_raw(task, wmsg, b->mem.pos,
-                                 nxt_buf_mem_used_size(&b->mem)));
-    }
-
-#undef NXT_WRITE
-#undef RC
-
-    return NXT_OK;
-
-fail:
 
     return NXT_ERROR;
 }

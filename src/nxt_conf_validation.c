@@ -6,6 +6,7 @@
 
 #include <nxt_main.h>
 #include <nxt_conf.h>
+#include <nxt_application.h>
 
 
 typedef struct {
@@ -213,10 +214,19 @@ static nxt_int_t
 nxt_conf_vldt_app(nxt_conf_value_t *conf, nxt_str_t *name,
     nxt_conf_value_t *value)
 {
-    nxt_str_t         type;
-    nxt_conf_value_t  *type_value;
+    nxt_str_t              type;
+    nxt_uint_t             n;
+    nxt_thread_t           *thread;
+    nxt_conf_value_t       *type_value;
+    nxt_app_lang_module_t  *lang;
 
     static nxt_str_t  type_str = nxt_string("type");
+
+    static void  *members[] = {
+        nxt_conf_vldt_python_members,
+        nxt_conf_vldt_php_members,
+        nxt_conf_vldt_go_members,
+    };
 
     type_value = nxt_conf_get_object_member(value, &type_str, NULL);
 
@@ -230,16 +240,16 @@ nxt_conf_vldt_app(nxt_conf_value_t *conf, nxt_str_t *name,
 
     nxt_conf_get_string(type_value, &type);
 
-    if (nxt_str_eq(&type, "python", 6)) {
-        return nxt_conf_vldt_object(conf, value, nxt_conf_vldt_python_members);
+    thread = nxt_thread();
+
+    lang = nxt_app_lang_module(thread->runtime, &type);
+    if (lang == NULL) {
+        return NXT_ERROR;
     }
 
-    if (nxt_str_eq(&type, "php", 3)) {
-        return nxt_conf_vldt_object(conf, value, nxt_conf_vldt_php_members);
-    }
-
-    if (nxt_str_eq(&type, "go", 2)) {
-        return nxt_conf_vldt_object(conf, value, nxt_conf_vldt_go_members);
+    n = nxt_app_parse_type(&lang->type);
+    if (n != NXT_APP_UNKNOWN) {
+        return nxt_conf_vldt_object(conf, value, members[n]);
     }
 
     return NXT_ERROR;

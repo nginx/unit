@@ -1,0 +1,109 @@
+
+# Copyright (C) Max Romanov
+# Copyright (C) NGINX, Inc.
+
+
+shift
+
+NXT_GO=go
+
+for nxt_option; do
+
+    case "$nxt_option" in
+        -*=*) value=`$echo "$nxt_option" | sed -e 's/[-_a-zA-Z0-9]*=//'`     ;;
+           *) value="" ;;
+    esac
+
+    case "$nxt_option" in
+        --go=*)       NXT_GO="$value"                                        ;;
+        --go-path=*)  NXT_GO_PATH="$value"                                   ;;
+
+        --help)
+            cat << END
+
+    --go=NAME        set go executable
+    --go-path=PATH   set GOPATH variable to install package
+
+END
+            exit 0
+        ;;
+
+        *)
+            $echo
+            $echo $0: error: invalid Go option \"$nxt_option\"
+            $echo
+            exit 1
+        ;;
+
+    esac
+
+done
+
+
+$echo "configuring Go package"
+$echo "configuring Go package ..." >> $NXT_AUTOCONF_ERR
+
+$echo -n "checking for Go ..."
+$echo "checking for Go ..." >> $NXT_AUTOCONF_ERR
+
+nxt_go_test="GOPATH=`pwd` CGO_CPPFLAGS=-DNXT_CONFIGURE \
+    \"${NXT_GO}\" build -o build/nxt_go_gen.a --buildmode=c-archive nginext"
+
+
+if /bin/sh -c "$nxt_go_test" >> $NXT_AUTOCONF_ERR 2>&1; then
+    $echo " found"
+
+    NXT_GO_VERSION="`${NXT_GO} version`"
+    $echo " + ${NXT_GO_VERSION}"
+
+else
+    $echo "----------"    >> $NXT_AUTOCONF_ERR
+    $echo $nxt_go_test    >> $NXT_AUTOCONF_ERR
+    $echo "----------"    >> $NXT_AUTOCONF_ERR
+    $echo
+    $echo
+    $echo $0: error: no Go found.
+    $echo
+    exit 1;
+fi
+
+
+
+NXT_GO_PATH=${NXT_GO_PATH=`go env GOPATH`}
+NXT_GO_PATH=${NXT_GO_PATH:-`pwd`/${NXT_GO}}
+
+$echo " + Go package path: \"${NXT_GO_PATH}\""
+
+if grep ^$NXT_GO: $NXT_MAKEFILE 2>&1 > /dev/null; then
+    $echo
+    $echo $0: error: duplicate \"$NXT_GO\" package configured.
+    $echo
+    exit 1;
+fi
+
+cat << END >> $NXT_MAKEFILE
+
+.PHONY:		${NXT_GO}
+
+NXT_ROOT =	`pwd`
+
+GOPATH =	$NXT_GO_PATH
+GOOS =		`go env GOOS`
+GOARCH =	`go env GOARCH`
+
+${NXT_GO}:
+	install -d \$(GOPATH)/src/nginext
+	install -p ./src/nginext/*.c ./src/nginext/*.h \\
+		./src/nginext/*.go \$(GOPATH)/src/nginext/
+	CGO_CFLAGS="-I\$(NXT_ROOT)/build -I\$(NXT_ROOT)/src" \\
+		CGO_LDFLAGS="-L\$(NXT_ROOT)/build" \\
+		GOPATH=$NXT_GO_PATH \\
+		go install -v nginext
+
+${NXT_GO}-uninstall:
+	rm -rf \$(GOPATH)/src/nginext
+	rm -f \$(GOPATH)/pkg/\$(GOOS)_\$(GOARCH)/nginext.a
+
+END
+
+sed -i.bak -e "s/\(all:.*\)/\1 ${NXT_GO}/" $NXT_MAKEFILE

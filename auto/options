@@ -41,16 +41,6 @@ NXT_TEST_BUILD_HPUX_SENDFILE=NO
 
 NXT_LIB_UNIT_TEST=NO
 
-NXT_PYTHON=python
-NXT_PYTHON_MODULE=NO
-
-NXT_PHP=php
-NXT_PHP_LDFLAGS=
-NXT_PHP_MODULE=NO
-
-NXT_GO=go
-NXT_GO_MODULE=NO
-
 for nxt_option
 do
     case "$nxt_option" in
@@ -95,16 +85,6 @@ do
         --test-build-hpux-sendfile)      NXT_TEST_BUILD_HPUX_SENDFILE=YES    ;;
 
         --with-lib-unit-tests)           NXT_LIB_UNIT_TEST=YES               ;;
-
-        --with-python=*)                 NXT_PYTHON="$value"                 ;;
-        --with-python_module)            NXT_PYTHON_MODULE=YES               ;;
-
-        --with-php=*)                    NXT_PHP="$value"                    ;;
-        --with-php-ldflags=*)            NXT_PHP_LDFLAGS="$value"            ;;
-        --with-php_module)               NXT_PHP_MODULE=YES                  ;;
-
-        --with-go=*)                     NXT_GO="$value"                     ;;
-        --with-go_module)                NXT_GO_MODULE=YES                   ;;
 
         *)
             $echo

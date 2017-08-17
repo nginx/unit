@@ -14,6 +14,7 @@ typedef enum {
     NXT_PROCESS_CONTROLLER,
     NXT_PROCESS_ROUTER,
     NXT_PROCESS_WORKER,
+    NXT_PROCESS_DISCOVERY,
 
     NXT_PROCESS_MAX,
 } nxt_process_type_t;

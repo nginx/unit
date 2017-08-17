@@ -1,0 +1,148 @@
+
+# Copyright (C) Valentin V. Bartenev
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+shift
+
+for nxt_option; do
+
+    case "$nxt_option" in
+        -*=*) value=`$echo "$nxt_option" | sed -e 's/[-_a-zA-Z0-9]*=//'`     ;;
+           *) value="" ;;
+    esac
+
+    case "$nxt_option" in
+
+        --config=*)  NXT_PYTHON_CONFIG="$value"                              ;;
+        --module=*)  NXT_PYTHON_MODULE="$value"                              ;;
+
+        --help)
+            cat << END
+
+    --config=NAME   set python-config name
+    --module=NAME   set python module name
+
+END
+            exit 0
+        ;;
+
+        *)
+            $echo
+            $echo $0: error: invalid Python option \"$nxt_option\"
+            $echo
+            exit 1
+        ;;
+    esac
+
+done
+
+
+NXT_PYTHON_CONFIG=${NXT_PYTHON_CONFIG=python-config}
+NXT_PYTHON=${NXT_PYTHON_CONFIG%-config*}
+NXT_PYTHON_MODULE=${NXT_PYTHON_MODULE=${NXT_PYTHON##*/}}
+
+
+$echo "configuring Python module"
+$echo "configuring Python module ..." >> $NXT_AUTOCONF_ERR
+
+nxt_found=no
+
+if /bin/sh -c "$NXT_PYTHON_CONFIG --prefix" >> $NXT_AUTOCONF_ERR 2>&1; then
+
+    NXT_PYTHON_INCLUDE=`${NXT_PYTHON_CONFIG} --includes`
+    NXT_PYTHON_LIBS=`${NXT_PYTHON_CONFIG} --ldflags`
+
+    nxt_feature="Python"
+    nxt_feature_name=NXT_HAVE_PYTHON
+    nxt_feature_run=no
+    nxt_feature_incs="${NXT_PYTHON_INCLUDE}"
+    nxt_feature_libs="${NXT_PYTHON_LIBS}"
+    nxt_feature_test="
+        #include <Python.h>
+
+        int main() {
+            Py_Initialize();
+            return 0;
+        }"
+
+    . auto/feature
+
+else
+    $echo "checking for Python ... not found"
+fi
+
+if [ $nxt_found = no ]; then
+    $echo
+    $echo $0: error: no Python found.
+    $echo
+    exit 1;
+fi
+
+
+nxt_feature="Python version"
+nxt_feature_name=NXT_PYTHON_VERSION
+nxt_feature_run=value
+nxt_feature_incs="${NXT_PYTHON_INCLUDE}"
+nxt_feature_libs="${NXT_PYTHON_LIBS}"
+nxt_feature_test="
+    #include <Python.h>
+    #include <stdio.h>
+
+    int main() {
+        printf("PY_VERSION");
+        return 0;
+    }"
+
+. auto/feature
+
+
+if grep ^$NXT_PYTHON_MODULE: $NXT_MAKEFILE 2>&1 > /dev/null; then
+    $echo
+    $echo $0: error: duplicate \"$NXT_PYTHON_MODULE\" module configured.
+    $echo
+    exit 1;
+fi
+
+$echo " + Python module: nginext.${NXT_PYTHON_MODULE}"
+
+
+$echo >> $NXT_MAKEFILE
+
+NXT_PYTHON_MODULE_SRCS=" \
+    src/nxt_python_wsgi.c \
+"
+
+# The python module object files.
+
+nxt_objs=
+
+for nxt_src in $NXT_PYTHON_MODULE_SRCS; do
+
+    nxt_obj=`$echo $nxt_src | sed -e "s/\.c$/-$NXT_PYTHON_MODULE.o/"`
+    nxt_objs="$nxt_objs $NXT_BUILD_DIR/$nxt_obj"
+
+    cat << END >> $NXT_MAKEFILE
+
+$NXT_BUILD_DIR/$nxt_obj:	$nxt_src
+	\$(CC) -c \$(CFLAGS) \$(NXT_INCS) $NXT_PYTHON_INCLUDE \\
+	-o $NXT_BUILD_DIR/$nxt_obj $nxt_src
+END
+
+done
+
+ 
+cat << END >> $NXT_MAKEFILE
+
+.PHONY:			${NXT_PYTHON_MODULE}
+
+${NXT_PYTHON_MODULE}:	$NXT_BUILD_DIR/nginext.${NXT_PYTHON_MODULE}
+
+$NXT_BUILD_DIR/nginext.${NXT_PYTHON_MODULE}:	$nxt_objs
+	$NXT_MODULE_LINK -o $NXT_BUILD_DIR/nginext.${NXT_PYTHON_MODULE} \\
+	$nxt_objs $NXT_PYTHON_LIBS
+
+END
+
+sed -i.bak -e "s/\(all:.*\)/\1 ${NXT_PYTHON_MODULE}/" $NXT_MAKEFILE

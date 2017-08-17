@@ -26,7 +26,6 @@ case "$NXT_SYSTEM" in
         NXT_SHARED_LOCAL_LINK="\$(CC) -shared \
                                -Wl,-soname,\\\$\$ORIGIN/libnxt.so"
         NXT_MODULE_LINK="\$(CC) -shared"
-        NXT_MODULE_LINK="\$(CC) -shared"
 
         # "-Wl,-E" exports symbols of executable file.
         NXT_EXEC_LINK="\$(CC) -Wl,-E"
@@ -104,8 +103,8 @@ case "$NXT_SYSTEM" in
         # MacOSX 10.6 (Snow Leopard) has deprecated ucontext(3).
         # MacOSX 10.7 (Lion) has deprecated system OpenSSL.
         # MAC_OS_X_VERSION_MIN_REQUIRED macro does not help.
-        # The minimum version allowed for i386 is 10.4 (Tiger).
-        NXT_CFLAGS="$NXT_CFLAGS -mmacosx-version-min=10.4"
+        # "-rpath" is supported since MacOSX 10.5 (Leopard).
+        NXT_CFLAGS="$NXT_CFLAGS -mmacosx-version-min=10.5"
 
         NXT_STATIC_LINK="ar -r -c"
         NXT_SHARED_LINK="\$(CC) -dynamiclib"
@@ -113,7 +112,8 @@ case "$NXT_SYSTEM" in
                                -install_name @executable_path/libnxt.dylib"
 
         # Prior to MacOSX 10.5 (Leopard) only bundles could be unloaded.
-        NXT_MODULE_LINK="\$(CC) -bundle -undefined dynamic_lookup"
+        # NXT_MODULE_LINK="\$(CC) -bundle -undefined dynamic_lookup"
+        NXT_MODULE_LINK="\$(CC) -dynamiclib -undefined dynamic_lookup"
 
         NXT_EXEC_LINK="\$(CC)"
         NXT_SHARED_LOCAL_EXEC_LINK=

@@ -158,7 +158,7 @@ nxt_str_eq(s, p, _length)                                                     \
 
 #define                                                                       \
 nxt_str_start(s, p, _length)                                                  \
-    (((s)->length > _length) && (nxt_memcmp((s)->start, p, _length) == 0))
+    (((s)->length >= _length) && (nxt_memcmp((s)->start, p, _length) == 0))
 
 
 #define                                                                       \

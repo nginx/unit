@@ -1,0 +1,37 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+if [ ! -f $NXT_AUTOCONF_DATA ]; then
+   echo
+   echo Please run common $0 before configuring module \"$nxt_module\".
+   echo
+   exit 1
+fi
+
+. $NXT_AUTOCONF_DATA
+
+
+case "$nxt_module" in
+
+   python)
+       . auto/modules/python
+   ;;
+
+   php)
+       . auto/modules/php
+   ;;
+
+   go)
+       . auto/modules/go
+   ;;
+
+   *)
+       echo
+       echo $0: error: invalid module \"$nxt_module\".
+       echo
+       exit 1
+   ;;
+
+esac

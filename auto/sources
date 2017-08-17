@@ -147,6 +147,7 @@ NXT_LIB_SRCS=" \
     src/nxt_controller.c \
     src/nxt_router.c \
     src/nxt_application.c \
+    src/nxt_go.c \
     src/nxt_port_hash.c \
 "
 

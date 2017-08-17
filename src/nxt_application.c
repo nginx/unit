@@ -11,8 +11,22 @@
 #include <nxt_application.h>
 #include <nxt_master_process.h>
 
+#include <glob.h>
 
-nxt_application_module_t         *nxt_app_modules[NXT_APP_MAX];
+
+typedef struct {
+    nxt_str_t   type;
+    nxt_str_t   version;
+    nxt_str_t   file;
+} nxt_module_t;
+
+
+static nxt_buf_t *nxt_discovery_modules(nxt_task_t *task, const char *path);
+static nxt_int_t nxt_discovery_module(nxt_task_t *task, nxt_mp_t *mp,
+    nxt_array_t *modules, const char *name);
+static nxt_app_module_t *nxt_app_module_load(nxt_task_t *task,
+    const char *name);
+
 
 static nxt_thread_mutex_t        nxt_app_mutex;
 static nxt_thread_cond_t         nxt_app_cond;
@@ -22,13 +36,242 @@ static nxt_http_fields_hash_t        *nxt_app_request_fields_hash;
 
 static nxt_application_module_t      *nxt_app;
 
+
+nxt_int_t
+nxt_discovery_start(nxt_task_t *task, void *data)
+{
+    nxt_buf_t         *b;
+    nxt_port_t        *main_port;
+    nxt_runtime_t     *rt;
+
+    nxt_debug(task, "DISCOVERY");
+
+    b = nxt_discovery_modules(task, "build/nginext.*");
+
+    rt = task->thread->runtime;
+    main_port = rt->port_by_type[NXT_PROCESS_MASTER];
+
+    nxt_port_socket_write(task, main_port, NXT_PORT_MSG_MODULES, -1,
+                          0, -1, b);
+
+    return NXT_OK;
+}
+
+
+static void
+nxt_discovery_completion_handler(nxt_task_t *task, void *obj, void *data)
+{
+    nxt_mp_t   *mp;
+    nxt_buf_t  *b;
+
+    b = obj;
+    mp = b->data;
+
+    nxt_mp_destroy(mp);
+
+    exit(0);
+}
+
+
+static nxt_buf_t *
+nxt_discovery_modules(nxt_task_t *task, const char *path)
+{
+    char          *name;
+    u_char        *p, *end;
+    size_t        size;
+    glob_t        glb;
+    nxt_mp_t      *mp;
+    nxt_buf_t     *b;
+    nxt_int_t     ret;
+    nxt_uint_t    i, n;
+    nxt_array_t   *modules;
+    nxt_module_t  *module;
+
+    b = NULL;
+
+    mp = nxt_mp_create(1024, 128, 256, 32);
+    if (mp == NULL) {
+        return b;
+    }
+
+    ret = glob(path, 0, NULL, &glb);
+
+    if (ret == 0) {
+        n = glb.gl_pathc;
+
+        modules = nxt_array_create(mp, n, sizeof(nxt_module_t));
+        if (modules == NULL) {
+            goto fail;
+        }
+
+        for (i = 0; i < n; i++) {
+            name = glb.gl_pathv[i];
+
+            ret = nxt_discovery_module(task, mp, modules, name);
+            if (ret != NXT_OK) {
+                goto fail;
+            }
+        }
+
+        size = sizeof("[]") - 1;
+        module = modules->elts;
+        n = modules->nelts;
+
+        for (i = 0; i < n; i++) {
+            nxt_debug(task, "module: %V %V %V",
+                      &module[i].type, &module[i].version, &module[i].file);
+
+            size += sizeof("{\"type\": \"\",") - 1;
+            size += sizeof(" \"version\": \"\",") - 1;
+            size += sizeof(" \"file\": \"\"},") - 1;
+
+            size += module[i].type.length
+                    + module[i].version.length
+                    + module[i].file.length;
+        }
+
+        b = nxt_buf_mem_alloc(mp, size, 0);
+        if (b == NULL) {
+            goto fail;
+        }
+
+        b->completion_handler = nxt_discovery_completion_handler;
+
+        p = b->mem.free;
+        end = b->mem.end;
+        *p++ = '[';
+
+        for (i = 0; i < n; i++) {
+            p = nxt_sprintf(p, end,
+                  "{\"type\": \"%V\", \"version\": \"%V\", \"file\": \"%V\"},",
+                  &module[i].type, &module[i].version, &module[i].file);
+        }
+
+        *p++ = ']';
+        b->mem.free = p;
+    }
+
+fail:
+
+    globfree(&glb);
+
+    return b;
+}
+
+
+static nxt_int_t
+nxt_discovery_module(nxt_task_t *task, nxt_mp_t *mp, nxt_array_t *modules,
+    const char *name)
+{
+    void                      *dl;
+    nxt_str_t                 *s;
+    nxt_int_t                 ret;
+    nxt_uint_t                i, n;
+    nxt_module_t              *module;
+    nxt_application_module_t  *app;
+
+    /*
+     * Only memory allocation failure should return NXT_ERROR.
+     * Any module processing errors are ignored.
+     */
+    ret = NXT_ERROR;
+
+    dl = dlopen(name, RTLD_GLOBAL | RTLD_NOW);
+
+    if (dl == NULL) {
+        nxt_log(task, NXT_LOG_CRIT, "dlopen(\"%s\"), failed: \"%s\"",
+                name, dlerror());
+        return NXT_OK;
+    }
+
+    app = dlsym(dl, "nxt_app_module");
+
+    if (app != NULL) {
+        nxt_log(task, NXT_LOG_NOTICE, "module: %V \"%s\"",
+                &app->version, name);
+
+        module = modules->elts;
+        n = modules->nelts;
+
+        for (i = 0; i < n; i++) {
+            if (nxt_strstr_eq(&app->version, &module[i].version)) {
+                nxt_log(task, NXT_LOG_NOTICE,
+                        "ignoring %s module with the same "
+                        "application language version %V as in %s",
+                        name, &module[i].version, &module[i].file);
+
+                goto done;
+            }
+        }
+
+        module = nxt_array_add(modules);
+        if (module == NULL) {
+            goto fail;
+        }
+
+        s = nxt_str_dup(mp, &module->type, &app->type);
+        if (s == NULL) {
+            goto fail;
+        }
+
+        s = nxt_str_dup(mp, &module->version, &app->version);
+        if (s == NULL) {
+            goto fail;
+        }
+
+        module->file.length = nxt_strlen(name);
+
+        module->file.start = nxt_mp_alloc(mp, module->file.length);
+        if (module->file.start == NULL) {
+            goto fail;
+        }
+
+        nxt_memcpy(module->file.start, name, module->file.length);
+
+    } else {
+        nxt_log(task, NXT_LOG_CRIT, "dlsym(\"%s\"), failed: \"%s\"",
+                name, dlerror());
+    }
+
+done:
+
+    ret = NXT_OK;
+
+fail:
+
+    if (dlclose(dl) != 0) {
+        nxt_log(task, NXT_LOG_CRIT, "dlclose(\"%s\"), failed: \"%s\"",
+                name, dlerror());
+    }
+
+    return ret;
+}
+
+
 nxt_int_t
 nxt_app_start(nxt_task_t *task, void *data)
 {
-    nxt_int_t             ret;
-    nxt_common_app_conf_t *app_conf;
+    nxt_int_t              ret;
+    nxt_app_lang_module_t  *lang;
+    nxt_common_app_conf_t  *app_conf;
 
     app_conf = data;
+
+    lang = nxt_app_lang_module(task->thread->runtime, &app_conf->type);
+    if (nxt_slow_path(lang == NULL)) {
+        nxt_log(task, NXT_LOG_CRIT, "unknown application type: \"%V\"",
+                &app_conf->type);
+        return NXT_ERROR;
+    }
+
+    nxt_app = lang->module;
+
+    if (nxt_app == NULL) {
+        nxt_debug(task, "application language module: %V \"%s\"",
+                  &lang->version, lang->file);
+
+        nxt_app = nxt_app_module_load(task, lang->file);
+    }
 
     if (nxt_slow_path(nxt_thread_mutex_create(&nxt_app_mutex) != NXT_OK)) {
         return NXT_ERROR;
@@ -37,8 +280,6 @@ nxt_app_start(nxt_task_t *task, void *data)
     if (nxt_slow_path(nxt_thread_cond_create(&nxt_app_cond) != NXT_OK)) {
         return NXT_ERROR;
     }
-
-    nxt_app = nxt_app_modules[app_conf->type_id];
 
     ret = nxt_app->init(task, data);
 
@@ -50,6 +291,24 @@ nxt_app_start(nxt_task_t *task, void *data)
     }
 
     return ret;
+}
+
+
+static nxt_app_module_t *
+nxt_app_module_load(nxt_task_t *task, const char *name)
+{
+    void  *dl;
+
+    dl = dlopen(name, RTLD_GLOBAL | RTLD_LAZY);
+
+    if (dl != NULL) {
+        return dlsym(dl, "nxt_app_module");
+    }
+
+    nxt_log(task, NXT_LOG_CRIT, "dlopen(\"%s\"), failed: \"%s\"",
+            name, dlerror());
+
+    return NULL;
 }
 
 
@@ -681,29 +940,55 @@ nxt_app_msg_write_raw(nxt_task_t *task, nxt_app_wmsg_t *msg, const u_char *c,
 }
 
 
+nxt_app_lang_module_t *
+nxt_app_lang_module(nxt_runtime_t *rt, nxt_str_t *name)
+{
+    u_char                 *p, *end, *version;
+    size_t                 type_length, version_length;
+    nxt_uint_t             i, n;
+    nxt_app_lang_module_t  *lang;
+
+    end = name->start + name->length;
+    version = end;
+
+    for (p = name->start; p < end; p++) {
+        if (*p == ' ') {
+            version = p + 1;
+            break;
+        }
+
+        if (*p >= '0' && *p <= '9') {
+            version = p;
+            break;
+        }
+    }
+
+    type_length = p - name->start;
+    version_length = end - version;
+
+    lang = rt->languages->elts;
+    n = rt->languages->nelts;
+
+    for (i = 0; i < n; i++) {
+        if (nxt_str_eq(&lang[i].type, name->start, type_length)
+            && nxt_str_start(&lang[i].version, version, version_length))
+        {
+            return &lang[i];
+        }
+    }
+
+    return NULL;
+}
+
+
 nxt_app_type_t
 nxt_app_parse_type(nxt_str_t *str)
 {
     if (nxt_str_eq(str, "python", 6)) {
         return NXT_APP_PYTHON;
 
-    } else if (nxt_str_eq(str, "python2", 7)) {
-        return NXT_APP_PYTHON2;
-
-    } else if (nxt_str_eq(str, "python3", 7)) {
-        return NXT_APP_PYTHON3;
-
     } else if (nxt_str_eq(str, "php", 3)) {
         return NXT_APP_PHP;
-
-    } else if (nxt_str_eq(str, "php5", 4)) {
-        return NXT_APP_PHP5;
-
-    } else if (nxt_str_eq(str, "php7", 4)) {
-        return NXT_APP_PHP7;
-
-    } else if (nxt_str_eq(str, "ruby", 4)) {
-        return NXT_APP_RUBY;
 
     } else if (nxt_str_eq(str, "go", 2)) {
         return NXT_APP_GO;

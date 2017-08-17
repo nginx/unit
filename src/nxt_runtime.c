@@ -57,10 +57,11 @@ static nxt_process_t *nxt_runtime_process_remove_pid(nxt_runtime_t *rt,
 nxt_int_t
 nxt_runtime_create(nxt_task_t *task)
 {
-    nxt_mp_t       *mp;
-    nxt_int_t      ret;
-    nxt_array_t    *listen_sockets;
-    nxt_runtime_t  *rt;
+    nxt_mp_t               *mp;
+    nxt_int_t              ret;
+    nxt_array_t            *listen_sockets;
+    nxt_runtime_t          *rt;
+    nxt_app_lang_module_t  *lang;
 
     mp = nxt_mp_create(1024, 128, 256, 32);
 
@@ -89,6 +90,18 @@ nxt_runtime_create(nxt_task_t *task)
     if (nxt_slow_path(rt->services == NULL)) {
         goto fail;
     }
+
+    rt->languages = nxt_array_create(mp, 1, sizeof(nxt_app_lang_module_t));
+    if (nxt_slow_path(rt->languages == NULL)) {
+        goto fail;
+    }
+
+    /* Should not fail. */
+    lang = nxt_array_add(rt->languages);
+    lang->type = (nxt_str_t) nxt_string("go");
+    lang->version = (nxt_str_t) nxt_null_string;
+    lang->file = NULL;
+    lang->module = &nxt_go_module;
 
     listen_sockets = nxt_array_create(mp, 1, sizeof(nxt_listen_socket_t));
     if (nxt_slow_path(listen_sockets == NULL)) {
@@ -324,7 +337,6 @@ nxt_runtime_thread_pools(nxt_thread_t *thr, nxt_runtime_t *rt)
 static void
 nxt_runtime_start(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_uint_t     i;
     nxt_runtime_t  *rt;
 
     rt = obj;
@@ -336,12 +348,6 @@ nxt_runtime_start(nxt_task_t *task, void *obj, void *data)
 
     if (nxt_runtime_conf_init(task, rt) != NXT_OK) {
         goto fail;
-    }
-
-    for (i = 0; i < nxt_init_modules_n; i++) {
-        if (nxt_init_modules[i](task->thread, rt) != NXT_OK) {
-            goto fail;
-        }
     }
 
     if (nxt_runtime_log_files_create(task, rt) != NXT_OK) {

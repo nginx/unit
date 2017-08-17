@@ -73,6 +73,8 @@ fi
 
 # FreeBSD dlopen() is in libc.
 # MacOSX libdl.dylib is a symlink to libSystem.dylib.
+# GCC5 AddressSanitizer intercepts dlopen() and dlclose() but not dlsym()
+# so all dynamic linker functions should be tested.
 
 NXT_LIBDL=
 
@@ -85,7 +87,9 @@ nxt_feature_test="#include <stdlib.h>
                   #include <dlfcn.h>
 
                   int main() {
-                      dlopen(NULL, 0);
+                      void *h = dlopen(NULL, RTLD_NOW | RTLD_GLOBAL);
+                      dlsym(h, \"\");
+                      dlclose(h);
                       return 0;
                   }"
 . auto/feature

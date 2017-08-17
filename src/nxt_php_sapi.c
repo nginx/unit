@@ -16,9 +16,6 @@
 
 static nxt_int_t nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf);
 
-static nxt_int_t nxt_php_prepare_msg(nxt_task_t *task,
-                      nxt_app_request_t *r, nxt_app_wmsg_t *wmsg);
-
 static nxt_int_t nxt_php_run(nxt_task_t *task,
                       nxt_app_rmsg_t *rmsg, nxt_app_wmsg_t *wmsg);
 
@@ -57,8 +54,6 @@ static int nxt_php_read_post(char *buffer, uint count_bytes TSRMLS_DC);
 #endif
 
 static void nxt_php_flush(void *server_context);
-
-extern nxt_int_t nxt_php_sapi_init(nxt_thread_t *thr, nxt_runtime_t *rt);
 
 
 static sapi_module_struct  nxt_php_sapi_module =
@@ -173,28 +168,12 @@ nxt_php_str_trim_lead(nxt_str_t *str, u_char t)
 }
 
 
-nxt_application_module_t  nxt_php_module = {
+NXT_EXPORT nxt_application_module_t  nxt_app_module = {
+    nxt_string("php"),
+    nxt_string(PHP_VERSION),
     nxt_php_init,
-    nxt_php_prepare_msg,
-    nxt_php_run
+    nxt_php_run,
 };
-
-
-nxt_int_t
-nxt_php_sapi_init(nxt_thread_t *thr, nxt_runtime_t *rt)
-{
-    nxt_app_modules[NXT_APP_PHP] = &nxt_php_module;
-
-#if PHP_MAJOR_VERSION == 5
-    nxt_app_modules[NXT_APP_PHP5] = &nxt_php_module;
-#endif
-
-#if PHP_MAJOR_VERSION == 7
-    nxt_app_modules[NXT_APP_PHP7] = &nxt_php_module;
-#endif
-
-    return NXT_OK;
-}
 
 
 static nxt_int_t
@@ -353,92 +332,6 @@ nxt_php_read_request(nxt_task_t *task, nxt_app_rmsg_t *rmsg,
 fail:
 
     return rc;
-}
-
-
-static nxt_int_t
-nxt_php_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
-    nxt_app_wmsg_t *wmsg)
-{
-    nxt_int_t                 rc;
-    nxt_buf_t                 *b;
-    nxt_http_field_t          *field;
-    nxt_app_request_header_t  *h;
-
-    static const nxt_str_t prefix = nxt_string("HTTP_");
-    static const nxt_str_t eof = nxt_null_string;
-
-    h = &r->header;
-
-#define RC(S)                                                                 \
-    do {                                                                      \
-        rc = (S);                                                             \
-        if (nxt_slow_path(rc != NXT_OK)) {                                    \
-            goto fail;                                                        \
-        }                                                                     \
-    } while(0)
-
-#define NXT_WRITE(N)                                                          \
-    RC(nxt_app_msg_write_str(task, wmsg, N))
-
-    /* TODO error handle, async mmap buffer assignment */
-
-    NXT_WRITE(&h->method);
-    NXT_WRITE(&h->target);
-    if (h->path.start == h->target.start) {
-        NXT_WRITE(&eof);
-    } else {
-        NXT_WRITE(&h->path);
-    }
-
-    if (h->query.start != NULL) {
-        RC(nxt_app_msg_write_size(task, wmsg,
-                                  h->query.start - h->target.start + 1));
-    } else {
-        RC(nxt_app_msg_write_size(task, wmsg, 0));
-    }
-
-    NXT_WRITE(&h->version);
-
-    // PHP_SELF
-    // SCRIPT_NAME
-    // SCRIPT_FILENAME
-    // DOCUMENT_ROOT
-
-    NXT_WRITE(&r->remote);
-
-    NXT_WRITE(&h->host);
-    NXT_WRITE(&h->cookie);
-    NXT_WRITE(&h->content_type);
-    NXT_WRITE(&h->content_length);
-
-    RC(nxt_app_msg_write_size(task, wmsg, h->parsed_content_length));
-
-    nxt_list_each(field, h->fields) {
-        RC(nxt_app_msg_write_prefixed_upcase(task, wmsg,
-                                             &prefix, &field->name));
-        NXT_WRITE(&field->value);
-
-    } nxt_list_loop;
-
-    /* end-of-headers mark */
-    NXT_WRITE(&eof);
-
-    RC(nxt_app_msg_write_size(task, wmsg, r->body.preread_size));
-
-    for(b = r->body.buf; b != NULL; b = b->next) {
-        RC(nxt_app_msg_write_raw(task, wmsg, b->mem.pos,
-                                 nxt_buf_mem_used_size(&b->mem)));
-    }
-
-#undef NXT_WRITE
-#undef RC
-
-    return NXT_OK;
-
-fail:
-
-    return NXT_ERROR;
 }
 
 
