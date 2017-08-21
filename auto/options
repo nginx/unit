@@ -49,28 +49,28 @@ do
     esac
 
     case "$nxt_option" in
-        --with-cc=*)                     CC="$value"                         ;;
-        --with-cc-opt=*)                 NXT_CC_OPT="$value"                 ;;
-        --with-ld-opt=*)                 NXT_LD_OPT="$value"                 ;;
+        --cc=*)                          CC="$value"                         ;;
+        --cc-opt=*)                      NXT_CC_OPT="$value"                 ;;
+        --ld-opt=*)                      NXT_LD_OPT="$value"                 ;;
 
         --build-dir=*)                   NXT_BUILD_DIR="$value"              ;;
 
-        --with-debug)                    NXT_DEBUG=YES                       ;;
+        --debug)                         NXT_DEBUG=YES                       ;;
 
-        --with-threads)                  NXT_THREADS=YES                     ;;
-        --without-threads)               NXT_THREADS=NO                      ;;
+        --threads)                       NXT_THREADS=YES                     ;;
+        --no-threads)                    NXT_THREADS=NO                      ;;
 
-        --with-ipv6)                     NXT_INET6=YES                       ;;
-        --with-inet6)                    NXT_INET6=YES                       ;;
-        --without-unix-domain)           NXT_UNIX_DOMAIN=NO                  ;;
+        --ipv6)                          NXT_INET6=YES                       ;;
+        --inet6)                         NXT_INET6=YES                       ;;
+        --no-unix-domain)                NXT_UNIX_DOMAIN=NO                  ;;
 
-        --with-pcre)                     NXT_PCRE=YES                        ;;
+        --pcre)                          NXT_PCRE=YES                        ;;
 
-        --with-ssltls)                   NXT_SSLTLS=YES                      ;;
-        --with-openssl)                  NXT_OPENSSL=YES                     ;;
-        --with-gnutls)                   NXT_GNUTLS=YES                      ;;
-        --with-cyassl)                   NXT_CYASSL=YES                      ;;
-        --with-polarssl)                 NXT_POLARSSL=YES                    ;;
+        --ssltls)                        NXT_SSLTLS=YES                      ;;
+        --openssl)                       NXT_OPENSSL=YES                     ;;
+        --gnutls)                        NXT_GNUTLS=YES                      ;;
+        --cyassl)                        NXT_CYASSL=YES                      ;;
+        --polarssl)                      NXT_POLARSSL=YES                    ;;
 
         --test-build-epoll)              NXT_TEST_BUILD_EPOLL=YES            ;;
         --test-build-eventport)          NXT_TEST_BUILD_EVENTPORT=YES        ;;
@@ -84,7 +84,7 @@ do
         --test-build-aix-send_file)      NXT_TEST_BUILD_AIX_SEND_FILE=YES    ;;
         --test-build-hpux-sendfile)      NXT_TEST_BUILD_HPUX_SENDFILE=YES    ;;
 
-        --with-lib-unit-tests)           NXT_LIB_UNIT_TEST=YES               ;;
+        --tests)                         NXT_LIB_UNIT_TEST=YES               ;;
 
         *)
             $echo
