@@ -25,10 +25,6 @@ typedef struct {
 } nxt_http_parse_unit_test_request_line_t;
 
 
-typedef struct {
-} nxt_http_parse_unit_test_fields_t;
-
-
 typedef union {
     void                                     *pointer;
     nxt_int_t                                result;
