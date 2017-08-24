@@ -794,14 +794,16 @@ static nxt_int_t
 nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
 {
     char            *p, **argv;
+    u_char          *end;
     nxt_str_t       addr;
     nxt_sockaddr_t  *sa;
+    u_char          buf[1024];
 
     const static char  version[] =
         "nginext version: " NXT_VERSION "\n"
         "configured as ./configure" NXT_CONFIGURE_OPTIONS "\n";
 
-    argv = nxt_process_argv;
+    argv = &nxt_process_argv[1];
 
     while (*argv != NULL) {
         p = *argv++;
@@ -909,6 +911,11 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
             write(STDERR_FILENO, version, sizeof(version) - 1);
             exit(0);
         }
+
+        end = nxt_sprintf(buf, buf + sizeof(buf), "unknown option \"%s\"\n", p);
+        write(STDERR_FILENO, buf, end - buf);
+
+        return NXT_ERROR;
     }
 
     return NXT_OK;
