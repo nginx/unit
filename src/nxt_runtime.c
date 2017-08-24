@@ -767,7 +767,7 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
     nxt_sockaddr_t  *sa;
     u_char          buf[1024];
 
-    const static char  version[] =
+    static const char  version[] =
         "nginext version: " NXT_VERSION "\n"
         "configured as ./configure" NXT_CONFIGURE_OPTIONS "\n";
 
