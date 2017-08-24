@@ -23,6 +23,7 @@
 
 
 static nxt_int_t nxt_signal_action(int signo, void (*handler)(int));
+static void nxt_signal_thread(void *data);
 
 
 nxt_event_signals_t *
@@ -104,11 +105,6 @@ nxt_signal_handler(int signo)
 
     thr->time.signal--;
 }
-
-
-#if (NXT_THREADS)
-
-static void nxt_signal_thread(void *data);
 
 
 nxt_int_t
@@ -194,37 +190,3 @@ nxt_signal_thread_stop(nxt_event_engine_t *engine)
     nxt_thread_cancel(thread);
     nxt_thread_wait(thread);
 }
-
-
-#else /* !(NXT_THREADS) */
-
-
-nxt_int_t
-nxt_signal_handlers_start(nxt_event_engine_t *engine)
-{
-    const nxt_sig_event_t  *sigev;
-
-    for (sigev = engine->signals->sigev; sigev->signo != 0; sigev++) {
-        if (nxt_signal_action(sigev->signo, nxt_signal_handler) != NXT_OK) {
-            return NXT_ERROR;
-        }
-    }
-
-    if (sigprocmask(SIG_UNBLOCK, &engine->signals->sigmask, NULL) != 0) {
-        nxt_main_log_alert("sigprocmask(SIG_UNBLOCK) failed %E", nxt_errno);
-        return NXT_ERROR;
-    }
-
-    return NXT_OK;
-}
-
-
-void
-nxt_signal_handlers_stop(nxt_event_engine_t *engine)
-{
-    if (sigprocmask(SIG_BLOCK, &engine->signals->sigmask, NULL) != 0) {
-        nxt_main_log_alert("sigprocmask(SIG_BLOCK) failed %E", nxt_errno);
-    }
-}
-
-#endif

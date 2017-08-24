@@ -7,8 +7,6 @@
 #include <nxt_main.h>
 
 
-#if (NXT_THREADS)
-
 typedef struct {
     nxt_job_t           job;
     nxt_buf_t           *out;
@@ -257,5 +255,3 @@ nxt_event_conn_job_sendfile_completion(nxt_task_t *task, nxt_conn_t *c,
 
     return b;
 }
-
-#endif

@@ -61,17 +61,13 @@ typedef struct {
 } nxt_thread_time_t;
 
 
-#if (NXT_THREADS)
-void nxt_time_thread_start(nxt_msec_t interval);
-#endif
-
-
 NXT_EXPORT void nxt_thread_time_update(nxt_thread_t *thr);
 void nxt_thread_time_free(nxt_thread_t *thr);
 NXT_EXPORT nxt_time_t nxt_thread_time(nxt_thread_t *thr);
 NXT_EXPORT nxt_realtime_t *nxt_thread_realtime(nxt_thread_t *thr);
 NXT_EXPORT u_char *nxt_thread_time_string(nxt_thread_t *thr,
     nxt_time_string_t *ts, u_char *buf);
+void nxt_time_thread_start(nxt_msec_t interval);
 
 
 #define                                                                       \

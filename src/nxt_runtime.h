@@ -31,10 +31,8 @@ struct nxt_runtime_s {
 
     nxt_file_name_t        *pid_file;
 
-#if (NXT_THREADS)
     nxt_array_t            *thread_pools;       /* of nxt_thread_pool_t */
     nxt_runtime_cont_t     continuation;
-#endif
 
     nxt_process_t          *mprocess;
     size_t                 nprocesses;
@@ -80,10 +78,8 @@ void nxt_runtime_quit(nxt_task_t *task);
 
 void nxt_runtime_event_engine_free(nxt_runtime_t *rt);
 
-#if (NXT_THREADS)
 nxt_int_t nxt_runtime_thread_pool_create(nxt_thread_t *thr, nxt_runtime_t *rt,
     nxt_uint_t max_threads, nxt_nsec_t timeout);
-#endif
 
 
 nxt_inline nxt_bool_t

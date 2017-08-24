@@ -86,13 +86,7 @@ fi
 . auto/mmap
 . auto/shmem
 . auto/time
-
-if [ $NXT_THREADS = YES ]; then
-    . auto/threads
-else
-    NXT_PTHREAD=
-fi
-
+. auto/threads
 . auto/events
 . auto/sockets
 . auto/sendfile
@@ -113,11 +107,6 @@ esac
 
 if [ $NXT_DEBUG = YES ]; then
     nxt_have=NXT_DEBUG . auto/have
-fi
-
-
-if [ $NXT_THREADS = YES ]; then
-    nxt_have=NXT_THREADS . auto/have
 fi
 
 

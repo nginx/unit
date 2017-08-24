@@ -8,9 +8,6 @@
 #define _NXT_UNIX_THREAD_ID_H_INCLUDED_
 
 
-#if (NXT_THREADS)
-
-
 #if (NXT_LINUX)
 
 typedef pid_t      nxt_tid_t;
@@ -63,19 +60,6 @@ nxt_thread_handle_clear(th)                                                   \
 #define                                                                       \
 nxt_thread_handle_equal(th0, th1)                                             \
     pthread_equal(th0, th1)
-
-
-#else /* !(NXT_THREADS) */
-
-typedef uint32_t   nxt_tid_t;
-typedef uint32_t   nxt_thread_handle_t;
-
-
-#define                                                                       \
-nxt_thread_tid(thr)                                                           \
-    0
-
-#endif
 
 
 #endif /* _NXT_UNIX_THREAD_ID_H_INCLUDED_ */

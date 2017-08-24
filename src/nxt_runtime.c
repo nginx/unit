@@ -42,12 +42,11 @@ static nxt_int_t nxt_runtime_log_files_create(nxt_task_t *task,
     nxt_runtime_t *rt);
 static nxt_int_t nxt_runtime_pid_file_create(nxt_task_t *task,
     nxt_file_name_t *pid_file);
-
-#if (NXT_THREADS)
 static void nxt_runtime_thread_pool_destroy(nxt_task_t *task, nxt_runtime_t *rt,
     nxt_runtime_cont_t cont);
-#endif
-
+static void nxt_runtime_thread_pool_init(void);
+static void nxt_runtime_thread_pool_exit(nxt_task_t *task, void *obj,
+    void *data);
 static void nxt_runtime_process_destroy(nxt_runtime_t *rt,
     nxt_process_t *process);
 static nxt_process_t *nxt_runtime_process_remove_pid(nxt_runtime_t *rt,
@@ -314,7 +313,6 @@ nxt_runtime_event_engines(nxt_task_t *task, nxt_runtime_t *rt)
 static nxt_int_t
 nxt_runtime_thread_pools(nxt_thread_t *thr, nxt_runtime_t *rt)
 {
-#if (NXT_THREADS)
     nxt_int_t    ret;
     nxt_array_t  *thread_pools;
 
@@ -331,8 +329,6 @@ nxt_runtime_thread_pools(nxt_thread_t *thr, nxt_runtime_t *rt)
     if (nxt_slow_path(ret != NXT_OK)) {
         return NXT_ERROR;
     }
-
-#endif
 
     return NXT_OK;
 }
@@ -358,20 +354,12 @@ nxt_runtime_start(nxt_task_t *task, void *obj, void *data)
         goto fail;
     }
 
-#if (NXT_THREADS)
-
     /*
      * Thread pools should be destroyed before starting worker
      * processes, because thread pool semaphores will stick in
      * locked state in new processes after fork().
      */
     nxt_runtime_thread_pool_destroy(task, rt, rt->start);
-
-#else
-
-    rt->start(task->thread, rt);
-
-#endif
 
     return;
 
@@ -446,7 +434,6 @@ fail:
 static void
 nxt_single_process_start(nxt_thread_t *thr, nxt_task_t *task, nxt_runtime_t *rt)
 {
-#if (NXT_THREADS)
     nxt_int_t  ret;
 
     ret = nxt_runtime_thread_pool_create(thr, rt, rt->auxiliary_threads,
@@ -456,8 +443,6 @@ nxt_single_process_start(nxt_thread_t *thr, nxt_task_t *task, nxt_runtime_t *rt)
         nxt_runtime_quit(task);
         return;
     }
-
-#endif
 
     rt->types |= (1U << NXT_PROCESS_SINGLE);
 
@@ -484,14 +469,10 @@ nxt_runtime_quit(nxt_task_t *task)
     if (!engine->shutdown) {
         engine->shutdown = 1;
 
-#if (NXT_THREADS)
-
         if (!nxt_array_is_empty(rt->thread_pools)) {
             nxt_runtime_thread_pool_destroy(task, rt, nxt_runtime_quit);
             done = 0;
         }
-
-#endif
 
         if (nxt_runtime_is_master(rt)) {
             nxt_master_stop_worker_processes(task, rt);
@@ -544,15 +525,11 @@ nxt_runtime_exit(nxt_task_t *task, void *obj, void *data)
     rt = obj;
     engine = data;
 
-#if (NXT_THREADS)
-
     nxt_debug(task, "thread pools: %d", rt->thread_pools->nelts);
 
     if (!nxt_array_is_empty(rt->thread_pools)) {
         return;
     }
-
-#endif
 
     if (nxt_runtime_is_master(rt)) {
         if (rt->pid_file != NULL) {
@@ -617,13 +594,6 @@ nxt_runtime_event_engine_free(nxt_runtime_t *rt)
     engine = nxt_queue_link_data(link, nxt_event_engine_t, link);
     nxt_event_engine_free(engine);
 }
-
-
-#if (NXT_THREADS)
-
-static void nxt_runtime_thread_pool_init(void);
-static void nxt_runtime_thread_pool_exit(nxt_task_t *task, void *obj,
-    void *data);
 
 
 nxt_int_t
@@ -722,8 +692,6 @@ nxt_runtime_thread_pool_exit(nxt_task_t *task, void *obj, void *data)
         }
     }
 }
-
-#endif
 
 
 static nxt_int_t

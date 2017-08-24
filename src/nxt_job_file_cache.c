@@ -33,14 +33,9 @@ nxt_job_file_cache_read(nxt_cache_t *cache, nxt_job_file_t *jbf)
             return;
         }
 
-#if (NXT_THREADS)
-
         if (node->accessed + 60 > nxt_thread_time()) {
             jbf->job.thread_pool = NULL;
         }
-
-#endif
-
     }
 
     nxt_job_file_read(jbf);

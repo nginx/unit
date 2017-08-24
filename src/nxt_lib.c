@@ -124,7 +124,7 @@ nxt_lib_stop(void)
 {
     /* TODO: stop engines */
 
-#if (NXT_THREADS0)
+#if 0
 
     for ( ;; ) {
         nxt_thread_pool_t  *tp;

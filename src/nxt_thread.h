@@ -8,8 +8,6 @@
 #define _NXT_UNIX_THREAD_H_INCLUDED_
 
 
-#if (NXT_THREADS)
-
 /*
  * Thread Specific Data
  *
@@ -126,26 +124,6 @@ NXT_EXPORT nxt_err_t nxt_thread_cond_wait(nxt_thread_cond_t *cond,
     nxt_thread_mutex_t *mtx, nxt_nsec_t timeout);
 
 
-#else /* !(NXT_THREADS) */
-
-#define                                                                       \
-nxt_thread_extern_data(type, tsd)                                             \
-    NXT_EXPORT extern type  tsd
-
-#define                                                                       \
-nxt_thread_declare_data(type, tsd)                                            \
-    type  tsd
-
-#define                                                                       \
-nxt_thread_init_data(tsd)
-
-#define                                                                       \
-nxt_thread_get_data(tsd)                                                      \
-    &tsd
-
-#endif /* NXT_THREADS */
-
-
 #if (NXT_HAVE_PTHREAD_YIELD)
 #define                                                                       \
 nxt_thread_yield()                                                            \
@@ -172,10 +150,8 @@ struct nxt_thread_s {
 
     nxt_tid_t                tid;
     nxt_thread_handle_t      handle;
-#if (NXT_THREADS)
     nxt_thread_link_t        *link;
     nxt_thread_pool_t        *thread_pool;
-#endif
 
     nxt_thread_time_t        time;
 

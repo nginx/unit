@@ -87,9 +87,7 @@ typedef struct {
 
 #include <nxt_mem_zone.h>
 #include <nxt_signal.h>
-#if (NXT_THREADS)
 #include <nxt_semaphore.h>
-#endif
 
 #include <nxt_djb_hash.h>
 #include <nxt_murmur_hash.h>
@@ -131,9 +129,7 @@ nxt_thread_extern_data(nxt_thread_t, nxt_thread_context);
 #include <nxt_port.h>
 #include <nxt_port_memory.h>
 #include <nxt_port_rpc.h>
-#if (NXT_THREADS)
 #include <nxt_thread_pool.h>
-#endif
 
 
 typedef void (*nxt_event_conn_handler_t)(nxt_thread_t *thr, nxt_conn_t *c);

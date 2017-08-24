@@ -30,14 +30,8 @@
  */
 
 
-#if (NXT_THREADS)
 static void nxt_time_thread(void *data);
 static void nxt_thread_time_shared(nxt_monotonic_time_t *now);
-
-static nxt_bool_t                     nxt_use_shared_time = 0;
-static volatile nxt_monotonic_time_t  nxt_shared_time;
-#endif
-
 static void nxt_thread_realtime_update(nxt_thread_t *thr,
     nxt_monotonic_time_t *now);
 static u_char *nxt_thread_time_string_no_cache(nxt_thread_t *thr,
@@ -48,45 +42,19 @@ static nxt_time_string_cache_t *nxt_thread_time_string_cache(nxt_thread_t *thr,
 
 
 static nxt_atomic_int_t               nxt_gmtoff;
+static nxt_bool_t                     nxt_use_shared_time = 0;
+static volatile nxt_monotonic_time_t  nxt_shared_time;
 
 
 void
 nxt_thread_time_update(nxt_thread_t *thr)
 {
-#if (NXT_THREADS)
-
     if (nxt_use_shared_time) {
         nxt_thread_time_shared(&thr->time.now);
 
     } else {
         nxt_monotonic_time(&thr->time.now);
     }
-
-#else
-
-    nxt_monotonic_time(&thr->time.now);
-
-    if (thr->time.signal >= 0) {
-        nxt_time_t  s;
-
-        /*
-         * Synchronous real time update:
-         * single-threaded mode without signal event support.
-         */
-
-        s = nxt_thread_time(thr);
-
-        if (thr->time.signal == 0 && thr->time.last_localtime != s) {
-            /* Synchronous local time update in non-signal context. */
-
-            nxt_localtime(s, &thr->time.localtime);
-            thr->time.last_localtime = s;
-
-            nxt_gmtoff = nxt_timezone(&thr->time.localtime);
-        }
-    }
-
-#endif
 }
 
 
@@ -110,8 +78,6 @@ nxt_thread_time_free(nxt_thread_t *thr)
     }
 }
 
-
-#if (NXT_THREADS)
 
 void
 nxt_time_thread_start(nxt_msec_t interval)
@@ -206,8 +172,6 @@ nxt_thread_time_shared(nxt_monotonic_time_t *now)
         }
     }
 }
-
-#endif
 
 
 nxt_time_t

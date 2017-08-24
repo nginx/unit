@@ -43,11 +43,9 @@ typedef struct {
     nxt_mp_t            *mem_pool;
     nxt_queue_link_t    link;
 
-#if (NXT_THREADS)
     nxt_thread_pool_t   *thread_pool;
     nxt_event_engine_t  *engine;
     nxt_log_t           *log;
-#endif
 
     nxt_work_t          work;
 

@@ -190,11 +190,7 @@
 #include <time.h>
 #include <ucontext.h>
 #include <unistd.h>
-
-
-#if (NXT_THREADS)
 #include <pthread.h>
-#endif
 
 #if (NXT_HAVE_EPOLL)
 #include <sys/epoll.h>

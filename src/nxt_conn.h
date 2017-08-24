@@ -143,19 +143,12 @@ struct nxt_conn_s {
 
     nxt_queue_t                   requests; /* of nxt_req_conn_link_t */
 
-#if (NXT_SSLTLS || NXT_THREADS)
-    /* SunC does not support "zero-sized struct/union". */
-
     union {
 #if (NXT_SSLTLS)
         void                      *ssltls;
 #endif
-#if (NXT_THREADS)
         nxt_thread_pool_t         *thread_pool;
-#endif
     } u;
-
-#endif
 
     nxt_mp_t                      *mem_pool;
 

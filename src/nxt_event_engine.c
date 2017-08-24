@@ -124,14 +124,6 @@ nxt_event_engine_create(nxt_task_t *task,
     nxt_queue_init(&engine->listen_connections);
     nxt_queue_init(&engine->idle_connections);
 
-#if !(NXT_THREADS)
-
-    if (interface->signal_support) {
-        thread->time.signal = -1;
-    }
-
-#endif
-
     return engine;
 
 timers_fail:
@@ -159,16 +151,6 @@ nxt_event_engine_post_init(nxt_event_engine_t *engine)
     if (engine->event.enable_post != NULL) {
         return engine->event.enable_post(engine, nxt_event_engine_post_handler);
     }
-
-#if !(NXT_THREADS)
-
-    /* Only signals may are posted in single-threaded mode. */
-
-    if (engine->event->signal_support) {
-        return NXT_OK;
-    }
-
-#endif
 
     if (nxt_event_engine_signal_pipe_create(engine) != NXT_OK) {
         return NXT_ERROR;
@@ -426,13 +408,11 @@ nxt_event_engine_change(nxt_event_engine_t *engine,
             return nxt_event_engine_signals_start(engine);
         }
 
-#if (NXT_THREADS)
         /*
          * Reset the PID flag to start the signal thread if
          * some future event facility will not support signals.
          */
         engine->signals->process = 0;
-#endif
     }
 
     return NXT_OK;

@@ -50,8 +50,10 @@ NXT_LIB_DEPS=" \
     src/nxt_buf_filter.h \
     src/nxt_recvbuf.h \
     src/nxt_sendbuf.h \
+    src/nxt_semaphore.h \
     src/nxt_thread_log.h \
     src/nxt_thread_time.h \
+    src/nxt_thread_pool.h \
     src/nxt_work_queue.h \
     src/nxt_service.h \
     src/nxt_fiber.h \
@@ -114,6 +116,13 @@ NXT_LIB_SRCS=" \
     src/nxt_buf_pool.c \
     src/nxt_recvbuf.c \
     src/nxt_sendbuf.c \
+    src/nxt_thread.c \
+    src/nxt_thread_id.c \
+    src/nxt_thread_mutex.c \
+    src/nxt_thread_cond.c \
+    src/nxt_spinlock.c \
+    src/nxt_semaphore.c \
+    src/nxt_thread_pool.c \
     src/nxt_thread_time.c \
     src/nxt_time_parse.c \
     src/nxt_work_queue.c \
@@ -165,20 +174,6 @@ NXT_LIB_SRC0=" \
     src/nxt_mem_pool_cleanup.c \
 "
 
-NXT_LIB_THREAD_DEPS=" \
-    src/nxt_semaphore.h \
-    src/nxt_thread_pool.h \
-"
-
-NXT_LIB_THREAD_SRCS=" \
-    src/nxt_thread.c \
-    src/nxt_thread_id.c \
-    src/nxt_thread_mutex.c \
-    src/nxt_thread_cond.c \
-    src/nxt_spinlock.c \
-    src/nxt_semaphore.c \
-    src/nxt_thread_pool.c \
-"
 
 NXT_LIB_SSLTLS_DEPS="src/nxt_ssltls.h"
 NXT_LIB_SSLTLS_SRCS="src/nxt_ssltls.c"
@@ -229,12 +224,6 @@ NXT_LIB_UNIT_TEST_SRCS=" \
 NXT_LIB_UTF8_FILE_NAME_TEST_SRCS=" \
     test/nxt_utf8_file_name_test.c \
 "
-
-
-if [ $NXT_THREADS = YES ]; then
-    NXT_LIB_DEPS="$NXT_LIB_DEPS $NXT_LIB_THREAD_DEPS"
-    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_THREAD_SRCS"
-fi
 
 
 if [ $NXT_SSLTLS = YES ]; then

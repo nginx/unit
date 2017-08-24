@@ -7,11 +7,9 @@
 #include <nxt_main.h>
 
 
-#if (NXT_THREADS)
 static void nxt_job_thread_trampoline(nxt_task_t *task, void *obj, void *data);
 static void nxt_job_thread_return_handler(nxt_task_t *task, void *obj,
     void *data);
-#endif
 
 
 void *
@@ -110,8 +108,6 @@ nxt_job_start(nxt_task_t *task, nxt_job_t *job, nxt_work_handler_t handler)
 {
     nxt_debug(task, "%s start", job->name);
 
-#if (NXT_THREADS)
-
     if (job->thread_pool != NULL) {
         nxt_int_t  ret;
 
@@ -129,13 +125,9 @@ nxt_job_start(nxt_task_t *task, nxt_job_t *job, nxt_work_handler_t handler)
         handler = job->abort_handler;
     }
 
-#endif
-
     handler(job->task, job, job->data);
 }
 
-
-#if (NXT_THREADS)
 
 /* A trampoline function is called by a thread pool thread. */
 
@@ -158,15 +150,11 @@ nxt_job_thread_trampoline(nxt_task_t *task, void *obj, void *data)
     }
 }
 
-#endif
-
 
 void
 nxt_job_return(nxt_task_t *task, nxt_job_t *job, nxt_work_handler_t handler)
 {
     nxt_debug(task, "%s return", job->name);
-
-#if (NXT_THREADS)
 
     if (job->engine != NULL) {
         /* A return function is called in thread pool thread context. */
@@ -179,8 +167,6 @@ nxt_job_return(nxt_task_t *task, nxt_job_t *job, nxt_work_handler_t handler)
         return;
     }
 
-#endif
-
     if (nxt_slow_path(job->cancel)) {
         nxt_debug(task, "%s cancellation", job->name);
         handler = job->abort_handler;
@@ -190,8 +176,6 @@ nxt_job_return(nxt_task_t *task, nxt_job_t *job, nxt_work_handler_t handler)
                        handler, job->task, job, job->data);
 }
 
-
-#if (NXT_THREADS)
 
 static void
 nxt_job_thread_return_handler(nxt_task_t *task, void *obj, void *data)
@@ -211,5 +195,3 @@ nxt_job_thread_return_handler(nxt_task_t *task, void *obj, void *data)
 
     handler(job->task, job, job->data);
 }
-
-#endif
