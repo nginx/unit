@@ -14,7 +14,7 @@ NXT_LD_OPT=
 
 NXT_DEBUG=NO
 
-NXT_INET6=NO
+NXT_INET6=YES
 NXT_UNIX_DOMAIN=YES
 
 NXT_REGEX=NO
@@ -56,8 +56,7 @@ do
 
         --debug)                         NXT_DEBUG=YES                       ;;
 
-        --ipv6)                          NXT_INET6=YES                       ;;
-        --inet6)                         NXT_INET6=YES                       ;;
+        --no-ipv6)                       NXT_INET6=NO                        ;;
         --no-unix-domain)                NXT_UNIX_DOMAIN=NO                  ;;
 
         --pcre)                          NXT_PCRE=YES                        ;;
