@@ -919,7 +919,7 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
             continue;
         }
 
-        if (nxt_strcmp(p, "--no-daemonize") == 0) {
+        if (nxt_strcmp(p, "--no-daemon") == 0) {
             rt->daemon = 0;
             continue;
         }
