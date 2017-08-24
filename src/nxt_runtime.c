@@ -133,6 +133,10 @@ nxt_runtime_create(nxt_task_t *task)
 
     rt->start = nxt_runtime_initial_start;
 
+    if (nxt_runtime_conf_init(task, rt) != NXT_OK) {
+        goto fail;
+    }
+
     nxt_work_queue_add(&task->thread->engine->fast_work_queue,
                        nxt_runtime_start, task, rt, NULL);
 
@@ -345,10 +349,6 @@ nxt_runtime_start(nxt_task_t *task, void *obj, void *data)
 
     task->thread->log->ctx_handler = NULL;
     task->thread->log->ctx = NULL;
-
-    if (nxt_runtime_conf_init(task, rt) != NXT_OK) {
-        goto fail;
-    }
 
     if (nxt_runtime_log_files_create(task, rt) != NXT_OK) {
         goto fail;
@@ -797,6 +797,10 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
     nxt_str_t       addr;
     nxt_sockaddr_t  *sa;
 
+    const static char  version[] =
+        "nginext version: " NXT_VERSION "\n"
+        "configured as ./configure" NXT_CONFIGURE_OPTIONS "\n";
+
     argv = nxt_process_argv;
 
     while (*argv != NULL) {
@@ -899,6 +903,11 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
         if (nxt_strcmp(p, "--no-daemon") == 0) {
             rt->daemon = 0;
             continue;
+        }
+
+        if (nxt_strcmp(p, "--version") == 0) {
+            write(STDERR_FILENO, version, sizeof(version) - 1);
+            exit(0);
         }
     }
 

@@ -10,6 +10,10 @@
 
 #include <nxt_auto_config.h>
 
+
+#define NXT_VERSION                  "0.1"
+
+
 typedef struct nxt_port_s            nxt_port_t;
 typedef struct nxt_task_s            nxt_task_t;
 typedef struct nxt_port_recv_msg_s   nxt_port_recv_msg_t;

@@ -24,13 +24,13 @@ main(int argc, char **argv)
 
     nxt_main_log.handler = nxt_log_time_handler;
 
-    nxt_log(&nxt_main_task, NXT_LOG_INFO, "nginext started");
-
     ret = nxt_runtime_create(&nxt_main_task);
 
     if (ret != NXT_OK) {
         return 1;
     }
+
+    nxt_log(&nxt_main_task, NXT_LOG_INFO, "nginext started");
 
     nxt_event_engine_start(nxt_main_task.thread->engine);
 
