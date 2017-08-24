@@ -738,7 +738,6 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
     rt->daemon = 1;
     rt->master_process = 1;
     rt->engine_connections = 256;
-    rt->worker_processes = 1;
     rt->auxiliary_threads = 2;
     rt->user_cred.user = "nobody";
     rt->group = NULL;
@@ -795,7 +794,6 @@ static nxt_int_t
 nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
 {
     char            *p, **argv;
-    nxt_int_t       n;
     nxt_str_t       addr;
     nxt_sockaddr_t  *sa;
 
@@ -838,27 +836,6 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
 
             rt->upstream.length = nxt_strlen(p);
             rt->upstream.start = (u_char *) p;
-
-            continue;
-        }
-
-        if (nxt_strcmp(p, "--workers") == 0) {
-            if (*argv == NULL) {
-                nxt_log(task, NXT_LOG_CRIT,
-                        "no argument for option \"--workers\"");
-                return NXT_ERROR;
-            }
-
-            p = *argv++;
-            n = nxt_int_parse((u_char *) p, nxt_strlen(p));
-
-            if (n < 1) {
-                nxt_log(task, NXT_LOG_CRIT,
-                        "invalid number of workers: \"%s\"", p);
-                return NXT_ERROR;
-            }
-
-            rt->worker_processes = n;
 
             continue;
         }
