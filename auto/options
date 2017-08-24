@@ -57,7 +57,7 @@ do
         --debug)                         NXT_DEBUG=YES                       ;;
 
         --no-ipv6)                       NXT_INET6=NO                        ;;
-        --no-unix-domain)                NXT_UNIX_DOMAIN=NO                  ;;
+        --no-unix-sockets)               NXT_UNIX_DOMAIN=NO                  ;;
 
         --pcre)                          NXT_PCRE=YES                        ;;
 
