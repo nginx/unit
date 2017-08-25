@@ -14,7 +14,6 @@
 
 
 typedef struct nxt_go_process_s     nxt_go_process_t;
-typedef struct nxt_port_mmap_msg_s  nxt_port_mmap_msg_t;
 
 typedef struct nxt_go_msg_s nxt_go_msg_t;
 
