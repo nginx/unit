@@ -15,6 +15,7 @@ NXT_LD_OPT=
 NXT_PREFIX=
 NXT_PID="nginext.pid"
 NXT_LOG="nginext.log"
+NXT_MODULES="modules"
 
 NXT_USER="nobody"
 NXT_GROUP=
@@ -64,6 +65,7 @@ do
         --prefix=*)                      NXT_PREFIX="$value"                 ;;
         --pid=*)                         NXT_PID="$value"                    ;;
         --log=*)                         NXT_LOG="$value"                    ;;
+        --modules=*)                     NXT_MODULES="$value"                ;;
 
         --user=*)                        NXT_USER="$value"                   ;;
         --group=*)                       NXT_GROUP="$value"                  ;;
@@ -123,4 +125,14 @@ esac
 case "$NXT_LOG" in
     /*)  ;;
      *)  NXT_LOG="$NXT_PREFIX$NXT_LOG"  ;;
+esac
+
+case "$NXT_MODULES" in
+    ""|*/)  ;;
+     *)  NXT_MODULES="$NXT_MODULES/"  ;;
+esac
+
+case "$NXT_MODULES" in
+    /*)  ;;
+     *)  NXT_MODULES="$NXT_PREFIX$NXT_MODULES"  ;;
 esac

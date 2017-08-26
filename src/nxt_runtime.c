@@ -703,6 +703,7 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
     rt->group = NXT_GROUP;
     rt->pid = NXT_PID;
     rt->log = NXT_LOG;
+    rt->modules = NXT_MODULES;
 
     if (nxt_runtime_conf_read_cmd(task, rt) != NXT_OK) {
         return NXT_ERROR;
@@ -740,6 +741,14 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
     file = nxt_list_first(rt->log_files);
     file->name = file_name.start;
 
+    ret = nxt_file_name_create(rt->mem_pool, &file_name, "%snginext.*%Z",
+                               rt->modules);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        return NXT_ERROR;
+    }
+
+    rt->modules = (char *) file_name.start;
+
     return NXT_OK;
 }
 
@@ -761,6 +770,8 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
     static const char  no_group[] = "option \"--group\" requires group name\n";
     static const char  no_pid[] = "option \"--pid\" requires filename\n";
     static const char  no_log[] = "option \"--log\" requires filename\n";
+    static const char  no_modules[] =
+                       "option \"--modules\" requires directory\n";
 
     argv = &nxt_process_argv[1];
 
@@ -853,6 +864,19 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
             p = *argv++;
 
             rt->log = p;
+
+            continue;
+        }
+
+        if (nxt_strcmp(p, "--modules") == 0) {
+            if (*argv == NULL) {
+                write(STDERR_FILENO, no_modules, sizeof(no_modules) - 1);
+                return NXT_ERROR;
+            }
+
+            p = *argv++;
+
+            rt->modules = p;
 
             continue;
         }

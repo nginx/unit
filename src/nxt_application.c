@@ -46,9 +46,10 @@ nxt_discovery_start(nxt_task_t *task, void *data)
 
     nxt_debug(task, "DISCOVERY");
 
-    b = nxt_discovery_modules(task, "build/nginext.*");
-
     rt = task->thread->runtime;
+
+    b = nxt_discovery_modules(task, rt->modules);
+
     main_port = rt->port_by_type[NXT_PROCESS_MASTER];
 
     nxt_port_socket_write(task, main_port, NXT_PORT_MSG_MODULES, -1,

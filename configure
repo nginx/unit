@@ -65,6 +65,7 @@ cat << END >> $NXT_AUTO_CONFIG_H
 
 #define NXT_PID                "$NXT_PID"
 #define NXT_LOG                "$NXT_LOG"
+#define NXT_MODULES            "$NXT_MODULES"
 
 #define NXT_USER               "$NXT_USER"
 #define NXT_GROUP              "$NXT_GROUP"
