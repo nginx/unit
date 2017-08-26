@@ -1,0 +1,23 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+cat << END
+
+Configuration summary:
+
+  nginext pid file:             "$NXT_PID"
+  nginext log file:             "$NXT_LOG"
+  nginext modules path:         "$NXT_MODULES"
+
+  nginext control API socket:   "$NXT_CONTROL"
+
+  non-privileged user:          "$NXT_USER"
+  non-privileged group:         "$NXT_GROUP"
+
+  IPv6 support:                 $NXT_INET6
+  Unix domain sockets support:  $NXT_UNIX_DOMAIN
+  debug logging:                $NXT_DEBUG
+
+END

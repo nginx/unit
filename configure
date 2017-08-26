@@ -150,3 +150,4 @@ NXT_LIB_AUX_LIBS="$NXT_OPENSSL_LIBS $NXT_GNUTLS_LIBS \\
                     $NXT_PCRE_LIB"
 
 . auto/make
+. auto/summary
