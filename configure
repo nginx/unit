@@ -30,10 +30,25 @@ NXT_AUTO_CONFIG_H=$NXT_BUILD_DIR/nxt_auto_config.h
 NXT_MAKEFILE=$NXT_BUILD_DIR/Makefile
 NXT_BIN=nginext
 
-nxt_module=${1:-no}
+
+CC=${CC:-cc}
+
+NXT_PID="nginext.pid"
+NXT_LOG="nginext.log"
+NXT_MODULES="modules"
+NXT_CONTROL="unix:control.unit.sock"
+NXT_USER="nobody"
+NXT_GROUP=
+
+nxt_module=${1:-""}
 
 case $nxt_module in
-    no|--*)
+    --help)
+        . auto/help
+        exit 0
+    ;;
+
+    ""|--*)
     ;;
 
     unit)
@@ -45,6 +60,7 @@ case $nxt_module in
         exit 0
     ;;
 esac
+
 
 . auto/os/test
 . auto/options

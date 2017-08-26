@@ -1,0 +1,42 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+cat << END
+
+./configure options:
+
+  --cc=FILE            set C compiler file name, default: $CC
+  --cc-opt=OPTIONS     set additional C compiler options
+  --ld-opt=OPTIONS     set additional linker options
+
+  --prefix=DIRECTORY   set prefix for relative path names, no by default
+  --pid=FILE           set pid file name, default: $NXT_PID
+  --log=FILE           set log file name, default: $NXT_LOG
+  --modules=DIRECTORY  set modules directory, default: $NXT_MODULES
+
+  --control=ADDRESS    set address of control API socket
+                       default: $NXT_CONTROL
+
+  --user=USER          set non-privileged processes to run as specified user
+                       default: $NXT_USER
+  --group=GROUP        set non-privileged processes to run as specified group
+                       default: user's primary group
+
+  --no-ipv6            disable IPv6 support
+  --no-unix-sockets    disable Unix domain sockets support
+
+  --debug              enable debug logging
+
+
+  python OPTIONS       configure Python module
+                       run "./configure python --help" to see available options
+
+  php OPTIONS          configure PHP module
+                       run "./configure php --help" to see available options
+
+  go OPTIONS           configure Go module
+                       run "./configure go --help" to see available options
+
+END

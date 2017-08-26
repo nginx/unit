@@ -10,7 +10,7 @@ NXT_GO=go
 for nxt_option; do
 
     case "$nxt_option" in
-        -*=*) value=`$echo "$nxt_option" | sed -e 's/[-_a-zA-Z0-9]*=//'`     ;;
+        -*=*) value=`echo "$nxt_option" | sed -e 's/[-_a-zA-Z0-9]*=//'`     ;;
            *) value="" ;;
     esac
 
@@ -29,15 +29,25 @@ END
         ;;
 
         *)
-            $echo
-            $echo $0: error: invalid Go option \"$nxt_option\"
-            $echo
+            echo
+            echo $0: error: invalid Go option \"$nxt_option\"
+            echo
             exit 1
         ;;
 
     esac
 
 done
+
+
+if [ ! -f $NXT_AUTOCONF_DATA ]; then
+   echo
+   echo Please run common $0 before configuring module \"$nxt_module\".
+   echo
+   exit 1
+fi
+
+. $NXT_AUTOCONF_DATA
 
 
 $echo "configuring Go package"

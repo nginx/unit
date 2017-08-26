@@ -800,6 +800,37 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
     static const char  no_modules[] =
                        "option \"--modules\" requires directory\n";
 
+    static const char  help[] =
+        "\n"
+        "nginext options:\n"
+        "\n"
+        "  --version            print nginext version and configure options\n"
+        "\n"
+        "  --no-daemon          run nginext in non-daemon mode\n"
+        "\n"
+        "  --control ADDRESS    set address of control API socket\n"
+        "                       default: \"" NXT_CONTROL_SOCK "\"\n"
+        "\n"
+        "  --pid FILE           set pid file name\n"
+        "                       default: \"" NXT_PID "\"\n"
+        "\n"
+        "  --log FILE           set log file name\n"
+        "                       default: \"" NXT_LOG "\"\n"
+        "\n"
+        "  --modules DIRECTORY  set modules directory\n"
+        "                       default: \"" NXT_MODULES "\"\n"
+        "\n"
+        "  --user USER          set non-privileged processes to run"
+                                " as specified user\n"
+        "                       default: \"" NXT_USER "\"\n"
+        "\n"
+        "  --group GROUP        set non-privileged processes to run"
+                                " as specified group\n"
+        "                       default: ";
+
+    static const char  group[] = "\"" NXT_GROUP "\"\n\n";
+    static const char  primary[] = "user's primary group\n\n";
+
     argv = &nxt_process_argv[1];
 
     while (*argv != NULL) {
@@ -905,6 +936,19 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
 
         if (nxt_strcmp(p, "--version") == 0) {
             write(STDERR_FILENO, version, sizeof(version) - 1);
+            exit(0);
+        }
+
+        if (nxt_strcmp(p, "--help") == 0) {
+            write(STDOUT_FILENO, help, sizeof(help) - 1);
+
+            if (sizeof(NXT_GROUP) == 1) {
+                write(STDOUT_FILENO, primary, sizeof(primary) - 1);
+
+            } else {
+                write(STDOUT_FILENO, group, sizeof(group) - 1);
+            }
+
             exit(0);
         }
 

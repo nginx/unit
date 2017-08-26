@@ -3,16 +3,6 @@
 # Copyright (C) NGINX, Inc.
 
 
-if [ ! -f $NXT_AUTOCONF_DATA ]; then
-   echo
-   echo Please run common $0 before configuring module \"$nxt_module\".
-   echo
-   exit 1
-fi
-
-. $NXT_AUTOCONF_DATA
-
-
 case "$nxt_module" in
 
    python)

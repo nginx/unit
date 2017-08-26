@@ -4,23 +4,13 @@
 # Copyright (C) NGINX, Inc.
 
 
-CC=${CC:-cc}
-
-NXT_BUILD_DIR=build
 NXT_CONFIGURE_OPTIONS=
 NXT_CFLAGS=
 NXT_CC_OPT=
 NXT_LD_OPT=
 
+NXT_BUILD_DIR=build
 NXT_PREFIX=
-NXT_PID="nginext.pid"
-NXT_LOG="nginext.log"
-NXT_MODULES="modules"
-
-NXT_CONTROL="unix:control.unit.sock"
-
-NXT_USER="nobody"
-NXT_GROUP=
 
 NXT_DEBUG=NO
 
@@ -103,7 +93,8 @@ do
 
         *)
             $echo
-            $echo "$0: error: invalid option \"$nxt_option\"".
+            $echo $0: error: invalid option \"$nxt_option\".
+            $echo Run \"$0 --help\" to see available options.
             $echo
             exit 1
         ;;
