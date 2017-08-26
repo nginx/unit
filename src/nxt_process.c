@@ -364,23 +364,43 @@ nxt_user_cred_get(nxt_task_t *task, nxt_user_cred_t *uc, const char *group)
     struct group   *grp;
     struct passwd  *pwd;
 
+    nxt_errno = 0;
+
     pwd = getpwnam(uc->user);
 
     if (nxt_slow_path(pwd == NULL)) {
-        nxt_log(task, NXT_LOG_CRIT, "getpwnam(%s) failed %E",
-                uc->user, nxt_errno);
+
+        if (nxt_errno == 0) {
+            nxt_log(task, NXT_LOG_CRIT,
+                    "getpwnam(\"%s\") failed, user \"%s\" not found",
+                    uc->user, uc->user);
+        } else {
+            nxt_log(task, NXT_LOG_CRIT, "getpwnam(\"%s\") failed %E",
+                    uc->user, nxt_errno);
+        }
+
         return NXT_ERROR;
     }
 
     uc->uid = pwd->pw_uid;
     uc->base_gid = pwd->pw_gid;
 
-    if (group != NULL) {
+    if (group != NULL && group[0] != '\0') {
+        nxt_errno = 0;
+
         grp = getgrnam(group);
 
         if (nxt_slow_path(grp == NULL)) {
-            nxt_log(task, NXT_LOG_CRIT, "getgrnam(%s) failed %E",
-                    group, nxt_errno);
+
+            if (nxt_errno == 0) {
+                nxt_log(task, NXT_LOG_CRIT,
+                        "getgrnam(\"%s\") failed, group \"%s\" not found",
+                        group, group);
+            } else {
+                nxt_log(task, NXT_LOG_CRIT, "getgrnam(\"%s\") failed %E",
+                        group, nxt_errno);
+            }
+
             return NXT_ERROR;
         }
 

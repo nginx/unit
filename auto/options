@@ -16,6 +16,9 @@ NXT_PREFIX=
 NXT_PID="nginext.pid"
 NXT_LOG="nginext.log"
 
+NXT_USER="nobody"
+NXT_GROUP=
+
 NXT_DEBUG=NO
 
 NXT_INET6=YES
@@ -61,6 +64,9 @@ do
         --prefix=*)                      NXT_PREFIX="$value"                 ;;
         --pid=*)                         NXT_PID="$value"                    ;;
         --log=*)                         NXT_LOG="$value"                    ;;
+
+        --user=*)                        NXT_USER="$value"                   ;;
+        --group=*)                       NXT_GROUP="$value"                  ;;
 
         --debug)                         NXT_DEBUG=YES                       ;;
 

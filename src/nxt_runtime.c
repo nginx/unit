@@ -699,8 +699,8 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
     rt->master_process = 1;
     rt->engine_connections = 256;
     rt->auxiliary_threads = 2;
-    rt->user_cred.user = "nobody";
-    rt->group = NULL;
+    rt->user_cred.user = NXT_USER;
+    rt->group = NXT_GROUP;
     rt->pid = NXT_PID;
     rt->log = NXT_LOG;
 
@@ -757,6 +757,8 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
         "nginext version: " NXT_VERSION "\n"
         "configured as ./configure" NXT_CONFIGURE_OPTIONS "\n";
 
+    static const char  no_user[] = "option \"--user\" requires username\n";
+    static const char  no_group[] = "option \"--group\" requires group name\n";
     static const char  no_pid[] = "option \"--pid\" requires filename\n";
     static const char  no_log[] = "option \"--log\" requires filename\n";
 
@@ -805,8 +807,7 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
 
         if (nxt_strcmp(p, "--user") == 0) {
             if (*argv == NULL) {
-                nxt_log(task, NXT_LOG_CRIT,
-                        "no argument for option \"--user\"");
+                write(STDERR_FILENO, no_user, sizeof(no_user) - 1);
                 return NXT_ERROR;
             }
 
@@ -819,8 +820,7 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
 
         if (nxt_strcmp(p, "--group") == 0) {
             if (*argv == NULL) {
-                nxt_log(task, NXT_LOG_CRIT,
-                        "no argument for option \"--group\"");
+                write(STDERR_FILENO, no_group, sizeof(no_group) - 1);
                 return NXT_ERROR;
             }
 
