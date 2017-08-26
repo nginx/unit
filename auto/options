@@ -13,6 +13,7 @@ NXT_CC_OPT=
 NXT_LD_OPT=
 
 NXT_PREFIX=
+NXT_PID="nginext.pid"
 NXT_LOG="nginext.log"
 
 NXT_DEBUG=NO
@@ -58,6 +59,7 @@ do
         --build-dir=*)                   NXT_BUILD_DIR="$value"              ;;
 
         --prefix=*)                      NXT_PREFIX="$value"                 ;;
+        --pid=*)                         NXT_PID="$value"                    ;;
         --log=*)                         NXT_LOG="$value"                    ;;
 
         --debug)                         NXT_DEBUG=YES                       ;;
@@ -105,6 +107,11 @@ done
 case "$NXT_PREFIX" in
     ""|*/)  ;;
      *)  NXT_PREFIX="$NXT_PREFIX/"  ;;
+esac
+
+case "$NXT_PID" in
+    /*)  ;;
+     *)  NXT_PID="$NXT_PREFIX$NXT_PID"  ;;
 esac
 
 case "$NXT_LOG" in

@@ -24,9 +24,6 @@ struct nxt_runtime_s {
 
     nxt_runtime_cont_t     start;
 
-    nxt_str_t              *conf_prefix;
-    nxt_str_t              *prefix;
-
     nxt_str_t              hostname;
 
     nxt_file_name_t        *pid_file;
