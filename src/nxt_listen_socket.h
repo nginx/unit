@@ -49,8 +49,6 @@ typedef struct {
 #endif
 
 
-NXT_EXPORT nxt_socket_t nxt_listen_socket_create0(nxt_task_t *task,
-    nxt_sockaddr_t *sa, nxt_uint_t flags);
 NXT_EXPORT nxt_int_t nxt_listen_socket(nxt_task_t *task, nxt_socket_t s,
     int backlog);
 
