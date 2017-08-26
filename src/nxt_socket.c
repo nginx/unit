@@ -63,6 +63,27 @@ nxt_socket_close(nxt_task_t *task, nxt_socket_t s)
 }
 
 
+void
+nxt_socket_defer_accept(nxt_task_t *task, nxt_socket_t s, nxt_sockaddr_t *sa)
+{
+#if (NXT_HAVE_UNIX_DOMAIN)
+
+    if (sa->u.sockaddr.sa_family == AF_UNIX) {
+        /* Deferred accept() is not supported on AF_UNIX sockets. */
+        return;
+    }
+
+#endif
+
+#ifdef TCP_DEFER_ACCEPT
+
+    /* Defer Linux accept() up to for 1 second. */
+    (void) nxt_socket_setsockopt(task, s, IPPROTO_TCP, TCP_DEFER_ACCEPT, 1);
+
+#endif
+}
+
+
 nxt_int_t
 nxt_socket_getsockopt(nxt_task_t *task, nxt_socket_t s, nxt_uint_t level,
     nxt_uint_t sockopt)

@@ -78,15 +78,9 @@ nxt_listen_socket_create(nxt_task_t *task, nxt_listen_socket_t *ls,
 
 #endif
 
-#ifdef TCP_DEFER_ACCEPT
-
     if (ls->read_after_accept) {
-        /* Defer accept() maximum at 1 second. */
-        /* Ignore possible error. TODO: why? */
-        (void) nxt_socket_setsockopt(task, s, IPPROTO_TCP, TCP_DEFER_ACCEPT, 1);
+        nxt_socket_defer_accept(task, s, sa);
     }
-
-#endif
 
     switch (nxt_socket_bind(task, s, sa, bind_test)) {
 

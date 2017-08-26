@@ -1053,12 +1053,7 @@ nxt_router_listen_socket_ready(nxt_task_t *task, nxt_port_recv_msg_t *msg,
         goto fail;
     }
 
-#ifdef TCP_DEFER_ACCEPT
-
-    /* Defer Linux accept() up to for 1 second. */
-    (void) nxt_socket_setsockopt(task, s, IPPROTO_TCP, TCP_DEFER_ACCEPT, 1);
-
-#endif
+    nxt_socket_defer_accept(task, s, rpc->socket_conf->sockaddr);
 
     ret = nxt_listen_socket(task, s, NXT_LISTEN_BACKLOG);
     if (nxt_slow_path(ret != NXT_OK)) {
