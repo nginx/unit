@@ -102,7 +102,7 @@ nxt_listen_socket_create(nxt_task_t *task, nxt_listen_socket_t *ls,
 
         name = (nxt_file_name_t *) sa->u.sockaddr_un.sun_path;
 
-        access = (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+        access = (S_IRUSR | S_IWUSR);
 
         if (nxt_file_set_access(name, access) != NXT_OK) {
             goto fail;

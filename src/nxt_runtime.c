@@ -528,6 +528,20 @@ nxt_runtime_exit(nxt_task_t *task, void *obj, void *data)
         if (rt->pid_file != NULL) {
             nxt_file_delete(rt->pid_file);
         }
+
+#if (NXT_HAVE_UNIX_DOMAIN)
+        {
+            nxt_sockaddr_t   *sa;
+            nxt_file_name_t  *name;
+
+            sa = rt->controller_listen;
+
+            if (sa->u.sockaddr.sa_family == AF_UNIX) {
+                name = (nxt_file_name_t *) sa->u.sockaddr_un.sun_path;
+                (void) nxt_file_delete(name);
+            }
+        }
+#endif
     }
 
     if (!engine->event.signal_support) {
@@ -692,6 +706,8 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
 {
     nxt_int_t                    ret;
     nxt_file_t                   *file;
+    nxt_str_t                    control;
+    nxt_sockaddr_t               *sa;
     nxt_file_name_str_t          file_name;
     const nxt_event_interface_t  *interface;
 
@@ -704,12 +720,9 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
     rt->pid = NXT_PID;
     rt->log = NXT_LOG;
     rt->modules = NXT_MODULES;
+    rt->control = NXT_CONTROL_SOCK;
 
     if (nxt_runtime_conf_read_cmd(task, rt) != NXT_OK) {
-        return NXT_ERROR;
-    }
-
-    if (nxt_runtime_controller_socket(task, rt) != NXT_OK) {
         return NXT_ERROR;
     }
 
@@ -749,6 +762,20 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
 
     rt->modules = (char *) file_name.start;
 
+    control.length = nxt_strlen(rt->control);
+    control.start = (u_char *) rt->control;
+
+    sa = nxt_runtime_sockaddr_parse(task, rt->mem_pool, &control);
+    if (nxt_slow_path(sa == NULL)) {
+        return NXT_ERROR;
+    }
+
+    rt->controller_listen = sa;
+
+    if (nxt_runtime_controller_socket(task, rt) != NXT_OK) {
+        return NXT_ERROR;
+    }
+
     return NXT_OK;
 }
 
@@ -756,16 +783,16 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
 static nxt_int_t
 nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
 {
-    char            *p, **argv;
-    u_char          *end;
-    nxt_str_t       addr;
-    nxt_sockaddr_t  *sa;
-    u_char          buf[1024];
+    char    *p, **argv;
+    u_char  *end;
+    u_char  buf[1024];
 
     static const char  version[] =
         "nginext version: " NXT_VERSION "\n"
         "configured as ./configure" NXT_CONFIGURE_OPTIONS "\n";
 
+    static const char  no_control[] =
+                       "option \"--control\" requires socket address\n";
     static const char  no_user[] = "option \"--user\" requires username\n";
     static const char  no_group[] = "option \"--group\" requires group name\n";
     static const char  no_pid[] = "option \"--pid\" requires filename\n";
@@ -778,25 +805,15 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
     while (*argv != NULL) {
         p = *argv++;
 
-        if (nxt_strcmp(p, "--listen") == 0) {
+        if (nxt_strcmp(p, "--control") == 0) {
             if (*argv == NULL) {
-                nxt_log(task, NXT_LOG_CRIT,
-                         "no argument for option \"--listen\"");
+                write(STDERR_FILENO, no_control, sizeof(no_control) - 1);
                 return NXT_ERROR;
             }
 
             p = *argv++;
 
-            addr.length = nxt_strlen(p);
-            addr.start = (u_char *) p;
-
-            sa = nxt_runtime_sockaddr_parse(task, rt->mem_pool, &addr);
-
-            if (sa == NULL) {
-                return NXT_ERROR;
-            }
-
-            rt->controller_listen = sa;
+            rt->control = p;
 
             continue;
         }

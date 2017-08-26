@@ -58,6 +58,7 @@ struct nxt_runtime_s {
     const char             *pid;
     const char             *log;
     const char             *modules;
+    const char             *control;
 
     nxt_queue_t            engines;            /* of nxt_event_engine_t */
 

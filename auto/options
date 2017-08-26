@@ -17,6 +17,8 @@ NXT_PID="nginext.pid"
 NXT_LOG="nginext.log"
 NXT_MODULES="modules"
 
+NXT_CONTROL="unix:control.unit.sock"
+
 NXT_USER="nobody"
 NXT_GROUP=
 
@@ -66,6 +68,8 @@ do
         --pid=*)                         NXT_PID="$value"                    ;;
         --log=*)                         NXT_LOG="$value"                    ;;
         --modules=*)                     NXT_MODULES="$value"                ;;
+
+        --control=*)                     NXT_CONTROL="$value"                ;;
 
         --user=*)                        NXT_USER="$value"                   ;;
         --group=*)                       NXT_GROUP="$value"                  ;;
@@ -135,4 +139,10 @@ esac
 case "$NXT_MODULES" in
     /*)  ;;
      *)  NXT_MODULES="$NXT_PREFIX$NXT_MODULES"  ;;
+esac
+
+case "$NXT_CONTROL" in
+    unix:/*)  ;;
+    unix:*)   NXT_CONTROL="unix:$NXT_PREFIX${NXT_CONTROL##unix:}" ;;
+    *)        ;;
 esac

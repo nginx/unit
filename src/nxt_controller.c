@@ -147,22 +147,6 @@ nxt_runtime_controller_socket(nxt_task_t *task, nxt_runtime_t *rt)
 
     sa = rt->controller_listen;
 
-    if (rt->controller_listen == NULL) {
-        sa = nxt_sockaddr_alloc(rt->mem_pool, sizeof(struct sockaddr_in),
-                                NXT_INET_ADDR_STR_LEN);
-        if (sa == NULL) {
-            return NXT_ERROR;
-        }
-
-        sa->type = SOCK_STREAM;
-        sa->u.sockaddr_in.sin_family = AF_INET;
-        sa->u.sockaddr_in.sin_port = htons(8443);
-
-        nxt_sockaddr_text(sa);
-
-        rt->controller_listen = sa;
-    }
-
     ls = nxt_mp_alloc(rt->mem_pool, sizeof(nxt_listen_socket_t));
     if (ls == NULL) {
         return NXT_ERROR;
