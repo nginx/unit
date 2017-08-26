@@ -59,7 +59,7 @@ struct nxt_runtime_s {
     nxt_user_cred_t        user_cred;
     const char             *group;
     const char             *pid;
-    const char             *error_log;
+    const char             *log;
 
     nxt_queue_t            engines;            /* of nxt_event_engine_t */
 

@@ -710,7 +710,7 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
     rt->user_cred.user = "nobody";
     rt->group = NULL;
     rt->pid = "nginext.pid";
-    rt->error_log = "error.log";
+    rt->log = NXT_LOG;
 
     if (nxt_runtime_conf_read_cmd(task, rt) != NXT_OK) {
         return NXT_ERROR;
@@ -743,10 +743,7 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
 
     rt->pid_file = file_name.start;
 
-    prefix = nxt_file_name_is_absolute(rt->error_log) ? NULL : rt->prefix;
-
-    ret = nxt_file_name_create(rt->mem_pool, &file_name, "%V%s%Z",
-                               prefix, rt->error_log);
+    ret = nxt_file_name_create(rt->mem_pool, &file_name, "%s%Z", rt->log);
     if (nxt_slow_path(ret != NXT_OK)) {
         return NXT_ERROR;
     }
@@ -770,6 +767,8 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
     static const char  version[] =
         "nginext version: " NXT_VERSION "\n"
         "configured as ./configure" NXT_CONFIGURE_OPTIONS "\n";
+
+    static const char  no_log[] = "option \"--log\" requires filename\n";
 
     argv = &nxt_process_argv[1];
 
@@ -858,14 +857,13 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
 
         if (nxt_strcmp(p, "--log") == 0) {
             if (*argv == NULL) {
-                nxt_log(task, NXT_LOG_CRIT,
-                        "no argument for option \"--log\"");
+                write(STDERR_FILENO, no_log, sizeof(no_log) - 1);
                 return NXT_ERROR;
             }
 
             p = *argv++;
 
-            rt->error_log = p;
+            rt->log = p;
 
             continue;
         }
@@ -1239,7 +1237,7 @@ nxt_runtime_log_files_init(nxt_runtime_t *rt)
     if (nxt_fast_path(log_files != NULL)) {
         rt->log_files = log_files;
 
-        /* Preallocate the main error_log.  This allocation cannot fail. */
+        /* Preallocate the main log.  This allocation cannot fail. */
         file = nxt_list_zero_add(log_files);
 
         file->fd = NXT_FILE_INVALID;
@@ -1256,14 +1254,10 @@ nxt_file_t *
 nxt_runtime_log_file_add(nxt_runtime_t *rt, nxt_str_t *name)
 {
     nxt_int_t            ret;
-    nxt_str_t            *prefix;
     nxt_file_t           *file;
     nxt_file_name_str_t  file_name;
 
-    prefix = nxt_file_name_is_absolute(name->start) ? NULL : rt->prefix;
-
-    ret = nxt_file_name_create(rt->mem_pool, &file_name, "%V%V%Z",
-                               prefix, name);
+    ret = nxt_file_name_create(rt->mem_pool, &file_name, "V%Z", name);
 
     if (nxt_slow_path(ret != NXT_OK)) {
         return NULL;
