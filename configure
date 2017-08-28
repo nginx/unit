@@ -35,7 +35,7 @@ CC=${CC:-cc}
 
 NXT_PID="nginext.pid"
 NXT_LOG="nginext.log"
-NXT_MODULES="modules"
+NXT_MODULES="modules/"
 NXT_CONTROL="unix:control.unit.sock"
 NXT_USER="nobody"
 NXT_GROUP=
