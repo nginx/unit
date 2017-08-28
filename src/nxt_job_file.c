@@ -277,7 +277,7 @@ nxt_job_file_read_data(nxt_job_file_t *jbf, size_t size)
 {
     ssize_t  n;
 
-    n = nxt_file_read(&jbf->file, jbf->buffer->mem.pos, size, jbf->offset);
+    n = nxt_file_read(&jbf->file, jbf->buffer->mem.free, size, jbf->offset);
 
     if (nxt_fast_path(n > 0)) {
 
