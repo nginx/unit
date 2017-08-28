@@ -8,7 +8,7 @@
 #include <nxt_main.h>
 #include <nxt_runtime.h>
 #include <nxt_port.h>
-#include <nxt_master_process.h>
+#include <nxt_main_process.h>
 #include <nxt_router.h>
 
 
@@ -284,7 +284,7 @@ nxt_runtime_event_engines(nxt_task_t *task, nxt_runtime_t *rt)
     }
 
     engine = nxt_event_engine_create(task, interface,
-                                     nxt_master_process_signals, 0, 0);
+                                     nxt_main_process_signals, 0, 0);
 
     if (nxt_slow_path(engine == NULL)) {
         return NXT_ERROR;
@@ -408,8 +408,8 @@ nxt_runtime_initial_start(nxt_task_t *task)
 
     thr->engine->max_connections = rt->engine_connections;
 
-    if (rt->master_process) {
-        if (nxt_master_process_start(thr, task, rt) != NXT_ERROR) {
+    if (rt->main_process) {
+        if (nxt_main_process_start(thr, task, rt) != NXT_ERROR) {
             return;
         }
 
@@ -467,8 +467,8 @@ nxt_runtime_quit(nxt_task_t *task)
             done = 0;
         }
 
-        if (nxt_runtime_is_master(rt)) {
-            nxt_master_stop_worker_processes(task, rt);
+        if (nxt_runtime_is_main(rt)) {
+            nxt_main_stop_worker_processes(task, rt);
             done = 0;
         }
     }
@@ -524,7 +524,7 @@ nxt_runtime_exit(nxt_task_t *task, void *obj, void *data)
         return;
     }
 
-    if (nxt_runtime_is_master(rt)) {
+    if (nxt_runtime_is_main(rt)) {
         if (rt->pid_file != NULL) {
             nxt_file_delete(rt->pid_file);
         }
@@ -712,7 +712,7 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
     const nxt_event_interface_t  *interface;
 
     rt->daemon = 1;
-    rt->master_process = 1;
+    rt->main_process = 1;
     rt->engine_connections = 256;
     rt->auxiliary_threads = 2;
     rt->user_cred.user = NXT_USER;

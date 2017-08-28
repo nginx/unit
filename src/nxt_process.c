@@ -5,7 +5,7 @@
  */
 
 #include <nxt_main.h>
-#include <nxt_master_process.h>
+#include <nxt_main_process.h>
 
 
 static void nxt_process_start(nxt_task_t *task, nxt_process_t *process);
@@ -93,7 +93,7 @@ static void
 nxt_process_start(nxt_task_t *task, nxt_process_t *process)
 {
     nxt_int_t                    ret;
-    nxt_port_t                   *port, *master_port;
+    nxt_port_t                   *port, *main_port;
     nxt_thread_t                 *thread;
     nxt_runtime_t                *rt;
     nxt_process_init_t           *init;
@@ -125,7 +125,7 @@ nxt_process_start(nxt_task_t *task, nxt_process_t *process)
 
     engine = thread->engine;
 
-    /* Update inherited master process event engine and signals processing. */
+    /* Update inherited main process event engine and signals processing. */
     engine->signals->sigev = init->signals;
 
     interface = nxt_service_get(rt->services, "engine", rt->engine);
@@ -143,10 +143,10 @@ nxt_process_start(nxt_task_t *task, nxt_process_t *process)
         goto fail;
     }
 
-    master_port = rt->port_by_type[NXT_PROCESS_MASTER];
+    main_port = rt->port_by_type[NXT_PROCESS_MAIN];
 
-    nxt_port_read_close(master_port);
-    nxt_port_write_enable(task, master_port);
+    nxt_port_read_close(main_port);
+    nxt_port_write_enable(task, main_port);
 
     port = nxt_process_port_first(process);
 
@@ -160,11 +160,11 @@ nxt_process_start(nxt_task_t *task, nxt_process_t *process)
 
     nxt_port_enable(task, port, init->port_handlers);
 
-    ret = nxt_port_socket_write(task, master_port, NXT_PORT_MSG_READY,
+    ret = nxt_port_socket_write(task, main_port, NXT_PORT_MSG_READY,
                                 -1, init->stream, 0, NULL);
 
     if (nxt_slow_path(ret != NXT_OK)) {
-        nxt_log(task, NXT_LOG_ERR, "failed to send READY message to master");
+        nxt_log(task, NXT_LOG_ERR, "failed to send READY message to main");
 
         goto fail;
     }
@@ -420,7 +420,7 @@ nxt_user_cred_get(nxt_task_t *task, nxt_user_cred_t *uc, const char *group)
  * set by the initgroups() function for a given user.  The initgroups()
  * may block a just forked worker process for some time if LDAP or NDIS+
  * is used, so nxt_user_groups_get() allows to get worker user groups in
- * master process.  In a nutshell the initgroups() calls getgrouplist()
+ * main process.  In a nutshell the initgroups() calls getgrouplist()
  * followed by setgroups().  However Solaris lacks the getgrouplist().
  * Besides getgrouplist() does not allow to query the exact number of
  * groups while NGROUPS_MAX can be quite large (e.g. 65536 on Linux).

@@ -49,7 +49,7 @@ struct nxt_runtime_s {
 
     uint8_t                daemon;
     uint8_t                batch;
-    uint8_t                master_process;
+    uint8_t                main_process;
     const char             *engine;
     uint32_t               engine_connections;
     uint32_t               auxiliary_threads;
@@ -89,9 +89,9 @@ nxt_runtime_is_type(nxt_runtime_t *rt, nxt_process_type_t type)
 
 
 nxt_inline nxt_bool_t
-nxt_runtime_is_master(nxt_runtime_t *rt)
+nxt_runtime_is_main(nxt_runtime_t *rt)
 {
-    return nxt_runtime_is_type(rt, NXT_PROCESS_MASTER);
+    return nxt_runtime_is_type(rt, NXT_PROCESS_MAIN);
 }
 
 

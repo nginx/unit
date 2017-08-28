@@ -9,7 +9,7 @@
 #include <nxt_main.h>
 #include <nxt_runtime.h>
 #include <nxt_application.h>
-#include <nxt_master_process.h>
+#include <nxt_main_process.h>
 
 #include <glob.h>
 
@@ -50,7 +50,7 @@ nxt_discovery_start(nxt_task_t *task, void *data)
 
     b = nxt_discovery_modules(task, rt->modules);
 
-    main_port = rt->port_by_type[NXT_PROCESS_MASTER];
+    main_port = rt->port_by_type[NXT_PROCESS_MAIN];
 
     nxt_port_socket_write(task, main_port, NXT_PORT_MSG_MODULES, -1,
                           0, -1, b);

@@ -10,7 +10,7 @@
 
 #include <nxt_main.h>
 #include <nxt_runtime.h>
-#include <nxt_master_process.h>
+#include <nxt_main_process.h>
 #include <nxt_application.h>
 
 

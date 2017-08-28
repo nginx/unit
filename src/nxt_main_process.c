@@ -7,7 +7,7 @@
 #include <nxt_main.h>
 #include <nxt_runtime.h>
 #include <nxt_port.h>
-#include <nxt_master_process.h>
+#include <nxt_main_process.h>
 #include <nxt_conf.h>
 #include <nxt_application.h>
 
@@ -20,43 +20,43 @@ typedef struct {
 } nxt_listening_socket_t;
 
 
-static nxt_int_t nxt_master_process_port_create(nxt_task_t *task,
+static nxt_int_t nxt_main_process_port_create(nxt_task_t *task,
     nxt_runtime_t *rt);
-static void nxt_master_process_title(nxt_task_t *task);
-static nxt_int_t nxt_master_start_controller_process(nxt_task_t *task,
+static void nxt_main_process_title(nxt_task_t *task);
+static nxt_int_t nxt_main_start_controller_process(nxt_task_t *task,
     nxt_runtime_t *rt);
-static nxt_int_t nxt_master_start_router_process(nxt_task_t *task,
+static nxt_int_t nxt_main_start_router_process(nxt_task_t *task,
     nxt_runtime_t *rt);
-static nxt_int_t nxt_master_start_discovery_process(nxt_task_t *task,
+static nxt_int_t nxt_main_start_discovery_process(nxt_task_t *task,
     nxt_runtime_t *rt);
-static nxt_int_t nxt_master_start_worker_process(nxt_task_t *task,
+static nxt_int_t nxt_main_start_worker_process(nxt_task_t *task,
     nxt_runtime_t *rt, nxt_common_app_conf_t *app_conf, uint32_t stream);
-static nxt_int_t nxt_master_create_worker_process(nxt_task_t *task,
+static nxt_int_t nxt_main_create_worker_process(nxt_task_t *task,
     nxt_runtime_t *rt, nxt_process_init_t *init);
-static void nxt_master_process_sigterm_handler(nxt_task_t *task, void *obj,
+static void nxt_main_process_sigterm_handler(nxt_task_t *task, void *obj,
     void *data);
-static void nxt_master_process_sigquit_handler(nxt_task_t *task, void *obj,
+static void nxt_main_process_sigquit_handler(nxt_task_t *task, void *obj,
     void *data);
-static void nxt_master_process_sigusr1_handler(nxt_task_t *task, void *obj,
+static void nxt_main_process_sigusr1_handler(nxt_task_t *task, void *obj,
     void *data);
-static void nxt_master_process_sigchld_handler(nxt_task_t *task, void *obj,
+static void nxt_main_process_sigchld_handler(nxt_task_t *task, void *obj,
     void *data);
-static void nxt_master_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid);
-static void nxt_master_port_socket_handler(nxt_task_t *task,
+static void nxt_main_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid);
+static void nxt_main_port_socket_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
-static nxt_int_t nxt_master_listening_socket(nxt_sockaddr_t *sa,
+static nxt_int_t nxt_main_listening_socket(nxt_sockaddr_t *sa,
     nxt_listening_socket_t *ls);
-static void nxt_master_port_modules_handler(nxt_task_t *task,
+static void nxt_main_port_modules_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
 static int nxt_cdecl nxt_app_lang_compare(const void *v1, const void *v2);
 
 
-const nxt_sig_event_t  nxt_master_process_signals[] = {
-    nxt_event_signal(SIGINT,  nxt_master_process_sigterm_handler),
-    nxt_event_signal(SIGQUIT, nxt_master_process_sigquit_handler),
-    nxt_event_signal(SIGTERM, nxt_master_process_sigterm_handler),
-    nxt_event_signal(SIGCHLD, nxt_master_process_sigchld_handler),
-    nxt_event_signal(SIGUSR1, nxt_master_process_sigusr1_handler),
+const nxt_sig_event_t  nxt_main_process_signals[] = {
+    nxt_event_signal(SIGINT,  nxt_main_process_sigterm_handler),
+    nxt_event_signal(SIGQUIT, nxt_main_process_sigquit_handler),
+    nxt_event_signal(SIGTERM, nxt_main_process_sigterm_handler),
+    nxt_event_signal(SIGCHLD, nxt_main_process_sigchld_handler),
+    nxt_event_signal(SIGUSR1, nxt_main_process_sigusr1_handler),
     nxt_event_signal_end,
 };
 
@@ -65,23 +65,23 @@ static nxt_bool_t  nxt_exiting;
 
 
 nxt_int_t
-nxt_master_process_start(nxt_thread_t *thr, nxt_task_t *task,
+nxt_main_process_start(nxt_thread_t *thr, nxt_task_t *task,
     nxt_runtime_t *rt)
 {
-    rt->types |= (1U << NXT_PROCESS_MASTER);
+    rt->types |= (1U << NXT_PROCESS_MAIN);
 
-    if (nxt_master_process_port_create(task, rt) != NXT_OK) {
+    if (nxt_main_process_port_create(task, rt) != NXT_OK) {
         return NXT_ERROR;
     }
 
-    nxt_master_process_title(task);
+    nxt_main_process_title(task);
 
     /*
      * The dicsovery process will send a message processed by
-     * nxt_master_port_modules_handler() which starts the controller
+     * nxt_main_port_modules_handler() which starts the controller
      * and router processes.
      */
-    return nxt_master_start_discovery_process(task, rt);
+    return nxt_main_start_discovery_process(task, rt);
 }
 
 
@@ -149,15 +149,15 @@ static nxt_conf_map_t  nxt_common_app_conf[] = {
 
 
 static void
-nxt_port_master_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
+nxt_port_main_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
-    nxt_debug(task, "master data: %*s",
+    nxt_debug(task, "main data: %*s",
               nxt_buf_mem_used_size(&msg->buf->mem), msg->buf->mem.pos);
 }
 
 
 static void
-nxt_port_master_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
+nxt_port_main_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
     u_char                 *start;
     nxt_mp_t               *mp;
@@ -170,7 +170,7 @@ nxt_port_master_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     b = msg->buf;
 
-    nxt_debug(task, "master start worker: %*s", b->mem.free - b->mem.pos,
+    nxt_debug(task, "main start worker: %*s", b->mem.free - b->mem.pos,
               b->mem.pos);
 
     mp = nxt_mp_create(1024, 128, 256, 32);
@@ -200,31 +200,31 @@ nxt_port_master_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         return;
     }
 
-    ret = nxt_master_start_worker_process(task, task->thread->runtime,
-                                          &app_conf, msg->port_msg.stream);
+    ret = nxt_main_start_worker_process(task, task->thread->runtime,
+                                        &app_conf, msg->port_msg.stream);
 
     nxt_mp_destroy(mp);
 }
 
 
-static nxt_port_handler_t  nxt_master_process_port_handlers[] = {
+static nxt_port_handler_t  nxt_main_process_port_handlers[] = {
     NULL, /* NXT_PORT_MSG_QUIT         */
     NULL, /* NXT_PORT_MSG_NEW_PORT     */
     NULL, /* NXT_PORT_MSG_CHANGE_FILE  */
     NULL, /* NXT_PORT_MSG_MMAP         */
-    nxt_port_master_data_handler,
+    nxt_port_main_data_handler,
     NULL, /* NXT_PORT_MSG_REMOVE_PID   */
     nxt_port_ready_handler,
-    nxt_port_master_start_worker_handler,
-    nxt_master_port_socket_handler,
-    nxt_master_port_modules_handler,
+    nxt_port_main_start_worker_handler,
+    nxt_main_port_socket_handler,
+    nxt_main_port_modules_handler,
     nxt_port_rpc_handler,
     nxt_port_rpc_handler,
 };
 
 
 static nxt_int_t
-nxt_master_process_port_create(nxt_task_t *task, nxt_runtime_t *rt)
+nxt_main_process_port_create(nxt_task_t *task, nxt_runtime_t *rt)
 {
     nxt_int_t      ret;
     nxt_port_t     *port;
@@ -235,7 +235,7 @@ nxt_master_process_port_create(nxt_task_t *task, nxt_runtime_t *rt)
         return NXT_ERROR;
     }
 
-    port = nxt_port_new(task, 0, nxt_pid, NXT_PROCESS_MASTER);
+    port = nxt_port_new(task, 0, nxt_pid, NXT_PROCESS_MAIN);
     if (nxt_slow_path(port == NULL)) {
         return NXT_ERROR;
     }
@@ -250,10 +250,10 @@ nxt_master_process_port_create(nxt_task_t *task, nxt_runtime_t *rt)
     nxt_runtime_port_add(rt, port);
 
     /*
-     * A master process port.  A write port is not closed
+     * A main process port.  A write port is not closed
      * since it should be inherited by worker processes.
      */
-    nxt_port_enable(task, port, nxt_master_process_port_handlers);
+    nxt_port_enable(task, port, nxt_main_process_port_handlers);
 
     process->ready = 1;
 
@@ -262,7 +262,7 @@ nxt_master_process_port_create(nxt_task_t *task, nxt_runtime_t *rt)
 
 
 static void
-nxt_master_process_title(nxt_task_t *task)
+nxt_main_process_title(nxt_task_t *task)
 {
     u_char      *p, *end;
     nxt_uint_t  i;
@@ -287,7 +287,7 @@ nxt_master_process_title(nxt_task_t *task)
 
 
 static nxt_int_t
-nxt_master_start_controller_process(nxt_task_t *task, nxt_runtime_t *rt)
+nxt_main_start_controller_process(nxt_task_t *task, nxt_runtime_t *rt)
 {
     nxt_process_init_t  *init;
 
@@ -306,12 +306,12 @@ nxt_master_start_controller_process(nxt_task_t *task, nxt_runtime_t *rt)
     init->stream = 0;
     init->restart = 1;
 
-    return nxt_master_create_worker_process(task, rt, init);
+    return nxt_main_create_worker_process(task, rt, init);
 }
 
 
 static nxt_int_t
-nxt_master_start_discovery_process(nxt_task_t *task, nxt_runtime_t *rt)
+nxt_main_start_discovery_process(nxt_task_t *task, nxt_runtime_t *rt)
 {
     nxt_process_init_t  *init;
 
@@ -330,12 +330,12 @@ nxt_master_start_discovery_process(nxt_task_t *task, nxt_runtime_t *rt)
     init->stream = 0;
     init->restart = 0;
 
-    return nxt_master_create_worker_process(task, rt, init);
+    return nxt_main_create_worker_process(task, rt, init);
 }
 
 
 static nxt_int_t
-nxt_master_start_router_process(nxt_task_t *task, nxt_runtime_t *rt)
+nxt_main_start_router_process(nxt_task_t *task, nxt_runtime_t *rt)
 {
     nxt_process_init_t  *init;
 
@@ -354,12 +354,12 @@ nxt_master_start_router_process(nxt_task_t *task, nxt_runtime_t *rt)
     init->stream = 0;
     init->restart = 1;
 
-    return nxt_master_create_worker_process(task, rt, init);
+    return nxt_main_create_worker_process(task, rt, init);
 }
 
 
 static nxt_int_t
-nxt_master_start_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
+nxt_main_start_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
     nxt_common_app_conf_t *app_conf, uint32_t stream)
 {
     char                *user, *group;
@@ -416,12 +416,12 @@ nxt_master_start_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
     init->stream = stream;
     init->restart = 0;
 
-    return nxt_master_create_worker_process(task, rt, init);
+    return nxt_main_create_worker_process(task, rt, init);
 }
 
 
 static nxt_int_t
-nxt_master_create_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
+nxt_main_create_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
     nxt_process_init_t *init)
 {
     nxt_int_t      ret;
@@ -466,7 +466,7 @@ nxt_master_create_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
         return NXT_AGAIN;
 
     default:
-        /* The master process created a new process. */
+        /* The main process created a new process. */
 
         nxt_port_read_close(port);
         nxt_port_write_enable(task, port);
@@ -477,7 +477,7 @@ nxt_master_create_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
 
 
 void
-nxt_master_stop_worker_processes(nxt_task_t *task, nxt_runtime_t *rt)
+nxt_main_stop_worker_processes(nxt_task_t *task, nxt_runtime_t *rt)
 {
     nxt_port_t     *port;
     nxt_process_t  *process;
@@ -501,7 +501,7 @@ nxt_master_stop_worker_processes(nxt_task_t *task, nxt_runtime_t *rt)
 
 
 static void
-nxt_master_process_sigterm_handler(nxt_task_t *task, void *obj, void *data)
+nxt_main_process_sigterm_handler(nxt_task_t *task, void *obj, void *data)
 {
     nxt_debug(task, "sigterm handler signo:%d (%s)",
               (int) (uintptr_t) obj, data);
@@ -515,7 +515,7 @@ nxt_master_process_sigterm_handler(nxt_task_t *task, void *obj, void *data)
 
 
 static void
-nxt_master_process_sigquit_handler(nxt_task_t *task, void *obj, void *data)
+nxt_main_process_sigquit_handler(nxt_task_t *task, void *obj, void *data)
 {
     nxt_debug(task, "sigquit handler signo:%d (%s)",
               (int) (uintptr_t) obj, data);
@@ -529,7 +529,7 @@ nxt_master_process_sigquit_handler(nxt_task_t *task, void *obj, void *data)
 
 
 static void
-nxt_master_process_sigusr1_handler(nxt_task_t *task, void *obj, void *data)
+nxt_main_process_sigusr1_handler(nxt_task_t *task, void *obj, void *data)
 {
     nxt_mp_t        *mp;
     nxt_int_t       ret;
@@ -619,7 +619,7 @@ fail:
 
 
 static void
-nxt_master_process_sigchld_handler(nxt_task_t *task, void *obj, void *data)
+nxt_main_process_sigchld_handler(nxt_task_t *task, void *obj, void *data)
 {
     int                    status;
     nxt_err_t              err;
@@ -668,13 +668,13 @@ nxt_master_process_sigchld_handler(nxt_task_t *task, void *obj, void *data)
                       pid, WEXITSTATUS(status));
         }
 
-        nxt_master_cleanup_worker_process(task, pid);
+        nxt_main_cleanup_worker_process(task, pid);
     }
 }
 
 
 static void
-nxt_master_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid)
+nxt_main_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid)
 {
     nxt_buf_t           *buf;
     nxt_port_t          *port;
@@ -719,7 +719,7 @@ nxt_master_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid)
 
         } else if (init != NULL) {
             if (init->restart != 0) {
-                (void) nxt_master_create_worker_process(task, rt, init);
+                (void) nxt_main_create_worker_process(task, rt, init);
 
             } else {
                 nxt_free(init);
@@ -730,7 +730,7 @@ nxt_master_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid)
 
 
 static void
-nxt_master_port_socket_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
+nxt_main_port_socket_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
     size_t                  size;
     nxt_int_t               ret;
@@ -757,7 +757,7 @@ nxt_master_port_socket_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_debug(task, "listening socket \"%*s\"",
               sa->length, nxt_sockaddr_start(sa));
 
-    ret = nxt_master_listening_socket(sa, &ls);
+    ret = nxt_main_listening_socket(sa, &ls);
 
     if (ret == NXT_OK) {
         nxt_debug(task, "socket(\"%*s\"): %d",
@@ -788,7 +788,7 @@ nxt_master_port_socket_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
 
 static nxt_int_t
-nxt_master_listening_socket(nxt_sockaddr_t *sa, nxt_listening_socket_t *ls)
+nxt_main_listening_socket(nxt_sockaddr_t *sa, nxt_listening_socket_t *ls)
 {
     nxt_err_t         err;
     nxt_socket_t      s;
@@ -935,7 +935,7 @@ static nxt_conf_map_t  nxt_app_lang_module_map[] = {
 
 
 static void
-nxt_master_port_modules_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
+nxt_main_port_modules_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
     uint32_t               index;
     nxt_mp_t               *mp;
@@ -1008,10 +1008,10 @@ fail:
 
     nxt_mp_destroy(mp);
 
-    ret = nxt_master_start_controller_process(task, rt);
+    ret = nxt_main_start_controller_process(task, rt);
 
     if (ret == NXT_OK) {
-        (void) nxt_master_start_router_process(task, rt);
+        (void) nxt_main_start_router_process(task, rt);
     }
 }
 

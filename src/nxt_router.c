@@ -192,7 +192,7 @@ nxt_router_start(nxt_task_t *task, void *data)
 static nxt_start_worker_t *
 nxt_router_sw_create(nxt_task_t *task, nxt_app_t *app, nxt_req_app_link_t *ra)
 {
-    nxt_port_t          *master_port;
+    nxt_port_t          *main_port;
     nxt_runtime_t       *rt;
     nxt_start_worker_t  *sw;
 
@@ -209,19 +209,19 @@ nxt_router_sw_create(nxt_task_t *task, nxt_app_t *app, nxt_req_app_link_t *ra)
                     ra->req_id, &app->name, app);
 
     rt = task->thread->runtime;
-    master_port = rt->port_by_type[NXT_PROCESS_MASTER];
+    main_port = rt->port_by_type[NXT_PROCESS_MAIN];
 
     sw->work.handler = nxt_router_send_sw_request;
-    sw->work.task = &master_port->engine->task;
+    sw->work.task = &main_port->engine->task;
     sw->work.obj = sw;
     sw->work.data = task->thread->engine;
     sw->work.next = NULL;
 
-    if (task->thread->engine != master_port->engine) {
-        nxt_debug(task, "sw %p post send to master engine %p", sw,
-                  master_port->engine);
+    if (task->thread->engine != main_port->engine) {
+        nxt_debug(task, "sw %p post send to main engine %p", sw,
+                  main_port->engine);
 
-        nxt_event_engine_post(master_port->engine, &sw->work);
+        nxt_event_engine_post(main_port->engine, &sw->work);
 
     } else {
         nxt_router_send_sw_request(task, sw, sw->work.data);
@@ -1013,7 +1013,7 @@ nxt_router_listen_socket_rpc_create(nxt_task_t *task,
                              skcf->sockaddr->sockaddr_size);
 
     rt = task->thread->runtime;
-    main_port = rt->port_by_type[NXT_PROCESS_MASTER];
+    main_port = rt->port_by_type[NXT_PROCESS_MAIN];
     router_port = rt->port_by_type[NXT_PROCESS_ROUTER];
 
     stream = nxt_port_rpc_register_handler(task, router_port,
@@ -2133,7 +2133,7 @@ nxt_router_send_sw_request(nxt_task_t *task, void *obj, void *data)
     uint32_t            stream;
     nxt_buf_t           *b;
     nxt_app_t           *app;
-    nxt_port_t          *master_port, *router_port;
+    nxt_port_t          *main_port, *router_port;
     nxt_runtime_t       *rt;
     nxt_start_worker_t  *sw;
 
@@ -2158,12 +2158,12 @@ nxt_router_send_sw_request(nxt_task_t *task, void *obj, void *data)
     nxt_debug(task, "sw %p send", sw);
 
     rt = task->thread->runtime;
-    master_port = rt->port_by_type[NXT_PROCESS_MASTER];
+    main_port = rt->port_by_type[NXT_PROCESS_MAIN];
     router_port = rt->port_by_type[NXT_PROCESS_ROUTER];
 
     size = app->name.length + 1 + app->conf.length;
 
-    b = nxt_buf_mem_alloc(master_port->mem_pool, size, 0);
+    b = nxt_buf_mem_alloc(main_port->mem_pool, size, 0);
 
     nxt_buf_cpystr(b, &app->name);
     *b->mem.free++ = '\0';
@@ -2172,9 +2172,9 @@ nxt_router_send_sw_request(nxt_task_t *task, void *obj, void *data)
     stream = nxt_port_rpc_register_handler(task, router_port,
                                            nxt_router_sw_ready,
                                            nxt_router_sw_error,
-                                           master_port->pid, sw);
+                                           main_port->pid, sw);
 
-    nxt_port_socket_write(task, master_port, NXT_PORT_MSG_START_WORKER, -1,
+    nxt_port_socket_write(task, main_port, NXT_PORT_MSG_START_WORKER, -1,
                           stream, router_port->id, b);
 }
 

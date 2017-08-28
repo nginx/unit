@@ -63,7 +63,7 @@ func remove_by_pid(pid int) {
 	port_registry_.Unlock()
 }
 
-func master_port() *port {
+func main_port() *port {
 	port_registry_.RLock()
 	res := port_registry_.t[1]
 	port_registry_.RUnlock()
@@ -143,9 +143,9 @@ func nxt_go_port_send(pid C.int, id C.int, buf unsafe.Pointer, buf_size C.int, o
 	return 0
 }
 
-//export nxt_go_master_send
-func nxt_go_master_send(buf unsafe.Pointer, buf_size C.int, oob unsafe.Pointer, oob_size C.int) C.int {
-	p := master_port()
+//export nxt_go_main_send
+func nxt_go_main_send(buf unsafe.Pointer, buf_size C.int, oob unsafe.Pointer, oob_size C.int) C.int {
+	p := main_port()
 
 	if p != nil {
 		n, oobn, err := p.snd.WriteMsgUnix(C.GoBytes(buf, buf_size), C.GoBytes(oob, oob_size), nil)

@@ -51,7 +51,7 @@ nxt_go_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 
     nxt_runtime_port_each(rt, port) {
 
-        if (port->pid != nxt_pid && port->type != NXT_PROCESS_MASTER) {
+        if (port->pid != nxt_pid && port->type != NXT_PROCESS_MAIN) {
             continue;
         }
 

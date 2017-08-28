@@ -178,7 +178,7 @@ nxt_port_send_new_port(nxt_task_t *task, nxt_runtime_t *rt,
 
         port = nxt_process_port_first(process);
 
-        if (port->type == NXT_PROCESS_MASTER ||
+        if (port->type == NXT_PROCESS_MAIN ||
             port->type == NXT_PROCESS_CONTROLLER ||
             port->type == NXT_PROCESS_ROUTER) {
 
@@ -280,7 +280,7 @@ nxt_port_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     rt = task->thread->runtime;
 
-    nxt_assert(nxt_runtime_is_master(rt));
+    nxt_assert(nxt_runtime_is_main(rt));
 
     process = nxt_runtime_process_get(rt, msg->port_msg.pid);
     if (nxt_slow_path(process == NULL)) {

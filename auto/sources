@@ -72,7 +72,7 @@ NXT_LIB_DEPS=" \
     src/nxt_runtime.h \
     src/nxt_conf.h \
     src/nxt_application.h \
-    src/nxt_master_process.h \
+    src/nxt_main_process.h \
     src/nxt_router.h \
     src/nxt_port_hash.h \
 "
@@ -151,7 +151,7 @@ NXT_LIB_SRCS=" \
     src/nxt_conf.c \
     src/nxt_conf_validation.c \
     src/nxt_stream_module.c \
-    src/nxt_master_process.c \
+    src/nxt_main_process.c \
     src/nxt_worker_process.c \
     src/nxt_controller.c \
     src/nxt_router.c \

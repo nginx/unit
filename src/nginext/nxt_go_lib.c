@@ -179,7 +179,7 @@ nxt_go_ready()
     port_msg.last = 1;
     port_msg.mmap = 0;
 
-    nxt_go_master_send(&port_msg, sizeof(port_msg), NULL, 0);
+    nxt_go_main_send(&port_msg, sizeof(port_msg), NULL, 0);
 }
 
 
