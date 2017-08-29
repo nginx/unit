@@ -2143,10 +2143,9 @@ nxt_router_send_sw_request(nxt_task_t *task, void *obj, void *data)
     nxt_queue_insert_tail(&app->requests, &sw->ra->link);
 
     if (app->workers + app->pending_workers >= app->max_workers) {
-        nxt_debug(task, "app '%V' %p %uD/%uD running/penging workers, "
-                  "post sw #%uxD release to %p", &app->name, app,
-                  "sw %p release", &app->name, app,
-                   app->workers, app->pending_workers, sw);
+        nxt_debug(task, "app '%V' %p %uD/%uD running/pending workers, "
+                  "max_workers (%uD) reached", &app->name, app,
+                   app->workers, app->pending_workers, app->max_workers);
 
         nxt_router_sw_release(task, sw);
 
