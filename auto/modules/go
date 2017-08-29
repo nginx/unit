@@ -79,7 +79,7 @@ fi
 
 
 
-NXT_GO_PATH=${NXT_GO_PATH=`go env GOPATH`}
+NXT_GO_PATH=${NXT_GO_PATH=`${NXT_GO} env GOPATH`}
 NXT_GO_PATH=${NXT_GO_PATH:-`pwd`/${NXT_GO}}
 
 $echo " + Go package path: \"${NXT_GO_PATH}\""
@@ -100,8 +100,8 @@ all: ${NXT_GO}
 NXT_ROOT =	`pwd`
 
 GOPATH =	$NXT_GO_PATH
-GOOS =		`go env GOOS`
-GOARCH =	`go env GOARCH`
+GOOS =		`${NXT_GO} env GOOS`
+GOARCH =	`${NXT_GO} env GOARCH`
 
 ${NXT_GO}:
 	install -d \$(GOPATH)/src/nginext
@@ -110,7 +110,7 @@ ${NXT_GO}:
 	CGO_CFLAGS="-I\$(NXT_ROOT)/build -I\$(NXT_ROOT)/src" \\
 		CGO_LDFLAGS="-L\$(NXT_ROOT)/build ${NXT_LIBRT}" \\
 		GOPATH=$NXT_GO_PATH \\
-		go install -v nginext
+		${NXT_GO} install -v nginext
 
 ${NXT_GO}-uninstall:
 	rm -rf \$(GOPATH)/src/nginext
