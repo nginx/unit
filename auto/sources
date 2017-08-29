@@ -15,6 +15,7 @@ NXT_LIB_DEPS=" \
     src/nxt_file.h \
     src/nxt_mem_map.h \
     src/nxt_socket.h \
+    src/nxt_process_type.h \
     src/nxt_process.h \
     src/nxt_signal.h \
     src/nxt_port.h \

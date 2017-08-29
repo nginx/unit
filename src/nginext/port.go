@@ -7,6 +7,7 @@ package nginext
 
 /*
 #include "nxt_go_lib.h"
+#include "nxt_process_type.h"
 */
 import "C"
 
@@ -33,7 +34,7 @@ type port struct {
 type port_registry struct {
 	sync.RWMutex
 	m map[port_key]*port
-	t [5]*port
+	t [C.NXT_PROCESS_MAX]*port
 }
 
 var port_registry_ port_registry
@@ -65,7 +66,7 @@ func remove_by_pid(pid int) {
 
 func main_port() *port {
 	port_registry_.RLock()
-	res := port_registry_.t[1]
+	res := port_registry_.t[C.NXT_PROCESS_MAIN]
 	port_registry_.RUnlock()
 
 	return res

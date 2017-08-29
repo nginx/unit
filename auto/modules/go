@@ -56,7 +56,7 @@ $echo "configuring Go package ..." >> $NXT_AUTOCONF_ERR
 $echo -n "checking for Go ..."
 $echo "checking for Go ..." >> $NXT_AUTOCONF_ERR
 
-nxt_go_test="GOPATH=`pwd` CGO_CPPFLAGS=-DNXT_CONFIGURE \
+nxt_go_test="GOPATH=`pwd` CGO_CPPFLAGS='-DNXT_CONFIGURE -I`pwd`/src'\
     \"${NXT_GO}\" build -o build/nxt_go_gen.a --buildmode=c-archive nginext"
 
 
