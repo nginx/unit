@@ -108,7 +108,7 @@ ${NXT_GO}:
 	install -p ./src/nginext/*.c ./src/nginext/*.h \\
 		./src/nginext/*.go \$(GOPATH)/src/nginext/
 	CGO_CFLAGS="-I\$(NXT_ROOT)/build -I\$(NXT_ROOT)/src" \\
-		CGO_LDFLAGS="-L\$(NXT_ROOT)/build" \\
+		CGO_LDFLAGS="-L\$(NXT_ROOT)/build ${NXT_LIBRT}" \\
 		GOPATH=$NXT_GO_PATH \\
 		go install -v nginext
 

@@ -13,6 +13,7 @@ nxt_feature_libs=
 
 if [ "$NXT_SYSTEM" = "Linux" ]; then
     nxt_feature_libs=-lrt
+    NXT_LIBRT=-lrt
 fi
 
 nxt_feature_test="#include <sys/mman.h>
