@@ -147,6 +147,8 @@ cat << END >> $NXT_MAKEFILE
 
 .PHONY:			${NXT_PYTHON_MODULE}
 
+all: ${NXT_PYTHON_MODULE}
+
 ${NXT_PYTHON_MODULE}:	$NXT_BUILD_DIR/nginext.${NXT_PYTHON_MODULE}
 
 $NXT_BUILD_DIR/nginext.${NXT_PYTHON_MODULE}:	$nxt_objs
@@ -154,5 +156,3 @@ $NXT_BUILD_DIR/nginext.${NXT_PYTHON_MODULE}:	$nxt_objs
 	$nxt_objs $NXT_PYTHON_LIBS
 
 END
-
-sed -i.bak -e "s/\(all:.*\)/\1 ${NXT_PYTHON_MODULE}/" $NXT_MAKEFILE

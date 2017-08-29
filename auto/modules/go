@@ -95,6 +95,8 @@ cat << END >> $NXT_MAKEFILE
 
 .PHONY:		${NXT_GO}
 
+all: ${NXT_GO}
+
 NXT_ROOT =	`pwd`
 
 GOPATH =	$NXT_GO_PATH
@@ -115,5 +117,3 @@ ${NXT_GO}-uninstall:
 	rm -f \$(GOPATH)/pkg/\$(GOOS)_\$(GOARCH)/nginext.a
 
 END
-
-sed -i.bak -e "s/\(all:.*\)/\1 ${NXT_GO}/" $NXT_MAKEFILE

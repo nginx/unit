@@ -150,6 +150,8 @@ cat << END >> $NXT_MAKEFILE
 
 .PHONY:			${NXT_PHP_MODULE}
 
+all: ${NXT_PHP_MODULE}
+
 ${NXT_PHP_MODULE}:	$NXT_BUILD_DIR/nginext.${NXT_PHP_MODULE}
 
 $NXT_BUILD_DIR/nginext.${NXT_PHP_MODULE}:	$nxt_objs
@@ -157,5 +159,3 @@ $NXT_BUILD_DIR/nginext.${NXT_PHP_MODULE}:	$nxt_objs
 	$nxt_objs ${NXT_PHP_LIB} ${NXT_PHP_LDFLAGS}
 
 END
-
-sed -i.bak -e "s/\(all:.*\)/\1 ${NXT_PHP_MODULE}/" $NXT_MAKEFILE
