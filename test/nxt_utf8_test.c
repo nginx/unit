@@ -5,6 +5,7 @@
  */
 
 #include <nxt_main.h>
+#include "nxt_tests.h"
 
 
 #define NXT_UTF8_START_TEST  0xc2
@@ -78,7 +79,7 @@ nxt_utf8_overlong(nxt_thread_t *thr, u_char *overlong, size_t len)
 
 
 nxt_int_t
-nxt_utf8_unit_test(nxt_thread_t *thr)
+nxt_utf8_test(nxt_thread_t *thr)
 {
     u_char        *p, utf8[4];
     size_t        len;
@@ -89,7 +90,7 @@ nxt_utf8_unit_test(nxt_thread_t *thr)
 
     nxt_thread_time_update(thr);
 
-    nxt_log_error(NXT_LOG_NOTICE, thr->log, "utf8 unit test started");
+    nxt_log_error(NXT_LOG_NOTICE, thr->log, "utf8 test started");
 
     /* Test valid UTF-8. */
 
@@ -185,6 +186,6 @@ nxt_utf8_unit_test(nxt_thread_t *thr)
         return NXT_ERROR;
     }
 
-    nxt_log_error(NXT_LOG_NOTICE, thr->log, "utf8 unit test passed");
+    nxt_log_error(NXT_LOG_NOTICE, thr->log, "utf8 test passed");
     return NXT_OK;
 }

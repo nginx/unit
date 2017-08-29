@@ -38,7 +38,7 @@ NXT_TEST_BUILD_SOLARIS_SENDFILEV=NO
 NXT_TEST_BUILD_AIX_SEND_FILE=NO
 NXT_TEST_BUILD_HPUX_SENDFILE=NO
 
-NXT_LIB_UNIT_TEST=NO
+NXT_TESTS=NO
 
 for nxt_option
 do
@@ -89,7 +89,7 @@ do
         --test-build-aix-send_file)      NXT_TEST_BUILD_AIX_SEND_FILE=YES    ;;
         --test-build-hpux-sendfile)      NXT_TEST_BUILD_HPUX_SENDFILE=YES    ;;
 
-        --tests)                         NXT_LIB_UNIT_TEST=YES               ;;
+        --tests)                         NXT_TESTS=YES                       ;;
 
         *)
             $echo

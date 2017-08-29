@@ -5,10 +5,11 @@
  */
 
 #include <nxt_main.h>
+#include "nxt_tests.h"
 
 
 nxt_int_t
-nxt_mem_zone_unit_test(nxt_thread_t *thr, nxt_uint_t runs, nxt_uint_t nblocks,
+nxt_mem_zone_test(nxt_thread_t *thr, nxt_uint_t runs, nxt_uint_t nblocks,
     size_t max_size)
 {
     void            *start, **blocks;
@@ -20,7 +21,7 @@ nxt_mem_zone_unit_test(nxt_thread_t *thr, nxt_uint_t runs, nxt_uint_t nblocks,
 
     nxt_thread_time_update(thr);
     nxt_log_error(NXT_LOG_NOTICE, thr->log,
-                  "mem zone unit test started, max:%uz", max_size);
+                  "mem zone test started, max:%uz", max_size);
 
     zone_size = (max_size + 1) * nblocks;
 
@@ -53,7 +54,7 @@ nxt_mem_zone_unit_test(nxt_thread_t *thr, nxt_uint_t runs, nxt_uint_t nblocks,
 
             if (blocks[n] == NULL) {
                 nxt_log_error(NXT_LOG_NOTICE, thr->log,
-                              "mem zone unit test failed: %uz", total);
+                              "mem zone test failed: %uz", total);
                 return NXT_ERROR;
             }
         }
@@ -67,7 +68,7 @@ nxt_mem_zone_unit_test(nxt_thread_t *thr, nxt_uint_t runs, nxt_uint_t nblocks,
     nxt_free(zone);
 
     nxt_thread_time_update(thr);
-    nxt_log_error(NXT_LOG_NOTICE, thr->log, "mem zone unit test passed");
+    nxt_log_error(NXT_LOG_NOTICE, thr->log, "mem zone test passed");
 
     return NXT_OK;
 }

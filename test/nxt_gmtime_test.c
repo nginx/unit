@@ -5,6 +5,7 @@
  */
 
 #include <nxt_main.h>
+#include "nxt_tests.h"
 
 
 #if (NXT_TIME_T_SIZE == 4)
@@ -22,14 +23,14 @@
 
 
 nxt_int_t
-nxt_gmtime_unit_test(nxt_thread_t *thr)
+nxt_gmtime_test(nxt_thread_t *thr)
 {
     struct tm   tm0, *tm1;
     nxt_time_t  s;
     nxt_nsec_t  start, end;
 
     nxt_thread_time_update(thr);
-    nxt_log_error(NXT_LOG_NOTICE, thr->log, "gmtime unit test started");
+    nxt_log_error(NXT_LOG_NOTICE, thr->log, "gmtime test started");
 
     for (s = 0; s < NXT_GMTIME_MAX; s += 86400) {
 
@@ -43,7 +44,7 @@ nxt_gmtime_unit_test(nxt_thread_t *thr)
             || tm0.tm_wday != tm1->tm_wday)
         {
             nxt_log_alert(thr->log,
-                          "gmtime unit test failed: %T @ %02d.%02d.%d",
+                          "gmtime test failed: %T @ %02d.%02d.%d",
                           s, tm1->tm_mday, tm1->tm_mon + 1,
                           tm1->tm_year + 1900);
             return NXT_ERROR;
@@ -78,6 +79,6 @@ nxt_gmtime_unit_test(nxt_thread_t *thr)
     nxt_log_error(NXT_LOG_NOTICE, thr->log, "gmtime(): %0.1fns",
                   (end - start) / 10000000.0);
 
-    nxt_log_error(NXT_LOG_NOTICE, thr->log, "gmtime unit test passed");
+    nxt_log_error(NXT_LOG_NOTICE, thr->log, "gmtime test passed");
     return NXT_OK;
 }

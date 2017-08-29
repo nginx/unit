@@ -5,10 +5,11 @@
  */
 
 #include <nxt_main.h>
+#include "nxt_tests.h"
 
 
 static nxt_int_t
-nxt_lvlhsh_unit_test_key_test(nxt_lvlhsh_query_t *lhq, void *data)
+nxt_lvlhsh_test_key_test(nxt_lvlhsh_query_t *lhq, void *data)
 {
     if (*(uintptr_t *) lhq->key.start == (uintptr_t) data) {
         return NXT_OK;
@@ -19,14 +20,14 @@ nxt_lvlhsh_unit_test_key_test(nxt_lvlhsh_query_t *lhq, void *data)
 
 
 static void *
-nxt_lvlhsh_unit_test_pool_alloc(void *pool, size_t size)
+nxt_lvlhsh_test_pool_alloc(void *pool, size_t size)
 {
     return nxt_mp_align(pool, size, size);
 }
 
 
 static void
-nxt_lvlhsh_unit_test_pool_free(void *pool, void *p)
+nxt_lvlhsh_test_pool_free(void *pool, void *p)
 {
     nxt_mp_free(pool, p);
 }
@@ -35,21 +36,21 @@ nxt_lvlhsh_unit_test_pool_free(void *pool, void *p)
 static const nxt_lvlhsh_proto_t  malloc_proto  nxt_aligned(64) = {
     //NXT_LVLHSH_LARGE_MEMALIGN,
     NXT_LVLHSH_DEFAULT,
-    nxt_lvlhsh_unit_test_key_test,
+    nxt_lvlhsh_test_key_test,
     nxt_lvlhsh_alloc,
     nxt_lvlhsh_free,
 };
 
 static const nxt_lvlhsh_proto_t  pool_proto  nxt_aligned(64) = {
     NXT_LVLHSH_LARGE_SLAB,
-    nxt_lvlhsh_unit_test_key_test,
-    nxt_lvlhsh_unit_test_pool_alloc,
-    nxt_lvlhsh_unit_test_pool_free,
+    nxt_lvlhsh_test_key_test,
+    nxt_lvlhsh_test_pool_alloc,
+    nxt_lvlhsh_test_pool_free,
 };
 
 
 static nxt_int_t
-nxt_lvlhsh_unit_test_add(nxt_lvlhsh_t *lh, const nxt_lvlhsh_proto_t *proto,
+nxt_lvlhsh_test_add(nxt_lvlhsh_t *lh, const nxt_lvlhsh_proto_t *proto,
     void *pool, uintptr_t key)
 {
     nxt_lvlhsh_query_t  lhq;
@@ -68,7 +69,7 @@ nxt_lvlhsh_unit_test_add(nxt_lvlhsh_t *lh, const nxt_lvlhsh_proto_t *proto,
         return NXT_OK;
 
     case NXT_DECLINED:
-        nxt_thread_log_alert("lvlhsh unit test failed: "
+        nxt_thread_log_alert("lvlhsh test failed: "
                              "key %p is already in hash", key);
         /* Fall through. */
     default:
@@ -78,7 +79,7 @@ nxt_lvlhsh_unit_test_add(nxt_lvlhsh_t *lh, const nxt_lvlhsh_proto_t *proto,
 
 
 static nxt_int_t
-nxt_lvlhsh_unit_test_get(nxt_lvlhsh_t *lh, const nxt_lvlhsh_proto_t *proto,
+nxt_lvlhsh_test_get(nxt_lvlhsh_t *lh, const nxt_lvlhsh_proto_t *proto,
     uintptr_t key)
 {
     nxt_lvlhsh_query_t  lhq;
@@ -95,7 +96,7 @@ nxt_lvlhsh_unit_test_get(nxt_lvlhsh_t *lh, const nxt_lvlhsh_proto_t *proto,
         }
     }
 
-    nxt_thread_log_alert("lvlhsh unit test failed: "
+    nxt_thread_log_alert("lvlhsh test failed: "
                          "key %p not found in hash", key);
 
     return NXT_ERROR;
@@ -103,7 +104,7 @@ nxt_lvlhsh_unit_test_get(nxt_lvlhsh_t *lh, const nxt_lvlhsh_proto_t *proto,
 
 
 static nxt_int_t
-nxt_lvlhsh_unit_test_delete(nxt_lvlhsh_t *lh, const nxt_lvlhsh_proto_t *proto,
+nxt_lvlhsh_test_delete(nxt_lvlhsh_t *lh, const nxt_lvlhsh_proto_t *proto,
     void *pool, uintptr_t key)
 {
     nxt_int_t           ret;
@@ -118,7 +119,7 @@ nxt_lvlhsh_unit_test_delete(nxt_lvlhsh_t *lh, const nxt_lvlhsh_proto_t *proto,
     ret = nxt_lvlhsh_delete(lh, &lhq);
 
     if (ret != NXT_OK) {
-        nxt_thread_log_alert("lvlhsh unit test failed: "
+        nxt_thread_log_alert("lvlhsh test failed: "
                              "key %p not found in hash", key);
     }
 
@@ -127,7 +128,7 @@ nxt_lvlhsh_unit_test_delete(nxt_lvlhsh_t *lh, const nxt_lvlhsh_proto_t *proto,
 
 
 nxt_int_t
-nxt_lvlhsh_unit_test(nxt_thread_t *thr, nxt_uint_t n, nxt_bool_t use_pool)
+nxt_lvlhsh_test(nxt_thread_t *thr, nxt_uint_t n, nxt_bool_t use_pool)
 {
     uintptr_t                 key;
     nxt_mp_t                  *mp;
@@ -153,12 +154,12 @@ nxt_lvlhsh_unit_test(nxt_thread_t *thr, nxt_uint_t n, nxt_bool_t use_pool)
         }
 
         nxt_log_error(NXT_LOG_NOTICE, thr->log,
-                      "lvlhsh unit test started: %uD pool", n);
+                      "lvlhsh test started: %uD pool", n);
         proto = &pool_proto;
 
     } else {
         nxt_log_error(NXT_LOG_NOTICE, thr->log,
-                      "lvlhsh unit test started: %uD malloc", n);
+                      "lvlhsh test started: %uD malloc", n);
         proto = &malloc_proto;
         mp = NULL;
     }
@@ -169,9 +170,9 @@ nxt_lvlhsh_unit_test(nxt_thread_t *thr, nxt_uint_t n, nxt_bool_t use_pool)
     for (i = 0; i < n; i++) {
         key = nxt_murmur_hash2(&key, sizeof(uint32_t));
 
-        if (nxt_lvlhsh_unit_test_add(&lh, proto, mp, key) != NXT_OK) {
+        if (nxt_lvlhsh_test_add(&lh, proto, mp, key) != NXT_OK) {
             nxt_log_error(NXT_LOG_NOTICE, thr->log,
-                          "lvlhsh add unit test failed at %ui", i);
+                          "lvlhsh add test failed at %ui", i);
             return NXT_ERROR;
         }
     }
@@ -180,7 +181,7 @@ nxt_lvlhsh_unit_test(nxt_thread_t *thr, nxt_uint_t n, nxt_bool_t use_pool)
     for (i = 0; i < n; i++) {
         key = nxt_murmur_hash2(&key, sizeof(uint32_t));
 
-        if (nxt_lvlhsh_unit_test_get(&lh, proto, key) != NXT_OK) {
+        if (nxt_lvlhsh_test_get(&lh, proto, key) != NXT_OK) {
             return NXT_ERROR;
         }
     }
@@ -196,7 +197,7 @@ nxt_lvlhsh_unit_test(nxt_thread_t *thr, nxt_uint_t n, nxt_bool_t use_pool)
 
     if (i != n) {
         nxt_log_error(NXT_LOG_NOTICE, thr->log,
-                      "lvlhsh each unit test failed at %ui of %ui", i, n);
+                      "lvlhsh each test failed at %ui of %ui", i, n);
         return NXT_ERROR;
     }
 
@@ -204,7 +205,7 @@ nxt_lvlhsh_unit_test(nxt_thread_t *thr, nxt_uint_t n, nxt_bool_t use_pool)
     for (i = 0; i < n; i++) {
         key = nxt_murmur_hash2(&key, sizeof(uint32_t));
 
-        if (nxt_lvlhsh_unit_test_delete(&lh, proto, mp, key) != NXT_OK) {
+        if (nxt_lvlhsh_test_delete(&lh, proto, mp, key) != NXT_OK) {
             return NXT_ERROR;
         }
     }
@@ -221,7 +222,7 @@ nxt_lvlhsh_unit_test(nxt_thread_t *thr, nxt_uint_t n, nxt_bool_t use_pool)
     nxt_thread_time_update(thr);
     end = nxt_thread_monotonic_time(thr);
 
-    nxt_log_error(NXT_LOG_NOTICE, thr->log, "lvlhsh unit test passed: %0.3fs",
+    nxt_log_error(NXT_LOG_NOTICE, thr->log, "lvlhsh test passed: %0.3fs",
                   (end - start) / 1000000000.0);
 
     return NXT_OK;

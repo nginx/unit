@@ -5,6 +5,7 @@
  */
 
 #include <nxt_main.h>
+#include "nxt_tests.h"
 
 
 typedef struct {
@@ -13,15 +14,14 @@ typedef struct {
 } nxt_rbtree_test_t;
 
 
-static intptr_t nxt_rbtree_unit_test_comparison(nxt_rbtree_node_t *node1,
+static intptr_t nxt_rbtree_test_comparison(nxt_rbtree_node_t *node1,
     nxt_rbtree_node_t *node2);
-static nxt_int_t nxt_rbtree_unit_test_compare(uint32_t key1, uint32_t key2);
-static int nxt_cdecl nxt_rbtree_unit_test_sort_cmp(const void *one,
-    const void *two);
+static nxt_int_t nxt_rbtree_test_compare(uint32_t key1, uint32_t key2);
+static int nxt_cdecl nxt_rbtree_test_sort_cmp(const void *one, const void *two);
 
 
 nxt_int_t
-nxt_rbtree_unit_test(nxt_thread_t *thr, nxt_uint_t n)
+nxt_rbtree_test(nxt_thread_t *thr, nxt_uint_t n)
 {
     void               *mark;
     uint32_t           key, *keys;
@@ -33,9 +33,9 @@ nxt_rbtree_unit_test(nxt_thread_t *thr, nxt_uint_t n)
 
     nxt_thread_time_update(thr);
 
-    nxt_log_error(NXT_LOG_NOTICE, thr->log, "rbtree unit test started: %ui", n);
+    nxt_log_error(NXT_LOG_NOTICE, thr->log, "rbtree test started: %ui", n);
 
-    nxt_rbtree_init(&tree, nxt_rbtree_unit_test_comparison);
+    nxt_rbtree_init(&tree, nxt_rbtree_test_comparison);
 
     mark = tree.sentinel.right;
 
@@ -59,7 +59,7 @@ nxt_rbtree_unit_test(nxt_thread_t *thr, nxt_uint_t n)
         items[i].key = key;
     }
 
-    nxt_qsort(keys, n, sizeof(uint32_t), nxt_rbtree_unit_test_sort_cmp);
+    nxt_qsort(keys, n, sizeof(uint32_t), nxt_rbtree_test_sort_cmp);
 
     nxt_thread_time_update(thr);
     start = nxt_thread_monotonic_time(thr);
@@ -72,7 +72,7 @@ nxt_rbtree_unit_test(nxt_thread_t *thr, nxt_uint_t n)
         node = nxt_rbtree_find(&tree, &items[i].node);
 
         if (node != (nxt_rbtree_node_t *) &items[i].node) {
-            nxt_log_alert(thr->log, "rbtree unit test failed: %08XD not found",
+            nxt_log_alert(thr->log, "rbtree test failed: %08XD not found",
                           items[i].key);
             goto fail;
         }
@@ -86,7 +86,7 @@ nxt_rbtree_unit_test(nxt_thread_t *thr, nxt_uint_t n)
         item = (nxt_rbtree_test_t *) node;
 
         if (keys[i] != item->key) {
-            nxt_log_alert(thr->log, "rbtree unit test failed: %i: %08XD %08XD",
+            nxt_log_alert(thr->log, "rbtree test failed: %i: %08XD %08XD",
                           i, keys[i], item->key);
             goto fail;
         }
@@ -96,7 +96,7 @@ nxt_rbtree_unit_test(nxt_thread_t *thr, nxt_uint_t n)
     }
 
     if (i != n) {
-        nxt_log_alert(thr->log, "rbtree unit test failed: %ui", i);
+        nxt_log_alert(thr->log, "rbtree test failed: %ui", i);
         goto fail;
     }
 
@@ -109,21 +109,21 @@ nxt_rbtree_unit_test(nxt_thread_t *thr, nxt_uint_t n)
     end = nxt_thread_monotonic_time(thr);
 
     if (!nxt_rbtree_is_empty(&tree)) {
-        nxt_log_alert(thr->log, "rbtree unit test failed: tree is not empty");
+        nxt_log_alert(thr->log, "rbtree test failed: tree is not empty");
         goto fail;
     }
 
     /* Check that the sentinel callback was not modified. */
 
     if (mark != tree.sentinel.right) {
-        nxt_log_alert(thr->log, "rbtree sentinel unit test failed");
+        nxt_log_alert(thr->log, "rbtree sentinel test failed");
         goto fail;
     }
 
     nxt_free(keys);
     nxt_free(items);
 
-    nxt_log_error(NXT_LOG_NOTICE, thr->log, "rbtree unit test passed %0.3fs",
+    nxt_log_error(NXT_LOG_NOTICE, thr->log, "rbtree test passed %0.3fs",
                   (end - start) / 1000000000.0);
 
     return NXT_OK;
@@ -138,7 +138,7 @@ fail:
 
 
 static intptr_t
-nxt_rbtree_unit_test_comparison(nxt_rbtree_node_t *node1,
+nxt_rbtree_test_comparison(nxt_rbtree_node_t *node1,
     nxt_rbtree_node_t *node2)
 {
     nxt_rbtree_test_t  *item1, *item2;
@@ -146,7 +146,7 @@ nxt_rbtree_unit_test_comparison(nxt_rbtree_node_t *node1,
     item1 = (nxt_rbtree_test_t *) node1;
     item2 = (nxt_rbtree_test_t *) node2;
 
-    return nxt_rbtree_unit_test_compare(item1->key, item2->key);
+    return nxt_rbtree_test_compare(item1->key, item2->key);
 }
 
 
@@ -157,7 +157,7 @@ nxt_rbtree_unit_test_comparison(nxt_rbtree_node_t *node1,
  */
 
 static nxt_int_t
-nxt_rbtree_unit_test_compare(uint32_t key1, uint32_t key2)
+nxt_rbtree_test_compare(uint32_t key1, uint32_t key2)
 {
     if (key1 < key2) {
         return -1;
@@ -172,7 +172,7 @@ nxt_rbtree_unit_test_compare(uint32_t key1, uint32_t key2)
 
 
 static int nxt_cdecl
-nxt_rbtree_unit_test_sort_cmp(const void *one, const void *two)
+nxt_rbtree_test_sort_cmp(const void *one, const void *two)
 {
     const uint32_t  *first, *second;
 
@@ -191,7 +191,7 @@ nxt_rbtree_unit_test_sort_cmp(const void *one, const void *two)
 }
 
 
-#if (NXT_UNIT_TEST_RTDTSC)
+#if (NXT_TEST_RTDTSC)
 
 #define NXT_RBT_STEP      (21 * nxt_pagesize / 10 / sizeof(nxt_rbtree_test_t))
 
@@ -213,7 +213,7 @@ nxt_rbtree_mb_start(nxt_thread_t *thr)
         return NXT_ERROR;
     }
 
-    nxt_rbtree_init(&mb_tree, nxt_rbtree_unit_test_comparison);
+    nxt_rbtree_init(&mb_tree, nxt_rbtree_test_comparison);
 
     key = 0;
 

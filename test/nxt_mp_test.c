@@ -5,10 +5,11 @@
  */
 
 #include <nxt_main.h>
+#include "nxt_tests.h"
 
 
 nxt_int_t
-nxt_mp_unit_test(nxt_thread_t *thr, nxt_uint_t runs, nxt_uint_t nblocks,
+nxt_mp_test(nxt_thread_t *thr, nxt_uint_t runs, nxt_uint_t nblocks,
     size_t max_size)
 {
     void          **blocks;
@@ -25,7 +26,7 @@ nxt_mp_unit_test(nxt_thread_t *thr, nxt_uint_t runs, nxt_uint_t nblocks,
 
     nxt_thread_time_update(thr);
     nxt_log_error(NXT_LOG_NOTICE, thr->log,
-                  "mem pool unit test started, max:%uz", max_size);
+                  "mem pool test started, max:%uz", max_size);
 
     blocks = nxt_malloc(nblocks * sizeof(void *));
     if (blocks == NULL) {
@@ -63,7 +64,7 @@ nxt_mp_unit_test(nxt_thread_t *thr, nxt_uint_t runs, nxt_uint_t nblocks,
 
             if (blocks[n] == NULL) {
                 nxt_log_error(NXT_LOG_NOTICE, thr->log,
-                              "mem pool unit test failed: %uz", total);
+                              "mem pool test failed: %uz", total);
                 return NXT_ERROR;
             }
         }
@@ -83,7 +84,7 @@ nxt_mp_unit_test(nxt_thread_t *thr, nxt_uint_t runs, nxt_uint_t nblocks,
     nxt_free(blocks);
 
     nxt_thread_time_update(thr);
-    nxt_log_error(NXT_LOG_NOTICE, thr->log, "mem pool unit test passed");
+    nxt_log_error(NXT_LOG_NOTICE, thr->log, "mem pool test passed");
 
     return NXT_OK;
 }

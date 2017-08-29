@@ -5,6 +5,7 @@
  */
 
 #include <nxt_main.h>
+#include "nxt_tests.h"
 
 
 #define TIMES  1000
@@ -18,7 +19,7 @@ typedef struct {
 
 
 static nxt_malloc_size_t *
-nxt_malloc_test(nxt_thread_t *thr, nxt_malloc_size_t *last, size_t size,
+nxt_malloc_run_test(nxt_thread_t *thr, nxt_malloc_size_t *last, size_t size,
     nxt_uint_t times)
 {
     size_t         a, s, alignment;
@@ -81,7 +82,7 @@ nxt_malloc_test(nxt_thread_t *thr, nxt_malloc_size_t *last, size_t size,
 
 
 nxt_int_t
-nxt_malloc_unit_test(nxt_thread_t *thr)
+nxt_malloc_test(nxt_thread_t *thr)
 {
     size_t                    size;
     nxt_malloc_size_t         *last, *s;
@@ -92,21 +93,21 @@ nxt_malloc_unit_test(nxt_thread_t *thr)
     last = &sizes[0];
 
     for (size = 1; size < 64; size++) {
-        last = nxt_malloc_test(thr, last, size, TIMES);
+        last = nxt_malloc_run_test(thr, last, size, TIMES);
         if (last == NULL) {
             return NXT_ERROR;
         }
     }
 
     for (size = 64; size < 16384; size += 8) {
-        last = nxt_malloc_test(thr, last, size, TIMES / 4);
+        last = nxt_malloc_run_test(thr, last, size, TIMES / 4);
         if (last == NULL) {
             return NXT_ERROR;
         }
     }
 
     for (size = 16384; size < 512 * 1024 + 129; size += 128) {
-        last = nxt_malloc_test(thr, last, size, TIMES / 16);
+        last = nxt_malloc_run_test(thr, last, size, TIMES / 16);
         if (last == NULL) {
             return NXT_ERROR;
         }

@@ -5,6 +5,7 @@
  */
 
 #include <nxt_main.h>
+#include "nxt_tests.h"
 
 
 typedef struct {
@@ -33,7 +34,7 @@ static const nxt_term_parse_test_t  terms[] = {
 
 
 nxt_int_t
-nxt_term_parse_unit_test(nxt_thread_t *thr)
+nxt_term_parse_test(nxt_thread_t *thr)
 {
     nxt_int_t        val;
     nxt_uint_t       i;
@@ -48,12 +49,12 @@ nxt_term_parse_unit_test(nxt_thread_t *thr)
 
         if (val != terms[i].value) {
             nxt_log_alert(thr->log,
-                          "term parse unit test failed: \"%V\": %i %i",
+                          "term parse test failed: \"%V\": %i %i",
                           s, terms[i].value, val);
             return NXT_ERROR;
         }
     }
 
-    nxt_log_error(NXT_LOG_NOTICE, thr->log, "term parse unit test passed");
+    nxt_log_error(NXT_LOG_NOTICE, thr->log, "term parse test passed");
     return NXT_OK;
 }

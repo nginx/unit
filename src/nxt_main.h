@@ -161,13 +161,6 @@ typedef struct nxt_upstream_source_s  nxt_upstream_source_t;
 #include <nxt_port_hash.h>
 
 
-#if (NXT_LIB_UNIT_TEST)
-#include <../test/nxt_lib_unit_test.h>
-#else
-#define NXT_LIB_UNIT_TEST_STATIC  static
-#endif
-
-
 /*
  * The envp argument must be &environ if application may
  * change its process title with nxt_process_title().

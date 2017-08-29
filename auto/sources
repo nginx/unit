@@ -198,28 +198,28 @@ NXT_LIB_MACOSX_SENDFILE_SRCS="src/nxt_macosx_sendfile.c"
 NXT_LIB_AIX_SEND_FILE_SRCS="src/nxt_aix_send_file.c"
 NXT_LIB_HPUX_SENDFILE_SRCS="src/nxt_hpux_sendfile.c"
 
-NXT_LIB_TEST_BUILD_DEPS="src/nxt_test_build.h"
-NXT_LIB_TEST_BUILD_SRCS="src/nxt_test_build.c"
+NXT_TEST_BUILD_DEPS="src/nxt_test_build.h"
+NXT_TEST_BUILD_SRCS="src/nxt_test_build.c"
 
-NXT_LIB_UNIT_TEST_DEPS="test/nxt_lib_unit_test.h \
+NXT_TEST_DEPS="test/nxt_tests.h \
     test/nxt_rbtree1.h \
 "
 
-NXT_LIB_UNIT_TEST_SRCS=" \
-    test/nxt_lib_unit_test.c \
+NXT_TEST_SRCS=" \
+    test/nxt_tests.c \
     test/nxt_rbtree1.c \
-    test/nxt_rbtree_unit_test.c \
-    test/nxt_term_parse_unit_test.c \
-    test/nxt_msec_diff_unit_test.c \
-    test/nxt_mp_unit_test.c \
-    test/nxt_mem_zone_unit_test.c \
-    test/nxt_lvlhsh_unit_test.c \
-    test/nxt_gmtime_unit_test.c \
-    test/nxt_sprintf_unit_test.c \
-    test/nxt_malloc_unit_test.c \
-    test/nxt_utf8_unit_test.c \
-    test/nxt_rbtree1_unit_test.c \
-    test/nxt_http_parse_unit_test.c \
+    test/nxt_rbtree_test.c \
+    test/nxt_term_parse_test.c \
+    test/nxt_msec_diff_test.c \
+    test/nxt_mp_test.c \
+    test/nxt_mem_zone_test.c \
+    test/nxt_lvlhsh_test.c \
+    test/nxt_gmtime_test.c \
+    test/nxt_sprintf_test.c \
+    test/nxt_malloc_test.c \
+    test/nxt_utf8_test.c \
+    test/nxt_rbtree1_test.c \
+    test/nxt_http_parse_test.c \
 "
 
 NXT_LIB_UTF8_FILE_NAME_TEST_SRCS=" \
@@ -323,13 +323,13 @@ fi
 
 
 if [ "$NXT_TEST_BUILD" = "YES" ]; then
-    NXT_LIB_DEPS="$NXT_LIB_DEPS $NXT_LIB_TEST_BUILD_DEPS"
-    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_TEST_BUILD_SRCS"
+    NXT_LIB_DEPS="$NXT_LIB_DEPS $NXT_TEST_BUILD_DEPS"
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_TEST_BUILD_SRCS"
 fi
 
 
-if [ $NXT_LIB_UNIT_TEST = YES ]; then
-    nxt_have=NXT_LIB_UNIT_TEST . auto/have
+if [ $NXT_TESTS = YES ]; then
+    nxt_have=NXT_TESTS . auto/have
 fi
 
 NXT_DEPS=" \

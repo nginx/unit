@@ -5,6 +5,7 @@
  */
 
 #include <nxt_main.h>
+#include "nxt_tests.h"
 
 
 static const nxt_msec_t  pairs[] = {
@@ -24,7 +25,7 @@ static const nxt_msec_t  pairs[] = {
 
 
 nxt_int_t
-nxt_msec_diff_unit_test(nxt_thread_t *thr, nxt_msec_less_t less)
+nxt_msec_diff_test(nxt_thread_t *thr, nxt_msec_less_t less)
 {
     nxt_uint_t  i;
 
@@ -34,12 +35,12 @@ nxt_msec_diff_unit_test(nxt_thread_t *thr, nxt_msec_less_t less)
 
         if (!less(pairs[i], pairs[i + 1])) {
             nxt_log_alert(thr->log,
-                          "msec diff unit test failed: 0x%08XM 0x%08XM",
+                          "msec diff test failed: 0x%08XM 0x%08XM",
                           pairs[i], pairs[i + 1]);
             return NXT_ERROR;
         }
     }
 
-    nxt_log_error(NXT_LOG_NOTICE, thr->log, "msec diff unit test passed");
+    nxt_log_error(NXT_LOG_NOTICE, thr->log, "msec diff test passed");
     return NXT_OK;
 }

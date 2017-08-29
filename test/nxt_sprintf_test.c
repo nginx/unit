@@ -5,6 +5,7 @@
  */
 
 #include <nxt_main.h>
+#include "nxt_tests.h"
 
 
 typedef struct {
@@ -39,7 +40,7 @@ nxt_sprintf_test_double(u_char *buf, u_char *end, const char *fmt,
 
 
 nxt_int_t
-nxt_sprintf_unit_test(nxt_thread_t *thr)
+nxt_sprintf_test(nxt_thread_t *thr)
 {
     nxt_int_t   ret;
     nxt_uint_t  i;
@@ -65,6 +66,6 @@ nxt_sprintf_unit_test(nxt_thread_t *thr)
         return NXT_ERROR;
     }
 
-    nxt_log_error(NXT_LOG_NOTICE, thr->log, "nxt_sprintf() unit test passed");
+    nxt_log_error(NXT_LOG_NOTICE, thr->log, "nxt_sprintf() test passed");
     return NXT_OK;
 }

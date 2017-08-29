@@ -5,6 +5,7 @@
  */
 
 #include <nxt_main.h>
+#include "nxt_tests.h"
 
 
 typedef struct {
@@ -22,49 +23,48 @@ typedef struct {
     unsigned   space_in_target:1;
     /* target with "+" */
     unsigned   plus_in_target:1;
-} nxt_http_parse_unit_test_request_line_t;
+} nxt_http_parse_test_request_line_t;
 
 
 typedef union {
-    void                                     *pointer;
-    nxt_int_t                                result;
-    nxt_http_parse_unit_test_request_line_t  request_line;
-} nxt_http_parse_unit_test_data_t;
+    void                                *pointer;
+    nxt_int_t                           result;
+    nxt_http_parse_test_request_line_t  request_line;
+} nxt_http_parse_test_data_t;
 
 
 typedef struct {
     nxt_str_t  request;
     nxt_int_t  result;
     nxt_int_t  (*handler)(nxt_http_request_parse_t *rp,
-                          nxt_http_parse_unit_test_data_t *data,
+                          nxt_http_parse_test_data_t *data,
                           nxt_str_t *request, nxt_log_t *log);
 
-    nxt_http_parse_unit_test_data_t  data;
-} nxt_http_parse_unit_test_case_t;
+    nxt_http_parse_test_data_t  data;
+} nxt_http_parse_test_case_t;
 
 
-static nxt_int_t nxt_http_parse_unit_test_run(nxt_http_request_parse_t *rp,
+static nxt_int_t nxt_http_parse_test_run(nxt_http_request_parse_t *rp,
     nxt_str_t *request);
-static nxt_int_t nxt_http_parse_unit_test_bench(nxt_thread_t *thr,
+static nxt_int_t nxt_http_parse_test_bench(nxt_thread_t *thr,
     nxt_str_t *request, nxt_http_fields_hash_t *hash, const char *name,
     nxt_uint_t n);
-static nxt_int_t nxt_http_parse_unit_test_request_line(
-    nxt_http_request_parse_t *rp, nxt_http_parse_unit_test_data_t *data,
+static nxt_int_t nxt_http_parse_test_request_line(nxt_http_request_parse_t *rp,
+    nxt_http_parse_test_data_t *data,
     nxt_str_t *request, nxt_log_t *log);
-static nxt_int_t nxt_http_parse_unit_test_fields(
-    nxt_http_request_parse_t *rp, nxt_http_parse_unit_test_data_t *data,
-    nxt_str_t *request, nxt_log_t *log);
+static nxt_int_t nxt_http_parse_test_fields(nxt_http_request_parse_t *rp,
+    nxt_http_parse_test_data_t *data, nxt_str_t *request, nxt_log_t *log);
 
 
-static nxt_int_t nxt_http_unit_test_header_return(void *ctx,
-    nxt_http_field_t *field, nxt_log_t *log);
+static nxt_int_t nxt_http_test_header_return(void *ctx, nxt_http_field_t *field,
+    nxt_log_t *log);
 
 
-static nxt_http_parse_unit_test_case_t  nxt_http_unit_test_cases[] = {
+static nxt_http_parse_test_case_t  nxt_http_test_cases[] = {
     {
         nxt_string("GET / HTTP/1.0\r\n\r\n"),
         NXT_DONE,
-        &nxt_http_parse_unit_test_request_line,
+        &nxt_http_parse_test_request_line,
         { .request_line = {
             nxt_string("GET"),
             nxt_string("/"),
@@ -77,7 +77,7 @@ static nxt_http_parse_unit_test_case_t  nxt_http_unit_test_cases[] = {
     {
         nxt_string("XXX-METHOD    /d.ir/fi+le.ext?key=val    HTTP/1.2\n\n"),
         NXT_DONE,
-        &nxt_http_parse_unit_test_request_line,
+        &nxt_http_parse_test_request_line,
         { .request_line = {
             nxt_string("XXX-METHOD"),
             nxt_string("/d.ir/fi+le.ext?key=val"),
@@ -90,7 +90,7 @@ static nxt_http_parse_unit_test_case_t  nxt_http_unit_test_cases[] = {
     {
         nxt_string("GET /di.r/? HTTP/1.0\r\n\r\n"),
         NXT_DONE,
-        &nxt_http_parse_unit_test_request_line,
+        &nxt_http_parse_test_request_line,
         { .request_line = {
             nxt_string("GET"),
             nxt_string("/di.r/?"),
@@ -128,7 +128,7 @@ static nxt_http_parse_unit_test_case_t  nxt_http_unit_test_cases[] = {
     {
         nxt_string("GET /. HTTP/1.0\r\n\r\n"),
         NXT_DONE,
-        &nxt_http_parse_unit_test_request_line,
+        &nxt_http_parse_test_request_line,
         { .request_line = {
             nxt_string("GET"),
             nxt_string("/."),
@@ -141,7 +141,7 @@ static nxt_http_parse_unit_test_case_t  nxt_http_unit_test_cases[] = {
     {
         nxt_string("GET /# HTTP/1.0\r\n\r\n"),
         NXT_DONE,
-        &nxt_http_parse_unit_test_request_line,
+        &nxt_http_parse_test_request_line,
         { .request_line = {
             nxt_string("GET"),
             nxt_string("/#"),
@@ -154,7 +154,7 @@ static nxt_http_parse_unit_test_case_t  nxt_http_unit_test_cases[] = {
     {
         nxt_string("GET /?# HTTP/1.0\r\n\r\n"),
         NXT_DONE,
-        &nxt_http_parse_unit_test_request_line,
+        &nxt_http_parse_test_request_line,
         { .request_line = {
             nxt_string("GET"),
             nxt_string("/?#"),
@@ -167,7 +167,7 @@ static nxt_http_parse_unit_test_case_t  nxt_http_unit_test_cases[] = {
     {
         nxt_string("GET // HTTP/1.0\r\n\r\n"),
         NXT_DONE,
-        &nxt_http_parse_unit_test_request_line,
+        &nxt_http_parse_test_request_line,
         { .request_line = {
             nxt_string("GET"),
             nxt_string("//"),
@@ -180,7 +180,7 @@ static nxt_http_parse_unit_test_case_t  nxt_http_unit_test_cases[] = {
     {
         nxt_string("GET /%20 HTTP/1.0\r\n\r\n"),
         NXT_DONE,
-        &nxt_http_parse_unit_test_request_line,
+        &nxt_http_parse_test_request_line,
         { .request_line = {
             nxt_string("GET"),
             nxt_string("/%20"),
@@ -193,7 +193,7 @@ static nxt_http_parse_unit_test_case_t  nxt_http_unit_test_cases[] = {
     {
         nxt_string("GET / a HTTP/1.0\r\n\r\n"),
         NXT_DONE,
-        &nxt_http_parse_unit_test_request_line,
+        &nxt_http_parse_test_request_line,
         { .request_line = {
             nxt_string("GET"),
             nxt_string("/ a"),
@@ -206,7 +206,7 @@ static nxt_http_parse_unit_test_case_t  nxt_http_unit_test_cases[] = {
     {
         nxt_string("GET / HTTP/1.0 HTTP/1.1\r\n\r\n"),
         NXT_DONE,
-        &nxt_http_parse_unit_test_request_line,
+        &nxt_http_parse_test_request_line,
         { .request_line = {
             nxt_string("GET"),
             nxt_string("/ HTTP/1.0"),
@@ -275,7 +275,7 @@ static nxt_http_parse_unit_test_case_t  nxt_http_unit_test_cases[] = {
                    "X-Unknown-Header: value\r\n"
                    "X-Good-Header: value\r\n\r\n"),
         NXT_DONE,
-        &nxt_http_parse_unit_test_fields,
+        &nxt_http_parse_test_fields,
         { .result = NXT_OK }
     },
     {
@@ -284,64 +284,64 @@ static nxt_http_parse_unit_test_case_t  nxt_http_unit_test_cases[] = {
                    "X-Unknown-Header: value\r\n"
                    "X-Bad-Header: value\r\n\r\n"),
         NXT_DONE,
-        &nxt_http_parse_unit_test_fields,
+        &nxt_http_parse_test_fields,
         { .result = NXT_ERROR }
     },
 };
 
 
-static nxt_http_fields_hash_entry_t  nxt_http_unit_test_fields[] = {
+static nxt_http_fields_hash_entry_t  nxt_http_test_fields[] = {
     { nxt_string("X-Bad-Header"),
-      &nxt_http_unit_test_header_return,
+      &nxt_http_test_header_return,
       (uintptr_t) NXT_ERROR },
 
     { nxt_string("X-Good-Header"),
-      &nxt_http_unit_test_header_return,
+      &nxt_http_test_header_return,
       (uintptr_t) NXT_OK },
 
     { nxt_null_string, NULL, 0 }
 };
 
 
-static nxt_http_fields_hash_entry_t  nxt_http_unit_test_bench_fields[] = {
+static nxt_http_fields_hash_entry_t  nxt_http_test_bench_fields[] = {
     { nxt_string("Host"),
-      &nxt_http_unit_test_header_return, NXT_OK },
+      &nxt_http_test_header_return, NXT_OK },
     { nxt_string("User-Agent"),
-      &nxt_http_unit_test_header_return, NXT_OK },
+      &nxt_http_test_header_return, NXT_OK },
     { nxt_string("Accept-Encoding"),
-      &nxt_http_unit_test_header_return, NXT_OK },
+      &nxt_http_test_header_return, NXT_OK },
     { nxt_string("Accept-Language"),
-      &nxt_http_unit_test_header_return, NXT_OK },
+      &nxt_http_test_header_return, NXT_OK },
     { nxt_string("Connection"),
-      &nxt_http_unit_test_header_return, NXT_OK },
+      &nxt_http_test_header_return, NXT_OK },
     { nxt_string("Content-Length"),
-      &nxt_http_unit_test_header_return, NXT_OK },
+      &nxt_http_test_header_return, NXT_OK },
     { nxt_string("Content-Type"),
-      &nxt_http_unit_test_header_return, NXT_OK },
+      &nxt_http_test_header_return, NXT_OK },
     { nxt_string("If-Modified-Since"),
-      &nxt_http_unit_test_header_return, NXT_OK },
+      &nxt_http_test_header_return, NXT_OK },
     { nxt_string("If-Match"),
-      &nxt_http_unit_test_header_return, NXT_OK },
+      &nxt_http_test_header_return, NXT_OK },
     { nxt_string("Date"),
-      &nxt_http_unit_test_header_return, NXT_OK },
+      &nxt_http_test_header_return, NXT_OK },
     { nxt_string("Upgrade"),
-      &nxt_http_unit_test_header_return, NXT_OK },
+      &nxt_http_test_header_return, NXT_OK },
     { nxt_string("X-Forwarded-For"),
-      &nxt_http_unit_test_header_return, NXT_OK },
+      &nxt_http_test_header_return, NXT_OK },
     { nxt_string("X-Request-ID"),
-      &nxt_http_unit_test_header_return, NXT_OK },
+      &nxt_http_test_header_return, NXT_OK },
 
     { nxt_null_string, NULL, 0 }
 };
 
 
-static nxt_str_t nxt_http_unit_test_simple_request = nxt_string(
+static nxt_str_t nxt_http_test_simple_request = nxt_string(
     "GET /page HTTP/1.1\r\n"
     "Host: example.com\r\n\r\n"
 );
 
 
-static nxt_str_t nxt_http_unit_test_big_request = nxt_string(
+static nxt_str_t nxt_http_test_big_request = nxt_string(
     "POST /path/to/very/interesting/article/on.this.site?arg1=value&arg2=value"
         "2&very_big_arg=even_bigger_value HTTP/1.1\r\n"
     "Host: www.example.com\r\n"
@@ -414,14 +414,14 @@ static nxt_str_t nxt_http_unit_test_big_request = nxt_string(
 
 
 nxt_int_t
-nxt_http_parse_unit_test(nxt_thread_t *thr)
+nxt_http_parse_test(nxt_thread_t *thr)
 {
-    nxt_mp_t                         *mp, *mp_temp;
-    nxt_int_t                        rc;
-    nxt_uint_t                       i;
-    nxt_http_fields_hash_t           *hash;
-    nxt_http_request_parse_t         rp;
-    nxt_http_parse_unit_test_case_t  *test;
+    nxt_mp_t                    *mp, *mp_temp;
+    nxt_int_t                   rc;
+    nxt_uint_t                  i;
+    nxt_http_fields_hash_t      *hash;
+    nxt_http_request_parse_t    rp;
+    nxt_http_parse_test_case_t  *test;
 
     nxt_thread_time_update(thr);
 
@@ -430,13 +430,13 @@ nxt_http_parse_unit_test(nxt_thread_t *thr)
         return NXT_ERROR;
     }
 
-    hash = nxt_http_fields_hash_create(nxt_http_unit_test_fields, mp);
+    hash = nxt_http_fields_hash_create(nxt_http_test_fields, mp);
     if (hash == NULL) {
         return NXT_ERROR;
     }
 
-    for (i = 0; i < nxt_nitems(nxt_http_unit_test_cases); i++) {
-        test = &nxt_http_unit_test_cases[i];
+    for (i = 0; i < nxt_nitems(nxt_http_test_cases); i++) {
+        test = &nxt_http_test_cases[i];
 
         nxt_memzero(&rp, sizeof(nxt_http_request_parse_t));
 
@@ -451,10 +451,10 @@ nxt_http_parse_unit_test(nxt_thread_t *thr)
 
         rp.fields_hash = hash;
 
-        rc = nxt_http_parse_unit_test_run(&rp, &test->request);
+        rc = nxt_http_parse_test_run(&rp, &test->request);
 
         if (rc != test->result) {
-            nxt_log_alert(thr->log, "http parse unit test case failed:\n"
+            nxt_log_alert(thr->log, "http parse test case failed:\n"
                                     " - request:\n\"%V\"\n"
                                     " - result: %i (expected: %i)",
                                     &test->request, rc, test->result);
@@ -471,22 +471,22 @@ nxt_http_parse_unit_test(nxt_thread_t *thr)
         nxt_mp_destroy(mp_temp);
     }
 
-    nxt_log_error(NXT_LOG_NOTICE, thr->log, "http parse unit test passed");
+    nxt_log_error(NXT_LOG_NOTICE, thr->log, "http parse test passed");
 
-    hash = nxt_http_fields_hash_create(nxt_http_unit_test_bench_fields, mp);
+    hash = nxt_http_fields_hash_create(nxt_http_test_bench_fields, mp);
     if (hash == NULL) {
         return NXT_ERROR;
     }
 
-    if (nxt_http_parse_unit_test_bench(thr, &nxt_http_unit_test_simple_request,
-                                       hash, "simple", 10000000)
+    if (nxt_http_parse_test_bench(thr, &nxt_http_test_simple_request,
+                                  hash, "simple", 10000000)
         != NXT_OK)
     {
         return NXT_ERROR;
     }
 
-    if (nxt_http_parse_unit_test_bench(thr, &nxt_http_unit_test_big_request,
-                                       hash, "big", 100000)
+    if (nxt_http_parse_test_bench(thr, &nxt_http_test_big_request,
+                                  hash, "big", 100000)
         != NXT_OK)
     {
         return NXT_ERROR;
@@ -499,7 +499,7 @@ nxt_http_parse_unit_test(nxt_thread_t *thr)
 
 
 static nxt_int_t
-nxt_http_parse_unit_test_run(nxt_http_request_parse_t *rp, nxt_str_t *request)
+nxt_http_parse_test_run(nxt_http_request_parse_t *rp, nxt_str_t *request)
 {
     nxt_int_t      rc;
     nxt_buf_mem_t  buf;
@@ -520,7 +520,7 @@ nxt_http_parse_unit_test_run(nxt_http_request_parse_t *rp, nxt_str_t *request)
 
 
 static nxt_int_t
-nxt_http_parse_unit_test_bench(nxt_thread_t *thr, nxt_str_t *request,
+nxt_http_parse_test_bench(nxt_thread_t *thr, nxt_str_t *request,
     nxt_http_fields_hash_t *hash, const char *name, nxt_uint_t n)
 {
     nxt_mp_t                  *mp;
@@ -530,8 +530,7 @@ nxt_http_parse_unit_test_bench(nxt_thread_t *thr, nxt_str_t *request,
     nxt_http_request_parse_t  rp;
 
     nxt_log_error(NXT_LOG_NOTICE, thr->log,
-                  "http parse unit %s request bench started: "
-                  "%uz bytes, %ui runs",
+                  "http parse %s request bench started: %uz bytes, %ui runs",
                   name, request->length, n);
 
     buf.start = request->start;
@@ -558,7 +557,7 @@ nxt_http_parse_unit_test_bench(nxt_thread_t *thr, nxt_str_t *request,
         buf.free = buf.end;
 
         if (nxt_slow_path(nxt_http_parse_request(&rp, &buf) != NXT_DONE)) {
-            nxt_log_alert(thr->log, "http parse unit %s request bench failed "
+            nxt_log_alert(thr->log, "http parse %s request bench failed "
                                     "while parsing", name);
             return NXT_ERROR;
         }
@@ -566,7 +565,7 @@ nxt_http_parse_unit_test_bench(nxt_thread_t *thr, nxt_str_t *request,
         if (nxt_slow_path(nxt_http_fields_process(rp.fields, NULL, thr->log)
                           != NXT_OK))
         {
-            nxt_log_alert(thr->log, "http parse unit %s request bench failed "
+            nxt_log_alert(thr->log, "http parse %s request bench failed "
                                     "while fields processing", name);
             return NXT_ERROR;
         }
@@ -578,7 +577,7 @@ nxt_http_parse_unit_test_bench(nxt_thread_t *thr, nxt_str_t *request,
     end = nxt_thread_monotonic_time(thr);
 
     nxt_log_error(NXT_LOG_NOTICE, thr->log,
-                  "http parse unit %s request bench: %0.3fs",
+                  "http parse %s request bench: %0.3fs",
                   name, (end - start) / 1000000000.0);
 
     return NXT_OK;
@@ -586,17 +585,17 @@ nxt_http_parse_unit_test_bench(nxt_thread_t *thr, nxt_str_t *request,
 
 
 static nxt_int_t
-nxt_http_parse_unit_test_request_line(nxt_http_request_parse_t *rp,
-    nxt_http_parse_unit_test_data_t *data, nxt_str_t *request, nxt_log_t *log)
+nxt_http_parse_test_request_line(nxt_http_request_parse_t *rp,
+    nxt_http_parse_test_data_t *data, nxt_str_t *request, nxt_log_t *log)
 {
     nxt_str_t  str;
 
-    nxt_http_parse_unit_test_request_line_t  *test = &data->request_line;
+    nxt_http_parse_test_request_line_t  *test = &data->request_line;
 
     if (rp->method.start != test->method.start
         && !nxt_strstr_eq(&rp->method, &test->method))
     {
-        nxt_log_alert(log, "http parse unit test case failed:\n"
+        nxt_log_alert(log, "http parse test case failed:\n"
                            " - request:\n\"%V\"\n"
                            " - method: \"%V\" (expected: \"%V\")",
                            request, &rp->method, &test->method);
@@ -609,7 +608,7 @@ nxt_http_parse_unit_test_request_line(nxt_http_request_parse_t *rp,
     if (str.start != test->target.start
         && !nxt_strstr_eq(&str, &test->target))
     {
-        nxt_log_alert(log, "http parse unit test case failed:\n"
+        nxt_log_alert(log, "http parse test case failed:\n"
                             " - request:\n\"%V\"\n"
                             " - target: \"%V\" (expected: \"%V\")",
                             request, &str, &test->target);
@@ -623,7 +622,7 @@ nxt_http_parse_unit_test_request_line(nxt_http_request_parse_t *rp,
     if (str.start != test->exten.start
         && !nxt_strstr_eq(&str, &test->exten))
     {
-        nxt_log_alert(log, "http parse unit test case failed:\n"
+        nxt_log_alert(log, "http parse test case failed:\n"
                            " - request:\n\"%V\"\n"
                            " - exten: \"%V\" (expected: \"%V\")",
                            request, &str, &test->exten);
@@ -637,7 +636,7 @@ nxt_http_parse_unit_test_request_line(nxt_http_request_parse_t *rp,
     if (str.start != test->args.start
         && !nxt_strstr_eq(&str, &test->args))
     {
-        nxt_log_alert(log, "http parse unit test case failed:\n"
+        nxt_log_alert(log, "http parse test case failed:\n"
                            " - request:\n\"%V\"\n"
                            " - args: \"%V\" (expected: \"%V\")",
                            request, &str, &test->args);
@@ -645,7 +644,7 @@ nxt_http_parse_unit_test_request_line(nxt_http_request_parse_t *rp,
     }
 
     if (nxt_memcmp(rp->version.str, test->version, 8) != 0) {
-        nxt_log_alert(log, "http parse unit test case failed:\n"
+        nxt_log_alert(log, "http parse test case failed:\n"
                            " - request:\n\"%V\"\n"
                            " - version: \"%*s\" (expected: \"%*s\")",
                            request, 8, rp->version.str, 8, test->version);
@@ -653,7 +652,7 @@ nxt_http_parse_unit_test_request_line(nxt_http_request_parse_t *rp,
     }
 
     if (rp->complex_target != test->complex_target) {
-        nxt_log_alert(log, "http parse unit test case failed:\n"
+        nxt_log_alert(log, "http parse test case failed:\n"
                            " - request:\n\"%V\"\n"
                            " - complex_target: %d (expected: %d)",
                            request, rp->complex_target, test->complex_target);
@@ -661,7 +660,7 @@ nxt_http_parse_unit_test_request_line(nxt_http_request_parse_t *rp,
     }
 
     if (rp->quoted_target != test->quoted_target) {
-        nxt_log_alert(log, "http parse unit test case failed:\n"
+        nxt_log_alert(log, "http parse test case failed:\n"
                            " - request:\n\"%V\"\n"
                            " - quoted_target: %d (expected: %d)",
                            request, rp->quoted_target, test->quoted_target);
@@ -669,7 +668,7 @@ nxt_http_parse_unit_test_request_line(nxt_http_request_parse_t *rp,
     }
 
     if (rp->space_in_target != test->space_in_target) {
-        nxt_log_alert(log, "http parse unit test case failed:\n"
+        nxt_log_alert(log, "http parse test case failed:\n"
                            " - request:\n\"%V\"\n"
                            " - space_in_target: %d (expected: %d)",
                            request, rp->space_in_target, test->space_in_target);
@@ -677,7 +676,7 @@ nxt_http_parse_unit_test_request_line(nxt_http_request_parse_t *rp,
     }
 
     if (rp->plus_in_target != test->plus_in_target) {
-        nxt_log_alert(log, "http parse unit test case failed:\n"
+        nxt_log_alert(log, "http parse test case failed:\n"
                            " - request:\n\"%V\"\n"
                            " - plus_in_target: %d (expected: %d)",
                            request, rp->plus_in_target, test->plus_in_target);
@@ -689,15 +688,15 @@ nxt_http_parse_unit_test_request_line(nxt_http_request_parse_t *rp,
 
 
 static nxt_int_t
-nxt_http_parse_unit_test_fields(nxt_http_request_parse_t *rp,
-    nxt_http_parse_unit_test_data_t *data, nxt_str_t *request, nxt_log_t *log)
+nxt_http_parse_test_fields(nxt_http_request_parse_t *rp,
+    nxt_http_parse_test_data_t *data, nxt_str_t *request, nxt_log_t *log)
 {
     nxt_int_t  rc;
 
     rc = nxt_http_fields_process(rp->fields, NULL, log);
 
     if (rc != data->result) {
-        nxt_log_alert(log, "http parse unit test hash failed:\n"
+        nxt_log_alert(log, "http parse test hash failed:\n"
                            " - request:\n\"%V\"\n"
                            " - result: %i (expected: %i)",
                            request, rc, data->result);
@@ -709,8 +708,7 @@ nxt_http_parse_unit_test_fields(nxt_http_request_parse_t *rp,
 
 
 static nxt_int_t
-nxt_http_unit_test_header_return(void *ctx, nxt_http_field_t *field,
-    nxt_log_t *log)
+nxt_http_test_header_return(void *ctx, nxt_http_field_t *field, nxt_log_t *log)
 {
     return (nxt_int_t) field->data;
 }

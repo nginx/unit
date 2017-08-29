@@ -19,8 +19,8 @@ typedef struct {
 void nxt_random_init(nxt_random_t *r);
 uint32_t nxt_random(nxt_random_t *r);
 
-#if (NXT_LIB_UNIT_TEST)
-nxt_int_t nxt_random_unit_test(nxt_thread_t *thr);
+#if (NXT_TESTS)
+nxt_int_t nxt_random_test(nxt_thread_t *thr);
 #endif
 
 

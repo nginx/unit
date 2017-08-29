@@ -140,6 +140,6 @@ nxt_utf8_file_name_test(nxt_thread_t *thr)
         nxt_file_delete(uc_file.name);
     }
 
-    nxt_log_error(NXT_LOG_NOTICE, thr->log, "utf8 file name unit test passed");
+    nxt_log_error(NXT_LOG_NOTICE, thr->log, "utf8 file name test passed");
     return NXT_OK;
 }

@@ -162,10 +162,10 @@ nxt_random_byte(nxt_random_t *r)
 }
 
 
-#if (NXT_LIB_UNIT_TEST)
+#if (NXT_TESTS)
 
 nxt_int_t
-nxt_random_unit_test(nxt_thread_t *thr)
+nxt_random_test(nxt_thread_t *thr)
 {
     nxt_uint_t    n;
     nxt_random_t  r;
@@ -188,14 +188,13 @@ nxt_random_unit_test(nxt_thread_t *thr)
         }
 
         if (nxt_random(&r) == 0x6FCAE186) {
-            nxt_log_error(NXT_LOG_NOTICE, thr->log,
-                          "arc4random unit test passed");
+            nxt_log_error(NXT_LOG_NOTICE, thr->log, "arc4random test passed");
 
             return NXT_OK;
         }
     }
 
-    nxt_log_error(NXT_LOG_NOTICE, thr->log, "arc4random unit test failed");
+    nxt_log_error(NXT_LOG_NOTICE, thr->log, "arc4random test failed");
 
     return NXT_ERROR;
 }
