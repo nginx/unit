@@ -12,8 +12,10 @@
 #include <nxt_application.h>
 #include <nxt_port_memory_int.h>
 
-
-typedef struct nxt_go_process_s     nxt_go_process_t;
+#ifndef _NXT_GO_PROCESS_T_DEFINED_
+#define _NXT_GO_PROCESS_T_DEFINED_
+typedef struct nxt_go_process_s nxt_go_process_t;
+#endif
 
 typedef struct nxt_go_msg_s nxt_go_msg_t;
 
