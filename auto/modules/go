@@ -56,27 +56,19 @@ $echo "configuring Go package ..." >> $NXT_AUTOCONF_ERR
 $echo -n "checking for Go ..."
 $echo "checking for Go ..." >> $NXT_AUTOCONF_ERR
 
-nxt_go_test="GOPATH=`pwd` CGO_CPPFLAGS='-DNXT_CONFIGURE -I`pwd`/src'\
-    \"${NXT_GO}\" build -o build/nxt_go_gen.a --buildmode=c-archive nginext"
 
-
-if /bin/sh -c "$nxt_go_test" >> $NXT_AUTOCONF_ERR 2>&1; then
+if /bin/sh -c "${NXT_GO} version" >> $NXT_AUTOCONF_ERR 2>&1; then
     $echo " found"
 
     NXT_GO_VERSION="`${NXT_GO} version`"
     $echo " + ${NXT_GO_VERSION}"
 
 else
-    $echo "----------"    >> $NXT_AUTOCONF_ERR
-    $echo $nxt_go_test    >> $NXT_AUTOCONF_ERR
-    $echo "----------"    >> $NXT_AUTOCONF_ERR
-    $echo
     $echo
     $echo $0: error: no Go found.
     $echo
     exit 1;
 fi
-
 
 
 NXT_GO_PATH=${NXT_GO_PATH=`${NXT_GO} env GOPATH`}
@@ -103,12 +95,21 @@ GOPATH =	$NXT_GO_PATH
 GOOS =		`${NXT_GO} env GOOS`
 GOARCH =	`${NXT_GO} env GOARCH`
 
-${NXT_GO}:
+${NXT_GO}:	$NXT_BUILD_DIR/nxt_go_gen.h
+
+$NXT_BUILD_DIR/nxt_go_gen.h:
+	GOPATH=`pwd` \\
+		 CGO_CPPFLAGS='-DNXT_CONFIGURE \\
+		-I`pwd`/src' \\
+		${NXT_GO} build -o $NXT_BUILD_DIR/nxt_go_gen.a \\
+		--buildmode=c-archive nginext
+
+${NXT_GO}-install:	${NXT_GO}
 	install -d \$(GOPATH)/src/nginext
 	install -p ./src/nginext/*.c ./src/nginext/*.h \\
 		./src/nginext/*.go \$(GOPATH)/src/nginext/
-	CGO_CFLAGS="-I\$(NXT_ROOT)/build -I\$(NXT_ROOT)/src" \\
-		CGO_LDFLAGS="-L\$(NXT_ROOT)/build ${NXT_LIBRT}" \\
+	CGO_CFLAGS="-I\$(NXT_ROOT)/$NXT_BUILD_DIR -I\$(NXT_ROOT)/src" \\
+		CGO_LDFLAGS="-L\$(NXT_ROOT)/$NXT_BUILD_DIR ${NXT_LIBRT}" \\
 		GOPATH=$NXT_GO_PATH \\
 		${NXT_GO} install -v nginext
 
