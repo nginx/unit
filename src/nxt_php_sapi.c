@@ -167,8 +167,14 @@ nxt_php_str_trim_lead(nxt_str_t *str, u_char t)
     }
 }
 
+static uint32_t  compat[] = {
+    NXT_VERNUM,
+};
+
 
 NXT_EXPORT nxt_application_module_t  nxt_app_module = {
+    sizeof(compat),
+    compat,
     nxt_string("php"),
     nxt_string(PHP_VERSION),
     nxt_php_init,

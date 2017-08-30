@@ -37,6 +37,11 @@ static nxt_http_fields_hash_t        *nxt_app_request_fields_hash;
 static nxt_application_module_t      *nxt_app;
 
 
+static uint32_t  compat[] = {
+    NXT_VERNUM,
+};
+
+
 nxt_int_t
 nxt_discovery_start(nxt_task_t *task, void *data)
 {
@@ -195,18 +200,29 @@ nxt_discovery_module(nxt_task_t *task, nxt_mp_t *mp, nxt_array_t *modules,
     app = dlsym(dl, "nxt_app_module");
 
     if (app != NULL) {
-        nxt_log(task, NXT_LOG_NOTICE, "module: %V \"%s\"",
-                &app->version, name);
+        nxt_log(task, NXT_LOG_NOTICE, "module: %V %V \"%s\"",
+                &app->type, &app->version, name);
+
+        if (app->compat_length != sizeof(compat)
+            || nxt_memcmp(app->compat, compat, sizeof(compat)) != 0)
+        {
+            nxt_log(task, NXT_LOG_NOTICE, "incompatible module %s", name);
+
+            goto done;
+        }
 
         module = modules->elts;
         n = modules->nelts;
 
         for (i = 0; i < n; i++) {
-            if (nxt_strstr_eq(&app->version, &module[i].version)) {
+            if (nxt_strstr_eq(&app->type, &module[i].type)
+                && nxt_strstr_eq(&app->version, &module[i].version))
+            {
                 nxt_log(task, NXT_LOG_NOTICE,
                         "ignoring %s module with the same "
-                        "application language version %V as in %s",
-                        name, &module[i].version, &module[i].file);
+                        "application language version %V %V as in %s",
+                        name, &module[i].type, &module[i].version,
+                        &module[i].file);
 
                 goto done;
             }

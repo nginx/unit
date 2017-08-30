@@ -91,7 +91,14 @@ nxt_inline nxt_int_t nxt_python_write_py_str(nxt_python_run_ctx_t *ctx,
                       PyObject *str, nxt_bool_t flush, nxt_bool_t last);
 
 
+static uint32_t  compat[] = {
+    NXT_VERNUM,
+};
+
+
 NXT_EXPORT nxt_application_module_t  nxt_app_module = {
+    sizeof(compat),
+    compat,
     nxt_string("python"),
     nxt_string(PY_VERSION),
     nxt_python_init,

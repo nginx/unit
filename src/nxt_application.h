@@ -203,6 +203,9 @@ NXT_EXPORT nxt_int_t nxt_app_msg_read_size(nxt_task_t *task,
 
 
 struct nxt_app_module_s {
+    size_t                     compat_length;
+    uint32_t                   *compat;
+
     nxt_str_t                  type;
     nxt_str_t                  version;
 

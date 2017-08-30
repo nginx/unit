@@ -12,6 +12,7 @@
 
 
 #define NXT_VERSION                  "0.1"
+#define NXT_VERNUM                   0x00000001
 
 
 typedef struct nxt_port_s            nxt_port_t;

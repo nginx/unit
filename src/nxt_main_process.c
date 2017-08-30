@@ -1026,6 +1026,16 @@ nxt_app_lang_compare(const void *v1, const void *v2)
     lang1 = v1;
     lang2 = v2;
 
+    if (lang1->type.length != lang2->type.length) {
+        return lang1->type.length - lang2->type.length;
+    }
+
+    n = nxt_strncmp(lang1->type.start, lang2->type.start, lang1->type.length);
+
+    if (n != 0) {
+        return n;
+    }
+
     length = nxt_min(lang1->version.length, lang2->version.length);
 
     n = nxt_strncmp(lang1->version.start, lang2->version.start, length);

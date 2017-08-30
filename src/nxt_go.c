@@ -14,6 +14,8 @@ static nxt_int_t nxt_go_run(nxt_task_t *task,
                       nxt_app_rmsg_t *rmsg, nxt_app_wmsg_t *msg);
 
 nxt_application_module_t  nxt_go_module = {
+    0,
+    NULL,
     nxt_string("go"),
     nxt_string("go"),
     nxt_go_init,
