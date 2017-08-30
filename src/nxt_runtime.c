@@ -763,7 +763,7 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
         slash = "/";
     }
 
-    ret = nxt_file_name_create(rt->mem_pool, &file_name, "%s%sunit.*%Z",
+    ret = nxt_file_name_create(rt->mem_pool, &file_name, "%s%s*.unit.so%Z",
                                rt->modules, slash);
     if (nxt_slow_path(ret != NXT_OK)) {
         return NXT_ERROR;
