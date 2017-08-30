@@ -705,8 +705,10 @@ static nxt_int_t
 nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
 {
     nxt_int_t                    ret;
-    nxt_file_t                   *file;
     nxt_str_t                    control;
+    nxt_uint_t                   n;
+    nxt_file_t                   *file;
+    const char                   *slash;
     nxt_sockaddr_t               *sa;
     nxt_file_name_str_t          file_name;
     const nxt_event_interface_t  *interface;
@@ -754,8 +756,15 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
     file = nxt_list_first(rt->log_files);
     file->name = file_name.start;
 
-    ret = nxt_file_name_create(rt->mem_pool, &file_name, "%snginext.*%Z",
-                               rt->modules);
+    slash = "";
+    n = nxt_strlen(rt->modules);
+
+    if (n > 1 && rt->modules[n - 1] != '/') {
+        slash = "/";
+    }
+
+    ret = nxt_file_name_create(rt->mem_pool, &file_name, "%s%snginext.*%Z",
+                               rt->modules, slash);
     if (nxt_slow_path(ret != NXT_OK)) {
         return NXT_ERROR;
     }
