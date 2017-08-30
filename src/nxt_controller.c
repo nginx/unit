@@ -38,6 +38,9 @@ typedef struct {
 } nxt_controller_response_t;
 
 
+static void nxt_controller_process_new_port_handler(nxt_task_t *task,
+    nxt_port_recv_msg_t *msg);
+
 static void nxt_controller_conn_init(nxt_task_t *task, void *obj, void *data);
 static void nxt_controller_conn_read(nxt_task_t *task, void *obj, void *data);
 static nxt_msec_t nxt_controller_conn_timeout_value(nxt_conn_t *c,
@@ -90,16 +93,27 @@ static const nxt_event_conn_state_t  nxt_controller_conn_write_state;
 static const nxt_event_conn_state_t  nxt_controller_conn_close_state;
 
 
+nxt_port_handler_t  nxt_controller_process_port_handlers[] = {
+    nxt_worker_process_quit_handler,
+    nxt_controller_process_new_port_handler,
+    nxt_port_change_log_file_handler,
+    nxt_port_mmap_handler,
+    nxt_port_data_handler,
+    nxt_port_remove_pid_handler,
+    NULL, /* NXT_PORT_MSG_READY        */
+    NULL, /* NXT_PORT_MSG_START_WORKER */
+    NULL, /* NXT_PORT_MSG_SOCKET       */
+    NULL, /* NXT_PORT_MSG_MODULES      */
+    nxt_port_rpc_handler,
+    nxt_port_rpc_handler,
+};
+
+
 nxt_int_t
 nxt_controller_start(nxt_task_t *task, void *data)
 {
-    nxt_mp_t                *mp;
     nxt_runtime_t           *rt;
-    nxt_conf_value_t        *conf;
     nxt_http_fields_hash_t  *hash;
-
-    static const nxt_str_t json
-        = nxt_string("{ \"listeners\": {}, \"applications\": {} }");
 
     rt = task->thread->runtime;
 
@@ -110,29 +124,51 @@ nxt_controller_start(nxt_task_t *task, void *data)
     }
 
     nxt_controller_fields_hash = hash;
+    nxt_queue_init(&nxt_controller_waiting_requests);
 
-    if (nxt_listen_event(task, rt->controller_socket) == NULL) {
-        return NXT_ERROR;
+    return NXT_OK;
+}
+
+
+static void
+nxt_controller_process_new_port_handler(nxt_task_t *task,
+    nxt_port_recv_msg_t *msg)
+{
+    nxt_mp_t          *mp;
+    nxt_runtime_t     *rt;
+    nxt_conf_value_t  *conf;
+
+    static const nxt_str_t json
+        = nxt_string("{ \"listeners\": {}, \"applications\": {} }");
+
+    nxt_port_new_port_handler(task, msg);
+
+    if (nxt_controller_conf.root != NULL
+        || msg->new_port->type != NXT_PROCESS_ROUTER)
+    {
+        return;
     }
 
     mp = nxt_mp_create(1024, 128, 256, 32);
 
     if (nxt_slow_path(mp == NULL)) {
-        return NXT_ERROR;
+        nxt_abort();
     }
 
     conf = nxt_conf_json_parse_str(mp, &json);
 
-    if (conf == NULL) {
-        return NXT_ERROR;
+    if (nxt_slow_path(conf == NULL)) {
+        nxt_abort();
     }
 
     nxt_controller_conf.root = conf;
     nxt_controller_conf.pool = mp;
 
-    nxt_queue_init(&nxt_controller_waiting_requests);
+    rt = task->thread->runtime;
 
-    return NXT_OK;
+    if (nxt_slow_path(nxt_listen_event(task, rt->controller_socket) == NULL)) {
+        nxt_abort();
+    }
 }
 
 

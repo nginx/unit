@@ -12,30 +12,12 @@
 
 
 static void nxt_worker_process_quit(nxt_task_t *task);
-static void nxt_worker_process_quit_handler(nxt_task_t *task,
-    nxt_port_recv_msg_t *msg);
 static void nxt_worker_process_signal_handler(nxt_task_t *task, void *obj,
     void *data);
 static void nxt_worker_process_sigterm_handler(nxt_task_t *task, void *obj,
     void *data);
 static void nxt_worker_process_sigquit_handler(nxt_task_t *task, void *obj,
     void *data);
-
-
-nxt_port_handler_t  nxt_controller_process_port_handlers[] = {
-    nxt_worker_process_quit_handler,
-    nxt_port_new_port_handler,
-    nxt_port_change_log_file_handler,
-    nxt_port_mmap_handler,
-    nxt_port_data_handler,
-    nxt_port_remove_pid_handler,
-    NULL, /* NXT_PORT_MSG_READY        */
-    NULL, /* NXT_PORT_MSG_START_WORKER */
-    NULL, /* NXT_PORT_MSG_SOCKET       */
-    NULL, /* NXT_PORT_MSG_MODULES      */
-    nxt_port_rpc_handler,
-    nxt_port_rpc_handler,
-};
 
 
 nxt_port_handler_t  nxt_worker_process_port_handlers[] = {
@@ -169,7 +151,7 @@ nxt_worker_process_signal_handler(nxt_task_t *task, void *obj, void *data)
 }
 
 
-static void
+void
 nxt_worker_process_quit_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
     nxt_worker_process_quit(task);

@@ -98,6 +98,10 @@ nxt_port_t *nxt_process_connected_port_find(nxt_process_t *process,
     nxt_pid_t pid, nxt_port_id_t port_id);
 
 
+void nxt_worker_process_quit_handler(nxt_task_t *task,
+    nxt_port_recv_msg_t *msg);
+
+
 #if (NXT_HAVE_SETPROCTITLE)
 
 #define nxt_process_title(task, fmt, ...)                                     \
