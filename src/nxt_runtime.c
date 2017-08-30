@@ -763,7 +763,7 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
         slash = "/";
     }
 
-    ret = nxt_file_name_create(rt->mem_pool, &file_name, "%s%snginext.*%Z",
+    ret = nxt_file_name_create(rt->mem_pool, &file_name, "%s%sunit.*%Z",
                                rt->modules, slash);
     if (nxt_slow_path(ret != NXT_OK)) {
         return NXT_ERROR;
@@ -797,7 +797,7 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
     u_char  buf[1024];
 
     static const char  version[] =
-        "nginext version: " NXT_VERSION "\n"
+        "unit version: " NXT_VERSION "\n"
         "configured as ./configure" NXT_CONFIGURE_OPTIONS "\n";
 
     static const char  no_control[] =
@@ -811,11 +811,11 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
 
     static const char  help[] =
         "\n"
-        "nginext options:\n"
+        "unit options:\n"
         "\n"
-        "  --version            print nginext version and configure options\n"
+        "  --version            print unit version and configure options\n"
         "\n"
-        "  --no-daemon          run nginext in non-daemon mode\n"
+        "  --no-daemon          run unit in non-daemon mode\n"
         "\n"
         "  --control ADDRESS    set address of control API socket\n"
         "                       default: \"" NXT_CONTROL_SOCK "\"\n"

@@ -3,7 +3,7 @@
  * Copyright (C) NGINX, Inc.
  */
 
-package nginext
+package unit
 
 /*
 #include "nxt_go_lib.h"

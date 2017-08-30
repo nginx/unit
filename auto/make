@@ -180,7 +180,7 @@ done
 $echo >> $NXT_MAKEFILE
 
 
-# nginext executable.
+# unit executable.
 
 cat << END >> $NXT_MAKEFILE
 
@@ -193,7 +193,7 @@ $NXT_BUILD_DIR/$NXT_BIN:	$NXT_BUILD_DIR/$NXT_LIB_STATIC \\
 END
 
 
-# nginext object files.
+# unit object files.
 
 for nxt_src in $NXT_MAKE_SRCS
 do

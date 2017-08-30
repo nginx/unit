@@ -104,7 +104,7 @@ nxt_process_start(nxt_task_t *task, nxt_process_t *process)
 
     nxt_log(task, NXT_LOG_INFO, "%s started", init->name);
 
-    nxt_process_title(task, "nginext: %s", init->name);
+    nxt_process_title(task, "unit: %s", init->name);
 
     thread = task->thread;
 

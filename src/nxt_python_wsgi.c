@@ -107,7 +107,7 @@ NXT_EXPORT nxt_application_module_t  nxt_app_module = {
 
 
 static PyMethodDef nxt_py_start_resp_method[] = {
-    {"nginext_start_response", nxt_py_start_resp, METH_VARARGS, ""}
+    {"unit_start_response", nxt_py_start_resp, METH_VARARGS, ""}
 };
 
 
@@ -121,7 +121,7 @@ static PyMethodDef nxt_py_input_methods[] = {
 
 static PyTypeObject nxt_py_input_type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "nginext._input",                   /* tp_name              */
+    "unit._input",                      /* tp_name              */
     (int) sizeof(nxt_py_input_t),       /* tp_basicsize         */
     0,                                  /* tp_itemsize          */
     (destructor) nxt_py_input_dealloc,  /* tp_dealloc           */
@@ -140,7 +140,7 @@ static PyTypeObject nxt_py_input_type = {
     0,                                  /* tp_setattro          */
     0,                                  /* tp_as_buffer         */
     Py_TPFLAGS_DEFAULT,                 /* tp_flags             */
-    "nginext input object.",            /* tp_doc               */
+    "unit input object.",               /* tp_doc               */
     0,                                  /* tp_traverse          */
     0,                                  /* tp_clear             */
     0,                                  /* tp_richcompare       */
@@ -247,7 +247,7 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 
     nxt_py_environ_ptyp = obj;
 
-    obj = Py_BuildValue("[s]", "nginext");
+    obj = Py_BuildValue("[s]", "unit");
     if (obj == NULL) {
         nxt_log_alert(task->log,
                       "Python failed to create the \"sys.argv\" list");
@@ -730,7 +730,7 @@ nxt_py_start_resp(PyObject *self, PyObject *args)
     static const u_char resp[] = "HTTP/1.1 ";
 
     static const u_char default_headers[]
-        = "Server: nginext/0.1\r\n"
+        = "Server: unit/" NXT_VERSION "\r\n"
           "Connection: close\r\n";
 
     static const u_char cr_lf[] = "\r\n";

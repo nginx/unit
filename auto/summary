@@ -7,11 +7,11 @@ cat << END
 
 Configuration summary:
 
-  nginext pid file:             "$NXT_PID"
-  nginext log file:             "$NXT_LOG"
-  nginext modules path:         "$NXT_MODULES"
+  unit pid file:             "$NXT_PID"
+  unit log file:             "$NXT_LOG"
+  unit modules path:         "$NXT_MODULES"
 
-  nginext control API socket:   "$NXT_CONTROL"
+  unit control API socket:   "$NXT_CONTROL"
 
   non-privileged user:          "$NXT_USER"
   non-privileged group:         "$NXT_GROUP"

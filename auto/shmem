@@ -22,7 +22,7 @@ nxt_feature_test="#include <sys/mman.h>
                   #include <sys/types.h>
 
                   int main() {
-                      static char name[] = \"/nginext.configure\";
+                      static char name[] = \"/unit.configure\";
 
                       shm_unlink(name);
 
@@ -49,7 +49,7 @@ nxt_feature_test="#include <linux/memfd.h>
                   #include <sys/syscall.h>
 
                   int main() {
-                      static char name[] = \"/nginext.configure\";
+                      static char name[] = \"/unit.configure\";
 
                       int fd = syscall(SYS_memfd_create, name, MFD_CLOEXEC);
                       if (fd == -1)

@@ -1,15 +1,15 @@
-// +build !go1.7
+// +build go1.7
 
 /*
  * Copyright (C) Max Romanov
  * Copyright (C) NGINX, Inc.
  */
 
-package nginext
+package unit
 
 import "C"
 import "unsafe"
 
 func getCBytes(p []byte) unsafe.Pointer {
-	return unsafe.Pointer(C.CString(string(p))) // go <= 1.6
+	return C.CBytes(p) // go >= 1.7
 }

@@ -236,7 +236,7 @@ nxt_port_new_port_mmap(nxt_task_t *task, nxt_process_t *process,
         return NULL;
     }
 
-    p = nxt_sprintf(name, name + sizeof(name), "/nginext.%PI.%uxD",
+    p = nxt_sprintf(name, name + sizeof(name), "/unit.%PI.%uxD",
                     nxt_pid, nxt_random(&task->thread->random));
     *p = '\0';
 

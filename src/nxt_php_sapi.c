@@ -59,7 +59,7 @@ static void nxt_php_flush(void *server_context);
 static sapi_module_struct  nxt_php_sapi_module =
 {
     (char *) "cli-server",
-    (char *) "nginext",
+    (char *) "unit",
 
     nxt_php_startup,             /* startup */
     php_module_shutdown_wrapper, /* shutdown */
@@ -497,13 +497,13 @@ nxt_php_send_headers(sapi_headers_struct *sapi_headers TSRMLS_DC)
 
     static const u_char default_repsonse[]
         = "HTTP/1.1 200 OK\r\n"
-          "Server: nginext/0.1\r\n"
+          "Server: unit/" NXT_VERSION "\r\n"
           "Content-Type: text/html; charset=UTF-8\r\n"
           "Connection: close\r\n"
           "\r\n";
 
     static const u_char default_headers[]
-        = "Server: nginext/0.1\r\n"
+        - "Server: unit/" NXT_VERSION "\r\n"
           "Connection: close\r\n";
 
     static const u_char http_11[] = "HTTP/1.1 ";
