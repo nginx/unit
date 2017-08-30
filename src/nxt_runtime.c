@@ -741,7 +741,7 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
 
     rt->engine = interface->name;
 
-    ret = nxt_file_name_create(rt->mem_pool, &file_name, "s%Z", rt->pid);
+    ret = nxt_file_name_create(rt->mem_pool, &file_name, "%s%Z", rt->pid);
     if (nxt_slow_path(ret != NXT_OK)) {
         return NXT_ERROR;
     }
