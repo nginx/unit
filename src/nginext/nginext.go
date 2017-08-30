@@ -12,6 +12,7 @@ import "C"
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -80,7 +81,7 @@ func nxt_go_set_quit() {
 	nxt_go_quit = true
 }
 
-func ListenAndServe() {
+func ListenAndServe(addr string, handler http.Handler) error {
 	var read_port *port
 
 	go_ports_env := os.Getenv("NXT_GO_PORTS")
@@ -120,8 +121,14 @@ func ListenAndServe() {
 		C.nxt_go_ready()
 
 		for !nxt_go_quit {
-			read_port.read()
+			err := read_port.read(handler)
+			if err != nil {
+				return err
+			}
 		}
+	} else {
+		return http.ListenAndServe(addr, handler)
 	}
 
+	return nil
 }

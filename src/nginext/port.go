@@ -14,6 +14,7 @@ import "C"
 import (
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"sync"
 	"unsafe"
@@ -177,11 +178,15 @@ func new_port(pid int, id int, t int, rcv int, snd int) *port {
 	return p
 }
 
-func (p *port) read() {
+func (p *port) read(handler http.Handler) error {
 	var buf [16384]byte
 	var oob [1024]byte
 
-	n, oobn, _, _, _ := p.rcv.ReadMsgUnix(buf[:], oob[:])
+	n, oobn, _, _, err := p.rcv.ReadMsgUnix(buf[:], oob[:])
+
+	if err != nil {
+		return err
+	}
 
 	m := new_cmsg(buf[:n], oob[:oobn])
 
@@ -191,6 +196,16 @@ func (p *port) read() {
 		m.Close()
 	} else {
 		r := find_request(c_req)
+
+		go func(r *request) {
+			if handler == nil {
+				handler = http.DefaultServeMux
+			}
+
+			handler.ServeHTTP(r.response(), &r.req)
+			r.done()
+		}(r)
+
 		if len(r.msgs) == 0 {
 			r.push(m)
 		} else if r.ch != nil {
@@ -200,4 +215,5 @@ func (p *port) read() {
 		}
 	}
 
+	return err
 }

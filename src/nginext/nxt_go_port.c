@@ -108,8 +108,6 @@ nxt_go_data_handler(nxt_port_msg_t *port_msg, size_t size)
         nxt_go_request_create_channel(r);
     }
 
-    nxt_go_request_serve(r);
-
     return r;
 }
 
