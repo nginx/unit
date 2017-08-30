@@ -69,6 +69,11 @@ nxt_go_data_handler(nxt_port_msg_t *port_msg, size_t size)
                              h->version.start[5] - '0',
                              h->version.start[7] - '0');
 
+    nxt_go_ctx_read_str(ctx, &ctx->r.remote);
+    if (ctx->r.remote.start != NULL) {
+        nxt_go_request_set_remote_addr(r, nxt_go_str(&ctx->r.remote));
+    }
+
     nxt_go_ctx_read_str(ctx, &h->host);
     nxt_go_ctx_read_str(ctx, &h->cookie);
     nxt_go_ctx_read_str(ctx, &h->content_type);

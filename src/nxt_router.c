@@ -2934,6 +2934,7 @@ nxt_go_prepare_msg(nxt_task_t *task, nxt_app_request_t *r, nxt_app_wmsg_t *wmsg)
     }
 
     NXT_WRITE(&h->version);
+    NXT_WRITE(&r->remote);
 
     NXT_WRITE(&h->host);
     NXT_WRITE(&h->cookie);
