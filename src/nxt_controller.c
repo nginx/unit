@@ -646,8 +646,16 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
         req->conf.root = value;
         req->conf.pool = mp;
 
-        if (nxt_controller_conf_apply(task, req) != NXT_OK) {
+        rc = nxt_controller_conf_apply(task, req);
+
+        if (nxt_slow_path(rc != NXT_OK)) {
             nxt_mp_destroy(mp);
+
+            if (rc == NXT_DECLINED) {
+                goto no_router;
+            }
+
+            /* rc == NXT_ERROR */
             goto alloc_fail;
         }
 
@@ -705,8 +713,16 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
         req->conf.root = value;
         req->conf.pool = mp;
 
-        if (nxt_controller_conf_apply(task, req) != NXT_OK) {
+        rc = nxt_controller_conf_apply(task, req);
+
+        if (nxt_slow_path(rc != NXT_OK)) {
             nxt_mp_destroy(mp);
+
+            if (rc == NXT_DECLINED) {
+                goto no_router;
+            }
+
+            /* rc == NXT_ERROR */
             goto alloc_fail;
         }
 
@@ -715,15 +731,6 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
 
     resp.status = 405;
     resp.title = (u_char *) "Invalid method.";
-    resp.offset = -1;
-
-    nxt_controller_response(task, req, &resp);
-    return;
-
-alloc_fail:
-
-    resp.status = 500;
-    resp.title = (u_char *) "Memory allocation failed.";
     resp.offset = -1;
 
     nxt_controller_response(task, req, &resp);
@@ -746,6 +753,24 @@ invalid_conf:
 
     nxt_controller_response(task, req, &resp);
     return;
+
+alloc_fail:
+
+    resp.status = 500;
+    resp.title = (u_char *) "Memory allocation failed.";
+    resp.offset = -1;
+
+    nxt_controller_response(task, req, &resp);
+    return;
+
+no_router:
+
+    resp.status = 500;
+    resp.title = (u_char *) "Router process isn't available.";
+    resp.offset = -1;
+
+    nxt_controller_response(task, req, &resp);
+    return;
 }
 
 
@@ -762,6 +787,11 @@ nxt_controller_conf_apply(nxt_task_t *task, nxt_controller_request_t *req)
     rt = task->thread->runtime;
 
     router_port = rt->port_by_type[NXT_PROCESS_ROUTER];
+
+    if (nxt_slow_path(router_port == NULL)) {
+        return NXT_DECLINED;
+    }
+
     controller_port = rt->port_by_type[NXT_PROCESS_CONTROLLER];
 
     size = nxt_conf_json_length(req->conf.root, NULL);
