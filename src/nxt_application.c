@@ -49,6 +49,9 @@ nxt_discovery_start(nxt_task_t *task, void *data)
     rt = task->thread->runtime;
 
     b = nxt_discovery_modules(task, rt->modules);
+    if (nxt_slow_path(b == NULL)) {
+        exit(1);
+    }
 
     main_port = rt->port_by_type[NXT_PROCESS_MAIN];
 
@@ -97,60 +100,64 @@ nxt_discovery_modules(nxt_task_t *task, const char *path)
 
     ret = glob(path, 0, NULL, &glb);
 
-    if (ret == 0) {
-        n = glb.gl_pathc;
+    n = glb.gl_pathc;
 
-        modules = nxt_array_create(mp, n, sizeof(nxt_module_t));
-        if (modules == NULL) {
-            goto fail;
-        }
-
-        for (i = 0; i < n; i++) {
-            name = glb.gl_pathv[i];
-
-            ret = nxt_discovery_module(task, mp, modules, name);
-            if (ret != NXT_OK) {
-                goto fail;
-            }
-        }
-
-        size = sizeof("[]") - 1;
-        module = modules->elts;
-        n = modules->nelts;
-
-        for (i = 0; i < n; i++) {
-            nxt_debug(task, "module: %V %V %V",
-                      &module[i].type, &module[i].version, &module[i].file);
-
-            size += sizeof("{\"type\": \"\",") - 1;
-            size += sizeof(" \"version\": \"\",") - 1;
-            size += sizeof(" \"file\": \"\"},") - 1;
-
-            size += module[i].type.length
-                    + module[i].version.length
-                    + module[i].file.length;
-        }
-
-        b = nxt_buf_mem_alloc(mp, size, 0);
-        if (b == NULL) {
-            goto fail;
-        }
-
-        b->completion_handler = nxt_discovery_completion_handler;
-
-        p = b->mem.free;
-        end = b->mem.end;
-        *p++ = '[';
-
-        for (i = 0; i < n; i++) {
-            p = nxt_sprintf(p, end,
-                  "{\"type\": \"%V\", \"version\": \"%V\", \"file\": \"%V\"},",
-                  &module[i].type, &module[i].version, &module[i].file);
-        }
-
-        *p++ = ']';
-        b->mem.free = p;
+    if (ret != 0) {
+        nxt_log(task, NXT_LOG_NOTICE,
+                "no modules matching: \"%s\" found", path);
+        n = 0;
     }
+
+    modules = nxt_array_create(mp, n, sizeof(nxt_module_t));
+    if (modules == NULL) {
+        goto fail;
+    }
+
+    for (i = 0; i < n; i++) {
+        name = glb.gl_pathv[i];
+
+        ret = nxt_discovery_module(task, mp, modules, name);
+        if (ret != NXT_OK) {
+            goto fail;
+        }
+    }
+
+    size = sizeof("[]") - 1;
+    module = modules->elts;
+    n = modules->nelts;
+
+    for (i = 0; i < n; i++) {
+        nxt_debug(task, "module: %V %V %V",
+                  &module[i].type, &module[i].version, &module[i].file);
+
+        size += sizeof("{\"type\": \"\",") - 1;
+        size += sizeof(" \"version\": \"\",") - 1;
+        size += sizeof(" \"file\": \"\"},") - 1;
+
+        size += module[i].type.length
+                + module[i].version.length
+                + module[i].file.length;
+    }
+
+    b = nxt_buf_mem_alloc(mp, size, 0);
+    if (b == NULL) {
+        goto fail;
+    }
+
+    b->completion_handler = nxt_discovery_completion_handler;
+
+    p = b->mem.free;
+    end = b->mem.end;
+    *p++ = '[';
+
+    for (i = 0; i < n; i++) {
+        p = nxt_sprintf(p, end,
+              "{\"type\": \"%V\", \"version\": \"%V\", \"file\": \"%V\"},",
+              &module[i].type, &module[i].version, &module[i].file);
+    }
+
+    *p++ = ']';
+    b->mem.free = p;
 
 fail:
 
