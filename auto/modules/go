@@ -99,8 +99,8 @@ ${NXT_GO}:	$NXT_BUILD_DIR/nxt_go_gen.h
 
 $NXT_BUILD_DIR/nxt_go_gen.h:	src/go/unit/*.go
 	GOPATH=`pwd` \\
-		 CGO_CPPFLAGS='-DNXT_CONFIGURE \\
-		-I`pwd`/src' \\
+		CGO_CPPFLAGS="-DNXT_CONFIGURE \\
+		-I`pwd`/src" \\
 		${NXT_GO} build -o $NXT_BUILD_DIR/nxt_go_gen.a \\
 		--buildmode=c-archive go/unit
 
