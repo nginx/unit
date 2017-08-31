@@ -298,12 +298,17 @@ nxt_router_ra_release(nxt_task_t *task, void *obj, void *data)
 
     if (ra->app_port != NULL) {
 
+        nxt_router_app_release_port(task, ra->app_port, ra->app_port->app);
+
+#if 0
+        /* Uncomment to hold app port until complete response received. */
         if (ra->rc->conn != NULL) {
             ra->rc->app_port = ra->app_port;
 
         } else {
             nxt_router_app_release_port(task, ra->app_port, ra->app_port->app);
         }
+#endif
     }
 
     nxt_mp_release(ra->mem_pool, ra);
