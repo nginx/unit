@@ -503,7 +503,7 @@ nxt_php_send_headers(sapi_headers_struct *sapi_headers TSRMLS_DC)
           "\r\n";
 
     static const u_char default_headers[]
-        - "Server: unit/" NXT_VERSION "\r\n"
+        = "Server: unit/" NXT_VERSION "\r\n"
           "Connection: close\r\n";
 
     static const u_char http_11[] = "HTTP/1.1 ";
