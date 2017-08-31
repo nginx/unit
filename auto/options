@@ -9,7 +9,6 @@ NXT_CFLAGS=
 NXT_CC_OPT=
 NXT_LD_OPT=
 
-NXT_BUILD_DIR=build
 NXT_PREFIX=
 
 NXT_DEBUG=NO
@@ -51,8 +50,6 @@ do
         --cc=*)                          CC="$value"                         ;;
         --cc-opt=*)                      NXT_CC_OPT="$value"                 ;;
         --ld-opt=*)                      NXT_LD_OPT="$value"                 ;;
-
-        --build-dir=*)                   NXT_BUILD_DIR="$value"              ;;
 
         --prefix=*)                      NXT_PREFIX="$value"                 ;;
         --bindir=*)                      NXT_BINDIR="$value"                 ;;
