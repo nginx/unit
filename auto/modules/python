@@ -145,7 +145,9 @@ done
  
 cat << END >> $NXT_MAKEFILE
 
-.PHONY:			${NXT_PYTHON_MODULE}
+.PHONY: ${NXT_PYTHON_MODULE}
+.PHONY: ${NXT_PYTHON_MODULE}-install
+.PHONY: ${NXT_PYTHON_MODULE}-uninstall
 
 all: ${NXT_PYTHON_MODULE}
 
@@ -154,5 +156,20 @@ ${NXT_PYTHON_MODULE}:	$NXT_BUILD_DIR/${NXT_PYTHON_MODULE}.unit.so
 $NXT_BUILD_DIR/${NXT_PYTHON_MODULE}.unit.so:	$nxt_objs
 	$NXT_MODULE_LINK -o $NXT_BUILD_DIR/${NXT_PYTHON_MODULE}.unit.so \\
 	$nxt_objs $NXT_PYTHON_LIBS
+
+
+install: ${NXT_PYTHON_MODULE}-install
+
+${NXT_PYTHON_MODULE}-install: ${NXT_PYTHON_MODULE}
+	install -d \$(DESTDIR)$NXT_MODULES
+	install -p $NXT_BUILD_DIR/${NXT_PYTHON_MODULE}.unit.so \\
+		\$(DESTDIR)$NXT_MODULES/
+
+
+uninstall: ${NXT_PYTHON_MODULE}-uninstall
+
+${NXT_PYTHON_MODULE}-uninstall:
+	rm -f \$(DESTDIR)$NXT_MODULES/${NXT_PYTHON_MODULE}.unit.so
+	@rmdir -p \$(DESTDIR)$NXT_MODULES 2>/dev/null || true
 
 END

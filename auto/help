@@ -12,9 +12,14 @@ cat << END
   --ld-opt=OPTIONS     set additional linker options
 
   --prefix=DIRECTORY   set prefix for relative pathnames, default: none
+  --bindir=DIRECTORY   set user executables directory name
+                       default: "$NXT_BINDIR"
+  --sbindir=DIRECTORY  set system admin executables directory name
+                       default: "$NXT_SBINDIR"
+  --modules=DIRECTORY  set modules directory name, default: "$NXT_MODULES"
+
   --pid=FILE           set pid filename, default: "$NXT_PID"
   --log=FILE           set log filename, default: "$NXT_LOG"
-  --modules=DIRECTORY  set modules directory name, default: "$NXT_MODULES"
 
   --control=ADDRESS    set address of control API socket
                        default: "$NXT_CONTROL"

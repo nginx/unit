@@ -148,7 +148,9 @@ done
  
 cat << END >> $NXT_MAKEFILE
 
-.PHONY:			${NXT_PHP_MODULE}
+.PHONY: ${NXT_PHP_MODULE}
+.PHONY: ${NXT_PHP_MODULE}-install
+.PHONY: ${NXT_PHP_MODULE}-uninstall
 
 all: ${NXT_PHP_MODULE}
 
@@ -157,5 +159,20 @@ ${NXT_PHP_MODULE}:	$NXT_BUILD_DIR/${NXT_PHP_MODULE}.unit.so
 $NXT_BUILD_DIR/${NXT_PHP_MODULE}.unit.so:	$nxt_objs
 	$NXT_MODULE_LINK -o $NXT_BUILD_DIR/${NXT_PHP_MODULE}.unit.so \\
 	$nxt_objs ${NXT_PHP_LIB} ${NXT_PHP_LDFLAGS}
+
+
+install: ${NXT_PHP_MODULE}-install
+
+${NXT_PHP_MODULE}-install: ${NXT_PHP_MODULE}
+	install -d \$(DESTDIR)$NXT_MODULES
+	install -p $NXT_BUILD_DIR/${NXT_PHP_MODULE}.unit.so \\
+		\$(DESTDIR)$NXT_MODULES/
+
+
+uninstall: ${NXT_PHP_MODULE}-uninstall
+
+${NXT_PHP_MODULE}-uninstall:
+	rm -f \$(DESTDIR)$NXT_MODULES/${NXT_PHP_MODULE}.unit.so
+	@rmdir -p \$(DESTDIR)$NXT_MODULES 2>/dev/null || true
 
 END

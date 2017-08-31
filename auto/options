@@ -55,9 +55,12 @@ do
         --build-dir=*)                   NXT_BUILD_DIR="$value"              ;;
 
         --prefix=*)                      NXT_PREFIX="$value"                 ;;
+        --bindir=*)                      NXT_BINDIR="$value"                 ;;
+        --sbindir=*)                     NXT_SBINDIR="$value"                ;;
+        --modules=*)                     NXT_MODULES="$value"                ;;
+
         --pid=*)                         NXT_PID="$value"                    ;;
         --log=*)                         NXT_LOG="$value"                    ;;
-        --modules=*)                     NXT_MODULES="$value"                ;;
 
         --control=*)                     NXT_CONTROL="$value"                ;;
 
@@ -91,6 +94,11 @@ do
 
         --tests)                         NXT_TESTS=YES                       ;;
 
+        --help)
+            . auto/help
+            exit 0
+        ;;
+
         *)
             $echo
             $echo $0: error: invalid option \"$nxt_option\".
@@ -112,6 +120,21 @@ case "$NXT_PREFIX" in
      *)  NXT_PREFIX="$NXT_PREFIX/"  ;;
 esac
 
+case "$NXT_BINDIR" in
+    /*)  ;;
+     *)  NXT_BINDIR="$NXT_PREFIX$NXT_BINDIR"  ;;
+esac
+
+case "$NXT_SBINDIR" in
+    /*)  ;;
+     *)  NXT_SBINDIR="$NXT_PREFIX$NXT_SBINDIR"  ;;
+esac
+
+case "$NXT_MODULES" in
+    /*)  ;;
+     *)  NXT_MODULES="$NXT_PREFIX$NXT_MODULES"  ;;
+esac
+
 case "$NXT_PID" in
     /*)  ;;
      *)  NXT_PID="$NXT_PREFIX$NXT_PID"  ;;
@@ -120,16 +143,6 @@ esac
 case "$NXT_LOG" in
     /*)  ;;
      *)  NXT_LOG="$NXT_PREFIX$NXT_LOG"  ;;
-esac
-
-case "$NXT_MODULES" in
-    ""|*/)  ;;
-     *)  NXT_MODULES="$NXT_MODULES/"  ;;
-esac
-
-case "$NXT_MODULES" in
-    /*)  ;;
-     *)  NXT_MODULES="$NXT_PREFIX$NXT_MODULES"  ;;
 esac
 
 case "$NXT_CONTROL" in
