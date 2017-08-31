@@ -740,6 +740,8 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             continue;
         }
 
+        apcf.workers = 1;
+
         ret = nxt_conf_map_object(mp, application, nxt_router_app_conf,
                                   nxt_nitems(nxt_router_app_conf), &apcf);
         if (ret != NXT_OK) {
