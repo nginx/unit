@@ -108,6 +108,7 @@ typedef struct {
     nxt_app_request_body_t     body;
 
     nxt_str_t                  remote;
+    nxt_str_t                  local;
 } nxt_app_request_t;
 
 

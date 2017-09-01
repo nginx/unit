@@ -2431,6 +2431,7 @@ nxt_router_conn_http_header_parse(nxt_task_t *task, void *obj, void *data)
     nxt_int_t                 ret;
     nxt_buf_t                 *buf;
     nxt_conn_t                *c;
+    nxt_sockaddr_t            *local;
     nxt_app_parse_ctx_t       *ap;
     nxt_app_request_body_t    *b;
     nxt_socket_conf_joint_t   *joint;
@@ -2460,6 +2461,10 @@ nxt_router_conn_http_header_parse(nxt_task_t *task, void *obj, void *data)
 
         ap->r.remote.start = nxt_sockaddr_address(c->remote);
         ap->r.remote.length = c->remote->address_length;
+
+        local = joint->socket_conf->sockaddr;
+        ap->r.local.start = nxt_sockaddr_address(local);
+        ap->r.local.length = local->address_length;
 
         ap->r.header.buf = buf;
     }
@@ -2781,6 +2786,7 @@ nxt_python_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
     NXT_WRITE(&h->version);
 
     NXT_WRITE(&r->remote);
+    NXT_WRITE(&r->local);
 
     NXT_WRITE(&h->host);
     NXT_WRITE(&h->content_type);
@@ -2864,6 +2870,7 @@ nxt_php_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
     // DOCUMENT_ROOT
 
     NXT_WRITE(&r->remote);
+    NXT_WRITE(&r->local);
 
     NXT_WRITE(&h->host);
     NXT_WRITE(&h->cookie);

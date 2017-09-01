@@ -666,6 +666,7 @@ nxt_python_get_environ(nxt_task_t *task, nxt_app_rmsg_t *rmsg,
     NXT_READ("SERVER_PROTOCOL");
 
     NXT_READ("REMOTE_ADDR");
+    NXT_READ("SERVER_ADDR");
 
     RC(nxt_app_msg_read_str(task, rmsg, &host));
 

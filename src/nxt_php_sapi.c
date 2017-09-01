@@ -320,6 +320,7 @@ nxt_php_read_request(nxt_task_t *task, nxt_app_rmsg_t *rmsg,
     NXT_READ(&h->version);
 
     NXT_READ(&ctx->r.remote);
+    NXT_READ(&ctx->r.local);
 
     NXT_READ(&h->host);
     NXT_READ(&h->cookie);
@@ -718,6 +719,7 @@ nxt_php_register_variables(zval *track_vars_array TSRMLS_DC)
     NXT_PHP_SET("SERVER_PORT", server_port);
 
     NXT_PHP_SET("REMOTE_ADDR", ctx->r.remote);
+    NXT_PHP_SET("SERVER_ADDR", ctx->r.local);
 
     while (nxt_app_msg_read_str(task, ctx->rmsg, &n) == NXT_OK) {
         if (nxt_slow_path(n.length == 0)) {
