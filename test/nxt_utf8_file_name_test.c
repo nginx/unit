@@ -44,7 +44,7 @@ nxt_utf8_file_name_test(nxt_thread_t *thr)
     ssize_t              n;
     uint32_t             uc, lc;
     nxt_int_t            ret;
-    nxt_task_t           *task = NULL;
+    nxt_task_t           task;
     nxt_file_t           uc_file, lc_file;
     const u_char         *pp;
     nxt_file_name_t      uc_name[10], lc_name[10];
@@ -72,6 +72,9 @@ nxt_utf8_file_name_test(nxt_thread_t *thr)
     nxt_memzero(&lc_file, sizeof(nxt_file_t));
 
     lc_file.name = lc_name;
+
+    task.thread = thr;
+    task.log = thr->log;
 
     for (uc = 0x41; uc < 0x110000; uc++) {
 
@@ -106,7 +109,7 @@ nxt_utf8_file_name_test(nxt_thread_t *thr)
 
         *p = '\0';
 
-        ret = nxt_file_open(task, &uc_file, NXT_FILE_WRONLY, NXT_FILE_TRUNCATE,
+        ret = nxt_file_open(&task, &uc_file, NXT_FILE_WRONLY, NXT_FILE_TRUNCATE,
                             NXT_FILE_DEFAULT_ACCESS);
         if (ret != NXT_OK) {
             return NXT_ERROR;
@@ -116,15 +119,15 @@ nxt_utf8_file_name_test(nxt_thread_t *thr)
             return NXT_ERROR;
         }
 
-        nxt_file_close(task, &uc_file);
+        nxt_file_close(&task, &uc_file);
 
-        ret = nxt_file_open(task, &lc_file, NXT_FILE_RDONLY, NXT_FILE_OPEN,
+        ret = nxt_file_open(&task, &lc_file, NXT_FILE_RDONLY, NXT_FILE_OPEN,
                             NXT_FILE_DEFAULT_ACCESS);
 
         if (ret == NXT_OK) {
             n = nxt_file_read(&lc_file, test, 4, 0);
 
-            nxt_file_close(task, &lc_file);
+            nxt_file_close(&task, &lc_file);
 
             if (n != 4 || nxt_memcmp(utf8, test, 4) != 0) {
                 nxt_log_alert(thr->log, "nxt_file_read() mismatch");
