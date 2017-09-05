@@ -297,6 +297,19 @@ nxt_app_start(nxt_task_t *task, void *data)
         nxt_app = nxt_app_module_load(task, lang->file);
     }
 
+    if (app_conf->working_directory != NULL &&
+        app_conf->working_directory[0] != 0)
+    {
+        ret = chdir(app_conf->working_directory);
+
+        if (nxt_slow_path(ret != 0)) {
+            nxt_log(task, NXT_LOG_WARN, "chdir(%s) failed %E",
+                    app_conf->working_directory, nxt_errno);
+
+            return NXT_ERROR;
+        }
+    }
+
     if (nxt_slow_path(nxt_thread_mutex_create(&nxt_app_mutex) != NXT_OK)) {
         return NXT_ERROR;
     }

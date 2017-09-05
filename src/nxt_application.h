@@ -57,6 +57,8 @@ struct nxt_common_app_conf_s {
     nxt_str_t       user;
     nxt_str_t       group;
 
+    char       *working_directory;
+
     uint32_t   workers;
 
     union {

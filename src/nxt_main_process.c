@@ -105,6 +105,12 @@ static nxt_conf_map_t  nxt_common_app_conf[] = {
     },
 
     {
+        nxt_string("working_directory"),
+        NXT_CONF_MAP_CSTRZ,
+        offsetof(nxt_common_app_conf_t, working_directory),
+    },
+
+    {
         nxt_string("workers"),
         NXT_CONF_MAP_INT32,
         offsetof(nxt_common_app_conf_t, workers),

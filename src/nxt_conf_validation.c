@@ -80,6 +80,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_python_members[] = {
       NULL,
       NULL },
 
+    { nxt_string("working_directory"),
+      NXT_CONF_STRING,
+      NULL,
+      NULL },
+
     { nxt_string("path"),
       NXT_CONF_STRING,
       NULL,
@@ -111,6 +116,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_php_members[] = {
       NULL },
 
     { nxt_string("group"),
+      NXT_CONF_STRING,
+      NULL,
+      NULL },
+
+    { nxt_string("working_directory"),
       NXT_CONF_STRING,
       NULL,
       NULL },
@@ -151,6 +161,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_go_members[] = {
       NULL },
 
     { nxt_string("group"),
+      NXT_CONF_STRING,
+      NULL,
+      NULL },
+
+    { nxt_string("working_directory"),
       NXT_CONF_STRING,
       NULL,
       NULL },
