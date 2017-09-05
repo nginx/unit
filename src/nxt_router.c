@@ -2079,6 +2079,12 @@ nxt_router_gen_error(nxt_task_t *task, nxt_conn_t *c, int code,
         c->socket.data = NULL;
     }
 
+    if (c->socket.fd == -1) {
+        nxt_mp_release(c->mem_pool, b->next);
+        nxt_mp_release(c->mem_pool, b);
+        return;
+    }
+
     if (c->write == NULL) {
         c->write = b;
         c->write_state = &nxt_router_conn_write_state;
@@ -2654,6 +2660,7 @@ nxt_router_process_http_request(nxt_task_t *task, nxt_conn_t *c,
     nxt_debug(task, "req_id %uxD linked to conn %p at engine %p",
               req_id, c, engine);
 
+    c->socket.data = NULL;
 
     ra = nxt_router_ra_create(task, rc);
 
@@ -3118,9 +3125,11 @@ nxt_router_conn_error(nxt_task_t *task, void *obj, void *data)
 
     nxt_debug(task, "router conn error");
 
-    c->write_state = &nxt_router_conn_close_state;
+    if (c->socket.fd != -1) {
+        c->write_state = &nxt_router_conn_close_state;
 
-    nxt_conn_close(task->thread->engine, c);
+        nxt_conn_close(task->thread->engine, c);
+    }
 }
 
 

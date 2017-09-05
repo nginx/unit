@@ -434,8 +434,8 @@ nxt_app_msg_write_get_buf(nxt_task_t *task, nxt_app_wmsg_t *msg, size_t size)
             free_size = nxt_buf_mem_free_size(&b->mem);
 
             if (nxt_slow_path(free_size < size)) {
-                nxt_debug(task, "requested buffer too big (%z < %z)",
-                          free_size, size);
+                nxt_log(task, NXT_LOG_WARN, "requested buffer too big "
+                        "(%z < %z)", free_size, size);
                 return NULL;
             }
 
