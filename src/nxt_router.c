@@ -254,7 +254,7 @@ nxt_router_ra_create(nxt_task_t *task, nxt_req_conn_link_t *rc)
         return NULL;
     }
 
-    nxt_debug(task, "ra #%uxD create", ra->req_id);
+    nxt_debug(task, "ra #%uxD create", rc->req_id);
 
     nxt_memzero(ra, sizeof(nxt_req_app_link_t));
 
