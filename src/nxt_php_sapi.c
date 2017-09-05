@@ -228,6 +228,7 @@ nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
         nxt_log_error(NXT_LOG_INFO, task->log,
                       "(ABS_MODE) php script \"%V\" root: \"%V\"",
                       script, root);
+
     } else {
         nxt_log_error(NXT_LOG_INFO, task->log,
                       "(non ABS_MODE) php root: \"%V\"", root);
@@ -290,6 +291,7 @@ nxt_php_read_request(nxt_task_t *task, nxt_app_rmsg_t *rmsg,
     if (nxt_php_path.start == NULL) {
         if (h->path.start[h->path.length - 1] == '/') {
             script_name = nxt_php_index;
+
         } else {
             script_name.length = 0;
         }
@@ -313,6 +315,7 @@ nxt_php_read_request(nxt_task_t *task, nxt_app_rmsg_t *rmsg,
         }
 
         p[0] = '\0';
+
     } else {
         ctx->script = nxt_php_path;
     }
@@ -397,6 +400,7 @@ nxt_php_run(nxt_task_t *task,
 
     if (nxt_php_path.start != NULL) {
         nxt_debug(task, "run script %V in absolute mode", &nxt_php_path);
+
     } else {
         nxt_debug(task, "run script %V", &run_ctx.script);
     }
@@ -431,6 +435,7 @@ nxt_php_write(nxt_php_run_ctx_t *ctx, const u_char *data, size_t len,
 
     if (len > 0) {
         rc = nxt_app_msg_write_raw(ctx->task, ctx->wmsg, data, len);
+
     } else {
         rc = NXT_OK;
     }
@@ -675,6 +680,7 @@ nxt_php_register_variables(zval *track_vars_array TSRMLS_DC)
  */
         NXT_PHP_SET("PHP_SELF", nxt_php_script);
         NXT_PHP_SET("SCRIPT_NAME", nxt_php_script);
+
     } else {
         NXT_PHP_SET("PHP_SELF", h->path);
         NXT_PHP_SET("SCRIPT_NAME", h->path);
@@ -711,6 +717,7 @@ nxt_php_register_variables(zval *track_vars_array TSRMLS_DC)
 
         server_port.start = colon + 1;
         server_port.length = host.length - server_name.length - 1;
+
     } else {
         server_port = def_port;
     }

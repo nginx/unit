@@ -488,8 +488,8 @@ nxt_main_stop_worker_processes(nxt_task_t *task, nxt_runtime_t *rt)
     nxt_port_t     *port;
     nxt_process_t  *process;
 
-    nxt_runtime_process_each(rt, process)
-    {
+    nxt_runtime_process_each(rt, process) {
+
         if (nxt_pid != process->pid) {
             process->init = NULL;
 
@@ -500,8 +500,8 @@ nxt_main_stop_worker_processes(nxt_task_t *task, nxt_runtime_t *rt)
 
             } nxt_process_port_loop;
         }
-    }
-    nxt_runtime_process_loop;
+
+    } nxt_runtime_process_loop;
 }
 
 
@@ -698,11 +698,12 @@ nxt_main_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid)
         nxt_runtime_process_remove(rt, process);
 
         if (!nxt_exiting) {
-            nxt_runtime_process_each(rt, process)
-            {
-                if (process->pid == nxt_pid ||
-                    process->pid == pid ||
-                    nxt_queue_is_empty(&process->ports)) {
+            nxt_runtime_process_each(rt, process) {
+
+                if (process->pid == nxt_pid
+                    || process->pid == pid
+                    || nxt_queue_is_empty(&process->ports))
+                {
                     continue;
                 }
 
@@ -713,8 +714,7 @@ nxt_main_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid)
 
                 nxt_port_socket_write(task, port, NXT_PORT_MSG_REMOVE_PID,
                                       -1, init->stream, 0, buf);
-            }
-            nxt_runtime_process_loop;
+            } nxt_runtime_process_loop;
         }
 
         if (nxt_exiting) {

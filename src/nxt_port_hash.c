@@ -23,9 +23,10 @@ nxt_port_hash_test(nxt_lvlhsh_query_t *lhq, void *data)
     port = data;
     pid_port_id = (nxt_pid_port_id_t *) lhq->key.start;
 
-    if (lhq->key.length == sizeof(nxt_pid_port_id_t) &&
-        pid_port_id->pid == port->pid &&
-        pid_port_id->port_id == port->id) {
+    if (lhq->key.length == sizeof(nxt_pid_port_id_t)
+        && pid_port_id->pid == port->pid
+        && pid_port_id->port_id == port->id)
+    {
         return NXT_OK;
     }
 

@@ -123,7 +123,7 @@ nxt_go_port_on_read(void *buf, size_t buf_size, void *oob, size_t oob_size)
     nxt_port_msg_new_port_t  *new_port_msg;
 
     fd = -1;
-    nxt_go_debug("on read: %d (%d)", (int)buf_size, (int)oob_size);
+    nxt_go_debug("on read: %d (%d)", (int) buf_size, (int) oob_size);
 
     cm = oob;
     if (oob_size >= CMSG_SPACE(sizeof(int))
@@ -137,11 +137,11 @@ nxt_go_port_on_read(void *buf, size_t buf_size, void *oob, size_t oob_size)
 
     port_msg = buf;
     if (buf_size < sizeof(nxt_port_msg_t)) {
-        nxt_go_warn("message too small (%d bytes)", (int)buf_size);
+        nxt_go_warn("message too small (%d bytes)", (int) buf_size);
         goto fail;
     }
 
-    buf_end = ((char *)buf) + buf_size;
+    buf_end = ((char *) buf) + buf_size;
 
     payload = port_msg + 1;
     payload_size = buf_size - sizeof(nxt_port_msg_t);
@@ -151,7 +151,7 @@ nxt_go_port_on_read(void *buf, size_t buf_size, void *oob, size_t oob_size)
     }
 
     if (port_msg->type >= NXT_PORT_MSG_MAX) {
-        nxt_go_warn("unknown message type (%d)", (int)port_msg->type);
+        nxt_go_warn("unknown message type (%d)", (int) port_msg->type);
         goto fail;
     }
 

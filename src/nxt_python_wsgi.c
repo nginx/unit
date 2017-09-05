@@ -359,7 +359,6 @@ nxt_python_run(nxt_task_t *task, nxt_app_rmsg_t *rmsg, nxt_app_wmsg_t *wmsg)
         nxt_python_write(&run_ctx, buf, size, 1, 1);
 
     } else {
-
         iterator = PyObject_GetIter(result);
 
         if (nxt_slow_path(iterator == NULL)) {
@@ -373,7 +372,7 @@ nxt_python_run(nxt_task_t *task, nxt_app_rmsg_t *rmsg, nxt_app_wmsg_t *wmsg)
 
             if (nxt_slow_path(PyBytes_Check(item) == 0)) {
                 nxt_log_error(NXT_LOG_ERR, task->log,
-                              "the application returned not a bytestring object");
+                        "the application returned not a bytestring object");
 
                 goto fail;
             }
@@ -574,6 +573,7 @@ nxt_python_add_env(nxt_task_t *task, PyObject *env, const char *name,
         nxt_log_error(NXT_LOG_ERR, task->log,
                       "Python failed to set the \"%s\" environ value", name);
         rc = NXT_ERROR;
+
     } else {
         rc = NXT_OK;
     }
@@ -682,6 +682,7 @@ nxt_python_get_environ(nxt_task_t *task, nxt_app_rmsg_t *rmsg,
 
         server_port.start = colon + 1;
         server_port.length = host.length - server_name.length - 1;
+
     } else {
         server_port = def_port;
     }
@@ -914,6 +915,7 @@ nxt_python_write_py_str(nxt_python_run_ctx_t *ctx, PyObject *str,
     if (PyBytes_Check(str)) {
         rc = nxt_python_write(ctx, (u_char *) PyBytes_AS_STRING(str),
                               PyBytes_GET_SIZE(str), flush, last);
+
     } else {
         if (!PyUnicode_Check(str)) {
             return NXT_ERROR;

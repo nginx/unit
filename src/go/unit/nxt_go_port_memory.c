@@ -52,6 +52,7 @@ nxt_go_new_port_mmap(nxt_go_process_t *process, nxt_port_id_t id)
     name_len = snprintf(name, sizeof(name) - 1, "/unit.go.%p", name);
 
 #if (NXT_HAVE_MEMFD_CREATE)
+
     fd = syscall(SYS_memfd_create, name, MFD_CLOEXEC);
 
     if (nxt_slow_path(fd == -1)) {
@@ -63,7 +64,9 @@ nxt_go_new_port_mmap(nxt_go_process_t *process, nxt_port_id_t id)
     nxt_go_debug("memfd_create(%s): %d", name, fd);
 
 #elif (NXT_HAVE_SHM_OPEN)
-    shm_unlink((char *) name); // just in case
+
+    /* Just in case. */
+    shm_unlink((char *) name);
 
     fd = shm_open((char *) name, O_CREAT | O_EXCL | O_RDWR, S_IRUSR | S_IWUSR);
 
@@ -78,6 +81,7 @@ nxt_go_new_port_mmap(nxt_go_process_t *process, nxt_port_id_t id)
     if (nxt_slow_path(shm_unlink((char *) name) == -1)) {
         nxt_go_warn("shm_unlink(%s) failed %d", name, errno);
     }
+
 #endif
 
     if (nxt_slow_path(ftruncate(fd, PORT_MMAP_SIZE) == -1)) {
@@ -135,7 +139,7 @@ nxt_go_new_port_mmap(nxt_go_process_t *process, nxt_port_id_t id)
                           &cmsg, sizeof(cmsg));
 
     nxt_go_debug("new mmap #%d created for %d -> %d",
-            (int)hdr->id, (int)getpid(), (int)process->pid);
+            (int) hdr->id, (int) getpid(), (int) process->pid);
 
     close(fd);
 

@@ -230,6 +230,7 @@ nxt_app_msg_write_length(u_char *dst, size_t length)
     if (length < 128) {
         *dst = length;
         dst++;
+
     } else {
         dst[0] = 0x80U | (length >> 24);
         dst[1] = 0xFFU & (length >> 16);
@@ -282,6 +283,7 @@ nxt_app_msg_read_length(u_char *src, size_t *length)
     if (src[0] < 128) {
         *length = src[0];
         src++;
+
     } else {
         *length = ((src[0] & 0x7fU) << 24) +
                   (src[1] << 16) +

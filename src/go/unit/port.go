@@ -124,7 +124,9 @@ func nxt_go_new_port(pid C.int, id C.int, t C.int, rcv C.int, snd C.int) {
 }
 
 //export nxt_go_port_send
-func nxt_go_port_send(pid C.int, id C.int, buf unsafe.Pointer, buf_size C.int, oob unsafe.Pointer, oob_size C.int) C.int {
+func nxt_go_port_send(pid C.int, id C.int, buf unsafe.Pointer, buf_size C.int,
+	oob unsafe.Pointer, oob_size C.int) C.int {
+
 	key := port_key{
 		pid: int(pid),
 		id:  int(id),
@@ -133,7 +135,8 @@ func nxt_go_port_send(pid C.int, id C.int, buf unsafe.Pointer, buf_size C.int, o
 	p := find_port(key)
 
 	if p != nil {
-		n, oobn, err := p.snd.WriteMsgUnix(C.GoBytes(buf, buf_size), C.GoBytes(oob, oob_size), nil)
+		n, oobn, err := p.snd.WriteMsgUnix(C.GoBytes(buf, buf_size),
+			C.GoBytes(oob, oob_size), nil)
 
 		if err != nil {
 			fmt.Printf("write result %d (%d), %s\n", n, oobn, err)
@@ -146,11 +149,14 @@ func nxt_go_port_send(pid C.int, id C.int, buf unsafe.Pointer, buf_size C.int, o
 }
 
 //export nxt_go_main_send
-func nxt_go_main_send(buf unsafe.Pointer, buf_size C.int, oob unsafe.Pointer, oob_size C.int) C.int {
+func nxt_go_main_send(buf unsafe.Pointer, buf_size C.int, oob unsafe.Pointer,
+	oob_size C.int) C.int {
+
 	p := main_port()
 
 	if p != nil {
-		n, oobn, err := p.snd.WriteMsgUnix(C.GoBytes(buf, buf_size), C.GoBytes(oob, oob_size), nil)
+		n, oobn, err := p.snd.WriteMsgUnix(C.GoBytes(buf, buf_size),
+			C.GoBytes(oob, oob_size), nil)
 
 		if err != nil {
 			fmt.Printf("write result %d (%d), %s\n", n, oobn, err)
@@ -168,7 +174,7 @@ func new_port(pid int, id int, t int, rcv int, snd int) *port {
 			pid: pid,
 			id:  id,
 		},
-		t: t,
+		t:   t,
 		rcv: getUnixConn(rcv),
 		snd: getUnixConn(snd),
 	}

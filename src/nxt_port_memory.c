@@ -241,6 +241,7 @@ nxt_port_new_port_mmap(nxt_task_t *task, nxt_process_t *process,
     *p = '\0';
 
 #if (NXT_HAVE_MEMFD_CREATE)
+
     fd = syscall(SYS_memfd_create, name, MFD_CLOEXEC);
 
     if (nxt_slow_path(fd == -1)) {
@@ -253,7 +254,9 @@ nxt_port_new_port_mmap(nxt_task_t *task, nxt_process_t *process,
     nxt_debug(task, "memfd_create(%s): %FD", name, fd);
 
 #elif (NXT_HAVE_SHM_OPEN)
-    shm_unlink((char *) name); // just in case
+
+    /* Just in case. */
+    shm_unlink((char *) name);
 
     fd = shm_open((char *) name, O_CREAT | O_EXCL | O_RDWR, S_IRUSR | S_IWUSR);
 
@@ -269,6 +272,7 @@ nxt_port_new_port_mmap(nxt_task_t *task, nxt_process_t *process,
         nxt_log(task, NXT_LOG_WARN, "shm_unlink(%s) failed %E", name,
                 nxt_errno);
     }
+
 #endif
 
     if (nxt_slow_path(ftruncate(fd, PORT_MMAP_SIZE) == -1)) {
@@ -277,8 +281,8 @@ nxt_port_new_port_mmap(nxt_task_t *task, nxt_process_t *process,
         goto remove_fail;
     }
 
-    mem = nxt_mem_mmap(NULL, PORT_MMAP_SIZE,
-                       PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    mem = nxt_mem_mmap(NULL, PORT_MMAP_SIZE, PROT_READ | PROT_WRITE,
+                       MAP_SHARED, fd, 0);
 
     if (nxt_slow_path(mem == MAP_FAILED)) {
         goto remove_fail;
@@ -395,6 +399,7 @@ nxt_port_get_port_incoming_mmap(nxt_task_t *task, nxt_pid_t spid, uint32_t id)
     if (nxt_fast_path(incoming != NULL && incoming->nelts > id)) {
         port_mmap = incoming->elts;
         hdr = port_mmap[id].hdr;
+
     } else {
         nxt_log(task, NXT_LOG_WARN,
                 "failed to get incoming mmap #%d for process %PI", id, spid);
@@ -511,9 +516,9 @@ nxt_port_mmap_increase_buf(nxt_task_t *task, nxt_buf_t *b, size_t size,
         nchunks--;
     }
 
-    if (nchunks != 0 &&
-        min_size > free_size + PORT_MMAP_CHUNK_SIZE * (c - start)) {
-
+    if (nchunks != 0
+        && min_size > free_size + PORT_MMAP_CHUNK_SIZE * (c - start))
+    {
         c--;
         while (c >= start) {
             nxt_port_mmap_set_chunk_free(hdr, c);
@@ -523,6 +528,7 @@ nxt_port_mmap_increase_buf(nxt_task_t *task, nxt_buf_t *b, size_t size,
         nxt_debug(task, "failed to increase, %d chunks busy", nchunks);
 
         return NXT_ERROR;
+
     } else {
         b->mem.end += PORT_MMAP_CHUNK_SIZE * (c - start);
 
@@ -565,8 +571,8 @@ nxt_port_mmap_get_incoming_buf(nxt_task_t *task, nxt_port_t *port,
 
     b->parent = hdr;
 
-    nxt_debug(task, "incoming mmap buf allocation: %p [%p,%d] %PI,%d,%d", b,
-              b->mem.start, b->mem.end - b->mem.start,
+    nxt_debug(task, "incoming mmap buf allocation: %p [%p,%d] %PI,%d,%d",
+              b, b->mem.start, b->mem.end - b->mem.start,
               hdr->pid, hdr->id, mmap_msg->chunk_id);
 
     return b;
@@ -584,7 +590,7 @@ nxt_port_mmap_write(nxt_task_t *task, nxt_port_t *port,
     nxt_port_mmap_header_t  *hdr;
 
     nxt_debug(task, "prepare %z bytes message for transfer to process %PI "
-              "via shared memory", sb->size, port->pid);
+                    "via shared memory", sb->size, port->pid);
 
     bsize = sb->niov * sizeof(nxt_port_mmap_msg_t);
     mmap_msg = port->mmsg_buf;
@@ -599,8 +605,8 @@ nxt_port_mmap_write(nxt_task_t *task, nxt_port_t *port,
         }
 
         if (nxt_slow_path(bmem == NULL)) {
-            nxt_log_error(NXT_LOG_ERR, task->log, "failed to find buf for "
-                          "iobuf[%d]", i);
+            nxt_log_error(NXT_LOG_ERR, task->log,
+                          "failed to find buf for iobuf[%d]", i);
             return;
             /* TODO clear b and exit */
         }

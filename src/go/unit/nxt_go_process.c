@@ -35,10 +35,10 @@ nxt_go_find_process(nxt_pid_t pid, uint32_t *pos)
         process = nxt_go_array_at(&processes, i);
 
         nxt_go_debug("compare process #%d (%p) at %d",
-                     (int)process->pid, process, (int)i);
+                     (int) process->pid, process, (int) i);
 
         if (pid == process->pid) {
-            nxt_go_debug("found process %d at %d", (int)pid, (int)i);
+            nxt_go_debug("found process %d at %d", (int) pid, (int) i);
 
             if (pos != NULL) {
                 *pos = i;
@@ -49,6 +49,7 @@ nxt_go_find_process(nxt_pid_t pid, uint32_t *pos)
 
         if (pid < process->pid) {
             r = i;
+
         } else {
             l = i + 1;
         }
@@ -60,7 +61,7 @@ nxt_go_find_process(nxt_pid_t pid, uint32_t *pos)
         *pos = i;
     }
 
-    nxt_go_debug("process %d not found, best pos %d", (int)pid, (int)i);
+    nxt_go_debug("process %d not found, best pos %d", (int) pid, (int) i);
 
     return NULL;
 }
@@ -78,8 +79,8 @@ nxt_go_get_process(nxt_pid_t pid)
         nxt_go_array_add(&processes);
         process = nxt_go_array_at(&processes, pos);
 
-        nxt_go_debug("init process #%d (%p) at %d", (int)pid, process,
-                     (int)pos);
+        nxt_go_debug("init process #%d (%p) at %d",
+                     (int) pid, process, (int) pos);
 
         if (pos < processes.nelts - 1) {
             memmove(process + 1, process,
@@ -108,10 +109,10 @@ nxt_go_new_incoming_mmap(nxt_pid_t pid, nxt_fd_t fd)
     process = nxt_go_get_process(pid);
 
     nxt_go_debug("got new mmap fd #%d from process %d",
-                 (int)fd, (int)pid);
+                 (int) fd, (int) pid);
 
     if (fstat(fd, &mmap_stat) == -1) {
-        nxt_go_warn("fstat(%d) failed %d", (int)fd, errno);
+        nxt_go_warn("fstat(%d) failed %d", (int) fd, errno);
 
         return;
     }

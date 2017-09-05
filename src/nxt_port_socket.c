@@ -176,10 +176,10 @@ nxt_port_socket_write(nxt_task_t *task, nxt_port_t *port, nxt_uint_t type,
             continue;
         }
 
-        if  (msg->port_msg.stream == stream && 
-             msg->port_msg.reply_port == reply_port &&
-             msg->port_msg.last == 0 &&
-             msg->opened) {
+        if (msg->port_msg.stream == stream
+            && msg->port_msg.reply_port == reply_port
+            && msg->port_msg.last == 0
+            && msg->opened) {
 
             /*
              * An fd is ignored since a file descriptor

@@ -297,8 +297,8 @@ nxt_app_start(nxt_task_t *task, void *data)
         nxt_app = nxt_app_module_load(task, lang->file);
     }
 
-    if (app_conf->working_directory != NULL &&
-        app_conf->working_directory[0] != 0)
+    if (app_conf->working_directory != NULL
+        && app_conf->working_directory[0] != 0)
     {
         ret = chdir(app_conf->working_directory);
 
@@ -483,7 +483,7 @@ nxt_app_msg_write(nxt_task_t *task, nxt_app_wmsg_t *msg, u_char *c, size_t size)
         nxt_memcpy(dst, c, size);
         dst[size] = 0;
 
-        nxt_debug(task, "nxt_app_msg_write: %uz %*s", size, (int)size, c);
+        nxt_debug(task, "nxt_app_msg_write: %uz %*s", size, (int) size, c);
     } else {
         dst_length = 1;
 
@@ -578,8 +578,7 @@ nxt_app_msg_read_str(nxt_task_t *task, nxt_app_rmsg_t *msg, nxt_str_t *str)
 
     buf->mem.pos = nxt_app_msg_read_length(buf->mem.pos, &length);
 
-    if (nxt_slow_path(nxt_buf_mem_used_size(&buf->mem) < (intptr_t)length))
-    {
+    if (nxt_slow_path(nxt_buf_mem_used_size(&buf->mem) < (intptr_t) length)) {
         return NXT_ERROR;
     }
 
@@ -589,8 +588,8 @@ nxt_app_msg_read_str(nxt_task_t *task, nxt_app_rmsg_t *msg, nxt_str_t *str)
 
         buf->mem.pos += length;
 
-        nxt_debug(task, "nxt_read_str: %d %*s", (int)length - 1,
-                        (int)length - 1, str->start);
+        nxt_debug(task, "nxt_read_str: %d %*s", (int) length - 1,
+                        (int) length - 1, str->start);
     } else {
         str->start = NULL;
         str->length = 0;
@@ -690,7 +689,7 @@ nxt_app_msg_read_size(nxt_task_t *task, nxt_app_rmsg_t *msg, size_t *size)
 
     buf->mem.pos = nxt_app_msg_read_length(buf->mem.pos, size);
 
-    nxt_debug(task, "nxt_read_size: %d", (int)*size);
+    nxt_debug(task, "nxt_read_size: %d", (int) *size);
 
     return NXT_OK;
 }

@@ -101,6 +101,8 @@ static void nxt_router_apps_sort(nxt_router_t *router,
 
 static void nxt_router_engines_post(nxt_router_temp_conf_t *tmcf);
 static void nxt_router_engine_post(nxt_router_engine_conf_t *recf);
+static void nxt_router_app_data_handler(nxt_task_t *task,
+    nxt_port_recv_msg_t *msg);
 
 static void nxt_router_thread_start(void *data);
 static void nxt_router_listen_socket_create(nxt_task_t *task, void *obj,
@@ -1525,9 +1527,6 @@ nxt_router_engine_post(nxt_router_engine_conf_t *recf)
 }
 
 
-static void
-nxt_router_app_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
-
 static nxt_port_handler_t  nxt_router_app_port_handlers[] = {
     NULL, /* NXT_PORT_MSG_QUIT         */
     NULL, /* NXT_PORT_MSG_NEW_PORT     */
@@ -1998,12 +1997,14 @@ nxt_router_app_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         c->write_state = &nxt_router_conn_write_state;
 
         nxt_conn_write(task->thread->engine, c);
+
     } else {
         nxt_debug(task, "router data attach out bufs to existing chain");
 
         nxt_buf_chain_add(&c->write, b);
     }
 }
+
 
 nxt_inline const char *
 nxt_router_text_by_code(int code)
@@ -2090,6 +2091,7 @@ nxt_router_gen_error(nxt_task_t *task, nxt_conn_t *c, int code,
         c->write_state = &nxt_router_conn_write_state;
 
         nxt_conn_write(task->thread->engine, c);
+
     } else {
         nxt_debug(task, "router data attach out bufs to existing chain");
 
@@ -2133,7 +2135,8 @@ nxt_router_sw_error(nxt_task_t *task, nxt_port_recv_msg_t *msg, void *data)
 
     sw->app->pending_workers--;
 
-    nxt_debug(task, "sw %p error, failed to start app '%V'", sw, &sw->app->name);
+    nxt_debug(task, "sw %p error, failed to start app '%V'",
+              sw, &sw->app->name);
 
     nxt_router_sw_release(task, sw);
 }
@@ -2221,19 +2224,21 @@ nxt_router_app_free(nxt_task_t *task, nxt_app_t *app)
                          app->live, app->workers, app->pending_workers,
                          nxt_queue_is_empty(&app->requests));
 
-    if (app->live == 0 && app->workers == 0 &&
-        app->pending_workers == 0 &&
-        nxt_queue_is_empty(&app->requests)) {
-
+    if (app->live == 0
+        && app->workers == 0
+        && app->pending_workers == 0
+        && nxt_queue_is_empty(&app->requests))
+    {
         nxt_thread_mutex_destroy(&app->mutex);
         nxt_free(app);
 
         return 1;
     }
 
-    if (app->live == 1 && nxt_queue_is_empty(&app->requests) == 0 &&
-       (app->workers + app->pending_workers < app->max_workers)) {
-
+    if (app->live == 1
+        && nxt_queue_is_empty(&app->requests) == 0
+        && app->workers + app->pending_workers < app->max_workers)
+    {
         lnk = nxt_queue_first(&app->requests);
         nxt_queue_remove(lnk);
 
@@ -2515,10 +2520,10 @@ nxt_router_conn_http_header_parse(nxt_task_t *task, void *obj, void *data)
             return;
         }
 
-        if (joint->socket_conf->max_body_size > 0 &&
-            (size_t) h->parsed_content_length >
-            joint->socket_conf->max_body_size) {
-
+        if (joint->socket_conf->max_body_size > 0
+            && (size_t) h->parsed_content_length
+               > joint->socket_conf->max_body_size)
+        {
             nxt_router_gen_error(task, c, 413, "Content-Length too big");
             return;
         }
@@ -2555,8 +2560,10 @@ nxt_router_conn_http_header_parse(nxt_task_t *task, void *obj, void *data)
         if (c->read->mem.free == c->read->mem.end) {
             size = joint->socket_conf->large_header_buffer_size;
 
-            if (size <= (size_t) nxt_buf_mem_used_size(&buf->mem) ||
-                ap->r.header.bufs >= joint->socket_conf->large_header_buffers) {
+            if (size <= (size_t) nxt_buf_mem_used_size(&buf->mem)
+                || ap->r.header.bufs
+                   >= joint->socket_conf->large_header_buffers)
+            {
                 nxt_router_gen_error(task, c, 413,
                                      "Too long request headers");
                 return;
@@ -2797,8 +2804,10 @@ nxt_python_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
 
     NXT_WRITE(&h->method);
     NXT_WRITE(&h->target);
+
     if (h->path.start == h->target.start) {
         NXT_WRITE(&eof);
+
     } else {
         NXT_WRITE(&h->path);
     }
@@ -2876,8 +2885,10 @@ nxt_php_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
 
     NXT_WRITE(&h->method);
     NXT_WRITE(&h->target);
+
     if (h->path.start == h->target.start) {
         NXT_WRITE(&eof);
+
     } else {
         NXT_WRITE(&h->path);
     }
@@ -2961,8 +2972,10 @@ nxt_go_prepare_msg(nxt_task_t *task, nxt_app_request_t *r, nxt_app_wmsg_t *wmsg)
 
     NXT_WRITE(&h->method);
     NXT_WRITE(&h->target);
+
     if (h->path.start == h->target.start) {
         NXT_WRITE(&eof);
+
     } else {
         NXT_WRITE(&h->path);
     }
@@ -3057,6 +3070,7 @@ nxt_router_conn_ready(nxt_task_t *task, void *obj, void *data)
         nxt_debug(task, "router conn %p has more data to write", obj);
 
         nxt_conn_write(task->thread->engine, c);
+
     } else {
         nxt_debug(task, "router conn %p no more data to write, last = %d", obj,
                   last);

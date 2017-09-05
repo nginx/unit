@@ -29,7 +29,7 @@ nxt_go_ctx_msg_rbuf(nxt_go_run_ctx_t *ctx, nxt_go_msg_t *msg, nxt_buf_t *buf,
 
     if (nxt_slow_path(msg->mmap_msg == NULL)) {
         if (n > 0) {
-            nxt_go_warn("failed to get plain buf #%d", (int)n);
+            nxt_go_warn("failed to get plain buf #%d", (int) n);
 
             return NXT_ERROR;
         }
@@ -44,15 +44,15 @@ nxt_go_ctx_msg_rbuf(nxt_go_run_ctx_t *ctx, nxt_go_msg_t *msg, nxt_buf_t *buf,
 
     mmap_msg = msg->mmap_msg + n;
     if (nxt_slow_path(mmap_msg >= msg->end)) {
-        nxt_go_warn("no more data in shm #%d", (int)n);
+        nxt_go_warn("no more data in shm #%d", (int) n);
 
         return NXT_ERROR;
     }
 
     if (nxt_slow_path(mmap_msg->mmap_id >= ctx->process->incoming.nelts)) {
         nxt_go_warn("incoming shared memory segment #%d not found "
-                    "for process %d", (int)mmap_msg->mmap_id,
-                    (int)msg->port_msg->pid);
+                    "for process %d", (int) mmap_msg->mmap_id,
+                    (int) msg->port_msg->pid);
 
         return NXT_ERROR;
     }
@@ -103,6 +103,7 @@ nxt_go_ctx_init_msg(nxt_go_msg_t *msg, nxt_port_msg_t *port_msg,
             msg->data_size += mmap_msg->size;
             mmap_msg += 1;
         }
+
     } else {
         msg->mmap_msg = NULL;
         msg->end = NULL;
@@ -187,6 +188,7 @@ nxt_go_ctx_add_msg(nxt_go_run_ctx_t *ctx, nxt_port_msg_t *port_msg, size_t size)
 
     if (ctx->msg_last == &ctx->msg) {
         msg->start_offset += ctx->r.body.preread_size;
+
     } else {
         msg->start_offset += ctx->msg_last->data_size;
     }
@@ -241,8 +243,7 @@ nxt_go_port_mmap_get_buf(nxt_go_run_ctx_t *ctx, size_t size)
 
     buf = &ctx->wbuf;
 
-    hdr = nxt_go_port_mmap_get(ctx->process,
-                               ctx->msg.port_msg->reply_port, &c);
+    hdr = nxt_go_port_mmap_get(ctx->process, ctx->msg.port_msg->reply_port, &c);
     if (nxt_slow_path(hdr == NULL)) {
         nxt_go_warn("failed to get port_mmap");
 
@@ -324,9 +325,9 @@ nxt_go_port_mmap_increase_buf(nxt_buf_t *b, size_t size, size_t min_size)
         nchunks--;
     }
 
-    if (nchunks != 0 &&
-        min_size > free_size + PORT_MMAP_CHUNK_SIZE * (c - start)) {
-
+    if (nchunks != 0
+        && min_size > free_size + PORT_MMAP_CHUNK_SIZE * (c - start))
+    {
         c--;
         while (c >= start) {
             nxt_port_mmap_set_chunk_free(hdr, c);
@@ -334,6 +335,7 @@ nxt_go_port_mmap_increase_buf(nxt_buf_t *b, size_t size, size_t min_size)
         }
 
         return NXT_ERROR;
+
     } else {
         b->mem.end += PORT_MMAP_CHUNK_SIZE * (c - start);
 
@@ -378,6 +380,7 @@ nxt_go_ctx_write(nxt_go_run_ctx_t *ctx, void *data, size_t len)
                     return NXT_OK;
                 }
             }
+
         } while (nxt_go_port_mmap_increase_buf(buf, len, 1) == NXT_OK);
 
         if (ctx->nwbuf >= 8) {
@@ -464,9 +467,9 @@ nxt_go_ctx_read_str(nxt_go_run_ctx_t *ctx, nxt_str_t *str)
 
     buf = &ctx->rbuf;
 
-    if (nxt_slow_path(nxt_buf_mem_used_size(&buf->mem) < (intptr_t)length)) {
+    if (nxt_slow_path(nxt_buf_mem_used_size(&buf->mem) < (intptr_t) length)) {
         nxt_go_warn("read str: used size too small %d < %d",
-                    (int)nxt_buf_mem_used_size(&buf->mem), (int)length);
+                    (int) nxt_buf_mem_used_size(&buf->mem), (int) length);
         return NXT_ERROR;
     }
 
@@ -476,8 +479,9 @@ nxt_go_ctx_read_str(nxt_go_run_ctx_t *ctx, nxt_str_t *str)
 
         buf->mem.pos += length;
 
-        nxt_go_debug("read_str: %d %.*s", (int)length - 1, (int)length - 1,
-                        str->start);
+        nxt_go_debug("read_str: %d %.*s",
+                     (int) length - 1, (int) length - 1, str->start);
+
     } else {
         str->start = NULL;
         str->length = 0;

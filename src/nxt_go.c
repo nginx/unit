@@ -60,14 +60,14 @@ nxt_go_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
             nxt_sprintf(stream_buf, stream_buf + sizeof(stream_buf),
                         "%uD", port->process->init->stream);
 
-            setenv("NXT_GO_STREAM", (char *)stream_buf, 1);
+            setenv("NXT_GO_STREAM", (char *) stream_buf, 1);
         }
 
         nxt_debug(task, "port %PI, %ud, (%d, %d)", port->pid, port->id,
                   port->pair[0], port->pair[1]);
 
         p = nxt_sprintf(p, buf + sizeof(buf), "%PI,%ud,%d,%d,%d;",
-                        port->pid, port->id, (int)port->type,
+                        port->pid, port->id, (int) port->type,
                         port->pair[0], port->pair[1]);
 
         if (nxt_slow_path(nxt_sock_no_cloexec(port->pair[0]))) {
@@ -83,7 +83,7 @@ nxt_go_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     *p = '\0';
     nxt_debug(task, "update NXT_GO_PORTS=%s", buf);
 
-    setenv("NXT_GO_PORTS", (char *)buf, 1);
+    setenv("NXT_GO_PORTS", (char *) buf, 1);
 
     argv[0] = c->executable;
     argv[1] = NULL;

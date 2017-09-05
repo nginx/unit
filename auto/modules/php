@@ -65,7 +65,7 @@ $echo "checking for PHP ..." >> $NXT_AUTOCONF_ERR
 
 NXT_PHP_LDFLAGS=
 
-if /bin/sh -c "${NXT_PHP_CONFIG} --version"  >> $NXT_AUTOCONF_ERR 2>&1; then
+if /bin/sh -c "${NXT_PHP_CONFIG} --version" >> $NXT_AUTOCONF_ERR 2>&1; then
 
     $echo " found"
 

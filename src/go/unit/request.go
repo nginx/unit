@@ -17,12 +17,12 @@ import (
 )
 
 type request struct {
-	req      http.Request
-	resp     *response
-	c_req    C.nxt_go_request_t
-	id       C.uint32_t
-	msgs     []*cmsg
-	ch       chan *cmsg
+	req   http.Request
+	resp  *response
+	c_req C.nxt_go_request_t
+	id    C.uint32_t
+	msgs  []*cmsg
+	ch    chan *cmsg
 }
 
 func (r *request) Read(p []byte) (n int, err error) {
@@ -33,7 +33,8 @@ func (r *request) Read(p []byte) (n int, err error) {
 	if res == -2 /* NXT_AGAIN */ {
 		m := <-r.ch
 
-		res = C.nxt_go_request_read_from(r.c_req, b, c, m.buf.b, m.buf.s)
+		res = C.nxt_go_request_read_from(r.c_req, b, c, m.buf.b,
+			m.buf.s)
 		r.push(m)
 	}
 
@@ -124,7 +125,9 @@ func (r *request) push(m *cmsg) {
 }
 
 //export nxt_go_new_request
-func nxt_go_new_request(c_req C.nxt_go_request_t, id C.uint32_t, c_method *C.nxt_go_str_t, c_uri *C.nxt_go_str_t) {
+func nxt_go_new_request(c_req C.nxt_go_request_t, id C.uint32_t,
+	c_method *C.nxt_go_str_t, c_uri *C.nxt_go_str_t) {
+
 	uri := C.GoStringN(c_uri.start, c_uri.length)
 
 	var URL *url.URL
@@ -162,7 +165,9 @@ func nxt_go_find_request(id C.uint32_t) C.nxt_go_request_t {
 }
 
 //export nxt_go_request_set_proto
-func nxt_go_request_set_proto(c_req C.nxt_go_request_t, proto *C.nxt_go_str_t, maj C.int, min C.int) {
+func nxt_go_request_set_proto(c_req C.nxt_go_request_t, proto *C.nxt_go_str_t,
+	maj C.int, min C.int) {
+
 	r := find_request(c_req)
 	r.req.Proto = C.GoStringN(proto.start, proto.length)
 	r.req.ProtoMajor = int(maj)
@@ -170,9 +175,12 @@ func nxt_go_request_set_proto(c_req C.nxt_go_request_t, proto *C.nxt_go_str_t, m
 }
 
 //export nxt_go_request_add_header
-func nxt_go_request_add_header(c_req C.nxt_go_request_t, name *C.nxt_go_str_t, value *C.nxt_go_str_t) {
+func nxt_go_request_add_header(c_req C.nxt_go_request_t, name *C.nxt_go_str_t,
+	value *C.nxt_go_str_t) {
+
 	r := find_request(c_req)
-	r.req.Header.Add(C.GoStringN(name.start, name.length), C.GoStringN(value.start, value.length))
+	r.req.Header.Add(C.GoStringN(name.start, name.length),
+		C.GoStringN(value.start, value.length))
 }
 
 //export nxt_go_request_set_content_length
@@ -196,7 +204,9 @@ func nxt_go_request_set_url(c_req C.nxt_go_request_t, scheme *C.char) {
 }
 
 //export nxt_go_request_set_remote_addr
-func nxt_go_request_set_remote_addr(c_req C.nxt_go_request_t, addr *C.nxt_go_str_t) {
+func nxt_go_request_set_remote_addr(c_req C.nxt_go_request_t,
+	addr *C.nxt_go_str_t) {
+
 	find_request(c_req).req.RemoteAddr = C.GoStringN(addr.start, addr.length)
 }
 

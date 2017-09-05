@@ -1571,8 +1571,9 @@ nxt_runtime_lvlhsh_pid_test(nxt_lvlhsh_query_t *lhq, void *data)
 
     process = data;
 
-    if (lhq->key.length == sizeof(nxt_pid_t) &&
-        *(nxt_pid_t *) lhq->key.start == process->pid) {
+    if (lhq->key.length == sizeof(nxt_pid_t)
+        && *(nxt_pid_t *) lhq->key.start == process->pid)
+    {
         return NXT_OK;
     }
 

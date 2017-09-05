@@ -154,7 +154,7 @@ nxt_devpoll_free(nxt_event_engine_t *engine)
 
     nxt_debug(&engine->task, "devpoll %d free", fd);
 
-    if (fd != -1 &&close(fd) != 0) {
+    if (fd != -1 && close(fd) != 0) {
         nxt_log(&engine->task, NXT_LOG_CRIT, "devpoll close(%d) failed %E",
                 fd, nxt_errno);
     }

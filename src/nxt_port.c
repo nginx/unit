@@ -170,22 +170,22 @@ nxt_port_send_new_port(nxt_task_t *task, nxt_runtime_t *rt,
     nxt_debug(task, "new port %d for process %PI",
               new_port->pair[1], new_port->pid);
 
-    nxt_runtime_process_each(rt, process)
-    {
+    nxt_runtime_process_each(rt, process) {
+
         if (process->pid == new_port->pid || process->pid == nxt_pid) {
             continue;
         }
 
         port = nxt_process_port_first(process);
 
-        if (port->type == NXT_PROCESS_MAIN ||
-            port->type == NXT_PROCESS_CONTROLLER ||
-            port->type == NXT_PROCESS_ROUTER) {
-
+        if (port->type == NXT_PROCESS_MAIN
+            || port->type == NXT_PROCESS_CONTROLLER
+            || port->type == NXT_PROCESS_ROUTER)
+        {
             (void) nxt_port_send_port(task, port, new_port, stream);
         }
-    }
-    nxt_runtime_process_loop;
+
+    } nxt_runtime_process_loop;
 }
 
 
@@ -340,8 +340,8 @@ nxt_port_change_log_file(nxt_task_t *task, nxt_runtime_t *rt, nxt_uint_t slot,
 
     nxt_debug(task, "change log file #%ui fd:%FD", slot, fd);
 
-    nxt_runtime_process_each(rt, process)
-    {
+    nxt_runtime_process_each(rt, process) {
+
         if (nxt_pid == process->pid) {
             continue;
         }
@@ -358,8 +358,8 @@ nxt_port_change_log_file(nxt_task_t *task, nxt_runtime_t *rt, nxt_uint_t slot,
 
         (void) nxt_port_socket_write(task, port, NXT_PORT_MSG_CHANGE_FILE,
                                      fd, 0, 0, b);
-    }
-    nxt_runtime_process_loop;
+
+    } nxt_runtime_process_loop;
 }
 
 
@@ -386,7 +386,6 @@ nxt_port_change_log_file_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
      * for new log file.  This change is performed atomically in the kernel.
      */
     if (nxt_file_redirect(log_file, msg->fd) == NXT_OK) {
-
         if (slot == 0) {
             (void) nxt_file_stderr(log_file);
         }

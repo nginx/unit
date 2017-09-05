@@ -67,8 +67,7 @@ nxt_port_rpc_register_handler(nxt_task_t *task, nxt_port_t *port,
     nxt_port_rpc_reg_t  *reg;
     nxt_lvlhsh_query_t  lhq;
 
-
-    nxt_assert(port->pair[0] != -1);  
+    nxt_assert(port->pair[0] != -1);
 
     stream = port->next_stream++;
 
@@ -158,6 +157,7 @@ nxt_port_rpc_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     if (last != 0) {
         ret = nxt_lvlhsh_delete(&port->rpc_streams, &lhq);
+
     } else {
         ret = nxt_lvlhsh_find(&port->rpc_streams, &lhq);
     }
@@ -176,6 +176,7 @@ nxt_port_rpc_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     if (type == _NXT_PORT_MSG_RPC_ERROR) {
         reg->error_handler(task, msg, reg->data);
+
     } else {
         reg->ready_handler(task, msg, reg->data);
     }
@@ -197,6 +198,7 @@ nxt_port_rpc_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
                 nxt_log_error(NXT_LOG_ERR, task->log, "rpc: failed to delete "
                               "peer %PI", reg->peer);
             }
+
         } else {
             nxt_queue_remove(&reg->link);
         }
@@ -262,8 +264,9 @@ nxt_port_rpc_remove_peer(nxt_task_t *task, nxt_port_t *port, nxt_pid_t peer)
         ret = nxt_lvlhsh_delete(&port->rpc_streams, &lhq);
 
         if (nxt_slow_path(ret != NXT_OK)) {
-            nxt_log_error(NXT_LOG_ERR, task->log, "rpc: failed to delete "
-                          "handler for stream #%uD", stream);
+            nxt_log_error(NXT_LOG_ERR, task->log,
+                          "rpc: failed to delete handler for stream #%uD",
+                          stream);
 
             return;
         }
@@ -309,9 +312,10 @@ nxt_port_rpc_cancel(nxt_task_t *task, nxt_port_t *port, uint32_t stream)
             ret = nxt_lvlhsh_delete(&port->rpc_peers, &lhq);
 
             if (nxt_slow_path(ret != NXT_OK)) {
-                nxt_log_error(NXT_LOG_ERR, task->log, "rpc: failed to delete "
-                              "peer %PI", reg->peer);
+                nxt_log_error(NXT_LOG_ERR, task->log,
+                              "rpc: failed to delete peer %PI", reg->peer);
             }
+
         } else {
             nxt_queue_remove(&reg->link);
         }
