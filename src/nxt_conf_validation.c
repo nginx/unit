@@ -22,6 +22,9 @@ typedef nxt_int_t (*nxt_conf_vldt_member_t)(nxt_conf_value_t *conf,
                                             nxt_str_t *name,
                                             nxt_conf_value_t *value);
 
+typedef nxt_int_t (*nxt_conf_vldt_system_t)(nxt_conf_value_t *conf, char *name);
+
+
 static nxt_int_t nxt_conf_vldt_listener(nxt_conf_value_t *conf, nxt_str_t *name,
     nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_app_name(nxt_conf_value_t *conf,
@@ -32,6 +35,10 @@ static nxt_int_t nxt_conf_vldt_object(nxt_conf_value_t *conf,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_object_iterator(nxt_conf_value_t *conf,
     nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_system(nxt_conf_value_t *conf,
+    nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_user(nxt_conf_value_t *conf, char *name);
+static nxt_int_t nxt_conf_vldt_group(nxt_conf_value_t *conf, char *name);
 
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_root_members[] = {
@@ -72,13 +79,13 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_python_members[] = {
 
     { nxt_string("user"),
       NXT_CONF_STRING,
-      NULL,
-      NULL },
+      nxt_conf_vldt_system,
+      (void *) &nxt_conf_vldt_user },
 
     { nxt_string("group"),
       NXT_CONF_STRING,
-      NULL,
-      NULL },
+      nxt_conf_vldt_system,
+      (void *) &nxt_conf_vldt_group },
 
     { nxt_string("working_directory"),
       NXT_CONF_STRING,
@@ -340,4 +347,60 @@ nxt_conf_vldt_object_iterator(nxt_conf_value_t *conf, nxt_conf_value_t *value,
             return NXT_ERROR;
         }
     }
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_system(nxt_conf_value_t *conf, nxt_conf_value_t *value,
+    void *data)
+{
+    size_t                  length;
+    nxt_str_t               name;
+    nxt_conf_vldt_system_t  vldt;
+    char                    string[32];
+
+    vldt = data;
+
+    nxt_conf_get_string(value, &name);
+
+    length = name.length + 1;
+    length = nxt_min(length, sizeof(string));
+
+    nxt_cpystrn((u_char *) string, name.start, length);
+
+    return vldt(conf, string);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_user(nxt_conf_value_t *conf, char *user)
+{
+    struct passwd  *pwd;
+
+    nxt_errno = 0;
+
+    pwd = getpwnam(user);
+
+    if (pwd != NULL) {
+        return NXT_OK;
+    }
+
+    return NXT_ERROR;
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_group(nxt_conf_value_t *conf, char *group)
+{
+    struct group  *grp;
+
+    nxt_errno = 0;
+
+    grp = getgrnam(group);
+
+    if (grp != NULL) {
+        return NXT_OK;
+    }
+
+    return NXT_ERROR;
 }
