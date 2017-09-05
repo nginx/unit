@@ -2146,12 +2146,32 @@ nxt_router_send_sw_request(nxt_task_t *task, void *obj, void *data)
     uint32_t            stream;
     nxt_buf_t           *b;
     nxt_app_t           *app;
-    nxt_port_t          *main_port, *router_port;
+    nxt_port_t          *main_port, *router_port, *app_port;
     nxt_runtime_t       *rt;
     nxt_start_worker_t  *sw;
+    nxt_req_app_link_t  *ra;
 
     sw = obj;
     app = sw->app;
+
+    if (nxt_queue_is_empty(&app->requests)) {
+        ra = sw->ra;
+        app_port = nxt_router_app_get_port(app, ra->req_id);
+
+        if (app_port != NULL) {
+            nxt_debug(task, "app '%V' %p process request #%uxD",
+                      &app->name, app, ra->req_id);
+
+            ra->app_port = app_port;
+
+            nxt_router_process_http_request_mp(task, ra, app_port);
+
+            nxt_router_ra_release(task, ra, ra->work.data);
+            nxt_router_sw_release(task, sw);
+
+            return;
+        }
+    }
 
     nxt_queue_insert_tail(&app->requests, &sw->ra->link);
 
