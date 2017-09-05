@@ -47,7 +47,7 @@ typedef struct {
 
 
 typedef struct {
-    nxt_str_t  executable;
+    char       *executable;
 } nxt_go_app_conf_t;
 
 

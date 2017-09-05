@@ -38,7 +38,6 @@ nxt_sock_no_cloexec(nxt_socket_t fd)
 static nxt_int_t
 nxt_go_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 {
-    char               *go_path;
     char               *argv[2];
     u_char             buf[256];
     u_char             *p;
@@ -86,16 +85,13 @@ nxt_go_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 
     setenv("NXT_GO_PORTS", (char *)buf, 1);
 
-    go_path = malloc(c->executable.length + 1);
-    nxt_memcpy(go_path, c->executable.start, c->executable.length);
-    go_path[c->executable.length] = '\0';
-
-    argv[0] = go_path;
+    argv[0] = c->executable;
     argv[1] = NULL;
 
-    (void) execve(go_path, argv, environ);
+    (void) execve(c->executable, argv, environ);
 
-    nxt_log(task, NXT_LOG_WARN, "execve(%s) failed %E", go_path, nxt_errno);
+    nxt_log(task, NXT_LOG_WARN, "execve(%s) failed %E", c->executable,
+            nxt_errno);
 
     return NXT_ERROR;
 }
