@@ -1,28 +1,31 @@
+# NGINX Unit
+
 <!-- menu -->
 
-- [Introducing NGINX Unit](#introducing-nginx-unit)
-- [System Requirements for Running Unit](#system-requirements-for-running-unit)
-- [Downloading Unit Binaries](#downloading-unit-binaries)
-  - [Downloading the Unit Package on CentOS Systems](#downloading-the-unit-package-on-centos-systems)
-  - [Downloading the Unit Package on Ubuntu Systems](#downloading-the-unit-package-on-ubuntu-systems)
-- [Compiling Unit from Source](#compiling-unit-from-source)
-  - [Downloading the Unit Source Code](#downloading-the-unit-source-code)
-    - [Downloading the Source from the Mercurial Repository](#downloading-the-source-from-mercurial-repository)
-    - [Downloading the Source from the GitHub Repository](#downloading-the-source-from-git-repository)
-    - [Downloading the Source as a Tarball](#downloading-the-source-as-a-tarball)
-  - [Installing Required Software on Ubuntu Systems](#installing-required-software-on-ubuntu-systems)
-  - [Installing Required Software on CentOS Systems](#installing-required-software-on-centos-systems)
-  - [Configuring the Unit Source](#configuring-the-unit-source)
-    - [Configuring the Unit Source for Go](#configuring-the-unit-source-for-go)
-    - [Building the Go Application for Unit](#building-the-go-applications-for-unit)
-    - [Configuring the Unit Source for PHP](#configuring-the-unit-source-for-php)
-    - [Configuring the Unit Source for Python](#configuring-the-unit-source-for-python)
-  - [Compiling Unit](#compiling-unit)
-- [Installing Unit From Source](#installing-unit-from-source)
-- [Starting and Stopping Unit](#starting-and-stopping-unit)
-- [Configuring Unit with the JSON API](#configuring-unit-with-the-json-api)
-  - [Configuring Application Objects](#configuring-application-objects)
-  - [Configuring Listener Objects](#configuring-listener-objects)
+- [About](#about)
+- [Installation](#installation)
+  - [System Requirements](#system-requirements)
+  - [Precompiled Packages](#precompiled-packages)
+    - [CentOS Packages](#centos-packages)
+    - [Ubuntu Packages](#ubuntu-packages)
+  - [Source Code](#source-code)
+    - [Getting Sources](#getting-sources)
+      - [Mercurial Repository](#mercurial-repository)
+      - [GitHub Repository](#github-repository)
+      - [Tarball](#tarball)
+    - [Installing Required Software](#installing-required-software)
+      - [Ubuntu Prerequisites](#ubuntu-prerequisits)
+      - [CentOS Prerequisites](#centos-prerequisits)
+    - [Configuring Sources](#configuring-sources)
+      - [Configuring Go package](#configuring-go-package)
+      - [Building the Go Applications](#building-the-go-applications)
+      - [Configuring PHP Modules](#configuring-php-modules)
+      - [Configuring Python Modules](#configuring-python-modules)
+    - [Compiling Sources](#compiling-sources)
+    - [Installing from Sources](#installing-from-sources)
+- [Configuration](#configuration)
+  - [Applications](#applications)
+  - [Listeners](#listeners)
   - [Minimum Configuration](#minimum-configuration)
   - [Creating Configuration Objects](#creating-configuration-objects)
     - [Example: Create a Full Configuration](#example-create-a-full-configuration)
@@ -35,20 +38,20 @@
     - [Example: Change the File Path for an Application](#example-change-the-file-path-for-an-application)
   - [Deleting Configuration Objects](#deleting-configuration-objects)
     - [Example: Delete a Listener](#example-delete-a-listener)
-  - [JSON Specification for Listener and Application Objects](#json-specification-for-listener-and-application-objects)
+  - [Listener and Application Objects](#listener-and-application-objects)
     - [Listener](#listener)
     - [Go Application](#go-application)
     - [PHP Application](#php-application)
     - [Python Application](#python-application)
     - [Full Example](#full-example)
-- [License and Contributing Changes](#license-and-contributing-changes)
+- [Contribution](#contribution)
 - [Troubleshooting](#troubleshooting)
 
 <!-- /menu -->
 
 <!-- section:1 -->
 
-## Introducing NGINX Unit
+## About
 
 NGINX Unit is a dynamic web application server, designed to run applications
 in multiple languages. Unit is lightweight, polyglot, and dynamically
@@ -62,7 +65,9 @@ in a testing environment, but is not recommended for use in production.
 
 <!-- section:2 -->
 
-## System Requirements for Running Unit
+## Installation
+
+### System Requirements
 
 NGINX Unit is tested to compile and run on the following systems:
    * Linux 2.6 or later
@@ -85,16 +90,12 @@ languages:
 You can run multiple versions of the same language installed on the same
 system.
 
-<!-- /section:2 -->
-
-<!-- section:3 -->
-
-## Downloading Unit Binaries
+### Precompiled Packages
 
 Precompiled binaries for Unit are available for CentOS&nbsp;7.0 and
 Ubuntu&nbsp;16.04&nbsp;LTS.
 
-### Downloading the Unit Package on CentOS Systems
+#### CentOS Packages
 
    1. Create the file **/etc/yum.repos.d/unit.repo** with the following
    contents:
@@ -114,7 +115,7 @@ Ubuntu&nbsp;16.04&nbsp;LTS.
    # apt-get install unit
    ```
 
-### Downloading the Unit Package on Ubuntu Systems
+#### Ubuntu Packages
 
    1. Download the [key](http://nginx.org/keys/nginx_signing.key) used to sign
    the NGINX,&nbsp;Inc. repository and packages.
@@ -141,15 +142,11 @@ Ubuntu&nbsp;16.04&nbsp;LTS.
    # apt-get install unit
    ```
 
-<!-- /section:3 -->
-
-<!-- section:4 -->
-
-## Compiling Unit from Source
+### Source code
 
 This section explains how to compile and install Unit from the source code.
 
-### Downloading the Unit Source Code
+#### Getting Sources
 
 There are three ways to obtain the Unit source code: from the NGINX,&nbsp;Inc.
 Mercurial repository, from GitHub, or in a tarball.
@@ -157,7 +154,7 @@ Mercurial repository, from GitHub, or in a tarball.
 In each case, the sources are placed in the **unit** subdirectory of the
 current working directory.
 
-#### Downloading the Source from the Mercurial Repository
+##### Mercurial Repository
 
    1. If don't already have the Mercurial software, download and install it.
    For example, on Ubuntu systems, run this command:
@@ -172,7 +169,7 @@ current working directory.
    # hg clone hg.nginx.org/unit
    ```
 
-#### Downloading the Source from the GitHub Repository
+##### GitHub Repository
 
    1. If don't already have the Git software, download it. See the [GitHub
    documentation](https://help.github.com/).
@@ -183,134 +180,79 @@ current working directory.
    # git clone https://github.com/nginx/unit
    ```
 
-#### Downloading the Source as a Tarball
+##### Tarball
 
 **TBD**
 
-### Installing Required Software on Ubuntu Systems
+#### Installing Required Software
 
-Before configuring and compiling Unit on Ubuntu systems, you must install the
-required build tools plus the library files for each of the available
-languages (Go, PHP, and Python) that you want to support.
+Before configuring and compiling Unit, you must install the required build
+tools plus the library files for each of the available languages (Go, PHP,
+and Python) that you want to support.
 
-   1. Install the build tools. Note that they might require more than
-   100&nbsp;MB of disk space.
+##### Ubuntu Prerequisites
+
+   1. Install the build tools.
 
    ```
    # apt-get install build-essential
-   ...
-   Need to get 39.0 MB of archives.
-   After this operation, 139 MB of additional disk space will be used.
-   Do you want to continue? [Y/n] Y
-   ...
    ```
 
-   2. If you are supporting Go, install the `golang` package. The required
-   additional disk space might be about 200&nbsp;MB.
+   2. For Go applications support, install the `golang` package. 
 
    ```
    # apt-get install golang
-   ...
-   Need to get 29.0 MB of archives.
-   After this operation, 198 MB of additional disk space will be used.
-   Do you want to continue? [Y/n] Y
-   ...
    ```
 
-   3. If you are supporting PHP, install the `php-dev` and `libphp-embed`
-   packages. The required additional disk space might be around 20&nbsp;MB.
+   3. For PHP applications support, install the `php-dev` and `libphp-embed`
+   packages.
 
    ```
    # apt-get install php-dev
-   ...
-   Need to get 5,230 kB of archives.
-   After this operation, 20.6 MB of additional disk space will be used.
-   Do you want to continue? [Y/n] Y
-   ...
-
    # apt-get install libphp-embed
-   ...
-   Need to get 1,230 kB of archives.
-   After this operation, 4,330 kB of additional disk space will be used.
-   Do you want to continue? [Y/n] Y
-   ...
    ```
 
-   4. If you are supporting Python, install the `python-dev` package. The
-   required additional disk space might be around 60&nbsp;MB.
+   4. For Python applications support, install the `python-dev` package.
 
    ```
    # apt-get install python-dev
-   ...
-   1 upgraded, 13 newly installed, 0 to remove and 151 not upgraded.
-   Need to get 33.3 MB of archives.
-   After this operation, 62.3 MB of additional disk space will be used.
-   Do you want to continue? [Y/n] Y
-   ...
    ```
 
-### Installing Required Software on CentOS Systems
+##### CentOS Prerequisites
 
-Before configuring and compiling Unit on CentOS systems, you must install the
-required build tools plus the library files for each of the available
-languages (Go, PHP, and Python) that you want to support.
-
-   1. Install the build tools. Note that they might require more than
-   40&nbsp;MB of disk space.
+   1. Install the build tools.
 
    ```
    # yum install gcc make
-   ...
-   Total download size: 18 M
-   Installed size: 42 M
-   Is this ok [y/d/N]: y
-   ...
    ```
 
-   2. If you are supporting Go, install the `golang` package. The required
-   additional disk space might be about 230&nbsp;MB.
+   2. For Go applications support, install the `golang` package.
 
    ```
    # yum install golang
-   ...
-   Total download size: 44 M
-   Installed size: 231 M
-   Is this ok [y/d/N]: y
-   ...
    ```
 
-   3. If you are supporting PHP, install the `php-devel` and `php-embedded`
-   packages. The required additional disk space might be around 20&nbsp;MB.
+   3. For PHP applications support, install the `php-devel` and `php-embedded`
+   packages.
 
    ```
    # yum install php-devel php-embedded
-   ...
-   Total download size: 5.2 M
-   Installed size: 21 M
-   Is this ok [y/d/N]: y
-   ...
    ```
 
-   4. If you are supporting Python, install the `python-devel` package. The
-   required additional disk space might be around 1&nbsp;MB.
+   4. For Python applications support, install the `python-devel` package.
 
    ```
    # yum install python-devel
-   ...
-   Total download size: 393 k
-   Installed size: 1.0 M
-   Is this ok [y/d/N]: y
-   ...
    ```
 
-### Configuring the Unit Source
+#### Configuring Sources
 
 With Unit, you can simultaneously run applications that use different versions
 of a supported language (Go, PHP, or Python). You need to configure a separate
 Unit module for each one. The following commands create the necessary
 instructions in the **Makefile** for each module.
 
-#### Configuring the Unit Source for Go
+##### Configuring Go Package
 
 NGINX Unit will provide the Go package that is required for running your Go
 application inside Unit.
@@ -332,7 +274,7 @@ application inside Unit.
     + Go package path: "/home/user/go_apps"
     ```
 
-#### Building the Go Application for Unit
+##### Building the Go Applications
 
    1. Modify the source file for the Go application, making changes in two
    places:
@@ -367,7 +309,7 @@ If the Go application is executed directly, the unit module will fall back to
 the http module. If the Go application is launched by Unit, it will communicate
 with the Unit router via shared memory.
 
-#### Configuring the Unit Source for PHP
+##### Configuring PHP Modules
 
 To configure a Unit module (called **php.unit.so**) for the most recent version
 of PHP that the `configure` script finds bundled with the operating system, run
@@ -410,7 +352,7 @@ checking for PHP embed SAPI ... found
  + PHP module: php70.unit.so
  ```
 
-#### Configuring the Unit Source for Python
+##### Configuring Python Modules
 
 To configure a Unit module (called **python.unit.so**) for the most recent
 version of Python that the `configure` script finds bundled with the operating
@@ -448,7 +390,7 @@ checking for Python version ... 3.3
  + Python module: py33.unit.so
 ```
 
-### Compiling Unit
+#### Compiling Sources
 
 To compile the Unit executable and all configured modules for PHP, Python, or
 both, run this command:
@@ -474,11 +416,7 @@ To compile the packages for Go:
    # make go-install
    ```
 
-<!-- /section:4 -->
-
-<!-- section:5 -->
-
-## Installing Unit From Source
+#### Installing from Sources
 
 To install Unit with all modules and Go packages, run the following command:
 
@@ -486,28 +424,16 @@ To install Unit with all modules and Go packages, run the following command:
 # make install
 ```
 
-<!-- /section:5 -->
+<!-- /section:2 -->
 
-<!-- section:6 -->
+<!-- section:3 -->
 
-## Starting and Stopping Unit
-
-To start the Unit daemon, run this command:
-
-```
-# unitd
-```
-
-<!-- /section:6 -->
-
-<!-- section:7 -->
-
-## Configuring Unit with the JSON API
+## Configuration
 
 By default, the Unit API is available in the control socket file
 **unit.control.sock**.
 
-### Configuring Application Objects
+### Applications
 
 For each application, you use the API to define a JSON object in the
 `applications` section of the Unit configuration. The JSON object defines
@@ -533,7 +459,7 @@ when the URL doesn't specify the PHP file is **index.php**.
    }
    ```
 
-### Configuring Listener Objects
+### Listeners
 
 For an application to be accessible via HTTP, you must define at least
 one listener for it in the `listeners` section of the Unit configuration. A
@@ -594,26 +520,23 @@ Create an initial configuration by uploading the contents of the **start.json**
 file:
 
 ```
-# curl -X PUT -d @/path/start.json  \
-       --unix-socket ./control.unit.sock http://localhost:/
-
-# curl -X PUT -d @start.json  \
-       --unix-socket ./control.unit.sock http://localhost:/
+# curl -X PUT -d @/path/to/start.json  \
+       --unix-socket ./control.unit.sock http://localhost/
 ```
 
-#### Example: Create an Application Object
+#### Example: Create an Application Configuration
 
 Create a new application object called **wiki** from the file **wiki.json**.
 
 ```
-# curl -X PUT -d @wiki.json  \
-       --unix-socket ./control.unit.sock http://localhost:/
+# curl -X PUT -d @/path/to/wiki.json  \
+       --unix-socket ./control.unit.sock http://localhost/applications/wiki
 ```
 
 The contents of **wiki.json** are:
 
 ```
-"wiki": {
+{
     "type": "python",
     "workers": 10,
     "module": "wsgi",
@@ -632,7 +555,7 @@ To display a configuration object, append its path to the `curl` URL.
 Display the complete configuration:
 
 ```
-# curl --unix-socket ./control.unit.sock http://localhost:/
+# curl --unix-socket ./control.unit.sock http://localhost/
 {
     "applications": {
        "blogs": {
@@ -673,7 +596,7 @@ Display the complete configuration:
 Display the data for the **wiki** application:
 
 ```
-# curl --unix-socket ./control.unit.sock http://localhost:/applications/wiki
+# curl --unix-socket ./control.unit.sock http://localhost/applications/wiki
 {
     "type": "python",
     "workers": 10,
@@ -695,7 +618,7 @@ Change the `application` object to **wiki-dev** for the listener on *:8400:
 
 ```
 # curl -X PUT -d '"wiki-dev"' --unix-socket ./control.unit.sock  \
-       'http://localhost:/listeners/*:8400/application'
+       'http://localhost/listeners/*:8400/application'
 {
     "success": "Reconfiguration done."
 }
@@ -709,7 +632,7 @@ Change the `root` object for the **blogs** application to
 ```
 # curl -X PUT -d '"/www/blogs-dev/scripts"'  \
        --unix-socket ./control.unit.sock  \
-       http://localhost:/applications/blogs/root
+       http://localhost/applications/blogs/root
 {
     "success": "Reconfiguration done."
 }
@@ -726,13 +649,13 @@ Delete the listener on *:8400:
 
 ```
 # curl -X DELETE --unix-socket ./control.unit.sock  \
-       'http://localhost:/listeners/*:8400'
+       'http://localhost/listeners/*:8400'
 {
     "success": "Reconfiguration done."
 }
 ```
 
-### JSON Specification for Listener and Application Objects
+### Listener and Application Objects
 
 #### Listener
 
@@ -871,23 +794,23 @@ Example:
 }
 ```
 
-<!-- /section:7 -->
+<!-- /section:3 -->
 
-<!-- section:8 -->
+<!-- section:4 -->
 
-## License and Contributing Changes
+## Contribution
 
 NGINX Unit is released under the Apache 2.0 license.
 
 To contribute changes, either submit them by email to <unit@nginx.org> or
 submit a pull request in the https://github.com/nginx/unit repository.
 
-<!-- /section:8 -->
+<!-- /section:4 -->
 
-<!-- section:9 -->
+<!-- section:5 -->
 
 ## Troubleshooting
 
 **TBD**
 
-<!-- /section:9 -->
+<!-- /section:5 -->
