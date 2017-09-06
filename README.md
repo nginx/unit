@@ -1,6 +1,6 @@
 <!-- menu -->
 
-- [NGINX Unit](#about)
+- [NGINX Unit](#nginx-unit)
 - [Installation](#installation)
   - [System Requirements](#system-requirements)
   - [Precompiled Packages](#precompiled-packages)
