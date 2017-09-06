@@ -325,14 +325,14 @@ To configure Unit modules for other versions of PHP (including versions you
 have customized), repeat the following command for each one:
 
 ```
-# ./configure php --module=<prefix> --config=<script-name> --lib-path=<pathname>
+# ./configure php --module=<_prefix_> --config=<_script-name_> --lib-path=<_pathname_>
 ```
 
 where
 
    * `--module` sets the filename prefix for the Unit module specific to the
    PHP version (that is, the resulting module is called
-   &lt;_prefix_&gt;.**unit.so**).
+   <_prefix_>.**unit.so**).
 
    * `--config` specifies the filename of the **php-config** script for the
    particular version of PHP.
@@ -368,14 +368,14 @@ To configure Unit modules for other versions of Python (including versions you
 have customized), repeat the following command for each one:
 
 ```
-# ./configure python --module=<prefix> --config=<script-name>
+# ./configure python --module=<_prefix_> --config=<_script-name_>
 ```
 
 where
 
    * `--module` sets the filename prefix for the Unit module specific to the
    Python version (that is, the resulting modules is called
-   &lt;_prefix_&gt;.**unit.so**).
+   <_prefix_>.**unit.so**).
 
    * `--config` specifies the filename of the **python-config** script for the
    particular version of Python.
@@ -409,7 +409,7 @@ To compile the packages for Go:
    ```
    # go env GOPATH
 
-   # export GOPATH=<path>
+   # export GOPATH=<_path_>
    ```
 
    2. Compile and install the package:
@@ -663,7 +663,7 @@ Delete the listener on *:8400:
 
 |  Object | Description |
 | --- | --- |
-| `<IP-address>:<port>`          | IP address and port on which Unit listens for requests to the named application. The IP address can be either a full address (`127.0.0.1:8300`) or a wildcard (`*:8300`).
+| `<_IP-address_>:<_port_>`          | IP address and port on which Unit listens for requests to the named application. The IP address can be either a full address (`127.0.0.1:8300`) or a wildcard (`*:8300`).
 | `application`                  | Application name.
 
 Example:
@@ -681,8 +681,8 @@ Example:
 | `type`| Type of the application (`go`).
 | `workers`           | Number of application workers.
 | `executable`        | Full path to compiled Go app.
-| `user` (optional)   | Username that runs the app process. <br/><br/>If not specified, `nobody` is used.
-| `group` (optional)  | Group name that runs the app process. <br/><br/> If not specified, user's primary group is used.
+| `user` (optional)   | Username that runs the app process. If not specified, `nobody` is used.
+| `group` (optional)  | Group name that runs the app process. If not specified, user's primary group is used.
 
 Example:
 
@@ -704,8 +704,8 @@ Example:
 | `root`              | Directory to search for PHP files.
 | `index`             | Default launch file when the PHP file name is not specified in the URL.
 | `script` (optional) | File that Unit runs for every URL, instead of searching for a file in the filesystem. The location is relative to the root.
-| `user` (optional)   | Username that runs the app process. <br/><br/>If not specified, `nobody` is used.
-| `group` (optional)  | Group name that runs the app process. <br/><br/> If not specified, user's primary group is used.
+| `user` (optional)   | Username that runs the app process. If not specified, `nobody` is used.
+| `group` (optional)  | Group name that runs the app process. If not specified, user's primary group is used.
 
 Example:
 
@@ -728,8 +728,8 @@ Example:
 | `workers`           | Number of application workers.
 | `path`             | Path to search for the **wsgi.py** file.
 | `module`             | Required. Currently the only supported value is `wsgi`.
-| `user` (optional)   | Username that runs the app process. <br/><br/>If not specified, `nobody` is used.
-| `group` (optional)  | Group name that runs the app process. <br/><br/> If not specified, user's primary group is used.
+| `user` (optional)   | Username that runs the app process. If not specified, `nobody` is used.
+| `group` (optional)  | Group name that runs the app process. If not specified, user's primary group is used.
 
 Example:
 
@@ -864,6 +864,7 @@ All other requests will be proxied to Unit:
         proxy_set_header Host $host;
     }
 }
+```
 
 Refer to NGINX documentation at http://nginx.org/ for more information.
 Commercial support and advanced features are available at
