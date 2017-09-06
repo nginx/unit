@@ -331,9 +331,9 @@ have customized), repeat the following command for each one:
 
 where
 
-   * `--module` sets the filename prefix for the Unit module specific to the
-   PHP version (that is, the resulting module is called
-   <prefix>.**unit.so**).
+   * `--module` sets the filename prefix for the Unit module specific
+   to the PHP version (that is, the resulting module is called
+   &lt;prefix&gt;.**unit.so**).
 
    * `--config` specifies the filename of the **php-config** script for the
    particular version of PHP.
@@ -374,9 +374,9 @@ have customized), repeat the following command for each one:
 
 where
 
-   * `--module` sets the filename prefix for the Unit module specific to the
-   Python version (that is, the resulting modules is called
-   <prefix>.**unit.so**).
+   * `--module` sets the filename prefix for the Unit module specific
+   to the Python version (that is, the resulting modules is called
+   &lt;prefix&gt;.**unit.so**).
 
    * `--config` specifies the filename of the **python-config** script for the
    particular version of Python.
