@@ -184,7 +184,8 @@ current working directory.
 
 ##### Tarball
 
-**TBD**
+Unit source code tarballs are available at
+http://unit.nginx.org/download/
 
 #### Installing Required Software
 
