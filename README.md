@@ -251,7 +251,57 @@ languages (Go, PHP, and Python) that you want to support.
 
 ### Installing Required Software on CentOS Systems
 
-**TBD**
+Before configuring and compiling Unit on CentOS systems, you must install the
+required build tools plus the library files for each of the available
+languages (Go, PHP, and Python) that you want to support.
+
+   1. Install the build tools. Note that they might require more than
+   40&nbsp;MB of disk space.
+
+   ```
+   # yum install gcc make
+   ...
+   Total download size: 18 M
+   Installed size: 42 M
+   Is this ok [y/d/N]: y
+   ...
+   ```
+
+   2. If you are supporting Go, install the `golang` package. The required
+   additional disk space might be about 230&nbsp;MB.
+
+   ```
+   # yum install golang
+   ...
+   Total download size: 44 M
+   Installed size: 231 M
+   Is this ok [y/d/N]: y
+   ...
+   ```
+
+   3. If you are supporting PHP, install the `php-devel` and `php-embedded`
+   packages. The required additional disk space might be around 20&nbsp;MB.
+
+   ```
+   # yum install php-devel php-embedded
+   ...
+   Total download size: 5.2 M
+   Installed size: 21 M
+   Is this ok [y/d/N]: y
+   ...
+   ```
+
+   4. If you are supporting Python, install the `python-devel` package. The
+   required additional disk space might be around 1&nbsp;MB.
+
+   ```
+   # yum install python-devel
+   ...
+   Total download size: 393 k
+   Installed size: 1.0 M
+   Is this ok [y/d/N]: y
+   ...
+   ```
 
 ### Configuring the Unit Source
 
