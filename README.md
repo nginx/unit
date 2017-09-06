@@ -827,18 +827,11 @@ Example:
 
 Configure NGINX as a static web server and reverse proxy in front of Unit.
 
-NGINX serves static files directly from the filesystem, and the requests to the
-applications are forwarded to Unit.
+NGINX serves static files directly from the filesystem, and the requests
+to the applications are forwarded to Unit.
 
-Create an upstream block in `http` context of NGINX configuration:
-
-```
-upstream unit_backend {
-    
-}
-```
-
-Add Unit server IP and port to the upstream block, for example:
+Create an upstream block in `http` context of NGINX configuration and add
+Unit server IP and port to the upstream block, for example:
 
 ```
 upstream unit_backend {
@@ -857,9 +850,11 @@ to Unit. All other files will be served directly by NGINX:
 
 ```
 server {
+
     location / {
         root /var/www/static-data;
     }
+
     location ~ \.php$ {
         proxy_pass http://unit_backend;
         proxy_set_header Host $host;
