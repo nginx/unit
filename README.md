@@ -114,8 +114,7 @@ Ubuntu&nbsp;16.04&nbsp;LTS.
    2. Download the Unit package:
 
    ```
-   # apt-get update
-   # apt-get install unit
+   # yum install unit
    ```
 
 #### Ubuntu Packages
@@ -275,7 +274,7 @@ application inside Unit.
    checking for Go ... found
     + go version go1.6.2 linux/amd64
     + Go package path: "/home/user/go_apps"
-    ```
+   ```
 
 ##### Building the Go Applications
 
