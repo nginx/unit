@@ -119,13 +119,13 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_php_members[] = {
 
     { nxt_string("user"),
       NXT_CONF_STRING,
-      NULL,
-      NULL },
+      nxt_conf_vldt_system,
+      (void *) &nxt_conf_vldt_user },
 
     { nxt_string("group"),
       NXT_CONF_STRING,
-      NULL,
-      NULL },
+      nxt_conf_vldt_system,
+      (void *) &nxt_conf_vldt_group },
 
     { nxt_string("working_directory"),
       NXT_CONF_STRING,
@@ -164,13 +164,13 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_go_members[] = {
 
     { nxt_string("user"),
       NXT_CONF_STRING,
-      NULL,
-      NULL },
+      nxt_conf_vldt_system,
+      (void *) &nxt_conf_vldt_user },
 
     { nxt_string("group"),
       NXT_CONF_STRING,
-      NULL,
-      NULL },
+      nxt_conf_vldt_system,
+      (void *) &nxt_conf_vldt_group },
 
     { nxt_string("working_directory"),
       NXT_CONF_STRING,
