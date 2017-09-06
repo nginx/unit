@@ -193,8 +193,8 @@ current working directory.
 
 ##### GitHub Repository
 
-   1. If don't already have the Git software, download it. See the [GitHub
-   documentation](https://help.github.com/).
+   1. If don't already have the Git software, download it. See the
+   [GitHub documentation](https://help.github.com/).
 
    2. Download the Unit sources:
 
@@ -205,7 +205,7 @@ current working directory.
 ##### Tarball
 
 Unit source code tarballs are available at
-http://unit.nginx.org/download/
+<http://unit.nginx.org/download/>
 
 #### Installing Required Software
 
@@ -887,9 +887,9 @@ All other requests will be proxied to Unit:
 }
 ```
 
-Refer to NGINX documentation at http://nginx.org/ for more information.
+Refer to NGINX documentation at <http://nginx.org> for more information.
 Commercial support and advanced features are available at
-https://www.nginx.com/
+<https://www.nginx.com>
 
 ### Securing and Proxying Unit API
 
@@ -938,7 +938,7 @@ server {
 NGINX Unit is released under the Apache 2.0 license.
 
 To contribute changes, either submit them by email to <unit@nginx.org> or
-submit a pull request in the https://github.com/nginx/unit repository.
+submit a pull request in the <https://github.com/nginx/unit> repository.
 
 <!-- /section:5 -->
 
