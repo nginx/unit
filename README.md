@@ -326,14 +326,14 @@ To configure Unit modules for other versions of PHP (including versions you
 have customized), repeat the following command for each one:
 
 ```
-# ./configure php --module=<_prefix_> --config=<_script-name_> --lib-path=<_pathname_>
+# ./configure php --module=<prefix> --config=<script-name> --lib-path=<pathname>
 ```
 
 where
 
    * `--module` sets the filename prefix for the Unit module specific to the
    PHP version (that is, the resulting module is called
-   <_prefix_>.**unit.so**).
+   <prefix>.**unit.so**).
 
    * `--config` specifies the filename of the **php-config** script for the
    particular version of PHP.
@@ -369,14 +369,14 @@ To configure Unit modules for other versions of Python (including versions you
 have customized), repeat the following command for each one:
 
 ```
-# ./configure python --module=<_prefix_> --config=<_script-name_>
+# ./configure python --module=<prefix> --config=<script-name>
 ```
 
 where
 
    * `--module` sets the filename prefix for the Unit module specific to the
    Python version (that is, the resulting modules is called
-   <_prefix_>.**unit.so**).
+   <prefix>.**unit.so**).
 
    * `--config` specifies the filename of the **python-config** script for the
    particular version of Python.
@@ -410,7 +410,7 @@ To compile the packages for Go:
    ```
    # go env GOPATH
 
-   # export GOPATH=<_path_>
+   # export GOPATH=<path>
    ```
 
    2. Compile and install the package:
@@ -664,7 +664,7 @@ Delete the listener on *:8400:
 
 |  Object | Description |
 | --- | --- |
-| `<_IP-address_>:<_port_>`          | IP address and port on which Unit listens for requests to the named application. The IP address can be either a full address (`127.0.0.1:8300`) or a wildcard (`*:8300`).
+| `<IP-address>:<port>`          | IP address and port on which Unit listens for requests to the named application. The IP address can be either a full address (`127.0.0.1:8300`) or a wildcard (`*:8300`).
 | `application`                  | Application name.
 
 Example:
