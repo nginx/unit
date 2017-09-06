@@ -126,7 +126,7 @@ Ubuntu&nbsp;16.04&nbsp;LTS.
    ```
    [unit]
    name=unit repo
-   baseurl=http://nginx.org/packages/centos/7/$basearch/
+   baseurl=http://nginx.org/packages/mainline/centos/7/$basearch/
    gpgcheck=0
    enabled=1
    ```
@@ -153,8 +153,8 @@ Ubuntu&nbsp;16.04&nbsp;LTS.
    3. Append the following to the end of the file **/etc/apt/sources.list**:
 
    ```
-   deb http://nginx.org/packages/ubuntu/ xenial unit
-   deb-src http://nginx.org/packages/ubuntu/ xenial unit
+   deb http://nginx.org/packages/mainline/ubuntu/ xenial nginx
+   deb-src http://nginx.org/packages/mainline/ubuntu/ xenial nginx
    ```
 
    4. Download the Unit package:
