@@ -359,7 +359,8 @@ nxt_conf_vldt_system(nxt_conf_value_t *conf, nxt_conf_value_t *value,
     nxt_conf_vldt_system_t  vldt;
     char                    string[32];
 
-    vldt = data;
+    /* The cast is required by Sun C. */
+    vldt = (nxt_conf_vldt_system_t) data;
 
     nxt_conf_get_string(value, &name);
 
