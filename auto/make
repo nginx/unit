@@ -239,6 +239,8 @@ END
 
 cat << END > Makefile
 
+NXT_VERSION =	0.1
+
 include $NXT_MAKEFILE
 
 .PHONY:		tests
@@ -246,5 +248,14 @@ tests:		$NXT_BUILD_DIR/tests $NXT_BUILD_DIR/utf8_file_name_test
 
 clean:
 		rm -rf $NXT_BUILD_DIR *.dSYM Makefile
+
+dist:
+		rm -f unit-\$(NXT_VERSION).tar.gz
+		mkdir unit-\$(NXT_VERSION)
+		cp -rp LICENSE NOTICE CHANGES README.md \\
+			configure auto src test \\
+			unit-\$(NXT_VERSION)
+		tar czf unit-\$(NXT_VERSION).tar.gz unit-\$(NXT_VERSION)
+		rm -rf unit-\$(NXT_VERSION)
 
 END
