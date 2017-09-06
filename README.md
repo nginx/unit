@@ -1,8 +1,6 @@
-# NGINX Unit
-
 <!-- menu -->
 
-- [About](#about)
+- [NGINX Unit](#about)
 - [Installation](#installation)
   - [System Requirements](#system-requirements)
   - [Precompiled Packages](#precompiled-packages)
@@ -17,7 +15,7 @@
       - [Ubuntu Prerequisites](#ubuntu-prerequisits)
       - [CentOS Prerequisites](#centos-prerequisits)
     - [Configuring Sources](#configuring-sources)
-      - [Configuring Go package](#configuring-go-package)
+      - [Configuring Go Package](#configuring-go-package)
       - [Building the Go Applications](#building-the-go-applications)
       - [Configuring PHP Modules](#configuring-php-modules)
       - [Configuring Python Modules](#configuring-python-modules)
@@ -46,6 +44,8 @@
     - [Full Example](#full-example)
 - [Integration with NGINX](#integration-with-nginx)
   - [Installing Unit Behind NGINX](#installing-unit-behind-nginx)
+     - [Example 1](#installing-unit-example1)
+     - [Example 2](#installing-unit-example2)
   - [Securing and Proxying Unit API](#securing-and-proxying-unit-api)
 - [Contribution](#contribution)
 - [Troubleshooting](#troubleshooting)
@@ -54,7 +54,7 @@
 
 <!-- section:1 -->
 
-## About
+## NGINX Unit
 
 NGINX Unit is a dynamic web application server, designed to run applications
 in multiple languages. Unit is lightweight, polyglot, and dynamically
@@ -145,7 +145,7 @@ Ubuntu&nbsp;16.04&nbsp;LTS.
    # apt-get install unit
    ```
 
-### Source code
+### Source Code
 
 This section explains how to compile and install Unit from the source code.
 
@@ -163,7 +163,7 @@ current working directory.
    For example, on Ubuntu systems, run this command:
 
    ```
-   # apt-get mercurial
+   # apt-get install mercurial
    ```
 
    2. Download the Unit sources:
@@ -527,7 +527,7 @@ file:
        --unix-socket ./control.unit.sock http://localhost/
 ```
 
-#### Example: Create an Application Configuration
+#### Example: Create an Application Object
 
 Create a new application object called **wiki** from the file **wiki.json**.
 
@@ -799,7 +799,7 @@ Example:
 
 <!-- /section:3 -->
 
-<!-- /section:4 -->
+<!-- section:4 -->
 
 ## Integration with NGINX
 
