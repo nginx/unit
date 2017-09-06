@@ -1,6 +1,8 @@
 <!-- menu -->
 
 - [NGINX Unit](#nginx-unit)
+  - [Key Features](#key-features)
+  - [Supported Application Languages](#supported-application-languages)
 - [Installation](#installation)
   - [System Requirements](#system-requirements)
   - [Precompiled Packages](#precompiled-packages)
@@ -63,6 +65,24 @@ specific application parameters as needed by the engineering or operations.
 
 NGINX Unit is currently available as a beta. As such, it is suitable for use
 in a testing environment, but is not recommended for use in production.
+
+
+### Key Features
+
+   * Fully dynamic reconfiguration using RESTful JSON API
+   * Multiple application languages and versions can run simultaneously
+   * Dynamic application processes management (coming soon)
+   * TLS support (coming soon)
+   * TCP, HTTP, HTTPS, HTTP/2 routing and proxying (coming soon)
+
+### Supported Application Languages
+
+   * Python
+   * PHP
+   * Go
+   * JavaScript/Node.js (coming soon)
+   * Java (coming soon)
+   * Ruby (coming soon)
 
 <!-- /section:1 -->
 
