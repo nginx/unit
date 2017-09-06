@@ -468,10 +468,10 @@ To compile the packages for Go:
    # export GOPATH=<path>
    ```
 
-   2. Compile the packages:
+   2. Compile and install the package:
 
    ```
-   # make go
+   # make go-install
    ```
 
 <!-- /section:4 -->
