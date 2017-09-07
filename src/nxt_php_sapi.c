@@ -333,6 +333,8 @@ nxt_php_read_request(nxt_task_t *task, nxt_app_rmsg_t *rmsg,
     RC(nxt_app_msg_read_size(task, rmsg, &s));
     h->parsed_content_length = s;
 
+    RC(nxt_app_msg_read_size(task, ctx->rmsg, &ctx->body_preread_size));
+
 #undef NXT_READ
 #undef RC
 
@@ -740,8 +742,6 @@ nxt_php_register_variables(zval *track_vars_array TSRMLS_DC)
 
         NXT_PHP_SET(n.start, v);
     }
-
-    nxt_app_msg_read_size(task, ctx->rmsg, &ctx->body_preread_size);
 
 #undef NXT_PHP_SET
 }
