@@ -246,9 +246,11 @@ include $NXT_MAKEFILE
 .PHONY:		tests
 tests:		$NXT_BUILD_DIR/tests $NXT_BUILD_DIR/utf8_file_name_test
 
+.PHONY: clean
 clean:
 		rm -rf $NXT_BUILD_DIR *.dSYM Makefile
 
+.PHONY: dist
 dist:
 		rm -f unit-\$(NXT_VERSION).tar.gz
 		mkdir unit-\$(NXT_VERSION)
