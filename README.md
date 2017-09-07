@@ -66,6 +66,7 @@ specific application parameters as needed by the engineering or operations.
 NGINX Unit is currently available as a beta. As such, it is suitable for use
 in a testing environment, but is not recommended for use in production.
 
+The sources are distributed under the Apache 2.0 license.
 
 ### Key Features
 
