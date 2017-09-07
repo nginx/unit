@@ -405,8 +405,8 @@ For example, this command generates a module called **py33.unit.so** for
 Python&nbsp;3.3:
 
 ```
-# ./configure php --module=py33  \
-                  --config=python-config-3.3
+# ./configure python --module=py33  \
+                     --config=python-config-3.3
 configuring Python module
 checking for Python ... found
 checking for Python version ... 3.3
