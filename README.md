@@ -189,7 +189,7 @@ current working directory.
    2. Download the Unit sources:
 
    ```
-   # hg clone hg.nginx.org/unit
+   # hg clone http://hg.nginx.org/unit
    ```
 
 ##### GitHub Repository
