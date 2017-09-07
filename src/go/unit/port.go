@@ -134,18 +134,19 @@ func nxt_go_port_send(pid C.int, id C.int, buf unsafe.Pointer, buf_size C.int,
 
 	p := find_port(key)
 
-	if p != nil {
-		n, oobn, err := p.snd.WriteMsgUnix(C.GoBytes(buf, buf_size),
-			C.GoBytes(oob, oob_size), nil)
-
-		if err != nil {
-			fmt.Printf("write result %d (%d), %s\n", n, oobn, err)
-		}
-
-		return C.int(n)
+	if p == nil {
+		return 0
 	}
 
-	return 0
+	n, oobn, err := p.snd.WriteMsgUnix(C.GoBytes(buf, buf_size),
+		C.GoBytes(oob, oob_size), nil)
+
+	if err != nil {
+		fmt.Printf("write result %d (%d), %s\n", n, oobn, err)
+	}
+
+	return C.int(n)
+
 }
 
 //export nxt_go_main_send
@@ -154,18 +155,18 @@ func nxt_go_main_send(buf unsafe.Pointer, buf_size C.int, oob unsafe.Pointer,
 
 	p := main_port()
 
-	if p != nil {
-		n, oobn, err := p.snd.WriteMsgUnix(C.GoBytes(buf, buf_size),
-			C.GoBytes(oob, oob_size), nil)
-
-		if err != nil {
-			fmt.Printf("write result %d (%d), %s\n", n, oobn, err)
-		}
-
-		return C.int(n)
+	if p == nil {
+		return 0
 	}
 
-	return 0
+	n, oobn, err := p.snd.WriteMsgUnix(C.GoBytes(buf, buf_size),
+		C.GoBytes(oob, oob_size), nil)
+
+	if err != nil {
+		fmt.Printf("write result %d (%d), %s\n", n, oobn, err)
+	}
+
+	return C.int(n)
 }
 
 func new_port(pid int, id int, t int, rcv int, snd int) *port {
@@ -200,26 +201,27 @@ func (p *port) read(handler http.Handler) error {
 
 	if c_req == 0 {
 		m.Close()
-	} else {
-		r := find_request(c_req)
-
-		go func(r *request) {
-			if handler == nil {
-				handler = http.DefaultServeMux
-			}
-
-			handler.ServeHTTP(r.response(), &r.req)
-			r.done()
-		}(r)
-
-		if len(r.msgs) == 0 {
-			r.push(m)
-		} else if r.ch != nil {
-			r.ch <- m
-		} else {
-			m.Close()
-		}
+		return nil
 	}
 
-	return err
+	r := find_request(c_req)
+
+	go func(r *request) {
+		if handler == nil {
+			handler = http.DefaultServeMux
+		}
+
+		handler.ServeHTTP(r.response(), &r.req)
+		r.done()
+	}(r)
+
+	if len(r.msgs) == 0 {
+		r.push(m)
+	} else if r.ch != nil {
+		r.ch <- m
+	} else {
+		m.Close()
+	}
+
+	return nil
 }
