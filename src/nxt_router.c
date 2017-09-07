@@ -747,7 +747,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             continue;
         }
 
-        apcf.workers = 1;
+        apcf.workers = 0;
 
         ret = nxt_conf_map_object(mp, application, nxt_router_app_conf,
                                   nxt_nitems(nxt_router_app_conf), &apcf);
@@ -755,6 +755,13 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             nxt_log(task, NXT_LOG_CRIT, "application map error");
             goto app_fail;
         }
+
+        if (apcf.workers == 0) {
+            if (nxt_ncpu > 0)
+                apcf.workers = nxt_ncpu;
+            else
+                apcf.workers = 1;
+       }
 
         nxt_debug(task, "application type: %V", &apcf.type);
         nxt_debug(task, "application workers: %D", apcf.workers);

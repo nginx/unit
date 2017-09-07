@@ -700,7 +700,7 @@ Example:
 |  Object | Description |
 | --- | --- |
 | `type`| Type of the application (`go`).
-| `workers`           | Number of application workers.
+| `workers`           | Number of application workers (0 will try to set it to the number of the cpu cores).
 | `executable`        | Full path to compiled Go app.
 | `user` (optional)   | Username that runs the app process. If not specified, `nobody` is used.
 | `group` (optional)  | Group name that runs the app process. If not specified, user's primary group is used.
@@ -721,7 +721,7 @@ Example:
 |  Object | Description |
 | --- | --- |
 | `type`| Type of the application (`php`).
-| `workers`           | Number of application workers.
+| `workers`           | Number of application workers (0 will try to set it to the number of the cpu cores).
 | `root`              | Directory to search for PHP files.
 | `index`             | Default launch file when the PHP file name is not specified in the URL.
 | `script` (optional) | File that Unit runs for every URL, instead of searching for a file in the filesystem. The location is relative to the root.
@@ -746,7 +746,7 @@ Example:
 |  Object | Description |
 | --- | --- |
 | `type`| Type of the application (`python`).
-| `workers`           | Number of application workers.
+| `workers`           | Number of application workers (0 will try to set it to the number of the cpu cores).
 | `path`             | Path to search for the **wsgi.py** file.
 | `module`             | Required. Currently the only supported value is `wsgi`.
 | `user` (optional)   | Username that runs the app process. If not specified, `nobody` is used.
