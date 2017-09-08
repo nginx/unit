@@ -222,7 +222,7 @@ and Python) that you want to support.
    # apt-get install build-essential
    ```
 
-   2. For Go applications support, install the `golang` package. 
+   2. For Go applications support, install the `golang` package.
 
    ```
    # apt-get install golang
@@ -900,7 +900,7 @@ Use the following configuration example for NGINX:
 
 ```
 server {
-    
+
     # Configure SSL encryption
     server 443 ssl;
     ssl_certificate /path/to/ssl/cert.pem;
@@ -937,6 +937,8 @@ NGINX Unit is released under the Apache 2.0 license.
 To contribute changes, either submit them by email to
 [unit@nginx.org](mailto:unit@nginx.org) or submit a pull request in the
 [https://github.com/nginx/unit](https://github.com/nginx/unit) repository.
+Documentation changes can be contributed by submitting a pull request
+for the NGINX Unit repository README.
 
 <!-- /section:5 -->
 
@@ -944,7 +946,7 @@ To contribute changes, either submit them by email to
 
 ## Troubleshooting
 
-Unit log for the binary packages is located in `/var/log/unit.log`.
+Unit log for the binary packages is located in `/var/log/unitd.log`.
 
 Log file location can also be found by running `unitd --help`.
 
