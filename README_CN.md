@@ -871,6 +871,7 @@ server {
 NGINX Unit的发布和分发均使用Apache 2.0 license。
 如果想贡献自己的力量，你可以选择通过邮件[unit@nginx.org](mailto:unit@nginx.org)
 或者在Github上提交PR[https://github.com/nginx/unit](https://github.com/nginx/unit)。
+如果在中文翻译方面需要改近请联系[@tuzimoe](https://github.com/tuzimoe)。
 <!-- /section:5 -->
 
 <!-- section:6 -->
