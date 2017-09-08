@@ -465,7 +465,7 @@ several characteristics of the application, including the language it's written
 in, the number of application worker processes to run, the directory with
 the file or files for the application, and parameters that vary by language.
 
-This example runs three workers of the PHP application named **blogs** using the
+This example runs twenty workers of the PHP application named **blogs** using the
 files found in the **/www/blogs/scripts** directory. The default launch file
 when the URL doesn't specify the PHP file is **index.php**.
 
