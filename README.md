@@ -179,7 +179,7 @@ current working directory.
 
 ##### Mercurial Repository
 
-   1. If don't already have the Mercurial software, download and install it.
+   1. If you don't already have the Mercurial software, download and install it.
    For example, on Ubuntu systems, run this command:
 
    ```
@@ -194,7 +194,7 @@ current working directory.
 
 ##### GitHub Repository
 
-   1. If don't already have the Git software, download it. See the
+   1. If you don't already have the Git software, download it. See the
    [GitHub documentation](https://help.github.com/).
 
    2. Download the Unit sources:
