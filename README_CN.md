@@ -880,13 +880,13 @@ NGINX Unit的发布和分发均使用Apache 2.0 license。
 
 Unit 日志一般在默认的位置，可以在`/var/log/unit.log` 中找到。
 Log 文件的位置也可以通过运行 `unitd --help` 来快速定位。
-Debug 也可以通过输入命令来获得：
+详细的Debug日志可以通过输入命令来获得：
 ```
 ./configure --debug
 ```
 
-Unit和其他的全部模块和组件将会被重新安装。
-请注意，debug日志的内容将会以成倍的速度增长。
+输入完命令后，请务必重新编译和重装NGINX Unit。
+请注意，debug日志的内容将会以快速的增长。
 
 社区邮箱的列表将会在<unit@nginx.org>上找到。
 订阅邮箱列表，可以通过发送任何内容至订阅
