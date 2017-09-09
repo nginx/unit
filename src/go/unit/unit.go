@@ -6,6 +6,7 @@
 package unit
 
 /*
+#cgo CFLAGS: -I./../../ -I./../../../build
 #include "nxt_go_lib.h"
 */
 import "C"
