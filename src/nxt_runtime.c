@@ -722,6 +722,7 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
     rt->pid = NXT_PID;
     rt->log = NXT_LOG;
     rt->modules = NXT_MODULES;
+    rt->state = NXT_STATE;
     rt->control = NXT_CONTROL_SOCK;
 
     if (nxt_runtime_conf_read_cmd(task, rt) != NXT_OK) {
@@ -771,6 +772,28 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
 
     rt->modules = (char *) file_name.start;
 
+    slash = "";
+    n = nxt_strlen(rt->state);
+
+    if (n > 1 && rt->state[n - 1] != '/') {
+        slash = "/";
+    }
+
+    ret = nxt_file_name_create(rt->mem_pool, &file_name, "%s%sconf.json%Z",
+                               rt->state, slash);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        return NXT_ERROR;
+    }
+
+    rt->conf = (char *) file_name.start;
+
+    ret = nxt_file_name_create(rt->mem_pool, &file_name, "%s.tmp%Z", rt->conf);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        return NXT_ERROR;
+    }
+
+    rt->conf_tmp = (char *) file_name.start;
+
     control.length = nxt_strlen(rt->control);
     control.start = (u_char *) rt->control;
 
@@ -808,6 +831,7 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
     static const char  no_log[] = "option \"--log\" requires filename\n";
     static const char  no_modules[] =
                        "option \"--modules\" requires directory\n";
+    static const char  no_state[] = "option \"--state\" requires directory\n";
 
     static const char  help[] =
         "\n"
@@ -828,6 +852,9 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
         "\n"
         "  --modules DIRECTORY  set modules directory name\n"
         "                       default: \"" NXT_MODULES "\"\n"
+        "\n"
+        "  --state DIRECTORY    set state directory name\n"
+        "                       default: \"" NXT_STATE "\"\n"
         "\n"
         "  --user USER          set non-privileged processes to run"
                                 " as specified user\n"
@@ -934,6 +961,19 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
             p = *argv++;
 
             rt->modules = p;
+
+            continue;
+        }
+
+        if (nxt_strcmp(p, "--state") == 0) {
+            if (*argv == NULL) {
+                write(STDERR_FILENO, no_state, sizeof(no_state) - 1);
+                return NXT_ERROR;
+            }
+
+            p = *argv++;
+
+            rt->state = p;
 
             continue;
         }

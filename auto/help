@@ -17,6 +17,7 @@ cat << END
   --sbindir=DIRECTORY  set system admin executables directory name
                        default: "$NXT_SBINDIR"
   --modules=DIRECTORY  set modules directory name, default: "$NXT_MODULES"
+  --state=DIRECTORY    set state directory name, default: "$NXT_STATE"
 
   --pid=FILE           set pid filename, default: "$NXT_PID"
   --log=FILE           set log filename, default: "$NXT_LOG"

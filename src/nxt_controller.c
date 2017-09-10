@@ -71,6 +71,8 @@ static void nxt_controller_process_request(nxt_task_t *task,
     nxt_controller_request_t *req);
 static void nxt_controller_conf_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
+static void nxt_controller_conf_store(nxt_task_t *task,
+    nxt_conf_value_t *conf);
 static void nxt_controller_response(nxt_task_t *task,
     nxt_controller_request_t *req, nxt_controller_response_t *resp);
 static u_char *nxt_controller_date(u_char *buf, nxt_realtime_t *now,
@@ -86,6 +88,7 @@ static nxt_http_fields_hash_entry_t  nxt_controller_request_fields[] = {
 
 static nxt_http_fields_hash_t  *nxt_controller_fields_hash;
 
+static nxt_uint_t              nxt_controller_listening;
 static nxt_controller_conf_t   nxt_controller_conf;
 static nxt_queue_t             nxt_controller_waiting_requests;
 
@@ -115,7 +118,10 @@ nxt_port_handler_t  nxt_controller_process_port_handlers[] = {
 nxt_int_t
 nxt_controller_start(nxt_task_t *task, void *data)
 {
+    nxt_mp_t                *mp;
+    nxt_str_t               *json;
     nxt_runtime_t           *rt;
+    nxt_conf_value_t        *conf;
     nxt_http_fields_hash_t  *hash;
 
     rt = task->thread->runtime;
@@ -128,6 +134,42 @@ nxt_controller_start(nxt_task_t *task, void *data)
 
     nxt_controller_fields_hash = hash;
     nxt_queue_init(&nxt_controller_waiting_requests);
+
+    json = data;
+
+    if (json->length == 0) {
+        return NXT_OK;
+    }
+
+    mp = nxt_mp_create(1024, 128, 256, 32);
+    if (nxt_slow_path(mp == NULL)) {
+        return NXT_ERROR;
+    }
+
+    conf = nxt_conf_json_parse_str(mp, json);
+    nxt_free(json->start);
+
+    if (nxt_slow_path(conf == NULL)) {
+        nxt_log(task, NXT_LOG_ALERT,
+                "failed to restore previous configuration: "
+                "file is corrupted or not enough memory");
+
+        nxt_mp_destroy(mp);
+        return NXT_OK;
+    }
+
+    if (nxt_slow_path(nxt_conf_validate(conf) != NXT_OK)) {
+        nxt_log(task, NXT_LOG_ALERT,
+                "failed to restore previous configuration: "
+                "invalid configuration");
+
+        nxt_mp_destroy(mp);
+        return NXT_OK;
+    }
+
+
+    nxt_controller_conf.root = conf;
+    nxt_controller_conf.pool = mp;
 
     return NXT_OK;
 }
@@ -173,6 +215,8 @@ nxt_controller_process_new_port_handler(nxt_task_t *task,
     if (nxt_slow_path(nxt_listen_event(task, rt->controller_socket) == NULL)) {
         nxt_abort();
     }
+
+    nxt_controller_listening = 1;
 }
 
 
@@ -208,12 +252,28 @@ static void
 nxt_controller_conf_init_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     void *data)
 {
+    nxt_runtime_t  *rt;
+
     if (msg->port_msg.type != NXT_PORT_MSG_RPC_READY) {
+        nxt_log(task, NXT_LOG_ALERT, "failed to apply previous configuration");
+
         nxt_mp_destroy(nxt_controller_conf.pool);
 
         if (nxt_slow_path(nxt_controller_conf_default() != NXT_OK)) {
             nxt_abort();
         }
+    }
+
+    if (nxt_controller_listening == 0) {
+        rt = task->thread->runtime;
+
+        if (nxt_slow_path(nxt_listen_event(task, rt->controller_socket)
+                          == NULL))
+        {
+            nxt_abort();
+        }
+
+        nxt_controller_listening = 1;
     }
 }
 
@@ -926,6 +986,8 @@ nxt_controller_conf_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
         nxt_controller_conf = req->conf;
 
+        nxt_controller_conf_store(task, req->conf.root);
+
         resp.status = 200;
         resp.title = (u_char *) "Reconfiguration done.";
 
@@ -947,6 +1009,31 @@ nxt_controller_conf_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     nxt_queue_each(req, &queue, nxt_controller_request_t, link) {
         nxt_controller_process_request(task, req);
     } nxt_queue_loop;
+}
+
+
+static void
+nxt_controller_conf_store(nxt_task_t *task, nxt_conf_value_t *conf)
+{
+    size_t         size;
+    nxt_buf_t      *b;
+    nxt_port_t     *main_port;
+    nxt_runtime_t  *rt;
+
+    rt = task->thread->runtime;
+
+    main_port = rt->port_by_type[NXT_PROCESS_MAIN];
+
+    size = nxt_conf_json_length(conf, NULL);
+
+    b = nxt_buf_mem_alloc(main_port->mem_pool, size, 0);
+
+    if (nxt_fast_path(b != NULL)) {
+        b->mem.free = nxt_conf_json_print(b->mem.free, conf, NULL);
+
+        (void) nxt_port_socket_write(task, main_port, NXT_PORT_MSG_CONF_STORE,
+                                     -1, 0, -1, b);
+    }
 }
 
 

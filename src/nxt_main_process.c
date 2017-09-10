@@ -49,6 +49,8 @@ static nxt_int_t nxt_main_listening_socket(nxt_sockaddr_t *sa,
 static void nxt_main_port_modules_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
 static int nxt_cdecl nxt_app_lang_compare(const void *v1, const void *v2);
+static void nxt_main_port_conf_store_handler(nxt_task_t *task,
+    nxt_port_recv_msg_t *msg);
 
 
 const nxt_sig_event_t  nxt_main_process_signals[] = {
@@ -224,6 +226,7 @@ static nxt_port_handler_t  nxt_main_process_port_handlers[] = {
     nxt_port_main_start_worker_handler,
     nxt_main_port_socket_handler,
     nxt_main_port_modules_handler,
+    nxt_main_port_conf_store_handler,
     nxt_port_rpc_handler,
     nxt_port_rpc_handler,
 };
@@ -295,7 +298,46 @@ nxt_main_process_title(nxt_task_t *task)
 static nxt_int_t
 nxt_main_start_controller_process(nxt_task_t *task, nxt_runtime_t *rt)
 {
+    ssize_t             n;
+    nxt_int_t           ret;
+    nxt_str_t           conf;
+    nxt_file_t          file;
+    nxt_file_info_t     fi;
     nxt_process_init_t  *init;
+
+    conf.length = 0;
+
+    nxt_memzero(&file, sizeof(nxt_file_t));
+
+    file.name = (nxt_file_name_t *) rt->conf;
+
+    if (nxt_file_open(task, &file, NXT_FILE_RDONLY, NXT_FILE_OPEN, 0) == NXT_OK) {
+
+        if (nxt_fast_path(nxt_file_info(&file, &fi) == NXT_OK
+                          && nxt_is_file(&fi)))
+        {
+            conf.length = nxt_file_size(&fi);
+            conf.start = nxt_malloc(conf.length);
+
+            if (nxt_slow_path(conf.start == NULL)) {
+                nxt_file_close(task, &file);
+                return NXT_ERROR;
+            }
+
+            n = nxt_file_read(&file, conf.start, conf.length, 0);
+
+            if (nxt_slow_path(n != (ssize_t) conf.length)) {
+                conf.length = 0;
+                nxt_free(conf.start);
+
+                nxt_log(task, NXT_LOG_ALERT,
+                        "failed to restore previous configuration: "
+                        "cannot read the file");
+            }
+        }
+
+        nxt_file_close(task, &file);
+    }
 
     init = nxt_malloc(sizeof(nxt_process_init_t));
     if (nxt_slow_path(init == NULL)) {
@@ -308,11 +350,17 @@ nxt_main_start_controller_process(nxt_task_t *task, nxt_runtime_t *rt)
     init->port_handlers = nxt_controller_process_port_handlers;
     init->signals = nxt_worker_process_signals;
     init->type = NXT_PROCESS_CONTROLLER;
-    init->data = rt;
+    init->data = &conf;
     init->stream = 0;
     init->restart = 1;
 
-    return nxt_main_create_worker_process(task, rt, init);
+    ret = nxt_main_create_worker_process(task, rt, init);
+
+    if (ret == NXT_OK && conf.length != 0) {
+        nxt_free(conf.start);
+    }
+
+    return ret;
 }
 
 
@@ -1053,4 +1101,52 @@ nxt_app_lang_compare(const void *v1, const void *v2)
     /* Negate result to move higher versions to the beginning. */
 
     return -n;
+}
+
+
+static void
+nxt_main_port_conf_store_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
+{
+    ssize_t        n, size;
+    nxt_buf_t      *b;
+    nxt_int_t      ret;
+    nxt_file_t     file;
+    nxt_runtime_t  *rt;
+
+    nxt_memzero(&file, sizeof(nxt_file_t));
+
+    rt = task->thread->runtime;
+
+    file.name = (nxt_file_name_t *) rt->conf_tmp;
+
+    if (nxt_slow_path(nxt_file_open(task, &file, NXT_FILE_WRONLY,
+                                    NXT_FILE_TRUNCATE, NXT_FILE_OWNER_ACCESS)
+                      != NXT_OK))
+    {
+        goto error;
+    }
+
+    for (b = msg->buf; b != NULL; b = b->next) {
+        size = nxt_buf_mem_used_size(&b->mem);
+
+        n = nxt_file_write(&file, b->mem.pos, size, 0);
+
+        if (nxt_slow_path(n != size)) {
+            nxt_file_close(task, &file);
+            (void) nxt_file_delete(file.name);
+            goto error;
+        }
+    }
+
+    nxt_file_close(task, &file);
+
+    ret = nxt_file_rename(file.name, (nxt_file_name_t *) rt->conf);
+
+    if (nxt_fast_path(ret == NXT_OK)) {
+        return;
+    }
+
+error:
+
+    nxt_log(task, NXT_LOG_ALERT, "failed to store current configuration");
 }

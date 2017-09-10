@@ -10,6 +10,7 @@ Configuration summary:
   unit pid file:             "$NXT_PID"
   unit log file:             "$NXT_LOG"
   unit modules path:         "$NXT_MODULES"
+  unit state path:           "$NXT_STATE"
 
   unit control API socket:   "$NXT_CONTROL"
 
