@@ -756,6 +756,13 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             goto app_fail;
         }
 
+        if (apcf.workers == 0) {
+            if (nxt_ncpu > 0)
+                apcf.workers = nxt_ncpu;
+            else
+                apcf.workers = 1;
+       }
+
         nxt_debug(task, "application type: %V", &apcf.type);
         nxt_debug(task, "application workers: %D", apcf.workers);
 
