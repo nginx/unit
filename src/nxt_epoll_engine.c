@@ -351,6 +351,7 @@ nxt_epoll_free(nxt_event_engine_t *engine)
     }
 
     nxt_free(engine->u.epoll.events);
+    nxt_free(engine->u.epoll.changes);
 
     nxt_memzero(&engine->u.epoll, sizeof(nxt_epoll_engine_t));
 }

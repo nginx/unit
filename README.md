@@ -179,7 +179,7 @@ current working directory.
 
 ##### Mercurial Repository
 
-   1. If don't already have the Mercurial software, download and install it.
+   1. If you don't already have the Mercurial software, download and install it.
    For example, on Ubuntu systems, run this command:
 
    ```
@@ -194,7 +194,7 @@ current working directory.
 
 ##### GitHub Repository
 
-   1. If don't already have the Git software, download it. See the
+   1. If you don't already have the Git software, download it. See the
    [GitHub documentation](https://help.github.com/).
 
    2. Download the Unit sources:
@@ -222,7 +222,7 @@ and Python) that you want to support.
    # apt-get install build-essential
    ```
 
-   2. For Go applications support, install the `golang` package. 
+   2. For Go applications support, install the `golang` package.
 
    ```
    # apt-get install golang
@@ -406,8 +406,8 @@ For example, this command generates a module called **py33.unit.so** for
 Python&nbsp;3.3:
 
 ```
-# ./configure php --module=py33  \
-                  --config=python-config-3.3
+# ./configure python --module=py33  \
+                     --config=python-config-3.3
 configuring Python module
 checking for Python ... found
 checking for Python version ... 3.3
@@ -465,7 +465,7 @@ several characteristics of the application, including the language it's written
 in, the number of application worker processes to run, the directory with
 the file or files for the application, and parameters that vary by language.
 
-This example runs three workers of the PHP application named **blogs** using the
+This example runs 20 workers of the PHP application named **blogs** using the
 files found in the **/www/blogs/scripts** directory. The default launch file
 when the URL doesn't specify the PHP file is **index.php**.
 
@@ -900,7 +900,7 @@ Use the following configuration example for NGINX:
 
 ```
 server {
-    
+
     # Configure SSL encryption
     server 443 ssl;
     ssl_certificate /path/to/ssl/cert.pem;
