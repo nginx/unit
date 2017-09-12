@@ -659,6 +659,11 @@ nxt_mp_alloc_cluster(nxt_mp_t *mp)
     cluster->size = mp->cluster_size;
 
     cluster->start = nxt_memalign(mp->page_alignment, mp->cluster_size);
+
+#if (NXT_VALGRIND)
+    nxt_memzero(cluster->start, cluster->size);
+#endif
+
     if (nxt_slow_path(cluster->start == NULL)) {
         nxt_free(cluster);
         return NULL;
