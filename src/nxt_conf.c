@@ -937,9 +937,9 @@ nxt_conf_json_parse(nxt_mp_t *mp, u_char *start, u_char *end,
     if (nxt_slow_path(p == end)) {
 
         nxt_conf_json_parse_error(error, start,
-            "An empty JSON isn't allowed.  It must be either literal "
-            "(null, true, or false), number, string (in double quotes \"\"), "
-            "array (with brackets []), or object (with braces {})."
+            "An empty JSON payload isn't allowed.  It must be either a literal "
+            "(null, true, or false), a number, a string (in double quotes "
+            "\"\"), an array (with brackets []), or an object (with braces {})."
         );
 
         return NULL;
@@ -956,7 +956,7 @@ nxt_conf_json_parse(nxt_mp_t *mp, u_char *start, u_char *end,
     if (nxt_slow_path(p != end)) {
 
         nxt_conf_json_parse_error(error, p,
-            "Unexpected character after the end of valid JSON value."
+            "Unexpected character after the end of a valid JSON value."
         );
 
         return NULL;
@@ -1074,9 +1074,9 @@ nxt_conf_json_parse_value(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
 error:
 
     nxt_conf_json_parse_error(error, start,
-        "A valid JSON value is expected here.  It must be either literal "
-        "(null, true, or false), number, string (in double quotes \"\"), "
-        "array (with brackets []), or object (with braces {})."
+        "A valid JSON value is expected here.  It must be either a literal "
+        "(null, true, or false), a number, a string (in double quotes \"\"), "
+        "an array (with brackets []), or an object (with braces {})."
     );
 
     return NULL;
@@ -1122,8 +1122,8 @@ nxt_conf_json_parse_object(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
         if (nxt_slow_path(p == end)) {
 
             nxt_conf_json_parse_error(error, p,
-                "Unexpected end of JSON.  There's an object without closing "
-                "brace (})."
+                "Unexpected end of JSON payload.  There's an object without "
+                "a closing brace (})."
             );
 
             goto error;
@@ -1177,8 +1177,8 @@ nxt_conf_json_parse_object(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
         if (nxt_slow_path(p == end)) {
 
             nxt_conf_json_parse_error(error, p,
-                "Unexpected end of JSON.  There's an object member without "
-                "value."
+                "Unexpected end of JSON payload.  There's an object member "
+                "without a value."
             );
 
             goto error;
@@ -1187,8 +1187,8 @@ nxt_conf_json_parse_object(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
         if (nxt_slow_path(*p != ':')) {
 
             nxt_conf_json_parse_error(error, p,
-                "A colon (:) is expected here.  There must be a colon between "
-                "JSON member name and value."
+                "A colon (:) is expected here.  There must be a colon after "
+                "a JSON member name."
             );
 
             goto error;
@@ -1199,8 +1199,8 @@ nxt_conf_json_parse_object(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
         if (nxt_slow_path(p == end)) {
 
             nxt_conf_json_parse_error(error, p,
-                "Unexpected end of JSON.  There's an object member without "
-                "value."
+                "Unexpected end of JSON payload.  There's an object member "
+                "without a value."
             );
 
             goto error;
@@ -1217,8 +1217,8 @@ nxt_conf_json_parse_object(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
         if (nxt_slow_path(p == end)) {
 
             nxt_conf_json_parse_error(error, p,
-                "Unexpected end of JSON.  There's an object without closing "
-                "brace (})."
+                "Unexpected end of JSON payload.  There's an object without "
+                "a closing brace (})."
             );
 
             goto error;
@@ -1230,9 +1230,9 @@ nxt_conf_json_parse_object(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
             }
 
             nxt_conf_json_parse_error(error, p,
-                "Either a closing brace (}) or a comma (,) is expected here. "
-                "In JSON, all object members must be enclosed in braces and "
-                "separated by commas."
+                "Either a closing brace (}) or a comma (,) is expected here.  "
+                "Each JSON object must be enclosed in braces and its members "
+                "must be separated by commas."
             );
 
             goto error;
@@ -1351,8 +1351,8 @@ nxt_conf_json_parse_array(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
         if (nxt_slow_path(p == end)) {
 
             nxt_conf_json_parse_error(error, p,
-                "Unexpected end of JSON.  There's an array without closing "
-                "bracket (])."
+                "Unexpected end of JSON payload.  There's an array without "
+                "a closing bracket (])."
             );
 
             goto error;
@@ -1380,8 +1380,8 @@ nxt_conf_json_parse_array(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
         if (nxt_slow_path(p == end)) {
 
             nxt_conf_json_parse_error(error, p,
-                "Unexpected end of JSON.  There's an array without closing "
-                "bracket (])."
+                "Unexpected end of JSON payload.  There's an array without "
+                "a closing bracket (])."
             );
 
             goto error;
@@ -1393,9 +1393,9 @@ nxt_conf_json_parse_array(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
             }
 
             nxt_conf_json_parse_error(error, p,
-                "Either a closing bracket (]) or a comma (,) is expected here. "
-                "In JSON, all array members must be enclosed in brackets and "
-                "separated by commas."
+                "Either a closing bracket (]) or a comma (,) is expected "
+                "here.  Each array must be enclosed in brackets and its "
+                "members must be separated by commas."
             );
 
             goto error;
@@ -1472,8 +1472,8 @@ nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
             }
 
             nxt_conf_json_parse_error(error, p,
-                "Unexpected character in string.  All control characters must "
-                "be escaped in JSON strings."
+                "Unexpected character.  All control characters in a JSON "
+                "string must be escaped."
             );
 
             return NULL;
@@ -1507,9 +1507,8 @@ nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
             }
 
             nxt_conf_json_parse_error(error, p - 1,
-                "Unexpected reverse solidus in string.  Reverse solidus in "
-                "JSON strings must be escaped with a second reverse solidus "
-                "(\\\\)."
+                "Unexpected backslash.  A literal backslash in a JSON string "
+                "must be escaped with a second backslash (\\\\)."
             );
 
             return NULL;
@@ -1528,9 +1527,9 @@ nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
             }
 
             nxt_conf_json_parse_error(error, p,
-                "Invalid escape sequence.  In JSON, escape sequences start "
-                "with a reverse solidus, followed by the lowercase letter u, "
-                "followed by four hexadecimal digits (\\uXXXX)."
+                "Invalid escape sequence.  An escape sequence in a JSON "
+                "string must start with a backslash, followed by the lowercase "
+                "letter u, followed by four hexadecimal digits (\\uXXXX)."
             );
 
             return NULL;
@@ -1542,8 +1541,8 @@ nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
     if (nxt_slow_path(p == end)) {
 
         nxt_conf_json_parse_error(error, p,
-            "Unexpected end of JSON.  There's a string without ending double "
-            "quote (\")."
+            "Unexpected end of JSON payload.  There's a string without "
+            "a final double quote (\")."
         );
 
         return NULL;
@@ -1559,8 +1558,8 @@ nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
         if (nxt_slow_path(size > NXT_CONF_MAX_STRING)) {
 
             nxt_conf_json_parse_error(error, start,
-                "Too long string.  Such a big JSON string values are not "
-                "supported."
+                "The string is too long.  Such a long JSON string value "
+                "is not supported."
             );
 
             return NULL;
@@ -1644,9 +1643,8 @@ nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
                 if (nxt_slow_path(utf < 0xdc00 || utf > 0xdfff)) {
 
                     nxt_conf_json_parse_error(error, p - 12,
-                        "Invalid JSON encoding sequence.  There's a 12 bytes "
-                        "sequence that composes an illegal UTF-16 surrogate "
-                        "pair."
+                        "Invalid JSON encoding sequence.  This 12-byte "
+                        "sequence composes an illegal UTF-16 surrogate pair."
                     );
 
                     return NULL;
@@ -1664,8 +1662,8 @@ nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
             if (utf > 0xdbff || p[0] != '\\' || p[1] != 'u') {
 
                 nxt_conf_json_parse_error(error, p - 6,
-                    "Invalid JSON encoding sequence.  There's a 6 bytes "
-                    "sequence that doesn't represent a valid character."
+                    "Invalid JSON encoding sequence.  This 6-byte sequence "
+                    "does not represent a valid UTF character."
                 );
 
                 return NULL;
@@ -1733,8 +1731,8 @@ nxt_conf_json_parse_number(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
                           && (integer > cutoff || ch > cutlim)))
         {
             nxt_conf_json_parse_error(error, start,
-                "Too big integer.  Such a big JSON integer values are not "
-                "supported."
+                "The integer is too large.  Such a large JSON integer value "
+                "is not supported."
             );
 
             return NULL;
@@ -1746,7 +1744,8 @@ nxt_conf_json_parse_number(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
     if (nxt_slow_path(p - start > 1 && *start == '0')) {
 
         nxt_conf_json_parse_error(error, start,
-            "Leading zeros are not allowed in JSON numbers."
+            "The number is invalid.  Leading zeros are not allowed in JSON "
+            "numbers."
         );
 
         return NULL;
@@ -1840,8 +1839,8 @@ nxt_conf_json_parse_number(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
 #else
 
     nxt_conf_json_parse_error(error, start,
-        "Invalid number.  Only integer JSON numbers without fraction and "
-        "exponent parts are supported."
+        "The number is not an integer.  JSON numbers with decimals and "
+        "exponents are not supported."
     );
 
 #endif
