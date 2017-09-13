@@ -469,19 +469,19 @@ This example runs 20 workers of the PHP application named **blogs** using the
 files found in the **/www/blogs/scripts** directory. The default launch file
 when the URL doesn't specify the PHP file is **index.php**.
 
-   ```
-   {
-        ...
-        "applications": {
-            "blogs": {
-                "type": "php",
-                "workers": 20,
-                "root": "/www/blogs/scripts",
-                "index": "index.php"
-            }
-        }
-   }
-   ```
+```
+{
+     ...
+     "applications": {
+         "blogs": {
+             "type": "php",
+             "workers": 20,
+             "root": "/www/blogs/scripts",
+             "index": "index.php"
+         }
+     }
+}
+```
 
 ### Listeners
 
@@ -494,20 +494,19 @@ a named application. The IP address can be either a full address (for example,
 In this example, requests received on port&nbsp;8300 are sent to the **blogs**
 application:
 
-    ```
-    {
-         "listeners": {
-             "*:8300": {
-                 "application": "blogs"
-             }
-         },
-         ...
-    }
-    ```
-
+```
+{
+      "listeners": {
+          "*:8300": {
+              "application": "blogs"
+          }
+      },
+      ...
+ }
+ ```
 
 For complete details about the JSON objects for each language, see
-[JSON Specification for Listener and Application Objects](#json-specification-for-listener-and-application-objects).
+[Listener and Application Objects](#listener-and-application-objects).
 
 ### Minimum Configuration
 
