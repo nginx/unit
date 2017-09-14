@@ -89,6 +89,8 @@ static void nxt_router_engine_socket_count(nxt_queue_t *sockets);
 static nxt_int_t nxt_router_engine_joints_create(nxt_router_temp_conf_t *tmcf,
     nxt_router_engine_conf_t *recf, nxt_queue_t *sockets,
     nxt_work_handler_t handler);
+static nxt_int_t nxt_router_engine_quit(nxt_router_temp_conf_t *tmcf,
+    nxt_router_engine_conf_t *recf);
 static nxt_int_t nxt_router_engine_joints_delete(nxt_router_temp_conf_t *tmcf,
     nxt_router_engine_conf_t *recf, nxt_queue_t *sockets);
 
@@ -110,6 +112,8 @@ static void nxt_router_listen_socket_create(nxt_task_t *task, void *obj,
 static void nxt_router_listen_socket_update(nxt_task_t *task, void *obj,
     void *data);
 static void nxt_router_listen_socket_delete(nxt_task_t *task, void *obj,
+    void *data);
+static void nxt_router_worker_thread_quit(nxt_task_t *task, void *obj,
     void *data);
 static void nxt_router_listen_socket_close(nxt_task_t *task, void *obj,
     void *data);
@@ -1291,6 +1295,11 @@ nxt_router_engine_conf_delete(nxt_router_temp_conf_t *tmcf,
 {
     nxt_int_t  ret;
 
+    ret = nxt_router_engine_quit(tmcf, recf);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        return ret;
+    }
+
     ret = nxt_router_engine_joints_delete(tmcf, recf, &tmcf->updating);
     if (nxt_slow_path(ret != NXT_OK)) {
         return ret;
@@ -1364,6 +1373,31 @@ nxt_router_engine_socket_count(nxt_queue_t *sockets)
         skcf = nxt_queue_link_data(qlk, nxt_socket_conf_t, link);
         skcf->socket->count++;
     }
+}
+
+
+static nxt_int_t
+nxt_router_engine_quit(nxt_router_temp_conf_t *tmcf,
+    nxt_router_engine_conf_t *recf)
+{
+    nxt_joint_job_t  *job;
+
+    job = nxt_mp_get(tmcf->mem_pool, sizeof(nxt_joint_job_t));
+    if (nxt_slow_path(job == NULL)) {
+        return NXT_ERROR;
+    }
+
+    job->work.next = recf->jobs;
+    recf->jobs = &job->work;
+
+    job->task = tmcf->engine->task;
+    job->work.handler = nxt_router_worker_thread_quit;
+    job->work.task = &job->task;
+    job->work.obj = NULL;
+    job->work.data = NULL;
+    job->tmcf = NULL;
+
+    return NXT_OK;
 }
 
 
@@ -1715,6 +1749,23 @@ nxt_router_listen_socket_delete(nxt_task_t *task, void *obj, void *data)
 
 
 static void
+nxt_router_worker_thread_quit(nxt_task_t *task, void *obj, void *data)
+{
+    nxt_event_engine_t  *engine;
+
+    nxt_debug(task, "router worker thread quit");
+
+    engine = task->thread->engine;
+
+    engine->shutdown = 1;
+
+    if (nxt_queue_is_empty(&engine->joints)) {
+        nxt_thread_exit(task->thread);
+    }
+}
+
+
+static void
 nxt_router_listen_socket_close(nxt_task_t *task, void *obj, void *data)
 {
     nxt_timer_t              *timer;
@@ -1778,6 +1829,7 @@ nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
     nxt_bool_t             exit;
     nxt_socket_conf_t      *skcf;
     nxt_router_conf_t      *rtcf;
+    nxt_event_engine_t     *engine;
     nxt_thread_spinlock_t  *lock;
 
     nxt_debug(task, "conf joint %p count: %D", joint, joint->count);
@@ -1814,7 +1866,8 @@ nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
     /* TODO excude from connected ports */
 
     /* The joint content can be used before memory pool destruction. */
-    exit = nxt_queue_is_empty(&joint->engine->joints);
+    engine = joint->engine;
+    exit = (engine->shutdown && nxt_queue_is_empty(&engine->joints));
 
     if (rtcf != NULL) {
         nxt_debug(task, "old router conf is destroyed");
