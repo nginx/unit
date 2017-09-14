@@ -985,7 +985,7 @@ nxt_epoll_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
 static void
 nxt_epoll_conn_io_accept4(nxt_task_t *task, void *obj, void *data)
 {
-    socklen_t           len;
+    socklen_t           socklen;
     nxt_conn_t          *c;
     nxt_socket_t        s;
     struct sockaddr     *sa;
@@ -997,17 +997,13 @@ nxt_epoll_conn_io_accept4(nxt_task_t *task, void *obj, void *data)
     lev->ready--;
     lev->socket.read_ready = (lev->ready != 0);
 
-    len = c->remote->socklen;
-
-    if (len >= sizeof(struct sockaddr)) {
-        sa = &c->remote->u.sockaddr;
-
-    } else {
-        sa = NULL;
-        len = 0;
-    }
-
-    s = accept4(lev->socket.fd, sa, &len, SOCK_NONBLOCK);
+    sa = &c->remote->u.sockaddr;
+    socklen = c->remote->socklen;
+    /*
+     * The returned socklen is ignored here,
+     * see comment in nxt_conn_io_accept().
+     */
+    s = accept4(lev->socket.fd, sa, &socklen, SOCK_NONBLOCK);
 
     if (s != -1) {
         c->socket.fd = s;

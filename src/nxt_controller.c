@@ -281,10 +281,9 @@ nxt_runtime_controller_socket(nxt_task_t *task, nxt_runtime_t *rt)
     }
 
     ls->sockaddr->type = sa->type;
-    ls->socklen = sa->socklen;
-    ls->address_length = sa->length;
-
     nxt_sockaddr_text(ls->sockaddr);
+
+    nxt_listen_socket_remote_size(ls, sa);
 
     ls->socket = -1;
     ls->backlog = NXT_LISTEN_BACKLOG;

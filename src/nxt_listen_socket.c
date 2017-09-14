@@ -176,6 +176,47 @@ fail:
 }
 
 
+void
+nxt_listen_socket_remote_size(nxt_listen_socket_t *ls, nxt_sockaddr_t *sa)
+{
+    switch (sa->u.sockaddr.sa_family) {
+
+#if (NXT_INET6)
+
+    case AF_INET6:
+        ls->socklen = sizeof(struct sockaddr_in6);
+        ls->address_length = NXT_INET6_ADDR_STR_LEN;
+
+        break;
+
+#endif
+
+#if (NXT_HAVE_UNIX_DOMAIN)
+
+    case AF_UNIX:
+        /*
+         * A remote socket is usually unbound and thus has unspecified Unix
+         * domain sockaddr_un which can be shortcut to 3 bytes.  To handle
+         * a bound remote socket correctly ls->socklen should be larger, see
+         * comment in nxt_socket.h.
+         */
+        ls->socklen = offsetof(struct sockaddr_un, sun_path) + 1;
+        ls->address_length = sizeof("unix:") - 1;
+
+        break;
+
+#endif
+
+    default:
+    case AF_INET:
+        ls->socklen = sizeof(struct sockaddr_in);
+        ls->address_length = NXT_INET_ADDR_STR_LEN;
+
+        break;
+    }
+}
+
+
 size_t
 nxt_listen_socket_pool_min_size(nxt_listen_socket_t *ls)
 {

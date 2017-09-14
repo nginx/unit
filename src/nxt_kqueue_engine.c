@@ -929,7 +929,7 @@ nxt_kqueue_listen_handler(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_kqueue_conn_io_accept(nxt_task_t *task, void *obj, void *data)
 {
-    socklen_t           len;
+    socklen_t           socklen;
     nxt_conn_t          *c;
     nxt_socket_t        s;
     struct sockaddr     *sa;
@@ -944,17 +944,13 @@ nxt_kqueue_conn_io_accept(nxt_task_t *task, void *obj, void *data)
     lev->socket.kq_available--;
     lev->socket.read_ready = (lev->socket.kq_available != 0);
 
-    len = c->remote->socklen;
-
-    if (len >= sizeof(struct sockaddr)) {
-        sa = &c->remote->u.sockaddr;
-
-    } else {
-        sa = NULL;
-        len = 0;
-    }
-
-    s = accept(lev->socket.fd, sa, &len);
+    sa = &c->remote->u.sockaddr;
+    socklen = c->remote->socklen;
+    /*
+     * The returned socklen is ignored here,
+     * see comment in nxt_conn_io_accept().
+     */
+    s = accept(lev->socket.fd, sa, &socklen);
 
     if (s != -1) {
         c->socket.fd = s;

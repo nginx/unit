@@ -943,8 +943,8 @@ nxt_router_socket_conf(nxt_task_t *task, nxt_mp_t *mp, nxt_sockaddr_t *sa)
     skcf->sockaddr = sa;
 
     skcf->listen.sockaddr = sa;
-    skcf->listen.socklen = sa->socklen;
-    skcf->listen.address_length = sa->length;
+
+    nxt_listen_socket_remote_size(&skcf->listen, sa);
 
     skcf->listen.socket = -1;
     skcf->listen.backlog = NXT_LISTEN_BACKLOG;
