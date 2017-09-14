@@ -101,8 +101,10 @@ static nxt_int_t nxt_router_thread_create(nxt_task_t *task, nxt_runtime_t *rt,
 static void nxt_router_apps_sort(nxt_router_t *router,
     nxt_router_temp_conf_t *tmcf);
 
-static void nxt_router_engines_post(nxt_router_temp_conf_t *tmcf);
-static void nxt_router_engine_post(nxt_router_engine_conf_t *recf);
+static void nxt_router_engines_post(nxt_router_t *router,
+    nxt_router_temp_conf_t *tmcf);
+static void nxt_router_engine_post(nxt_event_engine_t *engine,
+    nxt_work_t *jobs);
 static void nxt_router_app_data_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
 
@@ -500,7 +502,7 @@ nxt_router_conf_apply(nxt_task_t *task, void *obj, void *data)
 
     nxt_router_apps_sort(router, tmcf);
 
-    nxt_router_engines_post(tmcf);
+    nxt_router_engines_post(router, tmcf);
 
     nxt_queue_add(&router->sockets, &tmcf->updating);
     nxt_queue_add(&router->sockets, &tmcf->creating);
@@ -1181,9 +1183,11 @@ nxt_router_engines_create(nxt_task_t *task, nxt_router_t *router,
         recf->engine = nxt_queue_link_data(qlk, nxt_event_engine_t, link0);
 
         if (n < threads) {
+            recf->action = NXT_ROUTER_ENGINE_KEEP;
             ret = nxt_router_engine_conf_update(tmcf, recf);
 
         } else {
+            recf->action = NXT_ROUTER_ENGINE_DELETE;
             ret = nxt_router_engine_conf_delete(tmcf, recf);
         }
 
@@ -1202,6 +1206,8 @@ nxt_router_engines_create(nxt_task_t *task, nxt_router_t *router,
             return NXT_ERROR;
         }
 
+        recf->action = NXT_ROUTER_ENGINE_ADD;
+
         recf->engine = nxt_event_engine_create(task, interface, NULL, 0, 0);
         if (nxt_slow_path(recf->engine == NULL)) {
             return NXT_ERROR;
@@ -1211,8 +1217,6 @@ nxt_router_engines_create(nxt_task_t *task, nxt_router_t *router,
         if (nxt_slow_path(ret != NXT_OK)) {
             return ret;
         }
-
-        nxt_queue_insert_tail(&router->engines, &recf->engine->link0);
 
         n++;
     }
@@ -1533,30 +1537,48 @@ nxt_router_apps_sort(nxt_router_t *router, nxt_router_temp_conf_t *tmcf)
 
 
 static void
-nxt_router_engines_post(nxt_router_temp_conf_t *tmcf)
+nxt_router_engines_post(nxt_router_t *router, nxt_router_temp_conf_t *tmcf)
 {
     nxt_uint_t                n;
+    nxt_event_engine_t        *engine;
     nxt_router_engine_conf_t  *recf;
 
     recf = tmcf->engines->elts;
 
     for (n = tmcf->engines->nelts; n != 0; n--) {
-        nxt_router_engine_post(recf);
+        engine = recf->engine;
+
+        nxt_router_engine_post(engine, recf->jobs);
+
+        switch (recf->action) {
+
+        case NXT_ROUTER_ENGINE_KEEP:
+            break;
+
+        case NXT_ROUTER_ENGINE_ADD:
+            nxt_queue_insert_tail(&router->engines, &engine->link0);
+            break;
+
+        case NXT_ROUTER_ENGINE_DELETE:
+            nxt_queue_remove(&engine->link0);
+            break;
+        }
+
         recf++;
     }
 }
 
 
 static void
-nxt_router_engine_post(nxt_router_engine_conf_t *recf)
+nxt_router_engine_post(nxt_event_engine_t *engine, nxt_work_t *jobs)
 {
     nxt_work_t  *work, *next;
 
-    for (work = recf->jobs; work != NULL; work = next) {
+    for (work = jobs; work != NULL; work = next) {
         next = work->next;
         work->next = NULL;
 
-        nxt_event_engine_post(recf->engine, work);
+        nxt_event_engine_post(engine, work);
     }
 }
 

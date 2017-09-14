@@ -34,6 +34,12 @@ typedef struct {
 typedef struct {
     nxt_event_engine_t     *engine;
     nxt_work_t             *jobs;
+
+    enum {
+        NXT_ROUTER_ENGINE_KEEP = 0,
+        NXT_ROUTER_ENGINE_ADD,
+        NXT_ROUTER_ENGINE_DELETE,
+    }                      action;
 } nxt_router_engine_conf_t;
 
 
