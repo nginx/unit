@@ -1548,8 +1548,6 @@ nxt_router_engines_post(nxt_router_t *router, nxt_router_temp_conf_t *tmcf)
     for (n = tmcf->engines->nelts; n != 0; n--) {
         engine = recf->engine;
 
-        nxt_router_engine_post(engine, recf->jobs);
-
         switch (recf->action) {
 
         case NXT_ROUTER_ENGINE_KEEP:
@@ -1563,6 +1561,8 @@ nxt_router_engines_post(nxt_router_t *router, nxt_router_temp_conf_t *tmcf)
             nxt_queue_remove(&engine->link0);
             break;
         }
+
+        nxt_router_engine_post(engine, recf->jobs);
 
         recf++;
     }
