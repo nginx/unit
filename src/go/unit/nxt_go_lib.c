@@ -175,7 +175,7 @@ nxt_go_ready()
     port_msg.stream = atol(go_stream);
     port_msg.pid = getpid();
     port_msg.reply_port = 0;
-    port_msg.type = _NXT_PORT_MSG_READY;
+    port_msg.type = _NXT_PORT_MSG_PROCESS_READY;
     port_msg.last = 1;
     port_msg.mmap = 0;
 
