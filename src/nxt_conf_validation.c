@@ -66,6 +66,21 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_listener_members[] = {
 };
 
 
+static nxt_conf_vldt_object_t  nxt_conf_vldt_app_limits_members[] = {
+    { nxt_string("timeout"),
+      NXT_CONF_INTEGER,
+      NULL,
+      NULL },
+
+    { nxt_string("requests"),
+      NXT_CONF_INTEGER,
+      NULL,
+      NULL },
+
+    { nxt_null_string, 0, NULL, NULL }
+};
+
+
 static nxt_conf_vldt_object_t  nxt_conf_vldt_python_members[] = {
     { nxt_string("type"),
       NXT_CONF_STRING,
@@ -76,6 +91,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_python_members[] = {
       NXT_CONF_INTEGER,
       NULL,
       NULL },
+
+    { nxt_string("limits"),
+      NXT_CONF_OBJECT,
+      &nxt_conf_vldt_object,
+      (void *) &nxt_conf_vldt_app_limits_members },
 
     { nxt_string("user"),
       NXT_CONF_STRING,
@@ -116,6 +136,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_php_members[] = {
       NXT_CONF_INTEGER,
       NULL,
       NULL },
+
+    { nxt_string("limits"),
+      NXT_CONF_OBJECT,
+      &nxt_conf_vldt_object,
+      (void *) &nxt_conf_vldt_app_limits_members },
 
     { nxt_string("user"),
       NXT_CONF_STRING,
@@ -161,6 +186,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_go_members[] = {
       NXT_CONF_INTEGER,
       NULL,
       NULL },
+
+    { nxt_string("limits"),
+      NXT_CONF_OBJECT,
+      &nxt_conf_vldt_object,
+      (void *) &nxt_conf_vldt_app_limits_members },
 
     { nxt_string("user"),
       NXT_CONF_STRING,

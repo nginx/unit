@@ -495,7 +495,7 @@ nxt_conf_map_object(nxt_mp_t *mp, nxt_conf_value_t *value, nxt_conf_map_t *map,
                 break;
 
             case NXT_CONF_MAP_MSEC:
-                ptr->msec = v->u.integer;
+                ptr->msec = v->u.integer * 1000;
                 break;
 
             default:

@@ -232,6 +232,12 @@ nxt_event_engine_post(nxt_event_engine_t *engine, nxt_work_t *work)
 {
     nxt_debug(&engine->task, "event engine post");
 
+#if (NXT_DEBUG)
+    if (nxt_slow_path(work->next != NULL)) {
+        nxt_debug(&engine->task, "event engine post multiple works");
+    }
+#endif
+
     nxt_locked_work_queue_add(&engine->locked_work_queue, work);
 
     nxt_event_engine_signal(engine, 0);
@@ -527,117 +533,6 @@ nxt_event_engine_start(nxt_event_engine_t *engine)
 
         nxt_timer_expire(engine, now);
     }
-}
-
-
-static nxt_int_t
-nxt_req_conn_test(nxt_lvlhsh_query_t *lhq, void *data)
-{
-    return NXT_OK;
-}
-
-static const nxt_lvlhsh_proto_t  lvlhsh_req_conn_proto  nxt_aligned(64) = {
-    NXT_LVLHSH_DEFAULT,
-    nxt_req_conn_test,
-    nxt_lvlhsh_alloc,
-    nxt_lvlhsh_free,
-};
-
-
-void
-nxt_event_engine_request_add(nxt_event_engine_t *engine,
-    nxt_req_conn_link_t *rc)
-{
-    nxt_lvlhsh_query_t  lhq;
-
-    lhq.key_hash = nxt_murmur_hash2(&rc->req_id, sizeof(rc->req_id));
-    lhq.key.length = sizeof(rc->req_id);
-    lhq.key.start = (u_char *) &rc->req_id;
-    lhq.proto = &lvlhsh_req_conn_proto;
-    lhq.replace = 0;
-    lhq.value = rc;
-    lhq.pool = engine->mem_pool;
-
-    switch (nxt_lvlhsh_insert(&engine->requests, &lhq)) {
-
-    case NXT_OK:
-        break;
-
-    default:
-        nxt_thread_log_error(NXT_LOG_WARN, "req %08uxD to conn add failed",
-                             rc->req_id);
-        break;
-    }
-}
-
-
-nxt_req_conn_link_t *
-nxt_event_engine_request_find(nxt_event_engine_t *engine, nxt_req_id_t req_id)
-{
-    nxt_lvlhsh_query_t  lhq;
-
-    lhq.key_hash = nxt_murmur_hash2(&req_id, sizeof(req_id));
-    lhq.key.length = sizeof(req_id);
-    lhq.key.start = (u_char *) &req_id;
-    lhq.proto = &lvlhsh_req_conn_proto;
-
-    if (nxt_lvlhsh_find(&engine->requests, &lhq) == NXT_OK) {
-        return lhq.value;
-    }
-
-    return NULL;
-}
-
-
-void
-nxt_event_engine_request_remove(nxt_event_engine_t *engine,
-    nxt_req_conn_link_t *rc)
-{
-    nxt_lvlhsh_query_t  lhq;
-
-    lhq.key_hash = nxt_murmur_hash2(&rc->req_id, sizeof(rc->req_id));
-    lhq.key.length = sizeof(rc->req_id);
-    lhq.key.start = (u_char *) &rc->req_id;
-    lhq.proto = &lvlhsh_req_conn_proto;
-    lhq.pool = engine->mem_pool;
-
-    switch (nxt_lvlhsh_delete(&engine->requests, &lhq)) {
-
-    case NXT_OK:
-        break;
-
-    default:
-        nxt_thread_log_error(NXT_LOG_WARN, "req %08uxD to conn remove failed",
-                             rc->req_id);
-        break;
-    }
-}
-
-
-nxt_req_conn_link_t *
-nxt_event_engine_request_find_remove(nxt_event_engine_t *engine,
-    nxt_req_id_t req_id)
-{
-    nxt_lvlhsh_query_t  lhq;
-
-    lhq.key_hash = nxt_murmur_hash2(&req_id, sizeof(req_id));
-    lhq.key.length = sizeof(req_id);
-    lhq.key.start = (u_char *) &req_id;
-    lhq.proto = &lvlhsh_req_conn_proto;
-    lhq.pool = engine->mem_pool;
-
-    switch (nxt_lvlhsh_delete(&engine->requests, &lhq)) {
-
-    case NXT_OK:
-        return lhq.value;
-
-    default:
-        nxt_thread_log_error(NXT_LOG_WARN, "req %08uxD to conn remove failed",
-                             req_id);
-        break;
-    }
-
-    return NULL;
 }
 
 

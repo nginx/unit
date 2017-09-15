@@ -175,17 +175,6 @@ struct nxt_conn_s {
 };
 
 
-typedef uint32_t nxt_req_id_t;
-
-typedef struct {
-    nxt_req_id_t         req_id;
-    nxt_conn_t           *conn;
-    nxt_port_t           *app_port;
-
-    nxt_queue_link_t     link;     /* for nxt_conn_t.requests */
-} nxt_req_conn_link_t;
-
-
 #define nxt_conn_timer_init(ev, c, wq)                                        \
     do {                                                                      \
         (ev)->work_queue = (wq);                                              \
@@ -351,12 +340,6 @@ NXT_EXPORT void nxt_conn_proxy(nxt_task_t *task, nxt_conn_proxy_t *p);
 #define nxt_event_conn_read      nxt_conn_read
 #define nxt_event_conn_write     nxt_conn_write
 #define nxt_event_conn_close     nxt_conn_close
-
-
-NXT_EXPORT nxt_req_conn_link_t *nxt_conn_request_add(nxt_conn_t *c,
-    nxt_req_id_t req_id);
-NXT_EXPORT void nxt_conn_request_remove(nxt_conn_t *c,
-    nxt_req_conn_link_t *rc);
 
 
 #endif /* _NXT_CONN_H_INCLUDED_ */

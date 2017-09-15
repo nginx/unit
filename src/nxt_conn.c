@@ -152,35 +152,3 @@ nxt_conn_work_queue_set(nxt_conn_t *c, nxt_work_queue_t *wq)
     c->read_timer.work_queue = wq;
     c->write_timer.work_queue = wq;
 }
-
-
-nxt_req_conn_link_t *
-nxt_conn_request_add(nxt_conn_t *c, nxt_req_id_t req_id)
-{
-    nxt_req_conn_link_t  *rc;
-
-    rc = nxt_mp_zalloc(c->mem_pool, sizeof(nxt_req_conn_link_t));
-    if (nxt_slow_path(rc == NULL)) {
-        nxt_thread_log_error(NXT_LOG_WARN, "failed to allocate req %08uxD "
-                             "to conn", req_id);
-        return NULL;
-    }
-
-    rc->req_id = req_id;
-    rc->conn = c;
-
-    nxt_queue_insert_tail(&c->requests, &rc->link);
-
-    return rc;
-}
-
-
-void
-nxt_conn_request_remove(nxt_conn_t *c, nxt_req_conn_link_t *rc)
-{
-    nxt_queue_remove(&rc->link);
-
-    nxt_mp_free(c->mem_pool, rc);
-}
-
-

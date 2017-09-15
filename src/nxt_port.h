@@ -106,7 +106,7 @@ struct nxt_port_s {
     uint32_t            max_size;
     /* Maximum interleave of message parts. */
     uint32_t            max_share;
-    uint32_t            app_req_id;
+    uint32_t            app_stream;
 
     nxt_port_handler_t  handler;
     nxt_port_handler_t  *data;
@@ -122,7 +122,6 @@ struct nxt_port_s {
 
     nxt_lvlhsh_t        rpc_streams; /* stream to nxt_port_rpc_reg_t */
     nxt_lvlhsh_t        rpc_peers;   /* peer to queue of nxt_port_rpc_reg_t */
-    uint32_t            next_stream;
 
     nxt_process_type_t  type;
     nxt_work_t          work;

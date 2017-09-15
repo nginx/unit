@@ -88,6 +88,8 @@ struct nxt_app_s {
     uint32_t               workers;
     uint32_t               max_workers;
 
+    nxt_msec_t             timeout;
+
     nxt_app_type_t         type:8;
     uint8_t                live;   /* 1 bit */
 

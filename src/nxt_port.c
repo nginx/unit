@@ -27,7 +27,7 @@ nxt_port_mp_cleanup(nxt_task_t *task, void *obj, void *data)
     nxt_assert(port->pair[0] == -1);
     nxt_assert(port->pair[1] == -1);
 
-    nxt_assert(port->app_req_id == 0);
+    nxt_assert(port->app_stream == 0);
     nxt_assert(port->app_link.next == NULL);
 
     nxt_assert(nxt_queue_is_empty(&port->messages));
@@ -58,7 +58,6 @@ nxt_port_new(nxt_task_t *task, nxt_port_id_t id, nxt_pid_t pid,
         port->pid = pid;
         port->type = type;
         port->mem_pool = mp;
-        port->next_stream = 1;
 
         nxt_mp_cleanup(mp, nxt_port_mp_cleanup, task, port, mp);
 
