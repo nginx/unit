@@ -28,11 +28,10 @@ nxt_int_t nxt_router_start(nxt_task_t *task, void *data);
 nxt_int_t nxt_discovery_start(nxt_task_t *task, void *data);
 nxt_int_t nxt_app_start(nxt_task_t *task, void *data);
 
-extern nxt_port_handler_t  nxt_controller_process_port_handlers[];
-extern nxt_port_handler_t  nxt_worker_process_port_handlers[];
-extern nxt_port_handler_t  nxt_discovery_process_port_handlers[];
-extern nxt_port_handler_t  nxt_app_process_port_handlers[];
-extern nxt_port_handler_t  nxt_router_process_port_handlers[];
+extern nxt_port_handlers_t  nxt_controller_process_port_handlers;
+extern nxt_port_handlers_t  nxt_discovery_process_port_handlers;
+extern nxt_port_handlers_t  nxt_app_process_port_handlers;
+extern nxt_port_handlers_t  nxt_router_process_port_handlers;
 extern const nxt_sig_event_t  nxt_main_process_signals[];
 extern const nxt_sig_event_t  nxt_worker_process_signals[];
 

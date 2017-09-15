@@ -231,20 +231,15 @@ failed:
 }
 
 
-static nxt_port_handler_t  nxt_main_process_port_handlers[] = {
-    NULL, /* NXT_PORT_MSG_QUIT         */
-    NULL, /* NXT_PORT_MSG_NEW_PORT     */
-    NULL, /* NXT_PORT_MSG_CHANGE_FILE  */
-    NULL, /* NXT_PORT_MSG_MMAP         */
-    nxt_port_main_data_handler,
-    NULL, /* NXT_PORT_MSG_REMOVE_PID   */
-    nxt_port_ready_handler,
-    nxt_port_main_start_worker_handler,
-    nxt_main_port_socket_handler,
-    nxt_main_port_modules_handler,
-    nxt_main_port_conf_store_handler,
-    nxt_port_rpc_handler,
-    nxt_port_rpc_handler,
+static nxt_port_handlers_t  nxt_main_process_port_handlers = {
+    .data           = nxt_port_main_data_handler,
+    .process_ready  = nxt_port_process_ready_handler,
+    .start_worker   = nxt_port_main_start_worker_handler,
+    .socket         = nxt_main_port_socket_handler,
+    .modules        = nxt_main_port_modules_handler,
+    .conf_store     = nxt_main_port_conf_store_handler,
+    .rpc_ready      = nxt_port_rpc_handler,
+    .rpc_error      = nxt_port_rpc_handler,
 };
 
 
@@ -278,7 +273,7 @@ nxt_main_process_port_create(nxt_task_t *task, nxt_runtime_t *rt)
      * A main process port.  A write port is not closed
      * since it should be inherited by worker processes.
      */
-    nxt_port_enable(task, port, nxt_main_process_port_handlers);
+    nxt_port_enable(task, port, &nxt_main_process_port_handlers);
 
     process->ready = 1;
 
@@ -363,7 +358,7 @@ nxt_main_start_controller_process(nxt_task_t *task, nxt_runtime_t *rt)
     init->start = nxt_controller_start;
     init->name = "controller";
     init->user_cred = &rt->user_cred;
-    init->port_handlers = nxt_controller_process_port_handlers;
+    init->port_handlers = &nxt_controller_process_port_handlers;
     init->signals = nxt_worker_process_signals;
     init->type = NXT_PROCESS_CONTROLLER;
     init->data = &conf;
@@ -393,7 +388,7 @@ nxt_main_start_discovery_process(nxt_task_t *task, nxt_runtime_t *rt)
     init->start = nxt_discovery_start;
     init->name = "discovery";
     init->user_cred = &rt->user_cred;
-    init->port_handlers = nxt_discovery_process_port_handlers;
+    init->port_handlers = &nxt_discovery_process_port_handlers;
     init->signals = nxt_worker_process_signals;
     init->type = NXT_PROCESS_DISCOVERY;
     init->data = rt;
@@ -417,7 +412,7 @@ nxt_main_start_router_process(nxt_task_t *task, nxt_runtime_t *rt)
     init->start = nxt_router_start;
     init->name = "router";
     init->user_cred = &rt->user_cred;
-    init->port_handlers = nxt_router_process_port_handlers;
+    init->port_handlers = &nxt_router_process_port_handlers;
     init->signals = nxt_worker_process_signals;
     init->type = NXT_PROCESS_ROUTER;
     init->data = rt;
@@ -479,7 +474,7 @@ nxt_main_start_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
 
     init->start = nxt_app_start;
     init->name = (char *) title;
-    init->port_handlers = nxt_app_process_port_handlers;
+    init->port_handlers = &nxt_app_process_port_handlers;
     init->signals = nxt_worker_process_signals;
     init->type = NXT_PROCESS_WORKER;
     init->data = app_conf;

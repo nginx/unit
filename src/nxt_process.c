@@ -161,7 +161,7 @@ nxt_process_start(nxt_task_t *task, nxt_process_t *process)
 
     nxt_port_enable(task, port, init->port_handlers);
 
-    ret = nxt_port_socket_write(task, main_port, NXT_PORT_MSG_READY,
+    ret = nxt_port_socket_write(task, main_port, NXT_PORT_MSG_PROCESS_READY,
                                 -1, init->stream, 0, NULL);
 
     if (nxt_slow_path(ret != NXT_OK)) {

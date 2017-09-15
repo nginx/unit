@@ -8,6 +8,40 @@
 #define _NXT_PORT_H_INCLUDED_
 
 
+struct nxt_port_handlers_s {
+    /* RPC responses. */
+    nxt_port_handler_t  rpc_ready;
+    nxt_port_handler_t  rpc_error;
+
+    /* Main process RPC requests. */
+    nxt_port_handler_t  start_worker;
+    nxt_port_handler_t  socket;
+    nxt_port_handler_t  modules;
+    nxt_port_handler_t  conf_store;
+
+    /* File descriptor exchange. */
+    nxt_port_handler_t  change_file;
+    nxt_port_handler_t  new_port;
+    nxt_port_handler_t  mmap;
+
+    /* New process ready. */
+    nxt_port_handler_t  process_ready;
+
+    /* Process exit/crash notification. */
+    nxt_port_handler_t  remove_pid;
+
+    /* Stop process command. */
+    nxt_port_handler_t  quit;
+
+    /* Various data. */
+    nxt_port_handler_t  data;
+};
+
+
+#define nxt_port_handler_idx(name)                                            \
+    ( &((nxt_port_handlers_t *) 0)->name - (nxt_port_handler_t *) 0)
+
+
 typedef enum {
     NXT_PORT_MSG_LAST           = 0x100,
     NXT_PORT_MSG_CLOSE_FD       = 0x200,
@@ -15,39 +49,49 @@ typedef enum {
 
     NXT_PORT_MSG_MASK           = 0xFF,
 
-    _NXT_PORT_MSG_QUIT          = 0,
-    _NXT_PORT_MSG_NEW_PORT,
-    _NXT_PORT_MSG_CHANGE_FILE,
-    _NXT_PORT_MSG_MMAP,
-    _NXT_PORT_MSG_DATA,
-    _NXT_PORT_MSG_REMOVE_PID,
-    _NXT_PORT_MSG_READY,
-    _NXT_PORT_MSG_START_WORKER,
-    _NXT_PORT_MSG_SOCKET,
-    _NXT_PORT_MSG_MODULES,
-    _NXT_PORT_MSG_CONF_STORE,
-    _NXT_PORT_MSG_RPC_READY,
-    _NXT_PORT_MSG_RPC_ERROR,
+    _NXT_PORT_MSG_RPC_READY     = nxt_port_handler_idx(rpc_ready),
+    _NXT_PORT_MSG_RPC_ERROR     = nxt_port_handler_idx(rpc_error),
 
-    NXT_PORT_MSG_MAX,
+    _NXT_PORT_MSG_START_WORKER  = nxt_port_handler_idx(start_worker),
+    _NXT_PORT_MSG_SOCKET        = nxt_port_handler_idx(socket),
+    _NXT_PORT_MSG_MODULES       = nxt_port_handler_idx(modules),
+    _NXT_PORT_MSG_CONF_STORE    = nxt_port_handler_idx(conf_store),
 
-    NXT_PORT_MSG_QUIT           = _NXT_PORT_MSG_QUIT | NXT_PORT_MSG_LAST,
-    NXT_PORT_MSG_NEW_PORT       = _NXT_PORT_MSG_NEW_PORT | NXT_PORT_MSG_LAST,
-    NXT_PORT_MSG_CHANGE_FILE    = _NXT_PORT_MSG_CHANGE_FILE | NXT_PORT_MSG_LAST,
-    NXT_PORT_MSG_MMAP           = _NXT_PORT_MSG_MMAP | NXT_PORT_MSG_LAST |
-                                  NXT_PORT_MSG_CLOSE_FD | NXT_PORT_MSG_SYNC,
-    NXT_PORT_MSG_DATA           = _NXT_PORT_MSG_DATA,
-    NXT_PORT_MSG_DATA_LAST      = _NXT_PORT_MSG_DATA | NXT_PORT_MSG_LAST,
-    NXT_PORT_MSG_REMOVE_PID     = _NXT_PORT_MSG_REMOVE_PID | NXT_PORT_MSG_LAST,
-    NXT_PORT_MSG_READY          = _NXT_PORT_MSG_READY | NXT_PORT_MSG_LAST,
+    _NXT_PORT_MSG_CHANGE_FILE   = nxt_port_handler_idx(change_file),
+    _NXT_PORT_MSG_NEW_PORT      = nxt_port_handler_idx(new_port),
+    _NXT_PORT_MSG_MMAP          = nxt_port_handler_idx(mmap),
+
+    _NXT_PORT_MSG_PROCESS_READY = nxt_port_handler_idx(process_ready),
+    _NXT_PORT_MSG_REMOVE_PID    = nxt_port_handler_idx(remove_pid),
+    _NXT_PORT_MSG_QUIT          = nxt_port_handler_idx(quit),
+
+    _NXT_PORT_MSG_DATA          = nxt_port_handler_idx(data),
+
+    NXT_PORT_MSG_MAX            = sizeof(nxt_port_handlers_t) /
+                                      sizeof(nxt_port_handler_t),
+
+    NXT_PORT_MSG_RPC_READY      = _NXT_PORT_MSG_RPC_READY,
+    NXT_PORT_MSG_RPC_READY_LAST = _NXT_PORT_MSG_RPC_READY | NXT_PORT_MSG_LAST,
+    NXT_PORT_MSG_RPC_ERROR      = _NXT_PORT_MSG_RPC_ERROR | NXT_PORT_MSG_LAST,
+
     NXT_PORT_MSG_START_WORKER   = _NXT_PORT_MSG_START_WORKER |
                                   NXT_PORT_MSG_LAST,
     NXT_PORT_MSG_SOCKET         = _NXT_PORT_MSG_SOCKET | NXT_PORT_MSG_LAST,
     NXT_PORT_MSG_MODULES        = _NXT_PORT_MSG_MODULES | NXT_PORT_MSG_LAST,
     NXT_PORT_MSG_CONF_STORE     = _NXT_PORT_MSG_CONF_STORE | NXT_PORT_MSG_LAST,
-    NXT_PORT_MSG_RPC_READY      = _NXT_PORT_MSG_RPC_READY,
-    NXT_PORT_MSG_RPC_READY_LAST = _NXT_PORT_MSG_RPC_READY | NXT_PORT_MSG_LAST,
-    NXT_PORT_MSG_RPC_ERROR      = _NXT_PORT_MSG_RPC_ERROR | NXT_PORT_MSG_LAST,
+
+    NXT_PORT_MSG_CHANGE_FILE    = _NXT_PORT_MSG_CHANGE_FILE | NXT_PORT_MSG_LAST,
+    NXT_PORT_MSG_NEW_PORT       = _NXT_PORT_MSG_NEW_PORT | NXT_PORT_MSG_LAST,
+    NXT_PORT_MSG_MMAP           = _NXT_PORT_MSG_MMAP | NXT_PORT_MSG_LAST |
+                                  NXT_PORT_MSG_CLOSE_FD | NXT_PORT_MSG_SYNC,
+
+    NXT_PORT_MSG_PROCESS_READY  = _NXT_PORT_MSG_PROCESS_READY |
+                                  NXT_PORT_MSG_LAST,
+    NXT_PORT_MSG_QUIT           = _NXT_PORT_MSG_QUIT | NXT_PORT_MSG_LAST,
+    NXT_PORT_MSG_REMOVE_PID     = _NXT_PORT_MSG_REMOVE_PID | NXT_PORT_MSG_LAST,
+
+    NXT_PORT_MSG_DATA           = _NXT_PORT_MSG_DATA,
+    NXT_PORT_MSG_DATA_LAST      = _NXT_PORT_MSG_DATA | NXT_PORT_MSG_LAST,
 } nxt_port_msg_type_t;
 
 
@@ -169,7 +213,7 @@ nxt_int_t nxt_port_socket_write(nxt_task_t *task, nxt_port_t *port,
     nxt_buf_t *b);
 
 void nxt_port_enable(nxt_task_t *task, nxt_port_t *port,
-    nxt_port_handler_t *handlers);
+    nxt_port_handlers_t *handlers);
 void nxt_port_send_new_port(nxt_task_t *task, nxt_runtime_t *rt,
     nxt_port_t *port, uint32_t stream);
 nxt_int_t nxt_port_send_port(nxt_task_t *task, nxt_port_t *port,
@@ -179,7 +223,7 @@ void nxt_port_change_log_file(nxt_task_t *task, nxt_runtime_t *rt,
 
 void nxt_port_quit_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 void nxt_port_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
-void nxt_port_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
+void nxt_port_process_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 void nxt_port_change_log_file_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
 void nxt_port_mmap_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);

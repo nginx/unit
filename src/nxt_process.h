@@ -30,7 +30,7 @@ struct nxt_process_init_s {
     const char             *name;
     nxt_user_cred_t        *user_cred;
 
-    nxt_port_handler_t     *port_handlers;
+    nxt_port_handlers_t    *port_handlers;
     const nxt_sig_event_t  *signals;
 
     nxt_process_type_t     type;

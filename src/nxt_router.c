@@ -1783,21 +1783,9 @@ nxt_router_engine_post(nxt_event_engine_t *engine, nxt_work_t *jobs)
 }
 
 
-static nxt_port_handler_t  nxt_router_app_port_handlers[] = {
-    NULL, /* NXT_PORT_MSG_QUIT         */
-    NULL, /* NXT_PORT_MSG_NEW_PORT     */
-    NULL, /* NXT_PORT_MSG_CHANGE_FILE  */
-    /* TODO: remove mmap_handler from app ports */
-    nxt_port_mmap_handler, /* NXT_PORT_MSG_MMAP         */
-    nxt_port_rpc_handler,  /* NXT_PORT_MSG_DATA         */
-    NULL, /* NXT_PORT_MSG_REMOVE_PID   */
-    NULL, /* NXT_PORT_MSG_READY        */
-    NULL, /* NXT_PORT_MSG_START_WORKER */
-    NULL, /* NXT_PORT_MSG_SOCKET       */
-    NULL, /* NXT_PORT_MSG_MODULES      */
-    NULL, /* NXT_PORT_MSG_CONF_STORE   */
-    nxt_port_rpc_handler,
-    nxt_port_rpc_handler,
+static nxt_port_handlers_t  nxt_router_app_port_handlers = {
+    .mmap = nxt_port_mmap_handler,
+    .data = nxt_port_rpc_handler,
 };
 
 
@@ -1844,7 +1832,7 @@ nxt_router_thread_start(void *data)
 
     engine->port = port;
 
-    nxt_port_enable(task, port, nxt_router_app_port_handlers);
+    nxt_port_enable(task, port, &nxt_router_app_port_handlers);
 
     nxt_event_engine_start(engine);
 }

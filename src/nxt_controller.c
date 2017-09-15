@@ -99,20 +99,15 @@ static const nxt_event_conn_state_t  nxt_controller_conn_write_state;
 static const nxt_event_conn_state_t  nxt_controller_conn_close_state;
 
 
-nxt_port_handler_t  nxt_controller_process_port_handlers[] = {
-    nxt_worker_process_quit_handler,
-    nxt_controller_process_new_port_handler,
-    nxt_port_change_log_file_handler,
-    nxt_port_mmap_handler,
-    nxt_port_data_handler,
-    nxt_port_remove_pid_handler,
-    NULL, /* NXT_PORT_MSG_READY        */
-    NULL, /* NXT_PORT_MSG_START_WORKER */
-    NULL, /* NXT_PORT_MSG_SOCKET       */
-    NULL, /* NXT_PORT_MSG_MODULES      */
-    NULL, /* NXT_PORT_MSG_CONF_STORE   */
-    nxt_port_rpc_handler,
-    nxt_port_rpc_handler,
+nxt_port_handlers_t  nxt_controller_process_port_handlers = {
+    .quit         = nxt_worker_process_quit_handler,
+    .new_port     = nxt_controller_process_new_port_handler,
+    .change_file  = nxt_port_change_log_file_handler,
+    .mmap         = nxt_port_mmap_handler,
+    .data         = nxt_port_data_handler,
+    .remove_pid   = nxt_port_remove_pid_handler,
+    .rpc_ready    = nxt_port_rpc_handler,
+    .rpc_error    = nxt_port_rpc_handler,
 };
 
 

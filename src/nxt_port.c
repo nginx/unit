@@ -121,11 +121,11 @@ nxt_port_reset_next_id()
 
 void
 nxt_port_enable(nxt_task_t *task, nxt_port_t *port,
-    nxt_port_handler_t *handlers)
+    nxt_port_handlers_t *handlers)
 {
     port->pid = nxt_pid;
     port->handler = nxt_port_handler;
-    port->data = handlers;
+    port->data = (nxt_port_handler_t *) (handlers);
 
     nxt_port_read_enable(task, port);
 }
@@ -271,7 +271,7 @@ nxt_port_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
 
 void
-nxt_port_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
+nxt_port_process_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
     nxt_port_t     *port;
     nxt_process_t  *process;
