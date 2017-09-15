@@ -2791,15 +2791,10 @@ nxt_router_conn_http_header_parse(nxt_task_t *task, void *obj, void *data)
     nxt_debug(task, "router conn http header parse");
 
     if (ap == NULL) {
-        ap = nxt_mp_zalloc(c->mem_pool, sizeof(nxt_app_parse_ctx_t));
+        ap = nxt_app_http_req_init(task);
         if (nxt_slow_path(ap == NULL)) {
-            nxt_router_conn_close(task, c, data);
-            return;
-        }
-
-        ret = nxt_app_http_req_init(task, ap);
-        if (nxt_slow_path(ret != NXT_OK)) {
-            nxt_router_conn_close(task, c, data);
+            nxt_router_gen_error(task, c, 500,
+                                 "Failed to allocate parse context");
             return;
         }
 
@@ -3002,8 +2997,6 @@ nxt_router_process_http_request(nxt_task_t *task, nxt_conn_t *c,
 
     nxt_debug(task, "stream #%uD linked to conn %p at engine %p",
               rc->stream, c, engine);
-
-    c->socket.data = NULL;
 
     ra = nxt_router_ra_create(task, rc);
 
@@ -3451,11 +3444,19 @@ nxt_router_conn_free(nxt_task_t *task, void *obj, void *data)
 {
     nxt_conn_t               *c;
     nxt_req_conn_link_t      *rc;
+    nxt_app_parse_ctx_t      *ap;
     nxt_socket_conf_joint_t  *joint;
 
     c = obj;
+    ap = data;
 
     nxt_debug(task, "router conn close done");
+
+    if (ap != NULL) {
+        nxt_app_http_req_done(task, ap);
+
+        c->socket.data = NULL;
+    }
 
     nxt_queue_each(rc, &c->requests, nxt_req_conn_link_t, link) {
 

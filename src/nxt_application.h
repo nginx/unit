@@ -123,7 +123,7 @@ struct nxt_app_parse_ctx_s {
 };
 
 
-nxt_int_t nxt_app_http_req_init(nxt_task_t *task, nxt_app_parse_ctx_t *ctx);
+nxt_app_parse_ctx_t *nxt_app_http_req_init(nxt_task_t *task);
 
 nxt_int_t nxt_app_http_req_header_parse(nxt_task_t *task,
     nxt_app_parse_ctx_t *ctx, nxt_buf_t *buf);
