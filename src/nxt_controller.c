@@ -110,6 +110,7 @@ nxt_port_handler_t  nxt_controller_process_port_handlers[] = {
     NULL, /* NXT_PORT_MSG_START_WORKER */
     NULL, /* NXT_PORT_MSG_SOCKET       */
     NULL, /* NXT_PORT_MSG_MODULES      */
+    NULL, /* NXT_PORT_MSG_CONF_STORE   */
     nxt_port_rpc_handler,
     nxt_port_rpc_handler,
 };

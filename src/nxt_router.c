@@ -1593,6 +1593,9 @@ static nxt_port_handler_t  nxt_router_app_port_handlers[] = {
     NULL, /* NXT_PORT_MSG_REMOVE_PID   */
     NULL, /* NXT_PORT_MSG_READY        */
     NULL, /* NXT_PORT_MSG_START_WORKER */
+    NULL, /* NXT_PORT_MSG_SOCKET       */
+    NULL, /* NXT_PORT_MSG_MODULES      */
+    NULL, /* NXT_PORT_MSG_CONF_STORE   */
     nxt_port_rpc_handler,
     nxt_port_rpc_handler,
 };
