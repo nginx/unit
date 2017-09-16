@@ -784,21 +784,17 @@ nxt_app_http_req_init(nxt_task_t *task)
         return NULL;
     }
 
-    ctx = nxt_mp_retain(mp, sizeof(nxt_app_parse_ctx_t));
+    ctx = nxt_mp_zget(mp, sizeof(nxt_app_parse_ctx_t));
     if (nxt_slow_path(ctx == NULL)) {
         nxt_mp_destroy(mp);
-
         return NULL;
     }
-
-    nxt_memzero(ctx, sizeof(nxt_app_parse_ctx_t));
 
     ctx->mem_pool = mp;
 
     rc = nxt_http_parse_request_init(&ctx->parser, mp);
     if (nxt_slow_path(rc != NXT_OK)) {
-        nxt_mp_release(mp, ctx);
-
+        nxt_mp_destroy(mp);
         return NULL;
     }
 
@@ -897,7 +893,7 @@ nxt_app_http_req_body_read(nxt_task_t *task, nxt_app_parse_ctx_t *ctx,
 nxt_int_t
 nxt_app_http_req_done(nxt_task_t *task, nxt_app_parse_ctx_t *ctx)
 {
-    nxt_mp_release(ctx->mem_pool, ctx);
+    nxt_mp_destroy(ctx->mem_pool);
 
     return NXT_OK;
 }
