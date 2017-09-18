@@ -306,11 +306,11 @@ application inside Unit.
        a. In the `import` section, add `"unit"` on a separate line.
 
       ```
-      import {
+      import (
           "fmt"
           "net/http"
           "unit"
-      }
+      )
       ```
 
        b. In the `main()` function, comment out the `http.ListenandServe`
