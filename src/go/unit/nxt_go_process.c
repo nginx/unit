@@ -142,6 +142,8 @@ nxt_go_new_incoming_mmap(nxt_pid_t pid, nxt_fd_t fd)
                     port_mmap->hdr->id, process->incoming.nelts - 1);
     }
 
+    port_mmap->hdr->sent_over = 0xFFFFu;
+
 fail:
 
     nxt_go_mutex_unlock(&process->incoming_mutex);

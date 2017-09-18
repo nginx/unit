@@ -106,6 +106,7 @@ nxt_go_new_port_mmap(nxt_go_process_t *process, nxt_port_id_t id)
 
     hdr->id = process->outgoing.nelts - 1;
     hdr->pid = process->pid;
+    hdr->sent_over = id;
 
     /* Mark first chunk as busy */
     nxt_port_mmap_set_chunk_busy(hdr, 0);
@@ -174,7 +175,9 @@ nxt_go_port_mmap_get(nxt_go_process_t *process, nxt_port_id_t port_id,
 
     while (port_mmap < end_port_mmap) {
 
-        if (nxt_port_mmap_get_free_chunk(port_mmap->hdr, c)) {
+        if ( (port_mmap->hdr->sent_over == 0xFFFFu ||
+              port_mmap->hdr->sent_over == port_id) &&
+            nxt_port_mmap_get_free_chunk(port_mmap->hdr, c)) {
             hdr = port_mmap->hdr;
 
             goto unlock_return;

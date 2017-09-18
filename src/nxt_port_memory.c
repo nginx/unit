@@ -198,6 +198,8 @@ nxt_port_incoming_port_mmap(nxt_task_t *task, nxt_process_t *process,
         nxt_abort();
     }
 
+    hdr->sent_over = 0xFFFFu;
+
 fail:
 
     nxt_thread_mutex_unlock(&process->incoming_mutex);
@@ -297,6 +299,7 @@ nxt_port_new_port_mmap(nxt_task_t *task, nxt_process_t *process,
 
     hdr->id = process->outgoing->nelts - 1;
     hdr->pid = process->pid;
+    hdr->sent_over = port->id;
 
     /* Mark first chunk as busy */
     nxt_port_mmap_set_chunk_busy(hdr, 0);
@@ -356,7 +359,9 @@ nxt_port_mmap_get(nxt_task_t *task, nxt_port_t *port, nxt_chunk_id_t *c,
 
     while (port_mmap < end_port_mmap) {
 
-        if (nxt_port_mmap_get_free_chunk(port_mmap->hdr, c)) {
+        if ( (port_mmap->hdr->sent_over == 0xFFFFu ||
+              port_mmap->hdr->sent_over == port->id) &&
+            nxt_port_mmap_get_free_chunk(port_mmap->hdr, c)) {
             hdr = port_mmap->hdr;
 
             goto unlock_return;
