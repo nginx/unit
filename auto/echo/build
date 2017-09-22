@@ -10,7 +10,8 @@ rm -f $NXT_BUILD_DIR/echo
 nxt_echo_test="$CC -o $NXT_BUILD_DIR/echo -O $NXT_CC_OPT
                auto/echo/echo.c $NXT_LD_OPT"
 
-nxt_echo_err=`$nxt_echo_test 2>&1`
+# "|| true" is to bypass "set -e" setting.
+nxt_echo_err=`$nxt_echo_test 2>&1 || true`
 
 if [ ! -x $NXT_BUILD_DIR/echo ]; then
     $echo
