@@ -1814,7 +1814,9 @@ nxt_router_thread_start(void *data)
     engine->task.log = thread->log;
     thread->engine = engine;
     thread->task = &engine->task;
+#if 0
     thread->fiber = &engine->fibers->fiber;
+#endif
 
     engine->mem_pool = nxt_mp_create(4096, 128, 1024, 64);
 

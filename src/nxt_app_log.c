@@ -21,9 +21,6 @@ nxt_log_time_handler(nxt_uint_t level, nxt_log_t *log, const char *fmt, ...)
 {
     u_char             *p, *syslogmsg, *end;
     va_list            args;
-    nxt_fid_t          fid;
-    const char         *id;
-    nxt_fiber_t        *fib;
     nxt_thread_t       *thr;
     nxt_time_string_t  *time_cache;
     u_char             msg[NXT_MAX_ERROR_STR];
@@ -39,6 +36,11 @@ nxt_log_time_handler(nxt_uint_t level, nxt_log_t *log, const char *fmt, ...)
 
     syslogmsg = p;
 
+#if 0
+    nxt_fid_t    fid;
+    const char   *id;
+    nxt_fiber_t  *fib;
+
     fib = nxt_fiber_self(thr);
 
     if (fib != NULL) {
@@ -52,6 +54,10 @@ nxt_log_time_handler(nxt_uint_t level, nxt_log_t *log, const char *fmt, ...)
 
     p = nxt_sprintf(p, end, id, &nxt_log_levels[level], nxt_pid,
                     nxt_thread_tid(thr), fid);
+#else
+    p = nxt_sprintf(p, end, "[%V] %PI#%PT ", &nxt_log_levels[level], nxt_pid,
+                    nxt_thread_tid(thr));
+#endif
 
     if (log->ident != 0) {
         p = nxt_sprintf(p, end, "*%D ", log->ident);

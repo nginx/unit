@@ -500,12 +500,12 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
                 ui64 = (uint64_t) va_arg(args, nxt_tid_t);
                 sign = 0;
                 goto number;
-
+#if 0
             case 'F':
                 ui64 = (uint64_t) va_arg(args, nxt_fid_t);
                 sign = 0;
                 goto number;
-
+#endif
             case 'H':
                 ui64 = (uint64_t) (uintptr_t) va_arg(args, pthread_t);
                 spf.hex = HEXADECIMAL;

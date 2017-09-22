@@ -48,12 +48,14 @@ nxt_event_engine_create(nxt_task_t *task,
 
     engine->batch = batch;
 
+#if 0
     if (flags & NXT_ENGINE_FIBERS) {
         engine->fibers = nxt_fiber_main_create(engine);
         if (engine->fibers == NULL) {
             goto fibers_fail;
         }
     }
+#endif
 
     engine->current_work_queue = &engine->fast_work_queue;
 
@@ -138,9 +140,12 @@ signals_fail:
     nxt_work_queue_cache_destroy(&engine->work_queue_cache);
     nxt_free(engine->fibers);
 
+#if 0
 fibers_fail:
 
     nxt_free(engine);
+#endif
+
     return NULL;
 }
 

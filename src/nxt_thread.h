@@ -159,11 +159,13 @@ struct nxt_thread_s {
     nxt_event_engine_t       *engine;
     void                     *data;
 
+#if 0
     /*
      * Although pointer to a current fiber should be a property of
      * engine->fibers, its placement here eliminates 2 memory accesses.
      */
     nxt_fiber_t              *fiber;
+#endif
 
     nxt_random_t             random;
 };

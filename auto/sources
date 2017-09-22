@@ -57,7 +57,6 @@ NXT_LIB_DEPS=" \
     src/nxt_thread_pool.h \
     src/nxt_work_queue.h \
     src/nxt_service.h \
-    src/nxt_fiber.h \
     src/nxt_log_moderation.h \
     src/nxt_event_engine.h \
     src/nxt_timer.h \
@@ -128,7 +127,6 @@ NXT_LIB_SRCS=" \
     src/nxt_time_parse.c \
     src/nxt_work_queue.c \
     src/nxt_service.c \
-    src/nxt_fiber.c \
     src/nxt_log_moderation.c \
     src/nxt_event_engine.c \
     src/nxt_timer.c \
