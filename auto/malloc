@@ -157,3 +157,19 @@ if [ $nxt_found = no ]; then
                       }"
     . auto/feature
 fi
+
+
+# Linux mallopt().
+
+nxt_feature="Linux mallopt()"
+nxt_feature_name=NXT_HAVE_MALLOPT
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <malloc.h>
+
+                  int main() {
+                      mallopt(M_PERTURB, 0x55);
+                      return 0;
+                  }"
+. auto/feature

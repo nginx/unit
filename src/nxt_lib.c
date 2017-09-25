@@ -48,7 +48,7 @@ nxt_lib_start(const char *app, char **argv, char ***envp)
 
     nxt_main_log.level = NXT_LOG_DEBUG;
 
-#if (NXT_LINUX)
+#if (NXT_HAVE_MALLOPT)
     /* Fill memory with 0xAA after malloc() and with 0x55 before free(). */
     mallopt(M_PERTURB, 0x55);
 #endif
