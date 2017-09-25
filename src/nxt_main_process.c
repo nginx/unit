@@ -322,11 +322,12 @@ nxt_main_start_controller_process(nxt_task_t *task, nxt_runtime_t *rt)
 
     file.name = (nxt_file_name_t *) rt->conf;
 
-    if (nxt_file_open(task, &file, NXT_FILE_RDONLY, NXT_FILE_OPEN, 0) == NXT_OK) {
+    ret = nxt_file_open(task, &file, NXT_FILE_RDONLY, NXT_FILE_OPEN, 0);
 
-        if (nxt_fast_path(nxt_file_info(&file, &fi) == NXT_OK
-                          && nxt_is_file(&fi)))
-        {
+    if (ret == NXT_OK) {
+        ret = nxt_file_info(&file, &fi);
+
+        if (nxt_fast_path(ret == NXT_OK && nxt_is_file(&fi))) {
             conf.length = nxt_file_size(&fi);
             conf.start = nxt_malloc(conf.length);
 
