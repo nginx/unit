@@ -7,10 +7,11 @@ cat << END
 
 Configuration summary:
 
-  unit bin path:                "$NXT_BINDIR"
-  unit sbin path:               "$NXT_SBINDIR"
-  unit modules path:            "$NXT_MODULES"
-  unit state path:              "$NXT_STATE"
+  unit bin directory:           "$NXT_BINDIR"
+  unit sbin directory:          "$NXT_SBINDIR"
+  unit modules directory:       "$NXT_MODULES"
+  unit state directory:         "$NXT_STATE"
+
   unit pid file:                "$NXT_PID"
   unit log file:                "$NXT_LOG"
 
