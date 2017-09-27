@@ -3,19 +3,13 @@
 # Copyright (C) NGINX, Inc.
 
 
-# Linux, FreeBSD, MacOSX
+# FreeBSD, Solaris, MacOSX
 
 nxt_feature="shm_open()"
 nxt_feature_name=NXT_HAVE_SHM_OPEN
 nxt_feature_run=yes
 nxt_feature_incs=
 nxt_feature_libs=
-
-if [ "$NXT_SYSTEM" = "Linux" ]; then
-    nxt_feature_libs=-lrt
-    NXT_LIBRT=-lrt
-fi
-
 nxt_feature_test="#include <sys/mman.h>
                   #include <fcntl.h>
                   #include <sys/stat.h>
@@ -35,6 +29,20 @@ nxt_feature_test="#include <sys/mman.h>
                       return 0;
                   }"
 . auto/feature
+
+
+if [ $nxt_found = no ]; then
+
+    # Linux and NetBSD 7.0 shm_open() are in librt.
+
+    nxt_feature="shm_open() in librt"
+    nxt_feature_libs="-lrt"
+    . auto/feature
+
+    if [ $nxt_found = yes ]; then
+        NXT_LIBRT=$nxt_feature_libs
+    fi
+fi
 
 
 # Linux

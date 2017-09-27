@@ -105,6 +105,8 @@ if [ $NXT_UNIX_DOMAIN = YES ]; then
     nxt_have=NXT_HAVE_UNIX_DOMAIN . auto/have
 fi
 
+NXT_LIBRT=
+
 . auto/types
 . auto/clang
 . auto/atomic

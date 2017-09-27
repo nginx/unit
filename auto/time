@@ -6,8 +6,6 @@
 # Linux 2.6.32 CLOCK_REALTIME_COARSE.
 # Linux clock_gettime() is in librt.
 
-NXT_LIBRT=
-
 nxt_feature="Linux clock_gettime(CLOCK_REALTIME_COARSE)"
 nxt_feature_name=NXT_HAVE_CLOCK_REALTIME_COARSE
 nxt_feature_run=yes
