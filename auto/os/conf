@@ -58,7 +58,7 @@ case "$NXT_SYSTEM" in
         NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/libnxt.so"
 
         NXT_LIBM="-lm"
-        NXT_LIBS="$NXT_PTHREAD"
+        NXT_LIBS="$NXT_LIBRT $NXT_PTHREAD"
     ;;
 
     SunOS)
@@ -144,7 +144,7 @@ case "$NXT_SYSTEM" in
         NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/libnxt.so"
 
         NXT_LIBM="-lm"
-        NXT_LIBS="$NXT_PTHREAD"
+        NXT_LIBS="$NXT_LIBRT $NXT_PTHREAD"
     ;;
 
     OpenBSD)
