@@ -255,7 +255,7 @@ clean:
 dist:
 		rm -f unit-\$(NXT_VERSION).tar.gz
 		mkdir unit-\$(NXT_VERSION)
-		cp -rp LICENSE NOTICE CHANGES README.md \\
+		cp -rp LICENSE NOTICE CHANGES README \\
 			configure auto src test \\
 			unit-\$(NXT_VERSION)
 		tar czf unit-\$(NXT_VERSION).tar.gz unit-\$(NXT_VERSION)
