@@ -497,7 +497,7 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
                 goto number;
 
             case 'T':
-                ui64 = (uint64_t) va_arg(args, nxt_tid_t);
+                ui64 = (uint64_t) (uintptr_t) va_arg(args, nxt_tid_t);
                 sign = 0;
                 goto number;
 #if 0

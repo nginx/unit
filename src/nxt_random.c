@@ -85,7 +85,7 @@ nxt_random_stir(nxt_random_t *r)
         key.value[0] ^= tv.tv_usec;
         key.value[1] ^= tv.tv_sec;
         key.value[2] ^= nxt_pid;
-        key.value[3] ^= nxt_thread_tid(NULL);
+        key.value[3] ^= (uintptr_t) nxt_thread_tid(NULL);
     }
 
     nxt_random_add(r, key.bytes, NXT_RANDOM_KEY_SIZE);
