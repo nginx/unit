@@ -69,6 +69,10 @@ typedef struct {
 } nxt_job_sockaddr_parse_t;
 
 
+nxt_sockaddr_t *nxt_sockaddr_cache_alloc(nxt_event_engine_t *engine,
+    nxt_listen_event_t *lev);
+void nxt_sockaddr_cache_free(nxt_event_engine_t *engine, nxt_conn_t *c);
+
 NXT_EXPORT nxt_sockaddr_t *nxt_sockaddr_alloc(nxt_mp_t *mp, socklen_t socklen,
     size_t address_length)
     NXT_MALLOC_LIKE;

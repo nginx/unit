@@ -7,6 +7,20 @@
 #include <nxt_main.h>
 
 
+typedef struct nxt_mem_cache_block_s  nxt_mem_cache_block_t;
+
+struct nxt_mem_cache_block_s {
+    nxt_mem_cache_block_t  *next;
+};
+
+
+typedef struct {
+    nxt_mem_cache_block_t  *free;
+    uint32_t               size;
+    uint32_t               count;
+} nxt_mem_cache_t;
+
+
 static nxt_int_t nxt_event_engine_post_init(nxt_event_engine_t *engine);
 static nxt_int_t nxt_event_engine_signal_pipe_create(
     nxt_event_engine_t *engine);
@@ -538,6 +552,100 @@ nxt_event_engine_start(nxt_event_engine_t *engine)
 
         nxt_timer_expire(engine, now);
     }
+}
+
+
+void *
+nxt_event_engine_mem_alloc(nxt_event_engine_t *engine, uint32_t *slot,
+    size_t size)
+{
+    uint32_t               n;
+    nxt_uint_t             items;
+    nxt_array_t            *mem_cache;
+    nxt_mem_cache_t        *cache;
+    nxt_mem_cache_block_t  *block;
+
+    mem_cache = engine->mem_cache;
+    n = *slot;
+
+    if (n == (uint32_t) -1) {
+
+        if (mem_cache == NULL) {
+            /* IPv4 nxt_sockaddr_t and HTTP/1 and HTTP/2 buffers. */
+            items = 3;
+#if (NXT_INET6)
+            items++;
+#endif
+#if (NXT_HAVE_UNIX_DOMAIN)
+            items++;
+#endif
+
+            mem_cache = nxt_array_create(engine->mem_pool, items,
+                                         sizeof(nxt_mem_cache_t));
+            if (nxt_slow_path(mem_cache == NULL)) {
+                return mem_cache;
+            }
+
+            engine->mem_cache = mem_cache;
+        }
+
+        cache = mem_cache->elts;
+        for (n = 0; n < mem_cache->nelts; n++) {
+            if (cache[n].size == size) {
+                goto found;
+            }
+        }
+
+        cache = nxt_array_add(mem_cache);
+        if (nxt_slow_path(cache == NULL)) {
+            return cache;
+        }
+
+        cache->free = NULL;
+        cache->size = size;
+        cache->count = 0;
+
+    found:
+
+        *slot = n;
+    }
+
+    cache = mem_cache->elts;
+    cache = cache + n;
+
+    block = cache->free;
+
+    if (block != NULL) {
+        cache->free = block->next;
+        cache->count--;
+
+        return block;
+    }
+
+    return nxt_mp_alloc(engine->mem_pool, size);
+}
+
+
+void
+nxt_event_engine_mem_free(nxt_event_engine_t *engine, uint32_t *slot, void *p)
+{
+    nxt_mem_cache_t        *cache;
+    nxt_mem_cache_block_t  *block;
+
+    block = p;
+
+    cache = engine->mem_cache->elts;
+    cache = cache + *slot;
+
+    if (cache->count < 16) {
+        cache->count++;
+        block->next = cache->free;
+        cache->free = block;
+
+        return;
+    }
+
+    nxt_mp_free(engine->mem_pool, p);
 }
 
 

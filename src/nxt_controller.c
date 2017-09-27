@@ -118,9 +118,17 @@ nxt_controller_start(nxt_task_t *task, void *data)
     nxt_str_t               *json;
     nxt_runtime_t           *rt;
     nxt_conf_value_t        *conf;
+    nxt_event_engine_t      *engine;
     nxt_http_fields_hash_t  *hash;
 
     rt = task->thread->runtime;
+
+    engine = task->thread->engine;
+
+    engine->mem_pool = nxt_mp_create(4096, 128, 1024, 64);
+    if (nxt_slow_path(engine->mem_pool == NULL)) {
+        return NXT_ERROR;
+    }
 
     hash = nxt_http_fields_hash_create(nxt_controller_request_fields,
                                        rt->mem_pool);
@@ -685,6 +693,8 @@ nxt_controller_conn_free(nxt_task_t *task, void *obj, void *data)
     c = obj;
 
     nxt_debug(task, "controller conn free");
+
+    nxt_sockaddr_cache_free(task->thread->engine, c);
 
     nxt_mp_destroy(c->mem_pool);
 

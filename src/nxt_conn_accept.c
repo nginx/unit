@@ -46,6 +46,8 @@ nxt_listen_event(nxt_task_t *task, nxt_listen_socket_t *ls)
         engine = task->thread->engine;
         lev->batch = engine->batch;
 
+        lev->mem_cache = (uint32_t) -1;
+
         lev->socket.read_work_queue = &engine->accept_work_queue;
         lev->socket.read_handler = nxt_conn_listen_handler;
         lev->socket.error_handler = nxt_conn_listen_event_error;
@@ -84,7 +86,6 @@ nxt_conn_accept_alloc(nxt_task_t *task, nxt_listen_event_t *lev)
 {
     nxt_mp_t             *mp;
     nxt_conn_t           *c;
-    nxt_sockaddr_t       *sa, *remote;
     nxt_event_engine_t   *engine;
     nxt_listen_socket_t  *ls;
 
@@ -107,23 +108,10 @@ nxt_conn_accept_alloc(nxt_task_t *task, nxt_listen_event_t *lev)
 
             ls = lev->listen;
 
-            remote = nxt_sockaddr_alloc(mp, ls->socklen, ls->address_length);
-            if (nxt_slow_path(remote == NULL)) {
-                goto fail;
+            c->remote = nxt_sockaddr_cache_alloc(engine, lev);
+            if (nxt_fast_path(c->remote != NULL)) {
+                return c;
             }
-
-            c->remote = remote;
-
-            sa = ls->sockaddr;
-            remote->type = sa->type;
-            /*
-             * Set address family for unspecified Unix domain socket,
-             * because these sockaddr's are not updated by old BSD systems,
-             * see comment in nxt_conn_io_accept().
-             */
-            remote->u.sockaddr.sa_family = sa->u.sockaddr.sa_family;
-
-            return c;
         }
 
     fail:

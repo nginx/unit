@@ -1819,6 +1819,9 @@ nxt_router_thread_start(void *data)
 #endif
 
     engine->mem_pool = nxt_mp_create(4096, 128, 1024, 64);
+    if (nxt_slow_path(engine->mem_pool == NULL)) {
+        return;
+    }
 
     port = nxt_port_new(task, nxt_port_get_next_id(), nxt_pid,
                         NXT_PROCESS_ROUTER);
@@ -3433,6 +3436,7 @@ static void
 nxt_router_conn_free(nxt_task_t *task, void *obj, void *data)
 {
     nxt_conn_t               *c;
+    nxt_event_engine_t       *engine;
     nxt_req_conn_link_t      *rc;
     nxt_app_parse_ctx_t      *ap;
     nxt_socket_conf_joint_t  *joint;
@@ -3466,11 +3470,14 @@ nxt_router_conn_free(nxt_task_t *task, void *obj, void *data)
 
     nxt_queue_remove(&c->link);
 
+    engine = task->thread->engine;
+
+    nxt_sockaddr_cache_free(engine, c);
+
     joint = c->listen->socket.data;
 
-    task = &task->thread->engine->task;
-
-    nxt_mp_cleanup(c->mem_pool, nxt_router_conn_mp_cleanup, task, joint, NULL);
+    nxt_mp_cleanup(c->mem_pool, nxt_router_conn_mp_cleanup,
+                   &engine->task, joint, NULL);
 
     nxt_mp_release(c->mem_pool, c);
 }

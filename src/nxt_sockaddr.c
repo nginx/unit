@@ -21,6 +21,47 @@ static nxt_int_t nxt_job_sockaddr_inet_parse(nxt_job_sockaddr_parse_t *jbs);
 
 
 nxt_sockaddr_t *
+nxt_sockaddr_cache_alloc(nxt_event_engine_t *engine, nxt_listen_event_t *lev)
+{
+    size_t               size;
+    nxt_sockaddr_t       *sa;
+    nxt_listen_socket_t  *ls;
+
+    ls = lev->listen;
+
+    size = offsetof(nxt_sockaddr_t, u) + ls->socklen + ls->address_length;
+
+    sa = nxt_event_engine_mem_alloc(engine, &lev->mem_cache, size);
+
+    if (nxt_fast_path(sa != NULL)) {
+        /* Zero only beginning of structure up to sockaddr_un.sun_path[1]. */
+        nxt_memzero(sa, offsetof(nxt_sockaddr_t, u.sockaddr.sa_data[1]));
+
+        sa->sockaddr_size = size;
+        sa->socklen = ls->socklen;
+        sa->length = ls->address_length;
+
+        sa->type = ls->sockaddr->type;
+        /*
+         * Set address family for unspecified Unix domain socket,
+         * because these sockaddr's are not updated by old BSD systems,
+         * see comment in nxt_conn_io_accept().
+         */
+        sa->u.sockaddr.sa_family = ls->sockaddr->u.sockaddr.sa_family;
+    }
+
+    return sa;
+}
+
+
+void
+nxt_sockaddr_cache_free(nxt_event_engine_t *engine, nxt_conn_t *c)
+{
+    nxt_event_engine_mem_free(engine, &c->listen->mem_cache, c->remote);
+}
+
+
+nxt_sockaddr_t *
 nxt_sockaddr_alloc(nxt_mp_t *mp, socklen_t socklen, size_t address_length)
 {
     size_t          size;
