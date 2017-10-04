@@ -297,6 +297,7 @@ nxt_runtime_event_engines(nxt_task_t *task, nxt_runtime_t *rt)
 #endif
 
     engine->id = rt->last_engine_id++;
+    engine->mem_pool = nxt_mp_create(1024, 128, 256, 32);
 
     nxt_queue_init(&rt->engines);
     nxt_queue_insert_tail(&rt->engines, &engine->link);

@@ -195,7 +195,8 @@ nxt_port_send_port(nxt_task_t *task, nxt_port_t *port, nxt_port_t *new_port,
     nxt_buf_t                *b;
     nxt_port_msg_new_port_t  *msg;
 
-    b = nxt_buf_mem_ts_alloc(task, port->mem_pool, sizeof(nxt_port_data_t));
+    b = nxt_buf_mem_ts_alloc(task, task->thread->engine->mem_pool,
+                             sizeof(nxt_port_data_t));
     if (nxt_slow_path(b == NULL)) {
         return NXT_ERROR;
     }
@@ -347,7 +348,8 @@ nxt_port_change_log_file(nxt_task_t *task, nxt_runtime_t *rt, nxt_uint_t slot,
 
         port = nxt_process_port_first(process);
 
-        b = nxt_buf_mem_alloc(port->mem_pool, sizeof(nxt_port_data_t), 0);
+        b = nxt_buf_mem_ts_alloc(task, task->thread->engine->mem_pool,
+                                 sizeof(nxt_port_data_t));
         if (nxt_slow_path(b == NULL)) {
             continue;
         }

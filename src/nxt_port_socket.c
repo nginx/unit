@@ -194,7 +194,8 @@ nxt_port_socket_write(nxt_task_t *task, nxt_port_t *port, nxt_uint_t type,
 
     } nxt_queue_loop;
 
-    msg = nxt_mp_retain(port->mem_pool, sizeof(nxt_port_send_msg_t));
+    msg = nxt_mp_retain(task->thread->engine->mem_pool,
+                        sizeof(nxt_port_send_msg_t));
     if (nxt_slow_path(msg == NULL)) {
         return NXT_ERROR;
     }
@@ -215,7 +216,7 @@ nxt_port_socket_write(nxt_task_t *task, nxt_port_t *port, nxt_uint_t type,
     msg->work.data = task->thread->engine;
 
     msg->engine = task->thread->engine;
-    msg->mem_pool = port->mem_pool;
+    msg->mem_pool = msg->engine->mem_pool;
 
     msg->port_msg.stream = stream;
     msg->port_msg.pid = nxt_pid;

@@ -2498,7 +2498,7 @@ nxt_router_send_sw_request(nxt_task_t *task, void *obj, void *data)
 
     size = app->name.length + 1 + app->conf.length;
 
-    b = nxt_buf_mem_alloc(main_port->mem_pool, size, 0);
+    b = nxt_buf_mem_ts_alloc(task, task->thread->engine->mem_pool, size);
 
     nxt_buf_cpystr(b, &app->name);
     *b->mem.free++ = '\0';
@@ -2964,7 +2964,6 @@ static void
 nxt_router_process_http_request(nxt_task_t *task, nxt_conn_t *c,
     nxt_app_parse_ctx_t *ap)
 {
-    nxt_mp_t             *port_mp;
     nxt_int_t            res;
     nxt_port_t           *port;
     nxt_event_engine_t   *engine;
@@ -3012,12 +3011,7 @@ nxt_router_process_http_request(nxt_task_t *task, nxt_conn_t *c,
 
     nxt_port_rpc_ex_set_peer(task, engine->port, rc, port->pid);
 
-    port_mp = port->mem_pool;
-    port->mem_pool = c->mem_pool;
-
     nxt_router_process_http_request_mp(task, ra, port);
-
-    port->mem_pool = port_mp;
 
     nxt_router_ra_release(task, ra, ra->work.data);
 }

@@ -426,7 +426,7 @@ nxt_port_mmap_get_buf(nxt_task_t *task, nxt_port_t *port, size_t size)
 
     nxt_debug(task, "request %z bytes shm buffer", size);
 
-    b = nxt_buf_mem_ts_alloc(task, port->mem_pool, 0);
+    b = nxt_buf_mem_ts_alloc(task, task->thread->engine->mem_pool, 0);
     if (nxt_slow_path(b == NULL)) {
         return NULL;
     }
@@ -436,7 +436,7 @@ nxt_port_mmap_get_buf(nxt_task_t *task, nxt_port_t *port, size_t size)
 
     hdr = nxt_port_mmap_get(task, port, &c, size);
     if (nxt_slow_path(hdr == NULL)) {
-        nxt_mp_release(port->mem_pool, b);
+        nxt_mp_release(task->thread->engine->mem_pool, b);
         return NULL;
     }
 

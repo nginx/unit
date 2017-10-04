@@ -1032,7 +1032,7 @@ nxt_controller_conf_store(nxt_task_t *task, nxt_conf_value_t *conf)
 
     size = nxt_conf_json_length(conf, NULL);
 
-    b = nxt_buf_mem_alloc(main_port->mem_pool, size, 0);
+    b = nxt_buf_mem_ts_alloc(task, task->thread->engine->mem_pool, size);
 
     if (nxt_fast_path(b != NULL)) {
         b->mem.free = nxt_conf_json_print(b->mem.free, conf, NULL);
