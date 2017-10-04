@@ -189,7 +189,7 @@ nxt_controller_process_new_port_handler(nxt_task_t *task,
 
     nxt_port_new_port_handler(task, msg);
 
-    if (msg->new_port->type != NXT_PROCESS_ROUTER) {
+    if (msg->u.new_port->type != NXT_PROCESS_ROUTER) {
         return;
     }
 

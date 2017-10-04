@@ -127,7 +127,11 @@ struct nxt_port_recv_msg_s {
     nxt_port_t          *port;
     nxt_port_msg_t      port_msg;
     size_t              size;
-    nxt_port_t          *new_port;
+    union {
+        nxt_port_t      *new_port;
+        nxt_pid_t       removed_pid;
+        void            *data;
+    } u;
 };
 
 typedef struct nxt_app_s  nxt_app_t;

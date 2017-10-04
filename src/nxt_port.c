@@ -283,7 +283,7 @@ nxt_port_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     nxt_port_write_enable(task, port);
 
-    msg->new_port = port;
+    msg->u.new_port = port;
 }
 
 
@@ -440,6 +440,8 @@ nxt_port_remove_pid_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_assert(nxt_buf_used_size(buf) == sizeof(pid));
 
     nxt_memcpy(&pid, buf->mem.pos, sizeof(pid));
+
+    msg->u.removed_pid = pid;
 
     nxt_debug(task, "port remove pid %PI handler", pid);
 
