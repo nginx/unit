@@ -112,7 +112,11 @@ nxt_port_release(nxt_task_t *task, nxt_port_t *port)
     }
 
     if (port->link.next != NULL) {
+        nxt_assert(port->process != NULL);
+
         nxt_process_port_remove(port);
+
+        nxt_process_use(task, port->process, -1);
     }
 
     nxt_mp_release(port->mem_pool, NULL);
@@ -265,10 +269,13 @@ nxt_port_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     port = nxt_port_new(task, new_port_msg->id, new_port_msg->pid,
                         new_port_msg->type);
     if (nxt_slow_path(port == NULL)) {
+        nxt_process_use(task, process, -1);
         return;
     }
 
     nxt_process_port_add(task, process, port);
+
+    nxt_process_use(task, process, -1);
 
     port->pair[0] = -1;
     port->pair[1] = msg->fd;
@@ -298,7 +305,7 @@ nxt_port_process_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     nxt_assert(nxt_runtime_is_main(rt));
 
-    process = nxt_runtime_process_get(rt, msg->port_msg.pid);
+    process = nxt_runtime_process_find(rt, msg->port_msg.pid);
     if (nxt_slow_path(process == NULL)) {
         return;
     }
@@ -452,7 +459,7 @@ nxt_port_remove_pid_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     process = nxt_runtime_process_find(rt, pid);
 
     if (process) {
-        nxt_runtime_process_remove(task, process);
+        nxt_process_close_ports(task, process);
     }
 }
 

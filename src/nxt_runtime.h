@@ -106,7 +106,7 @@ void nxt_runtime_process_add(nxt_task_t *task, nxt_process_t *process);
 
 nxt_process_t *nxt_runtime_process_find(nxt_runtime_t *rt, nxt_pid_t pid);
 
-void nxt_runtime_process_remove(nxt_task_t *task, nxt_process_t *process);
+void nxt_process_use(nxt_task_t *task, nxt_process_t *process, int i);
 
 nxt_process_t *nxt_runtime_process_first(nxt_runtime_t *rt,
     nxt_lvlhsh_each_t *lhe);

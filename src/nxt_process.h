@@ -47,7 +47,7 @@ typedef struct {
     nxt_queue_t         ports;      /* of nxt_port_t */
     nxt_bool_t          ready;
     nxt_bool_t          registered;
-    nxt_uint_t          port_cleanups;
+    nxt_int_t           use_count;
 
     nxt_process_init_t  *init;
 
@@ -87,6 +87,7 @@ NXT_EXPORT void nxt_process_port_add(nxt_task_t *task, nxt_process_t *process,
 #define nxt_process_port_loop                                                 \
     nxt_queue_loop
 
+void nxt_process_close_ports(nxt_task_t *task, nxt_process_t *process);
 
 void nxt_process_connected_port_add(nxt_process_t *process, nxt_port_t *port);
 

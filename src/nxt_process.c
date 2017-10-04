@@ -58,7 +58,7 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
             if (!p->ready) {
                 nxt_debug(task, "remove not ready process %PI", p->pid);
 
-                nxt_runtime_process_remove(task, p);
+                nxt_process_close_ports(task, p);
 
             } else {
                 nxt_port_mmaps_destroy(p->incoming, 0);
@@ -586,29 +586,30 @@ nxt_user_cred_set(nxt_task_t *task, nxt_user_cred_t *uc)
 }
 
 
-static void
-nxt_process_port_mp_cleanup(nxt_task_t *task, void *obj, void *data)
-{
-    nxt_process_t  *process;
-
-    process = obj;
-
-    process->port_cleanups--;
-
-    if (process->port_cleanups == 0) {
-        nxt_runtime_process_remove(task, process);
-    }
-}
-
 void
 nxt_process_port_add(nxt_task_t *task, nxt_process_t *process, nxt_port_t *port)
 {
+    nxt_assert(port->process == NULL);
+
     port->process = process;
     nxt_queue_insert_tail(&process->ports, &port->link);
 
-    nxt_mp_cleanup(port->mem_pool, nxt_process_port_mp_cleanup, task, process,
-                   NULL);
-    process->port_cleanups++;
+    nxt_process_use(task, process, 1);
+}
+
+
+void
+nxt_process_close_ports(nxt_task_t *task, nxt_process_t *process)
+{
+    nxt_port_t  *port;
+
+    nxt_process_port_each(process, port) {
+
+        nxt_port_close(task, port);
+
+        nxt_runtime_port_remove(task, port);
+
+    } nxt_process_port_loop;
 }
 
 
@@ -622,6 +623,7 @@ nxt_process_connected_port_add(nxt_process_t *process, nxt_port_t *port)
     nxt_thread_mutex_unlock(&process->cp_mutex);
 }
 
+
 void
 nxt_process_connected_port_remove(nxt_process_t *process, nxt_port_t *port)
 {
@@ -631,6 +633,7 @@ nxt_process_connected_port_remove(nxt_process_t *process, nxt_port_t *port)
 
     nxt_thread_mutex_unlock(&process->cp_mutex);
 }
+
 
 nxt_port_t *
 nxt_process_connected_port_find(nxt_process_t *process, nxt_pid_t pid,

@@ -553,7 +553,7 @@ nxt_runtime_exit(nxt_task_t *task, void *obj, void *data)
 
     nxt_runtime_process_each(rt, process) {
 
-        nxt_runtime_process_remove(task, process);
+        nxt_process_close_ports(task, process);
 
     } nxt_runtime_process_loop;
 
@@ -1580,6 +1580,8 @@ nxt_runtime_process_new(nxt_runtime_t *rt)
     nxt_thread_mutex_create(&process->outgoing_mutex);
     nxt_thread_mutex_create(&process->cp_mutex);
 
+    process->use_count = 1;
+
     return process;
 }
 
@@ -1590,7 +1592,7 @@ nxt_runtime_process_destroy(nxt_runtime_t *rt, nxt_process_t *process)
     nxt_port_t         *port;
     nxt_lvlhsh_each_t  lhe;
 
-    nxt_assert(process->port_cleanups == 0);
+    nxt_assert(process->use_count == 0);
     nxt_assert(process->registered == 0);
 
     nxt_port_mmaps_destroy(process->incoming, 1);
@@ -1685,7 +1687,11 @@ nxt_runtime_process_get(nxt_runtime_t *rt, nxt_pid_t pid)
         nxt_thread_log_debug("process %PI found", pid);
 
         nxt_thread_mutex_unlock(&rt->processes_mutex);
-        return lhq.value;
+
+        process = lhq.value;
+        process->use_count++;
+
+        return process;
     }
 
     process = nxt_runtime_process_new(rt);
@@ -1812,28 +1818,20 @@ nxt_runtime_process_remove_pid(nxt_runtime_t *rt, nxt_pid_t pid)
 
 
 void
-nxt_runtime_process_remove(nxt_task_t *task, nxt_process_t *process)
+nxt_process_use(nxt_task_t *task, nxt_process_t *process, int i)
 {
-    nxt_port_t     *port;
     nxt_runtime_t  *rt;
 
-    rt = task->thread->runtime;
+    process->use_count += i;
 
-    if (process->port_cleanups == 0) {
+    if (process->use_count == 0) {
+        rt = task->thread->runtime;
+
         if (process->registered == 1) {
             nxt_runtime_process_remove_pid(rt, process->pid);
         }
 
         nxt_runtime_process_destroy(rt, process);
-
-    } else {
-        nxt_process_port_each(process, port) {
-
-            nxt_port_close(task, port);
-
-            nxt_runtime_port_remove(task, port);
-
-        } nxt_process_port_loop;
     }
 }
 
