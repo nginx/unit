@@ -515,6 +515,8 @@ nxt_router_remove_pid_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     }
     nxt_queue_loop;
 
+    nxt_mp_release(mp, NULL);
+
     msg->port_msg.type = _NXT_PORT_MSG_RPC_ERROR;
 
     nxt_port_rpc_handler(task, msg);
