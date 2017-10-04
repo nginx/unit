@@ -27,7 +27,7 @@
  * eventfd2()               Linux 2.6.27, glibc 2.9.
  * accept4()                Linux 2.6.28, glibc 2.10.
  * eventfd2(EFD_SEMAPHORE)  Linux 2.6.30, glibc 2.10.
- * EPOLLEXCLUSIVE           Linux 4.5.
+ * EPOLLEXCLUSIVE           Linux 4.5, glibc 2.24.
  */
 
 
@@ -570,9 +570,17 @@ nxt_epoll_oneshot_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 static void
 nxt_epoll_enable_accept(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
 {
+    uint32_t  events;
+
     ev->read = NXT_EVENT_ACTIVE;
 
-    nxt_epoll_change(engine, ev, EPOLL_CTL_ADD, EPOLLIN);
+    events = EPOLLIN;
+
+#ifdef EPOLLEXCLUSIVE
+    events |= EPOLLEXCLUSIVE;
+#endif
+
+    nxt_epoll_change(engine, ev, EPOLL_CTL_ADD, events);
 }
 
 
