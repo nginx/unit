@@ -102,11 +102,11 @@ nxt_process_t *nxt_runtime_process_new(nxt_runtime_t *rt);
 
 nxt_process_t *nxt_runtime_process_get(nxt_runtime_t *rt, nxt_pid_t pid);
 
-void nxt_runtime_process_add(nxt_runtime_t *rt, nxt_process_t *process);
+void nxt_runtime_process_add(nxt_task_t *task, nxt_process_t *process);
 
 nxt_process_t *nxt_runtime_process_find(nxt_runtime_t *rt, nxt_pid_t pid);
 
-void nxt_runtime_process_remove(nxt_runtime_t *rt, nxt_process_t *process);
+void nxt_runtime_process_remove(nxt_task_t *task, nxt_process_t *process);
 
 nxt_process_t *nxt_runtime_process_first(nxt_runtime_t *rt,
     nxt_lvlhsh_each_t *lhe);
@@ -115,9 +115,9 @@ nxt_process_t *nxt_runtime_process_first(nxt_runtime_t *rt,
     nxt_lvlhsh_each(&rt->processes, lhe)
 
 
-void nxt_runtime_port_add(nxt_runtime_t *rt, nxt_port_t *port);
+void nxt_runtime_port_add(nxt_task_t *task, nxt_port_t *port);
 
-void nxt_runtime_port_remove(nxt_runtime_t *rt, nxt_port_t *port);
+void nxt_runtime_port_remove(nxt_task_t *task, nxt_port_t *port);
 
 nxt_port_t *nxt_runtime_port_find(nxt_runtime_t *rt, nxt_pid_t pid,
     nxt_port_id_t port_id);

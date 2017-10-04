@@ -553,7 +553,7 @@ nxt_runtime_exit(nxt_task_t *task, void *obj, void *data)
 
     nxt_runtime_process_each(rt, process) {
 
-        nxt_runtime_process_remove(rt, process);
+        nxt_runtime_process_remove(task, process);
 
     } nxt_runtime_process_loop;
 
@@ -1725,12 +1725,15 @@ nxt_runtime_process_get(nxt_runtime_t *rt, nxt_pid_t pid)
 
 
 void
-nxt_runtime_process_add(nxt_runtime_t *rt, nxt_process_t *process)
+nxt_runtime_process_add(nxt_task_t *task, nxt_process_t *process)
 {
     nxt_port_t          *port;
+    nxt_runtime_t       *rt;
     nxt_lvlhsh_query_t  lhq;
 
     nxt_assert(process->registered == 0);
+
+    rt = task->thread->runtime;
 
     nxt_runtime_process_lhq_pid(&lhq, &process->pid);
 
@@ -1753,7 +1756,7 @@ nxt_runtime_process_add(nxt_runtime_t *rt, nxt_process_t *process)
 
             port->pid = process->pid;
 
-            nxt_runtime_port_add(rt, port);
+            nxt_runtime_port_add(task, port);
 
         } nxt_process_port_loop;
 
@@ -1809,9 +1812,12 @@ nxt_runtime_process_remove_pid(nxt_runtime_t *rt, nxt_pid_t pid)
 
 
 void
-nxt_runtime_process_remove(nxt_runtime_t *rt, nxt_process_t *process)
+nxt_runtime_process_remove(nxt_task_t *task, nxt_process_t *process)
 {
-    nxt_port_t  *port;
+    nxt_port_t     *port;
+    nxt_runtime_t  *rt;
+
+    rt = task->thread->runtime;
 
     if (process->port_cleanups == 0) {
         if (process->registered == 1) {
@@ -1823,9 +1829,9 @@ nxt_runtime_process_remove(nxt_runtime_t *rt, nxt_process_t *process)
     } else {
         nxt_process_port_each(process, port) {
 
-            nxt_runtime_port_remove(rt, port);
+            nxt_port_close(task, port);
 
-            nxt_port_release(port);
+            nxt_runtime_port_remove(task, port);
 
         } nxt_process_port_loop;
     }
@@ -1851,22 +1857,34 @@ nxt_runtime_port_first(nxt_runtime_t *rt, nxt_lvlhsh_each_t *lhe)
 
 
 void
-nxt_runtime_port_add(nxt_runtime_t *rt, nxt_port_t *port)
+nxt_runtime_port_add(nxt_task_t *task, nxt_port_t *port)
 {
+    nxt_runtime_t  *rt;
+
+    rt = task->thread->runtime;
+
     nxt_port_hash_add(&rt->ports, port);
 
     rt->port_by_type[port->type] = port;
+
+    nxt_port_use(task, port, 1);
 }
 
 
 void
-nxt_runtime_port_remove(nxt_runtime_t *rt, nxt_port_t *port)
+nxt_runtime_port_remove(nxt_task_t *task, nxt_port_t *port)
 {
+    nxt_runtime_t  *rt;
+
+    rt = task->thread->runtime;
+
     nxt_port_hash_remove(&rt->ports, port);
 
     if (rt->port_by_type[port->type] == port) {
         rt->port_by_type[port->type] = NULL;
     }
+
+    nxt_port_use(task, port, -1);
 }
 
 

@@ -260,14 +260,17 @@ nxt_main_process_port_create(nxt_task_t *task, nxt_runtime_t *rt)
         return NXT_ERROR;
     }
 
+    nxt_process_port_add(task, process, port);
+
     ret = nxt_port_socket_init(task, port, 0);
     if (nxt_slow_path(ret != NXT_OK)) {
+        nxt_port_use(task, port, -1);
         return ret;
     }
 
-    nxt_process_port_add(task, process, port);
+    nxt_runtime_port_add(task, port);
 
-    nxt_runtime_port_add(rt, port);
+    nxt_port_use(task, port, -1);
 
     /*
      * A main process port.  A write port is not closed
@@ -508,7 +511,7 @@ nxt_main_create_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
 
     port = nxt_port_new(task, 0, 0, init->type);
     if (nxt_slow_path(port == NULL)) {
-        nxt_runtime_process_remove(rt, process);
+        nxt_runtime_process_remove(task, process);
         return NXT_ERROR;
     }
 
@@ -516,11 +519,13 @@ nxt_main_create_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
 
     ret = nxt_port_socket_init(task, port, 0);
     if (nxt_slow_path(ret != NXT_OK)) {
-        nxt_mp_release(port->mem_pool, port);
+        nxt_port_use(task, port, -1);
         return ret;
     }
 
     pid = nxt_process_create(task, process);
+
+    nxt_port_use(task, port, -1);
 
     switch (pid) {
 
@@ -755,7 +760,7 @@ nxt_main_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid)
     if (process) {
         init = process->init;
 
-        nxt_runtime_process_remove(rt, process);
+        nxt_runtime_process_remove(task, process);
 
         if (!nxt_exiting) {
             nxt_runtime_process_each(rt, process) {
