@@ -1859,11 +1859,16 @@ nxt_runtime_port_first(nxt_runtime_t *rt, nxt_lvlhsh_each_t *lhe)
 void
 nxt_runtime_port_add(nxt_task_t *task, nxt_port_t *port)
 {
+    nxt_int_t      res;
     nxt_runtime_t  *rt;
 
     rt = task->thread->runtime;
 
-    nxt_port_hash_add(&rt->ports, port);
+    res = nxt_port_hash_add(&rt->ports, port);
+
+    if (res != NXT_OK) {
+        return;
+    }
 
     rt->port_by_type[port->type] = port;
 
@@ -1874,11 +1879,16 @@ nxt_runtime_port_add(nxt_task_t *task, nxt_port_t *port)
 void
 nxt_runtime_port_remove(nxt_task_t *task, nxt_port_t *port)
 {
+    nxt_int_t      res;
     nxt_runtime_t  *rt;
 
     rt = task->thread->runtime;
 
-    nxt_port_hash_remove(&rt->ports, port);
+    res = nxt_port_hash_remove(&rt->ports, port);
+
+    if (res != NXT_OK) {
+        return;
+    }
 
     if (rt->port_by_type[port->type] == port) {
         rt->port_by_type[port->type] = NULL;

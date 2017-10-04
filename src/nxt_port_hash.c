@@ -63,9 +63,10 @@ nxt_port_hash_lhq(nxt_lvlhsh_query_t *lhq, nxt_pid_port_id_t *pid_port)
 }
 
 
-void
+nxt_int_t
 nxt_port_hash_add(nxt_lvlhsh_t *port_hash, nxt_port_t *port)
 {
+    nxt_int_t           res;
     nxt_pid_port_id_t   pid_port;
     nxt_lvlhsh_query_t  lhq;
 
@@ -76,7 +77,9 @@ nxt_port_hash_add(nxt_lvlhsh_t *port_hash, nxt_port_t *port)
     lhq.replace = 0;
     lhq.value = port;
 
-    switch (nxt_lvlhsh_insert(port_hash, &lhq)) {
+    res = nxt_lvlhsh_insert(port_hash, &lhq);
+
+    switch (res) {
 
     case NXT_OK:
         break;
@@ -86,12 +89,15 @@ nxt_port_hash_add(nxt_lvlhsh_t *port_hash, nxt_port_t *port)
                              port->id, port->pid);
         break;
     }
+
+    return res;
 }
 
 
-void
+nxt_int_t
 nxt_port_hash_remove(nxt_lvlhsh_t *port_hash, nxt_port_t *port)
 {
+    nxt_int_t           res;
     nxt_pid_port_id_t   pid_port;
     nxt_lvlhsh_query_t  lhq;
 
@@ -100,14 +106,20 @@ nxt_port_hash_remove(nxt_lvlhsh_t *port_hash, nxt_port_t *port)
 
     nxt_port_hash_lhq(&lhq, &pid_port);
 
-    switch (nxt_lvlhsh_delete(port_hash, &lhq)) {
+    res = nxt_lvlhsh_delete(port_hash, &lhq);
+
+    switch (res) {
 
     case NXT_OK:
         break;
 
     default:
+        nxt_thread_log_error(NXT_LOG_WARN, "port #%d for pid %PI remove failed",
+                             port->id, port->pid);
         break;
     }
+
+    return res;
 }
 
 
