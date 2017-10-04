@@ -31,6 +31,7 @@ typedef struct {
     nxt_conn_t           *conn;
     nxt_app_t            *app;
     nxt_port_t           *app_port;
+    nxt_app_parse_ctx_t  *ap;
     nxt_req_app_link_t   *ra;
 
     nxt_queue_link_t     link;     /* for nxt_conn_t.requests */
@@ -320,7 +321,7 @@ nxt_router_ra_create(nxt_task_t *task, nxt_req_conn_link_t *rc)
     nxt_event_engine_t  *engine;
     nxt_req_app_link_t  *ra;
 
-    mp = rc->conn->mem_pool;
+    mp = rc->ap->mem_pool;
     engine = task->thread->engine;
 
     ra = nxt_mp_retain(mp, sizeof(nxt_req_app_link_t));
@@ -548,6 +549,12 @@ nxt_router_rc_unlink(nxt_task_t *task, nxt_req_conn_link_t *rc)
         nxt_router_app_use(task, rc->app, -1);
 
         rc->app = NULL;
+    }
+
+    if (rc->ap != NULL) {
+        nxt_app_http_req_done(task, rc->ap);
+
+        rc->ap = NULL;
     }
 
     nxt_queue_remove(&rc->link);
@@ -3127,7 +3134,7 @@ nxt_router_process_http_request(nxt_task_t *task, nxt_conn_t *c,
 
     if (nxt_slow_path(rc == NULL)) {
         nxt_router_gen_error(task, c, 500, "Failed to allocate "
-                             "req->conn link");
+                             "req<->conn link");
 
         return;
     }
@@ -3140,7 +3147,17 @@ nxt_router_process_http_request(nxt_task_t *task, nxt_conn_t *c,
     nxt_debug(task, "stream #%uD linked to conn %p at engine %p",
               rc->stream, c, engine);
 
+    rc->ap = ap;
+    c->socket.data = NULL;
+
     ra = nxt_router_ra_create(task, rc);
+
+    if (nxt_slow_path(ra == NULL)) {
+        nxt_router_gen_error(task, c, 500, "Failed to allocate "
+                             "req<->app link");
+
+        return;
+    }
 
     ra->ap = ap;
 
