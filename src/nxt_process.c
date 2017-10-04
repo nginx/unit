@@ -619,13 +619,7 @@ nxt_process_connected_port_add(nxt_process_t *process, nxt_port_t *port)
 {
     nxt_thread_mutex_lock(&process->cp_mutex);
 
-    if (process->cp_mem_pool == NULL) {
-        process->cp_mem_pool = nxt_mp_create(1024, 128, 256, 32);
-    }
-
-    nxt_mp_thread_adopt(process->cp_mem_pool);
-
-    nxt_port_hash_add(&process->connected_ports, process->cp_mem_pool, port);
+    nxt_port_hash_add(&process->connected_ports, port);
 
     nxt_thread_mutex_unlock(&process->cp_mutex);
 }
@@ -635,12 +629,7 @@ nxt_process_connected_port_remove(nxt_process_t *process, nxt_port_t *port)
 {
     nxt_thread_mutex_lock(&process->cp_mutex);
 
-    if (process->cp_mem_pool != NULL) {
-        nxt_mp_thread_adopt(process->cp_mem_pool);
-
-        nxt_port_hash_remove(&process->connected_ports, process->cp_mem_pool,
-                             port);
-    }
+    nxt_port_hash_remove(&process->connected_ports, port);
 
     nxt_thread_mutex_unlock(&process->cp_mutex);
 }

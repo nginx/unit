@@ -52,9 +52,19 @@ nxt_port_hash_first(nxt_lvlhsh_t *port_hash, nxt_lvlhsh_each_t *lhe)
 }
 
 
+nxt_inline void
+nxt_port_hash_lhq(nxt_lvlhsh_query_t *lhq, nxt_pid_port_id_t *pid_port)
+{
+    lhq->key_hash = nxt_murmur_hash2(pid_port, sizeof(nxt_pid_port_id_t));
+    lhq->key.length = sizeof(nxt_pid_port_id_t);
+    lhq->key.start = (u_char *) pid_port;
+    lhq->proto = &lvlhsh_ports_proto;
+    lhq->pool = NULL;
+}
+
+
 void
-nxt_port_hash_add(nxt_lvlhsh_t *port_hash, nxt_mp_t *mem_pool,
-    nxt_port_t *port)
+nxt_port_hash_add(nxt_lvlhsh_t *port_hash, nxt_port_t *port)
 {
     nxt_pid_port_id_t   pid_port;
     nxt_lvlhsh_query_t  lhq;
@@ -62,13 +72,9 @@ nxt_port_hash_add(nxt_lvlhsh_t *port_hash, nxt_mp_t *mem_pool,
     pid_port.pid = port->pid;
     pid_port.port_id = port->id;
 
-    lhq.key_hash = nxt_murmur_hash2(&pid_port, sizeof(pid_port));
-    lhq.key.length = sizeof(pid_port);
-    lhq.key.start = (u_char *) &pid_port;
-    lhq.proto = &lvlhsh_ports_proto;
+    nxt_port_hash_lhq(&lhq, &pid_port);
     lhq.replace = 0;
     lhq.value = port;
-    lhq.pool = mem_pool;
 
     switch (nxt_lvlhsh_insert(port_hash, &lhq)) {
 
@@ -84,8 +90,7 @@ nxt_port_hash_add(nxt_lvlhsh_t *port_hash, nxt_mp_t *mem_pool,
 
 
 void
-nxt_port_hash_remove(nxt_lvlhsh_t *port_hash, nxt_mp_t *mem_pool,
-    nxt_port_t *port)
+nxt_port_hash_remove(nxt_lvlhsh_t *port_hash, nxt_port_t *port)
 {
     nxt_pid_port_id_t   pid_port;
     nxt_lvlhsh_query_t  lhq;
@@ -93,13 +98,7 @@ nxt_port_hash_remove(nxt_lvlhsh_t *port_hash, nxt_mp_t *mem_pool,
     pid_port.pid = port->pid;
     pid_port.port_id = port->id;
 
-    lhq.key_hash = nxt_murmur_hash2(&pid_port, sizeof(pid_port));
-    lhq.key.length = sizeof(pid_port);
-    lhq.key.start = (u_char *) &pid_port;
-    lhq.proto = &lvlhsh_ports_proto;
-    lhq.replace = 0;
-    lhq.value = port;
-    lhq.pool = mem_pool;
+    nxt_port_hash_lhq(&lhq, &pid_port);
 
     switch (nxt_lvlhsh_delete(port_hash, &lhq)) {
 
@@ -122,12 +121,7 @@ nxt_port_hash_find(nxt_lvlhsh_t *port_hash, nxt_pid_t pid,
     pid_port.pid = pid;
     pid_port.port_id = port_id;
 
-    lhq.key_hash = nxt_murmur_hash2(&pid_port, sizeof(pid_port));
-    lhq.key.length = sizeof(pid_port);
-    lhq.key.start = (u_char *) &pid_port;
-    lhq.proto = &lvlhsh_ports_proto;
-
-    /* TODO lock ports */
+    nxt_port_hash_lhq(&lhq, &pid_port);
 
     if (nxt_lvlhsh_find(port_hash, &lhq) == NXT_OK) {
         nxt_thread_log_debug("process port (%PI, %d) found", pid, port_id);

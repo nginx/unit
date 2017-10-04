@@ -1586,16 +1586,21 @@ nxt_runtime_process_new(nxt_runtime_t *rt)
 static void
 nxt_runtime_process_destroy(nxt_runtime_t *rt, nxt_process_t *process)
 {
+    nxt_port_t         *port;
+    nxt_lvlhsh_each_t  lhe;
+
     nxt_assert(process->port_cleanups == 0);
     nxt_assert(process->registered == 0);
 
     nxt_port_mmaps_destroy(process->incoming, 1);
     nxt_port_mmaps_destroy(process->outgoing, 1);
 
-    if (process->cp_mem_pool != NULL) {
-        nxt_mp_thread_adopt(process->cp_mem_pool);
+    port = nxt_port_hash_first(&process->connected_ports, &lhe);
 
-        nxt_mp_destroy(process->cp_mem_pool);
+    while(port != NULL) {
+        nxt_port_hash_remove(&process->connected_ports, port);
+
+        port = nxt_port_hash_first(&process->connected_ports, &lhe);
     }
 
     nxt_thread_mutex_destroy(&process->incoming_mutex);
@@ -1847,7 +1852,7 @@ nxt_runtime_port_first(nxt_runtime_t *rt, nxt_lvlhsh_each_t *lhe)
 void
 nxt_runtime_port_add(nxt_runtime_t *rt, nxt_port_t *port)
 {
-    nxt_port_hash_add(&rt->ports, rt->mem_pool, port);
+    nxt_port_hash_add(&rt->ports, port);
 
     rt->port_by_type[port->type] = port;
 }
@@ -1856,7 +1861,7 @@ nxt_runtime_port_add(nxt_runtime_t *rt, nxt_port_t *port)
 void
 nxt_runtime_port_remove(nxt_runtime_t *rt, nxt_port_t *port)
 {
-    nxt_port_hash_remove(&rt->ports, rt->mem_pool, port);
+    nxt_port_hash_remove(&rt->ports, port);
 
     if (rt->port_by_type[port->type] == port) {
         rt->port_by_type[port->type] = NULL;

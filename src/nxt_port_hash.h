@@ -11,11 +11,9 @@
 #include <nxt_main.h>
 
 
-void nxt_port_hash_add(nxt_lvlhsh_t *port_hash, nxt_mp_t *mem_pool,
-    nxt_port_t *port);
+void nxt_port_hash_add(nxt_lvlhsh_t *port_hash, nxt_port_t *port);
 
-void nxt_port_hash_remove(nxt_lvlhsh_t *port_hash, nxt_mp_t *mem_pool,
-    nxt_port_t *port);
+void nxt_port_hash_remove(nxt_lvlhsh_t *port_hash, nxt_port_t *port);
 
 nxt_port_t *nxt_port_hash_find(nxt_lvlhsh_t *port_hash, nxt_pid_t pid,
     nxt_port_id_t port_id);

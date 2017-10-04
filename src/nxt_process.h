@@ -58,7 +58,6 @@ typedef struct {
     nxt_array_t         *outgoing;  /* of nxt_port_mmap_t */
 
     nxt_thread_mutex_t  cp_mutex;
-    nxt_mp_t            *cp_mem_pool;
     nxt_lvlhsh_t        connected_ports; /* of nxt_port_t */
 } nxt_process_t;
 
