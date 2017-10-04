@@ -58,6 +58,8 @@ typedef struct {
     uint32_t     nmax;
     uint8_t      sync;   /* 1 bit */
     uint8_t      last;   /* 1 bit */
+    uint8_t      limit_reached;
+    uint8_t      nmax_reached;
 
     size_t       size;
     size_t       limit;

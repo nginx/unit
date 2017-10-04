@@ -111,7 +111,9 @@ nxt_sendbuf_mem_coalesce(nxt_task_t *task, nxt_sendbuf_coalesce_t *sb)
                 if (total + size > sb->limit) {
                     size = sb->limit - total;
 
-                    if (size == 0) {
+                    sb->limit_reached = 1;
+
+                    if (nxt_slow_path(size == 0)) {
                         break;
                     }
                 }
@@ -119,6 +121,8 @@ nxt_sendbuf_mem_coalesce(nxt_task_t *task, nxt_sendbuf_coalesce_t *sb)
                 if (b->mem.pos != last) {
 
                     if (++n >= sb->nmax) {
+                        sb->nmax_reached = 1;
+
                         goto done;
                     }
 

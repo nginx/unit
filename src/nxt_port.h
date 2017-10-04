@@ -106,6 +106,9 @@ typedef struct {
 
     /* Message data send using mmap, next chunk is a nxt_port_mmap_msg_t. */
     uint8_t              mmap;      /* 1 bit */
+
+    uint8_t              nf;
+    uint8_t              mf;
 } nxt_port_msg_t;
 
 
@@ -170,6 +173,8 @@ struct nxt_port_s {
 
     nxt_lvlhsh_t        rpc_streams; /* stream to nxt_port_rpc_reg_t */
     nxt_lvlhsh_t        rpc_peers;   /* peer to queue of nxt_port_rpc_reg_t */
+
+    nxt_lvlhsh_t        frags;
 
     nxt_atomic_t        use_count;
 

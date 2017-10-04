@@ -179,12 +179,20 @@ nxt_port_main_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     ret = NXT_ERROR;
 
-    b = msg->buf;
+    mp = nxt_mp_create(1024, 128, 256, 32);
+
+    if (nxt_slow_path(mp == NULL)) {
+        return;
+    }
+
+    b = nxt_buf_chk_make_plain(mp, msg->buf, msg->size);
+
+    if (b == NULL) {
+        return;
+    }
 
     nxt_debug(task, "main start worker: %*s", b->mem.free - b->mem.pos,
               b->mem.pos);
-
-    mp = nxt_mp_create(1024, 128, 256, 32);
 
     nxt_memzero(&app_conf, sizeof(nxt_common_app_conf_t));
 
@@ -821,6 +829,8 @@ nxt_main_port_socket_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     b = msg->buf;
     sa = (nxt_sockaddr_t *) b->mem.pos;
 
+    /* TODO check b size and make plain */
+
     out = NULL;
 
     ls.socket = -1;
@@ -1037,13 +1047,19 @@ nxt_main_port_modules_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         return;
     }
 
-    nxt_debug(task, "application languages: \"%*s\"",
-              b->mem.free - b->mem.pos, b->mem.pos);
-
     mp = nxt_mp_create(1024, 128, 256, 32);
     if (mp == NULL) {
         return;
     }
+
+    b = nxt_buf_chk_make_plain(mp, b, msg->size);
+
+    if (b == NULL) {
+        return;
+    }
+
+    nxt_debug(task, "application languages: \"%*s\"",
+              b->mem.free - b->mem.pos, b->mem.pos);
 
     conf = nxt_conf_json_parse(mp, b->mem.pos, b->mem.free, NULL);
     if (conf == NULL) {
@@ -1131,7 +1147,7 @@ nxt_app_lang_compare(const void *v1, const void *v2)
 static void
 nxt_main_port_conf_store_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
-    ssize_t        n, size;
+    ssize_t        n, size, offset;
     nxt_buf_t      *b;
     nxt_int_t      ret;
     nxt_file_t     file;
@@ -1150,16 +1166,20 @@ nxt_main_port_conf_store_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         goto error;
     }
 
+    offset = 0;
+
     for (b = msg->buf; b != NULL; b = b->next) {
         size = nxt_buf_mem_used_size(&b->mem);
 
-        n = nxt_file_write(&file, b->mem.pos, size, 0);
+        n = nxt_file_write(&file, b->mem.pos, size, offset);
 
         if (nxt_slow_path(n != size)) {
             nxt_file_close(task, &file);
             (void) nxt_file_delete(file.name);
             goto error;
         }
+
+        offset += n;
     }
 
     nxt_file_close(task, &file);

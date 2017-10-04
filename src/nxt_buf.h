@@ -250,6 +250,19 @@ NXT_EXPORT nxt_buf_t *nxt_buf_sync_alloc(nxt_mp_t *mp, nxt_uint_t flags);
 
 NXT_EXPORT nxt_int_t nxt_buf_ts_handle(nxt_task_t *task, void *obj, void *data);
 
+NXT_EXPORT nxt_buf_t *nxt_buf_make_plain(nxt_mp_t *mp, nxt_buf_t *src,
+    size_t size);
+
+nxt_inline nxt_buf_t *
+nxt_buf_chk_make_plain(nxt_mp_t *mp, nxt_buf_t *src, size_t size)
+{
+    if (nxt_slow_path(src != NULL && src->next != NULL)) {
+        return nxt_buf_make_plain(mp, src, size);
+    }
+
+    return src;
+}
+
 #define                                                                       \
 nxt_buf_free(mp, b)                                                           \
     nxt_mp_free((mp), (b))

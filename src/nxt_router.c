@@ -592,26 +592,18 @@ nxt_router_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 void
 nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
-    size_t                  dump_size;
     nxt_int_t               ret;
     nxt_buf_t               *b;
     nxt_router_temp_conf_t  *tmcf;
-
-    b = msg->buf;
-
-    dump_size = nxt_buf_used_size(b);
-
-    if (dump_size > 300) {
-        dump_size = 300;
-    }
-
-    nxt_debug(task, "router conf data (%z): %*s",
-              msg->size, dump_size, b->mem.pos);
 
     tmcf = nxt_router_temp_conf(task);
     if (nxt_slow_path(tmcf == NULL)) {
         return;
     }
+
+    b = nxt_buf_chk_make_plain(tmcf->conf->mem_pool, msg->buf, msg->size);
+
+    nxt_assert(b != NULL);
 
     tmcf->conf->router = nxt_router;
     tmcf->stream = msg->port_msg.stream;
@@ -1442,8 +1434,12 @@ nxt_router_listen_socket_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
     rpc = data;
     sa = rpc->socket_conf->sockaddr;
+    tmcf = rpc->temp_conf;
 
-    in = msg->buf;
+    in = nxt_buf_chk_make_plain(tmcf->mem_pool, msg->buf, msg->size);
+
+    nxt_assert(in != NULL);
+
     p = in->mem.pos;
 
     error = *p++;
@@ -1451,8 +1447,6 @@ nxt_router_listen_socket_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     size = sizeof("listen socket error: ") - 1
            + sizeof("{listener: \"\", code:\"\", message: \"\"}") - 1
            + sa->length + socket_errors[error].length + (in->mem.free - p);
-
-    tmcf = rpc->temp_conf;
 
     out = nxt_buf_mem_alloc(tmcf->mem_pool, size, 0);
     if (nxt_slow_path(out == NULL)) {

@@ -298,3 +298,33 @@ nxt_buf_ts_completion(nxt_task_t *task, void *obj, void *data)
         }
     }
 }
+
+
+nxt_buf_t *
+nxt_buf_make_plain(nxt_mp_t *mp, nxt_buf_t *src, size_t size)
+{
+    nxt_buf_t  *b, *i;
+
+    if (nxt_slow_path(size == 0)) {
+        for (i = src; i != NULL; i = i->next) {
+            size += nxt_buf_used_size(i);
+        }
+    }
+
+    b = nxt_buf_mem_alloc(mp, size, 0);
+
+    if (nxt_slow_path(b == NULL)) {
+        return NULL;
+    }
+
+    for (i = src; i != NULL; i = i->next) {
+        if (nxt_slow_path(nxt_buf_mem_free_size(&b->mem) <
+                          nxt_buf_used_size(i))) {
+            break;
+        }
+
+        b->mem.free = nxt_cpymem(b->mem.free, i->mem.pos, nxt_buf_used_size(i));
+    }
+
+    return b;
+}
