@@ -405,10 +405,9 @@ nxt_strverscmp(const u_char *s1, const u_char *s2)
         /* Fall through. */
 
     case st_frac:
+    default:
         return diff;
     }
-
-    nxt_unreachable();
 }
 
 
