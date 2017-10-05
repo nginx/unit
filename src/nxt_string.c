@@ -315,3 +315,123 @@ nxt_str_strip(u_char *start, u_char *end)
 
     return (p + 1) - start;
 }
+
+
+nxt_int_t
+nxt_strverscmp(const u_char *s1, const u_char *s2)
+{
+    u_char     c1, c2;
+    nxt_int_t  diff;
+
+    enum {
+        st_str = 0,
+        st_num,
+        st_zero,
+        st_frac,
+    } state;
+
+    state = st_str;
+
+    for ( ;; ) {
+        c1 = *s1++;
+        c2 = *s2++;
+
+        diff = c1 - c2;
+
+        if (diff != 0) {
+            break;
+        }
+
+        if (c1 == '\0') {
+            return 0;
+        }
+
+        if (!nxt_isdigit(c1)) {
+            state = st_str;
+            continue;
+        }
+
+        if (state == st_str) {
+            state = (c1 != '0') ? st_num : st_zero;
+            continue;
+        }
+
+        if (state == st_zero && c1 != '0') {
+            state = st_frac;
+            continue;
+        }
+    }
+
+    switch (state) {
+
+    case st_str:
+
+        if ((u_char) (c1 - '1') > 8 || (u_char) (c2 - '1') > 8) {
+            return diff;
+        }
+
+        c1 = *s1++;
+        c2 = *s2++;
+
+        /* Fall through. */
+
+    case st_num:
+
+        while (nxt_isdigit(c1) && nxt_isdigit(c2)) {
+            c1 = *s1++;
+            c2 = *s2++;
+        }
+
+        if (nxt_isdigit(c1)) {
+            return 1;
+        }
+
+        if (nxt_isdigit(c2)) {
+            return -1;
+        }
+
+        return diff;
+
+    case st_zero:
+
+        if (c1 == '0' || c2 == '\0') {
+            return -1;
+        }
+
+        if (c2 == '0' || c1 == '\0') {
+            return 1;
+        }
+
+        /* Fall through. */
+
+    case st_frac:
+        return diff;
+    }
+
+    nxt_unreachable();
+}
+
+
+nxt_bool_t
+nxt_strvers_match(u_char *version, u_char *prefix, size_t length)
+{
+    u_char  next, last;
+
+    if (nxt_strncmp(version, prefix, length) == 0) {
+
+        next = version[length];
+
+        if (next == '\0') {
+            return 1;
+        }
+
+        last = version[length - 1];
+
+        if (nxt_isdigit(last) != nxt_isdigit(next)) {
+            /* This is a version part boundary. */
+            return 1;
+        }
+    }
+
+    return 0;
+}

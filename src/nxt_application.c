@@ -291,8 +291,8 @@ nxt_app_start(nxt_task_t *task, void *data)
     nxt_app = lang->module;
 
     if (nxt_app == NULL) {
-        nxt_debug(task, "application language module: %V \"%s\"",
-                  &lang->version, lang->file);
+        nxt_debug(task, "application language module: %s \"%s\"",
+                  lang->version, lang->file);
 
         nxt_app = nxt_app_module_load(task, lang->file);
     }
@@ -1020,8 +1020,14 @@ nxt_app_lang_module(nxt_runtime_t *rt, nxt_str_t *name)
     n = rt->languages->nelts;
 
     for (i = 0; i < n; i++) {
+
+        /*
+         * Versions are sorted in descending order
+         * so first match chooses the highest version.
+         */
+
         if (nxt_str_eq(&lang[i].type, name->start, type_length)
-            && nxt_str_start(&lang[i].version, version, version_length))
+            && nxt_strvers_match(lang[i].version, version, version_length))
         {
             return &lang[i];
         }

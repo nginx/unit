@@ -1010,7 +1010,7 @@ static nxt_conf_map_t  nxt_app_lang_module_map[] = {
 
     {
         nxt_string("version"),
-        NXT_CONF_MAP_STR_COPY,
+        NXT_CONF_MAP_CSTRZ,
         offsetof(nxt_app_lang_module_t, version),
     },
 
@@ -1091,8 +1091,8 @@ nxt_main_port_modules_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
             goto fail;
         }
 
-        nxt_debug(task, "lang %V %V \"%s\"",
-                  &lang->type, &lang->version, lang->file);
+        nxt_debug(task, "lang %V %s \"%s\"",
+                  &lang->type, lang->version, lang->file);
     }
 
     qsort(rt->languages->elts, rt->languages->nelts,
@@ -1114,7 +1114,6 @@ static int nxt_cdecl
 nxt_app_lang_compare(const void *v1, const void *v2)
 {
     int                          n;
-    size_t                       length;
     const nxt_app_lang_module_t  *lang1, *lang2;
 
     lang1 = v1;
@@ -1130,13 +1129,7 @@ nxt_app_lang_compare(const void *v1, const void *v2)
         return n;
     }
 
-    length = nxt_min(lang1->version.length, lang2->version.length);
-
-    n = nxt_strncmp(lang1->version.start, lang2->version.start, length);
-
-    if (n == 0) {
-        n = lang1->version.length - lang2->version.length;
-    }
+    n = nxt_strverscmp(lang1->version, lang2->version);
 
     /* Negate result to move higher versions to the beginning. */
 

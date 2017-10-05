@@ -24,7 +24,7 @@ typedef struct nxt_app_module_s  nxt_app_module_t;
 
 typedef struct {
     nxt_str_t                 type;
-    nxt_str_t                 version;
+    u_char                    *version;
     char                      *file;
     nxt_application_module_t  *module;
 } nxt_app_lang_module_t;

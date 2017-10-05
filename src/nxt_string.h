@@ -16,6 +16,10 @@ nxt_lowcase(c)                                                                \
 nxt_upcase(c)                                                                 \
     (u_char) ((c >= 'a' && c <= 'z') ? c & ~0x20 : c)
 
+#define                                                                       \
+nxt_isdigit(c)                                                                \
+    ((u_char) ((c) - '0') <= 9)
+
 
 #define NXT_CR             (u_char) 13
 #define NXT_LF             (u_char) 10
@@ -169,6 +173,11 @@ nxt_strchr_eq(s, c)                                                           \
 #define                                                                       \
 nxt_strchr_start(s, c)                                                        \
     (((s)->length != 0) && ((s)->start[0] == c))
+
+
+NXT_EXPORT nxt_int_t nxt_strverscmp(const u_char *s1, const u_char *s2);
+NXT_EXPORT nxt_bool_t nxt_strvers_match(u_char *version, u_char *prefix,
+    size_t length);
 
 
 #endif /* _NXT_STRING_H_INCLUDED_ */

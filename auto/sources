@@ -218,6 +218,7 @@ NXT_TEST_SRCS=" \
     test/nxt_utf8_test.c \
     test/nxt_rbtree1_test.c \
     test/nxt_http_parse_test.c \
+    test/nxt_strverscmp_test.c \
 "
 
 NXT_LIB_UTF8_FILE_NAME_TEST_SRCS=" \

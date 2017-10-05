@@ -158,5 +158,9 @@ main(int argc, char **argv)
         return 1;
     }
 
+    if (nxt_strverscmp_test(thr) != NXT_OK) {
+        return 1;
+    }
+
     return 0;
 }
