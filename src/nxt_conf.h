@@ -9,13 +9,15 @@
 #define _NXT_CONF_INCLUDED_
 
 
-#define NXT_CONF_NULL     0x01
-#define NXT_CONF_BOOLEAN  0x02
-#define NXT_CONF_INTEGER  0x04
-#define NXT_CONF_NUMBER   0x08
-#define NXT_CONF_STRING   0x10
-#define NXT_CONF_ARRAY    0x20
-#define NXT_CONF_OBJECT   0x40
+typedef enum {
+    NXT_CONF_NULL = 0,
+    NXT_CONF_BOOLEAN,
+    NXT_CONF_INTEGER,
+    NXT_CONF_NUMBER,
+    NXT_CONF_STRING,
+    NXT_CONF_ARRAY,
+    NXT_CONF_OBJECT,
+} nxt_conf_type_t;
 
 
 typedef struct nxt_conf_value_s  nxt_conf_value_t;
@@ -57,6 +59,13 @@ typedef struct {
 } nxt_conf_json_pretty_t;
 
 
+typedef struct {
+    nxt_conf_value_t     *conf;
+    nxt_mp_t             *pool;
+    nxt_str_t            error;
+} nxt_conf_validation_t;
+
+
 nxt_uint_t nxt_conf_type(nxt_conf_value_t *value);
 
 nxt_conf_value_t *nxt_conf_get_path(nxt_conf_value_t *value, nxt_str_t *path);
@@ -88,7 +97,7 @@ u_char *nxt_conf_json_print(u_char *p, nxt_conf_value_t *value,
 void nxt_conf_json_position(u_char *start, u_char *pos, nxt_uint_t *line,
     nxt_uint_t *column);
 
-nxt_int_t nxt_conf_validate(nxt_conf_value_t *value);
+nxt_int_t nxt_conf_validate(nxt_conf_validation_t *vldt);
 
 void nxt_conf_get_string(nxt_conf_value_t *value, nxt_str_t *str);
 

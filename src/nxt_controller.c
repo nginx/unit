@@ -31,7 +31,7 @@ typedef struct {
     nxt_conf_value_t  *conf;
 
     u_char            *title;
-    u_char            *detail;
+    nxt_str_t         detail;
     ssize_t           offset;
     nxt_uint_t        line;
     nxt_uint_t        column;
@@ -115,10 +115,12 @@ nxt_int_t
 nxt_controller_start(nxt_task_t *task, void *data)
 {
     nxt_mp_t                *mp;
+    nxt_int_t               ret;
     nxt_str_t               *json;
     nxt_runtime_t           *rt;
     nxt_conf_value_t        *conf;
     nxt_event_engine_t      *engine;
+    nxt_conf_validation_t   vldt;
     nxt_http_fields_hash_t  *hash;
 
     rt = task->thread->runtime;
@@ -162,15 +164,35 @@ nxt_controller_start(nxt_task_t *task, void *data)
         return NXT_OK;
     }
 
-    if (nxt_slow_path(nxt_conf_validate(conf) != NXT_OK)) {
-        nxt_log(task, NXT_LOG_ALERT,
-                "failed to restore previous configuration: "
-                "invalid configuration");
+    nxt_memzero(&vldt, sizeof(nxt_conf_validation_t));
 
-        nxt_mp_destroy(mp);
-        return NXT_OK;
+    vldt.pool = nxt_mp_create(1024, 128, 256, 32);
+    if (nxt_slow_path(vldt.pool == NULL)) {
+        return NXT_ERROR;
     }
 
+    vldt.conf = conf;
+
+    ret = nxt_conf_validate(&vldt);
+
+    if (nxt_slow_path(ret != NXT_OK)) {
+
+        if (ret == NXT_DECLINED) {
+            nxt_log(task, NXT_LOG_ALERT,
+                    "the previous configuration is invalid: %V", &vldt.error);
+
+            nxt_mp_destroy(vldt.pool);
+            nxt_mp_destroy(mp);
+
+            return NXT_OK;
+        }
+
+        /* ret == NXT_ERROR */
+
+        return NXT_ERROR;
+    }
+
+    nxt_mp_destroy(vldt.pool);
 
     nxt_controller_conf.root = conf;
     nxt_controller_conf.pool = mp;
@@ -740,6 +762,7 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
     nxt_buf_mem_t              *mbuf;
     nxt_conf_op_t              *ops;
     nxt_conf_value_t           *value;
+    nxt_conf_validation_t      vldt;
     nxt_conf_json_error_t      error;
     nxt_controller_response_t  resp;
 
@@ -797,7 +820,8 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
 
             resp.status = 400;
             resp.title = (u_char *) "Invalid JSON.";
-            resp.detail = error.detail;
+            resp.detail.length = nxt_strlen(error.detail);
+            resp.detail.start = error.detail;
             resp.offset = error.pos - mbuf->pos;
 
             nxt_conf_json_position(mbuf->pos, error.pos,
@@ -828,9 +852,23 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
             }
         }
 
-        if (nxt_slow_path(nxt_conf_validate(value) != NXT_OK)) {
+        nxt_memzero(&vldt, sizeof(nxt_conf_validation_t));
+
+        vldt.conf = value;
+        vldt.pool = c->mem_pool;
+
+        rc = nxt_conf_validate(&vldt);
+
+        if (nxt_slow_path(rc != NXT_OK)) {
             nxt_mp_destroy(mp);
-            goto invalid_conf;
+
+            if (rc == NXT_DECLINED) {
+                resp.detail = vldt.error;
+                goto invalid_conf;
+            }
+
+            /* rc == NXT_ERROR */
+            goto alloc_fail;
         }
 
         rc = nxt_controller_conf_send(task, value,
@@ -898,9 +936,23 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
             goto alloc_fail;
         }
 
-        if (nxt_slow_path(nxt_conf_validate(value) != NXT_OK)) {
+        nxt_memzero(&vldt, sizeof(nxt_conf_validation_t));
+
+        vldt.conf = value;
+        vldt.pool = c->mem_pool;
+
+        rc = nxt_conf_validate(&vldt);
+
+        if (nxt_slow_path(rc != NXT_OK)) {
             nxt_mp_destroy(mp);
-            goto invalid_conf;
+
+            if (rc == NXT_DECLINED) {
+                resp.detail = vldt.error;
+                goto invalid_conf;
+            }
+
+            /* rc == NXT_ERROR */
+            goto alloc_fail;
         }
 
         rc = nxt_controller_conf_send(task, value,
@@ -1100,7 +1152,7 @@ nxt_controller_response(nxt_task_t *task, nxt_controller_request_t *req,
 
     if (value == NULL) {
         n = 1
-            + (resp->detail != NULL)
+            + (resp->detail.length != 0)
             + (resp->status >= 400 && resp->offset != -1);
 
         value = nxt_conf_create_object(c->mem_pool, n);
@@ -1122,13 +1174,10 @@ nxt_controller_response(nxt_task_t *task, nxt_controller_request_t *req,
 
         n = 0;
 
-        if (resp->detail != NULL) {
-            str.length = nxt_strlen(resp->detail);
-            str.start = resp->detail;
-
+        if (resp->detail.length != 0) {
             n++;
 
-            nxt_conf_set_member_string(value, &detail_str, &str, n);
+            nxt_conf_set_member_string(value, &detail_str, &resp->detail, n);
         }
 
         if (resp->status >= 400 && resp->offset != -1) {

@@ -10,35 +10,41 @@
 
 
 typedef struct {
-    nxt_str_t   name;
-    nxt_uint_t  type;
-    nxt_int_t   (*validator)(nxt_conf_value_t *conf, nxt_conf_value_t *value,
-                             void *data);
-    void        *data;
+    nxt_str_t        name;
+    nxt_conf_type_t  type;
+    nxt_int_t        (*validator)(nxt_conf_validation_t *vldt,
+                                  nxt_conf_value_t *value, void *data);
+    void             *data;
 } nxt_conf_vldt_object_t;
 
 
-typedef nxt_int_t (*nxt_conf_vldt_member_t)(nxt_conf_value_t *conf,
+typedef nxt_int_t (*nxt_conf_vldt_member_t)(nxt_conf_validation_t *vldt,
                                             nxt_str_t *name,
                                             nxt_conf_value_t *value);
 
-typedef nxt_int_t (*nxt_conf_vldt_system_t)(nxt_conf_value_t *conf, char *name);
+typedef nxt_int_t (*nxt_conf_vldt_system_t)(nxt_conf_validation_t *vldt,
+                                            char *name);
 
 
-static nxt_int_t nxt_conf_vldt_listener(nxt_conf_value_t *conf, nxt_str_t *name,
-    nxt_conf_value_t *value);
-static nxt_int_t nxt_conf_vldt_app_name(nxt_conf_value_t *conf,
+static nxt_int_t nxt_conf_vldt_type(nxt_conf_validation_t *vldt,
+    nxt_str_t *name, nxt_conf_value_t *value, nxt_conf_type_t type);
+static nxt_int_t nxt_conf_vldt_error(nxt_conf_validation_t *vldt,
+    const char *fmt, ...);
+
+static nxt_int_t nxt_conf_vldt_listener(nxt_conf_validation_t *vldt,
+    nxt_str_t *name, nxt_conf_value_t *value);
+static nxt_int_t nxt_conf_vldt_app_name(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
-static nxt_int_t nxt_conf_vldt_app(nxt_conf_value_t *conf, nxt_str_t *name,
-    nxt_conf_value_t *value);
-static nxt_int_t nxt_conf_vldt_object(nxt_conf_value_t *conf,
+static nxt_int_t nxt_conf_vldt_app(nxt_conf_validation_t *vldt,
+    nxt_str_t *name, nxt_conf_value_t *value);
+static nxt_int_t nxt_conf_vldt_object(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
-static nxt_int_t nxt_conf_vldt_object_iterator(nxt_conf_value_t *conf,
+static nxt_int_t nxt_conf_vldt_object_iterator(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
-static nxt_int_t nxt_conf_vldt_system(nxt_conf_value_t *conf,
+static nxt_int_t nxt_conf_vldt_system(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
-static nxt_int_t nxt_conf_vldt_user(nxt_conf_value_t *conf, char *name);
-static nxt_int_t nxt_conf_vldt_group(nxt_conf_value_t *conf, char *name);
+static nxt_int_t nxt_conf_vldt_user(nxt_conf_validation_t *vldt, char *name);
+static nxt_int_t nxt_conf_vldt_group(nxt_conf_validation_t *vldt, char *name);
 
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_root_members[] = {
@@ -217,26 +223,100 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_go_members[] = {
 
 
 nxt_int_t
-nxt_conf_validate(nxt_conf_value_t *value)
+nxt_conf_validate(nxt_conf_validation_t *vldt)
 {
-    if (nxt_conf_type(value) != NXT_CONF_OBJECT) {
+    nxt_int_t  ret;
+
+    ret = nxt_conf_vldt_type(vldt, NULL, vldt->conf, NXT_CONF_OBJECT);
+
+    if (ret != NXT_OK) {
+        return ret;
+    }
+
+    return nxt_conf_vldt_object(vldt, vldt->conf, nxt_conf_vldt_root_members);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_type(nxt_conf_validation_t *vldt, nxt_str_t *name,
+    nxt_conf_value_t *value, nxt_conf_type_t type)
+{
+    nxt_uint_t  value_type;
+
+    static const char  *type_name[] = {
+        "a null",
+        "a boolean",
+        "an integer",
+        "a number",
+        "a string",
+        "an array",
+        "an object"
+    };
+
+    value_type = nxt_conf_type(value);
+
+    if (value_type == type) {
+        return NXT_OK;
+    }
+
+    if (name == NULL) {
+        return nxt_conf_vldt_error(vldt,
+                                   "The configuration must be %s, not %s.",
+                                   type_name[type], type_name[value_type]);
+    }
+
+    return nxt_conf_vldt_error(vldt,
+                               "The \"%V\" value must be %s, not %s.",
+                               name, type_name[type], type_name[value_type]);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_error(nxt_conf_validation_t *vldt, const char *fmt, ...)
+{
+    u_char   *p, *end;
+    size_t   size;
+    va_list  args;
+    u_char   error[NXT_MAX_ERROR_STR];
+
+    va_start(args, fmt);
+    end = nxt_vsprintf(error, error + NXT_MAX_ERROR_STR, fmt, args);
+    va_end(args);
+
+    size = end - error;
+
+    p = nxt_mp_nget(vldt->pool, size);
+    if (p == NULL) {
         return NXT_ERROR;
     }
 
-    return nxt_conf_vldt_object(value, value, nxt_conf_vldt_root_members);
+    nxt_memcpy(p, error, size);
+
+    vldt->error.length = size;
+    vldt->error.start = p;
+
+    return NXT_DECLINED;
 }
 
 
 static nxt_int_t
-nxt_conf_vldt_listener(nxt_conf_value_t *conf, nxt_str_t *name,
+nxt_conf_vldt_listener(nxt_conf_validation_t *vldt, nxt_str_t *name,
     nxt_conf_value_t *value)
 {
-    return nxt_conf_vldt_object(conf, value, nxt_conf_vldt_listener_members);
+    nxt_int_t  ret;
+
+    ret = nxt_conf_vldt_type(vldt, name, value, NXT_CONF_OBJECT);
+
+    if (ret != NXT_OK) {
+        return ret;
+    }
+
+    return nxt_conf_vldt_object(vldt, value, nxt_conf_vldt_listener_members);
 }
 
 
 static nxt_int_t
-nxt_conf_vldt_app_name(nxt_conf_value_t *conf, nxt_conf_value_t *value,
+nxt_conf_vldt_app_name(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     void *data)
 {
     nxt_str_t         name;
@@ -244,28 +324,35 @@ nxt_conf_vldt_app_name(nxt_conf_value_t *conf, nxt_conf_value_t *value,
 
     static nxt_str_t  apps_str = nxt_string("applications");
 
-    apps = nxt_conf_get_object_member(conf, &apps_str, NULL);
+    nxt_conf_get_string(value, &name);
+
+    apps = nxt_conf_get_object_member(vldt->conf, &apps_str, NULL);
 
     if (nxt_slow_path(apps == NULL)) {
-        return NXT_ERROR;
+        goto error;
     }
-
-    nxt_conf_get_string(value, &name);
 
     app = nxt_conf_get_object_member(apps, &name, NULL);
 
     if (nxt_slow_path(app == NULL)) {
-        return NXT_ERROR;
+        goto error;
     }
 
     return NXT_OK;
+
+error:
+
+    return nxt_conf_vldt_error(vldt, "Listening socket is assigned for "
+                                     "a non existing application \"%V\".",
+                                     &name);
 }
 
 
 static nxt_int_t
-nxt_conf_vldt_app(nxt_conf_value_t *conf, nxt_str_t *name,
+nxt_conf_vldt_app(nxt_conf_validation_t *vldt, nxt_str_t *name,
     nxt_conf_value_t *value)
 {
+    nxt_int_t              ret;
     nxt_str_t              type;
     nxt_thread_t           *thread;
     nxt_conf_value_t       *type_value;
@@ -279,14 +366,23 @@ nxt_conf_vldt_app(nxt_conf_value_t *conf, nxt_str_t *name,
         nxt_conf_vldt_go_members,
     };
 
-    type_value = nxt_conf_get_object_member(value, &type_str, NULL);
+    ret = nxt_conf_vldt_type(vldt, name, value, NXT_CONF_OBJECT);
 
-    if (nxt_slow_path(type_value == NULL)) {
-        return NXT_ERROR;
+    if (ret != NXT_OK) {
+        return ret;
     }
 
-    if (nxt_conf_type(type_value) != NXT_CONF_STRING) {
-        return NXT_ERROR;
+    type_value = nxt_conf_get_object_member(value, &type_str, NULL);
+
+    if (type_value == NULL) {
+        return nxt_conf_vldt_error(vldt,
+                           "Application must have the \"type\" property set.");
+    }
+
+    ret = nxt_conf_vldt_type(vldt, &type_str, type_value, NXT_CONF_STRING);
+
+    if (ret != NXT_OK) {
+        return ret;
     }
 
     nxt_conf_get_string(type_value, &type);
@@ -295,21 +391,25 @@ nxt_conf_vldt_app(nxt_conf_value_t *conf, nxt_str_t *name,
 
     lang = nxt_app_lang_module(thread->runtime, &type);
     if (lang == NULL) {
-        return NXT_ERROR;
+        return nxt_conf_vldt_error(vldt,
+                                   "The module to run \"%V\" is not found "
+                                   "among the available application modules.",
+                                   &type);
     }
 
-    return nxt_conf_vldt_object(conf, value, members[lang->type]);
+    return nxt_conf_vldt_object(vldt, value, members[lang->type]);
 }
 
 
 static nxt_int_t
-nxt_conf_vldt_object(nxt_conf_value_t *conf, nxt_conf_value_t *value,
+nxt_conf_vldt_object(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     void *data)
 {
     uint32_t                index;
+    nxt_int_t               ret;
     nxt_str_t               name;
     nxt_conf_value_t        *member;
-    nxt_conf_vldt_object_t  *vldt;
+    nxt_conf_vldt_object_t  *vals;
 
     index = 0;
 
@@ -320,26 +420,31 @@ nxt_conf_vldt_object(nxt_conf_value_t *conf, nxt_conf_value_t *value,
             return NXT_OK;
         }
 
-        vldt = data;
+        vals = data;
 
         for ( ;; ) {
-            if (vldt->name.length == 0) {
-                return NXT_ERROR;
+            if (vals->name.length == 0) {
+                return nxt_conf_vldt_error(vldt, "Unknown parameter \"%V\".",
+                                           &name);
             }
 
-            if (!nxt_strstr_eq(&vldt->name, &name)) {
-                vldt++;
+            if (!nxt_strstr_eq(&vals->name, &name)) {
+                vals++;
                 continue;
             }
 
-            if (nxt_conf_type(member) != vldt->type) {
-                return NXT_ERROR;
+            ret = nxt_conf_vldt_type(vldt, &name, member, vals->type);
+
+            if (ret != NXT_OK) {
+                return ret;
             }
 
-            if (vldt->validator != NULL
-                && vldt->validator(conf, member, vldt->data) != NXT_OK)
-            {
-                return NXT_ERROR;
+            if (vals->validator != NULL) {
+                ret = vals->validator(vldt, member, vals->data);
+
+                if (ret != NXT_OK) {
+                    return ret;
+                }
             }
 
             break;
@@ -349,10 +454,11 @@ nxt_conf_vldt_object(nxt_conf_value_t *conf, nxt_conf_value_t *value,
 
 
 static nxt_int_t
-nxt_conf_vldt_object_iterator(nxt_conf_value_t *conf, nxt_conf_value_t *value,
-    void *data)
+nxt_conf_vldt_object_iterator(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data)
 {
     uint32_t                index;
+    nxt_int_t               ret;
     nxt_str_t               name;
     nxt_conf_value_t        *member;
     nxt_conf_vldt_member_t  validator;
@@ -367,24 +473,26 @@ nxt_conf_vldt_object_iterator(nxt_conf_value_t *conf, nxt_conf_value_t *value,
             return NXT_OK;
         }
 
-        if (validator(conf, &name, member) != NXT_OK) {
-            return NXT_ERROR;
+        ret = validator(vldt, &name, member);
+
+        if (ret != NXT_OK) {
+            return ret;
         }
     }
 }
 
 
 static nxt_int_t
-nxt_conf_vldt_system(nxt_conf_value_t *conf, nxt_conf_value_t *value,
+nxt_conf_vldt_system(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     void *data)
 {
     size_t                  length;
     nxt_str_t               name;
-    nxt_conf_vldt_system_t  vldt;
+    nxt_conf_vldt_system_t  validator;
     char                    string[32];
 
     /* The cast is required by Sun C. */
-    vldt = (nxt_conf_vldt_system_t) data;
+    validator = (nxt_conf_vldt_system_t) data;
 
     nxt_conf_get_string(value, &name);
 
@@ -393,12 +501,12 @@ nxt_conf_vldt_system(nxt_conf_value_t *conf, nxt_conf_value_t *value,
 
     nxt_cpystrn((u_char *) string, name.start, length);
 
-    return vldt(conf, string);
+    return validator(vldt, string);
 }
 
 
 static nxt_int_t
-nxt_conf_vldt_user(nxt_conf_value_t *conf, char *user)
+nxt_conf_vldt_user(nxt_conf_validation_t *vldt, char *user)
 {
     struct passwd  *pwd;
 
@@ -410,12 +518,16 @@ nxt_conf_vldt_user(nxt_conf_value_t *conf, char *user)
         return NXT_OK;
     }
 
+    if (nxt_errno == 0) {
+        return nxt_conf_vldt_error(vldt, "User \"%s\" is not found.", user);
+    }
+
     return NXT_ERROR;
 }
 
 
 static nxt_int_t
-nxt_conf_vldt_group(nxt_conf_value_t *conf, char *group)
+nxt_conf_vldt_group(nxt_conf_validation_t *vldt, char *group)
 {
     struct group  *grp;
 
@@ -425,6 +537,10 @@ nxt_conf_vldt_group(nxt_conf_value_t *conf, char *group)
 
     if (grp != NULL) {
         return NXT_OK;
+    }
+
+    if (nxt_errno == 0) {
+        return nxt_conf_vldt_error(vldt, "Group \"%s\" is not found.", group);
     }
 
     return NXT_ERROR;
