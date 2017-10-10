@@ -23,7 +23,7 @@ typedef struct nxt_app_module_s  nxt_app_module_t;
 
 
 typedef struct {
-    nxt_str_t                 type;
+    nxt_app_type_t            type;
     u_char                    *version;
     char                      *file;
     nxt_application_module_t  *module;
@@ -297,7 +297,6 @@ nxt_app_msg_read_length(u_char *src, size_t *length)
 
 
 nxt_app_lang_module_t *nxt_app_lang_module(nxt_runtime_t *rt, nxt_str_t *name);
-nxt_app_type_t nxt_app_parse_type(nxt_str_t *str);
 
 
 extern nxt_application_module_t  nxt_go_module;

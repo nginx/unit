@@ -15,9 +15,9 @@
 
 
 typedef struct {
-    nxt_str_t   type;
-    nxt_str_t   version;
-    nxt_str_t   file;
+    nxt_app_type_t  type;
+    nxt_str_t       version;
+    nxt_str_t       file;
 } nxt_module_t;
 
 
@@ -26,6 +26,7 @@ static nxt_int_t nxt_discovery_module(nxt_task_t *task, nxt_mp_t *mp,
     nxt_array_t *modules, const char *name);
 static nxt_app_module_t *nxt_app_module_load(nxt_task_t *task,
     const char *name);
+static nxt_app_type_t nxt_app_parse_type(u_char *p, size_t length);
 
 
 static nxt_thread_mutex_t        nxt_app_mutex;
@@ -132,14 +133,14 @@ nxt_discovery_modules(nxt_task_t *task, const char *path)
     n = modules->nelts;
 
     for (i = 0; i < n; i++) {
-        nxt_debug(task, "module: %V %V %V",
-                  &module[i].type, &module[i].version, &module[i].file);
+        nxt_debug(task, "module: %d %V %V",
+                  module[i].type, &module[i].version, &module[i].file);
 
-        size += sizeof("{\"type\": \"\",") - 1;
+        size += sizeof("{\"type\": ,") - 1;
         size += sizeof(" \"version\": \"\",") - 1;
         size += sizeof(" \"file\": \"\"},") - 1;
 
-        size += module[i].type.length
+        size += NXT_INT_T_LEN
                 + module[i].version.length
                 + module[i].file.length;
     }
@@ -157,8 +158,8 @@ nxt_discovery_modules(nxt_task_t *task, const char *path)
 
     for (i = 0; i < n; i++) {
         p = nxt_sprintf(p, end,
-              "{\"type\": \"%V\", \"version\": \"%V\", \"file\": \"%V\"},",
-              &module[i].type, &module[i].version, &module[i].file);
+                      "{\"type\": %d, \"version\": \"%V\", \"file\": \"%V\"},",
+                      module[i].type, &module[i].version, &module[i].file);
     }
 
     *p++ = ']';
@@ -181,6 +182,7 @@ nxt_discovery_module(nxt_task_t *task, nxt_mp_t *mp, nxt_array_t *modules,
     nxt_int_t                 ret;
     nxt_uint_t                i, n;
     nxt_module_t              *module;
+    nxt_app_type_t            type;
     nxt_application_module_t  *app;
 
     /*
@@ -211,17 +213,25 @@ nxt_discovery_module(nxt_task_t *task, nxt_mp_t *mp, nxt_array_t *modules,
             goto done;
         }
 
+        type = nxt_app_parse_type(app->type.start, app->type.length);
+
+        if (type == NXT_APP_UNKNOWN) {
+            nxt_log(task, NXT_LOG_NOTICE, "unknown module type %V", app->type);
+
+            goto done;
+        }
+
         module = modules->elts;
         n = modules->nelts;
 
         for (i = 0; i < n; i++) {
-            if (nxt_strstr_eq(&app->type, &module[i].type)
+            if (type == module[i].type
                 && nxt_strstr_eq(&app->version, &module[i].version))
             {
                 nxt_log(task, NXT_LOG_NOTICE,
                         "ignoring %s module with the same "
                         "application language version %V %V as in %V",
-                        name, &module[i].type, &module[i].version,
+                        name, &app->type, &app->version,
                         &module[i].file);
 
                 goto done;
@@ -233,10 +243,7 @@ nxt_discovery_module(nxt_task_t *task, nxt_mp_t *mp, nxt_array_t *modules,
             goto fail;
         }
 
-        s = nxt_str_dup(mp, &module->type, &app->type);
-        if (s == NULL) {
-            goto fail;
-        }
+        module->type = type;
 
         s = nxt_str_dup(mp, &module->version, &app->version);
         if (s == NULL) {
@@ -994,8 +1001,9 @@ nxt_app_lang_module_t *
 nxt_app_lang_module(nxt_runtime_t *rt, nxt_str_t *name)
 {
     u_char                 *p, *end, *version;
-    size_t                 type_length, version_length;
+    size_t                 version_length;
     nxt_uint_t             i, n;
+    nxt_app_type_t         type;
     nxt_app_lang_module_t  *lang;
 
     end = name->start + name->length;
@@ -1013,7 +1021,12 @@ nxt_app_lang_module(nxt_runtime_t *rt, nxt_str_t *name)
         }
     }
 
-    type_length = p - name->start;
+    type = nxt_app_parse_type(name->start, p - name->start);
+
+    if (type == NXT_APP_UNKNOWN) {
+        return NULL;
+    }
+
     version_length = end - version;
 
     lang = rt->languages->elts;
@@ -1026,7 +1039,7 @@ nxt_app_lang_module(nxt_runtime_t *rt, nxt_str_t *name)
          * so first match chooses the highest version.
          */
 
-        if (nxt_str_eq(&lang[i].type, name->start, type_length)
+        if (lang[i].type == type
             && nxt_strvers_match(lang[i].version, version, version_length))
         {
             return &lang[i];
@@ -1037,16 +1050,21 @@ nxt_app_lang_module(nxt_runtime_t *rt, nxt_str_t *name)
 }
 
 
-nxt_app_type_t
-nxt_app_parse_type(nxt_str_t *str)
+static nxt_app_type_t
+nxt_app_parse_type(u_char *p, size_t length)
 {
-    if (nxt_str_eq(str, "python", 6)) {
+    nxt_str_t str;
+
+    str.length = length;
+    str.start = p;
+
+    if (nxt_str_eq(&str, "python", 6)) {
         return NXT_APP_PYTHON;
 
-    } else if (nxt_str_eq(str, "php", 3)) {
+    } else if (nxt_str_eq(&str, "php", 3)) {
         return NXT_APP_PHP;
 
-    } else if (nxt_str_eq(str, "go", 2)) {
+    } else if (nxt_str_eq(&str, "go", 2)) {
         return NXT_APP_GO;
 
     }

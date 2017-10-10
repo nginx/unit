@@ -267,7 +267,6 @@ nxt_conf_vldt_app(nxt_conf_value_t *conf, nxt_str_t *name,
     nxt_conf_value_t *value)
 {
     nxt_str_t              type;
-    nxt_uint_t             n;
     nxt_thread_t           *thread;
     nxt_conf_value_t       *type_value;
     nxt_app_lang_module_t  *lang;
@@ -299,12 +298,7 @@ nxt_conf_vldt_app(nxt_conf_value_t *conf, nxt_str_t *name,
         return NXT_ERROR;
     }
 
-    n = nxt_app_parse_type(&lang->type);
-    if (n != NXT_APP_UNKNOWN) {
-        return nxt_conf_vldt_object(conf, value, members[n]);
-    }
-
-    return NXT_ERROR;
+    return nxt_conf_vldt_object(conf, value, members[lang->type]);
 }
 
 

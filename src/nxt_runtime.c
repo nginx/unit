@@ -90,7 +90,7 @@ nxt_runtime_create(nxt_task_t *task)
 
     /* Should not fail. */
     lang = nxt_array_add(rt->languages);
-    lang->type = (nxt_str_t) nxt_string("go");
+    lang->type = NXT_APP_GO;
     lang->version = (u_char *) "";
     lang->file = NULL;
     lang->module = &nxt_go_module;

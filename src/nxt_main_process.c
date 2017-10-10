@@ -1004,7 +1004,7 @@ fail:
 static nxt_conf_map_t  nxt_app_lang_module_map[] = {
     {
         nxt_string("type"),
-        NXT_CONF_MAP_STR_COPY,
+        NXT_CONF_MAP_INT,
         offsetof(nxt_app_lang_module_t, type),
     },
 
@@ -1091,8 +1091,8 @@ nxt_main_port_modules_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
             goto fail;
         }
 
-        nxt_debug(task, "lang %V %s \"%s\"",
-                  &lang->type, lang->version, lang->file);
+        nxt_debug(task, "lang %d %s \"%s\"",
+                  lang->type, lang->version, lang->file);
     }
 
     qsort(rt->languages->elts, rt->languages->nelts,
@@ -1119,11 +1119,7 @@ nxt_app_lang_compare(const void *v1, const void *v2)
     lang1 = v1;
     lang2 = v2;
 
-    if (lang1->type.length != lang2->type.length) {
-        return lang1->type.length - lang2->type.length;
-    }
-
-    n = nxt_strncmp(lang1->type.start, lang2->type.start, lang1->type.length);
+    n = lang1->type - lang2->type;
 
     if (n != 0) {
         return n;

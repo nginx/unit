@@ -960,7 +960,6 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_int_t                   ret;
     nxt_str_t                   name;
     nxt_app_t                   *app, *prev;
-    nxt_app_type_t              type;
     nxt_sockaddr_t              *sa;
     nxt_conf_value_t            *conf, *http;
     nxt_conf_value_t            *applications, *application;
@@ -1082,20 +1081,6 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
         nxt_debug(task, "application language module: \"%s\"", lang->file);
 
-        type = nxt_app_parse_type(&lang->type);
-
-        if (type == NXT_APP_UNKNOWN) {
-            nxt_log(task, NXT_LOG_CRIT, "unknown application type: \"%V\"",
-                    &lang->type);
-            goto app_fail;
-        }
-
-        if (nxt_app_prepare_msg[type] == NULL) {
-            nxt_log(task, NXT_LOG_CRIT, "unsupported application type: \"%V\"",
-                    &lang->type);
-            goto app_fail;
-        }
-
         ret = nxt_thread_mutex_create(&app->mutex);
         if (ret != NXT_OK) {
             goto app_fail;
@@ -1107,12 +1092,12 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         app->name.length = name.length;
         nxt_memcpy(app->name.start, name.start, name.length);
 
-        app->type = type;
+        app->type = lang->type;
         app->max_workers = apcf.workers;
         app->timeout = apcf.timeout;
         app->live = 1;
         app->max_pending_responses = 2;
-        app->prepare_msg = nxt_app_prepare_msg[type];
+        app->prepare_msg = nxt_app_prepare_msg[lang->type];
 
         nxt_queue_insert_tail(&tmcf->apps, &app->link);
 
