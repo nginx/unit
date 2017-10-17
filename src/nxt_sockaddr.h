@@ -41,11 +41,9 @@ struct nxt_sockaddr_s {
      * Port length is (start + length) - port_start.
      */
     uint8_t                       port_start;
-    /*
-     * Size of the whole structure: struct sockaddr union and maximal textual
-     * representation, used to place sockaddr into appropriate free list.
-     */
-    uint8_t                       sockaddr_size;
+
+    /* A cache hist used to place sockaddr into appropriate free list. */
+    uint8_t                       cache_hint;
 
     union {
         struct sockaddr           sockaddr;
@@ -70,7 +68,7 @@ typedef struct {
 
 
 nxt_sockaddr_t *nxt_sockaddr_cache_alloc(nxt_event_engine_t *engine,
-    nxt_listen_event_t *lev);
+    nxt_listen_socket_t *ls);
 void nxt_sockaddr_cache_free(nxt_event_engine_t *engine, nxt_conn_t *c);
 
 NXT_EXPORT nxt_sockaddr_t *nxt_sockaddr_alloc(nxt_mp_t *mp, socklen_t socklen,
@@ -107,6 +105,8 @@ NXT_EXPORT nxt_int_t nxt_inet6_addr(struct in6_addr *in6_addr, u_char *buf,
     (sizeof("[ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]:65535") - 1)
 
 
+#define nxt_sockaddr_size(sa)                                                 \
+    (offsetof(nxt_sockaddr_t, u) + sa->socklen + sa->length)
 #define nxt_sockaddr_start(sa)    nxt_pointer_to(sa, (sa)->start)
 #define nxt_sockaddr_address(sa)  nxt_pointer_to(sa, (sa)->address_start)
 #define nxt_sockaddr_port(sa)     nxt_pointer_to(sa, (sa)->port_start)

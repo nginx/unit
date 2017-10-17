@@ -21,23 +21,22 @@ static nxt_int_t nxt_job_sockaddr_inet_parse(nxt_job_sockaddr_parse_t *jbs);
 
 
 nxt_sockaddr_t *
-nxt_sockaddr_cache_alloc(nxt_event_engine_t *engine, nxt_listen_event_t *lev)
+nxt_sockaddr_cache_alloc(nxt_event_engine_t *engine, nxt_listen_socket_t *ls)
 {
-    size_t               size;
-    nxt_sockaddr_t       *sa;
-    nxt_listen_socket_t  *ls;
+    uint8_t         hint;
+    size_t          size;
+    nxt_sockaddr_t  *sa;
 
-    ls = lev->listen;
-
+    hint = (uint8_t) -1;
     size = offsetof(nxt_sockaddr_t, u) + ls->socklen + ls->address_length;
 
-    sa = nxt_event_engine_mem_alloc(engine, &lev->mem_cache, size);
+    sa = nxt_event_engine_mem_alloc(engine, &hint, size);
 
     if (nxt_fast_path(sa != NULL)) {
         /* Zero only beginning of structure up to sockaddr_un.sun_path[1]. */
         nxt_memzero(sa, offsetof(nxt_sockaddr_t, u.sockaddr.sa_data[1]));
 
-        sa->sockaddr_size = size;
+        sa->cache_hint = hint;
         sa->socklen = ls->socklen;
         sa->length = ls->address_length;
 
@@ -57,7 +56,7 @@ nxt_sockaddr_cache_alloc(nxt_event_engine_t *engine, nxt_listen_event_t *lev)
 void
 nxt_sockaddr_cache_free(nxt_event_engine_t *engine, nxt_conn_t *c)
 {
-    nxt_event_engine_mem_free(engine, &c->listen->mem_cache, c->remote);
+    nxt_event_engine_mem_free(engine, &c->remote->cache_hint, c->remote);
 }
 
 
@@ -82,7 +81,6 @@ nxt_sockaddr_alloc(nxt_mp_t *mp, socklen_t socklen, size_t address_length)
     if (nxt_fast_path(sa != NULL)) {
         sa->socklen = socklen;
         sa->length = address_length;
-        sa->sockaddr_size = size;
     }
 
     return sa;
@@ -239,7 +237,7 @@ nxt_sockaddr_text(nxt_sockaddr_t *sa)
     sa->port_start = offset;
 
     start = nxt_pointer_to(sa, offset);
-    end = nxt_pointer_to(sa, sa->sockaddr_size);
+    end = start + sa->length;
 
     switch (sa->u.sockaddr.sa_family) {
 

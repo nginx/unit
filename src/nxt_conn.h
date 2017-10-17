@@ -103,7 +103,6 @@ typedef struct {
 
     uint32_t                      ready;
     uint32_t                      batch;
-    uint32_t                      mem_cache;  /* 8 bits */
 
     /* An accept() interface is cached to minimize memory accesses. */
     nxt_work_handler_t            accept;

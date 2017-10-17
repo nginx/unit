@@ -46,8 +46,6 @@ nxt_listen_event(nxt_task_t *task, nxt_listen_socket_t *ls)
         engine = task->thread->engine;
         lev->batch = engine->batch;
 
-        lev->mem_cache = (uint32_t) -1;
-
         lev->socket.read_work_queue = &engine->accept_work_queue;
         lev->socket.read_handler = nxt_conn_listen_handler;
         lev->socket.error_handler = nxt_conn_listen_event_error;
@@ -105,7 +103,7 @@ nxt_conn_accept_alloc(nxt_task_t *task, nxt_listen_event_t *lev)
             c->socket.write_ready = 1;
             c->listen = lev;
 
-            c->remote = nxt_sockaddr_cache_alloc(engine, lev);
+            c->remote = nxt_sockaddr_cache_alloc(engine, lev->listen);
             if (nxt_fast_path(c->remote != NULL)) {
                 return c;
             }

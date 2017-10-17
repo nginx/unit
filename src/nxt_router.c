@@ -1301,6 +1301,7 @@ static void
 nxt_router_listen_socket_rpc_create(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_socket_conf_t *skcf)
 {
+    size_t            size;
     uint32_t          stream;
     nxt_buf_t         *b;
     nxt_port_t        *main_port, *router_port;
@@ -1315,13 +1316,14 @@ nxt_router_listen_socket_rpc_create(nxt_task_t *task,
     rpc->socket_conf = skcf;
     rpc->temp_conf = tmcf;
 
-    b = nxt_buf_mem_alloc(tmcf->mem_pool, skcf->sockaddr->sockaddr_size, 0);
+    size = nxt_sockaddr_size(skcf->sockaddr);
+
+    b = nxt_buf_mem_alloc(tmcf->mem_pool, size, 0);
     if (b == NULL) {
         goto fail;
     }
 
-    b->mem.free = nxt_cpymem(b->mem.free, skcf->sockaddr,
-                             skcf->sockaddr->sockaddr_size);
+    b->mem.free = nxt_cpymem(b->mem.free, skcf->sockaddr, size);
 
     rt = task->thread->runtime;
     main_port = rt->port_by_type[NXT_PROCESS_MAIN];

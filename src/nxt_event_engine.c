@@ -556,10 +556,10 @@ nxt_event_engine_start(nxt_event_engine_t *engine)
 
 
 void *
-nxt_event_engine_mem_alloc(nxt_event_engine_t *engine, uint32_t *slot,
+nxt_event_engine_mem_alloc(nxt_event_engine_t *engine, uint8_t *slot,
     size_t size)
 {
-    uint32_t               n;
+    uint8_t                n;
     nxt_uint_t             items;
     nxt_array_t            *mem_cache;
     nxt_mem_cache_t        *cache;
@@ -568,7 +568,7 @@ nxt_event_engine_mem_alloc(nxt_event_engine_t *engine, uint32_t *slot,
     mem_cache = engine->mem_cache;
     n = *slot;
 
-    if (n == (uint32_t) -1) {
+    if (n == (uint8_t) -1) {
 
         if (mem_cache == NULL) {
             /* IPv4 nxt_sockaddr_t and HTTP/1 and HTTP/2 buffers. */
@@ -618,7 +618,6 @@ nxt_event_engine_mem_alloc(nxt_event_engine_t *engine, uint32_t *slot,
     if (block != NULL) {
         cache->free = block->next;
         cache->count--;
-
         return block;
     }
 
@@ -627,7 +626,7 @@ nxt_event_engine_mem_alloc(nxt_event_engine_t *engine, uint32_t *slot,
 
 
 void
-nxt_event_engine_mem_free(nxt_event_engine_t *engine, uint32_t *slot, void *p)
+nxt_event_engine_mem_free(nxt_event_engine_t *engine, uint8_t *slot, void *p)
 {
     nxt_mem_cache_t        *cache;
     nxt_mem_cache_block_t  *block;

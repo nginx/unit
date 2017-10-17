@@ -512,9 +512,9 @@ NXT_EXPORT void nxt_event_engine_post(nxt_event_engine_t *engine,
 NXT_EXPORT void nxt_event_engine_signal(nxt_event_engine_t *engine,
     nxt_uint_t signo);
 
-void *nxt_event_engine_mem_alloc(nxt_event_engine_t *engine, uint32_t *slot,
+void *nxt_event_engine_mem_alloc(nxt_event_engine_t *engine, uint8_t *slot,
     size_t size);
-void nxt_event_engine_mem_free(nxt_event_engine_t *engine, uint32_t *slot,
+void nxt_event_engine_mem_free(nxt_event_engine_t *engine, uint8_t *slot,
     void *p);
 
 
