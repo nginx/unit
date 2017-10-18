@@ -177,9 +177,9 @@ fail:
 
 
 void
-nxt_listen_socket_remote_size(nxt_listen_socket_t *ls, nxt_sockaddr_t *sa)
+nxt_listen_socket_remote_size(nxt_listen_socket_t *ls)
 {
-    switch (sa->u.sockaddr.sa_family) {
+    switch (ls->sockaddr->u.sockaddr.sa_family) {
 
 #if (NXT_INET6)
 

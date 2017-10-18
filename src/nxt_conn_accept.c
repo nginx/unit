@@ -101,7 +101,6 @@ nxt_conn_accept_alloc(nxt_task_t *task, nxt_listen_event_t *lev)
             lev->next = c;
             c->socket.read_work_queue = lev->socket.read_work_queue;
             c->socket.write_ready = 1;
-            c->listen = lev;
 
             c->remote = nxt_sockaddr_cache_alloc(engine, lev->listen);
             if (nxt_fast_path(c->remote != NULL)) {

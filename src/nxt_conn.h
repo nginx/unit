@@ -155,7 +155,9 @@ struct nxt_conn_s {
     nxt_task_t                    task;
     nxt_log_t                     log;
 
-    nxt_listen_event_t            *listen;
+    /* STUB: socket.data should be used later. */
+    void                          *joint;
+
     nxt_sockaddr_t                *remote;
     nxt_sockaddr_t                *local;
     const char                    *action;

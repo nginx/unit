@@ -105,20 +105,19 @@ struct nxt_app_s {
 
 typedef struct {
     uint32_t               count;
-    nxt_socket_t           fd;
-} nxt_router_socket_t;
-
-
-typedef struct {
-    uint32_t               count;
     nxt_queue_link_t       link;
-    nxt_router_socket_t    *socket;
     nxt_router_conf_t      *router_conf;
-    nxt_sockaddr_t         *sockaddr;
 
     nxt_app_t              *application;
 
-    nxt_listen_socket_t    listen;
+    /*
+     * A listen socket time can be shorter than socket configuration life
+     * time, so a copy of the non-wildcard socket sockaddr is stored here
+     * to be used as a local sockaddr in connections.
+     */
+    nxt_sockaddr_t         *sockaddr;
+
+    nxt_listen_socket_t    *listen;
 
     size_t                 header_buffer_size;
     size_t                 large_header_buffer_size;
