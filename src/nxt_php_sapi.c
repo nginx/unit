@@ -168,7 +168,7 @@ nxt_php_str_trim_lead(nxt_str_t *str, u_char t)
 }
 
 static uint32_t  compat[] = {
-    NXT_VERNUM,
+    NXT_VERNUM, NXT_DEBUG,
 };
 
 

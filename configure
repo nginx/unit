@@ -134,9 +134,18 @@ esac
 
 
 if [ $NXT_DEBUG = YES ]; then
-    nxt_have=NXT_DEBUG . auto/have
+    nxt_debug=1
+else
+    nxt_debug=0
 fi
 
+cat << END >> $NXT_AUTO_CONFIG_H
+
+#ifndef NXT_DEBUG
+#define NXT_DEBUG  $nxt_debug
+#endif
+
+END
 
 . auto/test_build
 . auto/sources

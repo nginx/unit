@@ -92,7 +92,7 @@ nxt_inline nxt_int_t nxt_python_write_py_str(nxt_python_run_ctx_t *ctx,
 
 
 static uint32_t  compat[] = {
-    NXT_VERNUM,
+    NXT_VERNUM, NXT_DEBUG,
 };
 
 

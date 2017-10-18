@@ -39,7 +39,7 @@ static nxt_application_module_t      *nxt_app;
 
 
 static uint32_t  compat[] = {
-    NXT_VERNUM,
+    NXT_VERNUM, NXT_DEBUG,
 };
 
 
