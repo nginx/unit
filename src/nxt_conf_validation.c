@@ -222,6 +222,31 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_go_members[] = {
 };
 
 
+static nxt_conf_vldt_object_t  nxt_conf_vldt_ruby_members[] = {
+    { nxt_string("type"),
+      NXT_CONF_STRING,
+      NULL,
+      NULL, },
+
+    { nxt_string("workers"),
+      NXT_CONF_INTEGER,
+      NULL,
+      NULL },
+
+    { nxt_string("rack_root"),
+      NXT_CONF_STRING,
+      NULL,
+      NULL, },
+
+    { nxt_string("rack_script"),
+      NXT_CONF_STRING,
+      NULL,
+      NULL, },
+
+    { nxt_null_string, 0, NULL, NULL }
+};
+
+
 nxt_int_t
 nxt_conf_validate(nxt_conf_validation_t *vldt)
 {
@@ -364,6 +389,7 @@ nxt_conf_vldt_app(nxt_conf_validation_t *vldt, nxt_str_t *name,
         nxt_conf_vldt_python_members,
         nxt_conf_vldt_php_members,
         nxt_conf_vldt_go_members,
+        nxt_conf_vldt_ruby_members,
     };
 
     ret = nxt_conf_vldt_type(vldt, name, value, NXT_CONF_OBJECT);

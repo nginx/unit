@@ -39,6 +39,9 @@ NXT_TEST_BUILD_HPUX_SENDFILE=NO
 
 NXT_TESTS=NO
 
+NXT_RUBY=ruby
+NXT_RUBY_MODULE=NO
+
 for nxt_option
 do
     case "$nxt_option" in
@@ -96,6 +99,9 @@ do
             . auto/help
             exit 0
         ;;
+
+        --with-ruby=*)                   NXT_RUBY="$value"                   ;;
+        --with-ruby_module)              NXT_RUBY_MODULE=YES                 ;;
 
         *)
             $echo

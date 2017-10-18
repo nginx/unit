@@ -153,6 +153,18 @@ static nxt_conf_map_t  nxt_common_app_conf[] = {
         NXT_CONF_MAP_CSTRZ,
         offsetof(nxt_common_app_conf_t, u.go.executable),
     },
+
+    {
+        nxt_string("rack_script"),
+        NXT_CONF_MAP_STR,
+        offsetof(nxt_common_app_conf_t, u.ruby.index),
+    },
+
+    {
+        nxt_string("rack_root"),
+        NXT_CONF_MAP_STR,
+        offsetof(nxt_common_app_conf_t, u.ruby.root),
+    }
 };
 
 
@@ -1058,7 +1070,7 @@ nxt_main_port_modules_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         return;
     }
 
-    nxt_debug(task, "application languages: \"%*s\"",
+    nxt_log(task, NXT_LOG_ALERT, "application languages: \"%*s\"",
               b->mem.free - b->mem.pos, b->mem.pos);
 
     conf = nxt_conf_json_parse(mp, b->mem.pos, b->mem.free, NULL);

@@ -2,7 +2,6 @@
 # Copyright (C) Igor Sysoev
 # Copyright (C) NGINX, Inc.
 
-
 case "$nxt_module" in
 
    python)
@@ -15,6 +14,10 @@ case "$nxt_module" in
 
    go)
        . auto/modules/go
+   ;;
+
+   ruby)
+       . auto/modules/ruby
    ;;
 
    *)

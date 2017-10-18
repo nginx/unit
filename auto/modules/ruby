@@ -1,0 +1,175 @@
+
+# Copyright (C) Fedor Sakharov
+
+
+shift
+
+for nxt_option; do
+
+    case "$nxt_option" in
+        -*=*) value=`echo "$nxt_option" | sed -e 's/[-_a-zA-Z0-9]*=//'`     ;;
+           *) value="" ;;
+    esac
+
+    case "$nxt_option" in
+        --config=*)     NXT_RUBY_CONFIG="$value"                            ;;
+        --module=*)     NXT_RUBY_MODULE="$value"                            ;;
+        --lib-path=*)   NXT_RUBY_LIB_PATH="$value"                          ;;
+
+        --help)
+            cat << END
+
+    --config=FILE           set ruby-config filename
+    --module=NAME           set unit ruby module name
+    --lib-path=DIRECTORY    set directory path to libruby.so library
+
+END
+            exit 0
+        ;;
+
+        *)
+            echo
+            echo $0: error: invalid RUBY option \"$nxt_option\"
+            echo
+            exit 1
+        ;;
+
+    esac
+
+done
+
+
+if [ ! -f $NXT_AUTOCONF_DATA ]; then
+    echo
+    echo Please run common $0 before configuring module \"$nxt_module\".
+    echo
+    exit 1
+fi
+
+. $NXT_AUTOCONF_DATA
+
+
+NXT_RUBY_CONFIG=${NXT_RUBY_CONFIG=ruby-config}
+NXT_RUBY=${NXT_RUBY_CONFIG%-config*}
+NXT_RUBY_MODULE=${NXT_RUBY_MODULE=${NXT_RUBY##*/}}
+NXT_RUBY_LIB_PATH=${NXT_RUBY_LIB_PATH=}
+
+
+$echo "configuring RUBY module"
+$echo "configuring RUBY module ..." >> $NXT_AUTOCONF_ERR
+
+$echo -n "checking for RUBY ..."
+$echo "checking for RUBY ..." >> $NXT_AUTOCONF_ERR
+
+
+NXT_RUBY_LDFLAGS=
+
+if /bin/sh -c "ruby --version" >> $NXT_AUTOCONF_ERR 2>&1; then
+
+    $echo " found"
+
+    NXT_RUBY_VERSION="`ruby --version`"
+    $echo " + RUBY version: ${NXT_RUBY_VERSION}"
+
+    NXT_RUBY_INCLUDE="-I/usr/include/ruby-2.3.0/ -I/usr/include/x86_64-linux-gnu/ruby-2.3.0/"
+    NXT_RUBY_LIB="-lruby-2.3"
+
+    if [ "$NXT_RUBY_LIB_PATH" != "" ]; then
+        NXT_RUBY_LDFLAGS="-L${NXT_RUBY_LIB_PATH} -Wl,-rpath ${NXT_RUBY_LIB_PATH}"
+    fi
+
+    nxt_feature="RUBY embed RACK"
+    nxt_feature_name=NXT_HAVE_RUBY
+    nxt_feature_run=no
+    nxt_feature_incs="${NXT_RUBY_INCLUDE}"
+    nxt_feature_libs="${NXT_RUBY_LIB} ${NXT_RUBY_LDFLAGS}"
+    nxt_feature_test="
+        #include <ruby.h>
+        
+        int main() {
+            ruby_setup();
+            return 0;
+        }"
+
+    . auto/feature
+
+    if [ $nxt_found = no ]; then
+        $echo
+        $echo $NXT_RUBY_LDFLAGS
+        $echo $NXT_RUBY_INCLUDE
+        $echo $0: error: no RUBY embed RACK found.
+        $echo
+        exit 1;
+    fi
+
+else
+    $echo
+    $echo $0: error: no RUBY found.
+    $echo
+    exit 1;
+fi
+
+if grep ^$NXT_RUBY_MODULE: $NXT_MAKEFILE 2>&1 > /dev/null; then
+    $echo
+    $echo $0: error: duplicate \"$NXT_RUBY_MODULE\" module configured
+    $echo
+    exit 1;
+fi
+
+$echo " + RUBY module: ${NXT_RUBY_MODULE}.unit.so"
+
+$echo >> $NXT_MAKEFILE
+
+NXT_RUBY_MODULES_SRCS=" \
+    src/nxt_ruby_rack.c
+"
+
+# The ruby module object files
+
+nxt_objs=
+
+for nxt_src in $NXT_RUBY_MODULES_SRCS; do
+
+    nxt_obj=`$echo $nxt_src | sed -e "s/\.c$/-$NXT_RUBY_MODULE.o/"`
+    nxt_objs="$nxt_objs $NXT_BUILD_DIR/$nxt_obj"
+
+    cat << END >> $NXT_MAKEFILE
+
+$NXT_BUILD_DIR/$nxt_obj:   $nxt_src
+	\$(CC) -c \$(CFLAGS) \$(NXT_INCS) $NXT_RUBY_INCLUDE \\
+	-o $NXT_BUILD_DIR/$nxt_obj $nxt_src
+END
+
+done
+
+
+cat << END >> $NXT_MAKEFILE
+
+.PHONY: ${NXT_RUBY_MODULE}
+.PHONY: ${NXT_RUBY_MODULE}-install
+.PHONY: ${NXT_RUBY_MODULE}-uninstall
+
+all: ${NXT_RUBY_MODULE}
+
+${NXT_RUBY_MODULE}:  $NXT_BUILD_DIR/${NXT_RUBY_MODULE}.unit.so
+
+$NXT_BUILD_DIR/${NXT_RUBY_MODULE}.unit.so:  $nxt_objs
+	$NXT_MODULE_LINK -o $NXT_BUILD_DIR/${NXT_RUBY_MODULE}.unit.so \\
+	$nxt_objs ${NXT_RUBY_LIB} ${NXT_RUBY_LDFLAGS}
+
+
+install: ${NXT_RUBY_MODULE}-install
+
+${NXT_RUBY_MODULE}-install: ${NXT_RUBY_MODULE}
+	install -d \$(DESTDIR)$NXT_MODULES
+	install -p $NXT_BUILD_DIR/${NXT_RUBY_MODULE}.unit.so \\
+		\$(DESTDIR)$NXT_MODULES/
+
+
+uninstall: ${NXT_RUBY_MODULE}-uninstall
+
+${NXT_RUBY_MODULE}-uninstall:
+	rm -f \$(DESTDIR)$NXT_MODULES/${NXT_RUBY_MODULE}.unit.so
+	@rmdir -p \$(DESTDIR)$NXT_MODULES 2>/dev/null || true
+
+END
