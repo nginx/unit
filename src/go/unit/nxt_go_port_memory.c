@@ -105,7 +105,8 @@ nxt_go_new_port_mmap(nxt_go_process_t *process, nxt_port_id_t id)
     memset(hdr->free_map, 0xFFU, sizeof(hdr->free_map));
 
     hdr->id = process->outgoing.nelts - 1;
-    hdr->pid = process->pid;
+    hdr->src_pid = getpid();
+    hdr->dst_pid = process->pid;
     hdr->sent_over = id;
 
     /* Mark first chunk as busy */
@@ -136,7 +137,7 @@ nxt_go_new_port_mmap(nxt_go_process_t *process, nxt_port_id_t id)
      */
     memcpy(CMSG_DATA(&cmsg.cm), &fd, sizeof(int));
 
-    rc = nxt_go_port_send(hdr->pid, id, &port_msg, sizeof(port_msg),
+    rc = nxt_go_port_send(hdr->dst_pid, id, &port_msg, sizeof(port_msg),
                           &cmsg, sizeof(cmsg));
 
     nxt_go_debug("new mmap #%d created for %d -> %d",

@@ -107,6 +107,13 @@ nxt_port_mmap_buf_completion(nxt_task_t *task, void *obj, void *data)
 
     hdr = data;
 
+    if (nxt_slow_path(hdr->src_pid != nxt_pid && hdr->dst_pid != nxt_pid)) {
+        nxt_debug(task, "mmap buf completion: mmap for other process pair "
+                  "%PI->%PI", hdr->src_pid, hdr->dst_pid);
+
+        goto release_buf;
+    }
+
     if (b->is_port_mmap_sent && b->mem.pos > b->mem.start) {
         /*
          * Chunks until b->mem.pos has been sent to other side,
@@ -123,9 +130,9 @@ nxt_port_mmap_buf_completion(nxt_task_t *task, void *obj, void *data)
 
     nxt_port_mmap_free_junk(p, b->mem.end - p);
 
-    nxt_debug(task, "mmap buf completion: %p [%p,%d] (sent=%d), %PI,%d,%d", b,
-              b->mem.start, b->mem.end - b->mem.start, b->is_port_mmap_sent,
-              hdr->pid, hdr->id, c);
+    nxt_debug(task, "mmap buf completion: %p [%p,%d] (sent=%d), "
+              "%PI->%PI,%d,%d", b, b->mem.start, b->mem.end - b->mem.start,
+              b->is_port_mmap_sent, hdr->src_pid, hdr->dst_pid, hdr->id, c);
 
     while (p < b->mem.end) {
         nxt_port_mmap_set_chunk_free(hdr, c);
@@ -133,6 +140,8 @@ nxt_port_mmap_buf_completion(nxt_task_t *task, void *obj, void *data)
         p += PORT_MMAP_CHUNK_SIZE;
         c++;
     }
+
+release_buf:
 
     nxt_mp_release(mp, b);
 }
@@ -197,6 +206,9 @@ nxt_port_incoming_port_mmap(nxt_task_t *task, nxt_process_t *process,
                 port_mmap->hdr->id, process->incoming->nelts - 1);
         nxt_abort();
     }
+
+    nxt_assert(hdr->src_pid == process->pid);
+    nxt_assert(hdr->dst_pid == nxt_pid);
 
     hdr->sent_over = 0xFFFFu;
 
@@ -298,7 +310,8 @@ nxt_port_new_port_mmap(nxt_task_t *task, nxt_process_t *process,
     nxt_memset(hdr->free_map, 0xFFU, sizeof(hdr->free_map));
 
     hdr->id = process->outgoing->nelts - 1;
-    hdr->pid = process->pid;
+    hdr->src_pid = nxt_pid;
+    hdr->dst_pid = process->pid;
     hdr->sent_over = port->id;
 
     /* Mark first chunk as busy */
@@ -307,8 +320,7 @@ nxt_port_new_port_mmap(nxt_task_t *task, nxt_process_t *process,
     /* Mark as busy chunk followed the last available chunk. */
     nxt_port_mmap_set_chunk_busy(hdr, PORT_MMAP_CHUNK_COUNT);
 
-    nxt_debug(task, "send mmap fd %FD to process %PI", fd,
-              port->pid);
+    nxt_debug(task, "send mmap fd %FD to process %PI", fd, port->pid);
 
     /* TODO handle error */
     (void) nxt_port_socket_write(task, port, NXT_PORT_MSG_MMAP, fd, 0, 0, NULL);
@@ -452,9 +464,9 @@ nxt_port_mmap_get_buf(nxt_task_t *task, nxt_port_t *port, size_t size)
         nchunks++;
     }
 
-    nxt_debug(task, "outgoing mmap buf allocation: %p [%p,%d] %PI,%d,%d", b,
-              b->mem.start, b->mem.end - b->mem.start,
-              hdr->pid, hdr->id, c);
+    nxt_debug(task, "outgoing mmap buf allocation: %p [%p,%d] %PI->%PI,%d,%d",
+              b, b->mem.start, b->mem.end - b->mem.start,
+              hdr->src_pid, hdr->dst_pid, hdr->id, c);
 
     c++;
     nchunks--;
@@ -576,9 +588,9 @@ nxt_port_mmap_get_incoming_buf(nxt_task_t *task, nxt_port_t *port,
 
     b->parent = hdr;
 
-    nxt_debug(task, "incoming mmap buf allocation: %p [%p,%d] %PI,%d,%d",
+    nxt_debug(task, "incoming mmap buf allocation: %p [%p,%d] %PI->%PI,%d,%d",
               b, b->mem.start, b->mem.end - b->mem.start,
-              hdr->pid, hdr->id, mmap_msg->chunk_id);
+              hdr->src_pid, hdr->dst_pid, hdr->id, mmap_msg->chunk_id);
 
     return b;
 }
@@ -699,10 +711,10 @@ nxt_port_mmap_get_method(nxt_task_t *task, nxt_port_t *port, nxt_buf_t *b)
                 break;
             }
 
-            if (port->pid != hdr->pid) {
+            if (port->pid != hdr->dst_pid) {
                 nxt_log_error(NXT_LOG_ERR, task->log,
                               "send mmap buffer for %PI to %PI, "
-                              "using plain mode", hdr->pid, port->pid);
+                              "using plain mode", hdr->dst_pid, port->pid);
 
                 m = NXT_PORT_METHOD_PLAIN;
 

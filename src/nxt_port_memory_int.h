@@ -48,7 +48,8 @@ typedef nxt_atomic_uint_t  nxt_free_map_t;
 /* Mapped at the start of shared memory segment. */
 struct nxt_port_mmap_header_s {
     uint32_t        id;
-    nxt_pid_t       pid; /* For sanity check. */
+    nxt_pid_t       src_pid; /* For sanity check. */
+    nxt_pid_t       dst_pid; /* For sanity check. */
     nxt_port_id_t   sent_over;
     nxt_free_map_t  free_map[MAX_FREE_IDX];
 };
