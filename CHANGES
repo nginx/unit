@@ -1,5 +1,27 @@
 
-Changes with unit 0.1                                            06 Sep 2017
+Changes with Unit 0.2                                            19 Oct 2017
+
+    *) Feature: Go package improvements.
+
+    *) Feature: configuration persistence.
+
+    *) Feature: improved handling of configuration errors.
+
+    *) Feature: application "timeout" property.
+
+    *) Bugfix: Go application crashed under load.
+
+    *) Bugfix: POST request for PHP were handled incorrectly.
+
+    *) Bugfix: the router exited abnormally if all listeners had been
+       deleted.
+
+    *) Bugfix: the router crashed under load.
+
+    *) Bugfix: memory leak in the router.
+
+
+Changes with Unit 0.1                                            06 Sep 2017
 
     *) First public release.
 
