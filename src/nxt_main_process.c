@@ -25,6 +25,8 @@ static nxt_int_t nxt_main_process_port_create(nxt_task_t *task,
 static void nxt_main_process_title(nxt_task_t *task);
 static nxt_int_t nxt_main_start_controller_process(nxt_task_t *task,
     nxt_runtime_t *rt);
+static nxt_int_t nxt_main_create_controller_process(nxt_task_t *task,
+    nxt_runtime_t *rt, nxt_process_init_t *init);
 static nxt_int_t nxt_main_start_router_process(nxt_task_t *task,
     nxt_runtime_t *rt);
 static nxt_int_t nxt_main_start_discovery_process(nxt_task_t *task,
@@ -323,12 +325,35 @@ nxt_main_process_title(nxt_task_t *task)
 static nxt_int_t
 nxt_main_start_controller_process(nxt_task_t *task, nxt_runtime_t *rt)
 {
-    ssize_t             n;
-    nxt_int_t           ret;
-    nxt_str_t           conf;
-    nxt_file_t          file;
-    nxt_file_info_t     fi;
     nxt_process_init_t  *init;
+
+    init = nxt_malloc(sizeof(nxt_process_init_t));
+    if (nxt_slow_path(init == NULL)) {
+        return NXT_ERROR;
+    }
+
+    init->start = nxt_controller_start;
+    init->name = "controller";
+    init->user_cred = &rt->user_cred;
+    init->port_handlers = &nxt_controller_process_port_handlers;
+    init->signals = nxt_worker_process_signals;
+    init->type = NXT_PROCESS_CONTROLLER;
+    init->stream = 0;
+    init->restart = &nxt_main_create_controller_process;
+
+    return nxt_main_create_controller_process(task, rt, init);;
+}
+
+
+static nxt_int_t
+nxt_main_create_controller_process(nxt_task_t *task, nxt_runtime_t *rt,
+    nxt_process_init_t *init)
+{
+    ssize_t          n;
+    nxt_int_t        ret;
+    nxt_str_t        conf;
+    nxt_file_t       file;
+    nxt_file_info_t  fi;
 
     conf.length = 0;
 
@@ -365,20 +390,7 @@ nxt_main_start_controller_process(nxt_task_t *task, nxt_runtime_t *rt)
         nxt_file_close(task, &file);
     }
 
-    init = nxt_malloc(sizeof(nxt_process_init_t));
-    if (nxt_slow_path(init == NULL)) {
-        return NXT_ERROR;
-    }
-
-    init->start = nxt_controller_start;
-    init->name = "controller";
-    init->user_cred = &rt->user_cred;
-    init->port_handlers = &nxt_controller_process_port_handlers;
-    init->signals = nxt_worker_process_signals;
-    init->type = NXT_PROCESS_CONTROLLER;
     init->data = &conf;
-    init->stream = 0;
-    init->restart = 1;
 
     ret = nxt_main_create_worker_process(task, rt, init);
 
@@ -408,7 +420,7 @@ nxt_main_start_discovery_process(nxt_task_t *task, nxt_runtime_t *rt)
     init->type = NXT_PROCESS_DISCOVERY;
     init->data = rt;
     init->stream = 0;
-    init->restart = 0;
+    init->restart = NULL;
 
     return nxt_main_create_worker_process(task, rt, init);
 }
@@ -432,7 +444,7 @@ nxt_main_start_router_process(nxt_task_t *task, nxt_runtime_t *rt)
     init->type = NXT_PROCESS_ROUTER;
     init->data = rt;
     init->stream = 0;
-    init->restart = 1;
+    init->restart = &nxt_main_create_worker_process;
 
     return nxt_main_create_worker_process(task, rt, init);
 }
@@ -494,7 +506,7 @@ nxt_main_start_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
     init->type = NXT_PROCESS_WORKER;
     init->data = app_conf;
     init->stream = stream;
-    init->restart = 0;
+    init->restart = NULL;
 
     return nxt_main_create_worker_process(task, rt, init);
 }
@@ -810,8 +822,8 @@ nxt_main_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid)
             }
 
         } else if (init != NULL) {
-            if (init->restart != 0) {
-                (void) nxt_main_create_worker_process(task, rt, init);
+            if (init->restart != NULL) {
+                init->restart(task, rt, init);
 
             } else {
                 nxt_free(init);

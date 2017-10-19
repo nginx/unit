@@ -23,6 +23,8 @@ typedef struct {
 
 typedef struct nxt_process_init_s  nxt_process_init_t;
 typedef nxt_int_t (*nxt_process_start_t)(nxt_task_t *task, void *data);
+typedef nxt_int_t (*nxt_process_restart_t)(nxt_task_t *task, nxt_runtime_t *rt,
+    nxt_process_init_t *init);
 
 
 struct nxt_process_init_s {
@@ -38,7 +40,7 @@ struct nxt_process_init_s {
     void                   *data;
     uint32_t               stream;
 
-    nxt_bool_t             restart;
+    nxt_process_restart_t  restart;
 };
 
 
