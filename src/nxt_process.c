@@ -18,13 +18,31 @@ nxt_pid_t  nxt_pid;
 /* An original parent process pid. */
 nxt_pid_t  nxt_ppid;
 
+nxt_bool_t  nxt_proc_conn_martix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
+    { 0, 0, 0, 0, 0, 0 },
+    { 0, 1, 1, 1, 1, 1 },
+    { 0, 1, 0, 0, 0, 0 },
+    { 0, 1, 0, 0, 1, 0 },
+    { 0, 1, 0, 1, 0, 1 },
+    { 0, 1, 0, 0, 0, 0 },
+};
+
+nxt_bool_t  nxt_proc_remove_notify_martix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
+    { 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 1, 0 },
+    { 0, 0, 0, 1, 0, 1 },
+    { 0, 0, 0, 0, 1, 0 },
+};
 
 nxt_pid_t
 nxt_process_create(nxt_task_t *task, nxt_process_t *process)
 {
-    nxt_pid_t      pid;
-    nxt_process_t  *p;
-    nxt_runtime_t  *rt;
+    nxt_pid_t           pid;
+    nxt_process_t       *p;
+    nxt_runtime_t       *rt;
+    nxt_process_type_t  ptype;
 
     rt = task->thread->runtime;
 
@@ -48,6 +66,8 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
 
         rt->types = 0;
 
+        ptype = process->init->type;
+
         nxt_port_reset_next_id();
 
         nxt_event_engine_thread_adopt(task->thread->engine);
@@ -55,15 +75,24 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
         /* Remove not ready processes */
         nxt_runtime_process_each(rt, p) {
 
+            if (nxt_proc_conn_martix[ptype][nxt_process_type(p)] == 0) {
+                nxt_debug(task, "remove not required process %PI", p->pid);
+
+                nxt_process_close_ports(task, p);
+
+                continue;
+            }
+
             if (!p->ready) {
                 nxt_debug(task, "remove not ready process %PI", p->pid);
 
                 nxt_process_close_ports(task, p);
 
-            } else {
-                nxt_port_mmaps_destroy(&p->incoming, 0);
-                nxt_port_mmaps_destroy(&p->outgoing, 0);
+                continue;
             }
+
+            nxt_port_mmaps_destroy(&p->incoming, 0);
+            nxt_port_mmaps_destroy(&p->outgoing, 0);
 
         } nxt_runtime_process_loop;
 
@@ -595,6 +624,14 @@ nxt_process_port_add(nxt_task_t *task, nxt_process_t *process, nxt_port_t *port)
     nxt_queue_insert_tail(&process->ports, &port->link);
 
     nxt_process_use(task, process, 1);
+}
+
+
+nxt_process_type_t
+nxt_process_type(nxt_process_t *process)
+{
+    return nxt_queue_is_empty(&process->ports) ? 0 :
+        (nxt_process_port_first(process))->type;
 }
 
 

@@ -177,7 +177,7 @@ nxt_port_quit_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 }
 
 
-void
+nxt_inline void
 nxt_port_send_new_port(nxt_task_t *task, nxt_runtime_t *rt,
     nxt_port_t *new_port, uint32_t stream)
 {
@@ -195,10 +195,7 @@ nxt_port_send_new_port(nxt_task_t *task, nxt_runtime_t *rt,
 
         port = nxt_process_port_first(process);
 
-        if (port->type == NXT_PROCESS_MAIN
-            || port->type == NXT_PROCESS_CONTROLLER
-            || port->type == NXT_PROCESS_ROUTER)
-        {
+        if (nxt_proc_conn_martix[port->type][new_port->type]) {
             (void) nxt_port_send_port(task, port, new_port, stream);
         }
 

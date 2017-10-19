@@ -70,6 +70,10 @@ typedef struct {
 } nxt_process_t;
 
 
+extern nxt_bool_t  nxt_proc_conn_martix[NXT_PROCESS_MAX][NXT_PROCESS_MAX];
+extern nxt_bool_t
+          nxt_proc_remove_notify_martix[NXT_PROCESS_MAX][NXT_PROCESS_MAX];
+
 NXT_EXPORT nxt_pid_t nxt_process_create(nxt_task_t *task,
     nxt_process_t *process);
 NXT_EXPORT nxt_pid_t nxt_process_execute(nxt_task_t *task, char *name,
@@ -94,6 +98,8 @@ NXT_EXPORT void nxt_process_port_add(nxt_task_t *task, nxt_process_t *process,
 
 #define nxt_process_port_loop                                                 \
     nxt_queue_loop
+
+nxt_process_type_t nxt_process_type(nxt_process_t *process);
 
 void nxt_process_close_ports(nxt_task_t *task, nxt_process_t *process);
 

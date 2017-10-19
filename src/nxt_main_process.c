@@ -764,6 +764,7 @@ nxt_main_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid)
     nxt_port_t          *port;
     nxt_runtime_t       *rt;
     nxt_process_t       *process;
+    nxt_process_type_t  ptype;
     nxt_process_init_t  *init;
 
     rt = task->thread->runtime;
@@ -772,6 +773,8 @@ nxt_main_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid)
 
     if (process) {
         init = process->init;
+
+        ptype = nxt_process_type(process);
 
         nxt_process_close_ports(task, process);
 
@@ -786,6 +789,10 @@ nxt_main_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid)
                 }
 
                 port = nxt_process_port_first(process);
+
+                if (nxt_proc_remove_notify_martix[ptype][port->type] == 0) {
+                    continue;
+                }
 
                 buf = nxt_buf_mem_ts_alloc(task, task->thread->engine->mem_pool,
                                            sizeof(pid));
