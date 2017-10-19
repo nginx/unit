@@ -55,12 +55,17 @@ struct nxt_port_mmap_header_s {
 };
 
 
+struct nxt_port_mmap_handler_s {
+    nxt_port_mmap_header_t  *hdr;
+    nxt_atomic_t            use_count;
+};
+
 /*
  * Element of nxt_process_t.incoming/outgoing, shared memory segment
  * descriptor.
  */
 struct nxt_port_mmap_s {
-    nxt_port_mmap_header_t  *hdr;
+    nxt_port_mmap_handler_t  *mmap_handler;
 };
 
 typedef struct nxt_port_mmap_msg_s nxt_port_mmap_msg_t;

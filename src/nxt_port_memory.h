@@ -11,8 +11,9 @@
 #define PORT_MMAP_MIN_SIZE (3 * sizeof(uint32_t))
 
 typedef struct nxt_port_mmap_header_s nxt_port_mmap_header_t;
+typedef struct nxt_port_mmap_handler_s nxt_port_mmap_handler_t;
 
-void nxt_port_mmaps_destroy(nxt_port_mmaps_t *port_mmaps, nxt_bool_t free);
+void nxt_port_mmaps_destroy(nxt_port_mmaps_t *port_mmaps, nxt_bool_t free_elts);
 
 /*
  * Allocates nxt_but_t structure from port's mem_pool, assigns this buf 'mem'
@@ -27,7 +28,7 @@ nxt_port_mmap_get_buf(nxt_task_t *task, nxt_port_t *port, size_t size);
 nxt_int_t nxt_port_mmap_increase_buf(nxt_task_t *task, nxt_buf_t *b,
     size_t size, size_t min_size);
 
-nxt_port_mmap_header_t *
+nxt_port_mmap_handler_t *
 nxt_port_incoming_port_mmap(nxt_task_t *task, nxt_process_t *process,
     nxt_fd_t fd);
 
