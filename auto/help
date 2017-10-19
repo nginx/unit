@@ -45,4 +45,7 @@ cat << END
   go OPTIONS           configure Go module
                        run "./configure go --help" to see available options
 
+  ruby OPTIONS         configure Ruby module
+                       run "./configure ruby --help" to see available options
+
 END

@@ -13,6 +13,7 @@ typedef enum {
     NXT_APP_PYTHON,
     NXT_APP_PHP,
     NXT_APP_GO,
+    NXT_APP_RUBY,
 
     NXT_APP_UNKNOWN,
 } nxt_app_type_t;
@@ -50,6 +51,10 @@ typedef struct {
     char       *executable;
 } nxt_go_app_conf_t;
 
+typedef struct {
+    nxt_str_t  index;
+    nxt_str_t  root;
+} nxt_ruby_app_conf_t;
 
 struct nxt_common_app_conf_s {
     nxt_str_t       name;
@@ -65,6 +70,7 @@ struct nxt_common_app_conf_s {
         nxt_python_app_conf_t  python;
         nxt_php_app_conf_t     php;
         nxt_go_app_conf_t      go;
+        nxt_ruby_app_conf_t    ruby;
     } u;
 };
 

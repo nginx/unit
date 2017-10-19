@@ -234,6 +234,9 @@ ${NXT_DAEMON}-uninstall:
 
 END
 
+if [ $NXT_RUBY_MODULE != NO ]; then
+    . auto/modules/ruby/make
+fi
 
 # Makefile.
 # *.dSYM is MacOSX Clang debug information.
