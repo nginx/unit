@@ -2644,6 +2644,7 @@ nxt_router_app_port_release(nxt_task_t *task, nxt_port_t *port,
 {
     int                 use_delta, ra_use_delta;
     nxt_app_t           *app;
+    nxt_bool_t          send_quit;
     nxt_queue_link_t    *lnk;
     nxt_req_app_link_t  *ra;
 
@@ -2688,6 +2689,8 @@ nxt_router_app_port_release(nxt_task_t *task, nxt_port_t *port,
         ra_use_delta = 0;
     }
 
+    send_quit = app->live == 0 && port->app_requests == port->app_responses;
+
     nxt_thread_mutex_unlock(&app->mutex);
 
     if (ra != NULL) {
@@ -2706,7 +2709,7 @@ nxt_router_app_port_release(nxt_task_t *task, nxt_port_t *port,
         goto adjust_use;
     }
 
-    if (app->live == 0) {
+    if (send_quit) {
         nxt_debug(task, "app '%V' %p is not alive, send QUIT to port",
                   &app->name, app);
 
