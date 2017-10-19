@@ -1,0 +1,182 @@
+# distribution specific definitions
+%define use_systemd (0%{?rhel} && 0%{?rhel} >= 7) || (0%{?suse_version} == 1315)
+%define bdir %{_builddir}/%{name}-%{version}
+%define dotests 0
+
+%if ( 0%{?rhel} == 5 || 0%{?rhel} == 6 )
+Requires: initscripts >= 8.36
+%endif
+
+%if 0%{?rhel} == 7
+Requires: systemd
+BuildRequires: systemd-units
+%define dist .el7
+%endif
+
+%if 0%{?suse_version} == 1315
+BuildRequires: systemd
+Requires: systemd
+%endif
+
+%define CONFIGURE_ARGS $(echo "%%CONFIGURE_ARGS%%")
+
+Provides: nginx-unit
+
+Name: unit
+Summary: NGINX Unit
+Version: %%VERSION%%
+Release: %%RELEASE%%%{?dist}.ngx
+License: ASL 2.0
+Vendor: Nginx Software, Inc.
+URL: https://unit.nginx.org/
+Packager: Nginx Software, Inc. <https://www.nginx.com>
+Group: System Environment/Daemons
+
+Source0: unit-%{version}.tar.gz
+Source1: unit.service
+Source2: unit.init
+Source3: unit.sysconf
+Source4: unit.saveconfig.sh
+Source5: unit.loadconfig.sh
+Source6: unit.example.config
+
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+
+%description
+NGINX Unit is a runtime and delivery environment for modern distributed
+applications. It runs the application code in multiple languages
+(PHP, Python, Go, etc.), and tightly couples it with traffic delivery
+in and out of the application. Take this application server and proxy
+directly in the cloud / container environments and fully control your app
+dynamically via an API.
+
+%if 0%{?suse_version}
+%debug_package
+%endif
+
+%prep
+%setup -q
+
+%build
+./configure \
+	%{CONFIGURE_ARGS} \
+	--modules=%{_libdir}/unit/debug-modules \
+	--debug
+%{__make} %{?_smp_mflags}
+%{__mv} build build-debug
+./configure \
+	%{CONFIGURE_ARGS} \
+	--modules=%{_libdir}/unit/modules
+%{__make} %{?_smp_mflags}
+
+%install
+%{__rm} -rf %{buildroot}
+DESTDIR=%{buildroot} make unitd-install
+%{__install} -m755 %{bdir}/build-debug/unitd \
+    %{buildroot}%{_sbindir}/unitd-debug
+%{__mkdir} -p %{buildroot}%{_libdir}/unit/modules
+%{__mkdir} -p %{buildroot}%{_libdir}/unit/debug-modules
+%{__mkdir} -p %{buildroot}%{_sharedstatedir}/unit
+%{__mkdir} -p %{buildroot}%{_sysconfdir}/sysconfig
+%{__install} -m 644 -p %{SOURCE3} \
+    %{buildroot}%{_sysconfdir}/sysconfig/unit
+%{__mkdir} -p %{buildroot}%{_sysconfdir}/unit
+%{__mkdir} -p %{buildroot}%{_datadir}/doc/unit/examples
+%{__install} -m 644 -p %{SOURCE6} \
+    %{buildroot}%{_datadir}/doc/unit/examples/example.config
+%{__install} -m 644 -p CHANGES \
+    %{buildroot}%{_datadir}/doc/unit/
+%{__install} -m 644 -p NOTICE \
+    %{buildroot}%{_datadir}/doc/unit/COPYRIGHT
+%{__install} -m 644 -p README \
+    %{buildroot}%{_datadir}/doc/unit/
+
+# init scripts
+%if %{use_systemd}
+%{__rm} -rf %{buildroot}%{_initrddir}/
+%{__install} -p -D -m 0644 %{SOURCE1} %{buildroot}%{_unitdir}/unit.service
+%{__mkdir} -p %{buildroot}%{_libexecdir}/initscripts/legacy-actions/unit
+%{__install} -m755 %SOURCE4 \
+    %{buildroot}%{_libexecdir}/initscripts/legacy-actions/unit/saveconfig
+%{__install} -m755 %SOURCE5 \
+    %{buildroot}%{_libexecdir}/initscripts/legacy-actions/unit/loadconfig
+%else
+%{__mkdir} -p %{buildroot}%{_initrddir}
+%{__install} -p -D -m 0755 %{SOURCE2} %{buildroot}%{_initrddir}/unit
+%endif
+
+QA_SKIP_BUILD_ROOT=1
+export QA_SKIP_BUILD_ROOT
+
+%check
+%if %{dotests}
+cd %{bdir} && make tests && ./build/tests
+%endif
+
+%clean
+%{__rm} -rf %{buildroot}
+
+%post
+if [ $1 -eq 1 ]; then
+%if %{use_systemd}
+    /usr/bin/systemctl preset unit.service >/dev/null 2>&1 ||:
+%else
+    /sbin/chkconfig --add unit
+%endif
+    cat <<BANNER
+----------------------------------------------------------------------
+
+Thank you for installing NGINX Unit!
+
+Additional modules are available in standalone packages.
+To see the available modules, run "yum list available unit-\*".
+
+Online documentation is available at https://unit.nginx.org/
+
+----------------------------------------------------------------------
+BANNER
+fi
+
+%preun
+if [ $1 -eq 0 ]; then
+%if %{use_systemd}
+    /usr/bin/systemctl --no-reload disable unit.service >/dev/null 2>&1 ||:
+    /usr/bin/systemctl stop unit.service >/dev/null 2>&1 ||:
+%else
+    /sbin/service unit stop >/dev/null 2>&1
+    /sbin/chkconfig --del unit
+%endif
+fi
+
+%postun
+%if %{use_systemd}
+/usr/bin/systemctl daemon-reload >/dev/null 2>&1 ||:
+%endif
+if [ $1 -ge 1 ]; then
+%if %{use_systemd}
+    /usr/bin/systemctl try-restart unit.service >/dev/null 2>&1 ||:
+%else
+    /sbin/service unit condrestart >/dev/null 2>&1 ||:
+%endif
+fi
+
+%files
+%defattr(-,root,root,-)
+%attr(0755,root,root) %{_sbindir}/unitd
+%attr(0755,root,root) %{_sbindir}/unitd-debug
+%config(noreplace) %{_sysconfdir}/sysconfig/unit
+%dir %{_sysconfdir}/unit
+%if %{use_systemd}
+%{_unitdir}/unit.service
+%dir %{_libexecdir}/initscripts/legacy-actions/unit
+%{_libexecdir}/initscripts/legacy-actions/unit/*
+%else
+%{_initrddir}/unit
+%endif
+%dir %{_datadir}/doc/unit
+%{_datadir}/doc/unit/*
+%dir %{_libdir}/unit/modules
+%dir %{_libdir}/unit/debug-modules
+%dir %{_sharedstatedir}/unit
+
+%changelog

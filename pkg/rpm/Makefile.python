@@ -1,0 +1,49 @@
+MODULES+=		python
+
+MODULE_SUMMARY_python=	Python module for NGINX Unit
+
+MODULE_VERSION_python=	$(VERSION)
+MODULE_RELEASE_python=	1
+
+MODULE_CONFARGS_python=	python
+MODULE_MAKEARGS_python=	python
+MODULE_INSTARGS_python=	python-install
+
+MODULE_SOURCES_python=	unit.example-python-app \
+			unit.example-python-config
+
+BUILD_DEPENDS+=		python-devel
+
+define MODULE_PREINSTALL_python
+%{__mkdir} -p %{buildroot}%{_datadir}/doc/unit-python/examples/python-app
+%{__install} -m 644 -p %{SOURCE100} \
+    %{buildroot}%{_datadir}/doc/unit-python/examples/python-app/wsgi.py
+%{__install} -m 644 -p %{SOURCE101} \
+    %{buildroot}%{_datadir}/doc/unit-python/examples/unit.config
+endef
+export MODULE_PREINSTALL_python
+
+define MODULE_FILES_python
+%{_libdir}/unit/modules/*
+%{_libdir}/unit/debug-modules/*
+endef
+export MODULE_FILES_python
+
+define MODULE_POST_python
+cat <<BANNER
+----------------------------------------------------------------------
+
+The $(MODULE_SUMMARY_python) has been installed.
+
+To check the sample app, run these commands:
+
+ sudo service unit start
+ sudo service unit loadconfig /usr/share/doc/unit-python/examples/unit.config
+ curl http://localhost:8400/
+
+Online documentation is available at https://unit.nginx.org
+
+----------------------------------------------------------------------
+BANNER
+endef
+export MODULE_POST_python

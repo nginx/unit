@@ -5,7 +5,7 @@ UNIT=	unit-$(VER)
 DEST=	../build
 XSLS?=	xslscript.pl
 
-PACKAGES=	unit
+PACKAGES=	unit unit-php unit-python unit-go
 
 all:		changes changelogs
 

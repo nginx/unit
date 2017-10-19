@@ -1,0 +1,15 @@
+{
+	"applications": {
+		"example_go": {
+			"type": "go",
+			"user": "nobody",
+			"executable": "/tmp/go-app"
+		}
+	},
+
+	"listeners": {
+		"*:8500": {
+			"application": "example_go"
+		}
+	}
+}

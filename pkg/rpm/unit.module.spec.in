@@ -1,0 +1,90 @@
+# distribution specific definitions
+%define bdir %{_builddir}/%{name}-%{version}
+
+%%MODULE_DEFINITIONS%%
+
+%if 0%{?rhel} == 7
+%define dist .el7
+%endif
+
+%define unit_version %%UNIT_VERSION%%
+%define unit_release %%UNIT_RELEASE%%%{?dist}.ngx
+
+%define CONFIGURE_ARGS $(echo "%%CONFIGURE_ARGS%%")
+
+Name: %%NAME%%
+Summary: %%SUMMARY%%
+Version: %%VERSION%%
+Release: %%RELEASE%%%{?dist}.ngx
+License: ASL 2.0
+Vendor: Nginx Software, Inc.
+URL: https://unit.nginx.org/
+Packager: Nginx Software, Inc. <https://www.nginx.com>
+Group: System Environment/Daemons
+
+Source0: unit-%{version}.tar.gz
+%%MODULE_SOURCES%%
+
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+
+Requires: unit == %%UNIT_VERSION%%-%%UNIT_RELEASE%%%{?dist}.ngx
+
+%description
+NGINX Unit is a runtime and delivery environment for modern distributed
+applications. It runs the application code in multiple languages
+(PHP, Python, Go, etc.), and tightly couples it with traffic delivery
+in and out of the application. Take this application server and proxy
+directly in the cloud / container environments and fully control your app
+dynamically via an API.
+This package contains %%SUMMARY%%.
+
+%if 0%{?suse_version}
+%debug_package
+%endif
+
+%prep
+%setup -qcTn %{name}-%{unit_version}
+tar --strip-components=1 -zxf %{SOURCE0}
+
+%build
+./configure \
+	%{CONFIGURE_ARGS} \
+	--modules=%{_libdir}/unit/debug-modules \
+	--debug
+./configure %%MODULE_CONFARGS%%
+make %%MODULE_MAKEARGS%%
+%{__mv} build build-debug
+./configure \
+	%{CONFIGURE_ARGS} \
+	--modules=%{_libdir}/unit/modules
+./configure %%MODULE_CONFARGS%%
+make %%MODULE_MAKEARGS%%
+
+%install
+%{__rm} -rf %{buildroot}
+%{__mkdir} -p %{buildroot}%{_datadir}/doc/%%NAME%%
+%{__install} -m 644 -p NOTICE \
+    %{buildroot}%{_datadir}/doc/%%NAME%%/COPYRIGHT
+%%MODULE_PREINSTALL%%
+DESTDIR=%{buildroot} make %%MODULE_INSTARGS%%
+%{__rm} -rf build
+%{__mv} build-debug build
+DESTDIR=%{buildroot} make %%MODULE_INSTARGS%%
+
+%check
+
+%clean
+%{__rm} -rf %{buildroot}
+
+%post
+if [ $1 -eq 1 ]; then
+%%MODULE_POST%%
+fi
+
+%files
+%defattr(-,root,root,-)
+%dir %{_datadir}/doc/%%NAME%%
+%{_datadir}/doc/%%NAME%%/*
+%%MODULE_FILES%%
+
+%changelog

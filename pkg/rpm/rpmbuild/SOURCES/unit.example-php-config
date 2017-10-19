@@ -1,0 +1,17 @@
+{
+	"applications": {
+		"example_php": {
+			"type": "php",
+			"user": "nobody",
+			"workers": 2,
+			"root": "/usr/share/doc/unit-php/examples/phpinfo-app",
+			"index": "index.php"
+		}
+	},
+
+	"listeners": {
+		"*:8300": {
+			"application": "example_php"
+		}
+	}
+}
