@@ -1,0 +1,51 @@
+MODULES+=		go18
+MODULE_SUFFIX_go18=	go1.8
+
+MODULE_SUMMARY_go18=	Go 1.8 module for NGINX Unit
+
+MODULE_VERSION_go18=	$(VERSION)
+MODULE_RELEASE_go18=	1
+
+MODULE_CONFARGS_go18=	go --go=/usr/lib/go-1.8/bin/go --go-path=\$$(GOROOT)
+MODULE_MAKEARGS_go18=	/usr/lib/go-1.8/bin/go
+MODULE_INSTARGS_go18=	/usr/lib/go-1.8/bin/go-install
+
+MODULE_SOURCES_go18=	unit.example-go-app \
+			unit.example-go1.8-config
+
+BUILD_DEPENDS+=		golang-1.8
+
+MODULE_BUILD_DEPENDS_go=,golang-1.8
+MODULE_DEPENDS_go=,golang-1.8
+
+define MODULE_DEFINITIONS_go18
+GOROOT = \$$(shell /usr/lib/go-1.8/bin/go env GOROOT)
+endef
+export MODULE_DEFINITIONS_go18
+
+define MODULE_PREINSTALL_go18
+	mkdir -p debian/unit-go1.8/usr/share/doc/unit-go1.8/examples/go-app
+	install -m 644 -p debian/unit.example-go-app debian/unit-go1.8/usr/share/doc/unit-go1.8/examples/go-app/let-my-people.go
+	install -m 644 -p debian/unit.example-go1.8-config debian/unit-go1.8/usr/share/doc/unit-go1.8/examples/unit.config
+endef
+export MODULE_PREINSTALL_go18
+
+define MODULE_POST_go18
+cat <<BANNER
+----------------------------------------------------------------------
+
+The $(MODULE_SUMMARY_go18) has been installed.
+
+To check out the sample app, run these commands:
+
+ /usr/lib/go-1.8/bin/go build -o /tmp/go1.8-app /usr/share/doc/unit-go1.8/examples/go-app/let-my-people.go
+ sudo service unit restart
+ sudo service unit loadconfig /usr/share/doc/unit-go1.8/examples/unit.config
+ curl http://localhost:8500/
+
+Online documentation is available at https://unit.nginx.org
+
+----------------------------------------------------------------------
+BANNER
+endef
+export MODULE_POST_go18

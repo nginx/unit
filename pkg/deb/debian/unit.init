@@ -1,0 +1,104 @@
+#!/bin/sh
+#
+# unitd              NGINX Unit
+#
+### BEGIN INIT INFO
+# Provides:          unitd
+# Required-Start:    $network $remote_fs
+# Required-Stop:     $network $remote_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: NGINX Unit
+# Description:       NGINX Unit
+### END INIT INFO
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+DAEMON=/usr/sbin/unitd
+NAME=unitd
+DESC=unitd
+CONFIG=/etc/unit/config
+
+[ -r /etc/default/${NAME} ] && . /etc/default/${NAME}
+
+if [ -n "$2" ]; then
+    CONFIG=$2
+fi
+
+#includes lsb functions
+. /lib/lsb/init-functions
+
+test -f $DAEMON || exit 0
+
+umask 022
+
+# Read configuration variable file if it is present
+[ -r /etc/default/$NAME ] && . /etc/default/$NAME
+
+case "$1" in
+    start)
+       	log_daemon_msg "Starting $DESC" "$NAME"
+        if start-stop-daemon --start --quiet --pidfile /run/$NAME.pid \
+                --exec $DAEMON -- $DAEMON_ARGS; then
+                log_end_msg 0
+        else
+                log_end_msg 1
+        fi
+        ;;
+    status)
+        status_of_proc -p "$PIDFILE" "$DAEMON" "$NAME" && exit 0 || exit $?
+        ;;
+    stop)
+        log_daemon_msg "Stopping $DESC" "$NAME"
+        if start-stop-daemon --oknodo --stop --quiet --pidfile /var/run/$NAME.pid \
+                --exec $DAEMON; then
+                log_end_msg 0
+        else
+                log_end_msg 1
+        fi
+        ;;
+   reload|force-reload)
+        echo "Not implemented." >&2
+        exit 1
+        ;;
+    restart)
+        log_action_begin_msg "Restarting $DESC" "$NAME"
+
+        start-stop-daemon --stop --quiet --pidfile \
+                /var/run/$NAME.pid --exec $DAEMON || true
+        sleep 1
+        if start-stop-daemon --start --quiet --pidfile \
+                /var/run/$NAME.pid --exec $DAEMON -- $DAEMON_ARGS; then
+                log_end_msg 0
+        else
+                log_end_msg 1
+        fi
+        ;;
+    saveconfig)
+	curl -sS --unix-socket /var/run/control.unit.sock localhost >${CONFIG}.new
+        if [ $? -ne 0 ]; then
+            echo "Could not retreive configuration" >&2
+            rm -f ${CONFIG}.new
+            exit 1
+        fi
+        mv ${CONFIG}.new ${CONFIG}
+        echo "The following configuration has been saved to ${CONFIG}:"
+        cat ${CONFIG}
+        ;;
+   loadconfig)
+        if [ ! -e ${CONFIG} ]; then
+            echo "Could not find ${CONFIG} for loading" >&2
+            exit 1
+        fi
+        echo "Loading configuration from ${CONFIG}..."
+	curl -sS -X PUT --data-binary @${CONFIG} --unix-socket /var/run/control.unit.sock localhost
+        if [ $? -ne 0 ]; then
+            echo "Loading failed!" >&2
+            exit 1
+        fi
+        ;;
+    *)
+        echo "Usage: /etc/init.d/$NAME {start|status|stop|restart|reload|force-reload|saveconfig|loadconfig}" >&2
+        exit 1
+        ;;
+esac
+
+exit 0

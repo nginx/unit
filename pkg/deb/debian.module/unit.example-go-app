@@ -1,0 +1,20 @@
+package main
+
+import (
+    "fmt"
+    "net/http"
+    "unit"
+)
+
+func handler(w http.ResponseWriter, r *http.Request) {
+    w.Header().Add("Content-Type", "text/plain");
+
+    fmt.Fprintf(w, "Method : %s\n", r.Method)
+    fmt.Fprintf(w, "URL    : %s\n", r.URL.Path)
+    fmt.Fprintf(w, "Host   : %s\n", r.Host)
+}
+
+func main() {
+    http.HandleFunc("/", handler)
+    unit.ListenAndServe("8000", nil)
+}

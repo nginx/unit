@@ -1,0 +1,14 @@
+[Unit]
+Description=NGINX Unit
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=forking
+PIDFile=/run/unit.pid
+EnvironmentFile=-/etc/default/unit
+ExecStart=/usr/sbin/unitd $DAEMON_ARGS
+ExecReload=
+
+[Install]
+WantedBy=multi-user.target

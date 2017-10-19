@@ -1,0 +1,105 @@
+#!/usr/bin/make -f
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+BUILDDIR_unit = $(CURDIR)/debian/build-unit
+BUILDDIR_unit_debug = $(CURDIR)/debian/build-unit-debug
+INSTALLDIR = $(CURDIR)/debian/unit
+BASEDIR = $(CURDIR)
+
+DOTESTS = 0
+
+config.env.%:
+	dh_testdir
+	mkdir -p $(BUILDDIR_$*)
+	cp -Pa $(CURDIR)/auto $(BUILDDIR_$*)/
+	cp -Pa $(CURDIR)/configure $(BUILDDIR_$*)/
+	cp -Pa $(CURDIR)/src $(BUILDDIR_$*)/
+	cp -Pa $(CURDIR)/test $(BUILDDIR_$*)/
+	touch $@
+
+configure.unit: config.env.unit
+	cd $(BUILDDIR_unit) && \
+	./configure \
+		%%CONFIGURE_ARGS%% \
+		--modules=/usr/lib/unit/modules
+	touch $@
+
+configure.unit_debug: config.env.unit_debug
+	cd $(BUILDDIR_unit_debug) && \
+	./configure \
+		%%CONFIGURE_ARGS%% \
+		--modules=/usr/lib/unit/debug-modules \
+		--debug
+	touch $@
+
+build-arch.%: configure.%
+	dh_testdir
+	$(MAKE) -C $(BUILDDIR_$*)
+ifeq ($(DOTESTS), 1)
+	$(MAKE) -C $(BUILDDIR_$*) tests
+endif
+	touch $@
+
+do.tests: build
+	dh_testdir
+ifeq ($(DOTESTS), 1)
+	cd $(BUILDDIR_unit) && ./build/tests
+	cd $(BUILDDIR_unit_debug) && ./build/tests
+endif
+	touch $@
+
+build-indep:
+	dh_testdir
+	touch $@
+
+build-arch: build-arch.unit build-arch.unit_debug
+	dh_testdir
+	touch $@
+
+build: build-arch build-indep
+	dh_testdir
+	touch $@
+
+clean:
+	dh_testdir
+	dh_testroot
+	dh_clean
+	find $(CURDIR) -maxdepth 1 -size 0 -delete
+
+install: build do.tests
+	dh_testdir
+	dh_testroot
+	dh_prep
+	dh_installdirs
+	dh_installinit
+	dh_installlogrotate
+	cd $(BUILDDIR_unit) && DESTDIR=$(INSTALLDIR) make install
+	install -m 755 $(BUILDDIR_unit_debug)/build/unitd $(INSTALLDIR)/usr/sbin/unitd-debug
+	mkdir -p $(INSTALLDIR)/usr/share/doc/unit/examples
+	install -m 644 debian/unit.example.config $(INSTALLDIR)/usr/share/doc/unit/examples/example.config
+	install -m 644 CHANGES $(INSTALLDIR)/usr/share/doc/unit/
+	install -m 644 README $(INSTALLDIR)/usr/share/doc/unit/
+
+binary-indep: build install
+	dh_testdir
+	dh_testroot
+	dh_installdocs
+	dh_installchangelogs 
+	dh_link
+	dh_strip --dbg-package=unit-dbg
+	dh_shlibdeps
+	dh_compress
+	dh_fixperms
+	dh_installdeb
+	dh_perl
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+binary-arch: install
+
+binary: binary-indep binary-arch
+
+.PHONY: clean binary-indep binary-arch binary install build

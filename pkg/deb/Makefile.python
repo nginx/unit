@@ -1,0 +1,44 @@
+MODULES+=		python
+MODULE_SUFFIX_python=	python
+
+MODULE_SUMMARY_python=	Python module for NGINX Unit
+
+MODULE_VERSION_python=	$(VERSION)
+MODULE_RELEASE_python=	1
+
+MODULE_CONFARGS_python=	python
+MODULE_MAKEARGS_python=	python
+MODULE_INSTARGS_python=	python-install
+
+MODULE_SOURCES_python=	unit.example-python-app \
+			unit.example-python-config
+
+BUILD_DEPENDS+=		python-dev
+
+MODULE_BUILD_DEPENDS_python=,python-dev
+
+define MODULE_PREINSTALL_python
+	mkdir -p debian/unit-python/usr/share/doc/unit-python/examples/python-app
+	install -m 644 -p debian/unit.example-python-app debian/unit-python/usr/share/doc/unit-python/examples/python-app/wsgi.py
+	install -m 644 -p debian/unit.example-python-config debian/unit-python/usr/share/doc/unit-python/examples/unit.config
+endef
+export MODULE_PREINSTALL_python
+
+define MODULE_POST_python
+cat <<BANNER
+----------------------------------------------------------------------
+
+The $(MODULE_SUMMARY_python) has been installed.
+
+To check out the sample app, run these commands:
+
+ sudo service unit restart
+ sudo service unit loadconfig /usr/share/doc/unit-python/examples/unit.config
+ curl http://localhost:8400/
+
+Online documentation is available at https://unit.nginx.org
+
+----------------------------------------------------------------------
+BANNER
+endef
+export MODULE_POST_python

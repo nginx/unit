@@ -1,0 +1,44 @@
+MODULES+=			python27
+MODULE_SUFFIX_python27=		python2.7
+
+MODULE_SUMMARY_python27=	Python 2.7 module for NGINX Unit
+
+MODULE_VERSION_python27=	$(VERSION)
+MODULE_RELEASE_python27=	1
+
+MODULE_CONFARGS_python27=	python --config=python2.7-config
+MODULE_MAKEARGS_python27=	python2.7
+MODULE_INSTARGS_python27=	python2.7-install
+
+MODULE_SOURCES_python27=	unit.example-python-app \
+				unit.example-python2.7-config
+
+BUILD_DEPENDS+=		python2.7-dev
+
+MODULE_BUILD_DEPENDS_python27=,python2.7-dev
+
+define MODULE_PREINSTALL_python27
+	mkdir -p debian/unit-python2.7/usr/share/doc/unit-python2.7/examples/python-app
+	install -m 644 -p debian/unit.example-python-app debian/unit-python2.7/usr/share/doc/unit-python2.7/examples/python-app/wsgi.py
+	install -m 644 -p debian/unit.example-python2.7-config debian/unit-python2.7/usr/share/doc/unit-python2.7/examples/unit.config
+endef
+export MODULE_PREINSTALL_python27
+
+define MODULE_POST_python27
+cat <<BANNER
+----------------------------------------------------------------------
+
+The $(MODULE_SUMMARY_python27) has been installed.
+
+To check out the sample app, run these commands:
+
+ sudo service unit restart
+ sudo service unit loadconfig /usr/share/doc/unit-python2.7/examples/unit.config
+ curl http://localhost:8400/
+
+Online documentation is available at https://unit.nginx.org
+
+----------------------------------------------------------------------
+BANNER
+endef
+export MODULE_POST_python27

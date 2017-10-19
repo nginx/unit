@@ -1,0 +1,44 @@
+MODULES+=			python35
+MODULE_SUFFIX_python35=		python3.5
+
+MODULE_SUMMARY_python35=	Python 3.5 module for NGINX Unit
+
+MODULE_VERSION_python35=	$(VERSION)
+MODULE_RELEASE_python35=	1
+
+MODULE_CONFARGS_python35=	python --config=python3.5-config
+MODULE_MAKEARGS_python35=	python3.5
+MODULE_INSTARGS_python35=	python3.5-install
+
+MODULE_SOURCES_python35=	unit.example-python-app \
+				unit.example-python3.5-config
+
+BUILD_DEPENDS+=		python3.5-dev
+
+MODULE_BUILD_DEPENDS_python35=,python3.5-dev
+
+define MODULE_PREINSTALL_python35
+	mkdir -p debian/unit-python3.5/usr/share/doc/unit-python3.5/examples/python-app
+	install -m 644 -p debian/unit.example-python-app debian/unit-python3.5/usr/share/doc/unit-python3.5/examples/python-app/wsgi.py
+	install -m 644 -p debian/unit.example-python3.5-config debian/unit-python3.5/usr/share/doc/unit-python3.5/examples/unit.config
+endef
+export MODULE_PREINSTALL_python35
+
+define MODULE_POST_python35
+cat <<BANNER
+----------------------------------------------------------------------
+
+The $(MODULE_SUMMARY_python35) has been installed.
+
+To check out the sample app, run these commands:
+
+ sudo service unit restart
+ sudo service unit loadconfig /usr/share/doc/unit-python3.5/examples/unit.config
+ curl http://localhost:8400/
+
+Online documentation is available at https://unit.nginx.org
+
+----------------------------------------------------------------------
+BANNER
+endef
+export MODULE_POST_python35

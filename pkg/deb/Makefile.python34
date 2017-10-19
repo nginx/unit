@@ -1,0 +1,44 @@
+MODULES+=			python34
+MODULE_SUFFIX_python34=		python3.4
+
+MODULE_SUMMARY_python34=	Python 3.4 module for NGINX Unit
+
+MODULE_VERSION_python34=	$(VERSION)
+MODULE_RELEASE_python34=	1
+
+MODULE_CONFARGS_python34=	python --config=python3.4-config
+MODULE_MAKEARGS_python34=	python3.4
+MODULE_INSTARGS_python34=	python3.4-install
+
+MODULE_SOURCES_python34=	unit.example-python-app \
+				unit.example-python3.4-config
+
+BUILD_DEPENDS+=		python3.4-dev
+
+MODULE_BUILD_DEPENDS_python34=,python3.4-dev
+
+define MODULE_PREINSTALL_python34
+	mkdir -p debian/unit-python3.4/usr/share/doc/unit-python3.4/examples/python-app
+	install -m 644 -p debian/unit.example-python-app debian/unit-python3.4/usr/share/doc/unit-python3.4/examples/python-app/wsgi.py
+	install -m 644 -p debian/unit.example-python3.4-config debian/unit-python3.4/usr/share/doc/unit-python3.4/examples/unit.config
+endef
+export MODULE_PREINSTALL_python34
+
+define MODULE_POST_python34
+cat <<BANNER
+----------------------------------------------------------------------
+
+The $(MODULE_SUMMARY_python34) has been installed.
+
+To check out the sample app, run these commands:
+
+ sudo service unit restart
+ sudo service unit loadconfig /usr/share/doc/unit-python3.4/examples/unit.config
+ curl http://localhost:8400/
+
+Online documentation is available at https://unit.nginx.org
+
+----------------------------------------------------------------------
+BANNER
+endef
+export MODULE_POST_python34

@@ -1,0 +1,34 @@
+#!/bin/sh
+
+set -e
+
+case "$1" in
+    install)
+        cat <<BANNER
+----------------------------------------------------------------------
+
+Thank you for installing NGINX Unit!
+
+Additional modules are available in standalone packages.
+To see the available modules, run: apt search --names-only '^unit-'
+
+Online documentation is available at https://unit.nginx.org/
+
+----------------------------------------------------------------------
+BANNER
+        ;;
+    upgrade)
+        ;;
+
+    abort-upgrade)
+        ;;
+
+    *)
+        echo "preinst called with unknown argument \`$1'" >&2
+        exit 0
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0
