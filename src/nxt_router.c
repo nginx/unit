@@ -3016,7 +3016,7 @@ static nxt_sockaddr_t *
 nxt_router_local_addr(nxt_task_t *task, nxt_conn_t *c)
 {
     int             ret;
-    size_t          size;
+    size_t          size, length;
     socklen_t       socklen;
     nxt_sockaddr_t  *sa;
 
@@ -3030,13 +3030,15 @@ nxt_router_local_addr(nxt_task_t *task, nxt_conn_t *c)
 #if (NXT_INET6)
     case AF_INET6:
         socklen = sizeof(struct sockaddr_in6);
-        size = offsetof(nxt_sockaddr_t, u) + socklen + NXT_INET6_ADDR_STR_LEN;
+        length = NXT_INET6_ADDR_STR_LEN;
+        size = offsetof(nxt_sockaddr_t, u) + socklen + length;
         break;
 #endif
     case AF_INET:
     default:
-        socklen = sizeof(struct sockaddr_in6);
-        size = offsetof(nxt_sockaddr_t, u) + socklen + NXT_INET_ADDR_STR_LEN;
+        socklen = sizeof(struct sockaddr_in);
+        length = NXT_INET_ADDR_STR_LEN;
+        size = offsetof(nxt_sockaddr_t, u) + socklen + length;
         break;
     }
 
@@ -3044,6 +3046,9 @@ nxt_router_local_addr(nxt_task_t *task, nxt_conn_t *c)
     if (nxt_slow_path(sa == NULL)) {
         return NULL;
     }
+
+    sa->socklen = socklen;
+    sa->length = length;
 
     ret = getsockname(c->socket.fd, &sa->u.sockaddr, &socklen);
     if (nxt_slow_path(ret != 0)) {
