@@ -42,6 +42,17 @@ struct nxt_process_init_s {
 };
 
 
+typedef struct nxt_port_mmap_s  nxt_port_mmap_t;
+typedef struct nxt_port_mmaps_s nxt_port_mmaps_t;
+
+struct nxt_port_mmaps_s {
+    nxt_thread_mutex_t  mutex;
+    uint32_t            size;
+    uint32_t            cap;
+    nxt_port_mmap_t     *elts;
+};
+
+
 typedef struct {
     nxt_pid_t           pid;
     nxt_queue_t         ports;      /* of nxt_port_t */
@@ -51,11 +62,8 @@ typedef struct {
 
     nxt_process_init_t  *init;
 
-    nxt_thread_mutex_t  incoming_mutex;
-    nxt_array_t         *incoming;  /* of nxt_port_mmap_t */
-
-    nxt_thread_mutex_t  outgoing_mutex;
-    nxt_array_t         *outgoing;  /* of nxt_port_mmap_t */
+    nxt_port_mmaps_t    incoming;
+    nxt_port_mmaps_t    outgoing;
 
     nxt_thread_mutex_t  cp_mutex;
     nxt_lvlhsh_t        connected_ports; /* of nxt_port_t */

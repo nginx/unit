@@ -1576,8 +1576,8 @@ nxt_runtime_process_new(nxt_runtime_t *rt)
 
     nxt_queue_init(&process->ports);
 
-    nxt_thread_mutex_create(&process->incoming_mutex);
-    nxt_thread_mutex_create(&process->outgoing_mutex);
+    nxt_thread_mutex_create(&process->incoming.mutex);
+    nxt_thread_mutex_create(&process->outgoing.mutex);
     nxt_thread_mutex_create(&process->cp_mutex);
 
     process->use_count = 1;
@@ -1595,8 +1595,8 @@ nxt_runtime_process_destroy(nxt_runtime_t *rt, nxt_process_t *process)
     nxt_assert(process->use_count == 0);
     nxt_assert(process->registered == 0);
 
-    nxt_port_mmaps_destroy(process->incoming, 1);
-    nxt_port_mmaps_destroy(process->outgoing, 1);
+    nxt_port_mmaps_destroy(&process->incoming, 1);
+    nxt_port_mmaps_destroy(&process->outgoing, 1);
 
     port = nxt_port_hash_first(&process->connected_ports, &lhe);
 
@@ -1606,8 +1606,8 @@ nxt_runtime_process_destroy(nxt_runtime_t *rt, nxt_process_t *process)
         port = nxt_port_hash_first(&process->connected_ports, &lhe);
     }
 
-    nxt_thread_mutex_destroy(&process->incoming_mutex);
-    nxt_thread_mutex_destroy(&process->outgoing_mutex);
+    nxt_thread_mutex_destroy(&process->incoming.mutex);
+    nxt_thread_mutex_destroy(&process->outgoing.mutex);
     nxt_thread_mutex_destroy(&process->cp_mutex);
 
     nxt_mp_free(rt->mem_pool, process);

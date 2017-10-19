@@ -103,7 +103,6 @@ typedef struct {
 #include <nxt_service.h>
 
 typedef struct nxt_buf_s                nxt_buf_t;
-typedef struct nxt_port_mmap_s          nxt_port_mmap_t;
 #include <nxt_buf.h>
 #include <nxt_buf_pool.h>
 #include <nxt_recvbuf.h>

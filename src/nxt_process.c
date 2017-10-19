@@ -61,8 +61,8 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
                 nxt_process_close_ports(task, p);
 
             } else {
-                nxt_port_mmaps_destroy(p->incoming, 0);
-                nxt_port_mmaps_destroy(p->outgoing, 0);
+                nxt_port_mmaps_destroy(&p->incoming, 0);
+                nxt_port_mmaps_destroy(&p->outgoing, 0);
             }
 
         } nxt_runtime_process_loop;

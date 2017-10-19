@@ -12,10 +12,7 @@
 
 typedef struct nxt_port_mmap_header_s nxt_port_mmap_header_t;
 
-void
-nxt_port_mmap_destroy(nxt_port_mmap_t *port_mmap);
-
-void nxt_port_mmaps_destroy(nxt_array_t *port_mmaps, nxt_bool_t destroy_pool);
+void nxt_port_mmaps_destroy(nxt_port_mmaps_t *port_mmaps, nxt_bool_t free);
 
 /*
  * Allocates nxt_but_t structure from port's mem_pool, assigns this buf 'mem'
