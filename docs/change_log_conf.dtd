@@ -1,0 +1,26 @@
+<!ELEMENT configuration   (generic, rpm, deb, changes+) >
+
+<!ELEMENT generic         (length, start, indent?) >
+<!ELEMENT rpm             (length, start, indent?) >
+<!ELEMENT deb             (length, start, indent?) >
+
+<!ELEMENT length          (#PCDATA) >
+<!ELEMENT start           (#PCDATA) >
+<!ELEMENT indent          (#PCDATA) >
+
+<!ELEMENT changes         (title, length,
+                           bugfix, feature, change, security, workaround,
+                           (month, month, month, month, month, month,
+                            month, month, month, month, month, month),
+                           (day, day, day, day, day, day, day)?) >
+
+<!ELEMENT title           (#PCDATA) >
+
+<!ELEMENT bugfix          (#PCDATA) >
+<!ELEMENT feature         (#PCDATA) >
+<!ELEMENT change          (#PCDATA) >
+<!ELEMENT security        (#PCDATA) >
+<!ELEMENT workaround      (#PCDATA) >
+
+<!ELEMENT month           (#PCDATA) >
+<!ELEMENT day             (#PCDATA) >

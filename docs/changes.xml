@@ -1,0 +1,21 @@
+<?xml version="1.0" ?>
+<!DOCTYPE change_log SYSTEM "changes.dtd" >
+
+
+<change_log title="unit">
+
+
+<changes apply="unit" ver="0.1" rev="1"
+         date="2017-09-06" time="19:14:28 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+First public release.
+</para>
+</change>
+
+</changes>
+
+
+</change_log>
