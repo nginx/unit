@@ -19,9 +19,9 @@ typedef struct nxt_go_process_s nxt_go_process_t;
 struct nxt_go_process_s {
     nxt_pid_t       pid;
     nxt_go_mutex_t  incoming_mutex;
-    nxt_array_t     incoming;  /* of nxt_port_mmap_t */
+    nxt_array_t     incoming;  /* of nxt_go_port_mmap_t */
     nxt_go_mutex_t  outgoing_mutex;
-    nxt_array_t     outgoing;  /* of nxt_port_mmap_t */
+    nxt_array_t     outgoing;  /* of nxt_go_port_mmap_t */
 };
 
 nxt_go_process_t *nxt_go_get_process(nxt_pid_t pid);

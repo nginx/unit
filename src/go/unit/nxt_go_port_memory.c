@@ -32,7 +32,7 @@ nxt_go_new_port_mmap(nxt_go_process_t *process, nxt_port_id_t id)
     char                    name[64];
     nxt_fd_t                fd;
     nxt_port_msg_t          port_msg;
-    nxt_port_mmap_t         *port_mmap;
+    nxt_go_port_mmap_t      *port_mmap;
     nxt_port_mmap_header_t  *hdr;
 
     fd = -1;
@@ -162,8 +162,8 @@ nxt_port_mmap_header_t *
 nxt_go_port_mmap_get(nxt_go_process_t *process, nxt_port_id_t port_id,
     nxt_chunk_id_t *c)
 {
-    nxt_port_mmap_t         *port_mmap;
-    nxt_port_mmap_t         *end_port_mmap;
+    nxt_go_port_mmap_t      *port_mmap;
+    nxt_go_port_mmap_t      *end_port_mmap;
     nxt_port_mmap_header_t  *hdr;
 
     port_mmap = NULL;

@@ -24,7 +24,7 @@ nxt_go_ctx_msg_rbuf(nxt_go_run_ctx_t *ctx, nxt_go_msg_t *msg, nxt_buf_t *buf,
     uint32_t n)
 {
     size_t               nchunks;
-    nxt_port_mmap_t      *port_mmap;
+    nxt_go_port_mmap_t   *port_mmap;
     nxt_port_mmap_msg_t  *mmap_msg;
 
     if (nxt_slow_path(msg->mmap_msg == NULL)) {
@@ -116,7 +116,7 @@ nxt_go_ctx_release_msg(nxt_go_run_ctx_t *ctx, nxt_go_msg_t *msg)
 {
     u_char               *b, *e;
     nxt_chunk_id_t       c;
-    nxt_port_mmap_t      *port_mmap;
+    nxt_go_port_mmap_t   *port_mmap;
     nxt_port_mmap_msg_t  *mmap_msg, *end;
 
     if (nxt_slow_path(msg->mmap_msg == NULL)) {
@@ -235,7 +235,7 @@ nxt_go_port_mmap_get_buf(nxt_go_run_ctx_t *ctx, size_t size)
     size_t                  nchunks;
     nxt_buf_t               *buf;
     nxt_chunk_id_t          c;
-    nxt_port_mmap_t         *port_mmap;
+    nxt_go_port_mmap_t      *port_mmap;
     nxt_port_mmap_msg_t     *mmap_msg;
     nxt_port_mmap_header_t  *hdr;
 

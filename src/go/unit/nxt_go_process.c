@@ -11,6 +11,7 @@
 #include "nxt_go_array.h"
 #include "nxt_go_mutex.h"
 #include "nxt_go_log.h"
+#include "nxt_go_port_memory.h"
 
 #include <nxt_port_memory_int.h>
 
@@ -89,9 +90,9 @@ nxt_go_get_process(nxt_pid_t pid)
 
         process->pid = pid;
         nxt_go_mutex_create(&process->incoming_mutex);
-        nxt_go_array_init(&process->incoming, 1, sizeof(nxt_port_mmap_t));
+        nxt_go_array_init(&process->incoming, 1, sizeof(nxt_go_port_mmap_t));
         nxt_go_mutex_create(&process->outgoing_mutex);
-        nxt_go_array_init(&process->outgoing, 1, sizeof(nxt_port_mmap_t));
+        nxt_go_array_init(&process->outgoing, 1, sizeof(nxt_go_port_mmap_t));
     }
 
     return process;
@@ -101,10 +102,10 @@ nxt_go_get_process(nxt_pid_t pid)
 void
 nxt_go_new_incoming_mmap(nxt_pid_t pid, nxt_fd_t fd)
 {
-    void             *mem;
-    struct stat      mmap_stat;
-    nxt_port_mmap_t  *port_mmap;
-    nxt_go_process_t *process;
+    void                *mem;
+    struct stat         mmap_stat;
+    nxt_go_process_t    *process;
+    nxt_go_port_mmap_t  *port_mmap;
 
     process = nxt_go_get_process(pid);
 

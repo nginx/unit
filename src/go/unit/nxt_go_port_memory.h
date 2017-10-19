@@ -16,6 +16,12 @@
 typedef struct nxt_go_process_s nxt_go_process_t;
 #endif
 
+typedef struct nxt_go_port_mmap_s nxt_go_port_mmap_t;
+
+struct nxt_go_port_mmap_s {
+    nxt_port_mmap_header_t  *hdr;
+};
+
 struct nxt_port_mmap_header_s *
 nxt_go_port_mmap_get(nxt_go_process_t *process, nxt_port_id_t port_id,
     nxt_chunk_id_t *c);
