@@ -416,6 +416,10 @@ nxt_strvers_match(u_char *version, u_char *prefix, size_t length)
 {
     u_char  next, last;
 
+    if (length == 0) {
+        return 1;
+    }
+
     if (nxt_strncmp(version, prefix, length) == 0) {
 
         next = version[length];
