@@ -240,7 +240,7 @@ END
 
 cat << END > Makefile
 
-NXT_VERSION =	0.1
+NXT_VERSION =	0.3
 
 include $NXT_MAKEFILE
 
