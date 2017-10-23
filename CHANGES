@@ -1,15 +1,11 @@
 
 Changes with Unit 0.2                                            19 Oct 2017
 
-    *) Feature: Go package improvements.
-
     *) Feature: configuration persistence.
 
     *) Feature: improved handling of configuration errors.
 
     *) Feature: application "timeout" property.
-
-    *) Bugfix: Go application crashed under load.
 
     *) Bugfix: POST request for PHP were handled incorrectly.
 

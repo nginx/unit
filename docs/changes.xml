@@ -115,12 +115,6 @@ Initial release of PHP module for NGINX Unit.
 
 <change type="feature">
 <para>
-Go package improvements.
-</para>
-</change>
-
-<change type="feature">
-<para>
 configuration persistence.
 </para>
 </change>
@@ -134,12 +128,6 @@ improved handling of configuration errors.
 <change type="feature">
 <para>
 application "timeout" property.
-</para>
-</change>
-
-<change type="bugfix">
-<para>
-Go application crashed under load.
 </para>
 </change>
 
