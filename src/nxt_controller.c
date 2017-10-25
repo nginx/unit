@@ -328,6 +328,9 @@ nxt_controller_conf_send(nxt_task_t *task, nxt_conf_value_t *conf,
     size = nxt_conf_json_length(conf, NULL);
 
     b = nxt_port_mmap_get_buf(task, router_port, size);
+    if (nxt_slow_path(b == NULL)) {
+        return NXT_ERROR;
+    }
 
     b->mem.free = nxt_conf_json_print(b->mem.free, conf, NULL);
 
