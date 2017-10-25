@@ -314,6 +314,10 @@ nxt_port_new_port_mmap(nxt_task_t *task, nxt_process_t *process,
                 nxt_errno);
     }
 
+#else
+
+#error No working shared memory implementation.
+
 #endif
 
     if (nxt_slow_path(ftruncate(fd, PORT_MMAP_SIZE) == -1)) {
