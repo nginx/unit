@@ -107,9 +107,9 @@ func (r *request) response() *response {
 }
 
 func (r *request) done() {
-	C.nxt_go_request_done(r.c_req)
-
 	remove_request(r)
+
+	C.nxt_go_request_done(r.c_req)
 
 	for _, m := range r.msgs {
 		m.Close()
