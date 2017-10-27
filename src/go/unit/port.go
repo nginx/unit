@@ -206,6 +206,14 @@ func (p *port) read(handler http.Handler) error {
 
 	r := find_request(c_req)
 
+	if len(r.msgs) == 0 {
+		r.push(m)
+	} else if r.ch != nil {
+		r.ch <- m
+	} else {
+		m.Close()
+	}
+
 	go func(r *request) {
 		if handler == nil {
 			handler = http.DefaultServeMux
@@ -214,14 +222,6 @@ func (p *port) read(handler http.Handler) error {
 		handler.ServeHTTP(r.response(), &r.req)
 		r.done()
 	}(r)
-
-	if len(r.msgs) == 0 {
-		r.push(m)
-	} else if r.ch != nil {
-		r.ch <- m
-	} else {
-		m.Close()
-	}
 
 	return nil
 }
