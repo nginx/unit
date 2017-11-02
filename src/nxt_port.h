@@ -39,7 +39,7 @@ struct nxt_port_handlers_s {
 
 
 #define nxt_port_handler_idx(name)                                            \
-    ( &((nxt_port_handlers_t *) 0)->name - (nxt_port_handler_t *) 0)
+    ( offsetof(nxt_port_handlers_t, name) / sizeof(nxt_port_handler_t) )
 
 
 typedef enum {

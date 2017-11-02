@@ -572,7 +572,7 @@ nxt_port_lvlhsh_frag_alloc(void *ctx, size_t size)
 static void
 nxt_port_lvlhsh_frag_free(void *ctx, void *p)
 {
-    return nxt_mp_free(ctx, p);
+    nxt_mp_free(ctx, p);
 }
 
 
