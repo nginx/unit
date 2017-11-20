@@ -13,6 +13,7 @@ typedef struct nxt_list_part_s  nxt_list_part_t;
 struct nxt_list_part_s {
     nxt_list_part_t             *next;
     uintptr_t                   nelts;
+    char                        data[];
 };
 
 
@@ -43,12 +44,12 @@ nxt_list_part(list)                                                           \
 
 #define                                                                       \
 nxt_list_data(part)                                                           \
-    nxt_pointer_to(part, sizeof(nxt_list_part_t))
+    ((void *) part->data)
 
 
 #define                                                                       \
 nxt_list_first(list)                                                          \
-    (void *) nxt_list_data(nxt_list_part(list))
+    nxt_list_data(nxt_list_part(list))
 
 
 nxt_inline void *
@@ -80,7 +81,7 @@ nxt_list_elt(nxt_list_t *list, nxt_uint_t n)
             nxt_list_part_t  *_part = nxt_list_part(list);                    \
                                                                               \
             do {                                                              \
-                elt = (void *) nxt_list_data(_part);                          \
+                elt = nxt_list_data(_part);                                   \
                                                                               \
                 for (_end = (elt + _part->nelts); elt != _end; elt++) {       \
 

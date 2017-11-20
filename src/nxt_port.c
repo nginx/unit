@@ -311,10 +311,9 @@ nxt_port_process_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     process->ready = 1;
 
+    nxt_assert(nxt_queue_is_empty(&process->ports) == 0);
+
     port = nxt_process_port_first(process);
-    if (nxt_slow_path(port == NULL)) {
-        return;
-    }
 
     nxt_debug(task, "process %PI ready", msg->port_msg.pid);
 
@@ -348,7 +347,7 @@ nxt_port_mmap_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
 fail_close:
 
-    close(msg->fd);
+    nxt_fd_close(msg->fd);
 }
 
 

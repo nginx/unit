@@ -298,8 +298,8 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 
 fail:
 
-    Py_DECREF(obj);
-    Py_DECREF(module);
+    Py_XDECREF(obj);
+    Py_XDECREF(module);
 
     return NXT_ERROR;
 }

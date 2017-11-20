@@ -191,7 +191,6 @@ nxt_port_incoming_port_mmap(nxt_task_t *task, nxt_process_t *process,
               fd, process->pid);
 
     port_mmap = NULL;
-    hdr = NULL;
 
     if (fstat(fd, &mmap_stat) == -1) {
         nxt_log(task, NXT_LOG_WARN, "fstat(%FD) failed %E", fd, nxt_errno);
@@ -213,6 +212,8 @@ nxt_port_incoming_port_mmap(nxt_task_t *task, nxt_process_t *process,
     mmap_handler = nxt_zalloc(sizeof(nxt_port_mmap_handler_t));
     if (nxt_slow_path(mmap_handler == NULL)) {
         nxt_log(task, NXT_LOG_WARN, "failed to allocate mmap_handler");
+
+        nxt_mem_munmap(mem, PORT_MMAP_SIZE);
 
         return NULL;
     }

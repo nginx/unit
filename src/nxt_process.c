@@ -299,6 +299,8 @@ nxt_process_daemon(nxt_task_t *task)
     nxt_pid_t     pid;
     const char    *msg;
 
+    fd = -1;
+
     /*
      * fork() followed by a parent process's exit() detaches a child process
      * from an init script or terminal shell process which has started the
@@ -371,6 +373,10 @@ nxt_process_daemon(nxt_task_t *task)
 fail:
 
     nxt_log(task, NXT_LOG_CRIT, msg, nxt_errno);
+
+    if (fd != -1) {
+        nxt_fd_close(fd);
+    }
 
     return NXT_ERROR;
 }

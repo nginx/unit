@@ -1696,6 +1696,9 @@ nxt_runtime_process_get(nxt_runtime_t *rt, nxt_pid_t pid)
 
     process = nxt_runtime_process_new(rt);
     if (nxt_slow_path(process == NULL)) {
+
+        nxt_thread_mutex_unlock(&rt->processes_mutex);
+
         return NULL;
     }
 
