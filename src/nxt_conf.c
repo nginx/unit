@@ -1052,6 +1052,10 @@ nxt_conf_json_parse_value(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
     if (nxt_fast_path((ch - '0') <= 9)) {
         p = nxt_conf_json_parse_number(mp, value, start, end, error);
 
+        if (nxt_slow_path(p == NULL)) {
+            return NULL;
+        }
+
         if (p == end) {
             return end;
         }
