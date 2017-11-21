@@ -7,7 +7,7 @@
 $echo "creating $NXT_MAKEFILE"
 
 mkdir -p $NXT_BUILD_DIR/src \
-         $NXT_BUILD_DIR/test
+         $NXT_BUILD_DIR/src/test
 
 
 cat << END > $NXT_MAKEFILE

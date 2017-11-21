@@ -199,30 +199,30 @@ NXT_LIB_HPUX_SENDFILE_SRCS="src/nxt_hpux_sendfile.c"
 NXT_TEST_BUILD_DEPS="src/nxt_test_build.h"
 NXT_TEST_BUILD_SRCS="src/nxt_test_build.c"
 
-NXT_TEST_DEPS="test/nxt_tests.h \
-    test/nxt_rbtree1.h \
+NXT_TEST_DEPS="src/test/nxt_tests.h \
+    src/test/nxt_rbtree1.h \
 "
 
 NXT_TEST_SRCS=" \
-    test/nxt_tests.c \
-    test/nxt_rbtree1.c \
-    test/nxt_rbtree_test.c \
-    test/nxt_term_parse_test.c \
-    test/nxt_msec_diff_test.c \
-    test/nxt_mp_test.c \
-    test/nxt_mem_zone_test.c \
-    test/nxt_lvlhsh_test.c \
-    test/nxt_gmtime_test.c \
-    test/nxt_sprintf_test.c \
-    test/nxt_malloc_test.c \
-    test/nxt_utf8_test.c \
-    test/nxt_rbtree1_test.c \
-    test/nxt_http_parse_test.c \
-    test/nxt_strverscmp_test.c \
+    src/test/nxt_tests.c \
+    src/test/nxt_rbtree1.c \
+    src/test/nxt_rbtree_test.c \
+    src/test/nxt_term_parse_test.c \
+    src/test/nxt_msec_diff_test.c \
+    src/test/nxt_mp_test.c \
+    src/test/nxt_mem_zone_test.c \
+    src/test/nxt_lvlhsh_test.c \
+    src/test/nxt_gmtime_test.c \
+    src/test/nxt_sprintf_test.c \
+    src/test/nxt_malloc_test.c \
+    src/test/nxt_utf8_test.c \
+    src/test/nxt_rbtree1_test.c \
+    src/test/nxt_http_parse_test.c \
+    src/test/nxt_strverscmp_test.c \
 "
 
 NXT_LIB_UTF8_FILE_NAME_TEST_SRCS=" \
-    test/nxt_utf8_file_name_test.c \
+    src/test/nxt_utf8_file_name_test.c \
 "
 
 
