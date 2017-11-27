@@ -220,6 +220,7 @@ nxt_timer_changes_commit(nxt_event_engine_t *engine)
                           timer->time, timer->state);
 
                 nxt_rbtree_delete(&timers->tree, &timer->node);
+                nxt_timer_in_tree_clear(timer);
             }
 
             break;
