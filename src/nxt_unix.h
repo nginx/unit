@@ -97,7 +97,6 @@
 
 #if (NXT_MACOSX)
 
-#define _XOPEN_SOURCE               /* ucontext(3). */
 #ifndef _DARWIN_C_SOURCE
 #define _DARWIN_C_SOURCE            /* pthread_threadid_np(), mach_port_t. */
 #endif
@@ -188,7 +187,6 @@
 #endif
 #include <sys/wait.h>
 #include <time.h>
-#include <ucontext.h>
 #include <unistd.h>
 #include <pthread.h>
 
