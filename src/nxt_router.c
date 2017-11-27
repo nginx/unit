@@ -3662,7 +3662,7 @@ nxt_router_conn_free(nxt_task_t *task, void *obj, void *data)
     nxt_mp_cleanup(c->mem_pool, nxt_router_conn_mp_cleanup,
                    &engine->task, joint, NULL);
 
-    nxt_mp_release(c->mem_pool, c);
+    nxt_conn_free(task, c);
 }
 
 

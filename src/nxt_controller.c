@@ -721,9 +721,7 @@ nxt_controller_conn_free(nxt_task_t *task, void *obj, void *data)
 
     nxt_sockaddr_cache_free(task->thread->engine, c);
 
-    nxt_mp_destroy(c->mem_pool);
-
-    //nxt_free(c);
+    nxt_conn_free(task, c);
 }
 
 

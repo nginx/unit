@@ -94,6 +94,15 @@ nxt_conn_create(nxt_mp_t *mp, nxt_task_t *task)
 
 
 void
+nxt_conn_free(nxt_task_t *task, nxt_conn_t *c)
+{
+    task->thread->engine->connections--;
+
+    nxt_mp_release(c->mem_pool, c);
+}
+
+
+void
 nxt_conn_io_shutdown(nxt_task_t *task, void *obj, void *data)
 {
     int         ret;
