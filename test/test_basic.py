@@ -110,14 +110,14 @@ class TestUnitBasic(unit.TestUnitControl):
         self.assertEqual(self.get('/listeners'),
             {"*:8081": {"application":"app"}}, 'put listeners prefix')
 
-        self.put('/listeners/*:8080', '{"application":"app"}')
+        self.put('/listeners/*:8082', '{"application":"app"}')
 
         self.assertEqual(self.get('/listeners'),
             {
-                "*:8080": {
+                "*:8081": {
                     "application": "app"
                 },
-                "*:8081": {
+                "*:8082": {
                     "application": "app"
                 }
             },
