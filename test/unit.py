@@ -29,12 +29,9 @@ class TestUnit(unittest.TestCase):
             '--log', self.testdir + '/unit.log',
             '--control', 'unix:' + self.testdir + '/control.unit.sock'])
 
-        time_wait = 0
-        while time_wait < 5 and not (os.path.exists(self.testdir + '/unit.pid')
-            and os.path.exists(self.testdir + '/unit.log')
-            and os.path.exists(self.testdir + '/control.unit.sock')):
-            time.sleep(0.1)
-            time_wait += 0.1
+        if not self._waitforfiles([self.testdir + '/unit.pid',
+            self.testdir + '/unit.log', self.testdir + '/control.unit.sock']):
+            exit("Could not start unit")
 
     # TODO dependency check
 
@@ -44,10 +41,13 @@ class TestUnit(unittest.TestCase):
 
         subprocess.call(['kill', pid])
 
-        time_wait = 0
-        while time_wait < 5 and os.path.exists(self.testdir + '/unit.pid'):
+        for i in range(1, 50):
+            if not os.path.exists(self.testdir + '/unit.pid'):
+                break
             time.sleep(0.1)
-            time_wait += 0.1
+
+        if os.path.exists(self.testdir + '/unit.pid'):
+            exit("Could not terminate unit")
 
         if '--log' in sys.argv:
             with open(self.testdir + '/unit.log', 'r') as f:
@@ -55,6 +55,24 @@ class TestUnit(unittest.TestCase):
 
         if '--leave' not in sys.argv:
             shutil.rmtree(self.testdir)
+
+    def _waitforfiles(self, files):
+        if isinstance(files, str):
+            files = [files]
+
+        count = 0
+        for i in range(1, 50):
+            for f in files:
+                if os.path.exists(f):
+                   count += 1
+
+            if count == len(files):
+                return 1
+
+            count = 0
+            time.sleep(0.1)
+
+        return 0
 
 class TestUnitControl(TestUnit):
 
