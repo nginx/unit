@@ -157,8 +157,8 @@ all: ${NXT_PHP_MODULE}
 ${NXT_PHP_MODULE}:	$NXT_BUILD_DIR/${NXT_PHP_MODULE}.unit.so
 
 $NXT_BUILD_DIR/${NXT_PHP_MODULE}.unit.so:	$nxt_objs
-	$NXT_MODULE_LINK -o $NXT_BUILD_DIR/${NXT_PHP_MODULE}.unit.so \\
-	$nxt_objs ${NXT_PHP_LIB} ${NXT_PHP_LDFLAGS}
+	\$(NXT_MODULE_LINK) -o $NXT_BUILD_DIR/${NXT_PHP_MODULE}.unit.so \\
+	$nxt_objs ${NXT_PHP_LIB} ${NXT_PHP_LDFLAGS} $NXT_LD_OPT
 
 
 install: ${NXT_PHP_MODULE}-install
