@@ -82,20 +82,38 @@ class TestUnitControl(TestUnit):
     def get(self, path='/'):
 
         with self._control_sock() as sock:
-            sock.sendall(('GET ' + path
-                + ' HTTP/1.1\r\nHost: localhost\r\n\r\n').encode())
-            r = self._recvall(sock)
+            req = ('GET ' + path
+                + ' HTTP/1.1\r\nHost: localhost\r\n\r\n').encode()
 
-        return self._body_json(r)
+            sock.sendall(req)
+
+            if '--verbose' in sys.argv:
+                print('>>>\n', req)
+
+            resp = self._recvall(sock)
+
+            if '--verbose' in sys.argv:
+                print('<<<\n', resp)
+
+        return self._body_json(resp)
 
     def delete(self, path='/'):
 
         with self._control_sock() as sock:
-            sock.sendall(('DELETE ' + path
-                + ' HTTP/1.1\r\nHost: localhost\r\n\r\n').encode())
-            r = self._recvall(sock)
+            req = ('DELETE ' + path
+                + ' HTTP/1.1\r\nHost: localhost\r\n\r\n').encode()
 
-        return self._body_json(r)
+            sock.sendall(req)
+
+            if '--verbose' in sys.argv:
+                print('>>>\n', req)
+
+            resp = self._recvall(sock)
+
+            if '--verbose' in sys.argv:
+                print('<<<\n', resp)
+
+        return self._body_json(resp)
 
     def put(self, path='/', data=''):
 
@@ -103,12 +121,20 @@ class TestUnitControl(TestUnit):
             data = data.encode()
 
         with self._control_sock() as sock:
-            sock.sendall(('PUT ' + path + (' HTTP/1.1\nHost: localhost\n'
-                'Content-Length: ') + str(len(data)) + '\r\n\r\n').encode()
-                + data)
-            r = self._recvall(sock)
+            req = ('PUT ' + path + (' HTTP/1.1\nHost: localhost\n'
+                'Content-Length: ') + str(len(data)) + '\r\n\r\n').encode() + data
 
-        return self._body_json(r)
+            sock.sendall(req)
+
+            if '--verbose' in sys.argv:
+                print('>>>\n', req)
+
+            resp = self._recvall(sock)
+
+            if '--verbose' in sys.argv:
+                print('<<<\n', resp)
+
+        return self._body_json(resp)
 
     def _control_sock(self):
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
