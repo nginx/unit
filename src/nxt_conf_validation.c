@@ -118,6 +118,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_python_members[] = {
       NULL,
       NULL },
 
+    { nxt_string("home"),
+      NXT_CONF_STRING,
+      NULL,
+      NULL },
+
     { nxt_string("path"),
       NXT_CONF_STRING,
       NULL,
@@ -545,3 +550,5 @@ nxt_conf_vldt_group(nxt_conf_validation_t *vldt, char *group)
 
     return NXT_ERROR;
 }
+
+

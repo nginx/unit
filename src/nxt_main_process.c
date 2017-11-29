@@ -121,6 +121,12 @@ static nxt_conf_map_t  nxt_common_app_conf[] = {
     },
 
     {
+        nxt_string("home"),
+        NXT_CONF_MAP_CSTRZ,
+        offsetof(nxt_common_app_conf_t, u.python.home),
+    },
+
+    {
         nxt_string("path"),
         NXT_CONF_MAP_STR,
         offsetof(nxt_common_app_conf_t, u.python.path),

@@ -177,6 +177,12 @@ static PyObject           *nxt_py_application;
 static PyObject           *nxt_py_start_resp_obj;
 static PyObject           *nxt_py_environ_ptyp;
 
+#if PY_MAJOR_VERSION == 3
+static wchar_t            *nxt_py_home;
+#else
+static char               *nxt_py_home;
+#endif
+
 static nxt_python_run_ctx_t  *nxt_python_run_ctx;
 
 
@@ -192,6 +198,26 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     if (c->module.length == 0) {
         nxt_log_emerg(task->log, "python module is empty");
         return NXT_ERROR;
+    }
+
+    if (c->home != NULL) {
+        size_t  len;
+
+        len = nxt_strlen(c->home);
+
+        nxt_py_home = nxt_malloc(sizeof(*nxt_py_home) * (len + 1));
+        if (nxt_slow_path(nxt_py_home == NULL)) {
+            nxt_log_emerg(task->log, "Failed to allocate buffer for home path");
+            return NXT_ERROR;
+        }
+
+#if PY_MAJOR_VERSION == 3
+        mbstowcs(nxt_py_home, c->home, len + 1);
+#else
+        nxt_memcpy(nxt_py_home, c->home, len + 1);
+#endif
+
+        Py_SetPythonHome(nxt_py_home);
     }
 
     Py_InitializeEx(0);
@@ -300,6 +326,10 @@ fail:
 
     Py_XDECREF(obj);
     Py_XDECREF(module);
+
+    if (nxt_py_home != NULL) {
+        nxt_free(nxt_py_home);
+    }
 
     return NXT_ERROR;
 }

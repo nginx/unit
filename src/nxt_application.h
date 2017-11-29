@@ -34,6 +34,7 @@ typedef struct nxt_common_app_conf_s nxt_common_app_conf_t;
 
 
 typedef struct {
+    char       *home;
     nxt_str_t  path;
     nxt_str_t  module;
 } nxt_python_app_conf_t;
