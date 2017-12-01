@@ -121,6 +121,8 @@ nxt_go_new_port_mmap(nxt_go_process_t *process, nxt_port_id_t id)
     port_msg.type = _NXT_PORT_MSG_MMAP;
     port_msg.last = 1;
     port_msg.mmap = 0;
+    port_msg.nf = 0;
+    port_msg.mf = 0;
 
     cmsg.cm.cmsg_len = CMSG_LEN(sizeof(int));
     cmsg.cm.cmsg_level = SOL_SOCKET;

@@ -178,6 +178,8 @@ nxt_go_ready()
     port_msg.type = _NXT_PORT_MSG_PROCESS_READY;
     port_msg.last = 1;
     port_msg.mmap = 0;
+    port_msg.nf = 0;
+    port_msg.mf = 0;
 
     nxt_go_main_send(&port_msg, sizeof(port_msg), NULL, 0);
 }
