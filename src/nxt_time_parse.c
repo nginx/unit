@@ -368,8 +368,6 @@ nxt_term_parse(const u_char *p, size_t len, nxt_bool_t seconds)
             if (state == st_first_digit) {
                 return -1;
             }
-
-            state = st_letter;
         }
 
         switch (ch) {
