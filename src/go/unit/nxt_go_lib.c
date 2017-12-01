@@ -4,62 +4,13 @@
  * Copyright (C) NGINX, Inc.
  */
 
-#ifdef NXT_CONFIGURE
-
-#include <stdio.h>
-#include "nxt_go_lib.h"
-
-// Stubs to compile during configure process.
-int
-nxt_go_response_write(nxt_go_request_t r, void *buf, size_t len)
-{
-    return -1;
-}
-
-int
-nxt_go_request_read(nxt_go_request_t r, void *dst, size_t dst_len)
-{
-    return -1;
-}
-
-int
-nxt_go_request_read_from(nxt_go_request_t r, void *dst, size_t dst_len,
-    void *src, size_t src_len)
-{
-    return -1;
-}
-
-int
-nxt_go_request_close(nxt_go_request_t r)
-{
-    return -1;
-}
-
-int
-nxt_go_request_done(nxt_go_request_t r)
-{
-    return -1;
-}
-
-void
-nxt_go_ready()
-{
-}
-
-nxt_go_request_t
-nxt_go_process_port_msg(void *buf, size_t buf_len, void *oob, size_t oob_len)
-{
-    return 0;
-}
-
-#else
-
 #include "nxt_go_run_ctx.h"
 #include "nxt_go_log.h"
 #include "nxt_go_port.h"
 
+#include "_cgo_export.h"
+
 #include <nxt_main.h>
-#include <nxt_go_gen.h>
 
 int
 nxt_go_response_write(nxt_go_request_t r, void *buf, size_t len)
@@ -190,6 +141,3 @@ nxt_go_process_port_msg(void *buf, size_t buf_len, void *oob, size_t oob_len)
 {
     return nxt_go_port_on_read(buf, buf_len, oob, oob_len);
 }
-
-
-#endif /* NXT_CONFIGURE */

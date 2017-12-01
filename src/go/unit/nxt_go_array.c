@@ -4,8 +4,6 @@
  * Copyright (C) NGINX, Inc.
  */
 
-#ifndef NXT_CONFIGURE
-
 #include <stdint.h>
 #include <sys/types.h>
 
@@ -62,5 +60,3 @@ nxt_go_array_add(nxt_array_t *array)
 
     return p;
 }
-
-#endif /* NXT_CONFIGURE */

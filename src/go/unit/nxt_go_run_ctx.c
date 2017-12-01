@@ -4,9 +4,6 @@
  * Copyright (C) NGINX, Inc.
  */
 
-#ifndef NXT_CONFIGURE
-
-
 #include "nxt_go_run_ctx.h"
 #include "nxt_go_log.h"
 #include "nxt_go_process.h"
@@ -14,9 +11,10 @@
 #include "nxt_go_mutex.h"
 #include "nxt_go_port_memory.h"
 
+#include "_cgo_export.h"
+
 #include <nxt_port_memory_int.h>
 #include <nxt_main.h>
-#include <nxt_go_gen.h>
 
 
 static nxt_int_t
@@ -530,6 +528,3 @@ nxt_go_ctx_read_raw(nxt_go_run_ctx_t *ctx, void *dst, size_t size)
 
     return res;
 }
-
-
-#endif /* NXT_CONFIGURE */

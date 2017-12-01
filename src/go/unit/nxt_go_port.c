@@ -4,16 +4,14 @@
  * Copyright (C) NGINX, Inc.
  */
 
-#ifndef NXT_CONFIGURE
-
-
 #include "nxt_go_port.h"
 #include "nxt_go_log.h"
 #include "nxt_go_process.h"
 #include "nxt_go_run_ctx.h"
 
+#include "_cgo_export.h"
+
 #include <nxt_main.h>
-#include <nxt_go_gen.h>
 
 
 #define nxt_go_str(p) ((nxt_go_str_t *)(p))
@@ -205,6 +203,3 @@ fail:
 
     return 0;
 }
-
-
-#endif /* NXT_CONFIGURE */

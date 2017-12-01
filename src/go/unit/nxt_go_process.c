@@ -4,9 +4,6 @@
  * Copyright (C) NGINX, Inc.
  */
 
-#ifndef NXT_CONFIGURE
-
-
 #include "nxt_go_process.h"
 #include "nxt_go_array.h"
 #include "nxt_go_mutex.h"
@@ -149,6 +146,3 @@ fail:
 
     nxt_go_mutex_unlock(&process->incoming_mutex);
 }
-
-
-#endif /* NXT_CONFIGURE */

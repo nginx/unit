@@ -4,15 +4,13 @@
  * Copyright (C) NGINX, Inc.
  */
 
-#ifndef NXT_CONFIGURE
-
-
 #include "nxt_go_port_memory.h"
 #include "nxt_go_process.h"
 #include "nxt_go_array.h"
 #include "nxt_go_log.h"
 
-#include <nxt_go_gen.h>
+#include "_cgo_export.h"
+
 #include <nxt_main.h>
 
 #if (NXT_HAVE_MEMFD_CREATE)
@@ -197,6 +195,3 @@ unlock_return:
 
     return hdr;
 }
-
-
-#endif /* NXT_CONFIGURE */
