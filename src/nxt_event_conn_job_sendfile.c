@@ -70,6 +70,7 @@ nxt_event_conn_job_sendfile_start(nxt_task_t *task, void *obj, void *data)
         sb.nmax = 1;
         sb.sync = 0;
         sb.size = 0;
+        sb.last = 0;
         sb.limit = jbs->limit;
 
         if (nxt_sendbuf_mem_coalesce(c->socket.task, &sb) != 0 || !sb.sync) {
