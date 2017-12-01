@@ -116,11 +116,6 @@ nxt_process_arguments(nxt_task_t *task, char **orig_argv, char ***orig_envp)
         }
     }
 
-    p = nxt_malloc(strings_size);
-    if (p == NULL) {
-        return;
-    }
-
     if (argv_end == end) {
         /*
          * There is no reason to modify environ if arguments
@@ -128,6 +123,11 @@ nxt_process_arguments(nxt_task_t *task, char **orig_argv, char ***orig_envp)
          */
         nxt_debug(task, "arguments and environment are not contiguous");
         goto done;
+    }
+
+    p = nxt_malloc(strings_size);
+    if (p == NULL) {
+       goto done;
     }
 
     end = argv[0];
@@ -149,7 +149,7 @@ nxt_process_arguments(nxt_task_t *task, char **orig_argv, char ***orig_envp)
 
     env = nxt_malloc(environ_size);
     if (env == NULL) {
-        return;
+       goto done;
     }
 
     /*
@@ -178,6 +178,12 @@ nxt_process_arguments(nxt_task_t *task, char **orig_argv, char ***orig_envp)
     }
 
 done:
+    if (p != NULL) {
+       nxt_free(p);
+    }
+    if (env != NULL) {
+       nxt_free(env);
+    }
 
     /* Preserve space for the trailing zero. */
     end--;
