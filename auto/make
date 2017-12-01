@@ -3,6 +3,7 @@
 # Copyright (C) Valentin V. Bartenev
 # Copyright (C) NGINX, Inc.
 
+. auto/cc/deps
 
 $echo "creating $NXT_MAKEFILE"
 
@@ -41,26 +42,13 @@ $echo >> $NXT_MAKEFILE
 $echo >> $NXT_MAKEFILE
 
 
-# The include files dependences list.
-
-$echo "NXT_LIB_DEPS = \\" >> $NXT_MAKEFILE
-
-for nxt_dep in $NXT_LIB_DEPS $NXT_TEST_DEPS $NXT_AUTO_CONFIG_H
-do
-    $echo "	$nxt_dep \\" >> $NXT_MAKEFILE
-done
-
-$echo >> $NXT_MAKEFILE
-$echo >> $NXT_MAKEFILE
-
-
 # Library object files list.
 
 $echo "NXT_LIB_OBJS = \\" >> $NXT_MAKEFILE
 
 for nxt_src in $NXT_LIB_SRCS
 do
-    nxt_obj=`$echo $nxt_src | sed -e "s/\.c$/\.o/"`
+    nxt_obj=${nxt_src%.c}.o
     $echo "	$NXT_BUILD_DIR/$nxt_obj \\" >> $NXT_MAKEFILE
 done
 
@@ -89,13 +77,21 @@ END
 
 for nxt_src in $NXT_LIB_SRCS $NXT_TEST_SRCS
 do
-    nxt_obj=`$echo $nxt_src | sed -e "s/\.c$/\.o/"`
+    nxt_obj=${nxt_src%.c}.o
+    nxt_dep=${nxt_src%.c}.dep
+    nxt_dep_flags=`nxt_gen_dep_flags`
+    nxt_dep_post=`nxt_gen_dep_post`
     cat << END >> $NXT_MAKEFILE
 
-$NXT_BUILD_DIR/$nxt_obj: $nxt_src \$(NXT_LIB_DEPS)
+$NXT_BUILD_DIR/$nxt_obj: $nxt_src
 	\$(CC) -c \$(CFLAGS) \$(NXT_LIB_INCS) $NXT_LIB_AUX_CFLAGS \\
 	-o $NXT_BUILD_DIR/$nxt_obj \\
+	$nxt_dep_flags \\
 	$nxt_src
+	$nxt_dep_post
+
+-include $NXT_BUILD_DIR/$nxt_dep
+
 END
 
 done
@@ -109,7 +105,7 @@ $echo "NXT_TEST_OBJS = \\" >> $NXT_MAKEFILE
 
 for nxt_src in $NXT_TEST_SRCS
 do
-    nxt_obj=`$echo $nxt_src | sed -e "s/\.c$/\.o/"`
+    nxt_obj=${nxt_src%.c}.o
     $echo "	$NXT_BUILD_DIR/$nxt_obj \\" >> $NXT_MAKEFILE
 done
 
@@ -119,14 +115,14 @@ done
 cat << END >> $NXT_MAKEFILE
 
 $NXT_BUILD_DIR/tests: \$(NXT_TEST_OBJS) \\
-			$NXT_BUILD_DIR/$NXT_LIB_STATIC \$(NXT_LIB_DEPS)
+			$NXT_BUILD_DIR/$NXT_LIB_STATIC
 	\$(NXT_EXEC_LINK) -o $NXT_BUILD_DIR/tests \\
 		\$(CFLAGS) \$(NXT_TEST_OBJS) \\
 		$NXT_BUILD_DIR/$NXT_LIB_STATIC \\
 		$NXT_LD_OPT $NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
 
 $NXT_BUILD_DIR/utf8_file_name_test: $NXT_LIB_UTF8_FILE_NAME_TEST_SRCS \\
-			$NXT_BUILD_DIR/$NXT_LIB_STATIC \$(NXT_LIB_DEPS)
+			$NXT_BUILD_DIR/$NXT_LIB_STATIC
 	\$(CC) \$(CFLAGS) \$(NXT_LIB_INCS) $NXT_LIB_AUX_CFLAGS \\
 		-o $NXT_BUILD_DIR/utf8_file_name_test \\
 		$NXT_LIB_UTF8_FILE_NAME_TEST_SRCS \\
@@ -137,7 +133,6 @@ END
 
 
 NXT_MAKE_INCS="src $NXT_BUILD_DIR"
-NXT_MAKE_DEPS="\$(NXT_LIB_DEPS) $NXT_DEPS"
 NXT_MAKE_SRCS="$NXT_SRCS"
 
 
@@ -154,26 +149,13 @@ $echo >> $NXT_MAKEFILE
 $echo >> $NXT_MAKEFILE
 
 
-# The include files dependences list.
-
-$echo "NXT_DEPS = \\" >> $NXT_MAKEFILE
-
-for nxt_dep in $NXT_MAKE_DEPS
-do
-    $echo "	$nxt_dep \\" >> $NXT_MAKEFILE
-done
-
-$echo >> $NXT_MAKEFILE
-$echo >> $NXT_MAKEFILE
-
-
 # Object files list.
 
 $echo "NXT_OBJS = \\" >> $NXT_MAKEFILE
 
 for nxt_src in $NXT_MAKE_SRCS
 do
-    nxt_obj=`$echo $nxt_src | sed -e "s/\.c$/\.o/"`
+    nxt_obj=${nxt_src%.c}.o
     $echo "	$NXT_BUILD_DIR/$nxt_obj \\" >> $NXT_MAKEFILE
 done
 
@@ -197,14 +179,22 @@ END
 
 for nxt_src in $NXT_MAKE_SRCS
 do
-    nxt_obj=`$echo $nxt_src | sed -e "s/\.c$/\.o/"`
+    nxt_obj=${nxt_src%.c}.o
+    nxt_dep=${nxt_src%.c}.dep
+    nxt_dep_flags=`nxt_gen_dep_flags`
+    nxt_dep_post=`nxt_gen_dep_post`
     cat << END >> $NXT_MAKEFILE
 
-$NXT_BUILD_DIR/$nxt_obj:	$nxt_src \$(NXT_DEPS)
+$NXT_BUILD_DIR/$nxt_obj:	$nxt_src
 	\$(CC) -c \$(CFLAGS) \$(NXT_INCS) \\
 		$NXT_LIB_AUX_CFLAGS \\
 		-o $NXT_BUILD_DIR/$nxt_obj \\
+		$nxt_dep_flags \\
 		$nxt_src
+	$nxt_dep_post
+
+-include $NXT_BUILD_DIR/$nxt_dep
+
 END
 
 done

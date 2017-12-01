@@ -74,13 +74,15 @@ END
             if /bin/sh -c "($NXT_AUTOTEST)" >> $NXT_AUTOCONF_ERR 2>&1; then
                 $echo " found"
                 nxt_found=yes
-                cat << END >> $NXT_AUTO_CONFIG_H
+                if [ -n "$nxt_feature_name" ]; then
+                    cat << END >> $NXT_AUTO_CONFIG_H
 
 #ifndef $nxt_feature_name
 #define $nxt_feature_name  1
 #endif
 
 END
+                fi
             else
                 $echo " found but is not working"
             fi
@@ -89,13 +91,15 @@ END
         *)
             $echo " found"
             nxt_found=yes
-            cat << END >> $NXT_AUTO_CONFIG_H
+            if [ -n "$nxt_feature_name" ]; then
+                cat << END >> $NXT_AUTO_CONFIG_H
 
 #ifndef $nxt_feature_name
 #define $nxt_feature_name  1
 #endif
 
 END
+            fi
         ;;
     esac
 

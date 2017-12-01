@@ -3,80 +3,6 @@
 # Copyright (C) NGINX, Inc.
 
 
-NXT_LIB_DEPS=" \
-    src/nxt_main.h \
-    src/nxt_clang.h \
-    src/nxt_types.h \
-    src/nxt_atomic.h \
-    src/nxt_errno.h \
-    src/nxt_time.h \
-    src/nxt_unix.h \
-    src/nxt_malloc.h \
-    src/nxt_file.h \
-    src/nxt_mem_map.h \
-    src/nxt_socket.h \
-    src/nxt_process_type.h \
-    src/nxt_process.h \
-    src/nxt_signal.h \
-    src/nxt_port.h \
-    src/nxt_port_hash.h \
-    src/nxt_port_memory.h \
-    src/nxt_port_memory_int.h \
-    src/nxt_dyld.h \
-    src/nxt_thread.h \
-    src/nxt_thread_id.h \
-    src/nxt_spinlock.h \
-    src/nxt_random.h \
-    src/nxt_queue.h \
-    src/nxt_rbtree.h \
-    src/nxt_string.h \
-    src/nxt_utf8.h \
-    src/nxt_unicode_lowcase.h \
-    src/nxt_parse.h \
-    src/nxt_mp.h \
-    src/nxt_mem_zone.h \
-    src/nxt_sprintf.h \
-    src/nxt_file_name.h \
-    src/nxt_log.h \
-    src/nxt_djb_hash.h \
-    src/nxt_murmur_hash.h \
-    src/nxt_lvlhsh.h \
-    src/nxt_hash.h \
-    src/nxt_sort.h \
-    src/nxt_array.h \
-    src/nxt_vector.h \
-    src/nxt_list.h \
-    src/nxt_buf.h \
-    src/nxt_buf_pool.h \
-    src/nxt_buf_filter.h \
-    src/nxt_recvbuf.h \
-    src/nxt_sendbuf.h \
-    src/nxt_semaphore.h \
-    src/nxt_thread_log.h \
-    src/nxt_thread_time.h \
-    src/nxt_thread_pool.h \
-    src/nxt_work_queue.h \
-    src/nxt_service.h \
-    src/nxt_log_moderation.h \
-    src/nxt_event_engine.h \
-    src/nxt_timer.h \
-    src/nxt_fd_event.h \
-    src/nxt_file_event.h \
-    src/nxt_conn.h \
-    src/nxt_job.h \
-    src/nxt_job_file.h \
-    src/nxt_sockaddr.h \
-    src/nxt_job_resolve.h \
-    src/nxt_listen_socket.h \
-    src/nxt_http_parse.h \
-    src/nxt_runtime.h \
-    src/nxt_conf.h \
-    src/nxt_application.h \
-    src/nxt_main_process.h \
-    src/nxt_router.h \
-    src/nxt_port_hash.h \
-"
-
 NXT_LIB_SRCS=" \
     src/nxt_lib.c \
     src/nxt_gmtime.c \
@@ -228,7 +154,6 @@ NXT_LIB_UTF8_FILE_NAME_TEST_SRCS=" \
 
 if [ $NXT_SSLTLS = YES ]; then
     nxt_have=NXT_SSLTLS . auto/have
-    NXT_LIB_DEPS="$NXT_LIB_DEPS $NXT_LIB_SSLTLS_DEPS"
     NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_SSLTLS_SRCS"
 fi
 
@@ -322,7 +247,6 @@ fi
 
 
 if [ "$NXT_TEST_BUILD" = "YES" ]; then
-    NXT_LIB_DEPS="$NXT_LIB_DEPS $NXT_TEST_BUILD_DEPS"
     NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_TEST_BUILD_SRCS"
 fi
 

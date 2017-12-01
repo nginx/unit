@@ -1,0 +1,25 @@
+
+case "$NXT_CC_NAME" in
+
+    SunC):
+        nxt_gen_dep_flags() {
+            $echo "-xMMD -xMF $NXT_BUILD_DIR/$nxt_dep.tmp" 
+        }
+
+        nxt_gen_dep_post() {
+            $echo -n "@sed -e 's#^.*:#$NXT_BUILD_DIR/$nxt_obj:#' "
+            $echo -n "$NXT_BUILD_DIR/$nxt_dep.tmp > $NXT_BUILD_DIR/$nxt_dep"
+            $echo " && rm -f $NXT_BUILD_DIR/$nxt_dep.tmp"
+        }
+    ;;
+
+    *)
+        nxt_gen_dep_flags() {
+            $echo "-MMD -MF $NXT_BUILD_DIR/$nxt_dep -MT $NXT_BUILD_DIR/$nxt_obj" 
+        }
+
+        nxt_gen_dep_post() {
+            $echo ""
+        }
+    ;;
+esac
