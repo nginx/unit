@@ -232,7 +232,8 @@ nxt_recvmsg(nxt_socket_t s, nxt_fd_t *fd, nxt_iobuf_t *iob, nxt_uint_t niob)
     msg.msg_iovlen = niob;
     msg.msg_control = (caddr_t) &cmsg;
     msg.msg_controllen = sizeof(cmsg);
-
+    msg.msg_flags = 0;
+   
     *fd = -1;
 
 #if (NXT_VALGRIND)
