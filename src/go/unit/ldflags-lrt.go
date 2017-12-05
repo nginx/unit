@@ -1,4 +1,4 @@
-// +build linux
+// +build linux netbsd
 
 /*
  * Copyright (C) Max Romanov
