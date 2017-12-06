@@ -13,7 +13,7 @@
 #include <nxt_main.h>
 
 int
-nxt_go_response_write(nxt_go_request_t r, void *buf, size_t len)
+nxt_go_response_write(nxt_go_request_t r, uintptr_t buf, size_t len)
 {
     nxt_int_t         rc;
     nxt_go_run_ctx_t  *ctx;
@@ -25,14 +25,14 @@ nxt_go_response_write(nxt_go_request_t r, void *buf, size_t len)
     nxt_go_debug("write: %d", (int) len);
 
     ctx = (nxt_go_run_ctx_t *) r;
-    rc = nxt_go_ctx_write(ctx, buf, len);
+    rc = nxt_go_ctx_write(ctx, (void *) buf, len);
 
     return rc == NXT_OK ? len : -1;
 }
 
 
 int
-nxt_go_request_read(nxt_go_request_t r, void *dst, size_t dst_len)
+nxt_go_request_read(nxt_go_request_t r, uintptr_t dst, size_t dst_len)
 {
     size_t            res;
     nxt_go_run_ctx_t  *ctx;
@@ -43,19 +43,19 @@ nxt_go_request_read(nxt_go_request_t r, void *dst, size_t dst_len)
 
     ctx = (nxt_go_run_ctx_t *) r;
 
-    dst_len = nxt_min(dst_len, ctx->r.body.preread_size);
+    dst_len = nxt_min(dst_len, ctx->request.body.preread_size);
 
-    res = nxt_go_ctx_read_raw(ctx, dst, dst_len);
+    res = nxt_go_ctx_read_raw(ctx, (void *) dst, dst_len);
 
-    ctx->r.body.preread_size -= res;
+    ctx->request.body.preread_size -= res;
 
     return res;
 }
 
 
 int
-nxt_go_request_read_from(nxt_go_request_t r, void *dst, size_t dst_len,
-    void *src, size_t src_len)
+nxt_go_request_read_from(nxt_go_request_t r, uintptr_t dst, size_t dst_len,
+    uintptr_t src, size_t src_len)
 {
     nxt_go_run_ctx_t  *ctx;
 
@@ -65,7 +65,7 @@ nxt_go_request_read_from(nxt_go_request_t r, void *dst, size_t dst_len,
 
     ctx = (nxt_go_run_ctx_t *) r;
 
-    nxt_go_ctx_add_msg(ctx, src, src_len);
+    nxt_go_ctx_add_msg(ctx, (void *) src, src_len);
 
     return nxt_go_request_read(r, dst, dst_len);
 }
@@ -137,7 +137,7 @@ nxt_go_ready()
 
 
 nxt_go_request_t
-nxt_go_process_port_msg(void *buf, size_t buf_len, void *oob, size_t oob_len)
+nxt_go_process_port_msg(uintptr_t buf, size_t buf_len, uintptr_t oob, size_t oob_len)
 {
-    return nxt_go_port_on_read(buf, buf_len, oob, oob_len);
+    return nxt_go_port_on_read((void *) buf, buf_len, (void *) oob, oob_len);
 }

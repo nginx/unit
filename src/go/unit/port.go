@@ -12,7 +12,6 @@ package unit
 import "C"
 
 import (
-	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -74,6 +73,9 @@ func main_port() *port {
 }
 
 func add_port(p *port) {
+
+	nxt_go_debug("add_port: %d:%d", p.key.pid, p.key.id);
+
 	port_registry_.Lock()
 	if port_registry_.m == nil {
 		port_registry_.m = make(map[port_key]*port)
@@ -105,13 +107,13 @@ func getUnixConn(fd int) *net.UnixConn {
 
 	c, err := net.FileConn(f)
 	if err != nil {
-		fmt.Printf("FileConn error %s\n", err)
+		nxt_go_warn("FileConn error %s", err)
 		return nil
 	}
 
 	uc, ok := c.(*net.UnixConn)
 	if !ok {
-		fmt.Printf("Not a Unix-domain socket %d\n", fd)
+		nxt_go_warn("Not a Unix-domain socket %d", fd)
 		return nil
 	}
 
@@ -135,6 +137,7 @@ func nxt_go_port_send(pid C.int, id C.int, buf unsafe.Pointer, buf_size C.int,
 	p := find_port(key)
 
 	if p == nil {
+		nxt_go_warn("port %d:%d not found", pid, id)
 		return 0
 	}
 
@@ -142,7 +145,7 @@ func nxt_go_port_send(pid C.int, id C.int, buf unsafe.Pointer, buf_size C.int,
 		C.GoBytes(oob, oob_size), nil)
 
 	if err != nil {
-		fmt.Printf("write result %d (%d), %s\n", n, oobn, err)
+		nxt_go_warn("write result %d (%d), %s", n, oobn, err)
 	}
 
 	return C.int(n)
@@ -163,7 +166,7 @@ func nxt_go_main_send(buf unsafe.Pointer, buf_size C.int, oob unsafe.Pointer,
 		C.GoBytes(oob, oob_size), nil)
 
 	if err != nil {
-		fmt.Printf("write result %d (%d), %s\n", n, oobn, err)
+		nxt_go_warn("write result %d (%d), %s", n, oobn, err)
 	}
 
 	return C.int(n)
@@ -188,6 +191,7 @@ func new_port(pid int, id int, t int, rcv int, snd int) *port {
 func (p *port) read(handler http.Handler) error {
 	var buf [16384]byte
 	var oob [1024]byte
+	var c_buf, c_oob cbuf
 
 	n, oobn, _, _, err := p.rcv.ReadMsgUnix(buf[:], oob[:])
 
@@ -195,24 +199,16 @@ func (p *port) read(handler http.Handler) error {
 		return err
 	}
 
-	m := new_cmsg(buf[:n], oob[:oobn])
+	c_buf.init(buf[:n])
+	c_oob.init(oob[:oobn])
 
-	c_req := C.nxt_go_process_port_msg(m.buf.b, m.buf.s, m.oob.b, m.oob.s)
+	go_req := C.nxt_go_process_port_msg(c_buf.b, c_buf.s, c_oob.b, c_oob.s)
 
-	if c_req == 0 {
-		m.Close()
+	if go_req == 0 {
 		return nil
 	}
 
-	r := find_request(c_req)
-
-	if len(r.msgs) == 0 {
-		r.push(m)
-	} else if r.ch != nil {
-		r.ch <- m
-	} else {
-		m.Close()
-	}
+	r := get_request(go_req)
 
 	go func(r *request) {
 		if handler == nil {

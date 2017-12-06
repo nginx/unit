@@ -185,7 +185,7 @@ nxt_go_ctx_add_msg(nxt_go_run_ctx_t *ctx, nxt_port_msg_t *port_msg, size_t size)
     msg->start_offset = ctx->msg_last->start_offset;
 
     if (ctx->msg_last == &ctx->msg) {
-        msg->start_offset += ctx->r.body.preread_size;
+        msg->start_offset += ctx->request.body.preread_size;
 
     } else {
         msg->start_offset += ctx->msg_last->data_size;
@@ -218,6 +218,8 @@ nxt_go_ctx_flush(nxt_go_run_ctx_t *ctx, int last)
     rc = nxt_go_port_send(ctx->msg.port_msg->pid, ctx->msg.port_msg->reply_port,
                           &ctx->wport_msg, sizeof(nxt_port_msg_t) +
                           ctx->nwbuf * sizeof(nxt_port_mmap_msg_t), NULL, 0);
+
+    nxt_go_debug("  port send res = %d", rc);
 
     ctx->nwbuf = 0;
 

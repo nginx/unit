@@ -20,32 +20,21 @@ import (
 )
 
 type cbuf struct {
-	b unsafe.Pointer
+	b C.uintptr_t
 	s C.size_t
-	f bool
 }
 
-func new_cbuf(buf []byte) *cbuf {
+func buf_ref(buf []byte) C.uintptr_t {
 	if len(buf) == 0 {
-		return nil
+		return 0
 	}
 
-	return &cbuf{
-		getCBytes(buf), C.size_t(len(buf)), true,
-	}
+	return C.uintptr_t(uintptr(unsafe.Pointer(&buf[0])))
 }
 
-func (buf *cbuf) Close() {
-	if buf == nil {
-		return
-	}
-
-	if buf.f && buf.s > 0 {
-		C.free(buf.b)
-		buf.f = false
-		buf.b = nil
-		buf.s = 0
-	}
+func (buf *cbuf) init(b []byte) {
+  buf.b = buf_ref(b)
+  buf.s = C.size_t(len(b))
 }
 
 func (buf *cbuf) GoBytes() []byte {
@@ -54,24 +43,7 @@ func (buf *cbuf) GoBytes() []byte {
 		return b[:0]
 	}
 
-	return C.GoBytes(buf.b, C.int(buf.s))
-}
-
-type cmsg struct {
-	buf cbuf
-	oob cbuf
-}
-
-func new_cmsg(buf []byte, oob []byte) *cmsg {
-	return &cmsg{
-		buf: cbuf{getCBytes(buf), C.size_t(len(buf)), true},
-		oob: cbuf{getCBytes(oob), C.size_t(len(oob)), true},
-	}
-}
-
-func (msg *cmsg) Close() {
-	msg.buf.Close()
-	msg.oob.Close()
+	return C.GoBytes(unsafe.Pointer(uintptr(buf.b)), C.int(buf.s))
 }
 
 var nxt_go_quit bool = false
@@ -79,6 +51,14 @@ var nxt_go_quit bool = false
 //export nxt_go_set_quit
 func nxt_go_set_quit() {
 	nxt_go_quit = true
+}
+
+func nxt_go_warn(format string, args ...interface{}) {
+  fmt.Fprintf(os.Stderr, "[go warn] " + format + "\n", args...)
+}
+
+func nxt_go_debug(format string, args ...interface{}) {
+  // fmt.Fprintf(os.Stderr, "[go debug] " + format + "\n", args...)
 }
 
 func ListenAndServe(addr string, handler http.Handler) error {

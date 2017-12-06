@@ -47,7 +47,8 @@ typedef struct {
     nxt_port_msg_t       wport_msg;
     char                 wmmap_msg_buf[ sizeof(nxt_port_mmap_msg_t) * 8 ];
 
-    nxt_app_request_t    r;
+    nxt_app_request_t    request;
+    uintptr_t            go_request;
 
     nxt_go_msg_t         *msg_last;
 } nxt_go_run_ctx_t;
