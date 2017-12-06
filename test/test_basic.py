@@ -3,6 +3,13 @@ import unittest
 
 class TestUnitBasic(unit.TestUnitControl):
 
+    @classmethod
+    def setUpClass(cls):
+        u = unit.TestUnit()
+        module_missed = u.check_modules('python')
+        if module_missed:
+            raise unittest.SkipTest('Unit has no ' + module_missed + ' module')
+
     def test_get(self):
         resp = self.get()
         self.assertEqual(resp, {'listeners': {}, 'applications': {}}, 'empty')

@@ -3,6 +3,13 @@ import unittest
 
 class TestUnitConfiguration(unit.TestUnitControl):
 
+    @classmethod
+    def setUpClass(cls):
+        u = unit.TestUnit()
+        module_missed = u.check_modules('python')
+        if module_missed:
+            raise unittest.SkipTest('Unit has no ' + module_missed + ' module')
+
     def test_json_applications(self):
         self.assertIn('error', self.put('/applications', '"{}"'),
             'applications string')

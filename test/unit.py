@@ -12,6 +12,45 @@ import subprocess
 class TestUnit(unittest.TestCase):
 
     def setUp(self):
+        self._run()
+
+    def tearDown(self):
+        self._stop()
+
+        if '--log' in sys.argv:
+            with open(self.testdir + '/unit.log', 'r') as f:
+                print(f.read())
+
+        if '--leave' not in sys.argv:
+            shutil.rmtree(self.testdir)
+
+    def check_modules(self, *modules):
+        self._run()
+
+        for i in range(50):
+            with open(self.testdir + '/unit.log', 'r') as f:
+                log = f.read()
+                m = re.search('controller started', log, re.M | re.S)
+
+                if m is None:
+                    time.sleep(0.1)
+                else:
+                    break
+
+        if m is None:
+            exit("Unit is writing log too long")
+
+        ret = ''
+        for module in modules:
+            m = re.search('module: ' + module, log, re.M | re.S)
+            if m is None:
+                ret = module
+
+        self._stop()
+
+        return ret
+
+    def _run(self):
         self.testdir = tempfile.mkdtemp(prefix='unit-test-')
 
         os.mkdir(self.testdir + '/state')
@@ -33,9 +72,7 @@ class TestUnit(unittest.TestCase):
             self.testdir + '/unit.log', self.testdir + '/control.unit.sock'):
             exit("Could not start unit")
 
-    # TODO dependency check
-
-    def tearDown(self):
+    def _stop(self):
         with open(self.testdir + '/unit.pid', 'r') as f:
             pid = f.read().rstrip()
 
@@ -48,13 +85,6 @@ class TestUnit(unittest.TestCase):
 
         if os.path.exists(self.testdir + '/unit.pid'):
             exit("Could not terminate unit")
-
-        if '--log' in sys.argv:
-            with open(self.testdir + '/unit.log', 'r') as f:
-                print(f.read())
-
-        if '--leave' not in sys.argv:
-            shutil.rmtree(self.testdir)
 
     def _waitforfiles(self, *files):
         for i in range(50):
