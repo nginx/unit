@@ -60,22 +60,22 @@ class TestUnitBasic(unit.TestUnitControl):
         self.assertEqual(self.get('/applications/app/workers'), 1,
             'python applications workers')
 
-        self.put('/listeners', '{"*:8080":{"application":"app"}}')
+        self.put('/listeners', '{"*:7080":{"application":"app"}}')
 
         self.assertEqual(self.get()['listeners'],
-            {"*:8080":{"application":"app"}}, 'python listeners')
+            {"*:7080":{"application":"app"}}, 'python listeners')
         self.assertEqual(self.get('/listeners'),
-            {"*:8080":{"application":"app"}}, 'python listeners prefix')
-        self.assertEqual(self.get('/listeners/*:8080'),
+            {"*:7080":{"application":"app"}}, 'python listeners prefix')
+        self.assertEqual(self.get('/listeners/*:7080'),
             {"application":"app"}, 'python listeners prefix 2')
-        self.assertEqual(self.get('/listeners/*:8080/application'), 'app',
+        self.assertEqual(self.get('/listeners/*:7080/application'), 'app',
             'python listeners application')
 
     def test_put(self):
         self.put('/', """
             {
                 "listeners": {
-                    "*:8080": {
+                    "*:7080": {
                         "application": "app"
                     }
                 },
@@ -92,7 +92,7 @@ class TestUnitBasic(unit.TestUnitControl):
 
         resp = self.get()
 
-        self.assertEqual(resp['listeners'], {"*:8080":{"application":"app"}},
+        self.assertEqual(resp['listeners'], {"*:7080":{"application":"app"}},
             'put listeners')
 
         self.assertEqual(resp['applications'],
@@ -106,18 +106,18 @@ class TestUnitBasic(unit.TestUnitControl):
             },
             'put applications')
 
-        self.put('/listeners', '{"*:8081":{"application":"app"}}')
+        self.put('/listeners', '{"*:7081":{"application":"app"}}')
         self.assertEqual(self.get('/listeners'),
-            {"*:8081": {"application":"app"}}, 'put listeners prefix')
+            {"*:7081": {"application":"app"}}, 'put listeners prefix')
 
-        self.put('/listeners/*:8082', '{"application":"app"}')
+        self.put('/listeners/*:7082', '{"application":"app"}')
 
         self.assertEqual(self.get('/listeners'),
             {
-                "*:8081": {
+                "*:7081": {
                     "application": "app"
                 },
-                "*:8082": {
+                "*:7082": {
                     "application": "app"
                 }
             },
@@ -135,7 +135,7 @@ class TestUnitBasic(unit.TestUnitControl):
         self.put('/', """
             {
                 "listeners": {
-                    "*:8080": {
+                    "*:7080": {
                         "application": "app"
                     }
                 },
@@ -152,7 +152,7 @@ class TestUnitBasic(unit.TestUnitControl):
 
         self.assertIn('error', self.delete('/applications/app'),
             'delete app before listener')
-        self.assertIn('success', self.delete('/listeners/*:8080'),
+        self.assertIn('success', self.delete('/listeners/*:7080'),
             'delete listener')
         self.assertIn('success', self.delete('/applications/app'),
             'delete app after listener')

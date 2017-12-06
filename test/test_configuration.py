@@ -91,7 +91,7 @@ class TestUnitConfiguration(unit.TestUnitControl):
 
     def test_json_listeners(self):
         self.assertIn('error', self.put('/listeners',
-            '{"*:8080":{"application":"app"}}'), 'listeners no app')
+            '{"*:7080":{"application":"app"}}'), 'listeners no app')
 
         self.put('/applications', """
             {
@@ -105,18 +105,18 @@ class TestUnitConfiguration(unit.TestUnitControl):
             """)
 
         self.assertIn('success', self.put('/listeners',
-            '{"*:8080":{"application":"app"}}'), 'listeners wildcard')
+            '{"*:7080":{"application":"app"}}'), 'listeners wildcard')
         self.assertIn('success', self.put('/listeners',
-            '{"127.0.0.1:8081":{"application":"app"}}'), 'listeners explicit')
+            '{"127.0.0.1:7081":{"application":"app"}}'), 'listeners explicit')
         self.assertIn('success', self.put('/listeners',
-            '{"[::1]:8082":{"application":"app"}}'), 'listeners explicit ipv6')
+            '{"[::1]:7082":{"application":"app"}}'), 'listeners explicit ipv6')
         self.assertIn('error', self.put('/listeners',
             '{"127.0.0.1":{"application":"app"}}'), 'listeners no port')
 
     @unittest.skip("TODO")
     def test_broken(self):
         self.assertIn('error', self.put('/', '00'), 'leading zero')
-        self.assertIn('error', self.put('/listeners', '{"*:8080":{}}'),
+        self.assertIn('error', self.put('/listeners', '{"*:7080":{}}'),
             'listener empty')
         self.assertIn('error', self.put('/applications', '"type":"python"'),
             'application type only')
