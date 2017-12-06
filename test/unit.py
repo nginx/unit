@@ -29,8 +29,8 @@ class TestUnit(unittest.TestCase):
             '--log', self.testdir + '/unit.log',
             '--control', 'unix:' + self.testdir + '/control.unit.sock'])
 
-        if not self._waitforfiles([self.testdir + '/unit.pid',
-            self.testdir + '/unit.log', self.testdir + '/control.unit.sock']):
+        if not self._waitforfiles(self.testdir + '/unit.pid',
+            self.testdir + '/unit.log', self.testdir + '/control.unit.sock'):
             exit("Could not start unit")
 
     # TODO dependency check
@@ -56,23 +56,24 @@ class TestUnit(unittest.TestCase):
         if '--leave' not in sys.argv:
             shutil.rmtree(self.testdir)
 
-    def _waitforfiles(self, files):
-        if isinstance(files, str):
-            files = [files]
+    def _waitforfiles(self, *files):
+        for i in range(50):
+            wait = False
+            ret = 0
 
-        count = 0
-        for i in range(1, 50):
             for f in files:
-                if os.path.exists(f):
-                   count += 1
+                if not os.path.exists(f):
+                   wait = True
+                   break
 
-            if count == len(files):
-                return 1
+            if wait:
+                time.sleep(0.1)
 
-            count = 0
-            time.sleep(0.1)
+            else:
+                ret = 1
+                break
 
-        return 0
+        return ret
 
 class TestUnitControl(TestUnit):
 
