@@ -41,7 +41,7 @@ class TestUnit(unittest.TestCase):
 
         subprocess.call(['kill', pid])
 
-        for i in range(1, 50):
+        for i in range(50):
             if not os.path.exists(self.testdir + '/unit.pid'):
                 break
             time.sleep(0.1)
