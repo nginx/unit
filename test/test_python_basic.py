@@ -10,7 +10,7 @@ class TestUnitBasic(unit.TestUnitControl):
         if module_missed:
             raise unittest.SkipTest('Unit has no ' + module_missed + ' module')
 
-    def test_get(self):
+    def test_python_get(self):
         resp = self.get()
         self.assertEqual(resp, {'listeners': {}, 'applications': {}}, 'empty')
         self.assertEqual(self.get('/listeners'), {}, 'empty listeners prefix')
@@ -78,7 +78,7 @@ class TestUnitBasic(unit.TestUnitControl):
         self.assertEqual(self.get('/listeners/*:7080/application'), 'app',
             'python listeners application')
 
-    def test_put(self):
+    def test_python_put(self):
         self.put('/', """
             {
                 "listeners": {
@@ -138,7 +138,7 @@ class TestUnitBasic(unit.TestUnitControl):
         self.assertEqual(self.get('/applications/app/path'), '/www',
             'put applications path')
 
-    def test_delete(self):
+    def test_python_delete(self):
         self.put('/', """
             {
                 "listeners": {
