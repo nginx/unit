@@ -121,8 +121,9 @@ class TestUnitControl(TestUnit):
             data = data.encode()
 
         with self._control_sock() as sock:
-            req = ('PUT ' + path + (' HTTP/1.1\nHost: localhost\n'
-                'Content-Length: ') + str(len(data)) + '\r\n\r\n').encode() + data
+            req = ('PUT ' + path + ' HTTP/1.1\nHost: localhost\n'
+                + 'Content-Length: ' + str(len(data))
+                + '\r\n\r\n').encode() + data
 
             sock.sendall(req)
 
