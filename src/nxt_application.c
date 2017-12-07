@@ -842,7 +842,7 @@ nxt_app_http_req_header_parse(nxt_task_t *task, nxt_app_parse_ctx_t *ctx,
     h->done = 1;
 
     h->version.start = p->version.str;
-    h->version.length = nxt_strlen(p->version.str);
+    h->version.length = sizeof(p->version.str);
 
     h->method = p->method;
 
