@@ -118,6 +118,10 @@ nxt_http_parse_target(u_char **pos, u_char *end)
         p += 10;
     }
 
+    while (p != end) {
+        nxt_target_test_char(*p); p++;
+    }
+
     return NXT_HTTP_TARGET_AGAIN;
 }
 
@@ -179,6 +183,10 @@ nxt_http_parse_request_line(nxt_http_request_parse_t *rp, u_char **pos,
             nxt_method_test_char(p[7]);
 
             p += 8;
+        }
+
+        while (p != end) {
+            nxt_method_test_char(*p); p++;
         }
 
         return NXT_AGAIN;
@@ -316,7 +324,41 @@ rest_of_target:
 space_after_target:
 
     if (nxt_slow_path(end - p < 10)) {
-        return NXT_AGAIN;
+
+        do {
+            p++;
+
+            if (p == end) {
+                return NXT_AGAIN;
+            }
+
+        } while (*p == ' ');
+
+        if (nxt_memcmp(p, "HTTP/", nxt_min(end - p, 5)) == 0) {
+
+            switch (end - p) {
+            case 8:
+                if (p[7] < '0' || p[7] > '9') {
+                    break;
+                }
+                /* Fall through. */
+            case 7:
+                if (p[6] != '.') {
+                    break;
+                }
+                /* Fall through. */
+            case 6:
+                if (p[5] < '0' || p[5] > '9') {
+                    break;
+                }
+                /* Fall through. */
+            default:
+                return NXT_AGAIN;
+            }
+        }
+
+        rp->space_in_target = 1;
+        goto rest_of_target;
     }
 
     /* " HTTP/1.1\r\n" or " HTTP/1.1\n" */
