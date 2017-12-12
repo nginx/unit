@@ -132,7 +132,7 @@ class TestUnitConfiguration(unit.TestUnitControl):
             {
                 "app": {
                     "type": "python",
-                    "workers": 1,
+                    "workers": -1,
                     "path": "/app",
                     "module": "wsgi"
                 }
