@@ -110,39 +110,32 @@ class TestUnitControl(TestUnit):
     # TODO socket reuse
     # TODO http client
 
-    def get(self, path='/'):
+    def http(self, req):
 
         with self._control_sock() as sock:
-            req = ('GET ' + path
-                + ' HTTP/1.1\r\nHost: localhost\r\n\r\n').encode()
-
             sock.sendall(req)
 
             if '--verbose' in sys.argv:
-                print('>>>\n', req)
+                print('>>>', req, sep='\n')
 
             resp = self._recvall(sock)
 
             if '--verbose' in sys.argv:
-                print('<<<\n', resp)
+                print('<<<', resp, sep='\n')
+
+        return resp
+
+    def get(self, path='/'):
+
+        resp = self.http(('GET ' + path
+            + ' HTTP/1.1\r\nHost: localhost\r\n\r\n').encode())
 
         return self._body_json(resp)
 
     def delete(self, path='/'):
 
-        with self._control_sock() as sock:
-            req = ('DELETE ' + path
-                + ' HTTP/1.1\r\nHost: localhost\r\n\r\n').encode()
-
-            sock.sendall(req)
-
-            if '--verbose' in sys.argv:
-                print('>>>\n', req)
-
-            resp = self._recvall(sock)
-
-            if '--verbose' in sys.argv:
-                print('<<<\n', resp)
+        resp = self.http(('DELETE ' + path
+            + ' HTTP/1.1\r\nHost: localhost\r\n\r\n').encode())
 
         return self._body_json(resp)
 
@@ -151,20 +144,9 @@ class TestUnitControl(TestUnit):
         if isinstance(data, str):
             data = data.encode()
 
-        with self._control_sock() as sock:
-            req = ('PUT ' + path + ' HTTP/1.1\nHost: localhost\n'
-                + 'Content-Length: ' + str(len(data))
-                + '\r\n\r\n').encode() + data
-
-            sock.sendall(req)
-
-            if '--verbose' in sys.argv:
-                print('>>>\n', req)
-
-            resp = self._recvall(sock)
-
-            if '--verbose' in sys.argv:
-                print('<<<\n', resp)
+        resp = self.http(('PUT ' + path + ' HTTP/1.1\nHost: localhost\n'
+            + 'Content-Length: ' + str(len(data))
+            + '\r\n\r\n').encode() + data)
 
         return self._body_json(resp)
 
