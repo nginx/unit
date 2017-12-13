@@ -3,8 +3,7 @@ import unittest
 
 class TestUnitBasic(unit.TestUnitControl):
 
-    @classmethod
-    def setUpClass(cls):
+    def setUpClass():
         u = unit.TestUnit()
         module_missed = u.check_modules('python')
         if module_missed:
