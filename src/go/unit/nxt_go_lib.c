@@ -112,18 +112,11 @@ nxt_go_request_done(nxt_go_request_t r)
 
 
 void
-nxt_go_ready()
+nxt_go_ready(uint32_t stream)
 {
-    char           *go_stream;
-    nxt_port_msg_t port_msg;
+    nxt_port_msg_t  port_msg;
 
-    go_stream = getenv("NXT_GO_STREAM");
-
-    if (go_stream == NULL) {
-        return;
-    }
-
-    port_msg.stream = atol(go_stream);
+    port_msg.stream = stream;
     port_msg.pid = getpid();
     port_msg.reply_port = 0;
     port_msg.type = _NXT_PORT_MSG_PROCESS_READY;
@@ -140,4 +133,11 @@ nxt_go_request_t
 nxt_go_process_port_msg(uintptr_t buf, size_t buf_len, uintptr_t oob, size_t oob_len)
 {
     return nxt_go_port_on_read((void *) buf, buf_len, (void *) oob, oob_len);
+}
+
+
+const char *
+nxt_go_version()
+{
+    return NXT_VERSION;
 }

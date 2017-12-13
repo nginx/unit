@@ -30,10 +30,12 @@ int nxt_go_request_close(nxt_go_request_t r);
 
 int nxt_go_request_done(nxt_go_request_t r);
 
-void nxt_go_ready();
+void nxt_go_ready(uint32_t stream);
 
 nxt_go_request_t nxt_go_process_port_msg(uintptr_t buf, size_t buf_len,
     uintptr_t oob, size_t oob_len);
+
+const char *nxt_go_version();
 
 
 #endif /* _NXT_GO_LIB_H_INCLUDED_ */

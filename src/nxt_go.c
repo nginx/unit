@@ -25,13 +25,34 @@ nxt_application_module_t  nxt_go_module = {
 
 extern char  **environ;
 
-nxt_inline int
-nxt_sock_no_cloexec(nxt_socket_t fd)
+nxt_inline nxt_int_t
+nxt_go_fd_no_cloexec(nxt_task_t *task, nxt_socket_t fd)
 {
+    int  res, flags;
+
     if (fd == -1) {
-        return 0;
+        return NXT_OK;
     }
-    return fcntl(fd, F_SETFD, 0);
+
+    flags = fcntl(fd, F_GETFD);
+
+    if (nxt_slow_path(flags == -1)) {
+        nxt_log(task, NXT_LOG_CRIT, "fcntl(%d, F_GETFD) failed %E",
+                fd, nxt_errno);
+        return NXT_ERROR;
+    }
+
+    flags &= ~FD_CLOEXEC;
+
+    res = fcntl(fd, F_SETFD, flags);
+
+    if (nxt_slow_path(res == -1)) {
+        nxt_log(task, NXT_LOG_CRIT, "fcntl(%d, F_SETFD) failed %E",
+                fd, nxt_errno);
+        return NXT_ERROR;
+    }
+
+    return NXT_OK;
 }
 
 
@@ -40,58 +61,69 @@ nxt_go_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 {
     char               *argv[2];
     u_char             buf[256];
-    u_char             *p;
-    u_char             stream_buf[32];
-    nxt_port_t         *port;
+    u_char             *p, *end;
+    nxt_int_t          rc;
+    nxt_port_t         *my_port, *main_port;
     nxt_runtime_t      *rt;
     nxt_go_app_conf_t  *c;
 
-    c = &conf->u.go;
     rt = task->thread->runtime;
-    p = buf;
 
-    nxt_runtime_port_each(rt, port) {
+    main_port = rt->port_by_type[NXT_PROCESS_MAIN];
+    my_port = nxt_runtime_port_find(rt, nxt_pid, 0);
 
-        if (port->pid != nxt_pid && port->type != NXT_PROCESS_MAIN) {
-            continue;
-        }
+    if (nxt_slow_path(main_port == NULL || my_port == NULL)) {
+        return NXT_ERROR;
+    }
 
-        if (port->pid == nxt_pid) {
-            nxt_sprintf(stream_buf, stream_buf + sizeof(stream_buf),
-                        "%uD", port->process->init->stream);
+    rc = nxt_go_fd_no_cloexec(task, main_port->pair[1]);
+    if (nxt_slow_path(rc != NXT_OK)) {
+        return NXT_ERROR;
+    }
 
-            setenv("NXT_GO_STREAM", (char *) stream_buf, 1);
-        }
+    rc = nxt_go_fd_no_cloexec(task, my_port->pair[0]);
+    if (nxt_slow_path(rc != NXT_OK)) {
+        return NXT_ERROR;
+    }
 
-        nxt_debug(task, "port %PI, %ud, (%d, %d)", port->pid, port->id,
-                  port->pair[0], port->pair[1]);
+    end = buf + sizeof(buf);
 
-        p = nxt_sprintf(p, buf + sizeof(buf), "%PI,%ud,%d,%d,%d;",
-                        port->pid, port->id, (int) port->type,
-                        port->pair[0], port->pair[1]);
+    p = nxt_sprintf(buf, end,
+                    "%s;%uD;"
+                    "%PI,%ud,%d,%d,%d;"
+                    "%PI,%ud,%d,%d,%d%Z",
+                    NXT_VERSION, my_port->process->init->stream,
+                    main_port->pid, main_port->id, (int) main_port->type,
+                    -1, main_port->pair[1],
+                    my_port->pid, my_port->id, (int) my_port->type,
+                    my_port->pair[0], -1);
 
-        if (nxt_slow_path(nxt_sock_no_cloexec(port->pair[0]))) {
-            nxt_log(task, NXT_LOG_WARN, "fcntl() failed %E", nxt_errno);
-        }
+    if (nxt_slow_path(p == end)) {
+        nxt_log(task, NXT_LOG_ALERT,
+                "internal error: buffer too small for NXT_GO_PORTS");
 
-        if (nxt_slow_path(nxt_sock_no_cloexec(port->pair[1]))) {
-            nxt_log(task, NXT_LOG_WARN, "fcntl() failed %E", nxt_errno);
-        }
+        return NXT_ERROR;
+    }
 
-    } nxt_runtime_port_loop;
-
-    *p = '\0';
     nxt_debug(task, "update NXT_GO_PORTS=%s", buf);
 
-    setenv("NXT_GO_PORTS", (char *) buf, 1);
+    rc = setenv("NXT_GO_PORTS", (char *) buf, 1);
+    if (nxt_slow_path(rc == -1)) {
+        nxt_log(task, NXT_LOG_CRIT, "setenv(NXT_GO_PORTS, %s) failed %E",
+                buf, nxt_errno);
+
+        return NXT_ERROR;
+    }
+
+    c = &conf->u.go;
 
     argv[0] = c->executable;
     argv[1] = NULL;
 
     (void) execve(c->executable, argv, environ);
 
-    nxt_log(task, NXT_LOG_WARN, "execve(%s) failed %E", c->executable,
-            nxt_errno);
+    nxt_log(task, NXT_LOG_CRIT, "execve(%s) failed %E",
+            c->executable, nxt_errno);
 
     return NXT_ERROR;
 }
