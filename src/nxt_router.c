@@ -705,6 +705,7 @@ nxt_router_temp_conf(nxt_task_t *task)
     nxt_queue_init(&tmcf->updating);
     nxt_queue_init(&tmcf->pending);
     nxt_queue_init(&tmcf->creating);
+
     nxt_queue_init(&tmcf->apps);
     nxt_queue_init(&tmcf->previous);
 
@@ -833,6 +834,8 @@ nxt_router_conf_error(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
 
     nxt_queue_add(&router->sockets, &tmcf->keeping);
     nxt_queue_add(&router->sockets, &tmcf->deleting);
+
+    nxt_queue_add(&router->apps, &tmcf->previous);
 
     // TODO: new engines and threads
 
