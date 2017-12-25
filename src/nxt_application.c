@@ -28,19 +28,35 @@ static nxt_app_module_t *nxt_app_module_load(nxt_task_t *task,
     const char *name);
 static nxt_app_type_t nxt_app_parse_type(u_char *p, size_t length);
 
+static nxt_int_t nxt_app_request_content_length(void *ctx,
+    nxt_http_field_t *field, uintptr_t data);
+static nxt_int_t nxt_app_request_content_type(void *ctx,
+    nxt_http_field_t *field, uintptr_t data);
+static nxt_int_t nxt_app_request_cookie(void *ctx, nxt_http_field_t *field,
+    uintptr_t data);
+static nxt_int_t nxt_app_request_host(void *ctx, nxt_http_field_t *field,
+    uintptr_t data);
 
-static nxt_thread_mutex_t        nxt_app_mutex;
-static nxt_thread_cond_t         nxt_app_cond;
 
-static nxt_http_fields_hash_entry_t  nxt_app_request_fields[];
-static nxt_http_fields_hash_t        *nxt_app_request_fields_hash;
-
-static nxt_application_module_t      *nxt_app;
+static nxt_http_field_proc_t  nxt_app_request_fields[] = {
+    { nxt_string("Content-Length"), &nxt_app_request_content_length, 0 },
+    { nxt_string("Content-Type"), &nxt_app_request_content_type, 0 },
+    { nxt_string("Cookie"), &nxt_app_request_cookie, 0 },
+    { nxt_string("Host"), &nxt_app_request_host, 0 },
+};
 
 
 static uint32_t  compat[] = {
     NXT_VERNUM, NXT_DEBUG,
 };
+
+
+static nxt_lvlhsh_t              nxt_app_request_fields_hash;
+
+static nxt_thread_mutex_t        nxt_app_mutex;
+static nxt_thread_cond_t         nxt_app_cond;
+
+static nxt_application_module_t  *nxt_app;
 
 
 nxt_int_t
@@ -359,16 +375,9 @@ nxt_app_module_load(nxt_task_t *task, const char *name)
 nxt_int_t
 nxt_app_http_init(nxt_task_t *task, nxt_runtime_t *rt)
 {
-    nxt_http_fields_hash_t  *hash;
-
-    hash = nxt_http_fields_hash_create(nxt_app_request_fields, rt->mem_pool);
-    if (nxt_slow_path(hash == NULL)) {
-        return NXT_ERROR;
-    }
-
-    nxt_app_request_fields_hash = hash;
-
-    return NXT_OK;
+    return nxt_http_fields_hash(&nxt_app_request_fields_hash, rt->mem_pool,
+                                nxt_app_request_fields,
+                                nxt_nitems(nxt_app_request_fields));
 }
 
 
@@ -512,12 +521,12 @@ nxt_app_msg_write(nxt_task_t *task, nxt_app_wmsg_t *msg, u_char *c, size_t size)
 
 nxt_int_t
 nxt_app_msg_write_prefixed_upcase(nxt_task_t *task, nxt_app_wmsg_t *msg,
-    const nxt_str_t *prefix, const nxt_str_t *v)
+    const nxt_str_t *prefix, u_char *c, size_t size)
 {
     u_char  *dst, *src;
     size_t  i, length, dst_length;
 
-    length = prefix->length + v->length;
+    length = prefix->length + size;
 
     dst_length = length + (length < 128 ? 1 : 4) + 1;
 
@@ -531,8 +540,8 @@ nxt_app_msg_write_prefixed_upcase(nxt_task_t *task, nxt_app_wmsg_t *msg,
     nxt_memcpy(dst, prefix->start, prefix->length);
     dst += prefix->length;
 
-    src = v->start;
-    for (i = 0; i < v->length; i++, dst++, src++) {
+    src = c;
+    for (i = 0; i < size; i++, dst++, src++) {
 
         if (*src >= 'a' && *src <= 'z') {
             *dst = *src & ~0x20;
@@ -704,18 +713,19 @@ nxt_app_msg_read_size(nxt_task_t *task, nxt_app_rmsg_t *msg, size_t *size)
 
 static nxt_int_t
 nxt_app_request_content_length(void *ctx, nxt_http_field_t *field,
-    nxt_log_t *log)
+    uintptr_t data)
 {
-    nxt_str_t                 *v;
     nxt_app_parse_ctx_t       *c;
     nxt_app_request_header_t  *h;
 
     c = ctx;
     h = &c->r.header;
-    v = &field->value;
 
-    h->content_length = *v;
-    h->parsed_content_length = nxt_off_t_parse(v->start, v->length);
+    h->content_length.length = field->value_length;
+    h->content_length.start = field->value;
+
+    h->parsed_content_length = nxt_off_t_parse(field->value,
+                                               field->value_length);
 
     return NXT_OK;
 }
@@ -723,7 +733,7 @@ nxt_app_request_content_length(void *ctx, nxt_http_field_t *field,
 
 static nxt_int_t
 nxt_app_request_content_type(void *ctx, nxt_http_field_t *field,
-    nxt_log_t *log)
+    uintptr_t data)
 {
     nxt_app_parse_ctx_t       *c;
     nxt_app_request_header_t  *h;
@@ -731,15 +741,15 @@ nxt_app_request_content_type(void *ctx, nxt_http_field_t *field,
     c = ctx;
     h = &c->r.header;
 
-    h->content_type = field->value;
+    h->content_type.length = field->value_length;
+    h->content_type.start = field->value;
 
     return NXT_OK;
 }
 
 
 static nxt_int_t
-nxt_app_request_cookie(void *ctx, nxt_http_field_t *field,
-    nxt_log_t *log)
+nxt_app_request_cookie(void *ctx, nxt_http_field_t *field, uintptr_t data)
 {
     nxt_app_parse_ctx_t       *c;
     nxt_app_request_header_t  *h;
@@ -747,15 +757,15 @@ nxt_app_request_cookie(void *ctx, nxt_http_field_t *field,
     c = ctx;
     h = &c->r.header;
 
-    h->cookie = field->value;
+    h->cookie.length = field->value_length;
+    h->cookie.start = field->value;
 
     return NXT_OK;
 }
 
 
 static nxt_int_t
-nxt_app_request_host(void *ctx, nxt_http_field_t *field,
-    nxt_log_t *log)
+nxt_app_request_host(void *ctx, nxt_http_field_t *field, uintptr_t data)
 {
     nxt_app_parse_ctx_t       *c;
     nxt_app_request_header_t  *h;
@@ -763,20 +773,11 @@ nxt_app_request_host(void *ctx, nxt_http_field_t *field,
     c = ctx;
     h = &c->r.header;
 
-    h->host = field->value;
+    h->host.length = field->value_length;
+    h->host.start = field->value;
 
     return NXT_OK;
 }
-
-
-static nxt_http_fields_hash_entry_t  nxt_app_request_fields[] = {
-    { nxt_string("Content-Length"), &nxt_app_request_content_length, 0 },
-    { nxt_string("Content-Type"), &nxt_app_request_content_type, 0 },
-    { nxt_string("Cookie"), &nxt_app_request_cookie, 0 },
-    { nxt_string("Host"), &nxt_app_request_host, 0 },
-
-    { nxt_null_string, NULL, 0 }
-};
 
 
 nxt_app_parse_ctx_t *
@@ -805,8 +806,6 @@ nxt_app_http_req_init(nxt_task_t *task)
         return NULL;
     }
 
-    ctx->parser.fields_hash = nxt_app_request_fields_hash;
-
     return ctx;
 }
 
@@ -832,7 +831,7 @@ nxt_app_http_req_header_parse(nxt_task_t *task, nxt_app_parse_ctx_t *ctx,
         return rc;
     }
 
-    rc = nxt_http_fields_process(p->fields, ctx, task->log);
+    rc = nxt_http_fields_process(p->fields, &nxt_app_request_fields_hash, ctx);
 
     if (nxt_slow_path(rc != NXT_OK)) {
         return rc;

@@ -7,31 +7,6 @@
 #include <nxt_main.h>
 
 
-typedef struct {
-    nxt_http_field_handler_t    handler;
-    uintptr_t                   data;
-
-    union {
-        uint8_t                 str[8];
-        uint64_t                ui64;
-    } key[];
-} nxt_http_fields_hash_elt_t;
-
-
-struct nxt_http_fields_hash_s {
-    size_t                      min_length;
-    size_t                      max_length;
-    void                        *long_fields;
-    nxt_http_fields_hash_elt_t  *elts[];
-};
-
-
-#define nxt_http_fields_hash_next_elt(elt, n)                                 \
-    ((nxt_http_fields_hash_elt_t *) ((u_char *) (elt)                         \
-                                     + sizeof(nxt_http_fields_hash_elt_t)     \
-                                     + n * 8))
-
-
 static nxt_int_t nxt_http_parse_unusual_target(nxt_http_request_parse_t *rp,
     u_char **pos, u_char *end);
 static nxt_int_t nxt_http_parse_request_line(nxt_http_request_parse_t *rp,
@@ -44,12 +19,24 @@ static u_char *nxt_http_lookup_field_end(u_char *p, u_char *end);
 static nxt_int_t nxt_http_parse_field_end(nxt_http_request_parse_t *rp,
     u_char **pos, u_char *end);
 
-static void nxt_http_fields_hash_lookup(nxt_http_fields_hash_t *hash,
-    uint64_t key[4], nxt_http_field_t *field);
-static void nxt_http_fields_hash_lookup_long(nxt_http_fields_hash_t *hash,
-    nxt_http_field_t *field);
-
 static nxt_int_t nxt_http_parse_complex_target(nxt_http_request_parse_t *rp);
+
+static nxt_int_t nxt_http_field_hash_test(nxt_lvlhsh_query_t *lhq, void *data);
+static void *nxt_http_field_hash_alloc(void *pool, size_t size);
+static void nxt_http_field_hash_free(void *pool, void *p);
+
+static nxt_int_t nxt_http_field_hash_collision(nxt_lvlhsh_query_t *lhq,
+    void *data);
+
+
+#define NXT_HTTP_MAX_FIELD_NAME         0xff
+#define NXT_HTTP_MAX_FIELD_VALUE        NXT_INT32_T_MAX
+
+#define NXT_HTTP_FIELD_LVLHSH_SHIFT     5
+
+#define NXT_HTTP_FIELD_HASH_INIT        159406
+#define nxt_http_field_hash_char(h, c)  (((h) << 4) + (h) + (c))
+#define nxt_http_field_hash_end(h)      (((h) >> 16) ^ (h))
 
 
 typedef enum {
@@ -123,6 +110,22 @@ nxt_http_parse_target(u_char **pos, u_char *end)
     }
 
     return NXT_HTTP_TARGET_AGAIN;
+}
+
+
+nxt_int_t
+nxt_http_parse_request_init(nxt_http_request_parse_t *rp, nxt_mp_t *mp)
+{
+    rp->mem_pool = mp;
+
+    rp->fields = nxt_list_create(mp, 8, sizeof(nxt_http_field_t));
+    if (nxt_slow_path(rp->fields == NULL)){
+        return NXT_ERROR;
+    }
+
+    rp->field_hash = NXT_HTTP_FIELD_HASH_INIT;
+
+    return NXT_OK;
 }
 
 
@@ -480,8 +483,9 @@ static nxt_int_t
 nxt_http_parse_field_name(nxt_http_request_parse_t *rp, u_char **pos,
     u_char *end)
 {
-    u_char  *p, ch, c;
-    size_t  i, size;
+    u_char    *p, c;
+    size_t    len;
+    uint32_t  hash;
 
     static const u_char  normal[256]  nxt_aligned(64) =
         "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
@@ -496,62 +500,78 @@ nxt_http_parse_field_name(nxt_http_request_parse_t *rp, u_char **pos,
         "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
         "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
 
-    p = *pos;
+    p = *pos + rp->field_name.length;
+    hash = rp->field_hash;
 
-    size = end - p;
-    i = rp->field_name.length;
+    while (nxt_fast_path(end - p >= 8)) {
 
-    while (nxt_fast_path(size - i >= 8)) {
-
-#define nxt_field_name_test_char(i)                                           \
+#define nxt_field_name_test_char(ch)                                          \
                                                                               \
-        ch = p[i];                                                            \
         c = normal[ch];                                                       \
                                                                               \
         if (nxt_slow_path(c == '\0')) {                                       \
+            p = &(ch);                                                        \
             goto name_end;                                                    \
         }                                                                     \
                                                                               \
-        rp->field_key.str[i % 32] = c;
+        hash = nxt_http_field_hash_char(hash, c);
 
 /* enddef */
 
-        nxt_field_name_test_char(i); i++;
-        nxt_field_name_test_char(i); i++;
-        nxt_field_name_test_char(i); i++;
-        nxt_field_name_test_char(i); i++;
+        nxt_field_name_test_char(p[0]);
+        nxt_field_name_test_char(p[1]);
+        nxt_field_name_test_char(p[2]);
+        nxt_field_name_test_char(p[3]);
 
-        nxt_field_name_test_char(i); i++;
-        nxt_field_name_test_char(i); i++;
-        nxt_field_name_test_char(i); i++;
-        nxt_field_name_test_char(i); i++;
+        nxt_field_name_test_char(p[4]);
+        nxt_field_name_test_char(p[5]);
+        nxt_field_name_test_char(p[6]);
+        nxt_field_name_test_char(p[7]);
+
+        p += 8;
     }
 
-    while (nxt_fast_path(i != size)) {
-        nxt_field_name_test_char(i); i++;
+    while (nxt_fast_path(p != end)) {
+        nxt_field_name_test_char(*p); p++;
     }
 
-    rp->field_name.length = i;
+    len = p - *pos;
+
+    if (nxt_slow_path(len > NXT_HTTP_MAX_FIELD_NAME)) {
+        return NXT_ERROR;
+    }
+
+    rp->field_hash = hash;
+    rp->field_name.length = len;
+
     rp->handler = &nxt_http_parse_field_name;
 
     return NXT_AGAIN;
 
 name_end:
 
-    if (nxt_fast_path(ch == ':')) {
-        if (nxt_slow_path(i == 0)) {
+    if (nxt_fast_path(*p == ':')) {
+        if (nxt_slow_path(p == *pos)) {
             return NXT_ERROR;
         }
 
-        *pos = &p[i] + 1;
+        len = p - *pos;
 
-        rp->field_name.length = i;
-        rp->field_name.start = p;
+        if (nxt_slow_path(len > NXT_HTTP_MAX_FIELD_NAME)) {
+            return NXT_ERROR;
+        }
+
+        rp->field_hash = hash;
+
+        rp->field_name.length = len;
+        rp->field_name.start = *pos;
+
+        *pos = p + 1;
 
         return nxt_http_parse_field_value(rp, pos, end);
     }
 
-    if (nxt_slow_path(i != 0)) {
+    if (nxt_slow_path(p != *pos)) {
         return NXT_ERROR;
     }
 
@@ -564,6 +584,7 @@ nxt_http_parse_field_value(nxt_http_request_parse_t *rp, u_char **pos,
     u_char *end)
 {
     u_char  *p, ch;
+    size_t  len;
 
     p = *pos;
 
@@ -589,7 +610,13 @@ nxt_http_parse_field_value(nxt_http_request_parse_t *rp, u_char **pos,
         p = nxt_http_lookup_field_end(p, end);
 
         if (nxt_slow_path(p == end)) {
-            rp->field_value.length = p - *pos;
+            len = p - *pos;
+
+            if (nxt_slow_path(len > NXT_HTTP_MAX_FIELD_VALUE)) {
+                return NXT_ERROR;
+            }
+
+            rp->field_value.length = len;
             rp->handler = &nxt_http_parse_field_value;
             return NXT_AGAIN;
         }
@@ -611,7 +638,13 @@ nxt_http_parse_field_value(nxt_http_request_parse_t *rp, u_char **pos,
         }
     }
 
-    rp->field_value.length = p - *pos;
+    len = p - *pos;
+
+    if (nxt_slow_path(len > NXT_HTTP_MAX_FIELD_VALUE)) {
+        return NXT_ERROR;
+    }
+
+    rp->field_value.length = len;
     rp->field_value.start = *pos;
 
     *pos = p;
@@ -714,13 +747,15 @@ nxt_http_parse_field_end(nxt_http_request_parse_t *rp, u_char **pos,
                 return NXT_ERROR;
             }
 
-            field->name = rp->field_name;
-            field->value = rp->field_value;
+            field->hash = nxt_http_field_hash_end(rp->field_hash);
+            field->skip = 0;
 
-            nxt_http_fields_hash_lookup(rp->fields_hash, rp->field_key.ui64,
-                                        field);
+            field->name_length = rp->field_name.length;
+            field->value_length = rp->field_value.length;
+            field->name = rp->field_name.start;
+            field->value = rp->field_value.start;
 
-            nxt_memzero(rp->field_key.str, 32);
+            rp->field_hash = NXT_HTTP_FIELD_HASH_INIT;
 
             rp->field_name.length = 0;
             rp->field_value.length = 0;
@@ -733,228 +768,6 @@ nxt_http_parse_field_end(nxt_http_request_parse_t *rp, u_char **pos,
     }
 
     return NXT_ERROR;
-}
-
-
-nxt_http_fields_hash_t *
-nxt_http_fields_hash_create(nxt_http_fields_hash_entry_t *entries,
-    nxt_mp_t *mp)
-{
-    size_t                      min_length, max_length, length, size;
-    nxt_uint_t                  i, j, n;
-    nxt_http_fields_hash_t      *hash;
-    nxt_http_fields_hash_elt_t  *elt;
-
-    min_length = 32 + 1;
-    max_length = 0;
-
-    for (i = 0; entries[i].handler != NULL; i++) {
-        length = entries[i].name.length;
-
-        if (length > 32) {
-            /* TODO */
-            return NULL;
-        }
-
-        min_length = nxt_min(length, min_length);
-        max_length = nxt_max(length, max_length);
-    }
-
-    size = sizeof(nxt_http_fields_hash_t);
-
-    if (min_length <= 32) {
-        size += (max_length - min_length + 1)
-                * sizeof(nxt_http_fields_hash_elt_t *);
-    }
-
-    hash = nxt_mp_zget(mp, size);
-    if (nxt_slow_path(hash == NULL)) {
-        return NULL;
-    }
-
-    hash->min_length = min_length;
-    hash->max_length = max_length;
-
-    for (i = 0; entries[i].handler != NULL; i++) {
-        length = entries[i].name.length;
-        elt = hash->elts[length - min_length];
-
-        if (elt != NULL) {
-            continue;
-        }
-
-        n = 1;
-
-        for (j = i + 1; entries[j].handler != NULL; j++) {
-            if (length == entries[j].name.length) {
-                n++;
-            }
-        }
-
-        size = sizeof(nxt_http_fields_hash_elt_t) + nxt_align_size(length, 8);
-
-        elt = nxt_mp_zget(mp, n * size + sizeof(nxt_http_fields_hash_elt_t));
-
-        if (nxt_slow_path(elt == NULL)) {
-            return NULL;
-        }
-
-        hash->elts[length - min_length] = elt;
-
-        for (j = i; entries[j].handler != NULL; j++) {
-            if (length != entries[j].name.length) {
-                continue;
-            }
-
-            elt->handler = entries[j].handler;
-            elt->data = entries[j].data;
-
-            nxt_memcpy_lowcase(elt->key->str, entries[j].name.start, length);
-
-            n--;
-
-            if (n == 0) {
-                break;
-            }
-
-            elt = nxt_pointer_to(elt, size);
-        }
-    }
-
-    return hash;
-}
-
-
-static void
-nxt_http_fields_hash_lookup(nxt_http_fields_hash_t *hash, uint64_t key[4],
-    nxt_http_field_t *field)
-{
-    nxt_http_fields_hash_elt_t  *elt;
-
-    if (hash == NULL || field->name.length < hash->min_length) {
-        goto not_found;
-    }
-
-    if (field->name.length > hash->max_length) {
-
-        if (field->name.length > 32 && hash->long_fields != NULL) {
-            nxt_http_fields_hash_lookup_long(hash, field);
-            return;
-        }
-
-        goto not_found;
-    }
-
-    elt = hash->elts[field->name.length - hash->min_length];
-
-    if (elt == NULL) {
-        goto not_found;
-    }
-
-    switch ((field->name.length + 7) / 8) {
-    case 1:
-        do {
-            if (elt->key[0].ui64 == key[0]) {
-                break;
-            }
-
-            elt = nxt_http_fields_hash_next_elt(elt, 1);
-
-        } while (elt->handler != NULL);
-
-        break;
-
-    case 2:
-        do {
-            if (elt->key[0].ui64 == key[0]
-                && elt->key[1].ui64 == key[1])
-            {
-                break;
-            }
-
-            elt = nxt_http_fields_hash_next_elt(elt, 2);
-
-        } while (elt->handler != NULL);
-
-        break;
-
-    case 3:
-        do {
-            if (elt->key[0].ui64 == key[0]
-                && elt->key[1].ui64 == key[1]
-                && elt->key[2].ui64 == key[2])
-            {
-                break;
-            }
-
-            elt = nxt_http_fields_hash_next_elt(elt, 3);
-
-        } while (elt->handler != NULL);
-
-        break;
-
-    case 4:
-        do {
-            if (elt->key[0].ui64 == key[0]
-                && elt->key[1].ui64 == key[1]
-                && elt->key[2].ui64 == key[2]
-                && elt->key[3].ui64 == key[3])
-            {
-                break;
-            }
-
-            elt = nxt_http_fields_hash_next_elt(elt, 4);
-
-        } while (elt->handler != NULL);
-
-        break;
-
-    default:
-        nxt_unreachable();
-    }
-
-    field->handler = elt->handler;
-    field->data = elt->data;
-
-    return;
-
-not_found:
-
-    field->handler = NULL;
-    field->data = 0;
-}
-
-
-static void
-nxt_http_fields_hash_lookup_long(nxt_http_fields_hash_t *hash,
-    nxt_http_field_t *field)
-{
-    /* TODO */
-
-    field->handler = NULL;
-    field->data = 0;
-}
-
-
-nxt_int_t
-nxt_http_fields_process(nxt_list_t *fields, void *ctx, nxt_log_t *log)
-{
-    nxt_int_t         rc;
-    nxt_http_field_t  *field;
-
-    nxt_list_each(field, fields) {
-
-        if (field->handler != NULL) {
-            rc = field->handler(ctx, field, log);
-
-            if (rc != NXT_OK) {
-                return rc;
-            }
-        }
-
-    } nxt_list_loop;
-
-    return NXT_OK;
 }
 
 
@@ -1257,6 +1070,166 @@ done:
         rp->exten.length = u - rp->exten_start;
         rp->exten.start = rp->exten_start;
     }
+
+    return NXT_OK;
+}
+
+
+static const nxt_lvlhsh_proto_t  nxt_http_fields_hash_proto  nxt_aligned(64) = {
+    NXT_LVLHSH_BUCKET_SIZE(64),
+    { NXT_HTTP_FIELD_LVLHSH_SHIFT, 0, 0, 0, 0, 0, 0, 0 },
+    nxt_http_field_hash_test,
+    nxt_http_field_hash_alloc,
+    nxt_http_field_hash_free,
+};
+
+
+static nxt_int_t
+nxt_http_field_hash_test(nxt_lvlhsh_query_t *lhq, void *data)
+{
+    nxt_http_field_proc_t  *field;
+
+    field = data;
+
+    if (nxt_strcasestr_eq(&lhq->key, &field->name)) {
+        return NXT_OK;
+    }
+
+    return NXT_DECLINED;
+}
+
+
+static void *
+nxt_http_field_hash_alloc(void *pool, size_t size)
+{
+    return nxt_mp_align(pool, size, size);
+}
+
+
+static void
+nxt_http_field_hash_free(void *pool, void *p)
+{
+    nxt_mp_free(pool, p);
+}
+
+
+static nxt_int_t
+nxt_http_field_hash_collision(nxt_lvlhsh_query_t *lhq, void *data)
+{
+    return NXT_OK;
+}
+
+
+nxt_int_t
+nxt_http_fields_hash(nxt_lvlhsh_t *hash, nxt_mp_t *mp,
+    nxt_http_field_proc_t items[], nxt_uint_t count)
+{
+    u_char              ch;
+    uint32_t            key;
+    nxt_str_t           *name;
+    nxt_int_t           ret;
+    nxt_uint_t          i, j;
+    nxt_lvlhsh_query_t  lhq;
+
+    lhq.replace = 0;
+    lhq.proto = &nxt_http_fields_hash_proto;
+    lhq.pool = mp;
+
+    for (i = 0; i < count; i++) {
+        key = NXT_HTTP_FIELD_HASH_INIT;
+        name = &items[i].name;
+
+        for (j = 0; j < name->length; j++) {
+            ch = nxt_lowcase(name->start[j]);
+            key = nxt_http_field_hash_char(key, ch);
+        }
+
+        lhq.key_hash = nxt_http_field_hash_end(key) & 0xffff;
+        lhq.key = *name;
+        lhq.value = &items[i];
+
+        ret = nxt_lvlhsh_insert(hash, &lhq);
+
+        if (nxt_slow_path(ret != NXT_OK)) {
+            return NXT_ERROR;
+        }
+    }
+
+    return NXT_OK;
+}
+
+
+nxt_uint_t
+nxt_http_fields_hash_collisions(nxt_lvlhsh_t *hash, nxt_mp_t *mp,
+    nxt_http_field_proc_t items[], nxt_uint_t count, nxt_bool_t level)
+{
+    u_char              ch;
+    uint32_t            key, mask;
+    nxt_str_t           *name;
+    nxt_uint_t          colls, i, j;
+    nxt_lvlhsh_proto_t  proto;
+    nxt_lvlhsh_query_t  lhq;
+
+    proto = nxt_http_fields_hash_proto;
+    proto.test = nxt_http_field_hash_collision;
+
+    lhq.replace = 0;
+    lhq.proto = &proto;
+    lhq.pool = mp;
+
+    mask = level ? (1 << NXT_HTTP_FIELD_LVLHSH_SHIFT) - 1 : 0xffff;
+
+    colls = 0;
+
+    for (i = 0; i < count; i++) {
+        key = NXT_HTTP_FIELD_HASH_INIT;
+        name = &items[i].name;
+
+        for (j = 0; j < name->length; j++) {
+            ch = nxt_lowcase(name->start[j]);
+            key = nxt_http_field_hash_char(key, ch);
+        }
+
+        lhq.key_hash = nxt_http_field_hash_end(key) & mask;
+
+        if (nxt_lvlhsh_insert(hash, &lhq) == NXT_DECLINED) {
+            colls++;
+        }
+    }
+
+    return colls;
+}
+
+
+nxt_int_t
+nxt_http_fields_process(nxt_list_t *fields, nxt_lvlhsh_t *hash, void *ctx)
+{
+    nxt_int_t              ret;
+    nxt_http_field_t       *field;
+    nxt_lvlhsh_query_t     lhq;
+    nxt_http_field_proc_t  *proc;
+
+    lhq.proto = &nxt_http_fields_hash_proto;
+
+    nxt_list_each(field, fields) {
+
+        lhq.key_hash = field->hash;
+        lhq.key.length = field->name_length;
+        lhq.key.start = field->name;
+
+        if (nxt_lvlhsh_find(hash, &lhq) != NXT_OK) {
+            continue;
+        }
+
+        proc = lhq.value;
+
+        ret = proc->handler(ctx, field, proc->data);
+
+        if (nxt_slow_path(ret != NXT_OK)) {
+            return ret;
+        }
+
+    } nxt_list_loop;
 
     return NXT_OK;
 }

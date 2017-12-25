@@ -164,7 +164,7 @@ NXT_EXPORT nxt_int_t nxt_app_msg_write(nxt_task_t *task, nxt_app_wmsg_t *msg,
     u_char *c, size_t size);
 
 NXT_EXPORT nxt_int_t nxt_app_msg_write_prefixed_upcase(nxt_task_t *task,
-    nxt_app_wmsg_t *msg, const nxt_str_t *prefix, const nxt_str_t *v);
+    nxt_app_wmsg_t *msg, const nxt_str_t *prefix, u_char *c, size_t size);
 
 nxt_inline nxt_int_t
 nxt_app_msg_write_nvp_(nxt_task_t *task, nxt_app_wmsg_t *msg,

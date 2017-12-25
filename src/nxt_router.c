@@ -3327,9 +3327,9 @@ nxt_python_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
     NXT_WRITE(&h->content_length);
 
     nxt_list_each(field, h->fields) {
-        RC(nxt_app_msg_write_prefixed_upcase(task, wmsg,
-                                             &prefix, &field->name));
-        NXT_WRITE(&field->value);
+        RC(nxt_app_msg_write_prefixed_upcase(task, wmsg, &prefix, field->name,
+                                             field->name_length));
+        RC(nxt_app_msg_write(task, wmsg, field->value, field->value_length));
 
     } nxt_list_loop;
 
@@ -3431,9 +3431,9 @@ nxt_php_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
     }
 
     nxt_list_each(field, h->fields) {
-        RC(nxt_app_msg_write_prefixed_upcase(task, wmsg,
-                                             &prefix, &field->name));
-        NXT_WRITE(&field->value);
+        RC(nxt_app_msg_write_prefixed_upcase(task, wmsg, &prefix, field->name,
+                                             field->name_length));
+        RC(nxt_app_msg_write(task, wmsg, field->value, field->value_length));
 
     } nxt_list_loop;
 
@@ -3511,8 +3511,8 @@ nxt_go_prepare_msg(nxt_task_t *task, nxt_app_request_t *r, nxt_app_wmsg_t *wmsg)
     RC(nxt_app_msg_write_size(task, wmsg, h->parsed_content_length));
 
     nxt_list_each(field, h->fields) {
-        NXT_WRITE(&field->name);
-        NXT_WRITE(&field->value);
+        RC(nxt_app_msg_write(task, wmsg, field->name, field->name_length));
+        RC(nxt_app_msg_write(task, wmsg, field->value, field->value_length));
 
     } nxt_list_loop;
 

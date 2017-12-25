@@ -65,7 +65,7 @@ static void nxt_controller_conn_close(nxt_task_t *task, void *obj, void *data);
 static void nxt_controller_conn_free(nxt_task_t *task, void *obj, void *data);
 
 static nxt_int_t nxt_controller_request_content_length(void *ctx,
-    nxt_http_field_t *field, nxt_log_t *log);
+    nxt_http_field_t *field, uintptr_t data);
 
 static void nxt_controller_process_request(nxt_task_t *task,
     nxt_controller_request_t *req);
@@ -79,14 +79,12 @@ static u_char *nxt_controller_date(u_char *buf, nxt_realtime_t *now,
     struct tm *tm, size_t size, const char *format);
 
 
-static nxt_http_fields_hash_entry_t  nxt_controller_request_fields[] = {
+static nxt_http_field_proc_t  nxt_controller_request_fields[] = {
     { nxt_string("Content-Length"),
       &nxt_controller_request_content_length, 0 },
-
-    { nxt_null_string, NULL, 0 }
 };
 
-static nxt_http_fields_hash_t  *nxt_controller_fields_hash;
+static nxt_lvlhsh_t            nxt_controller_fields_hash;
 
 static nxt_uint_t              nxt_controller_listening;
 static nxt_controller_conf_t   nxt_controller_conf;
@@ -114,14 +112,13 @@ nxt_port_handlers_t  nxt_controller_process_port_handlers = {
 nxt_int_t
 nxt_controller_start(nxt_task_t *task, void *data)
 {
-    nxt_mp_t                *mp;
-    nxt_int_t               ret;
-    nxt_str_t               *json;
-    nxt_runtime_t           *rt;
-    nxt_conf_value_t        *conf;
-    nxt_event_engine_t      *engine;
-    nxt_conf_validation_t   vldt;
-    nxt_http_fields_hash_t  *hash;
+    nxt_mp_t               *mp;
+    nxt_int_t              ret;
+    nxt_str_t              *json;
+    nxt_runtime_t          *rt;
+    nxt_conf_value_t       *conf;
+    nxt_event_engine_t     *engine;
+    nxt_conf_validation_t  vldt;
 
     rt = task->thread->runtime;
 
@@ -132,13 +129,14 @@ nxt_controller_start(nxt_task_t *task, void *data)
         return NXT_ERROR;
     }
 
-    hash = nxt_http_fields_hash_create(nxt_controller_request_fields,
-                                       rt->mem_pool);
-    if (nxt_slow_path(hash == NULL)) {
+    ret = nxt_http_fields_hash(&nxt_controller_fields_hash, rt->mem_pool,
+                               nxt_controller_request_fields,
+                               nxt_nitems(nxt_controller_request_fields));
+
+    if (nxt_slow_path(ret != NXT_OK)) {
         return NXT_ERROR;
     }
 
-    nxt_controller_fields_hash = hash;
     nxt_queue_init(&nxt_controller_waiting_requests);
 
     json = data;
@@ -429,8 +427,6 @@ nxt_controller_conn_init(nxt_task_t *task, void *obj, void *data)
         return;
     }
 
-    r->parser.fields_hash = nxt_controller_fields_hash;
-
     b = nxt_buf_mem_alloc(c->mem_pool, 1024, 0);
     if (nxt_slow_path(b == NULL)) {
         nxt_controller_conn_free(task, c, NULL);
@@ -505,7 +501,8 @@ nxt_controller_conn_read(nxt_task_t *task, void *obj, void *data)
         return;
     }
 
-    rc = nxt_http_fields_process(r->parser.fields, r, task->log);
+    rc = nxt_http_fields_process(r->parser.fields, &nxt_controller_fields_hash,
+                                 r);
 
     if (nxt_slow_path(rc != NXT_OK)) {
         nxt_controller_conn_close(task, c, r);
@@ -727,19 +724,20 @@ nxt_controller_conn_free(nxt_task_t *task, void *obj, void *data)
 
 static nxt_int_t
 nxt_controller_request_content_length(void *ctx, nxt_http_field_t *field,
-    nxt_log_t *log)
+    uintptr_t data)
 {
     off_t                     length;
     nxt_controller_request_t  *r;
 
     r = ctx;
 
-    length = nxt_off_t_parse(field->value.start, field->value.length);
+    length = nxt_off_t_parse(field->value, field->value_length);
 
     if (nxt_fast_path(length > 0)) {
 
         if (nxt_slow_path(length > NXT_SIZE_T_MAX)) {
-            nxt_log_error(NXT_LOG_ERR, log, "Content-Length is too big");
+            nxt_log_error(NXT_LOG_ERR, &r->conn->log,
+                          "Content-Length is too big");
             return NXT_ERROR;
         }
 
@@ -747,7 +745,7 @@ nxt_controller_request_content_length(void *ctx, nxt_http_field_t *field,
         return NXT_OK;
     }
 
-    nxt_log_error(NXT_LOG_ERR, log, "Content-Length is invalid");
+    nxt_log_error(NXT_LOG_ERR, &r->conn->log, "Content-Length is invalid");
 
     return NXT_ERROR;
 }
