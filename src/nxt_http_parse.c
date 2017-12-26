@@ -1191,6 +1191,7 @@ nxt_http_fields_hash_collisions(nxt_lvlhsh_t *hash, nxt_mp_t *mp,
         }
 
         lhq.key_hash = nxt_http_field_hash_end(key) & mask;
+        lhq.value = &items[i];
 
         if (nxt_lvlhsh_insert(hash, &lhq) == NXT_DECLINED) {
             colls++;
