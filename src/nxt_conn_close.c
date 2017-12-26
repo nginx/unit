@@ -30,6 +30,12 @@ nxt_conn_close(nxt_event_engine_t *engine, nxt_conn_t *c)
     nxt_debug(c->socket.task, "conn close fd:%d, to:%d",
               c->socket.fd, c->socket.timedout);
 
+    /*
+     * Disable all pending write operations because on success they
+     * will incorrectly call a ready handler set for nxt_conn_close().
+     */
+    c->write = NULL;
+
     if (c->socket.timedout) {
         /*
          * Resetting of timed out connection on close
