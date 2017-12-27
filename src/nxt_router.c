@@ -658,8 +658,8 @@ nxt_router_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         return;
     }
 
-    if (msg->u.new_port == NULL ||
-        msg->u.new_port->type != NXT_PROCESS_WORKER)
+    if (msg->u.new_port == NULL
+        || msg->u.new_port->type != NXT_PROCESS_WORKER)
     {
         msg->port_msg.type = _NXT_PORT_MSG_RPC_ERROR;
     }
@@ -2798,9 +2798,9 @@ nxt_router_app_port_release(nxt_task_t *task, nxt_port_t *port,
     port->app_pending_responses -= request_failed + got_response;
     port->app_responses += got_response;
 
-    if (app->live != 0 &&
-        port->pair[1] != -1 &&
-        (app->max_pending_responses == 0
+    if (app->live != 0
+        && port->pair[1] != -1
+        && (app->max_pending_responses == 0
             || port->app_pending_responses < app->max_pending_responses))
     {
         if (port->app_link.next == NULL) {
@@ -2823,9 +2823,9 @@ nxt_router_app_port_release(nxt_task_t *task, nxt_port_t *port,
         }
     }
 
-    if (app->live != 0 &&
-        !nxt_queue_is_empty(&app->ports) &&
-        !nxt_queue_is_empty(&app->requests))
+    if (app->live != 0
+        && !nxt_queue_is_empty(&app->ports)
+        && !nxt_queue_is_empty(&app->requests))
     {
         lnk = nxt_queue_first(&app->requests);
         nxt_queue_remove(lnk);
@@ -2928,9 +2928,9 @@ nxt_router_app_port_close(nxt_task_t *task, nxt_port_t *port)
 
     app->workers--;
 
-    start_worker = app->live != 0 &&
-                   nxt_queue_is_empty(&app->requests) == 0 &&
-                   app->workers + app->pending_workers < app->max_workers;
+    start_worker = app->live != 0
+                   && nxt_queue_is_empty(&app->requests) == 0
+                   && app->workers + app->pending_workers < app->max_workers;
 
     if (start_worker) {
         app->pending_workers++;
@@ -3643,11 +3643,11 @@ nxt_php_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
     RC(nxt_app_msg_write_size(task, wmsg, h->parsed_content_length));
     RC(nxt_app_msg_write_size(task, wmsg, r->body.preread_size));
 
-    method_is_post = h->method.length == 4 &&
-                     h->method.start[0] == 'P' &&
-                     h->method.start[1] == 'O' &&
-                     h->method.start[2] == 'S' &&
-                     h->method.start[3] == 'T';
+    method_is_post = h->method.length == 4
+                     && h->method.start[0] == 'P'
+                     && h->method.start[1] == 'O'
+                     && h->method.start[2] == 'S'
+                     && h->method.start[3] == 'T';
 
     if (method_is_post) {
         for(b = r->body.buf; b != NULL; b = b->next) {
