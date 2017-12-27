@@ -54,24 +54,6 @@ nxt_go_request_read(nxt_go_request_t r, uintptr_t dst, size_t dst_len)
 
 
 int
-nxt_go_request_read_from(nxt_go_request_t r, uintptr_t dst, size_t dst_len,
-    uintptr_t src, size_t src_len)
-{
-    nxt_go_run_ctx_t  *ctx;
-
-    if (nxt_slow_path(r == 0)) {
-        return 0;
-    }
-
-    ctx = (nxt_go_run_ctx_t *) r;
-
-    nxt_go_ctx_add_msg(ctx, (void *) src, src_len);
-
-    return nxt_go_request_read(r, dst, dst_len);
-}
-
-
-int
 nxt_go_request_close(nxt_go_request_t r)
 {
     return 0;
@@ -124,6 +106,7 @@ nxt_go_ready(uint32_t stream)
     port_msg.mmap = 0;
     port_msg.nf = 0;
     port_msg.mf = 0;
+    port_msg.tracking = 0;
 
     nxt_go_main_send(&port_msg, sizeof(port_msg), NULL, 0);
 }

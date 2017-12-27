@@ -23,9 +23,6 @@ int nxt_go_response_write(nxt_go_request_t r, uintptr_t buf, size_t len);
 
 int nxt_go_request_read(nxt_go_request_t r, uintptr_t dst, size_t dst_len);
 
-int nxt_go_request_read_from(nxt_go_request_t r, uintptr_t dst, size_t dst_len,
-    uintptr_t src, size_t src_len);
-
 int nxt_go_request_close(nxt_go_request_t r);
 
 int nxt_go_request_done(nxt_go_request_t r);

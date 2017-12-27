@@ -102,13 +102,21 @@ typedef struct {
     nxt_port_id_t        reply_port;
 
     uint8_t              type;
+
+    /* Last message for this stream. */
     uint8_t              last;      /* 1 bit */
 
     /* Message data send using mmap, next chunk is a nxt_port_mmap_msg_t. */
     uint8_t              mmap;      /* 1 bit */
 
-    uint8_t              nf;
-    uint8_t              mf;
+    /* Non-First fragment in fragmented message sequence. */
+    uint8_t              nf;        /* 1 bit */
+
+    /* More Fragments followed. */
+    uint8_t              mf;        /* 1 bit */
+
+    /* Message delivery tracking enabled, next chunk is tracking msg. */
+    uint8_t              tracking;  /* 1 bit */
 } nxt_port_msg_t;
 
 
@@ -119,6 +127,7 @@ typedef struct {
     nxt_fd_t            fd;
     nxt_bool_t          close_fd;
     nxt_port_msg_t      port_msg;
+    uint32_t            tracking_msg[2];
 
     nxt_work_t          work;
 } nxt_port_send_msg_t;
@@ -130,6 +139,7 @@ struct nxt_port_recv_msg_s {
     nxt_port_t          *port;
     nxt_port_msg_t      port_msg;
     size_t              size;
+    nxt_bool_t          cancelled;
     union {
         nxt_port_t      *new_port;
         nxt_pid_t       removed_pid;
@@ -221,9 +231,18 @@ void nxt_port_write_enable(nxt_task_t *task, nxt_port_t *port);
 void nxt_port_write_close(nxt_port_t *port);
 void nxt_port_read_enable(nxt_task_t *task, nxt_port_t *port);
 void nxt_port_read_close(nxt_port_t *port);
-nxt_int_t nxt_port_socket_write(nxt_task_t *task, nxt_port_t *port,
+nxt_int_t nxt_port_socket_twrite(nxt_task_t *task, nxt_port_t *port,
     nxt_uint_t type, nxt_fd_t fd, uint32_t stream, nxt_port_id_t reply_port,
-    nxt_buf_t *b);
+    nxt_buf_t *b, void *tracking);
+
+nxt_inline nxt_int_t
+nxt_port_socket_write(nxt_task_t *task, nxt_port_t *port,
+    nxt_uint_t type, nxt_fd_t fd, uint32_t stream, nxt_port_id_t reply_port,
+    nxt_buf_t *b)
+{
+    return nxt_port_socket_twrite(task, port, type, fd, stream, reply_port, b,
+                                  NULL);
+}
 
 void nxt_port_enable(nxt_task_t *task, nxt_port_t *port,
     nxt_port_handlers_t *handlers);

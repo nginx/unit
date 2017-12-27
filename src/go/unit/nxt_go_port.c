@@ -29,10 +29,18 @@ nxt_go_data_handler(nxt_port_msg_t *port_msg, size_t size)
 
     ctx = malloc(sizeof(nxt_go_run_ctx_t) + size);
 
-    memcpy(ctx + 1, port_msg, size);
-    port_msg = (nxt_port_msg_t *) (ctx + 1);
+    memcpy(ctx->port_msg, port_msg, size);
+    port_msg = ctx->port_msg;
 
-    nxt_go_ctx_init(ctx, port_msg, size - sizeof(nxt_port_msg_t));
+    size -= sizeof(nxt_port_msg_t);
+
+    nxt_go_ctx_init(ctx, port_msg, size);
+
+    if (nxt_slow_path(ctx->cancelled)) {
+        nxt_go_debug("request already cancelled by router");
+        free(ctx);
+        return 0;
+    }
 
     r = (nxt_go_request_t)(ctx);
     h = &ctx->request.header;

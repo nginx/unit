@@ -23,12 +23,14 @@
 
 
 static nxt_port_mmap_header_t *
-nxt_go_new_port_mmap(nxt_go_process_t *process, nxt_port_id_t id)
+nxt_go_new_port_mmap(nxt_go_process_t *process, nxt_port_id_t id,
+    nxt_bool_t tracking)
 {
     int                     name_len, rc;
     void                    *mem;
     char                    name[64];
     nxt_fd_t                fd;
+    nxt_free_map_t          *free_map;
     nxt_port_msg_t          port_msg;
     nxt_go_port_mmap_t      *port_mmap;
     nxt_port_mmap_header_t  *hdr;
@@ -101,6 +103,7 @@ nxt_go_new_port_mmap(nxt_go_process_t *process, nxt_port_id_t id)
     hdr = port_mmap->hdr;
 
     memset(hdr->free_map, 0xFFU, sizeof(hdr->free_map));
+    memset(hdr->free_tracking_map, 0xFFU, sizeof(hdr->free_tracking_map));
 
     hdr->id = process->outgoing.nelts - 1;
     hdr->src_pid = getpid();
@@ -108,10 +111,13 @@ nxt_go_new_port_mmap(nxt_go_process_t *process, nxt_port_id_t id)
     hdr->sent_over = id;
 
     /* Mark first chunk as busy */
-    nxt_port_mmap_set_chunk_busy(hdr, 0);
+    free_map = tracking ? hdr->free_tracking_map : hdr->free_map;
+
+    nxt_port_mmap_set_chunk_busy(free_map, 0);
 
     /* Mark as busy chunk followed the last available chunk. */
-    nxt_port_mmap_set_chunk_busy(hdr, PORT_MMAP_CHUNK_COUNT);
+    nxt_port_mmap_set_chunk_busy(hdr->free_map, PORT_MMAP_CHUNK_COUNT);
+    nxt_port_mmap_set_chunk_busy(hdr->free_tracking_map, PORT_MMAP_CHUNK_COUNT);
 
     port_msg.stream = 0;
     port_msg.pid = getpid();
@@ -121,6 +127,7 @@ nxt_go_new_port_mmap(nxt_go_process_t *process, nxt_port_id_t id)
     port_msg.mmap = 0;
     port_msg.nf = 0;
     port_msg.mf = 0;
+    port_msg.tracking = 0;
 
     cmsg.cm.cmsg_len = CMSG_LEN(sizeof(int));
     cmsg.cm.cmsg_level = SOL_SOCKET;
@@ -160,34 +167,34 @@ remove_fail:
 
 nxt_port_mmap_header_t *
 nxt_go_port_mmap_get(nxt_go_process_t *process, nxt_port_id_t port_id,
-    nxt_chunk_id_t *c)
+    nxt_chunk_id_t *c, nxt_bool_t tracking)
 {
+    nxt_free_map_t          *free_map;
     nxt_go_port_mmap_t      *port_mmap;
     nxt_go_port_mmap_t      *end_port_mmap;
     nxt_port_mmap_header_t  *hdr;
-
-    port_mmap = NULL;
-    hdr = NULL;
 
     nxt_go_mutex_lock(&process->outgoing_mutex);
 
     port_mmap = process->outgoing.elts;
     end_port_mmap = port_mmap + process->outgoing.nelts;
 
-    while (port_mmap < end_port_mmap) {
+    for (; port_mmap < end_port_mmap; port_mmap++)
+    {
+        hdr = port_mmap->hdr;
 
-        if ( (port_mmap->hdr->sent_over == 0xFFFFu ||
-              port_mmap->hdr->sent_over == port_id) &&
-            nxt_port_mmap_get_free_chunk(port_mmap->hdr, c)) {
-            hdr = port_mmap->hdr;
-
-            goto unlock_return;
+        if (hdr->sent_over != 0xFFFFu && hdr->sent_over != port_id) {
+            continue;
         }
 
-        port_mmap++;
+        free_map = tracking ? hdr->free_tracking_map : hdr->free_map;
+
+        if (nxt_port_mmap_get_free_chunk(free_map, c)) {
+            goto unlock_return;
+        }
     }
 
-    hdr = nxt_go_new_port_mmap(process, port_id);
+    hdr = nxt_go_new_port_mmap(process, port_id, tracking);
 
 unlock_return:
 

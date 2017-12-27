@@ -29,6 +29,8 @@ struct nxt_go_msg_s {
     nxt_port_mmap_msg_t  *mmap_msg;
     nxt_port_mmap_msg_t  *end;
 
+    nxt_port_mmap_tracking_msg_t  *tracking;
+
     nxt_go_msg_t         *next;
 };
 
@@ -38,6 +40,7 @@ typedef struct {
 
     nxt_go_process_t     *process;
     nxt_port_mmap_msg_t  *wmmap_msg;
+    nxt_bool_t           cancelled;
 
     uint32_t             nrbuf;
     nxt_buf_t            rbuf;
@@ -51,6 +54,8 @@ typedef struct {
     uintptr_t            go_request;
 
     nxt_go_msg_t         *msg_last;
+
+    nxt_port_msg_t       port_msg[];
 } nxt_go_run_ctx_t;
 
 
@@ -58,9 +63,6 @@ void nxt_go_ctx_release_msg(nxt_go_run_ctx_t *ctx, nxt_go_msg_t *msg);
 
 nxt_int_t nxt_go_ctx_init(nxt_go_run_ctx_t *ctx, nxt_port_msg_t *port_msg,
     size_t payload_size);
-
-void nxt_go_ctx_add_msg(nxt_go_run_ctx_t *ctx, nxt_port_msg_t *port_msg,
-    size_t size);
 
 nxt_int_t nxt_go_ctx_flush(nxt_go_run_ctx_t *ctx, int last);
 

@@ -52,6 +52,10 @@ struct nxt_port_mmap_header_s {
     nxt_pid_t       dst_pid; /* For sanity check. */
     nxt_port_id_t   sent_over;
     nxt_free_map_t  free_map[MAX_FREE_IDX];
+    nxt_free_map_t  free_map_padding;
+    nxt_free_map_t  free_tracking_map[MAX_FREE_IDX];
+    nxt_free_map_t  free_tracking_map_padding;
+    nxt_atomic_t    tracking[PORT_MMAP_CHUNK_COUNT];
 };
 
 
@@ -78,20 +82,27 @@ struct nxt_port_mmap_msg_s {
 };
 
 
-static nxt_bool_t
-nxt_port_mmap_get_free_chunk(nxt_port_mmap_header_t *hdr, nxt_chunk_id_t *c);
+typedef struct nxt_port_mmap_tracking_msg_s nxt_port_mmap_tracking_msg_t;
 
-#define nxt_port_mmap_get_chunk_busy(hdr, c)                                  \
-    ((hdr->free_map[FREE_IDX(c)] & FREE_MASK(c)) == 0)
+struct nxt_port_mmap_tracking_msg_s {
+    uint32_t            mmap_id;    /* Mmap index in nxt_process_t.outgoing. */
+    nxt_chunk_id_t      tracking_id;   /* Tracking index. */
+};
+
+static nxt_bool_t
+nxt_port_mmap_get_free_chunk(nxt_free_map_t *m, nxt_chunk_id_t *c);
+
+#define nxt_port_mmap_get_chunk_busy(m, c)                                    \
+    ((m[FREE_IDX(c)] & FREE_MASK(c)) == 0)
 
 nxt_inline void
-nxt_port_mmap_set_chunk_busy(nxt_port_mmap_header_t *hdr, nxt_chunk_id_t c);
+nxt_port_mmap_set_chunk_busy(nxt_free_map_t *m, nxt_chunk_id_t c);
 
 nxt_inline nxt_bool_t
-nxt_port_mmap_chk_set_chunk_busy(nxt_port_mmap_header_t *hdr, nxt_chunk_id_t c);
+nxt_port_mmap_chk_set_chunk_busy(nxt_free_map_t *m, nxt_chunk_id_t c);
 
 nxt_inline void
-nxt_port_mmap_set_chunk_free(nxt_port_mmap_header_t *hdr, nxt_chunk_id_t c);
+nxt_port_mmap_set_chunk_free(nxt_free_map_t *m, nxt_chunk_id_t c);
 
 nxt_inline nxt_chunk_id_t
 nxt_port_mmap_chunk_id(nxt_port_mmap_header_t *hdr, u_char *p)
@@ -116,18 +127,15 @@ nxt_port_mmap_chunk_start(nxt_port_mmap_header_t *hdr, nxt_chunk_id_t c)
 
 
 static nxt_bool_t
-nxt_port_mmap_get_free_chunk(nxt_port_mmap_header_t *hdr, nxt_chunk_id_t *c)
+nxt_port_mmap_get_free_chunk(nxt_free_map_t *m, nxt_chunk_id_t *c)
 {
     int             ffs;
     size_t          i;
     nxt_chunk_id_t  chunk;
     nxt_free_map_t  bits;
-    nxt_free_map_t  *free_map;
-
-    free_map = hdr->free_map;
 
     for (i = 0; i < MAX_FREE_IDX; i++) {
-        bits = free_map[i];
+        bits = m[i];
         if (bits == 0) {
             continue;
         }
@@ -136,7 +144,7 @@ nxt_port_mmap_get_free_chunk(nxt_port_mmap_header_t *hdr, nxt_chunk_id_t *c)
         if (ffs != 0) {
             chunk = i * FREE_BITS + ffs - 1;
 
-            if (nxt_port_mmap_chk_set_chunk_busy(hdr, chunk)) {
+            if (nxt_port_mmap_chk_set_chunk_busy(m, chunk)) {
                 *c = chunk;
                 return 1;
             }
@@ -148,19 +156,19 @@ nxt_port_mmap_get_free_chunk(nxt_port_mmap_header_t *hdr, nxt_chunk_id_t *c)
 
 
 nxt_inline void
-nxt_port_mmap_set_chunk_busy(nxt_port_mmap_header_t *hdr, nxt_chunk_id_t c)
+nxt_port_mmap_set_chunk_busy(nxt_free_map_t *m, nxt_chunk_id_t c)
 {
-    nxt_atomic_and_fetch(hdr->free_map + FREE_IDX(c), ~FREE_MASK(c));
+    nxt_atomic_and_fetch(m + FREE_IDX(c), ~FREE_MASK(c));
 }
 
 
 nxt_inline nxt_bool_t
-nxt_port_mmap_chk_set_chunk_busy(nxt_port_mmap_header_t *hdr, nxt_chunk_id_t c)
+nxt_port_mmap_chk_set_chunk_busy(nxt_free_map_t *m, nxt_chunk_id_t c)
 {
     nxt_free_map_t  *f;
     nxt_free_map_t  free_val, busy_val;
 
-    f = hdr->free_map + FREE_IDX(c);
+    f = m + FREE_IDX(c);
 
     while ( (*f & FREE_MASK(c)) != 0 ) {
 
@@ -177,9 +185,9 @@ nxt_port_mmap_chk_set_chunk_busy(nxt_port_mmap_header_t *hdr, nxt_chunk_id_t c)
 
 
 nxt_inline void
-nxt_port_mmap_set_chunk_free(nxt_port_mmap_header_t *hdr, nxt_chunk_id_t c)
+nxt_port_mmap_set_chunk_free(nxt_free_map_t *m, nxt_chunk_id_t c)
 {
-    nxt_atomic_or_fetch(hdr->free_map + FREE_IDX(c), FREE_MASK(c));
+    nxt_atomic_or_fetch(m + FREE_IDX(c), FREE_MASK(c));
 }
 
 
