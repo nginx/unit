@@ -314,10 +314,6 @@ nxt_port_rpc_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     reg = lhq.value;
 
-    if (reg->peer != -1) {
-        nxt_assert(reg->peer == msg->port_msg.pid);
-    }
-
     if (type == _NXT_PORT_MSG_RPC_ERROR) {
         reg->error_handler(task, msg, reg->data);
 

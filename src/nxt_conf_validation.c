@@ -78,6 +78,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_limits_members[] = {
       NULL,
       NULL },
 
+    { nxt_string("reschedule_timeout"),
+      NXT_CONF_INTEGER,
+      NULL,
+      NULL },
+
     { nxt_string("requests"),
       NXT_CONF_INTEGER,
       NULL,

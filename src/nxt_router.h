@@ -81,7 +81,8 @@ struct nxt_app_s {
     nxt_thread_mutex_t     mutex;    /* Protects ports queue. */
     nxt_queue_t            ports;    /* of nxt_port_t.app_link */
 
-    nxt_queue_t            requests; /* of nxt_req_conn_link_t */
+    nxt_queue_t            requests; /* of nxt_req_app_link_t */
+    nxt_queue_t            pending;  /* of nxt_req_app_link_t */
     nxt_str_t              name;
 
     uint32_t               pending_workers;
@@ -90,6 +91,7 @@ struct nxt_app_s {
     uint32_t               max_pending_responses;
 
     nxt_msec_t             timeout;
+    nxt_nsec_t             res_timeout;
 
     nxt_app_type_t         type:8;
     uint8_t                live;   /* 1 bit */
