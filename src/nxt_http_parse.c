@@ -146,6 +146,23 @@ nxt_http_parse_request(nxt_http_request_parse_t *rp, nxt_buf_mem_t *b)
 }
 
 
+nxt_int_t
+nxt_http_parse_fields(nxt_http_request_parse_t *rp, nxt_buf_mem_t *b)
+{
+    nxt_int_t  rc;
+
+    if (rp->handler == NULL) {
+        rp->handler = &nxt_http_parse_field_name;
+    }
+
+    do {
+        rc = rp->handler(rp, &b->pos, b->free);
+    } while (rc == NXT_OK);
+
+    return rc;
+}
+
+
 static nxt_int_t
 nxt_http_parse_request_line(nxt_http_request_parse_t *rp, u_char **pos,
     u_char *end)
