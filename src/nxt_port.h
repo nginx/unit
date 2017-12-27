@@ -166,7 +166,7 @@ struct nxt_port_s {
     /* Maximum interleave of message parts. */
     uint32_t            max_share;
 
-    uint32_t            app_requests;
+    uint32_t            app_pending_responses;
     uint32_t            app_responses;
 
     nxt_port_handler_t  handler;
