@@ -66,6 +66,7 @@ nxt_port_new(nxt_task_t *task, nxt_port_id_t id, nxt_pid_t pid,
 
         nxt_queue_init(&port->messages);
         nxt_thread_mutex_create(&port->write_mutex);
+        nxt_queue_init(&port->pending_requests);
 
     } else {
         nxt_mp_destroy(mp);

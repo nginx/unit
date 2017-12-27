@@ -168,6 +168,7 @@ struct nxt_port_s {
 
     uint32_t            app_pending_responses;
     uint32_t            app_responses;
+    nxt_queue_t         pending_requests;
 
     nxt_port_handler_t  handler;
     nxt_port_handler_t  *data;
@@ -264,5 +265,10 @@ void nxt_port_empty_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 nxt_int_t nxt_port_post(nxt_task_t *task, nxt_port_t *port,
     nxt_port_post_handler_t handler, void *data);
 void nxt_port_use(nxt_task_t *task, nxt_port_t *port, int i);
+
+nxt_inline void nxt_port_inc_use(nxt_port_t *port)
+{
+    nxt_atomic_fetch_add(&port->use_count, 1);
+}
 
 #endif /* _NXT_PORT_H_INCLUDED_ */
