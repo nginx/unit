@@ -60,9 +60,9 @@ typedef struct {
 typedef struct nxt_python_run_ctx_s nxt_python_run_ctx_t;
 
 static nxt_int_t nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf);
-
 static nxt_int_t nxt_python_run(nxt_task_t *task,
                       nxt_app_rmsg_t *rmsg, nxt_app_wmsg_t *msg);
+static void nxt_python_atexit(nxt_task_t *task);
 
 static PyObject *nxt_python_create_environ(nxt_task_t *task);
 static PyObject *nxt_python_get_environ(nxt_task_t *task,
@@ -103,6 +103,7 @@ NXT_EXPORT nxt_application_module_t  nxt_app_module = {
     nxt_string(PY_VERSION),
     nxt_python_init,
     nxt_python_run,
+    nxt_python_atexit,
 };
 
 
@@ -452,6 +453,21 @@ fail:
     Py_DECREF(result);
 
     return NXT_ERROR;
+}
+
+
+static void
+nxt_python_atexit(nxt_task_t *task)
+{
+    Py_DECREF(nxt_py_application);
+    Py_DECREF(nxt_py_start_resp_obj);
+    Py_DECREF(nxt_py_environ_ptyp);
+
+    Py_Finalize();
+
+    if (nxt_py_home != NULL) {
+        nxt_free(nxt_py_home);
+    }
 }
 
 

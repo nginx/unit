@@ -382,7 +382,18 @@ nxt_app_http_init(nxt_task_t *task, nxt_runtime_t *rt)
 
 
 void
-nxt_port_app_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
+nxt_app_quit_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
+{
+    if (nxt_app->atexit != NULL) {
+        nxt_app->atexit(task);
+    }
+
+    nxt_worker_process_quit_handler(task, msg);
+}
+
+
+void
+nxt_app_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
     size_t          dump_size;
     nxt_buf_t       *b;

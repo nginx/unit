@@ -21,11 +21,11 @@ static void nxt_worker_process_sigquit_handler(nxt_task_t *task, void *obj,
 
 
 nxt_port_handlers_t  nxt_app_process_port_handlers = {
-    .quit         = nxt_worker_process_quit_handler,
+    .quit         = nxt_app_quit_handler,
     .new_port     = nxt_port_new_port_handler,
     .change_file  = nxt_port_change_log_file_handler,
     .mmap         = nxt_port_mmap_handler,
-    .data         = nxt_port_app_data_handler,
+    .data         = nxt_app_data_handler,
     .remove_pid   = nxt_port_remove_pid_handler,
 };
 

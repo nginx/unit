@@ -218,6 +218,7 @@ struct nxt_app_module_s {
     nxt_int_t                  (*run)(nxt_task_t *task,
                                     nxt_app_rmsg_t *rmsg,
                                     nxt_app_wmsg_t *wmsg);
+    void                       (*atexit)(nxt_task_t *task);
 };
 
 
