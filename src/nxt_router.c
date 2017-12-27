@@ -1237,6 +1237,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         app->res_timeout = apcf.res_timeout * 1000000;
         app->live = 1;
         app->max_pending_responses = 2;
+        app->max_requests = apcf.requests;
         app->prepare_msg = nxt_app_prepare_msg[lang->type];
 
         nxt_queue_insert_tail(&tmcf->apps, &app->link);
@@ -2766,8 +2767,11 @@ nxt_router_pop_first_port(nxt_app_t *app)
 
     port->app_pending_responses++;
 
-    if (app->max_pending_responses == 0
-        || port->app_pending_responses < app->max_pending_responses)
+    if ((app->max_pending_responses == 0
+            || port->app_pending_responses < app->max_pending_responses)
+        && (app->max_requests == 0
+            || port->app_responses + port->app_pending_responses
+                < app->max_requests))
     {
         nxt_queue_insert_tail(&app->ports, lnk);
 
@@ -2859,7 +2863,10 @@ nxt_router_app_port_release(nxt_task_t *task, nxt_port_t *port,
 
     if (port->pair[1] != -1
         && (app->max_pending_responses == 0
-            || port->app_pending_responses < app->max_pending_responses))
+            || port->app_pending_responses < app->max_pending_responses)
+        && (app->max_requests == 0
+            || port->app_responses + port->app_pending_responses
+                < app->max_requests))
     {
         if (port->app_link.next == NULL) {
             if (port->app_pending_responses > 0) {
@@ -2950,7 +2957,9 @@ app_dead:
 
 re_ra_cancelled:
 
-    send_quit = app->live == 0 && port->app_pending_responses > 0;
+    send_quit = (app->live == 0 && port->app_pending_responses > 0)
+                || (app->max_requests > 0 && port->app_pending_responses == 0
+                    && port->app_responses >= app->max_requests);
 
     nxt_thread_mutex_unlock(&app->mutex);
 

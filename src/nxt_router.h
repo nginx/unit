@@ -89,6 +89,7 @@ struct nxt_app_s {
     uint32_t               workers;
     uint32_t               max_workers;
     uint32_t               max_pending_responses;
+    uint32_t               max_requests;
 
     nxt_msec_t             timeout;
     nxt_nsec_t             res_timeout;
