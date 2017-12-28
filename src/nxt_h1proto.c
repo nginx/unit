@@ -852,6 +852,10 @@ nxt_h1p_keepalive(nxt_task_t *task, nxt_h1proto_t *h1p, nxt_conn_t *c)
 
     nxt_debug(task, "h1p keepalive");
 
+    if (!c->tcp_nodelay) {
+        nxt_conn_tcp_nodelay_on(task, c);
+    }
+
     b = h1p->buffers;
 
     nxt_memzero(&h1p->parser, sizeof(nxt_h1proto_t));
