@@ -1,0 +1,44 @@
+MODULES+=			python36
+MODULE_SUFFIX_python36=		python3.6
+
+MODULE_SUMMARY_python36=	Python 3.6 module for NGINX Unit
+
+MODULE_VERSION_python36=	$(VERSION)
+MODULE_RELEASE_python36=	1
+
+MODULE_CONFARGS_python36=	python --config=python3.6-config
+MODULE_MAKEARGS_python36=	python3.6
+MODULE_INSTARGS_python36=	python3.6-install
+
+MODULE_SOURCES_python36=	unit.example-python-app \
+				unit.example-python3.6-config
+
+BUILD_DEPENDS+=		python3.6-dev
+
+MODULE_BUILD_DEPENDS_python36=,python3.6-dev
+
+define MODULE_PREINSTALL_python36
+	mkdir -p debian/unit-python3.6/usr/share/doc/unit-python3.6/examples/python-app
+	install -m 644 -p debian/unit.example-python-app debian/unit-python3.6/usr/share/doc/unit-python3.6/examples/python-app/wsgi.py
+	install -m 644 -p debian/unit.example-python3.6-config debian/unit-python3.6/usr/share/doc/unit-python3.6/examples/unit.config
+endef
+export MODULE_PREINSTALL_python36
+
+define MODULE_POST_python36
+cat <<BANNER
+----------------------------------------------------------------------
+
+The $(MODULE_SUMMARY_python36) has been installed.
+
+To check out the sample app, run these commands:
+
+ sudo service unit restart
+ sudo service unit loadconfig /usr/share/doc/unit-python3.6/examples/unit.config
+ curl http://localhost:8400/
+
+Online documentation is available at https://unit.nginx.org
+
+----------------------------------------------------------------------
+BANNER
+endef
+export MODULE_POST_python36

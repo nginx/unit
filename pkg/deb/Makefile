@@ -16,6 +16,15 @@ BUILD_DEPENDS = debhelper devscripts libxml2-utils lintian lsb-release xsltproc
 
 MODULES=
 
+# Ubuntu 17.10
+ifeq ($(CODENAME),artful)
+include Makefile.php
+include Makefile.python27
+include Makefile.python36
+include Makefile.go18
+include Makefile.go19
+endif
+
 # Ubuntu 17.04
 ifeq ($(CODENAME),zesty)
 include Makefile.php

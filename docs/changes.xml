@@ -5,6 +5,32 @@
 <change_log title="unit">
 
 
+<changes apply="unit-go1.9" ver="0.3" rev="1"
+         date="2017-12-28" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Go 1.9 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python3.6" ver="0.3" rev="1"
+         date="2017-12-28" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Python 3.6 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
 <changes apply="unit-go" ver="0.3" rev="1"
          date="2017-12-28" time="18:00:00 +0300"
          packager="Andrei Belov &lt;defan@nginx.com&gt;">

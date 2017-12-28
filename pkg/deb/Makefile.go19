@@ -1,0 +1,48 @@
+MODULES+=		go19
+MODULE_SUFFIX_go19=	go1.9
+
+MODULE_SUMMARY_go19=	Go 1.9 module for NGINX Unit
+
+MODULE_VERSION_go19=	$(VERSION)
+MODULE_RELEASE_go19=	1
+
+MODULE_CONFARGS_go19=	go --go=/usr/lib/go-1.9/bin/go --go-path=/usr/share/gocode
+MODULE_MAKEARGS_go19=	/usr/lib/go-1.9/bin/go
+MODULE_INSTARGS_go19=	/usr/lib/go-1.9/bin/go-install
+
+MODULE_SOURCES_go19=	unit.example-go-app \
+			unit.example-go1.9-config
+
+BUILD_DEPENDS+=		golang-1.9
+
+MODULE_BUILD_DEPENDS_go19=,golang-1.9
+MODULE_DEPENDS_go19=,golang-1.9
+
+MODULE_NOARCH_go19=	true
+
+define MODULE_PREINSTALL_go19
+	mkdir -p debian/unit-go1.9/usr/share/doc/unit-go1.9/examples/go-app
+	install -m 644 -p debian/unit.example-go-app debian/unit-go1.9/usr/share/doc/unit-go1.9/examples/go-app/let-my-people.go
+	install -m 644 -p debian/unit.example-go1.9-config debian/unit-go1.9/usr/share/doc/unit-go1.9/examples/unit.config
+endef
+export MODULE_PREINSTALL_go19
+
+define MODULE_POST_go19
+cat <<BANNER
+----------------------------------------------------------------------
+
+The $(MODULE_SUMMARY_go19) has been installed.
+
+To check out the sample app, run these commands:
+
+ GOPATH=/usr/share/gocode /usr/lib/go-1.9/bin/go build -o /tmp/go1.9-app /usr/share/doc/unit-go1.9/examples/go-app/let-my-people.go
+ sudo service unit restart
+ sudo service unit loadconfig /usr/share/doc/unit-go1.9/examples/unit.config
+ curl http://localhost:8500/
+
+Online documentation is available at https://unit.nginx.org
+
+----------------------------------------------------------------------
+BANNER
+endef
+export MODULE_POST_go19
