@@ -18,6 +18,9 @@ BuildRequires: systemd
 Requires: systemd
 %endif
 
+%define CC_OPT %{optflags} -fPIC
+%define LD_OPT -Wl,-z,relro -Wl,-z,now -pie
+
 %define CONFIGURE_ARGS $(echo "%%CONFIGURE_ARGS%%")
 
 Provides: nginx-unit
@@ -61,12 +64,16 @@ dynamically via an API.
 ./configure \
 	%{CONFIGURE_ARGS} \
 	--modules=%{_libdir}/unit/debug-modules \
+	--cc-opt="%{CC_OPT}" \
+	--ld-opt="%{LD_OPT}" \
 	--debug
 %{__make} %{?_smp_mflags}
 %{__mv} build build-debug
 ./configure \
 	%{CONFIGURE_ARGS} \
-	--modules=%{_libdir}/unit/modules
+	--modules=%{_libdir}/unit/modules \
+	--cc-opt="%{CC_OPT}" \
+	--ld-opt="%{LD_OPT}"
 %{__make} %{?_smp_mflags}
 
 %install
