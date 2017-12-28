@@ -14,9 +14,6 @@
 #include <nxt_application.h>
 
 
-typedef struct nxt_http_request_s  nxt_http_request_t;
-
-
 typedef struct {
     nxt_thread_spinlock_t  lock;
     nxt_queue_t            engines;
