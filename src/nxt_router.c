@@ -2451,7 +2451,10 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
             goto fail;
         }
 
-        if (nxt_buf_mem_used_size(&b->mem) != 0) {
+        if (nxt_buf_mem_used_size(&b->mem) == 0) {
+            nxt_work_queue_add(&task->thread->engine->fast_work_queue,
+                               b->completion_handler, task, b, b->parent);
+        } else {
             nxt_buf_chain_add(&r->out, b);
         }
 
