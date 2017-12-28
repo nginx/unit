@@ -52,6 +52,7 @@ endif
 ifeq ($(CODENAME),jessie)
 include Makefile.php
 include Makefile.python27
+include Makefile.python34
 endif
 
 CONFIGURE_ARGS=\
