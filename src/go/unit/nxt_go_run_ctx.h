@@ -9,7 +9,7 @@
 
 
 #include <nxt_main.h>
-#include <nxt_application.h>
+#include <nxt_router.h>
 #include <nxt_port_memory_int.h>
 
 #ifndef _NXT_GO_PROCESS_T_DEFINED_

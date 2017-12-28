@@ -11,7 +11,7 @@
 #include "php_variables.h"
 
 #include <nxt_main.h>
-#include <nxt_application.h>
+#include <nxt_router.h>
 
 
 static nxt_int_t nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf);
