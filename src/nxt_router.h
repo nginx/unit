@@ -11,6 +11,8 @@
 #include <nxt_main.h>
 #include <nxt_runtime.h>
 #include <nxt_main_process.h>
+
+typedef struct nxt_http_request_s   nxt_http_request_t;
 #include <nxt_application.h>
 
 

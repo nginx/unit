@@ -115,8 +115,6 @@ typedef struct {
 } nxt_app_request_t;
 
 
-typedef struct nxt_http_request_s   nxt_http_request_t;
-
 typedef struct nxt_app_parse_ctx_s  nxt_app_parse_ctx_t;
 
 struct nxt_app_parse_ctx_s {

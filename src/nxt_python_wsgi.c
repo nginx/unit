@@ -13,7 +13,7 @@
 
 #include <nxt_main.h>
 #include <nxt_runtime.h>
-#include <nxt_application.h>
+#include <nxt_router.h>
 
 /*
  * According to "PEP 3333 / A Note On String Types"

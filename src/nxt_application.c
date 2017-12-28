@@ -8,10 +8,10 @@
 
 #include <nxt_main.h>
 #include <nxt_runtime.h>
-#include <nxt_application.h>
 #include <nxt_main_process.h>
 #include <nxt_router.h>
 #include <nxt_http.h>
+#include <nxt_application.h>
 
 #include <glob.h>
 

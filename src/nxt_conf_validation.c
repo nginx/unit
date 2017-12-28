@@ -6,7 +6,7 @@
 
 #include <nxt_main.h>
 #include <nxt_conf.h>
-#include <nxt_application.h>
+#include <nxt_router.h>
 
 
 typedef struct {

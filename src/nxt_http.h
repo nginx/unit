@@ -46,9 +46,6 @@ typedef struct {
 } nxt_http_request_state_t;
 
 
-typedef struct nxt_http_request_s   nxt_http_request_t;
-
-
 typedef struct {
     nxt_http_request_parse_t        parser;
 
