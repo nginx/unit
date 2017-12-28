@@ -720,7 +720,6 @@ nxt_port_read_msg_process(nxt_task_t *task, nxt_port_t *port,
 
             if (msg->port_msg.mmap) {
                 nxt_port_mmap_read(task, msg);
-                b = msg->buf;
             }
 
             nxt_buf_chain_add(&fmsg->buf, msg->buf);
