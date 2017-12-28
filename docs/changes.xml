@@ -5,6 +5,172 @@
 <change_log title="unit">
 
 
+<changes apply="unit-go" ver="0.3" rev="1"
+         date="2017-12-28" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.3.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-go1.7" ver="0.3" rev="1"
+         date="2017-12-28" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.3.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-go1.8" ver="0.3" rev="1"
+         date="2017-12-28" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.3.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python" ver="0.3" rev="1"
+         date="2017-12-28" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.3.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python2.7" ver="0.3" rev="1"
+         date="2017-12-28" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.3.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python3.4" ver="0.3" rev="1"
+         date="2017-12-28" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.3.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python3.5" ver="0.3" rev="1"
+         date="2017-12-28" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.3.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php" ver="0.3" rev="1"
+         date="2017-12-28" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.3.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="0.3" rev="1"
+         date="2017-12-28" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="change">
+<para>
+the Go package name changed to "nginx/unit".
+</para>
+</change>
+
+<change type="change">
+<para>
+in the "limits.timeout" application option: application start time and
+time in queue now are not accounted.
+</para>
+</change>
+
+<change type="feature">
+<para>
+the "limits.requests" application option.
+</para>
+</change>
+
+<change type="feature">
+<para>
+application request processing latency optimization.
+</para>
+</change>
+
+<change type="feature">
+<para>
+HTTP keep-alive connections support.
+</para>
+</change>
+
+<change type="feature">
+<para>
+the "home" Python virtual environment configuration option.
+</para>
+</change>
+
+<change type="feature">
+<para>
+Python atexit hook support.
+</para>
+</change>
+
+<change type="feature">
+<para>
+various Go package improvements.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+various crashes fixed.
+</para>
+</change>
+
+</changes>
+
+
 <changes apply="unit-go" ver="0.2" rev="1"
          date="2017-10-19" time="18:00:00 +0300"
          packager="Andrei Belov &lt;defan@nginx.com&gt;">

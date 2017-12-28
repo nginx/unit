@@ -1,4 +1,26 @@
 
+Changes with Unit 0.3                                            28 Dec 2017
+
+    *) Change: the Go package name changed to "nginx/unit".
+
+    *) Change: in the "limits.timeout" application option: application start
+       time and time in queue now are not accounted.
+
+    *) Feature: the "limits.requests" application option.
+
+    *) Feature: application request processing latency optimization.
+
+    *) Feature: HTTP keep-alive connections support.
+
+    *) Feature: the "home" Python virtual environment configuration option.
+
+    *) Feature: Python atexit hook support.
+
+    *) Feature: various Go package improvements.
+
+    *) Bugfix: various crashes fixed.
+
+
 Changes with Unit 0.2                                            19 Oct 2017
 
     *) Feature: configuration persistence.
