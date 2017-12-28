@@ -4,7 +4,7 @@
 #export DH_VERBOSE=1
 
 export DEB_BUILD_MAINT_OPTIONS=hardening=+all,-pie
-export DEB_CFLAGS_MAINT_APPEND=-Wp,-D_FORTIFY_SOURCE=2
+export DEB_CFLAGS_MAINT_APPEND=-Wp,-D_FORTIFY_SOURCE=2 -fPIC
 DPKG_EXPORT_BUILDFLAGS = 1
 include /usr/share/dpkg/buildflags.mk
 
