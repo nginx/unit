@@ -3,6 +3,11 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
+export DEB_BUILD_MAINT_OPTIONS=hardening=+all,-pie
+export DEB_CFLAGS_MAINT_APPEND=-Wp,-D_FORTIFY_SOURCE=2
+DPKG_EXPORT_BUILDFLAGS = 1
+include /usr/share/dpkg/buildflags.mk
+
 BUILDDIR_unit = $(CURDIR)/debian/build-unit
 BUILDDIR_unit_debug = $(CURDIR)/debian/build-unit-debug
 INSTALLDIR = $(CURDIR)/debian/%%NAME%%
@@ -21,17 +26,19 @@ config.env.%:
 
 configure.unit: config.env.unit
 	cd $(BUILDDIR_unit) && \
-	./configure \
+	CFLAGS= ./configure \
 		%%CONFIGURE_ARGS%% \
-		--modules=/usr/lib/unit/modules && \
+		--modules=/usr/lib/unit/modules \
+		--cc-opt="$(CFLAGS)" && \
 	./configure %%MODULE_CONFARGS%%
 	touch $@
 
 configure.unit_debug: config.env.unit_debug
 	cd $(BUILDDIR_unit_debug) && \
-	./configure \
+	CFLAGS= ./configure \
 		%%CONFIGURE_ARGS%% \
 		--modules=/usr/lib/unit/debug-modules \
+		--cc-opt="$(CFLAGS)" \
 		--debug && \
 	./configure %%MODULE_CONFARGS%%
 	touch $@
