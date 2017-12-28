@@ -892,7 +892,7 @@ nxt_app_http_req_body_read(nxt_task_t *task, nxt_app_parse_ctx_t *ctx,
 nxt_int_t
 nxt_app_http_req_done(nxt_task_t *task, nxt_app_parse_ctx_t *ctx)
 {
-    nxt_mp_release(ctx->mem_pool, NULL);
+    nxt_mp_release(ctx->mem_pool);
 
     return NXT_OK;
 }

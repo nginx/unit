@@ -120,7 +120,7 @@ nxt_port_release(nxt_task_t *task, nxt_port_t *port)
         nxt_process_use(task, port->process, -1);
     }
 
-    nxt_mp_release(port->mem_pool, NULL);
+    nxt_mp_release(port->mem_pool);
 }
 
 

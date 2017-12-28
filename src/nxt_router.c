@@ -270,6 +270,7 @@ nxt_router_start_worker_handler(nxt_task_t *task, nxt_port_t *port, void *data)
 {
     size_t         size;
     uint32_t       stream;
+    nxt_mp_t       *mp;
     nxt_app_t      *app;
     nxt_buf_t      *b;
     nxt_port_t     *main_port;
@@ -300,7 +301,9 @@ nxt_router_start_worker_handler(nxt_task_t *task, nxt_port_t *port, void *data)
                                            -1, app);
 
     if (nxt_slow_path(stream == 0)) {
-        nxt_mp_release(b->data, b);
+        mp = b->data;
+        nxt_mp_free(mp, b);
+        nxt_mp_release(mp);
 
         goto failed;
     }
@@ -389,7 +392,7 @@ nxt_router_ra_create(nxt_task_t *task, nxt_req_app_link_t *ra_src)
 
     mp = ra_src->ap->mem_pool;
 
-    ra = nxt_mp_retain(mp, sizeof(nxt_req_app_link_t));
+    ra = nxt_mp_alloc(mp, sizeof(nxt_req_app_link_t));
 
     if (nxt_slow_path(ra == NULL)) {
 
@@ -398,6 +401,8 @@ nxt_router_ra_create(nxt_task_t *task, nxt_req_app_link_t *ra_src)
 
         return NULL;
     }
+
+    nxt_mp_retain(mp);
 
     nxt_router_ra_init(task, ra, ra_src->rc);
 
@@ -497,6 +502,7 @@ nxt_router_ra_update_peer(nxt_task_t *task, nxt_req_app_link_t *ra)
 static void
 nxt_router_ra_release(nxt_task_t *task, nxt_req_app_link_t *ra)
 {
+    nxt_mp_t             *mp;
     nxt_conn_t           *c;
     nxt_req_conn_link_t  *rc;
 
@@ -539,8 +545,11 @@ nxt_router_ra_release(nxt_task_t *task, nxt_req_app_link_t *ra)
 
     nxt_router_msg_cancel(task, &ra->msg_info, ra->stream);
 
-    if (ra->mem_pool != NULL) {
-        nxt_mp_release(ra->mem_pool, ra);
+    mp = ra->mem_pool;
+
+    if (mp != NULL) {
+        nxt_mp_free(mp, ra);
+        nxt_mp_release(mp);
     }
 }
 

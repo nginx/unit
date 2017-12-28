@@ -282,6 +282,28 @@ nxt_mp_create(size_t cluster_size, size_t page_alignment, size_t page_size,
 
 
 void
+nxt_mp_retain(nxt_mp_t *mp)
+{
+    mp->retain++;
+
+    nxt_thread_log_debug("mp %p retain: %uD", mp, mp->retain);
+}
+
+
+void
+nxt_mp_release(nxt_mp_t *mp)
+{
+    mp->retain--;
+
+    nxt_thread_log_debug("mp %p release: %uD", mp, mp->retain);
+
+    if (mp->retain == 0) {
+        nxt_mp_destroy(mp);
+    }
+}
+
+
+void
 nxt_mp_destroy(nxt_mp_t *mp)
 {
     void               *p;
@@ -930,43 +952,6 @@ nxt_mp_chunk_free(nxt_mp_t *mp, nxt_mp_block_t *cluster, u_char *p)
     nxt_free(p);
 
     return NULL;
-}
-
-
-void *
-nxt_mp_retain(nxt_mp_t *mp, size_t size)
-{
-    void  *p;
-
-    p = nxt_mp_alloc(mp, size);
-
-    if (nxt_fast_path(p != NULL)) {
-        mp->retain++;
-        nxt_debug_alloc("mp %p retain: %uD", mp, mp->retain);
-    }
-
-    return p;
-}
-
-
-uint32_t
-nxt_mp_release(nxt_mp_t *mp, void *p)
-{
-    if (nxt_fast_path(p != NULL)) {
-        nxt_mp_free(mp, p);
-    }
-
-    mp->retain--;
-
-    nxt_debug_alloc("mp %p release: %uD", mp, mp->retain);
-
-    if (mp->retain == 0) {
-        nxt_mp_destroy(mp);
-
-        return 0;
-    }
-
-    return mp->retain;
 }
 
 

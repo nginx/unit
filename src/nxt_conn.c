@@ -96,9 +96,13 @@ nxt_conn_create(nxt_mp_t *mp, nxt_task_t *task)
 void
 nxt_conn_free(nxt_task_t *task, nxt_conn_t *c)
 {
+    nxt_mp_t  *mp;
+
     task->thread->engine->connections--;
 
-    nxt_mp_release(c->mem_pool, c);
+    mp = c->mem_pool;
+    nxt_mp_free(mp, c);
+    nxt_mp_release(mp);
 }
 
 

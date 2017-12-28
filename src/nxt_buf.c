@@ -59,10 +59,12 @@ nxt_buf_mem_ts_alloc(nxt_task_t *task, nxt_mp_t *mp, size_t size)
     nxt_buf_t     *b;
     nxt_buf_ts_t  *ts;
 
-    b = nxt_mp_retain(mp, NXT_BUF_MEM_SIZE + sizeof(nxt_buf_ts_t) + size);
+    b = nxt_mp_alloc(mp, NXT_BUF_MEM_SIZE + sizeof(nxt_buf_ts_t) + size);
     if (nxt_slow_path(b == NULL)) {
         return NULL;
     }
+
+    nxt_mp_retain(mp);
 
     nxt_memzero(b, NXT_BUF_MEM_SIZE + sizeof(nxt_buf_ts_t));
 
@@ -284,7 +286,8 @@ nxt_buf_ts_completion(nxt_task_t *task, void *obj, void *data)
 #endif
 
     mp = b->data;
-    nxt_mp_release(mp, b);
+    nxt_mp_free(mp, b);
+    nxt_mp_release(mp);
 
     if (parent != NULL) {
         nxt_debug(task, "parent retain:%uD", parent->retain);

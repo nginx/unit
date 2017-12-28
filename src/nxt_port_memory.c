@@ -173,7 +173,8 @@ release_buf:
 
     nxt_port_mmap_handler_use(mmap_handler, -1);
 
-    nxt_mp_release(mp, b);
+    nxt_mp_free(mp, b);
+    nxt_mp_release(mp);
 }
 
 
@@ -588,6 +589,7 @@ nxt_buf_t *
 nxt_port_mmap_get_buf(nxt_task_t *task, nxt_port_t *port, size_t size)
 {
     size_t                   nchunks;
+    nxt_mp_t                 *mp;
     nxt_buf_t                *b;
     nxt_chunk_id_t           c;
     nxt_port_mmap_header_t   *hdr;
@@ -605,7 +607,9 @@ nxt_port_mmap_get_buf(nxt_task_t *task, nxt_port_t *port, size_t size)
 
     mmap_handler = nxt_port_mmap_get(task, port, &c, 0);
     if (nxt_slow_path(mmap_handler == NULL)) {
-        nxt_mp_release(task->thread->engine->mem_pool, b);
+        mp = task->thread->engine->mem_pool;
+        nxt_mp_free(mp, b);
+        nxt_mp_release(mp);
         return NULL;
     }
 

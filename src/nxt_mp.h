@@ -41,6 +41,17 @@ NXT_EXPORT nxt_mp_t *nxt_mp_create(size_t cluster_size, size_t page_alignment,
  */
 NXT_EXPORT void nxt_mp_destroy(nxt_mp_t *mp);
 
+/*
+ * nxt_mp_retain() increases memory pool retention counter.
+ */
+NXT_EXPORT void nxt_mp_retain(nxt_mp_t *mp);
+
+/*
+ * nxt_mp_release() decreases memory pool retention counter.
+ * If the counter becomes zero the pool is destroyed.
+ */
+NXT_EXPORT void nxt_mp_release(nxt_mp_t *mp);
+
 /* nxt_mp_test_sizes() tests validity of memory pool parameters. */
 NXT_EXPORT nxt_bool_t nxt_mp_test_sizes(size_t cluster_size,
     size_t page_alignment, size_t page_size, size_t min_chunk_size);
@@ -74,20 +85,6 @@ NXT_EXPORT void *nxt_mp_zalign(nxt_mp_t *mp, size_t alignment, size_t size)
 
 /* nxt_mp_free() frees freeable memory. */
 NXT_EXPORT void nxt_mp_free(nxt_mp_t *mp, void *p);
-
-
-/*
- * nxt_mp_retain() returns aligned freeable memory and increases memory
- * pool retention counter.
- */
-NXT_EXPORT void *nxt_mp_retain(nxt_mp_t *mp, size_t size)
-    NXT_MALLOC_LIKE;
-
-/*
- * nxt_mp_release() returns freeable memory and decreases memory pool
- * retention counter.  If the counter becomes zero the pool is destroyed.
- */
-NXT_EXPORT uint32_t nxt_mp_release(nxt_mp_t *mp, void *p);
 
 
 /* nxt_mp_nget() returns non-aligned non-freeable memory. */

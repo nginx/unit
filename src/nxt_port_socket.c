@@ -159,20 +159,25 @@ nxt_port_release_send_msg(nxt_task_t *task, void *obj, void *data)
         return;
     }
 
-    nxt_mp_release(engine->mem_pool, obj);
+    nxt_mp_free(engine->mem_pool, obj);
+    nxt_mp_release(engine->mem_pool);
 }
 
 
 static nxt_port_send_msg_t *
 nxt_port_msg_create(nxt_task_t *task, nxt_port_send_msg_t *m)
 {
+    nxt_mp_t             *mp;
     nxt_port_send_msg_t  *msg;
 
-    msg = nxt_mp_retain(task->thread->engine->mem_pool,
-                        sizeof(nxt_port_send_msg_t));
+    mp = task->thread->engine->mem_pool;
+
+    msg = nxt_mp_alloc(mp, sizeof(nxt_port_send_msg_t));
     if (nxt_slow_path(msg == NULL)) {
         return NULL;
     }
+
+    nxt_mp_retain(mp);
 
     msg->link.next = NULL;
     msg->link.prev = NULL;
