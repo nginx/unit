@@ -10,6 +10,8 @@
 #include <nxt_runtime.h>
 #include <nxt_application.h>
 #include <nxt_main_process.h>
+#include <nxt_router.h>
+#include <nxt_http.h>
 
 #include <glob.h>
 
@@ -28,30 +30,14 @@ static nxt_app_module_t *nxt_app_module_load(nxt_task_t *task,
     const char *name);
 static nxt_app_type_t nxt_app_parse_type(u_char *p, size_t length);
 
-static nxt_int_t nxt_app_request_content_length(void *ctx,
-    nxt_http_field_t *field, uintptr_t data);
-static nxt_int_t nxt_app_request_content_type(void *ctx,
-    nxt_http_field_t *field, uintptr_t data);
-static nxt_int_t nxt_app_request_cookie(void *ctx, nxt_http_field_t *field,
-    uintptr_t data);
-static nxt_int_t nxt_app_request_host(void *ctx, nxt_http_field_t *field,
-    uintptr_t data);
 
-
-static nxt_http_field_proc_t  nxt_app_request_fields[] = {
-    { nxt_string("Content-Length"), &nxt_app_request_content_length, 0 },
-    { nxt_string("Content-Type"), &nxt_app_request_content_type, 0 },
-    { nxt_string("Cookie"), &nxt_app_request_cookie, 0 },
-    { nxt_string("Host"), &nxt_app_request_host, 0 },
-};
+static void nxt_app_http_release(nxt_task_t *task, void *obj, void *data);
 
 
 static uint32_t  compat[] = {
     NXT_VERNUM, NXT_DEBUG,
 };
 
-
-static nxt_lvlhsh_t              nxt_app_request_fields_hash;
 
 static nxt_thread_mutex_t        nxt_app_mutex;
 static nxt_thread_cond_t         nxt_app_cond;
@@ -369,15 +355,6 @@ nxt_app_module_load(nxt_task_t *task, const char *name)
             name, dlerror());
 
     return NULL;
-}
-
-
-nxt_int_t
-nxt_app_http_init(nxt_task_t *task, nxt_runtime_t *rt)
-{
-    return nxt_http_fields_hash(&nxt_app_request_fields_hash, rt->mem_pool,
-                                nxt_app_request_fields,
-                                nxt_nitems(nxt_app_request_fields));
 }
 
 
@@ -704,197 +681,29 @@ nxt_app_msg_read_size(nxt_task_t *task, nxt_app_rmsg_t *msg, size_t *size)
 }
 
 
-static nxt_int_t
-nxt_app_request_content_length(void *ctx, nxt_http_field_t *field,
-    uintptr_t data)
-{
-    nxt_app_parse_ctx_t       *c;
-    nxt_app_request_header_t  *h;
-
-    c = ctx;
-    h = &c->r.header;
-
-    h->content_length.length = field->value_length;
-    h->content_length.start = field->value;
-
-    h->parsed_content_length = nxt_off_t_parse(field->value,
-                                               field->value_length);
-
-    return NXT_OK;
-}
-
-
-static nxt_int_t
-nxt_app_request_content_type(void *ctx, nxt_http_field_t *field,
-    uintptr_t data)
-{
-    nxt_app_parse_ctx_t       *c;
-    nxt_app_request_header_t  *h;
-
-    c = ctx;
-    h = &c->r.header;
-
-    h->content_type.length = field->value_length;
-    h->content_type.start = field->value;
-
-    return NXT_OK;
-}
-
-
-static nxt_int_t
-nxt_app_request_cookie(void *ctx, nxt_http_field_t *field, uintptr_t data)
-{
-    nxt_app_parse_ctx_t       *c;
-    nxt_app_request_header_t  *h;
-
-    c = ctx;
-    h = &c->r.header;
-
-    h->cookie.length = field->value_length;
-    h->cookie.start = field->value;
-
-    return NXT_OK;
-}
-
-
-static nxt_int_t
-nxt_app_request_host(void *ctx, nxt_http_field_t *field, uintptr_t data)
-{
-    nxt_app_parse_ctx_t       *c;
-    nxt_app_request_header_t  *h;
-
-    c = ctx;
-    h = &c->r.header;
-
-    h->host.length = field->value_length;
-    h->host.start = field->value;
-
-    return NXT_OK;
-}
-
-
-nxt_app_parse_ctx_t *
-nxt_app_http_req_init(nxt_task_t *task)
-{
-    nxt_mp_t             *mp;
-    nxt_int_t            rc;
-    nxt_app_parse_ctx_t  *ctx;
-
-    mp = nxt_mp_create(1024, 128, 256, 32);
-    if (nxt_slow_path(mp == NULL)) {
-        return NULL;
-    }
-
-    ctx = nxt_mp_zget(mp, sizeof(nxt_app_parse_ctx_t));
-    if (nxt_slow_path(ctx == NULL)) {
-        nxt_mp_destroy(mp);
-        return NULL;
-    }
-
-    ctx->mem_pool = mp;
-
-    rc = nxt_http_parse_request_init(&ctx->parser, mp);
-    if (nxt_slow_path(rc != NXT_OK)) {
-        nxt_mp_destroy(mp);
-        return NULL;
-    }
-
-    return ctx;
-}
-
-
 nxt_int_t
-nxt_app_http_req_header_parse(nxt_task_t *task, nxt_app_parse_ctx_t *ctx,
-    nxt_buf_t *buf)
+nxt_app_http_req_done(nxt_task_t *task, nxt_app_parse_ctx_t *ar)
 {
-    nxt_int_t                 rc;
-    nxt_app_request_body_t    *b;
-    nxt_http_request_parse_t  *p;
-    nxt_app_request_header_t  *h;
-
-    p = &ctx->parser;
-    b = &ctx->r.body;
-    h = &ctx->r.header;
-
-    nxt_assert(h->done == 0);
-
-    rc = nxt_http_parse_request(p, &buf->mem);
-
-    if (nxt_slow_path(rc != NXT_DONE)) {
-        return rc;
-    }
-
-    rc = nxt_http_fields_process(p->fields, &nxt_app_request_fields_hash, ctx);
-
-    if (nxt_slow_path(rc != NXT_OK)) {
-        return rc;
-    }
-
-    h->fields = p->fields;
-    h->done = 1;
-
-    h->version.start = p->version.str;
-    h->version.length = sizeof(p->version.str);
-
-    h->method = p->method;
-
-    h->target.start = p->target_start;
-    h->target.length = p->target_end - p->target_start;
-
-    h->path = p->path;
-    h->query = p->args;
-
-    if (h->parsed_content_length == 0) {
-        b->done = 1;
-
-    }
-
-    if (buf->mem.free == buf->mem.pos) {
-        return NXT_DONE;
-    }
-
-    b->buf = buf;
-    b->done = nxt_buf_mem_used_size(&buf->mem) >=
-              h->parsed_content_length;
-
-    if (b->done == 1) {
-        b->preread_size = nxt_buf_mem_used_size(&buf->mem);
-    }
-
-    return NXT_DONE;
-}
-
-
-nxt_int_t
-nxt_app_http_req_body_read(nxt_task_t *task, nxt_app_parse_ctx_t *ctx,
-    nxt_buf_t *buf)
-{
-    nxt_app_request_body_t    *b;
-    nxt_app_request_header_t  *h;
-
-    b = &ctx->r.body;
-    h = &ctx->r.header;
-
-    nxt_assert(h->done == 1);
-    nxt_assert(b->done == 0);
-
-    b->done = nxt_buf_mem_used_size(&buf->mem) + b->preread_size >=
-              (size_t) h->parsed_content_length;
-
-    if (b->done == 1) {
-        b->preread_size += nxt_buf_mem_used_size(&buf->mem);
-    }
-
-    return b->done == 1 ? NXT_DONE : NXT_AGAIN;
-}
-
-
-nxt_int_t
-nxt_app_http_req_done(nxt_task_t *task, nxt_app_parse_ctx_t *ctx)
-{
-    nxt_mp_release(ctx->mem_pool);
+    ar->timer.handler = nxt_app_http_release;
+    nxt_timer_add(task->thread->engine, &ar->timer, 0);
 
     return NXT_OK;
+}
+
+
+static void
+nxt_app_http_release(nxt_task_t *task, void *obj, void *data)
+{
+    nxt_timer_t          *timer;
+    nxt_app_parse_ctx_t  *ar;
+
+    timer = obj;
+
+    nxt_debug(task, "http app release");
+
+    ar = nxt_timer_data(timer, nxt_app_parse_ctx_t, timer);
+
+    nxt_mp_release(ar->request->mem_pool);
 }
 
 

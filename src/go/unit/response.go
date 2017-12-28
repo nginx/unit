@@ -54,7 +54,7 @@ func (r *response) WriteHeader(code int) {
 		return
 	}
 	r.headerSent = true
-	fmt.Fprintf(r, "%s %d %s\r\n", r.req.Proto, code, http.StatusText(code))
+	fmt.Fprintf(r, "Status: %d\r\n", code)
 
 	// Set a default Content-Type
 	if _, hasType := r.header["Content-Type"]; !hasType {

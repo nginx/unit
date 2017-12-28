@@ -775,11 +775,7 @@ nxt_py_start_resp(PyObject *self, PyObject *args)
     nxt_uint_t  i, n;
     nxt_python_run_ctx_t  *ctx;
 
-    static const u_char resp[] = "HTTP/1.1 ";
-
-    static const u_char default_headers[]
-        = "Server: unit/" NXT_VERSION "\r\n"
-          "Connection: close\r\n";
+    static const u_char status[] = "Status: ";
 
     static const u_char cr_lf[] = "\r\n";
     static const u_char sc_sp[] = ": ";
@@ -794,7 +790,7 @@ nxt_py_start_resp(PyObject *self, PyObject *args)
 
     ctx = nxt_python_run_ctx;
 
-    nxt_python_write(ctx, resp, sizeof(resp) - 1, 0, 0);
+    nxt_python_write(ctx, status, sizeof(status) - 1, 0, 0);
 
     rc = nxt_python_write_py_str(ctx, string, 0, 0);
     if (nxt_slow_path(rc != NXT_OK)) {
@@ -803,8 +799,6 @@ nxt_py_start_resp(PyObject *self, PyObject *args)
     }
 
     nxt_python_write(ctx, cr_lf, sizeof(cr_lf) - 1, 0, 0);
-
-    nxt_python_write(ctx, default_headers, sizeof(default_headers) - 1, 0, 0);
 
     headers = PyTuple_GET_ITEM(args, 1);
 

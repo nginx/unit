@@ -115,27 +115,21 @@ typedef struct {
 } nxt_app_request_t;
 
 
-typedef struct nxt_app_parse_ctx_s nxt_app_parse_ctx_t;
+typedef struct nxt_http_request_s   nxt_http_request_t;
+
+typedef struct nxt_app_parse_ctx_s  nxt_app_parse_ctx_t;
 
 struct nxt_app_parse_ctx_s {
     nxt_app_request_t         r;
+    nxt_http_request_t        *request;
+    nxt_timer_t               timer;
     nxt_http_request_parse_t  parser;
+    nxt_http_request_parse_t  resp_parser;
     nxt_mp_t                  *mem_pool;
 };
 
 
-nxt_app_parse_ctx_t *nxt_app_http_req_init(nxt_task_t *task);
-
-nxt_int_t nxt_app_http_req_header_parse(nxt_task_t *task,
-    nxt_app_parse_ctx_t *ctx, nxt_buf_t *buf);
-
-nxt_int_t nxt_app_http_req_body_read(nxt_task_t *task,
-    nxt_app_parse_ctx_t *ctx, nxt_buf_t *buf);
-
-
 nxt_int_t nxt_app_http_req_done(nxt_task_t *task, nxt_app_parse_ctx_t *ctx);
-
-nxt_int_t nxt_app_http_init(nxt_task_t *task, nxt_runtime_t *rt);
 
 
 typedef struct nxt_app_wmsg_s  nxt_app_wmsg_t;

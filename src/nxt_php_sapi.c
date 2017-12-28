@@ -505,19 +505,11 @@ nxt_php_send_headers(sapi_headers_struct *sapi_headers TSRMLS_DC)
     zend_llist_position  zpos;
 
     static const u_char default_repsonse[]
-        = "HTTP/1.1 200 OK\r\n"
-          "Server: unit/" NXT_VERSION "\r\n"
-          "Content-Type: text/html; charset=UTF-8\r\n"
-          "Connection: close\r\n"
+        = "Status: 200\r\n"
           "\r\n";
 
-    static const u_char default_headers[]
-        = "Server: unit/" NXT_VERSION "\r\n"
-          "Connection: close\r\n";
-
-    static const u_char http_11[] = "HTTP/1.1 ";
+    static const u_char status_200[] = "Status: 200";
     static const u_char cr_lf[] = "\r\n";
-    static const u_char _200_ok[] = "200 OK";
 
     ctx = SG(server_context);
 
@@ -539,23 +531,26 @@ nxt_php_send_headers(sapi_headers_struct *sapi_headers TSRMLS_DC)
         status = (u_char *) SG(sapi_headers).http_status_line;
         len = nxt_strlen(status);
 
-        RC(nxt_php_write(ctx, status, len, 0, 0));
+        if (len < 12) {
+            goto fail;
+        }
+
+        RC(nxt_php_write(ctx, status_200, sizeof(status_200) - 4, 0, 0));
+        RC(nxt_php_write(ctx, status + 9, 3, 0, 0));
 
     } else if (SG(sapi_headers).http_response_code) {
         status = nxt_sprintf(buf, buf + sizeof(buf), "%03d",
                         SG(sapi_headers).http_response_code);
         len = status - buf;
 
-        RC(nxt_php_write(ctx, http_11, sizeof(http_11) - 1, 0, 0));
+        RC(nxt_php_write(ctx, status_200, sizeof(status_200) - 4, 0, 0));
         RC(nxt_php_write(ctx, buf, len, 0, 0));
 
     } else {
-        RC(nxt_php_write(ctx, http_11, sizeof(http_11) - 1, 0, 0));
-        RC(nxt_php_write(ctx, _200_ok, sizeof(_200_ok) - 1, 0, 0));
+        RC(nxt_php_write(ctx, status_200, sizeof(status_200) - 1, 0, 0));
     }
 
     RC(nxt_php_write(ctx, cr_lf, sizeof(cr_lf) - 1, 0, 0));
-    RC(nxt_php_write(ctx, default_headers, sizeof(default_headers) - 1, 0, 0));
 
     h = zend_llist_get_first_ex(&sapi_headers->headers, &zpos);
 

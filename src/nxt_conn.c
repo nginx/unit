@@ -85,8 +85,6 @@ nxt_conn_create(nxt_mp_t *mp, nxt_task_t *task)
     nxt_conn_timer_init(&c->read_timer, c, c->socket.read_work_queue);
     nxt_conn_timer_init(&c->write_timer, c, c->socket.write_work_queue);
 
-    nxt_queue_init(&c->requests);
-
     nxt_log_debug(&c->log, "connections: %uD", thr->engine->connections);
 
     return c;
@@ -164,4 +162,61 @@ nxt_conn_work_queue_set(nxt_conn_t *c, nxt_work_queue_t *wq)
     c->write_work_queue = wq;
     c->read_timer.work_queue = wq;
     c->write_timer.work_queue = wq;
+}
+
+
+nxt_sockaddr_t *
+nxt_conn_local_addr(nxt_task_t *task, nxt_conn_t *c)
+{
+    int             ret;
+    size_t          size, length;
+    socklen_t       socklen;
+    nxt_sockaddr_t  *sa;
+
+    if (c->local != NULL) {
+        return c->local;
+    }
+
+    /* AF_UNIX should not get in here. */
+
+    switch (c->remote->u.sockaddr.sa_family) {
+#if (NXT_INET6)
+    case AF_INET6:
+        socklen = sizeof(struct sockaddr_in6);
+        length = NXT_INET6_ADDR_STR_LEN;
+        size = offsetof(nxt_sockaddr_t, u) + socklen + length;
+        break;
+#endif
+    case AF_INET:
+    default:
+        socklen = sizeof(struct sockaddr_in);
+        length = NXT_INET_ADDR_STR_LEN;
+        size = offsetof(nxt_sockaddr_t, u) + socklen + length;
+        break;
+    }
+
+    sa = nxt_mp_get(c->mem_pool, size);
+    if (nxt_slow_path(sa == NULL)) {
+        return NULL;
+    }
+
+    sa->socklen = socklen;
+    sa->length = length;
+
+    ret = getsockname(c->socket.fd, &sa->u.sockaddr, &socklen);
+    if (nxt_slow_path(ret != 0)) {
+        nxt_log(task, NXT_LOG_CRIT, "getsockname(%d) failed", c->socket.fd);
+        return NULL;
+    }
+
+    c->local = sa;
+
+    nxt_sockaddr_text(sa);
+
+    /*
+     * TODO: here we can adjust the end of non-freeable block
+     * in c->mem_pool to the end of actual sockaddr length.
+     */
+
+    return sa;
 }

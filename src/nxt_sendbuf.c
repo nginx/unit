@@ -434,3 +434,23 @@ nxt_sendbuf_completion(nxt_task_t *task, nxt_work_queue_t *wq, nxt_buf_t *b,
 
     return b;
 }
+
+
+nxt_buf_t *
+nxt_sendbuf_completion0(nxt_task_t *task, nxt_work_queue_t *wq, nxt_buf_t *b)
+{
+    while (b != NULL) {
+
+        nxt_prefetch(b->next);
+
+        if (nxt_buf_used_size(b) != 0) {
+            break;
+        }
+
+        nxt_work_queue_add(wq, b->completion_handler, task, b, b->parent);
+
+        b = b->next;
+    }
+
+    return b;
+}

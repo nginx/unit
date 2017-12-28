@@ -14,6 +14,9 @@
 #include <nxt_application.h>
 
 
+typedef struct nxt_http_request_s  nxt_http_request_t;
+
+
 typedef struct {
     nxt_thread_spinlock_t  lock;
     nxt_queue_t            engines;
@@ -127,8 +130,10 @@ typedef struct {
     size_t                 large_header_buffers;
     size_t                 body_buffer_size;
     size_t                 max_body_size;
+    nxt_msec_t             idle_timeout;
     nxt_msec_t             header_read_timeout;
     nxt_msec_t             body_read_timeout;
+    nxt_msec_t             send_timeout;
 } nxt_socket_conf_t;
 
 
@@ -146,7 +151,9 @@ void nxt_router_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 void nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 void nxt_router_remove_pid_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 
+void nxt_router_process_http_request(nxt_task_t *task, nxt_app_parse_ctx_t *ar);
 void nxt_router_app_port_close(nxt_task_t *task, nxt_port_t *port);
 void nxt_router_app_use(nxt_task_t *task, nxt_app_t *app, int i);
+
 
 #endif  /* _NXT_ROUTER_H_INCLUDED_ */

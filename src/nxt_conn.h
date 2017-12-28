@@ -141,8 +141,6 @@ struct nxt_conn_s {
 
     nxt_conn_io_t                 *io;
 
-    nxt_queue_t                   requests; /* of nxt_req_conn_link_t */
-
     union {
 #if (NXT_SSLTLS)
         void                      *ssltls;
@@ -231,6 +229,8 @@ NXT_EXPORT void nxt_conn_close(nxt_event_engine_t *engine, nxt_conn_t *c);
 NXT_EXPORT void nxt_conn_timer(nxt_event_engine_t *engine, nxt_conn_t *c,
     const nxt_conn_state_t *state, nxt_timer_t *tev);
 NXT_EXPORT void nxt_conn_work_queue_set(nxt_conn_t *c, nxt_work_queue_t *wq);
+NXT_EXPORT nxt_sockaddr_t *nxt_conn_local_addr(nxt_task_t *task,
+    nxt_conn_t *c);
 
 void nxt_conn_sys_socket(nxt_task_t *task, void *obj, void *data);
 void nxt_conn_io_connect(nxt_task_t *task, void *obj, void *data);
@@ -289,13 +289,13 @@ NXT_EXPORT void nxt_event_conn_job_sendfile(nxt_task_t *task,
     } while (0)
 
 
-#define nxt_conn_write(e, c)                                                  \
+#define nxt_conn_write(engine, c)                                             \
     do {                                                                      \
-        nxt_event_engine_t  *engine = e;                                      \
+        nxt_event_engine_t  *e = engine;                                      \
                                                                               \
-        c->socket.write_work_queue = &engine->write_work_queue;               \
+        c->socket.write_work_queue = &e->write_work_queue;                    \
                                                                               \
-        nxt_work_queue_add(&engine->write_work_queue, c->io->write,           \
+        nxt_work_queue_add(&e->write_work_queue, c->io->write,                \
                            c->socket.task, c, c->socket.data);                \
     } while (0)
 
