@@ -626,8 +626,9 @@ nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r)
         status = &unknown_status;
     }
 
-    size = status->length + sizeof("\r\n");
-    size += sizeof("\r\n");  /* Trailing CRLF. */
+    size = status->length;
+    /* Trailing CRLF at the end of header. */
+    size += sizeof("\r\n") - 1;
 
     http11 = (h1p->parser.version.str[7] != '0');
 
@@ -635,6 +636,8 @@ nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r)
         if (http11) {
             h1p->chunked = 1;
             size += sizeof(chunked) - 1;
+            /* Trailing CRLF will be added by the first chunk header. */
+            size -= sizeof("\r\n") - 1;
 
         } else {
             h1p->keepalive = 0;
@@ -686,6 +689,7 @@ nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r)
 
     if (h1p->chunked) {
         p = nxt_cpymem(p, chunked, sizeof(chunked) - 1);
+        /* Trailing CRLF will be added by the first chunk header. */
 
     } else {
         *p++ = '\r'; *p++ = '\n';
