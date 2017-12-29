@@ -862,9 +862,8 @@ nxt_h1p_keepalive(nxt_task_t *task, nxt_h1proto_t *h1p, nxt_conn_t *c)
 
     b = h1p->buffers;
 
-    nxt_memzero(&h1p->parser, sizeof(nxt_h1proto_t));
+    nxt_memzero(h1p, offsetof(nxt_h1proto_t, conn));
 
-    h1p->conn = c;
     in = c->read;
 
     size = nxt_buf_mem_used_size(&in->mem);

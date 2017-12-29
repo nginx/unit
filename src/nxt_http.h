@@ -55,8 +55,12 @@ typedef struct {
     nxt_http_te_t                   transfer_encoding:8;  /* 2 bits */
 
     nxt_http_request_t              *request;
-    nxt_conn_t                      *conn;
     nxt_buf_t                       *buffers;
+    /*
+     * All fields before the conn field will
+     * be zeroed in a keep-alive connection.
+     */
+    nxt_conn_t                      *conn;
 } nxt_h1proto_t;
 
 
