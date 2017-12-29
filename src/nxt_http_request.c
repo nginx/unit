@@ -92,7 +92,7 @@ nxt_http_request_create(nxt_task_t *task)
     }
 
     r->resp.fields = nxt_list_create(mp, 8, sizeof(nxt_http_field_t));
-    if (nxt_slow_path(r == NULL)) {
+    if (nxt_slow_path(r->resp.fields == NULL)) {
         goto fail;
     }
 
