@@ -509,7 +509,7 @@ nxt_http_parse_field_name(nxt_http_request_parse_t *rp, u_char **pos,
         "\0\0\0\0\0\0\0\0\0\0\0\0\0-\0\0" "0123456789\0\0\0\0\0\0"
 
         /* These 64 bytes should reside in one cache line. */
-        "\0abcdefghijklmnopqrstuvwxyz\0\0\0\0\0"
+        "\0abcdefghijklmnopqrstuvwxyz\0\0\0\0_"
         "\0abcdefghijklmnopqrstuvwxyz\0\0\0\0\0"
 
         "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"

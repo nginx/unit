@@ -242,7 +242,7 @@ static nxt_http_parse_test_case_t  nxt_http_test_cases[] = {
     {
         nxt_string("GET / HTTP/1.1\r\n"
                    "Ho_st: example.com\r\n\r\n"),
-        NXT_ERROR,
+        NXT_DONE,
         NULL, { NULL }
     },
     {
