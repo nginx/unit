@@ -7,7 +7,8 @@ import shutil
 import socket
 import tempfile
 import unittest
-import subprocess
+from subprocess import call
+from multiprocessing import Process
 
 class TestUnit(unittest.TestCase):
 
@@ -56,18 +57,22 @@ class TestUnit(unittest.TestCase):
 
         os.mkdir(self.testdir + '/state')
 
-        pardir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-            os.pardir))
-
         print()
 
-        subprocess.call([pardir + '/build/unitd',
-        # TODO       '--no-daemon',
-            '--modules', pardir + '/build',
-            '--state', self.testdir + '/state',
-            '--pid', self.testdir + '/unit.pid',
-            '--log', self.testdir + '/unit.log',
-            '--control', 'unix:' + self.testdir + '/control.unit.sock'])
+        def _run_unit():
+            pardir = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                os.pardir))
+
+            call([pardir + '/build/unitd',
+                '--no-daemon',
+                '--modules', pardir + '/build',
+                '--state', self.testdir + '/state',
+                '--pid', self.testdir + '/unit.pid',
+                '--log', self.testdir + '/unit.log',
+                '--control', 'unix:' + self.testdir + '/control.unit.sock'])
+
+        self._p = Process(target=_run_unit)
+        self._p.start()
 
         if not self._waitforfiles(self.testdir + '/unit.pid',
             self.testdir + '/unit.log', self.testdir + '/control.unit.sock'):
@@ -77,7 +82,7 @@ class TestUnit(unittest.TestCase):
         with open(self.testdir + '/unit.pid', 'r') as f:
             pid = f.read().rstrip()
 
-        subprocess.call(['kill', pid])
+        call(['kill', pid])
 
         for i in range(50):
             if not os.path.exists(self.testdir + '/unit.pid'):
@@ -86,6 +91,20 @@ class TestUnit(unittest.TestCase):
 
         if os.path.exists(self.testdir + '/unit.pid'):
             exit("Could not terminate unit")
+
+        self._p.join(timeout=1)
+        self._terminate_process(self._p)
+
+    def _terminate_process(self, process):
+        if process.is_alive():
+            process.terminate()
+            process.join(timeout=5)
+
+            if process.is_alive():
+                exit("Could not terminate process " + process.pid)
+
+        if process.exitcode:
+            exit("Child process terminated with code " + str(process.exitcode))
 
     def _waitforfiles(self, *files):
         for i in range(50):
