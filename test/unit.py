@@ -41,16 +41,18 @@ class TestUnit(unittest.TestCase):
         if m is None:
             exit("Unit is writing log too long")
 
-        ret = ''
+        missed_module = ''
         for module in modules:
             m = re.search('module: ' + module, log, re.M | re.S)
             if m is None:
-                ret = module
+                missed_module = module
+                break
 
         self._stop()
         shutil.rmtree(self.testdir)
 
-        return ret
+        if missed_module:
+            raise unittest.SkipTest('Unit has no ' + missed_module + ' module')
 
     def _run(self):
         self.testdir = tempfile.mkdtemp(prefix='unit-test-')
@@ -131,7 +133,6 @@ class TestUnitControl(TestUnit):
     # TODO http client
 
     def http(self, req):
-
         with self._control_sock() as sock:
             sock.sendall(req)
 
@@ -146,21 +147,18 @@ class TestUnitControl(TestUnit):
         return resp
 
     def get(self, path='/'):
-
         resp = self.http(('GET ' + path
             + ' HTTP/1.1\r\nHost: localhost\r\n\r\n').encode())
 
         return self._body_json(resp)
 
     def delete(self, path='/'):
-
         resp = self.http(('DELETE ' + path
             + ' HTTP/1.1\r\nHost: localhost\r\n\r\n').encode())
 
         return self._body_json(resp)
 
     def put(self, path='/', data=''):
-
         if isinstance(data, str):
             data = data.encode()
 

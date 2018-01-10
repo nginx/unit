@@ -1,13 +1,10 @@
-import unit
 import unittest
+import unit
 
 class TestUnitBasic(unit.TestUnitControl):
 
     def setUpClass():
-        u = unit.TestUnit()
-        module_missed = u.check_modules('python')
-        if module_missed:
-            raise unittest.SkipTest('Unit has no ' + module_missed + ' module')
+        unit.TestUnit().check_modules('python')
 
     def test_python_get(self):
         resp = self.get()
