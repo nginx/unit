@@ -47,6 +47,7 @@ class TestUnit(unittest.TestCase):
                 ret = module
 
         self._stop()
+        shutil.rmtree(self.testdir)
 
         return ret
 
