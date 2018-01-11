@@ -140,7 +140,7 @@ static nxt_conf_map_t  nxt_common_app_conf[] = {
 
     {
         nxt_string("root"),
-        NXT_CONF_MAP_STR,
+        NXT_CONF_MAP_CSTRZ,
         offsetof(nxt_common_app_conf_t, u.php.root),
     },
 

@@ -122,7 +122,6 @@ typedef struct {
     nxt_app_request_t    r;
     nxt_str_t            script;
     nxt_app_wmsg_t       *wmsg;
-    nxt_mp_t             *mem_pool;
 
     size_t               body_preread_size;
 } nxt_php_run_ctx_t;
@@ -137,15 +136,6 @@ static nxt_str_t nxt_php_root;
 static nxt_str_t nxt_php_script;
 static nxt_str_t nxt_php_index = nxt_string("index.php");
 
-static void
-nxt_php_strdup(nxt_str_t *dst, nxt_str_t *src)
-{
-    dst->start = malloc(src->length + 1);
-    nxt_memcpy(dst->start, src->start, src->length);
-    dst->start[src->length] = '\0';
-
-    dst->length = src->length;
-}
 
 static void
 nxt_php_str_trim_trail(nxt_str_t *str, u_char t)
@@ -183,15 +173,24 @@ NXT_EXPORT nxt_application_module_t  nxt_app_module = {
 };
 
 
+nxt_inline u_char *
+nxt_realpath(const void *c)
+{
+    return (u_char *) realpath(c, NULL);
+}
+
+
 static nxt_int_t
 nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 {
+    u_char              *p;
+    nxt_str_t           rpath;
     nxt_str_t           *root, *path, *script, *index;
     nxt_php_app_conf_t  *c;
 
     c = &conf->u.php;
 
-    if (c->root.length == 0) {
+    if (c->root == NULL) {
         nxt_log_emerg(task->log, "php root is empty");
         return NXT_ERROR;
     }
@@ -201,30 +200,57 @@ nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     script = &nxt_php_script;
     index = &nxt_php_index;
 
-    nxt_php_strdup(root, &c->root);
+    root->start = nxt_realpath(c->root);
+    if (nxt_slow_path(root->start == NULL)) {
+        nxt_log_emerg(task->log, "root realpath(%s) failed %E",
+                      c->root, nxt_errno);
+        return NXT_ERROR;
+    }
+
+    root->length = nxt_strlen(root->start);
 
     nxt_php_str_trim_trail(root, '/');
 
     if (c->script.length > 0) {
         nxt_php_str_trim_lead(&c->script, '/');
 
-        path->length = root->length + c->script.length + 1;
-        path->start = malloc(path->length + 1);
+        path->length = root->length + 1 + c->script.length;
+        path->start = nxt_malloc(path->length);
+        if (nxt_slow_path(path->start == NULL)) {
+            return NXT_ERROR;
+        }
 
-        nxt_memcpy(path->start, root->start, root->length);
-        path->start[root->length] = '/';
+        p = nxt_cpymem(path->start, root->start, root->length);
+        *p++ = '/';
 
-        nxt_memcpy(path->start + root->length + 1,
-                   c->script.start, c->script.length);
+        nxt_memcpy(p, c->script.start, c->script.length);
 
-        path->start[path->length] = '\0';
+        rpath.start = nxt_realpath(path->start);
+        if (nxt_slow_path(rpath.start == NULL)) {
+            nxt_log_emerg(task->log, "script realpath(%V) failed %E",
+                          path, nxt_errno);
+            return NXT_ERROR;
+        }
 
+        rpath.length = nxt_strlen(rpath.start);
+
+        if (!nxt_str_start(&rpath, root->start, root->length)) {
+            nxt_log_emerg(task->log, "script is not under php root");
+            return NXT_ERROR;
+        }
+
+        nxt_free(path->start);
+
+        *path = rpath;
 
         script->length = c->script.length + 1;
-        script->start = malloc(script->length + 1);
+        script->start = nxt_malloc(script->length);
+        if (nxt_slow_path(script->start == NULL)) {
+            return NXT_ERROR;
+        }
+
         script->start[0] = '/';
         nxt_memcpy(script->start + 1, c->script.start, c->script.length);
-        script->start[script->length] = '\0';
 
         nxt_log_error(NXT_LOG_INFO, task->log,
                       "(ABS_MODE) php script \"%V\" root: \"%V\"",
@@ -236,7 +262,13 @@ nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     }
 
     if (c->index.length > 0) {
-        nxt_php_strdup(index, &c->index);
+        index->length = c->index.length;
+        index->start = nxt_malloc(index->length);
+        if (nxt_slow_path(index->start == NULL)) {
+            return NXT_ERROR;
+        }
+
+        nxt_memcpy(index->start, c->index.start, c->index.length);
     }
 
     sapi_startup(&nxt_php_sapi_module);
@@ -299,23 +331,17 @@ nxt_php_read_request(nxt_task_t *task, nxt_app_rmsg_t *rmsg,
 
         ctx->script.length = nxt_php_root.length + h->path.length +
                              script_name.length;
-        ctx->script.start = nxt_mp_nget(ctx->mem_pool,
-            ctx->script.length + 1);
+        p = ctx->script.start = nxt_malloc(ctx->script.length);
+        if (nxt_slow_path(p == NULL)) {
+            return NXT_ERROR;
+        }
 
-        p = ctx->script.start;
-
-        nxt_memcpy(p, nxt_php_root.start, nxt_php_root.length);
-        p += nxt_php_root.length;
-
-        nxt_memcpy(p, h->path.start, h->path.length);
-        p += h->path.length;
+        p = nxt_cpymem(p, nxt_php_root.start, nxt_php_root.length);
+        p = nxt_cpymem(p, h->path.start, h->path.length);
 
         if (script_name.length > 0) {
             nxt_memcpy(p, script_name.start, script_name.length);
-            p += script_name.length;
         }
-
-        p[0] = '\0';
 
     } else {
         ctx->script = nxt_php_path;
@@ -357,17 +383,11 @@ nxt_php_run(nxt_task_t *task,
     nxt_php_run_ctx_t         run_ctx;
     nxt_app_request_header_t  *h;
 
-    if (nxt_php_root.length == 0) {
-        return NXT_ERROR;
-    }
-
     nxt_memzero(&run_ctx, sizeof(run_ctx));
 
     run_ctx.task = task;
     run_ctx.rmsg = rmsg;
     run_ctx.wmsg = wmsg;
-
-    run_ctx.mem_pool = nxt_mp_create(1024, 128, 256, 32);
 
     h = &run_ctx.r.header;
 
@@ -410,6 +430,7 @@ nxt_php_run(nxt_task_t *task,
 
     if (nxt_slow_path(php_request_startup() == FAILURE)) {
         nxt_debug(task, "php_request_startup() failed");
+        rc = NXT_ERROR;
         goto fail;
     }
 
@@ -418,15 +439,15 @@ nxt_php_run(nxt_task_t *task,
 
     nxt_app_msg_flush(task, wmsg, 1);
 
-    nxt_mp_destroy(run_ctx.mem_pool);
-
-    return NXT_OK;
+    rc = NXT_OK;
 
 fail:
 
-    nxt_mp_destroy(run_ctx.mem_pool);
+    if (run_ctx.script.start != nxt_php_path.start) {
+        nxt_free(run_ctx.script.start);
+    }
 
-    return NXT_ERROR;
+    return rc;
 }
 
 
@@ -750,5 +771,9 @@ nxt_php_log_message(char *message
 #endif
 )
 {
-    return;
+    nxt_php_run_ctx_t  *ctx;
+
+    ctx = SG(server_context);
+
+    nxt_log(ctx->task, NXT_LOG_NOTICE, "php message: %s", message);
 }
