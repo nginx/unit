@@ -362,13 +362,16 @@ nxt_php_run(nxt_task_t *task,
     }
 
     nxt_memzero(&run_ctx, sizeof(run_ctx));
-
+  
+    run_ctx.mem_pool = nxt_mp_create(1024, 128, 256, 32);
+    if (nxt_slow_path(run_ctx.mem_pool == NULL)) {
+       return NXT_ERROR;
+    }
+  
     run_ctx.task = task;
     run_ctx.rmsg = rmsg;
     run_ctx.wmsg = wmsg;
-
-    run_ctx.mem_pool = nxt_mp_create(1024, 128, 256, 32);
-
+  
     h = &run_ctx.r.header;
 
     rc = nxt_php_read_request(task, rmsg, &run_ctx);

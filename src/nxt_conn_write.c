@@ -322,6 +322,7 @@ nxt_event_conn_io_sendbuf(nxt_conn_t *c, nxt_buf_t *b, size_t limit)
     sb.iobuf = iob;
     sb.nmax = NXT_IOBUF_MAX;
     sb.sync = 0;
+    sb.last = 0;
     sb.size = 0;
     sb.limit = limit;
 
