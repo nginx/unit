@@ -245,11 +245,8 @@ clean:
 .PHONY: dist
 dist:
 		rm -f unit-\$(NXT_VERSION).tar.gz
-		mkdir unit-\$(NXT_VERSION)
-		cp -rp LICENSE NOTICE CHANGES README \\
-			configure auto src test \\
-			unit-\$(NXT_VERSION)
-		tar czf unit-\$(NXT_VERSION).tar.gz unit-\$(NXT_VERSION)
-		rm -rf unit-\$(NXT_VERSION)
+		hg archive unit-\$(NXT_VERSION).tar.gz \\
+			-p unit-\$(NXT_VERSION) \\
+			-X ".hg*" -X "pkg/" -X "docs/"
 
 END
