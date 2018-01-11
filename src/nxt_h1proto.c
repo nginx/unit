@@ -289,8 +289,8 @@ nxt_h1p_header_parse(nxt_task_t *task, void *obj, void *data)
             size = nxt_buf_mem_used_size(&in->mem);
             b->mem.free = nxt_cpymem(b->mem.pos, in->mem.pos, size);
 
-            in->next = b;
-            nxt_buf_chain_add(&h1p->buffers, in);
+            in->next = h1p->buffers;
+            h1p->buffers = in;
             c->read = b;
         }
 
@@ -351,14 +351,17 @@ static void
 nxt_h1p_request_body_read(nxt_task_t *task, nxt_http_request_t *r)
 {
     size_t             size, rest_length;
-    nxt_buf_t          *b;
+    nxt_buf_t          *in, *b;
     nxt_conn_t         *c;
+    nxt_h1proto_t      *h1p;
     nxt_http_status_t  status;
 
-    nxt_debug(task, "h1p body read %O te:%d",
-              r->content_length_n, r->proto.h1->transfer_encoding);
+    h1p = r->proto.h1;
 
-    switch (r->proto.h1->transfer_encoding) {
+    nxt_debug(task, "h1p body read %O te:%d",
+              r->content_length_n, h1p->transfer_encoding);
+
+    switch (h1p->transfer_encoding) {
 
     case NXT_HTTP_TE_CHUNKED:
         status = NXT_HTTP_LENGTH_REQUIRED;
@@ -396,9 +399,9 @@ nxt_h1p_request_body_read(nxt_task_t *task, nxt_http_request_t *r)
         r->body = b;
     }
 
-    c = r->proto.h1->conn;
+    in = h1p->conn->read;
 
-    size = nxt_buf_mem_used_size(&c->read->mem);
+    size = nxt_buf_mem_used_size(&in->mem);
 
     if (size != 0) {
         if (size >= rest_length) {
@@ -409,8 +412,8 @@ nxt_h1p_request_body_read(nxt_task_t *task, nxt_http_request_t *r)
             rest_length -= size;
         }
 
-        b->mem.free = nxt_cpymem(b->mem.free, c->read->mem.pos, size);
-        c->read->mem.pos += size;
+        b->mem.free = nxt_cpymem(b->mem.free, in->mem.pos, size);
+        in->mem.pos += size;
     }
 
     nxt_debug(task, "h1p body rest: %O", rest_length);
@@ -418,6 +421,10 @@ nxt_h1p_request_body_read(nxt_task_t *task, nxt_http_request_t *r)
     r->rest_length = rest_length;
 
     if (rest_length != 0) {
+        in->next = h1p->buffers;
+        h1p->buffers = in;
+
+        c = h1p->conn;
         c->read = b;
         c->read_state = &nxt_h1p_read_body_state;
 
@@ -434,7 +441,7 @@ ready:
 
 error:
 
-    r->proto.h1->keepalive = 0;
+    h1p->keepalive = 0;
 
     nxt_http_request_error(task, r, status);
 }
@@ -479,6 +486,7 @@ nxt_h1p_body_read(nxt_task_t *task, void *obj, void *data)
         nxt_conn_read(task->thread->engine, c);
 
     } else {
+        c->read = NULL;
         nxt_work_queue_add(&task->thread->engine->fast_work_queue,
                            r->state->ready_handler, task, r, NULL);
     }
@@ -866,21 +874,24 @@ nxt_h1p_keepalive(nxt_task_t *task, nxt_h1proto_t *h1p, nxt_conn_t *c)
 
     in = c->read;
 
+    if (in == NULL) {
+        /* A request with large body. */
+        in = b;
+        c->read = in;
+
+        b = in->next;
+        in->next = NULL;
+    }
+
+    while (b != NULL) {
+        next = b->next;
+        nxt_mp_free(c->mem_pool, b);
+        b = next;
+    }
+
     size = nxt_buf_mem_used_size(&in->mem);
 
     if (size == 0) {
-        if (b != NULL) {
-            in = b;
-            c->read = in;
-
-            for (b = b->next; b != NULL; b = next) {
-                next = b->next;
-                nxt_mp_free(c->mem_pool, b);
-            }
-
-            in->next = NULL;
-        }
-
         in->mem.pos = in->mem.start;
         in->mem.free = in->mem.start;
 
@@ -895,14 +906,6 @@ nxt_h1p_keepalive(nxt_task_t *task, nxt_h1proto_t *h1p, nxt_conn_t *c)
 
     } else {
         nxt_debug(task, "h1p pipelining");
-
-        if (b != NULL) {
-            do {
-                next = b->next;
-                nxt_mp_free(c->mem_pool, b);
-                b = next;
-            } while (b != in);
-        }
 
         nxt_memmove(in->mem.start, in->mem.pos, size);
 
