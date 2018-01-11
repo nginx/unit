@@ -3,6 +3,8 @@
 # Copyright (C) NGINX, Inc.
 
 
+NXT_SHM_PREFIX="/"
+
 # FreeBSD, Solaris, MacOSX
 
 nxt_feature="shm_open()"
@@ -12,10 +14,12 @@ nxt_feature_incs=
 nxt_feature_libs=
 nxt_feature_test="#include <sys/mman.h>
                   #include <fcntl.h>
+                  #include <unistd.h>
                   #include <sys/stat.h>
                   #include <sys/types.h>
 
                   int main() {
+                      int         ret;
                       static char name[] = \"/unit.configure\";
 
                       shm_unlink(name);
@@ -25,8 +29,10 @@ nxt_feature_test="#include <sys/mman.h>
                       if (fd == -1)
                           return 1;
 
+                      ret = (access(name, F_OK) == 0);
                       shm_unlink(name);
-                      return 0;
+
+                      return ret;
                   }"
 . auto/feature
 
@@ -43,6 +49,40 @@ if [ $nxt_found = no ]; then
         NXT_LIBRT=$nxt_feature_libs
     fi
 fi
+
+
+if [ $nxt_found = no ]; then
+
+    # DragonFly has no separate namespace for shm_open().
+
+    nxt_feature="shm_open() in /tmp directory"
+    nxt_feature_libs=
+    nxt_feature_test="#include <sys/mman.h>
+                      #include <fcntl.h>
+                      #include <sys/stat.h>
+                      #include <sys/types.h>
+
+                      int main() {
+                          static char name[] = \"/tmp/unit.configure\";
+
+                          shm_unlink(name);
+
+                          int fd = shm_open(name, O_CREAT | O_EXCL | O_RDWR,
+                              S_IRUSR | S_IWUSR);
+                          if (fd == -1)
+                              return 1;
+
+                          shm_unlink(name);
+                          return 0;
+                      }"
+    . auto/feature
+
+    if [ $nxt_found = yes ]; then
+        NXT_SHM_PREFIX="/tmp/"
+    fi
+fi
+
+nxt_shm_open_found=$nxt_found
 
 
 # Linux
@@ -67,3 +107,10 @@ nxt_feature_test="#include <linux/memfd.h>
                   }"
 . auto/feature
 
+
+if [ "$nxt_shm_open_found$nxt_found" = nono ]; then
+    $echo
+    $echo $0: error: no shared memory implementation found.
+    $echo
+    exit 1;
+fi

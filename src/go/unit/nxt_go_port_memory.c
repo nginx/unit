@@ -49,7 +49,8 @@ nxt_go_new_port_mmap(nxt_go_process_t *process, nxt_port_id_t id,
         return NULL;
     }
 
-    name_len = snprintf(name, sizeof(name) - 1, "/unit.go.%p", name);
+    name_len = snprintf(name, sizeof(name) - 1,
+                        NXT_SHM_PREFIX "unit.go.%p", name);
 
 #if (NXT_HAVE_MEMFD_CREATE)
 

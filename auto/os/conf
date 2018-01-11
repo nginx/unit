@@ -167,6 +167,26 @@ case "$NXT_SYSTEM" in
         NXT_LIBS="$NXT_PTHREAD"
     ;;
 
+    DragonFly)
+        nxt_have=NXT_DRAGONFLY . auto/have
+
+        NXT_STATIC_LINK="ar -r -c"
+        NXT_SHARED_LINK="\$(CC) -shared"
+        NXT_SHARED_LOCAL_LINK="\$(CC) -shared"
+        NXT_MODULE_LINK="\$(CC) -shared"
+
+        # "-Wl,-E" exports symbols of executable file.
+        NXT_EXEC_LINK="\$(CC) -Wl,-E"
+        NXT_SHARED_LOCAL_EXEC_LINK=
+
+        NXT_LIB_STATIC="libnxt.a"
+        NXT_LIB_SHARED="libnxt.so"
+        NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/libnxt.so"
+
+        NXT_LIBM="-lm"
+        NXT_LIBS="$NXT_LIBRT $NXT_PTHREAD"
+    ;;
+
     AIX)
         nxt_have=NXT_AIX . auto/have
 

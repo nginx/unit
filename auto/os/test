@@ -16,7 +16,7 @@ case "$NXT_SYSTEM" in
         CC=${CC:-cc}
         ;;
 
-    FreeBSD | NetBSD | OpenBSD)
+    FreeBSD | NetBSD | OpenBSD | DragonFly)
         NXT_SYSTEM_VERSION=`uname -r 2>/dev/null`
         NXT_SYSTEM_PLATFORM=`uname -m 2>/dev/null`
         echo=echo

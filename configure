@@ -145,6 +145,8 @@ cat << END >> $NXT_AUTO_CONFIG_H
 #define NXT_DEBUG  $nxt_debug
 #endif
 
+#define NXT_SHM_PREFIX  "$NXT_SHM_PREFIX"
+
 END
 
 . auto/test_build
