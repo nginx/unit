@@ -218,6 +218,11 @@ nxt_http_app_request(nxt_task_t *task, void *obj, void *data)
         ar->r.header.cookie.start = r->cookie->value;
     }
 
+    if (r->body != NULL) {
+        ar->r.body.buf = r->body;
+        ar->r.body.preread_size = r->content_length_n;
+    }
+
     ar->r.body.done = 1;
 
     ret = nxt_http_parse_request_init(&ar->resp_parser, r->mem_pool);
