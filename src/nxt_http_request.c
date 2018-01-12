@@ -221,6 +221,7 @@ nxt_http_app_request(nxt_task_t *task, void *obj, void *data)
     if (r->body != NULL) {
         ar->r.body.buf = r->body;
         ar->r.body.preread_size = r->content_length_n;
+        ar->r.header.parsed_content_length = r->content_length_n;
     }
 
     ar->r.body.done = 1;
