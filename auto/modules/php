@@ -17,6 +17,7 @@ for nxt_option; do
         --config=*)    NXT_PHP_CONFIG="$value"                               ;;
         --module=*)    NXT_PHP_MODULE="$value"                               ;;
         --lib-path=*)  NXT_PHP_LIB_PATH="$value"                             ;;
+        --lib-static)  NXT_PHP_LIB_STATIC=yes                                ;;
 
         --help)
             cat << END
@@ -24,6 +25,7 @@ for nxt_option; do
     --config=FILE         set php-config filename
     --module=NAME         set unit php module name
     --lib-path=DIRECTORY  set directory path to libphp.so library
+    --lib-static          enable linking with static libphp.a library
 
 END
             exit 0
@@ -55,6 +57,7 @@ NXT_PHP_CONFIG=${NXT_PHP_CONFIG=php-config}
 NXT_PHP=${NXT_PHP_CONFIG%-config*}
 NXT_PHP_MODULE=${NXT_PHP_MODULE=${NXT_PHP##*/}}
 NXT_PHP_LIB_PATH=${NXT_PHP_LIB_PATH=}
+NXT_PHP_LIB_STATIC=${NXT_PHP_LIB_STATIC=no}
 
 
 $echo "configuring PHP module"
@@ -75,6 +78,10 @@ if /bin/sh -c "${NXT_PHP_CONFIG} --version" >> $NXT_AUTOCONF_ERR 2>&1; then
 
     NXT_PHP_INCLUDE="`${NXT_PHP_CONFIG} --includes`"
     NXT_PHP_LIB="-lphp${NXT_PHP_VERSION%%.*}"
+
+    if [ $NXT_PHP_LIB_STATIC = yes ]; then
+        NXT_PHP_LIB="${NXT_PHP_LIB} `${NXT_PHP_CONFIG} --libs`"
+    fi
 
     if [ "$NXT_PHP_LIB_PATH" != "" ]; then
         # "php-config --ldflags" does not contain path to libphp.
