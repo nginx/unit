@@ -215,7 +215,7 @@ nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
         nxt_php_str_trim_lead(&c->script, '/');
 
         path->length = root->length + 1 + c->script.length;
-        path->start = nxt_malloc(path->length);
+        path->start = nxt_malloc(path->length + 1);
         if (nxt_slow_path(path->start == NULL)) {
             return NXT_ERROR;
         }
@@ -223,7 +223,8 @@ nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
         p = nxt_cpymem(path->start, root->start, root->length);
         *p++ = '/';
 
-        nxt_memcpy(p, c->script.start, c->script.length);
+        p = nxt_cpymem(p, c->script.start, c->script.length);
+        *p = '\0';
 
         rpath.start = nxt_realpath(path->start);
         if (nxt_slow_path(rpath.start == NULL)) {
@@ -332,7 +333,7 @@ nxt_php_read_request(nxt_task_t *task, nxt_app_rmsg_t *rmsg,
 
         ctx->script.length = nxt_php_root.length + h->path.length +
                              script_name.length;
-        p = ctx->script.start = nxt_malloc(ctx->script.length);
+        p = ctx->script.start = nxt_malloc(ctx->script.length + 1);
         if (nxt_slow_path(p == NULL)) {
             return NXT_ERROR;
         }
@@ -341,8 +342,10 @@ nxt_php_read_request(nxt_task_t *task, nxt_app_rmsg_t *rmsg,
         p = nxt_cpymem(p, h->path.start, h->path.length);
 
         if (script_name.length > 0) {
-            nxt_memcpy(p, script_name.start, script_name.length);
+            p = nxt_cpymem(p, script_name.start, script_name.length);
         }
+
+        *p = '\0';
 
     } else {
         ctx->script = nxt_php_path;
