@@ -477,7 +477,6 @@ nxt_h1p_body_read(nxt_task_t *task, void *obj, void *data)
     r = h1p->request;
     size = nxt_buf_mem_used_size(&c->read->mem);
 
-    c->read->mem.pos += size;
     r->rest_length -= size;
 
     nxt_debug(task, "h1p body rest: %O", r->rest_length);
