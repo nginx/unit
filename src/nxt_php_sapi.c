@@ -327,6 +327,7 @@ nxt_php_read_request(nxt_task_t *task, nxt_app_rmsg_t *rmsg,
 
         } else {
             script_name.length = 0;
+            script_name.start = NULL;
         }
 
         ctx->script.length = nxt_php_root.length + h->path.length +
