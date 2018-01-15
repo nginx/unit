@@ -5,6 +5,175 @@
 <change_log title="unit">
 
 
+<changes apply="unit-go1.9" ver="0.4" rev="1"
+         date="2018-01-15" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.4.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-go1.8" ver="0.4" rev="1"
+         date="2018-01-15" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.4.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-go1.7" ver="0.4" rev="1"
+         date="2018-01-15" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.4.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-go" ver="0.4" rev="1"
+         date="2018-01-15" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.4.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python3.6" ver="0.4" rev="1"
+         date="2018-01-15" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.4.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python3.5" ver="0.4" rev="1"
+         date="2018-01-15" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.4.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python3.4" ver="0.4" rev="1"
+         date="2018-01-15" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.4.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python2.7" ver="0.4" rev="1"
+         date="2018-01-15" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.4.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python" ver="0.4" rev="1"
+         date="2018-01-15" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.4.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php" ver="0.4" rev="1"
+         date="2018-01-15" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.4.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="0.4" rev="1"
+         date="2018-01-15" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="feature">
+<para>
+compatibility with DragonFly BSD.
+</para>
+</change>
+
+<change type="feature">
+<para>
+"configure php --lib-static" option.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+HTTP request body was not passed to application;
+the bug had appeared in 0.3.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+HTTP large header buffers allocation and deallocation fixed;
+the bug had appeared in 0.3.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+some PHP applications might not work with relative "root" path.
+</para>
+</change>
+
+</changes>
+
+
 <changes apply="unit-go1.9" ver="0.3" rev="1"
          date="2017-12-28" time="18:00:00 +0300"
          packager="Andrei Belov &lt;defan@nginx.com&gt;">

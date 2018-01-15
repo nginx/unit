@@ -1,4 +1,20 @@
 
+Changes with Unit 0.4                                            15 Jan 2018
+
+    *) Feature: compatibility with DragonFly BSD.
+
+    *) Feature: "configure php --lib-static" option.
+
+    *) Bugfix: HTTP request body was not passed to application; the bug had
+       appeared in 0.3.
+
+    *) Bugfix: HTTP large header buffers allocation and deallocation fixed;
+       the bug had appeared in 0.3.
+
+    *) Bugfix: some PHP applications might not work with relative "root"
+       path.
+
+
 Changes with Unit 0.3                                            28 Dec 2017
 
     *) Change: the Go package name changed to "nginx/unit".
