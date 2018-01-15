@@ -29,7 +29,7 @@ class TestUnit(unittest.TestCase):
             shutil.rmtree(self.testdir)
 
     def assertTry(self, assert_method, description, *args):
-        try: getattr(self, assert_method)(*args, description)
+        try: getattr(self, assert_method)(*args, msg=description)
         except AssertionError: print('not yet: ' + description)
 
     def check_modules(self, *modules):
