@@ -12,6 +12,8 @@ from multiprocessing import Process
 
 class TestUnit(unittest.TestCase):
 
+    pardir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+
     def setUp(self):
         self._run()
 
@@ -54,6 +56,17 @@ class TestUnit(unittest.TestCase):
         if missed_module:
             raise unittest.SkipTest('Unit has no ' + missed_module + ' module')
 
+    def check_version(self, version):
+        with open(self.pardir + '/src/nxt_main.h' , 'r') as f:
+            m = re.search('NXT_VERSION\s+"(\d+\.\d+)"', f.read(), re.M | re.S)
+
+            current = m.group(1).split('.')
+            need = version.split('.')
+
+            for i in range(len(need)):
+                if need[i] > current[i]:
+                    raise unittest.SkipTest('Unit too old')
+
     def _run(self):
         self.testdir = tempfile.mkdtemp(prefix='unit-test-')
 
@@ -62,12 +75,9 @@ class TestUnit(unittest.TestCase):
         print()
 
         def _run_unit():
-            pardir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                os.pardir))
-
-            call([pardir + '/build/unitd',
+            call([self.pardir + '/build/unitd',
                 '--no-daemon',
-                '--modules', pardir + '/build',
+                '--modules', self.pardir + '/build',
                 '--state', self.testdir + '/state',
                 '--pid', self.testdir + '/unit.pid',
                 '--log', self.testdir + '/unit.log',
