@@ -215,15 +215,13 @@ class TestUnitHTTP():
         host = '127.0.0.1:7080' if 'host' not in kwargs else kwargs['host']
         uri = '/' if 'uri' not in kwargs else kwargs['uri']
         sess = Session() if 'sess' not in kwargs else kwargs['sess']
-        body = None if 'body' not in kwargs else kwargs['body']
+        data = None if 'data' not in kwargs else kwargs['data']
         headers = None if 'headers' not in kwargs else kwargs['headers']
 
-        req = Request('POST', 'http://' + host + uri, headers=headers)
-        prepped = req.prepare()
+        req = Request(method, 'http://' + host + uri, data=data,
+            headers=headers)
 
-        prepped.body = body
-
-        r = sess.send(prepped)
+        r = sess.send(req.prepare())
 
         if 'keep' not in kwargs:
             sess.close()

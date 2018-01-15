@@ -59,9 +59,8 @@ def application(environ, start_response):
         r = unit.TestUnitHTTP.post(headers={
             'Host': 'localhost',
             'Content-Type': 'text/html',
-            'Content-Length': str(len(body)),
             'Custom-Header': 'blah'
-        }, body=body)
+        }, data=body)
 
         self.assertEqual(r.status_code, 200, 'status')
         self.assertEqual(r.headers['Content-Length'], str(len(body)),
