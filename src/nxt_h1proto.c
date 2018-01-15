@@ -254,7 +254,7 @@ nxt_h1p_header_parse(nxt_task_t *task, void *obj, void *data)
          * enabled in HTTP/1.1.  The mode can be overridden later by
          * the "Connection" field processed in nxt_h1p_connection().
          */
-        h1p->keepalive = (h1p->parser.version.str[7] != '0');
+        h1p->keepalive = (h1p->parser.version.s.minor != '0');
 
         r->fields = h1p->parser.fields;
 
@@ -658,7 +658,7 @@ nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r)
     /* Trailing CRLF at the end of header. */
     size += sizeof("\r\n") - 1;
 
-    http11 = (h1p->parser.version.str[7] != '0');
+    http11 = (h1p->parser.version.s.minor != '0');
 
     if (r->resp.content_length == NULL || r->resp.content_length->skip) {
         if (http11) {

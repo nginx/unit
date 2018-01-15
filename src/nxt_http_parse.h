@@ -22,6 +22,13 @@ typedef struct nxt_http_fields_hash_s    nxt_http_fields_hash_t;
 typedef union {
     u_char                    str[8];
     uint64_t                  ui64;
+
+    struct {
+        u_char                prefix[5];
+        u_char                major;
+        u_char                point;
+        u_char                minor;
+    } s;
 } nxt_http_ver_t;
 
 

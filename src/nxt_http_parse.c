@@ -169,7 +169,7 @@ nxt_http_parse_request_line(nxt_http_request_parse_t *rp, u_char **pos,
 {
     u_char                   *p, ch, *after_slash;
     nxt_int_t                rc;
-    nxt_http_ver_t           version;
+    nxt_http_ver_t           ver;
     nxt_http_target_traps_e  trap;
 
     static const nxt_http_ver_t  http11 = { "HTTP/1.1" };
@@ -383,21 +383,17 @@ space_after_target:
 
     /* " HTTP/1.1\r\n" or " HTTP/1.1\n" */
 
-    nxt_memcpy(version.str, &p[1], 8);
+    nxt_memcpy(ver.str, &p[1], 8);
 
-    if (nxt_fast_path((version.ui64 == http11.ui64
-                       || version.ui64 == http10.ui64
-                       || (p[1] == 'H'
-                           && p[2] == 'T'
-                           && p[3] == 'T'
-                           && p[4] == 'P'
-                           && p[5] == '/'
-                           && p[6] >= '0' && p[6] <= '9'
-                           && p[7] == '.'
-                           && p[8] >= '0' && p[8] <= '9'))
+    if (nxt_fast_path((ver.ui64 == http11.ui64
+                       || ver.ui64 == http10.ui64
+                       || (nxt_memcmp(ver.s.prefix, "HTTP/", 5) == 0
+                           && ver.s.major >= '0' && ver.s.major <= '9'
+                           && ver.s.point == '.'
+                           && ver.s.minor >= '0' && ver.s.minor <= '9'))
                       && (p[9] == '\r' || p[9] == '\n')))
     {
-        rp->version.ui64 = version.ui64;
+        rp->version.ui64 = ver.ui64;
 
         if (nxt_fast_path(p[9] == '\r')) {
             p += 10;
