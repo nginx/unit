@@ -6,11 +6,35 @@ class TestUnitConfiguration(unit.TestUnitControl):
     def setUpClass():
         unit.TestUnit().check_modules('python')
 
+    def test_json(self):
+        self.assertIn('error', self.put('/', '00'), 'leading zero')
+
     def test_json_applications(self):
         self.assertIn('error', self.put('/applications', '"{}"'),
             'applications string')
         self.assertIn('error', self.put('/applications', '{'),
             'applications miss brace')
+
+        self.assertTry('assertIn', 'negative workers', 'error',
+            self.put('/applications', """
+            {
+                "app": {
+                    "type": "python",
+                    "workers": -1,
+                    "path": "/app",
+                    "module": "wsgi"
+                }
+            }
+            """))
+
+        self.assertTry('assertIn', 'application type only', 'error',
+            self.put('/applications', """
+            {
+                "app": {
+                    "type": "python"
+                }
+            }
+            """))
 
         self.assertIn('error', self.put('/applications', """
             {
@@ -93,6 +117,8 @@ class TestUnitConfiguration(unit.TestUnitControl):
             """), 'unicode number')
 
     def test_json_listeners(self):
+        self.assertTry('assertIn', 'listener empty', 'error',
+            self.put('/listeners', '{"*:7080":{}}'))
         self.assertIn('error', self.put('/listeners',
             '{"*:7080":{"application":"app"}}'), 'listeners no app')
 
@@ -115,25 +141,6 @@ class TestUnitConfiguration(unit.TestUnitControl):
             '{"[::1]:7082":{"application":"app"}}'), 'listeners explicit ipv6')
         self.assertIn('error', self.put('/listeners',
             '{"127.0.0.1":{"application":"app"}}'), 'listeners no port')
-
-    @unittest.skip("TODO")
-    def test_broken(self):
-        self.assertIn('error', self.put('/', '00'), 'leading zero')
-        self.assertIn('error', self.put('/listeners', '{"*:7080":{}}'),
-            'listener empty')
-        self.assertIn('error', self.put('/applications', '"type":"python"'),
-            'application type only')
-
-        self.assertIn('error', self.put('/applications', """
-            {
-                "app": {
-                    "type": "python",
-                    "workers": -1,
-                    "path": "/app",
-                    "module": "wsgi"
-                }
-            }
-            """), 'negative workers')
 
 if __name__ == '__main__':
     unittest.main()
