@@ -8,6 +8,12 @@
 #define _NXT_HTTP_PARSER_H_INCLUDED_
 
 
+typedef enum {
+    NXT_HTTP_PARSE_INVALID = 1,
+    NXT_HTTP_PARSE_TOO_LARGE_FIELD,
+} nxt_http_parse_error_t;
+
+
 typedef struct nxt_http_request_parse_s  nxt_http_request_parse_t;
 typedef struct nxt_http_field_s          nxt_http_field_t;
 typedef struct nxt_http_fields_hash_s    nxt_http_fields_hash_t;

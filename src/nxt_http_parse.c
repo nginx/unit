@@ -231,7 +231,7 @@ nxt_http_parse_request_line(nxt_http_request_parse_t *rp, u_char **pos,
             continue;
         }
 
-        return NXT_ERROR;
+        return NXT_HTTP_PARSE_INVALID;
     }
 
     p++;
@@ -306,7 +306,7 @@ nxt_http_parse_request_line(nxt_http_request_parse_t *rp, u_char **pos,
             return NXT_AGAIN;
 
         case NXT_HTTP_TARGET_BAD:
-            return NXT_ERROR;
+            return NXT_HTTP_PARSE_INVALID;
         }
 
         nxt_unreachable();
@@ -332,7 +332,7 @@ rest_of_target:
             return NXT_AGAIN;
 
         case NXT_HTTP_TARGET_BAD:
-            return NXT_ERROR;
+            return NXT_HTTP_PARSE_INVALID;
 
         default:
             continue;
@@ -407,7 +407,7 @@ space_after_target:
             }
 
             if (nxt_slow_path(*p != '\n')) {
-                return NXT_ERROR;
+                return NXT_HTTP_PARSE_INVALID;
             }
 
             *pos = p + 1;
@@ -492,7 +492,7 @@ nxt_http_parse_unusual_target(nxt_http_request_parse_t *rp, u_char **pos,
 
     /* TODO */
 
-    return NXT_ERROR;
+    return NXT_HTTP_PARSE_INVALID;
 }
 
 
@@ -555,7 +555,7 @@ nxt_http_parse_field_name(nxt_http_request_parse_t *rp, u_char **pos,
     len = p - *pos;
 
     if (nxt_slow_path(len > NXT_HTTP_MAX_FIELD_NAME)) {
-        return NXT_ERROR;
+        return NXT_HTTP_PARSE_TOO_LARGE_FIELD;
     }
 
     rp->field_hash = hash;
@@ -569,13 +569,13 @@ name_end:
 
     if (nxt_fast_path(*p == ':')) {
         if (nxt_slow_path(p == *pos)) {
-            return NXT_ERROR;
+            return NXT_HTTP_PARSE_INVALID;
         }
 
         len = p - *pos;
 
         if (nxt_slow_path(len > NXT_HTTP_MAX_FIELD_NAME)) {
-            return NXT_ERROR;
+            return NXT_HTTP_PARSE_TOO_LARGE_FIELD;
         }
 
         rp->field_hash = hash;
@@ -589,7 +589,7 @@ name_end:
     }
 
     if (nxt_slow_path(p != *pos)) {
-        return NXT_ERROR;
+        return NXT_HTTP_PARSE_INVALID;
     }
 
     return nxt_http_parse_field_end(rp, pos, end);
@@ -630,7 +630,7 @@ nxt_http_parse_field_value(nxt_http_request_parse_t *rp, u_char **pos,
             len = p - *pos;
 
             if (nxt_slow_path(len > NXT_HTTP_MAX_FIELD_VALUE)) {
-                return NXT_ERROR;
+                return NXT_HTTP_PARSE_TOO_LARGE_FIELD;
             }
 
             rp->field_value.length = len;
@@ -645,7 +645,7 @@ nxt_http_parse_field_value(nxt_http_request_parse_t *rp, u_char **pos,
         }
 
         if (ch == '\0') {
-            return NXT_ERROR;
+            return NXT_HTTP_PARSE_INVALID;
         }
     }
 
@@ -658,7 +658,7 @@ nxt_http_parse_field_value(nxt_http_request_parse_t *rp, u_char **pos,
     len = p - *pos;
 
     if (nxt_slow_path(len > NXT_HTTP_MAX_FIELD_VALUE)) {
-        return NXT_ERROR;
+        return NXT_HTTP_PARSE_TOO_LARGE_FIELD;
     }
 
     rp->field_value.length = len;
@@ -784,7 +784,7 @@ nxt_http_parse_field_end(nxt_http_request_parse_t *rp, u_char **pos,
         return NXT_DONE;
     }
 
-    return NXT_ERROR;
+    return NXT_HTTP_PARSE_INVALID;
 }
 
 
@@ -976,7 +976,7 @@ nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
                 u -= 5;
                 for ( ;; ) {
                     if (u < rp->path.start) {
-                        return NXT_ERROR;
+                        return NXT_HTTP_PARSE_INVALID;
                     }
                     if (*u == '/') {
                         u++;
@@ -1022,7 +1022,7 @@ nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
                 continue;
             }
 
-            return NXT_ERROR;
+            return NXT_HTTP_PARSE_INVALID;
 
         case sw_quoted_second:
             if (ch >= '0' && ch <= '9') {
@@ -1034,7 +1034,7 @@ nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
                     continue;
 
                 } else if (ch == '\0') {
-                    return NXT_ERROR;
+                    return NXT_HTTP_PARSE_INVALID;
                 }
 
                 state = saved_state;
@@ -1058,12 +1058,12 @@ nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
                 goto again;
             }
 
-            return NXT_ERROR;
+            return NXT_HTTP_PARSE_INVALID;
         }
     }
 
     if (state >= sw_quoted) {
-        return NXT_ERROR;
+        return NXT_HTTP_PARSE_INVALID;
     }
 
 args:

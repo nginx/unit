@@ -101,27 +101,27 @@ static nxt_http_parse_test_case_t  nxt_http_test_cases[] = {
     },
     {
         nxt_string("GEt / HTTP/1.0\r\n\r\n"),
-        NXT_ERROR,
+        NXT_HTTP_PARSE_INVALID,
         NULL, { NULL }
     },
     {
         nxt_string("GET /\0 HTTP/1.0\r\n\r\n"),
-        NXT_ERROR,
+        NXT_HTTP_PARSE_INVALID,
         NULL, { NULL }
     },
     {
         nxt_string("GET /\r HTTP/1.0\r\n\r\n"),
-        NXT_ERROR,
+        NXT_HTTP_PARSE_INVALID,
         NULL, { NULL }
     },
     {
         nxt_string("GET /\n HTTP/1.0\r\n\r\n"),
-        NXT_ERROR,
+        NXT_HTTP_PARSE_INVALID,
         NULL, { NULL }
     },
     {
         nxt_string("GET / HTTP/1.0\r\r\n"),
-        NXT_ERROR,
+        NXT_HTTP_PARSE_INVALID,
         NULL, { NULL }
     },
     {
@@ -230,13 +230,13 @@ static nxt_http_parse_test_case_t  nxt_http_test_cases[] = {
     {
         nxt_string("GET / HTTP/1.1\r\n"
                    "Host example.com\r\n\r\n"),
-        NXT_ERROR,
+        NXT_HTTP_PARSE_INVALID,
         NULL, { NULL }
     },
     {
         nxt_string("GET / HTTP/1.1\r\n"
                    ":Host: example.com\r\n\r\n"),
-        NXT_ERROR,
+        NXT_HTTP_PARSE_INVALID,
         NULL, { NULL }
     },
     {
@@ -248,25 +248,25 @@ static nxt_http_parse_test_case_t  nxt_http_test_cases[] = {
     {
         nxt_string("GET / HTTP/1.1\r\n"
                    "Ho\0st: example.com\r\n\r\n"),
-        NXT_ERROR,
+        NXT_HTTP_PARSE_INVALID,
         NULL, { NULL }
     },
     {
         nxt_string("GET / HTTP/1.1\r\n"
                    "Ho\rst: example.com\r\n\r\n"),
-        NXT_ERROR,
+        NXT_HTTP_PARSE_INVALID,
         NULL, { NULL }
     },
     {
         nxt_string("GET / HTTP/1.1\r\n"
                    "Host: exa\0mple.com\r\n\r\n"),
-        NXT_ERROR,
+        NXT_HTTP_PARSE_INVALID,
         NULL, { NULL }
     },
     {
         nxt_string("GET / HTTP/1.1\r\n"
                    "Host: exa\rmple.com\r\n\r\n"),
-        NXT_ERROR,
+        NXT_HTTP_PARSE_INVALID,
         NULL, { NULL }
     },
     {

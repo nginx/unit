@@ -190,6 +190,7 @@ nxt_h1p_header_parse(nxt_task_t *task, void *obj, void *data)
     nxt_buf_t                *in, *b;
     nxt_conn_t               *c;
     nxt_h1proto_t            *h1p;
+    nxt_http_status_t        status;
     nxt_http_request_t       *r;
     nxt_socket_conf_joint_t  *joint;
 
@@ -264,7 +265,13 @@ nxt_h1p_header_parse(nxt_task_t *task, void *obj, void *data)
             return;
         }
 
-    } else if (ret == NXT_AGAIN) {
+        /* ret == NXT_ERROR */
+
+        nxt_http_request_error(task, r, NXT_HTTP_BAD_REQUEST);
+        return;
+    }
+
+    if (ret == NXT_AGAIN) {
         in = c->read;
 
         if (nxt_buf_mem_free_size(&in->mem) == 0) {
@@ -298,9 +305,23 @@ nxt_h1p_header_parse(nxt_task_t *task, void *obj, void *data)
         return;
     }
 
-    /* ret == NXT_ERROR */
+    switch (ret) {
 
-    nxt_http_request_error(task, r, NXT_HTTP_BAD_REQUEST);
+    case NXT_HTTP_PARSE_INVALID:
+        status = NXT_HTTP_BAD_REQUEST;
+        break;
+
+    case NXT_HTTP_PARSE_TOO_LARGE_FIELD:
+        status = NXT_HTTP_REQUEST_HEADER_FIELDS_TOO_LARGE;
+        break;
+
+    default:
+    case NXT_ERROR:
+        status = NXT_HTTP_INTERNAL_SERVER_ERROR;
+        break;
+    }
+
+    nxt_http_request_error(task, r, status);
     return;
 
 fail:
