@@ -77,15 +77,27 @@ if /bin/sh -c "${NXT_PHP_CONFIG} --version" >> $NXT_AUTOCONF_ERR 2>&1; then
     $echo " + PHP SAPI: [`${NXT_PHP_CONFIG} --php-sapis`]"
 
     NXT_PHP_INCLUDE="`${NXT_PHP_CONFIG} --includes`"
-    NXT_PHP_LIB="-lphp${NXT_PHP_VERSION%%.*}"
 
     if [ $NXT_PHP_LIB_STATIC = yes ]; then
-        NXT_PHP_LIB="${NXT_PHP_LIB} `${NXT_PHP_CONFIG} --libs`"
-    fi
 
-    if [ "$NXT_PHP_LIB_PATH" != "" ]; then
-        # "php-config --ldflags" does not contain path to libphp.
-        NXT_PHP_LDFLAGS="-L${NXT_PHP_LIB_PATH} -Wl,-rpath ${NXT_PHP_LIB_PATH}"
+        if [ "$NXT_PHP_LIB_PATH" = "" ]; then
+            $echo
+            $echo $0: error: --lib-static option requires --lib-path option.
+            $echo
+            exit 1;
+        fi
+
+        NXT_PHP_LIB="$NXT_PHP_LIB_PATH/libphp${NXT_PHP_VERSION%%.*}.a"
+        NXT_PHP_LDFLAGS="`${NXT_PHP_CONFIG} --libs`"
+
+    else
+        NXT_PHP_LIB="-lphp${NXT_PHP_VERSION%%.*}"
+
+        if [ "$NXT_PHP_LIB_PATH" != "" ]; then
+            # "php-config --ldflags" does not contain path to libphp.
+            NXT_PHP_LDFLAGS="-L${NXT_PHP_LIB_PATH} \
+                             -Wl,-rpath ${NXT_PHP_LIB_PATH}"
+        fi
     fi
 
     nxt_feature="PHP embed SAPI"
