@@ -211,19 +211,12 @@ class TestUnitControl(TestUnit):
 class TestUnitHTTP():
 
     @classmethod
-    def http(self, method, host='127.0.0.1:7080', uri='/', **kwargs):
-        if 'sess' in kwargs:
-            sess = kwargs['sess']
-        else:
-            sess = Session()
-
-        body = None
-        if 'body' in kwargs:
-            body = kwargs['body']
-
-        headers = None
-        if 'headers' in kwargs:
-            headers = kwargs['headers']
+    def http(self, method, **kwargs):
+        host = '127.0.0.1:7080' if 'host' not in kwargs else kwargs['host']
+        uri = '/' if 'uri' not in kwargs else kwargs['uri']
+        sess = Session() if 'sess' not in kwargs else kwargs['sess']
+        body = None if 'body' not in kwargs else kwargs['body']
+        headers = None if 'headers' not in kwargs else kwargs['headers']
 
         req = Request('POST', 'http://' + host + uri, headers=headers)
         prepped = req.prepare()
