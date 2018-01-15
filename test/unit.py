@@ -7,6 +7,7 @@ import shutil
 import socket
 import tempfile
 import unittest
+from requests import Request, Session
 from subprocess import call
 from multiprocessing import Process
 
@@ -93,6 +94,12 @@ class TestUnit(unittest.TestCase):
         if not self._waitforfiles(self.testdir + '/unit.pid',
             self.testdir + '/unit.log', self.testdir + '/control.unit.sock'):
             exit("Could not start unit")
+
+    def python_application(self, name, code):
+        os.mkdir(self.testdir + '/' + name)
+
+        with open(self.testdir + '/' + name + '/wsgi.py', 'w') as f:
+            f.write(code)
 
     def _stop(self):
         with open(self.testdir + '/unit.pid', 'r') as f:
@@ -200,3 +207,39 @@ class TestUnitControl(TestUnit):
     def _body_json(self, resp):
         m = re.search('.*?\x0d\x0a?\x0d\x0a?(.*)', resp, re.M | re.S)
         return json.loads(m.group(1))
+
+class TestUnitHTTP():
+
+    @classmethod
+    def http(self, method, host='127.0.0.1:7080', uri='/', **kwargs):
+        if 'sess' in kwargs:
+            sess = kwargs['sess']
+        else:
+            sess = Session()
+
+        body = None
+        if 'body' in kwargs:
+            body = kwargs['body']
+
+        headers = None
+        if 'headers' in kwargs:
+            headers = kwargs['headers']
+
+        req = Request('POST', 'http://' + host + uri, headers=headers)
+        prepped = req.prepare()
+
+        prepped.body = body
+
+        r = sess.send(prepped)
+
+        if 'keep' not in kwargs:
+            sess.close()
+            return r
+
+        return (r, sess)
+
+    def get(**kwargs):
+        return TestUnitHTTP.http('GET', **kwargs)
+
+    def post(**kwargs):
+        return TestUnitHTTP.http('POST', **kwargs)
