@@ -125,6 +125,11 @@ static nxt_http_parse_test_case_t  nxt_http_test_cases[] = {
         NULL, { NULL }
     },
     {
+        nxt_string("GET / HTTP/2.0\r\n"),
+        NXT_HTTP_PARSE_UNSUPPORTED_VERSION,
+        NULL, { NULL }
+    },
+    {
         nxt_string("GET /. HTTP/1.0\r\n\r\n"),
         NXT_DONE,
         &nxt_http_parse_test_request_line,

@@ -311,6 +311,10 @@ nxt_h1p_header_parse(nxt_task_t *task, void *obj, void *data)
         status = NXT_HTTP_BAD_REQUEST;
         break;
 
+    case NXT_HTTP_PARSE_UNSUPPORTED_VERSION:
+        status = NXT_HTTP_VERSION_NOT_SUPPORTED;
+        break;
+
     case NXT_HTTP_PARSE_TOO_LARGE_FIELD:
         status = NXT_HTTP_REQUEST_HEADER_FIELDS_TOO_LARGE;
         break;
@@ -594,6 +598,7 @@ static const nxt_str_t  nxt_http_server_error[] = {
     nxt_string("HTTP/1.1 502 Bad Gateway\r\n"),
     nxt_string("HTTP/1.1 503 Service Unavailable\r\n"),
     nxt_string("HTTP/1.1 504 Gateway Timeout\r\n"),
+    nxt_string("HTTP/1.1 505 HTTP Version Not Supported\r\n"),
 };
 
 

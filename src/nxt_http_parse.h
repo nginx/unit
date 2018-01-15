@@ -10,6 +10,7 @@
 
 typedef enum {
     NXT_HTTP_PARSE_INVALID = 1,
+    NXT_HTTP_PARSE_UNSUPPORTED_VERSION,
     NXT_HTTP_PARSE_TOO_LARGE_FIELD,
 } nxt_http_parse_error_t;
 

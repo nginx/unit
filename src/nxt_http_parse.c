@@ -383,15 +383,24 @@ space_after_target:
 
     /* " HTTP/1.1\r\n" or " HTTP/1.1\n" */
 
+    if (nxt_slow_path(p[9] != '\r' && p[9] != '\n')) {
+
+        if (p[1] == ' ') {
+            /* surplus space after tartet */
+            p++;
+            goto space_after_target;
+        }
+
+        rp->space_in_target = 1;
+        goto rest_of_target;
+    }
+
     nxt_memcpy(ver.str, &p[1], 8);
 
-    if (nxt_fast_path((ver.ui64 == http11.ui64
-                       || ver.ui64 == http10.ui64
-                       || (nxt_memcmp(ver.s.prefix, "HTTP/", 5) == 0
-                           && ver.s.major >= '0' && ver.s.major <= '9'
-                           && ver.s.point == '.'
-                           && ver.s.minor >= '0' && ver.s.minor <= '9'))
-                      && (p[9] == '\r' || p[9] == '\n')))
+    if (nxt_fast_path(ver.ui64 == http11.ui64
+                      || ver.ui64 == http10.ui64
+                      || (nxt_memcmp(ver.str, "HTTP/1.", 7) == 0
+                          && ver.s.minor >= '0' && ver.s.minor <= '9')))
     {
         rp->version.ui64 = ver.ui64;
 
@@ -443,14 +452,15 @@ space_after_target:
         return nxt_http_parse_field_name(rp, pos, end);
     }
 
-    if (p[1] == ' ') {
-        /* surplus space after tartet */
-        p++;
-        goto space_after_target;
+    if (nxt_memcmp(ver.s.prefix, "HTTP/", 5) == 0
+        && ver.s.major >= '0' && ver.s.major <= '9'
+        && ver.s.point == '.'
+        && ver.s.minor >= '0' && ver.s.minor <= '9')
+    {
+        return NXT_HTTP_PARSE_UNSUPPORTED_VERSION;
     }
 
-    rp->space_in_target = 1;
-    goto rest_of_target;
+    return NXT_HTTP_PARSE_INVALID;
 }
 
 
