@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import unittest
+import sys
 import os
 
 loader = unittest.TestLoader()
@@ -11,4 +12,5 @@ tests = loader.discover(start_dir=this_dir)
 suite.addTests(tests)
 
 runner = unittest.TextTestRunner(verbosity=3)
-result = runner.run(suite)
+result = not runner.run(suite).wasSuccessful()
+sys.exit(result)
