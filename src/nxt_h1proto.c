@@ -790,7 +790,7 @@ nxt_h1p_request_send(nxt_task_t *task, nxt_http_request_t *r, nxt_buf_t *out)
 static nxt_buf_t *
 nxt_h1p_chunk_create(nxt_task_t *task, nxt_http_request_t *r, nxt_buf_t *out)
 {
-    size_t             size;
+    nxt_off_t          size;
     nxt_buf_t          *b, **prev, *header, *tail;
 
     const size_t       chunk_size = 2 * (sizeof("\r\n") - 1) + NXT_OFF_T_HEXLEN;
