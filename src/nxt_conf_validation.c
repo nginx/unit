@@ -18,6 +18,9 @@ typedef struct {
 } nxt_conf_vldt_object_t;
 
 
+#define NXT_CONF_VLDT_END  { nxt_null_string, 0, NULL, NULL }
+
+
 typedef nxt_int_t (*nxt_conf_vldt_member_t)(nxt_conf_validation_t *vldt,
                                             nxt_str_t *name,
                                             nxt_conf_value_t *value);
@@ -58,7 +61,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_root_members[] = {
       &nxt_conf_vldt_object_iterator,
       (void *) &nxt_conf_vldt_app },
 
-    { nxt_null_string, 0, NULL, NULL }
+    NXT_CONF_VLDT_END
 };
 
 
@@ -68,7 +71,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_listener_members[] = {
       &nxt_conf_vldt_app_name,
       NULL },
 
-    { nxt_null_string, 0, NULL, NULL }
+    NXT_CONF_VLDT_END
 };
 
 
@@ -88,7 +91,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_limits_members[] = {
       NULL,
       NULL },
 
-    { nxt_null_string, 0, NULL, NULL }
+    NXT_CONF_VLDT_END
 };
 
 
@@ -138,7 +141,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_python_members[] = {
       NULL,
       NULL },
 
-    { nxt_null_string, 0, NULL, NULL }
+    NXT_CONF_VLDT_END
 };
 
 
@@ -188,7 +191,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_php_members[] = {
       NULL,
       NULL },
 
-    { nxt_null_string, 0, NULL, NULL }
+    NXT_CONF_VLDT_END
 };
 
 
@@ -228,7 +231,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_go_members[] = {
       NULL,
       NULL },
 
-    { nxt_null_string, 0, NULL, NULL }
+    NXT_CONF_VLDT_END
 };
 
 
