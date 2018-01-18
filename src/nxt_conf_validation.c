@@ -18,7 +18,8 @@ typedef struct {
 } nxt_conf_vldt_object_t;
 
 
-#define NXT_CONF_VLDT_END  { nxt_null_string, 0, NULL, NULL }
+#define NXT_CONF_VLDT_NEXT(f)  { nxt_null_string, 0, NULL, (f) }
+#define NXT_CONF_VLDT_END      { nxt_null_string, 0, NULL, NULL }
 
 
 typedef nxt_int_t (*nxt_conf_vldt_member_t)(nxt_conf_validation_t *vldt,
@@ -95,7 +96,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_limits_members[] = {
 };
 
 
-static nxt_conf_vldt_object_t  nxt_conf_vldt_python_members[] = {
+static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[] = {
     { nxt_string("type"),
       NXT_CONF_STRING,
       NULL,
@@ -126,6 +127,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_python_members[] = {
       NULL,
       NULL },
 
+    NXT_CONF_VLDT_END
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_python_members[] = {
     { nxt_string("home"),
       NXT_CONF_STRING,
       NULL,
@@ -141,41 +147,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_python_members[] = {
       NULL,
       NULL },
 
-    NXT_CONF_VLDT_END
+    NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_common_members)
 };
 
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_php_members[] = {
-    { nxt_string("type"),
-      NXT_CONF_STRING,
-      NULL,
-      NULL },
-
-    { nxt_string("workers"),
-      NXT_CONF_INTEGER,
-      NULL,
-      NULL },
-
-    { nxt_string("limits"),
-      NXT_CONF_OBJECT,
-      &nxt_conf_vldt_object,
-      (void *) &nxt_conf_vldt_app_limits_members },
-
-    { nxt_string("user"),
-      NXT_CONF_STRING,
-      nxt_conf_vldt_system,
-      (void *) &nxt_conf_vldt_user },
-
-    { nxt_string("group"),
-      NXT_CONF_STRING,
-      nxt_conf_vldt_system,
-      (void *) &nxt_conf_vldt_group },
-
-    { nxt_string("working_directory"),
-      NXT_CONF_STRING,
-      NULL,
-      NULL },
-
     { nxt_string("root"),
       NXT_CONF_STRING,
       NULL,
@@ -191,47 +167,17 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_php_members[] = {
       NULL,
       NULL },
 
-    NXT_CONF_VLDT_END
+    NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_common_members)
 };
 
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_go_members[] = {
-    { nxt_string("type"),
-      NXT_CONF_STRING,
-      NULL,
-      NULL },
-
-    { nxt_string("workers"),
-      NXT_CONF_INTEGER,
-      NULL,
-      NULL },
-
-    { nxt_string("limits"),
-      NXT_CONF_OBJECT,
-      &nxt_conf_vldt_object,
-      (void *) &nxt_conf_vldt_app_limits_members },
-
-    { nxt_string("user"),
-      NXT_CONF_STRING,
-      nxt_conf_vldt_system,
-      (void *) &nxt_conf_vldt_user },
-
-    { nxt_string("group"),
-      NXT_CONF_STRING,
-      nxt_conf_vldt_system,
-      (void *) &nxt_conf_vldt_group },
-
-    { nxt_string("working_directory"),
-      NXT_CONF_STRING,
-      NULL,
-      NULL },
-
     { nxt_string("executable"),
       NXT_CONF_STRING,
       NULL,
       NULL },
 
-    NXT_CONF_VLDT_END
+    NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_common_members)
 };
 
 
@@ -437,6 +383,12 @@ nxt_conf_vldt_object(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 
         for ( ;; ) {
             if (vals->name.length == 0) {
+
+                if (vals->data != NULL) {
+                    vals = vals->data;
+                    continue;
+                }
+
                 return nxt_conf_vldt_error(vldt, "Unknown parameter \"%V\".",
                                            &name);
             }
