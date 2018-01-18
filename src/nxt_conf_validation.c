@@ -9,12 +9,23 @@
 #include <nxt_router.h>
 
 
+typedef enum {
+    NXT_CONF_VLDT_NULL    = 1 << NXT_CONF_NULL,
+    NXT_CONF_VLDT_BOOLEAN = 1 << NXT_CONF_BOOLEAN,
+    NXT_CONF_VLDT_INTEGER = 1 << NXT_CONF_INTEGER,
+    NXT_CONF_VLDT_NUMBER  = 1 << NXT_CONF_NUMBER,
+    NXT_CONF_VLDT_STRING  = 1 << NXT_CONF_STRING,
+    NXT_CONF_VLDT_ARRAY   = 1 << NXT_CONF_ARRAY,
+    NXT_CONF_VLDT_OBJECT  = 1 << NXT_CONF_OBJECT,
+} nxt_conf_vldt_type_t;
+
+
 typedef struct {
-    nxt_str_t        name;
-    nxt_conf_type_t  type;
-    nxt_int_t        (*validator)(nxt_conf_validation_t *vldt,
-                                  nxt_conf_value_t *value, void *data);
-    void             *data;
+    nxt_str_t             name;
+    nxt_conf_vldt_type_t  type;
+    nxt_int_t             (*validator)(nxt_conf_validation_t *vldt,
+                                       nxt_conf_value_t *value, void *data);
+    void                  *data;
 } nxt_conf_vldt_object_t;
 
 
@@ -31,7 +42,7 @@ typedef nxt_int_t (*nxt_conf_vldt_system_t)(nxt_conf_validation_t *vldt,
 
 
 static nxt_int_t nxt_conf_vldt_type(nxt_conf_validation_t *vldt,
-    nxt_str_t *name, nxt_conf_value_t *value, nxt_conf_type_t type);
+    nxt_str_t *name, nxt_conf_value_t *value, nxt_conf_vldt_type_t type);
 static nxt_int_t nxt_conf_vldt_error(nxt_conf_validation_t *vldt,
     const char *fmt, ...);
 
@@ -53,12 +64,12 @@ static nxt_int_t nxt_conf_vldt_group(nxt_conf_validation_t *vldt, char *name);
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_root_members[] = {
     { nxt_string("listeners"),
-      NXT_CONF_OBJECT,
+      NXT_CONF_VLDT_OBJECT,
       &nxt_conf_vldt_object_iterator,
       (void *) &nxt_conf_vldt_listener },
 
     { nxt_string("applications"),
-      NXT_CONF_OBJECT,
+      NXT_CONF_VLDT_OBJECT,
       &nxt_conf_vldt_object_iterator,
       (void *) &nxt_conf_vldt_app },
 
@@ -68,7 +79,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_root_members[] = {
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_listener_members[] = {
     { nxt_string("application"),
-      NXT_CONF_STRING,
+      NXT_CONF_VLDT_STRING,
       &nxt_conf_vldt_app_name,
       NULL },
 
@@ -78,17 +89,17 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_listener_members[] = {
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_app_limits_members[] = {
     { nxt_string("timeout"),
-      NXT_CONF_INTEGER,
+      NXT_CONF_VLDT_INTEGER,
       NULL,
       NULL },
 
     { nxt_string("reschedule_timeout"),
-      NXT_CONF_INTEGER,
+      NXT_CONF_VLDT_INTEGER,
       NULL,
       NULL },
 
     { nxt_string("requests"),
-      NXT_CONF_INTEGER,
+      NXT_CONF_VLDT_INTEGER,
       NULL,
       NULL },
 
@@ -98,32 +109,32 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_limits_members[] = {
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[] = {
     { nxt_string("type"),
-      NXT_CONF_STRING,
+      NXT_CONF_VLDT_STRING,
       NULL,
       NULL },
 
     { nxt_string("workers"),
-      NXT_CONF_INTEGER,
+      NXT_CONF_VLDT_INTEGER,
       NULL,
       NULL },
 
     { nxt_string("limits"),
-      NXT_CONF_OBJECT,
+      NXT_CONF_VLDT_OBJECT,
       &nxt_conf_vldt_object,
       (void *) &nxt_conf_vldt_app_limits_members },
 
     { nxt_string("user"),
-      NXT_CONF_STRING,
+      NXT_CONF_VLDT_STRING,
       nxt_conf_vldt_system,
       (void *) &nxt_conf_vldt_user },
 
     { nxt_string("group"),
-      NXT_CONF_STRING,
+      NXT_CONF_VLDT_STRING,
       nxt_conf_vldt_system,
       (void *) &nxt_conf_vldt_group },
 
     { nxt_string("working_directory"),
-      NXT_CONF_STRING,
+      NXT_CONF_VLDT_STRING,
       NULL,
       NULL },
 
@@ -133,17 +144,17 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[] = {
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_python_members[] = {
     { nxt_string("home"),
-      NXT_CONF_STRING,
+      NXT_CONF_VLDT_STRING,
       NULL,
       NULL },
 
     { nxt_string("path"),
-      NXT_CONF_STRING,
+      NXT_CONF_VLDT_STRING,
       NULL,
       NULL },
 
     { nxt_string("module"),
-      NXT_CONF_STRING,
+      NXT_CONF_VLDT_STRING,
       NULL,
       NULL },
 
@@ -153,17 +164,17 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_python_members[] = {
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_php_members[] = {
     { nxt_string("root"),
-      NXT_CONF_STRING,
+      NXT_CONF_VLDT_STRING,
       NULL,
       NULL },
 
     { nxt_string("script"),
-      NXT_CONF_STRING,
+      NXT_CONF_VLDT_STRING,
       NULL,
       NULL },
 
     { nxt_string("index"),
-      NXT_CONF_STRING,
+      NXT_CONF_VLDT_STRING,
       NULL,
       NULL },
 
@@ -173,7 +184,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_php_members[] = {
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_go_members[] = {
     { nxt_string("executable"),
-      NXT_CONF_STRING,
+      NXT_CONF_VLDT_STRING,
       NULL,
       NULL },
 
@@ -186,7 +197,7 @@ nxt_conf_validate(nxt_conf_validation_t *vldt)
 {
     nxt_int_t  ret;
 
-    ret = nxt_conf_vldt_type(vldt, NULL, vldt->conf, NXT_CONF_OBJECT);
+    ret = nxt_conf_vldt_type(vldt, NULL, vldt->conf, NXT_CONF_VLDT_OBJECT);
 
     if (ret != NXT_OK) {
         return ret;
@@ -196,37 +207,83 @@ nxt_conf_validate(nxt_conf_validation_t *vldt)
 }
 
 
+#define NXT_CONF_VLDT_ANY_TYPE                                                \
+    "either a null, a boolean, an integer, "                                  \
+    "a number, a string, an array, or an object"
+
+
 static nxt_int_t
 nxt_conf_vldt_type(nxt_conf_validation_t *vldt, nxt_str_t *name,
-    nxt_conf_value_t *value, nxt_conf_type_t type)
+    nxt_conf_value_t *value, nxt_conf_vldt_type_t type)
 {
-    nxt_uint_t  value_type;
+    u_char      *p;
+    nxt_str_t   expected;
+    nxt_bool_t  serial;
+    nxt_uint_t  value_type, n, t;
+    u_char      buf[sizeof(NXT_CONF_VLDT_ANY_TYPE) - 1];
 
-    static const char  *type_name[] = {
-        "a null",
-        "a boolean",
-        "an integer",
-        "a number",
-        "a string",
-        "an array",
-        "an object"
+    static nxt_str_t  type_name[] = {
+        nxt_string("a null"),
+        nxt_string("a boolean"),
+        nxt_string("an integer"),
+        nxt_string("a number"),
+        nxt_string("a string"),
+        nxt_string("an array"),
+        nxt_string("an object"),
     };
 
     value_type = nxt_conf_type(value);
 
-    if (value_type == type) {
+    if ((1 << value_type) & type) {
         return NXT_OK;
     }
 
+    p = buf;
+
+    n = __builtin_popcount(type);
+
+    if (n > 1) {
+        p = nxt_cpymem(p, "either ", 7);
+    }
+
+    serial = (n > 2);
+
+    for ( ;; ) {
+        t = __builtin_ffs(type) - 1;
+
+        p = nxt_cpymem(p, type_name[t].start, type_name[t].length);
+
+        n--;
+
+        if (n == 0) {
+            break;
+        }
+
+        if (n > 1 || serial) {
+            *p++ = ',';
+        }
+
+        if (n == 1) {
+            p = nxt_cpymem(p, " or", 3);
+        }
+
+        *p++ = ' ';
+
+        type = type & ~(1 << t);
+    }
+
+    expected.length = p - buf;
+    expected.start = buf;
+
     if (name == NULL) {
         return nxt_conf_vldt_error(vldt,
-                                   "The configuration must be %s, not %s.",
-                                   type_name[type], type_name[value_type]);
+                                   "The configuration must be %V, but not %V.",
+                                   &expected, &type_name[value_type]);
     }
 
     return nxt_conf_vldt_error(vldt,
-                               "The \"%V\" value must be %s, not %s.",
-                               name, type_name[type], type_name[value_type]);
+                               "The \"%V\" value must be %V, but not %V.",
+                               name, &expected, &type_name[value_type]);
 }
 
 
@@ -264,7 +321,7 @@ nxt_conf_vldt_listener(nxt_conf_validation_t *vldt, nxt_str_t *name,
 {
     nxt_int_t  ret;
 
-    ret = nxt_conf_vldt_type(vldt, name, value, NXT_CONF_OBJECT);
+    ret = nxt_conf_vldt_type(vldt, name, value, NXT_CONF_VLDT_OBJECT);
 
     if (ret != NXT_OK) {
         return ret;
@@ -325,7 +382,7 @@ nxt_conf_vldt_app(nxt_conf_validation_t *vldt, nxt_str_t *name,
         nxt_conf_vldt_go_members,
     };
 
-    ret = nxt_conf_vldt_type(vldt, name, value, NXT_CONF_OBJECT);
+    ret = nxt_conf_vldt_type(vldt, name, value, NXT_CONF_VLDT_OBJECT);
 
     if (ret != NXT_OK) {
         return ret;
@@ -338,7 +395,7 @@ nxt_conf_vldt_app(nxt_conf_validation_t *vldt, nxt_str_t *name,
                            "Application must have the \"type\" property set.");
     }
 
-    ret = nxt_conf_vldt_type(vldt, &type_str, type_value, NXT_CONF_STRING);
+    ret = nxt_conf_vldt_type(vldt, &type_str, type_value, NXT_CONF_VLDT_STRING);
 
     if (ret != NXT_OK) {
         return ret;
