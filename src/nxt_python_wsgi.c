@@ -582,10 +582,10 @@ nxt_python_create_environ(nxt_task_t *task)
         goto fail;
     }
 
-    if (nxt_slow_path(PyDict_SetItemString(environ, "wsgi.error", err) != 0))
+    if (nxt_slow_path(PyDict_SetItemString(environ, "wsgi.errors", err) != 0))
     {
         nxt_log_alert(task->log,
-                      "Python failed to set the \"wsgi.error\" environ value");
+                      "Python failed to set the \"wsgi.errors\" environ value");
         goto fail;
     }
 
