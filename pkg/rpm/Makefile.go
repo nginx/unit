@@ -12,7 +12,8 @@ MODULE_INSTARGS_go=	go-install
 MODULE_SOURCES_go=	unit.example-go-app \
 			unit.example-go-config
 
-BUILD_DEPENDS+=		golang
+BUILD_DEPENDS_go=	golang
+BUILD_DEPENDS+=		$(BUILD_DEPENDS_go)
 
 define MODULE_DEFINITIONS_go
 

@@ -12,7 +12,8 @@ MODULE_INSTARGS_python=	python-install
 MODULE_SOURCES_python=	unit.example-python-app \
 			unit.example-python-config
 
-BUILD_DEPENDS+=		python-devel
+BUILD_DEPENDS_python=	python-devel
+BUILD_DEPENDS+=		$(BUILD_DEPENDS_python)
 
 define MODULE_PREINSTALL_python
 %{__mkdir} -p %{buildroot}%{_datadir}/doc/unit-python/examples/python-app

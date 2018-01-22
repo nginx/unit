@@ -8,7 +8,8 @@ DEFAULT_RELEASE := 1
 VERSION ?= $(DEFAULT_VERSION)
 RELEASE ?= $(DEFAULT_RELEASE)
 
-BUILD_DEPENDS = libxml2 libxslt rpm-build rpmlint
+BUILD_DEPENDS_unit = libxml2 libxslt rpm-build rpmlint
+BUILD_DEPENDS = $(BUILD_DEPENDS_unit)
 
 MODULES=
 -include Makefile.*
@@ -51,6 +52,25 @@ check-build-depends:
 	fi \
 	}
 
+check-build-depends-%:
+	@{ \
+	not_installed= ; \
+	for pkg in $(BUILD_DEPENDS_unit) $(BUILD_DEPENDS_$*); do \
+		rpm -qi $${pkg} >/dev/null 2>&1 ; \
+		if [ $$? -ne 0 ]; then \
+			not_installed="$${not_installed} $${pkg}" ; \
+		fi ; \
+	done ; \
+	if test -n "$${not_installed}" ; then \
+		echo "" >&2 ; \
+		echo "The following packages are required in order to proceed:" >&2 ; \
+		echo "" >&2 ; \
+		echo $${not_installed} >&2 ; \
+		echo "" >&2 ; \
+		exit 1 ; \
+	fi \
+	}
+
 rpmbuild/SPECS:
 	mkdir -p rpmbuild/SPECS
 
@@ -74,7 +94,7 @@ rpmbuild/SOURCES/unit-$(VERSION).tar.gz:
 		--transform "s#^#unit-$(VERSION)/#" \
 		LICENSE NOTICE CHANGES README configure auto src test
 
-unit: rpmbuild/SPECS/unit.spec rpmbuild/SOURCES/unit-$(VERSION).tar.gz
+unit: check-build-depends-unit rpmbuild/SPECS/unit.spec rpmbuild/SOURCES/unit-$(VERSION).tar.gz
 	@echo "===> Building $@ package" ; \
 	rpmbuild -D "_topdir `pwd`/rpmbuild" -ba rpmbuild/SPECS/unit.spec && \
 	ln -s rpmbuild/BUILD/$@-$(VERSION)/build $@
@@ -122,7 +142,7 @@ rpmbuild/SPECS/unit-%.spec: unit.module.spec.in ../../docs/changes.xml | rpmbuil
 		>> $@.tmp
 	mv $@.tmp $@ 
 
-unit-%: rpmbuild/SPECS/unit-%.spec rpmbuild/SOURCES/unit-$(VERSION).tar.gz
+unit-%: check-build-depends-% rpmbuild/SPECS/unit-%.spec rpmbuild/SOURCES/unit-$(VERSION).tar.gz
 	@echo "===> Building $@ package" ; \
 	rpmbuild -D "_topdir `pwd`/rpmbuild" -ba rpmbuild/SPECS/$@.spec && \
 	ln -s rpmbuild/BUILD/$@-$(VERSION)/build $@

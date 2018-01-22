@@ -13,7 +13,8 @@ MODULE_INSTARGS_go18=	/usr/lib/go-1.8/bin/go-install
 MODULE_SOURCES_go18=	unit.example-go-app \
 			unit.example-go1.8-config
 
-BUILD_DEPENDS+=		golang-1.8
+BUILD_DEPENDS_go18=	golang-1.8
+BUILD_DEPENDS+=		$(BUILD_DEPENDS_go18)
 
 MODULE_BUILD_DEPENDS_go18=,golang-1.8
 MODULE_DEPENDS_go18=,golang-1.8

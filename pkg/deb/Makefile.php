@@ -14,14 +14,16 @@ MODULE_SOURCES_php=	unit.example-php-app \
 			unit.example-php-config
 
 ifneq (,$(findstring $(CODENAME),trusty jessie))
-BUILD_DEPENDS+=		php5-dev libphp5-embed
+BUILD_DEPENDS_php=	php5-dev libphp5-embed
 MODULE_BUILD_DEPENDS_php=,php5-dev,libphp5-embed
 MODULE_DEPENDS_php=,libphp5-embed
 else
-BUILD_DEPENDS+=		php-dev libphp-embed
+BUILD_DEPENDS_php=	php-dev libphp-embed
 MODULE_BUILD_DEPENDS_php=,php-dev,libphp-embed
 MODULE_DEPENDS_php=,libphp-embed
 endif
+
+BUILD_DEPENDS+=		$(BUILD_DEPENDS_php)
 
 define MODULE_PREINSTALL_php
 	mkdir -p debian/unit-php/usr/share/doc/unit-php/examples/phpinfo-app

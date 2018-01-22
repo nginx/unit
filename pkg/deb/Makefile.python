@@ -13,7 +13,8 @@ MODULE_INSTARGS_python=	python-install
 MODULE_SOURCES_python=	unit.example-python-app \
 			unit.example-python-config
 
-BUILD_DEPENDS+=		python-dev
+BUILD_DEPENDS_python=	python-dev
+BUILD_DEPENDS+=		$(BUILD_DEPENDS_python)
 
 MODULE_BUILD_DEPENDS_python=,python-dev
 

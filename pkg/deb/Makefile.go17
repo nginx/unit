@@ -13,7 +13,8 @@ MODULE_INSTARGS_go17=	/usr/lib/go-1.7/bin/go-install
 MODULE_SOURCES_go17=	unit.example-go-app \
 			unit.example-go1.7-config
 
-BUILD_DEPENDS+=		golang-1.7
+BUILD_DEPENDS_go17=	golang-1.7
+BUILD_DEPENDS+=		$(BUILD_DEPENDS_go17)
 
 MODULE_BUILD_DEPENDS_go17=,golang-1.7
 MODULE_DEPENDS_go17=,golang-1.7

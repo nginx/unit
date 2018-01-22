@@ -12,7 +12,8 @@ MODULE_INSTARGS_php=	php-install
 MODULE_SOURCES_php=	unit.example-php-app \
 			unit.example-php-config
 
-BUILD_DEPENDS+=		php-devel php-embedded
+BUILD_DEPENDS_php=	php-devel php-embedded
+BUILD_DEPENDS+=		$(BUILD_DEPENDS_php)
 
 define MODULE_PREINSTALL_php
 %{__mkdir} -p %{buildroot}%{_datadir}/doc/unit-php/examples/phpinfo-app

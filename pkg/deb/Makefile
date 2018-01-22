@@ -12,7 +12,8 @@ SRCDIR=	unit-$(VERSION)
 
 CODENAME = $(shell lsb_release -cs)
 
-BUILD_DEPENDS = debhelper devscripts libxml2-utils lintian lsb-release xsltproc
+BUILD_DEPENDS_unit = debhelper devscripts libxml2-utils lintian lsb-release xsltproc
+BUILD_DEPENDS = $(BUILD_DEPENDS_unit)
 
 MODULES=
 
@@ -100,6 +101,25 @@ check-build-depends:
 	fi \
 	}
 
+check-build-depends-%:
+	@{ \
+	not_installed= ; \
+	for pkg in $(BUILD_DEPENDS_unit) $(BUILD_DEPENDS_$*); do \
+		dpkg -s $${pkg} >/dev/null 2>&1 ; \
+		if [ $$? -ne 0 ]; then \
+			not_installed="$${not_installed} $${pkg}" ; \
+		fi ; \
+	done ; \
+	if test -n "$${not_installed}" ; then \
+		echo "" >&2 ; \
+		echo "The following packages are required in order to proceed:" >&2 ; \
+		echo "" >&2 ; \
+		echo $${not_installed} >&2 ; \
+		echo "" >&2 ; \
+		exit 1 ; \
+	fi \
+	}
+
 debuild/$(SRCDIR)/debian:
 	@{ \
 	set -e ; \
@@ -133,7 +153,7 @@ debuild/unit_$(VERSION).orig.tar.gz: | debuild/$(SRCDIR)/debian
 	mv debuild/$(SRCDIR).tar.gz debuild/unit_$(VERSION).orig.tar.gz
 	cd debuild && tar zxf unit_$(VERSION).orig.tar.gz
 
-unit: debuild/unit_$(VERSION).orig.tar.gz debuild/$(SRCDIR)/debian/changelog
+unit: check-build-depends-unit debuild/unit_$(VERSION).orig.tar.gz debuild/$(SRCDIR)/debian/changelog
 	@echo "===> Building $@ package"
 	cd debuild/$(SRCDIR) && debuild -us -uc
 	mkdir -p debs
@@ -192,7 +212,7 @@ debuild-%: debuild/unit_$(VERSION).orig.tar.gz ../../docs/changes.xml
         chmod +x $@/$(SRCDIR)/debian/rules ; \
 	}
 
-unit-%: | debuild-%
+unit-%: check-build-depends-% | debuild-%
 	@echo "===> Building $@ package"
 	cd debuild-$*/$(SRCDIR) && debuild -us -uc
 	mkdir -p debs
