@@ -3,7 +3,7 @@
 
 %%MODULE_DEFINITIONS%%
 
-%if 0%{?rhel} == 7
+%if (0%{?rhel} == 7 && 0%{?amzn} == 0)
 %define dist .el7
 %endif
 

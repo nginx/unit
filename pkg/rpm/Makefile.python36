@@ -1,0 +1,50 @@
+MODULES+=		python36
+
+MODULE_SUMMARY_python36=	Python 3.6 module for NGINX Unit
+
+MODULE_VERSION_python36=	$(VERSION)
+MODULE_RELEASE_python36=	1
+
+MODULE_CONFARGS_python36=	python --config=python3.6-config
+MODULE_MAKEARGS_python36=	python3.6
+MODULE_INSTARGS_python36=	python3.6-install
+
+MODULE_SOURCES_python36=	unit.example-python-app \
+			unit.example-python36-config
+
+BUILD_DEPENDS_python36=	python36-devel
+BUILD_DEPENDS+=		$(BUILD_DEPENDS_python36)
+
+define MODULE_PREINSTALL_python36
+%{__mkdir} -p %{buildroot}%{_datadir}/doc/unit-python36/examples/python-app
+%{__install} -m 644 -p %{SOURCE100} \
+    %{buildroot}%{_datadir}/doc/unit-python36/examples/python-app/wsgi.py
+%{__install} -m 644 -p %{SOURCE101} \
+    %{buildroot}%{_datadir}/doc/unit-python36/examples/unit.config
+endef
+export MODULE_PREINSTALL_python36
+
+define MODULE_FILES_python36
+%{_libdir}/unit/modules/*
+%{_libdir}/unit/debug-modules/*
+endef
+export MODULE_FILES_python36
+
+define MODULE_POST_python36
+cat <<BANNER
+----------------------------------------------------------------------
+
+The $(MODULE_SUMMARY_python36) has been installed.
+
+To check the sample app, run these commands:
+
+ sudo service unit start
+ sudo service unit loadconfig /usr/share/doc/unit-python36/examples/unit.config
+ curl http://localhost:8400/
+
+Online documentation is available at https://unit.nginx.org
+
+----------------------------------------------------------------------
+BANNER
+endef
+export MODULE_POST_python36

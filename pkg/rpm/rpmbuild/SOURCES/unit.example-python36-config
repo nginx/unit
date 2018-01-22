@@ -1,0 +1,17 @@
+{
+	"applications": {
+		"example_python": {
+			"type": "python 3.6",
+			"user": "nobody",
+			"workers": 2,
+			"path": "/usr/share/doc/unit-python36/examples/python-app",
+			"module": "wsgi"
+		}
+	},
+
+	"listeners": {
+		"*:8400": {
+			"application": "example_python"
+		}
+	}
+}

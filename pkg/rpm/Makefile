@@ -11,8 +11,33 @@ RELEASE ?= $(DEFAULT_RELEASE)
 BUILD_DEPENDS_unit = libxml2 libxslt rpm-build rpmlint
 BUILD_DEPENDS = $(BUILD_DEPENDS_unit)
 
+ifeq ($(shell rpm --eval "%{?rhel}"), 6)
+OSVER = centos6
+else ifeq ($(shell rpm --eval "%{?rhel}"), 7)
+OSVER = centos7
+else ifeq ($(shell rpm --eval "%{?amzn}"), 1)
+OSVER = amazonlinux1
+BUILD_DEPENDS += system-rpm-config
+else ifeq ($(shell rpm --eval "%{?amzn}"), 2)
+OSVER = amazonlinux2
+endif
+
 MODULES=
--include Makefile.*
+
+ifneq (,$(findstring $(OSVER),centos6 centos7 amazonlinux2))
+include Makefile.php
+include Makefile.python
+include Makefile.go
+endif
+
+ifeq ($(OSVER), amazonlinux1)
+include Makefile.php
+include Makefile.python27
+include Makefile.python34
+include Makefile.python35
+include Makefile.python36
+include Makefile.go
+endif
 
 CONFIGURE_ARGS=\
 	--prefix=/usr \

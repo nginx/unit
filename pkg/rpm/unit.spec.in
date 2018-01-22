@@ -10,7 +10,9 @@ Requires: initscripts >= 8.36
 %if 0%{?rhel} == 7
 Requires: systemd
 BuildRequires: systemd-units
+%if 0%{?amzn} == 0
 %define dist .el7
+%endif
 %endif
 
 %if 0%{?suse_version} == 1315
