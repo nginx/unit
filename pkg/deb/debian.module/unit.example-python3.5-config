@@ -1,7 +1,7 @@
 {
 	"applications": {
 		"example_python": {
-			"type": "python",
+			"type": "python 3.5",
 			"user": "nobody",
 			"workers": 2,
 			"path": "/usr/share/doc/unit-python3.5/examples/python-app",
