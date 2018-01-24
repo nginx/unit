@@ -711,7 +711,7 @@ nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         return;
     }
 
-    nxt_debug(task, "nxt_router_conf_data_handler(%d): %*s",
+    nxt_debug(task, "nxt_router_conf_data_handler(%O): %*s",
               nxt_buf_used_size(msg->buf),
               (size_t) nxt_buf_used_size(msg->buf), msg->buf->mem.pos);
 
@@ -2391,7 +2391,7 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
         dump_size = 300;
     }
 
-    nxt_debug(task, "%srouter app data (%z): %*s",
+    nxt_debug(task, "%srouter app data (%uz): %*s",
               msg->port_msg.last ? "last " : "", msg->size, dump_size,
               b->mem.pos);
 
@@ -3227,7 +3227,7 @@ nxt_router_app_prepare_request(nxt_task_t *task, nxt_req_app_link_t *ra)
         goto release_port;
     }
 
-    nxt_debug(task, "about to send %d bytes buffer to worker port %d",
+    nxt_debug(task, "about to send %O bytes buffer to worker port %d",
                     nxt_buf_used_size(wmsg.write),
                     wmsg.port->socket.fd);
 

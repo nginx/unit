@@ -535,7 +535,7 @@ nxt_http_parse_test(nxt_thread_t *thr)
                                         1);
 
     nxt_log_error(NXT_LOG_NOTICE, thr->log,
-                  "http parse test hash collisions %ui out of %ui, level: %ui",
+                  "http parse test hash collisions %ui out of %uz, level: %ui",
                   colls, nxt_nitems(nxt_http_test_bench_fields), lvl_colls);
 
     nxt_memzero(&hash, sizeof(nxt_lvlhsh_t));

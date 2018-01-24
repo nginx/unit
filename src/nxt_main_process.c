@@ -1011,7 +1011,7 @@ next:
 
         if (chmod(filename, access) != 0) {
             ls->end = nxt_sprintf(ls->start, ls->end,
-                                  "chmod(\\\"%*s\\\") failed %E",
+                                  "chmod(\\\"%s\\\") failed %E",
                                   filename, nxt_errno);
             goto fail;
         }

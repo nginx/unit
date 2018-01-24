@@ -218,7 +218,7 @@ nxt_discovery_module(nxt_task_t *task, nxt_mp_t *mp, nxt_array_t *modules,
         type = nxt_app_parse_type(app->type.start, app->type.length);
 
         if (type == NXT_APP_UNKNOWN) {
-            nxt_log(task, NXT_LOG_NOTICE, "unknown module type %V", app->type);
+            nxt_log(task, NXT_LOG_NOTICE, "unknown module type %V", &app->type);
 
             goto done;
         }

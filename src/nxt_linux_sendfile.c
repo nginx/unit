@@ -104,7 +104,7 @@ nxt_linux_event_conn_io_sendfile(nxt_event_conn_t *c, nxt_buf_t *b,
 
     err = (n == -1) ? nxt_errno : 0;
 
-    nxt_debug(c->socket.task, "sendfile(): %d", n);
+    nxt_debug(c->socket.task, "sendfile(): %z", n);
 
     if (n == -1) {
         switch (err) {
@@ -204,7 +204,7 @@ nxt_linux_sendmsg(nxt_event_conn_t *c, nxt_sendbuf_coalesce_t *sb,
 
     err = (n == -1) ? nxt_errno : 0;
 
-    nxt_debug(c->socket.task, "sendmsg(%d, %ui, 0x%uXi): %d",
+    nxt_debug(c->socket.task, "sendmsg(%d, %ui, 0x%uXi): %z",
               c->socket.fd, niov, flags, n);
 
     if (n == -1) {

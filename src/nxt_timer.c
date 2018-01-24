@@ -273,7 +273,7 @@ nxt_timer_find(nxt_event_engine_t *engine)
             time = timer->time;
             timers->minimum = time;
 
-            nxt_debug(timer->task, "timer found minimum: %M:%M",
+            nxt_debug(timer->task, "timer found minimum: %D:%M",
                       time, timers->now);
 
             time = nxt_msec_diff(time, timers->now);

@@ -158,7 +158,7 @@ nxt_port_mmap_buf_completion(nxt_task_t *task, void *obj, void *data)
 
     nxt_port_mmap_free_junk(p, b->mem.end - p);
 
-    nxt_debug(task, "mmap buf completion: %p [%p,%d] (sent=%d), "
+    nxt_debug(task, "mmap buf completion: %p [%p,%uz] (sent=%d), "
               "%PI->%PI,%d,%d", b, b->mem.start, b->mem.end - b->mem.start,
               b->is_port_mmap_sent, hdr->src_pid, hdr->dst_pid, hdr->id, c);
 
@@ -555,7 +555,7 @@ nxt_port_mmap_tracking_read(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     b = msg->buf;
 
     if (nxt_buf_used_size(b) < (int)sizeof(nxt_port_mmap_tracking_msg_t)) {
-        nxt_debug(task, "too small message %u", nxt_buf_used_size(b));
+        nxt_debug(task, "too small message %O", nxt_buf_used_size(b));
         return 0;
     }
 
@@ -629,7 +629,7 @@ nxt_port_mmap_get_buf(nxt_task_t *task, nxt_port_t *port, size_t size)
         nchunks++;
     }
 
-    nxt_debug(task, "outgoing mmap buf allocation: %p [%p,%d] %PI->%PI,%d,%d",
+    nxt_debug(task, "outgoing mmap buf allocation: %p [%p,%uz] %PI->%PI,%d,%d",
               b, b->mem.start, b->mem.end - b->mem.start,
               hdr->src_pid, hdr->dst_pid, hdr->id, c);
 
@@ -709,7 +709,7 @@ nxt_port_mmap_increase_buf(nxt_task_t *task, nxt_buf_t *b, size_t size,
             c--;
         }
 
-        nxt_debug(task, "failed to increase, %d chunks busy", nchunks);
+        nxt_debug(task, "failed to increase, %uz chunks busy", nchunks);
 
         return NXT_ERROR;
 
@@ -760,7 +760,7 @@ nxt_port_mmap_get_incoming_buf(nxt_task_t *task, nxt_port_t *port,
     b->parent = mmap_handler;
     nxt_port_mmap_handler_use(mmap_handler, 1);
 
-    nxt_debug(task, "incoming mmap buf allocation: %p [%p,%d] %PI->%PI,%d,%d",
+    nxt_debug(task, "incoming mmap buf allocation: %p [%p,%uz] %PI->%PI,%d,%d",
               b, b->mem.start, b->mem.end - b->mem.start,
               hdr->src_pid, hdr->dst_pid, hdr->id, mmap_msg->chunk_id);
 

@@ -441,7 +441,7 @@ nxt_h1p_request_body_read(nxt_task_t *task, nxt_http_request_t *r)
         in->mem.pos += size;
     }
 
-    nxt_debug(task, "h1p body rest: %O", rest_length);
+    nxt_debug(task, "h1p body rest: %uz", rest_length);
 
     r->rest_length = rest_length;
 

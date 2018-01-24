@@ -216,7 +216,7 @@ nxt_port_rpc_ex_set_peer(nxt_task_t *task, nxt_port_t *port,
         break;
 
     default:
-        nxt_log_error(NXT_LOG_ERR, task->log, "rpc: stream #%uD failed to add "
+        nxt_log_error(NXT_LOG_ERR, task->log, "rpc: failed to add "
                       "peer for stream #%uD (%d)", reg->stream, ret);
 
         reg->peer = -1;

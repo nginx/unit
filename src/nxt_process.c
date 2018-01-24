@@ -588,7 +588,7 @@ nxt_int_t
 nxt_user_cred_set(nxt_task_t *task, nxt_user_cred_t *uc)
 {
     nxt_debug(task, "user cred set: \"%s\" uid:%uL base gid:%uL",
-              uc->user, (uint64_t) uc->uid, uc->base_gid);
+              uc->user, (uint64_t) uc->uid, (uint64_t) uc->base_gid);
 
     if (setgid(uc->base_gid) != 0) {
         nxt_log(task, NXT_LOG_CRIT, "setgid(%d) failed %E",

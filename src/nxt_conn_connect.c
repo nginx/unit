@@ -156,7 +156,7 @@ nxt_conn_connect_test(nxt_task_t *task, void *obj, void *data)
 
     nxt_log(task, nxt_socket_error_level(err), "connect(%d, %*s) failed %E",
             c->socket.fd, (size_t) c->remote->length,
-            nxt_sockaddr_start(c->remote));
+            nxt_sockaddr_start(c->remote), err);
 
     nxt_conn_connect_error(task, c, data);
 }

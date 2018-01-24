@@ -503,7 +503,7 @@ nxt_file_stderr(nxt_file_t *file)
     }
 
     nxt_thread_log_error(NXT_LOG_CRIT, "dup2(%FD, %FD, \"%FN\") failed %E",
-                         file->fd, STDERR_FILENO, file->name);
+                         file->fd, STDERR_FILENO, file->name, nxt_errno);
 
     return NXT_ERROR;
 }

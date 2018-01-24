@@ -375,7 +375,8 @@ nxt_event_engine_signal_handler(nxt_task_t *task, void *obj, void *data)
         }
     }
 
-    nxt_log(task, NXT_LOG_CRIT, "signal %ui handler not found", signo);
+    nxt_log(task, NXT_LOG_CRIT, "signal %ui handler not found",
+            (nxt_uint_t) signo);
 }
 
 

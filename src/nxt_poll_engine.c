@@ -557,7 +557,7 @@ nxt_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
 
         ev = phe->event;
 
-        nxt_debug(ev->task, "poll: fd:%d ev:%04uXi rd:%d %wr:%d",
+        nxt_debug(ev->task, "poll: fd:%d ev:%04uXi rd:%d wr:%d",
                   fd, events, ev->read, ev->write);
 
         if (nxt_slow_path((events & POLLNVAL) != 0)) {

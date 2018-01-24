@@ -239,7 +239,7 @@ nxt_runtime_systemd_listen_sockets(nxt_task_t *task, nxt_runtime_t *rt)
         return NXT_OK;
     }
 
-    nxt_log(task, NXT_LOG_INFO, "using %s systemd listen sockets", n);
+    nxt_log(task, NXT_LOG_INFO, "using %i systemd listen sockets", n);
 
     inherited_sockets = nxt_array_create(rt->mem_pool,
                                          n, sizeof(nxt_listen_socket_t));

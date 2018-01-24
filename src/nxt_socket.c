@@ -101,7 +101,7 @@ nxt_socket_getsockopt(nxt_task_t *task, nxt_socket_t s, nxt_uint_t level,
 
     nxt_log(task, NXT_LOG_CRIT, "getsockopt(%d, %ui, %s) failed %E",
             s, level, nxt_socket_sockopt_name(level, sockopt),
-            val, nxt_socket_errno);
+            nxt_socket_errno);
 
     return -1;
 }

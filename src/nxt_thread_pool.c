@@ -233,7 +233,7 @@ nxt_thread_pool_destroy(nxt_thread_pool_t *tp)
 
     thr = nxt_thread();
 
-    nxt_log_debug(thr->log, "thread pool destroy: %d", tp->ready);
+    nxt_log_debug(thr->log, "thread pool destroy: %A", tp->ready);
 
     if (!tp->ready) {
         nxt_work_queue_add(&thr->engine->fast_work_queue, tp->exit,
