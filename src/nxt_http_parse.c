@@ -650,9 +650,7 @@ nxt_http_parse_field_value(nxt_http_request_parse_t *rp, u_char **pos,
             break;
         }
 
-        if (ch == '\0') {
-            return NXT_HTTP_PARSE_INVALID;
-        }
+        return NXT_HTTP_PARSE_INVALID;
     }
 
     if (nxt_fast_path(p != *pos)) {
