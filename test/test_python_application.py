@@ -80,6 +80,40 @@ def application(environ, start_response):
         }, 'headers')
         self.assertEqual(r.content, str.encode(body), 'body')
 
+    def test_python_application_query_string(self):
+        code, name = """
+
+def application(environ, start_response):
+
+    start_response('200 OK', [
+        ('Content-Length', '0'),
+        ('Request-Method', environ.get('REQUEST_METHOD')),
+        ('Request-Uri', environ.get('REQUEST_URI')),
+        ('Path-Info', environ.get('PATH_INFO')),
+        ('Query-String', environ.get('QUERY_STRING'))
+    ])
+    return []
+
+""", 'py_app'
+
+        self.python_application(name, code)
+        self.put('/', self.conf % (self.testdir + '/' + name))
+
+        r = unit.TestUnitHTTP.get(uri='/?var1=val1&var2=val2', headers={
+            'Host': 'localhost'
+        })
+
+        self.assertEqual(r.status_code, 200, 'status')
+        headers = dict(r.headers)
+        headers.pop('Server')
+        self.assertDictEqual(headers, {
+            'Content-Length': '0',
+            'Request-Method': 'GET',
+            'Query-String': 'var1=val1&var2=val2',
+            'Request-Uri': '/?var1=val1&var2=val2',
+            'Path-Info': '/'
+        }, 'headers')
+
     @unittest.expectedFailure
     def test_python_application_server_port(self):
         code, name = """
