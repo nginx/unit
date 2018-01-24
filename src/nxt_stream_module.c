@@ -65,7 +65,8 @@ nxt_stream_connection_peer(nxt_task_t *task, nxt_upstream_peer_t *up)
     up->sockaddr->type = SOCK_STREAM;
 
     nxt_log_debug(c->socket.log, "stream connection peer %*s",
-                  up->sockaddr->length, nxt_sockaddr_start(up->sockaddr));
+                  (size_t) up->sockaddr->length,
+                  nxt_sockaddr_start(up->sockaddr));
 
     p = nxt_conn_proxy_create(c);
     if (nxt_slow_path(p == NULL)) {

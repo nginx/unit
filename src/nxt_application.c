@@ -476,7 +476,8 @@ nxt_app_msg_write(nxt_task_t *task, nxt_app_wmsg_t *msg, u_char *c, size_t size)
         nxt_memcpy(dst, c, size);
         dst[size] = 0;
 
-        nxt_debug(task, "nxt_app_msg_write: %uz %*s", size, (int) size, c);
+        nxt_debug(task, "nxt_app_msg_write: %uz %*s", size, size, c);
+
     } else {
         dst_length = 1;
 
@@ -598,8 +599,9 @@ nxt_app_msg_read_str(nxt_task_t *task, nxt_app_rmsg_t *msg, nxt_str_t *str)
 
         buf->mem.pos += length;
 
-        nxt_debug(task, "nxt_read_str: %d %*s", (int) length - 1,
-                        (int) length - 1, str->start);
+        nxt_debug(task, "nxt_read_str: %uz %*s", length - 1,
+                        length - 1, str->start);
+
     } else {
         str->start = NULL;
         str->length = 0;

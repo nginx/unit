@@ -99,7 +99,7 @@ nxt_upstream_round_robin_create(nxt_task_t *task, void *obj, void *data)
         nxt_sockaddr_text(sa);
 
         nxt_debug(task, "upstream peer: %*s",
-                  sa->length, nxt_sockaddr_start(sa));
+                  (size_t) sa->length, nxt_sockaddr_start(sa));
 
         /* TODO: memcpy to shared memory pool. */
         peer[i].sockaddr = sa;

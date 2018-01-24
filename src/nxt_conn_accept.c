@@ -189,7 +189,8 @@ nxt_conn_accept(nxt_task_t *task, nxt_listen_event_t *lev, nxt_conn_t *c)
     nxt_sockaddr_text(c->remote);
 
     nxt_debug(task, "client: %*s",
-              c->remote->address_length, nxt_sockaddr_address(c->remote));
+              (size_t) c->remote->address_length,
+              nxt_sockaddr_address(c->remote));
 
     nxt_queue_insert_head(&task->thread->engine->idle_connections, &c->link);
 

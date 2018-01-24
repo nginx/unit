@@ -163,7 +163,7 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
             continue;
 
         case '*':
-            length = va_arg(args, u_int);
+            length = va_arg(args, size_t);
 
             fmt++;
 

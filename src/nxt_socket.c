@@ -190,7 +190,8 @@ nxt_socket_bind(nxt_task_t *task, nxt_socket_t s, nxt_sockaddr_t *sa,
 {
     nxt_err_t  err;
 
-    nxt_debug(task, "bind(%d, %*s)", s, sa->length, nxt_sockaddr_start(sa));
+    nxt_debug(task, "bind(%d, %*s)", s, (size_t) sa->length,
+              nxt_sockaddr_start(sa));
 
     if (nxt_fast_path(bind(s, &sa->u.sockaddr, sa->socklen) == 0)) {
         return NXT_OK;
@@ -203,7 +204,7 @@ nxt_socket_bind(nxt_task_t *task, nxt_socket_t s, nxt_sockaddr_t *sa,
     }
 
     nxt_log(task, NXT_LOG_CRIT, "bind(%d, %*s) failed %E",
-            s, sa->length, nxt_sockaddr_start(sa), err);
+            s, (size_t) sa->length, nxt_sockaddr_start(sa), err);
 
     return NXT_ERROR;
 }
@@ -216,7 +217,8 @@ nxt_socket_connect(nxt_task_t *task, nxt_socket_t s, nxt_sockaddr_t *sa)
     nxt_int_t   ret;
     nxt_uint_t  level;
 
-    nxt_debug(task, "connect(%d, %*s)", s, sa->length, nxt_sockaddr_start(sa));
+    nxt_debug(task, "connect(%d, %*s)",
+              s, (size_t) sa->length, nxt_sockaddr_start(sa));
 
     if (connect(s, &sa->u.sockaddr, sa->socklen) == 0) {
         return NXT_OK;
@@ -228,7 +230,7 @@ nxt_socket_connect(nxt_task_t *task, nxt_socket_t s, nxt_sockaddr_t *sa)
 
     case NXT_EINPROGRESS:
         nxt_debug(task, "connect(%d, %*s) in progress",
-                  s, sa->length, nxt_sockaddr_start(sa));
+                  s, (size_t) sa->length, nxt_sockaddr_start(sa));
         return NXT_AGAIN;
 
     case NXT_ECONNREFUSED:
@@ -258,7 +260,7 @@ nxt_socket_connect(nxt_task_t *task, nxt_socket_t s, nxt_sockaddr_t *sa)
     }
 
     nxt_log(task, level, "connect(%d, %*s) failed %E",
-            s, sa->length, nxt_sockaddr_start(sa), err);
+            s, (size_t) sa->length, nxt_sockaddr_start(sa), err);
 
     return ret;
 }

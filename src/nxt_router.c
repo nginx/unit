@@ -713,7 +713,7 @@ nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     nxt_debug(task, "nxt_router_conf_data_handler(%d): %*s",
               nxt_buf_used_size(msg->buf),
-              nxt_buf_used_size(msg->buf), msg->buf->mem.pos);
+              (size_t) nxt_buf_used_size(msg->buf), msg->buf->mem.pos);
 
     b = nxt_buf_chk_make_plain(tmcf->conf->mem_pool, msg->buf, msg->size);
 
@@ -1384,7 +1384,7 @@ nxt_router_socket_conf(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     sa->type = SOCK_STREAM;
 
     nxt_debug(task, "router listener: \"%*s\"",
-              sa->length, nxt_sockaddr_start(sa));
+              (size_t) sa->length, nxt_sockaddr_start(sa));
 
     skcf = nxt_mp_zget(tmcf->conf->mem_pool, sizeof(nxt_socket_conf_t));
     if (nxt_slow_path(skcf == NULL)) {
@@ -1615,7 +1615,7 @@ nxt_router_listen_socket_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     out->mem.free = nxt_sprintf(out->mem.free, out->mem.end,
                         "listen socket error: "
                         "{listener: \"%*s\", code:\"%V\", message: \"%*s\"}",
-                        sa->length, nxt_sockaddr_start(sa),
+                        (size_t) sa->length, nxt_sockaddr_start(sa),
                         &socket_errors[error], in->mem.free - p, p);
 
     nxt_debug(task, "%*s", out->mem.free - out->mem.pos, out->mem.pos);

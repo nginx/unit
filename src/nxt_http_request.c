@@ -375,7 +375,8 @@ nxt_http_request_close_handler(nxt_task_t *task, void *obj, void *data)
         r->logged = 1;
         // STUB
         nxt_debug(task, "http request log: \"%*s \"%V %V %V\" %d\"",
-                  r->remote->address_length, nxt_sockaddr_address(r->remote),
+                  (size_t) r->remote->address_length,
+                  nxt_sockaddr_address(r->remote),
                   r->method, &r->target, &r->version, r->status);
     }
 

@@ -305,5 +305,5 @@ nxt_listen_socket_log_handler(void *ctx, u_char *pos, u_char *end)
     sa = ctx;
 
     return nxt_sprintf(pos, end, " while creating listening socket on %*s",
-                       sa->length, sa->start);
+                       (size_t) sa->length, sa->start);
 }

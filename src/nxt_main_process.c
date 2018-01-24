@@ -870,13 +870,13 @@ nxt_main_port_socket_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
                                  msg->port_msg.reply_port);
 
     nxt_debug(task, "listening socket \"%*s\"",
-              sa->length, nxt_sockaddr_start(sa));
+              (size_t) sa->length, nxt_sockaddr_start(sa));
 
     ret = nxt_main_listening_socket(sa, &ls);
 
     if (ret == NXT_OK) {
         nxt_debug(task, "socket(\"%*s\"): %d",
-                  sa->length, nxt_sockaddr_start(sa), ls.socket);
+                  (size_t) sa->length, nxt_sockaddr_start(sa), ls.socket);
 
         type = NXT_PORT_MSG_RPC_READY_LAST | NXT_PORT_MSG_CLOSE_FD;
 
@@ -927,7 +927,7 @@ nxt_main_listening_socket(nxt_sockaddr_t *sa, nxt_listening_socket_t *ls)
 
         ls->end = nxt_sprintf(ls->start, ls->end,
                               "socket(\\\"%*s\\\") failed %E",
-                              sa->length, nxt_sockaddr_start(sa), err);
+                              (size_t) sa->length, nxt_sockaddr_start(sa), err);
 
         return NXT_ERROR;
     }
@@ -935,7 +935,8 @@ nxt_main_listening_socket(nxt_sockaddr_t *sa, nxt_listening_socket_t *ls)
     if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &enable, length) != 0) {
         ls->end = nxt_sprintf(ls->start, ls->end,
                               "setsockopt(\\\"%*s\\\", SO_REUSEADDR) failed %E",
-                              sa->length, nxt_sockaddr_start(sa), nxt_errno);
+                              (size_t) sa->length, nxt_sockaddr_start(sa),
+                              nxt_errno);
         goto fail;
     }
 
@@ -946,7 +947,8 @@ nxt_main_listening_socket(nxt_sockaddr_t *sa, nxt_listening_socket_t *ls)
         if (setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &enable, length) != 0) {
             ls->end = nxt_sprintf(ls->start, ls->end,
                                "setsockopt(\\\"%*s\\\", IPV6_V6ONLY) failed %E",
-                               sa->length, nxt_sockaddr_start(sa), nxt_errno);
+                               (size_t) sa->length, nxt_sockaddr_start(sa),
+                               nxt_errno);
             goto fail;
         }
     }
@@ -992,7 +994,7 @@ nxt_main_listening_socket(nxt_sockaddr_t *sa, nxt_listening_socket_t *ls)
         }
 
         ls->end = nxt_sprintf(ls->start, ls->end, "bind(\\\"%*s\\\") failed %E",
-                              sa->length, nxt_sockaddr_start(sa), err);
+                              (size_t) sa->length, nxt_sockaddr_start(sa), err);
         goto fail;
     }
 

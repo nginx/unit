@@ -287,7 +287,7 @@ nxt_sockaddr_text(nxt_sockaddr_t *sa)
 #if (NXT_LINUX)
 
         if (p[0] == '\0') {
-            int  length;
+            size_t  length;
 
             /* Linux abstract socket address has no trailing zero. */
             length = sa->socklen - offsetof(struct sockaddr_un, sun_path);
@@ -478,7 +478,7 @@ nxt_sockaddr_ntop(nxt_sockaddr_t *sa, u_char *buf, u_char *end, nxt_bool_t port)
         p = (u_char *) sa->u.sockaddr_un.sun_path;
 
         if (p[0] == '\0') {
-            int  length;
+            size_t  length;
 
             /* Linux abstract socket address has no trailing zero. */
 
