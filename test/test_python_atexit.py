@@ -22,7 +22,7 @@ atexit.register(create_file)
 
 def application(env, start_response):
     start_response('200 OK', [('Content-Type','text/html')])
-    return [b'body']
+    return []
 
 """ % (self.testdir + '/atexit'), 'py_app'
 
@@ -55,7 +55,7 @@ def application(env, start_response):
             }
             """)
 
-        time.sleep(0.2)
+        time.sleep(0.2)   # wait for 'atexit' file
 
         self.assertEqual(os.path.exists(self.testdir + '/atexit'), True,
             'python atexit')

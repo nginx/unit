@@ -9,7 +9,25 @@ class TestUnitApplication(unit.TestUnitControl):
         u.check_modules('python')
         u.check_version('0.4')
 
-    def test_python_application(self):
+    conf = """
+        {
+            "listeners": {
+                "*:7080": {
+                    "application": "app"
+                }
+            },
+            "applications": {
+                "app": {
+                    "type": "python",
+                    "workers": 1,
+                    "path": "%s",
+                    "module": "wsgi"
+                }
+            }
+        }
+        """
+
+    def test_python_application_simple(self):
         code, name = """
 
 def application(environ, start_response):
@@ -26,7 +44,6 @@ def application(environ, start_response):
         ('Http-Host', environ.get('HTTP_HOST')),
         ('Remote-Addr', environ.get('REMOTE_ADDR')),
         ('Server-Name', environ.get('SERVER_NAME')),
-        ('Server-Port', environ.get('SERVER_PORT')),
         ('Server-Protocol', environ.get('SERVER_PROTOCOL')),
         ('Custom-Header', environ.get('HTTP_CUSTOM_HEADER'))
     ])
@@ -35,24 +52,7 @@ def application(environ, start_response):
 """, 'py_app'
 
         self.python_application(name, code)
-
-        self.put('/', """
-            {
-                "listeners": {
-                    "*:7080": {
-                        "application": "app"
-                    }
-                },
-                "applications": {
-                    "app": {
-                        "type": "python",
-                        "workers": 1,
-                        "path": "%s",
-                        "module": "wsgi"
-                    }
-                }
-            }
-            """ % (self.testdir + '/' + name))
+        self.put('/', self.conf % (self.testdir + '/' + name))
 
         body = 'Test body string.'
 
@@ -63,27 +63,44 @@ def application(environ, start_response):
         }, data=body)
 
         self.assertEqual(r.status_code, 200, 'status')
-        self.assertEqual(r.headers['Content-Length'], str(len(body)),
-            'header content length')
-        self.assertEqual(r.headers['Content-Type'], 'text/html',
-            'header content type')
-        self.assertEqual(r.headers['Request-Method'], 'POST',
-            'header request method')
-        self.assertEqual(r.headers['Request-Uri'], '/', 'header request uri')
-        self.assertEqual(r.headers['Path-Info'], '/', 'header path info')
-        self.assertEqual(r.headers['Http-Host'], 'localhost',
-            'header http host')
-        self.assertEqual(r.headers['Remote-Addr'], '127.0.0.1',
-            'header remote addr')
-
-        self.assertTry('assertEqual', 'header server port',
-            r.headers['Server-Port'], '7080')
-
-        self.assertEqual(r.headers['Server-Protocol'], 'HTTP/1.1',
-            'header server protocol')
-        self.assertEqual(r.headers['Custom-Header'], 'blah',
-            'header custom header')
+        headers = dict(r.headers)
+        self.assertRegex(headers.pop('Server'), r'unit/[\d\.]+',
+            'server header')
+        self.assertDictEqual(headers, {
+            'Content-Length': str(len(body)),
+            'Content-Type': 'text/html',
+            'Request-Method': 'POST',
+            'Request-Uri': '/',
+            'Path-Info': '/',
+            'Http-Host': 'localhost',
+            'Server-Name': 'localhost',
+            'Remote-Addr': '127.0.0.1',
+            'Server-Protocol': 'HTTP/1.1',
+            'Custom-Header': 'blah'
+        }, 'headers')
         self.assertEqual(r.content, str.encode(body), 'body')
+
+    @unittest.expectedFailure
+    def test_python_application_server_port(self):
+        code, name = """
+
+def application(environ, start_response):
+
+    start_response('200 OK', [
+        ('Content-Type', 'text/html'),
+        ('Server-Port', environ.get('SERVER_PORT'))
+    ])
+    return []
+
+""", 'py_app'
+
+        self.python_application(name, code)
+        self.put('/', self.conf % (self.testdir + '/' + name))
+
+        r = unit.TestUnitHTTP.get(headers={'Host': 'localhost'})
+
+        self.assertEqual(r.headers.pop('Server-Port'), '7080',
+            'Server-Port header')
 
 
 if __name__ == '__main__':

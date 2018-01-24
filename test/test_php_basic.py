@@ -6,27 +6,34 @@ class TestUnitBasic(unit.TestUnitControl):
     def setUpClass():
         unit.TestUnit().check_modules('php')
 
-    def test_php_get(self):
-        resp = self.get()
-        self.assertEqual(resp, {'listeners': {}, 'applications': {}}, 'empty')
-        self.assertEqual(self.get('/listeners'), {}, 'empty listeners prefix')
-        self.assertEqual(self.get('/applications'), {},
-            'empty applications prefix')
-
-        self.put('/applications', """
-            {
-                "app": {
-                    "type": "php",
-                    "workers": 1,
-                    "root": "/app",
-                    "index": "index.php"
-                }
+    conf_app = """
+        {
+            "app": {
+                "type": "php",
+                "workers": 1,
+                "root": "/app",
+                "index": "index.php"
             }
-            """)
+        }
+    """
+
+    conf_basic = """
+        {
+            "listeners": {
+                "*:7080": {
+                    "application": "app"
+                }
+            },
+            "applications": %s
+        }
+        """ % (conf_app)
+
+    def test_php_get_applications(self):
+        self.put('/applications', self.conf_app)
 
         resp = self.get()
 
-        self.assertEqual(resp['listeners'], {}, 'php empty listeners')
+        self.assertEqual(resp['listeners'], {}, 'listeners')
         self.assertEqual(resp['applications'],
             {
                 "app": {
@@ -36,7 +43,10 @@ class TestUnitBasic(unit.TestUnitControl):
                     "index": "index.php"
                 }
              },
-             'php applications')
+             'applications')
+
+    def test_php_get_applications_prefix(self):
+        self.put('/applications', self.conf_app)
 
         self.assertEqual(self.get('/applications'),
             {
@@ -47,7 +57,10 @@ class TestUnitBasic(unit.TestUnitControl):
                     "index": "index.php"
                 }
             },
-            'php applications prefix')
+            'applications prefix')
+
+    def test_php_get_applications_prefix_2(self):
+        self.put('/applications', self.conf_app)
 
         self.assertEqual(self.get('/applications/app'),
             {
@@ -56,102 +69,67 @@ class TestUnitBasic(unit.TestUnitControl):
                 "root": "/app",
                 "index": "index.php"
             },
-            'php applications prefix 2')
+            'applications prefix 2')
 
-        self.assertEqual(self.get('/applications/app/type'), 'php',
-            'php applications type')
-        self.assertEqual(self.get('/applications/app/workers'), 1,
-            'php applications workers')
+    def test_php_get_applications_prefix_3(self):
+        self.put('/applications', self.conf_app)
 
-        self.put('/listeners', '{"*:7080":{"application":"app"}}')
+        self.assertEqual(self.get('/applications/app/type'), 'php', 'type')
+        self.assertEqual(self.get('/applications/app/workers'), 1, 'workers')
+
+    def test_php_get_listeners(self):
+        self.put('/', self.conf_basic)
 
         self.assertEqual(self.get()['listeners'],
-            {"*:7080":{"application":"app"}}, 'php listeners')
+            {"*:7080":{"application":"app"}}, 'listeners')
+
+    def test_php_get_listeners_prefix(self):
+        self.put('/', self.conf_basic)
+
         self.assertEqual(self.get('/listeners'),
-            {"*:7080":{"application":"app"}}, 'php listeners prefix')
+            {"*:7080":{"application":"app"}}, 'listeners prefix')
+
+    def test_php_get_listeners_prefix_2(self):
+        self.put('/', self.conf_basic)
+
         self.assertEqual(self.get('/listeners/*:7080'),
-            {"application":"app"}, 'php listeners prefix 2')
-        self.assertEqual(self.get('/listeners/*:7080/application'), 'app',
-            'php listeners application')
+            {"application":"app"}, 'listeners prefix 2')
 
-    def test_php_put(self):
-        self.put('/', """
-            {
-                "listeners": {
-                    "*:7080": {
-                        "application": "app"
-                    }
-                },
-                "applications": {
-                    "app": {
-                        "type": "php",
-                        "workers": 1,
-                        "root": "/app",
-                        "index": "index.php"
-                    }
-                }
-            }
-            """)
-
-        resp = self.get()
-
-        self.assertEqual(resp['listeners'], {"*:7080":{"application":"app"}},
-            'put listeners')
-
-        self.assertEqual(resp['applications'],
-            {
-                "app": {
-                    "type": "php",
-                    "workers": 1,
-                    "root": "/app",
-                    "index": "index.php"
-                }
-            },
-            'put applications')
-
+    def test_php_change_listener(self):
+        self.put('/', self.conf_basic)
         self.put('/listeners', '{"*:7081":{"application":"app"}}')
-        self.assertEqual(self.get('/listeners'),
-            {"*:7081": {"application":"app"}}, 'put listeners prefix')
 
+        self.assertEqual(self.get('/listeners'),
+            {"*:7081": {"application":"app"}}, 'change listener')
+
+    def test_php_add_listener(self):
+        self.put('/', self.conf_basic)
         self.put('/listeners/*:7082', '{"application":"app"}')
 
         self.assertEqual(self.get('/listeners'),
             {
-                "*:7081": {
+                "*:7080": {
                     "application": "app"
                 },
                 "*:7082": {
                     "application": "app"
                 }
             },
-            'put listeners prefix 3')
+            'add listener')
+
+    def test_php_change_application(self):
+        self.put('/', self.conf_basic)
 
         self.put('/applications/app/workers', '30')
         self.assertEqual(self.get('/applications/app/workers'), 30,
-            'put applications workers')
+            'change application workers')
 
         self.put('/applications/app/root', '"/www"')
         self.assertEqual(self.get('/applications/app/root'), '/www',
-            'put applications root')
+            'change application root')
 
     def test_php_delete(self):
-        self.put('/', """
-            {
-                "listeners": {
-                    "*:7080": {
-                        "application": "app"
-                    }
-                },
-                "applications": {
-                    "app": {
-                        "type": "php",
-                        "workers": 1,
-                        "root": "/app",
-                        "index": "index.php"
-                    }
-                }
-            }
-            """)
+        self.put('/', self.conf_basic)
 
         self.assertIn('error', self.delete('/applications/app'),
             'delete app before listener')

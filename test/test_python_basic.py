@@ -6,27 +6,44 @@ class TestUnitBasic(unit.TestUnitControl):
     def setUpClass():
         unit.TestUnit().check_modules('python')
 
-    def test_python_get(self):
-        resp = self.get()
-        self.assertEqual(resp, {'listeners': {}, 'applications': {}}, 'empty')
-        self.assertEqual(self.get('/listeners'), {}, 'empty listeners prefix')
-        self.assertEqual(self.get('/applications'), {},
-            'empty applications prefix')
-
-        self.put('/applications', """
-            {
-                "app": {
-                    "type": "python",
-                    "workers": 1,
-                    "path": "/app",
-                    "module": "wsgi"
-                }
+    conf_app = """
+        {
+            "app": {
+                "type": "python",
+                "workers": 1,
+                "path": "/app",
+                "module": "wsgi"
             }
-            """)
+        }
+    """
+
+    conf_basic = """
+        {
+            "listeners": {
+                "*:7080": {
+                    "application": "app"
+                }
+            },
+            "applications": %s
+        }
+        """ % (conf_app)
+
+    def test_python_get_empty(self):
+        self.assertEqual(self.get(), {'listeners': {}, 'applications': {}},
+            'empty')
+
+    def test_python_get_prefix_listeners(self):
+        self.assertEqual(self.get('/listeners'), {}, 'listeners prefix')
+
+    def test_python_get_prefix_applications(self):
+        self.assertEqual(self.get('/applications'), {}, 'applications prefix')
+
+    def test_python_get_applications(self):
+        self.put('/applications', self.conf_app)
 
         resp = self.get()
 
-        self.assertEqual(resp['listeners'], {}, 'python empty listeners')
+        self.assertEqual(resp['listeners'], {}, 'listeners')
         self.assertEqual(resp['applications'],
             {
                 "app": {
@@ -36,7 +53,10 @@ class TestUnitBasic(unit.TestUnitControl):
                     "module": "wsgi"
                 }
              },
-             'python applications')
+             'applications')
+
+    def test_python_get_applications_prefix(self):
+        self.put('/applications', self.conf_app)
 
         self.assertEqual(self.get('/applications'),
             {
@@ -47,7 +67,10 @@ class TestUnitBasic(unit.TestUnitControl):
                     "module":"wsgi"
                 }
             },
-            'python applications prefix')
+            'applications prefix')
+
+    def test_python_get_applications_prefix_2(self):
+        self.put('/applications', self.conf_app)
 
         self.assertEqual(self.get('/applications/app'),
             {
@@ -56,102 +79,67 @@ class TestUnitBasic(unit.TestUnitControl):
                 "path": "/app",
                 "module": "wsgi"
             },
-            'python applications prefix 2')
+            'applications prefix 2')
 
-        self.assertEqual(self.get('/applications/app/type'), 'python',
-            'python applications type')
-        self.assertEqual(self.get('/applications/app/workers'), 1,
-            'python applications workers')
+    def test_python_get_applications_prefix_3(self):
+        self.put('/applications', self.conf_app)
 
-        self.put('/listeners', '{"*:7080":{"application":"app"}}')
+        self.assertEqual(self.get('/applications/app/type'), 'python', 'type')
+        self.assertEqual(self.get('/applications/app/workers'), 1, 'workers')
+
+    def test_python_get_listeners(self):
+        self.put('/', self.conf_basic)
 
         self.assertEqual(self.get()['listeners'],
-            {"*:7080":{"application":"app"}}, 'python listeners')
+            {"*:7080":{"application":"app"}}, 'listeners')
+
+    def test_python_get_listeners_prefix(self):
+        self.put('/', self.conf_basic)
+
         self.assertEqual(self.get('/listeners'),
-            {"*:7080":{"application":"app"}}, 'python listeners prefix')
+            {"*:7080":{"application":"app"}}, 'listeners prefix')
+
+    def test_python_get_listeners_prefix_2(self):
+        self.put('/', self.conf_basic)
+
         self.assertEqual(self.get('/listeners/*:7080'),
-            {"application":"app"}, 'python listeners prefix 2')
-        self.assertEqual(self.get('/listeners/*:7080/application'), 'app',
-            'python listeners application')
+            {"application":"app"}, 'listeners prefix 2')
 
-    def test_python_put(self):
-        self.put('/', """
-            {
-                "listeners": {
-                    "*:7080": {
-                        "application": "app"
-                    }
-                },
-                "applications": {
-                    "app": {
-                        "type": "python",
-                        "workers": 1,
-                        "path": "/app",
-                        "module": "wsgi"
-                    }
-                }
-            }
-            """)
-
-        resp = self.get()
-
-        self.assertEqual(resp['listeners'], {"*:7080":{"application":"app"}},
-            'put listeners')
-
-        self.assertEqual(resp['applications'],
-            {
-                "app": {
-                    "type": "python",
-                    "workers": 1,
-                    "path": "/app",
-                    "module": "wsgi"
-                }
-            },
-            'put applications')
-
+    def test_python_change_listener(self):
+        self.put('/', self.conf_basic)
         self.put('/listeners', '{"*:7081":{"application":"app"}}')
-        self.assertEqual(self.get('/listeners'),
-            {"*:7081": {"application":"app"}}, 'put listeners prefix')
 
+        self.assertEqual(self.get('/listeners'),
+            {"*:7081": {"application":"app"}}, 'change listener')
+
+    def test_python_add_listener(self):
+        self.put('/', self.conf_basic)
         self.put('/listeners/*:7082', '{"application":"app"}')
 
         self.assertEqual(self.get('/listeners'),
             {
-                "*:7081": {
+                "*:7080": {
                     "application": "app"
                 },
                 "*:7082": {
                     "application": "app"
                 }
             },
-            'put listeners prefix 3')
+            'add listener')
+
+    def test_python_change_application(self):
+        self.put('/', self.conf_basic)
 
         self.put('/applications/app/workers', '30')
         self.assertEqual(self.get('/applications/app/workers'), 30,
-            'put applications workers')
+            'change application workers')
 
         self.put('/applications/app/path', '"/www"')
         self.assertEqual(self.get('/applications/app/path'), '/www',
-            'put applications path')
+            'change application path')
 
     def test_python_delete(self):
-        self.put('/', """
-            {
-                "listeners": {
-                    "*:7080": {
-                        "application": "app"
-                    }
-                },
-                "applications": {
-                    "app": {
-                        "type": "python",
-                        "workers": 1,
-                        "path": "/app",
-                        "module": "wsgi"
-                    }
-                }
-            }
-            """)
+        self.put('/', self.conf_basic)
 
         self.assertIn('error', self.delete('/applications/app'),
             'delete app before listener')

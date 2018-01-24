@@ -28,10 +28,6 @@ class TestUnit(unittest.TestCase):
         if '--leave' not in sys.argv:
             shutil.rmtree(self.testdir)
 
-    def assertTry(self, assert_method, description, *args):
-        try: getattr(self, assert_method)(*args, msg=description)
-        except AssertionError: print('not yet: ' + description)
-
     def check_modules(self, *modules):
         self._run()
 
