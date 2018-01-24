@@ -102,6 +102,23 @@ def application(environ, start_response):
         self.assertEqual(r.headers.pop('Server-Port'), '7080',
             'Server-Port header')
 
+    @unittest.expectedFailure
+    def test_python_application_204_transfer_encoding(self):
+        code, name = """
+
+def application(environ, start_response):
+
+    start_response('204 No Content', [])
+    return []
+
+""", 'py_app'
+
+        self.python_application(name, code)
+        self.put('/', self.conf % (self.testdir + '/' + name))
+
+        r = unit.TestUnitHTTP.get(headers={'Host': 'localhost'})
+        self.assertNotIn('Transfer-Encoding', r.headers,
+            '204 header transfer encoding')
 
 if __name__ == '__main__':
     unittest.main()
