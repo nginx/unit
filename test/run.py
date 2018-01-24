@@ -12,5 +12,8 @@ tests = loader.discover(start_dir=this_dir)
 suite.addTests(tests)
 
 runner = unittest.TextTestRunner(verbosity=3)
-result = not runner.run(suite).wasSuccessful()
-sys.exit(result)
+result = runner.run(suite)
+
+ret = not (len(result.failures) == len(result.errors) == 0)
+
+sys.exit(ret)
