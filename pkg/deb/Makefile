@@ -76,7 +76,7 @@ CONFIGURE_ARGS=\
 export CR=\\n
 
 default:
-	@echo "valid targets: all modules unit $(addprefix unit-, $(MODULES)) clean"
+	@echo "valid targets: all modules unit $(addprefix unit-, $(MODULES)) test test-debug clean"
 
 all: check-build-depends unit modules
 
@@ -219,10 +219,30 @@ unit-%: check-build-depends-% | debuild-%
 	find debuild-$*/ -maxdepth 1 -type f -exec cp {} debs/ \;
 	ln -s debuild-$*/$(SRCDIR)/build $@
 
+test: unit modules
+	@{ \
+	for so in `find debuild-*/unit-$(VERSION)/debian/build-unit/ -type f -name "*.so"` ; do \
+		soname=`basename $${so}` ; \
+		test -h debuild/unit-$(VERSION)/debian/build-unit/build/$${soname} || \
+		ln -fs `pwd`/$${so} debuild/unit-$(VERSION)/debian/build-unit/build/$${soname} ; \
+	done ; \
+	( cd debuild/unit-$(VERSION)/debian/build-unit && ./test/run.py ) ; \
+	}
+
+test-debug: unit modules
+	@{ \
+	for so in `find debuild-*/unit-$(VERSION)/debian/build-unit-debug/ -type f -name "*.so"` ; do \
+		soname=`basename $${so}` ; \
+		test -h debuild/unit-$(VERSION)/debian/build-unit-debug/build/$${soname} || \
+		ln -fs `pwd`/$${so} debuild/unit-$(VERSION)/debian/build-unit-debug/build/$${soname} ; \
+	done ; \
+	( cd debuild/unit-$(VERSION)/debian/build-unit-debug && ./test/run.py ) ; \
+	}
+
 clean:
 	rm -rf debuild debuild-* debs ../../build
 	find . -maxdepth 1 -type l -delete
 
-.PHONY: default all modules check-build-depends clean
+.PHONY: default all modules check-build-depends test test-debug clean
 
 .SECONDARY:
