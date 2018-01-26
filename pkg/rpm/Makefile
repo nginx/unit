@@ -50,7 +50,7 @@ CONFIGURE_ARGS=\
 export CR=\\n
 
 default:
-	@echo "valid targets: all modules unit $(addprefix unit-, $(MODULES)) rpmlint specs clean"
+	@echo "valid targets: all modules unit $(addprefix unit-, $(MODULES)) rpmlint specs test test-debug clean"
 
 all: check-build-depends unit modules
 
@@ -172,11 +172,31 @@ unit-%: check-build-depends-% rpmbuild/SPECS/unit-%.spec rpmbuild/SOURCES/unit-$
 	rpmbuild -D "_topdir `pwd`/rpmbuild" -ba rpmbuild/SPECS/$@.spec && \
 	ln -s rpmbuild/BUILD/$@-$(VERSION)/build $@
 
+test: unit modules
+	@{ \
+	for so in `find rpmbuild/BUILD/*/build-nodebug/ -type f -name "*.so"`; do \
+		soname=`basename $${so}` ; \
+		test -h rpmbuild/BUILD/unit-$(VERSION)/build-nodebug/$${soname} || \
+		ln -fs `pwd`/$${so} rpmbuild/BUILD/unit-$(VERSION)/build-nodebug/$${soname} ; \
+	done ; \
+	( cd rpmbuild/BUILD/unit-$(VERSION) && rm -f build && ln -s build-nodebug build && ./test/run.py ) ; \
+	}
+
+test-debug: unit modules
+	@{ \
+	for so in `find rpmbuild/BUILD/*/build-debug/ -type f -name "*.so"`; do \
+		soname=`basename $${so}` ; \
+		test -h rpmbuild/BUILD/unit-$(VERSION)/build-debug/$${soname} || \
+		ln -fs `pwd`/$${so} rpmbuild/BUILD/unit-$(VERSION)/build-debug/$${soname} ; \
+	done ; \
+	( cd rpmbuild/BUILD/unit-$(VERSION) && rm -f build && ln -s build-debug build && ./test/run.py ) ; \
+	}
+
 clean:
 	rm -rf rpmbuild/SPECS rpmbuild/BUILD rpmbuild/BUILDROOT rpmbuild/RPMS rpmbuild/SRPMS ../../build
 	rm -f rpmbuild/SOURCES/unit-*.tar.gz unit
 	find . -maxdepth 1 -type l -delete
 
-.PHONY: default all modules specs check-build-depends rpmlint clean
+.PHONY: default all modules specs check-build-depends rpmlint test test-debug clean
 
 .SECONDARY:

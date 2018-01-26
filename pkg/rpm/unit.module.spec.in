@@ -63,6 +63,7 @@ make %%MODULE_MAKEARGS%%
 	--cc-opt="%{CC_OPT}"
 ./configure %%MODULE_CONFARGS%%
 make %%MODULE_MAKEARGS%%
+%{__mv} build build-nodebug
 
 %install
 %{__rm} -rf %{buildroot}
@@ -70,9 +71,10 @@ make %%MODULE_MAKEARGS%%
 %{__install} -m 644 -p NOTICE \
     %{buildroot}%{_datadir}/doc/%%NAME%%/COPYRIGHT
 %%MODULE_PREINSTALL%%
+%{__ln_s} build-debug build
 DESTDIR=%{buildroot} make %%MODULE_INSTARGS%%
-%{__rm} -rf build
-%{__mv} build-debug build
+%{__rm} -f build
+%{__ln_s} build-nodebug build
 DESTDIR=%{buildroot} make %%MODULE_INSTARGS%%
 
 %check

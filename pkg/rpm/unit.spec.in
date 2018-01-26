@@ -77,9 +77,11 @@ dynamically via an API.
 	--cc-opt="%{CC_OPT}" \
 	--ld-opt="%{LD_OPT}"
 %{__make} %{?_smp_mflags}
+%{__mv} build build-nodebug
 
 %install
 %{__rm} -rf %{buildroot}
+%{__ln_s} build-nodebug build
 DESTDIR=%{buildroot} make unitd-install
 %{__install} -m755 %{bdir}/build-debug/unitd \
     %{buildroot}%{_sbindir}/unitd-debug
