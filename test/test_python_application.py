@@ -19,7 +19,7 @@ class TestUnitApplication(unit.TestUnitControl):
             "applications": {
                 "app": {
                     "type": "python",
-                    "workers": 1,
+                    "processes": { "spare": 0 },
                     "path": self.testdir + '/' + name,
                     "module": "wsgi"
                 }

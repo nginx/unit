@@ -158,6 +158,9 @@ struct nxt_port_s {
     nxt_queue_link_t    app_link;   /* for nxt_app_t.ports */
     nxt_app_t           *app;
 
+    nxt_queue_link_t    idle_link;  /* for nxt_app_t.idle_ports */
+    nxt_msec_t          idle_start;
+
     nxt_queue_t         messages;   /* of nxt_port_send_msg_t */
     nxt_thread_mutex_t  write_mutex;
 

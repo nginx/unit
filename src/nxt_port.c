@@ -29,6 +29,7 @@ nxt_port_mp_cleanup(nxt_task_t *task, void *obj, void *data)
 
     nxt_assert(port->use_count == 0);
     nxt_assert(port->app_link.next == NULL);
+    nxt_assert(port->idle_link.next == NULL);
 
     nxt_assert(nxt_queue_is_empty(&port->messages));
     nxt_assert(nxt_lvlhsh_is_empty(&port->rpc_streams));

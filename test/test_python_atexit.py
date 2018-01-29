@@ -37,7 +37,7 @@ def application(env, start_response):
             "applications": {
                 "app": {
                     "type": "python",
-                    "workers": 1,
+                    "processes": { "spare": 0 },
                     "path": self.testdir + '/' + name,
                     "module": "wsgi"
                 }

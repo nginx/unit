@@ -163,6 +163,13 @@ nxt_conf_get_string(nxt_conf_value_t *value, nxt_str_t *str)
 }
 
 
+int64_t
+nxt_conf_get_integer(nxt_conf_value_t *value)
+{
+    return value->u.integer;
+}
+
+
 nxt_uint_t
 nxt_conf_object_members_count(nxt_conf_value_t *value)
 {

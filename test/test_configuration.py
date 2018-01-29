@@ -14,7 +14,7 @@ class TestUnitConfiguration(unit.TestUnitControl):
             {
                 "ap\u0070": {
                     "type": "\u0070ython",
-                    "workers": 1,
+                    "processes": { "spare": 0 },
                     "path": "\u002Fapp",
                     "module": "wsgi"
                 }
@@ -25,7 +25,7 @@ class TestUnitConfiguration(unit.TestUnitControl):
         self.assertIn('success', self.conf({
             "приложение": {
                 "type": "python",
-                "workers": 1,
+                "processes": { "spare": 0 },
                 "path": "/app",
                 "module": "wsgi"
             }
@@ -36,7 +36,7 @@ class TestUnitConfiguration(unit.TestUnitControl):
             {
                 "app": {
                     "type": "python",
-                    "workers": \u0031,
+                    "processes": { "spare": \u0030 },
                     "path": "/app",
                     "module": "wsgi"
                 }
@@ -49,18 +49,16 @@ class TestUnitConfiguration(unit.TestUnitControl):
     def test_applications_string(self):
         self.assertIn('error', self.conf('"{}"', '/applications'), 'string')
 
-    @unittest.expectedFailure
-    def test_negative_workers(self):
+    def test_negative_spare(self):
         self.assertIn('error', self.conf({
             "app": {
                 "type": "python",
-                "workers": -1,
+                "processes": { "spare": -1 },
                 "path": "/app",
                 "module": "wsgi"
             }
-        }, '/applications'), 'negative workers')
+        }, '/applications'), 'negative spare')
 
-    @unittest.expectedFailure
     def test_applications_type_only(self):
         self.assertIn('error', self.conf({
             "app": {
@@ -73,7 +71,7 @@ class TestUnitConfiguration(unit.TestUnitControl):
             {
                 app": {
                     "type": "python",
-                    "workers": 1,
+                    "processes": { "spare": 0 },
                     "path": "/app",
                     "module": "wsgi"
                 }
@@ -85,7 +83,7 @@ class TestUnitConfiguration(unit.TestUnitControl):
             {
                 "app" {
                     "type": "python",
-                    "workers": 1,
+                    "processes": { "spare": 0 },
                     "path": "/app",
                     "module": "wsgi"
                 }
@@ -97,7 +95,7 @@ class TestUnitConfiguration(unit.TestUnitControl):
             {
                 "app": {
                     "type": "python"
-                    "workers": 1,
+                    "processes": { "spare": 0 },
                     "path": "/app",
                     "module": "wsgi"
                 }
@@ -112,7 +110,7 @@ class TestUnitConfiguration(unit.TestUnitControl):
         self.assertIn('success', self.conf({
             "app": {
                 "type": "python",
-                "workers": 1,
+                "processes": { "spare": 0 },
                 "path": "../app",
                 "module": "wsgi"
             }
@@ -137,7 +135,7 @@ class TestUnitConfiguration(unit.TestUnitControl):
             "applications": {
                 "app": {
                     "type": "python",
-                    "workers": 1,
+                    "processes": { "spare": 0 },
                     "path": "/app",
                     "module": "wsgi"
                 }
@@ -154,7 +152,7 @@ class TestUnitConfiguration(unit.TestUnitControl):
             "applications": {
                 "app": {
                     "type": "python",
-                    "workers": 1,
+                    "processes": { "spare": 0 },
                     "path": "/app",
                     "module": "wsgi"
                 }
@@ -171,7 +169,7 @@ class TestUnitConfiguration(unit.TestUnitControl):
             "applications": {
                 "app": {
                     "type": "python",
-                    "workers": 1,
+                    "processes": { "spare": 0 },
                     "path": "/app",
                     "module": "wsgi"
                 }
@@ -188,7 +186,7 @@ class TestUnitConfiguration(unit.TestUnitControl):
             "applications": {
                 "app": {
                     "type": "python",
-                    "workers": 1,
+                    "processes": { "spare": 0 },
                     "path": "/app",
                     "module": "wsgi"
                 }

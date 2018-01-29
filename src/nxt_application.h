@@ -60,8 +60,6 @@ struct nxt_common_app_conf_s {
 
     char       *working_directory;
 
-    uint32_t   workers;
-
     union {
         nxt_python_app_conf_t  python;
         nxt_php_app_conf_t     php;

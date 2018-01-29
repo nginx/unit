@@ -54,6 +54,8 @@ static nxt_int_t nxt_conf_vldt_app(nxt_conf_validation_t *vldt,
     nxt_str_t *name, nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_object(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_processes(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_object_iterator(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_system(nxt_conf_validation_t *vldt,
@@ -107,14 +109,29 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_limits_members[] = {
 };
 
 
-static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[] = {
-    { nxt_string("type"),
-      NXT_CONF_VLDT_STRING,
+static nxt_conf_vldt_object_t  nxt_conf_vldt_app_processes_members[] = {
+    { nxt_string("spare"),
+      NXT_CONF_VLDT_INTEGER,
       NULL,
       NULL },
 
-    { nxt_string("workers"),
+    { nxt_string("max"),
       NXT_CONF_VLDT_INTEGER,
+      NULL,
+      NULL },
+
+    { nxt_string("idle_timeout"),
+      NXT_CONF_VLDT_INTEGER,
+      NULL,
+      NULL },
+
+    NXT_CONF_VLDT_END
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[] = {
+    { nxt_string("type"),
+      NXT_CONF_VLDT_STRING,
       NULL,
       NULL },
 
@@ -122,6 +139,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[] = {
       NXT_CONF_VLDT_OBJECT,
       &nxt_conf_vldt_object,
       (void *) &nxt_conf_vldt_app_limits_members },
+
+    { nxt_string("processes"),
+      NXT_CONF_VLDT_INTEGER | NXT_CONF_VLDT_OBJECT,
+      &nxt_conf_vldt_processes,
+      (void *) &nxt_conf_vldt_app_processes_members },
 
     { nxt_string("user"),
       NXT_CONF_VLDT_STRING,
@@ -472,6 +494,119 @@ nxt_conf_vldt_object(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
             break;
         }
     }
+}
+
+
+typedef struct {
+    int64_t  spare;
+    int64_t  max;
+    int64_t  idle_timeout;
+} nxt_conf_vldt_processes_conf_t;
+
+
+static nxt_conf_map_t  nxt_conf_vldt_processes_conf_map[] = {
+    {
+        nxt_string("spare"),
+        NXT_CONF_MAP_INT64,
+        offsetof(nxt_conf_vldt_processes_conf_t, spare),
+    },
+
+    {
+        nxt_string("max"),
+        NXT_CONF_MAP_INT64,
+        offsetof(nxt_conf_vldt_processes_conf_t, max),
+    },
+
+    {
+        nxt_string("idle_timeout"),
+        NXT_CONF_MAP_INT64,
+        offsetof(nxt_conf_vldt_processes_conf_t, idle_timeout),
+    },
+};
+
+
+static nxt_int_t
+nxt_conf_vldt_processes(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
+{
+    int64_t                         int_value;
+    nxt_int_t                       ret;
+    nxt_conf_vldt_processes_conf_t  proc;
+
+    static nxt_str_t                max_str = nxt_string("max");
+
+    if (nxt_conf_type(value) == NXT_CONF_INTEGER) {
+        int_value = nxt_conf_get_integer(value);
+
+        if (int_value < 1) {
+            return nxt_conf_vldt_error(vldt, "The \"processes\" number must be "
+                                       "equal to or greater than 1.");
+        }
+
+        if (int_value > NXT_INT32_T_MAX) {
+            return nxt_conf_vldt_error(vldt, "The \"processes\" number must "
+                                       "not exceed %d.", NXT_INT32_T_MAX);
+        }
+
+        return NXT_OK;
+    }
+
+    ret = nxt_conf_vldt_object(vldt, value, data);
+    if (ret != NXT_OK) {
+        return ret;
+    }
+
+    proc.spare = 1;
+    proc.max = 1;
+    proc.idle_timeout = 15;
+
+    ret = nxt_conf_map_object(vldt->pool, value,
+                              nxt_conf_vldt_processes_conf_map,
+                              nxt_nitems(nxt_conf_vldt_processes_conf_map),
+                              &proc);
+    if (ret != NXT_OK) {
+        return ret;
+    }
+
+    if (proc.spare < 0) {
+        return nxt_conf_vldt_error(vldt, "The \"spare\" number must not be "
+                                   "negative.");
+    }
+
+    if (proc.spare > NXT_INT32_T_MAX) {
+        return nxt_conf_vldt_error(vldt, "The \"spare\" number must not "
+                                   "not exceed %d.", NXT_INT32_T_MAX);
+    }
+
+    if (nxt_conf_get_object_member(value, &max_str, NULL) != NULL) {
+
+        if (proc.max < 1) {
+            return nxt_conf_vldt_error(vldt, "The \"max\" number must be equal "
+                                       "to or greater than 1.");
+        }
+
+        if (proc.max > NXT_INT32_T_MAX) {
+            return nxt_conf_vldt_error(vldt, "The \"max\" number must not "
+                                       "not exceed %d.", NXT_INT32_T_MAX);
+        }
+
+        if (proc.max < proc.spare) {
+            return nxt_conf_vldt_error(vldt, "The \"spare\" number must be "
+                                       "lower than \"max\".");
+        }
+    }
+
+    if (proc.idle_timeout < 0) {
+        return nxt_conf_vldt_error(vldt, "The \"idle_timeout\" number must not "
+                                   "be negative.");
+    }
+
+    if (proc.idle_timeout > NXT_INT32_T_MAX / 1000) {
+        return nxt_conf_vldt_error(vldt, "The \"idle_timeout\" number must not "
+                                   "not exceed %d.", NXT_INT32_T_MAX / 1000);
+    }
+
+    return NXT_OK;
 }
 
 

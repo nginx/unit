@@ -9,7 +9,7 @@ class TestUnitBasic(unit.TestUnitControl):
     conf_app = {
         "app": {
             "type": "php",
-            "workers": 1,
+            "processes": { "spare": 0 },
             "root": "/app",
             "index": "index.php"
         }
@@ -34,7 +34,7 @@ class TestUnitBasic(unit.TestUnitControl):
             {
                 "app": {
                     "type": "php",
-                    "workers": 1,
+                    "processes": { "spare": 0 },
                     "root": "/app",
                     "index": "index.php"
                 }
@@ -48,7 +48,7 @@ class TestUnitBasic(unit.TestUnitControl):
             {
                 "app": {
                     "type": "php",
-                    "workers": 1,
+                    "processes": { "spare": 0 },
                     "root": "/app",
                     "index": "index.php"
                 }
@@ -61,7 +61,7 @@ class TestUnitBasic(unit.TestUnitControl):
         self.assertEqual(self.conf_get('/applications/app'),
             {
                 "type": "php",
-                "workers": 1,
+                "processes": { "spare": 0 },
                 "root": "/app",
                 "index": "index.php"
             },
@@ -72,8 +72,8 @@ class TestUnitBasic(unit.TestUnitControl):
 
         self.assertEqual(self.conf_get('/applications/app/type'), 'php',
             'type')
-        self.assertEqual(self.conf_get('/applications/app/workers'), 1,
-            'workers')
+        self.assertEqual(self.conf_get('/applications/app/processes/spare'), 0,
+            'spare processes')
 
     def test_php_get_listeners(self):
         self.conf(self.conf_basic)
@@ -118,9 +118,9 @@ class TestUnitBasic(unit.TestUnitControl):
     def test_php_change_application(self):
         self.conf(self.conf_basic)
 
-        self.conf('30', '/applications/app/workers')
-        self.assertEqual(self.conf_get('/applications/app/workers'), 30,
-            'change application workers')
+        self.conf('30', '/applications/app/processes/max')
+        self.assertEqual(self.conf_get('/applications/app/processes/max'), 30,
+            'change application max')
 
         self.conf('"/www"', '/applications/app/root')
         self.assertEqual(self.conf_get('/applications/app/root'), '/www',

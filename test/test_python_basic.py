@@ -9,7 +9,7 @@ class TestUnitBasic(unit.TestUnitControl):
     conf_app = {
         "app": {
             "type": "python",
-            "workers": 1,
+            "processes": { "spare": 0 },
             "path": "/app",
             "module": "wsgi"
         }
@@ -44,7 +44,7 @@ class TestUnitBasic(unit.TestUnitControl):
             {
                 "app": {
                     "type": "python",
-                    "workers": 1,
+                    "processes": { "spare": 0 },
                     "path": "/app",
                     "module": "wsgi"
                 }
@@ -58,7 +58,7 @@ class TestUnitBasic(unit.TestUnitControl):
             {
                 "app": {
                     "type": "python",
-                    "workers": 1,
+                    "processes": { "spare": 0 },
                     "path": "/app",
                     "module":"wsgi"
                 }
@@ -71,7 +71,7 @@ class TestUnitBasic(unit.TestUnitControl):
         self.assertEqual(self.conf_get('/applications/app'),
             {
                 "type": "python",
-                "workers": 1,
+                "processes": { "spare": 0 },
                 "path": "/app",
                 "module": "wsgi"
             },
@@ -82,8 +82,8 @@ class TestUnitBasic(unit.TestUnitControl):
 
         self.assertEqual(self.conf_get('/applications/app/type'), 'python',
             'type')
-        self.assertEqual(self.conf_get('/applications/app/workers'), 1,
-            'workers')
+        self.assertEqual(self.conf_get('/applications/app/processes/spare'), 0,
+            'spare')
 
     def test_python_get_listeners(self):
         self.conf(self.conf_basic)
@@ -128,9 +128,9 @@ class TestUnitBasic(unit.TestUnitControl):
     def test_python_change_application(self):
         self.conf(self.conf_basic)
 
-        self.conf('30', '/applications/app/workers')
-        self.assertEqual(self.conf_get('/applications/app/workers'), 30,
-            'change application workers')
+        self.conf('30', '/applications/app/processes/max')
+        self.assertEqual(self.conf_get('/applications/app/processes/max'), 30,
+            'change application max')
 
         self.conf('"/www"', '/applications/app/path')
         self.assertEqual(self.conf_get('/applications/app/path'), '/www',
