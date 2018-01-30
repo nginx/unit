@@ -21,7 +21,7 @@ def create_file():
 atexit.register(create_file)
 
 def application(env, start_response):
-    start_response('200 OK', [('Content-Type','text/html')])
+    start_response('200', [('Content-Length', '0')])
     return []
 
 """ % (self.testdir + '/atexit'), 'py_app'

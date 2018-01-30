@@ -158,7 +158,7 @@ class TestUnitConfiguration(unit.TestUnitControl):
         self.assertIn('success', self.put('/', """
             {
                 "listeners": {
-                    "127.0.0.1:7081": {
+                    "127.0.0.1:7080": {
                         "application":"app"
                     }
                 },
@@ -177,7 +177,7 @@ class TestUnitConfiguration(unit.TestUnitControl):
         self.assertIn('success', self.put('/', """
             {
                 "listeners": {
-                    "[::1]:7082": {
+                    "[::1]:7080": {
                         "application":"app"
                     }
                 },
