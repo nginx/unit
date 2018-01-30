@@ -9,8 +9,8 @@ class TestUnitApplication(unit.TestUnitControl):
         u.check_modules('python')
         u.check_version('0.4')
 
-    conf = """
-        {
+    def conf_with_name(self, name):
+        self.conf({
             "listeners": {
                 "*:7080": {
                     "application": "app"
@@ -20,12 +20,11 @@ class TestUnitApplication(unit.TestUnitControl):
                 "app": {
                     "type": "python",
                     "workers": 1,
-                    "path": "%s",
+                    "path": self.testdir + '/' + name,
                     "module": "wsgi"
                 }
             }
-        }
-        """
+        })
 
     def test_python_application_simple(self):
         code, name = """
@@ -49,7 +48,7 @@ def application(environ, start_response):
 """, 'py_app'
 
         self.python_application(name, code)
-        self.put('/', self.conf % (self.testdir + '/' + name))
+        self.conf_with_name(name)
 
         body = 'Test body string.'
 
@@ -88,7 +87,7 @@ def application(environ, start_response):
 """, 'py_app'
 
         self.python_application(name, code)
-        self.put('/', self.conf % (self.testdir + '/' + name))
+        self.conf_with_name(name)
 
         r = unit.TestUnitHTTP.get(uri='/?var1=val1&var2=val2', headers={
             'Host': 'localhost'
@@ -117,7 +116,7 @@ def application(environ, start_response):
 """, 'py_app'
 
         self.python_application(name, code)
-        self.put('/', self.conf % (self.testdir + '/' + name))
+        self.conf_with_name(name)
 
         r = unit.TestUnitHTTP.get(headers={'Host': 'localhost'})
 
@@ -136,7 +135,7 @@ def application(environ, start_response):
 """, 'py_app'
 
         self.python_application(name, code)
-        self.put('/', self.conf % (self.testdir + '/' + name))
+        self.conf_with_name(name)
 
         r = unit.TestUnitHTTP.get(headers={'Host': 'localhost'})
         self.assertNotIn('Transfer-Encoding', r.headers,

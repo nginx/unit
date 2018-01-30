@@ -149,6 +149,18 @@ class TestUnitControl(TestUnit):
     # TODO socket reuse
     # TODO http client
 
+    def conf(self, conf, path='/'):
+        if isinstance(conf, dict):
+            conf = json.dumps(conf)
+
+        return self._body_json(self.put(path, conf))
+
+    def conf_get(self, path='/'):
+        return self._body_json(self.get(path))
+
+    def conf_delete(self, path='/'):
+        return self._body_json(self.delete(path))
+
     def http(self, req):
         with self._control_sock() as sock:
             sock.sendall(req)
@@ -167,13 +179,13 @@ class TestUnitControl(TestUnit):
         resp = self.http(('GET ' + path
             + ' HTTP/1.1\r\nHost: localhost\r\n\r\n').encode())
 
-        return self._body_json(resp)
+        return resp
 
     def delete(self, path='/'):
         resp = self.http(('DELETE ' + path
             + ' HTTP/1.1\r\nHost: localhost\r\n\r\n').encode())
 
-        return self._body_json(resp)
+        return resp
 
     def put(self, path='/', data=''):
         if isinstance(data, str):
@@ -183,7 +195,7 @@ class TestUnitControl(TestUnit):
             + 'Content-Length: ' + str(len(data))
             + '\r\n\r\n').encode() + data)
 
-        return self._body_json(resp)
+        return resp
 
     def _control_sock(self):
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)

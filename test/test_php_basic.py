@@ -6,35 +6,31 @@ class TestUnitBasic(unit.TestUnitControl):
     def setUpClass():
         unit.TestUnit().check_modules('php')
 
-    conf_app = """
-        {
-            "app": {
-                "type": "php",
-                "workers": 1,
-                "root": "/app",
-                "index": "index.php"
-            }
+    conf_app = {
+        "app": {
+            "type": "php",
+            "workers": 1,
+            "root": "/app",
+            "index": "index.php"
         }
-    """
+    }
 
-    conf_basic = """
-        {
-            "listeners": {
-                "*:7080": {
-                    "application": "app"
-                }
-            },
-            "applications": %s
-        }
-        """ % (conf_app)
+    conf_basic = {
+        "listeners": {
+            "*:7080": {
+                "application": "app"
+            }
+        },
+        "applications": conf_app
+    }
 
     def test_php_get_applications(self):
-        self.put('/applications', self.conf_app)
+        self.conf(self.conf_app, '/applications')
 
-        resp = self.get()
+        conf = self.conf_get()
 
-        self.assertEqual(resp['listeners'], {}, 'listeners')
-        self.assertEqual(resp['applications'],
+        self.assertEqual(conf['listeners'], {}, 'listeners')
+        self.assertEqual(conf['applications'],
             {
                 "app": {
                     "type": "php",
@@ -46,9 +42,9 @@ class TestUnitBasic(unit.TestUnitControl):
              'applications')
 
     def test_php_get_applications_prefix(self):
-        self.put('/applications', self.conf_app)
+        self.conf(self.conf_app, '/applications')
 
-        self.assertEqual(self.get('/applications'),
+        self.assertEqual(self.conf_get('/applications'),
             {
                 "app": {
                     "type": "php",
@@ -60,9 +56,9 @@ class TestUnitBasic(unit.TestUnitControl):
             'applications prefix')
 
     def test_php_get_applications_prefix_2(self):
-        self.put('/applications', self.conf_app)
+        self.conf(self.conf_app, '/applications')
 
-        self.assertEqual(self.get('/applications/app'),
+        self.assertEqual(self.conf_get('/applications/app'),
             {
                 "type": "php",
                 "workers": 1,
@@ -72,41 +68,43 @@ class TestUnitBasic(unit.TestUnitControl):
             'applications prefix 2')
 
     def test_php_get_applications_prefix_3(self):
-        self.put('/applications', self.conf_app)
+        self.conf(self.conf_app, '/applications')
 
-        self.assertEqual(self.get('/applications/app/type'), 'php', 'type')
-        self.assertEqual(self.get('/applications/app/workers'), 1, 'workers')
+        self.assertEqual(self.conf_get('/applications/app/type'), 'php',
+            'type')
+        self.assertEqual(self.conf_get('/applications/app/workers'), 1,
+            'workers')
 
     def test_php_get_listeners(self):
-        self.put('/', self.conf_basic)
+        self.conf(self.conf_basic)
 
-        self.assertEqual(self.get()['listeners'],
+        self.assertEqual(self.conf_get()['listeners'],
             {"*:7080":{"application":"app"}}, 'listeners')
 
     def test_php_get_listeners_prefix(self):
-        self.put('/', self.conf_basic)
+        self.conf(self.conf_basic)
 
-        self.assertEqual(self.get('/listeners'),
+        self.assertEqual(self.conf_get('/listeners'),
             {"*:7080":{"application":"app"}}, 'listeners prefix')
 
     def test_php_get_listeners_prefix_2(self):
-        self.put('/', self.conf_basic)
+        self.conf(self.conf_basic)
 
-        self.assertEqual(self.get('/listeners/*:7080'),
+        self.assertEqual(self.conf_get('/listeners/*:7080'),
             {"application":"app"}, 'listeners prefix 2')
 
     def test_php_change_listener(self):
-        self.put('/', self.conf_basic)
-        self.put('/listeners', '{"*:7081":{"application":"app"}}')
+        self.conf(self.conf_basic)
+        self.conf({"*:7081":{"application":"app"}}, '/listeners')
 
-        self.assertEqual(self.get('/listeners'),
+        self.assertEqual(self.conf_get('/listeners'),
             {"*:7081": {"application":"app"}}, 'change listener')
 
     def test_php_add_listener(self):
-        self.put('/', self.conf_basic)
-        self.put('/listeners/*:7082', '{"application":"app"}')
+        self.conf(self.conf_basic)
+        self.conf({"application":"app"}, '/listeners/*:7082')
 
-        self.assertEqual(self.get('/listeners'),
+        self.assertEqual(self.conf_get('/listeners'),
             {
                 "*:7080": {
                     "application": "app"
@@ -118,26 +116,26 @@ class TestUnitBasic(unit.TestUnitControl):
             'add listener')
 
     def test_php_change_application(self):
-        self.put('/', self.conf_basic)
+        self.conf(self.conf_basic)
 
-        self.put('/applications/app/workers', '30')
-        self.assertEqual(self.get('/applications/app/workers'), 30,
+        self.conf('30', '/applications/app/workers')
+        self.assertEqual(self.conf_get('/applications/app/workers'), 30,
             'change application workers')
 
-        self.put('/applications/app/root', '"/www"')
-        self.assertEqual(self.get('/applications/app/root'), '/www',
+        self.conf('"/www"', '/applications/app/root')
+        self.assertEqual(self.conf_get('/applications/app/root'), '/www',
             'change application root')
 
     def test_php_delete(self):
-        self.put('/', self.conf_basic)
+        self.conf(self.conf_basic)
 
-        self.assertIn('error', self.delete('/applications/app'),
+        self.assertIn('error', self.conf_delete('/applications/app'),
             'delete app before listener')
-        self.assertIn('success', self.delete('/listeners/*:7080'),
+        self.assertIn('success', self.conf_delete('/listeners/*:7080'),
             'delete listener')
-        self.assertIn('success', self.delete('/applications/app'),
+        self.assertIn('success', self.conf_delete('/applications/app'),
             'delete app after listener')
-        self.assertIn('error', self.delete('/applications/app'),
+        self.assertIn('error', self.conf_delete('/applications/app'),
             'delete app again')
 
 if __name__ == '__main__':

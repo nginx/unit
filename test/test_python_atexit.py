@@ -28,32 +28,28 @@ def application(env, start_response):
 
         self.python_application(name, code)
 
-        self.put('/', """
-            {
-                "listeners": {
-                    "*:7080": {
-                        "application": "app"
-                    }
-                },
-                "applications": {
-                    "app": {
-                        "type": "python",
-                        "workers": 1,
-                        "path": "%s",
-                        "module": "wsgi"
-                    }
+        self.conf({
+            "listeners": {
+                "*:7080": {
+                    "application": "app"
+                }
+            },
+            "applications": {
+                "app": {
+                    "type": "python",
+                    "workers": 1,
+                    "path": self.testdir + '/' + name,
+                    "module": "wsgi"
                 }
             }
-            """ % (self.testdir + '/' + name))
+        })
 
         unit.TestUnitHTTP.get()
 
-        self.put('/', """
-            {
-                "listeners": {},
-                "applications": {}
-            }
-            """)
+        self.conf({
+            "listeners": {},
+            "applications": {}
+        })
 
         time.sleep(0.2)   # wait for 'atexit' file
 
