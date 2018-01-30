@@ -52,14 +52,14 @@ def application(environ, start_response):
 
         body = 'Test body string.'
 
-        r = unit.TestUnitHTTP.post(headers={
+        resp = self.post(headers={
             'Host': 'localhost',
             'Content-Type': 'text/html',
             'Custom-Header': 'blah'
-        }, data=body)
+        }, body=body)
 
-        self.assertEqual(r.status_code, 200, 'status')
-        headers = dict(r.headers)
+        self.assertEqual(resp['status'], 200, 'status')
+        headers = resp['headers']
         self.assertRegex(headers.pop('Server'), r'unit/[\d\.]+',
             'server header')
         self.assertDictEqual(headers, {
@@ -71,7 +71,7 @@ def application(environ, start_response):
             'Server-Protocol': 'HTTP/1.1',
             'Custom-Header': 'blah'
         }, 'headers')
-        self.assertEqual(r.content, body.encode(), 'body')
+        self.assertEqual(resp['body'], body, 'body')
 
     def test_python_application_query_string(self):
         code, name = """
@@ -89,12 +89,10 @@ def application(environ, start_response):
         self.python_application(name, code)
         self.conf_with_name(name)
 
-        r = unit.TestUnitHTTP.get(uri='/?var1=val1&var2=val2', headers={
-            'Host': 'localhost'
-        })
+        resp = self.get(url='/?var1=val1&var2=val2')
 
-        self.assertEqual(r.status_code, 200, 'status')
-        headers = dict(r.headers)
+        self.assertEqual(resp['status'], 200, 'status')
+        headers = resp['headers']
         headers.pop('Server')
         self.assertDictEqual(headers, {
             'Content-Length': '0',
@@ -118,9 +116,7 @@ def application(environ, start_response):
         self.python_application(name, code)
         self.conf_with_name(name)
 
-        r = unit.TestUnitHTTP.get(headers={'Host': 'localhost'})
-
-        self.assertEqual(r.headers.pop('Server-Port'), '7080',
+        self.assertEqual(self.get()['headers']['Server-Port'], '7080',
             'Server-Port header')
 
     @unittest.expectedFailure
@@ -137,8 +133,7 @@ def application(environ, start_response):
         self.python_application(name, code)
         self.conf_with_name(name)
 
-        r = unit.TestUnitHTTP.get(headers={'Host': 'localhost'})
-        self.assertNotIn('Transfer-Encoding', r.headers,
+        self.assertNotIn('Transfer-Encoding', self.get()['headers'],
             '204 header transfer encoding')
 
 if __name__ == '__main__':

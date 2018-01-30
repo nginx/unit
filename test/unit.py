@@ -5,9 +5,9 @@ import json
 import time
 import shutil
 import socket
+import select
 import tempfile
 import unittest
-from requests import Request, Session
 from subprocess import call
 from multiprocessing import Process
 
@@ -144,7 +144,121 @@ class TestUnit(unittest.TestCase):
 
         return ret
 
-class TestUnitControl(TestUnit):
+class TestUnitHTTP(TestUnit):
+
+    def http(self, start_str, **kwargs):
+        sock_type = 'ipv4' if 'sock_type' not in kwargs else kwargs['sock_type']
+        port = 7080 if 'port' not in kwargs else kwargs['port']
+        url = '/' if 'url' not in kwargs else kwargs['url']
+        http = 'HTTP/1.0' if 'http_10' in kwargs else 'HTTP/1.1'
+        headers = {'Host': 'localhost'} if 'headers' not in kwargs else kwargs['headers']
+        body = b'' if 'body' not in kwargs else kwargs['body']
+        crlf = '\r\n'
+
+        if 'addr' not in kwargs:
+            addr = '::1' if sock_type == 'ipv6' else '127.0.0.1'
+        else:
+            addr = kwargs['addr']
+
+        sock_types = {
+            'ipv4': socket.AF_INET,
+            'ipv6': socket.AF_INET6,
+            'unix': socket.AF_UNIX
+        }
+
+        if 'sock' not in kwargs:
+            sock = socket.socket(sock_types[sock_type], socket.SOCK_STREAM)
+
+            if sock_type == 'unix':
+                sock.connect(addr)
+            else:
+                sock.connect((addr, port))
+
+        else:
+            sock = kwargs['sock']
+
+        sock.setblocking(False)
+
+        if 'raw' not in kwargs:
+            req = ' '.join([start_str, url, http]) + crlf
+
+            if body is not b'':
+                if isinstance(body, str):
+                    body = body.encode()
+
+                if 'Content-Length' not in headers:
+                    headers['Content-Length'] = len(body)
+
+            for header, value in headers.items():
+                req += header + ': ' + str(value) + crlf
+
+            req = (req + crlf).encode() + body
+
+        else:
+            req = start_str
+
+        sock.sendall(req)
+
+        if '--verbose' in sys.argv:
+            print('>>>', req, sep='\n')
+
+        resp = self._recvall(sock)
+
+        if '--verbose' in sys.argv:
+            print('<<<', resp, sep='\n')
+
+        if 'raw_resp' not in kwargs:
+            resp = self._resp_to_dict(resp)
+
+        if 'start' not in kwargs:
+            sock.close()
+            return resp
+
+        return (resp, sock)
+
+    def delete(self, **kwargs):
+        return self.http('DELETE', **kwargs)
+
+    def get(self, **kwargs):
+        return self.http('GET', **kwargs)
+
+    def post(self, **kwargs):
+        return self.http('POST', **kwargs)
+
+    def put(self, **kwargs):
+        return self.http('PUT', **kwargs)
+
+    def _recvall(self, sock, buff_size=4096):
+        data = ''
+        while select.select([sock], [], [], 1)[0]:
+            part = sock.recv(buff_size).decode()
+            data += part
+            if part is '':
+                break
+
+        return data
+
+    def _resp_to_dict(self, resp):
+        m = re.search('(.*?\x0d\x0a?)\x0d\x0a?(.*)', resp, re.M | re.S)
+        headers_text, body = m.group(1), m.group(2)
+
+        p = re.compile('(.*?)\x0d\x0a?', re.M | re.S)
+        headers_lines = p.findall(headers_text)
+
+        status = re.search('^HTTP\/\d\.\d\s(\d+)|$', headers_lines.pop(0)).group(1)
+
+        headers = {}
+        for line in headers_lines:
+            m = re.search('(.*)\:\s(.*)', line)
+            headers[m.group(1)] = m.group(2)
+
+        return {
+            'status': int(status),
+            'headers': headers,
+            'body': body
+        }
+
+class TestUnitControl(TestUnitHTTP):
 
     # TODO socket reuse
     # TODO http client
@@ -153,92 +267,23 @@ class TestUnitControl(TestUnit):
         if isinstance(conf, dict):
             conf = json.dumps(conf)
 
-        return self._body_json(self.put(path, conf))
+        return json.loads(self.put(
+            url=path,
+            body=conf,
+            sock_type='unix',
+            addr=self.testdir + '/control.unit.sock'
+        )['body'])
 
     def conf_get(self, path='/'):
-        return self._body_json(self.get(path))
+        return json.loads(self.get(
+            url=path,
+            sock_type='unix',
+            addr=self.testdir + '/control.unit.sock'
+        )['body'])
 
     def conf_delete(self, path='/'):
-        return self._body_json(self.delete(path))
-
-    def http(self, req):
-        with self._control_sock() as sock:
-            sock.sendall(req)
-
-            if '--verbose' in sys.argv:
-                print('>>>', req, sep='\n')
-
-            resp = self._recvall(sock)
-
-            if '--verbose' in sys.argv:
-                print('<<<', resp, sep='\n')
-
-        return resp
-
-    def get(self, path='/'):
-        resp = self.http(('GET ' + path
-            + ' HTTP/1.1\r\nHost: localhost\r\n\r\n').encode())
-
-        return resp
-
-    def delete(self, path='/'):
-        resp = self.http(('DELETE ' + path
-            + ' HTTP/1.1\r\nHost: localhost\r\n\r\n').encode())
-
-        return resp
-
-    def put(self, path='/', data=''):
-        if isinstance(data, str):
-            data = data.encode()
-
-        resp = self.http(('PUT ' + path + ' HTTP/1.1\nHost: localhost\n'
-            + 'Content-Length: ' + str(len(data))
-            + '\r\n\r\n').encode() + data)
-
-        return resp
-
-    def _control_sock(self):
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        sock.connect(self.testdir + '/control.unit.sock')
-        return sock
-
-    def _recvall(self, sock, buff_size=4096):
-        data = ''
-        while True:
-            part = sock.recv(buff_size).decode()
-            data += part
-            if len(part) < buff_size:
-                break
-
-        return data
-
-    def _body_json(self, resp):
-        m = re.search('.*?\x0d\x0a?\x0d\x0a?(.*)', resp, re.M | re.S)
-        return json.loads(m.group(1))
-
-class TestUnitHTTP():
-
-    @classmethod
-    def http(self, method, **kwargs):
-        host = '127.0.0.1:7080' if 'host' not in kwargs else kwargs['host']
-        uri = '/' if 'uri' not in kwargs else kwargs['uri']
-        sess = Session() if 'sess' not in kwargs else kwargs['sess']
-        data = None if 'data' not in kwargs else kwargs['data']
-        headers = None if 'headers' not in kwargs else kwargs['headers']
-
-        req = Request(method, 'http://' + host + uri, data=data,
-            headers=headers)
-
-        r = sess.send(req.prepare())
-
-        if 'keep' not in kwargs:
-            sess.close()
-            return r
-
-        return (r, sess)
-
-    def get(**kwargs):
-        return TestUnitHTTP.http('GET', **kwargs)
-
-    def post(**kwargs):
-        return TestUnitHTTP.http('POST', **kwargs)
+        return json.loads(self.delete(
+            url=path,
+            sock_type='unix',
+            addr=self.testdir + '/control.unit.sock'
+        )['body'])

@@ -44,7 +44,7 @@ def application(env, start_response):
             }
         })
 
-        unit.TestUnitHTTP.get()
+        self.get()
 
         self.conf({
             "listeners": {},
