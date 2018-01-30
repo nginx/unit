@@ -193,10 +193,10 @@ class TestUnitConfiguration(unit.TestUnitControl):
             """), 'explicit ipv6')
 
     def test_listeners_no_port(self):
-        self.assertIn('success', self.put('/', """
+        self.assertIn('error', self.put('/', """
             {
                 "listeners": {
-                    "[::1]:7082": {
+                    "127.0.0.1": {
                         "application":"app"
                     }
                 },
