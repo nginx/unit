@@ -13,6 +13,7 @@ typedef enum {
     NXT_APP_PYTHON,
     NXT_APP_PHP,
     NXT_APP_GO,
+    NXT_APP_PERL,
 
     NXT_APP_UNKNOWN,
 } nxt_app_type_t;
@@ -52,6 +53,11 @@ typedef struct {
 } nxt_go_app_conf_t;
 
 
+typedef struct {
+    char       *script;
+} nxt_perl_app_conf_t;
+
+
 struct nxt_common_app_conf_s {
     nxt_str_t       name;
     nxt_str_t       type;
@@ -64,6 +70,7 @@ struct nxt_common_app_conf_s {
         nxt_python_app_conf_t  python;
         nxt_php_app_conf_t     php;
         nxt_go_app_conf_t      go;
+        nxt_perl_app_conf_t    perl;
     } u;
 };
 
@@ -289,7 +296,7 @@ nxt_app_msg_read_length(u_char *src, size_t *length)
 
 
 nxt_app_lang_module_t *nxt_app_lang_module(nxt_runtime_t *rt, nxt_str_t *name);
-
+nxt_app_type_t nxt_app_parse_type(u_char *p, size_t length);
 
 extern nxt_application_module_t  nxt_go_module;
 

@@ -45,4 +45,7 @@ cat << END
   go OPTIONS           configure Go module
                        run "./configure go --help" to see available options
 
+  perl OPTIONS         configure Perl module
+                       run "./configure perl --help" to see available options
+
 END

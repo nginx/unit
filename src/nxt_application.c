@@ -28,8 +28,6 @@ static nxt_int_t nxt_discovery_module(nxt_task_t *task, nxt_mp_t *mp,
     nxt_array_t *modules, const char *name);
 static nxt_app_module_t *nxt_app_module_load(nxt_task_t *task,
     const char *name);
-static nxt_app_type_t nxt_app_parse_type(u_char *p, size_t length);
-
 
 static void nxt_app_http_release(nxt_task_t *task, void *obj, void *data);
 
@@ -841,7 +839,7 @@ nxt_app_lang_module(nxt_runtime_t *rt, nxt_str_t *name)
 }
 
 
-static nxt_app_type_t
+nxt_app_type_t
 nxt_app_parse_type(u_char *p, size_t length)
 {
     nxt_str_t str;
@@ -858,6 +856,8 @@ nxt_app_parse_type(u_char *p, size_t length)
     } else if (nxt_str_eq(&str, "go", 2)) {
         return NXT_APP_GO;
 
+    } else if (nxt_str_eq(&str, "perl", 4)) {
+        return NXT_APP_PERL;
     }
 
     return NXT_APP_UNKNOWN;

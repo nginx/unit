@@ -104,7 +104,7 @@ case "$NXT_SYSTEM" in
         # MacOSX 10.7 (Lion) has deprecated system OpenSSL.
         # MAC_OS_X_VERSION_MIN_REQUIRED macro does not help.
         # "-rpath" is supported since MacOSX 10.5 (Leopard).
-        NXT_CFLAGS="$NXT_CFLAGS -mmacosx-version-min=10.5"
+        NXT_CFLAGS="$NXT_CFLAGS -mmacosx-version-min=10.6"
 
         NXT_STATIC_LINK="ar -r -c"
         NXT_SHARED_LINK="\$(CC) -dynamiclib"

@@ -17,6 +17,10 @@ case "$nxt_module" in
        . auto/modules/go
    ;;
 
+   perl)
+       . auto/modules/perl
+   ;;
+
    *)
        echo
        echo $0: error: invalid module \"$nxt_module\".

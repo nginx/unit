@@ -20,6 +20,12 @@ typedef struct {
 } nxt_listening_socket_t;
 
 
+typedef struct {
+    nxt_int_t       size;
+    nxt_conf_map_t  *map;
+} nxt_common_app_member_t;
+
+
 static nxt_int_t nxt_main_process_port_create(nxt_task_t *task,
     nxt_runtime_t *rt);
 static void nxt_main_process_title(nxt_task_t *task);
@@ -113,7 +119,10 @@ static nxt_conf_map_t  nxt_common_app_conf[] = {
         NXT_CONF_MAP_CSTRZ,
         offsetof(nxt_common_app_conf_t, working_directory),
     },
+};
 
+
+static nxt_conf_map_t  nxt_common_python_app_conf[] = {
     {
         nxt_string("home"),
         NXT_CONF_MAP_CSTRZ,
@@ -131,7 +140,10 @@ static nxt_conf_map_t  nxt_common_app_conf[] = {
         NXT_CONF_MAP_STR,
         offsetof(nxt_common_app_conf_t, u.python.module),
     },
+};
 
+
+static nxt_conf_map_t  nxt_common_php_app_conf[] = {
     {
         nxt_string("root"),
         NXT_CONF_MAP_CSTRZ,
@@ -149,12 +161,32 @@ static nxt_conf_map_t  nxt_common_app_conf[] = {
         NXT_CONF_MAP_STR,
         offsetof(nxt_common_app_conf_t, u.php.index),
     },
+};
 
+
+static nxt_conf_map_t  nxt_common_go_app_conf[] = {
     {
         nxt_string("executable"),
         NXT_CONF_MAP_CSTRZ,
         offsetof(nxt_common_app_conf_t, u.go.executable),
     },
+};
+
+
+static nxt_conf_map_t  nxt_common_perl_app_conf[] = {
+    {
+        nxt_string("script"),
+        NXT_CONF_MAP_CSTRZ,
+        offsetof(nxt_common_app_conf_t, u.perl.script),
+    },
+};
+
+
+static nxt_common_app_member_t  nxt_common_members[] = {
+    { nxt_nitems(nxt_common_python_app_conf), nxt_common_python_app_conf },
+    { nxt_nitems(nxt_common_php_app_conf),    nxt_common_php_app_conf },
+    { nxt_nitems(nxt_common_go_app_conf),     nxt_common_go_app_conf },
+    { nxt_nitems(nxt_common_perl_app_conf),   nxt_common_perl_app_conf },
 };
 
 
@@ -171,7 +203,7 @@ nxt_port_main_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
     u_char                 *start;
     nxt_mp_t               *mp;
-    nxt_int_t              ret;
+    nxt_int_t              ret, idx;
     nxt_buf_t              *b;
     nxt_port_t             *port;
     nxt_conf_value_t       *conf;
@@ -219,9 +251,17 @@ nxt_port_main_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
                               nxt_nitems(nxt_common_app_conf), &app_conf);
     if (ret != NXT_OK) {
         nxt_log(task, NXT_LOG_CRIT, "root map error");
-
         goto failed;
     }
+
+    idx = nxt_app_parse_type(app_conf.type.start, app_conf.type.length);
+
+    nxt_assert(ret != NXT_APP_UNKNOWN);
+
+    ret = nxt_conf_map_object(mp, conf, nxt_common_members[idx].map,
+                              nxt_common_members[idx].size, &app_conf);
+
+    nxt_assert(ret == NXT_OK);
 
     ret = nxt_main_start_worker_process(task, task->thread->runtime,
                                         &app_conf, msg->port_msg.stream);
