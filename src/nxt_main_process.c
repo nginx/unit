@@ -256,7 +256,7 @@ nxt_port_main_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     idx = nxt_app_parse_type(app_conf.type.start, app_conf.type.length);
 
-    nxt_assert(ret != NXT_APP_UNKNOWN);
+    nxt_assert(idx != NXT_APP_UNKNOWN);
 
     ret = nxt_conf_map_object(mp, conf, nxt_common_members[idx].map,
                               nxt_common_members[idx].size, &app_conf);
