@@ -4,7 +4,10 @@ import unit
 class TestUnitBasic(unit.TestUnitControl):
 
     def setUpClass():
-        unit.TestUnit().check_modules('php')
+        u = unit.TestUnit()
+
+        u.check_modules('php')
+        u.check_version('0.5')
 
     conf_app = {
         "app": {

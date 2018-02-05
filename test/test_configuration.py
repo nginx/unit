@@ -4,7 +4,10 @@ import unit
 class TestUnitConfiguration(unit.TestUnitControl):
 
     def setUpClass():
-        unit.TestUnit().check_modules('python')
+        u = unit.TestUnit()
+
+        u.check_modules('python')
+        u.check_version('0.5')
 
     def test_json_leading_zero(self):
         self.assertIn('error', self.conf('00'), 'leading zero')

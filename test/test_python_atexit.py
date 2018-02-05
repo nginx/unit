@@ -9,7 +9,7 @@ class TestUnitApplication(unit.TestUnitControl):
         u = unit.TestUnit()
 
         u.check_modules('python')
-        u.check_version('0.3')
+        u.check_version('0.5')
 
     def test_python_application(self):
         code, name = """
