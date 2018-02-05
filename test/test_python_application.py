@@ -91,13 +91,8 @@ def application(environ, start_response):
 
         resp = self.get(url='/?var1=val1&var2=val2')
 
-        self.assertEqual(resp['status'], 200, 'status')
-        headers = resp['headers']
-        headers.pop('Server')
-        self.assertDictEqual(headers, {
-            'Content-Length': '0',
-            'Query-String': 'var1=val1&var2=val2'
-        }, 'headers')
+        self.assertEqual(resp['headers']['Query-String'], 'var1=val1&var2=val2',
+            'Query-String header')
 
     @unittest.expectedFailure
     def test_python_application_server_port(self):
