@@ -151,7 +151,12 @@ class TestUnitHTTP(TestUnit):
         port = 7080 if 'port' not in kwargs else kwargs['port']
         url = '/' if 'url' not in kwargs else kwargs['url']
         http = 'HTTP/1.0' if 'http_10' in kwargs else 'HTTP/1.1'
-        headers = {'Host': 'localhost'} if 'headers' not in kwargs else kwargs['headers']
+
+        headers = ({
+            'Host': 'localhost',
+            'Connection': 'close'
+        } if 'headers' not in kwargs else kwargs['headers'])
+
         body = b'' if 'body' not in kwargs else kwargs['body']
         crlf = '\r\n'
 
