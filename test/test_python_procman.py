@@ -3,7 +3,7 @@ import time
 import unittest
 import unit
 
-class TestUnitApplication(unit.TestUnitControl):
+class TestUnitProcman(unit.TestUnitControl):
 
     def setUpClass():
         u = unit.TestUnit()
@@ -11,7 +11,7 @@ class TestUnitApplication(unit.TestUnitControl):
         u.check_modules('python')
         u.check_version('0.5')
 
-    def getWorkerCount(self):
+    def count_processes(self):
         n = 0
         for f in os.listdir(self.testdir):
             if f.startswith('proctest.'):
@@ -19,7 +19,7 @@ class TestUnitApplication(unit.TestUnitControl):
 
         return n
 
-    def getTestCode(self):
+    def app_code(self):
         return """
 import atexit
 import os
@@ -34,14 +34,14 @@ atexit.register(remove_file)
 open(fname, 'w')
 
 def application(env, start_response):
-    start_response('200 OK', [('Content-Type','text/html')])
-    return [b'body']
+    start_response('200', [('Content-Length', '0')])
+    return []
 
 """ % (self.testdir + '/proctest')
 
 
     def test_python_prefork(self):
-        code, name = self.getTestCode(), 'py_app'
+        code, name = self.app_code(), 'py_app'
 
         self.python_application(name, code)
 
@@ -61,33 +61,23 @@ def application(env, start_response):
             }
         })
 
-        self.assertEqual(self.getWorkerCount(), 2, 'python prefork 2 processes')
+        self.assertEqual(self.count_processes(), 2, 'prefork 2')
 
         self.get()
-        self.assertEqual(self.getWorkerCount(), 2, 'python prefork, still 2')
+        self.assertEqual(self.count_processes(), 2, 'prefork still 2')
 
         self.conf('4', '/applications/app/processes')
 
         time.sleep(0.2)
-
-        self.assertEqual(self.getWorkerCount(), 4, 'python prefork 4 processes')
+        self.assertEqual(self.count_processes(), 4, 'prefork 4')
 
         self.get()
-        self.assertEqual(self.getWorkerCount(), 4, 'python prefork, still 4')
+        self.assertEqual(self.count_processes(), 4, 'prefork still 4')
 
-        self.conf({
-            "listeners": {},
-            "applications": {}
-        })
-
-        time.sleep(0.2)
-        self.assertEqual(self.getWorkerCount(), 0, 'python stop all processes')
-
-        time.sleep(2.2)
-
+        self.stop_all()
 
     def test_python_ondemand(self):
-        code, name = self.getTestCode(), 'py_app'
+        code, name = self.app_code(), 'py_app'
 
         self.python_application(name, code)
 
@@ -111,29 +101,21 @@ def application(env, start_response):
             }
         })
 
-        self.assertEqual(self.getWorkerCount(), 0, 'python on-demand')
+        self.assertEqual(self.count_processes(), 0, 'on-demand 0')
 
         self.get()
-        self.assertEqual(self.getWorkerCount(), 1, 'python start on-demand')
+        self.assertEqual(self.count_processes(), 1, 'on-demand 1')
 
         self.get()
-        self.assertEqual(self.getWorkerCount(), 1, 'python still 1')
+        self.assertEqual(self.count_processes(), 1, 'on-demand still 1')
 
         time.sleep(2.2)
-        self.assertEqual(self.getWorkerCount(), 0, 'python stop idle')
+        self.assertEqual(self.count_processes(), 0, 'on-demand stop idle')
 
-        self.conf({
-            "listeners": {},
-            "applications": {}
-        })
-
-        time.sleep(0.2)
-        self.assertEqual(self.getWorkerCount(), 0, 'python stop all processes')
-
-        time.sleep(2.2)
+        self.stop_all()
 
     def test_python_scale_updown(self):
-        code, name = self.getTestCode(), 'py_app'
+        code, name = self.app_code(), 'py_app'
 
         self.python_application(name, code)
 
@@ -157,36 +139,27 @@ def application(env, start_response):
             }
         })
 
-        self.assertEqual(self.getWorkerCount(), 2, 'python prefork 2')
+        self.assertEqual(self.count_processes(), 2, 'updown idle 2')
 
         self.get()
         time.sleep(0.2)
-        self.assertEqual(self.getWorkerCount(), 3, 'python keep 2 idle, 1 busy')
+        self.assertEqual(self.count_processes(), 3, 'updown idle 2, busy 1')
 
         self.get()
         time.sleep(0.2)
-        self.assertEqual(self.getWorkerCount(), 3, 'python still 3')
+        self.assertEqual(self.count_processes(), 3, 'updown still 3')
 
         time.sleep(2.2)
-        self.assertEqual(self.getWorkerCount(), 2, 'python stop idle')
+        self.assertEqual(self.count_processes(), 2, 'updown stop idle')
 
         self.get()
-
-        time.sleep(0.5)
-        self.assertEqual(self.getWorkerCount(), 3, 'python keep 2 idle, 1 busy')
-
-        self.conf({
-            "listeners": {},
-            "applications": {}
-        })
-
         time.sleep(0.2)
-        self.assertEqual(self.getWorkerCount(), 0, 'python stop all processes')
+        self.assertEqual(self.count_processes(), 3, 'updown idle 2, busy 1')
 
-        time.sleep(2.2)
+        self.stop_all()
 
     def test_python_reconfigure(self):
-        code, name = self.getTestCode(), 'py_app'
+        code, name = self.app_code(), 'py_app'
 
         self.python_application(name, code)
 
@@ -210,28 +183,31 @@ def application(env, start_response):
             }
         })
 
-        self.assertEqual(self.getWorkerCount(), 2, 'python prefork 2')
+        self.assertEqual(self.count_processes(), 2, 'reconf idle 2')
 
         self.get()
         time.sleep(0.2)
-        self.assertEqual(self.getWorkerCount(), 3, 'python keep 2 idle, 1 busy')
+        self.assertEqual(self.count_processes(), 3, 'reconf idle 2, busy 1')
 
         self.conf('6', '/applications/app/processes/spare')
-        self.assertEqual(self.getWorkerCount(), 6, 'python prefork 6')
+
+        time.sleep(0.2)
+        self.assertEqual(self.count_processes(), 6, 'reconf idle 6')
 
         self.get()
         time.sleep(0.2)
-        self.assertEqual(self.getWorkerCount(), 6, 'python still 6')
+        self.assertEqual(self.count_processes(), 6, 'reconf still 6')
 
+        self.stop_all()
+
+    def stop_all(self):
         self.conf({
             "listeners": {},
             "applications": {}
         })
 
         time.sleep(0.2)
-        self.assertEqual(self.getWorkerCount(), 0, 'python stop all processes')
-
-        time.sleep(2.2)
+        self.assertEqual(self.count_processes(), 0, 'stop all')
 
 if __name__ == '__main__':
     unittest.main()
