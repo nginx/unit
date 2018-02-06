@@ -67,6 +67,11 @@ def application(env, start_response):
         self.assertIn('error', self.conf_get('/applications/' + self.app_name +
             '/processes/idle_timeout'), 'idle_timeout no access')
 
+    def test_python_processes_spare_gt_max_default(self):
+        self.assertIn('error', self.conf({"spare": 2},
+            '/applications/' + self.app_name + '/processes'),
+            'spare greater than max default')
+
     def test_python_processes_spare_gt_max(self):
         self.assertIn('error', self.conf({
             "spare": 2,

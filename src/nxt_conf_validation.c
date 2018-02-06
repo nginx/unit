@@ -544,8 +544,6 @@ nxt_conf_vldt_processes(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     nxt_int_t                       ret;
     nxt_conf_vldt_processes_conf_t  proc;
 
-    static nxt_str_t                max_str = nxt_string("max");
-
     if (nxt_conf_type(value) == NXT_CONF_INTEGER) {
         int_value = nxt_conf_get_integer(value);
 
@@ -589,22 +587,19 @@ nxt_conf_vldt_processes(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
                                    "not exceed %d.", NXT_INT32_T_MAX);
     }
 
-    if (nxt_conf_get_object_member(value, &max_str, NULL) != NULL) {
+    if (proc.max < 1) {
+        return nxt_conf_vldt_error(vldt, "The \"max\" number must be equal "
+                                   "to or greater than 1.");
+    }
 
-        if (proc.max < 1) {
-            return nxt_conf_vldt_error(vldt, "The \"max\" number must be equal "
-                                       "to or greater than 1.");
-        }
+    if (proc.max > NXT_INT32_T_MAX) {
+        return nxt_conf_vldt_error(vldt, "The \"max\" number must not "
+                                   "not exceed %d.", NXT_INT32_T_MAX);
+    }
 
-        if (proc.max > NXT_INT32_T_MAX) {
-            return nxt_conf_vldt_error(vldt, "The \"max\" number must not "
-                                       "not exceed %d.", NXT_INT32_T_MAX);
-        }
-
-        if (proc.max < proc.spare) {
-            return nxt_conf_vldt_error(vldt, "The \"spare\" number must be "
-                                       "lower than \"max\".");
-        }
+    if (proc.max < proc.spare) {
+        return nxt_conf_vldt_error(vldt, "The \"spare\" number must be "
+                                   "lower than \"max\".");
     }
 
     if (proc.idle_timeout < 0) {
