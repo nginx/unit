@@ -896,6 +896,11 @@ nxt_perl_psgi_result_body_ref(PerlInterpreter *my_perl, SV *sv_body,
     u_char     vbuf[8192];
 
     io = GvIO(SvRV(sv_body));
+
+    if (io == NULL) {
+        return NXT_OK;
+    }
+
     fp = IoIFP(io);
 
     for ( ;; ) {
@@ -1015,7 +1020,7 @@ nxt_perl_psgi_result_array(PerlInterpreter *my_perl, SV *result,
 
     sv_temp = av_fetch(array, 2, 0);
 
-    if (nxt_slow_path(sv_temp == NULL)) {
+    if (nxt_slow_path(sv_temp == NULL || SvROK(*sv_temp) == FALSE)) {
         nxt_log_error(NXT_LOG_ERR, task->log,
                       "PSGI: Failed to get body from Perl ARRAY variable");
 
