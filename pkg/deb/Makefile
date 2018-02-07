@@ -175,9 +175,16 @@ debuild-%: debuild/unit_$(VERSION).orig.tar.gz ../../docs/changes.xml
 	mkdir $@/$(SRCDIR)/debian/source
 	echo '3.0 (quilt)' > $@/$(SRCDIR)/debian/source/format
 	cd ../../docs && make ../build/unit-$(MODULE_SUFFIX_$*).deb-changelog
+ifneq ($(DEFAULT_VERSION)$(DEFAULT_RELEASE), $(VERSION)$(RELEASE))
+	cat ../../build/unit-$(MODULE_SUFFIX_$*).deb-changelog | sed \
+		-e "s/unit-$* ($(DEFAULT_VERSION)-$(DEFAULT_RELEASE)~/unit-$* ($(VERSION)-$(RELEASE)~/" \
+		-e "s#%%CODENAME%%#$(CODENAME)#g" \
+		> $@/$(SRCDIR)/debian/changelog
+else
 	cat ../../build/unit-$(MODULE_SUFFIX_$*).deb-changelog | sed \
 		-e "s#%%CODENAME%%#$(CODENAME)#g" \
 		> $@/$(SRCDIR)/debian/changelog
+endif
 	cp debian/copyright debuild-$*/$(SRCDIR)/debian/
 	@{ \
 	set -e ; \
