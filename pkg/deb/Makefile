@@ -24,6 +24,7 @@ include Makefile.python27
 include Makefile.python36
 include Makefile.go18
 include Makefile.go19
+include Makefile.perl
 endif
 
 # Ubuntu 17.04
@@ -33,6 +34,7 @@ include Makefile.python27
 include Makefile.python35
 include Makefile.go17
 include Makefile.go18
+include Makefile.perl
 endif
 
 # Ubuntu 16.04
@@ -41,12 +43,14 @@ include Makefile.php
 include Makefile.python27
 include Makefile.python35
 include Makefile.go
+include Makefile.perl
 endif
 
 # Ubuntu 14.04
 ifeq ($(CODENAME),trusty)
 include Makefile.php
 include Makefile.python
+include Makefile.perl
 endif
 
 # Debian 9
@@ -56,6 +60,7 @@ include Makefile.python27
 include Makefile.python35
 include Makefile.go17
 include Makefile.go18
+include Makefile.perl
 endif
 
 # Debian 8
@@ -63,6 +68,7 @@ ifeq ($(CODENAME),jessie)
 include Makefile.php
 include Makefile.python27
 include Makefile.python34
+include Makefile.perl
 endif
 
 CONFIGURE_ARGS=\

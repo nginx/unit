@@ -28,6 +28,7 @@ ifneq (,$(findstring $(OSVER),centos6 centos7 amazonlinux2))
 include Makefile.php
 include Makefile.python
 include Makefile.go
+include Makefile.perl
 endif
 
 ifeq ($(OSVER), amazonlinux1)
@@ -37,6 +38,7 @@ include Makefile.python34
 include Makefile.python35
 include Makefile.python36
 include Makefile.go
+include Makefile.perl
 endif
 
 CONFIGURE_ARGS=\

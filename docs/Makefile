@@ -9,7 +9,8 @@ PACKAGES=	unit 							\
 		unit-php 						\
 		unit-python unit-python2.7 unit-python3.4		\
 		unit-python3.5 unit-python3.6				\
-		unit-go unit-go1.7 unit-go1.8 unit-go1.9
+		unit-go unit-go1.7 unit-go1.8 unit-go1.9		\
+		unit-perl
 
 
 all:		changes changelogs
