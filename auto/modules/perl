@@ -15,8 +15,6 @@ for nxt_option; do
     case "$nxt_option" in
         --perl=*)      NXT_PERL="$value"                                ;;
         --include=*)   NXT_PERL_INCPATH="$value"                        ;;
-        --lib-path=*)  NXT_PERL_LIBPATH="$value"                        ;;
-        --lib=*)       NXT_PERL_LIBNAME="$value"                        ;;
         --module=*)    NXT_PERL_MODULE="$value"                         ;;
 
         --help)
@@ -24,8 +22,6 @@ for nxt_option; do
 
     --perl=FILE           set perl executable, default: perl
     --include=DIRECTORY   set directory path to perl headers
-    --lib-path=DIRECTORY  set directory path to perl library
-    --lib=NAME            set perl library name, default: perl
     --module=NAME         set unit perl module name
 
 END
@@ -56,9 +52,7 @@ $echo "configuring Perl module"
 $echo "configuring Perl module ..." >> $NXT_AUTOCONF_ERR
 
 NXT_PERL=${NXT_PERL=perl}
-NXT_PERL_LIBNAME=${NXT_PERL_LIBNAME=perl}
 NXT_PERL_MODULE=${NXT_PERL_MODULE=${NXT_PERL##*/}}
-NXT_PERL_LDLIBPATH=""
 
 nxt_found=no
 
@@ -66,15 +60,21 @@ if /bin/sh -c "$NXT_PERL -MConfig -e 'print \"Perl version: \",
     \$Config{version}, \"\\n\"'" >> $NXT_AUTOCONF_ERR 2>&1; then
 
     NXT_PERL_INCPATH=${NXT_PERL_INCPATH=`$NXT_PERL -MConfig -e 'print $Config{archlib}, "/CORE"'`}
-    NXT_PERL_LIBPATH=${NXT_PERL_LIBPATH=`$NXT_PERL -MConfig -e 'print $Config{libspath}'`}
-
-    for nxt_src in $NXT_PERL_LIBPATH
-    do
-        NXT_PERL_LDLIBPATH="${NXT_PERL_LDLIBPATH} -L ${nxt_src}"
-    done
-
     NXT_PERL_INCLUDE="-I ${NXT_PERL_INCPATH}"
-    NXT_PERL_LIBS="-L ${NXT_PERL_INCPATH} ${NXT_PERL_LDLIBPATH} -l${NXT_PERL_LIBNAME}"
+
+    NXT_PERL_LDOPTS=`$NXT_PERL -MExtUtils::Embed -e ldopts`
+
+    if [ "$NXT_SYSTEM" = "Darwin" ]; then
+        # OS X system perl wants to link universal binaries
+        NXT_PERL_LDOPTS=`echo $NXT_PERL_LDOPTS \
+                         | sed -e 's/-arch i386//' -e 's/-arch x86_64//'`
+
+        # macosx-version-min is already defined for Darwin
+        NXT_PERL_LDOPTS=`echo $NXT_PERL_LDOPTS \
+                         | $NXT_PERL -pe 's/-mmacosx-version-min=\d+\.\d+//'`
+    fi
+
+    NXT_PERL_LIBS="-L ${NXT_PERL_INCPATH} ${NXT_PERL_LDOPTS}"
 
     nxt_feature="Perl"
     nxt_feature_name=""
