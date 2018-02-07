@@ -105,7 +105,7 @@ nxt_malloc_cutback(cutback, size)
 
 #define                                                                       \
 nxt_malloc_usable_size(p, size)                                               \
-     size = malloc_good_size(size)
+    size = malloc_good_size(size)
 
 #define                                                                       \
 nxt_malloc_cutback(cutback, size)

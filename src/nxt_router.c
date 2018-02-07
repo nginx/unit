@@ -612,7 +612,7 @@ nxt_router_ra_use(nxt_task_t *task, nxt_req_app_link_t *ra, int i)
 
 
 nxt_inline void
-nxt_router_ra_error(nxt_req_app_link_t *ra, int code, const char* str)
+nxt_router_ra_error(nxt_req_app_link_t *ra, int code, const char *str)
 {
     ra->app_port = NULL;
     ra->err_code = code;

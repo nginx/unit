@@ -71,7 +71,7 @@ void nxt_work_queue_thread_adopt(nxt_work_queue_t *wq)
 
 
 void
-nxt_work_queue_name(nxt_work_queue_t *wq, const char* name)
+nxt_work_queue_name(nxt_work_queue_t *wq, const char *name)
 {
     nxt_work_queue_thread_assert(wq);
 

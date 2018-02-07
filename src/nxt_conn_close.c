@@ -63,7 +63,7 @@ nxt_conn_close(nxt_event_engine_t *engine, nxt_conn_t *c)
         wq = &engine->shutdown_work_queue;
         handler = nxt_conn_shutdown_handler;
 
-    } else{
+    } else {
         wq = &engine->close_work_queue;
         handler = nxt_conn_close_handler;
     }

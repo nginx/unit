@@ -581,7 +581,7 @@ nxt_pipe_close(nxt_task_t *task, nxt_fd_t *pp)
     nxt_debug(task, "pipe close(%FD:%FD)", pp[0], pp[1]);
 
     if (close(pp[0]) != 0) {
-        nxt_log(task, NXT_LOG_CRIT, "pipe close (%FD) failed %E",
+        nxt_log(task, NXT_LOG_CRIT, "pipe close(%FD) failed %E",
                 pp[0], nxt_errno);
     }
 

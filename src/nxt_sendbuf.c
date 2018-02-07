@@ -52,7 +52,7 @@ nxt_sendbuf_mem_coalesce0(nxt_task_t *task, nxt_sendbuf_t *sb,
                         goto done;
                     }
 
-                    iov[n].iov_base =  b->mem.pos;
+                    iov[n].iov_base = b->mem.pos;
                     iov[n].iov_len = size;
 
                 } else {
@@ -126,7 +126,7 @@ nxt_sendbuf_mem_coalesce(nxt_task_t *task, nxt_sendbuf_coalesce_t *sb)
                         goto done;
                     }
 
-                    sb->iobuf[n].iov_base =  b->mem.pos;
+                    sb->iobuf[n].iov_base = b->mem.pos;
                     sb->iobuf[n].iov_len = size;
 
                 } else {

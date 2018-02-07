@@ -554,7 +554,7 @@ nxt_port_mmap_tracking_read(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     b = msg->buf;
 
-    if (nxt_buf_used_size(b) < (int)sizeof(nxt_port_mmap_tracking_msg_t)) {
+    if (nxt_buf_used_size(b) < (int) sizeof(nxt_port_mmap_tracking_msg_t)) {
         nxt_debug(task, "too small message %O", nxt_buf_used_size(b));
         return 0;
     }

@@ -584,7 +584,7 @@ nxt_conf_vldt_processes(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 
     if (proc.spare > NXT_INT32_T_MAX) {
         return nxt_conf_vldt_error(vldt, "The \"spare\" number must not "
-                                   "not exceed %d.", NXT_INT32_T_MAX);
+                                   "exceed %d.", NXT_INT32_T_MAX);
     }
 
     if (proc.max < 1) {
@@ -594,7 +594,7 @@ nxt_conf_vldt_processes(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 
     if (proc.max > NXT_INT32_T_MAX) {
         return nxt_conf_vldt_error(vldt, "The \"max\" number must not "
-                                   "not exceed %d.", NXT_INT32_T_MAX);
+                                   "exceed %d.", NXT_INT32_T_MAX);
     }
 
     if (proc.max < proc.spare) {
@@ -609,7 +609,7 @@ nxt_conf_vldt_processes(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 
     if (proc.idle_timeout > NXT_INT32_T_MAX / 1000) {
         return nxt_conf_vldt_error(vldt, "The \"idle_timeout\" number must not "
-                                   "not exceed %d.", NXT_INT32_T_MAX / 1000);
+                                   "exceed %d.", NXT_INT32_T_MAX / 1000);
     }
 
     return NXT_OK;
@@ -708,5 +708,3 @@ nxt_conf_vldt_group(nxt_conf_validation_t *vldt, char *group)
 
     return NXT_ERROR;
 }
-
-

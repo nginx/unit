@@ -335,10 +335,10 @@ nxt_fastcgi_next_param(nxt_fastcgi_source_t *fs, nxt_fastcgi_param_t *param)
     nxt_int_t  ret;
 
     enum {
-         sw_name_length = 0,
-         sw_value_length,
-         sw_name,
-         sw_value,
+        sw_name_length = 0,
+        sw_value_length,
+        sw_name,
+        sw_value,
     };
 
     switch (fs->state) {

@@ -11,10 +11,10 @@
 typedef struct nxt_work_s  nxt_work_t;
 
 struct nxt_task_s {
-     nxt_thread_t  *thread;
-     nxt_log_t     *log;
-     uint32_t      ident;
-     nxt_work_t    *next_work;
+    nxt_thread_t  *thread;
+    nxt_log_t     *log;
+    uint32_t      ident;
+    nxt_work_t    *next_work;
 
      /* TODO: exception_handler, prev/next task, subtasks. */
 };
@@ -104,7 +104,7 @@ NXT_EXPORT nxt_work_handler_t nxt_work_queue_pop(nxt_work_queue_t *wq,
 
 #if (NXT_DEBUG)
 
-NXT_EXPORT void nxt_work_queue_name(nxt_work_queue_t *wq, const char* name);
+NXT_EXPORT void nxt_work_queue_name(nxt_work_queue_t *wq, const char *name);
 NXT_EXPORT void nxt_work_queue_thread_adopt(nxt_work_queue_t *wq);
 
 #else

@@ -864,7 +864,7 @@ nxt_port_error_handler(nxt_task_t *task, void *obj, void *data)
 
     nxt_queue_each(msg, &port->messages, nxt_port_send_msg_t, link) {
 
-        for(b = msg->buf; b != NULL; b = b->next) {
+        for (b = msg->buf; b != NULL; b = b->next) {
             if (nxt_buf_is_sync(b)) {
                 continue;
             }

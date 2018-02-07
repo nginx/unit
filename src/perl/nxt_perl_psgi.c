@@ -24,7 +24,7 @@ typedef struct {
 } nxt_perl_psgi_input_t;
 
 
-nxt_inline nxt_int_t nxt_perl_psgi_write(nxt_task_t *task,nxt_app_wmsg_t *wmsg,
+nxt_inline nxt_int_t nxt_perl_psgi_write(nxt_task_t *task, nxt_app_wmsg_t *wmsg,
     const u_char *data, size_t len,
     nxt_bool_t flush, nxt_bool_t last);
 
@@ -523,7 +523,7 @@ nxt_perl_psgi_env_append_str(PerlInterpreter *my_perl, HV *hash_env,
     SV  **ha;
 
     ha = hv_store(hash_env, name, (I32) strlen(name),
-                  newSVpv((const char *) str->start, (STRLEN)str->length), 0);
+                  newSVpv((const char *) str->start, (STRLEN) str->length), 0);
 
     if (nxt_slow_path(ha == NULL)) {
         return NXT_ERROR;
