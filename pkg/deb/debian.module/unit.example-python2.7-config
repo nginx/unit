@@ -3,7 +3,7 @@
 		"example_python": {
 			"type": "python 2.7",
 			"user": "nobody",
-			"workers": 2,
+			"processes": 2,
 			"path": "/usr/share/doc/unit-python2.7/examples/python-app",
 			"module": "wsgi"
 		}

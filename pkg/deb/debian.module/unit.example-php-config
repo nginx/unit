@@ -3,7 +3,7 @@
 		"example_php": {
 			"type": "php",
 			"user": "nobody",
-			"workers": 2,
+			"processes": 2,
 			"root": "/usr/share/doc/unit-php/examples/phpinfo-app",
 			"index": "index.php"
 		}
