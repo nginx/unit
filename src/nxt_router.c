@@ -2677,7 +2677,10 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
             nxt_work_queue_add(&task->thread->engine->fast_work_queue,
                                b->completion_handler, task, b, b->parent);
 
-        } else {
+            b = b->next;
+        }
+
+        if (b != NULL) {
             nxt_buf_chain_add(&r->out, b);
         }
 
