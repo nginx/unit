@@ -375,7 +375,7 @@ nxt_h1p_transfer_encoding(void *ctx, nxt_http_field_t *field, uintptr_t data)
 static void
 nxt_h1p_request_body_read(nxt_task_t *task, nxt_http_request_t *r)
 {
-    size_t             size, rest_length;
+    size_t             size, body_length;
     nxt_buf_t          *in, *b;
     nxt_conn_t         *c;
     nxt_h1proto_t      *h1p;
@@ -410,12 +410,12 @@ nxt_h1p_request_body_read(nxt_task_t *task, nxt_http_request_t *r)
         goto error;
     }
 
-    rest_length = (size_t) r->content_length_n;
+    body_length = (size_t) r->content_length_n;
 
     b = r->body;
 
     if (b == NULL) {
-        b = nxt_buf_mem_alloc(r->mem_pool, rest_length, 0);
+        b = nxt_buf_mem_alloc(r->mem_pool, body_length, 0);
         if (nxt_slow_path(b == NULL)) {
             status = NXT_HTTP_INTERNAL_SERVER_ERROR;
             goto error;
@@ -429,23 +429,19 @@ nxt_h1p_request_body_read(nxt_task_t *task, nxt_http_request_t *r)
     size = nxt_buf_mem_used_size(&in->mem);
 
     if (size != 0) {
-        if (size >= rest_length) {
-            size = rest_length;
-            rest_length = 0;
-
-        } else {
-            rest_length -= size;
+        if (size > body_length) {
+            size = body_length;
         }
 
         b->mem.free = nxt_cpymem(b->mem.free, in->mem.pos, size);
         in->mem.pos += size;
     }
 
-    nxt_debug(task, "h1p body rest: %uz", rest_length);
+    size = nxt_buf_mem_free_size(&b->mem);
 
-    r->rest_length = rest_length;
+    nxt_debug(task, "h1p body rest: %uz", size);
 
-    if (rest_length != 0) {
+    if (size != 0) {
         in->next = h1p->buffers;
         h1p->buffers = in;
 
@@ -499,17 +495,15 @@ nxt_h1p_body_read(nxt_task_t *task, void *obj, void *data)
 
     nxt_debug(task, "h1p body read");
 
-    r = h1p->request;
-    size = nxt_buf_mem_used_size(&c->read->mem);
+    size = nxt_buf_mem_free_size(&c->read->mem);
 
-    r->rest_length -= size;
+    nxt_debug(task, "h1p body rest: %uz", size);
 
-    nxt_debug(task, "h1p body rest: %O", r->rest_length);
-
-    if (r->rest_length != 0) {
+    if (size != 0) {
         nxt_conn_read(task->thread->engine, c);
 
     } else {
+        r = h1p->request;
         c->read = NULL;
         nxt_work_queue_add(&task->thread->engine->fast_work_queue,
                            r->state->ready_handler, task, r, NULL);

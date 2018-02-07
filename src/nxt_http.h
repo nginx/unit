@@ -117,7 +117,6 @@ struct nxt_http_request_s {
     nxt_http_field_t                *content_length;
     nxt_http_field_t                *cookie;
     nxt_off_t                       content_length_n;
-    nxt_off_t                       rest_length;
 
     nxt_sockaddr_t                  *remote;
     nxt_sockaddr_t                  *local;
