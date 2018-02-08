@@ -5,13 +5,202 @@
 <change_log title="unit">
 
 
+<changes apply="unit-go1.9" ver="0.5" rev="1"
+         date="2018-02-08" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.5.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-go1.8" ver="0.5" rev="1"
+         date="2018-02-08" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.5.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-go1.7" ver="0.5" rev="1"
+         date="2018-02-08" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.5.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-go" ver="0.5" rev="1"
+         date="2018-02-08" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.5.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python3.6" ver="0.5" rev="1"
+         date="2018-02-08" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.5.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python3.5" ver="0.5" rev="1"
+         date="2018-02-08" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.5.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python3.4" ver="0.5" rev="1"
+         date="2018-02-08" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.5.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python2.7" ver="0.5" rev="1"
+         date="2018-02-08" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.5.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python" ver="0.5" rev="1"
+         date="2018-02-08" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.5.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php" ver="0.5" rev="1"
+         date="2018-02-08" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.5.
+</para>
+</change>
+
+</changes>
+
+
 <changes apply="unit-perl" ver="0.5" rev="1"
-         date="2018-02-01" time="18:00:00 +0300"
+         date="2018-02-08" time="18:00:00 +0300"
          packager="Andrei Belov &lt;defan@nginx.com&gt;">
 
 <change>
 <para>
 Initial release of Perl module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="0.5" rev="1"
+         date="2018-02-08" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="change">
+<para>
+the "workers" application option was removed, the "processes"
+application option should be used instead.
+</para>
+</change>
+
+<change type="feature">
+<para>
+the "processes" application option with prefork and dynamic
+process management support.
+</para>
+</change>
+
+<change type="feature">
+<para>
+Perl application module.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+in reading client request body; the bug had appeared in 0.3.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+some Python applications might not work due to missing
+"wsgi.errors" environ variable.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+HTTP chunked responses might be encoded incorrectly on 32-bit
+platforms.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+infinite looping in HTTP parser.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+segmentation fault in router.
 </para>
 </change>
 

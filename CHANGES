@@ -1,4 +1,27 @@
 
+Changes with Unit 0.5                                            08 Feb 2018
+
+    *) Change: the "workers" application option was removed, the "processes"
+       application option should be used instead.
+
+    *) Feature: the "processes" application option with prefork and dynamic
+       process management support.
+
+    *) Feature: Perl application module.
+
+    *) Bugfix: in reading client request body; the bug had appeared in 0.3.
+
+    *) Bugfix: some Python applications might not work due to missing
+       "wsgi.errors" environ variable.
+
+    *) Bugfix: HTTP chunked responses might be encoded incorrectly on 32-bit
+       platforms.
+
+    *) Bugfix: infinite looping in HTTP parser.
+
+    *) Bugfix: segmentation fault in router.
+
+
 Changes with Unit 0.4                                            15 Jan 2018
 
     *) Feature: compatibility with DragonFly BSD.
