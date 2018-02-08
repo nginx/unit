@@ -22,7 +22,7 @@ RUN set -x \
 	test -z "$found" && echo >&2 "error: failed to fetch GPG key $NGINX_GPGKEY" && exit 1; \
 	apt-get remove --purge --auto-remove -y gnupg1 && rm -rf /var/lib/apt/lists/* \
 	&& dpkgArch="$(dpkg --print-architecture)" \
-	&& unitPackages="unit=${UNIT_VERSION} unit-php=${UNIT_VERSION} unit-python2.7=${UNIT_VERSION} unit-python3.5=${UNIT_VERSION} unit-perl==${UNIT_VERSION}" \
+	&& unitPackages="unit=${UNIT_VERSION} unit-php=${UNIT_VERSION} unit-python2.7=${UNIT_VERSION} unit-python3.5=${UNIT_VERSION} unit-perl=${UNIT_VERSION}" \
 	&& case "$dpkgArch" in \
 		amd64|i386) \
 # arches officialy built by upstream
