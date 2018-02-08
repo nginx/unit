@@ -9,7 +9,6 @@ class TestUnitApplication(unit.TestUnitControl):
         u.check_modules('python')
         u.check_version('0.5')
 
-    @unittest.expectedFailure
     def test_python_keepalive_body(self):
         code, name = """
 
