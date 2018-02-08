@@ -259,25 +259,16 @@ nxt_perl_psgi_layer_stream_arg(pTHX_ PerlIO * f,
     CLONE_PARAMS *param, int flags)
 {
     SV                            *var;
-    nxt_perl_psgi_io_arg_t        *arg;
     nxt_perl_psgi_layer_stream_t  *unit_stream;
 
     unit_stream = PerlIOSelf(f, nxt_perl_psgi_layer_stream_t);
-
-    arg = (nxt_perl_psgi_io_arg_t *) (intptr_t) SvIV(SvRV(unit_stream->var));
     var = unit_stream->var;
 
     if (flags & PERLIO_DUP_CLONE) {
         var = PerlIO_sv_dup(aTHX_ var, param);
 
     } else if (flags & PERLIO_DUP_FD) {
-        var = newSV_type(SVt_RV);
-
-        if (var == NULL) {
-            return NULL;
-        }
-
-        sv_setptrref(var, arg);
+        var = newSVsv(var);
 
     } else {
         var = SvREFCNT_inc(var);
@@ -291,27 +282,12 @@ static PerlIO *
 nxt_perl_psgi_layer_stream_dup(pTHX_ PerlIO *f, PerlIO *o,
     CLONE_PARAMS *param, int flags)
 {
-    SV                            *var;
-    nxt_perl_psgi_layer_stream_t  *os, *fs;
+    nxt_perl_psgi_layer_stream_t  *fs;
 
-    os = PerlIOSelf(o, nxt_perl_psgi_layer_stream_t);
-    fs = NULL;
-    var = os->var;
-
-    os->var = newSV_type(SVt_RV);
     f = PerlIOBase_dup(aTHX_ f, o, param, flags);
 
     if (f != NULL) {
         fs = PerlIOSelf(f, nxt_perl_psgi_layer_stream_t);
-
-        /* The "var" has been set by an implicit push and must be replaced. */
-        SvREFCNT_dec(fs->var);
-    }
-
-    SvREFCNT_dec(os->var);
-    os->var = var;
-
-    if (f != NULL) {
         fs->var = nxt_perl_psgi_layer_stream_arg(aTHX_ o, param, flags);
     }
 
