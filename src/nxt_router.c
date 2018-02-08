@@ -2502,7 +2502,6 @@ nxt_router_listen_socket_release(nxt_task_t *task, nxt_socket_conf_t *skcf)
 static void
 nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
 {
-    nxt_bool_t             exit;
     nxt_socket_conf_t      *skcf;
     nxt_router_conf_t      *rtcf;
     nxt_event_engine_t     *engine;
@@ -2515,6 +2514,13 @@ nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
     }
 
     nxt_queue_remove(&joint->link);
+
+    /*
+     * The joint content can not be safely used after the critical
+     * section protected by the spinlock because its memory pool may
+     * be already destroyed by another thread.
+     */
+    engine = joint->engine;
 
     skcf = joint->socket_conf;
     rtcf = skcf->router_conf;
@@ -2541,10 +2547,6 @@ nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
     /* TODO remove engine->port */
     /* TODO excude from connected ports */
 
-    /* The joint content can be used before memory pool destruction. */
-    engine = joint->engine;
-    exit = (engine->shutdown && nxt_queue_is_empty(&engine->joints));
-
     if (rtcf != NULL) {
         nxt_debug(task, "old router conf is destroyed");
 
@@ -2553,7 +2555,7 @@ nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
         nxt_mp_destroy(rtcf->mem_pool);
     }
 
-    if (exit) {
+    if (engine->shutdown && nxt_queue_is_empty(&engine->joints)) {
         nxt_thread_exit(task->thread);
     }
 }
