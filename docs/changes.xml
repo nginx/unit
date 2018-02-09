@@ -5,6 +5,163 @@
 <change_log title="unit">
 
 
+<changes apply="unit-go1.9" ver="0.6" rev="1"
+         date="2018-02-09" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.6.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-go1.8" ver="0.6" rev="1"
+         date="2018-02-09" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.6.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-go1.7" ver="0.6" rev="1"
+         date="2018-02-09" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.6.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-go" ver="0.6" rev="1"
+         date="2018-02-09" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.6.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python3.6" ver="0.6" rev="1"
+         date="2018-02-09" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.6.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python3.5" ver="0.6" rev="1"
+         date="2018-02-09" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.6.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python3.4" ver="0.6" rev="1"
+         date="2018-02-09" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.6.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python2.7" ver="0.6" rev="1"
+         date="2018-02-09" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.6.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python" ver="0.6" rev="1"
+         date="2018-02-09" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.6.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php" ver="0.6" rev="1"
+         date="2018-02-09" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.6.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-perl" ver="0.6" rev="1"
+         date="2018-02-09" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.6.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="0.6" rev="1"
+         date="2018-02-09" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="bugfix">
+<para>
+the main process died when the "type" application option contained version;
+the bug had appeared in 0.5.
+</para>
+</change>
+
+</changes>
+
+
 <changes apply="unit-go1.9" ver="0.5" rev="1"
          date="2018-02-08" time="18:00:00 +0300"
          packager="Andrei Belov &lt;defan@nginx.com&gt;">

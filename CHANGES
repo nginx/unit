@@ -1,4 +1,10 @@
 
+Changes with Unit 0.6                                            09 Feb 2018
+
+    *) Bugfix: the main process died when the "type" application option
+       contained version; the bug had appeared in 0.5.
+
+
 Changes with Unit 0.5                                            08 Feb 2018
 
     *) Change: the "workers" application option was removed, the "processes"
