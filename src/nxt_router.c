@@ -1265,7 +1265,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
         apcf.processes = 1;
         apcf.max_processes = 1;
-        apcf.spare_processes = 1;
+        apcf.spare_processes = 0;
         apcf.timeout = 0;
         apcf.res_timeout = 1000;
         apcf.idle_timeout = 15000;

@@ -565,7 +565,7 @@ nxt_conf_vldt_processes(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
         return ret;
     }
 
-    proc.spare = 1;
+    proc.spare = 0;
     proc.max = 1;
     proc.idle_timeout = 15;
 
