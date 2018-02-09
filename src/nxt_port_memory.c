@@ -527,14 +527,20 @@ nxt_port_mmap_tracking_cancel(nxt_task_t *task,
 nxt_int_t
 nxt_port_mmap_tracking_write(uint32_t *buf, nxt_port_mmap_tracking_t *t)
 {
-    nxt_atomic_t             *tracking;
     nxt_port_mmap_handler_t  *mmap_handler;
 
     mmap_handler = t->mmap_handler;
+
+#if (NXT_DEBUG)
+    {
+    nxt_atomic_t  *tracking;
+
     tracking = mmap_handler->hdr->tracking;
 
     nxt_assert(t->tracking >= tracking);
     nxt_assert(t->tracking < tracking + PORT_MMAP_CHUNK_COUNT);
+    }
+#endif
 
     buf[0] = mmap_handler->hdr->id;
     buf[1] = t->tracking - mmap_handler->hdr->tracking;

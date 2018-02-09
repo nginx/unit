@@ -122,12 +122,23 @@ nxt_log_debug(_log, ...)                                                      \
     } while (0)
 
 
+#define nxt_assert(c)                                                         \
+    do {                                                                      \
+        if (nxt_slow_path(!(c))) {                                            \
+            nxt_thread_log_alert("%s:%d assertion failed: %s",                \
+                                 __FILE__, __LINE__, #c);                     \
+            nxt_abort();                                                      \
+        }                                                                     \
+    } while (0)
+
 #else
 
 #define nxt_debug(...)
 
 #define                                                                       \
 nxt_log_debug(...)
+
+#define nxt_assert(c)
 
 #endif
 
@@ -168,19 +179,6 @@ NXT_EXPORT extern nxt_uint_t  nxt_debug;
 NXT_EXPORT extern nxt_uint_t  nxt_trace;
 NXT_EXPORT extern nxt_log_t   nxt_main_log;
 NXT_EXPORT extern nxt_str_t   nxt_log_levels[];
-
-
-#define nxt_assert(c)                                                         \
-    do {                                                                      \
-        if (nxt_fast_path(c)) {                                               \
-            break;                                                            \
-                                                                              \
-        } else {                                                              \
-            nxt_thread_log_alert("%s:%d assertion failed: %s",                \
-                __FILE__, __LINE__, #c );                                     \
-            nxt_abort();                                                      \
-        }                                                                     \
-    } while (0)
 
 
 #endif /* _NXT_LOG_H_INCLUDED_ */

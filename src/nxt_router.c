@@ -117,11 +117,15 @@ nxt_router_ra_inc_use(nxt_req_app_link_t *ra)
 nxt_inline void
 nxt_router_ra_dec_use(nxt_req_app_link_t *ra)
 {
+#if (NXT_DEBUG)
     int  c;
 
     c = nxt_atomic_fetch_add(&ra->use_count, -1);
 
     nxt_assert(c > 1);
+#else
+    (void) nxt_atomic_fetch_add(&ra->use_count, -1);
+#endif
 }
 
 static void nxt_router_ra_use(nxt_task_t *task, nxt_req_app_link_t *ra, int i);
@@ -3005,11 +3009,15 @@ nxt_router_app_quit(nxt_task_t *task, nxt_app_t *app)
 static void
 nxt_router_app_process_request(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_app_t           *app;
     nxt_req_app_link_t  *ra;
 
-    app = obj;
     ra = data;
+
+#if (NXT_DEBUG)
+    {
+    nxt_app_t  *app;
+
+    app = obj;
 
     nxt_assert(app != NULL);
     nxt_assert(ra != NULL);
@@ -3017,6 +3025,8 @@ nxt_router_app_process_request(nxt_task_t *task, void *obj, void *data)
 
     nxt_debug(task, "app '%V' %p process next stream #%uD",
               &app->name, app, ra->stream);
+    }
+#endif
 
     nxt_router_app_prepare_request(task, ra);
 }
