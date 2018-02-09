@@ -21,8 +21,8 @@ typedef struct {
 
 
 typedef struct {
-    nxt_int_t       size;
-    nxt_conf_map_t  *map;
+    nxt_uint_t          size;
+    nxt_conf_map_t      *map;
 } nxt_common_app_member_t;
 
 
@@ -201,11 +201,13 @@ nxt_port_main_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 static void
 nxt_port_main_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
-    u_char                 *start;
+    u_char                 *start, ch;
+    size_t                 type_len;
     nxt_mp_t               *mp;
-    nxt_int_t              ret, idx;
+    nxt_int_t              ret;
     nxt_buf_t              *b;
     nxt_port_t             *port;
+    nxt_app_type_t         idx;
     nxt_conf_value_t       *conf;
     nxt_common_app_conf_t  app_conf;
 
@@ -254,7 +256,15 @@ nxt_port_main_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         goto failed;
     }
 
-    idx = nxt_app_parse_type(app_conf.type.start, app_conf.type.length);
+    for (type_len = 0; type_len != app_conf.type.length; type_len++) {
+        ch = app_conf.type.start[type_len];
+
+        if (ch == ' ' || nxt_isdigit(ch)) {
+            break;
+        }
+    }
+
+    idx = nxt_app_parse_type(app_conf.type.start, type_len);
 
     nxt_assert(idx != NXT_APP_UNKNOWN);
 
