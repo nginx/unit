@@ -12,6 +12,9 @@ static void nxt_http_request_start(nxt_task_t *task, void *obj, void *data);
 static void nxt_http_app_request(nxt_task_t *task, void *obj, void *data);
 static void nxt_http_request_done(nxt_task_t *task, void *obj, void *data);
 
+static u_char *nxt_http_date(u_char *buf, nxt_realtime_t *now, struct tm *tm,
+    size_t size, const char *format);
+
 
 static const nxt_http_request_state_t  nxt_http_request_init_state;
 static const nxt_http_request_state_t  nxt_http_request_body_state;
@@ -258,10 +261,19 @@ void
 nxt_http_request_header_send(nxt_task_t *task, nxt_http_request_t *r)
 {
     u_char            *p, *end;
-    nxt_http_field_t  *server, *content_length;
+    nxt_http_field_t  *server, *date, *content_length;
+
+    static nxt_time_string_t  date_cache = {
+        (nxt_atomic_uint_t) -1,
+        nxt_http_date,
+        "%s, %02d %s %4d %02d:%02d:%02d GMT",
+        sizeof("Wed, 31 Dec 1986 16:40:00 GMT") - 1,
+        NXT_THREAD_TIME_GMT,
+        NXT_THREAD_TIME_SEC,
+    };
 
     /*
-     * TODO: "Server" and "Content-Length" processing should be moved
+     * TODO: "Server", "Date", and "Content-Length" processing should be moved
      * to the last header filter.
      */
 
@@ -271,6 +283,27 @@ nxt_http_request_header_send(nxt_task_t *task, nxt_http_request_t *r)
     }
 
     nxt_http_field_set(server, "Server", "unit/" NXT_VERSION);
+
+    if (r->resp.date == NULL) {
+        date = nxt_list_zero_add(r->resp.fields);
+        if (nxt_slow_path(date == NULL)) {
+            goto fail;
+        }
+
+        nxt_http_field_name_set(date, "Date");
+
+        p = nxt_mp_nget(r->mem_pool, date_cache.size);
+        if (nxt_slow_path(p == NULL)) {
+            goto fail;
+        }
+
+        (void) nxt_thread_time_string(task->thread, &date_cache, p);
+
+        date->value = p;
+        date->value_length = date_cache.size;
+
+        r->resp.date = date;
+    }
 
     if (r->resp.content_length_n != -1
         && (r->resp.content_length == NULL || r->resp.content_length->skip))
@@ -388,4 +421,21 @@ nxt_http_request_close_handler(nxt_task_t *task, void *obj, void *data)
     if (proto.any != NULL) {
         handler(task, proto);
     }
+}
+
+
+static u_char *
+nxt_http_date(u_char *buf, nxt_realtime_t *now, struct tm *tm, size_t size,
+    const char *format)
+{
+    static const char  *week[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri",
+                                   "Sat" };
+
+    static const char  *month[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+
+    return nxt_sprintf(buf, buf + size, format,
+                       week[tm->tm_wday], tm->tm_mday,
+                       month[tm->tm_mon], tm->tm_year + 1900,
+                       tm->tm_hour, tm->tm_min, tm->tm_sec);
 }

@@ -1,3 +1,4 @@
+import time
 import unittest
 import unit
 
@@ -62,6 +63,9 @@ def application(environ, start_response):
         headers = resp['headers']
         self.assertRegex(headers.pop('Server'), r'unit/[\d\.]+',
             'server header')
+        self.assertLess(abs(time.mktime(time.gmtime()) -
+            time.mktime(time.strptime(headers.pop('Date'),
+            '%a, %d %b %Y %H:%M:%S GMT'))), 5, 'date header')
         self.assertDictEqual(headers, {
             'Content-Length': str(len(body)),
             'Content-Type': 'text/html',

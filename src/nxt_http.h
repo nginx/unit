@@ -89,6 +89,7 @@ typedef union {
 
 typedef struct {
     nxt_list_t                      *fields;
+    nxt_http_field_t                *date;
     nxt_http_field_t                *content_type;
     nxt_http_field_t                *content_length;
     nxt_off_t                       content_length_n;

@@ -21,6 +21,8 @@ nxt_lvlhsh_t  nxt_response_fields_hash;
 static nxt_http_field_proc_t   nxt_response_fields[] = {
     { nxt_string("Status"),         &nxt_http_response_status, 0 },
     { nxt_string("Server"),         &nxt_http_response_skip, 0 },
+    { nxt_string("Date"),           &nxt_http_response_field,
+        offsetof(nxt_http_request_t, resp.date) },
     { nxt_string("Connection"),     &nxt_http_response_skip, 0 },
     { nxt_string("Content-Type"),   &nxt_http_response_field,
         offsetof(nxt_http_request_t, resp.content_type) },
