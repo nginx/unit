@@ -749,6 +749,7 @@ nxt_epoll_signalfd_handler(nxt_task_t *task, void *obj, void *data)
     if (n != sizeof(struct signalfd_siginfo)) {
         nxt_log(task, NXT_LOG_CRIT, "read signalfd(%d) failed %E",
                 ev->fd, nxt_errno);
+        return;
     }
 
     nxt_debug(task, "signalfd(%d) signo:%d", ev->fd, sfd.ssi_signo);
