@@ -11,8 +11,8 @@
 #include <nxt_auto_config.h>
 
 
-#define NXT_VERSION                  "0.6"
-#define NXT_VERNUM                   6
+#define NXT_VERSION                  "0.7"
+#define NXT_VERNUM                   7
 
 
 typedef struct nxt_port_s            nxt_port_t;
