@@ -292,3 +292,25 @@ class TestUnitControl(TestUnitHTTP):
             sock_type='unix',
             addr=self.testdir + '/control.unit.sock'
         )['body'])
+
+class TestUnitApplicationProto(TestUnitControl):
+
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+
+class TestUnitApplicationPerl(TestUnitApplicationProto):
+    def load(self, dir, name='psgi.pl'):
+        self.conf({
+            "listeners": {
+                "*:7080": {
+                    "application": dir
+                }
+            },
+            "applications": {
+                dir: {
+                    "type": "perl",
+                    "processes": { "spare": 0 },
+                    "working_directory": self.current_dir + '/perl/' + dir,
+                    "script": self.current_dir + '/perl/' + dir + '/' + name
+                }
+            }
+        })
