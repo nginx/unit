@@ -23,7 +23,7 @@ typedef struct {
 typedef struct {
     nxt_uint_t          size;
     nxt_conf_map_t      *map;
-} nxt_common_app_member_t;
+} nxt_conf_app_map_t;
 
 
 static nxt_int_t nxt_main_process_port_create(nxt_task_t *task,
@@ -122,7 +122,7 @@ static nxt_conf_map_t  nxt_common_app_conf[] = {
 };
 
 
-static nxt_conf_map_t  nxt_common_python_app_conf[] = {
+static nxt_conf_map_t  nxt_python_app_conf[] = {
     {
         nxt_string("home"),
         NXT_CONF_MAP_CSTRZ,
@@ -143,7 +143,7 @@ static nxt_conf_map_t  nxt_common_python_app_conf[] = {
 };
 
 
-static nxt_conf_map_t  nxt_common_php_app_conf[] = {
+static nxt_conf_map_t  nxt_php_app_conf[] = {
     {
         nxt_string("root"),
         NXT_CONF_MAP_CSTRZ,
@@ -164,7 +164,7 @@ static nxt_conf_map_t  nxt_common_php_app_conf[] = {
 };
 
 
-static nxt_conf_map_t  nxt_common_go_app_conf[] = {
+static nxt_conf_map_t  nxt_go_app_conf[] = {
     {
         nxt_string("executable"),
         NXT_CONF_MAP_CSTRZ,
@@ -173,7 +173,7 @@ static nxt_conf_map_t  nxt_common_go_app_conf[] = {
 };
 
 
-static nxt_conf_map_t  nxt_common_perl_app_conf[] = {
+static nxt_conf_map_t  nxt_perl_app_conf[] = {
     {
         nxt_string("script"),
         NXT_CONF_MAP_CSTRZ,
@@ -182,11 +182,11 @@ static nxt_conf_map_t  nxt_common_perl_app_conf[] = {
 };
 
 
-static nxt_common_app_member_t  nxt_common_members[] = {
-    { nxt_nitems(nxt_common_python_app_conf), nxt_common_python_app_conf },
-    { nxt_nitems(nxt_common_php_app_conf),    nxt_common_php_app_conf },
-    { nxt_nitems(nxt_common_go_app_conf),     nxt_common_go_app_conf },
-    { nxt_nitems(nxt_common_perl_app_conf),   nxt_common_perl_app_conf },
+static nxt_conf_app_map_t  nxt_app_maps[] = {
+    { nxt_nitems(nxt_python_app_conf), nxt_python_app_conf },
+    { nxt_nitems(nxt_php_app_conf),    nxt_php_app_conf },
+    { nxt_nitems(nxt_go_app_conf),     nxt_go_app_conf },
+    { nxt_nitems(nxt_perl_app_conf),   nxt_perl_app_conf },
 };
 
 
@@ -242,7 +242,7 @@ nxt_port_main_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     conf = nxt_conf_json_parse(mp, start, b->mem.free, NULL);
 
     if (conf == NULL) {
-        nxt_log(task, NXT_LOG_CRIT, "configuration parsing error");
+        nxt_log(task, NXT_LOG_ALERT, "router app configuration parsing error");
 
         goto failed;
     }
@@ -252,7 +252,8 @@ nxt_port_main_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     ret = nxt_conf_map_object(mp, conf, nxt_common_app_conf,
                               nxt_nitems(nxt_common_app_conf), &app_conf);
     if (ret != NXT_OK) {
-        nxt_log(task, NXT_LOG_CRIT, "root map error");
+        nxt_log(task, NXT_LOG_ALERT,
+                "failed to map common app conf received from router");
         goto failed;
     }
 
@@ -266,12 +267,20 @@ nxt_port_main_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     idx = nxt_app_parse_type(app_conf.type.start, type_len);
 
-    nxt_assert(idx != NXT_APP_UNKNOWN);
+    if (nxt_slow_path(idx >= nxt_nitems(nxt_app_maps))) {
+        nxt_log(task, NXT_LOG_ALERT,
+                "invalid app type %d received from router", (int) idx);
+        goto failed;
+    }
 
-    ret = nxt_conf_map_object(mp, conf, nxt_common_members[idx].map,
-                              nxt_common_members[idx].size, &app_conf);
+    ret = nxt_conf_map_object(mp, conf, nxt_app_maps[idx].map,
+                              nxt_app_maps[idx].size, &app_conf);
 
-    nxt_assert(ret == NXT_OK);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        nxt_log(task, NXT_LOG_ALERT,
+                "failed to map app conf received from router");
+        goto failed;
+    }
 
     ret = nxt_main_start_worker_process(task, task->thread->runtime,
                                         &app_conf, msg->port_msg.stream);
