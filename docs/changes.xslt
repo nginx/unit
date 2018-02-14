@@ -213,9 +213,16 @@
 
 <xsl:template name="string_in_list"><xsl:param name="list"/><xsl:param name="string"/>
     <xsl:choose>
-        <xsl:when test="contains($list, ',')">
-            <xsl:variable select="substring-before($list, ',')" name="str"/>
-            <xsl:call-template name="string_in_list"><xsl:with-param select="substring-after($list, ',')" name="list"/><xsl:with-param select="$string" name="string"/></xsl:call-template></xsl:when>
+        <xsl:when test="contains($list, ' ')">
+            <xsl:variable select="substring-before($list, ' ')" name="str"/>
+            <xsl:choose>
+                <xsl:when test="$str=$string">
+                    <xsl:value-of select="$string"/>
+                </xsl:when>
+                <xsl:otherwise>
+                    <xsl:call-template name="string_in_list"><xsl:with-param select="substring-after($list, ' ')" name="list"/><xsl:with-param select="$string" name="string"/></xsl:call-template></xsl:otherwise>
+            </xsl:choose>
+        </xsl:when>
         <xsl:otherwise>
             <xsl:if test="$list=$string"> <xsl:value-of select="$string"/> </xsl:if>
             <xsl:if test="$list='*'"> <xsl:value-of select="$string"/> </xsl:if>

@@ -219,9 +219,17 @@ X:template padded_day(date) {
 
 X:template string_in_list(list, string) {
     X:choose {
-        X:when "contains($list, ',')" {
-            X:var str = "substring-before($list, ',')";
-            !string_in_list(list="substring-after($list, ',')", string="$string")
+        X:when "contains($list, ' ')" {
+            X:var str = "substring-before($list, ' ')";
+            X:choose {
+                X:when "$str=$string" {
+                    !{$string}
+                }
+                X:otherwise {
+                    !string_in_list(list="substring-after($list, ' ')",
+                                    string="$string")
+                }
+            }
         }
         X:otherwise {
             X:if "$list=$string" { !{$string} }
