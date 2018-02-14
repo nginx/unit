@@ -1112,6 +1112,7 @@ nxt_main_port_modules_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_mp_t               *mp;
     nxt_int_t              ret;
     nxt_buf_t              *b;
+    nxt_port_t             *port;
     nxt_runtime_t          *rt;
     nxt_conf_value_t       *conf, *root, *value;
     nxt_app_lang_module_t  *lang;
@@ -1122,6 +1123,14 @@ nxt_main_port_modules_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     if (msg->port_msg.pid != rt->port_by_type[NXT_PROCESS_DISCOVERY]->pid) {
         return;
+    }
+
+    port = nxt_runtime_port_find(task->thread->runtime, msg->port_msg.pid,
+                                 msg->port_msg.reply_port);
+
+    if (nxt_fast_path(port != NULL)) {
+        (void) nxt_port_socket_write(task, port, NXT_PORT_MSG_RPC_ERROR, -1,
+                                     msg->port_msg.stream, 0, NULL);
     }
 
     b = msg->buf;

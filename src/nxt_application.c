@@ -26,6 +26,10 @@ typedef struct {
 static nxt_buf_t *nxt_discovery_modules(nxt_task_t *task, const char *path);
 static nxt_int_t nxt_discovery_module(nxt_task_t *task, nxt_mp_t *mp,
     nxt_array_t *modules, const char *name);
+static void nxt_discovery_completion_handler(nxt_task_t *task, void *obj,
+    void *data);
+static void nxt_discovery_quit(nxt_task_t *task, nxt_port_recv_msg_t *msg,
+    void *data);
 static nxt_app_module_t *nxt_app_module_load(nxt_task_t *task,
     const char *name);
 
@@ -46,9 +50,11 @@ static nxt_application_module_t  *nxt_app;
 nxt_int_t
 nxt_discovery_start(nxt_task_t *task, void *data)
 {
-    nxt_buf_t         *b;
-    nxt_port_t        *main_port;
-    nxt_runtime_t     *rt;
+    uint32_t       stream;
+    nxt_buf_t      *b;
+    nxt_int_t      ret;
+    nxt_port_t     *main_port, *discovery_port;
+    nxt_runtime_t  *rt;
 
     nxt_debug(task, "DISCOVERY");
 
@@ -56,30 +62,26 @@ nxt_discovery_start(nxt_task_t *task, void *data)
 
     b = nxt_discovery_modules(task, rt->modules);
     if (nxt_slow_path(b == NULL)) {
-        exit(1);
+        return NXT_ERROR;
     }
 
     main_port = rt->port_by_type[NXT_PROCESS_MAIN];
+    discovery_port = rt->port_by_type[NXT_PROCESS_DISCOVERY];
 
-    nxt_port_socket_write(task, main_port, NXT_PORT_MSG_MODULES, -1,
-                          0, -1, b);
+    stream = nxt_port_rpc_register_handler(task, discovery_port,
+                                           nxt_discovery_quit,
+                                           nxt_discovery_quit,
+                                           main_port->pid, NULL);
+
+    ret = nxt_port_socket_write(task, main_port, NXT_PORT_MSG_MODULES, -1,
+                                stream, discovery_port->id, b);
+
+    if (nxt_slow_path(ret != NXT_OK)) {
+        nxt_port_rpc_cancel(task, discovery_port, stream);
+        return NXT_ERROR;
+    }
 
     return NXT_OK;
-}
-
-
-static void
-nxt_discovery_completion_handler(nxt_task_t *task, void *obj, void *data)
-{
-    nxt_mp_t   *mp;
-    nxt_buf_t  *b;
-
-    b = obj;
-    mp = b->data;
-
-    nxt_mp_destroy(mp);
-
-    exit(0);
 }
 
 
@@ -276,6 +278,26 @@ fail:
     }
 
     return ret;
+}
+
+
+static void
+nxt_discovery_completion_handler(nxt_task_t *task, void *obj, void *data)
+{
+    nxt_mp_t   *mp;
+    nxt_buf_t  *b;
+
+    b = obj;
+    mp = b->data;
+
+    nxt_mp_destroy(mp);
+}
+
+
+static void
+nxt_discovery_quit(nxt_task_t *task, nxt_port_recv_msg_t *msg, void *data)
+{
+    nxt_worker_process_quit_handler(task, msg);
 }
 
 
