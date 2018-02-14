@@ -1,13 +1,10 @@
 import unittest
 import unit
 
-class TestUnitBasic(unit.TestUnitControl):
+class TestUnitPythonBasic(unit.TestUnitControl):
 
     def setUpClass():
-        u = unit.TestUnit()
-
-        u.check_modules('python')
-        u.check_version('0.5')
+        unit.TestUnit().check_modules('python')
 
     conf_app = {
         "app": {

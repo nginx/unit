@@ -2,13 +2,10 @@ import time
 import unittest
 import unit
 
-class TestUnitApplication(unit.TestUnitControl):
+class TestUnitPythonApplication(unit.TestUnitControl):
 
     def setUpClass():
-        u = unit.TestUnit()
-
-        u.check_modules('python')
-        u.check_version('0.5')
+        unit.TestUnit().check_modules('python')
 
     def conf_with_name(self, name):
         self.conf({

@@ -3,15 +3,12 @@ import time
 import unittest
 import unit
 
-class TestUnitApplication(unit.TestUnitControl):
+class TestUnitPythonAtExit(unit.TestUnitControl):
 
     def setUpClass():
-        u = unit.TestUnit()
+        unit.TestUnit().check_modules('python')
 
-        u.check_modules('python')
-        u.check_version('0.5')
-
-    def test_python_application(self):
+    def test_python_atexit(self):
         code, name = """
 import atexit
 

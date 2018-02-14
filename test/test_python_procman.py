@@ -4,13 +4,10 @@ import subprocess
 import unittest
 import unit
 
-class TestUnitProcman(unit.TestUnitControl):
+class TestUnitPythonProcman(unit.TestUnitControl):
 
     def setUpClass():
-        u = unit.TestUnit()
-
-        u.check_modules('python')
-        u.check_version('0.5')
+        unit.TestUnit().check_modules('python')
 
     def pids_for_process(self, process=None):
         if process is None:

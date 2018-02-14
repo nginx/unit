@@ -21,10 +21,6 @@ class TestUnit(unittest.TestCase):
     def tearDown(self):
         self._stop()
 
-        if '--log' in sys.argv:
-            with open(self.testdir + '/unit.log', 'r') as f:
-                print(f.read())
-
         if '--leave' not in sys.argv:
             shutil.rmtree(self.testdir)
 
@@ -34,7 +30,7 @@ class TestUnit(unittest.TestCase):
         for i in range(50):
             with open(self.testdir + '/unit.log', 'r') as f:
                 log = f.read()
-                m = re.search('controller started', log, re.M | re.S)
+                m = re.search('controller started', log)
 
                 if m is None:
                     time.sleep(0.1)
@@ -42,11 +38,12 @@ class TestUnit(unittest.TestCase):
                     break
 
         if m is None:
+            self._stop()
             exit("Unit is writing log too long")
 
         missed_module = ''
         for module in modules:
-            m = re.search('module: ' + module, log, re.M | re.S)
+            m = re.search('module: ' + module, log)
             if m is None:
                 missed_module = module
                 break
@@ -56,17 +53,6 @@ class TestUnit(unittest.TestCase):
 
         if missed_module:
             raise unittest.SkipTest('Unit has no ' + missed_module + ' module')
-
-    def check_version(self, version):
-        with open(self.pardir + '/src/nxt_main.h' , 'r') as f:
-            m = re.search('NXT_VERSION\s+"(\d+\.\d+)"', f.read(), re.M | re.S)
-
-            current = m.group(1).split('.')
-            need = version.split('.')
-
-            for i in range(len(need)):
-                if need[i] > current[i]:
-                    raise unittest.SkipTest('Unit too old')
 
     def _run(self):
         self.testdir = tempfile.mkdtemp(prefix='unit-test-')

@@ -1,13 +1,10 @@
 import unittest
 import unit
 
-class TestUnitBasic(unit.TestUnitControl):
+class TestUnitPHPBasic(unit.TestUnitControl):
 
     def setUpClass():
-        u = unit.TestUnit()
-
-        u.check_modules('php')
-        u.check_version('0.5')
+        unit.TestUnit().check_modules('php')
 
     conf_app = {
         "app": {
