@@ -221,6 +221,16 @@ nxt_port_incoming_port_mmap(nxt_task_t *task, nxt_process_t *process,
 
     mmap_handler->hdr = hdr;
 
+    if (nxt_slow_path(hdr->src_pid != process->pid
+                      || hdr->dst_pid != nxt_pid))
+    {
+        nxt_log(task, NXT_LOG_WARN, "unexpected pid in mmap header detected: "
+                "%PI != %PI or %PI != %PI", hdr->src_pid, process->pid,
+                hdr->dst_pid, nxt_pid);
+
+        return NULL;
+    }
+
     nxt_thread_mutex_lock(&process->incoming.mutex);
 
     port_mmap = nxt_port_mmap_at(&process->incoming, hdr->id);
@@ -235,9 +245,6 @@ nxt_port_incoming_port_mmap(nxt_task_t *task, nxt_process_t *process,
 
         goto fail;
     }
-
-    nxt_assert(hdr->src_pid == process->pid);
-    nxt_assert(hdr->dst_pid == nxt_pid);
 
     port_mmap->mmap_handler = mmap_handler;
     nxt_port_mmap_handler_use(mmap_handler, 1);
@@ -843,8 +850,6 @@ nxt_port_mmap_read(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         end = (nxt_port_mmap_msg_t *) b->mem.free;
 
         while (mmap_msg < end) {
-            nxt_assert(mmap_msg + 1 <= end);
-
             nxt_debug(task, "mmap_msg={%D, %D, %D} from %PI",
                       mmap_msg->mmap_id, mmap_msg->chunk_id, mmap_msg->size,
                       msg->port_msg.pid);

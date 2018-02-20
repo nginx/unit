@@ -313,7 +313,7 @@ nxt_port_process_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     process->ready = 1;
 
-    nxt_assert(nxt_queue_is_empty(&process->ports) == 0);
+    nxt_assert(!nxt_queue_is_empty(&process->ports));
 
     port = nxt_process_port_first(process);
 

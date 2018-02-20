@@ -676,7 +676,7 @@ nxt_port_frag_find(nxt_task_t *task, nxt_port_t *port, uint32_t stream,
         return lhq.value;
 
     default:
-        nxt_log(task, NXT_LOG_WARN, "frag stream #%uD not found", stream);
+        nxt_log(task, NXT_LOG_INFO, "frag stream #%uD not found", stream);
 
         return NULL;
     }
@@ -719,7 +719,9 @@ nxt_port_read_msg_process(nxt_task_t *task, nxt_port_t *port,
         fmsg = nxt_port_frag_find(task, port, msg->port_msg.stream,
                                   msg->port_msg.mf == 0);
 
-        nxt_assert(fmsg != NULL);
+        if (nxt_slow_path(fmsg == NULL)) {
+            goto fmsg_failed;
+        }
 
         if (nxt_fast_path(fmsg->cancelled == 0)) {
 
@@ -757,7 +759,9 @@ nxt_port_read_msg_process(nxt_task_t *task, nxt_port_t *port,
 
             fmsg = nxt_port_frag_start(task, port, msg);
 
-            nxt_assert(fmsg != NULL);
+            if (nxt_slow_path(fmsg == NULL)) {
+                goto fmsg_failed;
+            }
 
             fmsg->port_msg.nf = 0;
             fmsg->port_msg.mf = 0;
@@ -784,6 +788,8 @@ nxt_port_read_msg_process(nxt_task_t *task, nxt_port_t *port,
             }
         }
     }
+
+fmsg_failed:
 
     if (msg->port_msg.mmap && orig_b != b) {
 

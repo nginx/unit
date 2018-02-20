@@ -867,8 +867,9 @@ nxt_main_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid)
 
                 buf = nxt_buf_mem_ts_alloc(task, task->thread->engine->mem_pool,
                                            sizeof(pid));
-
-                nxt_assert(buf != NULL);
+                if (nxt_slow_path(buf == NULL)) {
+                    continue;
+                }
 
                 buf->mem.free = nxt_cpymem(buf->mem.free, &pid, sizeof(pid));
 

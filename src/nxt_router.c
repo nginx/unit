@@ -746,15 +746,18 @@ nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
               nxt_buf_used_size(msg->buf),
               (size_t) nxt_buf_used_size(msg->buf), msg->buf->mem.pos);
 
-    b = nxt_buf_chk_make_plain(tmcf->conf->mem_pool, msg->buf, msg->size);
-
-    nxt_assert(b != NULL);
-
     tmcf->conf->router = nxt_router;
     tmcf->stream = msg->port_msg.stream;
     tmcf->port = nxt_runtime_port_find(task->thread->runtime,
                                        msg->port_msg.pid,
                                        msg->port_msg.reply_port);
+
+    b = nxt_buf_chk_make_plain(tmcf->conf->mem_pool, msg->buf, msg->size);
+    if (nxt_slow_path(b == NULL)) {
+        nxt_router_conf_error(task, tmcf);
+
+        return;
+    }
 
     ret = nxt_router_conf_create(task, tmcf, b->mem.pos, b->mem.free);
 
@@ -1731,7 +1734,9 @@ nxt_router_listen_socket_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
     in = nxt_buf_chk_make_plain(tmcf->mem_pool, msg->buf, msg->size);
 
-    nxt_assert(in != NULL);
+    if (nxt_slow_path(in == NULL)) {
+        return;
+    }
 
     p = in->mem.pos;
 
@@ -2756,7 +2761,10 @@ nxt_router_response_error_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
             if (res == NXT_OK) {
                 port = ra->app_port;
 
-                nxt_assert(port != NULL);
+                if (nxt_slow_path(port == NULL)) {
+                    nxt_log(task, NXT_LOG_ERR, "port is NULL in cancelled ra");
+                    return;
+                }
 
                 nxt_port_rpc_ex_set_peer(task, task->thread->engine->port, rc,
                                          port->pid);
@@ -2865,10 +2873,10 @@ nxt_router_app_use(nxt_task_t *task, nxt_app_t *app, int i)
         nxt_assert(app->processes == 0);
         nxt_assert(app->idle_processes == 0);
         nxt_assert(app->pending_processes == 0);
-        nxt_assert(nxt_queue_is_empty(&app->requests) != 0);
-        nxt_assert(nxt_queue_is_empty(&app->ports) != 0);
-        nxt_assert(nxt_queue_is_empty(&app->spare_ports) != 0);
-        nxt_assert(nxt_queue_is_empty(&app->idle_ports) != 0);
+        nxt_assert(nxt_queue_is_empty(&app->requests));
+        nxt_assert(nxt_queue_is_empty(&app->ports));
+        nxt_assert(nxt_queue_is_empty(&app->spare_ports));
+        nxt_assert(nxt_queue_is_empty(&app->idle_ports));
 
         nxt_thread_mutex_destroy(&app->mutex);
         nxt_free(app);
@@ -3349,7 +3357,7 @@ nxt_router_adjust_idle_timer(nxt_task_t *task, void *obj, void *data)
 
     while (app->idle_processes > app->spare_processes) {
 
-        nxt_assert(nxt_queue_is_empty(&app->idle_ports) == 0);
+        nxt_assert(!nxt_queue_is_empty(&app->idle_ports));
 
         lnk = nxt_queue_first(&app->idle_ports);
         port = nxt_queue_link_data(lnk, nxt_port_t, idle_link);
