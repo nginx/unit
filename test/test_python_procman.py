@@ -4,21 +4,18 @@ import subprocess
 import unittest
 import unit
 
-class TestUnitPythonProcman(unit.TestUnitControl):
+class TestUnitPythonProcman(unit.TestUnitApplicationPython):
 
     def setUpClass():
         unit.TestUnit().check_modules('python')
 
-    def pids_for_process(self, process=None):
-        if process is None:
-            process = self.app_name
-
+    def pids_for_process(self):
         time.sleep(0.2)
 
         output = subprocess.check_output(['ps', 'ax'])
 
         pids = set()
-        for m in re.findall('.*' + process, output.decode()):
+        for m in re.findall('.*' + self.app_name, output.decode()):
             pids.add(re.search('^\s*(\d+)', m).group(1))
 
         return pids
@@ -26,33 +23,8 @@ class TestUnitPythonProcman(unit.TestUnitControl):
     def setUp(self):
         super().setUp()
 
-        code, name = """
-
-def application(env, start_response):
-    start_response('200', [('Content-Length', '0')])
-    return []
-
-""", 'py_app'
-
         self.app_name = "app-" + self.testdir.split('/')[-1]
-
-        self.python_application(name, code)
-
-        self.conf({
-            "listeners": {
-                "*:7080": {
-                    "application": self.app_name
-                }
-            },
-            "applications": {
-                self.app_name: {
-                    "type": "python",
-                    "processes": { "spare": 0 },
-                    "path": self.testdir + '/' + name,
-                    "module": "wsgi"
-                }
-            }
-        })
+        self.load('empty', self.app_name)
 
     def test_python_processes_access(self):
         self.conf('1', '/applications/' + self.app_name + '/processes')

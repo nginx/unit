@@ -1,44 +1,13 @@
 import unittest
 import unit
 
-class TestUnitPythonKeepalive(unit.TestUnitControl):
+class TestUnitPythonKeepalive(unit.TestUnitApplicationPython):
 
     def setUpClass():
         unit.TestUnit().check_modules('python')
 
     def test_python_keepalive_body(self):
-        code, name = """
-
-def application(environ, start_response):
-
-    content_length = int(environ.get('CONTENT_LENGTH', 0))
-    body = bytes(environ['wsgi.input'].read(content_length))
-
-    start_response('200', [
-        ('Content-Type', environ.get('CONTENT_TYPE')),
-        ('Content-Length', str(len(body)))
-    ])
-    return [body]
-
-""", 'py_app'
-
-        self.python_application(name, code)
-
-        self.conf({
-            "listeners": {
-                "*:7080": {
-                    "application": "app"
-                }
-            },
-            "applications": {
-                "app": {
-                    "type": "python",
-                    "processes": { "spare": 0 },
-                    "path": self.testdir + '/' + name,
-                    "module": "wsgi"
-                }
-            }
-        })
+        self.load('mirror')
 
         (resp, sock) = self.post(headers={
             'Connection': 'keep-alive',

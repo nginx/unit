@@ -77,12 +77,6 @@ class TestUnit(unittest.TestCase):
             self.testdir + '/unit.log', self.testdir + '/control.unit.sock'):
             exit("Could not start unit")
 
-    def python_application(self, name, code):
-        os.mkdir(self.testdir + '/' + name)
-
-        with open(self.testdir + '/' + name + '/wsgi.py', 'w') as f:
-            f.write(code)
-
     def _stop(self):
         with open(self.testdir + '/unit.pid', 'r') as f:
             pid = f.read().rstrip()
@@ -283,20 +277,41 @@ class TestUnitApplicationProto(TestUnitControl):
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
 
-class TestUnitApplicationPerl(TestUnitApplicationProto):
-    def load(self, dir, name='psgi.pl'):
+class TestUnitApplicationPython(TestUnitApplicationProto):
+    def load(self, script, name=None):
+        if name is None:
+            name = script
+
         self.conf({
             "listeners": {
                 "*:7080": {
-                    "application": dir
+                    "application": name
                 }
             },
             "applications": {
-                dir: {
+                name: {
+                    "type": "python",
+                    "processes": { "spare": 0 },
+                    "path": self.current_dir + '/python/' + script,
+                    "module": "wsgi"
+                }
+            }
+        })
+
+class TestUnitApplicationPerl(TestUnitApplicationProto):
+    def load(self, script, name='psgi.pl'):
+        self.conf({
+            "listeners": {
+                "*:7080": {
+                    "application": script
+                }
+            },
+            "applications": {
+                script: {
                     "type": "perl",
                     "processes": { "spare": 0 },
-                    "working_directory": self.current_dir + '/perl/' + dir,
-                    "script": self.current_dir + '/perl/' + dir + '/' + name
+                    "working_directory": self.current_dir + '/perl/' + script,
+                    "script": self.current_dir + '/perl/' + script + '/' + name
                 }
             }
         })
