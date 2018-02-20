@@ -154,10 +154,12 @@ class TestUnitHTTP(TestUnit):
         if 'sock' not in kwargs:
             sock = socket.socket(sock_types[sock_type], socket.SOCK_STREAM)
 
-            if sock_type == 'unix':
-                sock.connect(addr)
-            else:
-                sock.connect((addr, port))
+            connect_args = addr if sock_type == 'unix' else (addr, port)
+            try:
+                sock.connect(connect_args)
+            except ConnectionRefusedError:
+                sock.close()
+                return None
 
         else:
             sock = kwargs['sock']
