@@ -57,6 +57,12 @@ class TestUnitPerlApplication(unit.TestUnitApplicationPerl):
 
         self.assertEqual(self.get()['body'], '', 'read empty')
 
+    def test_perl_application_input_read_parts(self):
+        self.load('input_read_parts')
+
+        self.assertEqual(self.post(body='0123456789')['body'], '0123456789',
+            'input read parts')
+
     @unittest.expectedFailure
     def test_perl_application_input_read_offset(self):
         self.load('input_read_offset')
@@ -80,6 +86,12 @@ class TestUnitPerlApplication(unit.TestUnitApplicationPerl):
 
         self.assertIsNotNone(m, 'errors log')
 
+    def test_perl_application_header_equal_names(self):
+        self.load('header_equal_names')
+
+        self.assertListEqual(self.get()['headers']['Set-Cookie'],
+            ['tc=one,two,three', 'tc=four,five,six'], 'header equal names')
+
     def test_perl_application_header_pairs(self):
         self.load('header_pairs')
 
@@ -100,7 +112,7 @@ class TestUnitPerlApplication(unit.TestUnitApplicationPerl):
 
         body = '0123456789' * 1000
 
-        resp = self.get(body=body)['body']
+        resp = self.post(body=body)['body']
 
         self.assertEqual(resp, body, 'body large')
 

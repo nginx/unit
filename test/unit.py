@@ -237,7 +237,13 @@ class TestUnitHTTP(TestUnit):
         headers = {}
         for line in headers_lines:
             m = re.search('(.*)\:\s(.*)', line)
-            headers[m.group(1)] = m.group(2)
+
+            if m.group(1) not in headers:
+                headers[m.group(1)] = m.group(2)
+            elif isinstance(headers[m.group(1)], list):
+                headers[m.group(1)].append(m.group(2))
+            else:
+                headers[m.group(1)] = [headers[m.group(1)], m.group(2)]
 
         return {
             'status': int(status),
