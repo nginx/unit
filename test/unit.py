@@ -192,7 +192,7 @@ class TestUnitHTTP(TestUnit):
         resp = self._recvall(sock)
 
         if '--verbose' in sys.argv:
-            print('<<<', resp, sep='\n')
+            print('<<<', resp.encode('utf-8'), sep='\n')
 
         if 'raw_resp' not in kwargs:
             resp = self._resp_to_dict(resp)

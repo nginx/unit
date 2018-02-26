@@ -21,6 +21,15 @@ class TestUnitConfiguration(unit.TestUnitControl):
             }
             """, '/applications'), 'unicode')
 
+        self.assertDictEqual(self.conf_get('/applications'), {
+            "app": {
+                "type": "python",
+                "processes": { "spare": 0 },
+                "path": "/app",
+                "module": "wsgi"
+            }
+        }, 'unicode get')
+
     def test_json_unicode_2(self):
         self.assertIn('success', self.conf({
             "приложение": {
@@ -30,6 +39,9 @@ class TestUnitConfiguration(unit.TestUnitControl):
                 "module": "wsgi"
             }
         }, '/applications'), 'unicode 2')
+
+        self.assertIn('приложение', self.conf_get('/applications'),
+            'unicode 2 get')
 
     def test_json_unicode_number(self):
         self.assertIn('error', self.conf(b"""
@@ -48,16 +60,6 @@ class TestUnitConfiguration(unit.TestUnitControl):
 
     def test_applications_string(self):
         self.assertIn('error', self.conf('"{}"', '/applications'), 'string')
-
-    def test_negative_spare(self):
-        self.assertIn('error', self.conf({
-            "app": {
-                "type": "python",
-                "processes": { "spare": -1 },
-                "path": "/app",
-                "module": "wsgi"
-            }
-        }, '/applications'), 'negative spare')
 
     def test_applications_type_only(self):
         self.assertIn('error', self.conf({

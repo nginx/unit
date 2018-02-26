@@ -36,6 +36,22 @@ class TestUnitPythonProcman(unit.TestUnitApplicationPython):
         self.assertIn('error', self.conf_get('/applications/' + self.app_name +
             '/processes/idle_timeout'), 'idle_timeout no access')
 
+    def test_python_processes_spare_negative(self):
+        self.assertIn('error', self.conf({
+            "spare": -1
+        }, '/applications/' + self.app_name + '/processes'), 'negative spare')
+
+    def test_python_processes_max_negative(self):
+        self.assertIn('error', self.conf({
+            "max": -1
+        }, '/applications/' + self.app_name + '/processes'), 'negative max')
+
+    def test_python_processes_idle_timeout_negative(self):
+        self.assertIn('error', self.conf({
+            "idle_timeout": -1
+        }, '/applications/' + self.app_name + '/processes'),
+            'negative idle_timeout')
+
     def test_python_processes_spare_gt_max_default(self):
         self.assertIn('error', self.conf({"spare": 2},
             '/applications/' + self.app_name + '/processes'),
