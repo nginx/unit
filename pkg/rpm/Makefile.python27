@@ -15,6 +15,8 @@ MODULE_SOURCES_python27=	unit.example-python-app \
 
 ifneq (,$(findstring $(OSVER),opensuse-leap opensuse-tumbleweed sles))
 BUILD_DEPENDS_python27=	python-devel
+else ifeq ($(OSVER), fedora)
+BUILD_DEPENDS_python27=	python2-devel
 else
 BUILD_DEPENDS_python27=	python27-devel
 endif

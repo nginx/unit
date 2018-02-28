@@ -22,6 +22,8 @@ else ifeq ($(shell test `rpm --eval '0%{?suse_version} -ge 1330 -a 0%{?is_opensu
 OSVER = opensuse-tumbleweed
 else ifeq ($(shell test `rpm --eval '0%{?suse_version} -ge 1315 -a 0%{?is_opensuse} -eq 0'`; echo $$?), 0)
 OSVER = sles
+else ifeq ($(shell test `rpm --eval '0%{?fedora} -ge 26'`; echo $$?),0)
+OSVER = fedora
 endif
 
 BUILD_DEPENDS_unit = gcc rpm-build rpmlint
@@ -79,6 +81,14 @@ endif
 ifeq ($(OSVER), sles)
 include Makefile.python27
 include Makefile.python34
+include Makefile.perl
+endif
+
+ifeq ($(OSVER), fedora)
+include Makefile.php
+include Makefile.python27
+include Makefile.python36
+include Makefile.go
 include Makefile.perl
 endif
 
