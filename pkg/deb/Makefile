@@ -12,7 +12,7 @@ SRCDIR=	unit-$(VERSION)
 
 CODENAME = $(shell lsb_release -cs)
 
-BUILD_DEPENDS_unit = debhelper devscripts libxml2-utils lintian lsb-release xsltproc
+BUILD_DEPENDS_unit = build-essential debhelper devscripts fakeroot libxml2-utils lintian lsb-release xsltproc
 BUILD_DEPENDS = $(BUILD_DEPENDS_unit)
 
 MODULES=

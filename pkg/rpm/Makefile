@@ -8,13 +8,14 @@ DEFAULT_RELEASE := 1
 VERSION ?= $(DEFAULT_VERSION)
 RELEASE ?= $(DEFAULT_RELEASE)
 
-BUILD_DEPENDS_unit = libxml2 libxslt rpm-build rpmlint
+BUILD_DEPENDS_unit = gcc libxml2 libxslt rpm-build rpmlint
 BUILD_DEPENDS = $(BUILD_DEPENDS_unit)
 
 ifeq ($(shell rpm --eval "%{?rhel}"), 6)
 OSVER = centos6
 else ifeq ($(shell rpm --eval "%{?rhel}"), 7)
 OSVER = centos7
+BUILD_DEPENDS += which
 else ifeq ($(shell rpm --eval "%{?amzn}"), 1)
 OSVER = amazonlinux1
 BUILD_DEPENDS += system-rpm-config
