@@ -12,8 +12,13 @@ MODULE_INSTARGS_perl=	perl-install
 MODULE_SOURCES_perl=	unit.example-perl-app \
 			unit.example-perl-config
 
-BUILD_DEPENDS_perl=	perl-devel perl-libs
+BUILD_DEPENDS_perl=	perl-devel perl-libs perl-ExtUtils-Embed
 BUILD_DEPENDS+=		$(BUILD_DEPENDS_perl)
+
+define MODULE_DEFINITIONS_perl
+BuildRequires: $(BUILD_DEPENDS_perl)
+endef
+export MODULE_DEFINITIONS_perl
 
 define MODULE_PREINSTALL_perl
 %{__mkdir} -p %{buildroot}%{_datadir}/doc/unit-perl/examples/perl-app
