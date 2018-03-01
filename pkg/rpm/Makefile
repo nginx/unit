@@ -55,35 +55,21 @@ export CR=\\n
 default:
 	@echo "valid targets: all modules unit $(addprefix unit-, $(MODULES)) rpmlint specs test test-debug clean"
 
-all: check-build-depends unit modules
+all: check-build-depends-all unit modules
 
 modules: $(addprefix unit-, $(MODULES))
 
 specs: $(addsuffix .spec, $(addprefix rpmbuild/SPECS/unit-, $(MODULES)))
 
-check-build-depends:
-	@{ \
-	not_installed= ; \
-	for pkg in $(BUILD_DEPENDS); do \
-		rpm -qi $${pkg} >/dev/null 2>&1 ; \
-		if [ $$? -ne 0 ]; then \
-			not_installed="$${not_installed} $${pkg}" ; \
-		fi ; \
-	done ; \
-	if test -n "$${not_installed}" ; then \
-		echo "" >&2 ; \
-		echo "The following packages are required in order to proceed:" >&2 ; \
-		echo "" >&2 ; \
-		echo $${not_installed} >&2 ; \
-		echo "" >&2 ; \
-		exit 1 ; \
-	fi \
-	}
-
 check-build-depends-%:
 	@{ \
+	case "$*" in \
+		all) pkgs="$(BUILD_DEPENDS)" ;; \
+		unit) pkgs="$(BUILD_DEPENDS_unit)" ;; \
+		*) pkgs="$(BUILD_DEPENDS_unit) $(BUILD_DEPENDS_$*)" ;; \
+	esac ; \
 	not_installed= ; \
-	for pkg in $(BUILD_DEPENDS_unit) $(BUILD_DEPENDS_$*); do \
+	for pkg in $${pkgs}; do \
 		rpm -qi $${pkg} >/dev/null 2>&1 ; \
 		if [ $$? -ne 0 ]; then \
 			not_installed="$${not_installed} $${pkg}" ; \
@@ -98,6 +84,7 @@ check-build-depends-%:
 		exit 1 ; \
 	fi \
 	}
+	touch $@
 
 rpmbuild/SPECS:
 	mkdir -p rpmbuild/SPECS
@@ -197,9 +184,9 @@ test-debug: unit modules
 
 clean:
 	rm -rf rpmbuild/SPECS rpmbuild/BUILD rpmbuild/BUILDROOT rpmbuild/RPMS rpmbuild/SRPMS ../../build
-	rm -f rpmbuild/SOURCES/unit-*.tar.gz unit
+	rm -f rpmbuild/SOURCES/unit-*.tar.gz check-build-depends-*
 	find . -maxdepth 1 -type l -delete
 
-.PHONY: default all modules specs check-build-depends rpmlint test test-debug clean
+.PHONY: default all modules specs rpmlint test test-debug clean
 
-.SECONDARY:
+.SECONDARY: $(addprefix check-build-depends-, $(MODULES))
