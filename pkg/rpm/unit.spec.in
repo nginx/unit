@@ -1,5 +1,5 @@
 # distribution specific definitions
-%define use_systemd (0%{?rhel} && 0%{?rhel} >= 7) || (0%{?suse_version} == 1315)
+%define use_systemd (0%{?rhel} && 0%{?rhel} >= 7) || (0%{?suse_version} >= 1315)
 %define bdir %{_builddir}/%{name}-%{version}
 %define dotests 0
 

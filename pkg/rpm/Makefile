@@ -8,20 +8,39 @@ DEFAULT_RELEASE := 1
 VERSION ?= $(DEFAULT_VERSION)
 RELEASE ?= $(DEFAULT_RELEASE)
 
-BUILD_DEPENDS_unit = gcc libxml2 libxslt rpm-build rpmlint
-BUILD_DEPENDS = $(BUILD_DEPENDS_unit)
-
 ifeq ($(shell rpm --eval "%{?rhel}"), 6)
 OSVER = centos6
 else ifeq ($(shell rpm --eval "%{?rhel}"), 7)
 OSVER = centos7
-BUILD_DEPENDS += which
 else ifeq ($(shell rpm --eval "%{?amzn}"), 1)
 OSVER = amazonlinux1
-BUILD_DEPENDS += system-rpm-config
 else ifeq ($(shell rpm --eval "%{?amzn}"), 2)
 OSVER = amazonlinux2
+else ifeq ($(shell test `rpm --eval '0%{?suse_version} -ge 1315 -a 0%{?suse_version} -lt 1330 -a 0%{?is_opensuse} -eq 1'`; echo $$?), 0)
+OSVER = opensuse-leap
+else ifeq ($(shell test `rpm --eval '0%{?suse_version} -ge 1330 -a 0%{?is_opensuse} -eq 1'`; echo $$?), 0)
+OSVER = opensuse-tumbleweed
+else ifeq ($(shell test `rpm --eval '0%{?suse_version} -ge 1315 -a 0%{?is_opensuse} -eq 0'`; echo $$?), 0)
+OSVER = sles
 endif
+
+BUILD_DEPENDS_unit = gcc rpm-build rpmlint
+
+ifeq ($(OSVER), centos7)
+BUILD_DEPENDS_unit += which
+endif
+
+ifeq ($(OSVER), amazonlinux1)
+BUILD_DEPENDS_unit += system-rpm-config
+endif
+
+ifneq (,$(findstring $(OSVER),opensuse-leap opensuse-tumbleweed sles))
+BUILD_DEPENDS_unit += libxml2-tools libxslt1
+else
+BUILD_DEPENDS_unit += libxml2 libxslt
+endif
+
+BUILD_DEPENDS = $(BUILD_DEPENDS_unit)
 
 MODULES=
 
@@ -39,6 +58,27 @@ include Makefile.python34
 include Makefile.python35
 include Makefile.python36
 include Makefile.go
+include Makefile.perl
+endif
+
+ifeq ($(OSVER), opensuse-leap)
+include Makefile.python27
+include Makefile.python34
+include Makefile.go
+include Makefile.perl
+endif
+
+ifeq ($(OSVER), opensuse-tumbleweed)
+include Makefile.php
+include Makefile.python27
+include Makefile.python36
+include Makefile.go
+include Makefile.perl
+endif
+
+ifeq ($(OSVER), sles)
+include Makefile.python27
+include Makefile.python34
 include Makefile.perl
 endif
 

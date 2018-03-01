@@ -13,7 +13,12 @@ MODULE_INSTARGS_perl=	perl-install
 MODULE_SOURCES_perl=	unit.example-perl-app \
 			unit.example-perl-config
 
+ifneq (,$(findstring $(OSVER),opensuse-leap opensuse-tumbleweed sles))
+BUILD_DEPENDS_perl=	perl
+else
 BUILD_DEPENDS_perl=	perl-devel perl-libs perl-ExtUtils-Embed
+endif
+
 BUILD_DEPENDS+=		$(BUILD_DEPENDS_perl)
 
 define MODULE_DEFINITIONS_perl

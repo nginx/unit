@@ -13,7 +13,12 @@ MODULE_INSTARGS_python34=	python3.4-install
 MODULE_SOURCES_python34=	unit.example-python-app \
 			unit.example-python34-config
 
+ifneq (,$(findstring $(OSVER),opensuse-leap sles))
+BUILD_DEPENDS_python34=	python3-devel
+else
 BUILD_DEPENDS_python34=	python34-devel
+endif
+
 BUILD_DEPENDS+=		$(BUILD_DEPENDS_python34)
 
 define MODULE_PREINSTALL_python34

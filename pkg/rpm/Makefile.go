@@ -15,17 +15,26 @@ MODULE_SOURCES_go=	unit.example-go-app \
 
 ifeq ($(OSVER), centos6)
 BUILD_DEPENDS_go=	epel-release golang
+else ifneq (,$(findstring $(OSVER),opensuse-leap opensuse-tumbleweed))
+BUILD_DEPENDS_go=	go1.9
 else
 BUILD_DEPENDS_go=	golang
 endif
 
 BUILD_DEPENDS+=		$(BUILD_DEPENDS_go)
 
+ifneq (,$(findstring $(OSVER),opensuse-leap opensuse-tumbleweed))
 define MODULE_DEFINITIONS_go
-
-BuildRequires: golang
+BuildRequires: $(BUILD_DEPENDS_go)
+BuildArch: noarch
+%define gopath /usr/share/go/contrib
+endef
+else
+define MODULE_DEFINITIONS_go
+BuildRequires: $(BUILD_DEPENDS_go)
 BuildArch: noarch
 endef
+endif
 export MODULE_DEFINITIONS_go
 
 define MODULE_PREINSTALL_go
@@ -54,7 +63,7 @@ The $(MODULE_SUMMARY_go) has been installed.
 
 To check the sample app, run these commands:
 
- GOPATH=/usr/share/gocode go build -o /tmp/go-app /usr/share/doc/unit-go/examples/go-app/let-my-people.go
+ GOPATH=%{gopath} go build -o /tmp/go-app /usr/share/doc/unit-go/examples/go-app/let-my-people.go
  sudo service unit start
  sudo service unit loadconfig /usr/share/doc/unit-go/examples/unit.config
  curl http://localhost:8500/
