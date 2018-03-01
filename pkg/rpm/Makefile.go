@@ -12,7 +12,12 @@ MODULE_INSTARGS_go=	go-install
 MODULE_SOURCES_go=	unit.example-go-app \
 			unit.example-go-config
 
+ifeq ($(OSVER), centos6)
+BUILD_DEPENDS_go=	epel-release golang
+else
 BUILD_DEPENDS_go=	golang
+endif
+
 BUILD_DEPENDS+=		$(BUILD_DEPENDS_go)
 
 define MODULE_DEFINITIONS_go
