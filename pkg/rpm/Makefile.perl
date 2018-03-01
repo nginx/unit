@@ -1,4 +1,5 @@
 MODULES+=		perl
+MODULE_SUFFIX_perl=	perl
 
 MODULE_SUMMARY_perl=	Perl module for NGINX Unit
 

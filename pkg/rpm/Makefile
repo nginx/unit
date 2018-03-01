@@ -151,8 +151,8 @@ rpmbuild/SPECS/unit-%.spec: unit.module.spec.in ../../docs/changes.xml | rpmbuil
 		-e "s#%%MODULE_POST%%#$${post}#g" \
 		> $@.tmp ; \
 	}
-	cd ../../docs && make ../build/unit-$*.rpm-changelog
-	cat ../../build/unit-$*.rpm-changelog | sed -e \
+	cd ../../docs && make ../build/unit-$(MODULE_SUFFIX_$*).rpm-changelog
+	cat ../../build/unit-$(MODULE_SUFFIX_$*).rpm-changelog | sed -e \
 		"s/> - $(DEFAULT_VERSION)-$(DEFAULT_RELEASE)/> - $(MODULE_VERSION_$*)-$(MODULE_RELEASE_$*)/" \
 		>> $@.tmp
 	mv $@.tmp $@ 

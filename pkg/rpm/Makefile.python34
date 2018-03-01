@@ -1,4 +1,5 @@
 MODULES+=		python34
+MODULE_SUFFIX_python34=	python3.4
 
 MODULE_SUMMARY_python34=	Python 3.4 module for NGINX Unit
 

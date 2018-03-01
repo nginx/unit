@@ -1,4 +1,5 @@
 MODULES+=		go
+MODULE_SUFFIX_go=	go
 
 MODULE_SUMMARY_go=	Go module for NGINX Unit
 

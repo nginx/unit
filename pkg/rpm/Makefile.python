@@ -1,4 +1,5 @@
 MODULES+=		python
+MODULE_SUFFIX_python=	python
 
 MODULE_SUMMARY_python=	Python module for NGINX Unit
 

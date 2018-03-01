@@ -1,4 +1,5 @@
 MODULES+=		python36
+MODULE_SUFFIX_python36=	python3.6
 
 MODULE_SUMMARY_python36=	Python 3.6 module for NGINX Unit
 

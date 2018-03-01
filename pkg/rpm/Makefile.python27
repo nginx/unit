@@ -1,4 +1,5 @@
 MODULES+=		python27
+MODULE_SUFFIX_python27=	python2.7
 
 MODULE_SUMMARY_python27=	Python 2.7 module for NGINX Unit
 

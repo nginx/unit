@@ -1,4 +1,5 @@
 MODULES+=		python35
+MODULE_SUFFIX_python35=	python3.5
 
 MODULE_SUMMARY_python35=	Python 3.5 module for NGINX Unit
 
