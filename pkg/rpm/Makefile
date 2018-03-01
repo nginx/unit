@@ -59,7 +59,7 @@ all: check-build-depends-all unit modules
 
 modules: $(addprefix unit-, $(MODULES))
 
-specs: $(addsuffix .spec, $(addprefix rpmbuild/SPECS/unit-, $(MODULES)))
+specs: rpmbuild/SPECS/unit.spec $(addsuffix .spec, $(addprefix rpmbuild/SPECS/unit-, $(MODULES)))
 
 check-build-depends-%:
 	@{ \
