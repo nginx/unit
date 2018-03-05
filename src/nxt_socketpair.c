@@ -30,7 +30,7 @@ nxt_int_t
 nxt_socketpair_create(nxt_task_t *task, nxt_socket_t *pair)
 {
     if (nxt_slow_path(socketpair(AF_UNIX, NXT_UNIX_SOCKET, 0, pair) != 0)) {
-        nxt_log(task, NXT_LOG_CRIT, "socketpair() failed %E", nxt_errno);
+        nxt_alert(task, "socketpair() failed %E", nxt_errno);
         return NXT_ERROR;
     }
 
@@ -103,8 +103,8 @@ nxt_socketpair_send(nxt_fd_event_t *ev, nxt_fd_t fd, nxt_iobuf_t *iob,
             continue;
 
         default:
-            nxt_log(ev->task, NXT_LOG_CRIT, "sendmsg(%d, %FD, %ui) failed %E",
-                    ev->fd, fd, niob, err);
+            nxt_alert(ev->task, "sendmsg(%d, %FD, %ui) failed %E",
+                      ev->fd, fd, niob, err);
 
             return NXT_ERROR;
         }
@@ -152,8 +152,8 @@ nxt_socketpair_recv(nxt_fd_event_t *ev, nxt_fd_t *fd, nxt_iobuf_t *iob,
             continue;
 
         default:
-            nxt_log(ev->task, NXT_LOG_CRIT, "recvmsg(%d, %p, %ui) failed %E",
-                    ev->fd, fd, niob, err);
+            nxt_alert(ev->task, "recvmsg(%d, %p, %ui) failed %E",
+                      ev->fd, fd, niob, err);
 
             return NXT_ERROR;
         }

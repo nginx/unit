@@ -167,8 +167,8 @@ nxt_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         return;
     }
 
-    nxt_log(task, NXT_LOG_CRIT, "port %d: unknown message type:%uD",
-            msg->port->socket.fd, msg->port_msg.type);
+    nxt_alert(task, "port %d: unknown message type:%uD",
+              msg->port->socket.fd, msg->port_msg.type);
 }
 
 

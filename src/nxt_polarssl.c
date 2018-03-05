@@ -49,7 +49,7 @@ nxt_polarssl_server_init(nxt_ssltls_conf_t *conf)
 
     n = ssl_init(&ctx->ssl);
     if (n != 0) {
-        nxt_polarssl_log_error(NXT_LOG_CRIT, thr->log, n, "ssl_init() failed");
+        nxt_polarssl_log_error(NXT_LOG_ALERT, thr->log, n, "ssl_init() failed");
         return NXT_ERROR;
     }
 
@@ -60,7 +60,7 @@ nxt_polarssl_server_init(nxt_ssltls_conf_t *conf)
 
     n = x509parse_crtfile(&ctx->certificate, conf->certificate);
     if (n != 0) {
-        nxt_polarssl_log_error(NXT_LOG_CRIT, thr->log, n,
+        nxt_polarssl_log_error(NXT_LOG_ALERT, thr->log, n,
                                "x509parse_crt(\"%V\") failed",
                                &conf->certificate);
         goto fail;
@@ -70,7 +70,7 @@ nxt_polarssl_server_init(nxt_ssltls_conf_t *conf)
 
     n = x509parse_keyfile(&ctx->key, conf->certificate_key, NULL);
     if (n != 0) {
-        nxt_polarssl_log_error(NXT_LOG_CRIT, thr->log, n,
+        nxt_polarssl_log_error(NXT_LOG_ALERT, thr->log, n,
                                "x509parse_key(\"%V\") failed",
                                &conf->certificate_key);
         goto fail;

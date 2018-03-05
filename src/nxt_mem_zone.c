@@ -503,8 +503,7 @@ nxt_mem_zone_align(nxt_mem_zone_t *zone, size_t alignment, size_t size)
         nxt_thread_log_debug("mem zone alloc: %p", p);
 
     } else {
-        nxt_log_moderate(&nxt_mem_zone_log_moderation,
-                    NXT_LOG_ALERT, nxt_thread_log(),
+        nxt_log_alert_moderate(&nxt_mem_zone_log_moderation, nxt_thread_log(),
                     "nxt_mem_zone_alloc(%uz, %uz) failed, not enough memory",
                     alignment, size);
     }

@@ -79,7 +79,7 @@ nxt_log_time_handler(nxt_uint_t level, nxt_log_t *log, const char *fmt, ...)
 
     (void) nxt_write_console(nxt_stderr, msg, p - msg);
 
-    if (level <= NXT_LOG_ALERT) {
+    if (level == NXT_LOG_ALERT) {
         *(p - NXT_LINEFEED_SIZE) = '\0';
 
         /*

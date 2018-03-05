@@ -191,7 +191,7 @@ nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     c = &conf->u.php;
 
     if (c->root == NULL) {
-        nxt_log_emerg(task->log, "php root is empty");
+        nxt_alert(task, "php root is empty");
         return NXT_ERROR;
     }
 
@@ -202,8 +202,7 @@ nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 
     root->start = nxt_realpath(c->root);
     if (nxt_slow_path(root->start == NULL)) {
-        nxt_log_emerg(task->log, "root realpath(%s) failed %E",
-                      c->root, nxt_errno);
+        nxt_alert(task, "root realpath(%s) failed %E", c->root, nxt_errno);
         return NXT_ERROR;
     }
 
@@ -228,15 +227,14 @@ nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 
         rpath.start = nxt_realpath(path->start);
         if (nxt_slow_path(rpath.start == NULL)) {
-            nxt_log_emerg(task->log, "script realpath(%V) failed %E",
-                          path, nxt_errno);
+            nxt_alert(task, "script realpath(%V) failed %E", path, nxt_errno);
             return NXT_ERROR;
         }
 
         rpath.length = nxt_strlen(rpath.start);
 
         if (!nxt_str_start(&rpath, root->start, root->length)) {
-            nxt_log_emerg(task->log, "script is not under php root");
+            nxt_alert(task, "script is not under php root");
             return NXT_ERROR;
         }
 

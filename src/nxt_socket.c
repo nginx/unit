@@ -28,8 +28,8 @@ nxt_socket_create(nxt_task_t *task, nxt_uint_t domain, nxt_uint_t type,
     s = socket(domain, type, protocol);
 
     if (nxt_slow_path(s == -1)) {
-        nxt_log(task, NXT_LOG_CRIT, "socket(%ui, 0x%uXi, %ui) failed %E",
-                domain, type, protocol, nxt_socket_errno);
+        nxt_alert(task, "socket(%ui, 0x%uXi, %ui) failed %E",
+                  domain, type, protocol, nxt_socket_errno);
         return s;
     }
 
@@ -57,8 +57,7 @@ nxt_socket_close(nxt_task_t *task, nxt_socket_t s)
         nxt_debug(task, "socket close(%d)", s);
 
     } else {
-        nxt_log(task, NXT_LOG_CRIT, "socket close(%d) failed %E",
-                s, nxt_socket_errno);
+        nxt_alert(task, "socket close(%d) failed %E", s, nxt_socket_errno);
     }
 }
 
@@ -99,9 +98,9 @@ nxt_socket_getsockopt(nxt_task_t *task, nxt_socket_t s, nxt_uint_t level,
         return val;
     }
 
-    nxt_log(task, NXT_LOG_CRIT, "getsockopt(%d, %ui, %s) failed %E",
-            s, level, nxt_socket_sockopt_name(level, sockopt),
-            nxt_socket_errno);
+    nxt_alert(task, "getsockopt(%d, %ui, %s) failed %E",
+              s, level, nxt_socket_sockopt_name(level, sockopt),
+              nxt_socket_errno);
 
     return -1;
 }
@@ -121,9 +120,9 @@ nxt_socket_setsockopt(nxt_task_t *task, nxt_socket_t s, nxt_uint_t level,
         return NXT_OK;
     }
 
-    nxt_log(task, NXT_LOG_CRIT, "setsockopt(%d, %ui, %s, %d) failed %E",
-            s, level, nxt_socket_sockopt_name(level, sockopt),
-            val, nxt_socket_errno);
+    nxt_alert(task, "setsockopt(%d, %ui, %s, %d) failed %E",
+              s, level, nxt_socket_sockopt_name(level, sockopt), val,
+              nxt_socket_errno);
 
     return NXT_ERROR;
 }
@@ -203,8 +202,8 @@ nxt_socket_bind(nxt_task_t *task, nxt_socket_t s, nxt_sockaddr_t *sa,
         return NXT_DECLINED;
     }
 
-    nxt_log(task, NXT_LOG_CRIT, "bind(%d, %*s) failed %E",
-            s, (size_t) sa->length, nxt_sockaddr_start(sa), err);
+    nxt_alert(task, "bind(%d, %*s) failed %E",
+              s, (size_t) sa->length, nxt_sockaddr_start(sa), err);
 
     return NXT_ERROR;
 }
@@ -255,7 +254,7 @@ nxt_socket_connect(nxt_task_t *task, nxt_socket_t s, nxt_sockaddr_t *sa)
         break;
 
     default:
-        level = NXT_LOG_CRIT;
+        level = NXT_LOG_ALERT;
         ret = NXT_ERROR;
     }
 
@@ -294,7 +293,7 @@ nxt_socket_shutdown(nxt_task_t *task, nxt_socket_t s, nxt_uint_t how)
         break;
 
     default:
-        level = NXT_LOG_CRIT;
+        level = NXT_LOG_ALERT;
     }
 
     nxt_log(task, level, "shutdown(%d, %ui) failed %E", s, how, err);
@@ -317,6 +316,6 @@ nxt_socket_error_level(nxt_err_t err)
         return NXT_LOG_ERR;
 
     default:
-        return NXT_LOG_CRIT;
+        return NXT_LOG_ALERT;
     }
 }

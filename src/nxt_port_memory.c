@@ -124,13 +124,7 @@ nxt_port_mmap_buf_completion(nxt_task_t *task, void *obj, void *data)
 
     mp = b->data;
 
-#if (NXT_DEBUG)
-    if (nxt_slow_path(data != b->parent)) {
-        nxt_log_alert(task->log, "completion data (%p) != b->parent (%p)",
-                      data, b->parent);
-        nxt_abort();
-    }
-#endif
+    nxt_assert(data == b->parent);
 
     mmap_handler = data;
     hdr = mmap_handler->hdr;
@@ -296,8 +290,7 @@ nxt_port_new_port_mmap(nxt_task_t *task, nxt_process_t *process,
     fd = syscall(SYS_memfd_create, name, MFD_CLOEXEC);
 
     if (nxt_slow_path(fd == -1)) {
-        nxt_log(task, NXT_LOG_CRIT, "memfd_create(%s) failed %E",
-                name, nxt_errno);
+        nxt_alert(task, "memfd_create(%s) failed %E", name, nxt_errno);
 
         goto remove_fail;
     }
@@ -314,7 +307,7 @@ nxt_port_new_port_mmap(nxt_task_t *task, nxt_process_t *process,
     nxt_debug(task, "shm_open(%s): %FD", name, fd);
 
     if (nxt_slow_path(fd == -1)) {
-        nxt_log(task, NXT_LOG_CRIT, "shm_open(%s) failed %E", name, nxt_errno);
+        nxt_alert(task, "shm_open(%s) failed %E", name, nxt_errno);
 
         goto remove_fail;
     }

@@ -51,8 +51,8 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
     switch (pid) {
 
     case -1:
-        nxt_log(task, NXT_LOG_CRIT, "fork() failed while creating \"%s\" %E",
-                process->init->name, nxt_errno);
+        nxt_alert(task, "fork() failed while creating \"%s\" %E",
+                  process->init->name, nxt_errno);
         break;
 
     case 0:
@@ -236,8 +236,7 @@ nxt_process_execute(nxt_task_t *task, char *name, char **argv, char **envp)
     nxt_debug(task, "posix_spawn(\"%s\")", name);
 
     if (posix_spawn(&pid, name, NULL, NULL, argv, envp) != 0) {
-        nxt_log(task, NXT_LOG_CRIT, "posix_spawn(\"%s\") failed %E",
-                name, nxt_errno);
+        nxt_alert(task, "posix_spawn(\"%s\") failed %E", name, nxt_errno);
         return -1;
     }
 
@@ -263,8 +262,8 @@ nxt_process_execute(nxt_task_t *task, char *name, char **argv, char **envp)
     switch (pid) {
 
     case -1:
-        nxt_log(task, NXT_LOG_CRIT, "vfork() failed while executing \"%s\" %E",
-                name, nxt_errno);
+        nxt_alert(task, "vfork() failed while executing \"%s\" %E",
+                  name, nxt_errno);
         break;
 
     case 0:
@@ -273,8 +272,7 @@ nxt_process_execute(nxt_task_t *task, char *name, char **argv, char **envp)
 
         (void) execve(name, argv, envp);
 
-        nxt_log(task, NXT_LOG_CRIT, "execve(\"%s\") failed %E",
-                name, nxt_errno);
+        nxt_alert(task, "execve(\"%s\") failed %E", name, nxt_errno);
 
         exit(1);
         nxt_unreachable();
@@ -336,7 +334,7 @@ nxt_process_daemon(nxt_task_t *task)
     /* Detach from controlling terminal. */
 
     if (setsid() == -1) {
-        nxt_log(task, NXT_LOG_CRIT, "setsid() failed %E", nxt_errno);
+        nxt_alert(task, "setsid() failed %E", nxt_errno);
         return NXT_ERROR;
     }
 
@@ -372,7 +370,7 @@ nxt_process_daemon(nxt_task_t *task)
 
 fail:
 
-    nxt_log(task, NXT_LOG_CRIT, msg, nxt_errno);
+    nxt_alert(task, msg, nxt_errno);
 
     if (fd != -1) {
         nxt_fd_close(fd);
@@ -407,12 +405,10 @@ nxt_user_cred_get(nxt_task_t *task, nxt_user_cred_t *uc, const char *group)
     if (nxt_slow_path(pwd == NULL)) {
 
         if (nxt_errno == 0) {
-            nxt_log(task, NXT_LOG_CRIT,
-                    "getpwnam(\"%s\") failed, user \"%s\" not found",
-                    uc->user, uc->user);
+            nxt_alert(task, "getpwnam(\"%s\") failed, user \"%s\" not found",
+                      uc->user, uc->user);
         } else {
-            nxt_log(task, NXT_LOG_CRIT, "getpwnam(\"%s\") failed %E",
-                    uc->user, nxt_errno);
+            nxt_alert(task, "getpwnam(\"%s\") failed %E", uc->user, nxt_errno);
         }
 
         return NXT_ERROR;
@@ -429,12 +425,11 @@ nxt_user_cred_get(nxt_task_t *task, nxt_user_cred_t *uc, const char *group)
         if (nxt_slow_path(grp == NULL)) {
 
             if (nxt_errno == 0) {
-                nxt_log(task, NXT_LOG_CRIT,
-                        "getgrnam(\"%s\") failed, group \"%s\" not found",
-                        group, group);
+                nxt_alert(task,
+                          "getgrnam(\"%s\") failed, group \"%s\" not found",
+                          group, group);
             } else {
-                nxt_log(task, NXT_LOG_CRIT, "getgrnam(\"%s\") failed %E",
-                        group, nxt_errno);
+                nxt_alert(task, "getgrnam(\"%s\") failed %E", group, nxt_errno);
             }
 
             return NXT_ERROR;
@@ -487,7 +482,7 @@ nxt_user_groups_get(nxt_task_t *task, nxt_user_cred_t *uc)
     nsaved = getgroups(0, NULL);
 
     if (nsaved == -1) {
-        nxt_log(task, NXT_LOG_CRIT, "getgroups(0, NULL) failed %E", nxt_errno);
+        nxt_alert(task, "getgroups(0, NULL) failed %E", nxt_errno);
         return NXT_ERROR;
     }
 
@@ -509,23 +504,21 @@ nxt_user_groups_get(nxt_task_t *task, nxt_user_cred_t *uc)
     nsaved = getgroups(nsaved, saved);
 
     if (nsaved == -1) {
-        nxt_log(task, NXT_LOG_CRIT, "getgroups(%d) failed %E",
-                nsaved, nxt_errno);
+        nxt_alert(task, "getgroups(%d) failed %E", nsaved, nxt_errno);
         goto fail;
     }
 
     nxt_debug(task, "getgroups(): %d", nsaved);
 
     if (initgroups(uc->user, uc->base_gid) != 0) {
-        nxt_log(task, NXT_LOG_CRIT, "initgroups(%s, %d) failed",
-                             uc->user, uc->base_gid);
+        nxt_alert(task, "initgroups(%s, %d) failed", uc->user, uc->base_gid);
         goto restore;
     }
 
     ngroups = getgroups(0, NULL);
 
     if (ngroups == -1) {
-        nxt_log(task, NXT_LOG_CRIT, "getgroups(0, NULL) failed %E", nxt_errno);
+        nxt_alert(task, "getgroups(0, NULL) failed %E", nxt_errno);
         goto restore;
     }
 
@@ -540,8 +533,7 @@ nxt_user_groups_get(nxt_task_t *task, nxt_user_cred_t *uc)
     ngroups = getgroups(ngroups, uc->gids);
 
     if (ngroups == -1) {
-        nxt_log(task, NXT_LOG_CRIT, "getgroups(%d) failed %E",
-                ngroups, nxt_errno);
+        nxt_alert(task, "getgroups(%d) failed %E", ngroups, nxt_errno);
         goto restore;
     }
 
@@ -571,8 +563,7 @@ nxt_user_groups_get(nxt_task_t *task, nxt_user_cred_t *uc)
 restore:
 
     if (setgroups(nsaved, saved) != 0) {
-        nxt_log(task, NXT_LOG_CRIT, "setgroups(%d) failed %E",
-                nsaved, nxt_errno);
+        nxt_alert(task, "setgroups(%d) failed %E", nsaved, nxt_errno);
         ret = NXT_ERROR;
     }
 
@@ -591,29 +582,27 @@ nxt_user_cred_set(nxt_task_t *task, nxt_user_cred_t *uc)
               uc->user, (uint64_t) uc->uid, (uint64_t) uc->base_gid);
 
     if (setgid(uc->base_gid) != 0) {
-        nxt_log(task, NXT_LOG_CRIT, "setgid(%d) failed %E",
-                uc->base_gid, nxt_errno);
+        nxt_alert(task, "setgid(%d) failed %E", uc->base_gid, nxt_errno);
         return NXT_ERROR;
     }
 
     if (uc->gids != NULL) {
         if (setgroups(uc->ngroups, uc->gids) != 0) {
-            nxt_log(task, NXT_LOG_CRIT, "setgroups(%i) failed %E",
-                    uc->ngroups, nxt_errno);
+            nxt_alert(task, "setgroups(%i) failed %E", uc->ngroups, nxt_errno);
             return NXT_ERROR;
         }
 
     } else {
         /* MacOSX fallback. */
         if (initgroups(uc->user, uc->base_gid) != 0) {
-            nxt_log(task, NXT_LOG_CRIT, "initgroups(%s, %d) failed",
-                    uc->user, uc->base_gid);
+            nxt_alert(task, "initgroups(%s, %d) failed",
+                      uc->user, uc->base_gid);
             return NXT_ERROR;
         }
     }
 
     if (setuid(uc->uid) != 0) {
-        nxt_log(task, NXT_LOG_CRIT, "setuid(%d) failed %E", uc->uid, nxt_errno);
+        nxt_alert(task, "setuid(%d) failed %E", uc->uid, nxt_errno);
         return NXT_ERROR;
     }
 

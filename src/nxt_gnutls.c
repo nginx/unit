@@ -99,7 +99,7 @@ nxt_gnutls_start(void)
 
     ret = gnutls_global_init();
     if (ret != GNUTLS_E_SUCCESS) {
-        nxt_gnutls_log_error(NXT_LOG_CRIT, nxt_thread_log(), ret,
+        nxt_gnutls_log_error(NXT_LOG_ALERT, nxt_thread_log(), ret,
                              "gnutls_global_init() failed");
         return NXT_ERROR;
     }
@@ -167,7 +167,7 @@ nxt_gnutls_server_init(nxt_ssltls_conf_t *conf)
 
     ret = gnutls_certificate_allocate_credentials(&ctx->certificate);
     if (ret != GNUTLS_E_SUCCESS) {
-        nxt_gnutls_log_error(NXT_LOG_CRIT, thr->log, ret,
+        nxt_gnutls_log_error(NXT_LOG_ALERT, thr->log, ret,
                 "gnutls_certificate_allocate_credentials() failed");
         return NXT_ERROR;
     }
@@ -178,7 +178,7 @@ nxt_gnutls_server_init(nxt_ssltls_conf_t *conf)
     ret = gnutls_certificate_set_x509_key_file(ctx->certificate, certificate,
                                                key, GNUTLS_X509_FMT_PEM);
     if (ret != GNUTLS_E_SUCCESS) {
-        nxt_gnutls_log_error(NXT_LOG_CRIT, thr->log, ret,
+        nxt_gnutls_log_error(NXT_LOG_ALERT, thr->log, ret,
                 "gnutls_certificate_set_x509_key_file(\"%s\", \"%s\") failed",
                 certificate, key);
         goto certificate_fail;
@@ -195,7 +195,7 @@ nxt_gnutls_server_init(nxt_ssltls_conf_t *conf)
                                                      ca_certificate,
                                                      GNUTLS_X509_FMT_PEM);
         if (ret < 0) {
-            nxt_gnutls_log_error(NXT_LOG_CRIT, thr->log, ret,
+            nxt_gnutls_log_error(NXT_LOG_ALERT, thr->log, ret,
                 "gnutls_certificate_set_x509_trust_file(\"%s\") failed",
                 ca_certificate);
             goto ca_certificate_fail;
@@ -237,13 +237,13 @@ nxt_gnutls_set_ciphers(nxt_ssltls_conf_t *conf)
         return NXT_OK;
 
     case GNUTLS_E_INVALID_REQUEST:
-        nxt_gnutls_log_error(NXT_LOG_CRIT, nxt_thread_log(), ret,
+        nxt_gnutls_log_error(NXT_LOG_ALERT, nxt_thread_log(), ret,
                              "gnutls_priority_init(\"%s\") failed at \"%s\"",
                              ciphers, err);
         return NXT_ERROR;
 
     default:
-        nxt_gnutls_log_error(NXT_LOG_CRIT, nxt_thread_log(), ret,
+        nxt_gnutls_log_error(NXT_LOG_ALERT, nxt_thread_log(), ret,
                              "gnutls_priority_init() failed");
         return NXT_ERROR;
     }
@@ -277,7 +277,7 @@ nxt_gnutls_conn_init(nxt_thread_t *thr, nxt_ssltls_conf_t *conf,
 
     ret = gnutls_init(&ssltls->session, GNUTLS_SERVER);
     if (ret != GNUTLS_E_SUCCESS) {
-        nxt_gnutls_log_error(NXT_LOG_CRIT, c->socket.log, ret,
+        nxt_gnutls_log_error(NXT_LOG_ALERT, c->socket.log, ret,
                              "gnutls_init() failed");
         goto fail;
     }
@@ -290,7 +290,7 @@ nxt_gnutls_conn_init(nxt_thread_t *thr, nxt_ssltls_conf_t *conf,
 
     ret = gnutls_priority_set(sess, ctx->ciphers);
     if (ret != GNUTLS_E_SUCCESS) {
-        nxt_gnutls_log_error(NXT_LOG_CRIT, c->socket.log, ret,
+        nxt_gnutls_log_error(NXT_LOG_ALERT, c->socket.log, ret,
                              "gnutls_priority_set() failed");
         goto fail;
     }
@@ -304,7 +304,7 @@ nxt_gnutls_conn_init(nxt_thread_t *thr, nxt_ssltls_conf_t *conf,
     ret = gnutls_credentials_set(sess, GNUTLS_CRD_CERTIFICATE,
                                  ctx->certificate);
     if (ret != GNUTLS_E_SUCCESS) {
-        nxt_gnutls_log_error(NXT_LOG_CRIT, c->socket.log, ret,
+        nxt_gnutls_log_error(NXT_LOG_ALERT, c->socket.log, ret,
                              "gnutls_credentials_set() failed");
         goto fail;
     }
@@ -719,7 +719,7 @@ nxt_gnutls_log_error_level(nxt_event_conn_t *c, ssize_t err)
         break;
 
     default:
-        return NXT_LOG_CRIT;
+        return NXT_LOG_ALERT;
     }
 
     return NXT_LOG_INFO;

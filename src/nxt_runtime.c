@@ -157,7 +157,7 @@ nxt_runtime_inherited_listen_sockets(nxt_task_t *task, nxt_runtime_t *rt)
         return nxt_runtime_systemd_listen_sockets(task, rt);
     }
 
-    nxt_log(task, NXT_LOG_CRIT, "using inherited listen sockets: %s", v);
+    nxt_alert(task, "using inherited listen sockets: %s", v);
 
     inherited_sockets = nxt_array_create(rt->mem_pool,
                                          1, sizeof(nxt_listen_socket_t));
@@ -173,9 +173,9 @@ nxt_runtime_inherited_listen_sockets(nxt_task_t *task, nxt_runtime_t *rt)
             s = nxt_int_parse(v, p - v);
 
             if (nxt_slow_path(s < 0)) {
-                nxt_log(task, NXT_LOG_CRIT, "invalid socket number "
-                        "\"%s\" in NGINX environment variable, "
-                        "ignoring the rest of the variable", v);
+                nxt_alert(task, "invalid socket number \"%s\" "
+                          "in NGINX environment variable, "
+                          "ignoring the rest of the variable", v);
                 return NXT_ERROR;
             }
 
@@ -890,8 +890,7 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
 
         if (nxt_strcmp(p, "--upstream") == 0) {
             if (*argv == NULL) {
-                nxt_log(task, NXT_LOG_CRIT,
-                              "no argument for option \"--upstream\"");
+                nxt_alert(task, "no argument for option \"--upstream\"");
                 return NXT_ERROR;
             }
 
@@ -1060,14 +1059,12 @@ nxt_runtime_sockaddr_unix_parse(nxt_task_t *task, nxt_mp_t *mp, nxt_str_t *addr)
     p = addr->start + 5;
 
     if (length == 0) {
-        nxt_log(task, NXT_LOG_CRIT,
-                "unix domain socket \"%V\" name is invalid", addr);
+        nxt_alert(task, "unix domain socket \"%V\" name is invalid", addr);
         return NULL;
     }
 
     if (length > max_len) {
-        nxt_log(task, NXT_LOG_CRIT,
-                "unix domain socket \"%V\" name is too long", addr);
+        nxt_alert(task, "unix domain socket \"%V\" name is too long", addr);
         return NULL;
     }
 
@@ -1106,8 +1103,7 @@ nxt_runtime_sockaddr_unix_parse(nxt_task_t *task, nxt_mp_t *mp, nxt_str_t *addr)
 
 #else  /* !(NXT_HAVE_UNIX_DOMAIN) */
 
-    nxt_log(task, NXT_LOG_CRIT, "unix domain socket \"%V\" is not supported",
-            addr);
+    nxt_alert(task, "unix domain socket \"%V\" is not supported", addr);
 
     return NULL;
 
@@ -1163,7 +1159,7 @@ nxt_runtime_sockaddr_inet6_parse(nxt_task_t *task, nxt_mp_t *mp,
         }
     }
 
-    nxt_log(task, NXT_LOG_CRIT, "invalid port in \"%V\"", addr);
+    nxt_alert(task, "invalid port in \"%V\"", addr);
 
     return NULL;
 
@@ -1178,13 +1174,13 @@ found:
 
 invalid_address:
 
-    nxt_log(task, NXT_LOG_CRIT, "invalid IPv6 address in \"%V\"", addr);
+    nxt_alert(task, "invalid IPv6 address in \"%V\"", addr);
 
     return NULL;
 
 #else
 
-    nxt_log(task, NXT_LOG_CRIT, "IPv6 socket \"%V\" is not supported", addr);
+    nxt_alert(task, "IPv6 socket \"%V\" is not supported", addr);
 
     return NULL;
 
@@ -1275,13 +1271,13 @@ nxt_runtime_sockaddr_inet_parse(nxt_task_t *task, nxt_mp_t *mp,
 
 invalid_port:
 
-    nxt_log(task, NXT_LOG_CRIT, "invalid port in \"%V\"", string);
+    nxt_alert(task, "invalid port in \"%V\"", string);
 
     return NULL;
 
 invalid_addr:
 
-    nxt_log(task, NXT_LOG_CRIT, "invalid address in \"%V\"", string);
+    nxt_alert(task, "invalid address in \"%V\"", string);
 
     return NULL;
 }
@@ -1324,7 +1320,7 @@ nxt_runtime_hostname(nxt_task_t *task, nxt_runtime_t *rt)
     char    hostname[NXT_MAXHOSTNAMELEN + 1];
 
     if (gethostname(hostname, NXT_MAXHOSTNAMELEN) != 0) {
-        nxt_log(task, NXT_LOG_CRIT, "gethostname() failed %E", nxt_errno);
+        nxt_alert(task, "gethostname() failed %E", nxt_errno);
         return NXT_ERROR;
     }
 
@@ -1367,7 +1363,7 @@ nxt_runtime_log_files_init(nxt_runtime_t *rt)
         file = nxt_list_zero_add(log_files);
 
         file->fd = NXT_FILE_INVALID;
-        file->log_level = NXT_LOG_CRIT;
+        file->log_level = NXT_LOG_ALERT;
 
         return NXT_OK;
     }
@@ -1408,7 +1404,7 @@ nxt_runtime_log_file_add(nxt_runtime_t *rt, nxt_str_t *name)
     }
 
     file->fd = NXT_FILE_INVALID;
-    file->log_level = NXT_LOG_CRIT;
+    file->log_level = NXT_LOG_ALERT;
     file->name = file_name.start;
 
     return file;

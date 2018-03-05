@@ -242,7 +242,7 @@ nxt_port_main_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     conf = nxt_conf_json_parse(mp, start, b->mem.free, NULL);
 
     if (conf == NULL) {
-        nxt_log(task, NXT_LOG_ALERT, "router app configuration parsing error");
+        nxt_alert(task, "router app configuration parsing error");
 
         goto failed;
     }
@@ -252,8 +252,7 @@ nxt_port_main_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     ret = nxt_conf_map_object(mp, conf, nxt_common_app_conf,
                               nxt_nitems(nxt_common_app_conf), &app_conf);
     if (ret != NXT_OK) {
-        nxt_log(task, NXT_LOG_ALERT,
-                "failed to map common app conf received from router");
+        nxt_alert(task, "failed to map common app conf received from router");
         goto failed;
     }
 
@@ -268,8 +267,7 @@ nxt_port_main_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     idx = nxt_app_parse_type(app_conf.type.start, type_len);
 
     if (nxt_slow_path(idx >= nxt_nitems(nxt_app_maps))) {
-        nxt_log(task, NXT_LOG_ALERT,
-                "invalid app type %d received from router", (int) idx);
+        nxt_alert(task, "invalid app type %d received from router", (int) idx);
         goto failed;
     }
 
@@ -277,8 +275,7 @@ nxt_port_main_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
                               nxt_app_maps[idx].size, &app_conf);
 
     if (nxt_slow_path(ret != NXT_OK)) {
-        nxt_log(task, NXT_LOG_ALERT,
-                "failed to map app conf received from router");
+        nxt_alert(task, "failed to map app conf received from router");
         goto failed;
     }
 
@@ -440,9 +437,8 @@ nxt_main_create_controller_process(nxt_task_t *task, nxt_runtime_t *rt,
                 conf.length = 0;
                 nxt_free(conf.start);
 
-                nxt_log(task, NXT_LOG_ALERT,
-                        "failed to restore previous configuration: "
-                        "cannot read the file");
+                nxt_alert(task, "failed to restore previous configuration: "
+                          "cannot read the file");
             }
         }
 
@@ -718,7 +714,7 @@ nxt_main_process_sigusr1_handler(nxt_task_t *task, void *obj, void *data)
 
         new_file->name = file->name;
         new_file->fd = NXT_FILE_INVALID;
-        new_file->log_level = NXT_LOG_CRIT;
+        new_file->log_level = NXT_LOG_ALERT;
 
         ret = nxt_file_open(task, new_file, O_WRONLY | O_APPEND, O_CREAT,
                             NXT_FILE_OWNER_ACCESS);
@@ -797,7 +793,7 @@ nxt_main_process_sigchld_handler(nxt_task_t *task, void *obj, void *data)
                 continue;
 
             default:
-                nxt_log(task, NXT_LOG_CRIT, "waitpid() failed: %E", err);
+                nxt_alert(task, "waitpid() failed: %E", err);
                 return;
             }
         }
@@ -810,12 +806,12 @@ nxt_main_process_sigchld_handler(nxt_task_t *task, void *obj, void *data)
 
         if (WTERMSIG(status)) {
 #ifdef WCOREDUMP
-            nxt_log(task, NXT_LOG_CRIT, "process %PI exited on signal %d%s",
-                    pid, WTERMSIG(status),
-                    WCOREDUMP(status) ? " (core dumped)" : "");
+            nxt_alert(task, "process %PI exited on signal %d%s",
+                      pid, WTERMSIG(status),
+                      WCOREDUMP(status) ? " (core dumped)" : "");
 #else
-            nxt_log(task, NXT_LOG_CRIT, "process %PI exited on signal %d",
-                    pid, WTERMSIG(status));
+            nxt_alert(task, "process %PI exited on signal %d",
+                      pid, WTERMSIG(status));
 #endif
 
         } else {
@@ -937,7 +933,7 @@ nxt_main_port_socket_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     } else {
         size = ls.end - ls.start;
 
-        nxt_log(task, NXT_LOG_CRIT, "%*s", size, ls.start);
+        nxt_alert(task, "%*s", size, ls.start);
 
         out = nxt_buf_mem_ts_alloc(task, task->thread->engine->mem_pool,
                                    size + 1);
@@ -1274,5 +1270,5 @@ nxt_main_port_conf_store_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
 error:
 
-    nxt_log(task, NXT_LOG_ALERT, "failed to store current configuration");
+    nxt_alert(task, "failed to store current configuration");
 }

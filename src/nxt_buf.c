@@ -202,13 +202,7 @@ nxt_buf_completion(nxt_task_t *task, void *obj, void *data)
 
     nxt_debug(task, "buf completion: %p %p", b, b->mem.start);
 
-#if (NXT_DEBUG)
-    if (nxt_slow_path(data != b->parent)) {
-        nxt_log_alert(task->log, "completion data (%p) != b->parent (%p)",
-                      data, b->parent);
-        nxt_abort();
-    }
-#endif
+    nxt_assert(data == b->parent);
 
     mp = b->data;
     nxt_mp_free(mp, b);
@@ -235,12 +229,7 @@ nxt_buf_ts_handle(nxt_task_t *task, void *obj, void *data)
 
     b = obj;
 
-#if (NXT_DEBUG)
-    if (nxt_slow_path(b->is_ts == 0)) {
-        nxt_log_alert(task->log, "not a thread safe buf (%p) completed", b);
-        nxt_abort();
-    }
-#endif
+    nxt_assert(b->is_ts != 0);
 
     ts = nxt_pointer_to(b, NXT_BUF_MEM_SIZE);
 
@@ -277,13 +266,7 @@ nxt_buf_ts_completion(nxt_task_t *task, void *obj, void *data)
 
     nxt_debug(task, "buf ts completion: %p %p", b, b->mem.start);
 
-#if (NXT_DEBUG)
-    if (nxt_slow_path(data != b->parent)) {
-        nxt_log_alert(task->log, "completion data (%p) != b->parent (%p)",
-                      data, b->parent);
-        nxt_abort();
-    }
-#endif
+    nxt_assert(data == b->parent);
 
     mp = b->data;
     nxt_mp_free(mp, b);

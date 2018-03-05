@@ -990,7 +990,7 @@ nxt_router_conf_error(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
     nxt_queue_link_t   *qlk;
     nxt_socket_conf_t  *skcf;
 
-    nxt_log(task, NXT_LOG_CRIT, "failed to apply new conf");
+    nxt_alert(task, "failed to apply new conf");
 
     for (qlk = nxt_queue_first(&tmcf->creating);
          qlk != nxt_queue_tail(&tmcf->creating);
@@ -1206,7 +1206,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
     conf = nxt_conf_json_parse(tmcf->mem_pool, start, end, NULL);
     if (conf == NULL) {
-        nxt_log(task, NXT_LOG_CRIT, "configuration parsing error");
+        nxt_alert(task, "configuration parsing error");
         return NXT_ERROR;
     }
 
@@ -1215,7 +1215,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     ret = nxt_conf_map_object(mp, conf, nxt_router_conf,
                               nxt_nitems(nxt_router_conf), tmcf->conf);
     if (ret != NXT_OK) {
-        nxt_log(task, NXT_LOG_CRIT, "root map error");
+        nxt_alert(task, "root map error");
         return NXT_ERROR;
     }
 
@@ -1225,7 +1225,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
     applications = nxt_conf_get_path(conf, &applications_path);
     if (applications == NULL) {
-        nxt_log(task, NXT_LOG_CRIT, "no \"applications\" block");
+        nxt_alert(task, "no \"applications\" block");
         return NXT_ERROR;
     }
 
@@ -1283,14 +1283,14 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         ret = nxt_conf_map_object(mp, application, nxt_router_app_conf,
                                   nxt_nitems(nxt_router_app_conf), &apcf);
         if (ret != NXT_OK) {
-            nxt_log(task, NXT_LOG_CRIT, "application map error");
+            nxt_alert(task, "application map error");
             goto app_fail;
         }
 
         if (apcf.limits_value != NULL) {
 
             if (nxt_conf_type(apcf.limits_value) != NXT_CONF_OBJECT) {
-                nxt_log(task, NXT_LOG_CRIT, "application limits is not object");
+                nxt_alert(task, "application limits is not object");
                 goto app_fail;
             }
 
@@ -1299,7 +1299,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
                                       nxt_nitems(nxt_router_app_limits_conf),
                                       &apcf);
             if (ret != NXT_OK) {
-                nxt_log(task, NXT_LOG_CRIT, "application limits map error");
+                nxt_alert(task, "application limits map error");
                 goto app_fail;
             }
         }
@@ -1312,7 +1312,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
                                       nxt_nitems(nxt_router_app_processes_conf),
                                       &apcf);
             if (ret != NXT_OK) {
-                nxt_log(task, NXT_LOG_CRIT, "application processes map error");
+                nxt_alert(task, "application processes map error");
                 goto app_fail;
             }
 
@@ -1330,8 +1330,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         lang = nxt_app_lang_module(task->thread->runtime, &apcf.type);
 
         if (lang == NULL) {
-            nxt_log(task, NXT_LOG_CRIT, "unknown application type: \"%V\"",
-                    &apcf.type);
+            nxt_alert(task, "unknown application type: \"%V\"", &apcf.type);
             goto app_fail;
         }
 
@@ -1386,14 +1385,14 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     http = nxt_conf_get_path(conf, &http_path);
 #if 0
     if (http == NULL) {
-        nxt_log(task, NXT_LOG_CRIT, "no \"http\" block");
+        nxt_alert(task, "no \"http\" block");
         return NXT_ERROR;
     }
 #endif
 
     listeners = nxt_conf_get_path(conf, &listeners_path);
     if (listeners == NULL) {
-        nxt_log(task, NXT_LOG_CRIT, "no \"listeners\" block");
+        nxt_alert(task, "no \"listeners\" block");
         return NXT_ERROR;
     }
 
@@ -1413,7 +1412,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         ret = nxt_conf_map_object(mp, listener, nxt_router_listener_conf,
                                   nxt_nitems(nxt_router_listener_conf), &lscf);
         if (ret != NXT_OK) {
-            nxt_log(task, NXT_LOG_CRIT, "listener map error");
+            nxt_alert(task, "listener map error");
             goto fail;
         }
 
@@ -1434,7 +1433,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             ret = nxt_conf_map_object(mp, http, nxt_router_http_conf,
                                       nxt_nitems(nxt_router_http_conf), skcf);
             if (ret != NXT_OK) {
-                nxt_log(task, NXT_LOG_CRIT, "http map error");
+                nxt_alert(task, "http map error");
                 goto fail;
             }
         }
@@ -1514,7 +1513,7 @@ nxt_router_socket_conf(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
     sa = nxt_sockaddr_parse(tmcf->mem_pool, name);
     if (nxt_slow_path(sa == NULL)) {
-        nxt_log(task, NXT_LOG_CRIT, "invalid listener \"%V\"", name);
+        nxt_alert(task, "invalid listener \"%V\"", name);
         return NULL;
     }
 

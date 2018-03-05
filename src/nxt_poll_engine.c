@@ -546,9 +546,9 @@ nxt_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
         phe = nxt_poll_fd_hash_get(engine, fd);
 
         if (nxt_slow_path(phe == NULL)) {
-            nxt_log(&engine->task, NXT_LOG_CRIT,
-                    "poll() returned invalid fd:%d ev:%04Xd rev:%04uXi",
-                    fd, pfd->events, events);
+            nxt_alert(&engine->task,
+                      "poll() returned invalid fd:%d ev:%04Xd rev:%04uXi",
+                      fd, pfd->events, events);
 
             /* Mark the poll entry to ignore it by the kernel. */
             pfd->fd = -1;
@@ -561,9 +561,8 @@ nxt_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
                   fd, events, ev->read, ev->write);
 
         if (nxt_slow_path((events & POLLNVAL) != 0)) {
-            nxt_log(ev->task, NXT_LOG_CRIT,
-                    "poll() error fd:%d ev:%04Xd rev:%04uXi",
-                    fd, pfd->events, events);
+            nxt_alert(ev->task, "poll() error fd:%d ev:%04Xd rev:%04uXi",
+                      fd, pfd->events, events);
 
             /* Mark the poll entry to ignore it by the kernel. */
             pfd->fd = -1;
@@ -649,7 +648,7 @@ nxt_poll_fd_hash_get(nxt_event_engine_t *engine, nxt_fd_t fd)
         return phe;
     }
 
-    nxt_log(&engine->task, NXT_LOG_CRIT, "fd %d not found in hash", fd);
+    nxt_alert(&engine->task, "fd %d not found in hash", fd);
 
     return NULL;
 }
@@ -671,9 +670,8 @@ nxt_poll_fd_hash_test(nxt_lvlhsh_query_t *lhq, void *data)
         return NXT_OK;
     }
 
-    nxt_log(&engine->task, NXT_LOG_CRIT,
-            "fd %d in hash mismatches fd %d in poll set",
-            phe->fd, engine->u.poll.set[phe->index].fd);
+    nxt_alert(&engine->task, "fd %d in hash mismatches fd %d in poll set",
+              phe->fd, engine->u.poll.set[phe->index].fd);
 
     return NXT_DECLINED;
 }
@@ -700,8 +698,7 @@ nxt_poll_fd_hash_destroy(nxt_event_engine_t *engine, nxt_lvlhsh_t *lh)
         lhq.key_hash = nxt_murmur_hash2(&phe->fd, sizeof(nxt_fd_t));
 
         if (nxt_lvlhsh_delete(lh, &lhq) != NXT_OK) {
-            nxt_log(&engine->task, NXT_LOG_CRIT,
-                    "event fd %d not found in hash", phe->fd);
+            nxt_alert(&engine->task, "event fd %d not found in hash", phe->fd);
         }
 
         nxt_free(phe);

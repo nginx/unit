@@ -194,7 +194,7 @@ nxt_kqueue_create(nxt_event_engine_t *engine, nxt_uint_t mchanges,
 
     engine->u.kqueue.fd = kqueue();
     if (engine->u.kqueue.fd == -1) {
-        nxt_log(&engine->task, NXT_LOG_CRIT, "kqueue() failed %E", nxt_errno);
+        nxt_alert(&engine->task, "kqueue() failed %E", nxt_errno);
         goto fail;
     }
 
@@ -231,8 +231,8 @@ nxt_kqueue_free(nxt_event_engine_t *engine)
         /* kqueue is not inherited by fork() */
 
         if (close(fd) != 0) {
-            nxt_log(&engine->task, NXT_LOG_CRIT, "kqueue close(%d) failed %E",
-                    fd, nxt_errno);
+            nxt_alert(&engine->task, "kqueue close(%d) failed %E",
+                      fd, nxt_errno);
         }
     }
 
@@ -478,8 +478,8 @@ nxt_kqueue_get_kevent(nxt_event_engine_t *engine)
                      NULL, 0, NULL);
 
         if (nxt_slow_path(ret != 0)) {
-            nxt_log(&engine->task, NXT_LOG_CRIT, "kevent(%d) failed %E",
-                    engine->u.kqueue.fd, nxt_errno);
+            nxt_alert(&engine->task, "kevent(%d) failed %E",
+                      engine->u.kqueue.fd, nxt_errno);
 
             nxt_kqueue_error(engine);
         }
@@ -581,8 +581,7 @@ nxt_kqueue_add_signal(nxt_event_engine_t *engine, const nxt_sig_event_t *sigev)
     sa.sa_handler = (signo == SIGCHLD) ? SIG_DFL : SIG_IGN;
 
     if (sigaction(signo, &sa, NULL) != 0) {
-        nxt_log(&engine->task, NXT_LOG_CRIT, "sigaction(%d) failed %E",
-                signo, nxt_errno);
+        nxt_alert(&engine->task, "sigaction(%d) failed %E", signo, nxt_errno);
 
         return NXT_ERROR;
     }
@@ -601,8 +600,7 @@ nxt_kqueue_add_signal(nxt_event_engine_t *engine, const nxt_sig_event_t *sigev)
         return NXT_OK;
     }
 
-    nxt_log(&engine->task, NXT_LOG_CRIT, "kevent(%d) failed %E",
-            kqueue, nxt_errno);
+    nxt_alert(&engine->task, "kevent(%d) failed %E", kqueue, nxt_errno);
 
     return NXT_ERROR;
 }
@@ -630,8 +628,8 @@ nxt_kqueue_enable_post(nxt_event_engine_t *engine, nxt_work_handler_t handler)
         return NXT_OK;
     }
 
-    nxt_log(&engine->task, NXT_LOG_CRIT, "kevent(%d) failed %E",
-            engine->u.kqueue.fd, nxt_errno);
+    nxt_alert(&engine->task, "kevent(%d) failed %E",
+              engine->u.kqueue.fd, nxt_errno);
 
     return NXT_ERROR;
 }
@@ -655,8 +653,8 @@ nxt_kqueue_signal(nxt_event_engine_t *engine, nxt_uint_t signo)
     kev.udata = NULL;
 
     if (kevent(engine->u.kqueue.fd, &kev, 1, NULL, 0, NULL) != 0) {
-        nxt_log(&engine->task, NXT_LOG_CRIT, "kevent(%d) failed %E",
-                engine->u.kqueue.fd, nxt_errno);
+        nxt_alert(&engine->task, "kevent(%d) failed %E",
+                  engine->u.kqueue.fd, nxt_errno);
     }
 }
 
@@ -704,7 +702,7 @@ nxt_kqueue_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
     nxt_debug(&engine->task, "kevent(%d): %d", engine->u.kqueue.fd, nevents);
 
     if (nevents == -1) {
-        level = (err == NXT_EINTR) ? NXT_LOG_INFO : NXT_LOG_CRIT;
+        level = (err == NXT_EINTR) ? NXT_LOG_INFO : NXT_LOG_ALERT;
 
         nxt_log(&engine->task, level, "kevent(%d) failed %E",
                 engine->u.kqueue.fd, err);
@@ -729,9 +727,9 @@ nxt_kqueue_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
         error = (kev->flags & EV_ERROR);
 
         if (nxt_slow_path(error)) {
-            nxt_log(&engine->task, NXT_LOG_CRIT,
-                    "kevent(%d) error %E on ident:%d filter:%d",
-                    engine->u.kqueue.fd, kev->data, kev->ident, kev->filter);
+            nxt_alert(&engine->task,
+                      "kevent(%d) error %E on ident:%d filter:%d",
+                      engine->u.kqueue.fd, kev->data, kev->ident, kev->filter);
         }
 
         task = &engine->task;
@@ -830,9 +828,9 @@ nxt_kqueue_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
         default:
 
 #if (NXT_DEBUG)
-            nxt_log(&engine->task, NXT_LOG_CRIT,
-                    "unexpected kevent(%d) filter %d on ident %d",
-                    engine->u.kqueue.fd, kev->filter, kev->ident);
+            nxt_alert(&engine->task,
+                      "unexpected kevent(%d) filter %d on ident %d",
+                      engine->u.kqueue.fd, kev->filter, kev->ident);
 #endif
 
             continue;

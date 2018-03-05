@@ -85,20 +85,20 @@ nxt_thread_mutex_create(nxt_thread_mutex_t *mtx)
 
     err = pthread_mutexattr_init(&attr);
     if (err != 0) {
-        nxt_thread_log_emerg("pthread_mutexattr_init() failed %E", err);
+        nxt_thread_log_alert("pthread_mutexattr_init() failed %E", err);
         return NXT_ERROR;
     }
 
     err = pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
     if (err != 0) {
-        nxt_thread_log_emerg("pthread_mutexattr_settype"
+        nxt_thread_log_alert("pthread_mutexattr_settype"
                              "(PTHREAD_MUTEX_ERRORCHECK) failed %E", err);
         return NXT_ERROR;
     }
 
     err = pthread_mutex_init(mtx, &attr);
     if (err != 0) {
-        nxt_thread_log_emerg("pthread_mutex_init() failed %E", err);
+        nxt_thread_log_alert("pthread_mutex_init() failed %E", err);
         return NXT_ERROR;
     }
 

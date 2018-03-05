@@ -107,7 +107,7 @@ nxt_service_add(nxt_array_t *services, const nxt_service_t *service)
             goto next;
         }
 
-        nxt_thread_log_emerg("service \"%s:%s\" is duplicate",
+        nxt_thread_log_alert("service \"%s:%s\" is duplicate",
                              service->type, service->name);
         return NXT_ERROR;
 
@@ -158,7 +158,7 @@ nxt_service_get(nxt_array_t *services, const char *type, const char *name)
         n--;
     }
 
-    nxt_thread_log_emerg("service \"%s%s%s\" not found",
+    nxt_thread_log_alert("service \"%s%s%s\" not found",
                          type, (name != NULL) ? ":" : "", name);
 
     return NULL;

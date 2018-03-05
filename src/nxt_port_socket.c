@@ -141,13 +141,7 @@ nxt_port_release_send_msg(nxt_task_t *task, void *obj, void *data)
     msg = obj;
     engine = data;
 
-#if (NXT_DEBUG)
-    if (nxt_slow_path(data != msg->work.data)) {
-        nxt_log_alert(task->log, "release msg data (%p) != msg->engine (%p)",
-                      data, msg->work.data);
-        nxt_abort();
-    }
-#endif
+    nxt_assert(data == msg->work.data);
 
     if (engine != task->thread->engine) {
 
@@ -374,9 +368,8 @@ nxt_port_write_handler(nxt_task_t *task, void *obj, void *data)
 
         if (n > 0) {
             if (nxt_slow_path((size_t) n != sb.size + iov[0].iov_len)) {
-                nxt_log(task, NXT_LOG_CRIT,
-                        "port %d: short write: %z instead of %uz",
-                        port->socket.fd, n, sb.size + iov[0].iov_len);
+                nxt_alert(task, "port %d: short write: %z instead of %uz",
+                          port->socket.fd, n, sb.size + iov[0].iov_len);
                 goto fail;
             }
 
@@ -691,8 +684,8 @@ nxt_port_read_msg_process(nxt_task_t *task, nxt_port_t *port,
     nxt_port_recv_msg_t  *fmsg;
 
     if (nxt_slow_path(msg->size < sizeof(nxt_port_msg_t))) {
-        nxt_log(task, NXT_LOG_CRIT,
-                "port %d: too small message:%uz", port->socket.fd, msg->size);
+        nxt_alert(task, "port %d: too small message:%uz",
+                  port->socket.fd, msg->size);
 
         if (msg->fd != -1) {
             nxt_fd_close(msg->fd);

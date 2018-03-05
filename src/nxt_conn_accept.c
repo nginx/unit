@@ -234,8 +234,8 @@ nxt_conn_accept_next(nxt_task_t *task, nxt_listen_event_t *lev)
 
     } while (nxt_conn_accept_close_idle(task, lev) == NXT_OK);
 
-    nxt_log(task, NXT_LOG_CRIT, "no available connections, "
-                  "new connections are not accepted within 1s");
+    nxt_alert(task, "no available connections, "
+              "new connections are not accepted within 1s");
 
     return NULL;
 }
@@ -309,16 +309,16 @@ nxt_conn_accept_error(nxt_task_t *task, nxt_listen_event_t *lev,
     case ENOBUFS:
     case ENOMEM:
         if (nxt_conn_accept_close_idle(task, lev) != NXT_OK) {
-            nxt_log(task, NXT_LOG_CRIT, "%s(%d) failed %E, "
-                    "new connections are not accepted within 1s",
-                    accept_syscall, lev->socket.fd, err);
+            nxt_alert(task, "%s(%d) failed %E, "
+                      "new connections are not accepted within 1s",
+                      accept_syscall, lev->socket.fd, err);
         }
 
         return;
 
     default:
-        nxt_log(task, NXT_LOG_CRIT, "%s(%d) failed %E",
-                accept_syscall, lev->socket.fd, err);
+        nxt_alert(task, "%s(%d) failed %E",
+                  accept_syscall, lev->socket.fd, err);
         return;
     }
 }
@@ -357,5 +357,5 @@ nxt_conn_listen_event_error(nxt_task_t *task, void *obj, void *data)
 
     ev = obj;
 
-    nxt_log(task, NXT_LOG_CRIT, "accept(%d) event error", ev->fd);
+    nxt_alert(task, "accept(%d) event error", ev->fd);
 }

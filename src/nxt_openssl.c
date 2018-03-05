@@ -116,7 +116,7 @@ nxt_openssl_start(nxt_thread_t *thr)
     index = SSL_get_ex_new_index(0, NULL, NULL, NULL, NULL);
 
     if (index == -1) {
-        nxt_openssl_log_error(NXT_LOG_CRIT, thr->log,
+        nxt_openssl_log_error(NXT_LOG_ALERT, thr->log,
                               "SSL_get_ex_new_index() failed");
         return NXT_ERROR;
     }
@@ -143,7 +143,7 @@ nxt_openssl_server_init(nxt_ssltls_conf_t *conf)
 
     ctx = SSL_CTX_new(SSLv23_server_method());
     if (ctx == NULL) {
-        nxt_openssl_log_error(NXT_LOG_CRIT, thr->log, "SSL_CTX_new() failed");
+        nxt_openssl_log_error(NXT_LOG_ALERT, thr->log, "SSL_CTX_new() failed");
         return NXT_ERROR;
     }
 
@@ -174,7 +174,7 @@ nxt_openssl_server_init(nxt_ssltls_conf_t *conf)
     certificate = conf->certificate;
 
     if (SSL_CTX_use_certificate_chain_file(ctx, certificate) == 0) {
-        nxt_openssl_log_error(NXT_LOG_CRIT, thr->log,
+        nxt_openssl_log_error(NXT_LOG_ALERT, thr->log,
                               "SSL_CTX_use_certificate_file(\"%s\") failed",
                               certificate);
         goto fail;
@@ -183,7 +183,7 @@ nxt_openssl_server_init(nxt_ssltls_conf_t *conf)
     key = conf->certificate_key;
 
     if (SSL_CTX_use_PrivateKey_file(ctx, key, SSL_FILETYPE_PEM) == 0) {
-        nxt_openssl_log_error(NXT_LOG_CRIT, thr->log,
+        nxt_openssl_log_error(NXT_LOG_ALERT, thr->log,
                               "SSL_CTX_use_PrivateKey_file(\"%s\") failed",
                               key);
         goto fail;
@@ -192,7 +192,7 @@ nxt_openssl_server_init(nxt_ssltls_conf_t *conf)
     ciphers = (conf->ciphers != NULL) ? conf->ciphers : "HIGH:!aNULL:!MD5";
 
     if (SSL_CTX_set_cipher_list(ctx, ciphers) == 0) {
-        nxt_openssl_log_error(NXT_LOG_CRIT, thr->log,
+        nxt_openssl_log_error(NXT_LOG_ALERT, thr->log,
                               "SSL_CTX_set_cipher_list(\"%s\") failed",
                               ciphers);
         goto fail;
@@ -211,7 +211,7 @@ nxt_openssl_server_init(nxt_ssltls_conf_t *conf)
         ca_certificate = conf->ca_certificate;
 
         if (SSL_CTX_load_verify_locations(ctx, ca_certificate, NULL) == 0) {
-            nxt_openssl_log_error(NXT_LOG_CRIT, thr->log,
+            nxt_openssl_log_error(NXT_LOG_ALERT, thr->log,
                               "SSL_CTX_load_verify_locations(\"%s\") failed",
                               ca_certificate);
             goto fail;
@@ -220,7 +220,7 @@ nxt_openssl_server_init(nxt_ssltls_conf_t *conf)
         list = SSL_load_client_CA_file(ca_certificate);
 
         if (list == NULL) {
-            nxt_openssl_log_error(NXT_LOG_CRIT, thr->log,
+            nxt_openssl_log_error(NXT_LOG_ALERT, thr->log,
                               "SSL_load_client_CA_file(\"%s\") failed",
                               ca_certificate);
             goto fail;
@@ -273,7 +273,8 @@ nxt_openssl_conn_init(nxt_task_t *task, nxt_ssltls_conf_t *conf, nxt_conn_t *c)
 
     s = SSL_new(ctx);
     if (s == NULL) {
-        nxt_openssl_log_error(NXT_LOG_CRIT, c->socket.log, "SSL_new() failed");
+        nxt_openssl_log_error(NXT_LOG_ALERT, c->socket.log,
+                              "SSL_new() failed");
         goto fail;
     }
 
@@ -284,7 +285,7 @@ nxt_openssl_conn_init(nxt_task_t *task, nxt_ssltls_conf_t *conf, nxt_conn_t *c)
     ret = SSL_set_fd(s, c->socket.fd);
 
     if (ret == 0) {
-        nxt_openssl_log_error(NXT_LOG_CRIT, c->socket.log,
+        nxt_openssl_log_error(NXT_LOG_ALERT, c->socket.log,
                               "SSL_set_fd(%d) failed", c->socket.fd);
         goto fail;
     }
@@ -292,7 +293,7 @@ nxt_openssl_conn_init(nxt_task_t *task, nxt_ssltls_conf_t *conf, nxt_conn_t *c)
     SSL_set_accept_state(s);
 
     if (SSL_set_ex_data(s, nxt_openssl_connection_index, c) == 0) {
-        nxt_openssl_log_error(NXT_LOG_CRIT, c->socket.log,
+        nxt_openssl_log_error(NXT_LOG_ALERT, c->socket.log,
                               "SSL_set_ex_data() failed");
         goto fail;
     }
@@ -760,7 +761,7 @@ nxt_openssl_log_error_level(nxt_conn_t *c, nxt_err_t err)
         return NXT_LOG_ERR;
 
     default:
-        return NXT_LOG_CRIT;
+        return NXT_LOG_ALERT;
     }
 
     return NXT_LOG_INFO;

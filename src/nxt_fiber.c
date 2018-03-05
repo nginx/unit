@@ -133,17 +133,16 @@ nxt_fiber_create_stack(nxt_task_t *task, nxt_fiber_t *fib)
              MAP_PRIVATE | MAP_ANON | MAP_GROWSDOWN, -1, 0);
 
     if (nxt_slow_path(s == MAP_FAILED)) {
-        nxt_log(task, NXT_LOG_CRIT, "fiber stack "
-                "mmap(%uz, MAP_PRIVATE|MAP_ANON|MAP_GROWSDOWN) failed %E",
-                size, nxt_errno);
+        nxt_alert(task, "fiber stack "
+                  "mmap(%uz, MAP_PRIVATE|MAP_ANON|MAP_GROWSDOWN) failed %E",
+                  size, nxt_errno);
 
         return NULL;
     }
 
     if (nxt_slow_path(mprotect(s, nxt_pagesize, PROT_NONE) != 0)) {
-        nxt_log(task, NXT_LOG_CRIT,
-                "fiber stack mprotect(%uz, PROT_NONE) failed %E",
-                size, nxt_errno);
+        nxt_alert(task, "fiber stack mprotect(%uz, PROT_NONE) failed %E",
+                  size, nxt_errno);
 
         return NULL;
     }
@@ -168,17 +167,15 @@ nxt_fiber_create_stack(nxt_task_t *task, nxt_fiber_t *fib)
     s = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
 
     if (nxt_slow_path(s == MAP_FAILED)) {
-        nxt_log(task, NXT_LOG_CRIT,
-                "fiber stack mmap(%uz, MAP_PRIVATE|MAP_ANON) failed %E",
-                size, nxt_errno);
+        nxt_alert(task, "fiber stack mmap(%uz, MAP_PRIVATE|MAP_ANON) failed %E",
+                  size, nxt_errno);
 
         return NULL;
     }
 
     if (nxt_slow_path(mprotect(s, nxt_pagesize, PROT_NONE) != 0)) {
-        nxt_log(task, NXT_LOG_CRIT,
-               "fiber stack mprotect(%uz, PROT_NONE) failed %E",
-               size, nxt_errno);
+        nxt_alert(task, "fiber stack mprotect(%uz, PROT_NONE) failed %E",
+                  size, nxt_errno);
 
         return NULL;
     }
@@ -212,7 +209,7 @@ nxt_fiber_switch_stack(nxt_fiber_t *fib, jmp_buf *parent)
     nxt_debug(&fib->task, "fiber switch to stack: %p", fib->stack);
 
     if (nxt_slow_path(getcontext(&uc) != 0)) {
-        nxt_log(&fib->task, NXT_LOG_CRIT, "getcontext() failed");
+        nxt_alert(&fib->task, "getcontext() failed");
         return;
     }
 
@@ -228,7 +225,7 @@ nxt_fiber_switch_stack(nxt_fiber_t *fib, jmp_buf *parent)
 
     setcontext(&uc);
 
-    nxt_log(&fib->task, NXT_LOG_CRIT, "setcontext() failed");
+    nxt_alert(&fib->task, "setcontext() failed");
 }
 
 
@@ -278,7 +275,7 @@ nxt_fiber_switch_stack(nxt_fiber_t *fib, jmp_buf *parent)
     nxt_debug(&fib->task, "fiber switch to stack: %p", fib->stack);
 
     if (nxt_slow_path(getcontext(&uc) != 0)) {
-        nxt_log(&fib->task, NXT_LOG_CRIT, "getcontext() failed");
+        nxt_alert(&fib->task, "getcontext() failed");
         return;
     }
 
@@ -293,7 +290,7 @@ nxt_fiber_switch_stack(nxt_fiber_t *fib, jmp_buf *parent)
 #if !(NXT_SOLARIS)
     /* Solaris declares setcontext() as __NORETURN. */
 
-    nxt_log(&fib->task, NXT_LOG_CRIT, "setcontext() failed");
+    nxt_alert(&fib->task, "setcontext() failed");
 #endif
 }
 

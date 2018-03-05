@@ -33,7 +33,7 @@ nxt_thread_init_data(nxt_thread_specific_data_t tsd)
 
             err = pthread_key_create(&key, nxt_thread_key_dtor);
             if (err != 0) {
-                nxt_main_log_emerg("pthread_key_create() failed %E", err);
+                nxt_main_log_alert("pthread_key_create() failed %E", err);
                 goto fail;
             }
 

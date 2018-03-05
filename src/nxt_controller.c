@@ -154,9 +154,8 @@ nxt_controller_start(nxt_task_t *task, void *data)
     nxt_free(json->start);
 
     if (nxt_slow_path(conf == NULL)) {
-        nxt_log(task, NXT_LOG_ALERT,
-                "failed to restore previous configuration: "
-                "file is corrupted or not enough memory");
+        nxt_alert(task, "failed to restore previous configuration: "
+                  "file is corrupted or not enough memory");
 
         nxt_mp_destroy(mp);
         return NXT_OK;
@@ -176,8 +175,8 @@ nxt_controller_start(nxt_task_t *task, void *data)
     if (nxt_slow_path(ret != NXT_OK)) {
 
         if (ret == NXT_DECLINED) {
-            nxt_log(task, NXT_LOG_ALERT,
-                    "the previous configuration is invalid: %V", &vldt.error);
+            nxt_alert(task, "the previous configuration is invalid: %V",
+                      &vldt.error);
 
             nxt_mp_destroy(vldt.pool);
             nxt_mp_destroy(mp);
@@ -279,7 +278,7 @@ nxt_controller_conf_init_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     nxt_runtime_t  *rt;
 
     if (msg->port_msg.type != NXT_PORT_MSG_RPC_READY) {
-        nxt_log(task, NXT_LOG_ALERT, "failed to apply previous configuration");
+        nxt_alert(task, "failed to apply previous configuration");
 
         nxt_mp_destroy(nxt_controller_conf.pool);
 

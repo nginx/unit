@@ -20,8 +20,7 @@ nxt_listen_socket(nxt_task_t *task, nxt_socket_t s, int backlog)
         return NXT_OK;
     }
 
-    nxt_log(task, NXT_LOG_CRIT, "listen(%d, %d) failed %E",
-            s, backlog, nxt_socket_errno);
+    nxt_alert(task, "listen(%d, %d) failed %E", s, backlog, nxt_socket_errno);
 
     return NXT_ERROR;
 }
@@ -118,8 +117,8 @@ nxt_listen_socket_create(nxt_task_t *task, nxt_listen_socket_t *ls,
     nxt_debug(task, "listen(%d, %d)", s, ls->backlog);
 
     if (listen(s, ls->backlog) != 0) {
-        nxt_log(task, NXT_LOG_CRIT, "listen(%d, %d) failed %E",
-                s, ls->backlog, nxt_socket_errno);
+        nxt_alert(task, "listen(%d, %d) failed %E",
+                  s, ls->backlog, nxt_socket_errno);
         goto fail;
     }
 
@@ -159,8 +158,8 @@ nxt_listen_socket_update(nxt_task_t *task, nxt_listen_socket_t *ls,
     nxt_debug(task, "listen(%d, %d)", ls->socket, ls->backlog);
 
     if (listen(ls->socket, ls->backlog) != 0) {
-        nxt_log(task, NXT_LOG_CRIT, "listen(%d, %d) failed %E",
-                ls->socket, ls->backlog, nxt_socket_errno);
+        nxt_alert(task, "listen(%d, %d) failed %E",
+                  ls->socket, ls->backlog, nxt_socket_errno);
         goto fail;
     }
 

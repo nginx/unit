@@ -122,8 +122,7 @@ nxt_pollset_create(nxt_event_engine_t *engine, nxt_uint_t mchanges,
     engine->u.pollset.ps = pollset_create(-1);
 
     if (engine->u.pollset.ps == -1) {
-        nxt_log(&engine->task, NXT_LOG_CRIT, "pollset_create() failed %E",
-                nxt_errno);
+        nxt_alert(&engine->task, "pollset_create() failed %E", nxt_errno);
         goto fail;
     }
 
@@ -149,8 +148,8 @@ nxt_pollset_free(nxt_event_engine_t *engine)
     nxt_debug(&engine->task, "pollset %d free", ps);
 
     if (ps != -1 && pollset_destroy(ps) != 0) {
-        nxt_log(&engine->task, NXT_LOG_CRIT, "pollset_destroy(%d) failed %E",
-                ps, nxt_errno);
+        nxt_alert(&engine->task, "pollset_destroy(%d) failed %E",
+                  ps, nxt_errno);
     }
 
     nxt_free(engine->u.pollset.events);
@@ -501,8 +500,8 @@ nxt_pollset_remove(nxt_event_engine_t *engine, nxt_fd_t fd)
     }
 
     if (n == -1) {
-        nxt_log(&engine->task, NXT_LOG_CRIT, "pollset_query(%d, %d) failed %E",
-                engine->u.pollset.ps, fd, nxt_errno);
+        nxt_alert(&engine->task, "pollset_query(%d, %d) failed %E",
+                  engine->u.pollset.ps, fd, nxt_errno);
         /* Fall through. */
     }
 
@@ -536,8 +535,7 @@ nxt_pollset_write(nxt_event_engine_t *engine, struct poll_ctl *ctl, int n)
         return NXT_OK;
     }
 
-    nxt_log(&engine->task, NXT_LOG_CRIT, "pollset_ctl(%d) failed: %d %E",
-            ps, n, nxt_errno);
+    nxt_alert(&engine->task, "pollset_ctl(%d) failed: %d %E", ps, n, nxt_errno);
 
     return NXT_ERROR;
 }
@@ -575,7 +573,7 @@ nxt_pollset_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
               engine->u.pollset.ps, nevents);
 
     if (nevents == -1) {
-        level = (err == NXT_EINTR) ? NXT_LOG_INFO : NXT_LOG_CRIT;
+        level = (err == NXT_EINTR) ? NXT_LOG_INFO : NXT_LOG_ALERT;
 
         nxt_log(&engine->task, level, "pollset_poll(%d) failed %E",
                 engine->u.pollset.ps, err);
@@ -593,10 +591,10 @@ nxt_pollset_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
                                    fd);
 
         if (nxt_slow_path(ev == NULL)) {
-            nxt_log(&engine->task, NXT_LOG_CRIT,
-                    "pollset_poll(%d) returned invalid "
-                    "fd:%d ev:%04Xd rev:%04uXi",
-                    engine->u.pollset.ps, fd, pfd->events, events);
+            nxt_alert(&engine->task,
+                      "pollset_poll(%d) returned invalid "
+                      "fd:%d ev:%04Xd rev:%04uXi",
+                      engine->u.pollset.ps, fd, pfd->events, events);
 
             nxt_pollset_remove(engine, fd);
             continue;
@@ -605,9 +603,9 @@ nxt_pollset_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
         nxt_debug(ev->task, "pollset: fd:%d ev:%04uXi", fd, events);
 
         if (nxt_slow_path(events & (POLLERR | POLLHUP | POLLNVAL)) != 0) {
-            nxt_log(ev->task, NXT_LOG_CRIT,
-                    "pollset_poll(%d) error fd:%d ev:%04Xd rev:%04uXi",
-                    engine->u.pollset.ps, fd, pfd->events, events);
+            nxt_alert(ev->task,
+                      "pollset_poll(%d) error fd:%d ev:%04Xd rev:%04uXi",
+                      engine->u.pollset.ps, fd, pfd->events, events);
 
             nxt_work_queue_add(&engine->fast_work_queue, ev->error_handler,
                                ev->task, ev, ev->data);

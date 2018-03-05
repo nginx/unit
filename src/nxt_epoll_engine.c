@@ -256,8 +256,7 @@ nxt_epoll_create(nxt_event_engine_t *engine, nxt_uint_t mchanges,
 
     engine->u.epoll.fd = epoll_create(1);
     if (engine->u.epoll.fd == -1) {
-        nxt_log(&engine->task, NXT_LOG_CRIT, "epoll_create() failed %E",
-                nxt_errno);
+        nxt_alert(&engine->task, "epoll_create() failed %E", nxt_errno);
         goto fail;
     }
 
@@ -326,8 +325,7 @@ nxt_epoll_free(nxt_event_engine_t *engine)
     fd = engine->u.epoll.signalfd.fd;
 
     if (fd != -1 && close(fd) != 0) {
-        nxt_log(&engine->task, NXT_LOG_CRIT, "signalfd close(%d) failed %E",
-                fd, nxt_errno);
+        nxt_alert(&engine->task, "signalfd close(%d) failed %E", fd, nxt_errno);
     }
 
 #endif
@@ -337,8 +335,7 @@ nxt_epoll_free(nxt_event_engine_t *engine)
     fd = engine->u.epoll.eventfd.fd;
 
     if (fd != -1 && close(fd) != 0) {
-        nxt_log(&engine->task, NXT_LOG_CRIT, "eventfd close(%d) failed %E",
-                fd, nxt_errno);
+        nxt_alert(&engine->task, "eventfd close(%d) failed %E", fd, nxt_errno);
     }
 
 #endif
@@ -346,8 +343,7 @@ nxt_epoll_free(nxt_event_engine_t *engine)
     fd = engine->u.epoll.fd;
 
     if (fd != -1 && close(fd) != 0) {
-        nxt_log(&engine->task, NXT_LOG_CRIT, "epoll close(%d) failed %E",
-                fd, nxt_errno);
+        nxt_alert(&engine->task, "epoll close(%d) failed %E", fd, nxt_errno);
     }
 
     nxt_free(engine->u.epoll.events);
@@ -637,8 +633,8 @@ nxt_epoll_commit_changes(nxt_event_engine_t *engine)
         ret = epoll_ctl(engine->u.epoll.fd, change->op, ev->fd, &change->event);
 
         if (nxt_slow_path(ret != 0)) {
-            nxt_log(ev->task, NXT_LOG_CRIT, "epoll_ctl(%d, %d, %d) failed %E",
-                    engine->u.epoll.fd, change->op, ev->fd, nxt_errno);
+            nxt_alert(ev->task, "epoll_ctl(%d, %d, %d) failed %E",
+                      engine->u.epoll.fd, change->op, ev->fd, nxt_errno);
 
             nxt_work_queue_add(&engine->fast_work_queue,
                                nxt_epoll_error_handler, ev->task, ev, ev->data);
@@ -679,8 +675,7 @@ nxt_epoll_add_signal(nxt_event_engine_t *engine)
     struct epoll_event  ee;
 
     if (sigprocmask(SIG_BLOCK, &engine->signals->sigmask, NULL) != 0) {
-        nxt_log(&engine->task, NXT_LOG_CRIT,
-                "sigprocmask(SIG_BLOCK) failed %E", nxt_errno);
+        nxt_alert(&engine->task, "sigprocmask(SIG_BLOCK) failed %E", nxt_errno);
         return NXT_ERROR;
     }
 
@@ -696,8 +691,8 @@ nxt_epoll_add_signal(nxt_event_engine_t *engine)
     fd = signalfd(-1, &engine->signals->sigmask, 0);
 
     if (fd == -1) {
-        nxt_log(&engine->task, NXT_LOG_CRIT, "signalfd(%d) failed %E",
-                engine->u.epoll.signalfd.fd, nxt_errno);
+        nxt_alert(&engine->task, "signalfd(%d) failed %E",
+                  engine->u.epoll.signalfd.fd, nxt_errno);
         return NXT_ERROR;
     }
 
@@ -719,8 +714,8 @@ nxt_epoll_add_signal(nxt_event_engine_t *engine)
     ee.data.ptr = &engine->u.epoll.signalfd;
 
     if (epoll_ctl(engine->u.epoll.fd, EPOLL_CTL_ADD, fd, &ee) != 0) {
-        nxt_log(&engine->task, NXT_LOG_CRIT, "epoll_ctl(%d, %d, %d) failed %E",
-                engine->u.epoll.fd, EPOLL_CTL_ADD, fd, nxt_errno);
+        nxt_alert(&engine->task, "epoll_ctl(%d, %d, %d) failed %E",
+                  engine->u.epoll.fd, EPOLL_CTL_ADD, fd, nxt_errno);
 
         return NXT_ERROR;
     }
@@ -747,8 +742,7 @@ nxt_epoll_signalfd_handler(nxt_task_t *task, void *obj, void *data)
     nxt_debug(task, "read signalfd(%d): %d", ev->fd, n);
 
     if (n != sizeof(struct signalfd_siginfo)) {
-        nxt_log(task, NXT_LOG_CRIT, "read signalfd(%d) failed %E",
-                ev->fd, nxt_errno);
+        nxt_alert(task, "read signalfd(%d) failed %E", ev->fd, nxt_errno);
         return;
     }
 
@@ -782,7 +776,7 @@ nxt_epoll_enable_post(nxt_event_engine_t *engine, nxt_work_handler_t handler)
     engine->u.epoll.eventfd.fd = eventfd(0, 0);
 
     if (engine->u.epoll.eventfd.fd == -1) {
-        nxt_log(&engine->task, NXT_LOG_CRIT, "eventfd() failed %E", nxt_errno);
+        nxt_alert(&engine->task, "eventfd() failed %E", nxt_errno);
         return NXT_ERROR;
     }
 
@@ -809,9 +803,9 @@ nxt_epoll_enable_post(nxt_event_engine_t *engine, nxt_work_handler_t handler)
         return NXT_OK;
     }
 
-    nxt_log(&engine->task, NXT_LOG_CRIT, "epoll_ctl(%d, %d, %d) failed %E",
-            engine->u.epoll.fd, EPOLL_CTL_ADD, engine->u.epoll.eventfd.fd,
-            nxt_errno);
+    nxt_alert(&engine->task, "epoll_ctl(%d, %d, %d) failed %E",
+              engine->u.epoll.fd, EPOLL_CTL_ADD, engine->u.epoll.eventfd.fd,
+              nxt_errno);
 
     return NXT_ERROR;
 }
@@ -846,8 +840,8 @@ nxt_epoll_eventfd_handler(nxt_task_t *task, void *obj, void *data)
                   engine->u.epoll.eventfd.fd, n, events);
 
         if (n != sizeof(uint64_t)) {
-            nxt_log(task, NXT_LOG_CRIT, "read eventfd(%d) failed %E",
-                    engine->u.epoll.eventfd.fd, nxt_errno);
+            nxt_alert(task, "read eventfd(%d) failed %E",
+                      engine->u.epoll.eventfd.fd, nxt_errno);
         }
     }
 
@@ -871,8 +865,8 @@ nxt_epoll_signal(nxt_event_engine_t *engine, nxt_uint_t signo)
     ret = write(engine->u.epoll.eventfd.fd, &event, sizeof(uint64_t));
 
     if (nxt_slow_path(ret != sizeof(uint64_t))) {
-        nxt_log(&engine->task, NXT_LOG_CRIT, "write(%d) to eventfd failed %E",
-                engine->u.epoll.eventfd.fd, nxt_errno);
+        nxt_alert(&engine->task, "write(%d) to eventfd failed %E",
+                  engine->u.epoll.eventfd.fd, nxt_errno);
     }
 }
 
@@ -911,7 +905,7 @@ nxt_epoll_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
     nxt_debug(&engine->task, "epoll_wait(%d): %d", engine->u.epoll.fd, nevents);
 
     if (nevents == -1) {
-        level = (err == NXT_EINTR) ? NXT_LOG_INFO : NXT_LOG_CRIT;
+        level = (err == NXT_EINTR) ? NXT_LOG_INFO : NXT_LOG_ALERT;
 
         nxt_log(&engine->task, level, "epoll_wait(%d) failed %E",
                 engine->u.epoll.fd, err);

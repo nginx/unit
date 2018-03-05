@@ -196,8 +196,7 @@ nxt_discovery_module(nxt_task_t *task, nxt_mp_t *mp, nxt_array_t *modules,
     dl = dlopen(name, RTLD_GLOBAL | RTLD_NOW);
 
     if (dl == NULL) {
-        nxt_log(task, NXT_LOG_CRIT, "dlopen(\"%s\"), failed: \"%s\"",
-                name, dlerror());
+        nxt_alert(task, "dlopen(\"%s\"), failed: \"%s\"", name, dlerror());
         return NXT_OK;
     }
 
@@ -262,8 +261,7 @@ nxt_discovery_module(nxt_task_t *task, nxt_mp_t *mp, nxt_array_t *modules,
         nxt_memcpy(module->file.start, name, module->file.length);
 
     } else {
-        nxt_log(task, NXT_LOG_CRIT, "dlsym(\"%s\"), failed: \"%s\"",
-                name, dlerror());
+        nxt_alert(task, "dlsym(\"%s\"), failed: \"%s\"", name, dlerror());
     }
 
 done:
@@ -273,8 +271,7 @@ done:
 fail:
 
     if (dlclose(dl) != 0) {
-        nxt_log(task, NXT_LOG_CRIT, "dlclose(\"%s\"), failed: \"%s\"",
-                name, dlerror());
+        nxt_alert(task, "dlclose(\"%s\"), failed: \"%s\"", name, dlerror());
     }
 
     return ret;
@@ -312,8 +309,7 @@ nxt_app_start(nxt_task_t *task, void *data)
 
     lang = nxt_app_lang_module(task->thread->runtime, &app_conf->type);
     if (nxt_slow_path(lang == NULL)) {
-        nxt_log(task, NXT_LOG_CRIT, "unknown application type: \"%V\"",
-                &app_conf->type);
+        nxt_alert(task, "unknown application type: \"%V\"", &app_conf->type);
         return NXT_ERROR;
     }
 
@@ -371,8 +367,7 @@ nxt_app_module_load(nxt_task_t *task, const char *name)
         return dlsym(dl, "nxt_app_module");
     }
 
-    nxt_log(task, NXT_LOG_CRIT, "dlopen(\"%s\"), failed: \"%s\"",
-            name, dlerror());
+    nxt_alert(task, "dlopen(\"%s\"), failed: \"%s\"", name, dlerror());
 
     return NULL;
 }

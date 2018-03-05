@@ -24,6 +24,17 @@ typedef struct {
 
 
 #define                                                                       \
+nxt_log_alert_moderate(_mod, _log, ...)                                       \
+    do {                                                                      \
+        nxt_log_t  *_log_ = _log;                                             \
+                                                                              \
+        if (nxt_log_moderate_allow(_mod)) {                                   \
+            _log_->handler(NXT_LOG_ALERT, _log_, __VA_ARGS__);                \
+        }                                                                     \
+    } while (0)
+
+
+#define                                                                       \
 nxt_log_moderate(_mod, _level, _log, ...)                                     \
     do {                                                                      \
         nxt_log_t  *_log_ = _log;                                             \

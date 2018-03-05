@@ -46,9 +46,8 @@ nxt_conn_close(nxt_event_engine_t *engine, nxt_conn_t *c)
                          sizeof(struct linger));
 
         if (nxt_slow_path(ret != 0)) {
-            nxt_log(c->socket.task, NXT_LOG_CRIT,
-                    "setsockopt(%d, SO_LINGER) failed %E",
-                    c->socket.fd, nxt_socket_errno);
+            nxt_alert(c->socket.task, "setsockopt(%d, SO_LINGER) failed %E",
+                      c->socket.fd, nxt_socket_errno);
         }
     }
 

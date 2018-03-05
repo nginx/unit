@@ -437,8 +437,7 @@ nxt_perl_psgi_interpreter_init(nxt_task_t *task, char *script)
     my_perl = perl_alloc();
 
     if (nxt_slow_path(my_perl == NULL)) {
-        nxt_log_error(NXT_LOG_CRIT, task->log,
-                      "PSGI: Failed to allocate memory for Perl interpreter");
+        nxt_alert(task, "PSGI: Failed to allocate memory for Perl interpreter");
         return NULL;
     }
 
@@ -450,8 +449,7 @@ nxt_perl_psgi_interpreter_init(nxt_task_t *task, char *script)
     status = perl_parse(my_perl, nxt_perl_psgi_xs_init, 3, embedding, NULL);
 
     if (nxt_slow_path(status != 0)) {
-        nxt_log_error(NXT_LOG_CRIT, task->log,
-                      "PSGI: Failed to parse Perl Script");
+        nxt_alert(task, "PSGI: Failed to parse Perl Script");
         goto fail;
     }
 
@@ -461,8 +459,7 @@ nxt_perl_psgi_interpreter_init(nxt_task_t *task, char *script)
     status = perl_run(my_perl);
 
     if (nxt_slow_path(status != 0)) {
-        nxt_log_error(NXT_LOG_CRIT, task->log,
-                      "PSGI: Failed to run Perl");
+        nxt_alert(task, "PSGI: Failed to run Perl");
         goto fail;
     }
 
@@ -477,24 +474,22 @@ nxt_perl_psgi_interpreter_init(nxt_task_t *task, char *script)
     status = nxt_perl_psgi_io_input_init(my_perl, &nxt_perl_psgi_arg_input);
 
     if (nxt_slow_path(status != NXT_OK)) {
-        nxt_log_error(NXT_LOG_CRIT, task->log,
-                      "PSGI: Failed to init io.psgi.input");
+        nxt_alert(task, "PSGI: Failed to init io.psgi.input");
         goto fail;
     }
 
     status = nxt_perl_psgi_io_error_init(my_perl, &nxt_perl_psgi_arg_error);
 
     if (nxt_slow_path(status != NXT_OK)) {
-        nxt_log_error(NXT_LOG_CRIT, task->log,
-                      "PSGI: Failed to init io.psgi.errors");
+        nxt_alert(task, "PSGI: Failed to init io.psgi.errors");
         goto fail;
     }
 
     nxt_perl_psgi_app = eval_pv((const char *) run_module, FALSE);
 
     if (SvTRUE(ERRSV)) {
-        nxt_log_emerg(task->log, "PSGI: Failed to parse script: %s\n%s",
-                      script, SvPV_nolen(ERRSV));
+        nxt_alert(task, "PSGI: Failed to parse script: %s\n%s",
+                  script, SvPV_nolen(ERRSV));
         goto fail;
     }
 

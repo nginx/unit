@@ -772,7 +772,6 @@ void
 nxt_mp_free(nxt_mp_t *mp, void *p)
 {
     const char      *err;
-    nxt_thread_t    *thread;
     nxt_mp_block_t  *block;
 
     nxt_mp_thread_assert(mp);
@@ -809,9 +808,7 @@ nxt_mp_free(nxt_mp_t *mp, void *p)
         err = "freed pointer is out of pool: %p";
     }
 
-    thread = nxt_thread();
-
-    nxt_log(thread->task, NXT_LOG_CRIT, err, p);
+    nxt_thread_log_alert(err, p);
 }
 
 

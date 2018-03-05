@@ -38,8 +38,7 @@ nxt_go_fd_no_cloexec(nxt_task_t *task, nxt_socket_t fd)
     flags = fcntl(fd, F_GETFD);
 
     if (nxt_slow_path(flags == -1)) {
-        nxt_log(task, NXT_LOG_CRIT, "fcntl(%d, F_GETFD) failed %E",
-                fd, nxt_errno);
+        nxt_alert(task, "fcntl(%d, F_GETFD) failed %E", fd, nxt_errno);
         return NXT_ERROR;
     }
 
@@ -48,8 +47,7 @@ nxt_go_fd_no_cloexec(nxt_task_t *task, nxt_socket_t fd)
     res = fcntl(fd, F_SETFD, flags);
 
     if (nxt_slow_path(res == -1)) {
-        nxt_log(task, NXT_LOG_CRIT, "fcntl(%d, F_SETFD) failed %E",
-                fd, nxt_errno);
+        nxt_alert(task, "fcntl(%d, F_SETFD) failed %E", fd, nxt_errno);
         return NXT_ERROR;
     }
 
@@ -100,8 +98,7 @@ nxt_go_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
                     my_port->pair[0], -1);
 
     if (nxt_slow_path(p == end)) {
-        nxt_log(task, NXT_LOG_ALERT,
-                "internal error: buffer too small for NXT_GO_PORTS");
+        nxt_alert(task, "internal error: buffer too small for NXT_GO_PORTS");
 
         return NXT_ERROR;
     }
@@ -110,8 +107,7 @@ nxt_go_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 
     rc = setenv("NXT_GO_PORTS", (char *) buf, 1);
     if (nxt_slow_path(rc == -1)) {
-        nxt_log(task, NXT_LOG_CRIT, "setenv(NXT_GO_PORTS, %s) failed %E",
-                buf, nxt_errno);
+        nxt_alert(task, "setenv(NXT_GO_PORTS, %s) failed %E", buf, nxt_errno);
 
         return NXT_ERROR;
     }
@@ -123,8 +119,7 @@ nxt_go_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 
     (void) execve(c->executable, argv, environ);
 
-    nxt_log(task, NXT_LOG_CRIT, "execve(%s) failed %E",
-            c->executable, nxt_errno);
+    nxt_alert(task, "execve(%s) failed %E", c->executable, nxt_errno);
 
     return NXT_ERROR;
 }

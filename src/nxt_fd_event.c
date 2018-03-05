@@ -46,7 +46,7 @@ nxt_fd_event_hash_add(nxt_lvlhsh_t *lvlhsh, nxt_fd_t fd, nxt_fd_event_t *ev)
         return NXT_OK;
     }
 
-    nxt_log(ev->task, NXT_LOG_CRIT, "fd event %d is already in hash", ev->fd);
+    nxt_alert(ev->task, "fd event %d is already in hash", ev->fd);
 
     return NXT_ERROR;
 }
@@ -126,5 +126,5 @@ nxt_fd_event_hash_destroy(nxt_lvlhsh_t *lvlhsh)
 static void
 nxt_fd_event_hash_error(nxt_task_t *task, nxt_fd_t fd)
 {
-    nxt_log(task, NXT_LOG_CRIT, "fd event %d not found in hash", fd);
+    nxt_alert(task, "fd event %d not found in hash", fd);
 }

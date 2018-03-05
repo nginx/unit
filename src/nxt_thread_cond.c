@@ -18,7 +18,7 @@ nxt_thread_cond_create(nxt_thread_cond_t *cond)
         return NXT_OK;
     }
 
-    nxt_thread_log_emerg("pthread_cond_init() failed %E", err);
+    nxt_thread_log_alert("pthread_cond_init() failed %E", err);
     return NXT_ERROR;
 }
 

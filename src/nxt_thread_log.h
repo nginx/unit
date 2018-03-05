@@ -8,15 +8,6 @@
 #define _NXT_THREAD_LOG_H_INCLUDED_
 
 
-#define nxt_thread_log_emerg(...)                                             \
-    do {                                                                      \
-        nxt_thread_t  *_thr = nxt_thread();                                   \
-                                                                              \
-        nxt_log_emerg(_thr->log, __VA_ARGS__);                                \
-                                                                              \
-    } while (0)
-
-
 #define nxt_thread_log_alert(...)                                             \
     do {                                                                      \
         nxt_thread_t  *_thr = nxt_thread();                                   \

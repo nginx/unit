@@ -97,7 +97,7 @@ typedef struct {
 
     /*
      * Log open() file error with given log level if it is non zero.
-     * Note that zero log level is NXT_LOG_EMERG.
+     * Note that zero log level is NXT_LOG_ALERT.
      */
     uint8_t                         log_level;
 

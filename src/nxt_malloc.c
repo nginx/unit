@@ -38,9 +38,8 @@ nxt_malloc(size_t size)
         nxt_log_debug(nxt_malloc_log(), "malloc(%uz): %p", size, p);
 
     } else {
-        nxt_log_moderate(&nxt_malloc_log_moderation,
-                         NXT_LOG_ALERT, nxt_malloc_log(),
-                         "malloc(%uz) failed %E", size, nxt_errno);
+        nxt_log_alert_moderate(&nxt_malloc_log_moderation, nxt_malloc_log(),
+                               "malloc(%uz) failed %E", size, nxt_errno);
     }
 
     return p;
@@ -73,9 +72,9 @@ nxt_realloc(void *p, size_t size)
         nxt_log_debug(nxt_malloc_log(), "realloc(%p, %uz): %p", p, size, n);
 
     } else {
-        nxt_log_moderate(&nxt_malloc_log_moderation,
-                         NXT_LOG_ALERT, nxt_malloc_log(),
-                         "realloc(%p, %uz) failed %E", p, size, nxt_errno);
+        nxt_log_alert_moderate(&nxt_malloc_log_moderation, nxt_malloc_log(),
+                               "realloc(%p, %uz) failed %E",
+                               p, size, nxt_errno);
     }
 
     return n;
@@ -117,10 +116,9 @@ nxt_memalign(size_t alignment, size_t size)
         return p;
     }
 
-    nxt_log_moderate(&nxt_malloc_log_moderation,
-                     NXT_LOG_ALERT, nxt_malloc_log(),
-                     "posix_memalign(%uz, %uz) failed %E",
-                     alignment, size, err);
+    nxt_log_alert_moderate(&nxt_malloc_log_moderation, nxt_malloc_log(),
+                           "posix_memalign(%uz, %uz) failed %E",
+                           alignment, size, err);
     return NULL;
 }
 
@@ -141,10 +139,9 @@ nxt_memalign(size_t alignment, size_t size)
         return p;
     }
 
-    nxt_log_moderate(&nxt_malloc_log_moderation,
-                     NXT_LOG_ALERT, nxt_malloc_log(),
-                     "memalign(%uz, %uz) failed %E",
-                     alignment, size, nxt_errno);
+    nxt_log_alert_moderate(&nxt_malloc_log_moderation, nxt_malloc_log(),
+                           "memalign(%uz, %uz) failed %E",
+                           alignment, size, nxt_errno);
     return NULL;
 }
 
@@ -189,9 +186,8 @@ nxt_memalign(size_t alignment, size_t size)
         nxt_thread_log_debug("nxt_memalign(%uz, %uz): %p", alignment, size, p);
 
     } else {
-        nxt_log_moderate(&nxt_malloc_log_moderation,
-                         NXT_LOG_ALERT, nxt_malloc_log(),
-                         "malloc(%uz) failed %E", size, nxt_errno);
+        nxt_log_alert_moderate(&nxt_malloc_log_moderation, nxt_malloc_log(),
+                               "malloc(%uz) failed %E", size, nxt_errno);
     }
 
     return p;

@@ -129,8 +129,8 @@ nxt_conn_io_shutdown(nxt_task_t *task, void *obj, void *data)
                          sizeof(struct linger));
 
         if (nxt_slow_path(ret != 0)) {
-            nxt_log(task, NXT_LOG_CRIT, "setsockopt(%d, SO_LINGER) failed %E",
-                    c->socket.fd, nxt_socket_errno);
+            nxt_alert(task, "setsockopt(%d, SO_LINGER) failed %E",
+                      c->socket.fd, nxt_socket_errno);
         }
     }
 
@@ -205,7 +205,7 @@ nxt_conn_local_addr(nxt_task_t *task, nxt_conn_t *c)
 
     ret = getsockname(c->socket.fd, &sa->u.sockaddr, &socklen);
     if (nxt_slow_path(ret != 0)) {
-        nxt_log(task, NXT_LOG_CRIT, "getsockname(%d) failed", c->socket.fd);
+        nxt_alert(task, "getsockname(%d) failed", c->socket.fd);
         return NULL;
     }
 

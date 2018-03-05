@@ -87,7 +87,7 @@ nxt_cyassl_start(void)
 
     err = CyaSSL_Init();
     if (err != SSL_SUCCESS) {
-        nxt_cyassl_log_error(NXT_LOG_CRIT, thr->log, err,
+        nxt_cyassl_log_error(NXT_LOG_ALERT, thr->log, err,
                              "CyaSSL_Init() failed");
         return NXT_ERROR;
     }
@@ -118,7 +118,7 @@ nxt_cyassl_server_init(nxt_ssltls_conf_t *conf)
 
     ctx = CyaSSL_CTX_new(CyaSSLv23_server_method());
     if (ctx == NULL) {
-        nxt_cyassl_log_error(NXT_LOG_CRIT, thr->log, 0,
+        nxt_cyassl_log_error(NXT_LOG_ALERT, thr->log, 0,
                              "CyaSSL_CTX_new() failed");
         return NXT_ERROR;
     }
@@ -130,7 +130,7 @@ nxt_cyassl_server_init(nxt_ssltls_conf_t *conf)
 
     err = CyaSSL_CTX_use_certificate_file(ctx, certificate, SSL_FILETYPE_PEM);
     if (err != SSL_SUCCESS) {
-        nxt_cyassl_log_error(NXT_LOG_CRIT, thr->log, err,
+        nxt_cyassl_log_error(NXT_LOG_ALERT, thr->log, err,
                              "CyaSSL_CTX_use_certificate_file(\"%s\") failed",
                              certificate);
         goto fail;
@@ -140,7 +140,7 @@ nxt_cyassl_server_init(nxt_ssltls_conf_t *conf)
 
     err = CyaSSL_CTX_use_PrivateKey_file(ctx, key, SSL_FILETYPE_PEM);
     if (err != SSL_SUCCESS) {
-        nxt_cyassl_log_error(NXT_LOG_CRIT, thr->log, err,
+        nxt_cyassl_log_error(NXT_LOG_ALERT, thr->log, err,
                              "CyaSSL_CTX_use_PrivateKey_file(\"%s\") failed",
                              key);
         goto fail;
@@ -149,7 +149,7 @@ nxt_cyassl_server_init(nxt_ssltls_conf_t *conf)
     if (conf->ciphers != NULL) {
         err = CyaSSL_CTX_set_cipher_list(ctx, conf->ciphers);
         if (err != SSL_SUCCESS) {
-            nxt_cyassl_log_error(NXT_LOG_CRIT, thr->log, err,
+            nxt_cyassl_log_error(NXT_LOG_ALERT, thr->log, err,
                                  "CyaSSL_CTX_set_cipher_list(\"%s\") failed",
                                  conf->ciphers);
             goto fail;
@@ -199,7 +199,7 @@ nxt_cyassl_conn_init(nxt_thread_t *thr, nxt_ssltls_conf_t *conf,
 
     s = CyaSSL_new(ctx);
     if (s == NULL) {
-        nxt_cyassl_log_error(NXT_LOG_CRIT, c->socket.log, 0,
+        nxt_cyassl_log_error(NXT_LOG_ALERT, c->socket.log, 0,
                              "CyaSSL_new() failed");
         goto fail;
     }
@@ -574,7 +574,7 @@ nxt_cyassl_log_error_level(nxt_event_conn_t *c, nxt_err_t err, int ssl_error)
         break;
 
     default:
-        return NXT_LOG_CRIT;
+        return NXT_LOG_ALERT;
     }
 
     return NXT_LOG_INFO;

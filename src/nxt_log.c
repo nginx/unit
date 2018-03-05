@@ -20,10 +20,8 @@ nxt_log_t   nxt_main_log = {
 };
 
 
-nxt_str_t  nxt_log_levels[8] = {
-    nxt_string("emerg"),
+nxt_str_t  nxt_log_levels[6] = {
     nxt_string("alert"),
-    nxt_string("crit"),
     nxt_string("error"),
     nxt_string("warn"),
     nxt_string("notice"),
@@ -102,7 +100,7 @@ nxt_log_handler(nxt_uint_t level, nxt_log_t *log, const char *fmt, ...)
 
     (void) nxt_write_console(nxt_stderr, msg, p - msg);
 
-    if (level <= NXT_LOG_ALERT) {
+    if (level == NXT_LOG_ALERT) {
         *(p - NXT_LINEFEED_SIZE) = '\0';
 
         /*

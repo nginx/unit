@@ -109,8 +109,7 @@ nxt_eventport_create(nxt_event_engine_t *engine, nxt_uint_t mchanges,
 
     engine->u.eventport.fd = port_create();
     if (engine->u.eventport.fd == -1) {
-        nxt_log(&engine->task, NXT_LOG_CRIT, "port_create() failed %E",
-                nxt_errno);
+        nxt_alert(&engine->task, "port_create() failed %E", nxt_errno);
         goto fail;
     }
 
@@ -140,8 +139,8 @@ nxt_eventport_free(nxt_event_engine_t *engine)
     nxt_debug(&engine->task, "eventport %d free", port);
 
     if (port != -1 && close(port) != 0) {
-        nxt_log(&engine->task, NXT_LOG_CRIT, "eventport close(%d) failed %E",
-                port, nxt_errno);
+        nxt_alert(&engine->task, "eventport close(%d) failed %E",
+                  port, nxt_errno);
     }
 
     nxt_free(engine->u.eventport.events);
@@ -326,9 +325,8 @@ nxt_eventport_commit_changes(nxt_event_engine_t *engine)
                 goto next;
             }
 
-            nxt_log(ev->task, NXT_LOG_CRIT,
-                    "port_associate(%d, %d, %d, %04XD) failed %E",
-                    port, PORT_SOURCE_FD, ev->fd, change->events, nxt_errno);
+            nxt_alert(ev->task, "port_associate(%d, %d, %d, %04XD) failed %E",
+                      port, PORT_SOURCE_FD, ev->fd, change->events, nxt_errno);
 
         } else {
             nxt_debug(ev->task, "port_dissociate(%d): fd:%d", port, ev->fd);
@@ -339,9 +337,8 @@ nxt_eventport_commit_changes(nxt_event_engine_t *engine)
                 goto next;
             }
 
-            nxt_log(ev->task, NXT_LOG_CRIT,
-                    "port_dissociate(%d, %d, %d) failed %E",
-                    port, PORT_SOURCE_FD, ev->fd, nxt_errno);
+            nxt_alert(ev->task, "port_dissociate(%d, %d, %d) failed %E",
+                      port, PORT_SOURCE_FD, ev->fd, nxt_errno);
         }
 
         nxt_work_queue_add(&engine->fast_work_queue,
@@ -445,8 +442,7 @@ nxt_eventport_signal(nxt_event_engine_t *engine, nxt_uint_t signo)
     nxt_debug(&engine->task, "port_send(%d, %ui)", port, signo);
 
     if (port_send(port, signo, NULL) != 0) {
-        nxt_log(&engine->task, NXT_LOG_CRIT, "port_send(%d) failed %E",
-                port, nxt_errno);
+        nxt_alert(&engine->task, "port_send(%d) failed %E", port, nxt_errno);
     }
 }
 
@@ -511,14 +507,13 @@ nxt_eventport_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
     if (n == -1) {
         if (err == NXT_ETIME || err == NXT_EINTR) {
             if (nevents != 0) {
-                nxt_log(&engine->task, NXT_LOG_CRIT,
-                        "port_getn(%d) failed %E, events:%ud",
-                        engine->u.eventport.fd, err, nevents);
+                nxt_alert(&engine->task, "port_getn(%d) failed %E, events:%ud",
+                          engine->u.eventport.fd, err, nevents);
             }
         }
 
         if (err != NXT_ETIME) {
-            level = (err == NXT_EINTR) ? NXT_LOG_INFO : NXT_LOG_CRIT;
+            level = (err == NXT_EINTR) ? NXT_LOG_INFO : NXT_LOG_ALERT;
 
             nxt_log(&engine->task, level, "port_getn(%d) failed %E",
                     engine->u.eventport.fd, err);
@@ -545,9 +540,8 @@ nxt_eventport_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
                       event->portev_object, events, ev, ev->read, ev->write);
 
             if (nxt_slow_path(events & (POLLERR | POLLHUP | POLLNVAL)) != 0) {
-                nxt_log(ev->task, NXT_LOG_CRIT,
-                        "port_getn(%d) error fd:%d events:%04Xud",
-                        engine->u.eventport.fd, ev->fd, events);
+                nxt_alert(ev->task, "port_getn(%d) error fd:%d events:%04Xud",
+                          engine->u.eventport.fd, ev->fd, events);
 
                 nxt_work_queue_add(&engine->fast_work_queue,
                                    nxt_eventport_error_handler,
@@ -608,11 +602,12 @@ nxt_eventport_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
             break;
 
         default:
-            nxt_log(&engine->task, NXT_LOG_CRIT,
-                    "unexpected port_getn(%d) event: ev:%d src:%d obj:%p u:%p",
-                    engine->u.eventport.fd, event->portev_events,
-                    event->portev_source, event->portev_object,
-                    event->portev_user);
+            nxt_alert(&engine->task,
+                      "unexpected port_getn(%d) event: "
+                      "ev:%d src:%d obj:%p u:%p",
+                      engine->u.eventport.fd, event->portev_events,
+                      event->portev_source, event->portev_object,
+                      event->portev_user);
         }
     }
 }
