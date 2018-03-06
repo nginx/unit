@@ -62,6 +62,12 @@ class TestUnitConfiguration(unit.TestUnitControl):
         self.assertIn('error', self.conf('"{}"', '/applications'), 'string')
 
     def test_applications_type_only(self):
+        self.skip_alerts.extend([
+            r'python module is empty',
+            r'failed to apply new conf',
+            r'process \d+ exited on signal'
+        ])
+
         self.assertIn('error', self.conf({
             "app": {
                 "type": "python"
@@ -120,6 +126,13 @@ class TestUnitConfiguration(unit.TestUnitControl):
 
     @unittest.expectedFailure
     def test_listeners_empty(self):
+        self.skip_sanitizer = True
+        self.skip_alerts.extend([
+            r'nxt_lvlhsh_is_empty\(&port->rpc_streams\)',
+            r'sendmsg.+failed',
+            r'process \d+ exited on signal'
+        ])
+
         self.assertIn('error', self.conf({"*:7080":{}}, '/listeners'),
             'listener empty')
 
@@ -179,6 +192,12 @@ class TestUnitConfiguration(unit.TestUnitControl):
         }), 'explicit ipv6')
 
     def test_listeners_no_port(self):
+        self.skip_alerts.extend([
+            r'invalid listener "127\.0\.0\.1"',
+            r'failed to apply new conf',
+            r'process \d+ exited on signal'
+        ])
+
         self.assertIn('error', self.conf({
             "listeners": {
                 "127.0.0.1": {

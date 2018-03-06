@@ -6,6 +6,7 @@ import time
 import shutil
 import socket
 import select
+import platform
 import tempfile
 import unittest
 from subprocess import call
@@ -14,12 +15,17 @@ from multiprocessing import Process
 class TestUnit(unittest.TestCase):
 
     pardir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+    architecture = platform.architecture()[0]
 
     def setUp(self):
         self._run()
 
     def tearDown(self):
         self._stop()
+
+        with open(self.testdir + '/unit.log', 'r', encoding='utf-8',
+            errors='ignore') as f:
+            self._check_alerts(f.read())
 
         if '--leave' not in sys.argv:
             shutil.rmtree(self.testdir)
@@ -40,6 +46,8 @@ class TestUnit(unittest.TestCase):
         if m is None:
             self._stop()
             exit("Unit is writing log too long")
+
+        self._check_alerts(log)
 
         missed_module = ''
         for module in modules:
@@ -77,6 +85,12 @@ class TestUnit(unittest.TestCase):
             self.testdir + '/unit.log', self.testdir + '/control.unit.sock'):
             exit("Could not start unit")
 
+        self.skip_alerts = [r'read signalfd\(4\) failed']
+        self.skip_sanitizer = False
+
+        if self.architecture == '32bit':
+            self.skip_alerts.append(r'freed pointer points to non-freeble page')
+
     def _stop(self):
         with open(self.testdir + '/unit.pid', 'r') as f:
             pid = f.read().rstrip()
@@ -104,6 +118,29 @@ class TestUnit(unittest.TestCase):
 
         if process.exitcode:
             exit("Child process terminated with code " + str(process.exitcode))
+
+    def _check_alerts(self, log):
+        found = False
+
+        alerts = re.findall('.+\[alert\].+', log)
+
+        if alerts:
+            print('All alerts/sanitizer errors found in log:')
+            [print(alert) for alert in alerts]
+            found = True
+
+        if self.skip_alerts:
+            for skip in self.skip_alerts:
+                alerts = [al for al in alerts if re.search(skip, al) is None]
+
+        self.assertFalse(alerts, 'alert(s)')
+
+        if not self.skip_sanitizer:
+            self.assertFalse(re.findall('.+Sanitizer.+', log),
+                'sanitizer error(s)')
+
+        if found:
+            print('skipped.')
 
     def _waitforfiles(self, *files):
         for i in range(50):
