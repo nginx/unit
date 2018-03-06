@@ -297,6 +297,18 @@ nxt_port_new_port_mmap(nxt_task_t *task, nxt_process_t *process,
 
     nxt_debug(task, "memfd_create(%s): %FD", name, fd);
 
+#elif (NXT_HAVE_SHM_OPEN_ANON)
+
+    fd = shm_open(SHM_ANON, O_RDWR, S_IRUSR | S_IWUSR);
+
+    nxt_debug(task, "shm_open(SHM_ANON): %FD", fd);
+
+    if (nxt_slow_path(fd == -1)) {
+        nxt_alert(task, "shm_open(SHM_ANON) failed %E", nxt_errno);
+
+        goto remove_fail;
+    }
+
 #elif (NXT_HAVE_SHM_OPEN)
 
     /* Just in case. */

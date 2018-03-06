@@ -85,6 +85,29 @@ fi
 nxt_shm_open_found=$nxt_found
 
 
+# FreeBSD 8.0
+
+nxt_feature="shm_open(SHM_ANON)"
+nxt_feature_name=NXT_HAVE_SHM_OPEN_ANON
+nxt_feature_libs=
+nxt_feature_test="#include <sys/mman.h>
+                  #include <fcntl.h>
+                  #include <sys/stat.h>
+
+                  int main() {
+                      int fd = shm_open(SHM_ANON, O_RDWR, S_IRUSR | S_IWUSR);
+                      if (fd == -1)
+                          return 1;
+
+                      return 0;
+                  }"
+. auto/feature
+
+if [ "$nxt_shm_open_found" = no ]; then
+    nxt_shm_open_found=$nxt_found
+fi
+
+
 # Linux
 
 nxt_feature="memfd_create()"
