@@ -1443,6 +1443,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         skcf->router_conf->count++;
         skcf->application = nxt_router_listener_application(tmcf,
                                                             &lscf.application);
+        nxt_router_app_use(task, skcf->application, 1);
     }
 
     nxt_queue_add(&tmcf->deleting, &router->sockets);
@@ -2510,6 +2511,7 @@ nxt_router_listen_socket_release(nxt_task_t *task, nxt_socket_conf_t *skcf)
 static void
 nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
 {
+    nxt_app_t              *app;
     nxt_socket_conf_t      *skcf;
     nxt_router_conf_t      *rtcf;
     nxt_event_engine_t     *engine;
@@ -2531,6 +2533,7 @@ nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
     engine = joint->engine;
 
     skcf = joint->socket_conf;
+    app = skcf->application;
     rtcf = skcf->router_conf;
     lock = &rtcf->router->lock;
 
@@ -2541,6 +2544,7 @@ nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
 
     if (--skcf->count != 0) {
         rtcf = NULL;
+        app = NULL;
 
     } else {
         nxt_queue_remove(&skcf->link);
@@ -2551,6 +2555,10 @@ nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
     }
 
     nxt_thread_spin_unlock(lock);
+
+    if (app != NULL) {
+        nxt_router_app_use(task, app, -1);
+    }
 
     /* TODO remove engine->port */
     /* TODO excude from connected ports */
