@@ -985,6 +985,7 @@ static void
 nxt_router_conf_error(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
 {
     nxt_app_t          *app;
+    nxt_queue_t        new_socket_confs;
     nxt_socket_t       s;
     nxt_router_t       *router;
     nxt_queue_link_t   *qlk;
@@ -1005,6 +1006,20 @@ nxt_router_conf_error(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
 
         nxt_free(skcf->listen);
     }
+
+    nxt_queue_init(&new_socket_confs);
+    nxt_queue_add(&new_socket_confs, &tmcf->updating);
+    nxt_queue_add(&new_socket_confs, &tmcf->pending);
+    nxt_queue_add(&new_socket_confs, &tmcf->creating);
+
+    nxt_queue_each(skcf, &new_socket_confs, nxt_socket_conf_t, link) {
+
+        if (skcf->application != NULL) {
+            nxt_router_app_use(task, skcf->application, -1);
+            skcf->application = NULL;
+        }
+
+    } nxt_queue_loop;
 
     nxt_queue_each(app, &tmcf->apps, nxt_app_t, link) {
 
