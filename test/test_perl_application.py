@@ -21,7 +21,7 @@ class TestUnitPerlApplication(unit.TestUnitApplicationPerl):
 
         self.assertEqual(resp['status'], 200, 'status')
         headers = resp['headers']
-        self.assertRegex(headers.pop('Server'), r'unit/[\d\.]+',
+        self.assertRegex(headers.pop('Server'), r'Unit/[\d\.]+',
             'server header')
         self.assertLess(abs(time.mktime(time.gmtime()) -
             time.mktime(time.strptime(headers.pop('Date'),
