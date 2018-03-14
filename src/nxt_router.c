@@ -2655,6 +2655,9 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     }
 
     ar = rc->ap;
+    if (nxt_slow_path(ar == NULL)) {
+        return;
+    }
 
     if (msg->port_msg.last != 0) {
         nxt_debug(task, "router data create last buf");
