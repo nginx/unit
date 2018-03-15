@@ -618,7 +618,9 @@ nxt_http_parse_field_value(nxt_http_request_parse_t *rp, u_char **pos,
             return NXT_AGAIN;
         }
 
-        if (*p != ' ') {
+        ch = *p;
+
+        if (ch != ' ' && ch != '\t') {
             break;
         }
 
@@ -662,7 +664,8 @@ nxt_http_parse_field_value(nxt_http_request_parse_t *rp, u_char **pos,
     *pos = p;
 
     if (nxt_fast_path(p != start)) {
-        while (p[-1] == ' ') {
+
+        while (p[-1] == ' ' || p[-1] == '\t') {
             p--;
         }
     }
