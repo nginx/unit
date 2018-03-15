@@ -3204,7 +3204,7 @@ re_ra_cancelled:
 
     adjust_idle_timer = 0;
 
-    if (!send_quit && port->app_pending_responses == 0) {
+    if (port->pair[1] != -1 && !send_quit && port->app_pending_responses == 0) {
         nxt_assert(port->idle_link.next == NULL);
 
         if (app->idle_processes == app->spare_processes
