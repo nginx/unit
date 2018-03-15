@@ -353,18 +353,16 @@ nxt_python_run(nxt_task_t *task, nxt_app_rmsg_t *rmsg, nxt_app_wmsg_t *wmsg)
         return NXT_ERROR;
     }
 
-    nxt_python_run_ctx = &run_ctx;
-
     PyTuple_SET_ITEM(args, 0, environ);
 
     Py_INCREF(nxt_py_start_resp_obj);
     PyTuple_SET_ITEM(args, 1, nxt_py_start_resp_obj);
 
+    nxt_python_run_ctx = &run_ctx;
+
     result = PyObject_CallObject(nxt_py_application, args);
 
     Py_DECREF(args);
-
-    nxt_python_run_ctx = NULL;
 
     if (nxt_slow_path(result == NULL)) {
         nxt_log_error(NXT_LOG_ERR, task->log,
@@ -428,6 +426,7 @@ nxt_python_run(nxt_task_t *task, nxt_app_rmsg_t *rmsg, nxt_app_wmsg_t *wmsg)
     }
 
     Py_DECREF(result);
+    nxt_python_run_ctx = NULL;
 
     return NXT_OK;
 
@@ -446,6 +445,7 @@ fail:
     }
 
     Py_DECREF(result);
+    nxt_python_run_ctx = NULL;
 
     return NXT_ERROR;
 }
