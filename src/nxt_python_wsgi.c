@@ -773,6 +773,14 @@ nxt_py_start_resp(PyObject *self, PyObject *args)
     static const u_char cr_lf[] = "\r\n";
     static const u_char sc_sp[] = ": ";
 
+    ctx = nxt_python_run_ctx;
+
+    if (nxt_slow_path(ctx == NULL)) {
+        return PyErr_Format(PyExc_RuntimeError,
+                            "start_response() is called "
+                            "outside of WSGI request processing");
+    }
+
     n = PyTuple_GET_SIZE(args);
 
     if (n < 2 || n > 3) {
@@ -780,8 +788,6 @@ nxt_py_start_resp(PyObject *self, PyObject *args)
     }
 
     string = PyTuple_GET_ITEM(args, 0);
-
-    ctx = nxt_python_run_ctx;
 
     nxt_python_write(ctx, status, sizeof(status) - 1, 0, 0);
 
@@ -861,6 +867,12 @@ nxt_py_input_read(nxt_py_input_t *self, PyObject *args)
     nxt_python_run_ctx_t  *ctx;
 
     ctx = nxt_python_run_ctx;
+
+    if (nxt_slow_path(ctx == NULL)) {
+        return PyErr_Format(PyExc_RuntimeError,
+                            "wsgi.input.read() is called "
+                            "outside of WSGI request processing");
+    }
 
     size = ctx->body_preread_size;
 
