@@ -629,26 +629,34 @@ nxt_http_parse_field_value(nxt_http_request_parse_t *rp, u_char **pos,
 
     p += rp->field_value.length;
 
-    p = nxt_http_lookup_field_end(p, end);
+    for ( ;; ) {
+        p = nxt_http_lookup_field_end(p, end);
 
-    if (nxt_slow_path(p == end)) {
-        *pos = start;
+        if (nxt_slow_path(p == end)) {
+            *pos = start;
 
-        len = p - start;
+            len = p - start;
 
-        if (nxt_slow_path(len > NXT_HTTP_MAX_FIELD_VALUE)) {
-            return NXT_HTTP_PARSE_TOO_LARGE_FIELD;
+            if (nxt_slow_path(len > NXT_HTTP_MAX_FIELD_VALUE)) {
+                return NXT_HTTP_PARSE_TOO_LARGE_FIELD;
+            }
+
+            rp->field_value.length = len;
+            rp->handler = &nxt_http_parse_field_value;
+            return NXT_AGAIN;
         }
 
-        rp->field_value.length = len;
-        rp->handler = &nxt_http_parse_field_value;
-        return NXT_AGAIN;
-    }
+        ch = *p;
 
-    ch = *p;
+        if (nxt_fast_path(ch == '\r' || ch == '\n')) {
+            break;
+        }
 
-    if (nxt_slow_path(ch != '\r' && ch != '\n')) {
-        return NXT_HTTP_PARSE_INVALID;
+        if (ch != '\t') {
+            return NXT_HTTP_PARSE_INVALID;
+        }
+
+        p++;
     }
 
     *pos = p;

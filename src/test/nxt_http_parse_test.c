@@ -270,6 +270,18 @@ static nxt_http_parse_test_case_t  nxt_http_test_cases[] = {
     },
     {
         nxt_string("GET / HTTP/1.1\r\n"
+                   "Ho\nst: example.com\r\n\r\n"),
+        NXT_HTTP_PARSE_INVALID,
+        NULL, { NULL }
+    },
+    {
+        nxt_string("GET / HTTP/1.1\r\n"
+                   "Host : example.com\r\n\r\n"),
+        NXT_HTTP_PARSE_INVALID,
+        NULL, { NULL }
+    },
+    {
+        nxt_string("GET / HTTP/1.1\r\n"
                    "Host: exa\0mple.com\r\n\r\n"),
         NXT_HTTP_PARSE_INVALID,
         NULL, { NULL }
@@ -295,6 +307,18 @@ static nxt_http_parse_test_case_t  nxt_http_test_cases[] = {
     {
         nxt_string("GET / HTTP/1.1\r\n"
                    "Host: xn--e1afmkfd.xn--80akhbyknj4f\r\n\r\n"),
+        NXT_DONE,
+        NULL, { NULL }
+    },
+    {
+        nxt_string("GET / HTTP/1.1\r\n"
+                   "Host: exa\nmple.com\r\n\r\n"),
+        NXT_HTTP_PARSE_INVALID,
+        NULL, { NULL }
+    },
+    {
+        nxt_string("GET / HTTP/1.1\r\n"
+                   "Host: exa\tmple.com\r\n\r\n"),
         NXT_DONE,
         NULL, { NULL }
     },
