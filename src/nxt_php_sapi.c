@@ -38,11 +38,11 @@ static int nxt_php_startup(sapi_module_struct *sapi_module);
 static int nxt_php_send_headers(sapi_headers_struct *sapi_headers);
 static char *nxt_php_read_cookies(void);
 static void nxt_php_register_variables(zval *track_vars_array);
-static void nxt_php_log_message(char *message
 #ifdef NXT_HAVE_PHP_LOG_MESSAGE_WITH_SYSLOG_TYPE
-                                , int syslog_type_int
+static void nxt_php_log_message(char *message, int syslog_type_int);
+#else
+static void nxt_php_log_message(char *message);
 #endif
-);
 
 #ifdef NXT_PHP7
 static size_t nxt_php_unbuffered_write(const char *str,
@@ -766,16 +766,13 @@ nxt_php_register_variables(zval *track_vars_array TSRMLS_DC)
 }
 
 
-static void
-nxt_php_log_message(char *message
 #ifdef NXT_HAVE_PHP_LOG_MESSAGE_WITH_SYSLOG_TYPE
-                                , int syslog_type_int
+static void
+nxt_php_log_message(char *message, int syslog_type_int)
+#else
+static void
+nxt_php_log_message(char *message)
 #endif
-)
 {
-    nxt_php_run_ctx_t  *ctx;
-
-    ctx = SG(server_context);
-
-    nxt_log(ctx->task, NXT_LOG_NOTICE, "php message: %s", message);
+    nxt_thread_log_error(NXT_LOG_NOTICE, "php message: %s", message);
 }
