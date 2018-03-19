@@ -33,7 +33,14 @@ class TestUnitPerlApplication(unit.TestUnitApplicationPerl):
             'Request-Uri': '/',
             'Http-Host': 'localhost',
             'Server-Protocol': 'HTTP/1.1',
-            'Custom-Header': 'blah'
+            'Custom-Header': 'blah',
+            'Psgi-Version': '11',
+            'Psgi-Url-Scheme': 'http',
+            'Psgi-Multithread': '',
+            'Psgi-Multiprocess': '1',
+            'Psgi-Run-Once': '',
+            'Psgi-Nonblocking': '',
+            'Psgi-Streaming': ''
         }, 'headers')
         self.assertEqual(resp['body'], body, 'body')
 
@@ -125,6 +132,25 @@ class TestUnitPerlApplication(unit.TestUnitApplicationPerl):
         self.load('body_io_file')
 
         self.assertEqual(self.get()['body'], 'body\n', 'body io file')
+
+    def test_perl_keepalive_body(self):
+        self.load('variables')
+
+        (resp, sock) = self.post(headers={
+            'Connection': 'keep-alive',
+            'Content-Type': 'text/html',
+            'Host': 'localhost'
+        }, start=True, body='0123456789' * 500)
+
+        self.assertEqual(resp['body'], '0123456789' * 500, 'keep-alive 1')
+
+        resp = self.post(headers={
+            'Connection': 'close',
+            'Content-Type': 'text/html',
+            'Host': 'localhost'
+        }, sock=sock, body='0123456789')
+
+        self.assertEqual(resp['body'], '0123456789', 'keep-alive 2')
 
 if __name__ == '__main__':
     unittest.main()
