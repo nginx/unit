@@ -608,6 +608,9 @@ nxt_perl_psgi_env_create(PerlInterpreter *my_perl, nxt_task_t *task,
         path = target;
     }
 
+    RC(nxt_perl_psgi_env_append_str(my_perl, hash_env, "PATH_INFO",
+                                    &path));
+
     array_version = newAV();
 
     if (nxt_slow_path(array_version == NULL)) {
@@ -617,28 +620,24 @@ nxt_perl_psgi_env_create(PerlInterpreter *my_perl, nxt_task_t *task,
     av_push(array_version, newSViv(1));
     av_push(array_version, newSViv(1));
 
-    RC(nxt_perl_psgi_env_append_str(my_perl, hash_env, "PATH_INFO",
-                                    &path));
-    RC(nxt_perl_psgi_env_append(my_perl, hash_env, "SCRIPT_NAME",
-                                newSVpv("", 0)));
-    RC(nxt_perl_psgi_env_append(my_perl, hash_env, "psgi.run_once",
-                                newSVpv("", 0)));
-    RC(nxt_perl_psgi_env_append(my_perl, hash_env, "psgi.streaming",
-                                newSViv(0)));
-    RC(nxt_perl_psgi_env_append(my_perl, hash_env, "psgi.nonblocking",
-                                newSVpv("", 0)));
-    RC(nxt_perl_psgi_env_append(my_perl, hash_env, "psgi.multithread",
-                                newSVpv("", 0)));
-    RC(nxt_perl_psgi_env_append(my_perl, hash_env, "psgi.multiprocess",
-                                newSVpv("", 0)));
+    RC(nxt_perl_psgi_env_append(my_perl, hash_env, "psgi.version",
+                                newRV_noinc((SV *) array_version)));
     RC(nxt_perl_psgi_env_append(my_perl, hash_env, "psgi.url_scheme",
                                 newSVpv("http", 4)));
     RC(nxt_perl_psgi_env_append(my_perl, hash_env, "psgi.input",
                                 SvREFCNT_inc(nxt_perl_psgi_arg_input.io)));
     RC(nxt_perl_psgi_env_append(my_perl, hash_env, "psgi.errors",
                                 SvREFCNT_inc(nxt_perl_psgi_arg_error.io)));
-    RC(nxt_perl_psgi_env_append(my_perl, hash_env, "psgi.version",
-                                newRV_noinc((SV *) array_version)));
+    RC(nxt_perl_psgi_env_append(my_perl, hash_env, "psgi.multithread",
+                                &PL_sv_no));
+    RC(nxt_perl_psgi_env_append(my_perl, hash_env, "psgi.multiprocess",
+                                &PL_sv_yes));
+    RC(nxt_perl_psgi_env_append(my_perl, hash_env, "psgi.run_once",
+                                &PL_sv_no));
+    RC(nxt_perl_psgi_env_append(my_perl, hash_env, "psgi.nonblocking",
+                                &PL_sv_no));
+    RC(nxt_perl_psgi_env_append(my_perl, hash_env, "psgi.streaming",
+                                &PL_sv_no));
 
     if (query_size > 0) {
         query_size--;
