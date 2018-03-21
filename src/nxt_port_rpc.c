@@ -143,6 +143,8 @@ nxt_port_rpc_register_handler_ex(nxt_task_t *task, nxt_port_t *port,
 
     nxt_debug(task, "rpc: stream #%uD registered", stream);
 
+    nxt_port_inc_use(port);
+
     return reg->data;
 }
 
@@ -332,6 +334,8 @@ nxt_port_rpc_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_debug(task, "rpc: stream #%uD free registration", stream);
 
     nxt_mp_free(port->mem_pool, reg);
+
+    nxt_port_use(task, port, -1);
 }
 
 
@@ -421,6 +425,8 @@ nxt_port_rpc_remove_peer(nxt_task_t *task, nxt_port_t *port, nxt_pid_t peer)
         }
 
         nxt_mp_free(port->mem_pool, reg);
+
+        nxt_port_use(task, port, -1);
     }
 }
 
@@ -452,4 +458,6 @@ nxt_port_rpc_cancel(nxt_task_t *task, nxt_port_t *port, uint32_t stream)
     nxt_debug(task, "rpc: stream #%uD cancel registration", stream);
 
     nxt_mp_free(port->mem_pool, reg);
+
+    nxt_port_use(task, port, -1);
 }
