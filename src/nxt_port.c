@@ -86,6 +86,8 @@ nxt_port_close(nxt_task_t *task, nxt_port_t *port)
               port->id, port->type);
 
     if (port->pair[0] != -1) {
+        nxt_port_rpc_close(task, port);
+
         nxt_fd_close(port->pair[0]);
         port->pair[0] = -1;
     }

@@ -26,6 +26,7 @@ void nxt_port_rpc_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 void nxt_port_rpc_remove_peer(nxt_task_t *task, nxt_port_t *port,
     nxt_pid_t peer);
 void nxt_port_rpc_cancel(nxt_task_t *task, nxt_port_t *port, uint32_t stream);
+void nxt_port_rpc_close(nxt_task_t *task, nxt_port_t *port);
 
 
 #endif /* _NXT_PORT_RPC_H_INCLUDED_ */
