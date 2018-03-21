@@ -14,6 +14,7 @@ typedef enum {
     NXT_APP_PHP,
     NXT_APP_GO,
     NXT_APP_PERL,
+    NXT_APP_RUBY,
 
     NXT_APP_UNKNOWN,
 } nxt_app_type_t;
@@ -58,6 +59,11 @@ typedef struct {
 } nxt_perl_app_conf_t;
 
 
+typedef struct {
+    nxt_str_t  script;
+} nxt_ruby_app_conf_t;
+
+
 struct nxt_common_app_conf_s {
     nxt_str_t       name;
     nxt_str_t       type;
@@ -71,6 +77,7 @@ struct nxt_common_app_conf_s {
         nxt_php_app_conf_t     php;
         nxt_go_app_conf_t      go;
         nxt_perl_app_conf_t    perl;
+        nxt_ruby_app_conf_t    ruby;
     } u;
 };
 
@@ -145,8 +152,9 @@ struct nxt_app_wmsg_s {
     uint32_t                   stream;
 };
 
+
 struct nxt_app_rmsg_s {
-    nxt_buf_t                 *buf;   /* current buffer to read */
+    nxt_buf_t                  *buf;   /* current buffer to read */
 };
 
 

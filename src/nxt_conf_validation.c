@@ -224,6 +224,16 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_perl_members[] = {
 };
 
 
+static nxt_conf_vldt_object_t  nxt_conf_vldt_ruby_members[] = {
+    { nxt_string("script"),
+      NXT_CONF_VLDT_STRING,
+      NULL,
+      NULL },
+
+    NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_common_members)
+};
+
+
 nxt_int_t
 nxt_conf_validate(nxt_conf_validation_t *vldt)
 {
@@ -413,6 +423,7 @@ nxt_conf_vldt_app(nxt_conf_validation_t *vldt, nxt_str_t *name,
         nxt_conf_vldt_php_members,
         nxt_conf_vldt_go_members,
         nxt_conf_vldt_perl_members,
+        nxt_conf_vldt_ruby_members,
     };
 
     ret = nxt_conf_vldt_type(vldt, name, value, NXT_CONF_VLDT_OBJECT);

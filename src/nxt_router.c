@@ -229,6 +229,8 @@ static nxt_int_t nxt_go_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
     nxt_app_wmsg_t *wmsg);
 static nxt_int_t nxt_perl_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
     nxt_app_wmsg_t *wmsg);
+static nxt_int_t nxt_ruby_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
+    nxt_app_wmsg_t *wmsg);
 
 static void nxt_router_conn_free(nxt_task_t *task, void *obj, void *data);
 static void nxt_router_app_timeout(nxt_task_t *task, void *obj, void *data);
@@ -250,6 +252,7 @@ static nxt_app_prepare_msg_t  nxt_app_prepare_msg[] = {
     nxt_php_prepare_msg,
     nxt_go_prepare_msg,
     nxt_perl_prepare_msg,
+    nxt_ruby_prepare_msg,
 };
 
 
@@ -4044,6 +4047,91 @@ fail:
 
 static nxt_int_t
 nxt_perl_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
+    nxt_app_wmsg_t *wmsg)
+{
+    nxt_int_t                 rc;
+    nxt_str_t                 str;
+    nxt_buf_t                 *b;
+    nxt_http_field_t          *field;
+    nxt_app_request_header_t  *h;
+
+    static const nxt_str_t prefix = nxt_string("HTTP_");
+    static const nxt_str_t eof = nxt_null_string;
+
+    h = &r->header;
+
+#define RC(S)                                                                 \
+    do {                                                                      \
+        rc = (S);                                                             \
+        if (nxt_slow_path(rc != NXT_OK)) {                                    \
+            goto fail;                                                        \
+        }                                                                     \
+    } while(0)
+
+#define NXT_WRITE(N)                                                          \
+    RC(nxt_app_msg_write_str(task, wmsg, N))
+
+    /* TODO error handle, async mmap buffer assignment */
+
+    NXT_WRITE(&h->method);
+    NXT_WRITE(&h->target);
+
+    if (h->query.length) {
+        str.start = h->target.start;
+        str.length = (h->target.length - h->query.length) - 1;
+
+        RC(nxt_app_msg_write_str(task, wmsg, &str));
+
+    } else {
+        NXT_WRITE(&eof);
+    }
+
+    if (h->query.start != NULL) {
+        RC(nxt_app_msg_write_size(task, wmsg,
+                                  h->query.start - h->target.start + 1));
+    } else {
+        RC(nxt_app_msg_write_size(task, wmsg, 0));
+    }
+
+    NXT_WRITE(&h->version);
+
+    NXT_WRITE(&r->remote);
+    NXT_WRITE(&r->local);
+
+    NXT_WRITE(&h->host);
+    NXT_WRITE(&h->content_type);
+    NXT_WRITE(&h->content_length);
+
+    nxt_list_each(field, h->fields) {
+        RC(nxt_app_msg_write_prefixed_upcase(task, wmsg, &prefix,
+                                             field->name, field->name_length));
+        RC(nxt_app_msg_write(task, wmsg, field->value, field->value_length));
+    } nxt_list_loop;
+
+    /* end-of-headers mark */
+    NXT_WRITE(&eof);
+
+    RC(nxt_app_msg_write_size(task, wmsg, r->body.preread_size));
+
+    for (b = r->body.buf; b != NULL; b = b->next) {
+
+        RC(nxt_app_msg_write_raw(task, wmsg, b->mem.pos,
+                                 nxt_buf_mem_used_size(&b->mem)));
+    }
+
+#undef NXT_WRITE
+#undef RC
+
+    return NXT_OK;
+
+fail:
+
+    return NXT_ERROR;
+}
+
+
+static nxt_int_t
+nxt_ruby_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
     nxt_app_wmsg_t *wmsg)
 {
     nxt_int_t                 rc;

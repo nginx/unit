@@ -48,4 +48,7 @@ cat << END
   perl OPTIONS         configure Perl module
                        run "./configure perl --help" to see available options
 
+  ruby OPTIONS         configure Ruby module
+                       run "./configure ruby --help" to see available options
+
 END

@@ -875,6 +875,9 @@ nxt_app_parse_type(u_char *p, size_t length)
 
     } else if (nxt_str_eq(&str, "perl", 4)) {
         return NXT_APP_PERL;
+
+    } else if (nxt_str_eq(&str, "ruby", 4)) {
+        return NXT_APP_RUBY;
     }
 
     return NXT_APP_UNKNOWN;

@@ -182,11 +182,21 @@ static nxt_conf_map_t  nxt_perl_app_conf[] = {
 };
 
 
+static nxt_conf_map_t  nxt_ruby_app_conf[] = {
+    {
+        nxt_string("script"),
+        NXT_CONF_MAP_STR,
+        offsetof(nxt_common_app_conf_t, u.ruby.script),
+    },
+};
+
+
 static nxt_conf_app_map_t  nxt_app_maps[] = {
     { nxt_nitems(nxt_python_app_conf), nxt_python_app_conf },
     { nxt_nitems(nxt_php_app_conf),    nxt_php_app_conf },
     { nxt_nitems(nxt_go_app_conf),     nxt_go_app_conf },
     { nxt_nitems(nxt_perl_app_conf),   nxt_perl_app_conf },
+    { nxt_nitems(nxt_ruby_app_conf),   nxt_ruby_app_conf },
 };
 
 
