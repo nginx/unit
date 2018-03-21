@@ -16,12 +16,13 @@ class TestUnit(unittest.TestCase):
 
     pardir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
     architecture = platform.architecture()[0]
+    maxDiff = None
 
     def setUp(self):
         self._run()
 
     def tearDown(self):
-        self._stop()
+        self.stop()
 
         with open(self.testdir + '/unit.log', 'r', encoding='utf-8',
             errors='ignore') as f:
@@ -44,7 +45,7 @@ class TestUnit(unittest.TestCase):
                     break
 
         if m is None:
-            self._stop()
+            self.stop()
             exit("Unit is writing log too long")
 
         self._check_alerts(log)
@@ -56,11 +57,15 @@ class TestUnit(unittest.TestCase):
                 missed_module = module
                 break
 
-        self._stop()
+        self.stop()
         shutil.rmtree(self.testdir)
 
         if missed_module:
             raise unittest.SkipTest('Unit has no ' + missed_module + ' module')
+
+    def stop(self):
+        if self._started:
+            self._stop()
 
     def _run(self):
         self.testdir = tempfile.mkdtemp(prefix='unit-test-')
@@ -85,6 +90,8 @@ class TestUnit(unittest.TestCase):
             self.testdir + '/unit.log', self.testdir + '/control.unit.sock'):
             exit("Could not start unit")
 
+        self._started = True
+
         self.skip_alerts = [r'read signalfd\(4\) failed']
         self.skip_sanitizer = False
 
@@ -104,6 +111,8 @@ class TestUnit(unittest.TestCase):
 
         if os.path.exists(self.testdir + '/unit.pid'):
             exit("Could not terminate unit")
+
+        self._started = False
 
         self._p.join(timeout=1)
         self._terminate_process(self._p)
@@ -322,6 +331,16 @@ class TestUnitApplicationProto(TestUnitControl):
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
 
+    def sec_epoch(self):
+        return time.mktime(time.gmtime())
+
+    def date_to_sec_epoch(self, date):
+        return time.mktime(time.strptime(date, '%a, %d %b %Y %H:%M:%S GMT'))
+
+    def search_in_log(self, pattern):
+        with open(self.testdir + '/unit.log', 'r') as f:
+            return re.search(pattern, f.read())
+
 class TestUnitApplicationPython(TestUnitApplicationProto):
     def load(self, script, name=None):
         if name is None:
@@ -339,6 +358,24 @@ class TestUnitApplicationPython(TestUnitApplicationProto):
                     "processes": { "spare": 0 },
                     "path": self.current_dir + '/python/' + script,
                     "module": "wsgi"
+                }
+            }
+        })
+
+class TestUnitApplicationRuby(TestUnitApplicationProto):
+    def load(self, script, name='config.ru'):
+        self.conf({
+            "listeners": {
+                "*:7080": {
+                    "application": script
+                }
+            },
+            "applications": {
+                script: {
+                    "type": "ruby",
+                    "processes": { "spare": 0 },
+                    "working_directory": self.current_dir + '/ruby/' + script,
+                    "script": self.current_dir + '/ruby/' + script + '/' + name
                 }
             }
         })

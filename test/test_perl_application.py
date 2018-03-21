@@ -1,5 +1,3 @@
-import re
-import time
 import unittest
 import unit
 
@@ -23,9 +21,8 @@ class TestUnitPerlApplication(unit.TestUnitApplicationPerl):
         headers = resp['headers']
         self.assertRegex(headers.pop('Server'), r'Unit/[\d\.]+',
             'server header')
-        self.assertLess(abs(time.mktime(time.gmtime()) -
-            time.mktime(time.strptime(headers.pop('Date'),
-            '%a, %d %b %Y %H:%M:%S GMT'))), 5, 'date header')
+        self.assertLess(abs(self.date_to_sec_epoch(headers.pop('Date')) -
+            self.sec_epoch()), 5, 'date header')
         self.assertDictEqual(headers, {
             'Content-Length': str(len(body)),
             'Content-Type': 'text/html',
@@ -88,10 +85,11 @@ class TestUnitPerlApplication(unit.TestUnitApplicationPerl):
 
         self.assertEqual(self.get()['body'], '1', 'errors result')
 
-        with open(self.testdir + '/unit.log', 'r') as f:
-            m = re.search('Error in application', f.read())
+        self.stop()
 
-        self.assertIsNotNone(m, 'errors log')
+        self.assertIsNotNone(
+            self.search_in_log(r'\[error\].+Error in application'),
+            'errors print')
 
     def test_perl_application_header_equal_names(self):
         self.load('header_equal_names')

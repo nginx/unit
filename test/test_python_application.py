@@ -1,4 +1,3 @@
-import time
 import unittest
 import unit
 
@@ -22,9 +21,8 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
         headers = resp['headers']
         self.assertRegex(headers.pop('Server'), r'Unit/[\d\.]+',
             'server header')
-        self.assertLess(abs(time.mktime(time.gmtime()) -
-            time.mktime(time.strptime(headers.pop('Date'),
-            '%a, %d %b %Y %H:%M:%S GMT'))), 5, 'date header')
+        self.assertLess(abs(self.date_to_sec_epoch(headers.pop('Date')) -
+            self.sec_epoch()), 5, 'date header')
         self.assertDictEqual(headers, {
             'Content-Length': str(len(body)),
             'Content-Type': 'text/html',
