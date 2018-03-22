@@ -1,4 +1,23 @@
 
+Changes with Unit 0.7                                            22 Mar 2018
+
+    *) Feature: Ruby application module.
+
+    *) Bugfix: in discovering modules.
+
+    *) Bugfix: various race conditions on reconfiguration and during
+       shutting down.
+
+    *) Bugfix: tabs and trailing spaces were not allowed in header fields
+       values.
+
+    *) Bugfix: a segmentation fault occurred in Python module if
+       start_response() was called outside of WSGI callable.
+
+    *) Bugfix: a segmentation fault might occur in PHP module if there was
+       an error while initialization.
+
+
 Changes with Unit 0.6                                            09 Feb 2018
 
     *) Bugfix: the main process died when the "type" application option

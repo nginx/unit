@@ -10,6 +10,69 @@
                 unit-python3.4 unit-python3.5 unit-python3.6
                 unit-go unit-go1.7 unit-go1.8 unit-go1.9
                 unit-perl"
+         ver="0.7" rev="1"
+         date="2018-03-22" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 0.7.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="0.7" rev="1"
+         date="2018-03-22" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="feature">
+<para>
+Ruby application module.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+in discovering modules.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+various race conditions on reconfiguration and during shutting down.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+tabs and trailing spaces were not allowed in header fields values.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a segmentation fault occurred in Python module if start_response() was called
+outside of WSGI callable.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a segmentation fault might occur in PHP module if there was an error while
+initialization.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9
+                unit-perl"
          ver="0.6" rev="1"
          date="2018-02-09" time="18:00:00 +0300"
          packager="Andrei Belov &lt;defan@nginx.com&gt;">
