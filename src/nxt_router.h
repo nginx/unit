@@ -62,7 +62,7 @@ typedef struct {
     nxt_event_engine_t     *engine;
     nxt_port_t             *port;
     nxt_array_t            *engines;
-    nxt_router_conf_t      *conf;
+    nxt_router_conf_t      *router_conf;
     nxt_mp_t               *mem_pool;
 } nxt_router_temp_conf_t;
 

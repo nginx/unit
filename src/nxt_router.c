@@ -749,13 +749,14 @@ nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
               nxt_buf_used_size(msg->buf),
               (size_t) nxt_buf_used_size(msg->buf), msg->buf->mem.pos);
 
-    tmcf->conf->router = nxt_router;
+    tmcf->router_conf->router = nxt_router;
     tmcf->stream = msg->port_msg.stream;
     tmcf->port = nxt_runtime_port_find(task->thread->runtime,
                                        msg->port_msg.pid,
                                        msg->port_msg.reply_port);
 
-    b = nxt_buf_chk_make_plain(tmcf->conf->mem_pool, msg->buf, msg->size);
+    b = nxt_buf_chk_make_plain(tmcf->router_conf->mem_pool,
+                               msg->buf, msg->size);
     if (nxt_slow_path(b == NULL)) {
         nxt_router_conf_error(task, tmcf);
 
@@ -842,7 +843,7 @@ nxt_router_temp_conf(nxt_task_t *task)
     }
 
     tmcf->mem_pool = tmp;
-    tmcf->conf = rtcf;
+    tmcf->router_conf = rtcf;
     tmcf->count = 1;
     tmcf->engine = task->thread->engine;
 
@@ -931,7 +932,7 @@ nxt_router_conf_apply(nxt_task_t *task, void *obj, void *data)
 
     interface = nxt_service_get(rt->services, "engine", NULL);
 
-    router = tmcf->conf->router;
+    router = tmcf->router_conf->router;
 
     ret = nxt_router_engines_create(task, router, tmcf, interface);
     if (nxt_slow_path(ret != NXT_OK)) {
@@ -1030,7 +1031,7 @@ nxt_router_conf_error(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
 
     } nxt_queue_loop;
 
-    router = tmcf->conf->router;
+    router = tmcf->router_conf->router;
 
     nxt_queue_add(&router->sockets, &tmcf->keeping);
     nxt_queue_add(&router->sockets, &tmcf->deleting);
@@ -1039,7 +1040,7 @@ nxt_router_conf_error(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
 
     // TODO: new engines and threads
 
-    nxt_mp_destroy(tmcf->conf->mem_pool);
+    nxt_mp_destroy(tmcf->router_conf->mem_pool);
 
     nxt_router_conf_send(task, tmcf, NXT_PORT_MSG_RPC_ERROR);
 }
@@ -1228,17 +1229,17 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         return NXT_ERROR;
     }
 
-    mp = tmcf->conf->mem_pool;
+    mp = tmcf->router_conf->mem_pool;
 
     ret = nxt_conf_map_object(mp, conf, nxt_router_conf,
-                              nxt_nitems(nxt_router_conf), tmcf->conf);
+                              nxt_nitems(nxt_router_conf), tmcf->router_conf);
     if (ret != NXT_OK) {
         nxt_alert(task, "root map error");
         return NXT_ERROR;
     }
 
-    if (tmcf->conf->threads == 0) {
-        tmcf->conf->threads = nxt_ncpu;
+    if (tmcf->router_conf->threads == 0) {
+        tmcf->router_conf->threads = nxt_ncpu;
     }
 
     applications = nxt_conf_get_path(conf, &applications_path);
@@ -1247,7 +1248,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         return NXT_ERROR;
     }
 
-    router = tmcf->conf->router;
+    router = tmcf->router_conf->router;
 
     next = 0;
 
@@ -1457,7 +1458,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         }
 
         skcf->listen->handler = nxt_http_conn_init;
-        skcf->router_conf = tmcf->conf;
+        skcf->router_conf = tmcf->router_conf;
         skcf->router_conf->count++;
         skcf->application = nxt_router_listener_application(tmcf,
                                                             &lscf.application);
@@ -1541,7 +1542,7 @@ nxt_router_socket_conf(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_debug(task, "router listener: \"%*s\"",
               (size_t) sa->length, nxt_sockaddr_start(sa));
 
-    skcf = nxt_mp_zget(tmcf->conf->mem_pool, sizeof(nxt_socket_conf_t));
+    skcf = nxt_mp_zget(tmcf->router_conf->mem_pool, sizeof(nxt_socket_conf_t));
     if (nxt_slow_path(skcf == NULL)) {
         return NULL;
     }
@@ -1588,7 +1589,7 @@ nxt_router_socket_conf(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     }
 
     if (!wildcard) {
-        skcf->sockaddr = nxt_mp_zget(tmcf->conf->mem_pool, size);
+        skcf->sockaddr = nxt_mp_zget(tmcf->router_conf->mem_pool, size);
         if (nxt_slow_path(skcf->sockaddr == NULL)) {
             return NULL;
         }
@@ -1608,7 +1609,7 @@ nxt_router_listen_socket_find(nxt_router_temp_conf_t *tmcf,
     nxt_queue_link_t   *qlk;
     nxt_socket_conf_t  *skcf;
 
-    router = tmcf->conf->router;
+    router = tmcf->router_conf->router;
 
     for (qlk = nxt_queue_first(&router->sockets);
          qlk != nxt_queue_tail(&router->sockets);
@@ -1903,7 +1904,7 @@ nxt_router_engines_create(nxt_task_t *task, nxt_router_t *router,
     nxt_queue_link_t          *qlk;
     nxt_router_engine_conf_t  *recf;
 
-    threads = tmcf->conf->threads;
+    threads = tmcf->router_conf->threads;
 
     tmcf->engines = nxt_array_create(tmcf->mem_pool, threads,
                                      sizeof(nxt_router_engine_conf_t));
@@ -2066,7 +2067,7 @@ nxt_router_engine_joints_create(nxt_router_temp_conf_t *tmcf,
 
         tmcf->count++;
 
-        joint = nxt_mp_alloc(tmcf->conf->mem_pool,
+        joint = nxt_mp_alloc(tmcf->router_conf->mem_pool,
                              sizeof(nxt_socket_conf_joint_t));
         if (nxt_slow_path(joint == NULL)) {
             return NXT_ERROR;
@@ -2154,7 +2155,7 @@ nxt_router_threads_create(nxt_task_t *task, nxt_runtime_t *rt,
     nxt_router_engine_conf_t  *recf;
 
     recf = tmcf->engines->elts;
-    threads = tmcf->conf->threads;
+    threads = tmcf->router_conf->threads;
 
     for (i = tmcf->new_threads; i < threads; i++) {
         ret = nxt_router_thread_create(task, rt, recf[i].engine);
