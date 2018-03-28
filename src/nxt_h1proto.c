@@ -845,8 +845,8 @@ nxt_h1p_sent(nxt_task_t *task, void *obj, void *data)
 
     engine = task->thread->engine;
 
-    c->write = nxt_sendbuf_completion0(task, &engine->fast_work_queue,
-                                       c->write);
+    c->write = nxt_sendbuf_completion(task, &engine->fast_work_queue, c->write);
+
     if (c->write != NULL) {
         nxt_conn_write(engine, c);
     }

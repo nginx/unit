@@ -8,6 +8,8 @@
 
 
 static void nxt_port_write_handler(nxt_task_t *task, void *obj, void *data);
+static nxt_buf_t *nxt_port_buf_completion(nxt_task_t *task,
+    nxt_work_queue_t *wq, nxt_buf_t *b, size_t sent, nxt_bool_t mmap_mode);
 static void nxt_port_read_handler(nxt_task_t *task, void *obj, void *data);
 static void nxt_port_read_msg_process(nxt_task_t *task, nxt_port_t *port,
     nxt_port_recv_msg_t *msg);
@@ -379,7 +381,7 @@ nxt_port_write_handler(nxt_task_t *task, void *obj, void *data)
                 msg->fd = -1;
             }
 
-            msg->buf = nxt_sendbuf_completion(task, wq, msg->buf, plain_size,
+            msg->buf = nxt_port_buf_completion(task, wq, msg->buf, plain_size,
                                               m == NXT_PORT_METHOD_MMAP);
 
             if (msg->buf != NULL) {
@@ -459,6 +461,67 @@ unlock_mutex:
     if (use_delta != 0) {
         nxt_port_use(task, port, use_delta);
     }
+}
+
+
+static nxt_buf_t *
+nxt_port_buf_completion(nxt_task_t *task, nxt_work_queue_t *wq, nxt_buf_t *b,
+    size_t sent, nxt_bool_t mmap_mode)
+{
+    size_t  size;
+
+    while (b != NULL) {
+
+        nxt_prefetch(b->next);
+
+        if (!nxt_buf_is_sync(b)) {
+
+            size = nxt_buf_used_size(b);
+
+            if (size != 0) {
+
+                if (sent == 0) {
+                    break;
+                }
+
+                if (nxt_buf_is_port_mmap(b) && mmap_mode) {
+                    /*
+                     * buffer has been sent to other side which is now
+                     * responsible for shared memory bucket release
+                     */
+                    b->is_port_mmap_sent = 1;
+                }
+
+                if (sent < size) {
+
+                    if (nxt_buf_is_mem(b)) {
+                        b->mem.pos += sent;
+                    }
+
+                    if (nxt_buf_is_file(b)) {
+                        b->file_pos += sent;
+                    }
+
+                    break;
+                }
+
+                /* b->mem.free is NULL in file-only buffer. */
+                b->mem.pos = b->mem.free;
+
+                if (nxt_buf_is_file(b)) {
+                    b->file_pos = b->file_end;
+                }
+
+                sent -= size;
+            }
+        }
+
+        nxt_work_queue_add(wq, b->completion_handler, task, b, b->parent);
+
+        b = b->next;
+    }
+
+    return b;
 }
 
 

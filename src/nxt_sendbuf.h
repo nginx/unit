@@ -123,8 +123,6 @@ ssize_t nxt_sendbuf_copy_coalesce(nxt_conn_t *c, nxt_buf_mem_t *bm,
 
 nxt_buf_t *nxt_sendbuf_update(nxt_buf_t *b, size_t sent);
 nxt_buf_t *nxt_sendbuf_completion(nxt_task_t *task, nxt_work_queue_t *wq,
-    nxt_buf_t *b, size_t sent, nxt_bool_t mmap_mode);
-nxt_buf_t *nxt_sendbuf_completion0(nxt_task_t *task, nxt_work_queue_t *wq,
     nxt_buf_t *b);
 
 
