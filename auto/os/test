@@ -41,7 +41,7 @@ case "$NXT_SYSTEM" in
         echo=echo
         CC=${CC:-cc}
 
-        NXT_TEST_CFLAGS="$NXT_TEST_CFLAGS -mmacosx-version-min=10.5"
+        NXT_TEST_CFLAGS="$NXT_TEST_CFLAGS -mmacosx-version-min=10.6"
         ;;
 
     AIX)
