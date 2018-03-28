@@ -241,7 +241,8 @@ nxt_timer_changes_commit(nxt_event_engine_t *engine)
 nxt_msec_t
 nxt_timer_find(nxt_event_engine_t *engine)
 {
-    int32_t            time;
+    int32_t            delta;
+    nxt_msec_t         time;
     nxt_timer_t        *timer;
     nxt_timers_t       *timers;
     nxt_rbtree_t       *tree;
@@ -273,12 +274,12 @@ nxt_timer_find(nxt_event_engine_t *engine)
             time = timer->time;
             timers->minimum = time;
 
-            nxt_debug(timer->task, "timer found minimum: %D:%M",
+            nxt_debug(timer->task, "timer found minimum: %M:%M",
                       time, timers->now);
 
-            time = nxt_msec_diff(time, timers->now);
+            delta = nxt_msec_diff(time, timers->now);
 
-            return (nxt_msec_t) nxt_max(time, 0);
+            return (nxt_msec_t) nxt_max(delta, 0);
         }
     }
 
