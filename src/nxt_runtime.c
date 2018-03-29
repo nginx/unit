@@ -1846,13 +1846,6 @@ nxt_runtime_process_first(nxt_runtime_t *rt, nxt_lvlhsh_each_t *lhe)
 }
 
 
-nxt_port_t *
-nxt_runtime_port_first(nxt_runtime_t *rt, nxt_lvlhsh_each_t *lhe)
-{
-    return nxt_port_hash_first(&rt->ports, lhe);
-}
-
-
 void
 nxt_runtime_port_add(nxt_task_t *task, nxt_port_t *port)
 {
