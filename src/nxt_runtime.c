@@ -1585,8 +1585,7 @@ nxt_runtime_process_new(nxt_runtime_t *rt)
 static void
 nxt_runtime_process_destroy(nxt_runtime_t *rt, nxt_process_t *process)
 {
-    nxt_port_t         *port;
-    nxt_lvlhsh_each_t  lhe;
+    nxt_port_t  *port;
 
     nxt_assert(process->use_count == 0);
     nxt_assert(process->registered == 0);
@@ -1594,13 +1593,10 @@ nxt_runtime_process_destroy(nxt_runtime_t *rt, nxt_process_t *process)
     nxt_port_mmaps_destroy(&process->incoming, 1);
     nxt_port_mmaps_destroy(&process->outgoing, 1);
 
-    port = nxt_port_hash_first(&process->connected_ports, &lhe);
+    do {
+        port = nxt_port_hash_retrieve(&process->connected_ports);
 
-    while(port != NULL) {
-        nxt_port_hash_remove(&process->connected_ports, port);
-
-        port = nxt_port_hash_first(&process->connected_ports, &lhe);
-    }
+    } while (port != NULL);
 
     nxt_thread_mutex_destroy(&process->incoming.mutex);
     nxt_thread_mutex_destroy(&process->outgoing.mutex);

@@ -42,13 +42,9 @@ static const nxt_lvlhsh_proto_t  lvlhsh_ports_proto  nxt_aligned(64) = {
 
 
 nxt_port_t *
-nxt_port_hash_first(nxt_lvlhsh_t *port_hash, nxt_lvlhsh_each_t *lhe)
+nxt_port_hash_retrieve(nxt_lvlhsh_t *port_hash)
 {
-    nxt_memzero(lhe, sizeof(nxt_lvlhsh_each_t));
-
-    lhe->proto = &lvlhsh_ports_proto;
-
-    return nxt_port_hash_next(port_hash, lhe);
+    return nxt_lvlhsh_retrieve(port_hash, &lvlhsh_ports_proto, NULL);
 }
 
 
