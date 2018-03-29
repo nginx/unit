@@ -166,6 +166,13 @@ nxt_lvlhsh_set_entry_key(e, n)                                                \
 #define NXT_LVLHSH_BUCKET_DONE  ((void *) -1)
 
 
+typedef struct {
+    const nxt_lvlhsh_proto_t  *proto;
+    void                      *pool;
+    uint32_t                  retrieve;  /* 1 bit */
+} nxt_lvlhsh_peek_t;
+
+
 static nxt_int_t nxt_lvlhsh_level_find(nxt_lvlhsh_query_t *lhq, void **lvl,
     uint32_t key, nxt_uint_t nlvl);
 static nxt_int_t nxt_lvlhsh_bucket_find(nxt_lvlhsh_query_t *lhq, void **bkt);
@@ -188,10 +195,9 @@ static nxt_int_t nxt_lvlhsh_bucket_delete(nxt_lvlhsh_query_t *lhq, void **bkt);
 static void *nxt_lvlhsh_level_each(nxt_lvlhsh_each_t *lhe, void **level,
     nxt_uint_t nlvl, nxt_uint_t shift);
 static void *nxt_lvlhsh_bucket_each(nxt_lvlhsh_each_t *lhe);
-static void *nxt_lvlhsh_level_peek(const nxt_lvlhsh_proto_t *proto,
-    void **level, nxt_uint_t nlvl);
-static void *nxt_lvlhsh_bucket_peek(const nxt_lvlhsh_proto_t *proto,
-    void **bkt);
+static void *nxt_lvlhsh_level_peek(nxt_lvlhsh_peek_t *peek, void **level,
+    nxt_uint_t nlvl);
+static void *nxt_lvlhsh_bucket_peek(nxt_lvlhsh_peek_t *peek, void **bkt);
 
 
 nxt_int_t
@@ -876,17 +882,21 @@ nxt_lvlhsh_bucket_each(nxt_lvlhsh_each_t *lhe)
 void *
 nxt_lvlhsh_peek(nxt_lvlhsh_t *lh, const nxt_lvlhsh_proto_t *proto)
 {
-    void  **slot;
+    void               **slot;
+    nxt_lvlhsh_peek_t  peek;
 
     slot = lh->slot;
 
     if (slot != NULL) {
 
+        peek.proto = proto;
+        peek.retrieve = 0;
+
         if (nxt_lvlhsh_is_bucket(slot)) {
-            return nxt_lvlhsh_bucket_peek(proto, slot);
+            return nxt_lvlhsh_bucket_peek(&peek, &lh->slot);
         }
 
-        return nxt_lvlhsh_level_peek(proto, slot, 0);
+        return nxt_lvlhsh_level_peek(&peek, &lh->slot, 0);
     }
 
     return NULL;
@@ -894,32 +904,47 @@ nxt_lvlhsh_peek(nxt_lvlhsh_t *lh, const nxt_lvlhsh_proto_t *proto)
 
 
 static void *
-nxt_lvlhsh_level_peek(const nxt_lvlhsh_proto_t *proto, void **level,
-    nxt_uint_t nlvl)
+nxt_lvlhsh_level_peek(nxt_lvlhsh_peek_t *peek, void **parent, nxt_uint_t nlvl)
 {
-    void        **slot;
+    void        **slot, **level, *value;
     uintptr_t   mask;
     nxt_uint_t  n, shift;
 
-    shift = proto->shift[nlvl];
+    shift = peek->proto->shift[nlvl];
     mask = ((uintptr_t) 1 << shift) - 1;
 
-    level = nxt_lvlhsh_level(level, mask);
+    level = nxt_lvlhsh_level(*parent, mask);
 
     n = 0;
 
     /* At least one valid level slot must present here. */
 
     for ( ;; ) {
-        slot = level[n];
+        slot = &level[n];
 
-        if (slot != NULL) {
+        if (*slot != NULL) {
 
-            if (nxt_lvlhsh_is_bucket(slot)) {
-                return nxt_lvlhsh_bucket_peek(proto, slot);
+            if (nxt_lvlhsh_is_bucket(*slot)) {
+                value = nxt_lvlhsh_bucket_peek(peek, slot);
+
+            } else {
+                value = nxt_lvlhsh_level_peek(peek, slot, nlvl + 1);
             }
 
-            return nxt_lvlhsh_level_peek(proto, slot, nlvl + 1);
+            /*
+             * Checking peek->retrieve is not required here because
+             * there can not be empty slots during peeking.
+             */
+            if (*slot == NULL) {
+                nxt_lvlhsh_count_dec(*parent);
+
+                if (nxt_lvlhsh_level_entries(*parent, mask) == 0) {
+                    *parent = NULL;
+                    peek->proto->free(peek->pool, level);
+                }
+            }
+
+            return value;
         }
 
         n++;
@@ -927,15 +952,18 @@ nxt_lvlhsh_level_peek(const nxt_lvlhsh_proto_t *proto, void **level,
 }
 
 
-static void *
-nxt_lvlhsh_bucket_peek(const nxt_lvlhsh_proto_t *proto, void **bkt)
+static nxt_noinline void *
+nxt_lvlhsh_bucket_peek(nxt_lvlhsh_peek_t *peek, void **bkt)
 {
-    void      *value;
-    uint32_t  *entry;
+    void                      *value;
+    uint32_t                  *bucket, *entry;
+    const nxt_lvlhsh_proto_t  *proto;
+
+    bucket = nxt_lvlhsh_bucket(peek->proto, *bkt);
 
     /* At least one valid entry must present here. */
 
-    for (entry = nxt_lvlhsh_bucket(proto, bkt);
+    for (entry = bucket;
          nxt_lvlhsh_free_entry(entry);
          entry += NXT_LVLHSH_ENTRY_SIZE)
     {
@@ -943,7 +971,47 @@ nxt_lvlhsh_bucket_peek(const nxt_lvlhsh_proto_t *proto, void **bkt)
     }
 
     value = nxt_lvlhsh_entry_value(entry);
+
+    if (peek->retrieve) {
+        proto = peek->proto;
+
+        if (nxt_lvlhsh_bucket_entries(proto, *bkt) == 1) {
+            *bkt = *nxt_lvlhsh_next_bucket(proto, bucket);
+            proto->free(peek->pool, bucket);
+
+        } else {
+            nxt_lvlhsh_count_dec(*bkt);
+            nxt_lvlhsh_set_entry_value(entry, NULL);
+        }
+    }
+
     return value;
+}
+
+
+void *
+nxt_lvlhsh_retrieve(nxt_lvlhsh_t *lh, const nxt_lvlhsh_proto_t *proto,
+    void *pool)
+{
+    void               **slot;
+    nxt_lvlhsh_peek_t  peek;
+
+    slot = lh->slot;
+
+    if (slot != NULL) {
+
+        peek.proto = proto;
+        peek.pool = pool;
+        peek.retrieve = 1;
+
+        if (nxt_lvlhsh_is_bucket(slot)) {
+            return nxt_lvlhsh_bucket_peek(&peek, &lh->slot);
+        }
+
+        return nxt_lvlhsh_level_peek(&peek, &lh->slot, 0);
+    }
+
+    return NULL;
 }
 
 

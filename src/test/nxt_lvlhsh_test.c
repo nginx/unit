@@ -222,6 +222,43 @@ nxt_lvlhsh_test(nxt_thread_t *thr, nxt_uint_t n, nxt_bool_t use_pool)
         return NXT_ERROR;
     }
 
+    if (!nxt_lvlhsh_is_empty(&lh)) {
+        nxt_log_error(NXT_LOG_NOTICE, thr->log,
+                      "lvlhsh is not empty after deletion");
+        return NXT_ERROR;
+    }
+
+    key = 0;
+    for (i = 0; i < n; i++) {
+        key = nxt_murmur_hash2(&key, sizeof(uint32_t));
+
+        if (nxt_lvlhsh_test_add(&lh, proto, mp, key) != NXT_OK) {
+            nxt_log_error(NXT_LOG_NOTICE, thr->log,
+                          "lvlhsh add test failed at %ui", i);
+            return NXT_ERROR;
+        }
+    }
+
+    for (i = 0; i < n; i++) {
+        value = nxt_lvlhsh_retrieve(&lh, proto, mp);
+
+        if (value == NULL) {
+            break;
+        }
+    }
+
+    if (i != n) {
+        nxt_log_error(NXT_LOG_NOTICE, thr->log,
+                      "lvlhsh retrieve test failed at %ui of %ui", i, n);
+        return NXT_ERROR;
+    }
+
+    if (!nxt_lvlhsh_is_empty(&lh)) {
+        nxt_log_error(NXT_LOG_NOTICE, thr->log,
+                      "lvlhsh is not empty after retrieving");
+        return NXT_ERROR;
+    }
+
     if (mp != NULL) {
         if (!nxt_mp_is_empty(mp)) {
             nxt_log_error(NXT_LOG_NOTICE, thr->log, "mem pool is not empty");

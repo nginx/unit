@@ -173,6 +173,15 @@ NXT_EXPORT void *nxt_lvlhsh_each(nxt_lvlhsh_t *lh, nxt_lvlhsh_each_t *le);
 NXT_EXPORT void *nxt_lvlhsh_peek(nxt_lvlhsh_t *lh,
     const nxt_lvlhsh_proto_t *proto);
 
+/*
+ * nxt_lvlhsh_retrieve() is used to iterate over a lvlhsh during the lvlhsh
+ * destruction.  As opposed to nxt_lvlhsh_peek() the returned hash element
+ * is deleted from the lvlhsh.  The function returns NULL if there is no
+ * more elements in the lvlhsh.
+ */
+NXT_EXPORT void *nxt_lvlhsh_retrieve(nxt_lvlhsh_t *lh,
+    const nxt_lvlhsh_proto_t *proto, void *pool);
+
 
 NXT_EXPORT void *nxt_lvlhsh_alloc(void *data, size_t size);
 NXT_EXPORT void nxt_lvlhsh_free(void *data, void *p);
