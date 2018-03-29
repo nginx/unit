@@ -782,11 +782,13 @@ nxt_lvlhsh_each(nxt_lvlhsh_t *lh, nxt_lvlhsh_each_t *lhe)
             }
 
             if (!nxt_lvlhsh_is_bucket(slot)) {
+                lhe->current = 0;
                 goto level;
             }
 
             lhe->bucket = nxt_lvlhsh_bucket(lhe->proto, slot);
             lhe->entries = nxt_lvlhsh_bucket_entries(lhe->proto, slot);
+            lhe->entry = 0;
         }
 
         return nxt_lvlhsh_bucket_each(lhe);

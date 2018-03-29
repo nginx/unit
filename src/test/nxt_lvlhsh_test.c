@@ -187,8 +187,7 @@ nxt_lvlhsh_test(nxt_thread_t *thr, nxt_uint_t n, nxt_bool_t use_pool)
         }
     }
 
-    nxt_memzero(&lhe, sizeof(nxt_lvlhsh_each_t));
-    lhe.proto = proto;
+    nxt_lvlhsh_each_init(&lhe, proto);
 
     for (i = 0; i < n + 1; i++) {
         if (nxt_lvlhsh_each(&lh, &lhe) == NULL) {

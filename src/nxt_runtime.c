@@ -1834,9 +1834,7 @@ nxt_process_use(nxt_task_t *task, nxt_process_t *process, int i)
 nxt_process_t *
 nxt_runtime_process_first(nxt_runtime_t *rt, nxt_lvlhsh_each_t *lhe)
 {
-    nxt_memzero(lhe, sizeof(nxt_lvlhsh_each_t));
-
-    lhe->proto = &lvlhsh_processes_proto;
+    nxt_lvlhsh_each_init(lhe, &lvlhsh_processes_proto);
 
     return nxt_runtime_process_next(rt, lhe);
 }

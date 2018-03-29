@@ -1262,8 +1262,7 @@ nxt_conf_json_parse_object(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
     object->count = count;
     member = object->members;
 
-    nxt_memzero(&lhe, sizeof(nxt_lvlhsh_each_t));
-    lhe.proto = &nxt_conf_object_hash_proto;
+    nxt_lvlhsh_each_init(&lhe, &nxt_conf_object_hash_proto);
 
     for ( ;; ) {
         element = nxt_lvlhsh_each(&hash, &lhe);
