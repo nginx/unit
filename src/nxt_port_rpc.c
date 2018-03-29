@@ -467,16 +467,11 @@ static nxt_buf_t  nxt_port_close_dummy_buf;
 void
 nxt_port_rpc_close(nxt_task_t *task, nxt_port_t *port)
 {
-    nxt_lvlhsh_each_t    lhe;
     nxt_port_rpc_reg_t   *reg;
     nxt_port_recv_msg_t  msg;
 
     for ( ;; ) {
-        nxt_memzero(&lhe, sizeof(nxt_lvlhsh_each_t));
-
-        lhe.proto = &lvlhsh_rpc_reg_proto;
-
-        reg = nxt_lvlhsh_each(&port->rpc_streams, &lhe);
+        reg = nxt_lvlhsh_peek(&port->rpc_streams, &lvlhsh_rpc_reg_proto);
         if (reg == NULL) {
             return;
         }

@@ -680,25 +680,13 @@ nxt_poll_fd_hash_test(nxt_lvlhsh_query_t *lhq, void *data)
 static void
 nxt_poll_fd_hash_destroy(nxt_event_engine_t *engine, nxt_lvlhsh_t *lh)
 {
-    nxt_lvlhsh_each_t      lhe;
-    nxt_lvlhsh_query_t     lhq;
     nxt_poll_hash_entry_t  *phe;
 
-    nxt_memzero(&lhe, sizeof(nxt_lvlhsh_each_t));
-    lhe.proto = &nxt_poll_fd_hash_proto;
-    lhq.proto = &nxt_poll_fd_hash_proto;
-
     for ( ;; ) {
-        phe = nxt_lvlhsh_each(lh, &lhe);
+        phe = nxt_lvlhsh_retrieve(lh, &nxt_poll_fd_hash_proto, NULL);
 
         if (phe == NULL) {
             return;
-        }
-
-        lhq.key_hash = nxt_murmur_hash2(&phe->fd, sizeof(nxt_fd_t));
-
-        if (nxt_lvlhsh_delete(lh, &lhq) != NXT_OK) {
-            nxt_alert(&engine->task, "event fd %d not found in hash", phe->fd);
         }
 
         nxt_free(phe);
