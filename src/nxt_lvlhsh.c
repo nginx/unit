@@ -188,6 +188,10 @@ static nxt_int_t nxt_lvlhsh_bucket_delete(nxt_lvlhsh_query_t *lhq, void **bkt);
 static void *nxt_lvlhsh_level_each(nxt_lvlhsh_each_t *lhe, void **level,
     nxt_uint_t nlvl, nxt_uint_t shift);
 static void *nxt_lvlhsh_bucket_each(nxt_lvlhsh_each_t *lhe);
+static void *nxt_lvlhsh_level_peek(const nxt_lvlhsh_proto_t *proto,
+    void **level, nxt_uint_t nlvl);
+static void *nxt_lvlhsh_bucket_peek(const nxt_lvlhsh_proto_t *proto,
+    void **bkt);
 
 
 nxt_int_t
@@ -865,6 +869,80 @@ nxt_lvlhsh_bucket_each(nxt_lvlhsh_each_t *lhe)
         lhe->entry = 0;
     }
 
+    return value;
+}
+
+
+void *
+nxt_lvlhsh_peek(nxt_lvlhsh_t *lh, const nxt_lvlhsh_proto_t *proto)
+{
+    void  **slot;
+
+    slot = lh->slot;
+
+    if (slot != NULL) {
+
+        if (nxt_lvlhsh_is_bucket(slot)) {
+            return nxt_lvlhsh_bucket_peek(proto, slot);
+        }
+
+        return nxt_lvlhsh_level_peek(proto, slot, 0);
+    }
+
+    return NULL;
+}
+
+
+static void *
+nxt_lvlhsh_level_peek(const nxt_lvlhsh_proto_t *proto, void **level,
+    nxt_uint_t nlvl)
+{
+    void        **slot;
+    uintptr_t   mask;
+    nxt_uint_t  n, shift;
+
+    shift = proto->shift[nlvl];
+    mask = ((uintptr_t) 1 << shift) - 1;
+
+    level = nxt_lvlhsh_level(level, mask);
+
+    n = 0;
+
+    /* At least one valid level slot must present here. */
+
+    for ( ;; ) {
+        slot = level[n];
+
+        if (slot != NULL) {
+
+            if (nxt_lvlhsh_is_bucket(slot)) {
+                return nxt_lvlhsh_bucket_peek(proto, slot);
+            }
+
+            return nxt_lvlhsh_level_peek(proto, slot, nlvl + 1);
+        }
+
+        n++;
+    }
+}
+
+
+static void *
+nxt_lvlhsh_bucket_peek(const nxt_lvlhsh_proto_t *proto, void **bkt)
+{
+    void      *value;
+    uint32_t  *entry;
+
+    /* At least one valid entry must present here. */
+
+    for (entry = nxt_lvlhsh_bucket(proto, bkt);
+         nxt_lvlhsh_free_entry(entry);
+         entry += NXT_LVLHSH_ENTRY_SIZE)
+    {
+        /* void */
+    }
+
+    value = nxt_lvlhsh_entry_value(entry);
     return value;
 }
 

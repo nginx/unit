@@ -164,6 +164,15 @@ typedef struct {
 
 NXT_EXPORT void *nxt_lvlhsh_each(nxt_lvlhsh_t *lh, nxt_lvlhsh_each_t *le);
 
+/*
+ * nxt_lvlhsh_peek() is used to iterate over a lvlhsh during the lvlhsh
+ * destruction.  The returned hash element should be deleted from the lvlhsh,
+ * otherwise it will be returned again by the next nxt_lvlhsh_peek() call.
+ * The function returns NULL if there is no more elements in the lvlhsh.
+ */
+NXT_EXPORT void *nxt_lvlhsh_peek(nxt_lvlhsh_t *lh,
+    const nxt_lvlhsh_proto_t *proto);
+
 
 NXT_EXPORT void *nxt_lvlhsh_alloc(void *data, size_t size);
 NXT_EXPORT void nxt_lvlhsh_free(void *data, void *p);

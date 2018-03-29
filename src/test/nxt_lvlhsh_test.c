@@ -130,6 +130,7 @@ nxt_lvlhsh_test_delete(nxt_lvlhsh_t *lh, const nxt_lvlhsh_proto_t *proto,
 nxt_int_t
 nxt_lvlhsh_test(nxt_thread_t *thr, nxt_uint_t n, nxt_bool_t use_pool)
 {
+    void                      *value;
     uintptr_t                 key;
     nxt_mp_t                  *mp;
     nxt_nsec_t                start, end;
@@ -201,13 +202,24 @@ nxt_lvlhsh_test(nxt_thread_t *thr, nxt_uint_t n, nxt_bool_t use_pool)
         return NXT_ERROR;
     }
 
-    key = 0;
     for (i = 0; i < n; i++) {
-        key = nxt_murmur_hash2(&key, sizeof(uint32_t));
+        value = nxt_lvlhsh_peek(&lh, proto);
+
+        if (value == NULL) {
+            break;
+        }
+
+        key = (uintptr_t) value;
 
         if (nxt_lvlhsh_test_delete(&lh, proto, mp, key) != NXT_OK) {
             return NXT_ERROR;
         }
+    }
+
+    if (i != n) {
+        nxt_log_error(NXT_LOG_NOTICE, thr->log,
+                      "lvlhsh peek test failed at %ui of %ui", i, n);
+        return NXT_ERROR;
     }
 
     if (mp != NULL) {
