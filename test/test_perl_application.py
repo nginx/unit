@@ -21,8 +21,12 @@ class TestUnitPerlApplication(unit.TestUnitApplicationPerl):
         headers = resp['headers']
         self.assertRegex(headers.pop('Server'), r'Unit/[\d\.]+',
             'server header')
-        self.assertLess(abs(self.date_to_sec_epoch(headers.pop('Date')) -
-            self.sec_epoch()), 5, 'date header')
+
+        date = headers.pop('Date')
+        self.assertEqual(date[-4:], ' GMT', 'date header timezone')
+        self.assertLess(abs(self.date_to_sec_epoch(date) - self.sec_epoch()), 5,
+            'date header')
+
         self.assertDictEqual(headers, {
             'Content-Length': str(len(body)),
             'Content-Type': 'text/html',

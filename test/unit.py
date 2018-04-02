@@ -335,7 +335,7 @@ class TestUnitApplicationProto(TestUnitControl):
         return time.mktime(time.gmtime())
 
     def date_to_sec_epoch(self, date):
-        return time.mktime(time.strptime(date, '%a, %d %b %Y %H:%M:%S GMT'))
+        return time.mktime(time.strptime(date, '%a, %d %b %Y %H:%M:%S %Z'))
 
     def search_in_log(self, pattern):
         with open(self.testdir + '/unit.log', 'r') as f:
