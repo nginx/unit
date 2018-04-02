@@ -128,7 +128,7 @@ class TestUnitConfiguration(unit.TestUnitControl):
     def test_listeners_empty(self):
         self.skip_sanitizer = True
         self.skip_alerts.extend([
-            r'nxt_lvlhsh_is_empty\(&port->rpc_streams\)',
+            r'failed to apply previous configuration',
             r'sendmsg.+failed',
             r'process \d+ exited on signal'
         ])
