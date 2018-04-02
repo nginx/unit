@@ -10,6 +10,11 @@ def application(environ, start_response):
         ('Request-Uri', environ.get('REQUEST_URI')),
         ('Http-Host', environ.get('HTTP_HOST')),
         ('Server-Protocol', environ.get('SERVER_PROTOCOL')),
-        ('Custom-Header', environ.get('HTTP_CUSTOM_HEADER'))
+        ('Custom-Header', environ.get('HTTP_CUSTOM_HEADER')),
+        ('Wsgi-Version', str(environ['wsgi.version'])),
+        ('Wsgi-Url-Scheme', environ['wsgi.url_scheme']),
+        ('Wsgi-Multithread', str(environ['wsgi.multithread'])),
+        ('Wsgi-Multiprocess', str(environ['wsgi.multiprocess'])),
+        ('Wsgi-Run-Once', str(environ['wsgi.run_once']))
     ])
     return [body]

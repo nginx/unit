@@ -28,8 +28,8 @@ class TestUnit(unittest.TestCase):
             errors='ignore') as f:
             self._check_alerts(f.read())
 
-        if '--leave' not in sys.argv:
-            shutil.rmtree(self.testdir)
+        #if '--leave' not in sys.argv:
+        #    shutil.rmtree(self.testdir)
 
     def check_modules(self, *modules):
         self._run()
@@ -357,6 +357,7 @@ class TestUnitApplicationPython(TestUnitApplicationProto):
                     "type": "python",
                     "processes": { "spare": 0 },
                     "path": self.current_dir + '/python/' + script,
+                    "working_directory": self.current_dir + '/python/' + script,
                     "module": "wsgi"
                 }
             }
