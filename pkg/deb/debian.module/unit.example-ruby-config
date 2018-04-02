@@ -1,0 +1,16 @@
+{
+	"applications": {
+		"example_ruby": {
+			"type": "ruby",
+			"user": "nobody",
+			"processes": 2,
+			"script": "/usr/share/doc/unit-ruby/examples/ruby-app.ru"
+		}
+	},
+
+	"listeners": {
+		"*:8700": {
+			"application": "example_ruby"
+		}
+	}
+}

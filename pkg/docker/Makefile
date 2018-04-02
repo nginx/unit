@@ -10,7 +10,8 @@ CODENAME := stretch
 
 UNIT_VERSION = $(VERSION)-$(RELEASE)~$(CODENAME)
 
-MODULES = python2.7 python3.5 php7.0 go1.7-dev go1.8-dev perl5.24 full minimal
+MODULES = python2.7 python3.5 php7.0 go1.7-dev go1.8-dev perl5.24 ruby2.3 \
+          full minimal
 
 MODULE_php7.0="unit=$${UNIT_VERSION} unit-php=$${UNIT_VERSION}"
 
@@ -24,7 +25,9 @@ MODULE_go1.8-dev="unit=$${UNIT_VERSION} unit-go1.8=$${UNIT_VERSION} gcc"
 
 MODULE_perl5.24="unit=$${UNIT_VERSION} unit-perl=$${UNIT_VERSION}"
 
-MODULE_full="unit=$${UNIT_VERSION} unit-php=$${UNIT_VERSION} unit-python2.7=$${UNIT_VERSION} unit-python3.5=$${UNIT_VERSION} unit-perl=$${UNIT_VERSION}"
+MODULE_ruby2.3="unit=$${UNIT_VERSION} unit-ruby=$${UNIT_VERSION}"
+
+MODULE_full="unit=$${UNIT_VERSION} unit-php=$${UNIT_VERSION} unit-python2.7=$${UNIT_VERSION} unit-python3.5=$${UNIT_VERSION} unit-perl=$${UNIT_VERSION} unit-ruby=$${UNIT_VERSION}"
 
 MODULE_minimal="unit=$${UNIT_VERSION}"
 
@@ -35,6 +38,7 @@ export \
  		MODULE_go1.7-dev \
  		MODULE_go1.8-dev \
  		MODULE_perl5.24 \
+ 		MODULE_ruby2.3 \
 		MODULE_full \
  		MODULE_minimal
 

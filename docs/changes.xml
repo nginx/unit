@@ -23,6 +23,19 @@ NGINX Unit updated to 0.7.
 </changes>
 
 
+<changes apply="unit-ruby" ver="0.7" rev="1"
+         date="2018-04-02" time="15:40:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Ruby module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
 <changes apply="unit" ver="0.7" rev="1"
          date="2018-03-22" time="18:00:00 +0300"
          packager="Andrei Belov &lt;defan@nginx.com&gt;">

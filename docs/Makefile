@@ -10,7 +10,8 @@ PACKAGES=	unit 							\
 		unit-python unit-python2.7 unit-python3.4		\
 		unit-python3.5 unit-python3.6				\
 		unit-go unit-go1.7 unit-go1.8 unit-go1.9		\
-		unit-perl
+		unit-perl						\
+		unit-ruby
 
 
 all:		changes changelogs

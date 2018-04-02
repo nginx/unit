@@ -25,6 +25,7 @@ include Makefile.python36
 include Makefile.go18
 include Makefile.go19
 include Makefile.perl
+include Makefile.ruby
 endif
 
 # Ubuntu 17.04
@@ -35,6 +36,7 @@ include Makefile.python35
 include Makefile.go17
 include Makefile.go18
 include Makefile.perl
+include Makefile.ruby
 endif
 
 # Ubuntu 16.04
@@ -44,6 +46,7 @@ include Makefile.python27
 include Makefile.python35
 include Makefile.go
 include Makefile.perl
+include Makefile.ruby
 endif
 
 # Ubuntu 14.04
@@ -61,6 +64,7 @@ include Makefile.python35
 include Makefile.go17
 include Makefile.go18
 include Makefile.perl
+include Makefile.ruby
 endif
 
 # Debian 8
@@ -69,6 +73,7 @@ include Makefile.php
 include Makefile.python27
 include Makefile.python34
 include Makefile.perl
+include Makefile.ruby
 endif
 
 CONFIGURE_ARGS=\

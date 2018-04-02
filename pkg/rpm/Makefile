@@ -68,6 +68,7 @@ include Makefile.python27
 include Makefile.python34
 include Makefile.go
 include Makefile.perl
+include Makefile.ruby
 endif
 
 ifeq ($(OSVER), opensuse-tumbleweed)
@@ -76,6 +77,7 @@ include Makefile.python27
 include Makefile.python36
 include Makefile.go
 include Makefile.perl
+include Makefile.ruby
 endif
 
 ifeq ($(OSVER), sles)
@@ -90,6 +92,7 @@ include Makefile.python27
 include Makefile.python36
 include Makefile.go
 include Makefile.perl
+include Makefile.ruby
 endif
 
 CONFIGURE_ARGS=\
