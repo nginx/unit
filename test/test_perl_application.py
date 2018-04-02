@@ -135,6 +135,16 @@ class TestUnitPerlApplication(unit.TestUnitApplicationPerl):
 
         self.assertEqual(self.get()['body'], 'body\n', 'body io file')
 
+    @unittest.expectedFailure
+    def test_perl_application_syntax_error(self):
+        self.skip_alerts.extend([
+            r'PSGI: Failed to parse script',
+            r'process \d+ exited on signal'
+        ])
+        self.load('syntax_error')
+
+        self.assertEqual(self.get()['status'], 500, 'syntax error')
+
     def test_perl_keepalive_body(self):
         self.load('variables')
 
