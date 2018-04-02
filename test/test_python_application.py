@@ -60,5 +60,28 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
         self.assertNotIn('Transfer-Encoding', self.get()['headers'],
             '204 header transfer encoding')
 
+    def test_python_application_ctx_iter_atexit(self):
+        self.skip_alerts.append(r'sendmsg.+failed')
+        self.load('ctx_iter_atexit')
+
+        resp = self.post(headers={
+            'Connection': 'close',
+            'Content-Type': 'text/html',
+            'Host': 'localhost'
+        }, body='0123456789')
+
+        self.assertEqual(resp['status'], 200, 'ctx iter status')
+        self.assertEqual(resp['body'], '0123456789', 'ctx iter body')
+
+        self.conf({
+            "listeners": {},
+            "applications": {}
+        })
+
+        self.stop()
+
+        self.assertIsNotNone(self.search_in_log(r'RuntimeError'),
+            'ctx iter atexit')
+
 if __name__ == '__main__':
     unittest.main()
