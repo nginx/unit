@@ -91,7 +91,7 @@ if [ $nxt_found = no ]; then
     exit 1;
 fi
 
-NXT_RUBY_VERSION=`$NXT_RUBY -r rbconfig -e 'printf("%s",RbConfig::CONFIG["ruby_version"])'`
+NXT_RUBY_VERSION=`$NXT_RUBY -r rbconfig -e 'printf("%s",RbConfig::CONFIG["RUBY_PROGRAM_VERSION"])'`
 $echo " + Ruby version: ${NXT_RUBY_VERSION}"
 
 if grep ^$NXT_RUBY_MODULE: $NXT_MAKEFILE 2>&1 > /dev/null; then
