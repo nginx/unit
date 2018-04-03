@@ -382,7 +382,7 @@ nxt_sendbuf_completion(nxt_task_t *task, nxt_work_queue_t *wq, nxt_buf_t *b)
 
         nxt_prefetch(b->next);
 
-        if (nxt_buf_used_size(b) != 0) {
+        if (!nxt_buf_is_sync(b) && nxt_buf_used_size(b) != 0) {
             break;
         }
 
@@ -392,4 +392,17 @@ nxt_sendbuf_completion(nxt_task_t *task, nxt_work_queue_t *wq, nxt_buf_t *b)
     }
 
     return b;
+}
+
+
+void
+nxt_sendbuf_drain(nxt_task_t *task, nxt_work_queue_t *wq, nxt_buf_t *b)
+{
+    while (b != NULL) {
+        nxt_prefetch(b->next);
+
+        nxt_work_queue_add(wq, b->completion_handler, task, b, b->parent);
+
+        b = b->next;
+    }
 }

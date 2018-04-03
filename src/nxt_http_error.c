@@ -12,7 +12,7 @@ static void nxt_http_request_send_error_body(nxt_task_t *task, void *r,
     void *data);
 
 
-static const nxt_http_request_state_t  nxt_http_request_send_state;
+static const nxt_http_request_state_t  nxt_http_request_send_error_body_state;
 
 
 static const char  error[] =
@@ -28,9 +28,11 @@ nxt_http_request_error(nxt_task_t *task, nxt_http_request_t *r,
 
     nxt_debug(task, "http request error: %d", status);
 
-    if (r->header_sent) {
+    if (r->header_sent || r->error) {
         goto fail;
     }
+
+    r->error = (status == NXT_HTTP_INTERNAL_SERVER_ERROR);
 
     r->status = status;
 
@@ -49,36 +51,36 @@ nxt_http_request_error(nxt_task_t *task, nxt_http_request_t *r,
     r->resp.content_length = NULL;
     r->resp.content_length_n = sizeof(error) - 1;
 
-    r->state = &nxt_http_request_send_state;
+    r->state = &nxt_http_request_send_error_body_state;
 
     nxt_http_request_header_send(task, r);
     return;
 
 fail:
 
-    nxt_http_request_release(task, r);
+    nxt_http_request_error_handler(task, r, r->proto.any);
 }
 
 
-static const nxt_http_request_state_t  nxt_http_request_send_state
+static const nxt_http_request_state_t  nxt_http_request_send_error_body_state
     nxt_aligned(64) =
 {
     .ready_handler = nxt_http_request_send_error_body,
-    .error_handler = nxt_http_request_close_handler,
+    .error_handler = nxt_http_request_error_handler,
 };
 
 
 static void
 nxt_http_request_send_error_body(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_buf_t           *out, *last;
+    nxt_buf_t           *out;
     nxt_http_request_t  *r;
 
     r = obj;
 
     nxt_debug(task, "http request send error body");
 
-    out = nxt_buf_mem_alloc(r->mem_pool, 0, 0);
+    out = nxt_http_buf_mem(task, r, 0);
     if (nxt_slow_path(out == NULL)) {
         goto fail;
     }
@@ -88,18 +90,13 @@ nxt_http_request_send_error_body(nxt_task_t *task, void *obj, void *data)
     out->mem.free = out->mem.start + sizeof(error) - 1;
     out->mem.end = out->mem.free;
 
-    last = nxt_http_request_last_buffer(task, r);
-    if (nxt_slow_path(last == NULL)) {
-        goto fail;
-    }
-
-    out->next = last;
+    out->next = nxt_http_buf_last(r);
 
     nxt_http_request_send(task, r, out);
 
     return;
 
 fail:
-    // TODO
-    nxt_http_request_release(task, r);
+
+    nxt_http_request_error_handler(task, r, r->proto.any);
 }

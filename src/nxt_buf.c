@@ -144,7 +144,7 @@ nxt_buf_sync_alloc(nxt_mp_t *mp, nxt_uint_t flags)
 {
     nxt_buf_t  *b;
 
-    b = nxt_mp_zalloc(mp, NXT_BUF_SYNC_SIZE);
+    b = nxt_mp_zalloc(mp, NXT_BUF_MEM_SIZE);
 
     if (nxt_fast_path(b != NULL)) {
         b->data = mp;

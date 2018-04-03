@@ -101,8 +101,8 @@ struct nxt_buf_s {
 };
 
 
+#define NXT_BUF_SYNC_SIZE       offsetof(nxt_buf_t, mem.free)
 #define NXT_BUF_MEM_SIZE        offsetof(nxt_buf_t, file)
-#define NXT_BUF_SYNC_SIZE       NXT_BUF_MEM_SIZE
 #define NXT_BUF_FILE_SIZE       sizeof(nxt_buf_t)
 #define NXT_BUF_MMAP_SIZE       NXT_BUF_FILE_SIZE
 #define NXT_BUF_PORT_MMAP_SIZE  NXT_BUF_MEM_SIZE

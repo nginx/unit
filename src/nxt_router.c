@@ -2636,7 +2636,7 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 {
     size_t               dump_size;
     nxt_int_t            ret;
-    nxt_buf_t            *b, *last;
+    nxt_buf_t            *b;
     nxt_http_request_t   *r;
     nxt_req_conn_link_t  *rc;
     nxt_app_parse_ctx_t  *ar;
@@ -2663,17 +2663,16 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
         return;
     }
 
+    if (ar->request->error) {
+        nxt_app_http_req_done(task, ar);
+        nxt_router_rc_unlink(task, rc);
+        return;
+    }
+
     if (msg->port_msg.last != 0) {
         nxt_debug(task, "router data create last buf");
 
-        last = nxt_http_request_last_buffer(task, ar->request);
-        if (nxt_slow_path(last == NULL)) {
-            nxt_app_http_req_done(task, ar);
-            nxt_router_rc_unlink(task, rc);
-            return;
-        }
-
-        nxt_buf_chain_add(&b, last);
+        nxt_buf_chain_add(&b, nxt_http_buf_last(ar->request));
 
         nxt_router_rc_unlink(task, rc);
 

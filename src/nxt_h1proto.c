@@ -21,9 +21,12 @@ static void nxt_h1p_request_header_send(nxt_task_t *task,
     nxt_http_request_t *r);
 static void nxt_h1p_request_send(nxt_task_t *task, nxt_http_request_t *r,
     nxt_buf_t *out);
+nxt_inline void nxt_h1p_request_error(nxt_task_t *task, nxt_http_request_t *r);
 static nxt_buf_t *nxt_h1p_chunk_create(nxt_task_t *task, nxt_http_request_t *r,
     nxt_buf_t *out);
 static void nxt_h1p_sent(nxt_task_t *task, void *obj, void *data);
+static void nxt_h1p_request_discard(nxt_task_t *task, nxt_http_request_t *r,
+    nxt_buf_t *last);
 static void nxt_h1p_request_close(nxt_task_t *task, nxt_http_proto_t proto);
 static void nxt_h1p_keepalive(nxt_task_t *task, nxt_h1proto_t *h1p,
     nxt_conn_t *c);
@@ -63,6 +66,13 @@ const nxt_http_proto_header_send_t  nxt_http_proto_header_send[3] = {
 
 const nxt_http_proto_send_t  nxt_http_proto_send[3] = {
     nxt_h1p_request_send,
+    NULL,
+    NULL,
+};
+
+
+const nxt_http_proto_discard_t  nxt_http_proto_discard[3] = {
+    nxt_h1p_request_discard,
     NULL,
     NULL,
 };
@@ -687,11 +697,9 @@ nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r)
 
     } nxt_list_loop;
 
-    header = nxt_buf_mem_alloc(r->mem_pool, size, 0);
+    header = nxt_http_buf_mem(task, r, size);
     if (nxt_slow_path(header == NULL)) {
-        /* The internal server error is set just for logging. */
-        r->status = NXT_HTTP_INTERNAL_SERVER_ERROR;
-        nxt_h1p_conn_close(task, h1p->conn, h1p);
+        nxt_h1p_request_error(task, r);
         return;
     }
 
@@ -738,6 +746,13 @@ nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r)
 }
 
 
+nxt_inline void
+nxt_h1p_request_error(nxt_task_t *task, nxt_http_request_t *r)
+{
+    r->state->error_handler(task, r, r->proto.h1);
+}
+
+
 static const nxt_conn_state_t  nxt_h1p_send_state
     nxt_aligned(64) =
 {
@@ -764,7 +779,7 @@ nxt_h1p_request_send(nxt_task_t *task, nxt_http_request_t *r, nxt_buf_t *out)
     if (r->proto.h1->chunked) {
         out = nxt_h1p_chunk_create(task, r, out);
         if (nxt_slow_path(out == NULL)) {
-            nxt_h1p_conn_error(task, c, c->socket.data);
+            nxt_h1p_request_error(task, r);
             return;
         }
     }
@@ -796,7 +811,7 @@ nxt_h1p_chunk_create(nxt_task_t *task, nxt_http_request_t *r, nxt_buf_t *out)
     for (b = out; b != NULL; b = b->next) {
 
         if (nxt_buf_is_last(b)) {
-            tail = nxt_buf_mem_alloc(r->mem_pool, chunk_size, 0);
+            tail = nxt_http_buf_mem(task, r, chunk_size);
             if (nxt_slow_path(tail == NULL)) {
                 return NULL;
             }
@@ -821,7 +836,7 @@ nxt_h1p_chunk_create(nxt_task_t *task, nxt_http_request_t *r, nxt_buf_t *out)
         return out;
     }
 
-    header = nxt_buf_mem_alloc(r->mem_pool, chunk_size, 0);
+    header = nxt_http_buf_mem(task, r, chunk_size);
     if (nxt_slow_path(header == NULL)) {
         return NULL;
     }
@@ -850,6 +865,31 @@ nxt_h1p_sent(nxt_task_t *task, void *obj, void *data)
     if (c->write != NULL) {
         nxt_conn_write(engine, c);
     }
+}
+
+
+static void
+nxt_h1p_request_discard(nxt_task_t *task, nxt_http_request_t *r,
+    nxt_buf_t *last)
+{
+    nxt_buf_t         *b;
+    nxt_conn_t        *c;
+    nxt_h1proto_t     *h1p;
+    nxt_work_queue_t  *wq;
+
+    nxt_debug(task, "h1p request discard");
+
+    h1p = r->proto.h1;
+    h1p->keepalive = 0;
+
+    c = h1p->conn;
+    b = c->write;
+    c->write = NULL;
+
+    wq = &task->thread->engine->fast_work_queue;
+
+    nxt_sendbuf_drain(task, wq, b);
+    nxt_sendbuf_drain(task, wq, last);
 }
 
 
@@ -967,7 +1007,7 @@ nxt_h1p_conn_close(nxt_task_t *task, void *obj, void *data)
         r = h1p->request;
 
         if (r != NULL) {
-            r->state->error_handler(task, r, r->proto.h1);
+            nxt_h1p_request_error(task, r);
             return;
         }
     }

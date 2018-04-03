@@ -10,6 +10,8 @@
 
 static void nxt_http_request_start(nxt_task_t *task, void *obj, void *data);
 static void nxt_http_app_request(nxt_task_t *task, void *obj, void *data);
+static void nxt_http_request_mem_buf_completion(nxt_task_t *task, void *obj,
+    void *data);
 static void nxt_http_request_done(nxt_task_t *task, void *obj, void *data);
 
 static u_char *nxt_http_date(u_char *buf, nxt_realtime_t *now, struct tm *tm,
@@ -82,6 +84,7 @@ nxt_http_request_t *
 nxt_http_request_create(nxt_task_t *task)
 {
     nxt_mp_t            *mp;
+    nxt_buf_t           *last;
     nxt_http_request_t  *r;
 
     mp = nxt_mp_create(1024, 128, 256, 32);
@@ -99,6 +102,17 @@ nxt_http_request_create(nxt_task_t *task)
         goto fail;
     }
 
+    last = nxt_mp_zget(mp, NXT_BUF_SYNC_SIZE);
+    if (nxt_slow_path(last == NULL)) {
+        goto fail;
+    }
+
+    nxt_buf_set_sync(last);
+    nxt_buf_set_last(last);
+    last->completion_handler = nxt_http_request_done;
+    last->parent = r;
+    r->last = last;
+
     r->mem_pool = mp;
     r->content_length_n = -1;
     r->resp.content_length_n = -1;
@@ -109,6 +123,7 @@ nxt_http_request_create(nxt_task_t *task)
 fail:
 
     nxt_mp_release(mp);
+
     return NULL;
 }
 
@@ -349,23 +364,48 @@ nxt_http_request_send(nxt_task_t *task, nxt_http_request_t *r, nxt_buf_t *out)
 
 
 nxt_buf_t *
-nxt_http_request_last_buffer(nxt_task_t *task, nxt_http_request_t *r)
+nxt_http_buf_mem(nxt_task_t *task, nxt_http_request_t *r, size_t size)
 {
     nxt_buf_t  *b;
 
-    b = nxt_buf_mem_alloc(r->mem_pool, 0, 0);
-
+    b = nxt_buf_mem_alloc(r->mem_pool, size, 0);
     if (nxt_fast_path(b != NULL)) {
-        nxt_buf_set_sync(b);
-        nxt_buf_set_last(b);
-        b->completion_handler = nxt_http_request_done;
+        b->completion_handler = nxt_http_request_mem_buf_completion;
         b->parent = r;
+        nxt_mp_retain(r->mem_pool);
 
     } else {
-        nxt_http_request_release(task, r);
+        nxt_http_request_error(task, r, NXT_HTTP_INTERNAL_SERVER_ERROR);
     }
 
     return b;
+}
+
+
+static void
+nxt_http_request_mem_buf_completion(nxt_task_t *task, void *obj, void *data)
+{
+    nxt_buf_t           *b;
+    nxt_http_request_t  *r;
+
+    b = obj;
+    r = data;
+
+    nxt_mp_free(r->mem_pool, b);
+
+    nxt_mp_release(r->mem_pool);
+}
+
+
+nxt_buf_t *
+nxt_http_buf_last(nxt_http_request_t *r)
+{
+    nxt_buf_t  *last;
+
+    last = r->last;
+    r->last = NULL;
+
+    return last;
 }
 
 
@@ -383,12 +423,19 @@ nxt_http_request_done(nxt_task_t *task, void *obj, void *data)
 
 
 void
-nxt_http_request_release(nxt_task_t *task, nxt_http_request_t *r)
+nxt_http_request_error_handler(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_debug(task, "http request release");
+    nxt_http_proto_t    proto;
+    nxt_http_request_t  *r;
 
-    nxt_work_queue_add(&task->thread->engine->fast_work_queue,
-                       nxt_http_request_close_handler, task, r, r->proto.any);
+    r = obj;
+    proto.any = data;
+
+    nxt_debug(task, "http request error handler");
+
+    if (proto.any != NULL) {
+        nxt_http_proto_discard[r->protocol](task, r, nxt_http_buf_last(r));
+    }
 }
 
 
