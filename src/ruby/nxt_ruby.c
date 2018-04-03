@@ -148,6 +148,9 @@ nxt_ruby_init_basic(VALUE arg)
         return Qnil;
     }
 
+    rb_funcall(rb_cObject, rb_intern("require"), 1,
+               rb_str_new2("enc/trans/transdb"));
+
     rc = nxt_ruby_init_io(rack_init->task);
     if (nxt_slow_path(rc != NXT_OK)) {
         return Qnil;
