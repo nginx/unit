@@ -100,7 +100,7 @@ NXT_EXPORT nxt_application_module_t  nxt_app_module = {
     sizeof(compat),
     compat,
     nxt_string("python"),
-    nxt_string(PY_VERSION),
+    PY_VERSION,
     nxt_python_init,
     nxt_python_run,
     nxt_python_atexit,

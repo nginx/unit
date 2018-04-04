@@ -180,7 +180,7 @@ nxt_discovery_module(nxt_task_t *task, nxt_mp_t *mp, nxt_array_t *modules,
     const char *name)
 {
     void                      *dl;
-    nxt_str_t                 *s;
+    nxt_str_t                 version;
     nxt_int_t                 ret;
     nxt_uint_t                i, n;
     nxt_module_t              *module;
@@ -203,8 +203,8 @@ nxt_discovery_module(nxt_task_t *task, nxt_mp_t *mp, nxt_array_t *modules,
     app = dlsym(dl, "nxt_app_module");
 
     if (app != NULL) {
-        nxt_log(task, NXT_LOG_NOTICE, "module: %V %V \"%s\"",
-                &app->type, &app->version, name);
+        nxt_log(task, NXT_LOG_NOTICE, "module: %V %s \"%s\"",
+                &app->type, app->version, name);
 
         if (app->compat_length != sizeof(compat)
             || nxt_memcmp(app->compat, compat, sizeof(compat)) != 0)
@@ -225,15 +225,17 @@ nxt_discovery_module(nxt_task_t *task, nxt_mp_t *mp, nxt_array_t *modules,
         module = modules->elts;
         n = modules->nelts;
 
+        version.start = (u_char *) app->version;
+        version.length = nxt_strlen(app->version);
+
         for (i = 0; i < n; i++) {
             if (type == module[i].type
-                && nxt_strstr_eq(&app->version, &module[i].version))
+                && nxt_strstr_eq(&module[i].version, &version))
             {
                 nxt_log(task, NXT_LOG_NOTICE,
                         "ignoring %s module with the same "
                         "application language version %V %V as in %V",
-                        name, &app->type, &app->version,
-                        &module[i].file);
+                        name, &app->type, version, &module[i].file);
 
                 goto done;
             }
@@ -246,8 +248,8 @@ nxt_discovery_module(nxt_task_t *task, nxt_mp_t *mp, nxt_array_t *modules,
 
         module->type = type;
 
-        s = nxt_str_dup(mp, &module->version, &app->version);
-        if (s == NULL) {
+        nxt_str_dup(mp, &module->version, &version);
+        if (module->version.start == NULL) {
             goto fail;
         }
 

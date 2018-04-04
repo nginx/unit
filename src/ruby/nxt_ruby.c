@@ -74,7 +74,7 @@ NXT_EXPORT nxt_application_module_t  nxt_app_module = {
     sizeof(compat),
     compat,
     nxt_string("ruby"),
-    nxt_string(NXT_RUBY_LIB_VERSION),
+    ruby_version,
     nxt_ruby_init,
     nxt_ruby_run,
     nxt_ruby_atexit,

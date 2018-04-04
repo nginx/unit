@@ -121,8 +121,23 @@ if [ $nxt_found = no ]; then
     exit 1;
 fi
 
-NXT_PERL_VERSION=`$NXT_PERL -MConfig -e 'print $Config{version}'`
-$echo " + Perl version: ${NXT_PERL_VERSION}"
+
+nxt_feature="Perl version"
+nxt_feature_name=""
+nxt_feature_run=value
+nxt_feature_incs="${NXT_PERL_INCLUDE}"
+nxt_feature_libs="${NXT_PERL_LIBS}"
+nxt_feature_test="
+    #include <EXTERN.h>
+    #include <perl.h>
+
+    int main() {
+        printf(\"%s\", PERL_VERSION_STRING);
+        return 0;
+    }"
+
+. auto/feature
+
 
 if grep ^$NXT_PERL_MODULE: $NXT_MAKEFILE 2>&1 > /dev/null; then
     $echo

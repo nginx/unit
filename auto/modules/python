@@ -111,7 +111,7 @@ nxt_feature_test="
     #include <stdio.h>
 
     int main() {
-        printf("PY_VERSION");
+        printf(\"%s\", PY_VERSION);
         return 0;
     }"
 

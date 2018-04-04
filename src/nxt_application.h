@@ -216,7 +216,7 @@ struct nxt_app_module_s {
     uint32_t                   *compat;
 
     nxt_str_t                  type;
-    nxt_str_t                  version;
+    const char                 *version;
 
     nxt_int_t                  (*init)(nxt_task_t *task,
                                     nxt_common_app_conf_t *conf);

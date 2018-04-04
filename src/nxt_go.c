@@ -17,7 +17,7 @@ nxt_application_module_t  nxt_go_module = {
     0,
     NULL,
     nxt_string("go"),
-    nxt_string("go"),
+    "*",
     nxt_go_init,
     nxt_go_run,
     NULL,

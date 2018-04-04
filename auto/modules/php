@@ -73,7 +73,6 @@ if /bin/sh -c "${NXT_PHP_CONFIG} --version" >> $NXT_AUTOCONF_ERR 2>&1; then
     $echo " found"
 
     NXT_PHP_VERSION="`${NXT_PHP_CONFIG} --version`"
-    $echo " + PHP version: ${NXT_PHP_VERSION}"
     $echo " + PHP SAPI: [`${NXT_PHP_CONFIG} --php-sapis`]"
 
     NXT_PHP_INCLUDE="`${NXT_PHP_CONFIG} --includes`"
@@ -129,6 +128,23 @@ else
     $echo
     exit 1;
 fi
+
+
+nxt_feature="PHP version"
+nxt_feature_name=""
+nxt_feature_run=value
+nxt_feature_incs="${NXT_PHP_INCLUDE}"
+nxt_feature_libs="${NXT_PHP_LIB} ${NXT_PHP_LDFLAGS}"
+nxt_feature_test="
+    #include <php.h>
+
+    int main() {
+        printf(\"%s\", PHP_VERSION);
+        return 0;
+    }"
+
+. auto/feature
+
 
 if grep ^$NXT_PHP_MODULE: $NXT_MAKEFILE 2>&1 > /dev/null; then
     $echo

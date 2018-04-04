@@ -113,7 +113,7 @@ NXT_EXPORT nxt_application_module_t  nxt_app_module = {
     sizeof(nxt_perl_psgi_compat),
     nxt_perl_psgi_compat,
     nxt_string("perl"),
-    nxt_string(PERL_VERSION_STRING),
+    PERL_VERSION_STRING,
     nxt_perl_psgi_init,
     nxt_perl_psgi_run,
     nxt_perl_psgi_atexit,
