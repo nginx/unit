@@ -217,8 +217,8 @@ nxt_min(val1, val2)                                                           \
 #define                                                                       \
 nxt_bswap32(val)                                                              \
     (   ((val)               >> 24)                                           \
-     | (((val) & 0x00ff0000) >>  8)                                           \
-     | (((val) & 0x0000ff00) <<  8)                                           \
+     | (((val) & 0x00FF0000) >>  8)                                           \
+     | (((val) & 0x0000FF00) <<  8)                                           \
      |  ((val)               << 24))
 
 

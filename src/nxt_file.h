@@ -86,7 +86,7 @@ typedef struct {
     nxt_fd_t                        fd;
     nxt_err_t                       error;
 
-#define NXT_FILE_ACCESSED_LONG_AGO  0xffff
+#define NXT_FILE_ACCESSED_LONG_AGO  0xFFFF
     /*
      * Number of seconds ago the file content was last
      * read.  The maximum value is about 18 hours.

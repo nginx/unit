@@ -219,9 +219,9 @@ nxt_fiber_switch_stack(nxt_fiber_t *fib, jmp_buf *parent)
 
     makecontext(&uc, (void (*)(void)) nxt_fiber_trampoline, 4,
                 (uint32_t) ((uintptr_t) fib >> 32),
-                (uint32_t) ((uintptr_t) fib & 0xffffffff),
+                (uint32_t) ((uintptr_t) fib & 0xFFFFFFFF),
                 (uint32_t) ((uintptr_t) parent >> 32),
-                (uint32_t) ((uintptr_t) parent & 0xffffffff));
+                (uint32_t) ((uintptr_t) parent & 0xFFFFFFFF));
 
     setcontext(&uc);
 

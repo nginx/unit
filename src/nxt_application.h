@@ -292,7 +292,7 @@ nxt_app_msg_read_length(u_char *src, size_t *length)
         src++;
 
     } else {
-        *length = ((src[0] & 0x7fU) << 24) +
+        *length = ((src[0] & 0x7FU) << 24) +
                   (src[1] << 16) +
                   (src[2] << 8) +
                   src[3];

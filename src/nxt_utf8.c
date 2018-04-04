@@ -34,28 +34,28 @@ u_char *
 nxt_utf8_encode(u_char *p, uint32_t u)
 {
     if (u < 0x80) {
-        *p++ = (u_char) (u & 0xff);
+        *p++ = (u_char) (u & 0xFF);
         return p;
     }
 
     if (u < 0x0800) {
-        *p++ = (u_char) (( u >> 6)          | 0xc0);
-        *p++ = (u_char) (( u        & 0x3f) | 0x80);
+        *p++ = (u_char) (( u >> 6)          | 0xC0);
+        *p++ = (u_char) (( u        & 0x3F) | 0x80);
         return p;
     }
 
     if (u < 0x10000) {
-        *p++ = (u_char) ( (u >> 12)         | 0xe0);
-        *p++ = (u_char) (((u >>  6) & 0x3f) | 0x80);
-        *p++ = (u_char) (( u        & 0x3f) | 0x80);
+        *p++ = (u_char) ( (u >> 12)         | 0xE0);
+        *p++ = (u_char) (((u >>  6) & 0x3F) | 0x80);
+        *p++ = (u_char) (( u        & 0x3F) | 0x80);
         return p;
     }
 
     if (u < 0x110000) {
-        *p++ = (u_char) ( (u >> 18)         | 0xf0);
-        *p++ = (u_char) (((u >> 12) & 0x3f) | 0x80);
-        *p++ = (u_char) (((u >>  6) & 0x3f) | 0x80);
-        *p++ = (u_char) (( u        & 0x3f) | 0x80);
+        *p++ = (u_char) ( (u >> 18)         | 0xF0);
+        *p++ = (u_char) (((u >> 12) & 0x3F) | 0x80);
+        *p++ = (u_char) (((u >>  6) & 0x3F) | 0x80);
+        *p++ = (u_char) (( u        & 0x3F) | 0x80);
         return p;
     }
 
@@ -65,7 +65,7 @@ nxt_utf8_encode(u_char *p, uint32_t u)
 
 /*
  * nxt_utf8_decode() decodes UTF-8 sequences and returns a valid
- * character 0x00 - 0x10ffff, or 0xffffffff for invalid or overlong
+ * character 0x00 - 0x10FFFF, or 0xFFFFFFFF for invalid or overlong
  * UTF-8 sequence.
  */
 
@@ -87,7 +87,7 @@ nxt_utf8_decode(const u_char **start, const u_char *end)
 
 /*
  * nxt_utf8_decode2() decodes two and more bytes UTF-8 sequences only
- * and returns a valid character 0x80 - 0x10ffff, or 0xffffffff for
+ * and returns a valid character 0x80 - 0x10FFFF, or 0xFFFFFFFF for
  * invalid or overlong UTF-8 sequence.
  */
 
@@ -102,39 +102,39 @@ nxt_utf8_decode2(const u_char **start, const u_char *end)
     p = *start;
     u = (uint32_t) *p;
 
-    if (u >= 0xe0) {
+    if (u >= 0xE0) {
 
-        if (u >= 0xf0) {
+        if (u >= 0xF0) {
 
-            if (nxt_slow_path(u > 0xf4)) {
+            if (nxt_slow_path(u > 0xF4)) {
                 /*
-                 * The maximum valid Unicode character is 0x10ffff
-                 * which is encoded as 0xf4 0x8f 0xbf 0xbf.
+                 * The maximum valid Unicode character is 0x10FFFF
+                 * which is encoded as 0xF4 0x8F 0xBF 0xBF.
                  */
-                return 0xffffffff;
+                return 0xFFFFFFFF;
             }
 
             u &= 0x07;
-            overlong = 0x00ffff;
+            overlong = 0x00FFFF;
             n = 3;
 
         } else {
-            u &= 0x0f;
-            overlong = 0x07ff;
+            u &= 0x0F;
+            overlong = 0x07FF;
             n = 2;
         }
 
-    } else if (u >= 0xc2) {
+    } else if (u >= 0xC2) {
 
-        /* 0x80 is encoded as 0xc2 0x80. */
+        /* 0x80 is encoded as 0xC2 0x80. */
 
-        u &= 0x1f;
-        overlong = 0x007f;
+        u &= 0x1F;
+        overlong = 0x007F;
         n = 1;
 
     } else {
-        /* u <= 0xc2 */
-        return 0xffffffff;
+        /* u <= 0xC2 */
+        return 0xFFFFFFFF;
     }
 
     p++;
@@ -144,13 +144,13 @@ nxt_utf8_decode2(const u_char **start, const u_char *end)
         do {
             c = *p++;
             /*
-             * The byte must in the 0x80 - 0xbf range.
+             * The byte must in the 0x80 - 0xBF range.
              * Values below 0x80 become >= 0x80.
              */
             c = c - 0x80;
 
-            if (nxt_slow_path(c > 0x3f)) {
-                return 0xffffffff;
+            if (nxt_slow_path(c > 0x3F)) {
+                return 0xFFFFFFFF;
             }
 
             u = (u << 6) | c;
@@ -164,7 +164,7 @@ nxt_utf8_decode2(const u_char **start, const u_char *end)
         }
     }
 
-    return 0xffffffff;
+    return 0xFFFFFFFF;
 }
 
 
@@ -191,7 +191,7 @@ nxt_utf8_casecmp(const u_char *start1, const u_char *start2, size_t len1,
 
         u2 = nxt_utf8_lowcase(&start2, end2);
 
-        if (nxt_slow_path((u1 | u2) == 0xffffffff)) {
+        if (nxt_slow_path((u1 | u2) == 0xFFFFFFFF)) {
             return NXT_UTF8_SORT_INVALID;
         }
 
@@ -245,7 +245,7 @@ nxt_utf8_length(const u_char *p, size_t len)
     end = p + len;
 
     while (p < end) {
-        if (nxt_slow_path(nxt_utf8_decode(&p, end) == 0xffffffff)) {
+        if (nxt_slow_path(nxt_utf8_decode(&p, end) == 0xFFFFFFFF)) {
             return -1;
         }
 
@@ -264,7 +264,7 @@ nxt_utf8_is_valid(const u_char *p, size_t len)
     end = p + len;
 
     while (p < end) {
-        if (nxt_slow_path(nxt_utf8_decode(&p, end) == 0xffffffff)) {
+        if (nxt_slow_path(nxt_utf8_decode(&p, end) == 0xFFFFFFFF)) {
             return 0;
         }
     }

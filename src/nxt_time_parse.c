@@ -290,7 +290,7 @@ nxt_time_parse(const u_char *p, size_t len)
 
     /* Y2038 */
 
-    if (nxt_slow_path(s > 0x7fffffff)) {
+    if (nxt_slow_path(s > 0x7FFFFFFF)) {
         return -1;
     }
 

@@ -824,14 +824,14 @@ nxt_epoll_eventfd_handler(nxt_task_t *task, void *obj, void *data)
 
     /*
      * The maximum value after write() to a eventfd() descriptor will
-     * block or return EAGAIN is 0xfffffffffffffffe, so the descriptor
+     * block or return EAGAIN is 0xFFFFFFFFFFFFFFFE, so the descriptor
      * can be read once per many notifications, for example, once per
      * 2^32-2 noticifcations.  Since the eventfd() file descriptor is
      * always registered in EPOLLET mode, epoll returns event about
      * only the latest write() to the descriptor.
      */
 
-    if (engine->u.epoll.neventfd++ >= 0xfffffffe) {
+    if (engine->u.epoll.neventfd++ >= 0xFFFFFFFE) {
         engine->u.epoll.neventfd = 0;
 
         n = read(engine->u.epoll.eventfd.fd, &events, sizeof(uint64_t));

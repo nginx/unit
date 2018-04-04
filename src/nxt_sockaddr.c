@@ -557,7 +557,7 @@ nxt_inet6_ntop(u_char *addr, u_char *buf, u_char *end)
     if (zero_start == 0) {
 
                /* IPv4-mapped address */
-        if ((zero_groups == 5 && addr[10] == 0xff && addr[11] == 0xff)
+        if ((zero_groups == 5 && addr[10] == 0xFF && addr[11] == 0xFF)
                /* IPv4-compatible address */
             || (zero_groups == 6)
                /* not IPv6 loopback address */
@@ -1206,7 +1206,7 @@ nxt_inet6_addr(struct in6_addr *in6_addr, u_char *buf, size_t length)
                 ipv4 = buf;
 
                 *addr++ = (u_char) (group >> 8);
-                *addr++ = (u_char) (group & 0xff);
+                *addr++ = (u_char) (group & 0xFF);
                 groups_left--;
 
                 if (groups_left != 0) {
@@ -1239,8 +1239,8 @@ nxt_inet6_addr(struct in6_addr *in6_addr, u_char *buf, size_t length)
 
             group = ntohl(group);
 
-            *addr++ = (u_char) ((group >> 24) & 0xff);
-            *addr++ = (u_char) ((group >> 16) & 0xff);
+            *addr++ = (u_char) ((group >> 24) & 0xFF);
+            *addr++ = (u_char) ((group >> 16) & 0xFF);
             groups_left--;
 
             /* the low 16-bit are copied below */
@@ -1280,7 +1280,7 @@ nxt_inet6_addr(struct in6_addr *in6_addr, u_char *buf, size_t length)
     }
 
     *addr++ = (u_char) (group >> 8);
-    *addr++ = (u_char) (group & 0xff);
+    *addr++ = (u_char) (group & 0xFF);
     groups_left--;
 
     if (groups_left != 0) {

@@ -21,7 +21,7 @@ struct nxt_task_s {
 
 
 #define nxt_task_next_ident()                                                 \
-     ((uint32_t) nxt_atomic_fetch_add(&nxt_task_ident, 1) & 0x3fffffff)
+     ((uint32_t) nxt_atomic_fetch_add(&nxt_task_ident, 1) & 0x3FFFFFFF)
 
 
 /*

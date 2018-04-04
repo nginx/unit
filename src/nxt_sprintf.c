@@ -455,7 +455,7 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
 
         case 'c':
             d = va_arg(args, int);
-            *buf++ = (u_char) (d & 0xff);
+            *buf++ = (u_char) (d & 0xFF);
             fmt++;
 
             continue;
@@ -604,7 +604,7 @@ nxt_integer(nxt_sprintf_t *spf, u_char *buf, uint64_t ui64)
              *   2 otherwise.
              */
 
-            if (ui64 <= 0xffffffff) {
+            if (ui64 <= 0xFFFFFFFF) {
                 ui32 = (uint32_t) ui64;
                 start = NULL;
 
@@ -643,7 +643,7 @@ nxt_integer(nxt_sprintf_t *spf, u_char *buf, uint64_t ui64)
     } else {
 
         do {
-            *(--p) = spf->hex[ui64 & 0xf];
+            *(--p) = spf->hex[ui64 & 0xF];
             ui64 >>= 4;
         } while (ui64 != 0);
     }

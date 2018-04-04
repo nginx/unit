@@ -106,7 +106,7 @@ nxt_port_rpc_register_handler_ex(nxt_task_t *task, nxt_port_t *port,
     nxt_assert(port->pair[0] != -1);
 
     stream =
-        (uint32_t) nxt_atomic_fetch_add(&nxt_stream_ident, 1) & 0x3fffffff;
+        (uint32_t) nxt_atomic_fetch_add(&nxt_stream_ident, 1) & 0x3FFFFFFF;
 
     reg = nxt_mp_zalloc(port->mem_pool, sizeof(nxt_port_rpc_reg_t) + ex_size);
 

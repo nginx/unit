@@ -90,7 +90,7 @@ nxt_utf8_file_name_test(nxt_thread_t *thr)
         pp = &uc_name[5];
         lc = nxt_utf8_lowcase(&pp, p);
 
-        if (lc == 0xffffffff) {
+        if (lc == 0xFFFFFFFF) {
             nxt_log_alert(thr->log, "nxt_utf8_lowcase(%05uxD) failed: %05uxD",
                           uc, lc);
             return NXT_ERROR;

@@ -29,7 +29,7 @@ static nxt_int_t nxt_http_field_hash_collision(nxt_lvlhsh_query_t *lhq,
     void *data);
 
 
-#define NXT_HTTP_MAX_FIELD_NAME         0xff
+#define NXT_HTTP_MAX_FIELD_NAME         0xFF
 #define NXT_HTTP_MAX_FIELD_VALUE        NXT_INT32_T_MAX
 
 #define NXT_HTTP_FIELD_LVLHSH_SHIFT     5
@@ -690,8 +690,8 @@ nxt_http_lookup_field_end(u_char *p, u_char *end)
 
 #define nxt_field_end_test_char(ch)                                           \
                                                                               \
-        /* Values below 0x20 become more than 0xdf. */                        \
-        if (nxt_slow_path((u_char) ((ch) - 0x20) > 0x5e)) {                   \
+        /* Values below 0x20 become more than 0xDF. */                        \
+        if (nxt_slow_path((u_char) ((ch) - 0x20) > 0x5E)) {                   \
             return &(ch);                                                     \
         }
 
@@ -810,21 +810,21 @@ nxt_http_is_normal(c)                                                         \
 static const uint8_t  nxt_http_normal[32]  nxt_aligned(32) = {
 
                              /*        \0   \r  \n                         */
-    0xfe, 0xdb, 0xff, 0xff,  /* 1111 1110  1101 1011  1111 1111  1111 1111 */
+    0xFE, 0xDB, 0xFF, 0xFF,  /* 1111 1110  1101 1011  1111 1111  1111 1111 */
 
                              /* '&%$ #"!   /.-, |*)(  7654 3210  ?>=< ;:98 */
-    0xd6, 0x37, 0xff, 0x7f,  /* 1101 0110  0011 0111  1111 1111  0111 1111 */
+    0xD6, 0x37, 0xFF, 0x7F,  /* 1101 0110  0011 0111  1111 1111  0111 1111 */
 
                              /* GFED CBA@  ONML KJIH  WVUT SRQP  _^]\ [ZYX */
-    0xff, 0xff, 0xff, 0xff,  /* 1111 1111  1111 1111  1111 1111  1111 1111 */
+    0xFF, 0xFF, 0xFF, 0xFF,  /* 1111 1111  1111 1111  1111 1111  1111 1111 */
 
                              /* gfed cba`  onml kjih  wvut srqp   ~}| {zyx */
-    0xff, 0xff, 0xff, 0xff,  /* 1111 1111  1111 1111  1111 1111  1111 1111 */
+    0xFF, 0xFF, 0xFF, 0xFF,  /* 1111 1111  1111 1111  1111 1111  1111 1111 */
 
-    0xff, 0xff, 0xff, 0xff,  /* 1111 1111  1111 1111  1111 1111  1111 1111 */
-    0xff, 0xff, 0xff, 0xff,  /* 1111 1111  1111 1111  1111 1111  1111 1111 */
-    0xff, 0xff, 0xff, 0xff,  /* 1111 1111  1111 1111  1111 1111  1111 1111 */
-    0xff, 0xff, 0xff, 0xff,  /* 1111 1111  1111 1111  1111 1111  1111 1111 */
+    0xFF, 0xFF, 0xFF, 0xFF,  /* 1111 1111  1111 1111  1111 1111  1111 1111 */
+    0xFF, 0xFF, 0xFF, 0xFF,  /* 1111 1111  1111 1111  1111 1111  1111 1111 */
+    0xFF, 0xFF, 0xFF, 0xFF,  /* 1111 1111  1111 1111  1111 1111  1111 1111 */
+    0xFF, 0xFF, 0xFF, 0xFF,  /* 1111 1111  1111 1111  1111 1111  1111 1111 */
 };
 
 
@@ -1175,7 +1175,7 @@ nxt_http_fields_hash(nxt_lvlhsh_t *hash, nxt_mp_t *mp,
             key = nxt_http_field_hash_char(key, ch);
         }
 
-        lhq.key_hash = nxt_http_field_hash_end(key) & 0xffff;
+        lhq.key_hash = nxt_http_field_hash_end(key) & 0xFFFF;
         lhq.key = *name;
         lhq.value = &items[i];
 
@@ -1208,7 +1208,7 @@ nxt_http_fields_hash_collisions(nxt_lvlhsh_t *hash, nxt_mp_t *mp,
     lhq.proto = &proto;
     lhq.pool = mp;
 
-    mask = level ? (1 << NXT_HTTP_FIELD_LVLHSH_SHIFT) - 1 : 0xffff;
+    mask = level ? (1 << NXT_HTTP_FIELD_LVLHSH_SHIFT) - 1 : 0xFFFF;
 
     colls = 0;
 

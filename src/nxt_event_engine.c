@@ -134,7 +134,7 @@ nxt_event_engine_create(nxt_task_t *task,
     nxt_thread_time_update(thread);
     engine->timers.now = nxt_thread_monotonic_time(thread) / 1000000;
 
-    engine->max_connections = 0xffffffff;
+    engine->max_connections = 0xFFFFFFFF;
 
     nxt_queue_init(&engine->joints);
     nxt_queue_init(&engine->listen_connections);

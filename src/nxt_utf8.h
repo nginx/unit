@@ -9,11 +9,11 @@
 
 
 /*
- * Since the maximum valid Unicode character is 0x0010ffff, the maximum
- * difference between Unicode characters is lesser 0x0010ffff and
- * 0x0eee0eee can be used as value to indicate UTF-8 encoding error.
+ * Since the maximum valid Unicode character is 0x0010FFFF, the maximum
+ * difference between Unicode characters is lesser 0x0010FFFF and
+ * 0x0EEE0EEE can be used as value to indicate UTF-8 encoding error.
  */
-#define NXT_UTF8_SORT_INVALID  0x0eee0eee
+#define NXT_UTF8_SORT_INVALID  0x0EEE0EEE
 
 
 NXT_EXPORT u_char *nxt_utf8_encode(u_char *p, uint32_t u);
@@ -44,7 +44,7 @@ nxt_utf8_next(const u_char *p, const u_char *end)
              */
             c = *p;
 
-            if ((c & 0xc0) != 0x80) {
+            if ((c & 0xC0) != 0x80) {
                 return p;
             }
 

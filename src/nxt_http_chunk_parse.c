@@ -89,7 +89,7 @@ nxt_http_chunk_parse(nxt_task_t *task, nxt_http_chunk_parse_t *hcp,
                 c = (ch | 0x20) - 'a';
 
                 if (c <= 5) {
-                    hcp->chunk_size = 0x0a + c;
+                    hcp->chunk_size = 0x0A + c;
                     continue;
                 }
 
@@ -103,7 +103,7 @@ nxt_http_chunk_parse(nxt_task_t *task, nxt_http_chunk_parse_t *hcp,
                     c = (ch | 0x20) - 'a';
 
                     if (nxt_fast_path(c <= 5)) {
-                        c += 0x0a;
+                        c += 0x0A;
 
                     } else if (nxt_fast_path(ch == NXT_CR)) {
                         state = sw_chunk_size_linefeed;

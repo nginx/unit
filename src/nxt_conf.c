@@ -1650,7 +1650,7 @@ nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
             p += 4;
 
             if (utf_high != 0) {
-                if (nxt_slow_path(utf < 0xdc00 || utf > 0xdfff)) {
+                if (nxt_slow_path(utf < 0xDC00 || utf > 0xDFFF)) {
 
                     nxt_conf_json_parse_error(error, p - 12,
                         "Invalid JSON encoding sequence.  This 12-byte "
@@ -1660,16 +1660,16 @@ nxt_conf_json_parse_string(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
                     return NULL;
                 }
 
-                utf = ((utf_high - 0xd800) << 10) + (utf - 0xdc00) + 0x10000;
+                utf = ((utf_high - 0xD800) << 10) + (utf - 0xDC00) + 0x10000;
 
                 break;
             }
 
-            if (utf < 0xd800 || utf > 0xdfff) {
+            if (utf < 0xD800 || utf > 0xDFFF) {
                 break;
             }
 
-            if (utf > 0xdbff || p[0] != '\\' || p[1] != 'u') {
+            if (utf > 0xDBFF || p[0] != '\\' || p[1] != 'u') {
 
                 nxt_conf_json_parse_error(error, p - 6,
                     "Invalid JSON encoding sequence.  This 6-byte sequence "
@@ -2222,7 +2222,7 @@ nxt_conf_json_escape_length(u_char *p, size_t size)
         if (ch == '\\' || ch == '"') {
             len++;
 
-        } else if (ch <= 0x1f) {
+        } else if (ch <= 0x1F) {
 
             switch (ch) {
             case '\n':
@@ -2253,7 +2253,7 @@ nxt_conf_json_escape(u_char *dst, u_char *src, size_t size)
     while (size) {
         ch = *src++;
 
-        if (ch > 0x1f) {
+        if (ch > 0x1F) {
 
             if (ch == '\\' || ch == '"') {
                 *dst++ = '\\';
@@ -2289,7 +2289,7 @@ nxt_conf_json_escape(u_char *dst, u_char *src, size_t size)
                 *dst++ = 'u'; *dst++ = '0'; *dst++ = '0';
                 *dst++ = '0' + (ch >> 4);
 
-                ch &= 0xf;
+                ch &= 0xF;
 
                 *dst++ = (ch < 10) ? ('0' + ch) : ('A' + ch - 10);
             }

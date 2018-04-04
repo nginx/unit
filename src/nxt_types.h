@@ -82,8 +82,8 @@ typedef time_t               nxt_time_t;
 #define NXT_INT64_T_HEXLEN   (sizeof("fffffffffffffffff") - 1)
 #define NXT_INT32_T_HEXLEN   (sizeof("ffffffff") - 1)
 
-#define NXT_INT64_T_MAX      0x7fffffffffffffffLL
-#define NXT_INT32_T_MAX      0x7fffffff
+#define NXT_INT64_T_MAX      0x7FFFFFFFFFFFFFFFLL
+#define NXT_INT32_T_MAX      0x7FFFFFFF
 
 
 #if (NXT_INT_T_SIZE == 8)

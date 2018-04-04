@@ -12,7 +12,7 @@ nxt_murmur_hash2(const void *data, size_t len)
 {
     uint32_t        h, k;
     const u_char    *p;
-    const uint32_t  m = 0x5bd1e995;
+    const uint32_t  m = 0x5BD1E995;
 
     p = data;
     h = 0 ^ (uint32_t) len;
@@ -61,7 +61,7 @@ nxt_murmur_hash2_uint32(const void *data)
 {
     uint32_t        h, k;
     const u_char    *p;
-    const uint32_t  m = 0x5bd1e995;
+    const uint32_t  m = 0x5BD1E995;
 
     p = data;
 

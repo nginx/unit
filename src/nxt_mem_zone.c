@@ -598,10 +598,10 @@ nxt_mem_zone_alloc_chunk(uint8_t *map, nxt_uint_t offset, nxt_uint_t size)
     for ( ;; ) {
         /* The bitmap is always aligned to uint32_t. */
 
-        if (*(uint32_t *) &map[n] != 0xffffffff) {
+        if (*(uint32_t *) &map[n] != 0xFFFFFFFF) {
 
             do {
-                if (map[n] != 0xff) {
+                if (map[n] != 0xFF) {
 
                     mask = 0x80;
 
