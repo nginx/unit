@@ -390,6 +390,7 @@ void
 nxt_app_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
     size_t          dump_size;
+    nxt_int_t       res;
     nxt_buf_t       *b;
     nxt_port_t      *port;
     nxt_app_rmsg_t  rmsg = { msg->buf };
@@ -417,7 +418,12 @@ nxt_app_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     wmsg.buf = &wmsg.write;
     wmsg.stream = msg->port_msg.stream;
 
-    nxt_app->run(task, &rmsg, &wmsg);
+    res = nxt_app->run(task, &rmsg, &wmsg);
+
+    if (nxt_slow_path(res != NXT_OK)) {
+        nxt_port_socket_write(task, port, NXT_PORT_MSG_RPC_ERROR, -1,
+                              msg->port_msg.stream, 0, NULL);
+    }
 }
 
 

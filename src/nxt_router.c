@@ -2268,8 +2268,9 @@ nxt_router_engine_post(nxt_event_engine_t *engine, nxt_work_t *jobs)
 
 
 static nxt_port_handlers_t  nxt_router_app_port_handlers = {
-    .mmap = nxt_port_mmap_handler,
-    .data = nxt_port_rpc_handler,
+    .rpc_error = nxt_port_rpc_handler,
+    .mmap      = nxt_port_mmap_handler,
+    .data      = nxt_port_rpc_handler,
 };
 
 
@@ -2808,7 +2809,10 @@ nxt_router_response_error_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
         }
     }
 
-    nxt_http_request_error(task, rc->ap->request, NXT_HTTP_SERVICE_UNAVAILABLE);
+    if (rc->ap != NULL) {
+        nxt_http_request_error(task, rc->ap->request,
+                               NXT_HTTP_SERVICE_UNAVAILABLE);
+    }
 
     nxt_router_rc_unlink(task, rc);
 }
