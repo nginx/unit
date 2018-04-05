@@ -133,6 +133,7 @@ struct nxt_app_parse_ctx_s {
     nxt_app_request_t         r;
     nxt_http_request_t        *request;
     nxt_timer_t               timer;
+    void                      *timer_data;
     nxt_http_request_parse_t  parser;
     nxt_http_request_parse_t  resp_parser;
     nxt_mp_t                  *mem_pool;
