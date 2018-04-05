@@ -250,6 +250,7 @@ nxt_port_rpc_remove_from_peers(nxt_task_t *task, nxt_port_t *port,
                       "registration (%p)", stream, reg->peer, reg->link.next);
 
             ret = nxt_lvlhsh_delete(&port->rpc_peers, &lhq);
+
         } else {
             nxt_debug(task, "rpc: stream #%uD remove first pid %PI "
                       "registration (%p)", stream, reg->peer, reg->link.next);
@@ -264,6 +265,7 @@ nxt_port_rpc_remove_from_peers(nxt_task_t *task, nxt_port_t *port,
 
             ret = nxt_lvlhsh_insert(&port->rpc_peers, &lhq);
         }
+
     } else {
         nxt_debug(task, "rpc: stream #%uD remove pid %PI "
                   "registration (%p)", stream, reg->peer, reg->link.next);

@@ -329,8 +329,8 @@ nxt_php_read_request(nxt_task_t *task, nxt_app_rmsg_t *rmsg,
             script_name.start = NULL;
         }
 
-        ctx->script.length = nxt_php_root.length + h->path.length +
-                             script_name.length;
+        ctx->script.length = nxt_php_root.length + h->path.length
+                             + script_name.length;
         p = ctx->script.start = nxt_malloc(ctx->script.length + 1);
         if (nxt_slow_path(p == NULL)) {
             return NXT_ERROR;

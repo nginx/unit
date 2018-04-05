@@ -118,10 +118,10 @@ nxt_port_write_enable(nxt_task_t *task, nxt_port_t *port)
     port->socket.error_handler = nxt_port_error_handler;
 
     if (port->iov == NULL) {
-        port->iov = nxt_mp_get(port->mem_pool, sizeof(struct iovec) *
-                               NXT_IOBUF_MAX * 10);
-        port->mmsg_buf = nxt_mp_get(port->mem_pool, sizeof(uint32_t) * 3 *
-                                    NXT_IOBUF_MAX * 10);
+        port->iov = nxt_mp_get(port->mem_pool,
+                               sizeof(struct iovec) * NXT_IOBUF_MAX * 10);
+        port->mmsg_buf = nxt_mp_get(port->mem_pool,
+                                    sizeof(uint32_t) * 3 * NXT_IOBUF_MAX * 10);
     }
 }
 

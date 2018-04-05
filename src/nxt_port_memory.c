@@ -20,7 +20,7 @@
 nxt_inline void
 nxt_port_mmap_handler_use(nxt_port_mmap_handler_t *mmap_handler, int i)
 {
-    int c;
+    int  c;
 
     c = nxt_atomic_fetch_add(&mmap_handler->use_count, i);
 
@@ -888,7 +888,7 @@ nxt_port_mmap_get_method(nxt_task_t *task, nxt_port_t *port, nxt_buf_t *b)
 
     m = NXT_PORT_METHOD_ANY;
 
-    for (; b != NULL; b = b->next) {
+    for (/* void */; b != NULL; b = b->next) {
         if (nxt_buf_used_size(b) == 0) {
             /* empty buffers does not affect method */
             continue;

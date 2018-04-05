@@ -73,8 +73,8 @@ nxt_buf_mem_ts_alloc(nxt_task_t *task, nxt_mp_t *mp, size_t size)
     b->is_ts = 1;
 
     if (size != 0) {
-        b->mem.start = nxt_pointer_to(b, NXT_BUF_MEM_SIZE +
-                                      sizeof(nxt_buf_ts_t));
+        b->mem.start = nxt_pointer_to(b, NXT_BUF_MEM_SIZE
+                                         + sizeof(nxt_buf_ts_t));
         b->mem.pos = b->mem.start;
         b->mem.free = b->mem.start;
         b->mem.end = b->mem.start + size;
@@ -304,8 +304,9 @@ nxt_buf_make_plain(nxt_mp_t *mp, nxt_buf_t *src, size_t size)
     }
 
     for (i = src; i != NULL; i = i->next) {
-        if (nxt_slow_path(nxt_buf_mem_free_size(&b->mem) <
-                          nxt_buf_used_size(i))) {
+        if (nxt_slow_path(nxt_buf_mem_free_size(&b->mem)
+                          < nxt_buf_used_size(i)))
+        {
             break;
         }
 

@@ -444,8 +444,8 @@ space_after_target:
         }
 
         if (rp->exten_start) {
-            rp->exten.length = rp->path.start + rp->path.length -
-                               rp->exten_start;
+            rp->exten.length = rp->path.start + rp->path.length
+                               - rp->exten_start;
             rp->exten.start = rp->exten_start;
         }
 

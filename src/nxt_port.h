@@ -67,26 +67,26 @@ typedef enum {
 
     _NXT_PORT_MSG_DATA          = nxt_port_handler_idx(data),
 
-    NXT_PORT_MSG_MAX            = sizeof(nxt_port_handlers_t) /
-                                      sizeof(nxt_port_handler_t),
+    NXT_PORT_MSG_MAX            = sizeof(nxt_port_handlers_t)
+                                  / sizeof(nxt_port_handler_t),
 
     NXT_PORT_MSG_RPC_READY      = _NXT_PORT_MSG_RPC_READY,
     NXT_PORT_MSG_RPC_READY_LAST = _NXT_PORT_MSG_RPC_READY | NXT_PORT_MSG_LAST,
     NXT_PORT_MSG_RPC_ERROR      = _NXT_PORT_MSG_RPC_ERROR | NXT_PORT_MSG_LAST,
 
-    NXT_PORT_MSG_START_WORKER   = _NXT_PORT_MSG_START_WORKER |
-                                  NXT_PORT_MSG_LAST,
+    NXT_PORT_MSG_START_WORKER   = _NXT_PORT_MSG_START_WORKER
+                                  | NXT_PORT_MSG_LAST,
     NXT_PORT_MSG_SOCKET         = _NXT_PORT_MSG_SOCKET | NXT_PORT_MSG_LAST,
     NXT_PORT_MSG_MODULES        = _NXT_PORT_MSG_MODULES | NXT_PORT_MSG_LAST,
     NXT_PORT_MSG_CONF_STORE     = _NXT_PORT_MSG_CONF_STORE | NXT_PORT_MSG_LAST,
 
     NXT_PORT_MSG_CHANGE_FILE    = _NXT_PORT_MSG_CHANGE_FILE | NXT_PORT_MSG_LAST,
     NXT_PORT_MSG_NEW_PORT       = _NXT_PORT_MSG_NEW_PORT | NXT_PORT_MSG_LAST,
-    NXT_PORT_MSG_MMAP           = _NXT_PORT_MSG_MMAP | NXT_PORT_MSG_LAST |
-                                  NXT_PORT_MSG_CLOSE_FD | NXT_PORT_MSG_SYNC,
+    NXT_PORT_MSG_MMAP           = _NXT_PORT_MSG_MMAP | NXT_PORT_MSG_LAST
+                                  | NXT_PORT_MSG_CLOSE_FD | NXT_PORT_MSG_SYNC,
 
-    NXT_PORT_MSG_PROCESS_READY  = _NXT_PORT_MSG_PROCESS_READY |
-                                  NXT_PORT_MSG_LAST,
+    NXT_PORT_MSG_PROCESS_READY  = _NXT_PORT_MSG_PROCESS_READY
+                                  | NXT_PORT_MSG_LAST,
     NXT_PORT_MSG_QUIT           = _NXT_PORT_MSG_QUIT | NXT_PORT_MSG_LAST,
     NXT_PORT_MSG_REMOVE_PID     = _NXT_PORT_MSG_REMOVE_PID | NXT_PORT_MSG_LAST,
 
