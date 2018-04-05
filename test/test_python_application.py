@@ -227,5 +227,16 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
         self.assertIsNotNone(self.search_in_log(r'Close called\.'),
             'close error')
 
+    def test_python_application_not_iterable(self):
+        self.load('not_iterable')
+
+        self.get(raw_resp=True)
+
+        self.stop()
+
+        self.assertIsNotNone(self.search_in_log(
+            r'\[error\].+the application returned not an iterable object'),
+            'not iterable')
+
 if __name__ == '__main__':
     unittest.main()

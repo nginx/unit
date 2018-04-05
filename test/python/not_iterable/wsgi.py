@@ -4,8 +4,4 @@ class application:
         self.start = start_response
 
     def __iter__(self):
-        self.start('200', [(('!', '0'))])
-        yield b''
-
-    def close(self):
-        self.environ['wsgi.errors'].write('Close called.')
+        self.start('200', [(('Content-Length', '0'))])
