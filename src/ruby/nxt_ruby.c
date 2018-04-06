@@ -30,6 +30,7 @@ static VALUE nxt_ruby_init_basic(VALUE arg);
 static nxt_int_t nxt_ruby_init_io(nxt_task_t *task);
 static VALUE nxt_ruby_rack_init(nxt_ruby_rack_init_t *rack_init);
 
+static VALUE nxt_ruby_require_bundler(VALUE arg);
 static VALUE nxt_ruby_require_rubygems(VALUE arg);
 static VALUE nxt_ruby_require_rack(VALUE arg);
 static VALUE nxt_ruby_rack_parse_script(VALUE ctx);
@@ -191,6 +192,24 @@ nxt_ruby_init_io(nxt_task_t *task)
     return NXT_OK;
 }
 
+static VALUE
+nxt_ruby_bundler_project(nxt_str_t *script)
+{
+  VALUE file, dirname, path;
+
+  path = rb_str_new((const char *) script->start, (long) script->length);
+
+  file = rb_const_get(rb_cObject, rb_intern("File"));
+  dirname = rb_funcall(file, rb_intern("dirname"), 1, path);
+
+  rb_str_free(path);
+
+  // TODO: check for gems.rb
+  path = rb_funcall(file, rb_intern("join"), 2, dirname, rb_str_new2("Gemfile"));
+
+  return rb_funcall(file, rb_intern("file?"), 1, path);
+}
+
 
 static VALUE
 nxt_ruby_rack_init(nxt_ruby_rack_init_t *rack_init)
@@ -203,6 +222,15 @@ nxt_ruby_rack_init(nxt_ruby_rack_init_t *rack_init)
         nxt_ruby_exception_log(rack_init->task, NXT_LOG_ALERT,
                                "Failed to require 'rubygems' package");
         return Qnil;
+    }
+
+    if(nxt_ruby_bundler_project(rack_init->script) == Qtrue) {
+      rb_protect(nxt_ruby_require_bundler, Qnil, &state);
+      if (nxt_slow_path(state != 0)) {
+        nxt_ruby_exception_log(rack_init->task, NXT_LOG_ALERT,
+                               "Failed to require 'bundler' package");
+        return Qnil;
+      }
     }
 
     rb_protect(nxt_ruby_require_rack, Qnil, &state);
@@ -239,6 +267,12 @@ nxt_ruby_require_rubygems(VALUE arg)
                       rb_str_new2("rubygems"));
 }
 
+static VALUE
+nxt_ruby_require_bundler(VALUE arg)
+{
+    return rb_funcall(rb_cObject, rb_intern("require"), 1,
+                      rb_str_new2("bundler/setup"));
+}
 
 static VALUE
 nxt_ruby_require_rack(VALUE arg)
