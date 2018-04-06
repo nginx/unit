@@ -46,6 +46,10 @@ func (r *request) response() *response {
 }
 
 func (r *request) done() {
+	resp := r.response()
+	if !resp.headerSent {
+		resp.WriteHeader(http.StatusOK)
+	}
 	C.nxt_go_request_done(r.c_req)
 }
 
