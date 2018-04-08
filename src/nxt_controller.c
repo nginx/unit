@@ -835,6 +835,8 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
                                      &path, value);
 
             if (rc != NXT_OK) {
+                nxt_mp_destroy(mp);
+
                 if (rc == NXT_DECLINED) {
                     goto not_found;
                 }
