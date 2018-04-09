@@ -10,6 +10,8 @@
 
 static void nxt_h1p_read_header(nxt_task_t *task, void *obj, void *data);
 static void nxt_h1p_header_parse(nxt_task_t *task, void *obj, void *data);
+static nxt_int_t nxt_h1p_header_process(nxt_h1proto_t *h1p,
+    nxt_http_request_t *r);
 static nxt_int_t nxt_h1p_connection(void *ctx, nxt_http_field_t *field,
     uintptr_t data);
 static nxt_int_t nxt_h1p_transfer_encoding(void *ctx, nxt_http_field_t *field,
@@ -249,16 +251,6 @@ nxt_h1p_header_parse(nxt_task_t *task, void *obj, void *data)
     ret = nxt_http_parse_request(&h1p->parser, &c->read->mem);
 
     if (nxt_fast_path(ret == NXT_DONE)) {
-        r->target.start = h1p->parser.target_start;
-        r->target.length = h1p->parser.target_end - h1p->parser.target_start;
-
-        r->version.start = h1p->parser.version.str;
-        r->version.length = sizeof(h1p->parser.version.str);
-
-        r->method = &h1p->parser.method;
-        r->path = &h1p->parser.path;
-        r->args = &h1p->parser.args;
-
         /*
          * By default the keepalive mode is disabled in HTTP/1.0 and
          * enabled in HTTP/1.1.  The mode can be overridden later by
@@ -266,9 +258,7 @@ nxt_h1p_header_parse(nxt_task_t *task, void *obj, void *data)
          */
         h1p->keepalive = (h1p->parser.version.s.minor != '0');
 
-        r->fields = h1p->parser.fields;
-
-        ret = nxt_http_fields_process(r->fields, &nxt_h1p_fields_hash, r);
+        ret = nxt_h1p_header_process(h1p, r);
 
         if (nxt_fast_path(ret == NXT_OK)) {
             r->state->ready_handler(task, r, NULL);
@@ -290,6 +280,7 @@ nxt_h1p_header_parse(nxt_task_t *task, void *obj, void *data)
             if (size <= (size_t) nxt_buf_mem_used_size(&in->mem)
                 || h1p->nbuffers >= r->socket_conf->large_header_buffers)
             {
+                (void) nxt_h1p_header_process(h1p, r);
                 nxt_http_request_error(task, r,
                                       NXT_HTTP_REQUEST_HEADER_FIELDS_TOO_LARGE);
                 return;
@@ -297,6 +288,7 @@ nxt_h1p_header_parse(nxt_task_t *task, void *obj, void *data)
 
             b = nxt_buf_mem_alloc(c->mem_pool, size, 0);
             if (nxt_slow_path(b == NULL)) {
+                (void) nxt_h1p_header_process(h1p, r);
                 nxt_http_request_error(task, r, NXT_HTTP_INTERNAL_SERVER_ERROR);
                 return;
             }
@@ -335,12 +327,34 @@ nxt_h1p_header_parse(nxt_task_t *task, void *obj, void *data)
         break;
     }
 
+    (void) nxt_h1p_header_process(h1p, r);
     nxt_http_request_error(task, r, status);
     return;
 
 fail:
 
     nxt_h1p_conn_close(task, c, h1p);
+}
+
+
+static nxt_int_t
+nxt_h1p_header_process(nxt_h1proto_t *h1p, nxt_http_request_t *r)
+{
+    r->target.start = h1p->parser.target_start;
+    r->target.length = h1p->parser.target_end - h1p->parser.target_start;
+
+    if (h1p->parser.version.ui64 != 0) {
+        r->version.start = h1p->parser.version.str;
+        r->version.length = sizeof(h1p->parser.version.str);
+    }
+
+    r->method = &h1p->parser.method;
+    r->path = &h1p->parser.path;
+    r->args = &h1p->parser.args;
+
+    r->fields = h1p->parser.fields;
+
+    return nxt_http_fields_process(r->fields, &nxt_h1p_fields_hash, r);
 }
 
 
@@ -1007,6 +1021,10 @@ nxt_h1p_conn_close(nxt_task_t *task, void *obj, void *data)
         r = h1p->request;
 
         if (r != NULL) {
+            if (r->fields == NULL) {
+                (void) nxt_h1p_header_process(h1p, r);
+            }
+
             nxt_h1p_request_error(task, r);
             return;
         }
