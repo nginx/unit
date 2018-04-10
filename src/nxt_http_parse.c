@@ -461,6 +461,7 @@ space_after_target:
         && ver.s.point == '.'
         && ver.s.minor >= '0' && ver.s.minor <= '9')
     {
+        rp->version.ui64 = ver.ui64;
         return NXT_HTTP_PARSE_UNSUPPORTED_VERSION;
     }
 
