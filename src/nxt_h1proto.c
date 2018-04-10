@@ -19,6 +19,8 @@ static void nxt_h1p_conn_request_init(nxt_task_t *task, void *obj, void *data);
 static void nxt_h1p_conn_header_parse(nxt_task_t *task, void *obj, void *data);
 static nxt_int_t nxt_h1p_header_process(nxt_h1proto_t *h1p,
     nxt_http_request_t *r);
+static nxt_int_t nxt_h1p_header_buffer_test(nxt_task_t *task,
+    nxt_h1proto_t *h1p, nxt_conn_t *c, nxt_socket_conf_t *skcf);
 static nxt_int_t nxt_h1p_connection(void *ctx, nxt_http_field_t *field,
     uintptr_t data);
 static nxt_int_t nxt_h1p_transfer_encoding(void *ctx, nxt_http_field_t *field,
@@ -302,9 +304,7 @@ static const nxt_conn_state_t  nxt_h1p_header_parse_state
 static void
 nxt_h1p_conn_header_parse(nxt_task_t *task, void *obj, void *data)
 {
-    size_t              size;
     nxt_int_t           ret;
-    nxt_buf_t           *in, *b;
     nxt_conn_t          *c;
     nxt_h1proto_t       *h1p;
     nxt_http_status_t   status;
@@ -319,7 +319,11 @@ nxt_h1p_conn_header_parse(nxt_task_t *task, void *obj, void *data)
 
     r = h1p->request;
 
-    if (nxt_fast_path(ret == NXT_DONE)) {
+    ret = nxt_expect(NXT_DONE, ret);
+
+    switch (ret) {
+
+    case NXT_DONE:
         /*
          * By default the keepalive mode is disabled in HTTP/1.0 and
          * enabled in HTTP/1.1.  The mode can be overridden later by
@@ -335,49 +339,21 @@ nxt_h1p_conn_header_parse(nxt_task_t *task, void *obj, void *data)
         }
 
         /* ret == NXT_ERROR */
+        status = NXT_HTTP_BAD_REQUEST;
 
-        nxt_http_request_error(task, r, NXT_HTTP_BAD_REQUEST);
-        return;
-    }
+        goto error;
 
-    if (ret == NXT_AGAIN) {
-        in = c->read;
+    case NXT_AGAIN:
+        status = nxt_h1p_header_buffer_test(task, h1p, c, r->socket_conf);
 
-        if (nxt_buf_mem_free_size(&in->mem) == 0) {
-            size = r->socket_conf->large_header_buffer_size;
+        if (nxt_fast_path(status == NXT_OK)) {
+            c->read_state = &nxt_h1p_header_parse_state;
 
-            if (size <= (size_t) nxt_buf_mem_used_size(&in->mem)
-                || h1p->nbuffers >= r->socket_conf->large_header_buffers)
-            {
-                (void) nxt_h1p_header_process(h1p, r);
-                nxt_http_request_error(task, r,
-                                      NXT_HTTP_REQUEST_HEADER_FIELDS_TOO_LARGE);
-                return;
-            }
-
-            b = nxt_buf_mem_alloc(c->mem_pool, size, 0);
-            if (nxt_slow_path(b == NULL)) {
-                (void) nxt_h1p_header_process(h1p, r);
-                nxt_http_request_error(task, r, NXT_HTTP_INTERNAL_SERVER_ERROR);
-                return;
-            }
-
-            h1p->nbuffers++;
-
-            size = nxt_buf_mem_used_size(&in->mem);
-            b->mem.free = nxt_cpymem(b->mem.pos, in->mem.pos, size);
-
-            in->next = h1p->buffers;
-            h1p->buffers = in;
-            c->read = b;
+            nxt_conn_read(task->thread->engine, c);
+            return;
         }
 
-        c->read_state = &nxt_h1p_header_parse_state;
-        nxt_conn_read(task->thread->engine, c);
-        return;
-    }
-
-    switch (ret) {
+        break;
 
     case NXT_HTTP_PARSE_INVALID:
         status = NXT_HTTP_BAD_REQUEST;
@@ -398,6 +374,9 @@ nxt_h1p_conn_header_parse(nxt_task_t *task, void *obj, void *data)
     }
 
     (void) nxt_h1p_header_process(h1p, r);
+
+error:
+
     nxt_http_request_error(task, r, status);
 }
 
@@ -420,6 +399,41 @@ nxt_h1p_header_process(nxt_h1proto_t *h1p, nxt_http_request_t *r)
     r->fields = h1p->parser.fields;
 
     return nxt_http_fields_process(r->fields, &nxt_h1p_fields_hash, r);
+}
+
+
+static nxt_int_t
+nxt_h1p_header_buffer_test(nxt_task_t *task, nxt_h1proto_t *h1p, nxt_conn_t *c,
+    nxt_socket_conf_t *skcf)
+{
+    size_t     size, used;
+    nxt_buf_t  *in, *b;
+
+    in = c->read;
+
+    if (nxt_buf_mem_free_size(&in->mem) == 0) {
+        size = skcf->large_header_buffer_size;
+        used = nxt_buf_mem_used_size(&in->mem);
+
+        if (size <= used || h1p->nbuffers >= skcf->large_header_buffers) {
+            return NXT_HTTP_REQUEST_HEADER_FIELDS_TOO_LARGE;
+        }
+
+        b = nxt_buf_mem_alloc(c->mem_pool, size, 0);
+        if (nxt_slow_path(b == NULL)) {
+            return NXT_HTTP_INTERNAL_SERVER_ERROR;
+        }
+
+        b->mem.free = nxt_cpymem(b->mem.pos, in->mem.pos, used);
+
+        in->next = h1p->buffers;
+        h1p->buffers = in;
+        h1p->nbuffers++;
+
+        c->read = b;
+    }
+
+    return NXT_OK;
 }
 
 
