@@ -303,9 +303,11 @@ nxt_http_parse_request_line(nxt_http_request_parse_t *rp, u_char **pos,
             goto rest_of_target;
 
         case NXT_HTTP_TARGET_AGAIN:
+            rp->target_end = p;
             return NXT_AGAIN;
 
         case NXT_HTTP_TARGET_BAD:
+            rp->target_end = p;
             return NXT_HTTP_PARSE_INVALID;
         }
 
@@ -329,9 +331,11 @@ rest_of_target:
             continue;
 
         case NXT_HTTP_TARGET_AGAIN:
+            rp->target_end = p;
             return NXT_AGAIN;
 
         case NXT_HTTP_TARGET_BAD:
+            rp->target_end = p;
             return NXT_HTTP_PARSE_INVALID;
 
         default:
