@@ -47,6 +47,8 @@ static void nxt_h1p_close(nxt_task_t *task, nxt_conn_t *c);
 static void nxt_h1p_conn_request_error(nxt_task_t *task, void *obj, void *data);
 static void nxt_h1p_conn_request_timeout(nxt_task_t *task, void *obj,
     void *data);
+static void nxt_h1p_conn_request_send_timeout(nxt_task_t *task, void *obj,
+    void *data);
 nxt_inline void nxt_h1p_request_error(nxt_task_t *task, nxt_http_request_t *r);
 static nxt_msec_t nxt_h1p_conn_timeout_value(nxt_conn_t *c, uintptr_t data);
 
@@ -845,7 +847,7 @@ static const nxt_conn_state_t  nxt_h1p_send_state
     .ready_handler = nxt_h1p_conn_request_sent,
     .error_handler = nxt_h1p_conn_request_error,
 
-    .timer_handler = nxt_h1p_conn_request_timeout,
+    .timer_handler = nxt_h1p_conn_request_send_timeout,
     .timer_value = nxt_h1p_conn_timeout_value,
     .timer_data = offsetof(nxt_socket_conf_t, send_timeout),
     .timer_autoreset = 1,
@@ -1168,6 +1170,12 @@ nxt_h1p_conn_request_timeout(nxt_task_t *task, void *obj, void *data)
     nxt_debug(task, "h1p conn request timeout");
 
     c = nxt_read_timer_conn(timer);
+    /*
+     * Disable SO_LINGER off during socket closing
+     * to send "408 Request Timeout" error response.
+     */
+    c->socket.timedout = 0;
+
     h1p = c->socket.data;
     r = h1p->request;
 
@@ -1175,11 +1183,25 @@ nxt_h1p_conn_request_timeout(nxt_task_t *task, void *obj, void *data)
         (void) nxt_h1p_header_process(h1p, r);
     }
 
-    if (r->status == 0) {
-        r->status = NXT_HTTP_REQUEST_TIMEOUT;
-    }
+    nxt_http_request_error(task, r, NXT_HTTP_REQUEST_TIMEOUT);
+}
 
-    nxt_h1p_request_error(task, r);
+
+static void
+nxt_h1p_conn_request_send_timeout(nxt_task_t *task, void *obj, void *data)
+{
+    nxt_conn_t     *c;
+    nxt_timer_t    *timer;
+    nxt_h1proto_t  *h1p;
+
+    timer = obj;
+
+    nxt_debug(task, "h1p conn request send timeout");
+
+    c = nxt_read_timer_conn(timer);
+    h1p = c->socket.data;
+
+    nxt_h1p_request_error(task, h1p->request);
 }
 
 
