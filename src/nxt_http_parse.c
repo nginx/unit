@@ -209,6 +209,8 @@ nxt_http_parse_request_line(nxt_http_request_parse_t *rp, u_char **pos,
             nxt_method_test_char(*p); p++;
         }
 
+        rp->method.length = p - rp->method.start;
+
         return NXT_AGAIN;
 
     method_unusual_char:
@@ -230,6 +232,8 @@ nxt_http_parse_request_line(nxt_http_request_parse_t *rp, u_char **pos,
             p++;
             continue;
         }
+
+        rp->method.length = p - rp->method.start;
 
         return NXT_HTTP_PARSE_INVALID;
     }
