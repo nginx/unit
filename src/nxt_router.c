@@ -220,6 +220,10 @@ static void nxt_router_access_log_error(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
 static void nxt_router_access_log_release(nxt_task_t *task,
     nxt_thread_spinlock_t *lock, nxt_router_access_log_t *access_log);
+static void nxt_router_access_log_reopen_ready(nxt_task_t *task,
+    nxt_port_recv_msg_t *msg, void *data);
+static void nxt_router_access_log_reopen_error(nxt_task_t *task,
+    nxt_port_recv_msg_t *msg, void *data);
 
 static void nxt_router_app_port_ready(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
@@ -2890,6 +2894,115 @@ nxt_router_access_log_release(nxt_task_t *task, nxt_thread_spinlock_t *lock,
 
         nxt_free(access_log);
     }
+}
+
+
+typedef struct {
+    nxt_mp_t                 *mem_pool;
+    nxt_router_access_log_t  *access_log;
+} nxt_router_access_log_reopen_t;
+
+
+void
+nxt_router_access_log_reopen_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
+{
+    nxt_mp_t                        *mp;
+    uint32_t                        stream;
+    nxt_int_t                       ret;
+    nxt_buf_t                       *b;
+    nxt_port_t                      *main_port, *router_port;
+    nxt_runtime_t                   *rt;
+    nxt_router_access_log_t         *access_log;
+    nxt_router_access_log_reopen_t  *reopen;
+
+    access_log = nxt_router->access_log;
+
+    if (access_log == NULL) {
+        return;
+    }
+
+    mp = nxt_mp_create(1024, 128, 256, 32);
+    if (nxt_slow_path(mp == NULL)) {
+        return;
+    }
+
+    reopen = nxt_mp_get(mp, sizeof(nxt_router_access_log_reopen_t));
+    if (nxt_slow_path(reopen == NULL)) {
+        goto fail;
+    }
+
+    reopen->mem_pool = mp;
+    reopen->access_log = access_log;
+
+    b = nxt_buf_mem_alloc(mp, access_log->path.length + 1, 0);
+    if (nxt_slow_path(b == NULL)) {
+        goto fail;
+    }
+
+    nxt_buf_cpystr(b, &access_log->path);
+    *b->mem.free++ = '\0';
+
+    rt = task->thread->runtime;
+    main_port = rt->port_by_type[NXT_PROCESS_MAIN];
+    router_port = rt->port_by_type[NXT_PROCESS_ROUTER];
+
+    stream = nxt_port_rpc_register_handler(task, router_port,
+                                           nxt_router_access_log_reopen_ready,
+                                           nxt_router_access_log_reopen_error,
+                                           -1, reopen);
+    if (nxt_slow_path(stream == 0)) {
+        goto fail;
+    }
+
+    ret = nxt_port_socket_write(task, main_port, NXT_PORT_MSG_ACCESS_LOG, -1,
+                                stream, router_port->id, b);
+
+    if (nxt_slow_path(ret != NXT_OK)) {
+        nxt_port_rpc_cancel(task, router_port, stream);
+        goto fail;
+    }
+
+    return;
+
+fail:
+
+    nxt_mp_destroy(mp);
+}
+
+
+static void
+nxt_router_access_log_reopen_ready(nxt_task_t *task, nxt_port_recv_msg_t *msg,
+    void *data)
+{
+    nxt_router_access_log_t         *access_log;
+    nxt_router_access_log_reopen_t  *reopen;
+
+    reopen = data;
+
+    access_log = reopen->access_log;
+
+    if (access_log == nxt_router->access_log) {
+
+        if (nxt_slow_path(dup2(msg->fd, access_log->fd) == -1)) {
+            nxt_alert(task, "dup2(%FD, %FD) failed %E",
+                      msg->fd, access_log->fd, nxt_errno);
+        }
+    }
+
+    nxt_fd_close(msg->fd);
+    nxt_mp_destroy(reopen->mem_pool);
+}
+
+
+static void
+nxt_router_access_log_reopen_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
+    void *data)
+{
+    nxt_router_access_log_reopen_t  *reopen;
+
+    reopen = data;
+
+    nxt_mp_destroy(reopen->mem_pool);
 }
 
 

@@ -698,19 +698,27 @@ nxt_main_process_sigusr1_handler(nxt_task_t *task, void *obj, void *data)
     nxt_mp_t        *mp;
     nxt_int_t       ret;
     nxt_uint_t      n;
+    nxt_port_t      *port;
     nxt_file_t      *file, *new_file;
-    nxt_runtime_t   *rt;
     nxt_array_t     *new_files;
+    nxt_runtime_t   *rt;
 
     nxt_log(task, NXT_LOG_NOTICE, "signal %d (%s) recevied, %s",
             (int) (uintptr_t) obj, data, "log files rotation");
+
+    rt = task->thread->runtime;
+
+    port = rt->port_by_type[NXT_PROCESS_ROUTER];
+
+    if (nxt_fast_path(port != NULL)) {
+        (void) nxt_port_socket_write(task, port, NXT_PORT_MSG_ACCESS_LOG,
+                                     -1, 0, 0, NULL);
+    }
 
     mp = nxt_mp_create(1024, 128, 256, 32);
     if (mp == NULL) {
         return;
     }
-
-    rt = task->thread->runtime;
 
     n = nxt_list_nelts(rt->log_files);
 

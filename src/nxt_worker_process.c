@@ -37,6 +37,7 @@ nxt_port_handlers_t  nxt_router_process_port_handlers = {
     .mmap         = nxt_port_mmap_handler,
     .data         = nxt_router_conf_data_handler,
     .remove_pid   = nxt_router_remove_pid_handler,
+    .access_log   = nxt_router_access_log_reopen_handler,
     .rpc_ready    = nxt_port_rpc_handler,
     .rpc_error    = nxt_port_rpc_handler,
 };

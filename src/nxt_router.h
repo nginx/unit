@@ -176,6 +176,8 @@ struct nxt_router_access_log_s {
 void nxt_router_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 void nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 void nxt_router_remove_pid_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
+void nxt_router_access_log_reopen_handler(nxt_task_t *task,
+    nxt_port_recv_msg_t *msg);
 
 void nxt_router_process_http_request(nxt_task_t *task, nxt_app_parse_ctx_t *ar);
 void nxt_router_app_port_close(nxt_task_t *task, nxt_port_t *port);
