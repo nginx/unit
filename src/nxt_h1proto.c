@@ -1058,7 +1058,7 @@ nxt_h1p_keepalive(nxt_task_t *task, nxt_h1proto_t *h1p, nxt_conn_t *c)
         in->mem.pos = in->mem.start;
         in->mem.free = in->mem.start + size;
 
-        nxt_h1p_conn_header_parse(task, c, c->socket.data);
+        nxt_h1p_conn_request_init(task, c, c->socket.data);
     }
 }
 
