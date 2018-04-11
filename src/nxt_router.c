@@ -208,6 +208,19 @@ static void nxt_router_listen_socket_release(nxt_task_t *task,
 static void nxt_router_conf_release(nxt_task_t *task,
     nxt_socket_conf_joint_t *joint);
 
+static void nxt_router_access_log_writer(nxt_task_t *task,
+    nxt_http_request_t *r, nxt_router_access_log_t *access_log);
+static u_char *nxt_router_access_log_date(u_char *buf, nxt_realtime_t *now,
+    struct tm *tm, size_t size, const char *format);
+static void nxt_router_access_log_open(nxt_task_t *task,
+    nxt_router_temp_conf_t *tmcf);
+static void nxt_router_access_log_ready(nxt_task_t *task,
+    nxt_port_recv_msg_t *msg, void *data);
+static void nxt_router_access_log_error(nxt_task_t *task,
+    nxt_port_recv_msg_t *msg, void *data);
+static void nxt_router_access_log_release(nxt_task_t *task,
+    nxt_thread_spinlock_t *lock, nxt_router_access_log_t *access_log);
+
 static void nxt_router_app_port_ready(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
 static void nxt_router_app_port_error(nxt_task_t *task,
@@ -904,6 +917,7 @@ nxt_router_conf_apply(nxt_task_t *task, void *obj, void *data)
     nxt_runtime_t                *rt;
     nxt_queue_link_t             *qlk;
     nxt_socket_conf_t            *skcf;
+    nxt_router_conf_t            *rtcf;
     nxt_router_temp_conf_t       *tmcf;
     const nxt_event_interface_t  *interface;
 
@@ -931,11 +945,18 @@ nxt_router_conf_apply(nxt_task_t *task, void *obj, void *data)
 
     } nxt_queue_loop;
 
+    rtcf = tmcf->router_conf;
+
+    if (rtcf->access_log != NULL && rtcf->access_log->fd == -1) {
+        nxt_router_access_log_open(task, tmcf);
+        return;
+    }
+
     rt = task->thread->runtime;
 
     interface = nxt_service_get(rt->services, "engine", NULL);
 
-    router = tmcf->router_conf->router;
+    router = rtcf->router;
 
     ret = nxt_router_engines_create(task, router, tmcf, interface);
     if (nxt_slow_path(ret != NXT_OK)) {
@@ -953,6 +974,8 @@ nxt_router_conf_apply(nxt_task_t *task, void *obj, void *data)
 
     nxt_queue_add(&router->sockets, &tmcf->updating);
     nxt_queue_add(&router->sockets, &tmcf->creating);
+
+    router->access_log = rtcf->access_log;
 
     nxt_router_conf_ready(task, tmcf);
 
@@ -997,6 +1020,7 @@ nxt_router_conf_error(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
     nxt_router_t       *router;
     nxt_queue_link_t   *qlk;
     nxt_socket_conf_t  *skcf;
+    nxt_router_conf_t  *rtcf;
 
     nxt_alert(task, "failed to apply new conf");
 
@@ -1034,7 +1058,8 @@ nxt_router_conf_error(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
 
     } nxt_queue_loop;
 
-    router = tmcf->router_conf->router;
+    rtcf = tmcf->router_conf;
+    router = rtcf->router;
 
     nxt_queue_add(&router->sockets, &tmcf->keeping);
     nxt_queue_add(&router->sockets, &tmcf->deleting);
@@ -1043,7 +1068,9 @@ nxt_router_conf_error(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
 
     // TODO: new engines and threads
 
-    nxt_mp_destroy(tmcf->router_conf->mem_pool);
+    nxt_router_access_log_release(task, &router->lock, rtcf->access_log);
+
+    nxt_mp_destroy(rtcf->mem_pool);
 
     nxt_router_conf_send(task, tmcf, NXT_PORT_MSG_RPC_ERROR);
 }
@@ -1210,21 +1237,23 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_mp_t                    *mp;
     uint32_t                    next;
     nxt_int_t                   ret;
-    nxt_str_t                   name;
+    nxt_str_t                   name, path;
     nxt_app_t                   *app, *prev;
     nxt_router_t                *router;
-    nxt_conf_value_t            *conf, *http;
+    nxt_conf_value_t            *conf, *http, *value;
     nxt_conf_value_t            *applications, *application;
     nxt_conf_value_t            *listeners, *listener;
     nxt_socket_conf_t           *skcf;
     nxt_event_engine_t          *engine;
     nxt_app_lang_module_t       *lang;
     nxt_router_app_conf_t       apcf;
+    nxt_router_access_log_t     *access_log;
     nxt_router_listener_conf_t  lscf;
 
     static nxt_str_t  http_path = nxt_string("/http");
     static nxt_str_t  applications_path = nxt_string("/applications");
     static nxt_str_t  listeners_path = nxt_string("/listeners");
+    static nxt_str_t  access_log_path = nxt_string("/access_log");
 
     conf = nxt_conf_json_parse(tmcf->mem_pool, start, end, NULL);
     if (conf == NULL) {
@@ -1466,6 +1495,40 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         skcf->application = nxt_router_listener_application(tmcf,
                                                             &lscf.application);
         nxt_router_app_use(task, skcf->application, 1);
+    }
+
+    value = nxt_conf_get_path(conf, &access_log_path);
+
+    if (value != NULL) {
+        nxt_conf_get_string(value, &path);
+
+        access_log = router->access_log;
+
+        if (access_log != NULL && nxt_strstr_eq(&path, &access_log->path)) {
+            nxt_thread_spin_lock(&router->lock);
+            access_log->count++;
+            nxt_thread_spin_unlock(&router->lock);
+
+        } else {
+            access_log = nxt_malloc(sizeof(nxt_router_access_log_t)
+                                    + path.length);
+            if (access_log == NULL) {
+                nxt_alert(task, "failed to allocate access log structure");
+                goto fail;
+            }
+
+            access_log->fd = -1;
+            access_log->handler = &nxt_router_access_log_writer;
+            access_log->count = 1;
+
+            access_log->path.length = path.length;
+            access_log->path.start = (u_char *) access_log
+                                     + sizeof(nxt_router_access_log_t);
+
+            nxt_memcpy(access_log->path.start, path.start, path.length);
+        }
+
+        tmcf->router_conf->access_log = access_log;
     }
 
     nxt_queue_add(&tmcf->deleting, &router->sockets);
@@ -2589,6 +2652,8 @@ nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
     if (rtcf != NULL) {
         nxt_debug(task, "old router conf is destroyed");
 
+        nxt_router_access_log_release(task, lock, rtcf->access_log);
+
         nxt_mp_thread_adopt(rtcf->mem_pool);
 
         nxt_mp_destroy(rtcf->mem_pool);
@@ -2596,6 +2661,234 @@ nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
 
     if (engine->shutdown && nxt_queue_is_empty(&engine->joints)) {
         nxt_thread_exit(task->thread);
+    }
+}
+
+
+static void
+nxt_router_access_log_writer(nxt_task_t *task, nxt_http_request_t *r,
+    nxt_router_access_log_t *access_log)
+{
+    size_t     size;
+    u_char     *buf, *p;
+    nxt_off_t  bytes;
+
+    static nxt_time_string_t  date_cache = {
+        (nxt_atomic_uint_t) -1,
+        nxt_router_access_log_date,
+        "%02d/%s/%4d:%02d:%02d:%02d %c%02d%02d",
+        sizeof("31/Dec/1986:19:40:00 +0300") - 1,
+        NXT_THREAD_TIME_LOCAL,
+        NXT_THREAD_TIME_SEC,
+    };
+
+    size = r->remote->address_length
+           + 6                  /* ' - - [' */
+           + date_cache.size
+           + 3                  /* '] "' */
+           + r->method->length
+           + 1                  /* space */
+           + r->target.length
+           + 1                  /* space */
+           + r->version.length
+           + 2                  /* '" ' */
+           + 3                  /* status */
+           + 1                  /* space */
+           + NXT_OFF_T_LEN
+           + 2                  /* ' "' */
+           + (r->referer != NULL ? r->referer->value_length : 1)
+           + 3                  /* '" "' */
+           + (r->user_agent != NULL ? r->user_agent->value_length : 1)
+           + 2                  /* '"\n' */
+    ;
+
+    buf = nxt_mp_nget(r->mem_pool, size);
+    if (nxt_slow_path(buf == NULL)) {
+        return;
+    }
+
+    p = nxt_cpymem(buf, nxt_sockaddr_address(r->remote),
+                   r->remote->address_length);
+
+    p = nxt_cpymem(p, " - - [", 6);
+
+    p = nxt_thread_time_string(task->thread, &date_cache, p);
+
+    p = nxt_cpymem(p, "] \"", 3);
+
+    if (r->method->length != 0) {
+        p = nxt_cpymem(p, r->method->start, r->method->length);
+
+        if (r->target.length != 0) {
+            *p++ = ' ';
+            p = nxt_cpymem(p, r->target.start, r->target.length);
+
+            if (r->version.length != 0) {
+                *p++ = ' ';
+                p = nxt_cpymem(p, r->version.start, r->version.length);
+            }
+        }
+
+    } else {
+        *p++ = '-';
+    }
+
+    p = nxt_cpymem(p, "\" ", 2);
+
+    p = nxt_sprintf(p, p + 3, "%03d", r->status);
+
+    *p++ = ' ';
+
+    bytes = nxt_http_proto_body_bytes_sent[r->protocol](task, r->proto);
+
+    p = nxt_sprintf(p, p + NXT_OFF_T_LEN, "%O", bytes);
+
+    p = nxt_cpymem(p, " \"", 2);
+
+    if (r->referer != NULL) {
+        p = nxt_cpymem(p, r->referer->value, r->referer->value_length);
+
+    } else {
+        *p++ = '-';
+    }
+
+    p = nxt_cpymem(p, "\" \"", 3);
+
+    if (r->user_agent != NULL) {
+        p = nxt_cpymem(p, r->user_agent->value, r->user_agent->value_length);
+
+    } else {
+        *p++ = '-';
+    }
+
+    p = nxt_cpymem(p, "\"\n", 2);
+
+    nxt_fd_write(access_log->fd, buf, p - buf);
+}
+
+
+static u_char *
+nxt_router_access_log_date(u_char *buf, nxt_realtime_t *now, struct tm *tm,
+    size_t size, const char *format)
+{
+    u_char  sign;
+    time_t  gmtoff;
+
+    static const char  *month[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+
+    gmtoff = nxt_timezone(tm) / 60;
+
+    if (gmtoff < 0) {
+        gmtoff = -gmtoff;
+        sign = '-';
+
+    } else {
+        sign = '+';
+    }
+
+    return nxt_sprintf(buf, buf + size, format,
+                       tm->tm_mday, month[tm->tm_mon], tm->tm_year + 1900,
+                       tm->tm_hour, tm->tm_min, tm->tm_sec,
+                       sign, gmtoff / 60, gmtoff % 60);
+}
+
+
+static void
+nxt_router_access_log_open(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
+{
+    uint32_t                 stream;
+    nxt_buf_t                *b;
+    nxt_port_t               *main_port, *router_port;
+    nxt_runtime_t            *rt;
+    nxt_router_access_log_t  *access_log;
+
+    access_log = tmcf->router_conf->access_log;
+
+    b = nxt_buf_mem_alloc(tmcf->mem_pool, access_log->path.length + 1, 0);
+    if (nxt_slow_path(b == NULL)) {
+        goto fail;
+    }
+
+    nxt_buf_cpystr(b, &access_log->path);
+    *b->mem.free++ = '\0';
+
+    rt = task->thread->runtime;
+    main_port = rt->port_by_type[NXT_PROCESS_MAIN];
+    router_port = rt->port_by_type[NXT_PROCESS_ROUTER];
+
+    stream = nxt_port_rpc_register_handler(task, router_port,
+                                           nxt_router_access_log_ready,
+                                           nxt_router_access_log_error,
+                                           -1, tmcf);
+    if (nxt_slow_path(stream == 0)) {
+        goto fail;
+    }
+
+    nxt_port_socket_write(task, main_port, NXT_PORT_MSG_ACCESS_LOG, -1,
+                          stream, router_port->id, b);
+
+    return;
+
+fail:
+
+    nxt_router_conf_error(task, tmcf);
+}
+
+
+static void
+nxt_router_access_log_ready(nxt_task_t *task, nxt_port_recv_msg_t *msg,
+    void *data)
+{
+    nxt_router_temp_conf_t   *tmcf;
+    nxt_router_access_log_t  *access_log;
+
+    tmcf = data;
+
+    access_log = tmcf->router_conf->access_log;
+
+    access_log->fd = msg->fd;
+
+    nxt_work_queue_add(&task->thread->engine->fast_work_queue,
+                       nxt_router_conf_apply, task, tmcf, NULL);
+}
+
+
+static void
+nxt_router_access_log_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
+    void *data)
+{
+    nxt_router_temp_conf_t  *tmcf;
+
+    tmcf = data;
+
+    nxt_router_conf_error(task, tmcf);
+}
+
+
+static void
+nxt_router_access_log_release(nxt_task_t *task, nxt_thread_spinlock_t *lock,
+    nxt_router_access_log_t *access_log)
+{
+    if (access_log == NULL) {
+        return;
+    }
+
+    nxt_thread_spin_lock(lock);
+
+    if (--access_log->count != 0) {
+        access_log = NULL;
+    }
+
+    nxt_thread_spin_unlock(lock);
+
+    if (access_log != NULL) {
+
+        if (access_log->fd != -1) {
+            nxt_fd_close(access_log->fd);
+        }
+
+        nxt_free(access_log);
     }
 }
 

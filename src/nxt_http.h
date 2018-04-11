@@ -56,6 +56,8 @@ typedef struct {
     uint8_t                         chunked;              /* 1 bit  */
     nxt_http_te_t                   transfer_encoding:8;  /* 2 bits */
 
+    uint32_t                        header_size;
+
     nxt_http_request_t              *request;
     nxt_buf_t                       *buffers;
     /*
@@ -118,6 +120,8 @@ struct nxt_http_request_s {
     nxt_http_field_t                *content_type;
     nxt_http_field_t                *content_length;
     nxt_http_field_t                *cookie;
+    nxt_http_field_t                *referer;
+    nxt_http_field_t                *user_agent;
     nxt_off_t                       content_length_n;
 
     nxt_sockaddr_t                  *remote;
@@ -144,6 +148,8 @@ typedef void (*nxt_http_proto_header_send_t)(nxt_task_t *task,
     nxt_http_request_t *r);
 typedef void (*nxt_http_proto_send_t)(nxt_task_t *task, nxt_http_request_t *r,
     nxt_buf_t *out);
+typedef nxt_off_t (*nxt_http_proto_body_bytes_sent_t)(nxt_task_t *task,
+    nxt_http_proto_t proto);
 typedef void (*nxt_http_proto_discard_t)(nxt_task_t *task,
     nxt_http_request_t *r, nxt_buf_t *last);
 typedef void (*nxt_http_proto_close_t)(nxt_task_t *task,
@@ -180,12 +186,13 @@ nxt_int_t nxt_http_request_content_length(void *ctx, nxt_http_field_t *field,
 extern nxt_lvlhsh_t                        nxt_response_fields_hash;
 extern const nxt_conn_state_t              nxt_router_conn_close_state;
 
-extern const nxt_http_proto_body_read_t    nxt_http_proto_body_read[];
-extern const nxt_http_proto_local_addr_t   nxt_http_proto_local_addr[];
-extern const nxt_http_proto_header_send_t  nxt_http_proto_header_send[];
-extern const nxt_http_proto_send_t         nxt_http_proto_send[];
-extern const nxt_http_proto_discard_t      nxt_http_proto_discard[];
-extern const nxt_http_proto_close_t        nxt_http_proto_close[];
+extern const nxt_http_proto_body_read_t        nxt_http_proto_body_read[];
+extern const nxt_http_proto_local_addr_t       nxt_http_proto_local_addr[];
+extern const nxt_http_proto_header_send_t      nxt_http_proto_header_send[];
+extern const nxt_http_proto_send_t             nxt_http_proto_send[];
+extern const nxt_http_proto_body_bytes_sent_t  nxt_http_proto_body_bytes_sent[];
+extern const nxt_http_proto_discard_t          nxt_http_proto_discard[];
+extern const nxt_http_proto_close_t            nxt_http_proto_close[];
 
 
 #endif  /* _NXT_HTTP_H_INCLUDED_ */

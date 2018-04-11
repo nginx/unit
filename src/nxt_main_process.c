@@ -59,6 +59,8 @@ static void nxt_main_port_modules_handler(nxt_task_t *task,
 static int nxt_cdecl nxt_app_lang_compare(const void *v1, const void *v2);
 static void nxt_main_port_conf_store_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
+static void nxt_main_port_access_log_handler(nxt_task_t *task,
+    nxt_port_recv_msg_t *msg);
 
 
 const nxt_sig_event_t  nxt_main_process_signals[] = {
@@ -314,6 +316,7 @@ static nxt_port_handlers_t  nxt_main_process_port_handlers = {
     .socket         = nxt_main_port_socket_handler,
     .modules        = nxt_main_port_modules_handler,
     .conf_store     = nxt_main_port_conf_store_handler,
+    .access_log     = nxt_main_port_access_log_handler,
     .rpc_ready      = nxt_port_rpc_handler,
     .rpc_error      = nxt_port_rpc_handler,
 };
@@ -1281,4 +1284,38 @@ nxt_main_port_conf_store_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 error:
 
     nxt_alert(task, "failed to store current configuration");
+}
+
+
+static void
+nxt_main_port_access_log_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
+{
+    u_char               *path;
+    nxt_int_t            ret;
+    nxt_file_t           file;
+    nxt_port_t           *port;
+    nxt_port_msg_type_t  type;
+
+    nxt_debug(task, "opening access log file");
+
+    path = msg->buf->mem.pos;
+
+    nxt_memzero(&file, sizeof(nxt_file_t));
+
+    file.name = (nxt_file_name_t *) path;
+    file.log_level = NXT_LOG_ERR;
+
+    ret = nxt_file_open(task, &file, O_WRONLY | O_APPEND, O_CREAT,
+                        NXT_FILE_OWNER_ACCESS);
+
+    type = (ret == NXT_OK) ? NXT_PORT_MSG_RPC_READY_LAST | NXT_PORT_MSG_CLOSE_FD
+                           : NXT_PORT_MSG_RPC_ERROR;
+
+    port = nxt_runtime_port_find(task->thread->runtime, msg->port_msg.pid,
+                                 msg->port_msg.reply_port);
+
+    if (nxt_fast_path(port != NULL)) {
+        (void) nxt_port_socket_write(task, port, type, file.fd,
+                                     msg->port_msg.stream, 0, NULL);
+    }
 }

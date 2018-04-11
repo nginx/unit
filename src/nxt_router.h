@@ -12,24 +12,31 @@
 #include <nxt_runtime.h>
 #include <nxt_main_process.h>
 
-typedef struct nxt_http_request_s   nxt_http_request_t;
+typedef struct nxt_http_request_s  nxt_http_request_t;
 #include <nxt_application.h>
 
 
-typedef struct {
-    nxt_thread_spinlock_t  lock;
-    nxt_queue_t            engines;
+typedef struct nxt_router_access_log_s  nxt_router_access_log_t;
 
-    nxt_queue_t            sockets;    /* of nxt_socket_conf_t */
-    nxt_queue_t            apps;       /* of nxt_app_t */
+
+typedef struct {
+    nxt_thread_spinlock_t    lock;
+    nxt_queue_t              engines;
+
+    nxt_queue_t              sockets;  /* of nxt_socket_conf_t */
+    nxt_queue_t              apps;     /* of nxt_app_t */
+
+    nxt_router_access_log_t  *access_log;
 } nxt_router_t;
 
 
 typedef struct {
-    uint32_t               count;
-    uint32_t               threads;
-    nxt_router_t           *router;
-    nxt_mp_t               *mem_pool;
+    uint32_t                 count;
+    uint32_t                 threads;
+    nxt_router_t             *router;
+    nxt_mp_t                 *mem_pool;
+
+    nxt_router_access_log_t  *access_log;
 } nxt_router_conf_t;
 
 
@@ -155,6 +162,15 @@ typedef struct {
 
     /* Modules configuraitons. */
 } nxt_socket_conf_joint_t;
+
+
+struct nxt_router_access_log_s {
+    void                   (*handler)(nxt_task_t *task, nxt_http_request_t *r,
+                                      nxt_router_access_log_t *access_log);
+    nxt_fd_t               fd;
+    nxt_str_t              path;
+    uint32_t               count;
+};
 
 
 void nxt_router_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
