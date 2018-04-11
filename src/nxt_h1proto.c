@@ -13,7 +13,7 @@
  * nxt_h1p_request_ prefix is used for HTTP/1 protocol request methods.
  */
 
-static void nxt_h1p_conn_read_header(nxt_task_t *task, void *obj, void *data);
+static ssize_t nxt_h1p_conn_io_read_handler(nxt_conn_t *c);
 static void nxt_h1p_conn_proto_init(nxt_task_t *task, void *obj, void *data);
 static void nxt_h1p_conn_request_init(nxt_task_t *task, void *obj, void *data);
 static void nxt_h1p_conn_header_parse(nxt_task_t *task, void *obj, void *data);
@@ -53,7 +53,6 @@ static nxt_msec_t nxt_h1p_conn_timeout_value(nxt_conn_t *c, uintptr_t data);
 
 
 static const nxt_conn_state_t  nxt_h1p_idle_state;
-static const nxt_conn_state_t  nxt_h1p_proto_init_state;
 static const nxt_conn_state_t  nxt_h1p_header_parse_state;
 static const nxt_conn_state_t  nxt_h1p_read_body_state;
 static const nxt_conn_state_t  nxt_h1p_send_state;
@@ -151,60 +150,53 @@ nxt_http_conn_init(nxt_task_t *task, void *obj, void *data)
 
     c->read_state = &nxt_h1p_idle_state;
 
-    nxt_conn_wait(c);
+    nxt_conn_read(task->thread->engine, c);
 }
 
 
 static const nxt_conn_state_t  nxt_h1p_idle_state
     nxt_aligned(64) =
 {
-    .ready_handler = nxt_h1p_conn_read_header,
-    .close_handler = nxt_h1p_conn_error,
-    .error_handler = nxt_h1p_conn_error,
-
-    .timer_handler = nxt_h1p_conn_timeout,
-    .timer_value = nxt_h1p_conn_timeout_value,
-    .timer_data = offsetof(nxt_socket_conf_t, idle_timeout),
-};
-
-
-static void
-nxt_h1p_conn_read_header(nxt_task_t *task, void *obj, void *data)
-{
-    size_t                   size;
-    nxt_conn_t               *c;
-    nxt_socket_conf_joint_t  *joint;
-
-    c = obj;
-
-    nxt_debug(task, "h1p conn read header");
-
-    joint = c->joint;
-    size = joint->socket_conf->header_buffer_size;
-
-    c->read = nxt_buf_mem_alloc(c->mem_pool, size, 0);
-    if (nxt_slow_path(c->read == NULL)) {
-        nxt_h1p_conn_error(task, c, c->socket.data);
-        return;
-    }
-
-    c->read_state = &nxt_h1p_proto_init_state;
-
-    nxt_conn_read(task->thread->engine, c);
-}
-
-
-static const nxt_conn_state_t  nxt_h1p_proto_init_state
-    nxt_aligned(64) =
-{
     .ready_handler = nxt_h1p_conn_proto_init,
     .close_handler = nxt_h1p_conn_error,
     .error_handler = nxt_h1p_conn_error,
+
+    .io_read_handler = nxt_h1p_conn_io_read_handler,
 
     .timer_handler = nxt_h1p_conn_timeout,
     .timer_value = nxt_h1p_conn_timeout_value,
     .timer_data = offsetof(nxt_socket_conf_t, header_read_timeout),
 };
+
+
+static ssize_t
+nxt_h1p_conn_io_read_handler(nxt_conn_t *c)
+{
+    size_t                   size;
+    ssize_t                  n;
+    nxt_buf_t                *b;
+    nxt_socket_conf_joint_t  *joint;
+
+    joint = c->joint;
+    size = joint->socket_conf->header_buffer_size;
+
+    b = nxt_buf_mem_alloc(c->mem_pool, size, 0);
+    if (nxt_slow_path(b == NULL)) {
+        c->socket.error = NXT_ENOMEM;
+        return NXT_ERROR;
+    }
+
+    n = c->io->recvbuf(c, b);
+
+    if (n > 0) {
+        c->read = b;
+
+    } else {
+        nxt_mp_free(c->mem_pool, b);
+    }
+
+    return n;
+}
 
 
 static void
@@ -1021,9 +1013,9 @@ nxt_h1p_keepalive(nxt_task_t *task, nxt_h1proto_t *h1p, nxt_conn_t *c)
     size = nxt_buf_mem_used_size(&in->mem);
 
     if (size == 0) {
-        in->mem.pos = in->mem.start;
-        in->mem.free = in->mem.start;
+        nxt_mp_free(c->mem_pool, in);
 
+        c->read = NULL;
         c->read_state = &nxt_h1p_keepalive_state;
 
         nxt_conn_read(task->thread->engine, c);
@@ -1047,6 +1039,8 @@ static const nxt_conn_state_t  nxt_h1p_keepalive_state
     .ready_handler = nxt_h1p_conn_request_init,
     .close_handler = nxt_h1p_conn_error,
     .error_handler = nxt_h1p_conn_error,
+
+    .io_read_handler = nxt_h1p_conn_io_read_handler,
 
     .timer_handler = nxt_h1p_conn_timeout,
     .timer_value = nxt_h1p_conn_timeout_value,

@@ -38,7 +38,6 @@ void
 nxt_conn_io_read(nxt_task_t *task, void *obj, void *data)
 {
     ssize_t                 n;
-    nxt_buf_t               *b;
     nxt_conn_t              *c;
     nxt_work_queue_t        *wq;
     nxt_event_engine_t      *engine;
@@ -56,19 +55,17 @@ nxt_conn_io_read(nxt_task_t *task, void *obj, void *data)
 
     if (c->socket.read_ready) {
 
-        b = c->read;
-
-        if (c->peek == 0)  {
-            n = c->io->recvbuf(c, b);
+        if (state->io_read_handler == NULL) {
+            n = c->io->recvbuf(c, c->read);
 
         } else {
-            n = c->io->recv(c, b->mem.free, c->peek, MSG_PEEK);
+            n = state->io_read_handler(c);
         }
 
         if (n > 0) {
             c->nbytes = n;
 
-            nxt_recvbuf_update(b, n);
+            nxt_recvbuf_update(c->read, n);
 
             nxt_fd_event_block_read(engine, &c->socket);
 

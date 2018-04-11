@@ -8,6 +8,7 @@
 #define _NXT_CONN_H_INCLUDED_
 
 
+typedef ssize_t (*nxt_conn_io_read_t)(nxt_conn_t *c);
 typedef nxt_msec_t (*nxt_conn_timer_value_t)(nxt_conn_t *c, uintptr_t data);
 
 
@@ -15,6 +16,8 @@ typedef struct {
     nxt_work_handler_t            ready_handler;
     nxt_work_handler_t            close_handler;
     nxt_work_handler_t            error_handler;
+
+    nxt_conn_io_read_t            io_read_handler;
 
     nxt_work_handler_t            timer_handler;
     nxt_conn_timer_value_t        timer_value;
@@ -160,7 +163,6 @@ struct nxt_conn_s {
     nxt_sockaddr_t                *local;
     const char                    *action;
 
-    uint8_t                       peek;
     uint8_t                       blocked;      /* 1 bit */
     uint8_t                       delayed;      /* 1 bit */
 
