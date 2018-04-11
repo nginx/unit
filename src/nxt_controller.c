@@ -769,6 +769,17 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
     c = req->conn;
     path = req->parser.path;
 
+    if (nxt_str_start(&path, "/config", 7)) {
+
+        if (path.length == 7) {
+            path.length = 1;
+
+        } else if (path.start[7] == '/') {
+            path.length -= 7;
+            path.start += 7;
+        }
+    }
+
     if (path.length > 1 && path.start[path.length - 1] == '/') {
         path.length--;
     }
