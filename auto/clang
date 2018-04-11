@@ -9,7 +9,7 @@
 nxt_feature="C99 variadic macro"
 nxt_feature_name=NXT_HAVE_C99_VARIADIC_MACRO
 nxt_feature_run=yes
-nxt_feature_path=
+nxt_feature_incs=
 nxt_feature_libs=
 nxt_feature_test="#include <stdio.h>
                   #define set(dummy, ...)  sprintf(__VA_ARGS__)
@@ -32,7 +32,7 @@ if [ $nxt_found = no ]; then
     nxt_feature="GCC variadic macro"
     nxt_feature_name=NXT_HAVE_GCC_VARIADIC_MACRO
     nxt_feature_run=yes
-    nxt_feature_path=
+    nxt_feature_incs=
     nxt_feature_libs=
     nxt_feature_test="#include <stdio.h>
                       #define set(dummy, args...)  sprintf(args)
@@ -83,6 +83,7 @@ nxt_feature_incs=
 nxt_feature_libs=
 nxt_feature_test="int main() {
                       __builtin_prefetch(0);
+                      return 0;
                   }"
 . auto/feature
 
@@ -103,7 +104,7 @@ nxt_feature_test="int main() {
 nxt_feature="GCC __attribute__ visibility"
 nxt_feature_name=NXT_HAVE_GCC_ATTRIBUTE_VISIBILITY
 nxt_feature_run=
-nxt_feature_path=
+nxt_feature_incs=
 nxt_feature_libs=
 nxt_feature_test="int n __attribute__ ((visibility(\"default\")));
 
@@ -116,7 +117,7 @@ nxt_feature_test="int n __attribute__ ((visibility(\"default\")));
 nxt_feature="GCC __attribute__ aligned"
 nxt_feature_name=NXT_HAVE_GCC_ATTRIBUTE_ALIGNED
 nxt_feature_run=
-nxt_feature_path=
+nxt_feature_incs=
 nxt_feature_libs=
 nxt_feature_test="int n __attribute__ ((aligned(64)));
 
@@ -129,7 +130,7 @@ nxt_feature_test="int n __attribute__ ((aligned(64)));
 nxt_feature="GCC __attribute__ malloc"
 nxt_feature_name=NXT_HAVE_GCC_ATTRIBUTE_MALLOC
 nxt_feature_run=
-nxt_feature_path=
+nxt_feature_incs=
 nxt_feature_libs=
 nxt_feature_test="#include <stdlib.h>
 
@@ -151,7 +152,7 @@ nxt_feature_test="#include <stdlib.h>
 nxt_feature="GCC __attribute__ packed"
 nxt_feature_name=NXT_HAVE_GCC_ATTRIBUTE_PACKED
 nxt_feature_run=
-nxt_feature_path=
+nxt_feature_incs=
 nxt_feature_libs=
 nxt_feature_test="struct s {
                       char c;

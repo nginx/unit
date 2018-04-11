@@ -259,8 +259,6 @@ if [ $NXT_TESTS = YES ]; then
     nxt_have=NXT_TESTS . auto/have
 fi
 
-NXT_DEPS=" \
-"
 
 NXT_SRCS=" \
     src/nxt_main.c \
