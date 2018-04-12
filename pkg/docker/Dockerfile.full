@@ -2,7 +2,7 @@ FROM debian:stretch-slim
 
 LABEL maintainer="NGINX Docker Maintainers <docker-maint@nginx.com>"
 
-ENV UNIT_VERSION          0.7-1~stretch
+ENV UNIT_VERSION          1.0-1~stretch
 
 RUN set -x \
 	&& apt-get update \
@@ -22,7 +22,7 @@ RUN set -x \
 	test -z "$found" && echo >&2 "error: failed to fetch GPG key $NGINX_GPGKEY" && exit 1; \
 	apt-get remove --purge --auto-remove -y gnupg1 && rm -rf /var/lib/apt/lists/* \
 	&& dpkgArch="$(dpkg --print-architecture)" \
-	&& unitPackages="unit=${UNIT_VERSION} unit-php=${UNIT_VERSION} unit-python2.7=${UNIT_VERSION} unit-python3.5=${UNIT_VERSION} unit-perl=${UNIT_VERSION}" \
+	&& unitPackages="unit=${UNIT_VERSION} unit-php=${UNIT_VERSION} unit-python2.7=${UNIT_VERSION} unit-python3.5=${UNIT_VERSION} unit-perl=${UNIT_VERSION} unit-ruby=${UNIT_VERSION}" \
 	&& case "$dpkgArch" in \
 		amd64|i386) \
 # arches officialy built by upstream
