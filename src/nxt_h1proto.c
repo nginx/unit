@@ -26,7 +26,8 @@ static nxt_int_t nxt_h1p_connection(void *ctx, nxt_http_field_t *field,
 static nxt_int_t nxt_h1p_transfer_encoding(void *ctx, nxt_http_field_t *field,
     uintptr_t data);
 static void nxt_h1p_request_body_read(nxt_task_t *task, nxt_http_request_t *r);
-static void nxt_h1p_conn_body_read(nxt_task_t *task, void *obj, void *data);
+static void nxt_h1p_conn_request_body_read(nxt_task_t *task, void *obj,
+    void *data);
 static void nxt_h1p_request_local_addr(nxt_task_t *task, nxt_http_request_t *r);
 static void nxt_h1p_request_header_send(nxt_task_t *task,
     nxt_http_request_t *r);
@@ -163,7 +164,7 @@ nxt_http_conn_init(nxt_task_t *task, void *obj, void *data)
 
     c->read_state = &nxt_h1p_idle_state;
 
-    nxt_conn_read(task->thread->engine, c);
+    nxt_conn_read(engine, c);
 }
 
 
@@ -569,7 +570,7 @@ error:
 static const nxt_conn_state_t  nxt_h1p_read_body_state
     nxt_aligned(64) =
 {
-    .ready_handler = nxt_h1p_conn_body_read,
+    .ready_handler = nxt_h1p_conn_request_body_read,
     .close_handler = nxt_h1p_conn_request_error,
     .error_handler = nxt_h1p_conn_request_error,
 
@@ -581,30 +582,34 @@ static const nxt_conn_state_t  nxt_h1p_read_body_state
 
 
 static void
-nxt_h1p_conn_body_read(nxt_task_t *task, void *obj, void *data)
+nxt_h1p_conn_request_body_read(nxt_task_t *task, void *obj, void *data)
 {
     size_t              size;
     nxt_conn_t          *c;
     nxt_h1proto_t       *h1p;
     nxt_http_request_t  *r;
+    nxt_event_engine_t  *engine;
 
     c = obj;
     h1p = data;
 
-    nxt_debug(task, "h1p conn body read");
+    nxt_debug(task, "h1p conn request body read");
 
     size = nxt_buf_mem_free_size(&c->read->mem);
 
     nxt_debug(task, "h1p body rest: %uz", size);
 
+    engine = task->thread->engine;
+
     if (size != 0) {
-        nxt_conn_read(task->thread->engine, c);
+        nxt_conn_read(engine, c);
 
     } else {
-        r = h1p->request;
         c->read = NULL;
-        nxt_work_queue_add(&task->thread->engine->fast_work_queue,
-                           r->state->ready_handler, task, r, NULL);
+        r = h1p->request;
+
+        nxt_work_queue_add(&engine->fast_work_queue, r->state->ready_handler,
+                           task, r, NULL);
     }
 }
 
