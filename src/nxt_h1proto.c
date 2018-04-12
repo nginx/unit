@@ -178,7 +178,7 @@ static const nxt_conn_state_t  nxt_h1p_idle_state
 
     .timer_handler = nxt_h1p_conn_timeout,
     .timer_value = nxt_h1p_conn_timeout_value,
-    .timer_data = offsetof(nxt_socket_conf_t, header_read_timeout),
+    .timer_data = offsetof(nxt_socket_conf_t, idle_timeout),
 };
 
 
