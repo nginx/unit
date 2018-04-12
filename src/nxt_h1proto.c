@@ -179,6 +179,7 @@ static const nxt_conn_state_t  nxt_h1p_idle_state
     .timer_handler = nxt_h1p_conn_timeout,
     .timer_value = nxt_h1p_conn_timeout_value,
     .timer_data = offsetof(nxt_socket_conf_t, idle_timeout),
+    .timer_autoreset = 1,
 };
 
 
@@ -307,9 +308,13 @@ nxt_h1p_conn_header_parse(nxt_task_t *task, void *obj, void *data)
 
     ret = nxt_http_parse_request(&h1p->parser, &c->read->mem);
 
-    r = h1p->request;
-
     ret = nxt_expect(NXT_DONE, ret);
+
+    if (ret != NXT_AGAIN) {
+        nxt_timer_disable(task->thread->engine, &c->read_timer);
+    }
+
+    r = h1p->request;
 
     switch (ret) {
 
@@ -1076,6 +1081,7 @@ static const nxt_conn_state_t  nxt_h1p_keepalive_state
     .timer_handler = nxt_h1p_conn_timeout,
     .timer_value = nxt_h1p_conn_timeout_value,
     .timer_data = offsetof(nxt_socket_conf_t, idle_timeout),
+    .timer_autoreset = 1,
 };
 
 
