@@ -1,4 +1,19 @@
 
+Changes with Unit 1.0                                            12 Apr 2018
+
+    *) Change: configuration object moved into "/config/" path.
+
+    *) Feature: basic access logging.
+
+    *) Bugfix: 503 error occurred if Go application did not write response
+       header or body.
+
+    *) Bugfix: Ruby applications that use encoding conversions might not
+       work.
+
+    *) Bugfix: various stability issues.
+
+
 Changes with Unit 0.7                                            22 Mar 2018
 
     *) Feature: Ruby application module.
