@@ -990,7 +990,7 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
             exit(0);
         }
 
-        if (nxt_strcmp(p, "--help") == 0) {
+        if (nxt_strcmp(p, "--help") == 0 || nxt_strcmp(p, "-h") == 0) {
             write(STDOUT_FILENO, help, sizeof(help) - 1);
 
             if (sizeof(NXT_GROUP) == 1) {
@@ -1003,7 +1003,10 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
             exit(0);
         }
 
-        end = nxt_sprintf(buf, buf + sizeof(buf), "unknown option \"%s\"\n", p);
+        end = nxt_sprintf(buf, buf + sizeof(buf), "unknown option \"%s\", "
+                          "try \"%s -h\" for available options\n",
+                          p, nxt_process_argv[0]);
+
         write(STDERR_FILENO, buf, end - buf);
 
         return NXT_ERROR;
