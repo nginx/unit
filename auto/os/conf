@@ -156,7 +156,8 @@ case "$NXT_SYSTEM" in
         NXT_SHARED_LOCAL_LINK="\$(CC) -shared"
         NXT_MODULE_LINK="\$(CC) -shared"
 
-        NXT_EXEC_LINK="\$(CC)"
+        # "-Wl,-E" exports symbols of executable file.
+        NXT_EXEC_LINK="\$(CC) -Wl,-E"
         NXT_SHARED_LOCAL_EXEC_LINK=
 
         NXT_LIB_STATIC="libnxt.a"
