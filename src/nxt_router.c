@@ -1741,7 +1741,7 @@ nxt_router_listen_socket_rpc_create(nxt_task_t *task,
                                            nxt_router_listen_socket_ready,
                                            nxt_router_listen_socket_error,
                                            main_port->pid, rpc);
-    if (stream == 0) {
+    if (nxt_slow_path(stream == 0)) {
         goto fail;
     }
 

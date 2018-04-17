@@ -335,6 +335,10 @@ nxt_controller_conf_send(nxt_task_t *task, nxt_conf_value_t *conf,
                                            handler, handler,
                                            router_port->pid, data);
 
+    if (nxt_slow_path(stream == 0)) {
+        return NXT_ERROR;
+    }
+
     rc = nxt_port_socket_write(task, router_port, NXT_PORT_MSG_DATA_LAST, -1,
                                stream, controller_port->id, b);
 

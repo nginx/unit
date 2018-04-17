@@ -73,6 +73,10 @@ nxt_discovery_start(nxt_task_t *task, void *data)
                                            nxt_discovery_quit,
                                            main_port->pid, NULL);
 
+    if (nxt_slow_path(stream == 0)) {
+        return NXT_ERROR;
+    }
+
     ret = nxt_port_socket_write(task, main_port, NXT_PORT_MSG_MODULES, -1,
                                 stream, discovery_port->id, b);
 
