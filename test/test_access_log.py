@@ -1,6 +1,8 @@
+import os
+import re
+from subprocess import call
 import unittest
 import unit
-import re
 
 class TestUnitAccessLog(unit.TestUnitApplicationPython):
 
@@ -215,6 +217,39 @@ Connection: close
         self.assertIsNotNone(
             self.search_in_log(r'"GET / HTTP/1.1" 200 0 "-" "-"', 'new.log'),
             'change')
+
+    def test_access_log_reopen(self):
+        self.load('empty')
+
+        log_path = self.testdir + '/access.log'
+
+        self.assertTrue(self.waitforfiles(log_path), 'open')
+
+        log_path_new = self.testdir + '/new.log'
+
+        os.rename(log_path, log_path_new)
+
+        self.get()
+
+        self.assertIsNotNone(
+            self.search_in_log(r'"GET / HTTP/1.1" 200 0 "-" "-"', 'new.log'),
+            'rename new')
+        self.assertFalse(os.path.isfile(log_path), 'rename old')
+
+        with open(self.testdir + '/unit.pid', 'r') as f:
+            pid = f.read().rstrip()
+
+        call(['kill', '-s', 'USR1', pid])
+
+        self.assertTrue(self.waitforfiles(log_path), 'reopen')
+
+        self.get(url='/usr1')
+
+        self.assertIsNone(
+            self.search_in_log(r'/usr1', 'new.log'), 'rename new 2')
+        self.assertIsNotNone(
+            self.search_in_log(r'"GET /usr1 HTTP/1.1" 200 0 "-" "-"'),
+            'reopen 2')
 
 if __name__ == '__main__':
     unittest.main()

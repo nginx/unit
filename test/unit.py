@@ -86,7 +86,7 @@ class TestUnit(unittest.TestCase):
         self._p = Process(target=_run_unit)
         self._p.start()
 
-        if not self._waitforfiles(self.testdir + '/unit.pid',
+        if not self.waitforfiles(self.testdir + '/unit.pid',
             self.testdir + '/unit.log', self.testdir + '/control.unit.sock'):
             exit("Could not start unit")
 
@@ -151,10 +151,10 @@ class TestUnit(unittest.TestCase):
         if found:
             print('skipped.')
 
-    def _waitforfiles(self, *files):
+    def waitforfiles(self, *files):
         for i in range(50):
             wait = False
-            ret = 0
+            ret = False
 
             for f in files:
                 if not os.path.exists(f):
@@ -165,7 +165,7 @@ class TestUnit(unittest.TestCase):
                 time.sleep(0.1)
 
             else:
-                ret = 1
+                ret = True
                 break
 
         return ret
