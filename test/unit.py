@@ -102,7 +102,7 @@ class TestUnit(unittest.TestCase):
         with open(self.testdir + '/unit.pid', 'r') as f:
             pid = f.read().rstrip()
 
-        call(['kill', pid])
+        call(['kill', '-s', 'QUIT', pid])
 
         for i in range(50):
             if not os.path.exists(self.testdir + '/unit.pid'):
