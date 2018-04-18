@@ -309,6 +309,7 @@ nxt_router_start_app_process_handler(nxt_task_t *task, nxt_port_t *port,
     size_t         size;
     uint32_t       stream;
     nxt_mp_t       *mp;
+    nxt_int_t      ret;
     nxt_app_t      *app;
     nxt_buf_t      *b;
     nxt_port_t     *main_port;
@@ -339,19 +340,26 @@ nxt_router_start_app_process_handler(nxt_task_t *task, nxt_port_t *port,
                                            -1, app);
 
     if (nxt_slow_path(stream == 0)) {
-        mp = b->data;
-        nxt_mp_free(mp, b);
-        nxt_mp_release(mp);
-
         goto failed;
     }
 
-    nxt_port_socket_write(task, main_port, NXT_PORT_MSG_START_WORKER, -1,
-                          stream, port->id, b);
+    ret = nxt_port_socket_write(task, main_port, NXT_PORT_MSG_START_WORKER, -1,
+                                stream, port->id, b);
+
+    if (nxt_slow_path(ret != NXT_OK)) {
+        nxt_port_rpc_cancel(task, port, stream);
+        goto failed;
+    }
 
     return;
 
 failed:
+
+    if (b != NULL) {
+        mp = b->data;
+        nxt_mp_free(mp, b);
+        nxt_mp_release(mp);
+    }
 
     nxt_thread_mutex_lock(&app->mutex);
 
@@ -1711,6 +1719,7 @@ nxt_router_listen_socket_rpc_create(nxt_task_t *task,
 {
     size_t            size;
     uint32_t          stream;
+    nxt_int_t         ret;
     nxt_buf_t         *b;
     nxt_port_t        *main_port, *router_port;
     nxt_runtime_t     *rt;
@@ -1745,8 +1754,13 @@ nxt_router_listen_socket_rpc_create(nxt_task_t *task,
         goto fail;
     }
 
-    nxt_port_socket_write(task, main_port, NXT_PORT_MSG_SOCKET, -1,
-                          stream, router_port->id, b);
+    ret = nxt_port_socket_write(task, main_port, NXT_PORT_MSG_SOCKET, -1,
+                                stream, router_port->id, b);
+
+    if (nxt_slow_path(ret != NXT_OK)) {
+        nxt_port_rpc_cancel(task, router_port, stream);
+        goto fail;
+    }
 
     return;
 
@@ -1858,6 +1872,7 @@ nxt_router_app_rpc_create(nxt_task_t *task,
 {
     size_t         size;
     uint32_t       stream;
+    nxt_int_t      ret;
     nxt_buf_t      *b;
     nxt_port_t     *main_port, *router_port;
     nxt_runtime_t  *rt;
@@ -1896,10 +1911,15 @@ nxt_router_app_rpc_create(nxt_task_t *task,
         goto fail;
     }
 
-    app->pending_processes++;
+    ret = nxt_port_socket_write(task, main_port, NXT_PORT_MSG_START_WORKER, -1,
+                                stream, router_port->id, b);
 
-    nxt_port_socket_write(task, main_port, NXT_PORT_MSG_START_WORKER, -1,
-                          stream, router_port->id, b);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        nxt_port_rpc_cancel(task, router_port, stream);
+        goto fail;
+    }
+
+    app->pending_processes++;
 
     return;
 
@@ -2802,6 +2822,7 @@ static void
 nxt_router_access_log_open(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
 {
     uint32_t                 stream;
+    nxt_int_t                ret;
     nxt_buf_t                *b;
     nxt_port_t               *main_port, *router_port;
     nxt_runtime_t            *rt;
@@ -2829,8 +2850,13 @@ nxt_router_access_log_open(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
         goto fail;
     }
 
-    nxt_port_socket_write(task, main_port, NXT_PORT_MSG_ACCESS_LOG, -1,
-                          stream, router_port->id, b);
+    ret = nxt_port_socket_write(task, main_port, NXT_PORT_MSG_ACCESS_LOG, -1,
+                                stream, router_port->id, b);
+
+    if (nxt_slow_path(ret != NXT_OK)) {
+        nxt_port_rpc_cancel(task, router_port, stream);
+        goto fail;
+    }
 
     return;
 
