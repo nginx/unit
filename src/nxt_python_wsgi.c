@@ -35,9 +35,13 @@
 
 
 #if PY_MAJOR_VERSION == 3
+#define NXT_PYTHON_BYTES_TYPE       "bytestring"
+
 #define PyString_FromString         PyUnicode_FromString
 #define PyString_FromStringAndSize  PyUnicode_FromStringAndSize
 #else
+#define NXT_PYTHON_BYTES_TYPE       "string"
+
 #define PyBytes_FromString          PyString_FromString
 #define PyBytes_FromStringAndSize   PyString_FromStringAndSize
 #define PyBytes_Check               PyString_Check
@@ -69,6 +73,7 @@ static PyObject *nxt_python_get_environ(nxt_task_t *task,
                       nxt_app_rmsg_t *rmsg, nxt_python_run_ctx_t *ctx);
 
 static PyObject *nxt_py_start_resp(PyObject *self, PyObject *args);
+static PyObject *nxt_py_write(PyObject *self, PyObject *args);
 
 static void nxt_py_input_dealloc(nxt_py_input_t *self);
 static PyObject *nxt_py_input_read(nxt_py_input_t *self, PyObject *args);
@@ -109,6 +114,11 @@ NXT_EXPORT nxt_application_module_t  nxt_app_module = {
 
 static PyMethodDef nxt_py_start_resp_method[] = {
     {"unit_start_response", nxt_py_start_resp, METH_VARARGS, ""}
+};
+
+
+static PyMethodDef nxt_py_write_method[] = {
+    {"unit_write", nxt_py_write, METH_O, ""}
 };
 
 
@@ -176,6 +186,7 @@ static PyTypeObject nxt_py_input_type = {
 
 static PyObject           *nxt_py_application;
 static PyObject           *nxt_py_start_resp_obj;
+static PyObject           *nxt_py_write_obj;
 static PyObject           *nxt_py_environ_ptyp;
 
 #if PY_MAJOR_VERSION == 3
@@ -262,6 +273,15 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     }
 
     nxt_py_start_resp_obj = obj;
+
+    obj = PyCFunction_New(nxt_py_write_method, NULL);
+
+    if (nxt_slow_path(obj == NULL)) {
+        nxt_alert(task, "Python failed to initialize the \"write\" function");
+        goto fail;
+    }
+
+    nxt_py_write_obj = obj;
 
     obj = nxt_python_create_environ(task);
 
@@ -456,6 +476,7 @@ nxt_python_atexit(nxt_task_t *task)
 {
     Py_DECREF(nxt_py_application);
     Py_DECREF(nxt_py_start_resp_obj);
+    Py_DECREF(nxt_py_write_obj);
     Py_DECREF(nxt_py_environ_ptyp);
 
     Py_Finalize();
@@ -845,7 +866,32 @@ nxt_py_start_resp(PyObject *self, PyObject *args)
     /* flush headers */
     nxt_python_write(ctx, cr_lf, sizeof(cr_lf) - 1, 1, 0);
 
-    return args;
+    Py_INCREF(nxt_py_write_obj);
+    return nxt_py_write_obj;
+}
+
+
+static PyObject *
+nxt_py_write(PyObject *self, PyObject *str)
+{
+    nxt_int_t  rc;
+
+    if (nxt_fast_path(!PyBytes_Check(str))) {
+        return PyErr_Format(PyExc_TypeError, "the argument is not a %s",
+                            NXT_PYTHON_BYTES_TYPE);
+    }
+
+    rc = nxt_app_msg_write_raw(nxt_python_run_ctx->task,
+                               nxt_python_run_ctx->wmsg,
+                               (const u_char *) PyBytes_AS_STRING(str),
+                               PyBytes_GET_SIZE(str));
+
+    if (nxt_slow_path(rc != NXT_OK)) {
+        return PyErr_Format(PyExc_RuntimeError,
+                            "failed to write response value");
+    }
+
+    Py_RETURN_NONE;
 }
 
 
