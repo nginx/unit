@@ -220,6 +220,8 @@ static void nxt_router_access_log_error(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
 static void nxt_router_access_log_release(nxt_task_t *task,
     nxt_thread_spinlock_t *lock, nxt_router_access_log_t *access_log);
+static void nxt_router_access_log_reopen_completion(nxt_task_t *task, void *obj,
+    void *data);
 static void nxt_router_access_log_reopen_ready(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
 static void nxt_router_access_log_reopen_error(nxt_task_t *task,
@@ -2965,6 +2967,8 @@ nxt_router_access_log_reopen_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         goto fail;
     }
 
+    b->completion_handler = nxt_router_access_log_reopen_completion;
+
     nxt_buf_cpystr(b, &access_log->path);
     *b->mem.free++ = '\0';
 
@@ -2988,11 +2992,26 @@ nxt_router_access_log_reopen_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         goto fail;
     }
 
+    nxt_mp_retain(mp);
+
     return;
 
 fail:
 
     nxt_mp_destroy(mp);
+}
+
+
+static void
+nxt_router_access_log_reopen_completion(nxt_task_t *task, void *obj, void *data)
+{
+    nxt_mp_t   *mp;
+    nxt_buf_t  *b;
+
+    b = obj;
+    mp = b->data;
+
+    nxt_mp_release(mp);
 }
 
 
@@ -3016,7 +3035,7 @@ nxt_router_access_log_reopen_ready(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     }
 
     nxt_fd_close(msg->fd);
-    nxt_mp_destroy(reopen->mem_pool);
+    nxt_mp_release(reopen->mem_pool);
 }
 
 
@@ -3028,7 +3047,7 @@ nxt_router_access_log_reopen_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
     reopen = data;
 
-    nxt_mp_destroy(reopen->mem_pool);
+    nxt_mp_release(reopen->mem_pool);
 }
 
 
