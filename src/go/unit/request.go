@@ -11,6 +11,7 @@ package unit
 import "C"
 
 import (
+	"io"
 	"net/http"
 	"net/url"
 	"unsafe"
@@ -24,10 +25,14 @@ type request struct {
 }
 
 func (r *request) Read(p []byte) (n int, err error) {
-	c := C.size_t(cap(p))
+	c := C.size_t(len(p))
 	b := C.uintptr_t(uintptr(unsafe.Pointer(&p[0])))
 
 	res := C.nxt_go_request_read(r.c_req, b, c)
+
+	if res == 0 && len(p) > 0 {
+		return 0, io.EOF
+	}
 
 	return int(res), nil
 }
