@@ -239,7 +239,7 @@ nxt_discovery_module(nxt_task_t *task, nxt_mp_t *mp, nxt_array_t *modules,
                 nxt_log(task, NXT_LOG_NOTICE,
                         "ignoring %s module with the same "
                         "application language version %V %V as in %V",
-                        name, &app->type, version, &module[i].file);
+                        name, &app->type, &version, &module[i].file);
 
                 goto done;
             }
