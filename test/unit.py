@@ -95,9 +95,6 @@ class TestUnit(unittest.TestCase):
         self.skip_alerts = [r'read signalfd\(4\) failed']
         self.skip_sanitizer = False
 
-        if self.architecture == '32bit':
-            self.skip_alerts.append(r'freed pointer points to non-freeble page')
-
     def _stop(self):
         with open(self.testdir + '/unit.pid', 'r') as f:
             pid = f.read().rstrip()
