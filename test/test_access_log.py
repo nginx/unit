@@ -1,5 +1,6 @@
 import os
 import re
+import time
 from subprocess import call
 import unittest
 import unit
@@ -27,6 +28,8 @@ class TestUnitAccessLog(unit.TestUnitApplicationPython):
             'Host': 'localhost'
         }, start=True, body='01234')
 
+        time.sleep(0.2)
+
         self.assertIsNotNone(
             self.search_in_log(r'"POST / HTTP/1.1" 200 5'), 'keepalive 1')
 
@@ -35,6 +38,8 @@ class TestUnitAccessLog(unit.TestUnitApplicationPython):
             'Content-Type': 'text/html',
             'Host': 'localhost'
         }, sock=sock, body='0123456789')
+
+        time.sleep(0.2)
 
         self.stop()
 
@@ -59,6 +64,8 @@ Connection: close
 
 """, raw_resp=True, raw=True)
 
+        time.sleep(0.2)
+
         self.stop()
 
         self.assertIsNotNone(
@@ -82,6 +89,8 @@ Connection: close
 
         self.get(sock_type='ipv6')
 
+        time.sleep(0.2)
+
         self.stop()
 
         self.assertIsNotNone(
@@ -96,6 +105,8 @@ Connection: close
             'Referer': 'referer-value',
             'Connection': 'close'
         })
+
+        time.sleep(0.2)
 
         self.stop()
 
@@ -112,6 +123,8 @@ Connection: close
             'Connection': 'close'
         })
 
+        time.sleep(0.2)
+
         self.stop()
 
         self.assertIsNotNone(
@@ -122,6 +135,8 @@ Connection: close
         self.load('empty')
 
         self.get(http_10=True)
+
+        time.sleep(0.2)
 
         self.stop()
 
@@ -134,6 +149,8 @@ Connection: close
 
         self.http(b"""GE""", raw_resp=True, raw=True)
 
+        time.sleep(0.2)
+
         self.stop()
 
         self.assertIsNotNone(
@@ -143,6 +160,8 @@ Connection: close
         self.load('empty')
 
         self.http(b"""GET /\n""", raw_resp=True, raw=True)
+
+        time.sleep(0.2)
 
         self.stop()
 
@@ -154,6 +173,8 @@ Connection: close
 
         self.http(b"""GET / HTTP/1.1""", raw_resp=True, raw=True)
 
+        time.sleep(0.2)
+
         self.stop()
 
         self.assertIsNotNone(
@@ -163,6 +184,8 @@ Connection: close
         self.load('empty')
 
         resp = self.http(b"""GET / HTTP/1.1\n""", raw_resp=True, raw=True)
+
+        time.sleep(0.2)
 
         self.stop()
 
@@ -185,6 +208,8 @@ Connection: close
 
         self.get(url='/?blah&var=val')
 
+        time.sleep(0.2)
+
         self.stop()
 
         self.assertIsNotNone(
@@ -199,6 +224,8 @@ Connection: close
 
         self.get(url='/delete')
 
+        time.sleep(0.2)
+
         self.stop()
 
         self.assertIsNone(self.search_in_log(r'/delete'), 'delete')
@@ -211,6 +238,8 @@ Connection: close
         self.conf('"' + self.testdir + '/new.log"', '/access_log')
 
         self.get()
+
+        time.sleep(0.2)
 
         self.stop()
 
@@ -231,6 +260,8 @@ Connection: close
 
         self.get()
 
+        time.sleep(0.2)
+
         self.assertIsNotNone(
             self.search_in_log(r'"GET / HTTP/1.1" 200 0 "-" "-"', 'new.log'),
             'rename new')
@@ -244,6 +275,8 @@ Connection: close
         self.assertTrue(self.waitforfiles(log_path), 'reopen')
 
         self.get(url='/usr1')
+
+        time.sleep(0.2)
 
         self.assertIsNone(
             self.search_in_log(r'/usr1', 'new.log'), 'rename new 2')
