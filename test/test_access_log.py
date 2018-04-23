@@ -97,6 +97,26 @@ Connection: close
             self.search_in_log(
                 r'::1 - - \[.+\] "GET / HTTP/1.1" 200 0 "-" "-"'), 'ipv6')
 
+    def test_access_log_unix(self):
+        self.load('empty')
+
+        addr = self.testdir + '/sock'
+
+        self.conf({
+            "unix:" + addr: {
+                "application": "empty"
+            }
+        }, '/listeners')
+
+        self.get(sock_type='unix', addr=addr)
+
+        time.sleep(0.2)
+
+        self.stop()
+
+        self.assertIsNotNone(self.search_in_log(
+            r'unix: - - \[.+\] "GET / HTTP/1.1" 200 0 "-" "-"'), 'unix')
+
     def test_access_log_referer(self):
         self.load('empty')
 
