@@ -6,7 +6,7 @@ After=network-online.target
 [Service]
 Type=forking
 PIDFile=/run/unit.pid
-EnvironmentFile=-/etc/sysconfig/unitd
+EnvironmentFile=-/etc/sysconfig/unit
 ExecStart=/usr/sbin/unitd $UNITD_OPTIONS
 ExecReload=
 
