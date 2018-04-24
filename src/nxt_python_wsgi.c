@@ -202,8 +202,17 @@ static nxt_int_t
 nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 {
     char                   *nxt_py_module;
+    size_t                 len;
     PyObject               *obj, *pypath, *module;
     nxt_python_app_conf_t  *c;
+#if PY_MAJOR_VERSION == 3
+    char                   *path;
+    size_t                 size;
+    nxt_int_t              pep405;
+
+    static const char pyvenv[] = "pyvenv.cfg";
+    static const char bin_python[] = "/bin/python";
+#endif
 
     c = &conf->u.python;
 
@@ -213,23 +222,56 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     }
 
     if (c->home != NULL) {
-        size_t  len;
-
         len = nxt_strlen(c->home);
 
-        nxt_py_home = nxt_malloc(sizeof(*nxt_py_home) * (len + 1));
-        if (nxt_slow_path(nxt_py_home == NULL)) {
-            nxt_alert(task, "Failed to allocate buffer for home path");
+#if PY_MAJOR_VERSION == 3
+
+        path = nxt_malloc(len + sizeof(pyvenv));
+        if (nxt_slow_path(path == NULL)) {
+            nxt_alert(task, "Failed to allocate memory");
             return NXT_ERROR;
         }
 
-#if PY_MAJOR_VERSION == 3
-        mbstowcs(nxt_py_home, c->home, len + 1);
-#else
-        nxt_memcpy(nxt_py_home, c->home, len + 1);
-#endif
+        nxt_memcpy(path, c->home, len);
+        nxt_memcpy(path + len, pyvenv, sizeof(pyvenv));
 
+        pep405 = (access(path, R_OK) == 0);
+
+        nxt_free(path);
+
+        if (pep405) {
+            size = (len + sizeof(bin_python)) * sizeof(wchar_t);
+
+        } else {
+            size = (len + 1) * sizeof(wchar_t);
+        }
+
+        nxt_py_home = nxt_malloc(size);
+        if (nxt_slow_path(nxt_py_home == NULL)) {
+            nxt_alert(task, "Failed to allocate memory");
+            return NXT_ERROR;
+        }
+
+        if (pep405) {
+            mbstowcs(nxt_py_home, c->home, len);
+            mbstowcs(nxt_py_home + len, bin_python, sizeof(bin_python));
+            Py_SetProgramName(nxt_py_home);
+
+        } else {
+            mbstowcs(nxt_py_home, c->home, len + 1);
+            Py_SetPythonHome(nxt_py_home);
+        }
+
+#else
+        nxt_py_home = nxt_malloc(len + 1);
+        if (nxt_slow_path(nxt_py_home == NULL)) {
+            nxt_alert(task, "Failed to allocate memory");
+            return NXT_ERROR;
+        }
+
+        nxt_memcpy(nxt_py_home, c->home, len + 1);
         Py_SetPythonHome(nxt_py_home);
+#endif
     }
 
     Py_InitializeEx(0);
