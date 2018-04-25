@@ -210,7 +210,7 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     size_t                 size;
     nxt_int_t              pep405;
 
-    static const char pyvenv[] = "pyvenv.cfg";
+    static const char pyvenv[] = "/pyvenv.cfg";
     static const char bin_python[] = "/bin/python";
 #endif
 
