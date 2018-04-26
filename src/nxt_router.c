@@ -100,6 +100,9 @@ struct nxt_port_select_state_s {
 
 typedef struct nxt_port_select_state_s nxt_port_select_state_t;
 
+static void nxt_router_greet_controller(nxt_task_t *task,
+    nxt_port_t *controller_port);
+
 static void nxt_router_port_select(nxt_task_t *task,
     nxt_port_select_state_t *state);
 
@@ -275,10 +278,24 @@ static nxt_app_prepare_msg_t  nxt_app_prepare_msg[] = {
 };
 
 
+nxt_port_handlers_t  nxt_router_process_port_handlers = {
+    .quit         = nxt_worker_process_quit_handler,
+    .new_port     = nxt_router_new_port_handler,
+    .change_file  = nxt_port_change_log_file_handler,
+    .mmap         = nxt_port_mmap_handler,
+    .data         = nxt_router_conf_data_handler,
+    .remove_pid   = nxt_router_remove_pid_handler,
+    .access_log   = nxt_router_access_log_reopen_handler,
+    .rpc_ready    = nxt_port_rpc_handler,
+    .rpc_error    = nxt_port_rpc_handler,
+};
+
+
 nxt_int_t
 nxt_router_start(nxt_task_t *task, void *data)
 {
     nxt_int_t      ret;
+    nxt_port_t     *controller_port;
     nxt_router_t   *router;
     nxt_runtime_t  *rt;
 
@@ -300,7 +317,20 @@ nxt_router_start(nxt_task_t *task, void *data)
 
     nxt_router = router;
 
+    controller_port = rt->port_by_type[NXT_PROCESS_CONTROLLER];
+    if (controller_port != NULL) {
+        nxt_router_greet_controller(task, controller_port);
+    }
+
     return NXT_OK;
+}
+
+
+static void
+nxt_router_greet_controller(nxt_task_t *task, nxt_port_t *controller_port)
+{
+    nxt_port_socket_write(task, controller_port, NXT_PORT_MSG_PROCESS_READY,
+                          -1, 0, 0, NULL);
 }
 
 
@@ -748,6 +778,10 @@ void
 nxt_router_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
     nxt_port_new_port_handler(task, msg);
+
+    if (msg->u.new_port->type == NXT_PROCESS_CONTROLLER) {
+        nxt_router_greet_controller(task, msg->u.new_port);
+    }
 
     if (msg->port_msg.stream == 0) {
         return;

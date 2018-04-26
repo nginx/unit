@@ -30,19 +30,6 @@ nxt_port_handlers_t  nxt_app_process_port_handlers = {
 };
 
 
-nxt_port_handlers_t  nxt_router_process_port_handlers = {
-    .quit         = nxt_worker_process_quit_handler,
-    .new_port     = nxt_router_new_port_handler,
-    .change_file  = nxt_port_change_log_file_handler,
-    .mmap         = nxt_port_mmap_handler,
-    .data         = nxt_router_conf_data_handler,
-    .remove_pid   = nxt_router_remove_pid_handler,
-    .access_log   = nxt_router_access_log_reopen_handler,
-    .rpc_ready    = nxt_port_rpc_handler,
-    .rpc_error    = nxt_port_rpc_handler,
-};
-
-
 nxt_port_handlers_t  nxt_discovery_process_port_handlers = {
     .quit         = nxt_worker_process_quit_handler,
     .new_port     = nxt_port_new_port_handler,
