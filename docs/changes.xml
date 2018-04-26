@@ -48,7 +48,7 @@ basic access logging.
 
 <change type="bugfix">
 <para>
-Ruby applications that use encoding conversions might not work.
+Ruby applications that use encoding conversions might not have worked.
 </para>
 </change>
 
@@ -129,8 +129,8 @@ outside of WSGI callable.
 
 <change type="bugfix">
 <para>
-a segmentation fault might occur in PHP module if there was an error while
-initialization.
+a segmentation fault might have occurred in PHP module if there was an error
+while initialization.
 </para>
 </change>
 
@@ -231,7 +231,7 @@ in reading client request body; the bug had appeared in 0.3.
 
 <change type="bugfix">
 <para>
-some Python applications might not work due to missing
+some Python applications might not have worked due to missing
 "wsgi.errors" environ variable.
 </para>
 </change>
@@ -307,7 +307,7 @@ the bug had appeared in 0.3.
 
 <change type="bugfix">
 <para>
-some PHP applications might not work with relative "root" path.
+some PHP applications might not have worked with relative "root" path.
 </para>
 </change>
 
