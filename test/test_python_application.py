@@ -238,5 +238,10 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
             r'\[error\].+the application returned not an iterable object'),
             'not iterable')
 
+    def test_python_application_write(self):
+        self.load('write')
+
+        self.assertEqual(self.get()['body'], '0123456789', 'write')
+
 if __name__ == '__main__':
     unittest.main()
