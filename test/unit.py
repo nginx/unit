@@ -259,17 +259,21 @@ class TestUnitHTTP(TestUnit):
         return self.http('PUT', **kwargs)
 
     def _recvall(self, sock, buff_size=4096):
-        data = ''
+        data = b''
         while select.select([sock], [], [], 1)[0]:
-            part = sock.recv(buff_size).decode()
+            part = sock.recv(buff_size)
             data += part
-            if part is '':
+            if not len(part):
                 break
 
-        return data
+        return data.decode()
 
     def _resp_to_dict(self, resp):
         m = re.search('(.*?\x0d\x0a?)\x0d\x0a?(.*)', resp, re.M | re.S)
+
+        if not m:
+            return {}
+
         headers_text, body = m.group(1), m.group(2)
 
         p = re.compile('(.*?)\x0d\x0a?', re.M | re.S)

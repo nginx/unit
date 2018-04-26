@@ -230,7 +230,7 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
     def test_python_application_not_iterable(self):
         self.load('not_iterable')
 
-        self.get(raw_resp=True)
+        self.get()
 
         self.stop()
 

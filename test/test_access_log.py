@@ -167,7 +167,7 @@ Connection: close
     def test_access_log_partial(self):
         self.load('empty')
 
-        self.http(b"""GE""", raw_resp=True, raw=True)
+        self.http(b"""GE""", raw=True)
 
         time.sleep(0.2)
 
@@ -179,7 +179,7 @@ Connection: close
     def test_access_log_partial_2(self):
         self.load('empty')
 
-        self.http(b"""GET /\n""", raw_resp=True, raw=True)
+        self.http(b"""GET /\n""", raw=True)
 
         time.sleep(0.2)
 
@@ -191,7 +191,7 @@ Connection: close
     def test_access_log_partial_3(self):
         self.load('empty')
 
-        self.http(b"""GET / HTTP/1.1""", raw_resp=True, raw=True)
+        self.http(b"""GET / HTTP/1.1""", raw=True)
 
         time.sleep(0.2)
 
@@ -203,7 +203,7 @@ Connection: close
     def test_access_log_partial_4(self):
         self.load('empty')
 
-        resp = self.http(b"""GET / HTTP/1.1\n""", raw_resp=True, raw=True)
+        resp = self.http(b"""GET / HTTP/1.1\n""", raw=True)
 
         time.sleep(0.2)
 
@@ -216,7 +216,7 @@ Connection: close
     def test_access_log_partial_5(self):
         self.load('empty')
 
-        self.http(b"""GET / HTTP/1.1\n\n""", raw_resp=True, raw=True)
+        self.http(b"""GET / HTTP/1.1\n\n""", raw=True)
 
         self.stop()
 
