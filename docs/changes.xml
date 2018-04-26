@@ -11,6 +11,83 @@
                 unit-go unit-go1.7 unit-go1.8 unit-go1.9
                 unit-perl
                 unit-ruby"
+         ver="1.1" rev="1"
+         date="2018-04-26" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.1.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.1" rev="1"
+         date="2018-04-26" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="bugfix">
+<para>
+Python applications that use the write() callable did not work.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+virtual environments created with Python 3.3 or above might not have worked.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the request.Read() function in Go applications did not produce EOF
+when the whole body was read.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a segmentation fault might have occurred while access log reopening.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+in parsing of IPv6 control socket addresses.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+loading of application modules was broken on OpenBSD.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a segmentation fault might have occurred when there were two modules
+with the same type and version; the bug had appeared in 1.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+alerts "freed pointer points to non-freeble page" might have appeared in log
+on 32-bit platforms.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9
+                unit-perl
+                unit-ruby"
          ver="1.0" rev="1"
          date="2018-04-12" time="18:00:00 +0300"
          packager="Andrei Belov &lt;defan@nginx.com&gt;">
