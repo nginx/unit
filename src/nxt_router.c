@@ -779,7 +779,9 @@ nxt_router_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
     nxt_port_new_port_handler(task, msg);
 
-    if (msg->u.new_port->type == NXT_PROCESS_CONTROLLER) {
+    if (msg->u.new_port != NULL
+        && msg->u.new_port->type == NXT_PROCESS_CONTROLLER)
+    {
         nxt_router_greet_controller(task, msg->u.new_port);
     }
 
