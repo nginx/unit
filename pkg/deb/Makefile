@@ -17,6 +17,17 @@ BUILD_DEPENDS = $(BUILD_DEPENDS_unit)
 
 MODULES=
 
+# Ubuntu 18.04
+ifeq ($(CODENAME),bionic)
+include Makefile.php
+include Makefile.python27
+include Makefile.python36
+include Makefile.go19
+include Makefile.go110
+include Makefile.perl
+include Makefile.ruby
+endif
+
 # Ubuntu 17.10
 ifeq ($(CODENAME),artful)
 include Makefile.php
