@@ -1,1 +1,1 @@
-UNITD_OPTIONS="--log /var/log/unitd.log --pid /run/unitd.pid"
+UNITD_OPTIONS="--log /var/log/unit.log --pid /run/unit.pid"
