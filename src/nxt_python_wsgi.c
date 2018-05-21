@@ -541,6 +541,24 @@ nxt_python_create_environ(nxt_task_t *task)
         return NULL;
     }
 
+    obj = PyString_FromStringAndSize((char *) nxt_server.start,
+                                     nxt_server.length);
+    if (nxt_slow_path(obj == NULL)) {
+        nxt_alert(task,
+              "Python failed to create the \"SERVER_SOFTWARE\" environ value");
+        goto fail;
+    }
+
+    if (nxt_slow_path(PyDict_SetItemString(environ, "SERVER_SOFTWARE", obj)
+        != 0))
+    {
+        nxt_alert(task,
+                  "Python failed to set the \"SERVER_SOFTWARE\" environ value");
+        goto fail;
+    }
+
+    Py_DECREF(obj);
+
     obj = Py_BuildValue("(ii)", 1, 0);
 
     if (nxt_slow_path(obj == NULL)) {

@@ -668,6 +668,8 @@ nxt_php_register_variables(zval *track_vars_array TSRMLS_DC)
     php_register_variable_safe((char *) (n), (char *) (v).start,              \
                                (v).length, track_vars_array TSRMLS_CC)        \
 
+    NXT_PHP_SET("SERVER_SOFTWARE", nxt_server);
+
     NXT_PHP_SET("SERVER_PROTOCOL", h->version);
 
 /*

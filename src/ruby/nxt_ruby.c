@@ -272,6 +272,11 @@ nxt_ruby_rack_env_create(VALUE arg)
     VALUE  hash_env, version;
 
     hash_env = rb_hash_new();
+
+    rb_hash_aset(hash_env, rb_str_new2("SERVER_SOFTWARE"),
+                 rb_str_new((const char *) nxt_server.start,
+                            (long) nxt_server.length));
+
     version = rb_ary_new();
 
     rb_ary_push(version, UINT2NUM(NXT_RUBY_RACK_API_VERSION_MAJOR));

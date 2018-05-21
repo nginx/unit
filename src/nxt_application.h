@@ -307,6 +307,7 @@ nxt_app_msg_read_length(u_char *src, size_t *length)
 nxt_app_lang_module_t *nxt_app_lang_module(nxt_runtime_t *rt, nxt_str_t *name);
 nxt_app_type_t nxt_app_parse_type(u_char *p, size_t length);
 
+NXT_EXPORT extern nxt_str_t      nxt_server;
 extern nxt_application_module_t  nxt_go_module;
 
 

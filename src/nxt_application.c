@@ -41,6 +41,9 @@ static uint32_t  compat[] = {
 };
 
 
+nxt_str_t  nxt_server = nxt_string(NXT_SERVER);
+
+
 static nxt_thread_mutex_t        nxt_app_mutex;
 static nxt_thread_cond_t         nxt_app_cond;
 

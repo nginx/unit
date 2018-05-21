@@ -14,6 +14,7 @@
 #define NXT_VERSION                  "1.2"
 #define NXT_VERNUM                   10200
 
+#define NXT_SERVER                   "Unit/" NXT_VERSION
 
 typedef struct nxt_port_s            nxt_port_t;
 typedef struct nxt_task_s            nxt_task_t;

@@ -297,7 +297,7 @@ nxt_http_request_header_send(nxt_task_t *task, nxt_http_request_t *r)
         goto fail;
     }
 
-    nxt_http_field_set(server, "Server", "Unit/" NXT_VERSION);
+    nxt_http_field_set(server, "Server", NXT_SERVER);
 
     if (r->resp.date == NULL) {
         date = nxt_list_zero_add(r->resp.fields);

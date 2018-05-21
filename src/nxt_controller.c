@@ -1265,7 +1265,7 @@ nxt_controller_response(nxt_task_t *task, nxt_controller_request_t *req,
     body->mem.free = nxt_cpymem(body->mem.free, "\r\n", 2);
 
     size = sizeof("HTTP/1.1 " "\r\n") - 1 + status_line.length
-           + sizeof("Server: Unit/" NXT_VERSION "\r\n") - 1
+           + sizeof("Server: " NXT_SERVER "\r\n") - 1
            + sizeof("Date: Wed, 31 Dec 1986 16:40:00 GMT\r\n") - 1
            + sizeof("Content-Type: application/json\r\n") - 1
            + sizeof("Content-Length: " "\r\n") - 1 + NXT_SIZE_T_LEN
@@ -1287,7 +1287,7 @@ nxt_controller_response(nxt_task_t *task, nxt_controller_request_t *req,
                              status_line.length);
 
     nxt_str_set(&str, "\r\n"
-                      "Server: Unit/" NXT_VERSION "\r\n"
+                      "Server: " NXT_SERVER "\r\n"
                       "Date: ");
 
     b->mem.free = nxt_cpymem(b->mem.free, str.start, str.length);

@@ -596,6 +596,9 @@ nxt_perl_psgi_env_create(PerlInterpreter *my_perl, nxt_task_t *task,
     RC(nxt_perl_psgi_read_add_env(my_perl, task, rmsg,           \
         hash_env, ATTR, &str))
 
+    RC(nxt_perl_psgi_env_append_str(my_perl, hash_env,
+                                    "SERVER_SOFTWARE", &nxt_server));
+
     GET_STR("REQUEST_METHOD");
     GET_STR("REQUEST_URI");
 
