@@ -19,8 +19,10 @@ class TestUnitRubyApplication(unit.TestUnitApplicationRuby):
 
         self.assertEqual(resp['status'], 200, 'status')
         headers = resp['headers']
-        self.assertRegex(headers.pop('Server'), r'Unit/[\d\.]+',
-            'server header')
+        header_server = headers.pop('Server')
+        self.assertRegex(header_server, r'Unit/[\d\.]+', 'server header')
+        self.assertEqual(headers.pop('Server-Software'), header_server,
+            'server software header')
 
         date = headers.pop('Date')
         self.assertEqual(date[-4:], ' GMT', 'date header timezone')

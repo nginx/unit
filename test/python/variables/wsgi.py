@@ -10,6 +10,7 @@ def application(environ, start_response):
         ('Request-Uri', environ.get('REQUEST_URI')),
         ('Http-Host', environ.get('HTTP_HOST')),
         ('Server-Protocol', environ.get('SERVER_PROTOCOL')),
+        ('Server-Software', environ.get('SERVER_SOFTWARE')),
         ('Custom-Header', environ.get('HTTP_CUSTOM_HEADER')),
         ('Wsgi-Version', str(environ['wsgi.version'])),
         ('Wsgi-Url-Scheme', environ['wsgi.url_scheme']),

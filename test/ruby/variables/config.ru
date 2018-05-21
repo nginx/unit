@@ -9,6 +9,7 @@ app = Proc.new do |env|
         'Request-Uri' => env['REQUEST_URI'],
         'Http-Host' => env['HTTP_HOST'],
         'Server-Protocol' => env['SERVER_PROTOCOL'],
+        'Server-Software' => env['SERVER_SOFTWARE'],
         'Custom-Header' => env['HTTP_CUSTOM_HEADER'],
         'Rack-Version' => version,
         'Rack-Url-Scheme' => env['rack.url_scheme'],

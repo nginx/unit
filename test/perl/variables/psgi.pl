@@ -13,6 +13,7 @@ my $app = sub {
         'Request-Uri' => $environ->{'REQUEST_URI'},
         'Http-Host' => $environ->{'HTTP_HOST'},
         'Server-Protocol' => $environ->{'SERVER_PROTOCOL'},
+        'Server-Software' => $environ->{'SERVER_SOFTWARE'},
         'Custom-Header' => $environ->{'HTTP_CUSTOM_HEADER'},
         'Psgi-Version' => $version,
         'Psgi-Url-Scheme' => $environ->{'psgi.url_scheme'},
