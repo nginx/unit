@@ -382,6 +382,24 @@ class TestUnitApplicationRuby(TestUnitApplicationProto):
             }
         })
 
+class TestUnitApplicationPHP(TestUnitApplicationProto):
+    def load(self, script, name='index.php'):
+        self.conf({
+            "listeners": {
+                "*:7080": {
+                    "application": script
+                }
+            },
+            "applications": {
+                script: {
+                    "type": "php",
+                    "processes": { "spare": 0 },
+                    "root": self.current_dir + '/php/' + script,
+                    "index": name
+                }
+            }
+        })
+
 class TestUnitApplicationPerl(TestUnitApplicationProto):
     def load(self, script, name='psgi.pl'):
         self.conf({
