@@ -62,9 +62,13 @@ nxt_random_stir(nxt_random_t *r)
 
 #if (NXT_HAVE_GETRANDOM)
 
-    /* Linux 3.17 getrandom(). */
+    n = getrandom(&key, NXT_RANDOM_KEY_SIZE, 0);
 
-    n = getrandom(key, NXT_RANDOM_KEY_SIZE, 0);
+#elif (NXT_HAVE_LINUX_SYS_GETRANDOM)
+
+    /* Linux 3.17 SYS_getrandom. */
+
+    n = syscall(SYS_getrandom, &key, NXT_RANDOM_KEY_SIZE, 0);
 
 #endif
 

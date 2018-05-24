@@ -3,23 +3,49 @@
 # Copyright (C) NGINX, Inc.
 
 
-# Linux 3.17 getrandom().
+# getrandom().
 
 nxt_feature="getrandom()"
 nxt_feature_name=NXT_HAVE_GETRANDOM
-nxt_feature_run=
+nxt_feature_run=yes
 nxt_feature_incs=
 nxt_feature_libs=
-nxt_feature_test="#include <linux/random.h>
+nxt_feature_test="#include <unistd.h>
+                  #include <sys/random.h>
 
                   int main() {
                       char  buf[4];
 
-                      (void) getrandom(buf, 4, 0);
+                      if (getrandom(buf, 4, 0) < 0) {
+                          return 1;
+                      }
 
                       return 0;
                   }"
 . auto/feature
+
+
+if [ $nxt_found = no ]; then
+
+    # Linux 3.17 SYS_getrandom.
+
+    nxt_feature="SYS_getrandom in Linux"
+    nxt_feature_name=NXT_HAVE_LINUX_SYS_GETRANDOM
+    nxt_feature_test="#include <unistd.h>
+                      #include <sys/syscall.h>
+                      #include <linux/random.h>
+
+                      int main() {
+                          char  buf[4];
+
+                          if (syscall(SYS_getrandom, buf, 4, 0) < 0) {
+                              return 1;
+                          }
+
+                          return 0;
+                      }"
+    . auto/feature
+fi
 
 
 nxt_feature="ucontext"

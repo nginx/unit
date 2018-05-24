@@ -32,10 +32,6 @@
 #include <malloc.h>                 /* malloc_usable_size(). */
 #include <sys/syscall.h>            /* syscall(SYS_gettid). */
 
-#if (NXT_GETRANDOM)
-#include <linux/random.h>           /* getrandom(). */
-#endif
-
 #if (__GLIBC__ >= 2 && __GLIBC_MINOR__ >= 4)
 /*
  * POSIX semaphores using NPTL atomic/futex operations
@@ -232,6 +228,12 @@
 
 #if (NXT_HAVE_SOLARIS_SENDFILEV)
 #include <sys/sendfile.h>
+#endif
+
+#if (NXT_HAVE_GETRANDOM)
+#include <sys/random.h>             /* getrandom(). */
+#elif (NXT_HAVE_LINUX_SYS_GETRANDOM)
+#include <linux/random.h>           /* SYS_getrandom. */
 #endif
 
 
