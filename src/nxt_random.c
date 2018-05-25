@@ -58,8 +58,6 @@ nxt_random_stir(nxt_random_t *r)
         u_char      bytes[NXT_RANDOM_KEY_SIZE];
     } key;
 
-    n = 0;
-
 #if (NXT_HAVE_GETRANDOM)
 
     n = getrandom(&key, NXT_RANDOM_KEY_SIZE, 0);
@@ -69,6 +67,10 @@ nxt_random_stir(nxt_random_t *r)
     /* Linux 3.17 SYS_getrandom. */
 
     n = syscall(SYS_getrandom, &key, NXT_RANDOM_KEY_SIZE, 0);
+
+#else
+
+    n = 0;
 
 #endif
 
