@@ -9,6 +9,9 @@
 #define _NXT_APPLICATION_H_INCLUDED_
 
 
+#include <nxt_conf.h>
+
+
 typedef enum {
     NXT_APP_PYTHON,
     NXT_APP_PHP,
@@ -65,12 +68,13 @@ typedef struct {
 
 
 struct nxt_common_app_conf_s {
-    nxt_str_t       name;
-    nxt_str_t       type;
-    nxt_str_t       user;
-    nxt_str_t       group;
+    nxt_str_t                  name;
+    nxt_str_t                  type;
+    nxt_str_t                  user;
+    nxt_str_t                  group;
 
-    char       *working_directory;
+    char                       *working_directory;
+    nxt_conf_value_t           *environment;
 
     union {
         nxt_python_app_conf_t  python;

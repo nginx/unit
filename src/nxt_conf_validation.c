@@ -62,6 +62,8 @@ static nxt_int_t nxt_conf_vldt_system(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_user(nxt_conf_validation_t *vldt, char *name);
 static nxt_int_t nxt_conf_vldt_group(nxt_conf_validation_t *vldt, char *name);
+static nxt_int_t nxt_conf_vldt_environment(nxt_conf_validation_t *vldt,
+    nxt_str_t *name, nxt_conf_value_t *value);
 
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_root_members[] = {
@@ -164,6 +166,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[] = {
       NXT_CONF_VLDT_STRING,
       NULL,
       NULL },
+
+    { nxt_string("environment"),
+      NXT_CONF_VLDT_OBJECT,
+      &nxt_conf_vldt_object_iterator,
+      (void *) &nxt_conf_vldt_environment },
 
     NXT_CONF_VLDT_END
 };
@@ -723,4 +730,41 @@ nxt_conf_vldt_group(nxt_conf_validation_t *vldt, char *group)
     }
 
     return NXT_ERROR;
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_environment(nxt_conf_validation_t *vldt, nxt_str_t *name,
+    nxt_conf_value_t *value)
+{
+    nxt_str_t  str;
+
+    if (name->length == 0) {
+        return nxt_conf_vldt_error(vldt,
+                                   "The environment name must not be empty.");
+    }
+
+    if (nxt_memchr(name->start, '\0', name->length) != NULL) {
+        return nxt_conf_vldt_error(vldt, "The environment name must not "
+                                   "contain null character.");
+    }
+
+    if (nxt_memchr(name->start, '=', name->length) != NULL) {
+        return nxt_conf_vldt_error(vldt, "The environment name must not "
+                                   "contain '=' character.");
+    }
+
+    if (nxt_conf_type(value) != NXT_CONF_STRING) {
+        return nxt_conf_vldt_error(vldt, "The \"%V\" environment value must be "
+                                   "a string.", name);
+    }
+
+    nxt_conf_get_string(value, &str);
+
+    if (nxt_memchr(str.start, '\0', str.length) != NULL) {
+        return nxt_conf_vldt_error(vldt, "The \"%V\" environment value must "
+                                   "not contain null character.", name);
+    }
+
+    return NXT_OK;
 }

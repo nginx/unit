@@ -32,6 +32,7 @@ static void nxt_discovery_quit(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     void *data);
 static nxt_app_module_t *nxt_app_module_load(nxt_task_t *task,
     const char *name);
+static nxt_int_t nxt_app_set_environment(nxt_conf_value_t *environment);
 
 static void nxt_app_http_release(nxt_task_t *task, void *obj, void *data);
 
@@ -344,6 +345,13 @@ nxt_app_start(nxt_task_t *task, void *data)
         }
     }
 
+    if (nxt_slow_path(nxt_app_set_environment(app_conf->environment)
+                      != NXT_OK))
+    {
+        nxt_alert(task, "failed to set environment");
+        return NXT_ERROR;
+    }
+
     if (nxt_slow_path(nxt_thread_mutex_create(&nxt_app_mutex) != NXT_OK)) {
         return NXT_ERROR;
     }
@@ -379,6 +387,45 @@ nxt_app_module_load(nxt_task_t *task, const char *name)
     nxt_alert(task, "dlopen(\"%s\"), failed: \"%s\"", name, dlerror());
 
     return NULL;
+}
+
+
+static nxt_int_t
+nxt_app_set_environment(nxt_conf_value_t *environment)
+{
+    char              *env, *p;
+    uint32_t          next;
+    nxt_str_t         name, value;
+    nxt_conf_value_t  *value_obj;
+
+    if (environment != NULL) {
+        next = 0;
+
+        for ( ;; ) {
+            value_obj = nxt_conf_next_object_member(environment, &name, &next);
+            if (value_obj == NULL) {
+                break;
+            }
+
+            nxt_conf_get_string(value_obj, &value);
+
+            env = nxt_malloc(name.length + value.length + 2);
+            if (nxt_slow_path(env == NULL)) {
+                return NXT_ERROR;
+            }
+
+            p = nxt_cpymem(env, name.start, name.length);
+            *p++ = '=';
+            p = nxt_cpymem(p, value.start, value.length);
+            *p = '\0';
+
+            if (nxt_slow_path(putenv(env) != 0)) {
+                return NXT_ERROR;
+            }
+        }
+    }
+
+    return NXT_OK;
 }
 
 
