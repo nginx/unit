@@ -109,6 +109,58 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
 
         self.assertEqual(resp['body'], '0123456789', 'keep-alive 2')
 
+    def test_python_keepalive_reconfigure(self):
+        self.skip_alerts.extend([
+            r'sendmsg.+failed',
+            r'recvmsg.+failed'
+        ])
+        self.load('mirror')
+
+        body = '0123456789'
+        conns = 3
+        socks = []
+
+        for i in range(conns):
+            (resp, sock) = self.post(headers={
+                'Connection': 'keep-alive',
+                'Content-Type': 'text/html',
+                'Host': 'localhost'
+            }, start=True, body=body)
+
+            self.assertEqual(resp['body'], body, 'keep-alive open')
+            self.assertIn('success', self.conf({
+                "spare": i % 4,
+                "max": (i % 4) + 1
+            }, '/applications/mirror/processes'), 'reconfigure')
+
+            socks.append(sock)
+
+        for i in range(conns):
+            (resp, sock) = self.post(headers={
+                'Connection': 'keep-alive',
+                'Content-Type': 'text/html',
+                'Host': 'localhost'
+            }, start=True, sock=socks[i], body=body)
+
+            self.assertEqual(resp['body'], body, 'keep-alive request')
+            self.assertIn('success', self.conf({
+                "spare": i % 4,
+                "max": (i % 4) + 1
+            }, '/applications/mirror/processes'), 'reconfigure 2')
+
+        for i in range(conns):
+            resp = self.post(headers={
+                'Connection': 'close',
+                'Content-Type': 'text/html',
+                'Host': 'localhost'
+            }, sock=socks[i], body=body)
+
+            self.assertEqual(resp['body'], body, 'keep-alive close')
+            self.assertIn('success', self.conf({
+                "spare": i % 4,
+                "max": (i % 4) + 1
+            }, '/applications/mirror/processes'), 'reconfigure 3')
+
     def test_python_atexit(self):
         self.skip_alerts.append(r'sendmsg.+failed')
         self.load('atexit')
