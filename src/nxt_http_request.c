@@ -445,6 +445,7 @@ nxt_http_request_close_handler(nxt_task_t *task, void *obj, void *data)
     nxt_http_proto_t         proto;
     nxt_http_request_t       *r;
     nxt_http_proto_close_t   handler;
+    nxt_socket_conf_joint_t  *conf;
     nxt_router_access_log_t  *access_log;
 
     r = obj;
@@ -452,10 +453,12 @@ nxt_http_request_close_handler(nxt_task_t *task, void *obj, void *data)
 
     nxt_debug(task, "http request close handler");
 
+    conf = r->conf;
+
     if (!r->logged) {
         r->logged = 1;
 
-        access_log = r->socket_conf->router_conf->access_log;
+        access_log = conf->socket_conf->router_conf->access_log;
 
         if (access_log != NULL) {
             access_log->handler(task, r, access_log);
@@ -468,7 +471,7 @@ nxt_http_request_close_handler(nxt_task_t *task, void *obj, void *data)
     nxt_mp_release(r->mem_pool);
 
     if (proto.any != NULL) {
-        handler(task, proto);
+        handler(task, proto, conf);
     }
 }
 

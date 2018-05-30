@@ -45,6 +45,7 @@ nxt_listen_event(nxt_task_t *task, nxt_listen_socket_t *ls)
 
         engine = task->thread->engine;
         lev->batch = engine->batch;
+        lev->count = 1;
 
         lev->socket.read_work_queue = &engine->accept_work_queue;
         lev->socket.read_handler = nxt_conn_listen_handler;
@@ -194,19 +195,23 @@ nxt_conn_accept(nxt_task_t *task, nxt_listen_event_t *lev, nxt_conn_t *c)
 
     nxt_queue_insert_head(&task->thread->engine->idle_connections, &c->link);
 
+    c->listen = lev;
+    lev->count++;
+    c->socket.data = NULL;
+
     c->read_work_queue = lev->work_queue;
     c->write_work_queue = lev->work_queue;
 
     if (lev->listen->read_after_accept) {
 
         //c->socket.read_ready = 1;
-//        lev->listen->handler(task, c, lev->socket.data);
+//        lev->listen->handler(task, c, lev);
         nxt_work_queue_add(c->read_work_queue, lev->listen->handler,
-                           &c->task, c, lev->socket.data);
+                           &c->task, c, lev);
 
     } else {
         nxt_work_queue_add(c->write_work_queue, lev->listen->handler,
-                           &c->task, c, lev->socket.data);
+                           &c->task, c, lev);
     }
 
     next = nxt_conn_accept_next(task, lev);

@@ -101,7 +101,7 @@ typedef struct {
 
 struct nxt_http_request_s {
     nxt_http_proto_t                proto;
-    nxt_socket_conf_t               *socket_conf;
+    nxt_socket_conf_joint_t         *conf;
 
     nxt_mp_t                        *mem_pool;
 
@@ -153,7 +153,7 @@ typedef nxt_off_t (*nxt_http_proto_body_bytes_sent_t)(nxt_task_t *task,
 typedef void (*nxt_http_proto_discard_t)(nxt_task_t *task,
     nxt_http_request_t *r, nxt_buf_t *last);
 typedef void (*nxt_http_proto_close_t)(nxt_task_t *task,
-    nxt_http_proto_t proto);
+    nxt_http_proto_t proto, nxt_socket_conf_joint_t *joint);
 
 
 nxt_int_t nxt_http_init(nxt_task_t *task, nxt_runtime_t *rt);
@@ -184,7 +184,6 @@ nxt_int_t nxt_http_request_content_length(void *ctx, nxt_http_field_t *field,
 
 
 extern nxt_lvlhsh_t                        nxt_response_fields_hash;
-extern const nxt_conn_state_t              nxt_router_conn_close_state;
 
 extern const nxt_http_proto_body_read_t        nxt_http_proto_body_read[];
 extern const nxt_http_proto_local_addr_t       nxt_http_proto_local_addr[];

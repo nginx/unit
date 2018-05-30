@@ -208,8 +208,6 @@ static void nxt_router_thread_exit_handler(nxt_task_t *task, void *obj,
     void *data);
 static void nxt_router_listen_socket_release(nxt_task_t *task,
     nxt_socket_conf_t *skcf);
-static void nxt_router_conf_release(nxt_task_t *task,
-    nxt_socket_conf_joint_t *joint);
 
 static void nxt_router_access_log_writer(nxt_task_t *task,
     nxt_http_request_t *r, nxt_router_access_log_t *access_log);
@@ -254,7 +252,6 @@ static nxt_int_t nxt_perl_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
 static nxt_int_t nxt_ruby_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
     nxt_app_wmsg_t *wmsg);
 
-static void nxt_router_conn_free(nxt_task_t *task, void *obj, void *data);
 static void nxt_router_app_timeout(nxt_task_t *task, void *obj, void *data);
 static void nxt_router_adjust_idle_timer(nxt_task_t *task, void *obj,
     void *data);
@@ -2611,21 +2608,21 @@ nxt_router_listen_socket_close(nxt_task_t *task, void *obj, void *data)
 
     timer = obj;
     lev = nxt_timer_data(timer, nxt_listen_event_t, timer);
-    joint = lev->socket.data;
 
     nxt_debug(task, "engine %p: listen socket close: %d", task->thread->engine,
               lev->socket.fd);
 
     nxt_queue_remove(&lev->link);
 
+    joint = lev->socket.data;
+    lev->socket.data = NULL;
+
     /* 'task' refers to lev->task and we cannot use after nxt_free() */
     task = &task->thread->engine->task;
 
     nxt_router_listen_socket_release(task, joint->socket_conf);
 
-    nxt_free(lev);
-
-    nxt_router_conf_release(task, joint);
+    nxt_router_listen_event_release(task, lev, joint);
 }
 
 
@@ -2656,13 +2653,36 @@ nxt_router_listen_socket_release(nxt_task_t *task, nxt_socket_conf_t *skcf)
 }
 
 
-static void
+void
+nxt_router_listen_event_release(nxt_task_t *task, nxt_listen_event_t *lev,
+    nxt_socket_conf_joint_t *joint)
+{
+    nxt_event_engine_t  *engine;
+
+    nxt_debug(task, "listen event count: %D", lev->count);
+
+    if (--lev->count == 0) {
+        nxt_free(lev);
+    }
+
+    if (joint != NULL) {
+        nxt_router_conf_release(task, joint);
+    }
+
+    engine = task->thread->engine;
+
+    if (engine->shutdown && nxt_queue_is_empty(&engine->joints)) {
+        nxt_thread_exit(task->thread);
+    }
+}
+
+
+void
 nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
 {
     nxt_app_t              *app;
     nxt_socket_conf_t      *skcf;
     nxt_router_conf_t      *rtcf;
-    nxt_event_engine_t     *engine;
     nxt_thread_spinlock_t  *lock;
 
     nxt_debug(task, "conf joint %p count: %D", joint, joint->count);
@@ -2678,8 +2698,6 @@ nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
      * section protected by the spinlock because its memory pool may
      * be already destroyed by another thread.
      */
-    engine = joint->engine;
-
     skcf = joint->socket_conf;
     app = skcf->application;
     rtcf = skcf->router_conf;
@@ -2719,10 +2737,6 @@ nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
         nxt_mp_thread_adopt(rtcf->mem_pool);
 
         nxt_mp_destroy(rtcf->mem_pool);
-    }
-
-    if (engine->shutdown && nxt_queue_is_empty(&engine->joints)) {
-        nxt_thread_exit(task->thread);
     }
 }
 
@@ -4138,7 +4152,7 @@ nxt_router_process_http_request(nxt_task_t *task, nxt_app_parse_ctx_t *ar)
     nxt_req_conn_link_t  *rc;
 
     r = ar->request;
-    app = r->socket_conf->application;
+    app = r->conf->socket_conf->application;
 
     if (app == NULL) {
         nxt_http_request_error(task, r, NXT_HTTP_INTERNAL_SERVER_ERROR);
@@ -4705,50 +4719,6 @@ nxt_ruby_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
 fail:
 
     return NXT_ERROR;
-}
-
-
-const nxt_conn_state_t  nxt_router_conn_close_state
-    nxt_aligned(64) =
-{
-    .ready_handler = nxt_router_conn_free,
-};
-
-
-static void
-nxt_router_conn_mp_cleanup(nxt_task_t *task, void *obj, void *data)
-{
-    nxt_socket_conf_joint_t  *joint;
-
-    joint = obj;
-
-    nxt_router_conf_release(task, joint);
-}
-
-
-static void
-nxt_router_conn_free(nxt_task_t *task, void *obj, void *data)
-{
-    nxt_conn_t               *c;
-    nxt_event_engine_t       *engine;
-    nxt_socket_conf_joint_t  *joint;
-
-    c = obj;
-
-    nxt_debug(task, "router conn close done");
-
-    nxt_queue_remove(&c->link);
-
-    engine = task->thread->engine;
-
-    nxt_sockaddr_cache_free(engine, c);
-
-    joint = c->joint;
-
-    nxt_mp_cleanup(c->mem_pool, nxt_router_conn_mp_cleanup,
-                   &engine->task, joint, NULL);
-
-    nxt_conn_free(task, c);
 }
 
 

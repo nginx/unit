@@ -182,6 +182,9 @@ void nxt_router_access_log_reopen_handler(nxt_task_t *task,
 void nxt_router_process_http_request(nxt_task_t *task, nxt_app_parse_ctx_t *ar);
 void nxt_router_app_port_close(nxt_task_t *task, nxt_port_t *port);
 void nxt_router_app_use(nxt_task_t *task, nxt_app_t *app, int i);
+void nxt_router_listen_event_release(nxt_task_t *task, nxt_listen_event_t *lev,
+    nxt_socket_conf_joint_t *joint);
+void nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint);
 
 
 #endif  /* _NXT_ROUTER_H_INCLUDED_ */
