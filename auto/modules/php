@@ -87,13 +87,15 @@ if /bin/sh -c "${NXT_PHP_CONFIG} --version" >> $NXT_AUTOCONF_ERR 2>&1; then
         fi
 
         NXT_PHP_LIB="$NXT_PHP_LIB_PATH/libphp${NXT_PHP_VERSION%%.*}.a"
-        NXT_PHP_LDFLAGS="`${NXT_PHP_CONFIG} --libs`"
+        NXT_PHP_LDFLAGS="`${NXT_PHP_CONFIG} --ldflags` \
+                         `${NXT_PHP_CONFIG} --libs`"
 
     else
         NXT_PHP_LIB="-lphp${NXT_PHP_VERSION%%.*}"
 
         if [ "$NXT_PHP_LIB_PATH" != "" ]; then
-            # "php-config --ldflags" does not contain path to libphp.
+            # "php-config --ldflags" does not contain path to libphp, but
+            # contains usually path to libraries required by extensions.
             NXT_PHP_LDFLAGS="-L${NXT_PHP_LIB_PATH} \
                              -Wl,-rpath ${NXT_PHP_LIB_PATH}"
         fi

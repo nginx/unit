@@ -37,7 +37,7 @@ END
 
 nxt_test="$CC $CFLAGS $NXT_CFLAGS $NXT_CC_OPT $NXT_TEST_CFLAGS \
           $nxt_feature_inc_path -o $NXT_AUTOTEST $NXT_AUTOTEST.c \
-          $NXT_LD_OPT $NXT_TEST_LIBS $nxt_feature_libs"
+          $nxt_feature_libs $NXT_LD_OPT $NXT_TEST_LIBS"
 
 # /bin/sh -c "(...)" is to intercept "Killed", "Abort trap",
 # "Segmentation fault", or other shell messages.
