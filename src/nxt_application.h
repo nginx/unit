@@ -53,7 +53,8 @@ typedef struct {
 
 
 typedef struct {
-    char       *executable;
+    char                       *executable;
+    nxt_conf_value_t           *arguments;
 } nxt_go_app_conf_t;
 
 

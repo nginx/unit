@@ -36,7 +36,8 @@ typedef struct {
 typedef nxt_int_t (*nxt_conf_vldt_member_t)(nxt_conf_validation_t *vldt,
                                             nxt_str_t *name,
                                             nxt_conf_value_t *value);
-
+typedef nxt_int_t (*nxt_conf_vldt_element_t)(nxt_conf_validation_t *vldt,
+                                             nxt_conf_value_t *value);
 typedef nxt_int_t (*nxt_conf_vldt_system_t)(nxt_conf_validation_t *vldt,
                                             char *name);
 
@@ -58,12 +59,16 @@ static nxt_int_t nxt_conf_vldt_processes(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_object_iterator(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_array_iterator(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_system(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_user(nxt_conf_validation_t *vldt, char *name);
 static nxt_int_t nxt_conf_vldt_group(nxt_conf_validation_t *vldt, char *name);
 static nxt_int_t nxt_conf_vldt_environment(nxt_conf_validation_t *vldt,
     nxt_str_t *name, nxt_conf_value_t *value);
+static nxt_int_t nxt_conf_vldt_argument(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value);
 
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_root_members[] = {
@@ -221,6 +226,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_go_members[] = {
       NXT_CONF_VLDT_STRING,
       NULL,
       NULL },
+
+    { nxt_string("arguments"),
+      NXT_CONF_VLDT_ARRAY,
+      &nxt_conf_vldt_array_iterator,
+      (void *) &nxt_conf_vldt_argument },
 
     NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_common_members)
 };
@@ -669,6 +679,33 @@ nxt_conf_vldt_object_iterator(nxt_conf_validation_t *vldt,
 
 
 static nxt_int_t
+nxt_conf_vldt_array_iterator(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data)
+{
+    uint32_t                 index;
+    nxt_int_t                ret;
+    nxt_conf_value_t         *element;
+    nxt_conf_vldt_element_t  validator;
+
+    validator = (nxt_conf_vldt_element_t) data;
+
+    for (index = 0; /* void */ ; index++) {
+        element = nxt_conf_get_array_element(value, index);
+
+        if (element == NULL) {
+            return NXT_OK;
+        }
+
+        ret = validator(vldt, element);
+
+        if (ret != NXT_OK) {
+            return ret;
+        }
+    }
+}
+
+
+static nxt_int_t
 nxt_conf_vldt_system(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     void *data)
 {
@@ -764,6 +801,27 @@ nxt_conf_vldt_environment(nxt_conf_validation_t *vldt, nxt_str_t *name,
     if (nxt_memchr(str.start, '\0', str.length) != NULL) {
         return nxt_conf_vldt_error(vldt, "The \"%V\" environment value must "
                                    "not contain null character.", name);
+    }
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_argument(nxt_conf_validation_t *vldt, nxt_conf_value_t *value)
+{
+    nxt_str_t  str;
+
+    if (nxt_conf_type(value) != NXT_CONF_STRING) {
+        return nxt_conf_vldt_error(vldt, "The \"arguments\" array "
+                                   "must contain only string values.");
+    }
+
+    nxt_conf_get_string(value, &str);
+
+    if (nxt_memchr(str.start, '\0', str.length) != NULL) {
+        return nxt_conf_vldt_error(vldt, "The \"arguments\" array must not "
+                                   "contain strings with null character.");
     }
 
     return NXT_OK;

@@ -178,6 +178,13 @@ static nxt_conf_map_t  nxt_go_app_conf[] = {
         NXT_CONF_MAP_CSTRZ,
         offsetof(nxt_common_app_conf_t, u.go.executable),
     },
+
+    {
+        nxt_string("arguments"),
+        NXT_CONF_MAP_PTR,
+        offsetof(nxt_common_app_conf_t, u.go.arguments),
+    },
+
 };
 
 

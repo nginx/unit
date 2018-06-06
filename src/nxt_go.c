@@ -58,12 +58,17 @@ nxt_go_fd_no_cloexec(nxt_task_t *task, nxt_socket_t fd)
 static nxt_int_t
 nxt_go_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 {
-    char               *argv[2];
+    char               **argv;
     u_char             buf[256];
     u_char             *p, *end;
+    uint32_t           index;
+    size_t             size;
+    nxt_str_t          str;
     nxt_int_t          rc;
+    nxt_uint_t         i, argc;
     nxt_port_t         *my_port, *main_port;
     nxt_runtime_t      *rt;
+    nxt_conf_value_t   *value;
     nxt_go_app_conf_t  *c;
 
     rt = task->thread->runtime;
@@ -114,12 +119,58 @@ nxt_go_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 
     c = &conf->u.go;
 
+    argc = 2;
+    size = 0;
+
+    if (c->arguments != NULL) {
+
+        for (index = 0; /* void */ ; index++) {
+            value = nxt_conf_get_array_element(c->arguments, index);
+            if (value == NULL) {
+                break;
+            }
+
+            nxt_conf_get_string(value, &str);
+
+            size += str.length + 1;
+            argc++;
+        }
+    }
+
+    argv = nxt_malloc(argc * sizeof(argv[0]) + size);
+    if (nxt_slow_path(argv == NULL)) {
+        nxt_alert(task, "failed to allocate arguments");
+        return NXT_ERROR;
+    }
+
     argv[0] = c->executable;
-    argv[1] = NULL;
+    i = 1;
+
+    if (c->arguments != NULL) {
+        p = (u_char *) &argv[argc];
+
+        for (index = 0; /* void */ ; index++) {
+            value = nxt_conf_get_array_element(c->arguments, index);
+            if (value == NULL) {
+                break;
+            }
+
+            argv[i++] = (char *) p;
+
+            nxt_conf_get_string(value, &str);
+
+            p = nxt_cpymem(p, str.start, str.length);
+            *p++ = '\0';
+        }
+    }
+
+    argv[i] = NULL;
 
     (void) execve(c->executable, argv, environ);
 
     nxt_alert(task, "execve(%s) failed %E", c->executable, nxt_errno);
+
+    nxt_free(argv);
 
     return NXT_ERROR;
 }
