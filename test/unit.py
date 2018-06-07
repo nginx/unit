@@ -395,6 +395,7 @@ class TestUnitApplicationPHP(TestUnitApplicationProto):
                     "type": "php",
                     "processes": { "spare": 0 },
                     "root": self.current_dir + '/php/' + script,
+                    "working_directory": self.current_dir + '/php/' + script,
                     "index": name
                 }
             }

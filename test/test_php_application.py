@@ -118,5 +118,17 @@ class TestUnitPHPApplication(unit.TestUnitApplicationPHP):
         self.assertEqual(resp['headers']['X-Cookie-1'], 'val', 'cookie')
         self.assertEqual(resp['headers']['X-Cookie-2'], 'val2', 'cookie')
 
+    def test_php_application_ini_precision(self):
+        self.load('ini_precision')
+
+        self.assertNotEqual(self.get()['headers']['X-Precision'], '4',
+            'ini value default')
+
+        self.conf({"file": "php.ini"}, '/applications/ini_precision/options')
+
+        self.assertEqual(self.get()['headers']['X-File'],
+            self.current_dir + '/php/ini_precision/php.ini', 'ini file')
+        self.assertEqual(self.get()['headers']['X-Precision'], '4', 'ini value')
+
 if __name__ == '__main__':
     unittest.main()
