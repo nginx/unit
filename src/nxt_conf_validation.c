@@ -69,6 +69,8 @@ static nxt_int_t nxt_conf_vldt_environment(nxt_conf_validation_t *vldt,
     nxt_str_t *name, nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_argument(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value);
+static nxt_int_t nxt_conf_vldt_php_option(nxt_conf_validation_t *vldt,
+    nxt_str_t *name, nxt_conf_value_t *value);
 
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_root_members[] = {
@@ -206,6 +208,16 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_php_options_members[] = {
       NXT_CONF_VLDT_STRING,
       NULL,
       NULL },
+
+    { nxt_string("admin"),
+      NXT_CONF_VLDT_OBJECT,
+      &nxt_conf_vldt_object_iterator,
+      (void *) &nxt_conf_vldt_php_option },
+
+    { nxt_string("user"),
+      NXT_CONF_VLDT_OBJECT,
+      &nxt_conf_vldt_object_iterator,
+      (void *) &nxt_conf_vldt_php_option },
 
     NXT_CONF_VLDT_END
 };
@@ -837,6 +849,24 @@ nxt_conf_vldt_argument(nxt_conf_validation_t *vldt, nxt_conf_value_t *value)
     if (nxt_memchr(str.start, '\0', str.length) != NULL) {
         return nxt_conf_vldt_error(vldt, "The \"arguments\" array must not "
                                    "contain strings with null character.");
+    }
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_php_option(nxt_conf_validation_t *vldt, nxt_str_t *name,
+    nxt_conf_value_t *value)
+{
+    if (name->length == 0) {
+        return nxt_conf_vldt_error(vldt,
+                                   "The PHP option name must not be empty.");
+    }
+
+    if (nxt_conf_type(value) != NXT_CONF_STRING) {
+        return nxt_conf_vldt_error(vldt, "The \"%V\" PHP option must be "
+                                   "a string.", name);
     }
 
     return NXT_OK;

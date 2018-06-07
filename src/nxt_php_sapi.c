@@ -35,6 +35,8 @@ static nxt_int_t nxt_php_run(nxt_task_t *task,
 #endif
 
 static int nxt_php_startup(sapi_module_struct *sapi_module);
+static void nxt_php_set_options(nxt_task_t *task, nxt_conf_value_t *options,
+    int type);
 static int nxt_php_send_headers(sapi_headers_struct *sapi_headers);
 static char *nxt_php_read_cookies(void);
 static void nxt_php_register_variables(zval *track_vars_array);
@@ -190,6 +192,8 @@ nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     nxt_php_app_conf_t  *c;
 
     static nxt_str_t  file_str = nxt_string("file");
+    static nxt_str_t  user_str = nxt_string("user");
+    static nxt_str_t  admin_str = nxt_string("admin");
 
     c = &conf->u.php;
 
@@ -295,7 +299,71 @@ nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 
     nxt_php_startup(&nxt_php_sapi_module);
 
+    if (c->options != NULL) {
+        value = nxt_conf_get_object_member(c->options, &admin_str, NULL);
+        nxt_php_set_options(task, value, ZEND_INI_SYSTEM);
+
+        value = nxt_conf_get_object_member(c->options, &user_str, NULL);
+        nxt_php_set_options(task, value, ZEND_INI_USER);
+    }
+
     return NXT_OK;
+}
+
+
+static void
+nxt_php_set_options(nxt_task_t *task, nxt_conf_value_t *options, int type)
+{
+    int               ret;
+    uint32_t          next;
+    nxt_str_t         name, value;
+    nxt_conf_value_t  *value_obj;
+#if PHP_MAJOR_VERSION >= 7
+    zend_string       *zs;
+#else
+    char              buf[256];
+#endif
+
+    if (options != NULL) {
+        next = 0;
+
+        for ( ;; ) {
+            value_obj = nxt_conf_next_object_member(options, &name, &next);
+            if (value_obj == NULL) {
+                break;
+            }
+
+            nxt_conf_get_string(value_obj, &value);
+
+#if PHP_MAJOR_VERSION >= 7
+            /* PHP exits on memory allocation errors. */
+            zs = zend_string_init((char *) name.start, name.length, 1);
+
+            ret = zend_alter_ini_entry_chars(zs, (char *) value.start,
+                                             value.length, type,
+                                             ZEND_INI_STAGE_ACTIVATE);
+
+            zend_string_release(zs);
+#else
+            if (nxt_fast_path(name.length < sizeof(buf))) {
+                nxt_memcpy(buf, name.start, name.length);
+                buf[name.length] = '\0';
+
+                ret = zend_alter_ini_entry(buf, name.length + 1,
+                                           (char *) value.start, value.length,
+                                           type, ZEND_INI_STAGE_ACTIVATE);
+
+            } else {
+                ret = FAILURE;
+            }
+#endif
+
+            if (ret == FAILURE) {
+                nxt_log(task, NXT_LOG_ERR,
+                        "setting PHP option \"%V: %V\" failed", &name, &value);
+            }
+        }
+    }
 }
 
 
