@@ -1,4 +1,18 @@
 
+Changes with Unit 1.2                                            07 Jun 2018
+
+    *) Feature: configuration of environment variables for application
+       processes.
+
+    *) Feature: customization of php.ini path.
+
+    *) Feature: setting of individual PHP configuration options.
+
+    *) Feature: configuration of execution arguments for Go applications.
+
+    *) Bugfix: keep-alive connections might hang after reconfiguration.
+
+
 Changes with Unit 1.1                                            26 Apr 2018
 
     *) Bugfix: Python applications that use the write() callable did not
