@@ -66,17 +66,18 @@ typedef struct {
 } nxt_conf_validation_t;
 
 
-nxt_uint_t nxt_conf_type(nxt_conf_value_t *value);
+NXT_EXPORT nxt_uint_t nxt_conf_type(nxt_conf_value_t *value);
 
-nxt_conf_value_t *nxt_conf_get_path(nxt_conf_value_t *value, nxt_str_t *path);
-nxt_conf_value_t *nxt_conf_get_object_member(nxt_conf_value_t *value,
+NXT_EXPORT nxt_conf_value_t *nxt_conf_get_path(nxt_conf_value_t *value,
+    nxt_str_t *path);
+NXT_EXPORT nxt_conf_value_t *nxt_conf_get_object_member(nxt_conf_value_t *value,
     nxt_str_t *name, uint32_t *index);
-nxt_conf_value_t *nxt_conf_next_object_member(nxt_conf_value_t *value,
-    nxt_str_t *name, uint32_t *next);
-nxt_conf_value_t *nxt_conf_get_array_element(nxt_conf_value_t *value,
+NXT_EXPORT nxt_conf_value_t *nxt_conf_next_object_member(
+    nxt_conf_value_t *value, nxt_str_t *name, uint32_t *next);
+NXT_EXPORT nxt_conf_value_t *nxt_conf_get_array_element(nxt_conf_value_t *value,
     uint32_t index);
 
-nxt_int_t nxt_conf_map_object(nxt_mp_t *mp, nxt_conf_value_t *value,
+NXT_EXPORT nxt_int_t nxt_conf_map_object(nxt_mp_t *mp, nxt_conf_value_t *value,
     nxt_conf_map_t *map, nxt_uint_t n, void *data);
 
 nxt_int_t nxt_conf_op_compile(nxt_mp_t *mp, nxt_conf_op_t **ops,
@@ -99,8 +100,8 @@ void nxt_conf_json_position(u_char *start, u_char *pos, nxt_uint_t *line,
 
 nxt_int_t nxt_conf_validate(nxt_conf_validation_t *vldt);
 
-void nxt_conf_get_string(nxt_conf_value_t *value, nxt_str_t *str);
-int64_t nxt_conf_get_integer(nxt_conf_value_t *value);
+NXT_EXPORT void nxt_conf_get_string(nxt_conf_value_t *value, nxt_str_t *str);
+NXT_EXPORT int64_t nxt_conf_get_integer(nxt_conf_value_t *value);
 
 // FIXME reimplement and reorder functions below
 nxt_uint_t nxt_conf_object_members_count(nxt_conf_value_t *value);
