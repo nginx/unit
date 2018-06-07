@@ -46,9 +46,10 @@ typedef struct {
 
 
 typedef struct {
-    char       *root;
-    nxt_str_t  script;
-    nxt_str_t  index;
+    char                       *root;
+    nxt_str_t                  script;
+    nxt_str_t                  index;
+    nxt_conf_value_t           *options;
 } nxt_php_app_conf_t;
 
 

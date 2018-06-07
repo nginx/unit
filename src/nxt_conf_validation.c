@@ -201,6 +201,16 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_python_members[] = {
 };
 
 
+static nxt_conf_vldt_object_t  nxt_conf_vldt_php_options_members[] = {
+    { nxt_string("file"),
+      NXT_CONF_VLDT_STRING,
+      NULL,
+      NULL },
+
+    NXT_CONF_VLDT_END
+};
+
+
 static nxt_conf_vldt_object_t  nxt_conf_vldt_php_members[] = {
     { nxt_string("root"),
       NXT_CONF_VLDT_STRING,
@@ -216,6 +226,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_php_members[] = {
       NXT_CONF_VLDT_STRING,
       NULL,
       NULL },
+
+    { nxt_string("options"),
+      NXT_CONF_VLDT_OBJECT,
+      &nxt_conf_vldt_object,
+      (void *) &nxt_conf_vldt_php_options_members },
 
     NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_common_members)
 };

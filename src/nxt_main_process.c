@@ -169,6 +169,12 @@ static nxt_conf_map_t  nxt_php_app_conf[] = {
         NXT_CONF_MAP_STR,
         offsetof(nxt_common_app_conf_t, u.php.index),
     },
+
+    {
+        nxt_string("options"),
+        NXT_CONF_MAP_PTR,
+        offsetof(nxt_common_app_conf_t, u.php.options),
+    },
 };
 
 

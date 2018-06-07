@@ -97,7 +97,7 @@ static sapi_module_struct  nxt_php_sapi_module =
 
     0,                           /* php_ini_ignore */
 #ifdef NXT_HAVE_PHP_IGNORE_CWD
-    0,                           /* php_ini_ignore_cwd */
+    1,                           /* php_ini_ignore_cwd */
 #endif
     NULL,                        /* get_fd */
 
@@ -184,9 +184,12 @@ static nxt_int_t
 nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 {
     u_char              *p;
-    nxt_str_t           rpath;
+    nxt_str_t           rpath, ini_path;
     nxt_str_t           *root, *path, *script, *index;
+    nxt_conf_value_t    *value;
     nxt_php_app_conf_t  *c;
+
+    static nxt_str_t  file_str = nxt_string("file");
 
     c = &conf->u.php;
 
@@ -271,6 +274,25 @@ nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     }
 
     sapi_startup(&nxt_php_sapi_module);
+
+    if (c->options != NULL) {
+        value = nxt_conf_get_object_member(c->options, &file_str, NULL);
+
+        if (value != NULL) {
+            nxt_conf_get_string(value, &ini_path);
+
+            p = nxt_malloc(ini_path.length + 1);
+            if (nxt_slow_path(p == NULL)) {
+                return NXT_ERROR;
+            }
+
+            nxt_php_sapi_module.php_ini_path_override = (char *) p;
+
+            p = nxt_cpymem(p, ini_path.start, ini_path.length);
+            *p = '\0';
+        }
+    }
+
     nxt_php_startup(&nxt_php_sapi_module);
 
     return NXT_OK;
