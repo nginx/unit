@@ -9,7 +9,7 @@ import select
 import platform
 import tempfile
 import unittest
-from subprocess import call
+import subprocess
 from multiprocessing import Process
 
 class TestUnit(unittest.TestCase):
@@ -48,16 +48,34 @@ class TestUnit(unittest.TestCase):
             self.stop()
             exit("Unit is writing log too long")
 
-        self._check_alerts(log)
+        current_dir = os.path.dirname(os.path.abspath(__file__))
 
         missed_module = ''
         for module in modules:
-            m = re.search('module: ' + module, log)
+            if module == 'go':
+                env = os.environ.copy()
+                env['GOPATH'] = self.pardir + '/go'
+
+                try:
+                    process = subprocess.Popen(['go', 'build', '-o',
+                        self.testdir + '/go/check_module',
+                        current_dir + '/go/empty/app.go'], env=env)
+                    process.communicate()
+
+                    m = module if process.returncode == 0 else None
+
+                except:
+                    m = None
+
+            else:
+                m = re.search('module: ' + module, log)
+
             if m is None:
                 missed_module = module
                 break
 
         self.stop()
+        self._check_alerts(log)
         shutil.rmtree(self.testdir)
 
         if missed_module:
@@ -75,7 +93,7 @@ class TestUnit(unittest.TestCase):
         print()
 
         def _run_unit():
-            call([self.pardir + '/build/unitd',
+            subprocess.call([self.pardir + '/build/unitd',
                 '--no-daemon',
                 '--modules', self.pardir + '/build',
                 '--state', self.testdir + '/state',
@@ -99,7 +117,7 @@ class TestUnit(unittest.TestCase):
         with open(self.testdir + '/unit.pid', 'r') as f:
             pid = f.read().rstrip()
 
-        call(['kill', '-s', 'QUIT', pid])
+        subprocess.call(['kill', '-s', 'QUIT', pid])
 
         for i in range(50):
             if not os.path.exists(self.testdir + '/unit.pid'):
@@ -397,6 +415,36 @@ class TestUnitApplicationPHP(TestUnitApplicationProto):
                     "root": self.current_dir + '/php/' + script,
                     "working_directory": self.current_dir + '/php/' + script,
                     "index": name
+                }
+            }
+        })
+
+class TestUnitApplicationGo(TestUnitApplicationProto):
+    def load(self, script, name='app'):
+
+        if not os.path.isdir(self.testdir + '/go'):
+            os.mkdir(self.testdir + '/go')
+
+        env = os.environ.copy()
+        env['GOPATH'] = self.pardir + '/go'
+        process = subprocess.Popen(['go', 'build', '-o',
+            self.testdir + '/go/' + name,
+            self.current_dir + '/go/' + script + '/' + name + '.go'],
+            env=env)
+        process.communicate()
+
+        self.conf({
+            "listeners": {
+                "*:7080": {
+                    "application": script
+                }
+            },
+            "applications": {
+                script: {
+                    "type": "go",
+                    "processes": { "spare": 0 },
+                    "working_directory": self.current_dir + '/go/' + script,
+                    "executable": self.testdir + '/go/' + name
                 }
             }
         })
