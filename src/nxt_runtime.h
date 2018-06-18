@@ -49,7 +49,6 @@ struct nxt_runtime_s {
 
     uint8_t                daemon;
     uint8_t                batch;
-    uint8_t                main_process;
     const char             *engine;
     uint32_t               engine_connections;
     uint32_t               auxiliary_threads;

@@ -20,8 +20,6 @@ static nxt_int_t nxt_runtime_event_engines(nxt_task_t *task, nxt_runtime_t *rt);
 static nxt_int_t nxt_runtime_thread_pools(nxt_thread_t *thr, nxt_runtime_t *rt);
 static void nxt_runtime_start(nxt_task_t *task, void *obj, void *data);
 static void nxt_runtime_initial_start(nxt_task_t *task);
-static void nxt_single_process_start(nxt_thread_t *thr, nxt_task_t *task,
-    nxt_runtime_t *rt);
 static void nxt_runtime_close_idle_connections(nxt_event_engine_t *engine);
 static void nxt_runtime_exit(nxt_task_t *task, void *obj, void *data);
 static nxt_int_t nxt_runtime_event_engine_change(nxt_task_t *task,
@@ -403,40 +401,13 @@ nxt_runtime_initial_start(nxt_task_t *task)
 
     thr->engine->max_connections = rt->engine_connections;
 
-    if (rt->main_process) {
-        if (nxt_main_process_start(thr, task, rt) != NXT_ERROR) {
-            return;
-        }
-
-    } else {
-        nxt_single_process_start(thr, task, rt);
+    if (nxt_main_process_start(thr, task, rt) != NXT_ERROR) {
         return;
     }
 
 fail:
 
     nxt_runtime_quit(task);
-}
-
-
-static void
-nxt_single_process_start(nxt_thread_t *thr, nxt_task_t *task, nxt_runtime_t *rt)
-{
-    nxt_int_t  ret;
-
-    ret = nxt_runtime_thread_pool_create(thr, rt, rt->auxiliary_threads,
-                                       60000 * 1000000LL);
-
-    if (nxt_slow_path(ret != NXT_OK)) {
-        nxt_runtime_quit(task);
-        return;
-    }
-
-    rt->types |= (1U << NXT_PROCESS_SINGLE);
-
-    nxt_runtime_listen_sockets_enable(task, rt);
-
-    return;
 }
 
 
@@ -709,7 +680,6 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
     const nxt_event_interface_t  *interface;
 
     rt->daemon = 1;
-    rt->main_process = 1;
     rt->engine_connections = 256;
     rt->auxiliary_threads = 2;
     rt->user_cred.user = NXT_USER;
