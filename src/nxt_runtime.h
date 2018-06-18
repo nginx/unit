@@ -9,7 +9,7 @@
 #define _NXT_RUNTIME_H_INCLUDED_
 
 
-typedef void (*nxt_runtime_cont_t)(nxt_task_t *task);
+typedef void (*nxt_runtime_cont_t)(nxt_task_t *task, nxt_uint_t status);
 
 
 struct nxt_runtime_s {
@@ -49,6 +49,8 @@ struct nxt_runtime_s {
 
     uint8_t                daemon;
     uint8_t                batch;
+    uint8_t                status;
+
     const char             *engine;
     uint32_t               engine_connections;
     uint32_t               auxiliary_threads;
@@ -75,7 +77,7 @@ typedef nxt_int_t (*nxt_module_init_t)(nxt_thread_t *thr, nxt_runtime_t *rt);
 
 
 nxt_int_t nxt_runtime_create(nxt_task_t *task);
-void nxt_runtime_quit(nxt_task_t *task);
+void nxt_runtime_quit(nxt_task_t *task, nxt_uint_t status);
 
 void nxt_runtime_event_engine_free(nxt_runtime_t *rt);
 

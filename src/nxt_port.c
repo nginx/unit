@@ -177,7 +177,7 @@ nxt_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 void
 nxt_port_quit_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
-    nxt_runtime_quit(task);
+    nxt_runtime_quit(task, 0);
 }
 
 

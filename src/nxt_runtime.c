@@ -19,7 +19,7 @@ static nxt_int_t nxt_runtime_systemd_listen_sockets(nxt_task_t *task,
 static nxt_int_t nxt_runtime_event_engines(nxt_task_t *task, nxt_runtime_t *rt);
 static nxt_int_t nxt_runtime_thread_pools(nxt_thread_t *thr, nxt_runtime_t *rt);
 static void nxt_runtime_start(nxt_task_t *task, void *obj, void *data);
-static void nxt_runtime_initial_start(nxt_task_t *task);
+static void nxt_runtime_initial_start(nxt_task_t *task, nxt_uint_t status);
 static void nxt_runtime_close_idle_connections(nxt_event_engine_t *engine);
 static void nxt_runtime_exit(nxt_task_t *task, void *obj, void *data);
 static nxt_int_t nxt_runtime_event_engine_change(nxt_task_t *task,
@@ -351,12 +351,12 @@ nxt_runtime_start(nxt_task_t *task, void *obj, void *data)
 
 fail:
 
-    nxt_runtime_quit(task);
+    nxt_runtime_quit(task, 1);
 }
 
 
 static void
-nxt_runtime_initial_start(nxt_task_t *task)
+nxt_runtime_initial_start(nxt_task_t *task, nxt_uint_t status)
 {
     nxt_int_t                    ret;
     nxt_thread_t                 *thr;
@@ -407,18 +407,19 @@ nxt_runtime_initial_start(nxt_task_t *task)
 
 fail:
 
-    nxt_runtime_quit(task);
+    nxt_runtime_quit(task, 1);
 }
 
 
 void
-nxt_runtime_quit(nxt_task_t *task)
+nxt_runtime_quit(nxt_task_t *task, nxt_uint_t status)
 {
     nxt_bool_t          done;
     nxt_runtime_t       *rt;
     nxt_event_engine_t  *engine;
 
     rt = task->thread->runtime;
+    rt->status |= status;
     engine = task->thread->engine;
 
     nxt_debug(task, "exiting");
@@ -477,6 +478,7 @@ nxt_runtime_close_idle_connections(nxt_event_engine_t *engine)
 static void
 nxt_runtime_exit(nxt_task_t *task, void *obj, void *data)
 {
+    int                 status;
     nxt_runtime_t       *rt;
     nxt_process_t       *process;
     nxt_event_engine_t  *engine;
@@ -522,11 +524,12 @@ nxt_runtime_exit(nxt_task_t *task, void *obj, void *data)
 
     nxt_thread_mutex_destroy(&rt->processes_mutex);
 
+    status = rt->status;
     nxt_mp_destroy(rt->mem_pool);
 
-    nxt_debug(task, "exit");
+    nxt_debug(task, "exit: %d", status);
 
-    exit(0);
+    exit(status);
     nxt_unreachable();
 }
 
@@ -605,7 +608,7 @@ nxt_runtime_thread_pool_destroy(nxt_task_t *task, nxt_runtime_t *rt,
     n = rt->thread_pools->nelts;
 
     if (n == 0) {
-        cont(task);
+        cont(task, 0);
         return;
     }
 
@@ -658,7 +661,7 @@ nxt_runtime_thread_pool_exit(nxt_task_t *task, void *obj, void *data)
 
             if (n == 1) {
                 /* The last thread pool. */
-                rt->continuation(task);
+                rt->continuation(task, 0);
             }
 
             return;

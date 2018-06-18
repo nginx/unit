@@ -694,7 +694,7 @@ nxt_main_process_sigterm_handler(nxt_task_t *task, void *obj, void *data)
 
     nxt_exiting = 1;
 
-    nxt_runtime_quit(task);
+    nxt_runtime_quit(task, 0);
 }
 
 
@@ -708,7 +708,7 @@ nxt_main_process_sigquit_handler(nxt_task_t *task, void *obj, void *data)
 
     nxt_exiting = 1;
 
-    nxt_runtime_quit(task);
+    nxt_runtime_quit(task, 0);
 }
 
 
@@ -918,7 +918,7 @@ nxt_main_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid)
         if (nxt_exiting) {
 
             if (rt->nprocesses == 2) {
-                nxt_runtime_quit(task);
+                nxt_runtime_quit(task, 0);
             }
 
         } else if (init != NULL) {

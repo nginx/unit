@@ -97,7 +97,7 @@ nxt_worker_process_quit(nxt_task_t *task)
         rt->listen_sockets->nelts = 0;
     }
 
-    nxt_runtime_quit(task);
+    nxt_runtime_quit(task, 0);
 }
 
 
@@ -124,7 +124,7 @@ nxt_worker_process_sigterm_handler(nxt_task_t *task, void *obj, void *data)
 
     /* A fast exit. */
 
-    nxt_runtime_quit(task);
+    nxt_runtime_quit(task, 0);
 }
 
 
