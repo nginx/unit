@@ -80,7 +80,7 @@ nxt_int_t
 nxt_main_process_start(nxt_thread_t *thr, nxt_task_t *task,
     nxt_runtime_t *rt)
 {
-    rt->types |= (1U << NXT_PROCESS_MAIN);
+    rt->type = NXT_PROCESS_MAIN;
 
     if (nxt_main_process_port_create(task, rt) != NXT_OK) {
         return NXT_ERROR;

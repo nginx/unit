@@ -43,7 +43,7 @@ struct nxt_runtime_s {
 
     uint32_t               last_engine_id;
 
-    uint32_t               types;         /* bitset of nxt_process_type_t */
+    nxt_process_type_t     type;
 
     nxt_timer_t            timer;
 
@@ -81,20 +81,6 @@ void nxt_runtime_event_engine_free(nxt_runtime_t *rt);
 
 nxt_int_t nxt_runtime_thread_pool_create(nxt_thread_t *thr, nxt_runtime_t *rt,
     nxt_uint_t max_threads, nxt_nsec_t timeout);
-
-
-nxt_inline nxt_bool_t
-nxt_runtime_is_type(nxt_runtime_t *rt, nxt_process_type_t type)
-{
-    return (rt->types & (1U << type)) != 0;
-}
-
-
-nxt_inline nxt_bool_t
-nxt_runtime_is_main(nxt_runtime_t *rt)
-{
-    return nxt_runtime_is_type(rt, NXT_PROCESS_MAIN);
-}
 
 
 nxt_process_t *nxt_runtime_process_new(nxt_runtime_t *rt);

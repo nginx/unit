@@ -433,7 +433,7 @@ nxt_runtime_quit(nxt_task_t *task)
             done = 0;
         }
 
-        if (nxt_runtime_is_main(rt)) {
+        if (rt->type == NXT_PROCESS_MAIN) {
             nxt_main_stop_worker_processes(task, rt);
             done = 0;
         }
@@ -490,7 +490,7 @@ nxt_runtime_exit(nxt_task_t *task, void *obj, void *data)
         return;
     }
 
-    if (nxt_runtime_is_main(rt)) {
+    if (rt->type == NXT_PROCESS_MAIN) {
         if (rt->pid_file != NULL) {
             nxt_file_delete(rt->pid_file);
         }

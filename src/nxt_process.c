@@ -62,8 +62,6 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
 
         process->pid = nxt_pid;
 
-        rt->types = 0;
-
         ptype = process->init->type;
 
         nxt_port_reset_next_id();
@@ -149,7 +147,7 @@ nxt_process_start(nxt_task_t *task, nxt_process_t *process)
 
     rt = thread->runtime;
 
-    rt->types |= (1U << init->type);
+    rt->type = init->type;
 
     engine = thread->engine;
 
