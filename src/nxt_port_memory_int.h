@@ -129,13 +129,20 @@ nxt_port_mmap_chunk_start(nxt_port_mmap_header_t *hdr, nxt_chunk_id_t c)
 static nxt_bool_t
 nxt_port_mmap_get_free_chunk(nxt_free_map_t *m, nxt_chunk_id_t *c)
 {
-    int             ffs;
-    size_t          i;
-    nxt_chunk_id_t  chunk;
-    nxt_free_map_t  bits;
+    const nxt_free_map_t  default_mask = (nxt_free_map_t) -1;
 
-    for (i = 0; i < MAX_FREE_IDX; i++) {
-        bits = m[i];
+    int             ffs;
+    size_t          i, start;
+    nxt_chunk_id_t  chunk;
+    nxt_free_map_t  bits, mask;
+
+    start = FREE_IDX(*c);
+    mask = default_mask << ((*c) % FREE_BITS);
+
+    for (i = start; i < MAX_FREE_IDX; i++) {
+        bits = m[i] & mask;
+        mask = default_mask;
+
         if (bits == 0) {
             continue;
         }
