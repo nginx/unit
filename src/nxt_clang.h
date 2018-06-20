@@ -132,6 +132,27 @@ nxt_prefetch(a)
 #endif
 
 
+#if (NXT_HAVE_BUILTIN_POPCOUNT)
+
+#define nxt_popcount       __builtin_popcount
+
+#else
+
+nxt_inline int
+nxt_popcount(unsigned int x)
+{
+    int  count;
+
+    for (count = 0; x != 0; x >>= 1) {
+        count += (x & 1);
+    }
+
+    return count;
+}
+
+#endif
+
+
 #ifndef NXT_ALIGNMENT
 
 #if (NXT_SOLARIS)

@@ -331,7 +331,7 @@ nxt_conf_vldt_type(nxt_conf_validation_t *vldt, nxt_str_t *name,
 
     p = buf;
 
-    n = __builtin_popcount(type);
+    n = nxt_popcount(type);
 
     if (n > 1) {
         p = nxt_cpymem(p, "either ", 7);

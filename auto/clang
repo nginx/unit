@@ -101,6 +101,19 @@ nxt_feature_test="int main() {
 . auto/feature
 
 
+nxt_feature="GCC __builtin_popcount()"
+nxt_feature_name=NXT_HAVE_BUILTIN_POPCOUNT
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="int main() {
+                      if (__builtin_popcount(5) == 2)
+                          return 0;
+                      return 1;
+                  }"
+. auto/feature
+
+
 nxt_feature="GCC __attribute__ visibility"
 nxt_feature_name=NXT_HAVE_GCC_ATTRIBUTE_VISIBILITY
 nxt_feature_run=
