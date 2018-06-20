@@ -224,7 +224,8 @@ ${NXT_DAEMON}-uninstall:
 
 END
 
-nxt_version=`grep -m 1 NXT_VERSION src/nxt_main.h | sed -e 's/.*"\(.*\)".*/\1/'`
+nxt_version=`grep 'define NXT_VERSION' src/nxt_main.h \
+             | sed -e 's/.*"\(.*\)".*/\1/'`
 
 # Makefile.
 # *.dSYM is MacOSX Clang debug information.
