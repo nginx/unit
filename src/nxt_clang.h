@@ -143,8 +143,8 @@ nxt_popcount(unsigned int x)
 {
     int  count;
 
-    for (count = 0; x != 0; x >>= 1) {
-        count += (x & 1);
+    for (count = 0; x != 0; count++) {
+        x &= x - 1;
     }
 
     return count;
