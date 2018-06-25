@@ -522,7 +522,7 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
             continue;
 
         case 'n':
-            *buf++ = NXT_LF;
+            *buf++ = '\n';
             fmt++;
             continue;
 

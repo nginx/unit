@@ -21,19 +21,6 @@ nxt_isdigit(c)                                                                \
     ((u_char) ((c) - '0') <= 9)
 
 
-#define NXT_CR             (u_char) 13
-#define NXT_LF             (u_char) 10
-#define NXT_CRLF           "\x0d\x0a"
-#define NXT_CRLF_SIZE      nxt_length(NXT_CRLF)
-
-
-#define NXT_LINEFEED_SIZE  1
-
-#define                                                                       \
-nxt_linefeed(p)                                                               \
-    *p++ = NXT_LF
-
-
 #define                                                                       \
 nxt_strlen(s)                                                                 \
     strlen((char *) s)

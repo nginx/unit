@@ -424,7 +424,7 @@ nxt_fastcgi_source_record_filter(nxt_task_t *task, void *obj, void *data)
     for (b = fsr->parse.out[1]; b != NULL; b = b->next) {
 
         for (p = b->mem.free - 1; p >= b->mem.pos; p--) {
-            if (*p != NXT_CR && *p != NXT_LF) {
+            if (*p != '\r' && *p != '\n') {
                 break;
             }
         }

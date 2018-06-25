@@ -308,7 +308,7 @@ nxt_str_strip(u_char *start, u_char *end)
     u_char  *p;
 
     for (p = end - 1; p >= start; p--) {
-        if (*p != NXT_CR && *p != NXT_LF) {
+        if (*p != '\r' && *p != '\n') {
             break;
         }
     }

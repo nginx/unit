@@ -227,7 +227,7 @@ nxt_http_parse_request_line(nxt_http_request_parse_t *rp, u_char **pos,
             continue;
         }
 
-        if (rp->method.start == p && (ch == NXT_CR || ch == NXT_LF)) {
+        if (rp->method.start == p && (ch == '\r' || ch == '\n')) {
             rp->method.start++;
             p++;
             continue;

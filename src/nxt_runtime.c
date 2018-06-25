@@ -1233,7 +1233,7 @@ nxt_runtime_pid_file_create(nxt_task_t *task, nxt_file_name_t *pid_file)
     ssize_t     length;
     nxt_int_t   n;
     nxt_file_t  file;
-    u_char      pid[NXT_INT64_T_LEN + NXT_LINEFEED_SIZE];
+    u_char      pid[NXT_INT64_T_LEN + nxt_length("\n")];
 
     nxt_memzero(&file, sizeof(nxt_file_t));
 

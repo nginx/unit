@@ -105,7 +105,7 @@ nxt_http_chunk_parse(nxt_task_t *task, nxt_http_chunk_parse_t *hcp,
                     if (nxt_fast_path(c <= 5)) {
                         c += 0x0A;
 
-                    } else if (nxt_fast_path(ch == NXT_CR)) {
+                    } else if (nxt_fast_path(ch == '\r')) {
                         state = sw_chunk_size_linefeed;
                         continue;
 
@@ -122,7 +122,7 @@ nxt_http_chunk_parse(nxt_task_t *task, nxt_http_chunk_parse_t *hcp,
                 goto chunk_error;
 
             case sw_chunk_size_linefeed:
-                if (nxt_fast_path(ch == NXT_LF)) {
+                if (nxt_fast_path(ch == '\n')) {
 
                     if (hcp->chunk_size != 0) {
                         state = sw_chunk;
@@ -137,7 +137,7 @@ nxt_http_chunk_parse(nxt_task_t *task, nxt_http_chunk_parse_t *hcp,
                 goto chunk_error;
 
             case sw_chunk_end_newline:
-                if (nxt_fast_path(ch == NXT_CR)) {
+                if (nxt_fast_path(ch == '\r')) {
                     state = sw_chunk_end_linefeed;
                     continue;
                 }
@@ -145,7 +145,7 @@ nxt_http_chunk_parse(nxt_task_t *task, nxt_http_chunk_parse_t *hcp,
                 goto chunk_error;
 
             case sw_chunk_end_linefeed:
-                if (nxt_fast_path(ch == NXT_LF)) {
+                if (nxt_fast_path(ch == '\n')) {
 
                     if (!hcp->last) {
                         state = sw_start;

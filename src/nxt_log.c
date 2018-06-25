@@ -92,16 +92,16 @@ nxt_log_handler(nxt_uint_t level, nxt_log_t *log, const char *fmt, ...)
         p = log->ctx_handler(log->ctx, p, end);
     }
 
-    if (p > end - NXT_LINEFEED_SIZE) {
-        p = end - NXT_LINEFEED_SIZE;
+    if (p > end - nxt_length("\n")) {
+        p = end - nxt_length("\n");
     }
 
-    nxt_linefeed(p);
+    *p++ = '\n';
 
     (void) nxt_write_console(nxt_stderr, msg, p - msg);
 
     if (level == NXT_LOG_ALERT) {
-        *(p - NXT_LINEFEED_SIZE) = '\0';
+        *(p - nxt_length("\n")) = '\0';
 
         /*
          * Syslog LOG_ALERT level is enough, because
