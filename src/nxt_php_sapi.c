@@ -635,8 +635,8 @@ nxt_php_send_headers(sapi_headers_struct *sapi_headers TSRMLS_DC)
     } while(0)
 
     if (SG(request_info).no_headers == 1) {
-        RC(nxt_php_write(ctx, default_repsonse, sizeof(default_repsonse) - 1,
-                      1, 0));
+        RC(nxt_php_write(ctx, default_repsonse, nxt_length(default_repsonse),
+                         1, 0));
         return SAPI_HEADER_SENT_SUCCESSFULLY;
     }
 
@@ -660,21 +660,21 @@ nxt_php_send_headers(sapi_headers_struct *sapi_headers TSRMLS_DC)
         RC(nxt_php_write(ctx, buf, len, 0, 0));
 
     } else {
-        RC(nxt_php_write(ctx, status_200, sizeof(status_200) - 1, 0, 0));
+        RC(nxt_php_write(ctx, status_200, nxt_length(status_200), 0, 0));
     }
 
-    RC(nxt_php_write(ctx, cr_lf, sizeof(cr_lf) - 1, 0, 0));
+    RC(nxt_php_write(ctx, cr_lf, nxt_length(cr_lf), 0, 0));
 
     h = zend_llist_get_first_ex(&sapi_headers->headers, &zpos);
 
     while (h) {
         RC(nxt_php_write(ctx, (u_char *) h->header, h->header_len, 0, 0));
-        RC(nxt_php_write(ctx, cr_lf, sizeof(cr_lf) - 1, 0, 0));
+        RC(nxt_php_write(ctx, cr_lf, nxt_length(cr_lf), 0, 0));
 
         h = zend_llist_get_next_ex(&sapi_headers->headers, &zpos);
     }
 
-    RC(nxt_php_write(ctx, cr_lf, sizeof(cr_lf) - 1, 1, 0));
+    RC(nxt_php_write(ctx, cr_lf, nxt_length(cr_lf), 1, 0));
 
 #undef RC
 

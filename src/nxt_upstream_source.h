@@ -69,7 +69,7 @@ struct nxt_upstream_source_s {
 #define NXT_UPSTREAM_NAME_VALUE_MIN_SIZE                                      \
     offsetof(nxt_http_upstream_header_t, name)
 
-#define nxt_upstream_name_value(s)   sizeof(s) - 1, s
+#define nxt_upstream_name_value(s)   nxt_length(s), s
 
 
 NXT_EXPORT nxt_int_t nxt_upstream_header_hash_add(nxt_mp_t *mp,

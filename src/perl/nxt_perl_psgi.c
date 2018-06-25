@@ -158,9 +158,9 @@ nxt_perl_psgi_http_write_status_str(nxt_task_t *task, nxt_app_wmsg_t *wmsg,
                                                            \
     } while (0)
 
-    RC_WRT((const u_char *) "Status: ", (sizeof("Status: ") - 1), 0);
+    RC_WRT((const u_char *) "Status: ", nxt_length("Status: "), 0);
     RC_WRT(http_status->start, http_status->length, 0);
-    RC_WRT((u_char *) "\r\n", (sizeof("\r\n") - 1), 0);
+    RC_WRT((u_char *) "\r\n", nxt_length("\r\n"), 0);
 
 #undef RC_WRT
 
@@ -799,12 +799,10 @@ nxt_perl_psgi_result_head(PerlInterpreter *my_perl, SV *sv_head,
 
         if ((i % 2) == 0) {
             rc = nxt_app_msg_write_raw(task, wmsg,
-                                       (u_char *) ": ",
-                                       (sizeof(": ") - 1));
+                                       (u_char *) ": ", nxt_length(": "));
         } else {
             rc = nxt_app_msg_write_raw(task, wmsg,
-                                       (u_char *) "\r\n",
-                                       (sizeof("\r\n") - 1));
+                                       (u_char *) "\r\n", nxt_length("\r\n"));
         }
 
         if (nxt_slow_path(rc != NXT_OK)) {
@@ -973,8 +971,8 @@ nxt_perl_psgi_result_array(PerlInterpreter *my_perl, SV *result,
     }
 
     if (array_len < 1) {
-        rc = nxt_app_msg_write_raw(task, wmsg, (u_char *) "\r\n",
-                                   (sizeof("\r\n") - 1));
+        rc = nxt_app_msg_write_raw(task, wmsg,
+                                   (u_char *) "\r\n", nxt_length("\r\n"));
 
         if (nxt_slow_path(rc != NXT_OK)) {
             nxt_log_error(NXT_LOG_ERR, task->log,
@@ -1001,8 +999,8 @@ nxt_perl_psgi_result_array(PerlInterpreter *my_perl, SV *result,
         return rc;
     }
 
-    rc = nxt_app_msg_write_raw(task, wmsg, (u_char *) "\r\n",
-                               (sizeof("\r\n") - 1));
+    rc = nxt_app_msg_write_raw(task, wmsg,
+                               (u_char *) "\r\n", nxt_length("\r\n"));
 
     if (nxt_slow_path(rc != NXT_OK)) {
         nxt_log_error(NXT_LOG_ERR, task->log,

@@ -870,7 +870,7 @@ nxt_py_start_resp(PyObject *self, PyObject *args)
 
     string = PyTuple_GET_ITEM(args, 0);
 
-    nxt_python_write(ctx, status, sizeof(status) - 1, 0, 0);
+    nxt_python_write(ctx, status, nxt_length(status), 0, 0);
 
     rc = nxt_python_write_py_str(ctx, string, 0, 0);
     if (nxt_slow_path(rc != NXT_OK)) {
@@ -878,7 +878,7 @@ nxt_py_start_resp(PyObject *self, PyObject *args)
                             "failed to write first argument (not a string?)");
     }
 
-    nxt_python_write(ctx, cr_lf, sizeof(cr_lf) - 1, 0, 0);
+    nxt_python_write(ctx, cr_lf, nxt_length(cr_lf), 0, 0);
 
     headers = PyTuple_GET_ITEM(args, 1);
 
@@ -909,7 +909,7 @@ nxt_py_start_resp(PyObject *self, PyObject *args)
                                  " (not a string?)");
         }
 
-        nxt_python_write(ctx, sc_sp, sizeof(sc_sp) - 1, 0, 0);
+        nxt_python_write(ctx, sc_sp, nxt_length(sc_sp), 0, 0);
 
         string = PyTuple_GET_ITEM(tuple, 1);
 
@@ -920,11 +920,11 @@ nxt_py_start_resp(PyObject *self, PyObject *args)
                                  " (not a string?)");
         }
 
-        nxt_python_write(ctx, cr_lf, sizeof(cr_lf) - 1, 0, 0);
+        nxt_python_write(ctx, cr_lf, nxt_length(cr_lf), 0, 0);
     }
 
     /* flush headers */
-    nxt_python_write(ctx, cr_lf, sizeof(cr_lf) - 1, 1, 0);
+    nxt_python_write(ctx, cr_lf, nxt_length(cr_lf), 1, 0);
 
     Py_INCREF(nxt_py_write_obj);
     return nxt_py_write_obj;

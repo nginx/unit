@@ -581,7 +581,7 @@ nxt_ruby_rack_result_status(VALUE result)
     }
 
     rc = nxt_ruby_write(nxt_ruby_run_ctx.task, nxt_ruby_run_ctx.wmsg,
-                        (u_char *) "Status: ", (sizeof("Status: ") - 1), 0, 0);
+                        (u_char *) "Status: ", nxt_length("Status: "), 0, 0);
     if (nxt_slow_path(rc != NXT_OK)) {
         return NXT_ERROR;
     }
@@ -593,7 +593,7 @@ nxt_ruby_rack_result_status(VALUE result)
     }
 
     rc = nxt_ruby_write(nxt_ruby_run_ctx.task, nxt_ruby_run_ctx.wmsg,
-                        (u_char *) "\r\n", (sizeof("\r\n") - 1), 0, 0);
+                        (u_char *) "\r\n", nxt_length("\r\n"), 0, 0);
     if (nxt_slow_path(rc != NXT_OK)) {
         return NXT_ERROR;
     }
@@ -643,7 +643,7 @@ nxt_ruby_rack_result_headers(VALUE result)
     }
 
     rc = nxt_ruby_write(nxt_ruby_run_ctx.task, nxt_ruby_run_ctx.wmsg,
-                        (u_char *) "\r\n", (sizeof("\r\n") - 1), 0, 0);
+                        (u_char *) "\r\n", nxt_length("\r\n"), 0, 0);
     if (nxt_slow_path(rc != NXT_OK)) {
         return NXT_ERROR;
     }
@@ -729,7 +729,7 @@ nxt_ruby_head_send_part(const char *key, size_t key_size,
     }
 
     rc = nxt_app_msg_write_raw(nxt_ruby_run_ctx.task, nxt_ruby_run_ctx.wmsg,
-                               (u_char *) ": ", (sizeof(": ") - 1));
+                               (u_char *) ": ", nxt_length(": "));
     if (nxt_slow_path(rc != NXT_OK)) {
         return rc;
     }
@@ -741,7 +741,7 @@ nxt_ruby_head_send_part(const char *key, size_t key_size,
     }
 
     return nxt_app_msg_write_raw(nxt_ruby_run_ctx.task, nxt_ruby_run_ctx.wmsg,
-                                 (u_char *) "\r\n", (sizeof("\r\n") - 1));
+                                 (u_char *) "\r\n", nxt_length("\r\n"));
 }
 
 

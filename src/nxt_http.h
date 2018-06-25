@@ -76,15 +76,15 @@ typedef union {
 
 #define nxt_http_field_name_set(_field, _name)                                \
     do {                                                                      \
-         (_field)->name_length = sizeof(_name) - 1;                           \
+         (_field)->name_length = nxt_length(_name);                           \
          (_field)->name = (u_char *) _name;                                   \
     } while (0)
 
 
 #define nxt_http_field_set(_field, _name, _value)                             \
     do {                                                                      \
-         (_field)->name_length = sizeof(_name) - 1;                           \
-         (_field)->value_length = sizeof(_value) - 1;                         \
+         (_field)->name_length = nxt_length(_name);                           \
+         (_field)->value_length = nxt_length(_value);                         \
          (_field)->name = (u_char *) _name;                                   \
          (_field)->value = (u_char *) _value;                                 \
     } while (0)

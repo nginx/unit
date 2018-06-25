@@ -95,7 +95,7 @@ static nxt_time_string_t  nxt_log_error_time_cache = {
     (nxt_atomic_uint_t) -1,
     nxt_log_error_time,
     "%4d/%02d/%02d %02d:%02d:%02d ",
-    sizeof("1970/09/28 12:00:00 ") - 1,
+    nxt_length("1970/09/28 12:00:00 "),
     NXT_THREAD_TIME_LOCAL,
     NXT_THREAD_TIME_MSEC,
 };
@@ -115,7 +115,7 @@ static nxt_time_string_t  nxt_log_debug_time_cache = {
     (nxt_atomic_uint_t) -1,
     nxt_log_debug_time,
     "%4d/%02d/%02d %02d:%02d:%02d.%03d ",
-    sizeof("1970/09/28 12:00:00.000 ") - 1,
+    nxt_length("1970/09/28 12:00:00.000 "),
     NXT_THREAD_TIME_LOCAL,
     NXT_THREAD_TIME_MSEC,
 };

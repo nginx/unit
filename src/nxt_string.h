@@ -24,7 +24,7 @@ nxt_isdigit(c)                                                                \
 #define NXT_CR             (u_char) 13
 #define NXT_LF             (u_char) 10
 #define NXT_CRLF           "\x0d\x0a"
-#define NXT_CRLF_SIZE      (sizeof(NXT_CRLF) - 1)
+#define NXT_CRLF_SIZE      nxt_length(NXT_CRLF)
 
 
 #define NXT_LINEFEED_SIZE  1
@@ -116,7 +116,7 @@ typedef struct {
 } nxt_str_t;
 
 
-#define nxt_string(str)       { sizeof(str) - 1, (u_char *) str }
+#define nxt_string(str)       { nxt_length(str), (u_char *) str }
 #define nxt_string_zero(str)  { sizeof(str), (u_char *) str }
 #define nxt_null_string       { 0, NULL }
 
@@ -124,7 +124,7 @@ typedef struct {
 #define                                                                       \
 nxt_str_set(str, text)                                                        \
     do {                                                                      \
-        (str)->length = sizeof(text) - 1;                                     \
+        (str)->length = nxt_length(text);                                     \
         (str)->start = (u_char *) text;                                       \
     } while (0)
 

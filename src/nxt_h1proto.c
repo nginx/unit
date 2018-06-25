@@ -707,7 +707,7 @@ static const nxt_str_t  nxt_http_server_error[] = {
 };
 
 
-#define UNKNOWN_STATUS_LENGTH  (sizeof("HTTP/1.1 65536\r\n") - 1)
+#define UNKNOWN_STATUS_LENGTH  nxt_length("HTTP/1.1 65536\r\n")
 
 static void
 nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r)
@@ -766,16 +766,16 @@ nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r)
 
     size = status->length;
     /* Trailing CRLF at the end of header. */
-    size += sizeof("\r\n") - 1;
+    size += nxt_length("\r\n");
 
     http11 = (h1p->parser.version.s.minor != '0');
 
     if (r->resp.content_length == NULL || r->resp.content_length->skip) {
         if (http11) {
             h1p->chunked = 1;
-            size += sizeof(chunked) - 1;
+            size += nxt_length(chunked);
             /* Trailing CRLF will be added by the first chunk header. */
-            size -= sizeof("\r\n") - 1;
+            size -= nxt_length("\r\n");
 
         } else {
             h1p->keepalive = 0;
@@ -793,7 +793,7 @@ nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r)
 
         if (!field->skip) {
             size += field->name_length + field->value_length;
-            size += sizeof(": \r\n") - 1;
+            size += nxt_length(": \r\n");
         }
 
     } nxt_list_loop;
@@ -824,7 +824,7 @@ nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r)
     }
 
     if (h1p->chunked) {
-        p = nxt_cpymem(p, chunked, sizeof(chunked) - 1);
+        p = nxt_cpymem(p, chunked, nxt_length(chunked));
         /* Trailing CRLF will be added by the first chunk header. */
 
     } else {
@@ -897,7 +897,7 @@ nxt_h1p_chunk_create(nxt_task_t *task, nxt_http_request_t *r, nxt_buf_t *out)
     nxt_off_t          size;
     nxt_buf_t          *b, **prev, *header, *tail;
 
-    const size_t       chunk_size = 2 * (sizeof("\r\n") - 1) + NXT_OFF_T_HEXLEN;
+    const size_t       chunk_size = 2 * nxt_length("\r\n") + NXT_OFF_T_HEXLEN;
     static const char  tail_chunk[] = "\r\n0\r\n\r\n";
 
     size = 0;
@@ -918,7 +918,7 @@ nxt_h1p_chunk_create(nxt_task_t *task, nxt_http_request_t *r, nxt_buf_t *out)
              * memcpy may be inlined with just single 8 byte move operation.
              */
             nxt_memcpy(tail->mem.free, tail_chunk, sizeof(tail_chunk));
-            tail->mem.free += sizeof(tail_chunk) - 1;
+            tail->mem.free += nxt_length(tail_chunk);
 
             break;
         }

@@ -380,13 +380,13 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
 
             if (nxt_slow_path(isnan(f))) {
                 p = (u_char *) nan;
-                length = sizeof(nan) - 1;
+                length = nxt_length(nan);
 
                 goto copy;
 
             } else if (nxt_slow_path(isinf(f))) {
                 p = (u_char *) infinity;
-                length = sizeof(infinity) - 1;
+                length = nxt_length(infinity);
 
                 goto copy;
             }

@@ -311,7 +311,7 @@ nxt_conf_vldt_type(nxt_conf_validation_t *vldt, nxt_str_t *name,
     nxt_str_t   expected;
     nxt_bool_t  serial;
     nxt_uint_t  value_type, n, t;
-    u_char      buf[sizeof(NXT_CONF_VLDT_ANY_TYPE) - 1];
+    u_char      buf[nxt_length(NXT_CONF_VLDT_ANY_TYPE)];
 
     static nxt_str_t  type_name[] = {
         nxt_string("a null"),

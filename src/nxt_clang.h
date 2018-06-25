@@ -262,4 +262,8 @@ nxt_trunc_ptr(p, a)                                                           \
     (u_char *) ((uintptr_t) (p) & ~((uintptr_t) (a) - 1))
 
 
+#define nxt_length(s)                                                         \
+    (sizeof(s) - 1)
+
+
 #endif /* _NXT_CLANG_H_INCLUDED_ */

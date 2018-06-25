@@ -1880,8 +1880,8 @@ nxt_router_listen_socket_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
     error = *p++;
 
-    size = sizeof("listen socket error: ") - 1
-           + sizeof("{listener: \"\", code:\"\", message: \"\"}") - 1
+    size = nxt_length("listen socket error: ")
+           + nxt_length("{listener: \"\", code:\"\", message: \"\"}")
            + sa->length + socket_errors[error].length + (in->mem.free - p);
 
     out = nxt_buf_mem_alloc(tmcf->mem_pool, size, 0);
@@ -2753,7 +2753,7 @@ nxt_router_access_log_writer(nxt_task_t *task, nxt_http_request_t *r,
         (nxt_atomic_uint_t) -1,
         nxt_router_access_log_date,
         "%02d/%s/%4d:%02d:%02d:%02d %c%02d%02d",
-        sizeof("31/Dec/1986:19:40:00 +0300") - 1,
+        nxt_length("31/Dec/1986:19:40:00 +0300"),
         NXT_THREAD_TIME_LOCAL,
         NXT_THREAD_TIME_SEC,
     };

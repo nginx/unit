@@ -138,7 +138,7 @@ nxt_discovery_modules(nxt_task_t *task, const char *path)
         }
     }
 
-    size = sizeof("[]") - 1;
+    size = nxt_length("[]");
     module = modules->elts;
     n = modules->nelts;
 
@@ -146,9 +146,9 @@ nxt_discovery_modules(nxt_task_t *task, const char *path)
         nxt_debug(task, "module: %d %V %V",
                   module[i].type, &module[i].version, &module[i].file);
 
-        size += sizeof("{\"type\": ,") - 1;
-        size += sizeof(" \"version\": \"\",") - 1;
-        size += sizeof(" \"file\": \"\"},") - 1;
+        size += nxt_length("{\"type\": ,");
+        size += nxt_length(" \"version\": \"\",");
+        size += nxt_length(" \"file\": \"\"},");
 
         size += NXT_INT_T_LEN
                 + module[i].version.length

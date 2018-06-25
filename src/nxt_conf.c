@@ -1878,10 +1878,10 @@ nxt_conf_json_length(nxt_conf_value_t *value, nxt_conf_json_pretty_t *pretty)
     switch (value->type) {
 
     case NXT_CONF_VALUE_NULL:
-        return sizeof("null") - 1;
+        return nxt_length("null");
 
     case NXT_CONF_VALUE_BOOLEAN:
-        return value->u.boolean ? sizeof("true") - 1 : sizeof("false") - 1;
+        return value->u.boolean ? nxt_length("true") : nxt_length("false");
 
     case NXT_CONF_VALUE_INTEGER:
         return nxt_conf_json_integer_length(value);
@@ -1952,11 +1952,11 @@ nxt_conf_json_integer_length(nxt_conf_value_t *value)
     num = llabs(value->u.integer);
 
     if (num <= 9999) {
-        return sizeof("-9999") - 1;
+        return nxt_length("-9999");
     }
 
     if (num <= 99999999999LL) {
-        return sizeof("-99999999999") - 1;
+        return nxt_length("-99999999999");
     }
 
     return NXT_INT64_T_LEN;

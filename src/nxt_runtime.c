@@ -844,7 +844,7 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
 
         if (nxt_strcmp(p, "--control") == 0) {
             if (*argv == NULL) {
-                write(STDERR_FILENO, no_control, sizeof(no_control) - 1);
+                write(STDERR_FILENO, no_control, nxt_length(no_control));
                 return NXT_ERROR;
             }
 
@@ -871,7 +871,7 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
 
         if (nxt_strcmp(p, "--user") == 0) {
             if (*argv == NULL) {
-                write(STDERR_FILENO, no_user, sizeof(no_user) - 1);
+                write(STDERR_FILENO, no_user, nxt_length(no_user));
                 return NXT_ERROR;
             }
 
@@ -884,7 +884,7 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
 
         if (nxt_strcmp(p, "--group") == 0) {
             if (*argv == NULL) {
-                write(STDERR_FILENO, no_group, sizeof(no_group) - 1);
+                write(STDERR_FILENO, no_group, nxt_length(no_group));
                 return NXT_ERROR;
             }
 
@@ -897,7 +897,7 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
 
         if (nxt_strcmp(p, "--pid") == 0) {
             if (*argv == NULL) {
-                write(STDERR_FILENO, no_pid, sizeof(no_pid) - 1);
+                write(STDERR_FILENO, no_pid, nxt_length(no_pid));
                 return NXT_ERROR;
             }
 
@@ -910,7 +910,7 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
 
         if (nxt_strcmp(p, "--log") == 0) {
             if (*argv == NULL) {
-                write(STDERR_FILENO, no_log, sizeof(no_log) - 1);
+                write(STDERR_FILENO, no_log, nxt_length(no_log));
                 return NXT_ERROR;
             }
 
@@ -923,7 +923,7 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
 
         if (nxt_strcmp(p, "--modules") == 0) {
             if (*argv == NULL) {
-                write(STDERR_FILENO, no_modules, sizeof(no_modules) - 1);
+                write(STDERR_FILENO, no_modules, nxt_length(no_modules));
                 return NXT_ERROR;
             }
 
@@ -936,7 +936,7 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
 
         if (nxt_strcmp(p, "--state") == 0) {
             if (*argv == NULL) {
-                write(STDERR_FILENO, no_state, sizeof(no_state) - 1);
+                write(STDERR_FILENO, no_state, nxt_length(no_state));
                 return NXT_ERROR;
             }
 
@@ -953,18 +953,18 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
         }
 
         if (nxt_strcmp(p, "--version") == 0) {
-            write(STDERR_FILENO, version, sizeof(version) - 1);
+            write(STDERR_FILENO, version, nxt_length(version));
             exit(0);
         }
 
         if (nxt_strcmp(p, "--help") == 0 || nxt_strcmp(p, "-h") == 0) {
-            write(STDOUT_FILENO, help, sizeof(help) - 1);
+            write(STDOUT_FILENO, help, nxt_length(help));
 
             if (sizeof(NXT_GROUP) == 1) {
-                write(STDOUT_FILENO, primary, sizeof(primary) - 1);
+                write(STDOUT_FILENO, primary, nxt_length(primary));
 
             } else {
-                write(STDOUT_FILENO, group, sizeof(group) - 1);
+                write(STDOUT_FILENO, group, nxt_length(group));
             }
 
             exit(0);

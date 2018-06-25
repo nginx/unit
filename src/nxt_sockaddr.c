@@ -203,7 +203,7 @@ nxt_getsockname(nxt_task_t *task, nxt_mp_t *mp, nxt_socket_t s)
 
 #if (NXT_HAVE_UNIX_DOMAIN)
         case AF_UNIX:
-             length = sizeof("unix:") - 1 + socklen;
+             length = nxt_length("unix:") + socklen;
 #endif
              break;
 
@@ -515,7 +515,7 @@ nxt_inet6_ntop(u_char *addr, u_char *buf, u_char *end)
     nxt_uint_t   i, zero_start, last_zero_start;
 
     const size_t  max_inet6_length =
-                      sizeof("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff") - 1;
+                        nxt_length("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
 
     if (buf + max_inet6_length > end) {
         return buf;

@@ -282,7 +282,7 @@ nxt_http_request_header_send(nxt_task_t *task, nxt_http_request_t *r)
         (nxt_atomic_uint_t) -1,
         nxt_http_date,
         "%s, %02d %s %4d %02d:%02d:%02d GMT",
-        sizeof("Wed, 31 Dec 1986 16:40:00 GMT") - 1,
+        nxt_length("Wed, 31 Dec 1986 16:40:00 GMT"),
         NXT_THREAD_TIME_GMT,
         NXT_THREAD_TIME_SEC,
     };

@@ -49,7 +49,7 @@ nxt_http_request_error(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_field_set(content_type, "Content-Type", "text/html");
 
     r->resp.content_length = NULL;
-    r->resp.content_length_n = sizeof(error) - 1;
+    r->resp.content_length_n = nxt_length(error);
 
     r->state = &nxt_http_request_send_error_body_state;
 
@@ -87,7 +87,7 @@ nxt_http_request_send_error_body(nxt_task_t *task, void *obj, void *data)
 
     out->mem.start = (u_char *) error;
     out->mem.pos = out->mem.start;
-    out->mem.free = out->mem.start + sizeof(error) - 1;
+    out->mem.free = out->mem.start + nxt_length(error);
     out->mem.end = out->mem.free;
 
     out->next = nxt_http_buf_last(r);

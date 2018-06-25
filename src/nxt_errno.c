@@ -41,7 +41,7 @@ nxt_strerror_start(void)
     nxt_uint_t  err, invalid;
 
     /* The last entry. */
-    size = sizeof("Unknown error") - 1;
+    size = nxt_length("Unknown error");
 
     /*
      * Linux has holes for error codes 41 and 58, so the loop

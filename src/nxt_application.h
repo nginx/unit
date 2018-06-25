@@ -184,7 +184,7 @@ nxt_app_msg_write_nvp_(nxt_task_t *task, nxt_app_wmsg_t *msg,
 
 
 #define nxt_app_msg_write_const(task, msg, c)                                 \
-    nxt_app_msg_write((task), (msg), (u_char *)(c), sizeof(c) - 1)
+    nxt_app_msg_write((task), (msg), (u_char *) (c), nxt_length(c))
 
 #define nxt_app_msg_write_str(task, msg, str)                                 \
     nxt_app_msg_write((task), (msg), (str)->start, (str)->length)
@@ -193,7 +193,7 @@ nxt_app_msg_write_nvp_(nxt_task_t *task, nxt_app_wmsg_t *msg,
     nxt_app_msg_write((task), (msg), (c), nxt_strlen(c))
 
 #define nxt_app_msg_write_nvp(task, msg, n, v)                                \
-    nxt_app_msg_write_nvp_((task), (msg), (u_char *)(n), sizeof(n) - 1,       \
+    nxt_app_msg_write_nvp_((task), (msg), (u_char *) (n), nxt_length(n),      \
                            (v)->start, (v)->length)
 
 nxt_inline nxt_int_t nxt_app_msg_write_size(nxt_task_t *task,

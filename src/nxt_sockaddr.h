@@ -99,10 +99,10 @@ NXT_EXPORT nxt_int_t nxt_inet6_addr(struct in6_addr *in6_addr, u_char *buf,
 #endif
 
 
-#define NXT_INET_ADDR_STR_LEN     (sizeof("255.255.255.255:65535") - 1)
+#define NXT_INET_ADDR_STR_LEN     nxt_length("255.255.255.255:65535")
 
 #define NXT_INET6_ADDR_STR_LEN                                                \
-    (sizeof("[ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]:65535") - 1)
+    nxt_length("[ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]:65535")
 
 
 #define nxt_sockaddr_size(sa)                                                 \

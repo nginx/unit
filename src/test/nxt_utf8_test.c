@@ -178,8 +178,8 @@ nxt_utf8_test(nxt_thread_t *thr)
 
     n = nxt_utf8_casecmp((u_char *) "ABC АБВ ΑΒΓ",
                          (u_char *) "abc абв αβγ",
-                             sizeof("ABC АБВ ΑΒΓ") - 1,
-                             sizeof("abc абв αβγ") - 1);
+                         nxt_length("ABC АБВ ΑΒΓ"),
+                         nxt_length("abc абв αβγ"));
 
     if (n != 0) {
         nxt_log_alert(thr->log, "nxt_utf8_casecmp() failed");

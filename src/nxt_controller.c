@@ -1167,7 +1167,7 @@ nxt_controller_response(nxt_task_t *task, nxt_controller_request_t *req,
         (nxt_atomic_uint_t) -1,
         nxt_controller_date,
         "%s, %02d %s %4d %02d:%02d:%02d GMT",
-        sizeof("Wed, 31 Dec 1986 16:40:00 GMT") - 1,
+        nxt_length("Wed, 31 Dec 1986 16:40:00 GMT"),
         NXT_THREAD_TIME_GMT,
         NXT_THREAD_TIME_SEC,
     };
@@ -1264,13 +1264,13 @@ nxt_controller_response(nxt_task_t *task, nxt_controller_request_t *req,
 
     body->mem.free = nxt_cpymem(body->mem.free, "\r\n", 2);
 
-    size = sizeof("HTTP/1.1 " "\r\n") - 1 + status_line.length
-           + sizeof("Server: " NXT_SERVER "\r\n") - 1
-           + sizeof("Date: Wed, 31 Dec 1986 16:40:00 GMT\r\n") - 1
-           + sizeof("Content-Type: application/json\r\n") - 1
-           + sizeof("Content-Length: " "\r\n") - 1 + NXT_SIZE_T_LEN
-           + sizeof("Connection: close\r\n") - 1
-           + sizeof("\r\n") - 1;
+    size = nxt_length("HTTP/1.1 " "\r\n") + status_line.length
+           + nxt_length("Server: " NXT_SERVER "\r\n")
+           + nxt_length("Date: Wed, 31 Dec 1986 16:40:00 GMT\r\n")
+           + nxt_length("Content-Type: application/json\r\n")
+           + nxt_length("Content-Length: " "\r\n") + NXT_SIZE_T_LEN
+           + nxt_length("Connection: close\r\n")
+           + nxt_length("\r\n");
 
     b = nxt_buf_mem_alloc(c->mem_pool, size, 0);
     if (nxt_slow_path(b == NULL)) {

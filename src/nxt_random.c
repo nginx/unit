@@ -180,7 +180,7 @@ nxt_random_test(nxt_thread_t *thr)
 
     r.count = 400000;
 
-    nxt_random_add(&r, (u_char *) "arc4random", sizeof("arc4random") - 1);
+    nxt_random_add(&r, (u_char *) "arc4random", nxt_length("arc4random"));
 
     /*
      * Test arc4random() numbers.
