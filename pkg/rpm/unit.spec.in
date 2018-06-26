@@ -5,6 +5,7 @@
 
 %if ( 0%{?rhel} == 5 || 0%{?rhel} == 6 )
 Requires: initscripts >= 8.36
+Requires: curl
 %endif
 
 %if 0%{?rhel} == 7

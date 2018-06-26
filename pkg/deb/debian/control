@@ -10,7 +10,7 @@ Homepage: https://unit.nginx.org
 Package: unit
 Section: admin
 Architecture: any
-Depends: lsb-base,
+Depends: lsb-base, curl,
          ${misc:Depends}, ${shlibs:Depends}
 Description: NGINX Unit
  NGINX Unit is a runtime and delivery environment for modern distributed
