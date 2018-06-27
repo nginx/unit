@@ -224,15 +224,10 @@ ${NXT_DAEMON}-uninstall:
 
 END
 
-nxt_version=`grep 'define NXT_VERSION' src/nxt_main.h \
-             | sed -e 's/.*"\(.*\)".*/\1/'`
-
 # Makefile.
 # *.dSYM is MacOSX Clang debug information.
 
 cat << END > Makefile
-
-NXT_VERSION =	$nxt_version
 
 include $NXT_MAKEFILE
 
@@ -242,12 +237,5 @@ tests:		$NXT_BUILD_DIR/tests $NXT_BUILD_DIR/utf8_file_name_test
 .PHONY: clean
 clean:
 		rm -rf $NXT_BUILD_DIR *.dSYM Makefile
-
-.PHONY: dist
-dist:
-		rm -f unit-\$(NXT_VERSION).tar.gz
-		hg archive unit-\$(NXT_VERSION).tar.gz \\
-			-p unit-\$(NXT_VERSION) \\
-			-X ".hg*" -X "pkg/" -X "docs/"
 
 END

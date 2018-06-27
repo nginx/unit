@@ -6,7 +6,14 @@ VERSION ?= $(shell grep 'define NXT_VERSION' ../src/nxt_main.h		\
 RELEASE ?= 1
 
 default:
-	@echo "available targets: rpm deb docker"
+	@echo "available targets: dist rpm deb docker"
+
+dist:
+	rm -f unit-$(VERSION).tar.gz
+	hg archive unit-$(VERSION).tar.gz \
+		-r $(VERSION) \
+		-p unit-$(VERSION) \
+		-X "../.hg*" -X "../pkg/" -X "../docs/"
 
 rpm:
 	@cd rpm && VERSION=$(VERSION) RELEASE=$(RELEASE) make all
