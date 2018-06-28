@@ -203,8 +203,7 @@ fi
 # Thread Local Storage / Thread Specific Data.
 #
 # Linux, FreeBSD 5.3, Solaris.
-# MacOSX 10.7 (Lion) Clang.  However, if the -mmacosx-version-min
-# option is specified it must be at least 10.7.
+# MacOSX 10.7 (Lion) Clang.
 
 nxt_feature="__thread"
 nxt_feature_name=NXT_HAVE_THREAD_STORAGE_CLASS

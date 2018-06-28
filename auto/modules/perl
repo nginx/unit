@@ -68,10 +68,6 @@ if /bin/sh -c "$NXT_PERL -MConfig -e 'print \"Perl version: \",
         # OS X system perl wants to link universal binaries
         NXT_PERL_LDOPTS=`echo $NXT_PERL_LDOPTS \
                          | sed -e 's/-arch i386//' -e 's/-arch x86_64//'`
-
-        # macosx-version-min is already defined for Darwin
-        NXT_PERL_LDOPTS=`echo $NXT_PERL_LDOPTS \
-                         | $NXT_PERL -pe 's/-mmacosx-version-min=\d+\.\d+//'`
     fi
 
     NXT_PERL_LIBS="-L ${NXT_PERL_INCPATH} ${NXT_PERL_LDOPTS}"
