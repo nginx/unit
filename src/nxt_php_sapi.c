@@ -175,6 +175,9 @@ NXT_EXPORT nxt_application_module_t  nxt_app_module = {
 };
 
 
+static nxt_task_t  *nxt_php_task;
+
+
 nxt_inline u_char *
 nxt_realpath(const void *c)
 {
@@ -194,6 +197,8 @@ nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     static nxt_str_t  file_str = nxt_string("file");
     static nxt_str_t  user_str = nxt_string("user");
     static nxt_str_t  admin_str = nxt_string("admin");
+
+    nxt_php_task = task;
 
     c = &conf->u.php;
 
@@ -866,5 +871,5 @@ static void
 nxt_php_log_message(char *message)
 #endif
 {
-    nxt_thread_log_error(NXT_LOG_NOTICE, "php message: %s", message);
+    nxt_log(nxt_php_task, NXT_LOG_NOTICE, "php message: %s", message);
 }
