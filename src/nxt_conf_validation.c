@@ -659,7 +659,7 @@ nxt_conf_vldt_processes(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 
     if (proc.max < proc.spare) {
         return nxt_conf_vldt_error(vldt, "The \"spare\" number must be "
-                                   "lower than \"max\".");
+                                   "less than or equal to \"max\".");
     }
 
     if (proc.idle_timeout < 0) {
