@@ -769,7 +769,7 @@ nxt_controller_request_content_length(void *ctx, nxt_http_field_t *field,
 
     length = nxt_off_t_parse(field->value, field->value_length);
 
-    if (nxt_fast_path(length > 0)) {
+    if (nxt_fast_path(length >= 0)) {
 
         if (nxt_slow_path(length > NXT_SIZE_T_MAX)) {
             nxt_log_error(NXT_LOG_ERR, &r->conn->log,
