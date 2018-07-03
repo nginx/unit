@@ -37,6 +37,8 @@ static nxt_int_t nxt_php_run(nxt_task_t *task,
 static int nxt_php_startup(sapi_module_struct *sapi_module);
 static void nxt_php_set_options(nxt_task_t *task, nxt_conf_value_t *options,
     int type);
+static nxt_int_t nxt_php_alter_option(nxt_str_t *name, nxt_str_t *value,
+    int type);
 static int nxt_php_send_headers(sapi_headers_struct *sapi_headers);
 static char *nxt_php_read_cookies(void);
 static void nxt_php_register_variables(zval *track_vars_array);
@@ -319,15 +321,9 @@ nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 static void
 nxt_php_set_options(nxt_task_t *task, nxt_conf_value_t *options, int type)
 {
-    int               ret;
     uint32_t          next;
     nxt_str_t         name, value;
     nxt_conf_value_t  *value_obj;
-#if PHP_MAJOR_VERSION >= 7
-    zend_string       *zs;
-#else
-    char              buf[256];
-#endif
 
     if (options != NULL) {
         next = 0;
@@ -340,36 +336,98 @@ nxt_php_set_options(nxt_task_t *task, nxt_conf_value_t *options, int type)
 
             nxt_conf_get_string(value_obj, &value);
 
-#if PHP_MAJOR_VERSION >= 7
-            /* PHP exits on memory allocation errors. */
-            zs = zend_string_init((char *) name.start, name.length, 1);
-
-            ret = zend_alter_ini_entry_chars(zs, (char *) value.start,
-                                             value.length, type,
-                                             ZEND_INI_STAGE_ACTIVATE);
-
-            zend_string_release(zs);
-#else
-            if (nxt_fast_path(name.length < sizeof(buf))) {
-                nxt_memcpy(buf, name.start, name.length);
-                buf[name.length] = '\0';
-
-                ret = zend_alter_ini_entry(buf, name.length + 1,
-                                           (char *) value.start, value.length,
-                                           type, ZEND_INI_STAGE_ACTIVATE);
-
-            } else {
-                ret = FAILURE;
-            }
-#endif
-
-            if (ret == FAILURE) {
+            if (nxt_php_alter_option(&name, &value, type) != NXT_OK) {
                 nxt_log(task, NXT_LOG_ERR,
                         "setting PHP option \"%V: %V\" failed", &name, &value);
             }
         }
     }
 }
+
+
+#if (NXT_PHP7)
+
+static nxt_int_t
+nxt_php_alter_option(nxt_str_t *name, nxt_str_t *value, int type)
+{
+    zend_string     *zs;
+    zend_ini_entry  *ini_entry;
+
+    ini_entry = zend_hash_str_find_ptr(EG(ini_directives),
+                                       (char *) name->start, name->length);
+
+    if (ini_entry == NULL) {
+        return NXT_ERROR;
+    }
+
+    /* PHP exits on memory allocation errors. */
+    zs = zend_string_init((char *) value->start, value->length, 1);
+
+    if (ini_entry->on_modify
+        && ini_entry->on_modify(ini_entry, zs, ini_entry->mh_arg1,
+                                ini_entry->mh_arg2, ini_entry->mh_arg3,
+                                ZEND_INI_STAGE_ACTIVATE)
+           != SUCCESS)
+    {
+        zend_string_release(zs);
+        return NXT_ERROR;
+    }
+
+    ini_entry->value = zs;
+    ini_entry->modifiable = type;
+
+    return NXT_OK;
+}
+
+#else  /* PHP 5. */
+
+static nxt_int_t
+nxt_php_alter_option(nxt_str_t *name, nxt_str_t *value, int type)
+{
+    char            *cstr;
+    zend_ini_entry  *ini_entry;
+    char            buf[256];
+
+    if (nxt_slow_path(name->length >= sizeof(buf))) {
+        return NXT_ERROR;
+    }
+
+    nxt_memcpy(buf, name->start, name->length);
+    buf[name->length] = '\0';
+
+    if (zend_hash_find(EG(ini_directives), buf, name->length + 1,
+                       (void **) &ini_entry)
+        == FAILURE)
+    {
+        return NXT_ERROR;
+    }
+
+    cstr = nxt_malloc(value->length + 1);
+    if (nxt_slow_path(cstr == NULL)) {
+        return NXT_ERROR;
+    }
+
+    nxt_memcpy(cstr, value->start, value->length);
+    cstr[value->length] = '\0';
+
+    if (ini_entry->on_modify
+        && ini_entry->on_modify(ini_entry, cstr, value->length,
+                                ini_entry->mh_arg1, ini_entry->mh_arg2,
+                                ini_entry->mh_arg3, ZEND_INI_STAGE_ACTIVATE)
+           != SUCCESS)
+    {
+        nxt_free(cstr);
+        return NXT_ERROR;
+    }
+
+    ini_entry->value = cstr;
+    ini_entry->value_length = value->length;
+    ini_entry->modifiable = type;
+
+    return NXT_OK;
+}
+
+#endif
 
 
 static nxt_int_t
