@@ -301,7 +301,7 @@ static nxt_http_parse_test_case_t  nxt_http_test_cases[] = {
     {
         nxt_string("GET / HTTP/1.1\r\n"
                    "Host: пример.испытание\r\n\r\n"),
-        NXT_HTTP_PARSE_INVALID,
+        NXT_DONE,
         NULL, { NULL }
     },
     {

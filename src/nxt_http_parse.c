@@ -699,8 +699,7 @@ nxt_http_lookup_field_end(u_char *p, u_char *end)
 
 #define nxt_field_end_test_char(ch)                                           \
                                                                               \
-        /* Values below 0x20 become more than 0xDF. */                        \
-        if (nxt_slow_path((u_char) ((ch) - 0x20) > 0x5E)) {                   \
+        if (nxt_slow_path((ch) < 0x20)) {                                     \
             return &(ch);                                                     \
         }
 
