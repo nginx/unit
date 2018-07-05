@@ -4375,7 +4375,6 @@ nxt_php_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
 {
     nxt_int_t                 rc;
     nxt_buf_t                 *b;
-    nxt_bool_t                method_is_post;
     nxt_http_field_t          *field;
     nxt_app_request_header_t  *h;
 
@@ -4432,17 +4431,9 @@ nxt_php_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
     RC(nxt_app_msg_write_size(task, wmsg, h->parsed_content_length));
     RC(nxt_app_msg_write_size(task, wmsg, r->body.preread_size));
 
-    method_is_post = h->method.length == 4
-                     && h->method.start[0] == 'P'
-                     && h->method.start[1] == 'O'
-                     && h->method.start[2] == 'S'
-                     && h->method.start[3] == 'T';
-
-    if (method_is_post) {
-        for (b = r->body.buf; b != NULL; b = b->next) {
-            RC(nxt_app_msg_write_raw(task, wmsg, b->mem.pos,
-                                     nxt_buf_mem_used_size(&b->mem)));
-        }
+    for (b = r->body.buf; b != NULL; b = b->next) {
+        RC(nxt_app_msg_write_raw(task, wmsg, b->mem.pos,
+                                 nxt_buf_mem_used_size(&b->mem)));
     }
 
     nxt_list_each(field, h->fields) {
@@ -4454,13 +4445,6 @@ nxt_php_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
 
     /* end-of-headers mark */
     NXT_WRITE(&eof);
-
-    if (!method_is_post) {
-        for (b = r->body.buf; b != NULL; b = b->next) {
-            RC(nxt_app_msg_write_raw(task, wmsg, b->mem.pos,
-                                     nxt_buf_mem_used_size(&b->mem)));
-        }
-    }
 
 #undef NXT_WRITE
 #undef RC

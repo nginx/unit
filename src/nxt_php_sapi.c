@@ -799,10 +799,13 @@ static void
 nxt_php_register_variables(zval *track_vars_array TSRMLS_DC)
 {
     u_char                    *colon;
+    size_t                    rest, size;
     nxt_str_t                 n, v;
     nxt_int_t                 rc;
     nxt_str_t                 host, server_name, server_port;
+    nxt_buf_t                 *b, buf;
     nxt_task_t                *task;
+    nxt_app_rmsg_t            *rmsg, rmsg_tmp;
     nxt_php_run_ctx_t         *ctx;
     nxt_app_request_header_t  *h;
 
@@ -904,12 +907,44 @@ nxt_php_register_variables(zval *track_vars_array TSRMLS_DC)
     NXT_PHP_SET("REMOTE_ADDR", ctx->r.remote);
     NXT_PHP_SET("SERVER_ADDR", ctx->r.local);
 
-    while (nxt_app_msg_read_str(task, ctx->rmsg, &n) == NXT_OK) {
+    rmsg = ctx->rmsg;
+    rest = ctx->body_preread_size;
+
+    if (rest != 0) {
+        /* Skipping request body. */
+
+        b = rmsg->buf;
+
+        do {
+            if (nxt_slow_path(b == NULL)) {
+                return;
+            }
+
+            size = nxt_buf_mem_used_size(&b->mem);
+
+            if (rest < size) {
+                nxt_memcpy(&buf, b, NXT_BUF_MEM_SIZE);
+                buf.mem.pos += rest;
+                b = &buf;
+                break;
+            }
+
+            rest -= size;
+            b = b->next;
+
+        } while (rest != 0);
+
+        rmsg_tmp = *rmsg;
+        rmsg_tmp.buf = b;
+        rmsg = &rmsg_tmp;
+    }
+
+    while (nxt_app_msg_read_str(task, rmsg, &n) == NXT_OK) {
         if (nxt_slow_path(n.length == 0)) {
             break;
         }
 
-        rc = nxt_app_msg_read_str(task, ctx->rmsg, &v);
+        rc = nxt_app_msg_read_str(task, rmsg, &v);
         if (nxt_slow_path(rc != NXT_OK)) {
             break;
         }
