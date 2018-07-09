@@ -1521,11 +1521,11 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         skcf->large_header_buffer_size = 8192;
         skcf->large_header_buffers = 4;
         skcf->body_buffer_size = 16 * 1024;
-        skcf->max_body_size = 2 * 1024 * 1024;
-        skcf->idle_timeout = 65000;
-        skcf->header_read_timeout = 5000;
-        skcf->body_read_timeout = 5000;
-        skcf->send_timeout = 5000;
+        skcf->max_body_size = 8 * 1024 * 1024;
+        skcf->idle_timeout = 180 * 1000;
+        skcf->header_read_timeout = 30 * 1000;
+        skcf->body_read_timeout = 30 * 1000;
+        skcf->send_timeout = 30 * 1000;
 
         if (http != NULL) {
             ret = nxt_conf_map_object(mp, http, nxt_router_http_conf,
