@@ -73,7 +73,52 @@ static nxt_int_t nxt_conf_vldt_php_option(nxt_conf_validation_t *vldt,
     nxt_str_t *name, nxt_conf_value_t *value);
 
 
+static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[] = {
+    { nxt_string("header_read_timeout"),
+      NXT_CONF_VLDT_INTEGER,
+      NULL,
+      NULL },
+
+    { nxt_string("body_read_timeout"),
+      NXT_CONF_VLDT_INTEGER,
+      NULL,
+      NULL },
+
+    { nxt_string("send_timeout"),
+      NXT_CONF_VLDT_INTEGER,
+      NULL,
+      NULL },
+
+    { nxt_string("idle_timeout"),
+      NXT_CONF_VLDT_INTEGER,
+      NULL,
+      NULL },
+
+    { nxt_string("max_body_size"),
+      NXT_CONF_VLDT_INTEGER,
+      NULL,
+      NULL },
+
+    NXT_CONF_VLDT_END
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_setting_members[] = {
+    { nxt_string("http"),
+      NXT_CONF_VLDT_OBJECT,
+      &nxt_conf_vldt_object,
+      (void *) &nxt_conf_vldt_http_members },
+
+    NXT_CONF_VLDT_END
+};
+
+
 static nxt_conf_vldt_object_t  nxt_conf_vldt_root_members[] = {
+    { nxt_string("settings"),
+      NXT_CONF_VLDT_OBJECT,
+      &nxt_conf_vldt_object,
+      (void *) &nxt_conf_vldt_setting_members },
+
     { nxt_string("listeners"),
       NXT_CONF_VLDT_OBJECT,
       &nxt_conf_vldt_object_iterator,

@@ -1297,7 +1297,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_router_access_log_t     *access_log;
     nxt_router_listener_conf_t  lscf;
 
-    static nxt_str_t  http_path = nxt_string("/http");
+    static nxt_str_t  http_path = nxt_string("/settings/http");
     static nxt_str_t  applications_path = nxt_string("/applications");
     static nxt_str_t  listeners_path = nxt_string("/listeners");
     static nxt_str_t  access_log_path = nxt_string("/access_log");
