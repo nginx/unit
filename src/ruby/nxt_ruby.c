@@ -31,6 +31,7 @@ static nxt_int_t nxt_ruby_init_io(nxt_task_t *task);
 static VALUE nxt_ruby_rack_init(nxt_ruby_rack_init_t *rack_init);
 
 static VALUE nxt_ruby_require_rubygems(VALUE arg);
+static VALUE nxt_ruby_bundler_setup(VALUE arg);
 static VALUE nxt_ruby_require_rack(VALUE arg);
 static VALUE nxt_ruby_rack_parse_script(VALUE ctx);
 static VALUE nxt_ruby_rack_env_create(VALUE arg);
@@ -196,13 +197,26 @@ static VALUE
 nxt_ruby_rack_init(nxt_ruby_rack_init_t *rack_init)
 {
     int    state;
-    VALUE  rack, rackup;
+    VALUE  rack, rackup, err;
 
     rb_protect(nxt_ruby_require_rubygems, Qnil, &state);
     if (nxt_slow_path(state != 0)) {
         nxt_ruby_exception_log(rack_init->task, NXT_LOG_ALERT,
                                "Failed to require 'rubygems' package");
         return Qnil;
+    }
+
+    rb_protect(nxt_ruby_bundler_setup, Qnil, &state);
+    if (state != 0) {
+        err = rb_errinfo();
+
+        if (rb_obj_is_kind_of(err, rb_eLoadError) == Qfalse) {
+            nxt_ruby_exception_log(rack_init->task, NXT_LOG_ALERT,
+                                   "Failed to require 'bundler/setup' package");
+            return Qnil;
+        }
+
+        rb_set_errinfo(Qnil);
     }
 
     rb_protect(nxt_ruby_require_rack, Qnil, &state);
@@ -237,6 +251,14 @@ nxt_ruby_require_rubygems(VALUE arg)
 {
     return rb_funcall(rb_cObject, rb_intern("require"), 1,
                       rb_str_new2("rubygems"));
+}
+
+
+static VALUE
+nxt_ruby_bundler_setup(VALUE arg)
+{
+    return rb_funcall(rb_cObject, rb_intern("require"), 1,
+                      rb_str_new2("bundler/setup"));
 }
 
 
