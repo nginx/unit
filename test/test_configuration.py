@@ -6,6 +6,9 @@ class TestUnitConfiguration(unit.TestUnitControl):
     def setUpClass():
         unit.TestUnit().check_modules('python')
 
+    def test_json_empty(self):
+        self.assertIn('error', self.conf(''), 'empty')
+
     def test_json_leading_zero(self):
         self.assertIn('error', self.conf('00'), 'leading zero')
 
