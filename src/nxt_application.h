@@ -89,12 +89,6 @@ struct nxt_common_app_conf_s {
 
 
 typedef struct {
-    nxt_str_t                  name;
-    nxt_str_t                  value;
-} nxt_app_header_field_t;
-
-
-typedef struct {
     nxt_str_t                  method;
     nxt_str_t                  target;
     nxt_str_t                  version;
