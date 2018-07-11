@@ -130,5 +130,79 @@ class TestUnitPHPApplication(unit.TestUnitApplicationPHP):
             self.current_dir + '/php/ini_precision/php.ini', 'ini file')
         self.assertEqual(self.get()['headers']['X-Precision'], '4', 'ini value')
 
+    @unittest.expectedFailure
+    def test_php_application_ini_admin_user(self):
+        self.load('ini_precision')
+
+        self.assertIn('error', self.conf({
+            "user": { "precision": "4" },
+            "admin": { "precision": "5" }
+        }, '/applications/ini_precision/options'), 'ini admin user')
+
+    def test_php_application_ini_admin(self):
+        self.load('ini_precision')
+
+        self.conf({
+            "file": "php.ini",
+            "admin": { "precision": "5" }
+        }, '/applications/ini_precision/options')
+
+        self.assertEqual(self.get()['headers']['X-Precision'], '5',
+            'ini value admin')
+
+    def test_php_application_ini_user(self):
+        self.load('ini_precision')
+
+        self.conf({
+            "file": "php.ini",
+            "user": { "precision": "5" }
+        }, '/applications/ini_precision/options')
+
+        self.assertEqual(self.get()['headers']['X-Precision'], '5',
+            'ini value user')
+
+    def test_php_application_ini_user_2(self):
+        self.load('ini_precision')
+
+        self.conf({"file": "php.ini"}, '/applications/ini_precision/options')
+
+        self.assertEqual(self.get()['headers']['X-Precision'], '4',
+            'ini user file')
+
+        self.conf({ "precision": "5" },
+            '/applications/ini_precision/options/user')
+
+        self.assertEqual(self.get()['headers']['X-Precision'], '5',
+            'ini value user')
+
+    def test_php_application_ini_set_admin(self):
+        self.load('ini_precision')
+
+        self.conf({"admin": { "precision": "5" }},
+            '/applications/ini_precision/options')
+
+        self.assertEqual(self.get(url='/?precision=6')['headers']['X-Precision'],
+            '5', 'ini set admin')
+
+    def test_php_application_ini_set_user(self):
+        self.load('ini_precision')
+
+        self.conf({"user": { "precision": "5" }},
+            '/applications/ini_precision/options')
+
+        self.assertEqual(self.get(url='/?precision=6')['headers']['X-Precision'],
+            '6', 'ini set user')
+
+    def test_php_application_ini_repeat(self):
+        self.load('ini_precision')
+
+        self.conf({"user": { "precision": "5" }},
+            '/applications/ini_precision/options')
+
+        self.assertEqual(self.get()['headers']['X-Precision'], '5', 'ini value')
+
+        self.assertEqual(self.get()['headers']['X-Precision'], '5',
+            'ini value repeat')
+
 if __name__ == '__main__':
     unittest.main()
