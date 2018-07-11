@@ -83,6 +83,26 @@ class TestUnitHTTPHeader(unit.TestUnitApplicationPython):
         self.assertEqual(resp['headers']['Custom-Header'],
             '(),/:;<=>?@[\]{}\t !#$%&\'*+-.^_`|~', 'value chars custom header')
 
+    def test_http_header_value_chars_edge(self):
+        self.load('custom_header')
+
+        resp = self.get(headers={
+            'Custom-Header': '\x20\xFF'
+        })
+
+        self.assertEqual(resp['status'], 200, 'value chars edge status')
+        self.assertEqual(resp['headers']['Custom-Header'], '\xFF',
+            'value chars edge')
+
+    def test_http_header_value_chars_below(self):
+        self.load('custom_header')
+
+        resp = self.get(headers={
+            'Custom-Header': '\x1F'
+        })
+
+        self.assertEqual(resp['status'], 400, 'value chars below')
+
     def test_http_header_field_leading_sp(self):
         self.load('empty')
 
