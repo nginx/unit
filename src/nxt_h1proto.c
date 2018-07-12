@@ -58,7 +58,8 @@ static void nxt_h1p_conn_request_send_timeout(nxt_task_t *task, void *obj,
     void *data);
 static nxt_msec_t nxt_h1p_conn_request_timeout_value(nxt_conn_t *c,
     uintptr_t data);
-nxt_inline void nxt_h1p_request_error(nxt_task_t *task, nxt_http_request_t *r);
+nxt_inline void nxt_h1p_request_error(nxt_task_t *task, nxt_h1proto_t *h1p,
+    nxt_http_request_t *r);
 
 
 static const nxt_conn_state_t  nxt_h1p_idle_state;
@@ -800,7 +801,7 @@ nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r)
 
     header = nxt_http_buf_mem(task, r, size);
     if (nxt_slow_path(header == NULL)) {
-        nxt_h1p_request_error(task, r);
+        nxt_h1p_request_error(task, h1p, r);
         return;
     }
 
@@ -865,16 +866,18 @@ static const nxt_conn_state_t  nxt_h1p_send_state
 static void
 nxt_h1p_request_send(nxt_task_t *task, nxt_http_request_t *r, nxt_buf_t *out)
 {
-    nxt_conn_t  *c;
+    nxt_conn_t     *c;
+    nxt_h1proto_t  *h1p;
 
     nxt_debug(task, "h1p request send");
 
-    c = r->proto.h1->conn;
+    h1p = r->proto.h1;
+    c = h1p->conn;
 
-    if (r->proto.h1->chunked) {
+    if (h1p->chunked) {
         out = nxt_h1p_chunk_create(task, r, out);
         if (nxt_slow_path(out == NULL)) {
-            nxt_h1p_request_error(task, r);
+            nxt_h1p_request_error(task, h1p, r);
             return;
         }
     }
@@ -1206,7 +1209,7 @@ nxt_h1p_conn_request_error(nxt_task_t *task, void *obj, void *data)
         r->status = NXT_HTTP_BAD_REQUEST;
     }
 
-    nxt_h1p_request_error(task, r);
+    nxt_h1p_request_error(task, h1p, r);
 }
 
 
@@ -1230,6 +1233,7 @@ nxt_h1p_conn_request_timeout(nxt_task_t *task, void *obj, void *data)
     c->socket.timedout = 0;
 
     h1p = c->socket.data;
+    h1p->keepalive = 0;
     r = h1p->request;
 
     if (r->fields == NULL) {
@@ -1254,7 +1258,7 @@ nxt_h1p_conn_request_send_timeout(nxt_task_t *task, void *obj, void *data)
     c = nxt_write_timer_conn(timer);
     h1p = c->socket.data;
 
-    nxt_h1p_request_error(task, h1p->request);
+    nxt_h1p_request_error(task, h1p, h1p->request);
 }
 
 
@@ -1270,7 +1274,10 @@ nxt_h1p_conn_request_timeout_value(nxt_conn_t *c, uintptr_t data)
 
 
 nxt_inline void
-nxt_h1p_request_error(nxt_task_t *task, nxt_http_request_t *r)
+nxt_h1p_request_error(nxt_task_t *task, nxt_h1proto_t *h1p,
+    nxt_http_request_t *r)
 {
-    r->state->error_handler(task, r, r->proto.h1);
+    h1p->keepalive = 0;
+
+    r->state->error_handler(task, r, h1p);
 }
