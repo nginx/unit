@@ -31,6 +31,23 @@ nxt_go_response_write(nxt_go_request_t r, uintptr_t buf, size_t len)
 }
 
 
+void
+nxt_go_response_flush(nxt_go_request_t r)
+{
+    nxt_go_run_ctx_t  *ctx;
+
+    if (nxt_slow_path(r == 0)) {
+        return;
+    }
+
+    ctx = (nxt_go_run_ctx_t *) r;
+
+    if (ctx->nwbuf > 0) {
+        nxt_go_ctx_flush(ctx, 0);
+    }
+}
+
+
 int
 nxt_go_request_read(nxt_go_request_t r, uintptr_t dst, size_t dst_len)
 {

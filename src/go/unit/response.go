@@ -65,3 +65,11 @@ func (r *response) WriteHeader(code int) {
 
 	r.Write([]byte("\r\n"))
 }
+
+func (r *response) Flush() {
+	if !r.headerSent {
+		r.WriteHeader(http.StatusOK)
+	}
+
+	C.nxt_go_response_flush(r.c_req)
+}
