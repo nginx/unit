@@ -24,6 +24,10 @@ nxt_conn_io_write(nxt_task_t *task, void *obj, void *data)
 
     nxt_debug(task, "conn write fd:%d", c->socket.fd);
 
+    if (c->socket.error != 0) {
+        goto error;
+    }
+
     if (!c->socket.write_ready || c->write == NULL) {
         return;
     }
@@ -109,22 +113,25 @@ nxt_conn_io_write(nxt_task_t *task, void *obj, void *data)
     }
 
     if (ret == 0 || sb.sent != 0) {
-        /* "ret == 0" means a sync buffer was processed. */
+        /*
+         * ret == 0 means a sync buffer was processed.
+         * ret == NXT_ERROR is ignored here if some data was sent,
+         * the error will be handled on the next nxt_conn_write() call.
+         */
         c->sent += sb.sent;
         nxt_work_queue_add(c->write_work_queue, c->write_state->ready_handler,
                            task, c, data);
-        /*
-         * Fall through if first operations were
-         * successful but the last one failed.
-         */
+        return;
     }
 
-    if (nxt_slow_path(ret == NXT_ERROR)) {
-        nxt_fd_event_block_write(engine, &c->socket);
+    /* ret == NXT_ERROR */
 
-        nxt_work_queue_add(c->write_work_queue, c->write_state->error_handler,
-                           task, c, data);
-    }
+    nxt_fd_event_block_write(engine, &c->socket);
+
+error:
+
+    nxt_work_queue_add(c->write_work_queue, c->write_state->error_handler,
+                       task, c, data);
 }
 
 
