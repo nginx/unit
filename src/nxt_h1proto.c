@@ -1251,7 +1251,7 @@ nxt_h1p_conn_request_send_timeout(nxt_task_t *task, void *obj, void *data)
 
     nxt_debug(task, "h1p conn request send timeout");
 
-    c = nxt_read_timer_conn(timer);
+    c = nxt_write_timer_conn(timer);
     h1p = c->socket.data;
 
     nxt_h1p_request_error(task, h1p->request);
