@@ -12,6 +12,7 @@
 #include <nxt_router.h>
 #include <nxt_http.h>
 #include <nxt_application.h>
+#include <nxt_port_memory_int.h>
 
 #include <glob.h>
 
@@ -500,15 +501,6 @@ nxt_app_msg_write_get_buf(nxt_task_t *task, nxt_app_wmsg_t *msg, size_t size)
             }
 
             *msg->buf = b;
-
-            free_size = nxt_buf_mem_free_size(&b->mem);
-
-            if (nxt_slow_path(free_size < size)) {
-                nxt_log(task, NXT_LOG_WARN, "requested buffer too big "
-                        "(%z < %z)", free_size, size);
-                return NULL;
-            }
-
         }
 
         free_size = nxt_buf_mem_free_size(&b->mem);
@@ -824,8 +816,8 @@ nxt_int_t
 nxt_app_msg_write_raw(nxt_task_t *task, nxt_app_wmsg_t *msg, const u_char *c,
     size_t size)
 {
-    size_t      free_size, copy_size;
-    nxt_buf_t   *b;
+    size_t     free_size, copy_size;
+    nxt_buf_t  *b;
 
     nxt_debug(task, "nxt_app_msg_write_raw: %uz", size);
 
@@ -833,30 +825,37 @@ nxt_app_msg_write_raw(nxt_task_t *task, nxt_app_wmsg_t *msg, const u_char *c,
         b = *msg->buf;
 
         if (b == NULL) {
-            b = nxt_port_mmap_get_buf(task, msg->port, size);
+            free_size = nxt_min(size, PORT_MMAP_DATA_SIZE);
+
+            b = nxt_port_mmap_get_buf(task, msg->port, free_size);
             if (nxt_slow_path(b == NULL)) {
                 return NXT_ERROR;
             }
 
             *msg->buf = b;
-        }
 
-        do {
+        } else {
             free_size = nxt_buf_mem_free_size(&b->mem);
 
-            if (free_size > 0) {
-                copy_size = nxt_min(free_size, size);
-
-                b->mem.free = nxt_cpymem(b->mem.free, c, copy_size);
-
-                size -= copy_size;
-                c += copy_size;
-
-                if (size == 0) {
-                    return NXT_OK;
-                }
+            if (free_size < size
+                && nxt_port_mmap_increase_buf(task, b, size, 1) == NXT_OK)
+            {
+                free_size = nxt_buf_mem_free_size(&b->mem);
             }
-        } while (nxt_port_mmap_increase_buf(task, b, size, 1) == NXT_OK);
+        }
+
+        if (free_size > 0) {
+            copy_size = nxt_min(free_size, size);
+
+            b->mem.free = nxt_cpymem(b->mem.free, c, copy_size);
+
+            size -= copy_size;
+            c += copy_size;
+
+            if (size == 0) {
+                return NXT_OK;
+            }
+        }
 
         msg->buf = &b->next;
     }
