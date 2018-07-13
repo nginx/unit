@@ -250,7 +250,7 @@ class TestUnitHTTP(TestUnit):
         if '--verbose' in sys.argv:
             print('>>>', req, sep='\n')
 
-        resp = self._recvall(sock)
+        resp = self.recvall(sock)
 
         if '--verbose' in sys.argv:
             print('<<<', resp.encode('utf-8'), sep='\n')
@@ -276,11 +276,16 @@ class TestUnitHTTP(TestUnit):
     def put(self, **kwargs):
         return self.http('PUT', **kwargs)
 
-    def _recvall(self, sock, buff_size=4096):
+    def recvall(self, sock, buff_size=4096):
         data = b''
         while select.select([sock], [], [], 1)[0]:
-            part = sock.recv(buff_size)
+            try:
+                part = sock.recv(buff_size)
+            except:
+                break
+
             data += part
+
             if not len(part):
                 break
 
