@@ -11,6 +11,81 @@
                 unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10
                 unit-perl
                 unit-ruby"
+         ver="1.3" rev="1"
+         date="2018-07-13" time="18:00:00 +0300"
+         packager="Konstantin Pavlov &lt;thresh@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.3.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.3" rev="1"
+         date="2018-07-13" time="18:00:00 +0300"
+         packager="Konstantin Pavlov &lt;thresh@nginx.com&gt;">
+
+<change type="change">
+<para>
+UTF-8 characters are now allowed in request header field values.
+</para>
+</change>
+
+<change type="feature">
+<para>
+configuration of the request body size limit.
+</para>
+</change>
+
+<change type="feature">
+<para>
+configuration of various HTTP connection timeouts.
+</para>
+</change>
+
+<change type="feature">
+<para>
+Ruby module now automatically uses Bundler where possible.
+</para>
+</change>
+
+<change type="feature">
+<para>
+http.Flusher interface in Go module.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+various issues in HTTP connection errors handling.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+requests with body data might be handled incorrectly in PHP module.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+individual PHP configuration options specified via control API were reset
+to previous values after the first request in application process.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10
+                unit-perl
+                unit-ruby"
          ver="1.2" rev="1"
          date="2018-06-07" time="18:00:00 +0300"
          packager="Andrei Belov &lt;defan@nginx.com&gt;">

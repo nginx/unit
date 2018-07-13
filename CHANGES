@@ -1,4 +1,27 @@
 
+Changes with Unit 1.3                                            13 Jul 2018
+
+    *) Change: UTF-8 characters are now allowed in request header field
+       values.
+
+    *) Feature: configuration of the request body size limit.
+
+    *) Feature: configuration of various HTTP connection timeouts.
+
+    *) Feature: Ruby module now automatically uses Bundler where possible.
+
+    *) Feature: http.Flusher interface in Go module.
+
+    *) Bugfix: various issues in HTTP connection errors handling.
+
+    *) Bugfix: requests with body data might be handled incorrectly in PHP
+       module.
+
+    *) Bugfix: individual PHP configuration options specified via control
+       API were reset to previous values after the first request in
+       application process.
+
+
 Changes with Unit 1.2                                            07 Jun 2018
 
     *) Feature: configuration of environment variables for application
