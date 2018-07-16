@@ -11,8 +11,8 @@
 #include <nxt_auto_config.h>
 
 
-#define NXT_VERSION                  "1.3"
-#define NXT_VERNUM                   10300
+#define NXT_VERSION                  "1.4"
+#define NXT_VERNUM                   10400
 
 #define NXT_SERVER                   "Unit/" NXT_VERSION
 
