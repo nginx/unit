@@ -3,7 +3,7 @@
 # Copyright (C) NGINX, Inc.
 
 
-# getrandom().
+# Linux 3.17 with glibc 2.25, FreeBSD 12, Solaris 11.3.
 
 nxt_feature="getrandom()"
 nxt_feature_name=NXT_HAVE_GETRANDOM
