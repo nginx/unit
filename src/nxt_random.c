@@ -68,6 +68,14 @@ nxt_random_stir(nxt_random_t *r)
 
     n = syscall(SYS_getrandom, &key, NXT_RANDOM_KEY_SIZE, 0);
 
+#elif (NXT_HAVE_GETENTROPY || NXT_HAVE_GETENTROPY_SYS_RANDOM)
+
+    n = 0;
+
+    if (getentropy(&key, NXT_RANDOM_KEY_SIZE) == 0) {
+        n = NXT_RANDOM_KEY_SIZE;
+    }
+
 #else
 
     n = 0;
