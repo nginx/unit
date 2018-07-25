@@ -1,5 +1,5 @@
 # distribution specific definitions
-%define use_systemd (0%{?rhel} && 0%{?rhel} >= 7) || (0%{?suse_version} >= 1315)
+%define use_systemd (0%{?rhel} && 0%{?rhel} >= 7) || (0%{?suse_version} >= 1315) || (0%{?fedora} >= 18)
 %define bdir %{_builddir}/%{name}-%{version}
 %define dotests 0
 
@@ -18,6 +18,11 @@ BuildRequires: systemd-units
 %if 0%{?suse_version} == 1315
 BuildRequires: systemd
 Requires: systemd
+%endif
+
+%if 0%{?fedora} >= 18
+Requires: systemd
+BuildRequires: systemd-units
 %endif
 
 %define CC_OPT %{optflags} -fPIC
