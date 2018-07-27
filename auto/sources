@@ -43,7 +43,6 @@ NXT_LIB_SRCS=" \
     src/nxt_recvbuf.c \
     src/nxt_sendbuf.c \
     src/nxt_thread.c \
-    src/nxt_thread_id.c \
     src/nxt_thread_mutex.c \
     src/nxt_thread_cond.c \
     src/nxt_spinlock.c \
