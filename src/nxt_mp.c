@@ -233,7 +233,7 @@ nxt_mp_thread_adopt(nxt_mp_t *mp)
 {
 #if (NXT_DEBUG)
     mp->pid = nxt_pid;
-    mp->tid = nxt_thread_tid(NULL);
+    mp->tid = nxt_thread_tid(nxt_thread());
 #endif
 }
 

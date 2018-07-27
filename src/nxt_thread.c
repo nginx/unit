@@ -242,10 +242,6 @@ nxt_thread_wait(nxt_thread_handle_t handle)
 nxt_tid_t
 nxt_thread_tid(nxt_thread_t *thr)
 {
-    if (thr == NULL) {
-        thr = nxt_thread();
-    }
-
 #if (NXT_HAVE_THREAD_STORAGE_CLASS)
 
     if (nxt_slow_path(thr->tid == 0)) {
