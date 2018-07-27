@@ -80,6 +80,18 @@ nxt_thread_get_tid(void)
  * return pthread_mach_thread_np(pthread_self());
  */
 
+#elif (NXT_OPENBSD)
+
+typedef pid_t  nxt_tid_t;
+
+/* OpenBSD 3.9 getthrid(). */
+
+nxt_inline nxt_tid_t
+nxt_thread_get_tid(void)
+{
+    return getthrid();
+}
+
 #elif (NXT_AIX)
 
 /*
