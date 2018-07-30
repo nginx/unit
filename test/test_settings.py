@@ -77,7 +77,6 @@ Content-Length: %d
         self.assertRegex(data, r'200 OK', 'status send timeout')
         self.assertLess(len(data), data_len, 'data send timeout')
 
-    @unittest.expectedFailure
     def test_settings_idle_timeout(self):
         self.load('empty')
 
