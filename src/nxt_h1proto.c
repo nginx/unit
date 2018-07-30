@@ -36,7 +36,7 @@ static void nxt_h1p_request_send(nxt_task_t *task, nxt_http_request_t *r,
     nxt_buf_t *out);
 static nxt_buf_t *nxt_h1p_chunk_create(nxt_task_t *task, nxt_http_request_t *r,
     nxt_buf_t *out);
-static void nxt_h1p_conn_request_sent(nxt_task_t *task, void *obj, void *data);
+static void nxt_h1p_conn_sent(nxt_task_t *task, void *obj, void *data);
 static nxt_off_t nxt_h1p_request_body_bytes_sent(nxt_task_t *task,
     nxt_http_proto_t proto);
 static void nxt_h1p_request_discard(nxt_task_t *task, nxt_http_request_t *r,
@@ -46,9 +46,12 @@ static void nxt_h1p_request_close(nxt_task_t *task, nxt_http_proto_t proto,
 static void nxt_h1p_keepalive(nxt_task_t *task, nxt_h1proto_t *h1p,
     nxt_conn_t *c);
 static void nxt_h1p_conn_error(nxt_task_t *task, void *obj, void *data);
-static void nxt_h1p_conn_timeout(nxt_task_t *task, void *obj, void *data);
-static nxt_msec_t nxt_h1p_conn_timeout_value(nxt_conn_t *c,
+static void nxt_h1p_conn_idle_timeout(nxt_task_t *task, void *obj, void *data);
+static void nxt_h1p_conn_idle_close(nxt_task_t *task, void *obj, void *data);
+static void nxt_h1p_conn_send_timeout(nxt_task_t *task, void *obj, void *data);
+static nxt_msec_t nxt_h1p_conn_send_timeout_value(nxt_conn_t *c,
     uintptr_t data);
+static nxt_msec_t nxt_h1p_conn_timeout_value(nxt_conn_t *c, uintptr_t data);
 static void nxt_h1p_close(nxt_task_t *task, nxt_conn_t *c);
 static void nxt_h1p_conn_free(nxt_task_t *task, void *obj, void *data);
 static void nxt_h1p_conn_request_error(nxt_task_t *task, void *obj, void *data);
@@ -65,7 +68,8 @@ nxt_inline void nxt_h1p_request_error(nxt_task_t *task, nxt_h1proto_t *h1p,
 static const nxt_conn_state_t  nxt_h1p_idle_state;
 static const nxt_conn_state_t  nxt_h1p_header_parse_state;
 static const nxt_conn_state_t  nxt_h1p_read_body_state;
-static const nxt_conn_state_t  nxt_h1p_send_state;
+static const nxt_conn_state_t  nxt_h1p_request_send_state;
+static const nxt_conn_state_t  nxt_h1p_timeout_send_state;
 static const nxt_conn_state_t  nxt_h1p_keepalive_state;
 static const nxt_conn_state_t  nxt_h1p_close_state;
 
@@ -183,7 +187,7 @@ static const nxt_conn_state_t  nxt_h1p_idle_state
 
     .io_read_handler = nxt_h1p_conn_io_read_handler,
 
-    .timer_handler = nxt_h1p_conn_timeout,
+    .timer_handler = nxt_h1p_conn_idle_timeout,
     .timer_value = nxt_h1p_conn_timeout_value,
     .timer_data = offsetof(nxt_socket_conf_t, idle_timeout),
     .timer_autoreset = 1,
@@ -839,7 +843,7 @@ nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r)
     c = h1p->conn;
 
     c->write = header;
-    c->write_state = &nxt_h1p_send_state;
+    c->write_state = &nxt_h1p_request_send_state;
 
     engine = task->thread->engine;
 
@@ -850,10 +854,10 @@ nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r)
 }
 
 
-static const nxt_conn_state_t  nxt_h1p_send_state
+static const nxt_conn_state_t  nxt_h1p_request_send_state
     nxt_aligned(64) =
 {
-    .ready_handler = nxt_h1p_conn_request_sent,
+    .ready_handler = nxt_h1p_conn_sent,
     .error_handler = nxt_h1p_conn_request_error,
 
     .timer_handler = nxt_h1p_conn_request_send_timeout,
@@ -884,7 +888,7 @@ nxt_h1p_request_send(nxt_task_t *task, nxt_http_request_t *r, nxt_buf_t *out)
 
     if (c->write == NULL) {
         c->write = out;
-        c->write_state = &nxt_h1p_send_state;
+        c->write_state = &nxt_h1p_request_send_state;
 
         nxt_conn_write(task->thread->engine, c);
 
@@ -947,14 +951,14 @@ nxt_h1p_chunk_create(nxt_task_t *task, nxt_http_request_t *r, nxt_buf_t *out)
 
 
 static void
-nxt_h1p_conn_request_sent(nxt_task_t *task, void *obj, void *data)
+nxt_h1p_conn_sent(nxt_task_t *task, void *obj, void *data)
 {
     nxt_conn_t          *c;
     nxt_event_engine_t  *engine;
 
     c = obj;
 
-    nxt_debug(task, "h1p conn request sent");
+    nxt_debug(task, "h1p conn sent");
 
     engine = task->thread->engine;
 
@@ -1097,7 +1101,7 @@ static const nxt_conn_state_t  nxt_h1p_keepalive_state
 
     .io_read_handler = nxt_h1p_conn_io_read_handler,
 
-    .timer_handler = nxt_h1p_conn_timeout,
+    .timer_handler = nxt_h1p_conn_idle_timeout,
     .timer_value = nxt_h1p_conn_timeout_value,
     .timer_data = offsetof(nxt_socket_conf_t, idle_timeout),
     .timer_autoreset = 1,
@@ -1117,19 +1121,113 @@ nxt_h1p_conn_error(nxt_task_t *task, void *obj, void *data)
 }
 
 
+#define NXT_H1P_IDLE_TIMEOUT                                                  \
+     "HTTP/1.1 408 Request Timeout\r\n"                                       \
+     "Server: " NXT_SERVER "\r\n"                                             \
+     "Connection: close\r\n"                                                  \
+     "Content-Length: 0\r\n"                                                  \
+     "Date: "
+
+
 static void
-nxt_h1p_conn_timeout(nxt_task_t *task, void *obj, void *data)
+nxt_h1p_conn_idle_timeout(nxt_task_t *task, void *obj, void *data)
+{
+    u_char       *p;
+    size_t       size;
+    nxt_buf_t    *out, *last;
+    nxt_conn_t   *c;
+    nxt_timer_t  *timer;
+
+    timer = obj;
+
+    nxt_debug(task, "h1p conn idle timeout");
+
+    c = nxt_read_timer_conn(timer);
+
+    size = nxt_length(NXT_H1P_IDLE_TIMEOUT)
+           + nxt_http_date_cache.size
+           + nxt_length("\r\n\r\n");
+
+    out = nxt_buf_mem_alloc(c->mem_pool, size, 0);
+    if (nxt_slow_path(out == NULL)) {
+        goto fail;
+    }
+
+    p = nxt_cpymem(out->mem.free, NXT_H1P_IDLE_TIMEOUT,
+                   nxt_length(NXT_H1P_IDLE_TIMEOUT));
+
+    p = nxt_thread_time_string(task->thread, &nxt_http_date_cache, p);
+
+    out->mem.free = nxt_cpymem(p, "\r\n\r\n", 4);
+
+    last = nxt_mp_zget(c->mem_pool, NXT_BUF_SYNC_SIZE);
+    if (nxt_slow_path(last == NULL)) {
+        goto fail;
+    }
+
+    out->next = last;
+    nxt_buf_set_sync(last);
+    nxt_buf_set_last(last);
+
+    last->completion_handler = nxt_h1p_conn_idle_close;
+    last->parent = c;
+
+    c->write = out;
+    c->write_state = &nxt_h1p_timeout_send_state;
+
+    nxt_conn_write(task->thread->engine, c);
+    return;
+
+fail:
+
+    nxt_h1p_close(task, c);
+}
+
+
+static const nxt_conn_state_t  nxt_h1p_timeout_send_state
+    nxt_aligned(64) =
+{
+    .ready_handler = nxt_h1p_conn_sent,
+    .error_handler = nxt_h1p_conn_error,
+
+    .timer_handler = nxt_h1p_conn_send_timeout,
+    .timer_value = nxt_h1p_conn_send_timeout_value,
+};
+
+
+static void
+nxt_h1p_conn_idle_close(nxt_task_t *task, void *obj, void *data)
+{
+    nxt_conn_t  *c;
+
+    c = data;
+
+    nxt_debug(task, "h1p conn idle close");
+
+    nxt_h1p_close(task, c);
+}
+
+
+static void
+nxt_h1p_conn_send_timeout(nxt_task_t *task, void *obj, void *data)
 {
     nxt_conn_t   *c;
     nxt_timer_t  *timer;
 
     timer = obj;
 
-    nxt_debug(task, "h1p conn timeout");
+    nxt_debug(task, "h1p conn send timeout");
 
     c = nxt_read_timer_conn(timer);
 
     nxt_h1p_close(task, c);
+}
+
+
+static nxt_msec_t
+nxt_h1p_conn_send_timeout_value(nxt_conn_t *c, uintptr_t data)
+{
+    return 10 * 1000;
 }
 
 

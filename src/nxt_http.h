@@ -183,6 +183,8 @@ nxt_int_t nxt_http_request_content_length(void *ctx, nxt_http_field_t *field,
     uintptr_t data);
 
 
+extern nxt_time_string_t  nxt_http_date_cache;
+
 extern nxt_lvlhsh_t                        nxt_response_fields_hash;
 
 extern const nxt_http_proto_body_read_t        nxt_http_proto_body_read[];
