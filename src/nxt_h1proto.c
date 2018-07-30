@@ -46,7 +46,9 @@ static void nxt_h1p_request_close(nxt_task_t *task, nxt_http_proto_t proto,
 static void nxt_h1p_keepalive(nxt_task_t *task, nxt_h1proto_t *h1p,
     nxt_conn_t *c);
 static void nxt_h1p_conn_error(nxt_task_t *task, void *obj, void *data);
-static void nxt_h1p_conn_idle_timeout(nxt_task_t *task, void *obj, void *data);
+static void nxt_h1p_conn_close(nxt_task_t *task, void *obj, void *data);
+static void nxt_h1p_conn_timeout(nxt_task_t *task, void *obj, void *data);
+static void nxt_h1p_conn_idle_timeout(nxt_task_t *task, nxt_conn_t *c);
 static void nxt_h1p_conn_idle_close(nxt_task_t *task, void *obj, void *data);
 static void nxt_h1p_conn_send_timeout(nxt_task_t *task, void *obj, void *data);
 static nxt_msec_t nxt_h1p_conn_send_timeout_value(nxt_conn_t *c,
@@ -66,6 +68,7 @@ nxt_inline void nxt_h1p_request_error(nxt_task_t *task, nxt_h1proto_t *h1p,
 
 
 static const nxt_conn_state_t  nxt_h1p_idle_state;
+static const nxt_conn_state_t  nxt_h1p_idle_close_state;
 static const nxt_conn_state_t  nxt_h1p_header_parse_state;
 static const nxt_conn_state_t  nxt_h1p_read_body_state;
 static const nxt_conn_state_t  nxt_h1p_request_send_state;
@@ -187,7 +190,7 @@ static const nxt_conn_state_t  nxt_h1p_idle_state
 
     .io_read_handler = nxt_h1p_conn_io_read_handler,
 
-    .timer_handler = nxt_h1p_conn_idle_timeout,
+    .timer_handler = nxt_h1p_conn_timeout,
     .timer_value = nxt_h1p_conn_timeout_value,
     .timer_data = offsetof(nxt_socket_conf_t, idle_timeout),
     .timer_autoreset = 1,
@@ -203,6 +206,16 @@ nxt_h1p_conn_io_read_handler(nxt_conn_t *c)
     nxt_socket_conf_joint_t  *joint;
 
     joint = c->listen->socket.data;
+
+    if (joint == NULL) {
+        /*
+         * Listening socket had been closed while
+         * connection was in keep-alive state.
+         */
+        c->read_state = &nxt_h1p_idle_close_state;
+        return 0;
+    }
+
     size = joint->socket_conf->header_buffer_size;
 
     b = nxt_buf_mem_alloc(c->mem_pool, size, 0);
@@ -222,6 +235,13 @@ nxt_h1p_conn_io_read_handler(nxt_conn_t *c)
 
     return n;
 }
+
+
+static const nxt_conn_state_t  nxt_h1p_idle_close_state
+    nxt_aligned(64) =
+{
+    .close_handler = nxt_h1p_conn_close,
+};
 
 
 static void
@@ -1101,7 +1121,7 @@ static const nxt_conn_state_t  nxt_h1p_keepalive_state
 
     .io_read_handler = nxt_h1p_conn_io_read_handler,
 
-    .timer_handler = nxt_h1p_conn_idle_timeout,
+    .timer_handler = nxt_h1p_conn_timeout,
     .timer_value = nxt_h1p_conn_timeout_value,
     .timer_data = offsetof(nxt_socket_conf_t, idle_timeout),
     .timer_autoreset = 1,
@@ -1121,6 +1141,35 @@ nxt_h1p_conn_error(nxt_task_t *task, void *obj, void *data)
 }
 
 
+static void
+nxt_h1p_conn_close(nxt_task_t *task, void *obj, void *data)
+{
+    nxt_conn_t  *c;
+
+    c = obj;
+
+    nxt_debug(task, "h1p conn close");
+
+    nxt_h1p_conn_idle_timeout(task, c);
+}
+
+
+static void
+nxt_h1p_conn_timeout(nxt_task_t *task, void *obj, void *data)
+{
+    nxt_conn_t   *c;
+    nxt_timer_t  *timer;
+
+    timer = obj;
+
+    nxt_debug(task, "h1p conn idle timeout");
+
+    c = nxt_read_timer_conn(timer);
+
+    nxt_h1p_conn_idle_timeout(task, c);
+}
+
+
 #define NXT_H1P_IDLE_TIMEOUT                                                  \
      "HTTP/1.1 408 Request Timeout\r\n"                                       \
      "Server: " NXT_SERVER "\r\n"                                             \
@@ -1130,19 +1179,11 @@ nxt_h1p_conn_error(nxt_task_t *task, void *obj, void *data)
 
 
 static void
-nxt_h1p_conn_idle_timeout(nxt_task_t *task, void *obj, void *data)
+nxt_h1p_conn_idle_timeout(nxt_task_t *task, nxt_conn_t *c)
 {
-    u_char       *p;
-    size_t       size;
-    nxt_buf_t    *out, *last;
-    nxt_conn_t   *c;
-    nxt_timer_t  *timer;
-
-    timer = obj;
-
-    nxt_debug(task, "h1p conn idle timeout");
-
-    c = nxt_read_timer_conn(timer);
+    u_char     *p;
+    size_t     size;
+    nxt_buf_t  *out, *last;
 
     size = nxt_length(NXT_H1P_IDLE_TIMEOUT)
            + nxt_http_date_cache.size
