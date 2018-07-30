@@ -250,7 +250,8 @@ class TestUnitHTTP(TestUnit):
         if '--verbose' in sys.argv:
             print('>>>', req, sep='\n')
 
-        resp = self.recvall(sock)
+        encoding = 'utf-8' if 'encoding' not in kwargs else kwargs['encoding']
+        resp = self.recvall(sock).decode(encoding)
 
         if '--verbose' in sys.argv:
             print('<<<', resp.encode('utf-8'), sep='\n')
@@ -289,7 +290,7 @@ class TestUnitHTTP(TestUnit):
             if not len(part):
                 break
 
-        return data.decode()
+        return data
 
     def _resp_to_dict(self, resp):
         m = re.search('(.*?\x0d\x0a?)\x0d\x0a?(.*)', resp, re.M | re.S)

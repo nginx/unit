@@ -83,12 +83,16 @@ class TestUnitHTTPHeader(unit.TestUnitApplicationPython):
         self.assertEqual(resp['headers']['Custom-Header'],
             '(),/:;<=>?@[\]{}\t !#$%&\'*+-.^_`|~', 'value chars custom header')
 
+    @unittest.expectedFailure
     def test_http_header_value_chars_edge(self):
         self.load('custom_header')
 
-        resp = self.get(headers={
-            'Custom-Header': '\x20\xFF'
-        })
+        resp = self.http(b"""GET / HTTP/1.1
+Host: localhost
+Custom-Header: \x20\xFF
+Connection: close
+
+""", raw=True, encoding='latin1')
 
         self.assertEqual(resp['status'], 200, 'value chars edge status')
         self.assertEqual(resp['headers']['Custom-Header'], '\xFF',
@@ -97,9 +101,12 @@ class TestUnitHTTPHeader(unit.TestUnitApplicationPython):
     def test_http_header_value_chars_below(self):
         self.load('custom_header')
 
-        resp = self.get(headers={
-            'Custom-Header': '\x1F'
-        })
+        resp = self.http(b"""GET / HTTP/1.1
+Host: localhost
+Custom-Header: \x1F
+Connection: close
+
+""", raw=True)
 
         self.assertEqual(resp['status'], 400, 'value chars below')
 

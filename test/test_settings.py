@@ -70,7 +70,7 @@ Content-Length: %d
 
         time.sleep(3)
 
-        data += self.recvall(sock)
+        data += self.recvall(sock).decode()
 
         sock.close()
 
