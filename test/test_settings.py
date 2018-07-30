@@ -77,7 +77,7 @@ Content-Length: %d
         self.assertRegex(data, r'200 OK', 'status send timeout')
         self.assertLess(len(data), data_len, 'data send timeout')
 
-
+    @unittest.expectedFailure
     def test_settings_idle_timeout(self):
         self.load('empty')
 
@@ -95,7 +95,7 @@ Content-Length: %d
             'Host': 'localhost'
         }, sock=sock)
 
-        self.assertEqual(resp, {}, 'idle timeout')
+        self.assertEqual(resp['status'], 408, 'status body idle timeout')
 
     def test_settings_max_body_size(self):
         self.load('empty')
