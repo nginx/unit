@@ -17,14 +17,12 @@
 #include <nxt_router.h>
 #include <nxt_runtime.h>
 #include <nxt_application.h>
+#include <nxt_unit_typedefs.h>
 
 
 typedef struct {
-    nxt_task_t      *task;
-    nxt_app_rmsg_t  *rmsg;
-    nxt_app_wmsg_t  *wmsg;
-
-    size_t          body_preread_size;
+    nxt_unit_ctx_t           *unit_ctx;
+    nxt_unit_request_info_t  *req;
 } nxt_ruby_run_ctx_t;
 
 

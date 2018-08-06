@@ -6,21 +6,17 @@
 
 #include <nxt_main.h>
 #include <nxt_router.h>
+#include <nxt_unit.h>
 
 
 static nxt_int_t nxt_go_init(nxt_task_t *task, nxt_common_app_conf_t *conf);
 
-static nxt_int_t nxt_go_run(nxt_task_t *task,
-                      nxt_app_rmsg_t *rmsg, nxt_app_wmsg_t *msg);
-
-nxt_application_module_t  nxt_go_module = {
+nxt_app_module_t  nxt_go_module = {
     0,
     NULL,
     nxt_string("go"),
     "*",
     nxt_go_init,
-    nxt_go_run,
-    NULL,
 };
 
 
@@ -50,6 +46,8 @@ nxt_go_fd_no_cloexec(nxt_task_t *task, nxt_socket_t fd)
         nxt_alert(task, "fcntl(%d, F_SETFD) failed %E", fd, nxt_errno);
         return NXT_ERROR;
     }
+
+    nxt_fd_blocking(task, fd);
 
     return NXT_OK;
 }
@@ -94,25 +92,26 @@ nxt_go_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 
     p = nxt_sprintf(buf, end,
                     "%s;%uD;"
-                    "%PI,%ud,%d,%d,%d;"
-                    "%PI,%ud,%d,%d,%d%Z",
+                    "%PI,%ud,%d;"
+                    "%PI,%ud,%d;"
+                    "%d,%Z",
                     NXT_VERSION, my_port->process->init->stream,
-                    main_port->pid, main_port->id, (int) main_port->type,
-                    -1, main_port->pair[1],
-                    my_port->pid, my_port->id, (int) my_port->type,
-                    my_port->pair[0], -1);
+                    main_port->pid, main_port->id, main_port->pair[1],
+                    my_port->pid, my_port->id, my_port->pair[0],
+                    2);
 
     if (nxt_slow_path(p == end)) {
-        nxt_alert(task, "internal error: buffer too small for NXT_GO_PORTS");
+        nxt_alert(task, "internal error: buffer too small for NXT_UNIT_INIT");
 
         return NXT_ERROR;
     }
 
-    nxt_debug(task, "update NXT_GO_PORTS=%s", buf);
+    nxt_debug(task, "update "NXT_UNIT_INIT_ENV"=%s", buf);
 
-    rc = setenv("NXT_GO_PORTS", (char *) buf, 1);
+    rc = setenv(NXT_UNIT_INIT_ENV, (char *) buf, 1);
     if (nxt_slow_path(rc == -1)) {
-        nxt_alert(task, "setenv(NXT_GO_PORTS, %s) failed %E", buf, nxt_errno);
+        nxt_alert(task, "setenv("NXT_UNIT_INIT_ENV", %s) failed %E", buf,
+                  nxt_errno);
 
         return NXT_ERROR;
     }
@@ -172,13 +171,5 @@ nxt_go_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 
     nxt_free(argv);
 
-    return NXT_ERROR;
-}
-
-
-static nxt_int_t
-nxt_go_run(nxt_task_t *task,
-           nxt_app_rmsg_t *rmsg, nxt_app_wmsg_t *msg)
-{
     return NXT_ERROR;
 }

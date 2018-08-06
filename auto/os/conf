@@ -35,6 +35,8 @@ case "$NXT_SYSTEM" in
         NXT_LIB_SHARED="libnxt.so"
         NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/libnxt.so"
 
+        NXT_LIB_UNIT_STATIC="libunit.a"
+
         NXT_LIBM="-lm"
         NXT_LIBS="$NXT_LIBRT $NXT_LIBDL $NXT_PTHREAD"
     ;;
@@ -56,6 +58,8 @@ case "$NXT_SYSTEM" in
         NXT_LIB_STATIC="libnxt.a"
         NXT_LIB_SHARED="libnxt.so"
         NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/libnxt.so"
+
+        NXT_LIB_UNIT_STATIC="libunit.a"
 
         NXT_LIBM="-lm"
         NXT_LIBS="$NXT_LIBRT $NXT_PTHREAD"
@@ -86,6 +90,8 @@ case "$NXT_SYSTEM" in
         NXT_LIB_SHARED="libnxt.so"
         NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/libnxt.so"
 
+        NXT_LIB_UNIT_STATIC="libunit.a"
+
         NXT_EXEC_LINK="\$(CC)"
         NXT_SHARED_LOCAL_EXEC_LINK=
 
@@ -113,6 +119,8 @@ case "$NXT_SYSTEM" in
         NXT_LIB_SHARED="libnxt.dylib"
         NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/libnxt.dylib"
 
+        NXT_LIB_UNIT_STATIC="libunit.a"
+
         # MacOSX libm.dylib is a symlink to libSystem.dylib.
         NXT_LIBM=
         NXT_LIBS=
@@ -135,6 +143,8 @@ case "$NXT_SYSTEM" in
         NXT_LIB_SHARED="libnxt.so"
         NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/libnxt.so"
 
+        NXT_LIB_UNIT_STATIC="libunit.a"
+
         NXT_LIBM="-lm"
         NXT_LIBS="$NXT_LIBRT $NXT_PTHREAD"
     ;;
@@ -154,6 +164,8 @@ case "$NXT_SYSTEM" in
         NXT_LIB_STATIC="libnxt.a"
         NXT_LIB_SHARED="libnxt.so"
         NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/libnxt.so"
+
+        NXT_LIB_UNIT_STATIC="libunit.a"
 
         NXT_LIBM="-lm"
         NXT_LIBS="$NXT_PTHREAD"
@@ -175,6 +187,8 @@ case "$NXT_SYSTEM" in
         NXT_LIB_SHARED="libnxt.so"
         NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/libnxt.so"
 
+        NXT_LIB_UNIT_STATIC="libunit.a"
+
         NXT_LIBM="-lm"
         NXT_LIBS="$NXT_LIBRT $NXT_PTHREAD"
     ;;
@@ -193,6 +207,8 @@ case "$NXT_SYSTEM" in
         NXT_LIB_STATIC="libnxt.a"
         NXT_LIB_SHARED="libnxt.so"
         NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/libnxt.so"
+
+        NXT_LIB_UNIT_STATIC="libunit.a"
 
         NXT_LIBM="-lm"
         NXT_LIBS="$NXT_PTHREAD"
@@ -213,6 +229,8 @@ case "$NXT_SYSTEM" in
         NXT_LIB_SHARED="libnxt.so"
         NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/libnxt.so"
 
+        NXT_LIB_UNIT_STATIC="libunit.a"
+
         NXT_LIBM="-lm"
         NXT_LIBS="$NXT_PTHREAD $NXT_LIBHG"
     ;;
@@ -232,6 +250,8 @@ case "$NXT_SYSTEM" in
         NXT_LIB_SHARED="libnxt.so"
         NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/libnxt.so"
 
+        NXT_LIB_UNIT_STATIC="libunit.a"
+
         NXT_LIBM="-lm"
         NXT_LIBS="$NXT_PTHREAD"
     ;;
@@ -249,6 +269,8 @@ case "$NXT_SYSTEM" in
         NXT_LIB_STATIC="libnxt.a"
         NXT_LIB_SHARED="libnxt.so"
         NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/libnxt.so"
+
+        NXT_LIB_UNIT_STATIC="libunit.a"
 
         NXT_LIBM="-lm"
         NXT_LIBS="$NXT_LIBRT $NXT_LIBDL $NXT_PTHREAD"

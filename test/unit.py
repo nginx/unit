@@ -2,6 +2,7 @@ import os
 import re
 import sys
 import json
+import mmap
 import time
 import shutil
 import socket
@@ -363,8 +364,13 @@ class TestUnitApplicationProto(TestUnitControl):
         return time.mktime(time.strptime(date, '%a, %d %b %Y %H:%M:%S %Z'))
 
     def search_in_log(self, pattern):
-        with open(self.testdir + '/unit.log', 'r') as f:
+        with open(self.testdir + '/unit.log', 'r', errors='ignore') as f:
             return re.search(pattern, f.read())
+
+    def find_in_log(self, pattern):
+        with open(self.testdir + '/unit.log', 'rb', 0) as f, \
+             mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) as s:
+            return s.find(pattern) != -1
 
 class TestUnitApplicationPython(TestUnitApplicationProto):
     def load(self, script, name=None):

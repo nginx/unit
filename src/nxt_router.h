@@ -81,11 +81,6 @@ typedef struct {
 } nxt_joint_job_t;
 
 
-
-typedef nxt_int_t (*nxt_app_prepare_msg_t)(nxt_task_t *task,
-    nxt_app_request_t *r, nxt_app_wmsg_t *wmsg);
-
-
 struct nxt_app_s {
     nxt_thread_mutex_t     mutex;    /* Protects ports queue. */
     nxt_queue_t            ports;    /* of nxt_port_t.app_link */
@@ -120,7 +115,6 @@ struct nxt_app_s {
     nxt_queue_link_t       link;
 
     nxt_str_t              conf;
-    nxt_app_prepare_msg_t  prepare_msg;
 
     nxt_atomic_t           use_count;
 };

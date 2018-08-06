@@ -255,7 +255,7 @@ fail:
 
 static nxt_port_mmap_handler_t *
 nxt_port_new_port_mmap(nxt_task_t *task, nxt_process_t *process,
-    nxt_port_t *port, nxt_int_t n, nxt_bool_t tracking)
+    nxt_port_t *port, nxt_bool_t tracking, nxt_int_t n)
 {
     void                     *mem;
     u_char                   *p, name[64];
@@ -459,7 +459,7 @@ nxt_port_mmap_get(nxt_task_t *task, nxt_port_t *port, nxt_chunk_id_t *c,
     /* TODO introduce port_mmap limit and release wait. */
 
     *c = 0;
-    mmap_handler = nxt_port_new_port_mmap(task, process, port, n, tracking);
+    mmap_handler = nxt_port_new_port_mmap(task, process, port, tracking, n);
 
 unlock_return:
 
