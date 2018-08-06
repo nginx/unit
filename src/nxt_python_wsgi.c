@@ -41,12 +41,11 @@
 #if PY_MAJOR_VERSION == 3
 #define NXT_PYTHON_BYTES_TYPE       "bytestring"
 
-#define PyString_FromString         PyUnicode_FromString
-#define PyString_FromStringAndSize  PyUnicode_FromStringAndSize
+#define PyString_FromStringAndSize(str, size)                                 \
+            PyUnicode_DecodeLatin1((str), (size), "strict")
 #else
 #define NXT_PYTHON_BYTES_TYPE       "string"
 
-#define PyBytes_FromString          PyString_FromString
 #define PyBytes_FromStringAndSize   PyString_FromStringAndSize
 #define PyBytes_Check               PyString_Check
 #define PyBytes_GET_SIZE            PyString_GET_SIZE
@@ -627,7 +626,7 @@ nxt_python_create_environ(nxt_task_t *task)
     }
 
 
-    obj = PyString_FromString("http");
+    obj = PyString_FromStringAndSize("http", nxt_length("http"));
 
     if (nxt_slow_path(obj == NULL)) {
         nxt_alert(task,
@@ -805,6 +804,7 @@ nxt_python_add_sptr(nxt_python_run_ctx_t *ctx, const char *name,
         nxt_unit_req_error(ctx->req,
                            "Python failed to create value string \"%.*s\"",
                            (int) size, src);
+        PyErr_PrintEx(1);
 
         return NXT_UNIT_ERROR;
     }
@@ -839,6 +839,7 @@ nxt_python_add_str(nxt_python_run_ctx_t *ctx, const char *name,
         nxt_unit_req_error(ctx->req,
                            "Python failed to create value string \"%.*s\"",
                            (int) size, str);
+        PyErr_PrintEx(1);
 
         return NXT_UNIT_ERROR;
     }
@@ -1160,7 +1161,7 @@ nxt_py_input_read(nxt_py_input_t *self, PyObject *args)
 static PyObject *
 nxt_py_input_readline(nxt_py_input_t *self, PyObject *args)
 {
-    return PyBytes_FromString("");
+    return PyBytes_FromStringAndSize("", 0);
 }
 
 

@@ -83,7 +83,6 @@ class TestUnitHTTPHeader(unit.TestUnitApplicationPython):
         self.assertEqual(resp['headers']['Custom-Header'],
             '(),/:;<=>?@[\]{}\t !#$%&\'*+-.^_`|~', 'value chars custom header')
 
-    @unittest.expectedFailure
     def test_http_header_value_chars_edge(self):
         self.load('custom_header')
 
