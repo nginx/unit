@@ -2471,11 +2471,6 @@ nxt_unit_mmap_read(nxt_unit_ctx_t *ctx, nxt_unit_recv_msg_t *recv_msg,
         size = mmap_msg->size;
 
         if (recv_msg->start == mmap_msg) {
-            nxt_unit_warn(ctx, "#%"PRIu32": mmap_read: "
-                          "move start %p -> %p",
-                          recv_msg->port_msg.stream,
-                          recv_msg->start, start);
-
             recv_msg->start = start;
             recv_msg->size = size;
         }
