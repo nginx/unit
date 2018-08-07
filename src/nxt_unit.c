@@ -2728,13 +2728,19 @@ nxt_unit_done(nxt_unit_ctx_t *ctx)
     } nxt_queue_loop;
 
     for ( ;; ) {
+        pthread_mutex_lock(&lib->mutex);
+
         process = nxt_unit_process_pop_first(lib);
         if (process == NULL) {
+            pthread_mutex_unlock(&lib->mutex);
+
             break;
         }
 
         nxt_unit_remove_process(ctx, process);
     }
+
+    pthread_mutex_destroy(&lib->mutex);
 
     free(lib);
 }
