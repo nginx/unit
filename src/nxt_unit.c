@@ -598,6 +598,13 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
             goto fail;
         }
 
+        if (nxt_slow_path(fd < 0)) {
+            nxt_unit_alert(ctx, "#%"PRIu32": invalid fd %d for new port",
+                           port_msg->stream, fd);
+
+            goto fail;
+        }
+
         new_port_msg = recv_msg.start;
 
         nxt_unit_debug(ctx, "#%"PRIu32": new_port: %d,%d fd %d",
@@ -622,6 +629,13 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
         break;
 
     case _NXT_PORT_MSG_MMAP:
+        if (nxt_slow_path(fd < 0)) {
+            nxt_unit_alert(ctx, "#%"PRIu32": invalid fd %d for mmap",
+                           port_msg->stream, fd);
+
+            goto fail;
+        }
+
         rc = nxt_unit_incoming_mmap(ctx, port_msg->pid, fd);
         break;
 
