@@ -116,20 +116,25 @@ done
 $echo >> $NXT_MAKEFILE
 
 
-# Test object files list.
+if [ $NXT_TESTS = YES ]; then
 
-$echo "NXT_TEST_OBJS = \\" >> $NXT_MAKEFILE
+    # Test object files list.
 
-for nxt_src in $NXT_TEST_SRCS
-do
-    nxt_obj=${nxt_src%.c}.o
-    $echo "	$NXT_BUILD_DIR/$nxt_obj \\" >> $NXT_MAKEFILE
-done
+    $echo "NXT_TEST_OBJS = \\" >> $NXT_MAKEFILE
 
+    for nxt_src in $NXT_TEST_SRCS
+    do
+        nxt_obj=${nxt_src%.c}.o
+        $echo "	$NXT_BUILD_DIR/$nxt_obj \\" >> $NXT_MAKEFILE
+    done
 
-# Test executables.
+    # Test executables.
 
-cat << END >> $NXT_MAKEFILE
+    cat << END >> $NXT_MAKEFILE
+
+.PHONY: tests
+tests:		$NXT_BUILD_DIR/tests $NXT_BUILD_DIR/utf8_file_name_test \\
+			$NXT_BUILD_DIR/unit_app_test
 
 $NXT_BUILD_DIR/tests: \$(NXT_TEST_OBJS) \\
 			$NXT_BUILD_DIR/$NXT_LIB_STATIC
@@ -154,6 +159,21 @@ $NXT_BUILD_DIR/unit_app_test: $NXT_BUILD_DIR/src/test/nxt_unit_app_test.o \\
 		$NXT_LD_OPT $NXT_LIBM $NXT_LIBS $NXT_LIB_AUX_LIBS
 
 END
+
+else
+
+    cat << END >> $NXT_MAKEFILE
+
+.PHONY: tests
+tests:
+	@(echo; \\
+	  echo "error: to make tests you need to configure --tests option."; \\
+	  echo; \\
+	  exit 1)
+
+END
+
+fi
 
 
 NXT_MAKE_INCS="src $NXT_BUILD_DIR"
@@ -263,10 +283,6 @@ END
 cat << END > Makefile
 
 include $NXT_MAKEFILE
-
-.PHONY:		tests
-tests:		$NXT_BUILD_DIR/tests $NXT_BUILD_DIR/utf8_file_name_test \\
-			$NXT_BUILD_DIR/unit_app_test
 
 .PHONY: clean
 clean:
