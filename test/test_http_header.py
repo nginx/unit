@@ -145,5 +145,22 @@ Connection: close
 
         self.assertEqual(resp['status'], 400, 'field trailing htab')
 
+    @unittest.expectedFailure
+    def test_http_header_transfer_encoding_chunked(self):
+        self.load('empty')
+
+        resp = self.http(b"""GET / HTTP/1.1
+Host: localhost
+Transfer-Encoding: chunked
+Connection: close
+
+a
+0123456789
+0
+
+""", raw=True)
+
+        self.assertEqual(resp['status'], 200, 'transfer encoding chunked')
+
 if __name__ == '__main__':
     unittest.main()
