@@ -161,6 +161,59 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
                 "max": (i % 4) + 1
             }, '/applications/mirror/processes'), 'reconfigure 3')
 
+    def test_python_keepalive_reconfigure_2(self):
+        self.skip_alerts.append(r'sendmsg.+failed')
+        self.load('mirror')
+
+        body = '0123456789'
+
+        (resp, sock) = self.post(headers={
+            'Connection': 'keep-alive',
+            'Content-Type': 'text/html',
+            'Host': 'localhost'
+        }, start=True, body=body)
+
+        self.assertEqual(resp['body'], body, 'reconfigure 2 keep-alive 1')
+
+        self.load('empty')
+
+        (resp, sock) = self.post(headers={
+            'Connection': 'close',
+            'Content-Type': 'text/html',
+            'Host': 'localhost'
+        }, start=True, sock=sock, body=body)
+
+        self.assertEqual(resp['status'], 200, 'reconfigure 2 keep-alive 2')
+        self.assertEqual(resp['body'], '', 'reconfigure 2 keep-alive 2 body')
+
+        self.assertIn('success', self.conf({
+            "listeners": {},
+            "applications": {}
+        }), 'reconfigure 2 clear configuration')
+
+        resp = self.get(sock=sock)
+
+        self.assertEqual(resp, {}, 'reconfigure 2 keep-alive 3')
+
+    @unittest.expectedFailure
+    def test_python_keepalive_reconfigure_3(self):
+        self.load('empty')
+
+        (resp, sock) = self.http(b"""GET / HTTP/1.1
+""", start=True, raw=True)
+
+        self.assertIn('success', self.conf({
+            "listeners": {},
+            "applications": {}
+        }), 'reconfigure 3 clear configuration')
+
+        resp = self.http(b"""Host: localhost
+Connection: close
+
+""", sock=sock, raw=True)
+
+        self.assertEqual(resp['status'], 200, 'reconfigure 3')
+
     def test_python_atexit(self):
         self.skip_alerts.append(r'sendmsg.+failed')
         self.load('atexit')
