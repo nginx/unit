@@ -801,11 +801,11 @@ static ssize_t
 nxt_perl_psgi_io_read(nxt_unit_read_info_t *read_info, void *dst, size_t size)
 {
     ssize_t                 res;
-    PerlInterpreter         *my_perl;
     nxt_perl_psgi_io_ctx_t  *ctx;
 
     ctx = read_info->data;
-    my_perl = ctx->my_perl;
+
+    dTHXa(ctx->my_perl);
 
     res = PerlIO_read(ctx->fp, dst, size);
 
