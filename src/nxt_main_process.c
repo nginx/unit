@@ -50,6 +50,7 @@ static void nxt_main_process_sigusr1_handler(nxt_task_t *task, void *obj,
 static void nxt_main_process_sigchld_handler(nxt_task_t *task, void *obj,
     void *data);
 static void nxt_main_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid);
+static void nxt_main_stop_worker_processes(nxt_task_t *task, nxt_runtime_t *rt);
 static void nxt_main_port_socket_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
 static nxt_int_t nxt_main_listening_socket(nxt_sockaddr_t *sa,
@@ -661,7 +662,7 @@ nxt_main_create_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
 
 
 void
-nxt_main_stop_worker_processes(nxt_task_t *task, nxt_runtime_t *rt)
+nxt_main_stop_all_processes(nxt_task_t *task, nxt_runtime_t *rt)
 {
     nxt_port_t     *port;
     nxt_process_t  *process;
@@ -923,6 +924,10 @@ nxt_main_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid)
 
         } else if (init != NULL) {
             if (init->restart != NULL) {
+                if (init->type == NXT_PROCESS_ROUTER) {
+                    nxt_main_stop_worker_processes(task, rt);
+                }
+
                 init->restart(task, rt, init);
 
             } else {
@@ -930,6 +935,27 @@ nxt_main_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid)
             }
         }
     }
+}
+
+
+static void
+nxt_main_stop_worker_processes(nxt_task_t *task, nxt_runtime_t *rt)
+{
+    nxt_port_t     *port;
+    nxt_process_t  *process;
+
+    nxt_runtime_process_each(rt, process) {
+
+        nxt_process_port_each(process, port) {
+
+            if (port->type == NXT_PROCESS_WORKER) {
+                (void) nxt_port_socket_write(task, port, NXT_PORT_MSG_QUIT,
+                                             -1, 0, 0, NULL);
+            }
+
+        } nxt_process_port_loop;
+
+    } nxt_runtime_process_loop;
 }
 
 

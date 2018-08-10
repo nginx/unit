@@ -435,7 +435,7 @@ nxt_runtime_quit(nxt_task_t *task, nxt_uint_t status)
         }
 
         if (rt->type == NXT_PROCESS_MAIN) {
-            nxt_main_stop_worker_processes(task, rt);
+            nxt_main_stop_all_processes(task, rt);
             done = 0;
         }
     }
