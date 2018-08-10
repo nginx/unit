@@ -81,13 +81,20 @@ typedef struct {
 } nxt_joint_job_t;
 
 
+typedef struct {
+    uint32_t               use_count;
+    nxt_app_t              *app;
+    nxt_timer_t            idle_timer;
+    nxt_work_t             free_app_work;
+} nxt_app_joint_t;
+
+
 struct nxt_app_s {
     nxt_thread_mutex_t     mutex;    /* Protects ports queue. */
     nxt_queue_t            ports;    /* of nxt_port_t.app_link */
 
     nxt_queue_t            spare_ports; /* of nxt_port_t.idle_link */
     nxt_queue_t            idle_ports;  /* of nxt_port_t.idle_link */
-    nxt_timer_t            idle_timer;
     nxt_work_t             adjust_idle_work;
     nxt_event_engine_t     *engine;
 
@@ -110,13 +117,14 @@ struct nxt_app_s {
     nxt_msec_t             idle_timeout;
 
     nxt_app_type_t         type:8;
-    uint8_t                live;   /* 1 bit */
 
     nxt_queue_link_t       link;
 
     nxt_str_t              conf;
 
     nxt_atomic_t           use_count;
+
+    nxt_app_joint_t        *joint;
 };
 
 

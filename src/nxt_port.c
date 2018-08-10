@@ -109,11 +109,7 @@ nxt_port_release(nxt_task_t *task, nxt_port_t *port)
     nxt_debug(task, "port %p %d:%d release, type %d", port, port->pid,
               port->id, port->type);
 
-    if (port->app != NULL) {
-        nxt_router_app_use(task, port->app, -1);
-
-        port->app = NULL;
-    }
+    port->app = NULL;
 
     if (port->link.next != NULL) {
         nxt_assert(port->process != NULL);

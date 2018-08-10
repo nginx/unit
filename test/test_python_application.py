@@ -195,8 +195,8 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
 
         self.assertEqual(resp, {}, 'reconfigure 2 keep-alive 3')
 
-    @unittest.expectedFailure
     def test_python_keepalive_reconfigure_3(self):
+        self.skip_alerts.append(r'sendmsg.+failed')
         self.load('empty')
 
         (resp, sock) = self.http(b"""GET / HTTP/1.1
