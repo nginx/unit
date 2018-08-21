@@ -25,6 +25,31 @@ Connection: close
 
         self.assertEqual(resp['status'], 408, 'status header read timeout')
 
+    @unittest.expectedFailure
+    def test_settings_header_read_timeout_update(self):
+        self.load('empty')
+
+        self.conf({'http': { 'header_read_timeout': 4 }}, '/settings')
+
+        (resp, sock) = self.http(b"""GET / HTTP/1.1
+""", start=True, raw=True)
+
+        time.sleep(2)
+
+        (resp, sock) = self.http(b"""Host: localhost
+""",  start=True, sock=sock, raw=True)
+
+        time.sleep(2)
+
+        resp = self.http(b"""Connection: close
+
+""", sock=sock, raw=True)
+
+        time.sleep(2)
+
+        self.assertEqual(resp['status'], 408,
+            'status header read timeout update')
+
     def test_settings_body_read_timeout(self):
         self.load('empty')
 
@@ -42,6 +67,32 @@ Connection: close
         resp = self.http(b"""0123456789""", sock=sock, raw=True)
 
         self.assertEqual(resp['status'], 408, 'status body read timeout')
+
+    def test_settings_body_read_timeout_update(self):
+        self.load('empty')
+
+        self.conf({'http': { 'body_read_timeout': 4 }}, '/settings')
+
+        (resp, sock) = self.http(b"""POST / HTTP/1.1
+Host: localhost
+Content-Length: 10
+Connection: close
+
+""", start=True, raw=True)
+
+        time.sleep(2)
+
+        (resp, sock) = self.http(b"""012""", start=True, sock=sock, raw=True)
+
+        time.sleep(2)
+
+        (resp, sock) = self.http(b"""345""", start=True, sock=sock, raw=True)
+
+        time.sleep(2)
+
+        resp = self.http(b"""6789""", sock=sock, raw=True)
+
+        self.assertEqual(resp['status'], 200, 'status body read timeout update')
 
     def test_settings_send_timeout(self):
         self.load('mirror')
