@@ -94,7 +94,7 @@ Content-Length: %d
             'Host': 'localhost'
         }, sock=sock)
 
-        self.assertEqual(resp['status'], 408, 'status body idle timeout')
+        self.assertEqual(resp['status'], 408, 'status idle timeout')
 
     def test_settings_max_body_size(self):
         self.load('empty')
