@@ -250,8 +250,11 @@ class TestUnitHTTP(TestUnit):
         if '--verbose' in sys.argv:
             print('>>>', req, sep='\n')
 
-        encoding = 'utf-8' if 'encoding' not in kwargs else kwargs['encoding']
-        resp = self.recvall(sock).decode(encoding)
+        resp = ''
+
+        if 'no_recv' not in kwargs:
+           enc = 'utf-8' if 'encoding' not in kwargs else kwargs['encoding']
+           resp = self.recvall(sock).decode(enc)
 
         if '--verbose' in sys.argv:
             print('<<<', resp.encode('utf-8'), sep='\n')
