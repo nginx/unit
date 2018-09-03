@@ -32,20 +32,23 @@ Connection: close
         self.conf({'http': { 'header_read_timeout': 4 }}, '/settings')
 
         (resp, sock) = self.http(b"""GET / HTTP/1.1
-""", start=True, raw=True)
+""", start=True, raw=True, no_recv=True)
 
         time.sleep(2)
 
         (resp, sock) = self.http(b"""Host: localhost
-""",  start=True, sock=sock, raw=True)
+""", start=True, sock=sock, raw=True, no_recv=True)
+
+        time.sleep(2)
+
+        (resp, sock) = self.http(b"""X-Blah: blah
+""", start=True, sock=sock, raw=True, no_recv=True)
 
         time.sleep(2)
 
         resp = self.http(b"""Connection: close
 
 """, sock=sock, raw=True)
-
-        time.sleep(2)
 
         self.assertEqual(resp['status'], 408,
             'status header read timeout update')
