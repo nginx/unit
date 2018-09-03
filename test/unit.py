@@ -327,9 +327,12 @@ class TestUnitControl(TestUnitHTTP):
     # TODO socket reuse
     # TODO http client
 
-    def conf(self, conf, path='/'):
+    def conf(self, conf, path='/config'):
         if isinstance(conf, dict):
             conf = json.dumps(conf)
+
+        if path != '/config':
+            path = '/config' + path
 
         return json.loads(self.put(
             url=path,
@@ -338,14 +341,20 @@ class TestUnitControl(TestUnitHTTP):
             addr=self.testdir + '/control.unit.sock'
         )['body'])
 
-    def conf_get(self, path='/'):
+    def conf_get(self, path='/config'):
+        if path != '/config':
+            path = '/config' + path
+
         return json.loads(self.get(
             url=path,
             sock_type='unix',
             addr=self.testdir + '/control.unit.sock'
         )['body'])
 
-    def conf_delete(self, path='/'):
+    def conf_delete(self, path='/config'):
+        if path != '/config':
+            path = '/config' + path
+
         return json.loads(self.delete(
             url=path,
             sock_type='unix',
