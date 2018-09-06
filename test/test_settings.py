@@ -11,7 +11,7 @@ class TestUnitSettings(unit.TestUnitApplicationPython):
     def test_settings_header_read_timeout(self):
         self.load('empty')
 
-        self.conf({'http': { 'header_read_timeout': 2 }}, '/settings')
+        self.conf({'http': { 'header_read_timeout': 2 }}, 'settings')
 
         (resp, sock) = self.http(b"""GET / HTTP/1.1
 """, start=True, raw=True)
@@ -29,7 +29,7 @@ Connection: close
     def test_settings_header_read_timeout_update(self):
         self.load('empty')
 
-        self.conf({'http': { 'header_read_timeout': 4 }}, '/settings')
+        self.conf({'http': { 'header_read_timeout': 4 }}, 'settings')
 
         (resp, sock) = self.http(b"""GET / HTTP/1.1
 """, start=True, raw=True, no_recv=True)
@@ -56,7 +56,7 @@ Connection: close
     def test_settings_body_read_timeout(self):
         self.load('empty')
 
-        self.conf({'http': { 'body_read_timeout': 2 }}, '/settings')
+        self.conf({'http': { 'body_read_timeout': 2 }}, 'settings')
 
         (resp, sock) = self.http(b"""POST / HTTP/1.1
 Host: localhost
@@ -74,7 +74,7 @@ Connection: close
     def test_settings_body_read_timeout_update(self):
         self.load('empty')
 
-        self.conf({'http': { 'body_read_timeout': 4 }}, '/settings')
+        self.conf({'http': { 'body_read_timeout': 4 }}, 'settings')
 
         (resp, sock) = self.http(b"""POST / HTTP/1.1
 Host: localhost
@@ -102,11 +102,11 @@ Connection: close
 
         data_len = 1048576
 
-        self.conf({'http': { 'send_timeout': 1 }}, '/settings')
+        self.conf({'http': { 'send_timeout': 1 }}, 'settings')
 
         addr = self.testdir + '/sock'
 
-        self.conf({"unix:" + addr: {'application': 'mirror'}}, '/listeners')
+        self.conf({"unix:" + addr: {'application': 'mirror'}}, 'listeners')
 
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         sock.connect(addr)
@@ -134,7 +134,7 @@ Content-Length: %d
     def test_settings_idle_timeout(self):
         self.load('empty')
 
-        self.conf({'http': { 'idle_timeout': 2 }}, '/settings')
+        self.conf({'http': { 'idle_timeout': 2 }}, 'settings')
 
         (resp, sock) = self.get(headers={
             'Connection': 'keep-alive',
@@ -153,7 +153,7 @@ Content-Length: %d
     def test_settings_max_body_size(self):
         self.load('empty')
 
-        self.conf({'http': { 'max_body_size': 5 }}, '/settings')
+        self.conf({'http': { 'max_body_size': 5 }}, 'settings')
 
         self.assertEqual(self.post(body='01234')['status'], 200, 'status size')
         self.assertEqual(self.post(body='012345')['status'], 413,
@@ -162,8 +162,7 @@ Content-Length: %d
     @unittest.expectedFailure
     def test_settings_negative_value(self):
         self.assertIn('error', self.conf({'http': { 'max_body_size': -1 }},
-            '/settings'), 'settings negative value')
-
+            'settings'), 'settings negative value')
 
 if __name__ == '__main__':
     unittest.main()

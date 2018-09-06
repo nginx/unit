@@ -131,7 +131,7 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
             self.assertIn('success', self.conf({
                 "spare": i % 4,
                 "max": (i % 4) + 1
-            }, '/applications/mirror/processes'), 'reconfigure')
+            }, 'applications/mirror/processes'), 'reconfigure')
 
             socks.append(sock)
 
@@ -146,7 +146,7 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
             self.assertIn('success', self.conf({
                 "spare": i % 4,
                 "max": (i % 4) + 1
-            }, '/applications/mirror/processes'), 'reconfigure 2')
+            }, 'applications/mirror/processes'), 'reconfigure 2')
 
         for i in range(conns):
             resp = self.post(headers={
@@ -159,7 +159,7 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
             self.assertIn('success', self.conf({
                 "spare": i % 4,
                 "max": (i % 4) + 1
-            }, '/applications/mirror/processes'), 'reconfigure 3')
+            }, 'applications/mirror/processes'), 'reconfigure 3')
 
     def test_python_keepalive_reconfigure_2(self):
         self.skip_alerts.append(r'sendmsg.+failed')

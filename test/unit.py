@@ -334,8 +334,8 @@ class TestUnitControl(TestUnitHTTP):
         if isinstance(conf, dict):
             conf = json.dumps(conf)
 
-        if path != '/config':
-            path = '/config' + path
+        if path[:1] != '/':
+            path = '/config/' + path
 
         return json.loads(self.put(
             url=path,
@@ -345,8 +345,8 @@ class TestUnitControl(TestUnitHTTP):
         )['body'])
 
     def conf_get(self, path='/config'):
-        if path != '/config':
-            path = '/config' + path
+        if path[:1] != '/':
+            path = '/config/' + path
 
         return json.loads(self.get(
             url=path,
@@ -355,8 +355,8 @@ class TestUnitControl(TestUnitHTTP):
         )['body'])
 
     def conf_delete(self, path='/config'):
-        if path != '/config':
-            path = '/config' + path
+        if path[:1] != '/':
+            path = '/config/' + path
 
         return json.loads(self.delete(
             url=path,
