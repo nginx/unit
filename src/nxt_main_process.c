@@ -899,7 +899,7 @@ nxt_main_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid)
 
                 port = nxt_process_port_first(process);
 
-                if (nxt_proc_remove_notify_martix[ptype][port->type] == 0) {
+                if (nxt_proc_remove_notify_matrix[ptype][port->type] == 0) {
                     continue;
                 }
 

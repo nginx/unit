@@ -195,7 +195,7 @@ nxt_port_send_new_port(nxt_task_t *task, nxt_runtime_t *rt,
 
         port = nxt_process_port_first(process);
 
-        if (nxt_proc_conn_martix[port->type][new_port->type]) {
+        if (nxt_proc_conn_matrix[port->type][new_port->type]) {
             (void) nxt_port_send_port(task, port, new_port, stream);
         }
 
