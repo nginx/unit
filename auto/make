@@ -180,7 +180,7 @@ NXT_MAKE_INCS="src $NXT_BUILD_DIR"
 NXT_MAKE_SRCS="$NXT_SRCS"
 
 
-# The include pathes list.
+# The include paths list.
 
 $echo -n "NXT_INCS =" >> $NXT_MAKEFILE
 
