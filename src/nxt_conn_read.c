@@ -104,18 +104,13 @@ nxt_conn_io_read(nxt_task_t *task, void *obj, void *data)
     c->socket.read_handler = c->io->read;
     c->socket.error_handler = state->error_handler;
 
-    if (c->read_timer.state == NXT_TIMER_DISABLED
-        || nxt_fd_event_is_disabled(c->socket.read))
-    {
-        /* Timer may be set or reset. */
-        nxt_conn_timer(engine, c, state, &c->read_timer);
-
-        if (nxt_fd_event_is_disabled(c->socket.read)) {
-            nxt_fd_event_enable_read(engine, &c->socket);
-        }
+    if (nxt_fd_event_is_disabled(c->socket.read)) {
+        nxt_fd_event_enable_read(engine, &c->socket);
     }
 
-    return;
+    if (state->timer_autoreset || c->read_timer.state == NXT_TIMER_DISABLED) {
+        nxt_conn_timer(engine, c, state, &c->read_timer);
+    }
 }
 
 
