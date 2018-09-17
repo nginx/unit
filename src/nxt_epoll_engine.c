@@ -489,7 +489,7 @@ nxt_epoll_disable_write(nxt_event_engine_t *engine, nxt_fd_event_t *ev)
     ev->write = NXT_EVENT_INACTIVE;
 
     if (ev->read <= NXT_EVENT_DISABLED) {
-        ev->write = NXT_EVENT_INACTIVE;
+        ev->read = NXT_EVENT_INACTIVE;
         op = EPOLL_CTL_DEL;
         events = 0;
 
