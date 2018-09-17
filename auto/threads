@@ -123,29 +123,6 @@ if [ $nxt_found = yes ]; then
 fi
 
 
-if [ $nxt_found = no ]; then
-
-    # MacOSX spinlock(3).
-
-    nxt_feature="MacOSX spinlock"
-    nxt_feature_name=NXT_HAVE_MACOSX_SPINLOCK
-    nxt_feature_run=yes
-    nxt_feature_incs=
-    nxt_feature_libs=$NXT_PTHREAD
-    nxt_feature_test="#include <libkern/OSAtomic.h>
-
-                  int main() {
-                      OSSpinLock  lock = 0;
-
-                      if (OSSpinLockTry(&lock) == 0)
-                          return 1;
-                      OSSpinLockUnlock(&lock);
-                      return 0;
-                  }"
-    . auto/feature
-fi
-
-
 nxt_feature="sem_timedwait()"
 nxt_feature_name=NXT_HAVE_SEM_TIMEDWAIT
 nxt_feature_run=yes
