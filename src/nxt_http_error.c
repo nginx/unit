@@ -16,7 +16,7 @@ static const nxt_http_request_state_t  nxt_http_request_send_error_body_state;
 
 
 static const char  error[] =
-    "<html><head><title>Error</title><head>"
+    "<html><head><title>Error</title></head>"
     "<body>Error.</body></html>\r\n";
 
 

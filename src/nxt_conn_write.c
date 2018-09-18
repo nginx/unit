@@ -143,7 +143,7 @@ nxt_conn_write_timer_handler(nxt_task_t *task, void *obj, void *data)
 
     timer = obj;
 
-    nxt_debug(task, "event conn conn timer");
+    nxt_debug(task, "conn write timer");
 
     c = nxt_write_timer_conn(timer);
     c->delayed = 0;
