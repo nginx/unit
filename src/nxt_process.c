@@ -486,6 +486,10 @@ nxt_user_groups_get(nxt_task_t *task, nxt_user_cred_t *uc)
 
     if (nsaved > NGROUPS_MAX) {
         /* MacOSX case. */
+
+        uc->gids = NULL;
+        uc->ngroups = 0;
+
         return NXT_OK;
     }
 
