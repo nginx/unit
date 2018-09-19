@@ -1545,6 +1545,8 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             goto fail;
         }
 
+        nxt_memzero(&lscf, sizeof(lscf));
+
         ret = nxt_conf_map_object(mp, listener, nxt_router_listener_conf,
                                   nxt_nitems(nxt_router_listener_conf), &lscf);
         if (ret != NXT_OK) {
@@ -1577,9 +1579,12 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         skcf->listen->handler = nxt_http_conn_init;
         skcf->router_conf = tmcf->router_conf;
         skcf->router_conf->count++;
-        skcf->application = nxt_router_listener_application(tmcf,
+
+        if (lscf.application.length > 0) {
+            skcf->application = nxt_router_listener_application(tmcf,
                                                             &lscf.application);
-        nxt_router_app_use(task, skcf->application, 1);
+            nxt_router_app_use(task, skcf->application, 1);
+        }
     }
 
     value = nxt_conf_get_path(conf, &access_log_path);
