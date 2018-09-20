@@ -409,6 +409,7 @@ nxt_conf_value_t *
 nxt_conf_get_path(nxt_conf_value_t *value, nxt_str_t *path)
 {
     nxt_str_t              token;
+    nxt_int_t              index;
     nxt_conf_path_parse_t  parse;
 
     parse.start = path->start;
@@ -427,7 +428,25 @@ nxt_conf_get_path(nxt_conf_value_t *value, nxt_str_t *path)
             return NULL;
         }
 
-        value = nxt_conf_get_object_member(value, &token, NULL);
+        switch (value->type) {
+
+        case NXT_CONF_VALUE_OBJECT:
+            value = nxt_conf_get_object_member(value, &token, NULL);
+            break;
+
+        case NXT_CONF_VALUE_ARRAY:
+            index = nxt_int_parse(token.start, token.length);
+
+            if (index < 0 || index > NXT_INT32_T_MAX) {
+                return NULL;
+            }
+
+            value = nxt_conf_get_array_element(value, index);
+            break;
+
+        default:
+            return NULL;
+        }
 
         if (value == NULL) {
             return NULL;
