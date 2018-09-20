@@ -78,6 +78,7 @@ if /bin/sh -c "$NXT_PERL -MConfig -e 'print \"Perl version: \",
     nxt_feature_incs="${NXT_PERL_INCLUDE}"
     nxt_feature_libs="${NXT_PERL_LIBS}"
     nxt_feature_test="
+        #define _GNU_SOURCE
         #include <EXTERN.h>
         #include <perl.h>
 
@@ -124,6 +125,7 @@ nxt_feature_run=value
 nxt_feature_incs="${NXT_PERL_INCLUDE}"
 nxt_feature_libs="${NXT_PERL_LIBS}"
 nxt_feature_test="
+    #define _GNU_SOURCE
     #include <EXTERN.h>
     #include <perl.h>
 
