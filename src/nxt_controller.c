@@ -132,18 +132,10 @@ nxt_controller_start(nxt_task_t *task, void *data)
     nxt_str_t              *json;
     nxt_runtime_t          *rt;
     nxt_conf_value_t       *conf;
-    nxt_event_engine_t     *engine;
     nxt_conf_validation_t  vldt;
     nxt_controller_init_t  *init;
 
     rt = task->thread->runtime;
-
-    engine = task->thread->engine;
-
-    engine->mem_pool = nxt_mp_create(4096, 128, 1024, 64);
-    if (nxt_slow_path(engine->mem_pool == NULL)) {
-        return NXT_ERROR;
-    }
 
     ret = nxt_http_fields_hash(&nxt_controller_fields_hash, rt->mem_pool,
                                nxt_controller_request_fields,
