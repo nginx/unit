@@ -101,6 +101,7 @@ void nxt_conf_json_position(u_char *start, u_char *pos, nxt_uint_t *line,
 nxt_int_t nxt_conf_validate(nxt_conf_validation_t *vldt);
 
 NXT_EXPORT void nxt_conf_get_string(nxt_conf_value_t *value, nxt_str_t *str);
+NXT_EXPORT void nxt_conf_set_string(nxt_conf_value_t *value, nxt_str_t *str);
 NXT_EXPORT int64_t nxt_conf_get_integer(nxt_conf_value_t *value);
 
 // FIXME reimplement and reorder functions below

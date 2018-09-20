@@ -163,6 +163,23 @@ nxt_conf_get_string(nxt_conf_value_t *value, nxt_str_t *str)
 }
 
 
+void
+nxt_conf_set_string(nxt_conf_value_t *value, nxt_str_t *str)
+{
+    if (str->length > NXT_CONF_MAX_SHORT_STRING) {
+        value->type = NXT_CONF_VALUE_STRING;
+        value->u.string.length = str->length;
+        value->u.string.start = str->start;
+
+    } else {
+        value->type = NXT_CONF_VALUE_SHORT_STRING;
+        value->u.str.length = str->length;
+
+        nxt_memcpy(value->u.str.start, str->start, str->length);
+    }
+}
+
+
 int64_t
 nxt_conf_get_integer(nxt_conf_value_t *value)
 {
@@ -205,23 +222,11 @@ void
 nxt_conf_set_member(nxt_conf_value_t *object, nxt_str_t *name,
     nxt_conf_value_t *value, uint32_t index)
 {
-    nxt_conf_value_t          *name_value;
     nxt_conf_object_member_t  *member;
 
     member = &object->u.object->members[index];
-    name_value = &member->name;
 
-    if (name->length > NXT_CONF_MAX_SHORT_STRING) {
-        name_value->type = NXT_CONF_VALUE_STRING;
-        name_value->u.string.length = name->length;
-        name_value->u.string.start = name->start;
-
-    } else {
-        name_value->type = NXT_CONF_VALUE_SHORT_STRING;
-        name_value->u.str.length = name->length;
-
-        nxt_memcpy(name_value->u.str.start, name->start, name->length);
-    }
+    nxt_conf_set_string(&member->name, name);
 
     member->value = *value;
 }
@@ -231,37 +236,13 @@ void
 nxt_conf_set_member_string(nxt_conf_value_t *object, nxt_str_t *name,
     nxt_str_t *value, uint32_t index)
 {
-    nxt_conf_value_t          *set;
     nxt_conf_object_member_t  *member;
 
     member = &object->u.object->members[index];
-    set = &member->name;
 
-    if (name->length > NXT_CONF_MAX_SHORT_STRING) {
-        set->type = NXT_CONF_VALUE_STRING;
-        set->u.string.length = name->length;
-        set->u.string.start = name->start;
+    nxt_conf_set_string(&member->name, name);
 
-    } else {
-        set->type = NXT_CONF_VALUE_SHORT_STRING;
-        set->u.str.length = name->length;
-
-        nxt_memcpy(set->u.str.start, name->start, name->length);
-    }
-
-    set = &member->value;
-
-    if (value->length > NXT_CONF_MAX_SHORT_STRING) {
-        set->type = NXT_CONF_VALUE_STRING;
-        set->u.string.length = value->length;
-        set->u.string.start = value->start;
-
-    } else {
-        set->type = NXT_CONF_VALUE_SHORT_STRING;
-        set->u.str.length = value->length;
-
-        nxt_memcpy(set->u.str.start, value->start, value->length);
-    }
+    nxt_conf_set_string(&member->value, value);
 }
 
 
@@ -269,23 +250,11 @@ void
 nxt_conf_set_member_integer(nxt_conf_value_t *object, nxt_str_t *name,
     int64_t value, uint32_t index)
 {
-    nxt_conf_value_t          *name_value;
     nxt_conf_object_member_t  *member;
 
     member = &object->u.object->members[index];
-    name_value = &member->name;
 
-    if (name->length > NXT_CONF_MAX_SHORT_STRING) {
-        name_value->type = NXT_CONF_VALUE_STRING;
-        name_value->u.string.length = name->length;
-        name_value->u.string.start = name->start;
-
-    } else {
-        name_value->type = NXT_CONF_VALUE_SHORT_STRING;
-        name_value->u.str.length = name->length;
-
-        nxt_memcpy(name_value->u.str.start, name->start, name->length);
-    }
+    nxt_conf_set_string(&member->name, name);
 
     member->value.u.integer = value;
     member->value.type = NXT_CONF_VALUE_INTEGER;
@@ -683,18 +652,7 @@ nxt_conf_op_compile(nxt_mp_t *mp, nxt_conf_op_t **ops, nxt_conf_value_t *root,
             return NXT_ERROR;
         }
 
-        if (token.length > NXT_CONF_MAX_SHORT_STRING) {
-            member->name.u.string.length = token.length;
-            member->name.u.string.start = token.start;
-
-            member->name.type = NXT_CONF_VALUE_STRING;
-
-        } else {
-            member->name.u.str.length = token.length;
-            nxt_memcpy(member->name.u.str.start, token.start, token.length);
-
-            member->name.type = NXT_CONF_VALUE_SHORT_STRING;
-        }
+        nxt_conf_set_string(&member->name, &token);
 
         member->value = *value;
 
