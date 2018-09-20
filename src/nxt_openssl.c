@@ -40,6 +40,7 @@ static void nxt_openssl_locks_free(void);
 #endif
 static nxt_int_t nxt_openssl_server_init(nxt_task_t *task,
     nxt_tls_conf_t *conf);
+static nxt_uint_t nxt_openssl_chain_file(SSL_CTX *ctx, nxt_fd_t fd);
 static void nxt_openssl_server_free(nxt_task_t *task, nxt_tls_conf_t *conf);
 static void nxt_openssl_conn_init(nxt_task_t *task, nxt_tls_conf_t *conf,
     nxt_conn_t *c);
@@ -246,7 +247,8 @@ static nxt_int_t
 nxt_openssl_server_init(nxt_task_t *task, nxt_tls_conf_t *conf)
 {
     SSL_CTX              *ctx;
-    const char           *certificate, *key, *ciphers, *ca_certificate;
+    nxt_fd_t             fd;
+    const char           *ciphers, *ca_certificate;
     STACK_OF(X509_NAME)  *list;
 
     ctx = SSL_CTX_new(SSLv23_server_method());
@@ -284,15 +286,14 @@ nxt_openssl_server_init(nxt_task_t *task, nxt_tls_conf_t *conf)
 
 #endif
 
-    certificate = conf->certificate;
+    fd = conf->chain_file;
 
-    if (SSL_CTX_use_certificate_chain_file(ctx, certificate) == 0) {
+    if (nxt_openssl_chain_file(ctx, fd) != NXT_OK) {
         nxt_openssl_log_error(task, NXT_LOG_ALERT,
-                              "SSL_CTX_use_certificate_file(\"%s\") failed",
-                              certificate);
+                              "nxt_openssl_chain_file() failed");
         goto fail;
     }
-
+/*
     key = conf->certificate_key;
 
     if (SSL_CTX_use_PrivateKey_file(ctx, key, SSL_FILETYPE_PEM) == 0) {
@@ -301,7 +302,7 @@ nxt_openssl_server_init(nxt_task_t *task, nxt_tls_conf_t *conf)
                               key);
         goto fail;
     }
-
+*/
     ciphers = (conf->ciphers != NULL) ? conf->ciphers : "HIGH:!aNULL:!MD5";
 
     if (SSL_CTX_set_cipher_list(ctx, ciphers) == 0) {
@@ -355,6 +356,85 @@ fail:
     SSL_CTX_free(ctx);
 
     return NXT_ERROR;
+}
+
+
+static nxt_uint_t
+nxt_openssl_chain_file(SSL_CTX *ctx, nxt_fd_t fd)
+{
+    BIO            *bio;
+    X509           *cert, *ca;
+    long           reason;
+    EVP_PKEY       *key;
+    nxt_uint_t     ret;
+
+    bio = BIO_new(BIO_s_fd());
+    if (bio == NULL) {
+        return NXT_ERROR;
+    }
+
+    BIO_set_fd(bio, fd, BIO_CLOSE);
+
+    ret = NXT_ERROR;
+
+    cert = PEM_read_bio_X509_AUX(bio, NULL, NULL, NULL);
+    if (cert == NULL) {
+        goto end;
+    }
+
+    if (SSL_CTX_use_certificate(ctx, cert) != 1) {
+        goto end;
+    }
+
+    for ( ;; ) {
+        ca = PEM_read_bio_X509(bio, NULL, NULL, NULL);
+
+        if (ca == NULL) {
+            reason = ERR_GET_REASON(ERR_peek_last_error());
+            if (reason != PEM_R_NO_START_LINE) {
+                goto end;
+            }
+
+            ERR_clear_error();
+            break;
+        }
+
+        /*
+         * Note that ca isn't freed if it was successfully added to the chain,
+         * while the main certificate needs a X509_free() call, since
+         * its reference count is increased by SSL_CTX_use_certificate().
+         */
+#if OPENSSL_VERSION_NUMBER > 0x10002000L
+        if (SSL_CTX_add0_chain_cert(ctx, ca) != 1) {
+#else
+        if (SSL_CTX_add_extra_chain_cert(ctx, ca) != 1) {
+#endif
+            X509_free(ca);
+            goto end;
+        }
+    }
+
+    if (BIO_reset(bio) != 0) {
+        goto end;
+    }
+
+    key = PEM_read_bio_PrivateKey(bio, NULL, NULL, NULL);
+    if (key == NULL) {
+        goto end;
+    }
+
+    if (SSL_CTX_use_PrivateKey(ctx, key) == 1) {
+        ret = NXT_OK;
+    }
+
+    EVP_PKEY_free(key);
+
+end:
+
+    X509_free(cert);
+    BIO_free(bio);
+
+    return ret;
 }
 
 

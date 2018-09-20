@@ -44,8 +44,7 @@ struct nxt_tls_conf_s {
 
     const nxt_tls_lib_t           *lib;
 
-    char                          *certificate;
-    char                          *certificate_key;
+    nxt_fd_t                      chain_file;
     char                          *ciphers;
 
     char                          *ca_certificate;

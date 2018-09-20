@@ -6,6 +6,7 @@
 
 #include <nxt_main.h>
 #include <nxt_conf.h>
+#include <nxt_cert.h>
 #include <nxt_router.h>
 
 
@@ -49,6 +50,10 @@ static nxt_int_t nxt_conf_vldt_error(nxt_conf_validation_t *vldt,
 
 static nxt_int_t nxt_conf_vldt_listener(nxt_conf_validation_t *vldt,
     nxt_str_t *name, nxt_conf_value_t *value);
+#if (NXT_TLS)
+static nxt_int_t nxt_conf_vldt_certificate(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
+#endif
 static nxt_int_t nxt_conf_vldt_app_name(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_app(nxt_conf_validation_t *vldt,
@@ -138,11 +143,34 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_root_members[] = {
 };
 
 
+#if (NXT_TLS)
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_tls_members[] = {
+    { nxt_string("certificate"),
+      NXT_CONF_VLDT_STRING,
+      &nxt_conf_vldt_certificate,
+      NULL },
+
+    NXT_CONF_VLDT_END
+};
+
+#endif
+
+
 static nxt_conf_vldt_object_t  nxt_conf_vldt_listener_members[] = {
     { nxt_string("application"),
       NXT_CONF_VLDT_STRING,
       &nxt_conf_vldt_app_name,
       NULL },
+
+#if (NXT_TLS)
+
+    { nxt_string("tls"),
+      NXT_CONF_VLDT_OBJECT,
+      &nxt_conf_vldt_object,
+      (void *) &nxt_conf_vldt_tls_members },
+
+#endif
 
     NXT_CONF_VLDT_END
 };
@@ -465,6 +493,30 @@ nxt_conf_vldt_listener(nxt_conf_validation_t *vldt, nxt_str_t *name,
 
     return nxt_conf_vldt_object(vldt, value, nxt_conf_vldt_listener_members);
 }
+
+
+#if (NXT_TLS)
+
+static nxt_int_t
+nxt_conf_vldt_certificate(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
+{
+    nxt_str_t         name;
+    nxt_conf_value_t  *cert;
+
+    nxt_conf_get_string(value, &name);
+
+    cert = nxt_cert_info_get(&name);
+
+    if (cert == NULL) {
+        return nxt_conf_vldt_error(vldt, "Certificate \"%V\" is not found.",
+                                   &name);
+    }
+
+    return NXT_OK;
+}
+
+#endif
 
 
 static nxt_int_t

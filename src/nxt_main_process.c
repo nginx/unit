@@ -10,6 +10,9 @@
 #include <nxt_main_process.h>
 #include <nxt_conf.h>
 #include <nxt_router.h>
+#if (NXT_TLS)
+#include <nxt_cert.h>
+#endif
 
 
 typedef struct {
@@ -336,6 +339,10 @@ static nxt_port_handlers_t  nxt_main_process_port_handlers = {
     .socket         = nxt_main_port_socket_handler,
     .modules        = nxt_main_port_modules_handler,
     .conf_store     = nxt_main_port_conf_store_handler,
+#if (NXT_TLS)
+    .cert_get       = nxt_cert_store_get_handler,
+    .cert_delete    = nxt_cert_store_delete_handler,
+#endif
     .access_log     = nxt_main_port_access_log_handler,
     .rpc_ready      = nxt_port_rpc_handler,
     .rpc_error      = nxt_port_rpc_handler,
@@ -439,13 +446,16 @@ static nxt_int_t
 nxt_main_create_controller_process(nxt_task_t *task, nxt_runtime_t *rt,
     nxt_process_init_t *init)
 {
-    ssize_t          n;
-    nxt_int_t        ret;
-    nxt_str_t        conf;
-    nxt_file_t       file;
-    nxt_file_info_t  fi;
+    ssize_t                n;
+    nxt_int_t              ret;
+    nxt_str_t              *conf;
+    nxt_file_t             file;
+    nxt_file_info_t        fi;
+    nxt_controller_init_t  ctrl_init;
 
-    conf.length = 0;
+    nxt_memzero(&ctrl_init, sizeof(nxt_controller_init_t));
+
+    conf = &ctrl_init.conf;
 
     nxt_memzero(&file, sizeof(nxt_file_t));
 
@@ -457,19 +467,19 @@ nxt_main_create_controller_process(nxt_task_t *task, nxt_runtime_t *rt,
         ret = nxt_file_info(&file, &fi);
 
         if (nxt_fast_path(ret == NXT_OK && nxt_is_file(&fi))) {
-            conf.length = nxt_file_size(&fi);
-            conf.start = nxt_malloc(conf.length);
+            conf->length = nxt_file_size(&fi);
+            conf->start = nxt_malloc(conf->length);
 
-            if (nxt_slow_path(conf.start == NULL)) {
+            if (nxt_slow_path(conf->start == NULL)) {
                 nxt_file_close(task, &file);
                 return NXT_ERROR;
             }
 
-            n = nxt_file_read(&file, conf.start, conf.length, 0);
+            n = nxt_file_read(&file, conf->start, conf->length, 0);
 
-            if (nxt_slow_path(n != (ssize_t) conf.length)) {
-                conf.length = 0;
-                nxt_free(conf.start);
+            if (nxt_slow_path(n != (ssize_t) conf->length)) {
+                nxt_free(conf->start);
+                conf->start = NULL;
 
                 nxt_alert(task, "failed to restore previous configuration: "
                           "cannot read the file");
@@ -479,12 +489,24 @@ nxt_main_create_controller_process(nxt_task_t *task, nxt_runtime_t *rt,
         nxt_file_close(task, &file);
     }
 
-    init->data = &conf;
+#if (NXT_TLS)
+    ctrl_init.certs = nxt_cert_store_load(task);
+#endif
+
+    init->data = &ctrl_init;
 
     ret = nxt_main_create_worker_process(task, rt, init);
 
-    if (ret == NXT_OK && conf.length != 0) {
-        nxt_free(conf.start);
+    if (ret == NXT_OK) {
+        if (conf->start != NULL) {
+            nxt_free(conf->start);
+        }
+
+#if (NXT_TLS)
+        if (ctrl_init.certs != NULL) {
+            nxt_cert_store_release(ctrl_init.certs);
+        }
+#endif
     }
 
     return ret;

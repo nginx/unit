@@ -68,6 +68,8 @@ struct nxt_runtime_s {
     const char             *conf_tmp;
     const char             *control;
 
+    nxt_str_t              certs;
+
     nxt_queue_t            engines;            /* of nxt_event_engine_t */
 
     nxt_sockaddr_t         *controller_listen;

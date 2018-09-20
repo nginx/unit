@@ -106,7 +106,7 @@ NXT_LIB_UNIT_SRCS="src/nxt_unit.c"
 
 
 NXT_LIB_TLS_DEPS="src/nxt_tls.h"
-NXT_LIB_TLS_SRCS=
+NXT_LIB_TLS_SRCS="src/nxt_cert.c"
 NXT_LIB_OPENSSL_SRCS="src/nxt_openssl.c"
 NXT_LIB_GNUTLS_SRCS="src/nxt_gnutls.c"
 NXT_LIB_CYASSL_SRCS="src/nxt_cyassl.c"

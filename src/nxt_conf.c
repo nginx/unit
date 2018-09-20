@@ -180,6 +180,33 @@ nxt_conf_set_string(nxt_conf_value_t *value, nxt_str_t *str)
 }
 
 
+nxt_int_t
+nxt_conf_set_string_dup(nxt_conf_value_t *value, nxt_mp_t *mp, nxt_str_t *str)
+{
+    nxt_str_t  tmp, *ptr;
+
+    if (str->length > NXT_CONF_MAX_SHORT_STRING) {
+        value->type = NXT_CONF_VALUE_STRING;
+
+        ptr = nxt_str_dup(mp, &tmp, str);
+        if (nxt_slow_path(ptr == NULL)) {
+            return NXT_ERROR;
+        }
+
+        value->u.string.length = tmp.length;
+        value->u.string.start = tmp.start;
+
+    } else {
+        value->type = NXT_CONF_VALUE_SHORT_STRING;
+        value->u.str.length = str->length;
+
+        nxt_memcpy(value->u.str.start, str->start, str->length);
+    }
+
+    return NXT_OK;
+}
+
+
 int64_t
 nxt_conf_get_integer(nxt_conf_value_t *value)
 {
@@ -246,6 +273,20 @@ nxt_conf_set_member_string(nxt_conf_value_t *object, nxt_str_t *name,
 }
 
 
+nxt_int_t
+nxt_conf_set_member_string_dup(nxt_conf_value_t *object, nxt_mp_t *mp,
+    nxt_str_t *name, nxt_str_t *value, uint32_t index)
+{
+    nxt_conf_object_member_t  *member;
+
+    member = &object->u.object->members[index];
+
+    nxt_conf_set_string(&member->name, name);
+
+    return nxt_conf_set_string_dup(&member->value, mp, value);
+}
+
+
 void
 nxt_conf_set_member_integer(nxt_conf_value_t *object, nxt_str_t *name,
     int64_t value, uint32_t index)
@@ -258,6 +299,64 @@ nxt_conf_set_member_integer(nxt_conf_value_t *object, nxt_str_t *name,
 
     member->value.u.integer = value;
     member->value.type = NXT_CONF_VALUE_INTEGER;
+}
+
+
+void
+nxt_conf_set_member_null(nxt_conf_value_t *object, nxt_str_t *name,
+    uint32_t index)
+{
+    nxt_conf_object_member_t  *member;
+
+    member = &object->u.object->members[index];
+
+    nxt_conf_set_string(&member->name, name);
+
+    member->value.type = NXT_CONF_VALUE_NULL;
+}
+
+
+nxt_conf_value_t *
+nxt_conf_create_array(nxt_mp_t *mp, nxt_uint_t count)
+{
+    size_t            size;
+    nxt_conf_value_t  *value;
+
+    size = sizeof(nxt_conf_value_t)
+           + sizeof(nxt_conf_array_t)
+           + count * sizeof(nxt_conf_value_t);
+
+    value = nxt_mp_get(mp, size);
+    if (nxt_slow_path(value == NULL)) {
+        return NULL;
+    }
+
+    value->u.array = nxt_pointer_to(value, sizeof(nxt_conf_value_t));
+    value->u.array->count = count;
+
+    value->type = NXT_CONF_VALUE_ARRAY;
+
+    return value;
+}
+
+
+void
+nxt_conf_set_element(nxt_conf_value_t *array, nxt_uint_t index,
+    nxt_conf_value_t *value)
+{
+    array->u.array->elements[index] = *value;
+}
+
+
+nxt_int_t
+nxt_conf_set_element_string_dup(nxt_conf_value_t *array, nxt_mp_t *mp,
+    nxt_uint_t index, nxt_str_t *value)
+{
+    nxt_conf_value_t  *element;
+
+    element = &array->u.array->elements[index];
+
+    return nxt_conf_set_string_dup(element, mp, value);
 }
 
 
