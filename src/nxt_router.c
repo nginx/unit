@@ -874,6 +874,14 @@ nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
                                        msg->port_msg.pid,
                                        msg->port_msg.reply_port);
 
+    if (nxt_slow_path(tmcf->port == NULL)) {
+        nxt_alert(task, "reply port not found");
+
+        return;
+    }
+
+    nxt_port_use(task, tmcf->port, 1);
+
     b = nxt_buf_chk_make_plain(tmcf->router_conf->mem_pool,
                                msg->buf, msg->size);
     if (nxt_slow_path(b == NULL)) {
@@ -1204,6 +1212,10 @@ nxt_router_conf_send(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_port_msg_type_t type)
 {
     nxt_port_socket_write(task, tmcf->port, type, -1, tmcf->stream, 0, NULL);
+
+    nxt_port_use(task, tmcf->port, -1);
+
+    tmcf->port = NULL;
 }
 
 
