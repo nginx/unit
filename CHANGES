@@ -1,4 +1,32 @@
 
+Changes with Unit 1.4                                            20 Sep 2018
+
+    *) Change: the control API maps the configuration object only at
+       "/config/".
+
+    *) Feature: TLS support for client connections.
+
+    *) Feature: TLS certificates storage control API.
+
+    *) Feature: Unit library (libunit) to streamline language module
+       integration.
+
+    *) Feature: "408 Request Timeout" responses while closing HTTP
+       keep-alive connections.
+
+    *) Feature: improvements in OpenBSD support. Thanks to David Carlier.
+
+    *) Bugfix: a segmentation fault might have occurred after
+       reconfiguration.
+
+    *) Bugfix: building on systems with non-default locale might be broken.
+
+    *) Bugfix: "header_read_timeout" might not work properly.
+
+    *) Bugfix: header fields values with non-ASCII bytes might be handled
+       incorrectly in Python 3 module.
+
+
 Changes with Unit 1.3                                            13 Jul 2018
 
     *) Change: UTF-8 characters are now allowed in request header field
