@@ -1136,11 +1136,13 @@ nxt_py_input_read(nxt_py_input_t *self, PyObject *args)
                 return NULL;
             }
 
-            return PyErr_Format(PyExc_ValueError,
-                                "the read body size cannot be zero or less");
+            if (size != -1) {
+                return PyErr_Format(PyExc_ValueError,
+                                  "the read body size cannot be zero or less");
+            }
         }
 
-        if (size == 0 || size > (Py_ssize_t) ctx->req->content_length) {
+        if (size == -1 || size > (Py_ssize_t) ctx->req->content_length) {
             size = ctx->req->content_length;
         }
     }

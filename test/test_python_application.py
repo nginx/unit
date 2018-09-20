@@ -243,7 +243,6 @@ Connection: close
 
         self.assertEqual(self.post(body=body)['body'], body, 'input iter')
 
-    @unittest.expectedFailure
     def test_python_application_input_read_length(self):
         self.load('input_read_length')
 
