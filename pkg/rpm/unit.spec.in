@@ -5,19 +5,22 @@
 
 %if ( 0%{?rhel} == 5 || 0%{?rhel} == 6 )
 Requires: initscripts >= 8.36
+BuildRequires: openssl-devel
 %endif
 
 %if 0%{?rhel} == 7
 Requires: systemd
 BuildRequires: systemd-units
+BuildRequires: openssl-devel
 %if 0%{?amzn} == 0
 %define dist .el7
 %endif
 %endif
 
-%if 0%{?suse_version} == 1315
+%if 0%{?suse_version} >= 1315
 BuildRequires: systemd
 Requires: systemd
+BuildRequires: libopenssl-devel
 %endif
 
 %define CC_OPT %{optflags} -fPIC
