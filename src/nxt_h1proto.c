@@ -514,6 +514,14 @@ nxt_h1p_conn_request_header_parse(nxt_task_t *task, void *obj, void *data)
         ret = nxt_h1p_header_process(h1p, r);
 
         if (nxt_fast_path(ret == NXT_OK)) {
+
+#if (NXT_TLS)
+            if (c->u.tls == NULL && r->conf->socket_conf->tls != NULL) {
+                status = NXT_HTTP_TO_HTTPS;
+                goto error;
+            }
+#endif
+
             r->state->ready_handler(task, r, NULL);
             return;
         }
@@ -870,6 +878,15 @@ static const nxt_str_t  nxt_http_client_error[] = {
 };
 
 
+#define NXT_HTTP_LAST_NGINX_ERROR                                             \
+    (NXT_HTTP_TO_HTTPS + nxt_nitems(nxt_http_nginx_error) - 1)
+
+static const nxt_str_t  nxt_http_nginx_error[] = {
+    nxt_string("HTTP/1.1 400 "
+               "The plain HTTP request was sent to HTTPS port\r\n"),
+};
+
+
 #define NXT_HTTP_LAST_SERVER_ERROR                                            \
     (NXT_HTTP_INTERNAL_SERVER_ERROR + nxt_nitems(nxt_http_server_error) - 1)
 
@@ -925,6 +942,9 @@ nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r)
 
     } else if (n >= NXT_HTTP_BAD_REQUEST && n <= NXT_HTTP_LAST_CLIENT_ERROR) {
         status = &nxt_http_client_error[n - NXT_HTTP_BAD_REQUEST];
+
+    } else if (n >= NXT_HTTP_TO_HTTPS && n <= NXT_HTTP_LAST_NGINX_ERROR) {
+        status = &nxt_http_nginx_error[n - NXT_HTTP_TO_HTTPS];
 
     } else if (n >= NXT_HTTP_INTERNAL_SERVER_ERROR
                && n <= NXT_HTTP_LAST_SERVER_ERROR)
