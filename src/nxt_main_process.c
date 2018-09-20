@@ -907,6 +907,10 @@ nxt_main_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid)
 
         ptype = nxt_process_type(process);
 
+        if (process->ready && init != NULL) {
+            init->stream = 0;
+        }
+
         nxt_process_close_ports(task, process);
 
         if (!nxt_exiting) {
