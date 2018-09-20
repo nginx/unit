@@ -8,36 +8,34 @@
 
 
 nxt_conn_io_t  nxt_unix_conn_io = {
-    nxt_conn_io_connect,
-    nxt_conn_io_accept,
+    .connect = nxt_conn_io_connect,
+    .accept = nxt_conn_io_accept,
 
-    nxt_conn_io_read,
-    nxt_conn_io_recvbuf,
-    nxt_conn_io_recv,
+    .read = nxt_conn_io_read,
+    .recvbuf = nxt_conn_io_recvbuf,
+    .recv = nxt_conn_io_recv,
 
-    nxt_conn_io_write,
-    nxt_event_conn_io_write_chunk,
+    .write = nxt_conn_io_write,
+    .sendbuf = nxt_conn_io_sendbuf,
 
 #if (NXT_HAVE_LINUX_SENDFILE)
-    nxt_linux_event_conn_io_sendfile,
+    .old_sendbuf = nxt_linux_event_conn_io_sendfile,
 #elif (NXT_HAVE_FREEBSD_SENDFILE)
-    nxt_freebsd_event_conn_io_sendfile,
+    .old_sendbuf = nxt_freebsd_event_conn_io_sendfile,
 #elif (NXT_HAVE_MACOSX_SENDFILE)
-    nxt_macosx_event_conn_io_sendfile,
+    .old_sendbuf = nxt_macosx_event_conn_io_sendfile,
 #elif (NXT_HAVE_SOLARIS_SENDFILEV)
-    nxt_solaris_event_conn_io_sendfilev,
+    .old_sendbuf = nxt_solaris_event_conn_io_sendfilev,
 #elif (NXT_HAVE_AIX_SEND_FILE)
-    nxt_aix_event_conn_io_send_file,
+    .old_sendbuf = nxt_aix_event_conn_io_send_file,
 #elif (NXT_HAVE_HPUX_SENDFILE)
-    nxt_hpux_event_conn_io_sendfile,
+    .old_sendbuf = nxt_hpux_event_conn_io_sendfile,
 #else
-    nxt_event_conn_io_sendbuf,
+    .old_sendbuf = nxt_event_conn_io_sendbuf,
 #endif
 
-    nxt_event_conn_io_writev,
-    nxt_event_conn_io_send,
-
-    nxt_conn_io_shutdown,
+    .writev = nxt_event_conn_io_writev,
+    .send = nxt_event_conn_io_send,
 };
 
 
@@ -100,40 +98,6 @@ nxt_conn_free(nxt_task_t *task, nxt_conn_t *c)
 
     mp = c->mem_pool;
     nxt_mp_release(mp);
-}
-
-
-void
-nxt_conn_io_shutdown(nxt_task_t *task, void *obj, void *data)
-{
-    int         ret;
-    nxt_conn_t  *c;
-
-    static const struct linger  linger_off = {
-        .l_onoff = 1,
-        .l_linger = 0,
-    };
-
-    c = obj;
-
-    nxt_debug(task, "event conn shutdown");
-
-    if (c->socket.timedout) {
-        /*
-         * Resetting of timed out connection on close
-         * releases kernel memory associated with socket.
-         * This also causes sending TCP/IP RST to a peer.
-         */
-        ret = setsockopt(c->socket.fd, SOL_SOCKET, SO_LINGER, &linger_off,
-                         sizeof(struct linger));
-
-        if (nxt_slow_path(ret != 0)) {
-            nxt_alert(task, "setsockopt(%d, SO_LINGER) failed %E",
-                      c->socket.fd, nxt_socket_errno);
-        }
-    }
-
-    c->write_state->close_handler(task, c, data);
 }
 
 

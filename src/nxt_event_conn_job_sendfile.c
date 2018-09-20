@@ -109,7 +109,7 @@ nxt_event_conn_job_sendfile_handler(nxt_task_t *task, void *obj, void *data)
     b = jbs->out;
 
     do {
-        ret = c->io->sendbuf(c, b, jbs->limit);
+        ret = c->io->old_sendbuf(c, b, jbs->limit);
 
         if (ret == NXT_AGAIN) {
             break;

@@ -4,8 +4,8 @@
  * Copyright (C) NGINX, Inc.
  */
 
-#ifndef _NXT_SSLTLS_H_INCLUDED_
-#define _NXT_SSLTLS_H_INCLUDED_
+#ifndef _NXT_TLS_H_INCLUDED_
+#define _NXT_TLS_H_INCLUDED_
 
 
 /*
@@ -20,24 +20,29 @@
  * and compatible with tunnels.
  */
 
-#define NXT_SSLTLS_BUFFER_SIZE    4096
+#define NXT_TLS_BUFFER_SIZE       4096
 
 
-typedef struct nxt_ssltls_conf_s  nxt_ssltls_conf_t;
+typedef struct nxt_tls_conf_s     nxt_tls_conf_t;
 
 
 typedef struct {
-    nxt_int_t                     (*server_init)(nxt_ssltls_conf_t *conf);
-    nxt_int_t                     (*set_versions)(nxt_ssltls_conf_t *conf);
-} nxt_ssltls_lib_t;
+    nxt_int_t                     (*library_init)(nxt_task_t *task);
+    void                          (*library_free)(nxt_task_t *task);
+
+    nxt_int_t                     (*server_init)(nxt_task_t *task,
+                                      nxt_tls_conf_t *conf);
+    void                          (*server_free)(nxt_task_t *task,
+                                      nxt_tls_conf_t *conf);
+} nxt_tls_lib_t;
 
 
-struct nxt_ssltls_conf_s {
+struct nxt_tls_conf_s {
     void                          *ctx;
     void                          (*conn_init)(nxt_task_t *task,
-                                      nxt_ssltls_conf_t *conf, nxt_conn_t *c);
+                                      nxt_tls_conf_t *conf, nxt_conn_t *c);
 
-    const nxt_ssltls_lib_t        *lib;
+    const nxt_tls_lib_t           *lib;
 
     char                          *certificate;
     char                          *certificate_key;
@@ -50,20 +55,24 @@ struct nxt_ssltls_conf_s {
 
 
 #if (NXT_HAVE_OPENSSL)
-extern const nxt_ssltls_lib_t     nxt_openssl_lib;
+extern const nxt_tls_lib_t        nxt_openssl_lib;
+
+void nxt_cdecl nxt_openssl_log_error(nxt_task_t *task, nxt_uint_t level,
+    const char *fmt, ...);
+u_char *nxt_openssl_copy_error(u_char *p, u_char *end);
 #endif
 
 #if (NXT_HAVE_GNUTLS)
-extern const nxt_ssltls_lib_t     nxt_gnutls_lib;
+extern const nxt_tls_lib_t        nxt_gnutls_lib;
 #endif
 
 #if (NXT_HAVE_CYASSL)
-extern const nxt_ssltls_lib_t     nxt_cyassl_lib;
+extern const nxt_tls_lib_t        nxt_cyassl_lib;
 #endif
 
 #if (NXT_HAVE_POLARSSL)
-extern const nxt_ssltls_lib_t     nxt_polar_lib;
+extern const nxt_tls_lib_t        nxt_polar_lib;
 #endif
 
 
-#endif /* _NXT_SSLTLS_H_INCLUDED_ */
+#endif /* _NXT_TLS_H_INCLUDED_ */

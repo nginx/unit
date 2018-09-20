@@ -19,7 +19,7 @@ NXT_UNIX_DOMAIN=YES
 NXT_REGEX=NO
 NXT_PCRE=NO
 
-NXT_SSLTLS=NO
+NXT_TLS=NO
 NXT_OPENSSL=NO
 NXT_GNUTLS=NO
 NXT_CYASSL=NO
@@ -72,7 +72,6 @@ do
 
         --pcre)                          NXT_PCRE=YES                        ;;
 
-        --ssltls)                        NXT_SSLTLS=YES                      ;;
         --openssl)                       NXT_OPENSSL=YES                     ;;
         --gnutls)                        NXT_GNUTLS=YES                      ;;
         --cyassl)                        NXT_CYASSL=YES                      ;;

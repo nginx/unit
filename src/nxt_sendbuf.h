@@ -37,6 +37,7 @@
 
 typedef struct {
     nxt_buf_t     *buf;
+    void          *tls;
     nxt_socket_t  socket;
     nxt_err_t     error;
     nxt_off_t     sent;

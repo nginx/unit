@@ -97,26 +97,24 @@ static ssize_t nxt_epoll_edge_conn_io_recvbuf(nxt_conn_t *c, nxt_buf_t *b);
 
 
 static nxt_conn_io_t  nxt_epoll_edge_conn_io = {
-    nxt_epoll_edge_conn_io_connect,
-    nxt_conn_io_accept,
+    .connect = nxt_epoll_edge_conn_io_connect,
+    .accept = nxt_conn_io_accept,
 
-    nxt_conn_io_read,
-    nxt_epoll_edge_conn_io_recvbuf,
-    nxt_conn_io_recv,
+    .read = nxt_conn_io_read,
+    .recvbuf = nxt_epoll_edge_conn_io_recvbuf,
+    .recv = nxt_conn_io_recv,
 
-    nxt_conn_io_write,
-    nxt_event_conn_io_write_chunk,
+    .write = nxt_conn_io_write,
+    .sendbuf = nxt_conn_io_sendbuf,
 
 #if (NXT_HAVE_LINUX_SENDFILE)
-    nxt_linux_event_conn_io_sendfile,
+    .old_sendbuf = nxt_linux_event_conn_io_sendfile,
 #else
-    nxt_event_conn_io_sendbuf,
+    .old_sendbuf = nxt_event_conn_io_sendbuf,
 #endif
 
-    nxt_event_conn_io_writev,
-    nxt_event_conn_io_send,
-
-    nxt_conn_io_shutdown,
+    .writev = nxt_event_conn_io_writev,
+    .send = nxt_event_conn_io_send,
 };
 
 

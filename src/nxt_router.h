@@ -153,6 +153,10 @@ typedef struct {
     nxt_msec_t             header_read_timeout;
     nxt_msec_t             body_read_timeout;
     nxt_msec_t             send_timeout;
+
+#if (NXT_TLS)
+    nxt_tls_conf_t         *tls;
+#endif
 } nxt_socket_conf_t;
 
 

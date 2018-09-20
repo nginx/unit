@@ -299,6 +299,18 @@ nxt_router_start(nxt_task_t *task, void *data)
 
     rt = task->thread->runtime;
 
+#if (NXT_TLS)
+    rt->tls = nxt_service_get(rt->services, "SSL/TLS", "OpenSSL");
+    if (nxt_slow_path(rt->tls == NULL)) {
+        return NXT_ERROR;
+    }
+
+    ret = rt->tls->library_init(task);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        return ret;
+    }
+#endif
+
     ret = nxt_http_init(task, rt);
     if (nxt_slow_path(ret != NXT_OK)) {
         return ret;
@@ -2772,6 +2784,12 @@ nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
 
     if (rtcf != NULL) {
         nxt_debug(task, "old router conf is destroyed");
+
+#if (NXT_TLS)
+        if (skcf->tls != NULL) {
+            task->thread->runtime->tls->server_free(task, skcf->tls);
+        }
+#endif
 
         nxt_router_access_log_release(task, lock, rtcf->access_log);
 
