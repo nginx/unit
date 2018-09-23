@@ -11,6 +11,7 @@ RELEASE ?= $(DEFAULT_RELEASE)
 SRCDIR=	unit-$(VERSION)
 
 CODENAME = $(shell lsb_release -cs)
+DISTRO_ID = $(shell lsb_release -is)
 
 BUILD_DEPENDS_unit = build-essential debhelper devscripts fakeroot libxml2-utils lintian lsb-release xsltproc libssl-dev
 BUILD_DEPENDS = $(BUILD_DEPENDS_unit)
@@ -69,6 +70,11 @@ endif
 
 # Debian 9
 ifeq ($(CODENAME),stretch)
+ifeq ($(DISTRO_ID),Raspbian)
+include Makefile.php
+include Makefile.python27
+include Makefile.python35
+else
 include Makefile.php
 include Makefile.python27
 include Makefile.python35
@@ -76,6 +82,7 @@ include Makefile.go17
 include Makefile.go18
 include Makefile.perl
 include Makefile.ruby
+endif
 endif
 
 # Debian 8
