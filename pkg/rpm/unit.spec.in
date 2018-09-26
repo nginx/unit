@@ -44,9 +44,7 @@ Source0: unit-%{version}.tar.gz
 Source1: unit.service
 Source2: unit.init
 Source3: unit.sysconf
-Source4: unit.saveconfig.sh
-Source5: unit.loadconfig.sh
-Source6: unit.example.config
+Source4: unit.example.config
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -96,7 +94,7 @@ DESTDIR=%{buildroot} make unitd-install
     %{buildroot}%{_sysconfdir}/sysconfig/unit
 %{__mkdir} -p %{buildroot}%{_sysconfdir}/unit
 %{__mkdir} -p %{buildroot}%{_datadir}/doc/unit/examples
-%{__install} -m 644 -p %{SOURCE6} \
+%{__install} -m 644 -p %{SOURCE4} \
     %{buildroot}%{_datadir}/doc/unit/examples/example.config
 %{__install} -m 644 -p CHANGES \
     %{buildroot}%{_datadir}/doc/unit/
@@ -109,11 +107,6 @@ DESTDIR=%{buildroot} make unitd-install
 %if %{use_systemd}
 %{__rm} -rf %{buildroot}%{_initrddir}/
 %{__install} -p -D -m 0644 %{SOURCE1} %{buildroot}%{_unitdir}/unit.service
-%{__mkdir} -p %{buildroot}%{_libexecdir}/initscripts/legacy-actions/unit
-%{__install} -m755 %SOURCE4 \
-    %{buildroot}%{_libexecdir}/initscripts/legacy-actions/unit/saveconfig
-%{__install} -m755 %SOURCE5 \
-    %{buildroot}%{_libexecdir}/initscripts/legacy-actions/unit/loadconfig
 %else
 %{__mkdir} -p %{buildroot}%{_initrddir}
 %{__install} -p -D -m 0755 %{SOURCE2} %{buildroot}%{_initrddir}/unit
@@ -182,8 +175,6 @@ fi
 %dir %{_sysconfdir}/unit
 %if %{use_systemd}
 %{_unitdir}/unit.service
-%dir %{_libexecdir}/initscripts/legacy-actions/unit
-%{_libexecdir}/initscripts/legacy-actions/unit/*
 %else
 %{_initrddir}/unit
 %endif
