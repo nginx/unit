@@ -45,7 +45,8 @@ The $(MODULE_SUMMARY_php) has been installed.
 To check out the sample app, run these commands:
 
  sudo service unit start
- sudo service unit loadconfig /usr/share/doc/unit-php/examples/unit.config
+ cd /usr/share/doc/%{name}/examples
+ sudo curl -X PUT --data-binary @unit.config --unix-socket /var/run/control.unit.sock :/config
  curl http://localhost:8300/
 
 Online documentation is available at https://unit.nginx.org

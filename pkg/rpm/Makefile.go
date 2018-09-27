@@ -65,7 +65,8 @@ To check the sample app, run these commands:
 
  GOPATH=%{gopath} go build -o /tmp/go-app /usr/share/doc/unit-go/examples/go-app/let-my-people.go
  sudo service unit start
- sudo service unit loadconfig /usr/share/doc/unit-go/examples/unit.config
+ cd /usr/share/doc/%{name}/examples
+ sudo curl -X PUT --data-binary @unit.config --unix-socket /var/run/control.unit.sock :/config
  curl http://localhost:8500/
 
 Online documentation is available at https://unit.nginx.org
