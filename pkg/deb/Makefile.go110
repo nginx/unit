@@ -4,7 +4,7 @@ MODULE_SUFFIX_go110=	go1.10
 MODULE_SUMMARY_go110=	Go 1.10 module for NGINX Unit
 
 MODULE_VERSION_go110=	$(VERSION)
-MODULE_RELEASE_go110=	1
+MODULE_RELEASE_go110=	2
 
 MODULE_CONFARGS_go110=	go --go=/usr/lib/go-1.10/bin/go --go-path=/usr/share/gocode
 MODULE_MAKEARGS_go110=	/usr/lib/go-1.10/bin/go
