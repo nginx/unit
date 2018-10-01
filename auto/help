@@ -33,6 +33,8 @@ cat << END
   --no-ipv6            disable IPv6 support
   --no-unix-sockets    disable Unix domain sockets support
 
+  --openssl            enable OpenSSL library usage
+
   --debug              enable debug logging
 
 
