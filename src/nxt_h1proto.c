@@ -968,11 +968,13 @@ nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r)
 
     if (r->resp.content_length == NULL || r->resp.content_length->skip) {
 
-        if (http11 && n != NXT_HTTP_NO_CONTENT) {
-            h1p->chunked = 1;
-            size += nxt_length(chunked);
-            /* Trailing CRLF will be added by the first chunk header. */
-            size -= nxt_length("\r\n");
+        if (http11) {
+            if (n != NXT_HTTP_NO_CONTENT) {
+                h1p->chunked = 1;
+                size += nxt_length(chunked);
+                /* Trailing CRLF will be added by the first chunk header. */
+                size -= nxt_length("\r\n");
+            }
 
         } else {
             h1p->keepalive = 0;
