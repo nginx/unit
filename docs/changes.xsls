@@ -63,6 +63,9 @@ X:template = "changes" {
     X:var apply = { !string_in_list(list="@apply", string="$pkgname") }
     X:var pkgname_ = { !beautify(pkgname="$pkgname") }
 
+    X:choose {
+    X:when "$pkgname='unit' and $format='generic' and @rev!=1" {}
+    X:otherwise {
     X:if "$apply=$pkgname" {
 
     X:if "$format='generic'" {
@@ -110,6 +113,8 @@ X:template = "changes" {
 
         X:text {&#10;}
         X:text {&#10;}
+    }
+    }
     }
     }
 }
