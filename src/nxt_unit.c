@@ -2167,9 +2167,12 @@ nxt_unit_send_mmap(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id, int fd)
     msg.mf = 0;
     msg.tracking = 0;
 
-#if (NXT_VALGRIND)
+    /*
+     * Fill all padding fields with 0.
+     * Code in Go 1.11 validate cmsghdr using padding field as part of len.
+     * See Cmsghdr definition and socketControlMessageHeaderAndData function.
+     */
     memset(&cmsg, 0, sizeof(cmsg));
-#endif
 
     cmsg.cm.cmsg_len = CMSG_LEN(sizeof(int));
     cmsg.cm.cmsg_level = SOL_SOCKET;
@@ -3001,9 +3004,7 @@ nxt_unit_send_port(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *dst,
     m.new_port.max_size = 16 * 1024;
     m.new_port.max_share = 64 * 1024;
 
-#if (NXT_VALGRIND)
     memset(&cmsg, 0, sizeof(cmsg));
-#endif
 
     cmsg.cm.cmsg_len = CMSG_LEN(sizeof(int));
     cmsg.cm.cmsg_level = SOL_SOCKET;
