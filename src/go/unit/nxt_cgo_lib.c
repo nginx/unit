@@ -203,5 +203,5 @@ nxt_cgo_request_done(uintptr_t req, int res)
 void
 nxt_cgo_warn(uintptr_t msg, uint32_t msg_len)
 {
-    nxt_unit_warn(NULL, ".*s", (int) msg_len, (char *) msg);
+    nxt_unit_warn(NULL, "%.*s", (int) msg_len, (char *) msg);
 }
