@@ -510,7 +510,7 @@ int
 nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
     void *buf, size_t buf_size, void *oob, size_t oob_size)
 {
-    int                           fd, rc;
+    int                           fd, rc, nb;
     pid_t                         pid;
     nxt_queue_t                   incoming_buf;
     struct cmsghdr                *cm;
@@ -610,6 +610,15 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
         nxt_unit_debug(ctx, "#%"PRIu32": new_port: %d,%d fd %d",
                        port_msg->stream, (int) new_port_msg->pid,
                        (int) new_port_msg->id, fd);
+
+        nb = 0;
+
+        if (nxt_slow_path(ioctl(fd, FIONBIO, &nb) == -1)) {
+            nxt_unit_alert(ctx, "#%"PRIu32": new_port: ioctl(%d, FIONBIO, 0) "
+                           "failed: %s (%d)", fd, strerror(errno), errno);
+
+            goto fail;
+        }
 
         nxt_unit_port_id_init(&new_port.id, new_port_msg->pid,
                               new_port_msg->id);
