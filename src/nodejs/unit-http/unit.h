@@ -1,0 +1,77 @@
+
+/*
+ * Copyright (C) NGINX, Inc.
+ */
+
+#ifndef _NXT_NODEJS_UNIT_H_INCLUDED_
+#define _NXT_NODEJS_UNIT_H_INCLUDED_
+
+
+#include <node_api.h>
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <nxt_unit.h>
+#include <nxt_unit_response.h>
+#include <nxt_unit_request.h>
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
+
+
+class Unit {
+public:
+    static napi_value init(napi_env env, napi_value exports);
+
+private:
+    Unit(napi_env env);
+    ~Unit();
+
+    static napi_value create(napi_env env, napi_callback_info info);
+    static void destroy(napi_env env, void *nativeObject, void *finalize_hint);
+
+    static napi_value create_server(napi_env env, napi_callback_info info);
+    static napi_value listen(napi_env env, napi_callback_info info);
+    static void request_handler(nxt_unit_request_info_t *req);
+
+    napi_value get_server_object();
+
+    napi_value emit(napi_value obj, const char *name, size_t name_len,
+                    size_t argc, napi_value *argv);
+
+    napi_value create_socket(napi_value server_obj,
+                             nxt_unit_request_info_t *req);
+
+    napi_value create_request(napi_value server_obj, napi_value socket);
+
+    napi_value create_response(napi_value server_obj, napi_value socket,
+                               napi_value request,
+                               nxt_unit_request_info_t *req, Unit *obj);
+
+    void emit_post_data(napi_value request, nxt_unit_request_info_t *req);
+
+    static napi_value response_send_headers(napi_env env,
+                                            napi_callback_info info);
+
+    static napi_value response_write(napi_env env, napi_callback_info info);
+    static napi_value response_end(napi_env env, napi_callback_info info);
+
+    napi_status create_headers(nxt_unit_request_info_t *req,
+                               napi_value request);
+
+    inline napi_status append_header(nxt_unit_field_t *f, napi_value headers,
+                                     napi_value raw_headers, uint32_t idx);
+
+    static napi_ref constructor_;
+
+    napi_env        env_;
+    napi_ref        wrapper_;
+    nxt_unit_ctx_t  *unit_ctx_;
+};
+
+
+#endif /* _NXT_NODEJS_H_INCLUDED_ */

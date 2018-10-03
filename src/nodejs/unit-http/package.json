@@ -1,0 +1,29 @@
+{
+    "name": "unit-http",
+    "version": "1.0.0",
+    "description": "HTTP module for NGINX Unit",
+    "main": "http.js",
+    "files": [
+        "addon.cpp",
+        "binding.gyp",
+        "http_server.js",
+        "http.js",
+        "package.json",
+        "socket.js",
+        "unit.cpp",
+        "unit.h",
+        "README.md"
+    ],
+    "scripts": {
+        "clean": "node-gyp clean",
+        "configure": "node-gyp configure",
+        "build": "node-gyp build",
+        "install": "node-gyp configure build"
+    },
+    "author": "Alexander Borisov",
+    "license": "Apache 2.0",
+    "gypfile": true,
+    "dependencies": {
+        "node-addon-api": "1.2.0"
+    }
+}
