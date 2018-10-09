@@ -80,10 +80,10 @@ nxt_runtime_create(nxt_task_t *task)
 
     /* Should not fail. */
     lang = nxt_array_add(rt->languages);
-    lang->type = NXT_APP_GO;
+    lang->type = NXT_APP_EXTERNAL;
     lang->version = (u_char *) "";
     lang->file = NULL;
-    lang->module = &nxt_go_module;
+    lang->module = &nxt_external_module;
 
     listen_sockets = nxt_array_create(mp, 1, sizeof(nxt_listen_socket_t));
     if (nxt_slow_path(listen_sockets == NULL)) {

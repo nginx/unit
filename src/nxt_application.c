@@ -507,14 +507,14 @@ nxt_app_parse_type(u_char *p, size_t length)
     str.length = length;
     str.start = p;
 
-    if (nxt_str_eq(&str, "python", 6)) {
+    if (nxt_str_eq(&str, "external", 8) || nxt_str_eq(&str, "go", 2)) {
+        return NXT_APP_EXTERNAL;
+
+    } else if (nxt_str_eq(&str, "python", 6)) {
         return NXT_APP_PYTHON;
 
     } else if (nxt_str_eq(&str, "php", 3)) {
         return NXT_APP_PHP;
-
-    } else if (nxt_str_eq(&str, "go", 2)) {
-        return NXT_APP_GO;
 
     } else if (nxt_str_eq(&str, "perl", 4)) {
         return NXT_APP_PERL;
