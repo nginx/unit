@@ -105,7 +105,7 @@ nxt_conn_io_read(nxt_task_t *task, void *obj, void *data)
              * occured during read operation, it toggled write event
              * internally so only read timer should be set.
              */
-            if (c->read_timer.state == NXT_TIMER_DISABLED) {
+            if (!c->read_timer.enabled) {
                 nxt_conn_timer(engine, c, state, &c->read_timer);
             }
 
@@ -117,7 +117,7 @@ nxt_conn_io_read(nxt_task_t *task, void *obj, void *data)
         nxt_fd_event_enable_read(engine, &c->socket);
     }
 
-    if (state->timer_autoreset || c->read_timer.state == NXT_TIMER_DISABLED) {
+    if (state->timer_autoreset || !c->read_timer.enabled) {
         nxt_conn_timer(engine, c, state, &c->read_timer);
     }
 }
