@@ -155,7 +155,7 @@ nxt_timer_change(nxt_event_engine_t *engine, nxt_timer_t *timer,
 static void
 nxt_timer_changes_commit(nxt_event_engine_t *engine)
 {
-    nxt_timer_t         *timer;
+    nxt_timer_t         *timer, **add, **add_end;
     nxt_timers_t        *timers;
     nxt_timer_change_t  *ch, *end;
 
@@ -166,6 +166,9 @@ nxt_timer_changes_commit(nxt_event_engine_t *engine)
     ch = timers->changes;
     end = ch + timers->nchanges;
 
+    add = (nxt_timer_t **) ch;
+    add_end = add;
+
     while (ch < end) {
         timer = ch->timer;
 
@@ -175,20 +178,16 @@ nxt_timer_changes_commit(nxt_event_engine_t *engine)
             break;
 
         case NXT_TIMER_ADD:
-            if (nxt_timer_is_in_tree(timer)) {
-                nxt_debug(timer->task, "timer rbtree delete: %M", timer->time);
-
-                nxt_rbtree_delete(&timers->tree, &timer->node);
-            }
 
             timer->time = ch->time;
 
-            nxt_debug(timer->task, "timer rbtree insert: %M", timer->time);
+            *add_end++ = timer;
 
-            nxt_rbtree_insert(&timers->tree, &timer->node);
-            nxt_timer_in_tree_set(timer);
+            if (!nxt_timer_is_in_tree(timer)) {
+                break;
+            }
 
-            break;
+            /* Fall through. */
 
         case NXT_TIMER_DELETE:
             nxt_debug(timer->task, "timer rbtree delete: %M", timer->time);
@@ -202,6 +201,17 @@ nxt_timer_changes_commit(nxt_event_engine_t *engine)
         timer->change = NXT_TIMER_NO_CHANGE;
 
         ch++;
+    }
+
+    while (add < add_end) {
+        timer = *add;
+
+        nxt_debug(timer->task, "timer rbtree insert: %M", timer->time);
+
+        nxt_rbtree_insert(&timers->tree, &timer->node);
+        nxt_timer_in_tree_set(timer);
+
+        add++;
     }
 
     timers->nchanges = 0;
