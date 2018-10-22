@@ -942,8 +942,6 @@ nxt_epoll_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
                     ev->read = NXT_EVENT_DISABLED;
                 }
 
-                error = 0;
-
                 nxt_work_queue_add(ev->read_work_queue, ev->read_handler,
                                    ev->task, ev, ev->data);
 
@@ -962,8 +960,6 @@ nxt_epoll_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
                     ev->write = NXT_EVENT_DISABLED;
                 }
 
-                error = 0;
-
                 nxt_work_queue_add(ev->write_work_queue, ev->write_handler,
                                    ev->task, ev, ev->data);
 
@@ -971,11 +967,6 @@ nxt_epoll_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
                 /* Level-triggered mode. */
                 nxt_epoll_disable_write(engine, ev);
             }
-        }
-
-        if (error) {
-            ev->read_ready = 1;
-            ev->write_ready = 1;
         }
     }
 }
