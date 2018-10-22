@@ -175,7 +175,7 @@ struct nxt_conn_s {
     do {                                                                      \
         (ev)->work_queue = (wq);                                              \
         (ev)->log = &(c)->log;                                                \
-        (ev)->precision = NXT_TIMER_DEFAULT_PRECISION;                        \
+        (ev)->bias = NXT_TIMER_DEFAULT_BIAS;                                  \
     } while (0)
 
 

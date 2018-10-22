@@ -8,9 +8,9 @@
 #define _NXT_TIMER_H_INCLUDED_
 
 
-/* Valid values are between 1ms to 255ms. */
-#define NXT_TIMER_DEFAULT_PRECISION  100
-//#define NXT_TIMER_DEFAULT_PRECISION  1
+/* Valid values are between 0ms to 255ms. */
+#define NXT_TIMER_DEFAULT_BIAS  50
+//#define NXT_TIMER_DEFAULT_BIAS  0
 
 
 /*
@@ -25,7 +25,7 @@ typedef struct {
     /* The rbtree node must be the first field. */
     NXT_RBTREE_NODE           (node);
 
-    uint8_t                   precision;
+    uint8_t                   bias;
 
     uint16_t                  change:14;
     uint16_t                  enabled:1;

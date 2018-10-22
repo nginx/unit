@@ -75,7 +75,8 @@ nxt_timer_add(nxt_event_engine_t *engine, nxt_timer_t *timer,
 
     time = engine->timers.now + timeout;
 
-    nxt_debug(timer->task, "timer add: %M %M:%M", timer->time, timeout, time);
+    nxt_debug(timer->task, "timer add: %M±%d %M:%M",
+              timer->time, timer->bias, timeout, time);
 
     timer->enabled = 1;
 
@@ -84,11 +85,12 @@ nxt_timer_add(nxt_event_engine_t *engine, nxt_timer_t *timer,
         diff = nxt_msec_diff(time, timer->time);
         /*
          * Use the previous timer if difference between it and the
-         * new timer is less than required precision milliseconds: this
-         * decreases number of rbtree operations for fast connections.
+         * new timer is within bias: this decreases number of rbtree
+         * operations for fast connections.
          */
-        if (nxt_abs(diff) < timer->precision) {
-            nxt_debug(timer->task, "timer previous: %M", time);
+        if (nxt_abs(diff) <= timer->bias) {
+            nxt_debug(timer->task, "timer previous: %M±%d",
+                      time, timer->bias);
 
             nxt_timer_change(engine, timer, NXT_TIMER_NOPE, 0);
             return;
@@ -102,7 +104,8 @@ nxt_timer_add(nxt_event_engine_t *engine, nxt_timer_t *timer,
 nxt_bool_t
 nxt_timer_delete(nxt_event_engine_t *engine, nxt_timer_t *timer)
 {
-    nxt_debug(timer->task, "timer delete: %M", timer->time);
+    nxt_debug(timer->task, "timer delete: %M±%d",
+              timer->time, timer->bias);
 
     timer->enabled = 0;
 
@@ -142,7 +145,8 @@ nxt_timer_change(nxt_event_engine_t *engine, nxt_timer_t *timer,
         timer->change = timers->nchanges;
     }
 
-    nxt_debug(timer->task, "timer change: %M:%d", time, change);
+    nxt_debug(timer->task, "timer change: %M±%d:%d",
+              time, timer->bias, change);
 
     ch = &timers->changes[timer->change - 1];
 
@@ -190,7 +194,8 @@ nxt_timer_changes_commit(nxt_event_engine_t *engine)
             /* Fall through. */
 
         case NXT_TIMER_DELETE:
-            nxt_debug(timer->task, "timer rbtree delete: %M", timer->time);
+            nxt_debug(timer->task, "timer rbtree delete: %M±%d",
+                      timer->time, timer->bias);
 
             nxt_rbtree_delete(&timers->tree, &timer->node);
             nxt_timer_in_tree_clear(timer);
@@ -206,7 +211,8 @@ nxt_timer_changes_commit(nxt_event_engine_t *engine)
     while (add < add_end) {
         timer = *add;
 
-        nxt_debug(timer->task, "timer rbtree insert: %M", timer->time);
+        nxt_debug(timer->task, "timer rbtree insert: %M±%d",
+                  timer->time, timer->bias);
 
         nxt_rbtree_insert(&timers->tree, &timer->node);
         nxt_timer_in_tree_set(timer);
@@ -252,10 +258,10 @@ nxt_timer_find(nxt_event_engine_t *engine)
 
         if (timer->enabled) {
             time = timer->time;
-            timers->minimum = time;
+            timers->minimum = time - timer->bias;
 
-            nxt_debug(timer->task, "timer found minimum: %M:%M",
-                      time, timers->now);
+            nxt_debug(timer->task, "timer found minimum: %M±%d:%M",
+                      time, timer->bias, timers->now);
 
             delta = nxt_msec_diff(time, timers->now);
 
@@ -297,14 +303,15 @@ nxt_timer_expire(nxt_event_engine_t *engine, nxt_msec_t now)
     {
         timer = (nxt_timer_t *) node;
 
-                       /* timer->time > now */
-        if (nxt_msec_diff(timer->time , now) > 0) {
+                       /* timer->time > now + timer->bias */
+        if (nxt_msec_diff(timer->time , now) > (int32_t) timer->bias) {
             return;
         }
 
         next = nxt_rbtree_node_successor(tree, node);
 
-        nxt_debug(timer->task, "timer expire delete: %M", timer->time);
+        nxt_debug(timer->task, "timer expire delete: %M±%d",
+                  timer->time, timer->bias);
 
         nxt_rbtree_delete(tree, &timer->node);
         nxt_timer_in_tree_clear(timer);

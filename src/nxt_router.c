@@ -1578,7 +1578,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         app_joint->use_count = 1;
         app_joint->app = app;
 
-        app_joint->idle_timer.precision = NXT_TIMER_DEFAULT_PRECISION;
+        app_joint->idle_timer.bias = NXT_TIMER_DEFAULT_BIAS;
         app_joint->idle_timer.work_queue = &engine->fast_work_queue;
         app_joint->idle_timer.handler = nxt_router_app_idle_timeout;
         app_joint->idle_timer.task = &engine->task;
@@ -4119,7 +4119,7 @@ nxt_router_adjust_idle_timer(nxt_task_t *task, void *obj, void *data)
 
     nxt_assert(app->engine == engine);
 
-    threshold = engine->timers.now + app->joint->idle_timer.precision;
+    threshold = engine->timers.now + app->joint->idle_timer.bias;
     timeout = 0;
 
     nxt_thread_mutex_lock(&app->mutex);
