@@ -202,6 +202,8 @@ typedef struct {
     nxt_uint_t                    mchanges;
     int                           mevents;
 
+    uint8_t                       error;  /* 1 bit */
+
     nxt_epoll_change_t            *changes;
     struct epoll_event            *events;
 

@@ -67,7 +67,7 @@ static void nxt_epoll_enable_accept(nxt_event_engine_t *engine,
     nxt_fd_event_t *ev);
 static void nxt_epoll_change(nxt_event_engine_t *engine, nxt_fd_event_t *ev,
     int op, uint32_t events);
-static nxt_int_t nxt_epoll_commit_changes(nxt_event_engine_t *engine);
+static void nxt_epoll_commit_changes(nxt_event_engine_t *engine);
 static void nxt_epoll_error_handler(nxt_task_t *task, void *obj, void *data);
 #if (NXT_HAVE_SIGNALFD)
 static nxt_int_t nxt_epoll_add_signal(nxt_event_engine_t *engine);
@@ -593,7 +593,7 @@ nxt_epoll_change(nxt_event_engine_t *engine, nxt_fd_event_t *ev, int op,
               engine->u.epoll.fd, ev->fd, op, events);
 
     if (engine->u.epoll.nchanges >= engine->u.epoll.mchanges) {
-        (void) nxt_epoll_commit_changes(engine);
+        nxt_epoll_commit_changes(engine);
     }
 
     ev->changing = 1;
@@ -605,18 +605,16 @@ nxt_epoll_change(nxt_event_engine_t *engine, nxt_fd_event_t *ev, int op,
 }
 
 
-static nxt_int_t
+static void
 nxt_epoll_commit_changes(nxt_event_engine_t *engine)
 {
     int                 ret;
-    nxt_int_t           retval;
     nxt_fd_event_t      *ev;
     nxt_epoll_change_t  *change, *end;
 
     nxt_debug(&engine->task, "epoll %d changes:%ui",
               engine->u.epoll.fd, engine->u.epoll.nchanges);
 
-    retval = NXT_OK;
     change = engine->u.epoll.changes;
     end = change + engine->u.epoll.nchanges;
 
@@ -637,7 +635,7 @@ nxt_epoll_commit_changes(nxt_event_engine_t *engine)
             nxt_work_queue_add(&engine->fast_work_queue,
                                nxt_epoll_error_handler, ev->task, ev, ev->data);
 
-            retval = NXT_ERROR;
+            engine->u.epoll.error = 1;
         }
 
         change++;
@@ -645,8 +643,6 @@ nxt_epoll_commit_changes(nxt_event_engine_t *engine)
     } while (change < end);
 
     engine->u.epoll.nchanges = 0;
-
-    return retval;
 }
 
 
@@ -884,10 +880,13 @@ nxt_epoll_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
     struct epoll_event  *event;
 
     if (engine->u.epoll.nchanges != 0) {
-        if (nxt_epoll_commit_changes(engine) != NXT_OK) {
-            /* Error handlers have been enqueued on failure. */
-            timeout = 0;
-        }
+        nxt_epoll_commit_changes(engine);
+    }
+
+    if (engine->u.epoll.error) {
+        engine->u.epoll.error = 0;
+        /* Error handlers have been enqueued on failure. */
+        timeout = 0;
     }
 
     nxt_debug(&engine->task, "epoll_wait(%d) timeout:%M",
