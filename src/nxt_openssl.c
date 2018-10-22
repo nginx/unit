@@ -404,7 +404,7 @@ nxt_openssl_chain_file(SSL_CTX *ctx, nxt_fd_t fd)
          * while the main certificate needs a X509_free() call, since
          * its reference count is increased by SSL_CTX_use_certificate().
          */
-#if OPENSSL_VERSION_NUMBER > 0x10002000L
+#ifdef SSL_CTX_add0_chain_cert
         if (SSL_CTX_add0_chain_cert(ctx, ca) != 1) {
 #else
         if (SSL_CTX_add_extra_chain_cert(ctx, ca) != 1) {
