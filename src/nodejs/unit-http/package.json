@@ -21,7 +21,7 @@
         "install": "node-gyp configure build"
     },
     "author": "Alexander Borisov",
-    "license": "Apache 2.0",
+    "license": "Apache-2.0",
     "gypfile": true,
     "dependencies": {
         "node-addon-api": "1.2.0"
