@@ -920,8 +920,8 @@ nxt_epoll_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
                   ev->fd, events, ev, ev->read, ev->write);
 
         /*
-         * On error epoll may set EPOLLERR and EPOLLHUP only without EPOLLIN or
-         * EPOLLOUT, so the "error" variable enqueues only one active handler.
+         * On error epoll may set EPOLLERR and EPOLLHUP only without EPOLLIN
+         * or EPOLLOUT, so the "error" variable enqueues only error handler.
          */
         error = ((events & (EPOLLERR | EPOLLHUP)) != 0);
         ev->epoll_error = error;
@@ -932,7 +932,7 @@ nxt_epoll_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
 
 #endif
 
-        if ((events & EPOLLIN) || error) {
+        if ((events & EPOLLIN) != 0) {
             ev->read_ready = 1;
 
             if (ev->read != NXT_EVENT_BLOCKED) {
@@ -948,9 +948,11 @@ nxt_epoll_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
                 /* Level-triggered mode. */
                 nxt_epoll_disable_read(engine, ev);
             }
+
+            error = 0;
         }
 
-        if ((events & EPOLLOUT) || error) {
+        if ((events & EPOLLOUT) != 0) {
             ev->write_ready = 1;
 
             if (ev->write != NXT_EVENT_BLOCKED) {
@@ -966,7 +968,29 @@ nxt_epoll_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
                 /* Level-triggered mode. */
                 nxt_epoll_disable_write(engine, ev);
             }
+
+            error = 0;
         }
+
+        if (!error) {
+            continue;
+        }
+
+        ev->read_ready = 1;
+        ev->write_ready = 1;
+
+        if (ev->read == NXT_EVENT_BLOCKED && ev->write == NXT_EVENT_BLOCKED) {
+
+            if (engine->u.epoll.mode == 0) {
+                /* Level-triggered mode. */
+                nxt_epoll_disable(engine, ev);
+            }
+
+            continue;
+        }
+
+        nxt_work_queue_add(&engine->fast_work_queue, nxt_epoll_error_handler,
+                           ev->task, ev, ev->data);
     }
 }
 
