@@ -74,7 +74,6 @@ struct nxt_runtime_s {
 
     nxt_sockaddr_t         *controller_listen;
     nxt_listen_socket_t    *controller_socket;
-    nxt_str_t              upstream;
 };
 
 

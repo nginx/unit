@@ -872,20 +872,6 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
             continue;
         }
 
-        if (nxt_strcmp(p, "--upstream") == 0) {
-            if (*argv == NULL) {
-                nxt_alert(task, "no argument for option \"--upstream\"");
-                return NXT_ERROR;
-            }
-
-            p = *argv++;
-
-            rt->upstream.length = nxt_strlen(p);
-            rt->upstream.start = (u_char *) p;
-
-            continue;
-        }
-
         if (nxt_strcmp(p, "--user") == 0) {
             if (*argv == NULL) {
                 write(STDERR_FILENO, no_user, nxt_length(no_user));
