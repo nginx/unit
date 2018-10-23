@@ -29,3 +29,11 @@ Depends: unit (= ${binary:Version}),
          ${misc:Depends}
 Description: NGINX Unit (debug symbols)
  This package contains the debugging symbols for NGINX Unit.
+
+Package: unit-dev
+Section: libdevel
+Priority: optional
+Architecture: any
+Depends: ${misc:Depends}
+Description: NGINX Unit (development files)
+ Library and include files required for NGINX Unit modules development.

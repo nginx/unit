@@ -60,6 +60,14 @@ dynamically via an API.
 %debug_package
 %endif
 
+%package devel
+Summary: NGINX Unit (development files)
+Version: %%VERSION%%
+Release: %%RELEASE%%%{?dist}.ngx
+Group: Development/Libraries
+%description devel
+Library and include files required for NGINX Unit modules development.
+
 %prep
 %setup -q
 
@@ -67,14 +75,17 @@ dynamically via an API.
 ./configure \
 	%{CONFIGURE_ARGS} \
 	--modules=%{_libdir}/unit/debug-modules \
+	--libdir=%{_libdir} \
 	--cc-opt="%{CC_OPT}" \
 	--ld-opt="%{LD_OPT}" \
 	--debug
 %{__make} %{?_smp_mflags}
+%{__make} %{?_smp_mflags} build/libunit.a
 %{__mv} build build-debug
 ./configure \
 	%{CONFIGURE_ARGS} \
 	--modules=%{_libdir}/unit/modules \
+	--libdir=%{_libdir} \
 	--cc-opt="%{CC_OPT}" \
 	--ld-opt="%{LD_OPT}"
 %{__make} %{?_smp_mflags}
@@ -83,9 +94,11 @@ dynamically via an API.
 %install
 %{__rm} -rf %{buildroot}
 %{__ln_s} build-nodebug build
-DESTDIR=%{buildroot} make unitd-install
+DESTDIR=%{buildroot} make unitd-install libunit-install
 %{__install} -m755 %{bdir}/build-debug/unitd \
     %{buildroot}%{_sbindir}/unitd-debug
+%{__install} -m644 %{bdir}/build-debug/libunit.a \
+    %{buildroot}%{_libdir}/libunit-debug.a
 %{__mkdir} -p %{buildroot}%{_libdir}/unit/modules
 %{__mkdir} -p %{buildroot}%{_libdir}/unit/debug-modules
 %{__mkdir} -p %{buildroot}%{_sharedstatedir}/unit
@@ -183,5 +196,10 @@ fi
 %dir %{_libdir}/unit/modules
 %dir %{_libdir}/unit/debug-modules
 %dir %{_sharedstatedir}/unit
+
+%files devel
+%{_libdir}/libunit.a
+%{_libdir}/libunit-debug.a
+%{_includedir}/nxt_*.h
 
 %changelog

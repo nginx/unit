@@ -9,9 +9,12 @@ export DEB_LDFLAGS_MAINT_APPEND=-Wl,--as-needed -pie
 DPKG_EXPORT_BUILDFLAGS = 1
 include /usr/share/dpkg/buildflags.mk
 
+DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
+
 BUILDDIR_unit = $(CURDIR)/debian/build-unit
 BUILDDIR_unit_debug = $(CURDIR)/debian/build-unit-debug
 INSTALLDIR = $(CURDIR)/debian/unit
+INSTALLDIR_dev = $(CURDIR)/debian/unit-dev
 BASEDIR = $(CURDIR)
 
 DOTESTS = 0
@@ -30,6 +33,7 @@ configure.unit: config.env.unit
 	CFLAGS= ./configure \
 		%%CONFIGURE_ARGS%% \
 		--modules=/usr/lib/unit/modules \
+		--libdir=/usr/lib/$(DEB_HOST_MULTIARCH) \
 		--cc-opt="$(CFLAGS)" \
 		--ld-opt="$(LDFLAGS)"
 	touch $@
@@ -39,6 +43,7 @@ configure.unit_debug: config.env.unit_debug
 	CFLAGS= ./configure \
 		%%CONFIGURE_ARGS%% \
 		--modules=/usr/lib/unit/debug-modules \
+		--libdir=/usr/lib/$(DEB_HOST_MULTIARCH) \
 		--cc-opt="$(CFLAGS)" \
 		--ld-opt="$(LDFLAGS)" \
 		--debug
@@ -47,6 +52,7 @@ configure.unit_debug: config.env.unit_debug
 build-arch.%: configure.%
 	dh_testdir
 	$(MAKE) -C $(BUILDDIR_$*)
+	$(MAKE) -C $(BUILDDIR_$*) build/libunit.a
 ifeq ($(DOTESTS), 1)
 	$(MAKE) -C $(BUILDDIR_$*) tests
 endif
@@ -86,7 +92,9 @@ install: build do.tests
 	dh_installinit
 	dh_installlogrotate
 	cd $(BUILDDIR_unit) && DESTDIR=$(INSTALLDIR) make install
+	cd $(BUILDDIR_unit) && DESTDIR=$(INSTALLDIR_dev) make libunit-install
 	install -m 755 $(BUILDDIR_unit_debug)/build/unitd $(INSTALLDIR)/usr/sbin/unitd-debug
+	install -m 644 $(BUILDDIR_unit_debug)/build/libunit.a $(INSTALLDIR_dev)/usr/lib/$(DEB_HOST_MULTIARCH)/libunit-debug.a
 	mkdir -p $(INSTALLDIR)/usr/share/doc/unit/examples
 	install -m 644 debian/unit.example.config $(INSTALLDIR)/usr/share/doc/unit/examples/example.config
 	install -m 644 CHANGES $(INSTALLDIR)/usr/share/doc/unit/
