@@ -52,7 +52,7 @@ ServerResponse.prototype.setHeader = function setHeader(key, value) {
         throw new TypeError('Key argument must be a string');
     }
 
-    let header_key_len = Buffer.byteLength(key + "", 'latin1');
+    let header_key_len = Buffer.byteLength(key, 'latin1');
     let header_len = 0
     let header_count = 0;
 
@@ -60,16 +60,16 @@ ServerResponse.prototype.setHeader = function setHeader(key, value) {
         header_count = value.length;
 
         value.forEach(function(val) {
-            if (typeof val !== 'string') {
-                throw new TypeError('Entry in arrey should be a string');
+            if (typeof val !== 'string' && typeof val !== 'number') {
+                throw new TypeError('Array entries must be string or number');
             }
 
             header_len += Buffer.byteLength(val + "", 'latin1');
         });
 
     } else {
-        if (typeof value !== 'string') {
-            throw new TypeError('Value argument must be a string or array');
+        if (typeof value !== 'string' && typeof value !== 'number') {
+            throw new TypeError('Value argument must be string, number, or array');
         }
 
         header_count = 1;
@@ -78,7 +78,7 @@ ServerResponse.prototype.setHeader = function setHeader(key, value) {
 
     this.removeHeader(key);
 
-    this.headers[key] = value;
+    this.headers[key] = value + "";
     this.headers_len += header_len + (header_key_len * header_count);
     this.headers_count += header_count;
 };
