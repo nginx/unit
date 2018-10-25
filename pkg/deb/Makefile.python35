@@ -4,7 +4,7 @@ MODULE_SUFFIX_python35=		python3.5
 MODULE_SUMMARY_python35=	Python 3.5 module for NGINX Unit
 
 MODULE_VERSION_python35=	$(VERSION)
-MODULE_RELEASE_python35=	2
+MODULE_RELEASE_python35=	1
 
 MODULE_CONFARGS_python35=	python --config=python3.5-config
 MODULE_MAKEARGS_python35=	python3.5

@@ -4,7 +4,7 @@ MODULE_SUFFIX_ruby=	ruby
 MODULE_SUMMARY_ruby=	Ruby module for NGINX Unit
 
 MODULE_VERSION_ruby=	$(VERSION)
-MODULE_RELEASE_ruby=	2
+MODULE_RELEASE_ruby=	1
 
 MODULE_CONFARGS_ruby=	ruby
 MODULE_MAKEARGS_ruby=	ruby
