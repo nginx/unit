@@ -4,7 +4,7 @@ MODULE_SUFFIX_perl=	perl
 MODULE_SUMMARY_perl=	Perl module for NGINX Unit
 
 MODULE_VERSION_perl=	$(VERSION)
-MODULE_RELEASE_perl=	2
+MODULE_RELEASE_perl=	1
 
 MODULE_CONFARGS_perl=	perl
 MODULE_MAKEARGS_perl=	perl

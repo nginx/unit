@@ -256,6 +256,21 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[] = {
 };
 
 
+static nxt_conf_vldt_object_t  nxt_conf_vldt_external_members[] = {
+    { nxt_string("executable"),
+      NXT_CONF_VLDT_STRING,
+      NULL,
+      NULL },
+
+    { nxt_string("arguments"),
+      NXT_CONF_VLDT_ARRAY,
+      &nxt_conf_vldt_array_iterator,
+      (void *) &nxt_conf_vldt_argument },
+
+    NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_common_members)
+};
+
+
 static nxt_conf_vldt_object_t  nxt_conf_vldt_python_members[] = {
     { nxt_string("home"),
       NXT_CONF_VLDT_STRING,
@@ -316,21 +331,6 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_php_members[] = {
       NXT_CONF_VLDT_OBJECT,
       &nxt_conf_vldt_object,
       (void *) &nxt_conf_vldt_php_options_members },
-
-    NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_common_members)
-};
-
-
-static nxt_conf_vldt_object_t  nxt_conf_vldt_go_members[] = {
-    { nxt_string("executable"),
-      NXT_CONF_VLDT_STRING,
-      NULL,
-      NULL },
-
-    { nxt_string("arguments"),
-      NXT_CONF_VLDT_ARRAY,
-      &nxt_conf_vldt_array_iterator,
-      (void *) &nxt_conf_vldt_argument },
 
     NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_common_members)
 };
@@ -565,9 +565,9 @@ nxt_conf_vldt_app(nxt_conf_validation_t *vldt, nxt_str_t *name,
     static nxt_str_t  type_str = nxt_string("type");
 
     static void  *members[] = {
+        nxt_conf_vldt_external_members,
         nxt_conf_vldt_python_members,
         nxt_conf_vldt_php_members,
-        nxt_conf_vldt_go_members,
         nxt_conf_vldt_perl_members,
         nxt_conf_vldt_ruby_members,
     };

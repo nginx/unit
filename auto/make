@@ -277,6 +277,32 @@ ${NXT_DAEMON}-uninstall:
 
 END
 
+cat << END >> $NXT_MAKEFILE
+
+.PHONY: libunit-install libunit-uninstall
+
+libunit-install: $NXT_BUILD_DIR/$NXT_LIB_UNIT_STATIC
+	install -d \$(DESTDIR)$NXT_LIBDIR
+	install -p -m u=rw,go=r $NXT_BUILD_DIR/$NXT_LIB_UNIT_STATIC \
+		\$(DESTDIR)$NXT_LIBDIR/
+	install -d \$(DESTDIR)$NXT_INCDIR
+	install -p -m u=rw,go=r src/nxt_unit.h src/nxt_unit_field.h \
+		src/nxt_unit_request.h src/nxt_unit_response.h src/nxt_unit_sptr.h \
+		src/nxt_unit_typedefs.h \$(DESTDIR)$NXT_INCDIR/
+
+libunit-uninstall:
+	rm -f \$(DESTDIR)$NXT_LIBDIR/$NXT_LIB_UNIT_STATIC
+	@rmdir -p \$(DESTDIR)$NXT_LIBDIR 2>/dev/null || true
+	rm -f \$(DESTDIR)$NXT_INCDIR/nxt_unit.h \
+		\$(DESTDIR)$NXT_INCDIR/nxt_unit_field.h \
+		\$(DESTDIR)$NXT_INCDIR/nxt_unit_request.h \
+		\$(DESTDIR)$NXT_INCDIR/nxt_unit_response.h \
+		\$(DESTDIR)$NXT_INCDIR/nxt_unit_sptr.h \
+		\$(DESTDIR)$NXT_INCDIR/nxt_unit_typedefs.h
+	@rmdir -p \$(DESTDIR)$NXT_INCDIR 2>/dev/null || true
+
+END
+
 # Makefile.
 # *.dSYM is MacOSX Clang debug information.
 

@@ -60,7 +60,6 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
         self.assertEqual(self.get()['headers']['Server-Port'], '7080',
             'Server-Port header')
 
-    @unittest.expectedFailure
     def test_python_application_204_transfer_encoding(self):
         self.load('204_no_content')
 

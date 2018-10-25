@@ -9,21 +9,24 @@
 #include <nxt_unit.h>
 
 
-static nxt_int_t nxt_go_init(nxt_task_t *task, nxt_common_app_conf_t *conf);
+static nxt_int_t nxt_external_init(nxt_task_t *task,
+    nxt_common_app_conf_t *conf);
 
-nxt_app_module_t  nxt_go_module = {
+
+nxt_app_module_t  nxt_external_module = {
     0,
     NULL,
-    nxt_string("go"),
+    nxt_string("external"),
     "*",
-    nxt_go_init,
+    nxt_external_init,
 };
 
 
 extern char  **environ;
 
+
 nxt_inline nxt_int_t
-nxt_go_fd_no_cloexec(nxt_task_t *task, nxt_socket_t fd)
+nxt_external_fd_no_cloexec(nxt_task_t *task, nxt_socket_t fd)
 {
     int  res, flags;
 
@@ -54,20 +57,20 @@ nxt_go_fd_no_cloexec(nxt_task_t *task, nxt_socket_t fd)
 
 
 static nxt_int_t
-nxt_go_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
+nxt_external_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 {
-    char               **argv;
-    u_char             buf[256];
-    u_char             *p, *end;
-    uint32_t           index;
-    size_t             size;
-    nxt_str_t          str;
-    nxt_int_t          rc;
-    nxt_uint_t         i, argc;
-    nxt_port_t         *my_port, *main_port;
-    nxt_runtime_t      *rt;
-    nxt_conf_value_t   *value;
-    nxt_go_app_conf_t  *c;
+    char                     **argv;
+    u_char                   buf[256];
+    u_char                   *p, *end;
+    uint32_t                 index;
+    size_t                   size;
+    nxt_str_t                str;
+    nxt_int_t                rc;
+    nxt_uint_t               i, argc;
+    nxt_port_t               *my_port, *main_port;
+    nxt_runtime_t            *rt;
+    nxt_conf_value_t         *value;
+    nxt_external_app_conf_t  *c;
 
     rt = task->thread->runtime;
 
@@ -78,12 +81,12 @@ nxt_go_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
         return NXT_ERROR;
     }
 
-    rc = nxt_go_fd_no_cloexec(task, main_port->pair[1]);
+    rc = nxt_external_fd_no_cloexec(task, main_port->pair[1]);
     if (nxt_slow_path(rc != NXT_OK)) {
         return NXT_ERROR;
     }
 
-    rc = nxt_go_fd_no_cloexec(task, my_port->pair[0]);
+    rc = nxt_external_fd_no_cloexec(task, my_port->pair[0]);
     if (nxt_slow_path(rc != NXT_OK)) {
         return NXT_ERROR;
     }
@@ -116,7 +119,7 @@ nxt_go_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
         return NXT_ERROR;
     }
 
-    c = &conf->u.go;
+    c = &conf->u.external;
 
     argc = 2;
     size = 0;

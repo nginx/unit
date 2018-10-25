@@ -137,11 +137,14 @@ class TestUnitTLS(unit.TestUnitApplicationTLS):
             'RSA (1024 bits)', 'certificate key rsa')
 
     def test_tls_certificate_key_ec(self):
+        self.load('empty')
+
         subprocess.call(['openssl', 'ecparam', '-noout', '-genkey',
             '-out', self.testdir + '/ec.key',
             '-name', 'prime256v1'])
 
         subprocess.call(['openssl', 'req', '-x509', '-new',
+            '-config', self.testdir + '/openssl.conf',
             '-key', self.testdir + '/ec.key', '-subj', '/CN=ec/',
             '-out', self.testdir + '/ec.crt'])
 

@@ -477,7 +477,7 @@ class TestUnitApplicationGo(TestUnitApplicationProto):
             },
             "applications": {
                 script: {
-                    "type": "go",
+                    "type": "external",
                     "processes": { "spare": 0 },
                     "working_directory": self.current_dir + '/go/' + script,
                     "executable": self.testdir + '/go/' + name

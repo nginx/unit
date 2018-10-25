@@ -8,25 +8,29 @@
 #define _NXT_TIMER_H_INCLUDED_
 
 
-/* Valid values are between 1ms to 255ms. */
-#define NXT_TIMER_DEFAULT_PRECISION  100
-//#define NXT_TIMER_DEFAULT_PRECISION  1
+/* Valid values are between 0ms to 255ms. */
+#define NXT_TIMER_DEFAULT_BIAS  50
+//#define NXT_TIMER_DEFAULT_BIAS  0
 
 
-typedef enum {
-    NXT_TIMER_DISABLED = 0,
-    NXT_TIMER_CHANGING,
-    NXT_TIMER_WAITING,
-    NXT_TIMER_ENQUEUED,
-} nxt_timer_state_t;
+/*
+ * The nxt_timer_t structure can hold up to 14 bits of change index,
+ * but 0 reserved for NXT_TIMER_NO_CHANGE.
+ */
+#define NXT_TIMER_MAX_CHANGES  16383
+#define NXT_TIMER_NO_CHANGE    0
 
 
 typedef struct {
     /* The rbtree node must be the first field. */
     NXT_RBTREE_NODE           (node);
 
-    nxt_timer_state_t         state:8;
-    uint8_t                   precision;
+    uint8_t                   bias;
+
+    uint16_t                  change:14;
+    uint16_t                  enabled:1;
+    uint16_t                  queued:1;
+
     nxt_msec_t                time;
 
     nxt_work_queue_t          *work_queue;
@@ -37,13 +41,13 @@ typedef struct {
 } nxt_timer_t;
 
 
-#define NXT_TIMER             { NXT_RBTREE_NODE_INIT, NXT_TIMER_DISABLED,     \
-                                0, 0, NULL, NULL, NULL, NULL }
+#define NXT_TIMER             { NXT_RBTREE_NODE_INIT, 0, NXT_TIMER_NO_CHANGE, \
+                                0, 0, 0, NULL, NULL, NULL, NULL }
 
 
 typedef enum {
-    NXT_TIMER_ADD = 0,
-    NXT_TIMER_DISABLE,
+    NXT_TIMER_NOPE = 0,
+    NXT_TIMER_ADD,
     NXT_TIMER_DELETE,
 } nxt_timer_operation_t;
 
@@ -94,10 +98,16 @@ void nxt_timer_expire(nxt_event_engine_t *engine, nxt_msec_t now);
 
 NXT_EXPORT void nxt_timer_add(nxt_event_engine_t *engine, nxt_timer_t *timer,
     nxt_msec_t timeout);
-NXT_EXPORT void nxt_timer_disable(nxt_event_engine_t *engine,
-    nxt_timer_t *timer);
 NXT_EXPORT nxt_bool_t nxt_timer_delete(nxt_event_engine_t *engine,
     nxt_timer_t *timer);
+
+nxt_inline void
+nxt_timer_disable(nxt_event_engine_t *engine, nxt_timer_t *timer)
+{
+    nxt_debug(timer->task, "timer disable: %M", timer->time);
+
+    timer->enabled = 0;
+}
 
 
 #endif /* _NXT_TIMER_H_INCLUDED_ */

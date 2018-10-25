@@ -80,10 +80,10 @@ nxt_runtime_create(nxt_task_t *task)
 
     /* Should not fail. */
     lang = nxt_array_add(rt->languages);
-    lang->type = NXT_APP_GO;
+    lang->type = NXT_APP_EXTERNAL;
     lang->version = (u_char *) "";
     lang->file = NULL;
-    lang->module = &nxt_go_module;
+    lang->module = &nxt_external_module;
 
     listen_sockets = nxt_array_create(mp, 1, sizeof(nxt_listen_socket_t));
     if (nxt_slow_path(listen_sockets == NULL)) {
@@ -868,20 +868,6 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
             p = *argv++;
 
             rt->control = p;
-
-            continue;
-        }
-
-        if (nxt_strcmp(p, "--upstream") == 0) {
-            if (*argv == NULL) {
-                nxt_alert(task, "no argument for option \"--upstream\"");
-                return NXT_ERROR;
-            }
-
-            p = *argv++;
-
-            rt->upstream.length = nxt_strlen(p);
-            rt->upstream.start = (u_char *) p;
 
             continue;
         }

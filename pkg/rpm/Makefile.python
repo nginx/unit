@@ -4,7 +4,7 @@ MODULE_SUFFIX_python=	python
 MODULE_SUMMARY_python=	Python module for NGINX Unit
 
 MODULE_VERSION_python=	$(VERSION)
-MODULE_RELEASE_python=	2
+MODULE_RELEASE_python=	1
 
 MODULE_CONFARGS_python=	python
 MODULE_MAKEARGS_python=	python

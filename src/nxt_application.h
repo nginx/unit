@@ -15,9 +15,9 @@
 
 
 typedef enum {
+    NXT_APP_EXTERNAL,
     NXT_APP_PYTHON,
     NXT_APP_PHP,
-    NXT_APP_GO,
     NXT_APP_PERL,
     NXT_APP_RUBY,
 
@@ -40,6 +40,12 @@ typedef struct nxt_common_app_conf_s nxt_common_app_conf_t;
 
 
 typedef struct {
+    char                       *executable;
+    nxt_conf_value_t           *arguments;
+} nxt_external_app_conf_t;
+
+
+typedef struct {
     char       *home;
     nxt_str_t  path;
     nxt_str_t  module;
@@ -52,12 +58,6 @@ typedef struct {
     nxt_str_t                  index;
     nxt_conf_value_t           *options;
 } nxt_php_app_conf_t;
-
-
-typedef struct {
-    char                       *executable;
-    nxt_conf_value_t           *arguments;
-} nxt_go_app_conf_t;
 
 
 typedef struct {
@@ -80,11 +80,11 @@ struct nxt_common_app_conf_s {
     nxt_conf_value_t           *environment;
 
     union {
-        nxt_python_app_conf_t  python;
-        nxt_php_app_conf_t     php;
-        nxt_go_app_conf_t      go;
-        nxt_perl_app_conf_t    perl;
-        nxt_ruby_app_conf_t    ruby;
+        nxt_external_app_conf_t  external;
+        nxt_python_app_conf_t    python;
+        nxt_php_app_conf_t       php;
+        nxt_perl_app_conf_t      perl;
+        nxt_ruby_app_conf_t      ruby;
     } u;
 };
 
@@ -161,7 +161,7 @@ nxt_app_lang_module_t *nxt_app_lang_module(nxt_runtime_t *rt, nxt_str_t *name);
 nxt_app_type_t nxt_app_parse_type(u_char *p, size_t length);
 
 NXT_EXPORT extern nxt_str_t  nxt_server;
-extern nxt_app_module_t      nxt_go_module;
+extern nxt_app_module_t      nxt_external_module;
 
 NXT_EXPORT nxt_int_t nxt_unit_default_init(nxt_task_t *task,
     nxt_unit_init_t *init);

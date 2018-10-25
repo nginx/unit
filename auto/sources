@@ -74,7 +74,6 @@ NXT_LIB_SRCS=" \
     src/nxt_runtime.c \
     src/nxt_conf.c \
     src/nxt_conf_validation.c \
-    src/nxt_stream_module.c \
     src/nxt_main_process.c \
     src/nxt_worker_process.c \
     src/nxt_controller.c \
@@ -84,13 +83,14 @@ NXT_LIB_SRCS=" \
     src/nxt_http_response.c \
     src/nxt_http_error.c \
     src/nxt_application.c \
-    src/nxt_go.c \
+    src/nxt_external.c \
     src/nxt_port_hash.c \
 "
 
 NXT_LIB_SRC0=" \
     src/nxt_buf_filter.c \
     src/nxt_job_file.c \
+    src/nxt_stream_module.c \
     src/nxt_stream_source.c \
     src/nxt_upstream_source.c \
     src/nxt_http_source.c \

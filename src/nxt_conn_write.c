@@ -127,7 +127,9 @@ nxt_conn_io_write(nxt_task_t *task, void *obj, void *data)
         return;
     }
 
-    /* ret == NXT_ERROR */
+    if (ret != NXT_ERROR) {
+        return;
+    }
 
     nxt_fd_event_block_write(engine, &c->socket);
 

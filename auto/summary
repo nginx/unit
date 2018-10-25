@@ -9,6 +9,8 @@ Configuration summary:
 
   unit bin directory:           "$NXT_BINDIR"
   unit sbin directory:          "$NXT_SBINDIR"
+  unit lib directory:           "$NXT_LIBDIR"
+  unit include directory:       "$NXT_INCDIR"
   unit modules directory:       "$NXT_MODULES"
   unit state directory:         "$NXT_STATE"
 

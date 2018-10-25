@@ -192,7 +192,7 @@ nxt_http_app_request(nxt_task_t *task, void *obj, void *data)
     ar->timer.task = &engine->task;
     ar->timer.work_queue = &engine->fast_work_queue;
     ar->timer.log = engine->task.log;
-    ar->timer.precision = NXT_TIMER_DEFAULT_PRECISION;
+    ar->timer.bias = NXT_TIMER_DEFAULT_BIAS;
 
     ar->r.remote.start = nxt_sockaddr_address(r->remote);
     ar->r.remote.length = r->remote->address_length;

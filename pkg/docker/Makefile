@@ -2,7 +2,7 @@
 
 DEFAULT_VERSION := $(shell grep 'define NXT_VERSION' ../../src/nxt_main.h \
 			| sed -e 's/^.*"\(.*\)".*/\1/')
-DEFAULT_RELEASE := 2
+DEFAULT_RELEASE := 1
 
 VERSION ?= $(DEFAULT_VERSION)
 RELEASE ?= $(DEFAULT_RELEASE)

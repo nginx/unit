@@ -134,6 +134,22 @@ static nxt_conf_map_t  nxt_common_app_conf[] = {
 };
 
 
+static nxt_conf_map_t  nxt_external_app_conf[] = {
+    {
+        nxt_string("executable"),
+        NXT_CONF_MAP_CSTRZ,
+        offsetof(nxt_common_app_conf_t, u.external.executable),
+    },
+
+    {
+        nxt_string("arguments"),
+        NXT_CONF_MAP_PTR,
+        offsetof(nxt_common_app_conf_t, u.external.arguments),
+    },
+
+};
+
+
 static nxt_conf_map_t  nxt_python_app_conf[] = {
     {
         nxt_string("home"),
@@ -182,22 +198,6 @@ static nxt_conf_map_t  nxt_php_app_conf[] = {
 };
 
 
-static nxt_conf_map_t  nxt_go_app_conf[] = {
-    {
-        nxt_string("executable"),
-        NXT_CONF_MAP_CSTRZ,
-        offsetof(nxt_common_app_conf_t, u.go.executable),
-    },
-
-    {
-        nxt_string("arguments"),
-        NXT_CONF_MAP_PTR,
-        offsetof(nxt_common_app_conf_t, u.go.arguments),
-    },
-
-};
-
-
 static nxt_conf_map_t  nxt_perl_app_conf[] = {
     {
         nxt_string("script"),
@@ -217,11 +217,11 @@ static nxt_conf_map_t  nxt_ruby_app_conf[] = {
 
 
 static nxt_conf_app_map_t  nxt_app_maps[] = {
-    { nxt_nitems(nxt_python_app_conf), nxt_python_app_conf },
-    { nxt_nitems(nxt_php_app_conf),    nxt_php_app_conf },
-    { nxt_nitems(nxt_go_app_conf),     nxt_go_app_conf },
-    { nxt_nitems(nxt_perl_app_conf),   nxt_perl_app_conf },
-    { nxt_nitems(nxt_ruby_app_conf),   nxt_ruby_app_conf },
+    { nxt_nitems(nxt_external_app_conf),  nxt_external_app_conf },
+    { nxt_nitems(nxt_python_app_conf),    nxt_python_app_conf },
+    { nxt_nitems(nxt_php_app_conf),       nxt_php_app_conf },
+    { nxt_nitems(nxt_perl_app_conf),      nxt_perl_app_conf },
+    { nxt_nitems(nxt_ruby_app_conf),      nxt_ruby_app_conf },
 };
 
 

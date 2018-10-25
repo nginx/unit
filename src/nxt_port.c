@@ -276,6 +276,8 @@ nxt_port_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     nxt_process_use(task, process, -1);
 
+    nxt_fd_nonblocking(task, msg->fd);
+
     port->pair[0] = -1;
     port->pair[1] = msg->fd;
     port->max_size = new_port_msg->max_size;
