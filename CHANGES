@@ -1,4 +1,28 @@
 
+Changes with Unit 1.5                                            25 Oct 2018
+
+    *) Change: the "type" of application object for Go was changed to
+       "external".
+
+    *) Feature: initial version of Node.js package with basic HTTP
+       request-response support.
+
+    *) Feature: compatibility with LibreSSL.
+
+    *) Feature: --libdir and --incdir ./configure options to install libunit
+       headers and static library.
+
+    *) Bugfix: connection might be closed prematurely while sending
+       response; the bug had appeared in 1.3.
+
+    *) Bugfix: application processes might have stopped handling requests,
+       producing "last message send failed: Resource temporarily
+       unavailable" alerts in log; the bug had appeared in 1.4.
+
+    *) Bugfix: Go applications didn't work when Unit was built with musl C
+       library.
+
+
 Changes with Unit 1.4                                            20 Sep 2018
 
     *) Change: the control API maps the configuration object only at
