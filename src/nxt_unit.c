@@ -74,7 +74,6 @@ static nxt_unit_process_t *nxt_unit_process_get(nxt_unit_ctx_t *ctx,
 static nxt_unit_process_t *nxt_unit_process_find(nxt_unit_ctx_t *ctx,
     pid_t pid, int remove);
 static nxt_unit_process_t *nxt_unit_process_pop_first(nxt_unit_impl_t *lib);
-static int nxt_unit_run_once(nxt_unit_ctx_t *ctx);
 static int nxt_unit_create_port(nxt_unit_ctx_t *ctx,
     nxt_unit_port_id_t *port_id, int *fd);
 
@@ -2697,7 +2696,7 @@ nxt_unit_run(nxt_unit_ctx_t *ctx)
 }
 
 
-static int
+int
 nxt_unit_run_once(nxt_unit_ctx_t *ctx)
 {
     int                  rc;
