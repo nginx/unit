@@ -464,7 +464,7 @@ Unit::create_headers(nxt_unit_request_info_t *req, napi_value request)
         return status;
     }
 
-    status = napi_set_named_property(env_, request, "raw_headers", raw_headers);
+    status = napi_set_named_property(env_, request, "rawHeaders", raw_headers);
     if (status != napi_ok) {
         return status;
     }
