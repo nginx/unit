@@ -768,7 +768,15 @@ nxt_mp_rbtree_compare(nxt_rbtree_node_t *node1, nxt_rbtree_node_t *node2)
     block1 = (nxt_mp_block_t *) node1;
     block2 = (nxt_mp_block_t *) node2;
 
-    return (uintptr_t) block1->start - (uintptr_t) block2->start;
+    /*
+     * Shifting is necessary to prevent overflow of intptr_t when block1->start
+     * is much greater than block2->start or vice versa.
+     *
+     * It is safe to drop one bit since there cannot be adjacent addresses
+     * because of alignments and allocation sizes.  Effectively this reduces
+     * the absolute values to fit into the magnitude of intptr_t.
+     */
+    return ((uintptr_t) block1->start >> 1) - ((uintptr_t) block2->start >> 1);
 }
 
 
