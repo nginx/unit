@@ -503,13 +503,19 @@ fail:
 
 
 nxt_inline void
-nxt_openssl_conn_free(nxt_task_t *task, nxt_openssl_conn_t *tls)
+nxt_openssl_conn_free(nxt_task_t *task, nxt_conn_t *c)
 {
+    nxt_openssl_conn_t  *tls;
+
     nxt_debug(task, "openssl conn free");
 
-    nxt_free(tls->buffer.start);
+    tls = c->u.tls;
 
-    SSL_free(tls->session);
+    if (tls != NULL) {
+        c->u.tls = NULL;
+        nxt_free(tls->buffer.start);
+        SSL_free(tls->session);
+    }
 }
 
 
@@ -526,9 +532,20 @@ nxt_openssl_conn_handshake(nxt_task_t *task, void *obj, void *data)
     const nxt_conn_state_t  *state;
 
     c = obj;
+
+    nxt_debug(task, "openssl conn handshake fd:%d", c->socket.fd);
+
+    if (c->socket.error != 0) {
+        return;
+    }
+
     tls = c->u.tls;
 
-    nxt_debug(task, "openssl conn handshake: %d", tls->times);
+    if (tls == NULL) {
+        return;
+    }
+
+    nxt_debug(task, "openssl conn handshake: %d times", tls->times);
 
     /* "tls->times == 1" is suitable to run SSL_do_handshake() in job. */
 
@@ -715,10 +732,19 @@ nxt_openssl_conn_io_shutdown(nxt_task_t *task, void *obj, void *data)
 
     c = obj;
 
-    nxt_debug(task, "openssl conn shutdown");
+    nxt_debug(task, "openssl conn shutdown fd:%d", c->socket.fd);
+
+    if (c->socket.error != 0) {
+        return;
+    }
 
     c->read_state = NULL;
     tls = c->u.tls;
+
+    if (tls == NULL) {
+        return;
+    }
+
     s = tls->session;
 
     if (s == NULL || !tls->handshake) {
@@ -807,7 +833,7 @@ nxt_openssl_conn_io_shutdown(nxt_task_t *task, void *obj, void *data)
 
 done:
 
-    nxt_openssl_conn_free(task, tls);
+    nxt_openssl_conn_free(task, c);
 
     nxt_work_queue_add(c->write_work_queue, handler, task, c, data);
 }

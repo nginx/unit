@@ -48,6 +48,10 @@ nxt_conn_io_read(nxt_task_t *task, void *obj, void *data)
     nxt_debug(task, "conn read fd:%d rdy:%d cl:%d",
               c->socket.fd, c->socket.read_ready, c->socket.closed);
 
+    if (c->socket.error != 0) {
+        return;
+    }
+
     engine = task->thread->engine;
 
     /*
