@@ -52,6 +52,9 @@ class TestUnit(unittest.TestCase):
         if '--leave' not in sys.argv and success:
             shutil.rmtree(self.testdir)
 
+        else:
+            self._print_path_to_log()
+
     def check_modules(self, *modules):
         self._run()
 
@@ -191,11 +194,16 @@ class TestUnit(unittest.TestCase):
             for skip in self.skip_alerts:
                 alerts = [al for al in alerts if re.search(skip, al) is None]
 
-        self.assertFalse(alerts, 'alert(s)')
+        if alerts:
+            self._print_path_to_log()
+            self.assertFalse(alerts, 'alert(s)')
 
         if not self.skip_sanitizer:
-            self.assertFalse(re.findall('.+Sanitizer.+', log),
-                'sanitizer error(s)')
+            sanitizer_errors = re.findall('.+Sanitizer.+', log)
+
+            if sanitizer_errors:
+                self._print_path_to_log()
+                self.assertFalse(sanitizer_error, 'sanitizer error(s)')
 
         if found:
             print('skipped.')
@@ -218,6 +226,9 @@ class TestUnit(unittest.TestCase):
                 break
 
         return ret
+
+    def _print_path_to_log(self):
+        print('Path to unit.log:\n' + self.testdir + '/unit.log')
 
 class TestUnitHTTP(TestUnit):
 
