@@ -25,11 +25,31 @@ class TestUnit(unittest.TestCase):
     def tearDown(self):
         self.stop()
 
+        # detect errors and failures for current test
+
+        def list2reason(exc_list):
+            if exc_list and exc_list[-1][0] is self:
+                return exc_list[-1][1]
+
+        if hasattr(self, '_outcome'):
+            result = self.defaultTestResult()
+            self._feedErrorsToResult(result, self._outcome.errors)
+        else:
+            result = getattr(self, '_outcomeForDoCleanups',
+                self._resultForDoCleanups)
+
+        success = not list2reason(result.errors) \
+              and not list2reason(result.failures)
+
+        # check unit.log for alerts
+
         with open(self.testdir + '/unit.log', 'r', encoding='utf-8',
             errors='ignore') as f:
             self._check_alerts(f.read())
 
-        if '--leave' not in sys.argv:
+        # remove unit.log
+
+        if '--leave' not in sys.argv and success:
             shutil.rmtree(self.testdir)
 
     def check_modules(self, *modules):
