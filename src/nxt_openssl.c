@@ -40,7 +40,7 @@ static void nxt_openssl_locks_free(void);
 #endif
 static nxt_int_t nxt_openssl_server_init(nxt_task_t *task,
     nxt_tls_conf_t *conf);
-static nxt_uint_t nxt_openssl_chain_file(SSL_CTX *ctx, nxt_fd_t fd);
+static nxt_int_t nxt_openssl_chain_file(SSL_CTX *ctx, nxt_fd_t fd);
 static void nxt_openssl_server_free(nxt_task_t *task, nxt_tls_conf_t *conf);
 static void nxt_openssl_conn_init(nxt_task_t *task, nxt_tls_conf_t *conf,
     nxt_conn_t *c);
@@ -359,14 +359,14 @@ fail:
 }
 
 
-static nxt_uint_t
+static nxt_int_t
 nxt_openssl_chain_file(SSL_CTX *ctx, nxt_fd_t fd)
 {
     BIO            *bio;
     X509           *cert, *ca;
     long           reason;
     EVP_PKEY       *key;
-    nxt_uint_t     ret;
+    nxt_int_t      ret;
 
     bio = BIO_new(BIO_s_fd());
     if (bio == NULL) {
