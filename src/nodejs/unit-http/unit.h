@@ -40,6 +40,7 @@ private:
     static void request_handler(nxt_unit_request_info_t *req);
     static int add_port(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port);
     static void remove_port(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id);
+    static void quit(nxt_unit_ctx_t *ctx);
 
     napi_value get_server_object();
 
