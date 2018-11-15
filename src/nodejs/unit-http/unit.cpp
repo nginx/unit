@@ -696,6 +696,7 @@ Unit::response_send_headers(napi_env env, napi_callback_info info)
     napi_value               this_arg, headers, keys, name, value, array_val;
     napi_value               req_num;
     napi_status              status;
+    napi_valuetype           val_type;
     nxt_unit_field_t         *f;
     nxt_unit_request_info_t  *req;
     napi_value               argv[5];
@@ -805,6 +806,18 @@ Unit::response_send_headers(napi_env env, napi_callback_info info)
                     goto failed;
                 }
 
+                napi_typeof(env, array_val, &val_type);
+                if (status != napi_ok) {
+                    goto failed;
+                }
+
+                if (val_type != napi_string) {
+                    status = napi_coerce_to_string(env, array_val, &array_val);
+                    if (status != napi_ok) {
+                        goto failed;
+                    }
+                }
+
                 status = napi_get_value_string_latin1(env, array_val, ptr,
                                                       header_len,
                                                       &value_len);
@@ -830,6 +843,18 @@ Unit::response_send_headers(napi_env env, napi_callback_info info)
             }
 
         } else {
+            napi_typeof(env, value, &val_type);
+            if (status != napi_ok) {
+                goto failed;
+            }
+
+            if (val_type != napi_string) {
+                status = napi_coerce_to_string(env, value, &value);
+                if (status != napi_ok) {
+                    goto failed;
+                }
+            }
+
             status = napi_get_value_string_latin1(env, value, ptr, header_len,
                                                   &value_len);
             if (status != napi_ok) {

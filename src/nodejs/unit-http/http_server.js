@@ -78,7 +78,7 @@ ServerResponse.prototype.setHeader = function setHeader(key, value) {
 
     this.removeHeader(key);
 
-    this.headers[key] = value + "";
+    this.headers[key] = value;
     this.headers_len += header_len + (header_key_len * header_count);
     this.headers_count += header_count;
 };
