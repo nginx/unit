@@ -24,6 +24,7 @@ Configuration summary:
 
   IPv6 support:                 $NXT_INET6
   Unix domain sockets support:  $NXT_UNIX_DOMAIN
+  TLS support:                  $NXT_OPENSSL
   debug logging:                $NXT_DEBUG
 
 END
