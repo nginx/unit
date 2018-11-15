@@ -167,4 +167,4 @@ class TestUnitPerlApplication(unit.TestUnitApplicationPerl):
         self.assertEqual(resp['body'], '0123456789', 'keep-alive 2')
 
 if __name__ == '__main__':
-    unittest.main()
+    TestUnitPerlApplication.main()

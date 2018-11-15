@@ -218,4 +218,4 @@ class TestUnitConfiguration(unit.TestUnitControl):
         }), 'no port')
 
 if __name__ == '__main__':
-    unittest.main()
+    TestUnitConfiguration.main()

@@ -205,4 +205,4 @@ class TestUnitPHPApplication(unit.TestUnitApplicationPHP):
             'ini value repeat')
 
 if __name__ == '__main__':
-    unittest.main()
+    TestUnitPHPApplication.main()

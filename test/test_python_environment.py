@@ -125,4 +125,4 @@ class TestUnitPythonEnvironment(unit.TestUnitApplicationPython):
         })['body'], pwd_default, 'restore default')
 
 if __name__ == '__main__':
-    unittest.main()
+    TestUnitPythonEnvironment.main()

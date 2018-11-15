@@ -163,4 +163,4 @@ a
         self.assertEqual(resp['status'], 200, 'transfer encoding chunked')
 
 if __name__ == '__main__':
-    unittest.main()
+    TestUnitHTTPHeader.main()

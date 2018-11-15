@@ -7,6 +7,7 @@ import time
 import shutil
 import socket
 import select
+import argparse
 import platform
 import tempfile
 import unittest
@@ -18,6 +19,27 @@ class TestUnit(unittest.TestCase):
     pardir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
     architecture = platform.architecture()[0]
     maxDiff = None
+
+    detailed = False
+    save_log = False
+
+    def __init__(self, methodName='runTest'):
+        super().__init__(methodName)
+
+        if re.match(r'.*\/run\.py$', sys.argv[0]):
+            args, rest = TestUnit._parse_args()
+
+            TestUnit._set_args(args)
+
+    @staticmethod
+    def main():
+        args, rest = TestUnit._parse_args()
+
+        sys.argv = sys.argv[:1] + rest
+
+        TestUnit._set_args(args)
+
+        unittest.main()
 
     def setUp(self):
         self._run()
@@ -49,7 +71,7 @@ class TestUnit(unittest.TestCase):
 
         # remove unit.log
 
-        if '--leave' not in sys.argv and success:
+        if not TestUnit.save_log and success:
             shutil.rmtree(self.testdir)
 
         else:
@@ -227,6 +249,22 @@ class TestUnit(unittest.TestCase):
 
         return ret
 
+    @staticmethod
+    def _parse_args():
+        parser = argparse.ArgumentParser(add_help=False)
+
+        parser.add_argument('-d', '--detailed', dest='detailed',
+            action='store_true',  help='Detailed output for tests')
+        parser.add_argument('-l', '--log', dest='save_log',
+            action='store_true', help='Save unit.log after the test execution')
+
+        return parser.parse_known_args()
+
+    @staticmethod
+    def _set_args(args):
+        TestUnit.detailed = args.detailed
+        TestUnit.save_log = args.save_log
+
     def _print_path_to_log(self):
         print('Path to unit.log:\n' + self.testdir + '/unit.log')
 
@@ -296,7 +334,7 @@ class TestUnitHTTP(TestUnit):
 
         sock.sendall(req)
 
-        if '--verbose' in sys.argv:
+        if TestUnit.detailed:
             print('>>>', req, sep='\n')
 
         resp = ''
@@ -305,7 +343,7 @@ class TestUnitHTTP(TestUnit):
            enc = 'utf-8' if 'encoding' not in kwargs else kwargs['encoding']
            resp = self.recvall(sock).decode(enc)
 
-        if '--verbose' in sys.argv:
+        if TestUnit.detailed:
             print('<<<', resp.encode('utf-8'), sep='\n')
 
         if 'raw_resp' not in kwargs:

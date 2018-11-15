@@ -245,4 +245,4 @@ class TestUnitPythonProcman(unit.TestUnitApplicationPython):
         self.assertEqual(len(self.pids_for_process()), 0, 'stop all')
 
 if __name__ == '__main__':
-    unittest.main()
+    TestUnitPythonProcman.main()

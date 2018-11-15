@@ -149,4 +149,4 @@ class TestUnitPythonBasic(unit.TestUnitControl):
             'delete app again')
 
 if __name__ == '__main__':
-    unittest.main()
+    TestUnitPythonBasic.main()

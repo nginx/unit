@@ -349,4 +349,4 @@ Connection: close
         self.assertEqual(self.get()['body'], '0123456789', 'write')
 
 if __name__ == '__main__':
-    unittest.main()
+    TestUnitPythonApplication.main()
