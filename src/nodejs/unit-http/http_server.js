@@ -333,6 +333,8 @@ Server.prototype.run_events = function (server, req, res) {
         });
 
         Promise.resolve().then(() => {
+            req.emit("finish");
+
             if (res.finished) {
                 unit_lib.unit_response_end(res);
             }

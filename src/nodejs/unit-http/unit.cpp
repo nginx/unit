@@ -111,6 +111,7 @@ napi_value
 Unit::create(napi_env env, napi_callback_info info)
 {
     Unit         *obj;
+    napi_ref     ref;
     napi_value   target, cons, instance, jsthis;
     napi_status  status;
 
@@ -135,6 +136,11 @@ Unit::create(napi_env env, napi_callback_info info)
             goto failed;
         }
 
+        status = napi_create_reference(env, jsthis, 1, &ref);
+        if (status != napi_ok) {
+            goto failed;
+        }
+
         return jsthis;
     }
 
@@ -145,6 +151,11 @@ Unit::create(napi_env env, napi_callback_info info)
     }
 
     status = napi_new_instance(env, cons, 0, nullptr, &instance);
+    if (status != napi_ok) {
+        goto failed;
+    }
+
+    status = napi_create_reference(env, instance, 1, &ref);
     if (status != napi_ok) {
         goto failed;
     }
