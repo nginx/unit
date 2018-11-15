@@ -36,12 +36,13 @@ private:
 
     static napi_value create_server(napi_env env, napi_callback_info info);
     static napi_value listen(napi_env env, napi_callback_info info);
+    static napi_value _read(napi_env env, napi_callback_info info);
     static void request_handler(nxt_unit_request_info_t *req);
+    static int add_port(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port);
+    static void remove_port(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id);
+    static void quit(nxt_unit_ctx_t *ctx);
 
     napi_value get_server_object();
-
-    napi_value emit(napi_value obj, const char *name, size_t name_len,
-                    size_t argc, napi_value *argv);
 
     napi_value create_socket(napi_value server_obj,
                              nxt_unit_request_info_t *req);
@@ -51,8 +52,6 @@ private:
     napi_value create_response(napi_value server_obj, napi_value socket,
                                napi_value request,
                                nxt_unit_request_info_t *req, Unit *obj);
-
-    void emit_post_data(napi_value request, nxt_unit_request_info_t *req);
 
     static napi_value response_send_headers(napi_env env,
                                             napi_callback_info info);

@@ -78,7 +78,7 @@ ServerResponse.prototype.setHeader = function setHeader(key, value) {
 
     this.removeHeader(key);
 
-    this.headers[key] = value + "";
+    this.headers[key] = value;
     this.headers_len += header_len + (header_key_len * header_count);
     this.headers_count += header_count;
 };
@@ -227,12 +227,11 @@ ServerResponse.prototype._writeBody = function(chunk, encoding, callback) {
 ServerResponse.prototype.write = function write(chunk, encoding, callback) {
     this._writeBody(chunk, encoding, callback);
 
-    return this;
+    return true;
 };
 
 ServerResponse.prototype.end = function end(chunk, encoding, callback) {
     this._writeBody(chunk, encoding, callback);
-    unit_lib.unit_response_end(this)
 
     this.finished = true;
 
@@ -290,9 +289,9 @@ function Server(requestListener) {
     EventEmitter.call(this);
 
     this.unit = new unit_lib.Unit();
-    this.unit.createServer();
-
     this.unit.server = this;
+
+    this.unit.createServer();
 
     this.socket = Socket;
     this.request = ServerRequest;
@@ -318,9 +317,33 @@ Server.prototype.listen = function () {
     this.unit.listen();
 };
 
+Server.prototype.run_events = function (server, req, res) {
+    /* Important!!! setImmediate starts the next iteration in Node.js loop. */
+    setImmediate(function () {
+        server.emit("request", req, res);
+
+        Promise.resolve().then(() => {
+            let buf = server.unit._read(req.socket.req_pointer);
+
+            if (buf.length != 0) {
+                req.emit("data", buf);
+            }
+
+            req.emit("end");
+        });
+
+        Promise.resolve().then(() => {
+            req.emit("finish");
+
+            if (res.finished) {
+                unit_lib.unit_response_end(res);
+            }
+        });
+    });
+};
+
 function connectionListener(socket) {
 }
-
 
 module.exports = {
     STATUS_CODES: http.STATUS_CODES,

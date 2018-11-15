@@ -525,7 +525,7 @@ nxt_conf_map_object(nxt_mp_t *mp, nxt_conf_value_t *value, nxt_conf_map_t *map,
         uint8_t     ui8;
         int32_t     i32;
         int64_t     i64;
-        nxt_int_t   i;
+        int         i;
         ssize_t     size;
         off_t       off;
         nxt_msec_t  msec;

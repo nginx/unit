@@ -131,7 +131,7 @@ nxt_int_t
 nxt_lvlhsh_test(nxt_thread_t *thr, nxt_uint_t n, nxt_bool_t use_pool)
 {
     void                      *value;
-    uintptr_t                 key;
+    uint32_t                  key;
     nxt_mp_t                  *mp;
     nxt_nsec_t                start, end;
     nxt_uint_t                i;

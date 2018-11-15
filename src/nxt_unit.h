@@ -196,6 +196,8 @@ int nxt_unit_process_msg(nxt_unit_ctx_t *, nxt_unit_port_id_t *port_id,
  */
 int nxt_unit_run(nxt_unit_ctx_t *);
 
+int nxt_unit_run_once(nxt_unit_ctx_t *ctx);
+
 /* Destroy application library object. */
 void nxt_unit_done(nxt_unit_ctx_t *);
 
