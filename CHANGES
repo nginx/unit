@@ -1,4 +1,26 @@
 
+Changes with Unit 1.6                                            15 Nov 2018
+
+    *) Change: "make install" now installs Node.js module as well if it was
+       configured.
+
+    *) Feature: "--local" ./configure option to install Node.js module
+       locally.
+
+    *) Bugfix: Node.js module might have crashed due to broken reference
+       counting.
+
+    *) Bugfix: asynchronous operations in Node.js might not have worked.
+
+    *) Bugfix: various compatibility issues with Node.js applications.
+
+    *) Bugfix: "freed pointer is out of pool" alerts might have appeared in
+       log.
+
+    *) Bugfix: module discovery didn't work on 64-bit big-endian systems
+       like IBM/S390x.
+
+
 Changes with Unit 1.5                                            25 Oct 2018
 
     *) Change: the "type" of application object for Go was changed to

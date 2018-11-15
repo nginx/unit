@@ -11,6 +11,74 @@
                 unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10
                 unit-perl
                 unit-ruby"
+         ver="1.6" rev="1"
+         date="2018-11-15" time="18:00:00 +0300"
+         packager="Konstantin Pavlov &lt;thresh@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.6.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.6" rev="1"
+         date="2018-11-15" time="18:00:00 +0300"
+         packager="Konstantin Pavlov &lt;thresh@nginx.com&gt;">
+
+<change type="change">
+<para>
+"make install" now installs Node.js module as well if it was configured.
+</para>
+</change>
+
+<change type="feature">
+<para>
+"--local" ./configure option to install Node.js module locally.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Node.js module might have crashed due to broken reference counting.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+asynchronous operations in Node.js might not have worked.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+various compatibility issues with Node.js applications.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+"freed pointer is out of pool" alerts might have appeared in log.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+module discovery didn't work on 64-bit big-endian systems like IBM/S390x.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10
+                unit-perl
+                unit-ruby"
          ver="1.5" rev="1"
          date="2018-10-25" time="18:00:00 +0300"
          packager="Andrei Belov &lt;defan@nginx.com&gt;">
