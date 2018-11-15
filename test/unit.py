@@ -31,9 +31,13 @@ class TestUnit(unittest.TestCase):
 
             TestUnit._set_args(args)
 
-    @staticmethod
-    def main():
+    @classmethod
+    def main(cls):
         args, rest = TestUnit._parse_args()
+
+        for i, arg in enumerate(rest):
+            if arg[:5] == 'test_':
+                rest[i] = cls.__name__ + '.' + arg
 
         sys.argv = sys.argv[:1] + rest
 
