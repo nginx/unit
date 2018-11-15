@@ -227,7 +227,7 @@ ServerResponse.prototype._writeBody = function(chunk, encoding, callback) {
 ServerResponse.prototype.write = function write(chunk, encoding, callback) {
     this._writeBody(chunk, encoding, callback);
 
-    return this;
+    return true;
 };
 
 ServerResponse.prototype.end = function end(chunk, encoding, callback) {
