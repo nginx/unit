@@ -111,7 +111,7 @@ if /bin/sh -c "${NXT_PHP_CONFIG} --version" >> $NXT_AUTOCONF_ERR 2>&1; then
         #include <php_main.h>
 
         int main() {
-            php_request_startup();
+            php_module_startup(NULL, NULL, 0);
             return 0;
         }"
 

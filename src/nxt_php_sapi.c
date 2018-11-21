@@ -45,19 +45,19 @@ static void nxt_php_set_options(nxt_task_t *task, nxt_conf_value_t *options,
     int type);
 static nxt_int_t nxt_php_alter_option(nxt_str_t *name, nxt_str_t *value,
     int type);
-static int nxt_php_send_headers(sapi_headers_struct *sapi_headers);
-static char *nxt_php_read_cookies(void);
+static int nxt_php_send_headers(sapi_headers_struct *sapi_headers TSRMLS_DC);
+static char *nxt_php_read_cookies(TSRMLS_D);
 static void nxt_php_set_sptr(nxt_unit_request_info_t *req, const char *name,
     nxt_unit_sptr_t *v, uint32_t len, zval *track_vars_array TSRMLS_DC);
 nxt_inline void nxt_php_set_str(nxt_unit_request_info_t *req, const char *name,
     nxt_str_t *s, zval *track_vars_array TSRMLS_DC);
 static void nxt_php_set_cstr(nxt_unit_request_info_t *req, const char *name,
     char *str, uint32_t len, zval *track_vars_array TSRMLS_DC);
-static void nxt_php_register_variables(zval *track_vars_array);
+static void nxt_php_register_variables(zval *track_vars_array TSRMLS_DC);
 #ifdef NXT_HAVE_PHP_LOG_MESSAGE_WITH_SYSLOG_TYPE
 static void nxt_php_log_message(char *message, int syslog_type_int);
 #else
-static void nxt_php_log_message(char *message);
+static void nxt_php_log_message(char *message TSRMLS_DC);
 #endif
 
 #ifdef NXT_PHP7
@@ -159,6 +159,9 @@ NXT_EXPORT nxt_app_module_t  nxt_app_module = {
 
 
 static nxt_task_t  *nxt_php_task;
+#ifdef ZTS
+static void        ***tsrm_ls;
+#endif
 
 
 static nxt_int_t
@@ -261,6 +264,17 @@ nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 
         nxt_memcpy(index->start, c->index.start, c->index.length);
     }
+
+#ifdef ZTS
+    tsrm_startup(1, 1, 0, NULL);
+    tsrm_ls = ts_resource(0);
+#endif
+
+#ifdef NXT_PHP7
+#if defined(ZEND_SIGNALS) || PHP_MINOR_VERSION > 0
+    zend_signal_startup();
+#endif
+#endif
 
     sapi_startup(&nxt_php_sapi_module);
 
@@ -433,7 +447,8 @@ nxt_php_alter_option(nxt_str_t *name, nxt_str_t *value, int type)
     if (ini_entry->on_modify
         && ini_entry->on_modify(ini_entry, cstr, value->length,
                                 ini_entry->mh_arg1, ini_entry->mh_arg2,
-                                ini_entry->mh_arg3, ZEND_INI_STAGE_ACTIVATE)
+                                ini_entry->mh_arg3, ZEND_INI_STAGE_ACTIVATE
+                                TSRMLS_CC)
            != SUCCESS)
     {
         nxt_free(cstr);
@@ -573,7 +588,11 @@ nxt_php_request_handler(nxt_unit_request_info_t *req)
                            (char *) ctx->script.start);
     }
 
+#if (NXT_PHP7)
     if (nxt_slow_path(php_request_startup() == FAILURE)) {
+#else
+    if (nxt_slow_path(php_request_startup(TSRMLS_C) == FAILURE)) {
+#endif
         nxt_unit_req_debug(req, "php_request_startup() failed");
         rc = NXT_UNIT_ERROR;
 
@@ -915,7 +934,7 @@ static void
 nxt_php_log_message(char *message, int syslog_type_int)
 #else
 static void
-nxt_php_log_message(char *message)
+nxt_php_log_message(char *message TSRMLS_DC)
 #endif
 {
     nxt_log(nxt_php_task, NXT_LOG_NOTICE, "php message: %s", message);
