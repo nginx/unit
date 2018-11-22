@@ -270,10 +270,14 @@ nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     tsrm_ls = ts_resource(0);
 #endif
 
-#ifdef NXT_PHP7
-#if defined(ZEND_SIGNALS) || PHP_MINOR_VERSION > 0
+#if defined(NXT_PHP7) && defined(ZEND_SIGNALS)
+
+#if (NXT_ZEND_SIGNAL_STARTUP)
     zend_signal_startup();
+#elif defined(ZTS)
+#error PHP is built with thread safety and broken signals.
 #endif
+
 #endif
 
     sapi_startup(&nxt_php_sapi_module);
