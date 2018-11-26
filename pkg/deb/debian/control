@@ -34,6 +34,7 @@ Package: unit-dev
 Section: libdevel
 Priority: optional
 Architecture: any
-Depends: ${misc:Depends}
+Depends: unit (= ${binary:Version}),
+         ${misc:Depends}
 Description: NGINX Unit (development files)
  Library and include files required for NGINX Unit modules development.
