@@ -65,6 +65,7 @@ Summary: NGINX Unit (development files)
 Version: %%VERSION%%
 Release: %%RELEASE%%%{?dist}.ngx
 Group: Development/Libraries
+Requires: unit == %%VERSION%%-%%RELEASE%%%{?dist}.ngx
 %description devel
 Library and include files required for NGINX Unit modules development.
 
