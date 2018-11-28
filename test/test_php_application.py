@@ -1,10 +1,15 @@
 import unittest
 import unit
+import re
 
 class TestUnitPHPApplication(unit.TestUnitApplicationPHP):
 
     def setUpClass():
         unit.TestUnit().check_modules('php')
+
+    def search_disabled(self, name):
+        p = re.compile(name + '\(\) has been disabled')
+        return self.search_in_log(p)
 
     def test_php_application_variables(self):
         self.load('variables')
@@ -203,6 +208,111 @@ class TestUnitPHPApplication(unit.TestUnitApplicationPHP):
 
         self.assertEqual(self.get()['headers']['X-Precision'], '5',
             'ini value repeat')
+
+    def test_php_application_disable_functions_exec(self):
+        self.load('highlight_file_exec')
+
+        self.conf({"admin": { "disable_functions": "exec" }},
+            'applications/highlight_file_exec/options')
+
+        self.get()
+
+        self.assertIsNotNone(self.search_disabled('exec'),
+            'disable_functions exec')
+        self.assertIsNone(self.search_disabled('highlight_file'),
+            'disable_functions highlight_file')
+
+    def test_php_application_disable_functions_highlight_file(self):
+        self.load('highlight_file_exec')
+
+        self.conf({"admin": { "disable_functions": "highlight_file" }},
+            'applications/highlight_file_exec/options')
+
+        self.get()
+
+        self.assertIsNone(self.search_disabled('exec'),
+            'disable_functions exec')
+        self.assertIsNotNone(self.search_disabled('highlight_file'),
+            'disable_functions highlight_file')
+
+    def test_php_application_disable_functions_comma(self):
+        self.load('highlight_file_exec')
+
+        self.conf({"admin": { "disable_functions": "exec,highlight_file" }},
+            'applications/highlight_file_exec/options')
+
+        self.get()
+
+        self.assertIsNotNone(self.search_disabled('exec'),
+            'disable_functions exec')
+        self.assertIsNotNone(self.search_disabled('highlight_file'),
+            'disable_functions highlight_file')
+
+    def test_php_application_disable_functions_space(self):
+        self.load('highlight_file_exec')
+
+        self.conf({"admin": { "disable_functions": "exec highlight_file" }},
+            'applications/highlight_file_exec/options')
+
+        self.get()
+
+        self.assertIsNotNone(self.search_disabled('exec'),
+            'disable_functions exec')
+        self.assertIsNotNone(self.search_disabled('highlight_file'),
+            'disable_functions highlight_file')
+
+    def test_php_application_disable_functions_user(self):
+        self.load('highlight_file_exec')
+
+        self.conf({"user": { "disable_functions": "exec" }},
+            'applications/highlight_file_exec/options')
+
+        self.get()
+
+        self.assertIsNotNone(self.search_disabled('exec'),
+            'disable_functions exec')
+        self.assertIsNone(self.search_disabled('highlight_file'),
+            'disable_functions highlight_file')
+
+    def test_php_application_disable_functions_nonexistent(self):
+        self.load('highlight_file_exec')
+
+        self.conf({"admin": { "disable_functions": "blah" }},
+            'applications/highlight_file_exec/options')
+
+        self.get()
+
+        self.assertIsNone(self.search_disabled('exec'),
+            'disable_functions exec')
+        self.assertIsNone(self.search_disabled('highlight_file'),
+            'disable_functions highlight_file')
+
+    def test_php_application_disable_classes(self):
+        self.load('date_time')
+
+        self.get()
+
+        self.assertIsNone(self.search_disabled('DateTime'),
+            'disable_classes before')
+
+        self.conf({"admin": { "disable_classes": "DateTime" }},
+            'applications/date_time/options')
+
+        self.get()
+
+        self.assertIsNotNone(self.search_disabled('DateTime'),
+            'disable_classes')
+
+    def test_php_application_disable_classes_user(self):
+        self.load('date_time')
+
+        self.conf({"user": { "disable_classes": "DateTime" }},
+            'applications/date_time/options')
+
+        self.get()
+
+        self.assertIsNotNone(self.search_disabled('DateTime'),
+            'disable_classes user')
 
 if __name__ == '__main__':
     TestUnitPHPApplication.main()
