@@ -26,13 +26,11 @@ BUILD_DEPENDS+=		$(BUILD_DEPENDS_go)
 ifneq (,$(findstring $(OSVER),opensuse-leap opensuse-tumbleweed))
 define MODULE_DEFINITIONS_go
 BuildRequires: $(BUILD_DEPENDS_go)
-BuildArch: noarch
 %define gopath /usr/share/go/contrib
 endef
 else
 define MODULE_DEFINITIONS_go
 BuildRequires: $(BUILD_DEPENDS_go)
-BuildArch: noarch
 endef
 endif
 export MODULE_DEFINITIONS_go

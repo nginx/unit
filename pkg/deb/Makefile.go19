@@ -19,8 +19,6 @@ BUILD_DEPENDS+=		$(BUILD_DEPENDS_go19)
 MODULE_BUILD_DEPENDS_go19=,golang-1.9
 MODULE_DEPENDS_go19=,golang-1.9
 
-MODULE_NOARCH_go19=	true
-
 define MODULE_PREINSTALL_go19
 	mkdir -p debian/unit-go1.9/usr/share/doc/unit-go1.9/examples/go-app
 	install -m 644 -p debian/unit.example-go-app debian/unit-go1.9/usr/share/doc/unit-go1.9/examples/go-app/let-my-people.go

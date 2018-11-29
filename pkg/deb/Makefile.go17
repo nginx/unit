@@ -19,8 +19,6 @@ BUILD_DEPENDS+=		$(BUILD_DEPENDS_go17)
 MODULE_BUILD_DEPENDS_go17=,golang-1.7
 MODULE_DEPENDS_go17=,golang-1.7
 
-MODULE_NOARCH_go17=	true
-
 define MODULE_PREINSTALL_go17
 	mkdir -p debian/unit-go1.7/usr/share/doc/unit-go1.7/examples/go-app
 	install -m 644 -p debian/unit.example-go-app debian/unit-go1.7/usr/share/doc/unit-go1.7/examples/go-app/let-my-people.go
