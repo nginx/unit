@@ -62,10 +62,9 @@ if /bin/sh -c "$NXT_RUBY -v" >> $NXT_AUTOCONF_ERR 2>&1; then
 
     NXT_RUBY_LIBNAME=`$NXT_RUBY -r rbconfig -e 'printf("%s",RbConfig::CONFIG["RUBY_SO_NAME"])'`
     NXT_RUBY_LIBSCONF=`$NXT_RUBY -r rbconfig -e 'printf("%s",RbConfig::CONFIG["LIBS"])'`
-    NXT_RUBY_LIBPATH=`$NXT_RUBY -r rbconfig -e 'printf("%s",RbConfig::CONFIG["libdir"])'`
-    NXT_RUBY_LIBS="-L$NXT_RUBY_LIBPATH -Wl,-rpath,${NXT_RUBY_LIBPATH} -l$NXT_RUBY_LIBNAME $NXT_RUBY_LIBSCONF"
+    NXT_RUBY_LIBS="-l$NXT_RUBY_LIBNAME $NXT_RUBY_LIBSCONF"
 
-    nxt_feature="Ruby"
+    nxt_feature="Ruby library"
     nxt_feature_name=""
     nxt_feature_run=no
     nxt_feature_incs="${NXT_RUBY_INCPATH}"
@@ -79,6 +78,26 @@ if /bin/sh -c "$NXT_RUBY -v" >> $NXT_AUTOCONF_ERR 2>&1; then
         }"
 
     . auto/feature
+
+    if [ $nxt_found = no ]; then
+        NXT_RUBY_LIBPATH=`$NXT_RUBY -r rbconfig -e 'printf("%s",RbConfig::CONFIG["libdir"])'`
+        NXT_RUBY_LIBS="-L$NXT_RUBY_LIBPATH -Wl,-rpath,${NXT_RUBY_LIBPATH} $NXT_RUBY_LIBS"
+
+        nxt_feature="Ruby library in $NXT_RUBY_LIBPATH"
+        nxt_feature_name=""
+        nxt_feature_run=no
+        nxt_feature_incs="${NXT_RUBY_INCPATH}"
+        nxt_feature_libs="${NXT_RUBY_LIBS}"
+        nxt_feature_test="
+            #include <ruby.h>
+
+            int main() {
+                ruby_init();
+                return ruby_cleanup(0);
+            }"
+
+        . auto/feature
+    fi
 
 else
     $echo "checking for Ruby ... not found"
