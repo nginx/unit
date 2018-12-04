@@ -112,11 +112,14 @@ class TestUnitNodeApplication(unit.TestUnitApplicationNode):
         self.assertEqual(self.get()['body'], '6\r\nbuffer\r\n0\r\n\r\n',
             'write buffer')
 
+    @unittest.expectedFailure
     def test_node_application_write_callback(self):
         self.load('write_callback')
 
         self.assertEqual(self.get()['body'],
-            '5\r\nhello\r\n5\r\nworld\r\n0\r\n\r\n', 'write callback')
+            '5\r\nhello\r\n5\r\nworld\r\n0\r\n\r\n', 'write callback order')
+        self.assertTrue(self.waitforfiles(self.testdir + '/node/callback'),
+            'write callback')
 
     def test_node_application_write_before_writeHead(self):
         self.skip_alerts.append(r'process \d+ exited on signal')
