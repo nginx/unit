@@ -12,7 +12,7 @@ SRCDIR=	unit-$(VERSION)
 
 CODENAME = $(shell lsb_release -cs)
 
-BUILD_DEPENDS_unit = build-essential debhelper devscripts fakeroot libxml2-utils lintian lsb-release xsltproc
+BUILD_DEPENDS_unit = build-essential debhelper devscripts fakeroot libxml2-utils lintian lsb-release xsltproc libssl-dev
 BUILD_DEPENDS = $(BUILD_DEPENDS_unit)
 
 MODULES=
@@ -93,7 +93,8 @@ CONFIGURE_ARGS=\
 	--control="unix:/var/run/control.unit.sock" \
 	--pid=/var/run/unit.pid \
 	--log=/var/log/unit.log \
-	--tests
+	--tests \
+	--openssl
 
 export CR=\\n
 
@@ -198,7 +199,7 @@ endif
 	prebuild=`echo "$$MODULE_PREBUILD_$*" | sed -e ':a' -e 'N' -e '$$!ba' -e "s/\n/\$$CR/g"` ; \
 	preinstall=`echo "$$MODULE_PREINSTALL_$*" | sed -e ':a' -e 'N' -e '$$!ba' -e "s/\n/\$$CR/g"` ; \
 	post=`echo "$$MODULE_POST_$*" | sed -e ':a' -e 'N' -e '$$!ba' -e "s/\n/\$$CR/g"` ; \
-	cat debian.module/$(if $(MODULE_NOARCH_$*),control-noarch.in,control.in) | sed \
+	cat debian.module/control.in | sed \
                 -e "s#%%NAME%%#unit-$(MODULE_SUFFIX_$*)#g" \
                 -e "s#%%SUMMARY%%#$(MODULE_SUMMARY_$*)#g" \
                 -e "s#%%CODENAME%%#$(CODENAME)#g" \
@@ -209,7 +210,7 @@ endif
                 -e "s#%%MODULE_BUILD_DEPENDS%%#$(MODULE_BUILD_DEPENDS_$*)#g" \
                 -e "s#%%MODULE_DEPENDS%%#$(MODULE_DEPENDS_$*)#g" \
         > $@/$(SRCDIR)/debian/control ; \
-        cat debian.module/$(if $(MODULE_NOARCH_$*),rules-noarch.in,rules.in) | sed \
+        cat debian.module/rules.in | sed \
                 -e "s#%%NAME%%#unit-$(MODULE_SUFFIX_$*)#g" \
                 -e "s#%%CODENAME%%#$(CODENAME)#g" \
                 -e "s#%%UNIT_VERSION%%#$(VERSION)#g" \

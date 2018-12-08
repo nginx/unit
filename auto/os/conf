@@ -35,6 +35,8 @@ case "$NXT_SYSTEM" in
         NXT_LIB_SHARED="libnxt.so"
         NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/libnxt.so"
 
+        NXT_LIB_UNIT_STATIC="libunit.a"
+
         NXT_LIBM="-lm"
         NXT_LIBS="$NXT_LIBRT $NXT_LIBDL $NXT_PTHREAD"
     ;;
@@ -56,6 +58,8 @@ case "$NXT_SYSTEM" in
         NXT_LIB_STATIC="libnxt.a"
         NXT_LIB_SHARED="libnxt.so"
         NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/libnxt.so"
+
+        NXT_LIB_UNIT_STATIC="libunit.a"
 
         NXT_LIBM="-lm"
         NXT_LIBS="$NXT_LIBRT $NXT_PTHREAD"
@@ -86,6 +90,8 @@ case "$NXT_SYSTEM" in
         NXT_LIB_SHARED="libnxt.so"
         NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/libnxt.so"
 
+        NXT_LIB_UNIT_STATIC="libunit.a"
+
         NXT_EXEC_LINK="\$(CC)"
         NXT_SHARED_LOCAL_EXEC_LINK=
 
@@ -100,19 +106,10 @@ case "$NXT_SYSTEM" in
         # HFS+ volumes are caseless by default.
         nxt_have=NXT_HAVE_CASELESS_FILESYSTEM . auto/have
 
-        # MacOSX 10.6 (Snow Leopard) has deprecated ucontext(3).
-        # MacOSX 10.7 (Lion) has deprecated system OpenSSL.
-        # MAC_OS_X_VERSION_MIN_REQUIRED macro does not help.
-        # "-rpath" is supported since MacOSX 10.5 (Leopard).
-        NXT_CFLAGS="$NXT_CFLAGS -mmacosx-version-min=10.6"
-
         NXT_STATIC_LINK="ar -r -c"
         NXT_SHARED_LINK="\$(CC) -dynamiclib"
         NXT_SHARED_LOCAL_LINK="\$(CC) -dynamiclib \
                                -install_name @executable_path/libnxt.dylib"
-
-        # Prior to MacOSX 10.5 (Leopard) only bundles could be unloaded.
-        # NXT_MODULE_LINK="\$(CC) -bundle -undefined dynamic_lookup"
         NXT_MODULE_LINK="\$(CC) -dynamiclib -undefined dynamic_lookup"
 
         NXT_EXEC_LINK="\$(CC)"
@@ -121,6 +118,8 @@ case "$NXT_SYSTEM" in
         NXT_LIB_STATIC="libnxt.a"
         NXT_LIB_SHARED="libnxt.dylib"
         NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/libnxt.dylib"
+
+        NXT_LIB_UNIT_STATIC="libunit.a"
 
         # MacOSX libm.dylib is a symlink to libSystem.dylib.
         NXT_LIBM=
@@ -144,6 +143,8 @@ case "$NXT_SYSTEM" in
         NXT_LIB_SHARED="libnxt.so"
         NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/libnxt.so"
 
+        NXT_LIB_UNIT_STATIC="libunit.a"
+
         NXT_LIBM="-lm"
         NXT_LIBS="$NXT_LIBRT $NXT_PTHREAD"
     ;;
@@ -163,6 +164,8 @@ case "$NXT_SYSTEM" in
         NXT_LIB_STATIC="libnxt.a"
         NXT_LIB_SHARED="libnxt.so"
         NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/libnxt.so"
+
+        NXT_LIB_UNIT_STATIC="libunit.a"
 
         NXT_LIBM="-lm"
         NXT_LIBS="$NXT_PTHREAD"
@@ -184,6 +187,8 @@ case "$NXT_SYSTEM" in
         NXT_LIB_SHARED="libnxt.so"
         NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/libnxt.so"
 
+        NXT_LIB_UNIT_STATIC="libunit.a"
+
         NXT_LIBM="-lm"
         NXT_LIBS="$NXT_LIBRT $NXT_PTHREAD"
     ;;
@@ -202,6 +207,8 @@ case "$NXT_SYSTEM" in
         NXT_LIB_STATIC="libnxt.a"
         NXT_LIB_SHARED="libnxt.so"
         NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/libnxt.so"
+
+        NXT_LIB_UNIT_STATIC="libunit.a"
 
         NXT_LIBM="-lm"
         NXT_LIBS="$NXT_PTHREAD"
@@ -222,6 +229,8 @@ case "$NXT_SYSTEM" in
         NXT_LIB_SHARED="libnxt.so"
         NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/libnxt.so"
 
+        NXT_LIB_UNIT_STATIC="libunit.a"
+
         NXT_LIBM="-lm"
         NXT_LIBS="$NXT_PTHREAD $NXT_LIBHG"
     ;;
@@ -241,6 +250,8 @@ case "$NXT_SYSTEM" in
         NXT_LIB_SHARED="libnxt.so"
         NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/libnxt.so"
 
+        NXT_LIB_UNIT_STATIC="libunit.a"
+
         NXT_LIBM="-lm"
         NXT_LIBS="$NXT_PTHREAD"
     ;;
@@ -258,6 +269,8 @@ case "$NXT_SYSTEM" in
         NXT_LIB_STATIC="libnxt.a"
         NXT_LIB_SHARED="libnxt.so"
         NXT_LIB_SHARED_LOCAL="$NXT_BUILD_DIR/libnxt.so"
+
+        NXT_LIB_UNIT_STATIC="libunit.a"
 
         NXT_LIBM="-lm"
         NXT_LIBS="$NXT_LIBRT $NXT_LIBDL $NXT_PTHREAD"

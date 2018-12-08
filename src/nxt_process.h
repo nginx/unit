@@ -72,9 +72,9 @@ typedef struct {
 } nxt_process_t;
 
 
-extern nxt_bool_t  nxt_proc_conn_martix[NXT_PROCESS_MAX][NXT_PROCESS_MAX];
+extern nxt_bool_t  nxt_proc_conn_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX];
 extern nxt_bool_t
-          nxt_proc_remove_notify_martix[NXT_PROCESS_MAX][NXT_PROCESS_MAX];
+          nxt_proc_remove_notify_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX];
 
 NXT_EXPORT nxt_pid_t nxt_process_create(nxt_task_t *task,
     nxt_process_t *process);

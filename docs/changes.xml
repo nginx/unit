@@ -11,6 +11,341 @@
                 unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10
                 unit-perl
                 unit-ruby"
+         ver="1.6" rev="1"
+         date="2018-11-15" time="18:00:00 +0300"
+         packager="Konstantin Pavlov &lt;thresh@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.6.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.6" rev="1"
+         date="2018-11-15" time="18:00:00 +0300"
+         packager="Konstantin Pavlov &lt;thresh@nginx.com&gt;">
+
+<change type="change">
+<para>
+"make install" now installs Node.js module as well if it was configured.
+</para>
+</change>
+
+<change type="feature">
+<para>
+"--local" ./configure option to install Node.js module locally.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Node.js module might have crashed due to broken reference counting.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+asynchronous operations in Node.js might not have worked.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+various compatibility issues with Node.js applications.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+"freed pointer is out of pool" alerts might have appeared in log.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+module discovery didn't work on 64-bit big-endian systems like IBM/S390x.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10
+                unit-perl
+                unit-ruby"
+         ver="1.5" rev="1"
+         date="2018-10-25" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.5.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.5" rev="1"
+         date="2018-10-25" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="change">
+<para>
+the "type" of application object for Go was changed to "external".
+</para>
+</change>
+
+<change type="feature">
+<para>
+initial version of Node.js package with basic HTTP request-response support.
+</para>
+</change>
+
+<change type="feature">
+<para>
+compatibility with LibreSSL.
+</para>
+</change>
+
+<change type="feature">
+<para>
+--libdir and --incdir ./configure options to install libunit headers
+and static library.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+connection might be closed prematurely while sending response;
+the bug had appeared in 1.3.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+application processes might have stopped handling requests, producing
+"last message send failed: Resource temporarily unavailable" alerts in log;
+the bug had appeared in 1.4.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Go applications didn't work when Unit was built with musl C library.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10
+                unit-perl
+                unit-ruby"
+         ver="1.4" rev="2"
+         date="2018-09-27" time="13:30:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="bugfix">
+<para>
+corrected instructions for launching sample application.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.4" rev="2"
+         date="2018-09-27" time="13:30:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="change">
+<para>
+the "saveconfig" and "loadconfig" action scripts were removed.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10
+                unit-perl
+                unit-ruby"
+         ver="1.4" rev="1"
+         date="2018-09-20" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.4.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.4" rev="1"
+         date="2018-09-20" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="change">
+<para>
+the control API maps the configuration object only at "/config/".
+</para>
+</change>
+
+<change type="feature">
+<para>
+TLS support for client connections.
+</para>
+</change>
+
+<change type="feature">
+<para>
+TLS certificates storage control API.
+</para>
+</change>
+
+<change type="feature">
+<para>
+Unit library (libunit) to streamline language module integration.
+</para>
+</change>
+
+<change type="feature">
+<para>
+"408 Request Timeout" responses while closing HTTP keep-alive connections.
+</para>
+</change>
+
+<change type="feature">
+<para>
+improvements in OpenBSD support.
+Thanks to David Carlier.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a segmentation fault might have occurred after reconfiguration.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+building on systems with non-default locale might be broken.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+"header_read_timeout" might not work properly.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+header fields values with non-ASCII bytes might be handled incorrectly
+in Python 3 module.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10
+                unit-perl
+                unit-ruby"
+         ver="1.3" rev="1"
+         date="2018-07-13" time="18:00:00 +0300"
+         packager="Konstantin Pavlov &lt;thresh@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.3.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.3" rev="1"
+         date="2018-07-13" time="18:00:00 +0300"
+         packager="Konstantin Pavlov &lt;thresh@nginx.com&gt;">
+
+<change type="change">
+<para>
+UTF-8 characters are now allowed in request header field values.
+</para>
+</change>
+
+<change type="feature">
+<para>
+configuration of the request body size limit.
+</para>
+</change>
+
+<change type="feature">
+<para>
+configuration of various HTTP connection timeouts.
+</para>
+</change>
+
+<change type="feature">
+<para>
+Ruby module now automatically uses Bundler where possible.
+</para>
+</change>
+
+<change type="feature">
+<para>
+http.Flusher interface in Go module.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+various issues in HTTP connection errors handling.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+requests with body data might be handled incorrectly in PHP module.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+individual PHP configuration options specified via control API were reset
+to previous values after the first request in application process.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10
+                unit-perl
+                unit-ruby"
          ver="1.2" rev="1"
          date="2018-06-07" time="18:00:00 +0300"
          packager="Andrei Belov &lt;defan@nginx.com&gt;">

@@ -68,6 +68,14 @@ nxt_random_stir(nxt_random_t *r)
 
     n = syscall(SYS_getrandom, &key, NXT_RANDOM_KEY_SIZE, 0);
 
+#elif (NXT_HAVE_GETENTROPY || NXT_HAVE_GETENTROPY_SYS_RANDOM)
+
+    n = 0;
+
+    if (getentropy(&key, NXT_RANDOM_KEY_SIZE) == 0) {
+        n = NXT_RANDOM_KEY_SIZE;
+    }
+
 #else
 
     n = 0;
@@ -91,7 +99,7 @@ nxt_random_stir(nxt_random_t *r)
         key.value[0] ^= tv.tv_usec;
         key.value[1] ^= tv.tv_sec;
         key.value[2] ^= nxt_pid;
-        key.value[3] ^= (uintptr_t) nxt_thread_tid(NULL);
+        key.value[3] ^= (uintptr_t) nxt_thread_tid(nxt_thread());
     }
 
     nxt_random_add(r, key.bytes, NXT_RANDOM_KEY_SIZE);

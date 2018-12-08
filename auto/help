@@ -16,6 +16,8 @@ cat << END
                        default: "$NXT_BINDIR"
   --sbindir=DIRECTORY  set system admin executables directory name
                        default: "$NXT_SBINDIR"
+  --libdir=DIRECTORY   set library directory name, default: "$NXT_LIBDIR"
+  --incdir=DIRECTORY   set includes directory name, default: "$NXT_INCDIR"
   --modules=DIRECTORY  set modules directory name, default: "$NXT_MODULES"
   --state=DIRECTORY    set state directory name, default: "$NXT_STATE"
 
@@ -32,6 +34,8 @@ cat << END
 
   --no-ipv6            disable IPv6 support
   --no-unix-sockets    disable Unix domain sockets support
+
+  --openssl            enable OpenSSL library usage
 
   --debug              enable debug logging
 
@@ -50,5 +54,8 @@ cat << END
 
   ruby OPTIONS         configure Ruby module
                        run "./configure ruby --help" to see available options
+
+  nodejs OPTIONS       configure Node.js module
+                       run "./configure nodejs --help" to see available options
 
 END

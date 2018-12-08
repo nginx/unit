@@ -111,28 +111,26 @@ static ssize_t nxt_kqueue_conn_io_recvbuf(nxt_conn_t *c, nxt_buf_t *b);
 
 
 static nxt_conn_io_t  nxt_kqueue_conn_io = {
-    nxt_kqueue_conn_io_connect,
-    nxt_kqueue_conn_io_accept,
+    .connect = nxt_kqueue_conn_io_connect,
+    .accept = nxt_kqueue_conn_io_accept,
 
-    nxt_kqueue_conn_io_read,
-    nxt_kqueue_conn_io_recvbuf,
-    nxt_conn_io_recv,
+    .read = nxt_kqueue_conn_io_read,
+    .recvbuf = nxt_kqueue_conn_io_recvbuf,
+    .recv = nxt_conn_io_recv,
 
-    nxt_conn_io_write,
-    nxt_event_conn_io_write_chunk,
+    .write = nxt_conn_io_write,
+    .sendbuf = nxt_conn_io_sendbuf,
 
 #if (NXT_HAVE_FREEBSD_SENDFILE)
-    nxt_freebsd_event_conn_io_sendfile,
+    .old_sendbuf = nxt_freebsd_event_conn_io_sendfile,
 #elif (NXT_HAVE_MACOSX_SENDFILE)
-    nxt_macosx_event_conn_io_sendfile,
+    .old_sendbuf = nxt_macosx_event_conn_io_sendfile,
 #else
-    nxt_event_conn_io_sendbuf,
+    .old_sendbuf = nxt_event_conn_io_sendbuf,
 #endif
 
-    nxt_event_conn_io_writev,
-    nxt_event_conn_io_send,
-
-    nxt_conn_io_shutdown,
+    .writev = nxt_event_conn_io_writev,
+    .send = nxt_event_conn_io_send,
 };
 
 

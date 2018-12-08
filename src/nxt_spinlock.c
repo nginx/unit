@@ -15,11 +15,8 @@
  * FreeBSD 5.2 and Solaris 10 support pthread spinlocks.  Spinlock is a
  * structure and uses mutex implementation so it must be initialized by
  * by pthread_spin_init() and destroyed by pthread_spin_destroy().
- */
-
-#if (NXT_HAVE_MACOSX_SPINLOCK)
-
-/*
+ *
+ * MacOSX supported OSSpinLockLock(), it was deprecated in 10.12 (Sierra).
  * OSSpinLockLock() tries to acquire a lock atomically.  If the lock is
  * busy, on SMP system it tests the lock 1000 times in a tight loop with
  * "pause" instruction.  If the lock has been released, OSSpinLockLock()
@@ -28,41 +25,6 @@
  * on UP system, OSSpinLockLock() calls thread_switch() to run 1ms
  * with depressed (the lowest) priority.
  */
-
-void
-nxt_thread_spin_lock(nxt_thread_spinlock_t *lock)
-{
-    nxt_thread_log_debug("OSSpinLockLock(%p) enter", lock);
-
-    OSSpinLockLock(lock);
-}
-
-
-nxt_bool_t
-nxt_thread_spin_trylock(nxt_thread_spinlock_t *lock)
-{
-    nxt_thread_log_debug("OSSpinLockTry(%p) enter", lock);
-
-    if (OSSpinLockTry(lock)) {
-        return 1;
-    }
-
-    nxt_thread_log_debug("OSSpinLockTry(%p) failed", lock);
-
-    return 0;
-}
-
-
-void
-nxt_thread_spin_unlock(nxt_thread_spinlock_t *lock)
-{
-    OSSpinLockUnlock(lock);
-
-    nxt_thread_log_debug("OSSpinLockUnlock(%p) exit", lock);
-}
-
-
-#else
 
 
 /* It should be adjusted with the "spinlock_count" directive. */
@@ -148,5 +110,3 @@ nxt_thread_spin_unlock(nxt_thread_spinlock_t *lock)
 
     nxt_thread_log_debug("spin_unlock(%p) exit", lock);
 }
-
-#endif

@@ -59,6 +59,10 @@ typedef struct {
     nxt_queue_t            keeping;    /* of nxt_socket_conf_t */
     nxt_queue_t            deleting;   /* of nxt_socket_conf_t */
 
+#if (NXT_TLS)
+    nxt_queue_t            tls;        /* of nxt_router_tlssock_t */
+#endif
+
     nxt_queue_t            apps;       /* of nxt_app_t */
     nxt_queue_t            previous;   /* of nxt_app_t */
 
@@ -81,9 +85,12 @@ typedef struct {
 } nxt_joint_job_t;
 
 
-
-typedef nxt_int_t (*nxt_app_prepare_msg_t)(nxt_task_t *task,
-    nxt_app_request_t *r, nxt_app_wmsg_t *wmsg);
+typedef struct {
+    uint32_t               use_count;
+    nxt_app_t              *app;
+    nxt_timer_t            idle_timer;
+    nxt_work_t             free_app_work;
+} nxt_app_joint_t;
 
 
 struct nxt_app_s {
@@ -92,7 +99,6 @@ struct nxt_app_s {
 
     nxt_queue_t            spare_ports; /* of nxt_port_t.idle_link */
     nxt_queue_t            idle_ports;  /* of nxt_port_t.idle_link */
-    nxt_timer_t            idle_timer;
     nxt_work_t             adjust_idle_work;
     nxt_event_engine_t     *engine;
 
@@ -115,14 +121,14 @@ struct nxt_app_s {
     nxt_msec_t             idle_timeout;
 
     nxt_app_type_t         type:8;
-    uint8_t                live;   /* 1 bit */
 
     nxt_queue_link_t       link;
 
     nxt_str_t              conf;
-    nxt_app_prepare_msg_t  prepare_msg;
 
     nxt_atomic_t           use_count;
+
+    nxt_app_joint_t        *joint;
 };
 
 
@@ -151,6 +157,10 @@ typedef struct {
     nxt_msec_t             header_read_timeout;
     nxt_msec_t             body_read_timeout;
     nxt_msec_t             send_timeout;
+
+#if (NXT_TLS)
+    nxt_tls_conf_t         *tls;
+#endif
 } nxt_socket_conf_t;
 
 

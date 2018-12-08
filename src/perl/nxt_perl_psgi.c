@@ -11,25 +11,22 @@
 #include <nxt_runtime.h>
 #include <nxt_application.h>
 #include <nxt_file.h>
+#include <nxt_unit.h>
+#include <nxt_unit_request.h>
+#include <nxt_unit_response.h>
 
 
 typedef struct {
-    PerlInterpreter  *my_perl;
-
-    nxt_task_t       *task;
-    nxt_app_rmsg_t   *rmsg;
-    nxt_app_wmsg_t   *wmsg;
-
-    size_t           body_preread_size;
+    PerlInterpreter          *my_perl;
+    nxt_unit_request_info_t  *req;
 } nxt_perl_psgi_input_t;
 
 
-nxt_inline nxt_int_t nxt_perl_psgi_write(nxt_task_t *task, nxt_app_wmsg_t *wmsg,
-    const u_char *data, size_t len,
-    nxt_bool_t flush, nxt_bool_t last);
+typedef struct {
+    PerlInterpreter          *my_perl;
+    SV                       *app;
+} nxt_perl_psgi_module_t;
 
-nxt_inline nxt_int_t nxt_perl_psgi_http_write_status_str(nxt_task_t *task,
-    nxt_app_wmsg_t *wmsg, nxt_str_t *http_status);
 
 static long nxt_perl_psgi_io_input_read(PerlInterpreter *my_perl,
     nxt_perl_psgi_io_arg_t *arg, void *vbuf, size_t length);
@@ -53,7 +50,7 @@ static void nxt_perl_psgi_xs_core_global_changes(PerlInterpreter *my_perl,
 static void nxt_perl_psgi_xs_init(pTHX);
 
 static SV *nxt_perl_psgi_call_var_application(PerlInterpreter *my_perl,
-    SV *env, nxt_task_t *task);
+    SV *env, SV *app, nxt_unit_request_info_t *req);
 
 /* For currect load XS modules */
 EXTERN_C void boot_DynaLoader(pTHX_ CV *cv);
@@ -64,44 +61,42 @@ static nxt_int_t nxt_perl_psgi_io_error_init(PerlInterpreter *my_perl,
     nxt_perl_psgi_io_arg_t *arg);
 
 static PerlInterpreter *nxt_perl_psgi_interpreter_init(nxt_task_t *task,
-    char *script);
+    char *script, SV **app);
 
-nxt_inline nxt_int_t nxt_perl_psgi_env_append_str(PerlInterpreter *my_perl,
-    HV *hash_env, const char *name, nxt_str_t *str);
-nxt_inline nxt_int_t nxt_perl_psgi_env_append(PerlInterpreter *my_perl,
-    HV *hash_env, const char *name, void *value);
+static SV *nxt_perl_psgi_env_create(PerlInterpreter *my_perl,
+    nxt_unit_request_info_t *req, nxt_perl_psgi_input_t *input);
+nxt_inline int nxt_perl_psgi_add_sptr(PerlInterpreter *my_perl, HV *hash_env,
+    const char *name, uint32_t name_len, nxt_unit_sptr_t *sptr, uint32_t len);
+nxt_inline int nxt_perl_psgi_add_str(PerlInterpreter *my_perl, HV *hash_env,
+    const char *name, uint32_t name_len, char *str, uint32_t len);
+nxt_inline int nxt_perl_psgi_add_value(PerlInterpreter *my_perl, HV *hash_env,
+    const char *name, uint32_t name_len, void *value);
 
-static SV *nxt_perl_psgi_env_create(PerlInterpreter *my_perl, nxt_task_t *task,
-    nxt_app_rmsg_t *rmsg, size_t *body_preread_size);
-
-nxt_inline nxt_int_t nxt_perl_psgi_read_add_env(PerlInterpreter *my_perl,
-    nxt_task_t *task, nxt_app_rmsg_t *rmsg, HV *hash_env,
-    const char *name, nxt_str_t *str);
 
 static u_char *nxt_perl_psgi_module_create(nxt_task_t *task,
     const char *script);
 
-static nxt_str_t nxt_perl_psgi_result_status(PerlInterpreter *my_perl,
+static nxt_int_t nxt_perl_psgi_result_status(PerlInterpreter *my_perl,
     SV *result);
-static nxt_int_t nxt_perl_psgi_result_head(PerlInterpreter *my_perl,
-    SV *sv_head, nxt_task_t *task, nxt_app_wmsg_t *wmsg);
-static nxt_int_t nxt_perl_psgi_result_body(PerlInterpreter *my_perl,
-    SV *result, nxt_task_t *task, nxt_app_wmsg_t *wmsg);
-static nxt_int_t nxt_perl_psgi_result_body_ref(PerlInterpreter *my_perl,
-    SV *sv_body, nxt_task_t *task, nxt_app_wmsg_t *wmsg);
-static nxt_int_t nxt_perl_psgi_result_array(PerlInterpreter *my_perl,
-    SV *result, nxt_task_t *task, nxt_app_wmsg_t *wmsg);
+static int nxt_perl_psgi_result_head(PerlInterpreter *my_perl,
+    SV *sv_head, nxt_unit_request_info_t *req, uint16_t status);
+static int nxt_perl_psgi_result_body(PerlInterpreter *my_perl,
+    SV *result, nxt_unit_request_info_t *req);
+static int nxt_perl_psgi_result_body_ref(PerlInterpreter *my_perl,
+    SV *sv_body, nxt_unit_request_info_t *req);
+static ssize_t nxt_perl_psgi_io_read(nxt_unit_read_info_t *read_info,
+    void *dst, size_t size);
+static int nxt_perl_psgi_result_array(PerlInterpreter *my_perl,
+    SV *result, nxt_unit_request_info_t *req);
 
 static nxt_int_t nxt_perl_psgi_init(nxt_task_t *task,
     nxt_common_app_conf_t *conf);
-static nxt_int_t nxt_perl_psgi_run(nxt_task_t *task,
-    nxt_app_rmsg_t *rmsg, nxt_app_wmsg_t *wmsg);
-static void nxt_perl_psgi_atexit(nxt_task_t *task);
+static void nxt_perl_psgi_request_handler(nxt_unit_request_info_t *req);
+static void nxt_perl_psgi_atexit(void);
 
 typedef SV *(*nxt_perl_psgi_callback_f)(PerlInterpreter *my_perl,
     SV *env, nxt_task_t *task);
 
-static SV                      *nxt_perl_psgi_app;
 static PerlInterpreter         *nxt_perl_psgi;
 static nxt_perl_psgi_io_arg_t  nxt_perl_psgi_arg_input, nxt_perl_psgi_arg_error;
 
@@ -109,85 +104,24 @@ static uint32_t  nxt_perl_psgi_compat[] = {
     NXT_VERNUM, NXT_DEBUG,
 };
 
-NXT_EXPORT nxt_application_module_t  nxt_app_module = {
+NXT_EXPORT nxt_app_module_t  nxt_app_module = {
     sizeof(nxt_perl_psgi_compat),
     nxt_perl_psgi_compat,
     nxt_string("perl"),
     PERL_VERSION_STRING,
     nxt_perl_psgi_init,
-    nxt_perl_psgi_run,
-    nxt_perl_psgi_atexit,
 };
-
-
-nxt_inline nxt_int_t
-nxt_perl_psgi_write(nxt_task_t *task, nxt_app_wmsg_t *wmsg,
-    const u_char *data, size_t len,
-    nxt_bool_t flush, nxt_bool_t last)
-{
-    nxt_int_t  rc;
-
-    rc = nxt_app_msg_write_raw(task, wmsg, data, len);
-
-    if (nxt_slow_path(rc != NXT_OK)) {
-        return rc;
-    }
-
-    if (flush || last) {
-        rc = nxt_app_msg_flush(task, wmsg, last);
-    }
-
-    return rc;
-}
-
-
-nxt_inline nxt_int_t
-nxt_perl_psgi_http_write_status_str(nxt_task_t *task, nxt_app_wmsg_t *wmsg,
-    nxt_str_t *http_status)
-{
-    nxt_int_t  rc;
-
-    rc = NXT_OK;
-
-#define RC_WRT(DATA, DATALEN, FLUSH)                       \
-    do {                                                   \
-        rc = nxt_perl_psgi_write(task, wmsg, DATA,         \
-                    DATALEN, FLUSH, 0);                    \
-        if (nxt_slow_path(rc != NXT_OK))                   \
-            return rc;                                     \
-                                                           \
-    } while (0)
-
-    RC_WRT((const u_char *) "Status: ", nxt_length("Status: "), 0);
-    RC_WRT(http_status->start, http_status->length, 0);
-    RC_WRT((u_char *) "\r\n", nxt_length("\r\n"), 0);
-
-#undef RC_WRT
-
-    return rc;
-}
 
 
 static long
 nxt_perl_psgi_io_input_read(PerlInterpreter *my_perl,
     nxt_perl_psgi_io_arg_t *arg, void *vbuf, size_t length)
 {
-    size_t                 copy_size;
     nxt_perl_psgi_input_t  *input;
 
     input = (nxt_perl_psgi_input_t *) arg->ctx;
 
-    if (input->body_preread_size == 0) {
-        return 0;
-    }
-
-    copy_size = nxt_min(length, input->body_preread_size);
-    copy_size = nxt_app_msg_read_raw(input->task, input->rmsg,
-                                     vbuf, copy_size);
-
-    input->body_preread_size -= copy_size;
-
-    return copy_size;
+    return nxt_unit_request_read(input->req, vbuf, length);
 }
 
 
@@ -222,7 +156,7 @@ nxt_perl_psgi_io_error_write(PerlInterpreter *my_perl,
     nxt_perl_psgi_input_t *input;
 
     input = (nxt_perl_psgi_input_t *) arg->ctx;
-    nxt_log_error(NXT_LOG_ERR, input->task->log, "Perl: %s", vbuf);
+    nxt_unit_req_error(input->req, "Perl: %s", vbuf);
 
     return (long) length;
 }
@@ -284,7 +218,7 @@ nxt_perl_psgi_xs_init(pTHX)
 
 static SV *
 nxt_perl_psgi_call_var_application(PerlInterpreter *my_perl,
-    SV *env, nxt_task_t *task)
+    SV *env, SV *app, nxt_unit_request_info_t *req)
 {
     SV  *result;
 
@@ -297,14 +231,13 @@ nxt_perl_psgi_call_var_application(PerlInterpreter *my_perl,
     XPUSHs(env);
     PUTBACK;
 
-    call_sv(nxt_perl_psgi_app, G_EVAL|G_SCALAR);
+    call_sv(app, G_EVAL|G_SCALAR);
 
     SPAGAIN;
 
     if (SvTRUE(ERRSV)) {
-        nxt_log_error(NXT_LOG_ERR, task->log,
-                      "PSGI: Failed to run Perl Application: \n%s",
-                      SvPV_nolen(ERRSV));
+        nxt_unit_req_error(req, "PSGI: Failed to run Perl Application: \n%s",
+                           SvPV_nolen(ERRSV));
     }
 
     result = POPs;
@@ -418,7 +351,7 @@ nxt_perl_psgi_io_error_init(PerlInterpreter *my_perl,
 
 
 static PerlInterpreter *
-nxt_perl_psgi_interpreter_init(nxt_task_t *task, char *script)
+nxt_perl_psgi_interpreter_init(nxt_task_t *task, char *script, SV **app)
 {
     int              status, pargc;
     char             **pargv, **penv;
@@ -485,7 +418,7 @@ nxt_perl_psgi_interpreter_init(nxt_task_t *task, char *script)
         goto fail;
     }
 
-    nxt_perl_psgi_app = eval_pv((const char *) run_module, FALSE);
+    *app = eval_pv((const char *) run_module, FALSE);
 
     if (SvTRUE(ERRSV)) {
         nxt_alert(task, "PSGI: Failed to parse script: %s\n%s",
@@ -511,108 +444,41 @@ fail:
 }
 
 
-nxt_inline nxt_int_t
-nxt_perl_psgi_env_append_str(PerlInterpreter *my_perl, HV *hash_env,
-    const char *name, nxt_str_t *str)
-{
-    SV  **ha;
-
-    ha = hv_store(hash_env, name, (I32) strlen(name),
-                  newSVpv((const char *) str->start, (STRLEN) str->length), 0);
-
-    if (nxt_slow_path(ha == NULL)) {
-        return NXT_ERROR;
-    }
-
-    return NXT_OK;
-}
-
-
-nxt_inline nxt_int_t
-nxt_perl_psgi_env_append(PerlInterpreter *my_perl, HV *hash_env,
-    const char *name, void *value)
-{
-    SV  **ha;
-
-    ha = hv_store(hash_env, name, (I32) strlen(name), value, 0);
-
-    if (nxt_slow_path(ha == NULL)) {
-        return NXT_ERROR;
-    }
-
-    return NXT_OK;
-}
-
-
-nxt_inline nxt_int_t
-nxt_perl_psgi_read_add_env(PerlInterpreter *my_perl, nxt_task_t *task,
-    nxt_app_rmsg_t *rmsg, HV *hash_env,
-    const char *name, nxt_str_t *str)
-{
-    nxt_int_t  rc;
-
-    rc = nxt_app_msg_read_str(task, rmsg, str);
-
-    if (nxt_slow_path(rc != NXT_OK)) {
-        return rc;
-    }
-
-    if (str->start == NULL) {
-        return NXT_OK;
-    }
-
-    return nxt_perl_psgi_env_append_str(my_perl, hash_env, name, str);
-}
-
-
 static SV *
-nxt_perl_psgi_env_create(PerlInterpreter *my_perl, nxt_task_t *task,
-    nxt_app_rmsg_t *rmsg, size_t *body_preread_size)
+nxt_perl_psgi_env_create(PerlInterpreter *my_perl,
+    nxt_unit_request_info_t *req, nxt_perl_psgi_input_t *input)
 {
-    HV         *hash_env;
-    AV         *array_version;
-    u_char     *colon;
-    size_t     query_size;
-    nxt_int_t  rc;
-    nxt_str_t  str, value, path, target;
-    nxt_str_t  host, server_name, server_port;
-
-    static nxt_str_t  def_host = nxt_string("localhost");
-    static nxt_str_t  def_port = nxt_string("80");
+    HV                  *hash_env;
+    AV                  *array_version;
+    char                *host_start, *port_start;
+    uint32_t            i, host_length, port_length;
+    nxt_unit_field_t    *f;
+    nxt_unit_request_t  *r;
 
     hash_env = newHV();
-
     if (nxt_slow_path(hash_env == NULL)) {
         return NULL;
     }
 
-#define RC(FNS)                                                  \
-    do {                                                         \
-        if (nxt_slow_path((FNS) != NXT_OK))                      \
-            goto fail;                                           \
-    } while (0)
+#define RC(FNS)                                                               \
+    do {                                                                      \
+        if (nxt_slow_path((FNS) != NXT_UNIT_OK))                              \
+            goto fail;                                                        \
+     } while (0)
 
-#define GET_STR(ATTR)                                            \
-    RC(nxt_perl_psgi_read_add_env(my_perl, task, rmsg,           \
-        hash_env, ATTR, &str))
+#define NL(S) (S), sizeof(S)-1
 
-    RC(nxt_perl_psgi_env_append_str(my_perl, hash_env,
-                                    "SERVER_SOFTWARE", &nxt_server));
+    r = req->request;
 
-    GET_STR("REQUEST_METHOD");
-    GET_STR("REQUEST_URI");
+    RC(nxt_perl_psgi_add_str(my_perl, hash_env, NL("SERVER_SOFTWARE"),
+                             (char *) nxt_server.start, nxt_server.length));
 
-    target = str;
-
-    RC(nxt_app_msg_read_str(task, rmsg, &path));
-    RC(nxt_app_msg_read_size(task, rmsg, &query_size));
-
-    if (path.start == NULL || path.length == 0) {
-        path = target;
-    }
-
-    RC(nxt_perl_psgi_env_append_str(my_perl, hash_env, "PATH_INFO",
-                                    &path));
+    RC(nxt_perl_psgi_add_sptr(my_perl, hash_env, NL("REQUEST_METHOD"),
+                              &r->method, r->method_length));
+    RC(nxt_perl_psgi_add_sptr(my_perl, hash_env, NL("REQUEST_URI"),
+                              &r->target, r->target_length));
+    RC(nxt_perl_psgi_add_sptr(my_perl, hash_env, NL("PATH_INFO"),
+                              &r->path, r->path_length));
 
     array_version = newAV();
 
@@ -623,94 +489,78 @@ nxt_perl_psgi_env_create(PerlInterpreter *my_perl, nxt_task_t *task,
     av_push(array_version, newSViv(1));
     av_push(array_version, newSViv(1));
 
-    RC(nxt_perl_psgi_env_append(my_perl, hash_env, "psgi.version",
+    RC(nxt_perl_psgi_add_value(my_perl, hash_env, NL("psgi.version"),
                                 newRV_noinc((SV *) array_version)));
-    RC(nxt_perl_psgi_env_append(my_perl, hash_env, "psgi.url_scheme",
+    RC(nxt_perl_psgi_add_value(my_perl, hash_env, NL("psgi.url_scheme"),
                                 newSVpv("http", 4)));
-    RC(nxt_perl_psgi_env_append(my_perl, hash_env, "psgi.input",
+    RC(nxt_perl_psgi_add_value(my_perl, hash_env, NL("psgi.input"),
                                 SvREFCNT_inc(nxt_perl_psgi_arg_input.io)));
-    RC(nxt_perl_psgi_env_append(my_perl, hash_env, "psgi.errors",
+    RC(nxt_perl_psgi_add_value(my_perl, hash_env, NL("psgi.errors"),
                                 SvREFCNT_inc(nxt_perl_psgi_arg_error.io)));
-    RC(nxt_perl_psgi_env_append(my_perl, hash_env, "psgi.multithread",
+    RC(nxt_perl_psgi_add_value(my_perl, hash_env, NL("psgi.multithread"),
                                 &PL_sv_no));
-    RC(nxt_perl_psgi_env_append(my_perl, hash_env, "psgi.multiprocess",
+    RC(nxt_perl_psgi_add_value(my_perl, hash_env, NL("psgi.multiprocess"),
                                 &PL_sv_yes));
-    RC(nxt_perl_psgi_env_append(my_perl, hash_env, "psgi.run_once",
+    RC(nxt_perl_psgi_add_value(my_perl, hash_env, NL("psgi.run_once"),
                                 &PL_sv_no));
-    RC(nxt_perl_psgi_env_append(my_perl, hash_env, "psgi.nonblocking",
+    RC(nxt_perl_psgi_add_value(my_perl, hash_env, NL("psgi.nonblocking"),
                                 &PL_sv_no));
-    RC(nxt_perl_psgi_env_append(my_perl, hash_env, "psgi.streaming",
+    RC(nxt_perl_psgi_add_value(my_perl, hash_env, NL("psgi.streaming"),
                                 &PL_sv_no));
 
-    if (query_size > 0) {
-        query_size--;
+    if (r->query.offset) {
+        RC(nxt_perl_psgi_add_sptr(my_perl, hash_env, NL("QUERY_STRING"),
+                                  &r->query, r->query_length));
+    }
+    RC(nxt_perl_psgi_add_sptr(my_perl, hash_env, NL("SERVER_PROTOCOL"),
+                              &r->version, r->version_length));
+    RC(nxt_perl_psgi_add_sptr(my_perl, hash_env, NL("REMOTE_ADDR"),
+                              &r->remote, r->remote_length));
+    RC(nxt_perl_psgi_add_sptr(my_perl, hash_env, NL("SERVER_ADDR"),
+                              &r->local, r->local_length));
 
-        if (nxt_slow_path(target.length < query_size)) {
-            goto fail;
-        }
+    for (i = 0; i < r->fields_count; i++) {
+        f = r->fields + i;
 
-        str.start = &target.start[query_size];
-        str.length = target.length - query_size;
-
-        RC(nxt_perl_psgi_env_append_str(my_perl, hash_env,
-                                        "QUERY_STRING", &str));
+        RC(nxt_perl_psgi_add_sptr(my_perl, hash_env,
+                                  nxt_unit_sptr_get(&f->name), f->name_length,
+                                  &f->value, f->value_length));
     }
 
-    GET_STR("SERVER_PROTOCOL");
-    GET_STR("REMOTE_ADDR");
-    GET_STR("SERVER_ADDR");
+    if (r->content_length_field != NXT_UNIT_NONE_FIELD) {
+        f = r->fields + r->content_length_field;
 
-    RC(nxt_app_msg_read_str(task, rmsg, &host));
-
-    if (host.length == 0) {
-        host = def_host;
+        RC(nxt_perl_psgi_add_sptr(my_perl, hash_env, NL("CONTENT_LENGTH"),
+                                  &f->value, f->value_length));
     }
 
-    colon = nxt_memchr(host.start, ':', host.length);
-    server_name = host;
+    if (r->content_type_field != NXT_UNIT_NONE_FIELD) {
+        f = r->fields + r->content_type_field;
 
-    if (colon != NULL) {
-        server_name.length = colon - host.start;
+        RC(nxt_perl_psgi_add_sptr(my_perl, hash_env, NL("CONTENT_TYPE"),
+                                  &f->value, f->value_length));
+    }
 
-        server_port.start = colon + 1;
-        server_port.length = host.length - server_name.length - 1;
+    if (r->host_field != NXT_UNIT_NONE_FIELD) {
+        f = r->fields + r->host_field;
+
+        host_start = nxt_unit_sptr_get(&f->value);
+        host_length = f->value_length;
 
     } else {
-        server_port = def_port;
+        host_start = NULL;
+        host_length = 0;
     }
 
-    RC(nxt_perl_psgi_env_append_str(my_perl, hash_env,
-                                    "SERVER_NAME", &server_name));
-    RC(nxt_perl_psgi_env_append_str(my_perl, hash_env,
-                                    "SERVER_PORT", &server_port));
+    nxt_unit_split_host(host_start, host_length, &host_start, &host_length,
+                        &port_start, &port_length);
 
-    GET_STR("CONTENT_TYPE");
-    GET_STR("CONTENT_LENGTH");
+    RC(nxt_perl_psgi_add_str(my_perl, hash_env, NL("SERVER_NAME"),
+                             host_start, host_length));
+    RC(nxt_perl_psgi_add_str(my_perl, hash_env, NL("SERVER_PORT"),
+                             port_start, port_length));
 
-    for ( ;; ) {
-        rc = nxt_app_msg_read_str(task, rmsg, &str);
-
-        if (nxt_slow_path(rc != NXT_OK)) {
-            goto fail;
-        }
-
-        if (nxt_slow_path(str.length == 0)) {
-            break;
-        }
-
-        rc = nxt_app_msg_read_str(task, rmsg, &value);
-
-        if (nxt_slow_path(rc != NXT_OK)) {
-            break;
-        }
-
-        RC(nxt_perl_psgi_env_append_str(my_perl, hash_env,
-                                        (char *) str.start, &value));
-    }
-
-    RC(nxt_app_msg_read_size(task, rmsg, body_preread_size));
-
-#undef GET_STR
+#undef NL
 #undef RC
 
     return newRV_noinc((SV *) hash_env);
@@ -723,11 +573,52 @@ fail:
 }
 
 
-static nxt_str_t
+nxt_inline int
+nxt_perl_psgi_add_sptr(PerlInterpreter *my_perl, HV *hash_env,
+    const char *name, uint32_t name_len, nxt_unit_sptr_t *sptr, uint32_t len)
+{
+    return nxt_perl_psgi_add_str(my_perl, hash_env, name, name_len,
+                                 nxt_unit_sptr_get(sptr), len);
+}
+
+
+nxt_inline int
+nxt_perl_psgi_add_str(PerlInterpreter *my_perl, HV *hash_env,
+    const char *name, uint32_t name_len, char *str, uint32_t len)
+{
+    SV  **ha;
+
+    ha = hv_store(hash_env, name, (I32) name_len,
+                  newSVpv(str, (STRLEN) len), 0);
+    if (nxt_slow_path(ha == NULL)) {
+        return NXT_UNIT_ERROR;
+    }
+
+    return NXT_UNIT_OK;
+}
+
+
+nxt_inline int
+nxt_perl_psgi_add_value(PerlInterpreter *my_perl, HV *hash_env,
+    const char *name, uint32_t name_len, void *value)
+{
+    SV  **ha;
+
+    ha = hv_store(hash_env, name, (I32) name_len, value, 0);
+    if (nxt_slow_path(ha == NULL)) {
+        return NXT_UNIT_ERROR;
+    }
+
+    return NXT_UNIT_OK;
+}
+
+
+static nxt_int_t
 nxt_perl_psgi_result_status(PerlInterpreter *my_perl, SV *result)
 {
     SV         **sv_status;
     AV         *array;
+    u_char     *space;
     nxt_str_t  status;
 
     array = (AV *) SvRV(result);
@@ -735,106 +626,111 @@ nxt_perl_psgi_result_status(PerlInterpreter *my_perl, SV *result)
 
     status.start = (u_char *) SvPV(*sv_status, status.length);
 
-    return status;
+    space = nxt_memchr(status.start, ' ', status.length);
+    if (space != NULL) {
+        status.length = space - status.start;
+    }
+
+    return nxt_int_parse(status.start, status.length);
 }
 
 
-static nxt_int_t
+static int
 nxt_perl_psgi_result_head(PerlInterpreter *my_perl, SV *sv_head,
-    nxt_task_t *task, nxt_app_wmsg_t *wmsg)
+    nxt_unit_request_info_t *req, uint16_t status)
 {
     AV         *array_head;
     SV         **entry;
+    int        rc;
     long       i, array_len;
-    nxt_int_t  rc;
-    nxt_str_t  body;
+    char       *name, *value;
+    STRLEN     name_len, value_len;
+    uint32_t   fields, size;
 
     if (nxt_slow_path(SvROK(sv_head) == 0
                       || SvTYPE(SvRV(sv_head)) != SVt_PVAV))
     {
-        nxt_log_error(NXT_LOG_ERR, task->log,
-                      "PSGI: An unsupported format was received from "
-                      "Perl Application for head part");
+        nxt_unit_req_error(req,
+                           "PSGI: An unsupported format was received from "
+                           "Perl Application for head part");
 
-        return NXT_ERROR;
+        return NXT_UNIT_ERROR;
     }
 
     array_head = (AV *) SvRV(sv_head);
     array_len = av_len(array_head);
 
     if (array_len < 1) {
-        return NXT_OK;
+        return nxt_unit_response_init(req, status, 0, 0);
     }
 
     if (nxt_slow_path((array_len % 2) == 0)) {
-        nxt_log_error(NXT_LOG_ERR, task->log,
-                      "PSGI: Bad format for head from "
-                      "Perl Application");
+        nxt_unit_req_error(req, "PSGI: Bad format for head from "
+                           "Perl Application");
 
-        return NXT_ERROR;
+        return NXT_UNIT_ERROR;
     }
+
+    fields = 0;
+    size = 0;
 
     for (i = 0; i <= array_len; i++) {
         entry = av_fetch(array_head, i, 0);
 
         if (nxt_fast_path(entry == NULL)) {
-            nxt_log_error(NXT_LOG_ERR, task->log,
-                          "PSGI: Failed to get head entry from "
-                          "Perl Application");
+            nxt_unit_req_error(req, "PSGI: Failed to get head entry from "
+                               "Perl Application");
 
-            return NXT_ERROR;
+            return NXT_UNIT_ERROR;
         }
 
-        body.start = (u_char *) SvPV(*entry, body.length);
-
-        rc = nxt_app_msg_write_raw(task, wmsg,
-                                   (u_char *) body.start, body.length);
-
-        if (nxt_slow_path(rc != NXT_OK)) {
-            nxt_log_error(NXT_LOG_ERR, task->log,
-                          "PSGI: Failed to write head "
-                          "from Perl Application");
-            return rc;
-        }
+        value = SvPV(*entry, value_len);
+        size += value_len;
 
         if ((i % 2) == 0) {
-            rc = nxt_app_msg_write_raw(task, wmsg,
-                                       (u_char *) ": ", nxt_length(": "));
-        } else {
-            rc = nxt_app_msg_write_raw(task, wmsg,
-                                       (u_char *) "\r\n", nxt_length("\r\n"));
+            fields++;
         }
+    }
 
-        if (nxt_slow_path(rc != NXT_OK)) {
-            nxt_log_error(NXT_LOG_ERR, task->log,
-                          "PSGI: Failed to write head from "
-                          "Perl Application");
+    rc = nxt_unit_response_init(req, status, fields, size);
+    if (nxt_slow_path(rc != NXT_UNIT_OK)) {
+        return rc;
+    }
+
+    for (i = 0; i <= array_len; i += 2) {
+        entry = av_fetch(array_head, i, 0);
+        name = SvPV(*entry, name_len);
+
+        entry = av_fetch(array_head, i + 1, 0);
+        value = SvPV(*entry, value_len);
+
+        rc = nxt_unit_response_add_field(req, name, name_len, value, value_len);
+        if (nxt_slow_path(rc != NXT_UNIT_OK)) {
             return rc;
         }
     }
 
-    return NXT_OK;
+    return NXT_UNIT_OK;
 }
 
 
-static nxt_int_t
+static int
 nxt_perl_psgi_result_body(PerlInterpreter *my_perl, SV *sv_body,
-    nxt_task_t *task, nxt_app_wmsg_t *wmsg)
+    nxt_unit_request_info_t *req)
 {
     SV         **entry;
     AV         *body_array;
+    int        rc;
     long       i;
-    nxt_int_t  rc;
     nxt_str_t  body;
 
     if (nxt_slow_path(SvROK(sv_body) == 0
                       || SvTYPE(SvRV(sv_body)) != SVt_PVAV))
     {
-        nxt_log_error(NXT_LOG_ERR, task->log,
-                      "PSGI: An unsupported format was received from "
-                      "Perl Application for a body part");
+        nxt_unit_req_error(req, "PSGI: An unsupported format was received from "
+                           "Perl Application for a body part");
 
-        return NXT_ERROR;
+        return NXT_UNIT_ERROR;
     }
 
     body_array = (AV *) SvRV(sv_body);
@@ -844,10 +740,10 @@ nxt_perl_psgi_result_body(PerlInterpreter *my_perl, SV *sv_body,
         entry = av_fetch(body_array, i, 0);
 
         if (nxt_fast_path(entry == NULL)) {
-            nxt_log_error(NXT_LOG_ERR, task->log,
-                          "PSGI: Failed to get body entry from "
-                          "Perl Application");
-            return NXT_ERROR;
+            nxt_unit_req_error(req, "PSGI: Failed to get body entry from "
+                               "Perl Application");
+
+            return NXT_UNIT_ERROR;
         }
 
         body.start = (u_char *) SvPV(*entry, body.length);
@@ -856,241 +752,215 @@ nxt_perl_psgi_result_body(PerlInterpreter *my_perl, SV *sv_body,
             continue;
         }
 
-        rc = nxt_app_msg_write_raw(task, wmsg,
-                                   (u_char *) body.start, body.length);
+        rc = nxt_unit_response_write(req, body.start, body.length);
 
-        if (nxt_slow_path(rc != NXT_OK)) {
-            nxt_log_error(NXT_LOG_ERR, task->log,
-                          "PSGI: Failed to write 'body' from "
-                          "Perl Application");
-            return rc;
-        }
-
-        rc = nxt_app_msg_flush(task, wmsg, 0);
-
-        if (nxt_slow_path(rc != NXT_OK)) {
-            nxt_log_error(NXT_LOG_ERR, task->log,
-                          "PSGI: Failed to flush data for a 'body' "
-                          "part from Perl Application");
+        if (nxt_slow_path(rc != NXT_UNIT_OK)) {
+            nxt_unit_req_error(req, "PSGI: Failed to write content from "
+                               "Perl Application");
             return rc;
         }
     }
 
-    return NXT_OK;
+    return NXT_UNIT_OK;
 }
 
 
-static nxt_int_t
+typedef struct {
+    PerlInterpreter  *my_perl;
+    PerlIO           *fp;
+} nxt_perl_psgi_io_ctx_t;
+
+
+static int
 nxt_perl_psgi_result_body_ref(PerlInterpreter *my_perl, SV *sv_body,
-    nxt_task_t *task, nxt_app_wmsg_t *wmsg)
+    nxt_unit_request_info_t *req)
 {
-    IO         *io;
-    PerlIO     *fp;
-    SSize_t    n;
-    nxt_int_t  rc;
-    u_char     vbuf[8192];
+    IO                      *io;
+    nxt_unit_read_info_t    read_info;
+    nxt_perl_psgi_io_ctx_t  io_ctx;
 
     io = GvIO(SvRV(sv_body));
 
     if (io == NULL) {
-        return NXT_OK;
+        return NXT_UNIT_OK;
     }
 
-    fp = IoIFP(io);
+    io_ctx.my_perl = my_perl;
+    io_ctx.fp = IoIFP(io);
 
-    for ( ;; ) {
-        n = PerlIO_read(fp, vbuf, 8192);
+    read_info.read = nxt_perl_psgi_io_read;
+    read_info.eof = PerlIO_eof(io_ctx.fp);
+    read_info.buf_size = 8192;
+    read_info.data = &io_ctx;
 
-        if (n < 1) {
-            break;
-        }
-
-        rc = nxt_app_msg_write_raw(task, wmsg,
-                                   (u_char *) vbuf, (size_t) n);
-
-        if (nxt_slow_path(rc != NXT_OK)) {
-            nxt_log_error(NXT_LOG_ERR, task->log,
-                          "PSGI: Failed to write 'body' from "
-                          "Perl Application");
-
-            return rc;
-        }
-
-        rc = nxt_app_msg_flush(task, wmsg, 0);
-
-        if (nxt_slow_path(rc != NXT_OK)) {
-            nxt_log_error(NXT_LOG_ERR, task->log,
-                          "PSGI: Failed to flush data for a body "
-                          "part from Perl Application");
-
-            return rc;
-        }
-    }
-
-    return NXT_OK;
+    return nxt_unit_response_write_cb(req, &read_info);
 }
 
 
-static nxt_int_t
+static ssize_t
+nxt_perl_psgi_io_read(nxt_unit_read_info_t *read_info, void *dst, size_t size)
+{
+    ssize_t                 res;
+    nxt_perl_psgi_io_ctx_t  *ctx;
+
+    ctx = read_info->data;
+
+    dTHXa(ctx->my_perl);
+
+    res = PerlIO_read(ctx->fp, dst, size);
+
+    read_info->eof = PerlIO_eof(ctx->fp);
+
+    return res;
+}
+
+
+static int
 nxt_perl_psgi_result_array(PerlInterpreter *my_perl, SV *result,
-    nxt_task_t *task, nxt_app_wmsg_t *wmsg)
+    nxt_unit_request_info_t *req)
 {
     AV         *array;
     SV         **sv_temp;
+    int        rc;
     long       array_len;
-    nxt_int_t  rc;
-    nxt_str_t  http_status;
+    nxt_int_t  status;
 
     array = (AV *) SvRV(result);
     array_len = av_len(array);
 
     if (nxt_slow_path(array_len < 0)) {
-        nxt_log_error(NXT_LOG_ERR, task->log,
-                      "PSGI: Invalid result format from Perl Application");
+        nxt_unit_req_error(req,
+                           "PSGI: Invalid result format from Perl Application");
 
-        return NXT_ERROR;
+        return NXT_UNIT_ERROR;
     }
 
-    http_status = nxt_perl_psgi_result_status(nxt_perl_psgi, result);
+    status = nxt_perl_psgi_result_status(my_perl, result);
 
-    if (nxt_slow_path(http_status.start == NULL || http_status.length == 0)) {
-        nxt_log_error(NXT_LOG_ERR, task->log,
-                      "PSGI: An unexpected status was received "
-                      "from Perl Application");
+    if (nxt_slow_path(status < 0)) {
+        nxt_unit_req_error(req,
+                           "PSGI: An unexpected status was received "
+                           "from Perl Application");
 
-        return NXT_ERROR;
+        return NXT_UNIT_ERROR;
     }
 
-    rc = nxt_perl_psgi_http_write_status_str(task, wmsg, &http_status);
+    if (array_len >= 1) {
+        sv_temp = av_fetch(array, 1, 0);
 
-    if (nxt_slow_path(rc != NXT_OK)) {
-        nxt_log_error(NXT_LOG_ERR, task->log,
-                      "PSGI: Failed to write HTTP Status");
+        if (nxt_slow_path(sv_temp == NULL)) {
+            nxt_unit_req_error(req, "PSGI: Failed to get head from "
+                               "Perl ARRAY variable");
 
-        return rc;
-    }
+            return NXT_UNIT_ERROR;
+        }
 
-    if (array_len < 1) {
-        rc = nxt_app_msg_write_raw(task, wmsg,
-                                   (u_char *) "\r\n", nxt_length("\r\n"));
-
-        if (nxt_slow_path(rc != NXT_OK)) {
-            nxt_log_error(NXT_LOG_ERR, task->log,
-                          "PSGI: Failed to write HTTP Headers");
-
+        rc = nxt_perl_psgi_result_head(my_perl, *sv_temp, req, status);
+        if (nxt_slow_path(rc != NXT_UNIT_OK)) {
             return rc;
         }
 
-        return NXT_OK;
-    }
-
-    sv_temp = av_fetch(array, 1, 0);
-
-    if (nxt_slow_path(sv_temp == NULL)) {
-        nxt_log_error(NXT_LOG_ERR, task->log,
-                      "PSGI: Failed to get head from Perl ARRAY variable");
-
-        return NXT_ERROR;
-    }
-
-    rc = nxt_perl_psgi_result_head(nxt_perl_psgi, *sv_temp, task, wmsg);
-
-    if (nxt_slow_path(rc != NXT_OK)) {
-        return rc;
-    }
-
-    rc = nxt_app_msg_write_raw(task, wmsg,
-                               (u_char *) "\r\n", nxt_length("\r\n"));
-
-    if (nxt_slow_path(rc != NXT_OK)) {
-        nxt_log_error(NXT_LOG_ERR, task->log,
-                      "PSGI: Failed to write HTTP Headers");
-
-        return rc;
+    } else {
+        return nxt_unit_response_init(req, status, 0, 0);
     }
 
     if (nxt_fast_path(array_len < 2)) {
-        return NXT_OK;
+        return NXT_UNIT_OK;
     }
 
     sv_temp = av_fetch(array, 2, 0);
 
     if (nxt_slow_path(sv_temp == NULL || SvROK(*sv_temp) == FALSE)) {
-        nxt_log_error(NXT_LOG_ERR, task->log,
-                      "PSGI: Failed to get body from Perl ARRAY variable");
+        nxt_unit_req_error(req,
+                           "PSGI: Failed to get body from "
+                           "Perl ARRAY variable");
 
-        return NXT_ERROR;
+        return NXT_UNIT_ERROR;
     }
 
     if (SvTYPE(SvRV(*sv_temp)) == SVt_PVAV) {
-        rc = nxt_perl_psgi_result_body(nxt_perl_psgi, *sv_temp, task, wmsg);
-
-    } else {
-        rc = nxt_perl_psgi_result_body_ref(nxt_perl_psgi, *sv_temp,
-                                           task, wmsg);
+        return nxt_perl_psgi_result_body(my_perl, *sv_temp, req);
     }
 
-    if (nxt_slow_path(rc != NXT_OK)) {
-        return rc;
-    }
-
-    return NXT_OK;
+    return nxt_perl_psgi_result_body_ref(my_perl, *sv_temp, req);
 }
 
 
 static nxt_int_t
 nxt_perl_psgi_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 {
-    PerlInterpreter  *my_perl;
+    int                     rc;
+    nxt_unit_ctx_t          *unit_ctx;
+    nxt_unit_init_t         perl_init;
+    PerlInterpreter         *my_perl;
+    nxt_perl_psgi_module_t  module;
 
-    my_perl = nxt_perl_psgi_interpreter_init(task, conf->u.perl.script);
+    my_perl = nxt_perl_psgi_interpreter_init(task, conf->u.perl.script,
+                                             &module.app);
 
     if (nxt_slow_path(my_perl == NULL)) {
         return NXT_ERROR;
     }
 
+    module.my_perl = my_perl;
     nxt_perl_psgi = my_perl;
+
+    nxt_unit_default_init(task, &perl_init);
+
+    perl_init.callbacks.request_handler = nxt_perl_psgi_request_handler;
+    perl_init.data = &module;
+
+    unit_ctx = nxt_unit_init(&perl_init);
+    if (nxt_slow_path(unit_ctx == NULL)) {
+        return NXT_ERROR;
+    }
+
+    rc = nxt_unit_run(unit_ctx);
+
+    nxt_unit_done(unit_ctx);
+
+    nxt_perl_psgi_atexit();
+
+    exit(rc);
 
     return NXT_OK;
 }
 
 
-static nxt_int_t
-nxt_perl_psgi_run(nxt_task_t *task, nxt_app_rmsg_t *rmsg, nxt_app_wmsg_t *wmsg)
+static void
+nxt_perl_psgi_request_handler(nxt_unit_request_info_t *req)
 {
-    SV                     *env, *result;
-    size_t                 body_preread_size;
-    nxt_int_t              rc;
-    nxt_perl_psgi_input_t  input;
+    SV                      *env, *result;
+    nxt_int_t               rc;
+    PerlInterpreter         *my_perl;
+    nxt_perl_psgi_input_t   input;
+    nxt_perl_psgi_module_t  *module;
 
-    dTHXa(nxt_perl_psgi);
+    module = req->unit->data;
+    my_perl = module->my_perl;
+
+    input.my_perl = my_perl;
+    input.req = req;
 
     /*
      * Create environ variable for perl sub "application".
      *  > sub application {
      *  >     my ($environ) = @_;
      */
-    env = nxt_perl_psgi_env_create(nxt_perl_psgi, task, rmsg,
-                                   &body_preread_size);
-
+    env = nxt_perl_psgi_env_create(my_perl, req, &input);
     if (nxt_slow_path(env == NULL)) {
-        nxt_log_error(NXT_LOG_ERR, task->log,
-                      "PSGI: Failed to create 'env' for Perl Application");
+        nxt_unit_req_error(req,
+                           "PSGI: Failed to create 'env' for Perl Application");
+        nxt_unit_request_done(req, NXT_UNIT_ERROR);
 
-        return NXT_ERROR;
+        return;
     }
-
-    input.my_perl = nxt_perl_psgi;
-    input.task = task;
-    input.rmsg = rmsg;
-    input.wmsg = wmsg;
-    input.body_preread_size = body_preread_size;
 
     nxt_perl_psgi_arg_input.ctx = &input;
     nxt_perl_psgi_arg_error.ctx = &input;
 
     /* Call perl sub and get result as SV*. */
-    result = nxt_perl_psgi_call_var_application(nxt_perl_psgi, env, task);
+    result = nxt_perl_psgi_call_var_application(my_perl, env, module->app, req);
 
     /*
      * We expect ARRAY ref like a
@@ -1099,40 +969,24 @@ nxt_perl_psgi_run(nxt_task_t *task, nxt_app_rmsg_t *rmsg, nxt_app_wmsg_t *wmsg)
     if (nxt_slow_path(SvOK(result) == 0 || SvROK(result) == 0
                       || SvTYPE(SvRV(result)) != SVt_PVAV))
     {
-        nxt_log_error(NXT_LOG_ERR, task->log,
-                      "PSGI: An unexpected response was received from "
-                      "Perl Application");
-        goto fail;
+        nxt_unit_req_error(req, "PSGI: An unexpected response was received "
+                           "from Perl Application");
+
+        rc = NXT_UNIT_ERROR;
+
+    } else {
+        rc = nxt_perl_psgi_result_array(my_perl, result, req);
     }
 
-    rc = nxt_perl_psgi_result_array(nxt_perl_psgi, result, task, wmsg);
-
-    if (nxt_slow_path(rc != NXT_OK)) {
-        goto fail;
-    }
-
-    rc = nxt_app_msg_flush(task, wmsg, 1);
-
-    if (nxt_slow_path(rc != NXT_OK)) {
-        goto fail;
-    }
+    nxt_unit_request_done(req, rc);
 
     SvREFCNT_dec(result);
     SvREFCNT_dec(env);
-
-    return NXT_OK;
-
-fail:
-
-    SvREFCNT_dec(result);
-    SvREFCNT_dec(env);
-
-    return NXT_ERROR;
 }
 
 
 static void
-nxt_perl_psgi_atexit(nxt_task_t *task)
+nxt_perl_psgi_atexit(void)
 {
     dTHXa(nxt_perl_psgi);
 

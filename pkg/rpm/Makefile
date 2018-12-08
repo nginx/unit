@@ -37,9 +37,9 @@ BUILD_DEPENDS_unit += system-rpm-config
 endif
 
 ifneq (,$(findstring $(OSVER),opensuse-leap opensuse-tumbleweed sles))
-BUILD_DEPENDS_unit += libxml2-tools libxslt1
+BUILD_DEPENDS_unit += libxml2-tools libxslt1 libopenssl-devel
 else
-BUILD_DEPENDS_unit += libxml2 libxslt
+BUILD_DEPENDS_unit += libxml2 libxslt openssl-devel
 endif
 
 BUILD_DEPENDS = $(BUILD_DEPENDS_unit)
@@ -101,7 +101,8 @@ CONFIGURE_ARGS=\
 	--control="unix:/var/run/control.unit.sock" \
 	--pid=/var/run/unit.pid \
 	--log=/var/log/unit.log \
-	--tests
+	--tests \
+	--openssl
 
 export CR=\\n
 

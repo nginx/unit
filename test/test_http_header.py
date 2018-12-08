@@ -83,6 +83,32 @@ class TestUnitHTTPHeader(unit.TestUnitApplicationPython):
         self.assertEqual(resp['headers']['Custom-Header'],
             '(),/:;<=>?@[\]{}\t !#$%&\'*+-.^_`|~', 'value chars custom header')
 
+    def test_http_header_value_chars_edge(self):
+        self.load('custom_header')
+
+        resp = self.http(b"""GET / HTTP/1.1
+Host: localhost
+Custom-Header: \x20\xFF
+Connection: close
+
+""", raw=True, encoding='latin1')
+
+        self.assertEqual(resp['status'], 200, 'value chars edge status')
+        self.assertEqual(resp['headers']['Custom-Header'], '\xFF',
+            'value chars edge')
+
+    def test_http_header_value_chars_below(self):
+        self.load('custom_header')
+
+        resp = self.http(b"""GET / HTTP/1.1
+Host: localhost
+Custom-Header: \x1F
+Connection: close
+
+""", raw=True)
+
+        self.assertEqual(resp['status'], 400, 'value chars below')
+
     def test_http_header_field_leading_sp(self):
         self.load('empty')
 
@@ -119,5 +145,22 @@ class TestUnitHTTPHeader(unit.TestUnitApplicationPython):
 
         self.assertEqual(resp['status'], 400, 'field trailing htab')
 
+    @unittest.expectedFailure
+    def test_http_header_transfer_encoding_chunked(self):
+        self.load('empty')
+
+        resp = self.http(b"""GET / HTTP/1.1
+Host: localhost
+Transfer-Encoding: chunked
+Connection: close
+
+a
+0123456789
+0
+
+""", raw=True)
+
+        self.assertEqual(resp['status'], 200, 'transfer encoding chunked')
+
 if __name__ == '__main__':
-    unittest.main()
+    TestUnitHTTPHeader.main()

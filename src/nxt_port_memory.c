@@ -255,11 +255,12 @@ fail:
 
 static nxt_port_mmap_handler_t *
 nxt_port_new_port_mmap(nxt_task_t *task, nxt_process_t *process,
-    nxt_port_t *port, nxt_bool_t tracking)
+    nxt_port_t *port, nxt_bool_t tracking, nxt_int_t n)
 {
     void                     *mem;
     u_char                   *p, name[64];
     nxt_fd_t                 fd;
+    nxt_int_t                i;
     nxt_free_map_t           *free_map;
     nxt_port_mmap_t          *port_mmap;
     nxt_port_mmap_header_t   *hdr;
@@ -366,7 +367,9 @@ nxt_port_new_port_mmap(nxt_task_t *task, nxt_process_t *process,
     /* Mark first chunk as busy */
     free_map = tracking ? hdr->free_tracking_map : hdr->free_map;
 
-    nxt_port_mmap_set_chunk_busy(free_map, 0);
+    for (i = 0; i < n; i++) {
+        nxt_port_mmap_set_chunk_busy(free_map, i);
+    }
 
     /* Mark as busy chunk followed the last available chunk. */
     nxt_port_mmap_set_chunk_busy(hdr->free_map, PORT_MMAP_CHUNK_COUNT);
@@ -456,7 +459,7 @@ nxt_port_mmap_get(nxt_task_t *task, nxt_port_t *port, nxt_chunk_id_t *c,
     /* TODO introduce port_mmap limit and release wait. */
 
     *c = 0;
-    mmap_handler = nxt_port_new_port_mmap(task, process, port, tracking);
+    mmap_handler = nxt_port_new_port_mmap(task, process, port, tracking, n);
 
 unlock_return:
 
@@ -710,10 +713,7 @@ nxt_port_mmap_increase_buf(nxt_task_t *task, nxt_buf_t *b, size_t size,
 
     size -= free_size;
 
-    nchunks = size / PORT_MMAP_CHUNK_SIZE;
-    if ((size % PORT_MMAP_CHUNK_SIZE) != 0 || nchunks == 0) {
-        nchunks++;
-    }
+    nchunks = (size + PORT_MMAP_CHUNK_SIZE - 1) / PORT_MMAP_CHUNK_SIZE;
 
     c = start;
 

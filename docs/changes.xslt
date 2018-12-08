@@ -64,6 +64,9 @@
     <xsl:variable name="apply"> <xsl:call-template name="string_in_list"><xsl:with-param select="@apply" name="list"/><xsl:with-param select="$pkgname" name="string"/></xsl:call-template></xsl:variable>
     <xsl:variable name="pkgname_"> <xsl:call-template name="beautify"><xsl:with-param select="$pkgname" name="pkgname"/></xsl:call-template></xsl:variable>
 
+    <xsl:choose>
+    <xsl:when test="$pkgname='unit' and $format='generic' and @rev!=1"/>
+    <xsl:otherwise>
     <xsl:if test="$apply=$pkgname">
 
     <xsl:if test="$format='generic'">
@@ -113,6 +116,8 @@
         <xsl:text>&#10;</xsl:text>
     </xsl:if>
     </xsl:if>
+    </xsl:otherwise>
+    </xsl:choose>
 </xsl:template>
 
 

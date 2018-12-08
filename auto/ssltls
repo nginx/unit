@@ -31,7 +31,7 @@ if [ $NXT_OPENSSL = YES ]; then
 
 
     if [ $nxt_found = yes ]; then
-        NXT_SSLTLS=YES
+        NXT_TLS=YES
         NXT_OPENSSL_LIBS="$nxt_feature_libs"
 
         nxt_feature="OpenSSL version"
@@ -78,7 +78,7 @@ if [ $NXT_GNUTLS = YES ]; then
 
 
         if [ $nxt_found = yes ]; then
-            NXT_SSLTLS=YES
+            NXT_TLS=YES
 
             $echo " + GnuTLS version: `pkg-config gnutls --modversion`"
 
@@ -138,7 +138,7 @@ if [ $NXT_CYASSL = YES ]; then
 
 
     if [ $nxt_found = yes ]; then
-        NXT_SSLTLS=YES
+        NXT_TLS=YES
         NXT_CYASSL_CFLAGS="$nxt_feature_incs"
         NXT_CYASSL_LIBS="$nxt_feature_libs"
 
@@ -171,7 +171,7 @@ if [ $NXT_POLARSSL = YES ]; then
 
 
     if [ $nxt_found = yes ]; then
-        NXT_SSLTLS=YES
+        NXT_TLS=YES
         NXT_POLARSSL_CFLAGS="$nxt_feature_incs"
         NXT_POLARSSL_LIBS="$nxt_feature_libs"
 

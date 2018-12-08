@@ -89,7 +89,7 @@ struct nxt_port_mmap_tracking_msg_s {
     nxt_chunk_id_t      tracking_id;   /* Tracking index. */
 };
 
-static nxt_bool_t
+nxt_inline nxt_bool_t
 nxt_port_mmap_get_free_chunk(nxt_free_map_t *m, nxt_chunk_id_t *c);
 
 #define nxt_port_mmap_get_chunk_busy(m, c)                                    \
@@ -126,7 +126,7 @@ nxt_port_mmap_chunk_start(nxt_port_mmap_header_t *hdr, nxt_chunk_id_t c)
 }
 
 
-static nxt_bool_t
+nxt_inline nxt_bool_t
 nxt_port_mmap_get_free_chunk(nxt_free_map_t *m, nxt_chunk_id_t *c)
 {
     const nxt_free_map_t  default_mask = (nxt_free_map_t) -1;

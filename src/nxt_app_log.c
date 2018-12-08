@@ -97,7 +97,7 @@ static nxt_time_string_t  nxt_log_error_time_cache = {
     "%4d/%02d/%02d %02d:%02d:%02d ",
     nxt_length("1970/09/28 12:00:00 "),
     NXT_THREAD_TIME_LOCAL,
-    NXT_THREAD_TIME_MSEC,
+    NXT_THREAD_TIME_SEC,
 };
 
 

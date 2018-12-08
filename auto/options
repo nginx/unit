@@ -19,7 +19,7 @@ NXT_UNIX_DOMAIN=YES
 NXT_REGEX=NO
 NXT_PCRE=NO
 
-NXT_SSLTLS=NO
+NXT_TLS=NO
 NXT_OPENSSL=NO
 NXT_GNUTLS=NO
 NXT_CYASSL=NO
@@ -54,6 +54,8 @@ do
         --prefix=*)                      NXT_PREFIX="$value"                 ;;
         --bindir=*)                      NXT_BINDIR="$value"                 ;;
         --sbindir=*)                     NXT_SBINDIR="$value"                ;;
+        --libdir=*)                      NXT_LIBDIR="$value"                 ;;
+        --incdir=*)                      NXT_INCDIR="$value"                 ;;
         --modules=*)                     NXT_MODULES="$value"                ;;
         --state=*)                       NXT_STATE="$value"                  ;;
 
@@ -72,7 +74,6 @@ do
 
         --pcre)                          NXT_PCRE=YES                        ;;
 
-        --ssltls)                        NXT_SSLTLS=YES                      ;;
         --openssl)                       NXT_OPENSSL=YES                     ;;
         --gnutls)                        NXT_GNUTLS=YES                      ;;
         --cyassl)                        NXT_CYASSL=YES                      ;;
@@ -126,6 +127,16 @@ esac
 case "$NXT_SBINDIR" in
     /*)  ;;
      *)  NXT_SBINDIR="$NXT_PREFIX$NXT_SBINDIR"  ;;
+esac
+
+case "$NXT_LIBDIR" in
+    /*)  ;;
+     *)  NXT_LIBDIR="$NXT_PREFIX$NXT_LIBDIR"  ;;
+esac
+
+case "$NXT_INCDIR" in
+    /*)  ;;
+     *)  NXT_INCDIR="$NXT_PREFIX$NXT_INCDIR"  ;;
 esac
 
 case "$NXT_MODULES" in

@@ -5,12 +5,12 @@
  */
 
 #include <ruby/nxt_ruby.h>
+#include <nxt_unit.h>
 
 
 static VALUE nxt_ruby_stream_io_new(VALUE class, VALUE wrap);
 static VALUE nxt_ruby_stream_io_initialize(int argc, VALUE *argv, VALUE self);
 static VALUE nxt_ruby_stream_io_gets(VALUE obj, VALUE args);
-static size_t nxt_ruby_stream_io_read_line(nxt_app_rmsg_t *rmsg, VALUE str);
 static VALUE nxt_ruby_stream_io_each(VALUE obj, VALUE args);
 static VALUE nxt_ruby_stream_io_read(VALUE obj, VALUE args);
 static VALUE nxt_ruby_stream_io_rewind(VALUE obj, VALUE args);
@@ -85,63 +85,47 @@ nxt_ruby_stream_io_initialize(int argc, VALUE *argv, VALUE self)
 static VALUE
 nxt_ruby_stream_io_gets(VALUE obj, VALUE args)
 {
-    VALUE               buf;
-    nxt_ruby_run_ctx_t  *run_ctx;
+    VALUE                    buf;
+    char                     *p;
+    size_t                   size, b_size;
+    nxt_unit_buf_t           *b;
+    nxt_ruby_run_ctx_t       *run_ctx;
+    nxt_unit_request_info_t  *req;
 
     Data_Get_Struct(obj, nxt_ruby_run_ctx_t, run_ctx);
 
-    if (run_ctx->body_preread_size == 0) {
+    req = run_ctx->req;
+
+    if (req->content_length == 0) {
         return Qnil;
     }
 
-    buf = rb_str_buf_new(1);
+    size = 0;
+
+    for (b = req->content_buf; b; b = nxt_unit_buf_next(b)) {
+        b_size = b->end - b->free;
+        p = memchr(b->free, '\n', b_size);
+
+        if (p != NULL) {
+            p++;
+            size += p - b->free;
+            break;
+        }
+
+        size += b_size;
+    }
+
+    buf = rb_str_buf_new(size);
 
     if (buf == Qnil) {
         return Qnil;
     }
 
-    run_ctx->body_preread_size -= nxt_ruby_stream_io_read_line(run_ctx->rmsg,
-                                                               buf);
+    size = nxt_unit_request_read(req, RSTRING_PTR(buf), size);
+
+    rb_str_set_len(buf, size);
 
     return buf;
-}
-
-
-static size_t
-nxt_ruby_stream_io_read_line(nxt_app_rmsg_t *rmsg, VALUE str)
-{
-    size_t     len, size;
-    u_char     *p;
-    nxt_buf_t  *buf;
-
-    len = 0;
-
-    for (buf = rmsg->buf; buf != NULL; buf = buf->next) {
-
-        size = nxt_buf_mem_used_size(&buf->mem);
-        p = memchr(buf->mem.pos, '\n', size);
-
-        if (p != NULL) {
-            p++;
-            size = p - buf->mem.pos;
-
-            rb_str_cat(str, (const char *) buf->mem.pos, size);
-
-            len += size;
-            buf->mem.pos = p;
-
-            break;
-        }
-
-        rb_str_cat(str, (const char *) buf->mem.pos, size);
-
-        len += size;
-        buf->mem.pos = buf->mem.free;
-    }
-
-    rmsg->buf = buf;
-
-    return len;
 }
 
 
@@ -173,12 +157,11 @@ nxt_ruby_stream_io_read(VALUE obj, VALUE args)
 {
     VALUE                buf;
     long                 copy_size, u_size;
-    size_t               len;
     nxt_ruby_run_ctx_t  *run_ctx;
 
     Data_Get_Struct(obj, nxt_ruby_run_ctx_t, run_ctx);
 
-    copy_size = run_ctx->body_preread_size;
+    copy_size = run_ctx->req->content_length;
 
     if (RARRAY_LEN(args) > 0 && TYPE(RARRAY_PTR(args)[0]) == T_FIXNUM) {
         u_size = NUM2LONG(RARRAY_PTR(args)[0]);
@@ -202,8 +185,8 @@ nxt_ruby_stream_io_read(VALUE obj, VALUE args)
         return Qnil;
     }
 
-    len = nxt_app_msg_read_raw(run_ctx->task, run_ctx->rmsg,
-                               RSTRING_PTR(buf), (size_t) copy_size);
+    copy_size = nxt_unit_request_read(run_ctx->req, RSTRING_PTR(buf),
+                                      copy_size);
 
     if (RARRAY_LEN(args) > 1 && TYPE(RARRAY_PTR(args)[1]) == T_STRING) {
 
@@ -211,9 +194,7 @@ nxt_ruby_stream_io_read(VALUE obj, VALUE args)
         rb_str_cat(RARRAY_PTR(args)[1], RSTRING_PTR(buf), copy_size);
     }
 
-    rb_str_set_len(buf, (long) len);
-
-    run_ctx->body_preread_size -= len;
+    rb_str_set_len(buf, copy_size);
 
     return buf;
 }
@@ -276,8 +257,7 @@ nxt_ruby_stream_io_s_write(nxt_ruby_run_ctx_t *run_ctx, VALUE val)
         }
     }
 
-    nxt_log_error(NXT_LOG_ERR, run_ctx->task->log, "Ruby: %s",
-                  RSTRING_PTR(val));
+    nxt_unit_req_error(run_ctx->req, "Ruby: %s", RSTRING_PTR(val));
 
     return RSTRING_LEN(val);
 }

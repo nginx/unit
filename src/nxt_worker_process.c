@@ -19,13 +19,10 @@ static void nxt_worker_process_sigterm_handler(nxt_task_t *task, void *obj,
 static void nxt_worker_process_sigquit_handler(nxt_task_t *task, void *obj,
     void *data);
 
-
 nxt_port_handlers_t  nxt_app_process_port_handlers = {
-    .quit         = nxt_app_quit_handler,
     .new_port     = nxt_port_new_port_handler,
     .change_file  = nxt_port_change_log_file_handler,
     .mmap         = nxt_port_mmap_handler,
-    .data         = nxt_app_data_handler,
     .remove_pid   = nxt_port_remove_pid_handler,
 };
 
@@ -45,8 +42,8 @@ nxt_port_handlers_t  nxt_discovery_process_port_handlers = {
 const nxt_sig_event_t  nxt_worker_process_signals[] = {
     nxt_event_signal(SIGHUP,  nxt_worker_process_signal_handler),
     nxt_event_signal(SIGINT,  nxt_worker_process_sigterm_handler),
-    nxt_event_signal(SIGQUIT, nxt_worker_process_sigterm_handler),
-    nxt_event_signal(SIGTERM, nxt_worker_process_sigquit_handler),
+    nxt_event_signal(SIGQUIT, nxt_worker_process_sigquit_handler),
+    nxt_event_signal(SIGTERM, nxt_worker_process_sigterm_handler),
     nxt_event_signal(SIGCHLD, nxt_worker_process_signal_handler),
     nxt_event_signal(SIGUSR1, nxt_worker_process_signal_handler),
     nxt_event_signal(SIGUSR2, nxt_worker_process_signal_handler),

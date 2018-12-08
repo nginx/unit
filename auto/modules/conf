@@ -25,6 +25,10 @@ case "$nxt_module" in
        . auto/modules/ruby
    ;;
 
+   nodejs)
+       . auto/modules/nodejs
+   ;;
+
    *)
        echo
        echo $0: error: invalid module \"$nxt_module\".

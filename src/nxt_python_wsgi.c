@@ -14,6 +14,10 @@
 #include <nxt_main.h>
 #include <nxt_runtime.h>
 #include <nxt_router.h>
+#include <nxt_unit.h>
+#include <nxt_unit_field.h>
+#include <nxt_unit_request.h>
+#include <nxt_unit_response.h>
 
 /*
  * According to "PEP 3333 / A Note On String Types"
@@ -37,42 +41,44 @@
 #if PY_MAJOR_VERSION == 3
 #define NXT_PYTHON_BYTES_TYPE       "bytestring"
 
-#define PyString_FromString         PyUnicode_FromString
-#define PyString_FromStringAndSize  PyUnicode_FromStringAndSize
+#define PyString_FromStringAndSize(str, size)                                 \
+            PyUnicode_DecodeLatin1((str), (size), "strict")
 #else
 #define NXT_PYTHON_BYTES_TYPE       "string"
 
-#define PyBytes_FromString          PyString_FromString
 #define PyBytes_FromStringAndSize   PyString_FromStringAndSize
 #define PyBytes_Check               PyString_Check
 #define PyBytes_GET_SIZE            PyString_GET_SIZE
 #define PyBytes_AS_STRING           PyString_AS_STRING
 #endif
 
+typedef struct nxt_python_run_ctx_s  nxt_python_run_ctx_t;
 
 typedef struct {
     PyObject_HEAD
-    //nxt_app_request_t  *request;
 } nxt_py_input_t;
 
 
 typedef struct {
     PyObject_HEAD
-    //nxt_app_request_t  *request;
 } nxt_py_error_t;
 
-typedef struct nxt_python_run_ctx_s nxt_python_run_ctx_t;
-
 static nxt_int_t nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf);
-static nxt_int_t nxt_python_run(nxt_task_t *task,
-                      nxt_app_rmsg_t *rmsg, nxt_app_wmsg_t *msg);
-static void nxt_python_atexit(nxt_task_t *task);
+static void nxt_python_request_handler(nxt_unit_request_info_t *req);
+static void nxt_python_atexit(void);
 
 static PyObject *nxt_python_create_environ(nxt_task_t *task);
-static PyObject *nxt_python_get_environ(nxt_task_t *task,
-                      nxt_app_rmsg_t *rmsg, nxt_python_run_ctx_t *ctx);
+static PyObject *nxt_python_get_environ(nxt_python_run_ctx_t *ctx);
+static int nxt_python_add_sptr(nxt_python_run_ctx_t *ctx, const char *name,
+    nxt_unit_sptr_t *sptr, uint32_t size);
+static int nxt_python_add_str(nxt_python_run_ctx_t *ctx, const char *name,
+    char *str, uint32_t size);
 
 static PyObject *nxt_py_start_resp(PyObject *self, PyObject *args);
+static int nxt_python_response_add_field(nxt_python_run_ctx_t *ctx,
+    PyObject *name, PyObject *value, int i);
+static int nxt_python_str_buf(PyObject *str, char **buf, uint32_t *len,
+    PyObject **bytes);
 static PyObject *nxt_py_write(PyObject *self, PyObject *args);
 
 static void nxt_py_input_dealloc(nxt_py_input_t *self);
@@ -80,35 +86,26 @@ static PyObject *nxt_py_input_read(nxt_py_input_t *self, PyObject *args);
 static PyObject *nxt_py_input_readline(nxt_py_input_t *self, PyObject *args);
 static PyObject *nxt_py_input_readlines(nxt_py_input_t *self, PyObject *args);
 
+static int nxt_python_write(nxt_python_run_ctx_t *ctx, PyObject *bytes);
+
 struct nxt_python_run_ctx_s {
-    nxt_task_t           *task;
-    nxt_app_rmsg_t       *rmsg;
-    nxt_app_wmsg_t       *wmsg;
-
-    size_t               body_preread_size;
+    uint64_t                 content_length;
+    uint64_t                 bytes_sent;
+    PyObject                 *environ;
+    nxt_unit_request_info_t  *req;
 };
-
-nxt_inline nxt_int_t nxt_python_write(nxt_python_run_ctx_t *ctx,
-                      const u_char *data, size_t len,
-                      nxt_bool_t flush, nxt_bool_t last);
-
-nxt_inline nxt_int_t nxt_python_write_py_str(nxt_python_run_ctx_t *ctx,
-                      PyObject *str, nxt_bool_t flush, nxt_bool_t last);
-
 
 static uint32_t  compat[] = {
     NXT_VERNUM, NXT_DEBUG,
 };
 
 
-NXT_EXPORT nxt_application_module_t  nxt_app_module = {
+NXT_EXPORT nxt_app_module_t  nxt_app_module = {
     sizeof(compat),
     compat,
     nxt_string("python"),
     PY_VERSION,
     nxt_python_init,
-    nxt_python_run,
-    nxt_python_atexit,
 };
 
 
@@ -201,9 +198,12 @@ static nxt_python_run_ctx_t  *nxt_python_run_ctx;
 static nxt_int_t
 nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 {
+    int                    rc;
     char                   *nxt_py_module;
     size_t                 len;
     PyObject               *obj, *pypath, *module;
+    nxt_unit_ctx_t         *unit_ctx;
+    nxt_unit_init_t        python_init;
     nxt_python_app_conf_t  *c;
 #if PY_MAJOR_VERSION == 3
     char                   *path;
@@ -378,6 +378,23 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 
     nxt_py_application = obj;
 
+    nxt_unit_default_init(task, &python_init);
+
+    python_init.callbacks.request_handler = nxt_python_request_handler;
+
+    unit_ctx = nxt_unit_init(&python_init);
+    if (nxt_slow_path(unit_ctx == NULL)) {
+        return NXT_ERROR;
+    }
+
+    rc = nxt_unit_run(unit_ctx);
+
+    nxt_unit_done(unit_ctx);
+
+    nxt_python_atexit();
+
+    exit(rc);
+
     return NXT_OK;
 
 fail:
@@ -393,26 +410,26 @@ fail:
 }
 
 
-static nxt_int_t
-nxt_python_run(nxt_task_t *task, nxt_app_rmsg_t *rmsg, nxt_app_wmsg_t *wmsg)
+static void
+nxt_python_request_handler(nxt_unit_request_info_t *req)
 {
-    u_char    *buf;
-    size_t    size;
-    PyObject  *result, *iterator, *item, *args, *environ;
-    nxt_python_run_ctx_t  run_ctx = {task, rmsg, wmsg, 0};
+    int                   rc;
+    PyObject              *result, *iterator, *item, *args, *environ;
+    nxt_python_run_ctx_t  run_ctx = {-1, 0, NULL, req};
 
-    environ = nxt_python_get_environ(task, rmsg, &run_ctx);
-
+    environ = nxt_python_get_environ(&run_ctx);
     if (nxt_slow_path(environ == NULL)) {
-        return NXT_ERROR;
+        nxt_unit_request_done(req, NXT_UNIT_ERROR);
+
+        return;
     }
 
     args = PyTuple_New(2);
-
     if (nxt_slow_path(args == NULL)) {
-        nxt_log_error(NXT_LOG_ERR, task->log,
-                      "Python failed to create arguments tuple");
-        return NXT_ERROR;
+        nxt_unit_req_error(req, "Python failed to create arguments tuple");
+
+        nxt_unit_request_done(req, NXT_UNIT_ERROR);
+        return;
     }
 
     PyTuple_SET_ITEM(args, 0, environ);
@@ -427,55 +444,55 @@ nxt_python_run(nxt_task_t *task, nxt_app_rmsg_t *rmsg, nxt_app_wmsg_t *wmsg)
     Py_DECREF(args);
 
     if (nxt_slow_path(result == NULL)) {
-        nxt_log_error(NXT_LOG_ERR, task->log,
-                      "Python failed to call the application");
+        nxt_unit_req_error(req, "Python failed to call the application");
         PyErr_Print();
-        return NXT_ERROR;
+
+        nxt_unit_request_done(req, NXT_UNIT_ERROR);
+        nxt_python_run_ctx = NULL;
+
+        return;
     }
 
     item = NULL;
     iterator = NULL;
 
     /* Shortcut: avoid iterate over result string symbols. */
-    if (PyBytes_Check(result) != 0) {
+    if (PyBytes_Check(result)) {
 
-        size = PyBytes_GET_SIZE(result);
-        buf = (u_char *) PyBytes_AS_STRING(result);
-
-        nxt_python_write(&run_ctx, buf, size, 1, 1);
+        rc = nxt_python_write(&run_ctx, result);
+        if (nxt_slow_path(rc != NXT_UNIT_OK)) {
+            goto fail;
+        }
 
     } else {
         iterator = PyObject_GetIter(result);
 
         if (nxt_slow_path(iterator == NULL)) {
-            nxt_log_error(NXT_LOG_ERR, task->log,
-                          "the application returned not an iterable object");
+            nxt_unit_req_error(req, "the application returned "
+                               "not an iterable object");
 
             goto fail;
         }
 
-        while((item = PyIter_Next(iterator))) {
-
-            if (nxt_slow_path(PyBytes_Check(item) == 0)) {
-                nxt_log_error(NXT_LOG_ERR, task->log,
-                        "the application returned not a bytestring object");
+        while (run_ctx.bytes_sent < run_ctx.content_length
+               && (item = PyIter_Next(iterator)))
+        {
+            if (nxt_slow_path(!PyBytes_Check(item))) {
+                nxt_unit_req_error(req, "the application returned "
+                                   "not a bytestring object");
 
                 goto fail;
             }
 
-            size = PyBytes_GET_SIZE(item);
-            buf = (u_char *) PyBytes_AS_STRING(item);
-
-            nxt_debug(task, "nxt_app_write(fake): %uz", size);
-
-            nxt_python_write(&run_ctx, buf, size, 1, 0);
+            rc = nxt_python_write(&run_ctx, item);
+            if (nxt_slow_path(rc != NXT_UNIT_OK)) {
+                goto fail;
+            }
 
             Py_DECREF(item);
         }
 
         Py_DECREF(iterator);
-
-        nxt_python_write(&run_ctx, NULL, 0, 1, 1);
 
         if (PyObject_HasAttrString(result, "close")) {
             PyObject_CallMethod(result, (char *) "close", NULL);
@@ -483,14 +500,17 @@ nxt_python_run(nxt_task_t *task, nxt_app_rmsg_t *rmsg, nxt_app_wmsg_t *wmsg)
     }
 
     if (nxt_slow_path(PyErr_Occurred() != NULL)) {
-        nxt_log_error(NXT_LOG_ERR, task->log, "an application error occurred");
+        nxt_unit_req_error(req, "an application error occurred");
         PyErr_Print();
     }
 
+    nxt_unit_request_done(req, NXT_UNIT_OK);
+
     Py_DECREF(result);
+
     nxt_python_run_ctx = NULL;
 
-    return NXT_OK;
+    return;
 
 fail:
 
@@ -509,12 +529,12 @@ fail:
     Py_DECREF(result);
     nxt_python_run_ctx = NULL;
 
-    return NXT_ERROR;
+    nxt_unit_request_done(req, NXT_UNIT_ERROR);
 }
 
 
 static void
-nxt_python_atexit(nxt_task_t *task)
+nxt_python_atexit(void)
 {
     Py_DECREF(nxt_py_application);
     Py_DECREF(nxt_py_start_resp_obj);
@@ -606,7 +626,7 @@ nxt_python_create_environ(nxt_task_t *task)
     }
 
 
-    obj = PyString_FromString("http");
+    obj = PyString_FromStringAndSize("http", nxt_length("http"));
 
     if (nxt_slow_path(obj == NULL)) {
         nxt_alert(task,
@@ -673,162 +693,91 @@ fail:
     return NULL;
 }
 
-nxt_inline nxt_int_t
-nxt_python_add_env(nxt_task_t *task, PyObject *env, const char *name,
-    nxt_str_t *v)
-{
-    PyObject   *value;
-    nxt_int_t  rc;
-
-    value = PyString_FromStringAndSize((char *) v->start, v->length);
-    if (nxt_slow_path(value == NULL)) {
-        nxt_log_error(NXT_LOG_ERR, task->log,
-                      "Python failed to create value string \"%V\"", v);
-        return NXT_ERROR;
-    }
-
-    if (nxt_slow_path(PyDict_SetItemString(env, name, value)
-        != 0))
-    {
-        nxt_log_error(NXT_LOG_ERR, task->log,
-                      "Python failed to set the \"%s\" environ value", name);
-        rc = NXT_ERROR;
-
-    } else {
-        rc = NXT_OK;
-    }
-
-    Py_DECREF(value);
-
-    return rc;
-}
-
-
-nxt_inline nxt_int_t
-nxt_python_read_add_env(nxt_task_t *task, nxt_app_rmsg_t *rmsg,
-    PyObject *env, const char *name, nxt_str_t *v)
-{
-    nxt_int_t  rc;
-
-    rc = nxt_app_msg_read_str(task, rmsg, v);
-    if (nxt_slow_path(rc != NXT_OK)) {
-        return rc;
-    }
-
-    if (v->start == NULL) {
-        return NXT_OK;
-    }
-
-    return nxt_python_add_env(task, env, name, v);
-}
-
 
 static PyObject *
-nxt_python_get_environ(nxt_task_t *task, nxt_app_rmsg_t *rmsg,
-    nxt_python_run_ctx_t *ctx)
+nxt_python_get_environ(nxt_python_run_ctx_t *ctx)
 {
-    size_t          s;
-    u_char          *colon;
-    PyObject        *environ;
-    nxt_int_t       rc;
-    nxt_str_t       n, v, target, path, query;
-    nxt_str_t       host, server_name, server_port;
-
-    static nxt_str_t def_host = nxt_string("localhost");
-    static nxt_str_t def_port = nxt_string("80");
+    int                 rc;
+    char                *name, *host_start, *port_start;
+    uint32_t            i, host_length, port_length;
+    PyObject            *environ;
+    nxt_unit_field_t    *f;
+    nxt_unit_request_t  *r;
 
     environ = PyDict_Copy(nxt_py_environ_ptyp);
-
     if (nxt_slow_path(environ == NULL)) {
-        nxt_log_error(NXT_LOG_ERR, task->log,
-                      "Python failed to create the \"environ\" dictionary");
+        nxt_unit_req_error(ctx->req,
+                           "Python failed to copy the \"environ\" dictionary");
+
         return NULL;
     }
+
+    ctx->environ = environ;
+
+    r = ctx->req->request;
 
 #define RC(S)                                                                 \
     do {                                                                      \
         rc = (S);                                                             \
-        if (nxt_slow_path(rc != NXT_OK)) {                                    \
+        if (nxt_slow_path(rc != NXT_UNIT_OK)) {                               \
             goto fail;                                                        \
         }                                                                     \
     } while(0)
 
-#define NXT_READ(N)                                                           \
-    RC(nxt_python_read_add_env(task, rmsg, environ, N, &v))
+    RC(nxt_python_add_sptr(ctx, "REQUEST_METHOD", &r->method,
+                           r->method_length));
+    RC(nxt_python_add_sptr(ctx, "REQUEST_URI", &r->target, r->target_length));
 
-    NXT_READ("REQUEST_METHOD");
-    NXT_READ("REQUEST_URI");
+    if (r->query.offset) {
+        RC(nxt_python_add_sptr(ctx, "QUERY_STRING", &r->query,
+                               r->query_length));
+    }
+    RC(nxt_python_add_sptr(ctx, "PATH_INFO", &r->path, r->path_length));
 
-    target = v;
-    RC(nxt_app_msg_read_str(task, rmsg, &path));
+    RC(nxt_python_add_sptr(ctx, "REMOTE_ADDR", &r->remote, r->remote_length));
+    RC(nxt_python_add_sptr(ctx, "SERVER_ADDR", &r->local, r->local_length));
 
-    RC(nxt_app_msg_read_size(task, rmsg, &s)); // query length + 1
-    if (s > 0) {
-        s--;
+    RC(nxt_python_add_sptr(ctx, "SERVER_PROTOCOL", &r->version,
+                           r->version_length));
 
-        query.start = target.start + s;
-        query.length = target.length - s;
+    for (i = 0; i < r->fields_count; i++) {
+        f = r->fields + i;
+        name = nxt_unit_sptr_get(&f->name);
 
-        RC(nxt_python_add_env(task, environ, "QUERY_STRING", &query));
-
-        if (path.start == NULL) {
-            path.start = target.start;
-            path.length = s - 1;
-        }
+        RC(nxt_python_add_sptr(ctx, name, &f->value, f->value_length));
     }
 
-    if (path.start == NULL) {
-        path = target;
+    if (r->content_length_field != NXT_UNIT_NONE_FIELD) {
+        f = r->fields + r->content_length_field;
+
+        RC(nxt_python_add_sptr(ctx, "CONTENT_LENGTH", &f->value,
+                               f->value_length));
     }
 
-    RC(nxt_python_add_env(task, environ, "PATH_INFO", &path));
+    if (r->content_type_field != NXT_UNIT_NONE_FIELD) {
+        f = r->fields + r->content_type_field;
 
-    NXT_READ("SERVER_PROTOCOL");
-
-    NXT_READ("REMOTE_ADDR");
-    NXT_READ("SERVER_ADDR");
-
-    RC(nxt_app_msg_read_str(task, rmsg, &host));
-
-    if (host.length == 0) {
-        host = def_host;
+        RC(nxt_python_add_sptr(ctx, "CONTENT_TYPE", &f->value,
+                               f->value_length));
     }
 
-    server_name = host;
-    colon = nxt_memchr(host.start, ':', host.length);
+    if (r->host_field != NXT_UNIT_NONE_FIELD) {
+        f = r->fields + r->host_field;
 
-    if (colon != NULL) {
-        server_name.length = colon - host.start;
-
-        server_port.start = colon + 1;
-        server_port.length = host.length - server_name.length - 1;
+        host_start = nxt_unit_sptr_get(&f->value);
+        host_length = f->value_length;
 
     } else {
-        server_port = def_port;
+        host_start = NULL;
+        host_length = 0;
     }
 
-    RC(nxt_python_add_env(task, environ, "SERVER_NAME", &server_name));
-    RC(nxt_python_add_env(task, environ, "SERVER_PORT", &server_port));
+    nxt_unit_split_host(host_start, host_length, &host_start, &host_length,
+                        &port_start, &port_length);
 
-    NXT_READ("CONTENT_TYPE");
-    NXT_READ("CONTENT_LENGTH");
+    RC(nxt_python_add_str(ctx, "SERVER_NAME", host_start, host_length));
+    RC(nxt_python_add_str(ctx, "SERVER_PORT", port_start, port_length));
 
-    while (nxt_app_msg_read_str(task, rmsg, &n) == NXT_OK) {
-        if (nxt_slow_path(n.length == 0)) {
-            break;
-        }
-
-        rc = nxt_app_msg_read_str(task, rmsg, &v);
-        if (nxt_slow_path(rc != NXT_OK)) {
-            break;
-        }
-
-        RC(nxt_python_add_env(task, environ, (char *) n.start, &v));
-    }
-
-    RC(nxt_app_msg_read_size(task, rmsg, &ctx->body_preread_size));
-
-#undef NXT_READ
 #undef RC
 
     return environ;
@@ -841,21 +790,87 @@ fail:
 }
 
 
+static int
+nxt_python_add_sptr(nxt_python_run_ctx_t *ctx, const char *name,
+    nxt_unit_sptr_t *sptr, uint32_t size)
+{
+    char      *src;
+    PyObject  *value;
+
+    src = nxt_unit_sptr_get(sptr);
+
+    value = PyString_FromStringAndSize(src, size);
+    if (nxt_slow_path(value == NULL)) {
+        nxt_unit_req_error(ctx->req,
+                           "Python failed to create value string \"%.*s\"",
+                           (int) size, src);
+        PyErr_PrintEx(1);
+
+        return NXT_UNIT_ERROR;
+    }
+
+    if (nxt_slow_path(PyDict_SetItemString(ctx->environ, name, value) != 0)) {
+        nxt_unit_req_error(ctx->req,
+                           "Python failed to set the \"%s\" environ value",
+                           name);
+        Py_DECREF(value);
+
+        return NXT_UNIT_ERROR;
+    }
+
+    Py_DECREF(value);
+
+    return NXT_UNIT_OK;
+}
+
+
+static int
+nxt_python_add_str(nxt_python_run_ctx_t *ctx, const char *name,
+    char *str, uint32_t size)
+{
+    PyObject  *value;
+
+    if (nxt_slow_path(str == NULL)) {
+        return NXT_UNIT_OK;
+    }
+
+    value = PyString_FromStringAndSize(str, size);
+    if (nxt_slow_path(value == NULL)) {
+        nxt_unit_req_error(ctx->req,
+                           "Python failed to create value string \"%.*s\"",
+                           (int) size, str);
+        PyErr_PrintEx(1);
+
+        return NXT_UNIT_ERROR;
+    }
+
+    if (nxt_slow_path(PyDict_SetItemString(ctx->environ, name, value) != 0)) {
+        nxt_unit_req_error(ctx->req,
+                           "Python failed to set the \"%s\" environ value",
+                           name);
+
+        Py_DECREF(value);
+
+        return NXT_UNIT_ERROR;
+    }
+
+    Py_DECREF(value);
+
+    return NXT_UNIT_OK;
+}
+
+
 static PyObject *
 nxt_py_start_resp(PyObject *self, PyObject *args)
 {
-    PyObject    *headers, *tuple, *string;
-    nxt_int_t   rc;
-    nxt_uint_t  i, n;
+    int                   rc, status;
+    char                  *status_str, *space_ptr;
+    uint32_t              status_len;
+    PyObject              *headers, *tuple, *string, *status_bytes;
+    Py_ssize_t            i, n, fields_size, fields_count;
     nxt_python_run_ctx_t  *ctx;
 
-    static const u_char status[] = "Status: ";
-
-    static const u_char cr_lf[] = "\r\n";
-    static const u_char sc_sp[] = ": ";
-
     ctx = nxt_python_run_ctx;
-
     if (nxt_slow_path(ctx == NULL)) {
         return PyErr_Format(PyExc_RuntimeError,
                             "start_response() is called "
@@ -869,25 +884,21 @@ nxt_py_start_resp(PyObject *self, PyObject *args)
     }
 
     string = PyTuple_GET_ITEM(args, 0);
-
-    nxt_python_write(ctx, status, nxt_length(status), 0, 0);
-
-    rc = nxt_python_write_py_str(ctx, string, 0, 0);
-    if (nxt_slow_path(rc != NXT_OK)) {
+    if (!PyBytes_Check(string) && !PyUnicode_Check(string)) {
         return PyErr_Format(PyExc_TypeError,
                             "failed to write first argument (not a string?)");
     }
 
-    nxt_python_write(ctx, cr_lf, nxt_length(cr_lf), 0, 0);
-
     headers = PyTuple_GET_ITEM(args, 1);
-
     if (!PyList_Check(headers)) {
         return PyErr_Format(PyExc_TypeError,
                          "the second argument is not a response headers list");
     }
 
-    for (i = 0; i < (nxt_uint_t) PyList_GET_SIZE(headers); i++) {
+    fields_size = 0;
+    fields_count = PyList_GET_SIZE(headers);
+
+    for (i = 0; i < fields_count; i++) {
         tuple = PyList_GET_ITEM(headers, i);
 
         if (!PyTuple_Check(tuple)) {
@@ -901,52 +912,182 @@ nxt_py_start_resp(PyObject *self, PyObject *args)
         }
 
         string = PyTuple_GET_ITEM(tuple, 0);
+        if (PyBytes_Check(string)) {
+            fields_size += PyBytes_GET_SIZE(string);
 
-        rc = nxt_python_write_py_str(ctx, string, 0, 0);
-        if (nxt_slow_path(rc != NXT_OK)) {
+        } else if (PyUnicode_Check(string)) {
+            fields_size += PyUnicode_GET_SIZE(string);
+
+        } else {
             return PyErr_Format(PyExc_TypeError,
-                                "failed to write response header name"
-                                 " (not a string?)");
+                                "header #%d name is not a string", (int) i);
         }
-
-        nxt_python_write(ctx, sc_sp, nxt_length(sc_sp), 0, 0);
 
         string = PyTuple_GET_ITEM(tuple, 1);
+        if (PyBytes_Check(string)) {
+            fields_size += PyBytes_GET_SIZE(string);
 
-        rc = nxt_python_write_py_str(ctx, string, 0, 0);
-        if (nxt_slow_path(rc != NXT_OK)) {
+        } else if (PyUnicode_Check(string)) {
+            fields_size += PyUnicode_GET_SIZE(string);
+
+        } else {
             return PyErr_Format(PyExc_TypeError,
-                                "failed to write response header value"
-                                 " (not a string?)");
+                                "header #%d value is not a string", (int) i);
         }
-
-        nxt_python_write(ctx, cr_lf, nxt_length(cr_lf), 0, 0);
     }
 
-    /* flush headers */
-    nxt_python_write(ctx, cr_lf, nxt_length(cr_lf), 1, 0);
+    ctx->content_length = -1;
+
+    string = PyTuple_GET_ITEM(args, 0);
+    rc = nxt_python_str_buf(string, &status_str, &status_len, &status_bytes);
+    if (nxt_slow_path(rc != NXT_UNIT_OK)) {
+        return PyErr_Format(PyExc_TypeError, "status is not a string");
+    }
+
+    space_ptr = memchr(status_str, ' ', status_len);
+    if (space_ptr != NULL) {
+        status_len = space_ptr - status_str;
+    }
+
+    status = nxt_int_parse((u_char *) status_str, status_len);
+    if (nxt_slow_path(status < 0)) {
+        return PyErr_Format(PyExc_TypeError, "failed to parse status code");
+    }
+
+    Py_XDECREF(status_bytes);
+
+    /*
+     * PEP 3333:
+     *
+     * ... applications can replace their originally intended output with error
+     * output, up until the last possible moment.
+     */
+    rc = nxt_unit_response_init(ctx->req, status, fields_count, fields_size);
+    if (nxt_slow_path(rc != NXT_UNIT_OK)) {
+        return PyErr_Format(PyExc_RuntimeError,
+                            "failed to allocate response object");
+    }
+
+    for (i = 0; i < fields_count; i++) {
+        tuple = PyList_GET_ITEM(headers, i);
+
+        rc = nxt_python_response_add_field(ctx, PyTuple_GET_ITEM(tuple, 0),
+                                           PyTuple_GET_ITEM(tuple, 1), i);
+        if (nxt_slow_path(rc != NXT_UNIT_OK)) {
+            return PyErr_Format(PyExc_RuntimeError,
+                                "failed to add header #%d", (int) i);
+        }
+    }
+
+    /*
+     * PEP 3333:
+     *
+     * However, the start_response callable must not actually transmit the
+     * response headers. Instead, it must store them for the server or gateway
+     * to transmit only after the first iteration of the application return
+     * value that yields a non-empty bytestring, or upon the application's
+     * first invocation of the write() callable. In other words, response
+     * headers must not be sent until there is actual body data available, or
+     * until the application's returned iterable is exhausted. (The only
+     * possible exception to this rule is if the response headers explicitly
+     * include a Content-Length of zero.)
+     */
+    if (ctx->content_length == 0) {
+        rc = nxt_unit_response_send(ctx->req);
+        if (nxt_slow_path(rc != NXT_UNIT_OK)) {
+            return PyErr_Format(PyExc_RuntimeError,
+                                "failed to send response headers");
+        }
+    }
 
     Py_INCREF(nxt_py_write_obj);
     return nxt_py_write_obj;
 }
 
 
+static int
+nxt_python_response_add_field(nxt_python_run_ctx_t *ctx, PyObject *name,
+    PyObject *value, int i)
+{
+    int        rc;
+    char       *name_str, *value_str;
+    uint32_t   name_length, value_length;
+    PyObject   *name_bytes, *value_bytes;
+    nxt_off_t  content_length;
+
+    name_bytes = NULL;
+    value_bytes = NULL;
+
+    rc = nxt_python_str_buf(name, &name_str, &name_length, &name_bytes);
+    if (nxt_slow_path(rc != NXT_UNIT_OK)) {
+        goto fail;
+    }
+
+    rc = nxt_python_str_buf(value, &value_str, &value_length, &value_bytes);
+    if (nxt_slow_path(rc != NXT_UNIT_OK)) {
+        goto fail;
+    }
+
+    rc = nxt_unit_response_add_field(ctx->req, name_str, name_length,
+                                     value_str, value_length);
+    if (nxt_slow_path(rc != NXT_UNIT_OK)) {
+        goto fail;
+    }
+
+    if (ctx->req->response->fields[i].hash == NXT_UNIT_HASH_CONTENT_LENGTH) {
+        content_length = nxt_off_t_parse((u_char *) value_str, value_length);
+        if (nxt_slow_path(content_length < 0)) {
+            nxt_unit_req_error(ctx->req, "failed to parse Content-Length "
+                               "value %.*s", (int) value_length, value_str);
+
+        } else {
+            ctx->content_length = content_length;
+        }
+    }
+
+fail:
+
+    Py_XDECREF(name_bytes);
+    Py_XDECREF(value_bytes);
+
+    return rc;
+}
+
+
+static int
+nxt_python_str_buf(PyObject *str, char **buf, uint32_t *len, PyObject **bytes)
+{
+    if (PyBytes_Check(str)) {
+        *buf = PyBytes_AS_STRING(str);
+        *len = PyBytes_GET_SIZE(str);
+        *bytes = NULL;
+
+    } else {
+        *bytes = PyUnicode_AsLatin1String(str);
+        if (nxt_slow_path(*bytes == NULL)) {
+            return NXT_UNIT_ERROR;
+        }
+
+        *buf = PyBytes_AS_STRING(*bytes);
+        *len = PyBytes_GET_SIZE(*bytes);
+    }
+
+    return NXT_UNIT_OK;
+}
+
+
 static PyObject *
 nxt_py_write(PyObject *self, PyObject *str)
 {
-    nxt_int_t  rc;
+    int  rc;
 
     if (nxt_fast_path(!PyBytes_Check(str))) {
         return PyErr_Format(PyExc_TypeError, "the argument is not a %s",
                             NXT_PYTHON_BYTES_TYPE);
     }
 
-    rc = nxt_app_msg_write_raw(nxt_python_run_ctx->task,
-                               nxt_python_run_ctx->wmsg,
-                               (const u_char *) PyBytes_AS_STRING(str),
-                               PyBytes_GET_SIZE(str));
-
-    if (nxt_slow_path(rc != NXT_OK)) {
+    rc = nxt_python_write(nxt_python_run_ctx, str);
+    if (nxt_slow_path(rc != NXT_UNIT_OK)) {
         return PyErr_Format(PyExc_RuntimeError,
                             "failed to write response value");
     }
@@ -965,22 +1106,19 @@ nxt_py_input_dealloc(nxt_py_input_t *self)
 static PyObject *
 nxt_py_input_read(nxt_py_input_t *self, PyObject *args)
 {
-    u_char      *buf;
-    size_t      copy_size;
-    PyObject    *body, *obj;
-    Py_ssize_t  size;
-    nxt_uint_t  n;
+    char                  *buf;
+    PyObject              *content, *obj;
+    Py_ssize_t            size, n;
     nxt_python_run_ctx_t  *ctx;
 
     ctx = nxt_python_run_ctx;
-
     if (nxt_slow_path(ctx == NULL)) {
         return PyErr_Format(PyExc_RuntimeError,
                             "wsgi.input.read() is called "
                             "outside of WSGI request processing");
     }
 
-    size = ctx->body_preread_size;
+    size = ctx->req->content_length;
 
     n = PyTuple_GET_SIZE(args);
 
@@ -998,36 +1136,34 @@ nxt_py_input_read(nxt_py_input_t *self, PyObject *args)
                 return NULL;
             }
 
-            return PyErr_Format(PyExc_ValueError,
-                                "the read body size cannot be zero or less");
+            if (size != -1) {
+                return PyErr_Format(PyExc_ValueError,
+                                  "the read body size cannot be zero or less");
+            }
         }
 
-        if (size == 0 || size > (Py_ssize_t) ctx->body_preread_size) {
-            size = ctx->body_preread_size;
+        if (size == -1 || size > (Py_ssize_t) ctx->req->content_length) {
+            size = ctx->req->content_length;
         }
     }
 
-    body = PyBytes_FromStringAndSize(NULL, size);
-
-    if (nxt_slow_path(body == NULL)) {
+    content = PyBytes_FromStringAndSize(NULL, size);
+    if (nxt_slow_path(content == NULL)) {
         return NULL;
     }
 
-    buf = (u_char *) PyBytes_AS_STRING(body);
+    buf = PyBytes_AS_STRING(content);
 
-    copy_size = nxt_min((size_t) size, ctx->body_preread_size);
-    copy_size = nxt_app_msg_read_raw(ctx->task, ctx->rmsg, buf, copy_size);
+    size = nxt_unit_request_read(ctx->req, buf, size);
 
-    ctx->body_preread_size -= copy_size;
-
-    return body;
+    return content;
 }
 
 
 static PyObject *
 nxt_py_input_readline(nxt_py_input_t *self, PyObject *args)
 {
-    return PyBytes_FromString("");
+    return PyBytes_FromStringAndSize("", 0);
 }
 
 
@@ -1038,49 +1174,38 @@ nxt_py_input_readlines(nxt_py_input_t *self, PyObject *args)
 }
 
 
-nxt_inline nxt_int_t
-nxt_python_write(nxt_python_run_ctx_t *ctx, const u_char *data, size_t len,
-    nxt_bool_t flush, nxt_bool_t last)
+static int
+nxt_python_write(nxt_python_run_ctx_t *ctx, PyObject *bytes)
 {
-    nxt_int_t  rc;
+    int       rc;
+    char      *str_buf;
+    uint32_t  str_length;
 
-    rc = nxt_app_msg_write_raw(ctx->task, ctx->wmsg, data, len);
+    str_buf = PyBytes_AS_STRING(bytes);
+    str_length = PyBytes_GET_SIZE(bytes);
 
-    if (flush || last) {
-        rc = nxt_app_msg_flush(ctx->task, ctx->wmsg, last);
+    if (nxt_slow_path(str_length == 0)) {
+        return NXT_UNIT_OK;
     }
 
-    return rc;
-}
+    /*
+     * PEP 3333:
+     *
+     * If the application supplies a Content-Length header, the server should
+     * not transmit more bytes to the client than the header allows, and should
+     * stop iterating over the response when enough data has been sent, or raise
+     * an error if the application tries to write() past that point.
+     */
+    if (nxt_slow_path(str_length > ctx->content_length - ctx->bytes_sent)) {
+        nxt_unit_req_error(ctx->req, "content length %"PRIu64" exceeded",
+                           ctx->content_length);
 
+        return NXT_UNIT_ERROR;
+    }
 
-nxt_inline nxt_int_t
-nxt_python_write_py_str(nxt_python_run_ctx_t *ctx, PyObject *str,
-    nxt_bool_t flush, nxt_bool_t last)
-{
-    PyObject   *bytes;
-    nxt_int_t  rc;
-
-    rc = NXT_OK;
-
-    if (PyBytes_Check(str)) {
-        rc = nxt_python_write(ctx, (u_char *) PyBytes_AS_STRING(str),
-                              PyBytes_GET_SIZE(str), flush, last);
-
-    } else {
-        if (!PyUnicode_Check(str)) {
-            return NXT_ERROR;
-        }
-
-        bytes = PyUnicode_AsLatin1String(str);
-        if (nxt_slow_path(bytes == NULL)) {
-            return NXT_ERROR;
-        }
-
-        rc = nxt_python_write(ctx, (u_char *) PyBytes_AS_STRING(bytes),
-                              PyBytes_GET_SIZE(bytes), flush, last);
-
-        Py_DECREF(bytes);
+    rc = nxt_unit_response_write(ctx->req, str_buf, str_length);
+    if (nxt_fast_path(rc == NXT_UNIT_OK)) {
+        ctx->bytes_sent += str_length;
     }
 
     return rc;

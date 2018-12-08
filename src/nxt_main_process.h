@@ -19,9 +19,17 @@ typedef enum {
 } nxt_socket_error_t;
 
 
+typedef struct {
+    nxt_str_t    conf;
+#if (NXT_TLS)
+    nxt_array_t  *certs;
+#endif
+} nxt_controller_init_t;
+
+
 nxt_int_t nxt_main_process_start(nxt_thread_t *thr, nxt_task_t *task,
     nxt_runtime_t *runtime);
-void nxt_main_stop_worker_processes(nxt_task_t *task, nxt_runtime_t *runtime);
+void nxt_main_stop_all_processes(nxt_task_t *task, nxt_runtime_t *runtime);
 
 nxt_int_t nxt_controller_start(nxt_task_t *task, void *data);
 nxt_int_t nxt_router_start(nxt_task_t *task, void *data);

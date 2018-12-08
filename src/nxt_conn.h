@@ -56,26 +56,20 @@ typedef struct {
     ssize_t                       (*recv)(nxt_conn_t *c, void *buf,
                                       size_t size, nxt_uint_t flags);
 
-    /*
-     * The write() is an interface to write a buffer chain with a given rate
-     * limit.  It calls write_chunk() in a loop and handles write event timer.
-     */
+    /* The write() is an interface to write a buffer chain. */
     nxt_work_handler_t            write;
-
-    /*
-     * The write_chunk() interface writes a buffer chain with a given limit
-     * and toggles write event.  SSL/TLS libraries' write_chunk() interface
-     * buffers data and calls the library specific send() interface to write
-     * the buffered data eventually.
-     */
-    ssize_t                       (*write_chunk)(nxt_conn_t *c,
-                                      nxt_buf_t *b, size_t limit);
 
     /*
      * The sendbuf() is an interface for OS-specific sendfile
      * implementations or simple writev().
      */
-    ssize_t                       (*sendbuf)(nxt_conn_t *c, nxt_buf_t *b,
+    ssize_t                       (*sendbuf)(nxt_task_t *task,
+                                       nxt_sendbuf_t *sb);
+    /*
+     * The sendbuf() is an interface for OS-specific sendfile
+     * implementations or simple writev().
+     */
+    ssize_t                       (*old_sendbuf)(nxt_conn_t *c, nxt_buf_t *b,
                                       size_t limit);
     /*
      * The writev() is an interface to write several nxt_iobuf_t buffers.
@@ -146,8 +140,8 @@ struct nxt_conn_s {
     nxt_conn_io_t                 *io;
 
     union {
-#if (NXT_SSLTLS)
-        void                      *ssltls;
+#if (NXT_TLS)
+        void                      *tls;
 #endif
         nxt_thread_pool_t         *thread_pool;
     } u;
@@ -181,7 +175,7 @@ struct nxt_conn_s {
     do {                                                                      \
         (ev)->work_queue = (wq);                                              \
         (ev)->log = &(c)->log;                                                \
-        (ev)->precision = NXT_TIMER_DEFAULT_PRECISION;                        \
+        (ev)->bias = NXT_TIMER_DEFAULT_BIAS;                                  \
     } while (0)
 
 
@@ -225,7 +219,6 @@ struct nxt_conn_s {
 
 NXT_EXPORT nxt_conn_t *nxt_conn_create(nxt_mp_t *mp, nxt_task_t *task);
 NXT_EXPORT void nxt_conn_free(nxt_task_t *task, nxt_conn_t *c);
-void nxt_conn_io_shutdown(nxt_task_t *task, void *obj, void *data);
 NXT_EXPORT void nxt_conn_close(nxt_event_engine_t *engine, nxt_conn_t *c);
 
 NXT_EXPORT void nxt_conn_timer(nxt_event_engine_t *engine, nxt_conn_t *c,
@@ -265,8 +258,6 @@ ssize_t nxt_conn_io_send(nxt_task_t *task, nxt_sendbuf_t *sb, void *buf,
 size_t nxt_event_conn_write_limit(nxt_conn_t *c);
 nxt_bool_t nxt_event_conn_write_delayed(nxt_event_engine_t *engine,
     nxt_conn_t *c, size_t sent);
-ssize_t nxt_event_conn_io_write_chunk(nxt_conn_t *c, nxt_buf_t *b,
-    size_t limit);
 ssize_t nxt_event_conn_io_writev(nxt_conn_t *c, nxt_iobuf_t *iob,
     nxt_uint_t niob);
 ssize_t nxt_event_conn_io_send(nxt_conn_t *c, void *buf, size_t size);

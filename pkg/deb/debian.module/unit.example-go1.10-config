@@ -1,7 +1,7 @@
 {
 	"applications": {
 		"example_go": {
-			"type": "go",
+			"type": "external",
 			"user": "nobody",
 			"executable": "/tmp/go1.10-app"
 		}

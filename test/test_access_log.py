@@ -13,7 +13,7 @@ class TestUnitAccessLog(unit.TestUnitApplicationPython):
     def load(self, script):
         super().load(script)
 
-        self.conf('"' + self.testdir + '/access.log"', '/access_log')
+        self.conf('"' + self.testdir + '/access.log"', 'access_log')
 
     def search_in_log(self, pattern, name='access.log'):
         with open(self.testdir + '/' + name, 'r') as f:
@@ -85,7 +85,7 @@ Connection: close
             "[::1]:7080": {
                 "application": "empty"
             }
-        }, '/listeners')
+        }, 'listeners')
 
         self.get(sock_type='ipv6')
 
@@ -106,7 +106,7 @@ Connection: close
             "unix:" + addr: {
                 "application": "empty"
             }
-        }, '/listeners')
+        }, 'listeners')
 
         self.get(sock_type='unix', addr=addr)
 
@@ -240,7 +240,7 @@ Connection: close
     def test_access_log_delete(self):
         self.load('empty')
 
-        self.conf_delete('/access_log')
+        self.conf_delete('access_log')
 
         self.get(url='/delete')
 
@@ -255,7 +255,7 @@ Connection: close
 
         self.get()
 
-        self.conf('"' + self.testdir + '/new.log"', '/access_log')
+        self.conf('"' + self.testdir + '/new.log"', 'access_log')
 
         self.get()
 
@@ -305,4 +305,4 @@ Connection: close
             'reopen 2')
 
 if __name__ == '__main__':
-    unittest.main()
+    TestUnitAccessLog.main()

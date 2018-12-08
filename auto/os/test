@@ -40,8 +40,6 @@ case "$NXT_SYSTEM" in
         NXT_SYSTEM_PLATFORM=`uname -m 2>/dev/null`
         echo=echo
         CC=${CC:-cc}
-
-        NXT_TEST_CFLAGS="$NXT_TEST_CFLAGS -mmacosx-version-min=10.6"
         ;;
 
     AIX)

@@ -101,6 +101,9 @@ void nxt_conf_json_position(u_char *start, u_char *pos, nxt_uint_t *line,
 nxt_int_t nxt_conf_validate(nxt_conf_validation_t *vldt);
 
 NXT_EXPORT void nxt_conf_get_string(nxt_conf_value_t *value, nxt_str_t *str);
+NXT_EXPORT void nxt_conf_set_string(nxt_conf_value_t *value, nxt_str_t *str);
+NXT_EXPORT nxt_int_t nxt_conf_set_string_dup(nxt_conf_value_t *value,
+    nxt_mp_t *mp, nxt_str_t *str);
 NXT_EXPORT int64_t nxt_conf_get_integer(nxt_conf_value_t *value);
 
 // FIXME reimplement and reorder functions below
@@ -110,8 +113,18 @@ void nxt_conf_set_member(nxt_conf_value_t *object, nxt_str_t *name,
     nxt_conf_value_t *value, uint32_t index);
 void nxt_conf_set_member_string(nxt_conf_value_t *object, nxt_str_t *name,
     nxt_str_t *value, uint32_t index);
+nxt_int_t nxt_conf_set_member_string_dup(nxt_conf_value_t *object, nxt_mp_t *mp,
+    nxt_str_t *name, nxt_str_t *value, uint32_t index);
 void nxt_conf_set_member_integer(nxt_conf_value_t *object, nxt_str_t *name,
     int64_t value, uint32_t index);
+void nxt_conf_set_member_null(nxt_conf_value_t *object, nxt_str_t *name,
+    uint32_t index);
+
+nxt_conf_value_t *nxt_conf_create_array(nxt_mp_t *mp, nxt_uint_t count);
+void nxt_conf_set_element(nxt_conf_value_t *array, nxt_uint_t index,
+    nxt_conf_value_t *value);
+nxt_int_t nxt_conf_set_element_string_dup(nxt_conf_value_t *array, nxt_mp_t *mp,
+    nxt_uint_t index, nxt_str_t *value);
 
 
 #endif /* _NXT_CONF_INCLUDED_ */

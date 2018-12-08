@@ -12,6 +12,7 @@ typedef enum {
     NXT_HTTP_INVALID = 0,
 
     NXT_HTTP_OK = 200,
+    NXT_HTTP_NO_CONTENT = 204,
 
     NXT_HTTP_MULTIPLE_CHOICES = 300,
     NXT_HTTP_MOVED_PERMANENTLY = 301,
@@ -25,6 +26,8 @@ typedef enum {
     NXT_HTTP_PAYLOAD_TOO_LARGE = 413,
     NXT_HTTP_URI_TOO_LONG = 414,
     NXT_HTTP_REQUEST_HEADER_FIELDS_TOO_LARGE = 431,
+
+    NXT_HTTP_TO_HTTPS = 497,
 
     NXT_HTTP_INTERNAL_SERVER_ERROR = 500,
     NXT_HTTP_NOT_IMPLEMENTED = 501,
@@ -182,6 +185,8 @@ nxt_int_t nxt_http_request_field(void *ctx, nxt_http_field_t *field,
 nxt_int_t nxt_http_request_content_length(void *ctx, nxt_http_field_t *field,
     uintptr_t data);
 
+
+extern nxt_time_string_t  nxt_http_date_cache;
 
 extern nxt_lvlhsh_t                        nxt_response_fields_hash;
 

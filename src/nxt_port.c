@@ -109,11 +109,7 @@ nxt_port_release(nxt_task_t *task, nxt_port_t *port)
     nxt_debug(task, "port %p %d:%d release, type %d", port, port->pid,
               port->id, port->type);
 
-    if (port->app != NULL) {
-        nxt_router_app_use(task, port->app, -1);
-
-        port->app = NULL;
-    }
+    port->app = NULL;
 
     if (port->link.next != NULL) {
         nxt_assert(port->process != NULL);
@@ -199,7 +195,7 @@ nxt_port_send_new_port(nxt_task_t *task, nxt_runtime_t *rt,
 
         port = nxt_process_port_first(process);
 
-        if (nxt_proc_conn_martix[port->type][new_port->type]) {
+        if (nxt_proc_conn_matrix[port->type][new_port->type]) {
             (void) nxt_port_send_port(task, port, new_port, stream);
         }
 
@@ -279,6 +275,8 @@ nxt_port_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_process_port_add(task, process, port);
 
     nxt_process_use(task, process, -1);
+
+    nxt_fd_nonblocking(task, msg->fd);
 
     port->pair[0] = -1;
     port->pair[1] = msg->fd;

@@ -234,6 +234,8 @@
 #include <sys/random.h>             /* getrandom(). */
 #elif (NXT_HAVE_LINUX_SYS_GETRANDOM)
 #include <linux/random.h>           /* SYS_getrandom. */
+#elif (NXT_HAVE_GETENTROPY_SYS_RANDOM)
+#include <sys/random.h>             /* getentropy(). */
 #endif
 
 

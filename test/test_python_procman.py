@@ -27,7 +27,7 @@ class TestUnitPythonProcman(unit.TestUnitApplicationPython):
         self.load('empty', self.app_name)
 
     def test_python_processes_access(self):
-        self.conf('1', '/applications/' + self.app_name + '/processes')
+        self.conf('1', 'applications/' + self.app_name + '/processes')
 
         self.assertIn('error', self.conf_get('/applications/' + self.app_name +
             '/processes/max'), 'max no access')
@@ -39,22 +39,22 @@ class TestUnitPythonProcman(unit.TestUnitApplicationPython):
     def test_python_processes_spare_negative(self):
         self.assertIn('error', self.conf({
             "spare": -1
-        }, '/applications/' + self.app_name + '/processes'), 'negative spare')
+        }, 'applications/' + self.app_name + '/processes'), 'negative spare')
 
     def test_python_processes_max_negative(self):
         self.assertIn('error', self.conf({
             "max": -1
-        }, '/applications/' + self.app_name + '/processes'), 'negative max')
+        }, 'applications/' + self.app_name + '/processes'), 'negative max')
 
     def test_python_processes_idle_timeout_negative(self):
         self.assertIn('error', self.conf({
             "idle_timeout": -1
-        }, '/applications/' + self.app_name + '/processes'),
+        }, 'applications/' + self.app_name + '/processes'),
             'negative idle_timeout')
 
     def test_python_processes_spare_gt_max_default(self):
         self.assertIn('error', self.conf({"spare": 2},
-            '/applications/' + self.app_name + '/processes'),
+            'applications/' + self.app_name + '/processes'),
             'spare greater than max default')
 
     def test_python_processes_spare_gt_max(self):
@@ -70,20 +70,20 @@ class TestUnitPythonProcman(unit.TestUnitApplicationPython):
             "spare": 0,
             "max": 0,
             "idle_timeout": 1
-        }, '/applications/' + self.app_name + '/processes'), 'max 0')
+        }, 'applications/' + self.app_name + '/processes'), 'max 0')
 
     def test_python_processes_idle_timeout_zero(self):
         self.conf({
             "spare": 0,
             "max": 2,
             "idle_timeout": 0
-        }, '/applications/' + self.app_name + '/processes')
+        }, 'applications/' + self.app_name + '/processes')
 
         self.get()
         self.assertEqual(len(self.pids_for_process()), 0, 'idle timeout 0')
 
     def test_python_prefork(self):
-        self.conf('2', '/applications/' + self.app_name + '/processes')
+        self.conf('2', 'applications/' + self.app_name + '/processes')
 
         pids = self.pids_for_process()
         self.assertEqual(len(pids), 2, 'prefork 2')
@@ -91,7 +91,7 @@ class TestUnitPythonProcman(unit.TestUnitApplicationPython):
         self.get()
         self.assertSetEqual(self.pids_for_process(), pids, 'prefork still 2')
 
-        self.conf('4', '/applications/' + self.app_name + '/processes')
+        self.conf('4', 'applications/' + self.app_name + '/processes')
 
         pids = self.pids_for_process()
         self.assertEqual(len(pids), 4, 'prefork 4')
@@ -103,11 +103,11 @@ class TestUnitPythonProcman(unit.TestUnitApplicationPython):
 
     @unittest.expectedFailure
     def test_python_prefork_same_processes(self):
-        self.conf('2', '/applications/' + self.app_name + '/processes')
+        self.conf('2', 'applications/' + self.app_name + '/processes')
 
         pids = self.pids_for_process()
 
-        self.conf('4', '/applications/' + self.app_name + '/processes')
+        self.conf('4', 'applications/' + self.app_name + '/processes')
 
         pids_new = self.pids_for_process()
 
@@ -118,7 +118,7 @@ class TestUnitPythonProcman(unit.TestUnitApplicationPython):
             "spare": 0,
             "max": 8,
             "idle_timeout": 1
-        }, '/applications/' + self.app_name + '/processes')
+        }, 'applications/' + self.app_name + '/processes')
 
         self.assertEqual(len(self.pids_for_process()), 0, 'on-demand 0')
 
@@ -140,7 +140,7 @@ class TestUnitPythonProcman(unit.TestUnitApplicationPython):
             "spare": 2,
             "max": 8,
             "idle_timeout": 1
-        }, '/applications/' + self.app_name + '/processes')
+        }, 'applications/' + self.app_name + '/processes')
 
         pids = self.pids_for_process()
         self.assertEqual(len(pids), 2, 'updown 2')
@@ -170,7 +170,7 @@ class TestUnitPythonProcman(unit.TestUnitApplicationPython):
             "spare": 2,
             "max": 6,
             "idle_timeout": 1
-        }, '/applications/' + self.app_name + '/processes')
+        }, 'applications/' + self.app_name + '/processes')
 
         pids = self.pids_for_process()
         self.assertEqual(len(pids), 2, 'reconf 2')
@@ -180,7 +180,7 @@ class TestUnitPythonProcman(unit.TestUnitApplicationPython):
         self.assertEqual(len(pids_new), 3, 'reconf 3')
         self.assertTrue(pids.issubset(pids_new), 'reconf 3 only 1 new')
 
-        self.conf('6', '/applications/' + self.app_name + '/processes/spare')
+        self.conf('6', 'applications/' + self.app_name + '/processes/spare')
 
         pids = self.pids_for_process()
         self.assertEqual(len(pids), 6, 'reconf 6')
@@ -195,7 +195,7 @@ class TestUnitPythonProcman(unit.TestUnitApplicationPython):
             "spare": 0,
             "max": 6,
             "idle_timeout": 2
-        }, '/applications/' + self.app_name + '/processes')
+        }, 'applications/' + self.app_name + '/processes')
 
         self.get()
         pids = self.pids_for_process()
@@ -221,7 +221,7 @@ class TestUnitPythonProcman(unit.TestUnitApplicationPython):
             "spare": 0,
             "max": 6,
             "idle_timeout": 2
-        }, '/applications/' + self.app_name + '/processes')
+        }, 'applications/' + self.app_name + '/processes')
 
         (resp, sock) = self.get(headers={
             'Host': 'localhost',
@@ -245,4 +245,4 @@ class TestUnitPythonProcman(unit.TestUnitApplicationPython):
         self.assertEqual(len(self.pids_for_process()), 0, 'stop all')
 
 if __name__ == '__main__':
-    unittest.main()
+    TestUnitPythonProcman.main()

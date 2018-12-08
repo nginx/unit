@@ -781,7 +781,7 @@ nxt_sockaddr_inet_parse(nxt_mp_t *mp, nxt_str_t *addr)
             sa = nxt_sockaddr_alloc(mp, sizeof(struct sockaddr_in),
                                     NXT_INET_ADDR_STR_LEN);
 
-            if (nxt_slow_path(sa != NULL)) {
+            if (nxt_fast_path(sa != NULL)) {
                 sa->u.sockaddr_in.sin_family = AF_INET;
                 sa->u.sockaddr_in.sin_port = htons((in_port_t) port);
                 sa->u.sockaddr_in.sin_addr.s_addr = inaddr;

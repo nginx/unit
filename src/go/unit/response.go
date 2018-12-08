@@ -6,12 +6,11 @@
 package unit
 
 /*
-#include "nxt_go_lib.h"
+#include "nxt_cgo_lib.h"
 */
 import "C"
 
 import (
-	"fmt"
 	"net/http"
 )
 
@@ -19,10 +18,10 @@ type response struct {
 	header     http.Header
 	headerSent bool
 	req        *http.Request
-	c_req      C.nxt_go_request_t
+	c_req      C.uintptr_t
 }
 
-func new_response(c_req C.nxt_go_request_t, req *http.Request) *response {
+func new_response(c_req C.uintptr_t, req *http.Request) *response {
 	resp := &response{
 		header: http.Header{},
 		req:    req,
@@ -41,9 +40,7 @@ func (r *response) Write(p []byte) (n int, err error) {
 		r.WriteHeader(http.StatusOK)
 	}
 
-	l := C.size_t(len(p))
-	b := buf_ref(p)
-	res := C.nxt_go_response_write(r.c_req, b, l)
+	res := C.nxt_cgo_response_write(r.c_req, buf_ref(p), C.uint32_t(len(p)))
 	return int(res), nil
 }
 
@@ -54,14 +51,37 @@ func (r *response) WriteHeader(code int) {
 		return
 	}
 	r.headerSent = true
-	fmt.Fprintf(r, "Status: %d\r\n", code)
 
 	// Set a default Content-Type
 	if _, hasType := r.header["Content-Type"]; !hasType {
 		r.header.Add("Content-Type", "text/html; charset=utf-8")
 	}
 
-	r.header.Write(r)
+	fields := 0
+	fields_size := 0
 
-	r.Write([]byte("\r\n"))
+	for k, vv := range r.header {
+		for _, v := range vv {
+			fields++
+			fields_size += len(k) + len(v)
+		}
+	}
+
+	C.nxt_cgo_response_create(r.c_req, C.int(code), C.int(fields),
+		C.uint32_t(fields_size))
+
+	for k, vv := range r.header {
+		for _, v := range vv {
+			C.nxt_cgo_response_add_field(r.c_req, str_ref(k), C.uint8_t(len(k)),
+				str_ref(v), C.uint32_t(len(v)))
+		}
+	}
+
+	C.nxt_cgo_response_send(r.c_req)
+}
+
+func (r *response) Flush() {
+	if !r.headerSent {
+		r.WriteHeader(http.StatusOK)
+	}
 }

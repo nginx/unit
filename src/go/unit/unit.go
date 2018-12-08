@@ -6,17 +6,13 @@
 package unit
 
 /*
-#include "nxt_go_lib.h"
+#include "nxt_cgo_lib.h"
 */
 import "C"
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
-	"os"
-	"strconv"
-	"strings"
 	"unsafe"
 )
 
@@ -33,9 +29,31 @@ func buf_ref(buf []byte) C.uintptr_t {
 	return C.uintptr_t(uintptr(unsafe.Pointer(&buf[0])))
 }
 
-func (buf *cbuf) init(b []byte) {
-  buf.b = buf_ref(b)
-  buf.s = C.size_t(len(b))
+type StringHeader struct {
+	Data unsafe.Pointer
+	Len int
+}
+
+func str_ref(s string) C.uintptr_t {
+	header := (*StringHeader)(unsafe.Pointer(&s))
+
+	return C.uintptr_t(uintptr(unsafe.Pointer(header.Data)))
+}
+
+func (buf *cbuf) init_bytes(b []byte) {
+	buf.b = buf_ref(b)
+	buf.s = C.size_t(len(b))
+}
+
+func (buf *cbuf) init_string(s string) {
+	buf.b = str_ref(s)
+	buf.s = C.size_t(len(s))
+}
+
+type SliceHeader struct {
+	Data unsafe.Pointer
+	Len int
+	Cap int
 }
 
 func (buf *cbuf) GoBytes() []byte {
@@ -44,93 +62,40 @@ func (buf *cbuf) GoBytes() []byte {
 		return b[:0]
 	}
 
-	return C.GoBytes(unsafe.Pointer(uintptr(buf.b)), C.int(buf.s))
+	bytesHeader := &SliceHeader{
+		Data: unsafe.Pointer(uintptr(buf.b)),
+		Len: int(buf.s),
+		Cap: int(buf.s),
+	}
+
+	return *(*[]byte)(unsafe.Pointer(bytesHeader))
 }
 
-var nxt_go_quit bool = false
+func GoBytes(buf unsafe.Pointer, size C.int) []byte {
+	bytesHeader := &SliceHeader{
+		Data: buf,
+		Len: int(size),
+		Cap: int(size),
+	}
 
-//export nxt_go_set_quit
-func nxt_go_set_quit() {
-	nxt_go_quit = true
+	return *(*[]byte)(unsafe.Pointer(bytesHeader))
 }
 
 func nxt_go_warn(format string, args ...interface{}) {
-  fmt.Fprintf(os.Stderr, "[go warn] " + format + "\n", args...)
-}
+	str := fmt.Sprintf("[go] " + format, args...)
 
-func nxt_go_debug(format string, args ...interface{}) {
-  // fmt.Fprintf(os.Stderr, "[go debug] " + format + "\n", args...)
+	C.nxt_cgo_warn(str_ref(str), C.uint32_t(len(str)))
 }
 
 func ListenAndServe(addr string, handler http.Handler) error {
-	var read_port *port
+	if handler == nil {
+		handler = http.DefaultServeMux
+	}
 
-	go_ports_env := os.Getenv("NXT_GO_PORTS")
-	if go_ports_env == "" {
+	rc := C.nxt_cgo_run(C.uintptr_t(uintptr(unsafe.Pointer(&handler))))
+
+	if rc != 0 {
 		return http.ListenAndServe(addr, handler)
-	}
-
-	nxt_go_debug("NXT_GO_PORTS=%s", go_ports_env)
-
-	ports := strings.Split(go_ports_env, ";")
-	pid := os.Getpid()
-
-	if len(ports) != 4 {
-		return errors.New("Invalid NXT_GO_PORTS format")
-	}
-
-	nxt_go_debug("version=%s", ports[0])
-
-	builtin_version := C.GoString(C.nxt_go_version())
-
-	if ports[0] != builtin_version {
-		return fmt.Errorf("Versions mismatch: Unit %s, while application is built with %s",
-			ports[0], builtin_version)
-	}
-
-	stream, stream_err := strconv.Atoi(ports[1])
-	if stream_err != nil {
-		return stream_err
-	}
-
-	read_port = nil
-
-	for _, port_str := range ports[2:] {
-		attrs := strings.Split(port_str, ",")
-
-		if len(attrs) != 5 {
-			return fmt.Errorf("Invalid port format: unexpected port attributes number %d, while 5 expected",
-				len(attrs))
-		}
-
-		var attrsN [5]int
-		var err error
-		for i, attr := range attrs {
-			attrsN[i], err = strconv.Atoi(attr)
-			if err != nil {
-				return fmt.Errorf("Invalid port format: number attribute expected at %d position instead of '%s'",
-					i, attr);
-			}
-		}
-
-		p := new_port(attrsN[0], attrsN[1], attrsN[2], attrsN[3], attrsN[4])
-
-		if attrsN[0] == pid {
-			read_port = p
-		}
-	}
-
-	if read_port == nil {
-		return errors.New("Application read port not found");
-	}
-
-	C.nxt_go_ready(C.uint32_t(stream))
-
-	for !nxt_go_quit {
-		err := read_port.read(handler)
-		if err != nil {
-			return err
-		}
 	}
 
 	return nil

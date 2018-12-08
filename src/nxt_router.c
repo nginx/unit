@@ -7,7 +7,13 @@
 
 #include <nxt_router.h>
 #include <nxt_conf.h>
+#if (NXT_TLS)
+#include <nxt_cert.h>
+#endif
 #include <nxt_http.h>
+#include <nxt_port_memory_int.h>
+#include <nxt_unit_request.h>
+#include <nxt_unit_response.h>
 
 
 typedef struct {
@@ -27,6 +33,18 @@ typedef struct {
 typedef struct {
     nxt_str_t  application;
 } nxt_router_listener_conf_t;
+
+
+#if (NXT_TLS)
+
+typedef struct {
+    nxt_str_t          name;
+    nxt_socket_conf_t  *conf;
+
+    nxt_queue_link_t   link;  /* for nxt_socket_conf_t.tls */
+} nxt_router_tlssock_t;
+
+#endif
 
 
 typedef struct nxt_msg_info_s {
@@ -153,6 +171,12 @@ static void nxt_router_listen_socket_ready(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
 static void nxt_router_listen_socket_error(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
+#if (NXT_TLS)
+static void nxt_router_tls_rpc_create(nxt_task_t *task,
+    nxt_router_temp_conf_t *tmcf, nxt_router_tlssock_t *tls);
+static void nxt_router_tls_rpc_handler(nxt_task_t *task,
+    nxt_port_recv_msg_t *msg, void *data);
+#endif
 static void nxt_router_app_rpc_create(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_app_t *app);
 static void nxt_router_app_prefork_ready(nxt_task_t *task,
@@ -233,7 +257,7 @@ static void nxt_router_app_port_ready(nxt_task_t *task,
 static void nxt_router_app_port_error(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
 
-static void nxt_router_app_quit(nxt_task_t *task, nxt_app_t *app);
+static void nxt_router_app_unlink(nxt_task_t *task, nxt_app_t *app);
 static void nxt_router_app_port_release(nxt_task_t *task, nxt_port_t *port,
     uint32_t request_failed, uint32_t got_response);
 static nxt_int_t nxt_router_app_port(nxt_task_t *task, nxt_app_t *app,
@@ -241,37 +265,35 @@ static nxt_int_t nxt_router_app_port(nxt_task_t *task, nxt_app_t *app,
 
 static void nxt_router_app_prepare_request(nxt_task_t *task,
     nxt_req_app_link_t *ra);
-static nxt_int_t nxt_python_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
-    nxt_app_wmsg_t *wmsg);
-static nxt_int_t nxt_php_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
-    nxt_app_wmsg_t *wmsg);
-static nxt_int_t nxt_go_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
-    nxt_app_wmsg_t *wmsg);
-static nxt_int_t nxt_perl_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
-    nxt_app_wmsg_t *wmsg);
-static nxt_int_t nxt_ruby_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
-    nxt_app_wmsg_t *wmsg);
+static nxt_buf_t *nxt_router_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
+    nxt_port_t *port, const nxt_str_t *prefix);
 
 static void nxt_router_app_timeout(nxt_task_t *task, void *obj, void *data);
 static void nxt_router_adjust_idle_timer(nxt_task_t *task, void *obj,
     void *data);
 static void nxt_router_app_idle_timeout(nxt_task_t *task, void *obj,
     void *data);
-static void nxt_router_app_release_handler(nxt_task_t *task, void *obj,
+static void nxt_router_app_joint_release_handler(nxt_task_t *task, void *obj,
     void *data);
+static void nxt_router_free_app(nxt_task_t *task, void *obj, void *data);
 
 static const nxt_http_request_state_t  nxt_http_request_send_state;
 static void nxt_http_request_send_body(nxt_task_t *task, void *obj, void *data);
 
+static void nxt_router_app_joint_use(nxt_task_t *task,
+    nxt_app_joint_t *app_joint, int i);
+
 static nxt_router_t  *nxt_router;
 
+static const nxt_str_t http_prefix = nxt_string("HTTP_");
+static const nxt_str_t empty_prefix = nxt_string("");
 
-static nxt_app_prepare_msg_t  nxt_app_prepare_msg[] = {
-    nxt_python_prepare_msg,
-    nxt_php_prepare_msg,
-    nxt_go_prepare_msg,
-    nxt_perl_prepare_msg,
-    nxt_ruby_prepare_msg,
+static const nxt_str_t  *nxt_app_msg_prefix[] = {
+    &empty_prefix,
+    &http_prefix,
+    &http_prefix,
+    &http_prefix,
+    &http_prefix,
 };
 
 
@@ -297,6 +319,18 @@ nxt_router_start(nxt_task_t *task, void *data)
     nxt_runtime_t  *rt;
 
     rt = task->thread->runtime;
+
+#if (NXT_TLS)
+    rt->tls = nxt_service_get(rt->services, "SSL/TLS", "OpenSSL");
+    if (nxt_slow_path(rt->tls == NULL)) {
+        return NXT_ERROR;
+    }
+
+    ret = rt->tls->library_init(task);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        return ret;
+    }
+#endif
 
     ret = nxt_http_init(task, rt);
     if (nxt_slow_path(ret != NXT_OK)) {
@@ -363,12 +397,16 @@ nxt_router_start_app_process_handler(nxt_task_t *task, nxt_port_t *port,
     *b->mem.free++ = '\0';
     nxt_buf_cpystr(b, &app->conf);
 
+    nxt_router_app_joint_use(task, app->joint, 1);
+
     stream = nxt_port_rpc_register_handler(task, port,
                                            nxt_router_app_port_ready,
                                            nxt_router_app_port_error,
-                                           -1, app);
+                                           -1, app->joint);
 
     if (nxt_slow_path(stream == 0)) {
+        nxt_router_app_joint_use(task, app->joint, -1);
+
         goto failed;
     }
 
@@ -377,8 +415,13 @@ nxt_router_start_app_process_handler(nxt_task_t *task, nxt_port_t *port,
 
     if (nxt_slow_path(ret != NXT_OK)) {
         nxt_port_rpc_cancel(task, port, stream);
+
+        nxt_router_app_joint_use(task, app->joint, -1);
+
         goto failed;
     }
+
+    nxt_router_app_use(task, app, -1);
 
     return;
 
@@ -397,6 +440,19 @@ failed:
     nxt_thread_mutex_unlock(&app->mutex);
 
     nxt_router_app_use(task, app, -1);
+}
+
+
+static void
+nxt_router_app_joint_use(nxt_task_t *task, nxt_app_joint_t *app_joint, int i)
+{
+    app_joint->use_count += i;
+
+    if (app_joint->use_count == 0) {
+        nxt_assert(app_joint->app == NULL);
+
+        nxt_free(app_joint);
+    }
 }
 
 
@@ -818,6 +874,14 @@ nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
                                        msg->port_msg.pid,
                                        msg->port_msg.reply_port);
 
+    if (nxt_slow_path(tmcf->port == NULL)) {
+        nxt_alert(task, "reply port not found");
+
+        return;
+    }
+
+    nxt_port_use(task, tmcf->port, 1);
+
     b = nxt_buf_chk_make_plain(tmcf->router_conf->mem_pool,
                                msg->buf, msg->size);
     if (nxt_slow_path(b == NULL)) {
@@ -922,6 +986,10 @@ nxt_router_temp_conf(nxt_task_t *task)
     nxt_queue_init(&tmcf->pending);
     nxt_queue_init(&tmcf->creating);
 
+#if (NXT_TLS)
+    nxt_queue_init(&tmcf->tls);
+#endif
+
     nxt_queue_init(&tmcf->apps);
     nxt_queue_init(&tmcf->previous);
 
@@ -967,6 +1035,9 @@ nxt_router_conf_apply(nxt_task_t *task, void *obj, void *data)
     nxt_router_conf_t            *rtcf;
     nxt_router_temp_conf_t       *tmcf;
     const nxt_event_interface_t  *interface;
+#if (NXT_TLS)
+    nxt_router_tlssock_t         *tls;
+#endif
 
     tmcf = obj;
 
@@ -982,6 +1053,19 @@ nxt_router_conf_apply(nxt_task_t *task, void *obj, void *data)
 
         return;
     }
+
+#if (NXT_TLS)
+    qlk = nxt_queue_first(&tmcf->tls);
+
+    if (qlk != nxt_queue_tail(&tmcf->tls)) {
+        nxt_queue_remove(qlk);
+
+        tls = nxt_queue_link_data(qlk, nxt_router_tlssock_t, link);
+
+        nxt_router_tls_rpc_create(task, tmcf, tls);
+        return;
+    }
+#endif
 
     nxt_queue_each(app, &tmcf->apps, nxt_app_t, link) {
 
@@ -1101,7 +1185,7 @@ nxt_router_conf_error(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
 
     nxt_queue_each(app, &tmcf->apps, nxt_app_t, link) {
 
-        nxt_router_app_quit(task, app);
+        nxt_router_app_unlink(task, app);
 
     } nxt_queue_loop;
 
@@ -1128,6 +1212,10 @@ nxt_router_conf_send(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_port_msg_type_t type)
 {
     nxt_port_socket_write(task, tmcf->port, type, -1, tmcf->stream, 0, NULL);
+
+    nxt_port_use(task, tmcf->port, -1);
+
+    tmcf->port = NULL;
 }
 
 
@@ -1287,6 +1375,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_str_t                   name, path;
     nxt_app_t                   *app, *prev;
     nxt_router_t                *router;
+    nxt_app_joint_t             *app_joint;
     nxt_conf_value_t            *conf, *http, *value;
     nxt_conf_value_t            *applications, *application;
     nxt_conf_value_t            *listeners, *listener;
@@ -1296,11 +1385,17 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_router_app_conf_t       apcf;
     nxt_router_access_log_t     *access_log;
     nxt_router_listener_conf_t  lscf;
+#if (NXT_TLS)
+    nxt_router_tlssock_t        *tls;
+#endif
 
-    static nxt_str_t  http_path = nxt_string("/http");
+    static nxt_str_t  http_path = nxt_string("/settings/http");
     static nxt_str_t  applications_path = nxt_string("/applications");
     static nxt_str_t  listeners_path = nxt_string("/listeners");
     static nxt_str_t  access_log_path = nxt_string("/access_log");
+#if (NXT_TLS)
+    static nxt_str_t  certificate_path = nxt_string("/tls/certificate");
+#endif
 
     conf = nxt_conf_json_parse(tmcf->mem_pool, start, end, NULL);
     if (conf == NULL) {
@@ -1377,6 +1472,13 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         apcf.requests = 0;
         apcf.limits_value = NULL;
         apcf.processes_value = NULL;
+
+        app_joint = nxt_malloc(sizeof(nxt_app_joint_t));
+        if (nxt_slow_path(app_joint == NULL)) {
+            goto app_fail;
+        }
+
+        nxt_memzero(app_joint, sizeof(nxt_app_joint_t));
 
         ret = nxt_conf_map_object(mp, application, nxt_router_app_conf,
                                   nxt_nitems(nxt_router_app_conf), &apcf);
@@ -1456,20 +1558,12 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         app->timeout = apcf.timeout;
         app->res_timeout = apcf.res_timeout * 1000000;
         app->idle_timeout = apcf.idle_timeout;
-        app->live = 1;
         app->max_pending_responses = 2;
         app->max_requests = apcf.requests;
-        app->prepare_msg = nxt_app_prepare_msg[lang->type];
 
         engine = task->thread->engine;
 
         app->engine = engine;
-
-        app->idle_timer.precision = NXT_TIMER_DEFAULT_PRECISION;
-        app->idle_timer.work_queue = &engine->fast_work_queue;
-        app->idle_timer.handler = nxt_router_app_idle_timeout;
-        app->idle_timer.task = &engine->task;
-        app->idle_timer.log = app->idle_timer.task->log;
 
         app->adjust_idle_work.handler = nxt_router_adjust_idle_timer;
         app->adjust_idle_work.task = &engine->task;
@@ -1478,6 +1572,21 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         nxt_queue_insert_tail(&tmcf->apps, &app->link);
 
         nxt_router_app_use(task, app, 1);
+
+        app->joint = app_joint;
+
+        app_joint->use_count = 1;
+        app_joint->app = app;
+
+        app_joint->idle_timer.bias = NXT_TIMER_DEFAULT_BIAS;
+        app_joint->idle_timer.work_queue = &engine->fast_work_queue;
+        app_joint->idle_timer.handler = nxt_router_app_idle_timeout;
+        app_joint->idle_timer.task = &engine->task;
+        app_joint->idle_timer.log = app_joint->idle_timer.task->log;
+
+        app_joint->free_app_work.handler = nxt_router_free_app;
+        app_joint->free_app_work.task = &engine->task;
+        app_joint->free_app_work.obj = app_joint;
     }
 
     http = nxt_conf_get_path(conf, &http_path);
@@ -1507,6 +1616,8 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             goto fail;
         }
 
+        nxt_memzero(&lscf, sizeof(lscf));
+
         ret = nxt_conf_map_object(mp, listener, nxt_router_listener_conf,
                                   nxt_nitems(nxt_router_listener_conf), &lscf);
         if (ret != NXT_OK) {
@@ -1521,11 +1632,11 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         skcf->large_header_buffer_size = 8192;
         skcf->large_header_buffers = 4;
         skcf->body_buffer_size = 16 * 1024;
-        skcf->max_body_size = 2 * 1024 * 1024;
-        skcf->idle_timeout = 65000;
-        skcf->header_read_timeout = 5000;
-        skcf->body_read_timeout = 5000;
-        skcf->send_timeout = 5000;
+        skcf->max_body_size = 8 * 1024 * 1024;
+        skcf->idle_timeout = 180 * 1000;
+        skcf->header_read_timeout = 30 * 1000;
+        skcf->body_read_timeout = 30 * 1000;
+        skcf->send_timeout = 30 * 1000;
 
         if (http != NULL) {
             ret = nxt_conf_map_object(mp, http, nxt_router_http_conf,
@@ -1536,12 +1647,35 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             }
         }
 
+#if (NXT_TLS)
+
+        value = nxt_conf_get_path(listener, &certificate_path);
+
+        if (value != NULL) {
+            nxt_conf_get_string(value, &name);
+
+            tls = nxt_mp_get(mp, sizeof(nxt_router_tlssock_t));
+            if (nxt_slow_path(tls == NULL)) {
+                goto fail;
+            }
+
+            tls->name = name;
+            tls->conf = skcf;
+
+            nxt_queue_insert_tail(&tmcf->tls, &tls->link);
+        }
+
+#endif
+
         skcf->listen->handler = nxt_http_conn_init;
         skcf->router_conf = tmcf->router_conf;
         skcf->router_conf->count++;
-        skcf->application = nxt_router_listener_application(tmcf,
+
+        if (lscf.application.length > 0) {
+            skcf->application = nxt_router_listener_application(tmcf,
                                                             &lscf.application);
-        nxt_router_app_use(task, skcf->application, 1);
+            nxt_router_app_use(task, skcf->application, 1);
+        }
     }
 
     value = nxt_conf_get_path(conf, &access_log_path);
@@ -1901,6 +2035,75 @@ nxt_router_listen_socket_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 }
 
 
+#if (NXT_TLS)
+
+static void
+nxt_router_tls_rpc_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
+    nxt_router_tlssock_t *tls)
+{
+    nxt_socket_rpc_t  *rpc;
+
+    rpc = nxt_mp_alloc(tmcf->mem_pool, sizeof(nxt_socket_rpc_t));
+    if (rpc == NULL) {
+        nxt_router_conf_error(task, tmcf);
+        return;
+    }
+
+    rpc->socket_conf = tls->conf;
+    rpc->temp_conf = tmcf;
+
+    nxt_cert_store_get(task, &tls->name, tmcf->mem_pool,
+                       nxt_router_tls_rpc_handler, rpc);
+}
+
+
+static void
+nxt_router_tls_rpc_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
+    void *data)
+{
+    nxt_mp_t               *mp;
+    nxt_int_t              ret;
+    nxt_tls_conf_t         *tlscf;
+    nxt_socket_rpc_t       *rpc;
+    nxt_router_temp_conf_t *tmcf;
+
+    nxt_debug(task, "tls rpc handler");
+
+    rpc = data;
+    tmcf = rpc->temp_conf;
+
+    if (msg == NULL || msg->port_msg.type == _NXT_PORT_MSG_RPC_ERROR) {
+        goto fail;
+    }
+
+    mp = tmcf->router_conf->mem_pool;
+
+    tlscf = nxt_mp_zget(mp, sizeof(nxt_tls_conf_t));
+    if (nxt_slow_path(tlscf == NULL)) {
+        goto fail;
+    }
+
+    tlscf->chain_file = msg->fd;
+
+    ret = task->thread->runtime->tls->server_init(task, tlscf);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        goto fail;
+    }
+
+    rpc->socket_conf->tls = tlscf;
+
+    nxt_work_queue_add(&task->thread->engine->fast_work_queue,
+                       nxt_router_conf_apply, task, tmcf, NULL);
+    return;
+
+fail:
+
+    nxt_router_conf_error(task, tmcf);
+}
+
+#endif
+
+
 static void
 nxt_router_app_rpc_create(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_app_t *app)
@@ -1978,8 +2181,6 @@ nxt_router_app_prefork_ready(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
     port = msg->u.new_port;
     port->app = app;
-
-    nxt_router_app_use(task, app, 1);
 
     app->pending_processes--;
     app->processes++;
@@ -2333,7 +2534,7 @@ nxt_router_apps_sort(nxt_task_t *task, nxt_router_t *router,
 
     nxt_queue_each(app, &router->apps, nxt_app_t, link) {
 
-        nxt_router_app_quit(task, app);
+        nxt_router_app_unlink(task, app);
 
     } nxt_queue_loop;
 
@@ -2731,6 +2932,12 @@ nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
 
     if (rtcf != NULL) {
         nxt_debug(task, "old router conf is destroyed");
+
+#if (NXT_TLS)
+        if (skcf->tls != NULL) {
+            task->thread->runtime->tls->server_free(task, skcf->tls);
+        }
+#endif
 
         nxt_router_access_log_release(task, lock, rtcf->access_log);
 
@@ -3145,6 +3352,7 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     nxt_http_request_t   *r;
     nxt_req_conn_link_t  *rc;
     nxt_app_parse_ctx_t  *ar;
+    nxt_unit_response_t  *resp;
 
     b = msg->buf;
     rc = data;
@@ -3204,17 +3412,62 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
         nxt_http_request_send_body(task, r, NULL);
 
     } else {
+        size_t b_size = nxt_buf_mem_used_size(&b->mem);
+
+        if (nxt_slow_path(b_size < sizeof(*resp))) {
+            goto fail;
+        }
+
+        resp = (void *) b->mem.pos;
+        if (nxt_slow_path(b_size < sizeof(*resp)
+              + resp->fields_count * sizeof(nxt_unit_field_t))) {
+            goto fail;
+        }
+
+        nxt_unit_field_t  *f;
+        nxt_http_field_t  *field;
+
+        for (f = resp->fields; f < resp->fields + resp->fields_count; f++) {
+            field = nxt_list_add(ar->resp_parser.fields);
+
+            if (nxt_slow_path(field == NULL)) {
+                goto fail;
+            }
+
+            field->hash = f->hash;
+            field->skip = f->skip;
+
+            field->name_length = f->name_length;
+            field->value_length = f->value_length;
+            field->name = nxt_unit_sptr_get(&f->name);
+            field->value = nxt_unit_sptr_get(&f->value);
+
+            nxt_debug(task, "header: %*s: %*s",
+                      (size_t) field->name_length, field->name,
+                      (size_t) field->value_length, field->value);
+        }
+        r->status = resp->status;
+
+/*
         ret = nxt_http_parse_fields(&ar->resp_parser, &b->mem);
         if (nxt_slow_path(ret != NXT_DONE)) {
             goto fail;
         }
-
+*/
         r->resp.fields = ar->resp_parser.fields;
 
         ret = nxt_http_fields_process(r->resp.fields,
                                       &nxt_response_fields_hash, r);
         if (nxt_slow_path(ret != NXT_OK)) {
             goto fail;
+        }
+
+        if (resp->piggyback_content_length != 0) {
+            b->mem.pos = nxt_unit_sptr_get(&resp->piggyback_content);
+            b->mem.free = b->mem.pos + resp->piggyback_content_length;
+
+        } else {
+            b->mem.pos = b->mem.free;
         }
 
         if (nxt_buf_mem_used_size(&b->mem) == 0) {
@@ -3323,14 +3576,27 @@ static void
 nxt_router_app_port_ready(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     void *data)
 {
-    nxt_app_t   *app;
-    nxt_port_t  *port;
+    nxt_app_t        *app;
+    nxt_port_t       *port;
+    nxt_app_joint_t  *app_joint;
 
-    app = data;
+    app_joint = data;
     port = msg->u.new_port;
 
-    nxt_assert(app != NULL);
+    nxt_assert(app_joint != NULL);
     nxt_assert(port != NULL);
+
+    app = app_joint->app;
+
+    nxt_router_app_joint_use(task, app_joint, -1);
+
+    if (nxt_slow_path(app == NULL)) {
+        nxt_debug(task, "new port ready for released app, send QUIT");
+
+        nxt_port_socket_write(task, port, NXT_PORT_MSG_QUIT, -1, 0, 0, NULL);
+
+        return;
+    }
 
     port->app = app;
 
@@ -3355,12 +3621,23 @@ nxt_router_app_port_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     void *data)
 {
     nxt_app_t           *app;
+    nxt_app_joint_t     *app_joint;
     nxt_queue_link_t    *lnk;
     nxt_req_app_link_t  *ra;
 
-    app = data;
+    app_joint = data;
 
-    nxt_assert(app != NULL);
+    nxt_assert(app_joint != NULL);
+
+    app = app_joint->app;
+
+    nxt_router_app_joint_use(task, app_joint, -1);
+
+    if (nxt_slow_path(app == NULL)) {
+        nxt_debug(task, "start error for released app");
+
+        return;
+    }
 
     nxt_debug(task, "app '%V' %p start error", &app->name, app);
 
@@ -3390,10 +3667,10 @@ nxt_router_app_port_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
         nxt_router_ra_error(ra, 500, "Failed to start application process");
         nxt_router_ra_use(task, ra, -1);
     }
-
-    nxt_router_app_use(task, app, -1);
 }
 
+nxt_inline nxt_port_t *
+nxt_router_app_get_port_for_quit(nxt_app_t *app);
 
 void
 nxt_router_app_use(nxt_task_t *task, nxt_app_t *app, int i)
@@ -3404,17 +3681,12 @@ nxt_router_app_use(nxt_task_t *task, nxt_app_t *app, int i)
 
     if (i < 0 && c == -i) {
 
-        nxt_assert(app->live == 0);
-        nxt_assert(app->processes == 0);
-        nxt_assert(app->idle_processes == 0);
-        nxt_assert(app->pending_processes == 0);
-        nxt_assert(nxt_queue_is_empty(&app->requests));
-        nxt_assert(nxt_queue_is_empty(&app->ports));
-        nxt_assert(nxt_queue_is_empty(&app->spare_ports));
-        nxt_assert(nxt_queue_is_empty(&app->idle_ports));
+        if (task->thread->engine != app->engine) {
+            nxt_event_engine_post(app->engine, &app->joint->free_app_work);
 
-        nxt_thread_mutex_destroy(&app->mutex);
-        nxt_free(app);
+        } else {
+            nxt_router_free_app(task, app->joint, NULL);
+        }
     }
 }
 
@@ -3500,7 +3772,6 @@ nxt_router_app_get_port_for_quit(nxt_app_t *app)
             app->idle_processes--;
         }
 
-        /* Caller is responsible to decrease app use count. */
         port->app = NULL;
         app->processes--;
 
@@ -3515,37 +3786,13 @@ nxt_router_app_get_port_for_quit(nxt_app_t *app)
 
 
 static void
-nxt_router_app_quit(nxt_task_t *task, nxt_app_t *app)
+nxt_router_app_unlink(nxt_task_t *task, nxt_app_t *app)
 {
-    nxt_port_t  *port;
+    nxt_debug(task, "app '%V' %p unlink", &app->name, app);
 
     nxt_queue_remove(&app->link);
 
-    app->live = 0;
-
-    for ( ;; ) {
-        port = nxt_router_app_get_port_for_quit(app);
-        if (port == NULL) {
-            break;
-        }
-
-        nxt_debug(task, "send QUIT to app '%V' pid %PI", &app->name, port->pid);
-
-        nxt_port_socket_write(task, port, NXT_PORT_MSG_QUIT, -1, 0, 0, NULL);
-
-        nxt_port_use(task, port, -1);
-        nxt_router_app_use(task, app, -1);
-    }
-
-    if (nxt_timer_is_in_tree(&app->idle_timer)) {
-        nxt_assert(app->engine == task->thread->engine);
-
-        app->idle_timer.handler = nxt_router_app_release_handler;
-        nxt_timer_add(app->engine, &app->idle_timer, 0);
-
-    } else {
-        nxt_router_app_use(task, app, -1);
-    }
+    nxt_router_app_use(task, app, -1);
 }
 
 
@@ -3598,10 +3845,6 @@ nxt_router_app_port_release(nxt_task_t *task, nxt_port_t *port,
     port->app_pending_responses -= request_failed + got_response;
     port->app_responses += got_response;
 
-    if (nxt_slow_path(app->live == 0)) {
-        goto app_dead;
-    }
-
     if (port->pair[1] != -1
         && (app->max_pending_responses == 0
             || port->app_pending_responses < app->max_pending_responses)
@@ -3644,8 +3887,6 @@ nxt_router_app_port_release(nxt_task_t *task, nxt_port_t *port,
             nxt_router_ra_pending(task, app, ra);
         }
     }
-
-app_dead:
 
     /* Pop first pending request for this port. */
     if ((request_failed > 0 || got_response > 0)
@@ -3698,9 +3939,9 @@ app_dead:
 
 re_ra_cancelled:
 
-    send_quit = (app->live == 0 && port->app_pending_responses == 0)
-                || (app->max_requests > 0 && port->app_pending_responses == 0
-                    && port->app_responses >= app->max_requests);
+    send_quit = (app->max_requests > 0
+                 && port->app_pending_responses == 0
+                 && port->app_responses >= app->max_requests);
 
     if (send_quit) {
         port_unchained = nxt_queue_chk_remove(&port->app_link);
@@ -3785,8 +4026,6 @@ re_ra_cancelled:
             nxt_port_use(task, port, -1);
         }
 
-        nxt_router_app_use(task, app, -1);
-
         goto adjust_use;
     }
 
@@ -3837,8 +4076,7 @@ nxt_router_app_port_close(nxt_task_t *task, nxt_port_t *port)
 
     app->processes--;
 
-    start_process = app->live != 0
-                    && !task->thread->engine->shutdown
+    start_process = !task->thread->engine->shutdown
                     && nxt_router_app_can_start(app)
                     && (!nxt_queue_is_empty(&app->requests)
                         || nxt_router_app_need_start(app));
@@ -3881,7 +4119,7 @@ nxt_router_adjust_idle_timer(nxt_task_t *task, void *obj, void *data)
 
     nxt_assert(app->engine == engine);
 
-    threshold = engine->timers.now + app->idle_timer.precision;
+    threshold = engine->timers.now + app->joint->idle_timer.bias;
     timeout = 0;
 
     nxt_thread_mutex_lock(&app->mutex);
@@ -3920,7 +4158,6 @@ nxt_router_adjust_idle_timer(nxt_task_t *task, void *obj, void *data)
         nxt_port_socket_write(task, port, NXT_PORT_MSG_QUIT, -1, 0, 0, NULL);
 
         nxt_port_use(task, port, -1);
-        nxt_router_app_use(task, app, -1);
 
         nxt_thread_mutex_lock(&app->mutex);
     }
@@ -3928,10 +4165,10 @@ nxt_router_adjust_idle_timer(nxt_task_t *task, void *obj, void *data)
     nxt_thread_mutex_unlock(&app->mutex);
 
     if (timeout > threshold) {
-        nxt_timer_add(engine, &app->idle_timer, timeout - threshold);
+        nxt_timer_add(engine, &app->joint->idle_timer, timeout - threshold);
 
     } else {
-        nxt_timer_disable(engine, &app->idle_timer);
+        nxt_timer_disable(engine, &app->joint->idle_timer);
     }
 
     if (queued) {
@@ -3943,26 +4180,73 @@ nxt_router_adjust_idle_timer(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_router_app_idle_timeout(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_app_t    *app;
-    nxt_timer_t  *timer;
+    nxt_timer_t      *timer;
+    nxt_app_joint_t  *app_joint;
 
     timer = obj;
-    app = nxt_container_of(timer, nxt_app_t, idle_timer);
+    app_joint = nxt_container_of(timer, nxt_app_joint_t, idle_timer);
 
-    nxt_router_adjust_idle_timer(task, app, NULL);
+    if (nxt_fast_path(app_joint->app != NULL)) {
+        nxt_router_adjust_idle_timer(task, app_joint->app, NULL);
+    }
 }
 
 
 static void
-nxt_router_app_release_handler(nxt_task_t *task, void *obj, void *data)
+nxt_router_app_joint_release_handler(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_app_t    *app;
-    nxt_timer_t  *timer;
+    nxt_timer_t      *timer;
+    nxt_app_joint_t  *app_joint;
 
     timer = obj;
-    app = nxt_container_of(timer, nxt_app_t, idle_timer);
+    app_joint = nxt_container_of(timer, nxt_app_joint_t, idle_timer);
 
-    nxt_router_app_use(task, app, -1);
+    nxt_router_app_joint_use(task, app_joint, -1);
+}
+
+
+static void
+nxt_router_free_app(nxt_task_t *task, void *obj, void *data)
+{
+    nxt_app_t        *app;
+    nxt_port_t       *port;
+    nxt_app_joint_t  *app_joint;
+
+    app_joint = obj;
+    app = app_joint->app;
+
+    for ( ;; ) {
+        port = nxt_router_app_get_port_for_quit(app);
+        if (port == NULL) {
+            break;
+        }
+
+        nxt_debug(task, "send QUIT to app '%V' pid %PI", &app->name, port->pid);
+
+        nxt_port_socket_write(task, port, NXT_PORT_MSG_QUIT, -1, 0, 0, NULL);
+
+        nxt_port_use(task, port, -1);
+    }
+
+    nxt_assert(app->processes == 0);
+    nxt_assert(app->idle_processes == 0);
+    nxt_assert(nxt_queue_is_empty(&app->requests));
+    nxt_assert(nxt_queue_is_empty(&app->ports));
+    nxt_assert(nxt_queue_is_empty(&app->spare_ports));
+    nxt_assert(nxt_queue_is_empty(&app->idle_ports));
+
+    nxt_thread_mutex_destroy(&app->mutex);
+    nxt_free(app);
+
+    app_joint->app = NULL;
+
+    if (nxt_timer_delete(task->thread->engine, &app_joint->idle_timer)) {
+        app_joint->idle_timer.handler = nxt_router_app_joint_release_handler;
+        nxt_timer_add(task->thread->engine, &app_joint->idle_timer, 0);
+
+    } else {
+        nxt_router_app_joint_use(task, app_joint, -1);
+    }
 }
 
 
@@ -4208,10 +4492,9 @@ static void
 nxt_router_app_prepare_request(nxt_task_t *task, nxt_req_app_link_t *ra)
 {
     uint32_t             request_failed;
-    nxt_buf_t            *b;
+    nxt_buf_t            *buf;
     nxt_int_t            res;
     nxt_port_t           *port, *c_port, *reply_port;
-    nxt_app_wmsg_t       wmsg;
     nxt_app_parse_ctx_t  *ap;
 
     nxt_assert(ra->app_port != NULL);
@@ -4236,31 +4519,29 @@ nxt_router_app_prepare_request(nxt_task_t *task, nxt_req_app_link_t *ra)
         nxt_process_connected_port_add(port->process, reply_port);
     }
 
-    wmsg.port = port;
-    wmsg.write = NULL;
-    wmsg.buf = &wmsg.write;
-    wmsg.stream = ra->stream;
+    buf = nxt_router_prepare_msg(task, &ap->r, port,
+                                 nxt_app_msg_prefix[port->app->type]);
 
-    res = port->app->prepare_msg(task, &ap->r, &wmsg);
-
-    if (nxt_slow_path(res != NXT_OK)) {
+    if (nxt_slow_path(buf == NULL)) {
         nxt_router_ra_error(ra, 500,
                             "Failed to prepare message for application");
         goto release_port;
     }
 
     nxt_debug(task, "about to send %O bytes buffer to app process port %d",
-                    nxt_buf_used_size(wmsg.write),
-                    wmsg.port->socket.fd);
+                    nxt_buf_used_size(buf),
+                    port->socket.fd);
 
     request_failed = 0;
 
-    ra->msg_info.buf = wmsg.write;
-    ra->msg_info.completion_handler = wmsg.write->completion_handler;
+    ra->msg_info.buf = buf;
+    ra->msg_info.completion_handler = buf->completion_handler;
 
-    for (b = wmsg.write; b != NULL; b = b->next) {
-        b->completion_handler = nxt_router_dummy_buf_completion;
+    for (; buf; buf = buf->next) {
+        buf->completion_handler = nxt_router_dummy_buf_completion;
     }
+
+    buf = ra->msg_info.buf;
 
     res = nxt_port_mmap_get_tracking(task, port, &ra->msg_info.tracking,
                                      ra->stream);
@@ -4270,8 +4551,8 @@ nxt_router_app_prepare_request(nxt_task_t *task, nxt_req_app_link_t *ra)
         goto release_port;
     }
 
-    res = nxt_port_socket_twrite(task, wmsg.port, NXT_PORT_MSG_DATA,
-                                 -1, ra->stream, reply_port->id, wmsg.write,
+    res = nxt_port_socket_twrite(task, port, NXT_PORT_MSG_DATA,
+                                 -1, ra->stream, reply_port->id, buf,
                                  &ra->msg_info.tracking);
 
     if (nxt_slow_path(res != NXT_OK)) {
@@ -4288,437 +4569,317 @@ release_port:
 }
 
 
-static nxt_int_t
-nxt_python_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
-    nxt_app_wmsg_t *wmsg)
+struct nxt_fields_iter_s {
+    nxt_list_part_t   *part;
+    nxt_http_field_t  *field;
+};
+
+typedef struct nxt_fields_iter_s  nxt_fields_iter_t;
+
+
+static nxt_http_field_t *
+nxt_fields_part_first(nxt_list_part_t *part, nxt_fields_iter_t *i)
 {
-    nxt_int_t                 rc;
-    nxt_buf_t                 *b;
-    nxt_http_field_t          *field;
-    nxt_app_request_header_t  *h;
-
-    static const nxt_str_t prefix = nxt_string("HTTP_");
-    static const nxt_str_t eof = nxt_null_string;
-
-    h = &r->header;
-
-#define RC(S)                                                                 \
-    do {                                                                      \
-        rc = (S);                                                             \
-        if (nxt_slow_path(rc != NXT_OK)) {                                    \
-            goto fail;                                                        \
-        }                                                                     \
-    } while(0)
-
-#define NXT_WRITE(N)                                                          \
-    RC(nxt_app_msg_write_str(task, wmsg, N))
-
-    /* TODO error handle, async mmap buffer assignment */
-
-    NXT_WRITE(&h->method);
-    NXT_WRITE(&h->target);
-
-    if (h->path.start == h->target.start) {
-        NXT_WRITE(&eof);
-
-    } else {
-        NXT_WRITE(&h->path);
+    if (part == NULL) {
+        return NULL;
     }
 
-    if (h->query.start != NULL) {
-        RC(nxt_app_msg_write_size(task, wmsg,
-                                  h->query.start - h->target.start + 1));
-    } else {
-        RC(nxt_app_msg_write_size(task, wmsg, 0));
-    }
-
-    NXT_WRITE(&h->version);
-
-    NXT_WRITE(&r->remote);
-    NXT_WRITE(&r->local);
-
-    NXT_WRITE(&h->host);
-    NXT_WRITE(&h->content_type);
-    NXT_WRITE(&h->content_length);
-
-    nxt_list_each(field, h->fields) {
-        RC(nxt_app_msg_write_prefixed_upcase(task, wmsg, &prefix, field->name,
-                                             field->name_length));
-        RC(nxt_app_msg_write(task, wmsg, field->value, field->value_length));
-
-    } nxt_list_loop;
-
-    /* end-of-headers mark */
-    NXT_WRITE(&eof);
-
-    RC(nxt_app_msg_write_size(task, wmsg, r->body.preread_size));
-
-    for (b = r->body.buf; b != NULL; b = b->next) {
-        RC(nxt_app_msg_write_raw(task, wmsg, b->mem.pos,
-                                 nxt_buf_mem_used_size(&b->mem)));
-    }
-
-#undef NXT_WRITE
-#undef RC
-
-    return NXT_OK;
-
-fail:
-
-    return NXT_ERROR;
-}
-
-
-static nxt_int_t
-nxt_php_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
-    nxt_app_wmsg_t *wmsg)
-{
-    nxt_int_t                 rc;
-    nxt_buf_t                 *b;
-    nxt_bool_t                method_is_post;
-    nxt_http_field_t          *field;
-    nxt_app_request_header_t  *h;
-
-    static const nxt_str_t prefix = nxt_string("HTTP_");
-    static const nxt_str_t eof = nxt_null_string;
-
-    h = &r->header;
-
-#define RC(S)                                                                 \
-    do {                                                                      \
-        rc = (S);                                                             \
-        if (nxt_slow_path(rc != NXT_OK)) {                                    \
-            goto fail;                                                        \
-        }                                                                     \
-    } while(0)
-
-#define NXT_WRITE(N)                                                          \
-    RC(nxt_app_msg_write_str(task, wmsg, N))
-
-    /* TODO error handle, async mmap buffer assignment */
-
-    NXT_WRITE(&h->method);
-    NXT_WRITE(&h->target);
-
-    if (h->path.start == h->target.start) {
-        NXT_WRITE(&eof);
-
-    } else {
-        NXT_WRITE(&h->path);
-    }
-
-    if (h->query.start != NULL) {
-        RC(nxt_app_msg_write_size(task, wmsg,
-                                  h->query.start - h->target.start + 1));
-    } else {
-        RC(nxt_app_msg_write_size(task, wmsg, 0));
-    }
-
-    NXT_WRITE(&h->version);
-
-    // PHP_SELF
-    // SCRIPT_NAME
-    // SCRIPT_FILENAME
-    // DOCUMENT_ROOT
-
-    NXT_WRITE(&r->remote);
-    NXT_WRITE(&r->local);
-
-    NXT_WRITE(&h->host);
-    NXT_WRITE(&h->cookie);
-    NXT_WRITE(&h->content_type);
-    NXT_WRITE(&h->content_length);
-
-    RC(nxt_app_msg_write_size(task, wmsg, h->parsed_content_length));
-    RC(nxt_app_msg_write_size(task, wmsg, r->body.preread_size));
-
-    method_is_post = h->method.length == 4
-                     && h->method.start[0] == 'P'
-                     && h->method.start[1] == 'O'
-                     && h->method.start[2] == 'S'
-                     && h->method.start[3] == 'T';
-
-    if (method_is_post) {
-        for (b = r->body.buf; b != NULL; b = b->next) {
-            RC(nxt_app_msg_write_raw(task, wmsg, b->mem.pos,
-                                     nxt_buf_mem_used_size(&b->mem)));
+    while (part->nelts == 0) {
+        part = part->next;
+        if (part == NULL) {
+            return NULL;
         }
     }
 
-    nxt_list_each(field, h->fields) {
-        RC(nxt_app_msg_write_prefixed_upcase(task, wmsg, &prefix, field->name,
-                                             field->name_length));
-        RC(nxt_app_msg_write(task, wmsg, field->value, field->value_length));
+    i->part = part;
+    i->field = nxt_list_data(i->part);
 
+    return i->field;
+}
+
+
+static nxt_http_field_t *
+nxt_fields_first(nxt_list_t *fields, nxt_fields_iter_t *i)
+{
+    return nxt_fields_part_first(nxt_list_part(fields), i);
+}
+
+
+static nxt_http_field_t *
+nxt_fields_next(nxt_fields_iter_t *i)
+{
+    nxt_http_field_t  *end = nxt_list_data(i->part);
+
+    end += i->part->nelts;
+    i->field++;
+
+    if (i->field < end) {
+        return i->field;
+    }
+
+    return nxt_fields_part_first(i->part->next, i);
+}
+
+
+static nxt_buf_t *
+nxt_router_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
+    nxt_port_t *port, const nxt_str_t *prefix)
+{
+    void                      *target_pos, *query_pos;
+    u_char                    *pos, *end, *p, c;
+    size_t                    fields_count, req_size, size, free_size;
+    size_t                    copy_size;
+    nxt_buf_t                 *b, *buf, *out, **tail;
+    nxt_http_field_t          *field, *dup;
+    nxt_unit_field_t          *dst_field;
+    nxt_fields_iter_t         iter, dup_iter;
+    nxt_unit_request_t        *req;
+    nxt_app_request_header_t  *h;
+
+    h = &r->header;
+
+    req_size = sizeof(nxt_unit_request_t)
+                + h->method.length + 1
+                + h->version.length + 1
+                + r->remote.length + 1
+                + r->local.length + 1
+                + h->target.length + 1
+                + (h->path.start != h->target.start ? h->path.length + 1 : 0);
+
+    fields_count = 0;
+
+    nxt_list_each(field, h->fields) {
+        fields_count++;
+
+        req_size += field->name_length + prefix->length + 1
+                    + field->value_length + 1;
     } nxt_list_loop;
 
-    /* end-of-headers mark */
-    NXT_WRITE(&eof);
+    req_size += fields_count * sizeof(nxt_unit_field_t);
 
-    if (!method_is_post) {
-        for (b = r->body.buf; b != NULL; b = b->next) {
-            RC(nxt_app_msg_write_raw(task, wmsg, b->mem.pos,
-                                     nxt_buf_mem_used_size(&b->mem)));
+    if (nxt_slow_path(req_size > PORT_MMAP_DATA_SIZE)) {
+        nxt_alert(task, "headers to big to fit in shared memory (%d)",
+                  (int) req_size);
+
+        return NULL;
+    }
+
+    out = nxt_port_mmap_get_buf(task, port,
+              nxt_min(req_size + r->body.preread_size, PORT_MMAP_DATA_SIZE));
+    if (nxt_slow_path(out == NULL)) {
+        return NULL;
+    }
+
+    req = (nxt_unit_request_t *) out->mem.free;
+    out->mem.free += req_size;
+
+    req->content_length = h->parsed_content_length;
+
+    p = (u_char *) (req->fields + fields_count);
+
+    nxt_debug(task, "fields_count=%d", (int) fields_count);
+
+    req->method_length = h->method.length;
+    nxt_unit_sptr_set(&req->method, p);
+    p = nxt_cpymem(p, h->method.start, h->method.length);
+    *p++ = '\0';
+
+    req->version_length = h->version.length;
+    nxt_unit_sptr_set(&req->version, p);
+    p = nxt_cpymem(p, h->version.start, h->version.length);
+    *p++ = '\0';
+
+    req->remote_length = r->remote.length;
+    nxt_unit_sptr_set(&req->remote, p);
+    p = nxt_cpymem(p, r->remote.start, r->remote.length);
+    *p++ = '\0';
+
+    req->local_length = r->local.length;
+    nxt_unit_sptr_set(&req->local, p);
+    p = nxt_cpymem(p, r->local.start, r->local.length);
+    *p++ = '\0';
+
+    target_pos = p;
+    req->target_length = h->target.length;
+    nxt_unit_sptr_set(&req->target, p);
+    p = nxt_cpymem(p, h->target.start, h->target.length);
+    *p++ = '\0';
+
+    req->path_length = h->path.length;
+    if (h->path.start == h->target.start) {
+        nxt_unit_sptr_set(&req->path, target_pos);
+
+    } else {
+        nxt_unit_sptr_set(&req->path, p);
+        p = nxt_cpymem(p, h->path.start, h->path.length);
+        *p++ = '\0';
+    }
+
+    req->query_length = h->query.length;
+    if (h->query.start != NULL) {
+        query_pos = nxt_pointer_to(target_pos,
+                                   h->query.start - h->target.start);
+
+        nxt_unit_sptr_set(&req->query, query_pos);
+
+    } else {
+        req->query.offset = 0;
+    }
+
+    req->host_field           = NXT_UNIT_NONE_FIELD;
+    req->content_length_field = NXT_UNIT_NONE_FIELD;
+    req->content_type_field   = NXT_UNIT_NONE_FIELD;
+    req->cookie_field         = NXT_UNIT_NONE_FIELD;
+
+    dst_field = req->fields;
+
+    for (field = nxt_fields_first(h->fields, &iter);
+         field != NULL;
+         field = nxt_fields_next(&iter))
+    {
+        if (field->skip) {
+            continue;
+        }
+
+        dst_field->hash = field->hash;
+        dst_field->skip = 0;
+        dst_field->name_length = field->name_length + prefix->length;
+        dst_field->value_length = field->value_length;
+
+        if (field->value == h->host.start) {
+            req->host_field = dst_field - req->fields;
+
+        } else if (field->value == h->content_length.start) {
+            req->content_length_field = dst_field - req->fields;
+
+        } else if (field->value == h->content_type.start) {
+            req->content_type_field = dst_field - req->fields;
+
+        } else if (field->value == h->cookie.start) {
+            req->cookie_field = dst_field - req->fields;
+        }
+
+        nxt_debug(task, "add field 0x%04Xd, %d, %d, %p : %d %p",
+                  (int) field->hash, (int) field->skip,
+                  (int) field->name_length, field->name,
+                  (int) field->value_length, field->value);
+
+        if (prefix->length != 0) {
+            nxt_unit_sptr_set(&dst_field->name, p);
+            p = nxt_cpymem(p, prefix->start, prefix->length);
+
+            end = field->name + field->name_length;
+            for (pos = field->name; pos < end; pos++) {
+                c = *pos;
+
+                if (c >= 'a' && c <= 'z') {
+                    *p++ = (c & ~0x20);
+                    continue;
+                }
+
+                if (c == '-') {
+                    *p++ = '_';
+                    continue;
+                }
+
+                *p++ = c;
+            }
+
+        } else {
+            nxt_unit_sptr_set(&dst_field->name, p);
+            p = nxt_cpymem(p, field->name, field->name_length);
+        }
+
+        *p++ = '\0';
+
+        nxt_unit_sptr_set(&dst_field->value, p);
+        p = nxt_cpymem(p, field->value, field->value_length);
+
+        if (prefix->length != 0) {
+            dup_iter = iter;
+
+            for (dup = nxt_fields_next(&dup_iter);
+                 dup != NULL;
+                 dup = nxt_fields_next(&dup_iter))
+            {
+                if (dup->name_length != field->name_length
+                    || dup->skip
+                    || dup->hash != field->hash
+                    || nxt_memcasecmp(dup->name, field->name, dup->name_length))
+                {
+                    continue;
+                }
+
+                p = nxt_cpymem(p, ", ", 2);
+                p = nxt_cpymem(p, dup->value, dup->value_length);
+
+                dst_field->value_length += 2 + dup->value_length;
+
+                dup->skip = 1;
+            }
+        }
+
+        *p++ = '\0';
+
+        dst_field++;
+    }
+
+    req->fields_count = dst_field - req->fields;
+
+    nxt_unit_sptr_set(&req->preread_content, out->mem.free);
+
+    buf = out;
+    tail = &buf->next;
+
+    for (b = r->body.buf; b != NULL; b = b->next) {
+        size = nxt_buf_mem_used_size(&b->mem);
+        pos = b->mem.pos;
+
+        while (size > 0) {
+            if (buf == NULL) {
+                free_size = nxt_min(size, PORT_MMAP_DATA_SIZE);
+
+                buf = nxt_port_mmap_get_buf(task, port, free_size);
+                if (nxt_slow_path(buf == NULL)) {
+                    while (out != NULL) {
+                        buf = out->next;
+                        out->completion_handler(task, out, out->parent);
+                        out = buf;
+                    }
+                    return NULL;
+                }
+
+                *tail = buf;
+                tail = &buf->next;
+
+            } else {
+                free_size = nxt_buf_mem_free_size(&buf->mem);
+                if (free_size < size
+                    && nxt_port_mmap_increase_buf(task, buf, size, 1)
+                       == NXT_OK)
+                {
+                    free_size = nxt_buf_mem_free_size(&buf->mem);
+                }
+            }
+
+            if (free_size > 0) {
+                copy_size = nxt_min(free_size, size);
+
+                buf->mem.free = nxt_cpymem(buf->mem.free, pos, copy_size);
+
+                size -= copy_size;
+                pos += copy_size;
+
+                if (size == 0) {
+                    break;
+                }
+            }
+
+            buf = NULL;
         }
     }
 
-#undef NXT_WRITE
-#undef RC
-
-    return NXT_OK;
-
-fail:
-
-    return NXT_ERROR;
-}
-
-
-static nxt_int_t
-nxt_go_prepare_msg(nxt_task_t *task, nxt_app_request_t *r, nxt_app_wmsg_t *wmsg)
-{
-    nxt_int_t                 rc;
-    nxt_buf_t                 *b;
-    nxt_http_field_t          *field;
-    nxt_app_request_header_t  *h;
-
-    static const nxt_str_t eof = nxt_null_string;
-
-    h = &r->header;
-
-#define RC(S)                                                                 \
-    do {                                                                      \
-        rc = (S);                                                             \
-        if (nxt_slow_path(rc != NXT_OK)) {                                    \
-            goto fail;                                                        \
-        }                                                                     \
-    } while(0)
-
-#define NXT_WRITE(N)                                                          \
-    RC(nxt_app_msg_write_str(task, wmsg, N))
-
-    /* TODO error handle, async mmap buffer assignment */
-
-    NXT_WRITE(&h->method);
-    NXT_WRITE(&h->target);
-
-    if (h->path.start == h->target.start) {
-        NXT_WRITE(&eof);
-
-    } else {
-        NXT_WRITE(&h->path);
-    }
-
-    if (h->query.start != NULL) {
-        RC(nxt_app_msg_write_size(task, wmsg,
-                                  h->query.start - h->target.start + 1));
-    } else {
-        RC(nxt_app_msg_write_size(task, wmsg, 0));
-    }
-
-    NXT_WRITE(&h->version);
-    NXT_WRITE(&r->remote);
-
-    NXT_WRITE(&h->host);
-    NXT_WRITE(&h->cookie);
-    NXT_WRITE(&h->content_type);
-    NXT_WRITE(&h->content_length);
-
-    RC(nxt_app_msg_write_size(task, wmsg, h->parsed_content_length));
-
-    nxt_list_each(field, h->fields) {
-        RC(nxt_app_msg_write(task, wmsg, field->name, field->name_length));
-        RC(nxt_app_msg_write(task, wmsg, field->value, field->value_length));
-
-    } nxt_list_loop;
-
-    /* end-of-headers mark */
-    NXT_WRITE(&eof);
-
-    RC(nxt_app_msg_write_size(task, wmsg, r->body.preread_size));
-
-    for (b = r->body.buf; b != NULL; b = b->next) {
-        RC(nxt_app_msg_write_raw(task, wmsg, b->mem.pos,
-                                 nxt_buf_mem_used_size(&b->mem)));
-    }
-
-#undef NXT_WRITE
-#undef RC
-
-    return NXT_OK;
-
-fail:
-
-    return NXT_ERROR;
-}
-
-
-static nxt_int_t
-nxt_perl_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
-    nxt_app_wmsg_t *wmsg)
-{
-    nxt_int_t                 rc;
-    nxt_str_t                 str;
-    nxt_buf_t                 *b;
-    nxt_http_field_t          *field;
-    nxt_app_request_header_t  *h;
-
-    static const nxt_str_t prefix = nxt_string("HTTP_");
-    static const nxt_str_t eof = nxt_null_string;
-
-    h = &r->header;
-
-#define RC(S)                                                                 \
-    do {                                                                      \
-        rc = (S);                                                             \
-        if (nxt_slow_path(rc != NXT_OK)) {                                    \
-            goto fail;                                                        \
-        }                                                                     \
-    } while(0)
-
-#define NXT_WRITE(N)                                                          \
-    RC(nxt_app_msg_write_str(task, wmsg, N))
-
-    /* TODO error handle, async mmap buffer assignment */
-
-    NXT_WRITE(&h->method);
-    NXT_WRITE(&h->target);
-
-    if (h->query.length) {
-        str.start = h->target.start;
-        str.length = (h->target.length - h->query.length) - 1;
-
-        RC(nxt_app_msg_write_str(task, wmsg, &str));
-
-    } else {
-        NXT_WRITE(&eof);
-    }
-
-    if (h->query.start != NULL) {
-        RC(nxt_app_msg_write_size(task, wmsg,
-                                  h->query.start - h->target.start + 1));
-    } else {
-        RC(nxt_app_msg_write_size(task, wmsg, 0));
-    }
-
-    NXT_WRITE(&h->version);
-
-    NXT_WRITE(&r->remote);
-    NXT_WRITE(&r->local);
-
-    NXT_WRITE(&h->host);
-    NXT_WRITE(&h->content_type);
-    NXT_WRITE(&h->content_length);
-
-    nxt_list_each(field, h->fields) {
-        RC(nxt_app_msg_write_prefixed_upcase(task, wmsg, &prefix,
-                                             field->name, field->name_length));
-        RC(nxt_app_msg_write(task, wmsg, field->value, field->value_length));
-    } nxt_list_loop;
-
-    /* end-of-headers mark */
-    NXT_WRITE(&eof);
-
-    RC(nxt_app_msg_write_size(task, wmsg, r->body.preread_size));
-
-    for (b = r->body.buf; b != NULL; b = b->next) {
-
-        RC(nxt_app_msg_write_raw(task, wmsg, b->mem.pos,
-                                 nxt_buf_mem_used_size(&b->mem)));
-    }
-
-#undef NXT_WRITE
-#undef RC
-
-    return NXT_OK;
-
-fail:
-
-    return NXT_ERROR;
-}
-
-
-static nxt_int_t
-nxt_ruby_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
-    nxt_app_wmsg_t *wmsg)
-{
-    nxt_int_t                 rc;
-    nxt_str_t                 str;
-    nxt_buf_t                 *b;
-    nxt_http_field_t          *field;
-    nxt_app_request_header_t  *h;
-
-    static const nxt_str_t prefix = nxt_string("HTTP_");
-    static const nxt_str_t eof = nxt_null_string;
-
-    h = &r->header;
-
-#define RC(S)                                                                 \
-    do {                                                                      \
-        rc = (S);                                                             \
-        if (nxt_slow_path(rc != NXT_OK)) {                                    \
-            goto fail;                                                        \
-        }                                                                     \
-    } while(0)
-
-#define NXT_WRITE(N)                                                          \
-    RC(nxt_app_msg_write_str(task, wmsg, N))
-
-    /* TODO error handle, async mmap buffer assignment */
-
-    NXT_WRITE(&h->method);
-    NXT_WRITE(&h->target);
-
-    if (h->query.length) {
-        str.start = h->target.start;
-        str.length = (h->target.length - h->query.length) - 1;
-
-        RC(nxt_app_msg_write_str(task, wmsg, &str));
-
-    } else {
-        NXT_WRITE(&eof);
-    }
-
-    if (h->query.start != NULL) {
-        RC(nxt_app_msg_write_size(task, wmsg,
-                                  h->query.start - h->target.start + 1));
-    } else {
-        RC(nxt_app_msg_write_size(task, wmsg, 0));
-    }
-
-    NXT_WRITE(&h->version);
-
-    NXT_WRITE(&r->remote);
-    NXT_WRITE(&r->local);
-
-    NXT_WRITE(&h->host);
-    NXT_WRITE(&h->content_type);
-    NXT_WRITE(&h->content_length);
-
-    nxt_list_each(field, h->fields) {
-        RC(nxt_app_msg_write_prefixed_upcase(task, wmsg, &prefix,
-                                             field->name, field->name_length));
-        RC(nxt_app_msg_write(task, wmsg, field->value, field->value_length));
-    } nxt_list_loop;
-
-    /* end-of-headers mark */
-    NXT_WRITE(&eof);
-
-    RC(nxt_app_msg_write_size(task, wmsg, r->body.preread_size));
-
-    for (b = r->body.buf; b != NULL; b = b->next) {
-
-        RC(nxt_app_msg_write_raw(task, wmsg, b->mem.pos,
-                                 nxt_buf_mem_used_size(&b->mem)));
-    }
-
-#undef NXT_WRITE
-#undef RC
-
-    return NXT_OK;
-
-fail:
-
-    return NXT_ERROR;
+    return out;
 }
 
 

@@ -163,6 +163,50 @@ nxt_conf_get_string(nxt_conf_value_t *value, nxt_str_t *str)
 }
 
 
+void
+nxt_conf_set_string(nxt_conf_value_t *value, nxt_str_t *str)
+{
+    if (str->length > NXT_CONF_MAX_SHORT_STRING) {
+        value->type = NXT_CONF_VALUE_STRING;
+        value->u.string.length = str->length;
+        value->u.string.start = str->start;
+
+    } else {
+        value->type = NXT_CONF_VALUE_SHORT_STRING;
+        value->u.str.length = str->length;
+
+        nxt_memcpy(value->u.str.start, str->start, str->length);
+    }
+}
+
+
+nxt_int_t
+nxt_conf_set_string_dup(nxt_conf_value_t *value, nxt_mp_t *mp, nxt_str_t *str)
+{
+    nxt_str_t  tmp, *ptr;
+
+    if (str->length > NXT_CONF_MAX_SHORT_STRING) {
+        value->type = NXT_CONF_VALUE_STRING;
+
+        ptr = nxt_str_dup(mp, &tmp, str);
+        if (nxt_slow_path(ptr == NULL)) {
+            return NXT_ERROR;
+        }
+
+        value->u.string.length = tmp.length;
+        value->u.string.start = tmp.start;
+
+    } else {
+        value->type = NXT_CONF_VALUE_SHORT_STRING;
+        value->u.str.length = str->length;
+
+        nxt_memcpy(value->u.str.start, str->start, str->length);
+    }
+
+    return NXT_OK;
+}
+
+
 int64_t
 nxt_conf_get_integer(nxt_conf_value_t *value)
 {
@@ -205,23 +249,11 @@ void
 nxt_conf_set_member(nxt_conf_value_t *object, nxt_str_t *name,
     nxt_conf_value_t *value, uint32_t index)
 {
-    nxt_conf_value_t          *name_value;
     nxt_conf_object_member_t  *member;
 
     member = &object->u.object->members[index];
-    name_value = &member->name;
 
-    if (name->length > NXT_CONF_MAX_SHORT_STRING) {
-        name_value->type = NXT_CONF_VALUE_STRING;
-        name_value->u.string.length = name->length;
-        name_value->u.string.start = name->start;
-
-    } else {
-        name_value->type = NXT_CONF_VALUE_SHORT_STRING;
-        name_value->u.str.length = name->length;
-
-        nxt_memcpy(name_value->u.str.start, name->start, name->length);
-    }
+    nxt_conf_set_string(&member->name, name);
 
     member->value = *value;
 }
@@ -231,37 +263,27 @@ void
 nxt_conf_set_member_string(nxt_conf_value_t *object, nxt_str_t *name,
     nxt_str_t *value, uint32_t index)
 {
-    nxt_conf_value_t          *set;
     nxt_conf_object_member_t  *member;
 
     member = &object->u.object->members[index];
-    set = &member->name;
 
-    if (name->length > NXT_CONF_MAX_SHORT_STRING) {
-        set->type = NXT_CONF_VALUE_STRING;
-        set->u.string.length = name->length;
-        set->u.string.start = name->start;
+    nxt_conf_set_string(&member->name, name);
 
-    } else {
-        set->type = NXT_CONF_VALUE_SHORT_STRING;
-        set->u.str.length = name->length;
+    nxt_conf_set_string(&member->value, value);
+}
 
-        nxt_memcpy(set->u.str.start, name->start, name->length);
-    }
 
-    set = &member->value;
+nxt_int_t
+nxt_conf_set_member_string_dup(nxt_conf_value_t *object, nxt_mp_t *mp,
+    nxt_str_t *name, nxt_str_t *value, uint32_t index)
+{
+    nxt_conf_object_member_t  *member;
 
-    if (value->length > NXT_CONF_MAX_SHORT_STRING) {
-        set->type = NXT_CONF_VALUE_STRING;
-        set->u.string.length = value->length;
-        set->u.string.start = value->start;
+    member = &object->u.object->members[index];
 
-    } else {
-        set->type = NXT_CONF_VALUE_SHORT_STRING;
-        set->u.str.length = value->length;
+    nxt_conf_set_string(&member->name, name);
 
-        nxt_memcpy(set->u.str.start, value->start, value->length);
-    }
+    return nxt_conf_set_string_dup(&member->value, mp, value);
 }
 
 
@@ -269,26 +291,72 @@ void
 nxt_conf_set_member_integer(nxt_conf_value_t *object, nxt_str_t *name,
     int64_t value, uint32_t index)
 {
-    nxt_conf_value_t          *name_value;
     nxt_conf_object_member_t  *member;
 
     member = &object->u.object->members[index];
-    name_value = &member->name;
 
-    if (name->length > NXT_CONF_MAX_SHORT_STRING) {
-        name_value->type = NXT_CONF_VALUE_STRING;
-        name_value->u.string.length = name->length;
-        name_value->u.string.start = name->start;
-
-    } else {
-        name_value->type = NXT_CONF_VALUE_SHORT_STRING;
-        name_value->u.str.length = name->length;
-
-        nxt_memcpy(name_value->u.str.start, name->start, name->length);
-    }
+    nxt_conf_set_string(&member->name, name);
 
     member->value.u.integer = value;
     member->value.type = NXT_CONF_VALUE_INTEGER;
+}
+
+
+void
+nxt_conf_set_member_null(nxt_conf_value_t *object, nxt_str_t *name,
+    uint32_t index)
+{
+    nxt_conf_object_member_t  *member;
+
+    member = &object->u.object->members[index];
+
+    nxt_conf_set_string(&member->name, name);
+
+    member->value.type = NXT_CONF_VALUE_NULL;
+}
+
+
+nxt_conf_value_t *
+nxt_conf_create_array(nxt_mp_t *mp, nxt_uint_t count)
+{
+    size_t            size;
+    nxt_conf_value_t  *value;
+
+    size = sizeof(nxt_conf_value_t)
+           + sizeof(nxt_conf_array_t)
+           + count * sizeof(nxt_conf_value_t);
+
+    value = nxt_mp_get(mp, size);
+    if (nxt_slow_path(value == NULL)) {
+        return NULL;
+    }
+
+    value->u.array = nxt_pointer_to(value, sizeof(nxt_conf_value_t));
+    value->u.array->count = count;
+
+    value->type = NXT_CONF_VALUE_ARRAY;
+
+    return value;
+}
+
+
+void
+nxt_conf_set_element(nxt_conf_value_t *array, nxt_uint_t index,
+    nxt_conf_value_t *value)
+{
+    array->u.array->elements[index] = *value;
+}
+
+
+nxt_int_t
+nxt_conf_set_element_string_dup(nxt_conf_value_t *array, nxt_mp_t *mp,
+    nxt_uint_t index, nxt_str_t *value)
+{
+    nxt_conf_value_t  *element;
+
+    element = &array->u.array->elements[index];
+
+    return nxt_conf_set_string_dup(element, mp, value);
 }
 
 
@@ -341,6 +409,7 @@ nxt_conf_value_t *
 nxt_conf_get_path(nxt_conf_value_t *value, nxt_str_t *path)
 {
     nxt_str_t              token;
+    nxt_int_t              index;
     nxt_conf_path_parse_t  parse;
 
     parse.start = path->start;
@@ -359,7 +428,25 @@ nxt_conf_get_path(nxt_conf_value_t *value, nxt_str_t *path)
             return NULL;
         }
 
-        value = nxt_conf_get_object_member(value, &token, NULL);
+        switch (value->type) {
+
+        case NXT_CONF_VALUE_OBJECT:
+            value = nxt_conf_get_object_member(value, &token, NULL);
+            break;
+
+        case NXT_CONF_VALUE_ARRAY:
+            index = nxt_int_parse(token.start, token.length);
+
+            if (index < 0 || index > NXT_INT32_T_MAX) {
+                return NULL;
+            }
+
+            value = nxt_conf_get_array_element(value, index);
+            break;
+
+        default:
+            return NULL;
+        }
 
         if (value == NULL) {
             return NULL;
@@ -438,7 +525,7 @@ nxt_conf_map_object(nxt_mp_t *mp, nxt_conf_value_t *value, nxt_conf_map_t *map,
         uint8_t     ui8;
         int32_t     i32;
         int64_t     i64;
-        nxt_int_t   i;
+        int         i;
         ssize_t     size;
         off_t       off;
         nxt_msec_t  msec;
@@ -683,18 +770,7 @@ nxt_conf_op_compile(nxt_mp_t *mp, nxt_conf_op_t **ops, nxt_conf_value_t *root,
             return NXT_ERROR;
         }
 
-        if (token.length > NXT_CONF_MAX_SHORT_STRING) {
-            member->name.u.string.length = token.length;
-            member->name.u.string.start = token.start;
-
-            member->name.type = NXT_CONF_VALUE_STRING;
-
-        } else {
-            member->name.u.str.length = token.length;
-            nxt_memcpy(member->name.u.str.start, token.start, token.length);
-
-            member->name.type = NXT_CONF_VALUE_SHORT_STRING;
-        }
+        nxt_conf_set_string(&member->name, &token);
 
         member->value = *value;
 

@@ -80,10 +80,10 @@ nxt_runtime_create(nxt_task_t *task)
 
     /* Should not fail. */
     lang = nxt_array_add(rt->languages);
-    lang->type = NXT_APP_GO;
+    lang->type = NXT_APP_EXTERNAL;
     lang->version = (u_char *) "";
     lang->file = NULL;
-    lang->module = &nxt_go_module;
+    lang->module = &nxt_external_module;
 
     listen_sockets = nxt_array_create(mp, 1, sizeof(nxt_listen_socket_t));
     if (nxt_slow_path(listen_sockets == NULL)) {
@@ -435,7 +435,7 @@ nxt_runtime_quit(nxt_task_t *task, nxt_uint_t status)
         }
 
         if (rt->type == NXT_PROCESS_MAIN) {
-            nxt_main_stop_worker_processes(task, rt);
+            nxt_main_stop_all_processes(task, rt);
             done = 0;
         }
     }
@@ -762,6 +762,23 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
 
     rt->conf_tmp = (char *) file_name.start;
 
+    ret = nxt_file_name_create(rt->mem_pool, &file_name, "%s%scerts/%Z",
+                               rt->state, slash);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        return NXT_ERROR;
+    }
+
+    ret = mkdir((char *) file_name.start, S_IRWXU);
+
+    if (nxt_fast_path(ret == 0 || nxt_errno == EEXIST)) {
+        rt->certs.length = file_name.len;
+        rt->certs.start = file_name.start;
+
+    } else {
+        nxt_alert(task, "Unable to create certificates storage directory: "
+                  "mkdir(%s) failed %E", file_name.start, nxt_errno);
+    }
+
     control.length = nxt_strlen(rt->control);
     control.start = (u_char *) rt->control;
 
@@ -851,20 +868,6 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
             p = *argv++;
 
             rt->control = p;
-
-            continue;
-        }
-
-        if (nxt_strcmp(p, "--upstream") == 0) {
-            if (*argv == NULL) {
-                nxt_alert(task, "no argument for option \"--upstream\"");
-                return NXT_ERROR;
-            }
-
-            p = *argv++;
-
-            rt->upstream.length = nxt_strlen(p);
-            rt->upstream.start = (u_char *) p;
 
             continue;
         }

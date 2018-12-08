@@ -43,7 +43,6 @@ NXT_LIB_SRCS=" \
     src/nxt_recvbuf.c \
     src/nxt_sendbuf.c \
     src/nxt_thread.c \
-    src/nxt_thread_id.c \
     src/nxt_thread_mutex.c \
     src/nxt_thread_cond.c \
     src/nxt_spinlock.c \
@@ -75,7 +74,6 @@ NXT_LIB_SRCS=" \
     src/nxt_runtime.c \
     src/nxt_conf.c \
     src/nxt_conf_validation.c \
-    src/nxt_stream_module.c \
     src/nxt_main_process.c \
     src/nxt_worker_process.c \
     src/nxt_controller.c \
@@ -85,13 +83,14 @@ NXT_LIB_SRCS=" \
     src/nxt_http_response.c \
     src/nxt_http_error.c \
     src/nxt_application.c \
-    src/nxt_go.c \
+    src/nxt_external.c \
     src/nxt_port_hash.c \
 "
 
 NXT_LIB_SRC0=" \
     src/nxt_buf_filter.c \
     src/nxt_job_file.c \
+    src/nxt_stream_module.c \
     src/nxt_stream_source.c \
     src/nxt_upstream_source.c \
     src/nxt_http_source.c \
@@ -103,9 +102,11 @@ NXT_LIB_SRC0=" \
     src/nxt_mem_pool_cleanup.c \
 "
 
+NXT_LIB_UNIT_SRCS="src/nxt_unit.c"
 
-NXT_LIB_SSLTLS_DEPS="src/nxt_ssltls.h"
-NXT_LIB_SSLTLS_SRCS="src/nxt_ssltls.c"
+
+NXT_LIB_TLS_DEPS="src/nxt_tls.h"
+NXT_LIB_TLS_SRCS="src/nxt_cert.c"
 NXT_LIB_OPENSSL_SRCS="src/nxt_openssl.c"
 NXT_LIB_GNUTLS_SRCS="src/nxt_gnutls.c"
 NXT_LIB_CYASSL_SRCS="src/nxt_cyassl.c"
@@ -156,9 +157,9 @@ NXT_LIB_UTF8_FILE_NAME_TEST_SRCS=" \
 "
 
 
-if [ $NXT_SSLTLS = YES ]; then
-    nxt_have=NXT_SSLTLS . auto/have
-    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_SSLTLS_SRCS"
+if [ $NXT_TLS = YES ]; then
+    nxt_have=NXT_TLS . auto/have
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_TLS_SRCS"
 fi
 
 

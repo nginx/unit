@@ -6,19 +6,22 @@
 %if ( 0%{?rhel} == 5 || 0%{?rhel} == 6 )
 Requires: initscripts >= 8.36
 Requires: curl
+BuildRequires: openssl-devel
 %endif
 
 %if 0%{?rhel} == 7
 Requires: systemd
 BuildRequires: systemd-units
+BuildRequires: openssl-devel
 %if 0%{?amzn} == 0
 %define dist .el7
 %endif
 %endif
 
-%if 0%{?suse_version} == 1315
+%if 0%{?suse_version} >= 1315
 BuildRequires: systemd
 Requires: systemd
+BuildRequires: libopenssl-devel
 %endif
 
 %define CC_OPT %{optflags} -fPIC
@@ -42,9 +45,7 @@ Source0: unit-%{version}.tar.gz
 Source1: unit.service
 Source2: unit.init
 Source3: unit.sysconf
-Source4: unit.saveconfig.sh
-Source5: unit.loadconfig.sh
-Source6: unit.example.config
+Source4: unit.example.config
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -60,6 +61,15 @@ dynamically via an API.
 %debug_package
 %endif
 
+%package devel
+Summary: NGINX Unit (development files)
+Version: %%VERSION%%
+Release: %%RELEASE%%%{?dist}.ngx
+Group: Development/Libraries
+Requires: unit == %%VERSION%%-%%RELEASE%%%{?dist}.ngx
+%description devel
+Library and include files required for NGINX Unit modules development.
+
 %prep
 %setup -q
 
@@ -67,14 +77,17 @@ dynamically via an API.
 ./configure \
 	%{CONFIGURE_ARGS} \
 	--modules=%{_libdir}/unit/debug-modules \
+	--libdir=%{_libdir} \
 	--cc-opt="%{CC_OPT}" \
 	--ld-opt="%{LD_OPT}" \
 	--debug
 %{__make} %{?_smp_mflags}
+%{__make} %{?_smp_mflags} build/libunit.a
 %{__mv} build build-debug
 ./configure \
 	%{CONFIGURE_ARGS} \
 	--modules=%{_libdir}/unit/modules \
+	--libdir=%{_libdir} \
 	--cc-opt="%{CC_OPT}" \
 	--ld-opt="%{LD_OPT}"
 %{__make} %{?_smp_mflags}
@@ -83,9 +96,11 @@ dynamically via an API.
 %install
 %{__rm} -rf %{buildroot}
 %{__ln_s} build-nodebug build
-DESTDIR=%{buildroot} make unitd-install
+DESTDIR=%{buildroot} make unitd-install libunit-install
 %{__install} -m755 %{bdir}/build-debug/unitd \
     %{buildroot}%{_sbindir}/unitd-debug
+%{__install} -m644 %{bdir}/build-debug/libunit.a \
+    %{buildroot}%{_libdir}/libunit-debug.a
 %{__mkdir} -p %{buildroot}%{_libdir}/unit/modules
 %{__mkdir} -p %{buildroot}%{_libdir}/unit/debug-modules
 %{__mkdir} -p %{buildroot}%{_sharedstatedir}/unit
@@ -94,7 +109,7 @@ DESTDIR=%{buildroot} make unitd-install
     %{buildroot}%{_sysconfdir}/sysconfig/unit
 %{__mkdir} -p %{buildroot}%{_sysconfdir}/unit
 %{__mkdir} -p %{buildroot}%{_datadir}/doc/unit/examples
-%{__install} -m 644 -p %{SOURCE6} \
+%{__install} -m 644 -p %{SOURCE4} \
     %{buildroot}%{_datadir}/doc/unit/examples/example.config
 %{__install} -m 644 -p CHANGES \
     %{buildroot}%{_datadir}/doc/unit/
@@ -107,11 +122,6 @@ DESTDIR=%{buildroot} make unitd-install
 %if %{use_systemd}
 %{__rm} -rf %{buildroot}%{_initrddir}/
 %{__install} -p -D -m 0644 %{SOURCE1} %{buildroot}%{_unitdir}/unit.service
-%{__mkdir} -p %{buildroot}%{_libexecdir}/initscripts/legacy-actions/unit
-%{__install} -m755 %SOURCE4 \
-    %{buildroot}%{_libexecdir}/initscripts/legacy-actions/unit/saveconfig
-%{__install} -m755 %SOURCE5 \
-    %{buildroot}%{_libexecdir}/initscripts/legacy-actions/unit/loadconfig
 %else
 %{__mkdir} -p %{buildroot}%{_initrddir}
 %{__install} -p -D -m 0755 %{SOURCE2} %{buildroot}%{_initrddir}/unit
@@ -180,8 +190,6 @@ fi
 %dir %{_sysconfdir}/unit
 %if %{use_systemd}
 %{_unitdir}/unit.service
-%dir %{_libexecdir}/initscripts/legacy-actions/unit
-%{_libexecdir}/initscripts/legacy-actions/unit/*
 %else
 %{_initrddir}/unit
 %endif
@@ -190,5 +198,10 @@ fi
 %dir %{_libdir}/unit/modules
 %dir %{_libdir}/unit/debug-modules
 %dir %{_sharedstatedir}/unit
+
+%files devel
+%{_libdir}/libunit.a
+%{_libdir}/libunit-debug.a
+%{_includedir}/nxt_*.h
 
 %changelog

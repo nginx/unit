@@ -8,4 +8,5 @@ class application:
         yield b''
 
     def close(self):
-        self.environ['wsgi.errors'].write('Close called.')
+        self.environ['wsgi.errors'].write('Close called.\n')
+        self.environ['wsgi.errors'].flush()

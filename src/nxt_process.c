@@ -18,7 +18,7 @@ nxt_pid_t  nxt_pid;
 /* An original parent process pid. */
 nxt_pid_t  nxt_ppid;
 
-nxt_bool_t  nxt_proc_conn_martix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
+nxt_bool_t  nxt_proc_conn_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
     { 1, 1, 1, 1, 1 },
     { 1, 0, 0, 0, 0 },
     { 1, 0, 0, 1, 0 },
@@ -26,7 +26,7 @@ nxt_bool_t  nxt_proc_conn_martix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
     { 1, 0, 0, 0, 0 },
 };
 
-nxt_bool_t  nxt_proc_remove_notify_martix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
+nxt_bool_t  nxt_proc_remove_notify_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
     { 0, 0, 0, 0, 0 },
     { 0, 0, 0, 0, 0 },
     { 0, 0, 0, 1, 0 },
@@ -71,7 +71,7 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
         /* Remove not ready processes */
         nxt_runtime_process_each(rt, p) {
 
-            if (nxt_proc_conn_martix[ptype][nxt_process_type(p)] == 0) {
+            if (nxt_proc_conn_matrix[ptype][nxt_process_type(p)] == 0) {
                 nxt_debug(task, "remove not required process %PI", p->pid);
 
                 nxt_process_close_ports(task, p);
@@ -486,6 +486,10 @@ nxt_user_groups_get(nxt_task_t *task, nxt_user_cred_t *uc)
 
     if (nsaved > NGROUPS_MAX) {
         /* MacOSX case. */
+
+        uc->gids = NULL;
+        uc->ngroups = 0;
+
         return NXT_OK;
     }
 

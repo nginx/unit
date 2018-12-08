@@ -3,7 +3,7 @@
 # Copyright (C) NGINX, Inc.
 
 
-# getrandom().
+# Linux 3.17 with glibc 2.25, FreeBSD 12, Solaris 11.3.
 
 nxt_feature="getrandom()"
 nxt_feature_name=NXT_HAVE_GETRANDOM
@@ -39,6 +39,49 @@ if [ $nxt_found = no ]; then
                           char  buf[4];
 
                           if (syscall(SYS_getrandom, buf, 4, 0) < 0) {
+                              return 1;
+                          }
+
+                          return 0;
+                      }"
+    . auto/feature
+fi
+
+
+if [ $nxt_found = no ]; then
+
+    # OpenBSD 5.6 lacks <sys/random.h>.
+
+    nxt_feature="getentropy()"
+    nxt_feature_name=NXT_HAVE_GETENTROPY
+    nxt_feature_test="#include <unistd.h>
+
+                      int main() {
+                          char  buf[4];
+
+                          if (getentropy(buf, 4) == -1) {
+                              return 1;
+                          }
+
+                          return 0;
+                      }"
+    . auto/feature
+fi
+
+
+if [ $nxt_found = no ]; then
+
+    # macOS 10.12.
+
+    nxt_feature="getentropy() in sys/random.h"
+    nxt_feature_name=NXT_HAVE_GETENTROPY_SYS_RANDOM
+    nxt_feature_test="#include <unistd.h>
+                      #include <sys/random.h>
+
+                      int main() {
+                          char  buf[4];
+
+                          if (getentropy(buf, 4) == -1) {
                               return 1;
                           }
 

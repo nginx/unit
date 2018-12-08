@@ -6,6 +6,7 @@
 
 #include <nxt_main.h>
 #include <nxt_conf.h>
+#include <nxt_cert.h>
 #include <nxt_router.h>
 
 
@@ -49,6 +50,10 @@ static nxt_int_t nxt_conf_vldt_error(nxt_conf_validation_t *vldt,
 
 static nxt_int_t nxt_conf_vldt_listener(nxt_conf_validation_t *vldt,
     nxt_str_t *name, nxt_conf_value_t *value);
+#if (NXT_TLS)
+static nxt_int_t nxt_conf_vldt_certificate(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
+#endif
 static nxt_int_t nxt_conf_vldt_app_name(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_app(nxt_conf_validation_t *vldt,
@@ -73,7 +78,52 @@ static nxt_int_t nxt_conf_vldt_php_option(nxt_conf_validation_t *vldt,
     nxt_str_t *name, nxt_conf_value_t *value);
 
 
+static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[] = {
+    { nxt_string("header_read_timeout"),
+      NXT_CONF_VLDT_INTEGER,
+      NULL,
+      NULL },
+
+    { nxt_string("body_read_timeout"),
+      NXT_CONF_VLDT_INTEGER,
+      NULL,
+      NULL },
+
+    { nxt_string("send_timeout"),
+      NXT_CONF_VLDT_INTEGER,
+      NULL,
+      NULL },
+
+    { nxt_string("idle_timeout"),
+      NXT_CONF_VLDT_INTEGER,
+      NULL,
+      NULL },
+
+    { nxt_string("max_body_size"),
+      NXT_CONF_VLDT_INTEGER,
+      NULL,
+      NULL },
+
+    NXT_CONF_VLDT_END
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_setting_members[] = {
+    { nxt_string("http"),
+      NXT_CONF_VLDT_OBJECT,
+      &nxt_conf_vldt_object,
+      (void *) &nxt_conf_vldt_http_members },
+
+    NXT_CONF_VLDT_END
+};
+
+
 static nxt_conf_vldt_object_t  nxt_conf_vldt_root_members[] = {
+    { nxt_string("settings"),
+      NXT_CONF_VLDT_OBJECT,
+      &nxt_conf_vldt_object,
+      (void *) &nxt_conf_vldt_setting_members },
+
     { nxt_string("listeners"),
       NXT_CONF_VLDT_OBJECT,
       &nxt_conf_vldt_object_iterator,
@@ -93,11 +143,34 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_root_members[] = {
 };
 
 
+#if (NXT_TLS)
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_tls_members[] = {
+    { nxt_string("certificate"),
+      NXT_CONF_VLDT_STRING,
+      &nxt_conf_vldt_certificate,
+      NULL },
+
+    NXT_CONF_VLDT_END
+};
+
+#endif
+
+
 static nxt_conf_vldt_object_t  nxt_conf_vldt_listener_members[] = {
     { nxt_string("application"),
       NXT_CONF_VLDT_STRING,
       &nxt_conf_vldt_app_name,
       NULL },
+
+#if (NXT_TLS)
+
+    { nxt_string("tls"),
+      NXT_CONF_VLDT_OBJECT,
+      &nxt_conf_vldt_object,
+      (void *) &nxt_conf_vldt_tls_members },
+
+#endif
 
     NXT_CONF_VLDT_END
 };
@@ -183,6 +256,21 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[] = {
 };
 
 
+static nxt_conf_vldt_object_t  nxt_conf_vldt_external_members[] = {
+    { nxt_string("executable"),
+      NXT_CONF_VLDT_STRING,
+      NULL,
+      NULL },
+
+    { nxt_string("arguments"),
+      NXT_CONF_VLDT_ARRAY,
+      &nxt_conf_vldt_array_iterator,
+      (void *) &nxt_conf_vldt_argument },
+
+    NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_common_members)
+};
+
+
 static nxt_conf_vldt_object_t  nxt_conf_vldt_python_members[] = {
     { nxt_string("home"),
       NXT_CONF_VLDT_STRING,
@@ -243,21 +331,6 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_php_members[] = {
       NXT_CONF_VLDT_OBJECT,
       &nxt_conf_vldt_object,
       (void *) &nxt_conf_vldt_php_options_members },
-
-    NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_common_members)
-};
-
-
-static nxt_conf_vldt_object_t  nxt_conf_vldt_go_members[] = {
-    { nxt_string("executable"),
-      NXT_CONF_VLDT_STRING,
-      NULL,
-      NULL },
-
-    { nxt_string("arguments"),
-      NXT_CONF_VLDT_ARRAY,
-      &nxt_conf_vldt_array_iterator,
-      (void *) &nxt_conf_vldt_argument },
 
     NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_common_members)
 };
@@ -422,6 +495,30 @@ nxt_conf_vldt_listener(nxt_conf_validation_t *vldt, nxt_str_t *name,
 }
 
 
+#if (NXT_TLS)
+
+static nxt_int_t
+nxt_conf_vldt_certificate(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
+{
+    nxt_str_t         name;
+    nxt_conf_value_t  *cert;
+
+    nxt_conf_get_string(value, &name);
+
+    cert = nxt_cert_info_get(&name);
+
+    if (cert == NULL) {
+        return nxt_conf_vldt_error(vldt, "Certificate \"%V\" is not found.",
+                                   &name);
+    }
+
+    return NXT_OK;
+}
+
+#endif
+
+
 static nxt_int_t
 nxt_conf_vldt_app_name(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     void *data)
@@ -468,9 +565,9 @@ nxt_conf_vldt_app(nxt_conf_validation_t *vldt, nxt_str_t *name,
     static nxt_str_t  type_str = nxt_string("type");
 
     static void  *members[] = {
+        nxt_conf_vldt_external_members,
         nxt_conf_vldt_python_members,
         nxt_conf_vldt_php_members,
-        nxt_conf_vldt_go_members,
         nxt_conf_vldt_perl_members,
         nxt_conf_vldt_ruby_members,
     };
@@ -659,7 +756,7 @@ nxt_conf_vldt_processes(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 
     if (proc.max < proc.spare) {
         return nxt_conf_vldt_error(vldt, "The \"spare\" number must be "
-                                   "lower than \"max\".");
+                                   "less than or equal to \"max\".");
     }
 
     if (proc.idle_timeout < 0) {

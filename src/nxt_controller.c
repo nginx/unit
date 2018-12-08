@@ -9,6 +9,7 @@
 #include <nxt_runtime.h>
 #include <nxt_main_process.h>
 #include <nxt_conf.h>
+#include <nxt_cert.h>
 
 
 typedef struct {
@@ -72,6 +73,15 @@ static nxt_int_t nxt_controller_request_content_length(void *ctx,
 
 static void nxt_controller_process_request(nxt_task_t *task,
     nxt_controller_request_t *req);
+static void nxt_controller_process_config(nxt_task_t *task,
+    nxt_controller_request_t *req, nxt_str_t *path);
+#if (NXT_TLS)
+static void nxt_controller_process_cert(nxt_task_t *task,
+    nxt_controller_request_t *req, nxt_str_t *path);
+static void nxt_controller_process_cert_save(nxt_task_t *task,
+    nxt_port_recv_msg_t *msg, void *data);
+static nxt_bool_t nxt_controller_cert_in_use(nxt_str_t *name);
+#endif
 static void nxt_controller_conf_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
 static void nxt_controller_conf_store(nxt_task_t *task,
@@ -122,17 +132,10 @@ nxt_controller_start(nxt_task_t *task, void *data)
     nxt_str_t              *json;
     nxt_runtime_t          *rt;
     nxt_conf_value_t       *conf;
-    nxt_event_engine_t     *engine;
     nxt_conf_validation_t  vldt;
+    nxt_controller_init_t  *init;
 
     rt = task->thread->runtime;
-
-    engine = task->thread->engine;
-
-    engine->mem_pool = nxt_mp_create(4096, 128, 1024, 64);
-    if (nxt_slow_path(engine->mem_pool == NULL)) {
-        return NXT_ERROR;
-    }
 
     ret = nxt_http_fields_hash(&nxt_controller_fields_hash, rt->mem_pool,
                                nxt_controller_request_fields,
@@ -144,9 +147,20 @@ nxt_controller_start(nxt_task_t *task, void *data)
 
     nxt_queue_init(&nxt_controller_waiting_requests);
 
-    json = data;
+    init = data;
 
-    if (json->length == 0) {
+#if (NXT_TLS)
+
+    if (init->certs != NULL) {
+        nxt_cert_info_init(task, init->certs);
+        nxt_cert_store_release(init->certs);
+    }
+
+#endif
+
+    json = &init->conf;
+
+    if (json->start == NULL) {
         return NXT_OK;
     }
 
@@ -769,7 +783,7 @@ nxt_controller_request_content_length(void *ctx, nxt_http_field_t *field,
 
     length = nxt_off_t_parse(field->value, field->value_length);
 
-    if (nxt_fast_path(length > 0)) {
+    if (nxt_fast_path(length >= 0)) {
 
         if (nxt_slow_path(length > NXT_SIZE_T_MAX)) {
             nxt_log_error(NXT_LOG_ERR, &r->conn->log,
@@ -790,9 +804,130 @@ nxt_controller_request_content_length(void *ctx, nxt_http_field_t *field,
 static void
 nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
 {
+    uint32_t                   i, count;
+    nxt_str_t                  path;
+    nxt_conn_t                 *c;
+    nxt_conf_value_t           *value;
+    nxt_controller_response_t  resp;
+#if (NXT_TLS)
+    nxt_conf_value_t           *certs;
+
+    static nxt_str_t certificates = nxt_string("certificates");
+#endif
+    static nxt_str_t config = nxt_string("config");
+
+    c = req->conn;
+    path = req->parser.path;
+
+    if (path.length > 1 && path.start[path.length - 1] == '/') {
+        path.length--;
+    }
+
+    if (nxt_str_start(&path, "/config", 7)
+        && (path.length == 7 || path.start[7] == '/'))
+    {
+        if (path.length == 7) {
+            path.length = 1;
+
+        } else {
+            path.length -= 7;
+            path.start += 7;
+        }
+
+        nxt_controller_process_config(task, req, &path);
+        return;
+    }
+
+#if (NXT_TLS)
+
+    if (nxt_str_start(&path, "/certificates", 13)
+        && (path.length == 13 || path.start[13] == '/'))
+    {
+        if (path.length == 13) {
+            path.length = 1;
+
+        } else {
+            path.length -= 13;
+            path.start += 13;
+        }
+
+        nxt_controller_process_cert(task, req, &path);
+        return;
+    }
+
+#endif
+
+    nxt_memzero(&resp, sizeof(nxt_controller_response_t));
+
+    if (path.length == 1 && path.start[0] == '/') {
+
+        if (!nxt_str_eq(&req->parser.method, "GET", 3)) {
+            goto invalid_method;
+        }
+
+        count = 1;
+#if (NXT_TLS)
+        count++;
+#endif
+
+        value = nxt_conf_create_object(c->mem_pool, count);
+        if (nxt_slow_path(value == NULL)) {
+            goto alloc_fail;
+        }
+
+        i = 0;
+
+#if (NXT_TLS)
+        certs = nxt_cert_info_get_all(c->mem_pool);
+        if (nxt_slow_path(certs == NULL)) {
+            goto alloc_fail;
+        }
+
+        nxt_conf_set_member(value, &certificates, certs, i++);
+#endif
+
+        nxt_conf_set_member(value, &config, nxt_controller_conf.root, i);
+
+        resp.status = 200;
+        resp.conf = value;
+
+        nxt_controller_response(task, req, &resp);
+        return;
+    }
+
+    resp.status = 404;
+    resp.title = (u_char *) "Value doesn't exist.";
+    resp.offset = -1;
+
+    nxt_controller_response(task, req, &resp);
+    return;
+
+invalid_method:
+
+    resp.status = 405;
+    resp.title = (u_char *) "Invalid method.";
+    resp.offset = -1;
+
+    nxt_controller_response(task, req, &resp);
+    return;
+
+alloc_fail:
+
+    resp.status = 500;
+    resp.title = (u_char *) "Memory allocation failed.";
+    resp.offset = -1;
+
+    nxt_controller_response(task, req, &resp);
+    return;
+}
+
+
+static void
+nxt_controller_process_config(nxt_task_t *task, nxt_controller_request_t *req,
+    nxt_str_t *path)
+{
     nxt_mp_t                   *mp;
     nxt_int_t                  rc;
-    nxt_str_t                  path;
     nxt_conn_t                 *c;
     nxt_buf_mem_t              *mbuf;
     nxt_conf_op_t              *ops;
@@ -803,29 +938,13 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
 
     static const nxt_str_t empty_obj = nxt_string("{}");
 
-    c = req->conn;
-    path = req->parser.path;
-
-    if (nxt_str_start(&path, "/config", 7)) {
-
-        if (path.length == 7) {
-            path.length = 1;
-
-        } else if (path.start[7] == '/') {
-            path.length -= 7;
-            path.start += 7;
-        }
-    }
-
-    if (path.length > 1 && path.start[path.length - 1] == '/') {
-        path.length--;
-    }
-
     nxt_memzero(&resp, sizeof(nxt_controller_response_t));
+
+    c = req->conn;
 
     if (nxt_str_eq(&req->parser.method, "GET", 3)) {
 
-        value = nxt_conf_get_path(nxt_controller_conf.root, &path);
+        value = nxt_conf_get_path(nxt_controller_conf.root, path);
 
         if (value == NULL) {
             goto not_found;
@@ -877,10 +996,10 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
             return;
         }
 
-        if (path.length != 1) {
+        if (path->length != 1) {
             rc = nxt_conf_op_compile(c->mem_pool, &ops,
                                      nxt_controller_conf.root,
-                                     &path, value);
+                                     path, value);
 
             if (rc != NXT_OK) {
                 nxt_mp_destroy(mp);
@@ -948,7 +1067,7 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
             return;
         }
 
-        if (path.length == 1) {
+        if (path->length == 1) {
             mp = nxt_mp_create(1024, 128, 256, 32);
 
             if (nxt_slow_path(mp == NULL)) {
@@ -960,7 +1079,7 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
         } else {
             rc = nxt_conf_op_compile(c->mem_pool, &ops,
                                      nxt_controller_conf.root,
-                                     &path, NULL);
+                                     path, NULL);
 
             if (rc != NXT_OK) {
                 if (rc == NXT_DECLINED) {
@@ -1068,6 +1187,265 @@ no_router:
     nxt_controller_response(task, req, &resp);
     return;
 }
+
+
+#if (NXT_TLS)
+
+static void
+nxt_controller_process_cert(nxt_task_t *task,
+    nxt_controller_request_t *req, nxt_str_t *path)
+{
+    u_char                     *p;
+    nxt_str_t                  name;
+    nxt_int_t                  ret;
+    nxt_conn_t                 *c;
+    nxt_cert_t                 *cert;
+    nxt_conf_value_t           *value;
+    nxt_controller_response_t  resp;
+
+    name.length = path->length - 1;
+    name.start = path->start + 1;
+
+    p = nxt_memchr(name.start, '/', name.length);
+
+    if (p != NULL) {
+        name.length = p - name.start;
+
+        path->length -= p - path->start;
+        path->start = p;
+
+    } else {
+        path = NULL;
+    }
+
+    nxt_memzero(&resp, sizeof(nxt_controller_response_t));
+
+    c = req->conn;
+
+    if (nxt_str_eq(&req->parser.method, "GET", 3)) {
+
+        if (name.length != 0) {
+            value = nxt_cert_info_get(&name);
+            if (value == NULL) {
+                goto cert_not_found;
+            }
+
+            if (path != NULL) {
+                value = nxt_conf_get_path(value, path);
+                if (value == NULL) {
+                    goto not_found;
+                }
+            }
+
+        } else {
+            value = nxt_cert_info_get_all(c->mem_pool);
+            if (value == NULL) {
+                goto alloc_fail;
+            }
+        }
+
+        resp.status = 200;
+        resp.conf = value;
+
+        nxt_controller_response(task, req, &resp);
+        return;
+    }
+
+    if (name.length == 0 || path != NULL) {
+        goto invalid_name;
+    }
+
+    if (nxt_str_eq(&req->parser.method, "PUT", 3)) {
+        value = nxt_cert_info_get(&name);
+        if (value != NULL) {
+            goto exists_cert;
+        }
+
+        cert = nxt_cert_mem(task, &c->read->mem);
+        if (cert == NULL) {
+            goto invalid_cert;
+        }
+
+        ret = nxt_cert_info_save(&name, cert);
+
+        nxt_cert_destroy(cert);
+
+        if (nxt_slow_path(ret != NXT_OK)) {
+            goto alloc_fail;
+        }
+
+        nxt_cert_store_get(task, &name, c->mem_pool,
+                           nxt_controller_process_cert_save, req);
+        return;
+    }
+
+    if (nxt_str_eq(&req->parser.method, "DELETE", 6)) {
+
+        if (nxt_controller_cert_in_use(&name)) {
+            goto cert_in_use;
+        }
+
+        if (nxt_cert_info_delete(&name) != NXT_OK) {
+            goto cert_not_found;
+        }
+
+        nxt_cert_store_delete(task, &name, c->mem_pool);
+
+        resp.status = 200;
+        resp.title = (u_char *) "Certificate deleted.";
+
+        nxt_controller_response(task, req, &resp);
+        return;
+    }
+
+    resp.status = 405;
+    resp.title = (u_char *) "Invalid method.";
+    resp.offset = -1;
+
+    nxt_controller_response(task, req, &resp);
+    return;
+
+invalid_name:
+
+    resp.status = 400;
+    resp.title = (u_char *) "Invalid certificate name.";
+    resp.offset = -1;
+
+    nxt_controller_response(task, req, &resp);
+    return;
+
+invalid_cert:
+
+    resp.status = 400;
+    resp.title = (u_char *) "Invalid certificate.";
+    resp.offset = -1;
+
+    nxt_controller_response(task, req, &resp);
+    return;
+
+exists_cert:
+
+    resp.status = 400;
+    resp.title = (u_char *) "Certificate already exists.";
+    resp.offset = -1;
+
+    nxt_controller_response(task, req, &resp);
+    return;
+
+cert_in_use:
+
+    resp.status = 400;
+    resp.title = (u_char *) "Certificate is used in the configuration.";
+    resp.offset = -1;
+
+    nxt_controller_response(task, req, &resp);
+    return;
+
+cert_not_found:
+
+    resp.status = 404;
+    resp.title = (u_char *) "Certificate doesn't exist.";
+    resp.offset = -1;
+
+    nxt_controller_response(task, req, &resp);
+    return;
+
+not_found:
+
+    resp.status = 404;
+    resp.title = (u_char *) "Invalid path.";
+    resp.offset = -1;
+
+    nxt_controller_response(task, req, &resp);
+    return;
+
+alloc_fail:
+
+    resp.status = 500;
+    resp.title = (u_char *) "Memory allocation failed.";
+    resp.offset = -1;
+
+    nxt_controller_response(task, req, &resp);
+    return;
+}
+
+
+static void
+nxt_controller_process_cert_save(nxt_task_t *task, nxt_port_recv_msg_t *msg,
+    void *data)
+{
+    nxt_conn_t                *c;
+    nxt_buf_mem_t             *mbuf;
+    nxt_controller_request_t  *req;
+    nxt_controller_response_t  resp;
+
+    req = data;
+
+    nxt_memzero(&resp, sizeof(nxt_controller_response_t));
+
+    if (msg == NULL || msg->port_msg.type == _NXT_PORT_MSG_RPC_ERROR) {
+        resp.status = 500;
+        resp.title = (u_char *) "Failed to store certificate.";
+
+        nxt_controller_response(task, req, &resp);
+        return;
+    }
+
+    c = req->conn;
+
+    mbuf = &c->read->mem;
+
+    nxt_fd_write(msg->fd, mbuf->pos, nxt_buf_mem_used_size(mbuf));
+
+    nxt_fd_close(msg->fd);
+
+    nxt_memzero(&resp, sizeof(nxt_controller_response_t));
+
+    resp.status = 200;
+    resp.title = (u_char *) "Certificate chain uploaded.";
+
+    nxt_controller_response(task, req, &resp);
+}
+
+
+static nxt_bool_t
+nxt_controller_cert_in_use(nxt_str_t *name)
+{
+    uint32_t          next;
+    nxt_str_t         str;
+    nxt_conf_value_t  *listeners, *listener, *value;
+
+    static nxt_str_t  listeners_path = nxt_string("/listeners");
+    static nxt_str_t  certificate_path = nxt_string("/tls/certificate");
+
+    listeners = nxt_conf_get_path(nxt_controller_conf.root, &listeners_path);
+
+    if (listeners != NULL) {
+        next = 0;
+
+        for ( ;; ) {
+            listener = nxt_conf_next_object_member(listeners, &str, &next);
+            if (listener == NULL) {
+                break;
+            }
+
+            value = nxt_conf_get_path(listener, &certificate_path);
+            if (value == NULL) {
+                continue;
+            }
+
+            nxt_conf_get_string(value, &str);
+
+            if (nxt_strstr_eq(&str, name)) {
+                return 1;
+            }
+        }
+    }
+
+    return 0;
+}
+
+#endif
 
 
 static void

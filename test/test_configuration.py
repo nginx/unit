@@ -6,6 +6,9 @@ class TestUnitConfiguration(unit.TestUnitControl):
     def setUpClass():
         unit.TestUnit().check_modules('python')
 
+    def test_json_empty(self):
+        self.assertIn('error', self.conf(''), 'empty')
+
     def test_json_leading_zero(self):
         self.assertIn('error', self.conf('00'), 'leading zero')
 
@@ -19,9 +22,9 @@ class TestUnitConfiguration(unit.TestUnitControl):
                     "module": "wsgi"
                 }
             }
-            """, '/applications'), 'unicode')
+            """, 'applications'), 'unicode')
 
-        self.assertDictEqual(self.conf_get('/applications'), {
+        self.assertDictEqual(self.conf_get('applications'), {
             "app": {
                 "type": "python",
                 "processes": { "spare": 0 },
@@ -38,9 +41,9 @@ class TestUnitConfiguration(unit.TestUnitControl):
                 "path": "/app",
                 "module": "wsgi"
             }
-        }, '/applications'), 'unicode 2')
+        }, 'applications'), 'unicode 2')
 
-        self.assertIn('приложение', self.conf_get('/applications'),
+        self.assertIn('приложение', self.conf_get('applications'),
             'unicode 2 get')
 
     def test_json_unicode_number(self):
@@ -53,13 +56,13 @@ class TestUnitConfiguration(unit.TestUnitControl):
                     "module": "wsgi"
                 }
             }
-            """, '/applications'), 'unicode number')
+            """, 'applications'), 'unicode number')
 
     def test_applications_open_brace(self):
-        self.assertIn('error', self.conf('{', '/applications'), 'open brace')
+        self.assertIn('error', self.conf('{', 'applications'), 'open brace')
 
     def test_applications_string(self):
-        self.assertIn('error', self.conf('"{}"', '/applications'), 'string')
+        self.assertIn('error', self.conf('"{}"', 'applications'), 'string')
 
     def test_applications_type_only(self):
         self.skip_alerts.extend([
@@ -72,7 +75,7 @@ class TestUnitConfiguration(unit.TestUnitControl):
             "app": {
                 "type": "python"
             }
-        }, '/applications'), 'type only')
+        }, 'applications'), 'type only')
 
     def test_applications_miss_quote(self):
         self.assertIn('error', self.conf("""
@@ -84,7 +87,7 @@ class TestUnitConfiguration(unit.TestUnitControl):
                     "module": "wsgi"
                 }
             }
-            """, '/applications'), 'miss quote')
+            """, 'applications'), 'miss quote')
 
     def test_applications_miss_colon(self):
         self.assertIn('error', self.conf("""
@@ -96,7 +99,7 @@ class TestUnitConfiguration(unit.TestUnitControl):
                     "module": "wsgi"
                 }
             }
-            """, '/applications'), 'miss colon')
+            """, 'applications'), 'miss colon')
 
     def test_applications_miss_comma(self):
         self.assertIn('error', self.conf("""
@@ -108,10 +111,10 @@ class TestUnitConfiguration(unit.TestUnitControl):
                     "module": "wsgi"
                 }
             }
-            """, '/applications'), 'miss comma')
+            """, 'applications'), 'miss comma')
 
     def test_applications_skip_spaces(self):
-        self.assertIn('success', self.conf(b'{ \n\r\t}', '/applications'),
+        self.assertIn('success', self.conf(b'{ \n\r\t}', 'applications'),
             'skip spaces')
 
     def test_applications_relative_path(self):
@@ -122,7 +125,7 @@ class TestUnitConfiguration(unit.TestUnitControl):
                 "path": "../app",
                 "module": "wsgi"
             }
-        }, '/applications'), 'relative path')
+        }, 'applications'), 'relative path')
 
     @unittest.expectedFailure
     def test_listeners_empty(self):
@@ -133,12 +136,12 @@ class TestUnitConfiguration(unit.TestUnitControl):
             r'process \d+ exited on signal'
         ])
 
-        self.assertIn('error', self.conf({"*:7080":{}}, '/listeners'),
+        self.assertIn('error', self.conf({"*:7080":{}}, 'listeners'),
             'listener empty')
 
     def test_listeners_no_app(self):
         self.assertIn('error', self.conf({"*:7080":{"application":"app"}},
-            '/listeners'), 'listeners no app')
+            'listeners'), 'listeners no app')
 
     def test_listeners_wildcard(self):
         self.assertIn('success', self.conf({
@@ -215,4 +218,4 @@ class TestUnitConfiguration(unit.TestUnitControl):
         }), 'no port')
 
 if __name__ == '__main__':
-    unittest.main()
+    TestUnitConfiguration.main()

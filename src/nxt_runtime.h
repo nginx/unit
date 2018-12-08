@@ -28,6 +28,10 @@ struct nxt_runtime_s {
 
     nxt_file_name_t        *pid_file;
 
+#if (NXT_TLS)
+    const nxt_tls_lib_t    *tls;
+#endif
+
     nxt_array_t            *thread_pools;       /* of nxt_thread_pool_t */
     nxt_runtime_cont_t     continuation;
 
@@ -64,11 +68,12 @@ struct nxt_runtime_s {
     const char             *conf_tmp;
     const char             *control;
 
+    nxt_str_t              certs;
+
     nxt_queue_t            engines;            /* of nxt_event_engine_t */
 
     nxt_sockaddr_t         *controller_listen;
     nxt_listen_socket_t    *controller_socket;
-    nxt_str_t              upstream;
 };
 
 
@@ -106,7 +111,7 @@ void nxt_runtime_port_add(nxt_task_t *task, nxt_port_t *port);
 
 void nxt_runtime_port_remove(nxt_task_t *task, nxt_port_t *port);
 
-nxt_port_t *nxt_runtime_port_find(nxt_runtime_t *rt, nxt_pid_t pid,
+NXT_EXPORT nxt_port_t *nxt_runtime_port_find(nxt_runtime_t *rt, nxt_pid_t pid,
     nxt_port_id_t port_id);
 
 
@@ -128,9 +133,6 @@ void nxt_cdecl nxt_log_time_handler(nxt_uint_t level, nxt_log_t *log,
     const char *fmt, ...);
 
 void nxt_stream_connection_init(nxt_task_t *task, void *obj, void *data);
-
-void nxt_app_quit_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
-void nxt_app_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 
 
 #define nxt_runtime_process_each(rt, process)                                 \

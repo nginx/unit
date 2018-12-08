@@ -11,8 +11,8 @@
 #include <nxt_auto_config.h>
 
 
-#define NXT_VERSION                  "1.3"
-#define NXT_VERNUM                   10300
+#define NXT_VERSION                  "1.7"
+#define NXT_VERNUM                   10700
 
 #define NXT_SERVER                   "Unit/" NXT_VERSION
 
@@ -113,8 +113,8 @@ typedef struct nxt_conn_s               nxt_conn_t;
 
 #include <nxt_log_moderation.h>
 
-#if (NXT_SSLTLS)
-#include <nxt_ssltls.h>
+#if (NXT_TLS)
+#include <nxt_tls.h>
 #endif
 
 

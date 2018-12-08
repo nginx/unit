@@ -237,3 +237,31 @@ nxt_thread_wait(nxt_thread_handle_t handle)
         nxt_main_log_alert("pthread_join(%PH) failed %E", handle, err);
     }
 }
+
+
+nxt_tid_t
+nxt_thread_tid(nxt_thread_t *thr)
+{
+#if (NXT_HAVE_THREAD_STORAGE_CLASS)
+
+    if (nxt_slow_path(thr->tid == 0)) {
+        thr->tid = nxt_thread_get_tid();
+    }
+
+    return thr->tid;
+
+#else
+
+    if (nxt_fast_path(thr != NULL)) {
+
+        if (nxt_slow_path(thr->tid == 0)) {
+            thr->tid = nxt_thread_get_tid();
+        }
+
+        return thr->tid;
+    }
+
+    return nxt_thread_get_tid();
+
+#endif
+}

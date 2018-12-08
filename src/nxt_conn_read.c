@@ -39,7 +39,6 @@ nxt_conn_io_read(nxt_task_t *task, void *obj, void *data)
 {
     ssize_t                 n;
     nxt_conn_t              *c;
-    nxt_work_queue_t        *wq;
     nxt_event_engine_t      *engine;
     nxt_work_handler_t      handler;
     const nxt_conn_state_t  *state;
@@ -49,9 +48,19 @@ nxt_conn_io_read(nxt_task_t *task, void *obj, void *data)
     nxt_debug(task, "conn read fd:%d rdy:%d cl:%d",
               c->socket.fd, c->socket.read_ready, c->socket.closed);
 
+    if (c->socket.error != 0) {
+        return;
+    }
+
     engine = task->thread->engine;
 
+    /*
+     * Here c->io->read() is assigned instead of direct nxt_conn_io_read()
+     * because the function can be called by nxt_kqueue_conn_io_read().
+     */
+    c->socket.read_handler = c->io->read;
     state = c->read_state;
+    c->socket.error_handler = state->error_handler;
 
     if (c->socket.read_ready) {
 
@@ -60,6 +69,8 @@ nxt_conn_io_read(nxt_task_t *task, void *obj, void *data)
 
         } else {
             n = state->io_read_handler(c);
+            /* The state can be changed by io_read_handler. */
+            state = c->read_state;
         }
 
         if (n > 0) {
@@ -73,47 +84,46 @@ nxt_conn_io_read(nxt_task_t *task, void *obj, void *data)
                 nxt_timer_disable(engine, &c->read_timer);
             }
 
-            wq = c->read_work_queue;
-            handler = state->ready_handler;
-
-            nxt_work_queue_add(wq, handler, task, c, data);
-
+            nxt_work_queue_add(c->read_work_queue,
+                               state->ready_handler, task, c, data);
             return;
         }
 
         if (n != NXT_AGAIN) {
+            /* n == 0 or n == NXT_ERROR. */
+            handler = (n == 0) ? state->close_handler : state->error_handler;
+
             nxt_fd_event_block_read(engine, &c->socket);
             nxt_timer_disable(engine, &c->read_timer);
 
-            wq = &engine->fast_work_queue;
+            nxt_work_queue_add(&engine->fast_work_queue,
+                               handler, task, c, data);
+            return;
+        }
 
-            handler = (n == 0) ? state->close_handler : state->error_handler;
+        /* n == NXT_AGAIN. */
 
-            nxt_work_queue_add(wq, handler, task, c, data);
+        if (c->socket.read_ready) {
+            /*
+             * SSL/TLS library can return NXT_AGAIN if renegotiation
+             * occured during read operation, it toggled write event
+             * internally so only read timer should be set.
+             */
+            if (!c->read_timer.enabled) {
+                nxt_conn_timer(engine, c, state, &c->read_timer);
+            }
 
             return;
         }
     }
 
-    /*
-     * Here c->io->read() is assigned instead of direct nxt_conn_io_read()
-     * because the function can be called by nxt_kqueue_conn_io_read().
-     */
-    c->socket.read_handler = c->io->read;
-    c->socket.error_handler = state->error_handler;
-
-    if (c->read_timer.state == NXT_TIMER_DISABLED
-        || nxt_fd_event_is_disabled(c->socket.read))
-    {
-        /* Timer may be set or reset. */
-        nxt_conn_timer(engine, c, state, &c->read_timer);
-
-        if (nxt_fd_event_is_disabled(c->socket.read)) {
-            nxt_fd_event_enable_read(engine, &c->socket);
-        }
+    if (nxt_fd_event_is_disabled(c->socket.read)) {
+        nxt_fd_event_enable_read(engine, &c->socket);
     }
 
-    return;
+    if (state->timer_autoreset || !c->read_timer.enabled) {
+        nxt_conn_timer(engine, c, state, &c->read_timer);
+    }
 }
 
 
@@ -198,7 +208,7 @@ nxt_conn_io_recv(nxt_conn_t *c, void *buf, size_t size, nxt_uint_t flags)
                   c->socket.fd, buf, size, flags, n);
 
         if (n > 0) {
-            if ((size_t) n < size) {
+            if ((size_t) n < size && (flags & MSG_PEEK) == 0) {
                 c->socket.read_ready = 0;
             }
 
@@ -207,7 +217,10 @@ nxt_conn_io_recv(nxt_conn_t *c, void *buf, size_t size, nxt_uint_t flags)
 
         if (n == 0) {
             c->socket.closed = 1;
-            c->socket.read_ready = 0;
+
+            if ((flags & MSG_PEEK) == 0) {
+                c->socket.read_ready = 0;
+            }
 
             return n;
         }

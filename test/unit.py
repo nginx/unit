@@ -1,11 +1,13 @@
 import os
 import re
+import ssl
 import sys
 import json
 import time
 import shutil
 import socket
 import select
+import argparse
 import platform
 import tempfile
 import unittest
@@ -18,18 +20,66 @@ class TestUnit(unittest.TestCase):
     architecture = platform.architecture()[0]
     maxDiff = None
 
+    detailed = False
+    save_log = False
+
+    def __init__(self, methodName='runTest'):
+        super().__init__(methodName)
+
+        if re.match(r'.*\/run\.py$', sys.argv[0]):
+            args, rest = TestUnit._parse_args()
+
+            TestUnit._set_args(args)
+
+    @classmethod
+    def main(cls):
+        args, rest = TestUnit._parse_args()
+
+        for i, arg in enumerate(rest):
+            if arg[:5] == 'test_':
+                rest[i] = cls.__name__ + '.' + arg
+
+        sys.argv = sys.argv[:1] + rest
+
+        TestUnit._set_args(args)
+
+        unittest.main()
+
     def setUp(self):
         self._run()
 
     def tearDown(self):
         self.stop()
 
+        # detect errors and failures for current test
+
+        def list2reason(exc_list):
+            if exc_list and exc_list[-1][0] is self:
+                return exc_list[-1][1]
+
+        if hasattr(self, '_outcome'):
+            result = self.defaultTestResult()
+            self._feedErrorsToResult(result, self._outcome.errors)
+        else:
+            result = getattr(self, '_outcomeForDoCleanups',
+                self._resultForDoCleanups)
+
+        success = not list2reason(result.errors) \
+              and not list2reason(result.failures)
+
+        # check unit.log for alerts
+
         with open(self.testdir + '/unit.log', 'r', encoding='utf-8',
             errors='ignore') as f:
             self._check_alerts(f.read())
 
-        if '--leave' not in sys.argv:
+        # remove unit.log
+
+        if not TestUnit.save_log and success:
             shutil.rmtree(self.testdir)
+
+        else:
+            self._print_path_to_log()
 
     def check_modules(self, *modules):
         self._run()
@@ -63,6 +113,25 @@ class TestUnit(unittest.TestCase):
                     process.communicate()
 
                     m = module if process.returncode == 0 else None
+
+                except:
+                    m = None
+
+            elif module == 'node':
+                if os.path.isdir(self.pardir + '/node/node_modules'):
+                    m = module
+                else:
+                    m = None
+
+            elif module == 'openssl':
+                try:
+                    subprocess.check_output(['which', 'openssl'])
+
+                    output = subprocess.check_output([
+                    self.pardir + '/build/unitd', '--version'],
+                    stderr=subprocess.STDOUT)
+
+                    m = re.search('--openssl', output.decode())
 
                 except:
                     m = None
@@ -157,11 +226,16 @@ class TestUnit(unittest.TestCase):
             for skip in self.skip_alerts:
                 alerts = [al for al in alerts if re.search(skip, al) is None]
 
-        self.assertFalse(alerts, 'alert(s)')
+        if alerts:
+            self._print_path_to_log()
+            self.assertFalse(alerts, 'alert(s)')
 
         if not self.skip_sanitizer:
-            self.assertFalse(re.findall('.+Sanitizer.+', log),
-                'sanitizer error(s)')
+            sanitizer_errors = re.findall('.+Sanitizer.+', log)
+
+            if sanitizer_errors:
+                self._print_path_to_log()
+                self.assertFalse(sanitizer_error, 'sanitizer error(s)')
 
         if found:
             print('skipped.')
@@ -185,6 +259,25 @@ class TestUnit(unittest.TestCase):
 
         return ret
 
+    @staticmethod
+    def _parse_args():
+        parser = argparse.ArgumentParser(add_help=False)
+
+        parser.add_argument('-d', '--detailed', dest='detailed',
+            action='store_true',  help='Detailed output for tests')
+        parser.add_argument('-l', '--log', dest='save_log',
+            action='store_true', help='Save unit.log after the test execution')
+
+        return parser.parse_known_args()
+
+    @staticmethod
+    def _set_args(args):
+        TestUnit.detailed = args.detailed
+        TestUnit.save_log = args.save_log
+
+    def _print_path_to_log(self):
+        print('Path to unit.log:\n' + self.testdir + '/unit.log')
+
 class TestUnitHTTP(TestUnit):
 
     def http(self, start_str, **kwargs):
@@ -192,6 +285,7 @@ class TestUnitHTTP(TestUnit):
         port = 7080 if 'port' not in kwargs else kwargs['port']
         url = '/' if 'url' not in kwargs else kwargs['url']
         http = 'HTTP/1.0' if 'http_10' in kwargs else 'HTTP/1.1'
+        blocking = False if 'blocking' not in kwargs else kwargs['blocking']
 
         headers = ({
             'Host': 'localhost',
@@ -215,6 +309,9 @@ class TestUnitHTTP(TestUnit):
         if 'sock' not in kwargs:
             sock = socket.socket(sock_types[sock_type], socket.SOCK_STREAM)
 
+            if 'wrapper' in kwargs:
+                sock = kwargs['wrapper'](sock)
+
             connect_args = addr if sock_type == 'unix' else (addr, port)
             try:
                 sock.connect(connect_args)
@@ -222,10 +319,10 @@ class TestUnitHTTP(TestUnit):
                 sock.close()
                 return None
 
+            sock.setblocking(blocking)
+
         else:
             sock = kwargs['sock']
-
-        sock.setblocking(False)
 
         if 'raw' not in kwargs:
             req = ' '.join([start_str, url, http]) + crlf
@@ -247,12 +344,16 @@ class TestUnitHTTP(TestUnit):
 
         sock.sendall(req)
 
-        if '--verbose' in sys.argv:
+        if TestUnit.detailed:
             print('>>>', req, sep='\n')
 
-        resp = self._recvall(sock)
+        resp = ''
 
-        if '--verbose' in sys.argv:
+        if 'no_recv' not in kwargs:
+           enc = 'utf-8' if 'encoding' not in kwargs else kwargs['encoding']
+           resp = self.recvall(sock).decode(enc)
+
+        if TestUnit.detailed:
             print('<<<', resp.encode('utf-8'), sep='\n')
 
         if 'raw_resp' not in kwargs:
@@ -276,15 +377,20 @@ class TestUnitHTTP(TestUnit):
     def put(self, **kwargs):
         return self.http('PUT', **kwargs)
 
-    def _recvall(self, sock, buff_size=4096):
+    def recvall(self, sock, buff_size=4096):
         data = b''
         while select.select([sock], [], [], 1)[0]:
-            part = sock.recv(buff_size)
+            try:
+                part = sock.recv(buff_size)
+            except:
+                break
+
             data += part
+
             if not len(part):
                 break
 
-        return data.decode()
+        return data
 
     def _resp_to_dict(self, resp):
         m = re.search('(.*?\x0d\x0a?)\x0d\x0a?(.*)', resp, re.M | re.S)
@@ -321,9 +427,12 @@ class TestUnitControl(TestUnitHTTP):
     # TODO socket reuse
     # TODO http client
 
-    def conf(self, conf, path='/'):
+    def conf(self, conf, path='/config'):
         if isinstance(conf, dict):
             conf = json.dumps(conf)
+
+        if path[:1] != '/':
+            path = '/config/' + path
 
         return json.loads(self.put(
             url=path,
@@ -332,14 +441,20 @@ class TestUnitControl(TestUnitHTTP):
             addr=self.testdir + '/control.unit.sock'
         )['body'])
 
-    def conf_get(self, path='/'):
+    def conf_get(self, path='/config'):
+        if path[:1] != '/':
+            path = '/config/' + path
+
         return json.loads(self.get(
             url=path,
             sock_type='unix',
             addr=self.testdir + '/control.unit.sock'
         )['body'])
 
-    def conf_delete(self, path='/'):
+    def conf_delete(self, path='/config'):
+        if path[:1] != '/':
+            path = '/config/' + path
+
         return json.loads(self.delete(
             url=path,
             sock_type='unix',
@@ -353,11 +468,11 @@ class TestUnitApplicationProto(TestUnitControl):
     def sec_epoch(self):
         return time.mktime(time.gmtime())
 
-    def date_to_sec_epoch(self, date):
-        return time.mktime(time.strptime(date, '%a, %d %b %Y %H:%M:%S %Z'))
+    def date_to_sec_epoch(self, date, template='%a, %d %b %Y %H:%M:%S %Z'):
+        return time.mktime(time.strptime(date, template))
 
     def search_in_log(self, pattern):
-        with open(self.testdir + '/unit.log', 'r') as f:
+        with open(self.testdir + '/unit.log', 'r', errors='ignore') as f:
             return re.search(pattern, f.read())
 
 class TestUnitApplicationPython(TestUnitApplicationProto):
@@ -441,10 +556,39 @@ class TestUnitApplicationGo(TestUnitApplicationProto):
             },
             "applications": {
                 script: {
-                    "type": "go",
+                    "type": "external",
                     "processes": { "spare": 0 },
                     "working_directory": self.current_dir + '/go/' + script,
                     "executable": self.testdir + '/go/' + name
+                }
+            }
+        })
+
+class TestUnitApplicationNode(TestUnitApplicationProto):
+    def load(self, script, name='app.js'):
+
+        # copy application
+
+        shutil.copytree(self.current_dir + '/node/' + script,
+            self.testdir + '/node')
+
+        # link modules
+
+        os.symlink(self.pardir + '/node/node_modules',
+            self.testdir + '/node/node_modules')
+
+        self.conf({
+            "listeners": {
+                "*:7080": {
+                    "application": script
+                }
+            },
+            "applications": {
+                script: {
+                    "type": "external",
+                    "processes": { "spare": 0 },
+                    "working_directory": self.testdir + '/node',
+                    "executable": name
                 }
             }
         })
@@ -463,6 +607,72 @@ class TestUnitApplicationPerl(TestUnitApplicationProto):
                     "processes": { "spare": 0 },
                     "working_directory": self.current_dir + '/perl/' + script,
                     "script": self.current_dir + '/perl/' + script + '/' + name
+                }
+            }
+        })
+
+class TestUnitApplicationTLS(TestUnitApplicationProto):
+    def __init__(self, test):
+        super().__init__(test)
+
+        self.context = ssl.create_default_context()
+        self.context.check_hostname = False
+        self.context.verify_mode = ssl.CERT_NONE
+
+    def certificate(self, name='default', load=True):
+        subprocess.call(['openssl', 'req', '-x509', '-new', '-config',
+            self.testdir + '/openssl.conf', '-subj', '/CN=' + name + '/',
+            '-out', self.testdir + '/' + name + '.crt',
+            '-keyout', self.testdir + '/' + name + '.key'])
+
+        if load:
+            self.certificate_load(name)
+
+    def certificate_load(self, crt, key=None):
+        if key is None:
+            key = crt
+
+        with open(self.testdir + '/' + key + '.key', 'rb') as k, \
+             open(self.testdir + '/' + crt + '.crt', 'rb') as c:
+                return self.conf(k.read() + c.read(), '/certificates/' + crt)
+
+    def get_ssl(self, **kwargs):
+        return self.get(blocking=True, wrapper=self.context.wrap_socket,
+            **kwargs)
+
+    def post_ssl(self, **kwargs):
+        return self.post(blocking=True, wrapper=self.context.wrap_socket,
+            **kwargs)
+
+    def get_server_certificate(self, addr=('127.0.0.1', 7080)):
+        return ssl.get_server_certificate(addr)
+
+    def load(self, script, name=None):
+        if name is None:
+            name = script
+
+        # create default openssl configuration
+
+        with open(self.testdir + '/openssl.conf', 'w') as f:
+            f.write("""[ req ]
+default_bits = 1024
+encrypt_key = no
+distinguished_name = req_distinguished_name
+[ req_distinguished_name ]""")
+
+        self.conf({
+            "listeners": {
+                "*:7080": {
+                    "application": name
+                }
+            },
+            "applications": {
+                name: {
+                    "type": "python",
+                    "processes": { "spare": 0 },
+                    "path": self.current_dir + '/python/' + script,
+                    "working_directory": self.current_dir + '/python/' + script,
+                    "module": "wsgi"
                 }
             }
         })

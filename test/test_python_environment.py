@@ -11,28 +11,28 @@ class TestUnitPythonEnvironment(unit.TestUnitApplicationPython):
 
         self.assertIn('error', self.conf({
             "va\0r": "val1"
-        }, '/applications/environment/environment'), 'name null')
+        }, 'applications/environment/environment'), 'name null')
 
     def test_python_environment_name_equals(self):
         self.load('environment')
 
         self.assertIn('error', self.conf({
             "var=": "val1"
-        }, '/applications/environment/environment'), 'name equals')
+        }, 'applications/environment/environment'), 'name equals')
 
     def test_python_environment_value_null(self):
         self.load('environment')
 
         self.assertIn('error', self.conf({
             "var": "\0val"
-        }, '/applications/environment/environment'), 'value null')
+        }, 'applications/environment/environment'), 'value null')
 
     def test_python_environment_update(self):
         self.load('environment')
 
         self.conf({
             "var": "val1"
-        }, '/applications/environment/environment')
+        }, 'applications/environment/environment')
 
         self.assertEqual(self.get(headers={
             'Host': 'localhost',
@@ -42,7 +42,7 @@ class TestUnitPythonEnvironment(unit.TestUnitApplicationPython):
 
         self.conf({
             "var": "val2"
-        }, '/applications/environment/environment')
+        }, 'applications/environment/environment')
 
         self.assertEqual(self.get(headers={
             'Host': 'localhost',
@@ -55,7 +55,7 @@ class TestUnitPythonEnvironment(unit.TestUnitApplicationPython):
 
         self.conf({
             "var1": "val1"
-        }, '/applications/environment/environment')
+        }, 'applications/environment/environment')
 
         self.assertEqual(self.get(headers={
             'Host': 'localhost',
@@ -65,7 +65,7 @@ class TestUnitPythonEnvironment(unit.TestUnitApplicationPython):
 
         self.conf({
             "var2": "val2"
-        }, '/applications/environment/environment')
+        }, 'applications/environment/environment')
 
         self.assertEqual(self.get(headers={
             'Host': 'localhost',
@@ -79,7 +79,7 @@ class TestUnitPythonEnvironment(unit.TestUnitApplicationPython):
         self.conf({
             "var1": "val1",
             "var2": "val2"
-        }, '/applications/environment/environment')
+        }, 'applications/environment/environment')
 
         self.assertEqual(self.get(headers={
             'Host': 'localhost',
@@ -87,7 +87,7 @@ class TestUnitPythonEnvironment(unit.TestUnitApplicationPython):
             'Connection': 'close'
         })['body'], 'val1,val2,', 'set')
 
-        self.conf({}, '/applications/environment/environment')
+        self.conf({}, 'applications/environment/environment')
 
         self.assertEqual(self.get(headers={
             'Host': 'localhost',
@@ -108,7 +108,7 @@ class TestUnitPythonEnvironment(unit.TestUnitApplicationPython):
 
         self.conf({
             "PWD": "new/pwd"
-        }, '/applications/environment/environment')
+        }, 'applications/environment/environment')
 
         self.assertEqual(self.get(headers={
             'Host': 'localhost',
@@ -116,7 +116,7 @@ class TestUnitPythonEnvironment(unit.TestUnitApplicationPython):
             'Connection': 'close'
         })['body'], 'new/pwd,', 'replace default')
 
-        self.conf({}, '/applications/environment/environment')
+        self.conf({}, 'applications/environment/environment')
 
         self.assertEqual(self.get(headers={
             'Host': 'localhost',
@@ -125,4 +125,4 @@ class TestUnitPythonEnvironment(unit.TestUnitApplicationPython):
         })['body'], pwd_default, 'restore default')
 
 if __name__ == '__main__':
-    unittest.main()
+    TestUnitPythonEnvironment.main()

@@ -22,6 +22,16 @@ static const nxt_http_request_state_t  nxt_http_request_init_state;
 static const nxt_http_request_state_t  nxt_http_request_body_state;
 
 
+nxt_time_string_t  nxt_http_date_cache = {
+    (nxt_atomic_uint_t) -1,
+    nxt_http_date,
+    "%s, %02d %s %4d %02d:%02d:%02d GMT",
+    nxt_length("Wed, 31 Dec 1986 16:40:00 GMT"),
+    NXT_THREAD_TIME_GMT,
+    NXT_THREAD_TIME_SEC,
+};
+
+
 nxt_int_t
 nxt_http_init(nxt_task_t *task, nxt_runtime_t *rt)
 {
@@ -182,7 +192,7 @@ nxt_http_app_request(nxt_task_t *task, void *obj, void *data)
     ar->timer.task = &engine->task;
     ar->timer.work_queue = &engine->fast_work_queue;
     ar->timer.log = engine->task.log;
-    ar->timer.precision = NXT_TIMER_DEFAULT_PRECISION;
+    ar->timer.bias = NXT_TIMER_DEFAULT_BIAS;
 
     ar->r.remote.start = nxt_sockaddr_address(r->remote);
     ar->r.remote.length = r->remote->address_length;
@@ -278,15 +288,6 @@ nxt_http_request_header_send(nxt_task_t *task, nxt_http_request_t *r)
     u_char            *p, *end;
     nxt_http_field_t  *server, *date, *content_length;
 
-    static nxt_time_string_t  date_cache = {
-        (nxt_atomic_uint_t) -1,
-        nxt_http_date,
-        "%s, %02d %s %4d %02d:%02d:%02d GMT",
-        nxt_length("Wed, 31 Dec 1986 16:40:00 GMT"),
-        NXT_THREAD_TIME_GMT,
-        NXT_THREAD_TIME_SEC,
-    };
-
     /*
      * TODO: "Server", "Date", and "Content-Length" processing should be moved
      * to the last header filter.
@@ -307,15 +308,15 @@ nxt_http_request_header_send(nxt_task_t *task, nxt_http_request_t *r)
 
         nxt_http_field_name_set(date, "Date");
 
-        p = nxt_mp_nget(r->mem_pool, date_cache.size);
+        p = nxt_mp_nget(r->mem_pool, nxt_http_date_cache.size);
         if (nxt_slow_path(p == NULL)) {
             goto fail;
         }
 
-        (void) nxt_thread_time_string(task->thread, &date_cache, p);
+        (void) nxt_thread_time_string(task->thread, &nxt_http_date_cache, p);
 
         date->value = p;
-        date->value_length = date_cache.size;
+        date->value_length = nxt_http_date_cache.size;
 
         r->resp.date = date;
     }
