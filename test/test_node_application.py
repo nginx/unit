@@ -127,6 +127,12 @@ class TestUnitNodeApplication(unit.TestUnitApplicationNode):
 
         self.get()
 
+    def test_node_application_double_end(self):
+        self.load('double_end')
+
+        self.assertEqual(self.get()['status'], 200, 'double end')
+        self.assertEqual(self.get()['status'], 200, 'double end 2')
+
     def test_node_application_write_return(self):
         self.load('write_return')
 
@@ -136,10 +142,21 @@ class TestUnitNodeApplication(unit.TestUnitApplicationNode):
     def test_node_application_remove_header(self):
         self.load('remove_header')
 
-        resp = self.get()
+        resp = self.get(headers={
+            'Host': 'localhost',
+            'X-Remove': 'X-Header'
+        })
         self.assertEqual(resp['headers']['Was-Header'], 'true', 'was header')
         self.assertEqual(resp['headers']['Has-Header'], 'false', 'has header')
         self.assertFalse('X-Header' in resp['headers'], 'remove header')
+
+    def test_node_application_remove_header_nonexisting(self):
+        self.load('remove_header')
+
+        self.assertEqual(self.get(headers={
+            'Host': 'localhost',
+            'X-Remove': 'blah'
+        })['headers']['Has-Header'], 'true', 'remove header nonexisting')
 
     def test_node_application_update_header(self):
         self.load('update_header')
@@ -164,6 +181,104 @@ class TestUnitNodeApplication(unit.TestUnitApplicationNode):
 
         self.assertEqual(self.get()['headers']['X-Type'], 'number',
             'get header type')
+
+    @unittest.expectedFailure
+    def test_node_application_header_name_case(self):
+        self.load('header_name_case')
+
+        headers = self.get()['headers']
+
+        self.assertEqual(headers['X-HEADER'], '3', 'header value')
+        self.assertNotIn('X-Header', headers, 'insensitive')
+        self.assertNotIn('X-header', headers, 'insensitive 2')
+
+    def test_node_application_promise_handler(self):
+        self.load('promise_handler')
+
+        self.assertEqual(self.post(headers={
+            'Host': 'localhost',
+            'Content-Type': 'text/html'
+        }, body='callback')['status'], 200, 'promise handler request')
+        self.assertTrue(self.waitforfiles(self.testdir + '/node/callback'),
+            'promise handler')
+
+    @unittest.expectedFailure
+    def test_node_application_promise_handler_write_after_end(self):
+        self.skip_alerts.append(r'process \d+ exited on signal')
+        self.load('promise_handler')
+
+        self.assertEqual(self.post(headers={
+            'Host': 'localhost',
+            'Content-Type': 'text/html',
+            'X-Write-Call': '1'
+        }, body='callback')['status'], 200,
+            'promise handler request write after end')
+
+    def test_node_application_promise_end(self):
+        self.load('promise_end')
+
+        self.assertEqual(self.post(headers={
+            'Host': 'localhost',
+            'Content-Type': 'text/html'
+        }, body='end')['status'], 200, 'promise end request')
+        self.assertTrue(self.waitforfiles(self.testdir + '/node/callback'),
+            'promise end')
+
+    def test_node_application_promise_multiple_calls(self):
+        self.load('promise_handler')
+
+        self.post(headers={
+            'Host': 'localhost',
+            'Content-Type': 'text/html'
+        }, body='callback1')
+
+        self.assertTrue(self.waitforfiles(self.testdir + '/node/callback1'),
+            'promise first call')
+
+        self.post(headers={
+            'Host': 'localhost',
+            'Content-Type': 'text/html'
+        }, body='callback2')
+
+        self.assertTrue(self.waitforfiles(self.testdir + '/node/callback2'),
+            'promise second call')
+
+    @unittest.expectedFailure
+    def test_node_application_header_name_valid(self):
+        self.load('header_name_valid')
+
+        self.assertNotIn('status', self.get(), 'header name valid')
+
+    @unittest.expectedFailure
+    def test_node_application_header_value_object(self):
+        self.load('header_value_object')
+
+        self.assertIn('X-Header', self.get()['headers'], 'header value object')
+
+    @unittest.expectedFailure
+    def test_node_application_get_header_names(self):
+        self.load('get_header_names')
+
+        self.assertListEqual(self.get()['headers']['X-Names'],
+            ['date', 'x-header'], 'get header names')
+
+    def test_node_application_has_header(self):
+        self.load('has_header')
+
+        self.assertEqual(self.get(headers={
+            'Host': 'localhost',
+            'X-Header': 'length'
+        })['headers']['X-Has-Header'], 'false', 'has header length')
+
+        self.assertEqual(self.get(headers={
+            'Host': 'localhost',
+            'X-Header': 'Date'
+        })['headers']['X-Has-Header'], 'false', 'has header date')
+
+    def test_node_application_write_multiple(self):
+        self.load('write_multiple')
+
+        self.assertEqual(self.get()['body'], 'writewrite2end', 'write multiple')
 
 if __name__ == '__main__':
     TestUnitNodeApplication.main()
