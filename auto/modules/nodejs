@@ -161,7 +161,7 @@ install: ${NXT_NODE}-$NXT_NODE_INSTALL
 ${NXT_NODE}-install: ${NXT_NODE_TARBALL} \
     $NXT_BUILD_DIR/$NXT_LIB_UNIT_STATIC
 	${NXT_NODE_EXPORTS} && \\
-	${NXT_NPM} install -g ${PWD}/${NXT_NODE_TARBALL}
+	${NXT_NPM} install -g --unsafe-perm ${PWD}/${NXT_NODE_TARBALL}
 
 ${NXT_NODE}-uninstall:
 	${NXT_NPM} uninstall -g unit-http
