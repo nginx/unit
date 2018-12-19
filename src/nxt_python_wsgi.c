@@ -354,7 +354,7 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 
     if (nxt_slow_path(module == NULL)) {
         nxt_alert(task, "Python failed to import module \"%s\"", nxt_py_module);
-        PyErr_PrintEx(1);
+        PyErr_Print();
         return NXT_ERROR;
     }
 
@@ -369,7 +369,7 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     if (nxt_slow_path(PyCallable_Check(obj) == 0)) {
         nxt_alert(task, "\"application\" in module \"%s\" "
                   "is not a callable object", nxt_py_module);
-        PyErr_PrintEx(1);
+        PyErr_Print();
         goto fail;
     }
 
@@ -804,7 +804,7 @@ nxt_python_add_sptr(nxt_python_run_ctx_t *ctx, const char *name,
         nxt_unit_req_error(ctx->req,
                            "Python failed to create value string \"%.*s\"",
                            (int) size, src);
-        PyErr_PrintEx(1);
+        PyErr_Print();
 
         return NXT_UNIT_ERROR;
     }
@@ -839,7 +839,7 @@ nxt_python_add_str(nxt_python_run_ctx_t *ctx, const char *name,
         nxt_unit_req_error(ctx->req,
                            "Python failed to create value string \"%.*s\"",
                            (int) size, str);
-        PyErr_PrintEx(1);
+        PyErr_Print();
 
         return NXT_UNIT_ERROR;
     }
