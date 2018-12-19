@@ -4,14 +4,15 @@
     "description": "HTTP module for NGINX Unit",
     "main": "http.js",
     "files": [
+        "unit.h",
+        "version.h",
         "addon.cpp",
-        "binding.gyp",
-        "http_server.js",
+        "unit.cpp",
         "http.js",
+        "http_server.js",
         "package.json",
         "socket.js",
-        "unit.cpp",
-        "unit.h",
+        "binding.gyp",
         "README.md"
     ],
     "scripts": {

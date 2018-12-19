@@ -6,17 +6,22 @@
 #ifndef _NXT_NODEJS_UNIT_H_INCLUDED_
 #define _NXT_NODEJS_UNIT_H_INCLUDED_
 
-
 #include <node_api.h>
-
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+#include "version.h"
 #include <nxt_unit.h>
+
+#if NXT_UNIT_VERNUM != NXT_NODE_VERNUM
+#error "libunit version mismatch."
+#endif
+
 #include <nxt_unit_response.h>
 #include <nxt_unit_request.h>
+
 
 #ifdef __cplusplus
 } /* extern "C" */
