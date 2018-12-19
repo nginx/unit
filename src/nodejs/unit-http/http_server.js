@@ -288,6 +288,28 @@ ServerRequest.prototype.resume = function resume() {
     return [];
 };
 
+/*
+ * The "on" method is overridden to defer reading data until user code is
+ * ready, that is (ev === "data").  This can occur after req.emit("end") is
+ * executed, since the user code can be scheduled asynchronously by Promises
+ * and so on.  Passing the data is postponed by process.nextTick() until
+ * the "on" method caller completes.
+ */
+ServerRequest.prototype.on = function on(ev, fn) {
+    Server.prototype.on.call(this, ev, fn);
+
+    if (ev === "data") {
+        process.nextTick(function () {
+            if (this.server.buffer.length !== 0) {
+                this.emit("data", this.server.buffer);
+            }
+
+        }.bind(this));
+    }
+};
+
+ServerRequest.prototype.addListener = ServerRequest.prototype.on;
+
 function Server(requestListener) {
     EventEmitter.call(this);
 
@@ -321,22 +343,20 @@ Server.prototype.listen = function () {
 };
 
 Server.prototype.run_events = function (server, req, res) {
+    req.server = server;
+    res.server = server;
+    req.res = res;
+    res.req = req;
+
+    server.buffer = server.unit._read(req.socket.req_pointer);
+
     /* Important!!! setImmediate starts the next iteration in Node.js loop. */
     setImmediate(function () {
         server.emit("request", req, res);
 
         Promise.resolve().then(() => {
-            let buf = server.unit._read(req.socket.req_pointer);
-
-            if (buf.length != 0) {
-                req.emit("data", buf);
-            }
-
-            req.emit("end");
-        });
-
-        Promise.resolve().then(() => {
             req.emit("finish");
+            req.emit("end");
 
             if (res.finished) {
                 unit_lib.unit_response_end(res);
