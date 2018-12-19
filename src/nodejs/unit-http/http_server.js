@@ -217,7 +217,19 @@ ServerResponse.prototype._writeBody = function(chunk, encoding, callback) {
     }
 
     if (typeof callback === 'function') {
-        callback(this);
+        /*
+         * The callback must be called only when response.write() caller
+         * completes.  process.nextTick() postpones the callback execution.
+         *
+         * process.nextTick() is not technically part of the event loop.
+         * Instead, the nextTickQueue will be processed after the current
+         * operation completes, regardless of the current phase of
+         * the event loop.  All callbacks passed to process.nextTick()
+         * will be resolved before the event loop continues.
+         */
+        process.nextTick(function () {
+            callback(this);
+        }.bind(this));
     }
 };
 
