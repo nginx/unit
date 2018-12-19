@@ -178,21 +178,16 @@ function writeHead(statusCode, reason, obj) {
             }
         }
     }
-
-    unit_lib.unit_response_headers(this, statusCode, this.headers, this.headers_count, this.headers_len);
-
-    this.headersSent = true;
 };
 
 ServerResponse.prototype._writeBody = function(chunk, encoding, callback) {
     var contentLength = 0;
 
     if (!this.headersSent) {
-        this.writeHead(this.statusCode);
-    }
+        unit_lib.unit_response_headers(this, this.statusCode, this.headers,
+                                       this.headers_count, this.headers_len);
 
-    if (this.finished) {
-        return this;
+        this.headersSent = true;
     }
 
     if (typeof chunk === 'function') {
@@ -225,15 +220,23 @@ ServerResponse.prototype._writeBody = function(chunk, encoding, callback) {
 };
 
 ServerResponse.prototype.write = function write(chunk, encoding, callback) {
+    if (this.finished) {
+        throw new Error("Write after end");
+    }
+
     this._writeBody(chunk, encoding, callback);
 
     return true;
 };
 
 ServerResponse.prototype.end = function end(chunk, encoding, callback) {
-    this._writeBody(chunk, encoding, callback);
+    if (!this.finished) {
+        this._writeBody(chunk, encoding, callback);
 
-    this.finished = true;
+        unit_lib.unit_response_end(this);
+
+        this.finished = true;
+    }
 
     return this;
 };
