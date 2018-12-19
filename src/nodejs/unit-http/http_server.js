@@ -166,11 +166,6 @@ ServerResponse.prototype.setTimeout = function setTimeout(msecs, callback) {
     return this;
 };
 
-// for Express
-ServerResponse.prototype._implicitHeader = function _implicitHeader() {
-    this.writeHead(this.statusCode);
-};
-
 ServerResponse.prototype.writeHead = writeHead;
 ServerResponse.prototype.writeHeader = ServerResponse.prototype.writeHead;
 
