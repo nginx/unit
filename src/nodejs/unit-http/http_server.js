@@ -342,7 +342,7 @@ Server.prototype.listen = function () {
     this.unit.listen();
 };
 
-Server.prototype.run_events = function (server, req, res) {
+Server.prototype.emit_events = function (server, req, res) {
     req.server = server;
     res.server = server;
     req.res = res;
@@ -350,18 +350,11 @@ Server.prototype.run_events = function (server, req, res) {
 
     server.buffer = server.unit._read(req.socket.req_pointer);
 
-    /* Important!!! setImmediate starts the next iteration in Node.js loop. */
-    setImmediate(function () {
-        server.emit("request", req, res);
+    server.emit("request", req, res);
 
-        Promise.resolve().then(() => {
-            req.emit("finish");
-            req.emit("end");
-
-            if (res.finished) {
-                unit_lib.unit_response_end(res);
-            }
-        });
+    process.nextTick(() => {
+        req.emit("finish");
+        req.emit("end");
     });
 };
 
