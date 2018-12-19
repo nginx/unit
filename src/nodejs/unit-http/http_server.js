@@ -59,18 +59,10 @@ ServerResponse.prototype.setHeader = function setHeader(name, value) {
         count = value.length;
 
         value.forEach(function(val) {
-            if (typeof val !== 'string' && typeof val !== 'number') {
-                throw new TypeError('Array entries must be string or number');
-            }
-
             value_len += Buffer.byteLength(val + "", 'latin1');
         });
 
     } else {
-        if (typeof value !== 'string' && typeof value !== 'number') {
-            throw new TypeError('Value argument must be string, number, or array');
-        }
-
         count = 1;
         value_len = Buffer.byteLength(value + "", 'latin1');
     }
