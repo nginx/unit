@@ -105,21 +105,23 @@ ServerResponse.prototype.removeHeader = function removeHeader(name) {
     }
 
     let name_len = Buffer.byteLength(name + "", 'latin1');
+    let value = this.headers[name];
 
-    if (Array.isArray(this.headers[name])) {
-        this.headers_count -= this.headers[name].length;
-        this.headers_len -= this.headers[name].length * name_len;
+    delete this.headers[name];
 
-        this.headers[name].forEach(function(val) {
+    if (Array.isArray(value)) {
+        this.headers_count -= value.length;
+        this.headers_len -= value.length * name_len;
+
+        value.forEach(function(val) {
             this.headers_len -= Buffer.byteLength(val + "", 'latin1');
         });
 
-    } else {
-        this.headers_count--;
-        this.headers_len -= name_len + Buffer.byteLength(this.headers[name] + "", 'latin1');
+        return;
     }
 
-    delete this.headers[name];
+    this.headers_count--;
+    this.headers_len -= name_len + Buffer.byteLength(value + "", 'latin1');
 };
 
 ServerResponse.prototype.sendDate = function sendDate() {
