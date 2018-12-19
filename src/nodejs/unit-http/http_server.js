@@ -47,24 +47,23 @@ ServerResponse.prototype.writeContinue = function writeContinue(cb) {
 ServerResponse.prototype.writeProcessing = function writeProcessing(cb) {
 };
 
-ServerResponse.prototype.setHeader = function setHeader(key, value) {
-    if (typeof key !== 'string') {
-        throw new TypeError('Key argument must be a string');
+ServerResponse.prototype.setHeader = function setHeader(name, value) {
+    if (typeof name !== 'string') {
+        throw new TypeError('Name argument must be a string');
     }
 
-    let header_key_len = Buffer.byteLength(key, 'latin1');
-    let header_len = 0
-    let header_count = 0;
+    let value_len = 0
+    let count = 0;
 
     if (Array.isArray(value)) {
-        header_count = value.length;
+        count = value.length;
 
         value.forEach(function(val) {
             if (typeof val !== 'string' && typeof val !== 'number') {
                 throw new TypeError('Array entries must be string or number');
             }
 
-            header_len += Buffer.byteLength(val + "", 'latin1');
+            value_len += Buffer.byteLength(val + "", 'latin1');
         });
 
     } else {
@@ -72,19 +71,27 @@ ServerResponse.prototype.setHeader = function setHeader(key, value) {
             throw new TypeError('Value argument must be string, number, or array');
         }
 
-        header_count = 1;
-        header_len = Buffer.byteLength(value + "", 'latin1');
+        count = 1;
+        value_len = Buffer.byteLength(value + "", 'latin1');
     }
 
-    this.removeHeader(key);
+    let lc_name = name.toLowerCase();
 
-    this.headers[key] = value;
-    this.headers_len += header_len + (header_key_len * header_count);
-    this.headers_count += header_count;
+    if (lc_name in this.headers) {
+        this._removeHeader(lc_name);
+    }
+
+    let name_len = Buffer.byteLength(name, 'latin1');
+
+    this.headers[lc_name] = [name, value];
+    this.headers_len += value_len + (name_len * count);
+    this.headers_count += count;
 };
 
 ServerResponse.prototype.getHeader = function getHeader(name) {
-    return this.headers[name];
+    const entry = this.headers[name.toLowerCase()];
+
+    return entry && entry[1];
 };
 
 ServerResponse.prototype.getHeaderNames = function getHeaderNames() {
@@ -92,22 +99,43 @@ ServerResponse.prototype.getHeaderNames = function getHeaderNames() {
 };
 
 ServerResponse.prototype.getHeaders = function getHeaders() {
-    return this.headers;
+    const ret = Object.create(null);
+
+    if (this.headers) {
+        const keys = Object.keys(this.headers);
+
+        for (var i = 0; i < keys.length; i++) {
+            const key = keys[i];
+
+            ret[key] = this.headers[key][1];
+        }
+    }
+
+    return ret;
 };
 
 ServerResponse.prototype.hasHeader = function hasHeader(name) {
-    return name in this.headers;
+    return name.toLowerCase() in this.headers;
 };
 
 ServerResponse.prototype.removeHeader = function removeHeader(name) {
-    if (!(name in this.headers)) {
-        return;
+    if (typeof name !== 'string') {
+        throw new TypeError('Name argument must be a string');
     }
 
-    let name_len = Buffer.byteLength(name + "", 'latin1');
-    let value = this.headers[name];
+    let lc_name = name.toLowerCase();
 
-    delete this.headers[name];
+    if (lc_name in this.headers) {
+        this._removeHeader(lc_name);
+    }
+};
+
+ServerResponse.prototype._removeHeader = function _removeHeader(lc_name) {
+    let entry = this.headers[lc_name];
+    let name_len = Buffer.byteLength(entry[0] + "", 'latin1');
+    let value = entry[1];
+
+    delete this.headers[lc_name];
 
     if (Array.isArray(value)) {
         this.headers_count -= value.length;

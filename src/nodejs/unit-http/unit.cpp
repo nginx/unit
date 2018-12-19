@@ -737,7 +737,7 @@ Unit::response_send_headers(napi_env env, napi_callback_info info)
     uint32_t                 keys_count, i, j;
     uint16_t                 hash;
     napi_value               this_arg, headers, keys, name, value, array_val;
-    napi_value               req_num;
+    napi_value               req_num, array_entry;
     napi_status              status;
     napi_valuetype           val_type;
     nxt_unit_field_t         *f;
@@ -814,7 +814,17 @@ Unit::response_send_headers(napi_env env, napi_callback_info info)
             goto failed;
         }
 
-        status = napi_get_property(env, headers, name, &value);
+        status = napi_get_property(env, headers, name, &array_entry);
+        if (status != napi_ok) {
+            goto failed;
+        }
+
+        status = napi_get_element(env, array_entry, 0, &name);
+        if (status != napi_ok) {
+            goto failed;
+        }
+
+        status = napi_get_element(env, array_entry, 1, &value);
         if (status != napi_ok) {
             goto failed;
         }
