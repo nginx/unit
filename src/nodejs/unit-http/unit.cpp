@@ -277,7 +277,7 @@ void
 Unit::request_handler(nxt_unit_request_info_t *req)
 {
     Unit                 *obj;
-    napi_value           socket, request, response, global, server_obj;
+    napi_value           socket, request, response, global, server_obj, except;
     napi_value           emit_events, events_res, async_name, resource_object;
     napi_status          status;
     napi_async_context   async_context;
@@ -372,8 +372,25 @@ Unit::request_handler(nxt_unit_request_info_t *req)
     status = napi_make_callback(obj->env_, async_context, server_obj,
                                 emit_events, 3, events_args, &events_res);
     if (status != napi_ok) {
-        napi_throw_error(obj->env_, NULL, "Failed to make callback");
-        return;
+        if (status != napi_pending_exception) {
+            napi_throw_error(obj->env_, NULL, "Failed to make callback");
+            return;
+        }
+
+        status = napi_get_and_clear_last_exception(obj->env_, &except);
+        if (status != napi_ok) {
+            napi_throw_error(obj->env_, NULL,
+                             "Failed to get and clear last exception");
+            return;
+        }
+
+        /* Logging a description of the error and call stack. */
+        status = napi_fatal_exception(obj->env_, except);
+        if (status != napi_ok) {
+            napi_throw_error(obj->env_, NULL, "Failed to call "
+                             "napi_fatal_exception() function");
+            return;
+        }
     }
 
     status = napi_close_callback_scope(obj->env_, async_scope);
