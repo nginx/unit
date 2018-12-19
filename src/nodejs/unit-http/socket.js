@@ -18,10 +18,16 @@ function Socket(options) {
         throw new TypeError('Options must be object');
     }
 
-    this.readable = (typeof options.readable === 'boolean' ? options.readable
-                                                           : false);
-    this.writable = (typeof options.writable === 'boolean' ? options.writable
-                                                           : false);
+    if ("fd" in options) {
+        throw new TypeError('Working with file descriptors not supported');
+    }
+
+    /*
+     * For HTTP TCP socket 'readable' and 'writable' are always true.
+     * These options are required by Express and Koa frameworks.
+     */
+    this.readable = true;
+    this.writable = true;
 }
 util.inherits(Socket, EventEmitter);
 
@@ -43,7 +49,6 @@ Socket.prototype.connect = function connect(options, connectListener) {
     this.once('connect', connectListener);
 
     this.connecting = true;
-    this.writable = true;
 
     return this;
 };
