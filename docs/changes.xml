@@ -66,7 +66,7 @@ various compatibility issues with Node.js applications.
 
 <change type="bugfix">
 <para>
-module discovery didn't work on 64-bit big-endian systems like IBM/S390x.
+module discovery did not work on 64-bit big-endian systems like IBM/S390x.
 </para>
 </change>
 
@@ -138,7 +138,7 @@ the bug had appeared in 1.4.
 
 <change type="bugfix">
 <para>
-Go applications didn't work when Unit was built with musl C library.
+Go applications did not work when Unit was built with musl C library.
 </para>
 </change>
 

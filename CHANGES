@@ -17,7 +17,7 @@ Changes with Unit 1.6                                            15 Nov 2018
     *) Bugfix: "freed pointer is out of pool" alerts might have appeared in
        log.
 
-    *) Bugfix: module discovery didn't work on 64-bit big-endian systems
+    *) Bugfix: module discovery did not work on 64-bit big-endian systems
        like IBM/S390x.
 
 
@@ -41,7 +41,7 @@ Changes with Unit 1.5                                            25 Oct 2018
        producing "last message send failed: Resource temporarily
        unavailable" alerts in log; the bug had appeared in 1.4.
 
-    *) Bugfix: Go applications didn't work when Unit was built with musl C
+    *) Bugfix: Go applications did not work when Unit was built with musl C
        library.
 
 
