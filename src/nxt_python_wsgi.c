@@ -276,7 +276,6 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 
     Py_InitializeEx(0);
 
-    obj = NULL;
     module = NULL;
 
     if (c->path.length > 0) {
@@ -303,11 +302,9 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
         }
 
         Py_DECREF(obj);
-        obj = NULL;
     }
 
     obj = PyCFunction_New(nxt_py_start_resp_method, NULL);
-
     if (nxt_slow_path(obj == NULL)) {
         nxt_alert(task,
                 "Python failed to initialize the \"start_response\" function");
@@ -317,7 +314,6 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     nxt_py_start_resp_obj = obj;
 
     obj = PyCFunction_New(nxt_py_write_method, NULL);
-
     if (nxt_slow_path(obj == NULL)) {
         nxt_alert(task, "Python failed to initialize the \"write\" function");
         goto fail;
@@ -326,20 +322,19 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     nxt_py_write_obj = obj;
 
     obj = nxt_python_create_environ(task);
-
-    if (obj == NULL) {
+    if (nxt_slow_path(obj == NULL)) {
         goto fail;
     }
 
     nxt_py_environ_ptyp = obj;
 
     obj = Py_BuildValue("[s]", "unit");
-    if (obj == NULL) {
+    if (nxt_slow_path(obj == NULL)) {
         nxt_alert(task, "Python failed to create the \"sys.argv\" list");
         goto fail;
     }
 
-    if (PySys_SetObject((char *) "argv", obj) != 0) {
+    if (nxt_slow_path(PySys_SetObject((char *) "argv", obj) != 0)) {
         nxt_alert(task, "Python failed to set the \"sys.argv\" list");
         goto fail;
     }
@@ -351,7 +346,6 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     nxt_py_module[c->module.length] = '\0';
 
     module = PyImport_ImportModule(nxt_py_module);
-
     if (nxt_slow_path(module == NULL)) {
         nxt_alert(task, "Python failed to import module \"%s\"", nxt_py_module);
         PyErr_Print();
@@ -359,7 +353,6 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     }
 
     obj = PyDict_GetItemString(PyModule_GetDict(module), "application");
-
     if (nxt_slow_path(obj == NULL)) {
         nxt_alert(task, "Python failed to get \"application\" "
                   "from module \"%s\"", nxt_py_module);
