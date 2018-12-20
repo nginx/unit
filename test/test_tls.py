@@ -417,4 +417,4 @@ Connection: close
         self.assertEqual(resp['body'], '0123456789', 'application respawn body')
 
 if __name__ == '__main__':
-    unittest.main()
+    TestUnitTLS.main()

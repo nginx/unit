@@ -170,4 +170,4 @@ Content-Length: %d
             'settings'), 'settings negative value')
 
 if __name__ == '__main__':
-    unittest.main()
+    TestUnitSettings.main()

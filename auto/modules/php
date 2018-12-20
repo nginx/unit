@@ -111,7 +111,7 @@ if /bin/sh -c "${NXT_PHP_CONFIG} --version" >> $NXT_AUTOCONF_ERR 2>&1; then
         #include <php_main.h>
 
         int main() {
-            php_request_startup();
+            php_module_startup(NULL, NULL, 0);
             return 0;
         }"
 
@@ -122,6 +122,30 @@ if /bin/sh -c "${NXT_PHP_CONFIG} --version" >> $NXT_AUTOCONF_ERR 2>&1; then
         $echo $0: error: no PHP embed SAPI found.
         $echo
         exit 1;
+    fi
+
+    # Bug #71041 (https://bugs.php.net/bug.php?id=71041).
+
+    nxt_feature="PHP zend_signal_startup()"
+    nxt_feature_name=""
+    nxt_feature_run=no
+    nxt_feature_incs="${NXT_PHP_INCLUDE}"
+    nxt_feature_libs="${NXT_PHP_LIB} ${NXT_PHP_LDFLAGS}"
+    nxt_feature_test="
+        #include <php.h>
+        #include <php_main.h>
+
+        int main() {
+            zend_signal_startup();
+            return 0;
+        }"
+
+    . auto/feature
+
+    if [ $nxt_found = yes ]; then
+        NXT_ZEND_SIGNAL_STARTUP=1
+    else
+        NXT_ZEND_SIGNAL_STARTUP=0
     fi
 
 else
@@ -181,6 +205,7 @@ for nxt_src in $NXT_PHP_MODULE_SRCS; do
 
 $NXT_BUILD_DIR/$nxt_obj:	$nxt_src
 	\$(CC) -c \$(CFLAGS) \$(NXT_INCS) $NXT_PHP_INCLUDE \\
+	-DNXT_ZEND_SIGNAL_STARTUP=$NXT_ZEND_SIGNAL_STARTUP \\
 	$nxt_dep_flags \\
 	-o $NXT_BUILD_DIR/$nxt_obj $nxt_src
 	$nxt_dep_post
@@ -191,7 +216,7 @@ END
 
 done
 
- 
+
 cat << END >> $NXT_MAKEFILE
 
 .PHONY: ${NXT_PHP_MODULE}

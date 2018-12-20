@@ -15,16 +15,6 @@
 #include <nxt_unit_request.h>
 
 
-typedef struct nxt_php_run_ctx_s  nxt_php_run_ctx_t;
-
-static nxt_int_t nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf);
-
-static void nxt_php_str_trim_trail(nxt_str_t *str, u_char t);
-static void nxt_php_str_trim_lead(nxt_str_t *str, u_char t);
-nxt_inline u_char *nxt_realpath(const void *c);
-
-static void nxt_php_request_handler(nxt_unit_request_info_t *req);
-
 #if PHP_MAJOR_VERSION >= 7
 #   define NXT_PHP7 1
 #   if PHP_MINOR_VERSION >= 1
@@ -40,24 +30,44 @@ static void nxt_php_request_handler(nxt_unit_request_info_t *req);
 #   endif
 #endif
 
+
+typedef struct nxt_php_run_ctx_s  nxt_php_run_ctx_t;
+
+#ifdef NXT_PHP7
+typedef int (*nxt_php_disable_t)(char *p, size_t size);
+#else
+typedef int (*nxt_php_disable_t)(char *p, uint TSRMLS_DC);
+#endif
+
+
+static nxt_int_t nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf);
+
+static void nxt_php_str_trim_trail(nxt_str_t *str, u_char t);
+static void nxt_php_str_trim_lead(nxt_str_t *str, u_char t);
+nxt_inline u_char *nxt_realpath(const void *c);
+
+static void nxt_php_request_handler(nxt_unit_request_info_t *req);
+
 static int nxt_php_startup(sapi_module_struct *sapi_module);
 static void nxt_php_set_options(nxt_task_t *task, nxt_conf_value_t *options,
     int type);
 static nxt_int_t nxt_php_alter_option(nxt_str_t *name, nxt_str_t *value,
     int type);
-static int nxt_php_send_headers(sapi_headers_struct *sapi_headers);
-static char *nxt_php_read_cookies(void);
+static void nxt_php_disable(nxt_task_t *task, const char *type,
+    nxt_str_t *value, char **ptr, nxt_php_disable_t disable);
+static int nxt_php_send_headers(sapi_headers_struct *sapi_headers TSRMLS_DC);
+static char *nxt_php_read_cookies(TSRMLS_D);
 static void nxt_php_set_sptr(nxt_unit_request_info_t *req, const char *name,
     nxt_unit_sptr_t *v, uint32_t len, zval *track_vars_array TSRMLS_DC);
 nxt_inline void nxt_php_set_str(nxt_unit_request_info_t *req, const char *name,
     nxt_str_t *s, zval *track_vars_array TSRMLS_DC);
 static void nxt_php_set_cstr(nxt_unit_request_info_t *req, const char *name,
     char *str, uint32_t len, zval *track_vars_array TSRMLS_DC);
-static void nxt_php_register_variables(zval *track_vars_array);
+static void nxt_php_register_variables(zval *track_vars_array TSRMLS_DC);
 #ifdef NXT_HAVE_PHP_LOG_MESSAGE_WITH_SYSLOG_TYPE
 static void nxt_php_log_message(char *message, int syslog_type_int);
 #else
-static void nxt_php_log_message(char *message);
+static void nxt_php_log_message(char *message TSRMLS_DC);
 #endif
 
 #ifdef NXT_PHP7
@@ -159,6 +169,9 @@ NXT_EXPORT nxt_app_module_t  nxt_app_module = {
 
 
 static nxt_task_t  *nxt_php_task;
+#ifdef ZTS
+static void        ***tsrm_ls;
+#endif
 
 
 static nxt_int_t
@@ -262,6 +275,21 @@ nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
         nxt_memcpy(index->start, c->index.start, c->index.length);
     }
 
+#ifdef ZTS
+    tsrm_startup(1, 1, 0, NULL);
+    tsrm_ls = ts_resource(0);
+#endif
+
+#if defined(NXT_PHP7) && defined(ZEND_SIGNALS)
+
+#if (NXT_ZEND_SIGNAL_STARTUP)
+    zend_signal_startup();
+#elif defined(ZTS)
+#error PHP is built with thread safety and broken signals.
+#endif
+
+#endif
+
     sapi_startup(&nxt_php_sapi_module);
 
     if (c->options != NULL) {
@@ -359,6 +387,21 @@ nxt_php_set_options(nxt_task_t *task, nxt_conf_value_t *options, int type)
             if (nxt_php_alter_option(&name, &value, type) != NXT_OK) {
                 nxt_log(task, NXT_LOG_ERR,
                         "setting PHP option \"%V: %V\" failed", &name, &value);
+                continue;
+            }
+
+            if (nxt_str_eq(&name, "disable_functions", 17)) {
+                nxt_php_disable(task, "function", &value,
+                                &PG(disable_functions),
+                                zend_disable_function);
+                continue;
+            }
+
+            if (nxt_str_eq(&name, "disable_classes", 15)) {
+                nxt_php_disable(task, "class", &value,
+                                &PG(disable_classes),
+                                zend_disable_class);
+                continue;
             }
         }
     }
@@ -433,7 +476,8 @@ nxt_php_alter_option(nxt_str_t *name, nxt_str_t *value, int type)
     if (ini_entry->on_modify
         && ini_entry->on_modify(ini_entry, cstr, value->length,
                                 ini_entry->mh_arg1, ini_entry->mh_arg2,
-                                ini_entry->mh_arg3, ZEND_INI_STAGE_ACTIVATE)
+                                ini_entry->mh_arg3, ZEND_INI_STAGE_ACTIVATE
+                                TSRMLS_CC)
            != SUCCESS)
     {
         nxt_free(cstr);
@@ -448,6 +492,58 @@ nxt_php_alter_option(nxt_str_t *name, nxt_str_t *value, int type)
 }
 
 #endif
+
+
+static void
+nxt_php_disable(nxt_task_t *task, const char *type, nxt_str_t *value,
+    char **ptr, nxt_php_disable_t disable)
+{
+    char  c, *p, *start;
+
+    p = nxt_malloc(value->length + 1);
+    if (nxt_slow_path(p == NULL)) {
+        return;
+    }
+
+    /*
+     * PHP frees this memory on module shutdown.
+     * See core_globals_dtor() for details.
+     */
+    *ptr = p;
+
+    nxt_memcpy(p, value->start, value->length);
+    p[value->length] = '\0';
+
+    start = p;
+
+    do {
+        c = *p;
+
+        if (c == ' ' || c == ',' || c == '\0') {
+
+            if (p != start) {
+                *p = '\0';
+
+#ifdef NXT_PHP7
+                if (disable(start, p - start)
+#else
+                if (disable(start, p - start TSRMLS_CC)
+#endif
+                    != SUCCESS)
+                {
+                    nxt_log(task, NXT_LOG_ERR,
+                            "PHP: failed to disable \"%s\": no such %s",
+                            start, type);
+                }
+            }
+
+            start = p + 1;
+        }
+
+        p++;
+
+    } while (c != '\0');
+}
 
 
 static void
@@ -573,7 +669,11 @@ nxt_php_request_handler(nxt_unit_request_info_t *req)
                            (char *) ctx->script.start);
     }
 
+#if (NXT_PHP7)
     if (nxt_slow_path(php_request_startup() == FAILURE)) {
+#else
+    if (nxt_slow_path(php_request_startup(TSRMLS_C) == FAILURE)) {
+#endif
         nxt_unit_req_debug(req, "php_request_startup() failed");
         rc = NXT_UNIT_ERROR;
 
@@ -915,7 +1015,7 @@ static void
 nxt_php_log_message(char *message, int syslog_type_int)
 #else
 static void
-nxt_php_log_message(char *message)
+nxt_php_log_message(char *message TSRMLS_DC)
 #endif
 {
     nxt_log(nxt_php_task, NXT_LOG_NOTICE, "php message: %s", message);

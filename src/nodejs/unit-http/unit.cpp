@@ -276,12 +276,13 @@ Unit::_read(napi_env env, napi_callback_info info)
 void
 Unit::request_handler(nxt_unit_request_info_t *req)
 {
-    Unit         *obj;
-    napi_value   socket, request, response;
-    napi_value   global, server_obj;
-    napi_value   run_events, events_res;
-    napi_status  status;
-    napi_value   events_args[3];
+    Unit                 *obj;
+    napi_value           socket, request, response, global, server_obj, except;
+    napi_value           emit_events, events_res, async_name, resource_object;
+    napi_status          status;
+    napi_async_context   async_context;
+    napi_callback_scope  async_scope;
+    napi_value           events_args[3];
 
     obj = reinterpret_cast<Unit *>(req->unit->data);
 
@@ -328,11 +329,11 @@ Unit::request_handler(nxt_unit_request_info_t *req)
         return;
     }
 
-    status = napi_get_named_property(obj->env_, server_obj, "run_events",
-                                     &run_events);
+    status = napi_get_named_property(obj->env_, server_obj, "emit_events",
+                                     &emit_events);
     if (status != napi_ok) {
-        napi_throw_error(obj->env_, NULL, "Failed to get"
-                         " 'run_events' function");
+        napi_throw_error(obj->env_, NULL, "Failed to get "
+                         "'emit_events' function");
         return;
     }
 
@@ -340,15 +341,74 @@ Unit::request_handler(nxt_unit_request_info_t *req)
     events_args[1] = request;
     events_args[2] = response;
 
-    status = napi_call_function(obj->env_, server_obj, run_events, 3,
-                                events_args, &events_res);
+    status = napi_create_string_utf8(obj->env_, "unit_request_handler",
+                                     sizeof("unit_request_handler") - 1,
+                                     &async_name);
     if (status != napi_ok) {
-        napi_throw_error(obj->env_, NULL, "Failed to call"
-                         " 'run_events' function");
+        napi_throw_error(obj->env_, NULL, "Failed to create utf-8 string");
         return;
     }
 
-    napi_close_handle_scope(obj->env_, scope);
+    status = napi_async_init(obj->env_, NULL, async_name, &async_context);
+    if (status != napi_ok) {
+        napi_throw_error(obj->env_, NULL, "Failed to init async object");
+        return;
+    }
+
+    status = napi_create_object(obj->env_, &resource_object);
+    if (status != napi_ok) {
+        napi_throw_error(obj->env_, NULL, "Failed to create object for "
+                         "callback scope");
+        return;
+    }
+
+    status = napi_open_callback_scope(obj->env_, resource_object, async_context,
+                                      &async_scope);
+    if (status != napi_ok) {
+        napi_throw_error(obj->env_, NULL, "Failed to open callback scope");
+        return;
+    }
+
+    status = napi_make_callback(obj->env_, async_context, server_obj,
+                                emit_events, 3, events_args, &events_res);
+    if (status != napi_ok) {
+        if (status != napi_pending_exception) {
+            napi_throw_error(obj->env_, NULL, "Failed to make callback");
+            return;
+        }
+
+        status = napi_get_and_clear_last_exception(obj->env_, &except);
+        if (status != napi_ok) {
+            napi_throw_error(obj->env_, NULL,
+                             "Failed to get and clear last exception");
+            return;
+        }
+
+        /* Logging a description of the error and call stack. */
+        status = napi_fatal_exception(obj->env_, except);
+        if (status != napi_ok) {
+            napi_throw_error(obj->env_, NULL, "Failed to call "
+                             "napi_fatal_exception() function");
+            return;
+        }
+    }
+
+    status = napi_close_callback_scope(obj->env_, async_scope);
+    if (status != napi_ok) {
+        napi_throw_error(obj->env_, NULL, "Failed to close callback scope");
+        return;
+    }
+
+    status = napi_async_destroy(obj->env_, async_context);
+    if (status != napi_ok) {
+        napi_throw_error(obj->env_, NULL, "Failed to destroy async object");
+        return;
+    }
+
+    status = napi_close_handle_scope(obj->env_, scope);
+    if (status != napi_ok) {
+        napi_throw_error(obj->env_, NULL, "Failed to close handle scope");
+    }
 }
 
 
@@ -694,7 +754,7 @@ Unit::response_send_headers(napi_env env, napi_callback_info info)
     uint32_t                 keys_count, i, j;
     uint16_t                 hash;
     napi_value               this_arg, headers, keys, name, value, array_val;
-    napi_value               req_num;
+    napi_value               req_num, array_entry;
     napi_status              status;
     napi_valuetype           val_type;
     nxt_unit_field_t         *f;
@@ -771,7 +831,17 @@ Unit::response_send_headers(napi_env env, napi_callback_info info)
             goto failed;
         }
 
-        status = napi_get_property(env, headers, name, &value);
+        status = napi_get_property(env, headers, name, &array_entry);
+        if (status != napi_ok) {
+            goto failed;
+        }
+
+        status = napi_get_element(env, array_entry, 0, &name);
+        if (status != napi_ok) {
+            goto failed;
+        }
+
+        status = napi_get_element(env, array_entry, 1, &value);
         if (status != napi_ok) {
             goto failed;
         }

@@ -11,6 +11,106 @@
                 unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10
                 unit-perl
                 unit-ruby"
+         ver="1.7" rev="1"
+         date="2018-12-20" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.7.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.7" rev="1"
+         date="2018-12-20" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="change">
+<para>
+now rpath is set in Ruby module only if the library was not found in default
+search paths; this allows to meet packaging restrictions on some systems.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+"disable_functions" and "disable_classes" PHP options set via Control API
+did not work.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Promises on request data in Node.js were not triggered.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+various compatibility issues with Node.js applications.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a segmentation fault occurred in Node.js module if application tried to read
+request body after request.end() was called.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a segmentation fault occurred in Node.js module if application attempted to
+send header twice.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+names of response header fields in Node.js module were erroneously treated as
+case-sensitive.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+uncatched exceptions in Node.js were not logged.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+global install of Node.js module from sources was broken on some systems;
+the bug had appeared in 1.6.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+traceback for exceptions during initialization of Python applications might not
+be logged.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+PHP module build failed if PHP interpreter was built with thread safety
+enabled.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10
+                unit-perl
+                unit-ruby"
          ver="1.6" rev="1"
          date="2018-11-15" time="18:00:00 +0300"
          packager="Konstantin Pavlov &lt;thresh@nginx.com&gt;">
@@ -66,7 +166,7 @@ various compatibility issues with Node.js applications.
 
 <change type="bugfix">
 <para>
-module discovery didn't work on 64-bit big-endian systems like IBM/S390x.
+module discovery did not work on 64-bit big-endian systems like IBM/S390x.
 </para>
 </change>
 
@@ -138,7 +238,7 @@ the bug had appeared in 1.4.
 
 <change type="bugfix">
 <para>
-Go applications didn't work when Unit was built with musl C library.
+Go applications did not work when Unit was built with musl C library.
 </para>
 </change>
 

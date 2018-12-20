@@ -5,25 +5,27 @@
 
 cat << END
 
-Configuration summary:
+Unit configuration summary:
 
-  unit bin directory:           "$NXT_BINDIR"
-  unit sbin directory:          "$NXT_SBINDIR"
-  unit lib directory:           "$NXT_LIBDIR"
-  unit include directory:       "$NXT_INCDIR"
-  unit modules directory:       "$NXT_MODULES"
-  unit state directory:         "$NXT_STATE"
+  bin directory: ............. "$NXT_BINDIR"
+  sbin directory: ............ "$NXT_SBINDIR"
+  lib directory: ............. "$NXT_LIBDIR"
+  include directory: ......... "$NXT_INCDIR"
+  modules directory: ......... "$NXT_MODULES"
+  state directory: ........... "$NXT_STATE"
 
-  unit pid file:                "$NXT_PID"
-  unit log file:                "$NXT_LOG"
+  pid file: .................. "$NXT_PID"
+  log file: .................. "$NXT_LOG"
 
-  unit control API socket:      "$NXT_CONTROL"
+  control API socket: ........ "$NXT_CONTROL"
 
-  non-privileged user:          "$NXT_USER"
-  non-privileged group:         "$NXT_GROUP"
+  non-privileged user: ....... "$NXT_USER"
+  non-privileged group: ...... "$NXT_GROUP"
 
-  IPv6 support:                 $NXT_INET6
-  Unix domain sockets support:  $NXT_UNIX_DOMAIN
-  debug logging:                $NXT_DEBUG
+  IPv6 support: .............. $NXT_INET6
+  Unix domain sockets support: $NXT_UNIX_DOMAIN
+  TLS support: ............... $NXT_OPENSSL
+
+  debug logging: ............. $NXT_DEBUG
 
 END

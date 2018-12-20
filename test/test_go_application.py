@@ -151,4 +151,4 @@ class TestUnitGoApplication(unit.TestUnitApplicationGo):
             'arguments empty')
 
 if __name__ == '__main__':
-    unittest.main()
+    TestUnitGoApplication.main()

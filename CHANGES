@@ -1,4 +1,39 @@
 
+Changes with Unit 1.7                                            20 Dec 2018
+
+    *) Change: now rpath is set in Ruby module only if the library was not
+       found in default search paths; this allows to meet packaging
+       restrictions on some systems.
+
+    *) Bugfix: "disable_functions" and "disable_classes" PHP options set via
+       Control API did not work.
+
+    *) Bugfix: Promises on request data in Node.js were not triggered.
+
+    *) Bugfix: various compatibility issues with Node.js applications.
+
+    *) Bugfix: a segmentation fault occurred in Node.js module if
+       application tried to read request body after request.end() was
+       called.
+
+    *) Bugfix: a segmentation fault occurred in Node.js module if
+       application attempted to send header twice.
+
+    *) Bugfix: names of response header fields in Node.js module were
+       erroneously treated as case-sensitive.
+
+    *) Bugfix: uncatched exceptions in Node.js were not logged.
+
+    *) Bugfix: global install of Node.js module from sources was broken on
+       some systems; the bug had appeared in 1.6.
+
+    *) Bugfix: traceback for exceptions during initialization of Python
+       applications might not be logged.
+
+    *) Bugfix: PHP module build failed if PHP interpreter was built with
+       thread safety enabled.
+
+
 Changes with Unit 1.6                                            15 Nov 2018
 
     *) Change: "make install" now installs Node.js module as well if it was
@@ -17,7 +52,7 @@ Changes with Unit 1.6                                            15 Nov 2018
     *) Bugfix: "freed pointer is out of pool" alerts might have appeared in
        log.
 
-    *) Bugfix: module discovery didn't work on 64-bit big-endian systems
+    *) Bugfix: module discovery did not work on 64-bit big-endian systems
        like IBM/S390x.
 
 
@@ -41,7 +76,7 @@ Changes with Unit 1.5                                            25 Oct 2018
        producing "last message send failed: Resource temporarily
        unavailable" alerts in log; the bug had appeared in 1.4.
 
-    *) Bugfix: Go applications didn't work when Unit was built with musl C
+    *) Bugfix: Go applications did not work when Unit was built with musl C
        library.
 
 

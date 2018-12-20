@@ -11,7 +11,9 @@
 #include <sys/types.h>
 #include <string.h>
 
+#include "nxt_unit_version.h"
 #include "nxt_unit_typedefs.h"
+
 
 enum {
     NXT_UNIT_OK          = 0,

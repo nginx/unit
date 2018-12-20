@@ -47,44 +47,43 @@ ServerResponse.prototype.writeContinue = function writeContinue(cb) {
 ServerResponse.prototype.writeProcessing = function writeProcessing(cb) {
 };
 
-ServerResponse.prototype.setHeader = function setHeader(key, value) {
-    if (typeof key !== 'string') {
-        throw new TypeError('Key argument must be a string');
+ServerResponse.prototype.setHeader = function setHeader(name, value) {
+    if (typeof name !== 'string') {
+        throw new TypeError('Name argument must be a string');
     }
 
-    let header_key_len = Buffer.byteLength(key, 'latin1');
-    let header_len = 0
-    let header_count = 0;
+    let value_len = 0
+    let count = 0;
 
     if (Array.isArray(value)) {
-        header_count = value.length;
+        count = value.length;
 
         value.forEach(function(val) {
-            if (typeof val !== 'string' && typeof val !== 'number') {
-                throw new TypeError('Array entries must be string or number');
-            }
-
-            header_len += Buffer.byteLength(val + "", 'latin1');
+            value_len += Buffer.byteLength(val + "", 'latin1');
         });
 
     } else {
-        if (typeof value !== 'string' && typeof value !== 'number') {
-            throw new TypeError('Value argument must be string, number, or array');
-        }
-
-        header_count = 1;
-        header_len = Buffer.byteLength(value + "", 'latin1');
+        count = 1;
+        value_len = Buffer.byteLength(value + "", 'latin1');
     }
 
-    this.removeHeader(key);
+    let lc_name = name.toLowerCase();
 
-    this.headers[key] = value;
-    this.headers_len += header_len + (header_key_len * header_count);
-    this.headers_count += header_count;
+    if (lc_name in this.headers) {
+        this._removeHeader(lc_name);
+    }
+
+    let name_len = Buffer.byteLength(name, 'latin1');
+
+    this.headers[lc_name] = [name, value];
+    this.headers_len += value_len + (name_len * count);
+    this.headers_count += count;
 };
 
 ServerResponse.prototype.getHeader = function getHeader(name) {
-    return this.headers[name];
+    const entry = this.headers[name.toLowerCase()];
+
+    return entry && entry[1];
 };
 
 ServerResponse.prototype.getHeaderNames = function getHeaderNames() {
@@ -92,34 +91,57 @@ ServerResponse.prototype.getHeaderNames = function getHeaderNames() {
 };
 
 ServerResponse.prototype.getHeaders = function getHeaders() {
-    return this.headers;
+    const ret = Object.create(null);
+
+    if (this.headers) {
+        const keys = Object.keys(this.headers);
+
+        for (var i = 0; i < keys.length; i++) {
+            const key = keys[i];
+
+            ret[key] = this.headers[key][1];
+        }
+    }
+
+    return ret;
 };
 
 ServerResponse.prototype.hasHeader = function hasHeader(name) {
-    return name in this.headers;
+    return name.toLowerCase() in this.headers;
 };
 
 ServerResponse.prototype.removeHeader = function removeHeader(name) {
-    if (!(name in this.headers)) {
-        return;
+    if (typeof name !== 'string') {
+        throw new TypeError('Name argument must be a string');
     }
 
-    let name_len = Buffer.byteLength(name + "", 'latin1');
+    let lc_name = name.toLowerCase();
 
-    if (Array.isArray(this.headers[name])) {
-        this.headers_count -= this.headers[name].length;
-        this.headers_len -= this.headers[name].length * name_len;
+    if (lc_name in this.headers) {
+        this._removeHeader(lc_name);
+    }
+};
 
-        this.headers[name].forEach(function(val) {
+ServerResponse.prototype._removeHeader = function _removeHeader(lc_name) {
+    let entry = this.headers[lc_name];
+    let name_len = Buffer.byteLength(entry[0] + "", 'latin1');
+    let value = entry[1];
+
+    delete this.headers[lc_name];
+
+    if (Array.isArray(value)) {
+        this.headers_count -= value.length;
+        this.headers_len -= value.length * name_len;
+
+        value.forEach(function(val) {
             this.headers_len -= Buffer.byteLength(val + "", 'latin1');
         });
 
-    } else {
-        this.headers_count--;
-        this.headers_len -= name_len + Buffer.byteLength(this.headers[name] + "", 'latin1');
+        return;
     }
 
-    delete this.headers[name];
+    this.headers_count--;
+    this.headers_len -= name_len + Buffer.byteLength(value + "", 'latin1');
 };
 
 ServerResponse.prototype.sendDate = function sendDate() {
@@ -134,11 +156,6 @@ ServerResponse.prototype.setTimeout = function setTimeout(msecs, callback) {
     }
 
     return this;
-};
-
-// for Express
-ServerResponse.prototype._implicitHeader = function _implicitHeader() {
-    this.writeHead(this.statusCode);
 };
 
 ServerResponse.prototype.writeHead = writeHead;
@@ -178,21 +195,16 @@ function writeHead(statusCode, reason, obj) {
             }
         }
     }
-
-    unit_lib.unit_response_headers(this, statusCode, this.headers, this.headers_count, this.headers_len);
-
-    this.headersSent = true;
 };
 
 ServerResponse.prototype._writeBody = function(chunk, encoding, callback) {
     var contentLength = 0;
 
     if (!this.headersSent) {
-        this.writeHead(this.statusCode);
-    }
+        unit_lib.unit_response_headers(this, this.statusCode, this.headers,
+                                       this.headers_count, this.headers_len);
 
-    if (this.finished) {
-        return this;
+        this.headersSent = true;
     }
 
     if (typeof chunk === 'function') {
@@ -220,20 +232,40 @@ ServerResponse.prototype._writeBody = function(chunk, encoding, callback) {
     }
 
     if (typeof callback === 'function') {
-        callback(this);
+        /*
+         * The callback must be called only when response.write() caller
+         * completes.  process.nextTick() postpones the callback execution.
+         *
+         * process.nextTick() is not technically part of the event loop.
+         * Instead, the nextTickQueue will be processed after the current
+         * operation completes, regardless of the current phase of
+         * the event loop.  All callbacks passed to process.nextTick()
+         * will be resolved before the event loop continues.
+         */
+        process.nextTick(function () {
+            callback(this);
+        }.bind(this));
     }
 };
 
 ServerResponse.prototype.write = function write(chunk, encoding, callback) {
+    if (this.finished) {
+        throw new Error("Write after end");
+    }
+
     this._writeBody(chunk, encoding, callback);
 
     return true;
 };
 
 ServerResponse.prototype.end = function end(chunk, encoding, callback) {
-    this._writeBody(chunk, encoding, callback);
+    if (!this.finished) {
+        this._writeBody(chunk, encoding, callback);
 
-    this.finished = true;
+        unit_lib.unit_response_end(this);
+
+        this.finished = true;
+    }
 
     return this;
 };
@@ -285,6 +317,28 @@ ServerRequest.prototype.resume = function resume() {
     return [];
 };
 
+/*
+ * The "on" method is overridden to defer reading data until user code is
+ * ready, that is (ev === "data").  This can occur after req.emit("end") is
+ * executed, since the user code can be scheduled asynchronously by Promises
+ * and so on.  Passing the data is postponed by process.nextTick() until
+ * the "on" method caller completes.
+ */
+ServerRequest.prototype.on = function on(ev, fn) {
+    Server.prototype.on.call(this, ev, fn);
+
+    if (ev === "data") {
+        process.nextTick(function () {
+            if (this.server.buffer.length !== 0) {
+                this.emit("data", this.server.buffer);
+            }
+
+        }.bind(this));
+    }
+};
+
+ServerRequest.prototype.addListener = ServerRequest.prototype.on;
+
 function Server(requestListener) {
     EventEmitter.call(this);
 
@@ -317,28 +371,19 @@ Server.prototype.listen = function () {
     this.unit.listen();
 };
 
-Server.prototype.run_events = function (server, req, res) {
-    /* Important!!! setImmediate starts the next iteration in Node.js loop. */
-    setImmediate(function () {
-        server.emit("request", req, res);
+Server.prototype.emit_events = function (server, req, res) {
+    req.server = server;
+    res.server = server;
+    req.res = res;
+    res.req = req;
 
-        Promise.resolve().then(() => {
-            let buf = server.unit._read(req.socket.req_pointer);
+    server.buffer = server.unit._read(req.socket.req_pointer);
 
-            if (buf.length != 0) {
-                req.emit("data", buf);
-            }
+    server.emit("request", req, res);
 
-            req.emit("end");
-        });
-
-        Promise.resolve().then(() => {
-            req.emit("finish");
-
-            if (res.finished) {
-                unit_lib.unit_response_end(res);
-            }
-        });
+    process.nextTick(() => {
+        req.emit("finish");
+        req.emit("end");
     });
 };
 

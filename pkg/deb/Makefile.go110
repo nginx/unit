@@ -19,8 +19,6 @@ BUILD_DEPENDS+=		$(BUILD_DEPENDS_go110)
 MODULE_BUILD_DEPENDS_go110=,golang-1.10
 MODULE_DEPENDS_go110=,golang-1.10
 
-MODULE_NOARCH_go110=	true
-
 define MODULE_PREINSTALL_go110
 	mkdir -p debian/unit-go1.10/usr/share/doc/unit-go1.10/examples/go-app
 	install -m 644 -p debian/unit.example-go-app debian/unit-go1.10/usr/share/doc/unit-go1.10/examples/go-app/let-my-people.go
