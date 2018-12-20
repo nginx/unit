@@ -339,7 +339,7 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
         goto fail;
     }
 
-    Py_DECREF(obj);
+    Py_CLEAR(obj);
 
     nxt_py_module = nxt_alloca(c->module.length + 1);
     nxt_memcpy(nxt_py_module, c->module.start, c->module.length);
@@ -349,7 +349,7 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     if (nxt_slow_path(module == NULL)) {
         nxt_alert(task, "Python failed to import module \"%s\"", nxt_py_module);
         PyErr_Print();
-        return NXT_ERROR;
+        goto fail;
     }
 
     obj = PyDict_GetItemString(PyModule_GetDict(module), "application");
@@ -367,9 +367,10 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     }
 
     Py_INCREF(obj);
-    Py_DECREF(module);
+    Py_CLEAR(module);
 
     nxt_py_application = obj;
+    obj = NULL;
 
     nxt_unit_default_init(task, &python_init);
 
@@ -377,7 +378,7 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 
     unit_ctx = nxt_unit_init(&python_init);
     if (nxt_slow_path(unit_ctx == NULL)) {
-        return NXT_ERROR;
+        goto fail;
     }
 
     rc = nxt_unit_run(unit_ctx);
@@ -395,9 +396,7 @@ fail:
     Py_XDECREF(obj);
     Py_XDECREF(module);
 
-    if (nxt_py_home != NULL) {
-        nxt_free(nxt_py_home);
-    }
+    nxt_python_atexit();
 
     return NXT_ERROR;
 }
@@ -529,10 +528,10 @@ fail:
 static void
 nxt_python_atexit(void)
 {
-    Py_DECREF(nxt_py_application);
-    Py_DECREF(nxt_py_start_resp_obj);
-    Py_DECREF(nxt_py_write_obj);
-    Py_DECREF(nxt_py_environ_ptyp);
+    Py_XDECREF(nxt_py_application);
+    Py_XDECREF(nxt_py_start_resp_obj);
+    Py_XDECREF(nxt_py_write_obj);
+    Py_XDECREF(nxt_py_environ_ptyp);
 
     Py_Finalize();
 
