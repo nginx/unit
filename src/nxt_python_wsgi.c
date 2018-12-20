@@ -284,7 +284,7 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
                                          c->path.length);
 
         if (nxt_slow_path(obj == NULL)) {
-            nxt_alert(task, "Python failed create string object \"%V\"",
+            nxt_alert(task, "Python failed to create string object \"%V\"",
                       &c->path);
             goto fail;
         }
