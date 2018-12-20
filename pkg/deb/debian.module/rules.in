@@ -75,9 +75,9 @@ install: build
 	dh_installlogrotate
 %%MODULE_PREINSTALL%%
 	cd $(BUILDDIR_unit) && \
-	DESTDIR=$(INSTALLDIR) make %%MODULE_INSTARGS%%
+	DESTDIR=$(INSTALLDIR) make all %%MODULE_INSTARGS%%
 	cd $(BUILDDIR_unit_debug) && \
-	DESTDIR=$(INSTALLDIR) make %%MODULE_INSTARGS%%
+	DESTDIR=$(INSTALLDIR) make all %%MODULE_INSTARGS%%
 
 binary-indep: build install
 	dh_testdir
