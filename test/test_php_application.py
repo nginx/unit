@@ -48,6 +48,33 @@ class TestUnitPHPApplication(unit.TestUnitApplicationPHP):
         }, 'headers')
         self.assertEqual(resp['body'], body, 'body')
 
+    def test_php_application_query_string(self):
+        self.load('query_string')
+
+        resp = self.get(url='/?var1=val1&var2=val2')
+
+        self.assertEqual(resp['headers']['Query-String'], 'var1=val1&var2=val2',
+            'query string')
+
+    def test_php_application_query_string_empty(self):
+        self.load('query_string')
+
+        resp = self.get(url='/?')
+
+        self.assertEqual(resp['status'], 200, 'query string empty status')
+        self.assertEqual(resp['headers']['Query-String'], '',
+            'query string empty')
+
+    @unittest.expectedFailure
+    def test_php_application_query_string_absent(self):
+        self.load('query_string')
+
+        resp = self.get()
+
+        self.assertEqual(resp['status'], 200, 'query string absent status')
+        self.assertEqual(resp['headers']['Query-String'], '',
+            'query string absent')
+
     def test_php_application_phpinfo(self):
         self.load('phpinfo')
 
