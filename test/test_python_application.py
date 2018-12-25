@@ -1,3 +1,4 @@
+import time
 import unittest
 import unit
 
@@ -104,6 +105,8 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
         })
 
         self.stop()
+
+        time.sleep(0.2)
 
         self.assertIsNotNone(self.search_in_log(r'RuntimeError'),
             'ctx iter atexit')
