@@ -306,23 +306,25 @@ basicConstraints = critical,CA:TRUE""" % {
         self.assertEqual(self.get_ssl()['status'], 200,
             'certificate chain intermediate server')
 
+    @unittest.expectedFailure
     def test_tls_reconfigure(self):
         self.load('empty')
 
         self.certificate()
 
-        (resp, sock) = self.http(b"""GET / HTTP/1.1
-""", start=True, raw=True, no_recv=True)
+        (resp, sock) = self.get(headers={
+            'Connection': 'keep-alive',
+            'Host': 'localhost'
+        }, start=True)
+
+        self.assertEqual(resp['status'], 200, 'initial status')
 
         self.add_tls()
 
-        resp = self.http(b"""Host: localhost
-Connection: close
-
-""", sock=sock, raw=True)
-
-        self.assertEqual(resp['status'], 200, 'update status')
-        self.assertEqual(self.get_ssl()['status'], 200, 'update tls status')
+        self.assertEqual(self.get(sock=sock)['status'], 200,
+            'reconfigure status')
+        self.assertEqual(self.get_ssl()['status'], 200,
+            'reconfigure tls status')
 
     def test_tls_keepalive(self):
         self.load('mirror')
