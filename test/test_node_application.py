@@ -120,10 +120,10 @@ class TestUnitNodeApplication(unit.TestUnitApplicationNode):
         self.assertTrue(self.waitforfiles(self.testdir + '/node/callback'),
             'write callback')
 
-    def test_node_application_write_before_writeHead(self):
+    def test_node_application_write_before_write_head(self):
         self.load('write_before_write_head')
 
-        self.get()
+        self.assertEqual(self.get()['status'], 200, 'write before writeHead')
 
     def test_node_application_double_end(self):
         self.load('double_end')
