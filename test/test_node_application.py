@@ -112,7 +112,6 @@ class TestUnitNodeApplication(unit.TestUnitApplicationNode):
         self.assertEqual(self.get()['body'], '6\r\nbuffer\r\n0\r\n\r\n',
             'write buffer')
 
-    @unittest.expectedFailure
     def test_node_application_write_callback(self):
         self.load('write_callback')
 
@@ -122,7 +121,6 @@ class TestUnitNodeApplication(unit.TestUnitApplicationNode):
             'write callback')
 
     def test_node_application_write_before_writeHead(self):
-        self.skip_alerts.append(r'process \d+ exited on signal')
         self.load('write_before_write_head')
 
         self.get()
@@ -182,7 +180,6 @@ class TestUnitNodeApplication(unit.TestUnitApplicationNode):
         self.assertEqual(self.get()['headers']['X-Type'], 'number',
             'get header type')
 
-    @unittest.expectedFailure
     def test_node_application_header_name_case(self):
         self.load('header_name_case')
 
@@ -202,9 +199,7 @@ class TestUnitNodeApplication(unit.TestUnitApplicationNode):
         self.assertTrue(self.waitforfiles(self.testdir + '/node/callback'),
             'promise handler')
 
-    @unittest.expectedFailure
     def test_node_application_promise_handler_write_after_end(self):
-        self.skip_alerts.append(r'process \d+ exited on signal')
         self.load('promise_handler')
 
         self.assertEqual(self.post(headers={
@@ -249,13 +244,11 @@ class TestUnitNodeApplication(unit.TestUnitApplicationNode):
 
         self.assertNotIn('status', self.get(), 'header name valid')
 
-    @unittest.expectedFailure
     def test_node_application_header_value_object(self):
         self.load('header_value_object')
 
         self.assertIn('X-Header', self.get()['headers'], 'header value object')
 
-    @unittest.expectedFailure
     def test_node_application_get_header_names(self):
         self.load('get_header_names')
 
