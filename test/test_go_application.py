@@ -4,12 +4,7 @@ import unit
 class TestUnitGoApplication(unit.TestUnitApplicationGo):
 
     def setUpClass():
-        u = unit.TestUnit()
-
-        if u.architecture == '32bit':
-            raise unittest.SkipTest('Skip Go tests for x86')
-
-        u.check_modules('go')
+        unit.TestUnit().check_modules('go')
 
     def test_go_application_variables(self):
         self.load('variables')
