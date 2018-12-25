@@ -309,6 +309,9 @@ class TestUnitHTTP(TestUnit):
         if 'sock' not in kwargs:
             sock = socket.socket(sock_types[sock_type], socket.SOCK_STREAM)
 
+            if sock_type == sock_types['ipv4'] or sock_type == sock_types['ipv6']:
+                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+
             if 'wrapper' in kwargs:
                 sock = kwargs['wrapper'](sock)
 
