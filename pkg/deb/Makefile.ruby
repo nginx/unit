@@ -37,7 +37,7 @@ To check out the sample app, run these commands:
 
  sudo service unit restart
  cd /usr/share/doc/unit-$(MODULE_SUFFIX_ruby)/examples
- sudo curl -X PUT --data-binary @unit.config --unix-socket /var/run/control.unit.sock :/config
+ sudo curl -X PUT --data-binary @unit.config --unix-socket /var/run/control.unit.sock http://localhost/config
  curl http://localhost:8700/
 
 Online documentation is available at https://unit.nginx.org
