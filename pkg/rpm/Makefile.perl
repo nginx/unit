@@ -51,7 +51,7 @@ To check out the sample app, run these commands:
 
  sudo service unit start
  cd /usr/share/doc/%{name}/examples
- sudo curl -X PUT --data-binary @unit.config --unix-socket /var/run/control.unit.sock :/config
+ sudo curl -X PUT --data-binary @unit.config --unix-socket /var/run/control.unit.sock http://localhost/config
  curl http://localhost:8600/
 
 Online documentation is available at https://unit.nginx.org
