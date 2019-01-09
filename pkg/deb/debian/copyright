@@ -1,10 +1,11 @@
 
    NGINX Unit.
 
-   Copyright 2017-2018 NGINX, Inc.
-   Copyright 2017-2018 Igor Sysoev
-   Copyright 2017-2018 Valentin V. Bartenev
-   Copyright 2017-2018 Max Romanov
+   Copyright 2017-2019 NGINX, Inc.
+   Copyright 2017-2019 Igor Sysoev
+   Copyright 2017-2019 Valentin V. Bartenev
+   Copyright 2017-2019 Max Romanov
+   Copyright 2018-2019 Alexander Borisov
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
