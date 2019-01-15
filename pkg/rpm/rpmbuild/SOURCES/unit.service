@@ -16,7 +16,7 @@ After=network-online.target
 
 [Service]
 Type=simple
-Environment="UNITD_OPTIONS=--log /var/unit/unit.log --pid /run/unit.pid"
+Environment="UNITD_OPTIONS=--log /var/log/unit/unit.log --pid /run/unit.pid"
 ExecStart=/usr/sbin/unitd $UNITD_OPTIONS --no-daemon
 ExecReload=
 
