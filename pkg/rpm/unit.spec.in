@@ -5,7 +5,6 @@
 
 %if ( 0%{?rhel} == 5 || 0%{?rhel} == 6 )
 Requires: initscripts >= 8.36
-BuildRequires: openssl-devel
 %endif
 
 %if %{use_systemd}
