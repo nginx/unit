@@ -4,10 +4,9 @@ Wants=network-online.target
 After=network-online.target
 
 [Service]
-Type=forking
-PIDFile=/run/unit.pid
+Type=simple
 EnvironmentFile=-/etc/sysconfig/unit
-ExecStart=/usr/sbin/unitd $UNITD_OPTIONS
+ExecStart=/usr/sbin/unitd $UNITD_OPTIONS --no-daemon
 ExecReload=
 
 [Install]
