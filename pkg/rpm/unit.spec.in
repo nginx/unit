@@ -1,5 +1,5 @@
 # distribution specific definitions
-%define use_systemd (0%{?rhel} && 0%{?rhel} >= 7) || (0%{?suse_version} >= 1315)
+%define use_systemd 0%{?rhel} >= 7 || 0%{?fedora} >= 19 || 0%{?suse_version} >= 1315
 %define bdir %{_builddir}/%{name}-%{version}
 %define dotests 0
 
@@ -8,18 +8,24 @@ Requires: initscripts >= 8.36
 BuildRequires: openssl-devel
 %endif
 
-%if 0%{?rhel} == 7
-Requires: systemd
-BuildRequires: systemd-units
+%if %{use_systemd}
+BuildRequires: systemd
+Requires(post):    systemd
+Requires(preun):   systemd
+Requires(postun):  systemd
+%endif
+
+%if 0%{?rhel}%{?fedora}
 BuildRequires: openssl-devel
+%endif
+
+%if 0%{?rhel}
 %if 0%{?amzn} == 0
-%define dist .el7
+%define dist .el%{?rhel}
 %endif
 %endif
 
 %if 0%{?suse_version} >= 1315
-BuildRequires: systemd
-Requires: systemd
 BuildRequires: libopenssl-devel
 %endif
 
