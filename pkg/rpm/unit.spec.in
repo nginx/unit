@@ -109,9 +109,11 @@ DESTDIR=%{buildroot} make unitd-install libunit-install
 %{__mkdir} -p %{buildroot}%{_libdir}/unit/modules
 %{__mkdir} -p %{buildroot}%{_libdir}/unit/debug-modules
 %{__mkdir} -p %{buildroot}%{_sharedstatedir}/unit
+%if ! %{use_systemd}
 %{__mkdir} -p %{buildroot}%{_sysconfdir}/sysconfig
 %{__install} -m 644 -p %{SOURCE3} \
     %{buildroot}%{_sysconfdir}/sysconfig/unit
+%endif
 %{__mkdir} -p %{buildroot}%{_sysconfdir}/unit
 %{__mkdir} -p %{buildroot}%{_datadir}/doc/unit/examples
 %{__install} -m 644 -p %{SOURCE4} \
@@ -191,7 +193,9 @@ fi
 %defattr(-,root,root,-)
 %attr(0755,root,root) %{_sbindir}/unitd
 %attr(0755,root,root) %{_sbindir}/unitd-debug
+%if ! %{use_systemd}
 %config(noreplace) %{_sysconfdir}/sysconfig/unit
+%endif
 %dir %{_sysconfdir}/unit
 %if %{use_systemd}
 %{_unitdir}/unit.service
