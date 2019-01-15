@@ -16,9 +16,11 @@ After=network-online.target
 
 [Service]
 Type=simple
-Environment="UNITD_OPTIONS=--log /var/log/unit/unit.log --pid /run/unit.pid"
+Environment="UNITD_OPTIONS=--log /var/log/unit/unit.log --pid /run/unit/unit.pid"
 ExecStart=/usr/sbin/unitd $UNITD_OPTIONS --no-daemon
 ExecReload=
+RuntimeDirectory=unit
+RuntimeDirectoryMode=0755
 
 [Install]
 WantedBy=multi-user.target

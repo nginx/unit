@@ -1,5 +1,5 @@
 # distribution specific definitions
-%define use_systemd 0%{?rhel} >= 7 || 0%{?fedora} >= 19 || 0%{?suse_version} >= 1315
+%define use_systemd (0%{?rhel} >= 7 || 0%{?fedora} >= 19 || 0%{?suse_version} >= 1315)
 %define bdir %{_builddir}/%{name}-%{version}
 %define dotests 0
 
@@ -110,6 +110,7 @@ DESTDIR=%{buildroot} make unitd-install libunit-install
 %{__mkdir} -p %{buildroot}%{_libdir}/unit/debug-modules
 %{__mkdir} -p %{buildroot}%{_sharedstatedir}/unit
 %{__mkdir} -p %{buildroot}%{_localstatedir}/log/unit
+%{__mkdir} -p %{buildroot}%{_localstatedir}/run/unit
 %if ! %{use_systemd}
 %{__mkdir} -p %{buildroot}%{_sysconfdir}/sysconfig
 %{__install} -m 644 -p %{SOURCE3} \
@@ -197,8 +198,10 @@ fi
 %dir %{_sysconfdir}/unit
 %if %{use_systemd}
 %{_unitdir}/unit.service
+%dir %attr(0755,root,root) %ghost %{_localstatedir}/run/unit
 %else
 %config(noreplace) %{_sysconfdir}/sysconfig/unit
+%dir %attr(0755,root,root) %{_localstatedir}/run/unit
 %{_initrddir}/unit
 %endif
 %dir %{_datadir}/doc/unit
