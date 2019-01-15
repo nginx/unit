@@ -98,7 +98,7 @@ endif
 CONFIGURE_ARGS=\
 	--prefix=/usr \
 	--state=%{_sharedstatedir}/unit \
-	--control="unix:/var/run/unit/control.sock" \
+	--control="unix:/var/run/control.unit.sock" \
 	--pid=/var/run/unit.pid \
 	--log=/var/log/unit.log \
 	--tests \
