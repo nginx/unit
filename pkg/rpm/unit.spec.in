@@ -113,7 +113,7 @@ DESTDIR=%{buildroot} make unitd-install libunit-install
 %if ! %{use_systemd}
 %{__mkdir} -p %{buildroot}%{_sysconfdir}/sysconfig
 %{__install} -m 644 -p %{SOURCE3} \
-    %{buildroot}%{_sysconfdir}/sysconfig/unit
+    %{buildroot}%{_sysconfdir}/sysconfig/unitd
 %endif
 %{__mkdir} -p %{buildroot}%{_sysconfdir}/unit
 %{__mkdir} -p %{buildroot}%{_datadir}/doc/unit/examples
@@ -199,7 +199,7 @@ fi
 %{_unitdir}/unit.service
 %dir %attr(0755,root,root) %ghost %{_localstatedir}/run/unit
 %else
-%config(noreplace) %{_sysconfdir}/sysconfig/unit
+%config(noreplace) %{_sysconfdir}/sysconfig/unitd
 %dir %attr(0755,root,root) %{_localstatedir}/run/unit
 %{_initrddir}/unit
 %endif
