@@ -1,1 +1,1 @@
-UNITD_OPTIONS="--control unix:/var/run/unit/control.sock --log /var/log/unit/unit.log --pid /var/run/unit/unit.pid"
+UNITD_OPTIONS="--log /var/log/unit/unit.log --pid /var/run/unit/unit.pid"
