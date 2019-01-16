@@ -37,6 +37,12 @@ removed $uri auto-append for "share" when loading configuration.
 </para>
 </change>
 
+<change type="change">
+<para>
+prefer system crypto policy, instead of hardcoding a default.
+</para>
+</change>
+
 <change type="feature">
 <para>
 compatibility with PHP 8.2.
