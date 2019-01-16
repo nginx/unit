@@ -15,6 +15,7 @@ Requires(postun):  systemd
 %endif
 
 %if 0%{?rhel}%{?fedora}
+BuildRequires: gcc
 BuildRequires: openssl-devel
 %endif
 
