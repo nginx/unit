@@ -51,6 +51,7 @@ Source1: unit.service
 Source2: unit.init
 Source3: unit.sysconf
 Source4: unit.example.config
+Source5: unit.logrotate
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -116,6 +117,9 @@ DESTDIR=%{buildroot} make unitd-install libunit-install
 %{__install} -m 644 -p %{SOURCE3} \
     %{buildroot}%{_sysconfdir}/sysconfig/unitd
 %endif
+%{__mkdir} -p %{buildroot}%{_sysconfdir}/logrotate.d
+%{__install} -m 644 -p %{SOURCE5} \
+    %{buildroot}%{_sysconfdir}/logrotate.d/unit
 %{__mkdir} -p %{buildroot}%{_sysconfdir}/unit
 %{__mkdir} -p %{buildroot}%{_datadir}/doc/unit/examples
 %{__install} -m 644 -p %{SOURCE4} \
@@ -210,6 +214,7 @@ fi
 %dir %{_libdir}/unit/debug-modules
 %dir %{_sharedstatedir}/unit
 %dir %attr(0700,root,root) %{_localstatedir}/log/unit
+%config(noreplace) %{_sysconfdir}/logrotate.d/%{name}
 
 %files devel
 %{_libdir}/libunit.a

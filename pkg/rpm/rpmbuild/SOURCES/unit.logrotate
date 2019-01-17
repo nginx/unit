@@ -1,0 +1,8 @@
+/var/log/unit/*.log {
+    missingok
+    nocreate
+    notifempty
+    postrotate
+        /bin/kill -SIGUSR1 `cat /var/run/unit/unit.pid`
+    endscript
+}
