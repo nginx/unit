@@ -1116,24 +1116,23 @@ nxt_main_listening_socket(nxt_sockaddr_t *sa, nxt_listening_socket_t *ls)
                 break;
             }
 
-            goto next;
-        }
-
+        } else
 #endif
+        {
+            switch (err) {
 
-        switch (err) {
+            case EACCES:
+                ls->error = NXT_SOCKET_ERROR_PORT;
+                break;
 
-        case EACCES:
-            ls->error = NXT_SOCKET_ERROR_PORT;
-            break;
+            case EADDRINUSE:
+                ls->error = NXT_SOCKET_ERROR_INUSE;
+                break;
 
-        case EADDRINUSE:
-            ls->error = NXT_SOCKET_ERROR_INUSE;
-            break;
-
-        case EADDRNOTAVAIL:
-            ls->error = NXT_SOCKET_ERROR_NOADDR;
-            break;
+            case EADDRNOTAVAIL:
+                ls->error = NXT_SOCKET_ERROR_NOADDR;
+                break;
+            }
         }
 
         ls->end = nxt_sprintf(ls->start, ls->end, "bind(\\\"%*s\\\") failed %E",
@@ -1142,8 +1141,6 @@ nxt_main_listening_socket(nxt_sockaddr_t *sa, nxt_listening_socket_t *ls)
     }
 
 #if (NXT_HAVE_UNIX_DOMAIN)
-
-next:
 
     if (sa->u.sockaddr.sa_family == AF_UNIX) {
         char     *filename;
