@@ -1,25 +1,31 @@
 # distribution specific definitions
-%define use_systemd (0%{?rhel} && 0%{?rhel} >= 7) || (0%{?suse_version} >= 1315)
+%define use_systemd (0%{?rhel} >= 7 || 0%{?fedora} >= 19 || 0%{?suse_version} >= 1315)
 %define bdir %{_builddir}/%{name}-%{version}
 %define dotests 0
 
 %if ( 0%{?rhel} == 5 || 0%{?rhel} == 6 )
 Requires: initscripts >= 8.36
+%endif
+
+%if %{use_systemd}
+BuildRequires: systemd
+Requires(post):    systemd
+Requires(preun):   systemd
+Requires(postun):  systemd
+%endif
+
+%if 0%{?rhel}%{?fedora}
+BuildRequires: gcc
 BuildRequires: openssl-devel
 %endif
 
-%if 0%{?rhel} == 7
-Requires: systemd
-BuildRequires: systemd-units
-BuildRequires: openssl-devel
+%if 0%{?rhel}
 %if 0%{?amzn} == 0
-%define dist .el7
+%define dist .el%{?rhel}
 %endif
 %endif
 
 %if 0%{?suse_version} >= 1315
-BuildRequires: systemd
-Requires: systemd
 BuildRequires: libopenssl-devel
 %endif
 
@@ -45,6 +51,7 @@ Source1: unit.service
 Source2: unit.init
 Source3: unit.sysconf
 Source4: unit.example.config
+Source5: unit.logrotate
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -103,9 +110,16 @@ DESTDIR=%{buildroot} make unitd-install libunit-install
 %{__mkdir} -p %{buildroot}%{_libdir}/unit/modules
 %{__mkdir} -p %{buildroot}%{_libdir}/unit/debug-modules
 %{__mkdir} -p %{buildroot}%{_sharedstatedir}/unit
+%{__mkdir} -p %{buildroot}%{_localstatedir}/log/unit
+%{__mkdir} -p %{buildroot}%{_localstatedir}/run/unit
+%if ! %{use_systemd}
 %{__mkdir} -p %{buildroot}%{_sysconfdir}/sysconfig
 %{__install} -m 644 -p %{SOURCE3} \
-    %{buildroot}%{_sysconfdir}/sysconfig/unit
+    %{buildroot}%{_sysconfdir}/sysconfig/unitd
+%endif
+%{__mkdir} -p %{buildroot}%{_sysconfdir}/logrotate.d
+%{__install} -m 644 -p %{SOURCE5} \
+    %{buildroot}%{_sysconfdir}/logrotate.d/unit
 %{__mkdir} -p %{buildroot}%{_sysconfdir}/unit
 %{__mkdir} -p %{buildroot}%{_datadir}/doc/unit/examples
 %{__install} -m 644 -p %{SOURCE4} \
@@ -185,11 +199,13 @@ fi
 %defattr(-,root,root,-)
 %attr(0755,root,root) %{_sbindir}/unitd
 %attr(0755,root,root) %{_sbindir}/unitd-debug
-%config(noreplace) %{_sysconfdir}/sysconfig/unit
 %dir %{_sysconfdir}/unit
 %if %{use_systemd}
 %{_unitdir}/unit.service
+%dir %attr(0755,root,root) %ghost %{_localstatedir}/run/unit
 %else
+%config(noreplace) %{_sysconfdir}/sysconfig/unitd
+%dir %attr(0755,root,root) %{_localstatedir}/run/unit
 %{_initrddir}/unit
 %endif
 %dir %{_datadir}/doc/unit
@@ -197,6 +213,8 @@ fi
 %dir %{_libdir}/unit/modules
 %dir %{_libdir}/unit/debug-modules
 %dir %{_sharedstatedir}/unit
+%dir %attr(0700,root,root) %{_localstatedir}/log/unit
+%config(noreplace) %{_sysconfdir}/logrotate.d/%{name}
 
 %files devel
 %{_libdir}/libunit.a
