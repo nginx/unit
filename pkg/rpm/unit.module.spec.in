@@ -44,6 +44,10 @@ This package contains %%SUMMARY%%.
 %debug_package
 %endif
 
+%if 0%{?fedora}
+%define _debugsource_template %{nil}
+%endif
+
 %prep
 %setup -qcTn %{name}-%{unit_version}
 tar --strip-components=1 -zxf %{SOURCE0}
@@ -78,6 +82,13 @@ DESTDIR=%{buildroot} make %%MODULE_INSTARGS%%
 DESTDIR=%{buildroot} make %%MODULE_INSTARGS%%
 
 %check
+%{__rm} -rf %{buildroot}/usr/src
+cd %{bdir}
+grep -v 'usr/src' debugfiles.list > debugfiles.list.new && mv debugfiles.list.new debugfiles.list
+cat /dev/null > debugsources.list
+%if 0%{?suse_version} >= 1500
+cat /dev/null > debugsourcefiles.list
+%endif
 
 %clean
 %{__rm} -rf %{buildroot}
