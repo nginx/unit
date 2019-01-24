@@ -89,7 +89,11 @@ endif
 ifeq ($(OSVER), fedora)
 include Makefile.php
 include Makefile.python27
+ifeq ($(shell test `rpm --eval '0%{?fedora} -ge 29'`; echo $$?),0)
+include Makefile.python37
+else
 include Makefile.python36
+endif
 include Makefile.go
 include Makefile.perl
 include Makefile.ruby
