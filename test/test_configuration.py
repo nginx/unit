@@ -217,5 +217,52 @@ class TestUnitConfiguration(unit.TestUnitControl):
             }
         }), 'no port')
 
+    @unittest.expectedFailure
+    def test_json_application_name_large(self):
+        self.skip_alerts.append(r'epoll_ctl.+failed')
+        name = "X" * 1024 * 1024
+
+        self.assertIn('success', self.conf({
+            "listeners": {
+                "*:7080": {
+                    "application": name
+                }
+            },
+            "applications": {
+                name: {
+                    "type": "python",
+                    "processes": { "spare": 0 },
+                    "path": "/app",
+                    "module": "wsgi"
+                }
+            }
+        }))
+
+    @unittest.expectedFailure
+    def test_json_application_many(self):
+        self.skip_alerts.extend([
+            r'eventfd.+failed',
+            r'failed to apply new conf'
+        ])
+        apps = 1000
+
+        conf = {
+            "applications":
+                {"app-" + str(a): {
+                    "type": "python",
+                    "processes": { "spare": 0 },
+                    "path": "/app",
+                    "module": "wsgi"
+                } for a in range(apps)
+            },
+            "listeners": {
+                "*:" + str(7080 + a): {
+                    "application": "app-" + str(a)
+                } for a in range(apps)
+            }
+        }
+
+        self.assertIn('success', self.conf(conf))
+
 if __name__ == '__main__':
     TestUnitConfiguration.main()
