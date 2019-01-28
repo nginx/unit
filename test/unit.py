@@ -285,7 +285,6 @@ class TestUnitHTTP(TestUnit):
         port = 7080 if 'port' not in kwargs else kwargs['port']
         url = '/' if 'url' not in kwargs else kwargs['url']
         http = 'HTTP/1.0' if 'http_10' in kwargs else 'HTTP/1.1'
-        blocking = False if 'blocking' not in kwargs else kwargs['blocking']
 
         headers = ({
             'Host': 'localhost',
@@ -321,8 +320,6 @@ class TestUnitHTTP(TestUnit):
             except ConnectionRefusedError:
                 sock.close()
                 return None
-
-            sock.setblocking(blocking)
 
         else:
             sock = kwargs['sock']
@@ -640,11 +637,11 @@ class TestUnitApplicationTLS(TestUnitApplicationProto):
                 return self.conf(k.read() + c.read(), '/certificates/' + crt)
 
     def get_ssl(self, **kwargs):
-        return self.get(blocking=True, wrapper=self.context.wrap_socket,
+        return self.get(wrapper=self.context.wrap_socket,
             **kwargs)
 
     def post_ssl(self, **kwargs):
-        return self.post(blocking=True, wrapper=self.context.wrap_socket,
+        return self.post(wrapper=self.context.wrap_socket,
             **kwargs)
 
     def get_server_certificate(self, addr=('127.0.0.1', 7080)):
