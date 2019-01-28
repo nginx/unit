@@ -185,5 +185,19 @@ class TestUnitPerlApplication(unit.TestUnitApplicationPerl):
 
         self.assertEqual(resp['body'], '0123456789', 'keep-alive 2')
 
+    @unittest.expectedFailure
+    def test_perl_body_io_fake(self):
+        self.load('body_io_fake')
+
+        self.assertEqual(self.get()['body'], '21', 'body io fake')
+
+        self.assertIsNotNone(
+            self.search_in_log(r'\[error\].+IOFake getline\(\) \$\/ is \d+'),
+            'body io fake $/ value')
+
+        self.assertIsNotNone(
+            self.search_in_log(r'\[error\].+IOFake close\(\) called'),
+            'body io fake close')
+
 if __name__ == '__main__':
     TestUnitPerlApplication.main()
