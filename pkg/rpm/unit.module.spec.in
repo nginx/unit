@@ -55,7 +55,6 @@ tar --strip-components=1 -zxf %{SOURCE0}
 	--cc-opt="%{CC_OPT}" \
 	--debug
 ./configure %%MODULE_CONFARGS%%
-make all
 make %%MODULE_MAKEARGS%%
 %{__mv} build build-debug
 ./configure \
@@ -63,7 +62,6 @@ make %%MODULE_MAKEARGS%%
 	--modules=%{_libdir}/unit/modules \
 	--cc-opt="%{CC_OPT}"
 ./configure %%MODULE_CONFARGS%%
-make all
 make %%MODULE_MAKEARGS%%
 %{__mv} build build-nodebug
 
