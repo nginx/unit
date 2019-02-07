@@ -1,4 +1,15 @@
 
+Changes with Unit 1.7.1                                          07 Feb 2019
+
+    *) Security: a heap memory buffer overflow might have been caused in the
+       router process by a specially crafted request, potentially resulting
+       in a segmentation fault or other unspecified behavior
+       (CVE-2019-7401).
+
+    *) Bugfix: install of Go module failed without prior building of Unit
+       daemon; the bug had appeared in 1.7.
+
+
 Changes with Unit 1.7                                            20 Dec 2018
 
     *) Change: now rpath is set in Ruby module only if the library was not
