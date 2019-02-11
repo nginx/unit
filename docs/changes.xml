@@ -5,6 +5,47 @@
 <change_log title="unit">
 
 
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10
+                unit-perl
+                unit-ruby"
+         ver="1.7.1" rev="1"
+         date="2019-02-07" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.7.1.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.7.1" rev="1"
+         date="2019-02-07" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="security">
+<para>
+a heap memory buffer overflow might have been caused in the router process by
+a specially crafted request, potentially resulting in a segmentation fault or
+other unspecified behavior (CVE-2019-7401).
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+install of Go module failed without prior building of Unit daemon;
+the bug had appeared in 1.7.
+</para>
+</change>
+
+</changes>
+
+
 <changes apply="unit-python3.7" ver="1.7" rev="1"
          date="2018-12-25" time="10:30:00 +0300"
          packager="Andrei Belov &lt;defan@nginx.com&gt;">
