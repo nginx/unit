@@ -335,7 +335,12 @@ class TestUnitHTTP(TestUnit):
                     headers['Content-Length'] = len(body)
 
             for header, value in headers.items():
-                req += header + ': ' + str(value) + crlf
+                if isinstance(value, list):
+                    for v in value:
+                        req += header + ': ' + str(v) + crlf
+
+                else:
+                    req += header + ': ' + str(value) + crlf
 
             req = (req + crlf).encode() + body
 
