@@ -28,8 +28,6 @@ Connection: close
     def test_settings_header_read_timeout_update(self):
         self.load('empty')
 
-        r = None
-
         self.conf({'http': { 'header_read_timeout': 4 }}, 'settings')
 
         (resp, sock) = self.http(b"""GET / HTTP/1.1

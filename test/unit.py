@@ -235,7 +235,7 @@ class TestUnit(unittest.TestCase):
 
             if sanitizer_errors:
                 self._print_path_to_log()
-                self.assertFalse(sanitizer_error, 'sanitizer error(s)')
+                self.assertFalse(sanitizer_errors, 'sanitizer error(s)')
 
         if found:
             print('skipped.')
@@ -350,8 +350,8 @@ class TestUnitHTTP(TestUnit):
         resp = ''
 
         if 'no_recv' not in kwargs:
-           enc = 'utf-8' if 'encoding' not in kwargs else kwargs['encoding']
-           resp = self.recvall(sock).decode(enc)
+            enc = 'utf-8' if 'encoding' not in kwargs else kwargs['encoding']
+            resp = self.recvall(sock).decode(enc)
 
         if TestUnit.detailed:
             print('<<<', resp.encode('utf-8'), sep='\n')
