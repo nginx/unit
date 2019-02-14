@@ -29,7 +29,12 @@ BuildRequires: openssl-devel
 BuildRequires: libopenssl-devel
 %endif
 
+%if (0%{?rhel} == 6) && (%{_arch} == x86_64)
+%define CC_OPT %{optflags} -fno-strict-aliasing -fPIC
+%else
 %define CC_OPT %{optflags} -fPIC
+%endif
+
 %define LD_OPT -Wl,-z,relro -Wl,-z,now -pie
 
 %define CONFIGURE_ARGS $(echo "%%CONFIGURE_ARGS%%")
