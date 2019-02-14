@@ -10,7 +10,11 @@
 %define unit_version %%UNIT_VERSION%%
 %define unit_release %%UNIT_RELEASE%%%{?dist}.ngx
 
+%if (0%{?rhel} == 6) && (%{_arch} == x86_64)
+%define CC_OPT %{optflags} -fno-strict-aliasing
+%else
 %define CC_OPT %{optflags}
+%endif
 
 %define CONFIGURE_ARGS $(echo "%%CONFIGURE_ARGS%%")
 
