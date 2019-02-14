@@ -162,5 +162,51 @@ a
 
         self.assertEqual(resp['status'], 200, 'transfer encoding chunked')
 
+    def test_http_header_content_length_big(self):
+        self.load('empty')
+
+        self.assertEqual(self.post(headers={
+            'Content-Length': str(2 ** 64),
+            'Connection': 'close',
+            'Host': 'localhost'
+        }, body='X' * 1000)['status'], 400, 'Content-Length big')
+
+    def test_http_header_content_length_negative(self):
+        self.load('empty')
+
+        self.assertEqual(self.post(headers={
+            'Content-Length': '-100',
+            'Connection': 'close',
+            'Host': 'localhost'
+        }, body='X' * 1000)['status'], 400, 'Content-Length negative')
+
+    def test_http_header_content_length_text(self):
+        self.load('empty')
+
+        self.assertEqual(self.post(headers={
+            'Content-Length': 'blah',
+            'Connection': 'close',
+            'Host': 'localhost'
+        }, body='X' * 1000)['status'], 400, 'Content-Length text')
+
+    def test_http_header_content_length_multiple_values(self):
+        self.load('empty')
+
+        self.assertEqual(self.post(headers={
+            'Content-Length': '41, 42',
+            'Connection': 'close',
+            'Host': 'localhost'
+        }, body='X' * 1000)['status'], 400, 'Content-Length multiple value')
+
+    @unittest.expectedFailure
+    def test_http_header_content_length_multiple_fields(self):
+        self.load('empty')
+
+        self.assertEqual(self.post(headers={
+            'Content-Length': ['41', '42'],
+            'Connection': 'close',
+            'Host': 'localhost'
+        }, body='X' * 1000)['status'], 400, 'Content-Length multiple fields')
+
 if __name__ == '__main__':
     TestUnitHTTPHeader.main()
