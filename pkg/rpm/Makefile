@@ -46,7 +46,13 @@ BUILD_DEPENDS = $(BUILD_DEPENDS_unit)
 
 MODULES=
 
-ifneq (,$(findstring $(OSVER),centos6 centos7 amazonlinux2))
+ifeq ($(OSVER), centos6)
+include Makefile.php
+include Makefile.python
+include Makefile.go
+endif
+
+ifneq (,$(findstring $(OSVER),centos7 amazonlinux2))
 include Makefile.php
 include Makefile.python
 include Makefile.go
