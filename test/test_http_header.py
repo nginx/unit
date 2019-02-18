@@ -198,7 +198,6 @@ a
             'Host': 'localhost'
         }, body='X' * 1000)['status'], 400, 'Content-Length multiple value')
 
-    @unittest.expectedFailure
     def test_http_header_content_length_multiple_fields(self):
         self.load('empty')
 

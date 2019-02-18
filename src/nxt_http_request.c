@@ -83,13 +83,16 @@ nxt_http_request_content_length(void *ctx, nxt_http_field_t *field,
     nxt_http_request_t  *r;
 
     r = ctx;
-    r->content_length = field;
 
-    n = nxt_off_t_parse(field->value, field->value_length);
+    if (nxt_fast_path(r->content_length == NULL)) {
+        r->content_length = field;
 
-    if (nxt_fast_path(n >= 0)) {
-        r->content_length_n = n;
-        return NXT_OK;
+        n = nxt_off_t_parse(field->value, field->value_length);
+
+        if (nxt_fast_path(n >= 0)) {
+            r->content_length_n = n;
+            return NXT_OK;
+        }
     }
 
     return NXT_ERROR;
