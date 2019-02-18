@@ -13,6 +13,8 @@ static void nxt_http_app_request(nxt_task_t *task, void *obj, void *data);
 static void nxt_http_request_mem_buf_completion(nxt_task_t *task, void *obj,
     void *data);
 static void nxt_http_request_done(nxt_task_t *task, void *obj, void *data);
+static void nxt_http_request_close_handler(nxt_task_t *task, void *obj,
+    void *data);
 
 static u_char *nxt_http_date(u_char *buf, nxt_realtime_t *now, struct tm *tm,
     size_t size, const char *format);
@@ -449,7 +451,7 @@ nxt_http_request_error_handler(nxt_task_t *task, void *obj, void *data)
 }
 
 
-void
+static void
 nxt_http_request_close_handler(nxt_task_t *task, void *obj, void *data)
 {
     nxt_http_proto_t         proto;

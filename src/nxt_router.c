@@ -3500,7 +3500,7 @@ static const nxt_http_request_state_t  nxt_http_request_send_state
     nxt_aligned(64) =
 {
     .ready_handler = nxt_http_request_send_body,
-    .error_handler = nxt_http_request_close_handler,
+    .error_handler = nxt_http_request_error_handler,
 };
 
 

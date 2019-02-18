@@ -176,7 +176,6 @@ nxt_buf_t *nxt_http_buf_mem(nxt_task_t *task, nxt_http_request_t *r,
     size_t size);
 nxt_buf_t *nxt_http_buf_last(nxt_http_request_t *r);
 void nxt_http_request_error_handler(nxt_task_t *task, void *obj, void *data);
-void nxt_http_request_close_handler(nxt_task_t *task, void *obj, void *data);
 
 nxt_int_t nxt_http_request_host(void *ctx, nxt_http_field_t *field,
     uintptr_t data);
