@@ -52,6 +52,8 @@ static void nxt_main_process_sigusr1_handler(nxt_task_t *task, void *obj,
     void *data);
 static void nxt_main_process_sigchld_handler(nxt_task_t *task, void *obj,
     void *data);
+static void nxt_main_process_signal_handler(nxt_task_t *task, void *obj,
+    void *data);
 static void nxt_main_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid);
 static void nxt_main_stop_worker_processes(nxt_task_t *task, nxt_runtime_t *rt);
 static void nxt_main_port_socket_handler(nxt_task_t *task,
@@ -68,6 +70,7 @@ static void nxt_main_port_access_log_handler(nxt_task_t *task,
 
 
 const nxt_sig_event_t  nxt_main_process_signals[] = {
+    nxt_event_signal(SIGHUP,  nxt_main_process_signal_handler),
     nxt_event_signal(SIGINT,  nxt_main_process_sigterm_handler),
     nxt_event_signal(SIGQUIT, nxt_main_process_sigquit_handler),
     nxt_event_signal(SIGTERM, nxt_main_process_sigterm_handler),
@@ -885,6 +888,14 @@ nxt_main_process_sigchld_handler(nxt_task_t *task, void *obj, void *data)
 
         nxt_main_cleanup_worker_process(task, pid);
     }
+}
+
+
+static void
+nxt_main_process_signal_handler(nxt_task_t *task, void *obj, void *data)
+{
+    nxt_trace(task, "signal signo:%d (%s) recevied, ignored",
+              (int) (uintptr_t) obj, data);
 }
 
 
