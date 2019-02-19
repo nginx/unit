@@ -526,9 +526,7 @@ nxt_h1p_conn_request_header_parse(nxt_task_t *task, void *obj, void *data)
             return;
         }
 
-        /* ret == NXT_ERROR */
-        status = NXT_HTTP_BAD_REQUEST;
-
+        status = ret;
         goto error;
 
     case NXT_AGAIN:

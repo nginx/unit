@@ -119,12 +119,12 @@ struct nxt_http_request_s {
     nxt_str_t                       *args;
 
     nxt_list_t                      *fields;
-    nxt_http_field_t                *host;
     nxt_http_field_t                *content_type;
     nxt_http_field_t                *content_length;
     nxt_http_field_t                *cookie;
     nxt_http_field_t                *referer;
     nxt_http_field_t                *user_agent;
+    nxt_str_t                       host;
     nxt_off_t                       content_length_n;
 
     nxt_sockaddr_t                  *remote;

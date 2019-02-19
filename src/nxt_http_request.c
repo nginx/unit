@@ -8,6 +8,7 @@
 #include <nxt_http.h>
 
 
+static nxt_int_t nxt_http_validate_host(nxt_str_t *host, nxt_mp_t *mp);
 static void nxt_http_request_start(nxt_task_t *task, void *obj, void *data);
 static void nxt_http_app_request(nxt_task_t *task, void *obj, void *data);
 static void nxt_http_request_mem_buf_completion(nxt_task_t *task, void *obj,
@@ -52,13 +53,118 @@ nxt_http_init(nxt_task_t *task, nxt_runtime_t *rt)
 nxt_int_t
 nxt_http_request_host(void *ctx, nxt_http_field_t *field, uintptr_t data)
 {
+    nxt_int_t           ret;
+    nxt_str_t           host;
     nxt_http_request_t  *r;
 
     r = ctx;
 
-    /* TODO: validate host. */
+    if (nxt_slow_path(r->host.start != NULL)) {
+        return NXT_HTTP_BAD_REQUEST;
+    }
 
-    r->host = field;
+    host.length = field->value_length;
+    host.start = field->value;
+
+    ret = nxt_http_validate_host(&host, r->mem_pool);
+
+    if (nxt_fast_path(ret == NXT_OK)) {
+        r->host = host;
+    }
+
+    return ret;
+}
+
+
+static nxt_int_t
+nxt_http_validate_host(nxt_str_t *host, nxt_mp_t *mp)
+{
+    u_char      *h, ch;
+    size_t      i, dot_pos, host_length;
+    nxt_bool_t  lowcase;
+
+    enum {
+        sw_usual,
+        sw_literal,
+        sw_rest
+    } state;
+
+    dot_pos = host->length;
+    host_length = host->length;
+
+    h = host->start;
+
+    lowcase = 0;
+    state = sw_usual;
+
+    for (i = 0; i < host->length; i++) {
+        ch = h[i];
+
+        if (ch > ']') {
+            /* Short path. */
+            continue;
+        }
+
+        switch (ch) {
+
+        case '.':
+            if (dot_pos == i - 1) {
+                return NXT_HTTP_BAD_REQUEST;
+            }
+
+            dot_pos = i;
+            break;
+
+        case ':':
+            if (state == sw_usual) {
+                host_length = i;
+                state = sw_rest;
+            }
+
+            break;
+
+        case '[':
+            if (i == 0) {
+                state = sw_literal;
+            }
+
+            break;
+
+        case ']':
+            if (state == sw_literal) {
+                host_length = i + 1;
+                state = sw_rest;
+            }
+
+            break;
+
+        case '/':
+        case '\0':
+            return NXT_HTTP_BAD_REQUEST;
+
+        default:
+            if (ch >= 'A' && ch <= 'Z') {
+                lowcase = 1;
+            }
+
+            break;
+        }
+    }
+
+    if (dot_pos == host_length - 1) {
+        host_length--;
+    }
+
+    host->length = host_length;
+
+    if (lowcase) {
+        host->start = nxt_mp_nget(mp, host_length);
+        if (nxt_slow_path(host->start == NULL)) {
+            return NXT_HTTP_INTERNAL_SERVER_ERROR;
+        }
+
+        nxt_memcpy_lowcase(host->start, h, host_length);
+    }
 
     return NXT_OK;
 }
@@ -97,7 +203,7 @@ nxt_http_request_content_length(void *ctx, nxt_http_field_t *field,
         }
     }
 
-    return NXT_ERROR;
+    return NXT_HTTP_BAD_REQUEST;
 }
 
 
@@ -237,10 +343,7 @@ nxt_http_app_request(nxt_task_t *task, void *obj, void *data)
         ar->r.header.query = *r->args;
     }
 
-    if (r->host != NULL) {
-        ar->r.header.host.length = r->host->value_length;
-        ar->r.header.host.start = r->host->value;
-    }
+    ar->r.header.host = r->host;
 
     if (r->content_type != NULL) {
         ar->r.header.content_type.length = r->content_type->value_length;
