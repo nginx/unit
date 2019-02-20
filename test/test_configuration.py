@@ -244,7 +244,7 @@ class TestUnitConfiguration(unit.TestUnitControl):
             r'eventfd.+failed',
             r'failed to apply new conf'
         ])
-        apps = 1000
+        apps = 999
 
         conf = {
             "applications":
@@ -256,7 +256,7 @@ class TestUnitConfiguration(unit.TestUnitControl):
                 } for a in range(apps)
             },
             "listeners": {
-                "*:" + str(7080 + a): {
+                "*:" + str(7000 + a): {
                     "application": "app-" + str(a)
                 } for a in range(apps)
             }
