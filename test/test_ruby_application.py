@@ -208,7 +208,6 @@ class TestUnitRubyApplication(unit.TestUnitApplicationRuby):
             'errors write int')
 
     def test_ruby_application_at_exit(self):
-        self.skip_alerts.append(r'sendmsg.+failed')
         self.load('at_exit')
 
         self.get()

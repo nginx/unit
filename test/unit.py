@@ -179,7 +179,8 @@ class TestUnit(unittest.TestCase):
 
         self._started = True
 
-        self.skip_alerts = [r'read signalfd\(4\) failed']
+        self.skip_alerts = [r'read signalfd\(4\) failed', r'sendmsg.+failed',
+            r'recvmsg.+failed']
         self.skip_sanitizer = False
 
     def _stop(self):

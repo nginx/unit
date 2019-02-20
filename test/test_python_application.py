@@ -87,7 +87,6 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
             '204 header transfer encoding')
 
     def test_python_application_ctx_iter_atexit(self):
-        self.skip_alerts.append(r'sendmsg.+failed')
         self.load('ctx_iter_atexit')
 
         resp = self.post(headers={
@@ -131,10 +130,6 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
         self.assertEqual(resp['body'], '0123456789', 'keep-alive 2')
 
     def test_python_keepalive_reconfigure(self):
-        self.skip_alerts.extend([
-            r'sendmsg.+failed',
-            r'recvmsg.+failed'
-        ])
         self.load('mirror')
 
         body = '0123456789'
@@ -183,7 +178,6 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
             }, 'applications/mirror/processes'), 'reconfigure 3')
 
     def test_python_keepalive_reconfigure_2(self):
-        self.skip_alerts.append(r'sendmsg.+failed')
         self.load('mirror')
 
         body = '0123456789'
@@ -217,7 +211,6 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
         self.assertEqual(resp, {}, 'reconfigure 2 keep-alive 3')
 
     def test_python_keepalive_reconfigure_3(self):
-        self.skip_alerts.append(r'sendmsg.+failed')
         self.load('empty')
 
         (resp, sock) = self.http(b"""GET / HTTP/1.1
@@ -236,7 +229,6 @@ Connection: close
         self.assertEqual(resp['status'], 200, 'reconfigure 3')
 
     def test_python_atexit(self):
-        self.skip_alerts.append(r'sendmsg.+failed')
         self.load('atexit')
 
         self.get()

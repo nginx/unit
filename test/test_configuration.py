@@ -132,7 +132,6 @@ class TestUnitConfiguration(unit.TestUnitControl):
         self.skip_sanitizer = True
         self.skip_alerts.extend([
             r'failed to apply previous configuration',
-            r'sendmsg.+failed',
             r'process \d+ exited on signal'
         ])
 
