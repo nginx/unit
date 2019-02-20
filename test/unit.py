@@ -433,7 +433,7 @@ class TestUnitControl(TestUnitHTTP):
     # TODO http client
 
     def conf(self, conf, path='/config'):
-        if isinstance(conf, dict):
+        if isinstance(conf, dict) or isinstance(conf, list):
             conf = json.dumps(conf)
 
         if path[:1] != '/':
