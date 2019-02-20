@@ -241,6 +241,7 @@ class TestUnitConfiguration(unit.TestUnitControl):
     def test_json_application_many(self):
         self.skip_alerts.extend([
             r'eventfd.+failed',
+            r'epoll_create.+failed',
             r'failed to apply new conf'
         ])
         apps = 999
