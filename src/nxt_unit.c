@@ -541,6 +541,8 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
         memcpy(&fd, CMSG_DATA(cm), sizeof(int));
     }
 
+    nxt_queue_init(&incoming_buf);
+
     if (nxt_slow_path(buf_size < sizeof(nxt_port_msg_t))) {
         nxt_unit_warn(ctx, "message too small (%d bytes)", (int) buf_size);
         goto fail;
@@ -570,8 +572,6 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
     }
 
     if (port_msg->mmap) {
-        nxt_queue_init(&incoming_buf);
-
         if (nxt_unit_mmap_read(ctx, &recv_msg, &incoming_buf) != NXT_UNIT_OK) {
             goto fail;
         }
