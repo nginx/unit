@@ -2910,6 +2910,7 @@ nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
               rtcf, rtcf->count);
 
     if (--skcf->count != 0) {
+        skcf = NULL;
         rtcf = NULL;
         app = NULL;
 
@@ -2923,6 +2924,14 @@ nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
 
     nxt_thread_spin_unlock(lock);
 
+    if (skcf != NULL) {
+#if (NXT_TLS)
+        if (skcf->tls != NULL) {
+            task->thread->runtime->tls->server_free(task, skcf->tls);
+        }
+#endif
+    }
+
     if (app != NULL) {
         nxt_router_app_use(task, app, -1);
     }
@@ -2932,12 +2941,6 @@ nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
 
     if (rtcf != NULL) {
         nxt_debug(task, "old router conf is destroyed");
-
-#if (NXT_TLS)
-        if (skcf->tls != NULL) {
-            task->thread->runtime->tls->server_free(task, skcf->tls);
-        }
-#endif
 
         nxt_router_access_log_release(task, lock, rtcf->access_log);
 
