@@ -103,7 +103,7 @@ ${NXT_GO}:
 
 ${NXT_GO}-install: ${NXT_GO}-install-build
 
-${NXT_GO}-install-src: ${NXT_BUILD_DIR}/nxt_unit_version.h
+${NXT_GO}-install-src: ${NXT_VERSION_H}
 	install -d \$(DESTDIR)\$(NXT_GO_DST)/src/nginx/unit
 	install -p -m644 ./src/*.h ./build/*.h ./src/go/unit/* \
     ./src/nxt_unit.c ./src/nxt_lvlhsh.c ./src/nxt_murmur_hash.c \

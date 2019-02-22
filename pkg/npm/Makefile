@@ -1,13 +1,9 @@
 #!/usr/bin/make
 
-DEFAULT_VERSION := $(shell grep 'define NXT_VERSION' ../../src/nxt_main.h \
-			| sed -e 's/^.*"\(.*\)".*/\1/')
+include ../../version
 
-DEFAULT_VERNUM := $(shell grep 'define NXT_VERNUM' ../../src/nxt_main.h \
-			| sed -e 's/[^0-9]//g')
-
-VERSION ?= $(DEFAULT_VERSION)
-VERNUM ?= $(DEFAULT_VERNUM)
+VERSION ?= $(NXT_VERSION)
+VERNUM ?= $(NXT_VERNUM)
 NPM ?= npm
 
 default:

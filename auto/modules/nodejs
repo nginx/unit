@@ -145,9 +145,6 @@ cat << END >> $NXT_MAKEFILE
 .PHONY: ${NXT_NODE}-build
 .PHONY: ${NXT_NODE}-publish
 
-NXT_UNIT_VERSION=\$(shell grep 'define NXT_VERSION' \
-    src/nxt_main.h | sed -e 's/^.*"\(.*\)".*/\1/')
-
 ${NXT_NODE}: ${NXT_NODE}-copy $NXT_BUILD_DIR/$NXT_LIB_UNIT_STATIC
 	${NXT_NODE_EXPORTS} && \\
 	cd ${NXT_NODE_TMP} && ${NXT_NODE_GYP} configure build clean
@@ -156,14 +153,12 @@ ${NXT_NODE}-copy: ${NXT_NODE_VERSION_FILE}
 	mkdir -p ${NXT_BUILD_DIR}/src/
 	cp -rp src/nodejs/* ${NXT_BUILD_DIR}/src/${NXT_NODE}
 
-${NXT_NODE_VERSION_FILE}: src/nxt_main.h
+${NXT_NODE_VERSION_FILE}: ${NXT_VERSION_H}
 	mkdir -p ${NXT_NODE_TMP}
-	$echo -n '#define NXT_NODE_VERNUM ' > $NXT_NODE_VERSION_FILE
-	grep 'define NXT_VERNUM' src/nxt_main.h \\
-		| sed -e 's/[^0-9]//g' >> $NXT_NODE_VERSION_FILE
+	$echo '#define NXT_NODE_VERNUM \$(NXT_VERNUM)' > $NXT_NODE_VERSION_FILE
 
 ${NXT_NODE_TARBALL}: ${NXT_NODE}-copy
-	sed -e 's/"version"\s*:.*/"version": "\$(NXT_UNIT_VERSION).0",/' \
+	sed -e 's/"version"\s*:.*/"version": "\$(NXT_VERSION).0",/' \
 		${NXT_NODE_TMP}/package.json > ${NXT_NODE_TMP}/package.json.tmp
 	mv ${NXT_NODE_TMP}/package.json.tmp ${NXT_NODE_TMP}/package.json
 	tar -zcvf ${NXT_NODE_TARBALL} -C ${NXT_NODE_TMP} .

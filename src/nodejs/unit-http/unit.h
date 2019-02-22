@@ -15,7 +15,7 @@ extern "C" {
 #include "version.h"
 #include <nxt_unit.h>
 
-#if NXT_UNIT_VERNUM != NXT_NODE_VERNUM
+#if NXT_VERNUM != NXT_NODE_VERNUM
 #error "libunit version mismatch."
 #endif
 

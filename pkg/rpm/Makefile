@@ -1,11 +1,10 @@
 #!/usr/bin/make
 
-DEFAULT_VERSION := $(shell grep 'define NXT_VERSION' ../../src/nxt_main.h \
-			| sed -e 's/^.*"\(.*\)".*/\1/')
+include ../../version
 
 DEFAULT_RELEASE := 1
 
-VERSION ?= $(DEFAULT_VERSION)
+VERSION ?= $(NXT_VERSION)
 RELEASE ?= $(DEFAULT_RELEASE)
 
 ifeq ($(shell rpm --eval "%{?rhel}"), 6)

@@ -1,8 +1,8 @@
 #!/usr/bin/make
 
-VERSION ?= $(shell grep 'define NXT_VERSION' ../src/nxt_main.h		\
-		| sed -e 's/^.*"\(.*\)".*/\1/')
+include ../version
 
+VERSION ?= $(NXT_VERSION)
 RELEASE ?= 1
 
 default:
