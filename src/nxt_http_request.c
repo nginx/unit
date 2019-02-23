@@ -139,7 +139,6 @@ nxt_http_validate_host(nxt_str_t *host, nxt_mp_t *mp)
             break;
 
         case '/':
-        case '\0':
             return NXT_HTTP_BAD_REQUEST;
 
         default:
