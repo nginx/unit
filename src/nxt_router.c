@@ -1982,13 +1982,18 @@ static void
 nxt_router_listen_socket_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     void *data)
 {
+    nxt_socket_rpc_t        *rpc;
+    nxt_router_temp_conf_t  *tmcf;
+
+    rpc = data;
+    tmcf = rpc->temp_conf;
+
+#if 0
     u_char                  *p;
     size_t                  size;
     uint8_t                 error;
     nxt_buf_t               *in, *out;
     nxt_sockaddr_t          *sa;
-    nxt_socket_rpc_t        *rpc;
-    nxt_router_temp_conf_t  *tmcf;
 
     static nxt_str_t  socket_errors[] = {
         nxt_string("ListenerSystem"),
@@ -2000,9 +2005,7 @@ nxt_router_listen_socket_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
         nxt_string("ListenerPath"),
     };
 
-    rpc = data;
     sa = rpc->socket_conf->listen->sockaddr;
-    tmcf = rpc->temp_conf;
 
     in = nxt_buf_chk_make_plain(tmcf->mem_pool, msg->buf, msg->size);
 
@@ -2030,6 +2033,7 @@ nxt_router_listen_socket_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
                         &socket_errors[error], in->mem.free - p, p);
 
     nxt_debug(task, "%*s", out->mem.free - out->mem.pos, out->mem.pos);
+#endif
 
     nxt_router_conf_error(task, tmcf);
 }
