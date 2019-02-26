@@ -26,6 +26,7 @@ config.env.%:
 	cp -Pa $(CURDIR)/configure $(BUILDDIR_$*)/
 	cp -Pa $(CURDIR)/src $(BUILDDIR_$*)/
 	cp -Pa $(CURDIR)/test $(BUILDDIR_$*)/
+	cp -Pa $(CURDIR)/version $(BUILDDIR_$*)/
 	touch $@
 
 configure.unit: config.env.unit
@@ -83,6 +84,7 @@ clean:
 	dh_testroot
 	dh_clean
 	find $(CURDIR) -maxdepth 1 -size 0 -delete
+	rm -rf $(BUILDDIR_unit) $(BUILDDIR_unit_debug)
 
 install: build do.tests
 	dh_testdir
