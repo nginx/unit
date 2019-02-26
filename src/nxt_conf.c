@@ -720,6 +720,22 @@ nxt_conf_get_array_element(nxt_conf_value_t *value, uint32_t index)
 }
 
 
+void
+nxt_conf_array_qsort(nxt_conf_value_t *value,
+    int (*compare)(const void *, const void *))
+{
+    nxt_conf_array_t  *array;
+
+    if (value->type != NXT_CONF_VALUE_ARRAY) {
+        return;
+    }
+
+    array = value->u.array;
+
+    nxt_qsort(array->elements, array->count, sizeof(nxt_conf_value_t), compare);
+}
+
+
 nxt_int_t
 nxt_conf_op_compile(nxt_mp_t *mp, nxt_conf_op_t **ops, nxt_conf_value_t *root,
     nxt_str_t *path, nxt_conf_value_t *value)
