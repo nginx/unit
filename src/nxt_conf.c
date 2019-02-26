@@ -361,6 +361,13 @@ nxt_conf_set_element_string_dup(nxt_conf_value_t *array, nxt_mp_t *mp,
 
 
 nxt_uint_t
+nxt_conf_array_elements_count(nxt_conf_value_t *value)
+{
+    return value->u.array->count;
+}
+
+
+nxt_uint_t
 nxt_conf_type(nxt_conf_value_t *value)
 {
     switch (value->type) {
