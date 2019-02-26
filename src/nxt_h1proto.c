@@ -563,6 +563,8 @@ nxt_h1p_conn_request_header_parse(nxt_task_t *task, void *obj, void *data)
 
 error:
 
+    h1p->keepalive = 0;
+
     nxt_http_request_error(task, r, status);
 }
 
