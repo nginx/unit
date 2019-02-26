@@ -96,6 +96,19 @@ nxt_memcpy_lowcase(u_char *dst, const u_char *src, size_t length)
 }
 
 
+void
+nxt_memcpy_upcase(u_char *dst, const u_char *src, size_t length)
+{
+    u_char  c;
+
+    while (length != 0) {
+        c = *src++;
+        *dst++ = nxt_upcase(c);
+        length--;
+    }
+}
+
+
 u_char *
 nxt_cpystrn(u_char *dst, const u_char *src, size_t length)
 {
