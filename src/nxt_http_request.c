@@ -10,7 +10,7 @@
 
 static nxt_int_t nxt_http_validate_host(nxt_str_t *host, nxt_mp_t *mp);
 static void nxt_http_request_start(nxt_task_t *task, void *obj, void *data);
-static void nxt_http_app_request(nxt_task_t *task, void *obj, void *data);
+static void nxt_http_request_pass(nxt_task_t *task, void *obj, void *data);
 static void nxt_http_request_mem_buf_completion(nxt_task_t *task, void *obj,
     void *data);
 static void nxt_http_request_done(nxt_task_t *task, void *obj, void *data);
@@ -278,25 +278,60 @@ nxt_http_request_start(nxt_task_t *task, void *obj, void *data)
 static const nxt_http_request_state_t  nxt_http_request_body_state
     nxt_aligned(64) =
 {
-    .ready_handler = nxt_http_app_request,
+    .ready_handler = nxt_http_request_pass,
     .error_handler = nxt_http_request_close_handler,
 };
 
 
 static void
-nxt_http_app_request(nxt_task_t *task, void *obj, void *data)
+nxt_http_request_pass(nxt_task_t *task, void *obj, void *data)
+{
+    nxt_http_pass_t     *pass;
+    nxt_http_request_t  *r;
+
+    r = obj;
+
+    pass = r->conf->socket_conf->pass;
+
+    if (nxt_slow_path(pass == NULL)) {
+        goto fail;
+    }
+
+    for ( ;; ) {
+        nxt_debug(task, "http request route: %V", &pass->name);
+
+        pass = pass->handler(task, r, pass);
+        if (pass == NULL) {
+            break;
+        }
+
+        if (nxt_slow_path(r->pass_count++ == 255)) {
+            goto fail;
+        }
+    }
+
+    return;
+
+fail:
+
+    nxt_http_request_error(task, r, NXT_HTTP_INTERNAL_SERVER_ERROR);
+}
+
+
+nxt_http_pass_t *
+nxt_http_request_application(nxt_task_t *task, nxt_http_request_t *r,
+    nxt_http_pass_t *pass)
 {
     nxt_int_t            ret;
     nxt_event_engine_t   *engine;
-    nxt_http_request_t   *r;
     nxt_app_parse_ctx_t  *ar;
 
-    r = obj;
+    nxt_debug(task, "http request application");
 
     ar = nxt_mp_zget(r->mem_pool, sizeof(nxt_app_parse_ctx_t));
     if (nxt_slow_path(ar == NULL)) {
         nxt_http_request_error(task, r, NXT_HTTP_INTERNAL_SERVER_ERROR);
-        return;
+        return NULL;
     }
 
     ar->request = r;
@@ -370,10 +405,12 @@ nxt_http_app_request(nxt_task_t *task, void *obj, void *data)
     ret = nxt_http_parse_request_init(&ar->resp_parser, r->mem_pool);
     if (nxt_slow_path(ret != NXT_OK)) {
         nxt_http_request_error(task, r, NXT_HTTP_INTERNAL_SERVER_ERROR);
-        return;
+        return NULL;
     }
 
-    nxt_router_process_http_request(task, ar);
+    nxt_router_process_http_request(task, ar, pass->u.application);
+
+    return NULL;
 }
 
 
