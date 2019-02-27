@@ -185,7 +185,6 @@ class TestUnitPerlApplication(unit.TestUnitApplicationPerl):
 
         self.assertEqual(resp['body'], '0123456789', 'keep-alive 2')
 
-    @unittest.expectedFailure
     def test_perl_body_io_fake(self):
         self.load('body_io_fake')
 

@@ -51,6 +51,8 @@ static void nxt_perl_psgi_xs_init(pTHX);
 
 static SV *nxt_perl_psgi_call_var_application(PerlInterpreter *my_perl,
     SV *env, SV *app, nxt_unit_request_info_t *req);
+static SV *nxt_perl_psgi_call_method(PerlInterpreter *my_perl, SV *obj,
+    const char *method, nxt_unit_request_info_t *req);
 
 /* For currect load XS modules */
 EXTERN_C void boot_DynaLoader(pTHX_ CV *cv);
@@ -84,8 +86,10 @@ static int nxt_perl_psgi_result_body(PerlInterpreter *my_perl,
     SV *result, nxt_unit_request_info_t *req);
 static int nxt_perl_psgi_result_body_ref(PerlInterpreter *my_perl,
     SV *sv_body, nxt_unit_request_info_t *req);
-static ssize_t nxt_perl_psgi_io_read(nxt_unit_read_info_t *read_info,
-    void *dst, size_t size);
+static int nxt_perl_psgi_result_body_fh(PerlInterpreter *my_perl, SV *sv_body,
+    nxt_unit_request_info_t *req);
+static ssize_t nxt_perl_psgi_io_read(nxt_unit_read_info_t *read_info, void *dst,
+    size_t size);
 static int nxt_perl_psgi_result_array(PerlInterpreter *my_perl,
     SV *result, nxt_unit_request_info_t *req);
 
@@ -242,6 +246,42 @@ nxt_perl_psgi_call_var_application(PerlInterpreter *my_perl,
 
     result = POPs;
     SvREFCNT_inc(result);
+
+    PUTBACK;
+    FREETMPS;
+    LEAVE;
+
+    return result;
+}
+
+
+static SV *
+nxt_perl_psgi_call_method(PerlInterpreter *my_perl, SV *obj, const char *method,
+    nxt_unit_request_info_t *req)
+{
+    SV  *result;
+
+    dSP;
+
+    ENTER;
+    SAVETMPS;
+
+    PUSHMARK(sp);
+    XPUSHs(obj);
+    PUTBACK;
+
+    call_method(method, G_EVAL|G_SCALAR);
+
+    SPAGAIN;
+
+    if (SvTRUE(ERRSV)) {
+        nxt_unit_req_error(req, "PSGI: Failed to call method '%s':\n%s",
+                           method, SvPV_nolen(ERRSV));
+        result = NULL;
+
+    } else {
+        result = SvREFCNT_inc(POPs);
+    }
 
     PUTBACK;
     FREETMPS;
@@ -749,6 +789,68 @@ nxt_perl_psgi_result_body(PerlInterpreter *my_perl, SV *sv_body,
 }
 
 
+static int
+nxt_perl_psgi_result_body_ref(PerlInterpreter *my_perl, SV *sv_body,
+    nxt_unit_request_info_t *req)
+{
+    SV          *data, *old_rs, *old_perl_rs;
+    int         rc;
+    size_t      len;
+    const char  *body;
+
+    /*
+     * Servers should set the $/ special variable to the buffer size
+     * when reading content from $body using the getline method.
+     * This is done by setting $/ with a reference to an integer ($/ = \8192).
+     */
+
+    old_rs = PL_rs;
+    old_perl_rs = get_sv("/", GV_ADD);
+
+    PL_rs = sv_2mortal(newRV_noinc(newSViv(nxt_unit_buf_min())));
+
+    sv_setsv(old_perl_rs, PL_rs);
+
+    rc = NXT_UNIT_OK;
+
+    for ( ;; ) {
+        data = nxt_perl_psgi_call_method(my_perl, sv_body, "getline", req);
+        if (nxt_slow_path(data == NULL)) {
+            rc = NXT_UNIT_ERROR;
+            break;
+        }
+
+        body = SvPV(data, len);
+
+        if (len == 0) {
+            SvREFCNT_dec(data);
+
+            data = nxt_perl_psgi_call_method(my_perl, sv_body, "close", req);
+            if (nxt_fast_path(data != NULL)) {
+                SvREFCNT_dec(data);
+            }
+
+            break;
+        }
+
+        rc = nxt_unit_response_write(req, body, len);
+
+        SvREFCNT_dec(data);
+
+        if (nxt_slow_path(rc != NXT_UNIT_OK)) {
+            nxt_unit_req_error(req, "PSGI: Failed to write content from "
+                               "Perl Application");
+            break;
+        }
+    };
+
+    PL_rs =  old_rs;
+    sv_setsv(get_sv("/", GV_ADD), old_perl_rs);
+
+    return rc;
+}
+
+
 typedef struct {
     PerlInterpreter  *my_perl;
     PerlIO           *fp;
@@ -756,7 +858,7 @@ typedef struct {
 
 
 static int
-nxt_perl_psgi_result_body_ref(PerlInterpreter *my_perl, SV *sv_body,
+nxt_perl_psgi_result_body_fh(PerlInterpreter *my_perl, SV *sv_body,
     nxt_unit_request_info_t *req)
 {
     IO                      *io;
@@ -864,6 +966,10 @@ nxt_perl_psgi_result_array(PerlInterpreter *my_perl, SV *result,
 
     if (SvTYPE(SvRV(*sv_temp)) == SVt_PVAV) {
         return nxt_perl_psgi_result_body(my_perl, *sv_temp, req);
+    }
+
+    if (SvTYPE(SvRV(*sv_temp)) == SVt_PVGV) {
+        return nxt_perl_psgi_result_body_fh(my_perl, *sv_temp, req);
     }
 
     return nxt_perl_psgi_result_body_ref(my_perl, *sv_temp, req);
