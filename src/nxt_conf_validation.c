@@ -54,6 +54,8 @@ static nxt_int_t nxt_conf_vldt_listener(nxt_conf_validation_t *vldt,
 static nxt_int_t nxt_conf_vldt_certificate(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 #endif
+static nxt_int_t nxt_conf_vldt_pass(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_app_name(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_app(nxt_conf_validation_t *vldt,
@@ -158,6 +160,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_tls_members[] = {
 
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_listener_members[] = {
+    { nxt_string("pass"),
+      NXT_CONF_VLDT_STRING,
+      &nxt_conf_vldt_pass,
+      NULL },
+
     { nxt_string("application"),
       NXT_CONF_VLDT_STRING,
       &nxt_conf_vldt_app_name,
@@ -492,6 +499,61 @@ nxt_conf_vldt_listener(nxt_conf_validation_t *vldt, nxt_str_t *name,
     }
 
     return nxt_conf_vldt_object(vldt, value, nxt_conf_vldt_listener_members);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_pass(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
+{
+    u_char     *p;
+    nxt_str_t  pass, first, second;
+
+    nxt_conf_get_string(value, &pass);
+
+    p = nxt_memchr(pass.start, '/', pass.length);
+
+    if (p != NULL) {
+        first.length = p - pass.start;
+        first.start = pass.start;
+
+        if (pass.length - first.length == 1) {
+            goto error;
+        }
+
+        second.length = pass.length - first.length - 1;
+        second.start = p + 1;
+
+    } else {
+        first = pass;
+        second.length = 0;
+    }
+
+    if (nxt_str_eq(&first, "applications", 12)) {
+
+        if (second.length == 0) {
+            goto error;
+        }
+
+        value = nxt_conf_get_object_member(vldt->conf, &first, NULL);
+
+        if (nxt_slow_path(value == NULL)) {
+            goto error;
+        }
+
+        value = nxt_conf_get_object_member(value, &second, NULL);
+
+        if (nxt_slow_path(value == NULL)) {
+            goto error;
+        }
+
+        return NXT_OK;
+    }
+
+error:
+
+    return nxt_conf_vldt_error(vldt, "Request \"pass\" points to invalid "
+                               "location \"%V\".", &pass);
 }
 
 
