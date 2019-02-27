@@ -158,7 +158,7 @@ ${NXT_NODE_VERSION_FILE}: ${NXT_VERSION_H}
 	$echo '#define NXT_NODE_VERNUM \$(NXT_VERNUM)' > $NXT_NODE_VERSION_FILE
 
 ${NXT_NODE_TARBALL}: ${NXT_NODE}-copy
-	sed -e 's/"version"\s*:.*/"version": "\$(NXT_VERSION).0",/' \
+	sed -e 's/"version"\s*:.*/"version": "\$(NXT_VERSION)",/' \
 		${NXT_NODE_TMP}/package.json > ${NXT_NODE_TMP}/package.json.tmp
 	mv ${NXT_NODE_TMP}/package.json.tmp ${NXT_NODE_TMP}/package.json
 	tar -zcvf ${NXT_NODE_TARBALL} -C ${NXT_NODE_TMP} .

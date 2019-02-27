@@ -1,5 +1,5 @@
 
 # Copyright (C) NGINX, Inc.
 
-NXT_VERSION=1.8
+NXT_VERSION=1.8.0
 NXT_VERNUM=10800

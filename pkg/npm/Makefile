@@ -13,7 +13,7 @@ copy:
 	cp -rp ../../src/nodejs/unit-http .
 	echo '#define NXT_NODE_VERNUM ${VERNUM}' > unit-http/version.h
 	mv unit-http/binding_pub.gyp unit-http/binding.gyp
-	sed -e 's/"version"\s*:.*/"version": "${VERSION}.0",/' \
+	sed -e 's/"version"\s*:.*/"version": "${VERSION}",/' \
 		unit-http/package.json > unit-http/package.json.tmp
 	mv unit-http/package.json.tmp unit-http/package.json
 
