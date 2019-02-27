@@ -4662,12 +4662,13 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
     h = &r->header;
 
     req_size = sizeof(nxt_unit_request_t)
-                + h->method.length + 1
-                + h->version.length + 1
-                + r->remote.length + 1
-                + r->local.length + 1
-                + h->target.length + 1
-                + (h->path.start != h->target.start ? h->path.length + 1 : 0);
+               + h->method.length + 1
+               + h->version.length + 1
+               + r->remote.length + 1
+               + r->local.length + 1
+               + h->server_name.length + 1
+               + h->target.length + 1
+               + (h->path.start != h->target.start ? h->path.length + 1 : 0);
 
     fields_count = 0;
 
@@ -4722,6 +4723,11 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
     p = nxt_cpymem(p, r->local.start, r->local.length);
     *p++ = '\0';
 
+    req->server_name_length = h->server_name.length;
+    nxt_unit_sptr_set(&req->server_name, p);
+    p = nxt_cpymem(p, h->server_name.start, h->server_name.length);
+    *p++ = '\0';
+
     target_pos = p;
     req->target_length = h->target.length;
     nxt_unit_sptr_set(&req->target, p);
@@ -4749,7 +4755,6 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
         req->query.offset = 0;
     }
 
-    req->host_field           = NXT_UNIT_NONE_FIELD;
     req->content_length_field = NXT_UNIT_NONE_FIELD;
     req->content_type_field   = NXT_UNIT_NONE_FIELD;
     req->cookie_field         = NXT_UNIT_NONE_FIELD;
@@ -4769,10 +4774,7 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
         dst_field->name_length = field->name_length + prefix->length;
         dst_field->value_length = field->value_length;
 
-        if (field->value == h->host.start) {
-            req->host_field = dst_field - req->fields;
-
-        } else if (field->value == h->content_length.start) {
+        if (field->value == h->content_length.start) {
             req->content_length_field = dst_field - req->fields;
 
         } else if (field->value == h->content_type.start) {

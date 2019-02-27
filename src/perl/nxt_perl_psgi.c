@@ -68,7 +68,7 @@ static SV *nxt_perl_psgi_env_create(PerlInterpreter *my_perl,
 nxt_inline int nxt_perl_psgi_add_sptr(PerlInterpreter *my_perl, HV *hash_env,
     const char *name, uint32_t name_len, nxt_unit_sptr_t *sptr, uint32_t len);
 nxt_inline int nxt_perl_psgi_add_str(PerlInterpreter *my_perl, HV *hash_env,
-    const char *name, uint32_t name_len, char *str, uint32_t len);
+    const char *name, uint32_t name_len, const char *str, uint32_t len);
 nxt_inline int nxt_perl_psgi_add_value(PerlInterpreter *my_perl, HV *hash_env,
     const char *name, uint32_t name_len, void *value);
 
@@ -450,8 +450,7 @@ nxt_perl_psgi_env_create(PerlInterpreter *my_perl,
 {
     HV                  *hash_env;
     AV                  *array_version;
-    char                *host_start, *port_start;
-    uint32_t            i, host_length, port_length;
+    uint32_t            i;
     nxt_unit_field_t    *f;
     nxt_unit_request_t  *r;
 
@@ -519,6 +518,10 @@ nxt_perl_psgi_env_create(PerlInterpreter *my_perl,
     RC(nxt_perl_psgi_add_sptr(my_perl, hash_env, NL("SERVER_ADDR"),
                               &r->local, r->local_length));
 
+    RC(nxt_perl_psgi_add_sptr(my_perl, hash_env, NL("SERVER_NAME"),
+                              &r->server_name, r->server_name_length));
+    RC(nxt_perl_psgi_add_str(my_perl, hash_env, NL("SERVER_PORT"), "80", 2));
+
     for (i = 0; i < r->fields_count; i++) {
         f = r->fields + i;
 
@@ -540,25 +543,6 @@ nxt_perl_psgi_env_create(PerlInterpreter *my_perl,
         RC(nxt_perl_psgi_add_sptr(my_perl, hash_env, NL("CONTENT_TYPE"),
                                   &f->value, f->value_length));
     }
-
-    if (r->host_field != NXT_UNIT_NONE_FIELD) {
-        f = r->fields + r->host_field;
-
-        host_start = nxt_unit_sptr_get(&f->value);
-        host_length = f->value_length;
-
-    } else {
-        host_start = NULL;
-        host_length = 0;
-    }
-
-    nxt_unit_split_host(host_start, host_length, &host_start, &host_length,
-                        &port_start, &port_length);
-
-    RC(nxt_perl_psgi_add_str(my_perl, hash_env, NL("SERVER_NAME"),
-                             host_start, host_length));
-    RC(nxt_perl_psgi_add_str(my_perl, hash_env, NL("SERVER_PORT"),
-                             port_start, port_length));
 
 #undef NL
 #undef RC
@@ -584,7 +568,7 @@ nxt_perl_psgi_add_sptr(PerlInterpreter *my_perl, HV *hash_env,
 
 nxt_inline int
 nxt_perl_psgi_add_str(PerlInterpreter *my_perl, HV *hash_env,
-    const char *name, uint32_t name_len, char *str, uint32_t len)
+    const char *name, uint32_t name_len, const char *str, uint32_t len)
 {
     SV  **ha;
 

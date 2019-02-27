@@ -367,6 +367,13 @@ nxt_http_request_application(nxt_task_t *task, nxt_http_request_t *r,
         ar->r.header.method = *r->method;
     }
 
+    if (r->host.length != 0) {
+        ar->r.header.server_name = r->host;
+
+    } else {
+        nxt_str_set(&ar->r.header.server_name, "localhost");
+    }
+
     ar->r.header.target = r->target;
 
     if (r->path != NULL) {
@@ -376,8 +383,6 @@ nxt_http_request_application(nxt_task_t *task, nxt_http_request_t *r,
     if (r->args != NULL) {
         ar->r.header.query = *r->args;
     }
-
-    ar->r.header.host = r->host;
 
     if (r->content_type != NULL) {
         ar->r.header.content_type.length = r->content_type->value_length;

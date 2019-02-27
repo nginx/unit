@@ -890,59 +890,6 @@ nxt_unit_field_hash(const char *name, size_t name_length)
 
 
 void
-nxt_unit_split_host(char *host, uint32_t host_length,
-    char **name, uint32_t *name_length, char **port, uint32_t *port_length)
-{
-    char  *cpos;
-
-    static char  default_host[] = "localhost";
-    static char  default_port[] = "80";
-
-    if (nxt_slow_path(host == NULL || host_length == 0)) {
-        *name = default_host;
-        *name_length = nxt_length(default_host);
-
-        *port = default_port;
-        *port_length = nxt_length(default_port);
-
-        return;
-    }
-
-    cpos = memchr(host, ':', host_length);
-
-    if (nxt_slow_path(cpos == NULL)) {
-        *name = host;
-        *name_length = host_length;
-
-        *port = default_port;
-        *port_length = nxt_length(default_port);
-
-        return;
-    }
-
-    if (nxt_slow_path(cpos == host)) {
-        *name = default_host;
-        *name_length = nxt_length(default_host);
-
-    } else {
-        *name = host;
-        *name_length = cpos - host;
-    }
-
-    cpos++;
-
-    if (nxt_slow_path(host + host_length == cpos)) {
-        *port = default_port;
-        *port_length = nxt_length(default_port);
-
-    } else {
-        *port = cpos;
-        *port_length = host_length - (cpos - host);
-    }
-}
-
-
-void
 nxt_unit_request_group_dup_fields(nxt_unit_request_info_t *req)
 {
     uint32_t            i, j;
@@ -957,10 +904,6 @@ nxt_unit_request_group_dup_fields(nxt_unit_request_info_t *req)
     for (i = 0; i < r->fields_count; i++) {
 
         switch (fields[i].hash) {
-        case NXT_UNIT_HASH_HOST:
-            r->host_field = i;
-            break;
-
         case NXT_UNIT_HASH_CONTENT_LENGTH:
             r->content_length_field = i;
             break;

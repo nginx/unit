@@ -95,13 +95,13 @@ typedef struct {
     nxt_str_t                  version;
     nxt_str_t                  path;
     nxt_str_t                  query;
+    nxt_str_t                  server_name;
 
     nxt_list_t                 *fields;
 
     nxt_str_t                  cookie;
     nxt_str_t                  content_length;
     nxt_str_t                  content_type;
-    nxt_str_t                  host;
 
     off_t                      parsed_content_length;
     nxt_bool_t                 done;
