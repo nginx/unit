@@ -212,5 +212,152 @@ Connection: close
             'Connection': 'close'
         }, body='X' * 1000)['status'], 400, 'Content-Length multiple fields')
 
+    def test_http_header_host_absent(self):
+        self.load('host')
+
+        resp = self.get(headers={'Connection': 'close'})
+
+        self.assertEqual(resp['status'], 200, 'Host absent status')
+        self.assertNotEqual(resp['headers']['X-Server-Name'], '',
+            'Host absent SERVER_NAME')
+
+    def test_http_header_host_empty(self):
+        self.load('host')
+
+        resp = self.get(headers={
+            'Host': '',
+            'Connection': 'close'
+        })
+
+        self.assertEqual(resp['status'], 200, 'Host empty status')
+        self.assertNotEqual(resp['headers']['X-Server-Name'], '',
+            'Host empty SERVER_NAME')
+
+    def test_http_header_host_big(self):
+        self.load('empty')
+
+        self.assertEqual(self.get(headers={
+            'Host': 'X' * 10000,
+            'Connection': 'close'
+        })['status'], 431, 'Host big')
+
+    def test_http_header_host_port(self):
+        self.load('host')
+
+        resp = self.get(headers={
+            'Host': 'exmaple.com:7080',
+            'Connection': 'close'
+        })
+
+        self.assertEqual(resp['status'], 200, 'Host port status')
+        self.assertEqual(resp['headers']['X-Server-Name'], 'exmaple.com',
+            'Host port SERVER_NAME')
+        self.assertEqual(resp['headers']['X-Http-Host'], 'exmaple.com:7080',
+            'Host port HTTP_HOST')
+
+    def test_http_header_host_port_empty(self):
+        self.load('host')
+
+        resp = self.get(headers={
+            'Host': 'exmaple.com:',
+            'Connection': 'close'
+        })
+
+        self.assertEqual(resp['status'], 200, 'Host port empty status')
+        self.assertEqual(resp['headers']['X-Server-Name'], 'exmaple.com',
+            'Host port empty SERVER_NAME')
+        self.assertEqual(resp['headers']['X-Http-Host'], 'exmaple.com:',
+            'Host port empty HTTP_HOST')
+
+    def test_http_header_host_literal(self):
+        self.load('host')
+
+        resp = self.get(headers={
+            'Host': '127.0.0.1',
+            'Connection': 'close'
+        })
+
+        self.assertEqual(resp['status'], 200, 'Host literal status')
+        self.assertEqual(resp['headers']['X-Server-Name'], '127.0.0.1',
+            'Host literal SERVER_NAME')
+
+    def test_http_header_host_literal_ipv6(self):
+        self.load('host')
+
+        resp = self.get(headers={
+            'Host': '[::1]:7080',
+            'Connection': 'close'
+        })
+
+        self.assertEqual(resp['status'], 200, 'Host literal ipv6 status')
+        self.assertEqual(resp['headers']['X-Server-Name'], '[::1]',
+            'Host literal ipv6 SERVER_NAME')
+        self.assertEqual(resp['headers']['X-Http-Host'], '[::1]:7080',
+            'Host literal ipv6 HTTP_HOST')
+
+    def test_http_header_host_trailing_period(self):
+        self.load('host')
+
+        resp = self.get(headers={
+            'Host': '127.0.0.1.',
+            'Connection': 'close'
+        })
+
+        self.assertEqual(resp['status'], 200, 'Host trailing period status')
+        self.assertEqual(resp['headers']['X-Server-Name'], '127.0.0.1',
+            'Host trailing period SERVER_NAME')
+        self.assertEqual(resp['headers']['X-Http-Host'], '127.0.0.1.',
+            'Host trailing period HTTP_HOST')
+
+    def test_http_header_host_trailing_period_2(self):
+        self.load('host')
+
+        resp = self.get(headers={
+            'Host': 'EXAMPLE.COM.',
+            'Connection': 'close'
+        })
+
+        self.assertEqual(resp['status'], 200, 'Host trailing period 2 status')
+        self.assertEqual(resp['headers']['X-Server-Name'], 'example.com',
+            'Host trailing period 2 SERVER_NAME')
+        self.assertEqual(resp['headers']['X-Http-Host'], 'EXAMPLE.COM.',
+            'Host trailing period 2 HTTP_HOST')
+
+    def test_http_header_host_case_insensitive(self):
+        self.load('host')
+
+        resp = self.get(headers={
+            'Host': 'EXAMPLE.COM',
+            'Connection': 'close'
+        })
+
+        self.assertEqual(resp['status'], 200, 'Host case insensitive')
+        self.assertEqual(resp['headers']['X-Server-Name'], 'example.com',
+            'Host case insensitive SERVER_NAME')
+
+    def test_http_header_host_double_dot(self):
+        self.load('empty')
+
+        self.assertEqual(self.get(headers={
+            'Host': '127.0.0..1',
+            'Connection': 'close'
+        })['status'], 400, 'Host double dot')
+
+    def test_http_header_host_slash(self):
+        self.load('empty')
+
+        self.assertEqual(self.get(headers={
+            'Host': '/localhost',
+            'Connection': 'close'
+        })['status'], 400, 'Host slash')
+
+    def test_http_header_host_multiple_fields(self):
+        self.load('empty')
+
+        self.assertEqual(self.get(headers={
+            'Host': ['localhost', 'example.com'],
+            'Connection': 'close'
+        })['status'], 400, 'Host multiple fields')
+
 if __name__ == '__main__':
     TestUnitHTTPHeader.main()
