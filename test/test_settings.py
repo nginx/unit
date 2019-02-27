@@ -118,6 +118,7 @@ Connection: close
 Host: localhost
 Content-Type: text/html
 Content-Length: %d
+Connection: close
 
 """ % data_len + ('X' * data_len)
 
@@ -140,15 +141,15 @@ Content-Length: %d
         self.conf({'http': { 'idle_timeout': 2 }}, 'settings')
 
         (resp, sock) = self.get(headers={
-            'Connection': 'keep-alive',
-            'Host': 'localhost'
+            'Host': 'localhost',
+            'Connection': 'keep-alive'
         }, start=True)
 
         time.sleep(3)
 
         resp = self.get(headers={
-            'Connection': 'close',
-            'Host': 'localhost'
+            'Host': 'localhost',
+            'Connection': 'close'
         }, sock=sock)
 
         self.assertEqual(resp['status'], 408, 'status idle timeout')

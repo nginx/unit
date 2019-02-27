@@ -10,7 +10,9 @@ class TestUnitHTTPHeader(unit.TestUnitApplicationPython):
         self.load('custom_header')
 
         resp = self.get(headers={
-            'Custom-Header': ' ,'
+            'Host': 'localhost',
+            'Custom-Header': ' ,',
+            'Connection': 'close'
         })
 
         self.assertEqual(resp['status'], 200, 'value leading sp status')
@@ -21,7 +23,9 @@ class TestUnitHTTPHeader(unit.TestUnitApplicationPython):
         self.load('custom_header')
 
         resp = self.get(headers={
-            'Custom-Header': '\t,'
+            'Host': 'localhost',
+            'Custom-Header': '\t,',
+            'Connection': 'close'
         })
 
         self.assertEqual(resp['status'], 200, 'value leading htab status')
@@ -32,7 +36,9 @@ class TestUnitHTTPHeader(unit.TestUnitApplicationPython):
         self.load('custom_header')
 
         resp = self.get(headers={
-            'Custom-Header': ', '
+            'Host': 'localhost',
+            'Custom-Header': ', ',
+            'Connection': 'close'
         })
 
         self.assertEqual(resp['status'], 200, 'value trailing sp status')
@@ -43,7 +49,9 @@ class TestUnitHTTPHeader(unit.TestUnitApplicationPython):
         self.load('custom_header')
 
         resp = self.get(headers={
-            'Custom-Header': ',\t'
+            'Host': 'localhost',
+            'Custom-Header': ',\t',
+            'Connection': 'close'
         })
 
         self.assertEqual(resp['status'], 200, 'value trailing htab status')
@@ -54,7 +62,9 @@ class TestUnitHTTPHeader(unit.TestUnitApplicationPython):
         self.load('custom_header')
 
         resp = self.get(headers={
-            'Custom-Header': ' , '
+            'Host': 'localhost',
+            'Custom-Header': ' , ',
+            'Connection': 'close'
         })
 
         self.assertEqual(resp['status'], 200, 'value both sp status')
@@ -65,7 +75,9 @@ class TestUnitHTTPHeader(unit.TestUnitApplicationPython):
         self.load('custom_header')
 
         resp = self.get(headers={
-            'Custom-Header': '\t,\t'
+            'Host': 'localhost',
+            'Custom-Header': '\t,\t',
+            'Connection': 'close'
         })
 
         self.assertEqual(resp['status'], 200, 'value both htab status')
@@ -76,7 +88,9 @@ class TestUnitHTTPHeader(unit.TestUnitApplicationPython):
         self.load('custom_header')
 
         resp = self.get(headers={
-            'Custom-Header': '(),/:;<=>?@[\]{}\t !#$%&\'*+-.^_`|~'
+            'Host': 'localhost',
+            'Custom-Header': '(),/:;<=>?@[\]{}\t !#$%&\'*+-.^_`|~',
+            'Connection': 'close'
         })
 
         self.assertEqual(resp['status'], 200, 'value chars status')
@@ -113,7 +127,9 @@ Connection: close
         self.load('empty')
 
         resp = self.get(headers={
-            ' Custom-Header': 'blah'
+            'Host': 'localhost',
+            ' Custom-Header': 'blah',
+            'Connection': 'close'
         })
 
         self.assertEqual(resp['status'], 400, 'field leading sp')
@@ -122,7 +138,9 @@ Connection: close
         self.load('empty')
 
         resp = self.get(headers={
-            '\tCustom-Header': 'blah'
+            'Host': 'localhost',
+            '\tCustom-Header': 'blah',
+            'Connection': 'close'
         })
 
         self.assertEqual(resp['status'], 400, 'field leading htab')
@@ -131,7 +149,9 @@ Connection: close
         self.load('empty')
 
         resp = self.get(headers={
-            'Custom-Header ': 'blah'
+            'Host': 'localhost',
+            'Custom-Header ': 'blah',
+            'Connection': 'close'
         })
 
         self.assertEqual(resp['status'], 400, 'field trailing sp')
@@ -140,7 +160,9 @@ Connection: close
         self.load('empty')
 
         resp = self.get(headers={
-            'Custom-Header\t': 'blah'
+            'Host': 'localhost',
+            'Custom-Header\t': 'blah',
+            'Connection': 'close'
         })
 
         self.assertEqual(resp['status'], 400, 'field trailing htab')
@@ -149,45 +171,45 @@ Connection: close
         self.load('empty')
 
         self.assertEqual(self.post(headers={
+            'Host': 'localhost',
             'Content-Length': str(2 ** 64),
-            'Connection': 'close',
-            'Host': 'localhost'
+            'Connection': 'close'
         }, body='X' * 1000)['status'], 400, 'Content-Length big')
 
     def test_http_header_content_length_negative(self):
         self.load('empty')
 
         self.assertEqual(self.post(headers={
+            'Host': 'localhost',
             'Content-Length': '-100',
-            'Connection': 'close',
-            'Host': 'localhost'
+            'Connection': 'close'
         }, body='X' * 1000)['status'], 400, 'Content-Length negative')
 
     def test_http_header_content_length_text(self):
         self.load('empty')
 
         self.assertEqual(self.post(headers={
+            'Host': 'localhost',
             'Content-Length': 'blah',
-            'Connection': 'close',
-            'Host': 'localhost'
+            'Connection': 'close'
         }, body='X' * 1000)['status'], 400, 'Content-Length text')
 
     def test_http_header_content_length_multiple_values(self):
         self.load('empty')
 
         self.assertEqual(self.post(headers={
+            'Host': 'localhost',
             'Content-Length': '41, 42',
-            'Connection': 'close',
-            'Host': 'localhost'
+            'Connection': 'close'
         }, body='X' * 1000)['status'], 400, 'Content-Length multiple value')
 
     def test_http_header_content_length_multiple_fields(self):
         self.load('empty')
 
         self.assertEqual(self.post(headers={
+            'Host': 'localhost',
             'Content-Length': ['41', '42'],
-            'Connection': 'close',
-            'Host': 'localhost'
+            'Connection': 'close'
         }, body='X' * 1000)['status'], 400, 'Content-Length multiple fields')
 
 if __name__ == '__main__':

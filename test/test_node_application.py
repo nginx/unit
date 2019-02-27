@@ -28,7 +28,8 @@ class TestUnitNodeApplication(unit.TestUnitApplicationNode):
         resp = self.post(headers={
             'Host': 'localhost',
             'Content-Type': 'text/html',
-            'Custom-Header': 'blah'
+            'Custom-Header': 'blah',
+            'Connection': 'close'
         }, body=body)
 
         self.assertEqual(resp['status'], 200, 'status')
@@ -43,10 +44,11 @@ class TestUnitNodeApplication(unit.TestUnitApplicationNode):
 
         raw_headers = headers.pop('Request-Raw-Headers')
         self.assertRegex(raw_headers, r'^(?:Host|localhost|Content-Type|' \
-            'text\/html|Custom-Header|blah|Content-Length|17|,)+$',
-            'raw headers')
+            'text\/html|Custom-Header|blah|Content-Length|17|Connection|' \
+            'close|,)+$', 'raw headers')
 
         self.assertDictEqual(headers, {
+            'Connection': 'close',
             'Content-Length': str(len(body)),
             'Content-Type': 'text/html',
             'Request-Method': 'POST',
@@ -91,17 +93,17 @@ class TestUnitNodeApplication(unit.TestUnitApplicationNode):
         self.load('mirror')
 
         (resp, sock) = self.post(headers={
+            'Host': 'localhost',
             'Connection': 'keep-alive',
-            'Content-Type': 'text/html',
-            'Host': 'localhost'
+            'Content-Type': 'text/html'
         }, start=True, body='0123456789' * 500)
 
         self.assertEqual(resp['body'], '0123456789' * 500, 'keep-alive 1')
 
         resp = self.post(headers={
+            'Host': 'localhost',
             'Connection': 'close',
-            'Content-Type': 'text/html',
-            'Host': 'localhost'
+            'Content-Type': 'text/html'
         }, sock=sock, body='0123456789')
 
         self.assertEqual(resp['body'], '0123456789', 'keep-alive 2')
@@ -142,7 +144,8 @@ class TestUnitNodeApplication(unit.TestUnitApplicationNode):
 
         resp = self.get(headers={
             'Host': 'localhost',
-            'X-Remove': 'X-Header'
+            'X-Remove': 'X-Header',
+            'Connection': 'close'
         })
         self.assertEqual(resp['headers']['Was-Header'], 'true', 'was header')
         self.assertEqual(resp['headers']['Has-Header'], 'false', 'has header')
@@ -153,7 +156,8 @@ class TestUnitNodeApplication(unit.TestUnitApplicationNode):
 
         self.assertEqual(self.get(headers={
             'Host': 'localhost',
-            'X-Remove': 'blah'
+            'X-Remove': 'blah',
+            'Connection': 'close'
         })['headers']['Has-Header'], 'true', 'remove header nonexisting')
 
     def test_node_application_update_header(self):
@@ -194,7 +198,8 @@ class TestUnitNodeApplication(unit.TestUnitApplicationNode):
 
         self.assertEqual(self.post(headers={
             'Host': 'localhost',
-            'Content-Type': 'text/html'
+            'Content-Type': 'text/html',
+            'Connection': 'close'
         }, body='callback')['status'], 200, 'promise handler request')
         self.assertTrue(self.waitforfiles(self.testdir + '/node/callback'),
             'promise handler')
@@ -205,7 +210,8 @@ class TestUnitNodeApplication(unit.TestUnitApplicationNode):
         self.assertEqual(self.post(headers={
             'Host': 'localhost',
             'Content-Type': 'text/html',
-            'X-Write-Call': '1'
+            'X-Write-Call': '1',
+            'Connection': 'close'
         }, body='callback')['status'], 200,
             'promise handler request write after end')
 
@@ -214,7 +220,8 @@ class TestUnitNodeApplication(unit.TestUnitApplicationNode):
 
         self.assertEqual(self.post(headers={
             'Host': 'localhost',
-            'Content-Type': 'text/html'
+            'Content-Type': 'text/html',
+            'Connection': 'close'
         }, body='end')['status'], 200, 'promise end request')
         self.assertTrue(self.waitforfiles(self.testdir + '/node/callback'),
             'promise end')
@@ -224,7 +231,8 @@ class TestUnitNodeApplication(unit.TestUnitApplicationNode):
 
         self.post(headers={
             'Host': 'localhost',
-            'Content-Type': 'text/html'
+            'Content-Type': 'text/html',
+            'Connection': 'close'
         }, body='callback1')
 
         self.assertTrue(self.waitforfiles(self.testdir + '/node/callback1'),
@@ -232,7 +240,8 @@ class TestUnitNodeApplication(unit.TestUnitApplicationNode):
 
         self.post(headers={
             'Host': 'localhost',
-            'Content-Type': 'text/html'
+            'Content-Type': 'text/html',
+            'Connection': 'close'
         }, body='callback2')
 
         self.assertTrue(self.waitforfiles(self.testdir + '/node/callback2'),
@@ -260,12 +269,14 @@ class TestUnitNodeApplication(unit.TestUnitApplicationNode):
 
         self.assertEqual(self.get(headers={
             'Host': 'localhost',
-            'X-Header': 'length'
+            'X-Header': 'length',
+            'Connection': 'close'
         })['headers']['X-Has-Header'], 'false', 'has header length')
 
         self.assertEqual(self.get(headers={
             'Host': 'localhost',
-            'X-Header': 'Date'
+            'X-Header': 'Date',
+            'Connection': 'close'
         })['headers']['X-Has-Header'], 'false', 'has header date')
 
     def test_node_application_write_multiple(self):

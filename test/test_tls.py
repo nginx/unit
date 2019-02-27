@@ -313,8 +313,8 @@ basicConstraints = critical,CA:TRUE""" % {
         self.certificate()
 
         (resp, sock) = self.get(headers={
-            'Connection': 'keep-alive',
-            'Host': 'localhost'
+            'Host': 'localhost',
+            'Connection': 'keep-alive'
         }, start=True)
 
         self.assertEqual(resp['status'], 200, 'initial status')
@@ -334,17 +334,17 @@ basicConstraints = critical,CA:TRUE""" % {
         self.add_tls(application='mirror')
 
         (resp, sock) = self.post_ssl(headers={
+            'Host': 'localhost',
             'Connection': 'keep-alive',
-            'Content-Type': 'text/html',
-            'Host': 'localhost'
+            'Content-Type': 'text/html'
         }, start=True, body='0123456789')
 
         self.assertEqual(resp['body'], '0123456789', 'keepalive 1')
 
         resp = self.post_ssl(headers={
+            'Host': 'localhost',
             'Connection': 'close',
-            'Content-Type': 'text/html',
-            'Host': 'localhost'
+            'Content-Type': 'text/html'
         }, sock=sock, body='0123456789')
 
         self.assertEqual(resp['body'], '0123456789', 'keepalive 2')
@@ -358,8 +358,8 @@ basicConstraints = critical,CA:TRUE""" % {
         self.add_tls()
 
         (resp, sock) = self.get_ssl(headers={
-            'Connection': 'keep-alive',
-            'Host': 'localhost'
+            'Host': 'localhost',
+            'Connection': 'keep-alive'
         }, start=True)
 
         self.conf({
@@ -369,8 +369,8 @@ basicConstraints = critical,CA:TRUE""" % {
 
         try:
             resp = self.get_ssl(headers={
-                'Connection': 'close',
-                'Host': 'localhost'
+                'Host': 'localhost',
+                'Connection': 'close'
             }, sock=sock)
         except:
             resp = None
@@ -397,9 +397,9 @@ basicConstraints = critical,CA:TRUE""" % {
         self.add_tls(application='mirror')
 
         (resp, sock) = self.post_ssl(headers={
+            'Host': 'localhost',
             'Connection': 'keep-alive',
-            'Content-Type': 'text/html',
-            'Host': 'localhost'
+            'Content-Type': 'text/html'
         }, start=True, body='0123456789')
 
         app_id = self.findall(r'(\d+)#\d+ "mirror" application started')[0]
@@ -410,9 +410,9 @@ basicConstraints = critical,CA:TRUE""" % {
             '#)(\d+)#\d+ "mirror" application started'))
 
         resp = self.post_ssl(headers={
+            'Host': 'localhost',
             'Connection': 'close',
-            'Content-Type': 'text/html',
-            'Host': 'localhost'
+            'Content-Type': 'text/html'
         }, sock=sock, body='0123456789')
 
         self.assertEqual(resp['status'], 200, 'application respawn status')

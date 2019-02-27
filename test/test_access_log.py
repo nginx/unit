@@ -23,9 +23,9 @@ class TestUnitAccessLog(unit.TestUnitApplicationPython):
         self.load('mirror')
 
         (resp, sock) = self.post(headers={
+            'Host': 'localhost',
             'Connection': 'keep-alive',
-            'Content-Type': 'text/html',
-            'Host': 'localhost'
+            'Content-Type': 'text/html'
         }, start=True, body='01234')
 
         time.sleep(0.2)
@@ -34,9 +34,9 @@ class TestUnitAccessLog(unit.TestUnitApplicationPython):
             self.search_in_log(r'"POST / HTTP/1.1" 200 5'), 'keepalive 1')
 
         resp = self.post(headers={
+            'Host': 'localhost',
             'Connection': 'close',
-            'Content-Type': 'text/html',
-            'Host': 'localhost'
+            'Content-Type': 'text/html'
         }, sock=sock, body='0123456789')
 
         time.sleep(0.2)

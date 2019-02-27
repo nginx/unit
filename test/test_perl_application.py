@@ -14,7 +14,8 @@ class TestUnitPerlApplication(unit.TestUnitApplicationPerl):
         resp = self.post(headers={
             'Host': 'localhost',
             'Content-Type': 'text/html',
-            'Custom-Header': 'blah'
+            'Custom-Header': 'blah',
+            'Connection': 'close'
         }, body=body)
 
         self.assertEqual(resp['status'], 200, 'status')
@@ -30,6 +31,7 @@ class TestUnitPerlApplication(unit.TestUnitApplicationPerl):
             'date header')
 
         self.assertDictEqual(headers, {
+            'Connection': 'close',
             'Content-Length': str(len(body)),
             'Content-Type': 'text/html',
             'Request-Method': 'POST',
@@ -170,17 +172,17 @@ class TestUnitPerlApplication(unit.TestUnitApplicationPerl):
         self.load('variables')
 
         (resp, sock) = self.post(headers={
+            'Host': 'localhost',
             'Connection': 'keep-alive',
-            'Content-Type': 'text/html',
-            'Host': 'localhost'
+            'Content-Type': 'text/html'
         }, start=True, body='0123456789' * 500)
 
         self.assertEqual(resp['body'], '0123456789' * 500, 'keep-alive 1')
 
         resp = self.post(headers={
+            'Host': 'localhost',
             'Connection': 'close',
-            'Content-Type': 'text/html',
-            'Host': 'localhost'
+            'Content-Type': 'text/html'
         }, sock=sock, body='0123456789')
 
         self.assertEqual(resp['body'], '0123456789', 'keep-alive 2')

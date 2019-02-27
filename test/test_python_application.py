@@ -15,7 +15,8 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
         resp = self.post(headers={
             'Host': 'localhost',
             'Content-Type': 'text/html',
-            'Custom-Header': 'blah'
+            'Custom-Header': 'blah',
+            'Connection': 'close'
         }, body=body)
 
         self.assertEqual(resp['status'], 200, 'status')
@@ -31,6 +32,7 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
             'date header')
 
         self.assertDictEqual(headers, {
+            'Connection': 'close',
             'Content-Length': str(len(body)),
             'Content-Type': 'text/html',
             'Request-Method': 'POST',
@@ -90,9 +92,9 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
         self.load('ctx_iter_atexit')
 
         resp = self.post(headers={
+            'Host': 'localhost',
             'Connection': 'close',
-            'Content-Type': 'text/html',
-            'Host': 'localhost'
+            'Content-Type': 'text/html'
         }, body='0123456789')
 
         self.assertEqual(resp['status'], 200, 'ctx iter status')
@@ -114,17 +116,17 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
         self.load('mirror')
 
         (resp, sock) = self.post(headers={
+            'Host': 'localhost',
             'Connection': 'keep-alive',
-            'Content-Type': 'text/html',
-            'Host': 'localhost'
+            'Content-Type': 'text/html'
         }, start=True, body='0123456789' * 500)
 
         self.assertEqual(resp['body'], '0123456789' * 500, 'keep-alive 1')
 
         resp = self.post(headers={
+            'Host': 'localhost',
             'Connection': 'close',
-            'Content-Type': 'text/html',
-            'Host': 'localhost'
+            'Content-Type': 'text/html'
         }, sock=sock, body='0123456789')
 
         self.assertEqual(resp['body'], '0123456789', 'keep-alive 2')
@@ -138,9 +140,9 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
 
         for i in range(conns):
             (resp, sock) = self.post(headers={
+                'Host': 'localhost',
                 'Connection': 'keep-alive',
-                'Content-Type': 'text/html',
-                'Host': 'localhost'
+                'Content-Type': 'text/html'
             }, start=True, body=body)
 
             self.assertEqual(resp['body'], body, 'keep-alive open')
@@ -153,9 +155,9 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
 
         for i in range(conns):
             (resp, sock) = self.post(headers={
+                'Host': 'localhost',
                 'Connection': 'keep-alive',
-                'Content-Type': 'text/html',
-                'Host': 'localhost'
+                'Content-Type': 'text/html'
             }, start=True, sock=socks[i], body=body)
 
             self.assertEqual(resp['body'], body, 'keep-alive request')
@@ -166,9 +168,9 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
 
         for i in range(conns):
             resp = self.post(headers={
+                'Host': 'localhost',
                 'Connection': 'close',
-                'Content-Type': 'text/html',
-                'Host': 'localhost'
+                'Content-Type': 'text/html'
             }, sock=socks[i], body=body)
 
             self.assertEqual(resp['body'], body, 'keep-alive close')
@@ -183,9 +185,9 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
         body = '0123456789'
 
         (resp, sock) = self.post(headers={
+            'Host': 'localhost',
             'Connection': 'keep-alive',
-            'Content-Type': 'text/html',
-            'Host': 'localhost'
+            'Content-Type': 'text/html'
         }, start=True, body=body)
 
         self.assertEqual(resp['body'], body, 'reconfigure 2 keep-alive 1')
@@ -193,9 +195,9 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
         self.load('empty')
 
         (resp, sock) = self.post(headers={
+            'Host': 'localhost',
             'Connection': 'close',
-            'Content-Type': 'text/html',
-            'Host': 'localhost'
+            'Content-Type': 'text/html'
         }, start=True, sock=sock, body=body)
 
         self.assertEqual(resp['status'], 200, 'reconfigure 2 keep-alive 2')
