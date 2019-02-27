@@ -14,7 +14,7 @@ class TestUnitSettings(unit.TestUnitApplicationPython):
         self.conf({'http': { 'header_read_timeout': 2 }}, 'settings')
 
         (resp, sock) = self.http(b"""GET / HTTP/1.1
-""", start=True, raw=True)
+""", start=True, read_timeout=1, raw=True)
 
         time.sleep(3)
 
@@ -31,17 +31,17 @@ Connection: close
         self.conf({'http': { 'header_read_timeout': 4 }}, 'settings')
 
         (resp, sock) = self.http(b"""GET / HTTP/1.1
-""", start=True, raw=True, no_recv=True)
+""", start=True, read_timeout=1, raw=True, no_recv=True)
 
         time.sleep(2)
 
         (resp, sock) = self.http(b"""Host: localhost
-""", start=True, sock=sock, raw=True, no_recv=True)
+""", start=True, sock=sock, read_timeout=1, raw=True, no_recv=True)
 
         time.sleep(2)
 
         (resp, sock) = self.http(b"""X-Blah: blah
-""", start=True, sock=sock, raw=True)
+""", start=True, sock=sock, read_timeout=1, raw=True)
 
         if len(resp) != 0:
             sock.close()
@@ -66,7 +66,7 @@ Host: localhost
 Content-Length: 10
 Connection: close
 
-""", start=True, raw_resp=True, raw=True)
+""", start=True, raw_resp=True, read_timeout=1, raw=True)
 
         time.sleep(3)
 
@@ -84,15 +84,17 @@ Host: localhost
 Content-Length: 10
 Connection: close
 
-""", start=True, raw=True)
+""", start=True, read_timeout=1, raw=True)
 
         time.sleep(2)
 
-        (resp, sock) = self.http(b"""012""", start=True, sock=sock, raw=True)
+        (resp, sock) = self.http(b"""012""", start=True, sock=sock,
+            read_timeout=1, raw=True)
 
         time.sleep(2)
 
-        (resp, sock) = self.http(b"""345""", start=True, sock=sock, raw=True)
+        (resp, sock) = self.http(b"""345""", start=True, sock=sock,
+            read_timeout=1, raw=True)
 
         time.sleep(2)
 
@@ -143,7 +145,7 @@ Connection: close
         (resp, sock) = self.get(headers={
             'Host': 'localhost',
             'Connection': 'keep-alive'
-        }, start=True)
+        }, start=True, read_timeout=1)
 
         time.sleep(3)
 
