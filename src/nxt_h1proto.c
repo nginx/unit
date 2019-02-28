@@ -1220,6 +1220,7 @@ nxt_h1p_conn_request_timeout(nxt_task_t *task, void *obj, void *data)
     nxt_debug(task, "h1p conn request timeout");
 
     c = nxt_read_timer_conn(timer);
+    c->block_read = 1;
     /*
      * Disable SO_LINGER off during socket closing
      * to send "408 Request Timeout" error response.
@@ -1250,6 +1251,7 @@ nxt_h1p_conn_request_send_timeout(nxt_task_t *task, void *obj, void *data)
     nxt_debug(task, "h1p conn request send timeout");
 
     c = nxt_write_timer_conn(timer);
+    c->block_write = 1;
     h1p = c->socket.data;
 
     nxt_h1p_request_error(task, h1p, h1p->request);
@@ -1464,6 +1466,7 @@ nxt_h1p_idle_timeout(nxt_task_t *task, void *obj, void *data)
     nxt_debug(task, "h1p idle timeout");
 
     c = nxt_read_timer_conn(timer);
+    c->block_read = 1;
 
     nxt_h1p_idle_response(task, c);
 }
@@ -1559,6 +1562,7 @@ nxt_h1p_idle_response_timeout(nxt_task_t *task, void *obj, void *data)
     nxt_debug(task, "h1p idle timeout response timeout");
 
     c = nxt_read_timer_conn(timer);
+    c->block_write = 1;
 
     nxt_h1p_shutdown(task, c);
 }

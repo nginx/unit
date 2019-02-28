@@ -45,10 +45,11 @@ nxt_conn_io_read(nxt_task_t *task, void *obj, void *data)
 
     c = obj;
 
-    nxt_debug(task, "conn read fd:%d rdy:%d cl:%d",
-              c->socket.fd, c->socket.read_ready, c->socket.closed);
+    nxt_debug(task, "conn read fd:%d rdy:%d cl:%d er:%d bl:%d",
+              c->socket.fd, c->socket.read_ready, c->socket.closed,
+              c->socket.error, c->block_read);
 
-    if (c->socket.error != 0) {
+    if (c->socket.error != 0 || c->block_read) {
         return;
     }
 
