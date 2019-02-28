@@ -1047,8 +1047,11 @@ nxt_unit_response_realloc(nxt_unit_request_info_t *req,
                + max_fields_count * sizeof(nxt_unit_field_t)
                + max_fields_size;
 
+    nxt_unit_req_debug(req, "realloc %"PRIu32"", buf_size);
+
     buf = nxt_unit_response_buf_alloc(req, buf_size);
     if (nxt_slow_path(buf == NULL)) {
+        nxt_unit_req_warn(req, "realloc: new buf allocation failed");
         return NXT_UNIT_ERROR;
     }
 
@@ -1063,23 +1066,29 @@ nxt_unit_response_realloc(nxt_unit_request_info_t *req,
     f = resp->fields;
 
     for (i = 0; i < req->response->fields_count; i++) {
-        src = req->request->fields + i;
+        src = req->response->fields + i;
 
         if (nxt_slow_path(src->skip != 0)) {
             continue;
         }
 
-        if (nxt_slow_path(src->name_length + src->value_length
+        if (nxt_slow_path(src->name_length + src->value_length + 2
                           > (uint32_t) (buf->end - p)))
         {
+            nxt_unit_req_warn(req, "realloc: not enough space for field"
+                  " #%"PRIu32" (%p), (%"PRIu32" + %"PRIu32") required",
+                  i, src, src->name_length, src->value_length);
+
             goto fail;
         }
 
         nxt_unit_sptr_set(&f->name, p);
         p = nxt_cpymem(p, nxt_unit_sptr_get(&src->name), src->name_length);
+        *p++ = '\0';
 
         nxt_unit_sptr_set(&f->value, p);
         p = nxt_cpymem(p, nxt_unit_sptr_get(&src->value), src->value_length);
+        *p++ = '\0';
 
         f->hash = src->hash;
         f->skip = 0;
@@ -1094,6 +1103,10 @@ nxt_unit_response_realloc(nxt_unit_request_info_t *req,
         if (nxt_slow_path(req->response->piggyback_content_length
                           > (uint32_t) (buf->end - p)))
         {
+            nxt_unit_req_warn(req, "realloc: not enought space for content"
+                  " #%"PRIu32", %"PRIu32" required",
+                  i, req->response->piggyback_content_length);
+
             goto fail;
         }
 
@@ -1162,7 +1175,7 @@ nxt_unit_response_add_field(nxt_unit_request_info_t *req,
 
     buf = req->response_buf;
 
-    if (nxt_slow_path(name_length + value_length
+    if (nxt_slow_path(name_length + value_length + 2
                       > (uint32_t) (buf->end - buf->free)))
     {
         nxt_unit_req_warn(req, "add_field: response buffer overflow");
@@ -1179,9 +1192,11 @@ nxt_unit_response_add_field(nxt_unit_request_info_t *req,
 
     nxt_unit_sptr_set(&f->name, buf->free);
     buf->free = nxt_cpymem(buf->free, name, name_length);
+    *buf->free++ = '\0';
 
     nxt_unit_sptr_set(&f->value, buf->free);
     buf->free = nxt_cpymem(buf->free, value, value_length);
+    *buf->free++ = '\0';
 
     f->hash = nxt_unit_field_hash(name, name_length);
     f->skip = 0;
@@ -1565,7 +1580,9 @@ nxt_unit_buf_next(nxt_unit_buf_t *buf)
 
     lnk = &mmap_buf->link;
 
-    if (lnk == nxt_queue_last(&req_impl->incoming_buf)) {
+    if (lnk == nxt_queue_last(&req_impl->incoming_buf)
+        || lnk == nxt_queue_last(&req_impl->outgoing_buf))
+    {
         return NULL;
     }
 
@@ -1710,6 +1727,9 @@ nxt_unit_response_write_cb(nxt_unit_request_info_t *req,
     }
 
     while (!read_info->eof) {
+        nxt_unit_req_debug(req, "write_cb, alloc %"PRIu32"",
+                           read_info->buf_size);
+
         buf = nxt_unit_response_buf_alloc(req, nxt_min(read_info->buf_size,
                                                        PORT_MMAP_DATA_SIZE));
         if (nxt_slow_path(buf == NULL)) {
@@ -2449,14 +2469,12 @@ nxt_unit_mmap_read(nxt_unit_ctx_t *ctx, nxt_unit_recv_msg_t *recv_msg,
         b->buf.end = b->buf.start + size;
         b->hdr = hdr;
 
-        nxt_unit_debug(ctx, "#%"PRIu32": mmap_read: [%p,%d] %d->%d,(%d,%d,%d)\n"
-                       "%.*s",
+        nxt_unit_debug(ctx, "#%"PRIu32": mmap_read: [%p,%d] %d->%d,(%d,%d,%d)",
                        recv_msg->port_msg.stream,
                        start, (int) size,
                        (int) hdr->src_pid, (int) hdr->dst_pid,
                        (int) hdr->id, (int) mmap_msg->chunk_id,
-                       (int) mmap_msg->size,
-                       (int) size, (char *) start);
+                       (int) mmap_msg->size);
     }
 
     pthread_mutex_unlock(&process->incoming.mutex);
