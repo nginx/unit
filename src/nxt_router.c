@@ -3393,10 +3393,6 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
         dump_size = 300;
     }
 
-    nxt_debug(task, "%srouter app data (%uz): %*s",
-              msg->port_msg.last ? "last " : "", msg->size, dump_size,
-              b->mem.pos);
-
     if (msg->size == 0) {
         b = NULL;
     }
