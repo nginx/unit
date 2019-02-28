@@ -65,7 +65,6 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
         self.assertEqual(resp['headers']['Query-String'], '',
             'query string empty')
 
-    @unittest.expectedFailure
     def test_python_application_query_string_absent(self):
         self.load('query_string')
 

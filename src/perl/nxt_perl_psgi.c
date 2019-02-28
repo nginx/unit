@@ -548,10 +548,8 @@ nxt_perl_psgi_env_create(PerlInterpreter *my_perl,
     RC(nxt_perl_psgi_add_value(my_perl, hash_env, NL("psgi.streaming"),
                                 &PL_sv_no));
 
-    if (r->query.offset) {
-        RC(nxt_perl_psgi_add_sptr(my_perl, hash_env, NL("QUERY_STRING"),
-                                  &r->query, r->query_length));
-    }
+    RC(nxt_perl_psgi_add_sptr(my_perl, hash_env, NL("QUERY_STRING"),
+                              &r->query, r->query_length));
     RC(nxt_perl_psgi_add_sptr(my_perl, hash_env, NL("SERVER_PROTOCOL"),
                               &r->version, r->version_length));
     RC(nxt_perl_psgi_add_sptr(my_perl, hash_env, NL("REMOTE_ADDR"),

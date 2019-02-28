@@ -917,10 +917,8 @@ nxt_php_register_variables(zval *track_vars_array TSRMLS_DC)
                      track_vars_array TSRMLS_CC);
     nxt_php_set_sptr(req, "REQUEST_URI", &r->target, r->target_length,
                      track_vars_array TSRMLS_CC);
-    if (r->query.offset) {
-        nxt_php_set_sptr(req, "QUERY_STRING", &r->query, r->query_length,
-                         track_vars_array TSRMLS_CC);
-    }
+    nxt_php_set_sptr(req, "QUERY_STRING", &r->query, r->query_length,
+                     track_vars_array TSRMLS_CC);
 
     nxt_php_set_sptr(req, "REMOTE_ADDR", &r->remote, r->remote_length,
                      track_vars_array TSRMLS_CC);

@@ -442,10 +442,8 @@ nxt_ruby_read_request(VALUE hash_env)
     nxt_ruby_add_sptr(hash_env, NL("REQUEST_URI"), &r->target,
                       r->target_length);
     nxt_ruby_add_sptr(hash_env, NL("PATH_INFO"), &r->path, r->path_length);
-    if (r->query.offset) {
-        nxt_ruby_add_sptr(hash_env, NL("QUERY_STRING"), &r->query,
-                          r->query_length);
-    }
+    nxt_ruby_add_sptr(hash_env, NL("QUERY_STRING"), &r->query,
+                      r->query_length);
     nxt_ruby_add_sptr(hash_env, NL("SERVER_PROTOCOL"), &r->version,
                       r->version_length);
     nxt_ruby_add_sptr(hash_env, NL("REMOTE_ADDR"), &r->remote,

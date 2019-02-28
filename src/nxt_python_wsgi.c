@@ -720,11 +720,7 @@ nxt_python_get_environ(nxt_python_run_ctx_t *ctx)
     RC(nxt_python_add_sptr(ctx, "REQUEST_METHOD", &r->method,
                            r->method_length));
     RC(nxt_python_add_sptr(ctx, "REQUEST_URI", &r->target, r->target_length));
-
-    if (r->query.offset) {
-        RC(nxt_python_add_sptr(ctx, "QUERY_STRING", &r->query,
-                               r->query_length));
-    }
+    RC(nxt_python_add_sptr(ctx, "QUERY_STRING", &r->query, r->query_length));
     RC(nxt_python_add_sptr(ctx, "PATH_INFO", &r->path, r->path_length));
 
     RC(nxt_python_add_sptr(ctx, "REMOTE_ADDR", &r->remote, r->remote_length));
