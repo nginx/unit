@@ -718,7 +718,19 @@ class TestUnitApplicationTLS(TestUnitApplicationProto):
             **kwargs)
 
     def get_server_certificate(self, addr=('127.0.0.1', 7080)):
-        return ssl.get_server_certificate(addr)
+
+        ssl_list = dir(ssl)
+
+        if 'PROTOCOL_TLS' in ssl_list:
+            ssl_version = ssl.PROTOCOL_TLS
+
+        elif 'PROTOCOL_TLSv1_2' in ssl_list:
+            ssl_version = ssl.PROTOCOL_TLSv1_2
+
+        else:
+            ssl_version = ssl.PROTOCOL_TLSv1_1
+
+        return ssl.get_server_certificate(addr, ssl_version=ssl_version)
 
     def load(self, script, name=None):
         if name is None:
