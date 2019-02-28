@@ -799,6 +799,14 @@ nxt_port_read_msg_process(nxt_task_t *task, nxt_port_t *port,
 
                 msg->buf = fmsg->buf;
                 msg->fd = fmsg->fd;
+
+                /*
+                 * To disable instant completion or buffer re-usage,
+                 * handler should reset 'msg.buf'.
+                 */
+                if (!msg->port_msg.mmap && msg->buf == b) {
+                    nxt_port_buf_free(port, b);
+                }
             }
         }
 
@@ -895,7 +903,7 @@ nxt_port_buf_alloc(nxt_port_t *port)
 static void
 nxt_port_buf_free(nxt_port_t *port, nxt_buf_t *b)
 {
-    b->next = port->free_bufs;
+    nxt_buf_chain_add(&b, port->free_bufs);
     port->free_bufs = b;
 }
 
