@@ -7,9 +7,11 @@ class TestUnitPHPApplication(unit.TestUnitApplicationPHP):
     def setUpClass():
         unit.TestUnit().check_modules('php')
 
-    def search_disabled(self, name):
-        p = re.compile(name + '\(\) has been disabled')
-        return self.search_in_log(p)
+    def before_disable_functions(self):
+        body = self.get()['body']
+
+        self.assertRegex(body, r'time: \d+', 'disable_functions before time')
+        self.assertRegex(body, r'exec: \/\w+', 'disable_functions before exec')
 
     def test_php_application_variables(self):
         self.load('variables')
@@ -239,109 +241,97 @@ class TestUnitPHPApplication(unit.TestUnitApplicationPHP):
             'ini value repeat')
 
     def test_php_application_disable_functions_exec(self):
-        self.load('highlight_file_exec')
+        self.load('time_exec')
+
+        self.before_disable_functions()
 
         self.conf({"admin": { "disable_functions": "exec" }},
-            'applications/highlight_file_exec/options')
+            'applications/time_exec/options')
 
-        self.get()
+        body = self.get()['body']
 
-        self.assertIsNotNone(self.search_disabled('exec'),
-            'disable_functions exec')
-        self.assertIsNone(self.search_disabled('highlight_file'),
-            'disable_functions highlight_file')
-
-    def test_php_application_disable_functions_highlight_file(self):
-        self.load('highlight_file_exec')
-
-        self.conf({"admin": { "disable_functions": "highlight_file" }},
-            'applications/highlight_file_exec/options')
-
-        self.get()
-
-        self.assertIsNone(self.search_disabled('exec'),
-            'disable_functions exec')
-        self.assertIsNotNone(self.search_disabled('highlight_file'),
-            'disable_functions highlight_file')
+        self.assertRegex(body, r'time: \d+', 'disable_functions time')
+        self.assertNotRegex(body, r'exec: \/\w+', 'disable_functions exec')
 
     def test_php_application_disable_functions_comma(self):
-        self.load('highlight_file_exec')
+        self.load('time_exec')
 
-        self.conf({"admin": { "disable_functions": "exec,highlight_file" }},
-            'applications/highlight_file_exec/options')
+        self.before_disable_functions()
 
-        self.get()
+        self.conf({"admin": { "disable_functions": "exec,time" }},
+            'applications/time_exec/options')
 
-        self.assertIsNotNone(self.search_disabled('exec'),
-            'disable_functions exec')
-        self.assertIsNotNone(self.search_disabled('highlight_file'),
-            'disable_functions highlight_file')
+        body = self.get()['body']
+
+        self.assertNotRegex(body, r'time: \d+', 'disable_functions comma time')
+        self.assertNotRegex(body, r'exec: \/\w+',
+            'disable_functions comma exec')
 
     def test_php_application_disable_functions_space(self):
-        self.load('highlight_file_exec')
+        self.load('time_exec')
 
-        self.conf({"admin": { "disable_functions": "exec highlight_file" }},
-            'applications/highlight_file_exec/options')
+        self.before_disable_functions()
 
-        self.get()
+        self.conf({"admin": { "disable_functions": "exec time" }},
+            'applications/time_exec/options')
 
-        self.assertIsNotNone(self.search_disabled('exec'),
-            'disable_functions exec')
-        self.assertIsNotNone(self.search_disabled('highlight_file'),
-            'disable_functions highlight_file')
+        body = self.get()['body']
+
+        self.assertNotRegex(body, r'time: \d+', 'disable_functions space time')
+        self.assertNotRegex(body, r'exec: \/\w+',
+            'disable_functions space exec')
 
     def test_php_application_disable_functions_user(self):
-        self.load('highlight_file_exec')
+        self.load('time_exec')
+
+        self.before_disable_functions()
 
         self.conf({"user": { "disable_functions": "exec" }},
-            'applications/highlight_file_exec/options')
+            'applications/time_exec/options')
 
-        self.get()
+        body = self.get()['body']
 
-        self.assertIsNotNone(self.search_disabled('exec'),
-            'disable_functions exec')
-        self.assertIsNone(self.search_disabled('highlight_file'),
-            'disable_functions highlight_file')
+        self.assertRegex(body, r'time: \d+', 'disable_functions user time')
+        self.assertNotRegex(body, r'exec: \/\w+', 'disable_functions user exec')
 
     def test_php_application_disable_functions_nonexistent(self):
-        self.load('highlight_file_exec')
+        self.load('time_exec')
+
+        self.before_disable_functions()
 
         self.conf({"admin": { "disable_functions": "blah" }},
-            'applications/highlight_file_exec/options')
+            'applications/time_exec/options')
 
-        self.get()
+        body = self.get()['body']
 
-        self.assertIsNone(self.search_disabled('exec'),
-            'disable_functions exec')
-        self.assertIsNone(self.search_disabled('highlight_file'),
-            'disable_functions highlight_file')
+        self.assertRegex(body, r'time: \d+',
+            'disable_functions nonexistent time')
+        self.assertRegex(body, r'exec: \/\w+',
+            'disable_functions nonexistent exec')
 
     def test_php_application_disable_classes(self):
         self.load('date_time')
 
-        self.get()
-
-        self.assertIsNone(self.search_disabled('DateTime'),
+        self.assertRegex(self.get()['body'], r'012345',
             'disable_classes before')
 
         self.conf({"admin": { "disable_classes": "DateTime" }},
             'applications/date_time/options')
 
-        self.get()
-
-        self.assertIsNotNone(self.search_disabled('DateTime'),
-            'disable_classes')
+        self.assertNotRegex(self.get()['body'], r'012345',
+            'disable_classes before')
 
     def test_php_application_disable_classes_user(self):
         self.load('date_time')
 
+        self.assertRegex(self.get()['body'], r'012345',
+            'disable_classes before')
+
         self.conf({"user": { "disable_classes": "DateTime" }},
             'applications/date_time/options')
 
-        self.get()
-
-        self.assertIsNotNone(self.search_disabled('DateTime'),
-            'disable_classes user')
+        self.assertNotRegex(self.get()['body'], r'012345',
+            'disable_classes before')
 
 if __name__ == '__main__':
     TestUnitPHPApplication.main()
