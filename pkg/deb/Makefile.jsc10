@@ -1,0 +1,53 @@
+MODULES+=		jsc10
+MODULE_SUFFIX_jsc10=	jsc10
+
+MODULE_SUMMARY_jsc10=	Java 10 module for NGINX Unit
+
+MODULE_VERSION_jsc10=	$(VERSION)
+MODULE_RELEASE_jsc10=	1
+
+MODULE_CONFARGS_jsc10=	java --module=java10 --home=/usr/lib/jvm/java-11-openjdk-$$\(DEB_HOST_ARCH\) --jars=/usr/share/unit-jsc-common/
+MODULE_MAKEARGS_jsc10=	java10
+MODULE_INSTARGS_jsc10=	java10-install
+
+MODULE_SOURCES_jsc10=	unit.example-jsc-app \
+			unit.example-jsc10-config
+
+BUILD_DEPENDS_jsc10=	openjdk-11-jdk-headless openjdk-11-jre-headless
+BUILD_DEPENDS+=		$(BUILD_DEPENDS_jsc10)
+
+MODULE_BUILD_DEPENDS_jsc10=,openjdk-11-jdk-headless
+MODULE_DEPENDS_jsc10=,openjdk-11-jre-headless,unit-jsc-common (= $(MODULE_VERSION_jsc_common)-$(MODULE_RELEASE_jsc_common)~$(CODENAME))
+
+define MODULE_PREINSTALL_jsc10
+	mkdir -p debian/unit-jsc10/usr/share/doc/unit-jsc10/examples/jsc-app
+	install -m 644 -p debian/unit.example-jsc-app debian/unit-jsc10/usr/share/doc/unit-jsc10/examples/jsc-app/index.jsp
+	install -m 644 -p debian/unit.example-jsc10-config debian/unit-jsc10/usr/share/doc/unit-jsc10/examples/unit.config
+endef
+export MODULE_PREINSTALL_jsc10
+
+define MODULE_POSTINSTALL_jsc10
+	cd $$\(BUILDDIR_unit\) \&\& \
+        DESTDIR=$$\(INSTALLDIR\) make java-shared-uninstall
+endef
+export MODULE_POSTINSTALL_jsc10
+
+define MODULE_POST_jsc10
+cat <<BANNER
+----------------------------------------------------------------------
+
+The $(MODULE_SUMMARY_jsc10) has been installed.
+
+To check out the sample app, run these commands:
+
+ sudo service unit restart
+ cd /usr/share/doc/unit-$(MODULE_SUFFIX_jsc10)/examples
+ sudo curl -X PUT --data-binary @unit.config --unix-socket /var/run/control.unit.sock http://localhost/config
+ curl http://localhost:8800/
+
+Online documentation is available at https://unit.nginx.org
+
+----------------------------------------------------------------------
+BANNER
+endef
+export MODULE_POST_jsc10

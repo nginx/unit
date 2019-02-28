@@ -1,0 +1,53 @@
+MODULES+=		jsc11
+MODULE_SUFFIX_jsc11=	jsc11
+
+MODULE_SUMMARY_jsc11=	Java 11 module for NGINX Unit
+
+MODULE_VERSION_jsc11=	$(VERSION)
+MODULE_RELEASE_jsc11=	1
+
+MODULE_CONFARGS_jsc11=	java --module=java11 --home=/usr/lib/jvm/java-11-openjdk-$$\(DEB_HOST_ARCH\) --jars=/usr/share/unit-jsc-common/
+MODULE_MAKEARGS_jsc11=	java11
+MODULE_INSTARGS_jsc11=	java11-install
+
+MODULE_SOURCES_jsc11=	unit.example-jsc-app \
+			unit.example-jsc11-config
+
+BUILD_DEPENDS_jsc11=	openjdk-11-jdk-headless openjdk-11-jre-headless
+BUILD_DEPENDS+=		$(BUILD_DEPENDS_jsc11)
+
+MODULE_BUILD_DEPENDS_jsc11=,openjdk-11-jdk-headless
+MODULE_DEPENDS_jsc11=,openjdk-11-jre-headless,unit-jsc-common (= $(MODULE_VERSION_jsc_common)-$(MODULE_RELEASE_jsc_common)~$(CODENAME))
+
+define MODULE_PREINSTALL_jsc11
+	mkdir -p debian/unit-jsc11/usr/share/doc/unit-jsc11/examples/jsc-app
+	install -m 644 -p debian/unit.example-jsc-app debian/unit-jsc11/usr/share/doc/unit-jsc11/examples/jsc-app/index.jsp
+	install -m 644 -p debian/unit.example-jsc11-config debian/unit-jsc11/usr/share/doc/unit-jsc11/examples/unit.config
+endef
+export MODULE_PREINSTALL_jsc11
+
+define MODULE_POSTINSTALL_jsc11
+	cd $$\(BUILDDIR_unit\) \&\& \
+        DESTDIR=$$\(INSTALLDIR\) make java-shared-uninstall
+endef
+export MODULE_POSTINSTALL_jsc11
+
+define MODULE_POST_jsc11
+cat <<BANNER
+----------------------------------------------------------------------
+
+The $(MODULE_SUMMARY_jsc11) has been installed.
+
+To check out the sample app, run these commands:
+
+ sudo service unit restart
+ cd /usr/share/doc/unit-$(MODULE_SUFFIX_jsc11)/examples
+ sudo curl -X PUT --data-binary @unit.config --unix-socket /var/run/control.unit.sock http://localhost/config
+ curl http://localhost:8800/
+
+Online documentation is available at https://unit.nginx.org
+
+----------------------------------------------------------------------
+BANNER
+endef
+export MODULE_POST_jsc11

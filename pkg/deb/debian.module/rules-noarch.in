@@ -92,8 +92,6 @@ binary-indep: build install
 	dh_installdocs
 	dh_installchangelogs
 	dh_link
-	dh_strip --dbg-package=%%NAME%%-dbg
-	dh_shlibdeps
 	dh_compress
 	dh_fixperms
 	dh_installdeb

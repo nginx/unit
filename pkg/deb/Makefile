@@ -26,6 +26,9 @@ include Makefile.go19
 include Makefile.go110
 include Makefile.perl
 include Makefile.ruby
+include Makefile.jsc-common
+include Makefile.jsc8
+include Makefile.jsc11
 endif
 
 # Ubuntu 18.04
@@ -37,6 +40,9 @@ include Makefile.go19
 include Makefile.go110
 include Makefile.perl
 include Makefile.ruby
+include Makefile.jsc-common
+include Makefile.jsc8
+include Makefile.jsc10
 endif
 
 # Ubuntu 17.10
@@ -69,6 +75,8 @@ include Makefile.python35
 include Makefile.go
 include Makefile.perl
 include Makefile.ruby
+include Makefile.jsc-common
+include Makefile.jsc8
 endif
 
 # Ubuntu 14.04
@@ -87,6 +95,8 @@ include Makefile.go17
 include Makefile.go18
 include Makefile.perl
 include Makefile.ruby
+include Makefile.jsc-common
+include Makefile.jsc8
 endif
 
 # Debian 8
@@ -200,7 +210,11 @@ else
 		-e "s#%%CODENAME%%#$(CODENAME)#g" \
 		> $@/$(SRCDIR)/debian/changelog
 endif
-	cp debian/copyright debuild-$*/$(SRCDIR)/debian/
+	if [ -f debian.module/copyright.unit-$(MODULE_SUFFIX_$*) ]; then \
+		cp debian.module/copyright.unit-$(MODULE_SUFFIX_$*) debuild-$*/$(SRCDIR)/debian/copyright ; \
+	else \
+		cp debian/copyright debuild-$*/$(SRCDIR)/debian/ ; \
+	fi
 	@{ \
 	set -e ; \
 	for src in $(MODULE_SOURCES_$*); do \
@@ -209,8 +223,9 @@ endif
 	definitions=`echo "$$MODULE_DEFINITIONS_$*" | sed -e ':a' -e 'N' -e '$$!ba' -e "s/\n/\$$CR/g"` ; \
 	prebuild=`echo "$$MODULE_PREBUILD_$*" | sed -e ':a' -e 'N' -e '$$!ba' -e "s/\n/\$$CR/g"` ; \
 	preinstall=`echo "$$MODULE_PREINSTALL_$*" | sed -e ':a' -e 'N' -e '$$!ba' -e "s/\n/\$$CR/g"` ; \
+	postinstall=`echo "$$MODULE_POSTINSTALL_$*" | sed -e ':a' -e 'N' -e '$$!ba' -e "s/\n/\$$CR/g"` ; \
 	post=`echo "$$MODULE_POST_$*" | sed -e ':a' -e 'N' -e '$$!ba' -e "s/\n/\$$CR/g"` ; \
-	cat debian.module/control.in | sed \
+	cat debian.module/$(if $(MODULE_NOARCH_$*),control-noarch.in,control.in) | sed \
                 -e "s#%%NAME%%#unit-$(MODULE_SUFFIX_$*)#g" \
                 -e "s#%%SUMMARY%%#$(MODULE_SUMMARY_$*)#g" \
                 -e "s#%%CODENAME%%#$(CODENAME)#g" \
@@ -221,7 +236,7 @@ endif
                 -e "s#%%MODULE_BUILD_DEPENDS%%#$(MODULE_BUILD_DEPENDS_$*)#g" \
                 -e "s#%%MODULE_DEPENDS%%#$(MODULE_DEPENDS_$*)#g" \
         > $@/$(SRCDIR)/debian/control ; \
-        cat debian.module/rules.in | sed \
+        cat debian.module/$(if $(MODULE_NOARCH_$*),rules-noarch.in,rules.in) | sed \
                 -e "s#%%NAME%%#unit-$(MODULE_SUFFIX_$*)#g" \
                 -e "s#%%CODENAME%%#$(CODENAME)#g" \
                 -e "s#%%UNIT_VERSION%%#$(VERSION)#g" \
@@ -233,6 +248,7 @@ endif
                 -e "s#%%MODULE_DEFINITIONS%%#$${definitions}#g" \
                 -e "s#%%MODULE_PREBUILD%%#$${prebuild}#g" \
                 -e "s#%%MODULE_PREINSTALL%%#$${preinstall}#g" \
+                -e "s#%%MODULE_POSTINSTALL%%#$${postinstall}#g" \
         > $@/$(SRCDIR)/debian/rules ; \
         cat debian.module/preinst.in | sed \
                 -e "s#%%MODULE_POST%%#$$post#g" \
@@ -249,8 +265,9 @@ unit-%: check-build-depends-% | debuild-%
 
 test: unit modules
 	@{ \
-	for so in `find debuild-*/unit-$(VERSION)/debian/build-unit/ -type f -name "*.so"` ; do \
+	for so in `find debuild-*/unit-$(VERSION)/debian/build-unit/ -type f \( -name "*.so" -o -name "*.jar" \)`; do \
 		soname=`basename $${so}` ; \
+		test "$${soname}" = "java.unit.so" && continue ; \
 		test -h debuild/unit-$(VERSION)/debian/build-unit/build/$${soname} || \
 		ln -fs `pwd`/$${so} debuild/unit-$(VERSION)/debian/build-unit/build/$${soname} ; \
 	done ; \
@@ -259,8 +276,9 @@ test: unit modules
 
 test-debug: unit modules
 	@{ \
-	for so in `find debuild-*/unit-$(VERSION)/debian/build-unit-debug/ -type f -name "*.so"` ; do \
+	for so in `find debuild-*/unit-$(VERSION)/debian/build-unit-debug/ -type f \( -name "*.so" -o -name "*.jar" \)`; do \
 		soname=`basename $${so}` ; \
+		test "$${soname}" = "java.unit.so" && continue ; \
 		test -h debuild/unit-$(VERSION)/debian/build-unit-debug/build/$${soname} || \
 		ln -fs `pwd`/$${so} debuild/unit-$(VERSION)/debian/build-unit-debug/build/$${soname} ; \
 	done ; \

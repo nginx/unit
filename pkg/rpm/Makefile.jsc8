@@ -1,0 +1,65 @@
+MODULES+=		jsc8
+MODULE_SUFFIX_jsc8=	jsc8
+
+MODULE_SUMMARY_jsc8=	Java 8 module for NGINX Unit
+
+MODULE_VERSION_jsc8=	$(VERSION)
+MODULE_RELEASE_jsc8=	1
+
+MODULE_CONFARGS_jsc8=	java --module=java8 --home=/usr/lib/jvm/java-1.8.0 --jars=/usr/share/unit-jsc-common/
+MODULE_MAKEARGS_jsc8=	java8
+MODULE_INSTARGS_jsc8=	java8-install
+
+MODULE_SOURCES_jsc8=	unit.example-jsc-app \
+			unit.example-jsc8-config
+
+BUILD_DEPENDS_jsc8=	java-1.8.0-openjdk-devel
+BUILD_DEPENDS+=		$(BUILD_DEPENDS_jsc8)
+
+define MODULE_DEFINITIONS_jsc8
+Requires: unit-jsc-common == $(MODULE_VERSION_jsc_common)-$(MODULE_RELEASE_jsc_common)%{?dist}.ngx
+endef
+export MODULE_DEFINITIONS_jsc8
+
+define MODULE_PREINSTALL_jsc8
+%{__mkdir} -p %{buildroot}%{_datadir}/doc/unit-jsc8/examples/jsc-app
+%{__install} -m 644 -p %{SOURCE100} \
+    %{buildroot}%{_datadir}/doc/unit-jsc8/examples/jsc-app/index.jsp
+%{__install} -m 644 -p %{SOURCE101} \
+    %{buildroot}%{_datadir}/doc/unit-jsc8/examples/unit.config
+endef
+export MODULE_PREINSTALL_jsc8
+
+define MODULE_POSTINSTALL_jsc8
+DESTDIR=%{buildroot} make java-shared-uninstall
+endef
+export MODULE_POSTINSTALL_jsc8
+
+define MODULE_FILES_jsc8
+%{_libdir}/unit/modules/*
+%{_libdir}/unit/debug-modules/*
+%dir %{_datadir}/doc/unit-jsc8
+%{_datadir}/doc/unit-jsc8/*
+%{_datadir}/unit-jsc-common/*
+endef
+export MODULE_FILES_jsc8
+
+define MODULE_POST_jsc8
+cat <<BANNER
+----------------------------------------------------------------------
+
+The $(MODULE_SUMMARY_jsc8) has been installed.
+
+To check out the sample app, run these commands:
+
+ sudo service unit restart
+ cd /usr/share/doc/%{name}/examples
+ sudo curl -X PUT --data-binary @unit.config --unix-socket /var/run/unit/control.sock http://localhost/config
+ curl http://localhost:8800/
+
+Online documentation is available at https://unit.nginx.org
+
+----------------------------------------------------------------------
+BANNER
+endef
+export MODULE_POST_jsc8
