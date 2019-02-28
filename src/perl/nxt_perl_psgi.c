@@ -113,6 +113,7 @@ NXT_EXPORT nxt_app_module_t  nxt_app_module = {
     nxt_perl_psgi_compat,
     nxt_string("perl"),
     PERL_VERSION_STRING,
+    NULL,
     nxt_perl_psgi_init,
 };
 

@@ -164,6 +164,7 @@ NXT_EXPORT nxt_app_module_t  nxt_app_module = {
     compat,
     nxt_string("php"),
     PHP_VERSION,
+    NULL,
     nxt_php_init,
 };
 

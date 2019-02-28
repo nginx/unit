@@ -18,6 +18,7 @@ nxt_app_module_t  nxt_external_module = {
     NULL,
     nxt_string("external"),
     "*",
+    NULL,
     nxt_external_init,
 };
 

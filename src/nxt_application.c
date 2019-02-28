@@ -331,6 +331,17 @@ nxt_app_start(nxt_task_t *task, void *data)
         nxt_app = nxt_app_module_load(task, lang->file);
     }
 
+    if (nxt_app->pre_init != NULL) {
+        ret = nxt_app->pre_init(task, data);
+
+        if (nxt_slow_path(ret != NXT_OK)) {
+            nxt_debug(task, "application pre_init failed");
+
+        } else {
+            nxt_debug(task, "application pre_init done");
+        }
+    }
+
     if (app_conf->working_directory != NULL
         && app_conf->working_directory[0] != 0)
     {
@@ -521,6 +532,9 @@ nxt_app_parse_type(u_char *p, size_t length)
 
     } else if (nxt_str_eq(&str, "ruby", 4)) {
         return NXT_APP_RUBY;
+
+    } else if (nxt_str_eq(&str, "java", 4)) {
+        return NXT_APP_JAVA;
     }
 
     return NXT_APP_UNKNOWN;

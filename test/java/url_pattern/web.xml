@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<web-app xmlns="http://java.sun.com/xml/ns/j2ee"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://java.sun.com/xml/ns/j2ee http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd"
+    version="3.0">
+
+    <servlet>
+        <servlet-name>servlet0</servlet-name>
+        <servlet-class>app</servlet-class>
+        <init-param><param-name>id</param-name><param-value>servlet0</param-value></init-param>
+    </servlet>
+
+    <servlet>
+        <servlet-name>servlet1</servlet-name>
+        <servlet-class>app</servlet-class>
+        <init-param><param-name>id</param-name><param-value>servlet1</param-value></init-param>
+    </servlet>
+
+    <servlet>
+        <servlet-name>servlet2</servlet-name>
+        <servlet-class>app</servlet-class>
+        <init-param><param-name>id</param-name><param-value>servlet2</param-value></init-param>
+    </servlet>
+
+    <servlet>
+        <servlet-name>servlet3</servlet-name>
+        <servlet-class>app</servlet-class>
+        <init-param><param-name>id</param-name><param-value>servlet3</param-value></init-param>
+    </servlet>
+
+    <servlet>
+        <servlet-name>servlet4</servlet-name>
+        <servlet-class>app</servlet-class>
+        <init-param><param-name>id</param-name><param-value>servlet4</param-value></init-param>
+    </servlet>
+
+    <servlet>
+        <servlet-name>default</servlet-name>
+        <servlet-class>app</servlet-class>
+        <init-param><param-name>id</param-name><param-value>default</param-value></init-param>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>servlet0</servlet-name>
+        <url-pattern>/foo/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>servlet1</servlet-name>
+        <url-pattern>/foo/bar/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>servlet2</servlet-name>
+        <url-pattern>/baz/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>servlet3</servlet-name>
+        <url-pattern>/catalog</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>servlet4</servlet-name>
+        <url-pattern>*.bop</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>default</servlet-name>
+        <url-pattern>/</url-pattern>
+    </servlet-mapping>
+
+</web-app>
+

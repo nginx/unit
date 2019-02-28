@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<web-app xmlns="http://java.sun.com/xml/ns/j2ee"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://java.sun.com/xml/ns/j2ee http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd"
+    version="3.0">
+
+    <servlet>
+        <servlet-name>inc</servlet-name>
+        <servlet-class>app</servlet-class>
+        <init-param><param-name>id</param-name><param-value>inc</param-value></init-param>
+    </servlet>
+
+    <servlet>
+        <servlet-name>data</servlet-name>
+        <servlet-class>app</servlet-class>
+        <init-param><param-name>id</param-name><param-value>data</param-value></init-param>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>inc</servlet-name>
+        <url-pattern>/inc/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>data</servlet-name>
+        <url-pattern>/data/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>data</servlet-name>
+        <url-pattern>/WEB-INF/index.html</url-pattern>
+        <url-pattern>/index.html</url-pattern>
+    </servlet-mapping>
+
+</web-app>
+

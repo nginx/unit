@@ -20,6 +20,7 @@ typedef enum {
     NXT_APP_PHP,
     NXT_APP_PERL,
     NXT_APP_RUBY,
+    NXT_APP_JAVA,
 
     NXT_APP_UNKNOWN,
 } nxt_app_type_t;
@@ -70,6 +71,14 @@ typedef struct {
 } nxt_ruby_app_conf_t;
 
 
+typedef struct {
+    nxt_conf_value_t           *classpath;
+    char                       *webapp;
+    nxt_conf_value_t           *options;
+    char                       *unit_jars;
+} nxt_java_app_conf_t;
+
+
 struct nxt_common_app_conf_s {
     nxt_str_t                  name;
     nxt_str_t                  type;
@@ -85,6 +94,7 @@ struct nxt_common_app_conf_s {
         nxt_php_app_conf_t       php;
         nxt_perl_app_conf_t      perl;
         nxt_ruby_app_conf_t      ruby;
+        nxt_java_app_conf_t      java;
     } u;
 };
 
@@ -152,6 +162,8 @@ struct nxt_app_module_s {
     nxt_str_t                  type;
     const char                 *version;
 
+    nxt_int_t                  (*pre_init)(nxt_task_t *task,
+                                    nxt_common_app_conf_t *conf);
     nxt_int_t                  (*init)(nxt_task_t *task,
                                     nxt_common_app_conf_t *conf);
 };

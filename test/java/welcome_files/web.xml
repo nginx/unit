@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<web-app xmlns="http://java.sun.com/xml/ns/j2ee"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://java.sun.com/xml/ns/j2ee http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd"
+    version="3.0">
+
+    <welcome-file-list>
+        <welcome-file>index.txt</welcome-file>
+        <welcome-file>default.jsp</welcome-file>
+        <welcome-file>index.html</welcome-file>
+    </welcome-file-list>
+
+    <servlet>
+        <servlet-name>app</servlet-name>
+        <servlet-class>app</servlet-class>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>app</servlet-name>
+        <url-pattern>/dir3/index.txt</url-pattern>
+        <url-pattern>/dir4/index.txt</url-pattern>
+        <url-pattern>/dir5/index.html</url-pattern>
+    </servlet-mapping>
+
+</web-app>
+

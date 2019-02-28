@@ -125,7 +125,7 @@ void nxt_conf_set_element(nxt_conf_value_t *array, nxt_uint_t index,
     nxt_conf_value_t *value);
 nxt_int_t nxt_conf_set_element_string_dup(nxt_conf_value_t *array, nxt_mp_t *mp,
     nxt_uint_t index, nxt_str_t *value);
-nxt_uint_t nxt_conf_array_elements_count(nxt_conf_value_t *value);
+NXT_EXPORT nxt_uint_t nxt_conf_array_elements_count(nxt_conf_value_t *value);
 void nxt_conf_array_qsort(nxt_conf_value_t *value,
     int (*compare)(const void *, const void *));
 

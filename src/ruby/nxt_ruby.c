@@ -76,6 +76,7 @@ NXT_EXPORT nxt_app_module_t  nxt_app_module = {
     compat,
     nxt_string("ruby"),
     ruby_version,
+    NULL,
     nxt_ruby_init,
 };
 
