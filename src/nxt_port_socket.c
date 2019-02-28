@@ -179,6 +179,7 @@ nxt_port_msg_create(nxt_task_t *task, nxt_port_send_msg_t *m)
     msg->link.prev = NULL;
 
     msg->buf = m->buf;
+    msg->share = m->share;
     msg->fd = m->fd;
     msg->close_fd = m->close_fd;
     msg->port_msg = m->port_msg;
