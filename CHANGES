@@ -1,4 +1,32 @@
 
+Changes with Unit 1.8.0                                          01 Mar 2019
+
+    *) Change: now three numbers are always used for versioning: major,
+       minor, and patch versions.
+
+    *) Change: now QUERY_STRING is always defined even if the request does
+       not include the query component.
+
+    *) Feature: basic internal request routing by Host, URI, and method.
+
+    *) Feature: experimental support for Java Servlet Containers.
+
+    *) Bugfix: segmentation fault might have occurred in the router process.
+
+    *) Bugfix: various potential memory leaks.
+
+    *) Bugfix: TLS connections might have stalled.
+
+    *) Bugfix: some Perl applications might have failed to send the response
+       body.
+
+    *) Bugfix: some compilers with specific flags might have produced
+       non-functioning builds; the bug had appeared in 1.5.
+
+    *) Bugfix: Node.js package had wrong version number when installed from
+       sources.
+
+
 Changes with Unit 1.7.1                                          07 Feb 2019
 
     *) Security: a heap memory buffer overflow might have been caused in the

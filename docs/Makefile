@@ -11,7 +11,8 @@ PACKAGES=	unit 							\
 		unit-python3.5 unit-python3.6 unit-python3.7		\
 		unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10	\
 		unit-perl						\
-		unit-ruby
+		unit-ruby						\
+		unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11
 
 
 all:		changes changelogs
