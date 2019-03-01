@@ -45,28 +45,6 @@ include Makefile.jsc8
 include Makefile.jsc10
 endif
 
-# Ubuntu 17.10
-ifeq ($(CODENAME),artful)
-include Makefile.php
-include Makefile.python27
-include Makefile.python36
-include Makefile.go18
-include Makefile.go19
-include Makefile.perl
-include Makefile.ruby
-endif
-
-# Ubuntu 17.04
-ifeq ($(CODENAME),zesty)
-include Makefile.php
-include Makefile.python27
-include Makefile.python35
-include Makefile.go17
-include Makefile.go18
-include Makefile.perl
-include Makefile.ruby
-endif
-
 # Ubuntu 16.04
 ifeq ($(CODENAME),xenial)
 include Makefile.php
