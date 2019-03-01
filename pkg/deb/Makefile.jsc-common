@@ -20,7 +20,9 @@ cat <<BANNER
 ----------------------------------------------------------------------
 
 The $(MODULE_SUMMARY_jsc_common) have been installed.
-Please find licenses and related information at: TBD.
+
+Please find licenses and related information at:
+  /usr/share/doc/unit-jsc-common/copyright
 
 ----------------------------------------------------------------------
 BANNER
