@@ -1,6 +1,10 @@
 
-This package includes the following software components distributed
-under corresponding licenses:
+The unit-jsc-common package includes supplementary Java archives (JARs)
+required by Java servlet container module for NGINX Unit.
+
+Java is a registered trademark of Oracle and/or its affiliates.
+
+The following software components distributed under corresponding licenses:
 
  * classgraph-4.4.11.jar: MIT
  * ecj-3.13.102.jar: EPL 1.0
