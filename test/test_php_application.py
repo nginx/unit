@@ -160,10 +160,10 @@ class TestUnitPHPApplication(unit.TestUnitApplicationPHP):
         self.assertNotEqual(self.get()['headers']['X-Precision'], '4',
             'ini value default')
 
-        self.conf({"file": "php.ini"}, 'applications/ini_precision/options')
+        self.conf({"file": "ini/php.ini"}, 'applications/ini_precision/options')
 
         self.assertEqual(self.get()['headers']['X-File'],
-            self.current_dir + '/php/ini_precision/php.ini', 'ini file')
+            self.current_dir + '/php/ini_precision/ini/php.ini', 'ini file')
         self.assertEqual(self.get()['headers']['X-Precision'], '4', 'ini value')
 
     @unittest.expectedFailure
@@ -200,7 +200,7 @@ class TestUnitPHPApplication(unit.TestUnitApplicationPHP):
     def test_php_application_ini_user_2(self):
         self.load('ini_precision')
 
-        self.conf({"file": "php.ini"}, 'applications/ini_precision/options')
+        self.conf({"file": "ini/php.ini"}, 'applications/ini_precision/options')
 
         self.assertEqual(self.get()['headers']['X-Precision'], '4',
             'ini user file')
