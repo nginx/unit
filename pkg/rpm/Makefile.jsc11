@@ -28,7 +28,7 @@ define MODULE_PREINSTALL_jsc11
 %{__install} -m 644 -p %{SOURCE101} \
     %{buildroot}%{_datadir}/doc/unit-jsc11/examples/unit.config
 %{__install} -m 644 -p %{bdir}/src/java/README.JSR-340 \
-    %{buildroot}%{_datadir}/doc/unit-jsc8/
+    %{buildroot}%{_datadir}/doc/unit-jsc11/
 endef
 export MODULE_PREINSTALL_jsc11
 
