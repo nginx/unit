@@ -131,6 +131,11 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
         self.assertEqual(resp['body'], '0123456789', 'keep-alive 2')
 
     def test_python_keepalive_reconfigure(self):
+        self.skip_alerts.extend([
+            r'pthread_mutex.+failed',
+            r'failed to apply',
+            r'process \d+ exited on signal'
+        ])
         self.load('mirror')
 
         body = '0123456789'
