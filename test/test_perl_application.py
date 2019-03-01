@@ -45,7 +45,7 @@ class TestUnitPerlApplication(unit.TestUnitApplicationPerl):
             'Psgi-Multiprocess': '1',
             'Psgi-Run-Once': '',
             'Psgi-Nonblocking': '',
-            'Psgi-Streaming': ''
+            'Psgi-Streaming': '1'
         }, 'headers')
         self.assertEqual(resp['body'], body, 'body')
 
