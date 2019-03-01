@@ -1,0 +1,17 @@
+{
+	"applications": {
+		"example_python": {
+			"type": "python 3.7",
+			"user": "nobody",
+			"processes": 2,
+			"path": "/usr/share/doc/unit-python37/examples/python-app",
+			"module": "wsgi"
+		}
+	},
+
+	"listeners": {
+		"*:8400": {
+			"application": "example_python"
+		}
+	}
+}

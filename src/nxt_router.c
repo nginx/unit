@@ -31,7 +31,8 @@ typedef struct {
 
 
 typedef struct {
-    nxt_str_t  application;
+    nxt_str_t         pass;
+    nxt_str_t         application;
 } nxt_router_listener_conf_t;
 
 
@@ -163,8 +164,6 @@ static void nxt_router_conf_send(nxt_task_t *task,
 static nxt_int_t nxt_router_conf_create(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, u_char *start, u_char *end);
 static nxt_app_t *nxt_router_app_find(nxt_queue_t *queue, nxt_str_t *name);
-static nxt_app_t *nxt_router_listener_application(nxt_router_temp_conf_t *tmcf,
-    nxt_str_t *name);
 static void nxt_router_listen_socket_rpc_create(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_socket_conf_t *skcf);
 static void nxt_router_listen_socket_ready(nxt_task_t *task,
@@ -294,6 +293,7 @@ static const nxt_str_t  *nxt_app_msg_prefix[] = {
     &http_prefix,
     &http_prefix,
     &http_prefix,
+    &empty_prefix,
 };
 
 
@@ -1174,11 +1174,14 @@ nxt_router_conf_error(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
     nxt_queue_add(&new_socket_confs, &tmcf->pending);
     nxt_queue_add(&new_socket_confs, &tmcf->creating);
 
+    rtcf = tmcf->router_conf;
+
+    nxt_http_routes_cleanup(task, rtcf->routes);
+
     nxt_queue_each(skcf, &new_socket_confs, nxt_socket_conf_t, link) {
 
-        if (skcf->application != NULL) {
-            nxt_router_app_use(task, skcf->application, -1);
-            skcf->application = NULL;
+        if (skcf->pass != NULL) {
+            nxt_http_pass_cleanup(task, skcf->pass);
         }
 
     } nxt_queue_loop;
@@ -1189,7 +1192,6 @@ nxt_router_conf_error(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
 
     } nxt_queue_loop;
 
-    rtcf = tmcf->router_conf;
     router = rtcf->router;
 
     nxt_queue_add(&router->sockets, &tmcf->keeping);
@@ -1299,8 +1301,14 @@ static nxt_conf_map_t  nxt_router_app_processes_conf[] = {
 
 static nxt_conf_map_t  nxt_router_listener_conf[] = {
     {
+        nxt_string("pass"),
+        NXT_CONF_MAP_STR_COPY,
+        offsetof(nxt_router_listener_conf_t, pass),
+    },
+
+    {
         nxt_string("application"),
-        NXT_CONF_MAP_STR,
+        NXT_CONF_MAP_STR_COPY,
         offsetof(nxt_router_listener_conf_t, application),
     },
 };
@@ -1379,7 +1387,9 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_conf_value_t            *conf, *http, *value;
     nxt_conf_value_t            *applications, *application;
     nxt_conf_value_t            *listeners, *listener;
+    nxt_conf_value_t            *routes_conf;
     nxt_socket_conf_t           *skcf;
+    nxt_http_routes_t           *routes;
     nxt_event_engine_t          *engine;
     nxt_app_lang_module_t       *lang;
     nxt_router_app_conf_t       apcf;
@@ -1392,6 +1402,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     static nxt_str_t  http_path = nxt_string("/settings/http");
     static nxt_str_t  applications_path = nxt_string("/applications");
     static nxt_str_t  listeners_path = nxt_string("/listeners");
+    static nxt_str_t  routes_path = nxt_string("/routes");
     static nxt_str_t  access_log_path = nxt_string("/access_log");
 #if (NXT_TLS)
     static nxt_str_t  certificate_path = nxt_string("/tls/certificate");
@@ -1589,6 +1600,15 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         app_joint->free_app_work.obj = app_joint;
     }
 
+    routes_conf = nxt_conf_get_path(conf, &routes_path);
+    if (nxt_fast_path(routes_conf != NULL)) {
+        routes = nxt_http_routes_create(task, tmcf, routes_conf);
+        if (nxt_slow_path(routes == NULL)) {
+            return NXT_ERROR;
+        }
+        tmcf->router_conf->routes = routes;
+    }
+
     http = nxt_conf_get_path(conf, &http_path);
 #if 0
     if (http == NULL) {
@@ -1671,10 +1691,13 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         skcf->router_conf = tmcf->router_conf;
         skcf->router_conf->count++;
 
-        if (lscf.application.length > 0) {
-            skcf->application = nxt_router_listener_application(tmcf,
-                                                            &lscf.application);
-            nxt_router_app_use(task, skcf->application, 1);
+        if (lscf.pass.length != 0) {
+            skcf->pass = nxt_http_pass_create(task, tmcf, &lscf.pass);
+
+        /* COMPATIBILITY: listener application. */
+        } else if (lscf.application.length > 0) {
+            skcf->pass = nxt_http_pass_application(task, tmcf,
+                                                   &lscf.application);
         }
     }
 
@@ -1711,6 +1734,8 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
         tmcf->router_conf->access_log = access_log;
     }
+
+    nxt_http_routes_resolve(task, tmcf);
 
     nxt_queue_add(&tmcf->deleting, &router->sockets);
     nxt_queue_init(&router->sockets);
@@ -1752,7 +1777,7 @@ nxt_router_app_find(nxt_queue_t *queue, nxt_str_t *name)
 }
 
 
-static nxt_app_t *
+nxt_app_t *
 nxt_router_listener_application(nxt_router_temp_conf_t *tmcf, nxt_str_t *name)
 {
     nxt_app_t  *app;
@@ -1982,13 +2007,18 @@ static void
 nxt_router_listen_socket_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     void *data)
 {
+    nxt_socket_rpc_t        *rpc;
+    nxt_router_temp_conf_t  *tmcf;
+
+    rpc = data;
+    tmcf = rpc->temp_conf;
+
+#if 0
     u_char                  *p;
     size_t                  size;
     uint8_t                 error;
     nxt_buf_t               *in, *out;
     nxt_sockaddr_t          *sa;
-    nxt_socket_rpc_t        *rpc;
-    nxt_router_temp_conf_t  *tmcf;
 
     static nxt_str_t  socket_errors[] = {
         nxt_string("ListenerSystem"),
@@ -2000,9 +2030,7 @@ nxt_router_listen_socket_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
         nxt_string("ListenerPath"),
     };
 
-    rpc = data;
     sa = rpc->socket_conf->listen->sockaddr;
-    tmcf = rpc->temp_conf;
 
     in = nxt_buf_chk_make_plain(tmcf->mem_pool, msg->buf, msg->size);
 
@@ -2030,6 +2058,7 @@ nxt_router_listen_socket_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
                         &socket_errors[error], in->mem.free - p, p);
 
     nxt_debug(task, "%*s", out->mem.free - out->mem.pos, out->mem.pos);
+#endif
 
     nxt_router_conf_error(task, tmcf);
 }
@@ -2881,7 +2910,6 @@ nxt_router_listen_event_release(nxt_task_t *task, nxt_listen_event_t *lev,
 void
 nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
 {
-    nxt_app_t              *app;
     nxt_socket_conf_t      *skcf;
     nxt_router_conf_t      *rtcf;
     nxt_thread_spinlock_t  *lock;
@@ -2900,7 +2928,6 @@ nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
      * be already destroyed by another thread.
      */
     skcf = joint->socket_conf;
-    app = skcf->application;
     rtcf = skcf->router_conf;
     lock = &rtcf->router->lock;
 
@@ -2910,8 +2937,8 @@ nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
               rtcf, rtcf->count);
 
     if (--skcf->count != 0) {
+        skcf = NULL;
         rtcf = NULL;
-        app = NULL;
 
     } else {
         nxt_queue_remove(&skcf->link);
@@ -2923,8 +2950,16 @@ nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
 
     nxt_thread_spin_unlock(lock);
 
-    if (app != NULL) {
-        nxt_router_app_use(task, app, -1);
+    if (skcf != NULL) {
+        if (skcf->pass != NULL) {
+            nxt_http_pass_cleanup(task, skcf->pass);
+        }
+
+#if (NXT_TLS)
+        if (skcf->tls != NULL) {
+            task->thread->runtime->tls->server_free(task, skcf->tls);
+        }
+#endif
     }
 
     /* TODO remove engine->port */
@@ -2933,11 +2968,7 @@ nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
     if (rtcf != NULL) {
         nxt_debug(task, "old router conf is destroyed");
 
-#if (NXT_TLS)
-        if (skcf->tls != NULL) {
-            task->thread->runtime->tls->server_free(task, skcf->tls);
-        }
-#endif
+        nxt_http_routes_cleanup(task, rtcf->routes);
 
         nxt_router_access_log_release(task, lock, rtcf->access_log);
 
@@ -3363,10 +3394,6 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
         dump_size = 300;
     }
 
-    nxt_debug(task, "%srouter app data (%uz): %*s",
-              msg->port_msg.last ? "last " : "", msg->size, dump_size,
-              b->mem.pos);
-
     if (msg->size == 0) {
         b = NULL;
     }
@@ -3500,7 +3527,7 @@ static const nxt_http_request_state_t  nxt_http_request_send_state
     nxt_aligned(64) =
 {
     .ready_handler = nxt_http_request_send_body,
-    .error_handler = nxt_http_request_close_handler,
+    .error_handler = nxt_http_request_error_handler,
 };
 
 
@@ -4425,10 +4452,10 @@ nxt_router_app_port(nxt_task_t *task, nxt_app_t *app, nxt_req_app_link_t *ra)
 
 
 void
-nxt_router_process_http_request(nxt_task_t *task, nxt_app_parse_ctx_t *ar)
+nxt_router_process_http_request(nxt_task_t *task, nxt_app_parse_ctx_t *ar,
+    nxt_app_t *app)
 {
     nxt_int_t            res;
-    nxt_app_t            *app;
     nxt_port_t           *port;
     nxt_event_engine_t   *engine;
     nxt_http_request_t   *r;
@@ -4436,13 +4463,6 @@ nxt_router_process_http_request(nxt_task_t *task, nxt_app_parse_ctx_t *ar)
     nxt_req_conn_link_t  *rc;
 
     r = ar->request;
-    app = r->conf->socket_conf->application;
-
-    if (app == NULL) {
-        nxt_http_request_error(task, r, NXT_HTTP_INTERNAL_SERVER_ERROR);
-        return;
-    }
-
     engine = task->thread->engine;
 
     rc = nxt_port_rpc_register_handler_ex(task, engine->port,
@@ -4639,12 +4659,13 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
     h = &r->header;
 
     req_size = sizeof(nxt_unit_request_t)
-                + h->method.length + 1
-                + h->version.length + 1
-                + r->remote.length + 1
-                + r->local.length + 1
-                + h->target.length + 1
-                + (h->path.start != h->target.start ? h->path.length + 1 : 0);
+               + h->method.length + 1
+               + h->version.length + 1
+               + r->remote.length + 1
+               + r->local.length + 1
+               + h->server_name.length + 1
+               + h->target.length + 1
+               + (h->path.start != h->target.start ? h->path.length + 1 : 0);
 
     fields_count = 0;
 
@@ -4699,6 +4720,11 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
     p = nxt_cpymem(p, r->local.start, r->local.length);
     *p++ = '\0';
 
+    req->server_name_length = h->server_name.length;
+    nxt_unit_sptr_set(&req->server_name, p);
+    p = nxt_cpymem(p, h->server_name.start, h->server_name.length);
+    *p++ = '\0';
+
     target_pos = p;
     req->target_length = h->target.length;
     nxt_unit_sptr_set(&req->target, p);
@@ -4726,7 +4752,6 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
         req->query.offset = 0;
     }
 
-    req->host_field           = NXT_UNIT_NONE_FIELD;
     req->content_length_field = NXT_UNIT_NONE_FIELD;
     req->content_type_field   = NXT_UNIT_NONE_FIELD;
     req->cookie_field         = NXT_UNIT_NONE_FIELD;
@@ -4746,10 +4771,7 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
         dst_field->name_length = field->name_length + prefix->length;
         dst_field->value_length = field->value_length;
 
-        if (field->value == h->host.start) {
-            req->host_field = dst_field - req->fields;
-
-        } else if (field->value == h->content_length.start) {
+        if (field->value == h->content_length.start) {
             req->content_length_field = dst_field - req->fields;
 
         } else if (field->value == h->content_type.start) {

@@ -14,7 +14,7 @@ class TestUnitSettings(unit.TestUnitApplicationPython):
         self.conf({'http': { 'header_read_timeout': 2 }}, 'settings')
 
         (resp, sock) = self.http(b"""GET / HTTP/1.1
-""", start=True, raw=True)
+""", start=True, read_timeout=1, raw=True)
 
         time.sleep(3)
 
@@ -28,22 +28,20 @@ Connection: close
     def test_settings_header_read_timeout_update(self):
         self.load('empty')
 
-        r = None
-
         self.conf({'http': { 'header_read_timeout': 4 }}, 'settings')
 
         (resp, sock) = self.http(b"""GET / HTTP/1.1
-""", start=True, raw=True, no_recv=True)
+""", start=True, read_timeout=1, raw=True, no_recv=True)
 
         time.sleep(2)
 
         (resp, sock) = self.http(b"""Host: localhost
-""", start=True, sock=sock, raw=True, no_recv=True)
+""", start=True, sock=sock, read_timeout=1, raw=True, no_recv=True)
 
         time.sleep(2)
 
         (resp, sock) = self.http(b"""X-Blah: blah
-""", start=True, sock=sock, raw=True)
+""", start=True, sock=sock, read_timeout=1, raw=True)
 
         if len(resp) != 0:
             sock.close()
@@ -68,7 +66,7 @@ Host: localhost
 Content-Length: 10
 Connection: close
 
-""", start=True, raw_resp=True, raw=True)
+""", start=True, raw_resp=True, read_timeout=1, raw=True)
 
         time.sleep(3)
 
@@ -86,15 +84,17 @@ Host: localhost
 Content-Length: 10
 Connection: close
 
-""", start=True, raw=True)
+""", start=True, read_timeout=1, raw=True)
 
         time.sleep(2)
 
-        (resp, sock) = self.http(b"""012""", start=True, sock=sock, raw=True)
+        (resp, sock) = self.http(b"""012""", start=True, sock=sock,
+            read_timeout=1, raw=True)
 
         time.sleep(2)
 
-        (resp, sock) = self.http(b"""345""", start=True, sock=sock, raw=True)
+        (resp, sock) = self.http(b"""345""", start=True, sock=sock,
+            read_timeout=1, raw=True)
 
         time.sleep(2)
 
@@ -120,6 +120,7 @@ Connection: close
 Host: localhost
 Content-Type: text/html
 Content-Length: %d
+Connection: close
 
 """ % data_len + ('X' * data_len)
 
@@ -142,15 +143,15 @@ Content-Length: %d
         self.conf({'http': { 'idle_timeout': 2 }}, 'settings')
 
         (resp, sock) = self.get(headers={
-            'Connection': 'keep-alive',
-            'Host': 'localhost'
-        }, start=True)
+            'Host': 'localhost',
+            'Connection': 'keep-alive'
+        }, start=True, read_timeout=1)
 
         time.sleep(3)
 
         resp = self.get(headers={
-            'Connection': 'close',
-            'Host': 'localhost'
+            'Host': 'localhost',
+            'Connection': 'close'
         }, sock=sock)
 
         self.assertEqual(resp['status'], 408, 'status idle timeout')

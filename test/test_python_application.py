@@ -1,3 +1,4 @@
+import time
 import unittest
 import unit
 
@@ -14,7 +15,8 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
         resp = self.post(headers={
             'Host': 'localhost',
             'Content-Type': 'text/html',
-            'Custom-Header': 'blah'
+            'Custom-Header': 'blah',
+            'Connection': 'close'
         }, body=body)
 
         self.assertEqual(resp['status'], 200, 'status')
@@ -30,6 +32,7 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
             'date header')
 
         self.assertDictEqual(headers, {
+            'Connection': 'close',
             'Content-Length': str(len(body)),
             'Content-Type': 'text/html',
             'Request-Method': 'POST',
@@ -53,6 +56,24 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
         self.assertEqual(resp['headers']['Query-String'], 'var1=val1&var2=val2',
             'Query-String header')
 
+    def test_python_application_query_string_empty(self):
+        self.load('query_string')
+
+        resp = self.get(url='/?')
+
+        self.assertEqual(resp['status'], 200, 'query string empty status')
+        self.assertEqual(resp['headers']['Query-String'], '',
+            'query string empty')
+
+    def test_python_application_query_string_absent(self):
+        self.load('query_string')
+
+        resp = self.get()
+
+        self.assertEqual(resp['status'], 200, 'query string absent status')
+        self.assertEqual(resp['headers']['Query-String'], '',
+            'query string absent')
+
     @unittest.expectedFailure
     def test_python_application_server_port(self):
         self.load('server_port')
@@ -67,13 +88,12 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
             '204 header transfer encoding')
 
     def test_python_application_ctx_iter_atexit(self):
-        self.skip_alerts.append(r'sendmsg.+failed')
         self.load('ctx_iter_atexit')
 
         resp = self.post(headers={
+            'Host': 'localhost',
             'Connection': 'close',
-            'Content-Type': 'text/html',
-            'Host': 'localhost'
+            'Content-Type': 'text/html'
         }, body='0123456789')
 
         self.assertEqual(resp['status'], 200, 'ctx iter status')
@@ -86,6 +106,8 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
 
         self.stop()
 
+        time.sleep(0.2)
+
         self.assertIsNotNone(self.search_in_log(r'RuntimeError'),
             'ctx iter atexit')
 
@@ -93,26 +115,22 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
         self.load('mirror')
 
         (resp, sock) = self.post(headers={
+            'Host': 'localhost',
             'Connection': 'keep-alive',
-            'Content-Type': 'text/html',
-            'Host': 'localhost'
+            'Content-Type': 'text/html'
         }, start=True, body='0123456789' * 500)
 
         self.assertEqual(resp['body'], '0123456789' * 500, 'keep-alive 1')
 
         resp = self.post(headers={
+            'Host': 'localhost',
             'Connection': 'close',
-            'Content-Type': 'text/html',
-            'Host': 'localhost'
+            'Content-Type': 'text/html'
         }, sock=sock, body='0123456789')
 
         self.assertEqual(resp['body'], '0123456789', 'keep-alive 2')
 
     def test_python_keepalive_reconfigure(self):
-        self.skip_alerts.extend([
-            r'sendmsg.+failed',
-            r'recvmsg.+failed'
-        ])
         self.load('mirror')
 
         body = '0123456789'
@@ -121,9 +139,9 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
 
         for i in range(conns):
             (resp, sock) = self.post(headers={
+                'Host': 'localhost',
                 'Connection': 'keep-alive',
-                'Content-Type': 'text/html',
-                'Host': 'localhost'
+                'Content-Type': 'text/html'
             }, start=True, body=body)
 
             self.assertEqual(resp['body'], body, 'keep-alive open')
@@ -136,9 +154,9 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
 
         for i in range(conns):
             (resp, sock) = self.post(headers={
+                'Host': 'localhost',
                 'Connection': 'keep-alive',
-                'Content-Type': 'text/html',
-                'Host': 'localhost'
+                'Content-Type': 'text/html'
             }, start=True, sock=socks[i], body=body)
 
             self.assertEqual(resp['body'], body, 'keep-alive request')
@@ -149,9 +167,9 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
 
         for i in range(conns):
             resp = self.post(headers={
+                'Host': 'localhost',
                 'Connection': 'close',
-                'Content-Type': 'text/html',
-                'Host': 'localhost'
+                'Content-Type': 'text/html'
             }, sock=socks[i], body=body)
 
             self.assertEqual(resp['body'], body, 'keep-alive close')
@@ -161,15 +179,14 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
             }, 'applications/mirror/processes'), 'reconfigure 3')
 
     def test_python_keepalive_reconfigure_2(self):
-        self.skip_alerts.append(r'sendmsg.+failed')
         self.load('mirror')
 
         body = '0123456789'
 
         (resp, sock) = self.post(headers={
+            'Host': 'localhost',
             'Connection': 'keep-alive',
-            'Content-Type': 'text/html',
-            'Host': 'localhost'
+            'Content-Type': 'text/html'
         }, start=True, body=body)
 
         self.assertEqual(resp['body'], body, 'reconfigure 2 keep-alive 1')
@@ -177,9 +194,9 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
         self.load('empty')
 
         (resp, sock) = self.post(headers={
+            'Host': 'localhost',
             'Connection': 'close',
-            'Content-Type': 'text/html',
-            'Host': 'localhost'
+            'Content-Type': 'text/html'
         }, start=True, sock=sock, body=body)
 
         self.assertEqual(resp['status'], 200, 'reconfigure 2 keep-alive 2')
@@ -195,7 +212,6 @@ class TestUnitPythonApplication(unit.TestUnitApplicationPython):
         self.assertEqual(resp, {}, 'reconfigure 2 keep-alive 3')
 
     def test_python_keepalive_reconfigure_3(self):
-        self.skip_alerts.append(r'sendmsg.+failed')
         self.load('empty')
 
         (resp, sock) = self.http(b"""GET / HTTP/1.1
@@ -214,7 +230,6 @@ Connection: close
         self.assertEqual(resp['status'], 200, 'reconfigure 3')
 
     def test_python_atexit(self):
-        self.skip_alerts.append(r'sendmsg.+failed')
         self.load('atexit')
 
         self.get()

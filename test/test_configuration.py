@@ -132,7 +132,6 @@ class TestUnitConfiguration(unit.TestUnitControl):
         self.skip_sanitizer = True
         self.skip_alerts.extend([
             r'failed to apply previous configuration',
-            r'sendmsg.+failed',
             r'process \d+ exited on signal'
         ])
 
@@ -216,6 +215,54 @@ class TestUnitConfiguration(unit.TestUnitControl):
                 }
             }
         }), 'no port')
+
+    @unittest.expectedFailure
+    def test_json_application_name_large(self):
+        self.skip_alerts.append(r'epoll_ctl.+failed')
+        name = "X" * 1024 * 1024
+
+        self.assertIn('success', self.conf({
+            "listeners": {
+                "*:7080": {
+                    "application": name
+                }
+            },
+            "applications": {
+                name: {
+                    "type": "python",
+                    "processes": { "spare": 0 },
+                    "path": "/app",
+                    "module": "wsgi"
+                }
+            }
+        }))
+
+    @unittest.expectedFailure
+    def test_json_application_many(self):
+        self.skip_alerts.extend([
+            r'eventfd.+failed',
+            r'epoll_create.+failed',
+            r'failed to apply new conf'
+        ])
+        apps = 999
+
+        conf = {
+            "applications":
+                {"app-" + str(a): {
+                    "type": "python",
+                    "processes": { "spare": 0 },
+                    "path": "/app",
+                    "module": "wsgi"
+                } for a in range(apps)
+            },
+            "listeners": {
+                "*:" + str(7000 + a): {
+                    "application": "app-" + str(a)
+                } for a in range(apps)
+            }
+        }
+
+        self.assertIn('success', self.conf(conf))
 
 if __name__ == '__main__':
     TestUnitConfiguration.main()

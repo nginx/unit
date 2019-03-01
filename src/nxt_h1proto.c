@@ -526,9 +526,7 @@ nxt_h1p_conn_request_header_parse(nxt_task_t *task, void *obj, void *data)
             return;
         }
 
-        /* ret == NXT_ERROR */
-        status = NXT_HTTP_BAD_REQUEST;
-
+        status = ret;
         goto error;
 
     case NXT_AGAIN:
@@ -564,6 +562,8 @@ nxt_h1p_conn_request_header_parse(nxt_task_t *task, void *obj, void *data)
     (void) nxt_h1p_header_process(h1p, r);
 
 error:
+
+    h1p->keepalive = 0;
 
     nxt_http_request_error(task, r, status);
 }
@@ -1220,6 +1220,7 @@ nxt_h1p_conn_request_timeout(nxt_task_t *task, void *obj, void *data)
     nxt_debug(task, "h1p conn request timeout");
 
     c = nxt_read_timer_conn(timer);
+    c->block_read = 1;
     /*
      * Disable SO_LINGER off during socket closing
      * to send "408 Request Timeout" error response.
@@ -1250,6 +1251,7 @@ nxt_h1p_conn_request_send_timeout(nxt_task_t *task, void *obj, void *data)
     nxt_debug(task, "h1p conn request send timeout");
 
     c = nxt_write_timer_conn(timer);
+    c->block_write = 1;
     h1p = c->socket.data;
 
     nxt_h1p_request_error(task, h1p, h1p->request);
@@ -1464,6 +1466,7 @@ nxt_h1p_idle_timeout(nxt_task_t *task, void *obj, void *data)
     nxt_debug(task, "h1p idle timeout");
 
     c = nxt_read_timer_conn(timer);
+    c->block_read = 1;
 
     nxt_h1p_idle_response(task, c);
 }
@@ -1559,6 +1562,7 @@ nxt_h1p_idle_response_timeout(nxt_task_t *task, void *obj, void *data)
     nxt_debug(task, "h1p idle timeout response timeout");
 
     c = nxt_read_timer_conn(timer);
+    c->block_write = 1;
 
     nxt_h1p_shutdown(task, c);
 }

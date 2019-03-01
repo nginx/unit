@@ -12,7 +12,6 @@
 #include "nxt_unit_sptr.h"
 
 enum {
-    NXT_UNIT_HASH_HOST           = 0xE6EB,
     NXT_UNIT_HASH_CONTENT_LENGTH = 0x1EA0,
     NXT_UNIT_HASH_CONTENT_TYPE   = 0x5F7D,
     NXT_UNIT_HASH_COOKIE         = 0x23F2,

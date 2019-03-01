@@ -9,10 +9,7 @@
 
 
 #include <nxt_auto_config.h>
-
-
-#define NXT_VERSION                  "1.7.1"
-#define NXT_VERNUM                   10701
+#include <nxt_version.h>
 
 #define NXT_SERVER                   "Unit/" NXT_VERSION
 

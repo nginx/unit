@@ -62,7 +62,7 @@ static void nxt_php_set_sptr(nxt_unit_request_info_t *req, const char *name,
 nxt_inline void nxt_php_set_str(nxt_unit_request_info_t *req, const char *name,
     nxt_str_t *s, zval *track_vars_array TSRMLS_DC);
 static void nxt_php_set_cstr(nxt_unit_request_info_t *req, const char *name,
-    char *str, uint32_t len, zval *track_vars_array TSRMLS_DC);
+    const char *str, uint32_t len, zval *track_vars_array TSRMLS_DC);
 static void nxt_php_register_variables(zval *track_vars_array TSRMLS_DC);
 #ifdef NXT_HAVE_PHP_LOG_MESSAGE_WITH_SYSLOG_TYPE
 static void nxt_php_log_message(char *message, int syslog_type_int);
@@ -164,6 +164,7 @@ NXT_EXPORT nxt_app_module_t  nxt_app_module = {
     compat,
     nxt_string("php"),
     PHP_VERSION,
+    NULL,
     nxt_php_init,
 };
 
@@ -846,8 +847,6 @@ nxt_php_read_cookies(TSRMLS_D)
 static void
 nxt_php_register_variables(zval *track_vars_array TSRMLS_DC)
 {
-    char                     *host_start, *port_start;
-    uint32_t                 host_length, port_length;
     const char               *name;
     nxt_unit_field_t         *f, *f_end;
     nxt_php_run_ctx_t        *ctx;
@@ -918,15 +917,17 @@ nxt_php_register_variables(zval *track_vars_array TSRMLS_DC)
                      track_vars_array TSRMLS_CC);
     nxt_php_set_sptr(req, "REQUEST_URI", &r->target, r->target_length,
                      track_vars_array TSRMLS_CC);
-    if (r->query.offset) {
-        nxt_php_set_sptr(req, "QUERY_STRING", &r->query, r->query_length,
-                         track_vars_array TSRMLS_CC);
-    }
+    nxt_php_set_sptr(req, "QUERY_STRING", &r->query, r->query_length,
+                     track_vars_array TSRMLS_CC);
 
     nxt_php_set_sptr(req, "REMOTE_ADDR", &r->remote, r->remote_length,
                      track_vars_array TSRMLS_CC);
     nxt_php_set_sptr(req, "SERVER_ADDR", &r->local, r->local_length,
                      track_vars_array TSRMLS_CC);
+
+    nxt_php_set_sptr(req, "SERVER_NAME", &r->server_name, r->server_name_length,
+                     track_vars_array TSRMLS_CC);
+    nxt_php_set_cstr(req, "SERVER_PORT", "80", 2, track_vars_array TSRMLS_CC);
 
     f_end = r->fields + r->fields_count;
     for (f = r->fields; f < f_end; f++) {
@@ -949,25 +950,6 @@ nxt_php_register_variables(zval *track_vars_array TSRMLS_DC)
         nxt_php_set_sptr(req, "CONTENT_TYPE", &f->value, f->value_length,
                          track_vars_array TSRMLS_CC);
     }
-
-    if (r->host_field != NXT_UNIT_NONE_FIELD) {
-        f = r->fields + r->host_field;
-
-        host_start = nxt_unit_sptr_get(&f->value);
-        host_length = f->value_length;
-
-    } else {
-        host_start = NULL;
-        host_length = 0;
-    }
-
-    nxt_unit_split_host(host_start, host_length, &host_start, &host_length,
-                        &port_start, &port_length);
-
-    nxt_php_set_cstr(req, "SERVER_NAME", host_start, host_length,
-                    track_vars_array TSRMLS_CC);
-    nxt_php_set_cstr(req, "SERVER_PORT", port_start, port_length,
-                    track_vars_array TSRMLS_CC);
 }
 
 
@@ -997,7 +979,7 @@ nxt_php_set_str(nxt_unit_request_info_t *req, const char *name,
 
 static void
 nxt_php_set_cstr(nxt_unit_request_info_t *req, const char *name,
-    char *cstr, uint32_t len, zval *track_vars_array TSRMLS_DC)
+    const char *cstr, uint32_t len, zval *track_vars_array TSRMLS_DC)
 {
     if (nxt_slow_path(cstr == NULL)) {
         return;
@@ -1005,7 +987,7 @@ nxt_php_set_cstr(nxt_unit_request_info_t *req, const char *name,
 
     nxt_unit_req_debug(req, "php: register %s='%.*s'", name, (int) len, cstr);
 
-    php_register_variable_safe((char *) name, cstr, len,
+    php_register_variable_safe((char *) name, (char *) cstr, len,
                                track_vars_array TSRMLS_CC);
 }
 

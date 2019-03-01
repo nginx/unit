@@ -4,12 +4,7 @@ import unit
 class TestUnitGoApplication(unit.TestUnitApplicationGo):
 
     def setUpClass():
-        u = unit.TestUnit()
-
-        if u.architecture == '32bit':
-            raise unittest.SkipTest('Skip Go tests for x86')
-
-        u.check_modules('go')
+        unit.TestUnit().check_modules('go')
 
     def test_go_application_variables(self):
         self.load('variables')
@@ -19,7 +14,8 @@ class TestUnitGoApplication(unit.TestUnitApplicationGo):
         resp = self.post(headers={
             'Host': 'localhost',
             'Content-Type': 'text/html',
-            'Custom-Header': 'blah'
+            'Custom-Header': 'blah',
+            'Connection': 'close'
         }, body=body)
 
         self.assertEqual(resp['status'], 200, 'status')
@@ -41,7 +37,8 @@ class TestUnitGoApplication(unit.TestUnitApplicationGo):
             'Server-Protocol': 'HTTP/1.1',
             'Server-Protocol-Major': '1',
             'Server-Protocol-Minor': '1',
-            'Custom-Header': 'blah'
+            'Custom-Header': 'blah',
+            'Connection': 'close'
         }, 'headers')
         self.assertEqual(resp['body'], body, 'body')
 
@@ -57,8 +54,8 @@ class TestUnitGoApplication(unit.TestUnitApplicationGo):
         self.load('post_variables')
 
         resp = self.post(headers={
-            'Content-Type': 'application/x-www-form-urlencoded',
             'Host': 'localhost',
+            'Content-Type': 'application/x-www-form-urlencoded',
             'Connection': 'close'
         }, body='var1=val1&var2=&var3')
 
@@ -79,17 +76,17 @@ class TestUnitGoApplication(unit.TestUnitApplicationGo):
         self.load('mirror')
 
         (resp, sock) = self.post(headers={
+            'Host': 'localhost',
             'Connection': 'keep-alive',
-            'Content-Type': 'text/html',
-            'Host': 'localhost'
+            'Content-Type': 'text/html'
         }, start=True, body='0123456789' * 500)
 
         self.assertEqual(resp['body'], '0123456789' * 500, 'keep-alive 1')
 
         resp = self.post(headers={
-            'Connection': 'close',
+            'Host': 'localhost',
             'Content-Type': 'text/html',
-            'Host': 'localhost'
+            'Connection': 'close'
         }, sock=sock, body='0123456789')
 
         self.assertEqual(resp['body'], '0123456789', 'keep-alive 2')
@@ -98,8 +95,8 @@ class TestUnitGoApplication(unit.TestUnitApplicationGo):
         self.load('cookies')
 
         resp = self.get(headers={
-            'Cookie': 'var1=val1; var2=val2',
             'Host': 'localhost',
+            'Cookie': 'var1=val1; var2=val2',
             'Connection': 'close'
         })
 

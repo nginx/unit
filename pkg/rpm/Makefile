@@ -1,16 +1,15 @@
 #!/usr/bin/make
 
-DEFAULT_VERSION := $(shell grep 'define NXT_VERSION' ../../src/nxt_main.h \
-			| sed -e 's/^.*"\(.*\)".*/\1/')
+include ../../version
 
 DEFAULT_RELEASE := 1
 
-VERSION ?= $(DEFAULT_VERSION)
+VERSION ?= $(NXT_VERSION)
 RELEASE ?= $(DEFAULT_RELEASE)
 
-ifeq ($(shell rpm --eval "%{?rhel}"), 6)
+ifeq ($(shell test `rpm --eval '0%{?rhel} -eq 6 -a 0%{?amzn} -eq 0'`; echo $$?), 0)
 OSVER = centos6
-else ifeq ($(shell rpm --eval "%{?rhel}"), 7)
+else ifeq ($(shell test `rpm --eval '0%{?rhel} -eq 7 -a 0%{?amzn} -eq 0'`; echo $$?), 0)
 OSVER = centos7
 else ifeq ($(shell rpm --eval "%{?amzn}"), 1)
 OSVER = amazonlinux1
@@ -50,13 +49,18 @@ ifeq ($(OSVER), centos6)
 include Makefile.php
 include Makefile.python
 include Makefile.go
+include Makefile.jsc-common
+include Makefile.jsc8
 endif
 
-ifneq (,$(findstring $(OSVER),centos7 amazonlinux2))
+ifeq ($(OSVER), centos7)
 include Makefile.php
 include Makefile.python
 include Makefile.go
 include Makefile.perl
+include Makefile.jsc-common
+include Makefile.jsc8
+include Makefile.jsc11
 endif
 
 ifeq ($(OSVER), amazonlinux1)
@@ -67,6 +71,17 @@ include Makefile.python35
 include Makefile.python36
 include Makefile.go
 include Makefile.perl
+include Makefile.jsc-common
+include Makefile.jsc8
+endif
+
+ifeq ($(OSVER), amazonlinux2)
+include Makefile.php
+include Makefile.python
+include Makefile.go
+include Makefile.perl
+include Makefile.jsc-common
+include Makefile.jsc8
 endif
 
 ifeq ($(OSVER), opensuse-leap)
@@ -95,16 +110,23 @@ endif
 ifeq ($(OSVER), fedora)
 include Makefile.php
 include Makefile.python27
+ifeq ($(shell test `rpm --eval '0%{?fedora} -ge 29'`; echo $$?),0)
+include Makefile.python37
+else
 include Makefile.python36
+endif
 include Makefile.go
 include Makefile.perl
 include Makefile.ruby
+include Makefile.jsc-common
+include Makefile.jsc8
+include Makefile.jsc11
 endif
 
 CONFIGURE_ARGS=\
 	--prefix=/usr \
 	--state=%{_sharedstatedir}/unit \
-	--control="unix:/var/run/control.unit.sock" \
+	--control="unix:/var/run/unit/control.sock" \
 	--pid=/var/run/unit.pid \
 	--log=/var/log/unit.log \
 	--tests \
@@ -167,7 +189,7 @@ endif
 rpmbuild/SOURCES/unit-$(VERSION).tar.gz:
 	cd ../.. && tar -czf pkg/rpm/rpmbuild/SOURCES/unit-$(VERSION).tar.gz \
 		--transform "s#^#unit-$(VERSION)/#" \
-		LICENSE NOTICE CHANGES README configure auto src test
+		LICENSE NOTICE CHANGES README configure auto src test version
 
 unit: check-build-depends-unit rpmbuild/SPECS/unit.spec rpmbuild/SOURCES/unit-$(VERSION).tar.gz
 	@echo "===> Building $@ package" ; \
@@ -188,9 +210,10 @@ rpmbuild/SPECS/unit-%.spec: unit.module.spec.in ../../docs/changes.xml | rpmbuil
 		sources="$${sources}\n$${s}" ; \
 		i=$$(($${i}+1)) ; \
 	done ; \
-	pkgname=$(shell echo $@ | cut -d '/' -f 3 | cut -d '.' -f 1) ; \
+	pkgname=$(shell echo $@ | cut -d '/' -f 3 | tr '_' '-' | cut -d '.' -f 1) ; \
 	definitions=`echo "$$MODULE_DEFINITIONS_$*" | sed -e ':a' -e 'N' -e '$$!ba' -e "s/\n/\$$CR/g"` ; \
 	preinstall=`echo "$$MODULE_PREINSTALL_$*" | sed -e ':a' -e 'N' -e '$$!ba' -e "s/\n/\$$CR/g"` ; \
+	postinstall=`echo "$$MODULE_POSTINSTALL_$*" | sed -e ':a' -e 'N' -e '$$!ba' -e "s/\n/\$$CR/g"` ; \
 	files=`echo "$$MODULE_FILES_$*" | sed -e ':a' -e 'N' -e '$$!ba' -e "s/\n/\$$CR/g"` ; \
 	post=`echo "$$MODULE_POST_$*" | sed -e ':a' -e 'N' -e '$$!ba' -e "s/\n/\$$CR/g"` ; \
 	cat unit.module.spec.in | sed \
@@ -207,6 +230,7 @@ rpmbuild/SPECS/unit-%.spec: unit.module.spec.in ../../docs/changes.xml | rpmbuil
 		-e "s#%%MODULE_INSTARGS%%#$(MODULE_INSTARGS_$*)#g" \
 		-e "s#%%MODULE_DEFINITIONS%%#$${definitions}#g" \
 		-e "s#%%MODULE_PREINSTALL%%#$${preinstall}#g" \
+		-e "s#%%MODULE_POSTINSTALL%%#$${postinstall}#g" \
 		-e "s#%%MODULE_FILES%%#$${files}#g" \
 		-e "s#%%MODULE_POST%%#$${post}#g" \
 		> $@.tmp ; \
@@ -218,14 +242,15 @@ rpmbuild/SPECS/unit-%.spec: unit.module.spec.in ../../docs/changes.xml | rpmbuil
 	mv $@.tmp $@ 
 
 unit-%: check-build-depends-% rpmbuild/SPECS/unit-%.spec rpmbuild/SOURCES/unit-$(VERSION).tar.gz
-	@echo "===> Building $@ package" ; \
+	@echo "===> Building $(subst _,-,$@) package" ; \
 	rpmbuild -D "_topdir `pwd`/rpmbuild" -ba rpmbuild/SPECS/$@.spec && \
-	ln -s rpmbuild/BUILD/$@-$(VERSION)/build $@
+	ln -s rpmbuild/BUILD/$(subst _,-,$@)-$(VERSION)/build $@
 
 test: unit modules
 	@{ \
-	for so in `find rpmbuild/BUILD/*/build-nodebug/ -type f -name "*.so"`; do \
+	for so in `find rpmbuild/BUILD/*/build-nodebug/ -type f \( -name "*.so" -o -name "*.jar" \)`; do \
 		soname=`basename $${so}` ; \
+		test "$${soname}" = "java.unit.so" && continue ; \
 		test -h rpmbuild/BUILD/unit-$(VERSION)/build-nodebug/$${soname} || \
 		ln -fs `pwd`/$${so} rpmbuild/BUILD/unit-$(VERSION)/build-nodebug/$${soname} ; \
 	done ; \
@@ -234,8 +259,9 @@ test: unit modules
 
 test-debug: unit modules
 	@{ \
-	for so in `find rpmbuild/BUILD/*/build-debug/ -type f -name "*.so"`; do \
+	for so in `find rpmbuild/BUILD/*/build-debug/ -type f \( -name "*.so" -o -name "*.jar" \)`; do \
 		soname=`basename $${so}` ; \
+		test "$${soname}" = "java.unit.so" && continue ; \
 		test -h rpmbuild/BUILD/unit-$(VERSION)/build-debug/$${soname} || \
 		ln -fs `pwd`/$${so} rpmbuild/BUILD/unit-$(VERSION)/build-debug/$${soname} ; \
 	done ; \

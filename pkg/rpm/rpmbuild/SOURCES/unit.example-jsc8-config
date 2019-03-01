@@ -1,0 +1,15 @@
+{
+	"applications": {
+		"example_java8": {
+			"processes": 1,
+			"type": "java 1.8.0",
+			"webapp": "/usr/share/doc/unit-jsc8/examples/jsc-app"
+		}
+	},
+
+	"listeners": {
+		"*:8800": {
+			"application": "example_java8"
+		}
+	}
+}

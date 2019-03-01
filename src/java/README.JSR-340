@@ -1,0 +1,16 @@
+NOTICE:
+
+This version of Unit code is made available in support of the open source
+development process.  This is an intermediate build made available for
+testing purposes only.  This Unit code is untested and presumed incompatible
+with the JSR 340 Java Servlet 3.1 specification.  You should not deploy or
+write to this code.  You should instead deploy and write production
+applications on pre-built binaries that have been tested and certified
+to meet the JSR-340 compatibility requirements such as certified binaries
+published for the JSR-340 reference implementation available at
+https://javaee.github.io/glassfish/.
+
+Redistribution of any Intermediate Build must retain this notice.
+
+Oracle and Java are registered trademarks of Oracle and/or its affiliates.
+Other names may be trademarks of their respective owners.

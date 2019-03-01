@@ -1,0 +1,15 @@
+{
+	"applications": {
+		"example_java11": {
+			"processes": 1,
+			"type": "java 11",
+			"webapp": "/usr/share/doc/unit-jsc11/examples/jsc-app"
+		}
+	},
+
+	"listeners": {
+		"*:8800": {
+			"application": "example_java11"
+		}
+	}
+}

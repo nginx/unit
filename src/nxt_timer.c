@@ -159,9 +159,9 @@ nxt_timer_change(nxt_event_engine_t *engine, nxt_timer_t *timer,
 static void
 nxt_timer_changes_commit(nxt_event_engine_t *engine)
 {
-    nxt_timer_t         *timer, **add, **add_end;
+    nxt_timer_t         *timer;
     nxt_timers_t        *timers;
-    nxt_timer_change_t  *ch, *end;
+    nxt_timer_change_t  *ch, *end, *add, *add_end;
 
     timers = &engine->timers;
 
@@ -170,7 +170,7 @@ nxt_timer_changes_commit(nxt_event_engine_t *engine)
     ch = timers->changes;
     end = ch + timers->nchanges;
 
-    add = (nxt_timer_t **) ch;
+    add = ch;
     add_end = add;
 
     while (ch < end) {
@@ -185,7 +185,8 @@ nxt_timer_changes_commit(nxt_event_engine_t *engine)
 
             timer->time = ch->time;
 
-            *add_end++ = timer;
+            add_end->timer = timer;
+            add_end++;
 
             if (!nxt_timer_is_in_tree(timer)) {
                 break;
@@ -209,7 +210,7 @@ nxt_timer_changes_commit(nxt_event_engine_t *engine)
     }
 
     while (add < add_end) {
-        timer = *add;
+        timer = add->timer;
 
         nxt_debug(timer->task, "timer rbtree insert: %M±%d",
                   timer->time, timer->bias);

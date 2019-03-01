@@ -14,7 +14,8 @@ class TestUnitPerlApplication(unit.TestUnitApplicationPerl):
         resp = self.post(headers={
             'Host': 'localhost',
             'Content-Type': 'text/html',
-            'Custom-Header': 'blah'
+            'Custom-Header': 'blah',
+            'Connection': 'close'
         }, body=body)
 
         self.assertEqual(resp['status'], 200, 'status')
@@ -30,6 +31,7 @@ class TestUnitPerlApplication(unit.TestUnitApplicationPerl):
             'date header')
 
         self.assertDictEqual(headers, {
+            'Connection': 'close',
             'Content-Length': str(len(body)),
             'Content-Type': 'text/html',
             'Request-Method': 'POST',
@@ -43,7 +45,7 @@ class TestUnitPerlApplication(unit.TestUnitApplicationPerl):
             'Psgi-Multiprocess': '1',
             'Psgi-Run-Once': '',
             'Psgi-Nonblocking': '',
-            'Psgi-Streaming': ''
+            'Psgi-Streaming': '1'
         }, 'headers')
         self.assertEqual(resp['body'], body, 'body')
 
@@ -54,6 +56,25 @@ class TestUnitPerlApplication(unit.TestUnitApplicationPerl):
 
         self.assertEqual(resp['headers']['Query-String'], 'var1=val1&var2=val2',
             'Query-String header')
+
+    def test_perl_application_query_string_empty(self):
+        self.load('query_string')
+
+        resp = self.get(url='/?')
+
+        self.assertEqual(resp['status'], 200, 'query string empty status')
+        self.assertEqual(resp['headers']['Query-String'], '',
+            'query string empty')
+
+    @unittest.expectedFailure
+    def test_perl_application_query_string_absent(self):
+        self.load('query_string')
+
+        resp = self.get()
+
+        self.assertEqual(resp['status'], 200, 'query string absent status')
+        self.assertEqual(resp['headers']['Query-String'], '',
+            'query string absent')
 
     @unittest.expectedFailure
     def test_perl_application_server_port(self):
@@ -151,20 +172,49 @@ class TestUnitPerlApplication(unit.TestUnitApplicationPerl):
         self.load('variables')
 
         (resp, sock) = self.post(headers={
+            'Host': 'localhost',
             'Connection': 'keep-alive',
-            'Content-Type': 'text/html',
-            'Host': 'localhost'
+            'Content-Type': 'text/html'
         }, start=True, body='0123456789' * 500)
 
         self.assertEqual(resp['body'], '0123456789' * 500, 'keep-alive 1')
 
         resp = self.post(headers={
+            'Host': 'localhost',
             'Connection': 'close',
-            'Content-Type': 'text/html',
-            'Host': 'localhost'
+            'Content-Type': 'text/html'
         }, sock=sock, body='0123456789')
 
         self.assertEqual(resp['body'], '0123456789', 'keep-alive 2')
+
+    def test_perl_body_io_fake(self):
+        self.load('body_io_fake')
+
+        self.assertEqual(self.get()['body'], '21', 'body io fake')
+
+        self.assertIsNotNone(
+            self.search_in_log(r'\[error\].+IOFake getline\(\) \$\/ is \d+'),
+            'body io fake $/ value')
+
+        self.assertIsNotNone(
+            self.search_in_log(r'\[error\].+IOFake close\(\) called'),
+            'body io fake close')
+
+    def test_perl_delayed_response(self):
+        self.load('delayed_response')
+
+        resp = self.get()
+
+        self.assertEqual(resp['status'], 200, 'status')
+        self.assertEqual(resp['body'], 'Hello World!', 'body')
+
+    def test_perl_streaming_body(self):
+        self.load('streaming_body')
+
+        resp = self.get()
+
+        self.assertEqual(resp['status'], 200, 'status')
+        self.assertEqual(resp['body'], 'Hello World!', 'body')
 
 if __name__ == '__main__':
     TestUnitPerlApplication.main()

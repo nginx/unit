@@ -22,6 +22,11 @@ config.env.%:
 	cp -Pa $(CURDIR)/configure $(BUILDDIR_$*)/
 	cp -Pa $(CURDIR)/src $(BUILDDIR_$*)/
 	cp -Pa $(CURDIR)/test $(BUILDDIR_$*)/
+	cp -Pa $(CURDIR)/version $(BUILDDIR_$*)/
+	cp -Pa $(CURDIR)/CHANGES $(BUILDDIR_$*)/
+	cp -Pa $(CURDIR)/LICENSE $(BUILDDIR_$*)/
+	cp -Pa $(CURDIR)/NOTICE $(BUILDDIR_$*)/
+	cp -Pa $(CURDIR)/README $(BUILDDIR_$*)/
 	touch $@
 
 configure.unit: config.env.unit
@@ -65,6 +70,7 @@ clean:
 	dh_testroot
 	dh_clean
 	find $(CURDIR) -maxdepth 1 -size 0 -delete
+	rm -rf $(BUILDDIR_unit) $(BUILDDIR_unit_debug)
 
 install: build
 	dh_testdir
@@ -78,12 +84,13 @@ install: build
 	DESTDIR=$(INSTALLDIR) make %%MODULE_INSTARGS%%
 	cd $(BUILDDIR_unit_debug) && \
 	DESTDIR=$(INSTALLDIR) make %%MODULE_INSTARGS%%
+%%MODULE_POSTINSTALL%%
 
 binary-indep: build install
 	dh_testdir
 	dh_testroot
 	dh_installdocs
-	dh_installchangelogs 
+	dh_installchangelogs
 	dh_link
 	dh_strip --dbg-package=%%NAME%%-dbg
 	dh_shlibdeps

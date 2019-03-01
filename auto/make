@@ -67,6 +67,22 @@ done
 $echo >> $NXT_MAKEFILE
 
 
+# The version file.
+
+cat << END >> $NXT_MAKEFILE
+
+include version
+
+$NXT_VERSION_H: version
+	$echo '#define NXT_VERSION "\$(NXT_VERSION)"' > $NXT_VERSION_H
+	$echo '#define NXT_VERNUM  \$(NXT_VERNUM)' >> $NXT_VERSION_H
+
+$NXT_BUILD_DIR/src/nxt_unit.o: $NXT_VERSION_H
+$NXT_BUILD_DIR/src/nxt_lib.o: $NXT_VERSION_H
+
+END
+
+
 # Shared and static library.
 
 cat << END >> $NXT_MAKEFILE
@@ -81,14 +97,6 @@ $NXT_BUILD_DIR/$NXT_LIB_SHARED:	\$(NXT_LIB_OBJS)
 $NXT_BUILD_DIR/$NXT_LIB_STATIC:	\$(NXT_LIB_OBJS)
 	$NXT_STATIC_LINK $NXT_BUILD_DIR/$NXT_LIB_STATIC \\
 		\$(NXT_LIB_OBJS)
-
-$NXT_BUILD_DIR/nxt_unit_version.h: src/nxt_main.h
-	$echo -n '#define NXT_UNIT_VERNUM ' > $NXT_BUILD_DIR/nxt_unit_version.h
-	grep 'define NXT_VERNUM' src/nxt_main.h	\\
-		| sed -e 's/[^0-9]//g' >> $NXT_BUILD_DIR/nxt_unit_version.h
-
-$NXT_BUILD_DIR/src/nxt_unit.o: $NXT_BUILD_DIR/nxt_unit_version.h
-$NXT_BUILD_DIR/src/nxt_lib.o: $NXT_BUILD_DIR/nxt_unit_version.h
 
 $NXT_BUILD_DIR/$NXT_LIB_UNIT_STATIC:	\$(NXT_LIB_UNIT_OBJS)
 	$NXT_STATIC_LINK $NXT_BUILD_DIR/$NXT_LIB_UNIT_STATIC \\
@@ -296,7 +304,7 @@ libunit-install: $NXT_BUILD_DIR/$NXT_LIB_UNIT_STATIC
 	install -d \$(DESTDIR)$NXT_INCDIR
 	install -p -m u=rw,go=r src/nxt_unit.h src/nxt_unit_field.h \
 		src/nxt_unit_request.h src/nxt_unit_response.h src/nxt_unit_sptr.h \
-		src/nxt_unit_typedefs.h $NXT_BUILD_DIR/nxt_unit_version.h \
+		src/nxt_unit_typedefs.h $NXT_BUILD_DIR/nxt_version.h \
 		\$(DESTDIR)$NXT_INCDIR/
 
 libunit-uninstall:
@@ -308,7 +316,7 @@ libunit-uninstall:
 		\$(DESTDIR)$NXT_INCDIR/nxt_unit_response.h \
 		\$(DESTDIR)$NXT_INCDIR/nxt_unit_sptr.h \
 		\$(DESTDIR)$NXT_INCDIR/nxt_unit_typedefs.h \
-		\$(DESTDIR)$NXT_INCDIR/nxt_unit_version.h
+		\$(DESTDIR)$NXT_INCDIR/nxt_version.h
 	@rmdir -p \$(DESTDIR)$NXT_INCDIR 2>/dev/null || true
 
 END

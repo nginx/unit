@@ -72,7 +72,7 @@ static PyObject *nxt_python_get_environ(nxt_python_run_ctx_t *ctx);
 static int nxt_python_add_sptr(nxt_python_run_ctx_t *ctx, const char *name,
     nxt_unit_sptr_t *sptr, uint32_t size);
 static int nxt_python_add_str(nxt_python_run_ctx_t *ctx, const char *name,
-    char *str, uint32_t size);
+    const char *str, uint32_t size);
 
 static PyObject *nxt_py_start_resp(PyObject *self, PyObject *args);
 static int nxt_python_response_add_field(nxt_python_run_ctx_t *ctx,
@@ -105,6 +105,7 @@ NXT_EXPORT nxt_app_module_t  nxt_app_module = {
     compat,
     nxt_string("python"),
     PY_VERSION,
+    NULL,
     nxt_python_init,
 };
 
@@ -690,8 +691,8 @@ static PyObject *
 nxt_python_get_environ(nxt_python_run_ctx_t *ctx)
 {
     int                 rc;
-    char                *name, *host_start, *port_start;
-    uint32_t            i, host_length, port_length;
+    char                *name;
+    uint32_t            i;
     PyObject            *environ;
     nxt_unit_field_t    *f;
     nxt_unit_request_t  *r;
@@ -719,11 +720,7 @@ nxt_python_get_environ(nxt_python_run_ctx_t *ctx)
     RC(nxt_python_add_sptr(ctx, "REQUEST_METHOD", &r->method,
                            r->method_length));
     RC(nxt_python_add_sptr(ctx, "REQUEST_URI", &r->target, r->target_length));
-
-    if (r->query.offset) {
-        RC(nxt_python_add_sptr(ctx, "QUERY_STRING", &r->query,
-                               r->query_length));
-    }
+    RC(nxt_python_add_sptr(ctx, "QUERY_STRING", &r->query, r->query_length));
     RC(nxt_python_add_sptr(ctx, "PATH_INFO", &r->path, r->path_length));
 
     RC(nxt_python_add_sptr(ctx, "REMOTE_ADDR", &r->remote, r->remote_length));
@@ -731,6 +728,10 @@ nxt_python_get_environ(nxt_python_run_ctx_t *ctx)
 
     RC(nxt_python_add_sptr(ctx, "SERVER_PROTOCOL", &r->version,
                            r->version_length));
+
+    RC(nxt_python_add_sptr(ctx, "SERVER_NAME", &r->server_name,
+                           r->server_name_length));
+    RC(nxt_python_add_str(ctx, "SERVER_PORT", "80", 2));
 
     for (i = 0; i < r->fields_count; i++) {
         f = r->fields + i;
@@ -752,23 +753,6 @@ nxt_python_get_environ(nxt_python_run_ctx_t *ctx)
         RC(nxt_python_add_sptr(ctx, "CONTENT_TYPE", &f->value,
                                f->value_length));
     }
-
-    if (r->host_field != NXT_UNIT_NONE_FIELD) {
-        f = r->fields + r->host_field;
-
-        host_start = nxt_unit_sptr_get(&f->value);
-        host_length = f->value_length;
-
-    } else {
-        host_start = NULL;
-        host_length = 0;
-    }
-
-    nxt_unit_split_host(host_start, host_length, &host_start, &host_length,
-                        &port_start, &port_length);
-
-    RC(nxt_python_add_str(ctx, "SERVER_NAME", host_start, host_length));
-    RC(nxt_python_add_str(ctx, "SERVER_PORT", port_start, port_length));
 
 #undef RC
 
@@ -818,7 +802,7 @@ nxt_python_add_sptr(nxt_python_run_ctx_t *ctx, const char *name,
 
 static int
 nxt_python_add_str(nxt_python_run_ctx_t *ctx, const char *name,
-    char *str, uint32_t size)
+    const char *str, uint32_t size)
 {
     PyObject  *value;
 

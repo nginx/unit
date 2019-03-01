@@ -157,7 +157,8 @@ struct nxt_conn_s {
     nxt_sockaddr_t                *local;
     const char                    *action;
 
-    uint8_t                       blocked;      /* 1 bit */
+    uint8_t                       block_read;   /* 1 bit */
+    uint8_t                       block_write;  /* 1 bit */
     uint8_t                       delayed;      /* 1 bit */
 
 #define NXT_CONN_SENDFILE_OFF     0

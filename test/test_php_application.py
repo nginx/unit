@@ -7,9 +7,11 @@ class TestUnitPHPApplication(unit.TestUnitApplicationPHP):
     def setUpClass():
         unit.TestUnit().check_modules('php')
 
-    def search_disabled(self, name):
-        p = re.compile(name + '\(\) has been disabled')
-        return self.search_in_log(p)
+    def before_disable_functions(self):
+        body = self.get()['body']
+
+        self.assertRegex(body, r'time: \d+', 'disable_functions before time')
+        self.assertRegex(body, r'exec: \/\w+', 'disable_functions before exec')
 
     def test_php_application_variables(self):
         self.load('variables')
@@ -19,7 +21,8 @@ class TestUnitPHPApplication(unit.TestUnitApplicationPHP):
         resp = self.post(headers={
             'Host': 'localhost',
             'Content-Type': 'text/html',
-            'Custom-Header': 'blah'
+            'Custom-Header': 'blah',
+            'Connection': 'close'
         }, body=body)
 
         self.assertEqual(resp['status'], 200, 'status')
@@ -39,6 +42,7 @@ class TestUnitPHPApplication(unit.TestUnitApplicationPHP):
 
         headers.pop('Content-type')
         self.assertDictEqual(headers, {
+            'Connection': 'close',
             'Content-Length': str(len(body)),
             'Request-Method': 'POST',
             'Request-Uri': '/',
@@ -47,6 +51,33 @@ class TestUnitPHPApplication(unit.TestUnitApplicationPHP):
             'Custom-Header': 'blah'
         }, 'headers')
         self.assertEqual(resp['body'], body, 'body')
+
+    def test_php_application_query_string(self):
+        self.load('query_string')
+
+        resp = self.get(url='/?var1=val1&var2=val2')
+
+        self.assertEqual(resp['headers']['Query-String'], 'var1=val1&var2=val2',
+            'query string')
+
+    def test_php_application_query_string_empty(self):
+        self.load('query_string')
+
+        resp = self.get(url='/?')
+
+        self.assertEqual(resp['status'], 200, 'query string empty status')
+        self.assertEqual(resp['headers']['Query-String'], '',
+            'query string empty')
+
+    @unittest.expectedFailure
+    def test_php_application_query_string_absent(self):
+        self.load('query_string')
+
+        resp = self.get()
+
+        self.assertEqual(resp['status'], 200, 'query string absent status')
+        self.assertEqual(resp['headers']['Query-String'], '',
+            'query string absent')
 
     def test_php_application_phpinfo(self):
         self.load('phpinfo')
@@ -69,17 +100,17 @@ class TestUnitPHPApplication(unit.TestUnitApplicationPHP):
         self.load('mirror')
 
         (resp, sock) = self.post(headers={
+            'Host': 'localhost',
             'Connection': 'keep-alive',
-            'Content-Type': 'text/html',
-            'Host': 'localhost'
+            'Content-Type': 'text/html'
         }, start=True, body='0123456789' * 500)
 
         self.assertEqual(resp['body'], '0123456789' * 500, 'keep-alive 1')
 
         resp = self.post(headers={
+            'Host': 'localhost',
             'Connection': 'close',
-            'Content-Type': 'text/html',
-            'Host': 'localhost'
+            'Content-Type': 'text/html'
         }, sock=sock, body='0123456789')
 
         self.assertEqual(resp['body'], '0123456789', 'keep-alive 2')
@@ -210,109 +241,97 @@ class TestUnitPHPApplication(unit.TestUnitApplicationPHP):
             'ini value repeat')
 
     def test_php_application_disable_functions_exec(self):
-        self.load('highlight_file_exec')
+        self.load('time_exec')
+
+        self.before_disable_functions()
 
         self.conf({"admin": { "disable_functions": "exec" }},
-            'applications/highlight_file_exec/options')
+            'applications/time_exec/options')
 
-        self.get()
+        body = self.get()['body']
 
-        self.assertIsNotNone(self.search_disabled('exec'),
-            'disable_functions exec')
-        self.assertIsNone(self.search_disabled('highlight_file'),
-            'disable_functions highlight_file')
-
-    def test_php_application_disable_functions_highlight_file(self):
-        self.load('highlight_file_exec')
-
-        self.conf({"admin": { "disable_functions": "highlight_file" }},
-            'applications/highlight_file_exec/options')
-
-        self.get()
-
-        self.assertIsNone(self.search_disabled('exec'),
-            'disable_functions exec')
-        self.assertIsNotNone(self.search_disabled('highlight_file'),
-            'disable_functions highlight_file')
+        self.assertRegex(body, r'time: \d+', 'disable_functions time')
+        self.assertNotRegex(body, r'exec: \/\w+', 'disable_functions exec')
 
     def test_php_application_disable_functions_comma(self):
-        self.load('highlight_file_exec')
+        self.load('time_exec')
 
-        self.conf({"admin": { "disable_functions": "exec,highlight_file" }},
-            'applications/highlight_file_exec/options')
+        self.before_disable_functions()
 
-        self.get()
+        self.conf({"admin": { "disable_functions": "exec,time" }},
+            'applications/time_exec/options')
 
-        self.assertIsNotNone(self.search_disabled('exec'),
-            'disable_functions exec')
-        self.assertIsNotNone(self.search_disabled('highlight_file'),
-            'disable_functions highlight_file')
+        body = self.get()['body']
+
+        self.assertNotRegex(body, r'time: \d+', 'disable_functions comma time')
+        self.assertNotRegex(body, r'exec: \/\w+',
+            'disable_functions comma exec')
 
     def test_php_application_disable_functions_space(self):
-        self.load('highlight_file_exec')
+        self.load('time_exec')
 
-        self.conf({"admin": { "disable_functions": "exec highlight_file" }},
-            'applications/highlight_file_exec/options')
+        self.before_disable_functions()
 
-        self.get()
+        self.conf({"admin": { "disable_functions": "exec time" }},
+            'applications/time_exec/options')
 
-        self.assertIsNotNone(self.search_disabled('exec'),
-            'disable_functions exec')
-        self.assertIsNotNone(self.search_disabled('highlight_file'),
-            'disable_functions highlight_file')
+        body = self.get()['body']
+
+        self.assertNotRegex(body, r'time: \d+', 'disable_functions space time')
+        self.assertNotRegex(body, r'exec: \/\w+',
+            'disable_functions space exec')
 
     def test_php_application_disable_functions_user(self):
-        self.load('highlight_file_exec')
+        self.load('time_exec')
+
+        self.before_disable_functions()
 
         self.conf({"user": { "disable_functions": "exec" }},
-            'applications/highlight_file_exec/options')
+            'applications/time_exec/options')
 
-        self.get()
+        body = self.get()['body']
 
-        self.assertIsNotNone(self.search_disabled('exec'),
-            'disable_functions exec')
-        self.assertIsNone(self.search_disabled('highlight_file'),
-            'disable_functions highlight_file')
+        self.assertRegex(body, r'time: \d+', 'disable_functions user time')
+        self.assertNotRegex(body, r'exec: \/\w+', 'disable_functions user exec')
 
     def test_php_application_disable_functions_nonexistent(self):
-        self.load('highlight_file_exec')
+        self.load('time_exec')
+
+        self.before_disable_functions()
 
         self.conf({"admin": { "disable_functions": "blah" }},
-            'applications/highlight_file_exec/options')
+            'applications/time_exec/options')
 
-        self.get()
+        body = self.get()['body']
 
-        self.assertIsNone(self.search_disabled('exec'),
-            'disable_functions exec')
-        self.assertIsNone(self.search_disabled('highlight_file'),
-            'disable_functions highlight_file')
+        self.assertRegex(body, r'time: \d+',
+            'disable_functions nonexistent time')
+        self.assertRegex(body, r'exec: \/\w+',
+            'disable_functions nonexistent exec')
 
     def test_php_application_disable_classes(self):
         self.load('date_time')
 
-        self.get()
-
-        self.assertIsNone(self.search_disabled('DateTime'),
+        self.assertRegex(self.get()['body'], r'012345',
             'disable_classes before')
 
         self.conf({"admin": { "disable_classes": "DateTime" }},
             'applications/date_time/options')
 
-        self.get()
-
-        self.assertIsNotNone(self.search_disabled('DateTime'),
-            'disable_classes')
+        self.assertNotRegex(self.get()['body'], r'012345',
+            'disable_classes before')
 
     def test_php_application_disable_classes_user(self):
         self.load('date_time')
 
+        self.assertRegex(self.get()['body'], r'012345',
+            'disable_classes before')
+
         self.conf({"user": { "disable_classes": "DateTime" }},
             'applications/date_time/options')
 
-        self.get()
-
-        self.assertIsNotNone(self.search_disabled('DateTime'),
-            'disable_classes user')
+        self.assertNotRegex(self.get()['body'], r'012345',
+            'disable_classes before')
 
 if __name__ == '__main__':
     TestUnitPHPApplication.main()

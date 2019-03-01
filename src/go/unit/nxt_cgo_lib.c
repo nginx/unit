@@ -75,14 +75,11 @@ nxt_cgo_request_handler(nxt_unit_request_info_t *req)
         nxt_go_request_add_header(go_req,
             nxt_cgo_str_init(&name, &f->name, f->name_length),
             nxt_cgo_str_init(&value, &f->value, f->value_length));
-
-        if (f->hash == NXT_UNIT_HASH_HOST) {
-            host = value;
-        }
     }
 
     nxt_go_request_set_content_length(go_req, r->content_length);
-    nxt_go_request_set_host(go_req, &host);
+    nxt_go_request_set_host(go_req,
+        nxt_cgo_str_init(&host, &r->server_name, r->server_name_length));
     nxt_go_request_set_remote_addr(go_req,
         nxt_cgo_str_init(&remote_addr, &r->remote, r->remote_length));
 

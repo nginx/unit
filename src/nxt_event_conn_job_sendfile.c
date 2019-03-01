@@ -80,7 +80,8 @@ nxt_event_conn_job_sendfile_start(nxt_task_t *task, void *obj, void *data)
             c->write = NULL;
             jbs->ready_handler = nxt_event_conn_job_sendfile_return;
 
-            c->blocked = 1;
+            c->block_read = 1;
+            c->block_write = 1;
 
             nxt_job_start(task, &jbs->job, nxt_event_conn_job_sendfile_handler);
             return;
@@ -170,7 +171,8 @@ nxt_event_conn_job_sendfile_return(nxt_task_t *task, void *obj, void *data)
     jbs = obj;
     c = data;
 
-    c->blocked = 0;
+    c->block_read = 0;
+    c->block_write = 0;
 
     sent = jbs->sent;
     c->sent += sent;

@@ -45,7 +45,7 @@ static int nxt_ruby_read_request(VALUE hash_env);
 nxt_inline void nxt_ruby_add_sptr(VALUE hash_env,
     const char *name, uint32_t name_len, nxt_unit_sptr_t *sptr, uint32_t len);
 nxt_inline void nxt_ruby_add_str(VALUE hash_env,
-    const char *name, uint32_t name_len, char *str, uint32_t len);
+    const char *name, uint32_t name_len, const char *str, uint32_t len);
 static nxt_int_t nxt_ruby_rack_result_status(VALUE result);
 static int nxt_ruby_rack_result_headers(VALUE result, nxt_int_t status);
 static int nxt_ruby_hash_info(VALUE r_key, VALUE r_value, VALUE arg);
@@ -76,6 +76,7 @@ NXT_EXPORT nxt_app_module_t  nxt_app_module = {
     compat,
     nxt_string("ruby"),
     ruby_version,
+    NULL,
     nxt_ruby_init,
 };
 
@@ -428,8 +429,7 @@ fail:
 static int
 nxt_ruby_read_request(VALUE hash_env)
 {
-    char                *host_start, *port_start;
-    uint32_t            i, host_length, port_length;
+    uint32_t            i;
     nxt_unit_field_t    *f;
     nxt_unit_request_t  *r;
 
@@ -442,15 +442,17 @@ nxt_ruby_read_request(VALUE hash_env)
     nxt_ruby_add_sptr(hash_env, NL("REQUEST_URI"), &r->target,
                       r->target_length);
     nxt_ruby_add_sptr(hash_env, NL("PATH_INFO"), &r->path, r->path_length);
-    if (r->query.offset) {
-        nxt_ruby_add_sptr(hash_env, NL("QUERY_STRING"), &r->query,
-                          r->query_length);
-    }
+    nxt_ruby_add_sptr(hash_env, NL("QUERY_STRING"), &r->query,
+                      r->query_length);
     nxt_ruby_add_sptr(hash_env, NL("SERVER_PROTOCOL"), &r->version,
                       r->version_length);
     nxt_ruby_add_sptr(hash_env, NL("REMOTE_ADDR"), &r->remote,
                       r->remote_length);
     nxt_ruby_add_sptr(hash_env, NL("SERVER_ADDR"), &r->local, r->local_length);
+
+    nxt_ruby_add_sptr(hash_env, NL("SERVER_NAME"), &r->server_name,
+                      r->server_name_length);
+    nxt_ruby_add_str(hash_env, NL("SERVER_PORT"), "80", 2);
 
     for (i = 0; i < r->fields_count; i++) {
         f = r->fields + i;
@@ -473,23 +475,6 @@ nxt_ruby_read_request(VALUE hash_env)
                           &f->value, f->value_length);
     }
 
-    if (r->host_field != NXT_UNIT_NONE_FIELD) {
-        f = r->fields + r->host_field;
-
-        host_start = nxt_unit_sptr_get(&f->value);
-        host_length = f->value_length;
-
-    } else {
-        host_start = NULL;
-        host_length = 0;
-    }
-
-    nxt_unit_split_host(host_start, host_length, &host_start, &host_length,
-                        &port_start, &port_length);
-
-    nxt_ruby_add_str(hash_env, NL("SERVER_NAME"), host_start, host_length);
-    nxt_ruby_add_str(hash_env, NL("SERVER_PORT"), port_start, port_length);
-
 #undef NL
 
     return NXT_UNIT_OK;
@@ -510,7 +495,7 @@ nxt_ruby_add_sptr(VALUE hash_env,
 
 nxt_inline void
 nxt_ruby_add_str(VALUE hash_env,
-    const char *name, uint32_t name_len, char *str, uint32_t len)
+    const char *name, uint32_t name_len, const char *str, uint32_t len)
 {
     rb_hash_aset(hash_env, rb_str_new(name, name_len), rb_str_new(str, len));
 }

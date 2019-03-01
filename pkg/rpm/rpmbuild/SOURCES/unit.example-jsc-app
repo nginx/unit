@@ -1,0 +1,12 @@
+<%@ page contentType="text/plain"%><%@ page import="java.util.*" %>This is plain text response for "<%= request.getMethod() %> <%= request.getRequestURI() %>".
+Here is the list of all system properties:
+<%
+    Properties p = System.getProperties();
+    Enumeration keys = p.keys();
+    while (keys.hasMoreElements()) {
+        String key = (String) keys.nextElement();
+        String value = (String) p.get(key);
+        out.println("  " + key + " : " + value);
+    }
+%>
+<% response.addHeader("X-Unit-JSP", "ok"); %>

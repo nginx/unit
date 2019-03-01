@@ -43,6 +43,8 @@ nxt_memcpy(dst, src, length)                                                  \
 
 NXT_EXPORT void nxt_memcpy_lowcase(u_char *dst, const u_char *src,
     size_t length);
+NXT_EXPORT void nxt_memcpy_upcase(u_char *dst, const u_char *src,
+    size_t length);
 
 
 /*

@@ -8,11 +8,14 @@
 #include <nxt_http.h>
 
 
+static nxt_int_t nxt_http_validate_host(nxt_str_t *host, nxt_mp_t *mp);
 static void nxt_http_request_start(nxt_task_t *task, void *obj, void *data);
-static void nxt_http_app_request(nxt_task_t *task, void *obj, void *data);
+static void nxt_http_request_pass(nxt_task_t *task, void *obj, void *data);
 static void nxt_http_request_mem_buf_completion(nxt_task_t *task, void *obj,
     void *data);
 static void nxt_http_request_done(nxt_task_t *task, void *obj, void *data);
+static void nxt_http_request_close_handler(nxt_task_t *task, void *obj,
+    void *data);
 
 static u_char *nxt_http_date(u_char *buf, nxt_realtime_t *now, struct tm *tm,
     size_t size, const char *format);
@@ -50,13 +53,117 @@ nxt_http_init(nxt_task_t *task, nxt_runtime_t *rt)
 nxt_int_t
 nxt_http_request_host(void *ctx, nxt_http_field_t *field, uintptr_t data)
 {
+    nxt_int_t           ret;
+    nxt_str_t           host;
     nxt_http_request_t  *r;
 
     r = ctx;
 
-    /* TODO: validate host. */
+    if (nxt_slow_path(r->host.start != NULL)) {
+        return NXT_HTTP_BAD_REQUEST;
+    }
 
-    r->host = field;
+    host.length = field->value_length;
+    host.start = field->value;
+
+    ret = nxt_http_validate_host(&host, r->mem_pool);
+
+    if (nxt_fast_path(ret == NXT_OK)) {
+        r->host = host;
+    }
+
+    return ret;
+}
+
+
+static nxt_int_t
+nxt_http_validate_host(nxt_str_t *host, nxt_mp_t *mp)
+{
+    u_char      *h, ch;
+    size_t      i, dot_pos, host_length;
+    nxt_bool_t  lowcase;
+
+    enum {
+        sw_usual,
+        sw_literal,
+        sw_rest
+    } state;
+
+    dot_pos = host->length;
+    host_length = host->length;
+
+    h = host->start;
+
+    lowcase = 0;
+    state = sw_usual;
+
+    for (i = 0; i < host->length; i++) {
+        ch = h[i];
+
+        if (ch > ']') {
+            /* Short path. */
+            continue;
+        }
+
+        switch (ch) {
+
+        case '.':
+            if (dot_pos == i - 1) {
+                return NXT_HTTP_BAD_REQUEST;
+            }
+
+            dot_pos = i;
+            break;
+
+        case ':':
+            if (state == sw_usual) {
+                host_length = i;
+                state = sw_rest;
+            }
+
+            break;
+
+        case '[':
+            if (i == 0) {
+                state = sw_literal;
+            }
+
+            break;
+
+        case ']':
+            if (state == sw_literal) {
+                host_length = i + 1;
+                state = sw_rest;
+            }
+
+            break;
+
+        case '/':
+            return NXT_HTTP_BAD_REQUEST;
+
+        default:
+            if (ch >= 'A' && ch <= 'Z') {
+                lowcase = 1;
+            }
+
+            break;
+        }
+    }
+
+    if (dot_pos == host_length - 1) {
+        host_length--;
+    }
+
+    host->length = host_length;
+
+    if (lowcase) {
+        host->start = nxt_mp_nget(mp, host_length);
+        if (nxt_slow_path(host->start == NULL)) {
+            return NXT_HTTP_INTERNAL_SERVER_ERROR;
+        }
+
+        nxt_memcpy_lowcase(host->start, h, host_length);
+    }
 
     return NXT_OK;
 }
@@ -83,16 +190,19 @@ nxt_http_request_content_length(void *ctx, nxt_http_field_t *field,
     nxt_http_request_t  *r;
 
     r = ctx;
-    r->content_length = field;
 
-    n = nxt_off_t_parse(field->value, field->value_length);
+    if (nxt_fast_path(r->content_length == NULL)) {
+        r->content_length = field;
 
-    if (nxt_fast_path(n >= 0)) {
-        r->content_length_n = n;
-        return NXT_OK;
+        n = nxt_off_t_parse(field->value, field->value_length);
+
+        if (nxt_fast_path(n >= 0)) {
+            r->content_length_n = n;
+            return NXT_OK;
+        }
     }
 
-    return NXT_ERROR;
+    return NXT_HTTP_BAD_REQUEST;
 }
 
 
@@ -168,25 +278,60 @@ nxt_http_request_start(nxt_task_t *task, void *obj, void *data)
 static const nxt_http_request_state_t  nxt_http_request_body_state
     nxt_aligned(64) =
 {
-    .ready_handler = nxt_http_app_request,
+    .ready_handler = nxt_http_request_pass,
     .error_handler = nxt_http_request_close_handler,
 };
 
 
 static void
-nxt_http_app_request(nxt_task_t *task, void *obj, void *data)
+nxt_http_request_pass(nxt_task_t *task, void *obj, void *data)
+{
+    nxt_http_pass_t     *pass;
+    nxt_http_request_t  *r;
+
+    r = obj;
+
+    pass = r->conf->socket_conf->pass;
+
+    if (nxt_slow_path(pass == NULL)) {
+        goto fail;
+    }
+
+    for ( ;; ) {
+        nxt_debug(task, "http request route: %V", &pass->name);
+
+        pass = pass->handler(task, r, pass);
+        if (pass == NULL) {
+            break;
+        }
+
+        if (nxt_slow_path(r->pass_count++ == 255)) {
+            goto fail;
+        }
+    }
+
+    return;
+
+fail:
+
+    nxt_http_request_error(task, r, NXT_HTTP_INTERNAL_SERVER_ERROR);
+}
+
+
+nxt_http_pass_t *
+nxt_http_request_application(nxt_task_t *task, nxt_http_request_t *r,
+    nxt_http_pass_t *pass)
 {
     nxt_int_t            ret;
     nxt_event_engine_t   *engine;
-    nxt_http_request_t   *r;
     nxt_app_parse_ctx_t  *ar;
 
-    r = obj;
+    nxt_debug(task, "http request application");
 
     ar = nxt_mp_zget(r->mem_pool, sizeof(nxt_app_parse_ctx_t));
     if (nxt_slow_path(ar == NULL)) {
         nxt_http_request_error(task, r, NXT_HTTP_INTERNAL_SERVER_ERROR);
-        return;
+        return NULL;
     }
 
     ar->request = r;
@@ -222,6 +367,13 @@ nxt_http_app_request(nxt_task_t *task, void *obj, void *data)
         ar->r.header.method = *r->method;
     }
 
+    if (r->host.length != 0) {
+        ar->r.header.server_name = r->host;
+
+    } else {
+        nxt_str_set(&ar->r.header.server_name, "localhost");
+    }
+
     ar->r.header.target = r->target;
 
     if (r->path != NULL) {
@@ -230,11 +382,6 @@ nxt_http_app_request(nxt_task_t *task, void *obj, void *data)
 
     if (r->args != NULL) {
         ar->r.header.query = *r->args;
-    }
-
-    if (r->host != NULL) {
-        ar->r.header.host.length = r->host->value_length;
-        ar->r.header.host.start = r->host->value;
     }
 
     if (r->content_type != NULL) {
@@ -263,10 +410,12 @@ nxt_http_app_request(nxt_task_t *task, void *obj, void *data)
     ret = nxt_http_parse_request_init(&ar->resp_parser, r->mem_pool);
     if (nxt_slow_path(ret != NXT_OK)) {
         nxt_http_request_error(task, r, NXT_HTTP_INTERNAL_SERVER_ERROR);
-        return;
+        return NULL;
     }
 
-    nxt_router_process_http_request(task, ar);
+    nxt_router_process_http_request(task, ar, pass->u.application);
+
+    return NULL;
 }
 
 
@@ -446,7 +595,7 @@ nxt_http_request_error_handler(nxt_task_t *task, void *obj, void *data)
 }
 
 
-void
+static void
 nxt_http_request_close_handler(nxt_task_t *task, void *obj, void *data)
 {
     nxt_http_proto_t         proto;

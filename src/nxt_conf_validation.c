@@ -54,6 +54,18 @@ static nxt_int_t nxt_conf_vldt_listener(nxt_conf_validation_t *vldt,
 static nxt_int_t nxt_conf_vldt_certificate(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 #endif
+static nxt_int_t nxt_conf_vldt_pass(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_routes(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_routes_member(nxt_conf_validation_t *vldt,
+    nxt_str_t *name, nxt_conf_value_t *value);
+static nxt_int_t nxt_conf_vldt_route(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value);
+static nxt_int_t nxt_conf_vldt_match_patterns(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_match_pattern(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_app_name(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_app(nxt_conf_validation_t *vldt,
@@ -76,6 +88,10 @@ static nxt_int_t nxt_conf_vldt_argument(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_php_option(nxt_conf_validation_t *vldt,
     nxt_str_t *name, nxt_conf_value_t *value);
+static nxt_int_t nxt_conf_vldt_java_classpath(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value);
+static nxt_int_t nxt_conf_vldt_java_option(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value);
 
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[] = {
@@ -129,6 +145,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_root_members[] = {
       &nxt_conf_vldt_object_iterator,
       (void *) &nxt_conf_vldt_listener },
 
+    { nxt_string("routes"),
+      NXT_CONF_VLDT_ARRAY | NXT_CONF_VLDT_OBJECT,
+      &nxt_conf_vldt_routes,
+      NULL },
+
     { nxt_string("applications"),
       NXT_CONF_VLDT_OBJECT,
       &nxt_conf_vldt_object_iterator,
@@ -158,6 +179,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_tls_members[] = {
 
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_listener_members[] = {
+    { nxt_string("pass"),
+      NXT_CONF_VLDT_STRING,
+      &nxt_conf_vldt_pass,
+      NULL },
+
     { nxt_string("application"),
       NXT_CONF_VLDT_STRING,
       &nxt_conf_vldt_app_name,
@@ -171,6 +197,51 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_listener_members[] = {
       (void *) &nxt_conf_vldt_tls_members },
 
 #endif
+
+    NXT_CONF_VLDT_END
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_match_members[] = {
+    { nxt_string("method"),
+      NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
+      &nxt_conf_vldt_match_patterns,
+      NULL },
+
+    { nxt_string("host"),
+      NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
+      &nxt_conf_vldt_match_patterns,
+      NULL },
+
+    { nxt_string("uri"),
+      NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
+      &nxt_conf_vldt_match_patterns,
+      NULL },
+
+    NXT_CONF_VLDT_END
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_action_members[] = {
+    { nxt_string("pass"),
+      NXT_CONF_VLDT_STRING,
+      &nxt_conf_vldt_pass,
+      NULL },
+
+    NXT_CONF_VLDT_END
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_route_members[] = {
+    { nxt_string("match"),
+      NXT_CONF_VLDT_OBJECT,
+      &nxt_conf_vldt_object,
+      (void *) &nxt_conf_vldt_match_members },
+
+    { nxt_string("action"),
+      NXT_CONF_VLDT_OBJECT,
+      &nxt_conf_vldt_object,
+      (void *) &nxt_conf_vldt_action_members },
 
     NXT_CONF_VLDT_END
 };
@@ -356,6 +427,31 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_ruby_members[] = {
 };
 
 
+static nxt_conf_vldt_object_t  nxt_conf_vldt_java_members[] = {
+    { nxt_string("classpath"),
+      NXT_CONF_VLDT_ARRAY,
+      &nxt_conf_vldt_array_iterator,
+      (void *) &nxt_conf_vldt_java_classpath},
+
+    { nxt_string("webapp"),
+      NXT_CONF_VLDT_STRING,
+      NULL,
+      NULL },
+
+    { nxt_string("options"),
+      NXT_CONF_VLDT_ARRAY,
+      &nxt_conf_vldt_array_iterator,
+      (void *) &nxt_conf_vldt_java_option},
+
+    { nxt_string("unit_jars"),
+      NXT_CONF_VLDT_STRING,
+      NULL,
+      NULL },
+
+    NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_common_members)
+};
+
+
 nxt_int_t
 nxt_conf_validate(nxt_conf_validation_t *vldt)
 {
@@ -495,6 +591,187 @@ nxt_conf_vldt_listener(nxt_conf_validation_t *vldt, nxt_str_t *name,
 }
 
 
+static nxt_int_t
+nxt_conf_vldt_pass(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
+{
+    u_char     *p;
+    nxt_str_t  pass, first, second;
+
+    nxt_conf_get_string(value, &pass);
+
+    p = nxt_memchr(pass.start, '/', pass.length);
+
+    if (p != NULL) {
+        first.length = p - pass.start;
+        first.start = pass.start;
+
+        if (pass.length - first.length == 1) {
+            goto error;
+        }
+
+        second.length = pass.length - first.length - 1;
+        second.start = p + 1;
+
+    } else {
+        first = pass;
+        second.length = 0;
+    }
+
+    if (nxt_str_eq(&first, "applications", 12)) {
+
+        if (second.length == 0) {
+            goto error;
+        }
+
+        value = nxt_conf_get_object_member(vldt->conf, &first, NULL);
+
+        if (nxt_slow_path(value == NULL)) {
+            goto error;
+        }
+
+        value = nxt_conf_get_object_member(value, &second, NULL);
+
+        if (nxt_slow_path(value == NULL)) {
+            goto error;
+        }
+
+        return NXT_OK;
+    }
+
+    if (nxt_str_eq(&first, "routes", 6)) {
+        value = nxt_conf_get_object_member(vldt->conf, &first, NULL);
+
+        if (nxt_slow_path(value == NULL)) {
+            goto error;
+        }
+
+        if (second.length == 0) {
+            if (nxt_conf_type(value) != NXT_CONF_ARRAY) {
+                goto error;
+            }
+
+            return NXT_OK;
+        }
+
+        if (nxt_conf_type(value) != NXT_CONF_OBJECT) {
+            goto error;
+        }
+
+        value = nxt_conf_get_object_member(value, &second, NULL);
+
+        if (nxt_slow_path(value == NULL)) {
+            goto error;
+        }
+
+        return NXT_OK;
+    }
+
+error:
+
+    return nxt_conf_vldt_error(vldt, "Request \"pass\" points to invalid "
+                               "location \"%V\".", &pass);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_routes(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
+{
+    if (nxt_conf_type(value) == NXT_CONF_ARRAY) {
+        return nxt_conf_vldt_array_iterator(vldt, value,
+                                            &nxt_conf_vldt_route);
+    }
+
+    /* NXT_CONF_OBJECT */
+
+    return nxt_conf_vldt_object_iterator(vldt, value,
+                                         &nxt_conf_vldt_routes_member);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_routes_member(nxt_conf_validation_t *vldt, nxt_str_t *name,
+    nxt_conf_value_t *value)
+{
+    nxt_int_t  ret;
+
+    ret = nxt_conf_vldt_type(vldt, name, value, NXT_CONF_VLDT_ARRAY);
+
+    if (ret != NXT_OK) {
+        return ret;
+    }
+
+    return nxt_conf_vldt_array_iterator(vldt, value, &nxt_conf_vldt_route);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_route(nxt_conf_validation_t *vldt, nxt_conf_value_t *value)
+{
+    if (nxt_conf_type(value) != NXT_CONF_OBJECT) {
+        return nxt_conf_vldt_error(vldt, "The \"routes\" array must contain "
+                                   "only object values.");
+    }
+
+    return nxt_conf_vldt_object(vldt, value, nxt_conf_vldt_route_members);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_match_patterns(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data)
+{
+    if (nxt_conf_type(value) == NXT_CONF_ARRAY) {
+        return nxt_conf_vldt_array_iterator(vldt, value,
+                                            &nxt_conf_vldt_match_pattern);
+    }
+
+    /* NXT_CONF_STRING */
+
+    return nxt_conf_vldt_match_pattern(vldt, value);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_match_pattern(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value)
+{
+    u_char      ch;
+    nxt_str_t   pattern;
+    nxt_uint_t  i, first, last;
+
+    if (nxt_conf_type(value) != NXT_CONF_STRING) {
+        return nxt_conf_vldt_error(vldt,
+                                   "The \"match\" patterns must be strings.");
+    }
+
+    nxt_conf_get_string(value, &pattern);
+
+    if (pattern.length == 0) {
+        return NXT_OK;
+    }
+
+    first = (pattern.start[0] == '!');
+    last = pattern.length - 1;
+
+    for (i = first; i != pattern.length; i++) {
+        ch = pattern.start[i];
+
+        if (ch != '*') {
+            continue;
+        }
+
+        if (i != first && i != last) {
+            return nxt_conf_vldt_error(vldt, "The \"match\" patterns can only "
+                                       "contain \"*\" markers at the sides.");
+        }
+    }
+
+    return NXT_OK;
+}
+
+
 #if (NXT_TLS)
 
 static nxt_int_t
@@ -570,6 +847,7 @@ nxt_conf_vldt_app(nxt_conf_validation_t *vldt, nxt_str_t *name,
         nxt_conf_vldt_php_members,
         nxt_conf_vldt_perl_members,
         nxt_conf_vldt_ruby_members,
+        nxt_conf_vldt_java_members,
     };
 
     ret = nxt_conf_vldt_type(vldt, name, value, NXT_CONF_VLDT_OBJECT);
@@ -964,6 +1242,47 @@ nxt_conf_vldt_php_option(nxt_conf_validation_t *vldt, nxt_str_t *name,
     if (nxt_conf_type(value) != NXT_CONF_STRING) {
         return nxt_conf_vldt_error(vldt, "The \"%V\" PHP option must be "
                                    "a string.", name);
+    }
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_java_classpath(nxt_conf_validation_t *vldt, nxt_conf_value_t *value)
+{
+    nxt_str_t  str;
+
+    if (nxt_conf_type(value) != NXT_CONF_STRING) {
+        return nxt_conf_vldt_error(vldt, "The \"classpath\" array "
+                                   "must contain only string values.");
+    }
+
+    nxt_conf_get_string(value, &str);
+
+    if (nxt_memchr(str.start, '\0', str.length) != NULL) {
+        return nxt_conf_vldt_error(vldt, "The \"classpath\" array must not "
+                                   "contain strings with null character.");
+    }
+
+    return NXT_OK;
+}
+
+static nxt_int_t
+nxt_conf_vldt_java_option(nxt_conf_validation_t *vldt, nxt_conf_value_t *value)
+{
+    nxt_str_t  str;
+
+    if (nxt_conf_type(value) != NXT_CONF_STRING) {
+        return nxt_conf_vldt_error(vldt, "The \"options\" array "
+                                   "must contain only string values.");
+    }
+
+    nxt_conf_get_string(value, &str);
+
+    if (nxt_memchr(str.start, '\0', str.length) != NULL) {
+        return nxt_conf_vldt_error(vldt, "The \"options\" array must not "
+                                   "contain strings with null character.");
     }
 
     return NXT_OK;

@@ -19,12 +19,12 @@ struct nxt_unit_request_s {
     uint8_t               version_length;
     uint8_t               remote_length;
     uint8_t               local_length;
+    uint32_t              server_name_length;
     uint32_t              target_length;
     uint32_t              path_length;
     uint32_t              query_length;
     uint32_t              fields_count;
 
-    uint32_t              host_field;
     uint32_t              content_length_field;
     uint32_t              content_type_field;
     uint32_t              cookie_field;
@@ -35,6 +35,7 @@ struct nxt_unit_request_s {
     nxt_unit_sptr_t       version;
     nxt_unit_sptr_t       remote;
     nxt_unit_sptr_t       local;
+    nxt_unit_sptr_t       server_name;
     nxt_unit_sptr_t       target;
     nxt_unit_sptr_t       path;
     nxt_unit_sptr_t       query;

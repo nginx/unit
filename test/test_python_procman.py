@@ -226,7 +226,7 @@ class TestUnitPythonProcman(unit.TestUnitApplicationPython):
         (resp, sock) = self.get(headers={
             'Host': 'localhost',
             'Connection': 'keep-alive'
-        }, start=True)
+        }, start=True, read_timeout=1)
         self.assertEqual(len(self.pids_for_process()), 1,
             'keepalive connection 1')
 

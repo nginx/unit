@@ -11,7 +11,7 @@
 #include <sys/types.h>
 #include <string.h>
 
-#include "nxt_unit_version.h"
+#include "nxt_version.h"
 #include "nxt_unit_typedefs.h"
 
 

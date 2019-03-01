@@ -179,7 +179,8 @@ class TestUnit(unittest.TestCase):
 
         self._started = True
 
-        self.skip_alerts = [r'read signalfd\(4\) failed']
+        self.skip_alerts = [r'read signalfd\(4\) failed', r'sendmsg.+failed',
+            r'recvmsg.+failed']
         self.skip_sanitizer = False
 
     def _stop(self):
@@ -235,7 +236,7 @@ class TestUnit(unittest.TestCase):
 
             if sanitizer_errors:
                 self._print_path_to_log()
-                self.assertFalse(sanitizer_error, 'sanitizer error(s)')
+                self.assertFalse(sanitizer_errors, 'sanitizer error(s)')
 
         if found:
             print('skipped.')
@@ -285,7 +286,6 @@ class TestUnitHTTP(TestUnit):
         port = 7080 if 'port' not in kwargs else kwargs['port']
         url = '/' if 'url' not in kwargs else kwargs['url']
         http = 'HTTP/1.0' if 'http_10' in kwargs else 'HTTP/1.1'
-        blocking = False if 'blocking' not in kwargs else kwargs['blocking']
 
         headers = ({
             'Host': 'localhost',
@@ -309,6 +309,9 @@ class TestUnitHTTP(TestUnit):
         if 'sock' not in kwargs:
             sock = socket.socket(sock_types[sock_type], socket.SOCK_STREAM)
 
+            if sock_type == sock_types['ipv4'] or sock_type == sock_types['ipv6']:
+                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+
             if 'wrapper' in kwargs:
                 sock = kwargs['wrapper'](sock)
 
@@ -318,8 +321,6 @@ class TestUnitHTTP(TestUnit):
             except ConnectionRefusedError:
                 sock.close()
                 return None
-
-            sock.setblocking(blocking)
 
         else:
             sock = kwargs['sock']
@@ -335,7 +336,12 @@ class TestUnitHTTP(TestUnit):
                     headers['Content-Length'] = len(body)
 
             for header, value in headers.items():
-                req += header + ': ' + str(value) + crlf
+                if isinstance(value, list):
+                    for v in value:
+                        req += header + ': ' + str(v) + crlf
+
+                else:
+                    req += header + ': ' + str(value) + crlf
 
             req = (req + crlf).encode() + body
 
@@ -350,8 +356,9 @@ class TestUnitHTTP(TestUnit):
         resp = ''
 
         if 'no_recv' not in kwargs:
-           enc = 'utf-8' if 'encoding' not in kwargs else kwargs['encoding']
-           resp = self.recvall(sock).decode(enc)
+            enc = 'utf-8' if 'encoding' not in kwargs else kwargs['encoding']
+            read_timeout = 5 if 'read_timeout' not in kwargs else kwargs['read_timeout']
+            resp = self.recvall(sock, read_timeout=read_timeout).decode(enc)
 
         if TestUnit.detailed:
             print('<<<', resp.encode('utf-8'), sep='\n')
@@ -377,9 +384,9 @@ class TestUnitHTTP(TestUnit):
     def put(self, **kwargs):
         return self.http('PUT', **kwargs)
 
-    def recvall(self, sock, buff_size=4096):
+    def recvall(self, sock, read_timeout=5, buff_size=4096):
         data = b''
-        while select.select([sock], [], [], 1)[0]:
+        while select.select([sock], [], [], read_timeout)[0]:
             try:
                 part = sock.recv(buff_size)
             except:
@@ -428,7 +435,7 @@ class TestUnitControl(TestUnitHTTP):
     # TODO http client
 
     def conf(self, conf, path='/config'):
-        if isinstance(conf, dict):
+        if isinstance(conf, dict) or isinstance(conf, list):
             conf = json.dumps(conf)
 
         if path[:1] != '/':
@@ -593,6 +600,72 @@ class TestUnitApplicationNode(TestUnitApplicationProto):
             }
         })
 
+class TestUnitApplicationJava(TestUnitApplicationProto):
+    def load(self, script, name='app'):
+
+        app_path = self.testdir + '/java'
+        web_inf_path = app_path + '/WEB-INF/'
+        classes_path = web_inf_path + 'classes/'
+
+        script_path = self.current_dir + '/java/' + script + '/'
+
+        if not os.path.isdir(app_path):
+            os.makedirs(app_path)
+
+        src = []
+
+        for f in os.listdir(script_path):
+            if f.endswith('.java'):
+                src.append(script_path + f)
+                continue
+
+            if f.startswith('.') or f == 'Makefile':
+                continue
+
+            if os.path.isdir(script_path + f):
+                if f == 'WEB-INF':
+                    continue
+
+                shutil.copytree(script_path + f, app_path + '/' + f)
+                continue
+
+            if f == 'web.xml':
+                if not os.path.isdir(web_inf_path):
+                    os.makedirs(web_inf_path)
+
+                shutil.copy2(script_path + f, web_inf_path)
+            else:
+                shutil.copy2(script_path + f, app_path)
+
+        if src:
+            if not os.path.isdir(classes_path):
+                os.makedirs(classes_path)
+
+            javac = ['javac', '-encoding', 'utf-8', '-d', classes_path,
+                '-classpath',
+                self.pardir + '/build/tomcat-servlet-api-9.0.13.jar']
+            javac.extend(src)
+
+            process = subprocess.Popen(javac)
+            process.communicate()
+
+        self.conf({
+            "listeners": {
+                "*:7080": {
+                    "application": script
+                }
+            },
+            "applications": {
+                script: {
+                    "unit_jars": self.pardir + '/build',
+                    "type": "java",
+                    "processes": { "spare": 0 },
+                    "working_directory": script_path,
+                    "webapp": app_path
+                }
+            }
+        })
+
 class TestUnitApplicationPerl(TestUnitApplicationProto):
     def load(self, script, name='psgi.pl'):
         self.conf({
@@ -637,15 +710,27 @@ class TestUnitApplicationTLS(TestUnitApplicationProto):
                 return self.conf(k.read() + c.read(), '/certificates/' + crt)
 
     def get_ssl(self, **kwargs):
-        return self.get(blocking=True, wrapper=self.context.wrap_socket,
+        return self.get(wrapper=self.context.wrap_socket,
             **kwargs)
 
     def post_ssl(self, **kwargs):
-        return self.post(blocking=True, wrapper=self.context.wrap_socket,
+        return self.post(wrapper=self.context.wrap_socket,
             **kwargs)
 
     def get_server_certificate(self, addr=('127.0.0.1', 7080)):
-        return ssl.get_server_certificate(addr)
+
+        ssl_list = dir(ssl)
+
+        if 'PROTOCOL_TLS' in ssl_list:
+            ssl_version = ssl.PROTOCOL_TLS
+
+        elif 'PROTOCOL_TLSv1_2' in ssl_list:
+            ssl_version = ssl.PROTOCOL_TLSv1_2
+
+        else:
+            ssl_version = ssl.PROTOCOL_TLSv1_1
+
+        return ssl.get_server_certificate(addr, ssl_version=ssl_version)
 
     def load(self, script, name=None):
         if name is None:
