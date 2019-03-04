@@ -281,7 +281,7 @@ nxt_socket_shutdown(nxt_task_t *task, nxt_socket_t s, nxt_uint_t how)
     switch (err) {
 
     case NXT_ENOTCONN:
-        level = NXT_LOG_INFO;
+        level = NXT_LOG_DEBUG;
         break;
 
     case NXT_ECONNRESET:
