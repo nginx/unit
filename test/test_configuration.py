@@ -264,5 +264,30 @@ class TestUnitConfiguration(unit.TestUnitControl):
 
         self.assertIn('success', self.conf(conf))
 
+    def test_json_application_many2(self):
+        self.skip_alerts.extend([
+            r'eventfd.+failed',
+            r'epoll.+failed',
+            r'failed to apply'
+        ])
+
+        conf = {
+            "applications":
+                {"app-" + str(a): {
+                    "type": "python",
+                    "processes": { "spare": 0 },
+                    "path": "/app",
+                    "module": "wsgi"
+                } for a in range(999)
+            },
+            "listeners": {
+                "*:7001": {
+                    "application": "app-1"
+                }
+            }
+        }
+
+        self.assertIn('success', self.conf(conf))
+
 if __name__ == '__main__':
     TestUnitConfiguration.main()
