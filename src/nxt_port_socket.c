@@ -349,6 +349,8 @@ nxt_port_write_handler(nxt_task_t *task, void *obj, void *data)
             iov[0].iov_len += sizeof(msg->tracking_msg);
         }
 
+        sb.limit -= iov[0].iov_len;
+
         nxt_sendbuf_mem_coalesce(task, &sb);
 
         plain_size = sb.size;
