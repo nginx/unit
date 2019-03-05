@@ -94,9 +94,14 @@ nxt_socketpair_send(nxt_fd_event_t *ev, nxt_fd_t fd, nxt_iobuf_t *iob,
 
         case NXT_EAGAIN:
             nxt_debug(ev->task, "sendmsg(%d) not ready", ev->fd);
-            ev->write_ready = 0;
+            break;
 
-            return NXT_AGAIN;
+        /*
+         * Returned (at least on OSX) when trying to send many small messages.
+         */
+        case NXT_ENOBUFS:
+            nxt_debug(ev->task, "sendmsg(%d) no buffers", ev->fd);
+            break;
 
         case NXT_EINTR:
             nxt_debug(ev->task, "sendmsg(%d) interrupted", ev->fd);
@@ -108,6 +113,10 @@ nxt_socketpair_send(nxt_fd_event_t *ev, nxt_fd_t fd, nxt_iobuf_t *iob,
 
             return NXT_ERROR;
         }
+
+        ev->write_ready = 0;
+
+        return NXT_AGAIN;
     }
 }
 
