@@ -99,62 +99,6 @@ struct nxt_common_app_conf_s {
 };
 
 
-typedef struct {
-    nxt_str_t                  method;
-    nxt_str_t                  target;
-    nxt_str_t                  version;
-    nxt_str_t                  path;
-    nxt_str_t                  query;
-    nxt_str_t                  server_name;
-
-    nxt_list_t                 *fields;
-
-    nxt_str_t                  cookie;
-    nxt_str_t                  content_length;
-    nxt_str_t                  content_type;
-
-    off_t                      parsed_content_length;
-    nxt_bool_t                 done;
-
-    size_t                     bufs;
-    nxt_buf_t                  *buf;
-} nxt_app_request_header_t;
-
-
-typedef struct {
-    size_t                     preread_size;
-    nxt_bool_t                 done;
-
-    nxt_buf_t                  *buf;
-} nxt_app_request_body_t;
-
-
-typedef struct {
-    nxt_app_request_header_t   header;
-    nxt_app_request_body_t     body;
-
-    nxt_str_t                  remote;
-    nxt_str_t                  local;
-} nxt_app_request_t;
-
-
-typedef struct nxt_app_parse_ctx_s  nxt_app_parse_ctx_t;
-
-
-struct nxt_app_parse_ctx_s {
-    nxt_app_request_t         r;
-    nxt_http_request_t        *request;
-    nxt_timer_t               timer;
-    void                      *timer_data;
-    nxt_http_request_parse_t  parser;
-    nxt_http_request_parse_t  resp_parser;
-    nxt_mp_t                  *mem_pool;
-};
-
-
-nxt_int_t nxt_app_http_req_done(nxt_task_t *task, nxt_app_parse_ctx_t *ctx);
-
-
 struct nxt_app_module_s {
     size_t                     compat_length;
     uint32_t                   *compat;

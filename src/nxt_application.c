@@ -36,8 +36,6 @@ static nxt_app_module_t *nxt_app_module_load(nxt_task_t *task,
     const char *name);
 static nxt_int_t nxt_app_set_environment(nxt_conf_value_t *environment);
 
-static void nxt_app_http_release(nxt_task_t *task, void *obj, void *data);
-
 
 static uint32_t  compat[] = {
     NXT_VERNUM, NXT_DEBUG,
@@ -428,32 +426,6 @@ nxt_app_set_environment(nxt_conf_value_t *environment)
     }
 
     return NXT_OK;
-}
-
-
-nxt_int_t
-nxt_app_http_req_done(nxt_task_t *task, nxt_app_parse_ctx_t *ar)
-{
-    ar->timer.handler = nxt_app_http_release;
-    nxt_timer_add(task->thread->engine, &ar->timer, 0);
-
-    return NXT_OK;
-}
-
-
-static void
-nxt_app_http_release(nxt_task_t *task, void *obj, void *data)
-{
-    nxt_timer_t          *timer;
-    nxt_app_parse_ctx_t  *ar;
-
-    timer = obj;
-
-    nxt_debug(task, "http app release");
-
-    ar = nxt_timer_data(timer, nxt_app_parse_ctx_t, timer);
-
-    nxt_mp_release(ar->request->mem_pool);
 }
 
 

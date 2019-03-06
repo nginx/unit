@@ -114,6 +114,7 @@ struct nxt_http_request_s {
     const nxt_http_request_state_t  *state;
 
     nxt_str_t                       host;
+    nxt_str_t                       server_name;
     nxt_str_t                       target;
     nxt_str_t                       version;
     nxt_str_t                       *method;
@@ -130,6 +131,9 @@ struct nxt_http_request_s {
 
     nxt_sockaddr_t                  *remote;
     nxt_sockaddr_t                  *local;
+
+    nxt_timer_t                     timer;
+    void                            *timer_data;
 
     nxt_buf_t                       *last;
 
