@@ -197,23 +197,23 @@ nxt_getsockname(nxt_task_t *task, nxt_mp_t *mp, nxt_socket_t s)
         switch (sockaddr.buf.sa_family) {
 #if (NXT_INET6)
         case AF_INET6:
-             length = NXT_INET6_ADDR_STR_LEN;
-             break;
+            length = NXT_INET6_ADDR_STR_LEN;
+            break;
 #endif
 
 #if (NXT_HAVE_UNIX_DOMAIN)
         case AF_UNIX:
-             length = nxt_length("unix:") + socklen;
+            length = nxt_length("unix:") + socklen;
 #endif
-             break;
+            break;
 
         case AF_INET:
-             length = NXT_INET_ADDR_STR_LEN;
-             break;
+            length = NXT_INET_ADDR_STR_LEN;
+            break;
 
         default:
-             length = 0;
-             break;
+            length = 0;
+            break;
         }
 
         return nxt_sockaddr_create(mp, &sockaddr.buf, socklen, length);

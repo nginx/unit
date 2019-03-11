@@ -306,7 +306,7 @@ public class Context implements ServletContext, InitParams
                 PrintWriter writer = response.getWriter();
 
                 for (String n : ls) {
-                    writer.println("<a href=\"" + n + "\">" + n + "</a><br>"); 
+                    writer.println("<a href=\"" + n + "\">" + n + "</a><br>");
                 }
 
                 writer.close();
@@ -547,7 +547,7 @@ public class Context implements ServletContext, InitParams
                     j = j.getParent();
                 }
             }
-            system_loader = j; 
+            system_loader = j;
         }
 
         private boolean isSystemPath(String path)
@@ -1733,7 +1733,7 @@ public class Context implements ServletContext, InitParams
 
                 @Override
                 public FileVisitResult visitFile(
-                  Path file, BasicFileAttributes attrs) 
+                  Path file, BasicFileAttributes attrs)
                   throws IOException {
                     Files.delete(file);
                     return FileVisitResult.CONTINUE;

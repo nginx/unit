@@ -510,7 +510,7 @@ nxt_port_post(nxt_task_t *task, nxt_port_t *port,
     pw = nxt_zalloc(sizeof(nxt_port_work_t));
 
     if (nxt_slow_path(pw == NULL)) {
-       return NXT_ERROR;
+        return NXT_ERROR;
     }
 
     nxt_atomic_fetch_add(&port->use_count, 1);

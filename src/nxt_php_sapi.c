@@ -699,7 +699,7 @@ fail:
 static int
 nxt_php_startup(sapi_module_struct *sapi_module)
 {
-   return php_module_startup(sapi_module, NULL, 0);
+    return php_module_startup(sapi_module, NULL, 0);
 }
 
 

@@ -119,7 +119,7 @@ nxt_http_parse_request_init(nxt_http_request_parse_t *rp, nxt_mp_t *mp)
     rp->mem_pool = mp;
 
     rp->fields = nxt_list_create(mp, 8, sizeof(nxt_http_field_t));
-    if (nxt_slow_path(rp->fields == NULL)){
+    if (nxt_slow_path(rp->fields == NULL)) {
         return NXT_ERROR;
     }
 

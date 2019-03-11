@@ -467,7 +467,7 @@ Unit::add_port(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port)
 }
 
 
-inline bool 
+inline bool
 operator == (const nxt_unit_port_id_t &p1, const nxt_unit_port_id_t &p2)
 {
     return p1.pid == p2.pid && p1.id == p2.id;

@@ -1946,10 +1946,10 @@ nxt_unit_mmap_at(nxt_unit_mmaps_t *mmaps, uint32_t i)
     while (i + 1 > cap) {
 
         if (cap < 16) {
-          cap = cap * 2;
+            cap = cap * 2;
 
         } else {
-          cap = cap + cap / 2;
+            cap = cap + cap / 2;
         }
     }
 

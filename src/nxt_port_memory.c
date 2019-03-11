@@ -49,10 +49,10 @@ nxt_port_mmap_at(nxt_port_mmaps_t *port_mmaps, uint32_t i)
     while (i + 1 > cap) {
 
         if (cap < 16) {
-          cap = cap * 2;
+            cap = cap * 2;
 
         } else {
-          cap = cap + cap / 2;
+            cap = cap + cap / 2;
         }
     }
 

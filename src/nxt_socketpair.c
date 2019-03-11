@@ -21,9 +21,9 @@
 
 
 static ssize_t nxt_sendmsg(nxt_socket_t s, nxt_fd_t fd, nxt_iobuf_t *iob,
-   nxt_uint_t niob);
+    nxt_uint_t niob);
 static ssize_t nxt_recvmsg(nxt_socket_t s, nxt_fd_t *fd, nxt_iobuf_t *iob,
-   nxt_uint_t niob);
+    nxt_uint_t niob);
 
 
 nxt_int_t
