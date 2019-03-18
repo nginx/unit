@@ -523,6 +523,8 @@ nxt_http_request_error_handler(nxt_task_t *task, void *obj, void *data)
 
     nxt_debug(task, "http request error handler");
 
+    r->error = 1;
+
     if (proto.any != NULL) {
         nxt_http_proto_discard[r->protocol](task, r, nxt_http_buf_last(r));
     }
