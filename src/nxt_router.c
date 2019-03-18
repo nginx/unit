@@ -3382,7 +3382,6 @@ static void
 nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     void *data)
 {
-    size_t               dump_size;
     nxt_int_t            ret;
     nxt_buf_t            *b;
     nxt_unit_field_t     *f;
@@ -3393,12 +3392,6 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
     b = msg->buf;
     rc = data;
-
-    dump_size = nxt_buf_used_size(b);
-
-    if (dump_size > 300) {
-        dump_size = 300;
-    }
 
     if (msg->size == 0) {
         b = NULL;
