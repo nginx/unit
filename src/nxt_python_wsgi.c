@@ -619,26 +619,6 @@ nxt_python_create_environ(nxt_task_t *task)
     }
 
 
-    obj = PyString_FromStringAndSize("http", nxt_length("http"));
-
-    if (nxt_slow_path(obj == NULL)) {
-        nxt_alert(task,
-              "Python failed to create the \"wsgi.url_scheme\" environ value");
-        goto fail;
-    }
-
-    if (nxt_slow_path(PyDict_SetItemString(environ, "wsgi.url_scheme", obj)
-        != 0))
-    {
-        nxt_alert(task,
-                  "Python failed to set the \"wsgi.url_scheme\" environ value");
-        goto fail;
-    }
-
-    Py_DECREF(obj);
-    obj = NULL;
-
-
     if (nxt_slow_path(PyType_Ready(&nxt_py_input_type) != 0)) {
         nxt_alert(task,
                   "Python failed to initialize the \"wsgi.input\" type object");
@@ -725,6 +705,13 @@ nxt_python_get_environ(nxt_python_run_ctx_t *ctx)
 
     RC(nxt_python_add_sptr(ctx, "REMOTE_ADDR", &r->remote, r->remote_length));
     RC(nxt_python_add_sptr(ctx, "SERVER_ADDR", &r->local, r->local_length));
+
+    if (r->tls) {
+        RC(nxt_python_add_str(ctx, "wsgi.url_scheme", "https", 5));
+
+    } else {
+        RC(nxt_python_add_str(ctx, "wsgi.url_scheme", "http", 4));
+    }
 
     RC(nxt_python_add_sptr(ctx, "SERVER_PROTOCOL", &r->version,
                            r->version_length));

@@ -131,6 +131,7 @@ struct nxt_http_request_s {
 
     nxt_sockaddr_t                  *remote;
     nxt_sockaddr_t                  *local;
+    void                            *tls;
 
     nxt_timer_t                     timer;
     void                            *timer_data;
@@ -169,6 +170,7 @@ typedef void (*nxt_http_proto_body_read_t)(nxt_task_t *task,
     nxt_http_request_t *r);
 typedef void (*nxt_http_proto_local_addr_t)(nxt_task_t *task,
     nxt_http_request_t *r);
+typedef void (*nxt_http_proto_tls_t)(nxt_task_t *task, nxt_http_request_t *r);
 typedef void (*nxt_http_proto_header_send_t)(nxt_task_t *task,
     nxt_http_request_t *r);
 typedef void (*nxt_http_proto_send_t)(nxt_task_t *task, nxt_http_request_t *r,
@@ -190,7 +192,6 @@ nxt_http_request_t *nxt_http_request_create(nxt_task_t *task);
 void nxt_http_request_error(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_status_t status);
 void nxt_http_request_read_body(nxt_task_t *task, nxt_http_request_t *r);
-void nxt_http_request_local_addr(nxt_task_t *task, nxt_http_request_t *r);
 void nxt_http_request_header_send(nxt_task_t *task, nxt_http_request_t *r);
 void nxt_http_request_send(nxt_task_t *task, nxt_http_request_t *r,
     nxt_buf_t *out);
@@ -225,6 +226,7 @@ extern nxt_lvlhsh_t                        nxt_response_fields_hash;
 
 extern const nxt_http_proto_body_read_t        nxt_http_proto_body_read[];
 extern const nxt_http_proto_local_addr_t       nxt_http_proto_local_addr[];
+extern const nxt_http_proto_tls_t              nxt_http_proto_tls[];
 extern const nxt_http_proto_header_send_t      nxt_http_proto_header_send[];
 extern const nxt_http_proto_send_t             nxt_http_proto_send[];
 extern const nxt_http_proto_body_bytes_sent_t  nxt_http_proto_body_bytes_sent[];

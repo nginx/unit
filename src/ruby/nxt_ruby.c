@@ -327,7 +327,6 @@ nxt_ruby_rack_env_create(VALUE arg)
     rb_ary_push(version, UINT2NUM(NXT_RUBY_RACK_API_VERSION_MINOR));
 
     rb_hash_aset(hash_env, rb_str_new2("rack.version"), version);
-    rb_hash_aset(hash_env, rb_str_new2("rack.url_scheme"), rb_str_new2("http"));
     rb_hash_aset(hash_env, rb_str_new2("rack.input"), nxt_ruby_io_input);
     rb_hash_aset(hash_env, rb_str_new2("rack.errors"), nxt_ruby_io_error);
     rb_hash_aset(hash_env, rb_str_new2("rack.multithread"), Qfalse);
@@ -453,6 +452,9 @@ nxt_ruby_read_request(VALUE hash_env)
     nxt_ruby_add_sptr(hash_env, NL("SERVER_NAME"), &r->server_name,
                       r->server_name_length);
     nxt_ruby_add_str(hash_env, NL("SERVER_PORT"), "80", 2);
+
+    rb_hash_aset(hash_env, rb_str_new2("rack.url_scheme"),
+                 r->tls ? rb_str_new2("https") : rb_str_new2("http"));
 
     for (i = 0; i < r->fields_count; i++) {
         f = r->fields + i;

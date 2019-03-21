@@ -4703,6 +4703,8 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_http_request_t *r,
     p = nxt_cpymem(p, nxt_sockaddr_address(r->local), r->local->address_length);
     *p++ = '\0';
 
+    req->tls = (r->tls != NULL);
+
     req->server_name_length = r->server_name.length;
     nxt_unit_sptr_set(&req->server_name, p);
     p = nxt_cpymem(p, r->server_name.start, r->server_name.length);

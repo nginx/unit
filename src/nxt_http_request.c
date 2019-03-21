@@ -11,6 +11,8 @@
 static nxt_int_t nxt_http_validate_host(nxt_str_t *host, nxt_mp_t *mp);
 static void nxt_http_request_start(nxt_task_t *task, void *obj, void *data);
 static void nxt_http_request_pass(nxt_task_t *task, void *obj, void *data);
+static void nxt_http_request_proto_info(nxt_task_t *task,
+    nxt_http_request_t *r);
 static void nxt_http_request_mem_buf_completion(nxt_task_t *task, void *obj,
     void *data);
 static void nxt_http_request_done(nxt_task_t *task, void *obj, void *data);
@@ -338,7 +340,7 @@ nxt_http_request_application(nxt_task_t *task, nxt_http_request_t *r,
      * TODO: need an application flag to get local address
      * required by "SERVER_ADDR" in Pyhton and PHP. Not used in Go.
      */
-    nxt_http_request_local_addr(task, r);
+    nxt_http_request_proto_info(task, r);
 
     if (r->host.length != 0) {
         r->server_name = r->host;
@@ -353,20 +355,21 @@ nxt_http_request_application(nxt_task_t *task, nxt_http_request_t *r,
 }
 
 
-void
-nxt_http_request_read_body(nxt_task_t *task, nxt_http_request_t *r)
+static void
+nxt_http_request_proto_info(nxt_task_t *task, nxt_http_request_t *r)
 {
     if (r->proto.any != NULL) {
-        nxt_http_proto_body_read[r->protocol](task, r);
+        nxt_http_proto_local_addr[r->protocol](task, r);
+        nxt_http_proto_tls[r->protocol](task, r);
     }
 }
 
 
 void
-nxt_http_request_local_addr(nxt_task_t *task, nxt_http_request_t *r)
+nxt_http_request_read_body(nxt_task_t *task, nxt_http_request_t *r)
 {
     if (r->proto.any != NULL) {
-        nxt_http_proto_local_addr[r->protocol](task, r);
+        nxt_http_proto_body_read[r->protocol](task, r);
     }
 }
 

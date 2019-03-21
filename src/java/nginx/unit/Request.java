@@ -980,10 +980,12 @@ public class Request implements HttpServletRequest, DynamicPathRequest
     @Override
     public boolean isSecure()
     {
-        log("isSecure");
+        trace("isSecure");
 
-        return false;
+        return isSecure(req_ptr);
     }
+
+    private static native boolean isSecure(long req_ptr);
 
     @Override
     public void removeAttribute(String name)

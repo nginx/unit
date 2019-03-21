@@ -418,5 +418,26 @@ basicConstraints = critical,CA:TRUE""" % {
         self.assertEqual(resp['status'], 200, 'application respawn status')
         self.assertEqual(resp['body'], '0123456789', 'application respawn body')
 
+    def test_tls_url_scheme(self):
+        self.load('variables')
+
+        self.assertEqual(self.post(headers={
+            'Host': 'localhost',
+            'Content-Type': 'text/html',
+            'Custom-Header': '',
+            'Connection': 'close'
+        })['headers']['Wsgi-Url-Scheme'], 'http', 'url scheme http')
+
+        self.certificate()
+
+        self.add_tls(application='variables')
+
+        self.assertEqual(self.post_ssl(headers={
+            'Host': 'localhost',
+            'Content-Type': 'text/html',
+            'Custom-Header': '',
+            'Connection': 'close'
+        })['headers']['Wsgi-Url-Scheme'], 'https', 'url scheme https')
+
 if __name__ == '__main__':
     TestUnitTLS.main()
