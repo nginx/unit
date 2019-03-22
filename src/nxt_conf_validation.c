@@ -1268,6 +1268,7 @@ nxt_conf_vldt_java_classpath(nxt_conf_validation_t *vldt, nxt_conf_value_t *valu
     return NXT_OK;
 }
 
+
 static nxt_int_t
 nxt_conf_vldt_java_option(nxt_conf_validation_t *vldt, nxt_conf_value_t *value)
 {
