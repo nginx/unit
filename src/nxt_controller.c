@@ -184,6 +184,7 @@ nxt_controller_start(nxt_task_t *task, void *data)
 
     vldt.pool = nxt_mp_create(1024, 128, 256, 32);
     if (nxt_slow_path(vldt.pool == NULL)) {
+        nxt_mp_destroy(mp);
         return NXT_ERROR;
     }
 
