@@ -136,9 +136,11 @@ nxt_process_start(nxt_task_t *task, nxt_process_t *process)
 
     nxt_random_init(&thread->random);
 
-    if (init->user_cred != NULL && getuid() == 0) {
-        /* Super-user. */
-
+    if (init->user_cred != NULL) {
+        /*
+         * Changing user credentials requires either root privileges
+         * or CAP_SETUID and CAP_SETGID capabilities on Linux.
+         */
         ret = nxt_user_cred_set(task, init->user_cred);
         if (ret != NXT_OK) {
             goto fail;
@@ -434,11 +436,7 @@ nxt_user_cred_get(nxt_task_t *task, nxt_user_cred_t *uc, const char *group)
         uc->base_gid = grp->gr_gid;
     }
 
-    if (getuid() == 0) {
-        return nxt_user_groups_get(task, uc);
-    }
-
-    return NXT_OK;
+    return nxt_user_groups_get(task, uc);
 }
 
 
@@ -505,14 +503,26 @@ nxt_user_groups_get(nxt_task_t *task, nxt_user_cred_t *uc)
 
     if (nsaved == -1) {
         nxt_alert(task, "getgroups(%d) failed %E", nsaved, nxt_errno);
-        goto fail;
+        goto free;
     }
 
     nxt_debug(task, "getgroups(): %d", nsaved);
 
     if (initgroups(uc->user, uc->base_gid) != 0) {
-        nxt_alert(task, "initgroups(%s, %d) failed", uc->user, uc->base_gid);
-        goto restore;
+        if (nxt_errno == NXT_EPERM) {
+            nxt_log(task, NXT_LOG_NOTICE,
+                    "initgroups(%s, %d) failed %E, ignored",
+                    uc->user, uc->base_gid, nxt_errno);
+
+            ret = NXT_OK;
+
+            goto free;
+
+        } else {
+            nxt_alert(task, "initgroups(%s, %d) failed %E",
+                      uc->user, uc->base_gid, nxt_errno);
+            goto restore;
+        }
     }
 
     ngroups = getgroups(0, NULL);
@@ -567,7 +577,7 @@ restore:
         ret = NXT_ERROR;
     }
 
-fail:
+free:
 
     nxt_free(saved);
 
@@ -582,8 +592,15 @@ nxt_user_cred_set(nxt_task_t *task, nxt_user_cred_t *uc)
               uc->user, (uint64_t) uc->uid, (uint64_t) uc->base_gid);
 
     if (setgid(uc->base_gid) != 0) {
-        nxt_alert(task, "setgid(%d) failed %E", uc->base_gid, nxt_errno);
-        return NXT_ERROR;
+        if (nxt_errno == NXT_EPERM) {
+            nxt_log(task, NXT_LOG_NOTICE, "setgid(%d) failed %E, ignored",
+                    uc->base_gid, nxt_errno);
+            return NXT_OK;
+
+        } else {
+            nxt_alert(task, "setgid(%d) failed %E", uc->base_gid, nxt_errno);
+            return NXT_ERROR;
+        }
     }
 
     if (uc->gids != NULL) {
@@ -595,8 +612,8 @@ nxt_user_cred_set(nxt_task_t *task, nxt_user_cred_t *uc)
     } else {
         /* MacOSX fallback. */
         if (initgroups(uc->user, uc->base_gid) != 0) {
-            nxt_alert(task, "initgroups(%s, %d) failed",
-                      uc->user, uc->base_gid);
+            nxt_alert(task, "initgroups(%s, %d) failed %E",
+                      uc->user, uc->base_gid, nxt_errno);
             return NXT_ERROR;
         }
     }
