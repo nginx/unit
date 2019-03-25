@@ -566,6 +566,7 @@ void
 nxt_port_read_close(nxt_port_t *port)
 {
     port->socket.read_ready = 0;
+    port->socket.read = NXT_EVENT_INACTIVE;
     nxt_socket_close(port->socket.task, port->pair[0]);
     port->pair[0] = -1;
 }

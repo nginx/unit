@@ -216,9 +216,7 @@ class TestUnitConfiguration(unit.TestUnitControl):
             }
         }), 'no port')
 
-    @unittest.expectedFailure
     def test_json_application_name_large(self):
-        self.skip_alerts.append(r'epoll_ctl.+failed')
         name = "X" * 1024 * 1024
 
         self.assertIn('success', self.conf({
