@@ -14,9 +14,12 @@ import unittest
 import subprocess
 from multiprocessing import Process
 
+
 class TestUnit(unittest.TestCase):
 
-    pardir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+    pardir = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), os.pardir)
+    )
     architecture = platform.architecture()[0]
     maxDiff = None
 
@@ -61,16 +64,19 @@ class TestUnit(unittest.TestCase):
             result = self.defaultTestResult()
             self._feedErrorsToResult(result, self._outcome.errors)
         else:
-            result = getattr(self, '_outcomeForDoCleanups',
-                self._resultForDoCleanups)
+            result = getattr(
+                self, '_outcomeForDoCleanups', self._resultForDoCleanups
+            )
 
-        success = not list2reason(result.errors) \
-              and not list2reason(result.failures)
+        success = not list2reason(result.errors) and not list2reason(
+            result.failures
+        )
 
         # check unit.log for alerts
 
-        with open(self.testdir + '/unit.log', 'r', encoding='utf-8',
-            errors='ignore') as f:
+        unit_log = self.testdir + '/unit.log'
+
+        with open(unit_log, 'r', encoding='utf-8', errors='ignore') as f:
             self._check_alerts(f.read())
 
         # remove unit.log
@@ -107,9 +113,16 @@ class TestUnit(unittest.TestCase):
                 env['GOPATH'] = self.pardir + '/go'
 
                 try:
-                    process = subprocess.Popen(['go', 'build', '-o',
-                        self.testdir + '/go/check_module',
-                        current_dir + '/go/empty/app.go'], env=env)
+                    process = subprocess.Popen(
+                        [
+                            'go',
+                            'build',
+                            '-o',
+                            self.testdir + '/go/check_module',
+                            current_dir + '/go/empty/app.go',
+                        ],
+                        env=env,
+                    )
                     process.communicate()
 
                     m = module if process.returncode == 0 else None
@@ -127,9 +140,10 @@ class TestUnit(unittest.TestCase):
                 try:
                     subprocess.check_output(['which', 'openssl'])
 
-                    output = subprocess.check_output([
-                    self.pardir + '/build/unitd', '--version'],
-                    stderr=subprocess.STDOUT)
+                    output = subprocess.check_output(
+                        [self.pardir + '/build/unitd', '--version'],
+                        stderr=subprocess.STDOUT,
+                    )
 
                     m = re.search('--openssl', output.decode())
 
@@ -162,25 +176,35 @@ class TestUnit(unittest.TestCase):
         print()
 
         def _run_unit():
-            subprocess.call([self.pardir + '/build/unitd',
-                '--no-daemon',
-                '--modules', self.pardir + '/build',
-                '--state', self.testdir + '/state',
-                '--pid', self.testdir + '/unit.pid',
-                '--log', self.testdir + '/unit.log',
-                '--control', 'unix:' + self.testdir + '/control.unit.sock'])
+            subprocess.call(
+                [
+                    self.pardir + '/build/unitd',
+                    '--no-daemon',
+                    '--modules',  self.pardir + '/build',
+                    '--state',    self.testdir + '/state',
+                    '--pid',      self.testdir + '/unit.pid',
+                    '--log',      self.testdir + '/unit.log',
+                    '--control',  'unix:' + self.testdir + '/control.unit.sock',
+                ]
+            )
 
         self._p = Process(target=_run_unit)
         self._p.start()
 
-        if not self.waitforfiles(self.testdir + '/unit.pid',
-            self.testdir + '/unit.log', self.testdir + '/control.unit.sock'):
+        if not self.waitforfiles(
+            self.testdir + '/unit.pid',
+            self.testdir + '/unit.log',
+            self.testdir + '/control.unit.sock',
+        ):
             exit("Could not start unit")
 
         self._started = True
 
-        self.skip_alerts = [r'read signalfd\(4\) failed', r'sendmsg.+failed',
-            r'recvmsg.+failed']
+        self.skip_alerts = [
+            r'read signalfd\(4\) failed',
+            r'sendmsg.+failed',
+            r'recvmsg.+failed',
+        ]
         self.skip_sanitizer = False
 
     def _stop(self):
@@ -248,8 +272,8 @@ class TestUnit(unittest.TestCase):
 
             for f in files:
                 if not os.path.exists(f):
-                   wait = True
-                   break
+                    wait = True
+                    break
 
             if wait:
                 time.sleep(0.1)
@@ -264,10 +288,20 @@ class TestUnit(unittest.TestCase):
     def _parse_args():
         parser = argparse.ArgumentParser(add_help=False)
 
-        parser.add_argument('-d', '--detailed', dest='detailed',
-            action='store_true',  help='Detailed output for tests')
-        parser.add_argument('-l', '--log', dest='save_log',
-            action='store_true', help='Save unit.log after the test execution')
+        parser.add_argument(
+            '-d',
+            '--detailed',
+            dest='detailed',
+            action='store_true',
+            help='Detailed output for tests',
+        )
+        parser.add_argument(
+            '-l',
+            '--log',
+            dest='save_log',
+            action='store_true',
+            help='Save unit.log after the test execution',
+        )
 
         return parser.parse_known_args()
 
@@ -279,18 +313,21 @@ class TestUnit(unittest.TestCase):
     def _print_path_to_log(self):
         print('Path to unit.log:\n' + self.testdir + '/unit.log')
 
-class TestUnitHTTP(TestUnit):
 
+class TestUnitHTTP(TestUnit):
     def http(self, start_str, **kwargs):
-        sock_type = 'ipv4' if 'sock_type' not in kwargs else kwargs['sock_type']
+        sock_type = (
+            'ipv4' if 'sock_type' not in kwargs else kwargs['sock_type']
+        )
         port = 7080 if 'port' not in kwargs else kwargs['port']
         url = '/' if 'url' not in kwargs else kwargs['url']
         http = 'HTTP/1.0' if 'http_10' in kwargs else 'HTTP/1.1'
 
-        headers = ({
-            'Host': 'localhost',
-            'Connection': 'close'
-        } if 'headers' not in kwargs else kwargs['headers'])
+        headers = (
+            {'Host': 'localhost', 'Connection': 'close'}
+            if 'headers' not in kwargs
+            else kwargs['headers']
+        )
 
         body = b'' if 'body' not in kwargs else kwargs['body']
         crlf = '\r\n'
@@ -303,13 +340,16 @@ class TestUnitHTTP(TestUnit):
         sock_types = {
             'ipv4': socket.AF_INET,
             'ipv6': socket.AF_INET6,
-            'unix': socket.AF_UNIX
+            'unix': socket.AF_UNIX,
         }
 
         if 'sock' not in kwargs:
             sock = socket.socket(sock_types[sock_type], socket.SOCK_STREAM)
 
-            if sock_type == sock_types['ipv4'] or sock_type == sock_types['ipv6']:
+            if (
+                sock_type == sock_types['ipv4']
+                or sock_type == sock_types['ipv6']
+            ):
                 sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
             if 'wrapper' in kwargs:
@@ -357,7 +397,9 @@ class TestUnitHTTP(TestUnit):
 
         if 'no_recv' not in kwargs:
             enc = 'utf-8' if 'encoding' not in kwargs else kwargs['encoding']
-            read_timeout = 5 if 'read_timeout' not in kwargs else kwargs['read_timeout']
+            read_timeout = (
+                5 if 'read_timeout' not in kwargs else kwargs['read_timeout']
+            )
             resp = self.recvall(sock, read_timeout=read_timeout).decode(enc)
 
         if TestUnit.detailed:
@@ -410,7 +452,9 @@ class TestUnitHTTP(TestUnit):
         p = re.compile('(.*?)\x0d\x0a?', re.M | re.S)
         headers_lines = p.findall(headers_text)
 
-        status = re.search('^HTTP\/\d\.\d\s(\d+)|$', headers_lines.pop(0)).group(1)
+        status = re.search(
+            '^HTTP\/\d\.\d\s(\d+)|$', headers_lines.pop(0)
+        ).group(1)
 
         headers = {}
         for line in headers_lines:
@@ -418,16 +462,15 @@ class TestUnitHTTP(TestUnit):
 
             if m.group(1) not in headers:
                 headers[m.group(1)] = m.group(2)
+
             elif isinstance(headers[m.group(1)], list):
                 headers[m.group(1)].append(m.group(2))
+
             else:
                 headers[m.group(1)] = [headers[m.group(1)], m.group(2)]
 
-        return {
-            'status': int(status),
-            'headers': headers,
-            'body': body
-        }
+        return {'status': int(status), 'headers': headers, 'body': body}
+
 
 class TestUnitControl(TestUnitHTTP):
 
@@ -441,32 +484,39 @@ class TestUnitControl(TestUnitHTTP):
         if path[:1] != '/':
             path = '/config/' + path
 
-        return json.loads(self.put(
-            url=path,
-            body=conf,
-            sock_type='unix',
-            addr=self.testdir + '/control.unit.sock'
-        )['body'])
+        return json.loads(
+            self.put(
+                url=path,
+                body=conf,
+                sock_type='unix',
+                addr=self.testdir + '/control.unit.sock',
+            )['body']
+        )
 
     def conf_get(self, path='/config'):
         if path[:1] != '/':
             path = '/config/' + path
 
-        return json.loads(self.get(
-            url=path,
-            sock_type='unix',
-            addr=self.testdir + '/control.unit.sock'
-        )['body'])
+        return json.loads(
+            self.get(
+                url=path,
+                sock_type='unix',
+                addr=self.testdir + '/control.unit.sock',
+            )['body']
+        )
 
     def conf_delete(self, path='/config'):
         if path[:1] != '/':
             path = '/config/' + path
 
-        return json.loads(self.delete(
-            url=path,
-            sock_type='unix',
-            addr=self.testdir + '/control.unit.sock'
-        )['body'])
+        return json.loads(
+            self.delete(
+                url=path,
+                sock_type='unix',
+                addr=self.testdir + '/control.unit.sock',
+            )['body']
+        )
+
 
 class TestUnitApplicationProto(TestUnitControl):
 
@@ -482,64 +532,68 @@ class TestUnitApplicationProto(TestUnitControl):
         with open(self.testdir + '/unit.log', 'r', errors='ignore') as f:
             return re.search(pattern, f.read())
 
+
 class TestUnitApplicationPython(TestUnitApplicationProto):
     def load(self, script, name=None):
         if name is None:
             name = script
 
-        self.conf({
-            "listeners": {
-                "*:7080": {
-                    "application": name
-                }
-            },
-            "applications": {
-                name: {
-                    "type": "python",
-                    "processes": { "spare": 0 },
-                    "path": self.current_dir + '/python/' + script,
-                    "working_directory": self.current_dir + '/python/' + script,
-                    "module": "wsgi"
-                }
+        script_path = self.current_dir + '/python/' + script
+
+        self.conf(
+            {
+                "listeners": {"*:7080": {"application": name}},
+                "applications": {
+                    name: {
+                        "type": "python",
+                        "processes": {"spare": 0},
+                        "path": script_path,
+                        "working_directory": script_path,
+                        "module": "wsgi",
+                    }
+                },
             }
-        })
+        )
+
 
 class TestUnitApplicationRuby(TestUnitApplicationProto):
     def load(self, script, name='config.ru'):
-        self.conf({
-            "listeners": {
-                "*:7080": {
-                    "application": script
-                }
-            },
-            "applications": {
-                script: {
-                    "type": "ruby",
-                    "processes": { "spare": 0 },
-                    "working_directory": self.current_dir + '/ruby/' + script,
-                    "script": self.current_dir + '/ruby/' + script + '/' + name
-                }
+        script_path = self.current_dir + '/ruby/' + script
+
+        self.conf(
+            {
+                "listeners": {"*:7080": {"application": script}},
+                "applications": {
+                    script: {
+                        "type": "ruby",
+                        "processes": {"spare": 0},
+                        "working_directory": script_path,
+                        "script": script_path + '/' + name,
+                    }
+                },
             }
-        })
+        )
+
 
 class TestUnitApplicationPHP(TestUnitApplicationProto):
     def load(self, script, name='index.php'):
-        self.conf({
-            "listeners": {
-                "*:7080": {
-                    "application": script
-                }
-            },
-            "applications": {
-                script: {
-                    "type": "php",
-                    "processes": { "spare": 0 },
-                    "root": self.current_dir + '/php/' + script,
-                    "working_directory": self.current_dir + '/php/' + script,
-                    "index": name
-                }
+        script_path = self.current_dir + '/php/' + script
+
+        self.conf(
+            {
+                "listeners": {"*:7080": {"application": script}},
+                "applications": {
+                    script: {
+                        "type": "php",
+                        "processes": {"spare": 0},
+                        "root": script_path,
+                        "working_directory": script_path,
+                        "index": name,
+                    }
+                },
             }
-        })
+        )
+
 
 class TestUnitApplicationGo(TestUnitApplicationProto):
     def load(self, script, name='app'):
@@ -547,58 +601,67 @@ class TestUnitApplicationGo(TestUnitApplicationProto):
         if not os.path.isdir(self.testdir + '/go'):
             os.mkdir(self.testdir + '/go')
 
+        go_app_path = self.current_dir + '/go/'
+
         env = os.environ.copy()
         env['GOPATH'] = self.pardir + '/go'
-        process = subprocess.Popen(['go', 'build', '-o',
-            self.testdir + '/go/' + name,
-            self.current_dir + '/go/' + script + '/' + name + '.go'],
-            env=env)
+        process = subprocess.Popen(
+            [
+                'go',
+                'build',
+                '-o',
+                self.testdir + '/go/' + name,
+                go_app_path + script + '/' + name + '.go',
+            ],
+            env=env,
+        )
         process.communicate()
 
-        self.conf({
-            "listeners": {
-                "*:7080": {
-                    "application": script
-                }
-            },
-            "applications": {
-                script: {
-                    "type": "external",
-                    "processes": { "spare": 0 },
-                    "working_directory": self.current_dir + '/go/' + script,
-                    "executable": self.testdir + '/go/' + name
-                }
+        self.conf(
+            {
+                "listeners": {"*:7080": {"application": script}},
+                "applications": {
+                    script: {
+                        "type": "external",
+                        "processes": {"spare": 0},
+                        "working_directory": go_app_path + script,
+                        "executable": self.testdir + '/go/' + name,
+                    }
+                },
             }
-        })
+        )
+
 
 class TestUnitApplicationNode(TestUnitApplicationProto):
     def load(self, script, name='app.js'):
 
         # copy application
 
-        shutil.copytree(self.current_dir + '/node/' + script,
-            self.testdir + '/node')
+        shutil.copytree(
+            self.current_dir + '/node/' + script, self.testdir + '/node'
+        )
 
         # link modules
 
-        os.symlink(self.pardir + '/node/node_modules',
-            self.testdir + '/node/node_modules')
+        os.symlink(
+            self.pardir + '/node/node_modules',
+            self.testdir + '/node/node_modules',
+        )
 
-        self.conf({
-            "listeners": {
-                "*:7080": {
-                    "application": script
-                }
-            },
-            "applications": {
-                script: {
-                    "type": "external",
-                    "processes": { "spare": 0 },
-                    "working_directory": self.testdir + '/node',
-                    "executable": name
-                }
+        self.conf(
+            {
+                "listeners": {"*:7080": {"application": script}},
+                "applications": {
+                    script: {
+                        "type": "external",
+                        "processes": {"spare": 0},
+                        "working_directory": self.testdir + '/node',
+                        "executable": name,
+                    }
+                },
             }
-        })
+        )
+
 
 class TestUnitApplicationJava(TestUnitApplicationProto):
     def load(self, script, name='app'):
@@ -641,48 +704,53 @@ class TestUnitApplicationJava(TestUnitApplicationProto):
             if not os.path.isdir(classes_path):
                 os.makedirs(classes_path)
 
-            javac = ['javac', '-encoding', 'utf-8', '-d', classes_path,
-                '-classpath',
-                self.pardir + '/build/tomcat-servlet-api-9.0.13.jar']
+            tomcat_jar = self.pardir + '/build/tomcat-servlet-api-9.0.13.jar'
+
+            javac = [
+                'javac',
+                '-encoding',   'utf-8',
+                '-d',          classes_path,
+                '-classpath',  tomcat_jar,
+            ]
             javac.extend(src)
 
             process = subprocess.Popen(javac)
             process.communicate()
 
-        self.conf({
-            "listeners": {
-                "*:7080": {
-                    "application": script
-                }
-            },
-            "applications": {
-                script: {
-                    "unit_jars": self.pardir + '/build',
-                    "type": "java",
-                    "processes": { "spare": 0 },
-                    "working_directory": script_path,
-                    "webapp": app_path
-                }
+        self.conf(
+            {
+                "listeners": {"*:7080": {"application": script}},
+                "applications": {
+                    script: {
+                        "unit_jars": self.pardir + '/build',
+                        "type": "java",
+                        "processes": {"spare": 0},
+                        "working_directory": script_path,
+                        "webapp": app_path,
+                    }
+                },
             }
-        })
+        )
+
 
 class TestUnitApplicationPerl(TestUnitApplicationProto):
     def load(self, script, name='psgi.pl'):
-        self.conf({
-            "listeners": {
-                "*:7080": {
-                    "application": script
-                }
-            },
-            "applications": {
-                script: {
-                    "type": "perl",
-                    "processes": { "spare": 0 },
-                    "working_directory": self.current_dir + '/perl/' + script,
-                    "script": self.current_dir + '/perl/' + script + '/' + name
-                }
+        script_path = self.current_dir + '/perl/' + script
+
+        self.conf(
+            {
+                "listeners": {"*:7080": {"application": script}},
+                "applications": {
+                    script: {
+                        "type": "perl",
+                        "processes": {"spare": 0},
+                        "working_directory": script_path,
+                        "script": script_path + '/' + name,
+                    }
+                },
             }
-        })
+        )
+
 
 class TestUnitApplicationTLS(TestUnitApplicationProto):
     def __init__(self, test):
@@ -693,10 +761,18 @@ class TestUnitApplicationTLS(TestUnitApplicationProto):
         self.context.verify_mode = ssl.CERT_NONE
 
     def certificate(self, name='default', load=True):
-        subprocess.call(['openssl', 'req', '-x509', '-new', '-config',
-            self.testdir + '/openssl.conf', '-subj', '/CN=' + name + '/',
-            '-out', self.testdir + '/' + name + '.crt',
-            '-keyout', self.testdir + '/' + name + '.key'])
+        subprocess.call(
+            [
+                'openssl',
+                'req',
+                '-x509',
+                '-new',
+                '-subj',    '/CN=' + name + '/',
+                '-config',  self.testdir + '/openssl.conf',
+                '-out',     self.testdir + '/' + name + '.crt',
+                '-keyout',  self.testdir + '/' + name + '.key',
+            ]
+        )
 
         if load:
             self.certificate_load(name)
@@ -705,17 +781,17 @@ class TestUnitApplicationTLS(TestUnitApplicationProto):
         if key is None:
             key = crt
 
-        with open(self.testdir + '/' + key + '.key', 'rb') as k, \
-             open(self.testdir + '/' + crt + '.crt', 'rb') as c:
-                return self.conf(k.read() + c.read(), '/certificates/' + crt)
+        key_path = self.testdir + '/' + key + '.key'
+        crt_path = self.testdir + '/' + crt + '.crt'
+
+        with open(key_path, 'rb') as k, open(crt_path, 'rb') as c:
+            return self.conf(k.read() + c.read(), '/certificates/' + crt)
 
     def get_ssl(self, **kwargs):
-        return self.get(wrapper=self.context.wrap_socket,
-            **kwargs)
+        return self.get(wrapper=self.context.wrap_socket, **kwargs)
 
     def post_ssl(self, **kwargs):
-        return self.post(wrapper=self.context.wrap_socket,
-            **kwargs)
+        return self.post(wrapper=self.context.wrap_socket, **kwargs)
 
     def get_server_certificate(self, addr=('127.0.0.1', 7080)):
 
@@ -739,25 +815,27 @@ class TestUnitApplicationTLS(TestUnitApplicationProto):
         # create default openssl configuration
 
         with open(self.testdir + '/openssl.conf', 'w') as f:
-            f.write("""[ req ]
+            f.write(
+                """[ req ]
 default_bits = 1024
 encrypt_key = no
 distinguished_name = req_distinguished_name
-[ req_distinguished_name ]""")
+[ req_distinguished_name ]"""
+            )
 
-        self.conf({
-            "listeners": {
-                "*:7080": {
-                    "application": name
-                }
-            },
-            "applications": {
-                name: {
-                    "type": "python",
-                    "processes": { "spare": 0 },
-                    "path": self.current_dir + '/python/' + script,
-                    "working_directory": self.current_dir + '/python/' + script,
-                    "module": "wsgi"
-                }
+        script_path = self.current_dir + '/python/' + script
+
+        self.conf(
+            {
+                "listeners": {"*:7080": {"application": name}},
+                "applications": {
+                    name: {
+                        "type": "python",
+                        "processes": {"spare": 0},
+                        "path": script_path,
+                        "working_directory": script_path,
+                        "module": "wsgi",
+                    }
+                },
             }
-        })
+        )
