@@ -1076,6 +1076,7 @@ class TestUnitJavaApplication(unit.TestUnitApplicationJava):
                     'X-Header': 'blah',
                     'Content-Type': 'text/html',
                     'Host': 'localhost',
+                    'Connection': 'close',
                 }
             )['headers']['X-Reply'],
             'blah',
@@ -1095,6 +1096,7 @@ class TestUnitJavaApplication(unit.TestUnitApplicationJava):
                 'X-Header': ['blah', 'blah'],
                 'Content-Type': 'text/html',
                 'Host': 'localhost',
+                'Connection': 'close',
             }
         )['headers']
 
@@ -1130,7 +1132,7 @@ class TestUnitJavaApplication(unit.TestUnitApplicationJava):
 
         self.assertNotIn(
             'X-Reply-0',
-            self.get(headers={})['headers'],
+            self.get(headers={}, read_timeout=1)['headers'],
             'get header names empty',
         )
 
@@ -1142,6 +1144,7 @@ class TestUnitJavaApplication(unit.TestUnitApplicationJava):
                 'X-Header': '2',
                 'Content-Type': 'text/html',
                 'Host': 'localhost',
+                'Connection': 'close',
             }
         )['headers']
 
@@ -1158,6 +1161,7 @@ class TestUnitJavaApplication(unit.TestUnitApplicationJava):
                 'X-Header': date,
                 'Content-Type': 'text/html',
                 'Host': 'localhost',
+                'Connection': 'close',
             }
         )['headers']
 
