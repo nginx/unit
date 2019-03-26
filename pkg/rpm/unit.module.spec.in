@@ -44,7 +44,7 @@ This package contains %%SUMMARY%%.
 %debug_package
 %endif
 
-%if 0%{?fedora}
+%if (0%{?fedora}) || (0%{?rhel} >= 8)
 %define _debugsource_template %{nil}
 %endif
 
