@@ -1,12 +1,12 @@
 import time
 import socket
 import unittest
-import unit
+from unit.applications.lang.python import TestApplicationPython
 
 
-class TestUnitSettings(unit.TestUnitApplicationPython):
+class TestSettings(TestApplicationPython):
     def setUpClass():
-        unit.TestUnit().check_modules('python')
+        TestApplicationPython().check_modules('python')
 
     def test_settings_header_read_timeout(self):
         self.load('empty')
@@ -226,4 +226,4 @@ Connection: close
 
 
 if __name__ == '__main__':
-    TestUnitSettings.main()
+    TestSettings.main()

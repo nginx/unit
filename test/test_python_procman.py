@@ -2,12 +2,12 @@ import re
 import time
 import subprocess
 import unittest
-import unit
+from unit.applications.lang.python import TestApplicationPython
 
 
-class TestUnitPythonProcman(unit.TestUnitApplicationPython):
+class TestPythonProcman(TestApplicationPython):
     def setUpClass():
-        unit.TestUnit().check_modules('python')
+        TestApplicationPython().check_modules('python')
 
     def pids_for_process(self):
         time.sleep(0.2)
@@ -280,4 +280,4 @@ class TestUnitPythonProcman(unit.TestUnitApplicationPython):
 
 
 if __name__ == '__main__':
-    TestUnitPythonProcman.main()
+    TestPythonProcman.main()

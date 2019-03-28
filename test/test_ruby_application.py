@@ -1,10 +1,10 @@
 import unittest
-import unit
+from unit.applications.lang.ruby import TestApplicationRuby
 
 
-class TestUnitRubyApplication(unit.TestUnitApplicationRuby):
+class TestRubyApplication(TestApplicationRuby):
     def setUpClass():
-        unit.TestUnit().check_modules('ruby')
+        TestApplicationRuby().check_modules('ruby')
 
     def test_ruby_application(self):
         self.load('variables')
@@ -348,4 +348,4 @@ class TestUnitRubyApplication(unit.TestUnitApplicationRuby):
 
 
 if __name__ == '__main__':
-    TestUnitRubyApplication.main()
+    TestRubyApplication.main()

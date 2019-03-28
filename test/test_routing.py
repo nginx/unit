@@ -1,10 +1,9 @@
-import unittest
-import unit
+from unit.applications.proto import TestApplicationProto
 
 
-class TestUnitRouting(unit.TestUnitApplicationProto):
+class TestRouting(TestApplicationProto):
     def setUpClass():
-        unit.TestUnit().check_modules('python')
+        TestApplicationProto().check_modules('python')
 
     def setUp(self):
         super().setUp()
@@ -761,4 +760,4 @@ class TestUnitRouting(unit.TestUnitApplicationProto):
 
 
 if __name__ == '__main__':
-    TestUnitRouting.main()
+    TestRouting.main()

@@ -3,12 +3,13 @@ import ssl
 import time
 import subprocess
 import unittest
-import unit
+from unit.applications.tls import TestApplicationTLS
+from unit.main import TestUnit
 
 
-class TestUnitTLS(unit.TestUnitApplicationTLS):
+class TestTLS(TestApplicationTLS):
     def setUpClass():
-        unit.TestUnit().check_modules('python', 'openssl')
+        TestUnit().check_modules('python', 'openssl')
 
     def findall(self, pattern):
         with open(self.testdir + '/unit.log', 'r', errors='ignore') as f:
@@ -585,4 +586,4 @@ basicConstraints = critical,CA:TRUE"""
         )
 
 if __name__ == '__main__':
-    TestUnitTLS.main()
+    TestTLS.main()

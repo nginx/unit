@@ -1,10 +1,10 @@
 import unittest
-import unit
+from unit.applications.lang.perl import TestApplicationPerl
 
 
-class TestUnitPerlApplication(unit.TestUnitApplicationPerl):
+class TestPerlApplication(TestApplicationPerl):
     def setUpClass():
-        unit.TestUnit().check_modules('perl')
+        TestApplicationPerl().check_modules('perl')
 
     def test_perl_application(self):
         self.load('variables')
@@ -254,4 +254,4 @@ class TestUnitPerlApplication(unit.TestUnitApplicationPerl):
 
 
 if __name__ == '__main__':
-    TestUnitPerlApplication.main()
+    TestPerlApplication.main()

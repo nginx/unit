@@ -2,13 +2,12 @@ import os
 import re
 import time
 from subprocess import call
-import unittest
-import unit
+from unit.applications.lang.python import TestApplicationPython
 
 
-class TestUnitAccessLog(unit.TestUnitApplicationPython):
+class TestAccessLog(TestApplicationPython):
     def setUpClass():
-        unit.TestUnit().check_modules('python')
+        TestApplicationPython().check_modules('python')
 
     def load(self, script):
         super().load(script)
@@ -340,4 +339,4 @@ Connection: close
 
 
 if __name__ == '__main__':
-    TestUnitAccessLog.main()
+    TestAccessLog.main()

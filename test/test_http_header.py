@@ -1,10 +1,9 @@
-import unittest
-import unit
+from unit.applications.lang.python import TestApplicationPython
 
 
-class TestUnitHTTPHeader(unit.TestUnitApplicationPython):
+class TestHTTPHeader(TestApplicationPython):
     def setUpClass():
-        unit.TestUnit().check_modules('python')
+        TestApplicationPython().check_modules('python')
 
     def test_http_header_value_leading_sp(self):
         self.load('custom_header')
@@ -482,4 +481,4 @@ Connection: close
 
 
 if __name__ == '__main__':
-    TestUnitHTTPHeader.main()
+    TestHTTPHeader.main()

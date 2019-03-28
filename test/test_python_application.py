@@ -1,11 +1,11 @@
 import time
 import unittest
-import unit
+from unit.applications.lang.python import TestApplicationPython
 
 
-class TestUnitPythonApplication(unit.TestUnitApplicationPython):
+class TestPythonApplication(TestApplicationPython):
     def setUpClass():
-        unit.TestUnit().check_modules('python')
+        TestApplicationPython().check_modules('python')
 
     def test_python_application_variables(self):
         self.load('variables')
@@ -461,4 +461,4 @@ Connection: close
 
 
 if __name__ == '__main__':
-    TestUnitPythonApplication.main()
+    TestPythonApplication.main()

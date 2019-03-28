@@ -1,11 +1,10 @@
 import time
-import unittest
-import unit
+from unit.applications.lang.java import TestApplicationJava
 
 
-class TestUnitJavaApplication(unit.TestUnitApplicationJava):
+class TestJavaApplication(TestApplicationJava):
     def setUpClass():
-        unit.TestUnit().check_modules('java')
+        TestApplicationJava().check_modules('java')
 
     def test_java_application_cookies(self):
         self.load('cookies')
@@ -1174,4 +1173,4 @@ class TestUnitJavaApplication(unit.TestUnitApplicationJava):
 
 
 if __name__ == '__main__':
-    TestUnitJavaApplication.main()
+    TestJavaApplication.main()

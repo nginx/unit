@@ -1,10 +1,9 @@
-import unittest
-import unit
+from unit.control import TestControl
 
 
-class TestUnitPHPBasic(unit.TestUnitControl):
+class TestPHPBasic(TestControl):
     def setUpClass():
-        unit.TestUnit().check_modules('php')
+        TestControl().check_modules('php')
 
     conf_app = {
         "app": {
@@ -168,4 +167,4 @@ class TestUnitPHPBasic(unit.TestUnitControl):
 
 
 if __name__ == '__main__':
-    TestUnitPHPBasic.main()
+    TestPHPBasic.main()

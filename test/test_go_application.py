@@ -1,10 +1,10 @@
 import unittest
-import unit
+from unit.applications.lang.go import TestApplicationGo
 
 
-class TestUnitGoApplication(unit.TestUnitApplicationGo):
+class TestGoApplication(TestApplicationGo):
     def setUpClass():
-        unit.TestUnit().check_modules('go')
+        TestApplicationGo().check_modules('go')
 
     def test_go_application_variables(self):
         self.load('variables')
@@ -184,4 +184,4 @@ class TestUnitGoApplication(unit.TestUnitApplicationGo):
 
 
 if __name__ == '__main__':
-    TestUnitGoApplication.main()
+    TestGoApplication.main()

@@ -1,10 +1,10 @@
 import unittest
-import unit
+from unit.control import TestControl
 
 
-class TestUnitConfiguration(unit.TestUnitControl):
+class TestConfiguration(TestControl):
     def setUpClass():
-        unit.TestUnit().check_modules('python')
+        TestControl().check_modules('python')
 
     def test_json_empty(self):
         self.assertIn('error', self.conf(''), 'empty')
@@ -358,4 +358,4 @@ class TestUnitConfiguration(unit.TestUnitControl):
 
 
 if __name__ == '__main__':
-    TestUnitConfiguration.main()
+    TestConfiguration.main()

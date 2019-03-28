@@ -1,10 +1,9 @@
-import unittest
-import unit
+from unit.applications.lang.python import TestApplicationPython
 
 
-class TestUnitPythonEnvironment(unit.TestUnitApplicationPython):
+class TestPythonEnvironment(TestApplicationPython):
     def setUpClass():
-        unit.TestUnit().check_modules('python')
+        TestApplicationPython().check_modules('python')
 
     def test_python_environment_name_null(self):
         self.load('environment')
@@ -178,4 +177,4 @@ class TestUnitPythonEnvironment(unit.TestUnitApplicationPython):
 
 
 if __name__ == '__main__':
-    TestUnitPythonEnvironment.main()
+    TestPythonEnvironment.main()

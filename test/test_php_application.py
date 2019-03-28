@@ -1,11 +1,10 @@
-import unittest
-import unit
 import re
+import unittest
+from unit.applications.lang.php import TestApplicationPHP
 
-
-class TestUnitPHPApplication(unit.TestUnitApplicationPHP):
+class TestPHPApplication(TestApplicationPHP):
     def setUpClass():
-        unit.TestUnit().check_modules('php')
+        TestApplicationPHP().check_modules('php')
 
     def before_disable_functions(self):
         body = self.get()['body']
@@ -422,4 +421,4 @@ class TestUnitPHPApplication(unit.TestUnitApplicationPHP):
 
 
 if __name__ == '__main__':
-    TestUnitPHPApplication.main()
+    TestPHPApplication.main()

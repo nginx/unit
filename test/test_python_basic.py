@@ -1,10 +1,9 @@
-import unittest
-import unit
+from unit.control import TestControl
 
 
-class TestUnitPythonBasic(unit.TestUnitControl):
+class TestPythonBasic(TestControl):
     def setUpClass():
-        unit.TestUnit().check_modules('python')
+        TestControl().check_modules('python')
 
     conf_app = {
         "app": {
@@ -181,4 +180,4 @@ class TestUnitPythonBasic(unit.TestUnitControl):
 
 
 if __name__ == '__main__':
-    TestUnitPythonBasic.main()
+    TestPythonBasic.main()

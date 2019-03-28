@@ -1,10 +1,10 @@
 import unittest
-import unit
+from unit.applications.lang.node import TestApplicationNode
 
 
-class TestUnitNodeApplication(unit.TestUnitApplicationNode):
+class TestNodeApplication(TestApplicationNode):
     def setUpClass():
-        u = unit.TestUnit().check_modules('node')
+        TestApplicationNode().check_modules('node')
 
     def test_node_application_basic(self):
         self.load('basic')
@@ -387,4 +387,4 @@ class TestUnitNodeApplication(unit.TestUnitApplicationNode):
 
 
 if __name__ == '__main__':
-    TestUnitNodeApplication.main()
+    TestNodeApplication.main()
