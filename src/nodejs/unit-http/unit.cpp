@@ -399,15 +399,20 @@ Unit::append_header(nxt_unit_field_t *f, napi_value headers,
 napi_value
 Unit::create_socket(napi_value server_obj, nxt_unit_request_info_t *req)
 {
-    napi_value  constructor, return_val;
+    napi_value          constructor, res;
+    nxt_unit_request_t  *r;
+
+    r = req->request;
 
     constructor = get_named_property(server_obj, "socket");
 
-    return_val = new_instance(constructor);
+    res = new_instance(constructor);
 
-    set_named_property(return_val, "req_pointer", (intptr_t) req);
+    set_named_property(res, "req_pointer", (intptr_t) req);
+    set_named_property(res, "remoteAddress", r->remote, r->remote_length);
+    set_named_property(res, "localAddress", r->local, r->local_length);
 
-    return return_val;
+    return res;
 }
 
 
@@ -421,6 +426,7 @@ Unit::create_request(napi_value server_obj, napi_value socket)
     return_val = new_instance(constructor, server_obj);
 
     set_named_property(return_val, "socket", socket);
+    set_named_property(return_val, "connection", socket);
 
     return return_val;
 }
@@ -437,6 +443,7 @@ Unit::create_response(napi_value server_obj, napi_value socket,
     return_val = new_instance(constructor, request);
 
     set_named_property(return_val, "socket", socket);
+    set_named_property(return_val, "connection", socket);
     set_named_property(return_val, "_req_point", (intptr_t) req);
 
     return return_val;
