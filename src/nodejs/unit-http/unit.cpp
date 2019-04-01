@@ -20,9 +20,9 @@ struct nxt_nodejs_ctx_t {
 };
 
 
-Unit::Unit(napi_env env):
-    env_(env),
-    wrapper_(nullptr),
+Unit::Unit(napi_env env, napi_value jsthis):
+    nxt_napi(env),
+    wrapper_(wrap(jsthis, this, destroy)),
     unit_ctx_(nullptr)
 {
 }
@@ -30,15 +30,15 @@ Unit::Unit(napi_env env):
 
 Unit::~Unit()
 {
-    napi_delete_reference(env_, wrapper_);
+    delete_reference(wrapper_);
 }
 
 
 napi_value
 Unit::init(napi_env env, napi_value exports)
 {
-    napi_value   cons, fn;
-    napi_status  status;
+    nxt_napi    napi(env);
+    napi_value  cons;
 
     napi_property_descriptor  properties[] = {
         { "createServer", 0, create_server, 0, 0, 0, napi_default, 0 },
@@ -46,61 +46,22 @@ Unit::init(napi_env env, napi_value exports)
         { "_read", 0, _read, 0, 0, 0, napi_default, 0 }
     };
 
-    status = napi_define_class(env, "Unit", NAPI_AUTO_LENGTH, create, nullptr,
-                               3, properties, &cons);
-    if (status != napi_ok) {
-        goto failed;
-    }
+    try {
+        cons = napi.define_class("Unit", create, 3, properties);
+        constructor_ = napi.create_reference(cons);
 
-    status = napi_create_reference(env, cons, 1, &constructor_);
-    if (status != napi_ok) {
-        goto failed;
-    }
+        napi.set_named_property(exports, "Unit", cons);
+        napi.set_named_property(exports, "unit_response_headers",
+                                response_send_headers);
+        napi.set_named_property(exports, "unit_response_write", response_write);
+        napi.set_named_property(exports, "unit_response_end", response_end);
 
-    status = napi_set_named_property(env, exports, "Unit", cons);
-    if (status != napi_ok) {
-        goto failed;
-    }
-
-    status = napi_create_function(env, NULL, 0, response_send_headers, NULL,
-                                  &fn);
-    if (status != napi_ok) {
-        goto failed;
-    }
-
-    status = napi_set_named_property(env, exports,
-                                     "unit_response_headers", fn);
-    if (status != napi_ok) {
-        goto failed;
-    }
-
-    status = napi_create_function(env, NULL, 0, response_write, NULL, &fn);
-    if (status != napi_ok) {
-        goto failed;
-    }
-
-    status = napi_set_named_property(env, exports, "unit_response_write", fn);
-    if (status != napi_ok) {
-        goto failed;
-    }
-
-    status = napi_create_function(env, NULL, 0, response_end, NULL, &fn);
-    if (status != napi_ok) {
-        goto failed;
-    }
-
-    status = napi_set_named_property(env, exports, "unit_response_end", fn);
-    if (status != napi_ok) {
-        goto failed;
+    } catch (exception &e) {
+        napi.throw_error(e);
+        return nullptr;
     }
 
     return exports;
-
-failed:
-
-    napi_throw_error(env, NULL, "Failed to define Unit class");
-
-    return nullptr;
 }
 
 
@@ -116,63 +77,36 @@ Unit::destroy(napi_env env, void *nativeObject, void *finalize_hint)
 napi_value
 Unit::create(napi_env env, napi_callback_info info)
 {
-    Unit         *obj;
-    napi_ref     ref;
-    napi_value   target, cons, instance, jsthis;
-    napi_status  status;
+    Unit        *obj;
+    nxt_napi    napi(env);
+    napi_ref    ref;
+    napi_value  target, cons, instance, jsthis;
 
-    status = napi_get_new_target(env, info, &target);
-    if (status != napi_ok) {
-        goto failed;
-    }
+    try {
+        target = napi.get_new_target(info);
 
-    if (target != nullptr) {
-        /* Invoked as constructor: `new Unit(...)` */
-        status = napi_get_cb_info(env, info, nullptr, nullptr, &jsthis,
-                                  nullptr);
-        if (status != napi_ok) {
-            goto failed;
+        if (target != nullptr) {
+            /* Invoked as constructor: `new Unit(...)`. */
+            jsthis = napi.get_cb_info(info);
+
+            obj = new Unit(env, jsthis);
+
+            ref = napi.create_reference(jsthis);
+
+            return jsthis;
         }
 
-        obj = new Unit(env);
+        /* Invoked as plain function `Unit(...)`, turn into construct call. */
+        cons = napi.get_reference_value(constructor_);
+        instance = napi.new_instance(cons);
+        ref = napi.create_reference(instance);
 
-        status = napi_wrap(env, jsthis, reinterpret_cast<void *>(obj),
-                           destroy, nullptr, &obj->wrapper_);
-        if (status != napi_ok) {
-            goto failed;
-        }
-
-        status = napi_create_reference(env, jsthis, 1, &ref);
-        if (status != napi_ok) {
-            goto failed;
-        }
-
-        return jsthis;
-    }
-
-    /* Invoked as plain function `Unit(...)`, turn into construct call. */
-    status = napi_get_reference_value(env, constructor_, &cons);
-    if (status != napi_ok) {
-        goto failed;
-    }
-
-    status = napi_new_instance(env, cons, 0, nullptr, &instance);
-    if (status != napi_ok) {
-        goto failed;
-    }
-
-    status = napi_create_reference(env, instance, 1, &ref);
-    if (status != napi_ok) {
-        goto failed;
+    } catch (exception &e) {
+        napi.throw_error(e);
+        return nullptr;
     }
 
     return instance;
-
-failed:
-
-    napi_throw_error(env, NULL, "Failed to create Unit object");
-
-    return nullptr;
 }
 
 
@@ -181,20 +115,19 @@ Unit::create_server(napi_env env, napi_callback_info info)
 {
     Unit             *obj;
     size_t           argc;
+    nxt_napi         napi(env);
     napi_value       jsthis, argv;
-    napi_status      status;
     nxt_unit_init_t  unit_init;
 
     argc = 1;
 
-    status = napi_get_cb_info(env, info, &argc, &argv, &jsthis, nullptr);
-    if (status != napi_ok) {
-        goto failed;
-    }
+    try {
+        jsthis = napi.get_cb_info(info, argc, &argv);
+        obj = (Unit *) napi.unwrap(jsthis);
 
-    status = napi_unwrap(env, jsthis, reinterpret_cast<void **>(&obj));
-    if (status != napi_ok) {
-        goto failed;
+    } catch (exception &e) {
+        napi.throw_error(e);
+        return nullptr;
     }
 
     memset(&unit_init, 0, sizeof(nxt_unit_init_t));
@@ -230,40 +163,22 @@ Unit::listen(napi_env env, napi_callback_info info)
 napi_value
 Unit::_read(napi_env env, napi_callback_info info)
 {
-    Unit                     *obj;
     void                     *data;
     size_t                   argc;
-    int64_t                  req_pointer;
+    nxt_napi                 napi(env);
     napi_value               jsthis, buffer, argv;
-    napi_status              status;
     nxt_unit_request_info_t  *req;
 
     argc = 1;
 
-    status = napi_get_cb_info(env, info, &argc, &argv, &jsthis, nullptr);
-    if (status != napi_ok) {
-        napi_throw_error(env, NULL, "Failed to get arguments from js");
-        return nullptr;
-    }
+    try {
+        jsthis = napi.get_cb_info(info, argc, &argv);
 
-    status = napi_unwrap(env, jsthis, reinterpret_cast<void **>(&obj));
-    if (status != napi_ok) {
-        napi_throw_error(env, NULL, "Failed to get Unit object form js");
-        return nullptr;
-    }
+        req = napi.get_request_info(argv);
+        buffer = napi.create_buffer((size_t) req->content_length, &data);
 
-    status = napi_get_value_int64(env, argv, &req_pointer);
-    if (status != napi_ok) {
-        napi_throw_error(env, NULL, "Failed to get request pointer");
-        return nullptr;
-    }
-
-    req = (nxt_unit_request_info_t *) (uintptr_t) req_pointer;
-
-    status = napi_create_buffer(env, (size_t) req->content_length,
-                                &data, &buffer);
-    if (status != napi_ok) {
-        napi_throw_error(env, NULL, "Failed to create request buffer");
+    } catch (exception &e) {
+        napi.throw_error(e);
         return nullptr;
     }
 
@@ -276,138 +191,38 @@ Unit::_read(napi_env env, napi_callback_info info)
 void
 Unit::request_handler(nxt_unit_request_info_t *req)
 {
-    Unit                 *obj;
-    napi_value           socket, request, response, global, server_obj, except;
-    napi_value           emit_events, events_res, async_name, resource_object;
-    napi_status          status;
-    napi_async_context   async_context;
-    napi_callback_scope  async_scope;
-    napi_value           events_args[3];
+    Unit         *obj;
+    napi_value   socket, request, response, server_obj;
+    napi_value   emit_events;
+    napi_value   events_args[3];
 
     obj = reinterpret_cast<Unit *>(req->unit->data);
 
-    napi_handle_scope scope;
-    status = napi_open_handle_scope(obj->env_, &scope);
-    if (status != napi_ok) {
-        napi_throw_error(obj->env_, NULL, "Failed to create handle scope");
-        return;
-    }
+    try {
+        nxt_handle_scope  scope(obj->env());
 
-    server_obj = obj->get_server_object();
-    if (server_obj == nullptr) {
-        napi_throw_error(obj->env_, NULL, "Failed to get server object");
-        return;
-    }
+        server_obj = obj->get_server_object();
 
-    status = napi_get_global(obj->env_, &global);
-    if (status != napi_ok) {
-        napi_throw_error(obj->env_, NULL, "Failed to get global variable");
-        return;
-    }
+        socket = obj->create_socket(server_obj, req);
+        request = obj->create_request(server_obj, socket);
+        response = obj->create_response(server_obj, socket, request, req);
 
-    socket = obj->create_socket(server_obj, req);
-    if (socket == nullptr) {
-        napi_throw_error(obj->env_, NULL, "Failed to create socket object");
-        return;
-    }
+        obj->create_headers(req, request);
 
-    request = obj->create_request(server_obj, socket);
-    if (request == nullptr) {
-        napi_throw_error(obj->env_, NULL, "Failed to create request object");
-        return;
-    }
+        emit_events = obj->get_named_property(server_obj, "emit_events");
 
-    response = obj->create_response(server_obj, socket, request, req, obj);
-    if (response == nullptr) {
-        napi_throw_error(obj->env_, NULL, "Failed to create response object");
-        return;
-    }
+        events_args[0] = server_obj;
+        events_args[1] = request;
+        events_args[2] = response;
 
-    status = obj->create_headers(req, request);
-    if (status != napi_ok) {
-        napi_throw_error(obj->env_, NULL, "Failed to create headers");
-        return;
-    }
+        nxt_async_context   async_context(obj->env(), "unit_request_handler");
+        nxt_callback_scope  async_scope(async_context);
 
-    status = napi_get_named_property(obj->env_, server_obj, "emit_events",
-                                     &emit_events);
-    if (status != napi_ok) {
-        napi_throw_error(obj->env_, NULL, "Failed to get "
-                         "'emit_events' function");
-        return;
-    }
+        obj->make_callback(async_context, server_obj, emit_events,
+                           3, events_args);
 
-    events_args[0] = server_obj;
-    events_args[1] = request;
-    events_args[2] = response;
-
-    status = napi_create_string_utf8(obj->env_, "unit_request_handler",
-                                     sizeof("unit_request_handler") - 1,
-                                     &async_name);
-    if (status != napi_ok) {
-        napi_throw_error(obj->env_, NULL, "Failed to create utf-8 string");
-        return;
-    }
-
-    status = napi_async_init(obj->env_, NULL, async_name, &async_context);
-    if (status != napi_ok) {
-        napi_throw_error(obj->env_, NULL, "Failed to init async object");
-        return;
-    }
-
-    status = napi_create_object(obj->env_, &resource_object);
-    if (status != napi_ok) {
-        napi_throw_error(obj->env_, NULL, "Failed to create object for "
-                         "callback scope");
-        return;
-    }
-
-    status = napi_open_callback_scope(obj->env_, resource_object, async_context,
-                                      &async_scope);
-    if (status != napi_ok) {
-        napi_throw_error(obj->env_, NULL, "Failed to open callback scope");
-        return;
-    }
-
-    status = napi_make_callback(obj->env_, async_context, server_obj,
-                                emit_events, 3, events_args, &events_res);
-    if (status != napi_ok) {
-        if (status != napi_pending_exception) {
-            napi_throw_error(obj->env_, NULL, "Failed to make callback");
-            return;
-        }
-
-        status = napi_get_and_clear_last_exception(obj->env_, &except);
-        if (status != napi_ok) {
-            napi_throw_error(obj->env_, NULL,
-                             "Failed to get and clear last exception");
-            return;
-        }
-
-        /* Logging a description of the error and call stack. */
-        status = napi_fatal_exception(obj->env_, except);
-        if (status != napi_ok) {
-            napi_throw_error(obj->env_, NULL, "Failed to call "
-                             "napi_fatal_exception() function");
-            return;
-        }
-    }
-
-    status = napi_close_callback_scope(obj->env_, async_scope);
-    if (status != napi_ok) {
-        napi_throw_error(obj->env_, NULL, "Failed to close callback scope");
-        return;
-    }
-
-    status = napi_async_destroy(obj->env_, async_context);
-    if (status != napi_ok) {
-        napi_throw_error(obj->env_, NULL, "Failed to destroy async object");
-        return;
-    }
-
-    status = napi_close_handle_scope(obj->env_, scope);
-    if (status != napi_ok) {
-        napi_throw_error(obj->env_, NULL, "Failed to close handle scope");
+    } catch (exception &e) {
+        obj->throw_error(e);
     }
 }
 
@@ -432,14 +247,14 @@ Unit::add_port(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port)
         obj = reinterpret_cast<Unit *>(ctx->unit->data);
 
         if (fcntl(port->in_fd, F_SETFL, O_NONBLOCK) == -1) {
-            napi_throw_error(obj->env_, NULL, "Failed to upgrade read"
+            obj->throw_error("Failed to upgrade read"
                              " file descriptor to O_NONBLOCK");
             return -1;
         }
 
-        status = napi_get_uv_event_loop(obj->env_, &loop);
+        status = napi_get_uv_event_loop(obj->env(), &loop);
         if (status != napi_ok) {
-            napi_throw_error(obj->env_, NULL, "Failed to get uv.loop");
+            obj->throw_error("Failed to get uv.loop");
             return NXT_UNIT_ERROR;
         }
 
@@ -447,13 +262,13 @@ Unit::add_port(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port)
 
         err = uv_poll_init(loop, &node_ctx->poll, port->in_fd);
         if (err < 0) {
-            napi_throw_error(obj->env_, NULL, "Failed to init uv.poll");
+            obj->throw_error("Failed to init uv.poll");
             return NXT_UNIT_ERROR;
         }
 
         err = uv_poll_start(&node_ctx->poll, UV_READABLE, nxt_uv_read_callback);
         if (err < 0) {
-            napi_throw_error(obj->env_, NULL, "Failed to start uv.poll");
+            obj->throw_error("Failed to start uv.poll");
             return NXT_UNIT_ERROR;
         }
 
@@ -505,173 +320,71 @@ Unit::quit(nxt_unit_ctx_t *ctx)
 napi_value
 Unit::get_server_object()
 {
-    napi_value   unit_obj, server_obj;
-    napi_status  status;
+    napi_value  unit_obj;
 
-    status = napi_get_reference_value(env_, wrapper_, &unit_obj);
-    if (status != napi_ok) {
-        return nullptr;
-    }
+    unit_obj = get_reference_value(wrapper_);
 
-    status = napi_get_named_property(env_, unit_obj, "server", &server_obj);
-    if (status != napi_ok) {
-        return nullptr;
-    }
-
-    return server_obj;
+    return get_named_property(unit_obj, "server");
 }
 
 
-napi_status
+void
 Unit::create_headers(nxt_unit_request_info_t *req, napi_value request)
 {
     uint32_t            i;
-    const char          *p;
-    napi_value          headers, raw_headers, str;
+    napi_value          headers, raw_headers;
     napi_status         status;
-    nxt_unit_field_t    *f;
     nxt_unit_request_t  *r;
 
     r = req->request;
 
-    status = napi_create_object(env_, &headers);
-    if (status != napi_ok) {
-        return status;
-    }
+    headers = create_object();
 
-    status = napi_create_array_with_length(env_, r->fields_count * 2,
+    status = napi_create_array_with_length(env(), r->fields_count * 2,
                                            &raw_headers);
     if (status != napi_ok) {
-        return status;
+        throw exception("Failed to create array");
     }
 
     for (i = 0; i < r->fields_count; i++) {
-        f = r->fields + i;
-
-        status = this->append_header(f, headers, raw_headers, i);
-        if (status != napi_ok) {
-            return status;
-        }
+        append_header(r->fields + i, headers, raw_headers, i);
     }
 
-    status = napi_set_named_property(env_, request, "headers", headers);
-    if (status != napi_ok) {
-        return status;
-    }
-
-    status = napi_set_named_property(env_, request, "rawHeaders", raw_headers);
-    if (status != napi_ok) {
-        return status;
-    }
-
-    p = (const char *) nxt_unit_sptr_get(&r->version);
-
-    status = napi_create_string_latin1(env_, p, r->version_length, &str);
-    if (status != napi_ok) {
-        return status;
-    }
-
-    status = napi_set_named_property(env_, request, "httpVersion", str);
-    if (status != napi_ok) {
-        return status;
-    }
-
-    p = (const char *) nxt_unit_sptr_get(&r->method);
-
-    status = napi_create_string_latin1(env_, p, r->method_length, &str);
-    if (status != napi_ok) {
-        return status;
-    }
-
-    status = napi_set_named_property(env_, request, "method", str);
-    if (status != napi_ok) {
-        return status;
-    }
-
-    p = (const char *) nxt_unit_sptr_get(&r->target);
-
-    status = napi_create_string_latin1(env_, p, r->target_length, &str);
-    if (status != napi_ok) {
-        return status;
-    }
-
-    status = napi_set_named_property(env_, request, "url", str);
-    if (status != napi_ok) {
-        return status;
-    }
-
-    return napi_ok;
+    set_named_property(request, "headers", headers);
+    set_named_property(request, "rawHeaders", raw_headers);
+    set_named_property(request, "httpVersion", r->version, r->version_length);
+    set_named_property(request, "method", r->method, r->method_length);
+    set_named_property(request, "url", r->target, r->target_length);
 }
 
 
-inline napi_status
+inline void
 Unit::append_header(nxt_unit_field_t *f, napi_value headers,
-                    napi_value raw_headers, uint32_t idx)
+    napi_value raw_headers, uint32_t idx)
 {
-    const char   *name, *value;
+    const char   *name;
     napi_value   str, vstr;
-    napi_status  status;
-
-    value = (const char *) nxt_unit_sptr_get(&f->value);
-
-    status = napi_create_string_latin1(env_, value, f->value_length, &vstr);
-    if (status != napi_ok) {
-        return status;
-    }
 
     name = (const char *) nxt_unit_sptr_get(&f->name);
 
-    status = napi_set_named_property(env_, headers, name, vstr);
-    if (status != napi_ok) {
-        return status;
-    }
+    vstr = set_named_property(headers, name, f->value, f->value_length);
+    str = create_string_latin1(name, f->name_length);
 
-    status = napi_create_string_latin1(env_, name, f->name_length, &str);
-    if (status != napi_ok) {
-        return status;
-    }
-
-    status = napi_set_element(env_, raw_headers, idx * 2, str);
-    if (status != napi_ok) {
-        return status;
-    }
-
-    status = napi_set_element(env_, raw_headers, idx * 2 + 1, vstr);
-    if (status != napi_ok) {
-        return status;
-    }
-
-    return napi_ok;
+    set_element(raw_headers, idx * 2, str);
+    set_element(raw_headers, idx * 2 + 1, vstr);
 }
 
 
 napi_value
 Unit::create_socket(napi_value server_obj, nxt_unit_request_info_t *req)
 {
-    napi_value   constructor, return_val, req_pointer;
-    napi_status  status;
+    napi_value  constructor, return_val;
 
-    status = napi_get_named_property(env_, server_obj, "socket",
-                                     &constructor);
-    if (status != napi_ok) {
-        return nullptr;
-    }
+    constructor = get_named_property(server_obj, "socket");
 
-    status = napi_new_instance(env_, constructor, 0, NULL, &return_val);
-    if (status != napi_ok) {
-        return nullptr;
-    }
+    return_val = new_instance(constructor);
 
-    status = napi_create_int64(env_, (uintptr_t) req, &req_pointer);
-    if (status != napi_ok) {
-        return nullptr;
-    }
-
-    status = napi_set_named_property(env_, return_val, "req_pointer",
-                                     req_pointer);
-    if (status != napi_ok) {
-        return nullptr;
-    }
+    set_named_property(return_val, "req_pointer", (intptr_t) req);
 
     return return_val;
 }
@@ -680,25 +393,13 @@ Unit::create_socket(napi_value server_obj, nxt_unit_request_info_t *req)
 napi_value
 Unit::create_request(napi_value server_obj, napi_value socket)
 {
-    napi_value   constructor, return_val;
-    napi_status  status;
+    napi_value  constructor, return_val;
 
-    status = napi_get_named_property(env_, server_obj, "request",
-                                     &constructor);
-    if (status != napi_ok) {
-        return nullptr;
-    }
+    constructor = get_named_property(server_obj, "request");
 
-    status = napi_new_instance(env_, constructor, 1, &server_obj,
-                               &return_val);
-    if (status != napi_ok) {
-        return nullptr;
-    }
+    return_val = new_instance(constructor, server_obj);
 
-    status = napi_set_named_property(env_, return_val, "socket", socket);
-    if (status != napi_ok) {
-        return nullptr;
-    }
+    set_named_property(return_val, "socket", socket);
 
     return return_val;
 }
@@ -706,37 +407,16 @@ Unit::create_request(napi_value server_obj, napi_value socket)
 
 napi_value
 Unit::create_response(napi_value server_obj, napi_value socket,
-                      napi_value request, nxt_unit_request_info_t *req,
-                      Unit *obj)
+    napi_value request, nxt_unit_request_info_t *req)
 {
-    napi_value   constructor, return_val, req_num;
-    napi_status  status;
+    napi_value  constructor, return_val;
 
-    status = napi_get_named_property(env_, server_obj, "response",
-                                     &constructor);
-    if (status != napi_ok) {
-        return nullptr;
-    }
+    constructor = get_named_property(server_obj, "response");
 
-    status = napi_new_instance(env_, constructor, 1, &request, &return_val);
-    if (status != napi_ok) {
-        return nullptr;
-    }
+    return_val = new_instance(constructor, request);
 
-    status = napi_set_named_property(env_, return_val, "socket", socket);
-    if (status != napi_ok) {
-        return nullptr;
-    }
-
-    status = napi_create_int64(env_, (int64_t) (uintptr_t) req, &req_num);
-    if (status != napi_ok) {
-        return nullptr;
-    }
-
-    status = napi_set_named_property(env_, return_val, "_req_point", req_num);
-    if (status != napi_ok) {
-        return nullptr;
-    }
+    set_named_property(return_val, "socket", socket);
+    set_named_property(return_val, "_req_point", (intptr_t) req);
 
     return return_val;
 }
@@ -749,13 +429,12 @@ Unit::response_send_headers(napi_env env, napi_callback_info info)
     char                     *ptr, *name_ptr;
     bool                     is_array;
     size_t                   argc, name_len, value_len;
-    int64_t                  req_p;
     uint32_t                 status_code, header_len, keys_len, array_len;
     uint32_t                 keys_count, i, j;
     uint16_t                 hash;
+    nxt_napi                 napi(env);
     napi_value               this_arg, headers, keys, name, value, array_val;
     napi_value               req_num, array_entry;
-    napi_status              status;
     napi_valuetype           val_type;
     nxt_unit_field_t         *f;
     nxt_unit_request_info_t  *req;
@@ -763,137 +442,97 @@ Unit::response_send_headers(napi_env env, napi_callback_info info)
 
     argc = 5;
 
-    status = napi_get_cb_info(env, info, &argc, argv, &this_arg, NULL);
-    if (status != napi_ok) {
-        return nullptr;
-    }
-
-    if (argc != 5) {
-        napi_throw_error(env, NULL, "Wrong args count. Need three: "
-                         "statusCode, headers, headers count, headers length");
-        return nullptr;
-    }
-
-    status = napi_get_named_property(env, argv[0], "_req_point", &req_num);
-    if (status != napi_ok) {
-        napi_throw_error(env, NULL, "Failed to get request pointer");
-        return nullptr;
-    }
-
-    status = napi_get_value_int64(env, req_num, &req_p);
-    if (status != napi_ok) {
-        napi_throw_error(env, NULL, "Failed to get request pointer");
-        return nullptr;
-    }
-
-    req = (nxt_unit_request_info_t *) (uintptr_t) req_p;
-
-    status = napi_get_value_uint32(env, argv[1], &status_code);
-    if (status != napi_ok) {
-        goto failed;
-    }
-
-    status = napi_get_value_uint32(env, argv[3], &keys_count);
-    if (status != napi_ok) {
-        goto failed;
-    }
-
-    status = napi_get_value_uint32(env, argv[4], &header_len);
-    if (status != napi_ok) {
-        goto failed;
-    }
-
-    /* Need to reserve extra byte for C-string 0-termination. */
-    header_len++;
-
-    headers = argv[2];
-
-    ret = nxt_unit_response_init(req, status_code, keys_count, header_len);
-    if (ret != NXT_UNIT_OK) {
-        goto failed;
-    }
-
-    status = napi_get_property_names(env, headers, &keys);
-    if (status != napi_ok) {
-        goto failed;
-    }
-
-    status = napi_get_array_length(env, keys, &keys_len);
-    if (status != napi_ok) {
-        goto failed;
-    }
-
-    ptr = req->response_buf->free;
-
-    for (i = 0; i < keys_len; i++) {
-        status = napi_get_element(env, keys, i, &name);
-        if (status != napi_ok) {
-            goto failed;
+    try {
+        this_arg = napi.get_cb_info(info, argc, argv);
+        if (argc != 5) {
+            napi.throw_error("Wrong args count. Expected: "
+                             "statusCode, headers, headers count, "
+                             "headers length");
+            return nullptr;
         }
 
-        status = napi_get_property(env, headers, name, &array_entry);
-        if (status != napi_ok) {
-            goto failed;
+        req_num = napi.get_named_property(argv[0], "_req_point");
+
+        req = napi.get_request_info(req_num);
+
+        status_code = napi.get_value_uint32(argv[1]);
+        keys_count = napi.get_value_uint32(argv[3]);
+        header_len = napi.get_value_uint32(argv[4]);
+
+        /* Need to reserve extra byte for C-string 0-termination. */
+        header_len++;
+
+        headers = argv[2];
+
+        ret = nxt_unit_response_init(req, status_code, keys_count, header_len);
+        if (ret != NXT_UNIT_OK) {
+            napi.throw_error("Failed to create response");
+            return nullptr;
         }
 
-        status = napi_get_element(env, array_entry, 0, &name);
-        if (status != napi_ok) {
-            goto failed;
-        }
+        keys = napi.get_property_names(headers);
+        keys_len = napi.get_array_length(keys);
 
-        status = napi_get_element(env, array_entry, 1, &value);
-        if (status != napi_ok) {
-            goto failed;
-        }
+        ptr = req->response_buf->free;
 
-        status = napi_get_value_string_latin1(env, name, ptr, header_len,
-                                              &name_len);
-        if (status != napi_ok) {
-            goto failed;
-        }
+        for (i = 0; i < keys_len; i++) {
+            name = napi.get_element(keys, i);
 
-        name_ptr = ptr;
+            array_entry = napi.get_property(headers, name);
 
-        ptr += name_len;
-        header_len -= name_len;
+            name = napi.get_element(array_entry, 0);
+            value = napi.get_element(array_entry, 1);
 
-        hash = nxt_unit_field_hash(name_ptr, name_len);
+            name_len = napi.get_value_string_latin1(name, ptr, header_len);
+            name_ptr = ptr;
 
-        status = napi_is_array(env, value, &is_array);
-        if (status != napi_ok) {
-            goto failed;
-        }
+            ptr += name_len;
+            header_len -= name_len;
 
-        if (is_array) {
-            status = napi_get_array_length(env, value, &array_len);
-            if (status != napi_ok) {
-                goto failed;
-            }
+            hash = nxt_unit_field_hash(name_ptr, name_len);
 
-            for (j = 0; j < array_len; j++) {
-                status = napi_get_element(env, value, j, &array_val);
-                if (status != napi_ok) {
-                    goto failed;
+            is_array = napi.is_array(value);
+
+            if (is_array) {
+                array_len = napi.get_array_length(value);
+
+                for (j = 0; j < array_len; j++) {
+                    array_val = napi.get_element(value, j);
+
+                    val_type = napi.type_of(array_val);
+
+                    if (val_type != napi_string) {
+                        array_val = napi.coerce_to_string(array_val);
+                    }
+
+                    value_len = napi.get_value_string_latin1(array_val, ptr,
+                                                             header_len);
+
+                    f = req->response->fields + req->response->fields_count;
+                    f->skip = 0;
+
+                    nxt_unit_sptr_set(&f->name, name_ptr);
+
+                    f->name_length = name_len;
+                    f->hash = hash;
+
+                    nxt_unit_sptr_set(&f->value, ptr);
+                    f->value_length = (uint32_t) value_len;
+
+                    ptr += value_len;
+                    header_len -= value_len;
+
+                    req->response->fields_count++;
                 }
 
-                napi_typeof(env, array_val, &val_type);
-                if (status != napi_ok) {
-                    goto failed;
-                }
+            } else {
+                val_type = napi.type_of(value);
 
                 if (val_type != napi_string) {
-                    status = napi_coerce_to_string(env, array_val, &array_val);
-                    if (status != napi_ok) {
-                        goto failed;
-                    }
+                    value = napi.coerce_to_string(value);
                 }
 
-                status = napi_get_value_string_latin1(env, array_val, ptr,
-                                                      header_len,
-                                                      &value_len);
-                if (status != napi_ok) {
-                    goto failed;
-                }
+                value_len = napi.get_value_string_latin1(value, ptr, header_len);
 
                 f = req->response->fields + req->response->fields_count;
                 f->skip = 0;
@@ -911,60 +550,22 @@ Unit::response_send_headers(napi_env env, napi_callback_info info)
 
                 req->response->fields_count++;
             }
-
-        } else {
-            napi_typeof(env, value, &val_type);
-            if (status != napi_ok) {
-                goto failed;
-            }
-
-            if (val_type != napi_string) {
-                status = napi_coerce_to_string(env, value, &value);
-                if (status != napi_ok) {
-                    goto failed;
-                }
-            }
-
-            status = napi_get_value_string_latin1(env, value, ptr, header_len,
-                                                  &value_len);
-            if (status != napi_ok) {
-                goto failed;
-            }
-
-            f = req->response->fields + req->response->fields_count;
-            f->skip = 0;
-
-            nxt_unit_sptr_set(&f->name, name_ptr);
-
-            f->name_length = name_len;
-            f->hash = hash;
-
-            nxt_unit_sptr_set(&f->value, ptr);
-            f->value_length = (uint32_t) value_len;
-
-            ptr += value_len;
-            header_len -= value_len;
-
-            req->response->fields_count++;
         }
+
+    } catch (exception &e) {
+        napi.throw_error(e);
+        return nullptr;
     }
 
     req->response_buf->free = ptr;
 
     ret = nxt_unit_response_send(req);
     if (ret != NXT_UNIT_OK) {
-        goto failed;
+        napi.throw_error("Failed to send response");
+        return nullptr;
     }
 
     return this_arg;
-
-failed:
-
-    req->response->fields_count = 0;
-
-    napi_throw_error(env, NULL, "Failed to write headers");
-
-    return nullptr;
 }
 
 
@@ -974,8 +575,8 @@ Unit::response_write(napi_env env, napi_callback_info info)
     int                      ret;
     char                     *ptr;
     size_t                   argc, have_buf_len;
-    int64_t                  req_p;
     uint32_t                 buf_len;
+    nxt_napi                 napi(env);
     napi_value               this_arg, req_num;
     napi_status              status;
     nxt_unit_buf_t           *buf;
@@ -985,39 +586,23 @@ Unit::response_write(napi_env env, napi_callback_info info)
 
     argc = 3;
 
-    status = napi_get_cb_info(env, info, &argc, argv, &this_arg, NULL);
-    if (status != napi_ok) {
-        goto failed;
-    }
+    try {
+        this_arg = napi.get_cb_info(info, argc, argv);
+        if (argc != 3) {
+            throw exception("Wrong args count. Expected: "
+                            "chunk, chunk length");
+        }
 
-    if (argc != 3) {
-        napi_throw_error(env, NULL, "Wrong args count. Need two: "
-                         "chunk, chunk length");
+        req_num = napi.get_named_property(argv[0], "_req_point");
+        req = napi.get_request_info(req_num);
+
+        buf_len = napi.get_value_uint32(argv[2]);
+
+        buf_type = napi.type_of(argv[1]);
+
+    } catch (exception &e) {
+        napi.throw_error(e);
         return nullptr;
-    }
-
-    status = napi_get_named_property(env, argv[0], "_req_point", &req_num);
-    if (status != napi_ok) {
-        napi_throw_error(env, NULL, "Failed to get request pointer");
-        return nullptr;
-    }
-
-    status = napi_get_value_int64(env, req_num, &req_p);
-    if (status != napi_ok) {
-        napi_throw_error(env, NULL, "Failed to get request pointer");
-        return nullptr;
-    }
-
-    req = (nxt_unit_request_info_t *) (uintptr_t) req_p;
-
-    status = napi_get_value_uint32(env, argv[2], &buf_len);
-    if (status != napi_ok) {
-        goto failed;
-    }
-
-    status = napi_typeof(env, argv[1], &buf_type);
-    if (status != napi_ok) {
-        goto failed;
     }
 
     buf_len++;
@@ -1055,7 +640,7 @@ Unit::response_write(napi_env env, napi_callback_info info)
 
 failed:
 
-    napi_throw_error(env, NULL, "Failed to write body");
+    napi.throw_error("Failed to write body");
 
     return nullptr;
 }
@@ -1065,32 +650,22 @@ napi_value
 Unit::response_end(napi_env env, napi_callback_info info)
 {
     size_t                   argc;
-    int64_t                  req_p;
+    nxt_napi                 napi(env);
     napi_value               resp, this_arg, req_num;
-    napi_status              status;
     nxt_unit_request_info_t  *req;
 
     argc = 1;
 
-    status = napi_get_cb_info(env, info, &argc, &resp, &this_arg, NULL);
-    if (status != napi_ok) {
-        napi_throw_error(env, NULL, "Failed to finalize sending body");
+    try {
+        this_arg = napi.get_cb_info(info, argc, &resp);
+
+        req_num = napi.get_named_property(resp, "_req_point");
+        req = napi.get_request_info(req_num);
+
+    } catch (exception &e) {
+        napi.throw_error(e);
         return nullptr;
     }
-
-    status = napi_get_named_property(env, resp, "_req_point", &req_num);
-    if (status != napi_ok) {
-        napi_throw_error(env, NULL, "Failed to get request pointer");
-        return nullptr;
-    }
-
-    status = napi_get_value_int64(env, req_num, &req_p);
-    if (status != napi_ok) {
-        napi_throw_error(env, NULL, "Failed to get request pointer");
-        return nullptr;
-    }
-
-    req = (nxt_unit_request_info_t *) (uintptr_t) req_p;
 
     nxt_unit_request_done(req, NXT_UNIT_OK);
 

@@ -6,34 +6,15 @@
 #ifndef _NXT_NODEJS_UNIT_H_INCLUDED_
 #define _NXT_NODEJS_UNIT_H_INCLUDED_
 
-#include <node_api.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include "version.h"
-#include <nxt_unit.h>
-
-#if NXT_VERNUM != NXT_NODE_VERNUM
-#error "libunit version mismatch."
-#endif
-
-#include <nxt_unit_response.h>
-#include <nxt_unit_request.h>
+#include "nxt_napi.h"
 
 
-#ifdef __cplusplus
-} /* extern "C" */
-#endif
-
-
-class Unit {
+class Unit : public nxt_napi {
 public:
     static napi_value init(napi_env env, napi_value exports);
 
 private:
-    Unit(napi_env env);
+    Unit(napi_env env, napi_value jsthis);
     ~Unit();
 
     static napi_value create(napi_env env, napi_callback_info info);
@@ -56,7 +37,7 @@ private:
 
     napi_value create_response(napi_value server_obj, napi_value socket,
                                napi_value request,
-                               nxt_unit_request_info_t *req, Unit *obj);
+                               nxt_unit_request_info_t *req);
 
     static napi_value response_send_headers(napi_env env,
                                             napi_callback_info info);
@@ -64,18 +45,16 @@ private:
     static napi_value response_write(napi_env env, napi_callback_info info);
     static napi_value response_end(napi_env env, napi_callback_info info);
 
-    napi_status create_headers(nxt_unit_request_info_t *req,
-                               napi_value request);
+    void create_headers(nxt_unit_request_info_t *req, napi_value request);
 
-    inline napi_status append_header(nxt_unit_field_t *f, napi_value headers,
+    void append_header(nxt_unit_field_t *f, napi_value headers,
                                      napi_value raw_headers, uint32_t idx);
 
     static napi_ref constructor_;
 
-    napi_env        env_;
     napi_ref        wrapper_;
     nxt_unit_ctx_t  *unit_ctx_;
 };
 
 
-#endif /* _NXT_NODEJS_H_INCLUDED_ */
+#endif /* _NXT_NODEJS_UNIT_H_INCLUDED_ */
