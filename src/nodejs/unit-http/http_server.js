@@ -387,6 +387,10 @@ Server.prototype.emit_events = function (server, req, res) {
     });
 };
 
+Server.prototype.emit_close = function () {
+    this.emit('close');
+};
+
 function connectionListener(socket) {
 }
 

@@ -313,6 +313,27 @@ Unit::remove_port(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id)
 void
 Unit::quit(nxt_unit_ctx_t *ctx)
 {
+    Unit        *obj;
+    napi_value  server_obj, emit_close;
+
+    obj = reinterpret_cast<Unit *>(ctx->unit->data);
+
+    try {
+        nxt_handle_scope  scope(obj->env());
+
+        server_obj = obj->get_server_object();
+
+        emit_close = obj->get_named_property(server_obj, "emit_close");
+
+        nxt_async_context   async_context(obj->env(), "unit_quit");
+        nxt_callback_scope  async_scope(async_context);
+
+        obj->make_callback(async_context, server_obj, emit_close, 0, NULL);
+
+    } catch (exception &e) {
+        obj->throw_error(e);
+    }
+
     nxt_unit_done(ctx);
 }
 
