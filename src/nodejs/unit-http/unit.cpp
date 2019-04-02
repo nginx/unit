@@ -77,9 +77,7 @@ Unit::destroy(napi_env env, void *nativeObject, void *finalize_hint)
 napi_value
 Unit::create(napi_env env, napi_callback_info info)
 {
-    Unit        *obj;
     nxt_napi    napi(env);
-    napi_ref    ref;
     napi_value  target, cons, instance, jsthis;
 
     try {
@@ -89,9 +87,8 @@ Unit::create(napi_env env, napi_callback_info info)
             /* Invoked as constructor: `new Unit(...)`. */
             jsthis = napi.get_cb_info(info);
 
-            obj = new Unit(env, jsthis);
-
-            ref = napi.create_reference(jsthis);
+            new Unit(env, jsthis);
+            napi.create_reference(jsthis);
 
             return jsthis;
         }
@@ -99,7 +96,7 @@ Unit::create(napi_env env, napi_callback_info info)
         /* Invoked as plain function `Unit(...)`, turn into construct call. */
         cons = napi.get_reference_value(constructor_);
         instance = napi.new_instance(cons);
-        ref = napi.create_reference(instance);
+        napi.create_reference(instance);
 
     } catch (exception &e) {
         napi.throw_error(e);
@@ -166,13 +163,13 @@ Unit::_read(napi_env env, napi_callback_info info)
     void                     *data;
     size_t                   argc;
     nxt_napi                 napi(env);
-    napi_value               jsthis, buffer, argv;
+    napi_value               buffer, argv;
     nxt_unit_request_info_t  *req;
 
     argc = 1;
 
     try {
-        jsthis = napi.get_cb_info(info, argc, &argv);
+        napi.get_cb_info(info, argc, &argv);
 
         req = napi.get_request_info(argv);
         buffer = napi.create_buffer((size_t) req->content_length, &data);
