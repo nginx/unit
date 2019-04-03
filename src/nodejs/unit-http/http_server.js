@@ -197,6 +197,14 @@ function writeHead(statusCode, reason, obj) {
     }
 };
 
+/*
+ * Some Node.js packages are known to be using this undocumented function,
+ * notably "compression" middleware.
+ */
+ServerResponse.prototype._implicitHeader = function _implicitHeader() {
+    this.writeHead(this.statusCode);
+};
+
 ServerResponse.prototype._writeBody = function(chunk, encoding, callback) {
     var contentLength = 0;
 
