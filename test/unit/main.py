@@ -142,7 +142,7 @@ class TestUnit(unittest.TestCase):
                     subprocess.check_output(['which', 'openssl'])
 
                     output = subprocess.check_output(
-                        [self.pardir + '/build/unitd', '--version'],
+                        [self.unitd, '--version'],
                         stderr=subprocess.STDOUT,
                     )
 
@@ -170,6 +170,11 @@ class TestUnit(unittest.TestCase):
             self._stop()
 
     def _run(self):
+        self.unitd = self.pardir + '/build/unitd'
+
+        if not os.path.isfile(self.unitd):
+            exit("Could not find unit")
+
         self.testdir = tempfile.mkdtemp(prefix='unit-test-')
 
         os.mkdir(self.testdir + '/state')
@@ -179,7 +184,7 @@ class TestUnit(unittest.TestCase):
         def _run_unit():
             subprocess.call(
                 [
-                    self.pardir + '/build/unitd',
+                    self.unitd,
                     '--no-daemon',
                     '--modules',  self.pardir + '/build',
                     '--state',    self.testdir + '/state',
