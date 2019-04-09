@@ -3,8 +3,7 @@ from unit.applications.lang.java import TestApplicationJava
 
 
 class TestJavaApplication(TestApplicationJava):
-    def setUpClass():
-        TestApplicationJava().check_modules('java')
+    prerequisites = ['java']
 
     def test_java_application_cookies(self):
         self.load('cookies')

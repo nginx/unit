@@ -2,8 +2,7 @@ from unit.applications.lang.python import TestApplicationPython
 
 
 class TestPythonEnvironment(TestApplicationPython):
-    def setUpClass():
-        TestApplicationPython().check_modules('python')
+    prerequisites = ['python']
 
     def test_python_environment_name_null(self):
         self.load('environment')

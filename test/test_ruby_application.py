@@ -3,8 +3,7 @@ from unit.applications.lang.ruby import TestApplicationRuby
 
 
 class TestRubyApplication(TestApplicationRuby):
-    def setUpClass():
-        TestApplicationRuby().check_modules('ruby')
+    prerequisites = ['ruby']
 
     def test_ruby_application(self):
         self.load('variables')

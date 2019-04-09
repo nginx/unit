@@ -6,8 +6,7 @@ from unit.applications.lang.python import TestApplicationPython
 
 
 class TestAccessLog(TestApplicationPython):
-    def setUpClass():
-        TestApplicationPython().check_modules('python')
+    prerequisites = ['python']
 
     def load(self, script):
         super().load(script)

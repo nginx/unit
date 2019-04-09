@@ -2,8 +2,7 @@ from unit.applications.proto import TestApplicationProto
 
 
 class TestRouting(TestApplicationProto):
-    def setUpClass():
-        TestApplicationProto().check_modules('python')
+    prerequisites = ['python']
 
     def setUp(self):
         super().setUp()

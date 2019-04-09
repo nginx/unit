@@ -47,6 +47,10 @@ class TestUnit(unittest.TestCase):
 
         unittest.main()
 
+    @classmethod
+    def setUpClass(cls):
+        TestUnit().check_modules(*cls.prerequisites)
+
     def setUp(self):
         self._run()
 

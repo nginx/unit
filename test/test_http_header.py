@@ -2,8 +2,7 @@ from unit.applications.lang.python import TestApplicationPython
 
 
 class TestHTTPHeader(TestApplicationPython):
-    def setUpClass():
-        TestApplicationPython().check_modules('python')
+    prerequisites = ['python']
 
     def test_http_header_value_leading_sp(self):
         self.load('custom_header')

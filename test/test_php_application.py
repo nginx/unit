@@ -3,8 +3,7 @@ import unittest
 from unit.applications.lang.php import TestApplicationPHP
 
 class TestPHPApplication(TestApplicationPHP):
-    def setUpClass():
-        TestApplicationPHP().check_modules('php')
+    prerequisites = ['php']
 
     def before_disable_functions(self):
         body = self.get()['body']

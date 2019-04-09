@@ -3,8 +3,7 @@ from unit.applications.lang.go import TestApplicationGo
 
 
 class TestGoApplication(TestApplicationGo):
-    def setUpClass():
-        TestApplicationGo().check_modules('go')
+    prerequisites = ['go']
 
     def test_go_application_variables(self):
         self.load('variables')

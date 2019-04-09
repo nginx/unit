@@ -3,8 +3,7 @@ from unit.control import TestControl
 
 
 class TestConfiguration(TestControl):
-    def setUpClass():
-        TestControl().check_modules('python')
+    prerequisites = ['python']
 
     def test_json_empty(self):
         self.assertIn('error', self.conf(''), 'empty')

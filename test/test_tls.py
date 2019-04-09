@@ -4,12 +4,10 @@ import time
 import subprocess
 import unittest
 from unit.applications.tls import TestApplicationTLS
-from unit.main import TestUnit
 
 
 class TestTLS(TestApplicationTLS):
-    def setUpClass():
-        TestUnit().check_modules('python', 'openssl')
+    prerequisites = ['python', 'openssl']
 
     def findall(self, pattern):
         with open(self.testdir + '/unit.log', 'r', errors='ignore') as f:

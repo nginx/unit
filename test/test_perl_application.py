@@ -3,8 +3,7 @@ from unit.applications.lang.perl import TestApplicationPerl
 
 
 class TestPerlApplication(TestApplicationPerl):
-    def setUpClass():
-        TestApplicationPerl().check_modules('perl')
+    prerequisites = ['perl']
 
     def test_perl_application(self):
         self.load('variables')
