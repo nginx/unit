@@ -88,7 +88,7 @@ class TestHTTP(TestUnit):
         if 'no_recv' not in kwargs:
             enc = 'utf-8' if 'encoding' not in kwargs else kwargs['encoding']
             read_timeout = (
-                5 if 'read_timeout' not in kwargs else kwargs['read_timeout']
+                30 if 'read_timeout' not in kwargs else kwargs['read_timeout']
             )
             resp = self.recvall(sock, read_timeout=read_timeout).decode(enc)
 
@@ -116,7 +116,7 @@ class TestHTTP(TestUnit):
     def put(self, **kwargs):
         return self.http('PUT', **kwargs)
 
-    def recvall(self, sock, read_timeout=5, buff_size=4096):
+    def recvall(self, sock, read_timeout=30, buff_size=4096):
         data = b''
         while select.select([sock], [], [], read_timeout)[0]:
             try:
