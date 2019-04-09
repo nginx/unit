@@ -88,6 +88,8 @@ class TestGoApplication(TestApplicationGo):
     def test_go_keepalive_body(self):
         self.load('mirror')
 
+        self.assertEqual(self.get()['status'], 200, 'init')
+
         (resp, sock) = self.post(
             headers={
                 'Host': 'localhost',
@@ -96,6 +98,7 @@ class TestGoApplication(TestApplicationGo):
             },
             start=True,
             body='0123456789' * 500,
+            read_timeout=1,
         )
 
         self.assertEqual(resp['body'], '0123456789' * 500, 'keep-alive 1')

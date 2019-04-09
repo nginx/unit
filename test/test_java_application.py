@@ -1031,6 +1031,8 @@ class TestJavaApplication(TestApplicationJava):
     def test_java_application_keepalive_body(self):
         self.load('mirror')
 
+        self.assertEqual(self.post()['status'], 200, 'init')
+
         (resp, sock) = self.post(
             headers={
                 'Connection': 'keep-alive',
@@ -1039,6 +1041,7 @@ class TestJavaApplication(TestApplicationJava):
             },
             start=True,
             body='0123456789' * 500,
+            read_timeout=1,
         )
 
         self.assertEqual(resp['body'], '0123456789' * 500, 'keep-alive 1')
@@ -1127,6 +1130,8 @@ class TestJavaApplication(TestApplicationJava):
 
     def test_java_application_get_header_names_empty(self):
         self.load('get_header_names')
+
+        self.assertEqual(self.get()['status'], 200, 'init')
 
         self.assertNotIn(
             'X-Reply-0',

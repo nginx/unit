@@ -134,6 +134,8 @@ class TestPythonApplication(TestApplicationPython):
     def test_python_keepalive_body(self):
         self.load('mirror')
 
+        self.assertEqual(self.get()['status'], 200, 'init')
+
         (resp, sock) = self.post(
             headers={
                 'Host': 'localhost',
@@ -142,6 +144,7 @@ class TestPythonApplication(TestApplicationPython):
             },
             start=True,
             body='0123456789' * 500,
+            read_timeout=1,
         )
 
         self.assertEqual(resp['body'], '0123456789' * 500, 'keep-alive 1')
@@ -168,6 +171,8 @@ class TestPythonApplication(TestApplicationPython):
         )
         self.load('mirror')
 
+        self.assertEqual(self.get()['status'], 200, 'init')
+
         body = '0123456789'
         conns = 3
         socks = []
@@ -181,6 +186,7 @@ class TestPythonApplication(TestApplicationPython):
                 },
                 start=True,
                 body=body,
+                read_timeout=1,
             )
 
             self.assertEqual(resp['body'], body, 'keep-alive open')
@@ -202,6 +208,7 @@ class TestPythonApplication(TestApplicationPython):
                 start=True,
                 sock=socks[i],
                 body=body,
+                read_timeout=1,
             )
 
             self.assertEqual(resp['body'], body, 'keep-alive request')
@@ -232,6 +239,8 @@ class TestPythonApplication(TestApplicationPython):
     def test_python_keepalive_reconfigure_2(self):
         self.load('mirror')
 
+        self.assertEqual(self.get()['status'], 200, 'init')
+
         body = '0123456789'
 
         (resp, sock) = self.post(
@@ -242,11 +251,14 @@ class TestPythonApplication(TestApplicationPython):
             },
             start=True,
             body=body,
+            read_timeout=1,
         )
 
         self.assertEqual(resp['body'], body, 'reconfigure 2 keep-alive 1')
 
         self.load('empty')
+
+        self.assertEqual(self.get()['status'], 200, 'init')
 
         (resp, sock) = self.post(
             headers={
@@ -275,11 +287,14 @@ class TestPythonApplication(TestApplicationPython):
     def test_python_keepalive_reconfigure_3(self):
         self.load('empty')
 
+        self.assertEqual(self.get()['status'], 200, 'init')
+
         (resp, sock) = self.http(
             b"""GET / HTTP/1.1
 """,
             start=True,
             raw=True,
+            read_timeout=1,
         )
 
         self.assertIn(

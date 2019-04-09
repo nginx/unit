@@ -411,11 +411,14 @@ basicConstraints = critical,CA:TRUE"""
     def test_tls_reconfigure(self):
         self.load('empty')
 
+        self.assertEqual(self.get()['status'], 200, 'init')
+
         self.certificate()
 
         (resp, sock) = self.get(
             headers={'Host': 'localhost', 'Connection': 'keep-alive'},
             start=True,
+            read_timeout=1,
         )
 
         self.assertEqual(resp['status'], 200, 'initial status')
@@ -432,6 +435,8 @@ basicConstraints = critical,CA:TRUE"""
     def test_tls_keepalive(self):
         self.load('mirror')
 
+        self.assertEqual(self.get()['status'], 200, 'init')
+
         self.certificate()
 
         self.add_tls(application='mirror')
@@ -444,6 +449,7 @@ basicConstraints = critical,CA:TRUE"""
             },
             start=True,
             body='0123456789',
+            read_timeout=1,
         )
 
         self.assertEqual(resp['body'], '0123456789', 'keepalive 1')
@@ -464,6 +470,8 @@ basicConstraints = critical,CA:TRUE"""
     def test_tls_keepalive_certificate_remove(self):
         self.load('empty')
 
+        self.assertEqual(self.get()['status'], 200, 'init')
+
         self.certificate()
 
         self.add_tls()
@@ -471,6 +479,7 @@ basicConstraints = critical,CA:TRUE"""
         (resp, sock) = self.get_ssl(
             headers={'Host': 'localhost', 'Connection': 'keep-alive'},
             start=True,
+            read_timeout=1,
         )
 
         self.conf({"application": "empty"}, 'listeners/*:7080')
@@ -501,6 +510,8 @@ basicConstraints = critical,CA:TRUE"""
         self.skip_alerts.append(r'process \d+ exited on signal 9')
         self.load('mirror')
 
+        self.assertEqual(self.get()['status'], 200, 'init')
+
         self.certificate()
 
         self.conf('1', 'applications/mirror/processes')
@@ -515,6 +526,7 @@ basicConstraints = critical,CA:TRUE"""
             },
             start=True,
             body='0123456789',
+            read_timeout=1,
         )
 
         app_id = self.findall(r'(\d+)#\d+ "mirror" application started')[0]

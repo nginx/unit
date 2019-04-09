@@ -196,6 +196,8 @@ class TestPerlApplication(TestApplicationPerl):
     def test_perl_keepalive_body(self):
         self.load('variables')
 
+        self.assertEqual(self.get()['status'], 200, 'init')
+
         (resp, sock) = self.post(
             headers={
                 'Host': 'localhost',
@@ -204,6 +206,7 @@ class TestPerlApplication(TestApplicationPerl):
             },
             start=True,
             body='0123456789' * 500,
+            read_timeout=1,
         )
 
         self.assertEqual(resp['body'], '0123456789' * 500, 'keep-alive 1')

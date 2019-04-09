@@ -42,7 +42,6 @@ Connection: close
             b"""GET / HTTP/1.1
 """,
             start=True,
-            read_timeout=1,
             raw=True,
             no_recv=True,
         )
@@ -54,7 +53,6 @@ Connection: close
 """,
             start=True,
             sock=sock,
-            read_timeout=1,
             raw=True,
             no_recv=True,
         )
@@ -188,6 +186,8 @@ Connection: close
 
     def test_settings_idle_timeout(self):
         self.load('empty')
+
+        self.assertEqual(self.get()['status'], 200, 'init')
 
         self.conf({'http': {'idle_timeout': 2}}, 'settings')
 
