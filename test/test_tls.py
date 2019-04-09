@@ -13,14 +13,6 @@ class TestTLS(TestApplicationTLS):
         with open(self.testdir + '/unit.log', 'r', errors='ignore') as f:
             return re.findall(pattern, f.read())
 
-    def wait_for_record(self, pattern):
-        for i in range(50):
-            with open(self.testdir + '/unit.log', 'r', errors='ignore') as f:
-                if re.search(pattern, f.read()) is not None:
-                    break
-
-            time.sleep(0.1)
-
     def openssl_date_to_sec_epoch(self, date):
         return self.date_to_sec_epoch(date, '%b %d %H:%M:%S %Y %Z')
 

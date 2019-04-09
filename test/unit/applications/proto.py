@@ -13,3 +13,14 @@ class TestApplicationProto(TestControl):
     def search_in_log(self, pattern, name='unit.log'):
         with open(self.testdir + '/' + name, 'r', errors='ignore') as f:
             return re.search(pattern, f.read())
+
+    def wait_for_record(self, pattern, name='unit.log'):
+        for i in range(50):
+            found = self.search_in_log(pattern, name)
+
+            if found is not None:
+                break
+
+            time.sleep(0.1)
+
+        return found

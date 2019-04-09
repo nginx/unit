@@ -137,7 +137,7 @@ class TestPerlApplication(TestApplicationPerl):
         self.stop()
 
         self.assertIsNotNone(
-            self.search_in_log(r'\[error\].+Error in application'),
+            self.wait_for_record(r'\[error\].+Error in application'),
             'errors print',
         )
 
@@ -226,12 +226,12 @@ class TestPerlApplication(TestApplicationPerl):
         self.assertEqual(self.get()['body'], '21', 'body io fake')
 
         self.assertIsNotNone(
-            self.search_in_log(r'\[error\].+IOFake getline\(\) \$\/ is \d+'),
+            self.wait_for_record(r'\[error\].+IOFake getline\(\) \$\/ is \d+'),
             'body io fake $/ value',
         )
 
         self.assertIsNotNone(
-            self.search_in_log(r'\[error\].+IOFake close\(\) called'),
+            self.wait_for_record(r'\[error\].+IOFake close\(\) called'),
             'body io fake close',
         )
 

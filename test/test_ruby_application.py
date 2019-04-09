@@ -197,7 +197,7 @@ class TestRubyApplication(TestApplicationRuby):
         self.stop()
 
         self.assertIsNotNone(
-            self.search_in_log(r'\[error\].+Error in application'),
+            self.wait_for_record(r'\[error\].+Error in application'),
             'errors puts',
         )
 
@@ -209,7 +209,7 @@ class TestRubyApplication(TestApplicationRuby):
         self.stop()
 
         self.assertIsNotNone(
-            self.search_in_log(r'\[error\].+1234567890'), 'errors puts int'
+            self.wait_for_record(r'\[error\].+1234567890'), 'errors puts int'
         )
 
     def test_ruby_application_errors_write(self):
@@ -220,7 +220,7 @@ class TestRubyApplication(TestApplicationRuby):
         self.stop()
 
         self.assertIsNotNone(
-            self.search_in_log(r'\[error\].+Error in application'),
+            self.wait_for_record(r'\[error\].+Error in application'),
             'errors write',
         )
 
@@ -237,7 +237,7 @@ class TestRubyApplication(TestApplicationRuby):
         self.stop()
 
         self.assertIsNotNone(
-            self.search_in_log(r'\[error\].+1234567890'), 'errors write int'
+            self.wait_for_record(r'\[error\].+1234567890'), 'errors write int'
         )
 
     def test_ruby_application_at_exit(self):
@@ -250,7 +250,7 @@ class TestRubyApplication(TestApplicationRuby):
         self.stop()
 
         self.assertIsNotNone(
-            self.search_in_log(r'\[error\].+At exit called\.'), 'at exit'
+            self.wait_for_record(r'\[error\].+At exit called\.'), 'at exit'
         )
 
     def test_ruby_application_header_custom(self):
@@ -309,7 +309,7 @@ class TestRubyApplication(TestApplicationRuby):
         self.stop()
 
         self.assertIsNotNone(
-            self.search_in_log(r'\[error\].+Failed to run ruby script'),
+            self.wait_for_record(r'\[error\].+Failed to run ruby script'),
             'body each error',
         )
 

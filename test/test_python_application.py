@@ -127,10 +127,8 @@ class TestPythonApplication(TestApplicationPython):
 
         self.stop()
 
-        time.sleep(0.2)
-
         self.assertIsNotNone(
-            self.search_in_log(r'RuntimeError'), 'ctx iter atexit'
+            self.wait_for_record(r'RuntimeError'), 'ctx iter atexit'
         )
 
     def test_python_keepalive_body(self):
@@ -310,7 +308,9 @@ Connection: close
 
         self.stop()
 
-        self.assertIsNotNone(self.search_in_log(r'At exit called\.'), 'atexit')
+        self.assertIsNotNone(
+            self.wait_for_record(r'At exit called\.'), 'atexit'
+        )
 
     @unittest.expectedFailure
     def test_python_application_start_response_exit(self):
@@ -384,7 +384,7 @@ Connection: close
         self.stop()
 
         self.assertIsNotNone(
-            self.search_in_log(r'\[error\].+Error in application\.'),
+            self.wait_for_record(r'\[error\].+Error in application\.'),
             'errors write',
         )
 
@@ -417,7 +417,7 @@ Connection: close
 
         self.stop()
 
-        self.assertIsNotNone(self.search_in_log(r'Close called\.'), 'close')
+        self.assertIsNotNone(self.wait_for_record(r'Close called\.'), 'close')
 
     def test_python_application_close_error(self):
         self.load('close_error')
@@ -427,7 +427,7 @@ Connection: close
         self.stop()
 
         self.assertIsNotNone(
-            self.search_in_log(r'Close called\.'), 'close error'
+            self.wait_for_record(r'Close called\.'), 'close error'
         )
 
     def test_python_application_not_iterable(self):
@@ -438,7 +438,7 @@ Connection: close
         self.stop()
 
         self.assertIsNotNone(
-            self.search_in_log(
+            self.wait_for_record(
                 r'\[error\].+the application returned not an iterable object'
             ),
             'not iterable',
