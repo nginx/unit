@@ -10,6 +10,6 @@ class TestApplicationProto(TestControl):
     def date_to_sec_epoch(self, date, template='%a, %d %b %Y %H:%M:%S %Z'):
         return time.mktime(time.strptime(date, template))
 
-    def search_in_log(self, pattern):
-        with open(self.testdir + '/unit.log', 'r', errors='ignore') as f:
+    def search_in_log(self, pattern, name='unit.log'):
+        with open(self.testdir + '/' + name, 'r', errors='ignore') as f:
             return re.search(pattern, f.read())
