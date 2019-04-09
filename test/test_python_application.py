@@ -188,10 +188,7 @@ class TestPythonApplication(TestApplicationPython):
             self.assertEqual(resp['body'], body, 'keep-alive open')
             self.assertIn(
                 'success',
-                self.conf(
-                    str(i + 1),
-                    'applications/mirror/processes',
-                ),
+                self.conf(str(i + 1), 'applications/mirror/processes'),
                 'reconfigure',
             )
 
@@ -212,10 +209,7 @@ class TestPythonApplication(TestApplicationPython):
             self.assertEqual(resp['body'], body, 'keep-alive request')
             self.assertIn(
                 'success',
-                self.conf(
-                    str(i + 1),
-                    'applications/mirror/processes',
-                ),
+                self.conf(str(i + 1), 'applications/mirror/processes'),
                 'reconfigure 2',
             )
 
@@ -233,10 +227,7 @@ class TestPythonApplication(TestApplicationPython):
             self.assertEqual(resp['body'], body, 'keep-alive close')
             self.assertIn(
                 'success',
-                self.conf(
-                    str(i + 1),
-                    'applications/mirror/processes',
-                ),
+                self.conf(str(i + 1), 'applications/mirror/processes'),
                 'reconfigure 3',
             )
 
