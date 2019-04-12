@@ -777,7 +777,12 @@ nxt_conf_vldt_match_pattern(nxt_conf_validation_t *vldt,
 
         case sw_side:
             if (i == last) {
-                break;
+                if (last - first != 1) {
+                    break;
+                }
+
+                return nxt_conf_vldt_error(vldt, "The \"match\" pattern must "
+                                           "not contain double \"*\" markers.");
             }
 
             /* Fall through. */
