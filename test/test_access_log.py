@@ -177,7 +177,9 @@ Connection: close
     def test_access_log_partial(self):
         self.load('empty')
 
-        self.http(b"""GE""", raw=True, no_recv=True)
+        self.assertEqual(self.post()['status'], 200, 'init')
+
+        self.http(b"""GE""", raw=True, read_timeout=1)
 
         self.stop()
 
@@ -188,7 +190,9 @@ Connection: close
     def test_access_log_partial_2(self):
         self.load('empty')
 
-        self.http(b"""GET /\n""", raw=True, no_recv=True)
+        self.assertEqual(self.post()['status'], 200, 'init')
+
+        self.http(b"""GET /\n""", raw=True, read_timeout=1)
 
         self.stop()
 
@@ -199,7 +203,9 @@ Connection: close
     def test_access_log_partial_3(self):
         self.load('empty')
 
-        self.http(b"""GET / HTTP/1.1""", raw=True, no_recv=True)
+        self.assertEqual(self.post()['status'], 200, 'init')
+
+        self.http(b"""GET / HTTP/1.1""", raw=True, read_timeout=1)
 
         self.stop()
 
@@ -210,7 +216,9 @@ Connection: close
     def test_access_log_partial_4(self):
         self.load('empty')
 
-        resp = self.http(b"""GET / HTTP/1.1\n""", raw=True, no_recv=True)
+        self.assertEqual(self.post()['status'], 200, 'init')
+
+        resp = self.http(b"""GET / HTTP/1.1\n""", raw=True, read_timeout=1)
 
         self.stop()
 
