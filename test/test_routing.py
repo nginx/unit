@@ -186,6 +186,124 @@ class TestRouting(TestApplicationProto):
 
         self.assertEqual(self.get()['status'], 200, 'method wildcard')
 
+    def test_routes_match_host_wildcard_invalid(self):
+        self.assertIn(
+            'error',
+            self.conf(
+                [
+                    {
+                        "match": {"method": "**"},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'wildcard invalid',
+        )
+
+        self.assertIn(
+            'error',
+            self.conf(
+                [
+                    {
+                        "match": {"method": "blah**"},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'wildcard invalid 2',
+        )
+
+        self.assertIn(
+            'error',
+            self.conf(
+                [
+                    {
+                        "match": {"host": "*blah*blah"},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'wildcard invalid 3',
+        )
+
+        self.assertIn(
+            'error',
+            self.conf(
+                [
+                    {
+                        "match": {"host": "blah*blah*blah"},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'wildcard invalid 4',
+        )
+
+        self.assertIn(
+            'error',
+            self.conf(
+                [
+                    {
+                        "match": {"host": "blah*blah*"},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'wildcard invalid 5',
+        )
+
+    def test_routes_match_wildcard_middle(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {"host": "ex*le"},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'host wildcard middle configure',
+        )
+
+        self.assertEqual(
+            self.get(headers={'Host': 'example', 'Connection': 'close'})[
+                'status'
+            ],
+            200,
+            'host wildcard middle',
+        )
+
+        self.assertEqual(
+            self.get(headers={'Host': 'www.example', 'Connection': 'close'})[
+                'status'
+            ],
+            404,
+            'host wildcard middle 2',
+        )
+
+        self.assertEqual(
+            self.get(headers={'Host': 'example.com', 'Connection': 'close'})[
+                'status'
+            ],
+            404,
+            'host wildcard middle 3',
+        )
+
+        self.assertEqual(
+            self.get(headers={'Host': 'exampl', 'Connection': 'close'})[
+                'status'
+            ],
+            404,
+            'host wildcard middle 4',
+        )
+
     def test_routes_match_method_case_insensitive(self):
         self.assertIn(
             'success',
@@ -202,6 +320,192 @@ class TestRouting(TestApplicationProto):
         )
 
         self.assertEqual(self.get()['status'], 200, 'method case insensitive')
+
+    def test_routes_match_wildcard_left_case_insensitive(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {"method": "*et"},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match wildcard case insensitive configure',
+        )
+
+        self.assertEqual(
+            self.get()['status'], 200, 'match wildcard case insensitive'
+        )
+
+    def test_routes_match_wildcard_middle_case_insensitive(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {"method": "g*t"},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match wildcard case insensitive configure',
+        )
+
+        self.assertEqual(
+            self.get()['status'], 200, 'match wildcard case insensitive'
+        )
+
+    def test_routes_match_wildcard_right_case_insensitive(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {"method": "get*"},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match wildcard case insensitive configure',
+        )
+
+        self.assertEqual(
+            self.get()['status'], 200, 'match wildcard case insensitive'
+        )
+
+    def test_routes_match_wildcard_substring_case_insensitive(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {"method": "*et*"},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match wildcard substring case insensitive configure',
+        )
+
+        self.assertEqual(
+            self.get()['status'],
+            200,
+            'match wildcard substring case insensitive',
+        )
+
+    def test_routes_match_wildcard_left_case_sensitive(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {"uri": "*blah"},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match wildcard left case sensitive configure',
+        )
+
+        self.assertEqual(
+            self.get(url='/blah')['status'],
+            200,
+            'match wildcard left case sensitive /blah',
+        )
+
+        self.assertEqual(
+            self.get(url='/BLAH')['status'],
+            404,
+            'match wildcard left case sensitive /BLAH',
+        )
+
+    def test_routes_match_wildcard_middle_case_sensitive(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {"uri": "/b*h"},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match wildcard middle case sensitive configure',
+        )
+
+        self.assertEqual(
+            self.get(url='/blah')['status'],
+            200,
+            'match wildcard middle case sensitive /blah',
+        )
+
+        self.assertEqual(
+            self.get(url='/BLAH')['status'],
+            404,
+            'match wildcard middle case sensitive /BLAH',
+        )
+
+    def test_routes_match_wildcard_right_case_sensitive(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {"uri": "/bla*"},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match wildcard right case sensitive configure',
+        )
+
+        self.assertEqual(
+            self.get(url='/blah')['status'],
+            200,
+            'match wildcard right case sensitive /blah',
+        )
+
+        self.assertEqual(
+            self.get(url='/BLAH')['status'],
+            404,
+            'match wildcard right case sensitive /BLAH',
+        )
+
+    def test_routes_match_wildcard_substring_case_sensitive(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {"uri": "*bla*"},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match wildcard substring case sensitive configure',
+        )
+
+        self.assertEqual(
+            self.get(url='/blah')['status'],
+            200,
+            'match wildcard substring case sensitive /blah',
+        )
+
+        self.assertEqual(
+            self.get(url='/BLAH')['status'],
+            404,
+            'match wildcard substring case sensitive /BLAH',
+        )
 
     def test_routes_absent(self):
         self.conf(
