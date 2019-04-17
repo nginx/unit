@@ -376,17 +376,30 @@ Unit::create_headers(nxt_unit_request_info_t *req, napi_value request)
 }
 
 
+inline char
+lowcase(char c)
+{
+    return (c >= 'A' && c <= 'Z') ? (c | 0x20) : c;
+}
+
+
 inline void
 Unit::append_header(nxt_unit_field_t *f, napi_value headers,
     napi_value raw_headers, uint32_t idx)
 {
-    const char   *name;
-    napi_value   str, vstr;
+    char        *name;
+    uint8_t     i;
+    napi_value  str, vstr;
 
-    name = (const char *) nxt_unit_sptr_get(&f->name);
+    name = (char *) nxt_unit_sptr_get(&f->name);
+
+    str = create_string_latin1(name, f->name_length);
+
+    for (i = 0; i < f->name_length; i++) {
+        name[i] = lowcase(name[i]);
+    }
 
     vstr = set_named_property(headers, name, f->value, f->value_length);
-    str = create_string_latin1(name, f->name_length);
 
     set_element(raw_headers, idx * 2, str);
     set_element(raw_headers, idx * 2 + 1, vstr);
