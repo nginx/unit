@@ -2,6 +2,7 @@ import os
 import re
 import sys
 import time
+import fcntl
 import shutil
 import argparse
 import platform
@@ -315,6 +316,9 @@ class TestUnit(unittest.TestCase):
     def _set_args(args):
         TestUnit.detailed = args.detailed
         TestUnit.save_log = args.save_log
+
+        if TestUnit.detailed:
+            fcntl.fcntl(sys.stdout.fileno(), fcntl.F_SETFL, 0)
 
     def _print_path_to_log(self):
         print('Path to unit.log:\n' + self.testdir + '/unit.log')
