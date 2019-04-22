@@ -294,7 +294,7 @@ class TestPythonApplication(TestApplicationPython):
 """,
             start=True,
             raw=True,
-            read_timeout=1,
+            read_timeout=5,
         )
 
         self.assertIn(
