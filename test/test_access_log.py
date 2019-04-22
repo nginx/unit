@@ -92,7 +92,7 @@ Connection: close
     def test_access_log_ipv6(self):
         self.load('empty')
 
-        self.conf({"[::1]:7080": {"application": "empty"}}, 'listeners')
+        self.conf({"[::1]:7080": {"pass": "applications/empty"}}, 'listeners')
 
         self.get(sock_type='ipv6')
 
@@ -110,7 +110,7 @@ Connection: close
 
         addr = self.testdir + '/sock'
 
-        self.conf({"unix:" + addr: {"application": "empty"}}, 'listeners')
+        self.conf({"unix:" + addr: {"pass": "applications/empty"}}, 'listeners')
 
         self.get(sock_type='unix', addr=addr)
 

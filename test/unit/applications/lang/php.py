@@ -7,7 +7,7 @@ class TestApplicationPHP(TestApplicationProto):
 
         self.conf(
             {
-                "listeners": {"*:7080": {"application": script}},
+                "listeners": {"*:7080": {"pass": "applications/" + script}},
                 "applications": {
                     script: {
                         "type": "php",

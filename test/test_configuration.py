@@ -200,7 +200,7 @@ class TestConfiguration(TestControl):
     def test_listeners_no_app(self):
         self.assertIn(
             'error',
-            self.conf({"*:7080": {"application": "app"}}, 'listeners'),
+            self.conf({"*:7080": {"pass": "applications/app"}}, 'listeners'),
             'listeners no app',
         )
 
@@ -209,7 +209,7 @@ class TestConfiguration(TestControl):
             'success',
             self.conf(
                 {
-                    "listeners": {"*:7080": {"application": "app"}},
+                    "listeners": {"*:7080": {"pass": "applications/app"}},
                     "applications": {
                         "app": {
                             "type": "python",
@@ -228,7 +228,7 @@ class TestConfiguration(TestControl):
             'success',
             self.conf(
                 {
-                    "listeners": {"127.0.0.1:7080": {"application": "app"}},
+                    "listeners": {"127.0.0.1:7080": {"pass": "applications/app"}},
                     "applications": {
                         "app": {
                             "type": "python",
@@ -247,7 +247,7 @@ class TestConfiguration(TestControl):
             'success',
             self.conf(
                 {
-                    "listeners": {"[::1]:7080": {"application": "app"}},
+                    "listeners": {"[::1]:7080": {"pass": "applications/app"}},
                     "applications": {
                         "app": {
                             "type": "python",
@@ -274,7 +274,7 @@ class TestConfiguration(TestControl):
             'error',
             self.conf(
                 {
-                    "listeners": {"127.0.0.1": {"application": "app"}},
+                    "listeners": {"127.0.0.1": {"pass": "applications/app"}},
                     "applications": {
                         "app": {
                             "type": "python",
@@ -295,7 +295,7 @@ class TestConfiguration(TestControl):
             'success',
             self.conf(
                 {
-                    "listeners": {"*:7080": {"application": name}},
+                    "listeners": {"*:7080": {"pass": "applications/" + name}},
                     "applications": {
                         name: {
                             "type": "python",
@@ -327,7 +327,7 @@ class TestConfiguration(TestControl):
                 for a in range(apps)
             },
             "listeners": {
-                "*:" + str(7000 + a): {"application": "app-" + str(a)}
+                "*:" + str(7000 + a): {"pass": "applications/app-" + str(a)}
                 for a in range(apps)
             },
         }
@@ -350,7 +350,7 @@ class TestConfiguration(TestControl):
                 }
                 for a in range(999)
             },
-            "listeners": {"*:7001": {"application": "app-1"}},
+            "listeners": {"*:7001": {"pass": "applications/app-1"}},
         }
 
         self.assertIn('success', self.conf(conf))

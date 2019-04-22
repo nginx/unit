@@ -18,12 +18,17 @@ class TestTLS(TestApplicationTLS):
 
     def add_tls(self, application='empty', cert='default', port=7080):
         self.conf(
-            {"application": application, "tls": {"certificate": cert}},
+            {
+                "pass": "applications/" + application,
+                "tls": {"certificate": cert}
+            },
             'listeners/*:' + str(port),
         )
 
     def remove_tls(self, application='empty', port=7080):
-        self.conf({"application": application}, 'listeners/*:' + str(port))
+        self.conf(
+            {"pass": "applications/" + application}, 'listeners/*:' + str(port)
+        )
 
     def test_tls_listener_option_add(self):
         self.load('empty')
@@ -482,7 +487,7 @@ basicConstraints = critical,CA:TRUE"""
             read_timeout=1,
         )
 
-        self.conf({"application": "empty"}, 'listeners/*:7080')
+        self.conf({"pass": "applications/empty"}, 'listeners/*:7080')
         self.conf_delete('/certificates/default')
 
         try:

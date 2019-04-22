@@ -78,7 +78,7 @@ distinguished_name = req_distinguished_name
 
         self.conf(
             {
-                "listeners": {"*:7080": {"application": name}},
+                "listeners": {"*:7080": {"pass": "applications/" + name}},
                 "applications": {
                     name: {
                         "type": "python",

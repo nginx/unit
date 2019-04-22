@@ -10,7 +10,7 @@ class TestApplicationPython(TestApplicationProto):
 
         self.conf(
             {
-                "listeners": {"*:7080": {"application": name}},
+                "listeners": {"*:7080": {"pass": "applications/" + name}},
                 "applications": {
                     name: {
                         "type": "python",

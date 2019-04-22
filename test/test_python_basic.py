@@ -14,7 +14,7 @@ class TestPythonBasic(TestControl):
     }
 
     conf_basic = {
-        "listeners": {"*:7080": {"application": "app"}},
+        "listeners": {"*:7080": {"pass": "applications/app"}},
         "applications": conf_app,
     }
 
@@ -95,7 +95,7 @@ class TestPythonBasic(TestControl):
 
         self.assertEqual(
             self.conf_get()['listeners'],
-            {"*:7080": {"application": "app"}},
+            {"*:7080": {"pass": "applications/app"}},
             'listeners',
         )
 
@@ -104,7 +104,7 @@ class TestPythonBasic(TestControl):
 
         self.assertEqual(
             self.conf_get('listeners'),
-            {"*:7080": {"application": "app"}},
+            {"*:7080": {"pass": "applications/app"}},
             'listeners prefix',
         )
 
@@ -113,29 +113,29 @@ class TestPythonBasic(TestControl):
 
         self.assertEqual(
             self.conf_get('listeners/*:7080'),
-            {"application": "app"},
+            {"pass": "applications/app"},
             'listeners prefix 2',
         )
 
     def test_python_change_listener(self):
         self.conf(self.conf_basic)
-        self.conf({"*:7081": {"application": "app"}}, 'listeners')
+        self.conf({"*:7081": {"pass": "applications/app"}}, 'listeners')
 
         self.assertEqual(
             self.conf_get('listeners'),
-            {"*:7081": {"application": "app"}},
+            {"*:7081": {"pass": "applications/app"}},
             'change listener',
         )
 
     def test_python_add_listener(self):
         self.conf(self.conf_basic)
-        self.conf({"application": "app"}, 'listeners/*:7082')
+        self.conf({"pass": "applications/app"}, 'listeners/*:7082')
 
         self.assertEqual(
             self.conf_get('listeners'),
             {
-                "*:7080": {"application": "app"},
-                "*:7082": {"application": "app"},
+                "*:7080": {"pass": "applications/app"},
+                "*:7082": {"pass": "applications/app"},
             },
             'add listener',
         )
