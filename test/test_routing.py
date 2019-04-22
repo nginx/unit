@@ -186,7 +186,7 @@ class TestRouting(TestApplicationProto):
 
         self.assertEqual(self.get()['status'], 200, 'method wildcard')
 
-    def test_routes_match_host_wildcard_invalid(self):
+    def test_routes_match_invalid(self):
         self.assertIn(
             'error',
             self.conf(
