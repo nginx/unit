@@ -87,7 +87,6 @@ struct nxt_conf_op_s {
     uint32_t                  index;
     uint32_t                  action;  /* nxt_conf_op_action_t */
     void                      *ctx;
-    nxt_conf_op_t             *next;
 };
 
 
@@ -1015,7 +1014,7 @@ nxt_conf_copy_object(nxt_mp_t *mp, nxt_conf_op_t *op, nxt_conf_value_t *dst,
                 break;
             }
 
-            op = op->next;
+            op = NULL;
         }
 
     } while (d != count);
