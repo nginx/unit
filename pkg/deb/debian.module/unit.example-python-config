@@ -11,7 +11,7 @@
 
 	"listeners": {
 		"*:8400": {
-			"application": "example_python"
+			"pass": "applications/example_python"
 		}
 	}
 }

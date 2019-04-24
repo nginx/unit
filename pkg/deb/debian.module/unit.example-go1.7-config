@@ -9,7 +9,7 @@
 
 	"listeners": {
 		"*:8500": {
-			"application": "example_go"
+			"pass": "applications/example_go"
 		}
 	}
 }

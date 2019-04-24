@@ -9,7 +9,7 @@
 
 	"listeners": {
 		"*:8800": {
-			"application": "example_java11"
+			"pass": "applications/example_java11"
 		}
 	}
 }

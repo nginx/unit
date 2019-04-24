@@ -11,7 +11,7 @@
 
 	"listeners": {
 		"*:8300": {
-			"application": "example_php"
+			"pass": "applications/example_php"
 		}
 	}
 }
