@@ -737,9 +737,9 @@ nxt_conf_array_qsort(nxt_conf_value_t *value,
 }
 
 
-nxt_int_t
+nxt_conf_op_ret_t
 nxt_conf_op_compile(nxt_mp_t *mp, nxt_conf_op_t **ops, nxt_conf_value_t *root,
-    nxt_str_t *path, nxt_conf_value_t *value)
+    nxt_str_t *path, nxt_conf_value_t *value, nxt_bool_t add)
 {
     nxt_str_t                 token;
     nxt_int_t                 index;
@@ -757,7 +757,7 @@ nxt_conf_op_compile(nxt_mp_t *mp, nxt_conf_op_t **ops, nxt_conf_value_t *root,
     for ( ;; ) {
         op = nxt_mp_zget(mp, sizeof(nxt_conf_op_t));
         if (nxt_slow_path(op == NULL)) {
-            return NXT_ERROR;
+            return NXT_CONF_OP_ERROR;
         }
 
         *parent = op;
@@ -775,7 +775,7 @@ nxt_conf_op_compile(nxt_mp_t *mp, nxt_conf_op_t **ops, nxt_conf_value_t *root,
             index = nxt_int_parse(token.start, token.length);
 
             if (index < 0 || index > NXT_INT32_T_MAX) {
-                return NXT_DECLINED;
+                return NXT_CONF_OP_NOT_FOUND;
             }
 
             op->index = index;
@@ -792,7 +792,7 @@ nxt_conf_op_compile(nxt_mp_t *mp, nxt_conf_op_t **ops, nxt_conf_value_t *root,
         }
 
         if (node == NULL) {
-            return NXT_DECLINED;
+            return NXT_CONF_OP_NOT_FOUND;
         }
 
         op->action = NXT_CONF_OP_PASS;
@@ -802,26 +802,51 @@ nxt_conf_op_compile(nxt_mp_t *mp, nxt_conf_op_t **ops, nxt_conf_value_t *root,
     if (value == NULL) {
 
         if (node == NULL) {
-            return NXT_DECLINED;
+            return NXT_CONF_OP_NOT_FOUND;
         }
 
         op->action = NXT_CONF_OP_DELETE;
 
-        return NXT_OK;
+        return NXT_CONF_OP_OK;
+    }
+
+    if (add) {
+        if (node == NULL) {
+            return NXT_CONF_OP_NOT_FOUND;
+        }
+
+        if (node->type != NXT_CONF_VALUE_ARRAY) {
+            return NXT_CONF_OP_NOT_ALLOWED;
+        }
+
+        op->action = NXT_CONF_OP_PASS;
+
+        op = nxt_mp_zget(mp, sizeof(nxt_conf_op_t));
+        if (nxt_slow_path(op == NULL)) {
+            return NXT_CONF_OP_ERROR;
+        }
+
+        *parent = op;
+
+        op->index = node->u.array->count;
+        op->action = NXT_CONF_OP_CREATE;
+        op->ctx = value;
+
+        return NXT_CONF_OP_OK;
     }
 
     if (node != NULL) {
         op->action = NXT_CONF_OP_REPLACE;
         op->ctx = value;
 
-        return NXT_OK;
+        return NXT_CONF_OP_OK;
     }
 
     op->action = NXT_CONF_OP_CREATE;
 
     if (root->type == NXT_CONF_VALUE_ARRAY) {
         if (op->index > root->u.array->count) {
-            return NXT_DECLINED;
+            return NXT_CONF_OP_NOT_FOUND;
         }
 
         op->ctx = value;
@@ -829,7 +854,7 @@ nxt_conf_op_compile(nxt_mp_t *mp, nxt_conf_op_t **ops, nxt_conf_value_t *root,
     } else {
         member = nxt_mp_zget(mp, sizeof(nxt_conf_object_member_t));
         if (nxt_slow_path(member == NULL)) {
-            return NXT_ERROR;
+            return NXT_CONF_OP_ERROR;
         }
 
         nxt_conf_set_string(&member->name, &token);
@@ -840,7 +865,7 @@ nxt_conf_op_compile(nxt_mp_t *mp, nxt_conf_op_t **ops, nxt_conf_value_t *root,
         op->ctx = member;
     }
 
-    return NXT_OK;
+    return NXT_CONF_OP_OK;
 }
 
 

@@ -930,6 +930,7 @@ nxt_controller_process_config(nxt_task_t *task, nxt_controller_request_t *req,
     nxt_mp_t                   *mp;
     nxt_int_t                  rc;
     nxt_conn_t                 *c;
+    nxt_bool_t                 post;
     nxt_buf_mem_t              *mbuf;
     nxt_conf_op_t              *ops;
     nxt_conf_value_t           *value;
@@ -958,7 +959,18 @@ nxt_controller_process_config(nxt_task_t *task, nxt_controller_request_t *req,
         return;
     }
 
-    if (nxt_str_eq(&req->parser.method, "PUT", 3)) {
+    if (nxt_str_eq(&req->parser.method, "POST", 4)) {
+        if (path->length == 1) {
+            goto not_allowed;
+        }
+
+        post = 1;
+
+    } else {
+        post = 0;
+    }
+
+    if (post || nxt_str_eq(&req->parser.method, "PUT", 3)) {
 
         if (!nxt_queue_is_empty(&nxt_controller_waiting_requests)) {
             nxt_queue_insert_tail(&nxt_controller_waiting_requests, &req->link);
@@ -1000,15 +1012,20 @@ nxt_controller_process_config(nxt_task_t *task, nxt_controller_request_t *req,
         if (path->length != 1) {
             rc = nxt_conf_op_compile(c->mem_pool, &ops,
                                      nxt_controller_conf.root,
-                                     path, value);
+                                     path, value, post);
 
-            if (rc != NXT_OK) {
+            if (rc != NXT_CONF_OP_OK) {
                 nxt_mp_destroy(mp);
 
-                if (rc == NXT_DECLINED) {
+                switch (rc) {
+                case NXT_CONF_OP_NOT_FOUND:
                     goto not_found;
+
+                case NXT_CONF_OP_NOT_ALLOWED:
+                    goto not_allowed;
                 }
 
+                /* rc == NXT_CONF_OP_ERROR */
                 goto alloc_fail;
             }
 
@@ -1080,13 +1097,14 @@ nxt_controller_process_config(nxt_task_t *task, nxt_controller_request_t *req,
         } else {
             rc = nxt_conf_op_compile(c->mem_pool, &ops,
                                      nxt_controller_conf.root,
-                                     path, NULL);
+                                     path, NULL, 0);
 
             if (rc != NXT_OK) {
-                if (rc == NXT_DECLINED) {
+                if (rc == NXT_CONF_OP_NOT_FOUND) {
                     goto not_found;
                 }
 
+                /* rc == NXT_CONF_OP_ERROR */
                 goto alloc_fail;
             }
 
@@ -1145,8 +1163,10 @@ nxt_controller_process_config(nxt_task_t *task, nxt_controller_request_t *req,
         return;
     }
 
+not_allowed:
+
     resp.status = 405;
-    resp.title = (u_char *) "Invalid method.";
+    resp.title = (u_char *) "Method isn't allowed.";
     resp.offset = -1;
 
     nxt_controller_response(task, req, &resp);
