@@ -741,6 +741,7 @@ nxt_conf_op_compile(nxt_mp_t *mp, nxt_conf_op_t **ops, nxt_conf_value_t *root,
 {
     nxt_str_t                 token;
     nxt_conf_op_t             *op, **parent;
+    nxt_conf_value_t          *node;
     nxt_conf_path_parse_t     parse;
     nxt_conf_object_member_t  *member;
 
@@ -761,22 +762,23 @@ nxt_conf_op_compile(nxt_mp_t *mp, nxt_conf_op_t **ops, nxt_conf_value_t *root,
 
         nxt_conf_path_next_token(&parse, &token);
 
-        root = nxt_conf_get_object_member(root, &token, &op->index);
+        node = nxt_conf_get_object_member(root, &token, &op->index);
 
         if (parse.last) {
             break;
         }
 
-        if (root == NULL) {
+        if (node == NULL) {
             return NXT_DECLINED;
         }
 
         op->action = NXT_CONF_OP_PASS;
+        root = node;
     }
 
     if (value == NULL) {
 
-        if (root == NULL) {
+        if (node == NULL) {
             return NXT_DECLINED;
         }
 
@@ -785,7 +787,7 @@ nxt_conf_op_compile(nxt_mp_t *mp, nxt_conf_op_t **ops, nxt_conf_value_t *root,
         return NXT_OK;
     }
 
-    if (root == NULL) {
+    if (node == NULL) {
 
         member = nxt_mp_zget(mp, sizeof(nxt_conf_object_member_t));
         if (nxt_slow_path(member == NULL)) {
@@ -796,6 +798,7 @@ nxt_conf_op_compile(nxt_mp_t *mp, nxt_conf_op_t **ops, nxt_conf_value_t *root,
 
         member->value = *value;
 
+        op->index = root->u.object->count;
         op->action = NXT_CONF_OP_CREATE;
         op->ctx = member;
 
@@ -938,9 +941,7 @@ nxt_conf_copy_object(nxt_mp_t *mp, nxt_conf_op_t *op, nxt_conf_value_t *dst,
 
     do {
         if (pass_op == NULL) {
-            index = (op == NULL || op->action == NXT_CONF_OP_CREATE)
-                    ? src->u.object->count
-                    : op->index;
+            index = (op == NULL) ? src->u.object->count : op->index;
         }
 
         while (s != index) {
