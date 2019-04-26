@@ -5,7 +5,7 @@ class TestApplicationPHP(TestApplicationProto):
     def load(self, script, name='index.php'):
         script_path = self.current_dir + '/php/' + script
 
-        self.conf(
+        self._load_conf(
             {
                 "listeners": {"*:7080": {"pass": "applications/" + script}},
                 "applications": {

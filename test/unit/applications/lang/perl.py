@@ -5,7 +5,7 @@ class TestApplicationPerl(TestApplicationProto):
     def load(self, script, name='psgi.pl'):
         script_path = self.current_dir + '/perl/' + script
 
-        self.conf(
+        self._load_conf(
             {
                 "listeners": {"*:7080": {"pass": "applications/" + script}},
                 "applications": {

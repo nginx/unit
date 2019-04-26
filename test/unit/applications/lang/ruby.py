@@ -5,7 +5,7 @@ class TestApplicationRuby(TestApplicationProto):
     def load(self, script, name='config.ru'):
         script_path = self.current_dir + '/ruby/' + script
 
-        self.conf(
+        self._load_conf(
             {
                 "listeners": {"*:7080": {"pass": "applications/" + script}},
                 "applications": {

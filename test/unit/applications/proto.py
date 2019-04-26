@@ -24,3 +24,8 @@ class TestApplicationProto(TestControl):
             time.sleep(0.1)
 
         return found
+
+    def _load_conf(self, conf):
+        self.assertIn(
+            'success', self.conf(conf), 'load application configuration'
+        )

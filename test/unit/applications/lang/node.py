@@ -19,7 +19,7 @@ class TestApplicationNode(TestApplicationProto):
             self.testdir + '/node/node_modules',
         )
 
-        self.conf(
+        self._load_conf(
             {
                 "listeners": {"*:7080": {"pass": "applications/" + script}},
                 "applications": {
