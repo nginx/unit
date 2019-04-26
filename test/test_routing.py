@@ -1,3 +1,4 @@
+import unittest
 from unit.applications.proto import TestApplicationProto
 
 
@@ -943,6 +944,32 @@ class TestRouting(TestApplicationProto):
             'match host port',
         )
 
+    def test_routes_match_host_empty(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {"host": ""},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match host empty configure',
+        )
+
+        self.assertEqual(
+            self.get(headers={'Host': '', 'Connection': 'close'})['status'],
+            200,
+            'match host empty',
+        )
+        self.assertEqual(
+            self.get(http_10=True, headers={})['status'],
+            200,
+            'match host empty 2',
+        )
+
     def test_routes_match_uri_positive(self):
         self.assertIn(
             'success',
@@ -1027,6 +1054,386 @@ class TestRouting(TestApplicationProto):
         self.assertEqual(
             self.get(url='/%62%6c%61%68')['status'], 200, 'match uri normalize'
         )
+
+    @unittest.expectedFailure
+    def test_routes_match_empty_array(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {"uri": []},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match empty array configure',
+        )
+
+        self.assertEqual(
+            self.get(url='/blah')['status'],
+            200,
+            'match empty array',
+        )
+
+    @unittest.expectedFailure
+    def test_routes_reconfigure(self):
+        self.skip_sanitizer = True
+        self.skip_alerts.extend(
+            [
+                r'failed to apply',
+                r'process \d+ exited on signal',
+            ]
+        )
+
+        self.assertIn('success', self.conf([], 'routes'), 'routes redefine')
+        self.assertEqual(self.get()['status'], 404, 'routes redefine request')
+
+        self.assertIn(
+            'success',
+            self.conf([{"action": {"pass": "applications/empty"}}], 'routes'),
+            'routes redefine 2',
+        )
+        self.assertEqual(
+            self.get()['status'], 200, 'routes redefine request 2'
+        )
+
+        self.assertIn('success', self.conf([], 'routes'), 'routes redefine 3')
+        self.assertEqual(
+            self.get()['status'], 404, 'routes redefine request 3'
+        )
+
+        self.assertIn(
+            'success',
+            self.conf(
+                {
+                    "listeners": {"*:7080": {"pass": "routes/main"}},
+                    "routes": {
+                        "main": [{"action": {"pass": "applications/empty"}}]
+                    },
+                    "applications": {
+                        "empty": {
+                            "type": "python",
+                            "processes": {"spare": 0},
+                            "path": self.current_dir + '/python/empty',
+                            "working_directory": self.current_dir
+                            + '/python/empty',
+                            "module": "wsgi",
+                        }
+                    },
+                }
+            ),
+            'routes redefine 4',
+        )
+        self.assertEqual(
+            self.get()['status'], 200, 'routes redefine request 4'
+        )
+
+        self.assertIn(
+            'success', self.conf_delete('routes/main/0'), 'routes redefine 5'
+        )
+        self.assertEqual(
+            self.get()['status'], 404, 'routes redefine request 5'
+        )
+
+        self.assertIn(
+            'success',
+            self.conf_post(
+                {"action": {"pass": "applications/empty"}}, 'routes/main'
+            ),
+            'routes redefine 6',
+        )
+        self.assertEqual(
+            self.get()['status'], 200, 'routes redefine request 6'
+        )
+
+    @unittest.expectedFailure
+    def test_routes_edit(self):
+        self.skip_sanitizer = True
+        self.skip_alerts.extend(
+            [
+                r'failed to apply',
+                r'process \d+ exited on signal',
+            ]
+        )
+
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {"method": "GET"},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'routes edit configure',
+        )
+
+        self.assertEqual(self.get()['status'], 200, 'routes edit GET')
+        self.assertEqual(self.post()['status'], 404, 'routes edit POST')
+
+        self.assertIn(
+            'success',
+            self.conf_post(
+                {
+                    "match": {"method": "POST"},
+                    "action": {"pass": "applications/empty"},
+                },
+                'routes',
+            ),
+            'routes edit configure 2',
+        )
+        self.assertEqual(
+            'GET',
+            self.conf_get('routes/0/match/method'),
+            'routes edit configure 2 check',
+        )
+        self.assertEqual(
+            'POST',
+            self.conf_get('routes/1/match/method'),
+            'routes edit configure 2 check 2',
+        )
+
+        self.assertEqual(self.get()['status'], 200, 'routes edit GET 2')
+        self.assertEqual(self.post()['status'], 200, 'routes edit POST 2')
+
+        self.assertIn(
+            'success',
+            self.conf_delete('routes/0'),
+            'routes edit configure 3',
+        )
+
+        self.assertEqual(self.get()['status'], 404, 'routes edit GET 3')
+        self.assertEqual(self.post()['status'], 200, 'routes edit POST 3')
+
+        self.assertIn(
+            'error',
+            self.conf_delete('routes/1'),
+            'routes edit configure invalid',
+        )
+        self.assertIn(
+            'error',
+            self.conf_delete('routes/-1'),
+            'routes edit configure invalid 2',
+        )
+        self.assertIn(
+            'error',
+            self.conf_delete('routes/blah'),
+            'routes edit configure invalid 3',
+        )
+
+        self.assertEqual(self.get()['status'], 404, 'routes edit GET 4')
+        self.assertEqual(self.post()['status'], 200, 'routes edit POST 4')
+
+        self.assertIn(
+            'success',
+            self.conf_delete('routes/0'),
+            'routes edit configure 5',
+        )
+
+        self.assertEqual(self.get()['status'], 404, 'routes edit GET 5')
+        self.assertEqual(self.post()['status'], 404, 'routes edit POST 5')
+
+        self.assertIn(
+            'success',
+            self.conf_post(
+                {
+                    "match": {"method": "POST"},
+                    "action": {"pass": "applications/empty"},
+                },
+                'routes',
+            ),
+            'routes edit configure 6',
+        )
+
+        self.assertEqual(self.get()['status'], 404, 'routes edit GET 6')
+        self.assertEqual(self.post()['status'], 200, 'routes edit POST 6')
+
+        self.assertIn(
+            'success',
+            self.conf(
+                {
+                    "listeners": {"*:7080": {"pass": "routes/main"}},
+                    "routes": {
+                        "main": [{"action": {"pass": "applications/empty"}}]
+                    },
+                    "applications": {
+                        "empty": {
+                            "type": "python",
+                            "processes": {"spare": 0},
+                            "path": self.current_dir + '/python/empty',
+                            "working_directory": self.current_dir
+                            + '/python/empty',
+                            "module": "wsgi",
+                        }
+                    },
+                }
+            ),
+            'route edit configure 7',
+        )
+
+        self.assertIn(
+            'error',
+            self.conf_delete('routes/0'),
+            'routes edit configure invalid 4',
+        )
+        self.assertIn(
+            'error',
+            self.conf_delete('routes/main'),
+            'routes edit configure invalid 5',
+        )
+
+        self.assertEqual(self.get()['status'], 200, 'routes edit GET 7')
+
+        self.assertIn(
+            'success',
+            self.conf_delete('listeners/*:7080'),
+            'route edit configure 8',
+        )
+        self.assertIn(
+            'success',
+            self.conf_delete('routes/main'),
+            'route edit configure 9',
+        )
+
+    @unittest.expectedFailure
+    def test_match_edit(self):
+        self.skip_alerts.append(r'failed to apply new conf')
+
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {"method": ["GET", "POST"]},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match edit configure',
+        )
+
+        self.assertEqual(self.get()['status'], 200, 'match edit GET')
+        self.assertEqual(self.post()['status'], 200, 'match edit POST')
+        self.assertEqual(self.put()['status'], 404, 'match edit PUT')
+
+        self.assertIn(
+            'success',
+            self.conf_post('\"PUT\"', 'routes/0/match/method'),
+            'match edit configure 2',
+        )
+        self.assertListEqual(
+            ['GET', 'POST', 'PUT'],
+            self.conf_get('routes/0/match/method'),
+            'match edit configure 2 check',
+        )
+
+        self.assertEqual(self.get()['status'], 200, 'match edit GET 2')
+        self.assertEqual(self.post()['status'], 200, 'match edit POST 2')
+        self.assertEqual(self.put()['status'], 200, 'match edit PUT 2')
+
+        self.assertIn(
+            'success',
+            self.conf_delete('routes/0/match/method/1'),
+            'match edit configure 3',
+        )
+        self.assertListEqual(
+            ['GET', 'PUT'],
+            self.conf_get('routes/0/match/method'),
+            'match edit configure 3 check',
+        )
+
+        self.assertEqual(self.get()['status'], 200, 'match edit GET 3')
+        self.assertEqual(self.post()['status'], 404, 'match edit POST 3')
+        self.assertEqual(self.put()['status'], 200, 'match edit PUT 3')
+
+        self.assertIn(
+            'success',
+            self.conf_delete('routes/0/match/method/1'),
+            'match edit configure 4',
+        )
+        self.assertListEqual(
+            ['GET'],
+            self.conf_get('routes/0/match/method'),
+            'match edit configure 4 check',
+        )
+
+        self.assertEqual(self.get()['status'], 200, 'match edit GET 4')
+        self.assertEqual(self.post()['status'], 404, 'match edit POST 4')
+        self.assertEqual(self.put()['status'], 404, 'match edit PUT 4')
+
+        self.assertIn(
+            'error',
+            self.conf_delete('routes/0/match/method/1'),
+            'match edit configure invalid',
+        )
+        self.assertIn(
+            'error',
+            self.conf_delete('routes/0/match/method/-1'),
+            'match edit configure invalid 2',
+        )
+        self.assertIn(
+            'error',
+            self.conf_delete('routes/0/match/method/blah'),
+            'match edit configure invalid 3',
+        )
+        self.assertListEqual(
+            ['GET'],
+            self.conf_get('routes/0/match/method'),
+            'match edit configure 5 check',
+        )
+
+        self.assertEqual(self.get()['status'], 200, 'match edit GET 5')
+        self.assertEqual(self.post()['status'], 404, 'match edit POST 5')
+        self.assertEqual(self.put()['status'], 404, 'match edit PUT 5')
+
+        self.assertIn(
+            'success',
+            self.conf_delete('routes/0/match/method/0'),
+            'match edit configure 6',
+        )
+        self.assertListEqual(
+            [],
+            self.conf_get('routes/0/match/method'),
+            'match edit configure 6 check',
+        )
+
+        self.assertEqual(self.get()['status'], 200, 'match edit GET 6')
+        self.assertEqual(self.post()['status'], 200, 'match edit POST 6')
+        self.assertEqual(self.put()['status'], 200, 'match edit PUT 6')
+
+        self.assertIn(
+            'success',
+            self.conf('"GET"', 'routes/0/match/method'),
+            'match edit configure 7',
+        )
+
+        self.assertEqual(self.get()['status'], 200, 'match edit GET 7')
+        self.assertEqual(self.post()['status'], 404, 'match edit POST 7')
+        self.assertEqual(self.put()['status'], 404, 'match edit PUT 7')
+
+        self.assertIn(
+            'error',
+            self.conf_delete('routes/0/match/method/0'),
+            'match edit configure invalid 5',
+        )
+        self.assertIn(
+            'error',
+            self.conf({}, 'routes/0/action'),
+            'match edit configure invalid 6',
+        )
+
+        self.assertIn(
+            'success',
+            self.conf({}, 'routes/0/match'),
+            'match edit configure 8',
+        )
+
+        self.assertEqual(self.get()['status'], 200, 'match edit GET 8')
 
     def test_routes_match_rules(self):
         self.assertIn(
