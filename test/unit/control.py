@@ -2,47 +2,56 @@ import json
 from unit.http import TestHTTP
 
 
+def args_handler(conf_func):
+    def args_wrapper(self, *args):
+        argcount = conf_func.__code__.co_argcount
+        url_default = '/config'
+        conf = None
+
+        if argcount == 2:
+            url = args[0] if len(args) == 1 else url_default
+
+        elif argcount == 3:
+            conf = args[0]
+
+            if isinstance(conf, dict) or isinstance(conf, list):
+                conf = json.dumps(conf)
+
+            url = args[1] if len(args) == 2 else url_default
+
+        url = url if url.startswith('/') else url_default + '/' + url
+        arguments = (self, url) if conf is None else (self, conf, url)
+
+        return json.loads(conf_func(*arguments))
+
+    return args_wrapper
+
+
 class TestControl(TestHTTP):
 
     # TODO socket reuse
     # TODO http client
 
-    def conf(self, conf, path='/config'):
-        if isinstance(conf, dict) or isinstance(conf, list):
-            conf = json.dumps(conf)
+    @args_handler
+    def conf(self, conf, url):
+        return self.put(**self._get_args(url, conf))['body']
 
-        if path[:1] != '/':
-            path = '/config/' + path
+    @args_handler
+    def conf_get(self, url):
+        return self.get(**self._get_args(url))['body']
 
-        return json.loads(
-            self.put(
-                url=path,
-                body=conf,
-                sock_type='unix',
-                addr=self.testdir + '/control.unit.sock',
-            )['body']
-        )
+    @args_handler
+    def conf_delete(self, url):
+        return self.delete(**self._get_args(url))['body']
 
-    def conf_get(self, path='/config'):
-        if path[:1] != '/':
-            path = '/config/' + path
+    def _get_args(self, url, conf=None):
+        args = {
+            'url': url,
+            'sock_type': 'unix',
+            'addr': self.testdir + '/control.unit.sock',
+        }
 
-        return json.loads(
-            self.get(
-                url=path,
-                sock_type='unix',
-                addr=self.testdir + '/control.unit.sock',
-            )['body']
-        )
+        if conf is not None:
+            args['body'] = conf
 
-    def conf_delete(self, path='/config'):
-        if path[:1] != '/':
-            path = '/config/' + path
-
-        return json.loads(
-            self.delete(
-                url=path,
-                sock_type='unix',
-                addr=self.testdir + '/control.unit.sock',
-            )['body']
-        )
+        return args
