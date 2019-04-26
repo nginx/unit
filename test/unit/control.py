@@ -44,6 +44,10 @@ class TestControl(TestHTTP):
     def conf_delete(self, url):
         return self.delete(**self._get_args(url))['body']
 
+    @args_handler
+    def conf_post(self, conf, url):
+        return self.post(**self._get_args(url, conf))['body']
+
     def _get_args(self, url, conf=None):
         args = {
             'url': url,
