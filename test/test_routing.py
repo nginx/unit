@@ -1148,6 +1148,28 @@ class TestRouting(TestApplicationProto):
             self.get()['status'], 200, 'routes redefine request 6'
         )
 
+        self.assertIn(
+            'error',
+            self.conf(
+                {"action": {"pass": "applications/empty"}}, 'routes/main/2'
+            ),
+            'routes redefine 7',
+        )
+        self.assertIn(
+            'success',
+            self.conf(
+                {"action": {"pass": "applications/empty"}}, 'routes/main/1'
+            ),
+            'routes redefine 8',
+        )
+
+        self.assertEqual(
+            len(self.conf_get('routes/main')), 2, 'routes redefine conf 8'
+        )
+        self.assertEqual(
+            self.get()['status'], 200, 'routes redefine request 8'
+        )
+
     @unittest.expectedFailure
     def test_routes_edit(self):
         self.skip_sanitizer = True
