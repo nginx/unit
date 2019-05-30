@@ -122,6 +122,7 @@ struct nxt_http_request_s {
     nxt_str_t                       *args;
 
     nxt_array_t                     *arguments;  /* of nxt_http_name_value_t */
+    nxt_array_t                     *cookies;    /* of nxt_http_name_value_t */
     nxt_list_t                      *fields;
     nxt_http_field_t                *content_type;
     nxt_http_field_t                *content_length;
