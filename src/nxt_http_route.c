@@ -616,14 +616,13 @@ nxt_http_route_find(nxt_http_routes_t *routes, nxt_str_t *name)
     route = &routes->route[0];
     end = route + routes->items;
 
-    do {
+    while (route < end) {
         if (nxt_strstr_eq(&(*route)->name, name)) {
             return *route;
         }
 
         route++;
-
-    } while (route < end);
+    }
 
     return NULL;
 }
@@ -681,12 +680,11 @@ nxt_http_routes_cleanup(nxt_task_t *task, nxt_http_routes_t *routes)
         route = &routes->route[0];
         end = route + routes->items;
 
-        do {
+        while (route < end) {
             nxt_http_route_cleanup(task, *route);
 
             route++;
-
-        } while (route < end);
+        }
     }
 }
 
@@ -699,12 +697,11 @@ nxt_http_route_cleanup(nxt_task_t *task, nxt_http_route_t *route)
     match = &route->match[0];
     end = match + route->items;
 
-    do {
+    while (match < end) {
         nxt_http_pass_cleanup(task, &(*match)->pass);
 
         match++;
-
-    } while (match < end);
+    }
 }
 
 
