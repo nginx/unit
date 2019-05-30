@@ -542,7 +542,11 @@ nxt_java_Request_getRemotePort(JNIEnv *env, jclass cls, jlong req_ptr)
 static jstring JNICALL
 nxt_java_Request_getScheme(JNIEnv *env, jclass cls, jlong req_ptr)
 {
-    return (*env)->NewStringUTF(env, "http");
+    nxt_unit_request_t  *r;
+
+    r = nxt_jlong2ptr(req_ptr);
+
+    return (*env)->NewStringUTF(env, r->tls ? "https" : "http");
 }
 
 

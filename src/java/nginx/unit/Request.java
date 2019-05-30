@@ -920,7 +920,7 @@ public class Request implements HttpServletRequest, DynamicPathRequest
     @Override
     public String getScheme()
     {
-        log("getScheme");
+        trace("getScheme");
 
         return getScheme(req_ptr);
     }
