@@ -11,7 +11,7 @@
 
 	"listeners": {
 		"*:8600": {
-			"application": "example_perl"
+			"pass": "applications/example_perl"
 		}
 	}
 }

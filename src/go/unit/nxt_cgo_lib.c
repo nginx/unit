@@ -83,6 +83,10 @@ nxt_cgo_request_handler(nxt_unit_request_info_t *req)
     nxt_go_request_set_remote_addr(go_req,
         nxt_cgo_str_init(&remote_addr, &r->remote, r->remote_length));
 
+    if (r->tls) {
+        nxt_go_request_set_tls(go_req);
+    }
+
     nxt_go_request_handler(go_req, (uintptr_t) req->unit->data);
 }
 

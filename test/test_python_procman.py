@@ -2,12 +2,11 @@ import re
 import time
 import subprocess
 import unittest
-import unit
+from unit.applications.lang.python import TestApplicationPython
 
-class TestUnitPythonProcman(unit.TestUnitApplicationPython):
 
-    def setUpClass():
-        unit.TestUnit().check_modules('python')
+class TestPythonProcman(TestApplicationPython):
+    prerequisites = ['python']
 
     def pids_for_process(self):
         time.sleep(0.2)
@@ -29,55 +28,88 @@ class TestUnitPythonProcman(unit.TestUnitApplicationPython):
     def test_python_processes_access(self):
         self.conf('1', 'applications/' + self.app_name + '/processes')
 
-        self.assertIn('error', self.conf_get('/applications/' + self.app_name +
-            '/processes/max'), 'max no access')
-        self.assertIn('error', self.conf_get('/applications/' + self.app_name +
-            '/processes/spare'), 'spare no access')
-        self.assertIn('error', self.conf_get('/applications/' + self.app_name +
-            '/processes/idle_timeout'), 'idle_timeout no access')
+        self.assertIn(
+            'error',
+            self.conf_get('/applications/' + self.app_name + '/processes/max'),
+            'max no access',
+        )
+        self.assertIn(
+            'error',
+            self.conf_get(
+                '/applications/' + self.app_name + '/processes/spare'
+            ),
+            'spare no access',
+        )
+        self.assertIn(
+            'error',
+            self.conf_get(
+                '/applications/' + self.app_name + '/processes/idle_timeout'
+            ),
+            'idle_timeout no access',
+        )
 
     def test_python_processes_spare_negative(self):
-        self.assertIn('error', self.conf({
-            "spare": -1
-        }, 'applications/' + self.app_name + '/processes'), 'negative spare')
+        self.assertIn(
+            'error',
+            self.conf(
+                {"spare": -1}, 'applications/' + self.app_name + '/processes'
+            ),
+            'negative spare',
+        )
 
     def test_python_processes_max_negative(self):
-        self.assertIn('error', self.conf({
-            "max": -1
-        }, 'applications/' + self.app_name + '/processes'), 'negative max')
+        self.assertIn(
+            'error',
+            self.conf(
+                {"max": -1}, 'applications/' + self.app_name + '/processes'
+            ),
+            'negative max',
+        )
 
     def test_python_processes_idle_timeout_negative(self):
-        self.assertIn('error', self.conf({
-            "idle_timeout": -1
-        }, 'applications/' + self.app_name + '/processes'),
-            'negative idle_timeout')
+        self.assertIn(
+            'error',
+            self.conf(
+                {"idle_timeout": -1},
+                'applications/' + self.app_name + '/processes',
+            ),
+            'negative idle_timeout',
+        )
 
     def test_python_processes_spare_gt_max_default(self):
-        self.assertIn('error', self.conf({"spare": 2},
-            'applications/' + self.app_name + '/processes'),
-            'spare greater than max default')
+        self.assertIn(
+            'error',
+            self.conf(
+                {"spare": 2}, 'applications/' + self.app_name + '/processes'
+            ),
+            'spare greater than max default',
+        )
 
     def test_python_processes_spare_gt_max(self):
-        self.assertIn('error', self.conf({
-            "spare": 2,
-            "max": 1,
-            "idle_timeout": 1
-        }, '/applications/' + self.app_name + '/processes'),
-            'spare greater than max')
+        self.assertIn(
+            'error',
+            self.conf(
+                {"spare": 2, "max": 1, "idle_timeout": 1},
+                '/applications/' + self.app_name + '/processes',
+            ),
+            'spare greater than max',
+        )
 
     def test_python_processes_max_zero(self):
-        self.assertIn('error', self.conf({
-            "spare": 0,
-            "max": 0,
-            "idle_timeout": 1
-        }, 'applications/' + self.app_name + '/processes'), 'max 0')
+        self.assertIn(
+            'error',
+            self.conf(
+                {"spare": 0, "max": 0, "idle_timeout": 1},
+                'applications/' + self.app_name + '/processes',
+            ),
+            'max 0',
+        )
 
     def test_python_processes_idle_timeout_zero(self):
-        self.conf({
-            "spare": 0,
-            "max": 2,
-            "idle_timeout": 0
-        }, 'applications/' + self.app_name + '/processes')
+        self.conf(
+            {"spare": 0, "max": 2, "idle_timeout": 0},
+            'applications/' + self.app_name + '/processes',
+        )
 
         self.get()
         self.assertEqual(len(self.pids_for_process()), 0, 'idle timeout 0')
@@ -101,7 +133,7 @@ class TestUnitPythonProcman(unit.TestUnitApplicationPython):
 
         self.stop_all()
 
-    @unittest.expectedFailure
+    @unittest.skip('not yet')
     def test_python_prefork_same_processes(self):
         self.conf('2', 'applications/' + self.app_name + '/processes')
 
@@ -114,11 +146,10 @@ class TestUnitPythonProcman(unit.TestUnitApplicationPython):
         self.assertTrue(pids.issubset(pids_new), 'prefork same processes')
 
     def test_python_ondemand(self):
-        self.conf({
-            "spare": 0,
-            "max": 8,
-            "idle_timeout": 1
-        }, 'applications/' + self.app_name + '/processes')
+        self.conf(
+            {"spare": 0, "max": 8, "idle_timeout": 1},
+            'applications/' + self.app_name + '/processes',
+        )
 
         self.assertEqual(len(self.pids_for_process()), 0, 'on-demand 0')
 
@@ -131,16 +162,17 @@ class TestUnitPythonProcman(unit.TestUnitApplicationPython):
 
         time.sleep(1)
 
-        self.assertEqual(len(self.pids_for_process()), 0, 'on-demand stop idle')
+        self.assertEqual(
+            len(self.pids_for_process()), 0, 'on-demand stop idle'
+        )
 
         self.stop_all()
 
     def test_python_scale_updown(self):
-        self.conf({
-            "spare": 2,
-            "max": 8,
-            "idle_timeout": 1
-        }, 'applications/' + self.app_name + '/processes')
+        self.conf(
+            {"spare": 2, "max": 8, "idle_timeout": 1},
+            'applications/' + self.app_name + '/processes',
+        )
 
         pids = self.pids_for_process()
         self.assertEqual(len(pids), 2, 'updown 2')
@@ -151,7 +183,9 @@ class TestUnitPythonProcman(unit.TestUnitApplicationPython):
         self.assertTrue(pids.issubset(pids_new), 'updown 3 only 1 new')
 
         self.get()
-        self.assertSetEqual(self.pids_for_process(), pids_new, 'updown still 3')
+        self.assertSetEqual(
+            self.pids_for_process(), pids_new, 'updown still 3'
+        )
 
         time.sleep(1)
 
@@ -166,11 +200,10 @@ class TestUnitPythonProcman(unit.TestUnitApplicationPython):
         self.stop_all()
 
     def test_python_reconfigure(self):
-        self.conf({
-            "spare": 2,
-            "max": 6,
-            "idle_timeout": 1
-        }, 'applications/' + self.app_name + '/processes')
+        self.conf(
+            {"spare": 2, "max": 6, "idle_timeout": 1},
+            'applications/' + self.app_name + '/processes',
+        )
 
         pids = self.pids_for_process()
         self.assertEqual(len(pids), 2, 'reconf 2')
@@ -191,11 +224,10 @@ class TestUnitPythonProcman(unit.TestUnitApplicationPython):
         self.stop_all()
 
     def test_python_idle_timeout(self):
-        self.conf({
-            "spare": 0,
-            "max": 6,
-            "idle_timeout": 2
-        }, 'applications/' + self.app_name + '/processes')
+        self.conf(
+            {"spare": 0, "max": 6, "idle_timeout": 2},
+            'applications/' + self.app_name + '/processes',
+        )
 
         self.get()
         pids = self.pids_for_process()
@@ -209,40 +241,42 @@ class TestUnitPythonProcman(unit.TestUnitApplicationPython):
 
         pids_new = self.pids_for_process()
         self.assertEqual(len(pids_new), 1, 'idle timeout still 1')
-        self.assertSetEqual(self.pids_for_process(), pids,
-            'idle timeout still 1 same pid')
+        self.assertSetEqual(
+            self.pids_for_process(), pids, 'idle timeout still 1 same pid'
+        )
 
         time.sleep(1)
 
         self.assertEqual(len(self.pids_for_process()), 0, 'idle timed out')
 
     def test_python_processes_connection_keepalive(self):
-        self.conf({
-            "spare": 0,
-            "max": 6,
-            "idle_timeout": 2
-        }, 'applications/' + self.app_name + '/processes')
+        self.conf(
+            {"spare": 0, "max": 6, "idle_timeout": 2},
+            'applications/' + self.app_name + '/processes',
+        )
 
-        (resp, sock) = self.get(headers={
-            'Host': 'localhost',
-            'Connection': 'keep-alive'
-        }, start=True, read_timeout=1)
-        self.assertEqual(len(self.pids_for_process()), 1,
-            'keepalive connection 1')
+        (resp, sock) = self.get(
+            headers={'Host': 'localhost', 'Connection': 'keep-alive'},
+            start=True,
+            read_timeout=1,
+        )
+        self.assertEqual(
+            len(self.pids_for_process()), 1, 'keepalive connection 1'
+        )
 
         time.sleep(2)
 
-        self.assertEqual(len(self.pids_for_process()), 0, 'keepalive connection 0')
+        self.assertEqual(
+            len(self.pids_for_process()), 0, 'keepalive connection 0'
+        )
 
         sock.close()
 
     def stop_all(self):
-        self.conf({
-            "listeners": {},
-            "applications": {}
-        })
+        self.conf({"listeners": {}, "applications": {}})
 
         self.assertEqual(len(self.pids_for_process()), 0, 'stop all')
 
+
 if __name__ == '__main__':
-    TestUnitPythonProcman.main()
+    TestPythonProcman.main()

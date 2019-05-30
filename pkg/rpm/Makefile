@@ -11,6 +11,8 @@ ifeq ($(shell test `rpm --eval '0%{?rhel} -eq 6 -a 0%{?amzn} -eq 0'`; echo $$?),
 OSVER = centos6
 else ifeq ($(shell test `rpm --eval '0%{?rhel} -eq 7 -a 0%{?amzn} -eq 0'`; echo $$?), 0)
 OSVER = centos7
+else ifeq ($(shell rpm --eval "%{?rhel}"), 8)
+OSVER = centos8
 else ifeq ($(shell rpm --eval "%{?amzn}"), 1)
 OSVER = amazonlinux1
 else ifeq ($(shell rpm --eval "%{?amzn}"), 2)
@@ -56,6 +58,17 @@ endif
 ifeq ($(OSVER), centos7)
 include Makefile.php
 include Makefile.python
+include Makefile.go
+include Makefile.perl
+include Makefile.jsc-common
+include Makefile.jsc8
+include Makefile.jsc11
+endif
+
+ifeq ($(OSVER), centos8)
+include Makefile.php
+include Makefile.python27
+include Makefile.python36
 include Makefile.go
 include Makefile.perl
 include Makefile.jsc-common

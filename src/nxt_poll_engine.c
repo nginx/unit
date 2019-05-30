@@ -370,7 +370,7 @@ nxt_poll_commit_changes(nxt_event_engine_t *engine)
 
         retval = NXT_ERROR;
 
-      next:
+    next:
 
         change++;
 

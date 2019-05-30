@@ -56,6 +56,8 @@ static jstring JNICALL nxt_java_Request_getServerName(JNIEnv *env, jclass cls,
     jlong req_ptr);
 static jint JNICALL nxt_java_Request_getServerPort(JNIEnv *env, jclass cls,
     jlong req_ptr);
+static jboolean JNICALL nxt_java_Request_isSecure(JNIEnv *env, jclass cls,
+    jlong req_ptr);
 static void JNICALL nxt_java_Request_log(JNIEnv *env, jclass cls,
     jlong req_info_ptr, jstring msg, jint msg_len);
 static void JNICALL nxt_java_Request_trace(JNIEnv *env, jclass cls,
@@ -165,6 +167,10 @@ nxt_java_initRequest(JNIEnv *env, jobject cl)
         { (char *) "getServerPort",
           (char *) "(J)I",
           nxt_java_Request_getServerPort },
+
+        { (char *) "isSecure",
+          (char *) "(J)Z",
+          nxt_java_Request_isSecure },
 
         { (char *) "log",
           (char *) "(JLjava/lang/String;I)V",
@@ -536,7 +542,11 @@ nxt_java_Request_getRemotePort(JNIEnv *env, jclass cls, jlong req_ptr)
 static jstring JNICALL
 nxt_java_Request_getScheme(JNIEnv *env, jclass cls, jlong req_ptr)
 {
-    return (*env)->NewStringUTF(env, "http");
+    nxt_unit_request_t  *r;
+
+    r = nxt_jlong2ptr(req_ptr);
+
+    return (*env)->NewStringUTF(env, r->tls ? "https" : "http");
 }
 
 
@@ -600,6 +610,17 @@ nxt_java_Request_getServerPort(JNIEnv *env, jclass cls, jlong req_ptr)
     }
 
     return nxt_java_Request_getLocalPort(env, cls, req_ptr);
+}
+
+
+static jboolean JNICALL
+nxt_java_Request_isSecure(JNIEnv *env, jclass cls, jlong req_ptr)
+{
+    nxt_unit_request_t  *r;
+
+    r = nxt_jlong2ptr(req_ptr);
+
+    return r->tls != 0;
 }
 
 

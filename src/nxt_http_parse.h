@@ -93,6 +93,11 @@ struct nxt_http_field_s {
 };
 
 
+#define NXT_HTTP_FIELD_HASH_INIT        159406U
+#define nxt_http_field_hash_char(h, c)  (((h) << 4) + (h) + (c))
+#define nxt_http_field_hash_end(h)      (((h) >> 16) ^ (h))
+
+
 nxt_int_t nxt_http_parse_request_init(nxt_http_request_parse_t *rp,
     nxt_mp_t *mp);
 nxt_int_t nxt_http_parse_request(nxt_http_request_parse_t *rp,

@@ -76,12 +76,12 @@ nxt_sprintf(u_char *buf, u_char *end, const char *fmt, ...)
  */
 
 typedef struct {
-   u_char        *end;
-   const u_char  *hex;
-   uint32_t      width;
-   int32_t       frac_width;
-   uint8_t       max_width;
-   u_char        padding;
+    u_char        *end;
+    const u_char  *hex;
+    uint32_t      width;
+    int32_t       frac_width;
+    uint8_t       max_width;
+    u_char        padding;
 } nxt_sprintf_t;
 
 

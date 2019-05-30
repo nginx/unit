@@ -112,9 +112,9 @@ NXT_EXPORT nxt_int_t nxt_socketpair_create(nxt_task_t *task,
     nxt_socket_t *pair);
 NXT_EXPORT void nxt_socketpair_close(nxt_task_t *task, nxt_socket_t *pair);
 NXT_EXPORT ssize_t nxt_socketpair_send(nxt_fd_event_t *ev, nxt_fd_t fd,
-   nxt_iobuf_t *iob, nxt_uint_t niob);
+    nxt_iobuf_t *iob, nxt_uint_t niob);
 NXT_EXPORT ssize_t nxt_socketpair_recv(nxt_fd_event_t *ev, nxt_fd_t *fd,
-   nxt_iobuf_t *iob, nxt_uint_t niob);
+    nxt_iobuf_t *iob, nxt_uint_t niob);
 
 
 #define                                                                       \

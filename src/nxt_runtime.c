@@ -53,14 +53,13 @@ nxt_runtime_create(nxt_task_t *task)
     nxt_app_lang_module_t  *lang;
 
     mp = nxt_mp_create(1024, 128, 256, 32);
-
     if (nxt_slow_path(mp == NULL)) {
         return NXT_ERROR;
     }
 
     rt = nxt_mp_zget(mp, sizeof(nxt_runtime_t));
     if (nxt_slow_path(rt == NULL)) {
-        return NXT_ERROR;
+        goto fail;
     }
 
     task->thread->runtime = rt;

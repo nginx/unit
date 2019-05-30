@@ -1,0 +1,48 @@
+MODULES+=		go111
+MODULE_SUFFIX_go111=	go1.11
+
+MODULE_SUMMARY_go111=	Go 1.11 module for NGINX Unit
+
+MODULE_VERSION_go111=	$(VERSION)
+MODULE_RELEASE_go111=	1
+
+MODULE_CONFARGS_go111=	go --go=/usr/lib/go-1.11/bin/go --go-path=/usr/share/gocode
+MODULE_MAKEARGS_go111=	/usr/lib/go-1.11/bin/go
+MODULE_INSTARGS_go111=	/usr/lib/go-1.11/bin/go-install
+
+MODULE_SOURCES_go111=	unit.example-go-app \
+			unit.example-go1.11-config
+
+BUILD_DEPENDS_go111=	golang-1.11
+BUILD_DEPENDS+=		$(BUILD_DEPENDS_go111)
+
+MODULE_BUILD_DEPENDS_go111=,golang-1.11
+MODULE_DEPENDS_go111=,golang-1.11
+
+define MODULE_PREINSTALL_go111
+	mkdir -p debian/unit-go1.11/usr/share/doc/unit-go1.11/examples/go-app
+	install -m 644 -p debian/unit.example-go-app debian/unit-go1.11/usr/share/doc/unit-go1.11/examples/go-app/let-my-people.go
+	install -m 644 -p debian/unit.example-go1.11-config debian/unit-go1.11/usr/share/doc/unit-go1.11/examples/unit.config
+endef
+export MODULE_PREINSTALL_go111
+
+define MODULE_POST_go111
+cat <<BANNER
+----------------------------------------------------------------------
+
+The $(MODULE_SUMMARY_go111) has been installed.
+
+To check out the sample app, run these commands:
+
+ GOPATH=/usr/share/gocode /usr/lib/go-1.11/bin/go build -o /tmp/go1.11-app /usr/share/doc/unit-$(MODULE_SUFFIX_go111)/examples/go-app/let-my-people.go
+ sudo service unit restart
+ cd /usr/share/doc/unit-$(MODULE_SUFFIX_go111)/examples
+ sudo curl -X PUT --data-binary @unit.config --unix-socket /var/run/control.unit.sock http://localhost/config
+ curl http://localhost:8500/
+
+Online documentation is available at https://unit.nginx.org
+
+----------------------------------------------------------------------
+BANNER
+endef
+export MODULE_POST_go111

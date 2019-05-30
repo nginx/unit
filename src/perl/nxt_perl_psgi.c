@@ -656,8 +656,11 @@ nxt_perl_psgi_env_create(PerlInterpreter *my_perl,
 
     RC(nxt_perl_psgi_add_value(my_perl, hash_env, NL("psgi.version"),
                                 newRV_noinc((SV *) array_version)));
+
     RC(nxt_perl_psgi_add_value(my_perl, hash_env, NL("psgi.url_scheme"),
-                                newSVpv("http", 4)));
+                               r->tls ? newSVpv("https", 5)
+                                    : newSVpv("http", 4)));
+
     RC(nxt_perl_psgi_add_value(my_perl, hash_env, NL("psgi.input"),
                                 SvREFCNT_inc(nxt_perl_psgi_arg_input.io)));
     RC(nxt_perl_psgi_add_value(my_perl, hash_env, NL("psgi.errors"),

@@ -19,6 +19,7 @@ struct nxt_unit_request_s {
     uint8_t               version_length;
     uint8_t               remote_length;
     uint8_t               local_length;
+    uint8_t               tls;
     uint32_t              server_name_length;
     uint32_t              target_length;
     uint32_t              path_length;

@@ -10,7 +10,7 @@
 
 	"listeners": {
 		"*:8700": {
-			"application": "example_ruby"
+			"pass": "applications/example_ruby"
 		}
 	}
 }

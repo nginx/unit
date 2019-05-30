@@ -1,55 +1,63 @@
 import os
 import re
 import time
-from subprocess import call
 import unittest
-import unit
+from subprocess import call
+from unit.applications.lang.python import TestApplicationPython
 
-class TestUnitAccessLog(unit.TestUnitApplicationPython):
 
-    def setUpClass():
-        unit.TestUnit().check_modules('python')
+class TestAccessLog(TestApplicationPython):
+    prerequisites = ['python']
 
     def load(self, script):
         super().load(script)
 
         self.conf('"' + self.testdir + '/access.log"', 'access_log')
 
-    def search_in_log(self, pattern, name='access.log'):
-        with open(self.testdir + '/' + name, 'r') as f:
-            return re.search(pattern, f.read())
+    def wait_for_record(self, pattern, name='access.log'):
+        return super().wait_for_record(pattern, name)
 
     def test_access_log_keepalive(self):
         self.load('mirror')
 
-        (resp, sock) = self.post(headers={
-            'Host': 'localhost',
-            'Connection': 'keep-alive',
-            'Content-Type': 'text/html'
-        }, start=True, body='01234')
+        self.assertEqual(self.get()['status'], 200, 'init')
 
-        time.sleep(0.2)
+        (resp, sock) = self.post(
+            headers={
+                'Host': 'localhost',
+                'Connection': 'keep-alive',
+                'Content-Type': 'text/html',
+            },
+            start=True,
+            body='01234',
+            read_timeout=1,
+        )
 
         self.assertIsNotNone(
-            self.search_in_log(r'"POST / HTTP/1.1" 200 5'), 'keepalive 1')
+            self.wait_for_record(r'"POST / HTTP/1.1" 200 5'), 'keepalive 1'
+        )
 
-        resp = self.post(headers={
-            'Host': 'localhost',
-            'Connection': 'close',
-            'Content-Type': 'text/html'
-        }, sock=sock, body='0123456789')
-
-        time.sleep(0.2)
+        resp = self.post(
+            headers={
+                'Host': 'localhost',
+                'Connection': 'close',
+                'Content-Type': 'text/html',
+            },
+            sock=sock,
+            body='0123456789',
+        )
 
         self.stop()
 
         self.assertIsNotNone(
-            self.search_in_log(r'"POST / HTTP/1.1" 200 10'), 'keepalive 2')
+            self.wait_for_record(r'"POST / HTTP/1.1" 200 10'), 'keepalive 2'
+        )
 
     def test_access_log_pipeline(self):
         self.load('empty')
 
-        self.http(b"""GET / HTTP/1.1
+        self.http(
+            b"""GET / HTTP/1.1
 Host: localhost
 Referer: Referer-1
 
@@ -62,180 +70,192 @@ Host: localhost
 Referer: Referer-3
 Connection: close
 
-""", raw_resp=True, raw=True)
-
-        time.sleep(0.2)
+""",
+            raw_resp=True,
+            raw=True,
+        )
 
         self.stop()
 
         self.assertIsNotNone(
-            self.search_in_log(r'"GET / HTTP/1.1" 200 0 "Referer-1" "-"'),
-            'pipeline 1')
+            self.wait_for_record(r'"GET / HTTP/1.1" 200 0 "Referer-1" "-"'),
+            'pipeline 1',
+        )
         self.assertIsNotNone(
-            self.search_in_log(r'"GET / HTTP/1.1" 200 0 "Referer-2" "-"'),
-            'pipeline 2')
+            self.wait_for_record(r'"GET / HTTP/1.1" 200 0 "Referer-2" "-"'),
+            'pipeline 2',
+        )
         self.assertIsNotNone(
-            self.search_in_log(r'"GET / HTTP/1.1" 200 0 "Referer-3" "-"'),
-            'pipeline 3')
+            self.wait_for_record(r'"GET / HTTP/1.1" 200 0 "Referer-3" "-"'),
+            'pipeline 3',
+        )
 
     def test_access_log_ipv6(self):
         self.load('empty')
 
-        self.conf({
-            "[::1]:7080": {
-                "application": "empty"
-            }
-        }, 'listeners')
+        self.conf({"[::1]:7080": {"pass": "applications/empty"}}, 'listeners')
 
         self.get(sock_type='ipv6')
-
-        time.sleep(0.2)
 
         self.stop()
 
         self.assertIsNotNone(
-            self.search_in_log(
-                r'::1 - - \[.+\] "GET / HTTP/1.1" 200 0 "-" "-"'), 'ipv6')
+            self.wait_for_record(
+                r'::1 - - \[.+\] "GET / HTTP/1.1" 200 0 "-" "-"'
+            ),
+            'ipv6',
+        )
 
     def test_access_log_unix(self):
         self.load('empty')
 
         addr = self.testdir + '/sock'
 
-        self.conf({
-            "unix:" + addr: {
-                "application": "empty"
-            }
-        }, 'listeners')
+        self.conf({"unix:" + addr: {"pass": "applications/empty"}}, 'listeners')
 
         self.get(sock_type='unix', addr=addr)
 
-        time.sleep(0.2)
-
         self.stop()
 
-        self.assertIsNotNone(self.search_in_log(
-            r'unix: - - \[.+\] "GET / HTTP/1.1" 200 0 "-" "-"'), 'unix')
+        self.assertIsNotNone(
+            self.wait_for_record(
+                r'unix: - - \[.+\] "GET / HTTP/1.1" 200 0 "-" "-"'
+            ),
+            'unix',
+        )
 
     def test_access_log_referer(self):
         self.load('empty')
 
-        self.get(headers={
-            'Host': 'localhost',
-            'Referer': 'referer-value',
-            'Connection': 'close'
-        })
-
-        time.sleep(0.2)
+        self.get(
+            headers={
+                'Host': 'localhost',
+                'Referer': 'referer-value',
+                'Connection': 'close',
+            }
+        )
 
         self.stop()
 
         self.assertIsNotNone(
-            self.search_in_log(r'"GET / HTTP/1.1" 200 0 "referer-value" "-"'),
-            'referer')
+            self.wait_for_record(
+                r'"GET / HTTP/1.1" 200 0 "referer-value" "-"'
+            ),
+            'referer',
+        )
 
     def test_access_log_user_agent(self):
         self.load('empty')
 
-        self.get(headers={
-            'Host': 'localhost',
-            'User-Agent': 'user-agent-value',
-            'Connection': 'close'
-        })
-
-        time.sleep(0.2)
+        self.get(
+            headers={
+                'Host': 'localhost',
+                'User-Agent': 'user-agent-value',
+                'Connection': 'close',
+            }
+        )
 
         self.stop()
 
         self.assertIsNotNone(
-            self.search_in_log(
-                r'"GET / HTTP/1.1" 200 0 "-" "user-agent-value"'), 'user agent')
+            self.wait_for_record(
+                r'"GET / HTTP/1.1" 200 0 "-" "user-agent-value"'
+            ),
+            'user agent',
+        )
 
     def test_access_log_http10(self):
         self.load('empty')
 
         self.get(http_10=True)
 
-        time.sleep(0.2)
-
         self.stop()
 
         self.assertIsNotNone(
-            self.search_in_log(
-                r'"GET / HTTP/1.0" 200 0 "-" "-"'), 'http 1.0')
+            self.wait_for_record(r'"GET / HTTP/1.0" 200 0 "-" "-"'), 'http 1.0'
+        )
 
     def test_access_log_partial(self):
         self.load('empty')
 
-        self.http(b"""GE""", raw=True)
+        self.assertEqual(self.post()['status'], 200, 'init')
 
-        time.sleep(0.2)
+        resp = self.http(b"""GE""", raw=True, read_timeout=5)
 
         self.stop()
 
         self.assertIsNotNone(
-            self.search_in_log(r'"GE" 400 0 "-" "-"'), 'partial')
+            self.wait_for_record(r'"GE" 400 0 "-" "-"'), 'partial'
+        )
 
     def test_access_log_partial_2(self):
         self.load('empty')
 
-        self.http(b"""GET /\n""", raw=True)
+        self.assertEqual(self.post()['status'], 200, 'init')
 
-        time.sleep(0.2)
+        self.http(b"""GET /\n""", raw=True)
 
         self.stop()
 
         self.assertIsNotNone(
-            self.search_in_log(r'"GET /" 400 \d+ "-" "-"'), 'partial 2')
+            self.wait_for_record(r'"GET /" 400 \d+ "-" "-"'), 'partial 2'
+        )
 
     def test_access_log_partial_3(self):
         self.load('empty')
 
-        self.http(b"""GET / HTTP/1.1""", raw=True)
+        self.assertEqual(self.post()['status'], 200, 'init')
 
-        time.sleep(0.2)
+        resp = self.http(b"""GET / HTTP/1.1""", raw=True, read_timeout=5)
 
         self.stop()
 
         self.assertIsNotNone(
-            self.search_in_log(r'"GET /" 400 0 "-" "-"'), 'partial 3')
+            self.wait_for_record(r'"GET /" 400 0 "-" "-"'), 'partial 3'
+        )
 
     def test_access_log_partial_4(self):
         self.load('empty')
 
-        resp = self.http(b"""GET / HTTP/1.1\n""", raw=True)
+        self.assertEqual(self.post()['status'], 200, 'init')
 
-        time.sleep(0.2)
+        resp = self.http(b"""GET / HTTP/1.1\n""", raw=True, read_timeout=5)
 
         self.stop()
 
         self.assertIsNotNone(
-            self.search_in_log(r'"GET / HTTP/1.1" 400 0 "-" "-"'),
-            'partial 4')
+            self.wait_for_record(r'"GET / HTTP/1.1" 400 0 "-" "-"'),
+            'partial 4',
+        )
 
+    @unittest.skip('not yet')
     def test_access_log_partial_5(self):
         self.load('empty')
 
-        self.http(b"""GET / HTTP/1.1\n\n""", raw=True)
+        self.assertEqual(self.post()['status'], 200, 'init')
+
+        self.get(headers={'Connection': 'close'})
 
         self.stop()
 
         self.assertIsNotNone(
-            self.search_in_log(r'"GET / HTTP/1.1" 200 0 "-" "-"'), 'partial 5')
+            self.wait_for_record(r'"GET / HTTP/1.1" 400 \d+ "-" "-"'),
+            'partial 5',
+        )
 
     def test_access_log_get_parameters(self):
         self.load('empty')
 
         self.get(url='/?blah&var=val')
 
-        time.sleep(0.2)
-
         self.stop()
 
         self.assertIsNotNone(
-            self.search_in_log(
-                r'"GET /\?blah&var=val HTTP/1.1" 200 0 "-" "-"'),
-                'get parameters')
+            self.wait_for_record(
+                r'"GET /\?blah&var=val HTTP/1.1" 200 0 "-" "-"'
+            ),
+            'get parameters',
+        )
 
     def test_access_log_delete(self):
         self.load('empty')
@@ -244,11 +264,11 @@ Connection: close
 
         self.get(url='/delete')
 
-        time.sleep(0.2)
-
         self.stop()
 
-        self.assertIsNone(self.search_in_log(r'/delete'), 'delete')
+        self.assertIsNone(
+            self.search_in_log(r'/delete', 'access.log'), 'delete'
+        )
 
     def test_access_log_change(self):
         self.load('empty')
@@ -259,13 +279,12 @@ Connection: close
 
         self.get()
 
-        time.sleep(0.2)
-
         self.stop()
 
         self.assertIsNotNone(
-            self.search_in_log(r'"GET / HTTP/1.1" 200 0 "-" "-"', 'new.log'),
-            'change')
+            self.wait_for_record(r'"GET / HTTP/1.1" 200 0 "-" "-"', 'new.log'),
+            'change',
+        )
 
     def test_access_log_reopen(self):
         self.load('empty')
@@ -280,11 +299,10 @@ Connection: close
 
         self.get()
 
-        time.sleep(0.2)
-
         self.assertIsNotNone(
-            self.search_in_log(r'"GET / HTTP/1.1" 200 0 "-" "-"', 'new.log'),
-            'rename new')
+            self.wait_for_record(r'"GET / HTTP/1.1" 200 0 "-" "-"', 'new.log'),
+            'rename new',
+        )
         self.assertFalse(os.path.isfile(log_path), 'rename old')
 
         with open(self.testdir + '/unit.pid', 'r') as f:
@@ -296,13 +314,14 @@ Connection: close
 
         self.get(url='/usr1')
 
-        time.sleep(0.2)
-
-        self.assertIsNone(
-            self.search_in_log(r'/usr1', 'new.log'), 'rename new 2')
         self.assertIsNotNone(
-            self.search_in_log(r'"GET /usr1 HTTP/1.1" 200 0 "-" "-"'),
-            'reopen 2')
+            self.wait_for_record(r'"GET /usr1 HTTP/1.1" 200 0 "-" "-"'),
+            'reopen 2',
+        )
+        self.assertIsNone(
+            self.search_in_log(r'/usr1', 'new.log'), 'rename new 2'
+        )
+
 
 if __name__ == '__main__':
-    TestUnitAccessLog.main()
+    TestAccessLog.main()

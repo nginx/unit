@@ -699,7 +699,7 @@ fail:
 static int
 nxt_php_startup(sapi_module_struct *sapi_module)
 {
-   return php_module_startup(sapi_module, NULL, 0);
+    return php_module_startup(sapi_module, NULL, 0);
 }
 
 
@@ -928,6 +928,10 @@ nxt_php_register_variables(zval *track_vars_array TSRMLS_DC)
     nxt_php_set_sptr(req, "SERVER_NAME", &r->server_name, r->server_name_length,
                      track_vars_array TSRMLS_CC);
     nxt_php_set_cstr(req, "SERVER_PORT", "80", 2, track_vars_array TSRMLS_CC);
+
+    if (r->tls) {
+        nxt_php_set_cstr(req, "HTTPS", "on", 2, track_vars_array TSRMLS_CC);
+    }
 
     f_end = r->fields + r->fields_count;
     for (f = r->fields; f < f_end; f++) {

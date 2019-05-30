@@ -20,6 +20,14 @@ typedef enum {
 } nxt_conf_type_t;
 
 
+typedef enum {
+    NXT_CONF_OP_OK = 0,
+    NXT_CONF_OP_NOT_FOUND,
+    NXT_CONF_OP_NOT_ALLOWED,
+    NXT_CONF_OP_ERROR,
+} nxt_conf_op_ret_t;
+
+
 typedef struct nxt_conf_value_s  nxt_conf_value_t;
 typedef struct nxt_conf_op_s     nxt_conf_op_t;
 
@@ -80,8 +88,9 @@ NXT_EXPORT nxt_conf_value_t *nxt_conf_get_array_element(nxt_conf_value_t *value,
 NXT_EXPORT nxt_int_t nxt_conf_map_object(nxt_mp_t *mp, nxt_conf_value_t *value,
     nxt_conf_map_t *map, nxt_uint_t n, void *data);
 
-nxt_int_t nxt_conf_op_compile(nxt_mp_t *mp, nxt_conf_op_t **ops,
-    nxt_conf_value_t *root, nxt_str_t *path, nxt_conf_value_t *value);
+nxt_conf_op_ret_t nxt_conf_op_compile(nxt_mp_t *mp, nxt_conf_op_t **ops,
+    nxt_conf_value_t *root, nxt_str_t *path, nxt_conf_value_t *value,
+    nxt_bool_t add);
 nxt_conf_value_t *nxt_conf_clone(nxt_mp_t *mp, nxt_conf_op_t *op,
     nxt_conf_value_t *value);
 

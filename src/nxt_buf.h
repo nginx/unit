@@ -206,7 +206,7 @@ nxt_buf_set_last(b)                                                           \
 
 #define                                                                       \
 nxt_buf_clear_last(b)                                                         \
-   (b)->is_last = 0
+    (b)->is_last = 0
 
 
 #define                                                                       \

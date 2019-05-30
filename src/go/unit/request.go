@@ -14,6 +14,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"crypto/tls"
 	"unsafe"
 )
 
@@ -123,6 +124,12 @@ func nxt_go_request_set_url(go_req uintptr, scheme *C.char) {
 func nxt_go_request_set_remote_addr(go_req uintptr, addr *C.nxt_cgo_str_t) {
 
 	get_request(go_req).req.RemoteAddr = C.GoStringN(addr.start, addr.length)
+}
+
+//export nxt_go_request_set_tls
+func nxt_go_request_set_tls(go_req uintptr) {
+
+	get_request(go_req).req.TLS = &tls.ConnectionState{ }
 }
 
 //export nxt_go_request_handler

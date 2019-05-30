@@ -29,9 +29,9 @@ my $last_block_size = $max_lowcase % BLOCK_SIZE + 1;
 
 
 for my $block (sort { $a <=> $b } keys %blocks) {
-   if ($max_block < $block) {
-       $max_block = $block;
-   }
+    if ($max_block < $block) {
+        $max_block = $block;
+    }
 }
 
 

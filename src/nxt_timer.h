@@ -69,7 +69,7 @@ typedef struct {
     nxt_uint_t                mchanges;
     nxt_uint_t                nchanges;
 
-   nxt_timer_change_t         *changes;
+    nxt_timer_change_t        *changes;
 } nxt_timers_t;
 
 

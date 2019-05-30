@@ -55,7 +55,7 @@ nxt_java_initContext(JNIEnv *env, jobject cl)
     }
 
     nxt_java_Context_stop = (*env)->GetMethodID(env, cls, "stop", "()V");
-    if (nxt_java_Context_service == NULL) {
+    if (nxt_java_Context_stop == NULL) {
         nxt_unit_warn(NULL, "nginx.unit.Context.stop() not found");
         goto failed;
     }

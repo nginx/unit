@@ -62,7 +62,7 @@ typedef struct {
     uint32_t                 stream;
     nxt_app_t                *app;
     nxt_port_t               *app_port;
-    nxt_app_parse_ctx_t      *ap;
+    nxt_http_request_t       *request;
     nxt_msg_info_t           msg_info;
     nxt_req_app_link_t       *ra;
 
@@ -75,7 +75,7 @@ struct nxt_req_app_link_s {
     nxt_atomic_t         use_count;
     nxt_port_t           *app_port;
     nxt_port_t           *reply_port;
-    nxt_app_parse_ctx_t  *ap;
+    nxt_http_request_t   *request;
     nxt_msg_info_t       msg_info;
     nxt_req_conn_link_t  *rc;
 
@@ -264,8 +264,8 @@ static nxt_int_t nxt_router_app_port(nxt_task_t *task, nxt_app_t *app,
 
 static void nxt_router_app_prepare_request(nxt_task_t *task,
     nxt_req_app_link_t *ra);
-static nxt_buf_t *nxt_router_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
-    nxt_port_t *port, const nxt_str_t *prefix);
+static nxt_buf_t *nxt_router_prepare_msg(nxt_task_t *task,
+    nxt_http_request_t *r, nxt_port_t *port, const nxt_str_t *prefix);
 
 static void nxt_router_app_timeout(nxt_task_t *task, void *obj, void *data);
 static void nxt_router_adjust_idle_timer(nxt_task_t *task, void *obj,
@@ -281,6 +281,11 @@ static void nxt_http_request_send_body(nxt_task_t *task, void *obj, void *data);
 
 static void nxt_router_app_joint_use(nxt_task_t *task,
     nxt_app_joint_t *app_joint, int i);
+
+static nxt_int_t nxt_router_http_request_done(nxt_task_t *task,
+    nxt_http_request_t *r);
+static void nxt_router_http_request_release(nxt_task_t *task, void *obj,
+    void *data);
 
 static nxt_router_t  *nxt_router;
 
@@ -502,7 +507,7 @@ nxt_router_ra_init(nxt_task_t *task, nxt_req_app_link_t *ra,
     ra->rc = rc;
     rc->ra = ra;
     ra->reply_port = engine->port;
-    ra->ap = rc->ap;
+    ra->request = rc->request;
 
     ra->work.handler = NULL;
     ra->work.task = &engine->task;
@@ -521,7 +526,7 @@ nxt_router_ra_create(nxt_task_t *task, nxt_req_app_link_t *ra_src)
         return ra_src;
     }
 
-    mp = ra_src->ap->mem_pool;
+    mp = ra_src->request->mem_pool;
 
     ra = nxt_mp_alloc(mp, sizeof(nxt_req_app_link_t));
 
@@ -645,16 +650,16 @@ nxt_router_ra_release(nxt_task_t *task, nxt_req_app_link_t *ra)
 
     if (rc != NULL) {
         if (nxt_slow_path(ra->err_code != 0)) {
-            nxt_http_request_error(task, rc->ap->request, ra->err_code);
+            nxt_http_request_error(task, rc->request, ra->err_code);
 
         } else {
             rc->app_port = ra->app_port;
             rc->msg_info = ra->msg_info;
 
             if (rc->app->timeout != 0) {
-                rc->ap->timer.handler = nxt_router_app_timeout;
-                rc->ap->timer_data = rc;
-                nxt_timer_add(task->thread->engine, &rc->ap->timer,
+                rc->request->timer.handler = nxt_router_app_timeout;
+                rc->request->timer_data = rc;
+                nxt_timer_add(task->thread->engine, &rc->request->timer,
                               rc->app->timeout);
             }
 
@@ -817,12 +822,12 @@ nxt_router_rc_unlink(nxt_task_t *task, nxt_req_conn_link_t *rc)
         rc->app = NULL;
     }
 
-    if (rc->ap != NULL) {
-        rc->ap->timer_data = NULL;
+    if (rc->request != NULL) {
+        rc->request->timer_data = NULL;
 
-        nxt_app_http_req_done(task, rc->ap);
+        nxt_router_http_request_done(task, rc->request);
 
-        rc->ap = NULL;
+        rc->request = NULL;
     }
 }
 
@@ -3377,33 +3382,27 @@ static void
 nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     void *data)
 {
-    size_t               dump_size;
     nxt_int_t            ret;
     nxt_buf_t            *b;
+    nxt_unit_field_t     *f;
+    nxt_http_field_t     *field;
     nxt_http_request_t   *r;
     nxt_req_conn_link_t  *rc;
-    nxt_app_parse_ctx_t  *ar;
     nxt_unit_response_t  *resp;
 
     b = msg->buf;
     rc = data;
 
-    dump_size = nxt_buf_used_size(b);
-
-    if (dump_size > 300) {
-        dump_size = 300;
-    }
-
     if (msg->size == 0) {
         b = NULL;
     }
 
-    ar = rc->ap;
-    if (nxt_slow_path(ar == NULL)) {
+    r = rc->request;
+    if (nxt_slow_path(r == NULL)) {
         return;
     }
 
-    if (ar->request->error) {
+    if (r->error) {
         nxt_router_rc_unlink(task, rc);
         return;
     }
@@ -3411,15 +3410,15 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     if (msg->port_msg.last != 0) {
         nxt_debug(task, "router data create last buf");
 
-        nxt_buf_chain_add(&b, nxt_http_buf_last(ar->request));
+        nxt_buf_chain_add(&b, nxt_http_buf_last(r));
 
         nxt_router_rc_unlink(task, rc);
 
     } else {
         if (rc->app != NULL && rc->app->timeout != 0) {
-            ar->timer.handler = nxt_router_app_timeout;
-            ar->timer_data = rc;
-            nxt_timer_add(task->thread->engine, &ar->timer, rc->app->timeout);
+            r->timer.handler = nxt_router_app_timeout;
+            r->timer_data = rc;
+            nxt_timer_add(task->thread->engine, &r->timer, rc->app->timeout);
         }
     }
 
@@ -3431,8 +3430,6 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
         /* Disable instant buffer completion/re-using by port. */
         msg->buf = NULL;
     }
-
-    r = ar->request;
 
     if (r->header_sent) {
         nxt_buf_chain_add(&r->out, b);
@@ -3451,11 +3448,8 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
             goto fail;
         }
 
-        nxt_unit_field_t  *f;
-        nxt_http_field_t  *field;
-
         for (f = resp->fields; f < resp->fields + resp->fields_count; f++) {
-            field = nxt_list_add(ar->resp_parser.fields);
+            field = nxt_list_add(r->resp.fields);
 
             if (nxt_slow_path(field == NULL)) {
                 goto fail;
@@ -3473,15 +3467,8 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
                       (size_t) field->name_length, field->name,
                       (size_t) field->value_length, field->value);
         }
-        r->status = resp->status;
 
-/*
-        ret = nxt_http_parse_fields(&ar->resp_parser, &b->mem);
-        if (nxt_slow_path(ret != NXT_DONE)) {
-            goto fail;
-        }
-*/
-        r->resp.fields = ar->resp_parser.fields;
+        r->status = resp->status;
 
         ret = nxt_http_fields_process(r->resp.fields,
                                       &nxt_response_fields_hash, r);
@@ -3590,8 +3577,8 @@ nxt_router_response_error_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
         }
     }
 
-    if (rc->ap != NULL) {
-        nxt_http_request_error(task, rc->ap->request,
+    if (rc->request != NULL) {
+        nxt_http_request_error(task, rc->request,
                                NXT_HTTP_SERVICE_UNAVAILABLE);
     }
 
@@ -4452,17 +4439,15 @@ nxt_router_app_port(nxt_task_t *task, nxt_app_t *app, nxt_req_app_link_t *ra)
 
 
 void
-nxt_router_process_http_request(nxt_task_t *task, nxt_app_parse_ctx_t *ar,
+nxt_router_process_http_request(nxt_task_t *task, nxt_http_request_t *r,
     nxt_app_t *app)
 {
     nxt_int_t            res;
     nxt_port_t           *port;
     nxt_event_engine_t   *engine;
-    nxt_http_request_t   *r;
     nxt_req_app_link_t   ra_local, *ra;
     nxt_req_conn_link_t  *rc;
 
-    r = ar->request;
     engine = task->thread->engine;
 
     rc = nxt_port_rpc_register_handler_ex(task, engine->port,
@@ -4480,7 +4465,7 @@ nxt_router_process_http_request(nxt_task_t *task, nxt_app_parse_ctx_t *ar,
 
     nxt_router_app_use(task, app, 1);
 
-    rc->ap = ar;
+    rc->request = r;
 
     ra = &ra_local;
     nxt_router_ra_init(task, ra, rc);
@@ -4511,17 +4496,15 @@ nxt_router_dummy_buf_completion(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_router_app_prepare_request(nxt_task_t *task, nxt_req_app_link_t *ra)
 {
-    uint32_t             request_failed;
-    nxt_buf_t            *buf;
-    nxt_int_t            res;
-    nxt_port_t           *port, *c_port, *reply_port;
-    nxt_app_parse_ctx_t  *ap;
+    uint32_t    request_failed;
+    nxt_buf_t   *buf;
+    nxt_int_t   res;
+    nxt_port_t  *port, *c_port, *reply_port;
 
     nxt_assert(ra->app_port != NULL);
 
     port = ra->app_port;
     reply_port = ra->reply_port;
-    ap = ra->ap;
 
     request_failed = 1;
 
@@ -4539,7 +4522,7 @@ nxt_router_app_prepare_request(nxt_task_t *task, nxt_req_app_link_t *ra)
         nxt_process_connected_port_add(port->process, reply_port);
     }
 
-    buf = nxt_router_prepare_msg(task, &ap->r, port,
+    buf = nxt_router_prepare_msg(task, ra->request, port,
                                  nxt_app_msg_prefix[port->app->type]);
 
     if (nxt_slow_path(buf == NULL)) {
@@ -4642,34 +4625,33 @@ nxt_fields_next(nxt_fields_iter_t *i)
 
 
 static nxt_buf_t *
-nxt_router_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
+nxt_router_prepare_msg(nxt_task_t *task, nxt_http_request_t *r,
     nxt_port_t *port, const nxt_str_t *prefix)
 {
-    void                      *target_pos, *query_pos;
-    u_char                    *pos, *end, *p, c;
-    size_t                    fields_count, req_size, size, free_size;
-    size_t                    copy_size;
-    nxt_buf_t                 *b, *buf, *out, **tail;
-    nxt_http_field_t          *field, *dup;
-    nxt_unit_field_t          *dst_field;
-    nxt_fields_iter_t         iter, dup_iter;
-    nxt_unit_request_t        *req;
-    nxt_app_request_header_t  *h;
-
-    h = &r->header;
+    void                *target_pos, *query_pos;
+    u_char              *pos, *end, *p, c;
+    size_t              fields_count, req_size, size, free_size;
+    size_t              copy_size;
+    nxt_off_t           content_length;
+    nxt_buf_t           *b, *buf, *out, **tail;
+    nxt_http_field_t    *field, *dup;
+    nxt_unit_field_t    *dst_field;
+    nxt_fields_iter_t   iter, dup_iter;
+    nxt_unit_request_t  *req;
 
     req_size = sizeof(nxt_unit_request_t)
-               + h->method.length + 1
-               + h->version.length + 1
-               + r->remote.length + 1
-               + r->local.length + 1
-               + h->server_name.length + 1
-               + h->target.length + 1
-               + (h->path.start != h->target.start ? h->path.length + 1 : 0);
+               + r->method->length + 1
+               + r->version.length + 1
+               + r->remote->length + 1
+               + r->local->length + 1
+               + r->server_name.length + 1
+               + r->target.length + 1
+               + (r->path->start != r->target.start ? r->path->length + 1 : 0);
 
+    content_length = r->content_length_n < 0 ? 0 : r->content_length_n;
     fields_count = 0;
 
-    nxt_list_each(field, h->fields) {
+    nxt_list_each(field, r->fields) {
         fields_count++;
 
         req_size += field->name_length + prefix->length + 1
@@ -4686,7 +4668,7 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
     }
 
     out = nxt_port_mmap_get_buf(task, port,
-              nxt_min(req_size + r->body.preread_size, PORT_MMAP_DATA_SIZE));
+              nxt_min(req_size + content_length, PORT_MMAP_DATA_SIZE));
     if (nxt_slow_path(out == NULL)) {
         return NULL;
     }
@@ -4694,57 +4676,60 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
     req = (nxt_unit_request_t *) out->mem.free;
     out->mem.free += req_size;
 
-    req->content_length = h->parsed_content_length;
+    req->content_length = content_length;
 
     p = (u_char *) (req->fields + fields_count);
 
     nxt_debug(task, "fields_count=%d", (int) fields_count);
 
-    req->method_length = h->method.length;
+    req->method_length = r->method->length;
     nxt_unit_sptr_set(&req->method, p);
-    p = nxt_cpymem(p, h->method.start, h->method.length);
+    p = nxt_cpymem(p, r->method->start, r->method->length);
     *p++ = '\0';
 
-    req->version_length = h->version.length;
+    req->version_length = r->version.length;
     nxt_unit_sptr_set(&req->version, p);
-    p = nxt_cpymem(p, h->version.start, h->version.length);
+    p = nxt_cpymem(p, r->version.start, r->version.length);
     *p++ = '\0';
 
-    req->remote_length = r->remote.length;
+    req->remote_length = r->remote->address_length;
     nxt_unit_sptr_set(&req->remote, p);
-    p = nxt_cpymem(p, r->remote.start, r->remote.length);
+    p = nxt_cpymem(p, nxt_sockaddr_address(r->remote),
+                   r->remote->address_length);
     *p++ = '\0';
 
-    req->local_length = r->local.length;
+    req->local_length = r->local->address_length;
     nxt_unit_sptr_set(&req->local, p);
-    p = nxt_cpymem(p, r->local.start, r->local.length);
+    p = nxt_cpymem(p, nxt_sockaddr_address(r->local), r->local->address_length);
     *p++ = '\0';
 
-    req->server_name_length = h->server_name.length;
+    req->tls = (r->tls != NULL);
+
+    req->server_name_length = r->server_name.length;
     nxt_unit_sptr_set(&req->server_name, p);
-    p = nxt_cpymem(p, h->server_name.start, h->server_name.length);
+    p = nxt_cpymem(p, r->server_name.start, r->server_name.length);
     *p++ = '\0';
 
     target_pos = p;
-    req->target_length = h->target.length;
+    req->target_length = (uint32_t) r->target.length;
     nxt_unit_sptr_set(&req->target, p);
-    p = nxt_cpymem(p, h->target.start, h->target.length);
+    p = nxt_cpymem(p, r->target.start, r->target.length);
     *p++ = '\0';
 
-    req->path_length = h->path.length;
-    if (h->path.start == h->target.start) {
+    req->path_length = (uint32_t) r->path->length;
+    if (r->path->start == r->target.start) {
         nxt_unit_sptr_set(&req->path, target_pos);
 
     } else {
         nxt_unit_sptr_set(&req->path, p);
-        p = nxt_cpymem(p, h->path.start, h->path.length);
+        p = nxt_cpymem(p, r->path->start, r->path->length);
         *p++ = '\0';
     }
 
-    req->query_length = h->query.length;
-    if (h->query.start != NULL) {
+    req->query_length = r->args != NULL ? (uint32_t) r->args->length : 0;
+    if (r->args != NULL && r->args->start != NULL) {
         query_pos = nxt_pointer_to(target_pos,
-                                   h->query.start - h->target.start);
+                                   r->args->start - r->target.start);
 
         nxt_unit_sptr_set(&req->query, query_pos);
 
@@ -4758,7 +4743,7 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
 
     dst_field = req->fields;
 
-    for (field = nxt_fields_first(h->fields, &iter);
+    for (field = nxt_fields_first(r->fields, &iter);
          field != NULL;
          field = nxt_fields_next(&iter))
     {
@@ -4771,13 +4756,13 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
         dst_field->name_length = field->name_length + prefix->length;
         dst_field->value_length = field->value_length;
 
-        if (field->value == h->content_length.start) {
+        if (field == r->content_length) {
             req->content_length_field = dst_field - req->fields;
 
-        } else if (field->value == h->content_type.start) {
+        } else if (field == r->content_type) {
             req->content_type_field = dst_field - req->fields;
 
-        } else if (field->value == h->cookie.start) {
+        } else if (field == r->cookie) {
             req->cookie_field = dst_field - req->fields;
         }
 
@@ -4846,14 +4831,14 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_app_request_t *r,
         dst_field++;
     }
 
-    req->fields_count = dst_field - req->fields;
+    req->fields_count = (uint32_t) (dst_field - req->fields);
 
     nxt_unit_sptr_set(&req->preread_content, out->mem.free);
 
     buf = out;
     tail = &buf->next;
 
-    for (b = r->body.buf; b != NULL; b = b->next) {
+    for (b = r->body; b != NULL; b = b->next) {
         size = nxt_buf_mem_used_size(&b->mem);
         pos = b->mem.pos;
 
@@ -4913,8 +4898,8 @@ nxt_router_app_timeout(nxt_task_t *task, void *obj, void *data)
     nxt_port_t               *port;
     nxt_timer_t              *timer;
     nxt_queue_link_t         *lnk;
+    nxt_http_request_t       *r;
     nxt_req_app_link_t       *pending_ra;
-    nxt_app_parse_ctx_t      *ar;
     nxt_req_conn_link_t      *rc;
     nxt_port_select_state_t  state;
 
@@ -4922,8 +4907,8 @@ nxt_router_app_timeout(nxt_task_t *task, void *obj, void *data)
 
     nxt_debug(task, "router app timeout");
 
-    ar = nxt_timer_data(timer, nxt_app_parse_ctx_t, timer);
-    rc = ar->timer_data;
+    r = nxt_timer_data(timer, nxt_http_request_t, timer);
+    rc = r->timer_data;
     app = rc->app;
 
     if (app == NULL) {
@@ -4994,7 +4979,30 @@ nxt_router_app_timeout(nxt_task_t *task, void *obj, void *data)
 
 generate_error:
 
-    nxt_http_request_error(task, ar->request, NXT_HTTP_SERVICE_UNAVAILABLE);
+    nxt_http_request_error(task, r, NXT_HTTP_SERVICE_UNAVAILABLE);
 
     nxt_router_rc_unlink(task, rc);
+}
+
+
+static nxt_int_t
+nxt_router_http_request_done(nxt_task_t *task, nxt_http_request_t *r)
+{
+    r->timer.handler = nxt_router_http_request_release;
+    nxt_timer_add(task->thread->engine, &r->timer, 0);
+
+    return NXT_OK;
+}
+
+
+static void
+nxt_router_http_request_release(nxt_task_t *task, void *obj, void *data)
+{
+    nxt_http_request_t  *r;
+
+    nxt_debug(task, "http app release");
+
+    r = nxt_timer_data(obj, nxt_http_request_t, timer);
+
+    nxt_mp_release(r->mem_pool);
 }

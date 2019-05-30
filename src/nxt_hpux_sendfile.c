@@ -13,7 +13,7 @@ ssize_t nxt_hpux_event_conn_io_sendfile(nxt_event_conn_t *c, nxt_buf_t *b,
     size_t limit);
 
 static ssize_t nxt_sys_sendfile(int s, int fd, off_t offset, size_t nbytes,
-   const struct iovec *hdtrl, int flags)
+    const struct iovec *hdtrl, int flags)
 {
     return -1;
 }
@@ -23,7 +23,7 @@ static ssize_t nxt_sys_sendfile(int s, int fd, off_t offset, size_t nbytes,
 /* sendfile() is not declared if _XOPEN_SOURCE_EXTENDED is defined. */
 
 sbsize_t sendfile(int s, int fd, off_t offset, bsize_t nbytes,
-   const struct iovec *hdtrl, int flags);
+    const struct iovec *hdtrl, int flags);
 
 #define nxt_sys_sendfile  sendfile
 

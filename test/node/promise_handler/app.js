@@ -5,7 +5,7 @@ var fs = require('fs');
 require('unit-http').createServer(function (req, res) {
     res.end();
 
-    if (req.headers['X-Write-Call']) {
+    if (req.headers['x-write-call']) {
         res.writeHead(200, {'Content-Type': 'text/plain'});
         res.write('blah');
     }

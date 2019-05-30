@@ -87,7 +87,6 @@ struct nxt_conf_op_s {
     uint32_t                  index;
     uint32_t                  action;  /* nxt_conf_op_action_t */
     void                      *ctx;
-    nxt_conf_op_t             *next;
 };
 
 
@@ -112,6 +111,8 @@ static void nxt_conf_json_parse_error(nxt_conf_json_error_t *error, u_char *pos,
     const char *detail);
 
 static nxt_int_t nxt_conf_copy_value(nxt_mp_t *mp, nxt_conf_op_t *op,
+    nxt_conf_value_t *dst, nxt_conf_value_t *src);
+static nxt_int_t nxt_conf_copy_array(nxt_mp_t *mp, nxt_conf_op_t *op,
     nxt_conf_value_t *dst, nxt_conf_value_t *src);
 static nxt_int_t nxt_conf_copy_object(nxt_mp_t *mp, nxt_conf_op_t *op,
     nxt_conf_value_t *dst, nxt_conf_value_t *src);
@@ -736,12 +737,14 @@ nxt_conf_array_qsort(nxt_conf_value_t *value,
 }
 
 
-nxt_int_t
+nxt_conf_op_ret_t
 nxt_conf_op_compile(nxt_mp_t *mp, nxt_conf_op_t **ops, nxt_conf_value_t *root,
-    nxt_str_t *path, nxt_conf_value_t *value)
+    nxt_str_t *path, nxt_conf_value_t *value, nxt_bool_t add)
 {
     nxt_str_t                 token;
+    nxt_int_t                 index;
     nxt_conf_op_t             *op, **parent;
+    nxt_conf_value_t          *node;
     nxt_conf_path_parse_t     parse;
     nxt_conf_object_member_t  *member;
 
@@ -754,7 +757,7 @@ nxt_conf_op_compile(nxt_mp_t *mp, nxt_conf_op_t **ops, nxt_conf_value_t *root,
     for ( ;; ) {
         op = nxt_mp_zget(mp, sizeof(nxt_conf_op_t));
         if (nxt_slow_path(op == NULL)) {
-            return NXT_ERROR;
+            return NXT_CONF_OP_ERROR;
         }
 
         *parent = op;
@@ -762,50 +765,107 @@ nxt_conf_op_compile(nxt_mp_t *mp, nxt_conf_op_t **ops, nxt_conf_value_t *root,
 
         nxt_conf_path_next_token(&parse, &token);
 
-        root = nxt_conf_get_object_member(root, &token, &op->index);
+        switch (root->type) {
+
+        case NXT_CONF_VALUE_OBJECT:
+            node = nxt_conf_get_object_member(root, &token, &op->index);
+            break;
+
+        case NXT_CONF_VALUE_ARRAY:
+            index = nxt_int_parse(token.start, token.length);
+
+            if (index < 0 || index > NXT_INT32_T_MAX) {
+                return NXT_CONF_OP_NOT_FOUND;
+            }
+
+            op->index = index;
+
+            node = nxt_conf_get_array_element(root, index);
+            break;
+
+        default:
+            node = NULL;
+        }
 
         if (parse.last) {
             break;
         }
 
-        if (root == NULL) {
-            return NXT_DECLINED;
+        if (node == NULL) {
+            return NXT_CONF_OP_NOT_FOUND;
         }
 
         op->action = NXT_CONF_OP_PASS;
+        root = node;
     }
 
     if (value == NULL) {
 
-        if (root == NULL) {
-            return NXT_DECLINED;
+        if (node == NULL) {
+            return NXT_CONF_OP_NOT_FOUND;
         }
 
         op->action = NXT_CONF_OP_DELETE;
 
-        return NXT_OK;
+        return NXT_CONF_OP_OK;
     }
 
-    if (root == NULL) {
+    if (add) {
+        if (node == NULL) {
+            return NXT_CONF_OP_NOT_FOUND;
+        }
 
+        if (node->type != NXT_CONF_VALUE_ARRAY) {
+            return NXT_CONF_OP_NOT_ALLOWED;
+        }
+
+        op->action = NXT_CONF_OP_PASS;
+
+        op = nxt_mp_zget(mp, sizeof(nxt_conf_op_t));
+        if (nxt_slow_path(op == NULL)) {
+            return NXT_CONF_OP_ERROR;
+        }
+
+        *parent = op;
+
+        op->index = node->u.array->count;
+        op->action = NXT_CONF_OP_CREATE;
+        op->ctx = value;
+
+        return NXT_CONF_OP_OK;
+    }
+
+    if (node != NULL) {
+        op->action = NXT_CONF_OP_REPLACE;
+        op->ctx = value;
+
+        return NXT_CONF_OP_OK;
+    }
+
+    op->action = NXT_CONF_OP_CREATE;
+
+    if (root->type == NXT_CONF_VALUE_ARRAY) {
+        if (op->index > root->u.array->count) {
+            return NXT_CONF_OP_NOT_FOUND;
+        }
+
+        op->ctx = value;
+
+    } else {
         member = nxt_mp_zget(mp, sizeof(nxt_conf_object_member_t));
         if (nxt_slow_path(member == NULL)) {
-            return NXT_ERROR;
+            return NXT_CONF_OP_ERROR;
         }
 
         nxt_conf_set_string(&member->name, &token);
 
         member->value = *value;
 
-        op->action = NXT_CONF_OP_CREATE;
+        op->index = root->u.object->count;
         op->ctx = member;
-
-    } else {
-        op->action = NXT_CONF_OP_REPLACE;
-        op->ctx = value;
     }
 
-    return NXT_OK;
+    return NXT_CONF_OP_OK;
 }
 
 
@@ -834,15 +894,12 @@ static nxt_int_t
 nxt_conf_copy_value(nxt_mp_t *mp, nxt_conf_op_t *op, nxt_conf_value_t *dst,
     nxt_conf_value_t *src)
 {
-    size_t      size;
-    nxt_int_t   rc;
-    nxt_uint_t  n;
-
-    if (op != NULL && src->type != NXT_CONF_VALUE_OBJECT) {
+    if (op != NULL
+        && src->type != NXT_CONF_VALUE_ARRAY
+        && src->type != NXT_CONF_VALUE_OBJECT)
+    {
         return NXT_ERROR;
     }
-
-    dst->type = src->type;
 
     switch (src->type) {
 
@@ -861,27 +918,7 @@ nxt_conf_copy_value(nxt_mp_t *mp, nxt_conf_op_t *op, nxt_conf_value_t *dst,
         break;
 
     case NXT_CONF_VALUE_ARRAY:
-
-        size = sizeof(nxt_conf_array_t)
-               + src->u.array->count * sizeof(nxt_conf_value_t);
-
-        dst->u.array = nxt_mp_get(mp, size);
-        if (nxt_slow_path(dst->u.array == NULL)) {
-            return NXT_ERROR;
-        }
-
-        dst->u.array->count = src->u.array->count;
-
-        for (n = 0; n < src->u.array->count; n++) {
-            rc = nxt_conf_copy_value(mp, NULL, &dst->u.array->elements[n],
-                                               &src->u.array->elements[n]);
-
-            if (nxt_slow_path(rc != NXT_OK)) {
-                return NXT_ERROR;
-            }
-        }
-
-        break;
+        return nxt_conf_copy_array(mp, op, dst, src);
 
     case NXT_CONF_VALUE_OBJECT:
         return nxt_conf_copy_object(mp, op, dst, src);
@@ -889,6 +926,108 @@ nxt_conf_copy_value(nxt_mp_t *mp, nxt_conf_op_t *op, nxt_conf_value_t *dst,
     default:
         dst->u = src->u;
     }
+
+    dst->type = src->type;
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_conf_copy_array(nxt_mp_t *mp, nxt_conf_op_t *op, nxt_conf_value_t *dst,
+    nxt_conf_value_t *src)
+{
+    size_t            size;
+    nxt_int_t         rc;
+    nxt_uint_t        s, d, count, index;
+    nxt_conf_op_t     *pass_op;
+    nxt_conf_value_t  *value;
+
+    count = src->u.array->count;
+
+    if (op != NULL) {
+        if (op->action == NXT_CONF_OP_CREATE) {
+            count++;
+
+        } else if (op->action == NXT_CONF_OP_DELETE) {
+            count--;
+        }
+    }
+
+    size = sizeof(nxt_conf_array_t) + count * sizeof(nxt_conf_value_t);
+
+    dst->u.array = nxt_mp_get(mp, size);
+    if (nxt_slow_path(dst->u.array == NULL)) {
+        return NXT_ERROR;
+    }
+
+    dst->u.array->count = count;
+
+    s = 0;
+    d = 0;
+
+    pass_op = NULL;
+
+    /*
+     * This initialization is needed only to
+     * suppress a warning on GCC 4.8 and older.
+     */
+    index = 0;
+
+    do {
+        if (pass_op == NULL) {
+            index = (op == NULL) ? src->u.array->count : op->index;
+        }
+
+        while (s != index) {
+            rc = nxt_conf_copy_value(mp, pass_op, &dst->u.array->elements[d],
+                                                  &src->u.array->elements[s]);
+            if (nxt_slow_path(rc != NXT_OK)) {
+                return NXT_ERROR;
+            }
+
+            s++;
+            d++;
+        }
+
+        if (pass_op != NULL) {
+            pass_op = NULL;
+            continue;
+        }
+
+        if (op != NULL) {
+            switch (op->action) {
+            case NXT_CONF_OP_PASS:
+                pass_op = op->ctx;
+                index++;
+                break;
+
+            case NXT_CONF_OP_CREATE:
+                value = op->ctx;
+                dst->u.array->elements[d] = *value;
+
+                d++;
+                break;
+
+            case NXT_CONF_OP_REPLACE:
+                value = op->ctx;
+                dst->u.array->elements[d] = *value;
+
+                s++;
+                d++;
+                break;
+
+            case NXT_CONF_OP_DELETE:
+                s++;
+                break;
+            }
+
+            op = NULL;
+        }
+
+    } while (d != count);
+
+    dst->type = src->type;
 
     return NXT_OK;
 }
@@ -939,9 +1078,7 @@ nxt_conf_copy_object(nxt_mp_t *mp, nxt_conf_op_t *op, nxt_conf_value_t *dst,
 
     do {
         if (pass_op == NULL) {
-            index = (op == NULL || op->action == NXT_CONF_OP_CREATE)
-                    ? src->u.object->count
-                    : op->index;
+            index = (op == NULL) ? src->u.object->count : op->index;
         }
 
         while (s != index) {
@@ -1015,7 +1152,7 @@ nxt_conf_copy_object(nxt_mp_t *mp, nxt_conf_op_t *op, nxt_conf_value_t *dst,
                 break;
             }
 
-            op = op->next;
+            op = NULL;
         }
 
     } while (d != count);

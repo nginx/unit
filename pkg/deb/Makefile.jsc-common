@@ -6,11 +6,17 @@ MODULE_SUMMARY_jsc_common=	Java shared packages for NGINX Unit
 MODULE_VERSION_jsc_common=	$(VERSION)
 MODULE_RELEASE_jsc_common=	1
 
-MODULE_CONFARGS_jsc_common=	java --home=/usr/lib/jvm/java-8-openjdk-$$\(DEB_HOST_ARCH\) --jars=/usr/share/unit-jsc-common/
+ifeq ($(CODENAME),disco)
+JAVA_MINVERSION=	11
+else
+JAVA_MINVERSION=	8
+endif
+
+MODULE_CONFARGS_jsc_common=	java --home=/usr/lib/jvm/java-$(JAVA_MINVERSION)-openjdk-$$\(DEB_HOST_ARCH\) --jars=/usr/share/unit-jsc-common/
 MODULE_MAKEARGS_jsc_common=	java
 MODULE_INSTARGS_jsc_common=	java-shared-install
 
-BUILD_DEPENDS_jsc_common=	openjdk-8-jdk-headless openjdk-8-jre-headless
+BUILD_DEPENDS_jsc_common=	openjdk-$(JAVA_MINVERSION)-jdk-headless openjdk-$(JAVA_MINVERSION)-jre-headless
 BUILD_DEPENDS+=		$(BUILD_DEPENDS_jsc_common)
 
 MODULE_NOARCH_jsc_common=	true

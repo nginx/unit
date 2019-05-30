@@ -842,7 +842,7 @@ nxt_main_process_sigusr1_handler(nxt_task_t *task, void *obj, void *data)
 
         nxt_mp_destroy(mp);
         return;
-   }
+    }
 
 fail:
 

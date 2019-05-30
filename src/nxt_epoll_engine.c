@@ -1059,7 +1059,7 @@ nxt_epoll_edge_conn_io_connect(nxt_task_t *task, void *obj, void *data)
 
     state = c->write_state;
 
-    switch (nxt_socket_connect(task, c->socket.fd, c->remote) ){
+    switch (nxt_socket_connect(task, c->socket.fd, c->remote)) {
 
     case NXT_OK:
         c->socket.write_ready = 1;
