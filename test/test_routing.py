@@ -1969,5 +1969,439 @@ class TestRouting(TestApplicationProto):
             'match headers array 8',
         )
 
+    def test_routes_match_arguments(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {"arguments": {"foo": "bar"}},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match arguments configure',
+        )
+
+        self.assertEqual(self.get()['status'], 404, 'match arguments')
+        self.assertEqual(
+            self.get(url='/?foo=bar')['status'], 200, 'match arguments 2'
+        )
+
+        self.assertEqual(
+            self.get(url='/?Foo=bar')['status'],
+            404,
+            'match arguments case sensitive',
+        ) # FAIL
+        self.assertEqual(
+            self.get(url='/?foo=Bar')['status'],
+            404,
+            'match arguments case sensitive 2',
+        ) # FAIL
+        self.assertEqual(
+            self.get(url='/?foo=bar1')['status'],
+            404,
+            'match arguments exact',
+        )
+        self.assertEqual(
+            self.get(url='/?1foo=bar')['status'],
+            404,
+            'match arguments exact 2',
+        )
+
+    def test_routes_match_arguments_empty(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {"arguments": {}},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match arguments empty configure',
+        )
+
+        self.assertEqual(self.get()['status'], 200, 'match arguments empty')
+
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {"arguments": []},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match arguments empty configure 2',
+        )
+
+        self.assertEqual(self.get()['status'], 200, 'match arguments empty 2')
+
+    def test_routes_match_arguments_invalid(self):
+        self.assertIn(
+            'error',
+            self.conf(
+                [
+                    {
+                        "match": {"arguments": ["var"]},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match arguments invalid',
+        )
+
+        self.assertIn(
+            'error',
+            self.conf(
+                [
+                    {
+                        "match": {"arguments": [{"var1": {}}]},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match arguments invalid 2',
+        )
+
+        self.assertIn(
+            'error',
+            self.conf(
+                [
+                    {
+                        "match": {
+                            "arguments": {
+                                "": "bar"
+                            }
+                        },
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match arguments invalid 3',
+        )
+
+    @unittest.skip('not yet')
+    def test_routes_match_arguments_space(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {
+                            "arguments": {
+                                "foo": "bar "
+                            }
+                        },
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match arguments space configure',
+        )
+
+        self.assertEqual(
+            self.get(url='/?foo=bar &')['status'],
+            200,
+            'match arguments space',
+        )
+        self.assertEqual(
+            self.get(url='/?foo=bar+&')['status'],
+            200,
+            'match arguments space 2',
+        ) # FAIL
+        self.assertEqual(
+            self.get(url='/?foo=bar%20&')['status'],
+            200,
+            'match arguments space 3',
+        ) # FAIL
+
+    @unittest.skip('not yet')
+    def test_routes_match_arguments_plus(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {
+                            "arguments": [
+                                {"foo": "bar+"}
+                            ]
+                        },
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match arguments plus configure',
+        )
+
+        self.assertEqual(
+            self.get(url='/?foo=bar+&')['status'],
+            200,
+            'match arguments plus',
+        )
+        self.assertEqual(
+            self.get(url='/?foo=bar%2B&')['status'],
+            200,
+            'match arguments plus 2',
+        ) # FAIL
+
+    @unittest.skip('not yet')
+    def test_routes_match_arguments_hex(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {
+                            "arguments": [
+                                {"foo": "bar"}
+                            ]
+                        },
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match arguments hex configure',
+        )
+
+        self.assertEqual(
+            self.get(url='/?%66%6F%6f=%62%61%72&')['status'],
+            200,
+            'match arguments hex',
+        ) # FAIL
+
+    def test_routes_match_arguments_chars(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {
+                            "arguments": {
+                                "foo": "-._()[],;"
+                            }
+                        },
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match arguments chars configure',
+        )
+
+        self.assertEqual(
+            self.get(url='/?foo=-._()[],;')['status'],
+            200,
+            'match arguments chars',
+        )
+
+    def test_routes_match_arguments_complex(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {
+                            "arguments": {
+                                "foo": ""
+                            }
+                        },
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match arguments complex configure',
+        )
+
+        self.assertEqual(
+            self.get(url='/?foo')['status'],
+            200,
+            'match arguments complex',
+        )
+        self.assertEqual(
+            self.get(url='/?blah=blah&foo=')['status'],
+            200,
+            'match arguments complex 2',
+        )
+        self.assertEqual(
+            self.get(url='/?&&&foo&&&')['status'],
+            200,
+            'match arguments complex 3',
+        )
+        self.assertEqual(
+            self.get(url='/?foo&foo=bar&foo')['status'],
+            404,
+            'match arguments complex 4',
+        )
+        self.assertEqual(
+            self.get(url='/?foo=&foo')['status'],
+            200,
+            'match arguments complex 5',
+        )
+        self.assertEqual(
+            self.get(url='/?&=&foo&==&')['status'],
+            200,
+            'match arguments complex 6',
+        )
+        self.assertEqual(
+            self.get(url='/?&=&bar&==&')['status'],
+            404,
+            'match arguments complex 7',
+        )
+
+    def test_routes_match_arguments_multiple(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {
+                            "arguments": {"foo": "bar", "blah": "test"}
+                        },
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match arguments multiple configure',
+        )
+
+        self.assertEqual(self.get()['status'], 404, 'match arguments multiple')
+
+        self.assertEqual(
+            self.get(url='/?foo=bar&blah=test')['status'],
+            200,
+            'match arguments multiple 2',
+        )
+
+        self.assertEqual(
+            self.get(url='/?foo=bar&blah')['status'],
+            404,
+            'match arguments multiple 3',
+        )
+
+    def test_routes_match_arguments_multiple_rules(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {"arguments": {"foo": ["bar", "blah"]}},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match arguments multiple rules configure',
+        )
+
+        self.assertEqual(
+            self.get()['status'], 404, 'match arguments multiple rules'
+        )
+
+        self.assertEqual(
+            self.get(url='/?foo=bar')['status'],
+            200,
+            'match arguments multiple rules 2',
+        )
+
+        self.assertEqual(
+            self.get(url='/?foo=blah')['status'],
+            200,
+            'match arguments multiple rules 3',
+        )
+
+        self.assertEqual(
+            self.get(url='/?foo=blah&foo=bar&foo=blah')['status'],
+            200,
+            'match arguments multiple rules 4',
+        )
+
+        self.assertEqual(
+            self.get(url='/?foo=blah&foo=bar&foo=')['status'],
+            404,
+            'match arguments multiple rules 5',
+        )
+
+    def test_routes_match_arguments_array(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {
+                            "arguments": [
+                                {"var1": "val1*"},
+                                {"var2": "val2"},
+                                {"var3": ["foo", "bar"]},
+                                {"var1": "bar", "var4": "foo"},
+                            ]
+                        },
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match arguments array configure',
+        )
+
+        self.assertEqual(self.get()['status'], 404, 'match arguments array')
+        self.assertEqual(
+            self.get(url='/?var1=val123')['status'],
+            200,
+            'match arguments array 2',
+        )
+        self.assertEqual(
+            self.get(url='/?var2=val2')['status'],
+            200,
+            'match arguments array 3',
+        )
+        self.assertEqual(
+            self.get(url='/?var3=bar')['status'],
+            200,
+            'match arguments array 4',
+        )
+        self.assertEqual(
+            self.get(url='/?var1=bar')['status'],
+            404,
+            'match arguments array 5',
+        )
+        self.assertEqual(
+            self.get(url='/?var1=bar&var4=foo')['status'],
+            200,
+            'match arguments array 6',
+        )
+
+        self.assertIn(
+            'success',
+            self.conf_delete('routes/0/match/arguments/1'),
+            'match arguments array configure 2',
+        )
+
+        self.assertEqual(
+            self.get(url='/?var2=val2')['status'],
+            404,
+            'match arguments array 7',
+        )
+        self.assertEqual(
+            self.get(url='/?var3=foo')['status'],
+            200,
+            'match arguments array 8',
+        )
+
 if __name__ == '__main__':
     TestRouting.main()
