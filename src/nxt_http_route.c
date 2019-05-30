@@ -147,19 +147,19 @@ static nxt_http_pass_t *nxt_http_route_pass(nxt_task_t *task,
     nxt_http_request_t *r, nxt_http_pass_t *start);
 static nxt_http_pass_t *nxt_http_route_match(nxt_http_request_t *r,
     nxt_http_route_match_t *match);
-static nxt_bool_t nxt_http_route_table(nxt_http_request_t *r,
+static nxt_int_t nxt_http_route_table(nxt_http_request_t *r,
     nxt_http_route_table_t *table);
-static nxt_bool_t nxt_http_route_ruleset(nxt_http_request_t *r,
+static nxt_int_t nxt_http_route_ruleset(nxt_http_request_t *r,
     nxt_http_route_ruleset_t *ruleset);
-static nxt_bool_t nxt_http_route_rule(nxt_http_request_t *r,
+static nxt_int_t nxt_http_route_rule(nxt_http_request_t *r,
     nxt_http_route_rule_t *rule);
-static nxt_bool_t nxt_http_route_header(nxt_http_request_t *r,
+static nxt_int_t nxt_http_route_header(nxt_http_request_t *r,
     nxt_http_route_rule_t *rule);
-static nxt_bool_t nxt_http_route_test_rule(nxt_http_request_t *r,
+static nxt_int_t nxt_http_route_test_rule(nxt_http_request_t *r,
     nxt_http_route_rule_t *rule, u_char *start, size_t length);
-static nxt_bool_t nxt_http_route_pattern(nxt_http_request_t *r,
+static nxt_int_t nxt_http_route_pattern(nxt_http_request_t *r,
     nxt_http_route_pattern_t *pattern, u_char *start, size_t length);
-static nxt_bool_t nxt_http_route_memcmp(u_char *start, u_char *test,
+static nxt_int_t nxt_http_route_memcmp(u_char *start, u_char *test,
     size_t length, nxt_bool_t case_sensitive);
 
 
@@ -942,7 +942,7 @@ nxt_http_route_pass(nxt_task_t *task, nxt_http_request_t *r,
 static nxt_http_pass_t *
 nxt_http_route_match(nxt_http_request_t *r, nxt_http_route_match_t *match)
 {
-    nxt_bool_t             ret;
+    nxt_int_t              ret;
     nxt_http_route_test_t  *test, *end;
 
     test = &match->test[0];
@@ -956,8 +956,9 @@ nxt_http_route_match(nxt_http_request_t *r, nxt_http_route_match_t *match)
             ret = nxt_http_route_table(r, test->table);
         }
 
-        if (!ret) {
-            return NULL;
+        if (ret <= 0) {
+            /* 0 => NULL, -1 => NXT_HTTP_PASS_ERROR. */
+            return (nxt_http_pass_t *) (intptr_t) ret;
         }
 
         test++;
@@ -967,10 +968,10 @@ nxt_http_route_match(nxt_http_request_t *r, nxt_http_route_match_t *match)
 }
 
 
-static nxt_bool_t
+static nxt_int_t
 nxt_http_route_table(nxt_http_request_t *r, nxt_http_route_table_t *table)
 {
-    nxt_bool_t                ret;
+    nxt_int_t                 ret;
     nxt_http_route_ruleset_t  **ruleset, **end;
 
     ret = 1;
@@ -980,7 +981,7 @@ nxt_http_route_table(nxt_http_request_t *r, nxt_http_route_table_t *table)
     while (ruleset < end) {
         ret = nxt_http_route_ruleset(r, *ruleset);
 
-        if (ret) {
+        if (ret != 0) {
             return ret;
         }
 
@@ -991,17 +992,20 @@ nxt_http_route_table(nxt_http_request_t *r, nxt_http_route_table_t *table)
 }
 
 
-static nxt_bool_t
+static nxt_int_t
 nxt_http_route_ruleset(nxt_http_request_t *r, nxt_http_route_ruleset_t *ruleset)
 {
+    nxt_int_t              ret;
     nxt_http_route_rule_t  **rule, **end;
 
     rule = &ruleset->rule[0];
     end = rule + ruleset->items;
 
     while (rule < end) {
-        if (!nxt_http_route_rule(r, *rule)) {
-            return 0;
+        ret = nxt_http_route_rule(r, *rule);
+
+        if (ret <= 0) {
+            return ret;
         }
 
         rule++;
@@ -1011,7 +1015,7 @@ nxt_http_route_ruleset(nxt_http_request_t *r, nxt_http_route_ruleset_t *ruleset)
 }
 
 
-static nxt_bool_t
+static nxt_int_t
 nxt_http_route_rule(nxt_http_request_t *r, nxt_http_route_rule_t *rule)
 {
     void       *p, **pp;
@@ -1056,10 +1060,10 @@ nxt_http_route_rule(nxt_http_request_t *r, nxt_http_route_rule_t *rule)
 }
 
 
-static nxt_bool_t
+static nxt_int_t
 nxt_http_route_header(nxt_http_request_t *r, nxt_http_route_rule_t *rule)
 {
-    nxt_bool_t        ret;
+    nxt_int_t         ret;
     nxt_http_field_t  *f;
 
     ret = 0;
@@ -1076,7 +1080,7 @@ nxt_http_route_header(nxt_http_request_t *r, nxt_http_route_rule_t *rule)
 
         ret = nxt_http_route_test_rule(r, rule, f->value, f->value_length);
 
-        if (!ret) {
+        if (ret == 0) {
             return ret;
         }
 
@@ -1086,11 +1090,11 @@ nxt_http_route_header(nxt_http_request_t *r, nxt_http_route_rule_t *rule)
 }
 
 
-static nxt_bool_t
+static nxt_int_t
 nxt_http_route_test_rule(nxt_http_request_t *r, nxt_http_route_rule_t *rule,
     u_char *start, size_t length)
 {
-    nxt_bool_t                ret;
+    nxt_int_t                 ret;
     nxt_http_route_pattern_t  *pattern, *end;
 
     ret = 1;
@@ -1100,6 +1104,7 @@ nxt_http_route_test_rule(nxt_http_request_t *r, nxt_http_route_rule_t *rule,
     while (pattern < end) {
         ret = nxt_http_route_pattern(r, pattern, start, length);
 
+        /* nxt_http_route_pattern() returns either 1 or 0. */
         ret ^= pattern->negative;
 
         if (pattern->any == ret) {
@@ -1113,13 +1118,13 @@ nxt_http_route_test_rule(nxt_http_request_t *r, nxt_http_route_rule_t *rule,
 }
 
 
-static nxt_bool_t
+static nxt_int_t
 nxt_http_route_pattern(nxt_http_request_t *r, nxt_http_route_pattern_t *pattern,
     u_char *start, size_t length)
 {
-    u_char      *p, *end, *test;
-    size_t      test_length;
-    nxt_bool_t  ret;
+    u_char     *p, *end, *test;
+    size_t     test_length;
+    nxt_int_t  ret;
 
     if (length < pattern->min_length) {
         return 0;
@@ -1174,7 +1179,7 @@ nxt_http_route_pattern(nxt_http_request_t *r, nxt_http_route_pattern_t *pattern,
 }
 
 
-static nxt_bool_t
+static nxt_int_t
 nxt_http_route_memcmp(u_char *start, u_char *test, size_t test_length,
     nxt_bool_t case_sensitive)
 {

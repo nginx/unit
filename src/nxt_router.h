@@ -21,6 +21,9 @@ typedef struct nxt_http_routes_s        nxt_http_routes_t;
 typedef struct nxt_router_access_log_s  nxt_router_access_log_t;
 
 
+#define NXT_HTTP_PASS_ERROR  ((nxt_http_pass_t *) -1)
+
+
 typedef struct {
     nxt_thread_spinlock_t    lock;
     nxt_queue_t              engines;

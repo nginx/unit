@@ -295,26 +295,23 @@ nxt_http_request_pass(nxt_task_t *task, void *obj, void *data)
 
     pass = r->conf->socket_conf->pass;
 
-    if (nxt_slow_path(pass == NULL)) {
-        goto fail;
+    if (nxt_fast_path(pass != NULL)) {
+
+        do {
+            nxt_debug(task, "http request route: %V", &pass->name);
+
+            pass = pass->handler(task, r, pass);
+
+            if (pass == NULL) {
+                return;
+            }
+
+            if (pass == NXT_HTTP_PASS_ERROR) {
+                break;
+            }
+
+        } while (r->pass_count++ < 255);
     }
-
-    for ( ;; ) {
-        nxt_debug(task, "http request route: %V", &pass->name);
-
-        pass = pass->handler(task, r, pass);
-        if (pass == NULL) {
-            break;
-        }
-
-        if (nxt_slow_path(r->pass_count++ == 255)) {
-            goto fail;
-        }
-    }
-
-    return;
-
-fail:
 
     nxt_http_request_error(task, r, NXT_HTTP_INTERNAL_SERVER_ERROR);
 }
