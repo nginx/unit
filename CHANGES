@@ -1,4 +1,35 @@
 
+Changes with Unit 1.9.0                                          30 May 2019
+
+    *) Feature: request routing by arguments, headers, and cookies.
+
+    *) Feature: route matching patterns allow a wildcard in the middle.
+
+    *) Feature: POST operation for appending elements to arrays in
+       configuration.
+
+    *) Feature: support for changing credentials using CAP_SETUID and
+       CAP_SETGID capabilities on Linux without running main process as
+       privileged user.
+
+    *) Bugfix: memory leak in the router process might have happened when a
+       client prematurely closed the connection.
+
+    *) Bugfix: applying a large configuration might have failed.
+
+    *) Bugfix: PUT and DELETE operations on array elements in configuration
+       did not work.
+
+    *) Bugfix: request schema in applications did not reflect TLS
+       connections.
+
+    *) Bugfix: restored compatibility with Node.js applications that use
+       ServerResponse._implicitHeader() function; the bug had appeared in
+       1.7.
+
+    *) Bugfix: various compatibility issues with Node.js applications.
+
+
 Changes with Unit 1.8.0                                          01 Mar 2019
 
     *) Change: now three numbers are always used for versioning: major,
