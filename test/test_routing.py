@@ -1487,6 +1487,487 @@ class TestRouting(TestApplicationProto):
 
         self.assertEqual(self.get()['status'], 500, 'routes loop')
 
+    def test_routes_match_headers(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {"headers": {"host": "localhost"}},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match headers configure',
+        )
+
+        self.assertEqual(self.get()['status'], 200, 'match headers')
+        self.assertEqual(
+            self.get(
+                headers={
+                    "Host": "Localhost",
+                    "Connection": "close",
+                }
+            )['status'],
+            200,
+            'match headers case insensitive',
+        )
+        self.assertEqual(
+            self.get(
+                headers={
+                    "Host": "localhost.com",
+                    "Connection": "close",
+                }
+            )['status'],
+            404,
+            'match headers exact',
+        )
+        self.assertEqual(
+            self.get(
+                headers={
+                    "Host": "llocalhost",
+                    "Connection": "close",
+                }
+            )['status'],
+            404,
+            'match headers exact 2',
+        )
+        self.assertEqual(
+            self.get(
+                headers={
+                    "Host": "host",
+                    "Connection": "close",
+                }
+            )['status'],
+            404,
+            'match headers exact 3',
+        )
+
+    def test_routes_match_headers_multiple(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {
+                            "headers": {"host": "localhost", "x-blah": "test"}
+                        },
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match headers multiple configure',
+        )
+
+        self.assertEqual(self.get()['status'], 404, 'match headers multiple')
+
+        self.assertEqual(
+            self.get(
+                headers={
+                    "Host": "localhost",
+                    "X-blah": "test",
+                    "Connection": "close",
+                }
+            )['status'],
+            200,
+            'match headers multiple 2',
+        )
+
+        self.assertEqual(
+            self.get(
+                headers={
+                    "Host": "localhost",
+                    "X-blah": "",
+                    "Connection": "close",
+                }
+            )['status'],
+            404,
+            'match headers multiple 3',
+        )
+
+    def test_routes_match_headers_multiple_values(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {"headers": {"x-blah": "test"}},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match headers multiple values configure',
+        )
+
+        self.assertEqual(
+            self.get(
+                headers={
+                    "Host": "localhost",
+                    "X-blah": ["test", "test", "test"],
+                    "Connection": "close",
+                }
+            )['status'],
+            200,
+            'match headers multiple values',
+        )
+        self.assertEqual(
+            self.get(
+                headers={
+                    "Host": "localhost",
+                    "X-blah": ["test", "blah", "test"],
+                    "Connection": "close",
+                }
+            )['status'],
+            404,
+            'match headers multiple values 2',
+        )
+        self.assertEqual(
+            self.get(
+                headers={
+                    "Host": "localhost",
+                    "X-blah": ["test", "", "test"],
+                    "Connection": "close",
+                }
+            )['status'],
+            404,
+            'match headers multiple values 3',
+        )
+
+    def test_routes_match_headers_multiple_rules(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {"headers": {"x-blah": ["test", "blah"]}},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match headers multiple rules configure',
+        )
+
+        self.assertEqual(
+            self.get()['status'], 404, 'match headers multiple rules'
+        )
+
+        self.assertEqual(
+            self.get(
+                headers={
+                    "Host": "localhost",
+                    "X-blah": "test",
+                    "Connection": "close",
+                }
+            )['status'],
+            200,
+            'match headers multiple rules 2',
+        )
+
+        self.assertEqual(
+            self.get(
+                headers={
+                    "Host": "localhost",
+                    "X-blah": "blah",
+                    "Connection": "close",
+                }
+            )['status'],
+            200,
+            'match headers multiple rules 3',
+        )
+
+        self.assertEqual(
+            self.get(
+                headers={
+                    "Host": "localhost",
+                    "X-blah": ["test", "blah", "test"],
+                    "Connection": "close",
+                }
+            )['status'],
+            200,
+            'match headers multiple rules 4',
+        )
+
+        self.assertEqual(
+            self.get(
+                headers={
+                    "Host": "localhost",
+                    "X-blah": ["blah", ""],
+                    "Connection": "close",
+                }
+            )['status'],
+            404,
+            'match headers multiple rules 5',
+        )
+
+    def test_routes_match_headers_case_insensitive(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {"headers": {"X-BLAH": "TEST"}},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match headers case insensitive configure',
+        )
+
+        self.assertEqual(
+            self.get(
+                headers={
+                    "Host": "localhost",
+                    "x-blah": "test",
+                    "Connection": "close",
+                }
+            )['status'],
+            200,
+            'match headers case insensitive',
+        )
+
+    def test_routes_match_headers_invalid(self):
+        self.assertIn(
+            'error',
+            self.conf(
+                [
+                    {
+                        "match": {"headers": ["blah"]},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match headers invalid',
+        )
+
+        self.assertIn(
+            'error',
+            self.conf(
+                [
+                    {
+                        "match": {"headers": {"foo": ["bar", {}]}},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match headers invalid 2',
+        )
+
+    def test_routes_match_headers_empty_rule(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {"headers": {"host": ""}},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match headers empty rule configure',
+        )
+
+        self.assertEqual(self.get()['status'], 404, 'match headers empty rule')
+
+        self.assertEqual(
+            self.get(headers={"Host": "", "Connection": "close"})['status'],
+            200,
+            'match headers empty rule 2',
+        )
+
+    def test_routes_match_headers_rule_field_empty(self):
+        self.assertIn(
+            'error',
+            self.conf(
+                [
+                    {
+                        "match": {"headers": {"": "blah"}},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match headers rule field empty configure',
+        )
+
+    def test_routes_match_headers_empty(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {"headers": {}},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match headers empty configure',
+        )
+
+        self.assertEqual(self.get()['status'], 200, 'match headers empty')
+
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {"headers": []},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match headers array empty configure 2',
+        )
+
+        self.assertEqual(
+            self.get()['status'], 200, 'match headers array empty 2'
+        )
+
+    def test_routes_match_headers_rule_array_empty(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {"headers": {"blah": []}},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match headers rule array empty configure',
+        )
+
+        self.assertEqual(
+            self.get()['status'], 404, 'match headers rule array empty'
+        )
+        self.assertEqual(
+            self.get(
+                headers={
+                    "Host": "localhost",
+                    "blah": "foo",
+                    "Connection": "close",
+                }
+            )['status'], 200, 'match headers rule array empty 2'
+        )
+
+    def test_routes_match_headers_array(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {
+                            "headers": [
+                                {"x-header1": "foo*"},
+                                {"x-header2": "bar"},
+                                {"x-header3": ["foo", "bar"]},
+                                {"x-header1": "bar", "x-header4": "foo"},
+                            ]
+                        },
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match headers array configure',
+        )
+
+        self.assertEqual(self.get()['status'], 404, 'match headers array')
+        self.assertEqual(
+            self.get(
+                headers={
+                    "Host": "localhost",
+                    "x-header1": "foo123",
+                    "Connection": "close",
+                }
+            )['status'],
+            200,
+            'match headers array 2',
+        )
+        self.assertEqual(
+            self.get(
+                headers={
+                    "Host": "localhost",
+                    "x-header2": "bar",
+                    "Connection": "close",
+                }
+            )['status'],
+            200,
+            'match headers array 3',
+        )
+        self.assertEqual(
+            self.get(
+                headers={
+                    "Host": "localhost",
+                    "x-header3": "bar",
+                    "Connection": "close",
+                }
+            )['status'],
+            200,
+            'match headers array 4',
+        )
+        self.assertEqual(
+            self.get(
+                headers={
+                    "Host": "localhost",
+                    "x-header1": "bar",
+                    "Connection": "close",
+                }
+            )['status'],
+            404,
+            'match headers array 5',
+        )
+        self.assertEqual(
+            self.get(
+                headers={
+                    "Host": "localhost",
+                    "x-header1": "bar",
+                    "x-header4": "foo",
+                    "Connection": "close",
+                }
+            )['status'],
+            200,
+            'match headers array 6',
+        )
+
+        self.assertIn(
+            'success',
+            self.conf_delete('routes/0/match/headers/1'),
+            'match headers array configure 2',
+        )
+
+        self.assertEqual(
+            self.get(
+                headers={
+                    "Host": "localhost",
+                    "x-header2": "bar",
+                    "Connection": "close",
+                }
+            )['status'],
+            404,
+            'match headers array 7',
+        )
+        self.assertEqual(
+            self.get(
+                headers={
+                    "Host": "localhost",
+                    "x-header3": "foo",
+                    "Connection": "close",
+                }
+            )['status'],
+            200,
+            'match headers array 8',
+        )
 
 if __name__ == '__main__':
     TestRouting.main()
