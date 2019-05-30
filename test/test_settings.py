@@ -215,7 +215,7 @@ Connection: close
             self.post(body='012345')['status'], 413, 'status size max'
         )
 
-    @unittest.expectedFailure
+    @unittest.skip('not yet')
     def test_settings_negative_value(self):
         self.assertIn(
             'error',

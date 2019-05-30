@@ -1055,7 +1055,6 @@ class TestRouting(TestApplicationProto):
             self.get(url='/%62%6c%61%68')['status'], 200, 'match uri normalize'
         )
 
-    @unittest.expectedFailure
     def test_routes_match_empty_array(self):
         self.assertIn(
             'success',
@@ -1077,16 +1076,7 @@ class TestRouting(TestApplicationProto):
             'match empty array',
         )
 
-    @unittest.expectedFailure
     def test_routes_reconfigure(self):
-        self.skip_sanitizer = True
-        self.skip_alerts.extend(
-            [
-                r'failed to apply',
-                r'process \d+ exited on signal',
-            ]
-        )
-
         self.assertIn('success', self.conf([], 'routes'), 'routes redefine')
         self.assertEqual(self.get()['status'], 404, 'routes redefine request')
 
@@ -1170,16 +1160,7 @@ class TestRouting(TestApplicationProto):
             self.get()['status'], 200, 'routes redefine request 8'
         )
 
-    @unittest.expectedFailure
     def test_routes_edit(self):
-        self.skip_sanitizer = True
-        self.skip_alerts.extend(
-            [
-                r'failed to apply',
-                r'process \d+ exited on signal',
-            ]
-        )
-
         self.assertIn(
             'success',
             self.conf(
@@ -1321,7 +1302,6 @@ class TestRouting(TestApplicationProto):
             'route edit configure 9',
         )
 
-    @unittest.expectedFailure
     def test_match_edit(self):
         self.skip_alerts.append(r'failed to apply new conf')
 

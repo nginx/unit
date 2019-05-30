@@ -222,7 +222,7 @@ class TestNodeApplication(TestApplicationNode):
             'set header array',
         )
 
-    @unittest.expectedFailure
+    @unittest.skip('not yet')
     def test_node_application_status_message(self):
         self.load('status_message')
 
@@ -333,7 +333,7 @@ class TestNodeApplication(TestApplicationNode):
             'promise second call',
         )
 
-    @unittest.expectedFailure
+    @unittest.skip('not yet')
     def test_node_application_header_name_valid(self):
         self.load('header_name_valid')
 

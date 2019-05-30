@@ -89,7 +89,7 @@ class TestTLS(TestApplicationTLS):
             'remove nonexistings certificate',
         )
 
-    @unittest.expectedFailure
+    @unittest.skip('not yet')
     def test_tls_certificate_update(self):
         self.load('empty')
 
@@ -105,7 +105,7 @@ class TestTLS(TestApplicationTLS):
             cert_old, self.get_server_certificate(), 'update certificate'
         )
 
-    @unittest.expectedFailure
+    @unittest.skip('not yet')
     def test_tls_certificate_key_incorrect(self):
         self.load('empty')
 
@@ -412,7 +412,7 @@ basicConstraints = critical,CA:TRUE"""
             'certificate chain intermediate server',
         )
 
-    @unittest.expectedFailure
+    @unittest.skip('not yet')
     def test_tls_reconfigure(self):
         self.load('empty')
 
@@ -471,7 +471,7 @@ basicConstraints = critical,CA:TRUE"""
 
         self.assertEqual(resp['body'], '0123456789', 'keepalive 2')
 
-    @unittest.expectedFailure
+    @unittest.skip('not yet')
     def test_tls_keepalive_certificate_remove(self):
         self.load('empty')
 
@@ -499,7 +499,7 @@ basicConstraints = critical,CA:TRUE"""
 
         self.assertEqual(resp, None, 'keepalive remove certificate')
 
-    @unittest.expectedFailure
+    @unittest.skip('not yet')
     def test_tls_certificates_remove_all(self):
         self.load('empty')
 

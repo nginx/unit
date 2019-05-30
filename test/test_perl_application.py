@@ -82,7 +82,6 @@ class TestPerlApplication(TestApplicationPerl):
             resp['headers']['Query-String'], '', 'query string empty'
         )
 
-    @unittest.expectedFailure
     def test_perl_application_query_string_absent(self):
         self.load('query_string')
 
@@ -93,7 +92,7 @@ class TestPerlApplication(TestApplicationPerl):
             resp['headers']['Query-String'], '', 'query string absent'
         )
 
-    @unittest.expectedFailure
+    @unittest.skip('not yet')
     def test_perl_application_server_port(self):
         self.load('server_port')
 
@@ -115,7 +114,7 @@ class TestPerlApplication(TestApplicationPerl):
             'input read parts',
         )
 
-    @unittest.expectedFailure
+    @unittest.skip('not yet')
     def test_perl_application_input_read_offset(self):
         self.load('input_read_offset')
 
@@ -184,10 +183,10 @@ class TestPerlApplication(TestApplicationPerl):
 
         self.assertEqual(self.get()['body'], 'body\n', 'body io file')
 
-    @unittest.expectedFailure
+    @unittest.skip('not yet, unsafe')
     def test_perl_application_syntax_error(self):
         self.skip_alerts.extend(
-            [r'PSGI: Failed to parse script', r'process \d+ exited on signal']
+            [r'PSGI: Failed to parse script']
         )
         self.load('syntax_error')
 

@@ -1,4 +1,3 @@
-import unittest
 from unit.applications.lang.go import TestApplicationGo
 
 

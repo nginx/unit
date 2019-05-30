@@ -89,15 +89,8 @@ class TestConfiguration(TestControl):
     def test_applications_string(self):
         self.assertIn('error', self.conf('"{}"', 'applications'), 'string')
 
+    @unittest.skip('not yet, unsafe')
     def test_applications_type_only(self):
-        self.skip_alerts.extend(
-            [
-                r'python module is empty',
-                r'failed to apply new conf',
-                r'process \d+ exited on signal',
-            ]
-        )
-
         self.assertIn(
             'error',
             self.conf({"app": {"type": "python"}}, 'applications'),
@@ -183,16 +176,8 @@ class TestConfiguration(TestControl):
             'relative path',
         )
 
-    @unittest.expectedFailure
+    @unittest.skip('not yet, unsafe')
     def test_listeners_empty(self):
-        self.skip_sanitizer = True
-        self.skip_alerts.extend(
-            [
-                r'failed to apply previous configuration',
-                r'process \d+ exited on signal',
-            ]
-        )
-
         self.assertIn(
             'error', self.conf({"*:7080": {}}, 'listeners'), 'listener empty'
         )
@@ -261,15 +246,8 @@ class TestConfiguration(TestControl):
             'explicit ipv6',
         )
 
+    @unittest.skip('not yet, unsafe')
     def test_listeners_no_port(self):
-        self.skip_alerts.extend(
-            [
-                r'invalid listener "127\.0\.0\.1"',
-                r'failed to apply new conf',
-                r'process \d+ exited on signal',
-            ]
-        )
-
         self.assertIn(
             'error',
             self.conf(
@@ -308,11 +286,8 @@ class TestConfiguration(TestControl):
             ),
         )
 
-    @unittest.expectedFailure
+    @unittest.skip('not yet')
     def test_json_application_many(self):
-        self.skip_alerts.extend(
-            [r'eventfd.+failed', r'epoll.+failed', r'failed to apply']
-        )
         apps = 999
 
         conf = {
@@ -335,10 +310,6 @@ class TestConfiguration(TestControl):
         self.assertIn('success', self.conf(conf))
 
     def test_json_application_many2(self):
-        self.skip_alerts.extend(
-            [r'eventfd.+failed', r'epoll.+failed', r'failed to apply']
-        )
-
         conf = {
             "applications": {
                 "app-"

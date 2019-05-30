@@ -83,7 +83,6 @@ class TestRubyApplication(TestApplicationRuby):
             resp['headers']['Query-String'], '', 'query string empty'
         )
 
-    @unittest.expectedFailure
     def test_ruby_application_query_string_absent(self):
         self.load('query_string')
 
@@ -94,7 +93,7 @@ class TestRubyApplication(TestApplicationRuby):
             resp['headers']['Query-String'], '', 'query string absent'
         )
 
-    @unittest.expectedFailure
+    @unittest.skip('not yet')
     def test_ruby_application_server_port(self):
         self.load('server_port')
 
@@ -167,7 +166,7 @@ class TestRubyApplication(TestApplicationRuby):
 
         self.assertEqual(self.post(body=body)['body'], body, 'input each')
 
-    @unittest.expectedFailure
+    @unittest.skip('not yet')
     def test_ruby_application_input_rewind(self):
         self.load('input_rewind')
 
@@ -175,7 +174,7 @@ class TestRubyApplication(TestApplicationRuby):
 
         self.assertEqual(self.post(body=body)['body'], body, 'input rewind')
 
-    @unittest.expectedFailure
+    @unittest.skip('not yet')
     def test_ruby_application_syntax_error(self):
         self.skip_alerts.extend(
             [
@@ -264,7 +263,7 @@ class TestRubyApplication(TestApplicationRuby):
             'header custom',
         )
 
-    @unittest.expectedFailure
+    @unittest.skip('not yet')
     def test_ruby_application_header_custom_non_printable(self):
         self.load('header_custom')
 
@@ -277,7 +276,7 @@ class TestRubyApplication(TestApplicationRuby):
 
         self.assertEqual(self.get()['status'], 200, 'header status')
 
-    @unittest.expectedFailure
+    @unittest.skip('not yet')
     def test_ruby_application_header_rack(self):
         self.load('header_rack')
 
@@ -300,7 +299,7 @@ class TestRubyApplication(TestApplicationRuby):
 
         self.assertEqual(self.post(body=body)['body'], body, 'body large')
 
-    @unittest.expectedFailure
+    @unittest.skip('not yet')
     def test_ruby_application_body_each_error(self):
         self.load('body_each_error')
 

@@ -84,7 +84,6 @@ class TestPHPApplication(TestApplicationPHP):
             resp['headers']['Query-String'], '', 'query string empty'
         )
 
-    @unittest.expectedFailure
     def test_php_application_query_string_absent(self):
         self.load('query_string')
 
@@ -207,7 +206,7 @@ class TestPHPApplication(TestApplicationPHP):
             self.get()['headers']['X-Precision'], '4', 'ini value'
         )
 
-    @unittest.expectedFailure
+    @unittest.skip('not yet')
     def test_php_application_ini_admin_user(self):
         self.load('ini_precision')
 

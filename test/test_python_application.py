@@ -91,7 +91,7 @@ class TestPythonApplication(TestApplicationPython):
             resp['headers']['Query-String'], '', 'query string absent'
         )
 
-    @unittest.expectedFailure
+    @unittest.skip('not yet')
     def test_python_application_server_port(self):
         self.load('server_port')
 
@@ -327,13 +327,13 @@ Connection: close
             self.wait_for_record(r'At exit called\.'), 'atexit'
         )
 
-    @unittest.expectedFailure
+    @unittest.skip('not yet')
     def test_python_application_start_response_exit(self):
         self.load('start_response_exit')
 
         self.assertEqual(self.get()['status'], 500, 'start response exit')
 
-    @unittest.expectedFailure
+    @unittest.skip('not yet')
     def test_python_application_input_iter(self):
         self.load('input_iter')
 
@@ -390,7 +390,7 @@ Connection: close
 
         self.assertEqual(resp['body'], body, 'input read length negative')
 
-    @unittest.expectedFailure
+    @unittest.skip('not yet')
     def test_python_application_errors_write(self):
         self.load('errors_write')
 
@@ -418,7 +418,7 @@ Connection: close
 
         self.assertEqual(self.get()['body'], 'body\n', 'body io file')
 
-    @unittest.expectedFailure
+    @unittest.skip('not yet')
     def test_python_application_syntax_error(self):
         self.skip_alerts.append(r'Python failed to import module "wsgi"')
         self.load('syntax_error')

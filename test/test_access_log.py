@@ -228,7 +228,7 @@ Connection: close
             'partial 4',
         )
 
-    @unittest.expectedFailure
+    @unittest.skip('not yet')
     def test_access_log_partial_5(self):
         self.load('empty')
 

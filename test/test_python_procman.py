@@ -133,7 +133,7 @@ class TestPythonProcman(TestApplicationPython):
 
         self.stop_all()
 
-    @unittest.expectedFailure
+    @unittest.skip('not yet')
     def test_python_prefork_same_processes(self):
         self.conf('2', 'applications/' + self.app_name + '/processes')
 
