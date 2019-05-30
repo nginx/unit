@@ -58,4 +58,7 @@ cat << END
   nodejs OPTIONS       configure Node.js module
                        run "./configure nodejs --help" to see available options
 
+  java OPTIONS         configure Java module
+                       run "./configure java --help" to see available options
+
 END
