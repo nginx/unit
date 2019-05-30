@@ -694,12 +694,6 @@ class TestRouting(TestApplicationProto):
         )
 
         self.assertEqual(
-            self.get(headers={'Connection': 'close'})['status'],
-            404,
-            'match host positive empty',
-        )
-
-        self.assertEqual(
             self.get(headers={'Host': 'localhost.', 'Connection': 'close'})[
                 'status'
             ],
@@ -729,6 +723,28 @@ class TestRouting(TestApplicationProto):
             ],
             404,
             'match host positive example.com',
+        )
+
+    @unittest.skip('not yet')
+    def test_routes_match_host_absent(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {"host": "localhost"},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match host absent configure',
+        )
+
+        self.assertEqual(
+            self.get(headers={'Connection': 'close'})['status'],
+            400,
+            'match host absent',
         )
 
     def test_routes_match_host_ipv4(self):
@@ -969,6 +985,7 @@ class TestRouting(TestApplicationProto):
             200,
             'match host empty 2',
         )
+        self.assertEqual(self.get()['status'], 404, 'match host empty 3')
 
     def test_routes_match_uri_positive(self):
         self.assertIn(

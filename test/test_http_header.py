@@ -1,3 +1,4 @@
+import unittest
 from unit.applications.lang.python import TestApplicationPython
 
 
@@ -296,15 +297,13 @@ Connection: close
             'Content-Length multiple fields',
         )
 
+    @unittest.skip('not yet')
     def test_http_header_host_absent(self):
         self.load('host')
 
         resp = self.get(headers={'Connection': 'close'})
 
-        self.assertEqual(resp['status'], 200, 'Host absent status')
-        self.assertNotEqual(
-            resp['headers']['X-Server-Name'], '', 'Host absent SERVER_NAME'
-        )
+        self.assertEqual(resp['status'], 400, 'Host absent status')
 
     def test_http_header_host_empty(self):
         self.load('host')

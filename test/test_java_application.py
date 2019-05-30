@@ -1128,17 +1128,6 @@ class TestJavaApplication(TestApplicationJava):
             'get header names not equal',
         )
 
-    def test_java_application_get_header_names_empty(self):
-        self.load('get_header_names')
-
-        self.assertEqual(self.get()['status'], 200, 'init')
-
-        self.assertNotIn(
-            'X-Reply-0',
-            self.get(headers={}, read_timeout=1)['headers'],
-            'get header names empty',
-        )
-
     def test_java_application_header_int(self):
         self.load('header_int')
 
