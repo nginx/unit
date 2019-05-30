@@ -34,10 +34,6 @@ static nxt_int_t nxt_http_field_hash_collision(nxt_lvlhsh_query_t *lhq,
 
 #define NXT_HTTP_FIELD_LVLHSH_SHIFT     5
 
-#define NXT_HTTP_FIELD_HASH_INIT        159406
-#define nxt_http_field_hash_char(h, c)  (((h) << 4) + (h) + (c))
-#define nxt_http_field_hash_end(h)      (((h) >> 16) ^ (h))
-
 
 typedef enum {
     NXT_HTTP_TARGET_SPACE = 1,   /* \s  */
