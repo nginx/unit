@@ -2403,5 +2403,487 @@ class TestRouting(TestApplicationProto):
             'match arguments array 8',
         )
 
+    def test_routes_match_cookies(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {"cookies": {"foO": "bar"}},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match cookie configure',
+        )
+
+        self.assertEqual(self.get()['status'], 404, 'match cookie')
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Cookie': 'foo=bar',
+                    'Connection': 'close',
+                },
+            )['status'],
+            200,
+            'match cookies 2',
+        )
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Cookie': ['foo=bar', 'blah=blah'],
+                    'Connection': 'close',
+                },
+            )['status'],
+            200,
+            'match cookies 3',
+        )
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Cookie': 'foo=bar; blah=blah',
+                    'Connection': 'close',
+                },
+            )['status'],
+            200,
+            'match cookies 4',
+        )
+
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Cookie': 'Foo=bar',
+                    'Connection': 'close',
+                },
+            )['status'],
+            200,
+            'match cookies case insensitive',
+        )
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Cookie': 'foo=Bar',
+                    'Connection': 'close',
+                },
+            )['status'],
+            200,
+            'match cookies case insensitive 2',
+        )
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Cookie': 'foo=bar1',
+                    'Connection': 'close',
+                },
+            )['status'],
+            404,
+            'match cookies exact',
+        )
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Cookie': 'foo=bar;',
+                    'Connection': 'close',
+                },
+            )['status'],
+            200,
+            'match cookies exact 2',
+        )
+
+    def test_routes_match_cookies_empty(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {"cookies": {}},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match cookies empty configure',
+        )
+
+        self.assertEqual(self.get()['status'], 200, 'match cookies empty')
+
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {"cookies": []},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match cookies empty configure 2',
+        )
+
+        self.assertEqual(self.get()['status'], 200, 'match cookies empty 2')
+
+    def test_routes_match_cookies_invalid(self):
+        self.assertIn(
+            'error',
+            self.conf(
+                [
+                    {
+                        "match": {"cookies": ["var"]},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match cookies invalid',
+        )
+
+        self.assertIn(
+            'error',
+            self.conf(
+                [
+                    {
+                        "match": {"cookies": [{"foo": {}}]},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match cookies invalid 2',
+        )
+
+    def test_routes_match_cookies_multiple(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {
+                            "cookies": {"foo": "bar", "blah": "blah"}
+                        },
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match cookies multiple configure',
+        )
+
+        self.assertEqual(self.get()['status'], 404, 'match cookies multiple')
+
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Cookie': 'foo=bar; blah=blah',
+                    'Connection': 'close',
+                }
+            )['status'],
+            200,
+            'match cookies multiple 2',
+        )
+
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Cookie': ['foo=bar', 'blah=blah'],
+                    'Connection': 'close',
+                }
+            )['status'],
+            200,
+            'match cookies multiple 3',
+        )
+
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Cookie': ['foo=bar; blah', 'blah'],
+                    'Connection': 'close',
+                }
+            )['status'],
+            404,
+            'match cookies multiple 4',
+        )
+
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Cookie': ['foo=bar; blah=test', 'blah=blah'],
+                    'Connection': 'close',
+                }
+            )['status'],
+            404,
+            'match cookies multiple 5',
+        )
+
+    def test_routes_match_cookies_multiple_values(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {"cookies": {"blah": "blah"}},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match cookies multiple values configure',
+        )
+
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Cookie': ['blah=blah', 'blah=blah', 'blah=blah'],
+                    'Connection': 'close',
+                }
+            )['status'],
+            200,
+            'match headers multiple values',
+        )
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Cookie': ['blah=blah', 'blah=test', 'blah=blah'],
+                    'Connection': 'close',
+                }
+            )['status'],
+            404,
+            'match cookies multiple values 2',
+        )
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Cookie': ['blah=blah; blah=', 'blah=blah'],
+                    'Connection': 'close',
+                }
+            )['status'],
+            404,
+            'match cookies multiple values 3',
+        )
+
+    def test_routes_match_cookies_multiple_rules(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {"cookies": {"blah": ["test", "blah"]}},
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match cookies multiple rules configure',
+        )
+
+        self.assertEqual(
+            self.get()['status'], 404, 'match cookies multiple rules'
+        )
+
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Cookie': 'blah=test',
+                    'Connection': 'close',
+                }
+            )['status'],
+            200,
+            'match cookies multiple rules 2',
+        )
+
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Cookie': 'blah=blah',
+                    'Connection': 'close',
+                }
+            )['status'],
+            200,
+            'match cookies multiple rules 3',
+        )
+
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Cookie': ['blah=blah', 'blah=test', 'blah=blah'],
+                    'Connection': 'close',
+                }
+            )['status'],
+            200,
+            'match cookies multiple rules 4',
+        )
+
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Cookie': ['blah=blah; blah=test', 'blah=blah'],
+                    'Connection': 'close',
+                }
+            )['status'],
+            200,
+            'match cookies multiple rules 5',
+        )
+
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Cookie': ['blah=blah', 'blah'], # invalid cookie
+                    'Connection': 'close',
+                }
+            )['status'],
+            200,
+            'match cookies multiple rules 6',
+        )
+
+    def test_routes_match_cookies_array(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                [
+                    {
+                        "match": {
+                            "cookies": [
+                                {"var1": "val1*"},
+                                {"var2": "val2"},
+                                {"var3": ["foo", "bar"]},
+                                {"var1": "bar", "var4": "foo"},
+                            ]
+                        },
+                        "action": {"pass": "applications/empty"},
+                    }
+                ],
+                'routes',
+            ),
+            'match cookies array configure',
+        )
+
+        self.assertEqual(self.get()['status'], 404, 'match cookies array')
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Cookie': 'var1=val123',
+                    'Connection': 'close',
+                },
+            )['status'],
+            200,
+            'match cookies array 2',
+        )
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Cookie': 'var2=val2',
+                    'Connection': 'close',
+                },
+            )['status'],
+            200,
+            'match cookies array 3',
+        )
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Cookie': 'var3=bar',
+                    'Connection': 'close',
+                },
+            )['status'],
+            200,
+            'match cookies array 4',
+        )
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Cookie': 'var3=bar;',
+                    'Connection': 'close',
+                },
+            )['status'],
+            200,
+            'match cookies array 5',
+        )
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Cookie': 'var1=bar',
+                    'Connection': 'close',
+                },
+            )['status'],
+            404,
+            'match cookies array 6',
+        )
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Cookie': 'var1=bar; var4=foo;',
+                    'Connection': 'close',
+                },
+            )['status'],
+            200,
+            'match cookies array 7',
+        )
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Cookie': ['var1=bar', 'var4=foo'],
+                    'Connection': 'close',
+                },
+            )['status'],
+            200,
+            'match cookies array 8',
+        )
+
+        self.assertIn(
+            'success',
+            self.conf_delete('routes/0/match/cookies/1'),
+            'match cookies array configure 2',
+        )
+
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Cookie': 'var2=val2',
+                    'Connection': 'close',
+                },
+            )['status'],
+            404,
+            'match cookies array 9',
+        )
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Cookie': 'var3=foo',
+                    'Connection': 'close',
+                },
+            )['status'],
+            200,
+            'match cookies array 10',
+        )
+
 if __name__ == '__main__':
     TestRouting.main()
