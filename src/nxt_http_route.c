@@ -819,10 +819,11 @@ nxt_http_route_rule(nxt_http_request_t *r, nxt_http_route_rule_t *rule)
         }
     }
 
+    ret = 1;
     pattern = &rule->pattern[0];
     end = pattern + rule->items;
 
-    do {
+    while (pattern < end) {
         ret = nxt_http_route_pattern(r, pattern, start, length);
 
         ret ^= pattern->negative;
@@ -832,8 +833,7 @@ nxt_http_route_rule(nxt_http_request_t *r, nxt_http_route_rule_t *rule)
         }
 
         pattern++;
-
-    } while (pattern < end);
+    }
 
     return ret;
 }
