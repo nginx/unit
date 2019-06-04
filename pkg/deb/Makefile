@@ -49,6 +49,7 @@ ifeq ($(CODENAME),bionic)
 include Makefile.php
 include Makefile.python27
 include Makefile.python36
+include Makefile.python37
 include Makefile.go19
 include Makefile.go110
 include Makefile.perl
