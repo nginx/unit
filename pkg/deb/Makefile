@@ -56,7 +56,7 @@ include Makefile.perl
 include Makefile.ruby
 include Makefile.jsc-common
 include Makefile.jsc8
-include Makefile.jsc10
+include Makefile.jsc11
 endif
 
 # Ubuntu 16.04
