@@ -475,7 +475,7 @@ nxt_http_route_match_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
     if (mtcf.cookies != NULL) {
         table = nxt_http_route_table_create(task, mp, mtcf.cookies,
-                                            NXT_HTTP_ROUTE_COOKIE, 0);
+                                            NXT_HTTP_ROUTE_COOKIE, 1);
         if (table == NULL) {
             return NULL;
         }
@@ -613,7 +613,7 @@ nxt_http_route_rule_name_create(nxt_task_t *task, nxt_mp_t *mp,
         c = name->start[i];
         *p++ = c;
 
-        c = nxt_lowcase(c);
+        c = case_sensitive ? c : nxt_lowcase(c);
         hash = nxt_http_field_hash_char(hash, c);
     }
 
@@ -1452,7 +1452,6 @@ nxt_http_route_cookie(nxt_array_t *array, u_char *name, size_t name_length,
 
     for (p = name; p < name + name_length; p++) {
         c = *p;
-        c = nxt_lowcase(c);
         hash = nxt_http_field_hash_char(hash, c);
     }
 
@@ -1483,8 +1482,7 @@ nxt_http_route_test_cookie(nxt_http_request_t *r,
 
         if (rule->u.name.hash == nv->hash
             && rule->u.name.length == nv->name_length
-            && nxt_strncasecmp(rule->u.name.start, nv->name, nv->name_length)
-               == 0)
+            && nxt_memcmp(rule->u.name.start, nv->name, nv->name_length) == 0)
         {
             ret = nxt_http_route_test_rule(r, rule, nv->value,
                                            nv->value_length);

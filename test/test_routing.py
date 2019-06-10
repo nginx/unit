@@ -2423,7 +2423,7 @@ class TestRouting(TestApplicationProto):
             self.get(
                 headers={
                     'Host': 'localhost',
-                    'Cookie': 'foo=bar',
+                    'Cookie': 'foO=bar',
                     'Connection': 'close',
                 },
             )['status'],
@@ -2434,7 +2434,7 @@ class TestRouting(TestApplicationProto):
             self.get(
                 headers={
                     'Host': 'localhost',
-                    'Cookie': ['foo=bar', 'blah=blah'],
+                    'Cookie': ['foO=bar', 'blah=blah'],
                     'Connection': 'close',
                 },
             )['status'],
@@ -2445,7 +2445,7 @@ class TestRouting(TestApplicationProto):
             self.get(
                 headers={
                     'Host': 'localhost',
-                    'Cookie': 'foo=bar; blah=blah',
+                    'Cookie': 'foO=bar; blah=blah',
                     'Connection': 'close',
                 },
             )['status'],
@@ -2461,25 +2461,25 @@ class TestRouting(TestApplicationProto):
                     'Connection': 'close',
                 },
             )['status'],
-            200,
-            'match cookies case insensitive',
+            404,
+            'match cookies case sensitive',
         )
         self.assertEqual(
             self.get(
                 headers={
                     'Host': 'localhost',
-                    'Cookie': 'foo=Bar',
+                    'Cookie': 'foO=Bar',
                     'Connection': 'close',
                 },
             )['status'],
-            200,
-            'match cookies case insensitive 2',
+            404,
+            'match cookies case sensitive 2',
         )
         self.assertEqual(
             self.get(
                 headers={
                     'Host': 'localhost',
-                    'Cookie': 'foo=bar1',
+                    'Cookie': 'foO=bar1',
                     'Connection': 'close',
                 },
             )['status'],
@@ -2490,12 +2490,23 @@ class TestRouting(TestApplicationProto):
             self.get(
                 headers={
                     'Host': 'localhost',
-                    'Cookie': 'foo=bar;',
+                    'Cookie': '1foO=bar;',
+                    'Connection': 'close',
+                },
+            )['status'],
+            404,
+            'match cookies exact 2',
+        )
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Cookie': 'foO=bar;1',
                     'Connection': 'close',
                 },
             )['status'],
             200,
-            'match cookies exact 2',
+            'match cookies exact 3',
         )
 
     def test_routes_match_cookies_empty(self):
