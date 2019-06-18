@@ -281,7 +281,7 @@ nxt_socket_shutdown(nxt_task_t *task, nxt_socket_t s, nxt_uint_t how)
     switch (err) {
 
     case NXT_ENOTCONN:
-        level = NXT_LOG_INFO;
+        level = NXT_LOG_DEBUG;
         break;
 
     case NXT_ECONNRESET:
@@ -313,7 +313,7 @@ nxt_socket_error_level(nxt_err_t err)
     case NXT_ENETUNREACH:
     case NXT_EHOSTDOWN:
     case NXT_EHOSTUNREACH:
-        return NXT_LOG_ERR;
+        return NXT_LOG_INFO;
 
     default:
         return NXT_LOG_ALERT;
