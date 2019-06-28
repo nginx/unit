@@ -668,7 +668,7 @@ nxt_port_lvlhsh_frag_test(nxt_lvlhsh_query_t *lhq, void *data)
 static void *
 nxt_port_lvlhsh_frag_alloc(void *ctx, size_t size)
 {
-    return nxt_mp_alloc(ctx, size);
+    return nxt_mp_align(ctx, size, size);
 }
 
 
