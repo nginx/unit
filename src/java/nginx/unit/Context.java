@@ -313,6 +313,7 @@ public class Context implements ServletContext, InitParams
 
             } else {
                 response.setContentLengthLong(f.length());
+                response.setContentType(getMimeType(f.getName()));
 
                 InputStream is = new FileInputStream(f);
                 byte[] buffer = new byte[response.getBufferSize()];
