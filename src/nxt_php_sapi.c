@@ -783,8 +783,6 @@ nxt_php_send_headers(sapi_headers_struct *sapi_headers TSRMLS_DC)
          h;
          h = zend_llist_get_next_ex(&sapi_headers->headers, &zpos))
     {
-        nxt_unit_req_debug(req, "header: %.*s", (int) h->header_len, h->header);
-
         colon = memchr(h->header, ':', h->header_len);
         if (nxt_slow_path(colon == NULL)) {
             nxt_unit_req_warn(req, "colon not found in header '%.*s'",
