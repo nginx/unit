@@ -928,16 +928,16 @@ nxt_router_remove_pid_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     nxt_port_remove_pid_handler(task, msg);
 
-    if (msg->port_msg.stream == 0) {
-        return;
-    }
-
     nxt_queue_each(engine, &nxt_router->engines, nxt_event_engine_t, link0)
     {
         nxt_port_post(task, engine->port, nxt_router_app_process_remove_pid,
                       msg->u.data);
     }
     nxt_queue_loop;
+
+    if (msg->port_msg.stream == 0) {
+        return;
+    }
 
     msg->port_msg.type = _NXT_PORT_MSG_RPC_ERROR;
 
