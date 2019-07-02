@@ -1993,12 +1993,12 @@ class TestRouting(TestApplicationProto):
             self.get(url='/?Foo=bar')['status'],
             404,
             'match arguments case sensitive',
-        ) # FAIL
+        )
         self.assertEqual(
             self.get(url='/?foo=Bar')['status'],
             404,
             'match arguments case sensitive 2',
-        ) # FAIL
+        )
         self.assertEqual(
             self.get(url='/?foo=bar1')['status'],
             404,
