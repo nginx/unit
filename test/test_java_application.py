@@ -99,12 +99,16 @@ class TestJavaApplication(TestApplicationJava):
     def test_java_application_session_active(self):
         self.load('session_inactive')
 
-        resp = self.get()
+        resp = self.get(headers={
+            'X-Interval': '4',
+            'Host': 'localhost',
+            'Connection': 'close',
+        })
         session_id = resp['headers']['X-Session-Id']
 
         self.assertEqual(resp['status'], 200, 'session init')
         self.assertEqual(
-            resp['headers']['X-Session-Interval'], '2', 'session interval'
+            resp['headers']['X-Session-Interval'], '4', 'session interval'
         )
         self.assertLess(
             abs(
@@ -147,7 +151,7 @@ class TestJavaApplication(TestApplicationJava):
             resp['headers']['X-Session-Id'], session_id, 'session active 2'
         )
 
-        time.sleep(1)
+        time.sleep(2)
 
         resp = self.get(
             headers={
@@ -164,7 +168,11 @@ class TestJavaApplication(TestApplicationJava):
     def test_java_application_session_inactive(self):
         self.load('session_inactive')
 
-        resp = self.get()
+        resp = self.get(headers={
+            'X-Interval': '1',
+            'Host': 'localhost',
+            'Connection': 'close',
+        })
         session_id = resp['headers']['X-Session-Id']
 
         time.sleep(3)
