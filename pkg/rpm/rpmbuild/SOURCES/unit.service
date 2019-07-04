@@ -7,7 +7,7 @@
 # the following:
 
 #       [Service]
-#       Environment="UNITD_OPTIONS=--log /var/log/unit/unit.log --pid /run/unit/unit.pid"
+#       Environment="UNITD_OPTIONS=--log /var/log/unit/unit.log --pid /var/run/unit/unit.pid"
 
 [Unit]
 Description=NGINX Unit
@@ -16,7 +16,7 @@ After=network-online.target
 
 [Service]
 Type=simple
-Environment="UNITD_OPTIONS=--log /var/log/unit/unit.log --pid /run/unit/unit.pid"
+Environment="UNITD_OPTIONS=--log /var/log/unit/unit.log --pid /var/run/unit/unit.pid"
 ExecStart=/usr/sbin/unitd $UNITD_OPTIONS --no-daemon
 ExecReload=
 RuntimeDirectory=unit
