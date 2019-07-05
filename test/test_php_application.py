@@ -102,6 +102,46 @@ class TestPHPApplication(TestApplicationPHP):
         self.assertEqual(resp['status'], 200, 'status')
         self.assertNotEqual(resp['body'], '', 'body not empty')
 
+    def test_php_application_header_status(self):
+        self.load('header')
+
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Connection': 'close',
+                    'X-Header': 'HTTP/1.1 404 Not Found',
+                }
+            )['status'],
+            404,
+            'status',
+        )
+
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Connection': 'close',
+                    'X-Header': 'http/1.1 404 Not Found',
+                }
+            )['status'],
+            404,
+            'status case insensitive',
+        )
+
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Connection': 'close',
+                    'X-Header': 'HTTP/ 404 Not Found',
+                }
+            )['status'],
+            404,
+            'status version empty',
+        )
+
+
     def test_php_application_404(self):
         self.load('404')
 

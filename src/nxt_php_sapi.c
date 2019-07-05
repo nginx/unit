@@ -730,7 +730,7 @@ static int
 nxt_php_send_headers(sapi_headers_struct *sapi_headers TSRMLS_DC)
 {
     int                      rc, fields_count;
-    char                     *colon, *status_line, *value;
+    char                     *colon, *value;
     uint16_t                 status;
     uint32_t                 resp_size;
     nxt_php_run_ctx_t        *ctx;
@@ -762,17 +762,7 @@ nxt_php_send_headers(sapi_headers_struct *sapi_headers TSRMLS_DC)
         resp_size += h->header_len;
     }
 
-    if (SG(sapi_headers).http_status_line) {
-        status_line = SG(sapi_headers).http_status_line;
-
-        status = nxt_int_parse((u_char *) status_line + 9, 3);
-
-    } else if (SG(sapi_headers).http_response_code) {
-        status = SG(sapi_headers).http_response_code;
-
-    } else {
-        status = 200;
-    }
+    status = SG(sapi_headers).http_response_code;
 
     rc = nxt_unit_response_init(req, status, fields_count, resp_size);
     if (nxt_slow_path(rc != NXT_UNIT_OK)) {
