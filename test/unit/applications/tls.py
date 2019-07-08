@@ -68,7 +68,7 @@ class TestApplicationTLS(TestApplicationProto):
         with open(self.testdir + '/openssl.conf', 'w') as f:
             f.write(
                 """[ req ]
-default_bits = 1024
+default_bits = 2048
 encrypt_key = no
 distinguished_name = req_distinguished_name
 [ req_distinguished_name ]"""
