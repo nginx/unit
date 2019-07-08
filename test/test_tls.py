@@ -139,7 +139,7 @@ class TestTLS(TestApplicationTLS):
 
         self.assertEqual(
             self.conf_get('/certificates/default/key'),
-            'RSA (1024 bits)',
+            'RSA (2048 bits)',
             'certificate key rsa',
         )
 
@@ -250,7 +250,7 @@ default_ca = myca
 [ myca ]
 new_certs_dir = %(dir)s
 database = %(database)s
-default_md = sha1
+default_md = sha256
 policy = myca_policy
 serial = %(certserial)s
 default_days = 1
