@@ -24,6 +24,7 @@ class TestPHPApplication(TestApplicationPHP):
                 'Connection': 'close',
             },
             body=body,
+            url='/index.php/blah?var=val'
         )
 
         self.assertEqual(resp['status'], 200, 'status')
@@ -54,7 +55,8 @@ class TestPHPApplication(TestApplicationPHP):
                 'Connection': 'close',
                 'Content-Length': str(len(body)),
                 'Request-Method': 'POST',
-                'Request-Uri': '/',
+                'Path-Info': '/blah',
+                'Request-Uri': '/index.php/blah?var=val',
                 'Http-Host': 'localhost',
                 'Server-Protocol': 'HTTP/1.1',
                 'Custom-Header': 'blah',
