@@ -514,8 +514,6 @@ basicConstraints = critical,CA:TRUE"""
         self.skip_alerts.append(r'process \d+ exited on signal 9')
         self.load('mirror')
 
-        self.assertEqual(self.get()['status'], 200, 'init')
-
         self.certificate()
 
         self.conf('1', 'applications/mirror/processes')
