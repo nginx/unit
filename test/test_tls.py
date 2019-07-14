@@ -145,6 +145,8 @@ class TestTLS(TestApplicationTLS):
     def test_tls_certificate_key_ec(self):
         self.load('empty')
 
+        self.openssl_conf()
+
         subprocess.call(
             [
                 'openssl',

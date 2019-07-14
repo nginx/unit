@@ -1,3 +1,4 @@
+import os
 import ssl
 import subprocess
 from unit.applications.proto import TestApplicationProto
@@ -12,6 +13,8 @@ class TestApplicationTLS(TestApplicationProto):
         self.context.verify_mode = ssl.CERT_NONE
 
     def certificate(self, name='default', load=True):
+        self.openssl_conf()
+
         subprocess.call(
             [
                 'openssl',
@@ -59,13 +62,13 @@ class TestApplicationTLS(TestApplicationProto):
 
         return ssl.get_server_certificate(addr, ssl_version=ssl_version)
 
-    def load(self, script, name=None):
-        if name is None:
-            name = script
+    def openssl_conf(self):
+        conf_path = self.testdir + '/openssl.conf'
 
-        # create default openssl configuration
+        if os.path.exists(conf_path):
+            return
 
-        with open(self.testdir + '/openssl.conf', 'w') as f:
+        with open(conf_path, 'w') as f:
             f.write(
                 """[ req ]
 default_bits = 2048
@@ -73,6 +76,10 @@ encrypt_key = no
 distinguished_name = req_distinguished_name
 [ req_distinguished_name ]"""
             )
+
+    def load(self, script, name=None):
+        if name is None:
+            name = script
 
         script_path = self.current_dir + '/python/' + script
 
