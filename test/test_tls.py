@@ -1,6 +1,5 @@
 import re
 import ssl
-import time
 import subprocess
 import unittest
 from unit.applications.tls import TestApplicationTLS
