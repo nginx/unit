@@ -38,6 +38,9 @@ class TestRouting(TestApplicationProto):
             }
         )
 
+    def route(self, route):
+        return self.conf([route], 'routes')
+
     def test_routes_match_method_positive(self):
         self.assertEqual(self.get()['status'], 200, 'method positive GET')
         self.assertEqual(self.post()['status'], 404, 'method positive POST')
@@ -45,14 +48,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_method_positive_many(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"method": ["GET", "POST"]},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"method": ["GET", "POST"]},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'method positive many configure',
         )
@@ -68,14 +68,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_method_negative(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"method": "!GET"},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"method": "!GET"},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'method negative configure',
         )
@@ -86,14 +83,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_method_negative_many(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"method": ["!GET", "!POST"]},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"method": ["!GET", "!POST"]},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'method negative many configure',
         )
@@ -109,14 +103,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_method_wildcard_left(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"method": "*ET"},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"method": "*ET"},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'method wildcard left configure',
         )
@@ -129,14 +120,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_method_wildcard_right(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"method": "GE*"},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"method": "GE*"},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'method wildcard right configure',
         )
@@ -151,14 +139,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_method_wildcard_left_right(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"method": "*GET*"},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"method": "*GET*"},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'method wildcard left right configure',
         )
@@ -173,14 +158,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_method_wildcard(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"method": "*"},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"method": "*"},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'method wildcard configure',
         )
@@ -190,70 +172,55 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_invalid(self):
         self.assertIn(
             'error',
-            self.conf(
-                [
-                    {
-                        "match": {"method": "**"},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"method": "**"},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'wildcard invalid',
         )
 
         self.assertIn(
             'error',
-            self.conf(
-                [
-                    {
-                        "match": {"method": "blah**"},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"method": "blah**"},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'wildcard invalid 2',
         )
 
         self.assertIn(
             'error',
-            self.conf(
-                [
-                    {
-                        "match": {"host": "*blah*blah"},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"host": "*blah*blah"},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'wildcard invalid 3',
         )
 
         self.assertIn(
             'error',
-            self.conf(
-                [
-                    {
-                        "match": {"host": "blah*blah*blah"},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"host": "blah*blah*blah"},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'wildcard invalid 4',
         )
 
         self.assertIn(
             'error',
-            self.conf(
-                [
-                    {
-                        "match": {"host": "blah*blah*"},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"host": "blah*blah*"},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'wildcard invalid 5',
         )
@@ -261,14 +228,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_wildcard_middle(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"host": "ex*le"},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"host": "ex*le"},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'host wildcard middle configure',
         )
@@ -308,14 +272,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_method_case_insensitive(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"method": "get"},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"method": "get"},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'method case insensitive configure',
         )
@@ -325,14 +286,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_wildcard_left_case_insensitive(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"method": "*et"},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"method": "*et"},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match wildcard case insensitive configure',
         )
@@ -344,14 +302,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_wildcard_middle_case_insensitive(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"method": "g*t"},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"method": "g*t"},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match wildcard case insensitive configure',
         )
@@ -363,14 +318,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_wildcard_right_case_insensitive(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"method": "get*"},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"method": "get*"},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match wildcard case insensitive configure',
         )
@@ -382,14 +334,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_wildcard_substring_case_insensitive(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"method": "*et*"},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"method": "*et*"},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match wildcard substring case insensitive configure',
         )
@@ -403,14 +352,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_wildcard_left_case_sensitive(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"uri": "*blah"},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"uri": "*blah"},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match wildcard left case sensitive configure',
         )
@@ -430,14 +376,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_wildcard_middle_case_sensitive(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"uri": "/b*h"},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"uri": "/b*h"},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match wildcard middle case sensitive configure',
         )
@@ -457,14 +400,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_wildcard_right_case_sensitive(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"uri": "/bla*"},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"uri": "/bla*"},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match wildcard right case sensitive configure',
         )
@@ -484,14 +424,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_wildcard_substring_case_sensitive(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"uri": "*bla*"},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"uri": "*bla*"},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match wildcard substring case sensitive configure',
         )
@@ -677,14 +614,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_host_positive(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"host": "localhost"},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"host": "localhost"},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match host positive configure',
         )
@@ -729,14 +663,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_host_absent(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"host": "localhost"},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"host": "localhost"},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match host absent configure',
         )
@@ -750,14 +681,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_host_ipv4(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"host": "127.0.0.1"},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"host": "127.0.0.1"},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match host ipv4 configure',
         )
@@ -773,14 +701,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_host_ipv6(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"host": "[::1]"},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"host": "[::1]"},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match host ipv6 configure',
         )
@@ -804,14 +729,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_host_positive_many(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"host": ["localhost", "example.com"]},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"host": ["localhost", "example.com"]},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match host positive many configure',
         )
@@ -831,16 +753,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_host_positive_and_negative(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {
-                            "host": ["*example.com", "!www.example.com"]
-                        },
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"host": ["*example.com", "!www.example.com"]},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match host positive and negative configure',
         )
@@ -878,14 +795,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_host_positive_and_negative_wildcard(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"host": ["*example*", "!www.example*"]},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"host": ["*example*", "!www.example*"]},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match host positive and negative wildcard configure',
         )
@@ -909,14 +823,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_host_case_insensitive(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"host": "Example.com"},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"host": "Example.com"},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'host case insensitive configure',
         )
@@ -940,14 +851,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_host_port(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"host": "example.com"},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"host": "example.com"},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match host port configure',
         )
@@ -963,14 +871,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_host_empty(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"host": ""},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"host": ""},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match host empty configure',
         )
@@ -990,14 +895,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_uri_positive(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"uri": "/"},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"uri": "/"},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match uri positive configure',
         )
@@ -1025,14 +927,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_uri_case_sensitive(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"uri": "/BLAH"},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"uri": "/BLAH"},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match uri case sensitive configure',
         )
@@ -1056,14 +955,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_uri_normalize(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"uri": "/blah"},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"uri": "/blah"},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match uri normalize configure',
         )
@@ -1075,14 +971,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_empty_array(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"uri": []},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"uri": []},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match empty array configure',
         )
@@ -1180,14 +1073,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_edit(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"method": "GET"},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"method": "GET"},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'routes edit configure',
         )
@@ -1324,14 +1214,11 @@ class TestRouting(TestApplicationProto):
 
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"method": ["GET", "POST"]},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"method": ["GET", "POST"]},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match edit configure',
         )
@@ -1457,18 +1344,15 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_rules(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {
-                            "method": "GET",
-                            "host": "localhost",
-                            "uri": "/",
-                        },
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {
+                        "method": "GET",
+                        "host": "localhost",
+                        "uri": "/",
+                    },
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'routes match rules configure',
         )
@@ -1478,10 +1362,7 @@ class TestRouting(TestApplicationProto):
     def test_routes_loop(self):
         self.assertIn(
             'success',
-            self.conf(
-                [{"match": {"uri": "/"}, "action": {"pass": "routes"}}],
-                'routes',
-            ),
+            self.route({"match": {"uri": "/"}, "action": {"pass": "routes"}}),
             'routes loop configure',
         )
 
@@ -1490,14 +1371,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_headers(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"headers": {"host": "localhost"}},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"headers": {"host": "localhost"}},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match headers configure',
         )
@@ -1547,16 +1425,13 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_headers_multiple(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {
-                            "headers": {"host": "localhost", "x-blah": "test"}
-                        },
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {
+                        "headers": {"host": "localhost", "x-blah": "test"}
+                    },
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match headers multiple configure',
         )
@@ -1590,14 +1465,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_headers_multiple_values(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"headers": {"x-blah": "test"}},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"headers": {"x-blah": "test"}},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match headers multiple values configure',
         )
@@ -1639,14 +1511,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_headers_multiple_rules(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"headers": {"x-blah": ["test", "blah"]}},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"headers": {"x-blah": ["test", "blah"]}},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match headers multiple rules configure',
         )
@@ -1706,14 +1575,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_headers_case_insensitive(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"headers": {"X-BLAH": "TEST"}},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"headers": {"X-BLAH": "TEST"}},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match headers case insensitive configure',
         )
@@ -1733,28 +1599,22 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_headers_invalid(self):
         self.assertIn(
             'error',
-            self.conf(
-                [
-                    {
-                        "match": {"headers": ["blah"]},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"headers": ["blah"]},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match headers invalid',
         )
 
         self.assertIn(
             'error',
-            self.conf(
-                [
-                    {
-                        "match": {"headers": {"foo": ["bar", {}]}},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"headers": {"foo": ["bar", {}]}},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match headers invalid 2',
         )
@@ -1762,14 +1622,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_headers_empty_rule(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"headers": {"host": ""}},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"headers": {"host": ""}},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match headers empty rule configure',
         )
@@ -1785,14 +1642,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_headers_rule_field_empty(self):
         self.assertIn(
             'error',
-            self.conf(
-                [
-                    {
-                        "match": {"headers": {"": "blah"}},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"headers": {"": "blah"}},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match headers rule field empty configure',
         )
@@ -1800,14 +1654,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_headers_empty(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"headers": {}},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"headers": {}},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match headers empty configure',
         )
@@ -1816,14 +1667,11 @@ class TestRouting(TestApplicationProto):
 
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"headers": []},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"headers": []},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match headers array empty configure 2',
         )
@@ -1835,14 +1683,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_headers_rule_array_empty(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"headers": {"blah": []}},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"headers": {"blah": []}},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match headers rule array empty configure',
         )
@@ -1863,21 +1708,18 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_headers_array(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {
-                            "headers": [
-                                {"x-header1": "foo*"},
-                                {"x-header2": "bar"},
-                                {"x-header3": ["foo", "bar"]},
-                                {"x-header1": "bar", "x-header4": "foo"},
-                            ]
-                        },
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {
+                        "headers": [
+                            {"x-header1": "foo*"},
+                            {"x-header2": "bar"},
+                            {"x-header3": ["foo", "bar"]},
+                            {"x-header1": "bar", "x-header4": "foo"},
+                        ]
+                    },
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match headers array configure',
         )
@@ -1972,14 +1814,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_arguments(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"arguments": {"foo": "bar"}},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"arguments": {"foo": "bar"}},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match arguments configure',
         )
@@ -2013,14 +1852,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_arguments_empty(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"arguments": {}},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"arguments": {}},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match arguments empty configure',
         )
@@ -2029,14 +1865,11 @@ class TestRouting(TestApplicationProto):
 
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"arguments": []},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"arguments": []},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match arguments empty configure 2',
         )
@@ -2046,46 +1879,33 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_arguments_invalid(self):
         self.assertIn(
             'error',
-            self.conf(
-                [
-                    {
-                        "match": {"arguments": ["var"]},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"arguments": ["var"]},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match arguments invalid',
         )
 
         self.assertIn(
             'error',
-            self.conf(
-                [
-                    {
-                        "match": {"arguments": [{"var1": {}}]},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"arguments": [{"var1": {}}]},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match arguments invalid 2',
         )
 
         self.assertIn(
             'error',
-            self.conf(
-                [
-                    {
-                        "match": {
-                            "arguments": {
-                                "": "bar"
-                            }
-                        },
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"arguments": {"": "bar"}},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match arguments invalid 3',
         )
@@ -2094,18 +1914,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_arguments_space(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {
-                            "arguments": {
-                                "foo": "bar "
-                            }
-                        },
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"arguments": {"foo": "bar "}},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match arguments space configure',
         )
@@ -2130,18 +1943,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_arguments_plus(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {
-                            "arguments": [
-                                {"foo": "bar+"}
-                            ]
-                        },
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"arguments": [{"foo": "bar+"}]},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match arguments plus configure',
         )
@@ -2161,18 +1967,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_arguments_hex(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {
-                            "arguments": [
-                                {"foo": "bar"}
-                            ]
-                        },
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"arguments": [{"foo": "bar"}]},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match arguments hex configure',
         )
@@ -2186,18 +1985,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_arguments_chars(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {
-                            "arguments": {
-                                "foo": "-._()[],;"
-                            }
-                        },
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"arguments": {"foo": "-._()[],;"}},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match arguments chars configure',
         )
@@ -2211,18 +2003,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_arguments_complex(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {
-                            "arguments": {
-                                "foo": ""
-                            }
-                        },
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"arguments": {"foo": ""}},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match arguments complex configure',
         )
@@ -2266,16 +2051,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_arguments_multiple(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {
-                            "arguments": {"foo": "bar", "blah": "test"}
-                        },
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"arguments": {"foo": "bar", "blah": "test"}},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match arguments multiple configure',
         )
@@ -2297,14 +2077,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_arguments_multiple_rules(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"arguments": {"foo": ["bar", "blah"]}},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"arguments": {"foo": ["bar", "blah"]}},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match arguments multiple rules configure',
         )
@@ -2340,21 +2117,18 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_arguments_array(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {
-                            "arguments": [
-                                {"var1": "val1*"},
-                                {"var2": "val2"},
-                                {"var3": ["foo", "bar"]},
-                                {"var1": "bar", "var4": "foo"},
-                            ]
-                        },
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {
+                        "arguments": [
+                            {"var1": "val1*"},
+                            {"var2": "val2"},
+                            {"var3": ["foo", "bar"]},
+                            {"var1": "bar", "var4": "foo"},
+                        ]
+                    },
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match arguments array configure',
         )
@@ -2406,14 +2180,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_cookies(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"cookies": {"foO": "bar"}},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"cookies": {"foO": "bar"}},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match cookie configure',
         )
@@ -2512,14 +2283,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_cookies_empty(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"cookies": {}},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"cookies": {}},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match cookies empty configure',
         )
@@ -2528,14 +2296,11 @@ class TestRouting(TestApplicationProto):
 
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"cookies": []},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"cookies": []},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match cookies empty configure 2',
         )
@@ -2545,28 +2310,22 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_cookies_invalid(self):
         self.assertIn(
             'error',
-            self.conf(
-                [
-                    {
-                        "match": {"cookies": ["var"]},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"cookies": ["var"]},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match cookies invalid',
         )
 
         self.assertIn(
             'error',
-            self.conf(
-                [
-                    {
-                        "match": {"cookies": [{"foo": {}}]},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"cookies": [{"foo": {}}]},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match cookies invalid 2',
         )
@@ -2574,16 +2333,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_cookies_multiple(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {
-                            "cookies": {"foo": "bar", "blah": "blah"}
-                        },
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"cookies": {"foo": "bar", "blah": "blah"}},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match cookies multiple configure',
         )
@@ -2641,14 +2395,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_cookies_multiple_values(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"cookies": {"blah": "blah"}},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"cookies": {"blah": "blah"}},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match cookies multiple values configure',
         )
@@ -2690,14 +2441,11 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_cookies_multiple_rules(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {"cookies": {"blah": ["test", "blah"]}},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {"cookies": {"blah": ["test", "blah"]}},
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match cookies multiple rules configure',
         )
@@ -2769,21 +2517,18 @@ class TestRouting(TestApplicationProto):
     def test_routes_match_cookies_array(self):
         self.assertIn(
             'success',
-            self.conf(
-                [
-                    {
-                        "match": {
-                            "cookies": [
-                                {"var1": "val1*"},
-                                {"var2": "val2"},
-                                {"var3": ["foo", "bar"]},
-                                {"var1": "bar", "var4": "foo"},
-                            ]
-                        },
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                'routes',
+            self.route(
+                {
+                    "match": {
+                        "cookies": [
+                            {"var1": "val1*"},
+                            {"var2": "val2"},
+                            {"var3": ["foo", "bar"]},
+                            {"var1": "bar", "var4": "foo"},
+                        ]
+                    },
+                    "action": {"pass": "applications/empty"},
+                }
             ),
             'match cookies array configure',
         )
