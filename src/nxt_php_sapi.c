@@ -180,7 +180,7 @@ static void        ***tsrm_ls;
 static nxt_int_t
 nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 {
-    u_char              *p;
+    u_char              *p, *tmp;
     nxt_str_t           ini_path;
     nxt_str_t           *root, *script_filename, *script_name, *index;
     nxt_port_t          *my_port, *main_port;
@@ -221,10 +221,12 @@ nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     if (c->script.length > 0) {
         nxt_php_str_trim_lead(&c->script, '/');
 
-        p = nxt_malloc(root->length + 1 + c->script.length + 1);
-        if (nxt_slow_path(p == NULL)) {
+        tmp = nxt_malloc(root->length + 1 + c->script.length + 1);
+        if (nxt_slow_path(tmp == NULL)) {
             return NXT_ERROR;
         }
+
+        p = tmp;
 
         p = nxt_cpymem(p, root->start, root->length);
         *p++ = '/';
@@ -232,13 +234,13 @@ nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
         p = nxt_cpymem(p, c->script.start, c->script.length);
         *p = '\0';
 
-        script_filename->start = nxt_realpath(p);
+        script_filename->start = nxt_realpath(tmp);
         if (nxt_slow_path(script_filename->start == NULL)) {
-            nxt_alert(task, "script realpath(%s) failed %E", p, nxt_errno);
+            nxt_alert(task, "script realpath(%s) failed %E", tmp, nxt_errno);
             return NXT_ERROR;
         }
 
-        nxt_free(p);
+        nxt_free(tmp);
 
         script_filename->length = nxt_strlen(script_filename->start);
 
