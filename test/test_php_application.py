@@ -462,6 +462,45 @@ class TestPHPApplication(TestApplicationPHP):
             self.get()['body'], r'012345', 'disable_classes before'
         )
 
+    def test_php_application_script(self):
+        self.assertIn(
+            'success', self.conf(
+                {
+                    "listeners": {"*:7080": {"pass": "applications/script"}},
+                    "applications": {
+                        "script": {
+                            "type": "php",
+                            "processes": {"spare": 0},
+                            "root": self.current_dir + "/php/script",
+                            "script": "phpinfo.php",
+                        }
+                    },
+                }
+            ), 'configure script'
+        )
+
+        resp = self.get()
+
+        self.assertEqual(resp['status'], 200, 'status')
+        self.assertNotEqual(resp['body'], '', 'body not empty')
+
+    def test_php_application_index_default(self):
+        self.assertIn(
+            'success', self.conf(
+                {
+                    "listeners": {"*:7080": {"pass": "applications/phpinfo"}},
+                    "applications": {
+                        "phpinfo": {
+                            "type": "php",
+                            "processes": {"spare": 0},
+                            "root": self.current_dir + "/php/phpinfo",
+                        }
+                    },
+                }
+            ), 'configure index default'
+        )
+
+        self.assertEqual(self.get()['status'], 200, 'status')
 
 if __name__ == '__main__':
     TestPHPApplication.main()
