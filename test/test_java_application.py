@@ -5,6 +5,46 @@ from unit.applications.lang.java import TestApplicationJava
 class TestJavaApplication(TestApplicationJava):
     prerequisites = ['java']
 
+    def test_java_conf_error(self):
+        self.skip_alerts.extend(
+            [
+                r'realpath.*failed',
+                r'failed to apply new conf',
+            ]
+        )
+        self.assertIn(
+            'error',
+            self.conf(
+                {
+                    "listeners": {"*:7080": {"pass": "applications/app"}},
+                    "applications": {
+                        "app": {
+                            "type": "java",
+                            "processes": 1,
+                            "working_directory": self.current_dir
+                            + "/java/empty",
+                            "webapp": self.testdir + "/java",
+                        }
+                    },
+                }
+            ),
+            'conf error',
+        )
+
+    def test_java_war(self):
+        self.load('empty_war')
+
+        self.assertIn(
+            'success',
+            self.conf(
+                '"' + self.testdir + '/java/empty.war"',
+                '/config/applications/empty_war/webapp',
+            ),
+            'configure war',
+        )
+
+        self.assertEqual(self.get()['status'], 200, 'war')
+
     def test_java_application_cookies(self):
         self.load('cookies')
 
