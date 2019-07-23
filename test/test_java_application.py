@@ -24,6 +24,7 @@ class TestJavaApplication(TestApplicationJava):
                             "working_directory": self.current_dir
                             + "/java/empty",
                             "webapp": self.testdir + "/java",
+                            "unit_jars": self.testdir + "/no_such_dir",
                         }
                     },
                 }
