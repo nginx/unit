@@ -35,7 +35,6 @@ static void nxt_h1p_request_body_read(nxt_task_t *task, nxt_http_request_t *r);
 static void nxt_h1p_conn_request_body_read(nxt_task_t *task, void *obj,
     void *data);
 static void nxt_h1p_request_local_addr(nxt_task_t *task, nxt_http_request_t *r);
-static void nxt_h1p_request_tls(nxt_task_t *task, nxt_http_request_t *r);
 static void nxt_h1p_request_header_send(nxt_task_t *task,
     nxt_http_request_t *r);
 static void nxt_h1p_request_send(nxt_task_t *task, nxt_http_request_t *r,
@@ -99,13 +98,6 @@ const nxt_http_proto_body_read_t  nxt_http_proto_body_read[3] = {
 
 const nxt_http_proto_local_addr_t  nxt_http_proto_local_addr[3] = {
     nxt_h1p_request_local_addr,
-    NULL,
-    NULL,
-};
-
-
-const nxt_http_proto_tls_t  nxt_http_proto_tls[3] = {
-    nxt_h1p_request_tls,
     NULL,
     NULL,
 };
@@ -447,6 +439,10 @@ nxt_h1p_conn_request_init(nxt_task_t *task, void *obj, void *data)
         r->proto.h1 = h1p;
 
         r->remote = c->remote;
+
+#if (NXT_TLS)
+        r->tls = c->u.tls;
+#endif
 
         ret = nxt_http_parse_request_init(&h1p->parser, r->mem_pool);
 
@@ -818,15 +814,6 @@ static void
 nxt_h1p_request_local_addr(nxt_task_t *task, nxt_http_request_t *r)
 {
     r->local = nxt_conn_local_addr(task, r->proto.h1->conn);
-}
-
-
-static void
-nxt_h1p_request_tls(nxt_task_t *task, nxt_http_request_t *r)
-{
-#if (NXT_TLS)
-    r->tls = r->proto.h1->conn->u.tls;
-#endif
 }
 
 

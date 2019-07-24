@@ -2641,5 +2641,99 @@ class TestRouting(TestApplicationProto):
             'match cookies array 10',
         )
 
+    def test_routes_match_scheme(self):
+        self.assertIn(
+            'success',
+            self.route(
+                {
+                    "match": {"scheme": "http"},
+                    "action": {"pass": "applications/empty"},
+                }
+            ),
+            'match scheme http configure',
+        )
+        self.assertIn(
+            'success',
+            self.route(
+                {
+                    "match": {"scheme": "https"},
+                    "action": {"pass": "applications/empty"},
+                }
+            ),
+            'match scheme https configure',
+        )
+        self.assertIn(
+            'success',
+            self.route(
+                {
+                    "match": {"scheme": "HtTp"},
+                    "action": {"pass": "applications/empty"},
+                }
+            ),
+            'match scheme http case insensitive configure',
+        )
+        self.assertIn(
+            'success',
+            self.route(
+                {
+                    "match": {"scheme": "HtTpS"},
+                    "action": {"pass": "applications/empty"},
+                }
+            ),
+            'match scheme https case insensitive configure',
+        )
+
+    def test_routes_match_scheme_invalid(self):
+        self.assertIn(
+            'error',
+            self.route(
+                {
+                    "match": {"scheme": ["http"]},
+                    "action": {"pass": "applications/empty"},
+                }
+            ),
+            'scheme invalid type no arrays allowed',
+        )
+        self.assertIn(
+            'error',
+            self.route(
+                {
+                    "match": {"scheme": "ftp"},
+                    "action": {"pass": "applications/empty"},
+                }
+            ),
+            'scheme invalid protocol 1',
+        )
+        self.assertIn(
+            'error',
+            self.route(
+                {
+                    "match": {"scheme": "ws"},
+                    "action": {"pass": "applications/empty"},
+                }
+            ),
+            'scheme invalid protocol 2',
+        )
+        self.assertIn(
+            'error',
+            self.route(
+                {
+                    "match": {"scheme": "*"},
+                    "action": {"pass": "applications/empty"},
+                }
+            ),
+            'scheme invalid no wildcard allowed',
+        )
+        self.assertIn(
+            'error',
+            self.route(
+                {
+                    "match": {"scheme": ""},
+                    "action": {"pass": "applications/empty"},
+                }
+            ),
+            'scheme invalid empty',
+        )
+
 if __name__ == '__main__':
     TestRouting.main()

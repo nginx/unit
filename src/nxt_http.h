@@ -172,7 +172,6 @@ typedef void (*nxt_http_proto_body_read_t)(nxt_task_t *task,
     nxt_http_request_t *r);
 typedef void (*nxt_http_proto_local_addr_t)(nxt_task_t *task,
     nxt_http_request_t *r);
-typedef void (*nxt_http_proto_tls_t)(nxt_task_t *task, nxt_http_request_t *r);
 typedef void (*nxt_http_proto_header_send_t)(nxt_task_t *task,
     nxt_http_request_t *r);
 typedef void (*nxt_http_proto_send_t)(nxt_task_t *task, nxt_http_request_t *r,
@@ -228,7 +227,6 @@ extern nxt_lvlhsh_t                        nxt_response_fields_hash;
 
 extern const nxt_http_proto_body_read_t        nxt_http_proto_body_read[];
 extern const nxt_http_proto_local_addr_t       nxt_http_proto_local_addr[];
-extern const nxt_http_proto_tls_t              nxt_http_proto_tls[];
 extern const nxt_http_proto_header_send_t      nxt_http_proto_header_send[];
 extern const nxt_http_proto_send_t             nxt_http_proto_send[];
 extern const nxt_http_proto_body_bytes_sent_t  nxt_http_proto_body_bytes_sent[];

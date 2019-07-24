@@ -15,6 +15,7 @@ typedef enum {
     NXT_HTTP_ROUTE_HEADER,
     NXT_HTTP_ROUTE_ARGUMENT,
     NXT_HTTP_ROUTE_COOKIE,
+    NXT_HTTP_ROUTE_SCHEME,
 } nxt_http_route_object_t;
 
 
@@ -41,6 +42,7 @@ typedef struct {
     nxt_conf_value_t               *headers;
     nxt_conf_value_t               *arguments;
     nxt_conf_value_t               *cookies;
+    nxt_conf_value_t               *scheme;
 } nxt_http_route_match_conf_t;
 
 
@@ -197,6 +199,8 @@ static nxt_http_name_value_t *nxt_http_route_argument(nxt_array_t *array,
     u_char *end);
 static nxt_int_t nxt_http_route_test_argument(nxt_http_request_t *r,
     nxt_http_route_rule_t *rule, nxt_array_t *array);
+static nxt_int_t nxt_http_route_scheme(nxt_http_request_t *r,
+    nxt_http_route_rule_t *rule);
 static nxt_int_t nxt_http_route_cookies(nxt_http_request_t *r,
     nxt_http_route_rule_t *rule);
 static nxt_array_t *nxt_http_route_cookies_parse(nxt_http_request_t *r);
@@ -276,6 +280,11 @@ nxt_http_routes_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
 
 static nxt_conf_map_t  nxt_http_route_match_conf[] = {
+    {
+        nxt_string("scheme"),
+        NXT_CONF_MAP_PTR,
+        offsetof(nxt_http_route_match_conf_t, scheme)
+    },
     {
         nxt_string("host"),
         NXT_CONF_MAP_PTR,
@@ -411,6 +420,18 @@ nxt_http_route_match_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     }
 
     test = &match->test[0];
+
+    if (mtcf.scheme != NULL) {
+        rule = nxt_http_route_rule_create(task, mp, mtcf.scheme, 1,
+                                          NXT_HTTP_ROUTE_PATTERN_NOCASE);
+        if (rule == NULL) {
+            return NULL;
+        }
+
+        rule->object = NXT_HTTP_ROUTE_SCHEME;
+        test->rule = rule;
+        test++;
+    }
 
     if (mtcf.host != NULL) {
         rule = nxt_http_route_rule_create(task, mp, mtcf.host, 1,
@@ -1125,6 +1146,9 @@ nxt_http_route_rule(nxt_http_request_t *r, nxt_http_route_rule_t *rule)
     case NXT_HTTP_ROUTE_COOKIE:
         return nxt_http_route_cookies(r, rule);
 
+    case NXT_HTTP_ROUTE_SCHEME:
+        return nxt_http_route_scheme(r, rule);
+
     default:
         break;
     }
@@ -1327,6 +1351,18 @@ nxt_http_route_test_argument(nxt_http_request_t *r,
     }
 
     return ret;
+}
+
+
+static nxt_int_t
+nxt_http_route_scheme(nxt_http_request_t *r, nxt_http_route_rule_t *rule)
+{
+    nxt_bool_t  tls, https;
+
+    https = (rule->pattern[0].length1 == nxt_length("https"));
+    tls = (r->tls != NULL);
+
+    return (tls == https);
 }
 
 

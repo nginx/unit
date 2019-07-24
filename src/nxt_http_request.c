@@ -357,7 +357,6 @@ nxt_http_request_proto_info(nxt_task_t *task, nxt_http_request_t *r)
 {
     if (r->proto.any != NULL) {
         nxt_http_proto_local_addr[r->protocol](task, r);
-        nxt_http_proto_tls[r->protocol](task, r);
     }
 }
 
