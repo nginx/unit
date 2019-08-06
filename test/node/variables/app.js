@@ -14,7 +14,6 @@ require('unit-http').createServer(function (req, res) {
         res.setHeader('Content-Type', req.headers['content-type']);
         res.setHeader('Custom-Header', req.headers['custom-header']);
         res.setHeader('Http-Host', req.headers['host']);
-        res.writeHead(200, {});
-        res.end(body);
+        res.writeHead(200, {}).end(body);
     });
 }).listen(7080);

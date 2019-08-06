@@ -6,7 +6,7 @@ require('unit-http').createServer(function (req, res) {
         body += chunk.toString();
     });
     req.on('end', () => {
-        res.writeHead(200, {'Content-Length': Buffer.byteLength(body)});
-        res.end(body);
+        res.writeHead(200, {'Content-Length': Buffer.byteLength(body)})
+           .end(body);
     });
 }).listen(7080);

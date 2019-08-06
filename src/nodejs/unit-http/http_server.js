@@ -195,6 +195,8 @@ function writeHead(statusCode, reason, obj) {
             }
         }
     }
+
+    return this;
 };
 
 /*
