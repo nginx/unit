@@ -355,8 +355,8 @@ nxt_http_request_application(nxt_task_t *task, nxt_http_request_t *r,
 static void
 nxt_http_request_proto_info(nxt_task_t *task, nxt_http_request_t *r)
 {
-    if (r->proto.any != NULL) {
-        nxt_http_proto_local_addr[r->protocol](task, r);
+    if (nxt_fast_path(r->proto.any != NULL)) {
+        nxt_http_proto[r->protocol].local_addr(task, r);
     }
 }
 
@@ -364,8 +364,8 @@ nxt_http_request_proto_info(nxt_task_t *task, nxt_http_request_t *r)
 void
 nxt_http_request_read_body(nxt_task_t *task, nxt_http_request_t *r)
 {
-    if (r->proto.any != NULL) {
-        nxt_http_proto_body_read[r->protocol](task, r);
+    if (nxt_fast_path(r->proto.any != NULL)) {
+        nxt_http_proto[r->protocol].body_read(task, r);
     }
 }
 
@@ -431,8 +431,8 @@ nxt_http_request_header_send(nxt_task_t *task, nxt_http_request_t *r)
         r->resp.content_length = content_length;
     }
 
-    if (r->proto.any != NULL) {
-        nxt_http_proto_header_send[r->protocol](task, r);
+    if (nxt_fast_path(r->proto.any != NULL)) {
+        nxt_http_proto[r->protocol].header_send(task, r);
     }
 
     return;
@@ -446,8 +446,8 @@ fail:
 void
 nxt_http_request_send(nxt_task_t *task, nxt_http_request_t *r, nxt_buf_t *out)
 {
-    if (r->proto.any != NULL) {
-        nxt_http_proto_send[r->protocol](task, r, out);
+    if (nxt_fast_path(r->proto.any != NULL)) {
+        nxt_http_proto[r->protocol].send(task, r, out);
     }
 }
 
@@ -524,8 +524,8 @@ nxt_http_request_error_handler(nxt_task_t *task, void *obj, void *data)
 
     r->error = 1;
 
-    if (proto.any != NULL) {
-        nxt_http_proto_discard[r->protocol](task, r, nxt_http_buf_last(r));
+    if (nxt_fast_path(proto.any != NULL)) {
+        nxt_http_proto[r->protocol].discard(task, r, nxt_http_buf_last(r));
     }
 }
 
@@ -535,7 +535,7 @@ nxt_http_request_close_handler(nxt_task_t *task, void *obj, void *data)
 {
     nxt_http_proto_t         proto;
     nxt_http_request_t       *r;
-    nxt_http_proto_close_t   handler;
+    nxt_http_protocol_t      protocol;
     nxt_socket_conf_joint_t  *conf;
     nxt_router_access_log_t  *access_log;
 
@@ -556,13 +556,13 @@ nxt_http_request_close_handler(nxt_task_t *task, void *obj, void *data)
         }
     }
 
-    handler = nxt_http_proto_close[r->protocol];
+    protocol = r->protocol;
 
     r->proto.any = NULL;
     nxt_mp_release(r->mem_pool);
 
-    if (proto.any != NULL) {
-        handler(task, proto, conf);
+    if (nxt_fast_path(proto.any != NULL)) {
+        nxt_http_proto[protocol].close(task, proto, conf);
     }
 }
 

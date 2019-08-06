@@ -89,52 +89,19 @@ static const nxt_conn_state_t  nxt_h1p_keepalive_state;
 static const nxt_conn_state_t  nxt_h1p_close_state;
 
 
-const nxt_http_proto_body_read_t  nxt_http_proto_body_read[3] = {
-    nxt_h1p_request_body_read,
-    NULL,
-    NULL,
-};
-
-
-const nxt_http_proto_local_addr_t  nxt_http_proto_local_addr[3] = {
-    nxt_h1p_request_local_addr,
-    NULL,
-    NULL,
-};
-
-
-const nxt_http_proto_header_send_t  nxt_http_proto_header_send[3] = {
-    nxt_h1p_request_header_send,
-    NULL,
-    NULL,
-};
-
-
-const nxt_http_proto_send_t  nxt_http_proto_send[3] = {
-    nxt_h1p_request_send,
-    NULL,
-    NULL,
-};
-
-
-const nxt_http_proto_body_bytes_sent_t  nxt_http_proto_body_bytes_sent[3] = {
-    nxt_h1p_request_body_bytes_sent,
-    NULL,
-    NULL,
-};
-
-
-const nxt_http_proto_discard_t  nxt_http_proto_discard[3] = {
-    nxt_h1p_request_discard,
-    NULL,
-    NULL,
-};
-
-
-const nxt_http_proto_close_t  nxt_http_proto_close[3] = {
-    nxt_h1p_request_close,
-    NULL,
-    NULL,
+const nxt_http_proto_table_t  nxt_http_proto[3] = {
+    /* NXT_HTTP_PROTO_H1 */
+    {
+        .body_read        = nxt_h1p_request_body_read,
+        .local_addr       = nxt_h1p_request_local_addr,
+        .header_send      = nxt_h1p_request_header_send,
+        .send             = nxt_h1p_request_send,
+        .body_bytes_sent  = nxt_h1p_request_body_bytes_sent,
+        .discard          = nxt_h1p_request_discard,
+        .close            = nxt_h1p_request_close,
+    },
+    /* NXT_HTTP_PROTO_H2      */
+    /* NXT_HTTP_PROTO_DEVNULL */
 };
 
 
@@ -438,6 +405,7 @@ nxt_h1p_conn_request_init(nxt_task_t *task, void *obj, void *data)
         h1p->request = r;
         r->proto.h1 = h1p;
 
+        /* r->protocol = NXT_HTTP_PROTO_H1 is done by zeroing. */
         r->remote = c->remote;
 
 #if (NXT_TLS)

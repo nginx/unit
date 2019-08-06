@@ -3058,7 +3058,7 @@ nxt_router_access_log_writer(nxt_task_t *task, nxt_http_request_t *r,
 
     *p++ = ' ';
 
-    bytes = nxt_http_proto_body_bytes_sent[r->protocol](task, r->proto);
+    bytes = nxt_http_proto[r->protocol].body_bytes_sent(task, r->proto);
 
     p = nxt_sprintf(p, p + NXT_OFF_T_LEN, "%O", bytes);
 
