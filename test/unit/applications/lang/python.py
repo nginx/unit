@@ -2,6 +2,8 @@ from unit.applications.proto import TestApplicationProto
 
 
 class TestApplicationPython(TestApplicationProto):
+    application_type = "python"
+
     def load(self, script, name=None):
         if name is None:
             name = script
@@ -13,7 +15,7 @@ class TestApplicationPython(TestApplicationProto):
                 "listeners": {"*:7080": {"pass": "applications/" + name}},
                 "applications": {
                     name: {
-                        "type": "python",
+                        "type": self.application_type,
                         "processes": {"spare": 0},
                         "path": script_path,
                         "working_directory": script_path,
