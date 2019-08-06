@@ -59,25 +59,7 @@ typedef struct {
 } nxt_http_request_state_t;
 
 
-typedef struct {
-    nxt_http_request_parse_t        parser;
-
-    uint8_t                         nbuffers;
-    uint8_t                         keepalive;            /* 1 bit  */
-    uint8_t                         chunked;              /* 1 bit  */
-    nxt_http_te_t                   transfer_encoding:8;  /* 2 bits */
-
-    uint32_t                        header_size;
-
-    nxt_http_request_t              *request;
-    nxt_buf_t                       *buffers;
-    /*
-     * All fields before the conn field will
-     * be zeroed in a keep-alive connection.
-     */
-    nxt_conn_t                      *conn;
-} nxt_h1proto_t;
-
+typedef struct nxt_h1proto_s        nxt_h1proto_t;
 
 typedef union {
     void                            *any;

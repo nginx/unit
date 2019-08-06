@@ -8,6 +8,26 @@
 #include <nxt_http.h>
 
 
+struct nxt_h1proto_s {
+    nxt_http_request_parse_t  parser;
+
+    uint8_t                   nbuffers;
+    uint8_t                   keepalive;            /* 1 bit  */
+    uint8_t                   chunked;              /* 1 bit  */
+    nxt_http_te_t             transfer_encoding:8;  /* 2 bits */
+
+    uint32_t                  header_size;
+
+    nxt_http_request_t        *request;
+    nxt_buf_t                 *buffers;
+    /*
+     * All fields before the conn field will
+     * be zeroed in a keep-alive connection.
+     */
+    nxt_conn_t                *conn;
+};
+
+
 /*
  * nxt_http_conn_ and nxt_h1p_conn_ prefixes are used for connection handlers.
  * nxt_h1p_idle_ prefix is used for idle connection handlers.
