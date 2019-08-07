@@ -1,4 +1,5 @@
 import time
+import unittest
 from unit.applications.lang.java import TestApplicationJava
 
 
@@ -1213,6 +1214,44 @@ class TestJavaApplication(TestApplicationJava):
         )
         self.assertEqual(headers['X-Get-Date'], date, 'get date header')
 
+    @unittest.skip('not yet')
+    def test_java_application_multipart(self):
+        self.load('multipart')
+
+        body = """Preamble. Should be ignored.\r
+\r
+--12345\r
+Content-Disposition: form-data; name="file"; filename="sample.txt"\r
+Content-Type: text/plain\r
+\r
+Data from sample file\r
+--12345\r
+Content-Disposition: form-data; name="destination"\r
+\r
+%s\r
+--12345\r
+Content-Disposition: form-data; name="upload"\r
+\r
+Upload\r
+--12345--\r
+\r
+Epilogue. Should be ignored.""" % self.testdir
+
+        resp = self.post(
+            headers={
+                'Content-Type': 'multipart/form-data; boundary=12345',
+                'Host': 'localhost',
+                'Connection': 'close',
+            },
+            body=body,
+        )
+
+        self.assertEqual(resp['status'], 200, 'multipart status')
+        self.assertRegex(resp['body'], r'sample\.txt created', 'multipart body')
+        self.assertIsNotNone(
+            self.search_in_log(r'^Data from sample file$', name='sample.txt'),
+            'file created',
+        )
 
 if __name__ == '__main__':
     TestJavaApplication.main()
