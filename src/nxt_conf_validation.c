@@ -1520,8 +1520,8 @@ static nxt_int_t
 nxt_conf_vldt_isolation_disabled(nxt_conf_validation_t *vldt, nxt_str_t *name,
     nxt_conf_value_t *value) 
 {
-    return nxt_conf_vldt_error(vldt, "The \"isolation\" field "
-                                   "is disabled for this platform.");
+    return nxt_conf_vldt_error(vldt, "The \"isolation\" field values "
+                                   "are disabled for this platform.");
 }
 #endif
 
