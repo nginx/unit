@@ -33,6 +33,7 @@ nxt_feature_test="#define _GNU_SOURCE
 
 if [ $nxt_found = yes ]; then
     NXT_HAVE_CLONE=YES
+    NXT_ISOLATION=YES
     
     # Test all isolation flags are unprivileged
     nsflags="NS PID NET UTS IPC CGROUP"
@@ -66,4 +67,5 @@ if [ $nxt_found = yes ]; then
     done
 else
     NXT_HAVE_CLONE=NO
+    NXT_ISOLATION=NO
 fi
