@@ -5,7 +5,7 @@
 # Linux clone syscall.
 
 nxt_feature="Linux unprivileged clone(2)"
-nxt_feature_name=NXT_HAVE_CLONE
+nxt_feature_name=NXT_ISOLATION
 nxt_feature_run=yes
 nxt_feature_incs=
 nxt_feature_libs=
@@ -32,7 +32,6 @@ nxt_feature_test="#define _GNU_SOURCE
 . auto/feature
 
 if [ $nxt_found = yes ]; then
-    NXT_HAVE_CLONE=YES
     NXT_ISOLATION=YES
     
     # Test all isolation flags are unprivileged
@@ -66,6 +65,5 @@ if [ $nxt_found = yes ]; then
         . auto/feature
     done
 else
-    NXT_HAVE_CLONE=NO
     NXT_ISOLATION=NO
 fi
