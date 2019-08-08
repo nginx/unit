@@ -530,6 +530,7 @@ nxt_conf_map_object(nxt_mp_t *mp, nxt_conf_value_t *value, nxt_conf_map_t *map,
     nxt_conf_value_t  *v;
 
     union {
+        nxt_bool_t  b;
         uint8_t     ui8;
         int32_t     i32;
         int64_t     i64;
@@ -554,7 +555,12 @@ nxt_conf_map_object(nxt_mp_t *mp, nxt_conf_value_t *value, nxt_conf_map_t *map,
         ptr = nxt_pointer_to(data, map[i].offset);
 
         switch (map[i].type) {
+        case NXT_CONF_MAP_BOOLEAN:
+            if (v->type == NXT_CONF_VALUE_BOOLEAN) {
+                ptr->b = v->u.boolean;
+            }
 
+            break;
         case NXT_CONF_MAP_INT8:
 
             if (v->type == NXT_CONF_VALUE_BOOLEAN) {

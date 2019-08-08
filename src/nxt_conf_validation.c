@@ -93,8 +93,8 @@ static nxt_int_t nxt_conf_vldt_group(nxt_conf_validation_t *vldt, char *name);
 static nxt_int_t nxt_conf_vldt_environment(nxt_conf_validation_t *vldt,
     nxt_str_t *name, nxt_conf_value_t *value);
 static nxt_int_t
-nxt_conf_vldt_namespaces(nxt_conf_validation_t *vldt, nxt_str_t *name,
-    nxt_conf_value_t *value);
+nxt_conf_vldt_namespaces(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data);
 static nxt_int_t nxt_conf_vldt_isolation(nxt_conf_validation_t *vldt,
     nxt_str_t *name, nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_argument(nxt_conf_validation_t *vldt,
@@ -319,16 +319,44 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_processes_members[] = {
     NXT_CONF_VLDT_END
 };
 
-static nxt_conf_vldt_object_t  nxt_conf_vldt_app_isolation_members[] = {
-    { nxt_string("namespaces"),
-      NXT_CONF_VLDT_OBJECT,
-      &nxt_conf_vldt_object_iterator,
-      (void *) &nxt_conf_vldt_namespaces },
+static nxt_conf_vldt_object_t  nxt_conf_vldt_app_namespaces_members[] = {
+    { nxt_string("user"),
+      NXT_CONF_VLDT_BOOLEAN,
+      NULL,
+      NULL },
+
+    { nxt_string("pid"),
+      NXT_CONF_VLDT_BOOLEAN,
+      NULL,
+      NULL },
+
+    { nxt_string("network"),
+      NXT_CONF_VLDT_BOOLEAN,
+      NULL,
+      NULL },
+
+    { nxt_string("mount"),
+      NXT_CONF_VLDT_BOOLEAN,
+      NULL,
+      NULL },
+    
+    { nxt_string("uts"),
+      NXT_CONF_VLDT_BOOLEAN,
+      NULL,
+      NULL },
+    
+    { nxt_string("ipc"),
+      NXT_CONF_VLDT_BOOLEAN,
+      NULL,
+      NULL },
+
+    { nxt_string("cgroup"),
+      NXT_CONF_VLDT_BOOLEAN,
+      NULL,
+      NULL },
 
     NXT_CONF_VLDT_END
 };
-
-
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[] = {
     { nxt_string("type"),
@@ -370,6 +398,15 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[] = {
       NXT_CONF_VLDT_OBJECT,
       &nxt_conf_vldt_object_iterator,
       (void *) &nxt_conf_vldt_isolation },
+
+    NXT_CONF_VLDT_END
+};
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_app_isolation_members[] = {
+    { nxt_string("namespaces"),
+      NXT_CONF_VLDT_OBJECT,
+      &nxt_conf_vldt_namespaces,
+      (void *) &nxt_conf_vldt_app_namespaces_members },
 
     NXT_CONF_VLDT_END
 };
@@ -1347,26 +1384,106 @@ nxt_conf_vldt_environment(nxt_conf_validation_t *vldt, nxt_str_t *name,
     return NXT_OK;
 }
 
+typedef struct {
+    nxt_bool_t usr;
+    nxt_bool_t mnt;
+    nxt_bool_t net;
+    nxt_bool_t ipc;
+    nxt_bool_t uts;
+    nxt_bool_t pid;
+    nxt_bool_t cgr;
+
+} nxt_conf_vldt_namespaces_conf_t;
+
+
+static nxt_conf_map_t  nxt_conf_vldt_namespaces_conf_map[] = {
+    {
+        nxt_string("user"),
+        NXT_CONF_MAP_BOOLEAN,
+        offsetof(nxt_conf_vldt_namespaces_conf_t, usr),
+    },
+
+    {
+        nxt_string("mount"),
+        NXT_CONF_MAP_BOOLEAN,
+        offsetof(nxt_conf_vldt_namespaces_conf_t, mnt),
+    },
+
+    {
+        nxt_string("network"),
+        NXT_CONF_MAP_BOOLEAN,
+        offsetof(nxt_conf_vldt_namespaces_conf_t, net),
+    },
+
+    {
+        nxt_string("ipc"),
+        NXT_CONF_MAP_BOOLEAN,
+        offsetof(nxt_conf_vldt_namespaces_conf_t, ipc),
+    },
+
+    {
+        nxt_string("uts"),
+        NXT_CONF_MAP_BOOLEAN,
+        offsetof(nxt_conf_vldt_namespaces_conf_t, uts),
+    },
+
+    {
+        nxt_string("pid"),
+        NXT_CONF_MAP_BOOLEAN,
+        offsetof(nxt_conf_vldt_namespaces_conf_t, pid),
+    },
+
+    {
+        nxt_string("cgroup"),
+        NXT_CONF_MAP_BOOLEAN,
+        offsetof(nxt_conf_vldt_namespaces_conf_t, cgr),
+    },
+};
+
+
 static nxt_int_t
-nxt_conf_vldt_namespaces(nxt_conf_validation_t *vldt, nxt_str_t *name,
-    nxt_conf_value_t *value)
+nxt_conf_vldt_namespaces(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
 {
-    if (name->length == 0) {
-        return nxt_conf_vldt_error(vldt,
-                                   "The namespace name cannot be empty");
+    nxt_int_t                       ret;
+    nxt_conf_vldt_namespaces_conf_t ns;
+    ret = nxt_conf_vldt_object(vldt, value, data);
+    if (ret != NXT_OK) {
+        return ret;
     }
 
-    if (nxt_conf_type(value) != NXT_CONF_BOOLEAN) {
-        return nxt_conf_vldt_error(vldt, "The \"%V\" namespace value must be "
-                                   "a boolean.", name);
+    ns.usr = 0;
+    ns.mnt = 0;
+    ns.pid = 0;
+    ns.ipc = 0;
+    ns.net = 0;
+    ns.uts = 0;
+    ns.cgr = 0;
+
+    ret = nxt_conf_map_object(vldt->pool, value,
+                              nxt_conf_vldt_namespaces_conf_map,
+                              nxt_nitems(nxt_conf_vldt_namespaces_conf_map),
+                              &ns);
+    if (ret != NXT_OK) {
+        return ret;
     }
 
-    /* nxt_conf_get_string(value, &str);
-     *
-     *  TODO(i4k): validate available namespace flags
-     */
-    return nxt_conf_vldt_error(vldt, "The namespace \"%V\" is not available "
-                                   "in your platform", name);
+    if (ns.pid|ns.net|ns.uts|ns.ipc|ns.mnt|ns.cgr && !ns.usr) {
+        if (geteuid() != 0) {
+            /**
+             * CLONE_NEWUSER must be set if running unit as unprivileged
+             * user.
+             * 
+             * TODO(i4k): An improved check is required here.
+             *            Instead of testing the uid, we should verify the
+             *            right capabilities.
+             */
+            return nxt_conf_vldt_error(vldt, "the namespace \"user\" must be set"
+                                   " if unit runs as unprivileged user.");
+        }
+    }
+    
+    return NXT_OK;
 }
 
 static nxt_int_t
