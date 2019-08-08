@@ -1376,7 +1376,6 @@ nxt_conf_vldt_isolation(nxt_conf_validation_t *vldt, nxt_str_t *name,
     nxt_int_t  ret;
 
     ret = nxt_conf_vldt_type(vldt, name, value, NXT_CONF_VLDT_OBJECT);
-
     if (ret != NXT_OK) {
         return ret;
     }
