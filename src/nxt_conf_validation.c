@@ -92,11 +92,6 @@ static nxt_int_t nxt_conf_vldt_user(nxt_conf_validation_t *vldt, char *name);
 static nxt_int_t nxt_conf_vldt_group(nxt_conf_validation_t *vldt, char *name);
 static nxt_int_t nxt_conf_vldt_environment(nxt_conf_validation_t *vldt,
     nxt_str_t *name, nxt_conf_value_t *value);
-static nxt_int_t
-nxt_conf_vldt_namespaces(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
-    void *data);
-static nxt_int_t nxt_conf_vldt_isolation(nxt_conf_validation_t *vldt,
-    nxt_str_t *name, nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_argument(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_php_option(nxt_conf_validation_t *vldt,
@@ -106,6 +101,16 @@ static nxt_int_t nxt_conf_vldt_java_classpath(nxt_conf_validation_t *vldt,
 static nxt_int_t nxt_conf_vldt_java_option(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value);
 
+#ifdef NXT_ISOLATION
+static nxt_int_t
+nxt_conf_vldt_namespaces(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data);
+static nxt_int_t nxt_conf_vldt_isolation(nxt_conf_validation_t *vldt,
+    nxt_str_t *name, nxt_conf_value_t *value);
+#else 
+static nxt_int_t nxt_conf_vldt_isolation_disabled(nxt_conf_validation_t *vldt,
+    nxt_str_t *name, nxt_conf_value_t *value);
+#endif
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[] = {
     { nxt_string("header_read_timeout"),
@@ -319,6 +324,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_processes_members[] = {
     NXT_CONF_VLDT_END
 };
 
+#ifdef NXT_ISOLATION
 static nxt_conf_vldt_object_t  nxt_conf_vldt_app_namespaces_members[] = {
     { nxt_string("user"),
       NXT_CONF_VLDT_BOOLEAN,
@@ -357,7 +363,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_namespaces_members[] = {
 
     NXT_CONF_VLDT_END
 };
-
+#endif
 static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[] = {
     { nxt_string("type"),
       NXT_CONF_VLDT_STRING,
@@ -393,15 +399,22 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[] = {
       NXT_CONF_VLDT_OBJECT,
       &nxt_conf_vldt_object_iterator,
       (void *) &nxt_conf_vldt_environment },
-    
+
+ #ifdef NXT_ISOLATION   
     { nxt_string("isolation"),
       NXT_CONF_VLDT_OBJECT,
       &nxt_conf_vldt_object_iterator,
       (void *) &nxt_conf_vldt_isolation },
-
+#else
+    { nxt_string("isolation"),
+      NXT_CONF_VLDT_OBJECT,
+      &nxt_conf_vldt_object_iterator,
+      (void *) &nxt_conf_vldt_isolation_disabled },
+#endif
     NXT_CONF_VLDT_END
 };
 
+#ifdef NXT_ISOLATION
 static nxt_conf_vldt_object_t  nxt_conf_vldt_app_isolation_members[] = {
     { nxt_string("namespaces"),
       NXT_CONF_VLDT_OBJECT,
@@ -410,6 +423,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_isolation_members[] = {
 
     NXT_CONF_VLDT_END
 };
+#endif
 
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_external_members[] = {
@@ -1384,6 +1398,7 @@ nxt_conf_vldt_environment(nxt_conf_validation_t *vldt, nxt_str_t *name,
     return NXT_OK;
 }
 
+#ifdef NXT_ISOLATION
 typedef struct {
     nxt_bool_t usr;
     nxt_bool_t mnt;
@@ -1499,6 +1514,16 @@ nxt_conf_vldt_isolation(nxt_conf_validation_t *vldt, nxt_str_t *name,
 
     return nxt_conf_vldt_object(vldt, value, nxt_conf_vldt_app_isolation_members);
 }
+
+#else 
+static nxt_int_t
+nxt_conf_vldt_isolation_disabled(nxt_conf_validation_t *vldt, nxt_str_t *name,
+    nxt_conf_value_t *value) 
+{
+    return nxt_conf_vldt_error(vldt, "The \"isolation\" field "
+                                   "is disabled for this platform.");
+}
+#endif
 
 static nxt_int_t
 nxt_conf_vldt_argument(nxt_conf_validation_t *vldt, nxt_conf_value_t *value)
