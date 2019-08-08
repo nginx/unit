@@ -88,6 +88,8 @@ struct nxt_common_app_conf_s {
     char                       *working_directory;
     nxt_conf_value_t           *environment;
 
+    nxt_conf_value_t           *isolation;
+
     union {
         nxt_external_app_conf_t  external;
         nxt_python_app_conf_t    python;

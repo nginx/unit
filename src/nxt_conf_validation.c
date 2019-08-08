@@ -92,6 +92,11 @@ static nxt_int_t nxt_conf_vldt_user(nxt_conf_validation_t *vldt, char *name);
 static nxt_int_t nxt_conf_vldt_group(nxt_conf_validation_t *vldt, char *name);
 static nxt_int_t nxt_conf_vldt_environment(nxt_conf_validation_t *vldt,
     nxt_str_t *name, nxt_conf_value_t *value);
+static nxt_int_t
+nxt_conf_vldt_namespaces(nxt_conf_validation_t *vldt, nxt_str_t *name,
+    nxt_conf_value_t *value);
+static nxt_int_t nxt_conf_vldt_isolation(nxt_conf_validation_t *vldt,
+    nxt_str_t *name, nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_argument(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_php_option(nxt_conf_validation_t *vldt,
@@ -314,6 +319,16 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_processes_members[] = {
     NXT_CONF_VLDT_END
 };
 
+static nxt_conf_vldt_object_t  nxt_conf_vldt_app_isolation_members[] = {
+    { nxt_string("namespaces"),
+      NXT_CONF_VLDT_OBJECT,
+      &nxt_conf_vldt_object_iterator,
+      (void *) &nxt_conf_vldt_namespaces },
+
+    NXT_CONF_VLDT_END
+};
+
+
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[] = {
     { nxt_string("type"),
@@ -350,6 +365,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[] = {
       NXT_CONF_VLDT_OBJECT,
       &nxt_conf_vldt_object_iterator,
       (void *) &nxt_conf_vldt_environment },
+    
+    { nxt_string("isolation"),
+      NXT_CONF_VLDT_OBJECT,
+      &nxt_conf_vldt_object_iterator,
+      (void *) &nxt_conf_vldt_isolation },
 
     NXT_CONF_VLDT_END
 };
@@ -1327,6 +1347,42 @@ nxt_conf_vldt_environment(nxt_conf_validation_t *vldt, nxt_str_t *name,
     return NXT_OK;
 }
 
+static nxt_int_t
+nxt_conf_vldt_namespaces(nxt_conf_validation_t *vldt, nxt_str_t *name,
+    nxt_conf_value_t *value)
+{
+    if (name->length == 0) {
+        return nxt_conf_vldt_error(vldt,
+                                   "The namespace name cannot be empty");
+    }
+
+    if (nxt_conf_type(value) != NXT_CONF_BOOLEAN) {
+        return nxt_conf_vldt_error(vldt, "The \"%V\" namespace value must be "
+                                   "a boolean.", name);
+    }
+
+    /* nxt_conf_get_string(value, &str);
+     *
+     *  TODO(i4k): validate available namespace flags
+     */
+    return nxt_conf_vldt_error(vldt, "The namespace \"%V\" is not available "
+                                   "in your platform", name);
+}
+
+static nxt_int_t
+nxt_conf_vldt_isolation(nxt_conf_validation_t *vldt, nxt_str_t *name,
+    nxt_conf_value_t *value)
+{
+    nxt_int_t  ret;
+
+    ret = nxt_conf_vldt_type(vldt, name, value, NXT_CONF_VLDT_OBJECT);
+
+    if (ret != NXT_OK) {
+        return ret;
+    }
+
+    return nxt_conf_vldt_object(vldt, value, nxt_conf_vldt_app_isolation_members);
+}
 
 static nxt_int_t
 nxt_conf_vldt_argument(nxt_conf_validation_t *vldt, nxt_conf_value_t *value)
