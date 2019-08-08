@@ -26,6 +26,8 @@ Unit configuration summary:
   Unix domain sockets support: $NXT_UNIX_DOMAIN
   TLS support: ............... $NXT_OPENSSL
 
+  process isolation: ......... $NXT_HAVE_CLONE
+
   debug logging: ............. $NXT_DEBUG
 
 END
