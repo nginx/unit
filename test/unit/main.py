@@ -125,7 +125,7 @@ class TestUnit(unittest.TestCase):
 
         global available_modules
         available_modules = {}
-        for module in re.findall(r'module: ([a-zA-Z]+) ([\d\.]*) ', log):
+        for module in re.findall(r'module: ([a-zA-Z]+) (.*) ".*"$', log, re.M):
             if module[0] not in available_modules:
                 available_modules[module[0]] = [module[1]]
             else:
