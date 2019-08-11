@@ -14,6 +14,12 @@
 #include <nxt_cert.h>
 #endif
 
+#ifdef NXT_ISOLATION
+#ifdef NXT_LINUX
+#include <linux/sched.h>
+#endif
+#endif
+
 
 typedef struct {
     nxt_socket_t        socket;
@@ -67,7 +73,10 @@ static void nxt_main_port_conf_store_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
 static void nxt_main_port_access_log_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
-
+static nxt_int_t 
+    nxt_main_process_get_nsflags(nxt_task_t *task, nxt_conf_value_t *isolation);
+static void 
+    nxt_main_process_debug_nsflags(nxt_task_t *task, nxt_int_t flags);
 
 const nxt_sig_event_t  nxt_main_process_signals[] = {
     nxt_event_signal(SIGHUP,  nxt_main_process_signal_handler),
@@ -134,6 +143,12 @@ static nxt_conf_map_t  nxt_common_app_conf[] = {
         NXT_CONF_MAP_PTR,
         offsetof(nxt_common_app_conf_t, environment),
     },
+
+    {
+        nxt_string("isolation"),
+        NXT_CONF_MAP_PTR,
+        offsetof(nxt_common_app_conf_t, isolation),
+    }
 };
 
 
@@ -466,6 +481,7 @@ nxt_main_start_controller_process(nxt_task_t *task, nxt_runtime_t *rt)
     init->type = NXT_PROCESS_CONTROLLER;
     init->stream = 0;
     init->restart = &nxt_main_create_controller_process;
+    init->nsflags = 0;
 
     return nxt_main_create_controller_process(task, rt, init);;
 }
@@ -561,6 +577,7 @@ nxt_main_start_discovery_process(nxt_task_t *task, nxt_runtime_t *rt)
     init->data = rt;
     init->stream = 0;
     init->restart = NULL;
+    init->nsflags = 0;
 
     return nxt_main_create_worker_process(task, rt, init);
 }
@@ -585,10 +602,10 @@ nxt_main_start_router_process(nxt_task_t *task, nxt_runtime_t *rt)
     init->data = rt;
     init->stream = 0;
     init->restart = &nxt_main_create_worker_process;
+    init->nsflags = 0;
 
     return nxt_main_create_worker_process(task, rt, init);
 }
-
 
 static nxt_int_t
 nxt_main_start_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
@@ -632,6 +649,13 @@ nxt_main_start_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
 
     if (nxt_user_cred_get(task, init->user_cred, group) != NXT_OK) {
         return NXT_ERROR;
+    }
+
+    if (app_conf->isolation != NULL) {
+        init->nsflags = nxt_main_process_get_nsflags(task, app_conf->isolation);
+    } else {
+        init->nsflags = 0;
+        nxt_debug(task, "running with no isolation");
     }
 
     title = last;
@@ -1432,4 +1456,110 @@ nxt_main_port_access_log_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         (void) nxt_port_socket_write(task, port, type, file.fd,
                                      msg->port_msg.stream, 0, NULL);
     }
+}
+
+static void
+nxt_main_process_debug_nsflags(nxt_task_t *task, nxt_int_t flags) {
+    const char *allflags = "USER|PID|NET|UTS|IPC|NS|CGROUP";
+    nxt_int_t  maxlen = nxt_strlen(allflags)+7*nxt_strlen("CLONE_")+2;
+    char       *buf;
+    if (NXT_DEBUG) {
+        buf = nxt_malloc(maxlen);
+        if (buf == NULL) {
+            nxt_alert(task, "failed to allocate memory");
+            return;
+        }
+
+        nxt_memset(buf, 0, maxlen);
+
+        if ((flags & CLONE_NEWUSER) == CLONE_NEWUSER) {
+            strncat(buf, "CLONE_NEWUSER|", 15);
+        }
+        
+        if ((flags & CLONE_NEWPID) == CLONE_NEWPID) {
+            strncat(buf, "CLONE_NEWPID|", 14);
+        } 
+        
+        if ((flags & CLONE_NEWUTS) == CLONE_NEWUTS) {
+            strncat(buf, "CLONE_NEWUTS|", 14);
+        } 
+        
+        if ((flags & CLONE_NEWNET) == CLONE_NEWNET) {
+            strncat(buf, "CLONE_NEWNET|", 14);
+        } 
+        
+        if ((flags & CLONE_NEWIPC) == CLONE_NEWIPC) {
+            strncat(buf, "CLONE_NEWIPC|", 14);
+        } 
+        
+        if ((flags & CLONE_NEWNS) == CLONE_NEWNS) {
+            strncat(buf, "CLONE_NEWNS|", 13);
+        } 
+        
+        if ((flags & CLONE_NEWCGROUP) == CLONE_NEWCGROUP) {
+            strncat(buf, "CLONE_NEWCGROUP|", 17);
+        }
+
+        nxt_debug(task, "isolation nsflags: %s", buf);
+        nxt_free(buf);
+    }
+    return;
+}
+
+static nxt_int_t 
+nxt_main_process_get_nsflags(nxt_task_t *task, nxt_conf_value_t *isolation)
+{
+    uint32_t        index;
+    nxt_conf_value_t *namespaces;
+    nxt_conf_value_t *value;
+    nxt_str_t        name;
+    nxt_int_t        flags = 0;
+
+    if (isolation == NULL) {
+        return 0;
+    }
+
+    name.start  = (u_char *)"namespaces";
+    name.length = 10; 
+    namespaces = nxt_conf_get_object_member(isolation, &name, NULL);
+    if (namespaces == NULL) {
+        nxt_debug(task, "no namespace field");
+        return 0;
+    }
+
+    index = 0;
+    while ((value = nxt_conf_next_object_member(namespaces, &name, &index)) != NULL) {
+        if (nxt_slow_path(nxt_conf_type(value) != NXT_CONF_BOOLEAN)) {
+            nxt_alert(task, "unexpected namespace value: \"%V\". "
+                    "Expected boolean.", value);
+            continue;
+        }
+
+        if (!nxt_conf_get_boolean(value)) {
+            continue; /* process shares everything by default */
+        }
+
+        if (nxt_str_eq(&name, "user", 4)) {
+            flags |= CLONE_NEWUSER;
+        } else if (nxt_str_eq(&name, "pid", 3)) {
+            flags |= CLONE_NEWPID;
+        } else if (nxt_str_eq(&name, "network", 7)) {
+            flags |= CLONE_NEWNET;
+        } else if (nxt_str_eq(&name, "uts", 3)) {
+            flags |= CLONE_NEWUTS;
+        } else if (nxt_str_eq(&name, "ipc", 3)) {
+            flags |= CLONE_NEWIPC;
+        } else if (nxt_str_eq(&name, "mount", 5)) {
+            flags |= CLONE_NEWNS;
+        } else if (nxt_str_eq(&name, "cgroup", 6)) {
+            flags |= CLONE_NEWCGROUP;
+        } else {
+            nxt_alert(task, "unknown namespace flag: \"%V\"", &name);
+        }
+    }
+
+    if (NXT_DEBUG) 
+        nxt_main_process_debug_nsflags(task, flags);
+    
+    return flags;    
 }

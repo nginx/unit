@@ -37,14 +37,18 @@ nxt_bool_t  nxt_proc_remove_notify_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
 nxt_pid_t
 nxt_process_create(nxt_task_t *task, nxt_process_t *process)
 {
-    nxt_pid_t           pid;
-    nxt_process_t       *p;
-    nxt_runtime_t       *rt;
-    nxt_process_type_t  ptype;
+    nxt_pid_t          pid;
+    nxt_process_t      *p;
+    nxt_runtime_t      *rt;
+    nxt_process_type_t ptype;
+    nxt_process_init_t *init;
+    int                flags;
 
-    rt = task->thread->runtime;
+    rt   = task->thread->runtime;
+    init = process->init;
+    flags = SIGCHLD | init->nsflags;
 
-    pid = fork();
+    pid = nxt_rfork(flags);
 
     switch (pid) {
 
@@ -592,7 +596,9 @@ nxt_user_cred_set(nxt_task_t *task, nxt_user_cred_t *uc)
               uc->user, (uint64_t) uc->uid, (uint64_t) uc->base_gid);
 
     if (setgid(uc->base_gid) != 0) {
-        if (nxt_errno == NXT_EPERM) {
+        if (nxt_errno == NXT_EPERM || 
+            /* TODO(i4k): userns gets einval if not uid/gid remapped */
+            nxt_errno == NXT_EINVAL) {
             nxt_log(task, NXT_LOG_NOTICE, "setgid(%d) failed %E, ignored",
                     uc->base_gid, nxt_errno);
             return NXT_OK;

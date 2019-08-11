@@ -31,6 +31,7 @@ struct nxt_process_init_s {
     nxt_process_start_t    start;
     const char             *name;
     nxt_user_cred_t        *user_cred;
+    nxt_int_t              nsflags;
 
     nxt_port_handlers_t    *port_handlers;
     const nxt_sig_event_t  *signals;
