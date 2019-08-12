@@ -60,10 +60,12 @@ struct nxt_process_init_s {
     nxt_init_set_isolation(task, init, cfg)                                   \
         nxt_init_linux_set_isolation(task, init, cfg)
 #else
-#define                                                                       \
-    nxt_init_set_isolation(task, init, cfg)
+#error "isolation not implemented for your platform"
 #endif
 
+#else
+#define                                                                       \
+    nxt_init_set_isolation(task, init, cfg) (NXT_OK)
 #endif
 
 typedef struct nxt_port_mmap_s  nxt_port_mmap_t;

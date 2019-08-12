@@ -73,9 +73,12 @@ static void nxt_main_port_conf_store_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
 static void nxt_main_port_access_log_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
+
+#ifdef NXT_LINUX
 static nxt_int_t nxt_init_linux_set_isolation(nxt_task_t *task, 
     nxt_process_init_t *init, nxt_conf_value_t *isolation);
 static void nxt_init_linux_isolation_debug(nxt_task_t *task, nxt_int_t flags);
+#endif
 
 const nxt_sig_event_t  nxt_main_process_signals[] = {
     nxt_event_signal(SIGHUP,  nxt_main_process_signal_handler),
@@ -1464,6 +1467,7 @@ nxt_main_port_access_log_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     }
 }
 
+#ifdef NXT_LINUX
 static void
 nxt_init_linux_isolation_debug(nxt_task_t *task, nxt_int_t flags) {
     const char *allflags = "USER|PID|NET|UTS|IPC|NS|CGROUP";
@@ -1574,3 +1578,5 @@ nxt_init_linux_set_isolation(nxt_task_t *task, nxt_process_init_t *init, nxt_con
     
     return NXT_OK;    
 }
+
+#endif
