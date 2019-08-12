@@ -128,8 +128,11 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
 
         process->ready = 1;
 
-        break;
-
+        /**
+         * Explicitly return 0 to notice the caller function this is the
+         * child. The caller must return to the event engine work queue loop.
+         */
+        return 0;
     default:
         /* A parent. */
         close(pipefd[0]);

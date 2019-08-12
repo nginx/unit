@@ -255,7 +255,7 @@
 /* TODO(i4k): verify clone ABI for each arch */
 #define                                                                       \
 nxt_rfork(isolation)                                                          \
-    fork()
+    syscall(SYS_clone, SIGCHLD|isolation.linux.clone_flags, NULL)
 #else
 #error "isolation not implemented on this OS/arch"
 #endif
