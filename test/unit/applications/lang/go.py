@@ -4,7 +4,7 @@ from unit.applications.proto import TestApplicationProto
 
 
 class TestApplicationGo(TestApplicationProto):
-    def load(self, script, name='app', isolation={}):
+    def load(self, script, name='app', isolation={}, assert_conf=True):
 
         if not os.path.isdir(self.testdir + '/go'):
             os.mkdir(self.testdir + '/go')
@@ -25,7 +25,7 @@ class TestApplicationGo(TestApplicationProto):
         )
         process.communicate()
 
-        self._load_conf(
+        return self._load_conf(
             {
                 "listeners": {"*:7080": {"pass": "applications/" + script}},
                 "applications": {
@@ -37,5 +37,6 @@ class TestApplicationGo(TestApplicationProto):
                         "isolation": isolation,
                     }
                 },
-            }
+            },
+            assert_conf=assert_conf,
         )
