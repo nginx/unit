@@ -73,10 +73,9 @@ static void nxt_main_port_conf_store_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
 static void nxt_main_port_access_log_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
-static nxt_int_t 
-    nxt_main_process_get_nsflags(nxt_task_t *task, nxt_conf_value_t *isolation);
-static void 
-    nxt_main_process_debug_nsflags(nxt_task_t *task, nxt_int_t flags);
+static nxt_int_t nxt_init_linux_set_isolation(nxt_task_t *task, 
+    nxt_process_init_t *init, nxt_conf_value_t *isolation);
+static void nxt_init_linux_isolation_debug(nxt_task_t *task, nxt_int_t flags);
 
 const nxt_sig_event_t  nxt_main_process_signals[] = {
     nxt_event_signal(SIGHUP,  nxt_main_process_signal_handler),
@@ -481,7 +480,10 @@ nxt_main_start_controller_process(nxt_task_t *task, nxt_runtime_t *rt)
     init->type = NXT_PROCESS_CONTROLLER;
     init->stream = 0;
     init->restart = &nxt_main_create_controller_process;
-    init->nsflags = 0;
+    
+    if (nxt_slow_path(nxt_init_set_isolation(task, init, NULL) != NXT_OK)) {
+        return NXT_ERROR;
+    }
 
     return nxt_main_create_controller_process(task, rt, init);;
 }
@@ -577,7 +579,10 @@ nxt_main_start_discovery_process(nxt_task_t *task, nxt_runtime_t *rt)
     init->data = rt;
     init->stream = 0;
     init->restart = NULL;
-    init->nsflags = 0;
+    
+    if (nxt_slow_path(nxt_init_set_isolation(task, init, NULL) != NXT_OK)) {
+        return NXT_ERROR;
+    }
 
     return nxt_main_create_worker_process(task, rt, init);
 }
@@ -602,7 +607,10 @@ nxt_main_start_router_process(nxt_task_t *task, nxt_runtime_t *rt)
     init->data = rt;
     init->stream = 0;
     init->restart = &nxt_main_create_worker_process;
-    init->nsflags = 0;
+    
+    if (nxt_slow_path(nxt_init_set_isolation(task, init, NULL) != NXT_OK)) {
+        return NXT_ERROR;
+    }
 
     return nxt_main_create_worker_process(task, rt, init);
 }
@@ -651,13 +659,6 @@ nxt_main_start_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
         return NXT_ERROR;
     }
 
-    if (app_conf->isolation != NULL) {
-        init->nsflags = nxt_main_process_get_nsflags(task, app_conf->isolation);
-    } else {
-        init->nsflags = 0;
-        nxt_debug(task, "running with no isolation");
-    }
-
     title = last;
     end = title + app_conf->name.length + sizeof("\"\" application");
 
@@ -671,6 +672,11 @@ nxt_main_start_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
     init->data = app_conf;
     init->stream = stream;
     init->restart = NULL;
+
+    if (nxt_slow_path(nxt_init_set_isolation(
+                        task, init, app_conf->isolation) != NXT_OK)) {
+        return NXT_ERROR;
+    }
 
     return nxt_main_create_worker_process(task, rt, init);
 }
@@ -1459,7 +1465,7 @@ nxt_main_port_access_log_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 }
 
 static void
-nxt_main_process_debug_nsflags(nxt_task_t *task, nxt_int_t flags) {
+nxt_init_linux_isolation_debug(nxt_task_t *task, nxt_int_t flags) {
     const char *allflags = "USER|PID|NET|UTS|IPC|NS|CGROUP";
     nxt_int_t  maxlen = nxt_strlen(allflags)+7*nxt_strlen("CLONE_")+2;
     char       *buf;
@@ -1507,16 +1513,17 @@ nxt_main_process_debug_nsflags(nxt_task_t *task, nxt_int_t flags) {
 }
 
 static nxt_int_t 
-nxt_main_process_get_nsflags(nxt_task_t *task, nxt_conf_value_t *isolation)
+nxt_init_linux_set_isolation(nxt_task_t *task, nxt_process_init_t *init, nxt_conf_value_t *isolation)
 {
-    uint32_t        index;
+    uint32_t         index;
     nxt_conf_value_t *namespaces;
     nxt_conf_value_t *value;
     nxt_str_t        name;
     nxt_int_t        flags = 0;
 
     if (isolation == NULL) {
-        return 0;
+        init->isolation.linux.clone_flags = 0;
+        return NXT_OK;
     }
 
     name.start  = (u_char *)"namespaces";
@@ -1524,6 +1531,7 @@ nxt_main_process_get_nsflags(nxt_task_t *task, nxt_conf_value_t *isolation)
     namespaces = nxt_conf_get_object_member(isolation, &name, NULL);
     if (namespaces == NULL) {
         nxt_debug(task, "no namespace field");
+        init->isolation.linux.clone_flags = 0;
         return 0;
     }
 
@@ -1532,7 +1540,7 @@ nxt_main_process_get_nsflags(nxt_task_t *task, nxt_conf_value_t *isolation)
         if (nxt_slow_path(nxt_conf_type(value) != NXT_CONF_BOOLEAN)) {
             nxt_alert(task, "unexpected namespace value: \"%V\". "
                     "Expected boolean.", value);
-            continue;
+            return NXT_ERROR;
         }
 
         if (!nxt_conf_get_boolean(value)) {
@@ -1555,11 +1563,14 @@ nxt_main_process_get_nsflags(nxt_task_t *task, nxt_conf_value_t *isolation)
             flags |= CLONE_NEWCGROUP;
         } else {
             nxt_alert(task, "unknown namespace flag: \"%V\"", &name);
+            return NXT_ERROR;
         }
     }
 
+    init->isolation.linux.clone_flags = flags;
+
     if (NXT_DEBUG) 
-        nxt_main_process_debug_nsflags(task, flags);
+        nxt_init_linux_isolation_debug(task, flags);
     
-    return flags;    
+    return NXT_OK;    
 }

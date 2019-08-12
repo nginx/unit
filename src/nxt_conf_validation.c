@@ -366,15 +366,22 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_namespaces_members[] = {
 };
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_app_isolation_members[] = {
+#ifdef NXT_LINUX
     { nxt_string("namespaces"),
       NXT_CONF_VLDT_OBJECT,
       &nxt_conf_vldt_namespaces,
       (void *) &nxt_conf_vldt_app_namespaces_members },
+#endif
 
+#ifdef NXT_FREEBSD
+    /* Jails */
+#endif
     NXT_CONF_VLDT_END
 };
 
 #endif
+
+
 static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[] = {
     { nxt_string("type"),
       NXT_CONF_VLDT_STRING,
@@ -417,6 +424,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[] = {
       &nxt_conf_vldt_isolation,
       (void *) &nxt_conf_vldt_app_isolation_members },
 #else
+    /* allows an empty "isolation" field if disabled */
     { nxt_string("isolation"),
       NXT_CONF_VLDT_OBJECT,
       &nxt_conf_vldt_object_iterator,
@@ -1409,7 +1417,6 @@ typedef struct {
 
 } nxt_conf_vldt_namespaces_conf_t;
 
-
 static nxt_conf_map_t  nxt_conf_vldt_namespaces_conf_map[] = {
     {
         nxt_string("user"),
@@ -1453,7 +1460,6 @@ static nxt_conf_map_t  nxt_conf_vldt_namespaces_conf_map[] = {
         offsetof(nxt_conf_vldt_namespaces_conf_t, cgr),
     },
 };
-
 
 static nxt_int_t
 nxt_conf_vldt_namespaces(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,

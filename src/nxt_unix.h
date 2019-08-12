@@ -8,6 +8,12 @@
 #ifndef _NXT_UNIX_H_INCLUDED_
 #define _NXT_UNIX_H_INCLUDED_
 
+/*
+ * The ANSI C standards define rules that requires builtin macro names
+ * to start with double underscores but stupid gcc ignores that if no -ansi
+ * is used. It defines linux, __linux__ and __gnu_linux__ by default.
+ * Undefining "linux" to use it as identifier. */
+#undef linux 
 
 #if (NXT_LINUX)
 
@@ -246,15 +252,16 @@
 #ifdef NXT_ISOLATION
 
 #ifdef NXT_LINUX
+/* TODO(i4k): verify clone ABI for each arch */
 #define                                                                       \
-nxt_rfork(flags)                                                              \
-    syscall(SYS_clone, flags, 0, NULL, NULL, NULL)
+nxt_rfork(isolation)                                                          \
+    fork()
 #else
 #error "isolation not implemented on this OS/arch"
 #endif
 #else /* !NXT_LINUX */
 #define                                                                       \
-nxt_rfork(flags)                                                              \
+nxt_rfork(isolation)                                                              \
     fork()
 #endif
 
