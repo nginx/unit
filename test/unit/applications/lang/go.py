@@ -4,7 +4,7 @@ from unit.applications.proto import TestApplicationProto
 
 
 class TestApplicationGo(TestApplicationProto):
-    def load(self, script, name='app'):
+    def load(self, script, name='app', isolation={}):
 
         if not os.path.isdir(self.testdir + '/go'):
             os.mkdir(self.testdir + '/go')
@@ -34,6 +34,7 @@ class TestApplicationGo(TestApplicationProto):
                         "processes": {"spare": 0},
                         "working_directory": go_app_path + script,
                         "executable": self.testdir + '/go/' + name,
+                        "isolation": isolation,
                     }
                 },
             }

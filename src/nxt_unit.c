@@ -30,7 +30,7 @@ static nxt_unit_impl_t *nxt_unit_create(nxt_unit_init_t *init);
 static void nxt_unit_ctx_init(nxt_unit_impl_t *lib,
     nxt_unit_ctx_impl_t *ctx_impl, void *data);
 static int nxt_unit_read_env(nxt_unit_port_t *ready_port,
-    nxt_unit_port_t *read_port, int *log_fd, uint32_t *stream);
+    nxt_unit_port_t *read_port, pid_t *read_pid, int *log_fd, uint32_t *stream);
 static int nxt_unit_ready(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
     uint32_t stream);
 static nxt_unit_request_info_impl_t *nxt_unit_request_info_get(
@@ -263,7 +263,7 @@ nxt_unit_init(nxt_unit_init_t *init)
         nxt_unit_port_id_init(&read_port.id, read_port.id.pid,
                               read_port.id.id);
     } else {
-        rc = nxt_unit_read_env(&ready_port, &read_port, &lib->log_fd,
+        rc = nxt_unit_read_env(&ready_port, &read_port, &lib->pid, &lib->log_fd,
                                &ready_stream);
         if (nxt_slow_path(rc != NXT_UNIT_OK)) {
             goto fail;
@@ -335,7 +335,6 @@ nxt_unit_create(nxt_unit_init_t *init)
     lib->processes.slot = NULL;
     lib->ports.slot = NULL;
 
-    lib->pid = getpid();
     lib->log_fd = STDERR_FILENO;
     lib->online = 1;
 
@@ -411,13 +410,13 @@ nxt_unit_ctx_init(nxt_unit_impl_t *lib, nxt_unit_ctx_impl_t *ctx_impl,
 
 static int
 nxt_unit_read_env(nxt_unit_port_t *ready_port, nxt_unit_port_t *read_port,
-    int *log_fd, uint32_t *stream)
+    pid_t *read_pid, int *log_fd, uint32_t *stream)
 {
     int       rc;
     int       ready_fd, read_fd;
     char      *unit_init, *version_end;
     long      version_length;
-    int64_t   ready_pid, read_pid;
+    pid_t     ready_pid;
     uint32_t  ready_stream, ready_id, read_id;
 
     unit_init = getenv(NXT_UNIT_INIT_ENV);
@@ -444,12 +443,12 @@ nxt_unit_read_env(nxt_unit_port_t *ready_port, nxt_unit_port_t *read_port,
 
     rc = sscanf(version_end + 1,
                 "%"PRIu32";"
-                "%"PRId64",%"PRIu32",%d;"
-                "%"PRId64",%"PRIu32",%d;"
+                "%d,%"PRIu32",%d;"
+                "%d,%"PRIu32",%d;"
                 "%d",
                 &ready_stream,
                 &ready_pid, &ready_id, &ready_fd,
-                &read_pid, &read_id, &read_fd,
+                read_pid, &read_id, &read_fd,
                 log_fd);
 
     if (nxt_slow_path(rc != 8)) {
@@ -458,13 +457,13 @@ nxt_unit_read_env(nxt_unit_port_t *ready_port, nxt_unit_port_t *read_port,
         return NXT_UNIT_ERROR;
     }
 
-    nxt_unit_port_id_init(&ready_port->id, (pid_t) ready_pid, ready_id);
+    nxt_unit_port_id_init(&ready_port->id, ready_pid, ready_id);
 
     ready_port->in_fd = -1;
     ready_port->out_fd = ready_fd;
     ready_port->data = NULL;
 
-    nxt_unit_port_id_init(&read_port->id, (pid_t) read_pid, read_id);
+    nxt_unit_port_id_init(&read_port->id, *read_pid, read_id);
 
     read_port->in_fd = read_fd;
     read_port->out_fd = -1;
