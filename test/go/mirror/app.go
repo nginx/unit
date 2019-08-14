@@ -1,21 +1,21 @@
 package main
 
 import (
-    "io"
-    "fmt"
-    "net/http"
-    "nginx/unit"
+	"fmt"
+	"io"
+	"net/http"
+	"nginx/unit"
 )
 
 func handler(w http.ResponseWriter, r *http.Request) {
-    var buf [32768]byte;
-    len, _ := r.Body.Read(buf[:])
+	var buf [32768]byte
+	len, _ := r.Body.Read(buf[:])
 
-    w.Header().Add("Content-Length", fmt.Sprintf("%v", len))
-    io.WriteString(w, string(buf[:len]))
+	w.Header().Add("Content-Length", fmt.Sprintf("%v", len))
+	io.WriteString(w, string(buf[:len]))
 }
 
 func main() {
-    http.HandleFunc("/", handler)
-    unit.ListenAndServe(":7080", nil)
+	http.HandleFunc("/", handler)
+	unit.ListenAndServe(":7080", nil)
 }
