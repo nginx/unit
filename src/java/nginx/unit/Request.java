@@ -1,6 +1,8 @@
 package nginx.unit;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.InputStreamReader;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -13,6 +15,9 @@ import java.lang.StringBuffer;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -32,6 +37,7 @@ import java.security.Principal;
 
 import javax.servlet.AsyncContext;
 import javax.servlet.DispatcherType;
+import javax.servlet.MultipartConfigElement;
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
@@ -49,11 +55,14 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpUpgradeHandler;
 import javax.servlet.http.Part;
 
+import org.eclipse.jetty.util.IO;
 import org.eclipse.jetty.util.MultiMap;
 import org.eclipse.jetty.util.UrlEncoded;
 import org.eclipse.jetty.util.StringUtil;
 
 import org.eclipse.jetty.server.CookieCutter;
+import org.eclipse.jetty.http.MultiPartFormInputStream;
+import org.eclipse.jetty.http.HttpFields;
 import org.eclipse.jetty.http.MimeTypes;
 
 public class Request implements HttpServletRequest, DynamicPathRequest
@@ -108,6 +117,9 @@ public class Request implements HttpServletRequest, DynamicPathRequest
     private final ServletRequestAttributeListener attr_listener;
 
     public static final String BARE = "nginx.unit.request.bare";
+
+    private MultiPartFormInputStream multi_parts;
+    private MultipartConfigElement multipart_config;
 
     public Request(Context ctx, long req_info, long req) {
         context = ctx;
@@ -271,17 +283,64 @@ public class Request implements HttpServletRequest, DynamicPathRequest
     @Override
     public Part getPart(String name) throws IOException, ServletException
     {
-        log("getPart: " + name);
+        trace("getPart: " + name);
 
-        return null;
+        if (multi_parts == null) {
+            parseMultiParts();
+        }
+
+        return multi_parts.getPart(name);
     }
 
     @Override
     public Collection<Part> getParts() throws IOException, ServletException
     {
-        log("getParts");
+        trace("getParts");
 
-        return Collections.emptyList();
+        if (multi_parts == null) {
+            parseMultiParts();
+        }
+
+        return multi_parts.getParts();
+    }
+
+    private boolean checkMultiPart(String content_type)
+    {
+        return content_type != null
+               && MimeTypes.Type.MULTIPART_FORM_DATA.is(HttpFields.valueParameters(content_type, null));
+    }
+
+    private void parseMultiParts() throws IOException, ServletException, IllegalStateException
+    {
+        String content_type = getContentType();
+
+        if (!checkMultiPart(content_type)) {
+            throw new ServletException("Content-Type != multipart/form-data");
+        }
+
+        if (multipart_config == null) {
+            throw new IllegalStateException("No multipart config for servlet");
+        }
+
+        parseMultiParts(content_type);
+    }
+
+    private void parseMultiParts(String content_type) throws IOException
+    {
+        File tmpDir = (File) context.getAttribute(ServletContext.TEMPDIR);
+
+        multi_parts = new MultiPartFormInputStream(getInputStream(),
+            content_type, multipart_config, tmpDir);
+    }
+
+    public void setMultipartConfig(MultipartConfigElement mce)
+    {
+        multipart_config = mce;
+    }
+
+    public MultipartConfigElement getMultipartConfig()
+    {
+        return multipart_config;
     }
 
     @Override
@@ -766,16 +825,84 @@ public class Request implements HttpServletRequest, DynamicPathRequest
             UrlEncoded.decodeUtf8To(query, parameters);
         }
 
-        if (getContentLength() > 0 &&
-            getMethod().equals("POST") &&
-            getContentType().startsWith("application/x-www-form-urlencoded"))
-        {
-            try {
+        int content_length = getContentLength();
+
+        if (content_length == 0 || !getMethod().equals("POST")) {
+            return parameters;
+        }
+
+        String content_type = getContentType();
+
+        try {
+            if (content_type.startsWith("application/x-www-form-urlencoded")) {
                 UrlEncoded.decodeUtf8To(new InputStream(req_info_ptr),
-                    parameters, getContentLength(), -1);
-            } catch (IOException e) {
-                log("Unhandled IOException: " + e);
+                    parameters, content_length, -1);
+            } else if (checkMultiPart(content_type) && multipart_config != null) {
+                if (multi_parts == null) {
+                    parseMultiParts(content_type);
+                }
+
+                if (multi_parts != null) {
+                    Collection<Part> parts = multi_parts.getParts();
+
+                    String _charset_ = null;
+                    Part charset_part = multi_parts.getPart("_charset_");
+                    if (charset_part != null) {
+                        try (java.io.InputStream is = charset_part.getInputStream())
+                        {
+                            ByteArrayOutputStream os = new ByteArrayOutputStream();
+                            IO.copy(is, os);
+                            _charset_ = new String(os.toByteArray(),StandardCharsets.UTF_8);
+                        }
+                    }
+
+                    /*
+                    Select Charset to use for this part. (NOTE: charset behavior is for the part value only and not the part header/field names)
+                        1. Use the part specific charset as provided in that part's Content-Type header; else
+                        2. Use the overall default charset. Determined by:
+                            a. if part name _charset_ exists, use that part's value.
+                            b. if the request.getCharacterEncoding() returns a value, use that.
+                                (note, this can be either from the charset field on the request Content-Type
+                                header, or from a manual call to request.setCharacterEncoding())
+                            c. use utf-8.
+                     */
+                    Charset def_charset;
+                    if (_charset_ != null) {
+                        def_charset = Charset.forName(_charset_);
+                    } else if (getCharacterEncoding() != null) {
+                        def_charset = Charset.forName(getCharacterEncoding());
+                    } else {
+                        def_charset = StandardCharsets.UTF_8;
+                    }
+
+                    ByteArrayOutputStream os = null;
+                    for (Part p : parts) {
+                        if (p.getSubmittedFileName() != null) {
+                            continue;
+                        }
+
+                        // Servlet Spec 3.0 pg 23, parts without filename must be put into params.
+                        String charset = null;
+                        if (p.getContentType() != null) {
+                            charset = MimeTypes.getCharsetFromContentType(p.getContentType());
+                        }
+
+                        try (java.io.InputStream is = p.getInputStream())
+                        {
+                            if (os == null) {
+                                os = new ByteArrayOutputStream();
+                            }
+                            IO.copy(is, os);
+
+                            String content = new String(os.toByteArray(), charset == null ? def_charset : Charset.forName(charset));
+                            parameters.add(p.getName(), content);
+                        }
+                        os.reset();
+                    }
+                }
             }
+        } catch (IOException e) {
+            log("Unhandled IOException: " + e);
         }
 
         return parameters;

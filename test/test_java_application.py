@@ -1214,7 +1214,6 @@ class TestJavaApplication(TestApplicationJava):
         )
         self.assertEqual(headers['X-Get-Date'], date, 'get date header')
 
-    @unittest.skip('not yet')
     def test_java_application_multipart(self):
         self.load('multipart')
 

@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.servlet.DispatcherType;
+import javax.servlet.MultipartConfigElement;
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
@@ -23,6 +24,8 @@ public class ForwardRequestWrapper implements DynamicPathRequest
     private final String orig_uri;
     private final String orig_context_path;
     private final String orig_query;
+
+    private final MultipartConfigElement orig_multipart_config;
 
     private final DispatcherType orig_dtype;
 
@@ -46,6 +49,8 @@ public class ForwardRequestWrapper implements DynamicPathRequest
         orig_uri = request_.getRequestURI();
         orig_context_path = request_.getContextPath();
         orig_query = request_.getQueryString();
+
+        orig_multipart_config = request_.getMultipartConfig();
     }
 
     @Override
@@ -125,6 +130,11 @@ public class ForwardRequestWrapper implements DynamicPathRequest
         return request_.getFilterPath();
     }
 
+    public void setMultipartConfig(MultipartConfigElement mce)
+    {
+        request_.setMultipartConfig(mce);
+    }
+
     public void close()
     {
         request_.setDispatcherType(orig_dtype);
@@ -136,6 +146,8 @@ public class ForwardRequestWrapper implements DynamicPathRequest
         if (orig_parameters != null) {
             request_.setParameters(orig_parameters);
         }
+
+        request_.setMultipartConfig(orig_multipart_config);
 
         if (keep_attrs) {
             return;

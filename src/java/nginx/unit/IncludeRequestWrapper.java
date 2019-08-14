@@ -1,6 +1,7 @@
 package nginx.unit;
 
 import javax.servlet.DispatcherType;
+import javax.servlet.MultipartConfigElement;
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletRequest;
 
@@ -13,6 +14,8 @@ public class IncludeRequestWrapper implements DynamicPathRequest
     private final Object orig_uri_attr;
     private final Object orig_context_path_attr;
     private final Object orig_query_string_attr;
+
+    private final MultipartConfigElement orig_multipart_config;
 
     private final DispatcherType orig_dtype;
 
@@ -31,6 +34,8 @@ public class IncludeRequestWrapper implements DynamicPathRequest
         orig_uri_attr = request_.getAttribute(RequestDispatcher.INCLUDE_REQUEST_URI);
         orig_context_path_attr = request_.getAttribute(RequestDispatcher.INCLUDE_CONTEXT_PATH);
         orig_query_string_attr = request_.getAttribute(RequestDispatcher.INCLUDE_QUERY_STRING);
+
+        orig_multipart_config = request_.getMultipartConfig();
 
         orig_dtype = request_.getDispatcherType();
 
@@ -75,6 +80,11 @@ public class IncludeRequestWrapper implements DynamicPathRequest
         return filter_path_;
     }
 
+    public void setMultipartConfig(MultipartConfigElement mce)
+    {
+        request_.setMultipartConfig(mce);
+    }
+
     public void close()
     {
         request_.setDispatcherType(orig_dtype);
@@ -84,5 +94,7 @@ public class IncludeRequestWrapper implements DynamicPathRequest
         request_.setAttribute_(RequestDispatcher.INCLUDE_REQUEST_URI, orig_uri_attr);
         request_.setAttribute_(RequestDispatcher.INCLUDE_CONTEXT_PATH, orig_context_path_attr);
         request_.setAttribute_(RequestDispatcher.INCLUDE_QUERY_STRING, orig_query_string_attr);
+
+        request_.setMultipartConfig(orig_multipart_config);
     }
 }
