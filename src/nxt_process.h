@@ -26,15 +26,6 @@ typedef nxt_int_t (*nxt_process_start_t)(nxt_task_t *task, void *data);
 typedef nxt_int_t (*nxt_process_restart_t)(nxt_task_t *task, nxt_runtime_t *rt,
     nxt_process_init_t *init);
 
-typedef struct nxt_isolation_linux_s nxt_isolation_linux_t;
-struct nxt_isolation_linux_s {
-    nxt_int_t clone_flags;
-};
-
-union nxt_isolation_t {
-    nxt_isolation_linux_t linux;
-};
-
 struct nxt_process_init_s {
     nxt_process_start_t    start;
     const char             *name;
@@ -50,23 +41,10 @@ struct nxt_process_init_s {
 
     nxt_process_restart_t  restart;
     
-    union nxt_isolation_t   isolation;
+    union {
+        nxt_int_t clone_flags;
+    } isolation;
 };
-
-#ifdef NXT_ISOLATION
-
-#ifdef NXT_LINUX
-#define                                                                       \
-    nxt_init_set_isolation(task, init, cfg)                                   \
-        nxt_init_linux_set_isolation(task, init, cfg)
-#else
-#error "isolation not implemented for your platform"
-#endif
-
-#else
-#define                                                                       \
-    nxt_init_set_isolation(task, init, cfg) (NXT_OK)
-#endif
 
 typedef struct nxt_port_mmap_s  nxt_port_mmap_t;
 typedef struct nxt_port_mmaps_s nxt_port_mmaps_t;

@@ -39,7 +39,6 @@ typedef struct {
 
 
 typedef enum {
-    NXT_CONF_MAP_BOOLEAN,
     NXT_CONF_MAP_INT8,
     NXT_CONF_MAP_INT32,
     NXT_CONF_MAP_INT64,
@@ -115,7 +114,6 @@ NXT_EXPORT void nxt_conf_set_string(nxt_conf_value_t *value, nxt_str_t *str);
 NXT_EXPORT nxt_int_t nxt_conf_set_string_dup(nxt_conf_value_t *value,
     nxt_mp_t *mp, nxt_str_t *str);
 NXT_EXPORT int64_t nxt_conf_get_integer(nxt_conf_value_t *value);
-NXT_EXPORT uint8_t nxt_conf_get_boolean(nxt_conf_value_t *value);
 
 // FIXME reimplement and reorder functions below
 nxt_uint_t nxt_conf_object_members_count(nxt_conf_value_t *value);

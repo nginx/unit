@@ -14,10 +14,8 @@
 #include <nxt_cert.h>
 #endif
 
-#ifdef NXT_ISOLATION
 #ifdef NXT_LINUX
 #include <linux/sched.h>
-#endif
 #endif
 
 
@@ -74,11 +72,10 @@ static void nxt_main_port_conf_store_handler(nxt_task_t *task,
 static void nxt_main_port_access_log_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
 
-#ifdef NXT_LINUX
-static nxt_int_t nxt_init_linux_set_isolation(nxt_task_t *task, 
+static nxt_int_t nxt_init_set_isolation(nxt_task_t *task, 
     nxt_process_init_t *init, nxt_conf_value_t *isolation);
-static void nxt_init_linux_isolation_debug(nxt_task_t *task, nxt_int_t flags);
-#endif
+static nxt_int_t nxt_init_set_ns(nxt_task_t *task, 
+    nxt_process_init_t *init, nxt_conf_value_t *ns);
 
 const nxt_sig_event_t  nxt_main_process_signals[] = {
     nxt_event_signal(SIGHUP,  nxt_main_process_signal_handler),
@@ -475,6 +472,8 @@ nxt_main_start_controller_process(nxt_task_t *task, nxt_runtime_t *rt)
         return NXT_ERROR;
     }
 
+    nxt_memzero(init, sizeof(nxt_process_init_t));
+
     init->start = nxt_controller_start;
     init->name = "controller";
     init->user_cred = &rt->user_cred;
@@ -573,6 +572,8 @@ nxt_main_start_discovery_process(nxt_task_t *task, nxt_runtime_t *rt)
         return NXT_ERROR;
     }
 
+    nxt_memzero(init, sizeof(nxt_process_init_t));
+
     init->start = nxt_discovery_start;
     init->name = "discovery";
     init->user_cred = &rt->user_cred;
@@ -600,7 +601,9 @@ nxt_main_start_router_process(nxt_task_t *task, nxt_runtime_t *rt)
     if (nxt_slow_path(init == NULL)) {
         return NXT_ERROR;
     }
-
+    
+    nxt_memzero(init, sizeof(nxt_process_init_t));
+    
     init->start = nxt_router_start;
     init->name = "router";
     init->user_cred = &rt->user_cred;
@@ -637,6 +640,8 @@ nxt_main_start_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
     if (nxt_slow_path(init == NULL)) {
         return NXT_ERROR;
     }
+
+    nxt_memzero(init, sizeof(nxt_process_init_t));
 
     init->user_cred = nxt_pointer_to(init, sizeof(nxt_process_init_t));
     user = nxt_pointer_to(init->user_cred, sizeof(nxt_user_cred_t));
@@ -1467,116 +1472,97 @@ nxt_main_port_access_log_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     }
 }
 
-#ifdef NXT_LINUX
-static void
-nxt_init_linux_isolation_debug(nxt_task_t *task, nxt_int_t flags) {
-    const char *allflags = "USER|PID|NET|UTS|IPC|NS|CGROUP";
-    nxt_int_t  maxlen = nxt_strlen(allflags)+7*nxt_strlen("CLONE_")+2;
-    char       *buf;
-    if (NXT_DEBUG) {
-        buf = nxt_malloc(maxlen);
-        if (buf == NULL) {
-            nxt_alert(task, "failed to allocate memory");
-            return;
-        }
-
-        nxt_memset(buf, 0, maxlen);
-
-        if ((flags & CLONE_NEWUSER) == CLONE_NEWUSER) {
-            strncat(buf, "CLONE_NEWUSER|", 15);
-        }
-        
-        if ((flags & CLONE_NEWPID) == CLONE_NEWPID) {
-            strncat(buf, "CLONE_NEWPID|", 14);
-        } 
-        
-        if ((flags & CLONE_NEWUTS) == CLONE_NEWUTS) {
-            strncat(buf, "CLONE_NEWUTS|", 14);
-        } 
-        
-        if ((flags & CLONE_NEWNET) == CLONE_NEWNET) {
-            strncat(buf, "CLONE_NEWNET|", 14);
-        } 
-        
-        if ((flags & CLONE_NEWIPC) == CLONE_NEWIPC) {
-            strncat(buf, "CLONE_NEWIPC|", 14);
-        } 
-        
-        if ((flags & CLONE_NEWNS) == CLONE_NEWNS) {
-            strncat(buf, "CLONE_NEWNS|", 13);
-        } 
-        
-        if ((flags & CLONE_NEWCGROUP) == CLONE_NEWCGROUP) {
-            strncat(buf, "CLONE_NEWCGROUP|", 17);
-        }
-
-        nxt_debug(task, "isolation nsflags: %s", buf);
-        nxt_free(buf);
-    }
-    return;
-}
-
 static nxt_int_t 
-nxt_init_linux_set_isolation(nxt_task_t *task, nxt_process_init_t *init, nxt_conf_value_t *isolation)
+nxt_init_set_isolation(nxt_task_t *task, nxt_process_init_t *init, nxt_conf_value_t *isolation)
 {
-    uint32_t         index;
     nxt_conf_value_t *namespaces;
-    nxt_conf_value_t *value;
-    nxt_str_t        name;
-    nxt_int_t        flags = 0;
+    nxt_str_t        name = nxt_string("namespaces");
 
     if (isolation == NULL) {
-        init->isolation.linux.clone_flags = 0;
         return NXT_OK;
     }
 
-    name.start  = (u_char *)"namespaces";
-    name.length = 10; 
     namespaces = nxt_conf_get_object_member(isolation, &name, NULL);
     if (namespaces == NULL) {
-        nxt_debug(task, "no namespace field");
-        init->isolation.linux.clone_flags = 0;
-        return 0;
+        return nxt_init_set_ns(task, init, namespaces);
     }
 
+    return NXT_OK;    
+}
+
+static nxt_int_t 
+nxt_init_set_ns(nxt_task_t *task, nxt_process_init_t *init, nxt_conf_value_t *namespaces)
+{
+    nxt_conf_value_t *value;
+    nxt_str_t        name;
+    uint32_t         index;
+    nxt_int_t        flags = 0;
+    nxt_int_t        flag = 0;
+    
     index = 0;
     while ((value = nxt_conf_next_object_member(namespaces, &name, &index)) != NULL) {
+        flag = 0;
+
         if (nxt_slow_path(nxt_conf_type(value) != NXT_CONF_BOOLEAN)) {
             nxt_alert(task, "unexpected namespace value: \"%V\". "
                     "Expected boolean.", value);
             return NXT_ERROR;
         }
 
-        if (!nxt_conf_get_boolean(value)) {
+        if (nxt_conf_get_integer(value) == 0) {
             continue; /* process shares everything by default */
         }
 
+#if (NXT_HAVE_CLONE_NEWUSER)
         if (nxt_str_eq(&name, "user", 4)) {
-            flags |= CLONE_NEWUSER;
-        } else if (nxt_str_eq(&name, "pid", 3)) {
-            flags |= CLONE_NEWPID;
-        } else if (nxt_str_eq(&name, "network", 7)) {
-            flags |= CLONE_NEWNET;
-        } else if (nxt_str_eq(&name, "uts", 3)) {
-            flags |= CLONE_NEWUTS;
-        } else if (nxt_str_eq(&name, "ipc", 3)) {
-            flags |= CLONE_NEWIPC;
-        } else if (nxt_str_eq(&name, "mount", 5)) {
-            flags |= CLONE_NEWNS;
-        } else if (nxt_str_eq(&name, "cgroup", 6)) {
-            flags |= CLONE_NEWCGROUP;
-        } else {
+            flag = CLONE_NEWUSER;
+        } 
+#endif
+
+#if (NXT_HAVE_CLONE_NEWPID)
+        if (nxt_str_eq(&name, "pid", 3)) {
+            flag = CLONE_NEWPID;
+        } 
+#endif
+
+#if (NXT_HAVE_CLONE_NEWNET)
+        if (nxt_str_eq(&name, "network", 7)) {
+            flag = CLONE_NEWNET;
+        } 
+#endif
+        
+#if (NXT_HAVE_CLONE_NEWUTS)
+        if (nxt_str_eq(&name, "uts", 3)) {
+            flag = CLONE_NEWUTS;
+        }
+#endif
+
+#if (NXT_HAVE_CLONE_NEWIPC)
+        if (nxt_str_eq(&name, "ipc", 3)) {
+            flag = CLONE_NEWIPC;
+        } 
+#endif
+        
+#if (NXT_HAVE_CLONE_NEWNS)
+        if (nxt_str_eq(&name, "mount", 5)) {
+            flag = CLONE_NEWNS;
+        } 
+#endif
+
+#if (NXT_HAVE_CLONE_NEWCGROUP)
+        if (nxt_str_eq(&name, "cgroup", 6)) {
+            flag = CLONE_NEWCGROUP;
+        }
+#endif 
+
+        if (!flag) {
             nxt_alert(task, "unknown namespace flag: \"%V\"", &name);
             return NXT_ERROR;
         }
+
+        flags |= flag;
     }
 
-    init->isolation.linux.clone_flags = flags;
-
-    if (NXT_DEBUG) 
-        nxt_init_linux_isolation_debug(task, flags);
-    
-    return NXT_OK;    
+    init->isolation.clone_flags = flags;
+    return NXT_OK;
 }
-
-#endif

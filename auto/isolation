@@ -1,69 +1,60 @@
 # Copyright (C) Igor Sysoev
 # Copyright (C) NGINX, Inc.
 
-
 # Linux clone syscall.
 
-nxt_feature="Linux unprivileged clone(2)"
-nxt_feature_name=NXT_ISOLATION
-nxt_feature_run=yes
+nsflags="USER NS PID NET UTS IPC CGROUP"
+
+nxt_feature="clone(2)"
+nxt_feature_name=NXT_HAVE_CLONE
+nxt_feature_run=no
 nxt_feature_incs=
 nxt_feature_libs=
-nxt_feature_test="#define _GNU_SOURCE
-                  #include <errno.h>
-                  #include <sys/types.h>
-                  #include <sys/wait.h>
-                  #include <unistd.h>
+nxt_feature_test="#include <sys/wait.h>
                   #include <sys/syscall.h>
-                  #include <sched.h>
 
                   int main() {
-                      int wstatus;
-                      int pid = syscall(SYS_clone, CLONE_NEWUSER|SIGCHLD, NULL);
-                      if (pid < 0) return 1;
-                      if (pid == 0) return 0;
-
-                      // parent
-                      waitpid(pid, &wstatus, 0);
-                      if (WIFEXITED(wstatus))
-                          return WEXITSTATUS(wstatus);
-                      return 1;
-                   }"
+                      return SYS_clone | SIGCHLD;
+                  }"
 . auto/feature
 
 if [ $nxt_found = yes ]; then
-    NXT_ISOLATION=YES
+    NXT_HAVE_CLONE=YES
     
-    # Test all isolation flags are unprivileged
-    nsflags="NS PID NET UTS IPC CGROUP"
+    # Test all isolation flags
     for flag in $nsflags; do
-        nxt_feature="Linux NEW${flag}"
-        nxt_feature_name=NXT_HAVE_NEW${flag}
-        nxt_feature_run=yes
+        nxt_feature="CLONE_NEW${flag}"
+        nxt_feature_name=NXT_HAVE_CLONE_NEW${flag}
+        nxt_feature_run=no
         nxt_feature_incs=
         nxt_feature_libs=
         nxt_feature_test="#define _GNU_SOURCE
-                    #include <errno.h>
-                    #include <sys/types.h>
-                    #include <sys/wait.h>
-                    #include <unistd.h>
-                    #include <sys/syscall.h>
-                    #include <sched.h>
+                          #include <sys/wait.h>
+                          #include <sys/syscall.h>
+                          #include <sched.h>
 
-                    int main() {
-                        int wstatus;
-                        int pid = syscall(SYS_clone, CLONE_NEWUSER|CLONE_NEW${flag}|SIGCHLD, NULL);
-                        if (pid < 0) return 1;
-                        if (pid == 0) return 0;
-
-                        // parent
-                        waitpid(pid, &wstatus, 0);
-                        if (WIFEXITED(wstatus))
-                            return WEXITSTATUS(wstatus);
-                        return 1;
-                    }"
+                          int main() {
+                              return CLONE_NEW$flag;
+                         }"
         . auto/feature
+
+        eval "NXT_HAVE_CLONE_NEW$flag=$nxt_found"
     done
 else
-    NXT_ISOLATION=NO
+    NXT_HAVE_CLONE=NO
 fi
+
+NXT_ISOLATION=NO
+
+if [ $NXT_HAVE_CLONE = "YES" ]; then 
+    # test if at least one isolation flag was detected
+    for flag in $nsflags; do
+        flagname="$echo -n \$NXT_HAVE_CLONE_NEW$flag"
+        has=`eval $flagname`
+        
+        if [ $has = "yes" ]; then
+            NXT_ISOLATION=YES 
+            break
+        fi
+    done
+fi 

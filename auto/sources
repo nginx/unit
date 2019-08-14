@@ -86,6 +86,7 @@ NXT_LIB_SRCS=" \
     src/nxt_application.c \
     src/nxt_external.c \
     src/nxt_port_hash.c \
+    src/nxt_clone.c \
 "
 
 NXT_LIB_SRC0=" \

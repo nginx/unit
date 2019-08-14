@@ -249,22 +249,6 @@
 #include <nxt_test_build.h>
 #endif
 
-#ifdef NXT_ISOLATION
-
-#ifdef NXT_LINUX
-/* TODO(i4k): verify clone ABI for each arch */
-#define                                                                       \
-nxt_rfork(isolation)                                                          \
-    syscall(SYS_clone, SIGCHLD|isolation.linux.clone_flags, NULL)
-#else
-#error "isolation not implemented on this OS/arch"
-#endif
-#else /* !NXT_LINUX */
-#define                                                                       \
-nxt_rfork(isolation)                                                              \
-    fork()
-#endif
-
 /*
  * On Linux IOV_MAX is 1024.  Linux uses kernel stack for 8 iovec's
  * to avoid kernel allocation/deallocation.

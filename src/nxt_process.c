@@ -6,6 +6,7 @@
 
 #include <nxt_main.h>
 #include <nxt_main_process.h>
+#include <nxt_clone.h>
 
 
 static void nxt_process_start(nxt_task_t *task, nxt_process_t *process);
@@ -43,14 +44,18 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
     nxt_process_type_t ptype;
     int                pipefd[2];
 
-    rt   = task->thread->runtime;
+    rt = task->thread->runtime;
 
     if (nxt_slow_path(pipe(pipefd) == -1)) {
         nxt_alert(task, "failed to create process pipe for passing rpid");
         return -1;
     }
 
-    pid = nxt_rfork(process->init->isolation);
+#if (NXT_HAVE_CLONE)
+    pid = nxt_clone(SIGCHLD|process->init->isolation.clone_flags);
+#else
+    pid = fork();
+#endif
 
     switch (pid) {
 

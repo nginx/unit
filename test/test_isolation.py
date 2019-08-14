@@ -79,4 +79,6 @@ class TestIsolation(TestApplicationGo):
         self.assertNotEqual(obj["NS"]["MNT"], getns("mnt"), "mnt ns not set")
         self.assertNotEqual(obj["NS"]["USER"], getns("user"), "user ns not set")
 
-
+if __name__ == '__main__':
+    TestIsolation.main()
+        
