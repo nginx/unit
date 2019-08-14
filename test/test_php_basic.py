@@ -187,7 +187,7 @@ class TestPHPBasic(TestControl):
 
         self.assertIn(
             'success',
-            self.conf({"*:7080": {"pass": "applications/app"}}, 'listeners'),
+            self.conf({"*:7081": {"pass": "applications/app"}}, 'listeners'),
             'applications restore',
         )
 
