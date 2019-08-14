@@ -164,6 +164,32 @@ class TestPHPBasic(TestControl):
             'error', self.conf_delete('applications/app'), 'delete app again'
         )
 
+    def test_php_delete_blocks(self):
+        self.conf(self.conf_basic)
+
+        self.assertIn(
+            'success',
+            self.conf_delete('listeners'),
+            'listeners delete',
+        )
+
+        self.assertIn(
+            'success',
+            self.conf_delete('applications'),
+            'applications delete',
+        )
+
+        self.assertIn(
+            'success',
+            self.conf(self.conf_app, 'applications'),
+            'listeners restore',
+        )
+
+        self.assertIn(
+            'success',
+            self.conf({"*:7080": {"pass": "applications/app"}}, 'listeners'),
+            'applications restore',
+        )
 
 if __name__ == '__main__':
     TestPHPBasic.main()
