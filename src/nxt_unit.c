@@ -335,7 +335,7 @@ nxt_unit_create(nxt_unit_init_t *init)
     lib->processes.slot = NULL;
     lib->ports.slot = NULL;
 
-    lib->pid = nxt_pid; /* if external app, this is overrided later */
+    lib->pid = nxt_pid; /* if external app, this is overridden later */
     lib->log_fd = STDERR_FILENO;
     lib->online = 1;
 
