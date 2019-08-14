@@ -108,8 +108,8 @@ struct nxt_app_s {
     nxt_work_t             adjust_idle_work;
     nxt_event_engine_t     *engine;
 
-    nxt_queue_t            requests; /* of nxt_req_app_link_t */
-    nxt_queue_t            pending;  /* of nxt_req_app_link_t */
+    nxt_queue_t            requests; /* of nxt_request_app_link_t */
+    nxt_queue_t            pending;  /* of nxt_request_app_link_t */
     nxt_str_t              name;
 
     uint32_t               pending_processes;
