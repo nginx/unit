@@ -39,14 +39,34 @@ class TestIsolation(TestApplicationGo):
     def test_no_isolation(self):
         self.load('ns_inspect', isolation={})
 
-        body = self.get()['body']
-        obj = parsejson(body)
+        obj = parsejson(self.get()['body'])
 
         nsnames = list(self._availablens.keys())
         for i in range(len(nsnames)):
             self.assertEqual(obj["NS"][nsnames[i].upper()], 
                             self._availablens[nsnames[i]], "%s not equal" % nsnames[i])
-        
+      
+    def test_user_isolation(self):
+        isolation = {}
+
+        self.load('ns_inspect', isolation=isolation)
+        obj = parsejson(self.get()['body'])
+
+        self.assertEqual(obj["UID"], os.getuid(), "uid mismatch")
+        self.assertEqual(obj["GID"], os.getuid(), "gid mismatch")
+
+        isolation = {
+            "namespaces": {
+                "user": True
+            }
+        }
+
+        self.load('ns_inspect', isolation=isolation)
+        obj = parsejson(self.get()['body'])
+
+        self.assertNotEqual(obj["UID"], os.getuid(), "uid didnt change")
+        self.assertNotEqual(obj["GID"], os.getuid(), "gid didnt change")
+
     def test_mnt_isolation(self):
         if not self._availablens.get("mnt"):
             raise unittest.SkipTest("mnt namespace not supported")

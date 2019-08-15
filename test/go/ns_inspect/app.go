@@ -22,6 +22,8 @@ type (
 
 	Output struct {
 		PID int
+		UID int
+		GID int
 		NS  NS
 	}
 )
@@ -50,6 +52,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	pid := os.Getpid()
 	out := &Output{
 		PID: pid,
+		UID: os.Getuid(),
+		GID: os.Getgid(),
 		NS: NS{
 			PID:    getns("pid"),
 			USER:   getns("user"),
