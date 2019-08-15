@@ -106,7 +106,7 @@ nxt_conf_vldt_isolation(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     void *data);
 
 static nxt_int_t
-nxt_conf_vldt_linux_namespaces(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+nxt_conf_vldt_clone_namespaces(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     void *data);
 
 
@@ -379,7 +379,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_namespaces_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_app_isolation_members[] = {
     { nxt_string("namespaces"),
       NXT_CONF_VLDT_OBJECT,
-      &nxt_conf_vldt_linux_namespaces,
+      &nxt_conf_vldt_clone_namespaces,
       (void *) &nxt_conf_vldt_app_namespaces_members },
 
     NXT_CONF_VLDT_END
@@ -1409,68 +1409,68 @@ typedef struct {
     u_char uts;
     u_char pid;
     u_char cgr;
-} nxt_conf_vldt_linux_namespaces_conf_t;
+} nxt_conf_vldt_clone_namespaces_conf_t;
 
-static nxt_conf_map_t nxt_conf_vldt_linux_namespaces_conf_map[] = {
+static nxt_conf_map_t nxt_conf_vldt_clone_namespaces_conf_map[] = {
     {
         nxt_string("user"),
         NXT_CONF_MAP_INT8,
-        offsetof(nxt_conf_vldt_linux_namespaces_conf_t, usr),
+        offsetof(nxt_conf_vldt_clone_namespaces_conf_t, usr),
     },
 
     {
         nxt_string("mount"),
         NXT_CONF_MAP_INT8,
-        offsetof(nxt_conf_vldt_linux_namespaces_conf_t, mnt),
+        offsetof(nxt_conf_vldt_clone_namespaces_conf_t, mnt),
     },
 
     {
         nxt_string("network"),
         NXT_CONF_MAP_INT8,
-        offsetof(nxt_conf_vldt_linux_namespaces_conf_t, net),
+        offsetof(nxt_conf_vldt_clone_namespaces_conf_t, net),
     },
 
     {
         nxt_string("ipc"),
         NXT_CONF_MAP_INT8,
-        offsetof(nxt_conf_vldt_linux_namespaces_conf_t, ipc),
+        offsetof(nxt_conf_vldt_clone_namespaces_conf_t, ipc),
     },
 
     {
         nxt_string("uts"),
         NXT_CONF_MAP_INT8,
-        offsetof(nxt_conf_vldt_linux_namespaces_conf_t, uts),
+        offsetof(nxt_conf_vldt_clone_namespaces_conf_t, uts),
     },
 
     {
         nxt_string("pid"),
         NXT_CONF_MAP_INT8,
-        offsetof(nxt_conf_vldt_linux_namespaces_conf_t, pid),
+        offsetof(nxt_conf_vldt_clone_namespaces_conf_t, pid),
     },
 
     {
         nxt_string("cgroup"),
         NXT_CONF_MAP_INT8,
-        offsetof(nxt_conf_vldt_linux_namespaces_conf_t, cgr),
+        offsetof(nxt_conf_vldt_clone_namespaces_conf_t, cgr),
     },
 };
 
 static nxt_int_t
-nxt_conf_vldt_linux_namespaces(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+nxt_conf_vldt_clone_namespaces(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     void *data)
 {
     nxt_int_t                       ret;
-    nxt_conf_vldt_linux_namespaces_conf_t ns;
+    nxt_conf_vldt_clone_namespaces_conf_t ns;
     ret = nxt_conf_vldt_object(vldt, value, data);
     if (ret != NXT_OK) {
         return ret;
     }
 
-    nxt_memset(&ns, 0, sizeof(nxt_conf_vldt_linux_namespaces_conf_t));
+    nxt_memset(&ns, 0, sizeof(nxt_conf_vldt_clone_namespaces_conf_t));
 
     ret = nxt_conf_map_object(vldt->pool, value,
-                              nxt_conf_vldt_linux_namespaces_conf_map,
-                              nxt_nitems(nxt_conf_vldt_linux_namespaces_conf_map),
+                              nxt_conf_vldt_clone_namespaces_conf_map,
+                              nxt_nitems(nxt_conf_vldt_clone_namespaces_conf_map),
                               &ns);
     if (ret != NXT_OK) {
         return ret;
