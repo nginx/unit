@@ -42,9 +42,11 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
     nxt_process_t      *p;
     nxt_runtime_t      *rt;
     nxt_process_type_t ptype;
+    nxt_process_init_t *init;
     int                pipefd[2];
 
-    rt = task->thread->runtime;
+    rt   = task->thread->runtime;
+    init = process->init;
 
     if (nxt_slow_path(pipe(pipefd) == -1)) {
         nxt_alert(task, "failed to create process pipe for passing rpid");
@@ -52,7 +54,7 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
     }
 
 #if (NXT_HAVE_CLONE)
-    pid = nxt_clone(SIGCHLD|process->init->isolation.clone_flags);
+    pid = nxt_clone(SIGCHLD|init->isolation.clone_flags);
 #else
     pid = fork();
 #endif
@@ -61,7 +63,7 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
 
     case -1:
         nxt_alert(task, "fork/clone() failed while creating \"%s\" %E",
-                  process->init->name, nxt_errno);
+                  init->name, nxt_errno);
         break;
 
     case 0:
@@ -70,8 +72,6 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
             nxt_alert(task, "failed to close writer pipe fd");
             return -1;
         }
-
-        nxt_debug(task, "process namespace pid: %d", getpid());
 
         if (read(pipefd[0], &pid, sizeof(pid)) == -1) {
             nxt_alert(task, "failed to read real pid");
@@ -88,14 +88,15 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
             return -1;
         }
 
-        nxt_debug(task, "process real pid %d", pid);
-
         nxt_pid = pid;
 
         /* Clean inherited cached thread tid. */
         task->thread->tid = 0;
 
         process->pid = nxt_pid;
+
+        nxt_debug(task, "app \"%s\" real pid %d", init->name, pid);
+        nxt_debug(task, "app \"%s\" isolated pid: %d", init->name, getpid());
 
         ptype = process->init->type;
 
@@ -141,7 +142,7 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
     default:
         /* A parent. */
         close(pipefd[0]);
-        nxt_debug(task, "nxt_rfork(\"%s\"): %PI", process->init->name, pid);
+        nxt_debug(task, "fork/clone(\"%s\"): %PI", process->init->name, pid);
         if (nxt_slow_path(write(pipefd[1], &pid, sizeof(pid)) == -1)) {
             nxt_alert(task, "failed to write real pid");
             return -1;
