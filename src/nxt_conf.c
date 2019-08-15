@@ -214,6 +214,7 @@ nxt_conf_get_integer(nxt_conf_value_t *value)
     return value->u.integer;
 }
 
+
 nxt_uint_t
 nxt_conf_object_members_count(nxt_conf_value_t *value)
 {
@@ -553,6 +554,7 @@ nxt_conf_map_object(nxt_mp_t *mp, nxt_conf_value_t *value, nxt_conf_map_t *map,
         ptr = nxt_pointer_to(data, map[i].offset);
 
         switch (map[i].type) {
+
         case NXT_CONF_MAP_INT8:
 
             if (v->type == NXT_CONF_VALUE_BOOLEAN) {
