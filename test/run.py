@@ -7,9 +7,8 @@ import os
 loader = unittest.TestLoader()
 suite  = unittest.TestSuite()
 
-testpattern = os.getenv("UNIT_TEST", "test*.py")
 this_dir = os.path.dirname(__file__)
-tests = loader.discover(start_dir=this_dir, pattern=testpattern)
+tests = loader.discover(start_dir=this_dir)
 suite.addTests(tests)
 
 runner = unittest.TextTestRunner(verbosity=3)
