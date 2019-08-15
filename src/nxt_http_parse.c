@@ -1110,7 +1110,7 @@ done:
 }
 
 
-static const nxt_lvlhsh_proto_t  nxt_http_fields_hash_proto  nxt_aligned(64) = {
+const nxt_lvlhsh_proto_t  nxt_http_fields_hash_proto  nxt_aligned(64) = {
     NXT_LVLHSH_BUCKET_SIZE(64),
     { NXT_HTTP_FIELD_LVLHSH_SHIFT, 0, 0, 0, 0, 0, 0, 0 },
     nxt_http_field_hash_test,
@@ -1240,27 +1240,12 @@ nxt_http_fields_hash_collisions(nxt_lvlhsh_t *hash, nxt_mp_t *mp,
 nxt_int_t
 nxt_http_fields_process(nxt_list_t *fields, nxt_lvlhsh_t *hash, void *ctx)
 {
-    nxt_int_t              ret;
-    nxt_http_field_t       *field;
-    nxt_lvlhsh_query_t     lhq;
-    nxt_http_field_proc_t  *proc;
-
-    lhq.proto = &nxt_http_fields_hash_proto;
+    nxt_int_t         ret;
+    nxt_http_field_t  *field;
 
     nxt_list_each(field, fields) {
 
-        lhq.key_hash = field->hash;
-        lhq.key.length = field->name_length;
-        lhq.key.start = field->name;
-
-        if (nxt_lvlhsh_find(hash, &lhq) != NXT_OK) {
-            continue;
-        }
-
-        proc = lhq.value;
-
-        ret = proc->handler(ctx, field, proc->data);
-
+        ret = nxt_http_field_process(field, hash, ctx);
         if (nxt_slow_path(ret != NXT_OK)) {
             return ret;
         }
