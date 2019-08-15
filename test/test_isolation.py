@@ -1,4 +1,5 @@
 from unit.applications.lang.go import TestApplicationGo
+import unittest
 import os
 import json
 
@@ -16,35 +17,34 @@ def parsejson(data):
 class TestIsolation(TestApplicationGo):
     prerequisites = ['go']
 
-    def test_detect_isolation_allowed(self):
-        isolation = {
-            "namespaces": {
-                "user": True,
-                "pid": True
-            }
-        }
+    @classmethod
+    def setUpClass(cls):
+        allns = ["user", "pid", "mnt", "ipc", "uts", "cgroup", "net"]
+        cls._availablens = {}
 
-        conf_status = self.load('ns_inspect', 
-                                isolation=isolation, 
-                                assert_conf=False)
-        if "error" in conf_status:
-            self.skipTest("isolation not supported")
+        for i in range(len(allns)):
+            try:
+                ns = getns(allns[i])
+            except:
+                continue
 
-        body = self.get()['body']
-        self.assertIn('"PID":1,', body, "pid 1 not found")
-    
+            cls._availablens[allns[i]] = ns
+        
+        if len(cls._availablens) == 0:
+            raise unittest.SkipTest("namespace not supported")
+
     def test_no_isolation(self):
         self.load('ns_inspect', isolation={}, assert_conf=True)
 
         body = self.get()['body']
         obj = parsejson(body)
 
-        ns = ["user", "pid", "mnt", "ipc", "uts", "cgroup", "net"]
-
-        for i in range(len(ns)):
-            self.assertEqual(obj["NS"][ns[i].upper()], 
-                            getns(ns[i]), "%s not equal" % ns[i])
+        nsnames = list(self._availablens.keys())
+        for i in range(len(nsnames)):
+            self.assertEqual(obj["NS"][nsnames[i].upper()], 
+                            self._availablens[nsnames[i]], "%s not equal" % nsnames[i])
     
+    @unittest.skip('not yet')
     def test_user_isolation_enforced(self):
         isolation = {
             "namespaces": {
@@ -58,6 +58,10 @@ class TestIsolation(TestApplicationGo):
             self.fail("requires userns if unprivileged unit")
         
     def test_mnt_isolation(self):
+        if (not self._availablens.get("mnt") and 
+            not self._availablens.get("user")):
+            raise unittest.SkipTest("mnt or user namespace not supported")
+
         isolation = {
             "namespaces": {
                 "mount": True,
@@ -71,11 +75,13 @@ class TestIsolation(TestApplicationGo):
         obj = parsejson(body)
     
         # all but user and mnt
-        ns = ["pid", "ipc", "uts", "cgroup", "net"]
+        ns = list(self._availablens.keys())
+        ns.remove("user")
+        ns.remove("mnt")
 
         for i in range(len(ns)):
             self.assertEqual(obj["NS"][ns[i].upper()], 
-                            getns(ns[i]), "%s not equal" % ns[i])
+                            self._availablens[ns[i]], "%s not equal" % ns[i])
 
         self.assertNotEqual(obj["NS"]["MNT"], getns("mnt"), "mnt ns not set")
         self.assertNotEqual(obj["NS"]["USER"], getns("user"), "user ns not set")

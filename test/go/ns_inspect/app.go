@@ -35,7 +35,10 @@ func abortonerr(err error) {
 // returns: [nstype]:[4026531835]
 func getns(nstype string) uint64 {
 	str, err := os.Readlink(fmt.Sprintf("/proc/self/ns/%s", nstype))
-	abortonerr(err)
+	if err != nil {
+		return 0
+	}
+
 	str = str[len(nstype)+2:]
 	str = str[:len(str)-1]
 	val, err := strconv.ParseUint(str, 10, 64)
