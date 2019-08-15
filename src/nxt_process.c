@@ -169,36 +169,35 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
         return 0;
     }
     
-    /* parent. */
+    /**
+     * Parent
+     * 
+     * At this point, the child process is blocked reading the
+     * pipe fd to get its real pid (rpid).
+     * 
+     * If anything goes wrong now, we need to kill the child
+     * process before returning the error to the caller.
+     * As the child didn't have time to set any signal handlers,
+     * it should terminate.
+     */
 
 #if (NXT_HAVE_CLONE_NEWUSER)
     if ((init->isolation.clone_flags & CLONE_NEWUSER) == CLONE_NEWUSER) {
 
         ret = nxt_clone_proc_map(task, pid);
         if (nxt_slow_path(ret != NXT_OK)) {
-           
-           close(pipefd[0]);
-           close(pipefd[1]);
-
-           if (kill(pid, SIGTERM) != 0) {
-               nxt_alert(task, "failed to kill process %d", pid);
-           }
-
-           return -1;
-       }
-   }
+            close(pipefd[0]);
+            close(pipefd[1]);
+            goto fail_cleanup;
+        }
+    }
 #endif
 
     if (nxt_slow_path(close(pipefd[0]) != 0)) {
         nxt_alert(task, "failed to close rpid pipe: %E", nxt_errno);
 
         close(pipefd[1]);
-
-        if (kill(pid, SIGTERM) != 0) {
-            nxt_alert(task, "failed to kill process: %d", pid);
-        }
-
-        return -1;
+        goto fail_cleanup;
     }
 
     nxt_debug(task, "fork/clone(\"%s\"): %PI", process->init->name, pid);
@@ -209,20 +208,31 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
         close(pipefd[0]);
         close(pipefd[1]);
 
-        if (kill(pid, SIGTERM) != 0) {
-            nxt_alert(task, "failed to kill process: %d", pid);
-        }
-
-        return -1;
+        goto fail_cleanup;
     }
 
-    close(pipefd[1]);
+    if (nxt_slow_path(close(pipefd[1]) != 0)) {
+        nxt_alert(task, "failed to close rpid pipe: %E", nxt_errno);
+        goto fail_cleanup;
+    }
 
     process->pid = pid;
 
     nxt_runtime_process_add(task, process);
 
-    return pid;   
+    return pid;
+
+fail_cleanup:
+    nxt_alert(task, "worker parent setup failed. Killing %d", pid);
+
+    if (nxt_slow_path(kill(pid, SIGTERM) != 0)) {
+        nxt_alert(task, "failed to send SIGTERM to %d: %E", pid, 
+            nxt_errno);
+        return -1;
+    }
+
+    waitpid(pid, NULL, 0);
+    return -1;
 }
 
 
