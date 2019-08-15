@@ -3,9 +3,10 @@ import os
 import json
 
 def getns(nstype):
-    data = os.readlink("/proc/self/ns/%s" % nstype)
-    data = data[len(nstype)+2:]
-    data = data[:len(data)-1]
+    # read namespace id from link file:
+    # it points to: '<nstype>:[<ns id>]'
+    # # eg.: 'pid:[4026531836]' 
+    data = os.readlink("/proc/self/ns/%s" % nstype)[len(nstype) + 2 : -1]
     return int(data)
 
 def parsejson(data):
