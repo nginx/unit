@@ -558,6 +558,8 @@ nxt_main_create_controller_process(nxt_task_t *task, nxt_runtime_t *rt,
 #endif
     }
 
+    /* TODO(i4k): review leak */
+
     return ret;
 }
 

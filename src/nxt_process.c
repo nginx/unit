@@ -62,8 +62,14 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
     switch (pid) {
 
     case -1:
-        nxt_alert(task, "fork/clone() failed while creating \"%s\" %E",
+        if (nxt_errno == NXT_EPERM) {
+            nxt_alert(task, "fork/clone() check namespace flags of %s: %E", 
+                init->name, nxt_errno);
+        } else {
+            nxt_alert(task, "fork/clone() failed while creating %s: %E",
                   init->name, nxt_errno);
+        }
+
         break;
 
     case 0:

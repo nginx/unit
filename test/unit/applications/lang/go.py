@@ -4,7 +4,7 @@ from unit.applications.proto import TestApplicationProto
 
 
 class TestApplicationGo(TestApplicationProto):
-    def load(self, script, name='app', isolation={}, assert_conf=True):
+    def load(self, script, name='app', isolation={}):
 
         if not os.path.isdir(self.testdir + '/go'):
             os.mkdir(self.testdir + '/go')
@@ -37,6 +37,5 @@ class TestApplicationGo(TestApplicationProto):
                         "isolation": isolation,
                     }
                 },
-            },
-            assert_conf=assert_conf,
+            }
         )

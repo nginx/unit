@@ -25,10 +25,8 @@ class TestApplicationProto(TestControl):
 
         return found
 
-    def _load_conf(self, conf, assert_conf=True):
+    def _load_conf(self, conf):
         res = self.conf(conf)
-        if assert_conf is True:
-            self.assertIn(
-                'success', res, 'load application configuration'
-            )
-        return res
+        self.assertIn(
+            'success', res, 'load application configuration'
+        )

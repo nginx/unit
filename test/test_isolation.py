@@ -4,7 +4,7 @@ import os
 import json
 
 def getns(nstype):
-    # read namespace id from link file:
+    # read namespace id from symlink file:
     # it points to: '<nstype>:[<ns id>]'
     # # eg.: 'pid:[4026531836]' 
     data = os.readlink("/proc/self/ns/%s" % nstype)[len(nstype) + 2 : -1]
@@ -31,10 +31,13 @@ class TestIsolation(TestApplicationGo):
             cls._availablens[allns[i]] = ns
         
         if len(cls._availablens) == 0:
-            raise unittest.SkipTest("namespace not supported")
+            raise unittest.SkipTest("clone namespaces not supported")
+        
+        if not cls._availablens.get("user"):
+            raise unittest.SkipTest("userns is required to run unprivileged tests")
 
     def test_no_isolation(self):
-        self.load('ns_inspect', isolation={}, assert_conf=True)
+        self.load('ns_inspect', isolation={})
 
         body = self.get()['body']
         obj = parsejson(body)
@@ -43,24 +46,10 @@ class TestIsolation(TestApplicationGo):
         for i in range(len(nsnames)):
             self.assertEqual(obj["NS"][nsnames[i].upper()], 
                             self._availablens[nsnames[i]], "%s not equal" % nsnames[i])
-    
-    @unittest.skip('not yet')
-    def test_user_isolation_enforced(self):
-        isolation = {
-            "namespaces": {
-                "mount": True,
-            }
-        }
-
-        conf_status = self.load('ns_inspect', isolation=isolation, assert_conf=False)
-
-        if 'success' in conf_status and os.getuid() is not 0:
-            self.fail("requires userns if unprivileged unit")
         
     def test_mnt_isolation(self):
-        if (not self._availablens.get("mnt") and 
-            not self._availablens.get("user")):
-            raise unittest.SkipTest("mnt or user namespace not supported")
+        if not self._availablens.get("mnt"):
+            raise unittest.SkipTest("mnt namespace not supported")
 
         isolation = {
             "namespaces": {
@@ -69,7 +58,7 @@ class TestIsolation(TestApplicationGo):
             }
         }
 
-        self.load('ns_inspect', isolation=isolation, assert_conf=True)
+        self.load('ns_inspect', isolation=isolation)
 
         body = self.get()['body']
         obj = parsejson(body)
@@ -85,6 +74,24 @@ class TestIsolation(TestApplicationGo):
 
         self.assertNotEqual(obj["NS"]["MNT"], getns("mnt"), "mnt ns not set")
         self.assertNotEqual(obj["NS"]["USER"], getns("user"), "user ns not set")
+    
+    def test_pid_isolation(self):
+        if not self._availablens.get("pid"):
+            raise unittest.SkipTest("pid namespace not supported")
+            
+        isolation = {
+            "namespaces": {
+                "pid": True,
+                "user": True,
+            }
+        }
+
+        self.load('ns_inspect', isolation=isolation)
+
+        body = self.get()['body']
+        obj = parsejson(body)
+
+        self.assertEqual(obj["PID"], 1, "pid of container is not 1")
 
 if __name__ == '__main__':
     TestIsolation.main()
