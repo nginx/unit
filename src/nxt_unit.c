@@ -243,7 +243,7 @@ nxt_unit_init(nxt_unit_init_t *init)
     nxt_unit_ctx_t   *ctx;
     nxt_unit_impl_t  *lib;
     nxt_unit_port_t  ready_port, read_port;
-    char       *init_env;
+    char             *init_env;
 
     lib = nxt_unit_create(init);
     if (nxt_slow_path(lib == NULL)) {
