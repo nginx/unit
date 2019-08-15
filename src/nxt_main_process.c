@@ -558,8 +558,6 @@ nxt_main_create_controller_process(nxt_task_t *task, nxt_runtime_t *rt,
 #endif
     }
 
-    /* TODO(i4k): review leak */
-
     return ret;
 }
 
@@ -1498,7 +1496,6 @@ nxt_init_set_ns(nxt_task_t *task, nxt_process_init_t *init, nxt_conf_value_t *na
     nxt_conf_value_t *value;
     nxt_str_t        name;
     uint32_t         index;
-    nxt_int_t        flags = 0;
     nxt_int_t        flag = 0;
     
     index = 0;
@@ -1562,9 +1559,8 @@ nxt_init_set_ns(nxt_task_t *task, nxt_process_init_t *init, nxt_conf_value_t *na
             return NXT_ERROR;
         }
 
-        flags |= flag;
+        init->isolation.clone_flags |= flag;
     }
 
-    init->isolation.clone_flags = flags;
     return NXT_OK;
 }
