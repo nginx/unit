@@ -8,10 +8,19 @@
 #include <nxt_main_process.h>
 #include <nxt_clone.h>
 
+#include <signal.h>
+
 
 static void nxt_process_start(nxt_task_t *task, nxt_process_t *process);
 static nxt_int_t nxt_user_groups_get(nxt_task_t *task, nxt_user_cred_t *uc);
-
+static nxt_int_t 
+nxt_process_proc_map_set(nxt_task_t *task, const char *mapfile, 
+    pid_t pid, const char *mapinfo);
+static void
+nxt_process_proc_setgroups(pid_t child_pid, const char *str);
+static nxt_int_t 
+nxt_process_worker_setup(nxt_task_t *task, 
+    nxt_process_t *process, int pipefd[2]);
 
 /* A cached process pid. */
 nxt_pid_t  nxt_pid;
@@ -35,17 +44,198 @@ nxt_bool_t  nxt_proc_remove_notify_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
     { 0, 0, 0, 1, 0 },
 };
 
+static void
+nxt_process_proc_setgroups(pid_t child_pid, const char *str)
+{
+    char setgroups_path[PATH_MAX];
+    int fd;
+
+    snprintf(setgroups_path, PATH_MAX, "/proc/%d/setgroups",
+                child_pid);
+
+    fd = open(setgroups_path, O_RDWR);
+    if (fd == -1) {
+
+        /* We may be on a system that doesn't support
+            /proc/PID/setgroups. In that case, the file won't exist,
+            and the system won't impose the restrictions that Linux 3.19
+            added. That's fine: we don't need to do anything in order
+            to permit 'gid_map' to be updated.
+
+            However, if the error from open() was something other than
+            the ENOENT error that is expected for that case,  let the
+            user know. */
+
+        if (errno != ENOENT)
+            fprintf(stderr, "ERROR: open %s: %s\n", setgroups_path,
+                strerror(errno));
+        return;
+    }
+
+    if (write(fd, str, strlen(str)) == -1)
+        fprintf(stderr, "ERROR: write %s: %s\n", setgroups_path,
+            strerror(errno));
+
+    close(fd);
+}
+
+static nxt_int_t 
+nxt_process_proc_map_set(nxt_task_t *task, const char *mapfile, 
+        pid_t pid, const char *mapinfo)
+{
+    u_char buf[256];
+    u_char *end; 
+    u_char *p;
+    int    mapfd;
+    int    len;
+
+    end = buf + sizeof(buf);
+    p = nxt_sprintf(buf, end, "/proc/%d/%s", pid, mapfile);
+    if (nxt_slow_path(p == end)) {
+        nxt_alert(task, "writing past the buffer");
+        return NXT_ERROR;
+    }
+
+    *p = '\0';
+
+    mapfd = open((char*)buf, O_RDWR);
+    if (nxt_slow_path(mapfd == -1)) {
+        nxt_alert(task, "failed to open proc map (%s): (%s)", buf, 
+            strerror(nxt_errno));
+        return NXT_ERROR;
+    }
+
+    len = nxt_strlen(mapinfo);
+    if (nxt_slow_path(write(mapfd, mapinfo, len) != len)) {
+        nxt_alert(task, "failed to write proc map (%s): %s", buf,
+            strerror(nxt_errno));
+        return NXT_ERROR;
+    }
+
+    return NXT_OK;
+}
+
+static nxt_int_t 
+nxt_process_clone_proc_map(nxt_task_t *task, pid_t pid)
+{
+    nxt_int_t ret;
+
+    /**
+     * TODO(i4k): For now, just map the uid 1000 from host to 0 (root)
+     * inside the namespace. Soon I'll add a config for that.
+     * 
+     * The process in the new namespace has the full set of capabilities 
+     * on the namespace but none in the parent. Also, inside the namespace
+     * it has root powers.
+     */
+    ret = nxt_process_proc_map_set(task, "uid_map", pid, "0 1000 1");
+    if (nxt_slow_path(ret != NXT_OK)) {
+           nxt_alert(task, "failed to set uid map");
+           return NXT_ERROR;
+    }
+
+    nxt_process_proc_setgroups(pid, "deny");
+    ret = nxt_process_proc_map_set(task, "gid_map", pid, "0 1000 1");
+    if (nxt_slow_path(ret != NXT_OK)) {
+        nxt_alert(task, "failed to set gid map");
+        return NXT_ERROR;
+    }
+
+    return NXT_OK;
+}
+
+static nxt_int_t 
+nxt_process_worker_setup(nxt_task_t *task, nxt_process_t *process, int pipefd[2]) {
+    nxt_process_init_t *init;
+    nxt_process_type_t ptype;
+    nxt_process_t      *p;
+    nxt_runtime_t      *rt;
+    pid_t              pid;
+    
+    pid = 0;
+    rt   = task->thread->runtime;
+    init = process->init;
+    
+    /**
+     * Setup the worker process
+     */
+    if (nxt_slow_path(close(pipefd[1]) == -1)) {
+        nxt_alert(task, "failed to close writer pipe fd");
+        return NXT_ERROR;
+    }
+
+    if (read(pipefd[0], &pid, sizeof(pid)) == -1) {
+        nxt_alert(task, "failed to read real pid");
+        return NXT_ERROR;
+    }
+
+    if (nxt_slow_path(close(pipefd[0]) == -1)) {
+        nxt_alert(task, "failed to close reader pipe fd");
+        return NXT_ERROR;
+    }
+
+    if (nxt_slow_path(pid == 0)) {
+        nxt_alert(task, "failed to get real pid from parent");
+        return NXT_ERROR;
+    }
+
+    nxt_pid = pid;
+
+    /* Clean inherited cached thread tid. */
+    task->thread->tid = 0;
+
+    process->pid = nxt_pid;
+
+    nxt_debug(task, "app \"%s\" real pid %d", init->name, pid);
+    nxt_debug(task, "app \"%s\" isolated pid: %d", init->name, getpid());
+
+    ptype = init->type;
+
+    nxt_port_reset_next_id();
+
+    nxt_event_engine_thread_adopt(task->thread->engine);
+
+    /* Remove not ready processes */
+    nxt_runtime_process_each(rt, p) {
+
+        if (nxt_proc_conn_matrix[ptype][nxt_process_type(p)] == 0) {
+            nxt_debug(task, "remove not required process %PI", p->pid);
+
+            nxt_process_close_ports(task, p);
+
+            continue;
+        }
+
+        if (!p->ready) {
+            nxt_debug(task, "remove not ready process %PI", p->pid);
+
+            nxt_process_close_ports(task, p);
+
+            continue;
+        }
+
+        nxt_port_mmaps_destroy(&p->incoming, 0);
+        nxt_port_mmaps_destroy(&p->outgoing, 0);
+
+    } nxt_runtime_process_loop;
+
+    nxt_runtime_process_add(task, process);
+
+    nxt_process_start(task, process);
+
+    process->ready = 1;
+
+    return NXT_OK;
+}
+
 nxt_pid_t
 nxt_process_create(nxt_task_t *task, nxt_process_t *process)
 {
     nxt_pid_t          pid;
-    nxt_process_t      *p;
-    nxt_runtime_t      *rt;
-    nxt_process_type_t ptype;
     nxt_process_init_t *init;
+    nxt_int_t          ret;
     int                pipefd[2];
 
-    rt   = task->thread->runtime;
     init = process->init;
 
     if (nxt_slow_path(pipe(pipefd) == -1)) {
@@ -59,111 +249,87 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
     pid = fork();
 #endif
 
-    switch (pid) {
-
-    case -1:
+    if (pid < 0) {
         if (nxt_errno == NXT_EPERM) {
             nxt_alert(task, "fork/clone() check namespace flags of %s: %E", 
-                init->name, nxt_errno);
+                    init->name, nxt_errno);
         } else {
             nxt_alert(task, "fork/clone() failed while creating %s: %E",
-                  init->name, nxt_errno);
+                    init->name, nxt_errno);
         }
 
-        break;
+        return pid;
+    }
 
-    case 0:
+    if (pid == 0) {
         /* A child. */
-        if (nxt_slow_path(close(pipefd[1]) == -1)) {
-            nxt_alert(task, "failed to close writer pipe fd");
+        
+        ret = nxt_process_worker_setup(task, process, pipefd);
+        if (nxt_slow_path(ret != NXT_OK)) {
             return -1;
         }
-
-        if (read(pipefd[0], &pid, sizeof(pid)) == -1) {
-            nxt_alert(task, "failed to read real pid");
-            return -1;
-        }
-
-        if (nxt_slow_path(close(pipefd[0]) == -1)) {
-            nxt_alert(task, "failed to close reader pipe fd");
-            return -1;
-        }
-
-        if (nxt_slow_path(pid == 0)) {
-            nxt_alert(task, "failed to get real pid from parent");
-            return -1;
-        }
-
-        nxt_pid = pid;
-
-        /* Clean inherited cached thread tid. */
-        task->thread->tid = 0;
-
-        process->pid = nxt_pid;
-
-        nxt_debug(task, "app \"%s\" real pid %d", init->name, pid);
-        nxt_debug(task, "app \"%s\" isolated pid: %d", init->name, getpid());
-
-        ptype = process->init->type;
-
-        nxt_port_reset_next_id();
-
-        nxt_event_engine_thread_adopt(task->thread->engine);
-
-        /* Remove not ready processes */
-        nxt_runtime_process_each(rt, p) {
-
-            if (nxt_proc_conn_matrix[ptype][nxt_process_type(p)] == 0) {
-                nxt_debug(task, "remove not required process %PI", p->pid);
-
-                nxt_process_close_ports(task, p);
-
-                continue;
-            }
-
-            if (!p->ready) {
-                nxt_debug(task, "remove not ready process %PI", p->pid);
-
-                nxt_process_close_ports(task, p);
-
-                continue;
-            }
-
-            nxt_port_mmaps_destroy(&p->incoming, 0);
-            nxt_port_mmaps_destroy(&p->outgoing, 0);
-
-        } nxt_runtime_process_loop;
-
-        nxt_runtime_process_add(task, process);
-
-        nxt_process_start(task, process);
-
-        process->ready = 1;
 
         /**
          * Explicitly return 0 to notice the caller function this is the
          * child. The caller must return to the event engine work queue loop.
          */
         return 0;
-    default:
-        /* A parent. */
-        close(pipefd[0]);
-        nxt_debug(task, "fork/clone(\"%s\"): %PI", process->init->name, pid);
-        if (nxt_slow_path(write(pipefd[1], &pid, sizeof(pid)) == -1)) {
-            nxt_alert(task, "failed to write real pid");
-            return -1;
-        }
+    }
+    
+    /* parent. */
+
+#if (NXT_HAVE_CLONE_NEWUSER)
+    if ((init->isolation.clone_flags & CLONE_NEWUSER) == CLONE_NEWUSER) {
+
+        ret = nxt_process_clone_proc_map(task, pid);
+        if (nxt_slow_path(ret != NXT_OK)) {
+           
+           close(pipefd[0]);
+           close(pipefd[1]);
+
+           if (kill(pid, SIGTERM) != 0) {
+               nxt_alert(task, "failed to kill process %d", pid);
+           }
+
+           return -1;
+       }
+   }
+#endif
+
+    if (nxt_slow_path(close(pipefd[0]) != 0)) {
+        nxt_alert(task, "failed to close rpid pipe: %E", nxt_errno);
 
         close(pipefd[1]);
 
-        process->pid = pid;
+        if (kill(pid, SIGTERM) != 0) {
+            nxt_alert(task, "failed to kill process: %d", pid);
+        }
 
-        nxt_runtime_process_add(task, process);
-
-        break;
+        return -1;
     }
 
-    return pid;
+    nxt_debug(task, "fork/clone(\"%s\"): %PI", process->init->name, pid);
+
+    if (nxt_slow_path(write(pipefd[1], &pid, sizeof(pid)) == -1)) {
+        nxt_alert(task, "failed to write real pid");
+
+        close(pipefd[0]);
+        close(pipefd[1]);
+
+        if (kill(pid, SIGTERM) != 0) {
+            nxt_alert(task, "failed to kill process: %d", pid);
+        }
+
+        return -1;
+    }
+
+    close(pipefd[1]);
+
+    process->pid = pid;
+
+    nxt_runtime_process_add(task, process);
+
+    return pid;   
 }
 
 
