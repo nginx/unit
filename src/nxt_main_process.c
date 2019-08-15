@@ -1483,7 +1483,7 @@ nxt_init_set_isolation(nxt_task_t *task, nxt_process_init_t *init, nxt_conf_valu
     }
 
     namespaces = nxt_conf_get_object_member(isolation, &name, NULL);
-    if (namespaces == NULL) {
+    if (namespaces != NULL) {
         return nxt_init_set_ns(task, init, namespaces);
     }
 
