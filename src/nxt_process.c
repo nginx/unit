@@ -16,8 +16,8 @@ static nxt_int_t nxt_user_groups_get(nxt_task_t *task, nxt_user_cred_t *uc);
 static nxt_int_t 
 nxt_process_proc_map_set(nxt_task_t *task, const char *mapfile, 
     pid_t pid, const char *mapinfo);
-static void
-nxt_process_proc_setgroups(pid_t child_pid, const char *str);
+static nxt_int_t
+nxt_process_proc_setgroups(nxt_task_t *task, pid_t child_pid, const char *str);
 static nxt_int_t 
 nxt_process_worker_setup(nxt_task_t *task, 
     nxt_process_t *process, int pipefd[2]);
@@ -44,39 +44,47 @@ nxt_bool_t  nxt_proc_remove_notify_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
     { 0, 0, 0, 1, 0 },
 };
 
-static void
-nxt_process_proc_setgroups(pid_t child_pid, const char *str)
+static nxt_int_t
+nxt_process_proc_setgroups(nxt_task_t *task, pid_t child_pid, const char *str)
 {
-    char setgroups_path[PATH_MAX];
-    int fd;
+    u_char path[PATH_MAX];
+    u_char *p, *end;
+    int    fd;
+    int    n;
 
-    snprintf(setgroups_path, PATH_MAX, "/proc/%d/setgroups",
-                child_pid);
+    end = path + PATH_MAX;
+    p = nxt_sprintf(path, end, "/proc/%d/setgroups", child_pid);
+    *p = '\0';
 
-    fd = open(setgroups_path, O_RDWR);
-    if (fd == -1) {
-
-        /* We may be on a system that doesn't support
-            /proc/PID/setgroups. In that case, the file won't exist,
-            and the system won't impose the restrictions that Linux 3.19
-            added. That's fine: we don't need to do anything in order
-            to permit 'gid_map' to be updated.
-
-            However, if the error from open() was something other than
-            the ENOENT error that is expected for that case,  let the
-            user know. */
-
-        if (errno != ENOENT)
-            fprintf(stderr, "ERROR: open %s: %s\n", setgroups_path,
-                strerror(errno));
-        return;
+    if (nxt_slow_path(p == path + PATH_MAX)) {
+        nxt_alert(task, "error write past the buffer: %s", path);
+        return NXT_ERROR;
     }
 
-    if (write(fd, str, strlen(str)) == -1)
-        fprintf(stderr, "ERROR: write %s: %s\n", setgroups_path,
-            strerror(errno));
+    fd = open((char *)path, O_RDWR);
+    if (fd == -1) {
+        /**
+         * If the /proc/pid/setgroups doesn't exists, we are
+         * safe to set uid/gid maps. But if the error is anything
+         * other than ENOENT, then we should abort and let user know.
+         */
+        if (errno != ENOENT) {
+            nxt_alert(task, "open(%s): %E", path, nxt_errno);
+            return NXT_ERROR;
+        }
 
+        return NXT_OK;
+    }
+
+    n = write(fd, str, strlen(str));
     close(fd);
+
+    if (nxt_slow_path(n == -1)) {
+        nxt_alert(task, "write(%s): %E", path, nxt_errno);
+        return NXT_ERROR;
+    }
+
+    return NXT_OK;
 }
 
 static nxt_int_t 
@@ -134,7 +142,12 @@ nxt_process_clone_proc_map(nxt_task_t *task, pid_t pid)
            return NXT_ERROR;
     }
 
-    nxt_process_proc_setgroups(pid, "deny");
+    ret = nxt_process_proc_setgroups(task, pid, "deny");
+    if (nxt_slow_path(ret != NXT_OK)) {
+        nxt_alert(task, "failed to write /proc/%d/setgroups", pid);
+        return NXT_ERROR;
+    }
+
     ret = nxt_process_proc_map_set(task, "gid_map", pid, "0 1000 1");
     if (nxt_slow_path(ret != NXT_OK)) {
         nxt_alert(task, "failed to set gid map");
