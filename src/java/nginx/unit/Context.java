@@ -81,6 +81,7 @@ import javax.servlet.ServletSecurityElement;
 import javax.servlet.SessionCookieConfig;
 import javax.servlet.SessionTrackingMode;
 import javax.servlet.annotation.HandlesTypes;
+import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.annotation.WebInitParam;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.annotation.WebFilter;
@@ -954,6 +955,8 @@ public class Context implements ServletContext, InitParams
 
             ServletReg servlet = findServlet(path, req);
 
+            req.setMultipartConfig(servlet.multipart_config_);
+
             FilterChain fc = new CtxFilterChain(servlet, req.getFilterPath(), DispatcherType.REQUEST);
 
             fc.doFilter(req, resp);
@@ -1073,6 +1076,8 @@ public class Context implements ServletContext, InitParams
             String path = uri.getPath().substring(context_path_.length());
 
             ServletReg servlet = findServlet(path, req);
+
+            req.setMultipartConfig(servlet.multipart_config_);
 
             FilterChain fc = new CtxFilterChain(servlet, req.getFilterPath(), DispatcherType.ERROR);
 
@@ -1852,11 +1857,13 @@ public class Context implements ServletContext, InitParams
         private boolean initialized_ = false;
         private final List<FilterMap> filters_ = new ArrayList<>();
         private boolean system_jsp_servlet_ = false;
+        private MultipartConfigElement multipart_config_;
 
         public ServletReg(String name, Class<?> servlet_class)
         {
             super(name, servlet_class.getName());
             servlet_class_ = servlet_class;
+            getAnnotationMultipartConfig();
         }
 
         public ServletReg(String name, Servlet servlet)
@@ -1893,6 +1900,7 @@ public class Context implements ServletContext, InitParams
                 try {
                     if (servlet_class_ == null) {
                         servlet_class_ = loader_.loadClass(getClassName());
+                        getAnnotationMultipartConfig();
                     }
 
                     Constructor<?> ctor = servlet_class_.getConstructor();
@@ -1948,6 +1956,20 @@ public class Context implements ServletContext, InitParams
 
             super.setClassName(servlet_class.getName());
             servlet_class_ = servlet_class;
+            getAnnotationMultipartConfig();
+        }
+
+        private void getAnnotationMultipartConfig() {
+            if (servlet_class_ == null) {
+                return;
+            }
+
+            MultipartConfig mpc = servlet_class_.getAnnotation(MultipartConfig.class);
+            if (mpc == null) {
+                return;
+            }
+
+            multipart_config_ = new MultipartConfigElement(mpc);
         }
 
         public void service(ServletRequest request, ServletResponse response)
@@ -2027,7 +2049,8 @@ public class Context implements ServletContext, InitParams
         public void setMultipartConfig(
             MultipartConfigElement multipartConfig)
         {
-            log("ServletReg.setMultipartConfig");
+            trace("ServletReg.setMultipartConfig");
+            multipart_config_ = multipartConfig;
         }
 
         @Override
@@ -2508,6 +2531,8 @@ public class Context implements ServletContext, InitParams
 
                 ServletReg servlet = findServlet(path, req);
 
+                req.setMultipartConfig(servlet.multipart_config_);
+
                 req.setRequestURI(uri_.getRawPath());
                 req.setQueryString(uri_.getRawQuery());
                 req.setDispatcherType(DispatcherType.FORWARD);
@@ -2576,6 +2601,8 @@ public class Context implements ServletContext, InitParams
                 String path = uri_.getPath().substring(context_path_.length());
 
                 ServletReg servlet = findServlet(path, req);
+
+                req.setMultipartConfig(servlet.multipart_config_);
 
                 req.setRequestURI(uri_.getRawPath());
                 req.setQueryString(uri_.getRawQuery());
@@ -2757,7 +2784,7 @@ public class Context implements ServletContext, InitParams
     {
         trace("getRealPath for " + path);
 
-        File f = new File(webapp_, path.substring(1));
+        File f = new File(webapp_, path.isEmpty() ? "" : path.substring(1));
 
         return f.getAbsolutePath();
     }
