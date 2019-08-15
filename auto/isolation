@@ -14,7 +14,7 @@ nxt_feature_test="#include <sys/wait.h>
                   #include <sys/syscall.h>
 
                   int main() {
-                      return SYS_clone | SIGCHLD;
+                      return __NR_clone | SIGCHLD;
                   }"
 . auto/feature
 

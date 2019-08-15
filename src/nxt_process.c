@@ -60,7 +60,7 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
     switch (pid) {
 
     case -1:
-        nxt_alert(task, "nxt_rfork() failed while creating \"%s\" %E",
+        nxt_alert(task, "fork/clone() failed while creating \"%s\" %E",
                   process->init->name, nxt_errno);
         break;
 
