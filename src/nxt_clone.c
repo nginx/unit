@@ -67,7 +67,7 @@ nxt_clone_proc_setgroups(nxt_task_t *task, pid_t child_pid, const char *str)
 
 nxt_int_t 
 nxt_clone_proc_map_set(nxt_task_t *task, const char *mapfile, 
-        pid_t pid, const char *mapinfo)
+        pid_t pid, char *mapinfo)
 {
     u_char buf[256];
     u_char *end; 
@@ -105,6 +105,22 @@ nxt_int_t
 nxt_clone_proc_map(nxt_task_t *task, pid_t pid)
 {
     nxt_int_t ret;
+    u_char    mapinfo[256];
+    u_char    *p, *end;
+    nxt_uid_t uid;
+    nxt_gid_t gid;
+
+    uid = geteuid();
+    gid = getegid();
+
+    nxt_debug(task, "map host uid (%d) to 0 inside namespaces", uid);
+    nxt_debug(task, "map host gid (%d) to 0 inside namespace", gid);
+
+    end = mapinfo + 256;
+    p = nxt_sprintf(mapinfo, end, "0 %d 1", uid);
+    *p = '\0';
+
+    nxt_debug(task, "setting map: %s", mapinfo);
 
     /**
      * TODO(i4k): For now, just map the uid 1000 from host to 0 (root)
@@ -114,7 +130,7 @@ nxt_clone_proc_map(nxt_task_t *task, pid_t pid)
      * on the namespace but none in the parent. Also, inside the namespace
      * it has root powers.
      */
-    ret = nxt_clone_proc_map_set(task, "uid_map", pid, "0 1000 1");
+    ret = nxt_clone_proc_map_set(task, "uid_map", pid, (char *)mapinfo);
     if (nxt_slow_path(ret != NXT_OK)) {
            nxt_alert(task, "failed to set uid map");
            return NXT_ERROR;
@@ -126,7 +142,10 @@ nxt_clone_proc_map(nxt_task_t *task, pid_t pid)
         return NXT_ERROR;
     }
 
-    ret = nxt_clone_proc_map_set(task, "gid_map", pid, "0 1000 1");
+    p = nxt_sprintf(mapinfo, end, "0 %d 1", gid);
+    *p = '\0';
+
+    ret = nxt_clone_proc_map_set(task, "gid_map", pid, (char *)mapinfo);
     if (nxt_slow_path(ret != NXT_OK)) {
         nxt_alert(task, "failed to set gid map");
         return NXT_ERROR;

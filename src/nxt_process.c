@@ -155,7 +155,7 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
     }
 
     if (pid == 0) {
-        /* A child. */
+        /* The child. */
         
         ret = nxt_process_worker_setup(task, process, pipefd);
         if (nxt_slow_path(ret != NXT_OK)) {
@@ -198,7 +198,7 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
         goto fail_cleanup;
     }
 
-    nxt_debug(task, "fork/clone(\"%s\"): %PI", process->init->name, pid);
+    nxt_debug(task, "fork/clone(\"%s\"): %PI", init->name, pid);
 
     if (nxt_slow_path(write(pipefd[1], &pid, sizeof(pid)) == -1)) {
         nxt_alert(task, "failed to write real pid");

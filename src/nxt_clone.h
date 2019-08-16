@@ -11,7 +11,7 @@ nxt_int_t nxt_clone_proc_setgroups(nxt_task_t *task,
         pid_t child_pid, const char *str);
 nxt_int_t nxt_clone_proc_map(nxt_task_t *task, pid_t pid);
 nxt_int_t nxt_clone_proc_map_set(nxt_task_t *task, const char *mapfile, 
-        pid_t pid, const char *mapinfo);
+        pid_t pid, char *mapinfo);
 
 #endif
 
