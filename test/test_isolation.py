@@ -64,8 +64,8 @@ class TestIsolation(TestApplicationGo):
         self.load('ns_inspect', isolation=isolation)
         obj = parsejson(self.get()['body'])
 
-        self.assertNotEqual(obj["UID"], os.getuid(), "uid didnt change")
-        self.assertNotEqual(obj["GID"], os.getuid(), "gid didnt change")
+        self.assertEqual(obj["UID"], 0, "uid is not from root")
+        self.assertEqual(obj["GID"], 0, "gid is not from root")
 
     def test_mnt_isolation(self):
         if not self._availablens.get("mnt"):
