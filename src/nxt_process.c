@@ -175,10 +175,8 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
      * At this point, the child process is blocked reading the
      * pipe fd to get its real pid (rpid).
      * 
-     * If anything goes wrong now, we need to kill the child
+     * If anything goes wrong now, we need to terminate the child
      * process before returning the error to the caller.
-     * As the child didn't have time to set any signal handlers,
-     * it should terminate.
      */
 
 #if (NXT_HAVE_CLONE_NEWUSER)

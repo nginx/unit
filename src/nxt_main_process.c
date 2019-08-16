@@ -1508,10 +1508,6 @@ nxt_init_set_ns(nxt_task_t *task, nxt_process_init_t *init, nxt_conf_value_t *na
             return NXT_ERROR;
         }
 
-        if (nxt_conf_get_integer(value) == 0) {
-            continue; /* process shares everything by default */
-        }
-
 #if (NXT_HAVE_CLONE_NEWUSER)
         if (nxt_str_eq(&name, "user", 4)) {
             flag = CLONE_NEWUSER;
@@ -1557,6 +1553,10 @@ nxt_init_set_ns(nxt_task_t *task, nxt_process_init_t *init, nxt_conf_value_t *na
         if (!flag) {
             nxt_alert(task, "unknown namespace flag: \"%V\"", &name);
             return NXT_ERROR;
+        }
+
+        if (nxt_conf_get_integer(value) == 0) {
+            continue; /* process shares everything by default */
         }
 
         init->isolation.clone_flags |= flag;
