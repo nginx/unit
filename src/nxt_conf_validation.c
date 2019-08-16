@@ -1495,8 +1495,9 @@ static nxt_int_t
 nxt_conf_vldt_clone_namespaces(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     void *data)
 {
-    nxt_int_t                       ret;
     nxt_conf_vldt_clone_namespaces_conf_t ns;
+    nxt_int_t                             ret;
+
     ret = nxt_conf_vldt_object(vldt, value, data);
     if (ret != NXT_OK) {
         return ret;
