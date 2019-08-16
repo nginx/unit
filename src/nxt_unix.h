@@ -8,12 +8,6 @@
 #ifndef _NXT_UNIX_H_INCLUDED_
 #define _NXT_UNIX_H_INCLUDED_
 
-/*
- * The ANSI C standards define rules that requires builtin macro names
- * to start with double underscores but stupid gcc ignores that if no -ansi
- * is used. It defines linux, __linux__ and __gnu_linux__ by default.
- * Undefining "linux" to use it as identifier. */
-#undef linux 
 
 #if (NXT_LINUX)
 
@@ -248,6 +242,7 @@
 #if (NXT_TEST_BUILD)
 #include <nxt_test_build.h>
 #endif
+
 
 /*
  * On Linux IOV_MAX is 1024.  Linux uses kernel stack for 8 iovec's
