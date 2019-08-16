@@ -110,7 +110,8 @@ nxt_conf_vldt_clone_namespaces(nxt_conf_validation_t *vldt, nxt_conf_value_t *va
 
 #if (NXT_HAVE_CLONE_NEWUSER)
 static nxt_int_t 
-nxt_conf_vldt_clone_procmap(nxt_conf_validation_t *vldt, nxt_conf_value_t *value);
+nxt_conf_vldt_clone_procmap(nxt_conf_validation_t *vldt, const char* mapfile,
+    nxt_conf_value_t *value);
 static nxt_int_t
 nxt_conf_vldt_clone_uidmap(nxt_conf_validation_t *vldt, nxt_conf_value_t *value);
 static nxt_int_t
@@ -1558,7 +1559,8 @@ static nxt_conf_map_t nxt_conf_vldt_clone_procmap_conf_map[] = {
 };
 
 static nxt_int_t 
-nxt_conf_vldt_clone_procmap(nxt_conf_validation_t *vldt, nxt_conf_value_t *value)
+nxt_conf_vldt_clone_procmap(nxt_conf_validation_t *vldt, const char *mapfile, 
+        nxt_conf_value_t *value)
 {
     nxt_conf_vldt_clone_procmap_conf_t procmap;
     nxt_int_t                          ret;
@@ -1576,18 +1578,18 @@ nxt_conf_vldt_clone_procmap(nxt_conf_validation_t *vldt, nxt_conf_value_t *value
     }
 
     if (procmap.containerID == -1) {
-        return nxt_conf_vldt_error(vldt, "The uid_map requires the "
-                "\"containerID\" field set.");
+        return nxt_conf_vldt_error(vldt, "The %s requires the "
+                "\"containerID\" field set.", mapfile);
     }
 
     if (procmap.hostID == -1) {
-        return nxt_conf_vldt_error(vldt, "The uid_map requires the "
-                "\"hostID\" field set.");
+        return nxt_conf_vldt_error(vldt, "The %s requires the "
+                "\"hostID\" field set.", mapfile);
     }
 
     if (procmap.size == -1) {
-        return nxt_conf_vldt_error(vldt, "The uid_map requires the "
-                "\"size\" field set.");
+        return nxt_conf_vldt_error(vldt, "The %s requires the "
+                "\"size\" field set.", mapfile);
     }
 
     return NXT_OK;
@@ -1608,7 +1610,7 @@ nxt_conf_vldt_clone_uidmap(nxt_conf_validation_t *vldt, nxt_conf_value_t *value)
         return NXT_ERROR;
     }
 
-    return nxt_conf_vldt_clone_procmap(vldt, value);
+    return nxt_conf_vldt_clone_procmap(vldt, "uid_map", value);
 }
 
 static nxt_int_t
@@ -1626,7 +1628,7 @@ nxt_conf_vldt_clone_gidmap(nxt_conf_validation_t *vldt, nxt_conf_value_t *value)
         return NXT_ERROR;
     }
 
-    return nxt_conf_vldt_clone_procmap(vldt, value);
+    return nxt_conf_vldt_clone_procmap(vldt, "gid_map", value);
 }
 #endif
 
