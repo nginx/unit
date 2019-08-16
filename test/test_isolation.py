@@ -52,8 +52,10 @@ class TestIsolation(TestApplicationGo):
         self.load('ns_inspect', isolation=isolation)
         obj = parsejson(self.get()['body'])
 
+        self.assertTrue(obj["UID"] != 0, "uid mismatch")
+        self.assertTrue(obj["GID"] != 0, "gid mismatch")
         self.assertEqual(obj["UID"], os.getuid(), "uid mismatch")
-        self.assertEqual(obj["GID"], os.getuid(), "gid mismatch")
+        self.assertEqual(obj["GID"], os.getgid(), "gid mismatch")
 
         isolation = {
             "namespaces": {
@@ -64,8 +66,36 @@ class TestIsolation(TestApplicationGo):
         self.load('ns_inspect', isolation=isolation)
         obj = parsejson(self.get()['body'])
 
+        # default uid and gid maps current user to root
         self.assertEqual(obj["UID"], 0, "uid is not from root")
         self.assertEqual(obj["GID"], 0, "gid is not from root")
+
+        isolation = {
+            "namespaces": {
+                "user": True
+            },
+            "uidmap": [
+                {
+                    "containerID": 1000,
+                    "hostID": os.geteuid(),
+                    "size": 1
+                }
+            ],
+            "gidmap": [
+                {
+                    "containerID": 1000,
+                    "hostID": os.getegid(),
+                    "size": 1
+                }
+            ]
+        }
+
+        self.load('ns_inspect', isolation=isolation)
+        obj = parsejson(self.get()['body'])
+
+        # default uid and gid maps current user to root
+        self.assertEqual(obj["UID"], 1000, "uid is not from root")
+        self.assertEqual(obj["GID"], 1000, "gid is not from root")
 
     def test_mnt_isolation(self):
         if not self._availablens.get("mnt"):

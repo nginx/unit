@@ -137,7 +137,7 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
     }
 
 #if (NXT_HAVE_CLONE)
-    pid = nxt_clone(SIGCHLD|init->isolation.clone_flags);
+    pid = nxt_clone(SIGCHLD|init->isolation.clone.flags);
 #else
     pid = fork();
 #endif
@@ -180,9 +180,9 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
      */
 
 #if (NXT_HAVE_CLONE_NEWUSER)
-    if ((init->isolation.clone_flags & CLONE_NEWUSER) == CLONE_NEWUSER) {
+    if ((init->isolation.clone.flags & CLONE_NEWUSER) == CLONE_NEWUSER) {
 
-        ret = nxt_clone_proc_map(task, pid);
+        ret = nxt_clone_proc_map(task, pid, &init->isolation.clone);
         if (nxt_slow_path(ret != NXT_OK)) {
             close(pipefd[0]);
             close(pipefd[1]);

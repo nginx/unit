@@ -1475,16 +1475,32 @@ nxt_main_port_access_log_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 static nxt_int_t 
 nxt_init_set_isolation(nxt_task_t *task, nxt_process_init_t *init, nxt_conf_value_t *isolation)
 {
-    nxt_conf_value_t *namespaces;
-    nxt_str_t        name = nxt_string("namespaces");
+    nxt_conf_value_t *object;
+    nxt_str_t        nsname  = nxt_string("namespaces");
+    nxt_str_t        uidname = nxt_string("uidmap");
+    nxt_str_t        gidname = nxt_string("gidmap");
+    nxt_int_t        ret;
 
     if (isolation == NULL) {
         return NXT_OK;
     }
 
-    namespaces = nxt_conf_get_object_member(isolation, &name, NULL);
-    if (namespaces != NULL) {
-        return nxt_init_set_ns(task, init, namespaces);
+    object = nxt_conf_get_object_member(isolation, &nsname, NULL);
+    if (object != NULL) {
+        ret = nxt_init_set_ns(task, init, object);
+        if (ret != NXT_OK) {
+            return ret;
+        }
+    }
+
+    object = nxt_conf_get_object_member(isolation, &uidname, NULL);
+    if (object != NULL) {
+        init->isolation.clone.uidmap = object;
+    }
+
+    object = nxt_conf_get_object_member(isolation, &gidname, NULL);
+    if (object != NULL) {
+        init->isolation.clone.gidmap = object;
     }
 
     return NXT_OK;    
@@ -1559,7 +1575,7 @@ nxt_init_set_ns(nxt_task_t *task, nxt_process_init_t *init, nxt_conf_value_t *na
             continue; /* process shares everything by default */
         }
 
-        init->isolation.clone_flags |= flag;
+        init->isolation.clone.flags |= flag;
     }
 
     return NXT_OK;

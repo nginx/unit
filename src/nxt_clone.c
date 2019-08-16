@@ -5,6 +5,7 @@
 #include <nxt_main.h>
 #include <sys/types.h>
 #include <nxt_clone.h>
+#include <nxt_conf.h>
 
 #if (NXT_HAVE_CLONE)
 
@@ -21,6 +22,19 @@ nxt_clone(nxt_int_t flags)
 #endif
 
 #if (NXT_HAVE_CLONE_NEWUSER)
+
+nxt_int_t nxt_clone_proc_setgroups(nxt_task_t *task, 
+        pid_t child_pid, const char *str);
+nxt_int_t nxt_clone_proc_map_set(nxt_task_t *task, const char* mapfile, 
+        pid_t pid, nxt_int_t defval, nxt_conf_value_t *mapobj);
+nxt_int_t nxt_clone_proc_map_write(nxt_task_t *task, const char *mapfile, 
+        pid_t pid, u_char *mapinfo);
+
+typedef struct {
+    nxt_int_t containerID;
+    nxt_int_t hostID;
+    nxt_int_t size;
+} nxt_clone_procmap_t;
 
 nxt_int_t
 nxt_clone_proc_setgroups(nxt_task_t *task, pid_t child_pid, const char *str)
@@ -66,8 +80,8 @@ nxt_clone_proc_setgroups(nxt_task_t *task, pid_t child_pid, const char *str)
 }
 
 nxt_int_t 
-nxt_clone_proc_map_set(nxt_task_t *task, const char *mapfile, 
-        pid_t pid, char *mapinfo)
+nxt_clone_proc_map_write(nxt_task_t *task, const char *mapfile, 
+        pid_t pid, u_char *mapinfo)
 {
     u_char buf[256];
     u_char *end; 
@@ -92,7 +106,7 @@ nxt_clone_proc_map_set(nxt_task_t *task, const char *mapfile,
     }
 
     len = nxt_strlen(mapinfo);
-    if (nxt_slow_path(write(mapfd, mapinfo, len) != len)) {
+    if (nxt_slow_path(write(mapfd, (char *)mapinfo, len) != len)) {
         nxt_alert(task, "failed to write proc map (%s): %s", buf,
             strerror(nxt_errno));
         return NXT_ERROR;
@@ -101,39 +115,108 @@ nxt_clone_proc_map_set(nxt_task_t *task, const char *mapfile,
     return NXT_OK;
 }
 
-nxt_int_t 
-nxt_clone_proc_map(nxt_task_t *task, pid_t pid)
+nxt_int_t
+nxt_clone_proc_map_set(nxt_task_t *task, const char* mapfile, 
+        pid_t pid, nxt_int_t defval, nxt_conf_value_t *mapobj)
 {
-    nxt_int_t ret;
-    u_char    mapinfo[256];
-    u_char    *p, *end;
-    nxt_uid_t uid;
-    nxt_gid_t gid;
-
-    uid = geteuid();
-    gid = getegid();
-
-    nxt_debug(task, "map host uid (%d) to 0 inside namespaces", uid);
-    nxt_debug(task, "map host gid (%d) to 0 inside namespace", gid);
-
-    end = mapinfo + 256;
-    p = nxt_sprintf(mapinfo, end, "0 %d 1", uid);
-    *p = '\0';
-
-    nxt_debug(task, "setting map: %s", mapinfo);
+    nxt_conf_value_t *obj;
+    nxt_conf_value_t *value;
+    u_char           *mapinfo;
+    u_char           *p, *end;
+    nxt_int_t        contID, hostID, size;
+    nxt_int_t        ret, len, count, i;
+    nxt_str_t        str_contID = nxt_string("containerID");
+    nxt_str_t        str_hostID = nxt_string("hostID");
+    nxt_str_t        str_size   = nxt_string("size");
 
     /**
-     * TODO(i4k): For now, just map the uid 1000 from host to 0 (root)
-     * inside the namespace. Soon I'll add a config for that.
-     * 
-     * The process in the new namespace has the full set of capabilities 
-     * on the namespace but none in the parent. Also, inside the namespace
-     * it has root powers.
+     * uid_map one-entry size:
+     *   alloc space for 3 numbers (32bit) plus 2 spaces and \n
      */
-    ret = nxt_clone_proc_map_set(task, "uid_map", pid, (char *)mapinfo);
+    len = sizeof(u_char) * (10+10+10+2+1);
+
+    if (mapobj != NULL) {
+        count = nxt_conf_array_elements_count(mapobj);
+        if (count > NXT_CLONE_MAX_UID_LINES) {
+            nxt_alert(task, "too many uidmap entries: (%d > %d)", 
+                count, NXT_CLONE_MAX_UID_LINES);
+            return NXT_ERROR;
+        }
+
+        if (count == 0) {
+            goto default_map;
+        }
+
+        len = len * count + 1;
+        mapinfo = nxt_malloc(len);
+        if (mapinfo == NULL) {
+            nxt_alert(task, "failed to allocate uid_map buffer");
+            return NXT_ERROR;
+        }
+
+        p = mapinfo;
+        end = mapinfo + len;
+
+        for (i = 0; i < count; i++) {
+            obj = nxt_conf_get_array_element(mapobj, i);
+            /* can we trust the validator? */
+
+            value = nxt_conf_get_object_member(obj, &str_contID, NULL);
+            contID = nxt_conf_get_integer(value);
+
+            value = nxt_conf_get_object_member(obj, &str_hostID, NULL);
+            hostID = nxt_conf_get_integer(value);
+
+            value = nxt_conf_get_object_member(obj, &str_size, NULL);
+            size = nxt_conf_get_integer(value);
+
+            p = nxt_sprintf(p, end, "%d %d %d", contID, hostID, size);
+            if (p == end) {
+                nxt_alert(task, "write past the uid_map buffer");
+                nxt_free(mapinfo);
+                return NXT_ERROR;
+            }
+
+            if (i+1 < count) {
+                *p++ = '\n';
+            } else {
+                *p = '\0';
+            }
+        }
+    } else {
+default_map:
+        mapinfo = nxt_malloc(len);
+        if (mapinfo == NULL) {
+            nxt_alert(task, "failed to allocate uid_map buffer");
+            return NXT_ERROR;
+        }
+
+        end = mapinfo + len;
+        p = nxt_sprintf(mapinfo, end, "0 %d 1", defval);
+        *p = '\0';
+
+        if (p == end) {
+            nxt_alert(task, "write past the %s buffer", mapfile);
+            nxt_free(mapinfo);
+            return NXT_ERROR;
+        }
+    }
+    
+    ret = nxt_clone_proc_map_write(task, mapfile, pid, mapinfo);
+
+    nxt_free(mapinfo);
+
+    return ret;
+}
+
+nxt_int_t 
+nxt_clone_proc_map(nxt_task_t *task, pid_t pid, nxt_process_clone_t *clone)
+{
+    nxt_int_t ret;
+
+    ret = nxt_clone_proc_map_set(task, "uid_map", pid, geteuid(), clone->uidmap);
     if (nxt_slow_path(ret != NXT_OK)) {
-           nxt_alert(task, "failed to set uid map");
-           return NXT_ERROR;
+        return NXT_ERROR;
     }
 
     ret = nxt_clone_proc_setgroups(task, pid, "deny");
@@ -142,12 +225,8 @@ nxt_clone_proc_map(nxt_task_t *task, pid_t pid)
         return NXT_ERROR;
     }
 
-    p = nxt_sprintf(mapinfo, end, "0 %d 1", gid);
-    *p = '\0';
-
-    ret = nxt_clone_proc_map_set(task, "gid_map", pid, (char *)mapinfo);
+    ret = nxt_clone_proc_map_set(task, "gid_map", pid, getegid(), clone->gidmap);
     if (nxt_slow_path(ret != NXT_OK)) {
-        nxt_alert(task, "failed to set gid map");
         return NXT_ERROR;
     }
 

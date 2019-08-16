@@ -104,11 +104,18 @@ static nxt_int_t nxt_conf_vldt_java_option(nxt_conf_validation_t *vldt,
 static nxt_int_t
 nxt_conf_vldt_isolation(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     void *data);
-
 static nxt_int_t
 nxt_conf_vldt_clone_namespaces(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     void *data);
 
+#if (NXT_HAVE_CLONE_NEWUSER)
+static nxt_int_t 
+nxt_conf_vldt_clone_procmap(nxt_conf_validation_t *vldt, nxt_conf_value_t *value);
+static nxt_int_t
+nxt_conf_vldt_clone_uidmap(nxt_conf_validation_t *vldt, nxt_conf_value_t *value);
+static nxt_int_t
+nxt_conf_vldt_clone_gidmap(nxt_conf_validation_t *vldt, nxt_conf_value_t *value);
+#endif
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[] = {
     { nxt_string("header_read_timeout"),
@@ -376,11 +383,40 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_namespaces_members[] = {
     NXT_CONF_VLDT_END
 };
 
+static nxt_conf_vldt_object_t nxt_conf_vldt_app_procmap_members[] = {
+    { nxt_string("containerID"),
+      NXT_CONF_VLDT_INTEGER,
+      NULL,
+      NULL },
+
+    { nxt_string("hostID"),
+      NXT_CONF_VLDT_INTEGER,
+      NULL,
+      NULL },
+    
+    { nxt_string("size"),
+      NXT_CONF_VLDT_INTEGER,
+      NULL,
+      NULL },
+};
+
 static nxt_conf_vldt_object_t  nxt_conf_vldt_app_isolation_members[] = {
     { nxt_string("namespaces"),
       NXT_CONF_VLDT_OBJECT,
       &nxt_conf_vldt_clone_namespaces,
       (void *) &nxt_conf_vldt_app_namespaces_members },
+
+#if (NXT_HAVE_CLONE_NEWUSER)
+    { nxt_string("uidmap"),
+      NXT_CONF_VLDT_ARRAY,
+      &nxt_conf_vldt_array_iterator,
+      (void *) &nxt_conf_vldt_clone_uidmap },
+
+    { nxt_string("gidmap"),
+      NXT_CONF_VLDT_ARRAY,
+      &nxt_conf_vldt_array_iterator,
+      (void *) &nxt_conf_vldt_clone_gidmap },
+#endif
 
     NXT_CONF_VLDT_END
 };
@@ -1490,6 +1526,109 @@ nxt_conf_vldt_isolation(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 {
     return nxt_conf_vldt_object(vldt, value, data);
 }
+
+#if (NXT_HAVE_CLONE_NEWUSER)
+
+typedef struct {
+    nxt_int_t containerID;
+    nxt_int_t hostID;
+    nxt_int_t size;
+} nxt_conf_vldt_clone_procmap_conf_t;
+
+static nxt_conf_map_t nxt_conf_vldt_clone_procmap_conf_map[] = {
+    {
+        nxt_string("containerID"),
+        NXT_CONF_MAP_INT32,
+        offsetof(nxt_conf_vldt_clone_procmap_conf_t, containerID),
+    },
+
+    {
+        nxt_string("hostID"),
+        NXT_CONF_MAP_INT32,
+        offsetof(nxt_conf_vldt_clone_procmap_conf_t, hostID),
+    },
+
+    {
+        nxt_string("size"),
+        NXT_CONF_MAP_INT32,
+        offsetof(nxt_conf_vldt_clone_procmap_conf_t, size),
+    },
+
+};
+
+static nxt_int_t 
+nxt_conf_vldt_clone_procmap(nxt_conf_validation_t *vldt, nxt_conf_value_t *value)
+{
+    nxt_conf_vldt_clone_procmap_conf_t procmap;
+    nxt_int_t                          ret;
+
+    procmap.containerID = -1;
+    procmap.hostID = -1;
+    procmap.size = -1;
+
+    ret = nxt_conf_map_object(vldt->pool, value,
+                              nxt_conf_vldt_clone_procmap_conf_map,
+                              nxt_nitems(nxt_conf_vldt_clone_procmap_conf_map),
+                              &procmap);
+    if (ret != NXT_OK) {
+        return ret;
+    }
+
+    if (procmap.containerID == -1) {
+        return nxt_conf_vldt_error(vldt, "The uid_map requires the "
+                "\"containerID\" field set.");
+    }
+
+    if (procmap.hostID == -1) {
+        return nxt_conf_vldt_error(vldt, "The uid_map requires the "
+                "\"hostID\" field set.");
+    }
+
+    if (procmap.size == -1) {
+        return nxt_conf_vldt_error(vldt, "The uid_map requires the "
+                "\"size\" field set.");
+    }
+
+    return NXT_OK;
+}
+
+static nxt_int_t
+nxt_conf_vldt_clone_uidmap(nxt_conf_validation_t *vldt, nxt_conf_value_t *value)
+{
+    nxt_int_t ret;
+
+    if (nxt_conf_type(value) != NXT_CONF_OBJECT) {
+        return nxt_conf_vldt_error(vldt, "The \"uidmap\" array "
+                                   "must contain only object values.");
+    }
+
+    ret = nxt_conf_vldt_object(vldt, value, (void *)nxt_conf_vldt_app_procmap_members);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        return NXT_ERROR;
+    }
+
+    return nxt_conf_vldt_clone_procmap(vldt, value);
+}
+
+static nxt_int_t
+nxt_conf_vldt_clone_gidmap(nxt_conf_validation_t *vldt, nxt_conf_value_t *value)
+{
+    nxt_int_t ret;
+
+    if (nxt_conf_type(value) != NXT_CONF_OBJECT) {
+        return nxt_conf_vldt_error(vldt, "The \"gidmap\" array "
+                                   "must contain only object values.");
+    }
+
+    ret = nxt_conf_vldt_object(vldt, value, (void *)nxt_conf_vldt_app_procmap_members);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        return NXT_ERROR;
+    }
+
+    return nxt_conf_vldt_clone_procmap(vldt, value);
+}
+#endif
+
 
 static nxt_int_t
 nxt_conf_vldt_argument(nxt_conf_validation_t *vldt, nxt_conf_value_t *value)

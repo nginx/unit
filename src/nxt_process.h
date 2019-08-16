@@ -7,6 +7,8 @@
 #ifndef _NXT_PROCESS_H_INCLUDED_
 #define _NXT_PROCESS_H_INCLUDED_
 
+#include <nxt_conf.h>
+
 
 typedef pid_t            nxt_pid_t;
 typedef uid_t            nxt_uid_t;
@@ -26,6 +28,12 @@ typedef nxt_int_t (*nxt_process_start_t)(nxt_task_t *task, void *data);
 typedef nxt_int_t (*nxt_process_restart_t)(nxt_task_t *task, nxt_runtime_t *rt,
     nxt_process_init_t *init);
 
+typedef struct {
+    nxt_int_t        flags;
+    nxt_conf_value_t *uidmap;
+    nxt_conf_value_t *gidmap;
+} nxt_process_clone_t;
+
 struct nxt_process_init_s {
     nxt_process_start_t    start;
     const char             *name;
@@ -42,7 +50,7 @@ struct nxt_process_init_s {
     nxt_process_restart_t  restart;
     
     union {
-        nxt_int_t clone_flags;
+        nxt_process_clone_t clone;
     } isolation;
 };
 
