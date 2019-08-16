@@ -34,7 +34,7 @@ nxt_clone_proc_setgroups(nxt_task_t *task, pid_t child_pid, const char *str)
     p = nxt_sprintf(path, end, "/proc/%d/setgroups", child_pid);
     *p = '\0';
 
-    if (nxt_slow_path(p == path + PATH_MAX)) {
+    if (nxt_slow_path(p == end)) {
         nxt_alert(task, "error write past the buffer: %s", path);
         return NXT_ERROR;
     }
