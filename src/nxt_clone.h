@@ -27,9 +27,8 @@ pid_t nxt_clone(nxt_int_t flags);
 #endif
 
 #if (NXT_HAVE_CLONE_NEWUSER)
-
-nxt_int_t nxt_clone_proc_map(nxt_task_t *task, pid_t pid, nxt_process_clone_t *clone);
-
+nxt_int_t nxt_clone_proc_map(nxt_task_t *task, pid_t pid, 
+        nxt_process_clone_t *clone);
 #endif
 
 #endif
