@@ -13,7 +13,7 @@
 static void nxt_process_start(nxt_task_t *task, nxt_process_t *process);
 static nxt_int_t nxt_user_groups_get(nxt_task_t *task, nxt_user_cred_t *uc);
 static nxt_int_t nxt_process_worker_setup(nxt_task_t *task, 
-    nxt_process_t *process, int pipefd[2]);
+    nxt_process_t *process, int parentfd);
 
 /* A cached process pid. */
 nxt_pid_t  nxt_pid;
@@ -38,11 +38,12 @@ nxt_bool_t  nxt_proc_remove_notify_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
 };
 
 static nxt_int_t 
-nxt_process_worker_setup(nxt_task_t *task, nxt_process_t *process, int pipefd[2]) {
+nxt_process_worker_setup(nxt_task_t *task, nxt_process_t *process, int parentfd) {
     nxt_process_init_t *init;
     nxt_process_type_t ptype;
     nxt_process_t      *p;
     nxt_runtime_t      *rt;
+    nxt_int_t          parent_status;
     pid_t              pid;
     
     pid = 0;
@@ -52,18 +53,9 @@ nxt_process_worker_setup(nxt_task_t *task, nxt_process_t *process, int pipefd[2]
     /**
      * Setup the worker process
      */
-    if (nxt_slow_path(close(pipefd[1]) == -1)) {
-        nxt_alert(task, "failed to close writer pipe fd");
-        return NXT_ERROR;
-    }
 
-    if (read(pipefd[0], &pid, sizeof(pid)) == -1) {
+    if (read(parentfd, &pid, sizeof(pid)) == -1) {
         nxt_alert(task, "failed to read real pid");
-        return NXT_ERROR;
-    }
-
-    if (nxt_slow_path(close(pipefd[0]) == -1)) {
-        nxt_alert(task, "failed to close reader pipe fd");
         return NXT_ERROR;
     }
 
@@ -81,6 +73,22 @@ nxt_process_worker_setup(nxt_task_t *task, nxt_process_t *process, int pipefd[2]
 
     nxt_debug(task, "app \"%s\" real pid %d", init->name, pid);
     nxt_debug(task, "app \"%s\" isolated pid: %d", init->name, getpid());
+
+    if (read(parentfd, &parent_status, sizeof(parent_status)) == -1) {
+        nxt_alert(task, "failed to parent status");
+        return NXT_ERROR;
+    }
+
+    nxt_debug(task, "GOT PARENT STATUS: %d", parent_status);
+
+    if (nxt_slow_path(close(parentfd) == -1)) {
+        nxt_alert(task, "failed to close reader pipe fd");
+        return NXT_ERROR;
+    }
+
+    if (parent_status != NXT_OK) {
+        return parent_status;
+    }
 
     ptype = init->type;
 
@@ -156,10 +164,15 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
 
     if (pid == 0) {
         /* The child. */
+
+        if (nxt_slow_path(close(pipefd[1]) == -1)) {
+            nxt_alert(task, "failed to close writer pipe fd");
+            return NXT_ERROR;
+        }
         
-        ret = nxt_process_worker_setup(task, process, pipefd);
+        ret = nxt_process_worker_setup(task, process, pipefd[0]);
         if (nxt_slow_path(ret != NXT_OK)) {
-            return -1;
+            exit(1);
         }
 
         /**
@@ -171,46 +184,41 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
     
     /**
      * Parent
-     * 
+     */
+
+    if (nxt_slow_path(close(pipefd[0]) != 0)) {
+        nxt_alert(task, "failed to close pipe: %E", nxt_errno);
+    }
+
+    /*
      * At this point, the child process is blocked reading the
      * pipe fd to get its real pid (rpid).
      * 
      * If anything goes wrong now, we need to terminate the child
-     * process before returning the error to the caller.
+     * process by sending a NXT_ERROR in the pipe.
      */
+
+    nxt_debug(task, "fork/clone(\"%s\"): %PI", init->name, pid);
+
+    if (nxt_slow_path(write(pipefd[1], &pid, sizeof(pid)) == -1)) {
+        nxt_alert(task, "failed to write real pid");
+        goto fail_cleanup;
+    }
 
 #if (NXT_HAVE_CLONE_NEWUSER)
     if ((init->isolation.clone.flags & CLONE_NEWUSER) == CLONE_NEWUSER) {
 
         ret = nxt_clone_proc_map(task, pid, &init->isolation.clone);
         if (nxt_slow_path(ret != NXT_OK)) {
-            close(pipefd[0]);
-            close(pipefd[1]);
             goto fail_cleanup;
         }
     }
 #endif
 
-    if (nxt_slow_path(close(pipefd[0]) != 0)) {
-        nxt_alert(task, "failed to close rpid pipe: %E", nxt_errno);
+    ret = NXT_OK;
 
-        close(pipefd[1]);
-        goto fail_cleanup;
-    }
-
-    nxt_debug(task, "fork/clone(\"%s\"): %PI", init->name, pid);
-
-    if (nxt_slow_path(write(pipefd[1], &pid, sizeof(pid)) == -1)) {
-        nxt_alert(task, "failed to write real pid");
-
-        close(pipefd[0]);
-        close(pipefd[1]);
-
-        goto fail_cleanup;
-    }
-
-    if (nxt_slow_path(close(pipefd[1]) != 0)) {
-        nxt_alert(task, "failed to close rpid pipe: %E", nxt_errno);
+    if (nxt_slow_path(write(pipefd[1], &ret, sizeof(ret)) == -1)) {
+        nxt_alert(task, "failed to write status");
         goto fail_cleanup;
     }
 
@@ -221,12 +229,16 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
     return pid;
 
 fail_cleanup:
-    nxt_alert(task, "worker parent setup failed. Killing %d", pid);
+    nxt_alert(task, "worker parent setup failed");
 
-    if (nxt_slow_path(kill(pid, SIGTERM) != 0)) {
-        nxt_alert(task, "failed to send SIGTERM to %d: %E", pid, 
-            nxt_errno);
-        return -1;
+    ret = NXT_ERROR;
+
+    if (nxt_slow_path(write(pipefd[1], &ret, sizeof(ret)) == -1)) {
+        nxt_alert(task, "failed to write status");
+    }
+
+    if (nxt_slow_path(close(pipefd[1]) != 0)) {
+        nxt_alert(task, "failed to close pipe: %E", nxt_errno);
     }
 
     waitpid(pid, NULL, 0);
