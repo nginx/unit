@@ -272,8 +272,10 @@ nxt_unit_init(nxt_unit_init_t *init)
         nxt_unit_port_id_init(&read_port.id, read_port.id.pid,
                               read_port.id.id);
     } else {
-        nxt_unit_alert(NULL, "failed to configure ports");
-        rc = NXT_ERROR;
+        nxt_unit_alert(NULL, "%s is not in the current environment",
+                       NXT_UNIT_INIT_ENV);
+
+        rc = NXT_UNIT_ERROR;
         goto fail;
     }
 
@@ -425,13 +427,6 @@ nxt_unit_read_env(char *unit_init, nxt_unit_port_t *ready_port, nxt_unit_port_t 
     long      version_length;
     pid_t     ready_pid;
     uint32_t  ready_stream, ready_id, read_id;
-
-    if (nxt_slow_path(unit_init == NULL)) {
-        nxt_unit_alert(NULL, "%s is not in the current environment",
-                       NXT_UNIT_INIT_ENV);
-
-        return NXT_UNIT_ERROR;
-    }
 
     nxt_unit_debug(NULL, "%s='%s'", NXT_UNIT_INIT_ENV, unit_init);
 
