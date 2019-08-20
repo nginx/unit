@@ -8,16 +8,21 @@
 const EventEmitter = require('events');
 const http = require('http');
 const util = require('util');
-const unit_lib = require('unit-http/build/Release/unit-http.node');
-const unit_socket = require('unit-http/socket');
-
-const { Socket } = unit_socket;
+const unit_lib = require('./build/Release/unit-http');
+const Socket = require('./socket');
+const WebSocketFrame = require('./websocket_frame');
 
 
 function ServerResponse(req) {
     EventEmitter.call(this);
 
     this.headers = {};
+
+    this.server = req.server;
+    this._request = req;
+    req._response = this;
+    this.socket = req.socket;
+    this.connection = req.connection;
 }
 util.inherits(ServerResponse, EventEmitter);
 
@@ -207,15 +212,23 @@ ServerResponse.prototype._implicitHeader = function _implicitHeader() {
     this.writeHead(this.statusCode);
 };
 
-ServerResponse.prototype._writeBody = function(chunk, encoding, callback) {
-    var contentLength = 0;
+ServerResponse.prototype._send_headers = unit_lib.response_send_headers;
 
+ServerResponse.prototype._sendHeaders = function _sendHeaders() {
     if (!this.headersSent) {
-        unit_lib.unit_response_headers(this, this.statusCode, this.headers,
-                                       this.headers_count, this.headers_len);
+        this._send_headers(this.statusCode, this.headers, this.headers_count,
+                           this.headers_len);
 
         this.headersSent = true;
     }
+};
+
+ServerResponse.prototype._write = unit_lib.response_write;
+
+ServerResponse.prototype._writeBody = function(chunk, encoding, callback) {
+    var contentLength = 0;
+
+    this._sendHeaders();
 
     if (typeof chunk === 'function') {
         callback = chunk;
@@ -238,7 +251,7 @@ ServerResponse.prototype._writeBody = function(chunk, encoding, callback) {
             contentLength = chunk.length;
         }
 
-        unit_lib.unit_response_write(this, chunk, contentLength);
+        this._write(chunk, contentLength);
     }
 
     if (typeof callback === 'function') {
@@ -268,11 +281,13 @@ ServerResponse.prototype.write = function write(chunk, encoding, callback) {
     return true;
 };
 
+ServerResponse.prototype._end = unit_lib.response_end;
+
 ServerResponse.prototype.end = function end(chunk, encoding, callback) {
     if (!this.finished) {
         this._writeBody(chunk, encoding, callback);
 
-        unit_lib.unit_response_end(this);
+        this._end();
 
         this.finished = true;
     }
@@ -280,10 +295,12 @@ ServerResponse.prototype.end = function end(chunk, encoding, callback) {
     return this;
 };
 
-function ServerRequest(server) {
+function ServerRequest(server, socket) {
     EventEmitter.call(this);
 
     this.server = server;
+    this.socket = socket;
+    this.connection = socket;
 }
 util.inherits(ServerRequest, EventEmitter);
 
@@ -339,8 +356,8 @@ ServerRequest.prototype.on = function on(ev, fn) {
 
     if (ev === "data") {
         process.nextTick(function () {
-            if (this.server.buffer.length !== 0) {
-                this.emit("data", this.server.buffer);
+            if (this._data.length !== 0) {
+                this.emit("data", this._data);
             }
 
         }.bind(this));
@@ -357,14 +374,27 @@ function Server(requestListener) {
 
     this.unit.createServer();
 
-    this.socket = Socket;
-    this.request = ServerRequest;
-    this.response = ServerResponse;
+    this.Socket = Socket;
+    this.ServerRequest = ServerRequest;
+    this.ServerResponse = ServerResponse;
+    this.WebSocketFrame = WebSocketFrame;
 
     if (requestListener) {
         this.on('request', requestListener);
     }
+
+    this._upgradeListenerCount = 0;
+    this.on('newListener', function(ev) {
+        if (ev === 'upgrade'){
+            this._upgradeListenerCount++;
+        }
+      }).on('removeListener', function(ev) {
+        if (ev === 'upgrade') {
+            this._upgradeListenerCount--;
+        }
+    });
 }
+
 util.inherits(Server, EventEmitter);
 
 Server.prototype.setTimeout = function setTimeout(msecs, callback) {
@@ -381,15 +411,13 @@ Server.prototype.listen = function () {
     this.unit.listen();
 };
 
-Server.prototype.emit_events = function (server, req, res) {
-    req.server = server;
-    res.server = server;
-    req.res = res;
-    res.req = req;
+Server.prototype.emit_request = function (req, res) {
+    if (req._websocket_handshake && this._upgradeListenerCount > 0) {
+        this.emit('upgrade', req, req.socket);
 
-    server.buffer = server.unit._read(req.socket.req_pointer);
-
-    server.emit("request", req, res);
+    } else {
+        this.emit("request", req, res);
+    }
 
     process.nextTick(() => {
         req.emit("finish");

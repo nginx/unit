@@ -188,6 +188,21 @@ struct nxt_napi {
     }
 
 
+    inline void *
+    get_buffer_info(napi_value val, size_t &size)
+    {
+        void         *res;
+        napi_status  status;
+
+        status = napi_get_buffer_info(env_, val, &res, &size);
+        if (status != napi_ok) {
+            throw exception("Failed to get buffer info");
+        }
+
+        return res;
+    }
+
+
     inline napi_value
     get_cb_info(napi_callback_info info, size_t &argc, napi_value *argv)
     {
@@ -212,6 +227,23 @@ struct nxt_napi {
         status = napi_get_cb_info(env_, info, nullptr, nullptr, &res, nullptr);
         if (status != napi_ok) {
             throw exception("Failed to get arguments from js");
+        }
+
+        return res;
+    }
+
+
+    inline napi_value
+    get_cb_info(napi_callback_info info, napi_value &arg)
+    {
+        size_t       argc;
+        napi_value   res;
+
+        argc = 1;
+        res = get_cb_info(info, argc, &arg);
+
+        if (argc != 1) {
+            throw exception("Wrong args count. Expected 1");
         }
 
         return res;
@@ -311,15 +343,22 @@ struct nxt_napi {
     inline nxt_unit_request_info_t *
     get_request_info(napi_value obj)
     {
-        int64_t      n;
+        return (nxt_unit_request_info_t *) unwrap(obj);
+    }
+
+
+    inline uint32_t
+    get_value_bool(napi_value obj)
+    {
+        bool         res;
         napi_status  status;
 
-        status = napi_get_value_int64(env_, obj, &n);
+        status = napi_get_value_bool(env_, obj, &res);
         if (status != napi_ok) {
-            throw exception("Failed to get request pointer");
+            throw exception("Failed to get bool");
         }
 
-        return (nxt_unit_request_info_t *) (intptr_t) n;
+        return res;
     }
 
 
@@ -353,6 +392,21 @@ struct nxt_napi {
     }
 
 
+    inline size_t
+    get_value_string_utf8(napi_value val, char *buf, size_t bufsize)
+    {
+        size_t       res;
+        napi_status  status;
+
+        status = napi_get_value_string_utf8(env_, val, buf, bufsize, &res);
+        if (status != napi_ok) {
+            throw exception("Failed to get string utf8");
+        }
+
+        return res;
+    }
+
+
     inline bool
     is_array(napi_value val)
     {
@@ -362,6 +416,21 @@ struct nxt_napi {
         status = napi_is_array(env_, val, &res);
         if (status != napi_ok) {
             throw exception("Failed to confirm value is array");
+        }
+
+        return res;
+    }
+
+
+    inline bool
+    is_buffer(napi_value val)
+    {
+        bool         res;
+        napi_status  status;
+
+        status = napi_is_buffer(env_, val, &res);
+        if (status != napi_ok) {
+            throw exception("Failed to confirm value is buffer");
         }
 
         return res;
@@ -398,6 +467,41 @@ struct nxt_napi {
 
 
     inline napi_value
+    make_callback(napi_async_context ctx, napi_value val, napi_value func)
+    {
+        return make_callback(ctx, val, func, 0, NULL);
+    }
+
+
+    inline napi_value
+    make_callback(napi_async_context ctx, napi_value val, napi_value func,
+        napi_value arg1)
+    {
+        return make_callback(ctx, val, func, 1, &arg1);
+    }
+
+
+    inline napi_value
+    make_callback(napi_async_context ctx, napi_value val, napi_value func,
+        napi_value arg1, napi_value arg2)
+    {
+        napi_value  args[2] = { arg1, arg2 };
+
+        return make_callback(ctx, val, func, 2, args);
+    }
+
+
+    inline napi_value
+    make_callback(napi_async_context ctx, napi_value val, napi_value func,
+        napi_value arg1, napi_value arg2, napi_value arg3)
+    {
+        napi_value  args[3] = { arg1, arg2, arg3 };
+
+        return make_callback(ctx, val, func, 3, args);
+    }
+
+
+    inline napi_value
     new_instance(napi_value ctor)
     {
         napi_value   res;
@@ -419,6 +523,22 @@ struct nxt_napi {
         napi_status  status;
 
         status = napi_new_instance(env_, ctor, 1, &param, &res);
+        if (status != napi_ok) {
+            throw exception("Failed to create instance");
+        }
+
+        return res;
+    }
+
+
+    inline napi_value
+    new_instance(napi_value ctor, napi_value param1, napi_value param2)
+    {
+        napi_value   res;
+        napi_status  status;
+        napi_value   param[2] = { param1, param2 };
+
+        status = napi_new_instance(env_, ctor, 2, param, &res);
         if (status != napi_ok) {
             throw exception("Failed to create instance");
         }
@@ -472,8 +592,46 @@ struct nxt_napi {
     }
 
 
+    template<typename T>
     inline void
-    set_named_property(napi_value obj, const char *name, intptr_t val)
+    set_named_property(napi_value obj, const char *name, T val)
+    {
+        set_named_property(obj, name, create(val));
+    }
+
+
+    inline napi_value
+    create(int32_t val)
+    {
+        napi_value   ptr;
+        napi_status  status;
+
+        status = napi_create_int32(env_, val, &ptr);
+        if (status != napi_ok) {
+            throw exception("Failed to create int32");
+        }
+
+        return ptr;
+    }
+
+
+    inline napi_value
+    create(uint32_t val)
+    {
+        napi_value   ptr;
+        napi_status  status;
+
+        status = napi_create_uint32(env_, val, &ptr);
+        if (status != napi_ok) {
+            throw exception("Failed to create uint32");
+        }
+
+        return ptr;
+    }
+
+
+    inline napi_value
+    create(int64_t val)
     {
         napi_value   ptr;
         napi_status  status;
@@ -483,7 +641,32 @@ struct nxt_napi {
             throw exception("Failed to create int64");
         }
 
-        set_named_property(obj, name, ptr);
+        return ptr;
+    }
+
+
+    inline void
+    remove_wrap(napi_ref& ref)
+    {
+        if (ref != nullptr) {
+            remove_wrap(get_reference_value(ref));
+            ref = nullptr;
+        }
+    }
+
+
+    inline void *
+    remove_wrap(napi_value val)
+    {
+        void         *res;
+        napi_status  status;
+
+        status = napi_remove_wrap(env_, val, &res);
+        if (status != napi_ok) {
+            throw exception("Failed to remove_wrap");
+        }
+
+        return res;
     }
 
 
