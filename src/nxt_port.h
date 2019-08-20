@@ -36,6 +36,12 @@ struct nxt_port_handlers_s {
     /* Stop process command. */
     nxt_port_handler_t  quit;
 
+    /* Request headers. */
+    nxt_port_handler_t  req_headers;
+
+    /* Websocket frame. */
+    nxt_port_handler_t  websocket_frame;
+
     /* Various data. */
     nxt_port_handler_t  data;
 };
@@ -71,6 +77,9 @@ typedef enum {
     _NXT_PORT_MSG_REMOVE_PID    = nxt_port_handler_idx(remove_pid),
     _NXT_PORT_MSG_QUIT          = nxt_port_handler_idx(quit),
 
+    _NXT_PORT_MSG_REQ_HEADERS   = nxt_port_handler_idx(req_headers),
+    _NXT_PORT_MSG_WEBSOCKET     = nxt_port_handler_idx(websocket_frame),
+
     _NXT_PORT_MSG_DATA          = nxt_port_handler_idx(data),
 
     NXT_PORT_MSG_MAX            = sizeof(nxt_port_handlers_t)
@@ -98,6 +107,10 @@ typedef enum {
                                   | NXT_PORT_MSG_LAST,
     NXT_PORT_MSG_QUIT           = _NXT_PORT_MSG_QUIT | NXT_PORT_MSG_LAST,
     NXT_PORT_MSG_REMOVE_PID     = _NXT_PORT_MSG_REMOVE_PID | NXT_PORT_MSG_LAST,
+
+    NXT_PORT_MSG_REQ_HEADERS    = _NXT_PORT_MSG_REQ_HEADERS,
+    NXT_PORT_MSG_WEBSOCKET      = _NXT_PORT_MSG_WEBSOCKET,
+    NXT_PORT_MSG_WEBSOCKET_LAST = _NXT_PORT_MSG_WEBSOCKET | NXT_PORT_MSG_LAST,
 
     NXT_PORT_MSG_DATA           = _NXT_PORT_MSG_DATA,
     NXT_PORT_MSG_DATA_LAST      = _NXT_PORT_MSG_DATA | NXT_PORT_MSG_LAST,
@@ -180,6 +193,8 @@ struct nxt_port_s {
     uint32_t            app_pending_responses;
     uint32_t            app_responses;
     nxt_queue_t         pending_requests;
+
+    nxt_queue_t         active_websockets;
 
     nxt_port_handler_t  handler;
     nxt_port_handler_t  *data;

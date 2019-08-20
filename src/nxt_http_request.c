@@ -16,8 +16,6 @@ static void nxt_http_request_proto_info(nxt_task_t *task,
 static void nxt_http_request_mem_buf_completion(nxt_task_t *task, void *obj,
     void *data);
 static void nxt_http_request_done(nxt_task_t *task, void *obj, void *data);
-static void nxt_http_request_close_handler(nxt_task_t *task, void *obj,
-    void *data);
 
 static u_char *nxt_http_date(u_char *buf, nxt_realtime_t *now, struct tm *tm,
     size_t size, const char *format);
@@ -444,6 +442,16 @@ fail:
 
 
 void
+nxt_http_request_ws_frame_start(nxt_task_t *task, nxt_http_request_t *r,
+    nxt_buf_t *ws_frame)
+{
+    if (r->proto.any != NULL) {
+        nxt_http_proto[r->protocol].ws_frame_start(task, r, ws_frame);
+    }
+}
+
+
+void
 nxt_http_request_send(nxt_task_t *task, nxt_http_request_t *r, nxt_buf_t *out)
 {
     if (nxt_fast_path(r->proto.any != NULL)) {
@@ -530,7 +538,7 @@ nxt_http_request_error_handler(nxt_task_t *task, void *obj, void *data)
 }
 
 
-static void
+void
 nxt_http_request_close_handler(nxt_task_t *task, void *obj, void *data)
 {
     nxt_http_proto_t         proto;
@@ -556,12 +564,13 @@ nxt_http_request_close_handler(nxt_task_t *task, void *obj, void *data)
         }
     }
 
-    protocol = r->protocol;
-
     r->proto.any = NULL;
-    nxt_mp_release(r->mem_pool);
 
     if (nxt_fast_path(proto.any != NULL)) {
+        protocol = r->protocol;
+
+        nxt_mp_release(r->mem_pool);
+
         nxt_http_proto[protocol].close(task, proto, conf);
     }
 }
