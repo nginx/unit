@@ -5,8 +5,6 @@ from unit.applications.proto import TestApplicationProto
 
 
 class TestApplicationJava(TestApplicationProto):
-    application_type = "java"
-
     def load(self, script, name='app'):
 
         app_path = self.testdir + '/java'
@@ -66,7 +64,7 @@ class TestApplicationJava(TestApplicationProto):
                 "applications": {
                     script: {
                         "unit_jars": self.pardir + '/build',
-                        "type": self.application_type,
+                        "type": 'java',
                         "processes": {"spare": 0},
                         "working_directory": script_path,
                         "webapp": app_path,
