@@ -81,7 +81,11 @@ class TestHTTP(TestUnit):
         sock.sendall(req)
 
         if TestUnit.detailed:
-            print('>>>', req, sep='\n')
+            print('>>>')
+            try:
+                print(req.decode('utf-8', 'ignore'))
+            except UnicodeEncodeError:
+                print(req)
 
         resp = ''
 
@@ -93,7 +97,11 @@ class TestHTTP(TestUnit):
             resp = self.recvall(sock, read_timeout=read_timeout).decode(enc)
 
         if TestUnit.detailed:
-            print('<<<', resp.encode('utf-8'), sep='\n')
+            print('<<<')
+            try:
+                print(resp)
+            except UnicodeEncodeError:
+                print(resp.encode())
 
         if 'raw_resp' not in kwargs:
             resp = self._resp_to_dict(resp)

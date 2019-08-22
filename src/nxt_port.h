@@ -134,11 +134,10 @@ typedef struct {
     nxt_buf_t           *buf;
     size_t              share;
     nxt_fd_t            fd;
-    nxt_bool_t          close_fd;
     nxt_port_msg_t      port_msg;
     uint32_t            tracking_msg[2];
-
-    nxt_work_t          work;
+    uint8_t             close_fd;   /* 1 bit */
+    uint8_t             allocated;  /* 1 bit */
 } nxt_port_send_msg_t;
 
 
@@ -202,9 +201,6 @@ struct nxt_port_s {
     nxt_atomic_t        use_count;
 
     nxt_process_type_t  type;
-
-    struct iovec        *iov;
-    void                *mmsg_buf;
 };
 
 

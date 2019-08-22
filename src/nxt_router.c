@@ -3483,7 +3483,13 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
             goto fail;
         }
 
+        field = NULL;
+
         for (f = resp->fields; f < resp->fields + resp->fields_count; f++) {
+            if (f->skip) {
+                continue;
+            }
+
             field = nxt_list_add(r->resp.fields);
 
             if (nxt_slow_path(field == NULL)) {
@@ -3491,25 +3497,29 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
             }
 
             field->hash = f->hash;
-            field->skip = f->skip;
+            field->skip = 0;
 
             field->name_length = f->name_length;
             field->value_length = f->value_length;
             field->name = nxt_unit_sptr_get(&f->name);
             field->value = nxt_unit_sptr_get(&f->value);
 
-            nxt_debug(task, "header: %*s: %*s",
+            ret = nxt_http_field_process(field, &nxt_response_fields_hash, r);
+            if (nxt_slow_path(ret != NXT_OK)) {
+                goto fail;
+            }
+
+            nxt_debug(task, "header%s: %*s: %*s",
+                      (field->skip ? " skipped" : ""),
                       (size_t) field->name_length, field->name,
                       (size_t) field->value_length, field->value);
+
+            if (field->skip) {
+                r->resp.fields->last->nelts--;
+            }
         }
 
         r->status = resp->status;
-
-        ret = nxt_http_fields_process(r->resp.fields,
-                                      &nxt_response_fields_hash, r);
-        if (nxt_slow_path(ret != NXT_OK)) {
-            goto fail;
-        }
 
         if (resp->piggyback_content_length != 0) {
             b->mem.pos = nxt_unit_sptr_get(&resp->piggyback_content);
@@ -3530,9 +3540,14 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
             nxt_buf_chain_add(&r->out, b);
         }
 
+        nxt_http_request_header_send(task, r);
+
         r->state = &nxt_http_request_send_state;
 
-        nxt_http_request_header_send(task, r);
+        if (r->out) {
+            nxt_work_queue_add(&task->thread->engine->fast_work_queue,
+                               nxt_http_request_send_body, task, r, NULL);
+        }
     }
 
     return;
@@ -3548,7 +3563,6 @@ fail:
 static const nxt_http_request_state_t  nxt_http_request_send_state
     nxt_aligned(64) =
 {
-    .ready_handler = nxt_http_request_send_body,
     .error_handler = nxt_http_request_error_handler,
 };
 

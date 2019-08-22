@@ -55,7 +55,7 @@ nxt_port_incoming_port_mmap(nxt_task_t *task, nxt_process_t *process,
 
 void
 nxt_port_mmap_write(nxt_task_t *task, nxt_port_t *port,
-    nxt_port_send_msg_t *msg, nxt_sendbuf_coalesce_t *sb);
+    nxt_port_send_msg_t *msg, nxt_sendbuf_coalesce_t *sb, void *mmsg_buf);
 
 void
 nxt_port_mmap_read(nxt_task_t *task, nxt_port_recv_msg_t *msg);

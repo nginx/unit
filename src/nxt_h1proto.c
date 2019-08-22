@@ -908,7 +908,6 @@ nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r)
     nxt_h1proto_t       *h1p;
     const nxt_str_t     *status;
     nxt_http_field_t    *field;
-    nxt_event_engine_t  *engine;
     u_char              buf[UNKNOWN_STATUS_LENGTH];
 
     static const char   chunked[] = "Transfer-Encoding: chunked\r\n";
@@ -1031,12 +1030,7 @@ nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r)
     c->write = header;
     c->write_state = &nxt_h1p_request_send_state;
 
-    engine = task->thread->engine;
-
-    nxt_work_queue_add(&engine->fast_work_queue, r->state->ready_handler,
-                       task, r, NULL);
-
-    nxt_conn_write(engine, c);
+    nxt_conn_write(task->thread->engine, c);
 }
 
 
