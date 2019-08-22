@@ -49,7 +49,7 @@ dockerfiles: $(addprefix Dockerfile., $(MODULES))
 build: dockerfiles $(addprefix build-,$(MODULES))
 push: build $(addprefix push-,$(MODULES)) latest
 
-Dockerfile.%: ../../src/nxt_main.h
+Dockerfile.%: ../../version
 	@echo "===> Building $@"
 	cat Dockerfile.tmpl | sed \
 			-e 's,@@UNITPACKAGES@@,$(MODULE_$*),g' \
