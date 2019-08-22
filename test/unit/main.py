@@ -23,6 +23,7 @@ class TestUnit(unittest.TestCase):
         os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
     )
     architecture = platform.architecture()[0]
+    system = platform.system()
     maxDiff = None
 
     detailed = False
