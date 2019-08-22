@@ -44,9 +44,11 @@ nxt_process_worker_setup(nxt_task_t *task, nxt_process_t *process, int parentfd)
     nxt_process_t      *p;
     nxt_runtime_t      *rt;
     nxt_int_t          parent_status;
+    pid_t              rpid;
     pid_t              pid;
     
-    pid = 0;
+    pid = getpid();
+    rpid = 0;
     rt   = task->thread->runtime;
     init = process->init;
     
@@ -54,32 +56,32 @@ nxt_process_worker_setup(nxt_task_t *task, nxt_process_t *process, int parentfd)
      * Setup the worker process
      */
 
-    if (read(parentfd, &pid, sizeof(pid)) == -1) {
+    if (read(parentfd, &rpid, sizeof(rpid)) == -1) {
         nxt_alert(task, "failed to read real pid");
         return NXT_ERROR;
     }
 
-    if (nxt_slow_path(pid == 0)) {
+    if (nxt_slow_path(rpid == 0)) {
         nxt_alert(task, "failed to get real pid from parent");
         return NXT_ERROR;
     }
 
-    nxt_pid = pid;
+    nxt_pid = rpid;
 
     /* Clean inherited cached thread tid. */
     task->thread->tid = 0;
 
     process->pid = nxt_pid;
 
-    nxt_debug(task, "app \"%s\" real pid %d", init->name, pid);
-    nxt_debug(task, "app \"%s\" isolated pid: %d", init->name, getpid());
-
-    if (read(parentfd, &parent_status, sizeof(parent_status)) == -1) {
-        nxt_alert(task, "failed to parent status");
-        return NXT_ERROR;
+    if (nxt_pid != pid) {
+        nxt_debug(task, "app \"%s\" real pid %d", init->name, pid);
+        nxt_debug(task, "app \"%s\" isolated pid: %d", init->name, getpid());
     }
 
-    nxt_debug(task, "GOT PARENT STATUS: %d", parent_status);
+    if (read(parentfd, &parent_status, sizeof(parent_status)) == -1) {
+        nxt_alert(task, "failed to read parent status");
+        return NXT_ERROR;
+    }
 
     if (nxt_slow_path(close(parentfd) == -1)) {
         nxt_alert(task, "failed to close reader pipe fd");
