@@ -322,9 +322,15 @@ libunit-install: $NXT_BUILD_DIR/$NXT_LIB_UNIT_STATIC
 	install -p -m u=rw,go=r $NXT_BUILD_DIR/$NXT_LIB_UNIT_STATIC \
 		\$(DESTDIR)$NXT_LIBDIR/
 	install -d \$(DESTDIR)$NXT_INCDIR
-	install -p -m u=rw,go=r src/nxt_unit.h src/nxt_unit_field.h \
-		src/nxt_unit_request.h src/nxt_unit_response.h src/nxt_unit_sptr.h \
-		src/nxt_unit_typedefs.h $NXT_BUILD_DIR/nxt_version.h \
+	install -p -m u=rw,go=r src/nxt_unit.h \
+		src/nxt_unit_field.h \
+		src/nxt_unit_request.h \
+		src/nxt_unit_response.h \
+		src/nxt_unit_sptr.h \
+		src/nxt_unit_typedefs.h \
+		src/nxt_unit_websocket.h \
+		$NXT_BUILD_DIR/nxt_version.h \
+		src/nxt_websocket_header.h \
 		\$(DESTDIR)$NXT_INCDIR/
 
 libunit-uninstall:
@@ -336,7 +342,9 @@ libunit-uninstall:
 		\$(DESTDIR)$NXT_INCDIR/nxt_unit_response.h \
 		\$(DESTDIR)$NXT_INCDIR/nxt_unit_sptr.h \
 		\$(DESTDIR)$NXT_INCDIR/nxt_unit_typedefs.h \
-		\$(DESTDIR)$NXT_INCDIR/nxt_version.h
+		\$(DESTDIR)$NXT_INCDIR/nxt_unit_websocket.h \
+		\$(DESTDIR)$NXT_INCDIR/nxt_version.h \
+		\$(DESTDIR)$NXT_INCDIR/nxt_websocket_header.h
 	@rmdir -p \$(DESTDIR)$NXT_INCDIR 2>/dev/null || true
 
 END
