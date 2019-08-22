@@ -1,4 +1,29 @@
 
+Changes with Unit 1.10.0                                         22 Aug 2019
+
+    *) Change: matching of cookies in routes made case sensitive.
+
+    *) Change: decreased log level of common errors when clients close
+       connections.
+
+    *) Change: removed the Perl module's "--include=" ./configure option.
+
+    *) Feature: built-in WebSocket server implementation for Node.js module.
+
+    *) Feature: splitting PATH_INFO from request URI in PHP module.
+
+    *) Feature: request routing by scheme (HTTP or HTTPS).
+
+    *) Feature: support for multipart requests body in Java module.
+
+    *) Feature: improved API compatibility with Node.js 11.10 or later.
+
+    *) Bugfix: reconfiguration failed if "listeners" or "applications"
+       objects were missing.
+
+    *) Bugfix: applying a large configuration might have failed.
+
+
 Changes with Unit 1.9.0                                          30 May 2019
 
     *) Feature: request routing by arguments, headers, and cookies.
