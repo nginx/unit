@@ -333,10 +333,7 @@ nxt_app_start(nxt_task_t *task, void *data)
         ret = nxt_app->pre_init(task, data);
 
         if (nxt_slow_path(ret != NXT_OK)) {
-            nxt_debug(task, "application pre_init failed");
-
-        } else {
-            nxt_debug(task, "application pre_init done");
+            return ret;
         }
     }
 

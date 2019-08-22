@@ -17,7 +17,13 @@ public class app extends HttpServlet
         HttpSession s = request.getSession();
 
         if (s.isNew()) {
-            s.setMaxInactiveInterval(2);
+            String interval = request.getHeader("X-Interval");
+
+            if (interval == null) {
+                s.setMaxInactiveInterval(0);
+            } else {
+                s.setMaxInactiveInterval(Integer.parseInt(interval));
+            }
         }
 
         response.addHeader("X-Session-Id", s.getId());

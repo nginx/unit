@@ -72,6 +72,8 @@ static nxt_int_t nxt_conf_vldt_match_patterns_set(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_match_patterns_set_member(
     nxt_conf_validation_t *vldt, nxt_str_t *name, nxt_conf_value_t *value);
+static nxt_int_t nxt_conf_vldt_match_scheme_pattern(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_app_name(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_app(nxt_conf_validation_t *vldt,
@@ -100,6 +102,26 @@ static nxt_int_t nxt_conf_vldt_java_option(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value);
 
 
+static nxt_conf_vldt_object_t  nxt_conf_vldt_websocket_members[] = {
+    { nxt_string("read_timeout"),
+      NXT_CONF_VLDT_INTEGER,
+      NULL,
+      NULL },
+
+    { nxt_string("keepalive_interval"),
+      NXT_CONF_VLDT_INTEGER,
+      NULL,
+      NULL },
+
+    { nxt_string("max_frame_size"),
+      NXT_CONF_VLDT_INTEGER,
+      NULL,
+      NULL },
+
+    NXT_CONF_VLDT_END
+};
+
+
 static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[] = {
     { nxt_string("header_read_timeout"),
       NXT_CONF_VLDT_INTEGER,
@@ -125,6 +147,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[] = {
       NXT_CONF_VLDT_INTEGER,
       NULL,
       NULL },
+
+    { nxt_string("websocket"),
+      NXT_CONF_VLDT_OBJECT,
+      &nxt_conf_vldt_object,
+      (void *) &nxt_conf_vldt_websocket_members },
 
     NXT_CONF_VLDT_END
 };
@@ -212,6 +239,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_match_members[] = {
     { nxt_string("method"),
       NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
       &nxt_conf_vldt_match_patterns,
+      NULL },
+
+    { nxt_string("scheme"),
+      NXT_CONF_VLDT_STRING,
+      &nxt_conf_vldt_match_scheme_pattern,
       NULL },
 
     { nxt_string("host"),
@@ -816,6 +848,28 @@ nxt_conf_vldt_match_pattern(nxt_conf_validation_t *vldt,
     }
 
     return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_match_scheme_pattern(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data)
+{
+    nxt_str_t  scheme;
+
+    static const nxt_str_t  http = nxt_string("http");
+    static const nxt_str_t  https = nxt_string("https");
+
+    nxt_conf_get_string(value, &scheme);
+
+    if (nxt_strcasestr_eq(&scheme, &http)
+        || nxt_strcasestr_eq(&scheme, &https))
+    {
+        return NXT_OK;
+    }
+
+    return nxt_conf_vldt_error(vldt, "The \"scheme\" can either be "
+                                     "\"http\" or \"https\".");
 }
 
 

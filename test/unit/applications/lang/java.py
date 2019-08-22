@@ -64,7 +64,7 @@ class TestApplicationJava(TestApplicationProto):
                 "applications": {
                     script: {
                         "unit_jars": self.pardir + '/build',
-                        "type": "java",
+                        "type": 'java',
                         "processes": {"spare": 0},
                         "working_directory": script_path,
                         "webapp": app_path,

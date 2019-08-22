@@ -31,7 +31,7 @@ umask 022
 case "$1" in
     start)
        	log_daemon_msg "Starting $DESC" "$NAME"
-        if start-stop-daemon --start --quiet --pidfile /run/$NAME.pid \
+        if start-stop-daemon --start --quiet --pidfile /var/run/$NAME.pid \
                 --exec $DAEMON -- $DAEMON_ARGS; then
                 log_end_msg 0
         else

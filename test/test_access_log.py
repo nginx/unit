@@ -180,7 +180,9 @@ Connection: close
 
         self.assertEqual(self.post()['status'], 200, 'init')
 
-        resp = self.http(b"""GE""", raw=True, read_timeout=5)
+        resp = self.http(b"""GE""", raw=True, read_timeout=1)
+
+        time.sleep(1)
 
         self.stop()
 
@@ -206,7 +208,9 @@ Connection: close
 
         self.assertEqual(self.post()['status'], 200, 'init')
 
-        resp = self.http(b"""GET / HTTP/1.1""", raw=True, read_timeout=5)
+        resp = self.http(b"""GET / HTTP/1.1""", raw=True, read_timeout=1)
+
+        time.sleep(1)
 
         self.stop()
 
@@ -219,7 +223,9 @@ Connection: close
 
         self.assertEqual(self.post()['status'], 200, 'init')
 
-        resp = self.http(b"""GET / HTTP/1.1\n""", raw=True, read_timeout=5)
+        resp = self.http(b"""GET / HTTP/1.1\n""", raw=True, read_timeout=1)
+
+        time.sleep(1)
 
         self.stop()
 

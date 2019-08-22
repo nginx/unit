@@ -143,14 +143,16 @@ static sapi_module_struct  nxt_php_sapi_module =
 
 struct nxt_php_run_ctx_s {
     char                       *cookie;
-    nxt_str_t                  script;
+    nxt_str_t                  path_info;
+    nxt_str_t                  script_name;
+    nxt_str_t                  script_filename;
     nxt_unit_request_info_t    *req;
 };
 
 
-static nxt_str_t nxt_php_path;
 static nxt_str_t nxt_php_root;
-static nxt_str_t nxt_php_script;
+static nxt_str_t nxt_php_script_name;
+static nxt_str_t nxt_php_script_filename;
 static nxt_str_t nxt_php_index = nxt_string("index.php");
 
 
@@ -178,9 +180,9 @@ static void        ***tsrm_ls;
 static nxt_int_t
 nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 {
-    u_char              *p;
-    nxt_str_t           rpath, ini_path;
-    nxt_str_t           *root, *path, *script, *index;
+    u_char              *p, *tmp;
+    nxt_str_t           ini_path;
+    nxt_str_t           *root, *script_filename, *script_name, *index;
     nxt_port_t          *my_port, *main_port;
     nxt_runtime_t       *rt;
     nxt_unit_ctx_t      *unit_ctx;
@@ -202,8 +204,8 @@ nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     }
 
     root = &nxt_php_root;
-    path = &nxt_php_path;
-    script = &nxt_php_script;
+    script_filename = &nxt_php_script_filename;
+    script_name = &nxt_php_script_name;
     index = &nxt_php_index;
 
     root->start = nxt_realpath(c->root);
@@ -219,47 +221,46 @@ nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     if (c->script.length > 0) {
         nxt_php_str_trim_lead(&c->script, '/');
 
-        path->length = root->length + 1 + c->script.length;
-        path->start = nxt_malloc(path->length + 1);
-        if (nxt_slow_path(path->start == NULL)) {
+        tmp = nxt_malloc(root->length + 1 + c->script.length + 1);
+        if (nxt_slow_path(tmp == NULL)) {
             return NXT_ERROR;
         }
 
-        p = nxt_cpymem(path->start, root->start, root->length);
+        p = tmp;
+
+        p = nxt_cpymem(p, root->start, root->length);
         *p++ = '/';
 
         p = nxt_cpymem(p, c->script.start, c->script.length);
         *p = '\0';
 
-        rpath.start = nxt_realpath(path->start);
-        if (nxt_slow_path(rpath.start == NULL)) {
-            nxt_alert(task, "script realpath(%V) failed %E", path, nxt_errno);
+        script_filename->start = nxt_realpath(tmp);
+        if (nxt_slow_path(script_filename->start == NULL)) {
+            nxt_alert(task, "script realpath(%s) failed %E", tmp, nxt_errno);
             return NXT_ERROR;
         }
 
-        rpath.length = nxt_strlen(rpath.start);
+        nxt_free(tmp);
 
-        if (!nxt_str_start(&rpath, root->start, root->length)) {
+        script_filename->length = nxt_strlen(script_filename->start);
+
+        if (!nxt_str_start(script_filename, root->start, root->length)) {
             nxt_alert(task, "script is not under php root");
             return NXT_ERROR;
         }
 
-        nxt_free(path->start);
-
-        *path = rpath;
-
-        script->length = c->script.length + 1;
-        script->start = nxt_malloc(script->length);
-        if (nxt_slow_path(script->start == NULL)) {
+        script_name->length = c->script.length + 1;
+        script_name->start = nxt_malloc(script_name->length);
+        if (nxt_slow_path(script_name->start == NULL)) {
             return NXT_ERROR;
         }
 
-        script->start[0] = '/';
-        nxt_memcpy(script->start + 1, c->script.start, c->script.length);
+        script_name->start[0] = '/';
+        nxt_memcpy(script_name->start + 1, c->script.start, c->script.length);
 
         nxt_log_error(NXT_LOG_INFO, task->log,
                       "(ABS_MODE) php script \"%V\" root: \"%V\"",
-                      script, root);
+                      script_name, root);
 
     } else {
         nxt_log_error(NXT_LOG_INFO, task->log,
@@ -596,7 +597,15 @@ nxt_php_request_handler(nxt_unit_request_info_t *req)
     path.length = r->path_length;
     path.start = nxt_unit_sptr_get(&r->path);
 
-    if (nxt_php_path.start == NULL) {
+    if (nxt_php_script_filename.start == NULL) {
+        ctx->path_info.start = (u_char *) strstr((char *) path.start, ".php/");
+        if (ctx->path_info.start != NULL) {
+            ctx->path_info.start += 4;
+            path.length = ctx->path_info.start - path.start;
+
+            ctx->path_info.length = r->path_length - path.length;
+        }
+
         if (path.start[path.length - 1] == '/') {
             script_name = nxt_php_index;
 
@@ -605,14 +614,19 @@ nxt_php_request_handler(nxt_unit_request_info_t *req)
             script_name.start = NULL;
         }
 
-        ctx->script.length = nxt_php_root.length + path.length
-                             + script_name.length;
-        p = ctx->script.start = nxt_malloc(ctx->script.length + 1);
+        ctx->script_filename.length = nxt_php_root.length + path.length
+                                      + script_name.length;
+        p = nxt_malloc(ctx->script_filename.length + 1);
         if (nxt_slow_path(p == NULL)) {
             nxt_unit_request_done(req, NXT_UNIT_ERROR);
 
             return;
         }
+
+        ctx->script_filename.start = p;
+
+        ctx->script_name.length = path.length + script_name.length;
+        ctx->script_name.start = p + nxt_php_root.length;
 
         p = nxt_cpymem(p, nxt_php_root.start, nxt_php_root.length);
         p = nxt_cpymem(p, path.start, path.length);
@@ -624,7 +638,8 @@ nxt_php_request_handler(nxt_unit_request_info_t *req)
         *p = '\0';
 
     } else {
-        ctx->script = nxt_php_path;
+        ctx->script_filename = nxt_php_script_filename;
+        ctx->script_name = nxt_php_script_name;
     }
 
     SG(server_context) = ctx;
@@ -654,20 +669,22 @@ nxt_php_request_handler(nxt_unit_request_info_t *req)
     SG(request_info).path_translated = NULL;
 
     file_handle.type = ZEND_HANDLE_FILENAME;
-    file_handle.filename = (char *) ctx->script.start;
+    file_handle.filename = (char *) ctx->script_filename.start;
     file_handle.free_filename = 0;
     file_handle.opened_path = NULL;
 
-    nxt_unit_req_debug(req, "handle.filename = '%s'", ctx->script.start);
+    nxt_unit_req_debug(req, "handle.filename = '%s'",
+                       ctx->script_filename.start);
 
-    if (nxt_php_path.start != NULL) {
+    if (nxt_php_script_filename.start != NULL) {
         nxt_unit_req_debug(req, "run script %.*s in absolute mode",
-                           (int) nxt_php_path.length,
-                           (char *) nxt_php_path.start);
+                           (int) nxt_php_script_filename.length,
+                           (char *) nxt_php_script_filename.start);
 
     } else {
-        nxt_unit_req_debug(req, "run script %.*s", (int) ctx->script.length,
-                           (char *) ctx->script.start);
+        nxt_unit_req_debug(req, "run script %.*s",
+                           (int) ctx->script_filename.length,
+                           (char *) ctx->script_filename.start);
     }
 
 #if (NXT_PHP7)
@@ -690,8 +707,8 @@ fail:
 
     nxt_unit_request_done(req, rc);
 
-    if (ctx->script.start != nxt_php_path.start) {
-        nxt_free(ctx->script.start);
+    if (ctx->script_filename.start != nxt_php_script_filename.start) {
+        nxt_free(ctx->script_filename.start);
     }
 }
 
@@ -730,7 +747,7 @@ static int
 nxt_php_send_headers(sapi_headers_struct *sapi_headers TSRMLS_DC)
 {
     int                      rc, fields_count;
-    char                     *colon, *status_line, *value;
+    char                     *colon, *value;
     uint16_t                 status;
     uint32_t                 resp_size;
     nxt_php_run_ctx_t        *ctx;
@@ -762,17 +779,7 @@ nxt_php_send_headers(sapi_headers_struct *sapi_headers TSRMLS_DC)
         resp_size += h->header_len;
     }
 
-    if (SG(sapi_headers).http_status_line) {
-        status_line = SG(sapi_headers).http_status_line;
-
-        status = nxt_int_parse((u_char *) status_line + 9, 3);
-
-    } else if (SG(sapi_headers).http_response_code) {
-        status = SG(sapi_headers).http_response_code;
-
-    } else {
-        status = 200;
-    }
+    status = SG(sapi_headers).http_response_code;
 
     rc = nxt_unit_response_init(req, status, fields_count, resp_size);
     if (nxt_slow_path(rc != NXT_UNIT_OK)) {
@@ -783,8 +790,6 @@ nxt_php_send_headers(sapi_headers_struct *sapi_headers TSRMLS_DC)
          h;
          h = zend_llist_get_next_ex(&sapi_headers->headers, &zpos))
     {
-        nxt_unit_req_debug(req, "header: %.*s", (int) h->header_len, h->header);
-
         colon = memchr(h->header, ':', h->header_len);
         if (nxt_slow_path(colon == NULL)) {
             nxt_unit_req_warn(req, "colon not found in header '%.*s'",
@@ -867,49 +872,56 @@ nxt_php_register_variables(zval *track_vars_array TSRMLS_DC)
     nxt_php_set_sptr(req, "SERVER_PROTOCOL", &r->version, r->version_length,
                      track_vars_array TSRMLS_CC);
 
-/*
- * 'SCRIPT_NAME'
- * Contains the current script's path. This is useful for pages which need to
- * point to themselves. The __FILE__ constant contains the full path and
- * filename of the current (i.e. included) file.
- */
+    /*
+     * 'PHP_SELF'
+     * The filename of the currently executing script, relative to the document
+     * root.  For instance, $_SERVER['PHP_SELF'] in a script at the address
+     * http://example.com/foo/bar.php would be /foo/bar.php.  The __FILE__
+     * constant contains the full path and filename of the current (i.e.
+     * included) file.  If PHP is running as a command-line processor this
+     * variable contains the script name since PHP 4.3.0. Previously it was not
+     * available.
+     */
 
-/*
- * 'SCRIPT_FILENAME'
- * The absolute pathname of the currently executing script.
- */
-
-/*
- * 'DOCUMENT_ROOT'
- * The document root directory under which the current script is executing,
- * as defined in the server's configuration file.
- */
-
-    if (nxt_php_script.start != NULL) {
-    // ABS_MODE
-/*
- * 'PHP_SELF'
- * The filename of the currently executing script, relative to the document
- * root. For instance, $_SERVER['PHP_SELF'] in a script at the address
- * http://example.com/foo/bar.php would be /foo/bar.php. The __FILE__ constant
- * contains the full path and filename of the current (i.e. included) file.
- * If PHP is running as a command-line processor this variable contains the
- * script name since PHP 4.3.0. Previously it was not available.
- */
-        nxt_php_set_str(req, "PHP_SELF", &nxt_php_script,
-                        track_vars_array TSRMLS_CC);
-        nxt_php_set_str(req, "SCRIPT_NAME", &nxt_php_script,
+    if (nxt_php_script_name.start != NULL) {
+        /* ABS_MODE */
+        nxt_php_set_str(req, "PHP_SELF", &nxt_php_script_name,
                         track_vars_array TSRMLS_CC);
 
     } else {
         nxt_php_set_sptr(req, "PHP_SELF", &r->path, r->path_length,
                          track_vars_array TSRMLS_CC);
-        nxt_php_set_sptr(req, "SCRIPT_NAME", &r->path, r->path_length,
-                         track_vars_array TSRMLS_CC);
     }
 
-    nxt_php_set_str(req, "SCRIPT_FILENAME", &ctx->script,
+    if (ctx->path_info.length != 0) {
+        nxt_php_set_str(req, "PATH_INFO", &ctx->path_info,
+                        track_vars_array TSRMLS_CC);
+    }
+
+    /*
+     * 'SCRIPT_NAME'
+     * Contains the current script's path.  This is useful for pages which need
+     * to point to themselves.  The __FILE__ constant contains the full path and
+     * filename of the current (i.e. included) file.
+     */
+
+    nxt_php_set_str(req, "SCRIPT_NAME", &ctx->script_name,
                     track_vars_array TSRMLS_CC);
+
+    /*
+     * 'SCRIPT_FILENAME'
+     * The absolute pathname of the currently executing script.
+     */
+
+    nxt_php_set_str(req, "SCRIPT_FILENAME", &ctx->script_filename,
+                    track_vars_array TSRMLS_CC);
+
+    /*
+     * 'DOCUMENT_ROOT'
+     * The document root directory under which the current script is executing,
+     * as defined in the server's configuration file.
+     */
+
     nxt_php_set_str(req, "DOCUMENT_ROOT", &nxt_php_root,
                     track_vars_array TSRMLS_CC);
 

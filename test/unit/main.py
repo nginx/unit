@@ -12,6 +12,8 @@ import subprocess
 from multiprocessing import Process
 
 
+available_modules = {}
+
 class TestUnit(unittest.TestCase):
 
     current_dir = os.path.abspath(
@@ -21,6 +23,7 @@ class TestUnit(unittest.TestCase):
         os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
     )
     architecture = platform.architecture()[0]
+    system = platform.system()
     maxDiff = None
 
     detailed = False
@@ -33,6 +36,17 @@ class TestUnit(unittest.TestCase):
             args, rest = TestUnit._parse_args()
 
             TestUnit._set_args(args)
+
+    def run(self, result=None):
+        if not hasattr(self, 'application_type'):
+            return super().run(result)
+
+        type = self.application_type
+        for prerequisite in self.prerequisites:
+            if prerequisite in available_modules:
+                for version in available_modules[prerequisite]:
+                    self.application_type = type + ' ' + version
+                    super().run(result)
 
     @classmethod
     def main(cls):
@@ -108,6 +122,16 @@ class TestUnit(unittest.TestCase):
             self.stop()
             exit("Unit is writing log too long")
 
+        # discover all available modules
+
+        global available_modules
+        available_modules = {}
+        for module in re.findall(r'module: ([a-zA-Z]+) (.*) ".*"$', log, re.M):
+            if module[0] not in available_modules:
+                available_modules[module[0]] = [module[1]]
+            else:
+                available_modules[module[0]].append(module[1])
+
         missed_module = ''
         for module in modules:
             if module == 'go':
@@ -153,7 +177,8 @@ class TestUnit(unittest.TestCase):
                     m = None
 
             else:
-                m = re.search('module: ' + module, log)
+                if module not in available_modules:
+                    m = None
 
             if m is None:
                 missed_module = module
@@ -309,6 +334,13 @@ class TestUnit(unittest.TestCase):
             action='store_true',
             help='Save unit.log after the test execution',
         )
+        parser.add_argument(
+            '-u',
+            '--unsafe',
+            dest='unsafe',
+            action='store_true',
+            help='Run unsafe tests',
+        )
 
         return parser.parse_known_args()
 
@@ -316,6 +348,7 @@ class TestUnit(unittest.TestCase):
     def _set_args(args):
         TestUnit.detailed = args.detailed
         TestUnit.save_log = args.save_log
+        TestUnit.unsafe = args.unsafe
 
         if TestUnit.detailed:
             fcntl.fcntl(sys.stdout.fileno(), fcntl.F_SETFL, 0)

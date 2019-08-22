@@ -5,7 +5,7 @@ After=network-online.target
 
 [Service]
 Type=forking
-PIDFile=/run/unit.pid
+PIDFile=/var/run/unit.pid
 EnvironmentFile=-/etc/default/unit
 ExecStart=/usr/sbin/unitd $DAEMON_ARGS
 ExecReload=

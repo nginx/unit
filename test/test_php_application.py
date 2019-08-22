@@ -24,6 +24,7 @@ class TestPHPApplication(TestApplicationPHP):
                 'Connection': 'close',
             },
             body=body,
+            url='/index.php/blah?var=val'
         )
 
         self.assertEqual(resp['status'], 200, 'status')
@@ -54,7 +55,8 @@ class TestPHPApplication(TestApplicationPHP):
                 'Connection': 'close',
                 'Content-Length': str(len(body)),
                 'Request-Method': 'POST',
-                'Request-Uri': '/',
+                'Path-Info': '/blah',
+                'Request-Uri': '/index.php/blah?var=val',
                 'Http-Host': 'localhost',
                 'Server-Protocol': 'HTTP/1.1',
                 'Custom-Header': 'blah',
@@ -101,6 +103,46 @@ class TestPHPApplication(TestApplicationPHP):
 
         self.assertEqual(resp['status'], 200, 'status')
         self.assertNotEqual(resp['body'], '', 'body not empty')
+
+    def test_php_application_header_status(self):
+        self.load('header')
+
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Connection': 'close',
+                    'X-Header': 'HTTP/1.1 404 Not Found',
+                }
+            )['status'],
+            404,
+            'status',
+        )
+
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Connection': 'close',
+                    'X-Header': 'http/1.1 404 Not Found',
+                }
+            )['status'],
+            404,
+            'status case insensitive',
+        )
+
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Connection': 'close',
+                    'X-Header': 'HTTP/ 404 Not Found',
+                }
+            )['status'],
+            404,
+            'status version empty',
+        )
+
 
     def test_php_application_404(self):
         self.load('404')
@@ -420,6 +462,45 @@ class TestPHPApplication(TestApplicationPHP):
             self.get()['body'], r'012345', 'disable_classes before'
         )
 
+    def test_php_application_script(self):
+        self.assertIn(
+            'success', self.conf(
+                {
+                    "listeners": {"*:7080": {"pass": "applications/script"}},
+                    "applications": {
+                        "script": {
+                            "type": "php",
+                            "processes": {"spare": 0},
+                            "root": self.current_dir + "/php/script",
+                            "script": "phpinfo.php",
+                        }
+                    },
+                }
+            ), 'configure script'
+        )
+
+        resp = self.get()
+
+        self.assertEqual(resp['status'], 200, 'status')
+        self.assertNotEqual(resp['body'], '', 'body not empty')
+
+    def test_php_application_index_default(self):
+        self.assertIn(
+            'success', self.conf(
+                {
+                    "listeners": {"*:7080": {"pass": "applications/phpinfo"}},
+                    "applications": {
+                        "phpinfo": {
+                            "type": "php",
+                            "processes": {"spare": 0},
+                            "root": self.current_dir + "/php/phpinfo",
+                        }
+                    },
+                }
+            ), 'configure index default'
+        )
+
+        self.assertEqual(self.get()['status'], 200, 'status')
 
 if __name__ == '__main__':
     TestPHPApplication.main()

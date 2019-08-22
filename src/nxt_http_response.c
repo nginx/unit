@@ -28,6 +28,8 @@ static nxt_http_field_proc_t   nxt_response_fields[] = {
         offsetof(nxt_http_request_t, resp.content_type) },
     { nxt_string("Content-Length"), &nxt_http_response_field,
         offsetof(nxt_http_request_t, resp.content_length) },
+    { nxt_string("Upgrade"),        &nxt_http_response_skip, 0 },
+    { nxt_string("Sec-WebSocket-Accept"), &nxt_http_response_skip, 0 },
 };
 
 

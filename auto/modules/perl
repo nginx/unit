@@ -14,14 +14,12 @@ for nxt_option; do
 
     case "$nxt_option" in
         --perl=*)      NXT_PERL="$value"                                ;;
-        --include=*)   NXT_PERL_INCPATH="$value"                        ;;
         --module=*)    NXT_PERL_MODULE="$value"                         ;;
 
         --help)
             cat << END
 
     --perl=FILE           set perl executable, default: perl
-    --include=DIRECTORY   set directory path to perl headers
     --module=NAME         set unit perl module name
 
 END
@@ -59,10 +57,9 @@ nxt_found=no
 if /bin/sh -c "$NXT_PERL -MConfig -e 'print \"Perl version: \",
     \$Config{version}, \"\\n\"'" >> $NXT_AUTOCONF_ERR 2>&1; then
 
-    NXT_PERL_INCPATH=${NXT_PERL_INCPATH=`$NXT_PERL -MConfig -e 'print $Config{archlib}, "/CORE"'`}
-    NXT_PERL_INCLUDE="-I ${NXT_PERL_INCPATH}"
-
-    NXT_PERL_LDOPTS=`$NXT_PERL -MExtUtils::Embed -e ldopts`
+    NXT_PERL_CFLAGS=`$NXT_PERL -MExtUtils::Embed -e ccflags | sed -e 's/^ //;s/ $//'`
+    NXT_PERL_INCLUDE=`$NXT_PERL -MExtUtils::Embed -e perl_inc | sed -e 's/^ //;s/ $//'`
+    NXT_PERL_LDOPTS=`$NXT_PERL -MExtUtils::Embed -e ldopts | sed -e 's/^ //;s/ $//'`
 
     if [ "$NXT_SYSTEM" = "Darwin" ]; then
         # OS X system perl wants to link universal binaries
@@ -70,13 +67,11 @@ if /bin/sh -c "$NXT_PERL -MConfig -e 'print \"Perl version: \",
                          | sed -e 's/-arch i386//' -e 's/-arch x86_64//'`
     fi
 
-    NXT_PERL_LIBS="-L ${NXT_PERL_INCPATH} ${NXT_PERL_LDOPTS}"
-
     nxt_feature="Perl"
     nxt_feature_name=""
     nxt_feature_run=no
     nxt_feature_incs="${NXT_PERL_INCLUDE}"
-    nxt_feature_libs="${NXT_PERL_LIBS}"
+    nxt_feature_libs="${NXT_PERL_LDOPTS}"
     nxt_feature_test="
         #define _GNU_SOURCE
         #include <EXTERN.h>
@@ -123,7 +118,7 @@ nxt_feature="Perl version"
 nxt_feature_name=""
 nxt_feature_run=value
 nxt_feature_incs="${NXT_PERL_INCLUDE}"
-nxt_feature_libs="${NXT_PERL_LIBS}"
+nxt_feature_libs="${NXT_PERL_LDOPTS}"
 nxt_feature_test="
     #define _GNU_SOURCE
     #include <EXTERN.h>
@@ -171,7 +166,7 @@ for nxt_src in $NXT_PERL_MODULE_SRCS; do
 
 $NXT_BUILD_DIR/$nxt_obj:	$nxt_src
 	mkdir -p $NXT_BUILD_DIR/src/perl
-	\$(CC) -c \$(CFLAGS) \$(NXT_INCS) $NXT_PERL_INCLUDE \\
+	\$(CC) -c \$(CFLAGS) $NXT_PERL_CFLAGS \$(NXT_INCS) $NXT_PERL_INCLUDE \\
 	$nxt_dep_flags \\
 	-o $NXT_BUILD_DIR/$nxt_obj $nxt_src
 	$nxt_dep_post
@@ -194,7 +189,7 @@ ${NXT_PERL_MODULE}:	$NXT_BUILD_DIR/${NXT_PERL_MODULE}.unit.so
 
 $NXT_BUILD_DIR/${NXT_PERL_MODULE}.unit.so:	$nxt_objs
 	\$(NXT_MODULE_LINK) -o $NXT_BUILD_DIR/${NXT_PERL_MODULE}.unit.so \\
-	$nxt_objs $NXT_PERL_LIBS $NXT_LD_OPT
+	$nxt_objs $NXT_PERL_LDOPTS $NXT_LD_OPT
 
 
 install: ${NXT_PERL_MODULE}-install

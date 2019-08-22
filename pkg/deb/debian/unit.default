@@ -1,1 +1,1 @@
-DAEMON_ARGS="--log /var/log/unit.log --pid /run/unit.pid"
+DAEMON_ARGS="--log /var/log/unit.log --pid /var/run/unit.pid"

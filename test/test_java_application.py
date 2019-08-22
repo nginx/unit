@@ -1,9 +1,51 @@
 import time
+import unittest
 from unit.applications.lang.java import TestApplicationJava
 
 
 class TestJavaApplication(TestApplicationJava):
     prerequisites = ['java']
+
+    def test_java_conf_error(self):
+        self.skip_alerts.extend(
+            [
+                r'realpath.*failed',
+                r'failed to apply new conf',
+            ]
+        )
+        self.assertIn(
+            'error',
+            self.conf(
+                {
+                    "listeners": {"*:7080": {"pass": "applications/app"}},
+                    "applications": {
+                        "app": {
+                            "type": "java",
+                            "processes": 1,
+                            "working_directory": self.current_dir
+                            + "/java/empty",
+                            "webapp": self.testdir + "/java",
+                            "unit_jars": self.testdir + "/no_such_dir",
+                        }
+                    },
+                }
+            ),
+            'conf error',
+        )
+
+    def test_java_war(self):
+        self.load('empty_war')
+
+        self.assertIn(
+            'success',
+            self.conf(
+                '"' + self.testdir + '/java/empty.war"',
+                '/config/applications/empty_war/webapp',
+            ),
+            'configure war',
+        )
+
+        self.assertEqual(self.get()['status'], 200, 'war')
 
     def test_java_application_cookies(self):
         self.load('cookies')
@@ -99,12 +141,16 @@ class TestJavaApplication(TestApplicationJava):
     def test_java_application_session_active(self):
         self.load('session_inactive')
 
-        resp = self.get()
+        resp = self.get(headers={
+            'X-Interval': '4',
+            'Host': 'localhost',
+            'Connection': 'close',
+        })
         session_id = resp['headers']['X-Session-Id']
 
         self.assertEqual(resp['status'], 200, 'session init')
         self.assertEqual(
-            resp['headers']['X-Session-Interval'], '2', 'session interval'
+            resp['headers']['X-Session-Interval'], '4', 'session interval'
         )
         self.assertLess(
             abs(
@@ -147,7 +193,7 @@ class TestJavaApplication(TestApplicationJava):
             resp['headers']['X-Session-Id'], session_id, 'session active 2'
         )
 
-        time.sleep(1)
+        time.sleep(2)
 
         resp = self.get(
             headers={
@@ -164,7 +210,11 @@ class TestJavaApplication(TestApplicationJava):
     def test_java_application_session_inactive(self):
         self.load('session_inactive')
 
-        resp = self.get()
+        resp = self.get(headers={
+            'X-Interval': '1',
+            'Host': 'localhost',
+            'Connection': 'close',
+        })
         session_id = resp['headers']['X-Session-Id']
 
         time.sleep(3)
@@ -1164,6 +1214,43 @@ class TestJavaApplication(TestApplicationJava):
         )
         self.assertEqual(headers['X-Get-Date'], date, 'get date header')
 
+    def test_java_application_multipart(self):
+        self.load('multipart')
+
+        body = """Preamble. Should be ignored.\r
+\r
+--12345\r
+Content-Disposition: form-data; name="file"; filename="sample.txt"\r
+Content-Type: text/plain\r
+\r
+Data from sample file\r
+--12345\r
+Content-Disposition: form-data; name="destination"\r
+\r
+%s\r
+--12345\r
+Content-Disposition: form-data; name="upload"\r
+\r
+Upload\r
+--12345--\r
+\r
+Epilogue. Should be ignored.""" % self.testdir
+
+        resp = self.post(
+            headers={
+                'Content-Type': 'multipart/form-data; boundary=12345',
+                'Host': 'localhost',
+                'Connection': 'close',
+            },
+            body=body,
+        )
+
+        self.assertEqual(resp['status'], 200, 'multipart status')
+        self.assertRegex(resp['body'], r'sample\.txt created', 'multipart body')
+        self.assertIsNotNone(
+            self.search_in_log(r'^Data from sample file$', name='sample.txt'),
+            'file created',
+        )
 
 if __name__ == '__main__':
     TestJavaApplication.main()

@@ -15,6 +15,7 @@ typedef enum {
     NXT_HTTP_ROUTE_HEADER,
     NXT_HTTP_ROUTE_ARGUMENT,
     NXT_HTTP_ROUTE_COOKIE,
+    NXT_HTTP_ROUTE_SCHEME,
 } nxt_http_route_object_t;
 
 
@@ -41,6 +42,7 @@ typedef struct {
     nxt_conf_value_t               *headers;
     nxt_conf_value_t               *arguments;
     nxt_conf_value_t               *cookies;
+    nxt_conf_value_t               *scheme;
 } nxt_http_route_match_conf_t;
 
 
@@ -197,6 +199,8 @@ static nxt_http_name_value_t *nxt_http_route_argument(nxt_array_t *array,
     u_char *end);
 static nxt_int_t nxt_http_route_test_argument(nxt_http_request_t *r,
     nxt_http_route_rule_t *rule, nxt_array_t *array);
+static nxt_int_t nxt_http_route_scheme(nxt_http_request_t *r,
+    nxt_http_route_rule_t *rule);
 static nxt_int_t nxt_http_route_cookies(nxt_http_request_t *r,
     nxt_http_route_rule_t *rule);
 static nxt_array_t *nxt_http_route_cookies_parse(nxt_http_request_t *r);
@@ -276,6 +280,11 @@ nxt_http_routes_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
 
 static nxt_conf_map_t  nxt_http_route_match_conf[] = {
+    {
+        nxt_string("scheme"),
+        NXT_CONF_MAP_PTR,
+        offsetof(nxt_http_route_match_conf_t, scheme)
+    },
     {
         nxt_string("host"),
         NXT_CONF_MAP_PTR,
@@ -412,6 +421,18 @@ nxt_http_route_match_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
     test = &match->test[0];
 
+    if (mtcf.scheme != NULL) {
+        rule = nxt_http_route_rule_create(task, mp, mtcf.scheme, 1,
+                                          NXT_HTTP_ROUTE_PATTERN_NOCASE);
+        if (rule == NULL) {
+            return NULL;
+        }
+
+        rule->object = NXT_HTTP_ROUTE_SCHEME;
+        test->rule = rule;
+        test++;
+    }
+
     if (mtcf.host != NULL) {
         rule = nxt_http_route_rule_create(task, mp, mtcf.host, 1,
                                           NXT_HTTP_ROUTE_PATTERN_LOWCASE);
@@ -475,7 +496,7 @@ nxt_http_route_match_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
     if (mtcf.cookies != NULL) {
         table = nxt_http_route_table_create(task, mp, mtcf.cookies,
-                                            NXT_HTTP_ROUTE_COOKIE, 0);
+                                            NXT_HTTP_ROUTE_COOKIE, 1);
         if (table == NULL) {
             return NULL;
         }
@@ -613,7 +634,7 @@ nxt_http_route_rule_name_create(nxt_task_t *task, nxt_mp_t *mp,
         c = name->start[i];
         *p++ = c;
 
-        c = nxt_lowcase(c);
+        c = case_sensitive ? c : nxt_lowcase(c);
         hash = nxt_http_field_hash_char(hash, c);
     }
 
@@ -1125,6 +1146,9 @@ nxt_http_route_rule(nxt_http_request_t *r, nxt_http_route_rule_t *rule)
     case NXT_HTTP_ROUTE_COOKIE:
         return nxt_http_route_cookies(r, rule);
 
+    case NXT_HTTP_ROUTE_SCHEME:
+        return nxt_http_route_scheme(r, rule);
+
     default:
         break;
     }
@@ -1331,6 +1355,18 @@ nxt_http_route_test_argument(nxt_http_request_t *r,
 
 
 static nxt_int_t
+nxt_http_route_scheme(nxt_http_request_t *r, nxt_http_route_rule_t *rule)
+{
+    nxt_bool_t  tls, https;
+
+    https = (rule->pattern[0].length1 == nxt_length("https"));
+    tls = (r->tls != NULL);
+
+    return (tls == https);
+}
+
+
+static nxt_int_t
 nxt_http_route_cookies(nxt_http_request_t *r, nxt_http_route_rule_t *rule)
 {
     nxt_array_t  *cookies;
@@ -1452,7 +1488,6 @@ nxt_http_route_cookie(nxt_array_t *array, u_char *name, size_t name_length,
 
     for (p = name; p < name + name_length; p++) {
         c = *p;
-        c = nxt_lowcase(c);
         hash = nxt_http_field_hash_char(hash, c);
     }
 
@@ -1483,8 +1518,7 @@ nxt_http_route_test_cookie(nxt_http_request_t *r,
 
         if (rule->u.name.hash == nv->hash
             && rule->u.name.length == nv->name_length
-            && nxt_strncasecmp(rule->u.name.start, nv->name, nv->name_length)
-               == 0)
+            && nxt_memcmp(rule->u.name.start, nv->name, nv->name_length) == 0)
         {
             ret = nxt_http_route_test_rule(r, rule, nv->value,
                                            nv->value_length);

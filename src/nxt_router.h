@@ -108,8 +108,8 @@ struct nxt_app_s {
     nxt_work_t             adjust_idle_work;
     nxt_event_engine_t     *engine;
 
-    nxt_queue_t            requests; /* of nxt_req_app_link_t */
-    nxt_queue_t            pending;  /* of nxt_req_app_link_t */
+    nxt_queue_t            requests; /* of nxt_request_app_link_t */
+    nxt_queue_t            pending;  /* of nxt_request_app_link_t */
     nxt_str_t              name;
 
     uint32_t               pending_processes;
@@ -139,6 +139,13 @@ struct nxt_app_s {
 
 
 typedef struct {
+    size_t                 max_frame_size;
+    nxt_msec_t             read_timeout;
+    nxt_msec_t             keepalive_interval;
+} nxt_websocket_conf_t;
+
+
+typedef struct {
     uint32_t               count;
     nxt_queue_link_t       link;
     nxt_router_conf_t      *router_conf;
@@ -163,6 +170,8 @@ typedef struct {
     nxt_msec_t             header_read_timeout;
     nxt_msec_t             body_read_timeout;
     nxt_msec_t             send_timeout;
+
+    nxt_websocket_conf_t   websocket_conf;
 
 #if (NXT_TLS)
     nxt_tls_conf_t         *tls;

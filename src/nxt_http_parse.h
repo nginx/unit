@@ -113,4 +113,28 @@ nxt_int_t nxt_http_fields_process(nxt_list_t *fields, nxt_lvlhsh_t *hash,
     void *ctx);
 
 
+const nxt_lvlhsh_proto_t  nxt_http_fields_hash_proto;
+
+nxt_inline nxt_int_t
+nxt_http_field_process(nxt_http_field_t *field, nxt_lvlhsh_t *hash, void *ctx)
+{
+    nxt_lvlhsh_query_t     lhq;
+    nxt_http_field_proc_t  *proc;
+
+    lhq.proto = &nxt_http_fields_hash_proto;
+
+    lhq.key_hash = field->hash;
+    lhq.key.length = field->name_length;
+    lhq.key.start = field->name;
+
+    if (nxt_lvlhsh_find(hash, &lhq) != NXT_OK) {
+        return NXT_OK;
+    }
+
+    proc = lhq.value;
+
+    return proc->handler(ctx, field, proc->data);
+}
+
+
 #endif /* _NXT_HTTP_PARSER_H_INCLUDED_ */

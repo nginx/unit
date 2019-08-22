@@ -8,7 +8,6 @@
 #define _NXT_PERL_PSGI_LAYER_H_INCLUDED_
 
 
-#define _GNU_SOURCE
 #include <EXTERN.h>
 #include <XSUB.h>
 #include <perl.h>
