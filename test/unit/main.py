@@ -333,6 +333,13 @@ class TestUnit(unittest.TestCase):
             action='store_true',
             help='Save unit.log after the test execution',
         )
+        parser.add_argument(
+            '-u',
+            '--unsafe',
+            dest='unsafe',
+            action='store_true',
+            help='Run unsafe tests',
+        )
 
         return parser.parse_known_args()
 
@@ -340,6 +347,7 @@ class TestUnit(unittest.TestCase):
     def _set_args(args):
         TestUnit.detailed = args.detailed
         TestUnit.save_log = args.save_log
+        TestUnit.unsafe = args.unsafe
 
         if TestUnit.detailed:
             fcntl.fcntl(sys.stdout.fileno(), fcntl.F_SETFL, 0)
