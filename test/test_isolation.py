@@ -59,7 +59,7 @@ class TestIsolation(TestApplicationGo):
 
         isolation = {
             "namespaces": {
-                "user": True
+                "credential": True
             }
         }
 
@@ -72,7 +72,7 @@ class TestIsolation(TestApplicationGo):
 
         isolation = {
             "namespaces": {
-                "user": True
+                "credential": True
             },
             "uidmap": [
                 {
@@ -104,7 +104,7 @@ class TestIsolation(TestApplicationGo):
         isolation = {
             "namespaces": {
                 "mount": True,
-                "user": True,
+                "credential": True,
             }
         }
 
@@ -132,7 +132,7 @@ class TestIsolation(TestApplicationGo):
         isolation = {
             "namespaces": {
                 "pid": True,
-                "user": True,
+                "credential": True,
             }
         }
 

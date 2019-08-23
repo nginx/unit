@@ -358,7 +358,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_processes_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_app_namespaces_members[] = {
 
 #if (NXT_HAVE_CLONE_NEWUSER)
-    { nxt_string("user"),
+    { nxt_string("credential"),
       NXT_CONF_VLDT_BOOLEAN,
       NULL,
       NULL },
@@ -386,7 +386,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_namespaces_members[] = {
 #endif
 
 #if (NXT_HAVE_CLONE_NEWUTS)
-    { nxt_string("uts"),
+    { nxt_string("uname"),
       NXT_CONF_VLDT_BOOLEAN,
       NULL,
       NULL },
@@ -1475,7 +1475,7 @@ typedef struct {
 
 static nxt_conf_map_t nxt_conf_vldt_clone_namespaces_conf_map[] = {
     {
-        nxt_string("user"),
+        nxt_string("credential"),
         NXT_CONF_MAP_INT8,
         offsetof(nxt_conf_vldt_clone_namespaces_conf_t, usr),
     },
@@ -1499,7 +1499,7 @@ static nxt_conf_map_t nxt_conf_vldt_clone_namespaces_conf_map[] = {
     },
 
     {
-        nxt_string("uts"),
+        nxt_string("uname"),
         NXT_CONF_MAP_INT8,
         offsetof(nxt_conf_vldt_clone_namespaces_conf_t, uts),
     },

@@ -1525,7 +1525,7 @@ nxt_init_set_ns(nxt_task_t *task, nxt_process_init_t *init, nxt_conf_value_t *na
         }
 
 #if (NXT_HAVE_CLONE_NEWUSER)
-        if (nxt_str_eq(&name, "user", 4)) {
+        if (nxt_str_eq(&name, "credential", 10)) {
             flag = CLONE_NEWUSER;
         } 
 #endif
@@ -1543,7 +1543,7 @@ nxt_init_set_ns(nxt_task_t *task, nxt_process_init_t *init, nxt_conf_value_t *na
 #endif
         
 #if (NXT_HAVE_CLONE_NEWUTS)
-        if (nxt_str_eq(&name, "uts", 3)) {
+        if (nxt_str_eq(&name, "uname", 5)) {
             flag = CLONE_NEWUTS;
         }
 #endif
