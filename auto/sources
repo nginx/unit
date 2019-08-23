@@ -87,6 +87,11 @@ NXT_LIB_SRCS=" \
     src/nxt_external.c \
     src/nxt_port_hash.c \
     src/nxt_clone.c \
+    src/nxt_sha1.c \
+    src/nxt_websocket.c \
+    src/nxt_websocket_accept.c \
+    src/nxt_http_websocket.c \
+    src/nxt_h1proto_websocket.c \
 "
 
 NXT_LIB_SRC0=" \

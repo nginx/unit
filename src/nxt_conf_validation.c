@@ -118,6 +118,26 @@ static nxt_int_t
 nxt_conf_vldt_clone_gidmap(nxt_conf_validation_t *vldt, nxt_conf_value_t *value);
 #endif
 
+static nxt_conf_vldt_object_t  nxt_conf_vldt_websocket_members[] = {
+    { nxt_string("read_timeout"),
+      NXT_CONF_VLDT_INTEGER,
+      NULL,
+      NULL },
+
+    { nxt_string("keepalive_interval"),
+      NXT_CONF_VLDT_INTEGER,
+      NULL,
+      NULL },
+
+    { nxt_string("max_frame_size"),
+      NXT_CONF_VLDT_INTEGER,
+      NULL,
+      NULL },
+
+    NXT_CONF_VLDT_END
+};
+
+
 static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[] = {
     { nxt_string("header_read_timeout"),
       NXT_CONF_VLDT_INTEGER,
@@ -143,6 +163,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[] = {
       NXT_CONF_VLDT_INTEGER,
       NULL,
       NULL },
+
+    { nxt_string("websocket"),
+      NXT_CONF_VLDT_OBJECT,
+      &nxt_conf_vldt_object,
+      (void *) &nxt_conf_vldt_websocket_members },
 
     NXT_CONF_VLDT_END
 };

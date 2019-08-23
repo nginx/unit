@@ -74,8 +74,8 @@ nxt_process_worker_setup(nxt_task_t *task, nxt_process_t *process, int parentfd)
     process->pid = nxt_pid;
 
     if (nxt_pid != pid) {
-        nxt_debug(task, "app \"%s\" real pid %d", init->name, pid);
-        nxt_debug(task, "app \"%s\" isolated pid: %d", init->name, getpid());
+        nxt_debug(task, "app \"%s\" real pid %d", init->name, nxt_pid);
+        nxt_debug(task, "app \"%s\" isolated pid: %d", init->name, pid);
     }
 
     if (read(parentfd, &parent_status, sizeof(parent_status)) == -1) {

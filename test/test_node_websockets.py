@@ -9,9 +9,15 @@ class TestNodeWebsockets(TestApplicationNode):
 
     ws = TestApplicationWebsocket()
 
-    @classmethod
-    def setUpClass(cls):
-        raise unittest.SkipTest('Websockets is not available')
+    def setUp(self):
+        super().setUp()
+
+        self.skip_alerts.extend(
+            [
+                r'last message send failed',
+                r'socket close\(\d+\) failed',
+            ]
+        )
 
     def close_connection(self, sock):
         self.assertEqual(self.recvall(sock, read_timeout=1), b'', 'empty sock')
@@ -432,6 +438,7 @@ class TestNodeWebsockets(TestApplicationNode):
     # validation for websocket frames.  It should be implemented
     # by application, if necessary.
 
+    @unittest.skip('not yet')
     def test_node_websockets_1_1_1__1_1_8(self):
         self.load('websockets/mirror')
 
@@ -458,6 +465,7 @@ class TestNodeWebsockets(TestApplicationNode):
 
         self.close_connection(sock)
 
+    @unittest.skip('not yet')
     def test_node_websockets_1_2_1__1_2_8(self):
         self.load('websockets/mirror')
 
@@ -799,6 +807,7 @@ class TestNodeWebsockets(TestApplicationNode):
 
         self.check_close(sock, 1002)
 
+    @unittest.skip('not yet')
     def test_node_websockets_5_1__5_20(self):
         self.load('websockets/mirror')
 
@@ -1521,6 +1530,7 @@ class TestNodeWebsockets(TestApplicationNode):
         self.ws.frame_write(sock, opcode, payload)  # frame length is 101
         self.check_close(sock, 1009)                # 1009 - CLOSE_TOO_LARGE
 
+    @unittest.skip('not yet')
     def test_node_websockets_read_timeout(self):
         self.load('websockets/mirror')
 
@@ -1541,6 +1551,7 @@ class TestNodeWebsockets(TestApplicationNode):
 
         self.check_close(sock, 1001)   # 1001 - CLOSE_GOING_AWAY
 
+    @unittest.skip('not yet')
     def test_node_websockets_keepalive_interval(self):
         self.load('websockets/mirror')
 

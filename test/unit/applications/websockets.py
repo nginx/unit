@@ -57,7 +57,7 @@ class TestApplicationWebsocket(TestApplicationProto):
     def serialize_close(self, code = 1000, reason = ''):
         return struct.pack('!H', code) + reason.encode('utf-8')
 
-    def frame_read(self, sock, read_timeout=1):
+    def frame_read(self, sock, read_timeout=5):
         def recv_bytes(sock, bytes):
             data = b''
             while select.select([sock], [], [], read_timeout)[0]:
@@ -204,7 +204,7 @@ class TestApplicationWebsocket(TestApplicationProto):
             op_code = self.OP_CONT
             pos = end
 
-    def message_read(self, sock, read_timeout=1):
+    def message_read(self, sock, read_timeout=5):
         frame = self.frame_read(sock, read_timeout=read_timeout)
 
         while(not frame['fin']):

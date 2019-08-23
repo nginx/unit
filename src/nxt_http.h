@@ -11,6 +11,9 @@
 typedef enum {
     NXT_HTTP_INVALID = 0,
 
+    NXT_HTTP_CONTINUE = 100,
+    NXT_HTTP_SWITCHING_PROTOCOLS = 101,
+
     NXT_HTTP_OK = 200,
     NXT_HTTP_NO_CONTENT = 204,
 
@@ -26,6 +29,7 @@ typedef enum {
     NXT_HTTP_LENGTH_REQUIRED = 411,
     NXT_HTTP_PAYLOAD_TOO_LARGE = 413,
     NXT_HTTP_URI_TOO_LONG = 414,
+    NXT_HTTP_UPGRADE_REQUIRED = 426,
     NXT_HTTP_REQUEST_HEADER_FIELDS_TOO_LARGE = 431,
 
     NXT_HTTP_TO_HTTPS = 497,
@@ -60,6 +64,13 @@ typedef struct {
 
 
 typedef struct nxt_h1proto_s        nxt_h1proto_t;
+
+struct nxt_h1p_websocket_timer_s {
+    nxt_timer_t                     timer;
+    nxt_h1proto_t                   *h1p;
+    nxt_msec_t                      keepalive_interval;
+};
+
 
 typedef union {
     void                            *any;
@@ -99,6 +110,7 @@ struct nxt_http_request_s {
     nxt_mp_t                        *mem_pool;
 
     nxt_buf_t                       *body;
+    nxt_buf_t                       *ws_frame;
     nxt_buf_t                       *out;
     const nxt_http_request_state_t  *state;
 
@@ -127,6 +139,8 @@ struct nxt_http_request_s {
     nxt_timer_t                     timer;
     void                            *timer_data;
 
+    void                            *req_rpc_data;
+
     nxt_buf_t                       *last;
 
     nxt_http_response_t             resp;
@@ -138,6 +152,7 @@ struct nxt_http_request_s {
     uint8_t                         logged;       /* 1 bit  */
     uint8_t                         header_sent;  /* 1 bit  */
     uint8_t                         error;        /* 1 bit  */
+    uint8_t                         websocket_handshake;  /* 1 bit */
 };
 
 
@@ -166,6 +181,8 @@ typedef struct {
     void (*discard)(nxt_task_t *task, nxt_http_request_t *r, nxt_buf_t *last);
     void (*close)(nxt_task_t *task, nxt_http_proto_t proto,
         nxt_socket_conf_joint_t *joint);
+    void (*ws_frame_start)(nxt_task_t *task, nxt_http_request_t *r,
+        nxt_buf_t *ws_frame);
 } nxt_http_proto_table_t;
 
 
@@ -179,12 +196,15 @@ void nxt_http_request_error(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_status_t status);
 void nxt_http_request_read_body(nxt_task_t *task, nxt_http_request_t *r);
 void nxt_http_request_header_send(nxt_task_t *task, nxt_http_request_t *r);
+void nxt_http_request_ws_frame_start(nxt_task_t *task, nxt_http_request_t *r,
+    nxt_buf_t *ws_frame);
 void nxt_http_request_send(nxt_task_t *task, nxt_http_request_t *r,
     nxt_buf_t *out);
 nxt_buf_t *nxt_http_buf_mem(nxt_task_t *task, nxt_http_request_t *r,
     size_t size);
 nxt_buf_t *nxt_http_buf_last(nxt_http_request_t *r);
 void nxt_http_request_error_handler(nxt_task_t *task, void *obj, void *data);
+void nxt_http_request_close_handler(nxt_task_t *task, void *obj, void *data);
 
 nxt_int_t nxt_http_request_host(void *ctx, nxt_http_field_t *field,
     uintptr_t data);
@@ -212,5 +232,13 @@ extern nxt_lvlhsh_t                        nxt_response_fields_hash;
 
 extern const nxt_http_proto_table_t  nxt_http_proto[];
 
+void nxt_h1p_websocket_first_frame_start(nxt_task_t *task,
+    nxt_http_request_t *r, nxt_buf_t *ws_frame);
+void nxt_h1p_websocket_frame_start(nxt_task_t *task, nxt_http_request_t *r,
+    nxt_buf_t *ws_frame);
+void nxt_h1p_complete_buffers(nxt_task_t *task, nxt_h1proto_t *h1p);
+nxt_msec_t nxt_h1p_conn_request_timer_value(nxt_conn_t *c, uintptr_t data);
+
+extern const nxt_conn_state_t  nxt_h1p_idle_close_state;
 
 #endif  /* _NXT_HTTP_H_INCLUDED_ */

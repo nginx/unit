@@ -7,7 +7,7 @@
 
 const EventEmitter = require('events');
 const util = require('util');
-const unit_lib = require('unit-http/build/Release/unit-http.node');
+const unit_lib = require('./build/Release/unit-http');
 
 function Socket(options) {
     EventEmitter.call(this);
@@ -89,7 +89,7 @@ Socket.prototype.setTimeout = function setTimeout(timeout, callback) {
 
     this.timeout = timeout;
 
-    this.on('timeout', callback);
+    // this.on('timeout', callback);
 
     return this;
 };
@@ -101,6 +101,4 @@ Socket.prototype.write = function write(data, encoding, callback) {
 };
 
 
-module.exports = {
-    Socket
-};
+module.exports = Socket;

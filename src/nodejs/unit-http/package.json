@@ -14,7 +14,14 @@
         "package.json",
         "socket.js",
         "binding.gyp",
-        "README.md"
+        "README.md",
+        "websocket.js",
+        "websocket_connection.js",
+        "websocket_frame.js",
+        "websocket_request.js",
+        "websocket_router.js",
+        "websocket_router_request.js",
+        "websocket_server.js"
     ],
     "scripts": {
         "clean": "node-gyp clean",
