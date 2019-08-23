@@ -4,7 +4,7 @@ MODULE_SUFFIX_go=	go
 MODULE_SUMMARY_go=	Go module for NGINX Unit
 
 MODULE_VERSION_go=	$(VERSION)
-MODULE_RELEASE_go=	1
+MODULE_RELEASE_go=	2
 
 MODULE_CONFARGS_go=	go --go-path=%{gopath}
 MODULE_MAKEARGS_go=	go

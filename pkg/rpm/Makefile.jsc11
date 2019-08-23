@@ -4,7 +4,7 @@ MODULE_SUFFIX_jsc11=	jsc11
 MODULE_SUMMARY_jsc11=	Java 11 module for NGINX Unit
 
 MODULE_VERSION_jsc11=	$(VERSION)
-MODULE_RELEASE_jsc11=	1
+MODULE_RELEASE_jsc11=	2
 
 MODULE_CONFARGS_jsc11=	java --module=java11 --home=/usr/lib/jvm/java-11 --jars=/usr/share/unit-jsc-common/
 MODULE_MAKEARGS_jsc11=	java11

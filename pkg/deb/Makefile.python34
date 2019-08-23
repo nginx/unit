@@ -4,7 +4,7 @@ MODULE_SUFFIX_python34=		python3.4
 MODULE_SUMMARY_python34=	Python 3.4 module for NGINX Unit
 
 MODULE_VERSION_python34=	$(VERSION)
-MODULE_RELEASE_python34=	1
+MODULE_RELEASE_python34=	2
 
 MODULE_CONFARGS_python34=	python --config=python3.4-config
 MODULE_MAKEARGS_python34=	python3.4

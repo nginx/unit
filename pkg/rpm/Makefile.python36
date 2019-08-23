@@ -4,7 +4,7 @@ MODULE_SUFFIX_python36=	python3.6
 MODULE_SUMMARY_python36=	Python 3.6 module for NGINX Unit
 
 MODULE_VERSION_python36=	$(VERSION)
-MODULE_RELEASE_python36=	1
+MODULE_RELEASE_python36=	2
 
 MODULE_CONFARGS_python36=	python --config=python3.6-config
 MODULE_MAKEARGS_python36=	python3.6

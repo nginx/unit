@@ -2,7 +2,7 @@
 
 include ../../version
 
-DEFAULT_RELEASE := 1
+DEFAULT_RELEASE := 2
 
 VERSION ?= $(NXT_VERSION)
 RELEASE ?= $(DEFAULT_RELEASE)

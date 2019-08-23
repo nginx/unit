@@ -4,7 +4,7 @@ MODULE_SUFFIX_python37=		python3.7
 MODULE_SUMMARY_python37=	Python 3.7 module for NGINX Unit
 
 MODULE_VERSION_python37=	$(VERSION)
-MODULE_RELEASE_python37=	1
+MODULE_RELEASE_python37=	2
 
 MODULE_CONFARGS_python37=	python --config=python3.7-config
 MODULE_MAKEARGS_python37=	python3.7
