@@ -39,8 +39,6 @@ typedef nxt_int_t (*nxt_conf_vldt_member_t)(nxt_conf_validation_t *vldt,
                                             nxt_conf_value_t *value);
 typedef nxt_int_t (*nxt_conf_vldt_element_t)(nxt_conf_validation_t *vldt,
                                              nxt_conf_value_t *value);
-typedef nxt_int_t (*nxt_conf_vldt_system_t)(nxt_conf_validation_t *vldt,
-                                            char *name);
 
 
 static nxt_int_t nxt_conf_vldt_type(nxt_conf_validation_t *vldt,
@@ -86,10 +84,6 @@ static nxt_int_t nxt_conf_vldt_object_iterator(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_array_iterator(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
-static nxt_int_t nxt_conf_vldt_system(nxt_conf_validation_t *vldt,
-    nxt_conf_value_t *value, void *data);
-static nxt_int_t nxt_conf_vldt_user(nxt_conf_validation_t *vldt, char *name);
-static nxt_int_t nxt_conf_vldt_group(nxt_conf_validation_t *vldt, char *name);
 static nxt_int_t nxt_conf_vldt_environment(nxt_conf_validation_t *vldt,
     nxt_str_t *name, nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_argument(nxt_conf_validation_t *vldt,
@@ -465,13 +459,13 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[] = {
 
     { nxt_string("user"),
       NXT_CONF_VLDT_STRING,
-      nxt_conf_vldt_system,
-      (void *) &nxt_conf_vldt_user },
+      NULL,
+      NULL},
 
     { nxt_string("group"),
       NXT_CONF_VLDT_STRING,
-      nxt_conf_vldt_system,
-      (void *) &nxt_conf_vldt_group },
+      NULL,
+      NULL },
 
     { nxt_string("working_directory"),
       NXT_CONF_VLDT_STRING,
@@ -1360,72 +1354,6 @@ nxt_conf_vldt_array_iterator(nxt_conf_validation_t *vldt,
         }
     }
 }
-
-
-static nxt_int_t
-nxt_conf_vldt_system(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
-    void *data)
-{
-    size_t                  length;
-    nxt_str_t               name;
-    nxt_conf_vldt_system_t  validator;
-    char                    string[32];
-
-    /* The cast is required by Sun C. */
-    validator = (nxt_conf_vldt_system_t) data;
-
-    nxt_conf_get_string(value, &name);
-
-    length = name.length + 1;
-    length = nxt_min(length, sizeof(string));
-
-    nxt_cpystrn((u_char *) string, name.start, length);
-
-    return validator(vldt, string);
-}
-
-
-static nxt_int_t
-nxt_conf_vldt_user(nxt_conf_validation_t *vldt, char *user)
-{
-    struct passwd  *pwd;
-
-    nxt_errno = 0;
-
-    pwd = getpwnam(user);
-
-    if (pwd != NULL) {
-        return NXT_OK;
-    }
-
-    if (nxt_errno == 0) {
-        return nxt_conf_vldt_error(vldt, "User \"%s\" is not found.", user);
-    }
-
-    return NXT_ERROR;
-}
-
-
-static nxt_int_t
-nxt_conf_vldt_group(nxt_conf_validation_t *vldt, char *group)
-{
-    struct group  *grp;
-
-    nxt_errno = 0;
-
-    grp = getgrnam(group);
-
-    if (grp != NULL) {
-        return NXT_OK;
-    }
-
-    if (nxt_errno == 0) {
-        return nxt_conf_vldt_error(vldt, "Group \"%s\" is not found.", group);
-    }
-
-    return NXT_ERROR;
-}
-
 
 static nxt_int_t
 nxt_conf_vldt_environment(nxt_conf_validation_t *vldt, nxt_str_t *name,
