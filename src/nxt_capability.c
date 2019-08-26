@@ -23,7 +23,7 @@ nxt_capability_set(nxt_task_t *task, nxt_capability_t *cap)
     return nxt_capability_specific_set(task, cap);
 }
 
-#ifdef NXT_HAVE_LINUX_CAPABILITY
+#if (NXT_HAVE_LINUX_CAPABILITY)
 
 static uint32_t
 nxt_capability_linux_get_version()
@@ -88,7 +88,7 @@ nxt_capability_log_hint(nxt_task_t *task)
         *nxt_process_argv);
 }
 
-#elif NXT_HAVE_SOLARIS_PRIVILEGE
+#elif (NXT_HAVE_SOLARIS_PRIVILEGE)
 
 static nxt_int_t
 nxt_capability_specific_set(nxt_task_t *task, nxt_capability_t *cap)
