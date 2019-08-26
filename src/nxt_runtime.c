@@ -25,6 +25,7 @@ static void nxt_runtime_exit(nxt_task_t *task, void *obj, void *data);
 static nxt_int_t nxt_runtime_event_engine_change(nxt_task_t *task,
     nxt_runtime_t *rt);
 static nxt_int_t nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt);
+static nxt_int_t nxt_runtime_creds(nxt_task_t *task,  nxt_runtime_t *rt);
 static nxt_int_t nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt);
 static nxt_int_t nxt_runtime_hostname(nxt_task_t *task, nxt_runtime_t *rt);
 static nxt_int_t nxt_runtime_log_files_init(nxt_runtime_t *rt);
@@ -672,7 +673,6 @@ nxt_runtime_thread_pool_exit(nxt_task_t *task, void *obj, void *data)
 static nxt_int_t
 nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
 {
-    char                         *user, *group_name;
     nxt_int_t                    ret;
     nxt_str_t                    control;
     nxt_uint_t                   n;
@@ -681,8 +681,6 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
     nxt_sockaddr_t               *sa;
     nxt_file_name_str_t          file_name;
     const nxt_event_interface_t  *interface;
-    struct passwd                *pwd;
-    struct group                 *grp;
 
     rt->daemon = 1;
     rt->engine_connections = 256;
@@ -692,21 +690,6 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
     rt->modules = NXT_MODULES;
     rt->state = NXT_STATE;
     rt->control = NXT_CONTROL_SOCK;
-
-    pwd = getpwuid(geteuid());
-
-    if (pwd == NULL) {
-        user = group_name = getenv("USER");
-    } else {
-        user = pwd->pw_name;
-        grp = getgrgid(pwd->pw_gid);
-
-        if (grp == NULL) {
-            group_name = user;
-        } else {
-            group_name = grp->gr_name;
-        }
-    }
     
     nxt_memzero(&rt->capabilities, sizeof(nxt_capability_t));
 
@@ -718,27 +701,7 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
         return NXT_ERROR;
     }
 
-    if (!rt->capabilities.setuid) {
-        if (user == NULL) {
-            nxt_alert(task, "Unit is unable to get the current username. "
-                "There's no entry for uid %d in passwd and $USER is not set",
-                geteuid());
-            return NXT_ERROR;
-        }
-
-        if (rt->user_cred.user != user || rt->group != group_name) {
-            nxt_log(task, NXT_LOG_NOTICE, "Unit is running unprivileged, then it"
-                " cannot use arbitrary user and group. Using \"%s\" and \"%s\""
-                " for user and group, respectively.", user, group_name);
-
-            nxt_capability_log_hint(task);
-        }
-
-        rt->user_cred.user  = user;
-        rt->group = group_name;
-    }
-
-    if (nxt_user_cred_get(task, &rt->user_cred, rt->group) != NXT_OK) {
+    if (nxt_runtime_creds(task, rt) != NXT_OK) {
         return NXT_ERROR;
     }
 
@@ -837,6 +800,59 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
     }
 
     return NXT_OK;
+}
+
+static nxt_int_t
+nxt_runtime_creds(nxt_task_t *task,  nxt_runtime_t *rt)
+{
+    char          *user, *group_name;
+    struct group  *grp;
+    struct passwd *pwd;
+
+    pwd = getpwuid(geteuid());
+
+    if (pwd == NULL) {
+        user = group_name = getenv("USER");
+    } else {
+        user = pwd->pw_name;
+        grp = getgrgid(pwd->pw_gid);
+
+        if (grp == NULL) {
+            group_name = user;
+        } else {
+            group_name = grp->gr_name;
+        }
+    }
+
+    if (rt->capabilities.setid) {
+        if (rt->user_cred.user == NULL) {
+            rt->user_cred.user = NXT_USER;
+        }
+
+        if (rt->group == NULL) {
+            rt->group = NXT_GROUP;
+        }
+    } else {
+        if (user == NULL) {
+            nxt_alert(task, "Unit is unable to get the current username. "
+                "There's no entry for uid %d in passwd and $USER is not set",
+                geteuid());
+            return NXT_ERROR;
+        }
+
+        if (rt->user_cred.user != user || rt->group != group_name) {
+            nxt_log(task, NXT_LOG_NOTICE, "Unit is running unprivileged, then it"
+                " cannot use arbitrary user and group. Using \"%s\" and \"%s\""
+                " for user and group, respectively.", user, group_name);
+
+            nxt_capability_log_hint(task);
+        }
+
+        rt->user_cred.user  = user;
+        rt->group = group_name;
+    } 
+
+    return nxt_user_cred_get(task, &rt->user_cred, rt->group);
 }
 
 

@@ -1,0 +1,48 @@
+
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+
+NXT_HAVE_LINUX_CAPABILITY=NO
+NXT_HAVE_SOLARIS_PRIVILEGE=NO
+
+# Linux capability
+
+nxt_feature="Linux capability"
+nxt_feature_name=NXT_HAVE_LINUX_CAPABILITY
+nxt_feature_test="#include <linux/capability.h>
+                  #include <unistd.h>
+                  #include <sys/syscall.h>
+
+                  int main() {
+                      struct __user_cap_header_struct hdr;
+                      hdr.version = _LINUX_CAPABILITY_VERSION; 
+                      syscall(SYS_capget, &hdr, 0);
+                      return 0;
+                  }"
+. auto/feature
+
+if [ $nxt_found = yes ]; then
+    NXT_HAVE_LINUX_CAPABILITY=YES
+fi
+
+if [ $nxt_found = no ]; then
+    # Solaris Privileges
+
+    nxt_feature="Solaris privileges"
+    nxt_feature_name=NXT_HAVE_SOLARIS_PRIVILEGE
+    nxt_feature_run=
+    nxt_feature_incs=
+    nxt_feature_libs=
+    nxt_feature_test="#include <priv.h>
+
+                      int main() {
+                          getppriv(PRIV_EFFECTIVE, NULL);
+                          return 0;
+                      }"
+    . auto/feature
+
+    if [ $nxt_found = yes ]; then
+        NXT_HAVE_SOLARIS_PRIVILEGE=YES
+    fi
+fi
