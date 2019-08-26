@@ -12,6 +12,14 @@ class TestNodeWebsockets(TestApplicationNode):
     def setUp(self):
         super().setUp()
 
+        self.assertIn(
+            'success',
+            self.conf(
+                {'http': {'websocket': {'keepalive_interval': 0}}}, 'settings'
+            ),
+            'clear keepalive_interval',
+        )
+
         self.skip_alerts.extend(
             [
                 r'last message send failed',
@@ -1530,14 +1538,13 @@ class TestNodeWebsockets(TestApplicationNode):
         self.ws.frame_write(sock, opcode, payload)  # frame length is 101
         self.check_close(sock, 1009)                # 1009 - CLOSE_TOO_LARGE
 
-    @unittest.skip('not yet')
     def test_node_websockets_read_timeout(self):
         self.load('websockets/mirror')
 
         self.assertIn(
             'success',
             self.conf(
-                {'http': {'websocket': {'read_timeout': 1}}}, 'settings'
+                {'http': {'websocket': {'read_timeout': 5}}}, 'settings'
             ),
             'configure read_timeout',
         )
@@ -1551,14 +1558,13 @@ class TestNodeWebsockets(TestApplicationNode):
 
         self.check_close(sock, 1001)   # 1001 - CLOSE_GOING_AWAY
 
-    @unittest.skip('not yet')
     def test_node_websockets_keepalive_interval(self):
         self.load('websockets/mirror')
 
         self.assertIn(
             'success',
             self.conf(
-                {'http': {'websocket': {'keepalive_interval': 1}}}, 'settings'
+                {'http': {'websocket': {'keepalive_interval': 5}}}, 'settings'
             ),
             'configure keepalive_interval',
         )

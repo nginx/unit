@@ -3531,7 +3531,7 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
             nxt_buf_chain_add(&r->out, b);
         }
 
-        nxt_http_request_header_send(task, r);
+        nxt_http_request_header_send(task, r, nxt_http_request_send_body);
 
         if (r->websocket_handshake
             && r->status == NXT_HTTP_SWITCHING_PROTOCOLS)
@@ -3574,11 +3574,6 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
         } else {
             r->state = &nxt_http_request_send_state;
-        }
-
-        if (r->out) {
-            nxt_work_queue_add(&task->thread->engine->fast_work_queue,
-                               nxt_http_request_send_body, task, r, NULL);
         }
     }
 
