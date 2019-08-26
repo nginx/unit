@@ -12,7 +12,7 @@ typedef struct {
 } nxt_capability_t;
 
 NXT_EXPORT nxt_int_t nxt_capability_set(nxt_task_t *task, nxt_capability_t *cap);
-NXT_EXPORT void nxt_capability_insufficient(nxt_task_t *task);
+NXT_EXPORT void nxt_capability_log_hint(nxt_task_t *task);
 
 #ifdef NXT_LINUX
 #include <linux/capability.h>
@@ -27,9 +27,6 @@ NXT_EXPORT void nxt_capability_insufficient(nxt_task_t *task);
 # warning "Fallback to basic unix privilege model"
 #else
 
-nxt_int_t
-nxt_capability_linux_set(nxt_task_t *task, nxt_capability_t *cap);
-
 #define nxt_capget(hdrp, datap)                                               \
             syscall(SYS_capget, hdrp, datap)
 #define nxt_capset(hdrp, datap)                                               \
@@ -41,9 +38,6 @@ nxt_capability_linux_set(nxt_task_t *task, nxt_capability_t *cap);
 
 #include <priv.h>
 #include <sys/tsol/priv.h>
-
-nxt_int_t 
-nxt_capability_solaris_set(nxt_task_t *task, nxt_capability_t *cap);
 
 #endif /* NXT_LINUX */
 

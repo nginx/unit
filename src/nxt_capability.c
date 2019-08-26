@@ -25,9 +25,9 @@ nxt_capability_set(nxt_task_t *task, nxt_capability_t *cap)
     return nxt_capability_specific_set(task, cap);
 }
 
-#ifdef NXT_LINUX
+#ifdef NXT_HAS_LINUX_CAPABILITY
 
-static __u32
+static uin32_t
 nxt_capability_linux_get_version()
 {
     struct __user_cap_header_struct hdr;
@@ -44,7 +44,16 @@ static nxt_int_t
 nxt_capability_specific_set(nxt_task_t *task, nxt_capability_t *cap)
 {
     struct __user_cap_header_struct hdr;
-    struct __user_cap_data_struct   *val, data[2]; // 64-bits
+    struct __user_cap_data_struct   *val, data[2]; 
+
+    /**
+     * Linux capability v1 fills an u32 struct
+     * Linux capability v2 and v3 fills an u64 struct
+     * We allocate data[2] for compatibility, we waste 4 bytes on v1.
+     * 
+     * This is safe as we only need to check CAP_SETUID and CAP_SETGID
+     * that resides in the first 32-bit chunk.
+     */
 
     val = &data[0];
 
@@ -73,15 +82,14 @@ nxt_capability_specific_set(nxt_task_t *task, nxt_capability_t *cap)
 }
 
 void
-nxt_capability_insufficient(nxt_task_t *task)
+nxt_capability_log_hint(nxt_task_t *task)
 {
-    nxt_log(task, NXT_LOG_NOTICE, "It requires CAP_SETUID and CAP_SETGID. You can:");
-    nxt_log(task, NXT_LOG_NOTICE, "\t- # setcap cap_setuid,cap_setgid=+ep"
-                " %s", *nxt_process_argv); 
-    nxt_log(task, NXT_LOG_NOTICE, "\t- or run  as root");
+    nxt_log(task, NXT_LOG_INFO, "hint: In order to give the right capabilities you can"
+        " Unit as root or use setcap: setcap cap_setuid,cap_setgid=+ep %s",
+        *nxt_process_argv);
 }
 
-#elif NXT_SOLARIS
+#elif NXT_HAVE_SOLARIS_PRIVILEGES
 
 static nxt_int_t
 nxt_capability_specific_set(nxt_task_t *task, nxt_capability_t *cap)
@@ -110,7 +118,7 @@ nxt_capability_specific_set(nxt_task_t *task, nxt_capability_t *cap)
 }
 
 void
-nxt_capability_insufficient(nxt_task_t *task)
+nxt_capability_log_hint(nxt_task_t *task)
 {
     nxt_log(task, NXT_LOG_NOTICE, "It requires the privilege PRIV_PROC_SETID."
             " You can create a new user with the priv:");
@@ -126,12 +134,9 @@ nxt_capability_specific_set(nxt_task_t *task, nxt_capability_t *cap) {
 }
 
 void
-nxt_capability_insufficient(nxt_task_t *task)
+nxt_capability_log_hint(nxt_task_t *task)
 {
-    const char *user = getenv("USER");
-
-    nxt_log(task, NXT_LOG_NOTICE, "run as root or pass --user=%s",
-            user ? user : "<invoking user>");
+    nxt_log(task, NXT_LOG_NOTICE, "hint: run as root");
 }
 
 #endif
