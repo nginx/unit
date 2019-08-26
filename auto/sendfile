@@ -16,11 +16,15 @@ NXT_HAVE_HPUX_SENDFILE=NO
 nxt_feature="Linux sendfile()"
 nxt_feature_name=NXT_HAVE_LINUX_SENDFILE
 nxt_feature_test="#include <sys/sendfile.h>
+                  #include <sys/types.h>
+                  #include <sys/socket.h>
 
                   int main() {
                       off_t  offset;
 
                       sendfile(-1, -1, &offset, 0);
+                      send(-1, NULL, 0, MSG_MORE);
+
                       return 0;
                   }"
 . auto/feature
