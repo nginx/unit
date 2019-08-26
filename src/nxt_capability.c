@@ -84,7 +84,7 @@ void
 nxt_capability_log_hint(nxt_task_t *task)
 {
     nxt_log(task, NXT_LOG_INFO, "hint: In order to give the right capabilities you can"
-        " Unit as root or use setcap: setcap cap_setuid,cap_setgid=+ep %s",
+        " run Unit as root or use setcap: setcap cap_setuid,cap_setgid=+ep %s",
         *nxt_process_argv);
 }
 
@@ -118,10 +118,9 @@ nxt_capability_specific_set(nxt_task_t *task, nxt_capability_t *cap)
 void
 nxt_capability_log_hint(nxt_task_t *task)
 {
-    nxt_log(task, NXT_LOG_NOTICE, "It requires the privilege PRIV_PROC_SETID."
-            " You can create a new user with the priv:");
-    nxt_log(task, NXT_LOG_NOTICE, "\t- # usermod -K defaultpriv=basic,proc_setid <user>");
-    nxt_log(task, NXT_LOG_NOTICE, "\t- or run  as root");
+    nxt_log(task, NXT_LOG_INFO, "hint: In order to give the right privileges "
+        " you can run Unit as root or create a new user with just the needed "
+        "privileges: # usermod -K defaultpriv=basic,proc_setid <user>");
 }
 
 #else
