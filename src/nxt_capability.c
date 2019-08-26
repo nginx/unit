@@ -13,12 +13,10 @@ nxt_capability_set(nxt_task_t *task, nxt_capability_t *cap)
 {
     uint8_t is_root = geteuid() == 0;
 
-    nxt_assert(cap->setuid == 0);
-    nxt_assert(cap->setgid == 0);
+    nxt_assert(cap->setid == 0);
 
     if (is_root) {
-        cap->setuid = 1;
-        cap->setgid = 1;
+        cap->setid = 1;
         return NXT_OK;
     }
 
@@ -70,14 +68,15 @@ nxt_capability_specific_set(nxt_task_t *task, nxt_capability_t *cap)
         return NXT_ERROR;
     }
 
-    if ((val->effective & (1 << CAP_SETUID)) != 0) {
-        cap->setuid = 1;
+    if ((val->effective & (1 << CAP_SETUID)) == 0) {
+        return NXT_OK;
     }
 
-    if ((val->effective & (1 << CAP_SETGID)) != 0) {
-        cap->setgid = 1;
+    if ((val->effective & (1 << CAP_SETGID)) == 0) {
+        return NXT_OK;
     }
-    
+
+    cap->setid = 1;
     return NXT_OK;
 }
 
@@ -110,8 +109,7 @@ nxt_capability_specific_set(nxt_task_t *task, nxt_capability_t *cap)
         return NXT_ERROR;
     }
 
-    cap->setuid = PRIV_ISASSERT(effective_privs, PRIV_PROC_SETID);
-    cap->setgid = cap->setgid;
+    cap->setid = PRIV_ISASSERT(effective_privs, PRIV_PROC_SETID);
 
     priv_freeset(effective_privs);
 	return NXT_OK;
