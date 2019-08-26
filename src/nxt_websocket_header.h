@@ -8,9 +8,8 @@
 
 #include <netinet/in.h>
 
-
 typedef struct {
-#if (BYTE_ORDER == BIG_ENDIAN)
+#if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
     uint8_t fin:1;
     uint8_t rsv1:1;
     uint8_t rsv2:1;
@@ -21,7 +20,7 @@ typedef struct {
     uint8_t payload_len:7;
 #endif
 
-#if (BYTE_ORDER == LITTLE_ENDIAN)
+#if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
     uint8_t opcode:4;
     uint8_t rsv3:1;
     uint8_t rsv2:1;
