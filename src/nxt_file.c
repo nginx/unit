@@ -312,7 +312,7 @@ nxt_file_rename(nxt_file_name_t *old_name, nxt_file_name_t *new_name)
  * Linux 2.6 does not use BKL.
  */
 
-#if defined(NXT_HAVE_FIONBIO) && !defined(NXT_SOLARIS)
+#if (NXT_HAVE_FIONBIO) && !(NXT_SOLARIS)
 
 nxt_int_t
 nxt_fd_nonblocking(nxt_task_t *task, nxt_fd_t fd)
