@@ -2,7 +2,6 @@
 # Copyright (C) Igor Sysoev
 # Copyright (C) NGINX, Inc.
 
-
 NXT_HAVE_LINUX_CAPABILITY=NO
 NXT_HAVE_SOLARIS_PRIVILEGE=NO
 
