@@ -23,11 +23,11 @@ NXT_EXPORT void nxt_capability_log_hint(nxt_task_t *task);
 #define nxt_capset(hdrp, datap)                                               \
             syscall(SYS_capset, hdrp, datap)
 
-#elif NXT_HAVE_SOLARIS_PRIVILEGES
+#elif NXT_HAVE_SOLARIS_PRIVILEGE
 
 #include <priv.h>
 #include <sys/tsol/priv.h>
 
-#endif /* NXT_LINUX */
+#endif /* NXT_HAVE_LINUX_CAPABILITY */
 
 #endif /* _NXT_CAPABILITY_INCLUDED_ */
