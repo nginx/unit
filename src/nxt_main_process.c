@@ -634,6 +634,18 @@ nxt_main_start_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
         return NXT_ERROR;
     }
 
+    if (init->user_cred->uid != geteuid() && !rt->capabilities.setuid) {
+        nxt_alert(task, "cannot set user for app \"%V\": "
+                        "missing capabilities", &app_conf->name);
+        return NXT_ERROR;
+    }
+
+    if (init->user_cred->base_gid != getegid() && !rt->capabilities.setgid) {
+        nxt_alert(task, "cannot set group for app \"%V\": "
+                        "missing capabilities", &app_conf->name);
+        return NXT_ERROR;
+    }
+
     title = last;
     end = title + app_conf->name.length + sizeof("\"\" application");
 

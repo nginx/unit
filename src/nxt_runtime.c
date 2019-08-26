@@ -691,13 +691,31 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
     rt->modules = NXT_MODULES;
     rt->state = NXT_STATE;
     rt->control = NXT_CONTROL_SOCK;
+    
+    nxt_memzero(&rt->capabilities, sizeof(nxt_capability_t));
 
     if (nxt_runtime_conf_read_cmd(task, rt) != NXT_OK) {
         return NXT_ERROR;
     }
 
+    if (nxt_capability_set(task, &rt->capabilities) != NXT_OK) {
+        return NXT_ERROR;
+    }
+
     if (nxt_user_cred_get(task, &rt->user_cred, rt->group) != NXT_OK) {
         return NXT_ERROR;
+    }
+
+    if (rt->user_cred.uid != geteuid() && !rt->capabilities.setuid) {
+        nxt_alert(task, "Unit main cannot start other processes as \"%s\", it requires privileges", 
+                rt->user_cred.user);
+        
+        nxt_capability_insufficient(task);
+        return NXT_ERROR;
+    }
+
+    if (rt->user_cred.base_gid != getegid() && !rt->capabilities.setgid) {
+        nxt_alert(task, "process cannot setgid, ignored");
     }
 
     /* An engine's parameters. */
