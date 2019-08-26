@@ -32,9 +32,8 @@ nxt_capability_linux_get_version()
 
     hdr.version = _LINUX_CAPABILITY_VERSION; 
     hdr.pid     = nxt_pid;
-    nxt_assert(nxt_capget(&hdr, NULL) == -1); /* einval returns version */
-    nxt_assert(nxt_errno == EINVAL);
 
+    nxt_capget(&hdr, NULL);
     return hdr.version;
 }
 
@@ -83,8 +82,9 @@ nxt_capability_specific_set(nxt_task_t *task, nxt_capability_t *cap)
 void
 nxt_capability_log_hint(nxt_task_t *task)
 {
-    nxt_log(task, NXT_LOG_INFO, "hint: In order to give the right capabilities you can"
-        " run Unit as root or use setcap: setcap cap_setuid,cap_setgid=+ep %s",
+    nxt_log(task, NXT_LOG_INFO, "hint: In order to give the right capabilities"
+        " you can run Unit as root or use /sbin/setcap, eg.: "
+        "# setcap cap_setuid,cap_setgid=+ep %s",
         *nxt_process_argv);
 }
 
