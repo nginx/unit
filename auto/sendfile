@@ -132,9 +132,9 @@ if [ $nxt_found = no ]; then
     fi
 fi
 
-# Linux sendfile().
-
 if [ $nxt_found = no ]; then
+
+    # Linux sendfile().
 
     nxt_feature="Linux sendfile()"
     nxt_feature_name=NXT_HAVE_LINUX_SENDFILE
