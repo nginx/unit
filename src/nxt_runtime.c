@@ -812,7 +812,7 @@ nxt_runtime_creds(nxt_task_t *task,  nxt_runtime_t *rt)
     pwd = getpwuid(geteuid());
 
     if (pwd == NULL) {
-        user = group_name = getenv("USER");
+        user = group_name = NULL;
     } else {
         user = pwd->pw_name;
         grp = getgrgid(pwd->pw_gid);
@@ -848,7 +848,7 @@ nxt_runtime_creds(nxt_task_t *task,  nxt_runtime_t *rt)
             nxt_capability_log_hint(task);
         }
 
-        rt->user_cred.user  = user;
+        rt->user_cred.user = user;
         rt->group = group_name;
     } 
 
