@@ -266,21 +266,16 @@ nxt_process_start(nxt_task_t *task, nxt_process_t *process)
     nxt_process_title(task, "unit: %s", init->name);
 
     thread = task->thread;
+    rt     = thread->runtime;
 
     nxt_random_init(&thread->random);
 
-    if (init->user_cred != NULL) {
-        /*
-         * Changing user credentials requires either root privileges
-         * or CAP_SETUID and CAP_SETGID capabilities on Linux.
-         */
+    if (rt->capabilities.setid && init->user_cred != NULL) {
         ret = nxt_user_cred_set(task, init->user_cred);
         if (ret != NXT_OK) {
             goto fail;
         }
     }
-
-    rt = thread->runtime;
 
     rt->type = init->type;
 

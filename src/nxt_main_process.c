@@ -285,11 +285,10 @@ nxt_port_main_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_int_t              ret;
     nxt_buf_t              *b;
     nxt_port_t             *port;
+    nxt_runtime_t          *rt;
     nxt_app_type_t         idx;
     nxt_conf_value_t       *conf;
     nxt_common_app_conf_t  app_conf;
-
-    static nxt_str_t nobody = nxt_string("nobody");
 
     ret = NXT_ERROR;
 
@@ -325,7 +324,10 @@ nxt_port_main_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         goto failed;
     }
 
-    app_conf.user = nobody;
+    rt = task->thread->runtime;
+
+    app_conf.user.start  = (u_char*)rt->user_cred.user;
+    app_conf.user.length = nxt_strlen(rt->user_cred.user);
 
     ret = nxt_conf_map_object(mp, conf, nxt_common_app_conf,
                               nxt_nitems(nxt_common_app_conf), &app_conf);
@@ -664,6 +666,19 @@ nxt_main_start_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
     }
 
     if (nxt_user_cred_get(task, init->user_cred, group) != NXT_OK) {
+        return NXT_ERROR;
+    }
+
+    if (init->user_cred->uid != geteuid() && !rt->capabilities.setid) {
+        nxt_alert(task, "cannot set user \"%s\" for app \"%V\": "
+                        "missing capabilities", init->user_cred->user, 
+                        &app_conf->name);
+        return NXT_ERROR;
+    }
+
+    if (init->user_cred->base_gid != getegid() && !rt->capabilities.setid) {
+        nxt_alert(task, "cannot set group for app \"%V\": "
+                        "missing capabilities", &app_conf->name);
         return NXT_ERROR;
     }
 

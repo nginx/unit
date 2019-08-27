@@ -127,6 +127,7 @@ NXT_LIBRT=
 . auto/ssltls
 . auto/pcre
 . auto/isolation
+. auto/capability
 
 
 case "$NXT_SYSTEM_PLATFORM" in
