@@ -10,6 +10,7 @@ NXT_HAVE_SOLARIS_SENDFILEV=NO
 NXT_HAVE_AIX_SEND_FILE=NO
 NXT_HAVE_HPUX_SENDFILE=NO
 
+
 # Solaris 8 sendfilev().
 
 NXT_LIBSENDFILE=
@@ -19,13 +20,13 @@ nxt_feature_name=NXT_HAVE_SOLARIS_SENDFILEV
 nxt_feature_libs="-lsendfile"
 nxt_feature_test="#include <sys/sendfile.h>
 
-                    int main() {
-                        size_t              sent;
-                        struct sendfilevec  vec;
+                  int main() {
+                      size_t              sent;
+                      struct sendfilevec  vec;
 
-                        sendfilev(-1, &vec, 0, &sent);
-                        return 0;
-                    }"
+                      sendfilev(-1, &vec, 0, &sent);
+                      return 0;
+                  }"
 . auto/feature
 
 if [ $nxt_found = yes ]; then
@@ -33,7 +34,9 @@ if [ $nxt_found = yes ]; then
     NXT_LIBSENDFILE=$nxt_feature_libs
 fi
 
+
 if [ $nxt_found = no ]; then
+
     # FreeBSD sendfile().
 
     nxt_feature="FreeBSD sendfile()"
@@ -58,6 +61,7 @@ if [ $nxt_found = no ]; then
         NXT_HAVE_FREEBSD_SENDFILE=YES
     fi
 fi
+
 
 if [ $nxt_found = no ]; then
 
@@ -132,6 +136,7 @@ if [ $nxt_found = no ]; then
     fi
 fi
 
+
 if [ $nxt_found = no ]; then
 
     # Linux sendfile().
@@ -140,12 +145,12 @@ if [ $nxt_found = no ]; then
     nxt_feature_name=NXT_HAVE_LINUX_SENDFILE
     nxt_feature_test="#include <sys/sendfile.h>
 
-                    int main() {
-                        off_t  offset;
+                      int main() {
+                          off_t  offset;
 
-                        sendfile(-1, -1, &offset, 0);
-                        return 0;
-                    }"
+                          sendfile(-1, -1, &offset, 0);
+                          return 0;
+                      }"
     . auto/feature
 
     if [ $nxt_found = yes ]; then
