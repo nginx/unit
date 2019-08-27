@@ -313,7 +313,7 @@ nxt_port_main_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     rt = task->thread->runtime;
 
     app_conf.user.start  = (u_char*)rt->user_cred.user;
-    app_conf.user.length = nxt_length(rt->user_cred.user);
+    app_conf.user.length = nxt_strlen(rt->user_cred.user);
 
     ret = nxt_conf_map_object(mp, conf, nxt_common_app_conf,
                               nxt_nitems(nxt_common_app_conf), &app_conf);
