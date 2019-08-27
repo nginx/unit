@@ -310,6 +310,10 @@ nxt_file_rename(nxt_file_name_t *old_name, nxt_file_name_t *new_name)
  *
  * Linux 2.4 uses BKL for ioctl() and fcntl(F_SETFL).
  * Linux 2.6 does not use BKL.
+ * 
+ * On Solaris, the FIONBIO ioctl command is not allowed on a signalfd
+ * file descriptor. Ref.: 
+ * https://github.com/illumos/illumos-gate/blob/master/usr/src/uts/common/io/signalfd.c#L623
  */
 
 #if (NXT_HAVE_FIONBIO) && !(NXT_SOLARIS)
