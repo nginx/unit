@@ -66,7 +66,7 @@ class TestIsolation(TestApplicationGo):
         self.load('ns_inspect', isolation=isolation)
         obj = parsejson(self.get()['body'])
 
-        # default uid and gid maps current user to root
+        # default uid and gid maps current user to nobody
         self.assertEqual(obj["UID"], 65534, "uid is not from nobody")
         self.assertEqual(obj["GID"], 65534, "gid is not from nobody")
 
