@@ -209,7 +209,6 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
 
 #if (NXT_HAVE_CLONE_NEWUSER)
     if ((init->isolation.clone.flags & CLONE_NEWUSER) == CLONE_NEWUSER) {
-
         ret = nxt_clone_proc_map(task, pid, &init->isolation.clone);
         if (nxt_slow_path(ret != NXT_OK)) {
             goto fail_cleanup;
@@ -720,17 +719,8 @@ nxt_user_cred_set(nxt_task_t *task, nxt_user_cred_t *uc)
               uc->user, (uint64_t) uc->uid, (uint64_t) uc->base_gid);
 
     if (setgid(uc->base_gid) != 0) {
-        if (nxt_errno == NXT_EPERM || 
-            /* TODO(i4k): userns gets einval if not uid/gid remapped */
-            nxt_errno == NXT_EINVAL) {
-            nxt_log(task, NXT_LOG_NOTICE, "setgid(%d) failed %E, ignored",
-                    uc->base_gid, nxt_errno);
-            return NXT_OK;
-
-        } else {
-            nxt_alert(task, "setgid(%d) failed %E", uc->base_gid, nxt_errno);
-            return NXT_ERROR;
-        }
+        nxt_alert(task, "setgid(%d) failed %E", uc->base_gid, nxt_errno);
+        return NXT_ERROR;
     }
 
     if (uc->gids != NULL) {

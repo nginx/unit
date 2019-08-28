@@ -23,6 +23,9 @@ nxt_clone(nxt_int_t flags)
 
 #if (NXT_HAVE_CLONE_NEWUSER)
 
+/* map uid 65534 to unit pid */
+#define NXT_DEFAULT_UNPRIV_MAP "65534 %d 1"
+
 nxt_int_t nxt_clone_proc_setgroups(nxt_task_t *task, 
         pid_t child_pid, const char *str);
 nxt_int_t nxt_clone_proc_map_set(nxt_task_t *task, const char* mapfile, 
@@ -192,7 +195,7 @@ default_map:
         }
 
         end = mapinfo + len;
-        p = nxt_sprintf(mapinfo, end, "0 %d 1", defval);
+        p = nxt_sprintf(mapinfo, end, NXT_DEFAULT_UNPRIV_MAP, defval);
         *p = '\0';
 
         if (p == end) {
@@ -212,20 +215,33 @@ default_map:
 nxt_int_t 
 nxt_clone_proc_map(nxt_task_t *task, pid_t pid, nxt_process_clone_t *clone)
 {
-    nxt_int_t ret;
+    nxt_runtime_t *rt;
+    nxt_int_t     ret;
+    nxt_int_t     uid, gid;
+    const char    *rule;
 
-    ret = nxt_clone_proc_map_set(task, "uid_map", pid, geteuid(), clone->uidmap);
+    rt  = task->thread->runtime;
+    uid = rt->user_cred.uid;
+    gid = rt->user_cred.base_gid;
+
+    if (rt->capabilities.setid) {
+        rule = "allow";
+    } else {
+        rule = "deny";
+    }
+
+    ret = nxt_clone_proc_map_set(task, "uid_map", pid, uid, clone->uidmap);
     if (nxt_slow_path(ret != NXT_OK)) {
         return NXT_ERROR;
     }
 
-    ret = nxt_clone_proc_setgroups(task, pid, "deny");
+    ret = nxt_clone_proc_setgroups(task, pid, rule);
     if (nxt_slow_path(ret != NXT_OK)) {
         nxt_alert(task, "failed to write /proc/%d/setgroups", pid);
         return NXT_ERROR;
     }
 
-    ret = nxt_clone_proc_map_set(task, "gid_map", pid, getegid(), clone->gidmap);
+    ret = nxt_clone_proc_map_set(task, "gid_map", pid, gid, clone->gidmap);
     if (nxt_slow_path(ret != NXT_OK)) {
         return NXT_ERROR;
     }
