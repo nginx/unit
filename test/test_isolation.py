@@ -67,8 +67,8 @@ class TestIsolation(TestApplicationGo):
         obj = parsejson(self.get()['body'])
 
         # default uid and gid maps current user to root
-        self.assertEqual(obj["UID"], 0, "uid is not from root")
-        self.assertEqual(obj["GID"], 0, "gid is not from root")
+        self.assertEqual(obj["UID"], 65534, "uid is not from nobody")
+        self.assertEqual(obj["GID"], 65534, "gid is not from nobody")
 
         isolation = {
             "namespaces": {
