@@ -247,7 +247,7 @@ static nxt_int_t nxt_router_http_request_done(nxt_task_t *task,
 static void nxt_router_http_request_release(nxt_task_t *task, void *obj,
     void *data);
 
-const nxt_http_request_state_t  nxt_http_websocket;
+extern const nxt_http_request_state_t  nxt_http_websocket;
 
 static nxt_router_t  *nxt_router;
 
