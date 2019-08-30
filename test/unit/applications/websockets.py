@@ -54,7 +54,7 @@ class TestApplicationWebsocket(TestApplicationProto):
     def apply_mask(self, data, mask):
         return bytes(b ^ m for b, m in zip(data, itertools.cycle(mask)))
 
-    def serialize_close(self, code = 1000, reason = ''):
+    def serialize_close(self, code=1000, reason=''):
         return struct.pack('!H', code) + reason.encode('utf-8')
 
     def frame_read(self, sock, read_timeout=10):
@@ -66,9 +66,7 @@ class TestApplicationWebsocket(TestApplicationProto):
                         data = sock.recv(bytes)
                     else:
                         data = self.recvall(
-                            sock,
-                            read_timeout=read_timeout,
-                            buff_size=bytes,
+                            sock, read_timeout=read_timeout, buff_size=bytes
                         )
                     break
                 except:
@@ -180,7 +178,7 @@ class TestApplicationWebsocket(TestApplicationProto):
         else:
             pos = 0
             frame_len = len(frame)
-            while (pos < frame_len):
+            while pos < frame_len:
                 end = min(pos + chopsize, frame_len)
                 sock.sendall(frame[pos:end])
                 pos = end
@@ -197,17 +195,19 @@ class TestApplicationWebsocket(TestApplicationProto):
 
         pos = 0
         op_code = type
-        while(pos < message_len):
+        while pos < message_len:
             end = min(pos + fragmention_size, message_len)
-            fin = (end == message_len)
-            self.frame_write(sock, op_code, message[pos:end], fin=fin, **kwargs)
+            fin = end == message_len
+            self.frame_write(
+                sock, op_code, message[pos:end], fin=fin, **kwargs
+            )
             op_code = self.OP_CONT
             pos = end
 
     def message_read(self, sock, read_timeout=10):
         frame = self.frame_read(sock, read_timeout=read_timeout)
 
-        while(not frame['fin']):
+        while not frame['fin']:
             temp = self.frame_read(sock, read_timeout=read_timeout)
             frame['data'] += temp['data']
             frame['fin'] = temp['fin']

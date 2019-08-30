@@ -4,6 +4,7 @@ import unittest
 from unit.applications.lang.node import TestApplicationNode
 from unit.applications.websockets import TestApplicationWebsocket
 
+
 class TestNodeWebsockets(TestApplicationNode):
     prerequisites = ['node']
 
@@ -21,10 +22,7 @@ class TestNodeWebsockets(TestApplicationNode):
         )
 
         self.skip_alerts.extend(
-            [
-                r'last message send failed',
-                r'socket close\(\d+\) failed',
-            ]
+            [r'last message send failed', r'socket close\(\d+\) failed']
         )
 
     def close_connection(self, sock):
@@ -34,7 +32,7 @@ class TestNodeWebsockets(TestApplicationNode):
 
         self.check_close(sock)
 
-    def check_close(self, sock, code = 1000, no_close = False):
+    def check_close(self, sock, code=1000, no_close=False):
         frame = self.ws.frame_read(sock)
 
         self.assertEqual(frame['fin'], True, 'close fin')
@@ -61,9 +59,7 @@ class TestNodeWebsockets(TestApplicationNode):
         sock.close()
 
         self.assertEqual(resp['status'], 101, 'status')
-        self.assertEqual(
-            resp['headers']['Upgrade'], 'websocket', 'upgrade'
-        )
+        self.assertEqual(resp['headers']['Upgrade'], 'websocket', 'upgrade')
         self.assertEqual(
             resp['headers']['Connection'], 'Upgrade', 'connection'
         )
@@ -81,16 +77,12 @@ class TestNodeWebsockets(TestApplicationNode):
         self.ws.frame_write(sock, self.ws.OP_TEXT, message)
         frame = self.ws.frame_read(sock)
 
-        self.assertEqual(
-            message, frame['data'].decode('utf-8'), 'mirror'
-        )
+        self.assertEqual(message, frame['data'].decode('utf-8'), 'mirror')
 
         self.ws.frame_write(sock, self.ws.OP_TEXT, message)
         frame = self.ws.frame_read(sock)
 
-        self.assertEqual(
-            message, frame['data'].decode('utf-8'), 'mirror 2'
-        )
+        self.assertEqual(message, frame['data'].decode('utf-8'), 'mirror 2')
 
         sock.close()
 
@@ -176,9 +168,7 @@ class TestNodeWebsockets(TestApplicationNode):
         frame = self.ws.frame_read(sock)
 
         self.assertEqual(
-            message,
-            frame['data'].decode('utf-8'),
-            'partial send',
+            message, frame['data'].decode('utf-8'), 'partial send'
         )
 
         sock.close()
@@ -276,28 +266,29 @@ class TestNodeWebsockets(TestApplicationNode):
         frame1 = self.ws.frame_read(sock1)
         frame2 = self.ws.frame_read(sock2)
 
-        self.assertEqual(
-            message1, frame1['data'].decode('utf-8'), 'client 1'
-        )
-        self.assertEqual(
-            message2, frame2['data'].decode('utf-8'), 'client 2'
-        )
+        self.assertEqual(message1, frame1['data'].decode('utf-8'), 'client 1')
+        self.assertEqual(message2, frame2['data'].decode('utf-8'), 'client 2')
 
         sock1.close()
         sock2.close()
 
     @unittest.skip('not yet')
-    def test_node_websockets_handshake_upgrade_absent(self): # FAIL https://tools.ietf.org/html/rfc6455#section-4.2.1
+    def test_node_websockets_handshake_upgrade_absent(
+        self
+    ):  # FAIL https://tools.ietf.org/html/rfc6455#section-4.2.1
         self.load('websockets/mirror')
 
         key = self.ws.key()
-        resp = self.get(headers={
-            'Host': 'localhost',
-            'Connection': 'Upgrade',
-            'Sec-WebSocket-Key': key,
-            'Sec-WebSocket-Protocol': 'chat',
-            'Sec-WebSocket-Version': 13,
-        }, read_timeout=1)
+        resp = self.get(
+            headers={
+                'Host': 'localhost',
+                'Connection': 'Upgrade',
+                'Sec-WebSocket-Key': key,
+                'Sec-WebSocket-Protocol': 'chat',
+                'Sec-WebSocket-Version': 13,
+            },
+            read_timeout=1,
+        )
 
         self.assertEqual(resp['status'], 400, 'upgrade absent')
 
@@ -305,29 +296,35 @@ class TestNodeWebsockets(TestApplicationNode):
         self.load('websockets/mirror')
 
         key = self.ws.key()
-        resp = self.get(headers={
-            'Host': 'localhost',
-            'Upgrade': 'WEBSOCKET',
-            'Connection': 'UPGRADE',
-            'Sec-WebSocket-Key': key,
-            'Sec-WebSocket-Protocol': 'chat',
-            'Sec-WebSocket-Version': 13,
-        }, read_timeout=1)
+        resp = self.get(
+            headers={
+                'Host': 'localhost',
+                'Upgrade': 'WEBSOCKET',
+                'Connection': 'UPGRADE',
+                'Sec-WebSocket-Key': key,
+                'Sec-WebSocket-Protocol': 'chat',
+                'Sec-WebSocket-Version': 13,
+            },
+            read_timeout=1,
+        )
 
         self.assertEqual(resp['status'], 101, 'status')
 
     @unittest.skip('not yet')
-    def test_node_websockets_handshake_connection_absent(self): # FAIL
+    def test_node_websockets_handshake_connection_absent(self):  # FAIL
         self.load('websockets/mirror')
 
         key = self.ws.key()
-        resp = self.get(headers={
-            'Host': 'localhost',
-            'Upgrade': 'websocket',
-            'Sec-WebSocket-Key': key,
-            'Sec-WebSocket-Protocol': 'chat',
-            'Sec-WebSocket-Version': 13,
-        }, read_timeout=1)
+        resp = self.get(
+            headers={
+                'Host': 'localhost',
+                'Upgrade': 'websocket',
+                'Sec-WebSocket-Key': key,
+                'Sec-WebSocket-Protocol': 'chat',
+                'Sec-WebSocket-Version': 13,
+            },
+            read_timeout=1,
+        )
 
         self.assertEqual(resp['status'], 400, 'status')
 
@@ -335,13 +332,16 @@ class TestNodeWebsockets(TestApplicationNode):
         self.load('websockets/mirror')
 
         key = self.ws.key()
-        resp = self.get(headers={
-            'Host': 'localhost',
-            'Upgrade': 'websocket',
-            'Connection': 'Upgrade',
-            'Sec-WebSocket-Key': key,
-            'Sec-WebSocket-Protocol': 'chat'
-        }, read_timeout=1)
+        resp = self.get(
+            headers={
+                'Host': 'localhost',
+                'Upgrade': 'websocket',
+                'Connection': 'Upgrade',
+                'Sec-WebSocket-Key': key,
+                'Sec-WebSocket-Protocol': 'chat',
+            },
+            read_timeout=1,
+        )
 
         self.assertEqual(resp['status'], 426, 'status')
 
@@ -349,41 +349,52 @@ class TestNodeWebsockets(TestApplicationNode):
     def test_node_websockets_handshake_key_invalid(self):
         self.load('websockets/mirror')
 
-        resp = self.get(headers={
-            'Host': 'localhost',
-            'Upgrade': 'websocket',
-            'Connection': 'Upgrade',
-            'Sec-WebSocket-Key': '!',
-            'Sec-WebSocket-Protocol': 'chat',
-            'Sec-WebSocket-Version': 13
-        }, read_timeout=1)
+        resp = self.get(
+            headers={
+                'Host': 'localhost',
+                'Upgrade': 'websocket',
+                'Connection': 'Upgrade',
+                'Sec-WebSocket-Key': '!',
+                'Sec-WebSocket-Protocol': 'chat',
+                'Sec-WebSocket-Version': 13,
+            },
+            read_timeout=1,
+        )
 
         self.assertEqual(resp['status'], 400, 'key length')
 
         key = self.ws.key()
-        resp = self.get(headers={
-            'Host': 'localhost',
-            'Upgrade': 'websocket',
-            'Connection': 'Upgrade',
-            'Sec-WebSocket-Key': [key, key],
-            'Sec-WebSocket-Protocol': 'chat',
-            'Sec-WebSocket-Version': 13
-        }, read_timeout=1)
+        resp = self.get(
+            headers={
+                'Host': 'localhost',
+                'Upgrade': 'websocket',
+                'Connection': 'Upgrade',
+                'Sec-WebSocket-Key': [key, key],
+                'Sec-WebSocket-Protocol': 'chat',
+                'Sec-WebSocket-Version': 13,
+            },
+            read_timeout=1,
+        )
 
-        self.assertEqual(resp['status'], 400, 'key double') # FAIL https://tools.ietf.org/html/rfc6455#section-11.3.1
+        self.assertEqual(
+            resp['status'], 400, 'key double'
+        )  # FAIL https://tools.ietf.org/html/rfc6455#section-11.3.1
 
     def test_node_websockets_handshake_method_invalid(self):
         self.load('websockets/mirror')
 
         key = self.ws.key()
-        resp = self.post(headers={
-            'Host': 'localhost',
-            'Upgrade': 'websocket',
-            'Connection': 'Upgrade',
-            'Sec-WebSocket-Key': key,
-            'Sec-WebSocket-Protocol': 'chat',
-            'Sec-WebSocket-Version': 13
-        }, read_timeout=1)
+        resp = self.post(
+            headers={
+                'Host': 'localhost',
+                'Upgrade': 'websocket',
+                'Connection': 'Upgrade',
+                'Sec-WebSocket-Key': key,
+                'Sec-WebSocket-Protocol': 'chat',
+                'Sec-WebSocket-Version': 13,
+            },
+            read_timeout=1,
+        )
 
         self.assertEqual(resp['status'], 400, 'status')
 
@@ -391,14 +402,18 @@ class TestNodeWebsockets(TestApplicationNode):
         self.load('websockets/mirror')
 
         key = self.ws.key()
-        resp = self.get(headers={
-            'Host': 'localhost',
-            'Upgrade': 'websocket',
-            'Connection': 'Upgrade',
-            'Sec-WebSocket-Key': key,
-            'Sec-WebSocket-Protocol': 'chat',
-            'Sec-WebSocket-Version': 13
-        }, http_10=True, read_timeout=1)
+        resp = self.get(
+            headers={
+                'Host': 'localhost',
+                'Upgrade': 'websocket',
+                'Connection': 'Upgrade',
+                'Sec-WebSocket-Key': key,
+                'Sec-WebSocket-Protocol': 'chat',
+                'Sec-WebSocket-Version': 13,
+            },
+            http_10=True,
+            read_timeout=1,
+        )
 
         self.assertEqual(resp['status'], 400, 'status')
 
@@ -406,14 +421,18 @@ class TestNodeWebsockets(TestApplicationNode):
         self.load('websockets/mirror')
 
         key = self.ws.key()
-        resp = self.get(headers={
-            'Host': 'localhost',
-            'Upgrade': 'websocket',
-            'Connection': 'Upgrade',
-            'Sec-WebSocket-Key': key,
-            'Sec-WebSocket-Protocol': 'chat',
-            'Sec-WebSocket-Version': 13
-        }, url='!', read_timeout=1)
+        resp = self.get(
+            headers={
+                'Host': 'localhost',
+                'Upgrade': 'websocket',
+                'Connection': 'Upgrade',
+                'Sec-WebSocket-Key': key,
+                'Sec-WebSocket-Protocol': 'chat',
+                'Sec-WebSocket-Version': 13,
+            },
+            url='!',
+            read_timeout=1,
+        )
 
         self.assertEqual(resp['status'], 400, 'status')
 
@@ -421,18 +440,19 @@ class TestNodeWebsockets(TestApplicationNode):
         self.load('websockets/mirror')
 
         key = self.ws.key()
-        resp = self.get(headers={
-            'Host': 'localhost',
-            'Upgrade': 'websocket',
-            'Connection': 'Upgrade',
-            'Sec-WebSocket-Key': key,
-            'Sec-WebSocket-Version': 13
-        }, read_timeout=1)
+        resp = self.get(
+            headers={
+                'Host': 'localhost',
+                'Upgrade': 'websocket',
+                'Connection': 'Upgrade',
+                'Sec-WebSocket-Key': key,
+                'Sec-WebSocket-Version': 13,
+            },
+            read_timeout=1,
+        )
 
         self.assertEqual(resp['status'], 101, 'status')
-        self.assertEqual(
-            resp['headers']['Upgrade'], 'websocket', 'upgrade'
-        )
+        self.assertEqual(resp['headers']['Upgrade'], 'websocket', 'upgrade')
         self.assertEqual(
             resp['headers']['Connection'], 'Upgrade', 'connection'
         )
@@ -441,7 +461,7 @@ class TestNodeWebsockets(TestApplicationNode):
         )
 
     # autobahn-testsuite
-
+    #
     # Some following tests fail because of Unit does not support UTF-8
     # validation for websocket frames.  It should be implemented
     # by application, if necessary.
@@ -606,7 +626,7 @@ class TestNodeWebsockets(TestApplicationNode):
         frame = self.ws.frame_read(sock)
         self.check_frame(frame, True, self.ws.OP_TEXT, payload)
 
-        self.check_close(sock, 1002, no_close = True)
+        self.check_close(sock, 1002, no_close=True)
 
         self.assertEqual(self.recvall(sock, read_timeout=1), b'', 'empty 3_2')
         sock.close()
@@ -621,14 +641,10 @@ class TestNodeWebsockets(TestApplicationNode):
         self.check_frame(frame, True, self.ws.OP_TEXT, payload)
 
         self.ws.frame_write(
-            sock,
-            self.ws.OP_TEXT,
-            payload,
-            rsv1=True,
-            rsv2=True,
+            sock, self.ws.OP_TEXT, payload, rsv1=True, rsv2=True
         )
 
-        self.check_close(sock, 1002, no_close = True)
+        self.check_close(sock, 1002, no_close=True)
 
         self.assertEqual(self.recvall(sock, read_timeout=1), b'', 'empty 3_3')
         sock.close()
@@ -639,18 +655,14 @@ class TestNodeWebsockets(TestApplicationNode):
 
         self.ws.frame_write(sock, self.ws.OP_TEXT, payload, chopsize=1)
         self.ws.frame_write(
-            sock,
-            self.ws.OP_TEXT,
-            payload,
-            rsv3=True,
-            chopsize=1
+            sock, self.ws.OP_TEXT, payload, rsv3=True, chopsize=1
         )
         self.ws.frame_write(sock, self.ws.OP_PING, '')
 
         frame = self.ws.frame_read(sock)
         self.check_frame(frame, True, self.ws.OP_TEXT, payload)
 
-        self.check_close(sock, 1002, no_close = True)
+        self.check_close(sock, 1002, no_close=True)
 
         self.assertEqual(self.recvall(sock, read_timeout=1), b'', 'empty 3_4')
         sock.close()
@@ -674,11 +686,7 @@ class TestNodeWebsockets(TestApplicationNode):
         _, sock, _ = self.ws.upgrade()
 
         self.ws.frame_write(
-            sock,
-            self.ws.OP_PING,
-            payload,
-            rsv2=True,
-            rsv3=True,
+            sock, self.ws.OP_PING, payload, rsv2=True, rsv3=True
         )
 
         self.check_close(sock, 1002)
@@ -688,12 +696,7 @@ class TestNodeWebsockets(TestApplicationNode):
         _, sock, _ = self.ws.upgrade()
 
         self.ws.frame_write(
-            sock,
-            self.ws.OP_CLOSE,
-            payload,
-            rsv1=True,
-            rsv2=True,
-            rsv3=True,
+            sock, self.ws.OP_CLOSE, payload, rsv1=True, rsv2=True, rsv3=True
         )
 
         self.check_close(sock, 1002)
@@ -857,18 +860,10 @@ class TestNodeWebsockets(TestApplicationNode):
         # 5_5
 
         self.ws.frame_write(
-            sock,
-            self.ws.OP_TEXT,
-            'fragment1',
-            fin=False,
-            chopsize=1,
+            sock, self.ws.OP_TEXT, 'fragment1', fin=False, chopsize=1
         )
         self.ws.frame_write(
-            sock,
-            self.ws.OP_CONT,
-            'fragment2',
-            fin=True,
-            chopsize=1,
+            sock, self.ws.OP_CONT, 'fragment2', fin=True, chopsize=1
         )
 
         frame = self.ws.frame_read(sock)
@@ -910,19 +905,11 @@ class TestNodeWebsockets(TestApplicationNode):
         ping_payload = 'ping payload'
 
         self.ws.frame_write(
-            sock,
-            self.ws.OP_TEXT,
-            'fragment1',
-            fin=False,
-            chopsize=1,
+            sock, self.ws.OP_TEXT, 'fragment1', fin=False, chopsize=1
         )
         self.ws.frame_write(sock, self.ws.OP_PING, ping_payload, chopsize=1)
         self.ws.frame_write(
-            sock,
-            self.ws.OP_CONT,
-            'fragment2',
-            fin=True,
-            chopsize=1,
+            sock, self.ws.OP_CONT, 'fragment2', fin=True, chopsize=1
         )
 
         frame = self.ws.frame_read(sock)
@@ -934,10 +921,7 @@ class TestNodeWebsockets(TestApplicationNode):
         # 5_9
 
         self.ws.frame_write(
-            sock,
-            self.ws.OP_CONT,
-            'non-continuation payload',
-            fin=True,
+            sock, self.ws.OP_CONT, 'non-continuation payload', fin=True
         )
         self.ws.frame_write(sock, self.ws.OP_TEXT, 'Hello, world!', fin=True)
         self.check_close(sock, 1002)
@@ -947,10 +931,7 @@ class TestNodeWebsockets(TestApplicationNode):
         _, sock, _ = self.ws.upgrade()
 
         self.ws.frame_write(
-            sock,
-            self.ws.OP_CONT,
-            'non-continuation payload',
-            fin=True,
+            sock, self.ws.OP_CONT, 'non-continuation payload', fin=True
         )
         self.ws.frame_write(sock, self.ws.OP_TEXT, 'Hello, world!', fin=True)
         self.check_close(sock, 1002)
@@ -967,11 +948,7 @@ class TestNodeWebsockets(TestApplicationNode):
             chopsize=1,
         )
         self.ws.frame_write(
-            sock,
-            self.ws.OP_TEXT,
-            'Hello, world!',
-            fin=True,
-            chopsize=1,
+            sock, self.ws.OP_TEXT, 'Hello, world!', fin=True, chopsize=1
         )
         self.check_close(sock, 1002)
 
@@ -980,10 +957,7 @@ class TestNodeWebsockets(TestApplicationNode):
         _, sock, _ = self.ws.upgrade()
 
         self.ws.frame_write(
-            sock,
-            self.ws.OP_CONT,
-            'non-continuation payload',
-            fin=False,
+            sock, self.ws.OP_CONT, 'non-continuation payload', fin=False
         )
         self.ws.frame_write(sock, self.ws.OP_TEXT, 'Hello, world!', fin=True)
         self.check_close(sock, 1002)
@@ -993,10 +967,7 @@ class TestNodeWebsockets(TestApplicationNode):
         _, sock, _ = self.ws.upgrade()
 
         self.ws.frame_write(
-            sock,
-            self.ws.OP_CONT,
-            'non-continuation payload',
-            fin=False,
+            sock, self.ws.OP_CONT, 'non-continuation payload', fin=False
         )
         self.ws.frame_write(sock, self.ws.OP_TEXT, 'Hello, world!', fin=True)
         self.check_close(sock, 1002)
@@ -1013,11 +984,7 @@ class TestNodeWebsockets(TestApplicationNode):
             chopsize=1,
         )
         self.ws.frame_write(
-            sock,
-            self.ws.OP_TEXT,
-            'Hello, world!',
-            fin=True,
-            chopsize=1,
+            sock, self.ws.OP_TEXT, 'Hello, world!', fin=True, chopsize=1
         )
         self.check_close(sock, 1002)
 
@@ -1183,8 +1150,8 @@ class TestNodeWebsockets(TestApplicationNode):
 
         self.close_connection(sock)
 
-        # Unit does not support UTF-8 validation
-
+#        Unit does not support UTF-8 validation
+#
 #        # 6_3_1 FAIL
 #
 #        payload_1 = '\xce\xba\xe1\xbd\xb9\xcf\x83\xce\xbc\xce\xb5'
@@ -1235,7 +1202,7 @@ class TestNodeWebsockets(TestApplicationNode):
         _, sock, _ = self.ws.upgrade()
 
         self.ws.frame_write(sock, self.ws.OP_CLOSE, self.ws.serialize_close())
-        self.check_close(sock, no_close = True)
+        self.check_close(sock, no_close=True)
 
         self.ws.frame_write(sock, self.ws.OP_PING, '')
         self.assertEqual(self.recvall(sock, read_timeout=1), b'', 'empty sock')
@@ -1247,7 +1214,7 @@ class TestNodeWebsockets(TestApplicationNode):
         _, sock, _ = self.ws.upgrade()
 
         self.ws.frame_write(sock, self.ws.OP_CLOSE, self.ws.serialize_close())
-        self.check_close(sock, no_close = True)
+        self.check_close(sock, no_close=True)
 
         self.ws.frame_write(sock, self.ws.OP_TEXT, payload)
         self.assertEqual(self.recvall(sock, read_timeout=1), b'', 'empty sock')
@@ -1260,7 +1227,7 @@ class TestNodeWebsockets(TestApplicationNode):
 
         self.ws.frame_write(sock, self.ws.OP_TEXT, 'fragment1', fin=False)
         self.ws.frame_write(sock, self.ws.OP_CLOSE, self.ws.serialize_close())
-        self.check_close(sock, no_close = True)
+        self.check_close(sock, no_close=True)
 
         self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment2')
         self.assertEqual(self.recvall(sock, read_timeout=1), b'', 'empty sock')
@@ -1271,7 +1238,7 @@ class TestNodeWebsockets(TestApplicationNode):
 
         _, sock, _ = self.ws.upgrade()
 
-        self.ws.frame_write(sock, self.ws.OP_TEXT, 'BAsd7&jh23' * 26 * 2**10)
+        self.ws.frame_write(sock, self.ws.OP_TEXT, 'BAsd7&jh23' * 26 * 2 ** 10)
         self.ws.frame_write(sock, self.ws.OP_TEXT, payload)
         self.ws.frame_write(sock, self.ws.OP_CLOSE, self.ws.serialize_close())
 
@@ -1307,7 +1274,7 @@ class TestNodeWebsockets(TestApplicationNode):
 
         _, sock, _ = self.ws.upgrade()
 
-        payload = self.ws.serialize_close(reason = 'Hello World!')
+        payload = self.ws.serialize_close(reason='Hello World!')
 
         self.ws.frame_write(sock, self.ws.OP_CLOSE, payload)
         self.check_close(sock)
@@ -1316,7 +1283,7 @@ class TestNodeWebsockets(TestApplicationNode):
 
         _, sock, _ = self.ws.upgrade()
 
-        payload = self.ws.serialize_close(reason = '*' * 123)
+        payload = self.ws.serialize_close(reason='*' * 123)
 
         self.ws.frame_write(sock, self.ws.OP_CLOSE, payload)
         self.check_close(sock)
@@ -1325,13 +1292,13 @@ class TestNodeWebsockets(TestApplicationNode):
 
         _, sock, _ = self.ws.upgrade()
 
-        payload = self.ws.serialize_close(reason = '*' * 124)
+        payload = self.ws.serialize_close(reason='*' * 124)
 
         self.ws.frame_write(sock, self.ws.OP_CLOSE, payload)
         self.check_close(sock, 1002)
 
-        # 7_5_1 FAIL Unit does not support UTF-8 validation
-
+#        # 7_5_1 FAIL Unit does not support UTF-8 validation
+#
 #        _, sock, _ = self.ws.upgrade()
 #
 #        payload = self.ws.serialize_close(reason = '\xce\xba\xe1\xbd\xb9\xcf' \
@@ -1364,7 +1331,7 @@ class TestNodeWebsockets(TestApplicationNode):
         for code in valid_codes:
             _, sock, _ = self.ws.upgrade()
 
-            payload = self.ws.serialize_close(code = code)
+            payload = self.ws.serialize_close(code=code)
 
             self.ws.frame_write(sock, self.ws.OP_CLOSE, payload)
             self.check_close(sock)
@@ -1372,7 +1339,7 @@ class TestNodeWebsockets(TestApplicationNode):
         for code in invalid_codes:
             _, sock, _ = self.ws.upgrade()
 
-            payload = self.ws.serialize_close(code = code)
+            payload = self.ws.serialize_close(code=code)
 
             self.ws.frame_write(sock, self.ws.OP_CLOSE, payload)
             self.check_close(sock, 1002)
@@ -1384,7 +1351,7 @@ class TestNodeWebsockets(TestApplicationNode):
 
         _, sock, _ = self.ws.upgrade()
 
-        payload = self.ws.serialize_close(code = 5000)
+        payload = self.ws.serialize_close(code=5000)
 
         self.ws.frame_write(sock, self.ws.OP_CLOSE, payload)
         self.check_close(sock, 1002)
@@ -1437,62 +1404,62 @@ class TestNodeWebsockets(TestApplicationNode):
 
         def check_message(opcode, f_size):
             if opcode == self.ws.OP_TEXT:
-                payload = '*' * 4 * 2**20
+                payload = '*' * 4 * 2 ** 20
             else:
-                payload = b'*' * 4 * 2**20
+                payload = b'*' * 4 * 2 ** 20
 
             self.ws.message(sock, opcode, payload, fragmention_size=f_size)
             frame = self.ws.frame_read(sock, read_timeout=5)
             self.check_frame(frame, True, opcode, payload)
 
-        check_payload(op_text, 64 * 2**10)                 # 9_1_1
-        check_payload(op_text, 256 * 2**10)                # 9_1_2
-        check_payload(op_text, 2**20)                      # 9_1_3
-        check_payload(op_text, 4 * 2**20)                  # 9_1_4
-        check_payload(op_text, 8 * 2**20)                  # 9_1_5
-        check_payload(op_text, 16 * 2**20)                 # 9_1_6
+        check_payload(op_text, 64 * 2 ** 10)              # 9_1_1
+        check_payload(op_text, 256 * 2 ** 10)             # 9_1_2
+        check_payload(op_text, 2 ** 20)                   # 9_1_3
+        check_payload(op_text, 4 * 2 ** 20)               # 9_1_4
+        check_payload(op_text, 8 * 2 ** 20)               # 9_1_5
+        check_payload(op_text, 16 * 2 ** 20)              # 9_1_6
 
-        check_payload(op_binary, 64 * 2**10)               # 9_2_1
-        check_payload(op_binary, 256 * 2**10)              # 9_2_2
-        check_payload(op_binary, 2**20)                    # 9_2_3
-        check_payload(op_binary, 4 * 2**20)                # 9_2_4
-        check_payload(op_binary, 8 * 2**20)                # 9_2_5
-        check_payload(op_binary, 16 * 2**20)               # 9_2_6
+        check_payload(op_binary, 64 * 2 ** 10)            # 9_2_1
+        check_payload(op_binary, 256 * 2 ** 10)           # 9_2_2
+        check_payload(op_binary, 2 ** 20)                 # 9_2_3
+        check_payload(op_binary, 4 * 2 ** 20)             # 9_2_4
+        check_payload(op_binary, 8 * 2 ** 20)             # 9_2_5
+        check_payload(op_binary, 16 * 2 ** 20)            # 9_2_6
 
         if self.system != 'Darwin' and self.system != 'FreeBSD':
-            check_message(op_text, 64)                     # 9_3_1
-            check_message(op_text, 256)                    # 9_3_2
-            check_message(op_text, 2**10)                  # 9_3_3
-            check_message(op_text, 4 * 2**10)              # 9_3_4
-            check_message(op_text, 16 * 2**10)             # 9_3_5
-            check_message(op_text, 64 * 2**10)             # 9_3_6
-            check_message(op_text, 256 * 2**10)            # 9_3_7
-            check_message(op_text, 2**20)                  # 9_3_8
-            check_message(op_text, 4 * 2**20)              # 9_3_9
+            check_message(op_text, 64)                    # 9_3_1
+            check_message(op_text, 256)                   # 9_3_2
+            check_message(op_text, 2 ** 10)               # 9_3_3
+            check_message(op_text, 4 * 2 ** 10)           # 9_3_4
+            check_message(op_text, 16 * 2 ** 10)          # 9_3_5
+            check_message(op_text, 64 * 2 ** 10)          # 9_3_6
+            check_message(op_text, 256 * 2 ** 10)         # 9_3_7
+            check_message(op_text, 2 ** 20)               # 9_3_8
+            check_message(op_text, 4 * 2 ** 20)           # 9_3_9
 
-            check_message(op_binary, 64)                   # 9_4_1
-            check_message(op_binary, 256)                  # 9_4_2
-            check_message(op_binary, 2**10)                # 9_4_3
-            check_message(op_binary, 4 * 2**10)            # 9_4_4
-            check_message(op_binary, 16 * 2**10)           # 9_4_5
-            check_message(op_binary, 64 * 2**10)           # 9_4_6
-            check_message(op_binary, 256 * 2**10)          # 9_4_7
-            check_message(op_binary, 2**20)                # 9_4_8
-            check_message(op_binary, 4 * 2**20)            # 9_4_9
+            check_message(op_binary, 64)                  # 9_4_1
+            check_message(op_binary, 256)                 # 9_4_2
+            check_message(op_binary, 2 ** 10)             # 9_4_3
+            check_message(op_binary, 4 * 2 ** 10)         # 9_4_4
+            check_message(op_binary, 16 * 2 ** 10)        # 9_4_5
+            check_message(op_binary, 64 * 2 ** 10)        # 9_4_6
+            check_message(op_binary, 256 * 2 ** 10)       # 9_4_7
+            check_message(op_binary, 2 ** 20)             # 9_4_8
+            check_message(op_binary, 4 * 2 ** 20)         # 9_4_9
 
-        check_payload(op_text, 2**20, chopsize=64)         # 9_5_1
-        check_payload(op_text, 2**20, chopsize=128)        # 9_5_2
-        check_payload(op_text, 2**20, chopsize=256)        # 9_5_3
-        check_payload(op_text, 2**20, chopsize=512)        # 9_5_4
-        check_payload(op_text, 2**20, chopsize=1024)       # 9_5_5
-        check_payload(op_text, 2**20, chopsize=2048)       # 9_5_6
+        check_payload(op_text, 2 ** 20, chopsize=64)      # 9_5_1
+        check_payload(op_text, 2 ** 20, chopsize=128)     # 9_5_2
+        check_payload(op_text, 2 ** 20, chopsize=256)     # 9_5_3
+        check_payload(op_text, 2 ** 20, chopsize=512)     # 9_5_4
+        check_payload(op_text, 2 ** 20, chopsize=1024)    # 9_5_5
+        check_payload(op_text, 2 ** 20, chopsize=2048)    # 9_5_6
 
-        check_payload(op_binary, 2**20, chopsize=64)       # 9_6_1
-        check_payload(op_binary, 2**20, chopsize=128)      # 9_6_2
-        check_payload(op_binary, 2**20, chopsize=256)      # 9_6_3
-        check_payload(op_binary, 2**20, chopsize=512)      # 9_6_4
-        check_payload(op_binary, 2**20, chopsize=1024)     # 9_6_5
-        check_payload(op_binary, 2**20, chopsize=2048)     # 9_6_6
+        check_payload(op_binary, 2 ** 20, chopsize=64)    # 9_6_1
+        check_payload(op_binary, 2 ** 20, chopsize=128)   # 9_6_2
+        check_payload(op_binary, 2 ** 20, chopsize=256)   # 9_6_3
+        check_payload(op_binary, 2 ** 20, chopsize=512)   # 9_6_4
+        check_payload(op_binary, 2 ** 20, chopsize=1024)  # 9_6_5
+        check_payload(op_binary, 2 ** 20, chopsize=2048)  # 9_6_6
 
         self.close_connection(sock)
 
@@ -1536,7 +1503,7 @@ class TestNodeWebsockets(TestApplicationNode):
         payload = '*' * 95
 
         self.ws.frame_write(sock, opcode, payload)  # frame length is 101
-        self.check_close(sock, 1009)                # 1009 - CLOSE_TOO_LARGE
+        self.check_close(sock, 1009)  # 1009 - CLOSE_TOO_LARGE
 
     def test_node_websockets_read_timeout(self):
         self.load('websockets/mirror')
@@ -1556,7 +1523,7 @@ class TestNodeWebsockets(TestApplicationNode):
 
         time.sleep(2)
 
-        self.check_close(sock, 1001)   # 1001 - CLOSE_GOING_AWAY
+        self.check_close(sock, 1001)  # 1001 - CLOSE_GOING_AWAY
 
     def test_node_websockets_keepalive_interval(self):
         self.load('websockets/mirror')
@@ -1580,6 +1547,7 @@ class TestNodeWebsockets(TestApplicationNode):
         self.check_frame(frame, True, self.ws.OP_PING, '')  # PING frame
 
         sock.close()
+
 
 if __name__ == '__main__':
     TestNodeWebsockets.main()
