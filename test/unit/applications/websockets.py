@@ -180,7 +180,10 @@ class TestApplicationWebsocket(TestApplicationProto):
             frame_len = len(frame)
             while pos < frame_len:
                 end = min(pos + chopsize, frame_len)
-                sock.sendall(frame[pos:end])
+                try:
+                    sock.sendall(frame[pos:end])
+                except BrokenPipeError:
+                    end = frame_len
                 pos = end
 
     def message(self, sock, type, message, fragmention_size=None, **kwargs):
