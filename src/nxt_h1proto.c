@@ -830,8 +830,7 @@ nxt_h1p_request_body_read(nxt_task_t *task, nxt_http_request_t *r)
 
 ready:
 
-    nxt_work_queue_add(&task->thread->engine->fast_work_queue,
-                       r->state->ready_handler, task, r, NULL);
+    r->state->ready_handler(task, r, NULL);
 
     return;
 
@@ -884,8 +883,7 @@ nxt_h1p_conn_request_body_read(nxt_task_t *task, void *obj, void *data)
         c->read = NULL;
         r = h1p->request;
 
-        nxt_work_queue_add(&engine->fast_work_queue, r->state->ready_handler,
-                           task, r, NULL);
+        r->state->ready_handler(task, r, NULL);
     }
 }
 
