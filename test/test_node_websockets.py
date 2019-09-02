@@ -386,7 +386,6 @@ class TestNodeWebsockets(TestApplicationNode):
     # validation for websocket frames.  It should be implemented
     # by application, if necessary.
 
-    @unittest.skip('not yet')
     def test_node_websockets_1_1_1__1_1_8(self):
         self.load('websockets/mirror')
 
@@ -413,7 +412,6 @@ class TestNodeWebsockets(TestApplicationNode):
 
         self.close_connection(sock)
 
-    @unittest.skip('not yet')
     def test_node_websockets_1_2_1__1_2_8(self):
         self.load('websockets/mirror')
 

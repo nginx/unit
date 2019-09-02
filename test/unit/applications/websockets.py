@@ -61,15 +61,9 @@ class TestApplicationWebsocket(TestApplicationProto):
         def recv_bytes(sock, bytes):
             data = b''
             while select.select([sock], [], [], read_timeout)[0]:
-                try:
-                    if bytes < 65536:
-                        data = sock.recv(bytes)
-                    else:
-                        data = self.recvall(
-                            sock, read_timeout=read_timeout, buff_size=bytes
-                        )
-                    break
-                except:
+                data += sock.recv(bytes - len(data))
+
+                if len(data) == bytes:
                     break
 
             return data
