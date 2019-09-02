@@ -173,7 +173,10 @@ class TestApplicationWebsocket(TestApplicationProto):
         frame = self.frame_to_send(*args, **kwargs)
 
         if chopsize is None:
-            sock.sendall(frame)
+            try:
+                sock.sendall(frame)
+            except BrokenPipeError:
+                pass
 
         else:
             pos = 0

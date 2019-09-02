@@ -818,7 +818,6 @@ class TestNodeWebsockets(TestApplicationNode):
 
         self.check_close(sock, 1002)
 
-    @unittest.skip('not yet')
     def test_node_websockets_5_1__5_20(self):
         self.load('websockets/mirror')
 
