@@ -152,27 +152,6 @@ class TestNodeWebsockets(TestApplicationNode):
 
         sock.close()
 
-    def test_node_websockets_partial_send(self):
-        self.load('websockets/mirror')
-
-        message = 'blah'
-
-        _, sock, _ = self.ws.upgrade()
-
-        frame = self.ws.frame_to_send(self.ws.OP_TEXT, message)
-        sock.sendall(frame[:1])
-        sock.sendall(frame[1:2])
-        sock.sendall(frame[2:3])
-        sock.sendall(frame[3:])
-
-        frame = self.ws.frame_read(sock)
-
-        self.assertEqual(
-            message, frame['data'].decode('utf-8'), 'partial send'
-        )
-
-        sock.close()
-
     def test_node_websockets_large(self):
         self.load('websockets/mirror_fragmentation')
 
@@ -189,65 +168,6 @@ class TestNodeWebsockets(TestApplicationNode):
         data += frame['data'].decode('utf-8')
 
         self.assertEqual(message, data, 'large')
-
-        sock.close()
-
-    def test_node_websockets_frame_invalid_opcode(self):
-        self.load('websockets/mirror')
-
-        message = 'blah'
-
-        _, sock, _ = self.ws.upgrade()
-
-        self.ws.frame_write(sock, self.ws.OP_TEXT, message, fin=False)
-        self.ws.frame_write(sock, self.ws.OP_TEXT, message)
-
-        frame = self.ws.frame_read(sock)
-
-        frame.pop('data')
-        frame.pop('reason')
-        self.assertDictEqual(
-            frame,
-            {
-                'fin': True,
-                'rsv1': False,
-                'rsv2': False,
-                'rsv3': False,
-                'opcode': self.ws.OP_CLOSE,
-                'mask': 0,
-                'code': 1002,
-            },
-            'close frame',
-        )
-
-        sock.close()
-
-    def test_node_websockets_frame_invalid_opcode_2(self):
-        self.load('websockets/mirror')
-
-        message = 'blah'
-
-        _, sock, _ = self.ws.upgrade()
-
-        self.ws.frame_write(sock, self.ws.OP_CONT, message)
-
-        frame = self.ws.frame_read(sock)
-
-        frame.pop('data')
-        self.assertDictEqual(
-            frame,
-            {
-                'fin': True,
-                'rsv1': False,
-                'rsv2': False,
-                'rsv3': False,
-                'opcode': self.ws.OP_CLOSE,
-                'mask': 0,
-                'code': 1002,
-                'reason': 'Unrecognized opcode 0',
-            },
-            'close frame',
-        )
 
         sock.close()
 
