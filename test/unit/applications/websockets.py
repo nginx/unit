@@ -57,7 +57,7 @@ class TestApplicationWebsocket(TestApplicationProto):
     def serialize_close(self, code=1000, reason=''):
         return struct.pack('!H', code) + reason.encode('utf-8')
 
-    def frame_read(self, sock, read_timeout=10):
+    def frame_read(self, sock, read_timeout=30):
         def recv_bytes(sock, bytes):
             data = b''
             while select.select([sock], [], [], read_timeout)[0]:
@@ -91,7 +91,11 @@ class TestApplicationWebsocket(TestApplicationProto):
         if frame['mask']:
             mask_bits = recv_bytes(sock, 4)
 
-        data = recv_bytes(sock, length)
+        data = b''
+
+        if length != 0:
+            data = recv_bytes(sock, length)
+
         if frame['mask']:
             data = self.apply_mask(data, mask_bits)
 
