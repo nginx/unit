@@ -605,7 +605,7 @@ nxt_port_mmap_tracking_read(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     tracking_msg = (nxt_port_mmap_tracking_msg_t *) b->mem.pos;
 
     b->mem.pos += sizeof(nxt_port_mmap_tracking_msg_t);
-    mmap_handler = nxt_port_get_port_incoming_mmap(task, msg->port_msg.pid,
+    mmap_handler = nxt_port_get_port_incoming_mmap(task, msg->pid,
                                                    tracking_msg->mmap_id);
 
     if (nxt_slow_path(mmap_handler == NULL)) {
@@ -867,10 +867,10 @@ nxt_port_mmap_read(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         while (mmap_msg < end) {
             nxt_debug(task, "mmap_msg={%D, %D, %D} from %PI",
                       mmap_msg->mmap_id, mmap_msg->chunk_id, mmap_msg->size,
-                      msg->port_msg.pid);
+                      msg->pid);
 
             *pb = nxt_port_mmap_get_incoming_buf(task, msg->port,
-                                                 msg->port_msg.pid, mmap_msg);
+                                                 msg->pid, mmap_msg);
             if (nxt_slow_path(*pb == NULL)) {
                 nxt_log_error(NXT_LOG_ERR, task->log,
                               "failed to get mmap buffer");

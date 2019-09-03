@@ -861,7 +861,7 @@ nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     tmcf->router_conf->router = nxt_router;
     tmcf->stream = msg->port_msg.stream;
     tmcf->port = nxt_runtime_port_find(task->thread->runtime,
-                                       msg->port_msg.pid,
+                                       msg->pid,
                                        msg->port_msg.reply_port);
 
     if (nxt_slow_path(tmcf->port == NULL)) {

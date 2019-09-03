@@ -349,7 +349,7 @@ nxt_port_main_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 failed:
 
     if (ret == NXT_ERROR) {
-        port = nxt_runtime_port_find(task->thread->runtime, msg->port_msg.pid,
+        port = nxt_runtime_port_find(task->thread->runtime, msg->pid,
                                      msg->port_msg.reply_port);
         if (nxt_fast_path(port != NULL)) {
             nxt_port_socket_write(task, port, NXT_PORT_MSG_RPC_ERROR,
@@ -1046,7 +1046,7 @@ nxt_main_port_socket_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     ls.start = message;
     ls.end = message + sizeof(message);
 
-    port = nxt_runtime_port_find(task->thread->runtime, msg->port_msg.pid,
+    port = nxt_runtime_port_find(task->thread->runtime, msg->pid,
                                  msg->port_msg.reply_port);
 
     nxt_debug(task, "listening socket \"%*s\"",
@@ -1245,11 +1245,11 @@ nxt_main_port_modules_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     rt = task->thread->runtime;
 
-    if (msg->port_msg.pid != rt->port_by_type[NXT_PROCESS_DISCOVERY]->pid) {
+    if (msg->pid != rt->port_by_type[NXT_PROCESS_DISCOVERY]->pid) {
         return;
     }
 
-    port = nxt_runtime_port_find(task->thread->runtime, msg->port_msg.pid,
+    port = nxt_runtime_port_find(task->thread->runtime, msg->pid,
                                  msg->port_msg.reply_port);
 
     if (nxt_fast_path(port != NULL)) {
@@ -1425,7 +1425,7 @@ nxt_main_port_access_log_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     type = (ret == NXT_OK) ? NXT_PORT_MSG_RPC_READY_LAST | NXT_PORT_MSG_CLOSE_FD
                            : NXT_PORT_MSG_RPC_ERROR;
 
-    port = nxt_runtime_port_find(task->thread->runtime, msg->port_msg.pid,
+    port = nxt_runtime_port_find(task->thread->runtime, msg->pid,
                                  msg->port_msg.reply_port);
 
     if (nxt_fast_path(port != NULL)) {

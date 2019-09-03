@@ -2,7 +2,7 @@
 /*
  * Copyright (C) NGINX, Inc.
  */
-
+#define _GNU_SOURCE    /* SCM_CREDENTIALS */
 #include <stdlib.h>
 
 #include "nxt_main.h"
@@ -15,9 +15,15 @@
 
 #include "nxt_websocket.h"
 
+#include <sys/socket.h>
+#include <sys/un.h>
+
 #if (NXT_HAVE_MEMFD_CREATE)
 #include <linux/memfd.h>
 #endif
+
+#define NXT_OOB_MSG_SIZE                                                      \
+    CMSG_SPACE(sizeof(struct ucred)) + CMSG_SPACE(sizeof(int))
 
 typedef struct nxt_unit_impl_s                  nxt_unit_impl_t;
 typedef struct nxt_unit_mmap_s                  nxt_unit_mmap_t;
@@ -595,7 +601,6 @@ nxt_unit_ready(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
     lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
 
     msg.stream = stream;
-    msg.pid = lib->pid;
     msg.reply_port = 0;
     msg.type = _NXT_PORT_MSG_PROCESS_READY;
     msg.last = 1;
@@ -619,7 +624,10 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
 {
     int                   rc;
     pid_t                 pid;
-    struct cmsghdr        *cm;
+    struct cmsghdr        *cmsg;
+    struct msghdr         msg;
+    struct ucred          *creds;
+    unsigned              len;
     nxt_port_msg_t        *port_msg;
     nxt_unit_impl_t       *lib;
     nxt_unit_recv_msg_t   recv_msg;
@@ -628,17 +636,46 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
     lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
 
     rc = NXT_UNIT_ERROR;
-    recv_msg.fd = -1;
+    recv_msg.fd      = -1;
+    recv_msg.pid     = -1;
     recv_msg.process = NULL;
-    port_msg = buf;
-    cm = oob;
+    port_msg         = buf;
 
-    if (oob_size >= CMSG_SPACE(sizeof(int))
-        && cm->cmsg_len == CMSG_LEN(sizeof(int))
-        && cm->cmsg_level == SOL_SOCKET
-        && cm->cmsg_type == SCM_RIGHTS)
-    {
-        memcpy(&recv_msg.fd, CMSG_DATA(cm), sizeof(int));
+    if (oob_size < CMSG_SPACE(sizeof(struct ucred))) {
+        nxt_unit_warn(ctx, "oob must have size at least for credentials");
+        goto fail;
+    }
+
+    // dummy msg, just to use portable cmsg macros
+    msg.msg_control    = oob;
+    msg.msg_controllen = oob_size;
+
+    for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
+        len = cmsg->cmsg_len - CMSG_LEN(0);
+
+        if (cmsg->cmsg_level == SOL_SOCKET &&
+            cmsg->cmsg_type == SCM_RIGHTS &&
+            len == sizeof(int)) {
+
+            /* (*fd) = *(int *) CMSG_DATA(cmsg); */
+            nxt_memcpy(&recv_msg.fd, CMSG_DATA(cmsg), sizeof(int));
+        } else if (cmsg->cmsg_level == SOL_SOCKET &&
+            cmsg->cmsg_type == SCM_CREDENTIALS &&
+            len == sizeof(struct ucred)) {
+
+            creds = (struct ucred*)CMSG_DATA(cmsg);
+            recv_msg.pid = creds->pid;
+        } else {
+            nxt_unit_warn(ctx, "invalid cmsg header: %d", cmsg->cmsg_type);
+            goto fail;
+        }
+    }
+
+    nxt_unit_warn(ctx, "received fd %d from pid %d", recv_msg.fd, recv_msg.pid);
+
+    if (recv_msg.pid == -1) {
+        nxt_unit_warn(ctx, "failed to get credentials");
+        goto fail;
     }
 
     recv_msg.incoming_buf = NULL;
@@ -649,7 +686,6 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
     }
 
     recv_msg.stream = port_msg->stream;
-    recv_msg.pid = port_msg->pid;
     recv_msg.reply_port = port_msg->reply_port;
     recv_msg.last = port_msg->last;
     recv_msg.mmap = port_msg->mmap;
@@ -710,7 +746,7 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
             goto fail;
         }
 
-        rc = nxt_unit_incoming_mmap(ctx, port_msg->pid, recv_msg.fd);
+        rc = nxt_unit_incoming_mmap(ctx, recv_msg.pid, recv_msg.fd);
         break;
 
     case _NXT_PORT_MSG_REQ_HEADERS:
@@ -1887,7 +1923,6 @@ nxt_unit_mmap_buf_send(nxt_unit_ctx_t *ctx, uint32_t stream,
     m.mmap_msg.size = buf->free - buf->start;
 
     m.msg.stream = stream;
-    m.msg.pid = lib->pid;
     m.msg.reply_port = 0;
     m.msg.type = _NXT_PORT_MSG_DATA;
     m.msg.last = last != 0;
@@ -2225,7 +2260,6 @@ skip_response_send:
     lib = nxt_container_of(req->unit, nxt_unit_impl_t, unit);
 
     msg.stream = req_impl->stream;
-    msg.pid = lib->pid;
     msg.reply_port = 0;
     msg.type = (rc == NXT_UNIT_OK) ? _NXT_PORT_MSG_DATA
                                    : _NXT_PORT_MSG_RPC_ERROR;
@@ -2648,7 +2682,6 @@ nxt_unit_send_mmap(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id, int fd)
     lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
 
     msg.stream = 0;
-    msg.pid = lib->pid;
     msg.reply_port = 0;
     msg.type = _NXT_PORT_MSG_MMAP;
     msg.last = 0;
@@ -3191,7 +3224,7 @@ nxt_unit_run_once(nxt_unit_ctx_t *ctx)
 {
     int                  rc;
     char                 buf[4096];
-    char                 oob[256];
+    char                 oob[NXT_OOB_MSG_SIZE];
     ssize_t              rsize;
     nxt_unit_impl_t      *lib;
     nxt_unit_ctx_impl_t  *ctx_impl;
@@ -3428,6 +3461,20 @@ nxt_unit_create_port(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id, int *fd)
         return NXT_UNIT_ERROR;
     }
 
+    int enable_creds = 1;
+    if (nxt_slow_path(setsockopt(port_sockets[0], SOL_SOCKET, SO_PASSCRED,
+                        &enable_creds, sizeof(enable_creds)) == -1)) {
+        nxt_unit_warn(ctx, "failed to set SO_PASSCRED %s", strerror(errno));
+        return NXT_UNIT_ERROR;
+    }
+
+    enable_creds = 1;
+    if (nxt_slow_path(setsockopt(port_sockets[1], SOL_SOCKET, SO_PASSCRED,
+                        &enable_creds, sizeof(enable_creds)) == -1)) {
+        nxt_unit_warn(ctx, "failed to set SO_PASSCRED %s", strerror(errno));
+        return NXT_UNIT_ERROR;
+    }
+
     nxt_unit_debug(ctx, "create_port: new socketpair: %d->%d",
                    port_sockets[0], port_sockets[1]);
 
@@ -3490,7 +3537,6 @@ nxt_unit_send_port(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *dst,
     lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
 
     m.msg.stream = 0;
-    m.msg.pid = lib->pid;
     m.msg.reply_port = 0;
     m.msg.type = _NXT_PORT_MSG_NEW_PORT;
     m.msg.last = 0;

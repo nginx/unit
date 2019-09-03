@@ -164,7 +164,6 @@ nxt_port_socket_twrite(nxt_task_t *task, nxt_port_t *port, nxt_uint_t type,
     }
 
     msg.port_msg.stream = stream;
-    msg.port_msg.pid = nxt_pid;
     msg.port_msg.reply_port = reply_port;
     msg.port_msg.type = type & NXT_PORT_MSG_MASK;
     msg.port_msg.last = (type & NXT_PORT_MSG_LAST) != 0;
@@ -593,6 +592,9 @@ nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
 
     port = msg.port = nxt_container_of(obj, nxt_port_t, socket);
 
+    msg.pid = -1;
+    msg.fd = -1;
+
     nxt_assert(port->engine == task->thread->engine);
 
     for ( ;; ) {
@@ -609,9 +611,14 @@ nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
         iov[1].iov_base = b->mem.pos;
         iov[1].iov_len = port->max_size;
 
-        n = nxt_socketpair_recv(&port->socket, &msg.fd, iov, 2);
+        n = nxt_socketpair_recv(&port->socket, &msg.fd, &msg.pid, iov, 2);
 
         if (n > 0) {
+
+            if (nxt_slow_path(msg.pid == -1)) {
+                nxt_alert(task, "failed to retrieve pid from out-of-band data");
+                goto fail;
+            }
 
             msg.buf = b;
             msg.size = n;
@@ -640,8 +647,8 @@ nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
             return;
         }
 
-        /* n == 0 || n == NXT_ERROR */
-
+        /* n == 0 || n == NXT_ERROR || pid == -1 */
+fail:
         nxt_work_queue_add(&task->thread->engine->fast_work_queue,
                            nxt_port_error_handler, task, &port->socket, NULL);
         return;
@@ -666,7 +673,7 @@ nxt_port_lvlhsh_frag_test(nxt_lvlhsh_query_t *lhq, void *data)
 
     if (lhq->key.length == sizeof(nxt_port_frag_key_t)
         && frag_key->stream == fmsg->port_msg.stream
-        && frag_key->pid == (uint32_t) fmsg->port_msg.pid)
+        && frag_key->pid == (uint32_t) fmsg->pid)
     {
         return NXT_OK;
     }
@@ -717,7 +724,7 @@ nxt_port_frag_start(nxt_task_t *task, nxt_port_t *port,
     *fmsg = *msg;
 
     frag_key.stream = fmsg->port_msg.stream;
-    frag_key.pid = fmsg->port_msg.pid;
+    frag_key.pid = fmsg->pid;
 
     lhq.key_hash = nxt_murmur_hash2(&frag_key, sizeof(nxt_port_frag_key_t));
     lhq.key.length = sizeof(nxt_port_frag_key_t);
@@ -767,7 +774,7 @@ nxt_port_frag_find(nxt_task_t *task, nxt_port_t *port, nxt_port_recv_msg_t *msg)
               msg->port_msg.stream);
 
     frag_key.stream = msg->port_msg.stream;
-    frag_key.pid = msg->port_msg.pid;
+    frag_key.pid = msg->pid;
 
     lhq.key_hash = nxt_murmur_hash2(&frag_key, sizeof(nxt_port_frag_key_t));
     lhq.key.length = sizeof(nxt_port_frag_key_t);

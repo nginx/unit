@@ -22,8 +22,8 @@
 
 static ssize_t nxt_sendmsg(nxt_socket_t s, nxt_fd_t fd, nxt_iobuf_t *iob,
     nxt_uint_t niob);
-static ssize_t nxt_recvmsg(nxt_socket_t s, nxt_fd_t *fd, nxt_iobuf_t *iob,
-    nxt_uint_t niob);
+static ssize_t nxt_recvmsg(nxt_socket_t s, nxt_fd_t *fd, nxt_pid_t *pid, 
+    nxt_iobuf_t *iob, nxt_uint_t niob);
 
 
 nxt_int_t
@@ -49,6 +49,20 @@ nxt_socketpair_create(nxt_task_t *task, nxt_socket_t *pair)
     }
 
     if (nxt_slow_path(fcntl(pair[1], F_SETFD, FD_CLOEXEC) == -1)) {
+        goto fail;
+    }
+
+    int enable_creds = 1;
+    if (nxt_slow_path(setsockopt(pair[0], SOL_SOCKET, SO_PASSCRED,
+                        &enable_creds, sizeof(enable_creds)) == -1)) {
+        nxt_alert(task, "failed to set SO_PASSCRED %E", nxt_errno);
+        goto fail;
+    }
+
+    enable_creds = 1;
+    if (nxt_slow_path(setsockopt(pair[1], SOL_SOCKET, SO_PASSCRED,
+                        &enable_creds, sizeof(enable_creds)) == -1)) {
+        nxt_alert(task, "failed to set SO_PASSCRED %E", nxt_errno);
         goto fail;
     }
 
@@ -122,18 +136,19 @@ nxt_socketpair_send(nxt_fd_event_t *ev, nxt_fd_t fd, nxt_iobuf_t *iob,
 
 
 ssize_t
-nxt_socketpair_recv(nxt_fd_event_t *ev, nxt_fd_t *fd, nxt_iobuf_t *iob,
-    nxt_uint_t niob)
+nxt_socketpair_recv(nxt_fd_event_t *ev, nxt_fd_t *fd, nxt_pid_t *pid, 
+    nxt_iobuf_t *iob, nxt_uint_t niob)
 {
     ssize_t    n;
     nxt_err_t  err;
 
     for ( ;; ) {
-        n = nxt_recvmsg(ev->fd, fd, iob, niob);
+        n = nxt_recvmsg(ev->fd, fd, pid, iob, niob);
 
         err = (n == -1) ? nxt_socket_errno : 0;
 
-        nxt_debug(ev->task, "recvmsg(%d, %FD, %ui): %z", ev->fd, *fd, niob, n);
+        nxt_debug(ev->task, "recvmsg(%d, %FD, %d, %ui): %z", ev->fd, *fd, 
+                    *pid, niob, n);
 
         if (n > 0) {
             return n;
@@ -226,37 +241,53 @@ nxt_sendmsg(nxt_socket_t s, nxt_fd_t fd, nxt_iobuf_t *iob, nxt_uint_t niob)
 
 
 static ssize_t
-nxt_recvmsg(nxt_socket_t s, nxt_fd_t *fd, nxt_iobuf_t *iob, nxt_uint_t niob)
+nxt_recvmsg(nxt_socket_t s, nxt_fd_t *fd, nxt_pid_t *pid, nxt_iobuf_t *iob, nxt_uint_t niob)
 {
-    ssize_t             n;
-    struct msghdr       msg;
-    union {
-        struct cmsghdr  cm;
-        char            space[CMSG_SPACE(sizeof(int))];
-    } cmsg;
+    ssize_t         n;
+    struct msghdr   msg;
+    struct cmsghdr  *cmsg;
+    struct ucred    *creds;
+    unsigned        sz;
+
+    char oob[CMSG_SPACE(sizeof(int))+CMSG_SPACE(sizeof(struct ucred))];
 
     msg.msg_name = NULL;
     msg.msg_namelen = 0;
     msg.msg_iov = iob;
     msg.msg_iovlen = niob;
-    msg.msg_control = (caddr_t) &cmsg;
-    msg.msg_controllen = sizeof(cmsg);
+    msg.msg_control = (caddr_t) &oob;
+    msg.msg_controllen = sizeof(oob);
 
     *fd = -1;
+    *pid = -1;
 
 #if (NXT_VALGRIND)
-    nxt_memzero(&cmsg, sizeof(cmsg));
+    nxt_memzero(&oob, sizeof(oob));
 #endif
 
     n = recvmsg(s, &msg, 0);
+    if (n <= 0) {
+        return n;
+    }
 
-    if (n > 0
-        && cmsg.cm.cmsg_len == CMSG_LEN(sizeof(int))
-        && cmsg.cm.cmsg_level == SOL_SOCKET
-        && cmsg.cm.cmsg_type == SCM_RIGHTS)
-    {
-        /* (*fd) = *(int *) CMSG_DATA(&cmsg.cm); */
-        nxt_memcpy(fd, CMSG_DATA(&cmsg.cm), sizeof(int));
+    for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
+        sz = cmsg->cmsg_len - CMSG_LEN(0);
+
+        if (cmsg->cmsg_level == SOL_SOCKET &&
+            cmsg->cmsg_type == SCM_RIGHTS &&
+            sz == sizeof(int)) {
+
+            /* (*fd) = *(int *) CMSG_DATA(cmsg); */
+            nxt_memcpy(fd, CMSG_DATA(cmsg), sizeof(int));
+        }
+        
+        if (cmsg->cmsg_level == SOL_SOCKET &&
+            cmsg->cmsg_type == SCM_CREDENTIALS &&
+            sz == sizeof(struct ucred)) {
+
+            creds = (struct ucred*)CMSG_DATA(cmsg);
+            *pid = creds->pid;
+        }
     }
 
     return n;
