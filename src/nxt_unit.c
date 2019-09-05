@@ -119,7 +119,7 @@ static ssize_t nxt_unit_port_send_default(nxt_unit_ctx_t *ctx,
     const void *oob, size_t oob_size);
 static ssize_t nxt_unit_port_recv_default(nxt_unit_ctx_t *ctx,
     nxt_unit_port_id_t *port_id, void *buf, size_t buf_size,
-    void *oob, size_t oob_size);
+    void *oob, size_t *oob_size);
 
 static int nxt_unit_port_hash_add(nxt_lvlhsh_t *port_hash,
     nxt_unit_port_t *port);
@@ -667,6 +667,7 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
             recv_msg.pid = creds->pid;
         } else {
             nxt_unit_warn(ctx, "invalid cmsg header: %d", cmsg->cmsg_type);
+            rc = NXT_UNIT_ERROR;
             goto fail;
         }
     }
@@ -3225,6 +3226,7 @@ nxt_unit_run_once(nxt_unit_ctx_t *ctx)
     int                  rc;
     char                 buf[4096];
     char                 oob[NXT_OOB_MSG_SIZE];
+    size_t               oob_size;
     ssize_t              rsize;
     nxt_unit_impl_t      *lib;
     nxt_unit_ctx_impl_t  *ctx_impl;
@@ -3232,21 +3234,22 @@ nxt_unit_run_once(nxt_unit_ctx_t *ctx)
     lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
     ctx_impl = nxt_container_of(ctx, nxt_unit_ctx_impl_t, ctx);
 
-    memset(oob, 0, sizeof(struct cmsghdr));
+    oob_size = sizeof(oob);
+    nxt_memzero(oob, sizeof(oob));
 
     if (ctx_impl->read_port_fd != -1) {
         rsize = nxt_unit_port_recv(ctx, ctx_impl->read_port_fd,
                                          buf, sizeof(buf),
-                                         oob, sizeof(oob));
+                                         oob, &oob_size);
     } else {
         rsize = lib->callbacks.port_recv(ctx, &ctx_impl->read_port_id,
                                          buf, sizeof(buf),
-                                         oob, sizeof(oob));
+                                         oob, &oob_size);
     }
 
     if (nxt_fast_path(rsize > 0)) {
         rc = nxt_unit_process_msg(ctx, &ctx_impl->read_port_id, buf, rsize,
-                                  oob, sizeof(oob));
+                                  oob, oob_size);
 
 #if (NXT_DEBUG)
         memset(buf, 0xAC, rsize);
@@ -3668,6 +3671,7 @@ nxt_unit_remove_port_unsafe(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
 {
     nxt_unit_impl_t       *lib;
     nxt_unit_port_impl_t  *port;
+    
 
     lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
 
@@ -3859,7 +3863,7 @@ nxt_unit_port_send(nxt_unit_ctx_t *ctx, int fd,
 
 static ssize_t
 nxt_unit_port_recv_default(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
-    void *buf, size_t buf_size, void *oob, size_t oob_size)
+    void *buf, size_t buf_size, void *oob, size_t *oob_size)
 {
     int                   fd;
     nxt_unit_impl_t       *lib;
@@ -3902,7 +3906,7 @@ nxt_unit_port_recv_default(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
 
 ssize_t
 nxt_unit_port_recv(nxt_unit_ctx_t *ctx, int fd, void *buf, size_t buf_size,
-    void *oob, size_t oob_size)
+    void *oob, size_t *oob_size)
 {
     ssize_t        res;
     struct iovec   iov[1];
@@ -3917,9 +3921,16 @@ nxt_unit_port_recv(nxt_unit_ctx_t *ctx, int fd, void *buf, size_t buf_size,
     msg.msg_iovlen = 1;
     msg.msg_flags = 0;
     msg.msg_control = oob;
-    msg.msg_controllen = oob_size;
+    msg.msg_controllen = *oob_size;
 
     res = recvmsg(fd, &msg, 0);
+
+    /**
+     * SCM_RIGHTS messages are optional, then we need
+     * to get the actual available size to consume from OOB.
+     * At least the SCM_CREDENTIALS data *must* be always present.
+     */
+    *oob_size = msg.msg_controllen;
 
     if (nxt_slow_path(res == -1)) {
         nxt_unit_warn(ctx, "port_recv(%d) failed: %s (%d)",

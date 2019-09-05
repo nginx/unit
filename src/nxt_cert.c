@@ -1104,10 +1104,12 @@ nxt_cert_store_get_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_runtime_t        *rt;
     nxt_port_msg_type_t  type;
 
-    port = nxt_runtime_port_find(task->thread->runtime, msg->port_msg.pid,
+    port = nxt_runtime_port_find(task->thread->runtime, msg->pid,
                                  msg->port_msg.reply_port);
 
-    if (port == NULL) {
+    if (port == NULL ||
+        (port->type != NXT_PROCESS_CONTROLLER &&
+         port->type != NXT_PROCESS_ROUTER)) {
         return;
     }
 
@@ -1178,10 +1180,16 @@ nxt_cert_store_delete_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
     u_char           *p;
     nxt_str_t        name;
+    nxt_port_t       *ctl_port;
     nxt_runtime_t    *rt;
     nxt_file_name_t  *path;
 
     rt = task->thread->runtime;
+    ctl_port = rt->port_by_type[NXT_PROCESS_CONTROLLER];
+
+    if (msg->pid != ctl_port->pid) {
+        return;
+    }
 
     if (nxt_slow_path(rt->certs.start == NULL)) {
         nxt_alert(task, "no certificates storage directory");

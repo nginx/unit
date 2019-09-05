@@ -249,16 +249,15 @@ nxt_recvmsg(nxt_socket_t s, nxt_fd_t *fd, nxt_pid_t *pid, nxt_iobuf_t *iob, nxt_
     struct ucred    *creds;
     unsigned        sz;
 
-    char oob[CMSG_SPACE(sizeof(int))+CMSG_SPACE(sizeof(struct ucred))];
+    unsigned char oob[CMSG_SPACE(sizeof(int))+CMSG_SPACE(sizeof(struct ucred))];
 
     msg.msg_name = NULL;
     msg.msg_namelen = 0;
     msg.msg_iov = iob;
     msg.msg_iovlen = niob;
-    msg.msg_control = (caddr_t) &oob;
+    msg.msg_control = &oob;
     msg.msg_controllen = sizeof(oob);
 
-    *fd = -1;
     *pid = -1;
 
 #if (NXT_VALGRIND)

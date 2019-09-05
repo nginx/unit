@@ -145,7 +145,7 @@ func nxt_go_port_send(pid C.int, id C.int, buf unsafe.Pointer, buf_size C.int,
 
 //export nxt_go_port_recv
 func nxt_go_port_recv(pid C.int, id C.int, buf unsafe.Pointer, buf_size C.int,
-	oob unsafe.Pointer, oob_size C.int) C.ssize_t {
+	oob unsafe.Pointer, oob_size *C.size_t) C.ssize_t {
 
 	key := port_key{
 		pid: int(pid),
@@ -160,7 +160,9 @@ func nxt_go_port_recv(pid C.int, id C.int, buf unsafe.Pointer, buf_size C.int,
 	}
 
 	n, oobn, _, _, err := p.rcv.ReadMsgUnix(GoBytes(buf, buf_size),
-		GoBytes(oob, oob_size))
+		GoBytes(oob, C.int(*oob_size)))
+
+	*oob_size = C.size_t(oobn)
 
 	if err != nil {
 		nxt_go_warn("read result %d (%d), %s", n, oobn, err)

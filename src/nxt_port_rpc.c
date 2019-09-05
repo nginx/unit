@@ -370,7 +370,6 @@ nxt_port_rpc_remove_peer(nxt_task_t *task, nxt_port_t *port, nxt_pid_t peer)
     msg.fd = -1;
     msg.buf = &buf;
     msg.port = port;
-
     msg.port_msg.type = _NXT_PORT_MSG_REMOVE_PID;
 
     peer_link = lhq.value;

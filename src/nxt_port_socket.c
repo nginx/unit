@@ -592,12 +592,12 @@ nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
 
     port = msg.port = nxt_container_of(obj, nxt_port_t, socket);
 
-    msg.pid = -1;
-    msg.fd = -1;
+    msg.fd  = -1;
 
     nxt_assert(port->engine == task->thread->engine);
 
     for ( ;; ) {
+        msg.pid = -1;
 
         b = nxt_port_buf_alloc(port);
 
@@ -614,7 +614,6 @@ nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
         n = nxt_socketpair_recv(&port->socket, &msg.fd, &msg.pid, iov, 2);
 
         if (n > 0) {
-
             if (nxt_slow_path(msg.pid == -1)) {
                 nxt_alert(task, "failed to retrieve pid from out-of-band data");
                 goto fail;
@@ -858,6 +857,7 @@ nxt_port_read_msg_process(nxt_task_t *task, nxt_port_t *port,
 
                 msg->buf = fmsg->buf;
                 msg->fd = fmsg->fd;
+                msg->pid = fmsg->pid;
 
                 /*
                  * To disable instant completion or buffer re-usage,

@@ -144,7 +144,7 @@ struct nxt_unit_callbacks_s {
 
     /* Receive data on port id. Optional. */
     ssize_t  (*port_recv)(nxt_unit_ctx_t *, nxt_unit_port_id_t *port_id,
-                 void *buf, size_t buf_size, void *oob, size_t oob_size);
+                 void *buf, size_t buf_size, void *oob, size_t *oob_size);
 
 };
 
@@ -258,7 +258,7 @@ ssize_t nxt_unit_port_send(nxt_unit_ctx_t *, int fd,
 
 /* Default 'port_recv' implementation. */
 ssize_t nxt_unit_port_recv(nxt_unit_ctx_t *, int fd, void *buf, size_t buf_size,
-    void *oob, size_t oob_size);
+    void *oob, size_t *oob_size);
 
 /* Calculates hash for given field name. */
 uint16_t nxt_unit_field_hash(const char* name, size_t name_length);

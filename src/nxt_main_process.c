@@ -270,10 +270,19 @@ nxt_port_main_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_mp_t               *mp;
     nxt_int_t              ret;
     nxt_buf_t              *b;
-    nxt_port_t             *port;
+    nxt_port_t             *router_port, *port;
+    nxt_runtime_t          *rt;
     nxt_app_type_t         idx;
     nxt_conf_value_t       *conf;
     nxt_common_app_conf_t  app_conf;
+
+    rt = task->thread->runtime;
+
+    router_port = rt->port_by_type[NXT_PROCESS_ROUTER];
+
+    if (nxt_slow_path(router_port->pid != msg->pid)) {
+        return;
+    }
 
     static nxt_str_t nobody = nxt_string("nobody");
 
@@ -1034,6 +1043,18 @@ nxt_main_port_socket_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_listening_socket_t  ls;
     u_char                  message[2048];
 
+    port = nxt_runtime_port_find(task->thread->runtime, msg->pid,
+                                 msg->port_msg.reply_port);
+    if (port == NULL) {
+        nxt_alert(task, "process port not found (pid %d, reply_port %d)", 
+            msg->pid, msg->port_msg.reply_port);
+        return;
+    }
+
+    if (port->type != NXT_PROCESS_ROUTER) {
+        return;
+    }
+
     b = msg->buf;
     sa = (nxt_sockaddr_t *) b->mem.pos;
 
@@ -1045,9 +1066,6 @@ nxt_main_port_socket_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     ls.error = NXT_SOCKET_ERROR_SYSTEM;
     ls.start = message;
     ls.end = message + sizeof(message);
-
-    port = nxt_runtime_port_find(task->thread->runtime, msg->pid,
-                                 msg->port_msg.reply_port);
 
     nxt_debug(task, "listening socket \"%*s\"",
               (size_t) sa->length, nxt_sockaddr_start(sa));
@@ -1356,11 +1374,17 @@ nxt_main_port_conf_store_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_buf_t      *b;
     nxt_int_t      ret;
     nxt_file_t     file;
+    nxt_port_t     *ctl_port;
     nxt_runtime_t  *rt;
 
     nxt_memzero(&file, sizeof(nxt_file_t));
 
     rt = task->thread->runtime;
+    ctl_port = rt->port_by_type[NXT_PROCESS_CONTROLLER];
+    
+    if (nxt_slow_path(msg->pid != ctl_port->pid)) {
+        return;
+    }
 
     file.name = (nxt_file_name_t *) rt->conf_tmp;
 
