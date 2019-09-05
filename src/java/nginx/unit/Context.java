@@ -98,9 +98,13 @@ import javax.servlet.http.HttpSessionEvent;
 import javax.servlet.http.HttpSessionIdListener;
 import javax.servlet.http.HttpSessionListener;
 
+import javax.websocket.server.ServerEndpoint;
+
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+
+import nginx.unit.websocket.WsSession;
 
 import org.eclipse.jetty.http.MimeTypes;
 
@@ -421,6 +425,9 @@ public class Context implements ServletContext, InitParams
         loader_ = new AppClassLoader(urls,
             Context.class.getClassLoader().getParent());
 
+        Class wsSession_class = WsSession.class;
+        trace("wsSession.test: " + WsSession.wsSession_test());
+
         ClassLoader old = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(loader_);
 
@@ -429,28 +436,30 @@ public class Context implements ServletContext, InitParams
                 addListener(listener_classname);
             }
 
-            ScanResult scan_res = null;
+            ClassGraph classgraph = new ClassGraph()
+                //.verbose()
+                .overrideClassLoaders(loader_)
+                .ignoreParentClassLoaders()
+                .enableClassInfo()
+                .enableAnnotationInfo()
+                //.enableSystemPackages()
+                .whitelistModules("javax.*")
+                //.enableAllInfo()
+                ;
+
+            String verbose = System.getProperty("nginx.unit.context.classgraph.verbose", "").trim();
+
+            if (verbose.equals("true")) {
+                classgraph.verbose();
+            }
+
+            ScanResult scan_res = classgraph.scan();
+
+            javax.websocket.server.ServerEndpointConfig.Configurator.setDefault(new nginx.unit.websocket.server.DefaultServerEndpointConfigurator());
+
+            loadInitializer(new nginx.unit.websocket.server.WsSci(), scan_res);
 
             if (!metadata_complete_) {
-                ClassGraph classgraph = new ClassGraph()
-                    //.verbose()
-                    .overrideClassLoaders(loader_)
-                    .ignoreParentClassLoaders()
-                    .enableClassInfo()
-                    .enableAnnotationInfo()
-                    //.enableSystemPackages()
-                    .whitelistModules("javax.*")
-                    //.enableAllInfo()
-                    ;
-
-                String verbose = System.getProperty("nginx.unit.context.classgraph.verbose", "").trim();
-
-                if (verbose.equals("true")) {
-                    classgraph.verbose();
-                }
-
-                scan_res = classgraph.scan();
-
                 loadInitializers(scan_res);
             }
 
@@ -1471,54 +1480,61 @@ public class Context implements ServletContext, InitParams
             ServiceLoader.load(ServletContainerInitializer.class, loader_);
 
         for (ServletContainerInitializer sci : initializers) {
+            loadInitializer(sci, scan_res);
+        }
+    }
 
-            trace("loadInitializers: initializer: " + sci.getClass().getName());
+    private void loadInitializer(ServletContainerInitializer sci, ScanResult scan_res)
+    {
+        trace("loadInitializer: initializer: " + sci.getClass().getName());
 
-            HandlesTypes ann = sci.getClass().getAnnotation(HandlesTypes.class);
-            if (ann == null) {
-                trace("loadInitializers: no HandlesTypes annotation");
-                continue;
-            }
+        HandlesTypes ann = sci.getClass().getAnnotation(HandlesTypes.class);
+        if (ann == null) {
+            trace("loadInitializer: no HandlesTypes annotation");
+            return;
+        }
 
-            Class<?>[] classes = ann.value();
-            if (classes == null) {
-                trace("loadInitializers: no handles classes");
-                continue;
-            }
+        Class<?>[] classes = ann.value();
+        if (classes == null) {
+            trace("loadInitializer: no handles classes");
+            return;
+        }
 
-            Set<Class<?>> handles_classes = new HashSet<>();
+        Set<Class<?>> handles_classes = new HashSet<>();
 
-            for (Class<?> c : classes) {
-                trace("loadInitializers: find handles: " + c.getName());
+        for (Class<?> c : classes) {
+            trace("loadInitializer: find handles: " + c.getName());
 
-                ClassInfoList handles = c.isInterface()
+            ClassInfoList handles =
+                c.isAnnotation()
+                ? scan_res.getClassesWithAnnotation(c.getName())
+                : c.isInterface()
                     ? scan_res.getClassesImplementing(c.getName())
                     : scan_res.getSubclasses(c.getName());
 
-                for (ClassInfo ci : handles) {
-                    if (ci.isInterface()
-                        || ci.isAnnotation()
-                        || ci.isAbstract())
-                    {
-                        continue;
-                    }
-
-                    trace("loadInitializers: handles class: " + ci.getName());
-                    handles_classes.add(ci.loadClass());
+            for (ClassInfo ci : handles) {
+                if (ci.isInterface()
+                    || ci.isAnnotation()
+                    || ci.isAbstract())
+                {
+                    return;
                 }
-            }
 
-            if (handles_classes.isEmpty()) {
-                trace("loadInitializers: no handles implementations");
-                continue;
+                trace("loadInitializer: handles class: " + ci.getName());
+                handles_classes.add(ci.loadClass());
             }
+        }
 
-            try {
-                sci.onStartup(handles_classes, this);
-                metadata_complete_ = true;
-            } catch(Exception e) {
-                System.err.println("loadInitializers: exception caught: " + e.toString());
-            }
+        if (handles_classes.isEmpty()) {
+            trace("loadInitializer: no handles implementations");
+            return;
+        }
+
+        try {
+            sci.onStartup(handles_classes, this);
+            metadata_complete_ = true;
+        } catch(Exception e) {
+            System.err.println("loadInitializer: exception caught: " + e.toString());
         }
     }
 
@@ -1690,6 +1706,21 @@ public class Context implements ServletContext, InitParams
             addListener(listener);
 
             listener_classnames_.add(ci.getName());
+        }
+
+
+        ClassInfoList endpoints = scan_res.getClassesWithAnnotation(ServerEndpoint.class.getName());
+
+        for (ClassInfo ci : endpoints) {
+            if (ci.isInterface()
+                || ci.isAnnotation()
+                || ci.isAbstract())
+            {
+                trace("scanClasses: skip server end point: " + ci.getName());
+                continue;
+            }
+
+            trace("scanClasses: server end point: " + ci.getName());
         }
     }
 
