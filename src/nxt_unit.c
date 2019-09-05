@@ -22,9 +22,6 @@
 #include <linux/memfd.h>
 #endif
 
-#define NXT_OOB_MSG_SIZE                                                      \
-    CMSG_SPACE(sizeof(struct ucred)) + CMSG_SPACE(sizeof(int))
-
 typedef struct nxt_unit_impl_s                  nxt_unit_impl_t;
 typedef struct nxt_unit_mmap_s                  nxt_unit_mmap_t;
 typedef struct nxt_unit_mmaps_s                 nxt_unit_mmaps_t;
@@ -3225,17 +3222,21 @@ nxt_unit_run_once(nxt_unit_ctx_t *ctx)
 {
     int                  rc;
     char                 buf[4096];
-    char                 oob[NXT_OOB_MSG_SIZE];
     size_t               oob_size;
     ssize_t              rsize;
     nxt_unit_impl_t      *lib;
     nxt_unit_ctx_impl_t  *ctx_impl;
 
+    char oob[CMSG_SPACE(sizeof(struct ucred)) + CMSG_SPACE(sizeof(int))];
+
     lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
     ctx_impl = nxt_container_of(ctx, nxt_unit_ctx_impl_t, ctx);
 
     oob_size = sizeof(oob);
-    nxt_memzero(oob, sizeof(oob));
+
+#if (NXT_VALGRIND)
+    nxt_memzero(oob, oob_size);
+#endif
 
     if (ctx_impl->read_port_fd != -1) {
         rsize = nxt_unit_port_recv(ctx, ctx_impl->read_port_fd,
