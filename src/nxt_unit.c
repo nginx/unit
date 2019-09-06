@@ -3200,7 +3200,7 @@ nxt_unit_run_once(nxt_unit_ctx_t *ctx)
     char                 buf[4096];
     ssize_t              rsize;
     struct iovec         iov[1];
-    nxt_unit_port_id_t        *port_id;
+    nxt_unit_port_id_t   *port_id;
     nxt_unit_impl_t      *lib;
     nxt_unit_ctx_impl_t  *ctx_impl;
 
