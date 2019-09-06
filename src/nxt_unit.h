@@ -185,7 +185,7 @@ nxt_unit_ctx_t *nxt_unit_init(nxt_unit_init_t *);
  * from port socket should be initially processed by unit.  This function
  * may invoke other application-defined callback for message processing.
  */
-int nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
+int nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_port_msg_t *port_msg,
     void *buf, size_t buf_size, int newfd);
 
 /*
