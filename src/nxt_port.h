@@ -121,6 +121,10 @@ typedef enum {
 typedef struct {
     uint32_t             stream;
 
+    uint32_t             pad;
+
+    /* 8-byte alignment */
+
     nxt_port_id_t        reply_port;
 
     uint8_t              type;

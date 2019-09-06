@@ -159,6 +159,90 @@ nxt_feature_test="#include <stdio.h>
 . auto/feature
 
 
+nxt_feature="sockopt SO_PASSCRED"
+nxt_feature_name=NXT_HAVE_SOCKOPT_SO_PASSCRED
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#define _GNU_SOURCE
+                  #include <stdio.h>
+                  #include <sys/socket.h>
+
+                  int main() {
+                      printf(\"%d\", SO_PASSCRED);
+                      return 0;
+                  }"
+. auto/feature
+
+
+nxt_feature="sockopt SO_PEERCRED"
+nxt_feature_name=NXT_HAVE_SOCKOPT_SO_PEERCRED
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#define _GNU_SOURCE
+                  #include <stdio.h>
+                  #include <sys/socket.h>
+
+                  int main() {
+                      printf(\"%d\", SO_PEERCRED);
+                      return 0;
+                  }"
+. auto/feature
+
+
+nxt_feature="struct ucred"
+nxt_feature_name=NXT_HAVE_MSGHDR_UCRED
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#define _GNU_SOURCE
+                  #include <stdio.h>
+                  #include <sys/socket.h>
+                  #include <sys/un.h>
+
+                  int main() {
+                      struct ucred cred;
+                      printf(\"%d\", (int) sizeof(cred));
+                      return 0;
+                  }"
+. auto/feature
+
+
+nxt_feature="struct cmsgcred"
+nxt_feature_name=NXT_HAVE_MSGHDR_CMSGCRED
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#define _GNU_SOURCE
+                  #include <stdio.h>
+                  #include <sys/socket.h>
+
+                  int main() {
+                      struct cmsgcred cred;
+                      printf(\"%d\", (int) sizeof(cred));
+                      return 0;
+                  }"
+. auto/feature
+
+
+nxt_feature="sockopt LOCAL_PEERCRED"
+nxt_feature_name=NXT_HAVE_SOCKOPT_LOCAL_PEERCRED
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#define _GNU_SOURCE
+                  #include <stdio.h>
+                  #include <sys/socket.h>
+                  #include <sys/un.h>
+
+                  int main() {
+                      printf(\"%d\", LOCAL_PEERCRED);
+                      return 0;
+                  }"
+. auto/feature
+
+
 nxt_feature="sys/filio.h"
 nxt_feature_name=NXT_HAVE_SYS_FILIO_H
 nxt_feature_run=

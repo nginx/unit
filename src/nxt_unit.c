@@ -3465,6 +3465,7 @@ nxt_unit_create_port(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id, int *fd)
         return NXT_UNIT_ERROR;
     }
 
+#if (NXT_HAVE_SOCKOPT_SO_PASSCRED)
     int enable_creds = 1;
     if (nxt_slow_path(setsockopt(port_sockets[0], SOL_SOCKET, SO_PASSCRED,
                         &enable_creds, sizeof(enable_creds)) == -1)) {
@@ -3472,12 +3473,12 @@ nxt_unit_create_port(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id, int *fd)
         return NXT_UNIT_ERROR;
     }
 
-    enable_creds = 1;
     if (nxt_slow_path(setsockopt(port_sockets[1], SOL_SOCKET, SO_PASSCRED,
                         &enable_creds, sizeof(enable_creds)) == -1)) {
         nxt_unit_warn(ctx, "failed to set SO_PASSCRED %s", strerror(errno));
         return NXT_UNIT_ERROR;
     }
+#endif
 
     nxt_unit_debug(ctx, "create_port: new socketpair: %d->%d",
                    port_sockets[0], port_sockets[1]);
@@ -3927,6 +3928,7 @@ nxt_unit_port_recv(nxt_unit_ctx_t *ctx, int fd, void *buf, size_t buf_size,
     res = recvmsg(fd, &msg, 0);
 
     /**
+     * recvmsg(2) returns the actual buffer size.
      * SCM_RIGHTS messages are optional, then we need
      * to get the actual available size to consume from OOB.
      * At least the SCM_CREDENTIALS data *must* be always present.
