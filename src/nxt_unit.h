@@ -137,14 +137,9 @@ struct nxt_unit_callbacks_s {
     /* Gracefully quit the application. Optional. */
     void     (*quit)(nxt_unit_ctx_t *);
 
-    /* Send data and control to process pid using port id. Optional. */
-    ssize_t  (*port_send)(nxt_unit_ctx_t *, nxt_unit_port_id_t *port_id,
-                 const void *buf, size_t buf_size,
-                 const void *oob, size_t oob_size);
-
-    /* Receive data on port id. Optional. */
-    ssize_t  (*port_recv)(nxt_unit_ctx_t *, nxt_unit_port_id_t *port_id,
-                 void *buf, size_t buf_size, void *oob, size_t oob_size);
+    /* Lookup the port pair from the port id. Optional. */
+    void     (*lookup_port_pair)(nxt_unit_ctx_t *, nxt_unit_port_id_t *port_id,
+                                int *in_fd, int *out_fd);
 
 };
 
@@ -190,8 +185,8 @@ nxt_unit_ctx_t *nxt_unit_init(nxt_unit_init_t *);
  * from port socket should be initially processed by unit.  This function
  * may invoke other application-defined callback for message processing.
  */
-int nxt_unit_process_msg(nxt_unit_ctx_t *, nxt_unit_port_id_t *port_id,
-    void *buf, size_t buf_size, void *oob, size_t oob_size);
+int nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
+    void *buf, size_t buf_size, int newfd);
 
 /*
  * Main function useful in case when application does not have it's own

@@ -12,6 +12,7 @@ NXT_LIB_SRCS=" \
     src/nxt_file.c \
     src/nxt_mem_map.c \
     src/nxt_socket.c \
+    src/nxt_sockmsg.c \
     src/nxt_socketpair.c \
     src/nxt_process.c \
     src/nxt_process_title.c \

@@ -11,10 +11,8 @@ package unit
 import "C"
 
 import (
-	"net"
-	"os"
 	"sync"
-	"unsafe"
+	"syscall"
 )
 
 type port_key struct {
@@ -24,8 +22,8 @@ type port_key struct {
 
 type port struct {
 	key port_key
-	rcv *net.UnixConn
-	snd *net.UnixConn
+	rcv C.int
+	snd C.int
 }
 
 type port_registry struct {
@@ -44,48 +42,24 @@ func find_port(key port_key) *port {
 }
 
 func add_port(p *port) {
-
 	port_registry_.Lock()
 	if port_registry_.m == nil {
 		port_registry_.m = make(map[port_key]*port)
 	}
 
 	port_registry_.m[p.key] = p
-
 	port_registry_.Unlock()
 }
 
 func (p *port) Close() {
-	if p.rcv != nil {
-		p.rcv.Close()
+	// TODO(i4k): not used?
+	if p.rcv != -1 {
+		syscall.Close(int(p.rcv))
 	}
 
-	if p.snd != nil {
-		p.snd.Close()
+	if p.snd != -1 {
+		syscall.Close(int(p.snd))
 	}
-}
-
-func getUnixConn(fd int) *net.UnixConn {
-	if fd < 0 {
-		return nil
-	}
-
-	f := os.NewFile(uintptr(fd), "sock")
-	defer f.Close()
-
-	c, err := net.FileConn(f)
-	if err != nil {
-		nxt_go_warn("FileConn error %s", err)
-		return nil
-	}
-
-	uc, ok := c.(*net.UnixConn)
-	if !ok {
-		nxt_go_warn("Not a Unix-domain socket %d", fd)
-		return nil
-	}
-
-	return uc
 }
 
 //export nxt_go_add_port
@@ -95,8 +69,8 @@ func nxt_go_add_port(pid C.int, id C.int, rcv C.int, snd C.int) {
 			pid: int(pid),
 			id:  int(id),
 		},
-		rcv: getUnixConn(int(rcv)),
-		snd: getUnixConn(int(snd)),
+		rcv: rcv,
+		snd: snd,
 	}
 
 	add_port(p)
@@ -117,54 +91,27 @@ func nxt_go_remove_port(pid C.int, id C.int) {
 	port_registry_.Unlock()
 }
 
-//export nxt_go_port_send
-func nxt_go_port_send(pid C.int, id C.int, buf unsafe.Pointer, buf_size C.int,
-	oob unsafe.Pointer, oob_size C.int) C.ssize_t {
+//export nxt_go_lookup_port_pair
+func nxt_go_lookup_port_pair(pid C.int, id C.int,
+	in_fd *C.int, out_fd *C.int) {
 
-	key := port_key{
+	var in, out C.int = -1, -1
+
+	port := find_port(port_key{
 		pid: int(pid),
 		id:  int(id),
+	})
+
+	if port != nil {
+		in = port.rcv
+		out = port.snd
 	}
 
-	p := find_port(key)
-
-	if p == nil {
-		nxt_go_warn("port %d:%d not found", pid, id)
-		return 0
+	if in_fd != nil {
+		*in_fd = in
 	}
 
-	n, oobn, err := p.snd.WriteMsgUnix(GoBytes(buf, buf_size),
-		GoBytes(oob, oob_size), nil)
-
-	if err != nil {
-		nxt_go_warn("write result %d (%d), %s", n, oobn, err)
+	if out_fd != nil {
+		*out_fd = out
 	}
-
-	return C.ssize_t(n)
-}
-
-//export nxt_go_port_recv
-func nxt_go_port_recv(pid C.int, id C.int, buf unsafe.Pointer, buf_size C.int,
-	oob unsafe.Pointer, oob_size C.int) C.ssize_t {
-
-	key := port_key{
-		pid: int(pid),
-		id:  int(id),
-	}
-
-	p := find_port(key)
-
-	if p == nil {
-		nxt_go_warn("port %d:%d not found", pid, id)
-		return 0
-	}
-
-	n, oobn, _, _, err := p.rcv.ReadMsgUnix(GoBytes(buf, buf_size),
-		GoBytes(oob, oob_size))
-
-	if err != nil {
-		nxt_go_warn("read result %d (%d), %s", n, oobn, err)
-	}
-
-	return C.ssize_t(n)
 }

@@ -16,10 +16,8 @@ static nxt_cgo_str_t *nxt_cgo_str_init(nxt_cgo_str_t *dst,
     nxt_unit_sptr_t *sptr, uint32_t length);
 static int nxt_cgo_add_port(nxt_unit_ctx_t *, nxt_unit_port_t *port);
 static void nxt_cgo_remove_port(nxt_unit_ctx_t *, nxt_unit_port_id_t *port_id);
-static ssize_t nxt_cgo_port_send(nxt_unit_ctx_t *, nxt_unit_port_id_t *port_id,
-    const void *buf, size_t buf_size, const void *oob, size_t oob_size);
-static ssize_t nxt_cgo_port_recv(nxt_unit_ctx_t *, nxt_unit_port_id_t *port_id,
-    void *buf, size_t buf_size, void *oob, size_t oob_size);
+static void nxt_cgo_lookup_port_pair(nxt_unit_ctx_t *ctx, 
+    nxt_unit_port_id_t *port_id, int *in_fd, int *out_fd);
 
 int
 nxt_cgo_run(uintptr_t handler)
@@ -30,11 +28,10 @@ nxt_cgo_run(uintptr_t handler)
 
     memset(&init, 0, sizeof(init));
 
-    init.callbacks.request_handler = nxt_cgo_request_handler;
-    init.callbacks.add_port        = nxt_cgo_add_port;
-    init.callbacks.remove_port     = nxt_cgo_remove_port;
-    init.callbacks.port_send       = nxt_cgo_port_send;
-    init.callbacks.port_recv       = nxt_cgo_port_recv;
+    init.callbacks.request_handler  = nxt_cgo_request_handler;
+    init.callbacks.add_port         = nxt_cgo_add_port;
+    init.callbacks.remove_port      = nxt_cgo_remove_port;
+    init.callbacks.lookup_port_pair = nxt_cgo_lookup_port_pair;
 
     init.data = (void *) handler;
 
@@ -120,21 +117,11 @@ nxt_cgo_remove_port(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id)
 }
 
 
-static ssize_t
-nxt_cgo_port_send(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
-    const void *buf, size_t buf_size, const void *oob, size_t oob_size)
+static void
+nxt_cgo_lookup_port_pair(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
+    int *in_fd, int *out_fd)
 {
-    return nxt_go_port_send(port_id->pid, port_id->id,
-                            (void *) buf, buf_size, (void *) oob, oob_size);
-}
-
-
-static ssize_t
-nxt_cgo_port_recv(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
-    void *buf, size_t buf_size, void *oob, size_t oob_size)
-{
-    return nxt_go_port_recv(port_id->pid, port_id->id,
-                            buf, buf_size, oob, oob_size);
+    return nxt_go_lookup_port_pair(port_id->pid, port_id->id, in_fd, out_fd);
 }
 
 
