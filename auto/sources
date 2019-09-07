@@ -109,7 +109,9 @@ NXT_LIB_SRC0=" \
     src/nxt_mem_pool_cleanup.c \
 "
 
-NXT_LIB_UNIT_SRCS="src/nxt_unit.c"
+NXT_LIB_UNIT_SRCS="src/nxt_unit.c \
+    src/nxt_sockmsg.c \
+"
 
 
 NXT_LIB_TLS_DEPS="src/nxt_tls.h"
