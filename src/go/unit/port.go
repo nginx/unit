@@ -52,7 +52,6 @@ func add_port(p *port) {
 }
 
 func (p *port) Close() {
-	// TODO(i4k): not used?
 	if p.rcv != -1 {
 		syscall.Close(int(p.rcv))
 	}
