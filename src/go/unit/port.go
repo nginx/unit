@@ -85,7 +85,11 @@ func nxt_go_remove_port(pid C.int, id C.int) {
 
 	port_registry_.Lock()
 	if port_registry_.m != nil {
-		delete(port_registry_.m, key)
+		p := port_registry_.m[key]
+		if p != nil {
+			p.Close()
+			delete(port_registry_.m, key)
+		}
 	}
 
 	port_registry_.Unlock()
