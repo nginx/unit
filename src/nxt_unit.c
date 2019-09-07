@@ -621,34 +621,37 @@ nxt_unit_ready(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
 
 
 int
-nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_port_msg_t *port_msg,
+nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
     void *buf, size_t buf_size, int newfd)
 {
     int                   rc;
     pid_t                 pid;
+    nxt_port_msg_t        *port_msg;
     nxt_unit_impl_t       *lib;
     nxt_unit_recv_msg_t   recv_msg;
     nxt_unit_callbacks_t  *cb;
 
+    lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
+
     rc = NXT_UNIT_ERROR;
+    recv_msg.fd = newfd;
+    recv_msg.process = NULL;
+    port_msg = buf;
+    
+    recv_msg.incoming_buf = NULL;
 
     if (nxt_slow_path(buf_size < sizeof(nxt_port_msg_t))) {
         nxt_unit_warn(ctx, "message too small (%d bytes)", (int) buf_size);
         goto fail;
     }
 
-    lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
+    recv_msg.stream = port_msg->stream;
+    recv_msg.pid = port_msg->pid;
+    recv_msg.reply_port = port_msg->reply_port;
+    recv_msg.last = port_msg->last;
+    recv_msg.mmap = port_msg->mmap;
 
-    recv_msg.fd           = newfd;
-    recv_msg.pid          = port_msg->pid;
-    recv_msg.mmap         = port_msg->mmap;
-    recv_msg.last         = port_msg->last;
-    recv_msg.stream       = port_msg->stream;
-    recv_msg.process      = NULL;
-    recv_msg.reply_port   = port_msg->reply_port;
-    recv_msg.incoming_buf = NULL;
-
-    recv_msg.start = buf;
+    recv_msg.start = port_msg + 1;
     recv_msg.size = buf_size - sizeof(nxt_port_msg_t);
 
     if (nxt_slow_path(port_msg->type >= NXT_PORT_MSG_MAX)) {
@@ -3196,10 +3199,9 @@ nxt_unit_run_once(nxt_unit_ctx_t *ctx)
     int                  newfd;
     char                 buf[4096];
     ssize_t              rsize;
-    struct iovec         iov[2];
-    nxt_port_msg_t       port_msg;
-    nxt_unit_impl_t      *lib;
+    struct iovec         iov[1];
     nxt_unit_port_id_t   *port_id;
+    nxt_unit_impl_t      *lib;
     nxt_unit_ctx_impl_t  *ctx_impl;
 
     lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
@@ -3217,15 +3219,13 @@ nxt_unit_run_once(nxt_unit_ctx_t *ctx)
         return NXT_UNIT_ERROR;
     }
 
-    iov[0].iov_base = &port_msg;
-    iov[0].iov_len  = sizeof(nxt_port_msg_t);
-    iov[1].iov_base = buf;
-    iov[1].iov_len  = sizeof(buf);
+    iov[0].iov_base = buf;
+    iov[0].iov_len = sizeof(buf);
 
-    rsize = nxt_recvmsg(in_fd, &newfd, iov, 2);
+    rsize = nxt_recvmsg(in_fd, &newfd, iov, 1);
 
     if (nxt_fast_path(rsize > 0)) {
-        rc = nxt_unit_process_msg(ctx, &port_msg, buf, rsize, newfd);
+        rc = nxt_unit_process_msg(ctx, port_id, buf, rsize, newfd);
 
 #if (NXT_DEBUG)
         memset(buf, 0xAC, rsize);
