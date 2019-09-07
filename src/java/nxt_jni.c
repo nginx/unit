@@ -6,8 +6,6 @@
 #include <nxt_auto_config.h>
 
 #include <jni.h>
-#include <nxt_main.h>
-
 #include <nxt_unit.h>
 #include <nxt_unit_field.h>
 

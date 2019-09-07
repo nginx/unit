@@ -3,7 +3,6 @@
  * Copyright (C) NGINX, Inc.
  */
 
-#include <nxt_main.h>
 #include <nxt_unit.h>
 #include <jni.h>
 

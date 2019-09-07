@@ -5,7 +5,6 @@
 
 #include <nxt_auto_config.h>
 
-#include <nxt_main.h>
 #include <nxt_unit.h>
 #include <jni.h>
 
