@@ -5,6 +5,19 @@
 
 #include <nxt_main.h>
 
+#if (NXT_HAVE_LINUX_CAPABILITY)
+
+#include <linux/capability.h>
+#include <sys/syscall.h>
+
+#define nxt_capget(hdrp, datap)                                               \
+            syscall(SYS_capget, hdrp, datap)
+#define nxt_capset(hdrp, datap)                                               \
+            syscall(SYS_capset, hdrp, datap)
+
+#endif /* NXT_HAVE_LINUX_CAPABILITY */
+
+
 static nxt_int_t
 nxt_capability_specific_set(nxt_task_t *task, nxt_capability_t *cap);
 
@@ -23,7 +36,9 @@ nxt_capability_set(nxt_task_t *task, nxt_capability_t *cap)
     return nxt_capability_specific_set(task, cap);
 }
 
+
 #if (NXT_HAVE_LINUX_CAPABILITY)
+
 
 static uint32_t
 nxt_capability_linux_get_version()
@@ -88,42 +103,9 @@ nxt_capability_log_hint(nxt_task_t *task)
         *nxt_process_argv);
 }
 
-#elif (NXT_HAVE_SOLARIS_PRIVILEGE)
-
-static nxt_int_t
-nxt_capability_specific_set(nxt_task_t *task, nxt_capability_t *cap)
-{
-    priv_set_t *effective_privs;
-
-    effective_privs = priv_allocset();
-    if (effective_privs == NULL) {
-        nxt_alert(task, "failed to allocate priv set: %E", nxt_errno);
-        return NXT_ERROR;
-    }
-
-    PRIV_EMPTY(effective_privs);
-
-    if (getppriv(PRIV_EFFECTIVE, effective_privs) == -1) {
-        nxt_alert(task, "failed to get process privileges: %E", nxt_errno);
-        priv_freeset(effective_privs);
-        return NXT_ERROR;
-    }
-
-    cap->setid = PRIV_ISASSERT(effective_privs, PRIV_PROC_SETID);
-
-    priv_freeset(effective_privs);
-	return NXT_OK;
-}
-
-void
-nxt_capability_log_hint(nxt_task_t *task)
-{
-    nxt_log(task, NXT_LOG_INFO, "hint: In order to give the right privileges "
-        " you can run Unit as root or create a new user with just the needed "
-        "privileges: # usermod -K defaultpriv=basic,proc_setid <user>");
-}
 
 #else
+
 
 static nxt_int_t
 nxt_capability_specific_set(nxt_task_t *task, nxt_capability_t *cap) {
@@ -135,5 +117,6 @@ nxt_capability_log_hint(nxt_task_t *task)
 {
     nxt_log(task, NXT_LOG_NOTICE, "hint: run as root");
 }
+
 
 #endif
