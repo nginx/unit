@@ -3,6 +3,8 @@
 
 # Linux clone syscall.
 
+NXT_ISOLATION=NO
+
 nsflags="USER NS PID NET UTS IPC CGROUP"
 
 nxt_feature="clone(2)"
@@ -19,8 +21,7 @@ nxt_feature_test="#include <sys/wait.h>
 . auto/feature
 
 if [ $nxt_found = yes ]; then
-    NXT_HAVE_CLONE=YES
-    
+
     # Test all isolation flags
     for flag in $nsflags; do
         nxt_feature="CLONE_NEW${flag}"
@@ -39,22 +40,9 @@ if [ $nxt_found = yes ]; then
         . auto/feature
 
         eval "NXT_HAVE_CLONE_NEW$flag=$nxt_found"
-    done
-else
-    NXT_HAVE_CLONE=NO
-fi
 
-NXT_ISOLATION=NO
-
-if [ $NXT_HAVE_CLONE = "YES" ]; then 
-    # test if at least one isolation flag was detected
-    for flag in $nsflags; do
-        flagname="$echo -n \$NXT_HAVE_CLONE_NEW$flag"
-        has=`eval $flagname`
-        
-        if [ $has = "yes" ]; then
-            NXT_ISOLATION=YES 
-            break
+        if [ $nxt_found = yes -a $NXT_ISOLATION = NO ]; then
+            NXT_ISOLATION=YES
         fi
     done
-fi 
+fi
