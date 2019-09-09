@@ -402,6 +402,8 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_namespaces_members[] = {
     NXT_CONF_VLDT_END
 };
 
+#if (NXT_HAVE_CLONE_NEWUSER)
+
 static nxt_conf_vldt_object_t nxt_conf_vldt_app_procmap_members[] = {
     { nxt_string("containerID"),
       NXT_CONF_VLDT_INTEGER,
@@ -418,6 +420,8 @@ static nxt_conf_vldt_object_t nxt_conf_vldt_app_procmap_members[] = {
       NULL,
       NULL },
 };
+
+#endif
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_app_isolation_members[] = {
     { nxt_string("namespaces"),
