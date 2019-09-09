@@ -113,7 +113,7 @@ nxt_int_t nxt_http_fields_process(nxt_list_t *fields, nxt_lvlhsh_t *hash,
     void *ctx);
 
 
-const nxt_lvlhsh_proto_t  nxt_http_fields_hash_proto;
+extern const nxt_lvlhsh_proto_t  nxt_http_fields_hash_proto;
 
 nxt_inline nxt_int_t
 nxt_http_field_process(nxt_http_field_t *field, nxt_lvlhsh_t *hash, void *ctx)
