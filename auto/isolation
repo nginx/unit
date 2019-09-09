@@ -41,8 +41,12 @@ if [ $nxt_found = yes ]; then
 
         eval "NXT_HAVE_CLONE_NEW$flag=$nxt_found"
 
-        if [ $nxt_found = yes -a $NXT_ISOLATION = NO ]; then
-            NXT_ISOLATION=YES
+        if [ $nxt_found = yes ]; then
+            if [ "$NXT_ISOLATION" = "NO" ]; then
+                NXT_ISOLATION=$flag
+            else
+                NXT_ISOLATION="$NXT_ISOLATION $flag"
+            fi
         fi
     done
 fi
