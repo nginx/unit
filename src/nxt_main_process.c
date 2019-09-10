@@ -1562,12 +1562,6 @@ nxt_init_set_ns(nxt_task_t *task, nxt_process_init_t *init, nxt_conf_value_t *na
             flag = CLONE_NEWUTS;
         }
 #endif
-
-#if (NXT_HAVE_CLONE_NEWIPC)
-        if (nxt_str_eq(&name, "ipc", 3)) {
-            flag = CLONE_NEWIPC;
-        } 
-#endif
         
 #if (NXT_HAVE_CLONE_NEWNS)
         if (nxt_str_eq(&name, "mount", 5)) {

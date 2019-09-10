@@ -5,7 +5,7 @@
 
 NXT_ISOLATION=NO
 
-nsflags="USER NS PID NET UTS IPC CGROUP"
+nsflags="USER NS PID NET UTS CGROUP"
 
 nxt_feature="clone(2)"
 nxt_feature_name=NXT_HAVE_CLONE
@@ -38,8 +38,6 @@ if [ $nxt_found = yes ]; then
                               return CLONE_NEW$flag;
                          }"
         . auto/feature
-
-        eval "NXT_HAVE_CLONE_NEW$flag=$nxt_found"
 
         if [ $nxt_found = yes ]; then
             if [ "$NXT_ISOLATION" = "NO" ]; then

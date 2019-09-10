@@ -385,13 +385,6 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_namespaces_members[] = {
       NULL },
 #endif
 
-#if (NXT_HAVE_CLONE_NEWIPC)
-    { nxt_string("ipc"),
-      NXT_CONF_VLDT_BOOLEAN,
-      NULL,
-      NULL },
-#endif
-
 #if (NXT_HAVE_CLONE_NEWCGROUP)
     { nxt_string("cgroup"),
       NXT_CONF_VLDT_BOOLEAN,
@@ -1394,88 +1387,12 @@ nxt_conf_vldt_environment(nxt_conf_validation_t *vldt, nxt_str_t *name,
     return NXT_OK;
 }
 
-typedef struct {
-    u_char usr;
-    u_char mnt;
-    u_char net;
-    u_char ipc;
-    u_char uts;
-    u_char pid;
-    u_char cgr;
-} nxt_conf_vldt_clone_namespaces_conf_t;
-
-static nxt_conf_map_t nxt_conf_vldt_clone_namespaces_conf_map[] = {
-    {
-        nxt_string("credential"),
-        NXT_CONF_MAP_INT8,
-        offsetof(nxt_conf_vldt_clone_namespaces_conf_t, usr),
-    },
-
-    {
-        nxt_string("mount"),
-        NXT_CONF_MAP_INT8,
-        offsetof(nxt_conf_vldt_clone_namespaces_conf_t, mnt),
-    },
-
-    {
-        nxt_string("network"),
-        NXT_CONF_MAP_INT8,
-        offsetof(nxt_conf_vldt_clone_namespaces_conf_t, net),
-    },
-
-    {
-        nxt_string("ipc"),
-        NXT_CONF_MAP_INT8,
-        offsetof(nxt_conf_vldt_clone_namespaces_conf_t, ipc),
-    },
-
-    {
-        nxt_string("uname"),
-        NXT_CONF_MAP_INT8,
-        offsetof(nxt_conf_vldt_clone_namespaces_conf_t, uts),
-    },
-
-    {
-        nxt_string("pid"),
-        NXT_CONF_MAP_INT8,
-        offsetof(nxt_conf_vldt_clone_namespaces_conf_t, pid),
-    },
-
-    {
-        nxt_string("cgroup"),
-        NXT_CONF_MAP_INT8,
-        offsetof(nxt_conf_vldt_clone_namespaces_conf_t, cgr),
-    },
-};
 
 static nxt_int_t
 nxt_conf_vldt_clone_namespaces(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     void *data)
 {
-    nxt_conf_vldt_clone_namespaces_conf_t ns;
-    nxt_int_t                             ret;
-
-    ret = nxt_conf_vldt_object(vldt, value, data);
-    if (ret != NXT_OK) {
-        return ret;
-    }
-
-    nxt_memset(&ns, 0, sizeof(nxt_conf_vldt_clone_namespaces_conf_t));
-
-    ret = nxt_conf_map_object(vldt->pool, value,
-                              nxt_conf_vldt_clone_namespaces_conf_map,
-                              nxt_nitems(nxt_conf_vldt_clone_namespaces_conf_map),
-                              &ns);
-    if (ret != NXT_OK) {
-        return ret;
-    }
-
-    /* we can allow this when proxy feature arrives */
-    if (ns.ipc) {
-        return nxt_conf_vldt_error(vldt, "The \"ipc\" namespace is not allowed");
-    }
-
-    return NXT_OK;
+    return nxt_conf_vldt_object(vldt, value, data);
 }
 
 static nxt_int_t
