@@ -835,7 +835,7 @@ nxt_runtime_creds(nxt_task_t *task,  nxt_runtime_t *rt)
     } else {
         if (user == NULL) {
             nxt_alert(task, "Unit is unable to get the current username. "
-                "There's no entry for uid %d in passwd and $USER is not set",
+                "There's no entry for uid %d in passwd",
                 geteuid());
             return NXT_ERROR;
         }
