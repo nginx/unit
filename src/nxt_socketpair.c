@@ -50,10 +50,10 @@
             CMSG_SPACE(sizeof(int))
 #endif
 
-static ssize_t nxt_sendmsg(nxt_socket_t s, nxt_fd_t fd, nxt_iobuf_t *iob,
-    nxt_uint_t niob);
-static ssize_t nxt_recvmsg(nxt_socket_t s, nxt_fd_t *fd, nxt_pid_t *pid, 
-    nxt_iobuf_t *iob, nxt_uint_t niob);
+static ssize_t nxt_sendmsg(nxt_socket_t s, nxt_iobuf_t *iob, 
+    nxt_uint_t niob, void *oob, size_t oobn);
+static ssize_t nxt_recvmsg(nxt_socket_t s, 
+    nxt_iobuf_t *iob, nxt_uint_t niob, void *oob, size_t *oobn);
 
 
 nxt_int_t
@@ -119,11 +119,52 @@ ssize_t
 nxt_socketpair_send(nxt_fd_event_t *ev, nxt_fd_t fd, nxt_iobuf_t *iob,
     nxt_uint_t niob)
 {
-    ssize_t    n;
-    nxt_err_t  err;
+    size_t         oobn;
+    ssize_t        n;
+    nxt_err_t      err;
+    unsigned char  oob[NXT_OOB_SEND_SIZE];
+    struct msghdr  msg;
+    struct cmsghdr *cmsg;
+
+    msg.msg_control    = oob;
+    msg.msg_controllen = sizeof(oob);
+    
+    oobn = 0;
+    cmsg = (struct cmsghdr *) oob;
+
+#if (NXT_HAVE_MSGHDR_CMSGCRED)
+    /* zero cmsg + data */
+    nxt_memzero(cmsg, CMSG_SPACE(sizeof(struct NXT_CRED_STRUCT)));
+
+    cmsg->cmsg_len = CMSG_LEN(sizeof(struct NXT_CRED_STRUCT));
+    cmsg->cmsg_level = SOL_SOCKET;
+    cmsg->cmsg_type = NXT_CRED_CMSGTYPE
+
+    oobn += CMSG_LEN(sizeof(struct NXT_CRED_STRUCT));
+    cmsg = CMSG_NXTHDR(&msg, cmsg)
+#endif
+
+    if (fd != -1) {
+        cmsg->cmsg_len = CMSG_LEN(sizeof(int));
+        cmsg->cmsg_level = SOL_SOCKET;
+        cmsg->cmsg_type = SCM_RIGHTS;
+
+        /*
+         * nxt_memcpy() is used instead of simple
+         *   *(int *) CMSG_DATA(&cmsg.cm) = fd;
+         * because GCC 4.4 with -O2/3/s optimization may issue a warning:
+         *   dereferencing type-punned pointer will break strict-aliasing rules
+         *
+         * Fortunately, GCC with -O1 compiles this nxt_memcpy()
+         * in the same simple assignment as in the code above.
+         */
+        nxt_memcpy(CMSG_DATA(cmsg), &fd, sizeof(int));
+        oobn += CMSG_LEN(sizeof(int));
+        cmsg = CMSG_NXTHDR(&msg, cmsg);
+    }
 
     for ( ;; ) {
-        n = nxt_sendmsg(ev->fd, fd, iob, niob);
+        n = nxt_sendmsg(ev->fd, iob, niob, oob, oobn);
 
         err = (n == -1) ? nxt_socket_errno : 0;
 
@@ -170,31 +211,29 @@ ssize_t
 nxt_socketpair_recv(nxt_fd_event_t *ev, nxt_fd_t *fd, nxt_pid_t *pid, 
     nxt_iobuf_t *iob, nxt_uint_t niob)
 {
-    ssize_t    n;
-    nxt_err_t  err;
+    size_t                 cmsgsz;
+    size_t                 oobn;
+    ssize_t                n;
+    unsigned char          oob[NXT_OOB_RECV_SIZE];
+    struct cmsghdr         *cmsg;
+    struct msghdr          msg;
+    struct NXT_CRED_STRUCT *creds;
+
+    *fd  = -1;
+    *pid = -1;
+    oobn = sizeof(oob);
 
     for ( ;; ) {
-        n = nxt_recvmsg(ev->fd, fd, pid, iob, niob);
+        n = nxt_recvmsg(ev->fd, iob, niob, oob, &oobn);
 
-        err = (n == -1) ? nxt_socket_errno : 0;
+        nxt_debug(ev->task, "recvmsg(%d, %ui): %z", ev->fd, niob, n);
 
-        nxt_debug(ev->task, "recvmsg(%d, %FD, %d, %ui): %z", ev->fd, *fd, 
-                    *pid, niob, n);
-
-        if (n > 0) {
-            return n;
+        if (n >= 0) {
+            break;
         }
 
-        if (n == 0) {
-            ev->closed = 1;
-            ev->read_ready = 0;
-
-            return n;
-        }
-
-        /* n == -1 */
-
-        switch (err) {
+        // n = -1
+        switch (nxt_socket_errno) {
 
         case NXT_EAGAIN:
             nxt_debug(ev->task, "recvmsg(%d) not ready", ev->fd);
@@ -207,12 +246,50 @@ nxt_socketpair_recv(nxt_fd_event_t *ev, nxt_fd_t *fd, nxt_pid_t *pid,
             continue;
 
         default:
-            nxt_alert(ev->task, "recvmsg(%d, %p, %ui) failed %E",
-                      ev->fd, fd, niob, err);
+            nxt_alert(ev->task, "recvmsg(%d, %ui) failed %E",
+                    ev->fd, niob, nxt_socket_errno);
 
             return NXT_ERROR;
         }
     }
+
+    // n >= 0
+
+    msg.msg_control    = oob;
+    msg.msg_controllen = oobn;
+
+    for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
+        cmsgsz = cmsg->cmsg_len - CMSG_LEN(0);
+
+        if (cmsg->cmsg_level == SOL_SOCKET &&
+            cmsg->cmsg_type == SCM_RIGHTS &&
+            cmsgsz == sizeof(int)) {
+
+            /* (*fd) = *(int *) CMSG_DATA(cmsg); */
+            nxt_memcpy(fd, CMSG_DATA(cmsg), sizeof(int));
+        }
+        
+#if (NXT_CRED_USECMSG)
+        else if (cmsg->cmsg_level == SOL_SOCKET &&
+            cmsg->cmsg_type == NXT_CRED_CMSGTYPE &&
+            cmsgsz == sizeof(struct NXT_CRED_STRUCT)) {
+
+            creds = (struct NXT_CRED_STRUCT *)CMSG_DATA(cmsg);
+            *pid = NXT_CRED_GETPID(creds);
+        }
+#endif
+    }
+
+#if !(NXT_CRED_USECMSG)
+#error "implement PEERCRED"
+#endif
+
+    if (nxt_slow_path(n == 0)) {
+        ev->closed = 1;
+        ev->read_ready = 0;
+    }
+
+    return n;
 }
 
 
@@ -226,13 +303,11 @@ nxt_socketpair_recv(nxt_fd_event_t *ev, nxt_fd_t *fd, nxt_pid_t *pid,
  */
 
 static ssize_t
-nxt_sendmsg(nxt_socket_t s, nxt_fd_t fd, nxt_iobuf_t *iob, nxt_uint_t niob)
+nxt_sendmsg(nxt_socket_t s, nxt_iobuf_t *iob, nxt_uint_t niob, 
+    void *oob, size_t oobn)
 {
     struct msghdr   msg;
-    struct cmsghdr  *cmsg;
-    unsigned char   oob[NXT_OOB_SEND_SIZE];
-    size_t          oob_size = 0;
-
+    
     msg.msg_name = NULL;
     msg.msg_namelen = 0;
     msg.msg_iov = iob;
@@ -240,105 +315,36 @@ nxt_sendmsg(nxt_socket_t s, nxt_fd_t fd, nxt_iobuf_t *iob, nxt_uint_t niob)
     /* Flags are cleared just to suppress valgrind warning. */
     msg.msg_flags = 0;
     msg.msg_control = oob;
-    msg.msg_controllen = sizeof(oob);
+    msg.msg_controllen = oobn;
 
-    cmsg = (struct cmsghdr *) oob;
-
-#if (NXT_HAVE_MSGHDR_CMSGCRED)
-    /* zero cmsg + data */
-    nxt_memzero(cmsg, CMSG_SPACE(sizeof(struct NXT_CRED_STRUCT)));
-
-    cmsg->cmsg_len = CMSG_LEN(sizeof(struct NXT_CRED_STRUCT));
-    cmsg->cmsg_level = SOL_SOCKET;
-    cmsg->cmsg_type = NXT_CRED_CMSGTYPE
-
-    oob_size += CMSG_LEN(sizeof(struct NXT_CRED_STRUCT));
-    cmsg = CMSG_NXTHDR(&msg, cmsg)
-#endif
-
-    if (fd != -1) {
-        cmsg->cmsg_len = CMSG_LEN(sizeof(int));
-        cmsg->cmsg_level = SOL_SOCKET;
-        cmsg->cmsg_type = SCM_RIGHTS;
-
-        /*
-         * nxt_memcpy() is used instead of simple
-         *   *(int *) CMSG_DATA(&cmsg.cm) = fd;
-         * because GCC 4.4 with -O2/3/s optimization may issue a warning:
-         *   dereferencing type-punned pointer will break strict-aliasing rules
-         *
-         * Fortunately, GCC with -O1 compiles this nxt_memcpy()
-         * in the same simple assignment as in the code above.
-         */
-        nxt_memcpy(CMSG_DATA(cmsg), &fd, sizeof(int));
-        oob_size += CMSG_LEN(sizeof(int));
-        cmsg = CMSG_NXTHDR(&msg, cmsg);
-    }
-
-    if (oob_size == 0) {
+    if (oobn == 0) {
         msg.msg_control = NULL;
     }
 
-    msg.msg_controllen = oob_size;
-
-    nxt_assert(oob_size <= NXT_OOB_RECV_SIZE);
+    nxt_assert(oobn <= NXT_OOB_RECV_SIZE);
 
     return sendmsg(s, &msg, 0);
 }
 
 static ssize_t
-nxt_recvmsg(nxt_socket_t s, nxt_fd_t *fd, nxt_pid_t *pid, nxt_iobuf_t *iob, nxt_uint_t niob)
+nxt_recvmsg(nxt_socket_t s, nxt_iobuf_t *iob, nxt_uint_t niob,
+    void *oob, size_t *oobn)
 {
     ssize_t                n;
     struct msghdr          msg;
-    struct cmsghdr         *cmsg;
-    struct NXT_CRED_STRUCT *creds;
-    unsigned               sz;
-    unsigned char          oob[NXT_OOB_RECV_SIZE];
-
+    
     msg.msg_name = NULL;
     msg.msg_namelen = 0;
     msg.msg_iov = iob;
     msg.msg_iovlen = niob;
-    msg.msg_control = &oob;
-    msg.msg_controllen = sizeof(oob);
-
-    *pid = -1;
-
-#if (NXT_VALGRIND)
-    nxt_memzero(&oob, sizeof(oob));
-#endif
+    msg.msg_control = oob;
+    msg.msg_controllen = *oobn;
 
     n = recvmsg(s, &msg, 0);
-    if (n <= 0) {
-        return n;
+
+    if (nxt_fast_path(n != -1)) {
+        *oobn = msg.msg_controllen;
     }
-
-    for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
-        sz = cmsg->cmsg_len - CMSG_LEN(0);
-
-        if (cmsg->cmsg_level == SOL_SOCKET &&
-            cmsg->cmsg_type == SCM_RIGHTS &&
-            sz == sizeof(int)) {
-
-            /* (*fd) = *(int *) CMSG_DATA(cmsg); */
-            nxt_memcpy(fd, CMSG_DATA(cmsg), sizeof(int));
-        }
-        
-#if (NXT_CRED_USECMSG)
-        if (cmsg->cmsg_level == SOL_SOCKET &&
-            cmsg->cmsg_type == NXT_CRED_CMSGTYPE &&
-            sz == sizeof(struct NXT_CRED_STRUCT)) {
-
-            creds = (struct NXT_CRED_STRUCT *)CMSG_DATA(cmsg);
-            *pid = NXT_CRED_GETPID(creds);
-        }
-#endif
-    }
-
-#if !(NXT_CRED_USECMSG)
-#error "implement PEERCRED"
-#endif
 
     return n;
 }
