@@ -137,9 +137,10 @@ ssize_t
 nxt_socketpair_recv(nxt_fd_event_t *ev, nxt_fd_t *fd, nxt_pid_t *pid, 
     nxt_iobuf_t *iob, nxt_uint_t niob)
 {
-    size_t                 oobn;
-    ssize_t                n;
-    unsigned char          oob[NXT_OOB_RECV_SIZE];
+    size_t        oobn;
+    ssize_t       n;
+    nxt_int_t     res;
+    unsigned char oob[NXT_OOB_RECV_SIZE];
     
     oobn = sizeof(oob);
 
@@ -179,10 +180,15 @@ nxt_socketpair_recv(nxt_fd_event_t *ev, nxt_fd_t *fd, nxt_pid_t *pid,
     *pid = -1;
 
     if (nxt_fast_path(oobn > 0)) {
-        nxt_socket_msg_oob_info(oob, oobn, fd, pid);
+        res = nxt_socket_msg_oob_info(ev->fd, oob, oobn, fd, pid);
+        if (nxt_slow_path(res != NXT_OK)) {
+            nxt_alert(ev->task, "failed to get oob data %E", nxt_errno);
+            return res;
+        }
 
         if (nxt_slow_path(*pid == -1)) {
-            nxt_alert(ev->task, "failed to get credentials from fd %d", ev->fd);
+            nxt_alert(ev->task, "failed to get credentials from fd %d", 
+                    ev->fd);
             return NXT_ERROR;
         }
     }

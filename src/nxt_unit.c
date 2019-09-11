@@ -16,9 +16,6 @@
 
 #include "nxt_websocket.h"
 
-#include <sys/socket.h>
-#include <sys/un.h>
-
 #if (NXT_HAVE_MEMFD_CREATE)
 #include <linux/memfd.h>
 #endif
@@ -641,7 +638,8 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
 
     nxt_unit_warn(ctx, "oobn = %d", oobn);
 
-    nxt_socket_msg_oob_info(oob, oobn, &recv_msg.fd, &recv_msg.pid);
+    rc = nxt_socket_msg_oob_info(-1/* DON'T HAVE ACCESS TO RECV FD HERE */,
+            oob, oobn, &recv_msg.fd, &recv_msg.pid);
 
     nxt_unit_warn(ctx, "received fd %d from pid %d", recv_msg.fd, recv_msg.pid);
 
