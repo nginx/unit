@@ -73,14 +73,12 @@ nxt_socket_msg_set_oob(u_char *oob, size_t *oobn, int fd)
     cmsg = (struct cmsghdr *) oob;
 
 #if (NXT_HAVE_MSGHDR_CMSGCRED)
-    /* zero cmsg + data */
-    nxt_memzero(cmsg, CMSG_SPACE(sizeof(struct NXT_CRED_STRUCT)));
 
     cmsg->cmsg_len = CMSG_LEN(sizeof(struct NXT_CRED_STRUCT));
     cmsg->cmsg_level = SOL_SOCKET;
     cmsg->cmsg_type = NXT_CRED_CMSGTYPE;
 
-    *oobn += CMSG_LEN(sizeof(struct NXT_CRED_STRUCT));
+    *oobn += CMSG_SPACE(sizeof(struct NXT_CRED_STRUCT));
     cmsg = CMSG_NXTHDR(&msg, cmsg);
 #endif
 
@@ -109,7 +107,7 @@ nxt_socket_msg_set_oob(u_char *oob, size_t *oobn, int fd)
          * in the same simple assignment as in the code above.
          */
         nxt_memcpy(CMSG_DATA(cmsg), &fd, sizeof(int));
-        *oobn += CMSG_LEN(sizeof(int));
+        *oobn += CMSG_SPACE(sizeof(int));
         cmsg = CMSG_NXTHDR(&msg, cmsg);
     }
 }
