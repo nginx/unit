@@ -159,8 +159,6 @@ nxt_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
         nxt_debug(task, "port %d: message type:%uD",
                   msg->port->socket.fd, msg->port_msg.type);
-        nxt_debug(task, "fd: %d", msg->fd);
-        nxt_debug(task, "pid: %d, pid: %d", msg->pid, msg->port_msg.pid);
 
         handlers = msg->port->data;
         handlers[msg->port_msg.type](task, msg);
