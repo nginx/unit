@@ -176,7 +176,7 @@ nxt_socketpair_recv(nxt_fd_event_t *ev, nxt_iobuf_t *iob, nxt_uint_t niob,
 
         default:
             nxt_alert(ev->task, "recvmsg(%d, %ui) failed %E",
-                    ev->fd, niob, nxt_socket_errno);
+                    ev->fd, niob, err);
 
             return NXT_ERROR;
         }

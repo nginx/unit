@@ -592,14 +592,13 @@ nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
     nxt_port_t          *port;
     struct iovec        iov[2];
     nxt_port_recv_msg_t msg;
-    
-    oobn = sizeof(oob);
 
     port = msg.port = nxt_container_of(obj, nxt_port_t, socket);
 
     nxt_assert(port->engine == task->thread->engine);
 
     for ( ;; ) {
+        oobn = sizeof(oob);
         nxt_memzero(oob, sizeof(oob));
 
         msg.pid = -1;
@@ -623,7 +622,7 @@ nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
 
             nxt_debug(task, "got oobn = %d", oobn);
 
-            msg.fd  = -1;
+            msg.fd = -1;
 
             /**
              * keeping in one branch because the slow path can only

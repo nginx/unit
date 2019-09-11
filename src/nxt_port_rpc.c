@@ -370,6 +370,7 @@ nxt_port_rpc_remove_peer(nxt_task_t *task, nxt_port_t *port, nxt_pid_t peer)
     msg.fd = -1;
     msg.buf = &buf;
     msg.port = port;
+    msg.port_msg.pid = peer; /* TODO(i4k): why? */
     msg.port_msg.type = _NXT_PORT_MSG_REMOVE_PID;
 
     peer_link = lhq.value;
@@ -480,6 +481,7 @@ nxt_port_rpc_close(nxt_task_t *task, nxt_port_t *port)
         msg.buf = &nxt_port_close_dummy_buf;
         msg.port = port;
         msg.port_msg.stream = reg->stream;
+        msg.port_msg.pid = nxt_pid;
         msg.port_msg.type = _NXT_PORT_MSG_RPC_ERROR;
         msg.port_msg.last = 1;
         msg.port_msg.mmap = 0;

@@ -162,10 +162,10 @@ func nxt_go_port_recv(pid C.int, id C.int, buf unsafe.Pointer, buf_size C.int,
 	n, oobn, _, _, err := p.rcv.ReadMsgUnix(GoBytes(buf, buf_size),
 		GoBytes(oob, C.int(*oob_size)))
 
-	*oob_size = C.size_t(oobn)
-
 	if err != nil {
 		nxt_go_warn("read result %d (%d), %s", n, oobn, err)
+	} else {
+		*oob_size = C.size_t(oobn)
 	}
 
 	return C.ssize_t(n)
