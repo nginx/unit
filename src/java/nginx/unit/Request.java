@@ -16,6 +16,7 @@ import java.lang.StringBuffer;
 import java.net.URI;
 import java.net.URISyntaxException;
 
+import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
@@ -65,6 +66,9 @@ import org.eclipse.jetty.http.MultiPartFormInputStream;
 import org.eclipse.jetty.http.HttpFields;
 import org.eclipse.jetty.http.MimeTypes;
 
+import nginx.unit.websocket.WsSession;
+import nginx.unit.websocket.WsIOException;
+
 public class Request implements HttpServletRequest, DynamicPathRequest
 {
     private final Context context;
@@ -113,6 +117,9 @@ public class Request implements HttpServletRequest, DynamicPathRequest
     private boolean request_session_id_from_cookie = false;
     private boolean request_session_id_from_url = false;
     private Session session = null;
+
+    private WsSession wsSession = null;
+    private boolean skip_close_ws = false;
 
     private final ServletRequestAttributeListener attr_listener;
 
@@ -1203,10 +1210,29 @@ public class Request implements HttpServletRequest, DynamicPathRequest
     public <T extends HttpUpgradeHandler> T upgrade(
             Class<T> httpUpgradeHandlerClass) throws java.io.IOException, ServletException
     {
-        log("upgrade: " + httpUpgradeHandlerClass.getName());
+        trace("upgrade: " + httpUpgradeHandlerClass.getName());
 
-        return null;
+        T handler;
+
+        try {
+            handler = httpUpgradeHandlerClass.getConstructor().newInstance();
+        } catch (Exception e) {
+            throw new ServletException(e);
+        }
+
+        upgrade(req_info_ptr);
+
+        return handler;
     }
+
+    private static native void upgrade(long req_info_ptr);
+
+    public boolean isUpgrade()
+    {
+        return isUpgrade(req_info_ptr);
+    }
+
+    private static native boolean isUpgrade(long req_info_ptr);
 
     @Override
     public String changeSessionId()
@@ -1248,5 +1274,65 @@ public class Request implements HttpServletRequest, DynamicPathRequest
     public static native void trace(long req_info_ptr, String msg, int msg_len);
 
     private static native Response getResponse(long req_info_ptr);
+
+
+    public void setWsSession(WsSession s)
+    {
+        wsSession = s;
+    }
+
+    private void processWsFrame(ByteBuffer buf, byte opCode, boolean last)
+        throws IOException
+    {
+        trace("processWsFrame: " + opCode + ", [" + buf.position() + ", " + buf.limit() + "]");
+        try {
+            wsSession.processFrame(buf, opCode, last);
+        } catch (WsIOException e) {
+            wsSession.onClose(e.getCloseReason());
+        }
+    }
+
+    private void closeWsSession()
+    {
+        trace("closeWsSession");
+        skip_close_ws = true;
+
+        wsSession.onClose();
+    }
+
+    public void sendWsFrame(ByteBuffer payload, byte opCode, boolean last,
+        long timeoutExpiry) throws IOException
+    {
+        trace("sendWsFrame: " + opCode + ", [" + payload.position() +
+              ", " + payload.limit() + "]");
+
+        if (payload.isDirect()) {
+            sendWsFrame(req_info_ptr, payload, payload.position(),
+                        payload.limit() - payload.position(), opCode, last);
+        } else {
+            sendWsFrame(req_info_ptr, payload.array(), payload.position(),
+                        payload.limit() - payload.position(), opCode, last);
+        }
+    }
+
+    private static native void sendWsFrame(long req_info_ptr,
+        ByteBuffer buf, int pos, int len, byte opCode, boolean last);
+
+    private static native void sendWsFrame(long req_info_ptr,
+        byte[] arr, int pos, int len, byte opCode, boolean last);
+
+
+    public void closeWs()
+    {
+        if (skip_close_ws) {
+            return;
+        }
+
+        trace("closeWs");
+
+        closeWs(req_info_ptr);
+    }
+
+    private static native void closeWs(long req_info_ptr);
 }
 

@@ -57,19 +57,13 @@ class TestApplicationWebsocket(TestApplicationProto):
     def serialize_close(self, code=1000, reason=''):
         return struct.pack('!H', code) + reason.encode('utf-8')
 
-    def frame_read(self, sock, read_timeout=10):
+    def frame_read(self, sock, read_timeout=30):
         def recv_bytes(sock, bytes):
             data = b''
             while select.select([sock], [], [], read_timeout)[0]:
-                try:
-                    if bytes < 65536:
-                        data = sock.recv(bytes)
-                    else:
-                        data = self.recvall(
-                            sock, read_timeout=read_timeout, buff_size=bytes
-                        )
-                    break
-                except:
+                data += sock.recv(bytes - len(data))
+
+                if len(data) == bytes:
                     break
 
             return data
@@ -97,7 +91,11 @@ class TestApplicationWebsocket(TestApplicationProto):
         if frame['mask']:
             mask_bits = recv_bytes(sock, 4)
 
-        data = recv_bytes(sock, length)
+        data = b''
+
+        if length != 0:
+            data = recv_bytes(sock, length)
+
         if frame['mask']:
             data = self.apply_mask(data, mask_bits)
 
@@ -173,7 +171,10 @@ class TestApplicationWebsocket(TestApplicationProto):
         frame = self.frame_to_send(*args, **kwargs)
 
         if chopsize is None:
-            sock.sendall(frame)
+            try:
+                sock.sendall(frame)
+            except BrokenPipeError:
+                pass
 
         else:
             pos = 0
