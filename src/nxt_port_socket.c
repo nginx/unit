@@ -618,16 +618,12 @@ nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
         n = nxt_socketpair_recv(&port->socket, iov, 2, oob, &oobn);
 
         if (nxt_fast_path(n > 0)) {
-            /* if get data, process it fast */
-
-            nxt_debug(task, "got oobn = %d", oobn);
-
             msg.fd = -1;
 
             /**
              * keeping in one branch because the slow path can only
-             * ever happen if client send a message without creds
-             * but unitd has creds enabled (linux and freebsd).
+             * ever happen if client is trying to spoof creds on
+             * platforms that cred is enabled (linux and freebsd).
              */
             if (nxt_slow_path(
                     oobn > 0 &&
@@ -641,8 +637,6 @@ nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
                 /* No OOB credential (eg.: OSX) */
                 msg.pid = msg.port_msg.pid;
             }
-
-            nxt_debug(task, "got fd = %d and pid = %d", msg.fd, msg.pid);
 
             msg.buf = b;
             msg.size = n;
