@@ -9,10 +9,6 @@
 
 #if (NXT_HAVE_MSGHDR_MSG_CONTROL)
 
-/*
- * Linux, FreeBSD, Solaris X/Open sockets,
- * MacOSX, NetBSD, AIX, HP-UX X/Open sockets.
- */
 
 ssize_t
 nxt_sendmsg(nxt_socket_t s, nxt_iobuf_t *iob, nxt_uint_t niob, 
@@ -88,9 +84,7 @@ nxt_socket_msg_set_oob(u_char *oob, size_t *oobn, int fd)
         * Fill all padding fields with 0.
         * Code in Go 1.11 validate cmsghdr using padding field as part of len.
         * See Cmsghdr definition and socketControlMessageHeaderAndData function.
-        * 
         */
-
         nxt_memzero(cmsg, sizeof(struct cmsghdr));
         
         cmsg->cmsg_len = CMSG_LEN(sizeof(int));
