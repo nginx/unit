@@ -78,10 +78,10 @@ nxt_socket_msg_set_oob(u_char *oob, size_t *oobn, int fd)
 
     cmsg->cmsg_len = CMSG_LEN(sizeof(struct NXT_CRED_STRUCT));
     cmsg->cmsg_level = SOL_SOCKET;
-    cmsg->cmsg_type = NXT_CRED_CMSGTYPE
+    cmsg->cmsg_type = NXT_CRED_CMSGTYPE;
 
     *oobn += CMSG_LEN(sizeof(struct NXT_CRED_STRUCT));
-    cmsg = CMSG_NXTHDR(&msg, cmsg)
+    cmsg = CMSG_NXTHDR(&msg, cmsg);
 #endif
 
     if (fd != -1) {
