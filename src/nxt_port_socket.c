@@ -164,6 +164,7 @@ nxt_port_socket_twrite(nxt_task_t *task, nxt_port_t *port, nxt_uint_t type,
     }
 
     msg.port_msg.stream = stream;
+    msg.port_msg.pid = nxt_pid;
     msg.port_msg.reply_port = reply_port;
     msg.port_msg.type = type & NXT_PORT_MSG_MASK;
     msg.port_msg.last = (type & NXT_PORT_MSG_LAST) != 0;
@@ -584,19 +585,23 @@ nxt_port_read_close(nxt_port_t *port)
 static void
 nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
 {
-    ssize_t              n;
-    nxt_buf_t            *b;
-    nxt_port_t           *port;
-    struct iovec         iov[2];
-    nxt_port_recv_msg_t  msg;
+    u_char              oob[NXT_OOB_RECV_SIZE];
+    size_t              oobn;
+    ssize_t             n;
+    nxt_buf_t           *b;
+    nxt_port_t          *port;
+    struct iovec        iov[2];
+    nxt_port_recv_msg_t msg;
+    
+    oobn = sizeof(oob);
 
     port = msg.port = nxt_container_of(obj, nxt_port_t, socket);
-
-    msg.fd  = -1;
 
     nxt_assert(port->engine == task->thread->engine);
 
     for ( ;; ) {
+        nxt_memzero(oob, sizeof(oob));
+
         msg.pid = -1;
 
         b = nxt_port_buf_alloc(port);
@@ -611,13 +616,34 @@ nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
         iov[1].iov_base = b->mem.pos;
         iov[1].iov_len = port->max_size;
 
-        n = nxt_socketpair_recv(&port->socket, &msg.fd, &msg.pid, iov, 2);
+        n = nxt_socketpair_recv(&port->socket, iov, 2, oob, &oobn);
 
-        if (n > 0) {
-            if (nxt_slow_path(msg.pid == -1)) {
-                nxt_alert(task, "failed to retrieve pid from out-of-band data");
+        if (nxt_fast_path(n > 0)) {
+            /* if get data, process it fast */
+
+            nxt_debug(task, "got oobn = %d", oobn);
+
+            msg.fd  = -1;
+
+            /**
+             * keeping in one branch because the slow path can only
+             * ever happen if client send a message without creds
+             * but unitd has creds enabled (linux and freebsd).
+             */
+            if (nxt_slow_path(
+                    oobn > 0 &&
+                    nxt_socket_msg_oob_info(oob, oobn, &msg.fd, &msg.pid)
+                        != NXT_OK)) {
+                nxt_alert(task, "failed to get oob data from %d", port->socket);
                 goto fail;
             }
+
+            if (nxt_slow_path(msg.pid == -1)) {
+                /* No OOB credential (eg.: OSX) */
+                msg.pid = msg.port_msg.pid;
+            }
+
+            nxt_debug(task, "got fd = %d and pid = %d", msg.fd, msg.pid);
 
             msg.buf = b;
             msg.size = n;
@@ -646,8 +672,8 @@ nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
             return;
         }
 
-        /* n == 0 || n == NXT_ERROR || pid == -1 */
 fail:
+        /* n == 0 || error  */
         nxt_work_queue_add(&task->thread->engine->fast_work_queue,
                            nxt_port_error_handler, task, &port->socket, NULL);
         return;

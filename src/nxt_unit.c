@@ -598,6 +598,7 @@ nxt_unit_ready(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
     lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
 
     msg.stream = stream;
+    msg.pid = lib->pid;
     msg.reply_port = 0;
     msg.type = _NXT_PORT_MSG_PROCESS_READY;
     msg.last = 1;
@@ -606,7 +607,8 @@ nxt_unit_ready(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
     msg.mf = 0;
     msg.tracking = 0;
 
-    oobn = nxt_socket_msg_set_oob(oob, -1);
+    oobn = sizeof(oob);
+    nxt_socket_msg_set_oob(oob, &oobn, -1);
 
     res = lib->callbacks.port_send(ctx, port_id, &msg, sizeof(msg), oob, oobn);
     if (res != sizeof(msg)) {
@@ -636,16 +638,18 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
     recv_msg.process = NULL;
     port_msg         = buf;
 
-    nxt_unit_warn(ctx, "oobn = %d", oobn);
+    //nxt_unit_alert(ctx, "oobn = %d", oobn);
 
-    rc = nxt_socket_msg_oob_info(-1/* DON'T HAVE ACCESS TO RECV FD HERE */,
-            oob, oobn, &recv_msg.fd, &recv_msg.pid);
-
-    nxt_unit_warn(ctx, "received fd %d from pid %d", recv_msg.fd, recv_msg.pid);
-
-    if (recv_msg.pid == -1) {
-        nxt_unit_warn(ctx, "failed to get credentials");
+    if (nxt_slow_path(
+            oobn > 0 &&
+            nxt_socket_msg_oob_info(oob, oobn, &recv_msg.fd, &recv_msg.pid)
+                != NXT_OK)) {
+        nxt_unit_warn(ctx, "failed to get OOB data");
         goto fail;
+    }
+    
+    if (nxt_slow_path(recv_msg.pid == -1)) {
+        recv_msg.pid = port_msg->pid;
     }
 
     recv_msg.incoming_buf = NULL;
@@ -1895,6 +1899,7 @@ nxt_unit_mmap_buf_send(nxt_unit_ctx_t *ctx, uint32_t stream,
     m.mmap_msg.size = buf->free - buf->start;
 
     m.msg.stream = stream;
+    m.msg.pid = lib->pid;
     m.msg.reply_port = 0;
     m.msg.type = _NXT_PORT_MSG_DATA;
     m.msg.last = last != 0;
@@ -1914,7 +1919,8 @@ nxt_unit_mmap_buf_send(nxt_unit_ctx_t *ctx, uint32_t stream,
                    (int) m.mmap_msg.chunk_id,
                    (int) m.mmap_msg.size);
 
-    oobn = nxt_socket_msg_set_oob(oob, -1);
+    oobn = sizeof(oob);
+    nxt_socket_msg_set_oob(oob, &oobn, -1);
 
     res = lib->callbacks.port_send(ctx, &mmap_buf->port_id, &m,
                                    m.msg.mmap ? sizeof(m) : sizeof(m.msg),
@@ -2236,6 +2242,7 @@ skip_response_send:
     lib = nxt_container_of(req->unit, nxt_unit_impl_t, unit);
 
     msg.stream = req_impl->stream;
+    msg.pid = lib->pid;
     msg.reply_port = 0;
     msg.type = (rc == NXT_UNIT_OK) ? _NXT_PORT_MSG_DATA
                                    : _NXT_PORT_MSG_RPC_ERROR;
@@ -2245,7 +2252,8 @@ skip_response_send:
     msg.mf = 0;
     msg.tracking = 0;
 
-    oobn = nxt_socket_msg_set_oob(oob, -1);
+    oobn = sizeof(oob);
+    nxt_socket_msg_set_oob(oob, &oobn, -1);
 
     res = lib->callbacks.port_send(req->ctx, &req->response_port,
                                    &msg, sizeof(msg), oob, oobn);
@@ -2658,6 +2666,7 @@ nxt_unit_send_mmap(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id, int fd)
     lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
 
     msg.stream = 0;
+    msg.pid = lib->pid;
     msg.reply_port = 0;
     msg.type = _NXT_PORT_MSG_MMAP;
     msg.last = 0;
@@ -2666,7 +2675,8 @@ nxt_unit_send_mmap(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id, int fd)
     msg.mf = 0;
     msg.tracking = 0;
 
-    oobn = nxt_socket_msg_set_oob(oob, fd);
+    oobn = sizeof(oob);
+    nxt_socket_msg_set_oob(oob, &oobn, fd);
 
     res = lib->callbacks.port_send(ctx, port_id, &msg, sizeof(msg),
                                    oob, oobn);
@@ -3493,6 +3503,7 @@ nxt_unit_send_port(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *dst,
     lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
 
     m.msg.stream = 0;
+    m.msg.pid = lib->pid;
     m.msg.reply_port = 0;
     m.msg.type = _NXT_PORT_MSG_NEW_PORT;
     m.msg.last = 0;
@@ -3507,7 +3518,8 @@ nxt_unit_send_port(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *dst,
     m.new_port.max_size = 16 * 1024;
     m.new_port.max_share = 64 * 1024;
 
-    oobn = nxt_socket_msg_set_oob(oob, fd);
+    oobn = sizeof(oob);
+    nxt_socket_msg_set_oob(oob, &oobn, fd);
 
     res = lib->callbacks.port_send(ctx, dst, &m, sizeof(m),
                                    oob, oobn);
@@ -3792,7 +3804,7 @@ nxt_unit_port_send(nxt_unit_ctx_t *ctx, int fd,
 
 static ssize_t
 nxt_unit_port_recv_default(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
-    void *buf, size_t buf_size, void *oob, size_t *oob_size)
+    void *buf, size_t buf_size, void *oob, size_t *oobn)
 {
     int                   fd;
     nxt_unit_impl_t       *lib;
@@ -3829,7 +3841,7 @@ nxt_unit_port_recv_default(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
         ctx_impl->read_port_fd = fd;
     }
 
-    return nxt_unit_port_recv(ctx, fd, buf, buf_size, oob, oob_size);
+    return nxt_unit_port_recv(ctx, fd, buf, buf_size, oob, oobn);
 }
 
 

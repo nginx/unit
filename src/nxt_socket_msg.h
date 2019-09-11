@@ -24,20 +24,20 @@
 
 #if (NXT_CRED_USECMSG)
 #define NXT_OOB_RECV_SIZE                                                     \
-            (CMSG_SPACE(sizeof(nxt_fd_t)) + \
+            (CMSG_SPACE(sizeof(int)) + \
              CMSG_SPACE(sizeof(struct NXT_CRED_STRUCT)))
 #else
 #define NXT_OOB_RECV_SIZE                                                     \
-            CMSG_SPACE(sizeof(nxt_fd_t))
+            CMSG_SPACE(sizeof(int))
 #endif
 
 #if (NXT_CRED_USECMSG) && (NXT_HAVE_MSGHDR_CMSGCRED)
 #define NXT_OOB_SEND_SIZE                                                     \
-            (CMSG_SPACE(sizeof(nxt_fd_t)) + \
+            (CMSG_SPACE(sizeof(int)) + \
              CMSG_SPACE(sizeof(struct NXT_CRED_STRUCT)))
 #else
 #define NXT_OOB_SEND_SIZE                                                     \
-            CMSG_SPACE(sizeof(nxt_fd_t))
+            CMSG_SPACE(sizeof(int))
 #endif
 
 
@@ -55,11 +55,11 @@ NXT_EXPORT ssize_t nxt_sendmsg(nxt_socket_t s, nxt_iobuf_t *iob,
 NXT_EXPORT ssize_t nxt_recvmsg(nxt_socket_t s, 
     nxt_iobuf_t *iob, nxt_uint_t niob, void *oob, size_t *oobn);
 
-NXT_EXPORT size_t
-nxt_socket_msg_set_oob(unsigned char oob[NXT_OOB_SEND_SIZE], int fd);
+NXT_EXPORT void
+nxt_socket_msg_set_oob(u_char *oob, size_t *oobn, int fd);
 
 NXT_EXPORT nxt_int_t
-nxt_socket_msg_oob_info(int sock, u_char *oob, size_t oobn, 
+nxt_socket_msg_oob_info(u_char *oob, size_t oobn, 
     nxt_fd_t *fd, nxt_pid_t *pid);
 
 #endif /* _NXT_SOCKET_MSG_H_INCLUDED_ */

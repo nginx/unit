@@ -86,8 +86,10 @@ nxt_socketpair_send(nxt_fd_event_t *ev, nxt_fd_t fd, nxt_iobuf_t *iob,
     size_t    oobn;
     ssize_t   n;
     nxt_err_t err;
+
+    oobn = sizeof(oob);
     
-    oobn = nxt_socket_msg_set_oob(oob, fd);
+    nxt_socket_msg_set_oob(oob, &oobn, fd);
 
     for ( ;; ) {
         n = nxt_sendmsg(ev->fd, iob, niob, oob, oobn);
@@ -134,27 +136,33 @@ nxt_socketpair_send(nxt_fd_event_t *ev, nxt_fd_t fd, nxt_iobuf_t *iob,
 
 
 ssize_t
-nxt_socketpair_recv(nxt_fd_event_t *ev, nxt_fd_t *fd, nxt_pid_t *pid, 
-    nxt_iobuf_t *iob, nxt_uint_t niob)
+nxt_socketpair_recv(nxt_fd_event_t *ev, nxt_iobuf_t *iob, nxt_uint_t niob,
+    void *oob, size_t *oobn)
 {
-    size_t        oobn;
-    ssize_t       n;
-    nxt_int_t     res;
-    unsigned char oob[NXT_OOB_RECV_SIZE];
-    
-    oobn = sizeof(oob);
+    ssize_t    n;
+    nxt_err_t  err;
 
     for ( ;; ) {
-        n = nxt_recvmsg(ev->fd, iob, niob, oob, &oobn);
+        n = nxt_recvmsg(ev->fd, iob, niob, oob, oobn);
 
-        nxt_debug(ev->task, "recvmsg(%d, %ui): %z", ev->fd, niob, n);
+        err = (n == -1) ? nxt_socket_errno : 0;
 
-        if (n >= 0) {
-            break;
+        nxt_debug(ev->task, "recvmsg(%d, %ui, %ui): %z", ev->fd, niob, *oobn, n);
+
+        if (n > 0) {
+            return n;
         }
 
-        // n = -1
-        switch (nxt_socket_errno) {
+        if (n == 0) {
+            ev->closed = 1;
+            ev->read_ready = 0;
+
+            return n;
+        }
+
+        /* n == -1 */
+
+        switch (err) {
 
         case NXT_EAGAIN:
             nxt_debug(ev->task, "recvmsg(%d) not ready", ev->fd);
@@ -173,30 +181,4 @@ nxt_socketpair_recv(nxt_fd_event_t *ev, nxt_fd_t *fd, nxt_pid_t *pid,
             return NXT_ERROR;
         }
     }
-
-    // n >= 0
-
-    *fd  = -1;
-    *pid = -1;
-
-    if (nxt_fast_path(oobn > 0)) {
-        res = nxt_socket_msg_oob_info(ev->fd, oob, oobn, fd, pid);
-        if (nxt_slow_path(res != NXT_OK)) {
-            nxt_alert(ev->task, "failed to get oob data %E", nxt_errno);
-            return res;
-        }
-
-        if (nxt_slow_path(*pid == -1)) {
-            nxt_alert(ev->task, "failed to get credentials from fd %d", 
-                    ev->fd);
-            return NXT_ERROR;
-        }
-    }
-    
-    if (nxt_slow_path(n == 0)) {
-        ev->closed = 1;
-        ev->read_ready = 0;
-    }
-
-    return n;
 }

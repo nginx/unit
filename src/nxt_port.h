@@ -121,7 +121,7 @@ typedef enum {
 typedef struct {
     uint32_t             stream;
 
-    uint32_t             pad;
+    nxt_pid_t            pid;       /* not used on Linux and FreeBSD */
 
     /* 8-byte alignment */
 

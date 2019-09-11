@@ -6,12 +6,6 @@
 #include <nxt_main.h>
 #include <nxt_socket_msg.h>
 
-#if !(NXT_CRED_USECMSG)
-
-static nxt_int_t
-nxt_socket_msg_peer(int sock, nxt_pid_t *pid);
-
-#endif
 
 #if (NXT_HAVE_MSGHDR_MSG_CONTROL)
 
@@ -66,17 +60,16 @@ nxt_recvmsg(nxt_socket_t s, nxt_iobuf_t *iob, nxt_uint_t niob,
 }
 
 
-size_t
-nxt_socket_msg_set_oob(u_char oob[NXT_OOB_SEND_SIZE], int fd)
+void
+nxt_socket_msg_set_oob(u_char *oob, size_t *oobn, int fd)
 {
-    size_t         oobn;
     struct msghdr  msg;
     struct cmsghdr *cmsg;
 
     msg.msg_control    = (void *) oob;
-    msg.msg_controllen = sizeof(u_char)*NXT_OOB_SEND_SIZE;
+    msg.msg_controllen = *oobn;
     
-    oobn = 0;
+    *oobn = 0;
     cmsg = (struct cmsghdr *) oob;
 
 #if (NXT_HAVE_MSGHDR_CMSGCRED)
@@ -87,7 +80,7 @@ nxt_socket_msg_set_oob(u_char oob[NXT_OOB_SEND_SIZE], int fd)
     cmsg->cmsg_level = SOL_SOCKET;
     cmsg->cmsg_type = NXT_CRED_CMSGTYPE
 
-    oobn += CMSG_LEN(sizeof(struct NXT_CRED_STRUCT));
+    *oobn += CMSG_LEN(sizeof(struct NXT_CRED_STRUCT));
     cmsg = CMSG_NXTHDR(&msg, cmsg)
 #endif
 
@@ -97,8 +90,10 @@ nxt_socket_msg_set_oob(u_char oob[NXT_OOB_SEND_SIZE], int fd)
         * Fill all padding fields with 0.
         * Code in Go 1.11 validate cmsghdr using padding field as part of len.
         * See Cmsghdr definition and socketControlMessageHeaderAndData function.
-        * nxt_memzero(&cmsg, sizeof(struct cmsghdr));
+        * 
         */
+
+        nxt_memzero(cmsg, sizeof(struct cmsghdr));
         
         cmsg->cmsg_len = CMSG_LEN(sizeof(int));
         cmsg->cmsg_level = SOL_SOCKET;
@@ -114,21 +109,18 @@ nxt_socket_msg_set_oob(u_char oob[NXT_OOB_SEND_SIZE], int fd)
          * in the same simple assignment as in the code above.
          */
         nxt_memcpy(CMSG_DATA(cmsg), &fd, sizeof(int));
-        oobn += CMSG_LEN(sizeof(int));
+        *oobn += CMSG_LEN(sizeof(int));
         cmsg = CMSG_NXTHDR(&msg, cmsg);
     }
-
-    return oobn;
 }
 
 nxt_int_t
-nxt_socket_msg_oob_info(int sock, u_char *oob, size_t oobn, 
+nxt_socket_msg_oob_info(u_char *oob, size_t oobn, 
     nxt_fd_t *fd, nxt_pid_t *pid)
 {
-    size_t                 cmsgsz;
-    nxt_int_t              res;
-    struct cmsghdr         *cmsg;
-    struct msghdr          msg;
+    size_t         cmsgsz;
+    struct cmsghdr *cmsg;
+    struct msghdr  msg;
 
 #if (NXT_CRED_USECMSG)
     struct NXT_CRED_STRUCT *creds;
@@ -140,18 +132,16 @@ nxt_socket_msg_oob_info(int sock, u_char *oob, size_t oobn,
     for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
         cmsgsz = cmsg->cmsg_len - CMSG_LEN(0);
 
-        if (fd != NULL && 
-            cmsg->cmsg_level == SOL_SOCKET &&
+        if (cmsg->cmsg_level == SOL_SOCKET &&
             cmsg->cmsg_type == SCM_RIGHTS &&
-            cmsgsz == sizeof(nxt_fd_t)) {
+            cmsgsz == sizeof(int)) {
 
             /* (*fd) = *(int *) CMSG_DATA(cmsg); */
             nxt_memcpy(fd, CMSG_DATA(cmsg), sizeof(int));
         }
         
 #if (NXT_CRED_USECMSG)
-        else if (pid != NULL &&
-            cmsg->cmsg_level == SOL_SOCKET &&
+        else if (cmsg->cmsg_level == SOL_SOCKET &&
             cmsg->cmsg_type == NXT_CRED_CMSGTYPE &&
             cmsgsz == sizeof(struct NXT_CRED_STRUCT)) {
 
@@ -161,65 +151,14 @@ nxt_socket_msg_oob_info(int sock, u_char *oob, size_t oobn,
 #endif
     }
 
-    res = NXT_OK;
-
-#if !(NXT_CRED_USECMSG)
-    res = nxt_socket_msg_peer(sock, pid);
-#endif
-
-    return res;
-}
-
-#endif
-
-/**
- * Fallback for platforms that don't support cmsg credentials.
- * 
- * NetBSD, OSX
- */
-
-#if (!NXT_CRED_USECMSG)
-
-#if (NXT_HAVE_SOCKOPT_SO_PEERCRED)
-
-
-static nxt_int_t
-nxt_socket_msg_peer(int sock, nxt_pid_t *pid)
-{
-	struct ucred peercred;
-	socklen_t    so_len = sizeof(peercred);
-
-	if (getsockopt(sock, SOL_SOCKET, SO_PEERCRED, &peercred, &so_len) != 0 ||
-		so_len != sizeof(peercred)) {
-		return NXT_ERROR;
+#if (NXT_CRED_USECMSG)
+    /* For platforms supporting credential passing, it's enforced */
+    if (nxt_slow_path(*pid == -1)) {
+        return NXT_ERROR;
     }
-
-	*pid = peercred.pid;
-	
-	return NXT_OK;
-}
-
-
-#elif (NXT_HAVE_SOCKOPT_LOCAL_PEERCRED)
-	/* Debian with FreeBSD kernel: use getsockopt(LOCAL_PEERCRED) */
-	
-static nxt_int_t
-nxt_socket_msg_peer(int sock, nxt_pid_t *pid)
-{
-    struct xucred peercred;
-	socklen_t     so_len = sizeof(peercred);
-
-	if (getsockopt(sock, 0, LOCAL_PEERCRED, &peercred, &so_len) != 0 ||
-		so_len != sizeof(peercred) ||
-		peercred.cr_version != XUCRED_VERSION) {
-		return NXT_ERROR;
-    }
-
-	*pid = peercred.cr_pid;
-	
-	return NXT_OK;
-}
-
-
 #endif
+
+    return NXT_OK;
+}
+
 #endif

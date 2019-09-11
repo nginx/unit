@@ -74,6 +74,7 @@ typedef struct nxt_sockaddr_s           nxt_sockaddr_t;
 #include <nxt_malloc.h>
 #include <nxt_mem_map.h>
 #include <nxt_socket.h>
+#include <nxt_socket_msg.h>
 #include <nxt_dyld.h>
 
 
