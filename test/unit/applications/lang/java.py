@@ -1,4 +1,5 @@
 import os
+import glob
 import shutil
 from subprocess import Popen
 from unit.applications.proto import TestApplicationProto
@@ -45,13 +46,20 @@ class TestApplicationJava(TestApplicationProto):
             if not os.path.isdir(classes_path):
                 os.makedirs(classes_path)
 
-            tomcat_jar = self.pardir + '/build/tomcat-servlet-api-9.0.13.jar'
+            classpath = self.pardir + '/build/tomcat-servlet-api-9.0.13.jar'
+
+            ws_jars = glob.glob(
+                self.pardir + '/build/websocket-api-java-*.jar'
+            )
+
+            if not ws_jars:
+                self.fail('websocket api jar not found.')
 
             javac = [
                 'javac',
                 '-encoding',   'utf-8',
                 '-d',          classes_path,
-                '-classpath',  tomcat_jar,
+                '-classpath',  classpath + ':' + ws_jars[0],
             ]
             javac.extend(src)
 

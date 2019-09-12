@@ -214,6 +214,7 @@ fi
 . ./version
 
 NXT_UNIT_JAR=nginx-unit-jsc-${NXT_JAVA_MODULE}-$NXT_VERSION.jar
+NXT_WS_API_JAR=websocket-api-${NXT_JAVA_MODULE}-$NXT_VERSION.jar
 
 NXT_JAVA_BUILD_CP=$NXT_BUILD_DIR/$NXT_JAVA_MODULE
 NXT_JAVA_INSTALL_JARS=
@@ -269,6 +270,7 @@ NXT_JAR_NAMESPACE=org/eclipse/jdt/
 . auto/modules/java_get_jar
 
 cat << END >> $NXT_JAVA_JARS
+    "$NXT_WS_API_JAR",
     NULL
 };
 
@@ -367,6 +369,112 @@ NXT_JAVA_SRCS=" \
     src/java/nginx/unit/SessionAttrProxy.java \
     src/java/nginx/unit/Taglib.java \
     src/java/nginx/unit/UnitSessionCookieConfig.java \
+    src/java/nginx/unit/websocket/AsyncChannelGroupUtil.java \
+    src/java/nginx/unit/websocket/AsyncChannelWrapper.java \
+    src/java/nginx/unit/websocket/AsyncChannelWrapperNonSecure.java \
+    src/java/nginx/unit/websocket/AsyncChannelWrapperSecure.java \
+    src/java/nginx/unit/websocket/AuthenticationException.java \
+    src/java/nginx/unit/websocket/Authenticator.java \
+    src/java/nginx/unit/websocket/AuthenticatorFactory.java \
+    src/java/nginx/unit/websocket/BackgroundProcess.java \
+    src/java/nginx/unit/websocket/BackgroundProcessManager.java \
+    src/java/nginx/unit/websocket/BasicAuthenticator.java \
+    src/java/nginx/unit/websocket/Constants.java \
+    src/java/nginx/unit/websocket/DecoderEntry.java \
+    src/java/nginx/unit/websocket/DigestAuthenticator.java \
+    src/java/nginx/unit/websocket/FutureToSendHandler.java \
+    src/java/nginx/unit/websocket/MessageHandlerResult.java \
+    src/java/nginx/unit/websocket/MessageHandlerResultType.java \
+    src/java/nginx/unit/websocket/MessagePart.java \
+    src/java/nginx/unit/websocket/PerMessageDeflate.java \
+    src/java/nginx/unit/websocket/ReadBufferOverflowException.java \
+    src/java/nginx/unit/websocket/Transformation.java \
+    src/java/nginx/unit/websocket/TransformationFactory.java \
+    src/java/nginx/unit/websocket/TransformationResult.java \
+    src/java/nginx/unit/websocket/Util.java \
+    src/java/nginx/unit/websocket/WrappedMessageHandler.java \
+    src/java/nginx/unit/websocket/WsContainerProvider.java \
+    src/java/nginx/unit/websocket/WsExtension.java \
+    src/java/nginx/unit/websocket/WsExtensionParameter.java \
+    src/java/nginx/unit/websocket/WsFrameBase.java \
+    src/java/nginx/unit/websocket/WsFrameClient.java \
+    src/java/nginx/unit/websocket/WsHandshakeResponse.java \
+    src/java/nginx/unit/websocket/WsIOException.java \
+    src/java/nginx/unit/websocket/WsPongMessage.java \
+    src/java/nginx/unit/websocket/WsRemoteEndpointAsync.java \
+    src/java/nginx/unit/websocket/WsRemoteEndpointBase.java \
+    src/java/nginx/unit/websocket/WsRemoteEndpointBasic.java \
+    src/java/nginx/unit/websocket/WsRemoteEndpointImplBase.java \
+    src/java/nginx/unit/websocket/WsRemoteEndpointImplClient.java \
+    src/java/nginx/unit/websocket/WsSession.java \
+    src/java/nginx/unit/websocket/WsWebSocketContainer.java \
+    src/java/nginx/unit/websocket/pojo/Constants.java \
+    src/java/nginx/unit/websocket/pojo/PojoEndpointBase.java \
+    src/java/nginx/unit/websocket/pojo/PojoEndpointClient.java \
+    src/java/nginx/unit/websocket/pojo/PojoEndpointServer.java \
+    src/java/nginx/unit/websocket/pojo/PojoMessageHandlerBase.java \
+    src/java/nginx/unit/websocket/pojo/PojoMessageHandlerPartialBase.java \
+    src/java/nginx/unit/websocket/pojo/PojoMessageHandlerPartialBinary.java \
+    src/java/nginx/unit/websocket/pojo/PojoMessageHandlerPartialText.java \
+    src/java/nginx/unit/websocket/pojo/PojoMessageHandlerWholeBase.java \
+    src/java/nginx/unit/websocket/pojo/PojoMessageHandlerWholeBinary.java \
+    src/java/nginx/unit/websocket/pojo/PojoMessageHandlerWholePong.java \
+    src/java/nginx/unit/websocket/pojo/PojoMessageHandlerWholeText.java \
+    src/java/nginx/unit/websocket/pojo/PojoMethodMapping.java \
+    src/java/nginx/unit/websocket/pojo/PojoPathParam.java \
+    src/java/nginx/unit/websocket/pojo/package-info.java \
+    src/java/nginx/unit/websocket/server/Constants.java \
+    src/java/nginx/unit/websocket/server/DefaultServerEndpointConfigurator.java \
+    src/java/nginx/unit/websocket/server/UpgradeUtil.java \
+    src/java/nginx/unit/websocket/server/UriTemplate.java \
+    src/java/nginx/unit/websocket/server/WsContextListener.java \
+    src/java/nginx/unit/websocket/server/WsFilter.java \
+    src/java/nginx/unit/websocket/server/WsHandshakeRequest.java \
+    src/java/nginx/unit/websocket/server/WsHttpUpgradeHandler.java \
+    src/java/nginx/unit/websocket/server/WsMappingResult.java \
+    src/java/nginx/unit/websocket/server/WsPerSessionServerEndpointConfig.java \
+    src/java/nginx/unit/websocket/server/WsRemoteEndpointImplServer.java \
+    src/java/nginx/unit/websocket/server/WsSci.java \
+    src/java/nginx/unit/websocket/server/WsServerContainer.java \
+    src/java/nginx/unit/websocket/server/WsSessionListener.java \
+    src/java/nginx/unit/websocket/server/WsWriteTimeout.java \
+    src/java/nginx/unit/websocket/server/package-info.java \
+"
+
+NXT_JAVA_WS_API_SRCS=" \
+    src/java/javax/websocket/ClientEndpoint.java \
+    src/java/javax/websocket/ClientEndpointConfig.java \
+    src/java/javax/websocket/CloseReason.java \
+    src/java/javax/websocket/ContainerProvider.java \
+    src/java/javax/websocket/DecodeException.java \
+    src/java/javax/websocket/Decoder.java \
+    src/java/javax/websocket/DefaultClientEndpointConfig.java \
+    src/java/javax/websocket/DeploymentException.java \
+    src/java/javax/websocket/EncodeException.java \
+    src/java/javax/websocket/Encoder.java \
+    src/java/javax/websocket/Endpoint.java \
+    src/java/javax/websocket/EndpointConfig.java \
+    src/java/javax/websocket/Extension.java \
+    src/java/javax/websocket/HandshakeResponse.java \
+    src/java/javax/websocket/MessageHandler.java \
+    src/java/javax/websocket/OnClose.java \
+    src/java/javax/websocket/OnError.java \
+    src/java/javax/websocket/OnMessage.java \
+    src/java/javax/websocket/OnOpen.java \
+    src/java/javax/websocket/PongMessage.java \
+    src/java/javax/websocket/RemoteEndpoint.java \
+    src/java/javax/websocket/SendHandler.java \
+    src/java/javax/websocket/SendResult.java \
+    src/java/javax/websocket/Session.java \
+    src/java/javax/websocket/SessionException.java \
+    src/java/javax/websocket/WebSocketContainer.java \
+    src/java/javax/websocket/server/DefaultServerEndpointConfig.java \
+    src/java/javax/websocket/server/HandshakeRequest.java \
+    src/java/javax/websocket/server/PathParam.java \
+    src/java/javax/websocket/server/ServerApplicationConfig.java \
+    src/java/javax/websocket/server/ServerContainer.java \
+    src/java/javax/websocket/server/ServerEndpoint.java \
+    src/java/javax/websocket/server/ServerEndpointConfig.java \
 "
 
 cat << END >> $NXT_MAKEFILE
@@ -378,7 +486,8 @@ cat << END >> $NXT_MAKEFILE
 all: ${NXT_JAVA_MODULE}
 
 ${NXT_JAVA_MODULE}: $NXT_BUILD_DIR/${NXT_JAVA_MODULE}.unit.so \
-    $NXT_BUILD_DIR/$NXT_UNIT_JAR
+    $NXT_BUILD_DIR/$NXT_UNIT_JAR \
+    $NXT_BUILD_DIR/$NXT_WS_API_JAR
 
 $NXT_BUILD_DIR/${NXT_JAVA_MODULE}.unit.so: $nxt_objs
 	\$(NXT_MODULE_LINK) -o $NXT_BUILD_DIR/${NXT_JAVA_MODULE}.unit.so \\
@@ -388,12 +497,15 @@ $NXT_BUILD_DIR/${NXT_JAVA_MODULE}.unit.so: $nxt_objs
 install: ${NXT_JAVA_MODULE}-install
 
 ${NXT_JAVA_MODULE}-install: $NXT_BUILD_DIR/${NXT_JAVA_MODULE}.unit.so \\
-    $NXT_BUILD_DIR/$NXT_UNIT_JAR java-shared-install
+    $NXT_BUILD_DIR/$NXT_UNIT_JAR \\
+    $NXT_BUILD_DIR/$NXT_WS_API_JAR \\
+    java-shared-install
 	install -d \$(DESTDIR)$NXT_MODULES
 	install -p $NXT_BUILD_DIR/${NXT_JAVA_MODULE}.unit.so \\
 		\$(DESTDIR)$NXT_MODULES/
 	install -d \$(DESTDIR)$NXT_JARS
 	install -p -m 0644 $NXT_BUILD_DIR/$NXT_UNIT_JAR \$(DESTDIR)$NXT_JARS/
+	install -p -m 0644 $NXT_BUILD_DIR/$NXT_WS_API_JAR \$(DESTDIR)$NXT_JARS/
 
 
 uninstall: ${NXT_JAVA_MODULE}-uninstall
@@ -402,6 +514,7 @@ ${NXT_JAVA_MODULE}-uninstall: java-shared-uninstall
 	rm -f \$(DESTDIR)$NXT_MODULES/${NXT_JAVA_MODULE}.unit.so
 	@rmdir -p \$(DESTDIR)$NXT_MODULES 2>/dev/null || true
 	rm -f \$(DESTDIR)$NXT_JARS/$NXT_UNIT_JAR
+	rm -f \$(DESTDIR)$NXT_JARS/$NXT_WS_API_JAR
 	@rmdir -p \$(DESTDIR)$NXT_JARS 2>/dev/null || true
 
 END
@@ -410,14 +523,15 @@ if ! grep ^$NXT_BUILD_DIR/$NXT_UNIT_JAR: $NXT_MAKEFILE 2>&1 > /dev/null; then
 
     cat << END >> $NXT_MAKEFILE
 
-.INTERMEDIATE: $NXT_BUILD_DIR/$NXT_JAVA_MODULE/.classes
-
 NXT_JAVA_SRCS = $NXT_JAVA_SRCS
 
-$NXT_BUILD_DIR/$NXT_JAVA_MODULE/.classes: \$(NXT_JAVA_SRCS)
-	rm -rf $NXT_BUILD_DIR/$NXT_JAVA_MODULE/nginx
-	$NXT_JAVAC -d $NXT_BUILD_DIR/$NXT_JAVA_MODULE -cp $NXT_JAVA_BUILD_CP \\
+$NXT_BUILD_DIR/$NXT_JAVA_MODULE/.nginx.unit.classes: \$(NXT_JAVA_SRCS) \\
+    $NXT_BUILD_DIR/$NXT_WS_API_JAR
+	rm -rf $NXT_BUILD_DIR/$NXT_JAVA_MODULE/nginx/unit
+	$NXT_JAVAC -d $NXT_BUILD_DIR/$NXT_JAVA_MODULE \\
+		-cp $NXT_JAVA_BUILD_CP:$NXT_BUILD_DIR/$NXT_WS_API_JAR \\
 		\$(NXT_JAVA_SRCS)
+	touch \$@
 
 $NXT_BUILD_DIR/$NXT_JAVA_MODULE/META-INF/LICENSE: LICENSE
 	mkdir -p $NXT_BUILD_DIR/$NXT_JAVA_MODULE/META-INF
@@ -427,14 +541,48 @@ $NXT_BUILD_DIR/$NXT_JAVA_MODULE/META-INF/NOTICE: NOTICE
 	mkdir -p $NXT_BUILD_DIR/$NXT_JAVA_MODULE/META-INF
 	cp -p NOTICE \$@
 
-
-$NXT_BUILD_DIR/$NXT_UNIT_JAR: $NXT_BUILD_DIR/$NXT_JAVA_MODULE/.classes \\
+$NXT_BUILD_DIR/$NXT_UNIT_JAR: \\
+    $NXT_BUILD_DIR/$NXT_JAVA_MODULE/.nginx.unit.classes \\
     $NXT_BUILD_DIR/$NXT_JAVA_MODULE/META-INF/LICENSE \\
     $NXT_BUILD_DIR/$NXT_JAVA_MODULE/META-INF/NOTICE
 	$NXT_JAVA_HOME/bin/jar c -C $NXT_BUILD_DIR/$NXT_JAVA_MODULE META-INF \\
 		-C $NXT_BUILD_DIR/$NXT_JAVA_MODULE nginx/unit > \$@
 
+NXT_JAVA_WS_API_SRCS = $NXT_JAVA_WS_API_SRCS
+
+$NXT_BUILD_DIR/$NXT_JAVA_MODULE/.javax.websocket.classes: \$(NXT_JAVA_WS_API_SRCS)
+	rm -rf $NXT_BUILD_DIR/$NXT_JAVA_MODULE/javax/websocket
+	$NXT_JAVAC -d $NXT_BUILD_DIR/$NXT_JAVA_MODULE -cp $NXT_JAVA_BUILD_CP \\
+		\$(NXT_JAVA_WS_API_SRCS)
+	touch \$@
+
+$NXT_BUILD_DIR/$NXT_WS_API_JAR: \\
+    $NXT_BUILD_DIR/$NXT_JAVA_MODULE/.javax.websocket.classes \\
+    $NXT_BUILD_DIR/$NXT_JAVA_MODULE/META-INF/LICENSE \\
+    $NXT_BUILD_DIR/$NXT_JAVA_MODULE/META-INF/NOTICE
+	$NXT_JAVA_HOME/bin/jar c -C $NXT_BUILD_DIR/$NXT_JAVA_MODULE META-INF \\
+		-C $NXT_BUILD_DIR/$NXT_JAVA_MODULE javax/websocket > \$@
+
 END
+
+NXT_PROPS="\
+    nginx/unit/websocket/LocalStrings.properties \
+    nginx/unit/websocket/pojo/LocalStrings.properties \
+    nginx/unit/websocket/server/LocalStrings.properties \
+"
+
+for nxt_prop in $NXT_PROPS ; do
+
+    cat << END >> $NXT_MAKEFILE
+$NXT_BUILD_DIR/$NXT_JAVA_MODULE/$nxt_prop: src/java/$nxt_prop \\
+    $NXT_BUILD_DIR/$NXT_JAVA_MODULE/.nginx.unit.classes
+	cp src/java/$nxt_prop \$@
+
+$NXT_BUILD_DIR/$NXT_UNIT_JAR: $NXT_BUILD_DIR/$NXT_JAVA_MODULE/$nxt_prop
+
+END
+
+done
 
 fi
 

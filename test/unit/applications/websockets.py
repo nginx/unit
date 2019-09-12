@@ -54,24 +54,16 @@ class TestApplicationWebsocket(TestApplicationProto):
     def apply_mask(self, data, mask):
         return bytes(b ^ m for b, m in zip(data, itertools.cycle(mask)))
 
-    def serialize_close(self, code = 1000, reason = ''):
+    def serialize_close(self, code=1000, reason=''):
         return struct.pack('!H', code) + reason.encode('utf-8')
 
-    def frame_read(self, sock, read_timeout=10):
+    def frame_read(self, sock, read_timeout=30):
         def recv_bytes(sock, bytes):
             data = b''
             while select.select([sock], [], [], read_timeout)[0]:
-                try:
-                    if bytes < 65536:
-                        data = sock.recv(bytes)
-                    else:
-                        data = self.recvall(
-                            sock,
-                            read_timeout=read_timeout,
-                            buff_size=bytes,
-                        )
-                    break
-                except:
+                data += sock.recv(bytes - len(data))
+
+                if len(data) == bytes:
                     break
 
             return data
@@ -99,7 +91,11 @@ class TestApplicationWebsocket(TestApplicationProto):
         if frame['mask']:
             mask_bits = recv_bytes(sock, 4)
 
-        data = recv_bytes(sock, length)
+        data = b''
+
+        if length != 0:
+            data = recv_bytes(sock, length)
+
         if frame['mask']:
             data = self.apply_mask(data, mask_bits)
 
@@ -175,14 +171,20 @@ class TestApplicationWebsocket(TestApplicationProto):
         frame = self.frame_to_send(*args, **kwargs)
 
         if chopsize is None:
-            sock.sendall(frame)
+            try:
+                sock.sendall(frame)
+            except BrokenPipeError:
+                pass
 
         else:
             pos = 0
             frame_len = len(frame)
-            while (pos < frame_len):
+            while pos < frame_len:
                 end = min(pos + chopsize, frame_len)
-                sock.sendall(frame[pos:end])
+                try:
+                    sock.sendall(frame[pos:end])
+                except BrokenPipeError:
+                    end = frame_len
                 pos = end
 
     def message(self, sock, type, message, fragmention_size=None, **kwargs):
@@ -197,17 +199,19 @@ class TestApplicationWebsocket(TestApplicationProto):
 
         pos = 0
         op_code = type
-        while(pos < message_len):
+        while pos < message_len:
             end = min(pos + fragmention_size, message_len)
-            fin = (end == message_len)
-            self.frame_write(sock, op_code, message[pos:end], fin=fin, **kwargs)
+            fin = end == message_len
+            self.frame_write(
+                sock, op_code, message[pos:end], fin=fin, **kwargs
+            )
             op_code = self.OP_CONT
             pos = end
 
     def message_read(self, sock, read_timeout=10):
         frame = self.frame_read(sock, read_timeout=read_timeout)
 
-        while(not frame['fin']):
+        while not frame['fin']:
             temp = self.frame_read(sock, read_timeout=read_timeout)
             frame['data'] += temp['data']
             frame['fin'] = temp['fin']
