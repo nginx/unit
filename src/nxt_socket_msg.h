@@ -50,7 +50,7 @@ NXT_EXPORT ssize_t nxt_sendmsg(nxt_socket_t s, nxt_iobuf_t *iob,
 
 /**
  * The nxt_recvmsg is a wrapper for recvmsg. 
- * The oob buffer must be consumed by using nxt_socket_msg_oob_data.
+ * The oob buffer must be consumed by using nxt_socket_msg_oob_info.
  */
 NXT_EXPORT ssize_t nxt_recvmsg(nxt_socket_t s, 
     nxt_iobuf_t *iob, nxt_uint_t niob, void *oob, size_t *oobn);
