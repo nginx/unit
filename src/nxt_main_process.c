@@ -270,7 +270,7 @@ nxt_port_main_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_mp_t               *mp;
     nxt_int_t              ret;
     nxt_buf_t              *b;
-    nxt_port_t             *router_port, *port;
+    nxt_port_t             *port;
     nxt_runtime_t          *rt;
     nxt_app_type_t         idx;
     nxt_conf_value_t       *conf;
@@ -278,9 +278,15 @@ nxt_port_main_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     rt = task->thread->runtime;
 
-    router_port = rt->port_by_type[NXT_PROCESS_ROUTER];
+    port = rt->port_by_type[NXT_PROCESS_ROUTER];
 
-    if (nxt_slow_path(router_port->pid != msg->pid)) {
+    if (nxt_slow_path(port == NULL)) {
+        nxt_alert(task, "router port not found");
+        return;
+    }
+
+    if (nxt_slow_path(port->pid != msg->pid)) {
+        nxt_alert(task, "process %PI cannot start workers", msg->pid);
         return;
     }
 
