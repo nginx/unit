@@ -599,7 +599,6 @@ nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
 
     for ( ;; ) {
         oobn = sizeof(oob);
-        nxt_memzero(oob, sizeof(oob));
 
         msg.pid = -1;
 
