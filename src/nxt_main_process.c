@@ -1051,13 +1051,15 @@ nxt_main_port_socket_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     port = nxt_runtime_port_find(task->thread->runtime, msg->pid,
                                  msg->port_msg.reply_port);
-    if (port == NULL) {
+    if (nxt_slow_path(port == NULL)) {
         nxt_alert(task, "process port not found (pid %d, reply_port %d)", 
-            msg->pid, msg->port_msg.reply_port);
+                  msg->pid, msg->port_msg.reply_port);
         return;
     }
 
-    if (port->type != NXT_PROCESS_ROUTER) {
+    if (nxt_slow_path(port->type != NXT_PROCESS_ROUTER)) {
+        nxt_alert(task, "process %PI cannot create listener sockets", 
+                  msg->pid);
         return;
     }
 
@@ -1387,7 +1389,7 @@ nxt_main_port_conf_store_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     rt = task->thread->runtime;
     ctl_port = rt->port_by_type[NXT_PROCESS_CONTROLLER];
-    
+
     if (nxt_slow_path(msg->pid != ctl_port->pid)) {
         return;
     }
