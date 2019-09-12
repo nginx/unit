@@ -600,8 +600,6 @@ nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
     for ( ;; ) {
         oobn = sizeof(oob);
 
-        msg.pid = -1;
-
         b = nxt_port_buf_alloc(port);
 
         if (nxt_slow_path(b == NULL)) {
@@ -617,7 +615,8 @@ nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
         n = nxt_socketpair_recv(&port->socket, iov, 2, oob, &oobn);
 
         if (nxt_fast_path(n > 0)) {
-            msg.fd = -1;
+            msg.pid = -1;
+            msg.fd  = -1;
 
             /**
              * keeping in one branch because the slow path can only
