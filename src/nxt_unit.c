@@ -1876,14 +1876,14 @@ nxt_unit_mmap_buf_send(nxt_unit_ctx_t *ctx, uint32_t stream,
         nxt_port_mmap_msg_t  mmap_msg;
     } m;
 
-    u_char                   *end, *last_used, *first_free;
-    u_char                   oob[NXT_OOB_SEND_SIZE];
-    size_t                   oobn;
-    ssize_t                  res;
-    nxt_chunk_id_t           first_free_chunk;
-    nxt_unit_buf_t           *buf;
-    nxt_unit_impl_t          *lib;
-    nxt_port_mmap_header_t   *hdr;
+    u_char                  *end, *last_used, *first_free;
+    size_t                  oobn;
+    ssize_t                 res;
+    nxt_chunk_id_t          first_free_chunk;
+    nxt_unit_buf_t          *buf;
+    nxt_unit_impl_t         *lib;
+    nxt_port_mmap_header_t  *hdr;
+    u_char                  oob[NXT_OOB_SEND_SIZE];
 
     lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
 
