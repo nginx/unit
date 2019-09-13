@@ -1272,6 +1272,7 @@ nxt_main_port_modules_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     rt = task->thread->runtime;
 
     if (msg->pid != rt->port_by_type[NXT_PROCESS_DISCOVERY]->pid) {
+        nxt_alert(task, "process %PI cannot send modules", msg->pid);
         return;
     }
 
