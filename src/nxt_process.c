@@ -6,13 +6,16 @@
 
 #include <nxt_main.h>
 #include <nxt_main_process.h>
+
+#if (NXT_HAVE_CLONE)
 #include <nxt_clone.h>
+#endif
 
 #include <signal.h>
 
 static void nxt_process_start(nxt_task_t *task, nxt_process_t *process);
 static nxt_int_t nxt_user_groups_get(nxt_task_t *task, nxt_user_cred_t *uc);
-static nxt_int_t nxt_process_worker_setup(nxt_task_t *task, 
+static nxt_int_t nxt_process_worker_setup(nxt_task_t *task,
     nxt_process_t *process, int parentfd);
 
 /* A cached process pid. */
@@ -37,26 +40,27 @@ nxt_bool_t  nxt_proc_remove_notify_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
     { 0, 0, 0, 1, 0 },
 };
 
-static nxt_int_t 
+static nxt_int_t
 nxt_process_worker_setup(nxt_task_t *task, nxt_process_t *process, int parentfd) {
-    nxt_process_init_t *init;
-    nxt_process_type_t ptype;
-    nxt_process_t      *p;
-    nxt_runtime_t      *rt;
-    nxt_int_t          parent_status;
-    pid_t              rpid;
-    pid_t              pid;
-    
+    pid_t               rpid, pid;
+    ssize_t             n;
+    nxt_int_t           parent_status;
+    nxt_process_t       *p;
+    nxt_runtime_t       *rt;
+    nxt_process_init_t  *init;
+    nxt_process_type_t  ptype;
+
     pid = getpid();
     rpid = 0;
     rt   = task->thread->runtime;
     init = process->init;
-    
+
     /**
      * Setup the worker process
      */
 
-    if (read(parentfd, &rpid, sizeof(rpid)) == -1) {
+    n = read(parentfd, &rpid, sizeof(rpid));
+    if (nxt_slow_path(n == -1 || n != sizeof(rpid))) {
         nxt_alert(task, "failed to read real pid");
         return NXT_ERROR;
     }
@@ -78,7 +82,8 @@ nxt_process_worker_setup(nxt_task_t *task, nxt_process_t *process, int parentfd)
         nxt_debug(task, "app \"%s\" isolated pid: %d", init->name, pid);
     }
 
-    if (read(parentfd, &parent_status, sizeof(parent_status)) == -1) {
+    n = read(parentfd, &parent_status, sizeof(parent_status));
+    if (nxt_slow_path(n == -1 || n != sizeof(parent_status))) {
         nxt_alert(task, "failed to read parent status");
         return NXT_ERROR;
     }
@@ -88,7 +93,7 @@ nxt_process_worker_setup(nxt_task_t *task, nxt_process_t *process, int parentfd)
         return NXT_ERROR;
     }
 
-    if (parent_status != NXT_OK) {
+    if (nxt_slow_path(parent_status != NXT_OK)) {
         return parent_status;
     }
 
@@ -134,10 +139,10 @@ nxt_process_worker_setup(nxt_task_t *task, nxt_process_t *process, int parentfd)
 nxt_pid_t
 nxt_process_create(nxt_task_t *task, nxt_process_t *process)
 {
-    nxt_pid_t          pid;
-    nxt_process_init_t *init;
-    nxt_int_t          ret;
-    int                pipefd[2];
+    int                 pipefd[2];
+    nxt_int_t           ret;
+    nxt_pid_t           pid;
+    nxt_process_init_t  *init;
 
     init = process->init;
 
@@ -152,7 +157,7 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
     pid = fork();
 #endif
 
-    if (pid < 0) {
+    if (nxt_slow_path(pid < 0)) {
         if (nxt_errno == NXT_EPERM) {
             nxt_alert(task, "fork/clone() check namespace flags of %s: %E", 
                     init->name, nxt_errno);
@@ -171,7 +176,7 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
             nxt_alert(task, "failed to close writer pipe fd");
             return NXT_ERROR;
         }
-        
+
         ret = nxt_process_worker_setup(task, process, pipefd[0]);
         if (nxt_slow_path(ret != NXT_OK)) {
             exit(1);
@@ -183,7 +188,7 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
          */
         return 0;
     }
-    
+
     /**
      * Parent
      */
@@ -195,7 +200,7 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
     /*
      * At this point, the child process is blocked reading the
      * pipe fd to get its real pid (rpid).
-     * 
+     *
      * If anything goes wrong now, we need to terminate the child
      * process by sending a NXT_ERROR in the pipe.
      */
