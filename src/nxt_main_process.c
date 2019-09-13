@@ -1487,7 +1487,7 @@ nxt_main_port_access_log_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     }
 }
 
-static nxt_int_t 
+static nxt_int_t
 nxt_init_set_isolation(nxt_task_t *task, nxt_process_init_t *init, nxt_conf_value_t *isolation)
 {
     nxt_conf_value_t *object;
@@ -1518,62 +1518,56 @@ nxt_init_set_isolation(nxt_task_t *task, nxt_process_init_t *init, nxt_conf_valu
         init->isolation.clone.gidmap = object;
     }
 
-    return NXT_OK;    
+    return NXT_OK;
 }
 
-static nxt_int_t 
+static nxt_int_t
 nxt_init_set_ns(nxt_task_t *task, nxt_process_init_t *init, nxt_conf_value_t *namespaces)
 {
     nxt_conf_value_t *value;
     nxt_str_t        name;
     uint32_t         index;
     nxt_int_t        flag = 0;
-    
+
     index = 0;
     while ((value = nxt_conf_next_object_member(namespaces, &name, &index)) != NULL) {
         flag = 0;
 
-        if (nxt_slow_path(nxt_conf_type(value) != NXT_CONF_BOOLEAN)) {
-            nxt_alert(task, "unexpected namespace value: \"%V\". "
-                    "Expected boolean.", value);
-            return NXT_ERROR;
-        }
-
 #if (NXT_HAVE_CLONE_NEWUSER)
         if (nxt_str_eq(&name, "credential", 10)) {
             flag = CLONE_NEWUSER;
-        } 
+        }
 #endif
 
 #if (NXT_HAVE_CLONE_NEWPID)
         if (nxt_str_eq(&name, "pid", 3)) {
             flag = CLONE_NEWPID;
-        } 
+        }
 #endif
 
 #if (NXT_HAVE_CLONE_NEWNET)
         if (nxt_str_eq(&name, "network", 7)) {
             flag = CLONE_NEWNET;
-        } 
+        }
 #endif
-        
+
 #if (NXT_HAVE_CLONE_NEWUTS)
         if (nxt_str_eq(&name, "uname", 5)) {
             flag = CLONE_NEWUTS;
         }
 #endif
-        
+
 #if (NXT_HAVE_CLONE_NEWNS)
         if (nxt_str_eq(&name, "mount", 5)) {
             flag = CLONE_NEWNS;
-        } 
+        }
 #endif
 
 #if (NXT_HAVE_CLONE_NEWCGROUP)
         if (nxt_str_eq(&name, "cgroup", 6)) {
             flag = CLONE_NEWCGROUP;
         }
-#endif 
+#endif
 
         if (!flag) {
             nxt_alert(task, "unknown namespace flag: \"%V\"", &name);
