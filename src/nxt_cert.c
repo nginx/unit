@@ -1201,7 +1201,7 @@ nxt_cert_store_delete_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     }
 
     if (nxt_slow_path(msg->pid != ctl_port->pid)) {
-        nxt_debug(task, "process %PI cannot delete certificates",
+        nxt_alert(task, "process %PI cannot delete certificates",
                   msg->pid);
         return;
     }
