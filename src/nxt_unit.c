@@ -3483,10 +3483,10 @@ static int
 nxt_unit_send_port(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *dst,
     nxt_unit_port_id_t *new_port, int fd)
 {
-    u_char           oob[NXT_OOB_SEND_SIZE];
     size_t           oobn;
     ssize_t          res;
     nxt_unit_impl_t  *lib;
+    u_char           oob[NXT_OOB_SEND_SIZE];
 
     struct {
         nxt_port_msg_t            msg;
