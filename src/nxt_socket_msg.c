@@ -7,9 +7,6 @@
 #include <nxt_socket_msg.h>
 
 
-#if (NXT_HAVE_MSGHDR_MSG_CONTROL)
-
-
 ssize_t
 nxt_sendmsg(nxt_socket_t s, nxt_iobuf_t *iob, nxt_uint_t niob, 
     const void *oob, size_t oobn)
@@ -156,5 +153,3 @@ nxt_socket_msg_oob_info(u_char *oob, size_t oobn,
 
     return NXT_OK;
 }
-
-#endif
