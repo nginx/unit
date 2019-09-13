@@ -48,13 +48,15 @@ nxt_socketpair_create(nxt_task_t *task, nxt_socket_t *pair)
 #if NXT_HAVE_SOCKOPT_SO_PASSCRED
     int enable_creds = 1;
     if (nxt_slow_path(setsockopt(pair[0], SOL_SOCKET, SO_PASSCRED,
-                        &enable_creds, sizeof(enable_creds)) == -1)) {
+                        &enable_creds, sizeof(enable_creds)) == -1)) 
+    {
         nxt_alert(task, "failed to set SO_PASSCRED %E", nxt_errno);
         goto fail;
     }
 
     if (nxt_slow_path(setsockopt(pair[1], SOL_SOCKET, SO_PASSCRED,
-                        &enable_creds, sizeof(enable_creds)) == -1)) {
+                        &enable_creds, sizeof(enable_creds)) == -1)) 
+    {
         nxt_alert(task, "failed to set SO_PASSCRED %E", nxt_errno);
         goto fail;
     }
