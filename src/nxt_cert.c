@@ -1112,7 +1112,7 @@ nxt_cert_store_get_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
                   msg->pid, msg->port_msg.reply_port);
         return;
     }
-    
+
     if (nxt_slow_path(port->type != NXT_PROCESS_CONTROLLER
                       && port->type != NXT_PROCESS_ROUTER)) 
     {
