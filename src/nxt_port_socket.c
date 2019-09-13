@@ -599,6 +599,7 @@ nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
 
     for ( ;; ) {
         oobn = sizeof(oob);
+        msg.port_msg.pid = -1;
 
         b = nxt_port_buf_alloc(port);
 
@@ -615,25 +616,32 @@ nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
         n = nxt_socketpair_recv(&port->socket, iov, 2, oob, &oobn);
 
         if (n > 0) {
+
+#if (NXT_CRED_USECMSG)
             msg.pid = -1;
+#else
+            msg.pid = msg.port_msg.pid;
+#endif
             msg.fd  = -1;
 
             /**
-             * keeping in one branch because the slow path can only
+             * Keeping in one branch because the slow path can only
              * ever happen if client is trying to spoof creds on
-             * platforms that cred is enabled (linux and freebsd).
+             * platforms that cred is enabled (Linux and FreeBSD).
              */
-            if (nxt_slow_path(
-                    oobn > 0 &&
-                    nxt_socket_msg_oob_info(oob, oobn, &msg.fd, &msg.pid)
-                        != NXT_OK)) {
-                nxt_alert(task, "failed to get oob data from %d", port->socket);
-                goto fail;
-            }
+            if (nxt_slow_path(oobn > 0
+                    && nxt_socket_msg_oob_info(oob, oobn, &msg.fd, &msg.pid)
+                        != NXT_OK))
+            {
+                nxt_alert(task, "failed to get oob data from %d",
+                          port->socket.fd);
 
-            if (nxt_slow_path(msg.pid == -1)) {
-                /* No OOB credential (eg.: OSX) */
-                msg.pid = msg.port_msg.pid;
+                if (nxt_slow_path(msg.fd != -1)) {
+                    nxt_fd_close(msg.fd);
+                    msg.fd = -1;
+                }
+
+                goto fail;
             }
 
             msg.buf = b;
