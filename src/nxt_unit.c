@@ -5,9 +5,9 @@
 
 #include "nxt_main.h"
 #include "nxt_port_memory_int.h"
+#include "nxt_socket_msg.h"
 
 #include "nxt_unit.h"
-#include "nxt_socket_msg.h"
 #include "nxt_unit_request.h"
 #include "nxt_unit_response.h"
 #include "nxt_unit_websocket.h"
