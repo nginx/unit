@@ -634,20 +634,15 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
 
     rc = NXT_UNIT_ERROR;
     recv_msg.fd      = -1;
-    recv_msg.pid     = -1;
     recv_msg.process = NULL;
     port_msg         = buf;
 
     if (nxt_slow_path(
             oobn > 0 &&
-            nxt_socket_msg_oob_info(oob, oobn, &recv_msg.fd, &recv_msg.pid)
+            nxt_socket_msg_oob_info(oob, oobn, &recv_msg.fd, &port_msg->pid)
                 != NXT_OK)) {
         nxt_unit_warn(ctx, "failed to get OOB data");
         goto fail;
-    }
-    
-    if (nxt_slow_path(recv_msg.pid == -1)) {
-        recv_msg.pid = port_msg->pid;
     }
 
     recv_msg.incoming_buf = NULL;
@@ -658,6 +653,7 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
     }
 
     recv_msg.stream = port_msg->stream;
+    recv_msg.pid = port_msg->pid;
     recv_msg.reply_port = port_msg->reply_port;
     recv_msg.last = port_msg->last;
     recv_msg.mmap = port_msg->mmap;
@@ -718,7 +714,7 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
             goto fail;
         }
 
-        rc = nxt_unit_incoming_mmap(ctx, recv_msg.pid, recv_msg.fd);
+        rc = nxt_unit_incoming_mmap(ctx, port_msg->pid, recv_msg.fd);
         break;
 
     case _NXT_PORT_MSG_REQ_HEADERS:

@@ -107,7 +107,7 @@ nxt_socket_msg_set_oob(u_char *oob, size_t *oobn, int fd)
 }
 
 nxt_int_t
-nxt_socket_msg_oob_info(u_char *oob, size_t oobn, 
+nxt_socket_msg_oob_info(u_char *oob, size_t oobn,
     nxt_fd_t *fd, nxt_pid_t *pid)
 {
     size_t         cmsgsz;
@@ -116,6 +116,7 @@ nxt_socket_msg_oob_info(u_char *oob, size_t oobn,
 
 #if (NXT_CRED_USECMSG)
     struct NXT_CRED_STRUCT *creds;
+    *pid = -1;
 #endif
 
     msg.msg_control    = oob;
@@ -131,7 +132,7 @@ nxt_socket_msg_oob_info(u_char *oob, size_t oobn,
             /* (*fd) = *(int *) CMSG_DATA(cmsg); */
             nxt_memcpy(fd, CMSG_DATA(cmsg), sizeof(int));
         }
-        
+
 #if (NXT_CRED_USECMSG)
         else if (cmsg->cmsg_level == SOL_SOCKET &&
             cmsg->cmsg_type == NXT_CRED_CMSGTYPE &&

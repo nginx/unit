@@ -616,12 +616,6 @@ nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
         n = nxt_socketpair_recv(&port->socket, iov, 2, oob, &oobn);
 
         if (n > 0) {
-
-#if (NXT_CRED_USECMSG)
-            msg.pid = -1;
-#else
-            msg.pid = msg.port_msg.pid;
-#endif
             msg.fd  = -1;
 
             /**
@@ -630,7 +624,8 @@ nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
              * platforms that cred is enabled (Linux and FreeBSD).
              */
             if (nxt_slow_path(oobn > 0
-                    && nxt_socket_msg_oob_info(oob, oobn, &msg.fd, &msg.pid)
+                    && nxt_socket_msg_oob_info(oob, oobn, &msg.fd,
+                                               &msg.port_msg.pid)
                         != NXT_OK))
             {
                 nxt_alert(task, "failed to get oob data from %d",
@@ -697,7 +692,7 @@ nxt_port_lvlhsh_frag_test(nxt_lvlhsh_query_t *lhq, void *data)
 
     if (lhq->key.length == sizeof(nxt_port_frag_key_t)
         && frag_key->stream == fmsg->port_msg.stream
-        && frag_key->pid == (uint32_t) fmsg->pid)
+        && frag_key->pid == (uint32_t) fmsg->port_msg.pid)
     {
         return NXT_OK;
     }
@@ -748,7 +743,7 @@ nxt_port_frag_start(nxt_task_t *task, nxt_port_t *port,
     *fmsg = *msg;
 
     frag_key.stream = fmsg->port_msg.stream;
-    frag_key.pid = fmsg->pid;
+    frag_key.pid = fmsg->port_msg.pid;
 
     lhq.key_hash = nxt_murmur_hash2(&frag_key, sizeof(nxt_port_frag_key_t));
     lhq.key.length = sizeof(nxt_port_frag_key_t);
@@ -798,7 +793,7 @@ nxt_port_frag_find(nxt_task_t *task, nxt_port_t *port, nxt_port_recv_msg_t *msg)
               msg->port_msg.stream);
 
     frag_key.stream = msg->port_msg.stream;
-    frag_key.pid = msg->pid;
+    frag_key.pid = msg->port_msg.pid;
 
     lhq.key_hash = nxt_murmur_hash2(&frag_key, sizeof(nxt_port_frag_key_t));
     lhq.key.length = sizeof(nxt_port_frag_key_t);
@@ -882,7 +877,7 @@ nxt_port_read_msg_process(nxt_task_t *task, nxt_port_t *port,
 
                 msg->buf = fmsg->buf;
                 msg->fd = fmsg->fd;
-                msg->pid = fmsg->pid;
+                msg->port_msg.pid = fmsg->port_msg.pid;
 
                 /*
                  * To disable instant completion or buffer re-usage,
