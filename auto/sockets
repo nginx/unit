@@ -158,6 +158,7 @@ nxt_feature_test="#include <stdio.h>
                   }"
 . auto/feature
 
+
 if [ $nxt_found = no ]; then
     $echo
     $echo $0: error: no msghdr.msg_control struct member.
@@ -180,6 +181,7 @@ nxt_feature_test="#define _GNU_SOURCE
                   }"
 . auto/feature
 
+
 nxt_feature="struct cmsgcred"
 nxt_feature_name=NXT_HAVE_MSGHDR_CMSGCRED
 nxt_feature_run=
@@ -195,6 +197,7 @@ nxt_feature_test="#define _GNU_SOURCE
                       return 0;
                   }"
 . auto/feature
+
 
 nxt_feature="struct ucred"
 nxt_feature_name=NXT_HAVE_UCRED
