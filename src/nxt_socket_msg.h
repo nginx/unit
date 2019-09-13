@@ -26,7 +26,7 @@ typedef struct cmsgcred  nxt_socket_cred_t;
 
 #if (NXT_CRED_USECMSG)
 #define NXT_OOB_RECV_SIZE                                                     \
-            (CMSG_SPACE(sizeof(int)) + \
+            (CMSG_SPACE(sizeof(int)) +                                        \
              CMSG_SPACE(sizeof(nxt_socket_cred_t)))
 #else
 #define NXT_OOB_RECV_SIZE                                                     \
@@ -35,7 +35,7 @@ typedef struct cmsgcred  nxt_socket_cred_t;
 
 #if (NXT_CRED_USECMSG) && (NXT_HAVE_MSGHDR_CMSGCRED)
 #define NXT_OOB_SEND_SIZE                                                     \
-            (CMSG_SPACE(sizeof(int)) + \
+            (CMSG_SPACE(sizeof(int)) +                                        \
              CMSG_SPACE(sizeof(nxt_socket_cred_t)))
 #else
 #define NXT_OOB_SEND_SIZE                                                     \
