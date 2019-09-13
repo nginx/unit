@@ -867,7 +867,7 @@ nxt_port_mmap_read(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         while (mmap_msg < end) {
             nxt_debug(task, "mmap_msg={%D, %D, %D} from %PI",
                       mmap_msg->mmap_id, mmap_msg->chunk_id, mmap_msg->size,
-                      msg->pid);
+                      msg->port_msg.pid);
 
             *pb = nxt_port_mmap_get_incoming_buf(task, msg->port,
                                                  msg->port_msg.pid, mmap_msg);
