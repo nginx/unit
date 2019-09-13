@@ -3,9 +3,6 @@
  * Copyright (C) NGINX, Inc.
  */
 
-#define _GNU_SOURCE    /* SCM_CREDENTIALS */
-#include <stdlib.h>
-
 #include "nxt_main.h"
 #include "nxt_port_memory_int.h"
 
