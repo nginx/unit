@@ -140,11 +140,11 @@ struct nxt_unit_callbacks_s {
     /* Send data and control to process pid using port id. Optional. */
     ssize_t  (*port_send)(nxt_unit_ctx_t *, nxt_unit_port_id_t *port_id,
                  const void *buf, size_t buf_size,
-                 const void *oob, size_t oob_size);
+                 const void *oob, size_t oobn);
 
     /* Receive data on port id. Optional. */
     ssize_t  (*port_recv)(nxt_unit_ctx_t *, nxt_unit_port_id_t *port_id,
-                 void *buf, size_t buf_size, void *oob, size_t *oob_size);
+                 void *buf, size_t buf_size, void *oob, size_t *oobn);
 
 };
 
