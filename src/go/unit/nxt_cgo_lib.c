@@ -17,9 +17,9 @@ static nxt_cgo_str_t *nxt_cgo_str_init(nxt_cgo_str_t *dst,
 static int nxt_cgo_add_port(nxt_unit_ctx_t *, nxt_unit_port_t *port);
 static void nxt_cgo_remove_port(nxt_unit_ctx_t *, nxt_unit_port_id_t *port_id);
 static ssize_t nxt_cgo_port_send(nxt_unit_ctx_t *, nxt_unit_port_id_t *port_id,
-    const void *buf, size_t buf_size, const void *oob, size_t oobn);
+    const void *buf, size_t buf_size, const void *oob, size_t oob_size);
 static ssize_t nxt_cgo_port_recv(nxt_unit_ctx_t *, nxt_unit_port_id_t *port_id,
-    void *buf, size_t buf_size, void *oob, size_t *oobn);
+    void *buf, size_t buf_size, void *oob, size_t *oob_size);
 
 int
 nxt_cgo_run(uintptr_t handler)
@@ -122,19 +122,19 @@ nxt_cgo_remove_port(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id)
 
 static ssize_t
 nxt_cgo_port_send(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
-    const void *buf, size_t buf_size, const void *oob, size_t oobn)
+    const void *buf, size_t buf_size, const void *oob, size_t oob_size)
 {
     return nxt_go_port_send(port_id->pid, port_id->id,
-                            (void *) buf, buf_size, (void *) oob, oobn);
+                            (void *) buf, buf_size, (void *) oob, oob_size);
 }
 
 
 static ssize_t
 nxt_cgo_port_recv(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
-    void *buf, size_t buf_size, void *oob, size_t *oobn)
+    void *buf, size_t buf_size, void *oob, size_t *oob_size)
 {
     return nxt_go_port_recv(port_id->pid, port_id->id,
-                            buf, buf_size, oob, oobn);
+                            buf, buf_size, oob, oob_size);
 }
 
 
