@@ -585,13 +585,13 @@ nxt_port_read_close(nxt_port_t *port)
 static void
 nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
 {
-    u_char              oob[NXT_OOB_RECV_SIZE];
-    size_t              oobn;
-    ssize_t             n;
-    nxt_buf_t           *b;
-    nxt_port_t          *port;
-    struct iovec        iov[2];
-    nxt_port_recv_msg_t msg;
+    size_t               oobn;
+    ssize_t              n;
+    nxt_buf_t            *b;
+    nxt_port_t           *port;
+    nxt_port_recv_msg_t  msg;
+    struct iovec         iov[2];
+    u_char               oob[NXT_OOB_RECV_SIZE];
 
     port = msg.port = nxt_container_of(obj, nxt_port_t, socket);
 
