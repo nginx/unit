@@ -1104,12 +1104,12 @@ nxt_cert_store_get_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_runtime_t        *rt;
     nxt_port_msg_type_t  type;
 
-    port = nxt_runtime_port_find(task->thread->runtime, msg->port_msg->pid,
+    port = nxt_runtime_port_find(task->thread->runtime, msg->port_msg.pid,
                                  msg->port_msg.reply_port);
 
     if (nxt_slow_path(port == NULL)) {
         nxt_alert(task, "process port not found (pid %PI, reply_port %d)",
-                  msg->port_msg->pid, msg->port_msg.reply_port);
+                  msg->port_msg.pid, msg->port_msg.reply_port);
         return;
     }
 
