@@ -149,7 +149,7 @@ nxt_socketpair_recv(nxt_fd_event_t *ev, nxt_iobuf_t *iob, nxt_uint_t niob,
 
         err = (n == -1) ? nxt_socket_errno : 0;
 
-        nxt_debug(ev->task, "recvmsg(%d, %ui, %ui): %z", ev->fd, niob, *oobn, n);
+        nxt_debug(ev->task, "recvmsg(%d, %ui, %uz): %z", ev->fd, niob, *oobn, n);
 
         if (n > 0) {
             return n;
