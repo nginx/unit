@@ -5,6 +5,7 @@
  */
 
 #include <nxt_main.h>
+#include <nxt_socket_msg.h>
 
 
 static nxt_int_t nxt_port_msg_chk_insert(nxt_task_t *task, nxt_port_t *port,
