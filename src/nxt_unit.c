@@ -2,6 +2,7 @@
 /*
  * Copyright (C) NGINX, Inc.
  */
+
 #define _GNU_SOURCE    /* SCM_CREDENTIALS */
 #include <stdlib.h>
 
