@@ -3615,7 +3615,7 @@ nxt_unit_remove_port_unsafe(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
 {
     nxt_unit_impl_t       *lib;
     nxt_unit_port_impl_t  *port;
-    
+
 
     lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
 

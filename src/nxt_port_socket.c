@@ -877,7 +877,6 @@ nxt_port_read_msg_process(nxt_task_t *task, nxt_port_t *port,
 
                 msg->buf = fmsg->buf;
                 msg->fd = fmsg->fd;
-                msg->port_msg.pid = fmsg->port_msg.pid;
 
                 /*
                  * To disable instant completion or buffer re-usage,

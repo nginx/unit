@@ -15,7 +15,7 @@ nxt_sendmsg(nxt_socket_t s, nxt_iobuf_t *iob, nxt_uint_t niob,
     const void *oob, size_t oobn)
 {
     struct msghdr   msg;
-    
+
     msg.msg_name = NULL;
     msg.msg_namelen = 0;
     msg.msg_iov = iob;
@@ -38,7 +38,7 @@ nxt_recvmsg(nxt_socket_t s, nxt_iobuf_t *iob, nxt_uint_t niob,
 {
     ssize_t                n;
     struct msghdr          msg;
-    
+
     msg.msg_name = NULL;
     msg.msg_namelen = 0;
     msg.msg_iov = iob;
@@ -64,7 +64,7 @@ nxt_socket_msg_set_oob(u_char *oob, size_t *oobn, int fd)
 
     msg.msg_control    = (void *) oob;
     msg.msg_controllen = *oobn;
-    
+
     *oobn = 0;
     cmsg = (struct cmsghdr *) oob;
 
@@ -86,7 +86,7 @@ nxt_socket_msg_set_oob(u_char *oob, size_t *oobn, int fd)
         * See Cmsghdr definition and socketControlMessageHeaderAndData function.
         */
         nxt_memzero(cmsg, sizeof(struct cmsghdr));
-        
+
         cmsg->cmsg_len = CMSG_LEN(sizeof(int));
         cmsg->cmsg_level = SOL_SOCKET;
         cmsg->cmsg_type = SCM_RIGHTS;
