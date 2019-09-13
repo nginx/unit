@@ -4,6 +4,7 @@
 # Linux clone syscall.
 
 NXT_ISOLATION=NO
+NXT_HAVE_CLONE=NO
 
 nsflags="USER NS PID NET UTS CGROUP"
 
@@ -21,6 +22,7 @@ nxt_feature_test="#include <sys/wait.h>
 . auto/feature
 
 if [ $nxt_found = yes ]; then
+    NXT_HAVE_CLONE=YES
 
     # Test all isolation flags
     for flag in $nsflags; do
