@@ -638,7 +638,8 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
     if (nxt_slow_path(oobn > 0
         && nxt_socket_msg_oob_info(oob, oobn,
                                    &recv_msg.fd, &port_msg->pid)
-            != NXT_OK)) {
+            != NXT_OK))
+    {
         nxt_unit_warn(ctx, "failed to get OOB data");
         goto fail;
     }
@@ -3423,13 +3424,15 @@ nxt_unit_create_port(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id, int *fd)
 #if (NXT_HAVE_SOCKOPT_SO_PASSCRED)
     int enable_creds = 1;
     if (nxt_slow_path(setsockopt(port_sockets[0], SOL_SOCKET, SO_PASSCRED,
-                        &enable_creds, sizeof(enable_creds)) == -1)) {
+                        &enable_creds, sizeof(enable_creds)) == -1))
+    {
         nxt_unit_warn(ctx, "failed to set SO_PASSCRED %s", strerror(errno));
         return NXT_UNIT_ERROR;
     }
 
     if (nxt_slow_path(setsockopt(port_sockets[1], SOL_SOCKET, SO_PASSCRED,
-                        &enable_creds, sizeof(enable_creds)) == -1)) {
+                        &enable_creds, sizeof(enable_creds)) == -1))
+    {
         nxt_unit_warn(ctx, "failed to set SO_PASSCRED %s", strerror(errno));
         return NXT_UNIT_ERROR;
     }
