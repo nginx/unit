@@ -123,8 +123,6 @@ typedef struct {
 
     nxt_pid_t            pid;       /* not used on Linux and FreeBSD */
 
-    /* 8-byte alignment */
-
     nxt_port_id_t        reply_port;
 
     uint8_t              type;
