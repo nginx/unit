@@ -1052,7 +1052,7 @@ nxt_main_port_socket_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     port = nxt_runtime_port_find(task->thread->runtime, msg->pid,
                                  msg->port_msg.reply_port);
     if (nxt_slow_path(port == NULL)) {
-        nxt_alert(task, "process port not found (pid %d, reply_port %d)", 
+        nxt_alert(task, "process port not found (pid %PI, reply_port %d)", 
                   msg->pid, msg->port_msg.reply_port);
         return;
     }
