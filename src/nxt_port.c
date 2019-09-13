@@ -316,7 +316,7 @@ nxt_port_process_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     port = nxt_process_port_first(process);
 
-    nxt_debug(task, "process %PI ready", msg->pid);
+    nxt_debug(task, "process %PI ready", msg->port_msg.pid);
 
     nxt_port_send_new_port(task, rt, port, msg->port_msg.stream);
 }
