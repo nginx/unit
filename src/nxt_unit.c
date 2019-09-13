@@ -637,10 +637,10 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
     recv_msg.process = NULL;
     port_msg         = buf;
 
-    if (nxt_slow_path(
-            oobn > 0 &&
-            nxt_socket_msg_oob_info(oob, oobn, &recv_msg.fd, &port_msg->pid)
-                != NXT_OK)) {
+    if (nxt_slow_path(oobn > 0
+        && nxt_socket_msg_oob_info(oob, oobn,
+                                   &recv_msg.fd, &port_msg->pid)
+            != NXT_OK)) {
         nxt_unit_warn(ctx, "failed to get OOB data");
         goto fail;
     }
