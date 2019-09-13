@@ -1392,6 +1392,7 @@ nxt_main_port_conf_store_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     ctl_port = rt->port_by_type[NXT_PROCESS_CONTROLLER];
 
     if (nxt_slow_path(msg->pid != ctl_port->pid)) {
+        nxt_alert(task, "process %PI cannot store conf", msg->pid);
         return;
     }
 
