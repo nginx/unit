@@ -614,7 +614,7 @@ nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
 
         n = nxt_socketpair_recv(&port->socket, iov, 2, oob, &oobn);
 
-        if (nxt_fast_path(n > 0)) {
+        if (n > 0) {
             msg.pid = -1;
             msg.fd  = -1;
 
