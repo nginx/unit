@@ -21,6 +21,7 @@
 static nxt_int_t
 nxt_capability_specific_set(nxt_task_t *task, nxt_capability_t *cap);
 
+
 nxt_int_t
 nxt_capability_set(nxt_task_t *task, nxt_capability_t *cap)
 {
@@ -39,7 +40,6 @@ nxt_capability_set(nxt_task_t *task, nxt_capability_t *cap)
 
 #if (NXT_HAVE_LINUX_CAPABILITY)
 
-
 static uint32_t
 nxt_capability_linux_get_version()
 {
@@ -56,13 +56,13 @@ static nxt_int_t
 nxt_capability_specific_set(nxt_task_t *task, nxt_capability_t *cap)
 {
     struct __user_cap_header_struct hdr;
-    struct __user_cap_data_struct   *val, data[2]; 
+    struct __user_cap_data_struct   *val, data[2];
 
     /**
      * Linux capability v1 fills an u32 struct
      * Linux capability v2 and v3 fills an u64 struct
      * We allocate data[2] for compatibility, we waste 4 bytes on v1.
-     * 
+     *
      * This is safe as we only need to check CAP_SETUID and CAP_SETGID
      * that resides in the first 32-bit chunk.
      */
@@ -106,11 +106,11 @@ nxt_capability_log_hint(nxt_task_t *task)
 
 #else
 
-
 static nxt_int_t
 nxt_capability_specific_set(nxt_task_t *task, nxt_capability_t *cap) {
     return NXT_OK;
 }
+
 
 void
 nxt_capability_log_hint(nxt_task_t *task)

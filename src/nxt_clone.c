@@ -4,12 +4,12 @@
  */
 #include <nxt_main.h>
 #include <sys/types.h>
-#include <nxt_clone.h>
 #include <nxt_conf.h>
+#include <nxt_clone.h>
 
 #if (NXT_HAVE_CLONE)
 
-pid_t 
+pid_t
 nxt_clone(nxt_int_t flags)
 {
 #if defined(__s390x__) || defined(__s390__) || defined(__CRIS__)
@@ -26,11 +26,11 @@ nxt_clone(nxt_int_t flags)
 /* map uid 65534 to unit pid */
 #define NXT_DEFAULT_UNPRIV_MAP "65534 %d 1"
 
-nxt_int_t nxt_clone_proc_setgroups(nxt_task_t *task, 
+nxt_int_t nxt_clone_proc_setgroups(nxt_task_t *task,
         pid_t child_pid, const char *str);
-nxt_int_t nxt_clone_proc_map_set(nxt_task_t *task, const char* mapfile, 
+nxt_int_t nxt_clone_proc_map_set(nxt_task_t *task, const char* mapfile,
         pid_t pid, nxt_int_t defval, nxt_conf_value_t *mapobj);
-nxt_int_t nxt_clone_proc_map_write(nxt_task_t *task, const char *mapfile, 
+nxt_int_t nxt_clone_proc_map_write(nxt_task_t *task, const char *mapfile,
         pid_t pid, u_char *mapinfo);
 
 typedef struct {
@@ -82,12 +82,12 @@ nxt_clone_proc_setgroups(nxt_task_t *task, pid_t child_pid, const char *str)
     return NXT_OK;
 }
 
-nxt_int_t 
-nxt_clone_proc_map_write(nxt_task_t *task, const char *mapfile, 
+nxt_int_t
+nxt_clone_proc_map_write(nxt_task_t *task, const char *mapfile,
         pid_t pid, u_char *mapinfo)
 {
     u_char buf[256];
-    u_char *end; 
+    u_char *end;
     u_char *p;
     int    mapfd;
     int    len;
@@ -103,7 +103,7 @@ nxt_clone_proc_map_write(nxt_task_t *task, const char *mapfile,
 
     mapfd = open((char*)buf, O_RDWR);
     if (nxt_slow_path(mapfd == -1)) {
-        nxt_alert(task, "failed to open proc map (%s): (%s)", buf, 
+        nxt_alert(task, "failed to open proc map (%s): (%s)", buf,
             strerror(nxt_errno));
         return NXT_ERROR;
     }
@@ -119,7 +119,7 @@ nxt_clone_proc_map_write(nxt_task_t *task, const char *mapfile,
 }
 
 nxt_int_t
-nxt_clone_proc_map_set(nxt_task_t *task, const char* mapfile, 
+nxt_clone_proc_map_set(nxt_task_t *task, const char* mapfile,
         pid_t pid, nxt_int_t defval, nxt_conf_value_t *mapobj)
 {
     nxt_conf_value_t *obj;
@@ -141,7 +141,7 @@ nxt_clone_proc_map_set(nxt_task_t *task, const char* mapfile,
     if (mapobj != NULL) {
         count = nxt_conf_array_elements_count(mapobj);
         if (count > NXT_CLONE_MAX_UID_LINES) {
-            nxt_alert(task, "too many uidmap entries: (%d > %d)", 
+            nxt_alert(task, "too many uidmap entries: (%d > %d)",
                 count, NXT_CLONE_MAX_UID_LINES);
             return NXT_ERROR;
         }
@@ -204,7 +204,7 @@ default_map:
             return NXT_ERROR;
         }
     }
-    
+
     ret = nxt_clone_proc_map_write(task, mapfile, pid, mapinfo);
 
     nxt_free(mapinfo);
@@ -212,7 +212,7 @@ default_map:
     return ret;
 }
 
-nxt_int_t 
+nxt_int_t
 nxt_clone_proc_map(nxt_task_t *task, pid_t pid, nxt_process_clone_t *clone)
 {
     nxt_runtime_t *rt;
