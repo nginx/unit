@@ -158,13 +158,13 @@ nxt_feature_test="#include <stdio.h>
                   }"
 . auto/feature
 
-
 if [ $nxt_found = no ]; then
     $echo
     $echo $0: error: no msghdr.msg_control struct member.
     $echo
     exit 1;
 fi
+
 
 nxt_feature="sockopt SO_PASSCRED"
 nxt_feature_name=NXT_HAVE_SOCKOPT_SO_PASSCRED
