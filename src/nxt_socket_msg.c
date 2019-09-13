@@ -77,11 +77,11 @@ nxt_socket_msg_set_oob(u_char *oob, size_t *oobn, int fd)
      */
     nxt_memzero(cmsg, sizeof(struct cmsghdr));
 
-    cmsg->cmsg_len = CMSG_LEN(sizeof(struct NXT_CRED_STRUCT));
+    cmsg->cmsg_len = CMSG_LEN(sizeof(nxt_socket_cred_t));
     cmsg->cmsg_level = SOL_SOCKET;
     cmsg->cmsg_type = NXT_CRED_CMSGTYPE;
 
-    *oobn += CMSG_SPACE(sizeof(struct NXT_CRED_STRUCT));
+    *oobn += CMSG_SPACE(sizeof(nxt_socket_cred_t));
     cmsg = CMSG_NXTHDR(&msg, cmsg);
 #endif
 
@@ -117,7 +117,8 @@ nxt_socket_msg_oob_info(u_char *oob, size_t oobn,
     struct cmsghdr  *cmsg;
 
 #if (NXT_CRED_USECMSG)
-    struct NXT_CRED_STRUCT *creds;
+    nxt_socket_cred_t *creds;
+
     *pid = -1;
 #endif
 
@@ -138,9 +139,9 @@ nxt_socket_msg_oob_info(u_char *oob, size_t oobn,
 #if (NXT_CRED_USECMSG)
         else if (cmsg->cmsg_level == SOL_SOCKET
                  && cmsg->cmsg_type == NXT_CRED_CMSGTYPE
-                 && cmsgsz == sizeof(struct NXT_CRED_STRUCT)) 
+                 && cmsgsz == sizeof(nxt_socket_cred_t))
         {
-            creds = (struct NXT_CRED_STRUCT *)CMSG_DATA(cmsg);
+            creds = (nxt_socket_cred_t *)CMSG_DATA(cmsg);
             *pid = NXT_CRED_GETPID(creds);
         }
 #endif

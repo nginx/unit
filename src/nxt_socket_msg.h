@@ -9,23 +9,25 @@
 #if (NXT_HAVE_UCRED) && (NXT_HAVE_SOCKOPT_SO_PASSCRED)
 
 #define NXT_CRED_USECMSG    1
-#define NXT_CRED_STRUCT     ucred
 #define NXT_CRED_CMSGTYPE   SCM_CREDENTIALS
 #define NXT_CRED_GETPID(u)  (u->pid)
+
+typedef struct ucred  nxt_socket_cred_t;
 
 #elif (NXT_HAVE_MSGHDR_CMSGCRED)
 
 #define NXT_CRED_USECMSG    1
-#define NXT_CRED_STRUCT     cmsgcred
 #define NXT_CRED_CMSGTYPE   SCM_CREDS
 #define NXT_CRED_GETPID(u)  (u->cmcred_pid)
+
+typedef struct cmsgcred  nxt_socket_cred_t;
 
 #endif
 
 #if (NXT_CRED_USECMSG)
 #define NXT_OOB_RECV_SIZE                                                     \
             (CMSG_SPACE(sizeof(int)) + \
-             CMSG_SPACE(sizeof(struct NXT_CRED_STRUCT)))
+             CMSG_SPACE(sizeof(nxt_socket_cred_t)))
 #else
 #define NXT_OOB_RECV_SIZE                                                     \
             CMSG_SPACE(sizeof(int))
@@ -34,7 +36,7 @@
 #if (NXT_CRED_USECMSG) && (NXT_HAVE_MSGHDR_CMSGCRED)
 #define NXT_OOB_SEND_SIZE                                                     \
             (CMSG_SPACE(sizeof(int)) + \
-             CMSG_SPACE(sizeof(struct NXT_CRED_STRUCT)))
+             CMSG_SPACE(sizeof(nxt_socket_cred_t)))
 #else
 #define NXT_OOB_SEND_SIZE                                                     \
             CMSG_SPACE(sizeof(int))
