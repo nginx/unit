@@ -2651,11 +2651,11 @@ remove_fail:
 static int
 nxt_unit_send_mmap(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id, int fd)
 {
-    u_char           oob[NXT_OOB_SEND_SIZE];
     size_t           oobn;
     ssize_t          res;
     nxt_port_msg_t   msg;
     nxt_unit_impl_t  *lib;
+    u_char           oob[NXT_OOB_SEND_SIZE];
 
     lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
 
