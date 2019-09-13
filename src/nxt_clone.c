@@ -86,9 +86,10 @@ nxt_int_t
 nxt_clone_proc_map_write(nxt_task_t *task, const char *mapfile,
         pid_t pid, u_char *mapinfo)
 {
-    int     len, mapfd;
-    u_char  *p, *end;
-    u_char  buf[256];
+    int      len, mapfd;
+    u_char   *p, *end;
+    u_char   buf[256];
+    ssize_t  n;
 
     end = buf + sizeof(buf);
     p = nxt_sprintf(buf, end, "/proc/%d/%s", pid, mapfile);
@@ -101,15 +102,21 @@ nxt_clone_proc_map_write(nxt_task_t *task, const char *mapfile,
 
     mapfd = open((char*)buf, O_RDWR);
     if (nxt_slow_path(mapfd == -1)) {
-        nxt_alert(task, "failed to open proc map (%s): (%s)", buf,
-            strerror(nxt_errno));
+        nxt_alert(task, "failed to open proc map (%s) %E", buf, nxt_errno);
         return NXT_ERROR;
     }
 
     len = nxt_strlen(mapinfo);
-    if (nxt_slow_path(write(mapfd, (char *)mapinfo, len) != len)) {
-        nxt_alert(task, "failed to write proc map (%s): %s", buf,
-            strerror(nxt_errno));
+    n = write(mapfd, (char *)mapinfo, len);
+    if (nxt_slow_path(n != len)) {
+        if (n == -1 && nxt_errno == EINVAL) {
+            nxt_alert(task, "failed to write %s: Check kernel maximum " \
+                      "allowed lines %E", buf, nxt_errno);
+        } else {
+            nxt_alert(task, "failed to write proc map (%s) %E", buf,
+                      nxt_errno);
+        }
+
         return NXT_ERROR;
     }
 
@@ -137,11 +144,6 @@ nxt_clone_proc_map_set(nxt_task_t *task, const char* mapfile,
 
     if (mapobj != NULL) {
         count = nxt_conf_array_elements_count(mapobj);
-        if (count > NXT_CLONE_MAX_UID_LINES) {
-            nxt_alert(task, "too many uidmap entries: (%d > %d)",
-                count, NXT_CLONE_MAX_UID_LINES);
-            return NXT_ERROR;
-        }
 
         if (count == 0) {
             goto default_map;
