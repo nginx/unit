@@ -2,6 +2,7 @@
  * Copyright (C) Igor Sysoev
  * Copyright (C) NGINX, Inc.
  */
+
 #include <nxt_main.h>
 #include <sys/types.h>
 #include <nxt_conf.h>

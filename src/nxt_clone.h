@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) Igor Sysoev
+ * Copyright (C) NGINX, Inc.
+ */
+
 #ifndef _NXT_CLONE_INCLUDED_
 #define _NXT_CLONE_INCLUDED_
 
