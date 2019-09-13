@@ -82,13 +82,13 @@ ssize_t
 nxt_socketpair_send(nxt_fd_event_t *ev, nxt_fd_t fd, nxt_iobuf_t *iob,
     nxt_uint_t niob)
 {
-    u_char    oob[NXT_OOB_SEND_SIZE];
-    size_t    oobn;
-    ssize_t   n;
-    nxt_err_t err;
+    size_t     oobn;
+    ssize_t    n;
+    nxt_err_t  err;
+    u_char     oob[NXT_OOB_SEND_SIZE];
 
     oobn = sizeof(oob);
-    
+
     nxt_socket_msg_set_oob(oob, &oobn, fd);
 
     for ( ;; ) {
