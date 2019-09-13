@@ -57,6 +57,7 @@ $echo >> $NXT_MAKEFILE
 $echo "NXT_LIB_UNIT_OBJS = \\" >> $NXT_MAKEFILE
 $echo "	$NXT_BUILD_DIR/src/nxt_lvlhsh.o \\" >> $NXT_MAKEFILE
 $echo "	$NXT_BUILD_DIR/src/nxt_murmur_hash.o \\" >> $NXT_MAKEFILE
+$echo "	$NXT_BUILD_DIR/src/nxt_socket_msg.o \\" >> $NXT_MAKEFILE
 $echo "	$NXT_BUILD_DIR/src/nxt_websocket.o \\" >> $NXT_MAKEFILE
 
 for nxt_src in $NXT_LIB_UNIT_SRCS
