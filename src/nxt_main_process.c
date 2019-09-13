@@ -285,8 +285,9 @@ nxt_port_main_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         return;
     }
 
-    if (nxt_slow_path(port->pid != msg->pid)) {
-        nxt_alert(task, "process %PI cannot start workers", msg->pid);
+    if (nxt_slow_path(port->pid != msg->port_msg.pid)) {
+        nxt_alert(task, "process %PI cannot start workers",
+                  msg->port_msg.pid);
         return;
     }
 
@@ -364,7 +365,7 @@ nxt_port_main_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 failed:
 
     if (ret == NXT_ERROR) {
-        port = nxt_runtime_port_find(task->thread->runtime, msg->pid,
+        port = nxt_runtime_port_find(task->thread->runtime, msg->port_msg.pid,
                                      msg->port_msg.reply_port);
         if (nxt_fast_path(port != NULL)) {
             nxt_port_socket_write(task, port, NXT_PORT_MSG_RPC_ERROR,
@@ -1049,17 +1050,17 @@ nxt_main_port_socket_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_listening_socket_t  ls;
     u_char                  message[2048];
 
-    port = nxt_runtime_port_find(task->thread->runtime, msg->pid,
+    port = nxt_runtime_port_find(task->thread->runtime, msg->port_msg.pid,
                                  msg->port_msg.reply_port);
     if (nxt_slow_path(port == NULL)) {
-        nxt_alert(task, "process port not found (pid %PI, reply_port %d)", 
-                  msg->pid, msg->port_msg.reply_port);
+        nxt_alert(task, "process port not found (pid %PI, reply_port %d)",
+                  msg->port_msg.pid, msg->port_msg.reply_port);
         return;
     }
 
     if (nxt_slow_path(port->type != NXT_PROCESS_ROUTER)) {
-        nxt_alert(task, "process %PI cannot create listener sockets", 
-                  msg->pid);
+        nxt_alert(task, "process %PI cannot create listener sockets",
+                  msg->port_msg.pid);
         return;
     }
 
@@ -1271,12 +1272,12 @@ nxt_main_port_modules_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     rt = task->thread->runtime;
 
-    if (msg->pid != rt->port_by_type[NXT_PROCESS_DISCOVERY]->pid) {
-        nxt_alert(task, "process %PI cannot send modules", msg->pid);
+    if (msg->port_msg.pid != rt->port_by_type[NXT_PROCESS_DISCOVERY]->pid) {
+        nxt_alert(task, "process %PI cannot send modules", msg->port_msg.pid);
         return;
     }
 
-    port = nxt_runtime_port_find(task->thread->runtime, msg->pid,
+    port = nxt_runtime_port_find(task->thread->runtime, msg->port_msg.pid,
                                  msg->port_msg.reply_port);
 
     if (nxt_fast_path(port != NULL)) {
@@ -1391,8 +1392,8 @@ nxt_main_port_conf_store_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     rt = task->thread->runtime;
     ctl_port = rt->port_by_type[NXT_PROCESS_CONTROLLER];
 
-    if (nxt_slow_path(msg->pid != ctl_port->pid)) {
-        nxt_alert(task, "process %PI cannot store conf", msg->pid);
+    if (nxt_slow_path(msg->port_msg.pid != ctl_port->pid)) {
+        nxt_alert(task, "process %PI cannot store conf", msg->port_msg.pid);
         return;
     }
 
@@ -1459,7 +1460,7 @@ nxt_main_port_access_log_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     type = (ret == NXT_OK) ? NXT_PORT_MSG_RPC_READY_LAST | NXT_PORT_MSG_CLOSE_FD
                            : NXT_PORT_MSG_RPC_ERROR;
 
-    port = nxt_runtime_port_find(task->thread->runtime, msg->pid,
+    port = nxt_runtime_port_find(task->thread->runtime, msg->port_msg.pid,
                                  msg->port_msg.reply_port);
 
     if (nxt_fast_path(port != NULL)) {

@@ -158,7 +158,6 @@ typedef struct {
 
 struct nxt_port_recv_msg_s {
     nxt_fd_t            fd;
-    nxt_pid_t           pid;
     nxt_buf_t           *buf;
     nxt_port_t          *port;
     nxt_port_msg_t      port_msg;

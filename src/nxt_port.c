@@ -305,7 +305,7 @@ nxt_port_process_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     rt = task->thread->runtime;
 
-    process = nxt_runtime_process_find(rt, msg->pid);
+    process = nxt_runtime_process_find(rt, msg->port_msg.pid);
     if (nxt_slow_path(process == NULL)) {
         return;
     }
@@ -336,10 +336,10 @@ nxt_port_mmap_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         return;
     }
 
-    process = nxt_runtime_process_find(rt, msg->pid);
+    process = nxt_runtime_process_find(rt, msg->port_msg.pid);
     if (nxt_slow_path(process == NULL)) {
         nxt_log(task, NXT_LOG_WARN, "failed to get process #%PI",
-                msg->pid);
+                msg->port_msg.pid);
 
         goto fail_close;
     }

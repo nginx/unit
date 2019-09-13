@@ -1104,12 +1104,12 @@ nxt_cert_store_get_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_runtime_t        *rt;
     nxt_port_msg_type_t  type;
 
-    port = nxt_runtime_port_find(task->thread->runtime, msg->pid,
+    port = nxt_runtime_port_find(task->thread->runtime, msg->port_msg->pid,
                                  msg->port_msg.reply_port);
 
     if (nxt_slow_path(port == NULL)) {
         nxt_alert(task, "process port not found (pid %PI, reply_port %d)",
-                  msg->pid, msg->port_msg.reply_port);
+                  msg->port_msg->pid, msg->port_msg.reply_port);
         return;
     }
 
@@ -1117,7 +1117,7 @@ nxt_cert_store_get_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
                       && port->type != NXT_PROCESS_ROUTER)) 
     {
         nxt_alert(task, "process %PI cannot store certificates",
-                  msg->pid);
+                  msg->port_msg.pid);
         return;
     }
 
@@ -1200,9 +1200,9 @@ nxt_cert_store_delete_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         return;
     }
 
-    if (nxt_slow_path(msg->pid != ctl_port->pid)) {
+    if (nxt_slow_path(msg->port_msg.pid != ctl_port->pid)) {
         nxt_alert(task, "process %PI cannot delete certificates",
-                  msg->pid);
+                  msg->port_msg.pid);
         return;
     }
 
