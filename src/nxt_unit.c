@@ -3183,12 +3183,12 @@ int
 nxt_unit_run_once(nxt_unit_ctx_t *ctx)
 {
     int                  rc;
-    char                 buf[4096];
-    u_char               oob[NXT_OOB_RECV_SIZE];
     size_t               oobn;
     ssize_t              rsize;
     nxt_unit_impl_t      *lib;
     nxt_unit_ctx_impl_t  *ctx_impl;
+    char                 buf[4096];
+    u_char               oob[NXT_OOB_RECV_SIZE];
 
     lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
     ctx_impl = nxt_container_of(ctx, nxt_unit_ctx_impl_t, ctx);
