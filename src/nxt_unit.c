@@ -2189,13 +2189,13 @@ nxt_unit_buf_read(nxt_unit_buf_t **b, uint64_t *len, void *dst, size_t size)
 void
 nxt_unit_request_done(nxt_unit_request_info_t *req, int rc)
 {
-    u_char                        oob[NXT_OOB_SEND_SIZE];
     size_t                        oobn;
     ssize_t                       res;
     uint32_t                      size;
     nxt_port_msg_t                msg;
     nxt_unit_impl_t               *lib;
     nxt_unit_request_info_impl_t  *req_impl;
+    u_char                        oob[NXT_OOB_SEND_SIZE];
 
     req_impl = nxt_container_of(req, nxt_unit_request_info_impl_t, req);
 
