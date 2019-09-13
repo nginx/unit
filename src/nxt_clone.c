@@ -42,10 +42,9 @@ typedef struct {
 nxt_int_t
 nxt_clone_proc_setgroups(nxt_task_t *task, pid_t child_pid, const char *str)
 {
-    u_char path[PATH_MAX];
-    u_char *p, *end;
-    int    fd;
-    int    n;
+    int     fd, n;
+    u_char  *p, *end;
+    u_char  path[PATH_MAX];
 
     end = path + PATH_MAX;
     p = nxt_sprintf(path, end, "/proc/%d/setgroups", child_pid);
@@ -86,11 +85,9 @@ nxt_int_t
 nxt_clone_proc_map_write(nxt_task_t *task, const char *mapfile,
         pid_t pid, u_char *mapinfo)
 {
-    u_char buf[256];
-    u_char *end;
-    u_char *p;
-    int    mapfd;
-    int    len;
+    int     len, mapfd;
+    u_char  *p, *end;
+    u_char  buf[256];
 
     end = buf + sizeof(buf);
     p = nxt_sprintf(buf, end, "/proc/%d/%s", pid, mapfile);
@@ -122,15 +119,14 @@ nxt_int_t
 nxt_clone_proc_map_set(nxt_task_t *task, const char* mapfile,
         pid_t pid, nxt_int_t defval, nxt_conf_value_t *mapobj)
 {
-    nxt_conf_value_t *obj;
-    nxt_conf_value_t *value;
-    u_char           *mapinfo;
-    u_char           *p, *end;
-    nxt_int_t        contID, hostID, size;
-    nxt_int_t        ret, len, count, i;
-    nxt_str_t        str_contID = nxt_string("containerID");
-    nxt_str_t        str_hostID = nxt_string("hostID");
-    nxt_str_t        str_size   = nxt_string("size");
+    u_char            *p, *end, *mapinfo;
+    nxt_int_t         contID, hostID, size;
+    nxt_int_t         ret, len, count, i;
+    nxt_conf_value_t  *obj;
+    nxt_conf_value_t  *value;
+    nxt_str_t         str_contID = nxt_string("containerID");
+    nxt_str_t         str_hostID = nxt_string("hostID");
+    nxt_str_t         str_size   = nxt_string("size");
 
     /**
      * uid_map one-entry size:
@@ -152,7 +148,7 @@ nxt_clone_proc_map_set(nxt_task_t *task, const char* mapfile,
 
         len = len * count + 1;
         mapinfo = nxt_malloc(len);
-        if (mapinfo == NULL) {
+        if (nxt_slow_path(mapinfo == NULL)) {
             nxt_alert(task, "failed to allocate uid_map buffer");
             return NXT_ERROR;
         }
@@ -162,7 +158,6 @@ nxt_clone_proc_map_set(nxt_task_t *task, const char* mapfile,
 
         for (i = 0; i < count; i++) {
             obj = nxt_conf_get_array_element(mapobj, i);
-            /* can we trust the validator? */
 
             value = nxt_conf_get_object_member(obj, &str_contID, NULL);
             contID = nxt_conf_get_integer(value);
@@ -174,7 +169,7 @@ nxt_clone_proc_map_set(nxt_task_t *task, const char* mapfile,
             size = nxt_conf_get_integer(value);
 
             p = nxt_sprintf(p, end, "%d %d %d", contID, hostID, size);
-            if (p == end) {
+            if (nxt_slow_path(p == end)) {
                 nxt_alert(task, "write past the uid_map buffer");
                 nxt_free(mapinfo);
                 return NXT_ERROR;
@@ -189,7 +184,7 @@ nxt_clone_proc_map_set(nxt_task_t *task, const char* mapfile,
     } else {
 default_map:
         mapinfo = nxt_malloc(len);
-        if (mapinfo == NULL) {
+        if (nxt_slow_path(mapinfo == NULL)) {
             nxt_alert(task, "failed to allocate uid_map buffer");
             return NXT_ERROR;
         }
@@ -198,7 +193,7 @@ default_map:
         p = nxt_sprintf(mapinfo, end, NXT_DEFAULT_UNPRIV_MAP, defval);
         *p = '\0';
 
-        if (p == end) {
+        if (nxt_slow_path(p == end)) {
             nxt_alert(task, "write past the %s buffer", mapfile);
             nxt_free(mapinfo);
             return NXT_ERROR;
@@ -215,10 +210,10 @@ default_map:
 nxt_int_t
 nxt_clone_proc_map(nxt_task_t *task, pid_t pid, nxt_process_clone_t *clone)
 {
-    nxt_runtime_t *rt;
-    nxt_int_t     ret;
-    nxt_int_t     uid, gid;
-    const char    *rule;
+    nxt_int_t      ret;
+    nxt_int_t      uid, gid;
+    const char     *rule;
+    nxt_runtime_t  *rt;
 
     rt  = task->thread->runtime;
     uid = rt->user_cred.uid;
