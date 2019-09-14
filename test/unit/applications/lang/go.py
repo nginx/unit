@@ -4,6 +4,19 @@ from unit.applications.proto import TestApplicationProto
 
 
 class TestApplicationGo(TestApplicationProto):
+    @classmethod
+    def setUpClass(cls, complete_check=True):
+        unit = super().setUpClass(complete_check=False)
+
+        # check go module
+
+        go_app = TestApplicationGo()
+        go_app.testdir = unit.testdir
+        if go_app.prepare_env('empty', 'app').returncode == 0:
+            cls.available['modules']['go'] = []
+
+        return unit if not complete_check else unit.complete()
+
     def prepare_env(self, script, name):
         if not os.path.exists(self.testdir + '/go'):
             os.mkdir(self.testdir + '/go')

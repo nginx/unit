@@ -4,6 +4,17 @@ from unit.applications.proto import TestApplicationProto
 
 
 class TestApplicationNode(TestApplicationProto):
+    @classmethod
+    def setUpClass(cls, complete_check=True):
+        unit = super().setUpClass(complete_check=False)
+
+        # check node module
+
+        if os.path.exists(unit.pardir + '/node/node_modules'):
+            cls.available['modules']['node'] = []
+
+        return unit if not complete_check else unit.complete()
+
     def load(self, script, name='app.js'):
         # copy application
 

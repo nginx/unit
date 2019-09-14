@@ -2,7 +2,7 @@ from unit.applications.tls import TestApplicationTLS
 
 
 class TestRoutingTLS(TestApplicationTLS):
-    prerequisites = ['python', 'openssl']
+    prerequisites = {'modules': ['python', 'openssl']}
 
     def test_routes_match_scheme(self):
         self.certificate()

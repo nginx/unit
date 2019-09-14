@@ -3,7 +3,7 @@ from unit.applications.lang.node import TestApplicationNode
 
 
 class TestNodeApplication(TestApplicationNode):
-    prerequisites = ['node']
+    prerequisites = {'modules': ['node']}
 
     def test_node_application_basic(self):
         self.load('basic')
