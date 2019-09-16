@@ -5,7 +5,6 @@ from unit.applications.proto import TestApplicationProto
 
 class TestApplicationNode(TestApplicationProto):
     def load(self, script, name='app.js'):
-
         # copy application
 
         shutil.copytree(
