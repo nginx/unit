@@ -37,8 +37,6 @@ struct nxt_http_request_parse_s {
     nxt_int_t                 (*handler)(nxt_http_request_parse_t *rp,
                                          u_char **pos, u_char *end);
 
-    size_t                    offset;
-
     nxt_str_t                 method;
 
     u_char                    *target_start;
