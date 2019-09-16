@@ -3797,7 +3797,7 @@ nxt_unit_port_send(nxt_unit_ctx_t *ctx, int fd,
 
 static ssize_t
 nxt_unit_port_recv_default(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
-    void *buf, size_t buf_size, void *oob, size_t *oobn)
+    void *buf, size_t buf_size, void *oob, size_t *oob_size)
 {
     int                   fd;
     nxt_unit_impl_t       *lib;
@@ -3834,7 +3834,7 @@ nxt_unit_port_recv_default(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
         ctx_impl->read_port_fd = fd;
     }
 
-    return nxt_unit_port_recv(ctx, fd, buf, buf_size, oob, oobn);
+    return nxt_unit_port_recv(ctx, fd, buf, buf_size, oob, oob_size);
 }
 
 
