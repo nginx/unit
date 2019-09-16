@@ -416,9 +416,12 @@ static void nxt_conf_path_next_token(nxt_conf_path_parse_t *parse,
 nxt_conf_value_t *
 nxt_conf_get_path(nxt_conf_value_t *value, nxt_str_t *path)
 {
+    u_char                 *end;
     nxt_str_t              token;
     nxt_int_t              index;
     nxt_conf_path_parse_t  parse;
+
+    u_char                 buf[256];
 
     parse.start = path->start;
     parse.end = path->start + path->length;
@@ -435,6 +438,18 @@ nxt_conf_get_path(nxt_conf_value_t *value, nxt_str_t *path)
 
             return NULL;
         }
+
+        if (nxt_slow_path(token.length > 256)) {
+            return NULL;
+        }
+
+        end = nxt_decode_uri(buf, token.start, token.length);
+        if (nxt_slow_path(end == NULL)) {
+            return NULL;
+        }
+
+        token.length = end - buf;
+        token.start = buf;
 
         switch (value->type) {
 

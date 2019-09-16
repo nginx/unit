@@ -115,13 +115,13 @@ class TestUnit(unittest.TestCase):
             # check features
 
             if 'features' in prerequisites:
-                available_features = list(available['modules'].keys())
+                available_features = list(available['features'].keys())
 
                 for feature in prerequisites['features']:
                     if feature in available_features:
                         continue
 
-                missed.append(feature)
+                    missed.append(feature)
 
             if missed:
                 print(', '.join(missed) + ' feature(s) not supported')

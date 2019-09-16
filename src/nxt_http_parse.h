@@ -37,14 +37,10 @@ struct nxt_http_request_parse_s {
     nxt_int_t                 (*handler)(nxt_http_request_parse_t *rp,
                                          u_char **pos, u_char *end);
 
-    size_t                    offset;
-
     nxt_str_t                 method;
 
     u_char                    *target_start;
     u_char                    *target_end;
-    u_char                    *exten_start;
-    u_char                    *args_start;
 
     nxt_str_t                 path;
     nxt_str_t                 args;
@@ -61,13 +57,14 @@ struct nxt_http_request_parse_s {
     uint32_t                  field_hash;
 
     /* target with "/." */
-    unsigned                  complex_target:1;
+    uint8_t                   complex_target;   /* 1 bit */
     /* target with "%" */
-    unsigned                  quoted_target:1;
+    uint8_t                   quoted_target;    /* 1 bit */
     /* target with " " */
-    unsigned                  space_in_target:1;
-    /* target with "+" */
-    unsigned                  plus_in_target:1;
+    uint8_t                   space_in_target;  /* 1 bit */
+
+    /* Preserve encoded '/' (%2F) and '%' (%25). */
+    uint8_t                   encoded_slashes;  /* 1 bit */
 };
 
 

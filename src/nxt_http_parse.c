@@ -47,7 +47,6 @@ typedef enum {
     NXT_HTTP_TARGET_DOT,         /*  .  */
     NXT_HTTP_TARGET_ARGS_MARK,   /*  ?  */
     NXT_HTTP_TARGET_QUOTE_MARK,  /*  %  */
-    NXT_HTTP_TARGET_PLUS,        /*  +  */
 } nxt_http_target_traps_e;
 
 
@@ -57,7 +56,7 @@ static const uint8_t  nxt_http_target_chars[256] nxt_aligned(64) = {
         0, 0, 0, 0,  0, 0, 0, 0,   0, 0, 0, 0,  0, 0, 0, 0,
 
     /* \s  !  "  #   $  %  &  '    (  )  *  +   ,  -  .  / */
-        1, 0, 0, 2,  0, 8, 0, 0,   0, 0, 0, 9,  0, 0, 6, 5,
+        1, 0, 0, 2,  0, 8, 0, 0,   0, 0, 0, 0,  0, 0, 6, 5,
 
     /*  0  1  2  3   4  5  6  7    8  9  :  ;   <  =  >  ? */
         0, 0, 0, 0,  0, 0, 0, 0,   0, 0, 0, 0,  0, 0, 0, 7,
@@ -163,7 +162,7 @@ static nxt_int_t
 nxt_http_parse_request_line(nxt_http_request_parse_t *rp, u_char **pos,
     u_char *end)
 {
-    u_char                   *p, ch, *after_slash;
+    u_char                   *p, ch, *after_slash, *exten, *args;
     nxt_int_t                rc;
     nxt_http_ver_t           ver;
     nxt_http_target_traps_e  trap;
@@ -255,6 +254,8 @@ nxt_http_parse_request_line(nxt_http_request_parse_t *rp, u_char **pos,
     rp->target_start = p;
 
     after_slash = p + 1;
+    exten = NULL;
+    args = NULL;
 
     for ( ;; ) {
         p++;
@@ -269,8 +270,7 @@ nxt_http_parse_request_line(nxt_http_request_parse_t *rp, u_char **pos,
             }
 
             after_slash = p + 1;
-
-            rp->exten_start = NULL;
+            exten = NULL;
             continue;
 
         case NXT_HTTP_TARGET_DOT:
@@ -279,11 +279,11 @@ nxt_http_parse_request_line(nxt_http_request_parse_t *rp, u_char **pos,
                 goto rest_of_target;
             }
 
-            rp->exten_start = p + 1;
+            exten = p + 1;
             continue;
 
         case NXT_HTTP_TARGET_ARGS_MARK:
-            rp->args_start = p + 1;
+            args = p + 1;
             goto rest_of_target;
 
         case NXT_HTTP_TARGET_SPACE:
@@ -293,10 +293,6 @@ nxt_http_parse_request_line(nxt_http_request_parse_t *rp, u_char **pos,
         case NXT_HTTP_TARGET_QUOTE_MARK:
             rp->quoted_target = 1;
             goto rest_of_target;
-
-        case NXT_HTTP_TARGET_PLUS:
-            rp->plus_in_target = 1;
-            continue;
 
         case NXT_HTTP_TARGET_HASH:
             rp->complex_target = 1;
@@ -437,20 +433,19 @@ space_after_target:
 
         rp->path.start = rp->target_start;
 
-        if (rp->args_start != NULL) {
-            rp->path.length = rp->args_start - rp->target_start - 1;
+        if (args != NULL) {
+            rp->path.length = args - rp->target_start - 1;
 
-            rp->args.start = rp->args_start;
-            rp->args.length = rp->target_end - rp->args_start;
+            rp->args.length = rp->target_end - args;
+            rp->args.start = args;
 
         } else {
             rp->path.length = rp->target_end - rp->target_start;
         }
 
-        if (rp->exten_start) {
-            rp->exten.length = rp->path.start + rp->path.length
-                               - rp->exten_start;
-            rp->exten.start = rp->exten_start;
+        if (exten != NULL) {
+            rp->exten.length = (rp->path.start + rp->path.length) - exten;
+            rp->exten.start = exten;
         }
 
         return nxt_http_parse_field_name(rp, pos, end);
@@ -835,7 +830,8 @@ static const uint8_t  nxt_http_normal[32]  nxt_aligned(32) = {
 static nxt_int_t
 nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
 {
-    u_char  *p, *u, c, ch, high;
+    u_char  *p, *u, c, ch, high, *exten, *args;
+
     enum {
         sw_normal = 0,
         sw_slash,
@@ -852,7 +848,6 @@ nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
     p = rp->target_start;
 
     u = nxt_mp_alloc(rp->mem_pool, rp->target_end - p + 1);
-
     if (nxt_slow_path(u == NULL)) {
         return NXT_ERROR;
     }
@@ -861,8 +856,8 @@ nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
     rp->path.start = u;
 
     high = '\0';
-    rp->exten_start = NULL;
-    rp->args_start = NULL;
+    exten = NULL;
+    args = NULL;
 
     while (p < rp->target_end) {
 
@@ -881,7 +876,7 @@ nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
 
             switch (ch) {
             case '/':
-                rp->exten_start = NULL;
+                exten = NULL;
                 state = sw_slash;
                 *u++ = ch;
                 continue;
@@ -890,17 +885,14 @@ nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
                 state = sw_quoted;
                 continue;
             case '?':
-                rp->args_start = p;
+                args = p;
                 goto args;
             case '#':
                 goto done;
             case '.':
-                rp->exten_start = u + 1;
+                exten = u + 1;
                 *u++ = ch;
                 continue;
-            case '+':
-                rp->plus_in_target = 1;
-                /* Fall through. */
             default:
                 *u++ = ch;
                 continue;
@@ -928,13 +920,10 @@ nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
                 state = sw_quoted;
                 continue;
             case '?':
-                rp->args_start = p;
+                args = p;
                 goto args;
             case '#':
                 goto done;
-            case '+':
-                rp->plus_in_target = 1;
-                /* Fall through. */
             default:
                 state = sw_normal;
                 *u++ = ch;
@@ -965,13 +954,10 @@ nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
                 state = sw_quoted;
                 continue;
             case '?':
-                rp->args_start = p;
+                args = p;
                 goto args;
             case '#':
                 goto done;
-            case '+':
-                rp->plus_in_target = 1;
-                /* Fall through. */
             default:
                 state = sw_normal;
                 *u++ = ch;
@@ -1009,13 +995,10 @@ nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
                 state = sw_quoted;
                 continue;
             case '?':
-                rp->args_start = p;
+                args = p;
                 goto args;
             case '#':
                 goto done;
-            case '+':
-                rp->plus_in_target = 1;
-                /* Fall through. */
             default:
                 state = sw_normal;
                 *u++ = ch;
@@ -1046,12 +1029,25 @@ nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
             if (ch >= '0' && ch <= '9') {
                 ch = (u_char) ((high << 4) + ch - '0');
 
-                if (ch == '%' || ch == '#') {
+                if (ch == '%') {
                     state = sw_normal;
-                    *u++ = ch;
-                    continue;
+                    *u++ = '%';
 
-                } else if (ch == '\0') {
+                    if (rp->encoded_slashes) {
+                        *u++ = '2';
+                        *u++ = '5';
+                    }
+
+                    continue;
+                }
+
+                if (ch == '#') {
+                    state = sw_normal;
+                    *u++ = '#';
+                    continue;
+                }
+
+                if (ch == '\0') {
                     return NXT_HTTP_PARSE_INVALID;
                 }
 
@@ -1067,9 +1063,14 @@ nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
                     state = sw_normal;
                     *u++ = ch;
                     continue;
+                }
 
-                } else if (ch == '+') {
-                    rp->plus_in_target = 1;
+                if (ch == '/' && rp->encoded_slashes) {
+                    state = sw_normal;
+                    *u++ = '%';
+                    *u++ = '2';
+                    *u++ = p[-1];  /* 'f' or 'F' */
+                    continue;
                 }
 
                 state = saved_state;
@@ -1092,18 +1093,18 @@ args:
         }
     }
 
-    if (rp->args_start != NULL) {
-        rp->args.length = p - rp->args_start;
-        rp->args.start = rp->args_start;
+    if (args != NULL) {
+        rp->args.length = p - args;
+        rp->args.start = args;
     }
 
 done:
 
     rp->path.length = u - rp->path.start;
 
-    if (rp->exten_start) {
-        rp->exten.length = u - rp->exten_start;
-        rp->exten.start = rp->exten_start;
+    if (exten) {
+        rp->exten.length = u - exten;
+        rp->exten.start = exten;
     }
 
     return NXT_OK;

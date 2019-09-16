@@ -478,6 +478,8 @@ nxt_controller_conn_init(nxt_task_t *task, void *obj, void *data)
         return;
     }
 
+    r->parser.encoded_slashes = 1;
+
     b = nxt_buf_mem_alloc(c->mem_pool, 1024, 0);
     if (nxt_slow_path(b == NULL)) {
         nxt_controller_conn_free(task, c, NULL);
