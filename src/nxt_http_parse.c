@@ -47,7 +47,6 @@ typedef enum {
     NXT_HTTP_TARGET_DOT,         /*  .  */
     NXT_HTTP_TARGET_ARGS_MARK,   /*  ?  */
     NXT_HTTP_TARGET_QUOTE_MARK,  /*  %  */
-    NXT_HTTP_TARGET_PLUS,        /*  +  */
 } nxt_http_target_traps_e;
 
 
@@ -57,7 +56,7 @@ static const uint8_t  nxt_http_target_chars[256] nxt_aligned(64) = {
         0, 0, 0, 0,  0, 0, 0, 0,   0, 0, 0, 0,  0, 0, 0, 0,
 
     /* \s  !  "  #   $  %  &  '    (  )  *  +   ,  -  .  / */
-        1, 0, 0, 2,  0, 8, 0, 0,   0, 0, 0, 9,  0, 0, 6, 5,
+        1, 0, 0, 2,  0, 8, 0, 0,   0, 0, 0, 0,  0, 0, 6, 5,
 
     /*  0  1  2  3   4  5  6  7    8  9  :  ;   <  =  >  ? */
         0, 0, 0, 0,  0, 0, 0, 0,   0, 0, 0, 0,  0, 0, 0, 7,
@@ -294,10 +293,6 @@ nxt_http_parse_request_line(nxt_http_request_parse_t *rp, u_char **pos,
         case NXT_HTTP_TARGET_QUOTE_MARK:
             rp->quoted_target = 1;
             goto rest_of_target;
-
-        case NXT_HTTP_TARGET_PLUS:
-            rp->plus_in_target = 1;
-            continue;
 
         case NXT_HTTP_TARGET_HASH:
             rp->complex_target = 1;
@@ -898,9 +893,6 @@ nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
                 exten = u + 1;
                 *u++ = ch;
                 continue;
-            case '+':
-                rp->plus_in_target = 1;
-                /* Fall through. */
             default:
                 *u++ = ch;
                 continue;
@@ -932,9 +924,6 @@ nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
                 goto args;
             case '#':
                 goto done;
-            case '+':
-                rp->plus_in_target = 1;
-                /* Fall through. */
             default:
                 state = sw_normal;
                 *u++ = ch;
@@ -969,9 +958,6 @@ nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
                 goto args;
             case '#':
                 goto done;
-            case '+':
-                rp->plus_in_target = 1;
-                /* Fall through. */
             default:
                 state = sw_normal;
                 *u++ = ch;
@@ -1013,9 +999,6 @@ nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
                 goto args;
             case '#':
                 goto done;
-            case '+':
-                rp->plus_in_target = 1;
-                /* Fall through. */
             default:
                 state = sw_normal;
                 *u++ = ch;
@@ -1088,10 +1071,6 @@ nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
                     *u++ = '2';
                     *u++ = p[-1];  /* 'f' or 'F' */
                     continue;
-                }
-
-                if (ch == '+') {
-                    rp->plus_in_target = 1;
                 }
 
                 state = saved_state;

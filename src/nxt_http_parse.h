@@ -57,16 +57,14 @@ struct nxt_http_request_parse_s {
     uint32_t                  field_hash;
 
     /* target with "/." */
-    unsigned                  complex_target:1;
+    uint8_t                   complex_target;   /* 1 bit */
     /* target with "%" */
-    unsigned                  quoted_target:1;
+    uint8_t                   quoted_target;    /* 1 bit */
     /* target with " " */
-    unsigned                  space_in_target:1;
-    /* target with "+" */
-    unsigned                  plus_in_target:1;
+    uint8_t                   space_in_target;  /* 1 bit */
 
     /* Preserve encoded '/' (%2F) and '%' (%25). */
-    unsigned                  encoded_slashes:1;
+    uint8_t                   encoded_slashes;  /* 1 bit */
 };
 
 

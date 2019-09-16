@@ -21,8 +21,6 @@ typedef struct {
     unsigned   quoted_target:1;
     /* target with " " */
     unsigned   space_in_target:1;
-    /* target with "+" */
-    unsigned   plus_in_target:1;
 } nxt_http_parse_test_request_line_t;
 
 
@@ -70,7 +68,7 @@ static nxt_http_parse_test_case_t  nxt_http_test_cases[] = {
             nxt_null_string,
             nxt_null_string,
             "HTTP/1.0",
-            0, 0, 0, 0
+            0, 0, 0
         }}
     },
     {
@@ -83,7 +81,7 @@ static nxt_http_parse_test_case_t  nxt_http_test_cases[] = {
             nxt_string("ext"),
             nxt_string("key=val"),
             "HTTP/1.2",
-            0, 0, 0, 1
+            0, 0, 0
         }}
     },
     {
@@ -96,7 +94,7 @@ static nxt_http_parse_test_case_t  nxt_http_test_cases[] = {
             nxt_null_string,
             nxt_string(""),
             "HTTP/1.0",
-            0, 0, 0, 0
+            0, 0, 0
         }}
     },
     {
@@ -139,7 +137,7 @@ static nxt_http_parse_test_case_t  nxt_http_test_cases[] = {
             nxt_null_string,
             nxt_null_string,
             "HTTP/1.0",
-            1, 0, 0, 0
+            1, 0, 0
         }}
     },
     {
@@ -152,7 +150,7 @@ static nxt_http_parse_test_case_t  nxt_http_test_cases[] = {
             nxt_null_string,
             nxt_null_string,
             "HTTP/1.0",
-            1, 0, 0, 0
+            1, 0, 0
         }}
     },
     {
@@ -165,7 +163,7 @@ static nxt_http_parse_test_case_t  nxt_http_test_cases[] = {
             nxt_null_string,
             nxt_string(""),
             "HTTP/1.0",
-            1, 0, 0, 0
+            1, 0, 0
         }}
     },
     {
@@ -178,7 +176,7 @@ static nxt_http_parse_test_case_t  nxt_http_test_cases[] = {
             nxt_null_string,
             nxt_null_string,
             "HTTP/1.0",
-            1, 0, 0, 0
+            1, 0, 0
         }}
     },
     {
@@ -191,7 +189,7 @@ static nxt_http_parse_test_case_t  nxt_http_test_cases[] = {
             nxt_null_string,
             nxt_null_string,
             "HTTP/1.0",
-            0, 1, 0, 0
+            0, 1, 0
         }}
     },
     {
@@ -204,7 +202,7 @@ static nxt_http_parse_test_case_t  nxt_http_test_cases[] = {
             nxt_null_string,
             nxt_null_string,
             "HTTP/1.0",
-            0, 0, 1, 0
+            0, 0, 1
         }}
     },
     {
@@ -217,7 +215,7 @@ static nxt_http_parse_test_case_t  nxt_http_test_cases[] = {
             nxt_null_string,
             nxt_null_string,
             "HTTP/1.1",
-            0, 0, 1, 0
+            0, 0, 1
         }}
     },
     {
@@ -779,14 +777,6 @@ nxt_http_parse_test_request_line(nxt_http_request_parse_t *rp,
                            " - request:\n\"%V\"\n"
                            " - space_in_target: %d (expected: %d)",
                            request, rp->space_in_target, test->space_in_target);
-        return NXT_ERROR;
-    }
-
-    if (rp->plus_in_target != test->plus_in_target) {
-        nxt_log_alert(log, "http parse test case failed:\n"
-                           " - request:\n\"%V\"\n"
-                           " - plus_in_target: %d (expected: %d)",
-                           request, rp->plus_in_target, test->plus_in_target);
         return NXT_ERROR;
     }
 
