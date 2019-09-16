@@ -152,7 +152,7 @@ nxt_process_start(nxt_task_t *task, nxt_process_t *process)
         ret = nxt_user_cred_set(task, init->user_cred);
         if (ret != NXT_OK) {
             err.start = (u_char *) "failed to change user credentials";
-            err.length = nxt_strlen(err.start)-1;
+            err.length = nxt_strlen(err.start);
             goto pre_start_error;
         }
     }
@@ -204,7 +204,6 @@ nxt_process_start(nxt_task_t *task, nxt_process_t *process)
     return;
 
 pre_start_error:
-
     buf = nxt_buf_mem_alloc(rt->mem_pool,
                             err.length+1, 0);
 
@@ -213,6 +212,7 @@ pre_start_error:
                                    err.length);
         *buf->mem.free++ = '\0';
     }
+
     ret = nxt_port_socket_write(task, main_port, NXT_PORT_MSG_PROCESS_ERROR,
                                 -1, init->stream, 0, buf);
 
