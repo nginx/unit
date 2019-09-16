@@ -1046,12 +1046,25 @@ nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
             if (ch >= '0' && ch <= '9') {
                 ch = (u_char) ((high << 4) + ch - '0');
 
-                if (ch == '%' || ch == '#') {
+                if (ch == '%') {
                     state = sw_normal;
-                    *u++ = ch;
-                    continue;
+                    *u++ = '%';
 
-                } else if (ch == '\0') {
+                    if (rp->encoded_slashes) {
+                        *u++ = '2';
+                        *u++ = '5';
+                    }
+
+                    continue;
+                }
+
+                if (ch == '#') {
+                    state = sw_normal;
+                    *u++ = '#';
+                    continue;
+                }
+
+                if (ch == '\0') {
                     return NXT_HTTP_PARSE_INVALID;
                 }
 
@@ -1067,8 +1080,17 @@ nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
                     state = sw_normal;
                     *u++ = ch;
                     continue;
+                }
 
-                } else if (ch == '+') {
+                if (ch == '/' && rp->encoded_slashes) {
+                    state = sw_normal;
+                    *u++ = '%';
+                    *u++ = '2';
+                    *u++ = p[-1];  /* 'f' or 'F' */
+                    continue;
+                }
+
+                if (ch == '+') {
                     rp->plus_in_target = 1;
                 }
 

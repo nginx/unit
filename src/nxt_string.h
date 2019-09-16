@@ -168,5 +168,7 @@ NXT_EXPORT nxt_int_t nxt_strverscmp(const u_char *s1, const u_char *s2);
 NXT_EXPORT nxt_bool_t nxt_strvers_match(u_char *version, u_char *prefix,
     size_t length);
 
+NXT_EXPORT u_char *nxt_decode_uri(u_char *dst, u_char *src, size_t length);
+
 
 #endif /* _NXT_STRING_H_INCLUDED_ */

@@ -68,6 +68,9 @@ struct nxt_http_request_parse_s {
     unsigned                  space_in_target:1;
     /* target with "+" */
     unsigned                  plus_in_target:1;
+
+    /* Preserve encoded '/' (%2F) and '%' (%25). */
+    unsigned                  encoded_slashes:1;
 };
 
 
