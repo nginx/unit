@@ -364,6 +364,7 @@ failed:
 static nxt_port_handlers_t  nxt_main_process_port_handlers = {
     .data           = nxt_port_main_data_handler,
     .process_ready  = nxt_port_process_ready_handler,
+    .process_error  = nxt_port_process_error_handler,
     .start_worker   = nxt_port_main_start_worker_handler,
     .socket         = nxt_main_port_socket_handler,
     .modules        = nxt_main_port_modules_handler,

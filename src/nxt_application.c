@@ -17,7 +17,6 @@
 
 #include <glob.h>
 
-
 typedef struct {
     nxt_app_type_t  type;
     nxt_str_t       version;
@@ -35,7 +34,8 @@ static void nxt_discovery_quit(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 static nxt_app_module_t *nxt_app_module_load(nxt_task_t *task,
     const char *name);
 static nxt_int_t nxt_app_set_environment(nxt_conf_value_t *environment);
-
+void nxt_app_error(nxt_task_t *task, nxt_str_t *err, u_char *buf,
+    const char *fmt, ...);
 
 static uint32_t  compat[] = {
     NXT_VERNUM, NXT_DEBUG,
@@ -47,6 +47,27 @@ nxt_str_t  nxt_server = nxt_string(NXT_SERVER);
 
 static nxt_app_module_t  *nxt_app;
 
+
+void
+nxt_app_error(nxt_task_t *task, nxt_str_t *err, u_char *buf,
+    const char *fmt, ...)
+{
+    u_char   *p;
+    va_list  args;
+
+    va_start(args, fmt);
+    p = nxt_vsprintf(buf, buf+NXT_MAX_ERROR_STR, fmt, args);
+    va_end(args);
+
+    if (p == buf+NXT_MAX_ERROR_STR) {
+        *--p = '\0';
+    }
+
+    nxt_alert(task, (char *) buf);
+
+    err->length = p - buf;
+    err->start = buf;
+}
 
 nxt_int_t
 nxt_discovery_start(nxt_task_t *task, void *data)
@@ -308,16 +329,28 @@ nxt_discovery_quit(nxt_task_t *task, nxt_port_recv_msg_t *msg, void *data)
 nxt_int_t
 nxt_app_start(nxt_task_t *task, void *data)
 {
+    nxt_buf_t              *buf;
     nxt_int_t              ret;
+    nxt_port_t             *main_port;
+    nxt_runtime_t          *rt;
+    nxt_process_t          *process;
     nxt_app_lang_module_t  *lang;
     nxt_common_app_conf_t  *app_conf;
+    u_char                 err_buf[NXT_MAX_ERROR_STR];
+    nxt_str_t              err = nxt_string("failed to init application");
 
     app_conf = data;
+
+    rt = task->thread->runtime;
+
+    main_port = rt->port_by_type[NXT_PROCESS_MAIN];
+
+    process = nxt_runtime_process_find(rt, nxt_pid);
 
     lang = nxt_app_lang_module(task->thread->runtime, &app_conf->type);
     if (nxt_slow_path(lang == NULL)) {
         nxt_alert(task, "unknown application type: \"%V\"", &app_conf->type);
-        return NXT_ERROR;
+        goto fail;
     }
 
     nxt_app = lang->module;
@@ -333,7 +366,9 @@ nxt_app_start(nxt_task_t *task, void *data)
         ret = nxt_app->pre_init(task, data);
 
         if (nxt_slow_path(ret != NXT_OK)) {
-            return ret;
+            nxt_app_error(task, &err, err_buf, "module \"%V\" pre_init failed",
+                             &app_conf->type);
+            goto fail;
         }
     }
 
@@ -343,30 +378,45 @@ nxt_app_start(nxt_task_t *task, void *data)
         ret = chdir(app_conf->working_directory);
 
         if (nxt_slow_path(ret != 0)) {
-            nxt_log(task, NXT_LOG_WARN, "chdir(%s) failed %E",
-                    app_conf->working_directory, nxt_errno);
+            nxt_app_error(task, &err, err_buf, "chdir(%s) failed %E",
+                app_conf->working_directory, nxt_errno);
 
-            return NXT_ERROR;
+            goto fail;
         }
     }
 
     if (nxt_slow_path(nxt_app_set_environment(app_conf->environment)
                       != NXT_OK))
     {
-        nxt_alert(task, "failed to set environment");
-        return NXT_ERROR;
+        nxt_app_error(task, &err, err_buf, "failed to set environment");
+        goto fail;
     }
 
     ret = nxt_app->init(task, data);
 
-    if (nxt_slow_path(ret != NXT_OK)) {
-        nxt_debug(task, "application init failed");
-
-    } else {
+    if (nxt_fast_path(ret == NXT_OK)) {
         nxt_debug(task, "application init done");
+        return NXT_OK;
     }
 
-    return ret;
+fail:
+    buf = nxt_buf_mem_alloc(rt->mem_pool,
+                            err.length+1, 0);
+
+    if (nxt_fast_path(buf != NULL)) {
+        buf->mem.free = nxt_cpymem(buf->mem.free, err.start,
+                                   err.length);
+        *buf->mem.free++ = '\0';
+    }
+
+    ret = nxt_port_socket_write(task, main_port, NXT_PORT_MSG_PROCESS_ERROR,
+                                -1, process->init->stream, 0, buf);
+
+    if (nxt_slow_path(ret != NXT_OK)) {
+        nxt_log(task, NXT_LOG_ERR, "failed to send ERROR message to main");
+    }
+
+    return NXT_ERROR;
 }
 
 

@@ -1501,7 +1501,12 @@ nxt_controller_conf_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
         resp.status = 500;
         resp.title = (u_char *) "Failed to apply new configuration.";
-        resp.offset = -1;
+
+        if (msg->buf != NULL && nxt_buf_mem_used_size(&msg->buf->mem) > 0) {
+            resp.detail.start = (u_char *) msg->buf->mem.pos;
+            resp.detail.length = nxt_buf_mem_used_size(&msg->buf->mem) - 1;
+            resp.offset = -1;
+        }
     }
 
     nxt_controller_response(task, req, &resp);

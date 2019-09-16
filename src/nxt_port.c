@@ -323,6 +323,53 @@ nxt_port_process_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
 
 void
+nxt_port_process_error_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
+{
+    nxt_port_t          *port;
+    nxt_process_t       *process;
+    nxt_runtime_t       *rt;
+    nxt_process_init_t  *init;
+    nxt_process_type_t  ptype;
+
+    rt = task->thread->runtime;
+
+    nxt_debug(task, "process %PI bootstrap error: %*s",
+              msg->port_msg.pid,
+              nxt_buf_mem_used_size(&msg->buf->mem), msg->buf->mem.pos);
+
+    process = nxt_runtime_process_find(rt, msg->port_msg.pid);
+    if (nxt_slow_path(process == NULL)) {
+        return;
+    }
+
+    // process_error msg can only happen before ready
+    nxt_assert(process->ready != 1);
+
+    init = process->init;
+
+    if (init != NULL) {
+        nxt_free(init);
+    }
+
+    ptype = nxt_process_type(process);
+
+    if (ptype == NXT_PROCESS_WORKER) {
+        nxt_debug(task, "about to send error to router");
+        /* send error message to user API */
+        port = rt->port_by_type[NXT_PROCESS_ROUTER];
+
+        nxt_port_socket_write(task, port, NXT_PORT_MSG_RPC_ERROR,
+                              -1, msg->port_msg.stream, 0, msg->buf);
+    }
+
+    nxt_process_close_ports(task, process);
+
+    /* disables completion */
+    msg->buf = NULL;
+}
+
+
+void
 nxt_port_mmap_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
     nxt_runtime_t  *rt;

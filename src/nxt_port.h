@@ -29,6 +29,7 @@ struct nxt_port_handlers_s {
 
     /* New process ready. */
     nxt_port_handler_t  process_ready;
+    nxt_port_handler_t  process_error;
 
     /* Process exit/crash notification. */
     nxt_port_handler_t  remove_pid;
@@ -74,6 +75,7 @@ typedef enum {
     _NXT_PORT_MSG_MMAP          = nxt_port_handler_idx(mmap),
 
     _NXT_PORT_MSG_PROCESS_READY = nxt_port_handler_idx(process_ready),
+    _NXT_PORT_MSG_PROCESS_ERROR = nxt_port_handler_idx(process_error),
     _NXT_PORT_MSG_REMOVE_PID    = nxt_port_handler_idx(remove_pid),
     _NXT_PORT_MSG_QUIT          = nxt_port_handler_idx(quit),
 
@@ -104,6 +106,8 @@ typedef enum {
                                   | NXT_PORT_MSG_CLOSE_FD | NXT_PORT_MSG_SYNC,
 
     NXT_PORT_MSG_PROCESS_READY  = _NXT_PORT_MSG_PROCESS_READY
+                                  | NXT_PORT_MSG_LAST,
+    NXT_PORT_MSG_PROCESS_ERROR  = _NXT_PORT_MSG_PROCESS_ERROR
                                   | NXT_PORT_MSG_LAST,
     NXT_PORT_MSG_QUIT           = _NXT_PORT_MSG_QUIT | NXT_PORT_MSG_LAST,
     NXT_PORT_MSG_REMOVE_PID     = _NXT_PORT_MSG_REMOVE_PID | NXT_PORT_MSG_LAST,
@@ -278,6 +282,7 @@ void nxt_port_change_log_file(nxt_task_t *task, nxt_runtime_t *rt,
 void nxt_port_quit_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 void nxt_port_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 void nxt_port_process_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
+void nxt_port_process_error_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 void nxt_port_change_log_file_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
 void nxt_port_mmap_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);

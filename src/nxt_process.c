@@ -119,12 +119,14 @@ static void
 nxt_process_start(nxt_task_t *task, nxt_process_t *process)
 {
     nxt_int_t                    ret;
+    nxt_buf_t                    *buf;
     nxt_port_t                   *port, *main_port;
     nxt_thread_t                 *thread;
     nxt_runtime_t                *rt;
     nxt_process_init_t           *init;
     nxt_event_engine_t           *engine;
     const nxt_event_interface_t  *interface;
+    nxt_str_t                    err = nxt_string("failed to start process");
 
     init = process->init;
 
@@ -136,6 +138,12 @@ nxt_process_start(nxt_task_t *task, nxt_process_t *process)
 
     nxt_random_init(&thread->random);
 
+    rt = thread->runtime;
+
+    main_port = rt->port_by_type[NXT_PROCESS_MAIN];
+    nxt_port_read_close(main_port);
+    nxt_port_write_enable(task, main_port);
+
     if (init->user_cred != NULL) {
         /*
          * Changing user credentials requires either root privileges
@@ -143,11 +151,11 @@ nxt_process_start(nxt_task_t *task, nxt_process_t *process)
          */
         ret = nxt_user_cred_set(task, init->user_cred);
         if (ret != NXT_OK) {
-            goto fail;
+            err.start = (u_char *) "failed to change user credentials";
+            err.length = nxt_strlen(err.start)-1;
+            goto pre_start_error;
         }
     }
-
-    rt = thread->runtime;
 
     rt->type = init->type;
 
@@ -158,23 +166,18 @@ nxt_process_start(nxt_task_t *task, nxt_process_t *process)
 
     interface = nxt_service_get(rt->services, "engine", rt->engine);
     if (nxt_slow_path(interface == NULL)) {
-        goto fail;
+        goto pre_start_error;
     }
 
     if (nxt_event_engine_change(engine, interface, rt->batch) != NXT_OK) {
-        goto fail;
+        goto pre_start_error;
     }
 
     ret = nxt_runtime_thread_pool_create(thread, rt, rt->auxiliary_threads,
                                          60000 * 1000000LL);
     if (nxt_slow_path(ret != NXT_OK)) {
-        goto fail;
+        goto pre_start_error;
     }
-
-    main_port = rt->port_by_type[NXT_PROCESS_MAIN];
-
-    nxt_port_read_close(main_port);
-    nxt_port_write_enable(task, main_port);
 
     port = nxt_process_port_first(process);
 
@@ -183,7 +186,8 @@ nxt_process_start(nxt_task_t *task, nxt_process_t *process)
     ret = init->start(task, init->data);
 
     if (nxt_slow_path(ret != NXT_OK)) {
-        goto fail;
+        /* `start` callback must send the detailed error */
+        exit(1);
     }
 
     nxt_port_enable(task, port, init->port_handlers);
@@ -194,12 +198,27 @@ nxt_process_start(nxt_task_t *task, nxt_process_t *process)
     if (nxt_slow_path(ret != NXT_OK)) {
         nxt_log(task, NXT_LOG_ERR, "failed to send READY message to main");
 
-        goto fail;
+        goto pre_start_error;
     }
 
     return;
 
-fail:
+pre_start_error:
+
+    buf = nxt_buf_mem_alloc(rt->mem_pool,
+                            err.length+1, 0);
+
+    if (nxt_fast_path(buf != NULL)) {
+        buf->mem.free = nxt_cpymem(buf->mem.free, err.start,
+                                   err.length);
+        *buf->mem.free++ = '\0';
+    }
+    ret = nxt_port_socket_write(task, main_port, NXT_PORT_MSG_PROCESS_ERROR,
+                                -1, init->stream, 0, buf);
+
+    if (nxt_slow_path(ret != NXT_OK)) {
+        nxt_log(task, NXT_LOG_ERR, "failed to send ERROR message to main");
+    }
 
     exit(1);
 }

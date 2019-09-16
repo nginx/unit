@@ -116,9 +116,10 @@ static void nxt_router_conf_apply(nxt_task_t *task, void *obj, void *data);
 static void nxt_router_conf_ready(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf);
 static void nxt_router_conf_error(nxt_task_t *task,
-    nxt_router_temp_conf_t *tmcf);
+    nxt_router_temp_conf_t *tmcf, nxt_buf_t *error);
 static void nxt_router_conf_send(nxt_task_t *task,
-    nxt_router_temp_conf_t *tmcf, nxt_port_msg_type_t type);
+    nxt_router_temp_conf_t *tmcf, nxt_port_msg_type_t type,
+    nxt_buf_t *error);
 
 static nxt_int_t nxt_router_conf_create(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, u_char *start, u_char *end);
@@ -875,7 +876,7 @@ nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     b = nxt_buf_chk_make_plain(tmcf->router_conf->mem_pool,
                                msg->buf, msg->size);
     if (nxt_slow_path(b == NULL)) {
-        nxt_router_conf_error(task, tmcf);
+        nxt_router_conf_error(task, tmcf, NULL);
 
         return;
     }
@@ -886,7 +887,7 @@ nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         nxt_router_conf_apply(task, tmcf, NULL);
 
     } else {
-        nxt_router_conf_error(task, tmcf);
+        nxt_router_conf_error(task, tmcf, NULL);
     }
 }
 
@@ -1104,7 +1105,7 @@ nxt_router_conf_apply(nxt_task_t *task, void *obj, void *data)
 
 fail:
 
-    nxt_router_conf_error(task, tmcf);
+    nxt_router_conf_error(task, tmcf, NULL);
 
     return;
 }
@@ -1127,13 +1128,14 @@ nxt_router_conf_ready(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
     nxt_debug(task, "temp conf count:%D", tmcf->count);
 
     if (--tmcf->count == 0) {
-        nxt_router_conf_send(task, tmcf, NXT_PORT_MSG_RPC_READY_LAST);
+        nxt_router_conf_send(task, tmcf, NXT_PORT_MSG_RPC_READY_LAST, NULL);
     }
 }
 
 
 static void
-nxt_router_conf_error(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
+nxt_router_conf_error(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
+    nxt_buf_t *error)
 {
     nxt_app_t          *app;
     nxt_queue_t        new_socket_confs;
@@ -1195,15 +1197,15 @@ nxt_router_conf_error(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
 
     nxt_mp_destroy(rtcf->mem_pool);
 
-    nxt_router_conf_send(task, tmcf, NXT_PORT_MSG_RPC_ERROR);
+    nxt_router_conf_send(task, tmcf, NXT_PORT_MSG_RPC_ERROR, error);
 }
 
 
 static void
 nxt_router_conf_send(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
-    nxt_port_msg_type_t type)
+    nxt_port_msg_type_t type, nxt_buf_t *error)
 {
-    nxt_port_socket_write(task, tmcf->port, type, -1, tmcf->stream, 0, NULL);
+    nxt_port_socket_write(task, tmcf->port, type, -1, tmcf->stream, 0, error);
 
     nxt_port_use(task, tmcf->port, -1);
 
@@ -1988,7 +1990,7 @@ nxt_router_listen_socket_rpc_create(nxt_task_t *task,
 
 fail:
 
-    nxt_router_conf_error(task, tmcf);
+    nxt_router_conf_error(task, tmcf, NULL);
 }
 
 
@@ -2027,7 +2029,7 @@ fail:
 
     nxt_socket_close(task, s);
 
-    nxt_router_conf_error(task, rpc->temp_conf);
+    nxt_router_conf_error(task, rpc->temp_conf, NULL);
 }
 
 
@@ -2088,7 +2090,7 @@ nxt_router_listen_socket_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     nxt_debug(task, "%*s", out->mem.free - out->mem.pos, out->mem.pos);
 #endif
 
-    nxt_router_conf_error(task, tmcf);
+    nxt_router_conf_error(task, tmcf, NULL);
 }
 
 
@@ -2102,7 +2104,7 @@ nxt_router_tls_rpc_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
     rpc = nxt_mp_alloc(tmcf->mem_pool, sizeof(nxt_socket_rpc_t));
     if (rpc == NULL) {
-        nxt_router_conf_error(task, tmcf);
+        nxt_router_conf_error(task, tmcf, NULL);
         return;
     }
 
@@ -2155,7 +2157,7 @@ nxt_router_tls_rpc_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
 fail:
 
-    nxt_router_conf_error(task, tmcf);
+    nxt_router_conf_error(task, tmcf, NULL);
 }
 
 #endif
@@ -2220,7 +2222,7 @@ nxt_router_app_rpc_create(nxt_task_t *task,
 
 fail:
 
-    nxt_router_conf_error(task, tmcf);
+    nxt_router_conf_error(task, tmcf, NULL);
 }
 
 
@@ -2274,7 +2276,11 @@ nxt_router_app_prefork_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
     app->pending_processes--;
 
-    nxt_router_conf_error(task, tmcf);
+    nxt_router_conf_error(task, tmcf, msg->buf);
+
+    /* disable completion */
+    msg->buf = NULL;
+    msg->size = 0;
 }
 
 
@@ -3180,7 +3186,7 @@ nxt_router_access_log_open(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
 
 fail:
 
-    nxt_router_conf_error(task, tmcf);
+    nxt_router_conf_error(task, tmcf, NULL);
 }
 
 
@@ -3210,7 +3216,7 @@ nxt_router_access_log_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
     tmcf = data;
 
-    nxt_router_conf_error(task, tmcf);
+    nxt_router_conf_error(task, tmcf, NULL);
 }
 
 
