@@ -42,6 +42,8 @@ class TestUnit(unittest.TestCase):
         if not hasattr(self, 'application_type'):
             return super().run(result)
 
+        # rerun test for each available module version
+
         type = self.application_type
         for prerequisite in self.prerequisites:
             if prerequisite in available_modules:
@@ -350,6 +352,8 @@ class TestUnit(unittest.TestCase):
         TestUnit.detailed = args.detailed
         TestUnit.save_log = args.save_log
         TestUnit.unsafe = args.unsafe
+
+        # set stdout to non-blocking
 
         if TestUnit.detailed:
             fcntl.fcntl(sys.stdout.fileno(), fcntl.F_SETFL, 0)
