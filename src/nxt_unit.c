@@ -109,10 +109,10 @@ static void nxt_unit_remove_process(nxt_unit_ctx_t *ctx,
 
 static ssize_t nxt_unit_port_send_default(nxt_unit_ctx_t *ctx,
     nxt_unit_port_id_t *port_id, const void *buf, size_t buf_size,
-    const void *oob, size_t oobn);
+    const void *oob, size_t oob_size);
 static ssize_t nxt_unit_port_recv_default(nxt_unit_ctx_t *ctx,
     nxt_unit_port_id_t *port_id, void *buf, size_t buf_size,
-    void *oob, size_t *oobn);
+    void *oob, size_t *oob_size);
 
 static int nxt_unit_port_hash_add(nxt_lvlhsh_t *port_hash,
     nxt_unit_port_t *port);
@@ -3731,7 +3731,7 @@ nxt_unit_quit(nxt_unit_ctx_t *ctx)
 
 static ssize_t
 nxt_unit_port_send_default(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
-    const void *buf, size_t buf_size, const void *oob, size_t oobn)
+    const void *buf, size_t buf_size, const void *oob, size_t oob_size)
 {
     int                   fd;
     nxt_unit_impl_t       *lib;
@@ -3766,13 +3766,13 @@ nxt_unit_port_send_default(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
     nxt_unit_debug(ctx, "port_send: found port %d,%d fd %d",
                    (int) port_id->pid, (int) port_id->id, fd);
 
-    return nxt_unit_port_send(ctx, fd, buf, buf_size, oob, oobn);
+    return nxt_unit_port_send(ctx, fd, buf, buf_size, oob, oob_size);
 }
 
 
 ssize_t
 nxt_unit_port_send(nxt_unit_ctx_t *ctx, int fd,
-    const void *buf, size_t buf_size, const void *oob, size_t oobn)
+    const void *buf, size_t buf_size, const void *oob, size_t oob_size)
 {
     ssize_t        n;
     struct iovec   iov[1];
@@ -3780,7 +3780,7 @@ nxt_unit_port_send(nxt_unit_ctx_t *ctx, int fd,
     iov[0].iov_base = (void *) buf;
     iov[0].iov_len = buf_size;
 
-    n = nxt_sendmsg(fd, iov, 1, oob, oobn);
+    n = nxt_sendmsg(fd, iov, 1, oob, oob_size);
 
     if (nxt_slow_path(n == -1)) {
         nxt_unit_warn(ctx, "port_send(%d, %d) failed: %s (%d)",
