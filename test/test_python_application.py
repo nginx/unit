@@ -4,7 +4,7 @@ from unit.applications.lang.python import TestApplicationPython
 
 
 class TestPythonApplication(TestApplicationPython):
-    prerequisites = ['python']
+    prerequisites = {'modules': ['python']}
 
     def test_python_application_variables(self):
         self.load('variables')

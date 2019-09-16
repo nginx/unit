@@ -4,7 +4,7 @@ from unit.applications.lang.java import TestApplicationJava
 
 
 class TestJavaApplication(TestApplicationJava):
-    prerequisites = ['java']
+    prerequisites = {'modules': ['java']}
 
     def test_java_conf_error(self):
         self.skip_alerts.extend(
