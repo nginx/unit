@@ -28,6 +28,7 @@ class TestUnit(unittest.TestCase):
 
     detailed = False
     save_log = False
+    unsafe = False
 
     def __init__(self, methodName='runTest'):
         super().__init__(methodName)
