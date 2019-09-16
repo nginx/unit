@@ -6,7 +6,7 @@ MODULE_SUMMARY_jsc11=	Java 11 module for NGINX Unit
 MODULE_VERSION_jsc11=	$(VERSION)
 MODULE_RELEASE_jsc11=	1
 
-MODULE_CONFARGS_jsc11=	java --module=java11 --home=/usr/lib/jvm/java-11 --jars=/usr/share/unit-jsc-common/
+MODULE_CONFARGS_jsc11=	java --module=java11 --home=/usr/lib/jvm/java-11 --lib-path=/usr/lib/jvm/jre-11/lib/server --jars=/usr/share/unit-jsc-common/
 MODULE_MAKEARGS_jsc11=	java11
 MODULE_INSTARGS_jsc11=	java11-install
 
@@ -18,6 +18,7 @@ BUILD_DEPENDS+=		$(BUILD_DEPENDS_jsc11)
 
 define MODULE_DEFINITIONS_jsc11
 Requires: unit-jsc-common == $(MODULE_VERSION_jsc_common)-$(MODULE_RELEASE_jsc_common)%{?dist}.ngx
+Requires: java-11-headless
 endef
 export MODULE_DEFINITIONS_jsc11
 

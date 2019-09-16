@@ -3,7 +3,7 @@ from unit.applications.lang.python import TestApplicationPython
 
 
 class TestHTTPHeader(TestApplicationPython):
-    prerequisites = ['python']
+    prerequisites = {'modules': ['python']}
 
     def test_http_header_value_leading_sp(self):
         self.load('custom_header')

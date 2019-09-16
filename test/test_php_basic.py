@@ -2,7 +2,7 @@ from unit.control import TestControl
 
 
 class TestPHPBasic(TestControl):
-    prerequisites = ['php']
+    prerequisites = {'modules': ['php']}
 
     conf_app = {
         "app": {

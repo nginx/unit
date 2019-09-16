@@ -6,7 +6,9 @@ MODULE_SUMMARY_jsc8=	Java 8 module for NGINX Unit
 MODULE_VERSION_jsc8=	$(VERSION)
 MODULE_RELEASE_jsc8=	1
 
-MODULE_CONFARGS_jsc8=	java --module=java8 --home=/usr/lib/jvm/java-1.8.0 --jars=/usr/share/unit-jsc-common/
+JAVA_ARCH_jsc8=	$(shell /usr/lib/jvm/java-1.8.0/bin/java -XshowSettings 2>&1 | grep -F -e os.arch | sed -e 's/^.*= //')
+
+MODULE_CONFARGS_jsc8=	java --module=java8 --home=/usr/lib/jvm/java-1.8.0 --lib-path=/usr/lib/jvm/jre-1.8.0/lib/$(JAVA_ARCH_jsc8)/server --jars=/usr/share/unit-jsc-common/
 MODULE_MAKEARGS_jsc8=	java8
 MODULE_INSTARGS_jsc8=	java8-install
 
@@ -18,6 +20,7 @@ BUILD_DEPENDS+=		$(BUILD_DEPENDS_jsc8)
 
 define MODULE_DEFINITIONS_jsc8
 Requires: unit-jsc-common == $(MODULE_VERSION_jsc_common)-$(MODULE_RELEASE_jsc_common)%{?dist}.ngx
+Requires: java-1.8.0-headless
 endef
 export MODULE_DEFINITIONS_jsc8
 
