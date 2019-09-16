@@ -817,10 +817,10 @@ nxt_runtime_creds(nxt_task_t *task,  nxt_runtime_t *rt)
         user = pwd->pw_name;
         grp = getgrgid(pwd->pw_gid);
 
-        if (grp == NULL) {
-            group_name = user;
-        } else {
+        if (grp != NULL) {
             group_name = grp->gr_name;
+        } else {
+            group_name = NULL;
         }
     }
 
@@ -843,14 +843,15 @@ nxt_runtime_creds(nxt_task_t *task,  nxt_runtime_t *rt)
         if (rt->user_cred.user != user || rt->group != group_name) {
             nxt_log(task, NXT_LOG_NOTICE, "Unit is running unprivileged, then it"
                 " cannot use arbitrary user and group. Using \"%s\" and \"%s\""
-                " for user and group, respectively.", user, group_name);
+                " for user and group, respectively.", user,
+                group_name ? group_name : "");
 
             nxt_capability_log_hint(task);
         }
 
         rt->user_cred.user = user;
         rt->group = group_name;
-    } 
+    }
 
     return nxt_user_cred_get(task, &rt->user_cred, rt->group);
 }
