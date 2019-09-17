@@ -674,7 +674,7 @@ nxt_main_start_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
         str.start = (u_char *) rt->user_cred.user;
         str.length = nxt_strlen(rt->user_cred.user);
 
-        if (!nxt_str_eq(&app_conf->user, str.start, str.length) != 0) {
+        if (!nxt_str_eq(&app_conf->user, str.start, str.length)) {
             nxt_alert(task, "cannot set user \"%V\" for app \"%V\": "
                       "missing capabilities", &app_conf->user,
                       &app_conf->name);
