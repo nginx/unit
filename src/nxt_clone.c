@@ -219,8 +219,8 @@ nxt_clone_proc_map(nxt_task_t *task, pid_t pid, nxt_process_clone_t *clone)
     nxt_runtime_t  *rt;
 
     rt  = task->thread->runtime;
-    uid = rt->user_cred.uid;
-    gid = rt->user_cred.base_gid;
+    uid = geteuid();
+    gid = getegid();
 
     if (rt->capabilities.setid) {
         rule = "allow";

@@ -630,6 +630,7 @@ nxt_main_start_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
     char                *user, *group;
     u_char              *title, *last, *end;
     size_t              size;
+    nxt_str_t           str;
     nxt_process_init_t  *init;
 
     size = sizeof(nxt_process_init_t)
@@ -645,41 +646,53 @@ nxt_main_start_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
 
     nxt_memzero(init, sizeof(nxt_process_init_t));
 
-    init->user_cred = nxt_pointer_to(init, sizeof(nxt_process_init_t));
-    user = nxt_pointer_to(init->user_cred, sizeof(nxt_user_cred_t));
+    if (rt->capabilities.setid) {
+        init->user_cred = nxt_pointer_to(init, sizeof(nxt_process_init_t));
+        user = nxt_pointer_to(init->user_cred, sizeof(nxt_user_cred_t));
 
-    nxt_memcpy(user, app_conf->user.start, app_conf->user.length);
-    last = nxt_pointer_to(user, app_conf->user.length);
-    *last++ = '\0';
-
-    init->user_cred->user = user;
-
-    if (app_conf->group.start != NULL) {
-        group = (char *) last;
-
-        nxt_memcpy(group, app_conf->group.start, app_conf->group.length);
-        last = nxt_pointer_to(group, app_conf->group.length);
+        nxt_memcpy(user, app_conf->user.start, app_conf->user.length);
+        last = nxt_pointer_to(user, app_conf->user.length);
         *last++ = '\0';
 
+        init->user_cred->user = user;
+
+        if (app_conf->group.start != NULL) {
+            group = (char *) last;
+
+            nxt_memcpy(group, app_conf->group.start, app_conf->group.length);
+            last = nxt_pointer_to(group, app_conf->group.length);
+            *last++ = '\0';
+
+        } else {
+            group = NULL;
+        }
+
+        if (nxt_user_cred_get(task, init->user_cred, group) != NXT_OK) {
+            return NXT_ERROR;
+        }
     } else {
-        group = NULL;
-    }
+        str.start = (u_char *) rt->user_cred.user;
+        str.length = nxt_strlen(rt->user_cred.user);
 
-    if (nxt_user_cred_get(task, init->user_cred, group) != NXT_OK) {
-        return NXT_ERROR;
-    }
+        if (!nxt_str_eq(&app_conf->user, str.start, str.length) != 0) {
+            nxt_alert(task, "cannot set user \"%V\" for app \"%V\": "
+                      "missing capabilities", &app_conf->user,
+                      &app_conf->name);
+            return NXT_ERROR;
+        }
 
-    if (init->user_cred->uid != geteuid() && !rt->capabilities.setid) {
-        nxt_alert(task, "cannot set user \"%s\" for app \"%V\": "
-                        "missing capabilities", init->user_cred->user, 
-                        &app_conf->name);
-        return NXT_ERROR;
-    }
+        str.start = (u_char *) rt->group;
+        str.length = nxt_strlen(rt->group);
 
-    if (init->user_cred->base_gid != getegid() && !rt->capabilities.setid) {
-        nxt_alert(task, "cannot set group for app \"%V\": "
-                        "missing capabilities", &app_conf->name);
-        return NXT_ERROR;
+        if (app_conf->group.length > 0
+            && !nxt_str_eq(&app_conf->group, str.start, str.length)) {
+            nxt_alert(task, "cannot set group \"%V\" for app \"%V\": "
+                            "missing capabilities", &app_conf->group,
+                            &app_conf->name);
+            return NXT_ERROR;
+        }
+
+        last = nxt_pointer_to(init, sizeof(nxt_process_init_t));
     }
 
     title = last;
