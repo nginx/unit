@@ -484,10 +484,6 @@ nxt_main_start_controller_process(nxt_task_t *task, nxt_runtime_t *rt)
     init->type = NXT_PROCESS_CONTROLLER;
     init->stream = 0;
     init->restart = &nxt_main_create_controller_process;
-    
-    if (nxt_slow_path(nxt_init_set_isolation(task, init, NULL) != NXT_OK)) {
-        return NXT_ERROR;
-    }
 
     return nxt_main_create_controller_process(task, rt, init);;
 }
@@ -585,10 +581,6 @@ nxt_main_start_discovery_process(nxt_task_t *task, nxt_runtime_t *rt)
     init->data = rt;
     init->stream = 0;
     init->restart = NULL;
-    
-    if (nxt_slow_path(nxt_init_set_isolation(task, init, NULL) != NXT_OK)) {
-        return NXT_ERROR;
-    }
 
     return nxt_main_create_worker_process(task, rt, init);
 }
@@ -603,9 +595,9 @@ nxt_main_start_router_process(nxt_task_t *task, nxt_runtime_t *rt)
     if (nxt_slow_path(init == NULL)) {
         return NXT_ERROR;
     }
-    
+
     nxt_memzero(init, sizeof(nxt_process_init_t));
-    
+
     init->start = nxt_router_start;
     init->name = "router";
     init->user_cred = &rt->user_cred;
@@ -615,10 +607,6 @@ nxt_main_start_router_process(nxt_task_t *task, nxt_runtime_t *rt)
     init->data = rt;
     init->stream = 0;
     init->restart = &nxt_main_create_worker_process;
-    
-    if (nxt_slow_path(nxt_init_set_isolation(task, init, NULL) != NXT_OK)) {
-        return NXT_ERROR;
-    }
 
     return nxt_main_create_worker_process(task, rt, init);
 }
