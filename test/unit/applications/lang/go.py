@@ -8,7 +8,6 @@ class TestApplicationGo(TestApplicationProto):
     def setUpClass(cls, complete_check=True):
         unit = super().setUpClass(complete_check=False)
 
-
         # check go module
 
         go_app = TestApplicationGo()
@@ -39,7 +38,7 @@ class TestApplicationGo(TestApplicationProto):
 
         return process
 
-    def load(self, script, name='app', isolation={}):
+    def load(self, script, name='app'):
         self.prepare_env(script, name)
 
         self._load_conf(
@@ -53,7 +52,6 @@ class TestApplicationGo(TestApplicationProto):
                         + "/go/"
                         + script,
                         "executable": self.testdir + "/go/" + name,
-                        "isolation": isolation,
                     }
                 },
             }
