@@ -809,21 +809,6 @@ nxt_runtime_creds(nxt_task_t *task,  nxt_runtime_t *rt)
     struct group  *grp;
     struct passwd *pwd;
 
-    pwd = getpwuid(geteuid());
-
-    if (pwd == NULL) {
-        user = group_name = NULL;
-    } else {
-        user = pwd->pw_name;
-        grp = getgrgid(pwd->pw_gid);
-
-        if (grp != NULL) {
-            group_name = grp->gr_name;
-        } else {
-            group_name = NULL;
-        }
-    }
-
     if (rt->capabilities.setid) {
         if (rt->user_cred.user == NULL) {
             rt->user_cred.user = NXT_USER;
@@ -833,6 +818,21 @@ nxt_runtime_creds(nxt_task_t *task,  nxt_runtime_t *rt)
             rt->group = NXT_GROUP;
         }
     } else {
+        pwd = getpwuid(geteuid());
+
+        if (pwd == NULL) {
+            user = group_name = NULL;
+        } else {
+            user = pwd->pw_name;
+            grp = getgrgid(pwd->pw_gid);
+
+            if (grp != NULL) {
+                group_name = grp->gr_name;
+            } else {
+                group_name = NULL;
+            }
+        }
+
         if (user == NULL) {
             nxt_alert(task, "Unit is unable to get the current username. "
                 "There's no entry for uid %d in passwd",
