@@ -690,7 +690,7 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
     rt->modules = NXT_MODULES;
     rt->state = NXT_STATE;
     rt->control = NXT_CONTROL_SOCK;
-    
+
     nxt_memzero(&rt->capabilities, sizeof(nxt_capability_t));
 
     if (nxt_runtime_conf_read_cmd(task, rt) != NXT_OK) {
