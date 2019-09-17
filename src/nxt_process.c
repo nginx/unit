@@ -158,13 +158,19 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
 #endif
 
     if (nxt_slow_path(pid < 0)) {
+#if (NXT_HAVE_CLONE)
         if (nxt_errno == NXT_EPERM) {
-            nxt_alert(task, "fork/clone() check namespace flags of %s: %E", 
-                    init->name, nxt_errno);
+            nxt_alert(task, "clone() failed while creating \"%s\". "
+                      "Check namespace flags %E",
+                      init->name, nxt_errno);
         } else {
-            nxt_alert(task, "fork/clone() failed while creating %s: %E",
-                    init->name, nxt_errno);
+            nxt_alert(task, "clone() failed while creating \"%s\" %E",
+                      init->name, nxt_errno);
         }
+#else
+        nxt_alert(task, "fork() failed while creating \"%s\" %E",
+                  process->init->name, nxt_errno);
+#endif
 
         return pid;
     }
