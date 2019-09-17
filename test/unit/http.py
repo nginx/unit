@@ -118,6 +118,9 @@ class TestHTTP(TestUnit):
     def get(self, **kwargs):
         return self.http('GET', **kwargs)
 
+    def head(self, **kwargs):
+        return self.http('HEAD', **kwargs)
+
     def post(self, **kwargs):
         return self.http('POST', **kwargs)
 
