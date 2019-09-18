@@ -48,15 +48,11 @@ class TestFeatureIsolation(TestApplicationProto):
         module.load(app)
 
         resp = module.conf(test_conf, 'applications/' + app + '/isolation')
+        userns = self.getns('user')
 
-        if 'success' in resp:
-            available['features']['isolation'] = {}
+        if 'success' in resp and userns:
+            available['features']['isolation'] = {'user': userns}
 
-            userns = self.getns('user')
-            if not userns:
-                return
-
-            available['features']['isolation']['user'] = userns
             for ns in self.allns:
                 ns_value = self.getns(ns)
                 if ns_value:
