@@ -18,6 +18,9 @@ class TestGoIsolation(TestApplicationGo):
 
         return unit if not complete_check else unit.complete()
 
+    def isolation_key(self, key):
+        return key in self.available['features']['isolation'].keys()
+
     def conf_isolation(self, isolation):
         self.assertIn(
             'success',
@@ -31,9 +34,16 @@ class TestGoIsolation(TestApplicationGo):
         obj = self.isolation.parsejson(self.get()['body'])
 
         for ns, ns_value in self.available['features']['isolation'].items():
-            self.assertEqual(obj['NS'][ns.upper()], ns_value, '%s match' % ns)
+            if ns.upper() in obj['NS']:
+                self.assertEqual(
+                    obj['NS'][ns.upper()], ns_value, '%s match' % ns
+                )
 
     def test_isolation_user(self):
+        if not self.isolation_key('unprivileged_userns_clone'):
+            print('unprivileged clone is not available')
+            raise unittest.SkipTest()
+
         self.load('ns_inspect')
         obj = self.isolation.parsejson(self.get()['body'])
 
@@ -69,8 +79,12 @@ class TestGoIsolation(TestApplicationGo):
         self.assertEqual(obj['GID'], 1000, 'gid root')
 
     def test_isolation_mnt(self):
-        if 'mnt' not in self.available['features']['isolation'].keys():
-            print('mnt namespace not supported')
+        if not self.isolation_key('mnt'):
+            print('mnt namespace is not supported')
+            raise unittest.SkipTest()
+
+        if not self.isolation_key('unprivileged_userns_clone'):
+            print('unprivileged clone is not available')
             raise unittest.SkipTest()
 
         self.load('ns_inspect')
@@ -86,11 +100,12 @@ class TestGoIsolation(TestApplicationGo):
         allns.remove('mnt')
 
         for ns in allns:
-            self.assertEqual(
-                obj['NS'][ns.upper()],
-                self.available['features']['isolation'][ns],
-                '%s match' % ns,
-            )
+            if ns.upper() in obj['NS']:
+                self.assertEqual(
+                    obj['NS'][ns.upper()],
+                    self.available['features']['isolation'][ns],
+                    '%s match' % ns,
+                )
 
         self.assertNotEqual(
             obj['NS']['MNT'], self.isolation.getns('mnt'), 'mnt set'
@@ -100,8 +115,12 @@ class TestGoIsolation(TestApplicationGo):
         )
 
     def test_isolation_pid(self):
-        if 'pid' not in self.available['features']['isolation'].keys():
-            print('pid namespace not supported')
+        if not self.isolation_key('pid'):
+            print('pid namespace is not supported')
+            raise unittest.SkipTest()
+
+        if not self.isolation_key('unprivileged_userns_clone'):
+            print('unprivileged clone is not available')
             raise unittest.SkipTest()
 
         self.load('ns_inspect')

@@ -9,6 +9,7 @@ from unit.applications.lang.php import TestApplicationPHP
 from unit.applications.lang.python import TestApplicationPython
 from unit.applications.lang.ruby import TestApplicationRuby
 
+
 class TestFeatureIsolation(TestApplicationProto):
     allns = ['pid', 'mnt', 'ipc', 'uts', 'cgroup', 'net']
 
@@ -48,15 +49,27 @@ class TestFeatureIsolation(TestApplicationProto):
         module.load(app)
 
         resp = module.conf(test_conf, 'applications/' + app + '/isolation')
+        if 'success' not in resp:
+            return
+
         userns = self.getns('user')
+        if not userns:
+            return
 
-        if 'success' in resp and userns and self.have_unpriv_userns():
-            available['features']['isolation'] = {'user': userns}
+        available['features']['isolation'] = {'user': userns}
 
-            for ns in self.allns:
-                ns_value = self.getns(ns)
-                if ns_value:
-                    available['features']['isolation'][ns] = ns_value
+        unp_clone_path = '/proc/sys/kernel/unprivileged_userns_clone'
+        if os.path.exists(unp_clone_path):
+            with open(unp_clone_path, 'r') as f:
+                if str(f.read()).rstrip() == '1':
+                    available['features']['isolation'][
+                        'unprivileged_userns_clone'
+                    ] = True
+
+        for ns in self.allns:
+            ns_value = self.getns(ns)
+            if ns_value:
+                available['features']['isolation'][ns] = ns_value
 
     def getns(self, nstype):
         # read namespace id from symlink file:
@@ -69,18 +82,6 @@ class TestFeatureIsolation(TestApplicationProto):
             data = int(os.readlink(nspath)[len(nstype) + 2 : -1])
 
         return data
-
-    def have_unpriv_userns(self):
-        userns_config = "/proc/sys/kernel/unprivileged_userns_clone"
-        if os.path.exists(userns_config):
-            f = open(userns_config, "r")
-            val = f.read()
-            f.close()
-            if str(val).rstrip() == "1":
-                return True
-
-        return False
-
 
     def parsejson(self, data):
         return json.loads(data.split('\n')[1])
