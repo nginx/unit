@@ -10,7 +10,7 @@ from unit.applications.lang.python import TestApplicationPython
 from unit.applications.lang.ruby import TestApplicationRuby
 
 class TestFeatureIsolation(TestApplicationProto):
-    allns = ['user', 'pid', 'mnt', 'ipc', 'uts', 'cgroup', 'net']
+    allns = ['pid', 'mnt', 'ipc', 'uts', 'cgroup', 'net']
 
     def check(self, available, testdir):
         test_conf = {"namespaces": {"credential": True}}
@@ -52,6 +52,11 @@ class TestFeatureIsolation(TestApplicationProto):
         if 'success' in resp:
             available['features']['isolation'] = {}
 
+            userns = self.getns('user')
+            if not userns:
+                return
+
+            available['features']['isolation']['user'] = userns
             for ns in self.allns:
                 ns_value = self.getns(ns)
                 if ns_value:
