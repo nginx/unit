@@ -50,7 +50,7 @@ class TestFeatureIsolation(TestApplicationProto):
         resp = module.conf(test_conf, 'applications/' + app + '/isolation')
         userns = self.getns('user')
 
-        if 'success' in resp and userns:
+        if 'success' in resp and userns and self.have_unpriv_userns():
             available['features']['isolation'] = {'user': userns}
 
             for ns in self.allns:
@@ -69,6 +69,18 @@ class TestFeatureIsolation(TestApplicationProto):
             data = int(os.readlink(nspath)[len(nstype) + 2 : -1])
 
         return data
+
+    def have_unpriv_userns(self):
+        userns_config = "/proc/sys/kernel/unprivileged_userns_clone"
+        if os.path.exists(userns_config):
+            f = open(userns_config, "r")
+            val = f.read()
+            f.close()
+            if str(val).rstrip() == "1":
+                return True
+
+        return False
+
 
     def parsejson(self, data):
         return json.loads(data.split('\n')[1])
