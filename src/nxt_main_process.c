@@ -618,7 +618,6 @@ nxt_main_start_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
     char                *user, *group;
     u_char              *title, *last, *end;
     size_t              size;
-    nxt_str_t           str;
     nxt_process_init_t  *init;
 
     size = sizeof(nxt_process_init_t)
@@ -663,22 +662,17 @@ nxt_main_start_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
             return NXT_ERROR;
         }
     } else {
-        str.start = (u_char *) rt->user_cred.user;
-        str.length = nxt_strlen(rt->user_cred.user);
-
-        if (!nxt_str_eq(&app_conf->user, str.start, str.length)) 
-        {
+        if (!nxt_str_eq(&app_conf->user, (u_char *) rt->user_cred.user,
+                        nxt_strlen(rt->user_cred.user))) {
             nxt_alert(task, "cannot set user \"%V\" for app \"%V\": "
                       "missing capabilities", &app_conf->user,
                       &app_conf->name);
             return NXT_ERROR;
         }
 
-        str.start = (u_char *) rt->group;
-        str.length = nxt_strlen(rt->group);
-
         if (app_conf->group.length > 0
-            && !nxt_str_eq(&app_conf->group, str.start, str.length)) 
+            && !nxt_str_eq(&app_conf->group, (u_char *) rt->group,
+                           nxt_strlen(rt->group)))
         {
             nxt_alert(task, "cannot set group \"%V\" for app \"%V\": "
                             "missing capabilities", &app_conf->group,
