@@ -621,11 +621,14 @@ nxt_main_start_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
     nxt_str_t           str;
     nxt_process_init_t  *init;
 
-    size = sizeof(nxt_process_init_t)
-           + sizeof(nxt_user_cred_t)
-           + app_conf->user.length + 1
-           + app_conf->group.length + 1
-           + app_conf->name.length + sizeof("\"\" application");
+    size = sizeof(nxt_process_init_t) + sizeof("\"\" application");
+
+    if (rt->capabilities.setid) {
+        size += sizeof(nxt_user_cred_t)
+                + app_conf->user.length + 1
+                + app_conf->group.length + 1
+                + app_conf->name.length;
+    }
 
     init = nxt_malloc(size);
     if (nxt_slow_path(init == NULL)) {
