@@ -978,6 +978,9 @@ nxt_unit_process_websocket(nxt_unit_ctx_t *ctx, nxt_unit_recv_msg_t *recv_msg)
         } else {
             b = nxt_unit_mmap_buf_get(ctx);
             if (nxt_slow_path(b == NULL)) {
+                nxt_unit_alert(ctx, "#%"PRIu32": failed to allocate buf",
+                               req_impl->stream);
+
                 return NXT_UNIT_ERROR;
             }
 
@@ -1053,8 +1056,6 @@ nxt_unit_request_info_get(nxt_unit_ctx_t *ctx)
         req_impl = malloc(sizeof(nxt_unit_request_info_impl_t)
                           + lib->request_data_size);
         if (nxt_slow_path(req_impl == NULL)) {
-            nxt_unit_warn(ctx, "request info allocation failed");
-
             return NULL;
         }
 
@@ -1155,8 +1156,6 @@ nxt_unit_websocket_frame_get(nxt_unit_ctx_t *ctx)
 
         ws_impl = malloc(sizeof(nxt_unit_websocket_frame_impl_t));
         if (nxt_slow_path(ws_impl == NULL)) {
-            nxt_unit_warn(ctx, "websocket frame allocation failed");
-
             return NULL;
         }
 
@@ -1673,6 +1672,8 @@ nxt_unit_response_buf_alloc(nxt_unit_request_info_t *req, uint32_t size)
 
     mmap_buf = nxt_unit_mmap_buf_get(req->ctx);
     if (nxt_slow_path(mmap_buf == NULL)) {
+        nxt_unit_req_alert(req, "response_buf_alloc: failed to allocate buf");
+
         return NULL;
     }
 
@@ -1733,8 +1734,6 @@ nxt_unit_mmap_buf_get(nxt_unit_ctx_t *ctx)
 
         mmap_buf = malloc(sizeof(nxt_unit_mmap_buf_t));
         if (nxt_slow_path(mmap_buf == NULL)) {
-            nxt_unit_warn(ctx, "failed to allocate buf");
-
             return NULL;
         }
 
