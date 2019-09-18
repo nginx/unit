@@ -66,8 +66,13 @@ class TestFeatureIsolation(TestApplicationProto):
         # read namespace id from symlink file:
         # it points to: '<nstype>:[<ns id>]'
         # # eg.: 'pid:[4026531836]'
-        data = os.readlink("/proc/self/ns/%s" % nstype)[len(nstype) + 2 : -1]
-        return int(data)
+        nspath = '/proc/self/ns/' + nstype
+        data = None
+
+        if os.path.exists(nspath):
+            data = int(os.readlink(nspath)[len(nstype) + 2 : -1])
+
+        return data
 
     def parsejson(self, data):
         return json.loads(data.split('\n')[1])
