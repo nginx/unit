@@ -744,19 +744,21 @@ nxt_main_create_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
 
     pid = nxt_process_create(task, process);
 
-    nxt_port_use(task, port, -1);
-
     switch (pid) {
 
     case -1:
         return NXT_ERROR;
 
     case 0:
+        nxt_port_use(task, port, -1);
+
         /* A worker process, return to the event engine work queue loop. */
         return NXT_AGAIN;
 
     default:
         /* The main process created a new process. */
+
+        nxt_port_use(task, port, -1);
 
         nxt_port_read_close(port);
         nxt_port_write_enable(task, port);
