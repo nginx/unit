@@ -38,9 +38,13 @@ typedef struct {
 typedef struct {
     uint32_t                 count;
     uint32_t                 threads;
+
+    nxt_mp_t                 *mem_pool;
+
     nxt_router_t             *router;
     nxt_http_routes_t        *routes;
-    nxt_mp_t                 *mem_pool;
+
+    nxt_lvlhsh_t             mtypes_hash;
 
     nxt_router_access_log_t  *access_log;
 } nxt_router_conf_t;

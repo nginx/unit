@@ -507,3 +507,69 @@ nxt_decode_uri(u_char *dst, u_char *src, size_t length)
 
     return dst;
 }
+
+
+uintptr_t
+nxt_encode_uri(u_char *dst, u_char *src, size_t length)
+{
+    u_char      *end;
+    nxt_uint_t  n;
+
+    static const u_char  hex[16] = "0123456789ABCDEF";
+
+                    /* " ", "#", "%", "?", %00-%1F, %7F-%FF */
+
+    static const uint32_t  escape[] = {
+        0xffffffff, /* 1111 1111 1111 1111 1111 1111 1111 1111 */
+
+                    /* ?>=< ;:98 7654 3210 /.-, +*)( '&%$ #"! */
+        0x80000029, /* 1000 0000 0000 0000 0000 0000 0010 1001 */
+
+                    /* _^]\ [ZYX WVUT SRQP ONML KJIH GFED CBA@ */
+        0x00000000, /* 0000 0000 0000 0000 0000 0000 0000 0000 */
+
+                    /* ~}| {zyx wvut srqp onml kjih gfed cba` */
+        0x80000000, /* 1000 0000 0000 0000 0000 0000 0000 0000 */
+
+        0xffffffff, /* 1111 1111 1111 1111 1111 1111 1111 1111 */
+        0xffffffff, /* 1111 1111 1111 1111 1111 1111 1111 1111 */
+        0xffffffff, /* 1111 1111 1111 1111 1111 1111 1111 1111 */
+        0xffffffff  /* 1111 1111 1111 1111 1111 1111 1111 1111 */
+    };
+
+    end = src + length;
+
+    if (dst == NULL) {
+
+        /* Find the number of the characters to be escaped. */
+
+        n = 0;
+
+        while (src < end) {
+
+            if (escape[*src >> 5] & (1U << (*src & 0x1f))) {
+                n++;
+            }
+
+            src++;
+        }
+
+        return (uintptr_t) n;
+    }
+
+    while (src < end) {
+
+        if (escape[*src >> 5] & (1U << (*src & 0x1f))) {
+            *dst++ = '%';
+            *dst++ = hex[*src >> 4];
+            *dst++ = hex[*src & 0xf];
+
+        } else {
+            *dst++ = *src;
+        }
+
+        src++;
+    }
+
+    return (uintptr_t) dst;
+}

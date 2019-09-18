@@ -8,6 +8,7 @@
 #include <nxt_conf.h>
 #include <nxt_cert.h>
 #include <nxt_router.h>
+#include <nxt_http.h>
 
 
 typedef enum {
@@ -45,6 +46,12 @@ static nxt_int_t nxt_conf_vldt_type(nxt_conf_validation_t *vldt,
 static nxt_int_t nxt_conf_vldt_error(nxt_conf_validation_t *vldt,
     const char *fmt, ...);
 
+static nxt_int_t nxt_conf_vldt_mtypes(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_mtypes_type(nxt_conf_validation_t *vldt,
+    nxt_str_t *name, nxt_conf_value_t *value);
+static nxt_int_t nxt_conf_vldt_mtypes_extension(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_listener(nxt_conf_validation_t *vldt,
     nxt_str_t *name, nxt_conf_value_t *value);
 #if (NXT_TLS)
@@ -130,6 +137,16 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_websocket_members[] = {
 };
 
 
+static nxt_conf_vldt_object_t  nxt_conf_vldt_static_members[] = {
+    { nxt_string("mime_types"),
+      NXT_CONF_VLDT_OBJECT,
+      &nxt_conf_vldt_mtypes,
+      NULL },
+
+    NXT_CONF_VLDT_END
+};
+
+
 static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[] = {
     { nxt_string("header_read_timeout"),
       NXT_CONF_VLDT_INTEGER,
@@ -160,6 +177,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[] = {
       NXT_CONF_VLDT_OBJECT,
       &nxt_conf_vldt_object,
       (void *) &nxt_conf_vldt_websocket_members },
+
+    { nxt_string("static"),
+      NXT_CONF_VLDT_OBJECT,
+      &nxt_conf_vldt_object,
+      (void *) &nxt_conf_vldt_static_members },
 
     NXT_CONF_VLDT_END
 };
@@ -287,6 +309,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_action_members[] = {
     { nxt_string("pass"),
       NXT_CONF_VLDT_STRING,
       &nxt_conf_vldt_pass,
+      NULL },
+
+    { nxt_string("share"),
+      NXT_CONF_VLDT_STRING,
+      NULL,
       NULL },
 
     NXT_CONF_VLDT_END
@@ -732,6 +759,108 @@ nxt_conf_vldt_error(nxt_conf_validation_t *vldt, const char *fmt, ...)
     vldt->error.start = p;
 
     return NXT_DECLINED;
+}
+
+
+typedef struct {
+    nxt_mp_t      *pool;
+    nxt_str_t     *type;
+    nxt_lvlhsh_t  hash;
+} nxt_conf_vldt_mtypes_ctx_t;
+
+
+static nxt_int_t
+nxt_conf_vldt_mtypes(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
+{
+    nxt_int_t                   ret;
+    nxt_conf_vldt_mtypes_ctx_t  ctx;
+
+    ctx.pool = nxt_mp_create(1024, 128, 256, 32);
+    if (nxt_slow_path(ctx.pool == NULL)) {
+        return NXT_ERROR;
+    }
+
+    nxt_lvlhsh_init(&ctx.hash);
+
+    vldt->ctx = &ctx;
+
+    ret = nxt_conf_vldt_object_iterator(vldt, value,
+                                        &nxt_conf_vldt_mtypes_type);
+
+    vldt->ctx = NULL;
+
+    nxt_mp_destroy(ctx.pool);
+
+    return ret;
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_mtypes_type(nxt_conf_validation_t *vldt, nxt_str_t *name,
+    nxt_conf_value_t *value)
+{
+    nxt_int_t                   ret;
+    nxt_conf_vldt_mtypes_ctx_t  *ctx;
+
+    ret = nxt_conf_vldt_type(vldt, name, value,
+                             NXT_CONF_VLDT_STRING|NXT_CONF_VLDT_ARRAY);
+    if (ret != NXT_OK) {
+        return ret;
+    }
+
+    ctx = vldt->ctx;
+
+    ctx->type = nxt_mp_get(ctx->pool, sizeof(nxt_str_t));
+    if (nxt_slow_path(ctx->type == NULL)) {
+        return NXT_ERROR;
+    }
+
+    *ctx->type = *name;
+
+    if (nxt_conf_type(value) == NXT_CONF_ARRAY) {
+        return nxt_conf_vldt_array_iterator(vldt, value,
+                                            &nxt_conf_vldt_mtypes_extension);
+    }
+
+    /* NXT_CONF_STRING */
+
+    return nxt_conf_vldt_mtypes_extension(vldt, value);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_mtypes_extension(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value)
+{
+    nxt_str_t                   ext, *dup_type;
+    nxt_conf_vldt_mtypes_ctx_t  *ctx;
+
+    ctx = vldt->ctx;
+
+    if (nxt_conf_type(value) != NXT_CONF_STRING) {
+        return nxt_conf_vldt_error(vldt, "The \"%V\" MIME type array must "
+                                   "contain only strings.", ctx->type);
+    }
+
+    nxt_conf_get_string(value, &ext);
+
+    if (ext.length == 0) {
+        return nxt_conf_vldt_error(vldt, "An empty file extension for "
+                                         "the \"%V\" MIME type.", ctx->type);
+    }
+
+    dup_type = nxt_http_static_mtypes_hash_find(&ctx->hash, &ext);
+
+    if (dup_type != NULL) {
+        return nxt_conf_vldt_error(vldt, "The \"%V\" file extension has been "
+                                         "declared for \"%V\" and \"%V\" "
+                                         "MIME types at the same time.",
+                                         &ext, dup_type, ctx->type);
+    }
+
+    return nxt_http_static_mtypes_hash_add(ctx->pool, &ctx->hash,
+                                           &ext, ctx->type);
 }
 
 

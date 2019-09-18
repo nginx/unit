@@ -24,7 +24,9 @@ typedef enum {
     NXT_HTTP_NOT_MODIFIED = 304,
 
     NXT_HTTP_BAD_REQUEST = 400,
+    NXT_HTTP_FORBIDDEN = 403,
     NXT_HTTP_NOT_FOUND = 404,
+    NXT_HTTP_METHOD_NOT_ALLOWED = 405,
     NXT_HTTP_REQUEST_TIMEOUT = 408,
     NXT_HTTP_LENGTH_REQUIRED = 411,
     NXT_HTTP_PAYLOAD_TOO_LARGE = 413,
@@ -187,6 +189,25 @@ typedef struct {
 } nxt_http_proto_table_t;
 
 
+#define NXT_HTTP_DATE_LEN  nxt_length("Wed, 31 Dec 1986 16:40:00 GMT")
+
+nxt_inline u_char *
+nxt_http_date(u_char *buf, struct tm *tm)
+{
+    static const char  *week[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri",
+                                   "Sat" };
+
+    static const char  *month[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+
+    return nxt_sprintf(buf, buf + NXT_HTTP_DATE_LEN,
+                       "%s, %02d %s %4d %02d:%02d:%02d GMT",
+                       week[tm->tm_wday], tm->tm_mday,
+                       month[tm->tm_mon], tm->tm_year + 1900,
+                       tm->tm_hour, tm->tm_min, tm->tm_sec);
+}
+
+
 nxt_int_t nxt_http_init(nxt_task_t *task, nxt_runtime_t *rt);
 nxt_int_t nxt_h1p_init(nxt_task_t *task, nxt_runtime_t *rt);
 nxt_int_t nxt_http_response_hash_init(nxt_task_t *task, nxt_runtime_t *rt);
@@ -224,6 +245,14 @@ nxt_http_pass_t *nxt_http_pass_application(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_str_t *name);
 void nxt_http_routes_cleanup(nxt_task_t *task, nxt_http_routes_t *routes);
 void nxt_http_pass_cleanup(nxt_task_t *task, nxt_http_pass_t *pass);
+
+nxt_http_pass_t *nxt_http_static_handler(nxt_task_t *task,
+    nxt_http_request_t *r, nxt_http_pass_t *pass);
+nxt_int_t nxt_http_static_mtypes_init(nxt_mp_t *mp, nxt_lvlhsh_t *hash);
+nxt_int_t nxt_http_static_mtypes_hash_add(nxt_mp_t *mp, nxt_lvlhsh_t *hash,
+    nxt_str_t *extension, nxt_str_t *type);
+nxt_str_t *nxt_http_static_mtypes_hash_find(nxt_lvlhsh_t *hash,
+    nxt_str_t *extension);
 
 nxt_http_pass_t *nxt_http_request_application(nxt_task_t *task,
     nxt_http_request_t *r, nxt_http_pass_t *pass);

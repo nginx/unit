@@ -122,6 +122,8 @@ static void nxt_router_conf_send(nxt_task_t *task,
 
 static nxt_int_t nxt_router_conf_create(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, u_char *start, u_char *end);
+static nxt_int_t nxt_router_conf_process_static(nxt_task_t *task,
+    nxt_router_conf_t *rtcf, nxt_conf_value_t *conf);
 static nxt_app_t *nxt_router_app_find(nxt_queue_t *queue, nxt_str_t *name);
 static void nxt_router_listen_socket_rpc_create(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_socket_conf_t *skcf);
@@ -1399,7 +1401,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_conf_value_t            *conf, *http, *value, *websocket;
     nxt_conf_value_t            *applications, *application;
     nxt_conf_value_t            *listeners, *listener;
-    nxt_conf_value_t            *routes_conf;
+    nxt_conf_value_t            *routes_conf, *static_conf;
     nxt_socket_conf_t           *skcf;
     nxt_http_routes_t           *routes;
     nxt_event_engine_t          *engine;
@@ -1419,6 +1421,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 #if (NXT_TLS)
     static nxt_str_t  certificate_path = nxt_string("/tls/certificate");
 #endif
+    static nxt_str_t  static_path = nxt_string("/settings/http/static");
     static nxt_str_t  websocket_path = nxt_string("/settings/http/websocket");
 
     conf = nxt_conf_json_parse(tmcf->mem_pool, start, end, NULL);
@@ -1438,6 +1441,13 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
     if (tmcf->router_conf->threads == 0) {
         tmcf->router_conf->threads = nxt_ncpu;
+    }
+
+    static_conf = nxt_conf_get_path(conf, &static_path);
+
+    ret = nxt_router_conf_process_static(task, tmcf->router_conf, static_conf);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        return NXT_ERROR;
     }
 
     router = tmcf->router_conf->router;
@@ -1785,6 +1795,87 @@ fail:
     } nxt_queue_loop;
 
     return NXT_ERROR;
+}
+
+
+static nxt_int_t
+nxt_router_conf_process_static(nxt_task_t *task, nxt_router_conf_t *rtcf,
+    nxt_conf_value_t *conf)
+{
+    uint32_t          next, i;
+    nxt_mp_t          *mp;
+    nxt_str_t         *type, extension, str;
+    nxt_int_t         ret;
+    nxt_uint_t        exts;
+    nxt_conf_value_t  *mtypes_conf, *ext_conf, *value;
+
+    static nxt_str_t  mtypes_path = nxt_string("/mime_types");
+
+    mp = rtcf->mem_pool;
+
+    ret = nxt_http_static_mtypes_init(mp, &rtcf->mtypes_hash);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        return NXT_ERROR;
+    }
+
+    if (conf == NULL) {
+        return NXT_OK;
+    }
+
+    mtypes_conf = nxt_conf_get_path(conf, &mtypes_path);
+
+    if (mtypes_conf != NULL) {
+        next = 0;
+
+        for ( ;; ) {
+            ext_conf = nxt_conf_next_object_member(mtypes_conf, &str, &next);
+
+            if (ext_conf == NULL) {
+                break;
+            }
+
+            type = nxt_str_dup(mp, NULL, &str);
+            if (nxt_slow_path(type == NULL)) {
+                return NXT_ERROR;
+            }
+
+            if (nxt_conf_type(ext_conf) == NXT_CONF_STRING) {
+                nxt_conf_get_string(ext_conf, &str);
+
+                if (nxt_slow_path(nxt_str_dup(mp, &extension, &str) == NULL)) {
+                    return NXT_ERROR;
+                }
+
+                ret = nxt_http_static_mtypes_hash_add(mp, &rtcf->mtypes_hash,
+                                                      &extension, type);
+                if (nxt_slow_path(ret != NXT_OK)) {
+                    return NXT_ERROR;
+                }
+
+                continue;
+            }
+
+            exts = nxt_conf_array_elements_count(ext_conf);
+
+            for (i = 0; i < exts; i++) {
+                value = nxt_conf_get_array_element(ext_conf, i);
+
+                nxt_conf_get_string(value, &str);
+
+                if (nxt_slow_path(nxt_str_dup(mp, &extension, &str) == NULL)) {
+                    return NXT_ERROR;
+                }
+
+                ret = nxt_http_static_mtypes_hash_add(mp, &rtcf->mtypes_hash,
+                                                      &extension, type);
+                if (nxt_slow_path(ret != NXT_OK)) {
+                    return NXT_ERROR;
+                }
+            }
+        }
+    }
+
+    return NXT_OK;
 }
 
 

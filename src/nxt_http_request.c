@@ -17,8 +17,8 @@ static void nxt_http_request_mem_buf_completion(nxt_task_t *task, void *obj,
     void *data);
 static void nxt_http_request_done(nxt_task_t *task, void *obj, void *data);
 
-static u_char *nxt_http_date(u_char *buf, nxt_realtime_t *now, struct tm *tm,
-    size_t size, const char *format);
+static u_char *nxt_http_date_cache_handler(u_char *buf, nxt_realtime_t *now,
+    struct tm *tm, size_t size, const char *format);
 
 
 static const nxt_http_request_state_t  nxt_http_request_init_state;
@@ -27,9 +27,9 @@ static const nxt_http_request_state_t  nxt_http_request_body_state;
 
 nxt_time_string_t  nxt_http_date_cache = {
     (nxt_atomic_uint_t) -1,
-    nxt_http_date,
-    "%s, %02d %s %4d %02d:%02d:%02d GMT",
-    nxt_length("Wed, 31 Dec 1986 16:40:00 GMT"),
+    nxt_http_date_cache_handler,
+    NULL,
+    NXT_HTTP_DATE_LEN,
     NXT_THREAD_TIME_GMT,
     NXT_THREAD_TIME_SEC,
 };
@@ -578,17 +578,8 @@ nxt_http_request_close_handler(nxt_task_t *task, void *obj, void *data)
 
 
 static u_char *
-nxt_http_date(u_char *buf, nxt_realtime_t *now, struct tm *tm, size_t size,
-    const char *format)
+nxt_http_date_cache_handler(u_char *buf, nxt_realtime_t *now, struct tm *tm,
+    size_t size, const char *format)
 {
-    static const char  *week[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri",
-                                   "Sat" };
-
-    static const char  *month[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
-
-    return nxt_sprintf(buf, buf + size, format,
-                       week[tm->tm_wday], tm->tm_mday,
-                       month[tm->tm_mon], tm->tm_year + 1900,
-                       tm->tm_hour, tm->tm_min, tm->tm_sec);
+    return nxt_http_date(buf, tm);
 }
