@@ -48,7 +48,7 @@ struct nxt_process_init_s {
     uint32_t               stream;
 
     nxt_process_restart_t  restart;
-    
+
     union {
         nxt_process_clone_t clone;
     } isolation;
