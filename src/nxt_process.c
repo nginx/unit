@@ -142,9 +142,6 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
     int                 pipefd[2];
     nxt_int_t           ret;
     nxt_pid_t           pid;
-    nxt_process_init_t  *init;
-
-    init = process->init;
 
     if (nxt_slow_path(pipe(pipefd) == -1)) {
         nxt_alert(task, "failed to create process pipe for passing rpid");
@@ -152,7 +149,7 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
     }
 
 #if (NXT_HAVE_CLONE)
-    pid = nxt_clone(SIGCHLD|init->isolation.clone.flags);
+    pid = nxt_clone(SIGCHLD|process->init->isolation.clone.flags);
 #else
     pid = fork();
 #endif
@@ -162,10 +159,10 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
         if (nxt_errno == NXT_EPERM) {
             nxt_alert(task, "clone() failed while creating \"%s\". "
                       "Check namespace flags %E",
-                      init->name, nxt_errno);
+                      process->init->name, nxt_errno);
         } else {
             nxt_alert(task, "clone() failed while creating \"%s\" %E",
-                      init->name, nxt_errno);
+                      process->init->name, nxt_errno);
         }
 #else
         nxt_alert(task, "fork() failed while creating \"%s\" %E",
@@ -211,7 +208,7 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
      * process by sending a NXT_ERROR in the pipe.
      */
 
-    nxt_debug(task, "fork/clone(\"%s\"): %PI", init->name, pid);
+    nxt_debug(task, "fork/clone(\"%s\"): %PI", process->init->name, pid);
 
     if (nxt_slow_path(write(pipefd[1], &pid, sizeof(pid)) == -1)) {
         nxt_alert(task, "failed to write real pid");
@@ -219,8 +216,8 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
     }
 
 #if (NXT_HAVE_CLONE_NEWUSER)
-    if ((init->isolation.clone.flags & CLONE_NEWUSER) == CLONE_NEWUSER) {
-        ret = nxt_clone_proc_map(task, pid, &init->isolation.clone);
+    if ((process->init->isolation.clone.flags & CLONE_NEWUSER) == CLONE_NEWUSER) {
+        ret = nxt_clone_proc_map(task, pid, &process->init->isolation.clone);
         if (nxt_slow_path(ret != NXT_OK)) {
             goto fail_cleanup;
         }
