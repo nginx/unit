@@ -1093,12 +1093,6 @@ nxt_unit_request_info_release(nxt_unit_request_info_t *req)
     req->response = NULL;
     req->response_buf = NULL;
 
-    if (req_impl->process != NULL) {
-        nxt_unit_process_use(req->ctx, req_impl->process, -1);
-
-        req_impl->process = NULL;
-    }
-
     if (req_impl->websocket) {
         nxt_unit_request_hash_find(&ctx_impl->requests, req_impl->stream, 1);
 
@@ -1111,6 +1105,16 @@ nxt_unit_request_info_release(nxt_unit_request_info_t *req)
 
     while (req_impl->incoming_buf != NULL) {
         nxt_unit_mmap_buf_free(req_impl->incoming_buf);
+    }
+
+    /*
+     * Process release should go after buffers release to guarantee mmap
+     * existence.
+     */
+    if (req_impl->process != NULL) {
+        nxt_unit_process_use(req->ctx, req_impl->process, -1);
+
+        req_impl->process = NULL;
     }
 
     pthread_mutex_lock(&ctx_impl->mutex);
