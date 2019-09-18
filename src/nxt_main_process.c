@@ -747,6 +747,7 @@ nxt_main_create_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
     switch (pid) {
 
     case -1:
+        nxt_port_close(task, port);
         return NXT_ERROR;
 
     case 0:
