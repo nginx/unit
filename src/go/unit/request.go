@@ -135,7 +135,7 @@ func nxt_go_request_set_tls(go_req uintptr) {
 //export nxt_go_request_handler
 func nxt_go_request_handler(go_req uintptr, h uintptr) {
 	r := get_request(go_req)
-	handler := *(*http.Handler)(unsafe.Pointer(h))
+	handler := get_handler(h)
 
 	go func(r *request) {
 		handler.ServeHTTP(r.response(), &r.req)
