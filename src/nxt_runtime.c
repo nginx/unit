@@ -692,12 +692,24 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
     rt->state = NXT_STATE;
     rt->control = NXT_CONTROL_SOCK;
 
+    nxt_memzero(&rt->capabilities, sizeof(nxt_capabilities_t));
+
     if (nxt_runtime_conf_read_cmd(task, rt) != NXT_OK) {
         return NXT_ERROR;
     }
 
-    if (nxt_user_cred_get(task, &rt->user_cred, rt->group) != NXT_OK) {
+    if (nxt_capability_set(task, &rt->capabilities) != NXT_OK) {
         return NXT_ERROR;
+    }
+
+    if (rt->capabilities.setid) {
+        if (nxt_user_cred_get(task, &rt->user_cred, rt->group) != NXT_OK) {
+            return NXT_ERROR;
+        }
+
+    } else {
+        nxt_log(task, NXT_LOG_WARN, "Unit is running unprivileged, then it "
+                "cannot use arbitrary user and group.");
     }
 
     /* An engine's parameters. */

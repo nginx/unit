@@ -333,6 +333,7 @@ nxt_unit_init(nxt_unit_init_t *init)
         }
     }
 
+    lib->pid = read_port.id.pid;
     ctx = &lib->main_ctx.ctx;
 
     rc = lib->callbacks.add_port(ctx, &ready_port);
@@ -398,7 +399,6 @@ nxt_unit_create(nxt_unit_init_t *init)
     lib->processes.slot = NULL;
     lib->ports.slot = NULL;
 
-    lib->pid = getpid();
     lib->log_fd = STDERR_FILENO;
     lib->online = 1;
 
