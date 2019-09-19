@@ -472,7 +472,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[] = {
       NXT_CONF_VLDT_OBJECT,
       &nxt_conf_vldt_object_iterator,
       (void *) &nxt_conf_vldt_environment },
- 
+
     { nxt_string("isolation"),
       NXT_CONF_VLDT_OBJECT,
       &nxt_conf_vldt_isolation,
