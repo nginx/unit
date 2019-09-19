@@ -15,7 +15,7 @@
 #endif
 
 #ifdef NXT_LINUX
-#include <linux/sched.h>
+#include <sched.h>
 #endif
 
 
