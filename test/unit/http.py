@@ -12,6 +12,11 @@ class TestHTTP(TestUnit):
         port = 7080 if 'port' not in kwargs else kwargs['port']
         url = '/' if 'url' not in kwargs else kwargs['url']
         http = 'HTTP/1.0' if 'http_10' in kwargs else 'HTTP/1.1'
+        read_buffer_size = (
+            4096
+            if 'read_buffer_size' not in kwargs
+            else kwargs['read_buffer_size']
+        )
 
         headers = (
             {'Host': 'localhost', 'Connection': 'close'}
@@ -94,7 +99,9 @@ class TestHTTP(TestUnit):
             read_timeout = (
                 30 if 'read_timeout' not in kwargs else kwargs['read_timeout']
             )
-            resp = self.recvall(sock, read_timeout=read_timeout).decode(enc)
+            resp = self.recvall(
+                sock, read_timeout=read_timeout, buff_size=read_buffer_size
+            ).decode(enc)
 
         if TestUnit.detailed:
             print('<<<')
@@ -117,6 +124,9 @@ class TestHTTP(TestUnit):
 
     def get(self, **kwargs):
         return self.http('GET', **kwargs)
+
+    def head(self, **kwargs):
+        return self.http('HEAD', **kwargs)
 
     def post(self, **kwargs):
         return self.http('POST', **kwargs)

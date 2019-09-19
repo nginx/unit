@@ -376,14 +376,8 @@ nxt_http_route_match_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_http_route_match_conf_t  mtcf;
 
     static nxt_str_t  pass_path = nxt_string("/action/pass");
+    static nxt_str_t  share_path = nxt_string("/action/share");
     static nxt_str_t  match_path = nxt_string("/match");
-
-    pass_conf = nxt_conf_get_path(cv, &pass_path);
-    if (nxt_slow_path(pass_conf == NULL)) {
-        return NULL;
-    }
-
-    nxt_conf_get_string(pass_conf, &pass);
 
     match_conf = nxt_conf_get_path(cv, &match_path);
 
@@ -400,6 +394,19 @@ nxt_http_route_match_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     match->pass.u.route = NULL;
     match->pass.handler = NULL;
     match->items = n;
+
+    pass_conf = nxt_conf_get_path(cv, &pass_path);
+
+    if (pass_conf == NULL) {
+        pass_conf = nxt_conf_get_path(cv, &share_path);
+        if (nxt_slow_path(pass_conf == NULL)) {
+            return NULL;
+        }
+
+        match->pass.handler = nxt_http_static_handler;
+    }
+
+    nxt_conf_get_string(pass_conf, &pass);
 
     string = nxt_str_dup(mp, &match->pass.name, &pass);
     if (nxt_slow_path(string == NULL)) {
@@ -870,13 +877,18 @@ static void
 nxt_http_route_resolve(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_http_route_t *route)
 {
+    nxt_http_pass_t         *pass;
     nxt_http_route_match_t  **match, **end;
 
     match = &route->match[0];
     end = match + route->items;
 
     while (match < end) {
-        nxt_http_pass_resolve(task, tmcf, &(*match)->pass);
+        pass = &(*match)->pass;
+
+        if (pass->handler == NULL) {
+            nxt_http_pass_resolve(task, tmcf, &(*match)->pass);
+        }
 
         match++;
     }

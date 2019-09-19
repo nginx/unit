@@ -58,16 +58,28 @@ static jint JNICALL nxt_java_Request_getServerPort(JNIEnv *env, jclass cls,
     jlong req_ptr);
 static jboolean JNICALL nxt_java_Request_isSecure(JNIEnv *env, jclass cls,
     jlong req_ptr);
+static void JNICALL nxt_java_Request_upgrade(JNIEnv *env, jclass cls,
+    jlong req_info_ptr);
+static jboolean JNICALL nxt_java_Request_isUpgrade(JNIEnv *env, jclass cls,
+    jlong req_info_ptr);
 static void JNICALL nxt_java_Request_log(JNIEnv *env, jclass cls,
     jlong req_info_ptr, jstring msg, jint msg_len);
 static void JNICALL nxt_java_Request_trace(JNIEnv *env, jclass cls,
     jlong req_info_ptr, jstring msg, jint msg_len);
 static jobject JNICALL nxt_java_Request_getResponse(JNIEnv *env, jclass cls,
     jlong req_info_ptr);
+static void JNICALL nxt_java_Request_sendWsFrameBuf(JNIEnv *env, jclass cls,
+    jlong req_info_ptr, jobject buf, jint pos, jint len, jbyte opCode, jboolean last);
+static void JNICALL nxt_java_Request_sendWsFrameArr(JNIEnv *env, jclass cls,
+    jlong req_info_ptr, jarray arr, jint pos, jint len, jbyte opCode, jboolean last);
+static void JNICALL nxt_java_Request_closeWs(JNIEnv *env, jclass cls,
+    jlong req_info_ptr);
 
 
 static jclass     nxt_java_Request_class;
 static jmethodID  nxt_java_Request_ctor;
+static jmethodID  nxt_java_Request_processWsFrame;
+static jmethodID  nxt_java_Request_closeWsSession;
 
 
 int
@@ -87,6 +99,18 @@ nxt_java_initRequest(JNIEnv *env, jobject cl)
 
     nxt_java_Request_ctor = (*env)->GetMethodID(env, cls, "<init>", "(Lnginx/unit/Context;JJ)V");
     if (nxt_java_Request_ctor == NULL) {
+        (*env)->DeleteGlobalRef(env, cls);
+        return NXT_UNIT_ERROR;
+    }
+
+    nxt_java_Request_processWsFrame = (*env)->GetMethodID(env, cls, "processWsFrame", "(Ljava/nio/ByteBuffer;BZ)V");
+    if (nxt_java_Request_processWsFrame == NULL) {
+        (*env)->DeleteGlobalRef(env, cls);
+        return NXT_UNIT_ERROR;
+    }
+
+    nxt_java_Request_closeWsSession = (*env)->GetMethodID(env, cls, "closeWsSession", "()V");
+    if (nxt_java_Request_closeWsSession == NULL) {
         (*env)->DeleteGlobalRef(env, cls);
         return NXT_UNIT_ERROR;
     }
@@ -172,6 +196,14 @@ nxt_java_initRequest(JNIEnv *env, jobject cl)
           (char *) "(J)Z",
           nxt_java_Request_isSecure },
 
+        { (char *) "upgrade",
+          (char *) "(J)V",
+          nxt_java_Request_upgrade },
+
+        { (char *) "isUpgrade",
+          (char *) "(J)Z",
+          nxt_java_Request_isUpgrade },
+
         { (char *) "log",
           (char *) "(JLjava/lang/String;I)V",
           nxt_java_Request_log },
@@ -183,6 +215,18 @@ nxt_java_initRequest(JNIEnv *env, jobject cl)
         { (char *) "getResponse",
           (char *) "(J)Lnginx/unit/Response;",
           nxt_java_Request_getResponse },
+
+        { (char *) "sendWsFrame",
+          (char *) "(JLjava/nio/ByteBuffer;IIBZ)V",
+          nxt_java_Request_sendWsFrameBuf },
+
+        { (char *) "sendWsFrame",
+          (char *) "(J[BIIBZ)V",
+          nxt_java_Request_sendWsFrameArr },
+
+        { (char *) "closeWs",
+          (char *) "(J)V",
+          nxt_java_Request_closeWs },
 
     };
 
@@ -625,6 +669,32 @@ nxt_java_Request_isSecure(JNIEnv *env, jclass cls, jlong req_ptr)
 
 
 static void JNICALL
+nxt_java_Request_upgrade(JNIEnv *env, jclass cls, jlong req_info_ptr)
+{
+    nxt_unit_request_info_t  *req;
+
+    req = nxt_jlong2ptr(req_info_ptr);
+
+    if (!nxt_unit_response_is_init(req)) {
+        nxt_unit_response_init(req, 101, 0, 0);
+    }
+
+    (void) nxt_unit_response_upgrade(req);
+}
+
+
+static jboolean JNICALL
+nxt_java_Request_isUpgrade(JNIEnv *env, jclass cls, jlong req_info_ptr)
+{
+    nxt_unit_request_info_t  *req;
+
+    req = nxt_jlong2ptr(req_info_ptr);
+
+    return nxt_unit_request_is_websocket_handshake(req);
+}
+
+
+static void JNICALL
 nxt_java_Request_log(JNIEnv *env, jclass cls, jlong req_info_ptr, jstring msg,
     jint msg_len)
 {
@@ -676,4 +746,78 @@ nxt_java_Request_getResponse(JNIEnv *env, jclass cls, jlong req_info_ptr)
     data = req->data;
 
     return data->jresp;
+}
+
+
+static void JNICALL
+nxt_java_Request_sendWsFrameBuf(JNIEnv *env, jclass cls,
+    jlong req_info_ptr, jobject buf, jint pos, jint len, jbyte opCode, jboolean last)
+{
+    nxt_unit_request_info_t  *req;
+
+    req = nxt_jlong2ptr(req_info_ptr);
+    uint8_t *b = (*env)->GetDirectBufferAddress(env, buf);
+
+    if (b != NULL) {
+        nxt_unit_websocket_send(req, opCode, last, b + pos, len);
+
+    } else {
+        nxt_unit_req_debug(req, "sendWsFrameBuf: b == NULL");
+    }
+}
+
+
+static void JNICALL
+nxt_java_Request_sendWsFrameArr(JNIEnv *env, jclass cls,
+    jlong req_info_ptr, jarray arr, jint pos, jint len, jbyte opCode, jboolean last)
+{
+    nxt_unit_request_info_t  *req;
+
+    req = nxt_jlong2ptr(req_info_ptr);
+    uint8_t *b = (*env)->GetPrimitiveArrayCritical(env, arr, NULL);
+
+    if (b != NULL) {
+        if (!nxt_unit_response_is_sent(req)) {
+            nxt_unit_response_send(req);
+        }
+
+        nxt_unit_websocket_send(req, opCode, last, b + pos, len);
+
+        (*env)->ReleasePrimitiveArrayCritical(env, arr, b, 0);
+
+    } else {
+        nxt_unit_req_debug(req, "sendWsFrameArr: b == NULL");
+    }
+}
+
+
+static void JNICALL
+nxt_java_Request_closeWs(JNIEnv *env, jclass cls, jlong req_info_ptr)
+{
+    nxt_unit_request_info_t  *req;
+    nxt_java_request_data_t  *data;
+
+    req = nxt_jlong2ptr(req_info_ptr);
+
+    data = req->data;
+
+    (*env)->DeleteGlobalRef(env, data->jresp);
+    (*env)->DeleteGlobalRef(env, data->jreq);
+
+    nxt_unit_request_done(req, NXT_UNIT_OK);
+}
+
+
+void
+nxt_java_Request_websocket(JNIEnv *env, jobject jreq, jobject jbuf,
+    uint8_t opcode, uint8_t fin)
+{
+    (*env)->CallVoidMethod(env, jreq, nxt_java_Request_processWsFrame, jbuf, opcode, fin);
+}
+
+
+void
+nxt_java_Request_close(JNIEnv *env, jobject jreq)
+{
+    (*env)->CallVoidMethod(env, jreq, nxt_java_Request_closeWsSession);
 }

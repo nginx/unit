@@ -6,7 +6,6 @@
 
 #include "_cgo_export.h"
 
-#include <nxt_main.h>
 #include <nxt_unit.h>
 #include <nxt_unit_request.h>
 
@@ -39,7 +38,7 @@ nxt_cgo_run(uintptr_t handler)
     init.data = (void *) handler;
 
     ctx = nxt_unit_init(&init);
-    if (nxt_slow_path(ctx == NULL)) {
+    if (ctx == NULL) {
         return NXT_UNIT_ERROR;
     }
 
@@ -171,7 +170,7 @@ nxt_cgo_response_write(uintptr_t req, uintptr_t start, uint32_t len)
 
     rc = nxt_unit_response_write((nxt_unit_request_info_t *) req,
                                  (void *) start, len);
-    if (nxt_slow_path(rc != NXT_UNIT_OK)) {
+    if (rc != NXT_UNIT_OK) {
         return -1;
     }
 

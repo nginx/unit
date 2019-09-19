@@ -71,6 +71,7 @@ NXT_LIB_SRCS=" \
     src/nxt_upstream_round_robin.c \
     src/nxt_http_parse.c \
     src/nxt_app_log.c \
+    src/nxt_capability.c \
     src/nxt_runtime.c \
     src/nxt_conf.c \
     src/nxt_conf_validation.c \
@@ -83,6 +84,7 @@ NXT_LIB_SRCS=" \
     src/nxt_http_response.c \
     src/nxt_http_error.c \
     src/nxt_http_route.c \
+    src/nxt_http_static.c \
     src/nxt_application.c \
     src/nxt_external.c \
     src/nxt_port_hash.c \
@@ -132,6 +134,7 @@ NXT_LIB_SOLARIS_SENDFILEV_SRCS="src/nxt_solaris_sendfilev.c"
 NXT_LIB_MACOSX_SENDFILE_SRCS="src/nxt_macosx_sendfile.c"
 NXT_LIB_AIX_SEND_FILE_SRCS="src/nxt_aix_send_file.c"
 NXT_LIB_HPUX_SENDFILE_SRCS="src/nxt_hpux_sendfile.c"
+NXT_LIB_CLONE_SRCS="src/nxt_clone.c"
 
 NXT_TEST_BUILD_DEPS="src/nxt_test_build.h"
 NXT_TEST_BUILD_SRCS="src/nxt_test_build.c"
@@ -254,6 +257,11 @@ fi
 if [ "$NXT_HAVE_HPUX_SENDFILE" = "YES" \
      -o "$NXT_TEST_BUILD_HPUX_SENDFILE" = "YES" ]; then
     NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_HPUX_SENDFILE_SRCS"
+fi
+
+
+if [ "$NXT_HAVE_CLONE" = "YES" ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_CLONE_SRCS"
 fi
 
 

@@ -51,12 +51,10 @@ nxt_http_request_error(nxt_task_t *task, nxt_http_request_t *r,
     r->resp.content_length = NULL;
     r->resp.content_length_n = nxt_length(error);
 
-    nxt_http_request_header_send(task, r);
-
     r->state = &nxt_http_request_send_error_body_state;
 
-    nxt_work_queue_add(&task->thread->engine->fast_work_queue,
-                       nxt_http_request_send_error_body, task, r, NULL);
+    nxt_http_request_header_send(task, r, nxt_http_request_send_error_body);
+
     return;
 
 fail:

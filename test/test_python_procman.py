@@ -6,7 +6,7 @@ from unit.applications.lang.python import TestApplicationPython
 
 
 class TestPythonProcman(TestApplicationPython):
-    prerequisites = ['python']
+    prerequisites = {'modules': ['python']}
 
     def pids_for_process(self):
         time.sleep(0.2)

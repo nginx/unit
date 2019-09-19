@@ -5,6 +5,71 @@
 <change_log title="unit">
 
 
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10 unit-go1.11
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11"
+         ver="1.11.0" rev="1"
+         date="2019-09-19" time="18:00:00 +0300"
+         packager="Konstantin Pavlov &lt;thresh@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.11.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.11.0" rev="1"
+         date="2019-09-19" time="18:00:00 +0300"
+         packager="Konstantin Pavlov &lt;thresh@nginx.com&gt;">
+
+<change type="feature">
+<para>
+basic support for serving static files.
+</para>
+</change>
+
+<change type="feature">
+<para>
+isolation of application processes with Linux namespaces.
+</para>
+</change>
+
+<change type="feature">
+<para>
+built-in WebSocket server implementation for Java Servlet Containers.
+</para>
+</change>
+
+<change type="feature">
+<para>
+direct addressing of API configuration options containing slashes "/"
+using URI encoding (%2F).
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+segmentation fault might have occurred in Go applications under high load.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+WebSocket support was broken if Unit was built with some linkers other than
+GNU ld (e.g. gold or LLD).
+</para>
+</change>
+
+</changes>
+
+
 <changes apply="unit
                 unit-php
                 unit-python unit-python2.7

@@ -45,7 +45,7 @@ static void nxt_h1p_conn_request_body_read(nxt_task_t *task, void *obj,
     void *data);
 static void nxt_h1p_request_local_addr(nxt_task_t *task, nxt_http_request_t *r);
 static void nxt_h1p_request_header_send(nxt_task_t *task,
-    nxt_http_request_t *r);
+    nxt_http_request_t *r, nxt_work_handler_t body_handler);
 static void nxt_h1p_request_send(nxt_task_t *task, nxt_http_request_t *r,
     nxt_buf_t *out);
 static nxt_buf_t *nxt_h1p_chunk_create(nxt_task_t *task, nxt_http_request_t *r,
@@ -830,8 +830,7 @@ nxt_h1p_request_body_read(nxt_task_t *task, nxt_http_request_t *r)
 
 ready:
 
-    nxt_work_queue_add(&task->thread->engine->fast_work_queue,
-                       r->state->ready_handler, task, r, NULL);
+    r->state->ready_handler(task, r, NULL);
 
     return;
 
@@ -884,8 +883,7 @@ nxt_h1p_conn_request_body_read(nxt_task_t *task, void *obj, void *data)
         c->read = NULL;
         r = h1p->request;
 
-        nxt_work_queue_add(&engine->fast_work_queue, r->state->ready_handler,
-                           task, r, NULL);
+        r->state->ready_handler(task, r, NULL);
     }
 }
 
@@ -996,7 +994,8 @@ static const nxt_str_t  nxt_http_server_error[] = {
 #define UNKNOWN_STATUS_LENGTH  nxt_length("HTTP/1.1 65536\r\n")
 
 static void
-nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r)
+nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r,
+    nxt_work_handler_t body_handler)
 {
     u_char              *p;
     size_t              size;
@@ -1079,6 +1078,7 @@ nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r)
             if (http11) {
                 if (n != NXT_HTTP_NOT_MODIFIED
                     && n != NXT_HTTP_NO_CONTENT
+                    && body_handler != NULL
                     && !h1p->websocket)
                 {
                     h1p->chunked = 1;
@@ -1164,6 +1164,19 @@ nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r)
 
     c->write = header;
     c->write_state = &nxt_h1p_request_send_state;
+
+    if (body_handler != NULL) {
+        /*
+         * The body handler will run before c->io->write() handler,
+         * because the latter was inqueued by nxt_conn_write()
+         * in engine->write_work_queue.
+         */
+        nxt_work_queue_add(&task->thread->engine->fast_work_queue,
+                           body_handler, task, r, NULL);
+
+    } else {
+        header->next = nxt_http_buf_last(r);
+    }
 
     nxt_conn_write(task->thread->engine, c);
 

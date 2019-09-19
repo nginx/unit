@@ -417,16 +417,13 @@ nxt_h1p_conn_ws_frame_process(nxt_task_t *task, nxt_conn_t *c,
     uint8_t             *p, *mask;
     uint16_t            code;
     nxt_http_request_t  *r;
-    nxt_event_engine_t  *engine;
 
-    engine = task->thread->engine;
     r = h1p->request;
 
     c->read = NULL;
 
     if (nxt_slow_path(wsh->opcode == NXT_WEBSOCKET_OP_PING)) {
-        nxt_work_queue_add(&engine->fast_work_queue, nxt_h1p_conn_ws_pong,
-                           task, r, NULL);
+        nxt_h1p_conn_ws_pong(task, r, NULL);
         return;
     }
 
@@ -451,8 +448,7 @@ nxt_h1p_conn_ws_frame_process(nxt_task_t *task, nxt_conn_t *c,
         h1p->websocket_closed = 1;
     }
 
-    nxt_work_queue_add(&engine->fast_work_queue, r->state->ready_handler,
-                       task, r, NULL);
+    r->state->ready_handler(task, r, NULL);
 }
 
 

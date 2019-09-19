@@ -12,8 +12,8 @@
 /*
  * Supported formats:
  *
- *    %[0][width][x][X]O        nxt_off_t
- *    %[0][width]T              nxt_time_t
+ *    %[0][width][x|X]O         nxt_off_t
+ *    %[0][width][x|X]T         nxt_time_t
  *    %[0][width][u][x|X]z      ssize_t/size_t
  *    %[0][width][u][x|X]d      int/u_int
  *    %[0][width][u][x|X]l      long

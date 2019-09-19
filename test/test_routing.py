@@ -3,7 +3,7 @@ from unit.applications.proto import TestApplicationProto
 
 
 class TestRouting(TestApplicationProto):
-    prerequisites = ['python']
+    prerequisites = {'modules': ['python']}
 
     def setUp(self):
         super().setUp()

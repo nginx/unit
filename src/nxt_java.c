@@ -13,6 +13,7 @@
 #include <nxt_unit_field.h>
 #include <nxt_unit_request.h>
 #include <nxt_unit_response.h>
+#include <nxt_unit_websocket.h>
 
 #include <java/nxt_jni.h>
 
@@ -30,6 +31,8 @@ static nxt_int_t nxt_java_pre_init(nxt_task_t *task,
     nxt_common_app_conf_t *conf);
 static nxt_int_t nxt_java_init(nxt_task_t *task, nxt_common_app_conf_t *conf);
 static void nxt_java_request_handler(nxt_unit_request_info_t *req);
+static void nxt_java_websocket_handler(nxt_unit_websocket_frame_t *ws);
+static void nxt_java_close_handler(nxt_unit_request_info_t *req);
 
 static uint32_t  compat[] = {
     NXT_VERNUM, NXT_DEBUG,
@@ -347,6 +350,8 @@ nxt_java_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     nxt_unit_default_init(task, &java_init);
 
     java_init.callbacks.request_handler = nxt_java_request_handler;
+    java_init.callbacks.websocket_handler = nxt_java_websocket_handler;
+    java_init.callbacks.close_handler = nxt_java_close_handler;
     java_init.request_data_size = sizeof(nxt_java_request_data_t);
     java_init.data = &data;
 
@@ -361,13 +366,13 @@ nxt_java_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
         /* TODO report error */
     }
 
-    nxt_unit_done(ctx);
-
     nxt_java_stopContext(env, data.ctx);
 
     if ((*env)->ExceptionCheck(env)) {
         (*env)->ExceptionDescribe(env);
     }
+
+    nxt_unit_done(ctx);
 
     (*jvm)->DestroyJavaVM(jvm);
 
@@ -454,8 +459,71 @@ nxt_java_request_handler(nxt_unit_request_info_t *req)
         data->buf = NULL;
     }
 
+    if (nxt_unit_response_is_websocket(req)) {
+        data->jreq = (*env)->NewGlobalRef(env, jreq);
+        data->jresp = (*env)->NewGlobalRef(env, jresp);
+
+    } else {
+        nxt_unit_request_done(req, NXT_UNIT_OK);
+    }
+
     (*env)->DeleteLocalRef(env, jresp);
     (*env)->DeleteLocalRef(env, jreq);
+}
+
+
+static void
+nxt_java_websocket_handler(nxt_unit_websocket_frame_t *ws)
+{
+    void                     *b;
+    JNIEnv                   *env;
+    jobject                  jbuf;
+    nxt_java_data_t          *java_data;
+    nxt_java_request_data_t  *data;
+
+    java_data = ws->req->unit->data;
+    env = java_data->env;
+    data = ws->req->data;
+
+    b = malloc(ws->payload_len);
+    if (b != NULL) {
+        nxt_unit_websocket_read(ws, b, ws->payload_len);
+
+        jbuf = (*env)->NewDirectByteBuffer(env, b, ws->payload_len);
+        if (jbuf != NULL) {
+            nxt_java_Request_websocket(env, data->jreq, jbuf,
+                                       ws->header->opcode, ws->header->fin);
+
+            if ((*env)->ExceptionCheck(env)) {
+                (*env)->ExceptionDescribe(env);
+                (*env)->ExceptionClear(env);
+            }
+
+            (*env)->DeleteLocalRef(env, jbuf);
+        }
+
+        free(b);
+    }
+
+    nxt_unit_websocket_done(ws);
+}
+
+
+static void
+nxt_java_close_handler(nxt_unit_request_info_t *req)
+{
+    JNIEnv                   *env;
+    nxt_java_data_t          *java_data;
+    nxt_java_request_data_t  *data;
+
+    java_data = req->unit->data;
+    env = java_data->env;
+    data = req->data;
+
+    nxt_java_Request_close(env, data->jreq);
+
+    (*env)->DeleteGlobalRef(env, data->jresp);
+    (*env)->DeleteGlobalRef(env, data->jreq);
 
     nxt_unit_request_done(req, NXT_UNIT_OK);
 }

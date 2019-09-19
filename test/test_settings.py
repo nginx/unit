@@ -5,7 +5,7 @@ from unit.applications.lang.python import TestApplicationPython
 
 
 class TestSettings(TestApplicationPython):
-    prerequisites = ['python']
+    prerequisites = {'modules': ['python']}
 
     def test_settings_header_read_timeout(self):
         self.load('empty')

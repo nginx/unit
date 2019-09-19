@@ -7,10 +7,16 @@
 #include <nxt_main.h>
 #include <nxt_main_process.h>
 
+#if (NXT_HAVE_CLONE)
+#include <nxt_clone.h>
+#endif
+
+#include <signal.h>
 
 static void nxt_process_start(nxt_task_t *task, nxt_process_t *process);
 static nxt_int_t nxt_user_groups_get(nxt_task_t *task, nxt_user_cred_t *uc);
-
+static nxt_int_t nxt_process_worker_setup(nxt_task_t *task,
+    nxt_process_t *process, int parentfd);
 
 /* A cached process pid. */
 nxt_pid_t  nxt_pid;
@@ -34,84 +40,217 @@ nxt_bool_t  nxt_proc_remove_notify_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
     { 0, 0, 0, 1, 0 },
 };
 
+
+static nxt_int_t
+nxt_process_worker_setup(nxt_task_t *task, nxt_process_t *process, int parentfd) {
+    pid_t               rpid, pid;
+    ssize_t             n;
+    nxt_int_t           parent_status;
+    nxt_process_t       *p;
+    nxt_runtime_t       *rt;
+    nxt_process_init_t  *init;
+    nxt_process_type_t  ptype;
+
+    pid  = getpid();
+    rpid = 0;
+    rt   = task->thread->runtime;
+    init = process->init;
+
+    /* Setup the worker process. */
+
+    n = read(parentfd, &rpid, sizeof(rpid));
+    if (nxt_slow_path(n == -1 || n != sizeof(rpid))) {
+        nxt_alert(task, "failed to read real pid");
+        return NXT_ERROR;
+    }
+
+    if (nxt_slow_path(rpid == 0)) {
+        nxt_alert(task, "failed to get real pid from parent");
+        return NXT_ERROR;
+    }
+
+    nxt_pid = rpid;
+
+    /* Clean inherited cached thread tid. */
+    task->thread->tid = 0;
+
+    process->pid = nxt_pid;
+
+    if (nxt_pid != pid) {
+        nxt_debug(task, "app \"%s\" real pid %d", init->name, nxt_pid);
+        nxt_debug(task, "app \"%s\" isolated pid: %d", init->name, pid);
+    }
+
+    n = read(parentfd, &parent_status, sizeof(parent_status));
+    if (nxt_slow_path(n == -1 || n != sizeof(parent_status))) {
+        nxt_alert(task, "failed to read parent status");
+        return NXT_ERROR;
+    }
+
+    if (nxt_slow_path(close(parentfd) == -1)) {
+        nxt_alert(task, "failed to close reader pipe fd");
+        return NXT_ERROR;
+    }
+
+    if (nxt_slow_path(parent_status != NXT_OK)) {
+        return parent_status;
+    }
+
+    ptype = init->type;
+
+    nxt_port_reset_next_id();
+
+    nxt_event_engine_thread_adopt(task->thread->engine);
+
+    /* Remove not ready processes. */
+    nxt_runtime_process_each(rt, p) {
+
+        if (nxt_proc_conn_matrix[ptype][nxt_process_type(p)] == 0) {
+            nxt_debug(task, "remove not required process %PI", p->pid);
+
+            nxt_process_close_ports(task, p);
+
+            continue;
+        }
+
+        if (!p->ready) {
+            nxt_debug(task, "remove not ready process %PI", p->pid);
+
+            nxt_process_close_ports(task, p);
+
+            continue;
+        }
+
+        nxt_port_mmaps_destroy(&p->incoming, 0);
+        nxt_port_mmaps_destroy(&p->outgoing, 0);
+
+    } nxt_runtime_process_loop;
+
+    nxt_runtime_process_add(task, process);
+
+    nxt_process_start(task, process);
+
+    process->ready = 1;
+
+    return NXT_OK;
+}
+
+
 nxt_pid_t
 nxt_process_create(nxt_task_t *task, nxt_process_t *process)
 {
+    int                 pipefd[2];
+    nxt_int_t           ret;
     nxt_pid_t           pid;
-    nxt_process_t       *p;
-    nxt_runtime_t       *rt;
-    nxt_process_type_t  ptype;
+    nxt_process_init_t  *init;
 
-    rt = task->thread->runtime;
-
-    pid = fork();
-
-    switch (pid) {
-
-    case -1:
-        nxt_alert(task, "fork() failed while creating \"%s\" %E",
-                  process->init->name, nxt_errno);
-        break;
-
-    case 0:
-        /* A child. */
-        nxt_pid = getpid();
-
-        /* Clean inherited cached thread tid. */
-        task->thread->tid = 0;
-
-        process->pid = nxt_pid;
-
-        ptype = process->init->type;
-
-        nxt_port_reset_next_id();
-
-        nxt_event_engine_thread_adopt(task->thread->engine);
-
-        /* Remove not ready processes */
-        nxt_runtime_process_each(rt, p) {
-
-            if (nxt_proc_conn_matrix[ptype][nxt_process_type(p)] == 0) {
-                nxt_debug(task, "remove not required process %PI", p->pid);
-
-                nxt_process_close_ports(task, p);
-
-                continue;
-            }
-
-            if (!p->ready) {
-                nxt_debug(task, "remove not ready process %PI", p->pid);
-
-                nxt_process_close_ports(task, p);
-
-                continue;
-            }
-
-            nxt_port_mmaps_destroy(&p->incoming, 0);
-            nxt_port_mmaps_destroy(&p->outgoing, 0);
-
-        } nxt_runtime_process_loop;
-
-        nxt_runtime_process_add(task, process);
-
-        nxt_process_start(task, process);
-
-        process->ready = 1;
-
-        break;
-
-    default:
-        /* A parent. */
-        nxt_debug(task, "fork(\"%s\"): %PI", process->init->name, pid);
-
-        process->pid = pid;
-
-        nxt_runtime_process_add(task, process);
-
-        break;
+    if (nxt_slow_path(pipe(pipefd) == -1)) {
+        nxt_alert(task, "failed to create process pipe for passing rpid");
+        return -1;
     }
 
+    init = process->init;
+
+#if (NXT_HAVE_CLONE)
+    pid = nxt_clone(SIGCHLD|init->isolation.clone.flags);
+#else
+    pid = fork();
+#endif
+
+    if (nxt_slow_path(pid < 0)) {
+#if (NXT_HAVE_CLONE)
+        nxt_alert(task, "clone() failed while creating \"%s\" %E",
+                  init->name, nxt_errno);
+#else
+        nxt_alert(task, "fork() failed while creating \"%s\" %E",
+                  init->name, nxt_errno);
+#endif
+
+        return pid;
+    }
+
+    if (pid == 0) {
+        /* Child. */
+
+        if (nxt_slow_path(close(pipefd[1]) == -1)) {
+            nxt_alert(task, "failed to close writer pipe fd");
+            return NXT_ERROR;
+        }
+
+        ret = nxt_process_worker_setup(task, process, pipefd[0]);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            exit(1);
+        }
+
+        /*
+         * Explicitly return 0 to notice the caller function this is the child.
+         * The caller must return to the event engine work queue loop.
+         */
+        return 0;
+    }
+
+    /* Parent. */
+
+    if (nxt_slow_path(close(pipefd[0]) != 0)) {
+        nxt_alert(task, "failed to close pipe: %E", nxt_errno);
+    }
+
+    /*
+     * At this point, the child process is blocked reading the
+     * pipe fd to get its real pid (rpid).
+     *
+     * If anything goes wrong now, we need to terminate the child
+     * process by sending a NXT_ERROR in the pipe.
+     */
+
+#if (NXT_HAVE_CLONE)
+    nxt_debug(task, "clone(\"%s\"): %PI", init->name, pid);
+#else
+    nxt_debug(task, "fork(\"%s\"): %PI", init->name, pid);
+#endif
+
+    if (nxt_slow_path(write(pipefd[1], &pid, sizeof(pid)) == -1)) {
+        nxt_alert(task, "failed to write real pid");
+        goto fail_cleanup;
+    }
+
+#if (NXT_HAVE_CLONE_NEWUSER)
+    if ((init->isolation.clone.flags & CLONE_NEWUSER) == CLONE_NEWUSER) {
+        ret = nxt_clone_proc_map(task, pid, &init->isolation.clone);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            goto fail_cleanup;
+        }
+    }
+#endif
+
+    ret = NXT_OK;
+
+    if (nxt_slow_path(write(pipefd[1], &ret, sizeof(ret)) == -1)) {
+        nxt_alert(task, "failed to write status");
+        goto fail_cleanup;
+    }
+
+    process->pid = pid;
+
+    nxt_runtime_process_add(task, process);
+
     return pid;
+
+fail_cleanup:
+
+    ret = NXT_ERROR;
+
+    if (nxt_slow_path(write(pipefd[1], &ret, sizeof(ret)) == -1)) {
+        nxt_alert(task, "failed to write status");
+    }
+
+    if (nxt_slow_path(close(pipefd[1]) != 0)) {
+        nxt_alert(task, "failed to close pipe: %E", nxt_errno);
+    }
+
+    waitpid(pid, NULL, 0);
+
+    return -1;
 }
 
 
@@ -133,21 +272,16 @@ nxt_process_start(nxt_task_t *task, nxt_process_t *process)
     nxt_process_title(task, "unit: %s", init->name);
 
     thread = task->thread;
+    rt     = thread->runtime;
 
     nxt_random_init(&thread->random);
 
-    if (init->user_cred != NULL) {
-        /*
-         * Changing user credentials requires either root privileges
-         * or CAP_SETUID and CAP_SETGID capabilities on Linux.
-         */
+    if (rt->capabilities.setid && init->user_cred != NULL) {
         ret = nxt_user_cred_set(task, init->user_cred);
         if (ret != NXT_OK) {
             goto fail;
         }
     }
-
-    rt = thread->runtime;
 
     rt->type = init->type;
 
@@ -592,15 +726,8 @@ nxt_user_cred_set(nxt_task_t *task, nxt_user_cred_t *uc)
               uc->user, (uint64_t) uc->uid, (uint64_t) uc->base_gid);
 
     if (setgid(uc->base_gid) != 0) {
-        if (nxt_errno == NXT_EPERM) {
-            nxt_log(task, NXT_LOG_NOTICE, "setgid(%d) failed %E, ignored",
-                    uc->base_gid, nxt_errno);
-            return NXT_OK;
-
-        } else {
-            nxt_alert(task, "setgid(%d) failed %E", uc->base_gid, nxt_errno);
-            return NXT_ERROR;
-        }
+        nxt_alert(task, "setgid(%d) failed %E", uc->base_gid, nxt_errno);
+        return NXT_ERROR;
     }
 
     if (uc->gids != NULL) {
