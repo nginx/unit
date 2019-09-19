@@ -1480,7 +1480,7 @@ nxt_conf_vldt_clone_uidmap(nxt_conf_validation_t *vldt, nxt_conf_value_t *value)
 
     ret = nxt_conf_vldt_object(vldt, value, (void *)nxt_conf_vldt_app_procmap_members);
     if (nxt_slow_path(ret != NXT_OK)) {
-        return NXT_ERROR;
+        return ret;
     }
 
     return nxt_conf_vldt_clone_procmap(vldt, "uid_map", value);
@@ -1498,7 +1498,7 @@ nxt_conf_vldt_clone_gidmap(nxt_conf_validation_t *vldt, nxt_conf_value_t *value)
 
     ret = nxt_conf_vldt_object(vldt, value, (void *)nxt_conf_vldt_app_procmap_members);
     if (nxt_slow_path(ret != NXT_OK)) {
-        return NXT_ERROR;
+        return ret;
     }
 
     return nxt_conf_vldt_clone_procmap(vldt, "gid_map", value);
