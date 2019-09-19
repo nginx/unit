@@ -398,16 +398,16 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_namespaces_members[] = {
 #if (NXT_HAVE_CLONE_NEWUSER)
 
 static nxt_conf_vldt_object_t nxt_conf_vldt_app_procmap_members[] = {
-    { nxt_string("containerID"),
+    { nxt_string("container"),
       NXT_CONF_VLDT_INTEGER,
       NULL,
       NULL },
 
-    { nxt_string("hostID"),
+    { nxt_string("host"),
       NXT_CONF_VLDT_INTEGER,
       NULL,
       NULL },
-    
+
     { nxt_string("size"),
       NXT_CONF_VLDT_INTEGER,
       NULL,
@@ -1405,22 +1405,22 @@ nxt_conf_vldt_isolation(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 #if (NXT_HAVE_CLONE_NEWUSER)
 
 typedef struct {
-    nxt_int_t containerID;
-    nxt_int_t hostID;
+    nxt_int_t container;
+    nxt_int_t host;
     nxt_int_t size;
 } nxt_conf_vldt_clone_procmap_conf_t;
 
 static nxt_conf_map_t nxt_conf_vldt_clone_procmap_conf_map[] = {
     {
-        nxt_string("containerID"),
+        nxt_string("container"),
         NXT_CONF_MAP_INT32,
-        offsetof(nxt_conf_vldt_clone_procmap_conf_t, containerID),
+        offsetof(nxt_conf_vldt_clone_procmap_conf_t, container),
     },
 
     {
-        nxt_string("hostID"),
+        nxt_string("host"),
         NXT_CONF_MAP_INT32,
-        offsetof(nxt_conf_vldt_clone_procmap_conf_t, hostID),
+        offsetof(nxt_conf_vldt_clone_procmap_conf_t, host),
     },
 
     {
@@ -1438,8 +1438,8 @@ nxt_conf_vldt_clone_procmap(nxt_conf_validation_t *vldt, const char *mapfile,
     nxt_conf_vldt_clone_procmap_conf_t procmap;
     nxt_int_t                          ret;
 
-    procmap.containerID = -1;
-    procmap.hostID = -1;
+    procmap.container = -1;
+    procmap.host = -1;
     procmap.size = -1;
 
     ret = nxt_conf_map_object(vldt->pool, value,
@@ -1450,14 +1450,14 @@ nxt_conf_vldt_clone_procmap(nxt_conf_validation_t *vldt, const char *mapfile,
         return ret;
     }
 
-    if (procmap.containerID == -1) {
+    if (procmap.container == -1) {
         return nxt_conf_vldt_error(vldt, "The %s requires the "
-                "\"containerID\" field set.", mapfile);
+                "\"container\" field set.", mapfile);
     }
 
-    if (procmap.hostID == -1) {
+    if (procmap.host == -1) {
         return nxt_conf_vldt_error(vldt, "The %s requires the "
-                "\"hostID\" field set.", mapfile);
+                "\"host\" field set.", mapfile);
     }
 
     if (procmap.size == -1) {

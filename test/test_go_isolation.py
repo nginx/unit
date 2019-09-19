@@ -64,10 +64,10 @@ class TestGoIsolation(TestApplicationGo):
             {
                 "namespaces": {"credential": True},
                 "uidmap": [
-                    {"containerID": 1000, "hostID": os.geteuid(), "size": 1}
+                    {"container": 1000, "host": os.geteuid(), "size": 1}
                 ],
                 "gidmap": [
-                    {"containerID": 1000, "hostID": os.getegid(), "size": 1}
+                    {"container": 1000, "host": os.getegid(), "size": 1}
                 ],
             }
         )

@@ -35,8 +35,8 @@ nxt_int_t nxt_clone_proc_map_write(nxt_task_t *task, const char *mapfile,
         pid_t pid, u_char *mapinfo);
 
 typedef struct {
-    nxt_int_t containerID;
-    nxt_int_t hostID;
+    nxt_int_t container;
+    nxt_int_t host;
     nxt_int_t size;
 } nxt_clone_procmap_t;
 
@@ -128,12 +128,12 @@ nxt_clone_proc_map_set(nxt_task_t *task, const char* mapfile,
         pid_t pid, nxt_int_t defval, nxt_conf_value_t *mapobj)
 {
     u_char            *p, *end, *mapinfo;
-    nxt_int_t         contID, hostID, size;
+    nxt_int_t         container, host, size;
     nxt_int_t         ret, len, count, i;
     nxt_conf_value_t  *obj;
     nxt_conf_value_t  *value;
-    nxt_str_t         str_contID = nxt_string("containerID");
-    nxt_str_t         str_hostID = nxt_string("hostID");
+    nxt_str_t         str_cont = nxt_string("container");
+    nxt_str_t         str_host = nxt_string("host");
     nxt_str_t         str_size   = nxt_string("size");
 
     /**
@@ -162,16 +162,16 @@ nxt_clone_proc_map_set(nxt_task_t *task, const char* mapfile,
         for (i = 0; i < count; i++) {
             obj = nxt_conf_get_array_element(mapobj, i);
 
-            value = nxt_conf_get_object_member(obj, &str_contID, NULL);
-            contID = nxt_conf_get_integer(value);
+            value = nxt_conf_get_object_member(obj, &str_cont, NULL);
+            container = nxt_conf_get_integer(value);
 
-            value = nxt_conf_get_object_member(obj, &str_hostID, NULL);
-            hostID = nxt_conf_get_integer(value);
+            value = nxt_conf_get_object_member(obj, &str_host, NULL);
+            host = nxt_conf_get_integer(value);
 
             value = nxt_conf_get_object_member(obj, &str_size, NULL);
             size = nxt_conf_get_integer(value);
 
-            p = nxt_sprintf(p, end, "%d %d %d", contID, hostID, size);
+            p = nxt_sprintf(p, end, "%d %d %d", container, host, size);
             if (nxt_slow_path(p == end)) {
                 nxt_alert(task, "write past the uid_map buffer");
                 nxt_free(mapinfo);
