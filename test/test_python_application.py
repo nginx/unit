@@ -71,6 +71,37 @@ class TestPythonApplication(TestApplicationPython):
             'Query-String header',
         )
 
+    def test_python_application_query_string_space(self):
+        self.load('query_string')
+
+        resp = self.get(url='/ ?var1=val1&var2=val2')
+        self.assertEqual(
+            resp['headers']['Query-String'],
+            'var1=val1&var2=val2',
+            'Query-String space',
+        )
+
+        resp = self.get(url='/ %20?var1=val1&var2=val2')
+        self.assertEqual(
+            resp['headers']['Query-String'],
+            'var1=val1&var2=val2',
+            'Query-String space 2',
+        )
+
+        resp = self.get(url='/ %20 ?var1=val1&var2=val2')
+        self.assertEqual(
+            resp['headers']['Query-String'],
+            'var1=val1&var2=val2',
+            'Query-String space 3',
+        )
+
+        resp = self.get(url='/blah %20 blah? var1= val1 & var2=val2')
+        self.assertEqual(
+            resp['headers']['Query-String'],
+            ' var1= val1 & var2=val2',
+            'Query-String space 4',
+        )
+
     def test_python_application_query_string_empty(self):
         self.load('query_string')
 

@@ -546,7 +546,7 @@ nxt_port_use(nxt_task_t *task, nxt_port_t *port, int i)
 
     if (i < 0 && c == -i) {
 
-        if (task->thread->engine == port->engine) {
+        if (port->engine == NULL || task->thread->engine == port->engine) {
             nxt_port_release(task, port);
 
             return;

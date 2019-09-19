@@ -206,13 +206,26 @@ static nxt_http_parse_test_case_t  nxt_http_test_cases[] = {
         }}
     },
     {
+        nxt_string("GET /na %20me.ext?args HTTP/1.0\r\n\r\n"),
+        NXT_DONE,
+        &nxt_http_parse_test_request_line,
+        { .request_line = {
+            nxt_string("GET"),
+            nxt_string("/na %20me.ext?args"),
+            nxt_string("ext"),
+            nxt_string("args"),
+            "HTTP/1.0",
+            0, 1, 1
+        }}
+    },
+    {
         nxt_string("GET / HTTP/1.0 HTTP/1.1\r\n\r\n"),
         NXT_DONE,
         &nxt_http_parse_test_request_line,
         { .request_line = {
             nxt_string("GET"),
             nxt_string("/ HTTP/1.0"),
-            nxt_null_string,
+            nxt_string("0"),
             nxt_null_string,
             "HTTP/1.1",
             0, 0, 1
