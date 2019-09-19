@@ -1,4 +1,23 @@
 
+Changes with Unit 1.11.0                                         19 Sep 2019
+
+    *) Feature: basic support for serving static files.
+
+    *) Feature: isolation of application processes with Linux namespaces.
+
+    *) Feature: built-in WebSocket server implementation for Java Servlet
+       Containers.
+
+    *) Feature: direct addressing of API configuration options containing
+       slashes "/" using URI encoding (%2F).
+
+    *) Bugfix: segmentation fault might have occurred in Go applications
+       under high load.
+
+    *) Bugfix: WebSocket support was broken if Unit was built with some
+       linkers other than GNU ld (e.g. gold or LLD).
+
+
 Changes with Unit 1.10.0                                         22 Aug 2019
 
     *) Change: matching of cookies in routes made case sensitive.
