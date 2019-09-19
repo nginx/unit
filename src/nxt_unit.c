@@ -981,6 +981,8 @@ nxt_unit_process_websocket(nxt_unit_ctx_t *ctx, nxt_unit_recv_msg_t *recv_msg)
                 nxt_unit_alert(ctx, "#%"PRIu32": failed to allocate buf",
                                req_impl->stream);
 
+                nxt_unit_websocket_frame_release(&ws_impl->ws);
+
                 return NXT_UNIT_ERROR;
             }
 
