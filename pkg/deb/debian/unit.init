@@ -13,7 +13,7 @@
 ### END INIT INFO
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
 DAEMON=/usr/sbin/unitd
-NAME=unitd
+NAME=unit
 DESC=unitd
 
 [ -r /etc/default/${NAME} ] && . /etc/default/${NAME}
