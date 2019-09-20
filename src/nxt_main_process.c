@@ -14,10 +14,6 @@
 #include <nxt_cert.h>
 #endif
 
-#ifdef NXT_LINUX
-#include <linux/sched.h>
-#endif
-
 
 typedef struct {
     nxt_socket_t        socket;
