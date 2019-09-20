@@ -363,6 +363,7 @@ nxt_port_process_error_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     }
 
     nxt_process_close_ports(task, process);
+    nxt_process_use(task, process, -1);
 
     /* disables completion */
     msg->buf = NULL;

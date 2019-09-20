@@ -151,8 +151,7 @@ nxt_process_start(nxt_task_t *task, nxt_process_t *process)
          */
         ret = nxt_user_cred_set(task, init->user_cred);
         if (ret != NXT_OK) {
-            err.start = (u_char *) "failed to change user credentials";
-            err.length = nxt_strlen(err.start);
+            nxt_str_set(&err, "failed to change user credentials");
             goto pre_start_error;
         }
     }
