@@ -5,6 +5,27 @@
 <change_log title="unit">
 
 
+<changes apply="unit
+                unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10 unit-go1.11
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11"
+         ver="1.11.0" rev="2"
+         date="2019-09-29" time="13:30:00 +0300"
+         packager="Konstantin Pavlov &lt;thresh@nginx.com&gt;">
+
+<change>
+<para>
+Bump packaging version to fix repositories inconsistencies.
+</para>
+</change>
+
+</changes>
+
+
 <changes apply="unit-php
                 unit-python unit-python2.7
                 unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
