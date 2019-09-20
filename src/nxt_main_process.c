@@ -661,7 +661,7 @@ nxt_main_start_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
 
         ret = nxt_user_cred_get(task, init->user_cred, group);
         if (ret != NXT_OK) {
-            return NXT_ERROR;
+            goto fail;
         }
 
     } else {
@@ -670,7 +670,7 @@ nxt_main_start_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
         {
             nxt_alert(task, "cannot set user \"%V\" for app \"%V\": "
                       "missing capabilities", &app_conf->user, &app_conf->name);
-            return NXT_ERROR;
+            goto fail;
         }
 
         if (app_conf->group.length > 0
@@ -680,7 +680,7 @@ nxt_main_start_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
             nxt_alert(task, "cannot set group \"%V\" for app \"%V\": "
                             "missing capabilities", &app_conf->group,
                             &app_conf->name);
-            return NXT_ERROR;
+            goto fail;
         }
 
         last = nxt_pointer_to(init, sizeof(nxt_process_init_t));
@@ -702,10 +702,16 @@ nxt_main_start_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
 
     ret = nxt_init_set_isolation(task, init, app_conf->isolation);
     if (nxt_slow_path(ret != NXT_OK)) {
-        return NXT_ERROR;
+        goto fail;
     }
 
     return nxt_main_create_worker_process(task, rt, init);
+
+fail:
+
+    nxt_free(init);
+
+    return NXT_ERROR;
 }
 
 
