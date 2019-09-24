@@ -1,4 +1,5 @@
 import os
+import socket
 import unittest
 from unit.applications.proto import TestApplicationProto
 
@@ -168,6 +169,29 @@ class TestStatic(TestApplicationProto):
             self.assertEqual(
                 self.get(url='/ди ректория/фа йл')['body'], 'blah', 'dir name 2'
             )
+
+    def test_static_unix_socket(self):
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        sock.bind(self.testdir + '/assets/unix_socket')
+
+        self.assertEqual(self.get(url='/unix_socket')['status'], 404, 'socket')
+
+        sock.close()
+
+    def test_static_unix_fifo(self):
+        os.mkfifo(self.testdir + '/assets/fifo')
+
+        self.assertEqual(self.get(url='/fifo')['status'], 404, 'fifo')
+
+    def test_static_symlink(self):
+        os.symlink(self.testdir + '/assets/dir', self.testdir + '/assets/link')
+
+        self.assertEqual(self.get(url='/dir')['status'], 301, 'dir')
+        self.assertEqual(self.get(url='/dir/file')['status'], 200, 'file')
+        self.assertEqual(self.get(url='/link')['status'], 301, 'symlink dir')
+        self.assertEqual(
+            self.get(url='/link/file')['status'], 200, 'symlink file'
+        )
 
     def test_static_head(self):
         resp = self.head(url='/')
