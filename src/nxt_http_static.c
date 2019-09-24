@@ -94,9 +94,20 @@ nxt_http_static_handler(nxt_task_t *task, nxt_http_request_t *r,
     if (nxt_slow_path(ret != NXT_OK)) {
         switch (f->error) {
 
+        /*
+         * For Unix domain sockets "errno" is set to:
+         *  - ENXIO on Linux;
+         *  - EOPNOTSUPP on *BSD, MacOSX, and Solaris.
+         */
+
         case NXT_ENOENT:
         case NXT_ENOTDIR:
         case NXT_ENAMETOOLONG:
+#if (NXT_LINUX)
+        case NXT_ENXIO:
+#else
+        case NXT_EOPNOTSUPP:
+#endif
             level = NXT_LOG_ERR;
             status = NXT_HTTP_NOT_FOUND;
             break;
