@@ -63,8 +63,12 @@ class TestApplicationJava(TestApplicationProto):
             ]
             javac.extend(src)
 
-            process = Popen(javac)
-            process.communicate()
+            try:
+                process = Popen(javac)
+                process.communicate()
+
+            except:
+                self.fail('Cann\'t run javac process.')
 
         self._load_conf(
             {
