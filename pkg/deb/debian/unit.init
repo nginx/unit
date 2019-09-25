@@ -16,8 +16,6 @@ DAEMON=/usr/sbin/unitd
 NAME=unit
 DESC=unitd
 
-[ -r /etc/default/${NAME} ] && . /etc/default/${NAME}
-
 #includes lsb functions
 . /lib/lsb/init-functions
 
