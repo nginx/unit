@@ -1,4 +1,4 @@
-/var/log/unit/*.log {
+/var/log/unit.log {
     daily
     missingok
     rotate 7
@@ -6,9 +6,10 @@
     delaycompress
     nocreate
     notifempty
+    su root root
     postrotate
-        if [ -f /var/run/unit/unit.pid ]; then
-            /bin/kill -SIGUSR1 `cat /var/run/unit/unit.pid`
+        if [ -f /var/run/unit.pid ]; then
+            /bin/kill -SIGUSR1 `cat /var/run/unit.pid`
         fi
     endscript
 }
