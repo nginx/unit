@@ -166,6 +166,14 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
                   init->name, nxt_errno);
 #endif
 
+        if (nxt_slow_path(close(pipefd[0]) != 0)) {
+            nxt_alert(task, "failed to close pipe: %E", nxt_errno);
+        }
+
+        if (nxt_slow_path(close(pipefd[1]) != 0)) {
+            nxt_alert(task, "failed to close pipe: %E", nxt_errno);
+        }
+
         return pid;
     }
 
@@ -228,6 +236,10 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
     if (nxt_slow_path(write(pipefd[1], &ret, sizeof(ret)) == -1)) {
         nxt_alert(task, "failed to write status");
         goto fail_cleanup;
+    }
+
+    if (nxt_slow_path(close(pipefd[1]) != 0)) {
+        nxt_alert(task, "failed to close pipe: %E", nxt_errno);
     }
 
     process->pid = pid;
