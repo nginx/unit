@@ -970,9 +970,11 @@ nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
                 state = sw_quoted;
                 continue;
             case '?':
+                u--;
                 args = p;
                 goto args;
             case '#':
+                u--;
                 goto done;
             default:
                 state = sw_normal;
@@ -991,30 +993,42 @@ nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
             }
 
             switch (ch) {
+
             case '/':
-                state = sw_slash;
+            case '?':
+            case '#':
                 u -= 5;
+
                 for ( ;; ) {
                     if (u < rp->path.start) {
                         return NXT_HTTP_PARSE_INVALID;
                     }
+
                     if (*u == '/') {
                         u++;
                         break;
                     }
+
                     u--;
                 }
+
+                if (ch == '?') {
+                    args = p;
+                    goto args;
+                }
+
+                if (ch == '#') {
+                    goto done;
+                }
+
+                state = sw_slash;
                 break;
 
             case '%':
                 saved_state = state;
                 state = sw_quoted;
                 continue;
-            case '?':
-                args = p;
-                goto args;
-            case '#':
-                goto done;
+
             default:
                 state = sw_normal;
                 *u++ = ch;
@@ -1097,8 +1111,14 @@ nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
         }
     }
 
-    if (state >= sw_quoted) {
-        return NXT_HTTP_PARSE_INVALID;
+    if (state >= sw_dot) {
+        if (state >= sw_quoted) {
+            return NXT_HTTP_PARSE_INVALID;
+        }
+
+        /* "/." and "/.." must be normalized similar to "/./" and "/../". */
+        ch = '/';
+        goto again;
     }
 
 args:
