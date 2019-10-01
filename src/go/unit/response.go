@@ -63,7 +63,7 @@ func (r *response) WriteHeader(code int) {
 	for k, vv := range r.header {
 		for _, v := range vv {
 			fields++
-			fields_size += len(k) + len(v)
+			fields_size += len(k) + len(v) + 2
 		}
 	}
 
