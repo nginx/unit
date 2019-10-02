@@ -164,7 +164,7 @@ for nxt_src in $NXT_PERL_MODULE_SRCS; do
 
     cat << END >> $NXT_MAKEFILE
 
-$NXT_BUILD_DIR/$nxt_obj:	$nxt_src
+$NXT_BUILD_DIR/$nxt_obj:	$nxt_src $NXT_VERSION_H
 	mkdir -p $NXT_BUILD_DIR/src/perl
 	\$(CC) -c \$(CFLAGS) $NXT_PERL_CFLAGS \$(NXT_INCS) $NXT_PERL_INCLUDE \\
 	$nxt_dep_flags \\

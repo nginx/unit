@@ -336,7 +336,7 @@ for nxt_src in $NXT_JAVA_MODULE_SRCS; do
 
     cat << END >> $NXT_MAKEFILE
 
-$NXT_BUILD_DIR/$nxt_obj: $nxt_src
+$NXT_BUILD_DIR/$nxt_obj: $nxt_src $NXT_VERSION_H
 	mkdir -p $NXT_BUILD_DIR/src/java
 	\$(CC) -c \$(CFLAGS) \$(NXT_INCS) $NXT_JAVA_INCLUDE \\
 	$nxt_dep_flags \\

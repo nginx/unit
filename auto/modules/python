@@ -149,7 +149,7 @@ for nxt_src in $NXT_PYTHON_MODULE_SRCS; do
 
     cat << END >> $NXT_MAKEFILE
 
-$NXT_BUILD_DIR/$nxt_obj:	$nxt_src
+$NXT_BUILD_DIR/$nxt_obj:	$nxt_src $NXT_VERSION_H
 	\$(CC) -c \$(CFLAGS) \$(NXT_INCS) $NXT_PYTHON_INCLUDE \\
 	$nxt_dep_flags \\
 	-o $NXT_BUILD_DIR/$nxt_obj $nxt_src
