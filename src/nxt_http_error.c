@@ -16,8 +16,12 @@ static const nxt_http_request_state_t  nxt_http_request_send_error_body_state;
 
 
 static const char  error[] =
-    "<html><head><title>Error</title></head>"
-    "<body>Error.</body></html>\r\n";
+    "<!DOCTYPE html>"
+    "<title>Error %03d</title>"
+    "<p>Error %03d.\r\n";
+
+/* Two %03d (4 chars) patterns are replaced by status code (3 chars). */
+#define NXT_HTTP_ERROR_LEN  (nxt_length(error) - 2)
 
 
 void
@@ -49,7 +53,7 @@ nxt_http_request_error(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_field_set(content_type, "Content-Type", "text/html");
 
     r->resp.content_length = NULL;
-    r->resp.content_length_n = nxt_length(error);
+    r->resp.content_length_n = NXT_HTTP_ERROR_LEN;
 
     r->state = &nxt_http_request_send_error_body_state;
 
@@ -80,15 +84,13 @@ nxt_http_request_send_error_body(nxt_task_t *task, void *obj, void *data)
 
     nxt_debug(task, "http request send error body");
 
-    out = nxt_http_buf_mem(task, r, 0);
+    out = nxt_http_buf_mem(task, r, NXT_HTTP_ERROR_LEN);
     if (nxt_slow_path(out == NULL)) {
         goto fail;
     }
 
-    out->mem.start = (u_char *) error;
-    out->mem.pos = out->mem.start;
-    out->mem.free = out->mem.start + nxt_length(error);
-    out->mem.end = out->mem.free;
+    out->mem.free = nxt_sprintf(out->mem.pos, out->mem.end, error,
+                                r->status, r->status);
 
     out->next = nxt_http_buf_last(r);
 
