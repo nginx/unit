@@ -1,4 +1,18 @@
 
+Changes with Unit 1.12.0                                         03 Oct 2019
+
+    *) Feature: compatibility with PHP 7.4.
+
+    *) Bugfix: descriptors leak on process creation; the bug had appeared in
+       1.11.0.
+
+    *) Bugfix: TLS connection might be closed prematurely while sending
+       response.
+
+    *) Bugfix: segmentation fault might have occurred if an irregular file
+       was requested.
+
+
 Changes with Unit 1.11.0                                         19 Sep 2019
 
     *) Feature: basic support for serving static files.

@@ -12,6 +12,58 @@
                 unit-perl
                 unit-ruby
                 unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11"
+         ver="1.12.0" rev="1"
+         date="2019-10-03" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.12.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.12.0" rev="1"
+         date="2019-10-03" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="feature">
+<para>
+compatibility with PHP 7.4.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+descriptors leak on process creation; the bug had appeared in 1.11.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+TLS connection might be closed prematurely while sending response.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+segmentation fault might have occurred if an irregular file was requested.
+</para>
+</change>
+
+</changes>
+
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10 unit-go1.11
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11"
          ver="1.11.0" rev="1"
          date="2019-09-19" time="18:00:00 +0300"
          packager="Konstantin Pavlov &lt;thresh@nginx.com&gt;">
