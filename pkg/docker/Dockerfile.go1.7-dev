@@ -86,4 +86,8 @@ RUN ln -sf /dev/stdout /var/log/unit.log
 
 STOPSIGNAL SIGTERM
 
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN mkdir /docker-entrypoint.d/
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+
 CMD ["unitd", "--no-daemon", "--control", "unix:/var/run/control.unit.sock"]
