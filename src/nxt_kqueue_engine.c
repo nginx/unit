@@ -705,7 +705,10 @@ nxt_kqueue_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
         nxt_log(&engine->task, level, "kevent(%d) failed %E",
                 engine->u.kqueue.fd, err);
 
-        nxt_kqueue_error(engine);
+        if (err != NXT_EINTR) {
+            nxt_kqueue_error(engine);
+        }
+
         return;
     }
 

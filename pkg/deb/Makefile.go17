@@ -4,7 +4,7 @@ MODULE_SUFFIX_go17=	go1.7
 MODULE_SUMMARY_go17=	Go 1.7 module for NGINX Unit
 
 MODULE_VERSION_go17=	$(VERSION)
-MODULE_RELEASE_go17=	2
+MODULE_RELEASE_go17=	1
 
 MODULE_CONFARGS_go17=	go --go=/usr/lib/go-1.7/bin/go --go-path=/usr/share/gocode
 MODULE_MAKEARGS_go17=	/usr/lib/go-1.7/bin/go

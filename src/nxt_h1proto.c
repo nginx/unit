@@ -1293,7 +1293,7 @@ nxt_h1p_chunk_create(nxt_task_t *task, nxt_http_request_t *r, nxt_buf_t *out)
     for (b = out; b != NULL; b = b->next) {
 
         if (nxt_buf_is_last(b)) {
-            tail = nxt_http_buf_mem(task, r, chunk_size);
+            tail = nxt_http_buf_mem(task, r, sizeof(tail_chunk));
             if (nxt_slow_path(tail == NULL)) {
                 return NULL;
             }

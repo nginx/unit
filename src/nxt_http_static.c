@@ -94,9 +94,20 @@ nxt_http_static_handler(nxt_task_t *task, nxt_http_request_t *r,
     if (nxt_slow_path(ret != NXT_OK)) {
         switch (f->error) {
 
+        /*
+         * For Unix domain sockets "errno" is set to:
+         *  - ENXIO on Linux;
+         *  - EOPNOTSUPP on *BSD, MacOSX, and Solaris.
+         */
+
         case NXT_ENOENT:
         case NXT_ENOTDIR:
         case NXT_ENAMETOOLONG:
+#if (NXT_LINUX)
+        case NXT_ENXIO:
+#else
+        case NXT_EOPNOTSUPP:
+#endif
             level = NXT_LOG_ERR;
             status = NXT_HTTP_NOT_FOUND;
             break;
@@ -209,7 +220,6 @@ nxt_http_static_handler(nxt_task_t *task, nxt_http_request_t *r,
         /* Not a file. */
 
         nxt_file_close(task, f);
-        f = NULL;
 
         if (nxt_slow_path(!nxt_is_dir(&fi))) {
             nxt_log(task, NXT_LOG_ERR, "\"%FN\" is not a regular file",
@@ -217,6 +227,8 @@ nxt_http_static_handler(nxt_task_t *task, nxt_http_request_t *r,
             nxt_http_request_error(task, r, NXT_HTTP_NOT_FOUND);
             return NULL;
         }
+
+        f = NULL;
 
         r->status = NXT_HTTP_MOVED_PERMANENTLY;
         r->resp.content_length_n = 0;

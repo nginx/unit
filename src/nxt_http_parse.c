@@ -162,7 +162,7 @@ static nxt_int_t
 nxt_http_parse_request_line(nxt_http_request_parse_t *rp, u_char **pos,
     u_char *end)
 {
-    u_char                   *p, ch, *after_slash, *exten, *args;
+    u_char                   *p, ch, *after_slash, *args;
     nxt_int_t                rc;
     nxt_bool_t               rest;
     nxt_http_ver_t           ver;
@@ -255,7 +255,6 @@ nxt_http_parse_request_line(nxt_http_request_parse_t *rp, u_char **pos,
     rp->target_start = p;
 
     after_slash = p + 1;
-    exten = NULL;
     args = NULL;
     rest = 0;
 
@@ -274,7 +273,6 @@ continue_target:
             }
 
             after_slash = p + 1;
-            exten = NULL;
             continue;
 
         case NXT_HTTP_TARGET_DOT:
@@ -283,7 +281,6 @@ continue_target:
                 goto rest_of_target;
             }
 
-            exten = p + 1;
             continue;
 
         case NXT_HTTP_TARGET_ARGS_MARK:
@@ -457,11 +454,6 @@ space_after_target:
 
         } else {
             rp->path.length = rp->target_end - rp->target_start;
-        }
-
-        if (exten != NULL) {
-            rp->exten.length = (rp->path.start + rp->path.length) - exten;
-            rp->exten.start = exten;
         }
 
         return nxt_http_parse_field_name(rp, pos, end);
@@ -846,7 +838,7 @@ static const uint8_t  nxt_http_normal[32]  nxt_aligned(32) = {
 static nxt_int_t
 nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
 {
-    u_char  *p, *u, c, ch, high, *exten, *args;
+    u_char  *p, *u, c, ch, high, *args;
 
     enum {
         sw_normal = 0,
@@ -872,7 +864,6 @@ nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
     rp->path.start = u;
 
     high = '\0';
-    exten = NULL;
     args = NULL;
 
     while (p < rp->target_end) {
@@ -892,7 +883,6 @@ nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
 
             switch (ch) {
             case '/':
-                exten = NULL;
                 state = sw_slash;
                 *u++ = ch;
                 continue;
@@ -905,10 +895,6 @@ nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
                 goto args;
             case '#':
                 goto done;
-            case '.':
-                exten = u + 1;
-                *u++ = ch;
-                continue;
             default:
                 *u++ = ch;
                 continue;
@@ -970,9 +956,11 @@ nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
                 state = sw_quoted;
                 continue;
             case '?':
+                u--;
                 args = p;
                 goto args;
             case '#':
+                u--;
                 goto done;
             default:
                 state = sw_normal;
@@ -991,30 +979,42 @@ nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
             }
 
             switch (ch) {
+
             case '/':
-                state = sw_slash;
+            case '?':
+            case '#':
                 u -= 5;
+
                 for ( ;; ) {
                     if (u < rp->path.start) {
                         return NXT_HTTP_PARSE_INVALID;
                     }
+
                     if (*u == '/') {
                         u++;
                         break;
                     }
+
                     u--;
                 }
+
+                if (ch == '?') {
+                    args = p;
+                    goto args;
+                }
+
+                if (ch == '#') {
+                    goto done;
+                }
+
+                state = sw_slash;
                 break;
 
             case '%':
                 saved_state = state;
                 state = sw_quoted;
                 continue;
-            case '?':
-                args = p;
-                goto args;
-            case '#':
-                goto done;
+
             default:
                 state = sw_normal;
                 *u++ = ch;
@@ -1097,8 +1097,14 @@ nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
         }
     }
 
-    if (state >= sw_quoted) {
-        return NXT_HTTP_PARSE_INVALID;
+    if (state >= sw_dot) {
+        if (state >= sw_quoted) {
+            return NXT_HTTP_PARSE_INVALID;
+        }
+
+        /* "/." and "/.." must be normalized similar to "/./" and "/../". */
+        ch = '/';
+        goto again;
     }
 
 args:
@@ -1117,11 +1123,6 @@ args:
 done:
 
     rp->path.length = u - rp->path.start;
-
-    if (exten) {
-        rp->exten.length = u - exten;
-        rp->exten.start = exten;
-    }
 
     return NXT_OK;
 }

@@ -4,7 +4,7 @@ MODULE_SUFFIX_go19=	go1.9
 MODULE_SUMMARY_go19=	Go 1.9 module for NGINX Unit
 
 MODULE_VERSION_go19=	$(VERSION)
-MODULE_RELEASE_go19=	2
+MODULE_RELEASE_go19=	1
 
 MODULE_CONFARGS_go19=	go --go=/usr/lib/go-1.9/bin/go --go-path=/usr/share/gocode
 MODULE_MAKEARGS_go19=	/usr/lib/go-1.9/bin/go

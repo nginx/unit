@@ -160,7 +160,7 @@ for nxt_src in $NXT_RUBY_MODULE_SRCS; do
 
     cat << END >> $NXT_MAKEFILE
 
-$NXT_BUILD_DIR/$nxt_obj:	$nxt_src
+$NXT_BUILD_DIR/$nxt_obj:	$nxt_src $NXT_VERSION_H
 	mkdir -p $NXT_BUILD_DIR/src/ruby
 	\$(CC) -c \$(CFLAGS) \$(NXT_INCS) $NXT_RUBY_INCPATH \\
 	$nxt_dep_flags \\

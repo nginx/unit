@@ -127,8 +127,12 @@ nxt_clone_proc_map_write(nxt_task_t *task, const char *mapfile, pid_t pid,
                       nxt_errno);
         }
 
+        close(mapfd);
+
         return NXT_ERROR;
     }
+
+    close(mapfd);
 
     return NXT_OK;
 }

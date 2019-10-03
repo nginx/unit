@@ -668,10 +668,10 @@ nxt_php_request_handler(nxt_unit_request_info_t *req)
 
     SG(request_info).path_translated = NULL;
 
+    nxt_memzero(&file_handle, sizeof(file_handle));
+
     file_handle.type = ZEND_HANDLE_FILENAME;
     file_handle.filename = (char *) ctx->script_filename.start;
-    file_handle.free_filename = 0;
-    file_handle.opened_path = NULL;
 
     nxt_unit_req_debug(req, "handle.filename = '%s'",
                        ctx->script_filename.start);

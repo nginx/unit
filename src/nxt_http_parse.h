@@ -44,7 +44,6 @@ struct nxt_http_request_parse_s {
 
     nxt_str_t                 path;
     nxt_str_t                 args;
-    nxt_str_t                 exten;
 
     nxt_http_ver_t            version;
 

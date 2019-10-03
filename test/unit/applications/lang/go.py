@@ -12,7 +12,8 @@ class TestApplicationGo(TestApplicationProto):
 
         go_app = TestApplicationGo()
         go_app.testdir = unit.testdir
-        if go_app.prepare_env('empty', 'app').returncode == 0:
+        proc = go_app.prepare_env('empty', 'app')
+        if proc and proc.returncode == 0:
             cls.available['modules']['go'] = []
 
         return unit if not complete_check else unit.complete()
@@ -23,18 +24,23 @@ class TestApplicationGo(TestApplicationProto):
 
         env = os.environ.copy()
         env['GOPATH'] = self.pardir + '/go'
-        process = Popen(
-            [
-                'go',
-                'build',
-                '-o',
-                self.testdir + '/go/' + name,
-                self.current_dir + '/go/' + script + '/' + name + '.go',
-            ],
-            env=env,
-        )
 
-        process.communicate()
+        try:
+            process = Popen(
+                [
+                    'go',
+                    'build',
+                    '-o',
+                    self.testdir + '/go/' + name,
+                    self.current_dir + '/go/' + script + '/' + name + '.go',
+                ],
+                env=env,
+            )
+
+            process.communicate()
+
+        except:
+            return None
 
         return process
 

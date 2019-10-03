@@ -4,7 +4,7 @@ MODULE_SUFFIX_jsc8=	jsc8
 MODULE_SUMMARY_jsc8=	Java 8 module for NGINX Unit
 
 MODULE_VERSION_jsc8=	$(VERSION)
-MODULE_RELEASE_jsc8=	2
+MODULE_RELEASE_jsc8=	1
 
 JAVA_ARCH_jsc8=	$(shell /usr/lib/jvm/java-1.8.0/bin/java -XshowSettings 2>&1 | grep -F -e os.arch | sed -e 's/^.*= //')
 

@@ -4,7 +4,7 @@ MODULE_SUFFIX_jsc8=	jsc8
 MODULE_SUMMARY_jsc8=	Java 8 module for NGINX Unit
 
 MODULE_VERSION_jsc8=	$(VERSION)
-MODULE_RELEASE_jsc8=	2
+MODULE_RELEASE_jsc8=	1
 
 MODULE_CONFARGS_jsc8=	java --module=java8 --home=/usr/lib/jvm/java-8-openjdk-$$\(DEB_HOST_ARCH\) --jars=/usr/share/unit-jsc-common/
 MODULE_MAKEARGS_jsc8=	java8

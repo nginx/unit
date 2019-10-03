@@ -4,7 +4,7 @@ MODULE_SUFFIX_jsc_common=	jsc-common
 MODULE_SUMMARY_jsc_common=	Java shared packages for NGINX Unit
 
 MODULE_VERSION_jsc_common=	$(VERSION)
-MODULE_RELEASE_jsc_common=	2
+MODULE_RELEASE_jsc_common=	1
 
 JAVA_ARCH_jsc_common=	$(shell /usr/lib/jvm/java-1.8.0/bin/java -XshowSettings 2>&1 | grep -F -e os.arch | sed -e 's/^.*= //')
 

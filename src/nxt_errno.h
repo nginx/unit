@@ -16,6 +16,7 @@ typedef int                        nxt_err_t;
 #define NXT_ENOPATH                ENOENT
 #define NXT_ESRCH                  ESRCH
 #define NXT_EINTR                  EINTR
+#define NXT_ENXIO                  ENXIO
 #define NXT_ECHILD                 ECHILD
 #define NXT_ENOMEM                 ENOMEM
 #define NXT_EACCES                 EACCES

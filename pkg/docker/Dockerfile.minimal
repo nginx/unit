@@ -2,7 +2,7 @@ FROM debian:stretch-slim
 
 LABEL maintainer="NGINX Docker Maintainers <docker-maint@nginx.com>"
 
-ENV UNIT_VERSION          1.11.0-2~stretch
+ENV UNIT_VERSION          1.12.0-1~stretch
 
 RUN set -x \
 	&& apt-get update \
@@ -85,5 +85,9 @@ RUN set -x \
 RUN ln -sf /dev/stdout /var/log/unit.log
 
 STOPSIGNAL SIGTERM
+
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN mkdir /docker-entrypoint.d/
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
 CMD ["unitd", "--no-daemon", "--control", "unix:/var/run/control.unit.sock"]

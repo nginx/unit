@@ -14,10 +14,6 @@
 #include <nxt_cert.h>
 #endif
 
-#ifdef NXT_LINUX
-#include <linux/sched.h>
-#endif
-
 
 typedef struct {
     nxt_socket_t        socket;
@@ -661,7 +657,7 @@ nxt_main_start_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
 
         ret = nxt_user_cred_get(task, init->user_cred, group);
         if (ret != NXT_OK) {
-            return NXT_ERROR;
+            goto fail;
         }
 
     } else {
@@ -670,7 +666,7 @@ nxt_main_start_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
         {
             nxt_alert(task, "cannot set user \"%V\" for app \"%V\": "
                       "missing capabilities", &app_conf->user, &app_conf->name);
-            return NXT_ERROR;
+            goto fail;
         }
 
         if (app_conf->group.length > 0
@@ -680,7 +676,7 @@ nxt_main_start_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
             nxt_alert(task, "cannot set group \"%V\" for app \"%V\": "
                             "missing capabilities", &app_conf->group,
                             &app_conf->name);
-            return NXT_ERROR;
+            goto fail;
         }
 
         last = nxt_pointer_to(init, sizeof(nxt_process_init_t));
@@ -702,10 +698,16 @@ nxt_main_start_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
 
     ret = nxt_init_set_isolation(task, init, app_conf->isolation);
     if (nxt_slow_path(ret != NXT_OK)) {
-        return NXT_ERROR;
+        goto fail;
     }
 
     return nxt_main_create_worker_process(task, rt, init);
+
+fail:
+
+    nxt_free(init);
+
+    return NXT_ERROR;
 }
 
 
@@ -1012,52 +1014,50 @@ nxt_main_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid)
 
         nxt_process_close_ports(task, process);
 
-        if (!nxt_exiting) {
-            nxt_runtime_process_each(rt, process) {
-
-                if (process->pid == nxt_pid
-                    || process->pid == pid
-                    || nxt_queue_is_empty(&process->ports))
-                {
-                    continue;
-                }
-
-                port = nxt_process_port_first(process);
-
-                if (nxt_proc_remove_notify_matrix[ptype][port->type] == 0) {
-                    continue;
-                }
-
-                buf = nxt_buf_mem_ts_alloc(task, task->thread->engine->mem_pool,
-                                           sizeof(pid));
-                if (nxt_slow_path(buf == NULL)) {
-                    continue;
-                }
-
-                buf->mem.free = nxt_cpymem(buf->mem.free, &pid, sizeof(pid));
-
-                nxt_port_socket_write(task, port, NXT_PORT_MSG_REMOVE_PID,
-                                      -1, init->stream, 0, buf);
-            } nxt_runtime_process_loop;
-        }
-
         if (nxt_exiting) {
-
-            if (rt->nprocesses == 2) {
+            if (rt->nprocesses <= 2) {
                 nxt_runtime_quit(task, 0);
             }
 
-        } else if (init != NULL) {
-            if (init->restart != NULL) {
-                if (init->type == NXT_PROCESS_ROUTER) {
-                    nxt_main_stop_worker_processes(task, rt);
-                }
+            return;
+        }
 
-                init->restart(task, rt, init);
+        nxt_runtime_process_each(rt, process) {
 
-            } else {
-                nxt_free(init);
+            if (process->pid == nxt_pid
+                || process->pid == pid
+                || nxt_queue_is_empty(&process->ports))
+            {
+                continue;
             }
+
+            port = nxt_process_port_first(process);
+
+            if (nxt_proc_remove_notify_matrix[ptype][port->type] == 0) {
+                continue;
+            }
+
+            buf = nxt_buf_mem_ts_alloc(task, task->thread->engine->mem_pool,
+                                       sizeof(pid));
+            if (nxt_slow_path(buf == NULL)) {
+                continue;
+            }
+
+            buf->mem.free = nxt_cpymem(buf->mem.free, &pid, sizeof(pid));
+
+            nxt_port_socket_write(task, port, NXT_PORT_MSG_REMOVE_PID,
+                                  -1, init->stream, 0, buf);
+        } nxt_runtime_process_loop;
+
+        if (init->restart != NULL) {
+            if (init->type == NXT_PROCESS_ROUTER) {
+                nxt_main_stop_worker_processes(task, rt);
+            }
+
+            init->restart(task, rt, init);
+
+        } else {
+            nxt_free(init);
         }
     }
 }
@@ -1308,6 +1308,11 @@ nxt_main_port_modules_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     rt = task->thread->runtime;
 
     if (msg->port_msg.pid != rt->port_by_type[NXT_PROCESS_DISCOVERY]->pid) {
+        return;
+    }
+
+    if (nxt_exiting) {
+        nxt_debug(task, "ignoring discovered modules, exiting");
         return;
     }
 

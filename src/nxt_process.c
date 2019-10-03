@@ -42,7 +42,8 @@ nxt_bool_t  nxt_proc_remove_notify_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
 
 
 static nxt_int_t
-nxt_process_worker_setup(nxt_task_t *task, nxt_process_t *process, int parentfd) {
+nxt_process_worker_setup(nxt_task_t *task, nxt_process_t *process, int parentfd)
+{
     pid_t               rpid, pid;
     ssize_t             n;
     nxt_int_t           parent_status;
@@ -84,11 +85,6 @@ nxt_process_worker_setup(nxt_task_t *task, nxt_process_t *process, int parentfd)
     n = read(parentfd, &parent_status, sizeof(parent_status));
     if (nxt_slow_path(n == -1 || n != sizeof(parent_status))) {
         nxt_alert(task, "failed to read parent status");
-        return NXT_ERROR;
-    }
-
-    if (nxt_slow_path(close(parentfd) == -1)) {
-        nxt_alert(task, "failed to close reader pipe fd");
         return NXT_ERROR;
     }
 
@@ -152,34 +148,35 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
     init = process->init;
 
 #if (NXT_HAVE_CLONE)
-    pid = nxt_clone(SIGCHLD|init->isolation.clone.flags);
-#else
-    pid = fork();
-#endif
-
+    pid = nxt_clone(SIGCHLD | init->isolation.clone.flags);
     if (nxt_slow_path(pid < 0)) {
-#if (NXT_HAVE_CLONE)
         nxt_alert(task, "clone() failed while creating \"%s\" %E",
                   init->name, nxt_errno);
+        goto cleanup;
+    }
 #else
+    pid = fork();
+    if (nxt_slow_path(pid < 0)) {
         nxt_alert(task, "fork() failed while creating \"%s\" %E",
                   init->name, nxt_errno);
-#endif
-
-        return pid;
+        goto cleanup;
     }
+#endif
 
     if (pid == 0) {
         /* Child. */
 
         if (nxt_slow_path(close(pipefd[1]) == -1)) {
             nxt_alert(task, "failed to close writer pipe fd");
-            return NXT_ERROR;
         }
 
         ret = nxt_process_worker_setup(task, process, pipefd[0]);
         if (nxt_slow_path(ret != NXT_OK)) {
             exit(1);
+        }
+
+        if (nxt_slow_path(close(pipefd[0]) == -1)) {
+            nxt_alert(task, "failed to close writer pipe fd");
         }
 
         /*
@@ -190,10 +187,6 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
     }
 
     /* Parent. */
-
-    if (nxt_slow_path(close(pipefd[0]) != 0)) {
-        nxt_alert(task, "failed to close pipe: %E", nxt_errno);
-    }
 
     /*
      * At this point, the child process is blocked reading the
@@ -211,14 +204,14 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
 
     if (nxt_slow_path(write(pipefd[1], &pid, sizeof(pid)) == -1)) {
         nxt_alert(task, "failed to write real pid");
-        goto fail_cleanup;
+        goto fail;
     }
 
 #if (NXT_HAVE_CLONE_NEWUSER)
     if ((init->isolation.clone.flags & CLONE_NEWUSER) == CLONE_NEWUSER) {
         ret = nxt_clone_proc_map(task, pid, &init->isolation.clone);
         if (nxt_slow_path(ret != NXT_OK)) {
-            goto fail_cleanup;
+            goto fail;
         }
     }
 #endif
@@ -227,16 +220,16 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
 
     if (nxt_slow_path(write(pipefd[1], &ret, sizeof(ret)) == -1)) {
         nxt_alert(task, "failed to write status");
-        goto fail_cleanup;
+        goto fail;
     }
 
     process->pid = pid;
 
     nxt_runtime_process_add(task, process);
 
-    return pid;
+    goto cleanup;
 
-fail_cleanup:
+fail:
 
     ret = NXT_ERROR;
 
@@ -244,13 +237,21 @@ fail_cleanup:
         nxt_alert(task, "failed to write status");
     }
 
+    waitpid(pid, NULL, 0);
+
+    pid = -1;
+
+cleanup:
+
+    if (nxt_slow_path(close(pipefd[0]) != 0)) {
+        nxt_alert(task, "failed to close pipe: %E", nxt_errno);
+    }
+
     if (nxt_slow_path(close(pipefd[1]) != 0)) {
         nxt_alert(task, "failed to close pipe: %E", nxt_errno);
     }
 
-    waitpid(pid, NULL, 0);
-
-    return -1;
+    return pid;
 }
 
 
