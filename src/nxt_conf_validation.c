@@ -58,6 +58,8 @@ static nxt_int_t nxt_conf_vldt_listener(nxt_conf_validation_t *vldt,
 static nxt_int_t nxt_conf_vldt_certificate(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 #endif
+static nxt_int_t nxt_conf_vldt_action(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_pass(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_routes(nxt_conf_validation_t *vldt,
@@ -328,8 +330,8 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_route_members[] = {
 
     { nxt_string("action"),
       NXT_CONF_VLDT_OBJECT,
-      &nxt_conf_vldt_object,
-      (void *) &nxt_conf_vldt_action_members },
+      &nxt_conf_vldt_action,
+      NULL },
 
     NXT_CONF_VLDT_END
 };
@@ -877,6 +879,35 @@ nxt_conf_vldt_listener(nxt_conf_validation_t *vldt, nxt_str_t *name,
     }
 
     return nxt_conf_vldt_object(vldt, value, nxt_conf_vldt_listener_members);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_action(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
+{
+    nxt_int_t         ret;
+    nxt_conf_value_t  *pass_value, *share_value;
+
+    static nxt_str_t  pass_str = nxt_string("pass");
+    static nxt_str_t  share_str = nxt_string("share");
+
+    ret = nxt_conf_vldt_object(vldt, value, nxt_conf_vldt_action_members);
+
+    if (ret != NXT_OK) {
+        return ret;
+    }
+
+    pass_value = nxt_conf_get_object_member(value, &pass_str, NULL);
+    share_value = nxt_conf_get_object_member(value, &share_str, NULL);
+
+    if (pass_value == NULL && share_value == NULL) {
+        return nxt_conf_vldt_error(vldt, "The \"action\" object must have "
+                                         "either \"pass\" or \"share\" "
+                                         "option set.");
+    }
+
+    return NXT_OK;
 }
 
 
