@@ -1458,7 +1458,8 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         next = 0;
 
         for ( ;; ) {
-            application = nxt_conf_next_object_member(applications, &name, &next);
+            application = nxt_conf_next_object_member(applications,
+                                                      &name, &next);
             if (application == NULL) {
                 break;
             }

@@ -19,7 +19,7 @@ nxt_inline void
 nxt_hton16(uint8_t *b, uint16_t v)
 {
     b[0] = (v >> 8);
-    b[1] = (v & 0xFFu); 
+    b[1] = (v & 0xFFu);
 }
 
 

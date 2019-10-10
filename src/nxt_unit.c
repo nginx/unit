@@ -1458,7 +1458,8 @@ nxt_unit_response_realloc(nxt_unit_request_info_t *req,
             goto fail;
         }
 
-        resp->piggyback_content_length = req->response->piggyback_content_length;
+        resp->piggyback_content_length =
+                                       req->response->piggyback_content_length;
 
         nxt_unit_sptr_set(&resp->piggyback_content, p);
         p = nxt_cpymem(p, nxt_unit_sptr_get(&req->response->piggyback_content),
@@ -1953,7 +1954,8 @@ nxt_unit_mmap_buf_send(nxt_unit_ctx_t *ctx, uint32_t stream,
 
     if (hdr != NULL) {
         m.mmap_msg.mmap_id = hdr->id;
-        m.mmap_msg.chunk_id = nxt_port_mmap_chunk_id(hdr, (u_char *) buf->start);
+        m.mmap_msg.chunk_id = nxt_port_mmap_chunk_id(hdr,
+                                                     (u_char *) buf->start);
     }
 
     nxt_unit_debug(ctx, "#%"PRIu32": send mmap: (%d,%d,%d)",

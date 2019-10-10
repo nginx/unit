@@ -103,11 +103,9 @@ static nxt_int_t nxt_conf_vldt_java_classpath(nxt_conf_validation_t *vldt,
 static nxt_int_t nxt_conf_vldt_java_option(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value);
 
-static nxt_int_t
-nxt_conf_vldt_isolation(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
-    void *data);
-static nxt_int_t
-nxt_conf_vldt_clone_namespaces(nxt_conf_validation_t *vldt,
+static nxt_int_t nxt_conf_vldt_isolation(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_clone_namespaces(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 
 #if (NXT_HAVE_CLONE_NEWUSER)
@@ -620,7 +618,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_java_members[] = {
     { nxt_string("classpath"),
       NXT_CONF_VLDT_ARRAY,
       &nxt_conf_vldt_array_iterator,
-      (void *) &nxt_conf_vldt_java_classpath},
+      (void *) &nxt_conf_vldt_java_classpath },
 
     { nxt_string("webapp"),
       NXT_CONF_VLDT_STRING,
@@ -630,7 +628,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_java_members[] = {
     { nxt_string("options"),
       NXT_CONF_VLDT_ARRAY,
       &nxt_conf_vldt_array_iterator,
-      (void *) &nxt_conf_vldt_java_option},
+      (void *) &nxt_conf_vldt_java_option },
 
     { nxt_string("unit_jars"),
       NXT_CONF_VLDT_STRING,
@@ -1556,8 +1554,8 @@ nxt_conf_vldt_environment(nxt_conf_validation_t *vldt, nxt_str_t *name,
 
 
 static nxt_int_t
-nxt_conf_vldt_clone_namespaces(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
-    void *data)
+nxt_conf_vldt_clone_namespaces(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data)
 {
     return nxt_conf_vldt_object(vldt, value, data);
 }
@@ -1722,7 +1720,8 @@ nxt_conf_vldt_php_option(nxt_conf_validation_t *vldt, nxt_str_t *name,
 
 
 static nxt_int_t
-nxt_conf_vldt_java_classpath(nxt_conf_validation_t *vldt, nxt_conf_value_t *value)
+nxt_conf_vldt_java_classpath(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value)
 {
     nxt_str_t  str;
 

@@ -599,13 +599,15 @@ nxt_h1p_header_process(nxt_task_t *task, nxt_h1proto_t *h1p,
         }
 
         if (nxt_slow_path(h1p->websocket_key == NULL)) {
-            nxt_log(task, NXT_LOG_INFO, "h1p upgrade: bad or absent websocket key");
+            nxt_log(task, NXT_LOG_INFO,
+                    "h1p upgrade: bad or absent websocket key");
 
             return NXT_HTTP_BAD_REQUEST;
         }
 
         if (nxt_slow_path(h1p->websocket_version_ok == 0)) {
-            nxt_log(task, NXT_LOG_INFO, "h1p upgrade: bad or absent websocket version");
+            nxt_log(task, NXT_LOG_INFO,
+                    "h1p upgrade: bad or absent websocket version");
 
             return NXT_HTTP_UPGRADE_REQUIRED;
         }

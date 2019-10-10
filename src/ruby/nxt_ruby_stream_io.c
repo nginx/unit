@@ -31,7 +31,8 @@ nxt_ruby_stream_io_input_init(void)
     rb_gc_register_address(&stream_io);
 
     rb_define_singleton_method(stream_io, "new", nxt_ruby_stream_io_new, 1);
-    rb_define_method(stream_io, "initialize", nxt_ruby_stream_io_initialize, -1);
+    rb_define_method(stream_io, "initialize",
+                     nxt_ruby_stream_io_initialize, -1);
     rb_define_method(stream_io, "gets", nxt_ruby_stream_io_gets, 0);
     rb_define_method(stream_io, "each", nxt_ruby_stream_io_each, 0);
     rb_define_method(stream_io, "read", nxt_ruby_stream_io_read, -2);
@@ -51,7 +52,8 @@ nxt_ruby_stream_io_error_init(void)
     rb_gc_register_address(&stream_io);
 
     rb_define_singleton_method(stream_io, "new", nxt_ruby_stream_io_new, 1);
-    rb_define_method(stream_io, "initialize", nxt_ruby_stream_io_initialize, -1);
+    rb_define_method(stream_io, "initialize",
+                     nxt_ruby_stream_io_initialize, -1);
     rb_define_method(stream_io, "puts", nxt_ruby_stream_io_puts, -2);
     rb_define_method(stream_io, "write", nxt_ruby_stream_io_write, -2);
     rb_define_method(stream_io, "flush", nxt_ruby_stream_io_flush, 0);

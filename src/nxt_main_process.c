@@ -70,8 +70,8 @@ static void nxt_main_port_access_log_handler(nxt_task_t *task,
 
 static nxt_int_t nxt_init_set_isolation(nxt_task_t *task,
     nxt_process_init_t *init, nxt_conf_value_t *isolation);
-static nxt_int_t nxt_init_set_ns(nxt_task_t *task,
-    nxt_process_init_t *init, nxt_conf_value_t *ns);
+static nxt_int_t nxt_init_set_ns(nxt_task_t *task, nxt_process_init_t *init,
+    nxt_conf_value_t *ns);
 
 const nxt_sig_event_t  nxt_main_process_signals[] = {
     nxt_event_signal(SIGHUP,  nxt_main_process_signal_handler),
@@ -1540,7 +1540,8 @@ nxt_init_set_isolation(nxt_task_t *task, nxt_process_init_t *init,
 
 
 static nxt_int_t
-nxt_init_set_ns(nxt_task_t *task, nxt_process_init_t *init, nxt_conf_value_t *namespaces)
+nxt_init_set_ns(nxt_task_t *task, nxt_process_init_t *init,
+    nxt_conf_value_t *namespaces)
 {
     uint32_t          index;
     nxt_str_t         name;
@@ -1549,7 +1550,13 @@ nxt_init_set_ns(nxt_task_t *task, nxt_process_init_t *init, nxt_conf_value_t *na
 
     index = 0;
 
-    while ((value = nxt_conf_next_object_member(namespaces, &name, &index)) != NULL) {
+    for ( ;; ) {
+        value = nxt_conf_next_object_member(namespaces, &name, &index);
+
+        if (value == NULL) {
+            break;
+        }
+
         flag = 0;
 
 #if (NXT_HAVE_CLONE_NEWUSER)
