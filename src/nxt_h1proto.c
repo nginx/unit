@@ -655,8 +655,7 @@ nxt_h1p_header_buffer_test(nxt_task_t *task, nxt_h1proto_t *h1p, nxt_conn_t *c,
 static nxt_int_t
 nxt_h1p_connection(void *ctx, nxt_http_field_t *field, uintptr_t data)
 {
-    nxt_http_request_t   *r;
-    static const u_char  *upgrade = (const u_char *) "upgrade";
+    nxt_http_request_t  *r;
 
     r = ctx;
 
@@ -664,7 +663,7 @@ nxt_h1p_connection(void *ctx, nxt_http_field_t *field, uintptr_t data)
         r->proto.h1->keepalive = 0;
 
     } else if (field->value_length == 7
-               && nxt_memcasecmp(field->value, upgrade, 7) == 0)
+               && nxt_memcasecmp(field->value, "upgrade", 7) == 0)
     {
         r->proto.h1->connection_upgrade = 1;
     }
@@ -676,13 +675,12 @@ nxt_h1p_connection(void *ctx, nxt_http_field_t *field, uintptr_t data)
 static nxt_int_t
 nxt_h1p_upgrade(void *ctx, nxt_http_field_t *field, uintptr_t data)
 {
-    nxt_http_request_t   *r;
-    static const u_char  *websocket = (const u_char *) "websocket";
+    nxt_http_request_t  *r;
 
     r = ctx;
 
     if (field->value_length == 9
-        && nxt_memcasecmp(field->value, websocket, 9) == 0)
+        && nxt_memcasecmp(field->value, "websocket", 9) == 0)
     {
         r->proto.h1->upgrade_websocket = 1;
     }
