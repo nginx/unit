@@ -1600,11 +1600,9 @@ nxt_init_set_ns(nxt_task_t *task, nxt_process_init_t *init,
             return NXT_ERROR;
         }
 
-        if (nxt_conf_get_integer(value) == 0) {
-            continue;  /* process shares everything by default */
+        if (nxt_conf_get_boolean(value)) {
+            init->isolation.clone.flags |= flag;
         }
-
-        init->isolation.clone.flags |= flag;
     }
 
     return NXT_OK;

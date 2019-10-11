@@ -130,6 +130,38 @@ class TestGoIsolation(TestApplicationGo):
 
         self.assertEqual(obj['PID'], 1, 'pid of container is 1')
 
+    def test_isolation_namespace_false(self):
+        self.load('ns_inspect')
+        allns = list(self.available['features']['isolation'].keys())
+
+        remove_list = ['unprivileged_userns_clone', 'ipc', 'cgroup']
+        allns = [ns for ns in allns if ns not in remove_list]
+
+        namespaces = {}
+        for ns in allns:
+            if ns == 'user':
+                namespaces['credential'] = False
+            elif ns == 'mnt':
+                namespaces['mount'] = False
+            elif ns == 'net':
+                namespaces['network'] = False
+            elif ns == 'uts':
+                namespaces['uname'] = False
+            else:
+                namespaces[ns] = False
+
+        self.conf_isolation({"namespaces": namespaces})
+
+        obj = self.isolation.parsejson(self.get()['body'])
+
+        for ns in allns:
+            if ns.upper() in obj['NS']:
+                self.assertEqual(
+                    obj['NS'][ns.upper()],
+                    self.available['features']['isolation'][ns],
+                    '%s match' % ns,
+                )
+
 
 if __name__ == '__main__':
     TestGoIsolation.main()
