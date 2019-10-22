@@ -459,7 +459,7 @@ nxt_runtime_close_idle_connections(nxt_event_engine_t *engine)
 
     idle = &engine->idle_connections;
 
-    for (link = nxt_queue_head(idle);
+    for (link = nxt_queue_first(idle);
          link != nxt_queue_tail(idle);
          link = next)
     {
