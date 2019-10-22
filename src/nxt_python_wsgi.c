@@ -179,6 +179,10 @@ static PyTypeObject nxt_py_input_type = {
 #if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION > 3
     0,                                  /* tp_finalize          */
 #endif
+#if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION >= 8
+    0,                                  /* tp_vectorcall        */
+    0,                                  /* tp_print             */
+#endif
 };
 
 

@@ -64,6 +64,10 @@ nxt_found=no
 
 if /bin/sh -c "$NXT_PYTHON_CONFIG --prefix" >> $NXT_AUTOCONF_ERR 2>&1; then
 
+    if ${NXT_PYTHON_CONFIG} --embed 2>/dev/null; then
+        NXT_PYTHON_CONFIG="${NXT_PYTHON_CONFIG} --embed"
+    fi
+
     NXT_PYTHON_INCLUDE=`${NXT_PYTHON_CONFIG} --includes`
     NXT_PYTHON_LIBS=`${NXT_PYTHON_CONFIG} --ldflags`
 
