@@ -40,6 +40,12 @@ class TestStatic(TestApplicationProto):
         )
         self.assertEqual(self.get(url='/')['body'], '0123456789', 'index 2')
         self.assertEqual(
+            self.get(url='/?blah')['body'], '0123456789', 'index vars'
+        )
+        self.assertEqual(
+            self.get(url='/#blah')['body'], '0123456789', 'index anchor'
+        )
+        self.assertEqual(
             self.get(url='/dir/')['status'], 404, 'index not found'
         )
 
