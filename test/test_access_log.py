@@ -12,7 +12,11 @@ class TestAccessLog(TestApplicationPython):
     def load(self, script):
         super().load(script)
 
-        self.conf('"' + self.testdir + '/access.log"', 'access_log')
+        self.assertIn(
+            'success',
+            self.conf('"' + self.testdir + '/access.log"', 'access_log'),
+            'access_log configure',
+        )
 
     def wait_for_record(self, pattern, name='access.log'):
         return super().wait_for_record(pattern, name)
