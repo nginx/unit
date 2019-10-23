@@ -8,7 +8,7 @@ from unit.applications.websockets import TestApplicationWebsocket
 class TestJavaWebsockets(TestApplicationJava):
     prerequisites = {'modules': ['java']}
 
-    ws = TestApplicationWebsocket(True)
+    ws = TestApplicationWebsocket()
 
     def setUp(self):
         super().setUp()

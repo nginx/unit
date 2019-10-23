@@ -1,3 +1,4 @@
+import re
 import random
 import base64
 import struct
@@ -32,11 +33,7 @@ class TestApplicationWebsocket(TestApplicationProto):
 
     def upgrade(self):
         key = self.key()
-
-        if self.preinit:
-            self.get()
-
-        resp, sock = self.get(
+        _, sock = self.get(
             headers={
                 'Host': 'localhost',
                 'Upgrade': 'websocket',
@@ -45,9 +42,20 @@ class TestApplicationWebsocket(TestApplicationProto):
                 'Sec-WebSocket-Protocol': 'chat',
                 'Sec-WebSocket-Version': 13,
             },
-            read_timeout=1,
+            no_recv=True,
             start=True,
         )
+
+        resp = ''
+        while select.select([sock], [], [], 30)[0]:
+            resp += sock.recv(4096).decode()
+
+            if (
+                re.search('101 Switching Protocols', resp)
+                and resp[-4:] == '\r\n\r\n'
+            ):
+                resp = self._resp_to_dict(resp)
+                break
 
         return (resp, sock, key)
 
