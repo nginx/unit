@@ -901,31 +901,75 @@ class TestRouting(TestApplicationProto):
             'success',
             self.route(
                 {
-                    "match": {"uri": "/"},
+                    "match": {"uri": ["/blah", "/slash/"]},
                     "action": {"pass": "applications/empty"},
                 }
             ),
             'match uri positive configure',
         )
 
-        self.assertEqual(self.get()['status'], 200, 'match uri positive')
+        self.assertEqual(self.get()['status'], 404, 'match uri positive')
         self.assertEqual(
-            self.get(url='/blah')['status'], 404, 'match uri positive blah'
+            self.get(url='/blah')['status'], 200, 'match uri positive blah'
         )
         self.assertEqual(
-            self.get(url='/#blah')['status'], 200, 'match uri positive #blah'
+            self.get(url='/blah#foo')['status'],
+            200,
+            'match uri positive #foo',
         )
         self.assertEqual(
-            self.get(url='/?var')['status'], 200, 'match uri params'
+            self.get(url='/blah?var')['status'], 200, 'match uri args'
         )
         self.assertEqual(
-            self.get(url='//')['status'], 200, 'match uri adjacent slashes'
+            self.get(url='//blah')['status'], 200, 'match uri adjacent slashes'
         )
         self.assertEqual(
-            self.get(url='/blah/../')['status'], 200, 'match uri relative path'
+            self.get(url='/slash/foo/../')['status'],
+            200,
+            'match uri relative path',
         )
         self.assertEqual(
-            self.get(url='/./')['status'], 200, 'match uri relative path'
+            self.get(url='/slash/./')['status'],
+            200,
+            'match uri relative path 2',
+        )
+        self.assertEqual(
+            self.get(url='/slash//.//')['status'],
+            200,
+            'match uri adjacent slashes 2',
+        )
+        self.assertEqual(
+            self.get(url='/%')['status'], 400, 'match uri percent'
+        )
+        self.assertEqual(
+            self.get(url='/%1')['status'], 400, 'match uri percent digit'
+        )
+        self.assertEqual(
+            self.get(url='/%A')['status'], 400, 'match uri percent letter'
+        )
+        self.assertEqual(
+            self.get(url='/slash/.?args')['status'], 200, 'match uri dot args'
+        )
+        self.assertEqual(
+            self.get(url='/slash/.#frag')['status'], 200, 'match uri dot frag'
+        )
+        self.assertEqual(
+            self.get(url='/slash/foo/..?args')['status'],
+            200,
+            'match uri dot dot args',
+        )
+        self.assertEqual(
+            self.get(url='/slash/foo/..#frag')['status'],
+            200,
+            'match uri dot dot frag',
+        )
+        self.assertEqual(
+            self.get(url='/slash/.')['status'], 200, 'match uri trailing dot'
+        )
+        self.assertEqual(
+            self.get(url='/slash/foo/..')['status'],
+            200,
+            'match uri trailing dot dot',
         )
 
     def test_routes_match_uri_case_sensitive(self):
