@@ -8,34 +8,38 @@ class TestRouting(TestApplicationProto):
     def setUp(self):
         super().setUp()
 
-        self.conf(
-            {
-                "listeners": {"*:7080": {"pass": "routes"}},
-                "routes": [
-                    {
-                        "match": {"method": "GET"},
-                        "action": {"pass": "applications/empty"},
-                    }
-                ],
-                "applications": {
-                    "empty": {
-                        "type": "python",
-                        "processes": {"spare": 0},
-                        "path": self.current_dir + '/python/empty',
-                        "working_directory": self.current_dir
-                        + '/python/empty',
-                        "module": "wsgi",
+        self.assertIn(
+            'success',
+            self.conf(
+                {
+                    "listeners": {"*:7080": {"pass": "routes"}},
+                    "routes": [
+                        {
+                            "match": {"method": "GET"},
+                            "action": {"pass": "applications/empty"},
+                        }
+                    ],
+                    "applications": {
+                        "empty": {
+                            "type": "python",
+                            "processes": {"spare": 0},
+                            "path": self.current_dir + '/python/empty',
+                            "working_directory": self.current_dir
+                            + '/python/empty',
+                            "module": "wsgi",
+                        },
+                        "mirror": {
+                            "type": "python",
+                            "processes": {"spare": 0},
+                            "path": self.current_dir + '/python/mirror',
+                            "working_directory": self.current_dir
+                            + '/python/mirror',
+                            "module": "wsgi",
+                        },
                     },
-                    "mirror": {
-                        "type": "python",
-                        "processes": {"spare": 0},
-                        "path": self.current_dir + '/python/mirror',
-                        "working_directory": self.current_dir
-                        + '/python/mirror',
-                        "module": "wsgi",
-                    },
-                },
-            }
+                }
+            ),
+            'routing configure',
         )
 
     def route(self, route):
