@@ -130,6 +130,18 @@ class TestPythonApplication(TestApplicationPython):
             self.get()['headers']['Server-Port'], '7080', 'Server-Port header'
         )
 
+    @unittest.skip('not yet')
+    def test_python_application_working_directory_invalid(self):
+        self.load('empty')
+
+        self.assertIn(
+            'success',
+            self.conf('"/blah"', 'applications/empty/working_directory'),
+            'configure invalid working_directory',
+        )
+
+        self.assertEqual(self.get()['status'], 500, 'status')
+
     def test_python_application_204_transfer_encoding(self):
         self.load('204_no_content')
 
