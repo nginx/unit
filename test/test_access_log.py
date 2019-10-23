@@ -115,7 +115,9 @@ Connection: close
 
         addr = self.testdir + '/sock'
 
-        self.conf({"unix:" + addr: {"pass": "applications/empty"}}, 'listeners')
+        self.conf(
+            {"unix:" + addr: {"pass": "applications/empty"}}, 'listeners'
+        )
 
         self.get(sock_type='unix', addr=addr)
 
