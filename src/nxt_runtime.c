@@ -658,6 +658,8 @@ nxt_runtime_thread_pool_exit(nxt_task_t *task, void *obj, void *data)
         if (tp == thread_pools[i]) {
             nxt_array_remove(rt->thread_pools, &thread_pools[i]);
 
+            nxt_free(tp);
+
             if (n == 1) {
                 /* The last thread pool. */
                 rt->continuation(task, 0);
