@@ -207,7 +207,7 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
         goto fail;
     }
 
-#if (NXT_HAVE_CLONE_NEWUSER)
+#if (NXT_HAVE_CLONE && NXT_HAVE_CLONE_NEWUSER)
     if ((init->isolation.clone.flags & CLONE_NEWUSER) == CLONE_NEWUSER) {
         ret = nxt_clone_proc_map(task, pid, &init->isolation.clone);
         if (nxt_slow_path(ret != NXT_OK)) {
