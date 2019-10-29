@@ -1318,6 +1318,10 @@ nxt_runtime_process_destroy(nxt_runtime_t *rt, nxt_process_t *process)
     nxt_thread_mutex_destroy(&process->outgoing.mutex);
     nxt_thread_mutex_destroy(&process->cp_mutex);
 
+    if (process->init != NULL) {
+        nxt_mp_free(rt->mem_pool, process->init);
+    }
+
     nxt_mp_free(rt->mem_pool, process);
 }
 

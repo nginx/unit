@@ -465,12 +465,10 @@ nxt_main_start_controller_process(nxt_task_t *task, nxt_runtime_t *rt)
 {
     nxt_process_init_t  *init;
 
-    init = nxt_malloc(sizeof(nxt_process_init_t));
+    init = nxt_mp_zalloc(rt->mem_pool, sizeof(nxt_process_init_t));
     if (nxt_slow_path(init == NULL)) {
         return NXT_ERROR;
     }
-
-    nxt_memzero(init, sizeof(nxt_process_init_t));
 
     init->start = nxt_controller_start;
     init->name = "controller";
@@ -561,12 +559,10 @@ nxt_main_start_discovery_process(nxt_task_t *task, nxt_runtime_t *rt)
 {
     nxt_process_init_t  *init;
 
-    init = nxt_malloc(sizeof(nxt_process_init_t));
+    init = nxt_mp_zalloc(rt->mem_pool, sizeof(nxt_process_init_t));
     if (nxt_slow_path(init == NULL)) {
         return NXT_ERROR;
     }
-
-    nxt_memzero(init, sizeof(nxt_process_init_t));
 
     init->start = nxt_discovery_start;
     init->name = "discovery";
@@ -587,12 +583,10 @@ nxt_main_start_router_process(nxt_task_t *task, nxt_runtime_t *rt)
 {
     nxt_process_init_t  *init;
 
-    init = nxt_malloc(sizeof(nxt_process_init_t));
+    init = nxt_mp_zalloc(rt->mem_pool, sizeof(nxt_process_init_t));
     if (nxt_slow_path(init == NULL)) {
         return NXT_ERROR;
     }
-
-    nxt_memzero(init, sizeof(nxt_process_init_t));
 
     init->start = nxt_router_start;
     init->name = "router";
@@ -627,12 +621,10 @@ nxt_main_start_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
                 + app_conf->group.length + 1;
     }
 
-    init = nxt_malloc(size);
+    init = nxt_mp_zalloc(rt->mem_pool, size);
     if (nxt_slow_path(init == NULL)) {
         return NXT_ERROR;
     }
-
-    nxt_memzero(init, sizeof(nxt_process_init_t));
 
     if (rt->capabilities.setid) {
         init->user_cred = nxt_pointer_to(init, sizeof(nxt_process_init_t));
@@ -705,7 +697,7 @@ nxt_main_start_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
 
 fail:
 
-    nxt_free(init);
+    nxt_mp_free(rt->mem_pool, init);
 
     return NXT_ERROR;
 }
@@ -726,6 +718,8 @@ nxt_main_create_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
 
     process = nxt_runtime_process_new(rt);
     if (nxt_slow_path(process == NULL)) {
+        nxt_mp_free(rt->mem_pool, init);
+
         return NXT_ERROR;
     }
 
@@ -785,8 +779,6 @@ nxt_main_stop_all_processes(nxt_task_t *task, nxt_runtime_t *rt)
     nxt_runtime_process_each(rt, process) {
 
         if (nxt_pid != process->pid) {
-            process->init = NULL;
-
             nxt_process_port_each(process, port) {
 
                 (void) nxt_port_socket_write(task, port, NXT_PORT_MSG_QUIT,
@@ -1005,10 +997,11 @@ nxt_main_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid)
 
     if (process) {
         init = process->init;
+        process->init = NULL;
 
         ptype = nxt_process_type(process);
 
-        if (process->ready && init != NULL) {
+        if (process->ready) {
             init->stream = 0;
         }
 
@@ -1057,7 +1050,7 @@ nxt_main_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid)
             init->restart(task, rt, init);
 
         } else {
-            nxt_free(init);
+            nxt_mp_free(rt->mem_pool, init);
         }
     }
 }
