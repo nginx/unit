@@ -784,6 +784,17 @@ nxt_user_cred_set(nxt_task_t *task, nxt_user_cred_t *uc)
 
 
 void
+nxt_process_use(nxt_task_t *task, nxt_process_t *process, int i)
+{
+    process->use_count += i;
+
+    if (process->use_count == 0) {
+        nxt_runtime_process_release(task->thread->runtime, process);
+    }
+}
+
+
+void
 nxt_process_port_add(nxt_task_t *task, nxt_process_t *process, nxt_port_t *port)
 {
     nxt_assert(port->process == NULL);

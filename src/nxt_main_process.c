@@ -397,30 +397,18 @@ nxt_main_process_port_create(nxt_task_t *task, nxt_runtime_t *rt)
     nxt_port_t     *port;
     nxt_process_t  *process;
 
-    process = nxt_runtime_process_get(rt, nxt_pid);
-    if (nxt_slow_path(process == NULL)) {
-        return NXT_ERROR;
-    }
-
-    port = nxt_port_new(task, 0, nxt_pid, NXT_PROCESS_MAIN);
+    port = nxt_runtime_process_port_create(task, rt, nxt_pid, 0,
+                                           NXT_PROCESS_MAIN);
     if (nxt_slow_path(port == NULL)) {
-        nxt_process_use(task, process, -1);
         return NXT_ERROR;
     }
 
-    nxt_process_port_add(task, process, port);
-
-    nxt_process_use(task, process, -1);
+    process = port->process;
 
     ret = nxt_port_socket_init(task, port, 0);
     if (nxt_slow_path(ret != NXT_OK)) {
-        nxt_port_use(task, port, -1);
         return ret;
     }
-
-    nxt_runtime_port_add(task, port);
-
-    nxt_port_use(task, port, -1);
 
     /*
      * A main process port.  A write port is not closed

@@ -114,6 +114,8 @@ NXT_EXPORT void nxt_process_port_add(nxt_task_t *task, nxt_process_t *process,
 
 nxt_process_type_t nxt_process_type(nxt_process_t *process);
 
+void nxt_process_use(nxt_task_t *task, nxt_process_t *process, int i);
+
 void nxt_process_close_ports(nxt_task_t *task, nxt_process_t *process);
 
 void nxt_process_connected_port_add(nxt_process_t *process, nxt_port_t *port);
