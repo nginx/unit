@@ -14,6 +14,7 @@ mkdir -p $NXT_BUILD_DIR/src \
 cat << END > $NXT_MAKEFILE
 
 CC =			$CC
+AR =			$AR
 
 CFLAGS = 		$NXT_CFLAGS $NXT_CC_OPT $CFLAGS
 
