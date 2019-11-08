@@ -63,7 +63,7 @@ class TestHTTP(TestUnit):
         if 'raw' not in kwargs:
             req = ' '.join([start_str, url, http]) + crlf
 
-            if body is not b'':
+            if body != b'':
                 if isinstance(body, str):
                     body = body.encode()
 
