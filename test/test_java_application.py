@@ -1,3 +1,4 @@
+import os
 import time
 import unittest
 from unit.applications.lang.java import TestApplicationJava
@@ -1217,7 +1218,13 @@ class TestJavaApplication(TestApplicationJava):
     def test_java_application_multipart(self):
         self.load('multipart')
 
-        body = """Preamble. Should be ignored.\r
+        reldst = '/uploads'
+        fulldst = self.testdir + reldst
+        os.mkdir(fulldst)
+        self.public_dir(fulldst)
+
+        body = (
+            """Preamble. Should be ignored.\r
 \r
 --12345\r
 Content-Disposition: form-data; name="file"; filename="sample.txt"\r
@@ -1234,7 +1241,9 @@ Content-Disposition: form-data; name="upload"\r
 Upload\r
 --12345--\r
 \r
-Epilogue. Should be ignored.""" % self.testdir
+Epilogue. Should be ignored."""
+            % fulldst
+        )
 
         resp = self.post(
             headers={
@@ -1246,9 +1255,13 @@ Epilogue. Should be ignored.""" % self.testdir
         )
 
         self.assertEqual(resp['status'], 200, 'multipart status')
-        self.assertRegex(resp['body'], r'sample\.txt created', 'multipart body')
+        self.assertRegex(
+            resp['body'], r'sample\.txt created', 'multipart body'
+        )
         self.assertIsNotNone(
-            self.search_in_log(r'^Data from sample file$', name='sample.txt'),
+            self.search_in_log(
+                r'^Data from sample file$', name=reldst + '/sample.txt'
+            ),
             'file created',
         )
 

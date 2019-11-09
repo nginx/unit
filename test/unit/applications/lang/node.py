@@ -22,12 +22,14 @@ class TestApplicationNode(TestApplicationProto):
             self.current_dir + '/node/' + script, self.testdir + '/node'
         )
 
-        # link modules
+        # copy modules
 
-        os.symlink(
+        shutil.copytree(
             self.pardir + '/node/node_modules',
             self.testdir + '/node/node_modules',
         )
+
+        self.public_dir(self.testdir + '/node')
 
         self._load_conf(
             {

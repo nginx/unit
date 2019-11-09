@@ -1,4 +1,5 @@
-import os
+import pwd
+import grp
 import json
 import unittest
 from unit.applications.lang.go import TestApplicationGo
@@ -45,38 +46,50 @@ class TestGoIsolation(TestApplicationGo):
             raise unittest.SkipTest()
 
         self.load('ns_inspect')
+
+        user_id = pwd.getpwnam('nobody').pw_uid
+
+        try:
+            group_id = grp.getgrnam('nogroup').gr_gid
+        except:
+            group_id = grp.getgrnam('nobody').gr_gid
+
         obj = self.isolation.parsejson(self.get()['body'])
 
         self.assertTrue(obj['UID'] != 0, 'uid not zero')
         self.assertTrue(obj['GID'] != 0, 'gid not zero')
-        self.assertEqual(obj['UID'], os.getuid(), 'uid match')
-        self.assertEqual(obj['GID'], os.getgid(), 'gid match')
+
+        if self.is_su:
+            self.assertEqual(obj['UID'], user_id, 'uid match')
+            self.assertEqual(obj['GID'], group_id, 'gid match')
+        else:
+            self.assertEqual(obj['UID'], self.uid, 'uid match')
+            self.assertEqual(obj['GID'], self.gid, 'gid match')
 
         self.conf_isolation({"namespaces": {"credential": True}})
 
         obj = self.isolation.parsejson(self.get()['body'])
 
         # default uid and gid maps current user to nobody
-        self.assertEqual(obj['UID'], 65534, 'uid nobody')
-        self.assertEqual(obj['GID'], 65534, 'gid nobody')
+        self.assertEqual(obj['UID'], user_id, 'uid nobody')
+        self.assertEqual(obj['GID'], group_id, 'gid nobody')
 
         self.conf_isolation(
             {
                 "namespaces": {"credential": True},
                 "uidmap": [
-                    {"container": 1000, "host": os.geteuid(), "size": 1}
+                    {"container": user_id, "host": self.uid, "size": 1}
                 ],
                 "gidmap": [
-                    {"container": 1000, "host": os.getegid(), "size": 1}
+                    {"container": group_id, "host": self.gid, "size": 1}
                 ],
             }
         )
 
         obj = self.isolation.parsejson(self.get()['body'])
 
-        # default uid and gid maps current user to root
-        self.assertEqual(obj['UID'], 1000, 'uid root')
-        self.assertEqual(obj['GID'], 1000, 'gid root')
+        self.assertEqual(obj['UID'], user_id, 'uid match')
+        self.assertEqual(obj['GID'], group_id, 'gid match')
 
     def test_isolation_mnt(self):
         if not self.isolation_key('mnt'):
