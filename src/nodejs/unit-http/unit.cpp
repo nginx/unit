@@ -629,9 +629,6 @@ Unit::response_send_headers(napi_env env, napi_callback_info info)
         keys_count = napi.get_value_uint32(argv[2]);
         header_len = napi.get_value_uint32(argv[3]);
 
-        /* Need to reserve extra byte for C-string 0-termination. */
-        header_len++;
-
         headers = argv[1];
 
         ret = nxt_unit_response_init(req, status_code, keys_count, header_len);
@@ -639,6 +636,12 @@ Unit::response_send_headers(napi_env env, napi_callback_info info)
             napi.throw_error("Failed to create response");
             return nullptr;
         }
+
+        /*
+         * Each name and value are 0-terminated by libunit.
+         * Need to add extra 2 bytes for each header.
+         */
+        header_len += keys_count * 2;
 
         keys = napi.get_property_names(headers);
         keys_len = napi.get_array_length(keys);
@@ -656,8 +659,8 @@ Unit::response_send_headers(napi_env env, napi_callback_info info)
             name_len = napi.get_value_string_latin1(name, ptr, header_len);
             name_ptr = ptr;
 
-            ptr += name_len;
-            header_len -= name_len;
+            ptr += name_len + 1;
+            header_len -= name_len + 1;
 
             hash = nxt_unit_field_hash(name_ptr, name_len);
 
@@ -689,8 +692,8 @@ Unit::response_send_headers(napi_env env, napi_callback_info info)
                     nxt_unit_sptr_set(&f->value, ptr);
                     f->value_length = (uint32_t) value_len;
 
-                    ptr += value_len;
-                    header_len -= value_len;
+                    ptr += value_len + 1;
+                    header_len -= value_len + 1;
 
                     req->response->fields_count++;
                 }
@@ -715,8 +718,8 @@ Unit::response_send_headers(napi_env env, napi_callback_info info)
                 nxt_unit_sptr_set(&f->value, ptr);
                 f->value_length = (uint32_t) value_len;
 
-                ptr += value_len;
-                header_len -= value_len;
+                ptr += value_len + 1;
+                header_len -= value_len + 1;
 
                 req->response->fields_count++;
             }

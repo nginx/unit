@@ -1316,8 +1316,12 @@ nxt_unit_response_init(nxt_unit_request_info_t *req,
         nxt_unit_req_debug(req, "duplicate response init");
     }
 
+    /*
+     * Each field name and value 0-terminated by libunit,
+     * this is the reason of '+ 2' below.
+     */
     buf_size = sizeof(nxt_unit_response_t)
-               + max_fields_count * sizeof(nxt_unit_field_t)
+               + max_fields_count * (sizeof(nxt_unit_field_t) + 2)
                + max_fields_size;
 
     if (nxt_slow_path(req->response_buf != NULL)) {
@@ -1391,8 +1395,12 @@ nxt_unit_response_realloc(nxt_unit_request_info_t *req,
         return NXT_UNIT_ERROR;
     }
 
+    /*
+     * Each field name and value 0-terminated by libunit,
+     * this is the reason of '+ 2' below.
+     */
     buf_size = sizeof(nxt_unit_response_t)
-               + max_fields_count * sizeof(nxt_unit_field_t)
+               + max_fields_count * (sizeof(nxt_unit_field_t) + 2)
                + max_fields_size;
 
     nxt_unit_req_debug(req, "realloc %"PRIu32"", buf_size);
