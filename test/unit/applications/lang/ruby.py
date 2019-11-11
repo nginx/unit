@@ -4,7 +4,7 @@ from unit.applications.proto import TestApplicationProto
 class TestApplicationRuby(TestApplicationProto):
     application_type = "ruby"
 
-    def load(self, script, name='config.ru'):
+    def load(self, script, name='config.ru', **kwargs):
         script_path = self.current_dir + '/ruby/' + script
 
         self._load_conf(
@@ -18,5 +18,6 @@ class TestApplicationRuby(TestApplicationProto):
                         "script": script_path + '/' + name,
                     }
                 },
-            }
+            },
+            **kwargs
         )

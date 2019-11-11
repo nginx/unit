@@ -6,7 +6,7 @@ from unit.applications.proto import TestApplicationProto
 
 
 class TestApplicationJava(TestApplicationProto):
-    def load(self, script, name='app'):
+    def load(self, script, name='app', **kwargs):
         app_path = self.testdir + '/java'
         web_inf_path = app_path + '/WEB-INF/'
         classes_path = web_inf_path + 'classes/'
@@ -82,5 +82,6 @@ class TestApplicationJava(TestApplicationProto):
                         "webapp": app_path,
                     }
                 },
-            }
+            },
+            **kwargs
         )

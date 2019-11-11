@@ -15,7 +15,7 @@ class TestApplicationNode(TestApplicationProto):
 
         return unit if not complete_check else unit.complete()
 
-    def load(self, script, name='app.js'):
+    def load(self, script, name='app.js', **kwargs):
         # copy application
 
         shutil.copytree(
@@ -42,5 +42,6 @@ class TestApplicationNode(TestApplicationProto):
                         "executable": name,
                     }
                 },
-            }
+            },
+            **kwargs
         )
