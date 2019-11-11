@@ -1,4 +1,7 @@
 import re
+import os
+import grp
+import pwd
 import time
 import unittest
 from unit.applications.lang.python import TestApplicationPython
@@ -675,6 +678,80 @@ Connection: close
         self.assertEqual(
             len(self.findall(r'Traceback')), 8, 'traceback count 8'
         )
+
+    def test_python_user_group(self):
+        if not self.is_su:
+            print("requires root")
+            raise unittest.SkipTest()
+
+        nobody_uid = pwd.getpwnam('nobody').pw_uid
+
+        group = 'nobody'
+
+        try:
+            group_id = grp.getgrnam(group).gr_gid
+        except:
+            group = 'nogroup'
+            group_id = grp.getgrnam(group).gr_gid
+
+        self.load('user_group')
+
+        obj = self.getjson()['body']
+        self.assertEqual(obj['UID'], nobody_uid, 'nobody uid')
+        self.assertEqual(obj['GID'], group_id, 'nobody gid')
+
+        self.load('user_group', user='nobody')
+
+        obj = self.getjson()['body']
+        self.assertEqual(obj['UID'], nobody_uid, 'nobody uid user=nobody')
+        self.assertEqual(obj['GID'], group_id, 'nobody gid user=nobody')
+
+        self.load('user_group', user='nobody', group=group)
+
+        obj = self.getjson()['body']
+        self.assertEqual(
+            obj['UID'], nobody_uid, 'nobody uid user=nobody group=%s' % group
+        )
+
+        self.assertEqual(
+            obj['GID'], group_id, 'nobody gid user=nobody group=%s' % group
+        )
+
+        self.load('user_group', group=group)
+
+        obj = self.getjson()['body']
+        self.assertEqual(
+            obj['UID'], nobody_uid, 'nobody uid group=%s' % group
+        )
+
+        self.assertEqual(obj['GID'], group_id, 'nobody gid group=%s' % group)
+
+        self.load('user_group', user='root')
+
+        obj = self.getjson()['body']
+        self.assertEqual(obj['UID'], 0, 'root uid user=root')
+        self.assertEqual(obj['GID'], 0, 'root gid user=root')
+
+        group = 'root'
+
+        try:
+            grp.getgrnam(group)
+            group = True
+        except:
+            group = False
+
+        if group:
+            self.load('user_group', user='root', group='root')
+
+            obj = self.getjson()['body']
+            self.assertEqual(obj['UID'], 0, 'root uid user=root group=root')
+            self.assertEqual(obj['GID'], 0, 'root gid user=root group=root')
+
+            self.load('user_group', group='root')
+
+            obj = self.getjson()['body']
+            self.assertEqual(obj['UID'], nobody_uid, 'root uid group=root')
+            self.assertEqual(obj['GID'], 0, 'root gid group=root')
 
 if __name__ == '__main__':
     TestPythonApplication.main()
