@@ -85,14 +85,16 @@ static nxt_int_t
 nxt_ruby_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 {
     int                   state, rc;
-    VALUE                 dummy, res;
+    VALUE                 res;
     nxt_unit_ctx_t        *unit_ctx;
     nxt_unit_init_t       ruby_unit_init;
     nxt_ruby_rack_init_t  rack_init;
 
+    static char  *argv[2] = { (char *) "NGINX_Unit", (char *) "-e0" };
+
+    RUBY_INIT_STACK
     ruby_init();
-    Init_stack(&dummy);
-    ruby_init_loadpath();
+    ruby_options(2, argv);
     ruby_script("NGINX_Unit");
 
     rack_init.task = task;
@@ -707,7 +709,8 @@ nxt_ruby_rack_result_body(VALUE result)
         }
 
     } else if (rb_respond_to(body, rb_intern("each"))) {
-        rb_iterate(rb_each, body, nxt_ruby_rack_result_body_each, 0);
+        rb_block_call(body, rb_intern("each"), 0, 0,
+                      nxt_ruby_rack_result_body_each, 0);
 
     } else {
         nxt_unit_req_error(nxt_ruby_run_ctx.req,
