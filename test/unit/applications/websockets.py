@@ -31,17 +31,22 @@ class TestApplicationWebsocket(TestApplicationProto):
         sha1 = hashlib.sha1((key + GUID).encode()).digest()
         return base64.b64encode(sha1).decode()
 
-    def upgrade(self):
-        key = self.key()
-        _, sock = self.get(
-            headers={
+    def upgrade(self, headers=None):
+        key = None
+
+        if headers is None:
+            key = self.key()
+            headers = {
                 'Host': 'localhost',
                 'Upgrade': 'websocket',
                 'Connection': 'Upgrade',
                 'Sec-WebSocket-Key': key,
                 'Sec-WebSocket-Protocol': 'chat',
                 'Sec-WebSocket-Version': 13,
-            },
+            }
+
+        _, sock = self.get(
+            headers=headers,
             no_recv=True,
             start=True,
         )
