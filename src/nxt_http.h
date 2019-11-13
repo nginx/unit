@@ -169,6 +169,8 @@ struct nxt_http_request_s {
 
     uint8_t                         pass_count;   /* 8 bits */
     nxt_http_protocol_t             protocol:8;   /* 2 bits */
+    uint8_t                         reading;      /* 1 bit  */
+    uint8_t                         writing;      /* 1 bit  */
     uint8_t                         logged;       /* 1 bit  */
     uint8_t                         header_sent;  /* 1 bit  */
     uint8_t                         inconsistent; /* 1 bit  */

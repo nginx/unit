@@ -11,6 +11,7 @@ nxt_uint_t    nxt_ncpu = 1;
 nxt_uint_t    nxt_pagesize;
 nxt_task_t    nxt_main_task;
 nxt_atomic_t  nxt_task_ident;
+nxt_stats_t   nxt_stats;
 
 nxt_thread_declare_data(nxt_thread_t, nxt_thread_context);
 

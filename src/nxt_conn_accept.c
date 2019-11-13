@@ -187,6 +187,9 @@ nxt_conn_accept(nxt_task_t *task, nxt_listen_event_t *lev, nxt_conn_t *c)
 {
     nxt_conn_t  *next;
 
+    nxt_stats_accepted_add(1);
+    nxt_stats_active_add(1);
+
     nxt_sockaddr_text(c->remote);
 
     nxt_debug(task, "client: %*s",

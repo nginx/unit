@@ -82,6 +82,8 @@ static void nxt_controller_process_cert_save(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
 static nxt_bool_t nxt_controller_cert_in_use(nxt_str_t *name);
 #endif
+static void nxt_controller_process_stats(nxt_task_t *task,
+    nxt_controller_request_t *req);
 static void nxt_controller_conf_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
 static void nxt_controller_conf_store(nxt_task_t *task,
@@ -860,6 +862,11 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
 
 #endif
 
+    if (nxt_str_eq(&path, "/stats", 6)) {
+        nxt_controller_process_stats(task, req);
+        return;
+    }
+
     nxt_memzero(&resp, sizeof(nxt_controller_response_t));
 
     if (path.length == 1 && path.start[0] == '/') {
@@ -1469,6 +1476,123 @@ nxt_controller_cert_in_use(nxt_str_t *name)
 }
 
 #endif
+
+
+static void
+nxt_controller_stats_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
+    void *data)
+{
+    nxt_mp_t                   *mp;
+    nxt_buf_t                  *b;
+    nxt_conf_value_t           *value;
+    nxt_controller_request_t   *req;
+    nxt_controller_response_t  resp;
+
+    req = data;
+
+    nxt_debug(task, "controller stats ready: %*s",
+              nxt_buf_mem_used_size(&msg->buf->mem), msg->buf->mem.pos);
+
+    nxt_memzero(&resp, sizeof(nxt_controller_response_t));
+
+    if (msg->port_msg.type == NXT_PORT_MSG_RPC_READY) {
+        mp = nxt_mp_create(1024, 128, 256, 32);
+        if (mp == NULL) {
+            goto fail;
+        }
+
+        b = nxt_buf_chk_make_plain(mp, msg->buf, msg->size);
+        if (b == NULL) {
+            nxt_mp_destroy(mp);
+            goto fail;
+        }
+
+        value = nxt_conf_json_parse(mp, b->mem.pos, b->mem.free, NULL);
+        if (value == NULL) {
+            nxt_mp_destroy(mp);
+            goto fail;
+        }
+
+        resp.status = 200;
+        resp.conf = value;
+
+        nxt_controller_response(task, req, &resp);
+
+        nxt_mp_destroy(mp);
+
+        return;
+    }
+
+fail:
+
+    resp.status = 500;
+    resp.title = (u_char *) "Failed to get statistic data.";
+    resp.offset = -1;
+
+    nxt_controller_response(task, req, &resp);
+}
+
+
+static void
+nxt_controller_process_stats(nxt_task_t *task, nxt_controller_request_t *req)
+{
+    uint32_t                   stream;
+    nxt_int_t                  rc;
+    nxt_port_t                 *router_port, *controller_port;
+    nxt_runtime_t              *rt;
+    nxt_controller_response_t  resp;
+
+    nxt_memzero(&resp, sizeof(nxt_controller_response_t));
+
+    rt = task->thread->runtime;
+
+    router_port = rt->port_by_type[NXT_PROCESS_ROUTER];
+
+    if (nxt_slow_path(router_port == NULL || !nxt_controller_router_ready)) {
+        goto no_router;
+    }
+
+    controller_port = rt->port_by_type[NXT_PROCESS_CONTROLLER];
+
+    stream = nxt_port_rpc_register_handler(task, controller_port,
+                                           nxt_controller_stats_handler,
+                                           nxt_controller_stats_handler,
+                                           router_port->pid, req);
+
+    if (nxt_slow_path(stream == 0)) {
+        goto alloc_fail;
+    }
+
+    rc = nxt_port_socket_write(task, router_port, NXT_PORT_MSG_STATS_LAST, -1,
+                               stream, controller_port->id, NULL);
+
+    if (nxt_slow_path(rc != NXT_OK)) {
+        nxt_port_rpc_cancel(task, controller_port, stream);
+        goto alloc_fail;
+    }
+
+    /* NXT_OK */
+
+    return;
+
+alloc_fail:
+
+    resp.status = 500;
+    resp.title = (u_char *) "Memory allocation failed.";
+    resp.offset = -1;
+
+    nxt_controller_response(task, req, &resp);
+    return;
+
+no_router:
+
+    resp.status = 500;
+    resp.title = (u_char *) "Router process isn't available.";
+    resp.offset = -1;
+
+    nxt_controller_response(task, req, &resp);
+    return;
+}
 
 
 static void

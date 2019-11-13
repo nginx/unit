@@ -44,6 +44,8 @@ struct nxt_port_handlers_s {
 
     /* Various data. */
     nxt_port_handler_t  data;
+
+    nxt_port_handler_t  stats;
 };
 
 
@@ -82,6 +84,8 @@ typedef enum {
 
     _NXT_PORT_MSG_DATA          = nxt_port_handler_idx(data),
 
+    _NXT_PORT_MSG_STATS         = nxt_port_handler_idx(stats),
+
     NXT_PORT_MSG_MAX            = sizeof(nxt_port_handlers_t)
                                   / sizeof(nxt_port_handler_t),
 
@@ -114,6 +118,8 @@ typedef enum {
 
     NXT_PORT_MSG_DATA           = _NXT_PORT_MSG_DATA,
     NXT_PORT_MSG_DATA_LAST      = _NXT_PORT_MSG_DATA | NXT_PORT_MSG_LAST,
+
+    NXT_PORT_MSG_STATS_LAST     = _NXT_PORT_MSG_STATS | NXT_PORT_MSG_LAST,
 } nxt_port_msg_type_t;
 
 

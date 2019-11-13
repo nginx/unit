@@ -94,6 +94,7 @@ NXT_LIB_SRCS=" \
     src/nxt_websocket_accept.c \
     src/nxt_http_websocket.c \
     src/nxt_h1proto_websocket.c \
+    src/nxt_stats.c \
 "
 
 NXT_LIB_SRC0=" \

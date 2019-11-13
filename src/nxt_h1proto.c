@@ -1928,6 +1928,8 @@ nxt_h1p_conn_free(nxt_task_t *task, void *obj, void *data)
     nxt_listen_event_t  *lev;
     nxt_event_engine_t  *engine;
 
+    nxt_stats_active_add(-1);
+
     c = obj;
 
     nxt_debug(task, "h1p conn free");

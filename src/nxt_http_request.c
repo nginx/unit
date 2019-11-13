@@ -244,6 +244,11 @@ nxt_http_request_create(nxt_task_t *task)
     r->resp.content_length_n = -1;
     r->state = &nxt_http_request_init_state;
 
+    nxt_stats_requests_add(1);
+
+    r->reading = 1;
+    nxt_stats_reading_add(1);
+
     return r;
 
 fail:
@@ -290,6 +295,12 @@ nxt_http_request_action(nxt_task_t *task, void *obj, void *data)
     nxt_http_request_t  *r;
 
     r = obj;
+
+    r->reading = 0;
+    nxt_stats_reading_add(-1);
+
+    r->writing = 1;
+    nxt_stats_writing_add(1);
 
     action = r->conf->socket_conf->action;
 
@@ -520,6 +531,14 @@ nxt_http_request_done(nxt_task_t *task, void *obj, void *data)
     r = data;
 
     nxt_debug(task, "http request done");
+
+    if (r->reading) {
+        nxt_stats_reading_add(-1);
+    }
+
+    if (r->writing) {
+        nxt_stats_writing_add(-1);
+    }
 
     nxt_http_request_close_handler(task, r, r->proto.any);
 }

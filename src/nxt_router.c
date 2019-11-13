@@ -272,6 +272,7 @@ nxt_port_handlers_t  nxt_router_process_port_handlers = {
     .change_file  = nxt_port_change_log_file_handler,
     .mmap         = nxt_port_mmap_handler,
     .data         = nxt_router_conf_data_handler,
+    .stats        = nxt_router_stats_handler,
     .remove_pid   = nxt_router_remove_pid_handler,
     .access_log   = nxt_router_access_log_reopen_handler,
     .rpc_ready    = nxt_port_rpc_handler,
@@ -906,6 +907,41 @@ nxt_router_app_process_remove_pid(nxt_task_t *task, nxt_port_t *port,
     u.data = data;
 
     nxt_port_rpc_remove_peer(task, port, u.removed_pid);
+}
+
+
+void
+nxt_router_stats_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
+{
+    nxt_mp_t       *mp;
+    nxt_buf_t      *b;
+    nxt_uint_t     type;
+    nxt_port_t     *controller_port;
+    nxt_runtime_t  *rt;
+
+    rt = task->thread->runtime;
+    controller_port = rt->port_by_type[NXT_PROCESS_CONTROLLER];
+
+    mp = nxt_mp_create(1024, 128, 256, 32);
+
+    if (nxt_slow_path(mp == NULL)) {
+        (void) nxt_port_socket_write(task, controller_port, NXT_PORT_MSG_RPC_ERROR,
+                                     -1, msg->port_msg.stream, 0, NULL);
+        return;
+    }
+
+    b = nxt_stats_buf_alloc(mp);
+
+    if (nxt_fast_path(b != NULL)) {
+        type = NXT_PORT_MSG_RPC_READY_LAST;
+
+    } else {
+        nxt_mp_destroy(mp);
+        type = NXT_PORT_MSG_RPC_ERROR;
+    }
+
+    (void) nxt_port_socket_write(task, controller_port, type, -1,
+                                 msg->port_msg.stream, 0, b);
 }
 
 

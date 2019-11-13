@@ -159,6 +159,7 @@ typedef struct nxt_upstream_source_s  nxt_upstream_source_t;
 #include <nxt_fastcgi_source.h>
 #include <nxt_runtime.h>
 #include <nxt_port_hash.h>
+#include <nxt_stats.h>
 
 
 /*
@@ -173,6 +174,7 @@ NXT_EXPORT extern nxt_uint_t    nxt_ncpu;
 NXT_EXPORT extern nxt_uint_t    nxt_pagesize;
 NXT_EXPORT extern nxt_task_t    nxt_main_task;
 NXT_EXPORT extern nxt_atomic_t  nxt_task_ident;
+NXT_EXPORT extern nxt_stats_t   nxt_stats;
 
 
 #endif /* _NXT_LIB_H_INCLUDED_ */
