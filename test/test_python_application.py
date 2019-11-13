@@ -507,6 +507,19 @@ Connection: close
 
         self.assertEqual(self.get()['body'], '0123456789', 'write')
 
+    def test_python_application_threading(self):
+        """wait_for_record() timeouts after 5s while every thread works at
+        least 3s.  So without releasing GIL test should fail.
+        """
+
+        self.load('threading')
+
+        for _ in range(10):
+            self.get(no_recv=True)
+
+        self.assertIsNotNone(
+            self.wait_for_record(r'\(5\) Thread: 100'), 'last thread finished'
+        )
 
 if __name__ == '__main__':
     TestPythonApplication.main()
