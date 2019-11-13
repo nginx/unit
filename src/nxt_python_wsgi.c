@@ -151,6 +151,7 @@ static wchar_t            *nxt_py_home;
 static char               *nxt_py_home;
 #endif
 
+static PyThreadState         *nxt_python_thread_state;
 static nxt_python_run_ctx_t  *nxt_python_run_ctx;
 
 
@@ -340,9 +341,13 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
         goto fail;
     }
 
+    nxt_python_thread_state = PyEval_SaveThread();
+
     rc = nxt_unit_run(unit_ctx);
 
     nxt_unit_done(unit_ctx);
+
+    PyEval_RestoreThread(nxt_python_thread_state);
 
     nxt_python_atexit();
 
@@ -368,19 +373,20 @@ nxt_python_request_handler(nxt_unit_request_info_t *req)
     PyObject              *result, *iterator, *item, *args, *environ;
     nxt_python_run_ctx_t  run_ctx = {-1, 0, NULL, req};
 
+    PyEval_RestoreThread(nxt_python_thread_state);
+
     environ = nxt_python_get_environ(&run_ctx);
     if (nxt_slow_path(environ == NULL)) {
-        nxt_unit_request_done(req, NXT_UNIT_ERROR);
-
-        return;
+        rc = NXT_UNIT_ERROR;
+        goto done;
     }
 
     args = PyTuple_New(2);
     if (nxt_slow_path(args == NULL)) {
         nxt_unit_req_error(req, "Python failed to create arguments tuple");
 
-        nxt_unit_request_done(req, NXT_UNIT_ERROR);
-        return;
+        rc = NXT_UNIT_ERROR;
+        goto done;
     }
 
     PyTuple_SET_ITEM(args, 0, environ);
@@ -398,10 +404,8 @@ nxt_python_request_handler(nxt_unit_request_info_t *req)
         nxt_unit_req_error(req, "Python failed to call the application");
         PyErr_Print();
 
-        nxt_unit_request_done(req, NXT_UNIT_ERROR);
-        nxt_python_run_ctx = NULL;
-
-        return;
+        rc = NXT_UNIT_ERROR;
+        goto done;
     }
 
     item = NULL;
@@ -455,13 +459,11 @@ nxt_python_request_handler(nxt_unit_request_info_t *req)
         PyErr_Print();
     }
 
-    nxt_unit_request_done(req, NXT_UNIT_OK);
-
     Py_DECREF(result);
 
-    nxt_python_run_ctx = NULL;
+    rc = NXT_UNIT_OK;
 
-    return;
+    goto done;
 
 fail:
 
@@ -478,9 +480,15 @@ fail:
     }
 
     Py_DECREF(result);
-    nxt_python_run_ctx = NULL;
 
-    nxt_unit_request_done(req, NXT_UNIT_ERROR);
+    rc = NXT_UNIT_ERROR;
+
+done:
+
+    nxt_python_thread_state = PyEval_SaveThread();
+
+    nxt_python_run_ctx = NULL;
+    nxt_unit_request_done(req, rc);
 }
 
 
