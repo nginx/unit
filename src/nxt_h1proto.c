@@ -1549,6 +1549,7 @@ nxt_h1p_request_close(nxt_task_t *task, nxt_http_proto_t proto,
     nxt_debug(task, "h1p request close");
 
     h1p = proto.h1;
+    h1p->keepalive &= !h1p->request->inconsistent;
     h1p->request = NULL;
 
     nxt_router_conf_release(task, joint);

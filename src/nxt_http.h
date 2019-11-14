@@ -112,6 +112,7 @@ typedef struct {
     nxt_sockaddr_t                  *sockaddr;
     nxt_list_t                      *fields;
     nxt_buf_t                       *body;
+    nxt_off_t                       remainder;
 
     nxt_http_status_t               status:16;
     nxt_http_protocol_t             protocol:8;       /* 2 bits */
@@ -170,6 +171,7 @@ struct nxt_http_request_s {
     nxt_http_protocol_t             protocol:8;   /* 2 bits */
     uint8_t                         logged;       /* 1 bit  */
     uint8_t                         header_sent;  /* 1 bit  */
+    uint8_t                         inconsistent; /* 1 bit  */
     uint8_t                         error;        /* 1 bit  */
     uint8_t                         websocket_handshake;  /* 1 bit */
 };

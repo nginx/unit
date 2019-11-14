@@ -183,7 +183,10 @@ nxt_buf_chain_length(nxt_buf_t *b)
     length = 0;
 
     while (b != NULL) {
-        length += b->mem.free - b->mem.pos;
+        if (!nxt_buf_is_sync(b)) {
+            length += b->mem.free - b->mem.pos;
+        }
+
         b = b->next;
     }
 
