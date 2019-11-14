@@ -1678,10 +1678,16 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             skcf->large_header_buffers = 4;
             skcf->body_buffer_size = 16 * 1024;
             skcf->max_body_size = 8 * 1024 * 1024;
+            skcf->proxy_header_buffer_size = 64 * 1024;
+            skcf->proxy_buffer_size = 4096;
+            skcf->proxy_buffers = 256;
             skcf->idle_timeout = 180 * 1000;
             skcf->header_read_timeout = 30 * 1000;
             skcf->body_read_timeout = 30 * 1000;
             skcf->send_timeout = 30 * 1000;
+            skcf->proxy_timeout = 60 * 1000;
+            skcf->proxy_send_timeout = 30 * 1000;
+            skcf->proxy_read_timeout = 30 * 1000;
 
             skcf->websocket_conf.max_frame_size = 1024 * 1024;
             skcf->websocket_conf.read_timeout = 60 * 1000;
@@ -3582,6 +3588,7 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
             field->hash = f->hash;
             field->skip = 0;
+            field->hopbyhop = 0;
 
             field->name_length = f->name_length;
             field->value_length = f->value_length;
@@ -3627,7 +3634,7 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
             nxt_buf_chain_add(&r->out, b);
         }
 
-        nxt_http_request_header_send(task, r, nxt_http_request_send_body);
+        nxt_http_request_header_send(task, r, nxt_http_request_send_body, NULL);
 
         if (r->websocket_handshake
             && r->status == NXT_HTTP_SWITCHING_PROTOCOLS)

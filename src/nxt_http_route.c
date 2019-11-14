@@ -38,6 +38,7 @@ typedef enum {
 typedef struct {
     nxt_conf_value_t               *pass;
     nxt_conf_value_t               *share;
+    nxt_conf_value_t               *proxy;
 } nxt_http_route_action_conf_t;
 
 
@@ -519,6 +520,11 @@ static nxt_conf_map_t  nxt_http_route_action_conf[] = {
         NXT_CONF_MAP_PTR,
         offsetof(nxt_http_route_action_conf_t, share)
     },
+    {
+        nxt_string("proxy"),
+        NXT_CONF_MAP_PTR,
+        offsetof(nxt_http_route_action_conf_t, proxy)
+    },
 };
 
 
@@ -526,6 +532,7 @@ static nxt_int_t
 nxt_http_route_action_create(nxt_router_temp_conf_t *tmcf, nxt_conf_value_t *cv,
     nxt_http_route_match_t *match)
 {
+    nxt_mp_t                      *mp;
     nxt_int_t                     ret;
     nxt_str_t                     name, *string;
     nxt_conf_value_t              *conf, *action_conf;
@@ -552,14 +559,22 @@ nxt_http_route_action_create(nxt_router_temp_conf_t *tmcf, nxt_conf_value_t *cv,
     if (accf.share != NULL) {
         conf = accf.share;
         match->action.handler = nxt_http_static_handler;
+
+    } else if (accf.proxy != NULL) {
+        conf = accf.proxy;
     }
 
     nxt_conf_get_string(conf, &name);
 
-    string = nxt_str_dup(tmcf->router_conf->mem_pool,
-                         &match->action.name, &name);
+    mp = tmcf->router_conf->mem_pool;
+
+    string = nxt_str_dup(mp, &match->action.name, &name);
     if (nxt_slow_path(string == NULL)) {
         return NXT_ERROR;
+    }
+
+    if (accf.proxy != NULL) {
+        return nxt_http_proxy_create(mp, &match->action);
     }
 
     return NXT_OK;
@@ -1013,6 +1028,7 @@ nxt_http_action_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     }
 
     action->name = *name;
+    action->handler = NULL;
 
     nxt_http_action_resolve(task, tmcf, action);
 

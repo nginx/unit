@@ -337,6 +337,9 @@ nxt_socket_error_level(nxt_err_t err)
     case NXT_EHOSTUNREACH:
         return NXT_LOG_INFO;
 
+    case NXT_ECONNREFUSED:
+        return NXT_LOG_ERR;
+
     default:
         return NXT_LOG_ALERT;
     }

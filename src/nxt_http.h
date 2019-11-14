@@ -9,6 +9,7 @@
 
 
 typedef enum {
+    NXT_HTTP_UNSET = -1,
     NXT_HTTP_INVALID = 0,
 
     NXT_HTTP_CONTINUE = 100,
@@ -105,6 +106,20 @@ typedef struct {
 } nxt_http_response_t;
 
 
+typedef struct {
+    nxt_http_proto_t                proto;
+    nxt_http_request_t              *request;
+    nxt_sockaddr_t                  *sockaddr;
+    nxt_list_t                      *fields;
+    nxt_buf_t                       *body;
+
+    nxt_http_status_t               status:16;
+    nxt_http_protocol_t             protocol:8;       /* 2 bits */
+    uint8_t                         header_received;  /* 1 bit  */
+    uint8_t                         closed;           /* 1 bit  */
+} nxt_http_peer_t;
+
+
 struct nxt_http_request_s {
     nxt_http_proto_t                proto;
     nxt_socket_conf_joint_t         *conf;
@@ -144,6 +159,7 @@ struct nxt_http_request_s {
 
     void                            *req_rpc_data;
 
+    nxt_http_peer_t                 *peer;
     nxt_buf_t                       *last;
 
     nxt_http_response_t             resp;
@@ -160,6 +176,7 @@ struct nxt_http_request_s {
 
 
 typedef struct nxt_http_route_s     nxt_http_route_t;
+typedef struct nxt_http_upstream_s  nxt_http_upstream_t;
 
 
 struct nxt_http_action_s {
@@ -168,6 +185,7 @@ struct nxt_http_action_s {
                                         nxt_http_action_t *action);
     union {
         nxt_http_route_t            *route;
+        nxt_http_upstream_t         *upstream;
         nxt_app_t                   *application;
     } u;
 
@@ -179,12 +197,19 @@ typedef struct {
     void (*body_read)(nxt_task_t *task, nxt_http_request_t *r);
     void (*local_addr)(nxt_task_t *task, nxt_http_request_t *r);
     void (*header_send)(nxt_task_t *task, nxt_http_request_t *r,
-         nxt_work_handler_t body_handler);
+         nxt_work_handler_t body_handler, void *data);
     void (*send)(nxt_task_t *task, nxt_http_request_t *r, nxt_buf_t *out);
     nxt_off_t (*body_bytes_sent)(nxt_task_t *task, nxt_http_proto_t proto);
     void (*discard)(nxt_task_t *task, nxt_http_request_t *r, nxt_buf_t *last);
     void (*close)(nxt_task_t *task, nxt_http_proto_t proto,
         nxt_socket_conf_joint_t *joint);
+
+    void (*peer_connect)(nxt_task_t *task, nxt_http_peer_t *peer);
+    void (*peer_header_send)(nxt_task_t *task, nxt_http_peer_t *peer);
+    void (*peer_header_read)(nxt_task_t *task, nxt_http_peer_t *peer);
+    void (*peer_read)(nxt_task_t *task, nxt_http_peer_t *peer);
+    void (*peer_close)(nxt_task_t *task, nxt_http_peer_t *peer);
+
     void (*ws_frame_start)(nxt_task_t *task, nxt_http_request_t *r,
         nxt_buf_t *ws_frame);
 } nxt_http_proto_table_t;
@@ -219,7 +244,7 @@ void nxt_http_request_error(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_status_t status);
 void nxt_http_request_read_body(nxt_task_t *task, nxt_http_request_t *r);
 void nxt_http_request_header_send(nxt_task_t *task, nxt_http_request_t *r,
-    nxt_work_handler_t body_handler);
+    nxt_work_handler_t body_handler, void *data);
 void nxt_http_request_ws_frame_start(nxt_task_t *task, nxt_http_request_t *r,
     nxt_buf_t *ws_frame);
 void nxt_http_request_send(nxt_task_t *task, nxt_http_request_t *r,
@@ -257,6 +282,18 @@ nxt_str_t *nxt_http_static_mtypes_hash_find(nxt_lvlhsh_t *hash,
 
 nxt_http_action_t *nxt_http_application_handler(nxt_task_t *task,
     nxt_http_request_t *r, nxt_http_action_t *action);
+
+nxt_int_t nxt_http_proxy_create(nxt_mp_t *mp, nxt_http_action_t *action);
+nxt_int_t nxt_http_proxy_date(void *ctx, nxt_http_field_t *field,
+    uintptr_t data);
+nxt_int_t nxt_http_proxy_content_length(void *ctx, nxt_http_field_t *field,
+    uintptr_t data);
+nxt_int_t nxt_http_proxy_skip(void *ctx, nxt_http_field_t *field,
+    uintptr_t data);
+nxt_buf_t *nxt_http_proxy_buf_mem_alloc(nxt_task_t *task, nxt_http_request_t *r,
+    size_t size);
+void nxt_http_proxy_buf_mem_free(nxt_task_t *task, nxt_http_request_t *r,
+    nxt_buf_t *b);
 
 extern nxt_time_string_t  nxt_http_date_cache;
 

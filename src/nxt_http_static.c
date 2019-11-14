@@ -272,7 +272,7 @@ nxt_http_static_handler(nxt_task_t *task, nxt_http_request_t *r,
         body_handler = NULL;
     }
 
-    nxt_http_request_header_send(task, r, body_handler);
+    nxt_http_request_header_send(task, r, body_handler, NULL);
 
     r->state = &nxt_http_static_send_state;
     return NULL;

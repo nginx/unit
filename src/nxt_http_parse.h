@@ -81,7 +81,8 @@ typedef struct {
 
 struct nxt_http_field_s {
     uint16_t                  hash;
-    uint8_t                   skip;             /* 1 bit */
+    uint8_t                   skip:1;
+    uint8_t                   hopbyhop:1;
     uint8_t                   name_length;
     uint32_t                  value_length;
     u_char                    *name;

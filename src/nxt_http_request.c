@@ -370,7 +370,7 @@ nxt_http_request_read_body(nxt_task_t *task, nxt_http_request_t *r)
 
 void
 nxt_http_request_header_send(nxt_task_t *task, nxt_http_request_t *r,
-    nxt_work_handler_t body_handler)
+    nxt_work_handler_t body_handler, void *data)
 {
     u_char            *p, *end;
     nxt_http_field_t  *server, *date, *content_length;
@@ -431,7 +431,7 @@ nxt_http_request_header_send(nxt_task_t *task, nxt_http_request_t *r,
     }
 
     if (nxt_fast_path(r->proto.any != NULL)) {
-        nxt_http_proto[r->protocol].header_send(task, r, body_handler);
+        nxt_http_proto[r->protocol].header_send(task, r, body_handler, data);
     }
 
     return;

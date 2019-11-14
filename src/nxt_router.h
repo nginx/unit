@@ -170,10 +170,17 @@ typedef struct {
     size_t                 large_header_buffers;
     size_t                 body_buffer_size;
     size_t                 max_body_size;
+    size_t                 proxy_header_buffer_size;
+    size_t                 proxy_buffer_size;
+    size_t                 proxy_buffers;
+
     nxt_msec_t             idle_timeout;
     nxt_msec_t             header_read_timeout;
     nxt_msec_t             body_read_timeout;
     nxt_msec_t             send_timeout;
+    nxt_msec_t             proxy_timeout;
+    nxt_msec_t             proxy_send_timeout;
+    nxt_msec_t             proxy_read_timeout;
 
     nxt_websocket_conf_t   websocket_conf;
 
