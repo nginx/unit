@@ -429,9 +429,21 @@ nxt_python_request_handler(nxt_unit_request_info_t *req)
             goto fail;
         }
 
-        while (run_ctx.bytes_sent < run_ctx.content_length
-               && (item = PyIter_Next(iterator)))
-        {
+        while (run_ctx.bytes_sent < run_ctx.content_length) {
+            item = PyIter_Next(iterator);
+
+            if (item == NULL) {
+                if (nxt_slow_path(PyErr_Occurred() != NULL)) {
+                    nxt_unit_req_error(req, "Python failed to iterate over "
+                                            "the application response object");
+                    PyErr_Print();
+
+                    goto fail;
+                }
+
+                break;
+            }
+
             if (nxt_slow_path(!PyBytes_Check(item))) {
                 nxt_unit_req_error(req, "the application returned "
                                    "not a bytestring object");
@@ -452,11 +464,6 @@ nxt_python_request_handler(nxt_unit_request_info_t *req)
         if (PyObject_HasAttrString(result, "close")) {
             PyObject_CallMethod(result, (char *) "close", NULL);
         }
-    }
-
-    if (nxt_slow_path(PyErr_Occurred() != NULL)) {
-        nxt_unit_req_error(req, "an application error occurred");
-        PyErr_Print();
     }
 
     Py_DECREF(result);
