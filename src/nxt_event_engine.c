@@ -676,6 +676,65 @@ done:
 }
 
 
+void *
+nxt_event_engine_buf_mem_alloc(nxt_event_engine_t *engine, size_t size)
+{
+    nxt_buf_t  *b;
+    uint8_t    hint;
+
+    hint = NXT_EVENT_ENGINE_NO_MEM_HINT;
+
+    b = nxt_event_engine_mem_alloc(engine, &hint, NXT_BUF_MEM_SIZE + size);
+    if (nxt_slow_path(b == NULL)) {
+        return NULL;
+    }
+
+    nxt_memzero(b, NXT_BUF_MEM_SIZE);
+
+    b->cache_hint = hint;
+    b->data = engine;
+    b->completion_handler = nxt_event_engine_buf_mem_completion;
+
+    if (size != 0) {
+        b->mem.start = nxt_pointer_to(b, NXT_BUF_MEM_SIZE);
+        b->mem.pos = b->mem.start;
+        b->mem.free = b->mem.start;
+        b->mem.end = b->mem.start + size;
+    }
+
+    return b;
+}
+
+
+void
+nxt_event_engine_buf_mem_free(nxt_event_engine_t *engine, nxt_buf_t *b)
+{
+    size_t  size;
+
+    size = NXT_BUF_MEM_SIZE + nxt_buf_mem_size(&b->mem);
+
+    nxt_event_engine_mem_free(engine, b->cache_hint, b, size);
+}
+
+
+void
+nxt_event_engine_buf_mem_completion(nxt_task_t *task, void *obj, void *data)
+{
+    nxt_event_engine_t  *engine;
+    nxt_buf_t           *b, *parent;
+
+    b = obj;
+    parent = data;
+
+    nxt_debug(task, "buf completion: %p %p", b, b->mem.start);
+
+    engine = b->data;
+    nxt_event_engine_buf_mem_free(engine, b);
+
+    nxt_buf_parent_completion(task, parent);
+}
+
+
 #if (NXT_DEBUG)
 
 void nxt_event_engine_thread_adopt(nxt_event_engine_t *engine)

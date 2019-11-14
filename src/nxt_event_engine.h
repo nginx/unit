@@ -520,6 +520,10 @@ void *nxt_event_engine_mem_alloc(nxt_event_engine_t *engine, uint8_t *hint,
     size_t size);
 void nxt_event_engine_mem_free(nxt_event_engine_t *engine, uint8_t hint,
     void *p, size_t size);
+void *nxt_event_engine_buf_mem_alloc(nxt_event_engine_t *engine, size_t size);
+void nxt_event_engine_buf_mem_free(nxt_event_engine_t *engine, nxt_buf_t *b);
+void nxt_event_engine_buf_mem_completion(nxt_task_t *task, void *obj,
+    void *data);
 
 
 nxt_inline nxt_event_engine_t *

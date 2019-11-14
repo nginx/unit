@@ -207,6 +207,13 @@ nxt_buf_completion(nxt_task_t *task, void *obj, void *data)
     mp = b->data;
     nxt_mp_free(mp, b);
 
+    nxt_buf_parent_completion(task, parent);
+}
+
+
+void
+nxt_buf_parent_completion(nxt_task_t *task, nxt_buf_t *parent)
+{
     if (parent != NULL) {
         nxt_debug(task, "parent retain:%uD", parent->retain);
 
@@ -272,17 +279,7 @@ nxt_buf_ts_completion(nxt_task_t *task, void *obj, void *data)
     nxt_mp_free(mp, b);
     nxt_mp_release(mp);
 
-    if (parent != NULL) {
-        nxt_debug(task, "parent retain:%uD", parent->retain);
-
-        parent->retain--;
-
-        if (parent->retain == 0) {
-            parent->mem.pos = parent->mem.free;
-
-            parent->completion_handler(task, parent, parent->parent);
-        }
-    }
+    nxt_buf_parent_completion(task, parent);
 }
 
 
