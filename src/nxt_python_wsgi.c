@@ -370,7 +370,8 @@ static void
 nxt_python_request_handler(nxt_unit_request_info_t *req)
 {
     int                   rc;
-    PyObject              *environ, *args, *response, *iterator, *item, *result;
+    PyObject              *environ, *args, *response, *iterator, *item;
+    PyObject              *close, *result;
     nxt_python_run_ctx_t  run_ctx = {-1, 0, NULL, req};
 
     PyEval_RestoreThread(nxt_python_thread_state);
@@ -461,17 +462,23 @@ nxt_python_request_handler(nxt_unit_request_info_t *req)
             rc = NXT_UNIT_ERROR;
         }
 
-        if (PyObject_HasAttrString(response, "close")) {
-            result = PyObject_CallMethod(response, (char *) "close", NULL);
+        close = PyObject_GetAttrString(response, "close");
 
-            if (nxt_fast_path(result != NULL)) {
-                Py_DECREF(result);
-
-            } else {
+        if (close != NULL) {
+            result = PyObject_CallFunction(close, NULL);
+            if (nxt_slow_path(result == NULL)) {
                 nxt_unit_req_error(req, "Python failed to call the close() "
                                         "method of the application response");
                 PyErr_Print();
+
+            } else {
+                Py_DECREF(result);
             }
+
+            Py_DECREF(close);
+
+        } else {
+            PyErr_Clear();
         }
     }
 
