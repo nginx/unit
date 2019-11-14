@@ -86,6 +86,7 @@ static PyObject *nxt_py_input_read(nxt_py_input_t *self, PyObject *args);
 static PyObject *nxt_py_input_readline(nxt_py_input_t *self, PyObject *args);
 static PyObject *nxt_py_input_readlines(nxt_py_input_t *self, PyObject *args);
 
+static void nxt_python_print_exception(void);
 static int nxt_python_write(nxt_python_run_ctx_t *ctx, PyObject *bytes);
 
 struct nxt_python_run_ctx_s {
@@ -140,6 +141,7 @@ static PyTypeObject nxt_py_input_type = {
 };
 
 
+static PyObject           *nxt_py_stderr_flush;
 static PyObject           *nxt_py_application;
 static PyObject           *nxt_py_start_resp_obj;
 static PyObject           *nxt_py_write_obj;
@@ -238,6 +240,21 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 
     module = NULL;
 
+    obj = PySys_GetObject((char *) "stderr");
+    if (nxt_slow_path(obj == NULL)) {
+        nxt_alert(task, "Python failed to get \"sys.stderr\" object");
+        goto fail;
+    }
+
+    nxt_py_stderr_flush = PyObject_GetAttrString(obj, "flush");
+    if (nxt_slow_path(nxt_py_stderr_flush == NULL)) {
+        nxt_alert(task, "Python failed to get \"flush\" attribute of "
+                        "\"sys.stderr\" object");
+        goto fail;
+    }
+
+    Py_DECREF(obj);
+
     if (c->path.length > 0) {
         obj = PyString_FromStringAndSize((char *) c->path.start,
                                          c->path.length);
@@ -308,7 +325,7 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     module = PyImport_ImportModule(nxt_py_module);
     if (nxt_slow_path(module == NULL)) {
         nxt_alert(task, "Python failed to import module \"%s\"", nxt_py_module);
-        PyErr_Print();
+        nxt_python_print_exception();
         goto fail;
     }
 
@@ -404,7 +421,7 @@ nxt_python_request_handler(nxt_unit_request_info_t *req)
 
     if (nxt_slow_path(response == NULL)) {
         nxt_unit_req_error(req, "Python failed to call the application");
-        PyErr_Print();
+        nxt_python_print_exception();
 
         rc = NXT_UNIT_ERROR;
         goto done;
@@ -427,7 +444,7 @@ nxt_python_request_handler(nxt_unit_request_info_t *req)
                     if (nxt_slow_path(PyErr_Occurred() != NULL)) {
                         nxt_unit_req_error(req, "Python failed to iterate over "
                                            "the application response object");
-                        PyErr_Print();
+                        nxt_python_print_exception();
 
                         rc = NXT_UNIT_ERROR;
                     }
@@ -456,7 +473,7 @@ nxt_python_request_handler(nxt_unit_request_info_t *req)
         } else {
             nxt_unit_req_error(req,
                             "the application returned not an iterable object");
-            PyErr_Print();
+            nxt_python_print_exception();
 
             rc = NXT_UNIT_ERROR;
         }
@@ -468,7 +485,7 @@ nxt_python_request_handler(nxt_unit_request_info_t *req)
             if (nxt_slow_path(result == NULL)) {
                 nxt_unit_req_error(req, "Python failed to call the close() "
                                         "method of the application response");
-                PyErr_Print();
+                nxt_python_print_exception();
 
             } else {
                 Py_DECREF(result);
@@ -495,6 +512,7 @@ done:
 static void
 nxt_python_atexit(void)
 {
+    Py_XDECREF(nxt_py_stderr_flush);
     Py_XDECREF(nxt_py_application);
     Py_XDECREF(nxt_py_start_resp_obj);
     Py_XDECREF(nxt_py_write_obj);
@@ -733,7 +751,7 @@ nxt_python_add_sptr(nxt_python_run_ctx_t *ctx, const char *name,
         nxt_unit_req_error(ctx->req,
                            "Python failed to create value string \"%.*s\"",
                            (int) size, src);
-        PyErr_Print();
+        nxt_python_print_exception();
 
         return NXT_UNIT_ERROR;
     }
@@ -768,7 +786,7 @@ nxt_python_add_str(nxt_python_run_ctx_t *ctx, const char *name,
         nxt_unit_req_error(ctx->req,
                            "Python failed to create value string \"%.*s\"",
                            (int) size, str);
-        PyErr_Print();
+        nxt_python_print_exception();
 
         return NXT_UNIT_ERROR;
     }
@@ -1100,6 +1118,28 @@ static PyObject *
 nxt_py_input_readlines(nxt_py_input_t *self, PyObject *args)
 {
     return PyList_New(0);
+}
+
+
+static void
+nxt_python_print_exception(void)
+{
+    PyErr_Print();
+
+#if PY_MAJOR_VERSION == 3
+    /* The backtrace may be buffered in sys.stderr file object. */
+    {
+        PyObject  *result;
+
+        result = PyObject_CallFunction(nxt_py_stderr_flush, NULL);
+        if (nxt_slow_path(result == NULL)) {
+            PyErr_Clear();
+            return;
+        }
+
+        Py_DECREF(result);
+    }
+#endif
 }
 
 
