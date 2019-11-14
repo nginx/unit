@@ -383,6 +383,8 @@ nxt_python_request_handler(nxt_unit_request_info_t *req)
 
     args = PyTuple_New(2);
     if (nxt_slow_path(args == NULL)) {
+        Py_DECREF(environ);
+
         nxt_unit_req_error(req, "Python failed to create arguments tuple");
 
         rc = NXT_UNIT_ERROR;
