@@ -425,6 +425,7 @@ nxt_python_request_handler(nxt_unit_request_info_t *req)
         if (nxt_slow_path(iterator == NULL)) {
             nxt_unit_req_error(req, "the application returned "
                                "not an iterable object");
+            PyErr_Print();
 
             goto fail;
         }
