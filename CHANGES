@@ -1,4 +1,24 @@
 
+Changes with Unit 1.13.0                                         14 Nov 2019
+
+    *) Feature: basic support for HTTP reverse proxying.
+
+    *) Feature: compatibility with Python 3.8.
+
+    *) Bugfix: memory leak in Python application processes when the close
+       handler was used.
+
+    *) Bugfix: threads in Python applications might not work correctly.
+
+    *) Bugfix: Ruby on Rails applications might not work on Ruby 2.6.
+
+    *) Bugfix: backtraces for uncaught exceptions in Python 3 might be
+       logged with significant delays.
+
+    *) Bugfix: explicit setting a namespaces isolation option to false might
+       have enabled it.
+
+
 Changes with Unit 1.12.0                                         03 Oct 2019
 
     *) Feature: compatibility with PHP 7.4.
