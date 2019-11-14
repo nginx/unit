@@ -185,6 +185,8 @@ class TestUnit(unittest.TestCase):
         if self._started:
             self._stop()
 
+        self.stop_processes()
+
     def _run(self):
         self.unitd = self.pardir + '/build/unitd'
 
@@ -286,6 +288,26 @@ class TestUnit(unittest.TestCase):
 
         if found:
             print('skipped.')
+
+    def run_process(self, target):
+        if not hasattr(self, '_processes'):
+            self._processes = []
+
+        process = Process(target=target)
+        process.start()
+
+        self._processes.append(process)
+
+    def stop_processes(self):
+        if not hasattr(self, '_processes'):
+            return
+
+        for process in self._processes:
+            process.terminate()
+            process.join(timeout=5)
+
+            if process.is_alive():
+                self.fail('Fail to stop process')
 
     def waitforfiles(self, *files):
         for i in range(50):
