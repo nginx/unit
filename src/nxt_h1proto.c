@@ -424,6 +424,12 @@ nxt_h1p_conn_request_init(nxt_task_t *task, void *obj, void *data)
         r->tls = c->u.tls;
 #endif
 
+        r->task = c->task;
+        task = &r->task;
+        c->socket.task = task;
+        c->read_timer.task = task;
+        c->write_timer.task = task;
+
         ret = nxt_http_parse_request_init(&h1p->parser, r->mem_pool);
 
         if (nxt_fast_path(ret == NXT_OK)) {
@@ -1485,6 +1491,10 @@ nxt_h1p_request_close(nxt_task_t *task, nxt_http_proto_t proto,
     nxt_router_conf_release(task, joint);
 
     c = h1p->conn;
+    task = &c->task;
+    c->socket.task = task;
+    c->read_timer.task = task;
+    c->write_timer.task = task;
 
     if (h1p->keepalive) {
         nxt_h1p_keepalive(task, h1p, c);

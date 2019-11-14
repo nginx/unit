@@ -570,9 +570,9 @@ nxt_http_request_close_handler(nxt_task_t *task, void *obj, void *data)
     if (nxt_fast_path(proto.any != NULL)) {
         protocol = r->protocol;
 
-        nxt_mp_release(r->mem_pool);
-
         nxt_http_proto[protocol].close(task, proto, conf);
+
+        nxt_mp_release(r->mem_pool);
     }
 }
 

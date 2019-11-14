@@ -137,6 +137,7 @@ struct nxt_http_request_s {
     nxt_sockaddr_t                  *remote;
     nxt_sockaddr_t                  *local;
     void                            *tls;
+    nxt_task_t                      task;
 
     nxt_timer_t                     timer;
     void                            *timer_data;
