@@ -106,6 +106,7 @@ NXT_EXPORT nxt_int_t nxt_socket_connect(nxt_task_t *task, nxt_socket_t s,
     nxt_sockaddr_t *sa);
 NXT_EXPORT void nxt_socket_shutdown(nxt_task_t *task, nxt_socket_t s,
     nxt_uint_t how);
+nxt_err_t nxt_socket_error(nxt_socket_t s);
 nxt_uint_t nxt_socket_error_level(nxt_err_t err);
 
 NXT_EXPORT nxt_int_t nxt_socketpair_create(nxt_task_t *task,

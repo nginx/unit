@@ -944,12 +944,12 @@ nxt_epoll_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
                 nxt_work_queue_add(ev->read_work_queue, ev->read_handler,
                                    ev->task, ev, ev->data);
 
+                error = 0;
+
             } else if (engine->u.epoll.mode == 0) {
                 /* Level-triggered mode. */
                 nxt_epoll_disable_read(engine, ev);
             }
-
-            error = 0;
         }
 
         if ((events & EPOLLOUT) != 0) {
@@ -964,12 +964,12 @@ nxt_epoll_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
                 nxt_work_queue_add(ev->write_work_queue, ev->write_handler,
                                    ev->task, ev, ev->data);
 
+                error = 0;
+
             } else if (engine->u.epoll.mode == 0) {
                 /* Level-triggered mode. */
                 nxt_epoll_disable_write(engine, ev);
             }
-
-            error = 0;
         }
 
         if (!error) {
