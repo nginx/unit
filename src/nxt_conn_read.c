@@ -69,7 +69,7 @@ nxt_conn_io_read(nxt_task_t *task, void *obj, void *data)
             n = c->io->recvbuf(c, c->read);
 
         } else {
-            n = state->io_read_handler(c);
+            n = state->io_read_handler(task, c);
             /* The state can be changed by io_read_handler. */
             state = c->read_state;
         }

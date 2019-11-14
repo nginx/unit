@@ -18,10 +18,10 @@
  */
 
 #if (NXT_TLS)
-static ssize_t nxt_http_idle_io_read_handler(nxt_conn_t *c);
+static ssize_t nxt_http_idle_io_read_handler(nxt_task_t *task, nxt_conn_t *c);
 static void nxt_http_conn_test(nxt_task_t *task, void *obj, void *data);
 #endif
-static ssize_t nxt_h1p_idle_io_read_handler(nxt_conn_t *c);
+static ssize_t nxt_h1p_idle_io_read_handler(nxt_task_t *task, nxt_conn_t *c);
 static void nxt_h1p_conn_proto_init(nxt_task_t *task, void *obj, void *data);
 static void nxt_h1p_conn_request_init(nxt_task_t *task, void *obj, void *data);
 static void nxt_h1p_conn_request_header_parse(nxt_task_t *task, void *obj,
@@ -196,7 +196,7 @@ static const nxt_conn_state_t  nxt_http_idle_state
 
 
 static ssize_t
-nxt_http_idle_io_read_handler(nxt_conn_t *c)
+nxt_http_idle_io_read_handler(nxt_task_t *task, nxt_conn_t *c)
 {
     size_t                   size;
     ssize_t                  n;
@@ -216,7 +216,7 @@ nxt_http_idle_io_read_handler(nxt_conn_t *c)
 
     size = joint->socket_conf->header_buffer_size;
 
-    b = nxt_buf_mem_alloc(c->mem_pool, size, 0);
+    b = nxt_event_engine_buf_mem_alloc(task->thread->engine, size);
     if (nxt_slow_path(b == NULL)) {
         c->socket.error = NXT_ENOMEM;
         return NXT_ERROR;
@@ -234,7 +234,7 @@ nxt_http_idle_io_read_handler(nxt_conn_t *c)
 
     } else {
         c->read = NULL;
-        nxt_mp_free(c->mem_pool, b);
+        nxt_event_engine_buf_mem_free(task->thread->engine, b);
     }
 
     return n;
@@ -248,12 +248,14 @@ nxt_http_conn_test(nxt_task_t *task, void *obj, void *data)
     nxt_buf_t                *b;
     nxt_conn_t               *c;
     nxt_tls_conf_t           *tls;
+    nxt_event_engine_t       *engine;
     nxt_socket_conf_joint_t  *joint;
 
     c = obj;
 
     nxt_debug(task, "h1p conn https test");
 
+    engine = task->thread->engine;
     b = c->read;
     p = b->mem.pos;
 
@@ -262,7 +264,7 @@ nxt_http_conn_test(nxt_task_t *task, void *obj, void *data)
     if (p[0] != 0x16) {
         b->mem.free = b->mem.pos;
 
-        nxt_conn_read(task->thread->engine, c);
+        nxt_conn_read(engine, c);
         return;
     }
 
@@ -292,7 +294,7 @@ nxt_http_conn_test(nxt_task_t *task, void *obj, void *data)
 #endif
 
     c->read = NULL;
-    nxt_mp_free(c->mem_pool, b);
+    nxt_event_engine_buf_mem_free(engine, b);
 
     joint = c->listen->socket.data;
 
@@ -330,7 +332,7 @@ static const nxt_conn_state_t  nxt_h1p_idle_state
 
 
 static ssize_t
-nxt_h1p_idle_io_read_handler(nxt_conn_t *c)
+nxt_h1p_idle_io_read_handler(nxt_task_t *task, nxt_conn_t *c)
 {
     size_t                   size;
     ssize_t                  n;
@@ -353,7 +355,7 @@ nxt_h1p_idle_io_read_handler(nxt_conn_t *c)
     if (b == NULL) {
         size = joint->socket_conf->header_buffer_size;
 
-        b = nxt_buf_mem_alloc(c->mem_pool, size, 0);
+        b = nxt_event_engine_buf_mem_alloc(task->thread->engine, size);
         if (nxt_slow_path(b == NULL)) {
             c->socket.error = NXT_ENOMEM;
             return NXT_ERROR;
@@ -367,7 +369,7 @@ nxt_h1p_idle_io_read_handler(nxt_conn_t *c)
 
     } else {
         c->read = NULL;
-        nxt_mp_free(c->mem_pool, b);
+        nxt_event_engine_buf_mem_free(task->thread->engine, b);
     }
 
     return n;
@@ -1232,7 +1234,8 @@ nxt_h1p_complete_buffers(nxt_task_t *task, nxt_h1proto_t *h1p)
         size = nxt_buf_mem_used_size(&in->mem);
 
         if (size == 0) {
-            nxt_mp_free(c->mem_pool, in);
+            nxt_work_queue_add(&task->thread->engine->fast_work_queue,
+                               in->completion_handler, task, in, in->parent);
 
             c->read = NULL;
         }
