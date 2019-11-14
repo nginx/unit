@@ -27,9 +27,9 @@ static void nxt_http_static_mtypes_hash_free(void *data, void *p);
 static const nxt_http_request_state_t  nxt_http_static_send_state;
 
 
-nxt_http_pass_t *
+nxt_http_action_t *
 nxt_http_static_handler(nxt_task_t *task, nxt_http_request_t *r,
-    nxt_http_pass_t *pass)
+    nxt_http_action_t *action)
 {
     size_t              alloc, encode;
     u_char              *p;
@@ -76,7 +76,7 @@ nxt_http_static_handler(nxt_task_t *task, nxt_http_request_t *r,
         nxt_str_null(&extension);
     }
 
-    alloc = pass->name.length + r->path->length + index.length + 1;
+    alloc = action->name.length + r->path->length + index.length + 1;
 
     f->name = nxt_mp_nget(r->mem_pool, alloc);
     if (nxt_slow_path(f->name == NULL)) {
@@ -84,7 +84,7 @@ nxt_http_static_handler(nxt_task_t *task, nxt_http_request_t *r,
     }
 
     p = f->name;
-    p = nxt_cpymem(p, pass->name.start, pass->name.length);
+    p = nxt_cpymem(p, action->name.start, action->name.length);
     p = nxt_cpymem(p, r->path->start, r->path->length);
     p = nxt_cpymem(p, index.start, index.length);
     *p = '\0';

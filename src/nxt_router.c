@@ -1172,8 +1172,8 @@ nxt_router_conf_error(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
 
     nxt_queue_each(skcf, &new_socket_confs, nxt_socket_conf_t, link) {
 
-        if (skcf->pass != NULL) {
-            nxt_http_pass_cleanup(task, skcf->pass);
+        if (skcf->action != NULL) {
+            nxt_http_action_cleanup(task, skcf->action);
         }
 
     } nxt_queue_loop;
@@ -1730,12 +1730,12 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             skcf->router_conf->count++;
 
             if (lscf.pass.length != 0) {
-                skcf->pass = nxt_http_pass_create(task, tmcf, &lscf.pass);
+                skcf->action = nxt_http_action_create(task, tmcf, &lscf.pass);
 
             /* COMPATIBILITY: listener application. */
             } else if (lscf.application.length > 0) {
-                skcf->pass = nxt_http_pass_application(task, tmcf,
-                                                       &lscf.application);
+                skcf->action = nxt_http_pass_application(task, tmcf,
+                                                         &lscf.application);
             }
         }
     }
@@ -3071,8 +3071,8 @@ nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
     nxt_thread_spin_unlock(lock);
 
     if (skcf != NULL) {
-        if (skcf->pass != NULL) {
-            nxt_http_pass_cleanup(task, skcf->pass);
+        if (skcf->action != NULL) {
+            nxt_http_action_cleanup(task, skcf->action);
         }
 
 #if (NXT_TLS)

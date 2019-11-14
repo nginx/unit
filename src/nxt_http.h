@@ -161,10 +161,10 @@ struct nxt_http_request_s {
 typedef struct nxt_http_route_s     nxt_http_route_t;
 
 
-struct nxt_http_pass_s {
-    nxt_http_pass_t                 *(*handler)(nxt_task_t *task,
+struct nxt_http_action_s {
+    nxt_http_action_t               *(*handler)(nxt_task_t *task,
                                         nxt_http_request_t *r,
-                                        nxt_http_pass_t *pass);
+                                        nxt_http_action_t *action);
     union {
         nxt_http_route_t            *route;
         nxt_app_t                   *application;
@@ -238,24 +238,24 @@ nxt_int_t nxt_http_request_content_length(void *ctx, nxt_http_field_t *field,
 
 nxt_http_routes_t *nxt_http_routes_create(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_conf_value_t *routes_conf);
-nxt_http_pass_t *nxt_http_pass_create(nxt_task_t *task,
+nxt_http_action_t *nxt_http_action_create(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_str_t *name);
 void nxt_http_routes_resolve(nxt_task_t *task, nxt_router_temp_conf_t *tmcf);
-nxt_http_pass_t *nxt_http_pass_application(nxt_task_t *task,
+nxt_http_action_t *nxt_http_pass_application(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_str_t *name);
 void nxt_http_routes_cleanup(nxt_task_t *task, nxt_http_routes_t *routes);
-void nxt_http_pass_cleanup(nxt_task_t *task, nxt_http_pass_t *pass);
+void nxt_http_action_cleanup(nxt_task_t *task, nxt_http_action_t *action);
 
-nxt_http_pass_t *nxt_http_static_handler(nxt_task_t *task,
-    nxt_http_request_t *r, nxt_http_pass_t *pass);
+nxt_http_action_t *nxt_http_static_handler(nxt_task_t *task,
+    nxt_http_request_t *r, nxt_http_action_t *action);
 nxt_int_t nxt_http_static_mtypes_init(nxt_mp_t *mp, nxt_lvlhsh_t *hash);
 nxt_int_t nxt_http_static_mtypes_hash_add(nxt_mp_t *mp, nxt_lvlhsh_t *hash,
     nxt_str_t *extension, nxt_str_t *type);
 nxt_str_t *nxt_http_static_mtypes_hash_find(nxt_lvlhsh_t *hash,
     nxt_str_t *extension);
 
-nxt_http_pass_t *nxt_http_request_application(nxt_task_t *task,
-    nxt_http_request_t *r, nxt_http_pass_t *pass);
+nxt_http_action_t *nxt_http_application_handler(nxt_task_t *task,
+    nxt_http_request_t *r, nxt_http_action_t *action);
 
 extern nxt_time_string_t  nxt_http_date_cache;
 

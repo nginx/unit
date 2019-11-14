@@ -16,12 +16,12 @@ typedef struct nxt_http_request_s  nxt_http_request_t;
 #include <nxt_application.h>
 
 
-typedef struct nxt_http_pass_s          nxt_http_pass_t;
+typedef struct nxt_http_action_s        nxt_http_action_t;
 typedef struct nxt_http_routes_s        nxt_http_routes_t;
 typedef struct nxt_router_access_log_s  nxt_router_access_log_t;
 
 
-#define NXT_HTTP_PASS_ERROR  ((nxt_http_pass_t *) -1)
+#define NXT_HTTP_ACTION_ERROR  ((nxt_http_action_t *) -1)
 
 
 typedef struct {
@@ -154,7 +154,7 @@ typedef struct {
     nxt_queue_link_t       link;
     nxt_router_conf_t      *router_conf;
 
-    nxt_http_pass_t        *pass;
+    nxt_http_action_t      *action;
 
     /*
      * A listen socket time can be shorter than socket configuration life
