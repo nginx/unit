@@ -410,59 +410,56 @@ nxt_python_request_handler(nxt_unit_request_info_t *req)
         goto done;
     }
 
-    item = NULL;
-    iterator = NULL;
-
     /* Shortcut: avoid iterate over result string symbols. */
     if (PyBytes_Check(result)) {
-
         rc = nxt_python_write(&run_ctx, result);
-        if (nxt_slow_path(rc != NXT_UNIT_OK)) {
-            goto fail;
-        }
 
     } else {
         iterator = PyObject_GetIter(result);
 
-        if (nxt_slow_path(iterator == NULL)) {
-            nxt_unit_req_error(req, "the application returned "
-                               "not an iterable object");
-            PyErr_Print();
+        if (nxt_fast_path(iterator != NULL)) {
+            rc = NXT_UNIT_OK;
 
-            goto fail;
-        }
+            while (run_ctx.bytes_sent < run_ctx.content_length) {
+                item = PyIter_Next(iterator);
 
-        while (run_ctx.bytes_sent < run_ctx.content_length) {
-            item = PyIter_Next(iterator);
+                if (item == NULL) {
+                    if (nxt_slow_path(PyErr_Occurred() != NULL)) {
+                        nxt_unit_req_error(req, "Python failed to iterate over "
+                                           "the application response object");
+                        PyErr_Print();
 
-            if (item == NULL) {
-                if (nxt_slow_path(PyErr_Occurred() != NULL)) {
-                    nxt_unit_req_error(req, "Python failed to iterate over "
-                                            "the application response object");
-                    PyErr_Print();
+                        rc = NXT_UNIT_ERROR;
+                    }
 
-                    goto fail;
+                    break;
                 }
 
-                break;
+                if (nxt_fast_path(PyBytes_Check(item))) {
+                    rc = nxt_python_write(&run_ctx, item);
+
+                } else {
+                    nxt_unit_req_error(req, "the application returned "
+                                            "not a bytestring object");
+                    rc = NXT_UNIT_ERROR;
+                }
+
+                Py_DECREF(item);
+
+                if (nxt_slow_path(rc != NXT_UNIT_OK)) {
+                    break;
+                }
             }
 
-            if (nxt_slow_path(!PyBytes_Check(item))) {
-                nxt_unit_req_error(req, "the application returned "
-                                   "not a bytestring object");
+            Py_DECREF(iterator);
 
-                goto fail;
-            }
+        } else {
+            nxt_unit_req_error(req,
+                            "the application returned not an iterable object");
+            PyErr_Print();
 
-            rc = nxt_python_write(&run_ctx, item);
-            if (nxt_slow_path(rc != NXT_UNIT_OK)) {
-                goto fail;
-            }
-
-            Py_DECREF(item);
+            rc = NXT_UNIT_ERROR;
         }
-
-        Py_DECREF(iterator);
 
         if (PyObject_HasAttrString(result, "close")) {
             PyObject_CallMethod(result, (char *) "close", NULL);
@@ -470,28 +467,6 @@ nxt_python_request_handler(nxt_unit_request_info_t *req)
     }
 
     Py_DECREF(result);
-
-    rc = NXT_UNIT_OK;
-
-    goto done;
-
-fail:
-
-    if (item != NULL) {
-        Py_DECREF(item);
-    }
-
-    if (iterator != NULL) {
-        Py_DECREF(iterator);
-    }
-
-    if (PyObject_HasAttrString(result, "close")) {
-        PyObject_CallMethod(result, (char *) "close", NULL);
-    }
-
-    Py_DECREF(result);
-
-    rc = NXT_UNIT_ERROR;
 
 done:
 
