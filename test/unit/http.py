@@ -1,4 +1,5 @@
 import re
+import time
 import socket
 import select
 from unit.main import TestUnit
@@ -178,3 +179,20 @@ class TestHTTP(TestUnit):
                 headers[m.group(1)] = [headers[m.group(1)], m.group(2)]
 
         return {'status': int(status), 'headers': headers, 'body': body}
+
+    def waitforsocket(self, port):
+        ret = False
+
+        for i in range(50):
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.connect(('127.0.0.1', port))
+                ret = True
+                break
+            except:
+                sock.close()
+                time.sleep(0.1)
+
+        sock.close()
+
+        self.assertTrue(ret, 'socket connected')
