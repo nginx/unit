@@ -556,19 +556,19 @@ nxt_event_engine_start(nxt_event_engine_t *engine)
 
 
 void *
-nxt_event_engine_mem_alloc(nxt_event_engine_t *engine, uint8_t *slot,
+nxt_event_engine_mem_alloc(nxt_event_engine_t *engine, uint8_t *hint,
     size_t size)
 {
-    uint8_t                n;
+    uint32_t               n;
     nxt_uint_t             items;
     nxt_array_t            *mem_cache;
     nxt_mem_cache_t        *cache;
     nxt_mem_cache_block_t  *block;
 
     mem_cache = engine->mem_cache;
-    n = *slot;
+    n = *hint;
 
-    if (n == (uint8_t) -1) {
+    if (n == NXT_EVENT_ENGINE_NO_MEM_HINT) {
 
         if (mem_cache == NULL) {
             /* IPv4 nxt_sockaddr_t and HTTP/1 and HTTP/2 buffers. */
@@ -607,7 +607,9 @@ nxt_event_engine_mem_alloc(nxt_event_engine_t *engine, uint8_t *slot,
 
     found:
 
-        *slot = n;
+        if (n < NXT_EVENT_ENGINE_NO_MEM_HINT) {
+            *hint = (uint8_t) n;
+        }
     }
 
     cache = mem_cache->elts;
@@ -626,15 +628,39 @@ nxt_event_engine_mem_alloc(nxt_event_engine_t *engine, uint8_t *slot,
 
 
 void
-nxt_event_engine_mem_free(nxt_event_engine_t *engine, uint8_t *slot, void *p)
+nxt_event_engine_mem_free(nxt_event_engine_t *engine, uint8_t hint, void *p,
+    size_t size)
 {
+    uint32_t               n;
+    nxt_array_t            *mem_cache;
     nxt_mem_cache_t        *cache;
     nxt_mem_cache_block_t  *block;
 
     block = p;
+    mem_cache = engine->mem_cache;
+    cache = mem_cache->elts;
 
-    cache = engine->mem_cache->elts;
-    cache = cache + *slot;
+    n = hint;
+
+    if (nxt_slow_path(n == NXT_EVENT_ENGINE_NO_MEM_HINT)) {
+
+        if (size != 0) {
+            for (n = 0; n < mem_cache->nelts; n++) {
+                if (cache[n].size == size) {
+                    goto found;
+                }
+            }
+
+            nxt_alert(&engine->task,
+                      "event engine mem free(%p, %z) not found", p, size);
+        }
+
+        goto done;
+    }
+
+found:
+
+    cache = cache + n;
 
     if (cache->count < 16) {
         cache->count++;
@@ -643,6 +669,8 @@ nxt_event_engine_mem_free(nxt_event_engine_t *engine, uint8_t *slot, void *p)
 
         return;
     }
+
+done:
 
     nxt_mp_free(engine->mem_pool, p);
 }
