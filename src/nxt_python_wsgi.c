@@ -322,7 +322,6 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     if (nxt_slow_path(PyCallable_Check(obj) == 0)) {
         nxt_alert(task, "\"application\" in module \"%s\" "
                   "is not a callable object", nxt_py_module);
-        PyErr_Print();
         goto fail;
     }
 
