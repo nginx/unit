@@ -370,7 +370,7 @@ static void
 nxt_python_request_handler(nxt_unit_request_info_t *req)
 {
     int                   rc;
-    PyObject              *result, *iterator, *item, *args, *environ;
+    PyObject              *environ, *args, *response, *iterator, *item, *result;
     nxt_python_run_ctx_t  run_ctx = {-1, 0, NULL, req};
 
     PyEval_RestoreThread(nxt_python_thread_state);
@@ -398,11 +398,11 @@ nxt_python_request_handler(nxt_unit_request_info_t *req)
 
     nxt_python_run_ctx = &run_ctx;
 
-    result = PyObject_CallObject(nxt_py_application, args);
+    response = PyObject_CallObject(nxt_py_application, args);
 
     Py_DECREF(args);
 
-    if (nxt_slow_path(result == NULL)) {
+    if (nxt_slow_path(response == NULL)) {
         nxt_unit_req_error(req, "Python failed to call the application");
         PyErr_Print();
 
@@ -410,12 +410,12 @@ nxt_python_request_handler(nxt_unit_request_info_t *req)
         goto done;
     }
 
-    /* Shortcut: avoid iterate over result string symbols. */
-    if (PyBytes_Check(result)) {
-        rc = nxt_python_write(&run_ctx, result);
+    /* Shortcut: avoid iterate over response string symbols. */
+    if (PyBytes_Check(response)) {
+        rc = nxt_python_write(&run_ctx, response);
 
     } else {
-        iterator = PyObject_GetIter(result);
+        iterator = PyObject_GetIter(response);
 
         if (nxt_fast_path(iterator != NULL)) {
             rc = NXT_UNIT_OK;
@@ -461,12 +461,21 @@ nxt_python_request_handler(nxt_unit_request_info_t *req)
             rc = NXT_UNIT_ERROR;
         }
 
-        if (PyObject_HasAttrString(result, "close")) {
-            PyObject_CallMethod(result, (char *) "close", NULL);
+        if (PyObject_HasAttrString(response, "close")) {
+            result = PyObject_CallMethod(response, (char *) "close", NULL);
+
+            if (nxt_fast_path(result != NULL)) {
+                Py_DECREF(result);
+
+            } else {
+                nxt_unit_req_error(req, "Python failed to call the close() "
+                                        "method of the application response");
+                PyErr_Print();
+            }
         }
     }
 
-    Py_DECREF(result);
+    Py_DECREF(response);
 
 done:
 
