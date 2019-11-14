@@ -697,6 +697,7 @@ nxt_h1p_conn_ws_pong(nxt_task_t *task, void *obj, void *data)
     for (i = 0; i < payload_len; i++) {
         while (nxt_buf_mem_used_size(&b->mem) == 0) {
             next = b->next;
+            b->next = NULL;
 
             nxt_work_queue_add(&task->thread->engine->fast_work_queue,
                                b->completion_handler, task, b, b->parent);

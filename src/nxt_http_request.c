@@ -483,15 +483,20 @@ nxt_http_buf_mem(nxt_task_t *task, nxt_http_request_t *r, size_t size)
 static void
 nxt_http_request_mem_buf_completion(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_buf_t           *b;
+    nxt_buf_t           *b, *next;
     nxt_http_request_t  *r;
 
     b = obj;
     r = data;
 
-    nxt_mp_free(r->mem_pool, b);
+    do {
+        next = b->next;
 
-    nxt_mp_release(r->mem_pool);
+        nxt_mp_free(r->mem_pool, b);
+        nxt_mp_release(r->mem_pool);
+
+        b = next;
+    } while (b != NULL);
 }
 
 

@@ -537,6 +537,7 @@ nxt_router_msg_cancel(nxt_task_t *task, nxt_msg_info_t *msg_info,
 
     for (b = msg_info->buf; b != NULL; b = next) {
         next = b->next;
+        b->next = NULL;
 
         b->completion_handler = msg_info->completion_handler;
 
@@ -3498,7 +3499,7 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     void *data)
 {
     nxt_int_t               ret;
-    nxt_buf_t               *b;
+    nxt_buf_t               *b, *next;
     nxt_port_t              *app_port;
     nxt_unit_field_t        *f;
     nxt_http_field_t        *field;
@@ -3613,10 +3614,13 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
         }
 
         if (nxt_buf_mem_used_size(&b->mem) == 0) {
+            next = b->next;
+            b->next = NULL;
+
             nxt_work_queue_add(&task->thread->engine->fast_work_queue,
                                b->completion_handler, task, b, b->parent);
 
-            b = b->next;
+            b = next;
         }
 
         if (b != NULL) {
@@ -5057,6 +5061,7 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_http_request_t *r,
                 if (nxt_slow_path(buf == NULL)) {
                     while (out != NULL) {
                         buf = out->next;
+                        out->next = NULL;
                         out->completion_handler(task, out, out->parent);
                         out = buf;
                     }

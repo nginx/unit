@@ -721,7 +721,7 @@ void
 nxt_event_engine_buf_mem_completion(nxt_task_t *task, void *obj, void *data)
 {
     nxt_event_engine_t  *engine;
-    nxt_buf_t           *b, *parent;
+    nxt_buf_t           *b, *next, *parent;
 
     b = obj;
     parent = data;
@@ -729,9 +729,17 @@ nxt_event_engine_buf_mem_completion(nxt_task_t *task, void *obj, void *data)
     nxt_debug(task, "buf completion: %p %p", b, b->mem.start);
 
     engine = b->data;
-    nxt_event_engine_buf_mem_free(engine, b);
 
-    nxt_buf_parent_completion(task, parent);
+    do {
+        next = b->next;
+        parent = b->parent;
+
+        nxt_event_engine_buf_mem_free(engine, b);
+
+        nxt_buf_parent_completion(task, parent);
+
+        b = next;
+    } while (b != NULL);
 }
 
 

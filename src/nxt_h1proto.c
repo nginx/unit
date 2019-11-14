@@ -1219,6 +1219,7 @@ nxt_h1p_complete_buffers(nxt_task_t *task, nxt_h1proto_t *h1p)
 
         while (b != NULL) {
             next = b->next;
+            b->next = NULL;
 
             nxt_work_queue_add(&task->thread->engine->fast_work_queue,
                                b->completion_handler, task, b, b->parent);

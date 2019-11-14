@@ -195,7 +195,7 @@ static void
 nxt_buf_completion(nxt_task_t *task, void *obj, void *data)
 {
     nxt_mp_t   *mp;
-    nxt_buf_t  *b, *parent;
+    nxt_buf_t  *b, *next, *parent;
 
     b = obj;
     parent = data;
@@ -204,10 +204,17 @@ nxt_buf_completion(nxt_task_t *task, void *obj, void *data)
 
     nxt_assert(data == b->parent);
 
-    mp = b->data;
-    nxt_mp_free(mp, b);
+    do {
+        next = b->next;
+        parent = b->parent;
+        mp = b->data;
 
-    nxt_buf_parent_completion(task, parent);
+        nxt_mp_free(mp, b);
+
+        nxt_buf_parent_completion(task, parent);
+
+        b = next;
+    } while (b != NULL);
 }
 
 
@@ -262,7 +269,7 @@ static void
 nxt_buf_ts_completion(nxt_task_t *task, void *obj, void *data)
 {
     nxt_mp_t   *mp;
-    nxt_buf_t  *b, *parent;
+    nxt_buf_t  *b, *next, *parent;
 
     b = obj;
     parent = data;
@@ -275,11 +282,18 @@ nxt_buf_ts_completion(nxt_task_t *task, void *obj, void *data)
 
     nxt_assert(data == b->parent);
 
-    mp = b->data;
-    nxt_mp_free(mp, b);
-    nxt_mp_release(mp);
+    do {
+        next = b->next;
+        parent = b->parent;
+        mp = b->data;
 
-    nxt_buf_parent_completion(task, parent);
+        nxt_mp_free(mp, b);
+        nxt_mp_release(mp);
+
+        nxt_buf_parent_completion(task, parent);
+
+        b = next;
+    } while (b != NULL);
 }
 
 
