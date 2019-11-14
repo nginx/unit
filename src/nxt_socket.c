@@ -300,6 +300,28 @@ nxt_socket_shutdown(nxt_task_t *task, nxt_socket_t s, nxt_uint_t how)
 }
 
 
+nxt_err_t
+nxt_socket_error(nxt_socket_t s)
+{
+    int        ret, err;
+    socklen_t  len;
+
+    err = 0;
+    len = sizeof(int);
+    /*  
+     * Linux and BSDs return 0 and store a pending error in the err argument; 
+     * Solaris returns -1 and sets the errno.
+     */  
+    ret = getsockopt(s, SOL_SOCKET, SO_ERROR, (void *) &err, &len);
+
+    if (nxt_slow_path(ret == -1)) {
+        err = nxt_errno;
+    }   
+
+    return err;
+}
+
+
 nxt_uint_t
 nxt_socket_error_level(nxt_err_t err)
 {
@@ -314,6 +336,9 @@ nxt_socket_error_level(nxt_err_t err)
     case NXT_EHOSTDOWN:
     case NXT_EHOSTUNREACH:
         return NXT_LOG_INFO;
+
+    case NXT_ECONNREFUSED:
+        return NXT_LOG_ERR;
 
     default:
         return NXT_LOG_ALERT;

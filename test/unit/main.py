@@ -185,6 +185,8 @@ class TestUnit(unittest.TestCase):
         if self._started:
             self._stop()
 
+        self.stop_processes()
+
     def _run(self):
         self.unitd = self.pardir + '/build/unitd'
 
@@ -240,24 +242,24 @@ class TestUnit(unittest.TestCase):
                 break
             time.sleep(0.1)
 
+        self._p.join(timeout=5)
+
+        if self._p.is_alive():
+            self._p.terminate()
+            self._p.join(timeout=5)
+
+        if self._p.is_alive():
+            self.fail("Could not terminate process " + str(self._p.pid))
+
         if os.path.exists(self.testdir + '/unit.pid'):
-            exit("Could not terminate unit")
+            self.fail("Could not terminate unit")
 
         self._started = False
 
-        self._p.join(timeout=1)
-        self._terminate_process(self._p)
-
-    def _terminate_process(self, process):
-        if process.is_alive():
-            process.terminate()
-            process.join(timeout=5)
-
-            if process.is_alive():
-                exit("Could not terminate process " + process.pid)
-
-        if process.exitcode:
-            exit("Child process terminated with code " + str(process.exitcode))
+        if self._p.exitcode:
+            self.fail(
+                "Child process terminated with code " + str(self._p.exitcode)
+            )
 
     def _check_alerts(self, log):
         found = False
@@ -286,6 +288,26 @@ class TestUnit(unittest.TestCase):
 
         if found:
             print('skipped.')
+
+    def run_process(self, target):
+        if not hasattr(self, '_processes'):
+            self._processes = []
+
+        process = Process(target=target)
+        process.start()
+
+        self._processes.append(process)
+
+    def stop_processes(self):
+        if not hasattr(self, '_processes'):
+            return
+
+        for process in self._processes:
+            process.terminate()
+            process.join(timeout=5)
+
+            if process.is_alive():
+                self.fail('Fail to stop process')
 
     def waitforfiles(self, *files):
         for i in range(50):

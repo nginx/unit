@@ -23,11 +23,11 @@ static nxt_int_t nxt_job_sockaddr_inet_parse(nxt_job_sockaddr_parse_t *jbs);
 nxt_sockaddr_t *
 nxt_sockaddr_cache_alloc(nxt_event_engine_t *engine, nxt_listen_socket_t *ls)
 {
-    uint8_t         hint;
     size_t          size;
+    uint8_t         hint;
     nxt_sockaddr_t  *sa;
 
-    hint = (uint8_t) -1;
+    hint = NXT_EVENT_ENGINE_NO_MEM_HINT;
     size = offsetof(nxt_sockaddr_t, u) + ls->socklen + ls->address_length;
 
     sa = nxt_event_engine_mem_alloc(engine, &hint, size);
@@ -56,7 +56,11 @@ nxt_sockaddr_cache_alloc(nxt_event_engine_t *engine, nxt_listen_socket_t *ls)
 void
 nxt_sockaddr_cache_free(nxt_event_engine_t *engine, nxt_conn_t *c)
 {
-    nxt_event_engine_mem_free(engine, &c->remote->cache_hint, c->remote);
+    nxt_sockaddr_t  *sa;
+
+    sa = c->remote;
+
+    nxt_event_engine_mem_free(engine, sa->cache_hint, sa, 0);
 }
 
 

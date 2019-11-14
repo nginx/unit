@@ -188,10 +188,14 @@ nxt_strncasecmp(const u_char *s1, const u_char *s2, size_t length)
 
 
 nxt_int_t
-nxt_memcasecmp(const u_char *s1, const u_char *s2, size_t length)
+nxt_memcasecmp(const void *p1, const void *p2, size_t length)
 {
-    u_char     c1, c2;
-    nxt_int_t  n;
+    u_char        c1, c2;
+    nxt_int_t     n;
+    const u_char  *s1, *s2;
+
+    s1 = p1;
+    s2 = p2;
 
     while (length-- != 0) {
         c1 = *s1++;

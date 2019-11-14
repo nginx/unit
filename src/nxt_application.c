@@ -327,6 +327,9 @@ nxt_app_start(nxt_task_t *task, void *data)
                   lang->version, lang->file);
 
         nxt_app = nxt_app_module_load(task, lang->file);
+        if (nxt_slow_path(nxt_app == NULL)) {
+            return NXT_ERROR;
+        }
     }
 
     if (nxt_app->pre_init != NULL) {

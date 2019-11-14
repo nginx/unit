@@ -86,6 +86,7 @@ static PyObject *nxt_py_input_read(nxt_py_input_t *self, PyObject *args);
 static PyObject *nxt_py_input_readline(nxt_py_input_t *self, PyObject *args);
 static PyObject *nxt_py_input_readlines(nxt_py_input_t *self, PyObject *args);
 
+static void nxt_python_print_exception(void);
 static int nxt_python_write(nxt_python_run_ctx_t *ctx, PyObject *bytes);
 
 struct nxt_python_run_ctx_s {
@@ -130,58 +131,17 @@ static PyMethodDef nxt_py_input_methods[] = {
 
 static PyTypeObject nxt_py_input_type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "unit._input",                      /* tp_name              */
-    (int) sizeof(nxt_py_input_t),       /* tp_basicsize         */
-    0,                                  /* tp_itemsize          */
-    (destructor) nxt_py_input_dealloc,  /* tp_dealloc           */
-    0,                                  /* tp_print             */
-    0,                                  /* tp_getattr           */
-    0,                                  /* tp_setattr           */
-    0,                                  /* tp_compare           */
-    0,                                  /* tp_repr              */
-    0,                                  /* tp_as_number         */
-    0,                                  /* tp_as_sequence       */
-    0,                                  /* tp_as_mapping        */
-    0,                                  /* tp_hash              */
-    0,                                  /* tp_call              */
-    0,                                  /* tp_str               */
-    0,                                  /* tp_getattro          */
-    0,                                  /* tp_setattro          */
-    0,                                  /* tp_as_buffer         */
-    Py_TPFLAGS_DEFAULT,                 /* tp_flags             */
-    "unit input object.",               /* tp_doc               */
-    0,                                  /* tp_traverse          */
-    0,                                  /* tp_clear             */
-    0,                                  /* tp_richcompare       */
-    0,                                  /* tp_weaklistoffset    */
-    0,                                  /* tp_iter              */
-    0,                                  /* tp_iternext          */
-    nxt_py_input_methods,               /* tp_methods           */
-    0,                                  /* tp_members           */
-    0,                                  /* tp_getset            */
-    0,                                  /* tp_base              */
-    0,                                  /* tp_dict              */
-    0,                                  /* tp_descr_get         */
-    0,                                  /* tp_descr_set         */
-    0,                                  /* tp_dictoffset        */
-    0,                                  /* tp_init              */
-    0,                                  /* tp_alloc             */
-    0,                                  /* tp_new               */
-    0,                                  /* tp_free              */
-    0,                                  /* tp_is_gc             */
-    0,                                  /* tp_bases             */
-    0,                                  /* tp_mro - method resolution order */
-    0,                                  /* tp_cache             */
-    0,                                  /* tp_subclasses        */
-    0,                                  /* tp_weaklist          */
-    0,                                  /* tp_del               */
-    0,                                  /* tp_version_tag       */
-#if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION > 3
-    0,                                  /* tp_finalize          */
-#endif
+
+    .tp_name      = "unit._input",
+    .tp_basicsize = sizeof(nxt_py_input_t),
+    .tp_dealloc   = (destructor) nxt_py_input_dealloc,
+    .tp_flags     = Py_TPFLAGS_DEFAULT,
+    .tp_doc       = "unit input object.",
+    .tp_methods   = nxt_py_input_methods,
 };
 
 
+static PyObject           *nxt_py_stderr_flush;
 static PyObject           *nxt_py_application;
 static PyObject           *nxt_py_start_resp_obj;
 static PyObject           *nxt_py_write_obj;
@@ -193,6 +153,7 @@ static wchar_t            *nxt_py_home;
 static char               *nxt_py_home;
 #endif
 
+static PyThreadState         *nxt_python_thread_state;
 static nxt_python_run_ctx_t  *nxt_python_run_ctx;
 
 
@@ -279,6 +240,21 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 
     module = NULL;
 
+    obj = PySys_GetObject((char *) "stderr");
+    if (nxt_slow_path(obj == NULL)) {
+        nxt_alert(task, "Python failed to get \"sys.stderr\" object");
+        goto fail;
+    }
+
+    nxt_py_stderr_flush = PyObject_GetAttrString(obj, "flush");
+    if (nxt_slow_path(nxt_py_stderr_flush == NULL)) {
+        nxt_alert(task, "Python failed to get \"flush\" attribute of "
+                        "\"sys.stderr\" object");
+        goto fail;
+    }
+
+    Py_DECREF(obj);
+
     if (c->path.length > 0) {
         obj = PyString_FromStringAndSize((char *) c->path.start,
                                          c->path.length);
@@ -349,7 +325,7 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     module = PyImport_ImportModule(nxt_py_module);
     if (nxt_slow_path(module == NULL)) {
         nxt_alert(task, "Python failed to import module \"%s\"", nxt_py_module);
-        PyErr_Print();
+        nxt_python_print_exception();
         goto fail;
     }
 
@@ -363,7 +339,6 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     if (nxt_slow_path(PyCallable_Check(obj) == 0)) {
         nxt_alert(task, "\"application\" in module \"%s\" "
                   "is not a callable object", nxt_py_module);
-        PyErr_Print();
         goto fail;
     }
 
@@ -382,9 +357,13 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
         goto fail;
     }
 
+    nxt_python_thread_state = PyEval_SaveThread();
+
     rc = nxt_unit_run(unit_ctx);
 
     nxt_unit_done(unit_ctx);
+
+    PyEval_RestoreThread(nxt_python_thread_state);
 
     nxt_python_atexit();
 
@@ -407,22 +386,26 @@ static void
 nxt_python_request_handler(nxt_unit_request_info_t *req)
 {
     int                   rc;
-    PyObject              *result, *iterator, *item, *args, *environ;
+    PyObject              *environ, *args, *response, *iterator, *item;
+    PyObject              *close, *result;
     nxt_python_run_ctx_t  run_ctx = {-1, 0, NULL, req};
+
+    PyEval_RestoreThread(nxt_python_thread_state);
 
     environ = nxt_python_get_environ(&run_ctx);
     if (nxt_slow_path(environ == NULL)) {
-        nxt_unit_request_done(req, NXT_UNIT_ERROR);
-
-        return;
+        rc = NXT_UNIT_ERROR;
+        goto done;
     }
 
     args = PyTuple_New(2);
     if (nxt_slow_path(args == NULL)) {
+        Py_DECREF(environ);
+
         nxt_unit_req_error(req, "Python failed to create arguments tuple");
 
-        nxt_unit_request_done(req, NXT_UNIT_ERROR);
-        return;
+        rc = NXT_UNIT_ERROR;
+        goto done;
     }
 
     PyTuple_SET_ITEM(args, 0, environ);
@@ -432,103 +415,104 @@ nxt_python_request_handler(nxt_unit_request_info_t *req)
 
     nxt_python_run_ctx = &run_ctx;
 
-    result = PyObject_CallObject(nxt_py_application, args);
+    response = PyObject_CallObject(nxt_py_application, args);
 
     Py_DECREF(args);
 
-    if (nxt_slow_path(result == NULL)) {
+    if (nxt_slow_path(response == NULL)) {
         nxt_unit_req_error(req, "Python failed to call the application");
-        PyErr_Print();
+        nxt_python_print_exception();
 
-        nxt_unit_request_done(req, NXT_UNIT_ERROR);
-        nxt_python_run_ctx = NULL;
-
-        return;
+        rc = NXT_UNIT_ERROR;
+        goto done;
     }
 
-    item = NULL;
-    iterator = NULL;
-
-    /* Shortcut: avoid iterate over result string symbols. */
-    if (PyBytes_Check(result)) {
-
-        rc = nxt_python_write(&run_ctx, result);
-        if (nxt_slow_path(rc != NXT_UNIT_OK)) {
-            goto fail;
-        }
+    /* Shortcut: avoid iterate over response string symbols. */
+    if (PyBytes_Check(response)) {
+        rc = nxt_python_write(&run_ctx, response);
 
     } else {
-        iterator = PyObject_GetIter(result);
+        iterator = PyObject_GetIter(response);
 
-        if (nxt_slow_path(iterator == NULL)) {
-            nxt_unit_req_error(req, "the application returned "
-                               "not an iterable object");
+        if (nxt_fast_path(iterator != NULL)) {
+            rc = NXT_UNIT_OK;
 
-            goto fail;
-        }
+            while (run_ctx.bytes_sent < run_ctx.content_length) {
+                item = PyIter_Next(iterator);
 
-        while (run_ctx.bytes_sent < run_ctx.content_length
-               && (item = PyIter_Next(iterator)))
-        {
-            if (nxt_slow_path(!PyBytes_Check(item))) {
-                nxt_unit_req_error(req, "the application returned "
-                                   "not a bytestring object");
+                if (item == NULL) {
+                    if (nxt_slow_path(PyErr_Occurred() != NULL)) {
+                        nxt_unit_req_error(req, "Python failed to iterate over "
+                                           "the application response object");
+                        nxt_python_print_exception();
 
-                goto fail;
+                        rc = NXT_UNIT_ERROR;
+                    }
+
+                    break;
+                }
+
+                if (nxt_fast_path(PyBytes_Check(item))) {
+                    rc = nxt_python_write(&run_ctx, item);
+
+                } else {
+                    nxt_unit_req_error(req, "the application returned "
+                                            "not a bytestring object");
+                    rc = NXT_UNIT_ERROR;
+                }
+
+                Py_DECREF(item);
+
+                if (nxt_slow_path(rc != NXT_UNIT_OK)) {
+                    break;
+                }
             }
 
-            rc = nxt_python_write(&run_ctx, item);
-            if (nxt_slow_path(rc != NXT_UNIT_OK)) {
-                goto fail;
+            Py_DECREF(iterator);
+
+        } else {
+            nxt_unit_req_error(req,
+                            "the application returned not an iterable object");
+            nxt_python_print_exception();
+
+            rc = NXT_UNIT_ERROR;
+        }
+
+        close = PyObject_GetAttrString(response, "close");
+
+        if (close != NULL) {
+            result = PyObject_CallFunction(close, NULL);
+            if (nxt_slow_path(result == NULL)) {
+                nxt_unit_req_error(req, "Python failed to call the close() "
+                                        "method of the application response");
+                nxt_python_print_exception();
+
+            } else {
+                Py_DECREF(result);
             }
 
-            Py_DECREF(item);
-        }
+            Py_DECREF(close);
 
-        Py_DECREF(iterator);
-
-        if (PyObject_HasAttrString(result, "close")) {
-            PyObject_CallMethod(result, (char *) "close", NULL);
+        } else {
+            PyErr_Clear();
         }
     }
 
-    if (nxt_slow_path(PyErr_Occurred() != NULL)) {
-        nxt_unit_req_error(req, "an application error occurred");
-        PyErr_Print();
-    }
+    Py_DECREF(response);
 
-    nxt_unit_request_done(req, NXT_UNIT_OK);
+done:
 
-    Py_DECREF(result);
+    nxt_python_thread_state = PyEval_SaveThread();
 
     nxt_python_run_ctx = NULL;
-
-    return;
-
-fail:
-
-    if (item != NULL) {
-        Py_DECREF(item);
-    }
-
-    if (iterator != NULL) {
-        Py_DECREF(iterator);
-    }
-
-    if (PyObject_HasAttrString(result, "close")) {
-        PyObject_CallMethod(result, (char *) "close", NULL);
-    }
-
-    Py_DECREF(result);
-    nxt_python_run_ctx = NULL;
-
-    nxt_unit_request_done(req, NXT_UNIT_ERROR);
+    nxt_unit_request_done(req, rc);
 }
 
 
 static void
 nxt_python_atexit(void)
 {
+    Py_XDECREF(nxt_py_stderr_flush);
     Py_XDECREF(nxt_py_application);
     Py_XDECREF(nxt_py_start_resp_obj);
     Py_XDECREF(nxt_py_write_obj);
@@ -767,7 +751,7 @@ nxt_python_add_sptr(nxt_python_run_ctx_t *ctx, const char *name,
         nxt_unit_req_error(ctx->req,
                            "Python failed to create value string \"%.*s\"",
                            (int) size, src);
-        PyErr_Print();
+        nxt_python_print_exception();
 
         return NXT_UNIT_ERROR;
     }
@@ -802,7 +786,7 @@ nxt_python_add_str(nxt_python_run_ctx_t *ctx, const char *name,
         nxt_unit_req_error(ctx->req,
                            "Python failed to create value string \"%.*s\"",
                            (int) size, str);
-        PyErr_Print();
+        nxt_python_print_exception();
 
         return NXT_UNIT_ERROR;
     }
@@ -1134,6 +1118,28 @@ static PyObject *
 nxt_py_input_readlines(nxt_py_input_t *self, PyObject *args)
 {
     return PyList_New(0);
+}
+
+
+static void
+nxt_python_print_exception(void)
+{
+    PyErr_Print();
+
+#if PY_MAJOR_VERSION == 3
+    /* The backtrace may be buffered in sys.stderr file object. */
+    {
+        PyObject  *result;
+
+        result = PyObject_CallFunction(nxt_py_stderr_flush, NULL);
+        if (nxt_slow_path(result == NULL)) {
+            PyErr_Clear();
+            return;
+        }
+
+        Py_DECREF(result);
+    }
+#endif
 }
 
 

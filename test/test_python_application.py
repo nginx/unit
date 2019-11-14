@@ -1,3 +1,4 @@
+import re
 import time
 import unittest
 from unit.applications.lang.python import TestApplicationPython
@@ -5,6 +6,10 @@ from unit.applications.lang.python import TestApplicationPython
 
 class TestPythonApplication(TestApplicationPython):
     prerequisites = {'modules': ['python']}
+
+    def findall(self, pattern):
+        with open(self.testdir + '/unit.log', 'r', errors='ignore') as f:
+            return re.findall(pattern, f.read())
 
     def test_python_application_variables(self):
         self.load('variables')
@@ -129,6 +134,18 @@ class TestPythonApplication(TestApplicationPython):
         self.assertEqual(
             self.get()['headers']['Server-Port'], '7080', 'Server-Port header'
         )
+
+    @unittest.skip('not yet')
+    def test_python_application_working_directory_invalid(self):
+        self.load('empty')
+
+        self.assertIn(
+            'success',
+            self.conf('"/blah"', 'applications/empty/working_directory'),
+            'configure invalid working_directory',
+        )
+
+        self.assertEqual(self.get()['status'], 500, 'status')
 
     def test_python_application_204_transfer_encoding(self):
         self.load('204_no_content')
@@ -495,6 +512,171 @@ Connection: close
 
         self.assertEqual(self.get()['body'], '0123456789', 'write')
 
+    def test_python_application_threading(self):
+        """wait_for_record() timeouts after 5s while every thread works at
+        least 3s.  So without releasing GIL test should fail.
+        """
+
+        self.load('threading')
+
+        for _ in range(10):
+            self.get(no_recv=True)
+
+        self.assertIsNotNone(
+            self.wait_for_record(r'\(5\) Thread: 100'), 'last thread finished'
+        )
+
+    def test_python_application_iter_exception(self):
+        self.load('iter_exception')
+
+        # Default request doesn't lead to the exception.
+
+        resp = self.get(
+            headers={
+                'Host': 'localhost',
+                'X-Skip': '9',
+                'X-Chunked': '1',
+                'Connection': 'close',
+            }
+        )
+        self.assertEqual(resp['status'], 200, 'status')
+        self.assertEqual(resp['body'][-5:], '0\r\n\r\n', 'body')
+
+        # Exception before start_response().
+
+        self.assertEqual(self.get()['status'], 503, 'error')
+
+        self.assertIsNotNone(self.wait_for_record(r'Traceback'), 'traceback')
+        self.assertIsNotNone(
+            self.wait_for_record(r'raise Exception\(\'first exception\'\)'),
+            'first exception raise',
+        )
+        self.assertEqual(
+            len(self.findall(r'Traceback')), 1, 'traceback count 1'
+        )
+
+        # Exception after start_response(), before first write().
+
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'X-Skip': '1',
+                    'Connection': 'close',
+                }
+            )['status'],
+            503,
+            'error 2',
+        )
+
+        self.assertIsNotNone(
+            self.wait_for_record(r'raise Exception\(\'second exception\'\)'),
+            'exception raise second',
+        )
+        self.assertEqual(
+            len(self.findall(r'Traceback')), 2, 'traceback count 2'
+        )
+
+        # Exception after first write(), before first __next__().
+
+        _, sock = self.get(
+            headers={
+                'Host': 'localhost',
+                'X-Skip': '2',
+                'Connection': 'keep-alive',
+            },
+            start=True,
+        )
+
+        self.assertIsNotNone(
+            self.wait_for_record(r'raise Exception\(\'third exception\'\)'),
+            'exception raise third',
+        )
+        self.assertEqual(
+            len(self.findall(r'Traceback')), 3, 'traceback count 3'
+        )
+
+        self.assertDictEqual(self.get(sock=sock), {}, 'closed connection')
+
+        # Exception after first write(), before first __next__(),
+        # chunked (incomplete body).
+
+        resp = self.get(
+            headers={
+                'Host': 'localhost',
+                'X-Skip': '2',
+                'X-Chunked': '1',
+                'Connection': 'close',
+            }
+        )
+        if 'body' in resp:
+            self.assertNotEqual(
+                resp['body'][-5:], '0\r\n\r\n', 'incomplete body'
+            )
+        self.assertEqual(
+            len(self.findall(r'Traceback')), 4, 'traceback count 4'
+        )
+
+        # Exception in __next__().
+
+        _, sock = self.get(
+            headers={
+                'Host': 'localhost',
+                'X-Skip': '3',
+                'Connection': 'keep-alive',
+            },
+            start=True,
+        )
+
+        self.assertIsNotNone(
+            self.wait_for_record(r'raise Exception\(\'next exception\'\)'),
+            'exception raise next',
+        )
+        self.assertEqual(
+            len(self.findall(r'Traceback')), 5, 'traceback count 5'
+        )
+
+        self.assertDictEqual(self.get(sock=sock), {}, 'closed connection 2')
+
+        # Exception in __next__(), chunked (incomplete body).
+
+        resp = self.get(
+            headers={
+                'Host': 'localhost',
+                'X-Skip': '3',
+                'X-Chunked': '1',
+                'Connection': 'close',
+            }
+        )
+        if 'body' in resp:
+            self.assertNotEqual(
+                resp['body'][-5:], '0\r\n\r\n', 'incomplete body 2'
+            )
+        self.assertEqual(
+            len(self.findall(r'Traceback')), 6, 'traceback count 6'
+        )
+
+        # Exception before start_response() and in close().
+
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'X-Not-Skip-Close': '1',
+                    'Connection': 'close',
+                }
+            )['status'],
+            503,
+            'error',
+        )
+
+        self.assertIsNotNone(
+            self.wait_for_record(r'raise Exception\(\'close exception\'\)'),
+            'exception raise close',
+        )
+        self.assertEqual(
+            len(self.findall(r'Traceback')), 8, 'traceback count 8'
+        )
 
 if __name__ == '__main__':
     TestPythonApplication.main()

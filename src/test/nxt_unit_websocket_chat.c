@@ -104,10 +104,10 @@ ws_chat_root(nxt_unit_request_info_t *req)
 
     rc = nxt_unit_response_init(req, 200 /* Status code. */,
                                 2 /* Number of response headers. */,
-                                nxt_length(CONTENT_TYPE) + 1
-                                + nxt_length(TEXT_HTML) + 1
-                                + nxt_length(CONTENT_LENGTH) + 1
-                                + ws_chat_index_content_length_size + 1
+                                nxt_length(CONTENT_TYPE)
+                                + nxt_length(TEXT_HTML)
+                                + nxt_length(CONTENT_LENGTH)
+                                + ws_chat_index_content_length_size
                                 + ws_chat_index_html_size);
     if (nxt_slow_path(rc != NXT_UNIT_OK)) {
         return rc;

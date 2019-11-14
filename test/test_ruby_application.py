@@ -347,6 +347,29 @@ class TestRubyApplication(TestApplicationRuby):
 
         self.assertEqual(resp['body'], '0123456789', 'keep-alive 2')
 
+    def test_ruby_application_constants(self):
+        self.load('constants')
+
+        resp = self.get()
+
+        self.assertEqual(resp['status'], 200, 'status')
+
+        headers = resp['headers']
+        self.assertGreater(len(headers['X-Copyright']), 0, 'RUBY_COPYRIGHT')
+        self.assertGreater(
+            len(headers['X-Description']), 0, 'RUBY_DESCRIPTION'
+        )
+        self.assertGreater(len(headers['X-Engine']), 0, 'RUBY_ENGINE')
+        self.assertGreater(
+            len(headers['X-Engine-Version']), 0, 'RUBY_ENGINE_VERSION'
+        )
+        self.assertGreater(len(headers['X-Patchlevel']), 0, 'RUBY_PATCHLEVEL')
+        self.assertGreater(len(headers['X-Platform']), 0, 'RUBY_PLATFORM')
+        self.assertGreater(
+            len(headers['X-Release-Date']), 0, 'RUBY_RELEASE_DATE'
+        )
+        self.assertGreater(len(headers['X-Revision']), 0, 'RUBY_REVISION')
+        self.assertGreater(len(headers['X-Version']), 0, 'RUBY_VERSION')
 
 if __name__ == '__main__':
     TestRubyApplication.main()

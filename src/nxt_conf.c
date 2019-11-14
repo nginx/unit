@@ -228,6 +228,13 @@ nxt_conf_get_integer(nxt_conf_value_t *value)
 }
 
 
+uint8_t
+nxt_conf_get_boolean(nxt_conf_value_t *value)
+{
+    return value->u.boolean;
+}
+
+
 nxt_uint_t
 nxt_conf_object_members_count(nxt_conf_value_t *value)
 {

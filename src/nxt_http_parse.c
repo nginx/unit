@@ -787,6 +787,7 @@ nxt_http_parse_field_end(nxt_http_request_parse_t *rp, u_char **pos,
 
             field->hash = nxt_http_field_hash_end(rp->field_hash);
             field->skip = 0;
+            field->hopbyhop = 0;
 
             field->name_length = rp->field_name.length;
             field->value_length = rp->field_value.length;

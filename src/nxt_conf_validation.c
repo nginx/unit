@@ -58,7 +58,11 @@ static nxt_int_t nxt_conf_vldt_listener(nxt_conf_validation_t *vldt,
 static nxt_int_t nxt_conf_vldt_certificate(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 #endif
+static nxt_int_t nxt_conf_vldt_action(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_pass(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_proxy(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_routes(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
@@ -101,11 +105,9 @@ static nxt_int_t nxt_conf_vldt_java_classpath(nxt_conf_validation_t *vldt,
 static nxt_int_t nxt_conf_vldt_java_option(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value);
 
-static nxt_int_t
-nxt_conf_vldt_isolation(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
-    void *data);
-static nxt_int_t
-nxt_conf_vldt_clone_namespaces(nxt_conf_validation_t *vldt,
+static nxt_int_t nxt_conf_vldt_isolation(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_clone_namespaces(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 
 #if (NXT_HAVE_CLONE_NEWUSER)
@@ -316,6 +318,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_action_members[] = {
       NULL,
       NULL },
 
+    { nxt_string("proxy"),
+      NXT_CONF_VLDT_STRING,
+      &nxt_conf_vldt_proxy,
+      NULL },
+
     NXT_CONF_VLDT_END
 };
 
@@ -328,8 +335,8 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_route_members[] = {
 
     { nxt_string("action"),
       NXT_CONF_VLDT_OBJECT,
-      &nxt_conf_vldt_object,
-      (void *) &nxt_conf_vldt_action_members },
+      &nxt_conf_vldt_action,
+      NULL },
 
     NXT_CONF_VLDT_END
 };
@@ -618,7 +625,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_java_members[] = {
     { nxt_string("classpath"),
       NXT_CONF_VLDT_ARRAY,
       &nxt_conf_vldt_array_iterator,
-      (void *) &nxt_conf_vldt_java_classpath},
+      (void *) &nxt_conf_vldt_java_classpath },
 
     { nxt_string("webapp"),
       NXT_CONF_VLDT_STRING,
@@ -628,7 +635,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_java_members[] = {
     { nxt_string("options"),
       NXT_CONF_VLDT_ARRAY,
       &nxt_conf_vldt_array_iterator,
-      (void *) &nxt_conf_vldt_java_option},
+      (void *) &nxt_conf_vldt_java_option },
 
     { nxt_string("unit_jars"),
       NXT_CONF_VLDT_STRING,
@@ -881,6 +888,37 @@ nxt_conf_vldt_listener(nxt_conf_validation_t *vldt, nxt_str_t *name,
 
 
 static nxt_int_t
+nxt_conf_vldt_action(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
+{
+    nxt_int_t         ret;
+    nxt_conf_value_t  *pass_value, *share_value, *proxy_value;
+
+    static nxt_str_t  pass_str = nxt_string("pass");
+    static nxt_str_t  share_str = nxt_string("share");
+    static nxt_str_t  proxy_str = nxt_string("proxy");
+
+    ret = nxt_conf_vldt_object(vldt, value, nxt_conf_vldt_action_members);
+
+    if (ret != NXT_OK) {
+        return ret;
+    }
+
+    pass_value = nxt_conf_get_object_member(value, &pass_str, NULL);
+    share_value = nxt_conf_get_object_member(value, &share_str, NULL);
+    proxy_value = nxt_conf_get_object_member(value, &proxy_str, NULL);
+
+    if (pass_value == NULL && share_value == NULL && proxy_value == NULL) {
+        return nxt_conf_vldt_error(vldt, "The \"action\" object must have "
+                                         "either \"pass\" or \"share\" or "
+                                         "\"proxy\" option set.");
+    }
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
 nxt_conf_vldt_pass(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     void *data)
 {
@@ -960,6 +998,30 @@ error:
 
     return nxt_conf_vldt_error(vldt, "Request \"pass\" points to invalid "
                                "location \"%V\".", &pass);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_proxy(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
+{
+    nxt_str_t       name;
+    nxt_sockaddr_t  *sa;
+
+    nxt_conf_get_string(value, &name);
+
+    if (nxt_str_start(&name, "http://", 7)) {
+        name.length -= 7;
+        name.start += 7;
+
+        sa = nxt_sockaddr_parse(vldt->pool, &name);
+        if (sa != NULL) {
+            return NXT_OK;
+        }
+    }
+
+    return nxt_conf_vldt_error(vldt, "The \"proxy\" address is invalid \"%V\"",
+                               &name);
 }
 
 
@@ -1525,8 +1587,8 @@ nxt_conf_vldt_environment(nxt_conf_validation_t *vldt, nxt_str_t *name,
 
 
 static nxt_int_t
-nxt_conf_vldt_clone_namespaces(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
-    void *data)
+nxt_conf_vldt_clone_namespaces(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data)
 {
     return nxt_conf_vldt_object(vldt, value, data);
 }
@@ -1691,7 +1753,8 @@ nxt_conf_vldt_php_option(nxt_conf_validation_t *vldt, nxt_str_t *name,
 
 
 static nxt_int_t
-nxt_conf_vldt_java_classpath(nxt_conf_validation_t *vldt, nxt_conf_value_t *value)
+nxt_conf_vldt_java_classpath(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value)
 {
     nxt_str_t  str;
 

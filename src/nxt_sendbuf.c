@@ -9,6 +9,8 @@
 
 static nxt_bool_t nxt_sendbuf_copy(nxt_buf_mem_t *bm, nxt_buf_t *b,
     size_t *copied);
+static nxt_buf_t *nxt_sendbuf_coalesce_completion(nxt_task_t *task,
+    nxt_work_queue_t *wq, nxt_buf_t *start);
 
 
 nxt_uint_t
@@ -380,15 +382,11 @@ nxt_sendbuf_completion(nxt_task_t *task, nxt_work_queue_t *wq, nxt_buf_t *b)
 {
     while (b != NULL) {
 
-        nxt_prefetch(b->next);
-
         if (!nxt_buf_is_sync(b) && nxt_buf_used_size(b) != 0) {
             break;
         }
 
-        nxt_work_queue_add(wq, b->completion_handler, task, b, b->parent);
-
-        b = b->next;
+        b = nxt_sendbuf_coalesce_completion(task, wq, b);
     }
 
     return b;
@@ -399,10 +397,49 @@ void
 nxt_sendbuf_drain(nxt_task_t *task, nxt_work_queue_t *wq, nxt_buf_t *b)
 {
     while (b != NULL) {
-        nxt_prefetch(b->next);
-
-        nxt_work_queue_add(wq, b->completion_handler, task, b, b->parent);
-
-        b = b->next;
+        b = nxt_sendbuf_coalesce_completion(task, wq, b);
     }
+}
+
+
+static nxt_buf_t *
+nxt_sendbuf_coalesce_completion(nxt_task_t *task, nxt_work_queue_t *wq,
+    nxt_buf_t *start)
+{
+    nxt_buf_t           *b, *next, **last, *rest, **last_rest;
+    nxt_work_handler_t  handler;
+
+    rest = NULL;
+    last_rest = &rest;
+    last = &start->next;
+    b = start;
+    handler = b->completion_handler;
+
+    for ( ;; ) {
+        next = b->next;
+        if (next == NULL) {
+            break;
+        }
+
+        b->next = NULL;
+        b = next;
+
+        if (!nxt_buf_is_sync(b) && nxt_buf_used_size(b) != 0) {
+            *last_rest = b;
+            break;
+        }
+
+        if (handler == b->completion_handler) {
+            *last = b;
+            last = &b->next;
+
+        } else {
+            *last_rest = b;
+            last_rest = &b->next;
+        }
+    }
+
+    nxt_work_queue_add(wq, handler, task, start, start->parent);
+
+    return rest;
 }

@@ -26,7 +26,7 @@ static void nxt_h1p_conn_ws_keepalive_enable(nxt_task_t *task,
 static void nxt_h1p_conn_ws_frame_process(nxt_task_t *task, nxt_conn_t *c,
     nxt_h1proto_t *h1p, nxt_websocket_header_t *wsh);
 static void nxt_h1p_conn_ws_error(nxt_task_t *task, void *obj, void *data);
-static ssize_t nxt_h1p_ws_io_read_handler(nxt_conn_t *c);
+static ssize_t nxt_h1p_ws_io_read_handler(nxt_task_t *task, nxt_conn_t *c);
 static void nxt_h1p_conn_ws_timeout(nxt_task_t *task, void *obj, void *data);
 static void nxt_h1p_conn_ws_frame_payload_read(nxt_task_t *task, void *obj,
     void *data);
@@ -473,7 +473,7 @@ nxt_h1p_conn_ws_error(nxt_task_t *task, void *obj, void *data)
 
 
 static ssize_t
-nxt_h1p_ws_io_read_handler(nxt_conn_t *c)
+nxt_h1p_ws_io_read_handler(nxt_task_t *task, nxt_conn_t *c)
 {
     size_t     size;
     ssize_t    n;
@@ -697,6 +697,7 @@ nxt_h1p_conn_ws_pong(nxt_task_t *task, void *obj, void *data)
     for (i = 0; i < payload_len; i++) {
         while (nxt_buf_mem_used_size(&b->mem) == 0) {
             next = b->next;
+            b->next = NULL;
 
             nxt_work_queue_add(&task->thread->engine->fast_work_queue,
                                b->completion_handler, task, b, b->parent);

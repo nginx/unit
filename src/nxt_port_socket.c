@@ -478,7 +478,8 @@ static nxt_buf_t *
 nxt_port_buf_completion(nxt_task_t *task, nxt_work_queue_t *wq, nxt_buf_t *b,
     size_t sent, nxt_bool_t mmap_mode)
 {
-    size_t  size;
+    size_t     size;
+    nxt_buf_t  *next;
 
     while (b != NULL) {
 
@@ -528,7 +529,9 @@ nxt_port_buf_completion(nxt_task_t *task, nxt_work_queue_t *wq, nxt_buf_t *b,
 
         nxt_work_queue_add(wq, b->completion_handler, task, b, b->parent);
 
-        b = b->next;
+        next = b->next;
+        b->next = NULL;
+        b = next;
     }
 
     return b;
@@ -796,7 +799,7 @@ static void
 nxt_port_read_msg_process(nxt_task_t *task, nxt_port_t *port,
     nxt_port_recv_msg_t *msg)
 {
-    nxt_buf_t            *b, *orig_b;
+    nxt_buf_t            *b, *orig_b, *next;
     nxt_port_recv_msg_t  *fmsg;
 
     if (nxt_slow_path(msg->size < sizeof(nxt_port_msg_t))) {
@@ -915,11 +918,15 @@ fmsg_failed:
          */
         if (msg->buf == b) {
             /* complete mmap buffers */
-            for (; b != NULL; b = b->next) {
+            while (b != NULL) {
                 nxt_debug(task, "complete buffer %p", b);
 
                 nxt_work_queue_add(port->socket.read_work_queue,
                     b->completion_handler, task, b, b->parent);
+
+                next = b->next;
+                b->next = NULL;
+                b = next;
             }
         }
 
@@ -964,7 +971,7 @@ static void
 nxt_port_error_handler(nxt_task_t *task, void *obj, void *data)
 {
     int                  use_delta;
-    nxt_buf_t            *b;
+    nxt_buf_t            *b, *next;
     nxt_port_t           *port;
     nxt_work_queue_t     *wq;
     nxt_port_send_msg_t  *msg;
@@ -986,7 +993,10 @@ nxt_port_error_handler(nxt_task_t *task, void *obj, void *data)
 
     nxt_queue_each(msg, &port->messages, nxt_port_send_msg_t, link) {
 
-        for (b = msg->buf; b != NULL; b = b->next) {
+        for (b = msg->buf; b != NULL; b = next) {
+            next = b->next;
+            b->next = NULL;
+
             if (nxt_buf_is_sync(b)) {
                 continue;
             }

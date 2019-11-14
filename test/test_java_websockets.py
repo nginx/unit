@@ -8,7 +8,7 @@ from unit.applications.websockets import TestApplicationWebsocket
 class TestJavaWebsockets(TestApplicationJava):
     prerequisites = {'modules': ['java']}
 
-    ws = TestApplicationWebsocket(True)
+    ws = TestApplicationWebsocket()
 
     def setUp(self):
         super().setUp()
@@ -179,18 +179,14 @@ class TestJavaWebsockets(TestApplicationJava):
     ):  # FAIL https://tools.ietf.org/html/rfc6455#section-4.2.1
         self.load('websockets_mirror')
 
-        self.get()
-
-        key = self.ws.key()
         resp = self.get(
             headers={
                 'Host': 'localhost',
                 'Connection': 'Upgrade',
-                'Sec-WebSocket-Key': key,
+                'Sec-WebSocket-Key': self.ws.key(),
                 'Sec-WebSocket-Protocol': 'chat',
                 'Sec-WebSocket-Version': 13,
             },
-            read_timeout=1,
         )
 
         self.assertEqual(resp['status'], 400, 'upgrade absent')
@@ -198,20 +194,17 @@ class TestJavaWebsockets(TestApplicationJava):
     def test_java_websockets_handshake_case_insensitive(self):
         self.load('websockets_mirror')
 
-        self.get()
-
-        key = self.ws.key()
-        resp = self.get(
+        resp, sock, _ = self.ws.upgrade(
             headers={
                 'Host': 'localhost',
                 'Upgrade': 'WEBSOCKET',
                 'Connection': 'UPGRADE',
-                'Sec-WebSocket-Key': key,
+                'Sec-WebSocket-Key': self.ws.key(),
                 'Sec-WebSocket-Protocol': 'chat',
                 'Sec-WebSocket-Version': 13,
-            },
-            read_timeout=1,
+            }
         )
+        sock.close()
 
         self.assertEqual(resp['status'], 101, 'status')
 
@@ -219,18 +212,14 @@ class TestJavaWebsockets(TestApplicationJava):
     def test_java_websockets_handshake_connection_absent(self):  # FAIL
         self.load('websockets_mirror')
 
-        self.get()
-
-        key = self.ws.key()
         resp = self.get(
             headers={
                 'Host': 'localhost',
                 'Upgrade': 'websocket',
-                'Sec-WebSocket-Key': key,
+                'Sec-WebSocket-Key': self.ws.key(),
                 'Sec-WebSocket-Protocol': 'chat',
                 'Sec-WebSocket-Version': 13,
             },
-            read_timeout=1,
         )
 
         self.assertEqual(resp['status'], 400, 'status')
@@ -238,18 +227,14 @@ class TestJavaWebsockets(TestApplicationJava):
     def test_java_websockets_handshake_version_absent(self):
         self.load('websockets_mirror')
 
-        self.get()
-
-        key = self.ws.key()
         resp = self.get(
             headers={
                 'Host': 'localhost',
                 'Upgrade': 'websocket',
                 'Connection': 'Upgrade',
-                'Sec-WebSocket-Key': key,
+                'Sec-WebSocket-Key': self.ws.key(),
                 'Sec-WebSocket-Protocol': 'chat',
             },
-            read_timeout=1,
         )
 
         self.assertEqual(resp['status'], 426, 'status')
@@ -257,8 +242,6 @@ class TestJavaWebsockets(TestApplicationJava):
     @unittest.skip('not yet')
     def test_java_websockets_handshake_key_invalid(self):
         self.load('websockets_mirror')
-
-        self.get()
 
         resp = self.get(
             headers={
@@ -269,7 +252,6 @@ class TestJavaWebsockets(TestApplicationJava):
                 'Sec-WebSocket-Protocol': 'chat',
                 'Sec-WebSocket-Version': 13,
             },
-            read_timeout=1,
         )
 
         self.assertEqual(resp['status'], 400, 'key length')
@@ -284,7 +266,6 @@ class TestJavaWebsockets(TestApplicationJava):
                 'Sec-WebSocket-Protocol': 'chat',
                 'Sec-WebSocket-Version': 13,
             },
-            read_timeout=1,
         )
 
         self.assertEqual(
@@ -294,19 +275,15 @@ class TestJavaWebsockets(TestApplicationJava):
     def test_java_websockets_handshake_method_invalid(self):
         self.load('websockets_mirror')
 
-        self.get()
-
-        key = self.ws.key()
         resp = self.post(
             headers={
                 'Host': 'localhost',
                 'Upgrade': 'websocket',
                 'Connection': 'Upgrade',
-                'Sec-WebSocket-Key': key,
+                'Sec-WebSocket-Key': self.ws.key(),
                 'Sec-WebSocket-Protocol': 'chat',
                 'Sec-WebSocket-Version': 13,
             },
-            read_timeout=1,
         )
 
         self.assertEqual(resp['status'], 400, 'status')
@@ -314,20 +291,16 @@ class TestJavaWebsockets(TestApplicationJava):
     def test_java_websockets_handshake_http_10(self):
         self.load('websockets_mirror')
 
-        self.get()
-
-        key = self.ws.key()
         resp = self.get(
             headers={
                 'Host': 'localhost',
                 'Upgrade': 'websocket',
                 'Connection': 'Upgrade',
-                'Sec-WebSocket-Key': key,
+                'Sec-WebSocket-Key': self.ws.key(),
                 'Sec-WebSocket-Protocol': 'chat',
                 'Sec-WebSocket-Version': 13,
             },
             http_10=True,
-            read_timeout=1,
         )
 
         self.assertEqual(resp['status'], 400, 'status')
@@ -335,20 +308,16 @@ class TestJavaWebsockets(TestApplicationJava):
     def test_java_websockets_handshake_uri_invalid(self):
         self.load('websockets_mirror')
 
-        self.get()
-
-        key = self.ws.key()
         resp = self.get(
             headers={
                 'Host': 'localhost',
                 'Upgrade': 'websocket',
                 'Connection': 'Upgrade',
-                'Sec-WebSocket-Key': key,
+                'Sec-WebSocket-Key': self.ws.key(),
                 'Sec-WebSocket-Protocol': 'chat',
                 'Sec-WebSocket-Version': 13,
             },
             url='!',
-            read_timeout=1,
         )
 
         self.assertEqual(resp['status'], 400, 'status')
@@ -356,19 +325,17 @@ class TestJavaWebsockets(TestApplicationJava):
     def test_java_websockets_protocol_absent(self):
         self.load('websockets_mirror')
 
-        self.get()
-
         key = self.ws.key()
-        resp = self.get(
+        resp, sock, _ = self.ws.upgrade(
             headers={
                 'Host': 'localhost',
                 'Upgrade': 'websocket',
                 'Connection': 'Upgrade',
                 'Sec-WebSocket-Key': key,
                 'Sec-WebSocket-Version': 13,
-            },
-            read_timeout=1,
+            }
         )
+        sock.close()
 
         self.assertEqual(resp['status'], 101, 'status')
         self.assertEqual(resp['headers']['Upgrade'], 'websocket', 'upgrade')
@@ -1165,7 +1132,7 @@ class TestJavaWebsockets(TestApplicationJava):
 
         sock.close()
 
-        # 7_3_1 # FAIL
+        # 7_3_1
 
         _, sock, _ = self.ws.upgrade()
 

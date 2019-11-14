@@ -8,7 +8,7 @@
 #define _NXT_CONN_H_INCLUDED_
 
 
-typedef ssize_t (*nxt_conn_io_read_t)(nxt_conn_t *c);
+typedef ssize_t (*nxt_conn_io_read_t)(nxt_task_t *task, nxt_conn_t *c);
 typedef nxt_msec_t (*nxt_conn_timer_value_t)(nxt_conn_t *c, uintptr_t data);
 
 

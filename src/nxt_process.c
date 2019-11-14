@@ -207,7 +207,7 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
         goto fail;
     }
 
-#if (NXT_HAVE_CLONE_NEWUSER)
+#if (NXT_HAVE_CLONE && NXT_HAVE_CLONE_NEWUSER)
     if ((init->isolation.clone.flags & CLONE_NEWUSER) == CLONE_NEWUSER) {
         ret = nxt_clone_proc_map(task, pid, &init->isolation.clone);
         if (nxt_slow_path(ret != NXT_OK)) {
@@ -723,16 +723,35 @@ free:
 nxt_int_t
 nxt_user_cred_set(nxt_task_t *task, nxt_user_cred_t *uc)
 {
-    nxt_debug(task, "user cred set: \"%s\" uid:%uL base gid:%uL",
-              uc->user, (uint64_t) uc->uid, (uint64_t) uc->base_gid);
+    nxt_debug(task, "user cred set: \"%s\" uid:%d base gid:%d",
+              uc->user, uc->uid, uc->base_gid);
 
     if (setgid(uc->base_gid) != 0) {
+
+#if (NXT_HAVE_CLONE)
+        if (nxt_errno == EINVAL) {
+            nxt_log(task, NXT_LOG_ERR, "The gid %d isn't valid in the "
+                    "application namespace.", uc->base_gid);
+            return NXT_ERROR;
+        }
+#endif
+
         nxt_alert(task, "setgid(%d) failed %E", uc->base_gid, nxt_errno);
         return NXT_ERROR;
     }
 
     if (uc->gids != NULL) {
         if (setgroups(uc->ngroups, uc->gids) != 0) {
+
+#if (NXT_HAVE_CLONE)
+            if (nxt_errno == EINVAL) {
+                nxt_log(task, NXT_LOG_ERR, "The user \"%s\" (uid: %d) has "
+                        "supplementary group ids not valid in the application "
+                        "namespace.", uc->user, uc->uid);
+                return NXT_ERROR;
+            }
+#endif
+
             nxt_alert(task, "setgroups(%i) failed %E", uc->ngroups, nxt_errno);
             return NXT_ERROR;
         }
@@ -747,11 +766,31 @@ nxt_user_cred_set(nxt_task_t *task, nxt_user_cred_t *uc)
     }
 
     if (setuid(uc->uid) != 0) {
+
+#if (NXT_HAVE_CLONE)
+        if (nxt_errno == EINVAL) {
+            nxt_log(task, NXT_LOG_ERR, "The uid %d (user \"%s\") isn't "
+                    "valid in the application namespace.", uc->uid, uc->user);
+            return NXT_ERROR;
+        }
+#endif
+
         nxt_alert(task, "setuid(%d) failed %E", uc->uid, nxt_errno);
         return NXT_ERROR;
     }
 
     return NXT_OK;
+}
+
+
+void
+nxt_process_use(nxt_task_t *task, nxt_process_t *process, int i)
+{
+    process->use_count += i;
+
+    if (process->use_count == 0) {
+        nxt_runtime_process_release(task->thread->runtime, process);
+    }
 }
 
 

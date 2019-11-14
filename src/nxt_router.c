@@ -537,6 +537,7 @@ nxt_router_msg_cancel(nxt_task_t *task, nxt_msg_info_t *msg_info,
 
     for (b = msg_info->buf; b != NULL; b = next) {
         next = b->next;
+        b->next = NULL;
 
         b->completion_handler = msg_info->completion_handler;
 
@@ -1172,8 +1173,8 @@ nxt_router_conf_error(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
 
     nxt_queue_each(skcf, &new_socket_confs, nxt_socket_conf_t, link) {
 
-        if (skcf->pass != NULL) {
-            nxt_http_pass_cleanup(task, skcf->pass);
+        if (skcf->action != NULL) {
+            nxt_http_action_cleanup(task, skcf->action);
         }
 
     } nxt_queue_loop;
@@ -1458,7 +1459,8 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         next = 0;
 
         for ( ;; ) {
-            application = nxt_conf_next_object_member(applications, &name, &next);
+            application = nxt_conf_next_object_member(applications,
+                                                      &name, &next);
             if (application == NULL) {
                 break;
             }
@@ -1676,10 +1678,16 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             skcf->large_header_buffers = 4;
             skcf->body_buffer_size = 16 * 1024;
             skcf->max_body_size = 8 * 1024 * 1024;
+            skcf->proxy_header_buffer_size = 64 * 1024;
+            skcf->proxy_buffer_size = 4096;
+            skcf->proxy_buffers = 256;
             skcf->idle_timeout = 180 * 1000;
             skcf->header_read_timeout = 30 * 1000;
             skcf->body_read_timeout = 30 * 1000;
             skcf->send_timeout = 30 * 1000;
+            skcf->proxy_timeout = 60 * 1000;
+            skcf->proxy_send_timeout = 30 * 1000;
+            skcf->proxy_read_timeout = 30 * 1000;
 
             skcf->websocket_conf.max_frame_size = 1024 * 1024;
             skcf->websocket_conf.read_timeout = 60 * 1000;
@@ -1729,12 +1737,12 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             skcf->router_conf->count++;
 
             if (lscf.pass.length != 0) {
-                skcf->pass = nxt_http_pass_create(task, tmcf, &lscf.pass);
+                skcf->action = nxt_http_action_create(task, tmcf, &lscf.pass);
 
             /* COMPATIBILITY: listener application. */
             } else if (lscf.application.length > 0) {
-                skcf->pass = nxt_http_pass_application(task, tmcf,
-                                                       &lscf.application);
+                skcf->action = nxt_http_pass_application(task, tmcf,
+                                                         &lscf.application);
             }
         }
     }
@@ -3070,8 +3078,8 @@ nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
     nxt_thread_spin_unlock(lock);
 
     if (skcf != NULL) {
-        if (skcf->pass != NULL) {
-            nxt_http_pass_cleanup(task, skcf->pass);
+        if (skcf->action != NULL) {
+            nxt_http_action_cleanup(task, skcf->action);
         }
 
 #if (NXT_TLS)
@@ -3497,7 +3505,7 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     void *data)
 {
     nxt_int_t               ret;
-    nxt_buf_t               *b;
+    nxt_buf_t               *b, *next;
     nxt_port_t              *app_port;
     nxt_unit_field_t        *f;
     nxt_http_field_t        *field;
@@ -3580,6 +3588,7 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
             field->hash = f->hash;
             field->skip = 0;
+            field->hopbyhop = 0;
 
             field->name_length = f->name_length;
             field->value_length = f->value_length;
@@ -3612,17 +3621,20 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
         }
 
         if (nxt_buf_mem_used_size(&b->mem) == 0) {
+            next = b->next;
+            b->next = NULL;
+
             nxt_work_queue_add(&task->thread->engine->fast_work_queue,
                                b->completion_handler, task, b, b->parent);
 
-            b = b->next;
+            b = next;
         }
 
         if (b != NULL) {
             nxt_buf_chain_add(&r->out, b);
         }
 
-        nxt_http_request_header_send(task, r, nxt_http_request_send_body);
+        nxt_http_request_header_send(task, r, nxt_http_request_send_body, NULL);
 
         if (r->websocket_handshake
             && r->status == NXT_HTTP_SWITCHING_PROTOCOLS)
@@ -5056,6 +5068,7 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_http_request_t *r,
                 if (nxt_slow_path(buf == NULL)) {
                     while (out != NULL) {
                         buf = out->next;
+                        out->next = NULL;
                         out->completion_handler(task, out, out->parent);
                         out = buf;
                     }
