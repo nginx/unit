@@ -1,8 +1,8 @@
-FROM debian:stretch-slim
+FROM debian:buster-slim
 
 LABEL maintainer="NGINX Docker Maintainers <docker-maint@nginx.com>"
 
-ENV UNIT_VERSION          1.13.0-1~stretch
+ENV UNIT_VERSION          1.13.0-1~buster
 
 RUN set -x \
 	&& apt-get update \
@@ -22,17 +22,17 @@ RUN set -x \
 	test -z "$found" && echo >&2 "error: failed to fetch GPG key $NGINX_GPGKEY" && exit 1; \
 	apt-get remove --purge --auto-remove -y gnupg1 && rm -rf /var/lib/apt/lists/* \
 	&& dpkgArch="$(dpkg --print-architecture)" \
-	&& unitPackages="unit=${UNIT_VERSION} unit-perl=${UNIT_VERSION}" \
+	&& unitPackages="unit=${UNIT_VERSION} unit-python3.7=${UNIT_VERSION}" \
 	&& case "$dpkgArch" in \
 		amd64|i386) \
 # arches officialy built by upstream
-			echo "deb https://packages.nginx.org/unit/debian/ stretch unit" >> /etc/apt/sources.list.d/unit.list \
+			echo "deb https://packages.nginx.org/unit/debian/ buster unit" >> /etc/apt/sources.list.d/unit.list \
 			&& apt-get update \
 			;; \
 		*) \
 # we're on an architecture upstream doesn't officially build for
 # let's build binaries from the published source packages
-			echo "deb-src https://packages.nginx.org/unit/debian/ stretch unit" >> /etc/apt/sources.list.d/unit.list \
+			echo "deb-src https://packages.nginx.org/unit/debian/ buster unit" >> /etc/apt/sources.list.d/unit.list \
 			\
 # new directory for storing sources and .deb files
 			&& tempDir="$(mktemp -d)" \
