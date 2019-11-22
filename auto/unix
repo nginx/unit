@@ -186,8 +186,8 @@ nxt_feature_libs=
 nxt_feature_test="#include <spawn.h>
                   #include <unistd.h>
 
-                  int main() {
-                      (void) posix_spawn(NULL, NULL, NULL, NULL, NULL, NULL);
+                  int main(int argc, char *argv[]) {
+                      (void) posix_spawn(NULL, \"\", NULL, NULL, argv, NULL);
                       return 0;
                   }"
 . auto/feature
