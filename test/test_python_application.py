@@ -540,7 +540,7 @@ Connection: close
             }
         )
         self.assertEqual(resp['status'], 200, 'status')
-        self.assertEqual(resp['body'][-5:], '0\r\n\r\n', 'body')
+        self.assertEqual(resp['body'], 'XXXXXXX', 'body')
 
         # Exception before start_response().
 
@@ -607,12 +607,11 @@ Connection: close
                 'X-Skip': '2',
                 'X-Chunked': '1',
                 'Connection': 'close',
-            }
+            },
+            raw_resp=True
         )
-        if 'body' in resp:
-            self.assertNotEqual(
-                resp['body'][-5:], '0\r\n\r\n', 'incomplete body'
-            )
+        if resp:
+            self.assertNotEqual(resp[-5:], '0\r\n\r\n', 'incomplete body')
         self.assertEqual(
             len(self.findall(r'Traceback')), 4, 'traceback count 4'
         )
@@ -646,12 +645,11 @@ Connection: close
                 'X-Skip': '3',
                 'X-Chunked': '1',
                 'Connection': 'close',
-            }
+            },
+            raw_resp=True
         )
-        if 'body' in resp:
-            self.assertNotEqual(
-                resp['body'][-5:], '0\r\n\r\n', 'incomplete body 2'
-            )
+        if resp:
+            self.assertNotEqual(resp[-5:], '0\r\n\r\n', 'incomplete body 2')
         self.assertEqual(
             len(self.findall(r'Traceback')), 6, 'traceback count 6'
         )

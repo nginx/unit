@@ -84,4 +84,4 @@ class TestFeatureIsolation(TestApplicationProto):
         return data
 
     def parsejson(self, data):
-        return json.loads(data.split('\n')[1])
+        return json.loads(data)
