@@ -32,7 +32,7 @@ class TestGoIsolation(TestApplicationGo):
     def test_isolation_values(self):
         self.load('ns_inspect')
 
-        obj = self.isolation.parsejson(self.get()['body'])
+        obj = self.getjson()['body']
 
         for ns, ns_value in self.available['features']['isolation'].items():
             if ns.upper() in obj['NS']:
@@ -54,7 +54,7 @@ class TestGoIsolation(TestApplicationGo):
         except:
             group_id = grp.getgrnam('nobody').gr_gid
 
-        obj = self.isolation.parsejson(self.get()['body'])
+        obj = self.getjson()['body']
 
         self.assertTrue(obj['UID'] != 0, 'uid not zero')
         self.assertTrue(obj['GID'] != 0, 'gid not zero')
@@ -68,7 +68,7 @@ class TestGoIsolation(TestApplicationGo):
 
         self.conf_isolation({"namespaces": {"credential": True}})
 
-        obj = self.isolation.parsejson(self.get()['body'])
+        obj = self.getjson()['body']
 
         # default uid and gid maps current user to nobody
         self.assertEqual(obj['UID'], user_id, 'uid nobody')
@@ -86,7 +86,7 @@ class TestGoIsolation(TestApplicationGo):
             }
         )
 
-        obj = self.isolation.parsejson(self.get()['body'])
+        obj = self.getjson()['body']
 
         self.assertEqual(obj['UID'], user_id, 'uid match')
         self.assertEqual(obj['GID'], group_id, 'gid match')
@@ -105,7 +105,7 @@ class TestGoIsolation(TestApplicationGo):
             {"namespaces": {"mount": True, "credential": True}}
         )
 
-        obj = self.isolation.parsejson(self.get()['body'])
+        obj = self.getjson()['body']
 
         # all but user and mnt
         allns = list(self.available['features']['isolation'].keys())
@@ -139,7 +139,7 @@ class TestGoIsolation(TestApplicationGo):
         self.load('ns_inspect')
         self.conf_isolation({"namespaces": {"pid": True, "credential": True}})
 
-        obj = self.isolation.parsejson(self.get()['body'])
+        obj = self.getjson()['body']
 
         self.assertEqual(obj['PID'], 1, 'pid of container is 1')
 
@@ -165,7 +165,7 @@ class TestGoIsolation(TestApplicationGo):
 
         self.conf_isolation({"namespaces": namespaces})
 
-        obj = self.isolation.parsejson(self.get()['body'])
+        obj = self.getjson()['body']
 
         for ns in allns:
             if ns.upper() in obj['NS']:

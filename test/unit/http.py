@@ -122,6 +122,9 @@ class TestHTTP(TestUnit):
                     encoding
                 )
 
+            if 'json' in kwargs:
+                resp = self._parse_json(resp)
+
         if 'start' not in kwargs:
             sock.close()
             return resp
@@ -229,6 +232,23 @@ class TestHTTP(TestUnit):
             chunks = temp_body.split(crlf)
 
         return body
+
+    def _parse_json(self, resp):
+        headers = resp['headers']
+
+        self.assertIn('Content-Type', headers, 'Content-Type header set')
+        self.assertEqual(
+            headers['Content-Type'],
+            'application/json',
+            'Content-Type header is application/json',
+        )
+
+        resp['body'] = json.loads(resp['body'])
+
+        return resp
+
+    def getjson(self, **kwargs):
+        return self.get(json=True, **kwargs)
 
     def waitforsocket(self, port):
         ret = False

@@ -82,6 +82,3 @@ class TestFeatureIsolation(TestApplicationProto):
             data = int(os.readlink(nspath)[len(nstype) + 2 : -1])
 
         return data
-
-    def parsejson(self, data):
-        return json.loads(data)
