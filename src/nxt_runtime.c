@@ -705,7 +705,10 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
     }
 
     if (rt->capabilities.setid) {
-        if (nxt_user_cred_get(task, &rt->user_cred, rt->group) != NXT_OK) {
+        ret = nxt_user_cred_get(task, rt->mem_pool, &rt->user_cred,
+                                rt->group);
+
+        if (nxt_slow_path(ret != NXT_OK)) {
             return NXT_ERROR;
         }
 
@@ -1323,7 +1326,7 @@ nxt_runtime_process_release(nxt_runtime_t *rt, nxt_process_t *process)
     nxt_thread_mutex_destroy(&process->cp_mutex);
 
     if (process->init != NULL) {
-        nxt_mp_free(rt->mem_pool, process->init);
+        nxt_mp_destroy(process->init->mem_pool);
     }
 
     nxt_mp_free(rt->mem_pool, process);

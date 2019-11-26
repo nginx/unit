@@ -35,22 +35,21 @@ typedef nxt_int_t (*nxt_process_restart_t)(nxt_task_t *task, nxt_runtime_t *rt,
     nxt_process_init_t *init);
 
 struct nxt_process_init_s {
-    nxt_process_start_t      start;
-    const char               *name;
-    nxt_user_cred_t          *user_cred;
+    nxt_mp_t                   *mem_pool;
+    nxt_process_start_t        start;
+    const char                 *name;
+    nxt_user_cred_t            *user_cred;
 
-    nxt_port_handlers_t      *port_handlers;
-    const nxt_sig_event_t    *signals;
+    const nxt_port_handlers_t  *port_handlers;
+    const nxt_sig_event_t      *signals;
 
-    nxt_process_type_t       type;
+    nxt_process_type_t         type;
 
-    void                     *data;
-    uint32_t                 stream;
-
-    nxt_process_restart_t    restart;
+    void                       *data;
+    uint32_t                   stream;
 
     union {
-        nxt_process_clone_t  clone;
+        nxt_process_clone_t    clone;
     } isolation;
 };
 
@@ -126,7 +125,6 @@ void nxt_process_connected_port_remove(nxt_process_t *process,
 nxt_port_t *nxt_process_connected_port_find(nxt_process_t *process,
     nxt_pid_t pid, nxt_port_id_t port_id);
 
-
 void nxt_worker_process_quit_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
 
@@ -155,8 +153,8 @@ NXT_EXPORT void nxt_process_title(nxt_task_t *task, const char *fmt, ...);
 #define nxt_abort()                                                           \
     (void) raise(SIGABRT)
 
-NXT_EXPORT nxt_int_t nxt_user_cred_get(nxt_task_t *task, nxt_user_cred_t *uc,
-    const char *group);
+NXT_EXPORT nxt_int_t nxt_user_cred_get(nxt_task_t *task, nxt_mp_t *mp,
+    nxt_user_cred_t *uc, const char *group);
 NXT_EXPORT nxt_int_t nxt_user_cred_set(nxt_task_t *task, nxt_user_cred_t *uc);
 
 NXT_EXPORT extern nxt_pid_t  nxt_pid;

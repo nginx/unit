@@ -269,7 +269,7 @@ nxt_port_socket_write(nxt_task_t *task, nxt_port_t *port,
 }
 
 void nxt_port_enable(nxt_task_t *task, nxt_port_t *port,
-    nxt_port_handlers_t *handlers);
+    const nxt_port_handlers_t *handlers);
 nxt_int_t nxt_port_send_port(nxt_task_t *task, nxt_port_t *port,
     nxt_port_t *new_port, uint32_t stream);
 void nxt_port_change_log_file(nxt_task_t *task, nxt_runtime_t *rt,

@@ -14,7 +14,8 @@
 #include <signal.h>
 
 static void nxt_process_start(nxt_task_t *task, nxt_process_t *process);
-static nxt_int_t nxt_user_groups_get(nxt_task_t *task, nxt_user_cred_t *uc);
+static nxt_int_t nxt_user_groups_get(nxt_task_t *task, nxt_mp_t *mp,
+    nxt_user_cred_t *uc);
 static nxt_int_t nxt_process_worker_setup(nxt_task_t *task,
     nxt_process_t *process, int parentfd);
 
@@ -526,7 +527,8 @@ nxt_nanosleep(nxt_nsec_t ns)
 
 
 nxt_int_t
-nxt_user_cred_get(nxt_task_t *task, nxt_user_cred_t *uc, const char *group)
+nxt_user_cred_get(nxt_task_t *task, nxt_mp_t *mp, nxt_user_cred_t *uc,
+    const char *group)
 {
     struct group   *grp;
     struct passwd  *pwd;
@@ -574,7 +576,7 @@ nxt_user_cred_get(nxt_task_t *task, nxt_user_cred_t *uc, const char *group)
     nxt_debug(task, "about to get \"%s\" groups (uid:%d, base gid:%d)",
               uc->user, uc->uid, uc->base_gid);
 
-    if (nxt_user_groups_get(task, uc) != NXT_OK) {
+    if (nxt_user_groups_get(task, mp, uc) != NXT_OK) {
         return NXT_ERROR;
     }
 
@@ -606,7 +608,7 @@ nxt_user_cred_get(nxt_task_t *task, nxt_user_cred_t *uc, const char *group)
 
 
 static nxt_int_t
-nxt_user_groups_get(nxt_task_t *task, nxt_user_cred_t *uc)
+nxt_user_groups_get(nxt_task_t *task, nxt_mp_t *mp, nxt_user_cred_t *uc)
 {
     int    ngroups;
     gid_t  groups[NXT_NGROUPS];
@@ -629,7 +631,7 @@ nxt_user_groups_get(nxt_task_t *task, nxt_user_cred_t *uc)
 
         uc->ngroups = ngroups;
 
-        uc->gids = nxt_malloc(ngroups * sizeof(gid_t));
+        uc->gids = nxt_mp_alloc(mp, ngroups * sizeof(gid_t));
         if (nxt_slow_path(uc->gids == NULL)) {
             return NXT_ERROR;
         }
@@ -640,8 +642,6 @@ nxt_user_groups_get(nxt_task_t *task, nxt_user_cred_t *uc)
             nxt_alert(task, "getgrouplist(\"%s\", %d) failed %E", uc->user,
                       uc->base_gid, nxt_errno);
 
-            nxt_free(uc->gids);
-
             return NXT_ERROR;
         }
 
@@ -650,7 +650,7 @@ nxt_user_groups_get(nxt_task_t *task, nxt_user_cred_t *uc)
 
     uc->ngroups = ngroups;
 
-    uc->gids = nxt_malloc(ngroups * sizeof(gid_t));
+    uc->gids = nxt_mp_alloc(mp, ngroups * sizeof(gid_t));
     if (nxt_slow_path(uc->gids == NULL)) {
         return NXT_ERROR;
     }
@@ -692,7 +692,7 @@ nxt_user_groups_get(nxt_task_t *task, nxt_user_cred_t *uc)
  */
 
 static nxt_int_t
-nxt_user_groups_get(nxt_task_t *task, nxt_user_cred_t *uc)
+nxt_user_groups_get(nxt_task_t *task, nxt_mp_t *mp, nxt_user_cred_t *uc)
 {
     int        nsaved, ngroups;
     nxt_int_t  ret;
@@ -716,7 +716,7 @@ nxt_user_groups_get(nxt_task_t *task, nxt_user_cred_t *uc)
         return NXT_OK;
     }
 
-    saved = nxt_malloc(nsaved * sizeof(nxt_gid_t));
+    saved = nxt_mp_alloc(mp, nsaved * sizeof(nxt_gid_t));
 
     if (nxt_slow_path(saved == NULL)) {
         return NXT_ERROR;
@@ -759,7 +759,7 @@ nxt_user_groups_get(nxt_task_t *task, nxt_user_cred_t *uc)
 
     nxt_debug(task, "getgroups(0, NULL): %d", ngroups);
 
-    uc->gids = nxt_malloc(ngroups * sizeof(nxt_gid_t));
+    uc->gids = nxt_mp_alloc(mp, ngroups * sizeof(nxt_gid_t));
 
     if (nxt_slow_path(uc->gids == NULL)) {
         goto restore;
@@ -785,7 +785,7 @@ restore:
 
 free:
 
-    nxt_free(saved);
+    nxt_mp_free(mp, saved);
 
     return ret;
 }

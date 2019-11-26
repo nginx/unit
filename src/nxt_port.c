@@ -140,7 +140,7 @@ nxt_port_reset_next_id()
 
 void
 nxt_port_enable(nxt_task_t *task, nxt_port_t *port,
-    nxt_port_handlers_t *handlers)
+    const nxt_port_handlers_t *handlers)
 {
     port->pid = nxt_pid;
     port->handler = nxt_port_handler;
