@@ -571,19 +571,109 @@ nxt_user_cred_get(nxt_task_t *task, nxt_user_cred_t *uc, const char *group)
         uc->base_gid = grp->gr_gid;
     }
 
-    return nxt_user_groups_get(task, uc);
+    nxt_debug(task, "about to get \"%s\" groups (uid:%d, base gid:%d)",
+              uc->user, uc->uid, uc->base_gid);
+
+    if (nxt_user_groups_get(task, uc) != NXT_OK) {
+        return NXT_ERROR;
+    }
+
+#if (NXT_DEBUG)
+    {
+        u_char      *p, *end;
+        nxt_uint_t  i;
+        u_char      msg[NXT_MAX_ERROR_STR];
+
+        p = msg;
+        end = msg + NXT_MAX_ERROR_STR;
+
+        for (i = 0; i < uc->ngroups; i++) {
+            p = nxt_sprintf(p, end, "%d%c", uc->gids[i],
+                            i+1 < uc->ngroups ? ',' : '\0');
+        }
+
+        nxt_debug(task, "user \"%s\" has gids:%*s", uc->user, p - msg, msg);
+    }
+#endif
+
+    return NXT_OK;
 }
 
 
+#if (NXT_HAVE_GETGROUPLIST && !NXT_MACOSX)
+
+#define NXT_NGROUPS nxt_min(256, NGROUPS_MAX)
+
+
+static nxt_int_t
+nxt_user_groups_get(nxt_task_t *task, nxt_user_cred_t *uc)
+{
+    int    ngroups;
+    gid_t  groups[NXT_NGROUPS];
+
+    ngroups = NXT_NGROUPS;
+
+    if (getgrouplist(uc->user, uc->base_gid, groups, &ngroups) < 0) {
+        if (nxt_slow_path(ngroups <= NXT_NGROUPS)) {
+            nxt_alert(task, "getgrouplist(\"%s\", %d, ...) failed %E", uc->user,
+                      uc->base_gid, nxt_errno);
+
+            return NXT_ERROR;
+        }
+    }
+
+    if (ngroups > NXT_NGROUPS) {
+        if (ngroups > NGROUPS_MAX) {
+            ngroups = NGROUPS_MAX;
+        }
+
+        uc->ngroups = ngroups;
+
+        uc->gids = nxt_malloc(ngroups * sizeof(gid_t));
+        if (nxt_slow_path(uc->gids == NULL)) {
+            return NXT_ERROR;
+        }
+
+        if (nxt_slow_path(getgrouplist(uc->user, uc->base_gid, uc->gids,
+                                       &ngroups) < 0)) {
+
+            nxt_alert(task, "getgrouplist(\"%s\", %d) failed %E", uc->user,
+                      uc->base_gid, nxt_errno);
+
+            nxt_free(uc->gids);
+
+            return NXT_ERROR;
+        }
+
+        return NXT_OK;
+    }
+
+    uc->ngroups = ngroups;
+
+    uc->gids = nxt_malloc(ngroups * sizeof(gid_t));
+    if (nxt_slow_path(uc->gids == NULL)) {
+        return NXT_ERROR;
+    }
+
+    nxt_memcpy(uc->gids, groups, ngroups * sizeof(gid_t));
+
+    return NXT_OK;
+}
+
+
+#else
+
 /*
+ * For operating systems that lack getgrouplist(3) or it's buggy (MacOS),
  * nxt_user_groups_get() stores an array of groups IDs which should be
- * set by the initgroups() function for a given user.  The initgroups()
+ * set by the setgroups() function for a given user.  The initgroups()
  * may block a just forked worker process for some time if LDAP or NDIS+
  * is used, so nxt_user_groups_get() allows to get worker user groups in
  * main process.  In a nutshell the initgroups() calls getgrouplist()
- * followed by setgroups().  However Solaris lacks the getgrouplist().
+ * followed by setgroups().  However older Solaris lacks the getgrouplist().
  * Besides getgrouplist() does not allow to query the exact number of
- * groups while NGROUPS_MAX can be quite large (e.g. 65536 on Linux).
+ * groups in some platforms, while NGROUPS_MAX can be quite large (e.g.
+ * 65536 on Linux).
  * So nxt_user_groups_get() emulates getgrouplist(): at first the function
  * saves the super-user groups IDs, then calls initgroups() and saves the
  * specified user groups IDs, and then restores the super-user groups IDs.
@@ -610,7 +700,7 @@ nxt_user_groups_get(nxt_task_t *task, nxt_user_cred_t *uc)
 
     nsaved = getgroups(0, NULL);
 
-    if (nsaved == -1) {
+    if (nxt_slow_path(nsaved == -1)) {
         nxt_alert(task, "getgroups(0, NULL) failed %E", nxt_errno);
         return NXT_ERROR;
     }
@@ -628,7 +718,7 @@ nxt_user_groups_get(nxt_task_t *task, nxt_user_cred_t *uc)
 
     saved = nxt_malloc(nsaved * sizeof(nxt_gid_t));
 
-    if (saved == NULL) {
+    if (nxt_slow_path(saved == NULL)) {
         return NXT_ERROR;
     }
 
@@ -636,7 +726,7 @@ nxt_user_groups_get(nxt_task_t *task, nxt_user_cred_t *uc)
 
     nsaved = getgroups(nsaved, saved);
 
-    if (nsaved == -1) {
+    if (nxt_slow_path(nsaved == -1)) {
         nxt_alert(task, "getgroups(%d) failed %E", nsaved, nxt_errno);
         goto free;
     }
@@ -662,7 +752,7 @@ nxt_user_groups_get(nxt_task_t *task, nxt_user_cred_t *uc)
 
     ngroups = getgroups(0, NULL);
 
-    if (ngroups == -1) {
+    if (nxt_slow_path(ngroups == -1)) {
         nxt_alert(task, "getgroups(0, NULL) failed %E", nxt_errno);
         goto restore;
     }
@@ -671,43 +761,24 @@ nxt_user_groups_get(nxt_task_t *task, nxt_user_cred_t *uc)
 
     uc->gids = nxt_malloc(ngroups * sizeof(nxt_gid_t));
 
-    if (uc->gids == NULL) {
+    if (nxt_slow_path(uc->gids == NULL)) {
         goto restore;
     }
 
     ngroups = getgroups(ngroups, uc->gids);
 
-    if (ngroups == -1) {
+    if (nxt_slow_path(ngroups == -1)) {
         nxt_alert(task, "getgroups(%d) failed %E", ngroups, nxt_errno);
         goto restore;
     }
 
     uc->ngroups = ngroups;
 
-#if (NXT_DEBUG)
-    {
-        u_char      *p, *end;
-        nxt_uint_t  i;
-        u_char      msg[NXT_MAX_ERROR_STR];
-
-        p = msg;
-        end = msg + NXT_MAX_ERROR_STR;
-
-        for (i = 0; i < uc->ngroups; i++) {
-            p = nxt_sprintf(p, end, "%uL:", (uint64_t) uc->gids[i]);
-        }
-
-        nxt_debug(task, "user \"%s\" cred: uid:%uL base gid:%uL, gids:%*s",
-                  uc->user, (uint64_t) uc->uid, (uint64_t) uc->base_gid,
-                  p - msg, msg);
-    }
-#endif
-
     ret = NXT_OK;
 
 restore:
 
-    if (setgroups(nsaved, saved) != 0) {
+    if (nxt_slow_path(setgroups(nsaved, saved) != 0)) {
         nxt_alert(task, "setgroups(%d) failed %E", nsaved, nxt_errno);
         ret = NXT_ERROR;
     }
@@ -718,6 +789,9 @@ free:
 
     return ret;
 }
+
+
+#endif
 
 
 nxt_int_t

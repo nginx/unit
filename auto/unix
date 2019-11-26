@@ -208,3 +208,19 @@ nxt_feature_test="#include <stdlib.h>
                       return 0;
                   }"
 . auto/feature
+
+
+# Linux, FreeBSD, Solaris getgrouplist()
+nxt_feature="getgrouplist()"
+nxt_feature_name=NXT_HAVE_GETGROUPLIST
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <unistd.h>
+                  #include <grp.h>
+
+                  int main() {
+                      getgrouplist(\"root\", 0, NULL, NULL);
+                      return 0;
+                  }"
+. auto/feature
