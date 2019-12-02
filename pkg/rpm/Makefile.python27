@@ -17,11 +17,20 @@ ifneq (,$(findstring $(OSVER),opensuse-leap opensuse-tumbleweed sles))
 BUILD_DEPENDS_python27=	python-devel
 else ifneq (,$(findstring $(OSVER),fedora centos8))
 BUILD_DEPENDS_python27=	python2-devel
+else ifneq (,$(findstring $(OSVER),centos7))
+BUILD_DEPENDS_python27=	python-devel
 else
 BUILD_DEPENDS_python27=	python27-devel
 endif
 
 BUILD_DEPENDS+=		$(BUILD_DEPENDS_python27)
+
+define MODULE_DEFINITIONS_python27
+%if (0%{?rhel} == 7)
+Obsoletes: unit-python
+%endif
+endef
+export MODULE_DEFINITIONS_python27
 
 define MODULE_PREINSTALL_python27
 %{__mkdir} -p %{buildroot}%{_datadir}/doc/unit-python27/examples/python-app
