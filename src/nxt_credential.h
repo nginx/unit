@@ -21,7 +21,9 @@ typedef struct {
 
 NXT_EXPORT nxt_int_t nxt_credential_get(nxt_task_t *task, nxt_mp_t *mp,
     nxt_credential_t *uc, const char *group);
-NXT_EXPORT nxt_int_t nxt_credential_set(nxt_task_t *task,
+NXT_EXPORT nxt_int_t nxt_credential_setuid(nxt_task_t *task,
+    nxt_credential_t *uc);
+NXT_EXPORT nxt_int_t nxt_credential_setgids(nxt_task_t *task,
     nxt_credential_t *uc);
 
 

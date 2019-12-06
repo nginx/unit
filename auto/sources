@@ -163,6 +163,12 @@ NXT_TEST_SRCS=" \
     src/test/nxt_strverscmp_test.c \
 "
 
+
+if [ $NXT_HAVE_CLONE_NEWUSER = YES ]; then
+    NXT_TEST_SRCS="$NXT_TEST_SRCS src/test/nxt_clone_test.c"
+fi
+
+
 NXT_LIB_UTF8_FILE_NAME_TEST_SRCS=" \
     src/test/nxt_utf8_file_name_test.c \
 "

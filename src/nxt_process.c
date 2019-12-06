@@ -23,6 +23,12 @@ nxt_pid_t  nxt_pid;
 /* An original parent process pid. */
 nxt_pid_t  nxt_ppid;
 
+/* A cached process effective uid */
+nxt_uid_t  nxt_euid;
+
+/* A cached process effective gid */
+nxt_gid_t  nxt_egid;
+
 nxt_bool_t  nxt_proc_conn_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
     { 1, 1, 1, 1, 1 },
     { 1, 0, 0, 0, 0 },
@@ -207,8 +213,9 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
     }
 
 #if (NXT_HAVE_CLONE && NXT_HAVE_CLONE_NEWUSER)
-    if ((init->isolation.clone.flags & CLONE_NEWUSER) == CLONE_NEWUSER) {
-        ret = nxt_clone_proc_map(task, pid, &init->isolation.clone);
+    if (NXT_CLONE_USER(init->isolation.clone.flags)) {
+        ret = nxt_clone_credential_map(task, pid, init->user_cred,
+                                       &init->isolation.clone);
         if (nxt_slow_path(ret != NXT_OK)) {
             goto fail;
         }
@@ -257,7 +264,7 @@ cleanup:
 static void
 nxt_process_start(nxt_task_t *task, nxt_process_t *process)
 {
-    nxt_int_t                    ret;
+    nxt_int_t                    ret, cap_setid;
     nxt_port_t                   *port, *main_port;
     nxt_thread_t                 *thread;
     nxt_runtime_t                *rt;
@@ -276,9 +283,22 @@ nxt_process_start(nxt_task_t *task, nxt_process_t *process)
 
     nxt_random_init(&thread->random);
 
-    if (rt->capabilities.setid && init->user_cred != NULL) {
-        ret = nxt_credential_set(task, init->user_cred);
-        if (ret != NXT_OK) {
+    cap_setid = rt->capabilities.setid;
+
+#if (NXT_HAVE_CLONE_NEWUSER)
+    if (!cap_setid && NXT_CLONE_USER(init->isolation.clone.flags)) {
+        cap_setid = 1;
+    }
+#endif
+
+    if (cap_setid) {
+        ret = nxt_credential_setgids(task, init->user_cred);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            goto fail;
+        }
+
+        ret = nxt_credential_setuid(task, init->user_cred);
+        if (nxt_slow_path(ret != NXT_OK)) {
             goto fail;
         }
     }

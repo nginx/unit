@@ -5,6 +5,7 @@
 
 NXT_ISOLATION=NO
 NXT_HAVE_CLONE=NO
+NXT_HAVE_CLONE_NEWUSER=NO
 
 nsflags="USER NS PID NET UTS CGROUP"
 
@@ -42,6 +43,10 @@ if [ $nxt_found = yes ]; then
         . auto/feature
 
         if [ $nxt_found = yes ]; then
+            if [ $flag = "USER" ]; then
+                NXT_HAVE_CLONE_NEWUSER=YES
+            fi
+
             if [ "$NXT_ISOLATION" = "NO" ]; then
                 NXT_ISOLATION=$flag
             else

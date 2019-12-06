@@ -43,6 +43,8 @@ nxt_lib_start(const char *app, char **argv, char ***envp)
 
     nxt_pid = getpid();
     nxt_ppid = getppid();
+    nxt_euid = geteuid();
+    nxt_egid = getegid();
 
 #if (NXT_DEBUG)
 

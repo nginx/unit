@@ -7,17 +7,13 @@
 #ifndef _NXT_PROCESS_H_INCLUDED_
 #define _NXT_PROCESS_H_INCLUDED_
 
-#include <nxt_conf.h>
+#if (NXT_HAVE_CLONE)
+#include <nxt_clone.h>
+#endif
 
 
 typedef pid_t            nxt_pid_t;
 
-
-typedef struct {
-    nxt_int_t            flags;
-    nxt_conf_value_t     *uidmap;
-    nxt_conf_value_t     *gidmap;
-} nxt_process_clone_t;
 
 typedef struct nxt_process_init_s  nxt_process_init_t;
 typedef nxt_int_t (*nxt_process_start_t)(nxt_task_t *task, void *data);
@@ -39,7 +35,9 @@ struct nxt_process_init_s {
     uint32_t                   stream;
 
     union {
-        nxt_process_clone_t    clone;
+#if (NXT_HAVE_CLONE)
+        nxt_clone_t            clone;
+#endif
     } isolation;
 };
 
@@ -118,6 +116,8 @@ nxt_port_t *nxt_process_connected_port_find(nxt_process_t *process,
 void nxt_worker_process_quit_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
 
+void nxt_init_destroy(nxt_runtime_t *rt, nxt_process_init_t *init);
+
 
 #if (NXT_HAVE_SETPROCTITLE)
 
@@ -146,6 +146,8 @@ NXT_EXPORT void nxt_process_title(nxt_task_t *task, const char *fmt, ...);
 
 NXT_EXPORT extern nxt_pid_t  nxt_pid;
 NXT_EXPORT extern nxt_pid_t  nxt_ppid;
+NXT_EXPORT extern nxt_uid_t  nxt_euid;
+NXT_EXPORT extern nxt_gid_t  nxt_egid;
 NXT_EXPORT extern char       **nxt_process_argv;
 NXT_EXPORT extern char       ***nxt_process_environ;
 
