@@ -11,17 +11,7 @@
 
 
 typedef pid_t            nxt_pid_t;
-typedef uid_t            nxt_uid_t;
-typedef gid_t            nxt_gid_t;
 
-
-typedef struct {
-    const char           *user;
-    nxt_uid_t            uid;
-    nxt_gid_t            base_gid;
-    nxt_uint_t           ngroups;
-    nxt_gid_t            *gids;
-} nxt_user_cred_t;
 
 typedef struct {
     nxt_int_t            flags;
@@ -38,7 +28,7 @@ struct nxt_process_init_s {
     nxt_mp_t                   *mem_pool;
     nxt_process_start_t        start;
     const char                 *name;
-    nxt_user_cred_t            *user_cred;
+    nxt_credential_t           *user_cred;
 
     const nxt_port_handlers_t  *port_handlers;
     const nxt_sig_event_t      *signals;
@@ -153,9 +143,6 @@ NXT_EXPORT void nxt_process_title(nxt_task_t *task, const char *fmt, ...);
 #define nxt_abort()                                                           \
     (void) raise(SIGABRT)
 
-NXT_EXPORT nxt_int_t nxt_user_cred_get(nxt_task_t *task, nxt_mp_t *mp,
-    nxt_user_cred_t *uc, const char *group);
-NXT_EXPORT nxt_int_t nxt_user_cred_set(nxt_task_t *task, nxt_user_cred_t *uc);
 
 NXT_EXPORT extern nxt_pid_t  nxt_pid;
 NXT_EXPORT extern nxt_pid_t  nxt_ppid;

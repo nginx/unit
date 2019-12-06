@@ -1677,8 +1677,7 @@ nxt_process_init_creds_set(nxt_task_t *task, nxt_process_init_t *init,
 {
     char  *str;
 
-    init->user_cred = nxt_mp_zalloc(init->mem_pool,
-                                    sizeof(nxt_user_cred_t));
+    init->user_cred = nxt_mp_zalloc(init->mem_pool, sizeof(nxt_credential_t));
 
     if (nxt_slow_path(init->user_cred == NULL)) {
         return NXT_ERROR;
@@ -1707,5 +1706,5 @@ nxt_process_init_creds_set(nxt_task_t *task, nxt_process_init_t *init,
         str = NULL;
     }
 
-    return nxt_user_cred_get(task, init->mem_pool, init->user_cred, str);
+    return nxt_credential_get(task, init->mem_pool, init->user_cred, str);
 }

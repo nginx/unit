@@ -58,7 +58,7 @@ struct nxt_runtime_s {
     const char             *engine;
     uint32_t               engine_connections;
     uint32_t               auxiliary_threads;
-    nxt_user_cred_t        user_cred;
+    nxt_credential_t       user_cred;
     nxt_capabilities_t     capabilities;
     const char             *group;
     const char             *pid;

@@ -705,7 +705,7 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
     }
 
     if (rt->capabilities.setid) {
-        ret = nxt_user_cred_get(task, rt->mem_pool, &rt->user_cred,
+        ret = nxt_credential_get(task, rt->mem_pool, &rt->user_cred,
                                 rt->group);
 
         if (nxt_slow_path(ret != NXT_OK)) {
