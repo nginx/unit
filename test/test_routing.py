@@ -45,409 +45,160 @@ class TestRouting(TestApplicationProto):
     def route(self, route):
         return self.conf([route], 'routes')
 
+    def route_match(self, match):
+        self.assertIn(
+            'success',
+            self.route(
+                {"match": match, "action": {"pass": "applications/empty"}}
+            ),
+            'route match configure',
+        )
+
+    def route_match_invalid(self, match):
+        self.assertIn(
+            'error',
+            self.route(
+                {"match": match, "action": {"pass": "applications/empty"}}
+            ),
+            'route match configure invalid',
+        )
+
+    def host(self, host, status):
+        self.assertEqual(
+            self.get(headers={'Host': host, 'Connection': 'close'})[
+                'status'
+            ],
+            status,
+            'match host',
+        )
+
+    def cookie(self, cookie, status):
+        self.assertEqual(
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Cookie': cookie,
+                    'Connection': 'close',
+                },
+            )['status'],
+            status,
+            'match cookie',
+        )
+
     def test_routes_match_method_positive(self):
-        self.assertEqual(self.get()['status'], 200, 'method positive GET')
-        self.assertEqual(self.post()['status'], 404, 'method positive POST')
+        self.assertEqual(self.get()['status'], 200, 'GET')
+        self.assertEqual(self.post()['status'], 404, 'POST')
 
     def test_routes_match_method_positive_many(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"method": ["GET", "POST"]},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'method positive many configure',
-        )
+        self.route_match({"method": ["GET", "POST"]})
 
-        self.assertEqual(self.get()['status'], 200, 'method positive many GET')
-        self.assertEqual(
-            self.post()['status'], 200, 'method positive many POST'
-        )
-        self.assertEqual(
-            self.delete()['status'], 404, 'method positive many DELETE'
-        )
+        self.assertEqual(self.get()['status'], 200, 'GET')
+        self.assertEqual(self.post()['status'], 200, 'POST')
+        self.assertEqual(self.delete()['status'], 404, 'DELETE')
 
     def test_routes_match_method_negative(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"method": "!GET"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'method negative configure',
-        )
+        self.route_match({"method": "!GET"})
 
-        self.assertEqual(self.get()['status'], 404, 'method negative GET')
-        self.assertEqual(self.post()['status'], 200, 'method negative POST')
+        self.assertEqual(self.get()['status'], 404, 'GET')
+        self.assertEqual(self.post()['status'], 200, 'POST')
 
     def test_routes_match_method_negative_many(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"method": ["!GET", "!POST"]},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'method negative many configure',
-        )
+        self.route_match({"method": ["!GET", "!POST"]})
 
-        self.assertEqual(self.get()['status'], 404, 'method negative many GET')
-        self.assertEqual(
-            self.post()['status'], 404, 'method negative many POST'
-        )
-        self.assertEqual(
-            self.delete()['status'], 200, 'method negative many DELETE'
-        )
+        self.assertEqual(self.get()['status'], 404, 'GET')
+        self.assertEqual(self.post()['status'], 404, 'POST')
+        self.assertEqual(self.delete()['status'], 200, 'DELETE')
 
     def test_routes_match_method_wildcard_left(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"method": "*ET"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'method wildcard left configure',
-        )
+        self.route_match({"method": "*ET"})
 
-        self.assertEqual(self.get()['status'], 200, 'method wildcard left GET')
-        self.assertEqual(
-            self.post()['status'], 404, 'method wildcard left POST'
-        )
+        self.assertEqual(self.get()['status'], 200, 'GET')
+        self.assertEqual(self.post()['status'], 404, 'POST')
 
     def test_routes_match_method_wildcard_right(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"method": "GE*"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'method wildcard right configure',
-        )
+        self.route_match({"method": "GE*"})
 
-        self.assertEqual(
-            self.get()['status'], 200, 'method wildcard right GET'
-        )
-        self.assertEqual(
-            self.post()['status'], 404, 'method wildcard right POST'
-        )
+        self.assertEqual(self.get()['status'], 200, 'GET')
+        self.assertEqual(self.post()['status'], 404, 'POST')
 
     def test_routes_match_method_wildcard_left_right(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"method": "*GET*"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'method wildcard left right configure',
-        )
+        self.route_match({"method": "*GET*"})
 
-        self.assertEqual(
-            self.get()['status'], 200, 'method wildcard right GET'
-        )
-        self.assertEqual(
-            self.post()['status'], 404, 'method wildcard right POST'
-        )
+        self.assertEqual(self.get()['status'], 200, 'GET')
+        self.assertEqual(self.post()['status'], 404, 'POST')
 
     def test_routes_match_method_wildcard(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"method": "*"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'method wildcard configure',
-        )
+        self.route_match({"method": "*"})
 
-        self.assertEqual(self.get()['status'], 200, 'method wildcard')
+        self.assertEqual(self.get()['status'], 200, 'GET')
 
     def test_routes_match_invalid(self):
-        self.assertIn(
-            'error',
-            self.route(
-                {
-                    "match": {"method": "**"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'wildcard invalid',
-        )
-
-        self.assertIn(
-            'error',
-            self.route(
-                {
-                    "match": {"method": "blah**"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'wildcard invalid 2',
-        )
-
-        self.assertIn(
-            'error',
-            self.route(
-                {
-                    "match": {"host": "*blah*blah"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'wildcard invalid 3',
-        )
-
-        self.assertIn(
-            'error',
-            self.route(
-                {
-                    "match": {"host": "blah*blah*blah"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'wildcard invalid 4',
-        )
-
-        self.assertIn(
-            'error',
-            self.route(
-                {
-                    "match": {"host": "blah*blah*"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'wildcard invalid 5',
-        )
+        self.route_match_invalid({"method": "**"})
+        self.route_match_invalid({"method": "blah**"})
+        self.route_match_invalid({"host": "*blah*blah"})
+        self.route_match_invalid({"host": "blah*blah*blah"})
+        self.route_match_invalid({"host": "blah*blah*"})
 
     def test_routes_match_wildcard_middle(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"host": "ex*le"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'host wildcard middle configure',
-        )
+        self.route_match({"host": "ex*le"})
 
-        self.assertEqual(
-            self.get(headers={'Host': 'example', 'Connection': 'close'})[
-                'status'
-            ],
-            200,
-            'host wildcard middle',
-        )
-
-        self.assertEqual(
-            self.get(headers={'Host': 'www.example', 'Connection': 'close'})[
-                'status'
-            ],
-            404,
-            'host wildcard middle 2',
-        )
-
-        self.assertEqual(
-            self.get(headers={'Host': 'example.com', 'Connection': 'close'})[
-                'status'
-            ],
-            404,
-            'host wildcard middle 3',
-        )
-
-        self.assertEqual(
-            self.get(headers={'Host': 'exampl', 'Connection': 'close'})[
-                'status'
-            ],
-            404,
-            'host wildcard middle 4',
-        )
+        self.host('example', 200)
+        self.host('www.example', 404)
+        self.host('example.com', 404)
+        self.host('exampl', 404)
 
     def test_routes_match_method_case_insensitive(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"method": "get"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'method case insensitive configure',
-        )
+        self.route_match({"method": "get"})
 
-        self.assertEqual(self.get()['status'], 200, 'method case insensitive')
+        self.assertEqual(self.get()['status'], 200, 'GET')
 
     def test_routes_match_wildcard_left_case_insensitive(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"method": "*et"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match wildcard case insensitive configure',
-        )
+        self.route_match({"method": "*get"})
+        self.assertEqual(self.get()['status'], 200, 'GET')
 
-        self.assertEqual(
-            self.get()['status'], 200, 'match wildcard case insensitive'
-        )
+        self.route_match({"method": "*et"})
+        self.assertEqual(self.get()['status'], 200, 'GET')
 
     def test_routes_match_wildcard_middle_case_insensitive(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"method": "g*t"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match wildcard case insensitive configure',
-        )
+        self.route_match({"method": "g*t"})
 
-        self.assertEqual(
-            self.get()['status'], 200, 'match wildcard case insensitive'
-        )
+        self.assertEqual(self.get()['status'], 200, 'GET')
 
     def test_routes_match_wildcard_right_case_insensitive(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"method": "get*"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match wildcard case insensitive configure',
-        )
+        self.route_match({"method": "get*"})
+        self.assertEqual(self.get()['status'], 200, 'GET')
 
-        self.assertEqual(
-            self.get()['status'], 200, 'match wildcard case insensitive'
-        )
+        self.route_match({"method": "ge*"})
+        self.assertEqual(self.get()['status'], 200, 'GET')
 
     def test_routes_match_wildcard_substring_case_insensitive(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"method": "*et*"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match wildcard substring case insensitive configure',
-        )
+        self.route_match({"method": "*et*"})
 
-        self.assertEqual(
-            self.get()['status'],
-            200,
-            'match wildcard substring case insensitive',
-        )
+        self.assertEqual(self.get()['status'], 200, 'GET')
 
     def test_routes_match_wildcard_left_case_sensitive(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"uri": "*blah"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match wildcard left case sensitive configure',
-        )
+        self.route_match({"uri": "*blah"})
 
-        self.assertEqual(
-            self.get(url='/blah')['status'],
-            200,
-            'match wildcard left case sensitive /blah',
-        )
-
-        self.assertEqual(
-            self.get(url='/BLAH')['status'],
-            404,
-            'match wildcard left case sensitive /BLAH',
-        )
+        self.assertEqual(self.get(url='/blah')['status'], 200, '/blah')
+        self.assertEqual(self.get(url='/BLAH')['status'], 404, '/BLAH')
 
     def test_routes_match_wildcard_middle_case_sensitive(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"uri": "/b*h"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match wildcard middle case sensitive configure',
-        )
+        self.route_match({"uri": "/b*h"})
 
-        self.assertEqual(
-            self.get(url='/blah')['status'],
-            200,
-            'match wildcard middle case sensitive /blah',
-        )
-
-        self.assertEqual(
-            self.get(url='/BLAH')['status'],
-            404,
-            'match wildcard middle case sensitive /BLAH',
-        )
+        self.assertEqual(self.get(url='/blah')['status'], 200, '/blah')
+        self.assertEqual(self.get(url='/BLAH')['status'], 404, '/BLAH')
 
     def test_routes_match_wildcard_right_case_sensitive(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"uri": "/bla*"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match wildcard right case sensitive configure',
-        )
+        self.route_match({"uri": "/bla*"})
 
-        self.assertEqual(
-            self.get(url='/blah')['status'],
-            200,
-            'match wildcard right case sensitive /blah',
-        )
-
-        self.assertEqual(
-            self.get(url='/BLAH')['status'],
-            404,
-            'match wildcard right case sensitive /BLAH',
-        )
+        self.assertEqual(self.get(url='/blah')['status'], 200, '/blah')
+        self.assertEqual(self.get(url='/BLAH')['status'], 404, '/BLAH')
 
     def test_routes_match_wildcard_substring_case_sensitive(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"uri": "*bla*"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match wildcard substring case sensitive configure',
-        )
+        self.route_match({"uri": "*bla*"})
 
-        self.assertEqual(
-            self.get(url='/blah')['status'],
-            200,
-            'match wildcard substring case sensitive /blah',
-        )
-
-        self.assertEqual(
-            self.get(url='/BLAH')['status'],
-            404,
-            'match wildcard substring case sensitive /BLAH',
-        )
+        self.assertEqual(self.get(url='/blah')['status'], 200, '/blah')
+        self.assertEqual(self.get(url='/BLAH')['status'], 404, '/BLAH')
 
     def test_routes_absent(self):
         self.conf(
@@ -616,65 +367,18 @@ class TestRouting(TestApplicationProto):
         self.assertEqual(self.get()['status'], 200, 'routes two')
 
     def test_routes_match_host_positive(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"host": "localhost"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match host positive configure',
-        )
+        self.route_match({"host": "localhost"})
 
-        self.assertEqual(
-            self.get()['status'], 200, 'match host positive localhost'
-        )
-
-        self.assertEqual(
-            self.get(headers={'Host': 'localhost.', 'Connection': 'close'})[
-                'status'
-            ],
-            200,
-            'match host positive trailing dot',
-        )
-
-        self.assertEqual(
-            self.get(headers={'Host': 'www.localhost', 'Connection': 'close'})[
-                'status'
-            ],
-            404,
-            'match host positive www.localhost',
-        )
-
-        self.assertEqual(
-            self.get(headers={'Host': 'localhost1', 'Connection': 'close'})[
-                'status'
-            ],
-            404,
-            'match host positive localhost1',
-        )
-
-        self.assertEqual(
-            self.get(headers={'Host': 'example.com', 'Connection': 'close'})[
-                'status'
-            ],
-            404,
-            'match host positive example.com',
-        )
+        self.assertEqual(self.get()['status'], 200, 'localhost')
+        self.host('localhost.', 200)
+        self.host('localhost.', 200)
+        self.host('.localhost', 404)
+        self.host('www.localhost', 404)
+        self.host('localhost1', 404)
 
     @unittest.skip('not yet')
     def test_routes_match_host_absent(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"host": "localhost"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match host absent configure',
-        )
+        self.route_match({"host": "localhost"})
 
         self.assertEqual(
             self.get(headers={'Connection': 'close'})['status'],
@@ -683,212 +387,52 @@ class TestRouting(TestApplicationProto):
         )
 
     def test_routes_match_host_ipv4(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"host": "127.0.0.1"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match host ipv4 configure',
-        )
+        self.route_match({"host": "127.0.0.1"})
 
-        self.assertEqual(
-            self.get(headers={'Host': '127.0.0.1', 'Connection': 'close'})[
-                'status'
-            ],
-            200,
-            'match host ipv4',
-        )
+        self.host('127.0.0.1', 200)
+        self.host('127.0.0.1:7080', 200)
 
     def test_routes_match_host_ipv6(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"host": "[::1]"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match host ipv6 configure',
-        )
+        self.route_match({"host": "[::1]"})
 
-        self.assertEqual(
-            self.get(headers={'Host': '[::1]', 'Connection': 'close'})[
-                'status'
-            ],
-            200,
-            'match host ipv6',
-        )
-
-        self.assertEqual(
-            self.get(headers={'Host': '[::1]:7080', 'Connection': 'close'})[
-                'status'
-            ],
-            200,
-            'match host ipv6 port',
-        )
+        self.host('[::1]', 200)
+        self.host('[::1]:7080', 200)
 
     def test_routes_match_host_positive_many(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"host": ["localhost", "example.com"]},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match host positive many configure',
-        )
+        self.route_match({"host": ["localhost", "example.com"]})
 
-        self.assertEqual(
-            self.get()['status'], 200, 'match host positive many localhost'
-        )
-
-        self.assertEqual(
-            self.get(headers={'Host': 'example.com', 'Connection': 'close'})[
-                'status'
-            ],
-            200,
-            'match host positive many example.com',
-        )
+        self.assertEqual(self.get()['status'], 200, 'localhost')
+        self.host('example.com', 200)
 
     def test_routes_match_host_positive_and_negative(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"host": ["*example.com", "!www.example.com"]},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match host positive and negative configure',
-        )
+        self.route_match({"host": ["*example.com", "!www.example.com"]})
 
-        self.assertEqual(
-            self.get()['status'],
-            404,
-            'match host positive and negative localhost',
-        )
-
-        self.assertEqual(
-            self.get(headers={'Host': 'example.com', 'Connection': 'close'})[
-                'status'
-            ],
-            200,
-            'match host positive and negative example.com',
-        )
-
-        self.assertEqual(
-            self.get(
-                headers={'Host': 'www.example.com', 'Connection': 'close'}
-            )['status'],
-            404,
-            'match host positive and negative www.example.com',
-        )
-
-        self.assertEqual(
-            self.get(
-                headers={'Host': '!www.example.com', 'Connection': 'close'}
-            )['status'],
-            200,
-            'match host positive and negative !www.example.com',
-        )
+        self.assertEqual(self.get()['status'], 404, 'localhost')
+        self.host('example.com', 200)
+        self.host('www.example.com', 404)
+        self.host('!www.example.com', 200)
 
     def test_routes_match_host_positive_and_negative_wildcard(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"host": ["*example*", "!www.example*"]},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match host positive and negative wildcard configure',
-        )
+        self.route_match({"host": ["*example*", "!www.example*"]})
 
-        self.assertEqual(
-            self.get(headers={'Host': 'example.com', 'Connection': 'close'})[
-                'status'
-            ],
-            200,
-            'match host positive and negative wildcard example.com',
-        )
-
-        self.assertEqual(
-            self.get(
-                headers={'Host': 'www.example.com', 'Connection': 'close'}
-            )['status'],
-            404,
-            'match host positive and negative wildcard www.example.com',
-        )
+        self.host('example.com', 200)
+        self.host('www.example.com', 404)
 
     def test_routes_match_host_case_insensitive(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"host": "Example.com"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'host case insensitive configure',
-        )
+        self.route_match({"host": "Example.com"})
 
-        self.assertEqual(
-            self.get(headers={'Host': 'example.com', 'Connection': 'close'})[
-                'status'
-            ],
-            200,
-            'host case insensitive example.com',
-        )
-
-        self.assertEqual(
-            self.get(headers={'Host': 'EXAMPLE.COM', 'Connection': 'close'})[
-                'status'
-            ],
-            200,
-            'host case insensitive EXAMPLE.COM',
-        )
+        self.host('example.com', 200)
+        self.host('EXAMPLE.COM', 200)
 
     def test_routes_match_host_port(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"host": "example.com"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match host port configure',
-        )
+        self.route_match({"host": "example.com"})
 
-        self.assertEqual(
-            self.get(
-                headers={'Host': 'example.com:7080', 'Connection': 'close'}
-            )['status'],
-            200,
-            'match host port',
-        )
+        self.host('example.com:7080', 200)
 
     def test_routes_match_host_empty(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"host": ""},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match host empty configure',
-        )
+        self.route_match({"host": ""})
 
-        self.assertEqual(
-            self.get(headers={'Host': '', 'Connection': 'close'})['status'],
-            200,
-            'match host empty',
-        )
+        self.host('', 200)
         self.assertEqual(
             self.get(http_10=True, headers={})['status'],
             200,
@@ -897,160 +441,80 @@ class TestRouting(TestApplicationProto):
         self.assertEqual(self.get()['status'], 404, 'match host empty 3')
 
     def test_routes_match_uri_positive(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"uri": ["/blah", "/slash/"]},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match uri positive configure',
-        )
+        self.route_match({"uri": ["/blah", "/slash/"]})
 
-        self.assertEqual(self.get()['status'], 404, 'match uri positive')
+        self.assertEqual(self.get()['status'], 404, '/')
+        self.assertEqual(self.get(url='/blah')['status'], 200, '/blah')
+        self.assertEqual(self.get(url='/blah#foo')['status'], 200, '/blah#foo')
+        self.assertEqual(self.get(url='/blah?var')['status'], 200, '/blah?var')
+        self.assertEqual(self.get(url='//blah')['status'], 200, '//blah')
         self.assertEqual(
-            self.get(url='/blah')['status'], 200, 'match uri positive blah'
+            self.get(url='/slash/foo/../')['status'], 200, 'relative'
+        )
+        self.assertEqual(self.get(url='/slash/./')['status'], 200, '/slash/./')
+        self.assertEqual(
+            self.get(url='/slash//.//')['status'], 200, 'adjacent slashes'
+        )
+        self.assertEqual(self.get(url='/%')['status'], 400, 'percent')
+        self.assertEqual(self.get(url='/%1')['status'], 400, 'percent digit')
+        self.assertEqual(self.get(url='/%A')['status'], 400, 'percent letter')
+        self.assertEqual(
+            self.get(url='/slash/.?args')['status'], 200, 'dot args'
         )
         self.assertEqual(
-            self.get(url='/blah#foo')['status'],
-            200,
-            'match uri positive #foo',
-        )
-        self.assertEqual(
-            self.get(url='/blah?var')['status'], 200, 'match uri args'
-        )
-        self.assertEqual(
-            self.get(url='//blah')['status'], 200, 'match uri adjacent slashes'
-        )
-        self.assertEqual(
-            self.get(url='/slash/foo/../')['status'],
-            200,
-            'match uri relative path',
-        )
-        self.assertEqual(
-            self.get(url='/slash/./')['status'],
-            200,
-            'match uri relative path 2',
-        )
-        self.assertEqual(
-            self.get(url='/slash//.//')['status'],
-            200,
-            'match uri adjacent slashes 2',
-        )
-        self.assertEqual(
-            self.get(url='/%')['status'], 400, 'match uri percent'
-        )
-        self.assertEqual(
-            self.get(url='/%1')['status'], 400, 'match uri percent digit'
-        )
-        self.assertEqual(
-            self.get(url='/%A')['status'], 400, 'match uri percent letter'
-        )
-        self.assertEqual(
-            self.get(url='/slash/.?args')['status'], 200, 'match uri dot args'
-        )
-        self.assertEqual(
-            self.get(url='/slash/.#frag')['status'], 200, 'match uri dot frag'
+            self.get(url='/slash/.#frag')['status'], 200, 'dot frag'
         )
         self.assertEqual(
             self.get(url='/slash/foo/..?args')['status'],
             200,
-            'match uri dot dot args',
+            'dot dot args',
         )
         self.assertEqual(
             self.get(url='/slash/foo/..#frag')['status'],
             200,
-            'match uri dot dot frag',
+            'dot dot frag',
         )
         self.assertEqual(
-            self.get(url='/slash/.')['status'], 200, 'match uri trailing dot'
+            self.get(url='/slash/.')['status'], 200, 'trailing dot'
         )
         self.assertEqual(
             self.get(url='/slash/foo/..')['status'],
             200,
-            'match uri trailing dot dot',
+            'trailing dot dot',
         )
 
     def test_routes_match_uri_case_sensitive(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"uri": "/BLAH"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match uri case sensitive configure',
-        )
+        self.route_match({"uri": "/BLAH"})
 
-        self.assertEqual(
-            self.get(url='/blah')['status'],
-            404,
-            'match uri case sensitive blah',
-        )
-        self.assertEqual(
-            self.get(url='/BlaH')['status'],
-            404,
-            'match uri case sensitive BlaH',
-        )
-        self.assertEqual(
-            self.get(url='/BLAH')['status'],
-            200,
-            'match uri case sensitive BLAH',
-        )
+        self.assertEqual(self.get(url='/blah')['status'], 404, '/blah')
+        self.assertEqual(self.get(url='/BlaH')['status'], 404, '/BlaH')
+        self.assertEqual(self.get(url='/BLAH')['status'], 200, '/BLAH')
 
     def test_routes_match_uri_normalize(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"uri": "/blah"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match uri normalize configure',
-        )
+        self.route_match({"uri": "/blah"})
 
         self.assertEqual(
-            self.get(url='/%62%6c%61%68')['status'], 200, 'match uri normalize'
+            self.get(url='/%62%6c%61%68')['status'], 200, 'normalize'
         )
 
     def test_routes_match_empty_array(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"uri": []},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match empty array configure',
-        )
+        self.route_match({"uri": []})
 
-        self.assertEqual(
-            self.get(url='/blah')['status'],
-            200,
-            'match empty array',
-        )
+        self.assertEqual(self.get(url='/blah')['status'], 200, 'empty array')
 
     def test_routes_reconfigure(self):
-        self.assertIn('success', self.conf([], 'routes'), 'routes redefine')
-        self.assertEqual(self.get()['status'], 404, 'routes redefine request')
+        self.assertIn('success', self.conf([], 'routes'), 'redefine')
+        self.assertEqual(self.get()['status'], 404, 'redefine request')
 
         self.assertIn(
             'success',
             self.conf([{"action": {"pass": "applications/empty"}}], 'routes'),
-            'routes redefine 2',
+            'redefine 2',
         )
-        self.assertEqual(
-            self.get()['status'], 200, 'routes redefine request 2'
-        )
+        self.assertEqual(self.get()['status'], 200, 'redefine request 2')
 
-        self.assertIn('success', self.conf([], 'routes'), 'routes redefine 3')
-        self.assertEqual(
-            self.get()['status'], 404, 'routes redefine request 3'
-        )
+        self.assertIn('success', self.conf([], 'routes'), 'redefine 3')
+        self.assertEqual(self.get()['status'], 404, 'redefine request 3')
 
         self.assertIn(
             'success',
@@ -1072,63 +536,46 @@ class TestRouting(TestApplicationProto):
                     },
                 }
             ),
-            'routes redefine 4',
+            'redefine 4',
         )
-        self.assertEqual(
-            self.get()['status'], 200, 'routes redefine request 4'
-        )
+        self.assertEqual(self.get()['status'], 200, 'redefine request 4')
 
         self.assertIn(
-            'success', self.conf_delete('routes/main/0'), 'routes redefine 5'
+            'success', self.conf_delete('routes/main/0'), 'redefine 5'
         )
-        self.assertEqual(
-            self.get()['status'], 404, 'routes redefine request 5'
-        )
+        self.assertEqual(self.get()['status'], 404, 'redefine request 5')
 
         self.assertIn(
             'success',
             self.conf_post(
                 {"action": {"pass": "applications/empty"}}, 'routes/main'
             ),
-            'routes redefine 6',
+            'redefine 6',
         )
-        self.assertEqual(
-            self.get()['status'], 200, 'routes redefine request 6'
-        )
+        self.assertEqual(self.get()['status'], 200, 'redefine request 6')
 
         self.assertIn(
             'error',
             self.conf(
                 {"action": {"pass": "applications/empty"}}, 'routes/main/2'
             ),
-            'routes redefine 7',
+            'redefine 7',
         )
         self.assertIn(
             'success',
             self.conf(
                 {"action": {"pass": "applications/empty"}}, 'routes/main/1'
             ),
-            'routes redefine 8',
+            'redefine 8',
         )
 
         self.assertEqual(
-            len(self.conf_get('routes/main')), 2, 'routes redefine conf 8'
+            len(self.conf_get('routes/main')), 2, 'redefine conf 8'
         )
-        self.assertEqual(
-            self.get()['status'], 200, 'routes redefine request 8'
-        )
+        self.assertEqual(self.get()['status'], 200, 'redefine request 8')
 
     def test_routes_edit(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"method": "GET"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'routes edit configure',
-        )
+        self.route_match({"method": "GET"})
 
         self.assertEqual(self.get()['status'], 200, 'routes edit GET')
         self.assertEqual(self.post()['status'], 404, 'routes edit POST')
@@ -1260,16 +707,7 @@ class TestRouting(TestApplicationProto):
     def test_match_edit(self):
         self.skip_alerts.append(r'failed to apply new conf')
 
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"method": ["GET", "POST"]},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match edit configure',
-        )
+        self.route_match({"method": ["GET", "POST"]})
 
         self.assertEqual(self.get()['status'], 200, 'match edit GET')
         self.assertEqual(self.post()['status'], 200, 'match edit POST')
@@ -1390,20 +828,7 @@ class TestRouting(TestApplicationProto):
         self.assertEqual(self.get()['status'], 200, 'match edit GET 8')
 
     def test_routes_match_rules(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {
-                        "method": "GET",
-                        "host": "localhost",
-                        "uri": "/",
-                    },
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'routes match rules configure',
-        )
+        self.route_match({"method": "GET", "host": "localhost", "uri": "/"})
 
         self.assertEqual(self.get()['status'], 200, 'routes match rules')
 
@@ -1417,75 +842,18 @@ class TestRouting(TestApplicationProto):
         self.assertEqual(self.get()['status'], 500, 'routes loop')
 
     def test_routes_match_headers(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"headers": {"host": "localhost"}},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match headers configure',
-        )
+        self.route_match({"headers": {"host": "localhost"}})
 
         self.assertEqual(self.get()['status'], 200, 'match headers')
-        self.assertEqual(
-            self.get(
-                headers={
-                    "Host": "Localhost",
-                    "Connection": "close",
-                }
-            )['status'],
-            200,
-            'match headers case insensitive',
-        )
-        self.assertEqual(
-            self.get(
-                headers={
-                    "Host": "localhost.com",
-                    "Connection": "close",
-                }
-            )['status'],
-            404,
-            'match headers exact',
-        )
-        self.assertEqual(
-            self.get(
-                headers={
-                    "Host": "llocalhost",
-                    "Connection": "close",
-                }
-            )['status'],
-            404,
-            'match headers exact 2',
-        )
-        self.assertEqual(
-            self.get(
-                headers={
-                    "Host": "host",
-                    "Connection": "close",
-                }
-            )['status'],
-            404,
-            'match headers exact 3',
-        )
+        self.host('Localhost', 200)
+        self.host('localhost.com', 404)
+        self.host('llocalhost', 404)
+        self.host('host', 404)
 
     def test_routes_match_headers_multiple(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {
-                        "headers": {"host": "localhost", "x-blah": "test"}
-                    },
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match headers multiple configure',
-        )
+        self.route_match({"headers": {"host": "localhost", "x-blah": "test"}})
 
         self.assertEqual(self.get()['status'], 404, 'match headers multiple')
-
         self.assertEqual(
             self.get(
                 headers={
@@ -1511,16 +879,7 @@ class TestRouting(TestApplicationProto):
         )
 
     def test_routes_match_headers_multiple_values(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"headers": {"x-blah": "test"}},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match headers multiple values configure',
-        )
+        self.route_match({"headers": {"x-blah": "test"}})
 
         self.assertEqual(
             self.get(
@@ -1557,21 +916,11 @@ class TestRouting(TestApplicationProto):
         )
 
     def test_routes_match_headers_multiple_rules(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"headers": {"x-blah": ["test", "blah"]}},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match headers multiple rules configure',
-        )
+        self.route_match({"headers": {"x-blah": ["test", "blah"]}})
 
         self.assertEqual(
             self.get()['status'], 404, 'match headers multiple rules'
         )
-
         self.assertEqual(
             self.get(
                 headers={
@@ -1583,7 +932,6 @@ class TestRouting(TestApplicationProto):
             200,
             'match headers multiple rules 2',
         )
-
         self.assertEqual(
             self.get(
                 headers={
@@ -1595,7 +943,6 @@ class TestRouting(TestApplicationProto):
             200,
             'match headers multiple rules 3',
         )
-
         self.assertEqual(
             self.get(
                 headers={
@@ -1621,16 +968,7 @@ class TestRouting(TestApplicationProto):
         )
 
     def test_routes_match_headers_case_insensitive(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"headers": {"X-BLAH": "TEST"}},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match headers case insensitive configure',
-        )
+        self.route_match({"headers": {"X-BLAH": "TEST"}})
 
         self.assertEqual(
             self.get(
@@ -1645,104 +983,27 @@ class TestRouting(TestApplicationProto):
         )
 
     def test_routes_match_headers_invalid(self):
-        self.assertIn(
-            'error',
-            self.route(
-                {
-                    "match": {"headers": ["blah"]},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match headers invalid',
-        )
-
-        self.assertIn(
-            'error',
-            self.route(
-                {
-                    "match": {"headers": {"foo": ["bar", {}]}},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match headers invalid 2',
-        )
+        self.route_match_invalid({"headers": ["blah"]})
+        self.route_match_invalid({"headers": {"foo": ["bar", {}]}})
+        self.route_match_invalid({"headers": {"": "blah"}})
 
     def test_routes_match_headers_empty_rule(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"headers": {"host": ""}},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match headers empty rule configure',
-        )
+        self.route_match({"headers": {"host": ""}})
 
-        self.assertEqual(self.get()['status'], 404, 'match headers empty rule')
-
-        self.assertEqual(
-            self.get(headers={"Host": "", "Connection": "close"})['status'],
-            200,
-            'match headers empty rule 2',
-        )
-
-    def test_routes_match_headers_rule_field_empty(self):
-        self.assertIn(
-            'error',
-            self.route(
-                {
-                    "match": {"headers": {"": "blah"}},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match headers rule field empty configure',
-        )
+        self.assertEqual(self.get()['status'], 404, 'localhost')
+        self.host('', 200)
 
     def test_routes_match_headers_empty(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"headers": {}},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match headers empty configure',
-        )
+        self.route_match({"headers": {}})
+        self.assertEqual(self.get()['status'], 200, 'empty')
 
-        self.assertEqual(self.get()['status'], 200, 'match headers empty')
-
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"headers": []},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match headers array empty configure 2',
-        )
-
-        self.assertEqual(
-            self.get()['status'], 200, 'match headers array empty 2'
-        )
+        self.route_match({"headers": []})
+        self.assertEqual(self.get()['status'], 200, 'empty 2')
 
     def test_routes_match_headers_rule_array_empty(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"headers": {"blah": []}},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match headers rule array empty configure',
-        )
+        self.route_match({"headers": {"blah": []}})
 
-        self.assertEqual(
-            self.get()['status'], 404, 'match headers rule array empty'
-        )
+        self.assertEqual(self.get()['status'], 404, 'array empty')
         self.assertEqual(
             self.get(
                 headers={
@@ -1754,22 +1015,15 @@ class TestRouting(TestApplicationProto):
         )
 
     def test_routes_match_headers_array(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {
-                        "headers": [
-                            {"x-header1": "foo*"},
-                            {"x-header2": "bar"},
-                            {"x-header3": ["foo", "bar"]},
-                            {"x-header1": "bar", "x-header4": "foo"},
-                        ]
-                    },
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match headers array configure',
+        self.route_match(
+            {
+                "headers": [
+                    {"x-header1": "foo*"},
+                    {"x-header2": "bar"},
+                    {"x-header3": ["foo", "bar"]},
+                    {"x-header1": "bar", "x-header4": "foo"},
+                ]
+            }
         )
 
         self.assertEqual(self.get()['status'], 404, 'match headers array')
@@ -1860,352 +1114,128 @@ class TestRouting(TestApplicationProto):
         )
 
     def test_routes_match_arguments(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"arguments": {"foo": "bar"}},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match arguments configure',
-        )
+        self.route_match({"arguments": {"foo": "bar"}})
 
-        self.assertEqual(self.get()['status'], 404, 'match arguments')
-        self.assertEqual(
-            self.get(url='/?foo=bar')['status'], 200, 'match arguments 2'
-        )
-
-        self.assertEqual(
-            self.get(url='/?Foo=bar')['status'],
-            404,
-            'match arguments case sensitive',
-        )
-        self.assertEqual(
-            self.get(url='/?foo=Bar')['status'],
-            404,
-            'match arguments case sensitive 2',
-        )
-        self.assertEqual(
-            self.get(url='/?foo=bar1')['status'],
-            404,
-            'match arguments exact',
-        )
-        self.assertEqual(
-            self.get(url='/?1foo=bar')['status'],
-            404,
-            'match arguments exact 2',
-        )
+        self.assertEqual(self.get()['status'], 404, 'args')
+        self.assertEqual(self.get(url='/?foo=bar')['status'], 200, 'args 2')
+        self.assertEqual(self.get(url='/?foo=bar1')['status'], 404, 'args 3')
+        self.assertEqual(self.get(url='/?1foo=bar')['status'], 404, 'args 4')
+        self.assertEqual(self.get(url='/?Foo=bar')['status'], 404, 'case')
+        self.assertEqual(self.get(url='/?foo=Bar')['status'], 404, 'case 2')
 
     def test_routes_match_arguments_empty(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"arguments": {}},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match arguments empty configure',
-        )
+        self.route_match({"arguments": {}})
+        self.assertEqual(self.get()['status'], 200, 'arguments empty')
 
-        self.assertEqual(self.get()['status'], 200, 'match arguments empty')
-
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"arguments": []},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match arguments empty configure 2',
-        )
-
-        self.assertEqual(self.get()['status'], 200, 'match arguments empty 2')
+        self.route_match({"arguments": []})
+        self.assertEqual(self.get()['status'], 200, 'arguments empty 2')
 
     def test_routes_match_arguments_invalid(self):
-        self.assertIn(
-            'error',
-            self.route(
-                {
-                    "match": {"arguments": ["var"]},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match arguments invalid',
-        )
-
-        self.assertIn(
-            'error',
-            self.route(
-                {
-                    "match": {"arguments": [{"var1": {}}]},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match arguments invalid 2',
-        )
-
-        self.assertIn(
-            'error',
-            self.route(
-                {
-                    "match": {"arguments": {"": "bar"}},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match arguments invalid 3',
-        )
+        self.route_match_invalid({"arguments": ["var"]})
+        self.route_match_invalid({"arguments": [{"var1": {}}]})
+        self.route_match_invalid({"arguments": {"": "bar"}})
 
     @unittest.skip('not yet')
     def test_routes_match_arguments_space(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"arguments": {"foo": "bar "}},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match arguments space configure',
-        )
+        self.route_match({"arguments": {"foo": "bar "}})
 
-        self.assertEqual(
-            self.get(url='/?foo=bar &')['status'],
-            200,
-            'match arguments space',
-        )
-        self.assertEqual(
-            self.get(url='/?foo=bar+&')['status'],
-            200,
-            'match arguments space 2',
-        ) # FAIL
-        self.assertEqual(
-            self.get(url='/?foo=bar%20&')['status'],
-            200,
-            'match arguments space 3',
-        ) # FAIL
+        self.assertEqual(self.get(url='/?foo=bar &')['status'], 200, 'sp')
+        # FAIL
+        self.assertEqual(self.get(url='/?foo=bar+&')['status'], 200, 'sp 2')
+        # FAIL
+        self.assertEqual(self.get(url='/?foo=bar%20&')['status'], 200, 'sp 3')
 
     @unittest.skip('not yet')
     def test_routes_match_arguments_plus(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"arguments": [{"foo": "bar+"}]},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match arguments plus configure',
-        )
+        self.route_match({"arguments": [{"foo": "bar+"}]})
 
+        self.assertEqual(self.get(url='/?foo=bar+&')['status'], 200, 'plus')
+        # FAIL
         self.assertEqual(
-            self.get(url='/?foo=bar+&')['status'],
-            200,
-            'match arguments plus',
+            self.get(url='/?foo=bar%2B&')['status'], 200, 'plus 2'
         )
-        self.assertEqual(
-            self.get(url='/?foo=bar%2B&')['status'],
-            200,
-            'match arguments plus 2',
-        ) # FAIL
 
     @unittest.skip('not yet')
     def test_routes_match_arguments_hex(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"arguments": [{"foo": "bar"}]},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match arguments hex configure',
-        )
+        self.route_match({"arguments": [{"foo": "bar"}]})
 
         self.assertEqual(
-            self.get(url='/?%66%6F%6f=%62%61%72&')['status'],
-            200,
-            'match arguments hex',
-        ) # FAIL
+            self.get(url='/?%66%6F%6f=%62%61%72&')['status'], 200, 'hex'
+        )
 
     def test_routes_match_arguments_chars(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"arguments": {"foo": "-._()[],;"}},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match arguments chars configure',
-        )
+        self.route_match({"arguments": {"foo": "-._()[],;"}})
 
-        self.assertEqual(
-            self.get(url='/?foo=-._()[],;')['status'],
-            200,
-            'match arguments chars',
-        )
+        self.assertEqual(self.get(url='/?foo=-._()[],;')['status'], 200, 'chs')
 
     def test_routes_match_arguments_complex(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"arguments": {"foo": ""}},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match arguments complex configure',
-        )
+        self.route_match({"arguments": {"foo": ""}})
 
+        self.assertEqual(self.get(url='/?foo')['status'], 200, 'complex')
         self.assertEqual(
-            self.get(url='/?foo')['status'],
-            200,
-            'match arguments complex',
+            self.get(url='/?blah=blah&foo=')['status'], 200, 'complex 2'
         )
         self.assertEqual(
-            self.get(url='/?blah=blah&foo=')['status'],
-            200,
-            'match arguments complex 2',
+            self.get(url='/?&&&foo&&&')['status'], 200, 'complex 3'
         )
         self.assertEqual(
-            self.get(url='/?&&&foo&&&')['status'],
-            200,
-            'match arguments complex 3',
+            self.get(url='/?foo&foo=bar&foo')['status'], 404, 'complex 4'
         )
         self.assertEqual(
-            self.get(url='/?foo&foo=bar&foo')['status'],
-            404,
-            'match arguments complex 4',
+            self.get(url='/?foo=&foo')['status'], 200, 'complex 5'
         )
         self.assertEqual(
-            self.get(url='/?foo=&foo')['status'],
-            200,
-            'match arguments complex 5',
+            self.get(url='/?&=&foo&==&')['status'], 200, 'complex 6'
         )
         self.assertEqual(
-            self.get(url='/?&=&foo&==&')['status'],
-            200,
-            'match arguments complex 6',
-        )
-        self.assertEqual(
-            self.get(url='/?&=&bar&==&')['status'],
-            404,
-            'match arguments complex 7',
+            self.get(url='/?&=&bar&==&')['status'], 404, 'complex 7'
         )
 
     def test_routes_match_arguments_multiple(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"arguments": {"foo": "bar", "blah": "test"}},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match arguments multiple configure',
-        )
+        self.route_match({"arguments": {"foo": "bar", "blah": "test"}})
 
-        self.assertEqual(self.get()['status'], 404, 'match arguments multiple')
-
+        self.assertEqual(self.get()['status'], 404, 'multiple')
         self.assertEqual(
-            self.get(url='/?foo=bar&blah=test')['status'],
-            200,
-            'match arguments multiple 2',
+            self.get(url='/?foo=bar&blah=test')['status'], 200, 'multiple 2'
         )
-
         self.assertEqual(
-            self.get(url='/?foo=bar&blah')['status'],
-            404,
-            'match arguments multiple 3',
+            self.get(url='/?foo=bar&blah')['status'], 404, 'multiple 3'
         )
 
     def test_routes_match_arguments_multiple_rules(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"arguments": {"foo": ["bar", "blah"]}},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match arguments multiple rules configure',
-        )
+        self.route_match({"arguments": {"foo": ["bar", "blah"]}})
 
-        self.assertEqual(
-            self.get()['status'], 404, 'match arguments multiple rules'
-        )
-
-        self.assertEqual(
-            self.get(url='/?foo=bar')['status'],
-            200,
-            'match arguments multiple rules 2',
-        )
-
-        self.assertEqual(
-            self.get(url='/?foo=blah')['status'],
-            200,
-            'match arguments multiple rules 3',
-        )
-
+        self.assertEqual(self.get()['status'], 404, 'rules')
+        self.assertEqual(self.get(url='/?foo=bar')['status'], 200, 'rules 2')
+        self.assertEqual(self.get(url='/?foo=blah')['status'], 200, 'rules 3')
         self.assertEqual(
             self.get(url='/?foo=blah&foo=bar&foo=blah')['status'],
             200,
-            'match arguments multiple rules 4',
+            'rules 4',
         )
-
         self.assertEqual(
-            self.get(url='/?foo=blah&foo=bar&foo=')['status'],
-            404,
-            'match arguments multiple rules 5',
+            self.get(url='/?foo=blah&foo=bar&foo=')['status'], 404, 'rules 5'
         )
 
     def test_routes_match_arguments_array(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {
-                        "arguments": [
-                            {"var1": "val1*"},
-                            {"var2": "val2"},
-                            {"var3": ["foo", "bar"]},
-                            {"var1": "bar", "var4": "foo"},
-                        ]
-                    },
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match arguments array configure',
+        self.route_match(
+            {
+                "arguments": [
+                    {"var1": "val1*"},
+                    {"var2": "val2"},
+                    {"var3": ["foo", "bar"]},
+                    {"var1": "bar", "var4": "foo"},
+                ]
+            }
         )
 
-        self.assertEqual(self.get()['status'], 404, 'match arguments array')
+        self.assertEqual(self.get()['status'], 404, 'arr')
+        self.assertEqual(self.get(url='/?var1=val123')['status'], 200, 'arr 2')
+        self.assertEqual(self.get(url='/?var2=val2')['status'], 200, 'arr 3')
+        self.assertEqual(self.get(url='/?var3=bar')['status'], 200, 'arr 4')
+        self.assertEqual(self.get(url='/?var1=bar')['status'], 404, 'arr 5')
         self.assertEqual(
-            self.get(url='/?var1=val123')['status'],
-            200,
-            'match arguments array 2',
-        )
-        self.assertEqual(
-            self.get(url='/?var2=val2')['status'],
-            200,
-            'match arguments array 3',
-        )
-        self.assertEqual(
-            self.get(url='/?var3=bar')['status'],
-            200,
-            'match arguments array 4',
-        )
-        self.assertEqual(
-            self.get(url='/?var1=bar')['status'],
-            404,
-            'match arguments array 5',
-        )
-        self.assertEqual(
-            self.get(url='/?var1=bar&var4=foo')['status'],
-            200,
-            'match arguments array 6',
+            self.get(url='/?var1=bar&var4=foo')['status'], 200, 'arr 6'
         )
 
         self.assertIn(
@@ -2214,451 +1244,80 @@ class TestRouting(TestApplicationProto):
             'match arguments array configure 2',
         )
 
-        self.assertEqual(
-            self.get(url='/?var2=val2')['status'],
-            404,
-            'match arguments array 7',
-        )
-        self.assertEqual(
-            self.get(url='/?var3=foo')['status'],
-            200,
-            'match arguments array 8',
-        )
+        self.assertEqual(self.get(url='/?var2=val2')['status'], 404, 'arr 7')
+        self.assertEqual(self.get(url='/?var3=foo')['status'], 200, 'arr 8')
 
     def test_routes_match_cookies(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"cookies": {"foO": "bar"}},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match cookie configure',
-        )
+        self.route_match({"cookies": {"foO": "bar"}})
 
-        self.assertEqual(self.get()['status'], 404, 'match cookie')
-        self.assertEqual(
-            self.get(
-                headers={
-                    'Host': 'localhost',
-                    'Cookie': 'foO=bar',
-                    'Connection': 'close',
-                },
-            )['status'],
-            200,
-            'match cookies 2',
-        )
-        self.assertEqual(
-            self.get(
-                headers={
-                    'Host': 'localhost',
-                    'Cookie': ['foO=bar', 'blah=blah'],
-                    'Connection': 'close',
-                },
-            )['status'],
-            200,
-            'match cookies 3',
-        )
-        self.assertEqual(
-            self.get(
-                headers={
-                    'Host': 'localhost',
-                    'Cookie': 'foO=bar; blah=blah',
-                    'Connection': 'close',
-                },
-            )['status'],
-            200,
-            'match cookies 4',
-        )
-
-        self.assertEqual(
-            self.get(
-                headers={
-                    'Host': 'localhost',
-                    'Cookie': 'Foo=bar',
-                    'Connection': 'close',
-                },
-            )['status'],
-            404,
-            'match cookies case sensitive',
-        )
-        self.assertEqual(
-            self.get(
-                headers={
-                    'Host': 'localhost',
-                    'Cookie': 'foO=Bar',
-                    'Connection': 'close',
-                },
-            )['status'],
-            404,
-            'match cookies case sensitive 2',
-        )
-        self.assertEqual(
-            self.get(
-                headers={
-                    'Host': 'localhost',
-                    'Cookie': 'foO=bar1',
-                    'Connection': 'close',
-                },
-            )['status'],
-            404,
-            'match cookies exact',
-        )
-        self.assertEqual(
-            self.get(
-                headers={
-                    'Host': 'localhost',
-                    'Cookie': '1foO=bar;',
-                    'Connection': 'close',
-                },
-            )['status'],
-            404,
-            'match cookies exact 2',
-        )
-        self.assertEqual(
-            self.get(
-                headers={
-                    'Host': 'localhost',
-                    'Cookie': 'foO=bar;1',
-                    'Connection': 'close',
-                },
-            )['status'],
-            200,
-            'match cookies exact 3',
-        )
+        self.assertEqual(self.get()['status'], 404, 'cookie')
+        self.cookie('foO=bar', 200)
+        self.cookie('foO=bar;1', 200)
+        self.cookie(['foO=bar', 'blah=blah'], 200)
+        self.cookie('foO=bar; blah=blah', 200)
+        self.cookie('Foo=bar', 404)
+        self.cookie('foO=Bar', 404)
+        self.cookie('foO=bar1', 404)
+        self.cookie('1foO=bar;', 404)
 
     def test_routes_match_cookies_empty(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"cookies": {}},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match cookies empty configure',
-        )
+        self.route_match({"cookies": {}})
+        self.assertEqual(self.get()['status'], 200, 'cookies empty')
 
-        self.assertEqual(self.get()['status'], 200, 'match cookies empty')
-
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"cookies": []},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match cookies empty configure 2',
-        )
-
-        self.assertEqual(self.get()['status'], 200, 'match cookies empty 2')
+        self.route_match({"cookies": []})
+        self.assertEqual(self.get()['status'], 200, 'cookies empty 2')
 
     def test_routes_match_cookies_invalid(self):
-        self.assertIn(
-            'error',
-            self.route(
-                {
-                    "match": {"cookies": ["var"]},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match cookies invalid',
-        )
-
-        self.assertIn(
-            'error',
-            self.route(
-                {
-                    "match": {"cookies": [{"foo": {}}]},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match cookies invalid 2',
-        )
+        self.route_match_invalid({"cookies": ["var"]})
+        self.route_match_invalid({"cookies": [{"foo": {}}]})
 
     def test_routes_match_cookies_multiple(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"cookies": {"foo": "bar", "blah": "blah"}},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match cookies multiple configure',
-        )
+        self.route_match({"cookies": {"foo": "bar", "blah": "blah"}})
 
-        self.assertEqual(self.get()['status'], 404, 'match cookies multiple')
-
-        self.assertEqual(
-            self.get(
-                headers={
-                    'Host': 'localhost',
-                    'Cookie': 'foo=bar; blah=blah',
-                    'Connection': 'close',
-                }
-            )['status'],
-            200,
-            'match cookies multiple 2',
-        )
-
-        self.assertEqual(
-            self.get(
-                headers={
-                    'Host': 'localhost',
-                    'Cookie': ['foo=bar', 'blah=blah'],
-                    'Connection': 'close',
-                }
-            )['status'],
-            200,
-            'match cookies multiple 3',
-        )
-
-        self.assertEqual(
-            self.get(
-                headers={
-                    'Host': 'localhost',
-                    'Cookie': ['foo=bar; blah', 'blah'],
-                    'Connection': 'close',
-                }
-            )['status'],
-            404,
-            'match cookies multiple 4',
-        )
-
-        self.assertEqual(
-            self.get(
-                headers={
-                    'Host': 'localhost',
-                    'Cookie': ['foo=bar; blah=test', 'blah=blah'],
-                    'Connection': 'close',
-                }
-            )['status'],
-            404,
-            'match cookies multiple 5',
-        )
+        self.assertEqual(self.get()['status'], 404, 'multiple')
+        self.cookie('foo=bar; blah=blah', 200)
+        self.cookie(['foo=bar', 'blah=blah'], 200)
+        self.cookie(['foo=bar; blah', 'blah'], 404)
+        self.cookie(['foo=bar; blah=test', 'blah=blah'], 404)
 
     def test_routes_match_cookies_multiple_values(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"cookies": {"blah": "blah"}},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match cookies multiple values configure',
-        )
+        self.route_match({"cookies": {"blah": "blah"}})
 
-        self.assertEqual(
-            self.get(
-                headers={
-                    'Host': 'localhost',
-                    'Cookie': ['blah=blah', 'blah=blah', 'blah=blah'],
-                    'Connection': 'close',
-                }
-            )['status'],
-            200,
-            'match headers multiple values',
-        )
-        self.assertEqual(
-            self.get(
-                headers={
-                    'Host': 'localhost',
-                    'Cookie': ['blah=blah', 'blah=test', 'blah=blah'],
-                    'Connection': 'close',
-                }
-            )['status'],
-            404,
-            'match cookies multiple values 2',
-        )
-        self.assertEqual(
-            self.get(
-                headers={
-                    'Host': 'localhost',
-                    'Cookie': ['blah=blah; blah=', 'blah=blah'],
-                    'Connection': 'close',
-                }
-            )['status'],
-            404,
-            'match cookies multiple values 3',
-        )
+        self.cookie(['blah=blah', 'blah=blah', 'blah=blah'], 200)
+        self.cookie(['blah=blah', 'blah=test', 'blah=blah'], 404)
+        self.cookie(['blah=blah; blah=', 'blah=blah'], 404)
 
     def test_routes_match_cookies_multiple_rules(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"cookies": {"blah": ["test", "blah"]}},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match cookies multiple rules configure',
-        )
+        self.route_match({"cookies": {"blah": ["test", "blah"]}})
 
-        self.assertEqual(
-            self.get()['status'], 404, 'match cookies multiple rules'
-        )
-
-        self.assertEqual(
-            self.get(
-                headers={
-                    'Host': 'localhost',
-                    'Cookie': 'blah=test',
-                    'Connection': 'close',
-                }
-            )['status'],
-            200,
-            'match cookies multiple rules 2',
-        )
-
-        self.assertEqual(
-            self.get(
-                headers={
-                    'Host': 'localhost',
-                    'Cookie': 'blah=blah',
-                    'Connection': 'close',
-                }
-            )['status'],
-            200,
-            'match cookies multiple rules 3',
-        )
-
-        self.assertEqual(
-            self.get(
-                headers={
-                    'Host': 'localhost',
-                    'Cookie': ['blah=blah', 'blah=test', 'blah=blah'],
-                    'Connection': 'close',
-                }
-            )['status'],
-            200,
-            'match cookies multiple rules 4',
-        )
-
-        self.assertEqual(
-            self.get(
-                headers={
-                    'Host': 'localhost',
-                    'Cookie': ['blah=blah; blah=test', 'blah=blah'],
-                    'Connection': 'close',
-                }
-            )['status'],
-            200,
-            'match cookies multiple rules 5',
-        )
-
-        self.assertEqual(
-            self.get(
-                headers={
-                    'Host': 'localhost',
-                    'Cookie': ['blah=blah', 'blah'], # invalid cookie
-                    'Connection': 'close',
-                }
-            )['status'],
-            200,
-            'match cookies multiple rules 6',
-        )
+        self.assertEqual(self.get()['status'], 404, 'multiple rules')
+        self.cookie('blah=test', 200)
+        self.cookie('blah=blah', 200)
+        self.cookie(['blah=blah', 'blah=test', 'blah=blah'], 200)
+        self.cookie(['blah=blah; blah=test', 'blah=blah'], 200)
+        self.cookie(['blah=blah', 'blah'], 200) # invalid cookie
 
     def test_routes_match_cookies_array(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {
-                        "cookies": [
-                            {"var1": "val1*"},
-                            {"var2": "val2"},
-                            {"var3": ["foo", "bar"]},
-                            {"var1": "bar", "var4": "foo"},
-                        ]
-                    },
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match cookies array configure',
+        self.route_match(
+            {
+                "cookies": [
+                    {"var1": "val1*"},
+                    {"var2": "val2"},
+                    {"var3": ["foo", "bar"]},
+                    {"var1": "bar", "var4": "foo"},
+                ]
+            }
         )
 
-        self.assertEqual(self.get()['status'], 404, 'match cookies array')
-        self.assertEqual(
-            self.get(
-                headers={
-                    'Host': 'localhost',
-                    'Cookie': 'var1=val123',
-                    'Connection': 'close',
-                },
-            )['status'],
-            200,
-            'match cookies array 2',
-        )
-        self.assertEqual(
-            self.get(
-                headers={
-                    'Host': 'localhost',
-                    'Cookie': 'var2=val2',
-                    'Connection': 'close',
-                },
-            )['status'],
-            200,
-            'match cookies array 3',
-        )
-        self.assertEqual(
-            self.get(
-                headers={
-                    'Host': 'localhost',
-                    'Cookie': 'var3=bar',
-                    'Connection': 'close',
-                },
-            )['status'],
-            200,
-            'match cookies array 4',
-        )
-        self.assertEqual(
-            self.get(
-                headers={
-                    'Host': 'localhost',
-                    'Cookie': 'var3=bar;',
-                    'Connection': 'close',
-                },
-            )['status'],
-            200,
-            'match cookies array 5',
-        )
-        self.assertEqual(
-            self.get(
-                headers={
-                    'Host': 'localhost',
-                    'Cookie': 'var1=bar',
-                    'Connection': 'close',
-                },
-            )['status'],
-            404,
-            'match cookies array 6',
-        )
-        self.assertEqual(
-            self.get(
-                headers={
-                    'Host': 'localhost',
-                    'Cookie': 'var1=bar; var4=foo;',
-                    'Connection': 'close',
-                },
-            )['status'],
-            200,
-            'match cookies array 7',
-        )
-        self.assertEqual(
-            self.get(
-                headers={
-                    'Host': 'localhost',
-                    'Cookie': ['var1=bar', 'var4=foo'],
-                    'Connection': 'close',
-                },
-            )['status'],
-            200,
-            'match cookies array 8',
-        )
+        self.assertEqual(self.get()['status'], 404, 'cookies array')
+        self.cookie('var1=val123', 200)
+        self.cookie('var2=val2', 200)
+        self.cookie(' var2=val2 ', 200)
+        self.cookie('var3=bar', 200)
+        self.cookie('var3=bar;', 200)
+        self.cookie('var1=bar', 404)
+        self.cookie('var1=bar; var4=foo;', 200)
+        self.cookie(['var1=bar', 'var4=foo'], 200)
 
         self.assertIn(
             'success',
@@ -2666,122 +1325,22 @@ class TestRouting(TestApplicationProto):
             'match cookies array configure 2',
         )
 
-        self.assertEqual(
-            self.get(
-                headers={
-                    'Host': 'localhost',
-                    'Cookie': 'var2=val2',
-                    'Connection': 'close',
-                },
-            )['status'],
-            404,
-            'match cookies array 9',
-        )
-        self.assertEqual(
-            self.get(
-                headers={
-                    'Host': 'localhost',
-                    'Cookie': 'var3=foo',
-                    'Connection': 'close',
-                },
-            )['status'],
-            200,
-            'match cookies array 10',
-        )
+        self.cookie('var2=val2', 404)
+        self.cookie('var3=foo', 200)
 
     def test_routes_match_scheme(self):
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"scheme": "http"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match scheme http configure',
-        )
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"scheme": "https"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match scheme https configure',
-        )
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"scheme": "HtTp"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match scheme http case insensitive configure',
-        )
-        self.assertIn(
-            'success',
-            self.route(
-                {
-                    "match": {"scheme": "HtTpS"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'match scheme https case insensitive configure',
-        )
+        self.route_match({"scheme": "http"})
+        self.route_match({"scheme": "https"})
+        self.route_match({"scheme": "HtTp"})
+        self.route_match({"scheme": "HtTpS"})
 
     def test_routes_match_scheme_invalid(self):
-        self.assertIn(
-            'error',
-            self.route(
-                {
-                    "match": {"scheme": ["http"]},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'scheme invalid type no arrays allowed',
-        )
-        self.assertIn(
-            'error',
-            self.route(
-                {
-                    "match": {"scheme": "ftp"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'scheme invalid protocol 1',
-        )
-        self.assertIn(
-            'error',
-            self.route(
-                {
-                    "match": {"scheme": "ws"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'scheme invalid protocol 2',
-        )
-        self.assertIn(
-            'error',
-            self.route(
-                {
-                    "match": {"scheme": "*"},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'scheme invalid no wildcard allowed',
-        )
-        self.assertIn(
-            'error',
-            self.route(
-                {
-                    "match": {"scheme": ""},
-                    "action": {"pass": "applications/empty"},
-                }
-            ),
-            'scheme invalid empty',
-        )
+        self.route_match_invalid({"scheme": ["http"]})
+        self.route_match_invalid({"scheme": "ftp"})
+        self.route_match_invalid({"scheme": "ws"})
+        self.route_match_invalid({"scheme": "*"})
+        self.route_match_invalid({"scheme": ""})
+
 
 if __name__ == '__main__':
     TestRouting.main()
