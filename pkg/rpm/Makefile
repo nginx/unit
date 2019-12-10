@@ -91,7 +91,8 @@ endif
 
 ifeq ($(OSVER), amazonlinux2)
 include Makefile.php
-include Makefile.python
+include Makefile.python27
+include Makefile.python37
 include Makefile.go
 include Makefile.perl
 include Makefile.jsc-common
