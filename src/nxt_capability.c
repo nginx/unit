@@ -10,6 +10,16 @@
 #include <linux/capability.h>
 #include <sys/syscall.h>
 
+
+#if (_LINUX_CAPABILITY_VERSION_3)
+#define NXT_CAPABILITY_VERSION  _LINUX_CAPABILITY_VERSION_3
+#elif (_LINUX_CAPABILITY_VERSION_2)
+#define NXT_CAPABILITY_VERSION  _LINUX_CAPABILITY_VERSION_2
+#else
+#define NXT_CAPABILITY_VERSION  _LINUX_CAPABILITY_VERSION
+#endif
+
+
 #define nxt_capget(hdrp, datap)                                               \
             syscall(SYS_capget, hdrp, datap)
 #define nxt_capset(hdrp, datap)                                               \
@@ -43,7 +53,7 @@ nxt_capability_linux_get_version()
 {
     struct __user_cap_header_struct hdr;
 
-    hdr.version = _LINUX_CAPABILITY_VERSION;
+    hdr.version = NXT_CAPABILITY_VERSION;
     hdr.pid     = nxt_pid;
 
     nxt_capget(&hdr, NULL);
