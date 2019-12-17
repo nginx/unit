@@ -7,6 +7,9 @@
 #include <nxt_main.h>
 
 
+static nxt_err_t nxt_conn_connect_test_error(nxt_task_t *task, nxt_conn_t *c);
+
+
 void
 nxt_conn_sys_socket(nxt_task_t *task, void *obj, void *data)
 {
@@ -49,7 +52,7 @@ nxt_conn_io_connect(nxt_task_t *task, void *obj, void *data)
 
     case NXT_AGAIN:
         c->socket.write_handler = nxt_conn_connect_test;
-        c->socket.error_handler = state->error_handler;
+        c->socket.error_handler = nxt_conn_connect_error;
 
         engine = task->thread->engine;
 
@@ -118,8 +121,7 @@ nxt_conn_socket(nxt_task_t *task, nxt_conn_t *c)
 void
 nxt_conn_connect_test(nxt_task_t *task, void *obj, void *data)
 {
-    int         ret, err;
-    socklen_t   len;
+    nxt_err_t   err;
     nxt_conn_t  *c;
 
     c = obj;
@@ -132,48 +134,35 @@ nxt_conn_connect_test(nxt_task_t *task, void *obj, void *data)
         nxt_timer_disable(task->thread->engine, &c->write_timer);
     }
 
-    err = 0;
-    len = sizeof(int);
-
-    /*
-     * Linux and BSDs return 0 and store a pending error in the err argument;
-     * Solaris returns -1 and sets the errno.
-     */
-
-    ret = getsockopt(c->socket.fd, SOL_SOCKET, SO_ERROR, (void *) &err, &len);
-
-    if (nxt_slow_path(ret == -1)) {
-        err = nxt_errno;
-    }
+    err = nxt_conn_connect_test_error(task, c);
 
     if (err == 0) {
         nxt_work_queue_add(c->write_work_queue, c->write_state->ready_handler,
                            task, c, data);
-        return;
+    } else {
+        nxt_conn_connect_error(task, c, data);
     }
-
-    c->socket.error = err;
-
-    nxt_log(task, nxt_socket_error_level(err), "connect(%d, %*s) failed %E",
-            c->socket.fd, (size_t) c->remote->length,
-            nxt_sockaddr_start(c->remote), err);
-
-    nxt_conn_connect_error(task, c, data);
 }
 
 
 void
 nxt_conn_connect_error(nxt_task_t *task, void *obj, void *data)
 {
+    nxt_err_t               err;
     nxt_conn_t              *c;
     nxt_work_handler_t      handler;
     const nxt_conn_state_t  *state;
 
     c = obj;
+    err = c->socket.error;
+
+    if (err == 0) {
+        err = nxt_conn_connect_test_error(task, c);
+    }
 
     state = c->write_state;
 
-    switch (c->socket.error) {
+    switch (err) {
 
     case NXT_ECONNREFUSED:
 #if (NXT_LINUX)
@@ -192,4 +181,23 @@ nxt_conn_connect_error(nxt_task_t *task, void *obj, void *data)
     }
 
     nxt_work_queue_add(c->write_work_queue, handler, task, c, data);
+}
+
+
+static nxt_err_t
+nxt_conn_connect_test_error(nxt_task_t *task, nxt_conn_t *c)
+{
+    nxt_err_t  err;
+
+    err = nxt_socket_error(c->socket.fd);
+
+    if (err != 0) {
+        c->socket.error = err;
+
+        nxt_log(task, nxt_socket_error_level(err), "connect(%d, %*s) failed %E",
+                c->socket.fd, (size_t) c->remote->length,
+                nxt_sockaddr_start(c->remote), err);
+    }
+
+    return err;
 }

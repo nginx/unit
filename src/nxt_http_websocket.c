@@ -88,6 +88,7 @@ nxt_http_websocket_client(nxt_task_t *task, void *obj, void *data)
 
         frame_size -= copy_size;
         next = b->next;
+        b->next = NULL;
 
         if (nxt_buf_mem_used_size(&b->mem) == 0) {
             nxt_work_queue_add(&task->thread->engine->fast_work_queue,

@@ -183,7 +183,10 @@ nxt_buf_chain_length(nxt_buf_t *b)
     length = 0;
 
     while (b != NULL) {
-        length += b->mem.free - b->mem.pos;
+        if (!nxt_buf_is_sync(b)) {
+            length += b->mem.free - b->mem.pos;
+        }
+
         b = b->next;
     }
 
@@ -195,7 +198,7 @@ static void
 nxt_buf_completion(nxt_task_t *task, void *obj, void *data)
 {
     nxt_mp_t   *mp;
-    nxt_buf_t  *b, *parent;
+    nxt_buf_t  *b, *next, *parent;
 
     b = obj;
     parent = data;
@@ -204,9 +207,23 @@ nxt_buf_completion(nxt_task_t *task, void *obj, void *data)
 
     nxt_assert(data == b->parent);
 
-    mp = b->data;
-    nxt_mp_free(mp, b);
+    do {
+        next = b->next;
+        parent = b->parent;
+        mp = b->data;
 
+        nxt_mp_free(mp, b);
+
+        nxt_buf_parent_completion(task, parent);
+
+        b = next;
+    } while (b != NULL);
+}
+
+
+void
+nxt_buf_parent_completion(nxt_task_t *task, nxt_buf_t *parent)
+{
     if (parent != NULL) {
         nxt_debug(task, "parent retain:%uD", parent->retain);
 
@@ -255,7 +272,7 @@ static void
 nxt_buf_ts_completion(nxt_task_t *task, void *obj, void *data)
 {
     nxt_mp_t   *mp;
-    nxt_buf_t  *b, *parent;
+    nxt_buf_t  *b, *next, *parent;
 
     b = obj;
     parent = data;
@@ -268,21 +285,18 @@ nxt_buf_ts_completion(nxt_task_t *task, void *obj, void *data)
 
     nxt_assert(data == b->parent);
 
-    mp = b->data;
-    nxt_mp_free(mp, b);
-    nxt_mp_release(mp);
+    do {
+        next = b->next;
+        parent = b->parent;
+        mp = b->data;
 
-    if (parent != NULL) {
-        nxt_debug(task, "parent retain:%uD", parent->retain);
+        nxt_mp_free(mp, b);
+        nxt_mp_release(mp);
 
-        parent->retain--;
+        nxt_buf_parent_completion(task, parent);
 
-        if (parent->retain == 0) {
-            parent->mem.pos = parent->mem.free;
-
-            parent->completion_handler(task, parent, parent->parent);
-        }
-    }
+        b = next;
+    } while (b != NULL);
 }
 
 

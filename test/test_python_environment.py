@@ -2,7 +2,7 @@ from unit.applications.lang.python import TestApplicationPython
 
 
 class TestPythonEnvironment(TestApplicationPython):
-    prerequisites = ['python']
+    prerequisites = {'modules': ['python']}
 
     def test_python_environment_name_null(self):
         self.load('environment')
@@ -136,27 +136,27 @@ class TestPythonEnvironment(TestApplicationPython):
     def test_python_environment_replace_default(self):
         self.load('environment')
 
-        pwd_default = self.get(
+        home_default = self.get(
             headers={
                 'Host': 'localhost',
-                'X-Variables': 'PWD',
+                'X-Variables': 'HOME',
                 'Connection': 'close',
             }
         )['body']
 
-        self.assertGreater(len(pwd_default), 1, 'get default')
+        self.assertGreater(len(home_default), 1, 'get default')
 
-        self.conf({"PWD": "new/pwd"}, 'applications/environment/environment')
+        self.conf({"HOME": "/"}, 'applications/environment/environment')
 
         self.assertEqual(
             self.get(
                 headers={
                     'Host': 'localhost',
-                    'X-Variables': 'PWD',
+                    'X-Variables': 'HOME',
                     'Connection': 'close',
                 }
             )['body'],
-            'new/pwd,',
+            '/,',
             'replace default',
         )
 
@@ -166,11 +166,11 @@ class TestPythonEnvironment(TestApplicationPython):
             self.get(
                 headers={
                     'Host': 'localhost',
-                    'X-Variables': 'PWD',
+                    'X-Variables': 'HOME',
                     'Connection': 'close',
                 }
             )['body'],
-            pwd_default,
+            home_default,
             'restore default',
         )
 

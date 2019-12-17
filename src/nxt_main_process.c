@@ -29,6 +29,10 @@ typedef struct {
 } nxt_conf_app_map_t;
 
 
+extern nxt_port_handlers_t  nxt_controller_process_port_handlers;
+extern nxt_port_handlers_t  nxt_router_process_port_handlers;
+
+
 static nxt_int_t nxt_main_process_port_create(nxt_task_t *task,
     nxt_runtime_t *rt);
 static void nxt_main_process_title(nxt_task_t *task);
@@ -36,6 +40,8 @@ static nxt_int_t nxt_main_start_controller_process(nxt_task_t *task,
     nxt_runtime_t *rt);
 static nxt_int_t nxt_main_create_controller_process(nxt_task_t *task,
     nxt_runtime_t *rt, nxt_process_init_t *init);
+static nxt_int_t nxt_main_create_router_process(nxt_task_t *task, nxt_runtime_t *rt,
+    nxt_process_init_t *init);
 static nxt_int_t nxt_main_start_router_process(nxt_task_t *task,
     nxt_runtime_t *rt);
 static nxt_int_t nxt_main_start_discovery_process(nxt_task_t *task,
@@ -67,7 +73,29 @@ static void nxt_main_port_conf_store_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
 static void nxt_main_port_access_log_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
+static nxt_process_init_t *nxt_process_init_create(nxt_task_t *task,
+    nxt_process_type_t type, const nxt_str_t *name);
+static nxt_int_t nxt_process_init_name_set(nxt_process_init_t *init,
+    nxt_process_type_t type, const nxt_str_t *name);
+static nxt_int_t nxt_process_init_creds_set(nxt_task_t *task,
+    nxt_process_init_t *init, nxt_str_t *user, nxt_str_t *group);
 
+static nxt_int_t nxt_init_isolation(nxt_task_t *task,
+    nxt_conf_value_t *isolation, nxt_process_init_t *init);
+#if (NXT_HAVE_CLONE)
+static nxt_int_t nxt_init_clone_flags(nxt_task_t *task,
+    nxt_conf_value_t *namespaces, nxt_process_init_t *init);
+#endif
+
+#if (NXT_HAVE_CLONE_NEWUSER)
+static nxt_int_t nxt_init_isolation_creds(nxt_task_t *task,
+    nxt_conf_value_t *isolation, nxt_process_init_t *init);
+static nxt_int_t nxt_init_vldt_isolation_creds(nxt_task_t *task,
+    nxt_process_init_t *init);
+static nxt_int_t nxt_init_isolation_credential_map(nxt_task_t *task,
+    nxt_mp_t *mem_pool, nxt_conf_value_t *map_array,
+    nxt_clone_credential_map_t *map);
+#endif
 
 const nxt_sig_event_t  nxt_main_process_signals[] = {
     nxt_event_signal(SIGHUP,  nxt_main_process_signal_handler),
@@ -77,6 +105,54 @@ const nxt_sig_event_t  nxt_main_process_signals[] = {
     nxt_event_signal(SIGCHLD, nxt_main_process_sigchld_handler),
     nxt_event_signal(SIGUSR1, nxt_main_process_sigusr1_handler),
     nxt_event_signal_end,
+};
+
+
+static const nxt_port_handlers_t  nxt_app_process_port_handlers = {
+    .new_port     = nxt_port_new_port_handler,
+    .change_file  = nxt_port_change_log_file_handler,
+    .mmap         = nxt_port_mmap_handler,
+    .remove_pid   = nxt_port_remove_pid_handler,
+};
+
+
+static const nxt_port_handlers_t  nxt_discovery_process_port_handlers = {
+    .quit         = nxt_worker_process_quit_handler,
+    .new_port     = nxt_port_new_port_handler,
+    .change_file  = nxt_port_change_log_file_handler,
+    .mmap         = nxt_port_mmap_handler,
+    .data         = nxt_port_data_handler,
+    .remove_pid   = nxt_port_remove_pid_handler,
+    .rpc_ready    = nxt_port_rpc_handler,
+    .rpc_error    = nxt_port_rpc_handler,
+};
+
+
+static const nxt_port_handlers_t  *nxt_process_port_handlers[NXT_PROCESS_MAX] =
+{
+    NULL,
+    &nxt_discovery_process_port_handlers,
+    &nxt_controller_process_port_handlers,
+    &nxt_router_process_port_handlers,
+    &nxt_app_process_port_handlers
+};
+
+
+static const nxt_process_start_t  nxt_process_starts[NXT_PROCESS_MAX] = {
+    NULL,
+    nxt_discovery_start,
+    nxt_controller_start,
+    nxt_router_start,
+    nxt_app_start
+};
+
+
+static const nxt_process_restart_t  nxt_process_restarts[NXT_PROCESS_MAX] = {
+    NULL,
+    NULL,
+    &nxt_main_create_controller_process,
+    &nxt_main_create_router_process,
+    NULL
 };
 
 
@@ -134,6 +210,12 @@ static nxt_conf_map_t  nxt_common_app_conf[] = {
         NXT_CONF_MAP_PTR,
         offsetof(nxt_common_app_conf_t, environment),
     },
+
+    {
+        nxt_string("isolation"),
+        NXT_CONF_MAP_PTR,
+        offsetof(nxt_common_app_conf_t, isolation),
+    }
 };
 
 
@@ -291,8 +373,6 @@ nxt_port_main_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         return;
     }
 
-    static nxt_str_t nobody = nxt_string("nobody");
-
     ret = NXT_ERROR;
 
     mp = nxt_mp_create(1024, 128, 256, 32);
@@ -327,7 +407,8 @@ nxt_port_main_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         goto failed;
     }
 
-    app_conf.user = nobody;
+    app_conf.user.start  = (u_char*)rt->user_cred.user;
+    app_conf.user.length = nxt_strlen(rt->user_cred.user);
 
     ret = nxt_conf_map_object(mp, conf, nxt_common_app_conf,
                               nxt_nitems(nxt_common_app_conf), &app_conf);
@@ -401,30 +482,18 @@ nxt_main_process_port_create(nxt_task_t *task, nxt_runtime_t *rt)
     nxt_port_t     *port;
     nxt_process_t  *process;
 
-    process = nxt_runtime_process_get(rt, nxt_pid);
-    if (nxt_slow_path(process == NULL)) {
-        return NXT_ERROR;
-    }
-
-    port = nxt_port_new(task, 0, nxt_pid, NXT_PROCESS_MAIN);
+    port = nxt_runtime_process_port_create(task, rt, nxt_pid, 0,
+                                           NXT_PROCESS_MAIN);
     if (nxt_slow_path(port == NULL)) {
-        nxt_process_use(task, process, -1);
         return NXT_ERROR;
     }
 
-    nxt_process_port_add(task, process, port);
-
-    nxt_process_use(task, process, -1);
+    process = port->process;
 
     ret = nxt_port_socket_init(task, port, 0);
     if (nxt_slow_path(ret != NXT_OK)) {
-        nxt_port_use(task, port, -1);
         return ret;
     }
-
-    nxt_runtime_port_add(task, port);
-
-    nxt_port_use(task, port, -1);
 
     /*
      * A main process port.  A write port is not closed
@@ -469,19 +538,12 @@ nxt_main_start_controller_process(nxt_task_t *task, nxt_runtime_t *rt)
 {
     nxt_process_init_t  *init;
 
-    init = nxt_malloc(sizeof(nxt_process_init_t));
+    static const nxt_str_t  name = nxt_string("controller");
+
+    init = nxt_process_init_create(task, NXT_PROCESS_CONTROLLER, &name);
     if (nxt_slow_path(init == NULL)) {
         return NXT_ERROR;
     }
-
-    init->start = nxt_controller_start;
-    init->name = "controller";
-    init->user_cred = &rt->user_cred;
-    init->port_handlers = &nxt_controller_process_port_handlers;
-    init->signals = nxt_worker_process_signals;
-    init->type = NXT_PROCESS_CONTROLLER;
-    init->stream = 0;
-    init->restart = &nxt_main_create_controller_process;
 
     return nxt_main_create_controller_process(task, rt, init);;
 }
@@ -563,20 +625,12 @@ nxt_main_start_discovery_process(nxt_task_t *task, nxt_runtime_t *rt)
 {
     nxt_process_init_t  *init;
 
-    init = nxt_malloc(sizeof(nxt_process_init_t));
+    static const nxt_str_t  name = nxt_string("discovery");
+
+    init = nxt_process_init_create(task, NXT_PROCESS_DISCOVERY, &name);
     if (nxt_slow_path(init == NULL)) {
         return NXT_ERROR;
     }
-
-    init->start = nxt_discovery_start;
-    init->name = "discovery";
-    init->user_cred = &rt->user_cred;
-    init->port_handlers = &nxt_discovery_process_port_handlers;
-    init->signals = nxt_worker_process_signals;
-    init->type = NXT_PROCESS_DISCOVERY;
-    init->data = rt;
-    init->stream = 0;
-    init->restart = NULL;
 
     return nxt_main_create_worker_process(task, rt, init);
 }
@@ -587,20 +641,22 @@ nxt_main_start_router_process(nxt_task_t *task, nxt_runtime_t *rt)
 {
     nxt_process_init_t  *init;
 
-    init = nxt_malloc(sizeof(nxt_process_init_t));
+    static const nxt_str_t  name = nxt_string("router");
+
+    init = nxt_process_init_create(task, NXT_PROCESS_ROUTER, &name);
     if (nxt_slow_path(init == NULL)) {
         return NXT_ERROR;
     }
 
-    init->start = nxt_router_start;
-    init->name = "router";
-    init->user_cred = &rt->user_cred;
-    init->port_handlers = &nxt_router_process_port_handlers;
-    init->signals = nxt_worker_process_signals;
-    init->type = NXT_PROCESS_ROUTER;
-    init->data = rt;
-    init->stream = 0;
-    init->restart = &nxt_main_create_worker_process;
+    return nxt_main_create_router_process(task, rt, init);
+}
+
+
+static nxt_int_t
+nxt_main_create_router_process(nxt_task_t *task, nxt_runtime_t *rt,
+    nxt_process_init_t *init)
+{
+    nxt_main_stop_worker_processes(task, rt);
 
     return nxt_main_create_worker_process(task, rt, init);
 }
@@ -610,65 +666,78 @@ static nxt_int_t
 nxt_main_start_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
     nxt_common_app_conf_t *app_conf, uint32_t stream)
 {
-    char                *user, *group;
-    u_char              *title, *last, *end;
-    size_t              size;
+    nxt_int_t           cap_setid;
+    nxt_int_t           ret;
     nxt_process_init_t  *init;
 
-    size = sizeof(nxt_process_init_t)
-           + sizeof(nxt_user_cred_t)
-           + app_conf->user.length + 1
-           + app_conf->group.length + 1
-           + app_conf->name.length + sizeof("\"\" application");
-
-    init = nxt_malloc(size);
+    init = nxt_process_init_create(task, NXT_PROCESS_WORKER, &app_conf->name);
     if (nxt_slow_path(init == NULL)) {
         return NXT_ERROR;
     }
 
-    init->user_cred = nxt_pointer_to(init, sizeof(nxt_process_init_t));
-    user = nxt_pointer_to(init->user_cred, sizeof(nxt_user_cred_t));
+    cap_setid = rt->capabilities.setid;
 
-    nxt_memcpy(user, app_conf->user.start, app_conf->user.length);
-    last = nxt_pointer_to(user, app_conf->user.length);
-    *last++ = '\0';
+    if (app_conf->isolation != NULL) {
+        ret = nxt_init_isolation(task, app_conf->isolation, init);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            goto fail;
+        }
+    }
 
-    init->user_cred->user = user;
+#if (NXT_HAVE_CLONE_NEWUSER)
+    if (NXT_CLONE_USER(init->isolation.clone.flags)) {
+        cap_setid = 1;
+    }
+#endif
 
-    if (app_conf->group.start != NULL) {
-        group = (char *) last;
-
-        nxt_memcpy(group, app_conf->group.start, app_conf->group.length);
-        last = nxt_pointer_to(group, app_conf->group.length);
-        *last++ = '\0';
+    if (cap_setid) {
+        ret = nxt_process_init_creds_set(task, init, &app_conf->user,
+                                         &app_conf->group);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            goto fail;
+        }
 
     } else {
-        group = NULL;
+        if (!nxt_str_eq(&app_conf->user, (u_char *) rt->user_cred.user,
+                        nxt_strlen(rt->user_cred.user)))
+        {
+            nxt_alert(task, "cannot set user \"%V\" for app \"%V\": "
+                      "missing capabilities", &app_conf->user, &app_conf->name);
+            goto fail;
+        }
+
+        if (app_conf->group.length > 0
+            && !nxt_str_eq(&app_conf->group, (u_char *) rt->group,
+                           nxt_strlen(rt->group)))
+        {
+            nxt_alert(task, "cannot set group \"%V\" for app \"%V\": "
+                            "missing capabilities", &app_conf->group,
+                            &app_conf->name);
+            goto fail;
+        }
     }
 
-    if (nxt_user_cred_get(task, init->user_cred, group) != NXT_OK) {
-        return NXT_ERROR;
-    }
-
-    title = last;
-    end = title + app_conf->name.length + sizeof("\"\" application");
-
-    nxt_sprintf(title, end, "\"%V\" application%Z", &app_conf->name);
-
-    init->start = nxt_app_start;
-    init->name = (char *) title;
-    init->port_handlers = &nxt_app_process_port_handlers;
-    init->signals = nxt_worker_process_signals;
-    init->type = NXT_PROCESS_WORKER;
     init->data = app_conf;
     init->stream = stream;
-    init->restart = NULL;
+
+#if (NXT_HAVE_CLONE_NEWUSER)
+    ret = nxt_init_vldt_isolation_creds(task, init);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        goto fail;
+    }
+#endif
 
     return nxt_main_create_worker_process(task, rt, init);
+
+fail:
+
+    nxt_mp_destroy(init->mem_pool);
+
+    return NXT_ERROR;
 }
 
 
-static nxt_int_t
+nxt_int_t
 nxt_main_create_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
     nxt_process_init_t *init)
 {
@@ -683,6 +752,8 @@ nxt_main_create_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
 
     process = nxt_runtime_process_new(rt);
     if (nxt_slow_path(process == NULL)) {
+        nxt_mp_destroy(init->mem_pool);
+
         return NXT_ERROR;
     }
 
@@ -706,15 +777,18 @@ nxt_main_create_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
 
     pid = nxt_process_create(task, process);
 
-    nxt_port_use(task, port, -1);
-
     switch (pid) {
 
     case -1:
+        nxt_port_close(task, port);
+        nxt_port_use(task, port, -1);
+
         return NXT_ERROR;
 
     case 0:
         /* A worker process, return to the event engine work queue loop. */
+        nxt_port_use(task, port, -1);
+
         return NXT_AGAIN;
 
     default:
@@ -722,6 +796,8 @@ nxt_main_create_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
 
         nxt_port_read_close(port);
         nxt_port_write_enable(task, port);
+
+        nxt_port_use(task, port, -1);
 
         return NXT_OK;
     }
@@ -737,8 +813,6 @@ nxt_main_stop_all_processes(nxt_task_t *task, nxt_runtime_t *rt)
     nxt_runtime_process_each(rt, process) {
 
         if (nxt_pid != process->pid) {
-            process->init = NULL;
-
             nxt_process_port_each(process, port) {
 
                 (void) nxt_port_socket_write(task, port, NXT_PORT_MSG_QUIT,
@@ -944,12 +1018,13 @@ nxt_main_process_signal_handler(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_main_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid)
 {
-    nxt_buf_t           *buf;
-    nxt_port_t          *port;
-    nxt_runtime_t       *rt;
-    nxt_process_t       *process;
-    nxt_process_type_t  ptype;
-    nxt_process_init_t  *init;
+    nxt_buf_t              *buf;
+    nxt_port_t             *port;
+    nxt_runtime_t          *rt;
+    nxt_process_t          *process;
+    nxt_process_type_t     ptype;
+    nxt_process_init_t     *init;
+    nxt_process_restart_t  restart;
 
     rt = task->thread->runtime;
 
@@ -957,61 +1032,59 @@ nxt_main_cleanup_worker_process(nxt_task_t *task, nxt_pid_t pid)
 
     if (process) {
         init = process->init;
+        process->init = NULL;
 
         ptype = nxt_process_type(process);
+        restart = nxt_process_restarts[ptype];
 
-        if (process->ready && init != NULL) {
+        if (process->ready) {
             init->stream = 0;
         }
 
         nxt_process_close_ports(task, process);
 
-        if (!nxt_exiting) {
-            nxt_runtime_process_each(rt, process) {
-
-                if (process->pid == nxt_pid
-                    || process->pid == pid
-                    || nxt_queue_is_empty(&process->ports))
-                {
-                    continue;
-                }
-
-                port = nxt_process_port_first(process);
-
-                if (nxt_proc_remove_notify_matrix[ptype][port->type] == 0) {
-                    continue;
-                }
-
-                buf = nxt_buf_mem_ts_alloc(task, task->thread->engine->mem_pool,
-                                           sizeof(pid));
-                if (nxt_slow_path(buf == NULL)) {
-                    continue;
-                }
-
-                buf->mem.free = nxt_cpymem(buf->mem.free, &pid, sizeof(pid));
-
-                nxt_port_socket_write(task, port, NXT_PORT_MSG_REMOVE_PID,
-                                      -1, init->stream, 0, buf);
-            } nxt_runtime_process_loop;
-        }
-
         if (nxt_exiting) {
+            nxt_mp_destroy(init->mem_pool);
 
-            if (rt->nprocesses == 2) {
+            if (rt->nprocesses <= 2) {
                 nxt_runtime_quit(task, 0);
             }
 
-        } else if (init != NULL) {
-            if (init->restart != NULL) {
-                if (init->type == NXT_PROCESS_ROUTER) {
-                    nxt_main_stop_worker_processes(task, rt);
-                }
+            return;
+        }
 
-                init->restart(task, rt, init);
+        nxt_runtime_process_each(rt, process) {
 
-            } else {
-                nxt_free(init);
+            if (process->pid == nxt_pid
+                || process->pid == pid
+                || nxt_queue_is_empty(&process->ports))
+            {
+                continue;
             }
+
+            port = nxt_process_port_first(process);
+
+            if (nxt_proc_remove_notify_matrix[ptype][port->type] == 0) {
+                continue;
+            }
+
+            buf = nxt_buf_mem_ts_alloc(task, task->thread->engine->mem_pool,
+                                       sizeof(pid));
+            if (nxt_slow_path(buf == NULL)) {
+                continue;
+            }
+
+            buf->mem.free = nxt_cpymem(buf->mem.free, &pid, sizeof(pid));
+
+            nxt_port_socket_write(task, port, NXT_PORT_MSG_REMOVE_PID,
+                                  -1, init->stream, 0, buf);
+        } nxt_runtime_process_loop;
+
+        if (restart != NULL) {
+            restart(task, rt, init);
+
+        } else {
+            nxt_mp_destroy(init->mem_pool);
         }
     }
 }
@@ -1268,12 +1341,17 @@ nxt_main_port_modules_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_conf_value_t       *conf, *root, *value;
     nxt_app_lang_module_t  *lang;
 
-    static nxt_str_t   root_path = nxt_string("/");
+    static nxt_str_t root_path = nxt_string("/");
 
     rt = task->thread->runtime;
 
     if (msg->port_msg.pid != rt->port_by_type[NXT_PROCESS_DISCOVERY]->pid) {
         nxt_alert(task, "process %PI cannot send modules", msg->port_msg.pid);
+        return;
+    }
+
+    if (nxt_exiting) {
+        nxt_debug(task, "ignoring discovered modules, exiting");
         return;
     }
 
@@ -1467,4 +1545,363 @@ nxt_main_port_access_log_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         (void) nxt_port_socket_write(task, port, type, file.fd,
                                      msg->port_msg.stream, 0, NULL);
     }
+}
+
+
+static nxt_int_t
+nxt_init_isolation(nxt_task_t *task, nxt_conf_value_t *isolation,
+    nxt_process_init_t *init)
+{
+#if (NXT_HAVE_CLONE)
+    nxt_int_t         ret;
+    nxt_conf_value_t  *obj;
+
+    static nxt_str_t  nsname = nxt_string("namespaces");
+
+    obj = nxt_conf_get_object_member(isolation, &nsname, NULL);
+    if (obj != NULL) {
+        ret = nxt_init_clone_flags(task, obj, init);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            return NXT_ERROR;
+        }
+    }
+#endif
+
+#if (NXT_HAVE_CLONE_NEWUSER)
+    ret = nxt_init_isolation_creds(task, isolation, init);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        return NXT_ERROR;
+    }
+#endif
+
+    return NXT_OK;
+}
+
+
+#if (NXT_HAVE_CLONE_NEWUSER)
+
+static nxt_int_t
+nxt_init_isolation_creds(nxt_task_t *task, nxt_conf_value_t *isolation,
+    nxt_process_init_t *init)
+{
+    nxt_int_t         ret;
+    nxt_clone_t       *clone;
+    nxt_conf_value_t  *array;
+
+    static nxt_str_t uidname = nxt_string("uidmap");
+    static nxt_str_t gidname = nxt_string("gidmap");
+
+    clone = &init->isolation.clone;
+
+    array = nxt_conf_get_object_member(isolation, &uidname, NULL);
+    if (array != NULL) {
+        ret = nxt_init_isolation_credential_map(task, init->mem_pool, array,
+                                                &clone->uidmap);
+
+        if (nxt_slow_path(ret != NXT_OK)) {
+            return NXT_ERROR;
+        }
+    }
+
+    array = nxt_conf_get_object_member(isolation, &gidname, NULL);
+    if (array != NULL) {
+        ret = nxt_init_isolation_credential_map(task, init->mem_pool, array,
+                                                &clone->gidmap);
+
+        if (nxt_slow_path(ret != NXT_OK)) {
+            return NXT_ERROR;
+        }
+    }
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_init_vldt_isolation_creds(nxt_task_t *task, nxt_process_init_t *init)
+{
+    nxt_int_t    ret;
+    nxt_clone_t  *clone;
+
+    clone = &init->isolation.clone;
+
+    if (clone->uidmap.size == 0 && clone->gidmap.size == 0) {
+        return NXT_OK;
+    }
+
+    if (!NXT_CLONE_USER(clone->flags)) {
+        if (nxt_slow_path(clone->uidmap.size > 0)) {
+            nxt_log(task, NXT_LOG_ERR, "\"uidmap\" is set but "
+                    "\"isolation.namespaces.credential\" is false or unset");
+
+            return NXT_ERROR;
+        }
+
+        if (nxt_slow_path(clone->gidmap.size > 0)) {
+            nxt_log(task, NXT_LOG_ERR, "\"gidmap\" is set but "
+                    "\"isolation.namespaces.credential\" is false or unset");
+
+            return NXT_ERROR;
+        }
+
+        return NXT_OK;
+    }
+
+    ret = nxt_clone_vldt_credential_uidmap(task, &clone->uidmap,
+                                           init->user_cred);
+
+    if (nxt_slow_path(ret != NXT_OK)) {
+        return NXT_ERROR;
+    }
+
+    return nxt_clone_vldt_credential_gidmap(task, &clone->gidmap,
+                                            init->user_cred);
+}
+
+
+static nxt_int_t
+nxt_init_isolation_credential_map(nxt_task_t *task, nxt_mp_t *mem_pool,
+    nxt_conf_value_t *map_array, nxt_clone_credential_map_t *map)
+{
+    nxt_int_t         ret;
+    nxt_uint_t        i;
+    nxt_conf_value_t  *obj;
+
+    static nxt_conf_map_t  nxt_clone_map_entry_conf[] = {
+        {
+            nxt_string("container"),
+            NXT_CONF_MAP_INT,
+            offsetof(nxt_clone_map_entry_t, container),
+        },
+
+        {
+            nxt_string("host"),
+            NXT_CONF_MAP_INT,
+            offsetof(nxt_clone_map_entry_t, host),
+        },
+
+        {
+            nxt_string("size"),
+            NXT_CONF_MAP_INT,
+            offsetof(nxt_clone_map_entry_t, size),
+        },
+    };
+
+    map->size = nxt_conf_array_elements_count(map_array);
+
+    if (map->size == 0) {
+        return NXT_OK;
+    }
+
+    map->map = nxt_mp_alloc(mem_pool,
+                            map->size * sizeof(nxt_clone_map_entry_t));
+    if (nxt_slow_path(map->map == NULL)) {
+        return NXT_ERROR;
+    }
+
+    for (i = 0; i < map->size; i++) {
+        obj = nxt_conf_get_array_element(map_array, i);
+
+        ret = nxt_conf_map_object(mem_pool, obj, nxt_clone_map_entry_conf,
+                                  nxt_nitems(nxt_clone_map_entry_conf),
+                                  map->map + i);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            nxt_alert(task, "clone map entry map error");
+            return NXT_ERROR;
+        }
+    }
+
+    return NXT_OK;
+}
+
+#endif
+
+#if (NXT_HAVE_CLONE)
+
+static nxt_int_t
+nxt_init_clone_flags(nxt_task_t *task, nxt_conf_value_t *namespaces,
+    nxt_process_init_t *init)
+{
+    uint32_t          index;
+    nxt_str_t         name;
+    nxt_int_t         flag;
+    nxt_conf_value_t  *value;
+
+    index = 0;
+
+    for ( ;; ) {
+        value = nxt_conf_next_object_member(namespaces, &name, &index);
+
+        if (value == NULL) {
+            break;
+        }
+
+        flag = 0;
+
+#if (NXT_HAVE_CLONE_NEWUSER)
+        if (nxt_str_eq(&name, "credential", 10)) {
+            flag = CLONE_NEWUSER;
+        }
+#endif
+
+#if (NXT_HAVE_CLONE_NEWPID)
+        if (nxt_str_eq(&name, "pid", 3)) {
+            flag = CLONE_NEWPID;
+        }
+#endif
+
+#if (NXT_HAVE_CLONE_NEWNET)
+        if (nxt_str_eq(&name, "network", 7)) {
+            flag = CLONE_NEWNET;
+        }
+#endif
+
+#if (NXT_HAVE_CLONE_NEWUTS)
+        if (nxt_str_eq(&name, "uname", 5)) {
+            flag = CLONE_NEWUTS;
+        }
+#endif
+
+#if (NXT_HAVE_CLONE_NEWNS)
+        if (nxt_str_eq(&name, "mount", 5)) {
+            flag = CLONE_NEWNS;
+        }
+#endif
+
+#if (NXT_HAVE_CLONE_NEWCGROUP)
+        if (nxt_str_eq(&name, "cgroup", 6)) {
+            flag = CLONE_NEWCGROUP;
+        }
+#endif
+
+        if (!flag) {
+            nxt_alert(task, "unknown namespace flag: \"%V\"", &name);
+            return NXT_ERROR;
+        }
+
+        if (nxt_conf_get_boolean(value)) {
+            init->isolation.clone.flags |= flag;
+        }
+    }
+
+    return NXT_OK;
+}
+
+#endif
+
+
+static nxt_process_init_t *
+nxt_process_init_create(nxt_task_t *task, nxt_process_type_t type,
+    const nxt_str_t *name)
+{
+    nxt_mp_t            *mp;
+    nxt_int_t           ret;
+    nxt_runtime_t       *rt;
+    nxt_process_init_t  *init;
+
+    mp = nxt_mp_create(1024, 128, 256, 32);
+    if (nxt_slow_path(mp == NULL)) {
+        return NULL;
+    }
+
+    init = nxt_mp_zalloc(mp, sizeof(nxt_process_init_t));
+    if (nxt_slow_path(init == NULL)) {
+        goto fail;
+    }
+
+    init->mem_pool = mp;
+
+    ret = nxt_process_init_name_set(init, type, name);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        goto fail;
+    }
+
+    rt = task->thread->runtime;
+
+    init->type = type;
+    init->start = nxt_process_starts[type];
+    init->port_handlers = nxt_process_port_handlers[type];
+    init->signals = nxt_worker_process_signals;
+    init->user_cred = &rt->user_cred;
+    init->data = &rt;
+
+    return init;
+
+fail:
+
+    nxt_mp_destroy(mp);
+
+    return NULL;
+}
+
+
+static nxt_int_t
+nxt_process_init_name_set(nxt_process_init_t *init, nxt_process_type_t type,
+    const nxt_str_t *name)
+{
+    u_char      *str, *end;
+    size_t      size;
+    const char  *fmt;
+
+    size = name->length + 1;
+
+    if (type == NXT_PROCESS_WORKER) {
+        size += nxt_length("\"\" application");
+        fmt = "\"%V\" application%Z";
+
+    } else {
+        fmt = "%V%Z";
+    }
+
+    str = nxt_mp_alloc(init->mem_pool, size);
+    if (nxt_slow_path(str == NULL)) {
+        return NXT_ERROR;
+    }
+
+    end = str + size;
+
+    nxt_sprintf(str, end, fmt, name);
+
+    init->name = (char *) str;
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_process_init_creds_set(nxt_task_t *task, nxt_process_init_t *init,
+    nxt_str_t *user, nxt_str_t *group)
+{
+    char  *str;
+
+    init->user_cred = nxt_mp_zalloc(init->mem_pool, sizeof(nxt_credential_t));
+
+    if (nxt_slow_path(init->user_cred == NULL)) {
+        return NXT_ERROR;
+    }
+
+    str = nxt_mp_zalloc(init->mem_pool, user->length + 1);
+    if (nxt_slow_path(str == NULL)) {
+        return NXT_ERROR;
+    }
+
+    nxt_memcpy(str, user->start, user->length);
+    str[user->length] = '\0';
+
+    init->user_cred->user = str;
+
+    if (group->start != NULL) {
+        str = nxt_mp_zalloc(init->mem_pool, group->length + 1);
+        if (nxt_slow_path(str == NULL)) {
+            return NXT_ERROR;
+        }
+
+        nxt_memcpy(str, group->start, group->length);
+        str[group->length] = '\0';
+
+    } else {
+        str = NULL;
+    }
+
+    return nxt_credential_get(task, init->mem_pool, init->user_cred, str);
 }

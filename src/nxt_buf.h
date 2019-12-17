@@ -77,17 +77,17 @@ struct nxt_buf_s {
 
     uint32_t                retain;
 
-    uint8_t                 is_file;     /* 1 bit */
+    uint8_t                 cache_hint;
 
-    uint16_t                is_mmap:1;
-    uint16_t                is_port_mmap:1;
-
-    uint16_t                is_sync:1;
-    uint16_t                is_nobuf:1;
-    uint16_t                is_flush:1;
-    uint16_t                is_last:1;
-    uint16_t                is_port_mmap_sent:1;
-    uint16_t                is_ts:1;
+    uint8_t                 is_file:1;
+    uint8_t                 is_mmap:1;
+    uint8_t                 is_port_mmap:1;
+    uint8_t                 is_sync:1;
+    uint8_t                 is_nobuf:1;
+    uint8_t                 is_flush:1;
+    uint8_t                 is_last:1;
+    uint8_t                 is_port_mmap_sent:1;
+    uint8_t                 is_ts:1;
 
     nxt_buf_mem_t           mem;
 
@@ -250,6 +250,7 @@ NXT_EXPORT nxt_buf_t *nxt_buf_sync_alloc(nxt_mp_t *mp, nxt_uint_t flags);
 
 NXT_EXPORT nxt_int_t nxt_buf_ts_handle(nxt_task_t *task, void *obj, void *data);
 
+NXT_EXPORT void nxt_buf_parent_completion(nxt_task_t *task, nxt_buf_t *parent);
 NXT_EXPORT nxt_buf_t *nxt_buf_make_plain(nxt_mp_t *mp, nxt_buf_t *src,
     size_t size);
 

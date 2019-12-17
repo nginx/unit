@@ -1,4 +1,57 @@
 
+Changes with Unit 1.13.0                                         14 Nov 2019
+
+    *) Feature: basic support for HTTP reverse proxying.
+
+    *) Feature: compatibility with Python 3.8.
+
+    *) Bugfix: memory leak in Python application processes when the close
+       handler was used.
+
+    *) Bugfix: threads in Python applications might not work correctly.
+
+    *) Bugfix: Ruby on Rails applications might not work on Ruby 2.6.
+
+    *) Bugfix: backtraces for uncaught exceptions in Python 3 might be
+       logged with significant delays.
+
+    *) Bugfix: explicit setting a namespaces isolation option to false might
+       have enabled it.
+
+
+Changes with Unit 1.12.0                                         03 Oct 2019
+
+    *) Feature: compatibility with PHP 7.4.
+
+    *) Bugfix: descriptors leak on process creation; the bug had appeared in
+       1.11.0.
+
+    *) Bugfix: TLS connection might be closed prematurely while sending
+       response.
+
+    *) Bugfix: segmentation fault might have occurred if an irregular file
+       was requested.
+
+
+Changes with Unit 1.11.0                                         19 Sep 2019
+
+    *) Feature: basic support for serving static files.
+
+    *) Feature: isolation of application processes with Linux namespaces.
+
+    *) Feature: built-in WebSocket server implementation for Java Servlet
+       Containers.
+
+    *) Feature: direct addressing of API configuration options containing
+       slashes "/" using URI encoding (%2F).
+
+    *) Bugfix: segmentation fault might have occurred in Go applications
+       under high load.
+
+    *) Bugfix: WebSocket support was broken if Unit was built with some
+       linkers other than GNU ld (e.g. gold or LLD).
+
+
 Changes with Unit 1.10.0                                         22 Aug 2019
 
     *) Change: matching of cookies in routes made case sensitive.

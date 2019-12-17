@@ -14,6 +14,7 @@ case "$NXT_SYSTEM" in
         NXT_SYSTEM_PLATFORM=`uname -m 2>/dev/null`
         echo=echo
         CC=${CC:-cc}
+        AR=${AR:-ar}
         ;;
 
     FreeBSD | NetBSD | OpenBSD | DragonFly)
@@ -21,6 +22,7 @@ case "$NXT_SYSTEM" in
         NXT_SYSTEM_PLATFORM=`uname -m 2>/dev/null`
         echo=echo
         CC=${CC:-cc}
+        AR=${AR:-ar}
         ;;
 
     SunOS)
@@ -28,6 +30,7 @@ case "$NXT_SYSTEM" in
         NXT_SYSTEM_PLATFORM=`uname -p 2>/dev/null`
         echo=echo
         CC=${CC:-gcc}
+        AR=${AR:-ar}
 
         NXT_TEST_CFLAGS="$NXT_TEST_CFLAGS -D_XOPEN_SOURCE"
         NXT_TEST_CFLAGS="$NXT_TEST_CFLAGS -D_XOPEN_SOURCE_EXTENDED=1"
@@ -40,6 +43,7 @@ case "$NXT_SYSTEM" in
         NXT_SYSTEM_PLATFORM=`uname -m 2>/dev/null`
         echo=echo
         CC=${CC:-cc}
+        AR=${AR:-ar}
         ;;
 
     AIX)
@@ -47,6 +51,7 @@ case "$NXT_SYSTEM" in
         NXT_SYSTEM_PLATFORM=`uname -p 2>/dev/null`
         echo=echo
         CC=${CC:-gcc}
+        AR=${AR:-ar}
         ;;
 
     HP-UX)
@@ -54,6 +59,7 @@ case "$NXT_SYSTEM" in
         NXT_SYSTEM_PLATFORM=`uname -m 2>/dev/null`
         echo=echo
         CC=${CC:-gcc}
+        AR=${AR:-ar}
 
         NXT_TEST_CFLAGS="$NXT_TEST_CFLAGS -D_XOPEN_SOURCE"
         NXT_TEST_CFLAGS="$NXT_TEST_CFLAGS -D_XOPEN_SOURCE_EXTENDED"
@@ -65,6 +71,7 @@ case "$NXT_SYSTEM" in
         NXT_SYSTEM_PLATFORM=`uname -p 2>/dev/null`
         echo=echo
         CC=${CC:-gcc}
+        AR=${AR:-ar}
         ;;
 
     MINGW*)
@@ -76,6 +83,7 @@ case "$NXT_SYSTEM" in
         NXT_SYSTEM_PLATFORM=`uname -m 2>/dev/null`
         echo=auto/echo/echo.exe
         CC=${CC:-cl}
+        AR=${AR:-ar}
         NXT_WINDOWS=YES
         ;;
 
@@ -84,6 +92,7 @@ case "$NXT_SYSTEM" in
         NXT_SYSTEM_PLATFORM=`uname -p 2>/dev/null`
         echo=echo
         CC=${CC:-gcc}
+        AR=${AR:-ar}
         ;;
 
 esac

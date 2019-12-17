@@ -20,6 +20,8 @@ struct nxt_h1proto_s {
     nxt_http_request_parse_t  parser;
 
     uint8_t                   nbuffers;
+    uint8_t                   header_buffer_slot;
+    uint8_t                   large_buffer_slot;
     uint8_t                   keepalive;            /* 1 bit  */
     uint8_t                   chunked;              /* 1 bit  */
     uint8_t                   websocket;            /* 1 bit  */

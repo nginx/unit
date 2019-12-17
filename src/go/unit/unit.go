@@ -13,6 +13,7 @@ import "C"
 import (
 	"fmt"
 	"net/http"
+	"sync"
 	"unsafe"
 )
 
@@ -87,12 +88,58 @@ func nxt_go_warn(format string, args ...interface{}) {
 	C.nxt_cgo_warn(str_ref(str), C.uint32_t(len(str)))
 }
 
+type handler_registry struct {
+	sync.RWMutex
+	next uintptr
+	m map[uintptr]*http.Handler
+}
+
+var handler_registry_ handler_registry
+
+func set_handler(handler *http.Handler) uintptr {
+
+	handler_registry_.Lock()
+	if handler_registry_.m == nil {
+		handler_registry_.m = make(map[uintptr]*http.Handler)
+		handler_registry_.next = 1
+	}
+
+	h := handler_registry_.next
+	handler_registry_.next += 1
+	handler_registry_.m[h] = handler
+
+	handler_registry_.Unlock()
+
+	return h
+}
+
+func get_handler(h uintptr) http.Handler {
+	handler_registry_.RLock()
+	defer handler_registry_.RUnlock()
+
+	return *handler_registry_.m[h]
+}
+
+func reset_handler(h uintptr) {
+
+	handler_registry_.Lock()
+	if handler_registry_.m != nil {
+		delete(handler_registry_.m, h)
+	}
+
+	handler_registry_.Unlock()
+}
+
 func ListenAndServe(addr string, handler http.Handler) error {
 	if handler == nil {
 		handler = http.DefaultServeMux
 	}
 
-	rc := C.nxt_cgo_run(C.uintptr_t(uintptr(unsafe.Pointer(&handler))))
+	h := set_handler(&handler)
+
+	rc := C.nxt_cgo_run(C.uintptr_t(h))
+
+	reset_handler(h)
 
 	if rc != 0 {
 		return http.ListenAndServe(addr, handler)

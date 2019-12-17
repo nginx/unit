@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import stat
 import time
 import fcntl
 import shutil
@@ -12,8 +13,6 @@ import subprocess
 from multiprocessing import Process
 
 
-available_modules = {}
-
 class TestUnit(unittest.TestCase):
 
     current_dir = os.path.abspath(
@@ -22,12 +21,16 @@ class TestUnit(unittest.TestCase):
     pardir = os.path.abspath(
         os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
     )
+    is_su = os.geteuid() == 0
+    uid = os.geteuid()
+    gid = os.getegid()
     architecture = platform.architecture()[0]
     system = platform.system()
     maxDiff = None
 
     detailed = False
     save_log = False
+    unsafe = False
 
     def __init__(self, methodName='runTest'):
         super().__init__(methodName)
@@ -41,10 +44,12 @@ class TestUnit(unittest.TestCase):
         if not hasattr(self, 'application_type'):
             return super().run(result)
 
+        # rerun test for each available module version
+
         type = self.application_type
-        for prerequisite in self.prerequisites:
-            if prerequisite in available_modules:
-                for version in available_modules[prerequisite]:
+        for module in self.prerequisites['modules']:
+            if module in self.available['modules']:
+                for version in self.available['modules'][module]:
                     self.application_type = type + ' ' + version
                     super().run(result)
 
@@ -63,8 +68,83 @@ class TestUnit(unittest.TestCase):
         unittest.main()
 
     @classmethod
-    def setUpClass(cls):
-        TestUnit().check_modules(*cls.prerequisites)
+    def setUpClass(cls, complete_check=True):
+        cls.available = {'modules': {}, 'features': {}}
+        unit = TestUnit()
+
+        unit._run()
+
+        # read unit.log
+
+        for i in range(50):
+            with open(unit.testdir + '/unit.log', 'r') as f:
+                log = f.read()
+                m = re.search('controller started', log)
+
+                if m is None:
+                    time.sleep(0.1)
+                else:
+                    break
+
+        if m is None:
+            unit.stop()
+            exit("Unit is writing log too long")
+
+        # discover available modules from unit.log
+
+        for module in re.findall(r'module: ([a-zA-Z]+) (.*) ".*"$', log, re.M):
+            if module[0] not in cls.available['modules']:
+                cls.available['modules'][module[0]] = [module[1]]
+            else:
+                cls.available['modules'][module[0]].append(module[1])
+
+        def check(available, prerequisites):
+            missed = []
+
+            # check modules
+
+            if 'modules' in prerequisites:
+                available_modules = list(available['modules'].keys())
+
+                for module in prerequisites['modules']:
+                    if module in available_modules:
+                        continue
+
+                    missed.append(module)
+
+            if missed:
+                print('Unit has no ' + ', '.join(missed) + ' module(s)')
+                raise unittest.SkipTest()
+
+            # check features
+
+            if 'features' in prerequisites:
+                available_features = list(available['features'].keys())
+
+                for feature in prerequisites['features']:
+                    if feature in available_features:
+                        continue
+
+                    missed.append(feature)
+
+            if missed:
+                print(', '.join(missed) + ' feature(s) not supported')
+                raise unittest.SkipTest()
+
+        def destroy():
+            unit.stop()
+            unit._check_alerts(log)
+            shutil.rmtree(unit.testdir)
+
+        def complete():
+            destroy()
+            check(cls.available, cls.prerequisites)
+
+        if complete_check:
+            complete()
+        else:
+            unit.complete = complete
+            return unit
 
     def setUp(self):
         self._run()
@@ -105,103 +185,25 @@ class TestUnit(unittest.TestCase):
         else:
             self._print_path_to_log()
 
-    def check_modules(self, *modules):
-        self._run()
-
-        for i in range(50):
-            with open(self.testdir + '/unit.log', 'r') as f:
-                log = f.read()
-                m = re.search('controller started', log)
-
-                if m is None:
-                    time.sleep(0.1)
-                else:
-                    break
-
-        if m is None:
-            self.stop()
-            exit("Unit is writing log too long")
-
-        # discover all available modules
-
-        global available_modules
-        available_modules = {}
-        for module in re.findall(r'module: ([a-zA-Z]+) (.*) ".*"$', log, re.M):
-            if module[0] not in available_modules:
-                available_modules[module[0]] = [module[1]]
-            else:
-                available_modules[module[0]].append(module[1])
-
-        missed_module = ''
-        for module in modules:
-            if module == 'go':
-                env = os.environ.copy()
-                env['GOPATH'] = self.pardir + '/go'
-
-                try:
-                    process = subprocess.Popen(
-                        [
-                            'go',
-                            'build',
-                            '-o',
-                            self.testdir + '/go/check_module',
-                            self.current_dir + '/go/empty/app.go',
-                        ],
-                        env=env,
-                    )
-                    process.communicate()
-
-                    m = module if process.returncode == 0 else None
-
-                except:
-                    m = None
-
-            elif module == 'node':
-                if os.path.isdir(self.pardir + '/node/node_modules'):
-                    m = module
-                else:
-                    m = None
-
-            elif module == 'openssl':
-                try:
-                    subprocess.check_output(['which', 'openssl'])
-
-                    output = subprocess.check_output(
-                        [self.unitd, '--version'],
-                        stderr=subprocess.STDOUT,
-                    )
-
-                    m = re.search('--openssl', output.decode())
-
-                except:
-                    m = None
-
-            else:
-                if module not in available_modules:
-                    m = None
-
-            if m is None:
-                missed_module = module
-                break
-
-        self.stop()
-        self._check_alerts(log)
-        shutil.rmtree(self.testdir)
-
-        if missed_module:
-            raise unittest.SkipTest('Unit has no ' + missed_module + ' module')
-
     def stop(self):
         if self._started:
             self._stop()
 
+        self.stop_processes()
+
     def _run(self):
-        self.unitd = self.pardir + '/build/unitd'
+        build_dir = self.pardir + '/build'
+        self.unitd = build_dir + '/unitd'
 
         if not os.path.isfile(self.unitd):
             exit("Could not find unit")
 
         self.testdir = tempfile.mkdtemp(prefix='unit-test-')
+
+        self.public_dir(self.testdir)
+
+        if oct(stat.S_IMODE(os.stat(build_dir).st_mode)) != '0o777':
+            self.public_dir(build_dir)
 
         os.mkdir(self.testdir + '/state')
 
@@ -250,24 +252,24 @@ class TestUnit(unittest.TestCase):
                 break
             time.sleep(0.1)
 
+        self._p.join(timeout=5)
+
+        if self._p.is_alive():
+            self._p.terminate()
+            self._p.join(timeout=5)
+
+        if self._p.is_alive():
+            self.fail("Could not terminate process " + str(self._p.pid))
+
         if os.path.exists(self.testdir + '/unit.pid'):
-            exit("Could not terminate unit")
+            self.fail("Could not terminate unit")
 
         self._started = False
 
-        self._p.join(timeout=1)
-        self._terminate_process(self._p)
-
-    def _terminate_process(self, process):
-        if process.is_alive():
-            process.terminate()
-            process.join(timeout=5)
-
-            if process.is_alive():
-                exit("Could not terminate process " + process.pid)
-
-        if process.exitcode:
-            exit("Child process terminated with code " + str(process.exitcode))
+        if self._p.exitcode:
+            self.fail(
+                "Child process terminated with code " + str(self._p.exitcode)
+            )
 
     def _check_alerts(self, log):
         found = False
@@ -297,6 +299,26 @@ class TestUnit(unittest.TestCase):
         if found:
             print('skipped.')
 
+    def run_process(self, target):
+        if not hasattr(self, '_processes'):
+            self._processes = []
+
+        process = Process(target=target)
+        process.start()
+
+        self._processes.append(process)
+
+    def stop_processes(self):
+        if not hasattr(self, '_processes'):
+            return
+
+        for process in self._processes:
+            process.terminate()
+            process.join(timeout=5)
+
+            if process.is_alive():
+                self.fail('Fail to stop process')
+
     def waitforfiles(self, *files):
         for i in range(50):
             wait = False
@@ -315,6 +337,15 @@ class TestUnit(unittest.TestCase):
                 break
 
         return ret
+
+    def public_dir(self, path):
+        os.chmod(path, 0o777)
+
+        for root, dirs, files in os.walk(path):
+            for d in dirs:
+                os.chmod(os.path.join(root, d), 0o777)
+            for f in files:
+                os.chmod(os.path.join(root, f), 0o777)
 
     @staticmethod
     def _parse_args():
@@ -349,6 +380,8 @@ class TestUnit(unittest.TestCase):
         TestUnit.detailed = args.detailed
         TestUnit.save_log = args.save_log
         TestUnit.unsafe = args.unsafe
+
+        # set stdout to non-blocking
 
         if TestUnit.detailed:
             fcntl.fcntl(sys.stdout.fileno(), fcntl.F_SETFL, 0)

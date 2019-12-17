@@ -16,6 +16,8 @@
 #define NXT_CONF_MAX_SHORT_STRING  14
 #define NXT_CONF_MAX_STRING        NXT_INT32_T_MAX
 
+#define NXT_CONF_MAX_TOKEN_LEN     256
+
 
 typedef enum {
     NXT_CONF_VALUE_NULL = 0,
@@ -89,6 +91,17 @@ struct nxt_conf_op_s {
     void                      *ctx;
 };
 
+
+typedef struct {
+    u_char                    *start;
+    u_char                    *end;
+    nxt_bool_t                last;
+    u_char                    buf[NXT_CONF_MAX_TOKEN_LEN];
+} nxt_conf_path_parse_t;
+
+
+static nxt_int_t nxt_conf_path_next_token(nxt_conf_path_parse_t *parse,
+    nxt_str_t *token);
 
 static u_char *nxt_conf_json_skip_space(u_char *start, u_char *end);
 static u_char *nxt_conf_json_parse_value(nxt_mp_t *mp, nxt_conf_value_t *value,
@@ -212,6 +225,13 @@ int64_t
 nxt_conf_get_integer(nxt_conf_value_t *value)
 {
     return value->u.integer;
+}
+
+
+uint8_t
+nxt_conf_get_boolean(nxt_conf_value_t *value)
+{
+    return value->u.boolean;
 }
 
 
@@ -402,22 +422,11 @@ nxt_conf_type(nxt_conf_value_t *value)
 }
 
 
-typedef struct {
-    u_char      *start;
-    u_char      *end;
-    nxt_bool_t  last;
-} nxt_conf_path_parse_t;
-
-
-static void nxt_conf_path_next_token(nxt_conf_path_parse_t *parse,
-    nxt_str_t *token);
-
-
 nxt_conf_value_t *
 nxt_conf_get_path(nxt_conf_value_t *value, nxt_str_t *path)
 {
     nxt_str_t              token;
-    nxt_int_t              index;
+    nxt_int_t              ret, index;
     nxt_conf_path_parse_t  parse;
 
     parse.start = path->start;
@@ -425,7 +434,10 @@ nxt_conf_get_path(nxt_conf_value_t *value, nxt_str_t *path)
     parse.last = 0;
 
     do {
-        nxt_conf_path_next_token(&parse, &token);
+        ret = nxt_conf_path_next_token(&parse, &token);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            return NULL;
+        }
 
         if (token.length == 0) {
 
@@ -466,24 +478,38 @@ nxt_conf_get_path(nxt_conf_value_t *value, nxt_str_t *path)
 }
 
 
-static void
+static nxt_int_t
 nxt_conf_path_next_token(nxt_conf_path_parse_t *parse, nxt_str_t *token)
 {
-    u_char  *p, *end;
+    u_char  *p, *start, *end;
+    size_t  length;
 
-    end = parse->end;
-    p = parse->start + 1;
+    start = parse->start + 1;
 
-    token->start = p;
+    p = start;
 
-    while (p < end && *p != '/') {
+    while (p < parse->end && *p != '/') {
         p++;
     }
 
     parse->start = p;
-    parse->last = (p >= end);
+    parse->last = (p >= parse->end);
 
-    token->length = p - token->start;
+    length = p - start;
+
+    if (nxt_slow_path(length > NXT_CONF_MAX_TOKEN_LEN)) {
+        return NXT_ERROR;
+    }
+
+    end = nxt_decode_uri(parse->buf, start, length);
+    if (nxt_slow_path(end == NULL)) {
+        return NXT_ERROR;
+    }
+
+    token->length = end - parse->buf;
+    token->start = parse->buf;
+
+    return NXT_OK;
 }
 
 
@@ -742,7 +768,7 @@ nxt_conf_op_compile(nxt_mp_t *mp, nxt_conf_op_t **ops, nxt_conf_value_t *root,
     nxt_str_t *path, nxt_conf_value_t *value, nxt_bool_t add)
 {
     nxt_str_t                 token;
-    nxt_int_t                 index;
+    nxt_int_t                 ret, index;
     nxt_conf_op_t             *op, **parent;
     nxt_conf_value_t          *node;
     nxt_conf_path_parse_t     parse;
@@ -763,7 +789,10 @@ nxt_conf_op_compile(nxt_mp_t *mp, nxt_conf_op_t **ops, nxt_conf_value_t *root,
         *parent = op;
         parent = (nxt_conf_op_t **) &op->ctx;
 
-        nxt_conf_path_next_token(&parse, &token);
+        ret = nxt_conf_path_next_token(&parse, &token);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            return NXT_CONF_OP_ERROR;
+        }
 
         switch (root->type) {
 
@@ -857,7 +886,10 @@ nxt_conf_op_compile(nxt_mp_t *mp, nxt_conf_op_t **ops, nxt_conf_value_t *root,
             return NXT_CONF_OP_ERROR;
         }
 
-        nxt_conf_set_string(&member->name, &token);
+        ret = nxt_conf_set_string_dup(&member->name, mp, &token);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            return NXT_CONF_OP_ERROR;
+        }
 
         member->value = *value;
 

@@ -599,7 +599,6 @@ nxt_openssl_conn_handshake(nxt_task_t *task, void *obj, void *data)
 
         default:
         case NXT_ERROR:
-            c->socket.error = err;
             nxt_openssl_conn_error(task, err, "SSL_do_handshake(%d) failed",
                                    c->socket.fd);
 
@@ -644,7 +643,6 @@ nxt_openssl_conn_io_recvbuf(nxt_conn_t *c, nxt_buf_t *b)
     n = nxt_openssl_conn_test_error(c->socket.task, c, ret, err,
                                     NXT_OPENSSL_READ);
     if (n == NXT_ERROR) {
-        c->socket.error = err;
         nxt_openssl_conn_error(c->socket.task, err,
                                "SSL_read(%d, %p, %uz) failed",
                                c->socket.fd, b->mem.free, size);
@@ -684,13 +682,7 @@ nxt_openssl_conn_io_send(nxt_task_t *task, nxt_sendbuf_t *sb, void *buf,
 
     ret = SSL_write(tls->session, buf, size);
 
-    if (ret <= 0) {
-        err = nxt_socket_errno;
-        sb->error = err;
-
-    } else {
-        err = 0;
-    }
+    err = (ret <= 0) ? nxt_socket_errno : 0;
 
     nxt_debug(task, "SSL_write(%d, %p, %uz): %d err:%d",
               sb->socket, buf, size, ret, err);
@@ -701,15 +693,13 @@ nxt_openssl_conn_io_send(nxt_task_t *task, nxt_sendbuf_t *sb, void *buf,
 
     c = tls->conn;
     c->socket.write_ready = sb->ready;
-    c->socket.error = sb->error;
 
     n = nxt_openssl_conn_test_error(task, c, ret, err, NXT_OPENSSL_WRITE);
 
     sb->ready = c->socket.write_ready;
-    sb->error = c->socket.error;
 
     if (n == NXT_ERROR) {
-        sb->error = err;
+        sb->error = c->socket.error;
         nxt_openssl_conn_error(task, err, "SSL_write(%d, %p, %uz) failed",
                                sb->socket, buf, size);
     }
@@ -825,7 +815,6 @@ nxt_openssl_conn_io_shutdown(nxt_task_t *task, void *obj, void *data)
 
     default:
     case NXT_ERROR:
-        c->socket.error = err;
         nxt_openssl_conn_error(task, err, "SSL_shutdown(%d) failed",
                                c->socket.fd);
         handler = c->write_state->error_handler;
@@ -886,6 +875,7 @@ nxt_openssl_conn_test_error(nxt_task_t *task, nxt_conn_t *c, int ret,
         nxt_debug(task, "ERR_peek_error(): %l", lib_err);
 
         if (sys_err != 0 || lib_err != 0) {
+            c->socket.error = sys_err;
             return NXT_ERROR;
         }
 

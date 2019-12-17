@@ -1,0 +1,57 @@
+# Copyright (C) Igor Sysoev
+# Copyright (C) NGINX, Inc.
+
+# Linux clone syscall.
+
+NXT_ISOLATION=NO
+NXT_HAVE_CLONE=NO
+NXT_HAVE_CLONE_NEWUSER=NO
+
+nsflags="USER NS PID NET UTS CGROUP"
+
+nxt_feature="clone(2)"
+nxt_feature_name=NXT_HAVE_CLONE
+nxt_feature_run=no
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <sys/wait.h>
+                  #include <sys/syscall.h>
+
+                  int main() {
+                      return __NR_clone | SIGCHLD;
+                  }"
+. auto/feature
+
+if [ $nxt_found = yes ]; then
+    NXT_HAVE_CLONE=YES
+
+    # Test all isolation flags
+    for flag in $nsflags; do
+        nxt_feature="CLONE_NEW${flag}"
+        nxt_feature_name=NXT_HAVE_CLONE_NEW${flag}
+        nxt_feature_run=no
+        nxt_feature_incs=
+        nxt_feature_libs=
+        nxt_feature_test="#define _GNU_SOURCE
+                          #include <sys/wait.h>
+                          #include <sys/syscall.h>
+                          #include <sched.h>
+
+                          int main() {
+                              return CLONE_NEW$flag;
+                         }"
+        . auto/feature
+
+        if [ $nxt_found = yes ]; then
+            if [ $flag = "USER" ]; then
+                NXT_HAVE_CLONE_NEWUSER=YES
+            fi
+
+            if [ "$NXT_ISOLATION" = "NO" ]; then
+                NXT_ISOLATION=$flag
+            else
+                NXT_ISOLATION="$NXT_ISOLATION $flag"
+            fi
+        fi
+    done
+fi

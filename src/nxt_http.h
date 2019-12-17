@@ -9,6 +9,7 @@
 
 
 typedef enum {
+    NXT_HTTP_UNSET = -1,
     NXT_HTTP_INVALID = 0,
 
     NXT_HTTP_CONTINUE = 100,
@@ -24,7 +25,9 @@ typedef enum {
     NXT_HTTP_NOT_MODIFIED = 304,
 
     NXT_HTTP_BAD_REQUEST = 400,
+    NXT_HTTP_FORBIDDEN = 403,
     NXT_HTTP_NOT_FOUND = 404,
+    NXT_HTTP_METHOD_NOT_ALLOWED = 405,
     NXT_HTTP_REQUEST_TIMEOUT = 408,
     NXT_HTTP_LENGTH_REQUIRED = 411,
     NXT_HTTP_PAYLOAD_TOO_LARGE = 413,
@@ -103,6 +106,21 @@ typedef struct {
 } nxt_http_response_t;
 
 
+typedef struct {
+    nxt_http_proto_t                proto;
+    nxt_http_request_t              *request;
+    nxt_sockaddr_t                  *sockaddr;
+    nxt_list_t                      *fields;
+    nxt_buf_t                       *body;
+    nxt_off_t                       remainder;
+
+    nxt_http_status_t               status:16;
+    nxt_http_protocol_t             protocol:8;       /* 2 bits */
+    uint8_t                         header_received;  /* 1 bit  */
+    uint8_t                         closed;           /* 1 bit  */
+} nxt_http_peer_t;
+
+
 struct nxt_http_request_s {
     nxt_http_proto_t                proto;
     nxt_socket_conf_joint_t         *conf;
@@ -135,12 +153,14 @@ struct nxt_http_request_s {
     nxt_sockaddr_t                  *remote;
     nxt_sockaddr_t                  *local;
     void                            *tls;
+    nxt_task_t                      task;
 
     nxt_timer_t                     timer;
     void                            *timer_data;
 
     void                            *req_rpc_data;
 
+    nxt_http_peer_t                 *peer;
     nxt_buf_t                       *last;
 
     nxt_http_response_t             resp;
@@ -151,20 +171,23 @@ struct nxt_http_request_s {
     nxt_http_protocol_t             protocol:8;   /* 2 bits */
     uint8_t                         logged;       /* 1 bit  */
     uint8_t                         header_sent;  /* 1 bit  */
+    uint8_t                         inconsistent; /* 1 bit  */
     uint8_t                         error;        /* 1 bit  */
     uint8_t                         websocket_handshake;  /* 1 bit */
 };
 
 
 typedef struct nxt_http_route_s     nxt_http_route_t;
+typedef struct nxt_http_upstream_s  nxt_http_upstream_t;
 
 
-struct nxt_http_pass_s {
-    nxt_http_pass_t                 *(*handler)(nxt_task_t *task,
+struct nxt_http_action_s {
+    nxt_http_action_t               *(*handler)(nxt_task_t *task,
                                         nxt_http_request_t *r,
-                                        nxt_http_pass_t *pass);
+                                        nxt_http_action_t *action);
     union {
         nxt_http_route_t            *route;
+        nxt_http_upstream_t         *upstream;
         nxt_app_t                   *application;
     } u;
 
@@ -176,15 +199,41 @@ typedef struct {
     void (*body_read)(nxt_task_t *task, nxt_http_request_t *r);
     void (*local_addr)(nxt_task_t *task, nxt_http_request_t *r);
     void (*header_send)(nxt_task_t *task, nxt_http_request_t *r,
-         nxt_work_handler_t body_handler);
+         nxt_work_handler_t body_handler, void *data);
     void (*send)(nxt_task_t *task, nxt_http_request_t *r, nxt_buf_t *out);
     nxt_off_t (*body_bytes_sent)(nxt_task_t *task, nxt_http_proto_t proto);
     void (*discard)(nxt_task_t *task, nxt_http_request_t *r, nxt_buf_t *last);
     void (*close)(nxt_task_t *task, nxt_http_proto_t proto,
         nxt_socket_conf_joint_t *joint);
+
+    void (*peer_connect)(nxt_task_t *task, nxt_http_peer_t *peer);
+    void (*peer_header_send)(nxt_task_t *task, nxt_http_peer_t *peer);
+    void (*peer_header_read)(nxt_task_t *task, nxt_http_peer_t *peer);
+    void (*peer_read)(nxt_task_t *task, nxt_http_peer_t *peer);
+    void (*peer_close)(nxt_task_t *task, nxt_http_peer_t *peer);
+
     void (*ws_frame_start)(nxt_task_t *task, nxt_http_request_t *r,
         nxt_buf_t *ws_frame);
 } nxt_http_proto_table_t;
+
+
+#define NXT_HTTP_DATE_LEN  nxt_length("Wed, 31 Dec 1986 16:40:00 GMT")
+
+nxt_inline u_char *
+nxt_http_date(u_char *buf, struct tm *tm)
+{
+    static const char  *week[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri",
+                                   "Sat" };
+
+    static const char  *month[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+
+    return nxt_sprintf(buf, buf + NXT_HTTP_DATE_LEN,
+                       "%s, %02d %s %4d %02d:%02d:%02d GMT",
+                       week[tm->tm_wday], tm->tm_mday,
+                       month[tm->tm_mon], tm->tm_year + 1900,
+                       tm->tm_hour, tm->tm_min, tm->tm_sec);
+}
 
 
 nxt_int_t nxt_http_init(nxt_task_t *task, nxt_runtime_t *rt);
@@ -197,7 +246,7 @@ void nxt_http_request_error(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_status_t status);
 void nxt_http_request_read_body(nxt_task_t *task, nxt_http_request_t *r);
 void nxt_http_request_header_send(nxt_task_t *task, nxt_http_request_t *r,
-    nxt_work_handler_t body_handler);
+    nxt_work_handler_t body_handler, void *data);
 void nxt_http_request_ws_frame_start(nxt_task_t *task, nxt_http_request_t *r,
     nxt_buf_t *ws_frame);
 void nxt_http_request_send(nxt_task_t *task, nxt_http_request_t *r,
@@ -217,16 +266,36 @@ nxt_int_t nxt_http_request_content_length(void *ctx, nxt_http_field_t *field,
 
 nxt_http_routes_t *nxt_http_routes_create(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_conf_value_t *routes_conf);
-nxt_http_pass_t *nxt_http_pass_create(nxt_task_t *task,
+nxt_http_action_t *nxt_http_action_create(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_str_t *name);
 void nxt_http_routes_resolve(nxt_task_t *task, nxt_router_temp_conf_t *tmcf);
-nxt_http_pass_t *nxt_http_pass_application(nxt_task_t *task,
+nxt_http_action_t *nxt_http_pass_application(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_str_t *name);
 void nxt_http_routes_cleanup(nxt_task_t *task, nxt_http_routes_t *routes);
-void nxt_http_pass_cleanup(nxt_task_t *task, nxt_http_pass_t *pass);
+void nxt_http_action_cleanup(nxt_task_t *task, nxt_http_action_t *action);
 
-nxt_http_pass_t *nxt_http_request_application(nxt_task_t *task,
-    nxt_http_request_t *r, nxt_http_pass_t *pass);
+nxt_http_action_t *nxt_http_static_handler(nxt_task_t *task,
+    nxt_http_request_t *r, nxt_http_action_t *action);
+nxt_int_t nxt_http_static_mtypes_init(nxt_mp_t *mp, nxt_lvlhsh_t *hash);
+nxt_int_t nxt_http_static_mtypes_hash_add(nxt_mp_t *mp, nxt_lvlhsh_t *hash,
+    nxt_str_t *extension, nxt_str_t *type);
+nxt_str_t *nxt_http_static_mtypes_hash_find(nxt_lvlhsh_t *hash,
+    nxt_str_t *extension);
+
+nxt_http_action_t *nxt_http_application_handler(nxt_task_t *task,
+    nxt_http_request_t *r, nxt_http_action_t *action);
+
+nxt_int_t nxt_http_proxy_create(nxt_mp_t *mp, nxt_http_action_t *action);
+nxt_int_t nxt_http_proxy_date(void *ctx, nxt_http_field_t *field,
+    uintptr_t data);
+nxt_int_t nxt_http_proxy_content_length(void *ctx, nxt_http_field_t *field,
+    uintptr_t data);
+nxt_int_t nxt_http_proxy_skip(void *ctx, nxt_http_field_t *field,
+    uintptr_t data);
+nxt_buf_t *nxt_http_proxy_buf_mem_alloc(nxt_task_t *task, nxt_http_request_t *r,
+    size_t size);
+void nxt_http_proxy_buf_mem_free(nxt_task_t *task, nxt_http_request_t *r,
+    nxt_buf_t *b);
 
 extern nxt_time_string_t  nxt_http_date_cache;
 

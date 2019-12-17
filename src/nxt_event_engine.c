@@ -556,19 +556,19 @@ nxt_event_engine_start(nxt_event_engine_t *engine)
 
 
 void *
-nxt_event_engine_mem_alloc(nxt_event_engine_t *engine, uint8_t *slot,
+nxt_event_engine_mem_alloc(nxt_event_engine_t *engine, uint8_t *hint,
     size_t size)
 {
-    uint8_t                n;
+    uint32_t               n;
     nxt_uint_t             items;
     nxt_array_t            *mem_cache;
     nxt_mem_cache_t        *cache;
     nxt_mem_cache_block_t  *block;
 
     mem_cache = engine->mem_cache;
-    n = *slot;
+    n = *hint;
 
-    if (n == (uint8_t) -1) {
+    if (n == NXT_EVENT_ENGINE_NO_MEM_HINT) {
 
         if (mem_cache == NULL) {
             /* IPv4 nxt_sockaddr_t and HTTP/1 and HTTP/2 buffers. */
@@ -607,7 +607,9 @@ nxt_event_engine_mem_alloc(nxt_event_engine_t *engine, uint8_t *slot,
 
     found:
 
-        *slot = n;
+        if (n < NXT_EVENT_ENGINE_NO_MEM_HINT) {
+            *hint = (uint8_t) n;
+        }
     }
 
     cache = mem_cache->elts;
@@ -626,15 +628,39 @@ nxt_event_engine_mem_alloc(nxt_event_engine_t *engine, uint8_t *slot,
 
 
 void
-nxt_event_engine_mem_free(nxt_event_engine_t *engine, uint8_t *slot, void *p)
+nxt_event_engine_mem_free(nxt_event_engine_t *engine, uint8_t hint, void *p,
+    size_t size)
 {
+    uint32_t               n;
+    nxt_array_t            *mem_cache;
     nxt_mem_cache_t        *cache;
     nxt_mem_cache_block_t  *block;
 
     block = p;
+    mem_cache = engine->mem_cache;
+    cache = mem_cache->elts;
 
-    cache = engine->mem_cache->elts;
-    cache = cache + *slot;
+    n = hint;
+
+    if (nxt_slow_path(n == NXT_EVENT_ENGINE_NO_MEM_HINT)) {
+
+        if (size != 0) {
+            for (n = 0; n < mem_cache->nelts; n++) {
+                if (cache[n].size == size) {
+                    goto found;
+                }
+            }
+
+            nxt_alert(&engine->task,
+                      "event engine mem free(%p, %z) not found", p, size);
+        }
+
+        goto done;
+    }
+
+found:
+
+    cache = cache + n;
 
     if (cache->count < 16) {
         cache->count++;
@@ -644,7 +670,76 @@ nxt_event_engine_mem_free(nxt_event_engine_t *engine, uint8_t *slot, void *p)
         return;
     }
 
+done:
+
     nxt_mp_free(engine->mem_pool, p);
+}
+
+
+void *
+nxt_event_engine_buf_mem_alloc(nxt_event_engine_t *engine, size_t size)
+{
+    nxt_buf_t  *b;
+    uint8_t    hint;
+
+    hint = NXT_EVENT_ENGINE_NO_MEM_HINT;
+
+    b = nxt_event_engine_mem_alloc(engine, &hint, NXT_BUF_MEM_SIZE + size);
+    if (nxt_slow_path(b == NULL)) {
+        return NULL;
+    }
+
+    nxt_memzero(b, NXT_BUF_MEM_SIZE);
+
+    b->cache_hint = hint;
+    b->data = engine;
+    b->completion_handler = nxt_event_engine_buf_mem_completion;
+
+    if (size != 0) {
+        b->mem.start = nxt_pointer_to(b, NXT_BUF_MEM_SIZE);
+        b->mem.pos = b->mem.start;
+        b->mem.free = b->mem.start;
+        b->mem.end = b->mem.start + size;
+    }
+
+    return b;
+}
+
+
+void
+nxt_event_engine_buf_mem_free(nxt_event_engine_t *engine, nxt_buf_t *b)
+{
+    size_t  size;
+
+    size = NXT_BUF_MEM_SIZE + nxt_buf_mem_size(&b->mem);
+
+    nxt_event_engine_mem_free(engine, b->cache_hint, b, size);
+}
+
+
+void
+nxt_event_engine_buf_mem_completion(nxt_task_t *task, void *obj, void *data)
+{
+    nxt_event_engine_t  *engine;
+    nxt_buf_t           *b, *next, *parent;
+
+    b = obj;
+    parent = data;
+
+    nxt_debug(task, "buf completion: %p %p", b, b->mem.start);
+
+    engine = b->data;
+
+    do {
+        next = b->next;
+        parent = b->parent;
+
+        nxt_event_engine_buf_mem_free(engine, b);
+
+        nxt_buf_parent_completion(task, parent);
+
+        b = next;
+    } while (b != NULL);
 }
 
 

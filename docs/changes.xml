@@ -5,6 +5,232 @@
 <change_log title="unit">
 
 
+<changes apply="unit-go1.13" ver="1.13.0" rev="1"
+         date="2019-11-20" time="09:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Go 1.13 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-go1.12" ver="1.13.0" rev="1"
+         date="2019-11-20" time="09:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Go 1.12 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python3.8" ver="1.13.0" rev="1"
+         date="2019-11-18" time="14:20:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Python 3.8 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10 unit-go1.11
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11"
+         ver="1.13.0" rev="1"
+         date="2019-11-14" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.13.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.13.0" rev="1"
+         date="2019-11-14" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="feature">
+<para>
+basic support for HTTP reverse proxying.
+</para>
+</change>
+
+<change type="feature">
+<para>
+compatibility with Python 3.8.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+memory leak in Python application processes when the close handler was used.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+threads in Python applications might not work correctly.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Ruby on Rails applications might not work on Ruby 2.6.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+backtraces for uncaught exceptions in Python 3 might be logged with significant
+delays.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+explicit setting a namespaces isolation option to false might have enabled it.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10 unit-go1.11
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11"
+         ver="1.12.0" rev="1"
+         date="2019-10-03" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.12.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.12.0" rev="1"
+         date="2019-10-03" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="feature">
+<para>
+compatibility with PHP 7.4.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+descriptors leak on process creation; the bug had appeared in 1.11.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+TLS connection might be closed prematurely while sending response.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+segmentation fault might have occurred if an irregular file was requested.
+</para>
+</change>
+
+</changes>
+
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-go unit-go1.7 unit-go1.8 unit-go1.9 unit-go1.10 unit-go1.11
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11"
+         ver="1.11.0" rev="1"
+         date="2019-09-19" time="18:00:00 +0300"
+         packager="Konstantin Pavlov &lt;thresh@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.11.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.11.0" rev="1"
+         date="2019-09-19" time="18:00:00 +0300"
+         packager="Konstantin Pavlov &lt;thresh@nginx.com&gt;">
+
+<change type="feature">
+<para>
+basic support for serving static files.
+</para>
+</change>
+
+<change type="feature">
+<para>
+isolation of application processes with Linux namespaces.
+</para>
+</change>
+
+<change type="feature">
+<para>
+built-in WebSocket server implementation for Java Servlet Containers.
+</para>
+</change>
+
+<change type="feature">
+<para>
+direct addressing of API configuration options containing slashes "/"
+using URI encoding (%2F).
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+segmentation fault might have occurred in Go applications under high load.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+WebSocket support was broken if Unit was built with some linkers other than
+GNU ld (e.g. gold or LLD).
+</para>
+</change>
+
+</changes>
+
+
 <changes apply="unit
                 unit-php
                 unit-python unit-python2.7

@@ -14,6 +14,7 @@ mkdir -p $NXT_BUILD_DIR/src \
 cat << END > $NXT_MAKEFILE
 
 CC =			$CC
+AR =			$AR
 
 CFLAGS = 		$NXT_CFLAGS $NXT_CC_OPT $CFLAGS
 
@@ -79,9 +80,6 @@ $NXT_VERSION_H: version
 	$echo '#define NXT_VERSION "\$(NXT_VERSION)"' > $NXT_VERSION_H
 	$echo '#define NXT_VERNUM  \$(NXT_VERNUM)' >> $NXT_VERSION_H
 
-$NXT_BUILD_DIR/src/nxt_unit.o: $NXT_VERSION_H
-$NXT_BUILD_DIR/src/nxt_lib.o: $NXT_VERSION_H
-
 END
 
 
@@ -120,7 +118,7 @@ do
     nxt_dep_post=`nxt_gen_dep_post`
     cat << END >> $NXT_MAKEFILE
 
-$NXT_BUILD_DIR/$nxt_obj: $nxt_src
+$NXT_BUILD_DIR/$nxt_obj: $nxt_src $NXT_VERSION_H
 	\$(CC) -c \$(CFLAGS) \$(NXT_LIB_INCS) $NXT_LIB_AUX_CFLAGS \\
 	-o $NXT_BUILD_DIR/$nxt_obj \\
 	$nxt_dep_flags \\
@@ -266,7 +264,7 @@ do
     nxt_dep_post=`nxt_gen_dep_post`
     cat << END >> $NXT_MAKEFILE
 
-$NXT_BUILD_DIR/$nxt_obj:	$nxt_src
+$NXT_BUILD_DIR/$nxt_obj:	$nxt_src $NXT_VERSION_H
 	\$(CC) -c \$(CFLAGS) \$(NXT_INCS) \\
 		$NXT_LIB_AUX_CFLAGS \\
 		-o $NXT_BUILD_DIR/$nxt_obj \\

@@ -3,7 +3,7 @@ from unit.control import TestControl
 
 
 class TestConfiguration(TestControl):
-    prerequisites = ['python']
+    prerequisites = {'modules': ['python']}
 
     def test_json_empty(self):
         self.assertIn('error', self.conf(''), 'empty')
@@ -321,7 +321,7 @@ class TestConfiguration(TestControl):
                 }
                 for a in range(999)
             },
-            "listeners": {"*:7001": {"pass": "applications/app-1"}},
+            "listeners": {"*:7080": {"pass": "applications/app-1"}},
         }
 
         self.assertIn('success', self.conf(conf))

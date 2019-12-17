@@ -64,6 +64,10 @@ nxt_found=no
 
 if /bin/sh -c "$NXT_PYTHON_CONFIG --prefix" >> $NXT_AUTOCONF_ERR 2>&1; then
 
+    if ${NXT_PYTHON_CONFIG} --embed >/dev/null 2>&1; then
+        NXT_PYTHON_CONFIG="${NXT_PYTHON_CONFIG} --embed"
+    fi
+
     NXT_PYTHON_INCLUDE=`${NXT_PYTHON_CONFIG} --includes`
     NXT_PYTHON_LIBS=`${NXT_PYTHON_CONFIG} --ldflags`
 
@@ -149,7 +153,7 @@ for nxt_src in $NXT_PYTHON_MODULE_SRCS; do
 
     cat << END >> $NXT_MAKEFILE
 
-$NXT_BUILD_DIR/$nxt_obj:	$nxt_src
+$NXT_BUILD_DIR/$nxt_obj:	$nxt_src $NXT_VERSION_H
 	\$(CC) -c \$(CFLAGS) \$(NXT_INCS) $NXT_PYTHON_INCLUDE \\
 	$nxt_dep_flags \\
 	-o $NXT_BUILD_DIR/$nxt_obj $nxt_src

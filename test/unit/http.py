@@ -1,4 +1,6 @@
 import re
+import time
+import json
 import socket
 import select
 from unit.main import TestUnit
@@ -12,6 +14,11 @@ class TestHTTP(TestUnit):
         port = 7080 if 'port' not in kwargs else kwargs['port']
         url = '/' if 'url' not in kwargs else kwargs['url']
         http = 'HTTP/1.0' if 'http_10' in kwargs else 'HTTP/1.1'
+        read_buffer_size = (
+            4096
+            if 'read_buffer_size' not in kwargs
+            else kwargs['read_buffer_size']
+        )
 
         headers = (
             {'Host': 'localhost', 'Connection': 'close'}
@@ -58,7 +65,7 @@ class TestHTTP(TestUnit):
         if 'raw' not in kwargs:
             req = ' '.join([start_str, url, http]) + crlf
 
-            if body is not b'':
+            if body != b'':
                 if isinstance(body, str):
                     body = body.encode()
 
@@ -80,21 +87,24 @@ class TestHTTP(TestUnit):
 
         sock.sendall(req)
 
+        encoding = 'utf-8' if 'encoding' not in kwargs else kwargs['encoding']
+
         if TestUnit.detailed:
             print('>>>')
             try:
-                print(req.decode('utf-8', 'ignore'))
+                print(req.decode(encoding, 'ignore'))
             except UnicodeEncodeError:
                 print(req)
 
         resp = ''
 
         if 'no_recv' not in kwargs:
-            enc = 'utf-8' if 'encoding' not in kwargs else kwargs['encoding']
             read_timeout = (
                 30 if 'read_timeout' not in kwargs else kwargs['read_timeout']
             )
-            resp = self.recvall(sock, read_timeout=read_timeout).decode(enc)
+            resp = self.recvall(
+                sock, read_timeout=read_timeout, buff_size=read_buffer_size
+            ).decode(encoding)
 
         if TestUnit.detailed:
             print('<<<')
@@ -105,6 +115,15 @@ class TestHTTP(TestUnit):
 
         if 'raw_resp' not in kwargs:
             resp = self._resp_to_dict(resp)
+
+            headers = resp.get('headers')
+            if headers and headers.get('Transfer-Encoding') == 'chunked':
+                resp['body'] = self._parse_chunked_body(resp['body']).decode(
+                    encoding
+                )
+
+            if 'json' in kwargs:
+                resp = self._parse_json(resp)
 
         if 'start' not in kwargs:
             sock.close()
@@ -117,6 +136,9 @@ class TestHTTP(TestUnit):
 
     def get(self, **kwargs):
         return self.http('GET', **kwargs)
+
+    def head(self, **kwargs):
+        return self.http('HEAD', **kwargs)
 
     def post(self, **kwargs):
         return self.http('POST', **kwargs)
@@ -140,7 +162,7 @@ class TestHTTP(TestUnit):
         return data
 
     def _resp_to_dict(self, resp):
-        m = re.search('(.*?\x0d\x0a?)\x0d\x0a?(.*)', resp, re.M | re.S)
+        m = re.search(r'(.*?\x0d\x0a?)\x0d\x0a?(.*)', resp, re.M | re.S)
 
         if not m:
             return {}
@@ -151,12 +173,12 @@ class TestHTTP(TestUnit):
         headers_lines = p.findall(headers_text)
 
         status = re.search(
-            '^HTTP\/\d\.\d\s(\d+)|$', headers_lines.pop(0)
+            r'^HTTP\/\d\.\d\s(\d+)|$', headers_lines.pop(0)
         ).group(1)
 
         headers = {}
         for line in headers_lines:
-            m = re.search('(.*)\:\s(.*)', line)
+            m = re.search(r'(.*)\:\s(.*)', line)
 
             if m.group(1) not in headers:
                 headers[m.group(1)] = m.group(2)
@@ -168,3 +190,79 @@ class TestHTTP(TestUnit):
                 headers[m.group(1)] = [headers[m.group(1)], m.group(2)]
 
         return {'status': int(status), 'headers': headers, 'body': body}
+
+    def _parse_chunked_body(self, raw_body):
+        if isinstance(raw_body, str):
+            raw_body = bytes(raw_body.encode())
+
+        crlf = b'\r\n'
+        chunks = raw_body.split(crlf)
+
+        if len(chunks) < 3:
+            self.fail('Invalid chunked body')
+
+        if chunks.pop() != b'':
+            self.fail('No CRLF at the end of the body')
+
+        try:
+            last_size = int(chunks[-2], 16)
+        except:
+            self.fail('Invalid zero size chunk')
+
+        if last_size != 0 or chunks[-1] != b'':
+            self.fail('Incomplete body')
+
+        body = b''
+        while len(chunks) >= 2:
+            try:
+                size = int(chunks.pop(0), 16)
+            except:
+                self.fail('Invalid chunk size %s' % str(size))
+
+            if size == 0:
+                self.assertEqual(len(chunks), 1, 'last zero size')
+                break
+
+            temp_body = crlf.join(chunks)
+
+            body += temp_body[:size]
+
+            temp_body = temp_body[size + len(crlf) :]
+
+            chunks = temp_body.split(crlf)
+
+        return body
+
+    def _parse_json(self, resp):
+        headers = resp['headers']
+
+        self.assertIn('Content-Type', headers, 'Content-Type header set')
+        self.assertEqual(
+            headers['Content-Type'],
+            'application/json',
+            'Content-Type header is application/json',
+        )
+
+        resp['body'] = json.loads(resp['body'])
+
+        return resp
+
+    def getjson(self, **kwargs):
+        return self.get(json=True, **kwargs)
+
+    def waitforsocket(self, port):
+        ret = False
+
+        for i in range(50):
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.connect(('127.0.0.1', port))
+                ret = True
+                break
+            except:
+                sock.close()
+                time.sleep(0.1)
+
+        sock.close()
+
+        self.assertTrue(ret, 'socket connected')

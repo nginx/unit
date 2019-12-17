@@ -13,7 +13,7 @@ MODULE_INSTARGS_python37=	python3.7-install
 MODULE_SOURCES_python37=	unit.example-python-app \
 			unit.example-python37-config
 
-ifneq (,$(findstring $(OSVER),opensuse-tumbleweed sles fedora))
+ifneq (,$(findstring $(OSVER),opensuse-tumbleweed sles fedora amazonlinux2))
 BUILD_DEPENDS_python37=	python3-devel
 else
 BUILD_DEPENDS_python37=	python37-devel

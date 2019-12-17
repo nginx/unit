@@ -16,12 +16,12 @@ typedef struct nxt_http_request_s  nxt_http_request_t;
 #include <nxt_application.h>
 
 
-typedef struct nxt_http_pass_s          nxt_http_pass_t;
+typedef struct nxt_http_action_s        nxt_http_action_t;
 typedef struct nxt_http_routes_s        nxt_http_routes_t;
 typedef struct nxt_router_access_log_s  nxt_router_access_log_t;
 
 
-#define NXT_HTTP_PASS_ERROR  ((nxt_http_pass_t *) -1)
+#define NXT_HTTP_ACTION_ERROR  ((nxt_http_action_t *) -1)
 
 
 typedef struct {
@@ -38,9 +38,13 @@ typedef struct {
 typedef struct {
     uint32_t                 count;
     uint32_t                 threads;
+
+    nxt_mp_t                 *mem_pool;
+
     nxt_router_t             *router;
     nxt_http_routes_t        *routes;
-    nxt_mp_t                 *mem_pool;
+
+    nxt_lvlhsh_t             mtypes_hash;
 
     nxt_router_access_log_t  *access_log;
 } nxt_router_conf_t;
@@ -150,7 +154,7 @@ typedef struct {
     nxt_queue_link_t       link;
     nxt_router_conf_t      *router_conf;
 
-    nxt_http_pass_t        *pass;
+    nxt_http_action_t      *action;
 
     /*
      * A listen socket time can be shorter than socket configuration life
@@ -166,10 +170,17 @@ typedef struct {
     size_t                 large_header_buffers;
     size_t                 body_buffer_size;
     size_t                 max_body_size;
+    size_t                 proxy_header_buffer_size;
+    size_t                 proxy_buffer_size;
+    size_t                 proxy_buffers;
+
     nxt_msec_t             idle_timeout;
     nxt_msec_t             header_read_timeout;
     nxt_msec_t             body_read_timeout;
     nxt_msec_t             send_timeout;
+    nxt_msec_t             proxy_timeout;
+    nxt_msec_t             proxy_send_timeout;
+    nxt_msec_t             proxy_read_timeout;
 
     nxt_websocket_conf_t   websocket_conf;
 

@@ -14,6 +14,7 @@ NXT_LIB_SRCS=" \
     src/nxt_socket.c \
     src/nxt_socketpair.c \
     src/nxt_socket_msg.c \
+    src/nxt_credential.c \
     src/nxt_process.c \
     src/nxt_process_title.c \
     src/nxt_signal.c \
@@ -72,6 +73,7 @@ NXT_LIB_SRCS=" \
     src/nxt_upstream_round_robin.c \
     src/nxt_http_parse.c \
     src/nxt_app_log.c \
+    src/nxt_capability.c \
     src/nxt_runtime.c \
     src/nxt_conf.c \
     src/nxt_conf_validation.c \
@@ -84,6 +86,8 @@ NXT_LIB_SRCS=" \
     src/nxt_http_response.c \
     src/nxt_http_error.c \
     src/nxt_http_route.c \
+    src/nxt_http_static.c \
+    src/nxt_http_proxy.c \
     src/nxt_application.c \
     src/nxt_external.c \
     src/nxt_port_hash.c \
@@ -133,6 +137,7 @@ NXT_LIB_SOLARIS_SENDFILEV_SRCS="src/nxt_solaris_sendfilev.c"
 NXT_LIB_MACOSX_SENDFILE_SRCS="src/nxt_macosx_sendfile.c"
 NXT_LIB_AIX_SEND_FILE_SRCS="src/nxt_aix_send_file.c"
 NXT_LIB_HPUX_SENDFILE_SRCS="src/nxt_hpux_sendfile.c"
+NXT_LIB_CLONE_SRCS="src/nxt_clone.c"
 
 NXT_TEST_BUILD_DEPS="src/nxt_test_build.h"
 NXT_TEST_BUILD_SRCS="src/nxt_test_build.c"
@@ -158,6 +163,12 @@ NXT_TEST_SRCS=" \
     src/test/nxt_http_parse_test.c \
     src/test/nxt_strverscmp_test.c \
 "
+
+
+if [ $NXT_HAVE_CLONE_NEWUSER = YES ]; then
+    NXT_TEST_SRCS="$NXT_TEST_SRCS src/test/nxt_clone_test.c"
+fi
+
 
 NXT_LIB_UTF8_FILE_NAME_TEST_SRCS=" \
     src/test/nxt_utf8_file_name_test.c \
@@ -255,6 +266,11 @@ fi
 if [ "$NXT_HAVE_HPUX_SENDFILE" = "YES" \
      -o "$NXT_TEST_BUILD_HPUX_SENDFILE" = "YES" ]; then
     NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_HPUX_SENDFILE_SRCS"
+fi
+
+
+if [ "$NXT_HAVE_CLONE" = "YES" ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_CLONE_SRCS"
 fi
 
 

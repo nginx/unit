@@ -10,15 +10,15 @@
 
 static nxt_int_t nxt_http_validate_host(nxt_str_t *host, nxt_mp_t *mp);
 static void nxt_http_request_start(nxt_task_t *task, void *obj, void *data);
-static void nxt_http_request_pass(nxt_task_t *task, void *obj, void *data);
+static void nxt_http_request_action(nxt_task_t *task, void *obj, void *data);
 static void nxt_http_request_proto_info(nxt_task_t *task,
     nxt_http_request_t *r);
 static void nxt_http_request_mem_buf_completion(nxt_task_t *task, void *obj,
     void *data);
 static void nxt_http_request_done(nxt_task_t *task, void *obj, void *data);
 
-static u_char *nxt_http_date(u_char *buf, nxt_realtime_t *now, struct tm *tm,
-    size_t size, const char *format);
+static u_char *nxt_http_date_cache_handler(u_char *buf, nxt_realtime_t *now,
+    struct tm *tm, size_t size, const char *format);
 
 
 static const nxt_http_request_state_t  nxt_http_request_init_state;
@@ -27,9 +27,9 @@ static const nxt_http_request_state_t  nxt_http_request_body_state;
 
 nxt_time_string_t  nxt_http_date_cache = {
     (nxt_atomic_uint_t) -1,
-    nxt_http_date,
-    "%s, %02d %s %4d %02d:%02d:%02d GMT",
-    nxt_length("Wed, 31 Dec 1986 16:40:00 GMT"),
+    nxt_http_date_cache_handler,
+    NULL,
+    NXT_HTTP_DATE_LEN,
     NXT_THREAD_TIME_GMT,
     NXT_THREAD_TIME_SEC,
 };
@@ -278,33 +278,33 @@ nxt_http_request_start(nxt_task_t *task, void *obj, void *data)
 static const nxt_http_request_state_t  nxt_http_request_body_state
     nxt_aligned(64) =
 {
-    .ready_handler = nxt_http_request_pass,
+    .ready_handler = nxt_http_request_action,
     .error_handler = nxt_http_request_close_handler,
 };
 
 
 static void
-nxt_http_request_pass(nxt_task_t *task, void *obj, void *data)
+nxt_http_request_action(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_http_pass_t     *pass;
+    nxt_http_action_t   *action;
     nxt_http_request_t  *r;
 
     r = obj;
 
-    pass = r->conf->socket_conf->pass;
+    action = r->conf->socket_conf->action;
 
-    if (nxt_fast_path(pass != NULL)) {
+    if (nxt_fast_path(action != NULL)) {
 
         do {
-            nxt_debug(task, "http request route: %V", &pass->name);
+            nxt_debug(task, "http request route: %V", &action->name);
 
-            pass = pass->handler(task, r, pass);
+            action = action->handler(task, r, action);
 
-            if (pass == NULL) {
+            if (action == NULL) {
                 return;
             }
 
-            if (pass == NXT_HTTP_PASS_ERROR) {
+            if (action == NXT_HTTP_ACTION_ERROR) {
                 break;
             }
 
@@ -315,13 +315,13 @@ nxt_http_request_pass(nxt_task_t *task, void *obj, void *data)
 }
 
 
-nxt_http_pass_t *
-nxt_http_request_application(nxt_task_t *task, nxt_http_request_t *r,
-    nxt_http_pass_t *pass)
+nxt_http_action_t *
+nxt_http_application_handler(nxt_task_t *task, nxt_http_request_t *r,
+    nxt_http_action_t *action)
 {
     nxt_event_engine_t  *engine;
 
-    nxt_debug(task, "http request application");
+    nxt_debug(task, "http application handler");
 
     nxt_mp_retain(r->mem_pool);
 
@@ -344,7 +344,7 @@ nxt_http_request_application(nxt_task_t *task, nxt_http_request_t *r,
         nxt_str_set(&r->server_name, "localhost");
     }
 
-    nxt_router_process_http_request(task, r, pass->u.application);
+    nxt_router_process_http_request(task, r, action->u.application);
 
     return NULL;
 }
@@ -370,7 +370,7 @@ nxt_http_request_read_body(nxt_task_t *task, nxt_http_request_t *r)
 
 void
 nxt_http_request_header_send(nxt_task_t *task, nxt_http_request_t *r,
-    nxt_work_handler_t body_handler)
+    nxt_work_handler_t body_handler, void *data)
 {
     u_char            *p, *end;
     nxt_http_field_t  *server, *date, *content_length;
@@ -431,7 +431,7 @@ nxt_http_request_header_send(nxt_task_t *task, nxt_http_request_t *r,
     }
 
     if (nxt_fast_path(r->proto.any != NULL)) {
-        nxt_http_proto[r->protocol].header_send(task, r, body_handler);
+        nxt_http_proto[r->protocol].header_send(task, r, body_handler, data);
     }
 
     return;
@@ -483,15 +483,20 @@ nxt_http_buf_mem(nxt_task_t *task, nxt_http_request_t *r, size_t size)
 static void
 nxt_http_request_mem_buf_completion(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_buf_t           *b;
+    nxt_buf_t           *b, *next;
     nxt_http_request_t  *r;
 
     b = obj;
     r = data;
 
-    nxt_mp_free(r->mem_pool, b);
+    do {
+        next = b->next;
 
-    nxt_mp_release(r->mem_pool);
+        nxt_mp_free(r->mem_pool, b);
+        nxt_mp_release(r->mem_pool);
+
+        b = next;
+    } while (b != NULL);
 }
 
 
@@ -570,25 +575,16 @@ nxt_http_request_close_handler(nxt_task_t *task, void *obj, void *data)
     if (nxt_fast_path(proto.any != NULL)) {
         protocol = r->protocol;
 
-        nxt_mp_release(r->mem_pool);
-
         nxt_http_proto[protocol].close(task, proto, conf);
+
+        nxt_mp_release(r->mem_pool);
     }
 }
 
 
 static u_char *
-nxt_http_date(u_char *buf, nxt_realtime_t *now, struct tm *tm, size_t size,
-    const char *format)
+nxt_http_date_cache_handler(u_char *buf, nxt_realtime_t *now, struct tm *tm,
+    size_t size, const char *format)
 {
-    static const char  *week[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri",
-                                   "Sat" };
-
-    static const char  *month[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
-
-    return nxt_sprintf(buf, buf + size, format,
-                       week[tm->tm_wday], tm->tm_mday,
-                       month[tm->tm_mon], tm->tm_year + 1900,
-                       tm->tm_hour, tm->tm_min, tm->tm_sec);
+    return nxt_http_date(buf, tm);
 }

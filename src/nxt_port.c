@@ -140,7 +140,7 @@ nxt_port_reset_next_id()
 
 void
 nxt_port_enable(nxt_task_t *task, nxt_port_t *port,
-    nxt_port_handlers_t *handlers)
+    const nxt_port_handlers_t *handlers)
 {
     port->pid = nxt_pid;
     port->handler = nxt_port_handler;
@@ -238,7 +238,6 @@ void
 nxt_port_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
     nxt_port_t               *port;
-    nxt_process_t            *process;
     nxt_runtime_t            *rt;
     nxt_port_msg_new_port_t  *new_port_msg;
 
@@ -261,21 +260,12 @@ nxt_port_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         return;
     }
 
-    process = nxt_runtime_process_get(rt, new_port_msg->pid);
-    if (nxt_slow_path(process == NULL)) {
-        return;
-    }
-
-    port = nxt_port_new(task, new_port_msg->id, new_port_msg->pid,
-                        new_port_msg->type);
+    port = nxt_runtime_process_port_create(task, rt, new_port_msg->pid,
+                                           new_port_msg->id,
+                                           new_port_msg->type);
     if (nxt_slow_path(port == NULL)) {
-        nxt_process_use(task, process, -1);
         return;
     }
-
-    nxt_process_port_add(task, process, port);
-
-    nxt_process_use(task, process, -1);
 
     nxt_fd_nonblocking(task, msg->fd);
 
@@ -285,10 +275,6 @@ nxt_port_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     port->max_share = new_port_msg->max_share;
 
     port->socket.task = task;
-
-    nxt_runtime_port_add(task, port);
-
-    nxt_port_use(task, port, -1);
 
     nxt_port_write_enable(task, port);
 
@@ -546,7 +532,7 @@ nxt_port_use(nxt_task_t *task, nxt_port_t *port, int i)
 
     if (i < 0 && c == -i) {
 
-        if (task->thread->engine == port->engine) {
+        if (port->engine == NULL || task->thread->engine == port->engine) {
             nxt_port_release(task, port);
 
             return;

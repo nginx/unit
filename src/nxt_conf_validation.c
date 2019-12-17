@@ -8,6 +8,7 @@
 #include <nxt_conf.h>
 #include <nxt_cert.h>
 #include <nxt_router.h>
+#include <nxt_http.h>
 
 
 typedef enum {
@@ -39,22 +40,29 @@ typedef nxt_int_t (*nxt_conf_vldt_member_t)(nxt_conf_validation_t *vldt,
                                             nxt_conf_value_t *value);
 typedef nxt_int_t (*nxt_conf_vldt_element_t)(nxt_conf_validation_t *vldt,
                                              nxt_conf_value_t *value);
-typedef nxt_int_t (*nxt_conf_vldt_system_t)(nxt_conf_validation_t *vldt,
-                                            char *name);
-
 
 static nxt_int_t nxt_conf_vldt_type(nxt_conf_validation_t *vldt,
     nxt_str_t *name, nxt_conf_value_t *value, nxt_conf_vldt_type_t type);
 static nxt_int_t nxt_conf_vldt_error(nxt_conf_validation_t *vldt,
     const char *fmt, ...);
 
+static nxt_int_t nxt_conf_vldt_mtypes(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_mtypes_type(nxt_conf_validation_t *vldt,
+    nxt_str_t *name, nxt_conf_value_t *value);
+static nxt_int_t nxt_conf_vldt_mtypes_extension(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_listener(nxt_conf_validation_t *vldt,
     nxt_str_t *name, nxt_conf_value_t *value);
 #if (NXT_TLS)
 static nxt_int_t nxt_conf_vldt_certificate(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 #endif
+static nxt_int_t nxt_conf_vldt_action(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_pass(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_proxy(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_routes(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
@@ -86,10 +94,6 @@ static nxt_int_t nxt_conf_vldt_object_iterator(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_array_iterator(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
-static nxt_int_t nxt_conf_vldt_system(nxt_conf_validation_t *vldt,
-    nxt_conf_value_t *value, void *data);
-static nxt_int_t nxt_conf_vldt_user(nxt_conf_validation_t *vldt, char *name);
-static nxt_int_t nxt_conf_vldt_group(nxt_conf_validation_t *vldt, char *name);
 static nxt_int_t nxt_conf_vldt_environment(nxt_conf_validation_t *vldt,
     nxt_str_t *name, nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_argument(nxt_conf_validation_t *vldt,
@@ -101,6 +105,19 @@ static nxt_int_t nxt_conf_vldt_java_classpath(nxt_conf_validation_t *vldt,
 static nxt_int_t nxt_conf_vldt_java_option(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value);
 
+static nxt_int_t nxt_conf_vldt_isolation(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_clone_namespaces(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
+
+#if (NXT_HAVE_CLONE_NEWUSER)
+static nxt_int_t nxt_conf_vldt_clone_procmap(nxt_conf_validation_t *vldt,
+    const char* mapfile, nxt_conf_value_t *value);
+static nxt_int_t nxt_conf_vldt_clone_uidmap(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value);
+static nxt_int_t nxt_conf_vldt_clone_gidmap(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value);
+#endif
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_websocket_members[] = {
     { nxt_string("read_timeout"),
@@ -116,6 +133,16 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_websocket_members[] = {
     { nxt_string("max_frame_size"),
       NXT_CONF_VLDT_INTEGER,
       NULL,
+      NULL },
+
+    NXT_CONF_VLDT_END
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_static_members[] = {
+    { nxt_string("mime_types"),
+      NXT_CONF_VLDT_OBJECT,
+      &nxt_conf_vldt_mtypes,
       NULL },
 
     NXT_CONF_VLDT_END
@@ -152,6 +179,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[] = {
       NXT_CONF_VLDT_OBJECT,
       &nxt_conf_vldt_object,
       (void *) &nxt_conf_vldt_websocket_members },
+
+    { nxt_string("static"),
+      NXT_CONF_VLDT_OBJECT,
+      &nxt_conf_vldt_object,
+      (void *) &nxt_conf_vldt_static_members },
 
     NXT_CONF_VLDT_END
 };
@@ -281,6 +313,16 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_action_members[] = {
       &nxt_conf_vldt_pass,
       NULL },
 
+    { nxt_string("share"),
+      NXT_CONF_VLDT_STRING,
+      NULL,
+      NULL },
+
+    { nxt_string("proxy"),
+      NXT_CONF_VLDT_STRING,
+      &nxt_conf_vldt_proxy,
+      NULL },
+
     NXT_CONF_VLDT_END
 };
 
@@ -293,8 +335,8 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_route_members[] = {
 
     { nxt_string("action"),
       NXT_CONF_VLDT_OBJECT,
-      &nxt_conf_vldt_object,
-      (void *) &nxt_conf_vldt_action_members },
+      &nxt_conf_vldt_action,
+      NULL },
 
     NXT_CONF_VLDT_END
 };
@@ -340,6 +382,100 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_processes_members[] = {
 };
 
 
+static nxt_conf_vldt_object_t  nxt_conf_vldt_app_namespaces_members[] = {
+
+#if (NXT_HAVE_CLONE_NEWUSER)
+    { nxt_string("credential"),
+      NXT_CONF_VLDT_BOOLEAN,
+      NULL,
+      NULL },
+#endif
+
+#if (NXT_HAVE_CLONE_NEWPID)
+    { nxt_string("pid"),
+      NXT_CONF_VLDT_BOOLEAN,
+      NULL,
+      NULL },
+#endif
+
+#if (NXT_HAVE_CLONE_NEWNET)
+    { nxt_string("network"),
+      NXT_CONF_VLDT_BOOLEAN,
+      NULL,
+      NULL },
+#endif
+
+#if (NXT_HAVE_CLONE_NEWNS)
+    { nxt_string("mount"),
+      NXT_CONF_VLDT_BOOLEAN,
+      NULL,
+      NULL },
+#endif
+
+#if (NXT_HAVE_CLONE_NEWUTS)
+    { nxt_string("uname"),
+      NXT_CONF_VLDT_BOOLEAN,
+      NULL,
+      NULL },
+#endif
+
+#if (NXT_HAVE_CLONE_NEWCGROUP)
+    { nxt_string("cgroup"),
+      NXT_CONF_VLDT_BOOLEAN,
+      NULL,
+      NULL },
+#endif
+
+    NXT_CONF_VLDT_END
+};
+
+
+#if (NXT_HAVE_CLONE_NEWUSER)
+
+static nxt_conf_vldt_object_t nxt_conf_vldt_app_procmap_members[] = {
+    { nxt_string("container"),
+      NXT_CONF_VLDT_INTEGER,
+      NULL,
+      NULL },
+
+    { nxt_string("host"),
+      NXT_CONF_VLDT_INTEGER,
+      NULL,
+      NULL },
+
+    { nxt_string("size"),
+      NXT_CONF_VLDT_INTEGER,
+      NULL,
+      NULL },
+};
+
+#endif
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_app_isolation_members[] = {
+    { nxt_string("namespaces"),
+      NXT_CONF_VLDT_OBJECT,
+      &nxt_conf_vldt_clone_namespaces,
+      (void *) &nxt_conf_vldt_app_namespaces_members },
+
+#if (NXT_HAVE_CLONE_NEWUSER)
+
+    { nxt_string("uidmap"),
+      NXT_CONF_VLDT_ARRAY,
+      &nxt_conf_vldt_array_iterator,
+      (void *) &nxt_conf_vldt_clone_uidmap },
+
+    { nxt_string("gidmap"),
+      NXT_CONF_VLDT_ARRAY,
+      &nxt_conf_vldt_array_iterator,
+      (void *) &nxt_conf_vldt_clone_gidmap },
+
+#endif
+
+    NXT_CONF_VLDT_END
+};
+
+
 static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[] = {
     { nxt_string("type"),
       NXT_CONF_VLDT_STRING,
@@ -358,13 +494,13 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[] = {
 
     { nxt_string("user"),
       NXT_CONF_VLDT_STRING,
-      nxt_conf_vldt_system,
-      (void *) &nxt_conf_vldt_user },
+      NULL,
+      NULL },
 
     { nxt_string("group"),
       NXT_CONF_VLDT_STRING,
-      nxt_conf_vldt_system,
-      (void *) &nxt_conf_vldt_group },
+      NULL,
+      NULL },
 
     { nxt_string("working_directory"),
       NXT_CONF_VLDT_STRING,
@@ -375,6 +511,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[] = {
       NXT_CONF_VLDT_OBJECT,
       &nxt_conf_vldt_object_iterator,
       (void *) &nxt_conf_vldt_environment },
+
+    { nxt_string("isolation"),
+      NXT_CONF_VLDT_OBJECT,
+      &nxt_conf_vldt_isolation,
+      (void *) &nxt_conf_vldt_app_isolation_members },
 
     NXT_CONF_VLDT_END
 };
@@ -484,7 +625,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_java_members[] = {
     { nxt_string("classpath"),
       NXT_CONF_VLDT_ARRAY,
       &nxt_conf_vldt_array_iterator,
-      (void *) &nxt_conf_vldt_java_classpath},
+      (void *) &nxt_conf_vldt_java_classpath },
 
     { nxt_string("webapp"),
       NXT_CONF_VLDT_STRING,
@@ -494,7 +635,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_java_members[] = {
     { nxt_string("options"),
       NXT_CONF_VLDT_ARRAY,
       &nxt_conf_vldt_array_iterator,
-      (void *) &nxt_conf_vldt_java_option},
+      (void *) &nxt_conf_vldt_java_option },
 
     { nxt_string("unit_jars"),
       NXT_CONF_VLDT_STRING,
@@ -628,6 +769,108 @@ nxt_conf_vldt_error(nxt_conf_validation_t *vldt, const char *fmt, ...)
 }
 
 
+typedef struct {
+    nxt_mp_t      *pool;
+    nxt_str_t     *type;
+    nxt_lvlhsh_t  hash;
+} nxt_conf_vldt_mtypes_ctx_t;
+
+
+static nxt_int_t
+nxt_conf_vldt_mtypes(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
+{
+    nxt_int_t                   ret;
+    nxt_conf_vldt_mtypes_ctx_t  ctx;
+
+    ctx.pool = nxt_mp_create(1024, 128, 256, 32);
+    if (nxt_slow_path(ctx.pool == NULL)) {
+        return NXT_ERROR;
+    }
+
+    nxt_lvlhsh_init(&ctx.hash);
+
+    vldt->ctx = &ctx;
+
+    ret = nxt_conf_vldt_object_iterator(vldt, value,
+                                        &nxt_conf_vldt_mtypes_type);
+
+    vldt->ctx = NULL;
+
+    nxt_mp_destroy(ctx.pool);
+
+    return ret;
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_mtypes_type(nxt_conf_validation_t *vldt, nxt_str_t *name,
+    nxt_conf_value_t *value)
+{
+    nxt_int_t                   ret;
+    nxt_conf_vldt_mtypes_ctx_t  *ctx;
+
+    ret = nxt_conf_vldt_type(vldt, name, value,
+                             NXT_CONF_VLDT_STRING|NXT_CONF_VLDT_ARRAY);
+    if (ret != NXT_OK) {
+        return ret;
+    }
+
+    ctx = vldt->ctx;
+
+    ctx->type = nxt_mp_get(ctx->pool, sizeof(nxt_str_t));
+    if (nxt_slow_path(ctx->type == NULL)) {
+        return NXT_ERROR;
+    }
+
+    *ctx->type = *name;
+
+    if (nxt_conf_type(value) == NXT_CONF_ARRAY) {
+        return nxt_conf_vldt_array_iterator(vldt, value,
+                                            &nxt_conf_vldt_mtypes_extension);
+    }
+
+    /* NXT_CONF_STRING */
+
+    return nxt_conf_vldt_mtypes_extension(vldt, value);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_mtypes_extension(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value)
+{
+    nxt_str_t                   ext, *dup_type;
+    nxt_conf_vldt_mtypes_ctx_t  *ctx;
+
+    ctx = vldt->ctx;
+
+    if (nxt_conf_type(value) != NXT_CONF_STRING) {
+        return nxt_conf_vldt_error(vldt, "The \"%V\" MIME type array must "
+                                   "contain only strings.", ctx->type);
+    }
+
+    nxt_conf_get_string(value, &ext);
+
+    if (ext.length == 0) {
+        return nxt_conf_vldt_error(vldt, "An empty file extension for "
+                                         "the \"%V\" MIME type.", ctx->type);
+    }
+
+    dup_type = nxt_http_static_mtypes_hash_find(&ctx->hash, &ext);
+
+    if (dup_type != NULL) {
+        return nxt_conf_vldt_error(vldt, "The \"%V\" file extension has been "
+                                         "declared for \"%V\" and \"%V\" "
+                                         "MIME types at the same time.",
+                                         &ext, dup_type, ctx->type);
+    }
+
+    return nxt_http_static_mtypes_hash_add(ctx->pool, &ctx->hash,
+                                           &ext, ctx->type);
+}
+
+
 static nxt_int_t
 nxt_conf_vldt_listener(nxt_conf_validation_t *vldt, nxt_str_t *name,
     nxt_conf_value_t *value)
@@ -641,6 +884,37 @@ nxt_conf_vldt_listener(nxt_conf_validation_t *vldt, nxt_str_t *name,
     }
 
     return nxt_conf_vldt_object(vldt, value, nxt_conf_vldt_listener_members);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_action(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
+{
+    nxt_int_t         ret;
+    nxt_conf_value_t  *pass_value, *share_value, *proxy_value;
+
+    static nxt_str_t  pass_str = nxt_string("pass");
+    static nxt_str_t  share_str = nxt_string("share");
+    static nxt_str_t  proxy_str = nxt_string("proxy");
+
+    ret = nxt_conf_vldt_object(vldt, value, nxt_conf_vldt_action_members);
+
+    if (ret != NXT_OK) {
+        return ret;
+    }
+
+    pass_value = nxt_conf_get_object_member(value, &pass_str, NULL);
+    share_value = nxt_conf_get_object_member(value, &share_str, NULL);
+    proxy_value = nxt_conf_get_object_member(value, &proxy_str, NULL);
+
+    if (pass_value == NULL && share_value == NULL && proxy_value == NULL) {
+        return nxt_conf_vldt_error(vldt, "The \"action\" object must have "
+                                         "either \"pass\" or \"share\" or "
+                                         "\"proxy\" option set.");
+    }
+
+    return NXT_OK;
 }
 
 
@@ -724,6 +998,30 @@ error:
 
     return nxt_conf_vldt_error(vldt, "Request \"pass\" points to invalid "
                                "location \"%V\".", &pass);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_proxy(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
+{
+    nxt_str_t       name;
+    nxt_sockaddr_t  *sa;
+
+    nxt_conf_get_string(value, &name);
+
+    if (nxt_str_start(&name, "http://", 7)) {
+        name.length -= 7;
+        name.start += 7;
+
+        sa = nxt_sockaddr_parse(vldt->pool, &name);
+        if (sa != NULL) {
+            return NXT_OK;
+        }
+    }
+
+    return nxt_conf_vldt_error(vldt, "The \"proxy\" address is invalid \"%V\"",
+                               &name);
 }
 
 
@@ -1252,71 +1550,6 @@ nxt_conf_vldt_array_iterator(nxt_conf_validation_t *vldt,
 
 
 static nxt_int_t
-nxt_conf_vldt_system(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
-    void *data)
-{
-    size_t                  length;
-    nxt_str_t               name;
-    nxt_conf_vldt_system_t  validator;
-    char                    string[32];
-
-    /* The cast is required by Sun C. */
-    validator = (nxt_conf_vldt_system_t) data;
-
-    nxt_conf_get_string(value, &name);
-
-    length = name.length + 1;
-    length = nxt_min(length, sizeof(string));
-
-    nxt_cpystrn((u_char *) string, name.start, length);
-
-    return validator(vldt, string);
-}
-
-
-static nxt_int_t
-nxt_conf_vldt_user(nxt_conf_validation_t *vldt, char *user)
-{
-    struct passwd  *pwd;
-
-    nxt_errno = 0;
-
-    pwd = getpwnam(user);
-
-    if (pwd != NULL) {
-        return NXT_OK;
-    }
-
-    if (nxt_errno == 0) {
-        return nxt_conf_vldt_error(vldt, "User \"%s\" is not found.", user);
-    }
-
-    return NXT_ERROR;
-}
-
-
-static nxt_int_t
-nxt_conf_vldt_group(nxt_conf_validation_t *vldt, char *group)
-{
-    struct group  *grp;
-
-    nxt_errno = 0;
-
-    grp = getgrnam(group);
-
-    if (grp != NULL) {
-        return NXT_OK;
-    }
-
-    if (nxt_errno == 0) {
-        return nxt_conf_vldt_error(vldt, "Group \"%s\" is not found.", group);
-    }
-
-    return NXT_ERROR;
-}
-
-
-static nxt_int_t
 nxt_conf_vldt_environment(nxt_conf_validation_t *vldt, nxt_str_t *name,
     nxt_conf_value_t *value)
 {
@@ -1351,6 +1584,133 @@ nxt_conf_vldt_environment(nxt_conf_validation_t *vldt, nxt_str_t *name,
 
     return NXT_OK;
 }
+
+
+static nxt_int_t
+nxt_conf_vldt_clone_namespaces(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data)
+{
+    return nxt_conf_vldt_object(vldt, value, data);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_isolation(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
+{
+    return nxt_conf_vldt_object(vldt, value, data);
+}
+
+
+#if (NXT_HAVE_CLONE_NEWUSER)
+
+typedef struct {
+    nxt_int_t container;
+    nxt_int_t host;
+    nxt_int_t size;
+} nxt_conf_vldt_clone_procmap_conf_t;
+
+
+static nxt_conf_map_t nxt_conf_vldt_clone_procmap_conf_map[] = {
+    {
+        nxt_string("container"),
+        NXT_CONF_MAP_INT32,
+        offsetof(nxt_conf_vldt_clone_procmap_conf_t, container),
+    },
+
+    {
+        nxt_string("host"),
+        NXT_CONF_MAP_INT32,
+        offsetof(nxt_conf_vldt_clone_procmap_conf_t, host),
+    },
+
+    {
+        nxt_string("size"),
+        NXT_CONF_MAP_INT32,
+        offsetof(nxt_conf_vldt_clone_procmap_conf_t, size),
+    },
+
+};
+
+
+static nxt_int_t
+nxt_conf_vldt_clone_procmap(nxt_conf_validation_t *vldt, const char *mapfile,
+        nxt_conf_value_t *value)
+{
+    nxt_int_t                           ret;
+    nxt_conf_vldt_clone_procmap_conf_t  procmap;
+
+    procmap.container = -1;
+    procmap.host = -1;
+    procmap.size = -1;
+
+    ret = nxt_conf_map_object(vldt->pool, value,
+                              nxt_conf_vldt_clone_procmap_conf_map,
+                              nxt_nitems(nxt_conf_vldt_clone_procmap_conf_map),
+                              &procmap);
+    if (ret != NXT_OK) {
+        return ret;
+    }
+
+    if (procmap.container == -1) {
+        return nxt_conf_vldt_error(vldt, "The %s requires the "
+                "\"container\" field set.", mapfile);
+    }
+
+    if (procmap.host == -1) {
+        return nxt_conf_vldt_error(vldt, "The %s requires the "
+                "\"host\" field set.", mapfile);
+    }
+
+    if (procmap.size == -1) {
+        return nxt_conf_vldt_error(vldt, "The %s requires the "
+                "\"size\" field set.", mapfile);
+    }
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_clone_uidmap(nxt_conf_validation_t *vldt, nxt_conf_value_t *value)
+{
+    nxt_int_t  ret;
+
+    if (nxt_conf_type(value) != NXT_CONF_OBJECT) {
+        return nxt_conf_vldt_error(vldt, "The \"uidmap\" array "
+                                   "must contain only object values.");
+    }
+
+    ret = nxt_conf_vldt_object(vldt, value,
+                               (void *) nxt_conf_vldt_app_procmap_members);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        return ret;
+    }
+
+    return nxt_conf_vldt_clone_procmap(vldt, "uid_map", value);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_clone_gidmap(nxt_conf_validation_t *vldt, nxt_conf_value_t *value)
+{
+    nxt_int_t ret;
+
+    if (nxt_conf_type(value) != NXT_CONF_OBJECT) {
+        return nxt_conf_vldt_error(vldt, "The \"gidmap\" array "
+                                   "must contain only object values.");
+    }
+
+    ret = nxt_conf_vldt_object(vldt, value,
+                               (void *) nxt_conf_vldt_app_procmap_members);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        return ret;
+    }
+
+    return nxt_conf_vldt_clone_procmap(vldt, "gid_map", value);
+}
+
+#endif
 
 
 static nxt_int_t
@@ -1393,7 +1753,8 @@ nxt_conf_vldt_php_option(nxt_conf_validation_t *vldt, nxt_str_t *name,
 
 
 static nxt_int_t
-nxt_conf_vldt_java_classpath(nxt_conf_validation_t *vldt, nxt_conf_value_t *value)
+nxt_conf_vldt_java_classpath(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value)
 {
     nxt_str_t  str;
 

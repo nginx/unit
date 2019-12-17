@@ -25,7 +25,19 @@ class TestApplicationProto(TestControl):
 
         return found
 
-    def _load_conf(self, conf):
+    def _load_conf(self, conf, **kwargs):
+        if 'applications' in conf:
+            for app in conf['applications'].keys():
+                app_conf = conf['applications'][app]
+                if 'user' in kwargs:
+                    app_conf['user'] = kwargs['user']
+
+                if 'group' in kwargs:
+                    app_conf['group'] = kwargs['group']
+
+                if 'isolation' in kwargs:
+                    app_conf['isolation'] = kwargs['isolation']
+
         self.assertIn(
             'success', self.conf(conf), 'load application configuration'
         )

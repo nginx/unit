@@ -3,7 +3,7 @@ from unit.applications.lang.perl import TestApplicationPerl
 
 
 class TestPerlApplication(TestApplicationPerl):
-    prerequisites = ['perl']
+    prerequisites = {'modules': ['perl']}
 
     def test_perl_application(self):
         self.load('variables')
@@ -157,7 +157,7 @@ class TestPerlApplication(TestApplicationPerl):
     def test_perl_application_body_empty(self):
         self.load('body_empty')
 
-        self.assertEqual(self.get()['body'], '0\r\n\r\n', 'body empty')
+        self.assertEqual(self.get()['body'], '', 'body empty')
 
     def test_perl_application_body_array(self):
         self.load('body_array')

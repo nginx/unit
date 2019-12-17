@@ -21,7 +21,8 @@ enum {
 /* Name and Value field aka HTTP header. */
 struct nxt_unit_field_s {
     uint16_t              hash;
-    uint8_t               skip;
+    uint8_t               skip:1;
+    uint8_t               hopbyhop:1;
     uint8_t               name_length;
     uint32_t              value_length;
 

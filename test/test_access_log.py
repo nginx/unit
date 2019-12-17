@@ -7,12 +7,16 @@ from unit.applications.lang.python import TestApplicationPython
 
 
 class TestAccessLog(TestApplicationPython):
-    prerequisites = ['python']
+    prerequisites = {'modules': ['python']}
 
     def load(self, script):
         super().load(script)
 
-        self.conf('"' + self.testdir + '/access.log"', 'access_log')
+        self.assertIn(
+            'success',
+            self.conf('"' + self.testdir + '/access.log"', 'access_log'),
+            'access_log configure',
+        )
 
     def wait_for_record(self, pattern, name='access.log'):
         return super().wait_for_record(pattern, name)
@@ -111,7 +115,9 @@ Connection: close
 
         addr = self.testdir + '/sock'
 
-        self.conf({"unix:" + addr: {"pass": "applications/empty"}}, 'listeners')
+        self.conf(
+            {"unix:" + addr: {"pass": "applications/empty"}}, 'listeners'
+        )
 
         self.get(sock_type='unix', addr=addr)
 
@@ -291,43 +297,6 @@ Connection: close
             self.wait_for_record(r'"GET / HTTP/1.1" 200 0 "-" "-"', 'new.log'),
             'change',
         )
-
-    def test_access_log_reopen(self):
-        self.load('empty')
-
-        log_path = self.testdir + '/access.log'
-
-        self.assertTrue(self.waitforfiles(log_path), 'open')
-
-        log_path_new = self.testdir + '/new.log'
-
-        os.rename(log_path, log_path_new)
-
-        self.get()
-
-        self.assertIsNotNone(
-            self.wait_for_record(r'"GET / HTTP/1.1" 200 0 "-" "-"', 'new.log'),
-            'rename new',
-        )
-        self.assertFalse(os.path.isfile(log_path), 'rename old')
-
-        with open(self.testdir + '/unit.pid', 'r') as f:
-            pid = f.read().rstrip()
-
-        call(['kill', '-s', 'USR1', pid])
-
-        self.assertTrue(self.waitforfiles(log_path), 'reopen')
-
-        self.get(url='/usr1')
-
-        self.assertIsNotNone(
-            self.wait_for_record(r'"GET /usr1 HTTP/1.1" 200 0 "-" "-"'),
-            'reopen 2',
-        )
-        self.assertIsNone(
-            self.search_in_log(r'/usr1', 'new.log'), 'rename new 2'
-        )
-
 
 if __name__ == '__main__':
     TestAccessLog.main()

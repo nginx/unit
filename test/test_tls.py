@@ -6,7 +6,7 @@ from unit.applications.tls import TestApplicationTLS
 
 
 class TestTLS(TestApplicationTLS):
-    prerequisites = ['python', 'openssl']
+    prerequisites = {'modules': ['python', 'openssl']}
 
     def findall(self, pattern):
         with open(self.testdir + '/unit.log', 'r', errors='ignore') as f:

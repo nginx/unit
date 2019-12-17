@@ -87,7 +87,7 @@ NXT_EXPORT u_char *nxt_cpystrn(u_char *dst, const u_char *src, size_t length);
 NXT_EXPORT nxt_int_t nxt_strcasecmp(const u_char *s1, const u_char *s2);
 NXT_EXPORT nxt_int_t nxt_strncasecmp(const u_char *s1, const u_char *s2,
     size_t length);
-NXT_EXPORT nxt_int_t nxt_memcasecmp(const u_char *s1, const u_char *s2,
+NXT_EXPORT nxt_int_t nxt_memcasecmp(const void *p1, const void *p2,
     size_t length);
 
 NXT_EXPORT u_char *nxt_memstrn(const u_char *s, const u_char *end,
@@ -167,6 +167,9 @@ nxt_strchr_start(s, c)                                                        \
 NXT_EXPORT nxt_int_t nxt_strverscmp(const u_char *s1, const u_char *s2);
 NXT_EXPORT nxt_bool_t nxt_strvers_match(u_char *version, u_char *prefix,
     size_t length);
+
+NXT_EXPORT u_char *nxt_decode_uri(u_char *dst, u_char *src, size_t length);
+NXT_EXPORT uintptr_t nxt_encode_uri(u_char *dst, u_char *src, size_t length);
 
 
 #endif /* _NXT_STRING_H_INCLUDED_ */

@@ -3,7 +3,7 @@ from unit.applications.lang.node import TestApplicationNode
 
 
 class TestNodeApplication(TestApplicationNode):
-    prerequisites = ['node']
+    prerequisites = {'modules': ['node']}
 
     def test_node_application_basic(self):
         self.load('basic')
@@ -141,7 +141,7 @@ class TestNodeApplication(TestApplicationNode):
         self.load('write_buffer')
 
         self.assertEqual(
-            self.get()['body'], '6\r\nbuffer\r\n0\r\n\r\n', 'write buffer'
+            self.get()['body'], 'buffer', 'write buffer'
         )
 
     def test_node_application_write_callback(self):
@@ -149,7 +149,7 @@ class TestNodeApplication(TestApplicationNode):
 
         self.assertEqual(
             self.get()['body'],
-            '5\r\nhello\r\n5\r\nworld\r\n0\r\n\r\n',
+            'helloworld',
             'write callback order',
         )
         self.assertTrue(
@@ -173,7 +173,7 @@ class TestNodeApplication(TestApplicationNode):
 
         self.assertEqual(
             self.get()['body'],
-            '4\r\nbody\r\n4\r\ntrue\r\n0\r\n\r\n',
+            'bodytrue',
             'write return',
         )
 

@@ -186,8 +186,8 @@ nxt_feature_libs=
 nxt_feature_test="#include <spawn.h>
                   #include <unistd.h>
 
-                  int main() {
-                      (void) posix_spawn(NULL, NULL, NULL, NULL, NULL, NULL);
+                  int main(int argc, char *argv[]) {
+                      (void) posix_spawn(NULL, \"\", NULL, NULL, argv, NULL);
                       return 0;
                   }"
 . auto/feature
@@ -205,6 +205,22 @@ nxt_feature_test="#include <stdlib.h>
 
                   int main() {
                       setproctitle(\"%s\", \"title\");
+                      return 0;
+                  }"
+. auto/feature
+
+
+# Linux, FreeBSD, Solaris getgrouplist()
+nxt_feature="getgrouplist()"
+nxt_feature_name=NXT_HAVE_GETGROUPLIST
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <unistd.h>
+                  #include <grp.h>
+
+                  int main() {
+                      getgrouplist(\"root\", 0, NULL, NULL);
                       return 0;
                   }"
 . auto/feature
