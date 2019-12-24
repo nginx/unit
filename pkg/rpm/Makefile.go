@@ -8,7 +8,7 @@ MODULE_RELEASE_go=	1
 
 MODULE_CONFARGS_go=	go --go-path=%{gopath}
 MODULE_MAKEARGS_go=	go
-MODULE_INSTARGS_go=	go-install
+MODULE_INSTARGS_go=	go-install-src
 
 MODULE_SOURCES_go=	unit.example-go-app \
 			unit.example-go-config
@@ -25,11 +25,15 @@ BUILD_DEPENDS+=		$(BUILD_DEPENDS_go)
 
 ifneq (,$(findstring $(OSVER),opensuse-leap opensuse-tumbleweed))
 define MODULE_DEFINITIONS_go
+BuildArch: noarch
+Requires: unit-devel == $(VERSION)-$(RELEASE)%{?dist}.ngx
 BuildRequires: $(BUILD_DEPENDS_go)
 %define gopath /usr/share/go/contrib
 endef
 else
 define MODULE_DEFINITIONS_go
+BuildArch: noarch
+Requires: unit-devel == $(VERSION)-$(RELEASE)%{?dist}.ngx
 BuildRequires: $(BUILD_DEPENDS_go)
 endef
 endif
