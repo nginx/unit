@@ -41,7 +41,7 @@ nxt_inline void nxt_unit_mmap_buf_insert(nxt_unit_mmap_buf_t **head,
     nxt_unit_mmap_buf_t *mmap_buf);
 nxt_inline void nxt_unit_mmap_buf_insert_tail(nxt_unit_mmap_buf_t **prev,
     nxt_unit_mmap_buf_t *mmap_buf);
-nxt_inline void nxt_unit_mmap_buf_remove(nxt_unit_mmap_buf_t *mmap_buf);
+nxt_inline void nxt_unit_mmap_buf_unlink(nxt_unit_mmap_buf_t *mmap_buf);
 static int nxt_unit_read_env(nxt_unit_port_t *ready_port,
     nxt_unit_port_t *read_port, int *log_fd, uint32_t *stream);
 static int nxt_unit_ready(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
@@ -521,7 +521,7 @@ nxt_unit_mmap_buf_insert_tail(nxt_unit_mmap_buf_t **prev,
 
 
 nxt_inline void
-nxt_unit_mmap_buf_remove(nxt_unit_mmap_buf_t *mmap_buf)
+nxt_unit_mmap_buf_unlink(nxt_unit_mmap_buf_t *mmap_buf)
 {
     nxt_unit_mmap_buf_t  **prev;
 
@@ -1751,7 +1751,7 @@ nxt_unit_mmap_buf_get(nxt_unit_ctx_t *ctx)
     } else {
         mmap_buf = ctx_impl->free_buf;
 
-        nxt_unit_mmap_buf_remove(mmap_buf);
+        nxt_unit_mmap_buf_unlink(mmap_buf);
 
         pthread_mutex_unlock(&ctx_impl->mutex);
     }
@@ -1768,7 +1768,7 @@ nxt_unit_mmap_buf_get(nxt_unit_ctx_t *ctx)
 static void
 nxt_unit_mmap_buf_release(nxt_unit_mmap_buf_t *mmap_buf)
 {
-    nxt_unit_mmap_buf_remove(mmap_buf);
+    nxt_unit_mmap_buf_unlink(mmap_buf);
 
     pthread_mutex_lock(&mmap_buf->ctx_impl->mutex);
 
@@ -3501,12 +3501,12 @@ nxt_unit_ctx_free(nxt_unit_ctx_t *ctx)
 
     } nxt_queue_loop;
 
-    nxt_unit_mmap_buf_remove(&ctx_impl->ctx_buf[0]);
-    nxt_unit_mmap_buf_remove(&ctx_impl->ctx_buf[1]);
+    nxt_unit_mmap_buf_unlink(&ctx_impl->ctx_buf[0]);
+    nxt_unit_mmap_buf_unlink(&ctx_impl->ctx_buf[1]);
 
     while (ctx_impl->free_buf != NULL) {
         mmap_buf = ctx_impl->free_buf;
-        nxt_unit_mmap_buf_remove(mmap_buf);
+        nxt_unit_mmap_buf_unlink(mmap_buf);
         free(mmap_buf);
     }
 
