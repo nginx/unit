@@ -195,7 +195,7 @@ endif
 debuild/unit_$(VERSION).orig.tar.gz: | debuild/$(SRCDIR)/debian
 	cd ../.. && tar -czf pkg/deb/debuild/$(SRCDIR).tar.gz \
 		--transform "s#^#$(SRCDIR)/#" \
-		LICENSE NOTICE CHANGES README configure auto src test version
+		LICENSE NOTICE CHANGES README configure auto src test version go
 	mv debuild/$(SRCDIR).tar.gz debuild/unit_$(VERSION).orig.tar.gz
 	cd debuild && tar zxf unit_$(VERSION).orig.tar.gz
 

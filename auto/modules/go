@@ -107,7 +107,7 @@ ${NXT_GO}-install: ${NXT_GO}-install-src ${NXT_GO}-install-env
 
 ${NXT_GO}-install-src:
 	install -d \$(DESTDIR)\$(NXT_GO_DST)/src/${NXT_GO_PKG}
-	install -p -m644 ./src/go/unit/* \$(DESTDIR)\$(NXT_GO_DST)/src/${NXT_GO_PKG}/
+	install -p -m644 ./go/* \$(DESTDIR)\$(NXT_GO_DST)/src/${NXT_GO_PKG}/
 
 ${NXT_GO}-install-env: \$(DESTDIR)\$(NXT_GO_DST)/src/${NXT_GO_PKG}/env.go \
     ${NXT_VERSION_H} ${NXT_BUILD_DIR}/${NXT_LIB_UNIT_STATIC}

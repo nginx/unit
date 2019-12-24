@@ -204,7 +204,7 @@ endif
 rpmbuild/SOURCES/unit-$(VERSION).tar.gz:
 	cd ../.. && tar -czf pkg/rpm/rpmbuild/SOURCES/unit-$(VERSION).tar.gz \
 		--transform "s#^#unit-$(VERSION)/#" \
-		LICENSE NOTICE CHANGES README configure auto src test version
+		LICENSE NOTICE CHANGES README configure auto src test version go
 
 unit: check-build-depends-unit rpmbuild/SPECS/unit.spec rpmbuild/SOURCES/unit-$(VERSION).tar.gz
 	@echo "===> Building $@ package" ; \
