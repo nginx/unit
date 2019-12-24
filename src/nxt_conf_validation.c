@@ -294,6 +294,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_match_members[] = {
       &nxt_conf_vldt_match_addrs,
       NULL },
 
+    { nxt_string("destination"),
+      NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
+      &nxt_conf_vldt_match_addrs,
+      NULL },
+
     { nxt_string("uri"),
       NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
       &nxt_conf_vldt_match_patterns,
