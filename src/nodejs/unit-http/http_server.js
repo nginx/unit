@@ -227,6 +227,7 @@ ServerResponse.prototype._write = unit_lib.response_write;
 
 ServerResponse.prototype._writeBody = function(chunk, encoding, callback) {
     var contentLength = 0;
+    var res, o;
 
     this._sendHeaders();
 
@@ -247,11 +248,32 @@ ServerResponse.prototype._writeBody = function(chunk, encoding, callback) {
         if (typeof chunk === 'string') {
             contentLength = Buffer.byteLength(chunk, encoding);
 
+            if (contentLength > unit_lib.buf_min) {
+                chunk = Buffer.from(chunk, encoding);
+
+                contentLength = chunk.length;
+            }
+
         } else {
             contentLength = chunk.length;
         }
 
-        this._write(chunk, contentLength);
+        if (this.server._output.length > 0 || !this.socket.writable) {
+            o = new BufferedOutput(this, 0, chunk, encoding, callback);
+            this.server._output.push(o);
+
+            return false;
+        }
+
+        res = this._write(chunk, 0, contentLength);
+        if (res < contentLength) {
+            this.socket.writable = false;
+
+            o = new BufferedOutput(this, res, chunk, encoding, callback);
+            this.server._output.push(o);
+
+            return false;
+        }
     }
 
     if (typeof callback === 'function') {
@@ -265,29 +287,48 @@ ServerResponse.prototype._writeBody = function(chunk, encoding, callback) {
          * the event loop.  All callbacks passed to process.nextTick()
          * will be resolved before the event loop continues.
          */
-        process.nextTick(function () {
-            callback(this);
-        }.bind(this));
+        process.nextTick(callback);
     }
+
+    return true;
 };
 
 ServerResponse.prototype.write = function write(chunk, encoding, callback) {
     if (this.finished) {
-        throw new Error("Write after end");
+        if (typeof encoding === 'function') {
+            callback = encoding;
+            encoding = null;
+        }
+
+        var err = new Error("Write after end");
+        process.nextTick(() => {
+            this.emit('error', err);
+
+            if (typeof callback === 'function') {
+                callback(err);
+            }
+        })
     }
 
-    this._writeBody(chunk, encoding, callback);
-
-    return true;
+    return this._writeBody(chunk, encoding, callback);
 };
 
 ServerResponse.prototype._end = unit_lib.response_end;
 
 ServerResponse.prototype.end = function end(chunk, encoding, callback) {
     if (!this.finished) {
-        this._writeBody(chunk, encoding, callback);
+        if (typeof encoding === 'function') {
+            callback = encoding;
+            encoding = null;
+        }
 
-        this._end();
+        this._writeBody(chunk, encoding, () => {
+            this._end();
+
+            if (typeof callback === 'function') {
+                callback();
+            }
+        });
 
         this.finished = true;
     }
@@ -393,6 +434,9 @@ function Server(requestListener) {
             this._upgradeListenerCount--;
         }
     });
+
+    this._output = [];
+    this._drain_resp = new Set();
 }
 
 util.inherits(Server, EventEmitter);
@@ -428,6 +472,63 @@ Server.prototype.emit_request = function (req, res) {
 Server.prototype.emit_close = function () {
     this.emit('close');
 };
+
+Server.prototype.emit_drain = function () {
+    var res, o, l;
+
+    if (this._output.length <= 0) {
+        return;
+    }
+
+    while (this._output.length > 0) {
+        o = this._output[0];
+
+        if (typeof o.chunk === 'string') {
+            l = Buffer.byteLength(o.chunk, o.encoding);
+
+        } else {
+            l = o.chunk.length;
+        }
+
+        res = o.resp._write(o.chunk, o.offset, l);
+
+        o.offset += res;
+        if (o.offset < l) {
+            return;
+        }
+
+        this._drain_resp.add(o.resp);
+
+        if (typeof o.callback === 'function') {
+            process.nextTick(o.callback);
+        }
+
+        this._output.shift();
+    }
+
+    for (var resp of this._drain_resp) {
+
+        if (resp.socket.writable) {
+            continue;
+        }
+
+        resp.socket.writable = true;
+
+        process.nextTick(() => {
+            resp.emit("drain");
+        });
+    }
+
+    this._drain_resp.clear();
+};
+
+function BufferedOutput(resp, offset, chunk, encoding, callback) {
+    this.resp = resp;
+    this.offset = offset;
+    this.chunk = chunk;
+    this.encoding = encoding;
+    this.callback = callback;
+}
 
 function connectionListener(socket) {
 }
