@@ -1230,6 +1230,7 @@ nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r,
     c = h1p->conn;
 
     c->write = header;
+    h1p->conn_write_tail = &header->next;
     c->write_state = &nxt_h1p_request_send_state;
 
     if (body_handler != NULL) {
@@ -1342,8 +1343,14 @@ nxt_h1p_request_send(nxt_task_t *task, nxt_http_request_t *r, nxt_buf_t *out)
         nxt_conn_write(task->thread->engine, c);
 
     } else {
-        nxt_buf_chain_add(&c->write, out);
+        *h1p->conn_write_tail = out;
     }
+
+    while (out->next != NULL) {
+        out = out->next;
+    }
+
+    h1p->conn_write_tail = &out->next;
 }
 
 
@@ -1730,9 +1737,10 @@ nxt_h1p_idle_timeout(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_h1p_idle_response(nxt_task_t *task, nxt_conn_t *c)
 {
-    u_char     *p;
-    size_t     size;
-    nxt_buf_t  *out, *last;
+    u_char         *p;
+    size_t         size;
+    nxt_buf_t      *out, *last;
+    nxt_h1proto_t  *h1p;
 
     size = nxt_length(NXT_H1P_IDLE_TIMEOUT)
            + nxt_http_date_cache.size
@@ -1761,6 +1769,9 @@ nxt_h1p_idle_response(nxt_task_t *task, nxt_conn_t *c)
 
     last->completion_handler = nxt_h1p_idle_response_sent;
     last->parent = c;
+
+    h1p = c->socket.data;
+    h1p->conn_write_tail = &last->next;
 
     c->write = out;
     c->write_state = &nxt_h1p_timeout_response_state;
