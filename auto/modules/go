@@ -72,7 +72,7 @@ fi
 
 
 NXT_GO_PATH=${NXT_GO_PATH=`${NXT_GO} env GOPATH`}
-NXT_GO_PATH=${NXT_GO_PATH:-`pwd`/${NXT_GO}}
+NXT_GO_PATH=${NXT_GO_PATH:-${PWD}/${NXT_BUILD_DIR}/${NXT_GO}}
 
 NXT_GO_PKG=nginx/unit
 
