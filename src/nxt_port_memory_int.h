@@ -51,6 +51,7 @@ struct nxt_port_mmap_header_s {
     nxt_pid_t       src_pid; /* For sanity check. */
     nxt_pid_t       dst_pid; /* For sanity check. */
     nxt_port_id_t   sent_over;
+    nxt_atomic_t    oosm;
     nxt_free_map_t  free_map[MAX_FREE_IDX];
     nxt_free_map_t  free_map_padding;
     nxt_free_map_t  free_tracking_map[MAX_FREE_IDX];

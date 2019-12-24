@@ -248,6 +248,7 @@ static nxt_int_t nxt_router_http_request_done(nxt_task_t *task,
     nxt_http_request_t *r);
 static void nxt_router_http_request_release(nxt_task_t *task, void *obj,
     void *data);
+static void nxt_router_oosm_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 
 extern const nxt_http_request_state_t  nxt_http_websocket;
 
@@ -276,6 +277,7 @@ nxt_port_handlers_t  nxt_router_process_port_handlers = {
     .access_log   = nxt_router_access_log_reopen_handler,
     .rpc_ready    = nxt_port_rpc_handler,
     .rpc_error    = nxt_port_rpc_handler,
+    .oosm         = nxt_router_oosm_handler,
 };
 
 
@@ -2748,6 +2750,7 @@ static nxt_port_handlers_t  nxt_router_app_port_handlers = {
     .rpc_error = nxt_port_rpc_handler,
     .mmap      = nxt_port_mmap_handler,
     .data      = nxt_port_rpc_handler,
+    .oosm      = nxt_router_oosm_handler,
 };
 
 
@@ -5240,4 +5243,57 @@ nxt_router_http_request_release(nxt_task_t *task, void *obj, void *data)
     r = nxt_timer_data(obj, nxt_http_request_t, timer);
 
     nxt_mp_release(r->mem_pool);
+}
+
+
+static void
+nxt_router_oosm_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
+{
+    size_t                   mi;
+    uint32_t                 i;
+    nxt_bool_t               ack;
+    nxt_process_t            *process;
+    nxt_free_map_t           *m;
+    nxt_port_mmap_header_t   *hdr;
+
+    nxt_debug(task, "oosm in %PI", msg->port_msg.pid);
+
+    process = nxt_runtime_process_find(task->thread->runtime,
+                                       msg->port_msg.pid);
+    if (nxt_slow_path(process == NULL)) {
+        return;
+    }
+
+    ack = 0;
+
+    /*
+     * To mitigate possible racing condition (when OOSM message received
+     * after some of the memory was already freed), need to try to find
+     * first free segment in shared memory and send ACK if found.
+     */
+
+    nxt_thread_mutex_lock(&process->incoming.mutex);
+
+    for (i = 0; i < process->incoming.size; i++) {
+        hdr = process->incoming.elts[i].mmap_handler->hdr;
+        m = hdr->free_map;
+
+        for (mi = 0; mi < MAX_FREE_IDX; mi++) {
+            if (m[mi] != 0) {
+                ack = 1;
+
+                nxt_debug(task, "oosm: already free #%uD %uz = 0x%08xA",
+                          i, mi, m[mi]);
+
+                break;
+            }
+        }
+    }
+
+    nxt_thread_mutex_unlock(&process->incoming.mutex);
+
+    if (ack) {
+        (void) nxt_port_socket_write(task, msg->port, NXT_PORT_MSG_SHM_ACK,
+                                     -1, 0, 0, NULL);
+    }
 }

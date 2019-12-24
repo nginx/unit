@@ -137,6 +137,9 @@ struct nxt_unit_callbacks_s {
     /* Gracefully quit the application. Optional. */
     void     (*quit)(nxt_unit_ctx_t *);
 
+    /* Shared memory release acknowledgement. */
+    void     (*shm_ack_handler)(nxt_unit_ctx_t *);
+
     /* Send data and control to process pid using port id. Optional. */
     ssize_t  (*port_send)(nxt_unit_ctx_t *, nxt_unit_port_id_t *port_id,
                  const void *buf, size_t buf_size,
@@ -322,6 +325,9 @@ uint32_t nxt_unit_buf_min(void);
 
 int nxt_unit_response_write(nxt_unit_request_info_t *req, const void *start,
     size_t size);
+
+ssize_t nxt_unit_response_write_nb(nxt_unit_request_info_t *req,
+    const void *start, size_t size, size_t min_size);
 
 int nxt_unit_response_write_cb(nxt_unit_request_info_t *req,
     nxt_unit_read_info_t *read_info);
