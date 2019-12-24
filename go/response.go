@@ -19,6 +19,7 @@ type response struct {
 	headerSent bool
 	req        *http.Request
 	c_req      C.uintptr_t
+	ch         chan int
 }
 
 func new_response(c_req C.uintptr_t, req *http.Request) *response {
@@ -40,8 +41,26 @@ func (r *response) Write(p []byte) (n int, err error) {
 		r.WriteHeader(http.StatusOK)
 	}
 
-	res := C.nxt_cgo_response_write(r.c_req, buf_ref(p), C.uint32_t(len(p)))
-	return int(res), nil
+	l := len(p)
+	written := int(0)
+	br := buf_ref(p)
+
+	for written < l {
+		res := C.nxt_cgo_response_write(r.c_req, br, C.uint32_t(l - written))
+
+		written += int(res)
+		br += C.uintptr_t(res)
+
+		if (written < l) {
+			if r.ch == nil {
+				r.ch = make(chan int, 2)
+			}
+
+			wait_shm_ack(r.ch)
+		}
+	}
+
+	return written, nil
 }
 
 func (r *response) WriteHeader(code int) {
@@ -84,4 +103,17 @@ func (r *response) Flush() {
 	if !r.headerSent {
 		r.WriteHeader(http.StatusOK)
 	}
+}
+
+var observer_registry_ observable
+
+func wait_shm_ack(c chan int) {
+	observer_registry_.attach(c)
+
+	_ = <-c
+}
+
+//export nxt_go_shm_ack_handler
+func nxt_go_shm_ack_handler() {
+	observer_registry_.notify(1)
 }
