@@ -404,6 +404,7 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     nxt_unit_default_init(task, &python_init);
 
     python_init.callbacks.request_handler = nxt_python_request_handler;
+    python_init.shm_limit = conf->shm_limit;
 
     unit_ctx = nxt_unit_init(&python_init);
     if (nxt_slow_path(unit_ctx == NULL)) {

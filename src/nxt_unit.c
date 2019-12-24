@@ -43,7 +43,8 @@ nxt_inline void nxt_unit_mmap_buf_insert_tail(nxt_unit_mmap_buf_t **prev,
     nxt_unit_mmap_buf_t *mmap_buf);
 nxt_inline void nxt_unit_mmap_buf_unlink(nxt_unit_mmap_buf_t *mmap_buf);
 static int nxt_unit_read_env(nxt_unit_port_t *ready_port,
-    nxt_unit_port_t *read_port, int *log_fd, uint32_t *stream);
+    nxt_unit_port_t *read_port, int *log_fd, uint32_t *stream,
+    uint32_t *shm_limit);
 static int nxt_unit_ready(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
     uint32_t stream);
 static int nxt_unit_process_new_port(nxt_unit_ctx_t *ctx,
@@ -240,6 +241,7 @@ struct nxt_unit_impl_s {
     nxt_unit_callbacks_t     callbacks;
 
     uint32_t                 request_data_size;
+    uint32_t                 shm_mmap_limit;
 
     pthread_mutex_t          mutex;
 
@@ -306,7 +308,7 @@ nxt_unit_ctx_t *
 nxt_unit_init(nxt_unit_init_t *init)
 {
     int              rc;
-    uint32_t         ready_stream;
+    uint32_t         ready_stream, shm_limit;
     nxt_unit_ctx_t   *ctx;
     nxt_unit_impl_t  *lib;
     nxt_unit_port_t  ready_port, read_port;
@@ -329,12 +331,20 @@ nxt_unit_init(nxt_unit_init_t *init)
                               ready_port.id.id);
         nxt_unit_port_id_init(&read_port.id, read_port.id.pid,
                               read_port.id.id);
+
     } else {
         rc = nxt_unit_read_env(&ready_port, &read_port, &lib->log_fd,
-                               &ready_stream);
+                               &ready_stream, &shm_limit);
         if (nxt_slow_path(rc != NXT_UNIT_OK)) {
             goto fail;
         }
+
+        lib->shm_mmap_limit = (shm_limit + PORT_MMAP_DATA_SIZE - 1)
+                                / PORT_MMAP_DATA_SIZE;
+    }
+
+    if (nxt_slow_path(lib->shm_mmap_limit < 1)) {
+        lib->shm_mmap_limit = 1;
     }
 
     lib->pid = read_port.id.pid;
@@ -399,6 +409,8 @@ nxt_unit_create(nxt_unit_init_t *init)
     lib->callbacks = init->callbacks;
 
     lib->request_data_size = init->request_data_size;
+    lib->shm_mmap_limit = (init->shm_limit + PORT_MMAP_DATA_SIZE - 1)
+                            / PORT_MMAP_DATA_SIZE;
 
     lib->processes.slot = NULL;
     lib->ports.slot = NULL;
@@ -539,7 +551,7 @@ nxt_unit_mmap_buf_unlink(nxt_unit_mmap_buf_t *mmap_buf)
 
 static int
 nxt_unit_read_env(nxt_unit_port_t *ready_port, nxt_unit_port_t *read_port,
-    int *log_fd, uint32_t *stream)
+    int *log_fd, uint32_t *stream, uint32_t *shm_limit)
 {
     int       rc;
     int       ready_fd, read_fd;
@@ -574,14 +586,14 @@ nxt_unit_read_env(nxt_unit_port_t *ready_port, nxt_unit_port_t *read_port,
                 "%"PRIu32";"
                 "%"PRId64",%"PRIu32",%d;"
                 "%"PRId64",%"PRIu32",%d;"
-                "%d",
+                "%d,%"PRIu32,
                 &ready_stream,
                 &ready_pid, &ready_id, &ready_fd,
                 &read_pid, &read_id, &read_fd,
-                log_fd);
+                log_fd, shm_limit);
 
-    if (nxt_slow_path(rc != 8)) {
-        nxt_unit_alert(NULL, "failed to scan variables");
+    if (nxt_slow_path(rc != 9)) {
+        nxt_unit_alert(NULL, "failed to scan variables: %d", rc);
 
         return NXT_UNIT_ERROR;
     }

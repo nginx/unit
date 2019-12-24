@@ -155,6 +155,7 @@ struct nxt_unit_init_s {
     int                   max_pending_requests;
 
     uint32_t              request_data_size;
+    uint32_t              shm_limit;
 
     nxt_unit_callbacks_t  callbacks;
 

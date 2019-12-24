@@ -98,11 +98,11 @@ nxt_external_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
                     "%s;%uD;"
                     "%PI,%ud,%d;"
                     "%PI,%ud,%d;"
-                    "%d,%Z",
+                    "%d,%z,%Z",
                     NXT_VERSION, my_port->process->init->stream,
                     main_port->pid, main_port->id, main_port->pair[1],
                     my_port->pid, my_port->id, my_port->pair[0],
-                    2);
+                    2, conf->shm_limit);
 
     if (nxt_slow_path(p == end)) {
         nxt_alert(task, "internal error: buffer too small for NXT_UNIT_INIT");

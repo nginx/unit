@@ -358,6 +358,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_limits_members[] = {
       NULL,
       NULL },
 
+    { nxt_string("shm"),
+      NXT_CONF_VLDT_INTEGER,
+      NULL,
+      NULL },
+
     NXT_CONF_VLDT_END
 };
 
