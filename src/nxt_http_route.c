@@ -6,6 +6,8 @@
 
 #include <nxt_router.h>
 #include <nxt_http.h>
+#include <nxt_sockaddr.h>
+#include <nxt_http_route_addr.h>
 
 
 typedef enum {
@@ -16,6 +18,7 @@ typedef enum {
     NXT_HTTP_ROUTE_ARGUMENT,
     NXT_HTTP_ROUTE_COOKIE,
     NXT_HTTP_ROUTE_SCHEME,
+    NXT_HTTP_ROUTE_SOURCE,
 } nxt_http_route_object_t;
 
 
@@ -50,6 +53,7 @@ typedef struct {
     nxt_conf_value_t               *arguments;
     nxt_conf_value_t               *cookies;
     nxt_conf_value_t               *scheme;
+    nxt_conf_value_t               *source;
 } nxt_http_route_match_conf_t;
 
 
@@ -118,9 +122,18 @@ typedef struct {
 } nxt_http_route_table_t;
 
 
+typedef struct {
+    /* The object must be the first field. */
+    nxt_http_route_object_t        object:8;
+    uint32_t                       items;
+    nxt_http_route_addr_pattern_t  addr_pattern[0];
+} nxt_http_route_addr_rule_t;
+
+
 typedef union {
     nxt_http_route_rule_t          *rule;
     nxt_http_route_table_t         *table;
+    nxt_http_route_addr_rule_t     *addr_rule;
 } nxt_http_route_test_t;
 
 
@@ -170,6 +183,8 @@ static nxt_http_route_ruleset_t *nxt_http_route_ruleset_create(nxt_task_t *task,
 static nxt_http_route_rule_t *nxt_http_route_rule_name_create(nxt_task_t *task,
     nxt_mp_t *mp, nxt_conf_value_t *rule_cv, nxt_str_t *name,
     nxt_bool_t case_sensitive);
+static nxt_http_route_addr_rule_t *nxt_http_route_addr_rule_create(
+    nxt_task_t *task, nxt_mp_t *mp, nxt_conf_value_t *cv);
 static nxt_http_route_rule_t *nxt_http_route_rule_create(nxt_task_t *task,
     nxt_mp_t *mp, nxt_conf_value_t *cv, nxt_bool_t case_sensitive,
     nxt_http_route_pattern_case_t pattern_case);
@@ -196,6 +211,8 @@ static nxt_int_t nxt_http_route_table(nxt_http_request_t *r,
     nxt_http_route_table_t *table);
 static nxt_int_t nxt_http_route_ruleset(nxt_http_request_t *r,
     nxt_http_route_ruleset_t *ruleset);
+static nxt_int_t nxt_http_route_addr_rule(nxt_http_request_t *r,
+    nxt_http_route_addr_rule_t *addr_rule, nxt_sockaddr_t *sockaddr);
 static nxt_int_t nxt_http_route_rule(nxt_http_request_t *r,
     nxt_http_route_rule_t *rule);
 static nxt_int_t nxt_http_route_header(nxt_http_request_t *r,
@@ -329,6 +346,12 @@ static nxt_conf_map_t  nxt_http_route_match_conf[] = {
         NXT_CONF_MAP_PTR,
         offsetof(nxt_http_route_match_conf_t, cookies),
     },
+
+    {
+        nxt_string("source"),
+        NXT_CONF_MAP_PTR,
+        offsetof(nxt_http_route_match_conf_t, source),
+    },
 };
 
 
@@ -381,6 +404,7 @@ nxt_http_route_match_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_http_route_rule_t        *rule;
     nxt_http_route_table_t       *table;
     nxt_http_route_match_t       *match;
+    nxt_http_route_addr_rule_t   *addr_rule;
     nxt_http_route_match_conf_t  mtcf;
 
     static nxt_str_t  match_path = nxt_string("/match");
@@ -502,6 +526,17 @@ nxt_http_route_match_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         }
 
         test->table = table;
+        test++;
+    }
+
+    if (mtcf.source != NULL) {
+        addr_rule = nxt_http_route_addr_rule_create(task, mp, mtcf.source);
+        if (addr_rule == NULL) {
+            return NULL;
+        }
+
+        addr_rule->object = NXT_HTTP_ROUTE_SOURCE;
+        test->addr_rule = addr_rule;
         test++;
     }
 
@@ -767,6 +802,53 @@ nxt_http_route_rule_create(nxt_task_t *task, nxt_mp_t *mp,
     }
 
     return rule;
+}
+
+
+static nxt_http_route_addr_rule_t *
+nxt_http_route_addr_rule_create(nxt_task_t *task, nxt_mp_t *mp,
+     nxt_conf_value_t *cv)
+{
+    size_t                         size;
+    uint32_t                       i, n;
+    nxt_bool_t                     array;
+    nxt_conf_value_t               *value;
+    nxt_http_route_addr_rule_t     *addr_rule;
+    nxt_http_route_addr_pattern_t  *pattern;
+
+    array = (nxt_conf_type(cv) == NXT_CONF_ARRAY);
+    n = array ? nxt_conf_array_elements_count(cv) : 1;
+
+    size = sizeof(nxt_http_route_addr_rule_t)
+           + n * sizeof(nxt_http_route_addr_pattern_t);
+
+    addr_rule = nxt_mp_alloc(mp, size);
+    if (nxt_slow_path(addr_rule == NULL)) {
+        return NULL;
+    }
+
+    addr_rule->items = n;
+
+    if (!array) {
+        pattern = &addr_rule->addr_pattern[0];
+
+        if (nxt_http_route_addr_pattern_parse(mp, pattern, cv) != NXT_OK) {
+            return NULL;
+        }
+
+        return addr_rule;
+    }
+
+    for (i = 0; i < n; i++) {
+        pattern = &addr_rule->addr_pattern[i];
+        value = nxt_conf_get_array_element(cv, i);
+
+        if (nxt_http_route_addr_pattern_parse(mp, pattern, value) != NXT_OK) {
+            return NULL;
+        }
+    }
+
+    return addr_rule;
 }
 
 
@@ -1141,11 +1223,16 @@ nxt_http_route_match(nxt_http_request_t *r, nxt_http_route_match_t *match)
     end = test + match->items;
 
     while (test < end) {
-        if (test->rule->object != NXT_HTTP_ROUTE_TABLE) {
-            ret = nxt_http_route_rule(r, test->rule);
-
-        } else {
+        switch (test->rule->object) {
+        case NXT_HTTP_ROUTE_TABLE:
             ret = nxt_http_route_table(r, test->table);
+            break;
+        case NXT_HTTP_ROUTE_SOURCE:
+            ret = nxt_http_route_addr_rule(r, test->addr_rule, r->remote);
+            break;
+        default:
+            ret = nxt_http_route_rule(r, test->rule);
+            break;
         }
 
         if (ret <= 0) {
@@ -1252,6 +1339,154 @@ nxt_http_route_rule(nxt_http_request_t *r, nxt_http_route_rule_t *rule)
     start = s->start;
 
     return nxt_http_route_test_rule(r, rule, start, length);
+}
+
+
+static nxt_int_t
+nxt_http_route_addr_pattern_match(nxt_http_route_addr_pattern_t *p,
+    nxt_sockaddr_t *sa)
+{
+#if (NXT_INET6)
+    uint32_t                    i;
+#endif
+    in_port_t                   in_port;
+    nxt_int_t                   match;
+    struct sockaddr_in          *sin;
+#if (NXT_INET6)
+    struct sockaddr_in6         *sin6;
+#endif
+    nxt_http_route_addr_base_t  *base;
+
+    base = &p->base;
+
+    switch (sa->u.sockaddr.sa_family) {
+
+    case AF_INET:
+
+        match = (base->addr_family == AF_INET
+                 || base->addr_family == AF_UNSPEC);
+        if (!match) {
+            break;
+        }
+
+        sin = &sa->u.sockaddr_in;
+        in_port = ntohs(sin->sin_port);
+
+        match = (in_port >= base->port.start && in_port <= base->port.end);
+        if (!match) {
+            break;
+        }
+
+        switch (base->match_type) {
+
+        case NXT_HTTP_ROUTE_ADDR_ANY:
+            break;
+
+        case NXT_HTTP_ROUTE_ADDR_EXACT:
+            match = (nxt_memcmp(&sin->sin_addr, &p->addr.v4.start,
+                                sizeof(struct in_addr))
+                     == 0);
+            break;
+
+        case NXT_HTTP_ROUTE_ADDR_RANGE:
+            match = (nxt_memcmp(&sin->sin_addr, &p->addr.v4.start,
+                                sizeof(struct in_addr)) >= 0
+                     && nxt_memcmp(&sin->sin_addr, &p->addr.v4.end,
+                                   sizeof(struct in_addr)) <= 0);
+            break;
+
+        case NXT_HTTP_ROUTE_ADDR_CIDR:
+            match = ((sin->sin_addr.s_addr & p->addr.v4.end)
+                     == p->addr.v4.start);
+            break;
+
+        default:
+            nxt_unreachable();
+        }
+
+        break;
+
+#if (NXT_INET6)
+    case AF_INET6:
+
+        match = (base->addr_family == AF_INET6
+                 || base->addr_family == AF_UNSPEC);
+        if (!match) {
+            break;
+        }
+
+        sin6 = &sa->u.sockaddr_in6;
+        in_port = ntohs(sin6->sin6_port);
+
+        match = (in_port >= base->port.start && in_port <= base->port.end);
+        if (!match) {
+            break;
+        }
+
+        switch (base->match_type) {
+
+        case NXT_HTTP_ROUTE_ADDR_ANY:
+            break;
+
+        case NXT_HTTP_ROUTE_ADDR_EXACT:
+            match = (nxt_memcmp(&sin6->sin6_addr, &p->addr.v6.start,
+                                sizeof(struct in6_addr))
+                     == 0);
+            break;
+
+        case NXT_HTTP_ROUTE_ADDR_RANGE:
+            match = (nxt_memcmp(&sin6->sin6_addr, &p->addr.v6.start,
+                                sizeof(struct in6_addr)) >= 0
+                     && nxt_memcmp(&sin6->sin6_addr, &p->addr.v6.end,
+                                   sizeof(struct in6_addr)) <= 0);
+            break;
+
+        case NXT_HTTP_ROUTE_ADDR_CIDR:
+            for (i = 0; i < 16; i++) {
+                match = ((sin6->sin6_addr.s6_addr[i]
+                          & p->addr.v6.end.s6_addr[i])
+                         == p->addr.v6.start.s6_addr[i]);
+
+                if (!match) {
+                    break;
+                }
+            }
+
+            break;
+
+        default:
+            nxt_unreachable();
+        }
+
+        break;
+#endif
+
+    default:
+        match = 0;
+        break;
+    }
+
+    return match ^ base->negative;
+}
+
+
+static nxt_int_t
+nxt_http_route_addr_rule(nxt_http_request_t *r,
+    nxt_http_route_addr_rule_t *addr_rule, nxt_sockaddr_t *sa)
+{
+    uint32_t                       i, n;
+    nxt_http_route_addr_pattern_t  *p;
+
+    n = addr_rule->items;
+
+    for (i = 0; i < n; i++) {
+        p = &addr_rule->addr_pattern[i];
+        if (nxt_http_route_addr_pattern_match(p, sa)) {
+            return 1;
+        }
+    }
+
+    return 0;
 }
 
 
