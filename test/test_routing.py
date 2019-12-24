@@ -1694,6 +1694,64 @@ class TestRouting(TestApplicationProto):
         self.route_match_invalid({"source": "*:1-a"})
         self.route_match_invalid({"source": "*:65536"})
 
+    def test_routes_match_destination(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                {"*:7080": {"pass": "routes"}, "*:7081": {"pass": "routes"}},
+                'listeners',
+            ),
+            'listeners configure',
+        )
+
+        self.route_match({"destination": "*:7080"})
+        self.assertEqual(self.get()['status'], 200, 'dest')
+        self.assertEqual(self.get(port=7081)['status'], 404, 'dest 2')
+
+        self.route_match({"destination": ["127.0.0.1:7080"]})
+        self.assertEqual(self.get()['status'], 200, 'dest 3')
+        self.assertEqual(self.get(port=7081)['status'], 404, 'dest 4')
+
+        self.route_match({"destination": "!*:7080"})
+        self.assertEqual(self.get()['status'], 404, 'dest neg')
+        self.assertEqual(self.get(port=7081)['status'], 200, 'dest neg 2')
+
+    def test_routes_match_destination_proxy(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                {
+                    "listeners": {
+                        "*:7080": {"pass": "routes/first"},
+                        "*:7081": {"pass": "routes/second"},
+                    },
+                    "routes": {
+                        "first": [
+                            {"action": {"proxy": "http://127.0.0.1:7081"}}
+                        ],
+                        "second": [
+                            {
+                                "match": {"destination": ["127.0.0.1:7081"]},
+                                "action": {"pass": "applications/empty"},
+                            }
+                        ],
+                    },
+                    "applications": {
+                        "empty": {
+                            "type": "python",
+                            "processes": {"spare": 0},
+                            "path": self.current_dir + "/python/empty",
+                            "working_directory": self.current_dir
+                            + "/python/empty",
+                            "module": "wsgi",
+                        }
+                    },
+                }
+            ),
+            'proxy configure',
+        )
+
+        self.assertEqual(self.get()['status'], 200, 'proxy')
 
 if __name__ == '__main__':
     TestRouting.main()
