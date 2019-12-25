@@ -52,8 +52,8 @@ endef
 export MODULE_PREINSTALL_go
 
 define MODULE_FILES_go
-%dir %{gopath}/src/nginx/unit
-%{gopath}/src/nginx/unit/*
+%dir %{gopath}/src/unit.nginx.org/go
+%{gopath}/src/unit.nginx.org/go/*
 endef
 export MODULE_FILES_go
 
