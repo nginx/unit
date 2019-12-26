@@ -4,7 +4,7 @@ from unit.applications.proto import TestApplicationProto
 class TestApplicationPerl(TestApplicationProto):
     application_type = "perl"
 
-    def load(self, script, name='psgi.pl'):
+    def load(self, script, name='psgi.pl', **kwargs):
         script_path = self.current_dir + '/perl/' + script
 
         self._load_conf(
@@ -18,5 +18,6 @@ class TestApplicationPerl(TestApplicationProto):
                         "script": script_path + '/' + name,
                     }
                 },
-            }
+            },
+            **kwargs
         )

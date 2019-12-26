@@ -13,7 +13,7 @@ MODULE_INSTARGS_python36=	python3.6-install
 MODULE_SOURCES_python36=	unit.example-python-app \
 			unit.example-python36-config
 
-ifneq (,$(findstring $(OSVER),opensuse-tumbleweed sles fedora))
+ifneq (,$(findstring $(OSVER),opensuse-tumbleweed sles fedora centos7))
 BUILD_DEPENDS_python36=	python3-devel
 else
 BUILD_DEPENDS_python36=	python36-devel

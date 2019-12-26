@@ -112,6 +112,8 @@ nxt_port_mmap_buf_completion(nxt_task_t *task, void *obj, void *data)
     u_char                   *p;
     nxt_mp_t                 *mp;
     nxt_buf_t                *b;
+    nxt_port_t               *port;
+    nxt_process_t            *process;
     nxt_chunk_id_t           c;
     nxt_port_mmap_header_t   *hdr;
     nxt_port_mmap_handler_t  *mmap_handler;
@@ -161,6 +163,21 @@ nxt_port_mmap_buf_completion(nxt_task_t *task, void *obj, void *data)
 
         p += PORT_MMAP_CHUNK_SIZE;
         c++;
+    }
+
+    if (hdr->dst_pid == nxt_pid
+        && nxt_atomic_cmp_set(&hdr->oosm, 1, 0))
+    {
+        process = nxt_runtime_process_find(task->thread->runtime, hdr->src_pid);
+
+        if (process != NULL && !nxt_queue_is_empty(&process->ports)) {
+            port = nxt_process_port_first(process);
+
+            if (port->type == NXT_PROCESS_WORKER) {
+                (void) nxt_port_socket_write(task, port, NXT_PORT_MSG_SHM_ACK,
+                                             -1, 0, 0, NULL);
+            }
+        }
     }
 
 release_buf:
@@ -454,6 +471,8 @@ nxt_port_mmap_get(nxt_task_t *task, nxt_port_t *port, nxt_chunk_id_t *c,
                 goto unlock_return;
             }
         }
+
+        hdr->oosm = 1;
     }
 
     /* TODO introduce port_mmap limit and release wait. */

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"nginx/unit"
+	"unit.nginx.org/go"
 	"os"
 	"strconv"
 )
@@ -69,6 +69,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	w.Header().Add("Content-Type", "application/json")
 
 	w.Write(data)
 }

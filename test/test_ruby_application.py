@@ -285,7 +285,7 @@ class TestRubyApplication(TestApplicationRuby):
     def test_ruby_application_body_empty(self):
         self.load('body_empty')
 
-        self.assertEqual(self.get()['body'], '0\r\n\r\n', 'body empty')
+        self.assertEqual(self.get()['body'], '', 'body empty')
 
     def test_ruby_application_body_array(self):
         self.load('body_array')

@@ -1,7 +1,5 @@
+#!/usr/bin/make
 
-VER=	$(shell grep 'define NXT_VERSION' src/nxt_main.h		\
-		| sed -e 's/^.*"\(.*\)".*/\1/')
-UNIT=	unit-$(VER)
 DEST=	../build
 XSLS?=	xslscript.pl
 

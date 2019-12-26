@@ -13,6 +13,7 @@ NXT_LIB_SRCS=" \
     src/nxt_mem_map.c \
     src/nxt_socket.c \
     src/nxt_socketpair.c \
+    src/nxt_credential.c \
     src/nxt_process.c \
     src/nxt_process_title.c \
     src/nxt_signal.c \
@@ -84,6 +85,7 @@ NXT_LIB_SRCS=" \
     src/nxt_http_response.c \
     src/nxt_http_error.c \
     src/nxt_http_route.c \
+    src/nxt_http_route_addr.c \
     src/nxt_http_static.c \
     src/nxt_http_proxy.c \
     src/nxt_application.c \
@@ -161,6 +163,12 @@ NXT_TEST_SRCS=" \
     src/test/nxt_http_parse_test.c \
     src/test/nxt_strverscmp_test.c \
 "
+
+
+if [ $NXT_HAVE_CLONE_NEWUSER = YES ]; then
+    NXT_TEST_SRCS="$NXT_TEST_SRCS src/test/nxt_clone_test.c"
+fi
+
 
 NXT_LIB_UTF8_FILE_NAME_TEST_SRCS=" \
     src/test/nxt_utf8_file_name_test.c \

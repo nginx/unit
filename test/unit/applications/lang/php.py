@@ -4,7 +4,7 @@ from unit.applications.proto import TestApplicationProto
 class TestApplicationPHP(TestApplicationProto):
     application_type = "php"
 
-    def load(self, script, name='index.php'):
+    def load(self, script, name='index.php', **kwargs):
         script_path = self.current_dir + '/php/' + script
 
         self._load_conf(
@@ -19,5 +19,6 @@ class TestApplicationPHP(TestApplicationProto):
                         "index": name,
                     }
                 },
-            }
+            },
+            **kwargs
         )

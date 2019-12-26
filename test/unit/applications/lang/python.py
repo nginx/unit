@@ -4,7 +4,7 @@ from unit.applications.proto import TestApplicationProto
 class TestApplicationPython(TestApplicationProto):
     application_type = "python"
 
-    def load(self, script, name=None):
+    def load(self, script, name=None, **kwargs):
         if name is None:
             name = script
 
@@ -22,5 +22,6 @@ class TestApplicationPython(TestApplicationProto):
                         "module": "wsgi",
                     }
                 },
-            }
+            },
+            **kwargs
         )

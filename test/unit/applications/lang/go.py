@@ -23,7 +23,7 @@ class TestApplicationGo(TestApplicationProto):
             os.mkdir(self.testdir + '/go')
 
         env = os.environ.copy()
-        env['GOPATH'] = self.pardir + '/go'
+        env['GOPATH'] = self.pardir + '/build/go'
 
         try:
             process = Popen(
@@ -44,7 +44,7 @@ class TestApplicationGo(TestApplicationProto):
 
         return process
 
-    def load(self, script, name='app'):
+    def load(self, script, name='app', **kwargs):
         self.prepare_env(script, name)
 
         self._load_conf(
@@ -60,5 +60,6 @@ class TestApplicationGo(TestApplicationProto):
                         "executable": self.testdir + "/go/" + name,
                     }
                 },
-            }
+            },
+            **kwargs
         )

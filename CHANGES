@@ -1,4 +1,20 @@
 
+Changes with Unit 1.14.0                                         26 Dec 2019
+
+    *) Change: the Go package import name changed to "unit.nginx.org/go".
+
+    *) Change: Go package now links to libunit instead of including library
+       sources.
+
+    *) Feature: ability to change user and group for isolated applications
+       when Unit daemon runs as an unprivileged user.
+
+    *) Feature: request routing by source and destination addresses and
+       ports.
+
+    *) Bugfix: memory bloat on large responses.
+
+
 Changes with Unit 1.13.0                                         14 Nov 2019
 
     *) Feature: basic support for HTTP reverse proxying.

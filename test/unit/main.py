@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import stat
 import time
 import fcntl
 import shutil
@@ -20,6 +21,9 @@ class TestUnit(unittest.TestCase):
     pardir = os.path.abspath(
         os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
     )
+    is_su = os.geteuid() == 0
+    uid = os.geteuid()
+    gid = os.getegid()
     architecture = platform.architecture()[0]
     system = platform.system()
     maxDiff = None
@@ -188,12 +192,18 @@ class TestUnit(unittest.TestCase):
         self.stop_processes()
 
     def _run(self):
-        self.unitd = self.pardir + '/build/unitd'
+        build_dir = self.pardir + '/build'
+        self.unitd = build_dir + '/unitd'
 
         if not os.path.isfile(self.unitd):
             exit("Could not find unit")
 
         self.testdir = tempfile.mkdtemp(prefix='unit-test-')
+
+        self.public_dir(self.testdir)
+
+        if oct(stat.S_IMODE(os.stat(build_dir).st_mode)) != '0o777':
+            self.public_dir(build_dir)
 
         os.mkdir(self.testdir + '/state')
 
@@ -327,6 +337,15 @@ class TestUnit(unittest.TestCase):
                 break
 
         return ret
+
+    def public_dir(self, path):
+        os.chmod(path, 0o777)
+
+        for root, dirs, files in os.walk(path):
+            for d in dirs:
+                os.chmod(os.path.join(root, d), 0o777)
+            for f in files:
+                os.chmod(os.path.join(root, f), 0o777)
 
     @staticmethod
     def _parse_args():

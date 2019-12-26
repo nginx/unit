@@ -50,6 +50,8 @@
 #define PyBytes_Check               PyString_Check
 #define PyBytes_GET_SIZE            PyString_GET_SIZE
 #define PyBytes_AS_STRING           PyString_AS_STRING
+#define PyUnicode_InternInPlace     PyString_InternInPlace
+#define PyUnicode_AsUTF8            PyString_AS_STRING
 #endif
 
 typedef struct nxt_python_run_ctx_s  nxt_python_run_ctx_t;
@@ -64,15 +66,18 @@ typedef struct {
 } nxt_py_error_t;
 
 static nxt_int_t nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf);
+static nxt_int_t nxt_python_init_strings(void);
 static void nxt_python_request_handler(nxt_unit_request_info_t *req);
 static void nxt_python_atexit(void);
 
 static PyObject *nxt_python_create_environ(nxt_task_t *task);
 static PyObject *nxt_python_get_environ(nxt_python_run_ctx_t *ctx);
-static int nxt_python_add_sptr(nxt_python_run_ctx_t *ctx, const char *name,
+static int nxt_python_add_sptr(nxt_python_run_ctx_t *ctx, PyObject *name,
     nxt_unit_sptr_t *sptr, uint32_t size);
-static int nxt_python_add_str(nxt_python_run_ctx_t *ctx, const char *name,
-    const char *str, uint32_t size);
+static int nxt_python_add_field(nxt_python_run_ctx_t *ctx,
+    nxt_unit_field_t *field);
+static int nxt_python_add_obj(nxt_python_run_ctx_t *ctx, PyObject *name,
+    PyObject *value);
 
 static PyObject *nxt_py_start_resp(PyObject *self, PyObject *args);
 static int nxt_python_response_add_field(nxt_python_run_ctx_t *ctx,
@@ -157,6 +162,48 @@ static PyThreadState         *nxt_python_thread_state;
 static nxt_python_run_ctx_t  *nxt_python_run_ctx;
 
 
+static PyObject  *nxt_py_80_str;
+static PyObject  *nxt_py_close_str;
+static PyObject  *nxt_py_content_length_str;
+static PyObject  *nxt_py_content_type_str;
+static PyObject  *nxt_py_http_str;
+static PyObject  *nxt_py_https_str;
+static PyObject  *nxt_py_path_info_str;
+static PyObject  *nxt_py_query_string_str;
+static PyObject  *nxt_py_remote_addr_str;
+static PyObject  *nxt_py_request_method_str;
+static PyObject  *nxt_py_request_uri_str;
+static PyObject  *nxt_py_server_addr_str;
+static PyObject  *nxt_py_server_name_str;
+static PyObject  *nxt_py_server_port_str;
+static PyObject  *nxt_py_server_protocol_str;
+static PyObject  *nxt_py_wsgi_uri_scheme_str;
+
+typedef struct {
+    nxt_str_t  string;
+    PyObject   **object_p;
+} nxt_python_string_t;
+
+static nxt_python_string_t nxt_python_strings[] = {
+    { nxt_string("80"), &nxt_py_80_str },
+    { nxt_string("close"), &nxt_py_close_str },
+    { nxt_string("CONTENT_LENGTH"), &nxt_py_content_length_str },
+    { nxt_string("CONTENT_TYPE"), &nxt_py_content_type_str },
+    { nxt_string("http"), &nxt_py_http_str },
+    { nxt_string("https"), &nxt_py_https_str },
+    { nxt_string("PATH_INFO"), &nxt_py_path_info_str },
+    { nxt_string("QUERY_STRING"), &nxt_py_query_string_str },
+    { nxt_string("REMOTE_ADDR"), &nxt_py_remote_addr_str },
+    { nxt_string("REQUEST_METHOD"), &nxt_py_request_method_str },
+    { nxt_string("REQUEST_URI"), &nxt_py_request_uri_str },
+    { nxt_string("SERVER_ADDR"), &nxt_py_server_addr_str },
+    { nxt_string("SERVER_NAME"), &nxt_py_server_name_str },
+    { nxt_string("SERVER_PORT"), &nxt_py_server_port_str },
+    { nxt_string("SERVER_PROTOCOL"), &nxt_py_server_protocol_str },
+    { nxt_string("wsgi.url_scheme"), &nxt_py_wsgi_uri_scheme_str },
+};
+
+
 static nxt_int_t
 nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 {
@@ -239,6 +286,12 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     Py_InitializeEx(0);
 
     module = NULL;
+    obj = NULL;
+
+    if (nxt_slow_path(nxt_python_init_strings() != NXT_OK)) {
+        nxt_alert(task, "Python failed to init string objects");
+        goto fail;
+    }
 
     obj = PySys_GetObject((char *) "stderr");
     if (nxt_slow_path(obj == NULL)) {
@@ -351,6 +404,7 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     nxt_unit_default_init(task, &python_init);
 
     python_init.callbacks.request_handler = nxt_python_request_handler;
+    python_init.shm_limit = conf->shm_limit;
 
     unit_ctx = nxt_unit_init(&python_init);
     if (nxt_slow_path(unit_ctx == NULL)) {
@@ -379,6 +433,31 @@ fail:
     nxt_python_atexit();
 
     return NXT_ERROR;
+}
+
+
+static nxt_int_t
+nxt_python_init_strings(void)
+{
+    PyObject             *obj;
+    nxt_uint_t           i;
+    nxt_python_string_t  *pstr;
+
+    for (i = 0; i < nxt_nitems(nxt_python_strings); i++) {
+        pstr = &nxt_python_strings[i];
+
+        obj = PyString_FromStringAndSize((char *) pstr->string.start,
+                                         pstr->string.length);
+        if (nxt_slow_path(obj == NULL)) {
+            return NXT_ERROR;
+        }
+
+        PyUnicode_InternInPlace(&obj);
+
+        *pstr->object_p = obj;
+    }
+
+    return NXT_OK;
 }
 
 
@@ -478,7 +557,7 @@ nxt_python_request_handler(nxt_unit_request_info_t *req)
             rc = NXT_UNIT_ERROR;
         }
 
-        close = PyObject_GetAttrString(response, "close");
+        close = PyObject_GetAttr(response, nxt_py_close_str);
 
         if (close != NULL) {
             result = PyObject_CallFunction(close, NULL);
@@ -512,6 +591,12 @@ done:
 static void
 nxt_python_atexit(void)
 {
+    nxt_uint_t  i;
+
+    for (i = 0; i < nxt_nitems(nxt_python_strings); i++) {
+        Py_XDECREF(*nxt_python_strings[i].object_p);
+    }
+
     Py_XDECREF(nxt_py_stderr_flush);
     Py_XDECREF(nxt_py_application);
     Py_XDECREF(nxt_py_start_resp_obj);
@@ -655,7 +740,6 @@ static PyObject *
 nxt_python_get_environ(nxt_python_run_ctx_t *ctx)
 {
     int                 rc;
-    char                *name;
     uint32_t            i;
     PyObject            *environ;
     nxt_unit_field_t    *f;
@@ -681,47 +765,52 @@ nxt_python_get_environ(nxt_python_run_ctx_t *ctx)
         }                                                                     \
     } while(0)
 
-    RC(nxt_python_add_sptr(ctx, "REQUEST_METHOD", &r->method,
+    RC(nxt_python_add_sptr(ctx, nxt_py_request_method_str, &r->method,
                            r->method_length));
-    RC(nxt_python_add_sptr(ctx, "REQUEST_URI", &r->target, r->target_length));
-    RC(nxt_python_add_sptr(ctx, "QUERY_STRING", &r->query, r->query_length));
-    RC(nxt_python_add_sptr(ctx, "PATH_INFO", &r->path, r->path_length));
+    RC(nxt_python_add_sptr(ctx, nxt_py_request_uri_str, &r->target,
+                           r->target_length));
+    RC(nxt_python_add_sptr(ctx, nxt_py_query_string_str, &r->query,
+                           r->query_length));
+    RC(nxt_python_add_sptr(ctx, nxt_py_path_info_str, &r->path,
+                           r->path_length));
 
-    RC(nxt_python_add_sptr(ctx, "REMOTE_ADDR", &r->remote, r->remote_length));
-    RC(nxt_python_add_sptr(ctx, "SERVER_ADDR", &r->local, r->local_length));
+    RC(nxt_python_add_sptr(ctx, nxt_py_remote_addr_str, &r->remote,
+                           r->remote_length));
+    RC(nxt_python_add_sptr(ctx, nxt_py_server_addr_str, &r->local,
+                           r->local_length));
 
     if (r->tls) {
-        RC(nxt_python_add_str(ctx, "wsgi.url_scheme", "https", 5));
-
+        RC(nxt_python_add_obj(ctx, nxt_py_wsgi_uri_scheme_str,
+                              nxt_py_https_str));
     } else {
-        RC(nxt_python_add_str(ctx, "wsgi.url_scheme", "http", 4));
+        RC(nxt_python_add_obj(ctx, nxt_py_wsgi_uri_scheme_str,
+                              nxt_py_http_str));
     }
 
-    RC(nxt_python_add_sptr(ctx, "SERVER_PROTOCOL", &r->version,
+    RC(nxt_python_add_sptr(ctx, nxt_py_server_protocol_str, &r->version,
                            r->version_length));
 
-    RC(nxt_python_add_sptr(ctx, "SERVER_NAME", &r->server_name,
+    RC(nxt_python_add_sptr(ctx, nxt_py_server_name_str, &r->server_name,
                            r->server_name_length));
-    RC(nxt_python_add_str(ctx, "SERVER_PORT", "80", 2));
+    RC(nxt_python_add_obj(ctx, nxt_py_server_port_str, nxt_py_80_str));
 
     for (i = 0; i < r->fields_count; i++) {
         f = r->fields + i;
-        name = nxt_unit_sptr_get(&f->name);
 
-        RC(nxt_python_add_sptr(ctx, name, &f->value, f->value_length));
+        RC(nxt_python_add_field(ctx, f));
     }
 
     if (r->content_length_field != NXT_UNIT_NONE_FIELD) {
         f = r->fields + r->content_length_field;
 
-        RC(nxt_python_add_sptr(ctx, "CONTENT_LENGTH", &f->value,
+        RC(nxt_python_add_sptr(ctx, nxt_py_content_length_str, &f->value,
                                f->value_length));
     }
 
     if (r->content_type_field != NXT_UNIT_NONE_FIELD) {
         f = r->fields + r->content_type_field;
 
-        RC(nxt_python_add_sptr(ctx, "CONTENT_TYPE", &f->value,
+        RC(nxt_python_add_sptr(ctx, nxt_py_content_type_str, &f->value,
                                f->value_length));
     }
 
@@ -738,7 +827,7 @@ fail:
 
 
 static int
-nxt_python_add_sptr(nxt_python_run_ctx_t *ctx, const char *name,
+nxt_python_add_sptr(nxt_python_run_ctx_t *ctx, PyObject *name,
     nxt_unit_sptr_t *sptr, uint32_t size)
 {
     char      *src;
@@ -756,10 +845,10 @@ nxt_python_add_sptr(nxt_python_run_ctx_t *ctx, const char *name,
         return NXT_UNIT_ERROR;
     }
 
-    if (nxt_slow_path(PyDict_SetItemString(ctx->environ, name, value) != 0)) {
+    if (nxt_slow_path(PyDict_SetItem(ctx->environ, name, value) != 0)) {
         nxt_unit_req_error(ctx->req,
                            "Python failed to set the \"%s\" environ value",
-                           name);
+                           PyUnicode_AsUTF8(name));
         Py_DECREF(value);
 
         return NXT_UNIT_ERROR;
@@ -772,36 +861,66 @@ nxt_python_add_sptr(nxt_python_run_ctx_t *ctx, const char *name,
 
 
 static int
-nxt_python_add_str(nxt_python_run_ctx_t *ctx, const char *name,
-    const char *str, uint32_t size)
+nxt_python_add_field(nxt_python_run_ctx_t *ctx, nxt_unit_field_t *field)
 {
-    PyObject  *value;
+    char      *src;
+    PyObject  *name, *value;
 
-    if (nxt_slow_path(str == NULL)) {
-        return NXT_UNIT_OK;
-    }
+    src = nxt_unit_sptr_get(&field->name);
 
-    value = PyString_FromStringAndSize(str, size);
-    if (nxt_slow_path(value == NULL)) {
+    name = PyString_FromStringAndSize(src, field->name_length);
+    if (nxt_slow_path(name == NULL)) {
         nxt_unit_req_error(ctx->req,
-                           "Python failed to create value string \"%.*s\"",
-                           (int) size, str);
+                           "Python failed to create name string \"%.*s\"",
+                           (int) field->name_length, src);
         nxt_python_print_exception();
 
         return NXT_UNIT_ERROR;
     }
 
-    if (nxt_slow_path(PyDict_SetItemString(ctx->environ, name, value) != 0)) {
+    src = nxt_unit_sptr_get(&field->value);
+
+    value = PyString_FromStringAndSize(src, field->value_length);
+    if (nxt_slow_path(value == NULL)) {
+        nxt_unit_req_error(ctx->req,
+                           "Python failed to create value string \"%.*s\"",
+                           (int) field->value_length, src);
+        nxt_python_print_exception();
+
+        goto fail;
+    }
+
+    if (nxt_slow_path(PyDict_SetItem(ctx->environ, name, value) != 0)) {
         nxt_unit_req_error(ctx->req,
                            "Python failed to set the \"%s\" environ value",
-                           name);
+                           PyUnicode_AsUTF8(name));
+        goto fail;
+    }
 
-        Py_DECREF(value);
+    Py_DECREF(name);
+    Py_DECREF(value);
+
+    return NXT_UNIT_OK;
+
+fail:
+
+    Py_DECREF(name);
+    Py_XDECREF(value);
+
+    return NXT_UNIT_ERROR;
+}
+
+
+static int
+nxt_python_add_obj(nxt_python_run_ctx_t *ctx, PyObject *name, PyObject *value)
+{
+    if (nxt_slow_path(PyDict_SetItem(ctx->environ, name, value) != 0)) {
+        nxt_unit_req_error(ctx->req,
+                           "Python failed to set the \"%s\" environ value",
+                           PyUnicode_AsUTF8(name));
 
         return NXT_UNIT_ERROR;
     }
-
-    Py_DECREF(value);
 
     return NXT_UNIT_OK;
 }

@@ -58,6 +58,7 @@ typedef uint16_t                     nxt_port_id_t;
 #include <nxt_thread.h>
 #include <nxt_process_type.h>
 #include <nxt_capability.h>
+#include <nxt_credential.h>
 #include <nxt_process.h>
 #include <nxt_utf8.h>
 #include <nxt_file_name.h>

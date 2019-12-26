@@ -8,7 +8,9 @@
 # NXT_JAR_LOCAL_REPO=$HOME/.m2/repository/
 
 NXT_JAR_FILE=${NXT_JAR_NAME}-${NXT_JAR_VERSION}.jar
-NXT_JAR_LOCAL="${NXT_JAR_LOCAL_REPO}${NXT_JAR_NAMESPACE}${NXT_JAR_NAME}/${NXT_JAR_VERSION}/${NXT_JAR_FILE}"
+NXT_JAR_LOCAL_DIR="${NXT_JAR_LOCAL_REPO}${NXT_JAR_NAMESPACE}${NXT_JAR_NAME}/${NXT_JAR_VERSION}"
+NXT_JAR_LOCAL="${NXT_JAR_LOCAL_DIR}/${NXT_JAR_FILE}"
+NXT_JAR_LOCAL_TMP="${NXT_JAR_LOCAL_DIR}/.${NXT_JAR_FILE}.$$"
 NXT_JAR_URL=${NXT_JAR_REPO}${NXT_JAR_NAMESPACE}${NXT_JAR_NAME}/${NXT_JAR_VERSION}/${NXT_JAR_FILE}
 
 if [ ! -f "$NXT_BUILD_DIR/$NXT_JAR_FILE" ]; then
@@ -16,8 +18,9 @@ if [ ! -f "$NXT_BUILD_DIR/$NXT_JAR_FILE" ]; then
         $echo "getting remote $NXT_JAR_FILE ... "
         $echo "getting remote $NXT_JAR_FILE ..." >> $NXT_AUTOCONF_ERR
 
-        mkdir -p "${NXT_JAR_LOCAL_REPO}${NXT_JAR_NAMESPACE}${NXT_JAR_NAME}/${NXT_JAR_VERSION}/"
-        curl --progress-bar "$NXT_JAR_URL" -o "$NXT_JAR_LOCAL"
+        mkdir -p "${NXT_JAR_LOCAL_DIR}"
+        curl --progress-bar "$NXT_JAR_URL" -o "$NXT_JAR_LOCAL_TMP"
+        mv "$NXT_JAR_LOCAL_TMP" "$NXT_JAR_LOCAL"
     else
         $echo "getting local $NXT_JAR_FILE"
         $echo "getting local $NXT_JAR_FILE ..." >> $NXT_AUTOCONF_ERR

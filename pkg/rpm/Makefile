@@ -57,7 +57,8 @@ endif
 
 ifeq ($(OSVER), centos7)
 include Makefile.php
-include Makefile.python
+include Makefile.python27
+include Makefile.python36
 include Makefile.go
 include Makefile.perl
 include Makefile.jsc-common
@@ -90,7 +91,8 @@ endif
 
 ifeq ($(OSVER), amazonlinux2)
 include Makefile.php
-include Makefile.python
+include Makefile.python27
+include Makefile.python37
 include Makefile.go
 include Makefile.perl
 include Makefile.jsc-common
@@ -202,7 +204,7 @@ endif
 rpmbuild/SOURCES/unit-$(VERSION).tar.gz:
 	cd ../.. && tar -czf pkg/rpm/rpmbuild/SOURCES/unit-$(VERSION).tar.gz \
 		--transform "s#^#unit-$(VERSION)/#" \
-		LICENSE NOTICE CHANGES README configure auto src test version
+		LICENSE NOTICE CHANGES README configure auto src test version go
 
 unit: check-build-depends-unit rpmbuild/SPECS/unit.spec rpmbuild/SOURCES/unit-$(VERSION).tar.gz
 	@echo "===> Building $@ package" ; \

@@ -31,6 +31,7 @@ config.env.%:
 	cp -Pa $(CURDIR)/LICENSE $(BUILDDIR_$*)/
 	cp -Pa $(CURDIR)/NOTICE $(BUILDDIR_$*)/
 	cp -Pa $(CURDIR)/README $(BUILDDIR_$*)/
+	cp -Pa $(CURDIR)/go $(BUILDDIR_$*)/
 	touch $@
 
 configure.unit: config.env.unit

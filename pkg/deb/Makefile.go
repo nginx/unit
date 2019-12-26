@@ -8,7 +8,7 @@ MODULE_RELEASE_go=	1
 
 MODULE_CONFARGS_go=	go --go-path=/usr/share/gocode
 MODULE_MAKEARGS_go=	go
-MODULE_INSTARGS_go=	go-install
+MODULE_INSTARGS_go=	go-install-src
 
 MODULE_SOURCES_go=	unit.example-go-app \
 			unit.example-go-config
@@ -17,7 +17,9 @@ BUILD_DEPENDS_go=	golang
 BUILD_DEPENDS+=		$(BUILD_DEPENDS_go)
 
 MODULE_BUILD_DEPENDS_go=,golang
-MODULE_DEPENDS_go=,golang
+MODULE_DEPENDS_go=,golang,unit-dev (= $(VERSION)-$(RELEASE)~$(CODENAME))
+
+MODULE_NOARCH_go=	true
 
 define MODULE_PREINSTALL_go
 	mkdir -p debian/unit-go/usr/share/doc/unit-go/examples/go-app

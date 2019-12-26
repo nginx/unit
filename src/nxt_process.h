@@ -7,27 +7,13 @@
 #ifndef _NXT_PROCESS_H_INCLUDED_
 #define _NXT_PROCESS_H_INCLUDED_
 
-#include <nxt_conf.h>
+#if (NXT_HAVE_CLONE)
+#include <nxt_clone.h>
+#endif
 
 
 typedef pid_t            nxt_pid_t;
-typedef uid_t            nxt_uid_t;
-typedef gid_t            nxt_gid_t;
 
-
-typedef struct {
-    const char           *user;
-    nxt_uid_t            uid;
-    nxt_gid_t            base_gid;
-    nxt_uint_t           ngroups;
-    nxt_gid_t            *gids;
-} nxt_user_cred_t;
-
-typedef struct {
-    nxt_int_t            flags;
-    nxt_conf_value_t     *uidmap;
-    nxt_conf_value_t     *gidmap;
-} nxt_process_clone_t;
 
 typedef struct nxt_process_init_s  nxt_process_init_t;
 typedef nxt_int_t (*nxt_process_start_t)(nxt_task_t *task, void *data);
@@ -35,22 +21,23 @@ typedef nxt_int_t (*nxt_process_restart_t)(nxt_task_t *task, nxt_runtime_t *rt,
     nxt_process_init_t *init);
 
 struct nxt_process_init_s {
-    nxt_process_start_t      start;
-    const char               *name;
-    nxt_user_cred_t          *user_cred;
+    nxt_mp_t                   *mem_pool;
+    nxt_process_start_t        start;
+    const char                 *name;
+    nxt_credential_t           *user_cred;
 
-    nxt_port_handlers_t      *port_handlers;
-    const nxt_sig_event_t    *signals;
+    const nxt_port_handlers_t  *port_handlers;
+    const nxt_sig_event_t      *signals;
 
-    nxt_process_type_t       type;
+    nxt_process_type_t         type;
 
-    void                     *data;
-    uint32_t                 stream;
-
-    nxt_process_restart_t    restart;
+    void                       *data;
+    uint32_t                   stream;
 
     union {
-        nxt_process_clone_t  clone;
+#if (NXT_HAVE_CLONE)
+        nxt_clone_t            clone;
+#endif
     } isolation;
 };
 
@@ -126,9 +113,10 @@ void nxt_process_connected_port_remove(nxt_process_t *process,
 nxt_port_t *nxt_process_connected_port_find(nxt_process_t *process,
     nxt_pid_t pid, nxt_port_id_t port_id);
 
-
 void nxt_worker_process_quit_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
+
+void nxt_init_destroy(nxt_runtime_t *rt, nxt_process_init_t *init);
 
 
 #if (NXT_HAVE_SETPROCTITLE)
@@ -155,12 +143,11 @@ NXT_EXPORT void nxt_process_title(nxt_task_t *task, const char *fmt, ...);
 #define nxt_abort()                                                           \
     (void) raise(SIGABRT)
 
-NXT_EXPORT nxt_int_t nxt_user_cred_get(nxt_task_t *task, nxt_user_cred_t *uc,
-    const char *group);
-NXT_EXPORT nxt_int_t nxt_user_cred_set(nxt_task_t *task, nxt_user_cred_t *uc);
 
 NXT_EXPORT extern nxt_pid_t  nxt_pid;
 NXT_EXPORT extern nxt_pid_t  nxt_ppid;
+NXT_EXPORT extern nxt_uid_t  nxt_euid;
+NXT_EXPORT extern nxt_gid_t  nxt_egid;
 NXT_EXPORT extern char       **nxt_process_argv;
 NXT_EXPORT extern char       ***nxt_process_environ;
 

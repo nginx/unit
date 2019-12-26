@@ -22,8 +22,7 @@ include Makefile.php
 include Makefile.python27
 include Makefile.python37
 include Makefile.python38
-include Makefile.go112
-include Makefile.go113
+include Makefile.go
 include Makefile.perl
 include Makefile.ruby
 include Makefile.jsc-common
@@ -36,8 +35,7 @@ include Makefile.php
 include Makefile.python27
 include Makefile.python37
 include Makefile.python38
-include Makefile.go110
-include Makefile.go111
+include Makefile.go
 include Makefile.perl
 include Makefile.ruby
 include Makefile.jsc-common
@@ -50,8 +48,7 @@ include Makefile.php
 include Makefile.python27
 include Makefile.python36
 include Makefile.python37
-include Makefile.go19
-include Makefile.go110
+include Makefile.go
 include Makefile.perl
 include Makefile.ruby
 include Makefile.jsc-common
@@ -66,8 +63,7 @@ include Makefile.python27
 include Makefile.python36
 include Makefile.python37
 include Makefile.python38
-include Makefile.go19
-include Makefile.go110
+include Makefile.go
 include Makefile.perl
 include Makefile.ruby
 include Makefile.jsc-common
@@ -99,7 +95,7 @@ ifeq ($(CODENAME),buster)
 include Makefile.php
 include Makefile.python27
 include Makefile.python37
-include Makefile.go111
+include Makefile.go
 include Makefile.perl
 include Makefile.ruby
 include Makefile.jsc-common
@@ -111,8 +107,7 @@ ifeq ($(CODENAME),stretch)
 include Makefile.php
 include Makefile.python27
 include Makefile.python35
-include Makefile.go17
-include Makefile.go18
+include Makefile.go
 include Makefile.perl
 include Makefile.ruby
 include Makefile.jsc-common
@@ -200,7 +195,7 @@ endif
 debuild/unit_$(VERSION).orig.tar.gz: | debuild/$(SRCDIR)/debian
 	cd ../.. && tar -czf pkg/deb/debuild/$(SRCDIR).tar.gz \
 		--transform "s#^#$(SRCDIR)/#" \
-		LICENSE NOTICE CHANGES README configure auto src test version
+		LICENSE NOTICE CHANGES README configure auto src test version go
 	mv debuild/$(SRCDIR).tar.gz debuild/unit_$(VERSION).orig.tar.gz
 	cd debuild && tar zxf unit_$(VERSION).orig.tar.gz
 

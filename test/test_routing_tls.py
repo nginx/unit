@@ -48,10 +48,8 @@ class TestRoutingTLS(TestApplicationTLS):
             'scheme configure',
         )
 
-        self.assertEqual(self.get()['status'], 200, 'scheme http')
-        self.assertEqual(
-            self.get_ssl(port=7081)['status'], 204, 'scheme https'
-        )
+        self.assertEqual(self.get()['status'], 200, 'http')
+        self.assertEqual(self.get_ssl(port=7081)['status'], 204, 'https')
 
 
 if __name__ == '__main__':
