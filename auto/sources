@@ -86,6 +86,7 @@ NXT_LIB_SRCS=" \
     src/nxt_http_response.c \
     src/nxt_http_error.c \
     src/nxt_http_route.c \
+    src/nxt_http_route_addr.c \
     src/nxt_http_static.c \
     src/nxt_http_proxy.c \
     src/nxt_application.c \

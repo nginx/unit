@@ -23,7 +23,7 @@ class TestApplicationGo(TestApplicationProto):
             os.mkdir(self.testdir + '/go')
 
         env = os.environ.copy()
-        env['GOPATH'] = self.pardir + '/go'
+        env['GOPATH'] = self.pardir + '/build/go'
 
         try:
             process = Popen(

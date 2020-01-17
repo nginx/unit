@@ -1156,6 +1156,7 @@ nxt_perl_psgi_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 
     perl_init.callbacks.request_handler = nxt_perl_psgi_request_handler;
     perl_init.data = &module;
+    perl_init.shm_limit = conf->shm_limit;
 
     unit_ctx = nxt_unit_init(&perl_init);
     if (nxt_slow_path(unit_ctx == NULL)) {

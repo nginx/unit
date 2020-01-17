@@ -215,7 +215,24 @@ static nxt_conf_map_t  nxt_common_app_conf[] = {
         nxt_string("isolation"),
         NXT_CONF_MAP_PTR,
         offsetof(nxt_common_app_conf_t, isolation),
-    }
+    },
+
+    {
+        nxt_string("limits"),
+        NXT_CONF_MAP_PTR,
+        offsetof(nxt_common_app_conf_t, limits),
+    },
+
+};
+
+
+static nxt_conf_map_t  nxt_common_app_limits_conf[] = {
+    {
+        nxt_string("shm"),
+        NXT_CONF_MAP_SIZE,
+        offsetof(nxt_common_app_conf_t, shm_limit),
+    },
+
 };
 
 
@@ -396,6 +413,7 @@ nxt_port_main_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     app_conf.name.start = start;
     app_conf.name.length = nxt_strlen(start);
+    app_conf.shm_limit = 100 * 1024 * 1024;
 
     start += app_conf.name.length + 1;
 
@@ -438,6 +456,18 @@ nxt_port_main_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     if (nxt_slow_path(ret != NXT_OK)) {
         nxt_alert(task, "failed to map app conf received from router");
         goto failed;
+    }
+
+    if (app_conf.limits != NULL) {
+        ret = nxt_conf_map_object(mp, app_conf.limits,
+                                  nxt_common_app_limits_conf,
+                                  nxt_nitems(nxt_common_app_limits_conf),
+                                  &app_conf);
+
+        if (nxt_slow_path(ret != NXT_OK)) {
+            nxt_alert(task, "failed to map app limits received from router");
+            goto failed;
+        }
     }
 
     ret = nxt_main_start_worker_process(task, task->thread->runtime,

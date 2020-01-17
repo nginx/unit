@@ -40,6 +40,8 @@ struct nxt_h1proto_s {
 
     nxt_http_request_t        *request;
     nxt_buf_t                 *buffers;
+
+    nxt_buf_t                 **conn_write_tail;
     /*
      * All fields before the conn field will
      * be zeroed in a keep-alive connection.

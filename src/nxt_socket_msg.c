@@ -116,7 +116,9 @@ nxt_socket_msg_oob_info(u_char *oob, size_t oobn,
 #if (NXT_CRED_USECMSG)
     nxt_socket_cred_t *creds;
 
-    *pid = -1;
+    if (pid != NULL) {
+        *pid = -1;
+    }
 #endif
 
     msg.msg_control    = oob;
@@ -131,10 +133,14 @@ nxt_socket_msg_oob_info(u_char *oob, size_t oobn,
         {
             /* (*fd) = *(int *) CMSG_DATA(cmsg); */
             nxt_memcpy(fd, CMSG_DATA(cmsg), sizeof(int));
+
+            if (pid == NULL) {
+                break;
+            }
         }
 
 #if (NXT_CRED_USECMSG)
-        else if (cmsg->cmsg_level == SOL_SOCKET
+        else if (pid != NULL && cmsg->cmsg_level == SOL_SOCKET
                  && cmsg->cmsg_type == NXT_CRED_CMSGTYPE
                  && cmsgsz == sizeof(nxt_socket_cred_t))
         {
@@ -146,7 +152,7 @@ nxt_socket_msg_oob_info(u_char *oob, size_t oobn,
 
 #if (NXT_CRED_USECMSG)
     /* For platforms supporting credential passing, it's enforced */
-    if (nxt_slow_path(*pid == -1)) {
+    if (nxt_slow_path(pid != NULL && *pid == -1)) {
         return NXT_ERROR;
     }
 #endif

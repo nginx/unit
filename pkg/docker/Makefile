@@ -19,7 +19,7 @@ MODULE_python2.7="unit=$${UNIT_VERSION} unit-python2.7=$${UNIT_VERSION}"
 
 MODULE_python3.7="unit=$${UNIT_VERSION} unit-python3.7=$${UNIT_VERSION}"
 
-MODULE_go1.11-dev="unit=$${UNIT_VERSION} unit-go1.11=$${UNIT_VERSION} gcc"
+MODULE_go1.11-dev="unit=$${UNIT_VERSION} unit-go=$${UNIT_VERSION} gcc"
 
 MODULE_perl5.28="unit=$${UNIT_VERSION} unit-perl=$${UNIT_VERSION}"
 

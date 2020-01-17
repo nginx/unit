@@ -354,6 +354,7 @@ nxt_java_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     java_init.callbacks.close_handler = nxt_java_close_handler;
     java_init.request_data_size = sizeof(nxt_java_request_data_t);
     java_init.data = &data;
+    java_init.shm_limit = conf->shm_limit;
 
     ctx = nxt_unit_init(&java_init);
     if (nxt_slow_path(ctx == NULL)) {

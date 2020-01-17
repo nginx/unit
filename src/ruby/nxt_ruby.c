@@ -134,6 +134,7 @@ nxt_ruby_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     nxt_unit_default_init(task, &ruby_unit_init);
 
     ruby_unit_init.callbacks.request_handler = nxt_ruby_request_handler;
+    ruby_unit_init.shm_limit = conf->shm_limit;
 
     unit_ctx = nxt_unit_init(&ruby_unit_init);
     if (nxt_slow_path(unit_ctx == NULL)) {

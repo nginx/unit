@@ -1140,6 +1140,10 @@ nxt_inet_addr(u_char *buf, size_t length)
     in_addr_t   addr;
     nxt_uint_t  digit, octet, dots;
 
+    if (nxt_slow_path(*(buf + length - 1) == '.')) {
+        return INADDR_NONE;
+    }
+
     addr = 0;
     octet = 0;
     dots = 0;

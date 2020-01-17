@@ -19,6 +19,7 @@ static ssize_t nxt_cgo_port_send(nxt_unit_ctx_t *, nxt_unit_port_id_t *port_id,
     const void *buf, size_t buf_size, const void *oob, size_t oob_size);
 static ssize_t nxt_cgo_port_recv(nxt_unit_ctx_t *, nxt_unit_port_id_t *port_id,
     void *buf, size_t buf_size, void *oob, size_t *oob_size);
+static void nxt_cgo_shm_ack_handler(nxt_unit_ctx_t *ctx);
 
 int
 nxt_cgo_run(uintptr_t handler)
@@ -34,6 +35,7 @@ nxt_cgo_run(uintptr_t handler)
     init.callbacks.remove_port     = nxt_cgo_remove_port;
     init.callbacks.port_send       = nxt_cgo_port_send;
     init.callbacks.port_recv       = nxt_cgo_port_recv;
+    init.callbacks.shm_ack_handler = nxt_cgo_shm_ack_handler;
 
     init.data = (void *) handler;
 
@@ -137,6 +139,13 @@ nxt_cgo_port_recv(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
 }
 
 
+static void
+nxt_cgo_shm_ack_handler(nxt_unit_ctx_t *ctx)
+{
+    return nxt_go_shm_ack_handler();
+}
+
+
 int
 nxt_cgo_response_create(uintptr_t req, int status, int fields,
     uint32_t fields_size)
@@ -166,15 +175,8 @@ nxt_cgo_response_send(uintptr_t req)
 ssize_t
 nxt_cgo_response_write(uintptr_t req, uintptr_t start, uint32_t len)
 {
-    int  rc;
-
-    rc = nxt_unit_response_write((nxt_unit_request_info_t *) req,
-                                 (void *) start, len);
-    if (rc != NXT_UNIT_OK) {
-        return -1;
-    }
-
-    return len;
+    return nxt_unit_response_write_nb((nxt_unit_request_info_t *) req,
+                                      (void *) start, len, 0);
 }
 
 

@@ -352,6 +352,7 @@ nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     nxt_fd_blocking(task, my_port->pair[0]);
 
     php_init.log_fd = 2;
+    php_init.shm_limit = conf->shm_limit;
 
     unit_ctx = nxt_unit_init(&php_init);
     if (nxt_slow_path(unit_ctx == NULL)) {

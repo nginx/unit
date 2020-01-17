@@ -1341,6 +1341,417 @@ class TestRouting(TestApplicationProto):
         self.route_match_invalid({"scheme": "*"})
         self.route_match_invalid({"scheme": ""})
 
+    def test_routes_source_port(self):
+        def sock_port():
+            _, sock = self.http(b'', start=True, raw=True, no_recv=True)
+            port = sock.getsockname()[1]
+            return (sock, port)
+
+        sock, port = sock_port()
+        sock2, port2 = sock_port()
+
+        self.route_match({"source": "127.0.0.1:" + str(port)})
+        self.assertEqual(self.get(sock=sock)['status'], 200, 'exact')
+        self.assertEqual(self.get(sock=sock2)['status'], 404, 'exact 2')
+
+        sock, port = sock_port()
+        sock2, port2 = sock_port()
+
+        self.route_match({"source": "!127.0.0.1:" + str(port)})
+        self.assertEqual(self.get(sock=sock)['status'], 404, 'negative')
+        self.assertEqual(self.get(sock=sock2)['status'], 200, 'negative 2')
+
+        sock, port = sock_port()
+        sock2, port2 = sock_port()
+
+        self.route_match(
+            {"source": "127.0.0.1:" + str(port) + "-" + str(port)}
+        )
+        self.assertEqual(self.get(sock=sock)['status'], 200, 'range single')
+        self.assertEqual(self.get(sock=sock2)['status'], 404, 'range single 2')
+
+        socks = [
+            sock_port(),
+            sock_port(),
+            sock_port(),
+            sock_port(),
+            sock_port(),
+        ]
+        socks.sort(key=lambda sock: sock[1])
+
+        self.route_match(
+            {
+                "source": "127.0.0.1:"
+                + str(socks[1][1])  # second port number
+                + "-"
+                + str(socks[3][1])  # fourth port number
+            }
+        )
+        self.assertEqual(self.get(sock=socks[0][0])['status'], 404, 'range')
+        self.assertEqual(self.get(sock=socks[1][0])['status'], 200, 'range 2')
+        self.assertEqual(self.get(sock=socks[2][0])['status'], 200, 'range 3')
+        self.assertEqual(self.get(sock=socks[3][0])['status'], 200, 'range 4')
+        self.assertEqual(self.get(sock=socks[4][0])['status'], 404, 'range 5')
+
+        socks = [
+            sock_port(),
+            sock_port(),
+            sock_port(),
+        ]
+        socks.sort(key=lambda sock: sock[1])
+
+        self.route_match(
+            {
+                "source": [
+                    "127.0.0.1:" + str(socks[0][1]),
+                    "127.0.0.1:" + str(socks[2][1]),
+                ]
+            }
+        )
+        self.assertEqual(self.get(sock=socks[0][0])['status'], 200, 'array')
+        self.assertEqual(self.get(sock=socks[1][0])['status'], 404, 'array 2')
+        self.assertEqual(self.get(sock=socks[2][0])['status'], 200, 'array 3')
+
+    def test_routes_source_addr(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                {
+                    "*:7080": {"pass": "routes"},
+                    "[::1]:7081": {"pass": "routes"},
+                },
+                'listeners',
+            ),
+            'source listeners configure',
+        )
+
+        def get_ipv6():
+            return self.get(sock_type='ipv6', port=7081)
+
+        self.route_match({"source": "127.0.0.1"})
+        self.assertEqual(self.get()['status'], 200, 'exact')
+        self.assertEqual(get_ipv6()['status'], 404, 'exact ipv6')
+
+        self.route_match({"source": ["127.0.0.1"]})
+        self.assertEqual(self.get()['status'], 200, 'exact 2')
+        self.assertEqual(get_ipv6()['status'], 404, 'exact 2 ipv6')
+
+        self.route_match({"source": "!127.0.0.1"})
+        self.assertEqual(self.get()['status'], 404, 'exact neg')
+        self.assertEqual(get_ipv6()['status'], 200, 'exact neg ipv6')
+
+        self.route_match({"source": "127.0.0.2"})
+        self.assertEqual(self.get()['status'], 404, 'exact 3')
+        self.assertEqual(get_ipv6()['status'], 404, 'exact 3 ipv6')
+
+        self.route_match({"source": "127.0.0.1-127.0.0.1"})
+        self.assertEqual(self.get()['status'], 200, 'range single')
+        self.assertEqual(get_ipv6()['status'], 404, 'range single ipv6')
+
+        self.route_match({"source": "127.0.0.2-127.0.0.2"})
+        self.assertEqual(self.get()['status'], 404, 'range single 2')
+        self.assertEqual(get_ipv6()['status'], 404, 'range single 2 ipv6')
+
+        self.route_match({"source": "127.0.0.2-127.0.0.3"})
+        self.assertEqual(self.get()['status'], 404, 'range')
+        self.assertEqual(get_ipv6()['status'], 404, 'range ipv6')
+
+        self.route_match({"source": "127.0.0.1-127.0.0.2"})
+        self.assertEqual(self.get()['status'], 200, 'range 2')
+        self.assertEqual(get_ipv6()['status'], 404, 'range 2 ipv6')
+
+        self.route_match({"source": "127.0.0.0-127.0.0.2"})
+        self.assertEqual(self.get()['status'], 200, 'range 3')
+        self.assertEqual(get_ipv6()['status'], 404, 'range 3 ipv6')
+
+        self.route_match({"source": "127.0.0.0-127.0.0.1"})
+        self.assertEqual(self.get()['status'], 200, 'range 4')
+        self.assertEqual(get_ipv6()['status'], 404, 'range 4 ipv6')
+
+        self.route_match({"source": "126.0.0.0-127.0.0.0"})
+        self.assertEqual(self.get()['status'], 404, 'range 5')
+        self.assertEqual(get_ipv6()['status'], 404, 'range 5 ipv6')
+
+        self.route_match({"source": "126.126.126.126-127.0.0.2"})
+        self.assertEqual(self.get()['status'], 200, 'range 6')
+        self.assertEqual(get_ipv6()['status'], 404, 'range 6 ipv6')
+
+    def test_routes_source_ipv6(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                {
+                    "[::1]:7080": {"pass": "routes"},
+                    "127.0.0.1:7081": {"pass": "routes"},
+                },
+                'listeners',
+            ),
+            'source listeners configure',
+        )
+
+        self.route_match({"source": "::1"})
+        self.assertEqual(self.get(sock_type='ipv6')['status'], 200, 'exact')
+        self.assertEqual(self.get(port=7081)['status'], 404, 'exact ipv4')
+
+        self.route_match({"source": ["::1"]})
+        self.assertEqual(self.get(sock_type='ipv6')['status'], 200, 'exact 2')
+        self.assertEqual(self.get(port=7081)['status'], 404, 'exact 2 ipv4')
+
+        self.route_match({"source": "!::1"})
+        self.assertEqual(self.get(sock_type='ipv6')['status'], 404, 'exact neg')
+        self.assertEqual(self.get(port=7081)['status'], 200, 'exact neg ipv4')
+
+        self.route_match({"source": "::2"})
+        self.assertEqual(self.get(sock_type='ipv6')['status'], 404, 'exact 3')
+        self.assertEqual(self.get(port=7081)['status'], 404, 'exact 3 ipv4')
+
+        self.route_match({"source": "::1-::1"})
+        self.assertEqual(self.get(sock_type='ipv6')['status'], 200, 'range')
+        self.assertEqual(self.get(port=7081)['status'], 404, 'range ipv4')
+
+        self.route_match({"source": "::2-::2"})
+        self.assertEqual(self.get(sock_type='ipv6')['status'], 404, 'range 2')
+        self.assertEqual(self.get(port=7081)['status'], 404, 'range 2 ipv4')
+
+        self.route_match({"source": "::2-::3"})
+        self.assertEqual(self.get(sock_type='ipv6')['status'], 404, 'range 3')
+        self.assertEqual(self.get(port=7081)['status'], 404, 'range 3 ipv4')
+
+        self.route_match({"source": "::1-::2"})
+        self.assertEqual(self.get(sock_type='ipv6')['status'], 200, 'range 4')
+        self.assertEqual(self.get(port=7081)['status'], 404, 'range 4 ipv4')
+
+        self.route_match({"source": "::0-::2"})
+        self.assertEqual(self.get(sock_type='ipv6')['status'], 200, 'range 5')
+        self.assertEqual(self.get(port=7081)['status'], 404, 'range 5 ipv4')
+
+        self.route_match({"source": "::0-::1"})
+        self.assertEqual(self.get(sock_type='ipv6')['status'], 200, 'range 6')
+        self.assertEqual(self.get(port=7081)['status'], 404, 'range 6 ipv4')
+
+    def test_routes_source_cidr(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                {
+                    "*:7080": {"pass": "routes"},
+                    "[::1]:7081": {"pass": "routes"},
+                },
+                'listeners',
+            ),
+            'source listeners configure',
+        )
+
+        def get_ipv6():
+            return self.get(sock_type='ipv6', port=7081)
+
+        self.route_match({"source": "127.0.0.1/32"})
+        self.assertEqual(self.get()['status'], 200, '32')
+        self.assertEqual(get_ipv6()['status'], 404, '32 ipv6')
+
+        self.route_match({"source": "127.0.0.0/32"})
+        self.assertEqual(self.get()['status'], 404, '32 2')
+        self.assertEqual(get_ipv6()['status'], 404, '32 2 ipv6')
+
+        self.route_match({"source": "127.0.0.0/31"})
+        self.assertEqual(self.get()['status'], 200, '31')
+        self.assertEqual(get_ipv6()['status'], 404, '31 ipv6')
+
+        self.route_match({"source": "0.0.0.0/1"})
+        self.assertEqual(self.get()['status'], 200, '1')
+        self.assertEqual(get_ipv6()['status'], 404, '1 ipv6')
+
+        self.route_match({"source": "0.0.0.0/0"})
+        self.assertEqual(self.get()['status'], 200, '0')
+        self.assertEqual(get_ipv6()['status'], 404, '0 ipv6')
+
+    def test_routes_source_cidr_ipv6(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                {
+                    "[::1]:7080": {"pass": "routes"},
+                    "127.0.0.1:7081": {"pass": "routes"},
+                },
+                'listeners',
+            ),
+            'source listeners configure',
+        )
+
+        self.route_match({"source": "::1/128"})
+        self.assertEqual(self.get(sock_type='ipv6')['status'], 200, '128')
+        self.assertEqual(self.get(port=7081)['status'], 404, '128 ipv4')
+
+        self.route_match({"source": "::0/128"})
+        self.assertEqual(self.get(sock_type='ipv6')['status'], 404, '128 2')
+        self.assertEqual(self.get(port=7081)['status'], 404, '128 ipv4')
+
+        self.route_match({"source": "::0/127"})
+        self.assertEqual(self.get(sock_type='ipv6')['status'], 200, '127')
+        self.assertEqual(self.get(port=7081)['status'], 404, '127 ipv4')
+
+        self.route_match({"source": "::0/32"})
+        self.assertEqual(self.get(sock_type='ipv6')['status'], 200, '32')
+        self.assertEqual(self.get(port=7081)['status'], 404, '32 ipv4')
+
+        self.route_match({"source": "::0/1"})
+        self.assertEqual(self.get(sock_type='ipv6')['status'], 200, '1')
+        self.assertEqual(self.get(port=7081)['status'], 404, '1 ipv4')
+
+        self.route_match({"source": "::/0"})
+        self.assertEqual(self.get(sock_type='ipv6')['status'], 200, '0')
+        self.assertEqual(self.get(port=7081)['status'], 404, '0 ipv4')
+
+    def test_routes_source_unix(self):
+        addr = self.testdir + '/sock'
+
+        self.assertIn(
+            'success',
+            self.conf({"unix:" + addr: {"pass": "routes"}}, 'listeners'),
+            'source listeners configure',
+        )
+
+        self.route_match({"source": "!0.0.0.0/0"})
+        self.assertEqual(
+            self.get(sock_type='unix', addr=addr)['status'], 200, 'unix ipv4'
+        )
+
+        self.route_match({"source": "!::/0"})
+        self.assertEqual(
+            self.get(sock_type='unix', addr=addr)['status'], 200, 'unix ipv6'
+        )
+
+    def test_routes_match_source(self):
+        self.route_match({"source": "::"})
+        self.route_match(
+            {
+                "source": [
+                    "127.0.0.1",
+                    "192.168.0.10:8080",
+                    "192.168.0.11:8080-8090",
+                ]
+            }
+        )
+        self.route_match(
+            {
+                "source": [
+                    "10.0.0.0/8",
+                    "10.0.0.0/7:1000",
+                    "10.0.0.0/32:8080-8090",
+                ]
+            }
+        )
+        self.route_match(
+            {
+                "source": [
+                    "10.0.0.0-10.0.0.1",
+                    "10.0.0.0-11.0.0.0:1000",
+                    "127.0.0.0-127.0.0.255:8080-8090",
+                ]
+            }
+        )
+        self.route_match(
+            {"source": ["2001::", "[2002::]:8000", "[2003::]:8080-8090"]}
+        )
+        self.route_match(
+            {
+                "source": [
+                    "2001::-200f:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+                    "[fe08::-feff::]:8000",
+                    "[fff0::-fff0::10]:8080-8090",
+                ]
+            }
+        )
+        self.route_match(
+            {
+                "source": [
+                    "2001::/16",
+                    "[0ff::/64]:8000",
+                    "[fff0:abcd:ffff:ffff:ffff::/128]:8080-8090",
+                ]
+            }
+        )
+        self.route_match({"source": "*:0-65535"})
+        self.assertEqual(self.get()['status'], 200, 'source any')
+
+    def test_routes_match_source_invalid(self):
+        self.route_match_invalid({"source": "127"})
+        self.route_match_invalid({"source": "256.0.0.1"})
+        self.route_match_invalid({"source": "127.0.0."})
+        self.route_match_invalid({"source": "127.0.0.1:"})
+        self.route_match_invalid({"source": "127.0.0.1/"})
+        self.route_match_invalid({"source": "11.0.0.0/33"})
+        self.route_match_invalid({"source": "11.0.0.0/65536"})
+        self.route_match_invalid({"source": "11.0.0.0-10.0.0.0"})
+        self.route_match_invalid({"source": "11.0.0.0:3000-2000"})
+        self.route_match_invalid({"source": ["11.0.0.0:3000-2000"]})
+        self.route_match_invalid({"source": "[2001::]:3000-2000"})
+        self.route_match_invalid({"source": "2001::-2000::"})
+        self.route_match_invalid({"source": "2001::/129"})
+        self.route_match_invalid({"source": "::FFFFF"})
+        self.route_match_invalid({"source": "[::1]:"})
+        self.route_match_invalid({"source": "*:"})
+        self.route_match_invalid({"source": "*:1-a"})
+        self.route_match_invalid({"source": "*:65536"})
+
+    def test_routes_match_destination(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                {"*:7080": {"pass": "routes"}, "*:7081": {"pass": "routes"}},
+                'listeners',
+            ),
+            'listeners configure',
+        )
+
+        self.route_match({"destination": "*:7080"})
+        self.assertEqual(self.get()['status'], 200, 'dest')
+        self.assertEqual(self.get(port=7081)['status'], 404, 'dest 2')
+
+        self.route_match({"destination": ["127.0.0.1:7080"]})
+        self.assertEqual(self.get()['status'], 200, 'dest 3')
+        self.assertEqual(self.get(port=7081)['status'], 404, 'dest 4')
+
+        self.route_match({"destination": "!*:7080"})
+        self.assertEqual(self.get()['status'], 404, 'dest neg')
+        self.assertEqual(self.get(port=7081)['status'], 200, 'dest neg 2')
+
+    def test_routes_match_destination_proxy(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                {
+                    "listeners": {
+                        "*:7080": {"pass": "routes/first"},
+                        "*:7081": {"pass": "routes/second"},
+                    },
+                    "routes": {
+                        "first": [
+                            {"action": {"proxy": "http://127.0.0.1:7081"}}
+                        ],
+                        "second": [
+                            {
+                                "match": {"destination": ["127.0.0.1:7081"]},
+                                "action": {"pass": "applications/empty"},
+                            }
+                        ],
+                    },
+                    "applications": {
+                        "empty": {
+                            "type": "python",
+                            "processes": {"spare": 0},
+                            "path": self.current_dir + "/python/empty",
+                            "working_directory": self.current_dir
+                            + "/python/empty",
+                            "module": "wsgi",
+                        }
+                    },
+                }
+            ),
+            'proxy configure',
+        )
+
+        self.assertEqual(self.get()['status'], 200, 'proxy')
 
 if __name__ == '__main__':
     TestRouting.main()

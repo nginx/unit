@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"nginx/unit"
+	"unit.nginx.org/go"
 	"os"
 	"strconv"
 )

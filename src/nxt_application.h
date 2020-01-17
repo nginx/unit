@@ -89,6 +89,9 @@ struct nxt_common_app_conf_s {
     nxt_conf_value_t           *environment;
 
     nxt_conf_value_t           *isolation;
+    nxt_conf_value_t           *limits;
+
+    size_t                     shm_limit;
 
     union {
         nxt_external_app_conf_t  external;

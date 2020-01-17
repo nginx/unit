@@ -2,7 +2,7 @@ package main
 
 import (
 	"net/http"
-	"nginx/unit"
+	"unit.nginx.org/go"
 )
 
 func handler(w http.ResponseWriter, r *http.Request) {}
