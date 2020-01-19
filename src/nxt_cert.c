@@ -1114,7 +1114,7 @@ nxt_cert_store_get_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     }
 
     if (nxt_slow_path(port->type != NXT_PROCESS_CONTROLLER
-                      && port->type != NXT_PROCESS_ROUTER)) 
+                      && port->type != NXT_PROCESS_ROUTER))
     {
         nxt_alert(task, "process %PI cannot store certificates",
                   msg->port_msg.pid);

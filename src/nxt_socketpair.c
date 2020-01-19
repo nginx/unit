@@ -48,14 +48,14 @@ nxt_socketpair_create(nxt_task_t *task, nxt_socket_t *pair)
 #if NXT_HAVE_SOCKOPT_SO_PASSCRED
     int enable_creds = 1;
     if (nxt_slow_path(setsockopt(pair[0], SOL_SOCKET, SO_PASSCRED,
-                        &enable_creds, sizeof(enable_creds)) == -1)) 
+                      &enable_creds, sizeof(enable_creds)) == -1))
     {
         nxt_alert(task, "failed to set SO_PASSCRED %E", nxt_errno);
         goto fail;
     }
 
     if (nxt_slow_path(setsockopt(pair[1], SOL_SOCKET, SO_PASSCRED,
-                        &enable_creds, sizeof(enable_creds)) == -1)) 
+                      &enable_creds, sizeof(enable_creds)) == -1))
     {
         nxt_alert(task, "failed to set SO_PASSCRED %E", nxt_errno);
         goto fail;
@@ -91,7 +91,11 @@ nxt_socketpair_send(nxt_fd_event_t *ev, nxt_fd_t fd, nxt_iobuf_t *iob,
 
     oobn = sizeof(oob);
 
-    nxt_socket_msg_set_oob(oob, &oobn, fd);
+    nxt_socket_msg_oob_init(oob, &oobn);
+
+    if (fd != -1) {
+        nxt_socket_msg_oob_set_fd(oob, &oobn, fd);
+    }
 
     for ( ;; ) {
         n = nxt_sendmsg(ev->fd, iob, niob, oob, oobn);

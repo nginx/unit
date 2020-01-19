@@ -628,8 +628,8 @@ nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
              * platforms that cred is enabled (Linux and FreeBSD).
              */
             if (nxt_slow_path(oobn > 0
-                    && nxt_socket_msg_oob_info(oob, oobn, &msg.fd,
-                                               &msg.port_msg.pid)
+                    && nxt_socket_msg_oob_get(oob, oobn, &msg.fd,
+                                              &msg.port_msg.pid)
                         != NXT_OK))
             {
                 nxt_alert(task, "failed to get oob data from %d",
