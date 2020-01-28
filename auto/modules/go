@@ -85,6 +85,14 @@ if grep ^$NXT_GO: $NXT_MAKEFILE 2>&1 > /dev/null; then
     exit 1;
 fi
 
+NXT_GO_LDFLAGS=
+
+for o in ${CFLAGS} ${NXT_CC_OPT}; do
+    case "$o" in
+      -fsanitize* | -L* | -l*) NXT_GO_LDFLAGS="${NXT_GO_LDFLAGS} $o" ;;
+    esac
+done
+
 cat << END >> $NXT_MAKEFILE
 
 .PHONY: ${NXT_GO}
@@ -116,8 +124,9 @@ ${NXT_GO}-install-env: \$(DESTDIR)\$(NXT_GO_DST)/src/${NXT_GO_PKG}/env.go \
 	install -d \$(DESTDIR)\$(NXT_GO_DST)/src/${NXT_GO_PKG}
 	$echo "package unit" > \$@
 	$echo "/*" >> \$@
+	$echo "#cgo CFLAGS: ${CFLAGS} ${NXT_CC_OPT}" >> \$@
 	$echo "#cgo CPPFLAGS: -I${PWD}/src -I${PWD}/${NXT_BUILD_DIR}" >> \$@
-	$echo "#cgo LDFLAGS: -L${PWD}/${NXT_BUILD_DIR}" >> \$@
+	$echo "#cgo LDFLAGS: -L${PWD}/${NXT_BUILD_DIR} ${NXT_GO_LDFLAGS} ${NXT_LD_OPT}" >> \$@
 	$echo "*/" >> \$@
 	$echo 'import "C"' >> \$@
 
