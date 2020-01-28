@@ -52,7 +52,8 @@ static int nxt_ruby_hash_info(VALUE r_key, VALUE r_value, VALUE arg);
 static int nxt_ruby_hash_add(VALUE r_key, VALUE r_value, VALUE arg);
 static int nxt_ruby_rack_result_body(VALUE result);
 static int nxt_ruby_rack_result_body_file_write(VALUE filepath);
-static VALUE nxt_ruby_rack_result_body_each(VALUE body);
+static VALUE nxt_ruby_rack_result_body_each(VALUE body, VALUE arg,
+    int argc, const VALUE *argv, VALUE blockarg);
 
 static void nxt_ruby_exception_log(nxt_task_t *task, uint32_t level,
     const char *desc);
@@ -813,7 +814,8 @@ nxt_ruby_rack_result_body_file_write(VALUE filepath)
 
 
 static VALUE
-nxt_ruby_rack_result_body_each(VALUE body)
+nxt_ruby_rack_result_body_each(VALUE body, VALUE arg, int argc,
+    const VALUE *argv, VALUE blockarg)
 {
     int  rc;
 
