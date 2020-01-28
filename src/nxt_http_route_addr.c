@@ -18,7 +18,7 @@ nxt_int_t
 nxt_http_route_addr_pattern_parse(nxt_mp_t *mp,
     nxt_http_route_addr_pattern_t *pattern, nxt_conf_value_t *cv)
 {
-    u_char                       *delim, *end;
+    u_char                       *delim;
     nxt_int_t                    ret, cidr_prefix;
     nxt_str_t                    addr, port;
     nxt_http_route_addr_base_t   *base;
@@ -59,6 +59,7 @@ nxt_http_route_addr_pattern_parse(nxt_mp_t *mp,
 
     if (nxt_str_looks_like_ipv6(&addr)) {
 #if (NXT_INET6)
+        u_char                           *end;
         uint8_t                          i;
         nxt_int_t                        len;
         nxt_http_route_in6_addr_range_t  *inet6;
@@ -179,7 +180,10 @@ nxt_http_route_addr_pattern_parse(nxt_mp_t *mp,
             return NXT_ADDR_PATTERN_FORMAT_ERROR;
         }
 
-        nxt_inet6_addr(&inet6->start, addr.start, addr.length);
+        ret = nxt_inet6_addr(&inet6->start, addr.start, addr.length);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            return NXT_ADDR_PATTERN_FORMAT_ERROR;
+        }
 
         goto parse_port;
 #endif
