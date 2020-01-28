@@ -1,0 +1,49 @@
+
+# Copyright (C) NGINX, Inc.
+
+# NXT_JAR_FILE=
+# NXT_JAR_CHK_FILE=
+
+NXT_SHA512_TOOL=${NXT_SHA512_TOOL=}
+
+if [ -z "$NXT_SHA512_TOOL" ]; then
+    $echo -n "looking for sha512 check tool ..."
+    $echo "looking for sha512 check tool ..." >> $NXT_AUTOCONF_ERR
+
+    if sha512sum --version >/dev/null 2>&1; then
+        NXT_SHA512_TOOL="sha512sum --check"
+    else
+        if shasum --version >/dev/null 2>&1; then
+            NXT_SHA512_TOOL="shasum -a 512 --check"
+        else
+            if openssl version >/dev/null 2>&1; then
+                NXT_SHA512_TOOL="openssl dgst -sha512"
+            fi
+        fi
+    fi
+
+    if [ -z "$NXT_SHA512_TOOL" ]; then
+        $echo " not found"
+        $echo
+        $echo $0: error: no sha512 tool found.
+        $echo
+        $echo "error: no sha512 tool found" >> $NXT_AUTOCONF_ERR
+        exit 1
+    fi
+
+    $echo " $NXT_SHA512_TOOL"
+    $echo "found $NXT_SHA512_TOOL" >> $NXT_AUTOCONF_ERR
+fi
+
+if [ -f "$NXT_JAR_CHK_FILE" ]; then
+    NXT_JAR_SHA512=`grep -F $NXT_JAR_FILE auto/modules/java_jar.sha512 | head -c 128`
+    NXT_JAR_CHK=${NXT_JAR_CHK_FILE}.sha512.$$
+    $echo "$NXT_JAR_SHA512  $NXT_JAR_CHK_FILE" > $NXT_JAR_CHK
+
+    if ! $NXT_SHA512_TOOL $NXT_JAR_CHK >/dev/null 2>&1; then
+        $echo "SHA512 not matched for $NXT_JAR_FILE, removing $NXT_JAR_CHK_FILE"
+        rm -f $NXT_JAR_CHK_FILE
+    fi
+
+    rm -f $NXT_JAR_CHK
+fi

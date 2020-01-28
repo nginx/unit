@@ -22,6 +22,7 @@ for nxt_option; do
         --lib-path=*)   NXT_JAVA_LIB_PATH="$value"                            ;;
         --repo=*)       NXT_JAR_REPO="$value"                                 ;;
         --local-repo=*) NXT_JAR_LOCAL_REPO="$value"                           ;;
+        --sha512=*)     NXT_SHA512_TOOL="$value"                              ;;
         --jars=*)       NXT_JARS="$value"                                     ;;
 
         --help)
@@ -34,6 +35,7 @@ for nxt_option; do
                           default: "$NXT_JAR_REPO"
     --local-repo=DIR      set local repository directory
                           default: "$NXT_JAR_LOCAL_REPO"
+    --sha512=SHA512       set command for SHA512 check
     --jars=DIR            set jars install/search directory
 
 END
