@@ -5,7 +5,7 @@
 shift
 
 NXT_JAVA_HOME=${JAVA_HOME-}
-NXT_JAR_REPO=http://central.maven.org/maven2/
+NXT_JAR_REPO=https://repo1.maven.org/maven2/
 NXT_JAR_LOCAL_REPO=$HOME/.m2/repository/
 
 for nxt_option; do
