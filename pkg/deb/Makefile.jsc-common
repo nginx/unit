@@ -16,7 +16,7 @@ MODULE_CONFARGS_jsc_common=	java --home=/usr/lib/jvm/java-$(JAVA_MINVERSION)-ope
 MODULE_MAKEARGS_jsc_common=	java
 MODULE_INSTARGS_jsc_common=	java-shared-install
 
-BUILD_DEPENDS_jsc_common=	openjdk-$(JAVA_MINVERSION)-jdk-headless openjdk-$(JAVA_MINVERSION)-jre-headless
+BUILD_DEPENDS_jsc_common=	openjdk-$(JAVA_MINVERSION)-jdk-headless openjdk-$(JAVA_MINVERSION)-jre-headless curl
 BUILD_DEPENDS+=		$(BUILD_DEPENDS_jsc_common)
 
 MODULE_NOARCH_jsc_common=	true
