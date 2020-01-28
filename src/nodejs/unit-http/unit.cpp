@@ -844,7 +844,7 @@ Unit::response_write(napi_env env, napi_callback_info info)
 
             res_len = nxt_unit_response_write_nb(req, ptr, have_buf_len, 0);
 
-            ret = res_len < 0 ? -res_len : NXT_UNIT_OK;
+            ret = res_len < 0 ? -res_len : (int) NXT_UNIT_OK;
         }
 
         if (ret != NXT_UNIT_OK) {
