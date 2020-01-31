@@ -1412,6 +1412,13 @@ class TestRouting(TestApplicationProto):
         sock, port = sock_port()
         sock2, port2 = sock_port()
 
+        self.route_match({"source": ["*:" + str(port), "!127.0.0.1"]})
+        self.assertEqual(self.get(sock=sock)['status'], 404, 'negative 3')
+        self.assertEqual(self.get(sock=sock2)['status'], 404, 'negative 4')
+
+        sock, port = sock_port()
+        sock2, port2 = sock_port()
+
         self.route_match(
             {"source": "127.0.0.1:" + str(port) + "-" + str(port)}
         )
@@ -1726,6 +1733,7 @@ class TestRouting(TestApplicationProto):
         self.route_match_invalid({"source": "127"})
         self.route_match_invalid({"source": "256.0.0.1"})
         self.route_match_invalid({"source": "127.0.0."})
+        self.route_match_invalid({"source": " 127.0.0.1"})
         self.route_match_invalid({"source": "127.0.0.1:"})
         self.route_match_invalid({"source": "127.0.0.1/"})
         self.route_match_invalid({"source": "11.0.0.0/33"})
@@ -1764,6 +1772,55 @@ class TestRouting(TestApplicationProto):
         self.route_match({"destination": "!*:7080"})
         self.assertEqual(self.get()['status'], 404, 'dest neg')
         self.assertEqual(self.get(port=7081)['status'], 200, 'dest neg 2')
+
+        self.route_match({"destination": ['!*:7080', '!*:7081']})
+        self.assertEqual(self.get()['status'], 404, 'dest neg 3')
+        self.assertEqual(self.get(port=7081)['status'], 404, 'dest neg 4')
+
+        self.route_match({"destination": ['!*:7081', '!*:7082']})
+        self.assertEqual(self.get()['status'], 200, 'dest neg 5')
+
+        self.route_match({"destination": ['*:7080', '!*:7080']})
+        self.assertEqual(self.get()['status'], 404, 'dest neg 6')
+
+        self.route_match(
+            {"destination": ['127.0.0.1:7080', '*:7081', '!*:7080']}
+        )
+        self.assertEqual(self.get()['status'], 404, 'dest neg 7')
+        self.assertEqual(self.get(port=7081)['status'], 200, 'dest neg 8')
+
+        self.route_match({"destination": ['!*:7081', '!*:7082', '*:7083']})
+        self.assertEqual(self.get()['status'], 404, 'dest neg 9')
+
+        self.route_match(
+            {"destination": ['*:7081', '!127.0.0.1:7080', '*:7080']}
+        )
+        self.assertEqual(self.get()['status'], 404, 'dest neg 10')
+        self.assertEqual(self.get(port=7081)['status'], 200, 'dest neg 11')
+
+        self.assertIn(
+            'success',
+            self.conf_delete('routes/0/match/destination/0'),
+            'remove destination rule',
+        )
+        self.assertEqual(self.get()['status'], 404, 'dest neg 12')
+        self.assertEqual(self.get(port=7081)['status'], 404, 'dest neg 13')
+
+        self.assertIn(
+            'success',
+            self.conf_delete('routes/0/match/destination/0'),
+            'remove destination rule 2',
+        )
+        self.assertEqual(self.get()['status'], 200, 'dest neg 14')
+        self.assertEqual(self.get(port=7081)['status'], 404, 'dest neg 15')
+
+        self.assertIn(
+            'success',
+            self.conf_post("\"!127.0.0.1\"", 'routes/0/match/destination'),
+            'add destination rule',
+        )
+        self.assertEqual(self.get()['status'], 404, 'dest neg 16')
+        self.assertEqual(self.get(port=7081)['status'], 404, 'dest neg 17')
 
     def test_routes_match_destination_proxy(self):
         self.assertIn(
