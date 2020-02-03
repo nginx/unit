@@ -172,11 +172,12 @@ nxt_buf_pool_free(nxt_buf_pool_t *bp, nxt_buf_t *b)
 void
 nxt_buf_pool_destroy(nxt_buf_pool_t *bp)
 {
-    nxt_buf_t  *b;
+    nxt_buf_t  *b, *n;
 
     bp->destroy = 1;
 
-    for (b = bp->free; b != NULL; b = b->next) {
+    for (b = bp->free; b != NULL; b = n) {
+        n = b->next;
         nxt_buf_free(bp->mem_pool, b);
     }
 
