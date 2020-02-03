@@ -3207,6 +3207,7 @@ nxt_unit_get_outgoing_buf(nxt_unit_ctx_t *ctx, nxt_unit_process_t *process,
     mmap_buf->port_id = *port_id;
     mmap_buf->process = process;
     mmap_buf->free_ptr = NULL;
+    mmap_buf->ctx_impl = nxt_container_of(ctx, nxt_unit_ctx_impl_t, ctx);
 
     nxt_unit_debug(ctx, "outgoing mmap allocation: (%d,%d,%d)",
                   (int) hdr->id, (int) c,
