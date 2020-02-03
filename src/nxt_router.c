@@ -3750,8 +3750,6 @@ nxt_router_response_error_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
                 nxt_router_app_prepare_request(task, req_app_link);
             }
 
-            nxt_request_app_link_use(task, req_app_link, -1);
-
             msg->port_msg.last = 0;
 
             return;
@@ -4220,28 +4218,23 @@ re_ra_cancelled:
         if (nxt_router_port_post_select(task, &state) == NXT_OK) {
             /*
              * There should be call nxt_request_app_link_inc_use(re_ra),
-             * but we need to decrement use then. So, let's skip both.
+             * because of one more link in the queue.
+             * Corresponding decrement is in nxt_router_app_process_request().
              */
+
+            nxt_request_app_link_inc_use(re_ra);
 
             nxt_work_queue_add(&task->thread->engine->fast_work_queue,
                                nxt_router_app_process_request,
                                &task->thread->engine->task, app, re_ra);
-
-        } else {
-            /*
-             * This call should be unconditional, but we want to spare
-             * couple of CPU ticks to postpone the head death of the universe.
-             */
-
-            nxt_request_app_link_use(task, re_ra, -1);
         }
     }
 
     if (req_app_link != NULL) {
         /*
-         * Here we do the same trick as described above,
-         * but without conditions.
-         * Skip required nxt_request_app_link_inc_use(req_app_link).
+         * There should be call nxt_request_app_link_inc_use(req_app_link),
+         * because of one more link in the queue.  But one link was
+         * recently removed from app->requests link.
          */
 
         nxt_work_queue_add(&task->thread->engine->fast_work_queue,
@@ -5205,8 +5198,6 @@ nxt_router_app_timeout(nxt_task_t *task, void *obj, void *data)
         if (nxt_router_port_post_select(task, &state) == NXT_OK) {
             nxt_router_app_prepare_request(task, pending_ra);
         }
-
-        nxt_request_app_link_use(task, pending_ra, -1);
     }
 
     nxt_debug(task, "send quit to app '%V' pid %PI", &app->name, port->pid);
