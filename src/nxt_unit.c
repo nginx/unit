@@ -871,7 +871,8 @@ nxt_unit_process_new_port(nxt_unit_ctx_t *ctx, nxt_unit_recv_msg_t *recv_msg)
 
     if (nxt_slow_path(ioctl(recv_msg->fd, FIONBIO, &nb) == -1)) {
         nxt_unit_alert(ctx, "#%"PRIu32": new_port: ioctl(%d, FIONBIO, 0) "
-                       "failed: %s (%d)", recv_msg->fd, strerror(errno), errno);
+                       "failed: %s (%d)",
+                       recv_msg->stream, recv_msg->fd, strerror(errno), errno);
 
         return NXT_UNIT_ERROR;
     }
