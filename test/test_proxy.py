@@ -10,11 +10,12 @@ class TestProxy(TestApplicationPython):
 
     SERVER_PORT = 7999
 
-    def run_server(self):
+    @staticmethod
+    def run_server(server_port):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-        server_address = ('', self.SERVER_PORT)
+        server_address = ('', server_port)
         sock.bind(server_address)
         sock.listen(5)
 
@@ -57,7 +58,7 @@ Content-Length: 10
     def setUp(self):
         super().setUp()
 
-        self.run_process(self.run_server)
+        self.run_process(self.run_server, self.SERVER_PORT)
         self.waitforsocket(self.SERVER_PORT)
 
         self.assertIn(
