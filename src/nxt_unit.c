@@ -23,10 +23,6 @@
 #define NXT_UNIT_LOCAL_BUF_SIZE  \
     (NXT_UNIT_MAX_PLAIN_SIZE + sizeof(nxt_port_msg_t))
 
-#define NXT_UNIT_MAX_PLAIN_SIZE  1024
-#define NXT_UNIT_LOCAL_BUF_SIZE  \
-    (NXT_UNIT_MAX_PLAIN_SIZE + sizeof(nxt_port_msg_t))
-
 typedef struct nxt_unit_impl_s                  nxt_unit_impl_t;
 typedef struct nxt_unit_mmap_s                  nxt_unit_mmap_t;
 typedef struct nxt_unit_mmaps_s                 nxt_unit_mmaps_t;
