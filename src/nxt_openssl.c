@@ -633,10 +633,6 @@ nxt_openssl_conn_io_recvbuf(nxt_conn_t *c, nxt_buf_t *b)
               c->socket.fd, b->mem.free, size, ret, err);
 
     if (ret > 0) {
-        if ((size_t) ret < size) {
-            c->socket.read_ready = 0;
-        }
-
         return ret;
     }
 
