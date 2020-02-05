@@ -1,3 +1,5 @@
+import io
+import os
 import re
 import ssl
 import subprocess
@@ -590,6 +592,26 @@ basicConstraints = critical,CA:TRUE"""
             'https',
             'url scheme https',
         )
+
+    def test_tls_big_upload(self):
+        self.load('upload')
+
+        self.certificate()
+
+        self.add_tls(application='upload')
+
+        filename = 'test.txt'
+        data = '0123456789' * 9000
+
+        res = self.post_ssl(body={
+            'file': {
+                'filename': filename,
+                'type': 'text/plain',
+                'data': io.StringIO(data),
+            }
+        })
+        self.assertEqual(res['status'], 200, 'status ok')
+        self.assertEqual(res['body'], filename + data)
 
 if __name__ == '__main__':
     TestTLS.main()
