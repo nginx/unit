@@ -10,15 +10,15 @@
 
 static VALUE nxt_ruby_stream_io_new(VALUE class, VALUE wrap);
 static VALUE nxt_ruby_stream_io_initialize(int argc, VALUE *argv, VALUE self);
-static VALUE nxt_ruby_stream_io_gets(VALUE obj, VALUE args);
-static VALUE nxt_ruby_stream_io_each(VALUE obj, VALUE args);
+static VALUE nxt_ruby_stream_io_gets(VALUE obj);
+static VALUE nxt_ruby_stream_io_each(VALUE obj);
 static VALUE nxt_ruby_stream_io_read(VALUE obj, VALUE args);
-static VALUE nxt_ruby_stream_io_rewind(VALUE obj, VALUE args);
+static VALUE nxt_ruby_stream_io_rewind(VALUE obj);
 static VALUE nxt_ruby_stream_io_puts(VALUE obj, VALUE args);
 static VALUE nxt_ruby_stream_io_write(VALUE obj, VALUE args);
 nxt_inline long nxt_ruby_stream_io_s_write(nxt_ruby_run_ctx_t *run_ctx,
     VALUE val);
-static VALUE nxt_ruby_stream_io_flush(VALUE obj, VALUE args);
+static VALUE nxt_ruby_stream_io_flush(VALUE obj);
 
 
 VALUE
@@ -85,7 +85,7 @@ nxt_ruby_stream_io_initialize(int argc, VALUE *argv, VALUE self)
 
 
 static VALUE
-nxt_ruby_stream_io_gets(VALUE obj, VALUE args)
+nxt_ruby_stream_io_gets(VALUE obj)
 {
     VALUE                    buf;
     char                     *p;
@@ -132,7 +132,7 @@ nxt_ruby_stream_io_gets(VALUE obj, VALUE args)
 
 
 static VALUE
-nxt_ruby_stream_io_each(VALUE obj, VALUE args)
+nxt_ruby_stream_io_each(VALUE obj)
 {
     VALUE  chunk;
 
@@ -141,7 +141,7 @@ nxt_ruby_stream_io_each(VALUE obj, VALUE args)
     }
 
     for ( ;; ) {
-        chunk = nxt_ruby_stream_io_gets(obj, Qnil);
+        chunk = nxt_ruby_stream_io_gets(obj);
 
         if (chunk == Qnil) {
             return Qnil;
@@ -203,7 +203,7 @@ nxt_ruby_stream_io_read(VALUE obj, VALUE args)
 
 
 static VALUE
-nxt_ruby_stream_io_rewind(VALUE obj, VALUE args)
+nxt_ruby_stream_io_rewind(VALUE obj)
 {
     return Qnil;
 }
@@ -266,7 +266,7 @@ nxt_ruby_stream_io_s_write(nxt_ruby_run_ctx_t *run_ctx, VALUE val)
 
 
 static VALUE
-nxt_ruby_stream_io_flush(VALUE obj, VALUE args)
+nxt_ruby_stream_io_flush(VALUE obj)
 {
     return Qnil;
 }

@@ -1,4 +1,19 @@
 
+Changes with Unit 1.15.0                                         06 Feb 2020
+
+    *) Change: extensions of dynamically requested PHP scripts were
+       restricted to ".php".
+
+    *) Feature: compatibility with Ruby 2.7.
+
+    *) Bugfix: segmentation fault might have occurred in the router process
+       with multiple application processes under load; the bug had appeared
+       in 1.14.0.
+
+    *) Bugfix: receiving request body over TLS connection might have
+       stalled.
+
+
 Changes with Unit 1.14.0                                         26 Dec 2019
 
     *) Change: the Go package import name changed to "unit.nginx.org/go".

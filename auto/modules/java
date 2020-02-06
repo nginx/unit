@@ -5,7 +5,7 @@
 shift
 
 NXT_JAVA_HOME=${JAVA_HOME-}
-NXT_JAR_REPO=http://central.maven.org/maven2/
+NXT_JAR_REPO=https://repo1.maven.org/maven2/
 NXT_JAR_LOCAL_REPO=$HOME/.m2/repository/
 
 for nxt_option; do
@@ -22,6 +22,7 @@ for nxt_option; do
         --lib-path=*)   NXT_JAVA_LIB_PATH="$value"                            ;;
         --repo=*)       NXT_JAR_REPO="$value"                                 ;;
         --local-repo=*) NXT_JAR_LOCAL_REPO="$value"                           ;;
+        --sha512=*)     NXT_SHA512_TOOL="$value"                              ;;
         --jars=*)       NXT_JARS="$value"                                     ;;
 
         --help)
@@ -34,6 +35,7 @@ for nxt_option; do
                           default: "$NXT_JAR_REPO"
     --local-repo=DIR      set local repository directory
                           default: "$NXT_JAR_LOCAL_REPO"
+    --sha512=SHA512       set command for SHA512 check
     --jars=DIR            set jars install/search directory
 
 END
@@ -82,11 +84,12 @@ if [ -n "${NXT_JAVA_HOME}" ]; then
     NXT_JAVA="${NXT_JAVA_HOME}/bin/java"
 
 else
-    $echo -n "checking for java executable"
+    $echo -n "checking for java executable ..."
     $echo "checking for java executable ..." >> $NXT_AUTOCONF_ERR
 
     NXT_JAVA=`which java || :`
     if [ -z "$NXT_JAVA" -o ! -x "$NXT_JAVA" ]; then
+        $echo " not found"
         $echo
         $echo $0: error: java executable not found.
         $echo
@@ -98,11 +101,12 @@ else
 
     "$NXT_JAVA" -version
 
-    $echo -n "checking java.home"
+    $echo -n "checking java.home ..."
     $echo "checking java.home ..." >> $NXT_AUTOCONF_ERR
 
     NXT_JAVA_HOME=`$NXT_JAVA -XshowSettings 2>&1 | grep -F -e java.home | sed -e 's/^.*= //'`
     if [ -z "$NXT_JAVA_HOME" ]; then
+        $echo " not found"
         $echo
         $echo $0: error: java.home not found.
         $echo
@@ -147,10 +151,11 @@ case "$NXT_SYSTEM" in
 esac
 
 if [ -z "$NXT_JAVA_LIB_PATH" ]; then
-    $echo -n "checking library path"
+    $echo -n "checking library path ..."
     $echo "checking library path ..." >> $NXT_AUTOCONF_ERR
 
     if [ ! -x "$NXT_JAVA" ]; then
+        $echo " not found"
         $echo
         $echo $0: error: java executable not found.
         $echo
@@ -160,6 +165,7 @@ if [ -z "$NXT_JAVA_LIB_PATH" ]; then
     NXT_JAVA_LIB_PATH=`$NXT_JAVA -XshowSettings 2>&1 | grep -F -e sun.boot.library.path | sed -e 's/^.*= //'`
 
     if [ -z "$NXT_JAVA_LIB_PATH" ]; then
+        $echo " not found"
         $echo
         $echo $0: error: library path not found.
         $echo

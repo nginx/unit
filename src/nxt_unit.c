@@ -23,10 +23,6 @@
 #define NXT_UNIT_LOCAL_BUF_SIZE  \
     (NXT_UNIT_MAX_PLAIN_SIZE + sizeof(nxt_port_msg_t))
 
-#define NXT_UNIT_MAX_PLAIN_SIZE  1024
-#define NXT_UNIT_LOCAL_BUF_SIZE  \
-    (NXT_UNIT_MAX_PLAIN_SIZE + sizeof(nxt_port_msg_t))
-
 typedef struct nxt_unit_impl_s                  nxt_unit_impl_t;
 typedef struct nxt_unit_mmap_s                  nxt_unit_mmap_t;
 typedef struct nxt_unit_mmaps_s                 nxt_unit_mmaps_t;
@@ -871,7 +867,8 @@ nxt_unit_process_new_port(nxt_unit_ctx_t *ctx, nxt_unit_recv_msg_t *recv_msg)
 
     if (nxt_slow_path(ioctl(recv_msg->fd, FIONBIO, &nb) == -1)) {
         nxt_unit_alert(ctx, "#%"PRIu32": new_port: ioctl(%d, FIONBIO, 0) "
-                       "failed: %s (%d)", recv_msg->fd, strerror(errno), errno);
+                       "failed: %s (%d)",
+                       recv_msg->stream, recv_msg->fd, strerror(errno), errno);
 
         return NXT_UNIT_ERROR;
     }
@@ -3206,6 +3203,7 @@ nxt_unit_get_outgoing_buf(nxt_unit_ctx_t *ctx, nxt_unit_process_t *process,
     mmap_buf->port_id = *port_id;
     mmap_buf->process = process;
     mmap_buf->free_ptr = NULL;
+    mmap_buf->ctx_impl = nxt_container_of(ctx, nxt_unit_ctx_impl_t, ctx);
 
     nxt_unit_debug(ctx, "outgoing mmap allocation: (%d,%d,%d)",
                   (int) hdr->id, (int) c,

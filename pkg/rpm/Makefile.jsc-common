@@ -14,7 +14,7 @@ MODULE_INSTARGS_jsc_common=	java-shared-install
 
 MODULE_SOURCES_jsc_common=	COPYRIGHT.unit-jsc-common
 
-BUILD_DEPENDS_jsc_common=	java-1.8.0-openjdk-devel
+BUILD_DEPENDS_jsc_common=	java-1.8.0-openjdk-devel curl
 BUILD_DEPENDS+=		$(BUILD_DEPENDS_jsc_common)
 
 define MODULE_DEFINITIONS_jsc_common

@@ -156,9 +156,9 @@ signals_fail:
 
 #if 0
 fibers_fail:
+#endif
 
     nxt_free(engine);
-#endif
 
     return NULL;
 }

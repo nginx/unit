@@ -599,20 +599,27 @@ nxt_php_request_handler(nxt_unit_request_info_t *req)
     path.start = nxt_unit_sptr_get(&r->path);
 
     if (nxt_php_script_filename.start == NULL) {
+        nxt_str_null(&script_name);
+
         ctx->path_info.start = (u_char *) strstr((char *) path.start, ".php/");
         if (ctx->path_info.start != NULL) {
             ctx->path_info.start += 4;
             path.length = ctx->path_info.start - path.start;
 
             ctx->path_info.length = r->path_length - path.length;
-        }
 
-        if (path.start[path.length - 1] == '/') {
+        } else if (path.start[path.length - 1] == '/') {
             script_name = nxt_php_index;
 
         } else {
-            script_name.length = 0;
-            script_name.start = NULL;
+            if (nxt_slow_path(path.length < 4
+                              || nxt_memcmp(path.start + (path.length - 4),
+                                            ".php", 4)))
+            {
+                nxt_unit_request_done(req, NXT_UNIT_ERROR);
+
+                return;
+            }
         }
 
         ctx->script_filename.length = nxt_php_root.length + path.length

@@ -209,9 +209,7 @@ class TestUnit(unittest.TestCase):
 
         print()
 
-        def _run_unit():
-            subprocess.call(
-                [
+        self._p = Process(target=subprocess.call, args=[ [
                     self.unitd,
                     '--no-daemon',
                     '--modules',  self.pardir + '/build',
@@ -219,10 +217,7 @@ class TestUnit(unittest.TestCase):
                     '--pid',      self.testdir + '/unit.pid',
                     '--log',      self.testdir + '/unit.log',
                     '--control',  'unix:' + self.testdir + '/control.unit.sock',
-                ]
-            )
-
-        self._p = Process(target=_run_unit)
+                ] ])
         self._p.start()
 
         if not self.waitforfiles(
@@ -299,11 +294,11 @@ class TestUnit(unittest.TestCase):
         if found:
             print('skipped.')
 
-    def run_process(self, target):
+    def run_process(self, target, *args):
         if not hasattr(self, '_processes'):
             self._processes = []
 
-        process = Process(target=target)
+        process = Process(target=target, args=args)
         process.start()
 
         self._processes.append(process)

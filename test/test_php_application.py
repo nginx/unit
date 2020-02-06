@@ -500,7 +500,17 @@ class TestPHPApplication(TestApplicationPHP):
             ), 'configure index default'
         )
 
-        self.assertEqual(self.get()['status'], 200, 'status')
+        resp = self.get()
+
+        self.assertEqual(resp['status'], 200, 'status')
+        self.assertNotEqual(resp['body'], '', 'body not empty')
+
+    def test_php_application_extension_check(self):
+        self.load('phpinfo')
+
+        self.assertNotEqual(
+            self.get(url='/index.wrong')['status'], 200, 'status'
+        )
 
 if __name__ == '__main__':
     TestPHPApplication.main()

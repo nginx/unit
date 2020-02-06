@@ -1,3 +1,4 @@
+import io
 import os
 import time
 import unittest
@@ -1223,31 +1224,25 @@ class TestJavaApplication(TestApplicationJava):
         os.mkdir(fulldst)
         self.public_dir(fulldst)
 
-        body = (
-            """Preamble. Should be ignored.\r
-\r
---12345\r
-Content-Disposition: form-data; name="file"; filename="sample.txt"\r
-Content-Type: text/plain\r
-\r
-Data from sample file\r
---12345\r
-Content-Disposition: form-data; name="destination"\r
-\r
-%s\r
---12345\r
-Content-Disposition: form-data; name="upload"\r
-\r
-Upload\r
---12345--\r
-\r
-Epilogue. Should be ignored."""
-            % fulldst
-        )
+        fields = {
+            'file': {
+                'filename': 'sample.txt',
+                'type': 'text/plain',
+                'data': io.StringIO('Data from sample file'),
+            },
+            'destination': fulldst,
+            'upload': 'Upload',
+        }
+
+        encoded, content_type = self.multipart_encode(fields)
+
+        preamble = 'Preamble. Should be ignored.'
+        epilogue = 'Epilogue. Should be ignored.'
+        body = "%s\r\n%s\r\n%s" % (preamble, encoded.decode(), epilogue)
 
         resp = self.post(
             headers={
-                'Content-Type': 'multipart/form-data; boundary=12345',
+                'Content-Type': content_type,
                 'Host': 'localhost',
                 'Connection': 'close',
             },
