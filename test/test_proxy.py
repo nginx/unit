@@ -188,6 +188,13 @@ Content-Length: 10
             self.assertEqual(resp['status'], 200, 'status')
             self.assertEqual(resp['body'], payload, 'body')
 
+        self.conf({'http': {'max_body_size': 32 * 1024 * 1024}}, 'settings')
+
+        payload = '0123456789abcdef' * 32 * 64 * 1024
+        resp = self.post_http10(body=payload, read_buffer_size=1024 * 1024)
+        self.assertEqual(resp['status'], 200, 'status')
+        self.assertEqual(resp['body'], payload, 'body')
+
     def test_proxy_parallel(self):
         payload = 'X' * 4096 * 257
         buff_size = 4096 * 258
