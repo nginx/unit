@@ -1,4 +1,6 @@
+import os
 import re
+import shutil
 import unittest
 from unit.applications.lang.php import TestApplicationPHP
 
@@ -511,6 +513,34 @@ class TestPHPApplication(TestApplicationPHP):
         self.assertNotEqual(
             self.get(url='/index.wrong')['status'], 200, 'status'
         )
+
+        new_root = self.testdir + "/php"
+        os.mkdir(new_root)
+        shutil.copy(self.current_dir + '/php/phpinfo/index.wrong', new_root)
+
+        self.assertIn(
+            'success',
+            self.conf(
+                {
+                    "listeners": {"*:7080": {"pass": "applications/phpinfo"}},
+                    "applications": {
+                        "phpinfo": {
+                            "type": "php",
+                            "processes": {"spare": 0},
+                            "root": new_root,
+                            "working_directory": new_root,
+                        }
+                    },
+                }
+            ),
+            'configure new root',
+        )
+
+        resp = self.get()
+        self.assertNotEqual(
+            str(resp['status']) + resp['body'], '200', 'status new root'
+        )
+
 
 if __name__ == '__main__':
     TestPHPApplication.main()
