@@ -39,6 +39,9 @@ class TestStatic(TestApplicationProto):
             self.get(url='/index.html')['body'], '0123456789', 'index'
         )
         self.assertEqual(self.get(url='/')['body'], '0123456789', 'index 2')
+        self.assertEqual(self.get(url='//')['body'], '0123456789', 'index 3')
+        self.assertEqual(self.get(url='/.')['body'], '0123456789', 'index 4')
+        self.assertEqual(self.get(url='/./')['body'], '0123456789', 'index 5')
         self.assertEqual(
             self.get(url='/?blah')['body'], '0123456789', 'index vars'
         )
@@ -199,10 +202,29 @@ class TestStatic(TestApplicationProto):
             self.get(url='/link/file')['status'], 200, 'symlink file'
         )
 
-    def test_static_head(self):
-        resp = self.head(url='/')
-        self.assertEqual(resp['status'], 200, 'status')
-        self.assertEqual(resp['body'], '', 'empty body')
+    def test_static_method(self):
+        resp = self.head()
+        self.assertEqual(resp['status'], 200, 'HEAD status')
+        self.assertEqual(resp['body'], '', 'HEAD empty body')
+
+        self.assertEqual(self.delete()['status'], 405, 'DELETE')
+        self.assertEqual(self.post()['status'], 405, 'POST')
+        self.assertEqual(self.put()['status'], 405, 'PUT')
+
+    def test_static_path(self):
+        self.assertEqual(
+            self.get(url='/dir/../dir/file')['status'], 200, 'relative'
+        )
+
+        self.assertEqual(self.get(url='./')['status'], 400, 'path invalid')
+        self.assertEqual(self.get(url='../')['status'], 400, 'path invalid 2')
+        self.assertEqual(self.get(url='/..')['status'], 400, 'path invalid 3')
+        self.assertEqual(
+            self.get(url='../assets/')['status'], 400, 'path invalid 4'
+        )
+        self.assertEqual(
+            self.get(url='/../assets/')['status'], 400, 'path invalid 5'
+        )
 
     def test_static_two_clients(self):
         _, sock = self.get(url='/', start=True, no_recv=True)
