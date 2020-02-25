@@ -15,21 +15,19 @@
 #include <nxt_unit_request.h>
 
 
-#if PHP_MAJOR_VERSION >= 7
-#   define NXT_PHP7 1
-#   if PHP_MINOR_VERSION >= 1
-#       define NXT_HAVE_PHP_LOG_MESSAGE_WITH_SYSLOG_TYPE 1
-#   else
-#       define NXT_HAVE_PHP_INTERRUPTS 1
-#   endif
-#   define NXT_HAVE_PHP_IGNORE_CWD 1
-#else
-#   define NXT_HAVE_PHP_INTERRUPTS 1
-#   if PHP_MINOR_VERSION >= 4
-#       define NXT_HAVE_PHP_IGNORE_CWD 1
-#   endif
+#if PHP_VERSION_ID >= 50400
+#define NXT_HAVE_PHP_IGNORE_CWD 1
 #endif
 
+#if PHP_VERSION_ID >= 70100
+#define NXT_HAVE_PHP_LOG_MESSAGE_WITH_SYSLOG_TYPE 1
+#else
+#define NXT_HAVE_PHP_INTERRUPTS 1
+#endif
+
+#if PHP_VERSION_ID >= 70000
+#define NXT_PHP7 1
+#endif
 
 typedef struct nxt_php_run_ctx_s  nxt_php_run_ctx_t;
 
@@ -172,7 +170,7 @@ NXT_EXPORT nxt_app_module_t  nxt_app_module = {
 
 
 static nxt_task_t  *nxt_php_task;
-#ifdef ZTS
+#if defined(ZTS) && PHP_VERSION_ID < 70400
 static void        ***tsrm_ls;
 #endif
 
@@ -278,8 +276,14 @@ nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     }
 
 #ifdef ZTS
+
+#if PHP_VERSION_ID >= 70400
+    php_tsrm_startup();
+#else
     tsrm_startup(1, 1, 0, NULL);
     tsrm_ls = ts_resource(0);
+#endif
+
 #endif
 
 #if defined(NXT_PHP7) && defined(ZEND_SIGNALS)
