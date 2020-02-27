@@ -1690,6 +1690,7 @@ class TestRouting(TestApplicationProto):
         self.route_match_invalid({"source": "2001::/129"})
         self.route_match_invalid({"source": "::FFFFF"})
         self.route_match_invalid({"source": "[::1]:"})
+        self.route_match_invalid({"source": "[:::]:7080"})
         self.route_match_invalid({"source": "*:"})
         self.route_match_invalid({"source": "*:1-a"})
         self.route_match_invalid({"source": "*:65536"})
