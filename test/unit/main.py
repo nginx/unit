@@ -30,6 +30,7 @@ class TestUnit(unittest.TestCase):
 
     detailed = False
     save_log = False
+    print_log = False
     unsafe = False
 
     def __init__(self, methodName='runTest'):
@@ -183,7 +184,7 @@ class TestUnit(unittest.TestCase):
             shutil.rmtree(self.testdir)
 
         else:
-            self._print_path_to_log()
+            self._print_log()
 
     def stop(self):
         if self._started:
@@ -281,14 +282,14 @@ class TestUnit(unittest.TestCase):
                 alerts = [al for al in alerts if re.search(skip, al) is None]
 
         if alerts:
-            self._print_path_to_log()
+            self._print_log(log)
             self.assertFalse(alerts, 'alert(s)')
 
         if not self.skip_sanitizer:
             sanitizer_errors = re.findall('.+Sanitizer.+', log)
 
             if sanitizer_errors:
-                self._print_path_to_log()
+                self._print_log(log)
                 self.assertFalse(sanitizer_errors, 'sanitizer error(s)')
 
         if found:
@@ -361,6 +362,13 @@ class TestUnit(unittest.TestCase):
             help='Save unit.log after the test execution',
         )
         parser.add_argument(
+            '-r',
+            '--reprint_log',
+            dest='print_log',
+            action='store_true',
+            help='Print unit.log to stdout in case of errors',
+        )
+        parser.add_argument(
             '-u',
             '--unsafe',
             dest='unsafe',
@@ -374,6 +382,7 @@ class TestUnit(unittest.TestCase):
     def _set_args(args):
         TestUnit.detailed = args.detailed
         TestUnit.save_log = args.save_log
+        TestUnit.print_log = args.print_log
         TestUnit.unsafe = args.unsafe
 
         # set stdout to non-blocking
@@ -381,5 +390,15 @@ class TestUnit(unittest.TestCase):
         if TestUnit.detailed:
             fcntl.fcntl(sys.stdout.fileno(), fcntl.F_SETFL, 0)
 
-    def _print_path_to_log(self):
-        print('Path to unit.log:\n' + self.testdir + '/unit.log')
+    def _print_log(self, data=None):
+        path = self.testdir + '/unit.log'
+
+        print('Path to unit.log:\n' + path + '\n')
+
+        if TestUnit.print_log:
+            if data is None:
+                with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+                    data = f.read()
+
+            print(data)
+
