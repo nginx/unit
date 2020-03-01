@@ -94,7 +94,6 @@ typedef struct {
 typedef struct {
     /* The object must be the first field. */
     nxt_http_route_object_t        object:8;
-    uint32_t                       items;
 
     union {
         uintptr_t                  offset;
@@ -106,7 +105,7 @@ typedef struct {
         } name;
     } u;
 
-    nxt_http_route_pattern_t       pattern[0];
+    nxt_array_t                    *patterns; /* of nxt_http_route_pattern_t */
 } nxt_http_route_rule_t;
 
 
@@ -140,16 +139,23 @@ typedef union {
 
 
 typedef struct {
-    uint32_t                       items;
+    nxt_queue_link_t               link;
     nxt_http_action_t              action;
-    nxt_http_route_test_t          test[0];
+    nxt_array_t                    *tests; /* of nxt_http_route_test_t */
 } nxt_http_route_match_t;
+
+
+typedef struct {
+    nxt_str_t                      name;
+    nxt_array_t                    *matches; /* of nxt_http_route_match_t * */
+} nxt_http_route_host_t;
 
 
 struct nxt_http_route_s {
     nxt_str_t                      name;
-    uint32_t                       items;
-    nxt_http_route_match_t         *match[0];
+    nxt_queue_t                    queue;    /* of nxt_http_route_match_t */
+    nxt_lvlhsh_t                   hosts;    /* of nxt_http_route_host_t */
+    nxt_array_t                    *matches; /* of nxt_http_route_match_t * */
 };
 
 
@@ -172,8 +178,8 @@ struct nxt_http_routes_s {
 
 static nxt_http_route_t *nxt_http_route_create(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_conf_value_t *cv);
-static nxt_http_route_match_t *nxt_http_route_match_create(nxt_task_t *task,
-    nxt_router_temp_conf_t *tmcf, nxt_conf_value_t *cv);
+static nxt_int_t nxt_http_route_match_create(nxt_task_t *task,
+    nxt_router_temp_conf_t *tmcf, nxt_http_route_t *route, nxt_conf_value_t *cv);
 static nxt_int_t nxt_http_route_action_create(nxt_router_temp_conf_t *tmcf,
     nxt_conf_value_t *cv, nxt_http_route_match_t *match);
 static nxt_http_route_table_t *nxt_http_route_table_create(nxt_task_t *task,
@@ -185,6 +191,14 @@ static nxt_http_route_ruleset_t *nxt_http_route_ruleset_create(nxt_task_t *task,
 static nxt_http_route_rule_t *nxt_http_route_rule_name_create(nxt_task_t *task,
     nxt_mp_t *mp, nxt_conf_value_t *rule_cv, nxt_str_t *name,
     nxt_bool_t case_sensitive);
+static nxt_int_t nxt_http_route_host_rule_create(nxt_task_t *task,
+    nxt_mp_t *mp, nxt_http_route_t *route, nxt_http_route_match_t *match,
+    nxt_conf_value_t *cv, nxt_bool_t case_sensitive,
+    nxt_http_route_pattern_case_t pattern_case);
+static nxt_int_t nxt_http_route_host_pattern_create(nxt_task_t *task,
+    nxt_mp_t *mp, nxt_http_route_t *route, nxt_http_route_match_t *match,
+    nxt_http_route_rule_t *rule, nxt_conf_value_t *cv, nxt_bool_t case_sensitive,
+    nxt_http_route_pattern_case_t pattern_case);
 static nxt_http_route_addr_rule_t *nxt_http_route_addr_rule_create(
     nxt_task_t *task, nxt_mp_t *mp, nxt_conf_value_t *cv);
 static nxt_http_route_rule_t *nxt_http_route_rule_create(nxt_task_t *task,
@@ -367,51 +381,144 @@ static nxt_http_route_t *
 nxt_http_route_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_conf_value_t *cv)
 {
-    size_t                  size;
-    uint32_t                i, n;
-    nxt_conf_value_t        *value;
-    nxt_http_route_t        *route;
-    nxt_http_route_match_t  *match, **m;
+    uint32_t          i, n;
+    nxt_mp_t          *mp;
+    nxt_int_t         ret;
+    nxt_conf_value_t  *value;
+    nxt_http_route_t  *route;
 
-    n = nxt_conf_array_elements_count(cv);
-    size = sizeof(nxt_http_route_t) + n * sizeof(nxt_http_route_match_t *);
+    mp = tmcf->router_conf->mem_pool;
 
-    route = nxt_mp_alloc(tmcf->router_conf->mem_pool, size);
+    route = nxt_mp_alloc(mp, sizeof(nxt_http_route_t));
     if (nxt_slow_path(route == NULL)) {
         return NULL;
     }
 
-    route->items = n;
-    m = &route->match[0];
+    nxt_queue_init(&route->queue);
+    nxt_lvlhsh_init(&route->hosts);
+
+    route->matches = nxt_array_create(mp, 4, sizeof(nxt_http_route_match_t *));
+    if (nxt_slow_path(route->matches == NULL)) {
+        return NULL;
+    }
+
+    n = nxt_conf_array_elements_count(cv);
 
     for (i = 0; i < n; i++) {
         value = nxt_conf_get_array_element(cv, i);
 
-        match = nxt_http_route_match_create(task, tmcf, value);
-        if (match == NULL) {
+        ret = nxt_http_route_match_create(task, tmcf, route, value);
+        if (nxt_slow_path(ret != NXT_OK)) {
             return NULL;
         }
-
-        *m++ = match;
     }
 
     return route;
 }
 
 
-static nxt_http_route_match_t *
-nxt_http_route_match_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
-    nxt_conf_value_t *cv)
+static nxt_int_t
+nxt_http_route_host_test(nxt_lvlhsh_query_t *lhq, void *data)
 {
-    size_t                       size;
-    uint32_t                     n;
+    nxt_http_route_host_t  *host;
+
+    host = data;
+
+    if (nxt_strcasestr_eq(&lhq->key, &host->name)) {
+        return NXT_OK;
+    }
+
+    return NXT_DECLINED;
+}
+
+
+static const nxt_lvlhsh_proto_t  nxt_http_route_host_proto
+    nxt_aligned(64) =
+{
+    NXT_LVLHSH_DEFAULT,
+    nxt_http_route_host_test,
+    nxt_lvlhsh_alloc,
+    nxt_lvlhsh_free,
+};
+
+
+static nxt_http_route_host_t *
+nxt_http_route_host_find(nxt_http_route_t *route, nxt_str_t *name)
+{
+    nxt_lvlhsh_query_t  lhq;
+
+    lhq.key_hash = nxt_djb_hash_lowcase(name->start, name->length);
+    lhq.key = *name;
+    lhq.proto = &nxt_http_route_host_proto;
+
+    if (nxt_lvlhsh_find(&route->hosts, &lhq) == NXT_OK) {
+        return lhq.value;
+    }
+
+    return NULL;
+}
+
+
+static nxt_int_t
+nxt_http_route_host_add(nxt_mp_t *mp, nxt_http_route_t *route,
+    nxt_str_t *name, nxt_http_route_match_t *match)
+{
+    nxt_int_t               ret;
+    nxt_lvlhsh_query_t      lhq;
+    nxt_http_route_host_t   *host;
+    nxt_http_route_match_t  **m;
+
+    host = nxt_http_route_host_find(route, name);
+
+    if (host == NULL) {
+        host = nxt_mp_zalloc(mp, sizeof(nxt_http_route_host_t));
+        if (nxt_slow_path(host == NULL)) {
+            return NXT_ERROR;
+        }
+
+        host->matches = nxt_array_create(mp, 4, sizeof(nxt_http_route_match_t));
+        if (nxt_slow_path(host->matches == NULL)) {
+            return NXT_ERROR;
+        }
+
+        host->name = *name;
+
+        lhq.key_hash = nxt_djb_hash_lowcase(name->start, name->length);
+        lhq.key = *name;
+        lhq.proto = &nxt_http_route_host_proto;
+        lhq.replace = 0;
+        lhq.value = host;
+        lhq.pool = mp;
+
+        ret = nxt_lvlhsh_insert(&route->hosts, &lhq);
+        if (ret != NXT_OK) {
+            return NXT_ERROR;
+        }
+    }
+
+    m = nxt_array_add(host->matches);
+    if (nxt_slow_path(m == NULL)) {
+        return NXT_ERROR;
+    }
+
+    *m = match;
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_http_route_match_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
+    nxt_http_route_t *route, nxt_conf_value_t *cv)
+{
     nxt_mp_t                     *mp;
     nxt_int_t                    ret;
+    nxt_bool_t                   add;
     nxt_conf_value_t             *match_conf;
     nxt_http_route_test_t        *test;
     nxt_http_route_rule_t        *rule;
     nxt_http_route_table_t       *table;
-    nxt_http_route_match_t       *match;
+    nxt_http_route_match_t       *match, **m;
     nxt_http_route_addr_rule_t   *addr_rule;
     nxt_http_route_match_conf_t  mtcf;
 
@@ -419,27 +526,34 @@ nxt_http_route_match_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
     match_conf = nxt_conf_get_path(cv, &match_path);
 
-    n = (match_conf != NULL) ? nxt_conf_object_members_count(match_conf) : 0;
-    size = sizeof(nxt_http_route_match_t) + n * sizeof(nxt_http_route_rule_t *);
-
     mp = tmcf->router_conf->mem_pool;
 
-    match = nxt_mp_alloc(mp, size);
+    match = nxt_mp_alloc(mp, sizeof(nxt_http_route_match_t));
     if (nxt_slow_path(match == NULL)) {
-        return NULL;
+        return NXT_ERROR;
+    }
+
+    match->tests = nxt_array_create(mp, 4, sizeof(nxt_http_route_test_t));
+    if (nxt_slow_path(match->tests == NULL)) {
+        return NXT_ERROR;
     }
 
     match->action.u.route = NULL;
     match->action.handler = NULL;
-    match->items = n;
 
     ret = nxt_http_route_action_create(tmcf, cv, match);
     if (nxt_slow_path(ret != NXT_OK)) {
-        return NULL;
+        return NXT_ERROR;
     }
 
-    if (n == 0) {
-        return match;
+    if (match_conf == NULL) {
+        add = 1;
+        goto done;
+    }
+
+    if (nxt_conf_object_members_count(match_conf) == 0) {
+        add = 1;
+        goto done;
     }
 
     nxt_memzero(&mtcf, sizeof(mtcf));
@@ -448,118 +562,158 @@ nxt_http_route_match_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
                               match_conf, nxt_http_route_match_conf,
                               nxt_nitems(nxt_http_route_match_conf), &mtcf);
     if (ret != NXT_OK) {
-        return NULL;
+        return ret;
     }
 
-    test = &match->test[0];
-
     if (mtcf.scheme != NULL) {
+        test = nxt_array_add(match->tests);
+        if (nxt_slow_path(test == NULL)) {
+            return NXT_ERROR;
+        }
+
         rule = nxt_http_route_rule_create(task, mp, mtcf.scheme, 1,
                                           NXT_HTTP_ROUTE_PATTERN_NOCASE);
         if (rule == NULL) {
-            return NULL;
+            return NXT_ERROR;
         }
 
         rule->object = NXT_HTTP_ROUTE_SCHEME;
         test->rule = rule;
-        test++;
     }
 
     if (mtcf.host != NULL) {
-        rule = nxt_http_route_rule_create(task, mp, mtcf.host, 1,
-                                          NXT_HTTP_ROUTE_PATTERN_LOWCASE);
-        if (rule == NULL) {
-            return NULL;
+        ret = nxt_http_route_host_rule_create(task, mp, route, match, mtcf.host, 1,
+                                              NXT_HTTP_ROUTE_PATTERN_LOWCASE);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            return ret;
         }
-
-        rule->u.offset = offsetof(nxt_http_request_t, host);
-        rule->object = NXT_HTTP_ROUTE_STRING;
-        test->rule = rule;
-        test++;
     }
 
     if (mtcf.uri != NULL) {
+        test = nxt_array_add(match->tests);
+        if (nxt_slow_path(test == NULL)) {
+            return NXT_ERROR;
+        }
+
         rule = nxt_http_route_rule_create(task, mp, mtcf.uri, 1,
                                           NXT_HTTP_ROUTE_PATTERN_NOCASE);
         if (rule == NULL) {
-            return NULL;
+            return NXT_ERROR;
         }
 
         rule->u.offset = offsetof(nxt_http_request_t, path);
         rule->object = NXT_HTTP_ROUTE_STRING_PTR;
         test->rule = rule;
-        test++;
     }
 
     if (mtcf.method != NULL) {
+        test = nxt_array_add(match->tests);
+        if (nxt_slow_path(test == NULL)) {
+            return NXT_ERROR;
+        }
+
         rule = nxt_http_route_rule_create(task, mp, mtcf.method, 1,
                                           NXT_HTTP_ROUTE_PATTERN_UPCASE);
         if (rule == NULL) {
-            return NULL;
+            return NXT_ERROR;
         }
 
         rule->u.offset = offsetof(nxt_http_request_t, method);
         rule->object = NXT_HTTP_ROUTE_STRING_PTR;
         test->rule = rule;
-        test++;
     }
 
     if (mtcf.headers != NULL) {
+        test = nxt_array_add(match->tests);
+        if (nxt_slow_path(test == NULL)) {
+            return NXT_ERROR;
+        }
+
         table = nxt_http_route_table_create(task, mp, mtcf.headers,
                                             NXT_HTTP_ROUTE_HEADER, 0);
         if (table == NULL) {
-            return NULL;
+            return NXT_ERROR;
         }
 
         test->table = table;
-        test++;
     }
 
     if (mtcf.arguments != NULL) {
+        test = nxt_array_add(match->tests);
+        if (nxt_slow_path(test == NULL)) {
+            return NXT_ERROR;
+        }
+
         table = nxt_http_route_table_create(task, mp, mtcf.arguments,
                                             NXT_HTTP_ROUTE_ARGUMENT, 1);
         if (table == NULL) {
-            return NULL;
+            return NXT_ERROR;
         }
 
         test->table = table;
-        test++;
     }
 
     if (mtcf.cookies != NULL) {
+        test = nxt_array_add(match->tests);
+        if (nxt_slow_path(test == NULL)) {
+            return NXT_ERROR;
+        }
+
         table = nxt_http_route_table_create(task, mp, mtcf.cookies,
                                             NXT_HTTP_ROUTE_COOKIE, 1);
         if (table == NULL) {
-            return NULL;
+            return NXT_ERROR;
         }
 
         test->table = table;
-        test++;
     }
 
     if (mtcf.source != NULL) {
+        test = nxt_array_add(match->tests);
+        if (nxt_slow_path(test == NULL)) {
+            return NXT_ERROR;
+        }
+
         addr_rule = nxt_http_route_addr_rule_create(task, mp, mtcf.source);
         if (addr_rule == NULL) {
-            return NULL;
+            return NXT_ERROR;
         }
 
         addr_rule->object = NXT_HTTP_ROUTE_SOURCE;
         test->addr_rule = addr_rule;
-        test++;
     }
 
     if (mtcf.destination != NULL) {
+        test = nxt_array_add(match->tests);
+        if (nxt_slow_path(test == NULL)) {
+            return NXT_ERROR;
+        }
+
         addr_rule = nxt_http_route_addr_rule_create(task, mp, mtcf.destination);
         if (addr_rule == NULL) {
-            return NULL;
+            return NXT_ERROR;
         }
 
         addr_rule->object = NXT_HTTP_ROUTE_DESTINATION;
         test->addr_rule = addr_rule;
-        test++;
     }
 
-    return match;
+    add = match->tests->nelts > 0;
+
+done:
+
+    nxt_queue_insert_tail(&route->queue, &match->link);
+
+    if (add) {
+        m = nxt_array_add(route->matches);
+        if (nxt_slow_path(m == NULL)) {
+            return NXT_ERROR;
+        }
+
+        *m = match;
+    }
+
+    return NXT_OK;
 }
 
 
@@ -775,30 +929,31 @@ nxt_http_route_rule_create(nxt_task_t *task, nxt_mp_t *mp,
     nxt_conf_value_t *cv, nxt_bool_t case_sensitive,
     nxt_http_route_pattern_case_t pattern_case)
 {
-    size_t                    size;
     uint32_t                  i, n;
     nxt_int_t                 ret;
-    nxt_bool_t                string;
     nxt_conf_value_t          *value;
     nxt_http_route_rule_t     *rule;
     nxt_http_route_pattern_t  *pattern;
 
-    string = (nxt_conf_type(cv) != NXT_CONF_ARRAY);
-    n = string ? 1 : nxt_conf_array_elements_count(cv);
-    size = sizeof(nxt_http_route_rule_t) + n * sizeof(nxt_http_route_pattern_t);
-
-    rule = nxt_mp_alloc(mp, size);
+    rule = nxt_mp_alloc(mp, sizeof(nxt_http_route_rule_t));
     if (nxt_slow_path(rule == NULL)) {
         return NULL;
     }
 
-    rule->items = n;
+    rule->patterns = nxt_array_create(mp, 4, sizeof(nxt_http_route_pattern_t));
+    if (nxt_slow_path(rule->patterns == NULL)) {
+        return NULL;
+    }
 
-    pattern = &rule->pattern[0];
+    if (nxt_conf_type(cv) != NXT_CONF_ARRAY) {
+        pattern = nxt_array_add(rule->patterns);
+        if (nxt_slow_path(pattern == NULL)) {
+            return NULL;
+        }
 
-    if (string) {
-        pattern[0].case_sensitive = case_sensitive;
-        ret = nxt_http_route_pattern_create(task, mp, cv, &pattern[0],
+        pattern->case_sensitive = case_sensitive;
+
+        ret = nxt_http_route_pattern_create(task, mp, cv, pattern,
                                             pattern_case);
         if (nxt_slow_path(ret != NXT_OK)) {
             return NULL;
@@ -809,11 +964,19 @@ nxt_http_route_rule_create(nxt_task_t *task, nxt_mp_t *mp,
 
     nxt_conf_array_qsort(cv, nxt_http_pattern_compare);
 
+    n = nxt_conf_array_elements_count(cv);
+
     for (i = 0; i < n; i++) {
-        pattern[i].case_sensitive = case_sensitive;
+        pattern = nxt_array_add(rule->patterns);
+        if (nxt_slow_path(pattern == NULL)) {
+            return NULL;
+        }
+
+        pattern->case_sensitive = case_sensitive;
+
         value = nxt_conf_get_array_element(cv, i);
 
-        ret = nxt_http_route_pattern_create(task, mp, value, &pattern[i],
+        ret = nxt_http_route_pattern_create(task, mp, value, pattern,
                                             pattern_case);
         if (nxt_slow_path(ret != NXT_OK)) {
             return NULL;
@@ -821,6 +984,116 @@ nxt_http_route_rule_create(nxt_task_t *task, nxt_mp_t *mp,
     }
 
     return rule;
+}
+
+
+static nxt_int_t
+nxt_http_route_host_rule_create(nxt_task_t *task, nxt_mp_t *mp,
+    nxt_http_route_t *route, nxt_http_route_match_t *match,
+    nxt_conf_value_t *cv, nxt_bool_t case_sensitive,
+    nxt_http_route_pattern_case_t pattern_case)
+{
+    uint32_t               i, n;
+    nxt_int_t              ret;
+    nxt_conf_value_t       *value;
+    nxt_http_route_rule_t  *rule;
+    nxt_http_route_test_t  *test;
+
+    rule = nxt_mp_alloc(mp, sizeof(nxt_http_route_rule_t));
+    if (nxt_slow_path(rule == NULL)) {
+        return NXT_ERROR;
+    }
+
+    rule->patterns = nxt_array_create(mp, 4, sizeof(nxt_http_route_pattern_t));
+    if (nxt_slow_path(rule->patterns == NULL)) {
+        return NXT_ERROR;
+    }
+
+    if (nxt_conf_type(cv) != NXT_CONF_ARRAY) {
+        ret = nxt_http_route_host_pattern_create(task, mp, route, match,
+                                                 rule, cv, case_sensitive,
+                                                 pattern_case);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            return NXT_ERROR;
+        }
+
+        goto done;
+    }
+
+    nxt_conf_array_qsort(cv, nxt_http_pattern_compare);
+
+    n = nxt_conf_array_elements_count(cv);
+
+    for (i = 0; i < n; i++) {
+        value = nxt_conf_get_array_element(cv, i);
+
+        ret = nxt_http_route_host_pattern_create(task, mp, route, match, rule,
+                                                 value, case_sensitive,
+                                                 pattern_case);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            return NXT_ERROR;
+        }
+    }
+
+done:
+
+    if (rule->patterns->nelts > 0) {
+        rule->u.offset = offsetof(nxt_http_request_t, host);
+        rule->object = NXT_HTTP_ROUTE_STRING;
+
+        test = nxt_array_add(match->tests);
+        if (nxt_slow_path(test == NULL)) {
+            return NXT_ERROR;
+        }
+
+        test->rule = rule;
+    }
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_http_route_host_pattern_create(nxt_task_t *task, nxt_mp_t *mp,
+    nxt_http_route_t *route, nxt_http_route_match_t *match,
+    nxt_http_route_rule_t *rule, nxt_conf_value_t *cv,
+    nxt_bool_t case_sensitive, nxt_http_route_pattern_case_t pattern_case)
+{
+    uint32_t                  i;
+    nxt_int_t                 ret;
+    nxt_str_t                 name;
+    nxt_bool_t                exact;
+    nxt_http_route_pattern_t  *pattern;
+
+    nxt_conf_get_string(cv, &name);
+
+    exact = 1;
+
+    for (i = 0; i < name.length; i++) {
+        if (name.start[i] == '*' || name.start[i] == '!') {
+            exact = 0;
+            break;
+        }
+    }
+
+    if (exact && name.length > 0) {
+        return nxt_http_route_host_add(mp, route, &name, match);
+    }
+
+    pattern = nxt_array_add(rule->patterns);
+    if (nxt_slow_path(pattern == NULL)) {
+        return NXT_ERROR;
+    }
+
+    pattern->case_sensitive = case_sensitive;
+
+    ret = nxt_http_route_pattern_create(task, mp, cv, pattern,
+                                        pattern_case);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        return ret;
+    }
+
+    return NXT_OK;
 }
 
 
@@ -1044,20 +1317,16 @@ nxt_http_route_resolve(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_http_route_t *route)
 {
     nxt_http_action_t       *action;
-    nxt_http_route_match_t  **match, **end;
+    nxt_http_route_match_t  *match;
 
-    match = &route->match[0];
-    end = match + route->items;
-
-    while (match < end) {
-        action = &(*match)->action;
+    nxt_queue_each(match, &route->queue, nxt_http_route_match_t, link) {
+        action = &match->action;
 
         if (action->handler == NULL) {
-            nxt_http_action_resolve(task, tmcf, &(*match)->action);
+            nxt_http_action_resolve(task, tmcf, action);
         }
 
-        match++;
-    }
+    } nxt_queue_loop;
 }
 
 
@@ -1183,16 +1452,11 @@ nxt_http_routes_cleanup(nxt_task_t *task, nxt_http_routes_t *routes)
 static void
 nxt_http_route_cleanup(nxt_task_t *task, nxt_http_route_t *route)
 {
-    nxt_http_route_match_t  **match, **end;
+    nxt_http_route_match_t  *match;
 
-    match = &route->match[0];
-    end = match + route->items;
-
-    while (match < end) {
-        nxt_http_action_cleanup(task, &(*match)->action);
-
-        match++;
-    }
+    nxt_queue_each(match, &route->queue, nxt_http_route_match_t, link) {
+        nxt_http_action_cleanup(task, &match->action);
+    } nxt_queue_loop;
 }
 
 
@@ -1209,13 +1473,25 @@ static nxt_http_action_t *
 nxt_http_route_handler(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_action_t *start)
 {
+    nxt_array_t             *matches;
     nxt_http_route_t        *route;
     nxt_http_action_t       *action;
+    nxt_http_route_host_t   *host;
     nxt_http_route_match_t  **match, **end;
 
     route = start->u.route;
-    match = &route->match[0];
-    end = match + route->items;
+    matches = route->matches;
+
+    if (r->host.length > 0) {
+        host = nxt_http_route_host_find(route, &r->host);
+
+        if (host != NULL) {
+            matches = host->matches;
+        }
+    }
+
+    match = matches->elts;
+    end = match + matches->nelts;
 
     while (match < end) {
         action = nxt_http_route_match(task, r, *match);
@@ -1239,8 +1515,8 @@ nxt_http_route_match(nxt_task_t *task, nxt_http_request_t *r,
     nxt_int_t              ret;
     nxt_http_route_test_t  *test, *end;
 
-    test = &match->test[0];
-    end = test + match->items;
+    test = match->tests->elts;
+    end = test + match->tests->nelts;
 
     while (test < end) {
         switch (test->rule->object) {
@@ -1699,9 +1975,12 @@ nxt_http_route_test_argument(nxt_http_request_t *r,
 static nxt_int_t
 nxt_http_route_scheme(nxt_http_request_t *r, nxt_http_route_rule_t *rule)
 {
-    nxt_bool_t  tls, https;
+    nxt_bool_t               tls, https;
+    nxt_http_route_pattern_t  *pattern;
 
-    https = (rule->pattern[0].length1 == nxt_length("https"));
+    pattern = rule->patterns->elts;
+
+    https = (pattern[0].length1 == nxt_length("https"));
     tls = (r->tls != NULL);
 
     return (tls == https);
@@ -1884,8 +2163,8 @@ nxt_http_route_test_rule(nxt_http_request_t *r, nxt_http_route_rule_t *rule,
     nxt_http_route_pattern_t  *pattern, *end;
 
     ret = 1;
-    pattern = &rule->pattern[0];
-    end = pattern + rule->items;
+    pattern = rule->patterns->elts;
+    end = pattern + rule->patterns->nelts;
 
     while (pattern < end) {
         ret = nxt_http_route_pattern(r, pattern, start, length);
