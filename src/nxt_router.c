@@ -4152,6 +4152,13 @@ nxt_router_app_port_release(nxt_task_t *task, nxt_port_t *port,
                 state.req_app_link = re_ra;
                 state.app = app;
 
+                /*
+                 * Need to increment use count "in advance" because
+                 * nxt_router_port_select() will remove re_ra from lists
+                 * and decrement use count.
+                 */
+                nxt_request_app_link_inc_use(re_ra);
+
                 nxt_router_port_select(task, &state);
 
                 goto re_ra_cancelled;
@@ -4217,16 +4224,18 @@ re_ra_cancelled:
     if (re_ra != NULL) {
         if (nxt_router_port_post_select(task, &state) == NXT_OK) {
             /*
-             * There should be call nxt_request_app_link_inc_use(re_ra),
-             * because of one more link in the queue.
-             * Corresponding decrement is in nxt_router_app_process_request().
+             * Reference counter already incremented above, this will
+             * keep re_ra while nxt_router_app_process_request()
+             * task is in queue.  Reference counter decreased in
+             * nxt_router_app_process_request() after processing.
              */
-
-            nxt_request_app_link_inc_use(re_ra);
 
             nxt_work_queue_add(&task->thread->engine->fast_work_queue,
                                nxt_router_app_process_request,
                                &task->thread->engine->task, app, re_ra);
+
+        } else {
+            nxt_request_app_link_use(task, re_ra, -1);
         }
     }
 
@@ -4234,14 +4243,13 @@ re_ra_cancelled:
         /*
          * There should be call nxt_request_app_link_inc_use(req_app_link),
          * because of one more link in the queue.  But one link was
-         * recently removed from app->requests link.
+         * recently removed from app->requests linked list.
+         * Corresponding decrement is in nxt_router_app_process_request().
          */
 
         nxt_work_queue_add(&task->thread->engine->fast_work_queue,
                            nxt_router_app_process_request,
                            &task->thread->engine->task, app, req_app_link);
-
-        /* ... skip nxt_request_app_link_use(task, req_app_link, -1) too. */
 
         goto adjust_use;
     }
@@ -5185,6 +5193,13 @@ nxt_router_app_timeout(nxt_task_t *task, void *obj, void *data)
             state.req_app_link = pending_ra;
             state.app = app;
 
+            /*
+             * Need to increment use count "in advance" because
+             * nxt_router_port_select() will remove pending_ra from lists
+             * and decrement use count.
+             */
+            nxt_request_app_link_inc_use(pending_ra);
+
             nxt_router_port_select(task, &state);
 
         } else {
@@ -5196,7 +5211,19 @@ nxt_router_app_timeout(nxt_task_t *task, void *obj, void *data)
 
     if (pending_ra != NULL) {
         if (nxt_router_port_post_select(task, &state) == NXT_OK) {
-            nxt_router_app_prepare_request(task, pending_ra);
+            /*
+             * Reference counter already incremented above, this will
+             * keep pending_ra while nxt_router_app_process_request()
+             * task is in queue.  Reference counter decreased in
+             * nxt_router_app_process_request() after processing.
+             */
+
+            nxt_work_queue_add(&task->thread->engine->fast_work_queue,
+                               nxt_router_app_process_request,
+                               &task->thread->engine->task, app, pending_ra);
+
+        } else {
+            nxt_request_app_link_use(task, pending_ra, -1);
         }
     }
 
