@@ -294,6 +294,56 @@ class TestRouting(TestApplicationProto):
             'route pass absent configure',
         )
 
+    def test_routes_action_unique(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                {
+                    "listeners": {
+                        "*:7080": {"pass": "routes"},
+                        "*:7081": {"pass": "applications/app"},
+                    },
+                    "routes": [{"action": {"proxy": "http://127.0.0.1:7081"}}],
+                    "applications": {
+                        "app": {
+                            "type": "python",
+                            "processes": {"spare": 0},
+                            "path": "/app",
+                            "module": "wsgi",
+                        }
+                    },
+                }
+            ),
+        )
+
+        self.assertIn(
+            'error',
+            self.conf(
+                {"proxy": "http://127.0.0.1:7081", "share": self.testdir},
+                'routes/0/action',
+            ),
+            'proxy share',
+        )
+        self.assertIn(
+            'error',
+            self.conf(
+                {
+                    "proxy": "http://127.0.0.1:7081",
+                    "pass": "applications/app",
+                },
+                'routes/0/action',
+            ),
+            'proxy pass',
+        )
+        self.assertIn(
+            'error',
+            self.conf(
+                {"share": self.testdir, "pass": "applications/app"},
+                'routes/0/action',
+            ),
+            'share pass',
+        )
+
     def test_routes_rules_two(self):
         self.assertIn(
             'success',
