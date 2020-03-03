@@ -339,6 +339,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_share_action_members[] = {
       NULL,
       NULL },
 
+    { nxt_string("fallback"),
+      NXT_CONF_VLDT_OBJECT,
+      &nxt_conf_vldt_action,
+      NULL },
+
     NXT_CONF_VLDT_END
 };
 

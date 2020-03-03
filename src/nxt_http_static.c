@@ -49,6 +49,10 @@ nxt_http_static_handler(nxt_task_t *task, nxt_http_request_t *r,
     if (nxt_slow_path(!nxt_str_eq(r->method, "GET", 3))) {
 
         if (!nxt_str_eq(r->method, "HEAD", 4)) {
+            if (action->u.fallback != NULL) {
+                return action->u.fallback;
+            }
+
             nxt_http_request_error(task, r, NXT_HTTP_METHOD_NOT_ALLOWED);
             return NULL;
         }
@@ -121,6 +125,10 @@ nxt_http_static_handler(nxt_task_t *task, nxt_http_request_t *r,
             level = NXT_LOG_ALERT;
             status = NXT_HTTP_INTERNAL_SERVER_ERROR;
             break;
+        }
+
+        if (level == NXT_LOG_ERR && action->u.fallback != NULL) {
+            return action->u.fallback;
         }
 
         if (status != NXT_HTTP_NOT_FOUND) {
@@ -222,8 +230,13 @@ nxt_http_static_handler(nxt_task_t *task, nxt_http_request_t *r,
         nxt_file_close(task, f);
 
         if (nxt_slow_path(!nxt_is_dir(&fi))) {
+            if (action->u.fallback != NULL) {
+                return action->u.fallback;
+            }
+
             nxt_log(task, NXT_LOG_ERR, "\"%FN\" is not a regular file",
                     f->name);
+
             nxt_http_request_error(task, r, NXT_HTTP_NOT_FOUND);
             return NULL;
         }
