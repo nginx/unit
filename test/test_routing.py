@@ -288,8 +288,6 @@ class TestRouting(TestApplicationProto):
         )
 
     def test_routes_route_pass_absent(self):
-        self.skip_alerts.append(r'failed to apply new conf')
-
         self.assertIn(
             'error',
             self.conf([{"match": {"method": "GET"}, "action": {}}], 'routes'),

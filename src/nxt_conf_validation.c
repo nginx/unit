@@ -323,17 +323,27 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_match_members[] = {
 };
 
 
-static nxt_conf_vldt_object_t  nxt_conf_vldt_action_members[] = {
+static nxt_conf_vldt_object_t  nxt_conf_vldt_pass_action_members[] = {
     { nxt_string("pass"),
       NXT_CONF_VLDT_STRING,
       &nxt_conf_vldt_pass,
       NULL },
 
+    NXT_CONF_VLDT_END
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_share_action_members[] = {
     { nxt_string("share"),
       NXT_CONF_VLDT_STRING,
       NULL,
       NULL },
 
+    NXT_CONF_VLDT_END
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_proxy_action_members[] = {
     { nxt_string("proxy"),
       NXT_CONF_VLDT_STRING,
       &nxt_conf_vldt_proxy,
@@ -912,30 +922,45 @@ static nxt_int_t
 nxt_conf_vldt_action(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     void *data)
 {
-    nxt_int_t         ret;
-    nxt_conf_value_t  *pass_value, *share_value, *proxy_value;
+    nxt_uint_t              i;
+    nxt_conf_value_t        *action;
+    nxt_conf_vldt_object_t  *members;
 
-    static nxt_str_t  pass_str = nxt_string("pass");
-    static nxt_str_t  share_str = nxt_string("share");
-    static nxt_str_t  proxy_str = nxt_string("proxy");
+    static struct {
+        nxt_str_t               name;
+        nxt_conf_vldt_object_t  *members;
 
-    ret = nxt_conf_vldt_object(vldt, value, nxt_conf_vldt_action_members);
+    } actions[] = {
+        { nxt_string("pass"), nxt_conf_vldt_pass_action_members },
+        { nxt_string("share"), nxt_conf_vldt_share_action_members },
+        { nxt_string("proxy"), nxt_conf_vldt_proxy_action_members },
+    };
 
-    if (ret != NXT_OK) {
-        return ret;
+    members = NULL;
+
+    for (i = 0; i < nxt_nitems(actions); i++) {
+        action = nxt_conf_get_object_member(value, &actions[i].name, NULL);
+
+        if (action == NULL) {
+            continue;
+        }
+
+        if (members != NULL) {
+            return nxt_conf_vldt_error(vldt, "The \"action\" object must have "
+                                       "just one of \"pass\", \"share\" or "
+                                       "\"proxy\" options set.");
+        }
+
+        members = actions[i].members;
     }
 
-    pass_value = nxt_conf_get_object_member(value, &pass_str, NULL);
-    share_value = nxt_conf_get_object_member(value, &share_str, NULL);
-    proxy_value = nxt_conf_get_object_member(value, &proxy_str, NULL);
-
-    if (pass_value == NULL && share_value == NULL && proxy_value == NULL) {
+    if (members == NULL) {
         return nxt_conf_vldt_error(vldt, "The \"action\" object must have "
-                                         "either \"pass\" or \"share\" or "
+                                         "either \"pass\", \"share\", or "
                                          "\"proxy\" option set.");
     }
 
-    return NXT_OK;
+    return nxt_conf_vldt_object(vldt, value, members);
 }
 
 
