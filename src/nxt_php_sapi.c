@@ -892,7 +892,8 @@ nxt_inline void
 nxt_php_vcwd_chdir(nxt_unit_request_info_t *req, const nxt_str_t *dir)
 {
     if (nxt_slow_path(VCWD_CHDIR((char *) dir->start) != 0)) {
-        nxt_unit_req_alert(req, "failed to VCWD_CHDIR(%V) %E", dir, nxt_errno);
+        nxt_unit_req_alert(req, "VCWD_CHDIR(%s) failed (%d: %s)",
+                           dir->start, errno, strerror(errno));
     }
 }
 
