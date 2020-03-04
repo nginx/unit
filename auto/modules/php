@@ -158,6 +158,25 @@ if [ $nxt_found = no ]; then
 fi
 
 
+nxt_feature="PHP Zend Thread Safety"
+nxt_feature_name=""
+nxt_feature_run=no
+nxt_feature_incs="${NXT_PHP_INCLUDE}"
+nxt_feature_libs="${NXT_PHP_LIB} ${NXT_PHP_LDFLAGS}"
+nxt_feature_test="
+    #include <php.h>
+    #include <php_main.h>
+
+    int main() {
+        #ifndef ZTS
+        #error ZTS is not defined.
+        #endif
+        return 0;
+    }"
+
+. auto/feature
+
+
 # Bug #71041 (https://bugs.php.net/bug.php?id=71041).
 
 nxt_feature="PHP zend_signal_startup()"
