@@ -203,8 +203,8 @@ static void nxt_http_route_resolve(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_http_route_t *route);
 static void nxt_http_action_resolve(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_http_action_t *action);
-static nxt_http_route_t *nxt_http_route_find(nxt_http_routes_t *routes,
-    nxt_str_t *name);
+static void nxt_http_route_find(nxt_http_routes_t *routes, nxt_str_t *name,
+    nxt_http_action_t *action);
 static void nxt_http_route_cleanup(nxt_task_t *task, nxt_http_route_t *routes);
 
 static nxt_http_action_t *nxt_http_route_handler(nxt_task_t *task,
@@ -1111,10 +1111,8 @@ nxt_http_action_resolve(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         name.length -= 13;
         name.start += 13;
 
-        action->u.application = nxt_router_listener_application(tmcf, &name);
+        nxt_router_listener_application(tmcf, &name, action);
         nxt_router_app_use(task, action->u.application, 1);
-
-        action->handler = nxt_http_application_handler;
 
     } else if (nxt_str_start(&name, "routes", 6)) {
 
@@ -1127,15 +1125,14 @@ nxt_http_action_resolve(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             name.start += 7;
         }
 
-        action->u.route = nxt_http_route_find(tmcf->router_conf->routes, &name);
-
-        action->handler = nxt_http_route_handler;
+        nxt_http_route_find(tmcf->router_conf->routes, &name, action);
     }
 }
 
 
-static nxt_http_route_t *
-nxt_http_route_find(nxt_http_routes_t *routes, nxt_str_t *name)
+static void
+nxt_http_route_find(nxt_http_routes_t *routes, nxt_str_t *name,
+    nxt_http_action_t *action)
 {
     nxt_http_route_t  **route, **end;
 
@@ -1144,13 +1141,14 @@ nxt_http_route_find(nxt_http_routes_t *routes, nxt_str_t *name)
 
     while (route < end) {
         if (nxt_strstr_eq(&(*route)->name, name)) {
-            return *route;
+            action->u.route = *route;
+            action->handler = nxt_http_route_handler;
+
+            return;
         }
 
         route++;
     }
-
-    return NULL;
 }
 
 
@@ -1191,10 +1189,8 @@ nxt_http_pass_application(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
     action->name = *name;
 
-    action->u.application = nxt_router_listener_application(tmcf, name);
+    nxt_router_listener_application(tmcf, name, action);
     nxt_router_app_use(task, action->u.application, 1);
-
-    action->handler = nxt_http_application_handler;
 
     return action;
 }

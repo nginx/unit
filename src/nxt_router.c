@@ -1904,8 +1904,9 @@ nxt_router_app_find(nxt_queue_t *queue, nxt_str_t *name)
 }
 
 
-nxt_app_t *
-nxt_router_listener_application(nxt_router_temp_conf_t *tmcf, nxt_str_t *name)
+void
+nxt_router_listener_application(nxt_router_temp_conf_t *tmcf, nxt_str_t *name,
+    nxt_http_action_t *action)
 {
     nxt_app_t  *app;
 
@@ -1915,7 +1916,8 @@ nxt_router_listener_application(nxt_router_temp_conf_t *tmcf, nxt_str_t *name)
         app = nxt_router_app_find(&tmcf->previous, name);
     }
 
-    return app;
+    action->u.application = app;
+    action->handler = nxt_http_application_handler;
 }
 
 
