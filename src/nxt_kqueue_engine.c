@@ -747,7 +747,7 @@ nxt_kqueue_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
             err = kev->fflags;
             eof = (kev->flags & EV_EOF) != 0;
             ev->kq_errno = err;
-            ev->kq_eof = eof;
+            ev->kq_eof |= eof;
 
             if (ev->read <= NXT_EVENT_BLOCKED) {
                 nxt_debug(ev->task, "blocked read event fd:%d", ev->fd);
@@ -778,7 +778,7 @@ nxt_kqueue_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
             err = kev->fflags;
             eof = (kev->flags & EV_EOF) != 0;
             ev->kq_errno = err;
-            ev->kq_eof = eof;
+            ev->kq_eof |= eof;
 
             if (ev->write <= NXT_EVENT_BLOCKED) {
                 nxt_debug(ev->task, "blocked write event fd:%d", ev->fd);
