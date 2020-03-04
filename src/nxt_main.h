@@ -149,15 +149,7 @@ typedef void (*nxt_event_conn_handler_t)(nxt_thread_t *thr, nxt_conn_t *c);
 
 #include <nxt_cache.h>
 
-#include <nxt_source.h>
-typedef struct nxt_upstream_source_s  nxt_upstream_source_t;
-
 #include <nxt_http_parse.h>
-#include <nxt_stream_source.h>
-#include <nxt_upstream.h>
-#include <nxt_upstream_source.h>
-#include <nxt_http_source.h>
-#include <nxt_fastcgi_source.h>
 #include <nxt_runtime.h>
 #include <nxt_port_hash.h>
 
