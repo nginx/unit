@@ -209,19 +209,19 @@ class TestUnit(unittest.TestCase):
 
         os.mkdir(self.testdir + '/state')
 
-        print()
-
-        self._p = subprocess.Popen(
-            [
-                self.unitd,
-                '--no-daemon',
-                '--modules',  self.pardir + '/build',
-                '--state',    self.testdir + '/state',
-                '--pid',      self.testdir + '/unit.pid',
-                '--log',      self.testdir + '/unit.log',
-                '--control',  'unix:' + self.testdir + '/control.unit.sock',
-            ]
-        )
+        with open(self.testdir + '/unit.log', 'w') as log:
+            self._p = subprocess.Popen(
+                [
+                    self.unitd,
+                    '--no-daemon',
+                    '--modules',  self.pardir + '/build',
+                    '--state',    self.testdir + '/state',
+                    '--pid',      self.testdir + '/unit.pid',
+                    '--log',      self.testdir + '/unit.log',
+                    '--control',  'unix:' + self.testdir + '/control.unit.sock',
+                ],
+                stderr=log,
+            )
 
         if not self.waitforfiles(self.testdir + '/control.unit.sock'):
             exit("Could not start unit")
