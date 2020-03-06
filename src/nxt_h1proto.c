@@ -6,6 +6,7 @@
 
 #include <nxt_router.h>
 #include <nxt_http.h>
+#include <nxt_upstream.h>
 #include <nxt_h1proto.h>
 #include <nxt_websocket.h>
 #include <nxt_websocket_header.h>
@@ -2004,7 +2005,7 @@ nxt_h1p_peer_connect(nxt_task_t *task, nxt_http_peer_t *peer)
     c->read_timer.task = task;
     c->write_timer.task = task;
     c->socket.data = peer;
-    c->remote = peer->sockaddr;
+    c->remote = peer->server->sockaddr;
 
     c->socket.write_ready = 1;
     c->write_state = &nxt_h1p_peer_connect_state;

@@ -69,6 +69,7 @@ NXT_LIB_SRCS=" \
     src/nxt_job_resolve.c \
     src/nxt_sockaddr.c \
     src/nxt_listen_socket.c \
+    src/nxt_upstream.c \
     src/nxt_upstream_round_robin.c \
     src/nxt_http_parse.c \
     src/nxt_app_log.c \

@@ -106,10 +106,12 @@ typedef struct {
 } nxt_http_response_t;
 
 
+typedef struct nxt_upstream_server_s  nxt_upstream_server_t;
+
 typedef struct {
     nxt_http_proto_t                proto;
     nxt_http_request_t              *request;
-    nxt_sockaddr_t                  *sockaddr;
+    nxt_upstream_server_t           *server;
     nxt_list_t                      *fields;
     nxt_buf_t                       *body;
     nxt_off_t                       remainder;
@@ -178,7 +180,6 @@ struct nxt_http_request_s {
 
 
 typedef struct nxt_http_route_s     nxt_http_route_t;
-typedef struct nxt_http_upstream_s  nxt_http_upstream_t;
 
 
 struct nxt_http_action_s {
@@ -187,9 +188,10 @@ struct nxt_http_action_s {
                                         nxt_http_action_t *action);
     union {
         nxt_http_route_t            *route;
-        nxt_http_upstream_t         *upstream;
         nxt_app_t                   *application;
         nxt_http_action_t           *fallback;
+        nxt_upstream_t              *upstream;
+        uint32_t                    upstream_number;
     } u;
 
     nxt_str_t                       name;
@@ -275,6 +277,11 @@ nxt_http_action_t *nxt_http_pass_application(nxt_task_t *task,
 void nxt_http_routes_cleanup(nxt_task_t *task, nxt_http_routes_t *routes);
 void nxt_http_action_cleanup(nxt_task_t *task, nxt_http_action_t *action);
 
+nxt_int_t nxt_upstreams_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
+    nxt_conf_value_t *conf);
+nxt_int_t nxt_upstreams_joint_create(nxt_router_temp_conf_t *tmcf,
+    nxt_upstream_t ***upstream_joint);
+
 nxt_http_action_t *nxt_http_static_handler(nxt_task_t *task,
     nxt_http_request_t *r, nxt_http_action_t *action);
 nxt_int_t nxt_http_static_mtypes_init(nxt_mp_t *mp, nxt_lvlhsh_t *hash);
@@ -285,6 +292,11 @@ nxt_str_t *nxt_http_static_mtypes_hash_find(nxt_lvlhsh_t *hash,
 
 nxt_http_action_t *nxt_http_application_handler(nxt_task_t *task,
     nxt_http_request_t *r, nxt_http_action_t *action);
+void nxt_upstream_find(nxt_upstreams_t *upstreams, nxt_str_t *name,
+    nxt_http_action_t *action);
+nxt_http_action_t *nxt_upstream_proxy_handler(nxt_task_t *task,
+    nxt_http_request_t *r, nxt_upstream_t *upstream);
+
 
 nxt_int_t nxt_http_proxy_create(nxt_mp_t *mp, nxt_http_action_t *action);
 nxt_int_t nxt_http_proxy_date(void *ctx, nxt_http_field_t *field,

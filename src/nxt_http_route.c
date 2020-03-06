@@ -1114,6 +1114,12 @@ nxt_http_action_resolve(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         nxt_router_listener_application(tmcf, &name, action);
         nxt_router_app_use(task, action->u.application, 1);
 
+    } else if (nxt_str_start(&name, "upstreams/", 10)) {
+        name.length -= 10;
+        name.start += 10;
+
+        nxt_upstream_find(tmcf->router_conf->upstreams, &name, action);
+
     } else if (nxt_str_start(&name, "routes", 6)) {
 
         if (name.length == 6) {

@@ -18,6 +18,8 @@ typedef struct nxt_http_request_s  nxt_http_request_t;
 
 typedef struct nxt_http_action_s        nxt_http_action_t;
 typedef struct nxt_http_routes_s        nxt_http_routes_t;
+typedef struct nxt_upstream_s           nxt_upstream_t;
+typedef struct nxt_upstreams_s          nxt_upstreams_t;
 typedef struct nxt_router_access_log_s  nxt_router_access_log_t;
 
 
@@ -43,6 +45,7 @@ typedef struct {
 
     nxt_router_t             *router;
     nxt_http_routes_t        *routes;
+    nxt_upstreams_t          *upstreams;
 
     nxt_lvlhsh_t             mtypes_hash;
 
@@ -195,6 +198,8 @@ typedef struct {
     nxt_queue_link_t       link;
     nxt_event_engine_t     *engine;
     nxt_socket_conf_t      *socket_conf;
+
+    nxt_upstream_t         **upstreams;
 
     /* Modules configuraitons. */
 } nxt_socket_conf_joint_t;

@@ -110,6 +110,12 @@ static nxt_int_t nxt_conf_vldt_java_classpath(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_java_option(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value);
+static nxt_int_t nxt_conf_vldt_upstream(nxt_conf_validation_t *vldt,
+     nxt_str_t *name, nxt_conf_value_t *value);
+static nxt_int_t nxt_conf_vldt_server(nxt_conf_validation_t *vldt,
+    nxt_str_t *name, nxt_conf_value_t *value);
+static nxt_int_t nxt_conf_vldt_server_weight(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
 
 static nxt_int_t nxt_conf_vldt_isolation(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
@@ -225,6 +231,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_root_members[] = {
       NXT_CONF_VLDT_OBJECT,
       &nxt_conf_vldt_object_iterator,
       (void *) &nxt_conf_vldt_app },
+
+    { nxt_string("upstreams"),
+      NXT_CONF_VLDT_OBJECT,
+      &nxt_conf_vldt_object_iterator,
+      (void *) &nxt_conf_vldt_upstream },
 
     { nxt_string("access_log"),
       NXT_CONF_VLDT_STRING,
@@ -682,6 +693,26 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_java_members[] = {
 };
 
 
+static nxt_conf_vldt_object_t  nxt_conf_vldt_upstream_members[] = {
+    { nxt_string("servers"),
+      NXT_CONF_VLDT_OBJECT,
+      &nxt_conf_vldt_object_iterator,
+      (void *) &nxt_conf_vldt_server },
+
+    NXT_CONF_VLDT_END
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_upstream_server_members[] = {
+    { nxt_string("weight"),
+      NXT_CONF_VLDT_INTEGER,
+      &nxt_conf_vldt_server_weight,
+      NULL },
+
+    NXT_CONF_VLDT_END
+};
+
+
 nxt_int_t
 nxt_conf_validate(nxt_conf_validation_t *vldt)
 {
@@ -997,6 +1028,27 @@ nxt_conf_vldt_pass(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     }
 
     if (nxt_str_eq(&first, "applications", 12)) {
+
+        if (second.length == 0) {
+            goto error;
+        }
+
+        value = nxt_conf_get_object_member(vldt->conf, &first, NULL);
+
+        if (nxt_slow_path(value == NULL)) {
+            goto error;
+        }
+
+        value = nxt_conf_get_object_member(value, &second, NULL);
+
+        if (nxt_slow_path(value == NULL)) {
+            goto error;
+        }
+
+        return NXT_OK;
+    }
+
+    if (nxt_str_eq(&first, "upstreams", 9)) {
 
         if (second.length == 0) {
             goto error;
@@ -1897,6 +1949,84 @@ nxt_conf_vldt_java_option(nxt_conf_validation_t *vldt, nxt_conf_value_t *value)
     if (nxt_memchr(str.start, '\0', str.length) != NULL) {
         return nxt_conf_vldt_error(vldt, "The \"options\" array must not "
                                    "contain strings with null character.");
+    }
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_upstream(nxt_conf_validation_t *vldt, nxt_str_t *name,
+    nxt_conf_value_t *value)
+{
+    nxt_int_t         ret;
+    nxt_conf_value_t  *conf;
+
+    static nxt_str_t  servers = nxt_string("servers");
+
+    ret = nxt_conf_vldt_type(vldt, name, value, NXT_CONF_VLDT_OBJECT);
+
+    if (ret != NXT_OK) {
+        return ret;
+    }
+
+    ret = nxt_conf_vldt_object(vldt, value, nxt_conf_vldt_upstream_members);
+
+    if (ret != NXT_OK) {
+        return ret;
+    }
+
+    conf = nxt_conf_get_object_member(value, &servers, NULL);
+    if (conf == NULL) {
+        return nxt_conf_vldt_error(vldt, "The \"%V\" upstream must contain "
+                                   "\"servers\" object value.", name);
+    }
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_server(nxt_conf_validation_t *vldt, nxt_str_t *name,
+    nxt_conf_value_t *value)
+{
+    nxt_int_t       ret;
+    nxt_sockaddr_t  *sa;
+
+    ret = nxt_conf_vldt_type(vldt, name, value, NXT_CONF_VLDT_OBJECT);
+
+    if (ret != NXT_OK) {
+        return ret;
+    }
+
+    sa = nxt_sockaddr_parse(vldt->pool, name);
+
+    if (sa == NULL) {
+        return nxt_conf_vldt_error(vldt, "The \"%V\" is not valid "
+                                   "server address.", name);
+    }
+
+    return nxt_conf_vldt_object(vldt, value,
+                                nxt_conf_vldt_upstream_server_members);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_server_weight(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data)
+{
+    int64_t  int_value;
+
+    int_value = nxt_conf_get_integer(value);
+
+    if (int_value <= 0) {
+        return nxt_conf_vldt_error(vldt, "The \"weight\" number must be "
+                                   "greater than 0.");
+    }
+
+    if (int_value > NXT_INT32_T_MAX) {
+        return nxt_conf_vldt_error(vldt, "The \"weight\" number must "
+                                   "not exceed %d.", NXT_INT32_T_MAX);
     }
 
     return NXT_OK;
