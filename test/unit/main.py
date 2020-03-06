@@ -5,6 +5,7 @@ import stat
 import time
 import fcntl
 import shutil
+import signal
 import argparse
 import platform
 import tempfile
@@ -210,22 +211,19 @@ class TestUnit(unittest.TestCase):
 
         print()
 
-        self._p = Process(target=subprocess.call, args=[ [
-                    self.unitd,
-                    '--no-daemon',
-                    '--modules',  self.pardir + '/build',
-                    '--state',    self.testdir + '/state',
-                    '--pid',      self.testdir + '/unit.pid',
-                    '--log',      self.testdir + '/unit.log',
-                    '--control',  'unix:' + self.testdir + '/control.unit.sock',
-                ] ])
-        self._p.start()
+        self._p = subprocess.Popen(
+            [
+                self.unitd,
+                '--no-daemon',
+                '--modules',  self.pardir + '/build',
+                '--state',    self.testdir + '/state',
+                '--pid',      self.testdir + '/unit.pid',
+                '--log',      self.testdir + '/unit.log',
+                '--control',  'unix:' + self.testdir + '/control.unit.sock',
+            ]
+        )
 
-        if not self.waitforfiles(
-            self.testdir + '/unit.pid',
-            self.testdir + '/unit.log',
-            self.testdir + '/control.unit.sock',
-        ):
+        if not self.waitforfiles(self.testdir + '/control.unit.sock'):
             exit("Could not start unit")
 
         self._started = True
@@ -238,34 +236,20 @@ class TestUnit(unittest.TestCase):
         self.skip_sanitizer = False
 
     def _stop(self):
-        with open(self.testdir + '/unit.pid', 'r') as f:
-            pid = f.read().rstrip()
+        with self._p as p:
+            p.send_signal(signal.SIGQUIT)
 
-        subprocess.call(['kill', '-s', 'QUIT', pid])
-
-        for i in range(150):
-            if not os.path.exists(self.testdir + '/unit.pid'):
-                break
-            time.sleep(0.1)
-
-        self._p.join(timeout=5)
-
-        if self._p.is_alive():
-            self._p.terminate()
-            self._p.join(timeout=5)
-
-        if self._p.is_alive():
-            self.fail("Could not terminate process " + str(self._p.pid))
-
-        if os.path.exists(self.testdir + '/unit.pid'):
-            self.fail("Could not terminate unit")
+            try:
+                retcode = p.wait(15)
+                if retcode:
+                    self.fail(
+                        "Child process terminated with code " + str(retcode)
+                    )
+            except:
+                self.fail("Could not terminate unit")
+                p.kill()
 
         self._started = False
-
-        if self._p.exitcode:
-            self.fail(
-                "Child process terminated with code " + str(self._p.exitcode)
-            )
 
     def _check_alerts(self, log):
         found = False
