@@ -189,6 +189,7 @@ struct nxt_http_action_s {
         nxt_http_route_t            *route;
         nxt_http_upstream_t         *upstream;
         nxt_app_t                   *application;
+        nxt_http_action_t           *fallback;
     } u;
 
     nxt_str_t                       name;

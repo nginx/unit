@@ -1517,7 +1517,7 @@ public class Context implements ServletContext, InitParams
                     || ci.isAnnotation()
                     || ci.isAbstract())
                 {
-                    return;
+                    continue;
                 }
 
                 trace("loadInitializer: handles class: " + ci.getName());

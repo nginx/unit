@@ -29,7 +29,17 @@
 #define NXT_PHP7 1
 #endif
 
-typedef struct nxt_php_run_ctx_s  nxt_php_run_ctx_t;
+typedef struct {
+    char                     *cookie;
+    nxt_str_t                path_info;
+    nxt_str_t                script_name;
+    nxt_str_t                script_filename;
+    nxt_str_t                script_dirname;
+    nxt_unit_request_info_t  *req;
+
+    uint8_t                  chdir;  /* 1 bit */
+} nxt_php_run_ctx_t;
+
 
 #ifdef NXT_PHP7
 typedef int (*nxt_php_disable_t)(char *p, size_t size);
@@ -37,14 +47,24 @@ typedef int (*nxt_php_disable_t)(char *p, size_t size);
 typedef int (*nxt_php_disable_t)(char *p, uint TSRMLS_DC);
 #endif
 
+#if PHP_VERSION_ID < 70200
+typedef void (*zif_handler)(INTERNAL_FUNCTION_PARAMETERS);
+#endif
+
 
 static nxt_int_t nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf);
 
 static void nxt_php_str_trim_trail(nxt_str_t *str, u_char t);
 static void nxt_php_str_trim_lead(nxt_str_t *str, u_char t);
+static nxt_int_t nxt_php_dirname(const nxt_str_t *file, nxt_str_t *dir);
 nxt_inline u_char *nxt_realpath(const void *c);
+nxt_inline void nxt_php_vcwd_chdir(nxt_unit_request_info_t *req,
+    const nxt_str_t *dirname);
 
-static void nxt_php_request_handler(nxt_unit_request_info_t *req);
+static void nxt_php_script_request_handler(nxt_unit_request_info_t *req);
+static void nxt_php_path_request_handler(nxt_unit_request_info_t *req);
+static nxt_int_t nxt_php_request_init(nxt_php_run_ctx_t *ctx,
+    nxt_unit_request_t *r);
 
 static int nxt_php_startup(sapi_module_struct *sapi_module);
 static void nxt_php_set_options(nxt_task_t *task, nxt_conf_value_t *options,
@@ -54,6 +74,8 @@ static nxt_int_t nxt_php_alter_option(nxt_str_t *name, nxt_str_t *value,
 static void nxt_php_disable(nxt_task_t *task, const char *type,
     nxt_str_t *value, char **ptr, nxt_php_disable_t disable);
 static int nxt_php_send_headers(sapi_headers_struct *sapi_headers TSRMLS_DC);
+static void *nxt_php_hash_str_find_ptr(const HashTable *ht,
+    const nxt_str_t *str);
 static char *nxt_php_read_cookies(TSRMLS_D);
 static void nxt_php_set_sptr(nxt_unit_request_info_t *req, const char *name,
     nxt_unit_sptr_t *v, uint32_t len, zval *track_vars_array TSRMLS_DC);
@@ -76,6 +98,55 @@ static size_t nxt_php_read_post(char *buffer, size_t count_bytes TSRMLS_DC);
 static int nxt_php_unbuffered_write(const char *str, uint str_length TSRMLS_DC);
 static int nxt_php_read_post(char *buffer, uint count_bytes TSRMLS_DC);
 #endif
+
+
+PHP_MINIT_FUNCTION(nxt_php_ext);
+ZEND_NAMED_FUNCTION(nxt_php_chdir);
+
+zif_handler  nxt_php_chdir_handler;
+
+
+static zend_module_entry  nxt_php_unit_module = {
+    STANDARD_MODULE_HEADER,
+    "unit",
+    NULL,                        /* function table */
+    PHP_MINIT(nxt_php_ext),      /* initialization */
+    NULL,                        /* shutdown */
+    NULL,                        /* request initialization */
+    NULL,                        /* request shutdown */
+    NULL,                        /* information */
+    NXT_VERSION,
+    STANDARD_MODULE_PROPERTIES
+};
+
+
+PHP_MINIT_FUNCTION(nxt_php_ext)
+{
+    zend_function  *func;
+
+    static const nxt_str_t  chdir = nxt_string("chdir");
+
+    func = nxt_php_hash_str_find_ptr(CG(function_table), &chdir);
+    if (nxt_slow_path(func == NULL)) {
+        return FAILURE;
+    }
+
+    nxt_php_chdir_handler = func->internal_function.handler;
+    func->internal_function.handler = nxt_php_chdir;
+
+    return SUCCESS;
+}
+
+
+ZEND_NAMED_FUNCTION(nxt_php_chdir)
+{
+    nxt_php_run_ctx_t  *ctx;
+
+    ctx = SG(server_context);
+    ctx->chdir = 1;
+
+    nxt_php_chdir_handler(INTERNAL_FUNCTION_PARAM_PASSTHRU);
+}
 
 
 static sapi_module_struct  nxt_php_sapi_module =
@@ -139,17 +210,9 @@ static sapi_module_struct  nxt_php_sapi_module =
 };
 
 
-struct nxt_php_run_ctx_s {
-    char                       *cookie;
-    nxt_str_t                  path_info;
-    nxt_str_t                  script_name;
-    nxt_str_t                  script_filename;
-    nxt_unit_request_info_t    *req;
-};
-
-
 static nxt_str_t nxt_php_root;
 static nxt_str_t nxt_php_script_name;
+static nxt_str_t nxt_php_script_dirname;
 static nxt_str_t nxt_php_script_filename;
 static nxt_str_t nxt_php_index = nxt_string("index.php");
 
@@ -180,7 +243,9 @@ nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 {
     u_char              *p, *tmp;
     nxt_str_t           ini_path;
-    nxt_str_t           *root, *script_filename, *script_name, *index;
+    nxt_str_t           *root, *script_filename, *script_dirname, *script_name;
+    nxt_str_t           *index;
+    nxt_int_t           ret;
     nxt_port_t          *my_port, *main_port;
     nxt_runtime_t       *rt;
     nxt_unit_ctx_t      *unit_ctx;
@@ -203,6 +268,7 @@ nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 
     root = &nxt_php_root;
     script_filename = &nxt_php_script_filename;
+    script_dirname = &nxt_php_script_dirname;
     script_name = &nxt_php_script_name;
     index = &nxt_php_index;
 
@@ -247,6 +313,11 @@ nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
             return NXT_ERROR;
         }
 
+        ret = nxt_php_dirname(script_filename, script_dirname);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            return NXT_ERROR;
+        }
+
         script_name->length = c->script.length + 1;
         script_name->start = nxt_malloc(script_name->length);
         if (nxt_slow_path(script_name->start == NULL)) {
@@ -273,6 +344,22 @@ nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
         }
 
         nxt_memcpy(index->start, c->index.start, c->index.length);
+    }
+
+    nxt_memzero(&php_init, sizeof(nxt_unit_init_t));
+
+    if (nxt_php_script_filename.start != NULL) {
+        if (nxt_slow_path(chdir((char *) script_dirname->start) != 0)) {
+            nxt_alert(task, "failed to chdir(%V) %E", script_dirname,
+                      nxt_errno);
+
+            return NXT_ERROR;
+        }
+
+        php_init.callbacks.request_handler = nxt_php_script_request_handler;
+
+    } else {
+        php_init.callbacks.request_handler = nxt_php_path_request_handler;
     }
 
 #ifdef ZTS
@@ -316,7 +403,10 @@ nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
         }
     }
 
-    nxt_php_startup(&nxt_php_sapi_module);
+    if (nxt_slow_path(nxt_php_startup(&nxt_php_sapi_module) == FAILURE)) {
+        nxt_alert(task, "failed to initialize SAPI module and extension");
+        return NXT_ERROR;
+    }
 
     if (c->options != NULL) {
         value = nxt_conf_get_object_member(c->options, &admin_str, NULL);
@@ -326,21 +416,20 @@ nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
         nxt_php_set_options(task, value, ZEND_INI_USER);
     }
 
-    nxt_memzero(&php_init, sizeof(nxt_unit_init_t));
-
     rt = task->thread->runtime;
 
     main_port = rt->port_by_type[NXT_PROCESS_MAIN];
     if (nxt_slow_path(main_port == NULL)) {
+        nxt_alert(task, "main process not found");
         return NXT_ERROR;
     }
 
     my_port = nxt_runtime_port_find(rt, nxt_pid, 0);
     if (nxt_slow_path(my_port == NULL)) {
+        nxt_alert(task, "my_port not found");
         return NXT_ERROR;
     }
 
-    php_init.callbacks.request_handler = nxt_php_request_handler;
     php_init.ready_port.id.pid = main_port->pid;
     php_init.ready_port.id.id = main_port->id;
     php_init.ready_port.out_fd = main_port->pair[1];
@@ -415,7 +504,7 @@ nxt_php_set_options(nxt_task_t *task, nxt_conf_value_t *options, int type)
 }
 
 
-#if (NXT_PHP7)
+#ifdef NXT_PHP7
 
 static nxt_int_t
 nxt_php_alter_option(nxt_str_t *name, nxt_str_t *value, int type)
@@ -423,10 +512,8 @@ nxt_php_alter_option(nxt_str_t *name, nxt_str_t *value, int type)
     zend_string     *zs;
     zend_ini_entry  *ini_entry;
 
-    ini_entry = zend_hash_str_find_ptr(EG(ini_directives),
-                                       (char *) name->start, name->length);
-
-    if (ini_entry == NULL) {
+    ini_entry = nxt_php_hash_str_find_ptr(EG(ini_directives), name);
+    if (nxt_slow_path(ini_entry == NULL)) {
         return NXT_ERROR;
     }
 
@@ -456,19 +543,9 @@ nxt_php_alter_option(nxt_str_t *name, nxt_str_t *value, int type)
 {
     char            *cstr;
     zend_ini_entry  *ini_entry;
-    char            buf[256];
 
-    if (nxt_slow_path(name->length >= sizeof(buf))) {
-        return NXT_ERROR;
-    }
-
-    nxt_memcpy(buf, name->start, name->length);
-    buf[name->length] = '\0';
-
-    if (zend_hash_find(EG(ini_directives), buf, name->length + 1,
-                       (void **) &ini_entry)
-        == FAILURE)
-    {
+    ini_entry = nxt_php_hash_str_find_ptr(EG(ini_directives), name);
+    if (nxt_slow_path(ini_entry == NULL)) {
         return NXT_ERROR;
     }
 
@@ -553,6 +630,33 @@ nxt_php_disable(nxt_task_t *task, const char *type, nxt_str_t *value,
 }
 
 
+static nxt_int_t
+nxt_php_dirname(const nxt_str_t *file, nxt_str_t *dir)
+{
+    size_t  length;
+
+    nxt_assert(file->length > 0 && file->start[0] == '/');
+
+    length = file->length;
+
+    while (file->start[length - 1] != '/') {
+        length--;
+    }
+
+    dir->length = length;
+    dir->start = nxt_malloc(length + 1);
+    if (nxt_slow_path(dir->start == NULL)) {
+        return NXT_ERROR;
+    }
+
+    nxt_memcpy(dir->start, file->start, length);
+
+    dir->start[length] = '\0';
+
+    return NXT_OK;
+}
+
+
 static void
 nxt_php_str_trim_trail(nxt_str_t *str, u_char t)
 {
@@ -582,12 +686,46 @@ nxt_realpath(const void *c)
 
 
 static void
-nxt_php_request_handler(nxt_unit_request_info_t *req)
+nxt_php_script_request_handler(nxt_unit_request_info_t *req)
 {
-    int                 rc;
+    zend_file_handle   file_handle;
+    nxt_php_run_ctx_t  ctx;
+
+    nxt_memzero(&ctx, sizeof(ctx));
+
+    ctx.req = req;
+    ctx.script_filename = nxt_php_script_filename;
+    ctx.script_dirname = nxt_php_script_dirname;
+    ctx.script_name = nxt_php_script_name;
+
+    nxt_memzero(&file_handle, sizeof(file_handle));
+
+    file_handle.type = ZEND_HANDLE_FILENAME;
+    file_handle.filename = (char *) ctx.script_filename.start;
+
+    if (nxt_slow_path(nxt_php_request_init(&ctx, req->request) != NXT_OK)) {
+        nxt_unit_request_done(req, NXT_UNIT_ERROR);
+        return;
+    }
+
+    php_execute_script(&file_handle TSRMLS_CC);
+
+    if (ctx.chdir) {
+        nxt_php_vcwd_chdir(ctx.req, &nxt_php_script_dirname);
+    }
+
+    php_request_shutdown(NULL);
+
+    nxt_unit_request_done(req, NXT_UNIT_OK);
+}
+
+
+static void
+nxt_php_path_request_handler(nxt_unit_request_info_t *req)
+{
     u_char              *p;
     nxt_str_t           path, script_name;
-    nxt_unit_field_t    *f;
+    nxt_int_t           ret;
     zend_file_handle    file_handle;
     nxt_php_run_ctx_t   run_ctx, *ctx;
     nxt_unit_request_t  *r;
@@ -602,59 +740,101 @@ nxt_php_request_handler(nxt_unit_request_info_t *req)
     path.length = r->path_length;
     path.start = nxt_unit_sptr_get(&r->path);
 
-    if (nxt_php_script_filename.start == NULL) {
-        nxt_str_null(&script_name);
+    nxt_str_null(&script_name);
 
-        ctx->path_info.start = (u_char *) strstr((char *) path.start, ".php/");
-        if (ctx->path_info.start != NULL) {
-            ctx->path_info.start += 4;
-            path.length = ctx->path_info.start - path.start;
+    ctx->path_info.start = (u_char *) strstr((char *) path.start, ".php/");
+    if (ctx->path_info.start != NULL) {
+        ctx->path_info.start += 4;
+        path.length = ctx->path_info.start - path.start;
 
-            ctx->path_info.length = r->path_length - path.length;
+        ctx->path_info.length = r->path_length - path.length;
 
-        } else if (path.start[path.length - 1] == '/') {
-            script_name = nxt_php_index;
+    } else if (path.start[path.length - 1] == '/') {
+        script_name = nxt_php_index;
 
-        } else {
-            if (nxt_slow_path(path.length < 4
-                              || nxt_memcmp(path.start + (path.length - 4),
-                                            ".php", 4)))
-            {
-                nxt_unit_request_done(req, NXT_UNIT_ERROR);
-
-                return;
-            }
-        }
-
-        ctx->script_filename.length = nxt_php_root.length + path.length
-                                      + script_name.length;
-        p = nxt_malloc(ctx->script_filename.length + 1);
-        if (nxt_slow_path(p == NULL)) {
+    } else {
+        if (nxt_slow_path(path.length < 4
+                          || nxt_memcmp(path.start + (path.length - 4),
+                                        ".php", 4)))
+        {
             nxt_unit_request_done(req, NXT_UNIT_ERROR);
 
             return;
         }
-
-        ctx->script_filename.start = p;
-
-        ctx->script_name.length = path.length + script_name.length;
-        ctx->script_name.start = p + nxt_php_root.length;
-
-        p = nxt_cpymem(p, nxt_php_root.start, nxt_php_root.length);
-        p = nxt_cpymem(p, path.start, path.length);
-
-        if (script_name.length > 0) {
-            p = nxt_cpymem(p, script_name.start, script_name.length);
-        }
-
-        *p = '\0';
-
-    } else {
-        ctx->script_filename = nxt_php_script_filename;
-        ctx->script_name = nxt_php_script_name;
     }
 
+    ctx->script_filename.length = nxt_php_root.length
+                                  + path.length
+                                  + script_name.length;
+
+    p = nxt_malloc(ctx->script_filename.length + 1);
+    if (nxt_slow_path(p == NULL)) {
+        nxt_unit_request_done(req, NXT_UNIT_ERROR);
+
+        return;
+    }
+
+    ctx->script_filename.start = p;
+
+    ctx->script_name.length = path.length + script_name.length;
+    ctx->script_name.start = p + nxt_php_root.length;
+
+    p = nxt_cpymem(p, nxt_php_root.start, nxt_php_root.length);
+    p = nxt_cpymem(p, path.start, path.length);
+
+    if (script_name.length > 0) {
+        p = nxt_cpymem(p, script_name.start, script_name.length);
+    }
+
+    *p = '\0';
+
+    nxt_memzero(&file_handle, sizeof(file_handle));
+
+    file_handle.type = ZEND_HANDLE_FILENAME;
+    file_handle.filename = (char *) ctx->script_filename.start;
+
+    ret = nxt_php_dirname(&ctx->script_filename, &ctx->script_dirname);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        nxt_unit_request_done(req, NXT_UNIT_ERROR);
+        nxt_free(ctx->script_filename.start);
+
+        return;
+    }
+
+    if (nxt_slow_path(nxt_php_request_init(ctx, req->request) != NXT_OK)) {
+        nxt_unit_request_done(req, NXT_UNIT_ERROR);
+        goto cleanup;
+    }
+
+    nxt_php_vcwd_chdir(ctx->req, &ctx->script_dirname);
+
+    php_execute_script(&file_handle TSRMLS_CC);
+
+    php_request_shutdown(NULL);
+
+    nxt_unit_request_done(req, NXT_UNIT_OK);
+
+cleanup:
+
+    nxt_free(ctx->script_filename.start);
+    nxt_free(ctx->script_dirname.start);
+}
+
+
+static int
+nxt_php_startup(sapi_module_struct *sapi_module)
+{
+    return php_module_startup(sapi_module, &nxt_php_unit_module, 1);
+}
+
+
+static nxt_int_t
+nxt_php_request_init(nxt_php_run_ctx_t *ctx, nxt_unit_request_t *r)
+{
+    nxt_unit_field_t  *f;
+
     SG(server_context) = ctx;
+    SG(options) |= SAPI_OPTION_NO_CHDIR;
     SG(request_info).request_uri = nxt_unit_sptr_get(&r->target);
     SG(request_info).request_method = nxt_unit_sptr_get(&r->method);
 
@@ -680,55 +860,40 @@ nxt_php_request_handler(nxt_unit_request_info_t *req)
 
     SG(request_info).path_translated = NULL;
 
-    nxt_memzero(&file_handle, sizeof(file_handle));
-
-    file_handle.type = ZEND_HANDLE_FILENAME;
-    file_handle.filename = (char *) ctx->script_filename.start;
-
-    nxt_unit_req_debug(req, "handle.filename = '%s'",
+    nxt_unit_req_debug(ctx->req, "handle.filename = '%s'",
                        ctx->script_filename.start);
 
     if (nxt_php_script_filename.start != NULL) {
-        nxt_unit_req_debug(req, "run script %.*s in absolute mode",
+        nxt_unit_req_debug(ctx->req, "run script %.*s in absolute mode",
                            (int) nxt_php_script_filename.length,
                            (char *) nxt_php_script_filename.start);
 
     } else {
-        nxt_unit_req_debug(req, "run script %.*s",
+        nxt_unit_req_debug(ctx->req, "run script %.*s",
                            (int) ctx->script_filename.length,
                            (char *) ctx->script_filename.start);
     }
 
-#if (NXT_PHP7)
+#ifdef NXT_PHP7
     if (nxt_slow_path(php_request_startup() == FAILURE)) {
 #else
     if (nxt_slow_path(php_request_startup(TSRMLS_C) == FAILURE)) {
 #endif
-        nxt_unit_req_debug(req, "php_request_startup() failed");
-        rc = NXT_UNIT_ERROR;
+        nxt_unit_req_debug(ctx->req, "php_request_startup() failed");
 
-        goto fail;
+        return NXT_ERROR;
     }
 
-    rc = NXT_UNIT_OK;
-
-    php_execute_script(&file_handle TSRMLS_CC);
-    php_request_shutdown(NULL);
-
-fail:
-
-    nxt_unit_request_done(req, rc);
-
-    if (ctx->script_filename.start != nxt_php_script_filename.start) {
-        nxt_free(ctx->script_filename.start);
-    }
+    return NXT_OK;
 }
 
 
-static int
-nxt_php_startup(sapi_module_struct *sapi_module)
+nxt_inline void
+nxt_php_vcwd_chdir(nxt_unit_request_info_t *req, const nxt_str_t *dir)
 {
-    return php_module_startup(sapi_module, NULL, 0);
+    if (nxt_slow_path(VCWD_CHDIR((char *) dir->start) != 0)) {
+        nxt_unit_req_alert(req, "failed to VCWD_CHDIR(%V) %E", dir, nxt_errno);
+    }
 }
 
 
@@ -1003,6 +1168,41 @@ nxt_php_set_str(nxt_unit_request_info_t *req, const char *name,
     nxt_php_set_cstr(req, name, (char *) s->start, s->length,
                      track_vars_array TSRMLS_CC);
 }
+
+
+#ifdef NXT_PHP7
+
+static void *
+nxt_php_hash_str_find_ptr(const HashTable *ht, const nxt_str_t *str)
+{
+    return zend_hash_str_find_ptr(ht, (const char *) str->start, str->length);
+}
+
+#else
+
+static void *
+nxt_php_hash_str_find_ptr(const HashTable *ht, const nxt_str_t *str)
+{
+    int   ret;
+    void  *entry;
+    char  buf[256];
+
+    if (nxt_slow_path(str->length >= (sizeof(buf) - 1))) {
+        return NULL;
+    }
+
+    nxt_memcpy(buf, str->start, str->length);
+    buf[str->length] = '\0';
+
+    ret = zend_hash_find(ht, buf, str->length + 1, &entry);
+    if (nxt_fast_path(ret == SUCCESS)) {
+        return entry;
+    }
+
+    return NULL;
+}
+
+#endif
 
 
 static void

@@ -58,6 +58,7 @@ NXT_PHP=${NXT_PHP_CONFIG%-config*}
 NXT_PHP_MODULE=${NXT_PHP_MODULE=${NXT_PHP##*/}}
 NXT_PHP_LIB_PATH=${NXT_PHP_LIB_PATH=}
 NXT_PHP_LIB_STATIC=${NXT_PHP_LIB_STATIC=no}
+NXT_PHP_ADDITIONAL_FLAGS=
 
 
 $echo "configuring PHP module"
@@ -74,6 +75,14 @@ if /bin/sh -c "${NXT_PHP_CONFIG} --version" >> $NXT_AUTOCONF_ERR 2>&1; then
 
     NXT_PHP_VERSION="`${NXT_PHP_CONFIG} --version`"
     $echo " + PHP SAPI: [`${NXT_PHP_CONFIG} --php-sapis`]"
+
+    NXT_PHP_MAJOR_VERSION=${NXT_PHP_VERSION%%.*}
+    NXT_PHP_MINOR_VERSION=${NXT_PHP_VERSION#??}
+    NXT_PHP_MINOR_VERSION=${NXT_PHP_MINOR_VERSION%.*}
+
+    if [ $NXT_PHP_MAJOR_VERSION = 5 -a $NXT_PHP_MINOR_VERSION -lt 4 ]; then
+        NXT_PHP_ADDITIONAL_FLAGS=-Wno-write-strings
+    fi
 
     NXT_PHP_INCLUDE="`${NXT_PHP_CONFIG} --includes`"
 
@@ -204,8 +213,8 @@ for nxt_src in $NXT_PHP_MODULE_SRCS; do
     cat << END >> $NXT_MAKEFILE
 
 $NXT_BUILD_DIR/$nxt_obj:	$nxt_src $NXT_VERSION_H
-	\$(CC) -c \$(CFLAGS) \$(NXT_INCS) $NXT_PHP_INCLUDE \\
-	-DNXT_ZEND_SIGNAL_STARTUP=$NXT_ZEND_SIGNAL_STARTUP \\
+	\$(CC) -c \$(CFLAGS) $NXT_PHP_ADDITIONAL_FLAGS \$(NXT_INCS) \\
+	$NXT_PHP_INCLUDE -DNXT_ZEND_SIGNAL_STARTUP=$NXT_ZEND_SIGNAL_STARTUP \\
 	$nxt_dep_flags \\
 	-o $NXT_BUILD_DIR/$nxt_obj $nxt_src
 	$nxt_dep_post
