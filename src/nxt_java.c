@@ -27,9 +27,10 @@
 
 #include "nxt_jars.h"
 
-static nxt_int_t nxt_java_pre_init(nxt_task_t *task,
+static nxt_int_t nxt_java_setup(nxt_task_t *task, nxt_process_t *process,
     nxt_common_app_conf_t *conf);
-static nxt_int_t nxt_java_init(nxt_task_t *task, nxt_common_app_conf_t *conf);
+static nxt_int_t nxt_java_start(nxt_task_t *task,
+    nxt_process_data_t *data);
 static void nxt_java_request_handler(nxt_unit_request_info_t *req);
 static void nxt_java_websocket_handler(nxt_unit_websocket_frame_t *ws);
 static void nxt_java_close_handler(nxt_unit_request_info_t *req);
@@ -49,8 +50,8 @@ NXT_EXPORT nxt_app_module_t  nxt_app_module = {
     compat,
     nxt_string("java"),
     NXT_STRING(NXT_JAVA_VERSION),
-    nxt_java_pre_init,
-    nxt_java_init,
+    nxt_java_setup,
+    nxt_java_start,
 };
 
 typedef struct {
@@ -60,7 +61,8 @@ typedef struct {
 
 
 static nxt_int_t
-nxt_java_pre_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
+nxt_java_setup(nxt_task_t *task, nxt_process_t *process,
+    nxt_common_app_conf_t *conf)
 {
     const char  *unit_jars;
 
@@ -115,24 +117,26 @@ nxt_java_module_jars(const char *jars[], int jar_count)
 
 
 static nxt_int_t
-nxt_java_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
+nxt_java_start(nxt_task_t *task, nxt_process_data_t *data)
 {
-    jint                 rc;
-    char                 *opt, *real_path;
-    char                 **classpath_arr, **unit_jars, **system_jars;
-    JavaVM               *jvm;
-    JNIEnv               *env;
-    jobject              cl, classpath;
-    nxt_str_t            str;
-    nxt_int_t            opt_len, real_path_len;
-    nxt_uint_t           i, unit_jars_count, classpath_count, system_jars_count;
-    JavaVMOption         *jvm_opt;
-    JavaVMInitArgs       jvm_args;
-    nxt_unit_ctx_t       *ctx;
-    nxt_unit_init_t      java_init;
-    nxt_java_data_t      data;
-    nxt_conf_value_t     *value;
-    nxt_java_app_conf_t  *c;
+    jint                   rc;
+    char                   *opt, *real_path;
+    char                   **classpath_arr, **unit_jars, **system_jars;
+    JavaVM                 *jvm;
+    JNIEnv                 *env;
+    jobject                cl, classpath;
+    nxt_str_t              str;
+    nxt_int_t              opt_len, real_path_len;
+    nxt_uint_t             i, unit_jars_count, classpath_count;
+    nxt_uint_t             system_jars_count;
+    JavaVMOption           *jvm_opt;
+    JavaVMInitArgs         jvm_args;
+    nxt_unit_ctx_t         *ctx;
+    nxt_unit_init_t        java_init;
+    nxt_java_data_t        java_data;
+    nxt_conf_value_t       *value;
+    nxt_java_app_conf_t    *c;
+    nxt_common_app_conf_t  *app_conf;
 
     //setenv("ASAN_OPTIONS", "handle_segv=0", 1);
 
@@ -140,7 +144,8 @@ nxt_java_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     jvm_args.nOptions = 0;
     jvm_args.ignoreUnrecognized = 0;
 
-    c = &conf->u.java;
+    app_conf = data->app;
+    c = &app_conf->u.java;
 
     if (c->options != NULL) {
         jvm_args.nOptions += nxt_conf_array_elements_count(c->options);
@@ -338,8 +343,8 @@ nxt_java_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
         goto env_failed;
     }
 
-    data.env = env;
-    data.ctx = nxt_java_startContext(env, c->webapp, classpath);
+    java_data.env = env;
+    java_data.ctx = nxt_java_startContext(env, c->webapp, classpath);
 
     if ((*env)->ExceptionCheck(env)) {
         nxt_alert(task, "Unhandled exception in application start");
@@ -353,8 +358,8 @@ nxt_java_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     java_init.callbacks.websocket_handler = nxt_java_websocket_handler;
     java_init.callbacks.close_handler = nxt_java_close_handler;
     java_init.request_data_size = sizeof(nxt_java_request_data_t);
-    java_init.data = &data;
-    java_init.shm_limit = conf->shm_limit;
+    java_init.data = &java_data;
+    java_init.shm_limit = app_conf->shm_limit;
 
     ctx = nxt_unit_init(&java_init);
     if (nxt_slow_path(ctx == NULL)) {
@@ -367,7 +372,7 @@ nxt_java_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
         /* TODO report error */
     }
 
-    nxt_java_stopContext(env, data.ctx);
+    nxt_java_stopContext(env, java_data.ctx);
 
     if ((*env)->ExceptionCheck(env)) {
         (*env)->ExceptionDescribe(env);

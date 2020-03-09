@@ -39,10 +39,16 @@ typedef struct {
 } nxt_controller_response_t;
 
 
+static nxt_int_t nxt_controller_prefork(nxt_task_t *task,
+    nxt_process_t *process, nxt_mp_t *mp);
+static nxt_int_t nxt_controller_start(nxt_task_t *task,
+    nxt_process_data_t *data);
 static void nxt_controller_process_new_port_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
 static void nxt_controller_send_current_conf(nxt_task_t *task);
 static void nxt_controller_router_ready_handler(nxt_task_t *task,
+    nxt_port_recv_msg_t *msg);
+static void nxt_controller_remove_pid_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
 static nxt_int_t nxt_controller_conf_default(void);
 static void nxt_controller_conf_init_handler(nxt_task_t *task,
@@ -83,6 +89,8 @@ static void nxt_controller_process_cert(nxt_task_t *task,
 static void nxt_controller_process_cert_save(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
 static nxt_bool_t nxt_controller_cert_in_use(nxt_str_t *name);
+static void nxt_controller_cert_cleanup(nxt_task_t *task, void *obj,
+    void *data);
 #endif
 static void nxt_controller_conf_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
@@ -114,21 +122,117 @@ static const nxt_event_conn_state_t  nxt_controller_conn_write_state;
 static const nxt_event_conn_state_t  nxt_controller_conn_close_state;
 
 
-nxt_port_handlers_t  nxt_controller_process_port_handlers = {
-    .quit           = nxt_worker_process_quit_handler,
+static const nxt_port_handlers_t  nxt_controller_process_port_handlers = {
+    .quit           = nxt_signal_quit_handler,
     .new_port       = nxt_controller_process_new_port_handler,
     .change_file    = nxt_port_change_log_file_handler,
     .mmap           = nxt_port_mmap_handler,
     .process_ready  = nxt_controller_router_ready_handler,
     .data           = nxt_port_data_handler,
-    .remove_pid     = nxt_port_remove_pid_handler,
+    .remove_pid     = nxt_controller_remove_pid_handler,
     .rpc_ready      = nxt_port_rpc_handler,
     .rpc_error      = nxt_port_rpc_handler,
 };
 
 
-nxt_int_t
-nxt_controller_start(nxt_task_t *task, void *data)
+const nxt_process_init_t  nxt_controller_process = {
+    .name           = "controller",
+    .type           = NXT_PROCESS_CONTROLLER,
+    .prefork        = nxt_controller_prefork,
+    .restart        = 1,
+    .setup          = nxt_process_core_setup,
+    .start          = nxt_controller_start,
+    .port_handlers  = &nxt_controller_process_port_handlers,
+    .signals        = nxt_process_signals,
+};
+
+
+static nxt_int_t
+nxt_controller_prefork(nxt_task_t *task, nxt_process_t *process, nxt_mp_t *mp)
+{
+    ssize_t                n;
+    nxt_int_t              ret;
+    nxt_str_t              *conf;
+    nxt_file_t             file;
+    nxt_runtime_t          *rt;
+    nxt_file_info_t        fi;
+    nxt_controller_init_t  ctrl_init;
+
+    nxt_log(task, NXT_LOG_INFO, "controller started");
+
+    rt = task->thread->runtime;
+
+    nxt_memzero(&ctrl_init, sizeof(nxt_controller_init_t));
+
+    conf = &ctrl_init.conf;
+
+    nxt_memzero(&file, sizeof(nxt_file_t));
+
+    file.name = (nxt_file_name_t *) rt->conf;
+
+    ret = nxt_file_open(task, &file, NXT_FILE_RDONLY, NXT_FILE_OPEN, 0);
+
+    if (ret == NXT_OK) {
+        ret = nxt_file_info(&file, &fi);
+
+        if (nxt_fast_path(ret == NXT_OK && nxt_is_file(&fi))) {
+            conf->length = nxt_file_size(&fi);
+            conf->start = nxt_mp_alloc(mp, conf->length);
+            if (nxt_slow_path(conf->start == NULL)) {
+                nxt_file_close(task, &file);
+                return NXT_ERROR;
+            }
+
+            n = nxt_file_read(&file, conf->start, conf->length, 0);
+
+            if (nxt_slow_path(n != (ssize_t) conf->length)) {
+                conf->start = NULL;
+                conf->length = 0;
+
+                nxt_alert(task, "failed to restore previous configuration: "
+                          "cannot read the file");
+            }
+        }
+
+        nxt_file_close(task, &file);
+    }
+
+#if (NXT_TLS)
+    ctrl_init.certs = nxt_cert_store_load(task, mp);
+
+    nxt_mp_cleanup(mp, nxt_controller_cert_cleanup, task, ctrl_init.certs, rt);
+#endif
+
+    process->data.controller = ctrl_init;
+
+    return NXT_OK;
+}
+
+
+#if (NXT_TLS)
+
+static void
+nxt_controller_cert_cleanup(nxt_task_t *task, void *obj, void *data)
+{
+    pid_t          main_pid;
+    nxt_array_t    *certs;
+    nxt_runtime_t  *rt;
+
+    certs = obj;
+    rt = data;
+
+    main_pid = rt->port_by_type[NXT_PROCESS_MAIN]->pid;
+
+    if (nxt_pid == main_pid && certs != NULL) {
+        nxt_cert_store_release(certs);
+    }
+}
+
+#endif
+
+
+static nxt_int_t
+nxt_controller_start(nxt_task_t *task, nxt_process_data_t *data)
 {
     nxt_mp_t               *mp;
     nxt_int_t              ret;
@@ -147,15 +251,13 @@ nxt_controller_start(nxt_task_t *task, void *data)
 
     nxt_queue_init(&nxt_controller_waiting_requests);
 
-    init = data;
+    init = &data->controller;
 
 #if (NXT_TLS)
-
     if (init->certs != NULL) {
         nxt_cert_info_init(task, init->certs);
         nxt_cert_store_release(init->certs);
     }
-
 #endif
 
     json = &init->conf;
@@ -170,8 +272,6 @@ nxt_controller_start(nxt_task_t *task, void *data)
     }
 
     conf = nxt_conf_json_parse_str(mp, json);
-    nxt_free(json->start);
-
     if (nxt_slow_path(conf == NULL)) {
         nxt_alert(task, "failed to restore previous configuration: "
                   "file is corrupted or not enough memory");
@@ -292,6 +392,28 @@ nxt_controller_router_ready_handler(nxt_task_t *task,
     if (router_port != NULL) {
         nxt_controller_send_current_conf(task);
     }
+}
+
+
+static void
+nxt_controller_remove_pid_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
+{
+    nxt_pid_t      pid;
+    nxt_process_t  *process;
+    nxt_runtime_t  *rt;
+
+    rt = task->thread->runtime;
+
+    nxt_assert(nxt_buf_used_size(msg->buf) == sizeof(pid));
+
+    nxt_memcpy(&pid, msg->buf->mem.pos, sizeof(pid));
+
+    process = nxt_runtime_process_find(rt, pid);
+    if (process != NULL && nxt_process_type(process) == NXT_PROCESS_ROUTER) {
+        nxt_controller_router_ready = 0;
+    }
+
+    nxt_port_remove_pid_handler(task, msg);
 }
 
 

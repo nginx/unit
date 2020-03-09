@@ -174,7 +174,7 @@ complete_buf:
         if (process != NULL && !nxt_queue_is_empty(&process->ports)) {
             port = nxt_process_port_first(process);
 
-            if (port->type == NXT_PROCESS_WORKER) {
+            if (port->type == NXT_PROCESS_APP) {
                 (void) nxt_port_socket_write(task, port, NXT_PORT_MSG_SHM_ACK,
                                              -1, 0, 0, NULL);
             }

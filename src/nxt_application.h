@@ -27,6 +27,8 @@ typedef enum {
 
 
 typedef struct nxt_app_module_s  nxt_app_module_t;
+typedef nxt_int_t (*nxt_application_setup_t)(nxt_task_t *task,
+    nxt_process_t *process, nxt_common_app_conf_t *conf);
 
 
 typedef struct {
@@ -35,9 +37,6 @@ typedef struct {
     char                      *file;
     nxt_app_module_t          *module;
 } nxt_app_lang_module_t;
-
-
-typedef struct nxt_common_app_conf_s nxt_common_app_conf_t;
 
 
 typedef struct {
@@ -111,10 +110,8 @@ struct nxt_app_module_s {
     nxt_str_t                  type;
     const char                 *version;
 
-    nxt_int_t                  (*pre_init)(nxt_task_t *task,
-                                    nxt_common_app_conf_t *conf);
-    nxt_int_t                  (*init)(nxt_task_t *task,
-                                    nxt_common_app_conf_t *conf);
+    nxt_application_setup_t    setup;
+    nxt_process_start_t        start;
 };
 
 

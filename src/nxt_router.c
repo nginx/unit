@@ -75,6 +75,9 @@ struct nxt_port_select_state_s {
 
 typedef struct nxt_port_select_state_s nxt_port_select_state_t;
 
+static nxt_int_t nxt_router_prefork(nxt_task_t *task, nxt_process_t *process,
+    nxt_mp_t *mp);
+static nxt_int_t nxt_router_start(nxt_task_t *task, nxt_process_data_t *data);
 static void nxt_router_greet_controller(nxt_task_t *task,
     nxt_port_t *controller_port);
 
@@ -268,8 +271,8 @@ static const nxt_str_t  *nxt_app_msg_prefix[] = {
 };
 
 
-nxt_port_handlers_t  nxt_router_process_port_handlers = {
-    .quit         = nxt_worker_process_quit_handler,
+static const nxt_port_handlers_t  nxt_router_process_port_handlers = {
+    .quit         = nxt_signal_quit_handler,
     .new_port     = nxt_router_new_port_handler,
     .change_file  = nxt_port_change_log_file_handler,
     .mmap         = nxt_port_mmap_handler,
@@ -282,8 +285,29 @@ nxt_port_handlers_t  nxt_router_process_port_handlers = {
 };
 
 
-nxt_int_t
-nxt_router_start(nxt_task_t *task, void *data)
+const nxt_process_init_t  nxt_router_process = {
+    .name           = "router",
+    .type           = NXT_PROCESS_ROUTER,
+    .prefork        = nxt_router_prefork,
+    .restart        = 1,
+    .setup          = nxt_process_core_setup,
+    .start          = nxt_router_start,
+    .port_handlers  = &nxt_router_process_port_handlers,
+    .signals        = nxt_process_signals,
+};
+
+
+static nxt_int_t
+nxt_router_prefork(nxt_task_t *task, nxt_process_t *process, nxt_mp_t *mp)
+{
+    nxt_runtime_stop_app_processes(task, task->thread->runtime);
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_router_start(nxt_task_t *task, nxt_process_data_t *data)
 {
     nxt_int_t      ret;
     nxt_port_t     *controller_port;
@@ -291,6 +315,8 @@ nxt_router_start(nxt_task_t *task, void *data)
     nxt_runtime_t  *rt;
 
     rt = task->thread->runtime;
+
+    nxt_log(task, NXT_LOG_INFO, "router started");
 
 #if (NXT_TLS)
     rt->tls = nxt_service_get(rt->services, "SSL/TLS", "OpenSSL");
@@ -382,8 +408,8 @@ nxt_router_start_app_process_handler(nxt_task_t *task, nxt_port_t *port,
         goto failed;
     }
 
-    ret = nxt_port_socket_write(task, main_port, NXT_PORT_MSG_START_WORKER, -1,
-                                stream, port->id, b);
+    ret = nxt_port_socket_write(task, main_port, NXT_PORT_MSG_START_PROCESS,
+                                -1, stream, port->id, b);
 
     if (nxt_slow_path(ret != NXT_OK)) {
         nxt_port_rpc_cancel(task, port, stream);
@@ -862,7 +888,7 @@ nxt_router_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     }
 
     if (msg->u.new_port == NULL
-        || msg->u.new_port->type != NXT_PROCESS_WORKER)
+        || msg->u.new_port->type != NXT_PROCESS_APP)
     {
         msg->port_msg.type = _NXT_PORT_MSG_RPC_ERROR;
     }
@@ -2400,8 +2426,8 @@ nxt_router_app_rpc_create(nxt_task_t *task,
         goto fail;
     }
 
-    ret = nxt_port_socket_write(task, main_port, NXT_PORT_MSG_START_WORKER, -1,
-                                stream, router_port->id, b);
+    ret = nxt_port_socket_write(task, main_port, NXT_PORT_MSG_START_PROCESS,
+                                -1, stream, router_port->id, b);
 
     if (nxt_slow_path(ret != NXT_OK)) {
         nxt_port_rpc_cancel(task, router_port, stream);

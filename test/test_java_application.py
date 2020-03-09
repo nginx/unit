@@ -13,6 +13,7 @@ class TestJavaApplication(TestApplicationJava):
             [
                 r'realpath.*failed',
                 r'failed to apply new conf',
+                r'application setup failed',
             ]
         )
         self.assertIn(

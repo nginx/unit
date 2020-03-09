@@ -3,8 +3,8 @@
  * Copyright (C) NGINX, Inc.
  */
 
-#ifndef _NXT_CLONE_INCLUDED_
-#define _NXT_CLONE_INCLUDED_
+#ifndef _NXT_CLONE_H_INCLUDED_
+#define _NXT_CLONE_H_INCLUDED_
 
 
 #if (NXT_HAVE_CLONE_NEWUSER)
@@ -36,10 +36,11 @@ typedef struct {
 pid_t nxt_clone(nxt_int_t flags);
 
 
-#if (NXT_HAVE_CLONE_NEWUSER)
+#define nxt_is_clone_flag_set(flags, test)                                    \
+    ((flags & CLONE_##test) == CLONE_##test)
 
-#define NXT_CLONE_USER(flags)                                                 \
-    ((flags & CLONE_NEWUSER) == CLONE_NEWUSER)
+
+#if (NXT_HAVE_CLONE_NEWUSER)
 
 NXT_EXPORT nxt_int_t nxt_clone_credential_map(nxt_task_t *task, pid_t pid,
     nxt_credential_t *creds, nxt_clone_t *clone);
@@ -50,4 +51,5 @@ NXT_EXPORT nxt_int_t nxt_clone_vldt_credential_gidmap(nxt_task_t *task,
 
 #endif
 
-#endif /* _NXT_CLONE_INCLUDED_ */
+
+#endif /* _NXT_CLONE_H_INCLUDED_ */

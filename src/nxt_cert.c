@@ -797,12 +797,11 @@ nxt_cert_info_delete(nxt_str_t *name)
 
 
 nxt_array_t *
-nxt_cert_store_load(nxt_task_t *task)
+nxt_cert_store_load(nxt_task_t *task, nxt_mp_t *mp)
 {
     DIR              *dir;
     size_t           size, alloc;
     u_char           *buf, *p;
-    nxt_mp_t         *mp;
     nxt_str_t        name;
     nxt_int_t        ret;
     nxt_file_t       file;
@@ -818,14 +817,8 @@ nxt_cert_store_load(nxt_task_t *task)
         return NULL;
     }
 
-    mp = nxt_mp_create(1024, 128, 256, 32);
-    if (nxt_slow_path(mp == NULL)) {
-        return NULL;
-    }
-
     certs = nxt_array_create(mp, 16, sizeof(nxt_cert_item_t));
     if (nxt_slow_path(certs == NULL)) {
-        nxt_mp_destroy(mp);
         return NULL;
     }
 
@@ -933,7 +926,7 @@ nxt_cert_store_release(nxt_array_t *certs)
         nxt_fd_close(items[i].fd);
     }
 
-    nxt_mp_destroy(certs->mem_pool);
+    nxt_array_destroy(certs);
 }
 
 

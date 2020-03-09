@@ -28,7 +28,8 @@ typedef struct {
 } nxt_ruby_rack_init_t;
 
 
-static nxt_int_t nxt_ruby_init(nxt_task_t *task, nxt_common_app_conf_t *conf);
+static nxt_int_t nxt_ruby_start(nxt_task_t *task,
+    nxt_process_data_t *data);
 static VALUE nxt_ruby_init_basic(VALUE arg);
 static nxt_int_t nxt_ruby_init_io(nxt_task_t *task);
 static VALUE nxt_ruby_rack_init(nxt_ruby_rack_init_t *rack_init);
@@ -78,20 +79,23 @@ NXT_EXPORT nxt_app_module_t  nxt_app_module = {
     nxt_string("ruby"),
     ruby_version,
     NULL,
-    nxt_ruby_init,
+    nxt_ruby_start,
 };
 
 
 static nxt_int_t
-nxt_ruby_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
+nxt_ruby_start(nxt_task_t *task, nxt_process_data_t *data)
 {
-    int                   state, rc;
-    VALUE                 res;
-    nxt_unit_ctx_t        *unit_ctx;
-    nxt_unit_init_t       ruby_unit_init;
-    nxt_ruby_rack_init_t  rack_init;
+    int                    state, rc;
+    VALUE                  res;
+    nxt_unit_ctx_t         *unit_ctx;
+    nxt_unit_init_t        ruby_unit_init;
+    nxt_ruby_rack_init_t   rack_init;
+    nxt_common_app_conf_t  *conf;
 
     static char  *argv[2] = { (char *) "NGINX_Unit", (char *) "-e0" };
+
+    conf = data->app;
 
     RUBY_INIT_STACK
     ruby_init();

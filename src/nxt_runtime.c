@@ -21,6 +21,7 @@ static nxt_int_t nxt_runtime_thread_pools(nxt_thread_t *thr, nxt_runtime_t *rt);
 static void nxt_runtime_start(nxt_task_t *task, void *obj, void *data);
 static void nxt_runtime_initial_start(nxt_task_t *task, nxt_uint_t status);
 static void nxt_runtime_close_idle_connections(nxt_event_engine_t *engine);
+static void nxt_runtime_stop_all_processes(nxt_task_t *task, nxt_runtime_t *rt);
 static void nxt_runtime_exit(nxt_task_t *task, void *obj, void *data);
 static nxt_int_t nxt_runtime_event_engine_change(nxt_task_t *task,
     nxt_runtime_t *rt);
@@ -438,7 +439,7 @@ nxt_runtime_quit(nxt_task_t *task, nxt_uint_t status)
         }
 
         if (rt->type == NXT_PROCESS_MAIN) {
-            nxt_main_stop_all_processes(task, rt);
+            nxt_runtime_stop_all_processes(task, rt);
             done = 0;
         }
     }
@@ -475,6 +476,50 @@ nxt_runtime_close_idle_connections(nxt_event_engine_t *engine)
             nxt_conn_close(engine, c);
         }
     }
+}
+
+
+void
+nxt_runtime_stop_app_processes(nxt_task_t *task, nxt_runtime_t *rt)
+{
+    nxt_port_t          *port;
+    nxt_process_t       *process;
+    nxt_process_init_t  *init;
+
+    nxt_runtime_process_each(rt, process) {
+
+        init = nxt_process_init(process);
+
+        if (init->type == NXT_PROCESS_APP) {
+
+            nxt_process_port_each(process, port) {
+
+                (void) nxt_port_socket_write(task, port, NXT_PORT_MSG_QUIT, -1,
+                                             0, 0, NULL);
+
+            } nxt_process_port_loop;
+        }
+
+    } nxt_runtime_process_loop;
+}
+
+
+static void
+nxt_runtime_stop_all_processes(nxt_task_t *task, nxt_runtime_t *rt)
+{
+    nxt_port_t     *port;
+    nxt_process_t  *process;
+
+    nxt_runtime_process_each(rt, process) {
+
+        nxt_process_port_each(process, port) {
+
+            (void) nxt_port_socket_write(task, port, NXT_PORT_MSG_QUIT, -1, 0,
+                                         0, NULL);
+
+        } nxt_process_port_loop;
+
+    } nxt_runtime_process_loop;
 }
 
 
@@ -524,6 +569,10 @@ nxt_runtime_exit(nxt_task_t *task, void *obj, void *data)
         nxt_process_close_ports(task, process);
 
     } nxt_runtime_process_loop;
+
+    if (rt->port_by_type[rt->type] != NULL) {
+        nxt_port_use(task, rt->port_by_type[rt->type], -1);
+    }
 
     nxt_thread_mutex_destroy(&rt->processes_mutex);
 
@@ -1306,7 +1355,9 @@ nxt_runtime_process_new(nxt_runtime_t *rt)
 
     /* TODO: memory failures. */
 
-    process = nxt_mp_zalloc(rt->mem_pool, sizeof(nxt_process_t));
+    process = nxt_mp_zalloc(rt->mem_pool,
+                            sizeof(nxt_process_t) + sizeof(nxt_process_init_t));
+
     if (nxt_slow_path(process == NULL)) {
         return NULL;
     }
@@ -1347,8 +1398,9 @@ nxt_runtime_process_release(nxt_runtime_t *rt, nxt_process_t *process)
     nxt_thread_mutex_destroy(&process->outgoing.mutex);
     nxt_thread_mutex_destroy(&process->cp_mutex);
 
-    if (process->init != NULL) {
-        nxt_mp_destroy(process->init->mem_pool);
+    /* processes from nxt_runtime_process_get() have no memory pool */
+    if (process->mem_pool != NULL) {
+        nxt_mp_destroy(process->mem_pool);
     }
 
     nxt_mp_free(rt->mem_pool, process);

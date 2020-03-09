@@ -8,66 +8,121 @@
 #define _NXT_PROCESS_H_INCLUDED_
 
 #if (NXT_HAVE_CLONE)
+#include <unistd.h>
 #include <nxt_clone.h>
 #endif
 
 
+#if (NXT_HAVE_CLONE)
+/*
+ * Old glibc wrapper for getpid(2) returns a cached pid invalidated only by
+ * fork(2) calls.  As we use clone(2) for container, it returns the wrong pid.
+ */
+#define nxt_getpid()                                                          \
+    syscall(__NR_getpid)
+#else
+#define nxt_getpid()                                                          \
+    getpid()
+#endif
+
 typedef pid_t            nxt_pid_t;
 
 
-typedef struct nxt_process_init_s  nxt_process_init_t;
-typedef nxt_int_t (*nxt_process_start_t)(nxt_task_t *task, void *data);
-typedef nxt_int_t (*nxt_process_restart_t)(nxt_task_t *task, nxt_runtime_t *rt,
-    nxt_process_init_t *init);
+typedef struct nxt_common_app_conf_s nxt_common_app_conf_t;
 
-struct nxt_process_init_s {
-    nxt_mp_t                   *mem_pool;
-    nxt_process_start_t        start;
-    const char                 *name;
-    nxt_credential_t           *user_cred;
 
-    const nxt_port_handlers_t  *port_handlers;
-    const nxt_sig_event_t      *signals;
+typedef struct {
+    nxt_runtime_t              *rt;
+} nxt_discovery_init_t;
 
-    nxt_process_type_t         type;
 
-    void                       *data;
-    uint32_t                   stream;
-
-    union {
-#if (NXT_HAVE_CLONE)
-        nxt_clone_t            clone;
+typedef struct {
+    nxt_str_t                  conf;
+#if (NXT_TLS)
+    nxt_array_t                *certs;
 #endif
-    } isolation;
-};
+} nxt_controller_init_t;
+
+
+typedef union {
+    void                       *discovery;
+    nxt_controller_init_t      controller;
+    void                       *router;
+    nxt_common_app_conf_t      *app;
+} nxt_process_data_t;
+
+
+typedef enum {
+    NXT_PROCESS_STATE_CREATING = 0,
+    NXT_PROCESS_STATE_CREATED,
+    NXT_PROCESS_STATE_READY,
+} nxt_process_state_t;
 
 
 typedef struct nxt_port_mmap_s  nxt_port_mmap_t;
-typedef struct nxt_port_mmaps_s nxt_port_mmaps_t;
 
-struct nxt_port_mmaps_s {
+
+typedef struct {
     nxt_thread_mutex_t  mutex;
     uint32_t            size;
     uint32_t            cap;
     nxt_port_mmap_t     *elts;
-};
+} nxt_port_mmaps_t;
 
 
 typedef struct {
-    nxt_pid_t           pid;
-    nxt_queue_t         ports;      /* of nxt_port_t */
-    nxt_bool_t          ready;
-    nxt_bool_t          registered;
-    nxt_int_t           use_count;
+    nxt_pid_t            pid;
+    const char           *name;
+    nxt_queue_t          ports;      /* of nxt_port_t */
+    nxt_process_state_t  state;
+    nxt_bool_t           registered;
+    nxt_int_t            use_count;
 
-    nxt_process_init_t  *init;
+    nxt_port_mmaps_t     incoming;
+    nxt_port_mmaps_t     outgoing;
 
-    nxt_port_mmaps_t    incoming;
-    nxt_port_mmaps_t    outgoing;
+    nxt_thread_mutex_t   cp_mutex;
+    nxt_lvlhsh_t         connected_ports; /* of nxt_port_t */
 
-    nxt_thread_mutex_t  cp_mutex;
-    nxt_lvlhsh_t        connected_ports; /* of nxt_port_t */
+    uint32_t             stream;
+
+    nxt_mp_t             *mem_pool;
+    nxt_credential_t     *user_cred;
+
+    nxt_process_data_t   data;
+
+    union {
+#if (NXT_HAVE_CLONE)
+        nxt_clone_t      clone;
+#endif
+    } isolation;
 } nxt_process_t;
+
+
+typedef nxt_int_t (*nxt_process_prefork_t)(nxt_task_t *task,
+    nxt_process_t *process, nxt_mp_t *mp);
+typedef nxt_int_t (*nxt_process_postfork_t)(nxt_task_t *task,
+    nxt_process_t *process, nxt_mp_t *mp);
+typedef nxt_int_t (*nxt_process_setup_t)(nxt_task_t *task,
+    nxt_process_t *process);
+typedef nxt_int_t (*nxt_process_start_t)(nxt_task_t *task,
+    nxt_process_data_t *data);
+
+
+typedef struct {
+    const char                 *name;
+    nxt_process_type_t         type;
+
+    nxt_process_prefork_t      prefork;
+
+    nxt_process_setup_t        setup;
+    nxt_process_start_t        start;
+
+    uint8_t                    restart; /* 1-bit */
+
+    const nxt_port_handlers_t  *port_handlers;
+    const nxt_sig_event_t      *signals;
+} nxt_process_init_t;
 
 
 extern nxt_bool_t  nxt_proc_conn_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX];
@@ -83,6 +138,9 @@ NXT_EXPORT void nxt_nanosleep(nxt_nsec_t ns);
 
 NXT_EXPORT void nxt_process_arguments(nxt_task_t *task, char **orig_argv,
     char ***orig_envp);
+
+#define nxt_process_init(process)                                             \
+    (nxt_pointer_to(process, sizeof(nxt_process_t)))
 
 #define nxt_process_port_remove(port)                                         \
     nxt_queue_remove(&port->link)
@@ -113,11 +171,18 @@ void nxt_process_connected_port_remove(nxt_process_t *process,
 nxt_port_t *nxt_process_connected_port_find(nxt_process_t *process,
     nxt_port_t *port);
 
-void nxt_worker_process_quit_handler(nxt_task_t *task,
-    nxt_port_recv_msg_t *msg);
+void nxt_process_quit(nxt_task_t *task, nxt_uint_t exit_status);
+void nxt_signal_quit_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 
-void nxt_init_destroy(nxt_runtime_t *rt, nxt_process_init_t *init);
+nxt_int_t nxt_process_core_setup(nxt_task_t *task, nxt_process_t *process);
+nxt_int_t nxt_process_creds_set(nxt_task_t *task, nxt_process_t *process,
+    nxt_str_t *user, nxt_str_t *group);
+nxt_int_t nxt_process_apply_creds(nxt_task_t *task, nxt_process_t *process);
 
+#if (NXT_HAVE_CLONE_NEWUSER)
+nxt_int_t nxt_process_vldt_isolation_creds(nxt_task_t *task,
+    nxt_process_t *process);
+#endif
 
 #if (NXT_HAVE_SETPROCTITLE)
 

@@ -4248,7 +4248,7 @@ nxt_unit_send_port(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *dst,
 
     m.new_port.id = new_port->id;
     m.new_port.pid = new_port->pid;
-    m.new_port.type = NXT_PROCESS_WORKER;
+    m.new_port.type = NXT_PROCESS_APP;
     m.new_port.max_size = 16 * 1024;
     m.new_port.max_share = 64 * 1024;
 

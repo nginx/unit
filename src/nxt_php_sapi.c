@@ -72,7 +72,7 @@ typedef void (*zif_handler)(INTERNAL_FUNCTION_PARAMETERS);
 #endif
 
 
-static nxt_int_t nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf);
+static nxt_int_t nxt_php_start(nxt_task_t *task, nxt_process_data_t *data);
 static nxt_int_t nxt_php_set_target(nxt_task_t *task, nxt_php_target_t *target,
     nxt_conf_value_t *conf);
 static void nxt_php_set_options(nxt_task_t *task, nxt_conf_value_t *options,
@@ -242,7 +242,7 @@ NXT_EXPORT nxt_app_module_t  nxt_app_module = {
     nxt_string("php"),
     PHP_VERSION,
     NULL,
-    nxt_php_init,
+    nxt_php_start,
 };
 
 
@@ -256,19 +256,20 @@ static void        ***tsrm_ls;
 
 
 static nxt_int_t
-nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
+nxt_php_start(nxt_task_t *task, nxt_process_data_t *data)
 {
-    u_char              *p;
-    uint32_t            next;
-    nxt_str_t           ini_path, name;
-    nxt_int_t           ret;
-    nxt_uint_t          n;
-    nxt_port_t          *my_port, *main_port;
-    nxt_runtime_t       *rt;
-    nxt_unit_ctx_t      *unit_ctx;
-    nxt_unit_init_t     php_init;
-    nxt_conf_value_t    *value;
-    nxt_php_app_conf_t  *c;
+    u_char                 *p;
+    uint32_t               next;
+    nxt_str_t              ini_path, name;
+    nxt_int_t              ret;
+    nxt_uint_t             n;
+    nxt_port_t             *my_port, *main_port;
+    nxt_runtime_t          *rt;
+    nxt_unit_ctx_t         *unit_ctx;
+    nxt_unit_init_t        php_init;
+    nxt_conf_value_t       *value;
+    nxt_php_app_conf_t     *c;
+    nxt_common_app_conf_t  *conf;
 
     static nxt_str_t  file_str = nxt_string("file");
     static nxt_str_t  user_str = nxt_string("user");
@@ -276,6 +277,7 @@ nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 
     nxt_php_task = task;
 
+    conf = data->app;
     c = &conf->u.php;
 
     n = (c->targets != NULL) ? nxt_conf_object_members_count(c->targets) : 1;
@@ -385,7 +387,7 @@ nxt_php_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
 
     nxt_fd_blocking(task, main_port->pair[1]);
 
-    php_init.ready_stream = my_port->process->init->stream;
+    php_init.ready_stream = my_port->process->stream;
 
     php_init.read_port.id.pid = my_port->pid;
     php_init.read_port.id.id = my_port->id;
