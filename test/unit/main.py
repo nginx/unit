@@ -371,7 +371,7 @@ class TestUnit(unittest.TestCase):
 
         # set stdout to non-blocking
 
-        if TestUnit.detailed:
+        if TestUnit.detailed or TestUnit.print_log:
             fcntl.fcntl(sys.stdout.fileno(), fcntl.F_SETFL, 0)
 
     def _print_log(self, data=None):
