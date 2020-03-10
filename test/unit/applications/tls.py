@@ -47,7 +47,8 @@ class TestApplicationTLS(TestApplicationProto):
                 '-config',  self.testdir + '/openssl.conf',
                 '-out',     self.testdir + '/' + name + '.crt',
                 '-keyout',  self.testdir + '/' + name + '.key',
-            ]
+            ],
+            stderr=subprocess.STDOUT,
         )
 
         if load:

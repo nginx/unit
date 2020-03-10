@@ -157,7 +157,8 @@ class TestTLS(TestApplicationTLS):
                 '-genkey',
                 '-out',   self.testdir + '/ec.key',
                 '-name',  'prime256v1',
-            ]
+            ],
+            stderr=subprocess.STDOUT,
         )
 
         subprocess.call(
@@ -170,7 +171,8 @@ class TestTLS(TestApplicationTLS):
                 '-config',  self.testdir + '/openssl.conf',
                 '-key',     self.testdir + '/ec.key',
                 '-out',     self.testdir + '/ec.crt',
-            ]
+            ],
+            stderr=subprocess.STDOUT,
         )
 
         self.certificate_load('ec')
@@ -230,7 +232,8 @@ class TestTLS(TestApplicationTLS):
                 '-config',  self.testdir + '/openssl.conf',
                 '-out',     self.testdir + '/int.csr',
                 '-keyout',  self.testdir + '/int.key',
-            ]
+            ],
+            stderr=subprocess.STDOUT,
         )
 
         subprocess.call(
@@ -242,7 +245,8 @@ class TestTLS(TestApplicationTLS):
                 '-config',  self.testdir + '/openssl.conf',
                 '-out',     self.testdir + '/end.csr',
                 '-keyout',  self.testdir + '/end.key',
-            ]
+            ],
+            stderr=subprocess.STDOUT,
         )
 
         with open(self.testdir + '/ca.conf', 'w') as f:
@@ -288,7 +292,8 @@ basicConstraints = critical,CA:TRUE"""
                 '-cert',     self.testdir + '/root.crt',
                 '-in',       self.testdir + '/int.csr',
                 '-out',      self.testdir + '/int.crt',
-            ]
+            ],
+            stderr=subprocess.STDOUT,
         )
 
         subprocess.call(
@@ -302,7 +307,8 @@ basicConstraints = critical,CA:TRUE"""
                 '-cert',     self.testdir + '/int.crt',
                 '-in',       self.testdir + '/end.csr',
                 '-out',      self.testdir + '/end.crt',
-            ]
+            ],
+            stderr=subprocess.STDOUT,
         )
 
         crt_path = self.testdir + '/end-int.crt'
