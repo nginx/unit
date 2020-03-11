@@ -192,6 +192,7 @@ static nxt_http_route_rule_t *nxt_http_route_rule_create(nxt_task_t *task,
     nxt_mp_t *mp, nxt_conf_value_t *cv, nxt_bool_t case_sensitive,
     nxt_http_route_pattern_case_t pattern_case);
 static int nxt_http_pattern_compare(const void *one, const void *two);
+static int nxt_http_addr_pattern_compare(const void *one, const void *two);
 static nxt_int_t nxt_http_route_pattern_create(nxt_task_t *task, nxt_mp_t *mp,
     nxt_conf_value_t *cv, nxt_http_route_pattern_t *pattern,
     nxt_http_route_pattern_case_t pattern_case);
@@ -881,6 +882,12 @@ nxt_http_route_addr_rule_create(nxt_task_t *task, nxt_mp_t *mp,
         }
     }
 
+    if (n > 1) {
+        nxt_qsort(addr_rule->addr_pattern, addr_rule->items,
+            sizeof(nxt_http_route_addr_pattern_t),
+            nxt_http_addr_pattern_compare);
+    }
+
     return addr_rule;
 }
 
@@ -901,6 +908,18 @@ nxt_http_pattern_compare(const void *one, const void *two)
     negative2 = (test.length != 0 && test.start[0] == '!');
 
     return (negative2 - negative1);
+}
+
+
+static int
+nxt_http_addr_pattern_compare(const void *one, const void *two)
+{
+    const nxt_http_route_addr_pattern_t  *p1, *p2;
+
+    p1 = one;
+    p2 = two;
+
+    return (p2->base.negative - p1->base.negative);
 }
 
 
@@ -1527,19 +1546,34 @@ static nxt_int_t
 nxt_http_route_addr_rule(nxt_http_request_t *r,
     nxt_http_route_addr_rule_t *addr_rule, nxt_sockaddr_t *sa)
 {
-    uint32_t                       i, n;
+    uint32_t                       n;
+    nxt_bool_t                     matches;
     nxt_http_route_addr_pattern_t  *p;
 
     n = addr_rule->items;
+    p = &addr_rule->addr_pattern[0] - 1;
 
-    for (i = 0; i < n; i++) {
-        p = &addr_rule->addr_pattern[i];
-        if (nxt_http_route_addr_pattern_match(p, sa)) {
+    do {
+        p++;
+        n--;
+
+        matches = nxt_http_route_addr_pattern_match(p, sa);
+
+        if (p->base.negative) {
+            if (matches) {
+                continue;
+            }
+
+            return 0;
+        }
+
+        if (matches) {
             return 1;
         }
-    }
 
-    return 0;
+    } while (n > 0);
+
+    return p->base.negative;
 }
 
 
