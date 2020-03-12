@@ -20,6 +20,7 @@ cat << END
   --incdir=DIRECTORY   set includes directory name, default: "$NXT_INCDIR"
   --modules=DIRECTORY  set modules directory name, default: "$NXT_MODULES"
   --state=DIRECTORY    set state directory name, default: "$NXT_STATE"
+  --tmp=DIRECTORY      set tmp directory name, default: "$NXT_TMP"
 
   --pid=FILE           set pid filename, default: "$NXT_PID"
   --log=FILE           set log filename, default: "$NXT_LOG"

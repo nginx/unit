@@ -13,6 +13,7 @@ Unit configuration summary:
   include directory: ......... "$NXT_INCDIR"
   modules directory: ......... "$NXT_MODULES"
   state directory: ........... "$NXT_STATE"
+  tmp directory: ............. "$NXT_TMP"
 
   pid file: .................. "$NXT_PID"
   log file: .................. "$NXT_LOG"

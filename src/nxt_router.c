@@ -1361,6 +1361,12 @@ static nxt_conf_map_t  nxt_router_http_conf[] = {
         NXT_CONF_MAP_MSEC,
         offsetof(nxt_socket_conf_t, send_timeout),
     },
+
+    {
+        nxt_string("body_temp_path"),
+        NXT_CONF_MAP_STR,
+        offsetof(nxt_socket_conf_t, body_temp_path),
+    },
 };
 
 
@@ -1397,6 +1403,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_int_t                   ret;
     nxt_str_t                   name, path;
     nxt_app_t                   *app, *prev;
+    nxt_str_t                   *t;
     nxt_router_t                *router;
     nxt_app_joint_t             *app_joint;
     nxt_conf_value_t            *conf, *http, *value, *websocket;
@@ -1698,6 +1705,8 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             skcf->websocket_conf.read_timeout = 60 * 1000;
             skcf->websocket_conf.keepalive_interval = 30 * 1000;
 
+            nxt_str_null(&skcf->body_temp_path);
+
             if (http != NULL) {
                 ret = nxt_conf_map_object(mp, http, nxt_router_http_conf,
                                           nxt_nitems(nxt_router_http_conf),
@@ -1717,6 +1726,13 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
                     nxt_alert(task, "websocket map error");
                     goto fail;
                 }
+            }
+
+            t = &skcf->body_temp_path;
+
+            if (t->length == 0) {
+                t->start = (u_char *) task->thread->runtime->tmp;
+                t->length = nxt_strlen(t->start);
             }
 
 #if (NXT_TLS)
@@ -4758,7 +4774,8 @@ static void
 nxt_router_app_prepare_request(nxt_task_t *task,
     nxt_request_app_link_t *req_app_link)
 {
-    nxt_buf_t         *buf;
+    nxt_fd_t          fd;
+    nxt_buf_t         *buf, *body;
     nxt_int_t         res;
     nxt_port_t        *port, *c_port, *reply_port;
     nxt_apr_action_t  apr_action;
@@ -4817,14 +4834,24 @@ nxt_router_app_prepare_request(nxt_task_t *task,
         goto release_port;
     }
 
-    res = nxt_port_socket_twrite(task, port, NXT_PORT_MSG_REQ_HEADERS,
-                                 -1, req_app_link->stream, reply_port->id, buf,
+    body = req_app_link->request->body;
+    fd = (body != NULL && nxt_buf_is_file(body)) ? body->file->fd : -1;
+
+    res = nxt_port_socket_twrite(task, port,
+                                 NXT_PORT_MSG_REQ_HEADERS
+                                    | NXT_PORT_MSG_CLOSE_FD,
+                                 fd,
+                                 req_app_link->stream, reply_port->id, buf,
                                  &req_app_link->msg_info.tracking);
 
     if (nxt_slow_path(res != NXT_OK)) {
         nxt_request_app_link_error(req_app_link, 500,
                                    "Failed to send message to application");
         goto release_port;
+    }
+
+    if (fd != -1) {
+        body->file->fd = -1;
     }
 
 release_port:
@@ -5149,6 +5176,10 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_http_request_t *r,
 
             buf = NULL;
         }
+    }
+
+    if (r->body != NULL && nxt_buf_is_file(r->body)) {
+        lseek(r->body->file->fd, 0, SEEK_SET);
     }
 
     return out;

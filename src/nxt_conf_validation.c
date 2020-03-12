@@ -182,8 +182,18 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[] = {
       NULL,
       NULL },
 
+    { nxt_string("body_buffer_size"),
+      NXT_CONF_VLDT_INTEGER,
+      NULL,
+      NULL },
+
     { nxt_string("max_body_size"),
       NXT_CONF_VLDT_INTEGER,
+      NULL,
+      NULL },
+
+    { nxt_string("body_temp_path"),
+      NXT_CONF_VLDT_STRING,
       NULL,
       NULL },
 

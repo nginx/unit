@@ -219,6 +219,7 @@ class TestUnit(unittest.TestCase):
                     '--pid',      self.testdir + '/unit.pid',
                     '--log',      self.testdir + '/unit.log',
                     '--control',  'unix:' + self.testdir + '/control.unit.sock',
+                    '--tmp',      self.testdir,
                 ],
                 stderr=log,
             )

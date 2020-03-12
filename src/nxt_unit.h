@@ -103,6 +103,7 @@ struct nxt_unit_request_info_s {
 
     nxt_unit_buf_t        *content_buf;
     uint64_t              content_length;
+    int                   content_fd;
 
     void                  *data;
 };

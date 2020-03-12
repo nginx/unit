@@ -569,6 +569,14 @@ nxt_http_request_close_handler(nxt_task_t *task, void *obj, void *data)
 
     r->proto.any = NULL;
 
+    if (r->body != NULL && nxt_buf_is_file(r->body)
+        && r->body->file->fd != -1)
+    {
+        nxt_fd_close(r->body->file->fd);
+
+        r->body->file->fd = -1;
+    }
+
     if (nxt_fast_path(proto.any != NULL)) {
         protocol = r->protocol;
 

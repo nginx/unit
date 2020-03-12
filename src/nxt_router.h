@@ -187,6 +187,8 @@ typedef struct {
 
     nxt_websocket_conf_t   websocket_conf;
 
+    nxt_str_t              body_temp_path;
+
 #if (NXT_TLS)
     nxt_tls_conf_t         *tls;
 #endif
