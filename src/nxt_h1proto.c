@@ -847,11 +847,6 @@ nxt_h1p_request_body_read(nxt_task_t *task, nxt_http_request_t *r)
         goto ready;
     }
 
-    if (r->content_length_n > (nxt_off_t) r->conf->socket_conf->max_body_size) {
-        status = NXT_HTTP_PAYLOAD_TOO_LARGE;
-        goto error;
-    }
-
     body_length = (size_t) r->content_length_n;
 
     b = r->body;

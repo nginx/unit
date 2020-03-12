@@ -186,7 +186,7 @@ nxt_int_t
 nxt_http_request_content_length(void *ctx, nxt_http_field_t *field,
     uintptr_t data)
 {
-    nxt_off_t           n;
+    nxt_off_t           n, max_body_size;
     nxt_http_request_t  *r;
 
     r = ctx;
@@ -198,6 +198,13 @@ nxt_http_request_content_length(void *ctx, nxt_http_field_t *field,
 
         if (nxt_fast_path(n >= 0)) {
             r->content_length_n = n;
+
+            max_body_size = r->conf->socket_conf->max_body_size;
+
+            if (nxt_slow_path(n > max_body_size)) {
+                return NXT_HTTP_PAYLOAD_TOO_LARGE;
+            }
+
             return NXT_OK;
         }
     }
