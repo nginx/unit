@@ -2,7 +2,11 @@ def application(environ, start_response):
     body = []
     content_length = 0
 
-    for l in environ['wsgi.input'].__iter__():
+    while True:
+        l = environ['wsgi.input'].readline()
+        if not l:
+            break
+
         body.append(l)
         content_length += len(l)
 

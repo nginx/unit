@@ -384,13 +384,80 @@ Connection: close
 
         self.assertEqual(self.get()['status'], 500, 'start response exit')
 
-    @unittest.skip('not yet')
     def test_python_application_input_iter(self):
         self.load('input_iter')
 
-        body = '0123456789'
+        body = '''0123456789
+next line
 
-        self.assertEqual(self.post(body=body)['body'], body, 'input iter')
+last line'''
+
+        resp = self.post(body=body)
+        self.assertEqual(resp['body'], body, 'input iter')
+        self.assertEqual(
+            resp['headers']['X-Lines-Count'], '4', 'input iter lines'
+        )
+
+    def test_python_application_input_readline(self):
+        self.load('input_readline')
+
+        body = '''0123456789
+next line
+
+last line'''
+
+        resp = self.post(body=body)
+        self.assertEqual(resp['body'], body, 'input readline')
+        self.assertEqual(
+            resp['headers']['X-Lines-Count'], '4', 'input readline lines'
+        )
+
+    def test_python_application_input_readline_size(self):
+        self.load('input_readline_size')
+
+        body = '''0123456789
+next line
+
+last line'''
+
+        self.assertEqual(
+            self.post(body=body)['body'], body, 'input readline size'
+        )
+        self.assertEqual(
+            self.post(body='0123')['body'], '0123', 'input readline size less'
+        )
+
+    def test_python_application_input_readlines(self):
+        self.load('input_readlines')
+
+        body = '''0123456789
+next line
+
+last line'''
+
+        resp = self.post(body=body)
+        self.assertEqual(resp['body'], body, 'input readlines')
+        self.assertEqual(
+            resp['headers']['X-Lines-Count'], '4', 'input readlines lines'
+        )
+
+    def test_python_application_input_readlines_huge(self):
+        self.load('input_readlines')
+
+        body = (
+            '''0123456789 abcdefghi
+next line: 0123456789 abcdefghi
+
+last line: 987654321
+'''
+            * 512
+        )
+
+        self.assertEqual(
+            self.post(body=body, read_buffer_size=16384)['body'],
+            body,
+            'input readlines huge',
+        )
 
     def test_python_application_input_read_length(self):
         self.load('input_read_length')
