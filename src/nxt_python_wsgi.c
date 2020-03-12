@@ -89,7 +89,11 @@ static PyObject *nxt_py_write(PyObject *self, PyObject *args);
 static void nxt_py_input_dealloc(nxt_py_input_t *self);
 static PyObject *nxt_py_input_read(nxt_py_input_t *self, PyObject *args);
 static PyObject *nxt_py_input_readline(nxt_py_input_t *self, PyObject *args);
+static PyObject *nxt_py_input_getline(nxt_python_run_ctx_t *ctx, size_t size);
 static PyObject *nxt_py_input_readlines(nxt_py_input_t *self, PyObject *args);
+
+static PyObject *nxt_py_input_iter(PyObject *self);
+static PyObject *nxt_py_input_next(PyObject *self);
 
 static void nxt_python_print_exception(void);
 static int nxt_python_write(nxt_python_run_ctx_t *ctx, PyObject *bytes);
@@ -142,6 +146,8 @@ static PyTypeObject nxt_py_input_type = {
     .tp_dealloc   = (destructor) nxt_py_input_dealloc,
     .tp_flags     = Py_TPFLAGS_DEFAULT,
     .tp_doc       = "unit input object.",
+    .tp_iter      = nxt_py_input_iter,
+    .tp_iternext  = nxt_py_input_next,
     .tp_methods   = nxt_py_input_methods,
 };
 
@@ -1229,14 +1235,151 @@ nxt_py_input_read(nxt_py_input_t *self, PyObject *args)
 static PyObject *
 nxt_py_input_readline(nxt_py_input_t *self, PyObject *args)
 {
-    return PyBytes_FromStringAndSize("", 0);
+    ssize_t               ssize;
+    PyObject              *obj;
+    Py_ssize_t            n;
+    nxt_python_run_ctx_t  *ctx;
+
+    ctx = nxt_python_run_ctx;
+    if (nxt_slow_path(ctx == NULL)) {
+        return PyErr_Format(PyExc_RuntimeError,
+                            "wsgi.input.readline() is called "
+                            "outside of WSGI request processing");
+    }
+
+    n = PyTuple_GET_SIZE(args);
+
+    if (n > 0) {
+        if (n != 1) {
+            return PyErr_Format(PyExc_TypeError, "invalid number of arguments");
+        }
+
+        obj = PyTuple_GET_ITEM(args, 0);
+
+        ssize = PyNumber_AsSsize_t(obj, PyExc_OverflowError);
+
+        if (nxt_fast_path(ssize > 0)) {
+            return nxt_py_input_getline(ctx, ssize);
+        }
+
+        if (ssize == 0) {
+            return PyBytes_FromStringAndSize("", 0);
+        }
+
+        if (ssize != -1) {
+            return PyErr_Format(PyExc_ValueError,
+                                "the read line size cannot be zero or less");
+        }
+
+        if (PyErr_Occurred()) {
+            return NULL;
+        }
+    }
+
+    return nxt_py_input_getline(ctx, SSIZE_MAX);
+}
+
+
+static PyObject *
+nxt_py_input_getline(nxt_python_run_ctx_t *ctx, size_t size)
+{
+    void      *buf;
+    ssize_t   res;
+    PyObject  *content;
+
+    res = nxt_unit_request_readline_size(ctx->req, size);
+    if (nxt_slow_path(res < 0)) {
+        return NULL;
+    }
+
+    if (res == 0) {
+        return PyBytes_FromStringAndSize("", 0);
+    }
+
+    content = PyBytes_FromStringAndSize(NULL, res);
+    if (nxt_slow_path(content == NULL)) {
+        return NULL;
+    }
+
+    buf = PyBytes_AS_STRING(content);
+
+    res = nxt_unit_request_read(ctx->req, buf, res);
+
+    return content;
 }
 
 
 static PyObject *
 nxt_py_input_readlines(nxt_py_input_t *self, PyObject *args)
 {
-    return PyList_New(0);
+    PyObject              *res;
+    nxt_python_run_ctx_t  *ctx;
+
+    ctx = nxt_python_run_ctx;
+    if (nxt_slow_path(ctx == NULL)) {
+        return PyErr_Format(PyExc_RuntimeError,
+                            "wsgi.input.readlines() is called "
+                            "outside of WSGI request processing");
+    }
+
+    res = PyList_New(0);
+    if (nxt_slow_path(res == NULL)) {
+        return NULL;
+    }
+
+    for ( ;; ) {
+        PyObject *line = nxt_py_input_getline(ctx, SSIZE_MAX);
+        if (nxt_slow_path(line == NULL)) {
+            Py_DECREF(res);
+            return NULL;
+        }
+
+        if (PyBytes_GET_SIZE(line) == 0) {
+            Py_DECREF(line);
+            return res;
+        }
+
+        PyList_Append(res, line);	
+        Py_DECREF(line);
+    }
+
+    return res;
+}
+
+
+static PyObject *
+nxt_py_input_iter(PyObject *self)
+{
+    Py_INCREF(self);
+    return self;
+}
+
+
+static PyObject *
+nxt_py_input_next(PyObject *self)
+{
+    PyObject              *line;
+    nxt_python_run_ctx_t  *ctx;
+
+    ctx = nxt_python_run_ctx;
+    if (nxt_slow_path(ctx == NULL)) {
+        return PyErr_Format(PyExc_RuntimeError,
+                            "wsgi.input.next() is called "
+                            "outside of WSGI request processing");
+    }
+
+    line = nxt_py_input_getline(ctx, SSIZE_MAX);
+    if (nxt_slow_path(line == NULL)) {
+        return NULL;
+    }
+
+    if (PyBytes_GET_SIZE(line) == 0) {
+        Py_DECREF(line);
+        PyErr_SetNone(PyExc_StopIteration);
+        return NULL;
+    }
+
+    return line;
 }
 
 
