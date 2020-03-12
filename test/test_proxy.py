@@ -196,6 +196,8 @@ Content-Length: 10
         self.assertEqual(resp['body'], payload, 'body')
 
     def test_proxy_parallel(self):
+        self.skip_alerts.append(r'close\(\d+\) failed')
+
         payload = 'X' * 4096 * 257
         buff_size = 4096 * 258
 
