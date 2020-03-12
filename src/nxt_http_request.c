@@ -326,17 +326,7 @@ nxt_http_action_t *
 nxt_http_application_handler(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_action_t *action)
 {
-    nxt_event_engine_t  *engine;
-
     nxt_debug(task, "http application handler");
-
-    nxt_mp_retain(r->mem_pool);
-
-    engine = task->thread->engine;
-    r->timer.task = &engine->task;
-    r->timer.work_queue = &engine->fast_work_queue;
-    r->timer.log = engine->task.log;
-    r->timer.bias = NXT_TIMER_DEFAULT_BIAS;
 
     /*
      * TODO: need an application flag to get local address

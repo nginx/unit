@@ -4705,6 +4705,21 @@ nxt_router_process_http_request(nxt_task_t *task, nxt_http_request_t *r,
         return;
     }
 
+    /*
+     * At this point we have request req_rpc_data allocated and registered
+     * in port handlers.  Need to fixup request memory pool.  Counterpart
+     * release will be called via following call chain:
+     *    nxt_request_rpc_data_unlink() ->
+     *        nxt_router_http_request_done() ->
+     *            nxt_router_http_request_release()
+     */
+    nxt_mp_retain(r->mem_pool);
+
+    r->timer.task = &engine->task;
+    r->timer.work_queue = &engine->fast_work_queue;
+    r->timer.log = engine->task.log;
+    r->timer.bias = NXT_TIMER_DEFAULT_BIAS;
+
     req_rpc_data->stream = nxt_port_rpc_ex_stream(req_rpc_data);
     req_rpc_data->app = app;
 
