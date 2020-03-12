@@ -1244,15 +1244,74 @@ nxt_conf_json_parse(nxt_mp_t *mp, u_char *start, u_char *end,
 static u_char *
 nxt_conf_json_skip_space(u_char *start, u_char *end)
 {
-    u_char  *p;
+    u_char  *p, ch;
+
+    enum {
+        sw_normal = 0,
+        sw_after_slash,
+        sw_single_comment,
+        sw_multi_comment,
+        sw_after_asterisk,
+    } state;
+
+    state = sw_normal;
 
     for (p = start; nxt_fast_path(p != end); p++) {
+        ch = *p;
 
-        switch (*p) {
-        case ' ':
-        case '\t':
-        case '\r':
-        case '\n':
+        switch (state) {
+
+        case sw_normal:
+            switch (ch) {
+            case ' ':
+            case '\t':
+            case '\n':
+            case '\r':
+                continue;
+            case '/':
+                state = sw_after_slash;
+                continue;
+            }
+
+            break;
+
+        case sw_after_slash:
+            switch (ch) {
+            case '/':
+                state = sw_single_comment;
+                continue;
+            case '*':
+                state = sw_multi_comment;
+                continue;
+            }
+
+            p--;
+            break;
+
+        case sw_single_comment:
+            if (ch == '\n') {
+                state = sw_normal;
+            }
+
+            continue;
+
+        case sw_multi_comment:
+            if (ch == '*') {
+                state = sw_after_asterisk;
+            }
+
+            continue;
+
+        case sw_after_asterisk:
+            switch (ch) {
+            case '/':
+                state = sw_normal;
+                continue;
+            case '*':
+                continue;
+            }
+
+            state = sw_multi_comment;
             continue;
         }
 
@@ -1346,6 +1405,7 @@ nxt_conf_json_parse_value(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
         case '{':
         case '[':
         case '"':
+        case '/':
             return p;
         }
     }

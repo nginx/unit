@@ -9,6 +9,8 @@
 
 static void nxt_conn_write_timer_handler(nxt_task_t *task, void *obj,
     void *data);
+static ssize_t nxt_conn_io_sendfile(nxt_task_t *task, nxt_sendbuf_t *sb);
+static ssize_t nxt_sendfile(int fd, int s, off_t pos, size_t size);
 
 
 void
@@ -170,7 +172,101 @@ nxt_conn_io_sendbuf(nxt_task_t *task, nxt_sendbuf_t *sb)
         return 0;
     }
 
+    if (niov == 0 && nxt_buf_is_file(sb->buf)) {
+        return nxt_conn_io_sendfile(task, sb);
+    }
+
     return nxt_conn_io_writev(task, sb, iov, niov);
+}
+
+
+static ssize_t
+nxt_conn_io_sendfile(nxt_task_t *task, nxt_sendbuf_t *sb)
+{
+    size_t     size;
+    ssize_t    n;
+    nxt_buf_t  *b;
+    nxt_err_t  err;
+
+    b = sb->buf;
+
+    for ( ;; ) {
+        size = b->file_end - b->file_pos;
+
+        n = nxt_sendfile(b->file->fd, sb->socket, b->file_pos, size);
+
+        err = (n == -1) ? nxt_errno : 0;
+
+        nxt_debug(task, "sendfile(%FD, %d, @%O, %uz): %z",
+                  b->file->fd, sb->socket, b->file_pos, size, n);
+
+        if (n > 0) {
+            if (n < (ssize_t) size) {
+                sb->ready = 0;
+            }
+
+            return n;
+        }
+
+        if (nxt_slow_path(n == 0)) {
+            nxt_alert(task, "sendfile() reported that file was truncated at %O",
+                      b->file_pos);
+
+            return NXT_ERROR;
+        }
+
+        /* n == -1 */
+
+        switch (err) {
+
+        case NXT_EAGAIN:
+            sb->ready = 0;
+            nxt_debug(task, "sendfile() %E", err);
+
+            return NXT_AGAIN;
+
+        case NXT_EINTR:
+            nxt_debug(task, "sendfile() %E", err);
+            continue;
+
+        default:
+            sb->error = err;
+            nxt_log(task, nxt_socket_error_level(err),
+                    "sendfile(%FD, %d, @%O, %uz) failed %E",
+                    b->file->fd, sb->socket, b->file_pos, size, err);
+
+            return NXT_ERROR;
+        }
+    }
+}
+
+
+static ssize_t
+nxt_sendfile(int fd, int s, off_t pos, size_t size)
+{
+    ssize_t  res;
+
+#ifdef NXT_HAVE_MACOSX_SENDFILE
+    off_t sent = size;
+
+    int rc = sendfile(fd, s, pos, &sent, NULL, 0);
+
+    res = (rc == 0 || sent > 0) ? sent : -1;
+#endif
+
+#ifdef NXT_HAVE_FREEBSD_SENDFILE
+    off_t sent = 0;
+
+    int rc = sendfile(fd, s, pos, size, NULL, &sent, 0);
+
+    res = (rc == 0 || sent > 0) ? sent : -1;
+#endif
+
+#ifdef NXT_HAVE_LINUX_SENDFILE
+    res = sendfile(s, fd, &pos, size);
+#endif
+
+    return res;
 }
 
 

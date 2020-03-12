@@ -989,6 +989,13 @@ nxt_controller_process_config(nxt_task_t *task, nxt_controller_request_t *req,
 
         nxt_memzero(&error, sizeof(nxt_conf_json_error_t));
 
+        /* Skip UTF-8 BOM. */
+        if (nxt_buf_mem_used_size(mbuf) >= 3
+            && nxt_memcmp(mbuf->pos, "\xEF\xBB\xBF", 3) == 0)
+        {
+            mbuf->pos += 3;
+        }
+
         value = nxt_conf_json_parse(mp, mbuf->pos, mbuf->free, &error);
 
         if (value == NULL) {

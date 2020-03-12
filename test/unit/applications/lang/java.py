@@ -1,7 +1,7 @@
 import os
 import glob
 import shutil
-from subprocess import Popen
+import subprocess
 from unit.applications.proto import TestApplicationProto
 
 
@@ -64,7 +64,7 @@ class TestApplicationJava(TestApplicationProto):
             javac.extend(src)
 
             try:
-                process = Popen(javac)
+                process = subprocess.Popen(javac, stderr=subprocess.STDOUT)
                 process.communicate()
 
             except:

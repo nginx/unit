@@ -2,7 +2,6 @@ import os
 import re
 import time
 import unittest
-from subprocess import call
 from unit.applications.lang.python import TestApplicationPython
 
 

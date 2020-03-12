@@ -18,6 +18,8 @@ typedef struct nxt_http_request_s  nxt_http_request_t;
 
 typedef struct nxt_http_action_s        nxt_http_action_t;
 typedef struct nxt_http_routes_s        nxt_http_routes_t;
+typedef struct nxt_upstream_s           nxt_upstream_t;
+typedef struct nxt_upstreams_s          nxt_upstreams_t;
 typedef struct nxt_router_access_log_s  nxt_router_access_log_t;
 
 
@@ -43,6 +45,7 @@ typedef struct {
 
     nxt_router_t             *router;
     nxt_http_routes_t        *routes;
+    nxt_upstreams_t          *upstreams;
 
     nxt_lvlhsh_t             mtypes_hash;
 
@@ -184,6 +187,8 @@ typedef struct {
 
     nxt_websocket_conf_t   websocket_conf;
 
+    nxt_str_t              body_temp_path;
+
 #if (NXT_TLS)
     nxt_tls_conf_t         *tls;
 #endif
@@ -195,6 +200,8 @@ typedef struct {
     nxt_queue_link_t       link;
     nxt_event_engine_t     *engine;
     nxt_socket_conf_t      *socket_conf;
+
+    nxt_upstream_t         **upstreams;
 
     /* Modules configuraitons. */
 } nxt_socket_conf_joint_t;
@@ -218,8 +225,8 @@ void nxt_router_access_log_reopen_handler(nxt_task_t *task,
 void nxt_router_process_http_request(nxt_task_t *task, nxt_http_request_t *r,
     nxt_app_t *app);
 void nxt_router_app_port_close(nxt_task_t *task, nxt_port_t *port);
-nxt_app_t *nxt_router_listener_application(nxt_router_temp_conf_t *tmcf,
-    nxt_str_t *name);
+void nxt_router_listener_application(nxt_router_temp_conf_t *tmcf,
+    nxt_str_t *name, nxt_http_action_t *action);
 void nxt_router_app_use(nxt_task_t *task, nxt_app_t *app, int i);
 void nxt_router_listen_event_release(nxt_task_t *task, nxt_listen_event_t *lev,
     nxt_socket_conf_joint_t *joint);

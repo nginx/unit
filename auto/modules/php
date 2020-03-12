@@ -58,6 +58,7 @@ NXT_PHP=${NXT_PHP_CONFIG%-config*}
 NXT_PHP_MODULE=${NXT_PHP_MODULE=${NXT_PHP##*/}}
 NXT_PHP_LIB_PATH=${NXT_PHP_LIB_PATH=}
 NXT_PHP_LIB_STATIC=${NXT_PHP_LIB_STATIC=no}
+NXT_PHP_ADDITIONAL_FLAGS=
 
 
 $echo "configuring PHP module"
@@ -74,6 +75,14 @@ if /bin/sh -c "${NXT_PHP_CONFIG} --version" >> $NXT_AUTOCONF_ERR 2>&1; then
 
     NXT_PHP_VERSION="`${NXT_PHP_CONFIG} --version`"
     $echo " + PHP SAPI: [`${NXT_PHP_CONFIG} --php-sapis`]"
+
+    NXT_PHP_MAJOR_VERSION=${NXT_PHP_VERSION%%.*}
+    NXT_PHP_MINOR_VERSION=${NXT_PHP_VERSION#??}
+    NXT_PHP_MINOR_VERSION=${NXT_PHP_MINOR_VERSION%.*}
+
+    if [ $NXT_PHP_MAJOR_VERSION = 5 -a $NXT_PHP_MINOR_VERSION -lt 4 ]; then
+        NXT_PHP_ADDITIONAL_FLAGS=-Wno-write-strings
+    fi
 
     NXT_PHP_INCLUDE="`${NXT_PHP_CONFIG} --includes`"
 
@@ -101,53 +110,6 @@ if /bin/sh -c "${NXT_PHP_CONFIG} --version" >> $NXT_AUTOCONF_ERR 2>&1; then
         fi
     fi
 
-    nxt_feature="PHP embed SAPI"
-    nxt_feature_name=""
-    nxt_feature_run=no
-    nxt_feature_incs="${NXT_PHP_INCLUDE}"
-    nxt_feature_libs="${NXT_PHP_LIB} ${NXT_PHP_LDFLAGS}"
-    nxt_feature_test="
-        #include <php.h>
-        #include <php_main.h>
-
-        int main() {
-            php_module_startup(NULL, NULL, 0);
-            return 0;
-        }"
-
-    . auto/feature
-
-    if [ $nxt_found = no ]; then
-        $echo
-        $echo $0: error: no PHP embed SAPI found.
-        $echo
-        exit 1;
-    fi
-
-    # Bug #71041 (https://bugs.php.net/bug.php?id=71041).
-
-    nxt_feature="PHP zend_signal_startup()"
-    nxt_feature_name=""
-    nxt_feature_run=no
-    nxt_feature_incs="${NXT_PHP_INCLUDE}"
-    nxt_feature_libs="${NXT_PHP_LIB} ${NXT_PHP_LDFLAGS}"
-    nxt_feature_test="
-        #include <php.h>
-        #include <php_main.h>
-
-        int main() {
-            zend_signal_startup();
-            return 0;
-        }"
-
-    . auto/feature
-
-    if [ $nxt_found = yes ]; then
-        NXT_ZEND_SIGNAL_STARTUP=1
-    else
-        NXT_ZEND_SIGNAL_STARTUP=0
-    fi
-
 else
     $echo
     $echo $0: error: no PHP found.
@@ -170,6 +132,74 @@ nxt_feature_test="
     }"
 
 . auto/feature
+
+
+nxt_feature="PHP embed SAPI"
+nxt_feature_name=""
+nxt_feature_run=no
+nxt_feature_incs="${NXT_PHP_INCLUDE}"
+nxt_feature_libs="${NXT_PHP_LIB} ${NXT_PHP_LDFLAGS}"
+nxt_feature_test="
+    #include <php.h>
+    #include <php_main.h>
+
+    int main() {
+        php_module_startup(NULL, NULL, 0);
+        return 0;
+    }"
+
+. auto/feature
+
+if [ $nxt_found = no ]; then
+    $echo
+    $echo $0: error: no PHP embed SAPI found.
+    $echo
+    exit 1;
+fi
+
+
+nxt_feature="PHP Zend Thread Safety"
+nxt_feature_name=""
+nxt_feature_run=no
+nxt_feature_incs="${NXT_PHP_INCLUDE}"
+nxt_feature_libs="${NXT_PHP_LIB} ${NXT_PHP_LDFLAGS}"
+nxt_feature_test="
+    #include <php.h>
+    #include <php_main.h>
+
+    int main() {
+        #ifndef ZTS
+        #error ZTS is not defined.
+        #endif
+        return 0;
+    }"
+
+. auto/feature
+
+
+# Bug #71041 (https://bugs.php.net/bug.php?id=71041).
+
+nxt_feature="PHP zend_signal_startup()"
+nxt_feature_name=""
+nxt_feature_run=no
+nxt_feature_incs="${NXT_PHP_INCLUDE}"
+nxt_feature_libs="${NXT_PHP_LIB} ${NXT_PHP_LDFLAGS}"
+nxt_feature_test="
+    #include <php.h>
+    #include <php_main.h>
+
+    int main() {
+        zend_signal_startup();
+        return 0;
+    }"
+
+. auto/feature
+
+if [ $nxt_found = yes ]; then
+    NXT_ZEND_SIGNAL_STARTUP=1
+else
+    NXT_ZEND_SIGNAL_STARTUP=0
+fi
 
 
 if grep ^$NXT_PHP_MODULE: $NXT_MAKEFILE 2>&1 > /dev/null; then
@@ -204,8 +234,8 @@ for nxt_src in $NXT_PHP_MODULE_SRCS; do
     cat << END >> $NXT_MAKEFILE
 
 $NXT_BUILD_DIR/$nxt_obj:	$nxt_src $NXT_VERSION_H
-	\$(CC) -c \$(CFLAGS) \$(NXT_INCS) $NXT_PHP_INCLUDE \\
-	-DNXT_ZEND_SIGNAL_STARTUP=$NXT_ZEND_SIGNAL_STARTUP \\
+	\$(CC) -c \$(CFLAGS) $NXT_PHP_ADDITIONAL_FLAGS \$(NXT_INCS) \\
+	$NXT_PHP_INCLUDE -DNXT_ZEND_SIGNAL_STARTUP=$NXT_ZEND_SIGNAL_STARTUP \\
 	$nxt_dep_flags \\
 	-o $NXT_BUILD_DIR/$nxt_obj $nxt_src
 	$nxt_dep_post

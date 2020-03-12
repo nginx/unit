@@ -812,8 +812,7 @@ Unit::response_write(napi_env env, napi_callback_info info)
             /* TODO: will work only for utf8 content-type */
 
             if (req->response_buf != NULL
-                && (req->response_buf->end - req->response_buf->free)
-                    >= buf_len)
+                && req->response_buf->end >= req->response_buf->free + buf_len)
             {
                 buf = req->response_buf;
 

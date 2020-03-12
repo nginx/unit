@@ -103,6 +103,7 @@ struct nxt_unit_request_info_s {
 
     nxt_unit_buf_t        *content_buf;
     uint64_t              content_length;
+    int                   content_fd;
 
     void                  *data;
 };
@@ -334,6 +335,9 @@ int nxt_unit_response_write_cb(nxt_unit_request_info_t *req,
 
 ssize_t nxt_unit_request_read(nxt_unit_request_info_t *req, void *dst,
     size_t size);
+
+ssize_t nxt_unit_request_readline_size(nxt_unit_request_info_t *req,
+    size_t max_size);
 
 void nxt_unit_request_done(nxt_unit_request_info_t *req, int rc);
 

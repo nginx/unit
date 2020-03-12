@@ -1,5 +1,5 @@
 import os
-from subprocess import Popen
+import subprocess
 from unit.applications.proto import TestApplicationProto
 
 
@@ -26,7 +26,7 @@ class TestApplicationGo(TestApplicationProto):
         env['GOPATH'] = self.pardir + '/build/go'
 
         try:
-            process = Popen(
+            process = subprocess.Popen(
                 [
                     'go',
                     'build',
@@ -35,6 +35,7 @@ class TestApplicationGo(TestApplicationProto):
                     self.current_dir + '/go/' + script + '/' + name + '.go',
                 ],
                 env=env,
+                stderr=subprocess.STDOUT,
             )
 
             process.communicate()

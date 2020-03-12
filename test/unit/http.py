@@ -96,12 +96,7 @@ class TestHTTP(TestUnit):
 
         encoding = 'utf-8' if 'encoding' not in kwargs else kwargs['encoding']
 
-        if TestUnit.detailed:
-            print('>>>')
-            try:
-                print(req.decode(encoding, 'ignore'))
-            except UnicodeEncodeError:
-                print(req)
+        self.log_out(req, encoding)
 
         resp = ''
 
@@ -113,12 +108,7 @@ class TestHTTP(TestUnit):
                 sock, read_timeout=read_timeout, buff_size=read_buffer_size
             ).decode(encoding)
 
-        if TestUnit.detailed:
-            print('<<<')
-            try:
-                print(resp)
-            except UnicodeEncodeError:
-                print(resp.encode())
+        self.log_in(resp)
 
         if 'raw_resp' not in kwargs:
             resp = self._resp_to_dict(resp)
@@ -137,6 +127,37 @@ class TestHTTP(TestUnit):
             return resp
 
         return (resp, sock)
+
+    def log_out(self, log, encoding):
+        if TestUnit.detailed:
+            print('>>>')
+            log = self.log_truncate(log)
+            try:
+                print(log.decode(encoding, 'ignore'))
+            except UnicodeEncodeError:
+                print(log)
+
+    def log_in(self, log):
+        if TestUnit.detailed:
+            print('<<<')
+            log = self.log_truncate(log)
+            try:
+                print(log)
+            except UnicodeEncodeError:
+                print(log.encode())
+
+    def log_truncate(self, log, limit=1024):
+        len_log = len(log)
+        if len_log > limit:
+            log = log[:limit]
+            appendix = '(...logged %s of %s bytes)' % (limit, len_log)
+
+            if isinstance(log, bytes):
+                appendix = appendix.encode()
+
+            log = log + appendix
+
+        return log
 
     def delete(self, **kwargs):
         return self.http('DELETE', **kwargs)

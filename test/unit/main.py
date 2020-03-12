@@ -5,6 +5,7 @@ import stat
 import time
 import fcntl
 import shutil
+import signal
 import argparse
 import platform
 import tempfile
@@ -30,6 +31,7 @@ class TestUnit(unittest.TestCase):
 
     detailed = False
     save_log = False
+    print_log = False
     unsafe = False
 
     def __init__(self, methodName='runTest'):
@@ -183,7 +185,7 @@ class TestUnit(unittest.TestCase):
             shutil.rmtree(self.testdir)
 
         else:
-            self._print_path_to_log()
+            self._print_log()
 
     def stop(self):
         if self._started:
@@ -207,9 +209,9 @@ class TestUnit(unittest.TestCase):
 
         os.mkdir(self.testdir + '/state')
 
-        print()
-
-        self._p = Process(target=subprocess.call, args=[ [
+        with open(self.testdir + '/unit.log', 'w') as log:
+            self._p = subprocess.Popen(
+                [
                     self.unitd,
                     '--no-daemon',
                     '--modules',  self.pardir + '/build',
@@ -217,54 +219,39 @@ class TestUnit(unittest.TestCase):
                     '--pid',      self.testdir + '/unit.pid',
                     '--log',      self.testdir + '/unit.log',
                     '--control',  'unix:' + self.testdir + '/control.unit.sock',
-                ] ])
-        self._p.start()
+                    '--tmp',      self.testdir,
+                ],
+                stderr=log,
+            )
 
-        if not self.waitforfiles(
-            self.testdir + '/unit.pid',
-            self.testdir + '/unit.log',
-            self.testdir + '/control.unit.sock',
-        ):
+        if not self.waitforfiles(self.testdir + '/control.unit.sock'):
             exit("Could not start unit")
 
         self._started = True
 
         self.skip_alerts = [
             r'read signalfd\(4\) failed',
+            r'last message send failed',
             r'sendmsg.+failed',
             r'recvmsg.+failed',
         ]
         self.skip_sanitizer = False
 
     def _stop(self):
-        with open(self.testdir + '/unit.pid', 'r') as f:
-            pid = f.read().rstrip()
+        with self._p as p:
+            p.send_signal(signal.SIGQUIT)
 
-        subprocess.call(['kill', '-s', 'QUIT', pid])
-
-        for i in range(150):
-            if not os.path.exists(self.testdir + '/unit.pid'):
-                break
-            time.sleep(0.1)
-
-        self._p.join(timeout=5)
-
-        if self._p.is_alive():
-            self._p.terminate()
-            self._p.join(timeout=5)
-
-        if self._p.is_alive():
-            self.fail("Could not terminate process " + str(self._p.pid))
-
-        if os.path.exists(self.testdir + '/unit.pid'):
-            self.fail("Could not terminate unit")
+            try:
+                retcode = p.wait(15)
+                if retcode:
+                    self.fail(
+                        "Child process terminated with code " + str(retcode)
+                    )
+            except:
+                self.fail("Could not terminate unit")
+                p.kill()
 
         self._started = False
-
-        if self._p.exitcode:
-            self.fail(
-                "Child process terminated with code " + str(self._p.exitcode)
-            )
 
     def _check_alerts(self, log):
         found = False
@@ -281,14 +268,14 @@ class TestUnit(unittest.TestCase):
                 alerts = [al for al in alerts if re.search(skip, al) is None]
 
         if alerts:
-            self._print_path_to_log()
+            self._print_log(log)
             self.assertFalse(alerts, 'alert(s)')
 
         if not self.skip_sanitizer:
             sanitizer_errors = re.findall('.+Sanitizer.+', log)
 
             if sanitizer_errors:
-                self._print_path_to_log()
+                self._print_log(log)
                 self.assertFalse(sanitizer_errors, 'sanitizer error(s)')
 
         if found:
@@ -361,6 +348,13 @@ class TestUnit(unittest.TestCase):
             help='Save unit.log after the test execution',
         )
         parser.add_argument(
+            '-r',
+            '--reprint_log',
+            dest='print_log',
+            action='store_true',
+            help='Print unit.log to stdout in case of errors',
+        )
+        parser.add_argument(
             '-u',
             '--unsafe',
             dest='unsafe',
@@ -374,12 +368,23 @@ class TestUnit(unittest.TestCase):
     def _set_args(args):
         TestUnit.detailed = args.detailed
         TestUnit.save_log = args.save_log
+        TestUnit.print_log = args.print_log
         TestUnit.unsafe = args.unsafe
 
         # set stdout to non-blocking
 
-        if TestUnit.detailed:
+        if TestUnit.detailed or TestUnit.print_log:
             fcntl.fcntl(sys.stdout.fileno(), fcntl.F_SETFL, 0)
 
-    def _print_path_to_log(self):
-        print('Path to unit.log:\n' + self.testdir + '/unit.log')
+    def _print_log(self, data=None):
+        path = self.testdir + '/unit.log'
+
+        print('Path to unit.log:\n' + path + '\n')
+
+        if TestUnit.print_log:
+            if data is None:
+                with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+                    data = f.read()
+
+            print(data)
+

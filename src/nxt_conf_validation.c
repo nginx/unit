@@ -110,6 +110,12 @@ static nxt_int_t nxt_conf_vldt_java_classpath(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_java_option(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value);
+static nxt_int_t nxt_conf_vldt_upstream(nxt_conf_validation_t *vldt,
+     nxt_str_t *name, nxt_conf_value_t *value);
+static nxt_int_t nxt_conf_vldt_server(nxt_conf_validation_t *vldt,
+    nxt_str_t *name, nxt_conf_value_t *value);
+static nxt_int_t nxt_conf_vldt_server_weight(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
 
 static nxt_int_t nxt_conf_vldt_isolation(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
@@ -176,8 +182,18 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[] = {
       NULL,
       NULL },
 
+    { nxt_string("body_buffer_size"),
+      NXT_CONF_VLDT_INTEGER,
+      NULL,
+      NULL },
+
     { nxt_string("max_body_size"),
       NXT_CONF_VLDT_INTEGER,
+      NULL,
+      NULL },
+
+    { nxt_string("body_temp_path"),
+      NXT_CONF_VLDT_STRING,
       NULL,
       NULL },
 
@@ -225,6 +241,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_root_members[] = {
       NXT_CONF_VLDT_OBJECT,
       &nxt_conf_vldt_object_iterator,
       (void *) &nxt_conf_vldt_app },
+
+    { nxt_string("upstreams"),
+      NXT_CONF_VLDT_OBJECT,
+      &nxt_conf_vldt_object_iterator,
+      (void *) &nxt_conf_vldt_upstream },
 
     { nxt_string("access_log"),
       NXT_CONF_VLDT_STRING,
@@ -323,17 +344,32 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_match_members[] = {
 };
 
 
-static nxt_conf_vldt_object_t  nxt_conf_vldt_action_members[] = {
+static nxt_conf_vldt_object_t  nxt_conf_vldt_pass_action_members[] = {
     { nxt_string("pass"),
       NXT_CONF_VLDT_STRING,
       &nxt_conf_vldt_pass,
       NULL },
 
+    NXT_CONF_VLDT_END
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_share_action_members[] = {
     { nxt_string("share"),
       NXT_CONF_VLDT_STRING,
       NULL,
       NULL },
 
+    { nxt_string("fallback"),
+      NXT_CONF_VLDT_OBJECT,
+      &nxt_conf_vldt_action,
+      NULL },
+
+    NXT_CONF_VLDT_END
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_proxy_action_members[] = {
     { nxt_string("proxy"),
       NXT_CONF_VLDT_STRING,
       &nxt_conf_vldt_proxy,
@@ -667,6 +703,26 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_java_members[] = {
 };
 
 
+static nxt_conf_vldt_object_t  nxt_conf_vldt_upstream_members[] = {
+    { nxt_string("servers"),
+      NXT_CONF_VLDT_OBJECT,
+      &nxt_conf_vldt_object_iterator,
+      (void *) &nxt_conf_vldt_server },
+
+    NXT_CONF_VLDT_END
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_upstream_server_members[] = {
+    { nxt_string("weight"),
+      NXT_CONF_VLDT_INTEGER,
+      &nxt_conf_vldt_server_weight,
+      NULL },
+
+    NXT_CONF_VLDT_END
+};
+
+
 nxt_int_t
 nxt_conf_validate(nxt_conf_validation_t *vldt)
 {
@@ -912,30 +968,45 @@ static nxt_int_t
 nxt_conf_vldt_action(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     void *data)
 {
-    nxt_int_t         ret;
-    nxt_conf_value_t  *pass_value, *share_value, *proxy_value;
+    nxt_uint_t              i;
+    nxt_conf_value_t        *action;
+    nxt_conf_vldt_object_t  *members;
 
-    static nxt_str_t  pass_str = nxt_string("pass");
-    static nxt_str_t  share_str = nxt_string("share");
-    static nxt_str_t  proxy_str = nxt_string("proxy");
+    static struct {
+        nxt_str_t               name;
+        nxt_conf_vldt_object_t  *members;
 
-    ret = nxt_conf_vldt_object(vldt, value, nxt_conf_vldt_action_members);
+    } actions[] = {
+        { nxt_string("pass"), nxt_conf_vldt_pass_action_members },
+        { nxt_string("share"), nxt_conf_vldt_share_action_members },
+        { nxt_string("proxy"), nxt_conf_vldt_proxy_action_members },
+    };
 
-    if (ret != NXT_OK) {
-        return ret;
+    members = NULL;
+
+    for (i = 0; i < nxt_nitems(actions); i++) {
+        action = nxt_conf_get_object_member(value, &actions[i].name, NULL);
+
+        if (action == NULL) {
+            continue;
+        }
+
+        if (members != NULL) {
+            return nxt_conf_vldt_error(vldt, "The \"action\" object must have "
+                                       "just one of \"pass\", \"share\" or "
+                                       "\"proxy\" options set.");
+        }
+
+        members = actions[i].members;
     }
 
-    pass_value = nxt_conf_get_object_member(value, &pass_str, NULL);
-    share_value = nxt_conf_get_object_member(value, &share_str, NULL);
-    proxy_value = nxt_conf_get_object_member(value, &proxy_str, NULL);
-
-    if (pass_value == NULL && share_value == NULL && proxy_value == NULL) {
+    if (members == NULL) {
         return nxt_conf_vldt_error(vldt, "The \"action\" object must have "
-                                         "either \"pass\" or \"share\" or "
+                                         "either \"pass\", \"share\", or "
                                          "\"proxy\" option set.");
     }
 
-    return NXT_OK;
+    return nxt_conf_vldt_object(vldt, value, members);
 }
 
 
@@ -967,6 +1038,27 @@ nxt_conf_vldt_pass(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     }
 
     if (nxt_str_eq(&first, "applications", 12)) {
+
+        if (second.length == 0) {
+            goto error;
+        }
+
+        value = nxt_conf_get_object_member(vldt->conf, &first, NULL);
+
+        if (nxt_slow_path(value == NULL)) {
+            goto error;
+        }
+
+        value = nxt_conf_get_object_member(value, &second, NULL);
+
+        if (nxt_slow_path(value == NULL)) {
+            goto error;
+        }
+
+        return NXT_OK;
+    }
+
+    if (nxt_str_eq(&first, "upstreams", 9)) {
 
         if (second.length == 0) {
             goto error;
@@ -1867,6 +1959,84 @@ nxt_conf_vldt_java_option(nxt_conf_validation_t *vldt, nxt_conf_value_t *value)
     if (nxt_memchr(str.start, '\0', str.length) != NULL) {
         return nxt_conf_vldt_error(vldt, "The \"options\" array must not "
                                    "contain strings with null character.");
+    }
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_upstream(nxt_conf_validation_t *vldt, nxt_str_t *name,
+    nxt_conf_value_t *value)
+{
+    nxt_int_t         ret;
+    nxt_conf_value_t  *conf;
+
+    static nxt_str_t  servers = nxt_string("servers");
+
+    ret = nxt_conf_vldt_type(vldt, name, value, NXT_CONF_VLDT_OBJECT);
+
+    if (ret != NXT_OK) {
+        return ret;
+    }
+
+    ret = nxt_conf_vldt_object(vldt, value, nxt_conf_vldt_upstream_members);
+
+    if (ret != NXT_OK) {
+        return ret;
+    }
+
+    conf = nxt_conf_get_object_member(value, &servers, NULL);
+    if (conf == NULL) {
+        return nxt_conf_vldt_error(vldt, "The \"%V\" upstream must contain "
+                                   "\"servers\" object value.", name);
+    }
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_server(nxt_conf_validation_t *vldt, nxt_str_t *name,
+    nxt_conf_value_t *value)
+{
+    nxt_int_t       ret;
+    nxt_sockaddr_t  *sa;
+
+    ret = nxt_conf_vldt_type(vldt, name, value, NXT_CONF_VLDT_OBJECT);
+
+    if (ret != NXT_OK) {
+        return ret;
+    }
+
+    sa = nxt_sockaddr_parse(vldt->pool, name);
+
+    if (sa == NULL) {
+        return nxt_conf_vldt_error(vldt, "The \"%V\" is not valid "
+                                   "server address.", name);
+    }
+
+    return nxt_conf_vldt_object(vldt, value,
+                                nxt_conf_vldt_upstream_server_members);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_server_weight(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data)
+{
+    int64_t  int_value;
+
+    int_value = nxt_conf_get_integer(value);
+
+    if (int_value <= 0) {
+        return nxt_conf_vldt_error(vldt, "The \"weight\" number must be "
+                                   "greater than 0.");
+    }
+
+    if (int_value > NXT_INT32_T_MAX) {
+        return nxt_conf_vldt_error(vldt, "The \"weight\" number must "
+                                   "not exceed %d.", NXT_INT32_T_MAX);
     }
 
     return NXT_OK;

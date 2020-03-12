@@ -215,6 +215,31 @@ Connection: close
             self.post(body='012345')['status'], 413, 'status size max'
         )
 
+    def test_settings_max_body_size_large(self):
+        self.load('mirror')
+
+        self.conf({'http': {'max_body_size': 32 * 1024 * 1024}}, 'settings')
+
+        body = '0123456789abcdef' * 4 * 64 * 1024
+        resp = self.post(body=body, read_buffer_size=1024 * 1024)
+        self.assertEqual(resp['status'], 200, 'status size 4')
+        self.assertEqual(resp['body'], body, 'status body 4')
+
+        body = '0123456789abcdef' * 8 * 64 * 1024
+        resp = self.post(body=body, read_buffer_size=1024 * 1024)
+        self.assertEqual(resp['status'], 200, 'status size 8')
+        self.assertEqual(resp['body'], body, 'status body 8')
+
+        body = '0123456789abcdef' * 16 * 64 * 1024
+        resp = self.post(body=body, read_buffer_size=1024 * 1024)
+        self.assertEqual(resp['status'], 200, 'status size 16')
+        self.assertEqual(resp['body'], body, 'status body 16')
+
+        body = '0123456789abcdef' * 32 * 64 * 1024
+        resp = self.post(body=body, read_buffer_size=1024 * 1024)
+        self.assertEqual(resp['status'], 200, 'status size 32')
+        self.assertEqual(resp['body'], body, 'status body 32')
+
     @unittest.skip('not yet')
     def test_settings_negative_value(self):
         self.assertIn(

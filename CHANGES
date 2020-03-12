@@ -1,4 +1,29 @@
 
+Changes with Unit 1.16.0                                         12 Mar 2020
+
+    *) Feature: basic load-balancing support with round-robin.
+
+    *) Feature: a "fallback" option that performs an alternative action if a
+       request can't be served from the "share" directory.
+
+    *) Feature: reduced memory consumption by dumping large request bodies
+       to disk.
+
+    *) Feature: stripping UTF-8 BOM and JavaScript-style comments from
+       uploaded JSON.
+
+    *) Bugfix: negative address matching in router might work improperly in
+       combination with non-negative patterns.
+
+    *) Bugfix: Java Spring applications failed to run; the bug had appeared
+       in 1.10.0.
+
+    *) Bugfix: PHP 7.4 was broken if it was built with thread safety
+       enabled.
+
+    *) Bugfix: compatibility issues with some Python applications.
+
+
 Changes with Unit 1.15.0                                         06 Feb 2020
 
     *) Change: extensions of dynamically requested PHP scripts were

@@ -1,4 +1,6 @@
+import os
 import re
+import shutil
 import unittest
 from unit.applications.lang.php import TestApplicationPHP
 
@@ -10,6 +12,28 @@ class TestPHPApplication(TestApplicationPHP):
 
         self.assertRegex(body, r'time: \d+', 'disable_functions before time')
         self.assertRegex(body, r'exec: \/\w+', 'disable_functions before exec')
+
+    def set_opcache(self, app, val):
+        self.assertIn(
+            'success',
+            self.conf(
+                {
+                    "admin": {
+                        "opcache.enable": val,
+                        "opcache.enable_cli": val,
+                    },
+                },
+                'applications/' + app + '/options',
+            ),
+        )
+
+        opcache = self.get()['headers']['X-OPcache']
+
+        if not opcache or opcache == '-1':
+            print('opcache is not supported')
+            raise unittest.SkipTest()
+
+        self.assertEqual(opcache, val, 'opcache value')
 
     def test_php_application_variables(self):
         self.load('variables')
@@ -464,7 +488,8 @@ class TestPHPApplication(TestApplicationPHP):
 
     def test_php_application_script(self):
         self.assertIn(
-            'success', self.conf(
+            'success',
+            self.conf(
                 {
                     "listeners": {"*:7080": {"pass": "applications/script"}},
                     "applications": {
@@ -476,7 +501,8 @@ class TestPHPApplication(TestApplicationPHP):
                         }
                     },
                 }
-            ), 'configure script'
+            ),
+            'configure script',
         )
 
         resp = self.get()
@@ -486,7 +512,8 @@ class TestPHPApplication(TestApplicationPHP):
 
     def test_php_application_index_default(self):
         self.assertIn(
-            'success', self.conf(
+            'success',
+            self.conf(
                 {
                     "listeners": {"*:7080": {"pass": "applications/phpinfo"}},
                     "applications": {
@@ -497,7 +524,8 @@ class TestPHPApplication(TestApplicationPHP):
                         }
                     },
                 }
-            ), 'configure index default'
+            ),
+            'configure index default',
         )
 
         resp = self.get()
@@ -511,6 +539,135 @@ class TestPHPApplication(TestApplicationPHP):
         self.assertNotEqual(
             self.get(url='/index.wrong')['status'], 200, 'status'
         )
+
+        new_root = self.testdir + "/php"
+        os.mkdir(new_root)
+        shutil.copy(self.current_dir + '/php/phpinfo/index.wrong', new_root)
+
+        self.assertIn(
+            'success',
+            self.conf(
+                {
+                    "listeners": {"*:7080": {"pass": "applications/phpinfo"}},
+                    "applications": {
+                        "phpinfo": {
+                            "type": "php",
+                            "processes": {"spare": 0},
+                            "root": new_root,
+                            "working_directory": new_root,
+                        }
+                    },
+                }
+            ),
+            'configure new root',
+        )
+
+        resp = self.get()
+        self.assertNotEqual(
+            str(resp['status']) + resp['body'], '200', 'status new root'
+        )
+
+    def run_php_application_cwd_root_tests(self):
+        self.assertIn(
+            'success', self.conf_delete('applications/cwd/working_directory')
+        )
+
+        script_cwd = self.current_dir + '/php/cwd'
+
+        resp = self.get()
+        self.assertEqual(resp['status'], 200, 'status ok')
+        self.assertEqual(resp['body'], script_cwd, 'default cwd')
+
+        self.assertIn(
+            'success',
+            self.conf(
+                '"' + self.current_dir + '"',
+                'applications/cwd/working_directory',
+            ),
+        )
+
+        resp = self.get()
+        self.assertEqual(resp['status'], 200, 'status ok')
+        self.assertEqual(resp['body'], script_cwd, 'wdir cwd')
+
+        resp = self.get(url='/?chdir=/')
+        self.assertEqual(resp['status'], 200, 'status ok')
+        self.assertEqual(resp['body'], '/', 'cwd after chdir')
+
+        # cwd must be restored
+
+        resp = self.get()
+        self.assertEqual(resp['status'], 200, 'status ok')
+        self.assertEqual(resp['body'], script_cwd, 'cwd restored')
+
+        resp = self.get(url='/subdir/')
+        self.assertEqual(
+            resp['body'], script_cwd + '/subdir', 'cwd subdir',
+        )
+
+    def test_php_application_cwd_root(self):
+        self.load('cwd')
+        self.run_php_application_cwd_root_tests()
+
+    def test_php_application_cwd_opcache_disabled(self):
+        self.load('cwd')
+        self.set_opcache('cwd', '0')
+        self.run_php_application_cwd_root_tests()
+
+    def test_php_application_cwd_opcache_enabled(self):
+        self.load('cwd')
+        self.set_opcache('cwd', '1')
+        self.run_php_application_cwd_root_tests()
+
+    def run_php_application_cwd_script_tests(self):
+        self.load('cwd')
+
+        script_cwd = self.current_dir + '/php/cwd'
+
+        self.assertIn(
+            'success', self.conf_delete('applications/cwd/working_directory')
+        )
+
+        self.assertIn(
+            'success', self.conf('"index.php"', 'applications/cwd/script')
+        )
+
+        self.assertEqual(
+            self.get()['body'], script_cwd, 'default cwd',
+        )
+
+        self.assertEqual(
+            self.get(url='/?chdir=/')['body'], '/', 'cwd after chdir',
+        )
+
+        # cwd must be restored
+        self.assertEqual(self.get()['body'], script_cwd, 'cwd restored')
+
+    def test_php_application_cwd_script(self):
+        self.load('cwd')
+        self.run_php_application_cwd_script_tests()
+
+    def test_php_application_cwd_script_opcache_disabled(self):
+        self.load('cwd')
+        self.set_opcache('cwd', '0')
+        self.run_php_application_cwd_script_tests()
+
+    def test_php_application_cwd_script_opcache_enabled(self):
+        self.load('cwd')
+        self.set_opcache('cwd', '1')
+        self.run_php_application_cwd_script_tests()
+
+    def test_php_application_path_relative(self):
+        self.load('open')
+
+        self.assertEqual(self.get()['body'], 'test', 'relative path')
+
+        self.assertNotEqual(
+            self.get(url='/?chdir=/')['body'], 'test', 'relative path w/ chdir'
+        )
+
+        self.assertEqual(self.get()['body'], 'test', 'relative path 2')
+
 
 if __name__ == '__main__':
     TestPHPApplication.main()

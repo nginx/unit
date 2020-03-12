@@ -76,6 +76,8 @@ static nxt_unit_read_buf_t *nxt_unit_read_buf_get_impl(
     nxt_unit_ctx_impl_t *ctx_impl);
 static void nxt_unit_read_buf_release(nxt_unit_ctx_t *ctx,
     nxt_unit_read_buf_t *rbuf);
+static nxt_unit_mmap_buf_t *nxt_unit_request_preread(
+    nxt_unit_request_info_t *req, size_t size);
 static ssize_t nxt_unit_buf_read(nxt_unit_buf_t **b, uint64_t *len, void *dst,
     size_t size);
 static nxt_port_mmap_header_t *nxt_unit_mmap_get(nxt_unit_ctx_t *ctx,
@@ -961,6 +963,9 @@ nxt_unit_process_req_headers(nxt_unit_ctx_t *ctx, nxt_unit_recv_msg_t *recv_msg)
     req_impl->incoming_buf->prev = &req_impl->incoming_buf;
     recv_msg->incoming_buf = NULL;
 
+    req->content_fd = recv_msg->fd;
+    recv_msg->fd = -1;
+
     req->response_max_fields = 0;
     req_impl->state = NXT_UNIT_RS_START;
     req_impl->websocket = 0;
@@ -1176,6 +1181,12 @@ nxt_unit_request_info_release(nxt_unit_request_info_t *req)
 
     while (req_impl->incoming_buf != NULL) {
         nxt_unit_mmap_buf_free(req_impl->incoming_buf);
+    }
+
+    if (req->content_fd != -1) {
+        close(req->content_fd);
+
+        req->content_fd = -1;
     }
 
     /*
@@ -2423,8 +2434,144 @@ nxt_unit_response_write_cb(nxt_unit_request_info_t *req,
 ssize_t
 nxt_unit_request_read(nxt_unit_request_info_t *req, void *dst, size_t size)
 {
-    return nxt_unit_buf_read(&req->content_buf, &req->content_length,
-                             dst, size);
+    ssize_t  buf_res, res;
+
+    buf_res = nxt_unit_buf_read(&req->content_buf, &req->content_length,
+                                dst, size);
+
+    if (buf_res < (ssize_t) size && req->content_fd != -1) {
+        res = read(req->content_fd, dst, size);
+        if (res < 0) {
+            nxt_unit_req_alert(req, "failed to read content: %s (%d)",
+                               strerror(errno), errno);
+
+            return res;
+        }
+
+        if (res < (ssize_t) size) {
+            close(req->content_fd);
+
+            req->content_fd = -1;
+        }
+
+        req->content_length -= res;
+        size -= res;
+
+        dst = nxt_pointer_to(dst, res);
+
+    } else {
+        res = 0;
+    }
+
+    return buf_res + res;
+}
+
+
+ssize_t
+nxt_unit_request_readline_size(nxt_unit_request_info_t *req, size_t max_size)
+{
+    char                 *p;
+    size_t               l_size, b_size;
+    nxt_unit_buf_t       *b;
+    nxt_unit_mmap_buf_t  *mmap_buf, *preread_buf;
+
+    if (req->content_length == 0) {
+        return 0;
+    }
+
+    l_size = 0;
+
+    b = req->content_buf;
+
+    while (b != NULL) {
+        b_size = b->end - b->free;
+        p = memchr(b->free, '\n', b_size);
+
+        if (p != NULL) {
+            p++;
+            l_size += p - b->free;
+            break;
+        }
+
+        l_size += b_size;
+
+        if (max_size <= l_size) {
+            break;
+        }
+
+        mmap_buf = nxt_container_of(b, nxt_unit_mmap_buf_t, buf);
+        if (mmap_buf->next == NULL
+            && req->content_fd != -1
+            && l_size < req->content_length)
+        {
+            preread_buf = nxt_unit_request_preread(req, 16384);
+            if (nxt_slow_path(preread_buf == NULL)) {
+                return -1;
+            }
+
+            nxt_unit_mmap_buf_insert(&mmap_buf->next, preread_buf);
+        }
+
+        b = nxt_unit_buf_next(b);
+    }
+
+    return nxt_min(max_size, l_size);
+}
+
+
+static nxt_unit_mmap_buf_t *
+nxt_unit_request_preread(nxt_unit_request_info_t *req, size_t size)
+{
+    ssize_t              res;
+    nxt_unit_mmap_buf_t  *mmap_buf;
+
+    if (req->content_fd == -1) {
+        nxt_unit_req_alert(req, "preread: content_fd == -1");
+        return NULL;
+    }
+
+    mmap_buf = nxt_unit_mmap_buf_get(req->ctx);
+    if (nxt_slow_path(mmap_buf == NULL)) {
+        nxt_unit_req_alert(req, "preread: failed to allocate buf");
+        return NULL;
+    }
+
+    mmap_buf->free_ptr = malloc(size);
+    if (nxt_slow_path(mmap_buf->free_ptr == NULL)) {
+        nxt_unit_req_alert(req, "preread: failed to allocate buf memory");
+        nxt_unit_mmap_buf_release(mmap_buf);
+        return NULL;
+    }
+
+    mmap_buf->plain_ptr = mmap_buf->free_ptr;
+
+    mmap_buf->hdr = NULL;
+    mmap_buf->buf.start = mmap_buf->free_ptr;
+    mmap_buf->buf.free = mmap_buf->buf.start;
+    mmap_buf->buf.end = mmap_buf->buf.start + size;
+    mmap_buf->process = NULL;
+
+    res = read(req->content_fd, mmap_buf->free_ptr, size);
+    if (res < 0) {
+        nxt_unit_req_alert(req, "failed to read content: %s (%d)",
+                           strerror(errno), errno);
+
+        nxt_unit_mmap_buf_free(mmap_buf);
+
+        return NULL;
+    }
+
+    if (res < (ssize_t) size) {
+        close(req->content_fd);
+
+        req->content_fd = -1;
+    }
+
+    nxt_unit_req_debug(req, "preread: read %d", (int) res);
+
+    mmap_buf->buf.end = mmap_buf->buf.free + res;
+
+    return mmap_buf;
 }
 
 
@@ -2433,14 +2580,17 @@ nxt_unit_buf_read(nxt_unit_buf_t **b, uint64_t *len, void *dst, size_t size)
 {
     u_char          *p;
     size_t          rest, copy, read;
-    nxt_unit_buf_t  *buf;
+    nxt_unit_buf_t  *buf, *last_buf;
 
     p = dst;
     rest = size;
 
     buf = *b;
+    last_buf = buf;
 
     while (buf != NULL) {
+        last_buf = buf;
+
         copy = buf->end - buf->free;
         copy = nxt_min(rest, copy);
 
@@ -2460,7 +2610,7 @@ nxt_unit_buf_read(nxt_unit_buf_t **b, uint64_t *len, void *dst, size_t size)
         buf = nxt_unit_buf_next(buf);
     }
 
-    *b = buf;
+    *b = last_buf;
 
     read = size - rest;
 

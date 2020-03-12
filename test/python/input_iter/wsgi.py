@@ -1,5 +1,16 @@
 def application(environ, start_response):
-    body = bytes(environ['wsgi.input'].__iter__())
+    body = []
+    content_length = 0
 
-    start_response('200', [('Content-Length', str(len(body)))])
-    return [body]
+    for l in environ['wsgi.input'].__iter__():
+        body.append(l)
+        content_length += len(l)
+
+    start_response(
+        '200',
+        [
+            ('Content-Length', str(content_length)),
+            ('X-Lines-Count', str(len(body))),
+        ],
+    )
+    return body

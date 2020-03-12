@@ -186,7 +186,7 @@ nxt_int_t
 nxt_http_request_content_length(void *ctx, nxt_http_field_t *field,
     uintptr_t data)
 {
-    nxt_off_t           n;
+    nxt_off_t           n, max_body_size;
     nxt_http_request_t  *r;
 
     r = ctx;
@@ -198,6 +198,13 @@ nxt_http_request_content_length(void *ctx, nxt_http_field_t *field,
 
         if (nxt_fast_path(n >= 0)) {
             r->content_length_n = n;
+
+            max_body_size = r->conf->socket_conf->max_body_size;
+
+            if (nxt_slow_path(n > max_body_size)) {
+                return NXT_HTTP_PAYLOAD_TOO_LARGE;
+            }
+
             return NXT_OK;
         }
     }
@@ -319,17 +326,7 @@ nxt_http_action_t *
 nxt_http_application_handler(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_action_t *action)
 {
-    nxt_event_engine_t  *engine;
-
     nxt_debug(task, "http application handler");
-
-    nxt_mp_retain(r->mem_pool);
-
-    engine = task->thread->engine;
-    r->timer.task = &engine->task;
-    r->timer.work_queue = &engine->fast_work_queue;
-    r->timer.log = engine->task.log;
-    r->timer.bias = NXT_TIMER_DEFAULT_BIAS;
 
     /*
      * TODO: need an application flag to get local address
@@ -571,6 +568,14 @@ nxt_http_request_close_handler(nxt_task_t *task, void *obj, void *data)
     }
 
     r->proto.any = NULL;
+
+    if (r->body != NULL && nxt_buf_is_file(r->body)
+        && r->body->file->fd != -1)
+    {
+        nxt_fd_close(r->body->file->fd);
+
+        r->body->file->fd = -1;
+    }
 
     if (nxt_fast_path(proto.any != NULL)) {
         protocol = r->protocol;

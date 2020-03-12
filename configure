@@ -37,6 +37,7 @@ NXT_LIBDIR="lib"
 NXT_INCDIR="include"
 NXT_MODULES="modules"
 NXT_STATE="state"
+NXT_TMP="tmp"
 NXT_PID="unit.pid"
 NXT_LOG="unit.log"
 NXT_CONTROL="unix:control.unit.sock"
@@ -86,6 +87,7 @@ cat << END >> $NXT_AUTO_CONFIG_H
 #define NXT_LOG                "$NXT_LOG"
 #define NXT_MODULES            "$NXT_MODULES"
 #define NXT_STATE              "$NXT_STATE"
+#define NXT_TMP                "$NXT_TMP"
 
 #define NXT_CONTROL_SOCK       "$NXT_CONTROL"
 

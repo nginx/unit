@@ -10,7 +10,9 @@ class TestUSR1(TestApplicationPython):
     def test_usr1_access_log(self):
         self.load('empty')
 
-        log_path = self.testdir + '/access.log'
+        log = 'access.log'
+        log_new = 'new.log'
+        log_path = self.testdir + '/' + log
 
         self.assertIn(
             'success',
@@ -20,14 +22,12 @@ class TestUSR1(TestApplicationPython):
 
         self.assertTrue(self.waitforfiles(log_path), 'open')
 
-        log_path_new = self.testdir + '/new.log'
+        os.rename(log_path, self.testdir + '/' + log_new)
 
-        os.rename(log_path, log_path_new)
-
-        self.get()
+        self.assertEqual(self.get()['status'], 200)
 
         self.assertIsNotNone(
-            self.wait_for_record(r'"GET / HTTP/1.1" 200 0 "-" "-"', 'new.log'),
+            self.wait_for_record(r'"GET / HTTP/1.1" 200 0 "-" "-"', log_new),
             'rename new',
         )
         self.assertFalse(os.path.isfile(log_path), 'rename old')
@@ -39,32 +39,33 @@ class TestUSR1(TestApplicationPython):
 
         self.assertTrue(self.waitforfiles(log_path), 'reopen')
 
-        self.get(url='/usr1')
+        self.assertEqual(self.get(url='/usr1')['status'], 200)
+
+        self.stop()
 
         self.assertIsNotNone(
-            self.wait_for_record(
-                r'"GET /usr1 HTTP/1.1" 200 0 "-" "-"', 'access.log'
-            ),
+            self.wait_for_record(r'"GET /usr1 HTTP/1.1" 200 0 "-" "-"', log),
             'reopen 2',
         )
         self.assertIsNone(
-            self.search_in_log(r'/usr1', 'new.log'), 'rename new 2'
+            self.search_in_log(r'/usr1', log_new), 'rename new 2'
         )
 
     @unittest.skip('not yet')
     def test_usr1_unit_log(self):
         self.load('log_body')
 
-        log_path = self.testdir + '/unit.log'
-        log_path_new = self.testdir + '/new.log'
+        log_new = 'new.log'
+        log_path = self.testdir + '/' + 'unit.log'
+        log_path_new = self.testdir + '/' + log_new
 
         os.rename(log_path, log_path_new)
 
         body = 'body_for_a_log_new'
-        self.post(body=body)
+        self.assertEqual(self.post(body=body)['status'], 200)
 
         self.assertIsNotNone(
-            self.wait_for_record(body, 'new.log'), 'rename new'
+            self.wait_for_record(body, log_new), 'rename new'
         )
         self.assertFalse(os.path.isfile(log_path), 'rename old')
 
@@ -76,16 +77,18 @@ class TestUSR1(TestApplicationPython):
         self.assertTrue(self.waitforfiles(log_path), 'reopen')
 
         body = 'body_for_a_log_unit'
-        self.post(body=body)
+        self.assertEqual(self.post(body=body)['status'], 200)
+
+        self.stop()
 
         self.assertIsNotNone(self.wait_for_record(body), 'rename new')
-        self.assertIsNone(self.search_in_log(body, 'new.log'), 'rename new 2')
+        self.assertIsNone(self.search_in_log(body, log_new), 'rename new 2')
 
         # merge two log files into unit.log to check alerts
 
         with open(log_path,     'w') as unit_log, \
-             open(log_path_new, 'r') as new_log:
-            unit_log.write(new_log.read())
+             open(log_path_new, 'r') as unit_log_new:
+            unit_log.write(unit_log_new.read())
 
 
 if __name__ == '__main__':
