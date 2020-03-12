@@ -88,9 +88,7 @@ static VALUE
 nxt_ruby_stream_io_gets(VALUE obj)
 {
     VALUE                    buf;
-    char                     *p;
-    size_t                   size, b_size;
-    nxt_unit_buf_t           *b;
+    ssize_t                  res;
     nxt_ruby_run_ctx_t       *run_ctx;
     nxt_unit_request_info_t  *req;
 
@@ -102,30 +100,20 @@ nxt_ruby_stream_io_gets(VALUE obj)
         return Qnil;
     }
 
-    size = 0;
-
-    for (b = req->content_buf; b; b = nxt_unit_buf_next(b)) {
-        b_size = b->end - b->free;
-        p = memchr(b->free, '\n', b_size);
-
-        if (p != NULL) {
-            p++;
-            size += p - b->free;
-            break;
-        }
-
-        size += b_size;
-    }
-
-    buf = rb_str_buf_new(size);
-
-    if (buf == Qnil) {
+    res = nxt_unit_request_readline_size(req, SSIZE_MAX);
+    if (nxt_slow_path(res < 0)) {
         return Qnil;
     }
 
-    size = nxt_unit_request_read(req, RSTRING_PTR(buf), size);
+    buf = rb_str_buf_new(res);
 
-    rb_str_set_len(buf, size);
+    if (nxt_slow_path(buf == Qnil)) {
+        return Qnil;
+    }
+
+    res = nxt_unit_request_read(req, RSTRING_PTR(buf), res);
+
+    rb_str_set_len(buf, res);
 
     return buf;
 }

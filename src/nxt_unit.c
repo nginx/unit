@@ -2428,6 +2428,44 @@ nxt_unit_request_read(nxt_unit_request_info_t *req, void *dst, size_t size)
 }
 
 
+ssize_t
+nxt_unit_request_readline_size(nxt_unit_request_info_t *req, size_t max_size)
+{
+    char            *p;
+    size_t          l_size, b_size;
+    nxt_unit_buf_t  *b;
+
+    if (req->content_length == 0) {
+        return 0;
+    }
+
+    l_size = 0;
+
+    b = req->content_buf;
+
+    while (b != NULL) {
+        b_size = b->end - b->free;
+        p = memchr(b->free, '\n', b_size);
+
+        if (p != NULL) {
+            p++;
+            l_size += p - b->free;
+            break;
+        }
+
+        l_size += b_size;
+
+        if (max_size <= l_size) {
+            break;
+        }
+
+        b = nxt_unit_buf_next(b);
+    }
+
+    return nxt_min(max_size, l_size);
+}
+
+
 static ssize_t
 nxt_unit_buf_read(nxt_unit_buf_t **b, uint64_t *len, void *dst, size_t size)
 {

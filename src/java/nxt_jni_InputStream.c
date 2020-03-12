@@ -90,39 +90,19 @@ static jint JNICALL
 nxt_java_InputStream_readLine(JNIEnv *env, jclass cls,
     jlong req_info_ptr, jarray out, jint off, jint len)
 {
-    char                     *p;
-    jint                     size, b_size;
     uint8_t                  *data;
     ssize_t                  res;
-    nxt_unit_buf_t           *b;
     nxt_unit_request_info_t  *req;
 
     req = nxt_jlong2ptr(req_info_ptr);
 
-    size = 0;
-
-    for (b = req->content_buf; b; b = nxt_unit_buf_next(b)) {
-        b_size = b->end - b->free;
-        p = memchr(b->free, '\n', b_size);
-
-        if (p != NULL) {
-            p++;
-            size += p - b->free;
-            break;
-        }
-
-        size += b_size;
-
-        if (size >= len) {
-            break;
-        }
-    }
-
-    len = len < size ? len : size;
-
     data = (*env)->GetPrimitiveArrayCritical(env, out, NULL);
 
-    res = nxt_unit_request_read(req, data + off, len);
+    res = nxt_unit_request_readline_size(req, len);
+
+    if (res > 0) {
+        res = nxt_unit_request_read(req, data + off, res);
+    }
 
     nxt_unit_req_debug(req, "readLine '%.*s'", res, (char *) data + off);
 
