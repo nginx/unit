@@ -262,6 +262,14 @@ nxt_sendfile(int fd, int s, off_t pos, size_t size)
     res = (rc == 0 || sent > 0) ? sent : -1;
 #endif
 
+#ifdef NXT_HAVE_DRAGONFLYBSD_SENDFILE
+    off_t sent = 0;
+
+    int rc = sendfile(fd, s, pos, size, NULL, &sent, 0); 
+
+    res = (rc == 0 || sent > 0) ? sent : -1; 
+#endif
+
 #ifdef NXT_HAVE_LINUX_SENDFILE
     res = sendfile(s, fd, &pos, size);
 #endif
