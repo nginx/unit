@@ -5,6 +5,7 @@
 
 NXT_HAVE_LINUX_SENDFILE=NO
 NXT_HAVE_FREEBSD_SENDFILE=NO
+NXT_HAVE_DRAGONFLYBSD_SENDFILE=NO
 NXT_HAVE_MACOSX_SENDFILE=NO
 NXT_HAVE_SOLARIS_SENDFILEV=NO
 NXT_HAVE_AIX_SEND_FILE=NO
@@ -53,6 +54,33 @@ if [ $nxt_found = no ]; then
 
     if [ $nxt_found = yes ]; then
         NXT_HAVE_FREEBSD_SENDFILE=YES
+    fi
+fi
+
+
+if [ $nxt_found = no ]; then
+    # DragonFlyBSD sendfile().
+
+    nxt_feature="DragonFlyBSD sendfile()"
+    nxt_feature_name=NXT_HAVE_DRAGONFLYBSD_SENDFILE
+    nxt_feature_run=
+    nxt_feature_incs=
+    nxt_feature_libs=
+    nxt_feature_test="#include <sys/types.h>
+                      #include <sys/socket.h>
+                      #include <sys/uio.h>
+                      #include <stdlib.h>
+
+                      int main() {
+                          off_t  sent;
+
+                          sendfile(-1, -1, 0, 0, NULL, &sent, 0);
+                          return 0;
+                      }"
+    . auto/feature
+
+    if [ $nxt_found = yes ]; then
+        NXT_HAVE_DRAGONFLYBSD_SENDFILE=YES
     fi
 fi
 
