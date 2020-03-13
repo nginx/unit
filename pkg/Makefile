@@ -1,6 +1,7 @@
 #!/usr/bin/make
 
 include ../version
+include shasum.mak
 
 VERSION ?= $(NXT_VERSION)
 RELEASE ?= 1
@@ -14,6 +15,7 @@ dist:
 		-r $(VERSION) \
 		-p unit-$(VERSION) \
 		-X "../.hg*" -X "../pkg/" -X "../docs/"
+	$(SHA512SUM) unit-$(VERSION).tar.gz > unit-$(VERSION).tar.gz.sha512
 
 rpm:
 	@cd rpm && VERSION=$(VERSION) RELEASE=$(RELEASE) make all
@@ -32,5 +34,7 @@ clean:
 	@cd deb && make clean
 	@cd docker && make clean
 	@cd npm && make clean
+	rm -f unit-$(VERSION).tar.gz
+	rm -f unit-$(VERSION).tar.gz.sha512
 
 .PHONY: default rpm deb docker npm clean
