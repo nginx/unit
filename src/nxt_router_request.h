@@ -50,6 +50,7 @@ struct nxt_request_app_link_s {
     nxt_http_request_t      *request;
     nxt_msg_info_t          msg_info;
     nxt_request_rpc_data_t  *req_rpc_data;
+    nxt_fd_t                body_fd;
 
     nxt_nsec_t              res_time;
 

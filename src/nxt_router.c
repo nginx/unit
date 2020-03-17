@@ -462,6 +462,7 @@ nxt_inline void
 nxt_request_app_link_init(nxt_task_t *task,
     nxt_request_app_link_t *req_app_link, nxt_request_rpc_data_t *req_rpc_data)
 {
+    nxt_buf_t           *body;
     nxt_event_engine_t  *engine;
 
     engine = task->thread->engine;
@@ -480,6 +481,17 @@ nxt_request_app_link_init(nxt_task_t *task,
     req_app_link->work.task = &engine->task;
     req_app_link->work.obj = req_app_link;
     req_app_link->work.data = engine;
+
+    body = req_rpc_data->request->body;
+
+    if (body != NULL && nxt_buf_is_file(body)) {
+        req_app_link->body_fd = body->file->fd;
+
+        body->file->fd = -1;
+
+    } else {
+        req_app_link->body_fd = -1;
+    }
 }
 
 
@@ -512,6 +524,10 @@ nxt_request_app_link_alloc(nxt_task_t *task,
     nxt_mp_retain(mp);
 
     nxt_request_app_link_init(task, req_app_link, req_rpc_data);
+
+    if (ra_src != NULL) {
+        req_app_link->body_fd = ra_src->body_fd;
+    }
 
     req_app_link->mem_pool = mp;
 
@@ -652,6 +668,12 @@ nxt_request_app_link_release(nxt_task_t *task,
                                     req_app_link->apr_action);
 
         req_app_link->app_port = NULL;
+    }
+
+    if (req_app_link->body_fd != -1) {
+        nxt_fd_close(req_app_link->body_fd);
+
+        req_app_link->body_fd = -1;
     }
 
     nxt_router_msg_cancel(task, &req_app_link->msg_info, req_app_link->stream);
@@ -4774,8 +4796,7 @@ static void
 nxt_router_app_prepare_request(nxt_task_t *task,
     nxt_request_app_link_t *req_app_link)
 {
-    nxt_fd_t          fd;
-    nxt_buf_t         *buf, *body;
+    nxt_buf_t         *buf;
     nxt_int_t         res;
     nxt_port_t        *port, *c_port, *reply_port;
     nxt_apr_action_t  apr_action;
@@ -4834,13 +4855,15 @@ nxt_router_app_prepare_request(nxt_task_t *task,
         goto release_port;
     }
 
-    body = req_app_link->request->body;
-    fd = (body != NULL && nxt_buf_is_file(body)) ? body->file->fd : -1;
+    if (req_app_link->body_fd != -1) {
+        nxt_debug(task, "stream #%uD: send body fd %d", req_app_link->stream,
+                  req_app_link->body_fd);
 
-    res = nxt_port_socket_twrite(task, port,
-                                 NXT_PORT_MSG_REQ_HEADERS
-                                    | NXT_PORT_MSG_CLOSE_FD,
-                                 fd,
+        lseek(req_app_link->body_fd, 0, SEEK_SET);
+    }
+
+    res = nxt_port_socket_twrite(task, port, NXT_PORT_MSG_REQ_HEADERS,
+                                 req_app_link->body_fd,
                                  req_app_link->stream, reply_port->id, buf,
                                  &req_app_link->msg_info.tracking);
 
@@ -4848,10 +4871,6 @@ nxt_router_app_prepare_request(nxt_task_t *task,
         nxt_request_app_link_error(req_app_link, 500,
                                    "Failed to send message to application");
         goto release_port;
-    }
-
-    if (fd != -1) {
-        body->file->fd = -1;
     }
 
 release_port:
@@ -5176,10 +5195,6 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_http_request_t *r,
 
             buf = NULL;
         }
-    }
-
-    if (r->body != NULL && nxt_buf_is_file(r->body)) {
-        lseek(r->body->file->fd, 0, SEEK_SET);
     }
 
     return out;
