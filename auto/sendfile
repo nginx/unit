@@ -46,40 +46,13 @@ if [ $nxt_found = no ]; then
                       int main() {
                           off_t  sent;
 
-                          sendfile(-1, -1, 0, 0, NULL, &sent, SF_NODISKIO);
+                          sendfile(-1, -1, 0, 0, NULL, &sent, 0);
                           return 0;
                       }"
     . auto/feature
 
     if [ $nxt_found = yes ]; then
         NXT_HAVE_FREEBSD_SENDFILE=YES
-    fi
-fi
-
-
-NXT_LIBSENDFILE=
-
-if [ $nxt_found = no ]; then
-
-    # Solaris 8 sendfilev().
-
-    nxt_feature="Solaris sendfilev()"
-    nxt_feature_name=NXT_HAVE_SOLARIS_SENDFILEV
-    nxt_feature_libs="-lsendfile"
-    nxt_feature_test="#include <sys/sendfile.h>
-
-                      int main() {
-                          size_t              sent;
-                          struct sendfilevec  vec;
-
-                          sendfilev(-1, &vec, 0, &sent);
-                          return 0;
-                      }"
-    . auto/feature
-
-    if [ $nxt_found = yes ]; then
-        NXT_HAVE_SOLARIS_SENDFILEV=YES
-        NXT_LIBSENDFILE=$nxt_feature_libs
     fi
 fi
 
@@ -106,6 +79,41 @@ if [ $nxt_found = no ]; then
 
     if [ $nxt_found = yes ]; then
         NXT_HAVE_MACOSX_SENDFILE=YES
+    fi
+fi
+
+
+if [ $nxt_found = no ]; then
+    $echo
+    $echo "$0: error: no supported sendfile() found."
+    $echo
+    exit 1;
+fi
+
+
+NXT_LIBSENDFILE=
+
+if [ $nxt_found = no ]; then
+
+    # Solaris 8 sendfilev().
+
+    nxt_feature="Solaris sendfilev()"
+    nxt_feature_name=NXT_HAVE_SOLARIS_SENDFILEV
+    nxt_feature_libs="-lsendfile"
+    nxt_feature_test="#include <sys/sendfile.h>
+
+                      int main() {
+                          size_t              sent;
+                          struct sendfilevec  vec;
+
+                          sendfilev(-1, &vec, 0, &sent);
+                          return 0;
+                      }"
+    . auto/feature
+
+    if [ $nxt_found = yes ]; then
+        NXT_HAVE_SOLARIS_SENDFILEV=YES
+        NXT_LIBSENDFILE=$nxt_feature_libs
     fi
 fi
 
