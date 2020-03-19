@@ -1,10 +1,10 @@
 import os
 import unittest
-from unit.applications.proto import TestApplicationProto
+from unit.applications.lang.python import TestApplicationPython
 
 
-class TestStatic(TestApplicationProto):
-    prerequisites = {}
+class TestStatic(TestApplicationPython):
+    prerequisites = {'modules': ['python']}
 
     def setUp(self):
         super().setUp()
