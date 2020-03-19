@@ -1369,14 +1369,12 @@ nxt_h1p_complete_buffers(nxt_task_t *task, nxt_h1proto_t *h1p, nxt_bool_t all)
     size_t            size;
     nxt_buf_t         *b, *in, *next;
     nxt_conn_t        *c;
-    nxt_work_queue_t  *wq;
 
     nxt_debug(task, "h1p complete buffers");
 
     b = h1p->buffers;
     c = h1p->conn;
     in = c->read;
-    wq = &task->thread->engine->fast_work_queue;
 
     if (b != NULL) {
         if (in == NULL) {
@@ -1392,7 +1390,7 @@ nxt_h1p_complete_buffers(nxt_task_t *task, nxt_h1proto_t *h1p, nxt_bool_t all)
             next = b->next;
             b->next = NULL;
 
-            nxt_work_queue_add(wq, b->completion_handler, task, b, b->parent);
+            b->completion_handler(task, b, b->parent);
 
             b = next;
         }
@@ -1405,8 +1403,7 @@ nxt_h1p_complete_buffers(nxt_task_t *task, nxt_h1proto_t *h1p, nxt_bool_t all)
         size = nxt_buf_mem_used_size(&in->mem);
 
         if (size == 0 || all) {
-            nxt_work_queue_add(wq, in->completion_handler, task, in,
-                               in->parent);
+            in->completion_handler(task, in, in->parent);
 
             c->read = NULL;
         }
