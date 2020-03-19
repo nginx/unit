@@ -320,7 +320,8 @@ void nxt_h1p_websocket_first_frame_start(nxt_task_t *task,
     nxt_http_request_t *r, nxt_buf_t *ws_frame);
 void nxt_h1p_websocket_frame_start(nxt_task_t *task, nxt_http_request_t *r,
     nxt_buf_t *ws_frame);
-void nxt_h1p_complete_buffers(nxt_task_t *task, nxt_h1proto_t *h1p);
+void nxt_h1p_complete_buffers(nxt_task_t *task, nxt_h1proto_t *h1p,
+    nxt_bool_t all);
 nxt_msec_t nxt_h1p_conn_request_timer_value(nxt_conn_t *c, uintptr_t data);
 
 extern const nxt_conn_state_t  nxt_h1p_idle_close_state;

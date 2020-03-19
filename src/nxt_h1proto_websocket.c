@@ -135,7 +135,7 @@ nxt_h1p_websocket_frame_start(nxt_task_t *task, nxt_http_request_t *r,
     c = h1p->conn;
     c->read = ws_frame;
 
-    nxt_h1p_complete_buffers(task, h1p);
+    nxt_h1p_complete_buffers(task, h1p, 0);
 
     in = c->read;
     c->read_state = &nxt_h1p_read_ws_frame_header_state;

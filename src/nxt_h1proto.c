@@ -1364,17 +1364,19 @@ nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r,
 
 
 void
-nxt_h1p_complete_buffers(nxt_task_t *task, nxt_h1proto_t *h1p)
+nxt_h1p_complete_buffers(nxt_task_t *task, nxt_h1proto_t *h1p, nxt_bool_t all)
 {
-    size_t         size;
-    nxt_buf_t      *b, *in, *next;
-    nxt_conn_t     *c;
+    size_t            size;
+    nxt_buf_t         *b, *in, *next;
+    nxt_conn_t        *c;
+    nxt_work_queue_t  *wq;
 
     nxt_debug(task, "h1p complete buffers");
 
     b = h1p->buffers;
     c = h1p->conn;
     in = c->read;
+    wq = &task->thread->engine->fast_work_queue;
 
     if (b != NULL) {
         if (in == NULL) {
@@ -1390,8 +1392,7 @@ nxt_h1p_complete_buffers(nxt_task_t *task, nxt_h1proto_t *h1p)
             next = b->next;
             b->next = NULL;
 
-            nxt_work_queue_add(&task->thread->engine->fast_work_queue,
-                               b->completion_handler, task, b, b->parent);
+            nxt_work_queue_add(wq, b->completion_handler, task, b, b->parent);
 
             b = next;
         }
@@ -1403,9 +1404,9 @@ nxt_h1p_complete_buffers(nxt_task_t *task, nxt_h1proto_t *h1p)
     if (in != NULL) {
         size = nxt_buf_mem_used_size(&in->mem);
 
-        if (size == 0) {
-            nxt_work_queue_add(&task->thread->engine->fast_work_queue,
-                               in->completion_handler, task, in, in->parent);
+        if (size == 0 || all) {
+            nxt_work_queue_add(wq, in->completion_handler, task, in,
+                               in->parent);
 
             c->read = NULL;
         }
@@ -1754,7 +1755,7 @@ nxt_h1p_keepalive(nxt_task_t *task, nxt_h1proto_t *h1p, nxt_conn_t *c)
         nxt_conn_tcp_nodelay_on(task, c);
     }
 
-    nxt_h1p_complete_buffers(task, h1p);
+    nxt_h1p_complete_buffers(task, h1p, 0);
 
     in = c->read;
 
@@ -1952,20 +1953,25 @@ nxt_h1p_shutdown(nxt_task_t *task, nxt_conn_t *c)
 
     h1p = c->socket.data;
 
-    if (nxt_slow_path(h1p != NULL && h1p->websocket_timer != NULL)) {
-        timer = &h1p->websocket_timer->timer;
+    if (h1p != NULL) {
+        nxt_h1p_complete_buffers(task, h1p, 1);
 
-        if (timer->handler != nxt_h1p_conn_ws_shutdown) {
-            timer->handler = nxt_h1p_conn_ws_shutdown;
-            nxt_timer_add(task->thread->engine, timer, 0);
+        if (nxt_slow_path(h1p->websocket_timer != NULL)) {
+            timer = &h1p->websocket_timer->timer;
 
-        } else {
-            nxt_debug(task, "h1p already scheduled ws shutdown");
+            if (timer->handler != nxt_h1p_conn_ws_shutdown) {
+                timer->handler = nxt_h1p_conn_ws_shutdown;
+                nxt_timer_add(task->thread->engine, timer, 0);
+
+            } else {
+                nxt_debug(task, "h1p already scheduled ws shutdown");
+            }
+
+            return;
         }
-
-    } else {
-        nxt_h1p_closing(task, c);
     }
+
+    nxt_h1p_closing(task, c);
 }
 
 
