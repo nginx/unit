@@ -68,7 +68,7 @@ $(EXPORT_DIR)/nginx-unit-$(VERSION)-%.tar.gz: $(EXPORT_DIR) tag-%
 	docker save nginx/unit:$(VERSION)-$* | gzip > $@
 
 $(EXPORT_DIR)/nginx-unit-$(VERSION)-%.tar.gz.sha512: $(EXPORT_DIR)/nginx-unit-$(VERSION)-%.tar.gz
-	$(SHA512SUM) $< > $@
+	$(SHA512SUM) $< | sed 's,$(EXPORT_DIR)/,,' > $@
 
 all: $(addprefix Dockerfile., $(MODULES))
 
