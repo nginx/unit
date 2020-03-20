@@ -42,6 +42,7 @@ typedef enum {
 typedef struct {
     nxt_conf_value_t               *pass;
     nxt_conf_value_t               *ret;
+    nxt_str_t                      location;
     nxt_conf_value_t               *share;
     nxt_conf_value_t               *proxy;
     nxt_conf_value_t               *fallback;
@@ -582,6 +583,11 @@ static nxt_conf_map_t  nxt_http_route_action_conf[] = {
         offsetof(nxt_http_route_action_conf_t, ret)
     },
     {
+        nxt_string("location"),
+        NXT_CONF_MAP_STR,
+        offsetof(nxt_http_route_action_conf_t, location)
+    },
+    {
         nxt_string("share"),
         NXT_CONF_MAP_PTR,
         offsetof(nxt_http_route_action_conf_t, share)
@@ -606,6 +612,7 @@ nxt_http_route_action_create(nxt_router_temp_conf_t *tmcf, nxt_conf_value_t *cv,
     nxt_mp_t                      *mp;
     nxt_int_t                     ret;
     nxt_str_t                     name, *string;
+    nxt_uint_t                    encode;
     nxt_conf_value_t              *conf;
     nxt_http_route_action_conf_t  accf;
 
@@ -619,9 +626,38 @@ nxt_http_route_action_create(nxt_router_temp_conf_t *tmcf, nxt_conf_value_t *cv,
 
     nxt_memzero(action, sizeof(nxt_http_action_t));
 
+    mp = tmcf->router_conf->mem_pool;
+
     if (accf.ret != NULL) {
         action->handler = nxt_http_return_handler;
         action->u.return_code = nxt_conf_get_integer(accf.ret);
+
+        if (accf.location.length > 0) {
+            if (nxt_is_complex_uri_encoded(accf.location.start,
+                                           accf.location.length))
+            {
+                string = nxt_str_dup(mp, &action->name, &accf.location);
+                if (nxt_slow_path(string == NULL)) {
+                    return NXT_ERROR;
+                }
+
+            } else {
+                string = &action->name;
+
+                encode = nxt_encode_complex_uri(NULL, accf.location.start,
+                                                accf.location.length);
+                string->length = accf.location.length + encode * 2;
+
+                string->start = nxt_mp_nget(mp, string->length);
+                if (nxt_slow_path(string->start == NULL)) {
+                    return NXT_ERROR;
+                }
+
+                nxt_encode_complex_uri(string->start, accf.location.start,
+                                       accf.location.length);
+            }
+        }
+
         return NXT_OK;
     }
 
@@ -636,8 +672,6 @@ nxt_http_route_action_create(nxt_router_temp_conf_t *tmcf, nxt_conf_value_t *cv,
     }
 
     nxt_conf_get_string(conf, &name);
-
-    mp = tmcf->router_conf->mem_pool;
 
     string = nxt_str_dup(mp, &action->name, &name);
     if (nxt_slow_path(string == NULL)) {

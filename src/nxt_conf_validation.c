@@ -362,6 +362,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_return_action_members[] = {
       &nxt_conf_vldt_return,
       NULL },
 
+    { nxt_string("location"),
+      NXT_CONF_VLDT_STRING,
+      NULL,
+      NULL },
+
     NXT_CONF_VLDT_END
 };
 

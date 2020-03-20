@@ -14,6 +14,7 @@ nxt_http_action_t *
 nxt_http_return_handler(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_action_t *action)
 {
+    nxt_http_field_t   *field;
     nxt_http_status_t  status;
 
     status = action->u.return_code;
@@ -27,6 +28,20 @@ nxt_http_return_handler(nxt_task_t *task, nxt_http_request_t *r,
 
     r->status = status;
     r->resp.content_length_n = 0;
+
+    if (action->name.length > 0) {
+        field = nxt_list_zero_add(r->resp.fields);
+        if (nxt_slow_path(field == NULL)) {
+            nxt_http_request_error(task, r, NXT_HTTP_INTERNAL_SERVER_ERROR);
+            return NULL;
+        }
+
+        nxt_http_field_name_set(field, "Location");
+
+        field->value = action->name.start;
+        field->value_length = action->name.length;
+    }
+
     r->state = &nxt_http_return_send_state;
 
     nxt_http_request_header_send(task, r, NULL, NULL);

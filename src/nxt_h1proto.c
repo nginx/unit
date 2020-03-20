@@ -1103,6 +1103,8 @@ static const nxt_str_t  nxt_http_redirection[] = {
     nxt_string("HTTP/1.1 302 Found\r\n"),
     nxt_string("HTTP/1.1 303 See Other\r\n"),
     nxt_string("HTTP/1.1 304 Not Modified\r\n"),
+    nxt_string("HTTP/1.1 307 Temporary Redirect\r\n"),
+    nxt_string("HTTP/1.1 308 Permanent Redirect\r\n"),
 };
 
 
