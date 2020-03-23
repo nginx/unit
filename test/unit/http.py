@@ -60,7 +60,7 @@ class TestHTTP(TestUnit):
                 sock.connect(connect_args)
             except ConnectionRefusedError:
                 sock.close()
-                return None
+                self.fail('Client can\'t connect to the server.')
 
         else:
             sock = kwargs['sock']
