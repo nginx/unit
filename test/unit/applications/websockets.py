@@ -52,7 +52,7 @@ class TestApplicationWebsocket(TestApplicationProto):
         )
 
         resp = ''
-        while select.select([sock], [], [], 30)[0]:
+        while select.select([sock], [], [], 60)[0]:
             resp += sock.recv(4096).decode()
 
             if (
@@ -70,7 +70,7 @@ class TestApplicationWebsocket(TestApplicationProto):
     def serialize_close(self, code=1000, reason=''):
         return struct.pack('!H', code) + reason.encode('utf-8')
 
-    def frame_read(self, sock, read_timeout=30):
+    def frame_read(self, sock, read_timeout=60):
         def recv_bytes(sock, bytes):
             data = b''
             while select.select([sock], [], [], read_timeout)[0]:
