@@ -4,6 +4,7 @@ import sys
 import stat
 import time
 import fcntl
+import atexit
 import shutil
 import signal
 import argparse
@@ -188,10 +189,9 @@ class TestUnit(unittest.TestCase):
             self._print_log()
 
     def stop(self):
-        if self._started:
-            self._stop()
-
+        self._stop()
         self.stop_processes()
+        atexit.unregister(self.stop)
 
     def _run(self):
         build_dir = self.pardir + '/build'
@@ -224,10 +224,10 @@ class TestUnit(unittest.TestCase):
                 stderr=log,
             )
 
+        atexit.register(self.stop)
+
         if not self.waitforfiles(self.testdir + '/control.unit.sock'):
             exit("Could not start unit")
-
-        self._started = True
 
         self.skip_alerts = [
             r'read signalfd\(4\) failed',
@@ -238,6 +238,9 @@ class TestUnit(unittest.TestCase):
         self.skip_sanitizer = False
 
     def _stop(self):
+        if self._p.poll() is not None:
+            return
+
         with self._p as p:
             p.send_signal(signal.SIGQUIT)
 
@@ -248,10 +251,8 @@ class TestUnit(unittest.TestCase):
                         "Child process terminated with code " + str(retcode)
                     )
             except:
-                self.fail("Could not terminate unit")
                 p.kill()
-
-        self._started = False
+                self.fail("Could not terminate unit")
 
     def _check_alerts(self, log):
         found = False
@@ -295,11 +296,12 @@ class TestUnit(unittest.TestCase):
             return
 
         for process in self._processes:
-            process.terminate()
-            process.join(timeout=5)
-
             if process.is_alive():
-                self.fail('Fail to stop process')
+                process.terminate()
+                process.join(timeout=15)
+
+                if process.is_alive():
+                    self.fail('Fail to stop process')
 
     def waitforfiles(self, *files):
         for i in range(50):
