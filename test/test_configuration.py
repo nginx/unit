@@ -83,6 +83,25 @@ class TestConfiguration(TestControl):
             'unicode number',
         )
 
+    def test_json_utf8_bom(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                b"""\xEF\xBB\xBF
+            {
+                "app": {
+                    "type": "python",
+                    "processes": {"spare": 0},
+                    "path": "/app",
+                    "module": "wsgi"
+                }
+            }
+            """,
+                'applications',
+            ),
+            'UTF-8 BOM',
+        )
+
     def test_applications_open_brace(self):
         self.assertIn('error', self.conf('{', 'applications'), 'open brace')
 
