@@ -1269,6 +1269,7 @@ nxt_conf_json_skip_space(u_char *start, u_char *end)
             case '\r':
                 continue;
             case '/':
+                start = p;
                 state = sw_after_slash;
                 continue;
             }
@@ -1285,7 +1286,6 @@ nxt_conf_json_skip_space(u_char *start, u_char *end)
                 continue;
             }
 
-            p--;
             break;
 
         case sw_single_comment:
@@ -1316,6 +1316,10 @@ nxt_conf_json_skip_space(u_char *start, u_char *end)
         }
 
         break;
+    }
+
+    if (nxt_slow_path(state != sw_normal)) {
+        return start;
     }
 
     return p;
