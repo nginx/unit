@@ -102,6 +102,67 @@ class TestConfiguration(TestControl):
             'UTF-8 BOM',
         )
 
+    def test_json_comment_single_line(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                b"""
+            // this is bridge
+            {
+                "//app": {
+                    "type": "python", // end line
+                    "processes": {"spare": 0},
+                    // inside of block
+                    "path": "/app",
+                    "module": "wsgi"
+                }
+                // double //
+            }
+            // end of json \xEF\t
+            """,
+                'applications',
+            ),
+            'single line comments',
+        )
+
+    def test_json_comment_multi_line(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                b"""
+            /* this is bridge */
+            {
+                "/*app": {
+                /**
+                 * multiple lines
+                 **/
+                    "type": "python",
+                    "processes": /* inline */ {"spare": 0},
+                    "path": "/app",
+                    "module": "wsgi"
+                    /*
+                    // end of block */
+                }
+                /* blah * / blah /* blah */
+            }
+            /* end of json \xEF\t\b */
+            """,
+                'applications',
+            ),
+            'multi line comments',
+        )
+
+    def test_json_comment_invalid(self):
+        self.assertIn('error', self.conf(b'/{}', 'applications'), 'slash')
+        self.assertIn('error', self.conf(b'//{}', 'applications'), 'comment')
+        self.assertIn('error', self.conf(b'{} /', 'applications'), 'slash end')
+        self.assertIn(
+            'error', self.conf(b'/*{}', 'applications'), 'slash star'
+        )
+        self.assertIn(
+            'error', self.conf(b'{} /*', 'applications'), 'slash star end'
+        )
+
     def test_applications_open_brace(self):
         self.assertIn('error', self.conf('{', 'applications'), 'open brace')
 
