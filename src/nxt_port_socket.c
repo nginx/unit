@@ -5,6 +5,7 @@
  */
 
 #include <nxt_main.h>
+#include <nxt_socket_msg.h>
 
 
 static nxt_int_t nxt_port_msg_chk_insert(nxt_task_t *task, nxt_port_t *port,
@@ -588,17 +589,21 @@ nxt_port_read_close(nxt_port_t *port)
 static void
 nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
 {
+    size_t               oobn;
     ssize_t              n;
     nxt_buf_t            *b;
     nxt_port_t           *port;
-    struct iovec         iov[2];
     nxt_port_recv_msg_t  msg;
+    struct iovec         iov[2];
+    u_char               oob[NXT_OOB_RECV_SIZE];
 
     port = msg.port = nxt_container_of(obj, nxt_port_t, socket);
 
     nxt_assert(port->engine == task->thread->engine);
 
     for ( ;; ) {
+        oobn = sizeof(oob);
+        msg.port_msg.pid = -1;
 
         b = nxt_port_buf_alloc(port);
 
@@ -612,9 +617,31 @@ nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
         iov[1].iov_base = b->mem.pos;
         iov[1].iov_len = port->max_size;
 
-        n = nxt_socketpair_recv(&port->socket, &msg.fd, iov, 2);
+        n = nxt_socketpair_recv(&port->socket, iov, 2, oob, &oobn);
 
         if (n > 0) {
+            msg.fd  = -1;
+
+            /**
+             * Keeping in one branch because the slow path can only
+             * ever happen if client is trying to spoof creds on
+             * platforms that cred is enabled (Linux and FreeBSD).
+             */
+            if (nxt_slow_path(oobn > 0
+                    && nxt_socket_msg_oob_get(oob, oobn, &msg.fd,
+                                              &msg.port_msg.pid)
+                        != NXT_OK))
+            {
+                nxt_alert(task, "failed to get oob data from %d",
+                          port->socket.fd);
+
+                if (nxt_slow_path(msg.fd != -1)) {
+                    nxt_fd_close(msg.fd);
+                    msg.fd = -1;
+                }
+
+                goto fail;
+            }
 
             msg.buf = b;
             msg.size = n;
@@ -643,8 +670,8 @@ nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
             return;
         }
 
-        /* n == 0 || n == NXT_ERROR */
-
+fail:
+        /* n == 0 || error  */
         nxt_work_queue_add(&task->thread->engine->fast_work_queue,
                            nxt_port_error_handler, task, &port->socket, NULL);
         return;

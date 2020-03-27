@@ -18,7 +18,7 @@ static void nxt_cgo_remove_port(nxt_unit_ctx_t *, nxt_unit_port_id_t *port_id);
 static ssize_t nxt_cgo_port_send(nxt_unit_ctx_t *, nxt_unit_port_id_t *port_id,
     const void *buf, size_t buf_size, const void *oob, size_t oob_size);
 static ssize_t nxt_cgo_port_recv(nxt_unit_ctx_t *, nxt_unit_port_id_t *port_id,
-    void *buf, size_t buf_size, void *oob, size_t oob_size);
+    void *buf, size_t buf_size, void *oob, size_t *oob_size);
 static void nxt_cgo_shm_ack_handler(nxt_unit_ctx_t *ctx);
 
 int
@@ -132,7 +132,7 @@ nxt_cgo_port_send(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
 
 static ssize_t
 nxt_cgo_port_recv(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
-    void *buf, size_t buf_size, void *oob, size_t oob_size)
+    void *buf, size_t buf_size, void *oob, size_t *oob_size)
 {
     return nxt_go_port_recv(port_id->pid, port_id->id,
                             buf, buf_size, oob, oob_size);

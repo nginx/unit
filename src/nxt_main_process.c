@@ -375,6 +375,21 @@ nxt_port_main_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_conf_value_t       *conf;
     nxt_common_app_conf_t  app_conf;
 
+    rt = task->thread->runtime;
+
+    port = rt->port_by_type[NXT_PROCESS_ROUTER];
+
+    if (nxt_slow_path(port == NULL)) {
+        nxt_alert(task, "router port not found");
+        return;
+    }
+
+    if (nxt_slow_path(port->pid != msg->port_msg.pid)) {
+        nxt_alert(task, "process %PI cannot start workers",
+                  msg->port_msg.pid);
+        return;
+    }
+
     ret = NXT_ERROR;
 
     mp = nxt_mp_create(1024, 128, 256, 32);
@@ -409,8 +424,6 @@ nxt_port_main_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
         goto failed;
     }
-
-    rt = task->thread->runtime;
 
     app_conf.user.start  = (u_char*)rt->user_cred.user;
     app_conf.user.length = nxt_strlen(rt->user_cred.user);
@@ -1140,6 +1153,20 @@ nxt_main_port_socket_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_listening_socket_t  ls;
     u_char                  message[2048];
 
+    port = nxt_runtime_port_find(task->thread->runtime, msg->port_msg.pid,
+                                 msg->port_msg.reply_port);
+    if (nxt_slow_path(port == NULL)) {
+        nxt_alert(task, "process port not found (pid %PI, reply_port %d)",
+                  msg->port_msg.pid, msg->port_msg.reply_port);
+        return;
+    }
+
+    if (nxt_slow_path(port->type != NXT_PROCESS_ROUTER)) {
+        nxt_alert(task, "process %PI cannot create listener sockets",
+                  msg->port_msg.pid);
+        return;
+    }
+
     b = msg->buf;
     sa = (nxt_sockaddr_t *) b->mem.pos;
 
@@ -1151,9 +1178,6 @@ nxt_main_port_socket_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     ls.error = NXT_SOCKET_ERROR_SYSTEM;
     ls.start = message;
     ls.end = message + sizeof(message);
-
-    port = nxt_runtime_port_find(task->thread->runtime, msg->port_msg.pid,
-                                 msg->port_msg.reply_port);
 
     nxt_debug(task, "listening socket \"%*s\"",
               (size_t) sa->length, nxt_sockaddr_start(sa));
@@ -1352,6 +1376,7 @@ nxt_main_port_modules_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     rt = task->thread->runtime;
 
     if (msg->port_msg.pid != rt->port_by_type[NXT_PROCESS_DISCOVERY]->pid) {
+        nxt_alert(task, "process %PI cannot send modules", msg->port_msg.pid);
         return;
     }
 
@@ -1467,11 +1492,18 @@ nxt_main_port_conf_store_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_buf_t      *b;
     nxt_int_t      ret;
     nxt_file_t     file;
+    nxt_port_t     *ctl_port;
     nxt_runtime_t  *rt;
 
     nxt_memzero(&file, sizeof(nxt_file_t));
 
     rt = task->thread->runtime;
+    ctl_port = rt->port_by_type[NXT_PROCESS_CONTROLLER];
+
+    if (nxt_slow_path(msg->port_msg.pid != ctl_port->pid)) {
+        nxt_alert(task, "process %PI cannot store conf", msg->port_msg.pid);
+        return;
+    }
 
     file.name = (nxt_file_name_t *) rt->conf_tmp;
 

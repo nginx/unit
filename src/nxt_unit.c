@@ -3,10 +3,9 @@
  * Copyright (C) NGINX, Inc.
  */
 
-#include <stdlib.h>
-
 #include "nxt_main.h"
 #include "nxt_port_memory_int.h"
+#include "nxt_socket_msg.h"
 
 #include "nxt_unit.h"
 #include "nxt_unit_request.h"
@@ -134,7 +133,7 @@ static ssize_t nxt_unit_port_send_default(nxt_unit_ctx_t *ctx,
     const void *oob, size_t oob_size);
 static ssize_t nxt_unit_port_recv_default(nxt_unit_ctx_t *ctx,
     nxt_unit_port_id_t *port_id, void *buf, size_t buf_size,
-    void *oob, size_t oob_size);
+    void *oob, size_t *oob_size);
 
 static int nxt_unit_port_hash_add(nxt_lvlhsh_t *port_hash,
     nxt_unit_port_t *port);
@@ -226,7 +225,8 @@ struct nxt_unit_read_buf_s {
     nxt_unit_read_buf_t           *next;
     ssize_t                       size;
     char                          buf[16384];
-    char                          oob[256];
+    char                          oob[NXT_OOB_RECV_SIZE];
+    size_t                        oobn;
 };
 
 
@@ -655,9 +655,11 @@ static int
 nxt_unit_ready(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
     uint32_t stream)
 {
+    size_t           oobn;
     ssize_t          res;
     nxt_port_msg_t   msg;
     nxt_unit_impl_t  *lib;
+    u_char           oob[NXT_OOB_SEND_SIZE];
 
     lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
 
@@ -671,7 +673,10 @@ nxt_unit_ready(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
     msg.mf = 0;
     msg.tracking = 0;
 
-    res = lib->callbacks.port_send(ctx, port_id, &msg, sizeof(msg), NULL, 0);
+    oobn = sizeof(oob);
+    nxt_socket_msg_oob_init(oob, &oobn);
+
+    res = lib->callbacks.port_send(ctx, port_id, &msg, sizeof(msg), oob, oobn);
     if (res != sizeof(msg)) {
         return NXT_UNIT_ERROR;
     }
@@ -682,11 +687,10 @@ nxt_unit_ready(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
 
 int
 nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
-    void *buf, size_t buf_size, void *oob, size_t oob_size)
+    void *buf, size_t buf_size, void *oob, size_t oobn)
 {
     int                   rc;
     pid_t                 pid;
-    struct cmsghdr        *cm;
     nxt_port_msg_t        *port_msg;
     nxt_unit_impl_t       *lib;
     nxt_unit_recv_msg_t   recv_msg;
@@ -695,18 +699,11 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
     lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
 
     rc = NXT_UNIT_ERROR;
-    recv_msg.fd = -1;
+    recv_msg.fd      = -1;
     recv_msg.process = NULL;
-    port_msg = buf;
-    cm = oob;
+    port_msg         = buf;
 
-    if (oob_size >= CMSG_SPACE(sizeof(int))
-        && cm->cmsg_len == CMSG_LEN(sizeof(int))
-        && cm->cmsg_level == SOL_SOCKET
-        && cm->cmsg_type == SCM_RIGHTS)
-    {
-        memcpy(&recv_msg.fd, CMSG_DATA(cm), sizeof(int));
-    }
+    nxt_socket_msg_oob_fd(oob, oobn, &recv_msg.fd);
 
     recv_msg.incoming_buf = NULL;
 
@@ -2016,11 +2013,13 @@ nxt_unit_mmap_buf_send(nxt_unit_ctx_t *ctx, uint32_t stream,
 
     int                      rc;
     u_char                   *last_used, *first_free;
+    size_t                   oobn;
     ssize_t                  res;
     nxt_chunk_id_t           first_free_chunk;
     nxt_unit_buf_t           *buf;
     nxt_unit_impl_t          *lib;
     nxt_port_mmap_header_t   *hdr;
+    u_char                   oob[NXT_OOB_SEND_SIZE];
 
     lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
 
@@ -2052,8 +2051,10 @@ nxt_unit_mmap_buf_send(nxt_unit_ctx_t *ctx, uint32_t stream,
                        (int) m.mmap_msg.chunk_id,
                        (int) m.mmap_msg.size);
 
+        nxt_socket_msg_oob_init(oob, &oobn);
+
         res = lib->callbacks.port_send(ctx, &mmap_buf->port_id, &m, sizeof(m),
-                                       NULL, 0);
+                                       oob, oobn);
         if (nxt_slow_path(res != sizeof(m))) {
             goto free_buf;
         }
@@ -2102,10 +2103,12 @@ nxt_unit_mmap_buf_send(nxt_unit_ctx_t *ctx, uint32_t stream,
                        stream,
                        (int) (sizeof(m.msg) + m.mmap_msg.size));
 
+        nxt_socket_msg_oob_init(oob, &oobn);
+
         res = lib->callbacks.port_send(ctx, &mmap_buf->port_id,
                                        buf->start - sizeof(m.msg),
                                        m.mmap_msg.size + sizeof(m.msg),
-                                       NULL, 0);
+                                       oob, oobn);
         if (nxt_slow_path(res != (ssize_t) (m.mmap_msg.size + sizeof(m.msg)))) {
             goto free_buf;
         }
@@ -2623,11 +2626,13 @@ nxt_unit_buf_read(nxt_unit_buf_t **b, uint64_t *len, void *dst, size_t size)
 void
 nxt_unit_request_done(nxt_unit_request_info_t *req, int rc)
 {
+    size_t                        oobn;
     ssize_t                       res;
     uint32_t                      size;
     nxt_port_msg_t                msg;
     nxt_unit_impl_t               *lib;
     nxt_unit_request_info_impl_t  *req_impl;
+    u_char                        oob[NXT_OOB_SEND_SIZE];
 
     req_impl = nxt_container_of(req, nxt_unit_request_info_impl_t, req);
 
@@ -2678,8 +2683,10 @@ skip_response_send:
     msg.mf = 0;
     msg.tracking = 0;
 
+    nxt_socket_msg_oob_init(oob, &oobn);
+
     res = lib->callbacks.port_send(req->ctx, &req->response_port,
-                                   &msg, sizeof(msg), NULL, 0);
+                                   &msg, sizeof(msg), oob, oobn);
     if (nxt_slow_path(res != sizeof(msg))) {
         nxt_unit_req_alert(req, "last message send failed: %s (%d)",
                            strerror(errno), errno);
@@ -3237,13 +3244,11 @@ remove_fail:
 static int
 nxt_unit_send_mmap(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id, int fd)
 {
+    size_t           oobn;
     ssize_t          res;
     nxt_port_msg_t   msg;
     nxt_unit_impl_t  *lib;
-    union {
-        struct cmsghdr  cm;
-        char            space[CMSG_SPACE(sizeof(int))];
-    } cmsg;
+    u_char           oob[NXT_OOB_SEND_SIZE];
 
     lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
 
@@ -3257,30 +3262,14 @@ nxt_unit_send_mmap(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id, int fd)
     msg.mf = 0;
     msg.tracking = 0;
 
-    /*
-     * Fill all padding fields with 0.
-     * Code in Go 1.11 validate cmsghdr using padding field as part of len.
-     * See Cmsghdr definition and socketControlMessageHeaderAndData function.
-     */
-    memset(&cmsg, 0, sizeof(cmsg));
+    nxt_socket_msg_oob_init(oob, &oobn);
 
-    cmsg.cm.cmsg_len = CMSG_LEN(sizeof(int));
-    cmsg.cm.cmsg_level = SOL_SOCKET;
-    cmsg.cm.cmsg_type = SCM_RIGHTS;
-
-    /*
-     * memcpy() is used instead of simple
-     *   *(int *) CMSG_DATA(&cmsg.cm) = fd;
-     * because GCC 4.4 with -O2/3/s optimization may issue a warning:
-     *   dereferencing type-punned pointer will break strict-aliasing rules
-     *
-     * Fortunately, GCC with -O1 compiles this nxt_memcpy()
-     * in the same simple assignment as in the code above.
-     */
-    memcpy(CMSG_DATA(&cmsg.cm), &fd, sizeof(int));
+    if (fd != -1) {
+        nxt_socket_msg_oob_set_fd(oob, &oobn, fd);
+    }
 
     res = lib->callbacks.port_send(ctx, port_id, &msg, sizeof(msg),
-                                   &cmsg, sizeof(cmsg));
+                                   oob, oobn);
     if (nxt_slow_path(res != sizeof(msg))) {
         nxt_unit_warn(ctx, "failed to send shm to %d: %s (%d)",
                       (int) port_id->pid, strerror(errno), errno);
@@ -3921,7 +3910,7 @@ nxt_unit_run_once(nxt_unit_ctx_t *ctx)
     if (nxt_fast_path(rbuf->size > 0)) {
         rc = nxt_unit_process_msg(ctx, &ctx_impl->read_port_id,
                                   rbuf->buf, rbuf->size,
-                                  rbuf->oob, sizeof(rbuf->oob));
+                                  rbuf->oob, rbuf->oobn);
 
 #if (NXT_DEBUG)
         memset(rbuf->buf, 0xAC, rbuf->size);
@@ -3945,19 +3934,20 @@ nxt_unit_read_buf(nxt_unit_ctx_t *ctx, nxt_unit_read_buf_t *rbuf)
 
     ctx_impl = nxt_container_of(ctx, nxt_unit_ctx_impl_t, ctx);
 
-    memset(rbuf->oob, 0, sizeof(struct cmsghdr));
+    rbuf->oobn = sizeof(rbuf->oob);
+    memset(rbuf->oob, 0, rbuf->oobn);
 
     if (ctx_impl->read_port_fd != -1) {
         rbuf->size = nxt_unit_port_recv(ctx, ctx_impl->read_port_fd,
                                         rbuf->buf, sizeof(rbuf->buf),
-                                        rbuf->oob, sizeof(rbuf->oob));
+                                        rbuf->oob, &rbuf->oobn);
 
     } else {
         lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
 
         rbuf->size = lib->callbacks.port_recv(ctx, &ctx_impl->read_port_id,
                                               rbuf->buf, sizeof(rbuf->buf),
-                                              rbuf->oob, sizeof(rbuf->oob));
+                                              rbuf->oob, &rbuf->oobn);
     }
 }
 
@@ -4172,6 +4162,23 @@ nxt_unit_create_port(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id, int *fd)
         return NXT_UNIT_ERROR;
     }
 
+#if (NXT_HAVE_SOCKOPT_SO_PASSCRED)
+    int enable_creds = 1;
+    if (nxt_slow_path(setsockopt(port_sockets[0], SOL_SOCKET, SO_PASSCRED,
+                        &enable_creds, sizeof(enable_creds)) == -1))
+    {
+        nxt_unit_warn(ctx, "failed to set SO_PASSCRED %s", strerror(errno));
+        return NXT_UNIT_ERROR;
+    }
+
+    if (nxt_slow_path(setsockopt(port_sockets[1], SOL_SOCKET, SO_PASSCRED,
+                        &enable_creds, sizeof(enable_creds)) == -1))
+    {
+        nxt_unit_warn(ctx, "failed to set SO_PASSCRED %s", strerror(errno));
+        return NXT_UNIT_ERROR;
+    }
+#endif
+
     nxt_unit_debug(ctx, "create_port: new socketpair: %d->%d",
                    port_sockets[0], port_sockets[1]);
 
@@ -4218,18 +4225,16 @@ static int
 nxt_unit_send_port(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *dst,
     nxt_unit_port_id_t *new_port, int fd)
 {
+    size_t           oobn;
     ssize_t          res;
     nxt_unit_impl_t  *lib;
+    u_char           oob[NXT_OOB_SEND_SIZE];
 
     struct {
         nxt_port_msg_t            msg;
         nxt_port_msg_new_port_t   new_port;
     } m;
 
-    union {
-        struct cmsghdr  cm;
-        char            space[CMSG_SPACE(sizeof(int))];
-    } cmsg;
 
     lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
 
@@ -4249,25 +4254,13 @@ nxt_unit_send_port(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *dst,
     m.new_port.max_size = 16 * 1024;
     m.new_port.max_share = 64 * 1024;
 
-    memset(&cmsg, 0, sizeof(cmsg));
+    nxt_socket_msg_oob_init(oob, &oobn);
 
-    cmsg.cm.cmsg_len = CMSG_LEN(sizeof(int));
-    cmsg.cm.cmsg_level = SOL_SOCKET;
-    cmsg.cm.cmsg_type = SCM_RIGHTS;
+    if (fd != -1) {
+        nxt_socket_msg_oob_set_fd(oob, &oobn, fd);
+    }
 
-    /*
-     * memcpy() is used instead of simple
-     *   *(int *) CMSG_DATA(&cmsg.cm) = fd;
-     * because GCC 4.4 with -O2/3/s optimization may issue a warning:
-     *   dereferencing type-punned pointer will break strict-aliasing rules
-     *
-     * Fortunately, GCC with -O1 compiles this nxt_memcpy()
-     * in the same simple assignment as in the code above.
-     */
-    memcpy(CMSG_DATA(&cmsg.cm), &fd, sizeof(int));
-
-    res = lib->callbacks.port_send(ctx, dst, &m, sizeof(m),
-                                   &cmsg, sizeof(cmsg));
+    res = lib->callbacks.port_send(ctx, dst, &m, sizeof(m), oob, oobn);
 
     return res == sizeof(m) ? NXT_UNIT_OK : NXT_UNIT_ERROR;
 }
@@ -4525,39 +4518,30 @@ ssize_t
 nxt_unit_port_send(nxt_unit_ctx_t *ctx, int fd,
     const void *buf, size_t buf_size, const void *oob, size_t oob_size)
 {
-    ssize_t        res;
+    ssize_t        n;
     struct iovec   iov[1];
-    struct msghdr  msg;
 
     iov[0].iov_base = (void *) buf;
     iov[0].iov_len = buf_size;
 
-    msg.msg_name = NULL;
-    msg.msg_namelen = 0;
-    msg.msg_iov = iov;
-    msg.msg_iovlen = 1;
-    msg.msg_flags = 0;
-    msg.msg_control = (void *) oob;
-    msg.msg_controllen = oob_size;
+    n = nxt_sendmsg(fd, iov, 1, oob, oob_size);
 
-    res = sendmsg(fd, &msg, 0);
-
-    if (nxt_slow_path(res == -1)) {
+    if (nxt_slow_path(n == -1)) {
         nxt_unit_warn(ctx, "port_send(%d, %d) failed: %s (%d)",
                       fd, (int) buf_size, strerror(errno), errno);
 
     } else {
         nxt_unit_debug(ctx, "port_send(%d, %d): %d", fd, (int) buf_size,
-                       (int) res);
+                       (int) n);
     }
 
-    return res;
+    return n;
 }
 
 
 static ssize_t
 nxt_unit_port_recv_default(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
-    void *buf, size_t buf_size, void *oob, size_t oob_size)
+    void *buf, size_t buf_size, void *oob, size_t *oob_size)
 {
     int                   fd;
     nxt_unit_impl_t       *lib;
@@ -4600,34 +4584,24 @@ nxt_unit_port_recv_default(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
 
 ssize_t
 nxt_unit_port_recv(nxt_unit_ctx_t *ctx, int fd, void *buf, size_t buf_size,
-    void *oob, size_t oob_size)
+    void *oob, size_t *oobn)
 {
-    ssize_t        res;
+    ssize_t        n;
     struct iovec   iov[1];
-    struct msghdr  msg;
 
     iov[0].iov_base = buf;
     iov[0].iov_len = buf_size;
 
-    msg.msg_name = NULL;
-    msg.msg_namelen = 0;
-    msg.msg_iov = iov;
-    msg.msg_iovlen = 1;
-    msg.msg_flags = 0;
-    msg.msg_control = oob;
-    msg.msg_controllen = oob_size;
+    n = nxt_recvmsg(fd, iov, 1, oob, oobn);
 
-    res = recvmsg(fd, &msg, 0);
-
-    if (nxt_slow_path(res == -1)) {
+    if (nxt_slow_path(n == -1)) {
         nxt_unit_warn(ctx, "port_recv(%d) failed: %s (%d)",
                       fd, strerror(errno), errno);
-
     } else {
-        nxt_unit_debug(ctx, "port_recv(%d): %d", fd, (int) res);
+        nxt_unit_debug(ctx, "port_recv(%d): %d", fd, (int) n);
     }
 
-    return res;
+    return n;
 }
 
 

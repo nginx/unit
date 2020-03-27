@@ -129,7 +129,9 @@ typedef enum {
 /* Passed as a first iov chunk. */
 typedef struct {
     uint32_t             stream;
-    nxt_pid_t            pid;
+
+    nxt_pid_t            pid;       /* not used on Linux and FreeBSD */
+
     nxt_port_id_t        reply_port;
 
     uint8_t              type;
