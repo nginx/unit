@@ -84,6 +84,97 @@ Connection: close
         self.assertEqual(resp['status'], 999)
         self.assertEqual(resp['body'], '')
 
+    def test_return_location(self):
+        reserved = ":/?#[]@!$&'()*+,;="
+        unreserved = ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+                      "0123456789-._~")
+        unsafe = " \"%<>\\^`{|}"
+        unsafe_enc = "%20%22%25%3C%3E%5C%5E%60%7B%7C%7D"
+
+        def check_location(location, expect=None):
+            if expect is None:
+                expect = location
+
+            self.assertIn(
+                'success',
+                self.conf(
+                    {"return": 301, "location": location}, 'routes/0/action'
+                ),
+                'configure location'
+            )
+
+            self.assertEqual(self.get()['headers']['Location'], expect)
+
+        # FAIL: can't specify empty header value.
+        # check_location("")
+
+        check_location(reserved)
+
+        # After first "?" all other "?" encoded.
+        check_location("/?" + reserved, "/?:/%3F#[]@!$&'()*+,;=")
+        check_location("???", "?%3F%3F")
+
+        # After first "#" all other "?" or "#" encoded.
+        check_location("/#" + reserved, "/#:/%3F%23[]@!$&'()*+,;=")
+        check_location("##?#?", "#%23%3F%23%3F")
+
+        # After first "?" next "#" not encoded.
+        check_location("/?#" + reserved, "/?#:/%3F%23[]@!$&'()*+,;=")
+        check_location("??##", "?%3F#%23")
+        check_location("/?##?", "/?#%23%3F")
+
+        # Unreserved never encoded.
+        check_location(unreserved)
+        check_location("/" + unreserved + "?" + unreserved + "#" + unreserved)
+
+        # Unsafe always encoded.
+        check_location(unsafe, unsafe_enc)
+        check_location("?" + unsafe, "?" + unsafe_enc)
+        check_location("#" + unsafe, "#" + unsafe_enc)
+
+        # %00-%20 and %7F-%FF always encoded.
+        check_location(u"\u0000\u0018\u001F\u0020\u0021", "%00%18%1F%20!")
+        check_location(u"\u007F\u0080н\u20BD", "%7F%C2%80%D0%BD%E2%82%BD")
+
+        # Encoded string detection.  If at least one char need to be encoded
+        # then whole string will be encoded.
+        check_location("%20")
+        check_location("/%20?%20#%20")
+        check_location(" %20", "%20%2520")
+        check_location("%20 ", "%2520%20")
+        check_location("/%20?%20#%20 ", "/%2520?%2520#%2520%20")
+
+    def test_return_location_edit(self):
+        self.assertIn(
+            'success',
+            self.conf(
+                {"return": 302, "location": "blah"}, 'routes/0/action'
+            ),
+            'configure init location'
+        )
+        self.assertEqual(self.get()['headers']['Location'], 'blah')
+
+        self.assertIn(
+            'success',
+            self.conf_delete('routes/0/action/location'),
+            'location delete'
+        )
+        self.assertNotIn('Location', self.get()['headers'])
+
+        self.assertIn(
+            'success',
+            self.conf('"blah"', 'routes/0/action/location'),
+            'location restore'
+        )
+        self.assertEqual(self.get()['headers']['Location'], 'blah')
+
+        self.assertIn(
+            'error',
+            self.conf_post('"blah"', 'routes/0/action/location'),
+            'location method not allowed'
+        )
+        self.assertEqual(self.get()['headers']['Location'], 'blah')
+
     def test_return_invalid(self):
         def check_error(conf):
             self.assertIn('error', self.conf(conf, 'routes/0/action'))
@@ -97,6 +188,9 @@ Connection: close
         self.assertIn(
             'error', self.conf('001', 'routes/0/action/return'), 'leading zero'
         )
+
+        check_error({"return": 301, "location": 0})
+        check_error({"return": 301, "location": []})
 
 
 if __name__ == '__main__':
