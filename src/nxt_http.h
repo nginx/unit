@@ -43,6 +43,9 @@ typedef enum {
     NXT_HTTP_SERVICE_UNAVAILABLE = 503,
     NXT_HTTP_GATEWAY_TIMEOUT = 504,
     NXT_HTTP_VERSION_NOT_SUPPORTED = 505,
+    NXT_HTTP_SERVER_ERROR_MAX = 599,
+
+    NXT_HTTP_STATUS_MAX = 999,
 } nxt_http_status_t;
 
 
@@ -192,6 +195,7 @@ struct nxt_http_action_s {
         nxt_http_action_t           *fallback;
         nxt_upstream_t              *upstream;
         uint32_t                    upstream_number;
+        nxt_http_status_t           return_code;
     } u;
 
     nxt_str_t                       name;
@@ -281,6 +285,9 @@ nxt_int_t nxt_upstreams_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_conf_value_t *conf);
 nxt_int_t nxt_upstreams_joint_create(nxt_router_temp_conf_t *tmcf,
     nxt_upstream_t ***upstream_joint);
+
+nxt_http_action_t *nxt_http_return_handler(nxt_task_t *task,
+    nxt_http_request_t *r, nxt_http_action_t *action);
 
 nxt_http_action_t *nxt_http_static_handler(nxt_task_t *task,
     nxt_http_request_t *r, nxt_http_action_t *action);

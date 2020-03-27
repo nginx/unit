@@ -64,6 +64,8 @@ static nxt_int_t nxt_conf_vldt_action(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_pass(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_return(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_proxy(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_routes(nxt_conf_validation_t *vldt,
@@ -348,6 +350,16 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_pass_action_members[] = {
     { nxt_string("pass"),
       NXT_CONF_VLDT_STRING,
       &nxt_conf_vldt_pass,
+      NULL },
+
+    NXT_CONF_VLDT_END
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_return_action_members[] = {
+    { nxt_string("return"),
+      NXT_CONF_VLDT_INTEGER,
+      &nxt_conf_vldt_return,
       NULL },
 
     NXT_CONF_VLDT_END
@@ -978,6 +990,7 @@ nxt_conf_vldt_action(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 
     } actions[] = {
         { nxt_string("pass"), nxt_conf_vldt_pass_action_members },
+        { nxt_string("return"), nxt_conf_vldt_return_action_members },
         { nxt_string("share"), nxt_conf_vldt_share_action_members },
         { nxt_string("proxy"), nxt_conf_vldt_proxy_action_members },
     };
@@ -993,8 +1006,8 @@ nxt_conf_vldt_action(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 
         if (members != NULL) {
             return nxt_conf_vldt_error(vldt, "The \"action\" object must have "
-                                       "just one of \"pass\", \"share\" or "
-                                       "\"proxy\" options set.");
+                                       "just one of \"pass\", \"return\", "
+                                       "\"share\", or \"proxy\" options set.");
         }
 
         members = actions[i].members;
@@ -1002,8 +1015,8 @@ nxt_conf_vldt_action(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 
     if (members == NULL) {
         return nxt_conf_vldt_error(vldt, "The \"action\" object must have "
-                                         "either \"pass\", \"share\", or "
-                                         "\"proxy\" option set.");
+                                   "either \"pass\", \"return\", \"share\", "
+                                   "or \"proxy\" option set.");
     }
 
     return nxt_conf_vldt_object(vldt, value, members);
@@ -1111,6 +1124,23 @@ error:
 
     return nxt_conf_vldt_error(vldt, "Request \"pass\" points to invalid "
                                "location \"%V\".", &pass);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_return(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
+{
+    int64_t  status;
+
+    status = nxt_conf_get_integer(value);
+
+    if (status < NXT_HTTP_INVALID || status > NXT_HTTP_STATUS_MAX) {
+        return nxt_conf_vldt_error(vldt, "The \"return\" value is out of "
+                                   "allowed HTTP status code range 0-999.");
+    }
+
+    return NXT_OK;
 }
 
 

@@ -41,6 +41,7 @@ typedef enum {
 
 typedef struct {
     nxt_conf_value_t               *pass;
+    nxt_conf_value_t               *ret;
     nxt_conf_value_t               *share;
     nxt_conf_value_t               *proxy;
     nxt_conf_value_t               *fallback;
@@ -576,6 +577,11 @@ static nxt_conf_map_t  nxt_http_route_action_conf[] = {
         offsetof(nxt_http_route_action_conf_t, pass)
     },
     {
+        nxt_string("return"),
+        NXT_CONF_MAP_PTR,
+        offsetof(nxt_http_route_action_conf_t, ret)
+    },
+    {
         nxt_string("share"),
         NXT_CONF_MAP_PTR,
         offsetof(nxt_http_route_action_conf_t, share)
@@ -612,6 +618,12 @@ nxt_http_route_action_create(nxt_router_temp_conf_t *tmcf, nxt_conf_value_t *cv,
     }
 
     nxt_memzero(action, sizeof(nxt_http_action_t));
+
+    if (accf.ret != NULL) {
+        action->handler = nxt_http_return_handler;
+        action->u.return_code = nxt_conf_get_integer(accf.ret);
+        return NXT_OK;
+    }
 
     conf = accf.pass;
 
