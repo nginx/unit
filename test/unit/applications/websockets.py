@@ -221,7 +221,7 @@ class TestApplicationWebsocket(TestApplicationProto):
             op_code = self.OP_CONT
             pos = end
 
-    def message_read(self, sock, read_timeout=10):
+    def message_read(self, sock, read_timeout=60):
         frame = self.frame_read(sock, read_timeout=read_timeout)
 
         while not frame['fin']:
