@@ -16,27 +16,10 @@ class TestRouting(TestApplicationProto):
                     "routes": [
                         {
                             "match": {"method": "GET"},
-                            "action": {"pass": "applications/empty"},
+                            "action": {"return": 200},
                         }
                     ],
-                    "applications": {
-                        "empty": {
-                            "type": "python",
-                            "processes": {"spare": 0},
-                            "path": self.current_dir + '/python/empty',
-                            "working_directory": self.current_dir
-                            + '/python/empty',
-                            "module": "wsgi",
-                        },
-                        "mirror": {
-                            "type": "python",
-                            "processes": {"spare": 0},
-                            "path": self.current_dir + '/python/mirror',
-                            "working_directory": self.current_dir
-                            + '/python/mirror',
-                            "module": "wsgi",
-                        },
-                    },
+                    "applications": {},
                 }
             ),
             'routing configure',
@@ -48,18 +31,14 @@ class TestRouting(TestApplicationProto):
     def route_match(self, match):
         self.assertIn(
             'success',
-            self.route(
-                {"match": match, "action": {"pass": "applications/empty"}}
-            ),
+            self.route({"match": match, "action": {"return": 200}}),
             'route match configure',
         )
 
     def route_match_invalid(self, match):
         self.assertIn(
             'error',
-            self.route(
-                {"match": match, "action": {"pass": "applications/empty"}}
-            ),
+            self.route({"match": match, "action": {"return": 200}}),
             'route match configure invalid',
         )
 
@@ -233,24 +212,7 @@ class TestRouting(TestApplicationProto):
                 {
                     "listeners": {"*:7080": {"pass": "routes/main"}},
                     "routes": {"main": []},
-                    "applications": {
-                        "empty": {
-                            "type": "python",
-                            "processes": {"spare": 0},
-                            "path": self.current_dir + '/python/empty',
-                            "working_directory": self.current_dir
-                            + '/python/empty',
-                            "module": "wsgi",
-                        },
-                        "mirror": {
-                            "type": "python",
-                            "processes": {"spare": 0},
-                            "path": self.current_dir + '/python/mirror',
-                            "working_directory": self.current_dir
-                            + '/python/mirror',
-                            "module": "wsgi",
-                        },
-                    },
+                    "applications": {},
                 }
             ),
             'route empty configure',
@@ -272,7 +234,7 @@ class TestRouting(TestApplicationProto):
     def test_routes_route_match_absent(self):
         self.assertIn(
             'success',
-            self.conf([{"action": {"pass": "applications/empty"}}], 'routes'),
+            self.conf([{"action": {"return": 200}}], 'routes'),
             'route match absent configure',
         )
 
@@ -349,14 +311,8 @@ class TestRouting(TestApplicationProto):
             'success',
             self.conf(
                 [
-                    {
-                        "match": {"method": "GET"},
-                        "action": {"pass": "applications/empty"},
-                    },
-                    {
-                        "match": {"method": "POST"},
-                        "action": {"pass": "applications/mirror"},
-                    },
+                    {"match": {"method": "GET"}, "action": {"return": 200}},
+                    {"match": {"method": "POST"}, "action": {"return": 201}},
                 ],
                 'routes',
             ),
@@ -364,18 +320,7 @@ class TestRouting(TestApplicationProto):
         )
 
         self.assertEqual(self.get()['status'], 200, 'rules two match first')
-        self.assertEqual(
-            self.post(
-                headers={
-                    'Host': 'localhost',
-                    'Content-Type': 'text/html',
-                    'Connection': 'close',
-                },
-                body='X',
-            )['status'],
-            200,
-            'rules two match second',
-        )
+        self.assertEqual(self.post()['status'], 201, 'rules two match second')
 
     def test_routes_two(self):
         self.assertIn(
@@ -393,20 +338,11 @@ class TestRouting(TestApplicationProto):
                         "second": [
                             {
                                 "match": {"host": "localhost"},
-                                "action": {"pass": "applications/empty"},
+                                "action": {"return": 200},
                             }
                         ],
                     },
-                    "applications": {
-                        "empty": {
-                            "type": "python",
-                            "processes": {"spare": 0},
-                            "path": self.current_dir + '/python/empty',
-                            "working_directory": self.current_dir
-                            + '/python/empty',
-                            "module": "wsgi",
-                        }
-                    },
+                    "applications": {},
                 }
             ),
             'routes two configure',
@@ -556,7 +492,7 @@ class TestRouting(TestApplicationProto):
 
         self.assertIn(
             'success',
-            self.conf([{"action": {"pass": "applications/empty"}}], 'routes'),
+            self.conf([{"action": {"return": 200}}], 'routes'),
             'redefine 2',
         )
         self.assertEqual(self.get()['status'], 200, 'redefine request 2')
@@ -569,19 +505,8 @@ class TestRouting(TestApplicationProto):
             self.conf(
                 {
                     "listeners": {"*:7080": {"pass": "routes/main"}},
-                    "routes": {
-                        "main": [{"action": {"pass": "applications/empty"}}]
-                    },
-                    "applications": {
-                        "empty": {
-                            "type": "python",
-                            "processes": {"spare": 0},
-                            "path": self.current_dir + '/python/empty',
-                            "working_directory": self.current_dir
-                            + '/python/empty',
-                            "module": "wsgi",
-                        }
-                    },
+                    "routes": {"main": [{"action": {"return": 200}}]},
+                    "applications": {},
                 }
             ),
             'redefine 4',
@@ -595,25 +520,19 @@ class TestRouting(TestApplicationProto):
 
         self.assertIn(
             'success',
-            self.conf_post(
-                {"action": {"pass": "applications/empty"}}, 'routes/main'
-            ),
+            self.conf_post({"action": {"return": 200}}, 'routes/main'),
             'redefine 6',
         )
         self.assertEqual(self.get()['status'], 200, 'redefine request 6')
 
         self.assertIn(
             'error',
-            self.conf(
-                {"action": {"pass": "applications/empty"}}, 'routes/main/2'
-            ),
+            self.conf({"action": {"return": 200}}, 'routes/main/2'),
             'redefine 7',
         )
         self.assertIn(
             'success',
-            self.conf(
-                {"action": {"pass": "applications/empty"}}, 'routes/main/1'
-            ),
+            self.conf({"action": {"return": 201}}, 'routes/main/1'),
             'redefine 8',
         )
 
@@ -631,10 +550,7 @@ class TestRouting(TestApplicationProto):
         self.assertIn(
             'success',
             self.conf_post(
-                {
-                    "match": {"method": "POST"},
-                    "action": {"pass": "applications/empty"},
-                },
+                {"match": {"method": "POST"}, "action": {"return": 200}},
                 'routes',
             ),
             'routes edit configure 2',
@@ -654,9 +570,7 @@ class TestRouting(TestApplicationProto):
         self.assertEqual(self.post()['status'], 200, 'routes edit POST 2')
 
         self.assertIn(
-            'success',
-            self.conf_delete('routes/0'),
-            'routes edit configure 3',
+            'success', self.conf_delete('routes/0'), 'routes edit configure 3',
         )
 
         self.assertEqual(self.get()['status'], 404, 'routes edit GET 3')
@@ -682,9 +596,7 @@ class TestRouting(TestApplicationProto):
         self.assertEqual(self.post()['status'], 200, 'routes edit POST 4')
 
         self.assertIn(
-            'success',
-            self.conf_delete('routes/0'),
-            'routes edit configure 5',
+            'success', self.conf_delete('routes/0'), 'routes edit configure 5',
         )
 
         self.assertEqual(self.get()['status'], 404, 'routes edit GET 5')
@@ -693,10 +605,7 @@ class TestRouting(TestApplicationProto):
         self.assertIn(
             'success',
             self.conf_post(
-                {
-                    "match": {"method": "POST"},
-                    "action": {"pass": "applications/empty"},
-                },
+                {"match": {"method": "POST"}, "action": {"return": 200},},
                 'routes',
             ),
             'routes edit configure 6',
@@ -710,19 +619,8 @@ class TestRouting(TestApplicationProto):
             self.conf(
                 {
                     "listeners": {"*:7080": {"pass": "routes/main"}},
-                    "routes": {
-                        "main": [{"action": {"pass": "applications/empty"}}]
-                    },
-                    "applications": {
-                        "empty": {
-                            "type": "python",
-                            "processes": {"spare": 0},
-                            "path": self.current_dir + '/python/empty',
-                            "working_directory": self.current_dir
-                            + '/python/empty',
-                            "module": "wsgi",
-                        }
-                    },
+                    "routes": {"main": [{"action": {"return": 200}}]},
+                    "applications": {},
                 }
             ),
             'route edit configure 7',
@@ -1838,20 +1736,11 @@ class TestRouting(TestApplicationProto):
                         "second": [
                             {
                                 "match": {"destination": ["127.0.0.1:7081"]},
-                                "action": {"pass": "applications/empty"},
+                                "action": {"return": 200},
                             }
                         ],
                     },
-                    "applications": {
-                        "empty": {
-                            "type": "python",
-                            "processes": {"spare": 0},
-                            "path": self.current_dir + "/python/empty",
-                            "working_directory": self.current_dir
-                            + "/python/empty",
-                            "module": "wsgi",
-                        }
-                    },
+                    "applications": {},
                 }
             ),
             'proxy configure',
