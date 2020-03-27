@@ -432,8 +432,6 @@ nxt_http_route_match_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         return NULL;
     }
 
-    match->action.u.route = NULL;
-    match->action.handler = NULL;
     match->items = n;
 
     action_conf = nxt_conf_get_path(cv, &action_path);
@@ -613,6 +611,8 @@ nxt_http_route_action_create(nxt_router_temp_conf_t *tmcf, nxt_conf_value_t *cv,
         return ret;
     }
 
+    nxt_memzero(action, sizeof(nxt_http_action_t));
+
     conf = accf.pass;
 
     if (accf.share != NULL) {
@@ -633,7 +633,7 @@ nxt_http_route_action_create(nxt_router_temp_conf_t *tmcf, nxt_conf_value_t *cv,
     }
 
     if (accf.fallback != NULL) {
-        action->u.fallback = nxt_mp_zalloc(mp, sizeof(nxt_http_action_t));
+        action->u.fallback = nxt_mp_alloc(mp, sizeof(nxt_http_action_t));
         if (nxt_slow_path(action->u.fallback == NULL)) {
             return NXT_ERROR;
         }
