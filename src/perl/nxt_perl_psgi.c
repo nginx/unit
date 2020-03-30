@@ -166,7 +166,7 @@ nxt_perl_psgi_io_error_write(PerlInterpreter *my_perl,
     nxt_perl_psgi_input_t *input;
 
     input = (nxt_perl_psgi_input_t *) arg->ctx;
-    nxt_unit_req_error(input->req, "Perl: %s", vbuf);
+    nxt_unit_req_error(input->req, "Perl: %s", (const char*) vbuf);
 
     return (long) length;
 }

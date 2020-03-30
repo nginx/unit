@@ -971,8 +971,10 @@ nxt_unit_process_req_headers(nxt_unit_ctx_t *ctx, nxt_unit_recv_msg_t *recv_msg)
     req_impl->websocket = 0;
 
     nxt_unit_debug(ctx, "#%"PRIu32": %.*s %.*s (%d)", recv_msg->stream,
-                   (int) r->method_length, nxt_unit_sptr_get(&r->method),
-                   (int) r->target_length, nxt_unit_sptr_get(&r->target),
+                   (int) r->method_length,
+                   (char *) nxt_unit_sptr_get(&r->method),
+                   (int) r->target_length,
+                   (char *) nxt_unit_sptr_get(&r->target),
                    (int) r->content_length);
 
     lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
@@ -2084,7 +2086,7 @@ nxt_unit_mmap_buf_send(nxt_unit_ctx_t *ctx, uint32_t stream,
 
         nxt_unit_debug(ctx, "process %d allocated_chunks %d",
                        mmap_buf->process->pid,
-                       mmap_buf->process->outgoing.allocated_chunks);
+                       (int) mmap_buf->process->outgoing.allocated_chunks);
 
     } else {
         if (nxt_slow_path(mmap_buf->plain_ptr == NULL
@@ -2972,7 +2974,7 @@ unlock:
 
     nxt_unit_debug(ctx, "process %d allocated_chunks %d",
                    process->pid,
-                   process->outgoing.allocated_chunks);
+                   (int) process->outgoing.allocated_chunks);
 
     pthread_mutex_unlock(&process->outgoing.mutex);
 
@@ -3691,7 +3693,7 @@ nxt_unit_mmap_release(nxt_unit_ctx_t *ctx,
 
         nxt_unit_debug(ctx, "process %d allocated_chunks %d",
                        process->pid,
-                       process->outgoing.allocated_chunks);
+                       (int) process->outgoing.allocated_chunks);
     }
 
     if (hdr->dst_pid == lib->pid

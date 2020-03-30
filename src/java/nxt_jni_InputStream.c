@@ -104,7 +104,7 @@ nxt_java_InputStream_readLine(JNIEnv *env, jclass cls,
         res = nxt_unit_request_read(req, data + off, res);
     }
 
-    nxt_unit_req_debug(req, "readLine '%.*s'", res, (char *) data + off);
+    nxt_unit_req_debug(req, "readLine '%.*s'", (int) res, (char *) data + off);
 
     (*env)->ReleasePrimitiveArrayCritical(env, out, data, 0);
 
@@ -152,7 +152,7 @@ nxt_java_InputStream_read(JNIEnv *env, jclass cls, jlong req_info_ptr,
 
     res = nxt_unit_request_read(req, data + off, len);
 
-    nxt_unit_req_debug(req, "read '%.*s'", res, (char *) data + off);
+    nxt_unit_req_debug(req, "read '%.*s'", (int) res, (char *) data + off);
 
     (*env)->ReleasePrimitiveArrayCritical(env, b, data, 0);
 
