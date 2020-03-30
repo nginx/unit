@@ -51,7 +51,6 @@ class TestUSR1(TestApplicationPython):
             self.search_in_log(r'/usr1', log_new), 'rename new 2'
         )
 
-    @unittest.skip('not yet')
     def test_usr1_unit_log(self):
         self.load('log_body')
 

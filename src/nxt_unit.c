@@ -767,6 +767,16 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
     case _NXT_PORT_MSG_CHANGE_FILE:
         nxt_unit_debug(ctx, "#%"PRIu32": change_file: fd %d",
                        port_msg->stream, recv_msg.fd);
+
+        if (dup2(recv_msg.fd, lib->log_fd) == -1) {
+            nxt_unit_alert(ctx, "#%"PRIu32": dup2(%d, %d) failed: %s (%d)",
+                           port_msg->stream, recv_msg.fd, lib->log_fd,
+                           strerror(errno), errno);
+
+            goto fail;
+        }
+
+        rc = NXT_UNIT_OK;
         break;
 
     case _NXT_PORT_MSG_MMAP:
