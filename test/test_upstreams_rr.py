@@ -193,6 +193,67 @@ Connection: close
         self.assertEqual(resps[0], 60, 'weight 2 0')
         self.assertEqual(resps[2], 40, 'weight 2 1')
 
+    def test_upstreams_rr_weight_rational(self):
+        def set_weights(w1, w2):
+            self.assertIn(
+                'success',
+                self.conf(
+                    {
+                        "127.0.0.1:7081": {"weight": w1},
+                        "127.0.0.1:7082": {"weight": w2},
+                    },
+                    'upstreams/one/servers',
+                ),
+                'configure weights',
+            )
+
+        def check_reqs(w1, w2, reqs=10):
+            resps = self.get_resps_sc(req=reqs)
+            self.assertEqual(resps[0], reqs * w1 / (w1 + w2), 'weight 1')
+            self.assertEqual(resps[1], reqs * w2 / (w1 + w2), 'weight 2')
+
+        def check_weights(w1, w2):
+            set_weights(w1, w2)
+            check_reqs(w1, w2)
+
+        check_weights(0, 1)
+        check_weights(0, 999999.0123456)
+        check_weights(1, 9)
+        check_weights(100000, 900000)
+        check_weights(1, .25)
+        check_weights(1, 0.25)
+        check_weights(0.2, .8)
+        check_weights(1, 1.5)
+        check_weights(1e-3, 1E-3)
+        check_weights(1e-20, 1e-20)
+        check_weights(1e4, 1e4)
+        check_weights(1000000, 1000000)
+
+        set_weights(0.25, 0.25)
+        self.assertIn(
+            'success',
+            self.conf_delete('upstreams/one/servers/127.0.0.1:7081/weight'),
+            'delete weight',
+        )
+        check_reqs(1, 0.25)
+
+        self.assertIn(
+            'success',
+            self.conf(
+                {
+                    "127.0.0.1:7081": {"weight": 0.1},
+                    "127.0.0.1:7082": {"weight": 1},
+                    "127.0.0.1:7083": {"weight": 0.9},
+                },
+                'upstreams/one/servers',
+            ),
+            'configure weights',
+        )
+        resps = self.get_resps_sc(req=20)
+        self.assertEqual(resps[0], 1, 'weight 3 1')
+        self.assertEqual(resps[1], 10, 'weight 3 2')
+        self.assertEqual(resps[2], 9, 'weight 3 3')
+
     def test_upstreams_rr_independent(self):
         def sum_resps(*args):
             sum = [0] * len(args[0])
@@ -429,8 +490,28 @@ Connection: close
             self.conf({}, 'upstreams/one/servers'),
             'configure servers empty',
         )
-
         self.assertEqual(self.get()['status'], 502, 'servers empty')
+
+        self.assertIn(
+            'success',
+            self.conf(
+                {"127.0.0.1:7081": {"weight": 0}}, 'upstreams/one/servers'
+            ),
+            'configure servers empty one',
+        )
+        self.assertEqual(self.get()['status'], 502, 'servers empty one')
+        self.assertIn(
+            'success',
+            self.conf(
+                {
+                    "127.0.0.1:7081": {"weight": 0},
+                    "127.0.0.1:7082": {"weight": 0},
+                },
+                'upstreams/one/servers',
+            ),
+            'configure servers empty two',
+        )
+        self.assertEqual(self.get()['status'], 502, 'servers empty two')
 
     def test_upstreams_rr_invalid(self):
         self.assertIn(
@@ -449,16 +530,21 @@ Connection: close
             self.conf({}, 'upstreams/one/servers/127.0.0.1:7081/blah'),
             'invalid server option',
         )
-        self.assertIn(
-            'error',
-            self.conf({}, 'upstreams/one/servers/127.0.0.1:7081/weight'),
-            'invalid weight option',
-        )
-        self.assertIn(
-            'error',
-            self.conf('-1', 'upstreams/one/servers/127.0.0.1:7081/weight'),
-            'invalid negative weight',
-        )
+
+        def check_weight(w):
+            self.assertIn(
+                'error',
+                self.conf(w, 'upstreams/one/servers/127.0.0.1:7081/weight'),
+                'invalid weight option',
+            )
+        check_weight({})
+        check_weight('-1')
+        check_weight('1.')
+        check_weight('1.1.')
+        check_weight('.')
+        check_weight('.01234567890123')
+        check_weight('1000001')
+        check_weight('2e6')
 
 
 if __name__ == '__main__':

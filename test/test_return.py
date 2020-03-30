@@ -181,7 +181,7 @@ Connection: close
 
         check_error({"return": "200"})
         check_error({"return": []})
-        check_error({"return": 80.})
+        check_error({"return": 80.1})
         check_error({"return": 1000})
         check_error({"return": 200, "share": "/blah"})
 
