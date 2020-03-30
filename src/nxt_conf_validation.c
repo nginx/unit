@@ -732,7 +732,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_upstream_members[] = {
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_upstream_server_members[] = {
     { nxt_string("weight"),
-      NXT_CONF_VLDT_INTEGER,
+      NXT_CONF_VLDT_NUMBER,
       &nxt_conf_vldt_server_weight,
       NULL },
 
@@ -2060,18 +2060,18 @@ static nxt_int_t
 nxt_conf_vldt_server_weight(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data)
 {
-    int64_t  int_value;
+    double  num_value;
 
-    int_value = nxt_conf_get_number(value);
+    num_value = nxt_conf_get_number(value);
 
-    if (int_value <= 0) {
+    if (num_value < 0) {
         return nxt_conf_vldt_error(vldt, "The \"weight\" number must be "
-                                   "greater than 0.");
+                                   "positive.");
     }
 
-    if (int_value > NXT_INT32_T_MAX) {
+    if (num_value > 1000000) {
         return nxt_conf_vldt_error(vldt, "The \"weight\" number must "
-                                   "not exceed %d.", NXT_INT32_T_MAX);
+                                   "not exceed 1,000,000");
     }
 
     return NXT_OK;
