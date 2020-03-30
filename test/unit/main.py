@@ -193,7 +193,6 @@ class TestUnit(unittest.TestCase):
 
         self.skip_alerts = [
             r'read signalfd\(4\) failed',
-            r'last message send failed',
             r'sendmsg.+failed',
             r'recvmsg.+failed',
         ]

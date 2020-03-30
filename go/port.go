@@ -138,6 +138,8 @@ func nxt_go_port_send(pid C.int, id C.int, buf unsafe.Pointer, buf_size C.int,
 
 	if err != nil {
 		nxt_go_warn("write result %d (%d), %s", n, oobn, err)
+
+		n = -1
 	}
 
 	return C.ssize_t(n)
@@ -164,6 +166,8 @@ func nxt_go_port_recv(pid C.int, id C.int, buf unsafe.Pointer, buf_size C.int,
 
 	if err != nil {
 		nxt_go_warn("read result %d (%d), %s", n, oobn, err)
+
+		n = -1
 	}
 
 	return C.ssize_t(n)
