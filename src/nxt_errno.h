@@ -47,6 +47,7 @@ typedef int                        nxt_err_t;
 #define NXT_ETIME                  ETIME
 #define NXT_ENOMOREFILES           0
 #define NXT_ENOBUFS                ENOBUFS
+#define NXT_ERANGE                 ERANGE
 
 #if (NXT_HPUX)
 /* HP-UX uses EWOULDBLOCK instead of EAGAIN. */

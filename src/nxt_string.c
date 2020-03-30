@@ -110,6 +110,24 @@ nxt_memcpy_upcase(u_char *dst, const u_char *src, size_t length)
 
 
 u_char *
+nxt_cpystr(u_char *dst, const u_char *src)
+{
+    for ( ;; ) {
+        *dst = *src;
+
+        if (*dst == '\0') {
+            break;
+        }
+
+        dst++;
+        src++;
+    }
+
+    return dst;
+}
+
+
+u_char *
 nxt_cpystrn(u_char *dst, const u_char *src, size_t length)
 {
     if (length == 0) {

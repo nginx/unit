@@ -630,7 +630,7 @@ nxt_http_route_action_create(nxt_router_temp_conf_t *tmcf, nxt_conf_value_t *cv,
 
     if (accf.ret != NULL) {
         action->handler = nxt_http_return_handler;
-        action->u.return_code = nxt_conf_get_integer(accf.ret);
+        action->u.return_code = nxt_conf_get_number(accf.ret);
 
         if (accf.location.length > 0) {
             if (nxt_is_complex_uri_encoded(accf.location.start,

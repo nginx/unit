@@ -17,7 +17,7 @@ typedef enum {
     NXT_CONF_VLDT_NULL    = 1 << NXT_CONF_NULL,
     NXT_CONF_VLDT_BOOLEAN = 1 << NXT_CONF_BOOLEAN,
     NXT_CONF_VLDT_INTEGER = 1 << NXT_CONF_INTEGER,
-    NXT_CONF_VLDT_NUMBER  = 1 << NXT_CONF_NUMBER,
+    NXT_CONF_VLDT_NUMBER  = (1 << NXT_CONF_NUMBER) | NXT_CONF_VLDT_INTEGER,
     NXT_CONF_VLDT_STRING  = 1 << NXT_CONF_STRING,
     NXT_CONF_VLDT_ARRAY   = 1 << NXT_CONF_ARRAY,
     NXT_CONF_VLDT_OBJECT  = 1 << NXT_CONF_OBJECT,
@@ -773,8 +773,8 @@ nxt_conf_vldt_type(nxt_conf_validation_t *vldt, nxt_str_t *name,
     static nxt_str_t  type_name[] = {
         nxt_string("a null"),
         nxt_string("a boolean"),
-        nxt_string("an integer"),
-        nxt_string("a number"),
+        nxt_string("an integer number"),
+        nxt_string("a fractional number"),
         nxt_string("a string"),
         nxt_string("an array"),
         nxt_string("an object"),
@@ -1138,7 +1138,7 @@ nxt_conf_vldt_return(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 {
     int64_t  status;
 
-    status = nxt_conf_get_integer(value);
+    status = nxt_conf_get_number(value);
 
     if (status < NXT_HTTP_INVALID || status > NXT_HTTP_STATUS_MAX) {
         return nxt_conf_vldt_error(vldt, "The \"return\" value is out of "
@@ -1626,8 +1626,8 @@ nxt_conf_vldt_processes(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     nxt_int_t                       ret;
     nxt_conf_vldt_processes_conf_t  proc;
 
-    if (nxt_conf_type(value) == NXT_CONF_INTEGER) {
-        int_value = nxt_conf_get_integer(value);
+    if (nxt_conf_type(value) == NXT_CONF_NUMBER) {
+        int_value = nxt_conf_get_number(value);
 
         if (int_value < 1) {
             return nxt_conf_vldt_error(vldt, "The \"processes\" number must be "
@@ -2062,7 +2062,7 @@ nxt_conf_vldt_server_weight(nxt_conf_validation_t *vldt,
 {
     int64_t  int_value;
 
-    int_value = nxt_conf_get_integer(value);
+    int_value = nxt_conf_get_number(value);
 
     if (int_value <= 0) {
         return nxt_conf_vldt_error(vldt, "The \"weight\" number must be "

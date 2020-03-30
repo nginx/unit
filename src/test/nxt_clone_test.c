@@ -588,13 +588,13 @@ nxt_clone_test_parse_map(nxt_task_t *task, nxt_str_t *map_str,
         obj = nxt_conf_get_array_element(array, i);
 
         value = nxt_conf_get_object_member(obj, &host_name, NULL);
-        map->map[i].host = nxt_conf_get_integer(value);
+        map->map[i].host = nxt_conf_get_number(value);
 
         value = nxt_conf_get_object_member(obj, &cont_name, NULL);
-        map->map[i].container = nxt_conf_get_integer(value);
+        map->map[i].container = nxt_conf_get_number(value);
 
         value = nxt_conf_get_object_member(obj, &size_name, NULL);
-        map->map[i].size = nxt_conf_get_integer(value);
+        map->map[i].size = nxt_conf_get_number(value);
     }
 
     return NXT_OK;
