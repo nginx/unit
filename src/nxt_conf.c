@@ -2142,7 +2142,9 @@ nxt_conf_json_parse_number(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
 
     num = nxt_strtod(value->u.number, &end);
 
-    if (nxt_slow_path(nxt_errno == NXT_ERANGE || fabs(num) > NXT_INT64_T_MAX)) {
+    if (nxt_slow_path(nxt_errno == NXT_ERANGE
+        || fabs(num) > (double) NXT_INT64_T_MAX))
+    {
         nxt_conf_json_parse_error(error, start,
             "The number is out of representable range.  Such JSON number "
             "value is not supported."
