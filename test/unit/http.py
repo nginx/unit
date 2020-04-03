@@ -173,11 +173,25 @@ class TestHTTP(TestUnit):
         return self.http('PUT', **kwargs)
 
     def recvall(self, sock, **kwargs):
-        timeout = 60 if 'read_timeout' not in kwargs else kwargs['read_timeout']
+        timeout_default = 60
+
+        timeout = (
+            timeout_default
+            if 'read_timeout' not in kwargs
+            else kwargs['read_timeout']
+        )
         buff_size = 4096 if 'buff_size' not in kwargs else kwargs['buff_size']
 
         data = b''
-        while select.select([sock], [], [], timeout)[0]:
+        while True:
+            rlist = select.select([sock], [], [], timeout)[0]
+            if not rlist:
+                # For all current cases if the "read_timeout" was changed
+                # than test do not expect to get a response from server.
+                if timeout == timeout_default:
+                    self.fail('Can\'t read response from server.')
+                break
+
             try:
                 part = sock.recv(buff_size)
             except:

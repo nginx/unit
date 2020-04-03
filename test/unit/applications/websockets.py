@@ -52,7 +52,11 @@ class TestApplicationWebsocket(TestApplicationProto):
         )
 
         resp = ''
-        while select.select([sock], [], [], 60)[0]:
+        while True:
+            rlist = select.select([sock], [], [], 60)[0]
+            if not rlist:
+                self.fail('Can\'t read response from server.')
+
             resp += sock.recv(4096).decode()
 
             if (
@@ -73,7 +77,15 @@ class TestApplicationWebsocket(TestApplicationProto):
     def frame_read(self, sock, read_timeout=60):
         def recv_bytes(sock, bytes):
             data = b''
-            while select.select([sock], [], [], read_timeout)[0]:
+            while True:
+                rlist = select.select([sock], [], [], read_timeout)[0]
+                if not rlist:
+                    # For all current cases if the "read_timeout" was changed
+                    # than test do not expect to get a response from server.
+                    if read_timeout == 60:
+                        self.fail('Can\'t read response from server.')
+                    break
+
                 data += sock.recv(bytes - len(data))
 
                 if len(data) == bytes:
