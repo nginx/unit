@@ -22,7 +22,7 @@ class TestJavaWebsockets(TestApplicationJava):
         )
 
         self.skip_alerts.extend(
-            [r'last message send failed', r'socket close\(\d+\) failed']
+            [r'socket close\(\d+\) failed']
         )
 
     def close_connection(self, sock):

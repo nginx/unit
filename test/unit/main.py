@@ -199,7 +199,7 @@ class TestUnit(unittest.TestCase):
         self.skip_sanitizer = False
 
     def tearDown(self):
-        self.stop()
+        stop_errs = self.stop()
 
         # detect errors and failures for current test
 
@@ -234,10 +234,18 @@ class TestUnit(unittest.TestCase):
         else:
             self._print_log()
 
+        self.assertListEqual(stop_errs, [None, None], 'stop errors')
+
     def stop(self):
-        self._stop()
-        self.stop_processes()
+        errors = []
+
+        errors.append(self._stop())
+
+        errors.append(self.stop_processes())
+
         atexit.unregister(self.stop)
+
+        return errors
 
     def _stop(self):
         if self._p.poll() is not None:
@@ -249,12 +257,10 @@ class TestUnit(unittest.TestCase):
             try:
                 retcode = p.wait(15)
                 if retcode:
-                    self.fail(
-                        "Child process terminated with code " + str(retcode)
-                    )
+                    return 'Child process terminated with code ' + str(retcode)
             except:
                 p.kill()
-                self.fail("Could not terminate unit")
+                return 'Could not terminate unit'
 
     def run_process(self, target, *args):
         if not hasattr(self, '_processes'):
@@ -269,13 +275,17 @@ class TestUnit(unittest.TestCase):
         if not hasattr(self, '_processes'):
             return
 
+        fail = False
         for process in self._processes:
             if process.is_alive():
                 process.terminate()
                 process.join(timeout=15)
 
                 if process.is_alive():
-                    self.fail('Fail to stop process')
+                    fail = True
+
+        if fail:
+            return 'Fail to stop process'
 
     def waitforfiles(self, *files):
         for i in range(50):
