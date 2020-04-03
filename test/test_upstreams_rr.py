@@ -16,10 +16,10 @@ class TestUpstreamsRR(TestApplicationPython):
                 {
                     "listeners": {
                         "*:7080": {"pass": "upstreams/one"},
-                        "*:7081": {"pass": "applications/ups_0"},
-                        "*:7082": {"pass": "applications/ups_1"},
-                        "*:7083": {"pass": "applications/ups_2"},
                         "*:7090": {"pass": "upstreams/two"},
+                        "*:7081": {"pass": "routes/one"},
+                        "*:7082": {"pass": "routes/two"},
+                        "*:7083": {"pass": "routes/three"},
                     },
                     "upstreams": {
                         "one": {
@@ -35,32 +35,12 @@ class TestUpstreamsRR(TestApplicationPython):
                             },
                         },
                     },
-                    "applications": {
-                        "ups_0": {
-                            "type": "python",
-                            "processes": {"spare": 0},
-                            "path": self.current_dir + "/python/upstreams/0",
-                            "working_directory": self.current_dir
-                            + "/python/upstreams/0",
-                            "module": "wsgi",
-                        },
-                        "ups_1": {
-                            "type": "python",
-                            "processes": {"spare": 0},
-                            "path": self.current_dir + "/python/upstreams/1",
-                            "working_directory": self.current_dir
-                            + "/python/upstreams/1",
-                            "module": "wsgi",
-                        },
-                        "ups_2": {
-                            "type": "python",
-                            "processes": {"spare": 0},
-                            "path": self.current_dir + "/python/upstreams/2",
-                            "working_directory": self.current_dir
-                            + "/python/upstreams/2",
-                            "module": "wsgi",
-                        },
+                    "routes": {
+                        "one": [{"action": {"return": 200}}],
+                        "two": [{"action": {"return": 201}}],
+                        "three": [{"action": {"return": 202}}],
                     },
+                    "applications": {},
                 },
             ),
             'upstreams initial configuration',
@@ -70,15 +50,17 @@ class TestUpstreamsRR(TestApplicationPython):
 
     def get_resps(self, req=100, port=7080):
         resps = [0]
+
         for _ in range(req):
-            headers = self.get(port=port)['headers']
-            if 'X-Upstream' in headers:
-                ups = int(headers['X-Upstream'])
+            status = self.get(port=port)['status']
+            if 200 > status or status > 209:
+                continue
 
-                if ups > len(resps) - 1:
-                    resps.extend([0] * (ups - len(resps) + 1))
+            ups = status % 10
+            if ups > len(resps) - 1:
+                resps.extend([0] * (ups - len(resps) + 1))
 
-                resps[ups] += 1
+            resps[ups] += 1
 
         return resps
 
@@ -97,16 +79,19 @@ Connection: close
 """
 
         resp = self.http(to_send, raw_resp=True, raw=True, port=port)
-        ups = re.findall('X-Upstream: (\d+)', resp)
-        resps = [0] * (int(max(ups)) + 1)
+        status = re.findall(r'HTTP\/\d\.\d\s(\d\d\d)', resp)
+        status = list(filter(lambda x: x[:2] == '20', status))
+        ups = list(map(lambda x: int(x[-1]), status))
 
+        resps = [0] * (max(ups) + 1)
         for i in range(len(ups)):
-            resps[int(ups[i])] += 1
+            resps[ups[i]] += 1
 
         return resps
 
     def test_upstreams_rr_no_weight(self):
         resps = self.get_resps()
+        self.assertEqual(sum(resps), 100, 'no weight sum')
         self.assertLessEqual(
             abs(resps[0] - resps[1]), self.cpu_count, 'no weight'
         )
@@ -127,6 +112,7 @@ Connection: close
         )
 
         resps = self.get_resps()
+        self.assertEqual(sum(resps), 100, 'no weight 3 sum')
         self.assertLessEqual(
             abs(resps[0] - resps[1]), self.cpu_count, 'no weight 3'
         )
@@ -138,6 +124,7 @@ Connection: close
         )
 
         resps = self.get_resps()
+        self.assertEqual(sum(resps), 100, 'no weight 4 sum')
         self.assertLessEqual(
             max(resps) - min(resps), self.cpu_count, 'no weight 4'
         )
@@ -295,33 +282,71 @@ Connection: close
             r_one = sum_resps(r_one, self.get_resps(req=10))
             r_two = sum_resps(r_two, self.get_resps(req=10, port=7090))
 
+
+        self.assertEqual(sum(r_one), 100, 'dep one mix sum')
         self.assertLessEqual(
             abs(r_one[0] - r_one[1]), self.cpu_count, 'dep one mix'
         )
+        self.assertEqual(sum(r_two), 100, 'dep two mix sum')
         self.assertLessEqual(
             abs(r_two[0] - r_two[1]), self.cpu_count, 'dep two mix'
         )
 
     def test_upstreams_rr_delay(self):
-        headers_delay_1 = {
-            'Connection': 'close',
-            'Host': 'localhost',
-            'Content-Length': '0',
-            'X-Delay': '1',
-        }
-        headers_no_delay = {
-            'Connection': 'close',
-            'Host': 'localhost',
-            'Content-Length': '0',
-        }
+        self.assertIn(
+            'success',
+            self.conf(
+                {
+                    "listeners": {
+                        "*:7080": {"pass": "upstreams/one"},
+                        "*:7081": {"pass": "routes"},
+                        "*:7082": {"pass": "routes"},
+                    },
+                    "upstreams": {
+                        "one": {
+                            "servers": {
+                                "127.0.0.1:7081": {},
+                                "127.0.0.1:7082": {},
+                            },
+                        },
+                    },
+                    "routes": [
+                        {
+                            "match": {"destination": "*:7081"},
+                            "action": {"pass": "applications/delayed"},
+                        },
+                        {
+                            "match": {"destination": "*:7082"},
+                            "action": {"return": 201},
+                        },
+                    ],
+                    "applications": {
+                        "delayed": {
+                            "type": "python",
+                            "processes": {"spare": 0},
+                            "path": self.current_dir + "/python/delayed",
+                            "working_directory": self.current_dir
+                            + "/python/delayed",
+                            "module": "wsgi",
+                        }
+                    },
+                },
+            ),
+            'upstreams initial configuration',
+        )
 
         req = 50
 
         socks = []
         for i in range(req):
-            headers = headers_delay_1 if i % 5 == 0 else headers_no_delay
+            delay = 1 if i % 5 == 0 else 0
             _, sock = self.get(
-                headers=headers,
+                headers={
+                    'Host': 'localhost',
+                    'Content-Length': '0',
+                    'X-Delay': str(delay),
+                    'Connection': 'close',
+                },
                 start=True,
                 no_recv=True,
             )
@@ -332,12 +357,12 @@ Connection: close
             resp = self.recvall(socks[i]).decode()
             socks[i].close()
 
-            m = re.search('X-Upstream: (\d+)', resp)
+            m = re.search('HTTP/1.1 20(\d)', resp)
+            self.assertIsNotNone(m, 'status')
             resps[int(m.group(1))] += 1
 
-        self.assertLessEqual(
-            abs(resps[0] - resps[1]), self.cpu_count, 'dep two mix'
-        )
+        self.assertEqual(sum(resps), req, 'delay sum')
+        self.assertLessEqual(abs(resps[0] - resps[1]), self.cpu_count, 'delay')
 
     def test_upstreams_rr_active_req(self):
         conns = 5
@@ -364,7 +389,7 @@ Connection: close
         # Send one more request and read response to make sure that previous
         # requests had enough time to reach server.
 
-        self.assertEqual(self.get()['status'], 200)
+        self.assertEqual(self.get()['body'], '')
 
         self.assertIn(
             'success',
@@ -388,13 +413,17 @@ Connection: close
         )
 
         for i in range(conns):
-            resp = self.recvall(socks[i]).decode()
-            socks[i].close()
+            self.assertEqual(
+                self.http(b'', sock=socks[i], raw=True)['body'],
+                '',
+                'active req GET',
+            )
 
-            self.assertRegex(resp, r'X-Upstream', 'active req GET')
-
-            resp = self.http(b"""0123456789""", sock=socks2[i], raw=True)
-            self.assertEqual(resp['status'], 200, 'active req POST')
+            self.assertEqual(
+                self.http(b"""0123456789""", sock=socks2[i], raw=True)['body'],
+                '',
+                'active req POST',
+            )
 
     def test_upstreams_rr_bad_server(self):
         self.assertIn(
@@ -417,14 +446,11 @@ Connection: close
     def test_upstreams_rr_post(self):
         resps = [0, 0]
         for _ in range(50):
-            resps[
-                int(self.post(body='0123456789')['headers']['X-Upstream'])
-            ] += 1
-            resps[int(self.get()['headers']['X-Upstream'])] += 1
+            resps[self.get()['status'] % 10] += 1
+            resps[self.post(body='0123456789')['status'] % 10] += 1
 
-        self.assertLessEqual(
-            abs(resps[0] - resps[1]), self.cpu_count, 'post'
-        )
+        self.assertEqual(sum(resps), 100, 'post sum')
+        self.assertLessEqual(abs(resps[0] - resps[1]), self.cpu_count, 'post')
 
     def test_upstreams_rr_unix(self):
         addr_0 = self.testdir + '/sock_0'
@@ -435,8 +461,8 @@ Connection: close
             self.conf(
                 {
                     "*:7080": {"pass": "upstreams/one"},
-                    "unix:" + addr_0: {"pass": "applications/ups_0"},
-                    "unix:" + addr_1: {"pass": "applications/ups_1"},
+                    "unix:" + addr_0: {"pass": "routes/one"},
+                    "unix:" + addr_1: {"pass": "routes/two"},
                 },
                 'listeners',
             ),
@@ -446,7 +472,7 @@ Connection: close
         self.assertIn(
             'success',
             self.conf(
-                {"unix:" + addr_0: {}, "unix:" + addr_1: {},},
+                {"unix:" + addr_0: {}, "unix:" + addr_1: {}},
                 'upstreams/one/servers',
             ),
             'configure servers unix',
@@ -463,8 +489,8 @@ Connection: close
             self.conf(
                 {
                     "*:7080": {"pass": "upstreams/one"},
-                    "[::1]:7081": {"pass": "applications/ups_0"},
-                    "[::1]:7082": {"pass": "applications/ups_1"},
+                    "[::1]:7081": {"pass": "routes/one"},
+                    "[::1]:7082": {"pass": "routes/two"},
                 },
                 'listeners',
             ),
@@ -474,7 +500,7 @@ Connection: close
         self.assertIn(
             'success',
             self.conf(
-                {"[::1]:7081": {}, "[::1]:7082": {},}, 'upstreams/one/servers'
+                {"[::1]:7081": {}, "[::1]:7082": {}}, 'upstreams/one/servers'
             ),
             'configure servers ipv6',
         )
