@@ -4312,6 +4312,9 @@ nxt_unit_add_port(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port)
 
     rc = nxt_unit_port_hash_add(&lib->ports, &new_port->port);
     if (nxt_slow_path(rc != NXT_UNIT_OK)) {
+        nxt_unit_alert(ctx, "add_port: %d,%d hash_add failed",
+                       port->id.pid, port->id.id);
+
         goto unlock;
     }
 

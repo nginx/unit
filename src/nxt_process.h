@@ -105,13 +105,11 @@ void nxt_process_use(nxt_task_t *task, nxt_process_t *process, int i);
 
 void nxt_process_close_ports(nxt_task_t *task, nxt_process_t *process);
 
-void nxt_process_connected_port_add(nxt_process_t *process, nxt_port_t *port);
-
 void nxt_process_connected_port_remove(nxt_process_t *process,
     nxt_port_t *port);
 
-nxt_port_t *nxt_process_connected_port_find(nxt_process_t *process,
-    nxt_pid_t pid, nxt_port_id_t port_id);
+nxt_port_t *nxt_process_connected_port_find_add(nxt_process_t *process,
+    nxt_port_t *port);
 
 void nxt_worker_process_quit_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
