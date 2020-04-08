@@ -108,7 +108,7 @@ nxt_conn_socket(nxt_task_t *task, nxt_conn_t *c)
     c->write_timer.task = task;
 
     if (c->local != NULL) {
-        if (nxt_slow_path(nxt_socket_bind(task, s, c->local, 0) != NXT_OK)) {
+        if (nxt_slow_path(nxt_socket_bind(task, s, c->local) != NXT_OK)) {
             nxt_socket_close(task, s);
             return NXT_ERROR;
         }

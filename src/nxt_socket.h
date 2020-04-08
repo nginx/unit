@@ -101,7 +101,7 @@ NXT_EXPORT nxt_int_t nxt_socket_getsockopt(nxt_task_t *task, nxt_socket_t s,
 NXT_EXPORT nxt_int_t nxt_socket_setsockopt(nxt_task_t *task, nxt_socket_t s,
     nxt_uint_t level, nxt_uint_t sockopt, int val);
 NXT_EXPORT nxt_int_t nxt_socket_bind(nxt_task_t *task, nxt_socket_t s,
-    nxt_sockaddr_t *sa, nxt_bool_t test);
+    nxt_sockaddr_t *sa);
 NXT_EXPORT nxt_int_t nxt_socket_connect(nxt_task_t *task, nxt_socket_t s,
     nxt_sockaddr_t *sa);
 NXT_EXPORT void nxt_socket_shutdown(nxt_task_t *task, nxt_socket_t s,

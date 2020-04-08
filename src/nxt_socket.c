@@ -184,11 +184,8 @@ nxt_socket_sockopt_name(nxt_uint_t level, nxt_uint_t sockopt)
 
 
 nxt_int_t
-nxt_socket_bind(nxt_task_t *task, nxt_socket_t s, nxt_sockaddr_t *sa,
-    nxt_bool_t test)
+nxt_socket_bind(nxt_task_t *task, nxt_socket_t s, nxt_sockaddr_t *sa)
 {
-    nxt_err_t  err;
-
     nxt_debug(task, "bind(%d, %*s)", s, (size_t) sa->length,
               nxt_sockaddr_start(sa));
 
@@ -196,14 +193,8 @@ nxt_socket_bind(nxt_task_t *task, nxt_socket_t s, nxt_sockaddr_t *sa,
         return NXT_OK;
     }
 
-    err = nxt_socket_errno;
-
-    if (err == NXT_EADDRINUSE && test) {
-        return NXT_DECLINED;
-    }
-
     nxt_alert(task, "bind(%d, %*s) failed %E",
-              s, (size_t) sa->length, nxt_sockaddr_start(sa), err);
+              s, (size_t) sa->length, nxt_sockaddr_start(sa), nxt_socket_errno);
 
     return NXT_ERROR;
 }

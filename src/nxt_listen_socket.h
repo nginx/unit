@@ -55,7 +55,7 @@ NXT_EXPORT nxt_int_t nxt_listen_socket(nxt_task_t *task, nxt_socket_t s,
     int backlog);
 
 NXT_EXPORT nxt_int_t nxt_listen_socket_create(nxt_task_t *task,
-    nxt_listen_socket_t *ls, nxt_bool_t bind_test);
+    nxt_listen_socket_t *ls);
 NXT_EXPORT nxt_int_t nxt_listen_socket_update(nxt_task_t *task,
     nxt_listen_socket_t *ls, nxt_listen_socket_t *prev);
 NXT_EXPORT void nxt_listen_socket_remote_size(nxt_listen_socket_t *ls);

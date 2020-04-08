@@ -27,8 +27,7 @@ nxt_listen_socket(nxt_task_t *task, nxt_socket_t s, int backlog)
 
 
 nxt_int_t
-nxt_listen_socket_create(nxt_task_t *task, nxt_listen_socket_t *ls,
-    nxt_bool_t bind_test)
+nxt_listen_socket_create(nxt_task_t *task, nxt_listen_socket_t *ls)
 {
     nxt_log_t       log, *old;
     nxt_uint_t      family;
@@ -81,16 +80,8 @@ nxt_listen_socket_create(nxt_task_t *task, nxt_listen_socket_t *ls,
         nxt_socket_defer_accept(task, s, sa);
     }
 
-    switch (nxt_socket_bind(task, s, sa, bind_test)) {
-
-    case NXT_OK:
-        break;
-
-    case NXT_ERROR:
+    if (nxt_socket_bind(task, s, sa) != NXT_OK) {
         goto fail;
-
-    default: /* NXT_DECLINED: EADDRINUSE on bind() test */
-        return NXT_OK;
     }
 
 #if (NXT_HAVE_UNIX_DOMAIN)
@@ -104,10 +95,6 @@ nxt_listen_socket_create(nxt_task_t *task, nxt_listen_socket_t *ls,
         access = (S_IRUSR | S_IWUSR);
 
         if (nxt_file_set_access(name, access) != NXT_OK) {
-            goto fail;
-        }
-
-        if (bind_test && nxt_file_delete(name) != NXT_OK) {
             goto fail;
         }
     }
