@@ -451,8 +451,18 @@ Server.prototype.setTimeout = function setTimeout(msecs, callback) {
     return this;
 };
 
-Server.prototype.listen = function () {
+Server.prototype.listen = function (...args) {
     this.unit.listen();
+
+    const cb = args.pop();
+
+    if (typeof cb === 'function') {
+        this.once('listening', cb);
+    }
+
+    this.emit('listening');
+
+    return this;
 };
 
 Server.prototype.emit_request = function (req, res) {
