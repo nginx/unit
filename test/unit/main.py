@@ -185,10 +185,7 @@ class TestUnit(unittest.TestCase):
 
         atexit.register(self.stop)
 
-        # Due to race between connect() and listen() after the socket binding
-        # tests waits for unit.pid file which is created after listen().
-
-        if not self.waitforfiles(self.testdir + '/unit.pid'):
+        if not self.waitforfiles(self.testdir + '/control.unit.sock'):
             exit("Could not start unit")
 
         self.skip_alerts = [

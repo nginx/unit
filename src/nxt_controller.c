@@ -431,7 +431,7 @@ nxt_runtime_controller_socket(nxt_task_t *task, nxt_runtime_t *rt)
 #endif
     ls->handler = nxt_controller_conn_init;
 
-    if (nxt_listen_socket_create(task, ls) != NXT_OK) {
+    if (nxt_listen_socket_create(task, rt->mem_pool, ls) != NXT_OK) {
         return NXT_ERROR;
     }
 
