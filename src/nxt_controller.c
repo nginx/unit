@@ -402,24 +402,14 @@ nxt_controller_conf_send(nxt_task_t *task, nxt_conf_value_t *conf,
 nxt_int_t
 nxt_runtime_controller_socket(nxt_task_t *task, nxt_runtime_t *rt)
 {
-    nxt_sockaddr_t       *sa;
     nxt_listen_socket_t  *ls;
-
-    sa = rt->controller_listen;
 
     ls = nxt_mp_alloc(rt->mem_pool, sizeof(nxt_listen_socket_t));
     if (ls == NULL) {
         return NXT_ERROR;
     }
 
-    ls->sockaddr = nxt_sockaddr_create(rt->mem_pool, &sa->u.sockaddr,
-                                       sa->socklen, sa->length);
-    if (ls->sockaddr == NULL) {
-        return NXT_ERROR;
-    }
-
-    ls->sockaddr->type = sa->type;
-    nxt_sockaddr_text(ls->sockaddr);
+    ls->sockaddr = rt->controller_listen;
 
     nxt_listen_socket_remote_size(ls);
 
