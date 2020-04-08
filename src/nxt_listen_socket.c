@@ -48,7 +48,7 @@ nxt_listen_socket_create(nxt_task_t *task, nxt_listen_socket_t *ls)
 
     s = nxt_socket_create(task, family, sa->type, 0, ls->flags);
     if (s == -1) {
-        goto socket_fail;
+        goto fail;
     }
 
     if (nxt_socket_setsockopt(task, s, SOL_SOCKET, SO_REUSEADDR, 1) != NXT_OK) {
@@ -95,7 +95,7 @@ nxt_listen_socket_create(nxt_task_t *task, nxt_listen_socket_t *ls)
         access = (S_IRUSR | S_IWUSR);
 
         if (nxt_file_set_access(name, access) != NXT_OK) {
-            goto fail;
+            goto listen_fail;
         }
     }
 
@@ -106,7 +106,7 @@ nxt_listen_socket_create(nxt_task_t *task, nxt_listen_socket_t *ls)
     if (listen(s, ls->backlog) != 0) {
         nxt_alert(task, "listen(%d, %d) failed %E",
                   s, ls->backlog, nxt_socket_errno);
-        goto fail;
+        goto listen_fail;
     }
 
     ls->socket = s;
@@ -114,11 +114,25 @@ nxt_listen_socket_create(nxt_task_t *task, nxt_listen_socket_t *ls)
 
     return NXT_OK;
 
+listen_fail:
+
+#if (NXT_HAVE_UNIX_DOMAIN)
+
+    if (family == AF_UNIX) {
+        nxt_file_name_t  *name;
+
+        name = (nxt_file_name_t *) sa->u.sockaddr_un.sun_path;
+
+        (void) nxt_file_delete(name);
+    }
+
+#endif
+
 fail:
 
-    nxt_socket_close(task, s);
-
-socket_fail:
+    if (s != -1) {
+        nxt_socket_close(task, s);
+    }
 
     thr->log = old;
 
