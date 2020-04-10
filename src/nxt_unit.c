@@ -4282,15 +4282,37 @@ nxt_unit_add_port(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port)
     int                   rc;
     nxt_unit_impl_t       *lib;
     nxt_unit_process_t    *process;
-    nxt_unit_port_impl_t  *new_port;
+    nxt_unit_port_impl_t  *new_port, *old_port;
 
     lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
+
+    pthread_mutex_lock(&lib->mutex);
+
+    old_port = nxt_unit_port_hash_find(&lib->ports, &port->id, 0);
+
+    if (nxt_slow_path(old_port != NULL)) {
+        nxt_unit_debug(ctx, "add_port: duplicate %d,%d in_fd %d out_fd %d",
+                       port->id.pid, port->id.id,
+                       port->in_fd, port->out_fd);
+
+        if (port->in_fd != -1) {
+            close(port->in_fd);
+            port->in_fd = -1;
+        }
+
+        if (port->out_fd != -1) {
+            close(port->out_fd);
+            port->out_fd = -1;
+        }
+
+        pthread_mutex_unlock(&lib->mutex);
+
+        return NXT_UNIT_OK;
+    }
 
     nxt_unit_debug(ctx, "add_port: %d,%d in_fd %d out_fd %d",
                    port->id.pid, port->id.id,
                    port->in_fd, port->out_fd);
-
-    pthread_mutex_lock(&lib->mutex);
 
     process = nxt_unit_process_get(ctx, port->id.pid);
     if (nxt_slow_path(process == NULL)) {

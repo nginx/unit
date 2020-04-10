@@ -50,7 +50,11 @@ func add_port(p *port) {
 		port_registry_.m = make(map[port_key]*port)
 	}
 
-	port_registry_.m[p.key] = p
+	old := port_registry_.m[p.key]
+
+	if old == nil {
+		port_registry_.m[p.key] = p
+	}
 
 	port_registry_.Unlock()
 }

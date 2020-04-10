@@ -4811,7 +4811,7 @@ nxt_router_app_prepare_request(nxt_task_t *task,
 
     apr_action = NXT_APR_REQUEST_FAILED;
 
-    c_port = nxt_process_connected_port_find_add(port->process, reply_port);
+    c_port = nxt_process_connected_port_find(port->process, reply_port);
 
     if (nxt_slow_path(c_port != reply_port)) {
         res = nxt_port_send_port(task, port, reply_port, 0);
@@ -4820,10 +4820,10 @@ nxt_router_app_prepare_request(nxt_task_t *task,
             nxt_request_app_link_error(task, port->app, req_app_link,
                                 "Failed to send reply port to application");
 
-            nxt_process_connected_port_remove(port->process, reply_port);
-
             goto release_port;
         }
+
+        nxt_process_connected_port_add(port->process, reply_port);
     }
 
     buf = nxt_router_prepare_msg(task, req_app_link->request, port,

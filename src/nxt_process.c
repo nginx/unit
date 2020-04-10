@@ -591,6 +591,17 @@ nxt_process_close_ports(nxt_task_t *task, nxt_process_t *process)
 
 
 void
+nxt_process_connected_port_add(nxt_process_t *process, nxt_port_t *port)
+{
+    nxt_thread_mutex_lock(&process->cp_mutex);
+
+    nxt_port_hash_add(&process->connected_ports, port);
+
+    nxt_thread_mutex_unlock(&process->cp_mutex);
+}
+
+
+void
 nxt_process_connected_port_remove(nxt_process_t *process, nxt_port_t *port)
 {
     nxt_thread_mutex_lock(&process->cp_mutex);
@@ -602,17 +613,13 @@ nxt_process_connected_port_remove(nxt_process_t *process, nxt_port_t *port)
 
 
 nxt_port_t *
-nxt_process_connected_port_find_add(nxt_process_t *process, nxt_port_t *port)
+nxt_process_connected_port_find(nxt_process_t *process, nxt_port_t *port)
 {
     nxt_port_t  *res;
 
     nxt_thread_mutex_lock(&process->cp_mutex);
 
     res = nxt_port_hash_find(&process->connected_ports, port->pid, port->id);
-
-    if (nxt_slow_path(res == NULL)) {
-        nxt_port_hash_add(&process->connected_ports, port);
-    }
 
     nxt_thread_mutex_unlock(&process->cp_mutex);
 
