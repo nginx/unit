@@ -382,6 +382,38 @@ Connection: close
             self.wait_for_record(r'At exit called\.'), 'atexit'
         )
 
+    def test_python_process_switch(self):
+        self.load('delayed')
+
+        self.assertIn(
+            'success',
+            self.conf('2', 'applications/delayed/processes'),
+            'configure 2 processes',
+        )
+
+        self.get(headers={
+            'Host': 'localhost',
+            'Content-Length': '0',
+            'X-Delay': '5',
+            'Connection': 'close',
+        }, no_recv=True)
+
+        headers_delay_1 = {
+            'Connection': 'close',
+            'Host': 'localhost',
+            'Content-Length': '0',
+            'X-Delay': '1',
+        }
+
+        self.get(headers=headers_delay_1, no_recv=True)
+
+        time.sleep(0.5)
+
+        for _ in range(10):
+            self.get(headers=headers_delay_1, no_recv=True)
+
+        self.get(headers=headers_delay_1)
+
     @unittest.skip('not yet')
     def test_python_application_start_response_exit(self):
         self.load('start_response_exit')
