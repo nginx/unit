@@ -279,12 +279,8 @@ class TestHTTP(TestUnit):
     def _parse_json(self, resp):
         headers = resp['headers']
 
-        self.assertIn('Content-Type', headers, 'Content-Type header set')
-        self.assertEqual(
-            headers['Content-Type'],
-            'application/json',
-            'Content-Type header is application/json',
-        )
+        self.assertIn('Content-Type', headers)
+        self.assertEqual(headers['Content-Type'], 'application/json')
 
         resp['body'] = json.loads(resp['body'])
 

@@ -55,7 +55,7 @@ class TestUSR1(TestApplicationPython):
         self.load('log_body')
 
         log_new = 'new.log'
-        log_path = self.testdir + '/' + 'unit.log'
+        log_path = self.testdir + '/unit.log'
         log_path_new = self.testdir + '/' + log_new
 
         os.rename(log_path, log_path_new)

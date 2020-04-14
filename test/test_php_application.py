@@ -183,6 +183,7 @@ class TestPHPApplication(TestApplicationPHP):
 
         self.assertEqual(self.get()['status'], 200, 'init')
 
+        body = '0123456789' * 500
         (resp, sock) = self.post(
             headers={
                 'Host': 'localhost',
@@ -190,12 +191,13 @@ class TestPHPApplication(TestApplicationPHP):
                 'Content-Type': 'text/html',
             },
             start=True,
-            body='0123456789' * 500,
+            body=body,
             read_timeout=1,
         )
 
-        self.assertEqual(resp['body'], '0123456789' * 500, 'keep-alive 1')
+        self.assertEqual(resp['body'], body, 'keep-alive 1')
 
+        body = '0123456789'
         resp = self.post(
             headers={
                 'Host': 'localhost',
@@ -203,10 +205,10 @@ class TestPHPApplication(TestApplicationPHP):
                 'Content-Type': 'text/html',
             },
             sock=sock,
-            body='0123456789',
+            body=body,
         )
 
-        self.assertEqual(resp['body'], '0123456789', 'keep-alive 2')
+        self.assertEqual(resp['body'], body, 'keep-alive 2')
 
     def test_php_application_conditional(self):
         self.load('conditional')

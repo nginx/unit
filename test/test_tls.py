@@ -521,7 +521,6 @@ basicConstraints = critical,CA:TRUE"""
         )
 
     def test_tls_application_respawn(self):
-        self.skip_alerts.append(r'process \d+ exited on signal 9')
         self.load('mirror')
 
         self.certificate()
@@ -530,7 +529,7 @@ basicConstraints = critical,CA:TRUE"""
 
         self.add_tls(application='mirror')
 
-        (resp, sock) = self.post_ssl(
+        (_, sock) = self.post_ssl(
             headers={
                 'Host': 'localhost',
                 'Connection': 'keep-alive',
@@ -544,6 +543,8 @@ basicConstraints = critical,CA:TRUE"""
         app_id = self.findall(r'(\d+)#\d+ "mirror" application started')[0]
 
         subprocess.call(['kill', '-9', app_id])
+
+        self.skip_alerts.append(r'process %s exited on signal 9' % app_id)
 
         self.wait_for_record(
             re.compile(

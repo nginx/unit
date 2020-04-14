@@ -19,17 +19,9 @@ class TestPythonBasic(TestControl):
     }
 
     def test_python_get_empty(self):
-        self.assertEqual(
-            self.conf_get(), {'listeners': {}, 'applications': {}}, 'empty'
-        )
-
-    def test_python_get_prefix_listeners(self):
-        self.assertEqual(self.conf_get('listeners'), {}, 'listeners prefix')
-
-    def test_python_get_prefix_applications(self):
-        self.assertEqual(
-            self.conf_get('applications'), {}, 'applications prefix'
-        )
+        self.assertEqual(self.conf_get(), {'listeners': {}, 'applications': {}})
+        self.assertEqual(self.conf_get('listeners'), {})
+        self.assertEqual(self.conf_get('applications'), {})
 
     def test_python_get_applications(self):
         self.conf(self.conf_app, 'applications')
@@ -50,9 +42,6 @@ class TestPythonBasic(TestControl):
             'applications',
         )
 
-    def test_python_get_applications_prefix(self):
-        self.conf(self.conf_app, 'applications')
-
         self.assertEqual(
             self.conf_get('applications'),
             {
@@ -66,9 +55,6 @@ class TestPythonBasic(TestControl):
             'applications prefix',
         )
 
-    def test_python_get_applications_prefix_2(self):
-        self.conf(self.conf_app, 'applications')
-
         self.assertEqual(
             self.conf_get('applications/app'),
             {
@@ -79,9 +65,6 @@ class TestPythonBasic(TestControl):
             },
             'applications prefix 2',
         )
-
-    def test_python_get_applications_prefix_3(self):
-        self.conf(self.conf_app, 'applications')
 
         self.assertEqual(
             self.conf_get('applications/app/type'), 'python', 'type'
@@ -99,17 +82,11 @@ class TestPythonBasic(TestControl):
             'listeners',
         )
 
-    def test_python_get_listeners_prefix(self):
-        self.conf(self.conf_basic)
-
         self.assertEqual(
             self.conf_get('listeners'),
             {"*:7080": {"pass": "applications/app"}},
             'listeners prefix',
         )
-
-    def test_python_get_listeners_prefix_2(self):
-        self.conf(self.conf_basic)
 
         self.assertEqual(
             self.conf_get('listeners/*:7080'),
@@ -160,44 +137,18 @@ class TestPythonBasic(TestControl):
     def test_python_delete(self):
         self.conf(self.conf_basic)
 
-        self.assertIn(
-            'error',
-            self.conf_delete('applications/app'),
-            'delete app before listener',
-        )
-        self.assertIn(
-            'success', self.conf_delete('listeners/*:7080'), 'delete listener'
-        )
-        self.assertIn(
-            'success',
-            self.conf_delete('applications/app'),
-            'delete app after listener',
-        )
-        self.assertIn(
-            'error', self.conf_delete('applications/app'), 'delete app again'
-        )
+        self.assertIn('error', self.conf_delete('applications/app'))
+        self.assertIn('success', self.conf_delete('listeners/*:7080'))
+        self.assertIn('success', self.conf_delete('applications/app'))
+        self.assertIn('error', self.conf_delete('applications/app'))
 
     def test_python_delete_blocks(self):
         self.conf(self.conf_basic)
 
-        self.assertIn(
-            'success',
-            self.conf_delete('listeners'),
-            'listeners delete',
-        )
+        self.assertIn('success', self.conf_delete('listeners'))
+        self.assertIn('success', self.conf_delete('applications'))
 
-        self.assertIn(
-            'success',
-            self.conf_delete('applications'),
-            'applications delete',
-        )
-
-        self.assertIn(
-            'success',
-            self.conf(self.conf_app, 'applications'),
-            'listeners restore',
-        )
-
+        self.assertIn('success', self.conf(self.conf_app, 'applications'))
         self.assertIn(
             'success',
             self.conf({"*:7081": {"pass": "applications/app"}}, 'listeners'),

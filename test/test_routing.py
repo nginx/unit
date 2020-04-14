@@ -605,7 +605,7 @@ class TestRouting(TestApplicationProto):
         self.assertIn(
             'success',
             self.conf_post(
-                {"match": {"method": "POST"}, "action": {"return": 200},},
+                {"match": {"method": "POST"}, "action": {"return": 200}},
                 'routes',
             ),
             'routes edit configure 6',

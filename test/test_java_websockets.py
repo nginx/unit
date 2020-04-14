@@ -26,7 +26,7 @@ class TestJavaWebsockets(TestApplicationJava):
         )
 
     def close_connection(self, sock):
-        self.assertEqual(self.recvall(sock, read_timeout=1), b'', 'empty sock')
+        self.assertEqual(self.recvall(sock, read_timeout=0.1), b'', 'empty soc')
 
         self.ws.frame_write(sock, self.ws.OP_CLOSE, self.ws.serialize_close())
 
@@ -441,12 +441,12 @@ class TestJavaWebsockets(TestApplicationJava):
         _, sock, _ = self.ws.upgrade()
 
         self.ws.frame_write(sock, self.ws.OP_PONG, '')
-        self.assertEqual(self.recvall(sock, read_timeout=1), b'', '2_7')
+        self.assertEqual(self.recvall(sock, read_timeout=0.1), b'', '2_7')
 
         # 2_8
 
         self.ws.frame_write(sock, self.ws.OP_PONG, 'unsolicited pong payload')
-        self.assertEqual(self.recvall(sock, read_timeout=1), b'', '2_8')
+        self.assertEqual(self.recvall(sock, read_timeout=0.1), b'', '2_8')
 
         # 2_9
 
@@ -512,7 +512,7 @@ class TestJavaWebsockets(TestApplicationJava):
 
         self.check_close(sock, 1002, no_close=True)
 
-        self.assertEqual(self.recvall(sock, read_timeout=1), b'', 'empty 3_2')
+        self.assertEqual(self.recvall(sock, read_timeout=0.1), b'', 'empty 3_2')
         sock.close()
 
         # 3_3
@@ -530,7 +530,7 @@ class TestJavaWebsockets(TestApplicationJava):
 
         self.check_close(sock, 1002, no_close=True)
 
-        self.assertEqual(self.recvall(sock, read_timeout=1), b'', 'empty 3_3')
+        self.assertEqual(self.recvall(sock, read_timeout=0.1), b'', 'empty 3_3')
         sock.close()
 
         # 3_4
@@ -548,7 +548,7 @@ class TestJavaWebsockets(TestApplicationJava):
 
         self.check_close(sock, 1002, no_close=True)
 
-        self.assertEqual(self.recvall(sock, read_timeout=1), b'', 'empty 3_4')
+        self.assertEqual(self.recvall(sock, read_timeout=0.1), b'', 'empty 3_4')
         sock.close()
 
         # 3_5
@@ -734,7 +734,7 @@ class TestJavaWebsockets(TestApplicationJava):
         # 5_4
 
         self.ws.frame_write(sock, self.ws.OP_TEXT, 'fragment1', fin=False)
-        self.assertEqual(self.recvall(sock, read_timeout=1), b'', '5_4')
+        self.assertEqual(self.recvall(sock, read_timeout=0.1), b'', '5_4')
         self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment2', fin=True)
 
         frame = self.ws.frame_read(sock)
@@ -771,7 +771,7 @@ class TestJavaWebsockets(TestApplicationJava):
         ping_payload = 'ping payload'
 
         self.ws.frame_write(sock, self.ws.OP_TEXT, 'fragment1', fin=False)
-        self.assertEqual(self.recvall(sock, read_timeout=1), b'', '5_7')
+        self.assertEqual(self.recvall(sock, read_timeout=0.1), b'', '5_7')
 
         self.ws.frame_write(sock, self.ws.OP_PING, ping_payload)
 
@@ -955,7 +955,7 @@ class TestJavaWebsockets(TestApplicationJava):
         frame = self.ws.frame_read(sock)
         self.check_frame(frame, True, self.ws.OP_PONG, 'pongme 2!')
 
-        self.assertEqual(self.recvall(sock, read_timeout=1), b'', '5_20')
+        self.assertEqual(self.recvall(sock, read_timeout=0.1), b'', '5_20')
         self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment5')
 
         self.check_frame(
@@ -1088,7 +1088,7 @@ class TestJavaWebsockets(TestApplicationJava):
         self.check_close(sock, no_close=True)
 
         self.ws.frame_write(sock, self.ws.OP_PING, '')
-        self.assertEqual(self.recvall(sock, read_timeout=1), b'', 'empty sock')
+        self.assertEqual(self.recvall(sock, read_timeout=0.1), b'', 'empty soc')
 
         sock.close()
 
@@ -1100,7 +1100,7 @@ class TestJavaWebsockets(TestApplicationJava):
         self.check_close(sock, no_close=True)
 
         self.ws.frame_write(sock, self.ws.OP_TEXT, payload)
-        self.assertEqual(self.recvall(sock, read_timeout=1), b'', 'empty sock')
+        self.assertEqual(self.recvall(sock, read_timeout=0.1), b'', 'empty soc')
 
         sock.close()
 
@@ -1113,7 +1113,7 @@ class TestJavaWebsockets(TestApplicationJava):
         self.check_close(sock, no_close=True)
 
         self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment2')
-        self.assertEqual(self.recvall(sock, read_timeout=1), b'', 'empty sock')
+        self.assertEqual(self.recvall(sock, read_timeout=0.1), b'', 'empty soc')
 
         sock.close()
 
@@ -1128,7 +1128,7 @@ class TestJavaWebsockets(TestApplicationJava):
         self.recvall(sock, read_timeout=1)
 
         self.ws.frame_write(sock, self.ws.OP_PING, '')
-        self.assertEqual(self.recvall(sock, read_timeout=1), b'', 'empty sock')
+        self.assertEqual(self.recvall(sock, read_timeout=0.1), b'', 'empty soc')
 
         sock.close()
 

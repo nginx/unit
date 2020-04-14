@@ -196,7 +196,7 @@ class TestPythonProcman(TestApplicationPython):
         )
         self.assertIn(
             'error',
-            self.conf({"idle_timeout": -1}, self.app_proc,),
+            self.conf({"idle_timeout": -1}, self.app_proc),
             'negative idle_timeout',
         )
         self.assertIn(
@@ -206,12 +206,12 @@ class TestPythonProcman(TestApplicationPython):
         )
         self.assertIn(
             'error',
-            self.conf({"spare": 2, "max": 1}, self.app_proc,),
+            self.conf({"spare": 2, "max": 1}, self.app_proc),
             'spare gt max',
         )
         self.assertIn(
             'error',
-            self.conf({"spare": 0, "max": 0}, self.app_proc,),
+            self.conf({"spare": 0, "max": 0}, self.app_proc),
             'max zero',
         )
 
