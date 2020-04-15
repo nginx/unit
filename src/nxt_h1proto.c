@@ -74,6 +74,8 @@ static void nxt_h1p_idle_close(nxt_task_t *task, void *obj, void *data);
 static void nxt_h1p_idle_timeout(nxt_task_t *task, void *obj, void *data);
 static void nxt_h1p_idle_response(nxt_task_t *task, nxt_conn_t *c);
 static void nxt_h1p_idle_response_sent(nxt_task_t *task, void *obj, void *data);
+static void nxt_h1p_idle_response_error(nxt_task_t *task, void *obj,
+    void *data);
 static void nxt_h1p_idle_response_timeout(nxt_task_t *task, void *obj,
     void *data);
 static nxt_msec_t nxt_h1p_idle_response_timer_value(nxt_conn_t *c,
@@ -469,6 +471,8 @@ nxt_h1p_conn_request_init(nxt_task_t *task, void *obj, void *data)
     h1p = data;
 
     nxt_debug(task, "h1p conn request init");
+
+    nxt_queue_remove(&c->link);
 
     r = nxt_http_request_create(task);
 
@@ -1714,6 +1718,8 @@ nxt_h1p_conn_close(nxt_task_t *task, void *obj, void *data)
 
     nxt_debug(task, "h1p conn close");
 
+    nxt_queue_remove(&c->link);
+
     nxt_h1p_shutdown(task, c);
 }
 
@@ -1726,6 +1732,8 @@ nxt_h1p_conn_error(nxt_task_t *task, void *obj, void *data)
     c = obj;
 
     nxt_debug(task, "h1p conn error");
+
+    nxt_queue_remove(&c->link);
 
     nxt_h1p_shutdown(task, c);
 }
@@ -1745,8 +1753,9 @@ nxt_h1p_conn_timer_value(nxt_conn_t *c, uintptr_t data)
 static void
 nxt_h1p_keepalive(nxt_task_t *task, nxt_h1proto_t *h1p, nxt_conn_t *c)
 {
-    size_t     size;
-    nxt_buf_t  *in;
+    size_t              size;
+    nxt_buf_t           *in;
+    nxt_event_engine_t  *engine;
 
     nxt_debug(task, "h1p keepalive");
 
@@ -1762,10 +1771,13 @@ nxt_h1p_keepalive(nxt_task_t *task, nxt_h1proto_t *h1p, nxt_conn_t *c)
 
     c->sent = 0;
 
+    engine = task->thread->engine;
+    nxt_queue_insert_head(&engine->idle_connections, &c->link);
+
     if (in == NULL) {
         c->read_state = &nxt_h1p_keepalive_state;
 
-        nxt_conn_read(task->thread->engine, c);
+        nxt_conn_read(engine, c);
 
     } else {
         size = nxt_buf_mem_used_size(&in->mem);
@@ -1830,6 +1842,8 @@ nxt_h1p_idle_timeout(nxt_task_t *task, void *obj, void *data)
 
     c = nxt_read_timer_conn(timer);
     c->block_read = 1;
+
+    nxt_queue_remove(&c->link);
 
     nxt_h1p_idle_response(task, c);
 }
@@ -1898,7 +1912,7 @@ static const nxt_conn_state_t  nxt_h1p_timeout_response_state
     nxt_aligned(64) =
 {
     .ready_handler = nxt_h1p_conn_sent,
-    .error_handler = nxt_h1p_conn_error,
+    .error_handler = nxt_h1p_idle_response_error,
 
     .timer_handler = nxt_h1p_idle_response_timeout,
     .timer_value = nxt_h1p_idle_response_timer_value,
@@ -1913,6 +1927,19 @@ nxt_h1p_idle_response_sent(nxt_task_t *task, void *obj, void *data)
     c = data;
 
     nxt_debug(task, "h1p idle timeout response sent");
+
+    nxt_h1p_shutdown(task, c);
+}
+
+
+static void
+nxt_h1p_idle_response_error(nxt_task_t *task, void *obj, void *data)
+{
+    nxt_conn_t  *c;
+
+    c = obj;
+
+    nxt_debug(task, "h1p response error");
 
     nxt_h1p_shutdown(task, c);
 }
@@ -2056,8 +2083,6 @@ nxt_h1p_conn_free(nxt_task_t *task, void *obj, void *data)
     c = obj;
 
     nxt_debug(task, "h1p conn free");
-
-    nxt_queue_remove(&c->link);
 
     engine = task->thread->engine;
 
