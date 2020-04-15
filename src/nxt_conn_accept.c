@@ -101,12 +101,12 @@ nxt_conn_accept_alloc(nxt_task_t *task, nxt_listen_event_t *lev)
                 goto fail;
             }
 
-            lev->next = c;
             c->socket.read_work_queue = lev->socket.read_work_queue;
             c->socket.write_ready = 1;
 
             c->remote = nxt_sockaddr_cache_alloc(engine, lev->listen);
             if (nxt_fast_path(c->remote != NULL)) {
+                lev->next = c;
                 return c;
             }
         }
@@ -199,6 +199,7 @@ nxt_conn_accept(nxt_task_t *task, nxt_listen_event_t *lev, nxt_conn_t *c)
 
     c->listen = lev;
     lev->count++;
+    lev->next = NULL;
     c->socket.data = NULL;
 
     c->read_work_queue = lev->work_queue;
@@ -230,12 +231,14 @@ nxt_conn_accept_next(nxt_task_t *task, nxt_listen_event_t *lev)
 {
     nxt_conn_t  *c;
 
-    lev->next = NULL;
+    c = lev->next;
 
-    c = nxt_conn_accept_alloc(task, lev);
+    if (c == NULL) {
+        c = nxt_conn_accept_alloc(task, lev);
 
-    if (nxt_slow_path(c == NULL)) {
-        nxt_conn_accept_close_idle(task, lev);
+        if (nxt_slow_path(c == NULL)) {
+            nxt_conn_accept_close_idle(task, lev);
+        }
     }
 
     return c;
@@ -355,14 +358,10 @@ nxt_conn_listen_timer_handler(nxt_task_t *task, void *obj, void *data)
     timer = obj;
 
     lev = nxt_timer_data(timer, nxt_listen_event_t, timer);
-    c = lev->next;
 
+    c = nxt_conn_accept_next(task, lev);
     if (c == NULL) {
-        c = nxt_conn_accept_next(task, lev);
-
-        if (c == NULL) {
-            return;
-        }
+        return;
     }
 
     nxt_fd_event_enable_accept(task->thread->engine, &lev->socket);
