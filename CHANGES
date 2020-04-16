@@ -1,4 +1,31 @@
 
+Changes with Unit 1.17.0                                         16 Apr 2020
+
+    *) Feature: a "return" action with optional "location" for immediate
+       responses and external redirection.
+
+    *) Feature: fractional weights support for upstream servers.
+
+    *) Bugfix: accidental 502 "Bad Gateway" errors might have occurred in
+       applications under high load.
+
+    *) Bugfix: memory leak in the router; the bug had appeared in 1.13.0.
+
+    *) Bugfix: segmentation fault might have occurred in the router process
+       when reaching open connections limit.
+
+    *) Bugfix: "close() failed (9: Bad file descriptor)" alerts might have
+       appeared in the log while processing large request bodies; the bug
+       had appeared in 1.16.0.
+
+    *) Bugfix: existing application processes didn't reopen the log file.
+
+    *) Bugfix: incompatibility with some Node.js applications.
+
+    *) Bugfix: broken build on DragonFly BSD; the bug had appeared in
+       1.16.0.
+
+
 Changes with Unit 1.16.0                                         12 Mar 2020
 
     *) Feature: basic load-balancing support with round-robin.
