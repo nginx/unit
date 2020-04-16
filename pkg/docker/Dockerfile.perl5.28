@@ -2,7 +2,7 @@ FROM debian:buster-slim
 
 LABEL maintainer="NGINX Docker Maintainers <docker-maint@nginx.com>"
 
-ENV UNIT_VERSION          1.16.0-1~buster
+ENV UNIT_VERSION          1.17.0-1~buster
 
 RUN set -x \
 	&& apt-get update \
