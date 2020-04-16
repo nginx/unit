@@ -130,14 +130,11 @@ nxt_controller_start(nxt_task_t *task, void *data)
     nxt_mp_t               *mp;
     nxt_int_t              ret;
     nxt_str_t              *json;
-    nxt_runtime_t          *rt;
     nxt_conf_value_t       *conf;
     nxt_conf_validation_t  vldt;
     nxt_controller_init_t  *init;
 
-    rt = task->thread->runtime;
-
-    ret = nxt_http_fields_hash(&nxt_controller_fields_hash, rt->mem_pool,
+    ret = nxt_http_fields_hash(&nxt_controller_fields_hash,
                                nxt_controller_request_fields,
                                nxt_nitems(nxt_controller_request_fields));
 

@@ -245,9 +245,9 @@ nxt_http_date(u_char *buf, struct tm *tm)
 }
 
 
-nxt_int_t nxt_http_init(nxt_task_t *task, nxt_runtime_t *rt);
-nxt_int_t nxt_h1p_init(nxt_task_t *task, nxt_runtime_t *rt);
-nxt_int_t nxt_http_response_hash_init(nxt_task_t *task, nxt_runtime_t *rt);
+nxt_int_t nxt_http_init(nxt_task_t *task);
+nxt_int_t nxt_h1p_init(nxt_task_t *task);
+nxt_int_t nxt_http_response_hash_init(nxt_task_t *task);
 
 void nxt_http_conn_init(nxt_task_t *task, void *obj, void *data);
 nxt_http_request_t *nxt_http_request_create(nxt_task_t *task);

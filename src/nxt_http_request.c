@@ -36,17 +36,17 @@ nxt_time_string_t  nxt_http_date_cache = {
 
 
 nxt_int_t
-nxt_http_init(nxt_task_t *task, nxt_runtime_t *rt)
+nxt_http_init(nxt_task_t *task)
 {
     nxt_int_t  ret;
 
-    ret = nxt_h1p_init(task, rt);
+    ret = nxt_h1p_init(task);
 
     if (ret != NXT_OK) {
         return ret;
     }
 
-    return nxt_http_response_hash_init(task, rt);
+    return nxt_http_response_hash_init(task);
 }
 
 

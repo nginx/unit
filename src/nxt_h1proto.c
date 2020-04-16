@@ -186,16 +186,16 @@ static nxt_http_field_proc_t           nxt_h1p_peer_fields[] = {
 
 
 nxt_int_t
-nxt_h1p_init(nxt_task_t *task, nxt_runtime_t *rt)
+nxt_h1p_init(nxt_task_t *task)
 {
     nxt_int_t  ret;
 
-    ret = nxt_http_fields_hash(&nxt_h1p_fields_hash, rt->mem_pool,
+    ret = nxt_http_fields_hash(&nxt_h1p_fields_hash,
                                nxt_h1p_fields, nxt_nitems(nxt_h1p_fields));
 
     if (nxt_fast_path(ret == NXT_OK)) {
         ret = nxt_http_fields_hash(&nxt_h1p_peer_fields_hash,
-                                   rt->mem_pool, nxt_h1p_peer_fields,
+                                   nxt_h1p_peer_fields,
                                    nxt_nitems(nxt_h1p_peer_fields));
     }
 

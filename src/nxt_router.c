@@ -303,7 +303,7 @@ nxt_router_start(nxt_task_t *task, void *data)
     }
 #endif
 
-    ret = nxt_http_init(task, rt);
+    ret = nxt_http_init(task);
     if (nxt_slow_path(ret != NXT_OK)) {
         return ret;
     }

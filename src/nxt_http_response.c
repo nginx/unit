@@ -34,9 +34,9 @@ static nxt_http_field_proc_t   nxt_response_fields[] = {
 
 
 nxt_int_t
-nxt_http_response_hash_init(nxt_task_t *task, nxt_runtime_t *rt)
+nxt_http_response_hash_init(nxt_task_t *task)
 {
-    return nxt_http_fields_hash(&nxt_response_fields_hash, rt->mem_pool,
+    return nxt_http_fields_hash(&nxt_response_fields_hash,
                     nxt_response_fields, nxt_nitems(nxt_response_fields));
 }
 

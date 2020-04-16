@@ -22,8 +22,6 @@ static nxt_int_t nxt_http_parse_field_end(nxt_http_request_parse_t *rp,
 static nxt_int_t nxt_http_parse_complex_target(nxt_http_request_parse_t *rp);
 
 static nxt_int_t nxt_http_field_hash_test(nxt_lvlhsh_query_t *lhq, void *data);
-static void *nxt_http_field_hash_alloc(void *pool, size_t size);
-static void nxt_http_field_hash_free(void *pool, void *p);
 
 static nxt_int_t nxt_http_field_hash_collision(nxt_lvlhsh_query_t *lhq,
     void *data);
@@ -1133,8 +1131,8 @@ const nxt_lvlhsh_proto_t  nxt_http_fields_hash_proto  nxt_aligned(64) = {
     NXT_LVLHSH_BUCKET_SIZE(64),
     { NXT_HTTP_FIELD_LVLHSH_SHIFT, 0, 0, 0, 0, 0, 0, 0 },
     nxt_http_field_hash_test,
-    nxt_http_field_hash_alloc,
-    nxt_http_field_hash_free,
+    nxt_lvlhsh_alloc,
+    nxt_lvlhsh_free,
 };
 
 
@@ -1153,20 +1151,6 @@ nxt_http_field_hash_test(nxt_lvlhsh_query_t *lhq, void *data)
 }
 
 
-static void *
-nxt_http_field_hash_alloc(void *pool, size_t size)
-{
-    return nxt_mp_align(pool, size, size);
-}
-
-
-static void
-nxt_http_field_hash_free(void *pool, void *p)
-{
-    nxt_mp_free(pool, p);
-}
-
-
 static nxt_int_t
 nxt_http_field_hash_collision(nxt_lvlhsh_query_t *lhq, void *data)
 {
@@ -1175,7 +1159,7 @@ nxt_http_field_hash_collision(nxt_lvlhsh_query_t *lhq, void *data)
 
 
 nxt_int_t
-nxt_http_fields_hash(nxt_lvlhsh_t *hash, nxt_mp_t *mp,
+nxt_http_fields_hash(nxt_lvlhsh_t *hash,
     nxt_http_field_proc_t items[], nxt_uint_t count)
 {
     u_char              ch;
@@ -1187,7 +1171,6 @@ nxt_http_fields_hash(nxt_lvlhsh_t *hash, nxt_mp_t *mp,
 
     lhq.replace = 0;
     lhq.proto = &nxt_http_fields_hash_proto;
-    lhq.pool = mp;
 
     for (i = 0; i < count; i++) {
         key = NXT_HTTP_FIELD_HASH_INIT;
@@ -1214,7 +1197,7 @@ nxt_http_fields_hash(nxt_lvlhsh_t *hash, nxt_mp_t *mp,
 
 
 nxt_uint_t
-nxt_http_fields_hash_collisions(nxt_lvlhsh_t *hash, nxt_mp_t *mp,
+nxt_http_fields_hash_collisions(nxt_lvlhsh_t *hash,
     nxt_http_field_proc_t items[], nxt_uint_t count, nxt_bool_t level)
 {
     u_char              ch;
@@ -1229,7 +1212,6 @@ nxt_http_fields_hash_collisions(nxt_lvlhsh_t *hash, nxt_mp_t *mp,
 
     lhq.replace = 0;
     lhq.proto = &proto;
-    lhq.pool = mp;
 
     mask = level ? (1 << NXT_HTTP_FIELD_LVLHSH_SHIFT) - 1 : 0xFFFF;
 
