@@ -11,6 +11,7 @@ def application(environ, start_response):
     write = start_response('200', [('Content-Length', str(len(body)))])
 
     if not body:
+        time.sleep(delay)
         return []
 
     step = int(len(body) / parts)

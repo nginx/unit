@@ -20,6 +20,10 @@ nxt_upcase(c)                                                                 \
 nxt_isdigit(c)                                                                \
     ((u_char) ((c) - '0') <= 9)
 
+#define                                                                       \
+nxt_strtod(s, endptr)                                                         \
+    strtod((char *) s, (char **) endptr)
+
 
 #define                                                                       \
 nxt_strlen(s)                                                                 \
@@ -83,6 +87,7 @@ nxt_strncmp(s1, s2, length)                                                   \
     strncmp((char *) s1, (char *) s2, length)
 
 
+NXT_EXPORT u_char *nxt_cpystr(u_char *dst, const u_char *src);
 NXT_EXPORT u_char *nxt_cpystrn(u_char *dst, const u_char *src, size_t length);
 NXT_EXPORT nxt_int_t nxt_strcasecmp(const u_char *s1, const u_char *s2);
 NXT_EXPORT nxt_int_t nxt_strncasecmp(const u_char *s1, const u_char *s2,
@@ -170,6 +175,9 @@ NXT_EXPORT nxt_bool_t nxt_strvers_match(u_char *version, u_char *prefix,
 
 NXT_EXPORT u_char *nxt_decode_uri(u_char *dst, u_char *src, size_t length);
 NXT_EXPORT uintptr_t nxt_encode_uri(u_char *dst, u_char *src, size_t length);
+NXT_EXPORT uintptr_t nxt_encode_complex_uri(u_char *dst, u_char *src,
+    size_t length);
+NXT_EXPORT nxt_bool_t nxt_is_complex_uri_encoded(u_char *s, size_t length);
 
 
 #endif /* _NXT_STRING_H_INCLUDED_ */

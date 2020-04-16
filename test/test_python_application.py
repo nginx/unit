@@ -187,6 +187,7 @@ class TestPythonApplication(TestApplicationPython):
 
         self.assertEqual(self.get()['status'], 200, 'init')
 
+        body = '0123456789' * 500
         (resp, sock) = self.post(
             headers={
                 'Host': 'localhost',
@@ -194,12 +195,13 @@ class TestPythonApplication(TestApplicationPython):
                 'Content-Type': 'text/html',
             },
             start=True,
-            body='0123456789' * 500,
+            body=body,
             read_timeout=1,
         )
 
-        self.assertEqual(resp['body'], '0123456789' * 500, 'keep-alive 1')
+        self.assertEqual(resp['body'], body, 'keep-alive 1')
 
+        body = '0123456789'
         resp = self.post(
             headers={
                 'Host': 'localhost',
@@ -207,10 +209,10 @@ class TestPythonApplication(TestApplicationPython):
                 'Content-Type': 'text/html',
             },
             sock=sock,
-            body='0123456789',
+            body=body,
         )
 
-        self.assertEqual(resp['body'], '0123456789', 'keep-alive 2')
+        self.assertEqual(resp['body'], body, 'keep-alive 2')
 
     def test_python_keepalive_reconfigure(self):
         self.skip_alerts.extend(
@@ -340,13 +342,15 @@ class TestPythonApplication(TestApplicationPython):
 
         self.assertEqual(self.get()['status'], 200, 'init')
 
-        (resp, sock) = self.http(
+        (_, sock) = self.http(
             b"""GET / HTTP/1.1
 """,
             start=True,
             raw=True,
-            read_timeout=5,
+            no_recv=True,
         )
+
+        self.assertEqual(self.get()['status'], 200)
 
         self.assertIn(
             'success',
@@ -377,6 +381,38 @@ Connection: close
         self.assertIsNotNone(
             self.wait_for_record(r'At exit called\.'), 'atexit'
         )
+
+    def test_python_process_switch(self):
+        self.load('delayed')
+
+        self.assertIn(
+            'success',
+            self.conf('2', 'applications/delayed/processes'),
+            'configure 2 processes',
+        )
+
+        self.get(headers={
+            'Host': 'localhost',
+            'Content-Length': '0',
+            'X-Delay': '5',
+            'Connection': 'close',
+        }, no_recv=True)
+
+        headers_delay_1 = {
+            'Connection': 'close',
+            'Host': 'localhost',
+            'Content-Length': '0',
+            'X-Delay': '1',
+        }
+
+        self.get(headers=headers_delay_1, no_recv=True)
+
+        time.sleep(0.5)
+
+        for _ in range(10):
+            self.get(headers=headers_delay_1, no_recv=True)
+
+        self.get(headers=headers_delay_1)
 
     @unittest.skip('not yet')
     def test_python_application_start_response_exit(self):

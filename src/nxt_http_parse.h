@@ -102,9 +102,9 @@ nxt_int_t nxt_http_parse_request(nxt_http_request_parse_t *rp,
 nxt_int_t nxt_http_parse_fields(nxt_http_request_parse_t *rp,
     nxt_buf_mem_t *b);
 
-nxt_int_t nxt_http_fields_hash(nxt_lvlhsh_t *hash, nxt_mp_t *mp,
+nxt_int_t nxt_http_fields_hash(nxt_lvlhsh_t *hash,
     nxt_http_field_proc_t items[], nxt_uint_t count);
-nxt_uint_t nxt_http_fields_hash_collisions(nxt_lvlhsh_t *hash, nxt_mp_t *mp,
+nxt_uint_t nxt_http_fields_hash_collisions(nxt_lvlhsh_t *hash,
     nxt_http_field_proc_t items[], nxt_uint_t count, nxt_bool_t level);
 nxt_int_t nxt_http_fields_process(nxt_list_t *fields, nxt_lvlhsh_t *hash,
     void *ctx);

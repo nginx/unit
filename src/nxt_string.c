@@ -110,6 +110,24 @@ nxt_memcpy_upcase(u_char *dst, const u_char *src, size_t length)
 
 
 u_char *
+nxt_cpystr(u_char *dst, const u_char *src)
+{
+    for ( ;; ) {
+        *dst = *src;
+
+        if (*dst == '\0') {
+            break;
+        }
+
+        dst++;
+        src++;
+    }
+
+    return dst;
+}
+
+
+u_char *
 nxt_cpystrn(u_char *dst, const u_char *src, size_t length)
 {
     if (length == 0) {
@@ -457,34 +475,54 @@ nxt_strvers_match(u_char *version, u_char *prefix, size_t length)
 }
 
 
+static const uint8_t  nxt_hex2int[256]
+    nxt_aligned(32) =
+{
+    16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
+    16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
+    16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
+     0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 16, 16, 16, 16, 16, 16,
+    16, 10, 11, 12, 13, 14, 15, 16, 16, 16, 16, 16, 16, 16, 16, 16,
+    16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
+    16, 10, 11, 12, 13, 14, 15, 16, 16, 16, 16, 16, 16, 16, 16, 16,
+    16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
+    16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
+    16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
+    16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
+    16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
+    16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
+    16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
+    16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
+    16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
+};
+
+
+static const uint32_t  nxt_uri_escape[] = {
+    0xffffffff, /* 1111 1111 1111 1111 1111 1111 1111 1111 */
+
+                /* ?>=< ;:98 7654 3210 /.-, +*)( '&%$ #"! */
+    0xd000002d, /* 1101 0000 0000 0000 0000 0000 0010 1101 */
+
+                /* _^]\ [ZYX WVUT SRQP ONML KJIH GFED CBA@ */
+    0x50000000, /* 0101 0000 0000 0000 0000 0000 0000 0000 */
+
+                /*  ~}| {zyx wvut srqp onml kjih gfed cba` */
+    0xb8000001, /* 1011 1000 0000 0000 0000 0000 0000 0001 */
+
+    0xffffffff, /* 1111 1111 1111 1111 1111 1111 1111 1111 */
+    0xffffffff, /* 1111 1111 1111 1111 1111 1111 1111 1111 */
+    0xffffffff, /* 1111 1111 1111 1111 1111 1111 1111 1111 */
+    0xffffffff  /* 1111 1111 1111 1111 1111 1111 1111 1111 */
+};
+
+
 u_char *
 nxt_decode_uri(u_char *dst, u_char *src, size_t length)
 {
     u_char   *end, ch;
     uint8_t  d0, d1;
 
-    static const uint8_t  hex[256]
-        nxt_aligned(32) =
-    {
-        16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
-        16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
-        16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
-         0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 16, 16, 16, 16, 16, 16,
-        16, 10, 11, 12, 13, 14, 15, 16, 16, 16, 16, 16, 16, 16, 16, 16,
-        16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
-        16, 10, 11, 12, 13, 14, 15, 16, 16, 16, 16, 16, 16, 16, 16, 16,
-        16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
-        16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
-        16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
-        16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
-        16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
-        16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
-        16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
-        16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
-        16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
-    };
-
-    nxt_prefetch(&hex['0']);
+    nxt_prefetch(&nxt_hex2int['0']);
 
     end = src + length;
 
@@ -496,8 +534,8 @@ nxt_decode_uri(u_char *dst, u_char *src, size_t length)
                 return NULL;
             }
 
-            d0 = hex[*src++];
-            d1 = hex[*src++];
+            d0 = nxt_hex2int[*src++];
+            d1 = nxt_hex2int[*src++];
 
             if (nxt_slow_path((d0 | d1) >= 16)) {
                 return NULL;
@@ -521,26 +559,6 @@ nxt_encode_uri(u_char *dst, u_char *src, size_t length)
 
     static const u_char  hex[16] = "0123456789ABCDEF";
 
-                    /* " ", "#", "%", "?", %00-%1F, %7F-%FF */
-
-    static const uint32_t  escape[] = {
-        0xffffffff, /* 1111 1111 1111 1111 1111 1111 1111 1111 */
-
-                    /* ?>=< ;:98 7654 3210 /.-, +*)( '&%$ #"! */
-        0x80000029, /* 1000 0000 0000 0000 0000 0000 0010 1001 */
-
-                    /* _^]\ [ZYX WVUT SRQP ONML KJIH GFED CBA@ */
-        0x00000000, /* 0000 0000 0000 0000 0000 0000 0000 0000 */
-
-                    /* ~}| {zyx wvut srqp onml kjih gfed cba` */
-        0x80000000, /* 1000 0000 0000 0000 0000 0000 0000 0000 */
-
-        0xffffffff, /* 1111 1111 1111 1111 1111 1111 1111 1111 */
-        0xffffffff, /* 1111 1111 1111 1111 1111 1111 1111 1111 */
-        0xffffffff, /* 1111 1111 1111 1111 1111 1111 1111 1111 */
-        0xffffffff  /* 1111 1111 1111 1111 1111 1111 1111 1111 */
-    };
-
     end = src + length;
 
     if (dst == NULL) {
@@ -551,7 +569,7 @@ nxt_encode_uri(u_char *dst, u_char *src, size_t length)
 
         while (src < end) {
 
-            if (escape[*src >> 5] & (1U << (*src & 0x1f))) {
+            if (nxt_uri_escape[*src >> 5] & (1U << (*src & 0x1f))) {
                 n++;
             }
 
@@ -563,7 +581,7 @@ nxt_encode_uri(u_char *dst, u_char *src, size_t length)
 
     while (src < end) {
 
-        if (escape[*src >> 5] & (1U << (*src & 0x1f))) {
+        if (nxt_uri_escape[*src >> 5] & (1U << (*src & 0x1f))) {
             *dst++ = '%';
             *dst++ = hex[*src >> 4];
             *dst++ = hex[*src & 0xf];
@@ -576,4 +594,113 @@ nxt_encode_uri(u_char *dst, u_char *src, size_t length)
     }
 
     return (uintptr_t) dst;
+}
+
+
+uintptr_t
+nxt_encode_complex_uri(u_char *dst, u_char *src, size_t length)
+{
+    u_char      *reserved, *end, ch;
+    nxt_uint_t  n;
+
+    static const u_char  hex[16] = "0123456789ABCDEF";
+
+    reserved = (u_char *) "?#\0";
+
+    end = src + length;
+
+    if (dst == NULL) {
+
+        /* Find the number of the characters to be escaped. */
+
+        n = 0;
+
+        while (src < end) {
+            ch = *src++;
+
+            if (nxt_uri_escape[ch >> 5] & (1U << (ch & 0x1f))) {
+                if (ch == reserved[0]) {
+                    reserved++;
+                    continue;
+                }
+
+                if (ch == reserved[1]) {
+                    reserved += 2;
+                    continue;
+                }
+
+                n++;
+            }
+        }
+
+        return (uintptr_t) n;
+    }
+
+    while (src < end) {
+        ch = *src++;
+
+        if (nxt_uri_escape[ch >> 5] & (1U << (ch & 0x1f))) {
+            if (ch == reserved[0]) {
+                reserved++;
+
+            } else if (ch == reserved[1]) {
+                reserved += 2;
+
+            } else {
+                *dst++ = '%';
+                *dst++ = hex[ch >> 4];
+                *dst++ = hex[ch & 0xf];
+                continue;
+            }
+        }
+
+        *dst++ = ch;
+    }
+
+    return (uintptr_t) dst;
+}
+
+
+nxt_bool_t
+nxt_is_complex_uri_encoded(u_char *src, size_t length)
+{
+    u_char   *reserved, *end, ch;
+    uint8_t  d0, d1;
+
+    reserved = (u_char *) "?#\0";
+
+    for (end = src + length; src < end; src++) {
+        ch = *src;
+
+        if (nxt_uri_escape[ch >> 5] & (1U << (ch & 0x1f))) {
+            if (ch == '%') {
+                if (end - src < 2) {
+                    return 0;
+                }
+
+                d0 = nxt_hex2int[*++src];
+                d1 = nxt_hex2int[*++src];
+
+                if ((d0 | d1) >= 16) {
+                    return 0;
+                }
+
+                continue;
+            }
+
+            if (ch == reserved[0]) {
+                reserved++;
+                continue;
+            }
+
+            if (ch == reserved[1]) {
+                reserved += 2;
+                continue;
+            }
+
+            return 0;
+        }
+    }
+
+    return 1;
 }

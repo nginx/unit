@@ -20,19 +20,10 @@ class TestStatic(TestApplicationProto):
             {
                 "listeners": {
                     "*:7080": {"pass": "routes"},
-                    "*:7081": {"pass": "applications/empty"},
+                    "*:7081": {"pass": "routes"},
                 },
                 "routes": [{"action": {"share": self.testdir + "/assets"}}],
-                "applications": {
-                    "empty": {
-                        "type": "python",
-                        "processes": {"spare": 0},
-                        "path": self.current_dir + "/python/empty",
-                        "working_directory": self.current_dir
-                        + "/python/empty",
-                        "module": "wsgi",
-                    }
-                },
+                "applications": {},
             }
         )
 
@@ -41,37 +32,22 @@ class TestStatic(TestApplicationProto):
 
         super().tearDown()
 
+    def action_update(self, conf):
+        self.assertIn('success', self.conf(conf, 'routes/0/action'))
+
     def test_fallback(self):
-        self.assertIn(
-            'success',
-            self.conf({"share": "/blah"}, 'routes/0/action'),
-            'configure bad path no fallback',
-        )
+        self.action_update({"share": "/blah"})
         self.assertEqual(self.get()['status'], 404, 'bad path no fallback')
 
-        self.assertIn(
-            'success',
-            self.conf(
-                {"share": "/blah", "fallback": {"pass": "applications/empty"}},
-                'routes/0/action',
-            ),
-            'configure bad path fallback',
-        )
+        self.action_update({"share": "/blah", "fallback": {"return": 200}})
+
         resp = self.get()
         self.assertEqual(resp['status'], 200, 'bad path fallback status')
         self.assertEqual(resp['body'], '', 'bad path fallback')
 
     def test_fallback_valid_path(self):
-        self.assertIn(
-            'success',
-            self.conf(
-                {
-                    "share": self.testdir + "/assets",
-                    "fallback": {"pass": "applications/empty"},
-                },
-                'routes/0/action',
-            ),
-            'configure fallback',
+        self.action_update(
+            {"share": self.testdir + "/assets", "fallback": {"return": 200}}
         )
         resp = self.get()
         self.assertEqual(resp['status'], 200, 'fallback status')
@@ -90,36 +66,28 @@ class TestStatic(TestApplicationProto):
         )
 
     def test_fallback_nested(self):
-        self.assertIn(
-            'success',
-            self.conf(
-                {
-                    "share": "/blah",
-                    "fallback": {
-                        "share": "/blah/blah",
-                        "fallback": {"pass": "applications/empty"},
-                    },
+        self.action_update(
+            {
+                "share": "/blah",
+                "fallback": {
+                    "share": "/blah/blah",
+                    "fallback": {"return": 200},
                 },
-                'routes/0/action',
-            ),
-            'configure fallback nested',
+            }
         )
+
         resp = self.get()
         self.assertEqual(resp['status'], 200, 'fallback nested status')
         self.assertEqual(resp['body'], '', 'fallback nested')
 
     def test_fallback_share(self):
-        self.assertIn(
-            'success',
-            self.conf(
-                {
-                    "share": "/blah",
-                    "fallback": {"share": self.testdir + "/assets"},
-                },
-                'routes/0/action',
-            ),
-            'configure fallback share',
+        self.action_update(
+            {
+                "share": "/blah",
+                "fallback": {"share": self.testdir + "/assets"},
+            }
         )
+
         resp = self.get()
         self.assertEqual(resp['status'], 200, 'fallback share status')
         self.assertEqual(resp['body'], '0123456789', 'fallback share')
@@ -136,76 +104,51 @@ class TestStatic(TestApplicationProto):
         self.assertIn(
             'success',
             self.conf(
-                {
-                    "share": "/blah",
-                    "fallback": {"proxy": "http://127.0.0.1:7081"},
-                },
-                'routes/0/action',
+                [
+                    {
+                        "match": {"destination": "*:7081"},
+                        "action": {"return": 200},
+                    },
+                    {
+                        "action": {
+                            "share": "/blah",
+                            "fallback": {"proxy": "http://127.0.0.1:7081"},
+                        }
+                    },
+                ],
+                'routes',
             ),
-            'configure fallback proxy',
+            'configure fallback proxy route',
         )
+
         resp = self.get()
         self.assertEqual(resp['status'], 200, 'fallback proxy status')
         self.assertEqual(resp['body'], '', 'fallback proxy')
 
     @unittest.skip('not yet')
     def test_fallback_proxy_cycle(self):
-        self.assertIn(
-            'success',
-            self.conf(
-                {
-                    "share": "/blah",
-                    "fallback": {"proxy": "http://127.0.0.1:7080"},
-                },
-                'routes/0/action',
-            ),
-            'configure fallback cycle',
+        self.action_update(
+            {
+                "share": "/blah",
+                "fallback": {"proxy": "http://127.0.0.1:7080"},
+            }
         )
         self.assertNotEqual(self.get()['status'], 200, 'fallback cycle')
 
-        self.assertIn(
-            'success', self.conf_delete('listeners/*:7081'), 'delete listener'
-        )
+        self.assertIn('success', self.conf_delete('listeners/*:7081'))
         self.assertNotEqual(self.get()['status'], 200, 'fallback cycle 2')
 
     def test_fallback_invalid(self):
-        self.assertIn(
-            'error',
-            self.conf({"share": "/blah", "fallback": {}}, 'routes/0/action'),
-            'configure fallback empty',
+        def check_error(conf):
+            self.assertIn('error', self.conf(conf, 'routes/0/action'))
+
+        check_error({"share": "/blah", "fallback": {}})
+        check_error({"share": "/blah", "fallback": ""})
+        check_error({"return": 200, "fallback": {"share": "/blah"}})
+        check_error(
+            {"proxy": "http://127.0.0.1:7081", "fallback": {"share": "/blah"}}
         )
-        self.assertIn(
-            'error',
-            self.conf({"share": "/blah", "fallback": ""}, 'routes/0/action'),
-            'configure fallback not object',
-        )
-        self.assertIn(
-            'error',
-            self.conf(
-                {
-                    "proxy": "http://127.0.0.1:7081",
-                    "fallback": {"share": "/blah"},
-                },
-                'routes/0/action',
-            ),
-            'configure fallback proxy invalid',
-        )
-        self.assertIn(
-            'error',
-            self.conf(
-                {
-                    "pass": "applications/empty",
-                    "fallback": {"share": "/blah"},
-                },
-                'routes/0/action',
-            ),
-            'configure fallback pass invalid',
-        )
-        self.assertIn(
-            'error',
-            self.conf({"fallback": {"share": "/blah"}}, 'routes/0/action'),
-            'configure fallback only',
-        )
+        check_error({"fallback": {"share": "/blah"}})
 
 
 if __name__ == '__main__':

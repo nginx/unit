@@ -510,7 +510,7 @@ static nxt_str_t nxt_http_test_big_request = nxt_string(
 nxt_int_t
 nxt_http_parse_test(nxt_thread_t *thr)
 {
-    nxt_mp_t                    *mp, *mp_temp;
+    nxt_mp_t                    *mp_temp;
     nxt_int_t                   rc;
     nxt_uint_t                  i, colls, lvl_colls;
     nxt_lvlhsh_t                hash;
@@ -519,12 +519,7 @@ nxt_http_parse_test(nxt_thread_t *thr)
 
     nxt_thread_time_update(thr);
 
-    mp = nxt_mp_create(1024, 128, 256, 32);
-    if (mp == NULL) {
-        return NXT_ERROR;
-    }
-
-    rc = nxt_http_fields_hash(&nxt_http_test_fields_hash, mp,
+    rc = nxt_http_fields_hash(&nxt_http_test_fields_hash,
                               nxt_http_test_fields,
                               nxt_nitems(nxt_http_test_fields));
     if (rc != NXT_OK) {
@@ -569,14 +564,14 @@ nxt_http_parse_test(nxt_thread_t *thr)
 
     nxt_memzero(&hash, sizeof(nxt_lvlhsh_t));
 
-    colls = nxt_http_fields_hash_collisions(&hash, mp,
+    colls = nxt_http_fields_hash_collisions(&hash,
                                         nxt_http_test_bench_fields,
                                         nxt_nitems(nxt_http_test_bench_fields),
                                         0);
 
     nxt_memzero(&hash, sizeof(nxt_lvlhsh_t));
 
-    lvl_colls = nxt_http_fields_hash_collisions(&hash, mp,
+    lvl_colls = nxt_http_fields_hash_collisions(&hash,
                                         nxt_http_test_bench_fields,
                                         nxt_nitems(nxt_http_test_bench_fields),
                                         1);
@@ -587,7 +582,7 @@ nxt_http_parse_test(nxt_thread_t *thr)
 
     nxt_memzero(&hash, sizeof(nxt_lvlhsh_t));
 
-    rc = nxt_http_fields_hash(&hash, mp, nxt_http_test_bench_fields,
+    rc = nxt_http_fields_hash(&hash, nxt_http_test_bench_fields,
                               nxt_nitems(nxt_http_test_bench_fields));
     if (rc != NXT_OK) {
         return NXT_ERROR;
@@ -606,8 +601,6 @@ nxt_http_parse_test(nxt_thread_t *thr)
     {
         return NXT_ERROR;
     }
-
-    nxt_mp_destroy(mp);
 
     return NXT_OK;
 }

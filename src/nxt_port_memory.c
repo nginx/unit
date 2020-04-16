@@ -111,7 +111,7 @@ nxt_port_mmap_buf_completion(nxt_task_t *task, void *obj, void *data)
 {
     u_char                   *p;
     nxt_mp_t                 *mp;
-    nxt_buf_t                *b;
+    nxt_buf_t                *b, *next;
     nxt_port_t               *port;
     nxt_process_t            *process;
     nxt_chunk_id_t           c;
@@ -124,11 +124,12 @@ nxt_port_mmap_buf_completion(nxt_task_t *task, void *obj, void *data)
 
     b = obj;
 
-    mp = b->data;
-
     nxt_assert(data == b->parent);
 
     mmap_handler = data;
+
+complete_buf:
+
     hdr = mmap_handler->hdr;
 
     if (nxt_slow_path(hdr->src_pid != nxt_pid && hdr->dst_pid != nxt_pid)) {
@@ -184,8 +185,18 @@ release_buf:
 
     nxt_port_mmap_handler_use(mmap_handler, -1);
 
+    next = b->next;
+    mp = b->data;
+
     nxt_mp_free(mp, b);
     nxt_mp_release(mp);
+
+    if (next != NULL) {
+        b = next;
+        mmap_handler = b->parent;
+
+        goto complete_buf;
+    }
 }
 
 

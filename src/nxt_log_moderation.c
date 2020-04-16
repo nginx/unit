@@ -61,6 +61,7 @@ nxt_log_moderate_allow(nxt_log_moderation_t *mod)
         mod->timer.work_queue = &thr->engine->fast_work_queue;
         mod->timer.handler = nxt_log_moderate_timer_handler;
         mod->timer.log = &nxt_main_log;
+        mod->timer.task = &nxt_main_task;
 
         nxt_timer_add(thr->engine, &mod->timer, 1000);
     }

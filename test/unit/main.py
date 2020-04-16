@@ -4,6 +4,7 @@ import sys
 import stat
 import time
 import fcntl
+import atexit
 import shutil
 import signal
 import argparse
@@ -151,8 +152,51 @@ class TestUnit(unittest.TestCase):
     def setUp(self):
         self._run()
 
+    def _run(self):
+        build_dir = self.pardir + '/build'
+        self.unitd = build_dir + '/unitd'
+
+        if not os.path.isfile(self.unitd):
+            exit("Could not find unit")
+
+        self.testdir = tempfile.mkdtemp(prefix='unit-test-')
+
+        self.public_dir(self.testdir)
+
+        if oct(stat.S_IMODE(os.stat(build_dir).st_mode)) != '0o777':
+            self.public_dir(build_dir)
+
+        os.mkdir(self.testdir + '/state')
+
+        with open(self.testdir + '/unit.log', 'w') as log:
+            self._p = subprocess.Popen(
+                [
+                    self.unitd,
+                    '--no-daemon',
+                    '--modules',  self.pardir + '/build',
+                    '--state',    self.testdir + '/state',
+                    '--pid',      self.testdir + '/unit.pid',
+                    '--log',      self.testdir + '/unit.log',
+                    '--control',  'unix:' + self.testdir + '/control.unit.sock',
+                    '--tmp',      self.testdir,
+                ],
+                stderr=log,
+            )
+
+        atexit.register(self.stop)
+
+        if not self.waitforfiles(self.testdir + '/control.unit.sock'):
+            exit("Could not start unit")
+
+        self.skip_alerts = [
+            r'read signalfd\(4\) failed',
+            r'sendmsg.+failed',
+            r'recvmsg.+failed',
+        ]
+        self.skip_sanitizer = False
+
     def tearDown(self):
-        self.stop()
+        stop_errs = self.stop()
 
         # detect errors and failures for current test
 
@@ -187,99 +231,33 @@ class TestUnit(unittest.TestCase):
         else:
             self._print_log()
 
+        self.assertListEqual(stop_errs, [None, None], 'stop errors')
+
     def stop(self):
-        if self._started:
-            self._stop()
+        errors = []
 
-        self.stop_processes()
+        errors.append(self._stop())
 
-    def _run(self):
-        build_dir = self.pardir + '/build'
-        self.unitd = build_dir + '/unitd'
+        errors.append(self.stop_processes())
 
-        if not os.path.isfile(self.unitd):
-            exit("Could not find unit")
+        atexit.unregister(self.stop)
 
-        self.testdir = tempfile.mkdtemp(prefix='unit-test-')
-
-        self.public_dir(self.testdir)
-
-        if oct(stat.S_IMODE(os.stat(build_dir).st_mode)) != '0o777':
-            self.public_dir(build_dir)
-
-        os.mkdir(self.testdir + '/state')
-
-        with open(self.testdir + '/unit.log', 'w') as log:
-            self._p = subprocess.Popen(
-                [
-                    self.unitd,
-                    '--no-daemon',
-                    '--modules',  self.pardir + '/build',
-                    '--state',    self.testdir + '/state',
-                    '--pid',      self.testdir + '/unit.pid',
-                    '--log',      self.testdir + '/unit.log',
-                    '--control',  'unix:' + self.testdir + '/control.unit.sock',
-                    '--tmp',      self.testdir,
-                ],
-                stderr=log,
-            )
-
-        if not self.waitforfiles(self.testdir + '/control.unit.sock'):
-            exit("Could not start unit")
-
-        self._started = True
-
-        self.skip_alerts = [
-            r'read signalfd\(4\) failed',
-            r'last message send failed',
-            r'sendmsg.+failed',
-            r'recvmsg.+failed',
-        ]
-        self.skip_sanitizer = False
+        return errors
 
     def _stop(self):
+        if self._p.poll() is not None:
+            return
+
         with self._p as p:
             p.send_signal(signal.SIGQUIT)
 
             try:
                 retcode = p.wait(15)
                 if retcode:
-                    self.fail(
-                        "Child process terminated with code " + str(retcode)
-                    )
+                    return 'Child process terminated with code ' + str(retcode)
             except:
-                self.fail("Could not terminate unit")
                 p.kill()
-
-        self._started = False
-
-    def _check_alerts(self, log):
-        found = False
-
-        alerts = re.findall('.+\[alert\].+', log)
-
-        if alerts:
-            print('All alerts/sanitizer errors found in log:')
-            [print(alert) for alert in alerts]
-            found = True
-
-        if self.skip_alerts:
-            for skip in self.skip_alerts:
-                alerts = [al for al in alerts if re.search(skip, al) is None]
-
-        if alerts:
-            self._print_log(log)
-            self.assertFalse(alerts, 'alert(s)')
-
-        if not self.skip_sanitizer:
-            sanitizer_errors = re.findall('.+Sanitizer.+', log)
-
-            if sanitizer_errors:
-                self._print_log(log)
-                self.assertFalse(sanitizer_errors, 'sanitizer error(s)')
-
-        if found:
-            print('skipped.')
+                return 'Could not terminate unit'
 
     def run_process(self, target, *args):
         if not hasattr(self, '_processes'):
@@ -294,12 +272,17 @@ class TestUnit(unittest.TestCase):
         if not hasattr(self, '_processes'):
             return
 
+        fail = False
         for process in self._processes:
-            process.terminate()
-            process.join(timeout=5)
-
             if process.is_alive():
-                self.fail('Fail to stop process')
+                process.terminate()
+                process.join(timeout=15)
+
+                if process.is_alive():
+                    fail = True
+
+        if fail:
+            return 'Fail to stop process'
 
     def waitforfiles(self, *files):
         for i in range(50):
@@ -328,6 +311,34 @@ class TestUnit(unittest.TestCase):
                 os.chmod(os.path.join(root, d), 0o777)
             for f in files:
                 os.chmod(os.path.join(root, f), 0o777)
+
+    def _check_alerts(self, log):
+        found = False
+
+        alerts = re.findall('.+\[alert\].+', log)
+
+        if alerts:
+            print('All alerts/sanitizer errors found in log:')
+            [print(alert) for alert in alerts]
+            found = True
+
+        if self.skip_alerts:
+            for skip in self.skip_alerts:
+                alerts = [al for al in alerts if re.search(skip, al) is None]
+
+        if alerts:
+            self._print_log(log)
+            self.assertFalse(alerts, 'alert(s)')
+
+        if not self.skip_sanitizer:
+            sanitizer_errors = re.findall('.+Sanitizer.+', log)
+
+            if sanitizer_errors:
+                self._print_log(log)
+                self.assertFalse(sanitizer_errors, 'sanitizer error(s)')
+
+        if found:
+            print('skipped.')
 
     @staticmethod
     def _parse_args():

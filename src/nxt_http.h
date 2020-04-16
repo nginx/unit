@@ -23,6 +23,8 @@ typedef enum {
     NXT_HTTP_FOUND = 302,
     NXT_HTTP_SEE_OTHER = 303,
     NXT_HTTP_NOT_MODIFIED = 304,
+    NXT_HTTP_TEMPORARY_REDIRECT = 307,
+    NXT_HTTP_PERMANENT_REDIRECT = 308,
 
     NXT_HTTP_BAD_REQUEST = 400,
     NXT_HTTP_FORBIDDEN = 403,
@@ -43,6 +45,9 @@ typedef enum {
     NXT_HTTP_SERVICE_UNAVAILABLE = 503,
     NXT_HTTP_GATEWAY_TIMEOUT = 504,
     NXT_HTTP_VERSION_NOT_SUPPORTED = 505,
+    NXT_HTTP_SERVER_ERROR_MAX = 599,
+
+    NXT_HTTP_STATUS_MAX = 999,
 } nxt_http_status_t;
 
 
@@ -192,6 +197,7 @@ struct nxt_http_action_s {
         nxt_http_action_t           *fallback;
         nxt_upstream_t              *upstream;
         uint32_t                    upstream_number;
+        nxt_http_status_t           return_code;
     } u;
 
     nxt_str_t                       name;
@@ -239,9 +245,9 @@ nxt_http_date(u_char *buf, struct tm *tm)
 }
 
 
-nxt_int_t nxt_http_init(nxt_task_t *task, nxt_runtime_t *rt);
-nxt_int_t nxt_h1p_init(nxt_task_t *task, nxt_runtime_t *rt);
-nxt_int_t nxt_http_response_hash_init(nxt_task_t *task, nxt_runtime_t *rt);
+nxt_int_t nxt_http_init(nxt_task_t *task);
+nxt_int_t nxt_h1p_init(nxt_task_t *task);
+nxt_int_t nxt_http_response_hash_init(nxt_task_t *task);
 
 void nxt_http_conn_init(nxt_task_t *task, void *obj, void *data);
 nxt_http_request_t *nxt_http_request_create(nxt_task_t *task);
@@ -282,6 +288,9 @@ nxt_int_t nxt_upstreams_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 nxt_int_t nxt_upstreams_joint_create(nxt_router_temp_conf_t *tmcf,
     nxt_upstream_t ***upstream_joint);
 
+nxt_http_action_t *nxt_http_return_handler(nxt_task_t *task,
+    nxt_http_request_t *r, nxt_http_action_t *action);
+
 nxt_http_action_t *nxt_http_static_handler(nxt_task_t *task,
     nxt_http_request_t *r, nxt_http_action_t *action);
 nxt_int_t nxt_http_static_mtypes_init(nxt_mp_t *mp, nxt_lvlhsh_t *hash);
@@ -320,7 +329,8 @@ void nxt_h1p_websocket_first_frame_start(nxt_task_t *task,
     nxt_http_request_t *r, nxt_buf_t *ws_frame);
 void nxt_h1p_websocket_frame_start(nxt_task_t *task, nxt_http_request_t *r,
     nxt_buf_t *ws_frame);
-void nxt_h1p_complete_buffers(nxt_task_t *task, nxt_h1proto_t *h1p);
+void nxt_h1p_complete_buffers(nxt_task_t *task, nxt_h1proto_t *h1p,
+    nxt_bool_t all);
 nxt_msec_t nxt_h1p_conn_request_timer_value(nxt_conn_t *c, uintptr_t data);
 
 extern const nxt_conn_state_t  nxt_h1p_idle_close_state;

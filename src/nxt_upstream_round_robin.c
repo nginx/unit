@@ -4,6 +4,7 @@
  * Copyright (C) NGINX, Inc.
  */
 
+#include <math.h>
 #include <nxt_router.h>
 #include <nxt_http.h>
 #include <nxt_upstream.h>
@@ -38,33 +39,46 @@ static const nxt_upstream_server_proto_t  nxt_upstream_round_robin_proto = {
 };
 
 
-static nxt_conf_map_t  nxt_upstream_round_robin_server_conf[] = {
-    {
-        nxt_string("weight"),
-        NXT_CONF_MAP_INT32,
-        offsetof(nxt_upstream_round_robin_server_t, weight),
-    },
-};
-
-
 nxt_int_t
 nxt_upstream_round_robin_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_conf_value_t *upstream_conf, nxt_upstream_t *upstream)
 {
+    double                      total, k, w;
     size_t                      size;
-    uint32_t                    i, n, next;
+    uint32_t                    i, n, next, wt;
     nxt_mp_t                    *mp;
     nxt_str_t                   name;
     nxt_sockaddr_t              *sa;
-    nxt_conf_value_t            *servers_conf, *srvcf;
+    nxt_conf_value_t            *servers_conf, *srvcf, *wtcf;
     nxt_upstream_round_robin_t  *urr;
 
     static nxt_str_t  servers = nxt_string("servers");
+    static nxt_str_t  weight = nxt_string("weight");
 
     mp = tmcf->router_conf->mem_pool;
 
     servers_conf = nxt_conf_get_object_member(upstream_conf, &servers, NULL);
     n = nxt_conf_object_members_count(servers_conf);
+
+    total = 0.0;
+    next = 0;
+
+    for (i = 0; i < n; i++) {
+        srvcf = nxt_conf_next_object_member(servers_conf, &name, &next);
+        wtcf = nxt_conf_get_object_member(srvcf, &weight, NULL);
+        w = (wtcf != NULL) ? nxt_conf_get_number(wtcf) : 1;
+        total += w;
+    }
+
+    /*
+     * This prevents overflow of int32_t
+     * in nxt_upstream_round_robin_server_get().
+     */
+    k = (total == 0) ? 0 : (NXT_INT32_T_MAX / 2) / total;
+
+    if (isinf(k)) {
+        k = 1;
+    }
 
     size = sizeof(nxt_upstream_round_robin_t)
            + n * sizeof(nxt_upstream_round_robin_server_t);
@@ -88,14 +102,14 @@ nxt_upstream_round_robin_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         sa->type = SOCK_STREAM;
 
         urr->server[i].sockaddr = sa;
-        urr->server[i].weight = 1;
         urr->server[i].protocol = NXT_HTTP_PROTO_H1;
 
-        nxt_conf_map_object(mp, srvcf, nxt_upstream_round_robin_server_conf,
-                            nxt_nitems(nxt_upstream_round_robin_server_conf),
-                            &urr->server[i]);
+        wtcf = nxt_conf_get_object_member(srvcf, &weight, NULL);
+        w = (wtcf != NULL) ? k * nxt_conf_get_number(wtcf) : k;
+        wt = (w > 1 || w == 0) ? round(w) : 1;
 
-        urr->server[i].effective_weight = urr->server[i].weight;
+        urr->server[i].weight = wt;
+        urr->server[i].effective_weight = wt;
     }
 
     upstream->proto = &nxt_upstream_round_robin_proto;
@@ -177,7 +191,7 @@ nxt_upstream_round_robin_server_get(nxt_task_t *task, nxt_upstream_server_t *us)
         }
     }
 
-    if (best == NULL) {
+    if (best == NULL || total == 0) {
         us->state->error(task, us);
         return;
     }

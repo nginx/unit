@@ -926,6 +926,13 @@ nxt_epoll_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
         error = ((events & (EPOLLERR | EPOLLHUP)) != 0);
         ev->epoll_error = error;
 
+        if (error
+            && ev->read <= NXT_EVENT_BLOCKED
+            && ev->write <= NXT_EVENT_BLOCKED)
+        {
+            error = 0;
+        }
+
 #if (NXT_HAVE_EPOLL_EDGE)
 
         ev->epoll_eof = ((events & EPOLLRDHUP) != 0);

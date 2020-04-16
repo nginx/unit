@@ -2,9 +2,9 @@ from unit.applications.tls import TestApplicationTLS
 
 
 class TestRoutingTLS(TestApplicationTLS):
-    prerequisites = {'modules': ['python', 'openssl']}
+    prerequisites = {'modules': ['openssl']}
 
-    def test_routes_match_scheme(self):
+    def test_routes_match_scheme_tls(self):
         self.certificate()
 
         self.assertIn(
@@ -21,35 +21,21 @@ class TestRoutingTLS(TestApplicationTLS):
                     "routes": [
                         {
                             "match": {"scheme": "http"},
-                            "action": {"pass": "applications/empty"},
+                            "action": {"return": 200},
                         },
                         {
                             "match": {"scheme": "https"},
-                            "action": {"pass": "applications/204_no_content"},
+                            "action": {"return": 201},
                         },
                     ],
-                    "applications": {
-                        "empty": {
-                            "type": "python",
-                            "processes": {"spare": 0},
-                            "path": self.current_dir + "/python/empty",
-                            "module": "wsgi",
-                        },
-                        "204_no_content": {
-                            "type": "python",
-                            "processes": {"spare": 0},
-                            "path": self.current_dir
-                            + "/python/204_no_content",
-                            "module": "wsgi",
-                        },
-                    },
+                    "applications": {},
                 }
             ),
             'scheme configure',
         )
 
         self.assertEqual(self.get()['status'], 200, 'http')
-        self.assertEqual(self.get_ssl(port=7081)['status'], 204, 'https')
+        self.assertEqual(self.get_ssl(port=7081)['status'], 201, 'https')
 
 
 if __name__ == '__main__':

@@ -52,7 +52,11 @@ class TestApplicationWebsocket(TestApplicationProto):
         )
 
         resp = ''
-        while select.select([sock], [], [], 30)[0]:
+        while True:
+            rlist = select.select([sock], [], [], 60)[0]
+            if not rlist:
+                self.fail('Can\'t read response from server.')
+
             resp += sock.recv(4096).decode()
 
             if (
@@ -70,10 +74,18 @@ class TestApplicationWebsocket(TestApplicationProto):
     def serialize_close(self, code=1000, reason=''):
         return struct.pack('!H', code) + reason.encode('utf-8')
 
-    def frame_read(self, sock, read_timeout=30):
+    def frame_read(self, sock, read_timeout=60):
         def recv_bytes(sock, bytes):
             data = b''
-            while select.select([sock], [], [], read_timeout)[0]:
+            while True:
+                rlist = select.select([sock], [], [], read_timeout)[0]
+                if not rlist:
+                    # For all current cases if the "read_timeout" was changed
+                    # than test do not expect to get a response from server.
+                    if read_timeout == 60:
+                        self.fail('Can\'t read response from server.')
+                    break
+
                 data += sock.recv(bytes - len(data))
 
                 if len(data) == bytes:
@@ -221,7 +233,7 @@ class TestApplicationWebsocket(TestApplicationProto):
             op_code = self.OP_CONT
             pos = end
 
-    def message_read(self, sock, read_timeout=10):
+    def message_read(self, sock, read_timeout=60):
         frame = self.frame_read(sock, read_timeout=read_timeout)
 
         while not frame['fin']:

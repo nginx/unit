@@ -51,12 +51,11 @@ class TestUSR1(TestApplicationPython):
             self.search_in_log(r'/usr1', log_new), 'rename new 2'
         )
 
-    @unittest.skip('not yet')
     def test_usr1_unit_log(self):
         self.load('log_body')
 
         log_new = 'new.log'
-        log_path = self.testdir + '/' + 'unit.log'
+        log_path = self.testdir + '/unit.log'
         log_path_new = self.testdir + '/' + log_new
 
         os.rename(log_path, log_path_new)

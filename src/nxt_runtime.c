@@ -1205,7 +1205,7 @@ nxt_runtime_listen_sockets_create(nxt_task_t *task, nxt_runtime_t *rt)
             }
         }
 
-        if (nxt_listen_socket_create(task, &curr[c], 0) != NXT_OK) {
+        if (nxt_listen_socket_create(task, rt->mem_pool, &curr[c]) != NXT_OK) {
             return NXT_ERROR;
         }
 

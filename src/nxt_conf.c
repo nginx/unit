@@ -7,13 +7,13 @@
 
 #include <nxt_main.h>
 #include <nxt_conf.h>
-#if 0
-#include <math.h>
+
 #include <float.h>
-#endif
+#include <math.h>
 
 
 #define NXT_CONF_MAX_SHORT_STRING  14
+#define NXT_CONF_MAX_NUMBER_LEN    14
 #define NXT_CONF_MAX_STRING        NXT_INT32_T_MAX
 
 #define NXT_CONF_MAX_TOKEN_LEN     256
@@ -46,8 +46,7 @@ typedef struct nxt_conf_object_s  nxt_conf_object_t;
 struct nxt_conf_value_s {
     union {
         uint8_t               boolean;  /* 1 bit. */
-        int64_t               integer;
-        double                number;
+        u_char                number[NXT_CONF_MAX_NUMBER_LEN + 1];;
 
         struct {
             u_char            start[NXT_CONF_MAX_SHORT_STRING];
@@ -130,8 +129,6 @@ static nxt_int_t nxt_conf_copy_array(nxt_mp_t *mp, nxt_conf_op_t *op,
 static nxt_int_t nxt_conf_copy_object(nxt_mp_t *mp, nxt_conf_op_t *op,
     nxt_conf_value_t *dst, nxt_conf_value_t *src);
 
-static size_t nxt_conf_json_integer_length(nxt_conf_value_t *value);
-static u_char *nxt_conf_json_print_integer(u_char *p, nxt_conf_value_t *value);
 static size_t nxt_conf_json_string_length(nxt_conf_value_t *value);
 static u_char *nxt_conf_json_print_string(u_char *p, nxt_conf_value_t *value);
 static size_t nxt_conf_json_array_length(nxt_conf_value_t *value,
@@ -221,10 +218,10 @@ nxt_conf_set_string_dup(nxt_conf_value_t *value, nxt_mp_t *mp, nxt_str_t *str)
 }
 
 
-int64_t
-nxt_conf_get_integer(nxt_conf_value_t *value)
+double
+nxt_conf_get_number(nxt_conf_value_t *value)
 {
-    return value->u.integer;
+    return nxt_strtod(value->u.number, NULL);
 }
 
 
@@ -312,13 +309,19 @@ void
 nxt_conf_set_member_integer(nxt_conf_value_t *object, nxt_str_t *name,
     int64_t value, uint32_t index)
 {
+    u_char                    *p, *end;
     nxt_conf_object_member_t  *member;
 
     member = &object->u.object->members[index];
 
     nxt_conf_set_string(&member->name, name);
 
-    member->value.u.integer = value;
+    p = member->value.u.number;
+    end = p + NXT_CONF_MAX_NUMBER_LEN;
+
+    end = nxt_sprintf(p, end, "%L", value);
+    *end = '\0';
+
     member->value.type = NXT_CONF_VALUE_INTEGER;
 }
 
@@ -551,6 +554,7 @@ nxt_int_t
 nxt_conf_map_object(nxt_mp_t *mp, nxt_conf_value_t *value, nxt_conf_map_t *map,
     nxt_uint_t n, void *data)
 {
+    double            num;
     nxt_str_t         str, *s;
     nxt_uint_t        i;
     nxt_conf_value_t  *v;
@@ -600,30 +604,32 @@ nxt_conf_map_object(nxt_mp_t *mp, nxt_conf_value_t *value, nxt_conf_map_t *map,
                 break;
             }
 
+            num = nxt_strtod(v->u.number, NULL);
+
             switch (map[i].type) {
 
             case NXT_CONF_MAP_INT32:
-                ptr->i32 = v->u.integer;
+                ptr->i32 = num;
                 break;
 
             case NXT_CONF_MAP_INT64:
-                ptr->i64 = v->u.integer;
+                ptr->i64 = num;
                 break;
 
             case NXT_CONF_MAP_INT:
-                ptr->i = v->u.integer;
+                ptr->i = num;
                 break;
 
             case NXT_CONF_MAP_SIZE:
-                ptr->size = v->u.integer;
+                ptr->size = num;
                 break;
 
             case NXT_CONF_MAP_OFF:
-                ptr->off = v->u.integer;
+                ptr->off = num;
                 break;
 
             case NXT_CONF_MAP_MSEC:
-                ptr->msec = v->u.integer * 1000;
+                ptr->msec = (nxt_msec_t) num * 1000;
                 break;
 
             default:
@@ -635,11 +641,7 @@ nxt_conf_map_object(nxt_mp_t *mp, nxt_conf_value_t *value, nxt_conf_map_t *map,
         case NXT_CONF_MAP_DOUBLE:
 
             if (v->type == NXT_CONF_VALUE_NUMBER) {
-                ptr->dbl = v->u.number;
-
-            } else if (v->type == NXT_CONF_VALUE_INTEGER) {
-                ptr->dbl = v->u.integer;
-
+                ptr->dbl = nxt_strtod(v->u.number, NULL);
             }
 
             break;
@@ -1269,6 +1271,7 @@ nxt_conf_json_skip_space(u_char *start, u_char *end)
             case '\r':
                 continue;
             case '/':
+                start = p;
                 state = sw_after_slash;
                 continue;
             }
@@ -1285,7 +1288,6 @@ nxt_conf_json_skip_space(u_char *start, u_char *end)
                 continue;
             }
 
-            p--;
             break;
 
         case sw_single_comment:
@@ -1316,6 +1318,10 @@ nxt_conf_json_skip_space(u_char *start, u_char *end)
         }
 
         break;
+    }
+
+    if (nxt_slow_path(state != sw_normal)) {
+        return start;
     }
 
     return p;
@@ -2032,56 +2038,51 @@ static u_char *
 nxt_conf_json_parse_number(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
     u_char *end, nxt_conf_json_error_t *error)
 {
-    u_char     *p, ch;
-    uint64_t   integer;
-    nxt_int_t  sign;
-#if 0
-    uint64_t   frac, power
-    nxt_int_t  e, negative;
-#endif
+    u_char  *p, *s, ch, c, *dot_pos;
+    size_t  size;
+    double  num;
 
-    static const uint64_t cutoff = NXT_INT64_T_MAX / 10;
-    static const uint64_t cutlim = NXT_INT64_T_MAX % 10;
-
-    ch = *start;
+    s = start;
+    ch = *s;
 
     if (ch == '-') {
-        sign = -1;
-        start++;
-
-    } else {
-        sign = 1;
+        s++;
     }
 
-    integer = 0;
+    dot_pos = NULL;
 
-    for (p = start; nxt_fast_path(p != end); p++) {
+    for (p = s; nxt_fast_path(p != end); p++) {
         ch = *p;
 
         /* Values below '0' become >= 208. */
-        ch = ch - '0';
+        c = ch - '0';
 
-        if (ch > 9) {
+        if (c > 9) {
+            if (ch == '.' && nxt_fast_path(dot_pos == NULL)) {
+                dot_pos = p;
+                continue;
+            }
+
             break;
         }
+    }
 
-        if (nxt_slow_path(integer >= cutoff
-                          && (integer > cutoff || ch > cutlim)))
-        {
-            nxt_conf_json_parse_error(error, start,
-                "The integer is too large.  Such a large JSON integer value "
-                "is not supported."
+    if (dot_pos != NULL) {
+        if (nxt_slow_path(p - dot_pos <= 1)) {
+            nxt_conf_json_parse_error(error, s,
+                "The number is invalid.  A fraction part in JSON numbers "
+                "must contain at least one digit."
             );
 
             return NULL;
         }
 
-        integer = integer * 10 + ch;
+    } else {
+        dot_pos = p;
     }
 
-    if (nxt_slow_path(p - start > 1 && *start == '0')) {
-
-        nxt_conf_json_parse_error(error, start,
+    if (nxt_slow_path(dot_pos - s > 1 && *start == '0')) {
+        nxt_conf_json_parse_error(error, s,
             "The number is invalid.  Leading zeros are not allowed in JSON "
             "numbers."
         );
@@ -2089,101 +2090,79 @@ nxt_conf_json_parse_number(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
         return NULL;
     }
 
-    if (ch != '.') {
-        value->type = NXT_CONF_VALUE_INTEGER;
-        value->u.integer = sign * integer;
-        return p;
-    }
+    if (ch == 'e' || ch == 'E') {
+        p++;
+        s = p;
 
-#if 0
-    start = p + 1;
+        if (nxt_fast_path(s != end)) {
+            ch = *s;
 
-    frac = 0;
-    power = 1;
+            if (ch == '-' || ch == '+') {
+                s++;
+            }
 
-    for (p = start; nxt_fast_path(p != end); p++) {
-        ch = *p;
+            for (p = s; nxt_fast_path(p != end); p++) {
+                ch = *p;
 
-        /* Values below '0' become >= 208. */
-        ch = ch - '0';
+                /* Values below '0' become >= 208. */
+                c = ch - '0';
 
-        if (ch > 9) {
-            break;
+                if (c > 9) {
+                    break;
+                }
+            }
         }
 
-        if (nxt_slow_path((frac >= cutoff && (frac > cutoff || ch > cutlim))
-                          || power > cutoff))
-        {
+        if (nxt_slow_path(p == s)) {
+            nxt_conf_json_parse_error(error, start,
+                "The number is invalid.  An exponent part in JSON numbers "
+                "must contain at least one digit."
+            );
+
             return NULL;
         }
-
-        frac = frac * 10 + ch;
-        power *= 10;
     }
 
-    if (nxt_slow_path(p == start)) {
+    size = p - start;
+
+    if (size > NXT_CONF_MAX_NUMBER_LEN) {
+        nxt_conf_json_parse_error(error, start,
+            "The number is too long.  Such a long JSON number value "
+            "is not supported."
+        );
+
         return NULL;
     }
 
-    value->type = NXT_CONF_VALUE_NUMBER;
-    value->u.number = integer + (double) frac / power;
+    nxt_memcpy(value->u.number, start, size);
+    value->u.number[size] = '\0';
 
-    value->u.number = copysign(value->u.number, sign);
+    nxt_errno = 0;
+    end = NULL;
 
-    if (ch == 'e' || ch == 'E') {
-        start = p + 1;
+    num = nxt_strtod(value->u.number, &end);
 
-        ch = *start;
+    if (nxt_slow_path(nxt_errno == NXT_ERANGE
+        || fabs(num) > (double) NXT_INT64_T_MAX))
+    {
+        nxt_conf_json_parse_error(error, start,
+            "The number is out of representable range.  Such JSON number "
+            "value is not supported."
+        );
 
-        if (ch == '-' || ch == '+') {
-            start++;
-        }
-
-        negative = (ch == '-') ? 1 : 0;
-        e = 0;
-
-        for (p = start; nxt_fast_path(p != end); p++) {
-            ch = *p;
-
-            /* Values below '0' become >= 208. */
-            ch = ch - '0';
-
-            if (ch > 9) {
-                break;
-            }
-
-            e = e * 10 + ch;
-
-            if (nxt_slow_path(e > DBL_MAX_10_EXP)) {
-                return NULL;
-            }
-        }
-
-        if (nxt_slow_path(p == start)) {
-            return NULL;
-        }
-
-        if (negative) {
-            value->u.number /= exp10(e);
-
-        } else {
-            value->u.number *= exp10(e);
-        }
+        return NULL;
     }
 
-    if (nxt_fast_path(isfinite(value->u.number))) {
-        return p;
+    if (nxt_slow_path(end == NULL || *end != '\0')) {
+        nxt_thread_log_alert("strtod(\"%s\", %s) failed %E", value->u.number,
+                             end == NULL ? (u_char *) "NULL" : end, nxt_errno);
+        return NULL;
     }
-#else
 
-    nxt_conf_json_parse_error(error, start,
-        "The number is not an integer.  JSON numbers with decimals and "
-        "exponents are not supported."
-    );
+    value->type = (num == trunc(num)) ? NXT_CONF_VALUE_INTEGER
+                                      : NXT_CONF_VALUE_NUMBER;
 
-#endif
-
-    return NULL;
+    return p;
 }
 
 
@@ -2212,11 +2191,8 @@ nxt_conf_json_length(nxt_conf_value_t *value, nxt_conf_json_pretty_t *pretty)
         return value->u.boolean ? nxt_length("true") : nxt_length("false");
 
     case NXT_CONF_VALUE_INTEGER:
-        return nxt_conf_json_integer_length(value);
-
     case NXT_CONF_VALUE_NUMBER:
-        /* TODO */
-        return 0;
+        return nxt_strlen(value->u.number);
 
     case NXT_CONF_VALUE_SHORT_STRING:
     case NXT_CONF_VALUE_STRING:
@@ -2249,11 +2225,8 @@ nxt_conf_json_print(u_char *p, nxt_conf_value_t *value,
                                 : nxt_cpymem(p, "false", 5);
 
     case NXT_CONF_VALUE_INTEGER:
-        return nxt_conf_json_print_integer(p, value);
-
     case NXT_CONF_VALUE_NUMBER:
-        /* TODO */
-        return p;
+        return nxt_cpystr(p, value->u.number);
 
     case NXT_CONF_VALUE_SHORT_STRING:
     case NXT_CONF_VALUE_STRING:
@@ -2269,32 +2242,6 @@ nxt_conf_json_print(u_char *p, nxt_conf_value_t *value,
     nxt_unreachable();
 
     return p;
-}
-
-
-static size_t
-nxt_conf_json_integer_length(nxt_conf_value_t *value)
-{
-    int64_t  num;
-
-    num = llabs(value->u.integer);
-
-    if (num <= 9999) {
-        return nxt_length("-9999");
-    }
-
-    if (num <= 99999999999LL) {
-        return nxt_length("-99999999999");
-    }
-
-    return NXT_INT64_T_LEN;
-}
-
-
-static u_char *
-nxt_conf_json_print_integer(u_char *p, nxt_conf_value_t *value)
-{
-    return nxt_sprintf(p, p + NXT_INT64_T_LEN, "%L", value->u.integer);
 }
 
 

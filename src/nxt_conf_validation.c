@@ -17,7 +17,7 @@ typedef enum {
     NXT_CONF_VLDT_NULL    = 1 << NXT_CONF_NULL,
     NXT_CONF_VLDT_BOOLEAN = 1 << NXT_CONF_BOOLEAN,
     NXT_CONF_VLDT_INTEGER = 1 << NXT_CONF_INTEGER,
-    NXT_CONF_VLDT_NUMBER  = 1 << NXT_CONF_NUMBER,
+    NXT_CONF_VLDT_NUMBER  = (1 << NXT_CONF_NUMBER) | NXT_CONF_VLDT_INTEGER,
     NXT_CONF_VLDT_STRING  = 1 << NXT_CONF_STRING,
     NXT_CONF_VLDT_ARRAY   = 1 << NXT_CONF_ARRAY,
     NXT_CONF_VLDT_OBJECT  = 1 << NXT_CONF_OBJECT,
@@ -63,6 +63,8 @@ static nxt_int_t nxt_conf_vldt_certificate(nxt_conf_validation_t *vldt,
 static nxt_int_t nxt_conf_vldt_action(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_pass(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_return(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_proxy(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
@@ -348,6 +350,21 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_pass_action_members[] = {
     { nxt_string("pass"),
       NXT_CONF_VLDT_STRING,
       &nxt_conf_vldt_pass,
+      NULL },
+
+    NXT_CONF_VLDT_END
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_return_action_members[] = {
+    { nxt_string("return"),
+      NXT_CONF_VLDT_INTEGER,
+      &nxt_conf_vldt_return,
+      NULL },
+
+    { nxt_string("location"),
+      NXT_CONF_VLDT_STRING,
+      NULL,
       NULL },
 
     NXT_CONF_VLDT_END
@@ -715,7 +732,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_upstream_members[] = {
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_upstream_server_members[] = {
     { nxt_string("weight"),
-      NXT_CONF_VLDT_INTEGER,
+      NXT_CONF_VLDT_NUMBER,
       &nxt_conf_vldt_server_weight,
       NULL },
 
@@ -756,8 +773,8 @@ nxt_conf_vldt_type(nxt_conf_validation_t *vldt, nxt_str_t *name,
     static nxt_str_t  type_name[] = {
         nxt_string("a null"),
         nxt_string("a boolean"),
-        nxt_string("an integer"),
-        nxt_string("a number"),
+        nxt_string("an integer number"),
+        nxt_string("a fractional number"),
         nxt_string("a string"),
         nxt_string("an array"),
         nxt_string("an object"),
@@ -978,6 +995,7 @@ nxt_conf_vldt_action(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 
     } actions[] = {
         { nxt_string("pass"), nxt_conf_vldt_pass_action_members },
+        { nxt_string("return"), nxt_conf_vldt_return_action_members },
         { nxt_string("share"), nxt_conf_vldt_share_action_members },
         { nxt_string("proxy"), nxt_conf_vldt_proxy_action_members },
     };
@@ -993,8 +1011,8 @@ nxt_conf_vldt_action(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 
         if (members != NULL) {
             return nxt_conf_vldt_error(vldt, "The \"action\" object must have "
-                                       "just one of \"pass\", \"share\" or "
-                                       "\"proxy\" options set.");
+                                       "just one of \"pass\", \"return\", "
+                                       "\"share\", or \"proxy\" options set.");
         }
 
         members = actions[i].members;
@@ -1002,8 +1020,8 @@ nxt_conf_vldt_action(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 
     if (members == NULL) {
         return nxt_conf_vldt_error(vldt, "The \"action\" object must have "
-                                         "either \"pass\", \"share\", or "
-                                         "\"proxy\" option set.");
+                                   "either \"pass\", \"return\", \"share\", "
+                                   "or \"proxy\" option set.");
     }
 
     return nxt_conf_vldt_object(vldt, value, members);
@@ -1111,6 +1129,23 @@ error:
 
     return nxt_conf_vldt_error(vldt, "Request \"pass\" points to invalid "
                                "location \"%V\".", &pass);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_return(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
+{
+    int64_t  status;
+
+    status = nxt_conf_get_number(value);
+
+    if (status < NXT_HTTP_INVALID || status > NXT_HTTP_STATUS_MAX) {
+        return nxt_conf_vldt_error(vldt, "The \"return\" value is out of "
+                                   "allowed HTTP status code range 0-999.");
+    }
+
+    return NXT_OK;
 }
 
 
@@ -1591,8 +1626,8 @@ nxt_conf_vldt_processes(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     nxt_int_t                       ret;
     nxt_conf_vldt_processes_conf_t  proc;
 
-    if (nxt_conf_type(value) == NXT_CONF_INTEGER) {
-        int_value = nxt_conf_get_integer(value);
+    if (nxt_conf_type(value) == NXT_CONF_NUMBER) {
+        int_value = nxt_conf_get_number(value);
 
         if (int_value < 1) {
             return nxt_conf_vldt_error(vldt, "The \"processes\" number must be "
@@ -2025,18 +2060,18 @@ static nxt_int_t
 nxt_conf_vldt_server_weight(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data)
 {
-    int64_t  int_value;
+    double  num_value;
 
-    int_value = nxt_conf_get_integer(value);
+    num_value = nxt_conf_get_number(value);
 
-    if (int_value <= 0) {
+    if (num_value < 0) {
         return nxt_conf_vldt_error(vldt, "The \"weight\" number must be "
-                                   "greater than 0.");
+                                   "positive.");
     }
 
-    if (int_value > NXT_INT32_T_MAX) {
+    if (num_value > 1000000) {
         return nxt_conf_vldt_error(vldt, "The \"weight\" number must "
-                                   "not exceed %d.", NXT_INT32_T_MAX);
+                                   "not exceed 1,000,000");
     }
 
     return NXT_OK;

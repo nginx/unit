@@ -114,7 +114,7 @@ NXT_EXPORT void nxt_conf_get_string(nxt_conf_value_t *value, nxt_str_t *str);
 NXT_EXPORT void nxt_conf_set_string(nxt_conf_value_t *value, nxt_str_t *str);
 NXT_EXPORT nxt_int_t nxt_conf_set_string_dup(nxt_conf_value_t *value,
     nxt_mp_t *mp, nxt_str_t *str);
-NXT_EXPORT int64_t nxt_conf_get_integer(nxt_conf_value_t *value);
+NXT_EXPORT double nxt_conf_get_number(nxt_conf_value_t *value);
 NXT_EXPORT uint8_t nxt_conf_get_boolean(nxt_conf_value_t *value);
 
 // FIXME reimplement and reorder functions below

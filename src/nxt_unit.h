@@ -356,10 +356,29 @@ int nxt_unit_websocket_retain(nxt_unit_websocket_frame_t *ws);
 void nxt_unit_websocket_done(nxt_unit_websocket_frame_t *ws);
 
 
-void nxt_unit_log(nxt_unit_ctx_t *ctx, int level, const char* fmt, ...);
+#if defined __has_attribute
+
+#if __has_attribute(format)
+
+#define NXT_ATTR_FORMAT  __attribute__((format(printf, 3, 4)))
+
+#endif
+
+#endif
+
+
+#if !defined(NXT_ATTR_FORMAT)
+
+#define NXT_ATTR_FORMAT
+
+#endif
+
+
+void nxt_unit_log(nxt_unit_ctx_t *ctx, int level, const char* fmt, ...)
+    NXT_ATTR_FORMAT;
 
 void nxt_unit_req_log(nxt_unit_request_info_t *req, int level,
-    const char* fmt, ...);
+    const char* fmt, ...) NXT_ATTR_FORMAT;
 
 #if (NXT_DEBUG)
 

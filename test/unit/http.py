@@ -17,11 +17,6 @@ class TestHTTP(TestUnit):
         port = 7080 if 'port' not in kwargs else kwargs['port']
         url = '/' if 'url' not in kwargs else kwargs['url']
         http = 'HTTP/1.0' if 'http_10' in kwargs else 'HTTP/1.1'
-        read_buffer_size = (
-            4096
-            if 'read_buffer_size' not in kwargs
-            else kwargs['read_buffer_size']
-        )
 
         headers = (
             {'Host': 'localhost', 'Connection': 'close'}
@@ -60,7 +55,7 @@ class TestHTTP(TestUnit):
                 sock.connect(connect_args)
             except ConnectionRefusedError:
                 sock.close()
-                return None
+                self.fail('Client can\'t connect to the server.')
 
         else:
             sock = kwargs['sock']
@@ -101,12 +96,15 @@ class TestHTTP(TestUnit):
         resp = ''
 
         if 'no_recv' not in kwargs:
-            read_timeout = (
-                30 if 'read_timeout' not in kwargs else kwargs['read_timeout']
-            )
-            resp = self.recvall(
-                sock, read_timeout=read_timeout, buff_size=read_buffer_size
-            ).decode(encoding)
+            recvall_kwargs = {}
+
+            if 'read_timeout' in kwargs:
+                recvall_kwargs['read_timeout'] = kwargs['read_timeout']
+
+            if 'read_buffer_size' in kwargs:
+                recvall_kwargs['buff_size'] = kwargs['read_buffer_size']
+
+            resp = self.recvall(sock, **recvall_kwargs).decode(encoding)
 
         self.log_in(resp)
 
@@ -174,9 +172,26 @@ class TestHTTP(TestUnit):
     def put(self, **kwargs):
         return self.http('PUT', **kwargs)
 
-    def recvall(self, sock, read_timeout=30, buff_size=4096):
+    def recvall(self, sock, **kwargs):
+        timeout_default = 60
+
+        timeout = (
+            timeout_default
+            if 'read_timeout' not in kwargs
+            else kwargs['read_timeout']
+        )
+        buff_size = 4096 if 'buff_size' not in kwargs else kwargs['buff_size']
+
         data = b''
-        while select.select([sock], [], [], read_timeout)[0]:
+        while True:
+            rlist = select.select([sock], [], [], timeout)[0]
+            if not rlist:
+                # For all current cases if the "read_timeout" was changed
+                # than test do not expect to get a response from server.
+                if timeout == timeout_default:
+                    self.fail('Can\'t read response from server.')
+                break
+
             try:
                 part = sock.recv(buff_size)
             except:
@@ -264,12 +279,8 @@ class TestHTTP(TestUnit):
     def _parse_json(self, resp):
         headers = resp['headers']
 
-        self.assertIn('Content-Type', headers, 'Content-Type header set')
-        self.assertEqual(
-            headers['Content-Type'],
-            'application/json',
-            'Content-Type header is application/json',
-        )
+        self.assertIn('Content-Type', headers)
+        self.assertEqual(headers['Content-Type'], 'application/json')
 
         resp['body'] = json.loads(resp['body'])
 

@@ -22,11 +22,11 @@ class TestNodeWebsockets(TestApplicationNode):
         )
 
         self.skip_alerts.extend(
-            [r'last message send failed', r'socket close\(\d+\) failed']
+            [r'socket close\(\d+\) failed']
         )
 
     def close_connection(self, sock):
-        self.assertEqual(self.recvall(sock, read_timeout=1), b'', 'empty sock')
+        self.assertEqual(self.recvall(sock, read_timeout=0.1), b'', 'empty soc')
 
         self.ws.frame_write(sock, self.ws.OP_CLOSE, self.ws.serialize_close())
 
@@ -460,12 +460,12 @@ class TestNodeWebsockets(TestApplicationNode):
         _, sock, _ = self.ws.upgrade()
 
         self.ws.frame_write(sock, self.ws.OP_PONG, '')
-        self.assertEqual(self.recvall(sock, read_timeout=1), b'', '2_7')
+        self.assertEqual(self.recvall(sock, read_timeout=0.1), b'', '2_7')
 
         # 2_8
 
         self.ws.frame_write(sock, self.ws.OP_PONG, 'unsolicited pong payload')
-        self.assertEqual(self.recvall(sock, read_timeout=1), b'', '2_8')
+        self.assertEqual(self.recvall(sock, read_timeout=0.1), b'', '2_8')
 
         # 2_9
 
@@ -531,7 +531,7 @@ class TestNodeWebsockets(TestApplicationNode):
 
         self.check_close(sock, 1002, no_close=True)
 
-        self.assertEqual(self.recvall(sock, read_timeout=1), b'', 'empty 3_2')
+        self.assertEqual(self.recvall(sock, read_timeout=0.1), b'', 'empty 3_2')
         sock.close()
 
         # 3_3
@@ -549,7 +549,7 @@ class TestNodeWebsockets(TestApplicationNode):
 
         self.check_close(sock, 1002, no_close=True)
 
-        self.assertEqual(self.recvall(sock, read_timeout=1), b'', 'empty 3_3')
+        self.assertEqual(self.recvall(sock, read_timeout=0.1), b'', 'empty 3_3')
         sock.close()
 
         # 3_4
@@ -567,7 +567,7 @@ class TestNodeWebsockets(TestApplicationNode):
 
         self.check_close(sock, 1002, no_close=True)
 
-        self.assertEqual(self.recvall(sock, read_timeout=1), b'', 'empty 3_4')
+        self.assertEqual(self.recvall(sock, read_timeout=0.1), b'', 'empty 3_4')
         sock.close()
 
         # 3_5
@@ -753,7 +753,7 @@ class TestNodeWebsockets(TestApplicationNode):
         # 5_4
 
         self.ws.frame_write(sock, self.ws.OP_TEXT, 'fragment1', fin=False)
-        self.assertEqual(self.recvall(sock, read_timeout=1), b'', '5_4')
+        self.assertEqual(self.recvall(sock, read_timeout=0.1), b'', '5_4')
         self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment2', fin=True)
 
         frame = self.ws.frame_read(sock)
@@ -790,7 +790,7 @@ class TestNodeWebsockets(TestApplicationNode):
         ping_payload = 'ping payload'
 
         self.ws.frame_write(sock, self.ws.OP_TEXT, 'fragment1', fin=False)
-        self.assertEqual(self.recvall(sock, read_timeout=1), b'', '5_7')
+        self.assertEqual(self.recvall(sock, read_timeout=0.1), b'', '5_7')
 
         self.ws.frame_write(sock, self.ws.OP_PING, ping_payload)
 
@@ -974,7 +974,7 @@ class TestNodeWebsockets(TestApplicationNode):
         frame = self.ws.frame_read(sock)
         self.check_frame(frame, True, self.ws.OP_PONG, 'pongme 2!')
 
-        self.assertEqual(self.recvall(sock, read_timeout=1), b'', '5_20')
+        self.assertEqual(self.recvall(sock, read_timeout=0.1), b'', '5_20')
         self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment5')
 
         self.check_frame(
@@ -1107,7 +1107,7 @@ class TestNodeWebsockets(TestApplicationNode):
         self.check_close(sock, no_close=True)
 
         self.ws.frame_write(sock, self.ws.OP_PING, '')
-        self.assertEqual(self.recvall(sock, read_timeout=1), b'', 'empty sock')
+        self.assertEqual(self.recvall(sock, read_timeout=0.1), b'', 'empty soc')
 
         sock.close()
 
@@ -1119,7 +1119,7 @@ class TestNodeWebsockets(TestApplicationNode):
         self.check_close(sock, no_close=True)
 
         self.ws.frame_write(sock, self.ws.OP_TEXT, payload)
-        self.assertEqual(self.recvall(sock, read_timeout=1), b'', 'empty sock')
+        self.assertEqual(self.recvall(sock, read_timeout=0.1), b'', 'empty soc')
 
         sock.close()
 
@@ -1132,7 +1132,7 @@ class TestNodeWebsockets(TestApplicationNode):
         self.check_close(sock, no_close=True)
 
         self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment2')
-        self.assertEqual(self.recvall(sock, read_timeout=1), b'', 'empty sock')
+        self.assertEqual(self.recvall(sock, read_timeout=0.1), b'', 'empty soc')
 
         sock.close()
 
@@ -1147,7 +1147,7 @@ class TestNodeWebsockets(TestApplicationNode):
         self.recvall(sock, read_timeout=1)
 
         self.ws.frame_write(sock, self.ws.OP_PING, '')
-        self.assertEqual(self.recvall(sock, read_timeout=1), b'', 'empty sock')
+        self.assertEqual(self.recvall(sock, read_timeout=0.1), b'', 'empty soc')
 
         sock.close()
 

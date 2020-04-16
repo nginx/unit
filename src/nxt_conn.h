@@ -106,7 +106,7 @@ typedef struct {
     nxt_work_handler_t            accept;
 
     nxt_listen_socket_t           *listen;
-    nxt_conn_t                    *next;   /* STUB */
+    nxt_conn_t                    *next;
     nxt_work_queue_t              *work_queue;
 
     nxt_timer_t                   timer;

@@ -24,8 +24,10 @@ static void nxt_conn_listen_handler(nxt_task_t *task, void *obj,
     void *data);
 static nxt_conn_t *nxt_conn_accept_next(nxt_task_t *task,
     nxt_listen_event_t *lev);
-static nxt_int_t nxt_conn_accept_close_idle(nxt_task_t *task,
+static void nxt_conn_accept_close_idle(nxt_task_t *task,
     nxt_listen_event_t *lev);
+static void nxt_conn_accept_close_idle_handler(nxt_task_t *task, void *obj,
+    void *data);
 static void nxt_conn_listen_event_error(nxt_task_t *task, void *obj,
     void *data);
 static void nxt_conn_listen_timer_handler(nxt_task_t *task, void *obj,
@@ -99,12 +101,12 @@ nxt_conn_accept_alloc(nxt_task_t *task, nxt_listen_event_t *lev)
                 goto fail;
             }
 
-            lev->next = c;
             c->socket.read_work_queue = lev->socket.read_work_queue;
             c->socket.write_ready = 1;
 
             c->remote = nxt_sockaddr_cache_alloc(engine, lev->listen);
             if (nxt_fast_path(c->remote != NULL)) {
+                lev->next = c;
                 return c;
             }
         }
@@ -197,6 +199,7 @@ nxt_conn_accept(nxt_task_t *task, nxt_listen_event_t *lev, nxt_conn_t *c)
 
     c->listen = lev;
     lev->count++;
+    lev->next = NULL;
     c->socket.data = NULL;
 
     c->read_work_queue = lev->work_queue;
@@ -228,62 +231,80 @@ nxt_conn_accept_next(nxt_task_t *task, nxt_listen_event_t *lev)
 {
     nxt_conn_t  *c;
 
-    lev->next = NULL;
+    c = lev->next;
 
-    do {
+    if (c == NULL) {
         c = nxt_conn_accept_alloc(task, lev);
 
-        if (nxt_fast_path(c != NULL)) {
-            return c;
+        if (nxt_slow_path(c == NULL)) {
+            nxt_conn_accept_close_idle(task, lev);
         }
+    }
 
-    } while (nxt_conn_accept_close_idle(task, lev) == NXT_OK);
-
-    nxt_alert(task, "no available connections, "
-              "new connections are not accepted within 1s");
-
-    return NULL;
+    return c;
 }
 
 
-static nxt_int_t
+static void
 nxt_conn_accept_close_idle(nxt_task_t *task, nxt_listen_event_t *lev)
 {
+    nxt_event_engine_t  *engine;
+
+    engine = task->thread->engine;
+
+    nxt_work_queue_add(&engine->close_work_queue,
+                       nxt_conn_accept_close_idle_handler, task, NULL, NULL);
+
+    nxt_timer_add(engine, &lev->timer, 100);
+
+    nxt_fd_event_disable_read(engine, &lev->socket);
+
+    nxt_alert(task, "new connections are not accepted within 100ms");
+}
+
+
+static void
+nxt_conn_accept_close_idle_handler(nxt_task_t *task, void *obj, void *data)
+{
+    nxt_uint_t          times;
     nxt_conn_t          *c;
     nxt_queue_t         *idle;
-    nxt_queue_link_t    *link;
+    nxt_queue_link_t    *link, *next;
     nxt_event_engine_t  *engine;
 
     static nxt_log_moderation_t  nxt_idle_close_log_moderation = {
         NXT_LOG_INFO, 2, "idle connections closed", NXT_LOG_MODERATION
     };
 
+    times = 10;
     engine = task->thread->engine;
-
     idle = &engine->idle_connections;
 
     for (link = nxt_queue_last(idle);
          link != nxt_queue_head(idle);
-         link = nxt_queue_next(link))
+         link = next)
     {
+        next = nxt_queue_next(link);
+
         c = nxt_queue_link_data(link, nxt_conn_t, link);
+
+        nxt_debug(c->socket.task, "idle connection: %d rdy:%d",
+                  c->socket.fd, c->socket.read_ready);
 
         if (!c->socket.read_ready) {
             nxt_log_moderate(&nxt_idle_close_log_moderation, NXT_LOG_INFO,
                              task->log, "no available connections, "
                              "close idle connection");
-            nxt_queue_remove(link);
-            nxt_conn_close(engine, c);
 
-            return NXT_OK;
+            c->read_state->close_handler(c->socket.task, c, c->socket.data);
+
+            times--;
+
+            if (times == 0) {
+                break;
+            }
         }
     }
-
-    nxt_timer_add(engine, &lev->timer, 1000);
-
-    nxt_fd_event_disable_read(engine, &lev->socket);
-
-    return NXT_DECLINED;
 }
 
 
@@ -313,12 +334,10 @@ nxt_conn_accept_error(nxt_task_t *task, nxt_listen_event_t *lev,
     case ENFILE:
     case ENOBUFS:
     case ENOMEM:
-        if (nxt_conn_accept_close_idle(task, lev) != NXT_OK) {
-            nxt_alert(task, "%s(%d) failed %E, "
-                      "new connections are not accepted within 1s",
-                      accept_syscall, lev->socket.fd, err);
-        }
+        nxt_alert(task, "%s(%d) failed %E",
+                  accept_syscall, lev->socket.fd, err);
 
+        nxt_conn_accept_close_idle(task, lev);
         return;
 
     default:
@@ -339,14 +358,10 @@ nxt_conn_listen_timer_handler(nxt_task_t *task, void *obj, void *data)
     timer = obj;
 
     lev = nxt_timer_data(timer, nxt_listen_event_t, timer);
-    c = lev->next;
 
+    c = nxt_conn_accept_next(task, lev);
     if (c == NULL) {
-        c = nxt_conn_accept_next(task, lev);
-
-        if (c == NULL) {
-            return;
-        }
+        return;
     }
 
     nxt_fd_event_enable_accept(task->thread->engine, &lev->socket);
