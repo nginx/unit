@@ -100,7 +100,11 @@ if /bin/sh -c "${NXT_PHP_CONFIG} --version" >> $NXT_AUTOCONF_ERR 2>&1; then
                          `${NXT_PHP_CONFIG} --libs`"
 
     else
-        NXT_PHP_LIB="-lphp${NXT_PHP_VERSION%%.*}"
+        if [ ${NXT_PHP_MAJOR_VERSION} -ge 8 ]; then
+            NXT_PHP_LIB="-lphp"
+        else
+            NXT_PHP_LIB="-lphp${NXT_PHP_VERSION%%.*}"
+        fi
 
         if [ "$NXT_PHP_LIB_PATH" != "" ]; then
             # "php-config --ldflags" does not contain path to libphp, but
