@@ -125,18 +125,23 @@ class TestStatic(TestApplicationProto):
         self.assertEqual(resp['status'], 200, 'fallback proxy status')
         self.assertEqual(resp['body'], '', 'fallback proxy')
 
-    @unittest.skip('not yet')
-    def test_fallback_proxy_cycle(self):
-        self.action_update(
-            {
-                "share": "/blah",
-                "fallback": {"proxy": "http://127.0.0.1:7080"},
-            }
+    def test_fallback_proxy_loop(self):
+        self.skip_alerts.extend(
+            [
+                r'open.*/blah/index.html.*failed',
+                r'accept.*failed',
+                r'socket.*failed',
+                r'new connections are not accepted',
+            ]
         )
-        self.assertNotEqual(self.get()['status'], 200, 'fallback cycle')
+
+        self.action_update(
+            {"share": "/blah", "fallback": {"proxy": "http://127.0.0.1:7080"}}
+        )
+        self.get(no_recv=True)
 
         self.assertIn('success', self.conf_delete('listeners/*:7081'))
-        self.assertNotEqual(self.get()['status'], 200, 'fallback cycle 2')
+        self.get(read_timeout=1)
 
     def test_fallback_invalid(self):
         def check_error(conf):

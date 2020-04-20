@@ -601,8 +601,14 @@ Content-Length: 10
             'proxy ipv6 invalid 4',
         )
 
-    @unittest.skip('not yet')
     def test_proxy_loop(self):
+        self.skip_alerts.extend(
+            [
+                r'socket.*failed',
+                r'accept.*failed',
+                r'new connections are not accepted',
+            ]
+        )
         self.conf(
             {
                 "listeners": {
@@ -625,6 +631,7 @@ Content-Length: 10
         )
 
         self.get_http10(no_recv=True)
+        self.get_http10(read_timeout=1)
 
 if __name__ == '__main__':
     TestProxy.main()
