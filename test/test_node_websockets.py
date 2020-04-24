@@ -6,7 +6,7 @@ from unit.applications.websockets import TestApplicationWebsocket
 
 
 class TestNodeWebsockets(TestApplicationNode):
-    prerequisites = {'modules': ['node']}
+    prerequisites = {'modules': {'node': 'any'}}
 
     ws = TestApplicationWebsocket()
 

@@ -6,7 +6,7 @@ from unit.applications.websockets import TestApplicationWebsocket
 
 
 class TestJavaWebsockets(TestApplicationJava):
-    prerequisites = {'modules': ['java']}
+    prerequisites = {'modules': {'java': 'any'}}
 
     ws = TestApplicationWebsocket()
 

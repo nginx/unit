@@ -7,7 +7,7 @@ from unit.feature.isolation import TestFeatureIsolation
 
 
 class TestGoIsolation(TestApplicationGo):
-    prerequisites = {'modules': ['go'], 'features': ['isolation']}
+    prerequisites = {'modules': {'go': 'any'}, 'features': ['isolation']}
 
     isolation = TestFeatureIsolation()
 

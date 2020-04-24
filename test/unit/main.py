@@ -52,9 +52,21 @@ class TestUnit(unittest.TestCase):
         type = self.application_type
         for module in self.prerequisites['modules']:
             if module in self.available['modules']:
-                for version in self.available['modules'][module]:
-                    self.application_type = type + ' ' + version
+                prereq_version = self.prerequisites['modules'][module]
+                available_versions = self.available['modules'][module]
+
+                if prereq_version == 'all':
+                    for version in available_versions:
+                        self.application_type = type + ' ' + version
+                        super().run(result)
+                elif prereq_version == 'any':
+                    self.application_type = type + ' ' + available_versions[0]
                     super().run(result)
+                else:
+                    for version in available_versions:
+                        if version.startswith(prereq_version):
+                            self.application_type = type + ' ' + version
+                            super().run(result)
 
     @classmethod
     def main(cls):

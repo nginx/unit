@@ -2,7 +2,7 @@ from unit.control import TestControl
 
 
 class TestPythonBasic(TestControl):
-    prerequisites = {'modules': ['python']}
+    prerequisites = {'modules': {'python': 'any'}}
 
     conf_app = {
         "app": {

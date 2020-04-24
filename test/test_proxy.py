@@ -6,7 +6,7 @@ from unit.applications.lang.python import TestApplicationPython
 
 
 class TestProxy(TestApplicationPython):
-    prerequisites = {'modules': ['python']}
+    prerequisites = {'modules': {'python': 'any'}}
 
     SERVER_PORT = 7999
 
