@@ -47,6 +47,7 @@ static void nxt_controller_router_ready_handler(nxt_task_t *task,
 static nxt_int_t nxt_controller_conf_default(void);
 static void nxt_controller_conf_init_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
+static void nxt_controller_flush_requests(nxt_task_t *task);
 static nxt_int_t nxt_controller_conf_send(nxt_task_t *task,
     nxt_conf_value_t *conf, nxt_port_rpc_handler_t handler, void *data);
 
@@ -103,6 +104,7 @@ static nxt_uint_t              nxt_controller_listening;
 static nxt_uint_t              nxt_controller_router_ready;
 static nxt_controller_conf_t   nxt_controller_conf;
 static nxt_queue_t             nxt_controller_waiting_requests;
+static nxt_bool_t              nxt_controller_waiting_init_conf;
 
 
 static const nxt_event_conn_state_t  nxt_controller_conn_read_state;
@@ -245,6 +247,8 @@ nxt_controller_send_current_conf(nxt_task_t *task)
                                       nxt_controller_conf_init_handler, NULL);
 
         if (nxt_fast_path(rc == NXT_OK)) {
+            nxt_controller_waiting_init_conf = 1;
+
             return;
         }
 
@@ -322,6 +326,8 @@ nxt_controller_conf_init_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 {
     nxt_runtime_t  *rt;
 
+    nxt_controller_waiting_init_conf = 0;
+
     if (msg->port_msg.type != NXT_PORT_MSG_RPC_READY) {
         nxt_alert(task, "failed to apply previous configuration");
 
@@ -343,6 +349,25 @@ nxt_controller_conf_init_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
         nxt_controller_listening = 1;
     }
+
+    nxt_controller_flush_requests(task);
+}
+
+
+static void
+nxt_controller_flush_requests(nxt_task_t *task)
+{
+    nxt_queue_t               queue;
+    nxt_controller_request_t  *req;
+
+    nxt_queue_init(&queue);
+    nxt_queue_add(&queue, &nxt_controller_waiting_requests);
+
+    nxt_queue_init(&nxt_controller_waiting_requests);
+
+    nxt_queue_each(req, &queue, nxt_controller_request_t, link) {
+        nxt_controller_process_request(task, req);
+    } nxt_queue_loop;
 }
 
 
@@ -961,7 +986,9 @@ nxt_controller_process_config(nxt_task_t *task, nxt_controller_request_t *req,
 
     if (post || nxt_str_eq(&req->parser.method, "PUT", 3)) {
 
-        if (!nxt_queue_is_empty(&nxt_controller_waiting_requests)) {
+        if (!nxt_queue_is_empty(&nxt_controller_waiting_requests)
+            || nxt_controller_waiting_init_conf)
+        {
             nxt_queue_insert_tail(&nxt_controller_waiting_requests, &req->link);
             return;
         }
@@ -1076,7 +1103,9 @@ nxt_controller_process_config(nxt_task_t *task, nxt_controller_request_t *req,
 
     if (nxt_str_eq(&req->parser.method, "DELETE", 6)) {
 
-        if (!nxt_queue_is_empty(&nxt_controller_waiting_requests)) {
+        if (!nxt_queue_is_empty(&nxt_controller_waiting_requests)
+            || nxt_controller_waiting_init_conf)
+        {
             nxt_queue_insert_tail(&nxt_controller_waiting_requests, &req->link);
             return;
         }
@@ -1469,7 +1498,6 @@ static void
 nxt_controller_conf_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     void *data)
 {
-    nxt_queue_t                queue;
     nxt_controller_request_t   *req;
     nxt_controller_response_t  resp;
 
@@ -1502,14 +1530,7 @@ nxt_controller_conf_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
     nxt_controller_response(task, req, &resp);
 
-    nxt_queue_init(&queue);
-    nxt_queue_add(&queue, &nxt_controller_waiting_requests);
-
-    nxt_queue_init(&nxt_controller_waiting_requests);
-
-    nxt_queue_each(req, &queue, nxt_controller_request_t, link) {
-        nxt_controller_process_request(task, req);
-    } nxt_queue_loop;
+    nxt_controller_flush_requests(task);
 }
 
 
