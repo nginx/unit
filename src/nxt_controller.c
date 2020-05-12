@@ -76,6 +76,7 @@ static void nxt_controller_process_request(nxt_task_t *task,
     nxt_controller_request_t *req);
 static void nxt_controller_process_config(nxt_task_t *task,
     nxt_controller_request_t *req, nxt_str_t *path);
+static nxt_bool_t nxt_controller_check_postpone_request(nxt_task_t *task);
 #if (NXT_TLS)
 static void nxt_controller_process_cert(nxt_task_t *task,
     nxt_controller_request_t *req, nxt_str_t *path);
@@ -270,6 +271,8 @@ nxt_controller_send_current_conf(nxt_task_t *task)
     }
 
     nxt_controller_listening = 1;
+
+    nxt_controller_flush_requests(task);
 }
 
 
@@ -386,9 +389,8 @@ nxt_controller_conf_send(nxt_task_t *task, nxt_conf_value_t *conf,
 
     router_port = rt->port_by_type[NXT_PROCESS_ROUTER];
 
-    if (nxt_slow_path(router_port == NULL || !nxt_controller_router_ready)) {
-        return NXT_DECLINED;
-    }
+    nxt_assert(router_port != NULL);
+    nxt_assert(nxt_controller_router_ready);
 
     controller_port = rt->port_by_type[NXT_PROCESS_CONTROLLER];
 
@@ -986,9 +988,7 @@ nxt_controller_process_config(nxt_task_t *task, nxt_controller_request_t *req,
 
     if (post || nxt_str_eq(&req->parser.method, "PUT", 3)) {
 
-        if (!nxt_queue_is_empty(&nxt_controller_waiting_requests)
-            || nxt_controller_waiting_init_conf)
-        {
+        if (nxt_controller_check_postpone_request(task)) {
             nxt_queue_insert_tail(&nxt_controller_waiting_requests, &req->link);
             return;
         }
@@ -1085,10 +1085,6 @@ nxt_controller_process_config(nxt_task_t *task, nxt_controller_request_t *req,
         if (nxt_slow_path(rc != NXT_OK)) {
             nxt_mp_destroy(mp);
 
-            if (rc == NXT_DECLINED) {
-                goto no_router;
-            }
-
             /* rc == NXT_ERROR */
             goto alloc_fail;
         }
@@ -1103,9 +1099,7 @@ nxt_controller_process_config(nxt_task_t *task, nxt_controller_request_t *req,
 
     if (nxt_str_eq(&req->parser.method, "DELETE", 6)) {
 
-        if (!nxt_queue_is_empty(&nxt_controller_waiting_requests)
-            || nxt_controller_waiting_init_conf)
-        {
+        if (nxt_controller_check_postpone_request(task)) {
             nxt_queue_insert_tail(&nxt_controller_waiting_requests, &req->link);
             return;
         }
@@ -1172,10 +1166,6 @@ nxt_controller_process_config(nxt_task_t *task, nxt_controller_request_t *req,
         if (nxt_slow_path(rc != NXT_OK)) {
             nxt_mp_destroy(mp);
 
-            if (rc == NXT_DECLINED) {
-                goto no_router;
-            }
-
             /* rc == NXT_ERROR */
             goto alloc_fail;
         }
@@ -1222,16 +1212,27 @@ alloc_fail:
     resp.offset = -1;
 
     nxt_controller_response(task, req, &resp);
-    return;
+}
 
-no_router:
 
-    resp.status = 500;
-    resp.title = (u_char *) "Router process isn't available.";
-    resp.offset = -1;
+static nxt_bool_t
+nxt_controller_check_postpone_request(nxt_task_t *task)
+{
+    nxt_port_t     *router_port;
+    nxt_runtime_t  *rt;
 
-    nxt_controller_response(task, req, &resp);
-    return;
+    if (!nxt_queue_is_empty(&nxt_controller_waiting_requests)
+        || nxt_controller_waiting_init_conf
+        || !nxt_controller_router_ready)
+    {
+        return 1;
+    }
+
+    rt = task->thread->runtime;
+
+    router_port = rt->port_by_type[NXT_PROCESS_ROUTER];
+
+    return (router_port == NULL);
 }
 
 
