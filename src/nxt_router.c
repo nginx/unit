@@ -1793,6 +1793,11 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         }
     }
 
+    ret = nxt_http_routes_resolve(task, tmcf);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        goto fail;
+    }
+
     value = nxt_conf_get_path(conf, &access_log_path);
 
     if (value != NULL) {
@@ -1826,8 +1831,6 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
         tmcf->router_conf->access_log = access_log;
     }
-
-    nxt_http_routes_resolve(task, tmcf);
 
     nxt_queue_add(&tmcf->deleting, &router->sockets);
     nxt_queue_init(&router->sockets);

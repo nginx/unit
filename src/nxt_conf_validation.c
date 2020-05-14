@@ -1032,79 +1032,73 @@ static nxt_int_t
 nxt_conf_vldt_pass(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     void *data)
 {
-    u_char     *p;
-    nxt_str_t  pass, first, second;
+    nxt_str_t  pass;
+    nxt_int_t  ret;
+    nxt_str_t  segments[2];
 
     nxt_conf_get_string(value, &pass);
 
-    p = nxt_memchr(pass.start, '/', pass.length);
+    ret = nxt_http_pass_segments(vldt->pool, &pass, segments, 2);
 
-    if (p != NULL) {
-        first.length = p - pass.start;
-        first.start = pass.start;
-
-        if (pass.length - first.length == 1) {
-            goto error;
+    if (ret != NXT_OK) {
+        if (ret == NXT_DECLINED) {
+            return nxt_conf_vldt_error(vldt, "Request \"pass\" value \"%V\" "
+                                       "is invalid.", &pass);
         }
 
-        second.length = pass.length - first.length - 1;
-        second.start = p + 1;
-
-    } else {
-        first = pass;
-        second.length = 0;
+        return NXT_ERROR;
     }
 
-    if (nxt_str_eq(&first, "applications", 12)) {
+    if (nxt_str_eq(&segments[0], "applications", 12)) {
 
-        if (second.length == 0) {
+        if (segments[1].length == 0) {
             goto error;
         }
 
-        value = nxt_conf_get_object_member(vldt->conf, &first, NULL);
+        value = nxt_conf_get_object_member(vldt->conf, &segments[0], NULL);
 
-        if (nxt_slow_path(value == NULL)) {
+        if (value == NULL) {
             goto error;
         }
 
-        value = nxt_conf_get_object_member(value, &second, NULL);
+        value = nxt_conf_get_object_member(value, &segments[1], NULL);
 
-        if (nxt_slow_path(value == NULL)) {
+        if (value == NULL) {
             goto error;
         }
 
         return NXT_OK;
     }
 
-    if (nxt_str_eq(&first, "upstreams", 9)) {
+    if (nxt_str_eq(&segments[0], "upstreams", 9)) {
 
-        if (second.length == 0) {
+        if (segments[1].length == 0) {
             goto error;
         }
 
-        value = nxt_conf_get_object_member(vldt->conf, &first, NULL);
+        value = nxt_conf_get_object_member(vldt->conf, &segments[0], NULL);
 
-        if (nxt_slow_path(value == NULL)) {
+        if (value == NULL) {
             goto error;
         }
 
-        value = nxt_conf_get_object_member(value, &second, NULL);
+        value = nxt_conf_get_object_member(value, &segments[1], NULL);
 
-        if (nxt_slow_path(value == NULL)) {
+        if (value == NULL) {
             goto error;
         }
 
         return NXT_OK;
     }
 
-    if (nxt_str_eq(&first, "routes", 6)) {
-        value = nxt_conf_get_object_member(vldt->conf, &first, NULL);
+    if (nxt_str_eq(&segments[0], "routes", 6)) {
+        value = nxt_conf_get_object_member(vldt->conf, &segments[0], NULL);
 
-        if (nxt_slow_path(value == NULL)) {
+        if (value == NULL) {
             goto error;
         }
 
-        if (second.length == 0) {
+        if (segments[1].length == 0) {
             if (nxt_conf_type(value) != NXT_CONF_ARRAY) {
                 goto error;
             }
@@ -1116,9 +1110,9 @@ nxt_conf_vldt_pass(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
             goto error;
         }
 
-        value = nxt_conf_get_object_member(value, &second, NULL);
+        value = nxt_conf_get_object_member(value, &segments[1], NULL);
 
-        if (nxt_slow_path(value == NULL)) {
+        if (value == NULL) {
             goto error;
         }
 
