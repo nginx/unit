@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import unittest
 from unit.applications.proto import TestApplicationProto
 
@@ -1069,6 +1071,33 @@ class TestRouting(TestApplicationProto):
         self.assertEqual(self.get(url='/?Foo=bar')['status'], 404, 'case')
         self.assertEqual(self.get(url='/?foo=Bar')['status'], 404, 'case 2')
 
+    def test_routes_match_arguments_chars(self):
+        chars = (
+            " !\"%23$%25%26'()*%2B,-./0123456789:;<%3D>?@"
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+        )
+
+        chars_enc = ""
+        for h1 in ["2", "3", "4", "5", "6", "7"]:
+            for h2 in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A",
+                       "B", "C", "D", "E", "F",
+            ]:
+                chars_enc += "%" + h1 + h2
+        chars_enc = chars_enc[:-3]
+
+        def check_args(args, query):
+            self.route_match({"arguments": args})
+            self.assertEqual(self.get(url='/?' + query)['status'], 200)
+
+        check_args({chars: chars}, chars + '=' + chars)
+        check_args({chars: chars}, chars + '=' + chars_enc)
+        check_args({chars: chars}, chars_enc + '=' + chars)
+        check_args({chars: chars}, chars_enc + '=' + chars_enc)
+        check_args({chars_enc: chars_enc}, chars + '=' + chars)
+        check_args({chars_enc: chars_enc}, chars + '=' + chars_enc)
+        check_args({chars_enc: chars_enc}, chars_enc + '=' + chars)
+        check_args({chars_enc: chars_enc}, chars_enc + '=' + chars_enc)
+
     def test_routes_match_arguments_empty(self):
         self.route_match({"arguments": {}})
         self.assertEqual(self.get()['status'], 200, 'arguments empty')
@@ -1076,43 +1105,113 @@ class TestRouting(TestApplicationProto):
         self.route_match({"arguments": []})
         self.assertEqual(self.get()['status'], 200, 'arguments empty 2')
 
-    def test_routes_match_arguments_invalid(self):
-        self.route_match_invalid({"arguments": ["var"]})
-        self.route_match_invalid({"arguments": [{"var1": {}}]})
-        self.route_match_invalid({"arguments": {"": "bar"}})
-
-    @unittest.skip('not yet')
     def test_routes_match_arguments_space(self):
-        self.route_match({"arguments": {"foo": "bar "}})
-
-        self.assertEqual(self.get(url='/?foo=bar &')['status'], 200, 'sp')
-        # FAIL
-        self.assertEqual(self.get(url='/?foo=bar+&')['status'], 200, 'sp 2')
-        # FAIL
-        self.assertEqual(self.get(url='/?foo=bar%20&')['status'], 200, 'sp 3')
-
-    @unittest.skip('not yet')
-    def test_routes_match_arguments_plus(self):
-        self.route_match({"arguments": [{"foo": "bar+"}]})
-
-        self.assertEqual(self.get(url='/?foo=bar+&')['status'], 200, 'plus')
-        # FAIL
+        self.route_match({"arguments": {"+fo o%20": "%20b+a r"}})
+        self.assertEqual(self.get(url='/? fo o = b a r&')['status'], 200)
+        self.assertEqual(self.get(url='/?+fo+o+=+b+a+r&')['status'], 200)
         self.assertEqual(
-            self.get(url='/?foo=bar%2B&')['status'], 200, 'plus 2'
+            self.get(url='/?%20fo%20o%20=%20b%20a%20r&')['status'], 200
         )
 
-    @unittest.skip('not yet')
-    def test_routes_match_arguments_hex(self):
-        self.route_match({"arguments": [{"foo": "bar"}]})
+        self.route_match({"arguments": {"%20foo": " bar"}})
+        self.assertEqual(self.get(url='/? foo= bar')['status'], 200)
+        self.assertEqual(self.get(url='/?+foo=+bar')['status'], 200)
+        self.assertEqual(self.get(url='/?%20foo=%20bar')['status'], 200)
+        self.assertEqual(self.get(url='/?+foo= bar')['status'], 200)
+        self.assertEqual(self.get(url='/?%20foo=+bar')['status'], 200)
 
-        self.assertEqual(
-            self.get(url='/?%66%6F%6f=%62%61%72&')['status'], 200, 'hex'
-        )
+    def test_routes_match_arguments_equal(self):
+        self.route_match({"arguments": {"=": "="}})
+        self.assertEqual(self.get(url='/?%3D=%3D')['status'], 200)
+        self.assertEqual(self.get(url='/?%3D==')['status'], 200)
+        self.assertEqual(self.get(url='/?===')['status'], 404)
+        self.assertEqual(self.get(url='/?%3D%3D%3D')['status'], 404)
+        self.assertEqual(self.get(url='/?==%3D')['status'], 404)
 
-    def test_routes_match_arguments_chars(self):
-        self.route_match({"arguments": {"foo": "-._()[],;"}})
+    def test_routes_match_arguments_enc(self):
+        self.route_match({"arguments": {"Ю": "н"}})
+        self.assertEqual(self.get(url='/?%D0%AE=%D0%BD')['status'], 200)
+        self.assertEqual(self.get(url='/?%d0%ae=%d0%Bd')['status'], 200)
 
-        self.assertEqual(self.get(url='/?foo=-._()[],;')['status'], 200, 'chs')
+    def test_routes_match_arguments_hash(self):
+        self.route_match({"arguments": {"#": "#"}})
+        self.assertEqual(self.get(url='/?%23=%23')['status'], 200)
+        self.assertEqual(self.get(url='/?%23=%23#')['status'], 200)
+        self.assertEqual(self.get(url='/?#=#')['status'], 404)
+        self.assertEqual(self.get(url='/?%23=#')['status'], 404)
+
+    def test_routes_match_arguments_wildcard(self):
+        self.route_match({"arguments": {"foo": "*"}})
+        self.assertEqual(self.get(url='/?foo')['status'], 200)
+        self.assertEqual(self.get(url='/?foo=')['status'], 200)
+        self.assertEqual(self.get(url='/?foo=blah')['status'], 200)
+        self.assertEqual(self.get(url='/?blah=foo')['status'], 404)
+
+        self.route_match({"arguments": {"foo": "%25*"}})
+        self.assertEqual(self.get(url='/?foo=%xx')['status'], 200)
+
+        self.route_match({"arguments": {"foo": "%2A*"}})
+        self.assertEqual(self.get(url='/?foo=*xx')['status'], 200)
+        self.assertEqual(self.get(url='/?foo=xx')['status'], 404)
+
+        self.route_match({"arguments": {"foo": "*%2A"}})
+        self.assertEqual(self.get(url='/?foo=xx*')['status'], 200)
+        self.assertEqual(self.get(url='/?foo=xx*x')['status'], 404)
+
+        self.route_match({"arguments": {"foo": "1*2"}})
+        self.assertEqual(self.get(url='/?foo=12')['status'], 200)
+        self.assertEqual(self.get(url='/?foo=1blah2')['status'], 200)
+        self.assertEqual(self.get(url='/?foo=1%2A2')['status'], 200)
+        self.assertEqual(self.get(url='/?foo=x12')['status'], 404)
+
+        self.route_match({"arguments": {"foo": "bar*", "%25": "%25"}})
+        self.assertEqual(self.get(url='/?foo=barxx&%=%')['status'], 200)
+        self.assertEqual(self.get(url='/?foo=barxx&x%=%')['status'], 404)
+
+    def test_routes_match_arguments_negative(self):
+        self.route_match({"arguments": {"foo": "!%25"}})
+        self.assertEqual(self.get(url='/?foo=blah')['status'], 200)
+        self.assertEqual(self.get(url='/?foo=%')['status'], 404)
+
+        self.route_match({"arguments": {"foo": "%21blah"}})
+        self.assertEqual(self.get(url='/?foo=%21blah')['status'], 200)
+        self.assertEqual(self.get(url='/?foo=!blah')['status'], 200)
+        self.assertEqual(self.get(url='/?foo=bar')['status'], 404)
+
+        self.route_match({"arguments": {"foo": "!!%21*a"}})
+        self.assertEqual(self.get(url='/?foo=blah')['status'], 200)
+        self.assertEqual(self.get(url='/?foo=!blah')['status'], 200)
+        self.assertEqual(self.get(url='/?foo=!!a')['status'], 404)
+        self.assertEqual(self.get(url='/?foo=!!bla')['status'], 404)
+
+    def test_routes_match_arguments_percent(self):
+        self.route_match({"arguments": {"%25": "%25"}})
+        self.assertEqual(self.get(url='/?%=%')['status'], 200)
+        self.assertEqual(self.get(url='/?%25=%25')['status'], 200)
+        self.assertEqual(self.get(url='/?%25=%')['status'], 200)
+
+        self.route_match({"arguments": {"%251": "%252"}})
+        self.assertEqual(self.get(url='/?%1=%2')['status'], 200)
+        self.assertEqual(self.get(url='/?%251=%252')['status'], 200)
+        self.assertEqual(self.get(url='/?%251=%2')['status'], 200)
+
+        self.route_match({"arguments": {"%25%21%251": "%25%24%252"}})
+        self.assertEqual(self.get(url='/?%!%1=%$%2')['status'], 200)
+        self.assertEqual(self.get(url='/?%25!%251=%25$%252')['status'], 200)
+        self.assertEqual(self.get(url='/?%25!%1=%$%2')['status'], 200)
+
+    def test_routes_match_arguments_ampersand(self):
+        self.route_match({"arguments": {"foo": "&"}})
+        self.assertEqual(self.get(url='/?foo=%26')['status'], 200)
+        self.assertEqual(self.get(url='/?foo=%26&')['status'], 200)
+        self.assertEqual(self.get(url='/?foo=%26%26')['status'], 404)
+        self.assertEqual(self.get(url='/?foo=&')['status'], 404)
+
+        self.route_match({"arguments": {"&": ""}})
+        self.assertEqual(self.get(url='/?%26=')['status'], 200)
+        self.assertEqual(self.get(url='/?%26=&')['status'], 200)
+        self.assertEqual(self.get(url='/?%26=%26')['status'], 404)
+        self.assertEqual(self.get(url='/?&=')['status'], 404)
 
     def test_routes_match_arguments_complex(self):
         self.route_match({"arguments": {"foo": ""}})
@@ -1146,6 +1245,14 @@ class TestRouting(TestApplicationProto):
         )
         self.assertEqual(
             self.get(url='/?foo=bar&blah')['status'], 404, 'multiple 3'
+        )
+        self.assertEqual(
+            self.get(url='/?foo=bar&blah=tes')['status'], 404, 'multiple 4'
+        )
+        self.assertEqual(
+            self.get(url='/?foo=b%61r&bl%61h=t%65st')['status'],
+            200,
+            'multiple 5',
         )
 
     def test_routes_match_arguments_multiple_rules(self):
@@ -1192,6 +1299,22 @@ class TestRouting(TestApplicationProto):
 
         self.assertEqual(self.get(url='/?var2=val2')['status'], 404, 'arr 7')
         self.assertEqual(self.get(url='/?var3=foo')['status'], 200, 'arr 8')
+
+    def test_routes_match_arguments_invalid(self):
+        # TODO remove it after controller fixed
+        self.skip_alerts.append(r'failed to apply new conf')
+
+        self.route_match_invalid({"arguments": ["var"]})
+        self.route_match_invalid({"arguments": [{"var1": {}}]})
+        self.route_match_invalid({"arguments": {"": "bar"}})
+        self.route_match_invalid({"arguments": {"foo": "*ba*r"}})
+        self.route_match_invalid({"arguments": {"foo": "%"}})
+        self.route_match_invalid({"arguments": {"foo": "%1G"}})
+        self.route_match_invalid({"arguments": {"%": "bar"}})
+        self.route_match_invalid({"arguments": {"foo": "%0"}})
+        self.route_match_invalid({"arguments": {"foo": "%%1F"}})
+        self.route_match_invalid({"arguments": {"%%1F": ""}})
+        self.route_match_invalid({"arguments": {"%7%F": ""}})
 
     def test_routes_match_cookies(self):
         self.route_match({"cookies": {"foO": "bar"}})
