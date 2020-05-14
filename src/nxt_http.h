@@ -175,6 +175,7 @@ struct nxt_http_request_s {
     nxt_http_status_t               status:16;
 
     uint8_t                         pass_count;   /* 8 bits */
+    uint8_t                         app_target;
     nxt_http_protocol_t             protocol:8;   /* 2 bits */
     uint8_t                         logged;       /* 1 bit  */
     uint8_t                         header_sent;  /* 1 bit  */
@@ -201,6 +202,7 @@ struct nxt_http_action_s {
     } u;
 
     nxt_str_t                       name;
+    nxt_int_t                       target;
 };
 
 

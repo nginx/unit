@@ -275,21 +275,9 @@ static nxt_conf_map_t  nxt_python_app_conf[] = {
 
 static nxt_conf_map_t  nxt_php_app_conf[] = {
     {
-        nxt_string("root"),
-        NXT_CONF_MAP_CSTRZ,
-        offsetof(nxt_common_app_conf_t, u.php.root),
-    },
-
-    {
-        nxt_string("script"),
-        NXT_CONF_MAP_STR,
-        offsetof(nxt_common_app_conf_t, u.php.script),
-    },
-
-    {
-        nxt_string("index"),
-        NXT_CONF_MAP_STR,
-        offsetof(nxt_common_app_conf_t, u.php.index),
+        nxt_string("targets"),
+        NXT_CONF_MAP_PTR,
+        offsetof(nxt_common_app_conf_t, u.php.targets),
     },
 
     {
@@ -456,6 +444,8 @@ nxt_port_main_start_worker_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
             goto failed;
         }
     }
+
+    app_conf.self = conf;
 
     ret = nxt_main_start_worker_process(task, task->thread->runtime,
                                         &app_conf, msg->port_msg.stream);

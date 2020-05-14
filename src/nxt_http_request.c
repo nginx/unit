@@ -341,6 +341,8 @@ nxt_http_application_handler(nxt_task_t *task, nxt_http_request_t *r,
         nxt_str_set(&r->server_name, "localhost");
     }
 
+    r->app_target = action->target;
+
     nxt_router_process_http_request(task, r, action->u.application);
 
     return NULL;

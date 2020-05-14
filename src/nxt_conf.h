@@ -118,7 +118,7 @@ NXT_EXPORT double nxt_conf_get_number(nxt_conf_value_t *value);
 NXT_EXPORT uint8_t nxt_conf_get_boolean(nxt_conf_value_t *value);
 
 // FIXME reimplement and reorder functions below
-nxt_uint_t nxt_conf_object_members_count(nxt_conf_value_t *value);
+NXT_EXPORT nxt_uint_t nxt_conf_object_members_count(nxt_conf_value_t *value);
 nxt_conf_value_t *nxt_conf_create_object(nxt_mp_t *mp, nxt_uint_t count);
 void nxt_conf_set_member(nxt_conf_value_t *object, nxt_str_t *name,
     nxt_conf_value_t *value, uint32_t index);
