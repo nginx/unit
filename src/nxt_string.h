@@ -174,10 +174,13 @@ NXT_EXPORT nxt_bool_t nxt_strvers_match(u_char *version, u_char *prefix,
     size_t length);
 
 NXT_EXPORT u_char *nxt_decode_uri(u_char *dst, u_char *src, size_t length);
+NXT_EXPORT u_char *nxt_decode_uri_plus(u_char *dst, u_char *src, size_t length);
 NXT_EXPORT uintptr_t nxt_encode_uri(u_char *dst, u_char *src, size_t length);
 NXT_EXPORT uintptr_t nxt_encode_complex_uri(u_char *dst, u_char *src,
     size_t length);
 NXT_EXPORT nxt_bool_t nxt_is_complex_uri_encoded(u_char *s, size_t length);
+
+NXT_EXPORT const uint8_t  nxt_hex2int[256];
 
 
 #endif /* _NXT_STRING_H_INCLUDED_ */
