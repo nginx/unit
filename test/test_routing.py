@@ -181,6 +181,61 @@ class TestRouting(TestApplicationProto):
         self.assertEqual(self.get(url='/blah')['status'], 200, '/blah')
         self.assertEqual(self.get(url='/BLAH')['status'], 404, '/BLAH')
 
+    def test_routes_pass_encode(self):
+        def check_pass(path, name):
+            self.assertIn(
+                'success',
+                self.conf(
+                    {
+                        "listeners": {
+                            "*:7080": {"pass": "applications/" + path}
+                        },
+                        "applications": {
+                            name: {
+                                "type": "python",
+                                "processes": {"spare": 0},
+                                "path": self.current_dir + '/python/empty',
+                                "working_directory": self.current_dir
+                                + '/python/empty',
+                                "module": "wsgi",
+                            }
+                        },
+                    }
+                ),
+            )
+
+            self.assertEqual(self.get()['status'], 200)
+
+        check_pass("%25", "%")
+        check_pass("blah%2Fblah", "blah/blah")
+        check_pass("%2Fblah%2F%2Fblah%2F", "/blah//blah/")
+        check_pass("%20blah%252Fblah%7E", " blah%2Fblah~")
+
+        def check_pass_error(path, name):
+            self.assertIn(
+                'error',
+                self.conf(
+                    {
+                        "listeners": {
+                            "*:7080": {"pass": "applications/" + path}
+                        },
+                        "applications": {
+                            name: {
+                                "type": "python",
+                                "processes": {"spare": 0},
+                                "path": self.current_dir + '/python/empty',
+                                "working_directory": self.current_dir
+                                + '/python/empty',
+                                "module": "wsgi",
+                            }
+                        },
+                    }
+                ),
+            )
+
+        check_pass_error("%", "%")
+        check_pass_error("%1", "%1")
+
     def test_routes_absent(self):
         self.conf(
             {
