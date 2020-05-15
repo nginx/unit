@@ -521,85 +521,26 @@ Content-Length: 10
         self.assertEqual(len(resp['body']), 10, 'body gt Content-Length 15')
 
     def test_proxy_invalid(self):
-        self.assertIn(
-            'error',
-            self.conf([{"action": {"proxy": 'blah'}}], 'routes'),
-            'proxy invalid',
-        )
-        self.assertIn(
-            'error',
-            self.conf([{"action": {"proxy": '/blah'}}], 'routes'),
-            'proxy invalid 2',
-        )
-        self.assertIn(
-            'error',
-            self.conf([{"action": {"proxy": 'unix:/blah'}}], 'routes'),
-            'proxy unix invalid 2',
-        )
-        self.assertIn(
-            'error',
-            self.conf([{"action": {"proxy": 'http://blah'}}], 'routes'),
-            'proxy unix invalid 3',
-        )
-        self.assertIn(
-            'error',
-            self.conf([{"action": {"proxy": 'http://127.0.0.1'}}], 'routes'),
-            'proxy ipv4 invalid',
-        )
-        self.assertIn(
-            'error',
-            self.conf([{"action": {"proxy": 'http://127.0.0.1:'}}], 'routes'),
-            'proxy ipv4 invalid 2',
-        )
-        self.assertIn(
-            'error',
-            self.conf(
-                [{"action": {"proxy": 'http://127.0.0.1:blah'}}], 'routes'
-            ),
-            'proxy ipv4 invalid 3',
-        )
-        self.assertIn(
-            'error',
-            self.conf(
-                [{"action": {"proxy": 'http://127.0.0.1:-1'}}], 'routes'
-            ),
-            'proxy ipv4 invalid 4',
-        )
-        self.assertIn(
-            'error',
-            self.conf(
-                [{"action": {"proxy": 'http://127.0.0.1:7080b'}}], 'routes'
-            ),
-            'proxy ipv4 invalid 5',
-        )
-        self.assertIn(
-            'error',
-            self.conf(
-                [{"action": {"proxy": 'http://[]'}}], 'routes'
-            ),
-            'proxy ipv6 invalid',
-        )
-        self.assertIn(
-            'error',
-            self.conf(
-                [{"action": {"proxy": 'http://[]:7080'}}], 'routes'
-            ),
-            'proxy ipv6 invalid 2',
-        )
-        self.assertIn(
-            'error',
-            self.conf(
-                [{"action": {"proxy": 'http://[:]:7080'}}], 'routes'
-            ),
-            'proxy ipv6 invalid 3',
-        )
-        self.assertIn(
-            'error',
-            self.conf(
-                [{"action": {"proxy": 'http://[::7080'}}], 'routes'
-            ),
-            'proxy ipv6 invalid 4',
-        )
+        def check_proxy(proxy):
+            self.assertIn(
+                'error',
+                self.conf([{"action": {"proxy": proxy}}], 'routes'),
+                'proxy invalid',
+            )
+
+        check_proxy('blah')
+        check_proxy('/blah')
+        check_proxy('unix:/blah')
+        check_proxy('http://blah')
+        check_proxy('http://127.0.0.1')
+        check_proxy('http://127.0.0.1:')
+        check_proxy('http://127.0.0.1:blah')
+        check_proxy('http://127.0.0.1:-1')
+        check_proxy('http://127.0.0.1:7080b')
+        check_proxy('http://[]')
+        check_proxy('http://[]:7080')
+        check_proxy('http://[:]:7080')
+        check_proxy('http://[::7080')
 
     def test_proxy_loop(self):
         self.skip_alerts.extend(
