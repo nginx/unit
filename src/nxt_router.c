@@ -1614,8 +1614,8 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
                 next_target = 0;
 
                 for (i = 0; i < n; i++) {
-                    value = nxt_conf_next_object_member(apcf.targets_value,
-                                                        &target, &next_target);
+                    (void) nxt_conf_next_object_member(apcf.targets_value,
+                                                       &target, &next_target);
 
                     s = nxt_str_dup(app_mp, &targets[i], &target);
                     if (nxt_slow_path(s == NULL)) {

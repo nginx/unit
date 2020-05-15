@@ -1050,9 +1050,6 @@ nxt_http_route_pattern_create(nxt_task_t *task, nxt_mp_t *mp,
     nxt_uint_t                     n, length;
     nxt_http_route_pattern_type_t  type;
 
-    /* Suppress warning about uninitialized variable. */
-    length = 0;
-
     type = NXT_HTTP_ROUTE_PATTERN_EXACT;
 
     nxt_conf_get_string(cv, &test);
