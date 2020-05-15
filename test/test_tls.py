@@ -1,9 +1,9 @@
 import io
-import os
 import re
 import ssl
 import subprocess
 import unittest
+
 from unit.applications.tls import TestApplicationTLS
 
 

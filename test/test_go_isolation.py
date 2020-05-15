@@ -1,7 +1,7 @@
-import pwd
 import grp
-import json
+import pwd
 import unittest
+
 from unit.applications.lang.go import TestApplicationGo
 from unit.feature.isolation import TestFeatureIsolation
 

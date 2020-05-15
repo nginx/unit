@@ -1,6 +1,6 @@
 import os
-import unittest
 from subprocess import call
+
 from unit.applications.lang.python import TestApplicationPython
 
 

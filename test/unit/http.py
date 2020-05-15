@@ -1,11 +1,12 @@
 import binascii
 import io
+import json
 import os
 import re
-import time
-import json
-import socket
 import select
+import socket
+import time
+
 from unit.main import TestUnit
 
 

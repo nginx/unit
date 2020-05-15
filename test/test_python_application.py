@@ -1,9 +1,9 @@
-import re
-import os
 import grp
 import pwd
+import re
 import time
 import unittest
+
 from unit.applications.lang.python import TestApplicationPython
 
 

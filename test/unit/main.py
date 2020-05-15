@@ -1,17 +1,17 @@
-import os
-import re
-import sys
-import stat
-import time
-import fcntl
+import argparse
 import atexit
+import fcntl
+import os
+import platform
+import re
 import shutil
 import signal
-import argparse
-import platform
-import tempfile
-import unittest
+import stat
 import subprocess
+import sys
+import tempfile
+import time
+import unittest
 from multiprocessing import Process
 
 
@@ -410,4 +410,3 @@ class TestUnit(unittest.TestCase):
                     data = f.read()
 
             print(data)
-

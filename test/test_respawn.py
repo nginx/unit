@@ -1,7 +1,7 @@
 import re
-import time
 import subprocess
-import unittest
+import time
+
 from unit.applications.lang.python import TestApplicationPython
 
 

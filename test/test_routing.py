@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-
 import unittest
+
 from unit.applications.proto import TestApplicationProto
 
 
@@ -1870,6 +1870,7 @@ class TestRouting(TestApplicationProto):
         )
 
         self.assertEqual(self.get()['status'], 200, 'proxy')
+
 
 if __name__ == '__main__':
     TestRouting.main()

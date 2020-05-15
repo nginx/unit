@@ -1,6 +1,7 @@
 import os
 import socket
 import unittest
+
 from unit.applications.proto import TestApplicationProto
 
 

@@ -1,6 +1,7 @@
-import time
 import struct
+import time
 import unittest
+
 from unit.applications.lang.node import TestApplicationNode
 from unit.applications.websockets import TestApplicationWebsocket
 

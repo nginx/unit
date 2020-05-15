@@ -1,10 +1,11 @@
-import re
-import random
 import base64
-import struct
-import select
 import hashlib
 import itertools
+import random
+import re
+import select
+import struct
+
 from unit.applications.proto import TestApplicationProto
 
 GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"

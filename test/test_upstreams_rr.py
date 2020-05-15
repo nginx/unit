@@ -1,6 +1,6 @@
 import os
 import re
-import unittest
+
 from unit.applications.lang.python import TestApplicationPython
 
 

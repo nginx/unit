@@ -1,7 +1,6 @@
-import os
-import re
 import time
 import unittest
+
 from unit.applications.lang.python import TestApplicationPython
 
 

@@ -1,7 +1,7 @@
 import io
 import os
 import time
-import unittest
+
 from unit.applications.lang.java import TestApplicationJava
 
 

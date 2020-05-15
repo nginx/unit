@@ -1,7 +1,8 @@
 import re
-import time
 import socket
+import time
 import unittest
+
 from unit.applications.lang.python import TestApplicationPython
 
 
