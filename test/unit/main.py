@@ -102,7 +102,7 @@ class TestUnit(unittest.TestCase):
                     break
 
         if m is None:
-            unit.stop()
+            unit._print_log()
             exit("Unit is writing log too long")
 
         # discover available modules from unit.log
@@ -198,6 +198,7 @@ class TestUnit(unittest.TestCase):
         atexit.register(self.stop)
 
         if not self.waitforfiles(self.testdir + '/control.unit.sock'):
+            self._print_log()
             exit("Could not start unit")
 
         self.skip_alerts = [
