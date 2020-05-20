@@ -29,6 +29,14 @@
 #define NXT_PHP7 1
 #endif
 
+/* PHP 8 */
+#ifndef TSRMLS_CC
+#define TSRMLS_CC
+#define TSRMLS_DC
+#define TSRMLS_D  void
+#define TSRMLS_C
+#endif
+
 
 typedef struct {
     nxt_str_t  root;
