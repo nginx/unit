@@ -76,7 +76,7 @@ nxt_http_static_handler(nxt_task_t *task, nxt_http_request_t *r,
         nxt_str_set(&extension, ".html");
 
     } else {
-        nxt_str_null(&index);
+        nxt_str_set(&index, "");
         nxt_str_null(&extension);
     }
 
