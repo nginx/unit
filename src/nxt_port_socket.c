@@ -993,6 +993,12 @@ nxt_port_error_handler(nxt_task_t *task, void *obj, void *data)
 
     nxt_queue_each(msg, &port->messages, nxt_port_send_msg_t, link) {
 
+        if (msg->fd != -1 && msg->close_fd != 0) {
+            nxt_fd_close(msg->fd);
+
+            msg->fd = -1;
+        }
+
         for (b = msg->buf; b != NULL; b = next) {
             next = b->next;
             b->next = NULL;
