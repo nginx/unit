@@ -944,8 +944,10 @@ nxt_router_remove_pid_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     nxt_queue_each(engine, &nxt_router->engines, nxt_event_engine_t, link0)
     {
-        nxt_port_post(task, engine->port, nxt_router_app_process_remove_pid,
-                      msg->u.data);
+        if (nxt_fast_path(engine->port != NULL)) {
+            nxt_port_post(task, engine->port, nxt_router_app_process_remove_pid,
+                          msg->u.data);
+        }
     }
     nxt_queue_loop;
 
