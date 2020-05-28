@@ -118,6 +118,10 @@ nxt_runtime_create(nxt_task_t *task)
         goto fail;
     }
 
+    if (nxt_port_rpc_init() != NXT_OK) {
+        goto fail;
+    }
+
     nxt_work_queue_add(&task->thread->engine->fast_work_queue,
                        nxt_runtime_start, task, rt, NULL);
 

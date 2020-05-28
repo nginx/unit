@@ -8,7 +8,7 @@
 #include <nxt_port_rpc.h>
 
 
-static nxt_atomic_t  nxt_stream_ident = 1;
+static volatile uint32_t  *nxt_stream_ident;
 
 typedef struct nxt_port_rpc_reg_s nxt_port_rpc_reg_t;
 
@@ -28,6 +28,29 @@ struct nxt_port_rpc_reg_s {
 static void
 nxt_port_rpc_remove_from_peers(nxt_task_t *task, nxt_port_t *port,
     nxt_port_rpc_reg_t *reg);
+
+
+nxt_int_t
+nxt_port_rpc_init(void)
+{
+    void  *p;
+
+    if (nxt_stream_ident != NULL) {
+        return NXT_OK;
+    }
+
+    p = nxt_mem_mmap(NULL, sizeof(*nxt_stream_ident), PROT_READ | PROT_WRITE,
+                     MAP_ANON | MAP_SHARED, -1, 0);
+
+    if (nxt_slow_path(p == MAP_FAILED)) {
+        return NXT_ERROR;
+    }
+
+    nxt_stream_ident = p;
+    *nxt_stream_ident = 1;
+
+    return NXT_OK;
+}
 
 
 static nxt_int_t
@@ -105,8 +128,7 @@ nxt_port_rpc_register_handler_ex(nxt_task_t *task, nxt_port_t *port,
 
     nxt_assert(port->pair[0] != -1);
 
-    stream =
-        (uint32_t) nxt_atomic_fetch_add(&nxt_stream_ident, 1) & 0x3FFFFFFF;
+    stream = nxt_atomic_fetch_add(nxt_stream_ident, 1);
 
     reg = nxt_mp_zalloc(port->mem_pool, sizeof(nxt_port_rpc_reg_t) + ex_size);
 
