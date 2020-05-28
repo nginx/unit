@@ -39,6 +39,7 @@ nxt_capability_set(nxt_task_t *task, nxt_capabilities_t *cap)
 
     if (geteuid() == 0) {
         cap->setid = 1;
+        cap->chroot = 1;
         return NXT_OK;
     }
 
@@ -89,6 +90,10 @@ nxt_capability_specific_set(nxt_task_t *task, nxt_capabilities_t *cap)
     if (nxt_slow_path(nxt_capget(&hdr, val) == -1)) {
         nxt_alert(task, "failed to get process capabilities: %E", nxt_errno);
         return NXT_ERROR;
+    }
+
+    if ((val->effective & (1 << CAP_SYS_CHROOT)) != 0) {
+        cap->chroot = 1;
     }
 
     if ((val->effective & (1 << CAP_SETUID)) == 0) {

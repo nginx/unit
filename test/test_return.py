@@ -1,5 +1,5 @@
 import re
-import unittest
+
 from unit.applications.proto import TestApplicationProto
 
 

@@ -1,9 +1,10 @@
 import unittest
+
 from unit.applications.lang.python import TestApplicationPython
 
 
 class TestHTTPHeader(TestApplicationPython):
-    prerequisites = {'modules': ['python']}
+    prerequisites = {'modules': {'python': 'any'}}
 
     def test_http_header_value_leading_sp(self):
         self.load('custom_header')

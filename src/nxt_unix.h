@@ -238,6 +238,9 @@
 #include <sys/random.h>             /* getentropy(). */
 #endif
 
+#if (NXT_HAVE_ISOLATION_ROOTFS)
+#include <sys/mount.h>
+#endif
 
 #if (NXT_TEST_BUILD)
 #include <nxt_test_build.h>

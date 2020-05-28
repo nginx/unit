@@ -1,14 +1,14 @@
-import re
-import os
 import grp
 import pwd
+import re
 import time
 import unittest
+
 from unit.applications.lang.python import TestApplicationPython
 
 
 class TestPythonApplication(TestApplicationPython):
-    prerequisites = {'modules': ['python']}
+    prerequisites = {'modules': {'python': 'all'}}
 
     def findall(self, pattern):
         with open(self.testdir + '/unit.log', 'r', errors='ignore') as f:

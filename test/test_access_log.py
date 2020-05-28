@@ -1,12 +1,11 @@
-import os
-import re
 import time
 import unittest
+
 from unit.applications.lang.python import TestApplicationPython
 
 
 class TestAccessLog(TestApplicationPython):
-    prerequisites = {'modules': ['python']}
+    prerequisites = {'modules': {'python': 'any'}}
 
     def load(self, script):
         super().load(script)

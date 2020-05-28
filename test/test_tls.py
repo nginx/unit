@@ -1,14 +1,14 @@
 import io
-import os
 import re
 import ssl
 import subprocess
 import unittest
+
 from unit.applications.tls import TestApplicationTLS
 
 
 class TestTLS(TestApplicationTLS):
-    prerequisites = {'modules': ['python', 'openssl']}
+    prerequisites = {'modules': {'python': 'any', 'openssl': 'any'}}
 
     def findall(self, pattern):
         with open(self.testdir + '/unit.log', 'r', errors='ignore') as f:

@@ -1,9 +1,10 @@
 import unittest
+
 from unit.applications.lang.perl import TestApplicationPerl
 
 
 class TestPerlApplication(TestApplicationPerl):
-    prerequisites = {'modules': ['perl']}
+    prerequisites = {'modules': {'perl': 'all'}}
 
     def test_perl_application(self):
         self.load('variables')

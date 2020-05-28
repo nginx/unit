@@ -1,12 +1,13 @@
-import time
 import struct
+import time
 import unittest
+
 from unit.applications.lang.node import TestApplicationNode
 from unit.applications.websockets import TestApplicationWebsocket
 
 
 class TestNodeWebsockets(TestApplicationNode):
-    prerequisites = {'modules': ['node']}
+    prerequisites = {'modules': {'node': 'any'}}
 
     ws = TestApplicationWebsocket()
 

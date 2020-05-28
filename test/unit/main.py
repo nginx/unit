@@ -1,17 +1,17 @@
-import os
-import re
-import sys
-import stat
-import time
-import fcntl
+import argparse
 import atexit
+import fcntl
+import os
+import platform
+import re
 import shutil
 import signal
-import argparse
-import platform
-import tempfile
-import unittest
+import stat
 import subprocess
+import sys
+import tempfile
+import time
+import unittest
 from multiprocessing import Process
 
 
@@ -52,9 +52,22 @@ class TestUnit(unittest.TestCase):
         type = self.application_type
         for module in self.prerequisites['modules']:
             if module in self.available['modules']:
-                for version in self.available['modules'][module]:
-                    self.application_type = type + ' ' + version
+                prereq_version = self.prerequisites['modules'][module]
+                available_versions = self.available['modules'][module]
+
+                if prereq_version == 'all':
+                    for version in available_versions:
+                        self.application_type = type + ' ' + version
+                        self.application_version = version
+                        super().run(result)
+                elif prereq_version == 'any':
+                    self.application_type = type + ' ' + available_versions[0]
                     super().run(result)
+                else:
+                    for version in available_versions:
+                        if version.startswith(prereq_version):
+                            self.application_type = type + ' ' + version
+                            super().run(result)
 
     @classmethod
     def main(cls):
@@ -90,7 +103,7 @@ class TestUnit(unittest.TestCase):
                     break
 
         if m is None:
-            unit.stop()
+            unit._print_log()
             exit("Unit is writing log too long")
 
         # discover available modules from unit.log
@@ -153,7 +166,7 @@ class TestUnit(unittest.TestCase):
         self._run()
 
     def _run(self):
-        build_dir = self.pardir + '/build'
+        build_dir  = os.path.join(self.pardir, 'build')
         self.unitd = build_dir + '/unitd'
 
         if not os.path.isfile(self.unitd):
@@ -186,6 +199,7 @@ class TestUnit(unittest.TestCase):
         atexit.register(self.stop)
 
         if not self.waitforfiles(self.testdir + '/control.unit.sock'):
+            self._print_log()
             exit("Could not start unit")
 
         self.skip_alerts = [
@@ -398,4 +412,3 @@ class TestUnit(unittest.TestCase):
                     data = f.read()
 
             print(data)
-

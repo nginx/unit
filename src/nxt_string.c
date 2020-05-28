@@ -475,7 +475,7 @@ nxt_strvers_match(u_char *version, u_char *prefix, size_t length)
 }
 
 
-static const uint8_t  nxt_hex2int[256]
+const uint8_t  nxt_hex2int[256]
     nxt_aligned(32) =
 {
     16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
@@ -542,6 +542,47 @@ nxt_decode_uri(u_char *dst, u_char *src, size_t length)
             }
 
             ch = (d0 << 4) + d1;
+        }
+
+        *dst++ = ch;
+    }
+
+    return dst;
+}
+
+
+u_char *
+nxt_decode_uri_plus(u_char *dst, u_char *src, size_t length)
+{
+    u_char   *end, ch;
+    uint8_t  d0, d1;
+
+    nxt_prefetch(&nxt_hex2int['0']);
+
+    end = src + length;
+
+    while (src < end) {
+        ch = *src++;
+
+        switch (ch) {
+        case '%':
+            if (nxt_slow_path(end - src < 2)) {
+                return NULL;
+            }
+
+            d0 = nxt_hex2int[*src++];
+            d1 = nxt_hex2int[*src++];
+
+            if (nxt_slow_path((d0 | d1) >= 16)) {
+                return NULL;
+            }
+
+            ch = (d0 << 4) + d1;
+            break;
+
+        case '+':
+            ch = ' ';
+            break;
         }
 
         *dst++ = ch;

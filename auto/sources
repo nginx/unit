@@ -78,7 +78,7 @@ NXT_LIB_SRCS=" \
     src/nxt_conf.c \
     src/nxt_conf_validation.c \
     src/nxt_main_process.c \
-    src/nxt_worker_process.c \
+    src/nxt_signal_handlers.c \
     src/nxt_controller.c \
     src/nxt_router.c \
     src/nxt_h1proto.c \
@@ -175,6 +175,11 @@ fi
 NXT_LIB_UTF8_FILE_NAME_TEST_SRCS=" \
     src/test/nxt_utf8_file_name_test.c \
 "
+
+
+if [ $NXT_HAVE_ROOTFS = YES ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS src/nxt_fs.c"
+fi
 
 
 if [ $NXT_TLS = YES ]; then

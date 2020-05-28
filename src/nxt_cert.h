@@ -19,7 +19,7 @@ nxt_conf_value_t *nxt_cert_info_get(nxt_str_t *name);
 nxt_conf_value_t *nxt_cert_info_get_all(nxt_mp_t *mp);
 nxt_int_t nxt_cert_info_delete(nxt_str_t *name);
 
-nxt_array_t *nxt_cert_store_load(nxt_task_t *task);
+nxt_array_t *nxt_cert_store_load(nxt_task_t *task, nxt_mp_t *mem_pool);
 void nxt_cert_store_release(nxt_array_t *certs);
 
 void nxt_cert_store_get(nxt_task_t *task, nxt_str_t *name, nxt_mp_t *mp,

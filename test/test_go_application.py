@@ -2,7 +2,7 @@ from unit.applications.lang.go import TestApplicationGo
 
 
 class TestGoApplication(TestApplicationGo):
-    prerequisites = {'modules': ['go']}
+    prerequisites = {'modules': {'go': 'all'}}
 
     def test_go_application_variables(self):
         self.load('variables')

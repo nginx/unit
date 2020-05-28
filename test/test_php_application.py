@@ -1,11 +1,11 @@
 import os
-import re
 import shutil
 import unittest
+
 from unit.applications.lang.php import TestApplicationPHP
 
 class TestPHPApplication(TestApplicationPHP):
-    prerequisites = {'modules': ['php']}
+    prerequisites = {'modules': {'php': 'all'}}
 
     def before_disable_functions(self):
         body = self.get()['body']

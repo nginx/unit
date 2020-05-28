@@ -9,8 +9,7 @@
 #include <nxt_unit.h>
 
 
-static nxt_int_t nxt_external_init(nxt_task_t *task,
-    nxt_common_app_conf_t *conf);
+static nxt_int_t nxt_external_start(nxt_task_t *task, nxt_process_data_t *data);
 
 
 nxt_app_module_t  nxt_external_module = {
@@ -19,7 +18,9 @@ nxt_app_module_t  nxt_external_module = {
     nxt_string("external"),
     "*",
     NULL,
-    nxt_external_init,
+    0,
+    NULL,
+    nxt_external_start,
 };
 
 
@@ -58,7 +59,7 @@ nxt_external_fd_no_cloexec(nxt_task_t *task, nxt_socket_t fd)
 
 
 static nxt_int_t
-nxt_external_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
+nxt_external_start(nxt_task_t *task, nxt_process_data_t *data)
 {
     char                     **argv;
     u_char                   buf[256];
@@ -71,9 +72,11 @@ nxt_external_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     nxt_port_t               *my_port, *main_port;
     nxt_runtime_t            *rt;
     nxt_conf_value_t         *value;
+    nxt_common_app_conf_t    *conf;
     nxt_external_app_conf_t  *c;
 
     rt = task->thread->runtime;
+    conf = data->app;
 
     main_port = rt->port_by_type[NXT_PROCESS_MAIN];
     my_port = nxt_runtime_port_find(rt, nxt_pid, 0);
@@ -99,7 +102,7 @@ nxt_external_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
                     "%PI,%ud,%d;"
                     "%PI,%ud,%d;"
                     "%d,%z,%Z",
-                    NXT_VERSION, my_port->process->init->stream,
+                    NXT_VERSION, my_port->process->stream,
                     main_port->pid, main_port->id, main_port->pair[1],
                     my_port->pid, my_port->id, my_port->pair[0],
                     2, conf->shm_limit);

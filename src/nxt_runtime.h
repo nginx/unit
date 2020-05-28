@@ -110,6 +110,7 @@ nxt_port_t *nxt_runtime_process_port_create(nxt_task_t *task, nxt_runtime_t *rt,
     nxt_pid_t pid, nxt_port_id_t id, nxt_process_type_t type);
 
 void nxt_runtime_port_remove(nxt_task_t *task, nxt_port_t *port);
+void nxt_runtime_stop_app_processes(nxt_task_t *task, nxt_runtime_t *rt);
 
 NXT_EXPORT nxt_port_t *nxt_runtime_port_find(nxt_runtime_t *rt, nxt_pid_t pid,
     nxt_port_id_t port_id);

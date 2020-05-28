@@ -1,3 +1,6 @@
+import shutil
+import os
+
 from unit.applications.proto import TestApplicationProto
 
 
@@ -8,7 +11,21 @@ class TestApplicationPython(TestApplicationProto):
         if name is None:
             name = script
 
-        script_path = self.current_dir + '/python/' + script
+        if script[0] == '/':
+            script_path = script
+        else:
+            script_path = self.current_dir + '/python/' + script
+
+        if kwargs.get('isolation') and kwargs['isolation'].get('rootfs'):
+            rootfs = kwargs['isolation']['rootfs']
+
+            if not os.path.exists(rootfs + '/app/python/'):
+                os.makedirs(rootfs + '/app/python/')
+
+            if not os.path.exists(rootfs + '/app/python/' + name):
+                shutil.copytree(script_path, rootfs + '/app/python/' + name)
+
+            script_path = '/app/python/' + name
 
         self._load_conf(
             {

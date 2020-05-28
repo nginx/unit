@@ -27,6 +27,8 @@ typedef enum {
 
 
 typedef struct nxt_app_module_s  nxt_app_module_t;
+typedef nxt_int_t (*nxt_application_setup_t)(nxt_task_t *task,
+    nxt_process_t *process, nxt_common_app_conf_t *conf);
 
 
 typedef struct {
@@ -34,10 +36,8 @@ typedef struct {
     u_char                    *version;
     char                      *file;
     nxt_app_module_t          *module;
+    nxt_array_t               *mounts;    /* of nxt_fs_mount_t */
 } nxt_app_lang_module_t;
-
-
-typedef struct nxt_common_app_conf_s nxt_common_app_conf_t;
 
 
 typedef struct {
@@ -54,9 +54,7 @@ typedef struct {
 
 
 typedef struct {
-    char                       *root;
-    nxt_str_t                  script;
-    nxt_str_t                  index;
+    nxt_conf_value_t           *targets;
     nxt_conf_value_t           *options;
 } nxt_php_app_conf_t;
 
@@ -101,6 +99,8 @@ struct nxt_common_app_conf_s {
         nxt_ruby_app_conf_t      ruby;
         nxt_java_app_conf_t      java;
     } u;
+
+    nxt_conf_value_t           *self;
 };
 
 
@@ -111,10 +111,11 @@ struct nxt_app_module_s {
     nxt_str_t                  type;
     const char                 *version;
 
-    nxt_int_t                  (*pre_init)(nxt_task_t *task,
-                                    nxt_common_app_conf_t *conf);
-    nxt_int_t                  (*init)(nxt_task_t *task,
-                                    nxt_common_app_conf_t *conf);
+    const nxt_fs_mount_t       *mounts;
+    nxt_uint_t                 nmounts;
+
+    nxt_application_setup_t    setup;
+    nxt_process_start_t        start;
 };
 
 

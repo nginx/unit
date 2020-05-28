@@ -296,7 +296,9 @@ nxt_port_process_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         return;
     }
 
-    process->ready = 1;
+    nxt_assert(process->state != NXT_PROCESS_STATE_READY);
+
+    process->state = NXT_PROCESS_STATE_READY;
 
     nxt_assert(!nxt_queue_is_empty(&process->ports));
 

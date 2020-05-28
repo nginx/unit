@@ -1,12 +1,13 @@
 import re
-import time
 import subprocess
+import time
 import unittest
+
 from unit.applications.lang.python import TestApplicationPython
 
 
 class TestPythonProcman(TestApplicationPython):
-    prerequisites = {'modules': ['python']}
+    prerequisites = {'modules': {'python': 'any'}}
 
     def setUp(self):
         super().setUp()

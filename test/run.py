@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-
-import unittest
-import sys
 import os
+import sys
+import unittest
 
 if __name__ == '__main__':
     loader = unittest.TestLoader()

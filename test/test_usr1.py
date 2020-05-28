@@ -1,11 +1,11 @@
 import os
-import unittest
 from subprocess import call
+
 from unit.applications.lang.python import TestApplicationPython
 
 
 class TestUSR1(TestApplicationPython):
-    prerequisites = {'modules': ['python']}
+    prerequisites = {'modules': {'python': 'any'}}
 
     def test_usr1_access_log(self):
         self.load('empty')

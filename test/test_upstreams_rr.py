@@ -1,11 +1,11 @@
 import os
 import re
-import unittest
+
 from unit.applications.lang.python import TestApplicationPython
 
 
 class TestUpstreamsRR(TestApplicationPython):
-    prerequisites = {'modules': ['python']}
+    prerequisites = {'modules': {'python': 'any'}}
 
     def setUp(self):
         super().setUp()

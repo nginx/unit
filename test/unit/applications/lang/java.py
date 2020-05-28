@@ -1,7 +1,8 @@
-import os
 import glob
+import os
 import shutil
 import subprocess
+
 from unit.applications.proto import TestApplicationProto
 
 

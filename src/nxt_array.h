@@ -24,7 +24,8 @@ NXT_EXPORT void nxt_array_destroy(nxt_array_t *array);
 NXT_EXPORT void *nxt_array_add(nxt_array_t *array);
 NXT_EXPORT void *nxt_array_zero_add(nxt_array_t *array);
 NXT_EXPORT void nxt_array_remove(nxt_array_t *array, void *elt);
-
+NXT_EXPORT nxt_array_t *nxt_array_copy(nxt_mp_t *mp, nxt_array_t *dst,
+    nxt_array_t *src);
 
 #define                                                                       \
 nxt_array_last(array)                                                         \

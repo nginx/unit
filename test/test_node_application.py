@@ -1,9 +1,10 @@
 import unittest
+
 from unit.applications.lang.node import TestApplicationNode
 
 
 class TestNodeApplication(TestApplicationNode):
-    prerequisites = {'modules': ['node']}
+    prerequisites = {'modules': {'node': 'all'}}
 
     def test_node_application_basic(self):
         self.load('basic')

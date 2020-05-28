@@ -1,9 +1,10 @@
 import unittest
+
 from unit.applications.lang.ruby import TestApplicationRuby
 
 
 class TestRubyApplication(TestApplicationRuby):
-    prerequisites = {'modules': ['ruby']}
+    prerequisites = {'modules': {'ruby': 'all'}}
 
     def test_ruby_application(self):
         self.load('variables')

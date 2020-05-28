@@ -133,8 +133,11 @@ struct nxt_app_s {
     nxt_nsec_t             res_timeout;
     nxt_msec_t             idle_timeout;
 
+    nxt_str_t              *targets;
+
     nxt_app_type_t         type:8;
 
+    nxt_mp_t               *mem_pool;
     nxt_queue_link_t       link;
 
     nxt_str_t              conf;

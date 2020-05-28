@@ -18,6 +18,7 @@
 #include <nxt_unit_field.h>
 #include <nxt_unit_request.h>
 #include <nxt_unit_response.h>
+#include <nxt_python_mounts.h>
 
 /*
  * According to "PEP 3333 / A Note On String Types"
@@ -38,11 +39,17 @@
  */
 
 
+#define _NXT_PYTHON_MOUNTS(major, minor)                                      \
+    nxt_python ## major ## minor ## _mounts
+
+#define NXT_PYTHON_MOUNTS(major, minor) _NXT_PYTHON_MOUNTS(major, minor)
+
 #if PY_MAJOR_VERSION == 3
 #define NXT_PYTHON_BYTES_TYPE       "bytestring"
 
 #define PyString_FromStringAndSize(str, size)                                 \
             PyUnicode_DecodeLatin1((str), (size), "strict")
+
 #else
 #define NXT_PYTHON_BYTES_TYPE       "string"
 
@@ -65,7 +72,8 @@ typedef struct {
     PyObject_HEAD
 } nxt_py_error_t;
 
-static nxt_int_t nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf);
+static nxt_int_t nxt_python_start(nxt_task_t *task,
+    nxt_process_data_t *data);
 static nxt_int_t nxt_python_init_strings(void);
 static void nxt_python_request_handler(nxt_unit_request_info_t *req);
 static void nxt_python_atexit(void);
@@ -115,8 +123,10 @@ NXT_EXPORT nxt_app_module_t  nxt_app_module = {
     compat,
     nxt_string("python"),
     PY_VERSION,
+    NXT_PYTHON_MOUNTS(PY_MAJOR_VERSION, PY_MINOR_VERSION),
+    nxt_nitems(NXT_PYTHON_MOUNTS(PY_MAJOR_VERSION, PY_MINOR_VERSION)),
     NULL,
-    nxt_python_init,
+    nxt_python_start,
 };
 
 
@@ -211,7 +221,7 @@ static nxt_python_string_t nxt_python_strings[] = {
 
 
 static nxt_int_t
-nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
+nxt_python_start(nxt_task_t *task, nxt_process_data_t *data)
 {
     int                    rc;
     char                   *nxt_py_module;
@@ -219,6 +229,7 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     PyObject               *obj, *pypath, *module;
     nxt_unit_ctx_t         *unit_ctx;
     nxt_unit_init_t        python_init;
+    nxt_common_app_conf_t  *app_conf;
     nxt_python_app_conf_t  *c;
 #if PY_MAJOR_VERSION == 3
     char                   *path;
@@ -229,7 +240,8 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     static const char bin_python[] = "/bin/python";
 #endif
 
-    c = &conf->u.python;
+    app_conf = data->app;
+    c = &app_conf->u.python;
 
     if (c->module.length == 0) {
         nxt_alert(task, "python module is empty");
@@ -410,7 +422,7 @@ nxt_python_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
     nxt_unit_default_init(task, &python_init);
 
     python_init.callbacks.request_handler = nxt_python_request_handler;
-    python_init.shm_limit = conf->shm_limit;
+    python_init.shm_limit = data->app->shm_limit;
 
     unit_ctx = nxt_unit_init(&python_init);
     if (nxt_slow_path(unit_ctx == NULL)) {

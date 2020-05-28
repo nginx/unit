@@ -1,9 +1,10 @@
 import unittest
+
 from unit.control import TestControl
 
 
 class TestConfiguration(TestControl):
-    prerequisites = {'modules': ['python']}
+    prerequisites = {'modules': {'python': 'any'}}
 
     def test_json_empty(self):
         self.assertIn('error', self.conf(''), 'empty')

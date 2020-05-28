@@ -1,6 +1,5 @@
 import os
-import json
-from unit.applications.proto import TestApplicationProto
+
 from unit.applications.lang.go import TestApplicationGo
 from unit.applications.lang.java import TestApplicationJava
 from unit.applications.lang.node import TestApplicationNode
@@ -8,6 +7,7 @@ from unit.applications.lang.perl import TestApplicationPerl
 from unit.applications.lang.php import TestApplicationPHP
 from unit.applications.lang.python import TestApplicationPython
 from unit.applications.lang.ruby import TestApplicationRuby
+from unit.applications.proto import TestApplicationProto
 
 
 class TestFeatureIsolation(TestApplicationProto):

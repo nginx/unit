@@ -1,11 +1,12 @@
-import time
 import socket
+import time
 import unittest
+
 from unit.applications.lang.python import TestApplicationPython
 
 
 class TestSettings(TestApplicationPython):
-    prerequisites = {'modules': ['python']}
+    prerequisites = {'modules': {'python': 'any'}}
 
     def test_settings_header_read_timeout(self):
         self.load('empty')

@@ -21,10 +21,11 @@ type (
 	}
 
 	Output struct {
-		PID int
-		UID int
-		GID int
-		NS  NS
+		PID        int
+		UID        int
+		GID        int
+		NS         NS
+		FileExists bool
 	}
 )
 
@@ -64,6 +65,18 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			CGROUP: getns("cgroup"),
 		},
 	}
+
+	err := r.ParseForm()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if fname := r.Form.Get("file"); fname != "" {
+		_, err = os.Stat(fname);
+		out.FileExists = err == nil
+	}
+
 	data, err := json.Marshal(out)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)

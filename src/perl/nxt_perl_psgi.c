@@ -95,8 +95,8 @@ static int nxt_perl_psgi_result_array(PerlInterpreter *my_perl,
 static void nxt_perl_psgi_result_cb(PerlInterpreter *my_perl, SV *result,
     nxt_unit_request_info_t *req);
 
-static nxt_int_t nxt_perl_psgi_init(nxt_task_t *task,
-    nxt_common_app_conf_t *conf);
+static nxt_int_t nxt_perl_psgi_start(nxt_task_t *task,
+    nxt_process_data_t *conf);
 static void nxt_perl_psgi_request_handler(nxt_unit_request_info_t *req);
 static void nxt_perl_psgi_atexit(void);
 
@@ -118,8 +118,14 @@ NXT_EXPORT nxt_app_module_t  nxt_app_module = {
     nxt_perl_psgi_compat,
     nxt_string("perl"),
     PERL_VERSION_STRING,
+
+#if (NXT_HAVE_ISOLATION_ROOTFS)
     NULL,
-    nxt_perl_psgi_init,
+    0,
+#endif
+
+    NULL,
+    nxt_perl_psgi_start,
 };
 
 
@@ -1134,13 +1140,16 @@ nxt_perl_psgi_result_cb(PerlInterpreter *my_perl, SV *result,
 
 
 static nxt_int_t
-nxt_perl_psgi_init(nxt_task_t *task, nxt_common_app_conf_t *conf)
+nxt_perl_psgi_start(nxt_task_t *task, nxt_process_data_t *data)
 {
     int                     rc;
     nxt_unit_ctx_t          *unit_ctx;
     nxt_unit_init_t         perl_init;
     PerlInterpreter         *my_perl;
+    nxt_common_app_conf_t   *conf;
     nxt_perl_psgi_module_t  module;
+
+    conf = data->app;
 
     my_perl = nxt_perl_psgi_interpreter_init(task, conf->u.perl.script,
                                              &module.app);

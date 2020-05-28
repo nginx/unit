@@ -51,6 +51,7 @@ $echo "configuring Ruby module ..." >> $NXT_AUTOCONF_ERR
 
 NXT_RUBY=${NXT_RUBY=ruby}
 NXT_RUBY_MODULE=${NXT_RUBY_MODULE=${NXT_RUBY}}
+NXT_RUBY_MOUNTS_HEADER=$NXT_BUILD_DIR/nxt_ruby_mounts.h
 
 nxt_found=no
 
@@ -58,6 +59,14 @@ if /bin/sh -c "$NXT_RUBY -v" >> $NXT_AUTOCONF_ERR 2>&1; then
 
     NXT_RUBY_RUBYHDRDIR=`$NXT_RUBY -r rbconfig -e 'printf("%s",RbConfig::CONFIG["rubyhdrdir"])'`
     NXT_RUBY_ARCHHDRDIR=`$NXT_RUBY -r rbconfig -e 'printf("%s",RbConfig::CONFIG["rubyarchhdrdir"])'`
+    NXT_RUBY_SITEARCHDIR=`$NXT_RUBY -r rbconfig -e 'printf("%s",RbConfig::CONFIG["sitearchhdrdir"])'`
+    NXT_RUBY_SITEDIR=`$NXT_RUBY -r rbconfig -e 'printf("%s",RbConfig::CONFIG["sitedir"])'`
+    NXT_RUBY_LIBDIR=`$NXT_RUBY -r rbconfig -e 'printf("%s",RbConfig::CONFIG["rubylibdir"])'`
+    NXT_RUBY_TOPDIR=`$NXT_RUBY -r rbconfig -e 'printf("%s",RbConfig::CONFIG["topdir"])'`
+    NXT_RUBY_PREFIXDIR=`$NXT_RUBY -r rbconfig -e 'printf("%s",RbConfig::CONFIG["rubylibprefix"])'`
+    NXT_RUBY_GEMDIR=`gem environment gemdir`
+    NXT_RUBY_GEMPATH=`gem environment gempath`
+
     NXT_RUBY_INCPATH="-I$NXT_RUBY_ARCHHDRDIR -I$NXT_RUBY_RUBYHDRDIR"
 
     NXT_RUBY_LIBNAME=`$NXT_RUBY -r rbconfig -e 'printf("%s",RbConfig::CONFIG["RUBY_SO_NAME"])'`
@@ -134,6 +143,35 @@ if grep ^$NXT_RUBY_MODULE: $NXT_MAKEFILE 2>&1 > /dev/null; then
     $echo
     exit 1;
 fi
+
+
+cat << END > $NXT_RUBY_MOUNTS_HEADER
+
+static const nxt_fs_mount_t  nxt_ruby_mounts[] = {
+    {(u_char *) "$NXT_RUBY_RUBYHDRDIR", (u_char *) "$NXT_RUBY_RUBYHDRDIR",
+     (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL},
+    {(u_char *) "$NXT_RUBY_ARCHHDRDIR", (u_char *) "$NXT_RUBY_ARCHHDRDIR",
+     (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL},
+    {(u_char *) "$NXT_RUBY_SITEDIR", (u_char *) "$NXT_RUBY_SITEDIR",
+     (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL},
+    {(u_char *) "$NXT_RUBY_LIBDIR", (u_char *) "$NXT_RUBY_LIBDIR",
+     (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL},
+    {(u_char *) "$NXT_RUBY_GEMDIR", (u_char *) "$NXT_RUBY_GEMDIR",
+     (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL},
+    {(u_char *) "$NXT_RUBY_TOPDIR", (u_char *) "$NXT_RUBY_TOPDIR",
+     (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL},
+    {(u_char *) "$NXT_RUBY_PREFIXDIR", (u_char *) "$NXT_RUBY_PREFIXDIR",
+     (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL},
+
+END
+
+for path in `echo $NXT_RUBY_GEMPATH | tr ':' '\n'`; do
+   $echo "{(u_char *) \"$path\", (u_char *) \"$path\"," >> $NXT_RUBY_MOUNTS_HEADER
+   $echo "(u_char *) \"bind\", NXT_MS_BIND | NXT_MS_REC, NULL}," >> $NXT_RUBY_MOUNTS_HEADER
+done
+
+$echo "};" >> $NXT_RUBY_MOUNTS_HEADER
+
 
 $echo " + Ruby module: ${NXT_RUBY_MODULE}.unit.so"
 

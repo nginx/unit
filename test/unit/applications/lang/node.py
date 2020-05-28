@@ -1,5 +1,7 @@
 import os
 import shutil
+from urllib.parse import quote
+
 from unit.applications.proto import TestApplicationProto
 
 
@@ -33,7 +35,9 @@ class TestApplicationNode(TestApplicationProto):
 
         self._load_conf(
             {
-                "listeners": {"*:7080": {"pass": "applications/" + script}},
+                "listeners": {
+                    "*:7080": {"pass": "applications/" + quote(script, '')}
+                },
                 "applications": {
                     script: {
                         "type": "external",

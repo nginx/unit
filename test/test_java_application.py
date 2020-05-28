@@ -1,18 +1,19 @@
 import io
 import os
 import time
-import unittest
+
 from unit.applications.lang.java import TestApplicationJava
 
 
 class TestJavaApplication(TestApplicationJava):
-    prerequisites = {'modules': ['java']}
+    prerequisites = {'modules': {'java': 'all'}}
 
     def test_java_conf_error(self):
         self.skip_alerts.extend(
             [
                 r'realpath.*failed',
                 r'failed to apply new conf',
+                r'application setup failed',
             ]
         )
         self.assertIn(

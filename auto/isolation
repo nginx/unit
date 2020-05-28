@@ -6,6 +6,9 @@
 NXT_ISOLATION=NO
 NXT_HAVE_CLONE=NO
 NXT_HAVE_CLONE_NEWUSER=NO
+NXT_HAVE_MOUNT=NO
+NXT_HAVE_UNMOUNT=NO
+NXT_HAVE_ROOTFS=NO
 
 nsflags="USER NS PID NET UTS CGROUP"
 
@@ -54,4 +57,131 @@ if [ $nxt_found = yes ]; then
             fi
         fi
     done
+fi
+
+
+nxt_feature="Linux pivot_root()"
+nxt_feature_name=NXT_HAVE_PIVOT_ROOT
+nxt_feature_run=no
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <sys/syscall.h>
+
+                  int main() {
+                      return __NR_pivot_root;
+                  }"
+. auto/feature
+
+
+nxt_feature="prctl(PR_SET_NO_NEW_PRIVS)"
+nxt_feature_name=NXT_HAVE_PR_SET_NO_NEW_PRIVS0
+nxt_feature_run=no
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <sys/prctl.h>
+
+                  int main() {
+                      return PR_SET_NO_NEW_PRIVS;
+                  }"
+. auto/feature
+
+
+nxt_feature="Linux mount()"
+nxt_feature_name=NXT_HAVE_LINUX_MOUNT
+nxt_feature_run=no
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <sys/mount.h>
+
+                  int main() {
+                      return mount((void*)0, (void*)0, (void*)0, 0, (void*)0);
+                  }"
+. auto/feature
+
+if [ $nxt_found = yes ]; then
+    NXT_HAVE_MOUNT=YES
+fi
+
+
+nxt_feature="Bind mount()"
+nxt_feature_name=NXT_HAVE_BIND_MOUNT
+nxt_feature_run=no
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <sys/mount.h>
+
+                  int main() {
+                      return MS_BIND | MS_REC
+                  }"
+. auto/feature
+
+if [ $nxt_found = yes ]; then
+    NXT_HAVE_MOUNT=YES
+fi
+
+
+if [ $nxt_found = no ]; then
+    nxt_feature="FreeBSD nmount()"
+    nxt_feature_name=NXT_HAVE_FREEBSD_NMOUNT
+    nxt_feature_run=no
+    nxt_feature_incs=
+    nxt_feature_libs=
+    nxt_feature_test="#include <sys/mount.h>
+
+                    int main() {
+                        return nmount((void *)0, 0, 0);
+                    }"
+    . auto/feature
+
+    if [ $nxt_found = yes ]; then
+        NXT_HAVE_MOUNT=YES
+    fi
+fi
+
+
+nxt_feature="Linux umount2()"
+nxt_feature_name=NXT_HAVE_LINUX_UMOUNT2
+nxt_feature_run=no
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <sys/mount.h>
+
+                  int main() {
+                      return umount2((void *)0, 0);
+                  }"
+. auto/feature
+
+if [ $nxt_found = yes ]; then
+    NXT_HAVE_UNMOUNT=YES
+fi
+
+if [ $nxt_found = no ]; then
+    nxt_feature="unmount()"
+    nxt_feature_name=NXT_HAVE_UNMOUNT
+    nxt_feature_run=no
+    nxt_feature_incs=
+    nxt_feature_libs=
+    nxt_feature_test="#include <sys/mount.h>
+
+                    int main() {
+                        return unmount((void *)0, 0);
+                    }"
+    . auto/feature
+
+    if [ $nxt_found = yes ]; then
+        NXT_HAVE_UNMOUNT=YES
+    fi
+fi
+
+if [ $NXT_HAVE_MOUNT = YES -a $NXT_HAVE_UNMOUNT = YES ]; then
+    NXT_HAVE_ROOTFS=YES
+
+    cat << END >> $NXT_AUTO_CONFIG_H
+
+#ifndef NXT_HAVE_ISOLATION_ROOTFS
+#define NXT_HAVE_ISOLATION_ROOTFS  1
+#endif
+
+END
+
 fi
