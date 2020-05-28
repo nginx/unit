@@ -172,11 +172,11 @@ if [ -z "$NXT_JAVA_LIB_PATH" ]; then
         exit 1
     fi
 
-    NXT_JAVA_LIB_SERVER_PATH="${NXT_JAVA_LIB_PATH}/server"
-
     $echo " $NXT_JAVA_LIB_PATH"
     $echo "got library path $NXT_JAVA_LIB_PATH" >> $NXT_AUTOCONF_ERR
 fi
+
+NXT_JAVA_LIB_SERVER_PATH="${NXT_JAVA_LIB_PATH}/server"
 
 NXT_JAVA_LDFLAGS="-L${NXT_JAVA_LIB_SERVER_PATH} -Wl,-rpath ${NXT_JAVA_LIB_SERVER_PATH} -ljvm"
 
