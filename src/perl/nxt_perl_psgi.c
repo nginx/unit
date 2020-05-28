@@ -118,6 +118,12 @@ NXT_EXPORT nxt_app_module_t  nxt_app_module = {
     nxt_perl_psgi_compat,
     nxt_string("perl"),
     PERL_VERSION_STRING,
+
+#if (NXT_HAVE_ISOLATION_ROOTFS)
+    NULL,
+    0,
+#endif
+
     NULL,
     nxt_perl_psgi_start,
 };

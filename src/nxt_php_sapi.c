@@ -242,6 +242,8 @@ NXT_EXPORT nxt_app_module_t  nxt_app_module = {
     nxt_string("php"),
     PHP_VERSION,
     NULL,
+    0,
+    NULL,
     nxt_php_start,
 };
 

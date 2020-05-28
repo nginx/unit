@@ -172,13 +172,13 @@ if [ -z "$NXT_JAVA_LIB_PATH" ]; then
         exit 1
     fi
 
-    NXT_JAVA_LIB_PATH="${NXT_JAVA_LIB_PATH}/server"
+    NXT_JAVA_LIB_SERVER_PATH="${NXT_JAVA_LIB_PATH}/server"
 
     $echo " $NXT_JAVA_LIB_PATH"
     $echo "got library path $NXT_JAVA_LIB_PATH" >> $NXT_AUTOCONF_ERR
 fi
 
-NXT_JAVA_LDFLAGS="-L${NXT_JAVA_LIB_PATH} -Wl,-rpath ${NXT_JAVA_LIB_PATH} -ljvm"
+NXT_JAVA_LDFLAGS="-L${NXT_JAVA_LIB_SERVER_PATH} -Wl,-rpath ${NXT_JAVA_LIB_SERVER_PATH} -ljvm"
 
 
 nxt_found=no
@@ -227,6 +227,7 @@ NXT_JAVA_INSTALL_JARS=
 NXT_JAVA_UNINSTALL_JARS=
 
 NXT_JAVA_JARS=$NXT_BUILD_DIR/$NXT_JAVA_MODULE/nxt_jars.h
+NXT_JAVA_MOUNTS_HEADER=$NXT_BUILD_DIR/$NXT_JAVA_MODULE/nxt_java_mounts.h
 mkdir -p $NXT_BUILD_DIR/$NXT_JAVA_MODULE
 
 cat << END > $NXT_JAVA_JARS
@@ -306,6 +307,32 @@ cat << END >> $NXT_JAVA_JARS
 };
 
 #endif /* _NXT_JAVA_JARS_INCLUDED_ */
+END
+
+NXT_JAVA_LIBJVM="$NXT_JAVA_LIB_SERVER_PATH/libjvm.so"
+
+if [ "$NXT_SYSTEM" = "Darwin" ]; then
+NXT_JAVA_LIBC_DIR="/usr/lib"
+else
+NXT_JAVA_LIBC_DIR=`ldd "$NXT_JAVA_LIBJVM" | grep libc.so | cut -d' ' -f3`
+NXT_JAVA_LIBC_DIR=`dirname $NXT_JAVA_LIBC_DIR`
+fi
+
+cat << END > $NXT_JAVA_MOUNTS_HEADER
+#ifndef _NXT_JAVA_MOUNTS_H_INCLUDED_
+#define _NXT_JAVA_MOUNTS_H_INCLUDED_
+
+
+static const nxt_fs_mount_t  nxt_java_mounts[] = {
+    {(u_char *) "proc", (u_char *) "/proc", (u_char *) "proc", 0, NULL},
+    {(u_char *) "$NXT_JAVA_LIBC_DIR", (u_char *) "$NXT_JAVA_LIBC_DIR",
+     (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL},
+    {(u_char *) "$NXT_JAVA_HOME", (u_char *) "$NXT_JAVA_HOME",
+     (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL},
+};
+
+
+#endif /* _NXT_JAVA_MOUNTS_H_INCLUDED_ */
 END
 
 $echo " + Java module: ${NXT_JAVA_MODULE}.unit.so"

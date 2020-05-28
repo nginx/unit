@@ -14,6 +14,8 @@
 #include <nxt_cert.h>
 #endif
 
+#include <sys/mount.h>
+
 
 typedef struct {
     nxt_socket_t        socket;
@@ -869,6 +871,12 @@ nxt_main_cleanup_process(nxt_task_t *task, nxt_pid_t pid)
         return;
     }
 
+#if (NXT_HAVE_ISOLATION_ROOTFS)
+    if (process->isolation.rootfs != NULL && process->isolation.mounts) {
+        (void) nxt_process_unmount_all(task, process);
+    }
+#endif
+
     name = process->name;
     stream = process->stream;
     init = *((nxt_process_init_t *) nxt_process_init(process));
@@ -1132,19 +1140,50 @@ static nxt_conf_map_t  nxt_app_lang_module_map[] = {
 };
 
 
+static nxt_conf_map_t  nxt_app_lang_mounts_map[] = {
+    {
+        nxt_string("src"),
+        NXT_CONF_MAP_CSTRZ,
+        offsetof(nxt_fs_mount_t, src),
+    },
+    {
+        nxt_string("dst"),
+        NXT_CONF_MAP_CSTRZ,
+        offsetof(nxt_fs_mount_t, dst),
+    },
+    {
+        nxt_string("fstype"),
+        NXT_CONF_MAP_CSTRZ,
+        offsetof(nxt_fs_mount_t, fstype),
+    },
+    {
+        nxt_string("flags"),
+        NXT_CONF_MAP_INT,
+        offsetof(nxt_fs_mount_t, flags),
+    },
+    {
+        nxt_string("data"),
+        NXT_CONF_MAP_CSTRZ,
+        offsetof(nxt_fs_mount_t, data),
+    },
+};
+
+
 static void
 nxt_main_port_modules_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
-    uint32_t               index;
+    uint32_t               index, jindex, nmounts;
     nxt_mp_t               *mp;
     nxt_int_t              ret;
     nxt_buf_t              *b;
     nxt_port_t             *port;
     nxt_runtime_t          *rt;
-    nxt_conf_value_t       *conf, *root, *value;
+    nxt_fs_mount_t         *mnt;
+    nxt_conf_value_t       *conf, *root, *value, *mounts;
     nxt_app_lang_module_t  *lang;
 
     static nxt_str_t root_path = nxt_string("/");
+    static nxt_str_t mounts_name = nxt_string("mounts");
 
     rt = task->thread->runtime;
 
@@ -1201,7 +1240,7 @@ nxt_main_port_modules_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
             break;
         }
 
-        lang = nxt_array_add(rt->languages);
+        lang = nxt_array_zero_add(rt->languages);
         if (lang == NULL) {
             goto fail;
         }
@@ -1215,8 +1254,48 @@ nxt_main_port_modules_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
             goto fail;
         }
 
-        nxt_debug(task, "lang %d %s \"%s\"",
-                  lang->type, lang->version, lang->file);
+        mounts = nxt_conf_get_object_member(value, &mounts_name, NULL);
+        if (mounts == NULL) {
+            nxt_alert(task, "missing mounts from discovery message.");
+            goto fail;
+        }
+
+        if (nxt_conf_type(mounts) != NXT_CONF_ARRAY) {
+            nxt_alert(task, "invalid mounts type from discovery message.");
+            goto fail;
+        }
+
+        nmounts = nxt_conf_array_elements_count(mounts);
+
+        lang->mounts = nxt_array_create(rt->mem_pool, nmounts,
+                                        sizeof(nxt_fs_mount_t));
+
+        if (lang->mounts == NULL) {
+            goto fail;
+        }
+
+        for (jindex = 0; /* */; jindex++) {
+            value = nxt_conf_get_array_element(mounts, jindex);
+            if (value == NULL) {
+                break;
+            }
+
+            mnt = nxt_array_zero_add(lang->mounts);
+            if (mnt == NULL) {
+                goto fail;
+            }
+
+            ret = nxt_conf_map_object(rt->mem_pool, value,
+                                      nxt_app_lang_mounts_map,
+                                      nxt_nitems(nxt_app_lang_mounts_map), mnt);
+
+            if (ret != NXT_OK) {
+                goto fail;
+            }
+        }
+
+        nxt_debug(task, "lang %d %s \"%s\" (%d mounts)",
+                  lang->type, lang->version, lang->file, lang->mounts->nelts);
     }
 
     qsort(rt->languages->elts, rt->languages->nelts,

@@ -109,3 +109,42 @@ nxt_array_remove(nxt_array_t *array, void *elt)
 
     array->nelts--;
 }
+
+
+nxt_array_t *
+nxt_array_copy(nxt_mp_t *mp, nxt_array_t *dst, nxt_array_t *src)
+{
+    void      *data;
+    uint32_t  i, size;
+
+    size = src->size;
+
+    if (dst == NULL) {
+        dst = nxt_array_create(mp, src->nelts, size);
+        if (nxt_slow_path(dst == NULL)) {
+            return NULL;
+        }
+    }
+
+    nxt_assert(size == dst->size);
+
+    if (dst->nalloc >= src->nelts) {
+        nxt_memcpy(dst->elts, src->elts, src->nelts * size);
+
+    } else {
+        nxt_memcpy(dst->elts, src->elts, dst->nelts * size);
+
+        for (i = dst->nelts; i < src->nelts; i++) {
+            data = nxt_array_add(dst);
+            if (nxt_slow_path(data == NULL)) {
+                return NULL;
+            }
+
+            nxt_memcpy(data, src->elts + (i * size), size);
+        }
+    }
+
+    dst->nelts = src->nelts;
+
+    return dst;
+}

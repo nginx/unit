@@ -7,7 +7,8 @@
 #define _NXT_CAPABILITY_INCLUDED_
 
 typedef struct {
-    uint8_t  setid;  /* 1 bit */
+    uint8_t  setid;     /* 1 bit */
+    uint8_t  chroot;    /* 1 bit */
 } nxt_capabilities_t;
 
 

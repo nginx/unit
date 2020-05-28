@@ -36,6 +36,7 @@ typedef struct {
     u_char                    *version;
     char                      *file;
     nxt_app_module_t          *module;
+    nxt_array_t               *mounts;    /* of nxt_fs_mount_t */
 } nxt_app_lang_module_t;
 
 
@@ -109,6 +110,9 @@ struct nxt_app_module_s {
 
     nxt_str_t                  type;
     const char                 *version;
+
+    const nxt_fs_mount_t       *mounts;
+    nxt_uint_t                 nmounts;
 
     nxt_application_setup_t    setup;
     nxt_process_start_t        start;

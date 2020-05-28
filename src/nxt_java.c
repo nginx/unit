@@ -26,6 +26,7 @@
 #include "java/nxt_jni_URLClassLoader.h"
 
 #include "nxt_jars.h"
+#include "nxt_java_mounts.h"
 
 static nxt_int_t nxt_java_setup(nxt_task_t *task, nxt_process_t *process,
     nxt_common_app_conf_t *conf);
@@ -50,6 +51,8 @@ NXT_EXPORT nxt_app_module_t  nxt_app_module = {
     compat,
     nxt_string("java"),
     NXT_STRING(NXT_JAVA_VERSION),
+    nxt_java_mounts,
+    nxt_nitems(nxt_java_mounts),
     nxt_java_setup,
     nxt_java_start,
 };
@@ -64,20 +67,66 @@ static nxt_int_t
 nxt_java_setup(nxt_task_t *task, nxt_process_t *process,
     nxt_common_app_conf_t *conf)
 {
+    char        *path, *relpath, *p, *rootfs;
+    size_t      jars_dir_len, rootfs_len;
     const char  *unit_jars;
+
+    rootfs = (char *) process->isolation.rootfs;
+    rootfs_len = 0;
 
     unit_jars = conf->u.java.unit_jars;
     if (unit_jars == NULL) {
-        unit_jars = NXT_JARS;
+        if (rootfs != NULL) {
+            unit_jars = "/";
+        } else {
+            unit_jars = NXT_JARS;
+        }
     }
 
-    nxt_java_modules = realpath(unit_jars, NULL);
-    if (nxt_java_modules == NULL) {
-        nxt_alert(task, "realpath(%s) failed: %E", unit_jars, nxt_errno);
+    relpath = strdup(unit_jars);
+    if (nxt_slow_path(relpath == NULL)) {
         return NXT_ERROR;
     }
 
+    if (rootfs != NULL) {
+        jars_dir_len = strlen(unit_jars);
+        rootfs_len = strlen(rootfs);
+
+        path = nxt_malloc(jars_dir_len + rootfs_len + 1);
+        if (nxt_slow_path(path == NULL)) {
+            free(relpath);
+            return NXT_ERROR;
+        }
+
+        p = nxt_cpymem(path, process->isolation.rootfs, rootfs_len);
+        p = nxt_cpymem(p, relpath, jars_dir_len);
+        *p = '\0';
+
+        free(relpath);
+
+    } else {
+        path = relpath;
+    }
+
+    nxt_java_modules = realpath(path, NULL);
+    if (nxt_java_modules == NULL) {
+        nxt_alert(task, "realpath(\"%s\") failed %E", path, nxt_errno);
+        goto free;
+    }
+
+    if (rootfs != NULL && strlen(path) > rootfs_len) {
+        nxt_java_modules = path + rootfs_len;
+    }
+
+    nxt_debug(task, "JAVA MODULES: %s", nxt_java_modules);
+
     return NXT_OK;
+
+free:
+
+    nxt_free(path);
+
+    return NXT_ERROR;
 }
 
 
@@ -85,6 +134,7 @@ static char **
 nxt_java_module_jars(const char *jars[], int jar_count)
 {
     char        **res, *jurl;
+    uint8_t     pathsep;
     nxt_int_t   modules_len, jlen, i;
     const char  **jar;
 
@@ -95,9 +145,13 @@ nxt_java_module_jars(const char *jars[], int jar_count)
 
     modules_len = nxt_strlen(nxt_java_modules);
 
+    pathsep = nxt_java_modules[modules_len - 1] == '/';
+
     for (i = 0, jar = jars; *jar != NULL; jar++) {
-        jlen = nxt_length("file:") + modules_len + nxt_length("/")
-              + nxt_strlen(*jar) + 1;
+        jlen = nxt_length("file:") + modules_len
+               + (!pathsep ? nxt_length("/") : 0)
+               + nxt_strlen(*jar) + 1;
+
         jurl = nxt_malloc(jlen);
         if (jurl == NULL) {
             return NULL;
@@ -107,7 +161,11 @@ nxt_java_module_jars(const char *jars[], int jar_count)
 
         jurl = nxt_cpymem(jurl, "file:", nxt_length("file:"));
         jurl = nxt_cpymem(jurl, nxt_java_modules, modules_len);
-        *jurl++ = '/';
+
+        if (!pathsep) {
+            *jurl++ = '/';
+        }
+
         jurl = nxt_cpymem(jurl, *jar, nxt_strlen(*jar));
         *jurl++ = '\0';
     }

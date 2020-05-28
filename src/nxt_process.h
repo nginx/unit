@@ -69,33 +69,42 @@ typedef struct {
     nxt_port_mmap_t     *elts;
 } nxt_port_mmaps_t;
 
+typedef struct {
+    u_char                     *rootfs;
+    nxt_array_t                *mounts;     /* of nxt_mount_t */
+
+#if (NXT_HAVE_CLONE)
+    nxt_clone_t                clone;
+#endif
+
+#if (NXT_HAVE_PR_SET_NO_NEW_PRIVS)
+    uint8_t                    new_privs;   /* 1 bit */
+#endif
+} nxt_process_isolation_t;
+
 
 typedef struct {
-    nxt_pid_t            pid;
-    const char           *name;
-    nxt_queue_t          ports;      /* of nxt_port_t */
-    nxt_process_state_t  state;
-    nxt_bool_t           registered;
-    nxt_int_t            use_count;
+    nxt_pid_t                pid;
+    const char               *name;
+    nxt_queue_t              ports;      /* of nxt_port_t */
+    nxt_process_state_t      state;
+    nxt_bool_t               registered;
+    nxt_int_t                use_count;
 
-    nxt_port_mmaps_t     incoming;
-    nxt_port_mmaps_t     outgoing;
+    nxt_port_mmaps_t         incoming;
+    nxt_port_mmaps_t         outgoing;
 
-    nxt_thread_mutex_t   cp_mutex;
-    nxt_lvlhsh_t         connected_ports; /* of nxt_port_t */
+    nxt_thread_mutex_t       cp_mutex;
+    nxt_lvlhsh_t             connected_ports; /* of nxt_port_t */
 
-    uint32_t             stream;
+    uint32_t                 stream;
 
-    nxt_mp_t             *mem_pool;
-    nxt_credential_t     *user_cred;
+    nxt_mp_t                 *mem_pool;
+    nxt_credential_t         *user_cred;
 
-    nxt_process_data_t   data;
+    nxt_process_data_t       data;
 
-    union {
-#if (NXT_HAVE_CLONE)
-        nxt_clone_t      clone;
-#endif
-    } isolation;
+    nxt_process_isolation_t  isolation;
 } nxt_process_t;
 
 
@@ -182,6 +191,12 @@ nxt_int_t nxt_process_apply_creds(nxt_task_t *task, nxt_process_t *process);
 #if (NXT_HAVE_CLONE_NEWUSER)
 nxt_int_t nxt_process_vldt_isolation_creds(nxt_task_t *task,
     nxt_process_t *process);
+#endif
+
+nxt_int_t nxt_process_change_root(nxt_task_t *task, nxt_process_t *process);
+
+#if (NXT_HAVE_ISOLATION_ROOTFS)
+void nxt_process_unmount_all(nxt_task_t *task, nxt_process_t *process);
 #endif
 
 #if (NXT_HAVE_SETPROCTITLE)

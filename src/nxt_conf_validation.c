@@ -575,6 +575,24 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_isolation_members[] = {
 
 #endif
 
+#if (NXT_HAVE_ISOLATION_ROOTFS)
+
+    { nxt_string("rootfs"),
+      NXT_CONF_VLDT_STRING,
+      NULL,
+      NULL },
+
+#endif
+
+#if (NXT_HAVE_PR_SET_NO_NEW_PRIVS)
+
+    { nxt_string("new_privs"),
+      NXT_CONF_VLDT_BOOLEAN,
+      NULL,
+      NULL },
+
+#endif
+
     NXT_CONF_VLDT_END
 };
 

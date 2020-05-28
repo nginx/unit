@@ -177,6 +177,11 @@ NXT_LIB_UTF8_FILE_NAME_TEST_SRCS=" \
 "
 
 
+if [ $NXT_HAVE_ROOTFS = YES ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS src/nxt_fs.c"
+fi
+
+
 if [ $NXT_TLS = YES ]; then
     nxt_have=NXT_TLS . auto/have
     NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_TLS_SRCS"

@@ -18,6 +18,7 @@
 #include <nxt_unit_field.h>
 #include <nxt_unit_request.h>
 #include <nxt_unit_response.h>
+#include <nxt_python_mounts.h>
 
 /*
  * According to "PEP 3333 / A Note On String Types"
@@ -38,11 +39,17 @@
  */
 
 
+#define _NXT_PYTHON_MOUNTS(major, minor)                                      \
+    nxt_python ## major ## minor ## _mounts
+
+#define NXT_PYTHON_MOUNTS(major, minor) _NXT_PYTHON_MOUNTS(major, minor)
+
 #if PY_MAJOR_VERSION == 3
 #define NXT_PYTHON_BYTES_TYPE       "bytestring"
 
 #define PyString_FromStringAndSize(str, size)                                 \
             PyUnicode_DecodeLatin1((str), (size), "strict")
+
 #else
 #define NXT_PYTHON_BYTES_TYPE       "string"
 
@@ -116,6 +123,8 @@ NXT_EXPORT nxt_app_module_t  nxt_app_module = {
     compat,
     nxt_string("python"),
     PY_VERSION,
+    NXT_PYTHON_MOUNTS(PY_MAJOR_VERSION, PY_MINOR_VERSION),
+    nxt_nitems(NXT_PYTHON_MOUNTS(PY_MAJOR_VERSION, PY_MINOR_VERSION)),
     NULL,
     nxt_python_start,
 };
