@@ -1,4 +1,15 @@
 
+Changes with Unit 1.18.0                                         28 May 2020
+
+    *) Feature: the "rootfs" isolation option for changing root filesystem
+       for an application.
+
+    *) Feature: multiple "targets" in PHP applications.
+
+    *) Feature: support for percent-encoding in the "uri" and "arguments"
+       matching options and in the "pass" option.
+
+
 Changes with Unit 1.17.0                                         16 Apr 2020
 
     *) Feature: a "return" action with optional "location" for immediate
