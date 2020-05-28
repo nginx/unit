@@ -281,6 +281,52 @@ class TestGoIsolation(TestApplicationGo):
                     '%s match' % ns,
                 )
 
+    def test_go_isolation_rootfs_container(self):
+        if not self.isolation_key('unprivileged_userns_clone'):
+            print('unprivileged clone is not available')
+            raise unittest.SkipTest()
+
+        if not self.isolation_key('mnt'):
+            print('mnt namespace is not supported')
+            raise unittest.SkipTest()
+
+        isolation = {
+            'namespaces': {'mount': True, 'credential': True},
+            'rootfs': self.testdir,
+        }
+
+        self.load('ns_inspect', isolation=isolation)
+
+        obj = self.getjson(url='/?file=/go/app')['body']
+
+        self.assertEqual(obj['FileExists'], True, 'app relative to rootfs')
+
+        obj = self.getjson(url='/?file=/bin/sh')['body']
+        self.assertEqual(obj['FileExists'], False, 'file should not exists')
+
+    def test_go_isolation_rootfs_container_priv(self):
+        if not self.is_su:
+            print("requires root")
+            raise unittest.SkipTest()
+
+        if not self.isolation_key('mnt'):
+            print('mnt namespace is not supported')
+            raise unittest.SkipTest()
+
+        isolation = {
+            'namespaces': {'mount': True},
+            'rootfs': self.testdir,
+        }
+
+        self.load('ns_inspect', isolation=isolation)
+
+        obj = self.getjson(url='/?file=/go/app')['body']
+
+        self.assertEqual(obj['FileExists'], True, 'app relative to rootfs')
+
+        obj = self.getjson(url='/?file=/bin/sh')['body']
+        self.assertEqual(obj['FileExists'], False, 'file should not exists')
+
 
 if __name__ == '__main__':
     TestGoIsolation.main()
