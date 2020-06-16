@@ -124,8 +124,12 @@ endif
 
 ifeq ($(OSVER), fedora)
 include Makefile.php
+ifeq ($(shell test `rpm --eval '0%{?fedora} -lt 32'`; echo $$?),0)
 include Makefile.python27
-ifeq ($(shell test `rpm --eval '0%{?fedora} -ge 29'`; echo $$?),0)
+endif
+ifeq ($(shell test `rpm --eval '0%{?fedora} -ge 32'`; echo $$?),0)
+include Makefile.python38
+else ifeq ($(shell test `rpm --eval '0%{?fedora} -ge 29'`; echo $$?),0)
 include Makefile.python37
 else
 include Makefile.python36
