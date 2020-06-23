@@ -79,10 +79,8 @@ NXT_EXPORT nxt_app_module_t  nxt_app_module = {
     compat,
     nxt_string("ruby"),
     ruby_version,
-#if (NXT_HAVE_ISOLATION_ROOTFS)
     nxt_ruby_mounts,
     nxt_nitems(nxt_ruby_mounts),
-#endif
     NULL,
     nxt_ruby_start,
 };

@@ -94,24 +94,8 @@ nxt_feature_libs=
 nxt_feature_test="#include <sys/mount.h>
 
                   int main() {
-                      return mount((void*)0, (void*)0, (void*)0, 0, (void*)0);
-                  }"
-. auto/feature
-
-if [ $nxt_found = yes ]; then
-    NXT_HAVE_MOUNT=YES
-fi
-
-
-nxt_feature="Bind mount()"
-nxt_feature_name=NXT_HAVE_BIND_MOUNT
-nxt_feature_run=no
-nxt_feature_incs=
-nxt_feature_libs=
-nxt_feature_test="#include <sys/mount.h>
-
-                  int main() {
-                      return MS_BIND | MS_REC
+                      return mount(\"/\", \"/\", \"bind\",
+                                   MS_BIND | MS_REC, \"\");
                   }"
 . auto/feature
 

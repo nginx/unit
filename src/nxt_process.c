@@ -35,16 +35,13 @@ static void nxt_process_created_error(nxt_task_t *task,
 
 #if (NXT_HAVE_ISOLATION_ROOTFS)
 static nxt_int_t nxt_process_chroot(nxt_task_t *task, const char *path);
-#endif
 
-#if (NXT_HAVE_PIVOT_ROOT)
+#if (NXT_HAVE_PIVOT_ROOT) && (NXT_HAVE_CLONE_NEWNS)
 static nxt_int_t nxt_process_pivot_root(nxt_task_t *task, const char *rootfs);
 static nxt_int_t nxt_process_private_mount(nxt_task_t *task,
     const char *rootfs);
-#endif
-
-#if (NXT_HAVE_PIVOT_ROOT)
 static int nxt_pivot_root(const char *new_root, const char *old_root);
+#endif
 #endif
 
 /* A cached process pid. */
@@ -590,11 +587,6 @@ nxt_process_change_root(nxt_task_t *task, nxt_process_t *process)
 #endif
 
 
-#endif
-
-
-#if (NXT_HAVE_ISOLATION_ROOTFS)
-
 static nxt_int_t
 nxt_process_chroot(nxt_task_t *task, const char *path)
 {
@@ -624,8 +616,6 @@ nxt_process_unmount_all(nxt_task_t *task, nxt_process_t *process)
         nxt_fs_unmount(mnt[i].dst);
     }
 }
-
-#endif
 
 
 #if (NXT_HAVE_PIVOT_ROOT) && (NXT_HAVE_CLONE_NEWNS)
@@ -853,6 +843,8 @@ nxt_pivot_root(const char *new_root, const char *old_root)
 {
     return syscall(__NR_pivot_root, new_root, old_root);
 }
+
+#endif
 
 #endif
 
