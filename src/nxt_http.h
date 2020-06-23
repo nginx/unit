@@ -119,7 +119,6 @@ typedef struct {
     nxt_upstream_server_t           *server;
     nxt_list_t                      *fields;
     nxt_buf_t                       *body;
-    nxt_off_t                       remainder;
 
     nxt_http_status_t               status:16;
     nxt_http_protocol_t             protocol:8;       /* 2 bits */

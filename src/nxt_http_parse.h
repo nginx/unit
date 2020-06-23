@@ -90,6 +90,19 @@ struct nxt_http_field_s {
 };
 
 
+typedef struct {
+    u_char                    *pos;
+    nxt_mp_t                  *mem_pool;
+
+    uint64_t                  chunk_size;
+
+    uint8_t                   state;
+    uint8_t                   last;         /* 1 bit */
+    uint8_t                   chunk_error;  /* 1 bit */
+    uint8_t                   error;        /* 1 bit */
+} nxt_http_chunk_parse_t;
+
+
 #define NXT_HTTP_FIELD_HASH_INIT        159406U
 #define nxt_http_field_hash_char(h, c)  (((h) << 4) + (h) + (c))
 #define nxt_http_field_hash_end(h)      (((h) >> 16) ^ (h))
@@ -108,6 +121,9 @@ nxt_uint_t nxt_http_fields_hash_collisions(nxt_lvlhsh_t *hash,
     nxt_http_field_proc_t items[], nxt_uint_t count, nxt_bool_t level);
 nxt_int_t nxt_http_fields_process(nxt_list_t *fields, nxt_lvlhsh_t *hash,
     void *ctx);
+
+nxt_buf_t *nxt_http_chunk_parse(nxt_task_t *task, nxt_http_chunk_parse_t *hcp,
+    nxt_buf_t *in);
 
 
 extern const nxt_lvlhsh_proto_t  nxt_http_fields_hash_proto;

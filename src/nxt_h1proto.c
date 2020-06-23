@@ -99,6 +99,7 @@ static nxt_int_t nxt_h1p_peer_header_parse(nxt_http_peer_t *peer,
     nxt_buf_mem_t *bm);
 static void nxt_h1p_peer_read(nxt_task_t *task, nxt_http_peer_t *peer);
 static void nxt_h1p_peer_read_done(nxt_task_t *task, void *obj, void *data);
+static void nxt_h1p_peer_body_process(nxt_task_t *task, nxt_http_peer_t *peer, nxt_buf_t *out);
 static void nxt_h1p_peer_closed(nxt_task_t *task, void *obj, void *data);
 static void nxt_h1p_peer_error(nxt_task_t *task, void *obj, void *data);
 static void nxt_h1p_peer_send_timeout(nxt_task_t *task, void *obj, void *data);
@@ -106,6 +107,8 @@ static void nxt_h1p_peer_read_timeout(nxt_task_t *task, void *obj, void *data);
 static nxt_msec_t nxt_h1p_peer_timer_value(nxt_conn_t *c, uintptr_t data);
 static void nxt_h1p_peer_close(nxt_task_t *task, nxt_http_peer_t *peer);
 static void nxt_h1p_peer_free(nxt_task_t *task, void *obj, void *data);
+static nxt_int_t nxt_h1p_peer_transfer_encoding(void *ctx,
+    nxt_http_field_t *field, uintptr_t data);
 
 #if (NXT_TLS)
 static const nxt_conn_state_t  nxt_http_idle_state;
@@ -178,7 +181,7 @@ static nxt_lvlhsh_t                    nxt_h1p_peer_fields_hash;
 
 static nxt_http_field_proc_t           nxt_h1p_peer_fields[] = {
     { nxt_string("Connection"),        &nxt_http_proxy_skip, 0 },
-    { nxt_string("Transfer-Encoding"), &nxt_http_proxy_skip, 0 },
+    { nxt_string("Transfer-Encoding"), &nxt_h1p_peer_transfer_encoding, 0 },
     { nxt_string("Server"),            &nxt_http_proxy_skip, 0 },
     { nxt_string("Date"),              &nxt_http_proxy_date, 0 },
     { nxt_string("Content-Length"),    &nxt_http_proxy_content_length, 0 },
@@ -2139,9 +2142,6 @@ nxt_h1p_peer_connect(nxt_task_t *task, nxt_http_peer_t *peer)
     peer->proto.h1 = h1p;
     h1p->request = r;
 
-    c->socket.task = task;
-    c->read_timer.task = task;
-    c->write_timer.task = task;
     c->socket.data = peer;
     c->remote = peer->server->sockaddr;
 
@@ -2238,7 +2238,8 @@ nxt_h1p_peer_header_send(nxt_task_t *task, nxt_http_peer_t *peer)
     r = peer->request;
 
     size = r->method->length + sizeof(" ") + r->target.length
-           + sizeof(" HTTP/1.0\r\n")
+           + sizeof(" HTTP/1.1\r\n")
+           + sizeof("Connection: close\r\n")
            + sizeof("\r\n");
 
     nxt_list_each(field, r->fields) {
@@ -2261,7 +2262,8 @@ nxt_h1p_peer_header_send(nxt_task_t *task, nxt_http_peer_t *peer)
     p = nxt_cpymem(p, r->method->start, r->method->length);
     *p++ = ' ';
     p = nxt_cpymem(p, r->target.start, r->target.length);
-    p = nxt_cpymem(p, " HTTP/1.0\r\n", 11);
+    p = nxt_cpymem(p, " HTTP/1.1\r\n", 11);
+    p = nxt_cpymem(p, "Connection: close\r\n", 19);
 
     nxt_list_each(field, r->fields) {
 
@@ -2466,6 +2468,7 @@ nxt_h1p_peer_header_read_done(nxt_task_t *task, void *obj, void *data)
     nxt_int_t           ret;
     nxt_buf_t           *b;
     nxt_conn_t          *c;
+    nxt_h1proto_t       *h1p;
     nxt_http_peer_t     *peer;
     nxt_http_request_t  *r;
     nxt_event_engine_t  *engine;
@@ -2503,11 +2506,26 @@ nxt_h1p_peer_header_read_done(nxt_task_t *task, void *obj, void *data)
 
         c->read = NULL;
 
-        if (nxt_buf_mem_used_size(&b->mem) != 0) {
-            peer->body = b;
+        peer->header_received = 1;
+
+        h1p = peer->proto.h1;
+
+        if (h1p->chunked) {
+            if (r->resp.content_length != NULL) {
+                peer->status = NXT_HTTP_BAD_GATEWAY;
+                break;
+            }
+
+            h1p->chunked_parse.mem_pool = c->mem_pool;
+
+        } else if (r->resp.content_length_n > 0) {
+            h1p->remainder = r->resp.content_length_n;
         }
 
-        peer->header_received = 1;
+        if (nxt_buf_mem_used_size(&b->mem) != 0) {
+            nxt_h1p_peer_body_process(task, peer, b);
+            return;
+        }
 
         r->state->ready_handler(task, r, peer);
         return;
@@ -2613,17 +2631,53 @@ static const nxt_conn_state_t  nxt_h1p_peer_read_state
 static void
 nxt_h1p_peer_read_done(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_conn_t          *c;
-    nxt_http_peer_t     *peer;
-    nxt_http_request_t  *r;
+    nxt_buf_t        *out;
+    nxt_conn_t       *c;
+    nxt_http_peer_t  *peer;
 
     c = obj;
     peer = data;
 
     nxt_debug(task, "h1p peer read done");
 
-    peer->body = c->read;
+    out = c->read;
     c->read = NULL;
+
+    nxt_h1p_peer_body_process(task, peer, out);
+}
+
+
+static void
+nxt_h1p_peer_body_process(nxt_task_t *task, nxt_http_peer_t *peer,
+    nxt_buf_t *out)
+{
+    size_t              length;
+    nxt_h1proto_t       *h1p;
+    nxt_http_request_t  *r;
+
+    h1p = peer->proto.h1;
+
+    if (h1p->chunked) {
+        out = nxt_http_chunk_parse(task, &h1p->chunked_parse, out);
+
+        if (h1p->chunked_parse.chunk_error || h1p->chunked_parse.error) {
+            peer->status = NXT_HTTP_BAD_GATEWAY;
+            r = peer->request;
+            r->state->error_handler(task, r, peer);
+            return;
+        }
+
+        if (h1p->chunked_parse.last) {
+            nxt_buf_chain_add(&out, nxt_http_buf_last(peer->request));
+            peer->closed = 1;
+        }
+
+    } else if (h1p->remainder > 0) {
+        length = nxt_buf_chain_length(out);
+        h1p->remainder -= length;
+    }
+
+    peer->body = out;
 
     r = peer->request;
     r->state->ready_handler(task, r, peer);
@@ -2644,8 +2698,8 @@ nxt_h1p_peer_closed(nxt_task_t *task, void *obj, void *data)
 
     if (peer->header_received) {
         peer->body = nxt_http_buf_last(r);
-
         peer->closed = 1;
+        r->inconsistent = (peer->proto.h1->remainder != 0);
 
         r->state->ready_handler(task, r, peer);
 
@@ -2776,4 +2830,23 @@ nxt_h1p_peer_free(nxt_task_t *task, void *obj, void *data)
     nxt_debug(task, "h1p peer free");
 
     nxt_conn_free(task, c);
+}
+
+
+static nxt_int_t
+nxt_h1p_peer_transfer_encoding(void *ctx, nxt_http_field_t *field,
+    uintptr_t data)
+{
+    nxt_http_request_t  *r;
+
+    r = ctx;
+    field->skip = 1;
+
+    if (field->value_length == 7
+        && nxt_memcmp(field->value, "chunked", 7) == 0)
+    {
+        r->peer->proto.h1->chunked = 1;
+    }
+
+    return NXT_OK;
 }
