@@ -28,6 +28,9 @@
 #if PHP_VERSION_ID >= 70000
 #define NXT_PHP7 1
 #endif
+#if PHP_VERSION_ID >= 80000
+#define NXT_PHP8 1
+#endif
 
 /* PHP 8 */
 #ifndef TSRMLS_CC
@@ -61,10 +64,14 @@ typedef struct {
 } nxt_php_run_ctx_t;
 
 
+#ifdef NXT_PHP8
+typedef int (*nxt_php_disable_t)(const char *p, size_t size);
+#else
 #ifdef NXT_PHP7
 typedef int (*nxt_php_disable_t)(char *p, size_t size);
 #else
 typedef int (*nxt_php_disable_t)(char *p, uint TSRMLS_DC);
+#endif
 #endif
 
 #if PHP_VERSION_ID < 70200
@@ -105,10 +112,14 @@ nxt_inline void nxt_php_set_str(nxt_unit_request_info_t *req, const char *name,
 static void nxt_php_set_cstr(nxt_unit_request_info_t *req, const char *name,
     const char *str, uint32_t len, zval *track_vars_array TSRMLS_DC);
 static void nxt_php_register_variables(zval *track_vars_array TSRMLS_DC);
+#ifdef NXT_PHP8
+static void nxt_php_log_message(const char *message, int syslog_type_int);
+#else
 #ifdef NXT_HAVE_PHP_LOG_MESSAGE_WITH_SYSLOG_TYPE
 static void nxt_php_log_message(char *message, int syslog_type_int);
 #else
 static void nxt_php_log_message(char *message TSRMLS_DC);
+#endif
 #endif
 
 #ifdef NXT_PHP7
@@ -1269,12 +1280,17 @@ nxt_php_set_cstr(nxt_unit_request_info_t *req, const char *name,
 }
 
 
+#ifdef NXT_PHP8
+static void
+nxt_php_log_message(const char *message, int syslog_type_int)
+#else
 #ifdef NXT_HAVE_PHP_LOG_MESSAGE_WITH_SYSLOG_TYPE
 static void
 nxt_php_log_message(char *message, int syslog_type_int)
 #else
 static void
 nxt_php_log_message(char *message TSRMLS_DC)
+#endif
 #endif
 {
     nxt_log(nxt_php_task, NXT_LOG_NOTICE, "php message: %s", message);
