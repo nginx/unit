@@ -1346,15 +1346,8 @@ static nxt_int_t
 nxt_conf_vldt_match_pattern(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value)
 {
-    u_char      ch;
     nxt_str_t   pattern;
-    nxt_uint_t  i, first, last;
-
-    enum {
-        sw_none,
-        sw_side,
-        sw_middle
-    } state;
+    nxt_uint_t  i, first;
 
     if (nxt_conf_type(value) != NXT_CONF_STRING) {
         return nxt_conf_vldt_error(vldt, "The \"match\" patterns for \"host\", "
@@ -1368,38 +1361,11 @@ nxt_conf_vldt_match_pattern(nxt_conf_validation_t *vldt,
     }
 
     first = (pattern.start[0] == '!');
-    last = pattern.length - 1;
-    state = sw_none;
 
-    for (i = first; i != pattern.length; i++) {
-
-        ch = pattern.start[i];
-
-        if (ch != '*') {
-            continue;
-        }
-
-        switch (state) {
-        case sw_none:
-            state = (i == first) ? sw_side : sw_middle;
-            break;
-
-        case sw_side:
-            if (i == last) {
-                if (last - first != 1) {
-                    break;
-                }
-
-                return nxt_conf_vldt_error(vldt, "The \"match\" pattern must "
-                                           "not contain double \"*\" markers.");
-            }
-
-            /* Fall through. */
-
-        case sw_middle:
-            return nxt_conf_vldt_error(vldt, "The \"match\" patterns can "
-                                       "either contain \"*\" markers at "
-                                       "the sides or only one in the middle.");
+    for (i = first; i < pattern.length; i++) {
+        if (pattern.start[i] == '*' && pattern.start[i + 1] == '*') {
+            return nxt_conf_vldt_error(vldt, "The \"match\" pattern must "
+                                       "not contain double \"*\" markers.");
         }
     }
 

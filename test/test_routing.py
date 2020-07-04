@@ -115,10 +115,41 @@ class TestRouting(TestApplicationProto):
 
     def test_routes_match_invalid(self):
         self.route_match_invalid({"method": "**"})
-        self.route_match_invalid({"method": "blah**"})
-        self.route_match_invalid({"host": "*blah*blah"})
-        self.route_match_invalid({"host": "blah*blah*blah"})
-        self.route_match_invalid({"host": "blah*blah*"})
+
+    def test_routes_match_valid(self):
+        self.route_match({"method": "blah*"})
+        self.route_match({"host": "*blah*blah"})
+        self.route_match({"host": "blah*blah*blah"})
+        self.route_match({"host": "blah*blah*"})
+
+    def test_routes_match_empty_exact(self):
+        self.route_match({"uri": ""})
+        self.assertEqual(self.get()['status'], 404)
+
+        self.route_match({"uri": "/"})
+        self.assertEqual(self.get()['status'], 200)
+        self.assertEqual(self.get(url='/blah')['status'], 404)
+
+    def test_routes_match_negative(self):
+        self.route_match({"uri": "!"})
+        self.assertEqual(self.get()['status'], 404)
+
+        self.route_match({"uri": "!/"})
+        self.assertEqual(self.get()['status'], 404)
+        self.assertEqual(self.get(url='/blah')['status'], 200)
+
+        self.route_match({"uri": "!*blah"})
+        self.assertEqual(self.get()['status'], 200)
+        self.assertEqual(self.get(url='/bla')['status'], 200)
+        self.assertEqual(self.get(url='/blah')['status'], 404)
+        self.assertEqual(self.get(url='/blah1')['status'], 200)
+
+        self.route_match({"uri": "!/blah*1*"})
+        self.assertEqual(self.get()['status'], 200)
+        self.assertEqual(self.get(url='/blah')['status'], 200)
+        self.assertEqual(self.get(url='/blah1')['status'], 404)
+        self.assertEqual(self.get(url='/blah12')['status'], 404)
+        self.assertEqual(self.get(url='/blah2')['status'], 200)
 
     def test_routes_match_wildcard_middle(self):
         self.route_match({"host": "ex*le"})
@@ -180,6 +211,15 @@ class TestRouting(TestApplicationProto):
 
         self.assertEqual(self.get(url='/blah')['status'], 200, '/blah')
         self.assertEqual(self.get(url='/BLAH')['status'], 404, '/BLAH')
+
+    def test_routes_match_many_wildcard_substrings_case_sensitive(self):
+        self.route_match({"uri": "*a*B*c*"})
+
+        self.assertEqual(self.get(url='/blah-a-B-c-blah')['status'], 200)
+        self.assertEqual(self.get(url='/a-B-c')['status'], 200)
+        self.assertEqual(self.get(url='/aBc')['status'], 200)
+        self.assertEqual(self.get(url='/aBCaBbc')['status'], 200)
+        self.assertEqual(self.get(url='/ABc')['status'], 404)
 
     def test_routes_pass_encode(self):
         def check_pass(path, name):
@@ -1362,7 +1402,6 @@ class TestRouting(TestApplicationProto):
         self.route_match_invalid({"arguments": ["var"]})
         self.route_match_invalid({"arguments": [{"var1": {}}]})
         self.route_match_invalid({"arguments": {"": "bar"}})
-        self.route_match_invalid({"arguments": {"foo": "*ba*r"}})
         self.route_match_invalid({"arguments": {"foo": "%"}})
         self.route_match_invalid({"arguments": {"foo": "%1G"}})
         self.route_match_invalid({"arguments": {"%": "bar"}})
