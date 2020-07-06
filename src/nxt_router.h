@@ -66,12 +66,6 @@ typedef struct {
 
 
 typedef struct {
-    nxt_queue_t            creating;   /* of nxt_socket_conf_t */
-    nxt_queue_t            pending;    /* of nxt_socket_conf_t */
-    nxt_queue_t            updating;   /* of nxt_socket_conf_t */
-    nxt_queue_t            keeping;    /* of nxt_socket_conf_t */
-    nxt_queue_t            deleting;   /* of nxt_socket_conf_t */
-
 #if (NXT_TLS)
     nxt_queue_t            tls;        /* of nxt_router_tlssock_t */
 #endif

@@ -297,6 +297,14 @@ const nxt_process_init_t  nxt_router_process = {
 };
 
 
+/* Queues of nxt_socket_conf_t */
+nxt_queue_t  creating_sockets;
+nxt_queue_t  pending_sockets;
+nxt_queue_t  updating_sockets;
+nxt_queue_t  keeping_sockets;
+nxt_queue_t  deleting_sockets;
+
+
 static nxt_int_t
 nxt_router_prefork(nxt_task_t *task, nxt_process_t *process, nxt_mp_t *mp)
 {
@@ -1027,11 +1035,11 @@ nxt_router_temp_conf(nxt_task_t *task)
         goto temp_fail;
     }
 
-    nxt_queue_init(&tmcf->deleting);
-    nxt_queue_init(&tmcf->keeping);
-    nxt_queue_init(&tmcf->updating);
-    nxt_queue_init(&tmcf->pending);
-    nxt_queue_init(&tmcf->creating);
+    nxt_queue_init(&creating_sockets);
+    nxt_queue_init(&pending_sockets);
+    nxt_queue_init(&updating_sockets);
+    nxt_queue_init(&keeping_sockets);
+    nxt_queue_init(&deleting_sockets);
 
 #if (NXT_TLS)
     nxt_queue_init(&tmcf->tls);
@@ -1088,11 +1096,11 @@ nxt_router_conf_apply(nxt_task_t *task, void *obj, void *data)
 
     tmcf = obj;
 
-    qlk = nxt_queue_first(&tmcf->pending);
+    qlk = nxt_queue_first(&pending_sockets);
 
-    if (qlk != nxt_queue_tail(&tmcf->pending)) {
+    if (qlk != nxt_queue_tail(&pending_sockets)) {
         nxt_queue_remove(qlk);
-        nxt_queue_insert_tail(&tmcf->creating, qlk);
+        nxt_queue_insert_tail(&creating_sockets, qlk);
 
         skcf = nxt_queue_link_data(qlk, nxt_socket_conf_t, link);
 
@@ -1150,8 +1158,8 @@ nxt_router_conf_apply(nxt_task_t *task, void *obj, void *data)
 
     nxt_router_engines_post(router, tmcf);
 
-    nxt_queue_add(&router->sockets, &tmcf->updating);
-    nxt_queue_add(&router->sockets, &tmcf->creating);
+    nxt_queue_add(&router->sockets, &updating_sockets);
+    nxt_queue_add(&router->sockets, &creating_sockets);
 
     router->access_log = rtcf->access_log;
 
@@ -1185,6 +1193,8 @@ nxt_router_conf_ready(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
 
     if (--tmcf->count == 0) {
         nxt_router_conf_send(task, tmcf, NXT_PORT_MSG_RPC_READY_LAST);
+
+        nxt_mp_destroy(tmcf->mem_pool);
     }
 }
 
@@ -1202,8 +1212,8 @@ nxt_router_conf_error(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
 
     nxt_alert(task, "failed to apply new conf");
 
-    for (qlk = nxt_queue_first(&tmcf->creating);
-         qlk != nxt_queue_tail(&tmcf->creating);
+    for (qlk = nxt_queue_first(&creating_sockets);
+         qlk != nxt_queue_tail(&creating_sockets);
          qlk = nxt_queue_next(qlk))
     {
         skcf = nxt_queue_link_data(qlk, nxt_socket_conf_t, link);
@@ -1217,9 +1227,9 @@ nxt_router_conf_error(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
     }
 
     nxt_queue_init(&new_socket_confs);
-    nxt_queue_add(&new_socket_confs, &tmcf->updating);
-    nxt_queue_add(&new_socket_confs, &tmcf->pending);
-    nxt_queue_add(&new_socket_confs, &tmcf->creating);
+    nxt_queue_add(&new_socket_confs, &updating_sockets);
+    nxt_queue_add(&new_socket_confs, &pending_sockets);
+    nxt_queue_add(&new_socket_confs, &creating_sockets);
 
     rtcf = tmcf->router_conf;
 
@@ -1241,8 +1251,8 @@ nxt_router_conf_error(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
 
     router = rtcf->router;
 
-    nxt_queue_add(&router->sockets, &tmcf->keeping);
-    nxt_queue_add(&router->sockets, &tmcf->deleting);
+    nxt_queue_add(&router->sockets, &keeping_sockets);
+    nxt_queue_add(&router->sockets, &deleting_sockets);
 
     nxt_queue_add(&router->apps, &tmcf->previous);
 
@@ -1253,6 +1263,8 @@ nxt_router_conf_error(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
     nxt_mp_destroy(rtcf->mem_pool);
 
     nxt_router_conf_send(task, tmcf, NXT_PORT_MSG_RPC_ERROR);
+
+    nxt_mp_destroy(tmcf->mem_pool);
 }
 
 
@@ -1902,7 +1914,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         tmcf->router_conf->access_log = access_log;
     }
 
-    nxt_queue_add(&tmcf->deleting, &router->sockets);
+    nxt_queue_add(&deleting_sockets, &router->sockets);
     nxt_queue_init(&router->sockets);
 
     return NXT_OK;
@@ -2141,15 +2153,15 @@ nxt_router_listen_socket_find(nxt_router_temp_conf_t *tmcf,
             nskcf->listen = skcf->listen;
 
             nxt_queue_remove(qlk);
-            nxt_queue_insert_tail(&tmcf->keeping, qlk);
+            nxt_queue_insert_tail(&keeping_sockets, qlk);
 
-            nxt_queue_insert_tail(&tmcf->updating, &nskcf->link);
+            nxt_queue_insert_tail(&updating_sockets, &nskcf->link);
 
             return NXT_OK;
         }
     }
 
-    nxt_queue_insert_tail(&tmcf->pending, &nskcf->link);
+    nxt_queue_insert_tail(&pending_sockets, &nskcf->link);
 
     return NXT_DECLINED;
 }
@@ -2577,13 +2589,13 @@ nxt_router_engine_conf_create(nxt_router_temp_conf_t *tmcf,
 {
     nxt_int_t  ret;
 
-    ret = nxt_router_engine_joints_create(tmcf, recf, &tmcf->creating,
+    ret = nxt_router_engine_joints_create(tmcf, recf, &creating_sockets,
                                           nxt_router_listen_socket_create);
     if (nxt_slow_path(ret != NXT_OK)) {
         return ret;
     }
 
-    ret = nxt_router_engine_joints_create(tmcf, recf, &tmcf->updating,
+    ret = nxt_router_engine_joints_create(tmcf, recf, &updating_sockets,
                                           nxt_router_listen_socket_create);
     if (nxt_slow_path(ret != NXT_OK)) {
         return ret;
@@ -2599,19 +2611,19 @@ nxt_router_engine_conf_update(nxt_router_temp_conf_t *tmcf,
 {
     nxt_int_t  ret;
 
-    ret = nxt_router_engine_joints_create(tmcf, recf, &tmcf->creating,
+    ret = nxt_router_engine_joints_create(tmcf, recf, &creating_sockets,
                                           nxt_router_listen_socket_create);
     if (nxt_slow_path(ret != NXT_OK)) {
         return ret;
     }
 
-    ret = nxt_router_engine_joints_create(tmcf, recf, &tmcf->updating,
+    ret = nxt_router_engine_joints_create(tmcf, recf, &updating_sockets,
                                           nxt_router_listen_socket_update);
     if (nxt_slow_path(ret != NXT_OK)) {
         return ret;
     }
 
-    ret = nxt_router_engine_joints_delete(tmcf, recf, &tmcf->deleting);
+    ret = nxt_router_engine_joints_delete(tmcf, recf, &deleting_sockets);
     if (nxt_slow_path(ret != NXT_OK)) {
         return ret;
     }
@@ -2631,12 +2643,12 @@ nxt_router_engine_conf_delete(nxt_router_temp_conf_t *tmcf,
         return ret;
     }
 
-    ret = nxt_router_engine_joints_delete(tmcf, recf, &tmcf->updating);
+    ret = nxt_router_engine_joints_delete(tmcf, recf, &updating_sockets);
     if (nxt_slow_path(ret != NXT_OK)) {
         return ret;
     }
 
-    return nxt_router_engine_joints_delete(tmcf, recf, &tmcf->deleting);
+    return nxt_router_engine_joints_delete(tmcf, recf, &deleting_sockets);
 }
 
 
