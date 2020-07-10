@@ -200,6 +200,27 @@ class TestRouting(TestApplicationProto):
         self.assertEqual(self.get(url='/blah')['status'], 200, '/blah')
         self.assertEqual(self.get(url='/BLAH')['status'], 404, '/BLAH')
 
+    def test_route_match_wildcards_ordered(self):
+        self.route_match({"uri": "/a*x*y*"})
+
+        self.assertEqual(self.get(url='/axy')['status'], 200, '/axy')
+        self.assertEqual(self.get(url='/ayx')['status'], 404, '/ayx')
+
+    def test_route_match_wildcards_adjust_start(self):
+        self.route_match({"uri": "/bla*bla*"})
+
+        self.assertEqual(self.get(url='/bla_foo')['status'], 404, '/bla_foo')
+
+    def test_route_match_wildcards_adjust_start_substr(self):
+        self.route_match({"uri": "*bla*bla*"})
+
+        self.assertEqual(self.get(url='/bla_foo')['status'], 404, '/bla_foo')
+
+    def test_route_match_wildcards_adjust_end(self):
+        self.route_match({"uri": "/bla*bla"})
+
+        self.assertEqual(self.get(url='/foo_bla')['status'], 404, '/foo_bla')
+
     def test_routes_match_wildcard_right_case_sensitive(self):
         self.route_match({"uri": "/bla*"})
 

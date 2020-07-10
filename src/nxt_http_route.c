@@ -2344,6 +2344,7 @@ nxt_http_route_pattern(nxt_http_request_t *r, nxt_http_route_pattern_t *pattern,
 
     pattern_slices = pattern->pattern_slices;
     pattern_slice = pattern_slices->elts;
+    end = start + length;
 
     for (i = 0; i < pattern_slices->nelts; i++, pattern_slice++) {
         test = pattern_slice->start;
@@ -2359,25 +2360,25 @@ nxt_http_route_pattern(nxt_http_request_t *r, nxt_http_route_pattern_t *pattern,
             if (nxt_http_route_memcmp(start, test, test_length,
                                       pattern->case_sensitive))
             {
+                start += test_length;
                 break;
             }
 
             return 0;
 
         case NXT_HTTP_ROUTE_PATTERN_END:
-            p = start + length - test_length;
+            p = end - test_length;
 
             if (nxt_http_route_memcmp(p, test, test_length,
                                       pattern->case_sensitive))
             {
+                end = p;
                 break;
             }
 
             return 0;
 
         case NXT_HTTP_ROUTE_PATTERN_SUBSTRING:
-            end = start + length;
-
             if (pattern->case_sensitive) {
                 p = nxt_memstrn(start, end, (char *) test, test_length);
 
@@ -2388,6 +2389,8 @@ nxt_http_route_pattern(nxt_http_request_t *r, nxt_http_route_pattern_t *pattern,
             if (p == NULL) {
                 return 0;
             }
+
+            start = p + test_length;
         }
     }
 
