@@ -1277,6 +1277,16 @@ static void
 nxt_php_log_message(char *message TSRMLS_DC)
 #endif
 {
-    nxt_unit_log(nxt_php_unit_ctx, NXT_UNIT_LOG_NOTICE,
-                 "php message: %s", message);
+    nxt_php_run_ctx_t  *ctx;
+
+    ctx = SG(server_context);
+
+    if (ctx != NULL) {
+        nxt_unit_req_log(ctx->req, NXT_UNIT_LOG_NOTICE,
+                         "php message: %s", message);
+
+    } else {
+        nxt_unit_log(nxt_php_unit_ctx, NXT_UNIT_LOG_NOTICE,
+                     "php message: %s", message);
+    }
 }
