@@ -4977,11 +4977,18 @@ nxt_unit_snprint_prefix(char *p, char *end, pid_t pid, int level)
     tm = *localtime(&ts.tv_sec);
 #endif
 
+#if (NXT_DEBUG)
     p += snprintf(p, end - p,
                   "%4d/%02d/%02d %02d:%02d:%02d.%03d ",
                   tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
                   tm.tm_hour, tm.tm_min, tm.tm_sec,
                   (int) ts.tv_nsec / 1000000);
+#else
+    p += snprintf(p, end - p,
+                  "%4d/%02d/%02d %02d:%02d:%02d ",
+                  tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+                  tm.tm_hour, tm.tm_min, tm.tm_sec);
+#endif
 
     p += snprintf(p, end - p,
                   "[%s] %d#%"PRIu64" [unit] ", nxt_unit_log_levels[level],
