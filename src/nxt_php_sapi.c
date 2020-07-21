@@ -251,9 +251,9 @@ NXT_EXPORT nxt_app_module_t  nxt_app_module = {
 static nxt_php_target_t  *nxt_php_targets;
 static nxt_int_t         nxt_php_last_target = -1;
 
-static nxt_task_t  *nxt_php_task;
+static nxt_unit_ctx_t    *nxt_php_unit_ctx;
 #if defined(ZTS) && PHP_VERSION_ID < 70400
-static void        ***tsrm_ls;
+static void              ***tsrm_ls;
 #endif
 
 
@@ -276,8 +276,6 @@ nxt_php_start(nxt_task_t *task, nxt_process_data_t *data)
     static nxt_str_t  file_str = nxt_string("file");
     static nxt_str_t  user_str = nxt_string("user");
     static nxt_str_t  admin_str = nxt_string("admin");
-
-    nxt_php_task = task;
 
     conf = data->app;
     c = &conf->u.php;
@@ -404,6 +402,8 @@ nxt_php_start(nxt_task_t *task, nxt_process_data_t *data)
     if (nxt_slow_path(unit_ctx == NULL)) {
         return NXT_ERROR;
     }
+
+    nxt_php_unit_ctx = unit_ctx;
 
     nxt_unit_run(unit_ctx);
 
@@ -1277,5 +1277,6 @@ static void
 nxt_php_log_message(char *message TSRMLS_DC)
 #endif
 {
-    nxt_log(nxt_php_task, NXT_LOG_NOTICE, "php message: %s", message);
+    nxt_unit_log(nxt_php_unit_ctx, NXT_UNIT_LOG_NOTICE,
+                 "php message: %s", message);
 }
