@@ -289,7 +289,7 @@ nxt_discovery_modules(nxt_task_t *task, const char *path)
 
     *p++ = ']';
 
-    if (nxt_slow_path(p >= end)) {
+    if (nxt_slow_path(p > end)) {
         nxt_alert(task, "discovery write past the buffer");
         goto fail;
     }
