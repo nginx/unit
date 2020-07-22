@@ -407,8 +407,11 @@ class TestUnit(unittest.TestCase):
         print('Path to unit.log:\n' + path + '\n')
 
         if TestUnit.print_log:
+            os.set_blocking(sys.stdout.fileno(), True)
+            sys.stdout.flush()
+
             if data is None:
                 with open(path, 'r', encoding='utf-8', errors='ignore') as f:
-                    data = f.read()
-
-            print(data)
+                    shutil.copyfileobj(f, sys.stdout)
+            else:
+                sys.stdout.write(data)
