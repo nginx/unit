@@ -707,7 +707,11 @@ nxt_php_dirname(const nxt_str_t *file, nxt_str_t *dir)
 {
     size_t  length;
 
-    nxt_assert(file->length > 0 && file->start[0] == '/');
+    if (file->length == 0 || file->start[0] != '/') {
+        nxt_unit_alert(NULL, "php_dirname: invalid file name "
+                       "(not starts from '/')");
+        return NXT_ERROR;
+    }
 
     length = file->length;
 
