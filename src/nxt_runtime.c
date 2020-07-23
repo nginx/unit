@@ -527,7 +527,7 @@ nxt_runtime_stop_all_processes(nxt_task_t *task, nxt_runtime_t *rt)
 static void
 nxt_runtime_exit(nxt_task_t *task, void *obj, void *data)
 {
-    int                 status;
+    int                 status, engine_count;
     nxt_runtime_t       *rt;
     nxt_process_t       *process;
     nxt_event_engine_t  *engine;
@@ -571,14 +571,25 @@ nxt_runtime_exit(nxt_task_t *task, void *obj, void *data)
 
     } nxt_runtime_process_loop;
 
-    if (rt->port_by_type[rt->type] != NULL) {
-        nxt_port_use(task, rt->port_by_type[rt->type], -1);
-    }
-
-    nxt_thread_mutex_destroy(&rt->processes_mutex);
-
     status = rt->status;
-    nxt_mp_destroy(rt->mem_pool);
+
+    engine_count = 0;
+
+    nxt_queue_each(engine, &rt->engines, nxt_event_engine_t, link) {
+
+        engine_count++;
+
+    } nxt_queue_loop;
+
+    if (engine_count <= 1) {
+        if (rt->port_by_type[rt->type] != NULL) {
+            nxt_port_use(task, rt->port_by_type[rt->type], -1);
+        }
+
+        nxt_thread_mutex_destroy(&rt->processes_mutex);
+
+        nxt_mp_destroy(rt->mem_pool);
+    }
 
     nxt_debug(task, "exit: %d", status);
 
