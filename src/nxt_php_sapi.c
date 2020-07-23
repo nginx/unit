@@ -265,8 +265,6 @@ nxt_php_start(nxt_task_t *task, nxt_process_data_t *data)
     nxt_str_t              ini_path, name;
     nxt_int_t              ret;
     nxt_uint_t             n;
-    nxt_port_t             *my_port, *main_port;
-    nxt_runtime_t          *rt;
     nxt_unit_ctx_t         *unit_ctx;
     nxt_unit_init_t        php_init;
     nxt_conf_value_t       *value;
@@ -363,39 +361,13 @@ nxt_php_start(nxt_task_t *task, nxt_process_data_t *data)
         nxt_php_set_options(task, value, ZEND_INI_USER);
     }
 
-    rt = task->thread->runtime;
-
-    main_port = rt->port_by_type[NXT_PROCESS_MAIN];
-    if (nxt_slow_path(main_port == NULL)) {
-        nxt_alert(task, "main process not found");
-        return NXT_ERROR;
+    ret = nxt_unit_default_init(task, &php_init);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        nxt_alert(task, "nxt_unit_default_init() failed");
+        return ret;
     }
-
-    my_port = nxt_runtime_port_find(rt, nxt_pid, 0);
-    if (nxt_slow_path(my_port == NULL)) {
-        nxt_alert(task, "my_port not found");
-        return NXT_ERROR;
-    }
-
-    nxt_memzero(&php_init, sizeof(nxt_unit_init_t));
 
     php_init.callbacks.request_handler = nxt_php_request_handler;
-
-    php_init.ready_port.id.pid = main_port->pid;
-    php_init.ready_port.id.id = main_port->id;
-    php_init.ready_port.out_fd = main_port->pair[1];
-
-    nxt_fd_blocking(task, main_port->pair[1]);
-
-    php_init.ready_stream = my_port->process->stream;
-
-    php_init.read_port.id.pid = my_port->pid;
-    php_init.read_port.id.id = my_port->id;
-    php_init.read_port.in_fd = my_port->pair[0];
-
-    nxt_fd_blocking(task, my_port->pair[0]);
-
-    php_init.log_fd = 2;
     php_init.shm_limit = conf->shm_limit;
 
     unit_ctx = nxt_unit_init(&php_init);
