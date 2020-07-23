@@ -731,9 +731,7 @@ nxt_request_app_link_release_handler(nxt_task_t *task, void *obj, void *data)
 
     nxt_assert(req_app_link->work.data == data);
 
-    nxt_atomic_fetch_add(&req_app_link->use_count, -1);
-
-    nxt_request_app_link_release(task, req_app_link);
+    nxt_request_app_link_use(task, req_app_link, -1);
 }
 
 
@@ -4695,7 +4693,7 @@ nxt_router_port_select(nxt_task_t *task, nxt_port_select_state_t *state)
                                   &req_app_link->link_app_requests);
         }
 
-        ra_use_delta++;
+        nxt_request_app_link_inc_use(req_app_link);
 
         nxt_debug(task, "req_app_link stream #%uD enqueue to app->requests",
                   req_app_link->stream);
