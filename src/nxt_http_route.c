@@ -171,7 +171,7 @@ struct nxt_http_routes_s {
 };
 
 
-#define NJS_COOKIE_HASH                                                       \
+#define NXT_COOKIE_HASH                                                       \
     (nxt_http_field_hash_end(                                                 \
      nxt_http_field_hash_char(                                                \
      nxt_http_field_hash_char(                                                \
@@ -1104,7 +1104,7 @@ nxt_http_route_pattern_create(nxt_task_t *task, nxt_mp_t *mp,
         test.length--;
     }
 
-    if (type == NXT_HTTP_ROUTE_PATTERN_EXACT && test.length != 0) {
+    if (type == NXT_HTTP_ROUTE_PATTERN_EXACT) {
         tmp.start = test.start;
 
         p = nxt_memchr(test.start, '*', test.length);
@@ -2164,7 +2164,7 @@ nxt_http_route_cookies_parse(nxt_http_request_t *r)
 
     nxt_list_each(f, r->fields) {
 
-        if (f->hash != NJS_COOKIE_HASH
+        if (f->hash != NXT_COOKIE_HASH
             || f->name_length != 6
             || nxt_strncasecmp(f->name, (u_char *) "Cookie", 6) != 0)
         {
