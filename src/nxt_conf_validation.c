@@ -550,6 +550,8 @@ static nxt_conf_vldt_object_t nxt_conf_vldt_app_procmap_members[] = {
       NXT_CONF_VLDT_INTEGER,
       NULL,
       NULL },
+
+    NXT_CONF_VLDT_END
 };
 
 #endif
@@ -691,7 +693,9 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_php_target_members[] = {
     { nxt_string("index"),
       NXT_CONF_VLDT_STRING,
       NULL,
-      NULL }
+      NULL },
+
+    NXT_CONF_VLDT_END
 };
 
 
