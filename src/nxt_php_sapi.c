@@ -402,11 +402,6 @@ nxt_php_set_target(nxt_task_t *task, nxt_php_target_t *target,
 
     value = nxt_conf_get_object_member(conf, &root_str, NULL);
 
-    if (value == NULL) {
-        nxt_alert(task, "no php root specified");
-        return NXT_ERROR;
-    }
-
     nxt_conf_get_string(value, &str);
 
     tmp = nxt_malloc(str.length + 1);

@@ -243,11 +243,6 @@ nxt_python_start(nxt_task_t *task, nxt_process_data_t *data)
     app_conf = data->app;
     c = &app_conf->u.python;
 
-    if (c->module.length == 0) {
-        nxt_alert(task, "python module is empty");
-        return NXT_ERROR;
-    }
-
     if (c->home != NULL) {
         len = nxt_strlen(c->home);
 

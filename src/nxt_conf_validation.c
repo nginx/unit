@@ -31,6 +31,11 @@ typedef enum {
                                  |NXT_CONF_VLDT_OBJECT)
 
 
+typedef enum {
+    NXT_CONF_VLDT_REQUIRED = 1,
+} nxt_conf_vldt_flags_t;
+
+
 typedef nxt_int_t (*nxt_conf_vldt_handler_t)(nxt_conf_validation_t *vldt,
                                              nxt_conf_value_t *value,
                                              void *data);
@@ -38,14 +43,15 @@ typedef nxt_int_t (*nxt_conf_vldt_handler_t)(nxt_conf_validation_t *vldt,
 
 typedef struct {
     nxt_str_t                name;
-    nxt_conf_vldt_type_t     type;
+    nxt_conf_vldt_type_t     type:32;
+    nxt_conf_vldt_flags_t    flags:32;
     nxt_conf_vldt_handler_t  validator;
     void                     *data;
 } nxt_conf_vldt_object_t;
 
 
-#define NXT_CONF_VLDT_NEXT(f)  { nxt_null_string, 0, NULL, (f) }
-#define NXT_CONF_VLDT_END      { nxt_null_string, 0, NULL, NULL }
+#define NXT_CONF_VLDT_NEXT(f)  { nxt_null_string, 0, 0, NULL, (f) }
+#define NXT_CONF_VLDT_END      { nxt_null_string, 0, 0, NULL, NULL }
 
 
 typedef nxt_int_t (*nxt_conf_vldt_member_t)(nxt_conf_validation_t *vldt,
@@ -165,16 +171,19 @@ static nxt_int_t nxt_conf_vldt_clone_gidmap(nxt_conf_validation_t *vldt,
 static nxt_conf_vldt_object_t  nxt_conf_vldt_websocket_members[] = {
     { nxt_string("read_timeout"),
       NXT_CONF_VLDT_INTEGER,
+      0,
       NULL,
       NULL },
 
     { nxt_string("keepalive_interval"),
       NXT_CONF_VLDT_INTEGER,
+      0,
       NULL,
       NULL },
 
     { nxt_string("max_frame_size"),
       NXT_CONF_VLDT_INTEGER,
+      0,
       NULL,
       NULL },
 
@@ -185,6 +194,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_websocket_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_static_members[] = {
     { nxt_string("mime_types"),
       NXT_CONF_VLDT_OBJECT,
+      0,
       &nxt_conf_vldt_mtypes,
       NULL },
 
@@ -195,46 +205,55 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_static_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[] = {
     { nxt_string("header_read_timeout"),
       NXT_CONF_VLDT_INTEGER,
+      0,
       NULL,
       NULL },
 
     { nxt_string("body_read_timeout"),
       NXT_CONF_VLDT_INTEGER,
+      0,
       NULL,
       NULL },
 
     { nxt_string("send_timeout"),
       NXT_CONF_VLDT_INTEGER,
+      0,
       NULL,
       NULL },
 
     { nxt_string("idle_timeout"),
       NXT_CONF_VLDT_INTEGER,
+      0,
       NULL,
       NULL },
 
     { nxt_string("body_buffer_size"),
       NXT_CONF_VLDT_INTEGER,
+      0,
       NULL,
       NULL },
 
     { nxt_string("max_body_size"),
       NXT_CONF_VLDT_INTEGER,
+      0,
       NULL,
       NULL },
 
     { nxt_string("body_temp_path"),
       NXT_CONF_VLDT_STRING,
+      0,
       NULL,
       NULL },
 
     { nxt_string("websocket"),
       NXT_CONF_VLDT_OBJECT,
+      0,
       &nxt_conf_vldt_object,
       (void *) &nxt_conf_vldt_websocket_members },
 
     { nxt_string("static"),
       NXT_CONF_VLDT_OBJECT,
+      0,
       &nxt_conf_vldt_object,
       (void *) &nxt_conf_vldt_static_members },
 
@@ -245,6 +264,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_setting_members[] = {
     { nxt_string("http"),
       NXT_CONF_VLDT_OBJECT,
+      0,
       &nxt_conf_vldt_object,
       (void *) &nxt_conf_vldt_http_members },
 
@@ -255,31 +275,37 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_setting_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_root_members[] = {
     { nxt_string("settings"),
       NXT_CONF_VLDT_OBJECT,
+      0,
       &nxt_conf_vldt_object,
       (void *) &nxt_conf_vldt_setting_members },
 
     { nxt_string("listeners"),
       NXT_CONF_VLDT_OBJECT,
+      0,
       &nxt_conf_vldt_object_iterator,
       (void *) &nxt_conf_vldt_listener },
 
     { nxt_string("routes"),
       NXT_CONF_VLDT_ARRAY | NXT_CONF_VLDT_OBJECT,
+      0,
       &nxt_conf_vldt_routes,
       NULL },
 
     { nxt_string("applications"),
       NXT_CONF_VLDT_OBJECT,
+      0,
       &nxt_conf_vldt_object_iterator,
       (void *) &nxt_conf_vldt_app },
 
     { nxt_string("upstreams"),
       NXT_CONF_VLDT_OBJECT,
+      0,
       &nxt_conf_vldt_object_iterator,
       (void *) &nxt_conf_vldt_upstream },
 
     { nxt_string("access_log"),
       NXT_CONF_VLDT_STRING,
+      0,
       NULL,
       NULL },
 
@@ -292,6 +318,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_root_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_tls_members[] = {
     { nxt_string("certificate"),
       NXT_CONF_VLDT_STRING,
+      0,
       &nxt_conf_vldt_certificate,
       NULL },
 
@@ -304,11 +331,13 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_tls_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_listener_members[] = {
     { nxt_string("pass"),
       NXT_CONF_VLDT_STRING,
+      0,
       &nxt_conf_vldt_pass,
       NULL },
 
     { nxt_string("application"),
       NXT_CONF_VLDT_STRING,
+      0,
       &nxt_conf_vldt_app_name,
       NULL },
 
@@ -316,6 +345,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_listener_members[] = {
 
     { nxt_string("tls"),
       NXT_CONF_VLDT_OBJECT,
+      0,
       &nxt_conf_vldt_object,
       (void *) &nxt_conf_vldt_tls_members },
 
@@ -328,46 +358,55 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_listener_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_match_members[] = {
     { nxt_string("method"),
       NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
+      0,
       &nxt_conf_vldt_match_patterns,
       NULL },
 
     { nxt_string("scheme"),
       NXT_CONF_VLDT_STRING,
+      0,
       &nxt_conf_vldt_match_scheme_pattern,
       NULL },
 
     { nxt_string("host"),
       NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
+      0,
       &nxt_conf_vldt_match_patterns,
       NULL },
 
     { nxt_string("source"),
       NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
+      0,
       &nxt_conf_vldt_match_addrs,
       NULL },
 
     { nxt_string("destination"),
       NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
+      0,
       &nxt_conf_vldt_match_addrs,
       NULL },
 
     { nxt_string("uri"),
       NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
+      0,
       &nxt_conf_vldt_match_encoded_patterns,
       NULL },
 
     { nxt_string("arguments"),
       NXT_CONF_VLDT_OBJECT | NXT_CONF_VLDT_ARRAY,
+      0,
       &nxt_conf_vldt_match_encoded_patterns_sets,
       NULL },
 
     { nxt_string("headers"),
       NXT_CONF_VLDT_OBJECT | NXT_CONF_VLDT_ARRAY,
+      0,
       &nxt_conf_vldt_match_patterns_sets,
       NULL },
 
     { nxt_string("cookies"),
       NXT_CONF_VLDT_OBJECT | NXT_CONF_VLDT_ARRAY,
+      0,
       &nxt_conf_vldt_match_patterns_sets,
       NULL },
 
@@ -378,6 +417,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_match_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_pass_action_members[] = {
     { nxt_string("pass"),
       NXT_CONF_VLDT_STRING,
+      0,
       &nxt_conf_vldt_pass,
       NULL },
 
@@ -388,11 +428,13 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_pass_action_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_return_action_members[] = {
     { nxt_string("return"),
       NXT_CONF_VLDT_INTEGER,
+      0,
       &nxt_conf_vldt_return,
       NULL },
 
     { nxt_string("location"),
       NXT_CONF_VLDT_STRING,
+      0,
       NULL,
       NULL },
 
@@ -403,11 +445,13 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_return_action_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_share_action_members[] = {
     { nxt_string("share"),
       NXT_CONF_VLDT_STRING,
+      0,
       NULL,
       NULL },
 
     { nxt_string("fallback"),
       NXT_CONF_VLDT_OBJECT,
+      0,
       &nxt_conf_vldt_action,
       NULL },
 
@@ -418,6 +462,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_share_action_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_proxy_action_members[] = {
     { nxt_string("proxy"),
       NXT_CONF_VLDT_STRING,
+      0,
       &nxt_conf_vldt_proxy,
       NULL },
 
@@ -428,11 +473,13 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_proxy_action_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_route_members[] = {
     { nxt_string("match"),
       NXT_CONF_VLDT_OBJECT,
+      0,
       &nxt_conf_vldt_object,
       (void *) &nxt_conf_vldt_match_members },
 
     { nxt_string("action"),
       NXT_CONF_VLDT_OBJECT,
+      0,
       &nxt_conf_vldt_action,
       NULL },
 
@@ -443,21 +490,25 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_route_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_app_limits_members[] = {
     { nxt_string("timeout"),
       NXT_CONF_VLDT_INTEGER,
+      0,
       NULL,
       NULL },
 
     { nxt_string("reschedule_timeout"),
       NXT_CONF_VLDT_INTEGER,
+      0,
       NULL,
       NULL },
 
     { nxt_string("requests"),
       NXT_CONF_VLDT_INTEGER,
+      0,
       NULL,
       NULL },
 
     { nxt_string("shm"),
       NXT_CONF_VLDT_INTEGER,
+      0,
       NULL,
       NULL },
 
@@ -468,16 +519,19 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_limits_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_app_processes_members[] = {
     { nxt_string("spare"),
       NXT_CONF_VLDT_INTEGER,
+      0,
       NULL,
       NULL },
 
     { nxt_string("max"),
       NXT_CONF_VLDT_INTEGER,
+      0,
       NULL,
       NULL },
 
     { nxt_string("idle_timeout"),
       NXT_CONF_VLDT_INTEGER,
+      0,
       NULL,
       NULL },
 
@@ -490,6 +544,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_namespaces_members[] = {
 #if (NXT_HAVE_CLONE_NEWUSER)
     { nxt_string("credential"),
       NXT_CONF_VLDT_BOOLEAN,
+      0,
       NULL,
       NULL },
 #endif
@@ -497,6 +552,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_namespaces_members[] = {
 #if (NXT_HAVE_CLONE_NEWPID)
     { nxt_string("pid"),
       NXT_CONF_VLDT_BOOLEAN,
+      0,
       NULL,
       NULL },
 #endif
@@ -504,6 +560,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_namespaces_members[] = {
 #if (NXT_HAVE_CLONE_NEWNET)
     { nxt_string("network"),
       NXT_CONF_VLDT_BOOLEAN,
+      0,
       NULL,
       NULL },
 #endif
@@ -511,6 +568,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_namespaces_members[] = {
 #if (NXT_HAVE_CLONE_NEWNS)
     { nxt_string("mount"),
       NXT_CONF_VLDT_BOOLEAN,
+      0,
       NULL,
       NULL },
 #endif
@@ -518,6 +576,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_namespaces_members[] = {
 #if (NXT_HAVE_CLONE_NEWUTS)
     { nxt_string("uname"),
       NXT_CONF_VLDT_BOOLEAN,
+      0,
       NULL,
       NULL },
 #endif
@@ -525,6 +584,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_namespaces_members[] = {
 #if (NXT_HAVE_CLONE_NEWCGROUP)
     { nxt_string("cgroup"),
       NXT_CONF_VLDT_BOOLEAN,
+      0,
       NULL,
       NULL },
 #endif
@@ -538,16 +598,19 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_namespaces_members[] = {
 static nxt_conf_vldt_object_t nxt_conf_vldt_app_procmap_members[] = {
     { nxt_string("container"),
       NXT_CONF_VLDT_INTEGER,
+      0,
       NULL,
       NULL },
 
     { nxt_string("host"),
       NXT_CONF_VLDT_INTEGER,
+      0,
       NULL,
       NULL },
 
     { nxt_string("size"),
       NXT_CONF_VLDT_INTEGER,
+      0,
       NULL,
       NULL },
 
@@ -560,6 +623,7 @@ static nxt_conf_vldt_object_t nxt_conf_vldt_app_procmap_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_app_isolation_members[] = {
     { nxt_string("namespaces"),
       NXT_CONF_VLDT_OBJECT,
+      0,
       &nxt_conf_vldt_clone_namespaces,
       (void *) &nxt_conf_vldt_app_namespaces_members },
 
@@ -567,11 +631,13 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_isolation_members[] = {
 
     { nxt_string("uidmap"),
       NXT_CONF_VLDT_ARRAY,
+      0,
       &nxt_conf_vldt_array_iterator,
       (void *) &nxt_conf_vldt_clone_uidmap },
 
     { nxt_string("gidmap"),
       NXT_CONF_VLDT_ARRAY,
+      0,
       &nxt_conf_vldt_array_iterator,
       (void *) &nxt_conf_vldt_clone_gidmap },
 
@@ -581,6 +647,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_isolation_members[] = {
 
     { nxt_string("rootfs"),
       NXT_CONF_VLDT_STRING,
+      0,
       NULL,
       NULL },
 
@@ -590,6 +657,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_isolation_members[] = {
 
     { nxt_string("new_privs"),
       NXT_CONF_VLDT_BOOLEAN,
+      0,
       NULL,
       NULL },
 
@@ -602,41 +670,49 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_isolation_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[] = {
     { nxt_string("type"),
       NXT_CONF_VLDT_STRING,
+      0,
       NULL,
       NULL },
 
     { nxt_string("limits"),
       NXT_CONF_VLDT_OBJECT,
+      0,
       &nxt_conf_vldt_object,
       (void *) &nxt_conf_vldt_app_limits_members },
 
     { nxt_string("processes"),
       NXT_CONF_VLDT_INTEGER | NXT_CONF_VLDT_OBJECT,
+      0,
       &nxt_conf_vldt_processes,
       (void *) &nxt_conf_vldt_app_processes_members },
 
     { nxt_string("user"),
       NXT_CONF_VLDT_STRING,
+      0,
       NULL,
       NULL },
 
     { nxt_string("group"),
       NXT_CONF_VLDT_STRING,
+      0,
       NULL,
       NULL },
 
     { nxt_string("working_directory"),
       NXT_CONF_VLDT_STRING,
+      0,
       NULL,
       NULL },
 
     { nxt_string("environment"),
       NXT_CONF_VLDT_OBJECT,
+      0,
       &nxt_conf_vldt_object_iterator,
       (void *) &nxt_conf_vldt_environment },
 
     { nxt_string("isolation"),
       NXT_CONF_VLDT_OBJECT,
+      0,
       &nxt_conf_vldt_isolation,
       (void *) &nxt_conf_vldt_app_isolation_members },
 
@@ -647,11 +723,13 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_external_members[] = {
     { nxt_string("executable"),
       NXT_CONF_VLDT_STRING,
+      NXT_CONF_VLDT_REQUIRED,
       NULL,
       NULL },
 
     { nxt_string("arguments"),
       NXT_CONF_VLDT_ARRAY,
+      0,
       &nxt_conf_vldt_array_iterator,
       (void *) &nxt_conf_vldt_argument },
 
@@ -662,16 +740,19 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_external_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_python_members[] = {
     { nxt_string("home"),
       NXT_CONF_VLDT_STRING,
+      0,
       NULL,
       NULL },
 
     { nxt_string("path"),
       NXT_CONF_VLDT_STRING,
+      0,
       NULL,
       NULL },
 
     { nxt_string("module"),
       NXT_CONF_VLDT_STRING,
+      NXT_CONF_VLDT_REQUIRED,
       NULL,
       NULL },
 
@@ -682,16 +763,19 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_python_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_php_target_members[] = {
     { nxt_string("root"),
       NXT_CONF_VLDT_STRING,
+      NXT_CONF_VLDT_REQUIRED,
       NULL,
       NULL },
 
     { nxt_string("script"),
       NXT_CONF_VLDT_STRING,
+      0,
       NULL,
       NULL },
 
     { nxt_string("index"),
       NXT_CONF_VLDT_STRING,
+      0,
       NULL,
       NULL },
 
@@ -702,16 +786,19 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_php_target_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_php_options_members[] = {
     { nxt_string("file"),
       NXT_CONF_VLDT_STRING,
+      0,
       NULL,
       NULL },
 
     { nxt_string("admin"),
       NXT_CONF_VLDT_OBJECT,
+      0,
       &nxt_conf_vldt_object_iterator,
       (void *) &nxt_conf_vldt_php_option },
 
     { nxt_string("user"),
       NXT_CONF_VLDT_OBJECT,
+      0,
       &nxt_conf_vldt_object_iterator,
       (void *) &nxt_conf_vldt_php_option },
 
@@ -722,6 +809,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_php_options_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_php_common_members[] = {
     { nxt_string("options"),
       NXT_CONF_VLDT_OBJECT,
+      0,
       &nxt_conf_vldt_object,
       (void *) &nxt_conf_vldt_php_options_members },
 
@@ -732,16 +820,19 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_php_common_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_php_notargets_members[] = {
     { nxt_string("root"),
       NXT_CONF_VLDT_STRING,
+      NXT_CONF_VLDT_REQUIRED,
       NULL,
       NULL },
 
     { nxt_string("script"),
       NXT_CONF_VLDT_STRING,
+      0,
       NULL,
       NULL },
 
     { nxt_string("index"),
       NXT_CONF_VLDT_STRING,
+      0,
       NULL,
       NULL },
 
@@ -752,21 +843,25 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_php_notargets_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_php_members[] = {
     { nxt_string("root"),
       NXT_CONF_VLDT_ANY_TYPE,
+      0,
       &nxt_conf_vldt_php_targets_exclusive,
       (void *) "root" },
 
     { nxt_string("script"),
       NXT_CONF_VLDT_ANY_TYPE,
+      0,
       &nxt_conf_vldt_php_targets_exclusive,
       (void *) "script" },
 
     { nxt_string("index"),
       NXT_CONF_VLDT_ANY_TYPE,
+      0,
       &nxt_conf_vldt_php_targets_exclusive,
       (void *) "index" },
 
     { nxt_string("targets"),
       NXT_CONF_VLDT_OBJECT,
+      0,
       &nxt_conf_vldt_php_targets,
       NULL },
 
@@ -777,6 +872,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_php_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_perl_members[] = {
     { nxt_string("script"),
       NXT_CONF_VLDT_STRING,
+      NXT_CONF_VLDT_REQUIRED,
       NULL,
       NULL },
 
@@ -787,6 +883,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_perl_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_ruby_members[] = {
     { nxt_string("script"),
       NXT_CONF_VLDT_STRING,
+      NXT_CONF_VLDT_REQUIRED,
       NULL,
       NULL },
 
@@ -797,21 +894,25 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_ruby_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_java_members[] = {
     { nxt_string("classpath"),
       NXT_CONF_VLDT_ARRAY,
+      0,
       &nxt_conf_vldt_array_iterator,
       (void *) &nxt_conf_vldt_java_classpath },
 
     { nxt_string("webapp"),
       NXT_CONF_VLDT_STRING,
+      NXT_CONF_VLDT_REQUIRED,
       NULL,
       NULL },
 
     { nxt_string("options"),
       NXT_CONF_VLDT_ARRAY,
+      0,
       &nxt_conf_vldt_array_iterator,
       (void *) &nxt_conf_vldt_java_option },
 
     { nxt_string("unit_jars"),
       NXT_CONF_VLDT_STRING,
+      0,
       NULL,
       NULL },
 
@@ -822,6 +923,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_java_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_upstream_members[] = {
     { nxt_string("servers"),
       NXT_CONF_VLDT_OBJECT,
+      0,
       &nxt_conf_vldt_object_iterator,
       (void *) &nxt_conf_vldt_server },
 
@@ -832,6 +934,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_upstream_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_upstream_server_members[] = {
     { nxt_string("weight"),
       NXT_CONF_VLDT_NUMBER,
+      0,
       &nxt_conf_vldt_server_weight,
       NULL },
 
@@ -1728,6 +1831,31 @@ nxt_conf_vldt_object(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     nxt_str_t               name;
     nxt_conf_value_t        *member;
     nxt_conf_vldt_object_t  *vals;
+
+    vals = data;
+
+    for ( ;; ) {
+        if (vals->name.length == 0) {
+
+            if (vals->data != NULL) {
+                vals = vals->data;
+                continue;
+            }
+
+            break;
+        }
+
+        if (vals->flags & NXT_CONF_VLDT_REQUIRED) {
+            member = nxt_conf_get_object_member(value, &vals->name, NULL);
+
+            if (member == NULL) {
+                return nxt_conf_vldt_error(vldt, "Required parameter \"%V\" "
+                                           "is missing.", &vals->name);
+            }
+        }
+
+        vals++;
+    }
 
     index = 0;
 
