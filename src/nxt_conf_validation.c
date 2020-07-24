@@ -861,7 +861,7 @@ nxt_conf_vldt_type(nxt_conf_validation_t *vldt, nxt_str_t *name,
 {
     u_char      *p;
     nxt_str_t   expected;
-    nxt_bool_t  serial;
+    nxt_bool_t  comma;
     nxt_uint_t  value_type, n, t;
     u_char      buf[nxt_length(NXT_CONF_VLDT_ANY_TYPE_STR)];
 
@@ -889,7 +889,7 @@ nxt_conf_vldt_type(nxt_conf_validation_t *vldt, nxt_str_t *name,
         p = nxt_cpymem(p, "either ", 7);
     }
 
-    serial = (n > 2);
+    comma = (n > 2);
 
     for ( ;; ) {
         t = __builtin_ffs(type) - 1;
@@ -902,7 +902,7 @@ nxt_conf_vldt_type(nxt_conf_validation_t *vldt, nxt_str_t *name,
             break;
         }
 
-        if (n > 1 || serial) {
+        if (comma) {
             *p++ = ',';
         }
 
