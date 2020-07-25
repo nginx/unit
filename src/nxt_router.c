@@ -906,8 +906,9 @@ nxt_router_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 void
 nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
+    void                    *p;
+    size_t                  size;
     nxt_int_t               ret;
-    nxt_buf_t               *b;
     nxt_router_temp_conf_t  *tmcf;
 
     tmcf = nxt_router_temp_conf(task);
@@ -915,9 +916,33 @@ nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         return;
     }
 
-    nxt_debug(task, "nxt_router_conf_data_handler(%O): %*s",
-              nxt_buf_used_size(msg->buf),
-              (size_t) nxt_buf_used_size(msg->buf), msg->buf->mem.pos);
+    if (nxt_slow_path(msg->fd == -1)) {
+        nxt_alert(task, "conf_data_handler: invalid file shm fd");
+        return;
+    }
+
+    if (nxt_buf_mem_used_size(&msg->buf->mem) != sizeof(size_t)) {
+        nxt_alert(task, "conf_data_handler: unexpected buffer size (%d)",
+                  (int) nxt_buf_mem_used_size(&msg->buf->mem));
+
+        nxt_fd_close(msg->fd);
+        msg->fd = -1;
+
+        return;
+    }
+
+    nxt_memcpy(&size, msg->buf->mem.pos, sizeof(size_t));
+
+    p = nxt_mem_mmap(NULL, size, PROT_READ, MAP_SHARED, msg->fd, 0);
+
+    nxt_fd_close(msg->fd);
+    msg->fd = -1;
+
+    if (nxt_slow_path(p == MAP_FAILED)) {
+        return;
+    }
+
+    nxt_debug(task, "conf_data_handler(%uz): %*s", size, size, p);
 
     tmcf->router_conf->router = nxt_router;
     tmcf->stream = msg->port_msg.stream;
@@ -928,20 +953,12 @@ nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     if (nxt_slow_path(tmcf->port == NULL)) {
         nxt_alert(task, "reply port not found");
 
-        return;
+        goto fail;
     }
 
     nxt_port_use(task, tmcf->port, 1);
 
-    b = nxt_buf_chk_make_plain(tmcf->router_conf->mem_pool,
-                               msg->buf, msg->size);
-    if (nxt_slow_path(b == NULL)) {
-        nxt_router_conf_error(task, tmcf);
-
-        return;
-    }
-
-    ret = nxt_router_conf_create(task, tmcf, b->mem.pos, b->mem.free);
+    ret = nxt_router_conf_create(task, tmcf, p, nxt_pointer_to(p, size));
 
     if (nxt_fast_path(ret == NXT_OK)) {
         nxt_router_conf_apply(task, tmcf, NULL);
@@ -949,6 +966,10 @@ nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     } else {
         nxt_router_conf_error(task, tmcf);
     }
+
+fail:
+
+    nxt_mem_munmap(p, size);
 }
 
 

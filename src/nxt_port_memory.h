@@ -71,5 +71,6 @@ typedef enum nxt_port_method_e nxt_port_method_t;
 nxt_port_method_t
 nxt_port_mmap_get_method(nxt_task_t *task, nxt_port_t *port, nxt_buf_t *b);
 
+nxt_int_t nxt_shm_open(nxt_task_t *task, size_t size);
 
 #endif /* _NXT_PORT_MEMORY_H_INCLUDED_ */

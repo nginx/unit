@@ -286,7 +286,6 @@ nxt_port_new_port_mmap(nxt_task_t *task, nxt_process_t *process,
     nxt_port_t *port, nxt_bool_t tracking, nxt_int_t n)
 {
     void                     *mem;
-    u_char                   *p, name[64];
     nxt_fd_t                 fd;
     nxt_int_t                i;
     nxt_free_map_t           *free_map;
@@ -310,63 +309,8 @@ nxt_port_new_port_mmap(nxt_task_t *task, nxt_process_t *process,
         return NULL;
     }
 
-    p = nxt_sprintf(name, name + sizeof(name), NXT_SHM_PREFIX "unit.%PI.%uxD",
-                    nxt_pid, nxt_random(&task->thread->random));
-    *p = '\0';
-
-#if (NXT_HAVE_MEMFD_CREATE)
-
-    fd = syscall(SYS_memfd_create, name, MFD_CLOEXEC);
-
+    fd = nxt_shm_open(task, PORT_MMAP_SIZE);
     if (nxt_slow_path(fd == -1)) {
-        nxt_alert(task, "memfd_create(%s) failed %E", name, nxt_errno);
-
-        goto remove_fail;
-    }
-
-    nxt_debug(task, "memfd_create(%s): %FD", name, fd);
-
-#elif (NXT_HAVE_SHM_OPEN_ANON)
-
-    fd = shm_open(SHM_ANON, O_RDWR, S_IRUSR | S_IWUSR);
-
-    nxt_debug(task, "shm_open(SHM_ANON): %FD", fd);
-
-    if (nxt_slow_path(fd == -1)) {
-        nxt_alert(task, "shm_open(SHM_ANON) failed %E", nxt_errno);
-
-        goto remove_fail;
-    }
-
-#elif (NXT_HAVE_SHM_OPEN)
-
-    /* Just in case. */
-    shm_unlink((char *) name);
-
-    fd = shm_open((char *) name, O_CREAT | O_EXCL | O_RDWR, S_IRUSR | S_IWUSR);
-
-    nxt_debug(task, "shm_open(%s): %FD", name, fd);
-
-    if (nxt_slow_path(fd == -1)) {
-        nxt_alert(task, "shm_open(%s) failed %E", name, nxt_errno);
-
-        goto remove_fail;
-    }
-
-    if (nxt_slow_path(shm_unlink((char *) name) == -1)) {
-        nxt_log(task, NXT_LOG_WARN, "shm_unlink(%s) failed %E", name,
-                nxt_errno);
-    }
-
-#else
-
-#error No working shared memory implementation.
-
-#endif
-
-    if (nxt_slow_path(ftruncate(fd, PORT_MMAP_SIZE) == -1)) {
-        nxt_log(task, NXT_LOG_WARN, "ftruncate() failed %E", nxt_errno);
-
         goto remove_fail;
     }
 
@@ -420,6 +364,83 @@ remove_fail:
     process->outgoing.size--;
 
     return NULL;
+}
+
+
+nxt_int_t
+nxt_shm_open(nxt_task_t *task, size_t size)
+{
+    nxt_fd_t  fd;
+
+#if (NXT_HAVE_MEMFD_CREATE || NXT_HAVE_SHM_OPEN)
+
+    u_char    *p, name[64];
+
+    p = nxt_sprintf(name, name + sizeof(name), NXT_SHM_PREFIX "unit.%PI.%uxD",
+                    nxt_pid, nxt_random(&task->thread->random));
+    *p = '\0';
+
+#endif
+
+#if (NXT_HAVE_MEMFD_CREATE)
+
+    fd = syscall(SYS_memfd_create, name, MFD_CLOEXEC);
+
+    if (nxt_slow_path(fd == -1)) {
+        nxt_alert(task, "memfd_create(%s) failed %E", name, nxt_errno);
+
+        return -1;
+    }
+
+    nxt_debug(task, "memfd_create(%s): %FD", name, fd);
+
+#elif (NXT_HAVE_SHM_OPEN_ANON)
+
+    fd = shm_open(SHM_ANON, O_RDWR, S_IRUSR | S_IWUSR);
+
+    if (nxt_slow_path(fd == -1)) {
+        nxt_alert(task, "shm_open(SHM_ANON) failed %E", nxt_errno);
+
+        return -1;
+    }
+
+    nxt_debug(task, "shm_open(SHM_ANON): %FD", fd);
+
+#elif (NXT_HAVE_SHM_OPEN)
+
+    /* Just in case. */
+    shm_unlink((char *) name);
+
+    fd = shm_open((char *) name, O_CREAT | O_EXCL | O_RDWR, S_IRUSR | S_IWUSR);
+
+    if (nxt_slow_path(fd == -1)) {
+        nxt_alert(task, "shm_open(%s) failed %E", name, nxt_errno);
+
+        return -1;
+    }
+
+    nxt_debug(task, "shm_open(%s): %FD", name, fd);
+
+    if (nxt_slow_path(shm_unlink((char *) name) == -1)) {
+        nxt_log(task, NXT_LOG_WARN, "shm_unlink(%s) failed %E", name,
+                nxt_errno);
+    }
+
+#else
+
+#error No working shared memory implementation.
+
+#endif
+
+    if (nxt_slow_path(ftruncate(fd, size) == -1)) {
+        nxt_alert(task, "ftruncate() failed %E", nxt_errno);
+
+        nxt_fd_close(fd);
+
+        return -1;
+    }
+
+    return fd;
 }
 
 

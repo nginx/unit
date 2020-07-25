@@ -54,7 +54,7 @@ static nxt_int_t nxt_controller_conf_default(void);
 static void nxt_controller_conf_init_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
 static void nxt_controller_flush_requests(nxt_task_t *task);
-static nxt_int_t nxt_controller_conf_send(nxt_task_t *task,
+static nxt_int_t nxt_controller_conf_send(nxt_task_t *task, nxt_mp_t *mp,
     nxt_conf_value_t *conf, nxt_port_rpc_handler_t handler, void *data);
 
 static void nxt_controller_conn_init(nxt_task_t *task, void *obj, void *data);
@@ -344,7 +344,7 @@ nxt_controller_send_current_conf(nxt_task_t *task)
     conf = nxt_controller_conf.root;
 
     if (conf != NULL) {
-        rc = nxt_controller_conf_send(task, conf,
+        rc = nxt_controller_conf_send(task, nxt_controller_conf.pool, conf,
                                       nxt_controller_conf_init_handler, NULL);
 
         if (nxt_fast_path(rc == NXT_OK)) {
@@ -497,11 +497,14 @@ nxt_controller_flush_requests(nxt_task_t *task)
 
 
 static nxt_int_t
-nxt_controller_conf_send(nxt_task_t *task, nxt_conf_value_t *conf,
+nxt_controller_conf_send(nxt_task_t *task, nxt_mp_t *mp, nxt_conf_value_t *conf,
     nxt_port_rpc_handler_t handler, void *data)
 {
+    void           *mem;
+    u_char         *end;
     size_t         size;
     uint32_t       stream;
+    nxt_fd_t       fd;
     nxt_int_t      rc;
     nxt_buf_t      *b;
     nxt_port_t     *router_port, *controller_port;
@@ -518,30 +521,53 @@ nxt_controller_conf_send(nxt_task_t *task, nxt_conf_value_t *conf,
 
     size = nxt_conf_json_length(conf, NULL);
 
-    b = nxt_port_mmap_get_buf(task, router_port, size);
+    b = nxt_buf_mem_alloc(mp, sizeof(size_t), 0);
     if (nxt_slow_path(b == NULL)) {
         return NXT_ERROR;
     }
 
-    b->mem.free = nxt_conf_json_print(b->mem.free, conf, NULL);
+    fd = nxt_shm_open(task, size);
+    if (nxt_slow_path(fd == -1)) {
+        return NXT_ERROR;
+    }
+
+    mem = nxt_mem_mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (nxt_slow_path(mem == MAP_FAILED)) {
+        goto fail;
+    }
+
+    end = nxt_conf_json_print(mem, conf, NULL);
+
+    nxt_mem_munmap(mem, size);
+
+    size = end - (u_char *) mem;
+
+    b->mem.free = nxt_cpymem(b->mem.pos, &size, sizeof(size_t));
 
     stream = nxt_port_rpc_register_handler(task, controller_port,
                                            handler, handler,
                                            router_port->pid, data);
-
     if (nxt_slow_path(stream == 0)) {
-        return NXT_ERROR;
+        goto fail;
     }
 
-    rc = nxt_port_socket_write(task, router_port, NXT_PORT_MSG_DATA_LAST, -1,
-                               stream, controller_port->id, b);
+    rc = nxt_port_socket_write(task, router_port,
+                               NXT_PORT_MSG_DATA_LAST | NXT_PORT_MSG_CLOSE_FD,
+                               fd, stream, controller_port->id, b);
 
     if (nxt_slow_path(rc != NXT_OK)) {
         nxt_port_rpc_cancel(task, controller_port, stream);
-        return NXT_ERROR;
+
+        goto fail;
     }
 
     return NXT_OK;
+
+fail:
+
+    nxt_fd_close(fd);
+
+    return NXT_ERROR;
 }
 
 
@@ -1201,7 +1227,7 @@ nxt_controller_process_config(nxt_task_t *task, nxt_controller_request_t *req,
             goto alloc_fail;
         }
 
-        rc = nxt_controller_conf_send(task, value,
+        rc = nxt_controller_conf_send(task, mp, value,
                                       nxt_controller_conf_handler, req);
 
         if (nxt_slow_path(rc != NXT_OK)) {
@@ -1282,7 +1308,7 @@ nxt_controller_process_config(nxt_task_t *task, nxt_controller_request_t *req,
             goto alloc_fail;
         }
 
-        rc = nxt_controller_conf_send(task, value,
+        rc = nxt_controller_conf_send(task, mp, value,
                                       nxt_controller_conf_handler, req);
 
         if (nxt_slow_path(rc != NXT_OK)) {
