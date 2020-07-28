@@ -201,6 +201,8 @@ class TestUnit(unittest.TestCase):
             self._print_log()
             exit("Could not start unit")
 
+        self._started = True
+
         self.skip_alerts = [
             r'read signalfd\(4\) failed',
             r'sendmsg.+failed',
@@ -209,7 +211,7 @@ class TestUnit(unittest.TestCase):
         self.skip_sanitizer = False
 
     def tearDown(self):
-        stop_errs = self.stop()
+        self.stop()
 
         # detect errors and failures for current test
 
@@ -244,18 +246,21 @@ class TestUnit(unittest.TestCase):
         else:
             self._print_log()
 
-        self.assertListEqual(stop_errs, [None, None], 'stop errors')
+        self.assertListEqual(self.stop_errors, [None, None], 'stop errors')
 
     def stop(self):
-        errors = []
+        if not self._started:
+            return
 
-        errors.append(self._stop())
+        self.stop_errors = []
 
-        errors.append(self.stop_processes())
+        self.stop_errors.append(self._stop())
+
+        self.stop_errors.append(self.stop_processes())
 
         atexit.unregister(self.stop)
 
-        return errors
+        self._started = False
 
     def _stop(self):
         if self._p.poll() is not None:
