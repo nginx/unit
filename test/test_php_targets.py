@@ -1,4 +1,3 @@
-import unittest
 from unit.applications.lang.php import TestApplicationPHP
 
 class TestPHPTargets(TestApplicationPHP):

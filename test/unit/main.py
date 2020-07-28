@@ -58,7 +58,6 @@ class TestUnit(unittest.TestCase):
                 if prereq_version == 'all':
                     for version in available_versions:
                         self.application_type = type + ' ' + version
-                        self.application_version = version
                         super().run(result)
                 elif prereq_version == 'any':
                     self.application_type = type + ' ' + available_versions[0]
@@ -166,7 +165,7 @@ class TestUnit(unittest.TestCase):
         self._run()
 
     def _run(self):
-        build_dir  = os.path.join(self.pardir, 'build')
+        build_dir = self.pardir + '/build'
         self.unitd = build_dir + '/unitd'
 
         if not os.path.isfile(self.unitd):

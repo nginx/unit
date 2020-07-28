@@ -1,7 +1,6 @@
-import os
 import re
-import socket
 import select
+import socket
 import time
 
 from unit.applications.lang.python import TestApplicationPython
@@ -96,7 +95,8 @@ class TestProxyChunked(TestApplicationPython):
                     "routes": [
                         {
                             "action": {
-                                "proxy": "http://127.0.0.1:" + str(self.SERVER_PORT)
+                                "proxy": "http://127.0.0.1:"
+                                + str(self.SERVER_PORT)
                             }
                         }
                     ],
