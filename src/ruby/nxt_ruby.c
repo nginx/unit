@@ -7,7 +7,8 @@
 
 #include <nxt_unit.h>
 #include <nxt_unit_request.h>
-#include <nxt_ruby_mounts.h>
+
+#include NXT_RUBY_MOUNTS_H
 
 
 #define NXT_RUBY_RACK_API_VERSION_MAJOR  1

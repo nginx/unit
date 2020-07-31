@@ -51,7 +51,6 @@ $echo "configuring Ruby module ..." >> $NXT_AUTOCONF_ERR
 
 NXT_RUBY=${NXT_RUBY=ruby}
 NXT_RUBY_MODULE=${NXT_RUBY_MODULE=${NXT_RUBY}}
-NXT_RUBY_MOUNTS_HEADER=$NXT_BUILD_DIR/nxt_ruby_mounts.h
 
 nxt_found=no
 
@@ -145,7 +144,10 @@ if grep ^$NXT_RUBY_MODULE: $NXT_MAKEFILE 2>&1 > /dev/null; then
 fi
 
 
-cat << END > $NXT_RUBY_MOUNTS_HEADER
+NXT_RUBY_MOUNTS_HEADER=nxt_${NXT_RUBY_MODULE}_mounts.h
+NXT_RUBY_MOUNTS_PATH=$NXT_BUILD_DIR/$NXT_RUBY_MOUNTS_HEADER
+
+cat << END > $NXT_RUBY_MOUNTS_PATH
 
 static const nxt_fs_mount_t  nxt_ruby_mounts[] = {
     {(u_char *) "$NXT_RUBY_RUBYHDRDIR", (u_char *) "$NXT_RUBY_RUBYHDRDIR",
@@ -166,11 +168,11 @@ static const nxt_fs_mount_t  nxt_ruby_mounts[] = {
 END
 
 for path in `echo $NXT_RUBY_GEMPATH | tr ':' '\n'`; do
-   $echo "{(u_char *) \"$path\", (u_char *) \"$path\"," >> $NXT_RUBY_MOUNTS_HEADER
-   $echo "(u_char *) \"bind\", NXT_MS_BIND | NXT_MS_REC, NULL}," >> $NXT_RUBY_MOUNTS_HEADER
+   $echo "{(u_char *) \"$path\", (u_char *) \"$path\"," >> $NXT_RUBY_MOUNTS_PATH
+   $echo "(u_char *) \"bind\", NXT_MS_BIND | NXT_MS_REC, NULL}," >> $NXT_RUBY_MOUNTS_PATH
 done
 
-$echo "};" >> $NXT_RUBY_MOUNTS_HEADER
+$echo "};" >> $NXT_RUBY_MOUNTS_PATH
 
 
 $echo " + Ruby module: ${NXT_RUBY_MODULE}.unit.so"
@@ -200,7 +202,8 @@ for nxt_src in $NXT_RUBY_MODULE_SRCS; do
 
 $NXT_BUILD_DIR/$nxt_obj:	$nxt_src $NXT_VERSION_H
 	mkdir -p $NXT_BUILD_DIR/src/ruby
-	\$(CC) -c \$(CFLAGS) \$(NXT_INCS) $NXT_RUBY_INCPATH \\
+	\$(CC) -c \$(CFLAGS) -DNXT_RUBY_MOUNTS_H=\"$NXT_RUBY_MOUNTS_HEADER\" \\
+           \$(NXT_INCS) $NXT_RUBY_INCPATH \\
 	$nxt_dep_flags \\
 	-o $NXT_BUILD_DIR/$nxt_obj $nxt_src
 	$nxt_dep_post
