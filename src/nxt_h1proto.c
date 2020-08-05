@@ -906,7 +906,7 @@ nxt_h1p_request_body_read(nxt_task_t *task, nxt_http_request_t *r)
 
         b->file->fd = mkstemp((char *) tmp_name.start);
         if (nxt_slow_path(b->file->fd == -1)) {
-            nxt_log(task, NXT_LOG_ERR, "mkstemp() failed %E", nxt_errno);
+            nxt_alert(task, "mkstemp(%s) failed %E", tmp_name.start, nxt_errno);
 
             status = NXT_HTTP_INTERNAL_SERVER_ERROR;
             goto error;
