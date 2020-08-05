@@ -98,7 +98,9 @@ nxt_conn_accept_alloc(nxt_task_t *task, nxt_listen_event_t *lev)
         if (nxt_fast_path(mp != NULL)) {
             c = nxt_conn_create(mp, lev->socket.task);
             if (nxt_slow_path(c == NULL)) {
-                goto fail;
+                nxt_mp_destroy(mp);
+
+                return NULL;
             }
 
             c->socket.read_work_queue = lev->socket.read_work_queue;
@@ -109,11 +111,9 @@ nxt_conn_accept_alloc(nxt_task_t *task, nxt_listen_event_t *lev)
                 lev->next = c;
                 return c;
             }
+
+            nxt_conn_free(task, c);
         }
-
-    fail:
-
-        nxt_mp_destroy(mp);
     }
 
     return NULL;
