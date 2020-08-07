@@ -3178,6 +3178,10 @@ nxt_router_listen_event_release(nxt_task_t *task, nxt_listen_event_t *lev,
     nxt_debug(task, "listen event count: %D", lev->count);
 
     if (--lev->count == 0) {
+        if (lev->next != NULL) {
+            nxt_conn_free(task, lev->next);
+        }
+
         nxt_free(lev);
     }
 
