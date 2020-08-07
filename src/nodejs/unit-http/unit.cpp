@@ -13,6 +13,8 @@
 #include <nxt_unit_websocket.h>
 
 
+static void delete_port_data(uv_handle_t* handle);
+
 napi_ref Unit::constructor_;
 
 
@@ -418,13 +420,25 @@ Unit::remove_port(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id)
         if (node_ctx->port_id == *port_id) {
             uv_poll_stop(&node_ctx->poll);
 
-            delete node_ctx;
+            node_ctx->poll.data = node_ctx;
+            uv_close((uv_handle_t *) &node_ctx->poll, delete_port_data);
 
             ctx->data = NULL;
         }
     }
 
     nxt_unit_remove_port(ctx, port_id);
+}
+
+
+static void
+delete_port_data(uv_handle_t* handle)
+{
+    nxt_nodejs_ctx_t  *node_ctx;
+
+    node_ctx = (nxt_nodejs_ctx_t *) handle->data;
+
+    delete node_ctx;
 }
 
 
