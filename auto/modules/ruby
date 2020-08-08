@@ -62,8 +62,8 @@ if /bin/sh -c "$NXT_RUBY -v" >> $NXT_AUTOCONF_ERR 2>&1; then
     NXT_RUBY_LIBDIR=`$NXT_RUBY -rrbconfig -e 'print RbConfig::CONFIG["rubylibdir"]'`
     NXT_RUBY_TOPDIR=`$NXT_RUBY -rrbconfig -e 'print RbConfig::CONFIG["topdir"]'`
     NXT_RUBY_PREFIXDIR=`$NXT_RUBY -rrbconfig -e 'print RbConfig::CONFIG["rubylibprefix"]'`
-    NXT_RUBY_GEMDIR=`gem environment gemdir`
-    NXT_RUBY_GEMPATH=`gem environment gempath`
+
+    NXT_RUBY_GEMPATH=`$NXT_RUBY -rrubygems -e 'print Gem.default_path().join(":")'`
 
     NXT_RUBY_INCPATH="-I$NXT_RUBY_ARCHHDRDIR -I$NXT_RUBY_RUBYHDRDIR"
 
@@ -162,8 +162,6 @@ static const nxt_fs_mount_t  nxt_ruby_mounts[] = {
     {(u_char *) "$NXT_RUBY_SITEDIR", (u_char *) "$NXT_RUBY_SITEDIR",
      (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL},
     {(u_char *) "$NXT_RUBY_LIBDIR", (u_char *) "$NXT_RUBY_LIBDIR",
-     (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL},
-    {(u_char *) "$NXT_RUBY_GEMDIR", (u_char *) "$NXT_RUBY_GEMDIR",
      (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL},
     {(u_char *) "$NXT_RUBY_TOPDIR", (u_char *) "$NXT_RUBY_TOPDIR",
      (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL},
