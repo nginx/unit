@@ -56,20 +56,20 @@ nxt_found=no
 
 if /bin/sh -c "$NXT_RUBY -v" >> $NXT_AUTOCONF_ERR 2>&1; then
 
-    NXT_RUBY_RUBYHDRDIR=`$NXT_RUBY -r rbconfig -e 'printf("%s",RbConfig::CONFIG["rubyhdrdir"])'`
-    NXT_RUBY_ARCHHDRDIR=`$NXT_RUBY -r rbconfig -e 'printf("%s",RbConfig::CONFIG["rubyarchhdrdir"])'`
-    NXT_RUBY_SITEDIR=`$NXT_RUBY -r rbconfig -e 'printf("%s",RbConfig::CONFIG["sitedir"])'`
-    NXT_RUBY_LIBDIR=`$NXT_RUBY -r rbconfig -e 'printf("%s",RbConfig::CONFIG["rubylibdir"])'`
-    NXT_RUBY_TOPDIR=`$NXT_RUBY -r rbconfig -e 'printf("%s",RbConfig::CONFIG["topdir"])'`
-    NXT_RUBY_PREFIXDIR=`$NXT_RUBY -r rbconfig -e 'printf("%s",RbConfig::CONFIG["rubylibprefix"])'`
+    NXT_RUBY_RUBYHDRDIR=`$NXT_RUBY -rrbconfig -e 'print RbConfig::CONFIG["rubyhdrdir"]'`
+    NXT_RUBY_ARCHHDRDIR=`$NXT_RUBY -rrbconfig -e 'print RbConfig::CONFIG["rubyarchhdrdir"]'`
+    NXT_RUBY_SITEDIR=`$NXT_RUBY -rrbconfig -e 'print RbConfig::CONFIG["sitedir"]'`
+    NXT_RUBY_LIBDIR=`$NXT_RUBY -rrbconfig -e 'print RbConfig::CONFIG["rubylibdir"]'`
+    NXT_RUBY_TOPDIR=`$NXT_RUBY -rrbconfig -e 'print RbConfig::CONFIG["topdir"]'`
+    NXT_RUBY_PREFIXDIR=`$NXT_RUBY -rrbconfig -e 'print RbConfig::CONFIG["rubylibprefix"]'`
     NXT_RUBY_GEMDIR=`gem environment gemdir`
     NXT_RUBY_GEMPATH=`gem environment gempath`
 
     NXT_RUBY_INCPATH="-I$NXT_RUBY_ARCHHDRDIR -I$NXT_RUBY_RUBYHDRDIR"
 
-    NXT_RUBY_LIBNAME=`$NXT_RUBY -r rbconfig -e 'printf("%s",RbConfig::CONFIG["RUBY_SO_NAME"])'`
-    NXT_RUBY_LIBSCONF=`$NXT_RUBY -r rbconfig -e 'printf("%s",RbConfig::CONFIG["LIBS"])'`
-    NXT_RUBY_LIBPATH=`$NXT_RUBY -r rbconfig -e 'printf("%s",RbConfig::CONFIG["libdir"])'`
+    NXT_RUBY_LIBNAME=`$NXT_RUBY -rrbconfig -e 'print RbConfig::CONFIG["RUBY_SO_NAME"]'`
+    NXT_RUBY_LIBSCONF=`$NXT_RUBY -rrbconfig -e 'print RbConfig::CONFIG["LIBS"]'`
+    NXT_RUBY_LIBPATH=`$NXT_RUBY -rrbconfig -e 'print RbConfig::CONFIG["libdir"]'`
     NXT_RUBY_LIBS="-l$NXT_RUBY_LIBNAME $NXT_RUBY_LIBSCONF"
 
     nxt_feature="Ruby library"
