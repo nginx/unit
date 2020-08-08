@@ -58,7 +58,6 @@ if /bin/sh -c "$NXT_RUBY -v" >> $NXT_AUTOCONF_ERR 2>&1; then
 
     NXT_RUBY_RUBYHDRDIR=`$NXT_RUBY -r rbconfig -e 'printf("%s",RbConfig::CONFIG["rubyhdrdir"])'`
     NXT_RUBY_ARCHHDRDIR=`$NXT_RUBY -r rbconfig -e 'printf("%s",RbConfig::CONFIG["rubyarchhdrdir"])'`
-    NXT_RUBY_SITEARCHDIR=`$NXT_RUBY -r rbconfig -e 'printf("%s",RbConfig::CONFIG["sitearchhdrdir"])'`
     NXT_RUBY_SITEDIR=`$NXT_RUBY -r rbconfig -e 'printf("%s",RbConfig::CONFIG["sitedir"])'`
     NXT_RUBY_LIBDIR=`$NXT_RUBY -r rbconfig -e 'printf("%s",RbConfig::CONFIG["rubylibdir"])'`
     NXT_RUBY_TOPDIR=`$NXT_RUBY -r rbconfig -e 'printf("%s",RbConfig::CONFIG["topdir"])'`
