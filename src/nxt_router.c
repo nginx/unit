@@ -1208,13 +1208,39 @@ nxt_router_conf_wait(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_router_conf_ready(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
 {
-    nxt_debug(task, "temp conf count:%D", tmcf->count);
+    uint32_t               count;
+    nxt_router_conf_t      *rtcf;
+    nxt_thread_spinlock_t  *lock;
 
-    if (--tmcf->count == 0) {
-        nxt_router_conf_send(task, tmcf, NXT_PORT_MSG_RPC_READY_LAST);
+    nxt_debug(task, "temp conf %p count: %D", tmcf, tmcf->count);
 
-        nxt_mp_destroy(tmcf->mem_pool);
+    if (--tmcf->count > 0) {
+        return;
     }
+
+    nxt_router_conf_send(task, tmcf, NXT_PORT_MSG_RPC_READY_LAST);
+
+    rtcf = tmcf->router_conf;
+
+    lock = &rtcf->router->lock;
+
+    nxt_thread_spin_lock(lock);
+
+    count = rtcf->count;
+
+    nxt_thread_spin_unlock(lock);
+
+    nxt_debug(task, "rtcf %p: %D", rtcf, count);
+
+    if (count == 0) {
+        nxt_http_routes_cleanup(task, rtcf->routes);
+
+        nxt_router_access_log_release(task, lock, rtcf->access_log);
+
+        nxt_mp_destroy(rtcf->mem_pool);
+    }
+
+    nxt_mp_destroy(tmcf->mem_pool);
 }
 
 
