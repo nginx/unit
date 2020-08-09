@@ -3177,8 +3177,12 @@ nxt_router_listen_event_release(nxt_task_t *task, nxt_listen_event_t *lev,
 
     nxt_debug(task, "listen event count: %D", lev->count);
 
+    engine = task->thread->engine;
+
     if (--lev->count == 0) {
         if (lev->next != NULL) {
+            nxt_sockaddr_cache_free(engine, lev->next);
+
             nxt_conn_free(task, lev->next);
         }
 
@@ -3188,8 +3192,6 @@ nxt_router_listen_event_release(nxt_task_t *task, nxt_listen_event_t *lev,
     if (joint != NULL) {
         nxt_router_conf_release(task, joint);
     }
-
-    engine = task->thread->engine;
 
     if (engine->shutdown && nxt_queue_is_empty(&engine->joints)) {
         nxt_thread_exit(task->thread);
