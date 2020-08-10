@@ -266,6 +266,21 @@ nxt_sendfile(int fd, int s, off_t pos, size_t size)
     res = sendfile(s, fd, &pos, size);
 #endif
 
+#ifdef NXT_HAVE_NETBSD_MMAP_WRITE
+    struct stat fileinfo;
+    void *fmem = NULL;
+    res = fstat(fd, &fileinfo);
+    if (res == 0) {
+        fmem = mmap(NULL, fileinfo.st_size, PROT_READ, MAP_FILE | MAP_SHARED, fd, 0);
+    }
+    if (fmem != NULL) {
+        res = write(s, fmem, fileinfo.st_size);
+        munmap(fmem, fileinfo.st_size);
+    } else {
+        res = -1;
+    }
+#endif
+
     return res;
 }
 
