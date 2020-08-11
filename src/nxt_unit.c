@@ -170,6 +170,7 @@ static int nxt_unit_port_queue_recv(nxt_unit_port_t *port,
     nxt_unit_read_buf_t *rbuf);
 static int nxt_unit_app_queue_recv(nxt_unit_port_t *port,
     nxt_unit_read_buf_t *rbuf);
+nxt_inline int nxt_unit_close(int fd);
 
 static int nxt_unit_port_hash_add(nxt_lvlhsh_t *port_hash,
     nxt_unit_port_t *port);
@@ -490,15 +491,15 @@ nxt_unit_init(nxt_unit_init_t *init)
         goto fail;
     }
 
-    close(ready_port.out_fd);
-    close(queue_fd);
+    nxt_unit_close(ready_port.out_fd);
+    nxt_unit_close(queue_fd);
 
     return ctx;
 
 fail:
 
     if (queue_fd != -1) {
-        close(queue_fd);
+        nxt_unit_close(queue_fd);
     }
 
     nxt_unit_ctx_release(&lib->main_ctx.ctx);
@@ -1038,11 +1039,11 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_read_buf_t *rbuf)
 fail:
 
     if (recv_msg.fd != -1) {
-        close(recv_msg.fd);
+        nxt_unit_close(recv_msg.fd);
     }
 
     if (recv_msg.fd2 != -1) {
-        close(recv_msg.fd2);
+        nxt_unit_close(recv_msg.fd2);
     }
 
     while (recv_msg.incoming_buf != NULL) {
@@ -1671,7 +1672,7 @@ nxt_unit_request_info_release(nxt_unit_request_info_t *req)
     }
 
     if (req->content_fd != -1) {
-        close(req->content_fd);
+        nxt_unit_close(req->content_fd);
 
         req->content_fd = -1;
     }
@@ -2911,7 +2912,7 @@ nxt_unit_request_read(nxt_unit_request_info_t *req, void *dst, size_t size)
         }
 
         if (res < (ssize_t) size) {
-            close(req->content_fd);
+            nxt_unit_close(req->content_fd);
 
             req->content_fd = -1;
         }
@@ -3023,7 +3024,7 @@ nxt_unit_request_preread(nxt_unit_request_info_t *req, size_t size)
     }
 
     if (res < (ssize_t) size) {
-        close(req->content_fd);
+        nxt_unit_close(req->content_fd);
 
         req->content_fd = -1;
     }
@@ -3581,7 +3582,7 @@ nxt_unit_new_mmap(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port, int n)
         nxt_unit_alert(ctx, "mmap(%d) failed: %s (%d)", fd,
                        strerror(errno), errno);
 
-        close(fd);
+        nxt_unit_close(fd);
 
         goto remove_fail;
     }
@@ -3618,7 +3619,7 @@ nxt_unit_new_mmap(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port, int n)
                        hdr->id, (int) lib->pid, (int) port->id.pid);
     }
 
-    close(fd);
+    nxt_unit_close(fd);
 
     pthread_mutex_lock(&lib->outgoing.mutex);
 
@@ -3699,7 +3700,7 @@ nxt_unit_shm_open(nxt_unit_ctx_t *ctx, size_t size)
         nxt_unit_alert(ctx, "ftruncate(%d) failed: %s (%d)", fd,
                        strerror(errno), errno);
 
-        close(fd);
+        nxt_unit_close(fd);
 
         return -1;
     }
@@ -4910,14 +4911,14 @@ nxt_unit_ctx_alloc(nxt_unit_ctx_t *ctx, void *data)
         goto fail;
     }
 
-    close(queue_fd);
+    nxt_unit_close(queue_fd);
 
     return &new_ctx->ctx;
 
 fail:
 
     if (queue_fd != -1) {
-        close(queue_fd);
+        nxt_unit_close(queue_fd);
     }
 
     nxt_unit_ctx_release(&new_ctx->ctx);
@@ -5034,8 +5035,8 @@ nxt_unit_create_port(nxt_unit_ctx_t *ctx)
     if (nxt_slow_path(process == NULL)) {
         pthread_mutex_unlock(&lib->mutex);
 
-        close(port_sockets[0]);
-        close(port_sockets[1]);
+        nxt_unit_close(port_sockets[0]);
+        nxt_unit_close(port_sockets[1]);
 
         return NULL;
     }
@@ -5052,8 +5053,8 @@ nxt_unit_create_port(nxt_unit_ctx_t *ctx)
 
     port = nxt_unit_add_port(ctx, &new_port, NULL);
     if (nxt_slow_path(port == NULL)) {
-        close(port_sockets[0]);
-        close(port_sockets[1]);
+        nxt_unit_close(port_sockets[0]);
+        nxt_unit_close(port_sockets[1]);
     }
 
     return port;
@@ -5139,31 +5140,20 @@ nxt_inline void nxt_unit_port_release(nxt_unit_port_t *port)
     c = nxt_atomic_fetch_add(&port_impl->use_count, -1);
 
     if (c == 1) {
-        nxt_unit_debug(NULL, "destroy port{%d,%d}",
-                       (int) port->id.pid, (int) port->id.id);
+        nxt_unit_debug(NULL, "destroy port{%d,%d} in_fd %d out_fd %d",
+                       (int) port->id.pid, (int) port->id.id,
+                       port->in_fd, port->out_fd);
 
         nxt_unit_process_release(port_impl->process);
 
         if (port->in_fd != -1) {
-            close(port->in_fd);
+            nxt_unit_close(port->in_fd);
 
             port->in_fd = -1;
         }
 
         if (port->out_fd != -1) {
-            close(port->out_fd);
-
-            port->out_fd = -1;
-        }
-
-        if (port->in_fd != -1) {
-            close(port->in_fd);
-
-            port->in_fd = -1;
-        }
-
-        if (port->out_fd != -1) {
-            close(port->out_fd);
+            nxt_unit_close(port->out_fd);
 
             port->out_fd = -1;
         }
@@ -5214,7 +5204,7 @@ nxt_unit_add_port(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port, void *queue)
         }
 
         if (port->in_fd != -1) {
-            close(port->in_fd);
+            nxt_unit_close(port->in_fd);
             port->in_fd = -1;
         }
 
@@ -5224,7 +5214,7 @@ nxt_unit_add_port(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port, void *queue)
         }
 
         if (port->out_fd != -1) {
-            close(port->out_fd);
+            nxt_unit_close(port->out_fd);
             port->out_fd = -1;
         }
 
@@ -5907,6 +5897,25 @@ retry:
     }
 
     return (rbuf->size == -1) ? NXT_UNIT_AGAIN : NXT_UNIT_OK;
+}
+
+
+nxt_inline int
+nxt_unit_close(int fd)
+{
+    int  res;
+
+    res = close(fd);
+
+    if (nxt_slow_path(res == -1)) {
+        nxt_unit_alert(NULL, "close(%d) failed: %s (%d)",
+                       fd, strerror(errno), errno);
+
+    } else {
+        nxt_unit_debug(NULL, "close(%d): %d", fd, res);
+    }
+
+    return res;
 }
 
 
