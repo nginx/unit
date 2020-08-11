@@ -171,6 +171,7 @@ static int nxt_unit_port_queue_recv(nxt_unit_port_t *port,
 static int nxt_unit_app_queue_recv(nxt_unit_port_t *port,
     nxt_unit_read_buf_t *rbuf);
 nxt_inline int nxt_unit_close(int fd);
+static int nxt_unit_fd_blocking(int fd);
 
 static int nxt_unit_port_hash_add(nxt_lvlhsh_t *port_hash,
     nxt_unit_port_t *port);
@@ -413,6 +414,7 @@ nxt_unit_init(nxt_unit_init_t *init)
     }
 
     queue_fd = -1;
+    mem = MAP_FAILED;
 
     if (init->ready_port.id.pid != 0
         && init->ready_stream != 0
@@ -450,6 +452,11 @@ nxt_unit_init(nxt_unit_init_t *init)
 
     ctx = &lib->main_ctx.ctx;
 
+    rc = nxt_unit_fd_blocking(router_port.out_fd);
+    if (nxt_slow_path(rc != NXT_UNIT_OK)) {
+        goto fail;
+    }
+
     lib->router_port = nxt_unit_add_port(ctx, &router_port, NULL);
     if (nxt_slow_path(lib->router_port == NULL)) {
         nxt_unit_alert(NULL, "failed to add router_port");
@@ -473,20 +480,26 @@ nxt_unit_init(nxt_unit_init_t *init)
 
     nxt_port_queue_init(mem);
 
+    rc = nxt_unit_fd_blocking(read_port.in_fd);
+    if (nxt_slow_path(rc != NXT_UNIT_OK)) {
+        goto fail;
+    }
+
     lib->main_ctx.read_port = nxt_unit_add_port(ctx, &read_port, mem);
     if (nxt_slow_path(lib->main_ctx.read_port == NULL)) {
         nxt_unit_alert(NULL, "failed to add read_port");
 
-        munmap(mem, sizeof(nxt_port_queue_t));
+        goto fail;
+    }
 
+    rc = nxt_unit_fd_blocking(ready_port.out_fd);
+    if (nxt_slow_path(rc != NXT_UNIT_OK)) {
         goto fail;
     }
 
     rc = nxt_unit_ready(ctx, ready_port.out_fd, ready_stream, queue_fd);
     if (nxt_slow_path(rc != NXT_UNIT_OK)) {
         nxt_unit_alert(NULL, "failed to send READY message");
-
-        munmap(mem, sizeof(nxt_port_queue_t));
 
         goto fail;
     }
@@ -497,6 +510,10 @@ nxt_unit_init(nxt_unit_init_t *init)
     return ctx;
 
 fail:
+
+    if (mem != MAP_FAILED) {
+        munmap(mem, sizeof(nxt_port_queue_t));
+    }
 
     if (queue_fd != -1) {
         nxt_unit_close(queue_fd);
@@ -1064,7 +1081,6 @@ fail:
 static int
 nxt_unit_process_new_port(nxt_unit_ctx_t *ctx, nxt_unit_recv_msg_t *recv_msg)
 {
-    int                      nb;
     void                     *mem;
     nxt_unit_impl_t          *lib;
     nxt_unit_port_t          new_port, *port;
@@ -1103,13 +1119,7 @@ nxt_unit_process_new_port(nxt_unit_ctx_t *ctx, nxt_unit_recv_msg_t *recv_msg)
                    MAP_SHARED, recv_msg->fd2, 0);
 
     } else {
-        nb = 0;
-
-        if (nxt_slow_path(ioctl(recv_msg->fd, FIONBIO, &nb) == -1)) {
-            nxt_unit_alert(ctx, "#%"PRIu32": new_port: ioctl(%d, FIONBIO, 0) "
-                           "failed: %s (%d)",
-                           recv_msg->stream, recv_msg->fd, strerror(errno), errno);
-
+        if (nxt_slow_path(nxt_unit_fd_blocking(recv_msg->fd) != NXT_UNIT_OK)) {
             return NXT_UNIT_ERROR;
         }
 
@@ -5916,6 +5926,24 @@ nxt_unit_close(int fd)
     }
 
     return res;
+}
+
+
+static int
+nxt_unit_fd_blocking(int fd)
+{
+    int  nb;
+
+    nb = 0;
+
+    if (nxt_slow_path(ioctl(fd, FIONBIO, &nb) == -1)) {
+        nxt_unit_alert(NULL, "ioctl(%d, FIONBIO, 0) failed: %s (%d)",
+                       fd, strerror(errno), errno);
+
+        return NXT_UNIT_ERROR;
+    }
+
+    return NXT_UNIT_OK;
 }
 
 

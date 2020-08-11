@@ -52,8 +52,6 @@ nxt_external_fd_no_cloexec(nxt_task_t *task, nxt_socket_t fd)
         return NXT_ERROR;
     }
 
-    nxt_fd_blocking(task, fd);
-
     return NXT_OK;
 }
 
