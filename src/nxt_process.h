@@ -92,7 +92,6 @@ typedef struct {
     nxt_int_t                use_count;
 
     nxt_port_mmaps_t         incoming;
-    nxt_port_mmaps_t         outgoing;
 
     nxt_thread_mutex_t       cp_mutex;
 

@@ -146,7 +146,6 @@ nxt_process_child_fixup(nxt_task_t *task, nxt_process_t *process)
         }
 
         nxt_port_mmaps_destroy(&p->incoming, 0);
-        nxt_port_mmaps_destroy(&p->outgoing, 0);
 
     } nxt_runtime_process_loop;
 
