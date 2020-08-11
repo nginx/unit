@@ -69,6 +69,15 @@ static void nxt_router_greet_controller(nxt_task_t *task,
 
 static nxt_int_t nxt_router_start_app_process(nxt_task_t *task, nxt_app_t *app);
 
+static void nxt_router_new_port_handler(nxt_task_t *task,
+    nxt_port_recv_msg_t *msg);
+static void nxt_router_conf_data_handler(nxt_task_t *task,
+    nxt_port_recv_msg_t *msg);
+static void nxt_router_remove_pid_handler(nxt_task_t *task,
+    nxt_port_recv_msg_t *msg);
+static void nxt_router_access_log_reopen_handler(nxt_task_t *task,
+    nxt_port_recv_msg_t *msg);
+
 static nxt_router_temp_conf_t *nxt_router_temp_conf(nxt_task_t *task);
 static void nxt_router_conf_apply(nxt_task_t *task, void *obj, void *data);
 static void nxt_router_conf_ready(nxt_task_t *task,
@@ -561,7 +570,7 @@ nxt_request_rpc_data_unlink(nxt_task_t *task,
 }
 
 
-void
+static void
 nxt_router_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
     nxt_app_t      *app;
@@ -623,7 +632,7 @@ nxt_router_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 }
 
 
-void
+static void
 nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
     void                    *p;
@@ -708,7 +717,7 @@ nxt_router_app_process_remove_pid(nxt_task_t *task, nxt_port_t *port,
 }
 
 
-void
+static void
 nxt_router_remove_pid_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
     nxt_event_engine_t  *engine;
@@ -3323,7 +3332,7 @@ typedef struct {
 } nxt_router_access_log_reopen_t;
 
 
-void
+static void
 nxt_router_access_log_reopen_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
     nxt_mp_t                        *mp;
