@@ -98,10 +98,10 @@ nxt_http_websocket_client(nxt_task_t *task, void *obj, void *data)
         b = next;
     }
 
-    res = nxt_port_socket_twrite(task, req_rpc_data->app_port,
-                                 NXT_PORT_MSG_WEBSOCKET, -1,
-                                 req_rpc_data->stream,
-                                 task->thread->engine->port->id, out, NULL);
+    res = nxt_port_socket_write(task, req_rpc_data->app_port,
+                                NXT_PORT_MSG_WEBSOCKET, -1,
+                                req_rpc_data->stream,
+                                task->thread->engine->port->id, out);
     if (nxt_slow_path(res != NXT_OK)) {
         // TODO: handle
     }
@@ -144,10 +144,10 @@ nxt_http_websocket_error_handler(nxt_task_t *task, void *obj, void *data)
         goto close_handler;
     }
 
-    (void) nxt_port_socket_twrite(task, req_rpc_data->app_port,
-                                  NXT_PORT_MSG_WEBSOCKET_LAST,
-                                  -1, req_rpc_data->stream,
-                                  task->thread->engine->port->id, NULL, NULL);
+    (void) nxt_port_socket_write(task, req_rpc_data->app_port,
+                                 NXT_PORT_MSG_WEBSOCKET_LAST,
+                                 -1, req_rpc_data->stream,
+                                 task->thread->engine->port->id, NULL);
 
 close_handler:
 

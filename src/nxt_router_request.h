@@ -7,10 +7,10 @@
 #define _NXT_ROUTER_REQUEST_H_INCLUDED_
 
 
-typedef struct nxt_msg_info_s {
+typedef struct {
     nxt_buf_t                 *buf;
     nxt_fd_t                  body_fd;
-    nxt_port_mmap_tracking_t  tracking;
+    uint32_t                  tracking_cookie;
     nxt_work_handler_t        completion_handler;
 } nxt_msg_info_t;
 

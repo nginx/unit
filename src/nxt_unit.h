@@ -121,6 +121,8 @@ struct nxt_unit_callbacks_s {
      */
     void     (*request_handler)(nxt_unit_request_info_t *req);
 
+    void     (*data_handler)(nxt_unit_request_info_t *req);
+
     /* Process websocket frame. */
     void     (*websocket_handler)(nxt_unit_websocket_frame_t *ws);
 

@@ -42,6 +42,7 @@ struct nxt_port_handlers_s {
     /* Request headers. */
     nxt_port_handler_t  req_headers;
     nxt_port_handler_t  req_headers_ack;
+    nxt_port_handler_t  req_body;
 
     /* Websocket frame. */
     nxt_port_handler_t  websocket_frame;
@@ -51,6 +52,8 @@ struct nxt_port_handlers_s {
 
     nxt_port_handler_t  oosm;
     nxt_port_handler_t  shm_ack;
+    nxt_port_handler_t  read_queue;
+    nxt_port_handler_t  read_socket;
 };
 
 
@@ -91,12 +94,15 @@ typedef enum {
 
     _NXT_PORT_MSG_REQ_HEADERS     = nxt_port_handler_idx(req_headers),
     _NXT_PORT_MSG_REQ_HEADERS_ACK = nxt_port_handler_idx(req_headers_ack),
+    _NXT_PORT_MSG_REQ_BODY        = nxt_port_handler_idx(req_body),
     _NXT_PORT_MSG_WEBSOCKET       = nxt_port_handler_idx(websocket_frame),
 
     _NXT_PORT_MSG_DATA            = nxt_port_handler_idx(data),
 
     _NXT_PORT_MSG_OOSM            = nxt_port_handler_idx(oosm),
     _NXT_PORT_MSG_SHM_ACK         = nxt_port_handler_idx(shm_ack),
+    _NXT_PORT_MSG_READ_QUEUE      = nxt_port_handler_idx(read_queue),
+    _NXT_PORT_MSG_READ_SOCKET     = nxt_port_handler_idx(read_socket),
 
     NXT_PORT_MSG_MAX              = sizeof(nxt_port_handlers_t)
                                     / sizeof(nxt_port_handler_t),
@@ -124,6 +130,7 @@ typedef enum {
     NXT_PORT_MSG_REMOVE_PID       = nxt_msg_last(_NXT_PORT_MSG_REMOVE_PID),
 
     NXT_PORT_MSG_REQ_HEADERS      = _NXT_PORT_MSG_REQ_HEADERS,
+    NXT_PORT_MSG_REQ_BODY         = _NXT_PORT_MSG_REQ_BODY,
     NXT_PORT_MSG_WEBSOCKET        = _NXT_PORT_MSG_WEBSOCKET,
     NXT_PORT_MSG_WEBSOCKET_LAST   = nxt_msg_last(_NXT_PORT_MSG_WEBSOCKET),
 
@@ -132,6 +139,8 @@ typedef enum {
 
     NXT_PORT_MSG_OOSM             = nxt_msg_last(_NXT_PORT_MSG_OOSM),
     NXT_PORT_MSG_SHM_ACK          = nxt_msg_last(_NXT_PORT_MSG_SHM_ACK),
+    NXT_PORT_MSG_READ_QUEUE       = _NXT_PORT_MSG_READ_QUEUE,
+    NXT_PORT_MSG_READ_SOCKET      = _NXT_PORT_MSG_READ_SOCKET,
 } nxt_port_msg_type_t;
 
 
@@ -236,6 +245,12 @@ struct nxt_port_s {
     nxt_atomic_t        use_count;
 
     nxt_process_type_t  type;
+
+    nxt_fd_t            queue_fd;
+    void                *queue;
+
+    void                *socket_msg;
+    int                 from_socket;
 };
 
 
@@ -286,17 +301,17 @@ void nxt_port_write_enable(nxt_task_t *task, nxt_port_t *port);
 void nxt_port_write_close(nxt_port_t *port);
 void nxt_port_read_enable(nxt_task_t *task, nxt_port_t *port);
 void nxt_port_read_close(nxt_port_t *port);
-nxt_int_t nxt_port_socket_twrite(nxt_task_t *task, nxt_port_t *port,
-    nxt_uint_t type, nxt_fd_t fd, uint32_t stream, nxt_port_id_t reply_port,
-    nxt_buf_t *b, void *tracking);
+nxt_int_t nxt_port_socket_write2(nxt_task_t *task, nxt_port_t *port,
+    nxt_uint_t type, nxt_fd_t fd, nxt_fd_t fd2, uint32_t stream,
+    nxt_port_id_t reply_port, nxt_buf_t *b);
 
 nxt_inline nxt_int_t
 nxt_port_socket_write(nxt_task_t *task, nxt_port_t *port,
     nxt_uint_t type, nxt_fd_t fd, uint32_t stream, nxt_port_id_t reply_port,
     nxt_buf_t *b)
 {
-    return nxt_port_socket_twrite(task, port, type, fd, stream, reply_port, b,
-                                  NULL);
+    return nxt_port_socket_write2(task, port, type, fd, -1, stream, reply_port,
+                                  b);
 }
 
 void nxt_port_enable(nxt_task_t *task, nxt_port_t *port,
