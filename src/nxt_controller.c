@@ -1590,9 +1590,9 @@ nxt_controller_process_cert_save(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
     mbuf = &c->read->mem;
 
-    nxt_fd_write(msg->fd, mbuf->pos, nxt_buf_mem_used_size(mbuf));
+    nxt_fd_write(msg->fd[0], mbuf->pos, nxt_buf_mem_used_size(mbuf));
 
-    nxt_fd_close(msg->fd);
+    nxt_fd_close(msg->fd[0]);
 
     nxt_memzero(&resp, sizeof(nxt_controller_response_t));
 

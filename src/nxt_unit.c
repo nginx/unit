@@ -211,8 +211,7 @@ struct nxt_unit_recv_msg_s {
     void                     *start;
     uint32_t                 size;
 
-    int                      fd;
-    int                      fd2;
+    int                      fd[2];
 
     nxt_unit_mmap_buf_t      *incoming_buf;
 };
@@ -900,8 +899,8 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_read_buf_t *rbuf)
     lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
 
     rc = NXT_UNIT_ERROR;
-    recv_msg.fd = -1;
-    recv_msg.fd2 = -1;
+    recv_msg.fd[0] = -1;
+    recv_msg.fd[1] = -1;
     port_msg = (nxt_port_msg_t *) rbuf->buf;
     cm = (struct cmsghdr *) rbuf->oob;
 
@@ -909,11 +908,11 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_read_buf_t *rbuf)
         && cm->cmsg_type == SCM_RIGHTS)
     {
         if (cm->cmsg_len == CMSG_LEN(sizeof(int))) {
-            memcpy(&recv_msg.fd, CMSG_DATA(cm), sizeof(int));
+            memcpy(recv_msg.fd, CMSG_DATA(cm), sizeof(int));
         }
 
         if (cm->cmsg_len == CMSG_LEN(sizeof(int) * 2)) {
-            memcpy(&recv_msg.fd, CMSG_DATA(cm), sizeof(int) * 2);
+            memcpy(recv_msg.fd, CMSG_DATA(cm), sizeof(int) * 2);
         }
     }
 
@@ -933,9 +932,9 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_read_buf_t *rbuf)
         goto fail;
     }
 
-    nxt_unit_debug(ctx, "#%"PRIu32": process message %d fd %d fd2 %d",
+    nxt_unit_debug(ctx, "#%"PRIu32": process message %d fd[0] %d fd[1] %d",
                    port_msg->stream, (int) port_msg->type,
-                   recv_msg.fd, recv_msg.fd2);
+                   recv_msg.fd[0], recv_msg.fd[1]);
 
     recv_msg.stream = port_msg->stream;
     recv_msg.pid = port_msg->pid;
@@ -964,8 +963,8 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_read_buf_t *rbuf)
 
         if (nxt_slow_path(rc != NXT_UNIT_OK)) {
             if (rc == NXT_UNIT_AGAIN) {
-                recv_msg.fd = -1;
-                recv_msg.fd2 = -1;
+                recv_msg.fd[0] = -1;
+                recv_msg.fd[1] = -1;
             }
 
             goto fail;
@@ -987,11 +986,11 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_read_buf_t *rbuf)
 
     case _NXT_PORT_MSG_CHANGE_FILE:
         nxt_unit_debug(ctx, "#%"PRIu32": change_file: fd %d",
-                       port_msg->stream, recv_msg.fd);
+                       port_msg->stream, recv_msg.fd[0]);
 
-        if (dup2(recv_msg.fd, lib->log_fd) == -1) {
+        if (dup2(recv_msg.fd[0], lib->log_fd) == -1) {
             nxt_unit_alert(ctx, "#%"PRIu32": dup2(%d, %d) failed: %s (%d)",
-                           port_msg->stream, recv_msg.fd, lib->log_fd,
+                           port_msg->stream, recv_msg.fd[0], lib->log_fd,
                            strerror(errno), errno);
 
             goto fail;
@@ -1001,14 +1000,14 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_read_buf_t *rbuf)
         break;
 
     case _NXT_PORT_MSG_MMAP:
-        if (nxt_slow_path(recv_msg.fd < 0)) {
+        if (nxt_slow_path(recv_msg.fd[0] < 0)) {
             nxt_unit_alert(ctx, "#%"PRIu32": invalid fd %d for mmap",
-                           port_msg->stream, recv_msg.fd);
+                           port_msg->stream, recv_msg.fd[0]);
 
             goto fail;
         }
 
-        rc = nxt_unit_incoming_mmap(ctx, port_msg->pid, recv_msg.fd);
+        rc = nxt_unit_incoming_mmap(ctx, port_msg->pid, recv_msg.fd[0]);
         break;
 
     case _NXT_PORT_MSG_REQ_HEADERS:
@@ -1055,12 +1054,12 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_read_buf_t *rbuf)
 
 fail:
 
-    if (recv_msg.fd != -1) {
-        nxt_unit_close(recv_msg.fd);
+    if (recv_msg.fd[0] != -1) {
+        nxt_unit_close(recv_msg.fd[0]);
     }
 
-    if (recv_msg.fd2 != -1) {
-        nxt_unit_close(recv_msg.fd2);
+    if (recv_msg.fd[1] != -1) {
+        nxt_unit_close(recv_msg.fd[1]);
     }
 
     while (recv_msg.incoming_buf != NULL) {
@@ -1094,32 +1093,34 @@ nxt_unit_process_new_port(nxt_unit_ctx_t *ctx, nxt_unit_recv_msg_t *recv_msg)
         return NXT_UNIT_ERROR;
     }
 
-    if (nxt_slow_path(recv_msg->fd < 0)) {
+    if (nxt_slow_path(recv_msg->fd[0] < 0)) {
         nxt_unit_alert(ctx, "#%"PRIu32": invalid fd %d for new port",
-                       recv_msg->stream, recv_msg->fd);
+                       recv_msg->stream, recv_msg->fd[0]);
 
         return NXT_UNIT_ERROR;
     }
 
     new_port_msg = recv_msg->start;
 
-    nxt_unit_debug(ctx, "#%"PRIu32": new_port: port{%d,%d} fd %d fd2 %d",
+    nxt_unit_debug(ctx, "#%"PRIu32": new_port: port{%d,%d} fd[0] %d fd[1] %d",
                    recv_msg->stream, (int) new_port_msg->pid,
-                   (int) new_port_msg->id, recv_msg->fd, recv_msg->fd2);
+                   (int) new_port_msg->id, recv_msg->fd[0], recv_msg->fd[1]);
 
     lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
 
     if (new_port_msg->id == (nxt_port_id_t) -1) {
         nxt_unit_port_id_init(&new_port.id, lib->pid, new_port_msg->id);
 
-        new_port.in_fd = recv_msg->fd;
+        new_port.in_fd = recv_msg->fd[0];
         new_port.out_fd = -1;
 
         mem = mmap(NULL, sizeof(nxt_app_queue_t), PROT_READ | PROT_WRITE,
-                   MAP_SHARED, recv_msg->fd2, 0);
+                   MAP_SHARED, recv_msg->fd[1], 0);
 
     } else {
-        if (nxt_slow_path(nxt_unit_fd_blocking(recv_msg->fd) != NXT_UNIT_OK)) {
+        if (nxt_slow_path(nxt_unit_fd_blocking(recv_msg->fd[0])
+                          != NXT_UNIT_OK))
+        {
             return NXT_UNIT_ERROR;
         }
 
@@ -1127,14 +1128,14 @@ nxt_unit_process_new_port(nxt_unit_ctx_t *ctx, nxt_unit_recv_msg_t *recv_msg)
                               new_port_msg->id);
 
         new_port.in_fd = -1;
-        new_port.out_fd = recv_msg->fd;
+        new_port.out_fd = recv_msg->fd[0];
 
         mem = mmap(NULL, sizeof(nxt_port_queue_t), PROT_READ | PROT_WRITE,
-                   MAP_SHARED, recv_msg->fd2, 0);
+                   MAP_SHARED, recv_msg->fd[1], 0);
     }
 
     if (nxt_slow_path(mem == MAP_FAILED)) {
-        nxt_unit_alert(ctx, "mmap(%d) failed: %s (%d)", recv_msg->fd2,
+        nxt_unit_alert(ctx, "mmap(%d) failed: %s (%d)", recv_msg->fd[1],
                        strerror(errno), errno);
 
         return NXT_UNIT_ERROR;
@@ -1142,7 +1143,7 @@ nxt_unit_process_new_port(nxt_unit_ctx_t *ctx, nxt_unit_recv_msg_t *recv_msg)
 
     new_port.data = NULL;
 
-    recv_msg->fd = -1;
+    recv_msg->fd[0] = -1;
 
     port = nxt_unit_add_port(ctx, &new_port, mem);
     if (nxt_slow_path(port == NULL)) {
@@ -1224,8 +1225,8 @@ nxt_unit_process_req_headers(nxt_unit_ctx_t *ctx, nxt_unit_recv_msg_t *recv_msg)
     req_impl->incoming_buf->prev = &req_impl->incoming_buf;
     recv_msg->incoming_buf = NULL;
 
-    req->content_fd = recv_msg->fd;
-    recv_msg->fd = -1;
+    req->content_fd = recv_msg->fd[0];
+    recv_msg->fd[0] = -1;
 
     req->response_max_fields = 0;
     req_impl->state = NXT_UNIT_RS_START;
@@ -1312,8 +1313,8 @@ nxt_unit_process_req_body(nxt_unit_ctx_t *ctx, nxt_unit_recv_msg_t *recv_msg)
         recv_msg->incoming_buf = NULL;
     }
 
-    req->content_fd = recv_msg->fd;
-    recv_msg->fd = -1;
+    req->content_fd = recv_msg->fd[0];
+    recv_msg->fd[0] = -1;
 
     lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
 

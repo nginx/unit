@@ -607,14 +607,14 @@ nxt_router_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         msg->port_msg.type = _NXT_PORT_MSG_RPC_ERROR;
 
     } else {
-        if (msg->fd2 != -1) {
-            res = nxt_router_port_queue_map(task, port, msg->fd2);
+        if (msg->fd[1] != -1) {
+            res = nxt_router_port_queue_map(task, port, msg->fd[1]);
             if (nxt_slow_path(res != NXT_OK)) {
                 return;
             }
 
-            nxt_fd_close(msg->fd2);
-            msg->fd2 = -1;
+            nxt_fd_close(msg->fd[1]);
+            msg->fd[1] = -1;
         }
     }
 
@@ -669,7 +669,7 @@ nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         return;
     }
 
-    if (nxt_slow_path(msg->fd == -1)) {
+    if (nxt_slow_path(msg->fd[0] == -1)) {
         nxt_alert(task, "conf_data_handler: invalid file shm fd");
         return;
     }
@@ -678,18 +678,18 @@ nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         nxt_alert(task, "conf_data_handler: unexpected buffer size (%d)",
                   (int) nxt_buf_mem_used_size(&msg->buf->mem));
 
-        nxt_fd_close(msg->fd);
-        msg->fd = -1;
+        nxt_fd_close(msg->fd[0]);
+        msg->fd[0] = -1;
 
         return;
     }
 
     nxt_memcpy(&size, msg->buf->mem.pos, sizeof(size_t));
 
-    p = nxt_mem_mmap(NULL, size, PROT_READ, MAP_SHARED, msg->fd, 0);
+    p = nxt_mem_mmap(NULL, size, PROT_READ, MAP_SHARED, msg->fd[0], 0);
 
-    nxt_fd_close(msg->fd);
-    msg->fd = -1;
+    nxt_fd_close(msg->fd[0]);
+    msg->fd[0] = -1;
 
     if (nxt_slow_path(p == MAP_FAILED)) {
         return;
@@ -2133,7 +2133,7 @@ nxt_router_listen_socket_ready(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
     rpc = data;
 
-    s = msg->fd;
+    s = msg->fd[0];
 
     ret = nxt_socket_nonblocking(task, s);
     if (nxt_slow_path(ret != NXT_OK)) {
@@ -2271,7 +2271,7 @@ nxt_router_tls_rpc_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
         goto fail;
     }
 
-    tlscf->chain_file = msg->fd;
+    tlscf->chain_file = msg->fd[0];
 
     ret = task->thread->runtime->tls->server_init(task, tlscf);
     if (nxt_slow_path(ret != NXT_OK)) {
@@ -3392,7 +3392,7 @@ nxt_router_access_log_ready(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
     access_log = tmcf->router_conf->access_log;
 
-    access_log->fd = msg->fd;
+    access_log->fd = msg->fd[0];
 
     nxt_work_queue_add(&task->thread->engine->fast_work_queue,
                        nxt_router_conf_apply, task, tmcf, NULL);
@@ -3541,13 +3541,13 @@ nxt_router_access_log_reopen_ready(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
     if (access_log == nxt_router->access_log) {
 
-        if (nxt_slow_path(dup2(msg->fd, access_log->fd) == -1)) {
+        if (nxt_slow_path(dup2(msg->fd[0], access_log->fd) == -1)) {
             nxt_alert(task, "dup2(%FD, %FD) failed %E",
-                      msg->fd, access_log->fd, nxt_errno);
+                      msg->fd[0], access_log->fd, nxt_errno);
         }
     }
 
-    nxt_fd_close(msg->fd);
+    nxt_fd_close(msg->fd[0]);
     nxt_mp_release(reopen->mem_pool);
 }
 

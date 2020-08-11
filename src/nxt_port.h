@@ -173,8 +173,7 @@ typedef struct {
     nxt_queue_link_t    link;
     nxt_buf_t           *buf;
     size_t              share;
-    nxt_fd_t            fd;
-    nxt_fd_t            fd2;
+    nxt_fd_t            fd[2];
     nxt_port_msg_t      port_msg;
     uint32_t            tracking_msg[2];
     uint8_t             close_fd;   /* 1 bit */
@@ -183,8 +182,7 @@ typedef struct {
 
 
 struct nxt_port_recv_msg_s {
-    nxt_fd_t            fd;
-    nxt_fd_t            fd2;
+    nxt_fd_t            fd[2];
     nxt_buf_t           *buf;
     nxt_port_t          *port;
     nxt_port_msg_t      port_msg;

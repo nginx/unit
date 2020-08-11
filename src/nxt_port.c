@@ -261,15 +261,15 @@ nxt_port_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     /* TODO check b size and make plain */
 
     nxt_debug(task, "new port %d received for process %PI:%d",
-              msg->fd, new_port_msg->pid, new_port_msg->id);
+              msg->fd[0], new_port_msg->pid, new_port_msg->id);
 
     port = nxt_runtime_port_find(rt, new_port_msg->pid, new_port_msg->id);
     if (port != NULL) {
         nxt_debug(task, "port %PI:%d already exists", new_port_msg->pid,
               new_port_msg->id);
 
-        nxt_fd_close(msg->fd);
-        msg->fd = -1;
+        nxt_fd_close(msg->fd[0]);
+        msg->fd[0] = -1;
         return;
     }
 
@@ -280,10 +280,10 @@ nxt_port_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         return;
     }
 
-    nxt_fd_nonblocking(task, msg->fd);
+    nxt_fd_nonblocking(task, msg->fd[0]);
 
     port->pair[0] = -1;
-    port->pair[1] = msg->fd;
+    port->pair[1] = msg->fd[0];
     port->max_size = new_port_msg->max_size;
     port->max_share = new_port_msg->max_share;
 
@@ -319,11 +319,11 @@ nxt_port_process_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     nxt_debug(task, "process %PI ready", msg->port_msg.pid);
 
-    if (msg->fd != -1) {
-        port->queue_fd = msg->fd;
+    if (msg->fd[0] != -1) {
+        port->queue_fd = msg->fd[0];
         port->queue = nxt_mem_mmap(NULL, sizeof(nxt_port_queue_t),
-                                   PROT_READ | PROT_WRITE, MAP_SHARED, msg->fd,
-                                   0);
+                                   PROT_READ | PROT_WRITE, MAP_SHARED,
+                                   msg->fd[0], 0);
     }
 
     nxt_port_send_new_port(task, rt, port, msg->port_msg.stream);
@@ -338,7 +338,7 @@ nxt_port_mmap_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     rt = task->thread->runtime;
 
-    if (nxt_slow_path(msg->fd == -1)) {
+    if (nxt_slow_path(msg->fd[0] == -1)) {
         nxt_log(task, NXT_LOG_WARN, "invalid fd passed with mmap message");
 
         return;
@@ -352,11 +352,11 @@ nxt_port_mmap_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         goto fail_close;
     }
 
-    nxt_port_incoming_port_mmap(task, process, msg->fd);
+    nxt_port_incoming_port_mmap(task, process, msg->fd[0]);
 
 fail_close:
 
-    nxt_fd_close(msg->fd);
+    nxt_fd_close(msg->fd[0]);
 }
 
 
@@ -409,14 +409,14 @@ nxt_port_change_log_file_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     log_file = nxt_list_elt(rt->log_files, slot);
 
-    nxt_debug(task, "change log file %FD:%FD", msg->fd, log_file->fd);
+    nxt_debug(task, "change log file %FD:%FD", msg->fd[0], log_file->fd);
 
     /*
      * The old log file descriptor must be closed at the moment when no
      * other threads use it.  dup2() allows to use the old file descriptor
      * for new log file.  This change is performed atomically in the kernel.
      */
-    if (nxt_file_redirect(log_file, msg->fd) == NXT_OK) {
+    if (nxt_file_redirect(log_file, msg->fd[0]) == NXT_OK) {
         if (slot == 0) {
             (void) nxt_file_stderr(log_file);
         }
