@@ -400,7 +400,9 @@ class TestConfiguration(TestControl):
                     "path": "/app",
                     "module": "wsgi",
                 }
-                for a in range(999)
+                # Larger number of applications can cause test fail with default
+                # open files limit due to the lack of file descriptors.
+                for a in range(100)
             },
             "listeners": {"*:7080": {"pass": "applications/app-1"}},
         }
