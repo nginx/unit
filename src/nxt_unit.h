@@ -202,7 +202,20 @@ nxt_unit_ctx_t *nxt_unit_init(nxt_unit_init_t *);
  */
 int nxt_unit_run(nxt_unit_ctx_t *);
 
+int nxt_unit_run_ctx(nxt_unit_ctx_t *ctx);
+
+int nxt_unit_run_shared(nxt_unit_ctx_t *ctx);
+
+/*
+ * Receive and process one message, invoke configured callbacks.
+ *
+ * If application implements it's own event loop, each datagram received
+ * from port socket should be initially processed by unit.  This function
+ * may invoke other application-defined callback for message processing.
+ */
 int nxt_unit_run_once(nxt_unit_ctx_t *ctx);
+
+int nxt_unit_process_port_msg(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port);
 
 /* Destroy application library object. */
 void nxt_unit_done(nxt_unit_ctx_t *);

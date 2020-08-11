@@ -44,7 +44,7 @@ nxt_cgo_run(uintptr_t handler)
         return NXT_UNIT_ERROR;
     }
 
-    rc = nxt_unit_run(ctx);
+    rc = nxt_unit_run_ctx(ctx);
 
     nxt_unit_done(ctx);
 
@@ -105,7 +105,7 @@ nxt_cgo_str_init(nxt_cgo_str_t *dst, nxt_unit_sptr_t *sptr, uint32_t length)
 static int
 nxt_cgo_add_port(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port)
 {
-    nxt_go_add_port(port->id.pid, port->id.id,
+    nxt_go_add_port((uintptr_t) ctx, port->id.pid, port->id.id,
                     port->in_fd, port->out_fd);
 
     port->in_fd = -1;
@@ -200,6 +200,13 @@ void
 nxt_cgo_request_done(uintptr_t req, int res)
 {
     nxt_unit_request_done((nxt_unit_request_info_t *) req, res);
+}
+
+
+void
+nxt_cgo_unit_run_shared(uintptr_t ctx)
+{
+    nxt_unit_run_shared((nxt_unit_ctx_t *) ctx);
 }
 
 

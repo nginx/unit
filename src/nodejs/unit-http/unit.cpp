@@ -20,7 +20,7 @@ napi_ref Unit::constructor_;
 
 struct port_data_t {
     nxt_unit_ctx_t      *ctx;
-    nxt_unit_port_id_t  port_id;
+    nxt_unit_port_t     *port;
     uv_poll_t           poll;
 };
 
@@ -351,7 +351,11 @@ Unit::shm_ack_handler(nxt_unit_ctx_t *ctx)
 static void
 nxt_uv_read_callback(uv_poll_t *handle, int status, int events)
 {
-    nxt_unit_run_once((nxt_unit_ctx_t *) handle->data);
+    port_data_t  *data;
+
+    data = (port_data_t *) handle->data;
+
+    nxt_unit_process_port_msg(data->ctx, data->port);
 }
 
 
@@ -396,18 +400,11 @@ Unit::add_port(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port)
         port->data = data;
 
         data->ctx = ctx;
-        data->port_id = port->id;
-        data->poll.data = ctx;
+        data->port = port;
+        data->poll.data = data;
     }
 
     return NXT_UNIT_OK;
-}
-
-
-inline bool
-operator == (const nxt_unit_port_id_t &p1, const nxt_unit_port_id_t &p2)
-{
-    return p1.pid == p2.pid && p1.id == p2.id;
 }
 
 
@@ -419,10 +416,9 @@ Unit::remove_port(nxt_unit_t *unit, nxt_unit_port_t *port)
     if (port->data != NULL) {
         data = (port_data_t *) port->data;
 
-        if (data->port_id == port->id) {
+        if (data->port == port) {
             uv_poll_stop(&data->poll);
 
-            data->poll.data = data;
             uv_close((uv_handle_t *) &data->poll, delete_port_data);
         }
     }

@@ -35,6 +35,8 @@ int nxt_cgo_request_close(uintptr_t req);
 
 void nxt_cgo_request_done(uintptr_t req, int res);
 
+void nxt_cgo_unit_run_shared(uintptr_t ctx);
+
 void nxt_cgo_warn(uintptr_t msg, uint32_t msg_len);
 
 #endif /* _NXT_CGO_LIB_H_INCLUDED_ */

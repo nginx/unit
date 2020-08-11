@@ -101,18 +101,20 @@ typedef struct {
 
 
 struct nxt_app_s {
-    nxt_thread_mutex_t     mutex;    /* Protects ports queue. */
-    nxt_queue_t            ports;    /* of nxt_port_t.app_link */
+    nxt_thread_mutex_t     mutex;       /* Protects ports queue. */
+    nxt_queue_t            ports;       /* of nxt_port_t.app_link */
+    nxt_lvlhsh_t           port_hash;   /* of nxt_port_t */
 
     nxt_queue_t            spare_ports; /* of nxt_port_t.idle_link */
     nxt_queue_t            idle_ports;  /* of nxt_port_t.idle_link */
     nxt_work_t             adjust_idle_work;
     nxt_event_engine_t     *engine;
 
-    nxt_queue_t            requests; /* of nxt_request_app_link_t */
-    nxt_queue_t            pending;  /* of nxt_request_app_link_t */
     nxt_str_t              name;
 
+    uint32_t               port_hash_count;
+
+    uint32_t               active_requests;
     uint32_t               pending_processes;
     uint32_t               processes;
     uint32_t               idle_processes;
@@ -120,7 +122,6 @@ struct nxt_app_s {
     uint32_t               max_processes;
     uint32_t               spare_processes;
     uint32_t               max_pending_processes;
-    uint32_t               max_pending_responses;
     uint32_t               max_requests;
 
     nxt_msec_t             timeout;
@@ -139,6 +140,9 @@ struct nxt_app_s {
     nxt_atomic_t           use_count;
 
     nxt_app_joint_t        *joint;
+    nxt_port_t             *shared_port;
+
+    nxt_port_mmaps_t       outgoing;
 };
 
 

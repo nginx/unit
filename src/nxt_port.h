@@ -41,6 +41,7 @@ struct nxt_port_handlers_s {
 
     /* Request headers. */
     nxt_port_handler_t  req_headers;
+    nxt_port_handler_t  req_headers_ack;
 
     /* Websocket frame. */
     nxt_port_handler_t  websocket_frame;
@@ -89,6 +90,7 @@ typedef enum {
     _NXT_PORT_MSG_QUIT            = nxt_port_handler_idx(quit),
 
     _NXT_PORT_MSG_REQ_HEADERS     = nxt_port_handler_idx(req_headers),
+    _NXT_PORT_MSG_REQ_HEADERS_ACK = nxt_port_handler_idx(req_headers_ack),
     _NXT_PORT_MSG_WEBSOCKET       = nxt_port_handler_idx(websocket_frame),
 
     _NXT_PORT_MSG_DATA            = nxt_port_handler_idx(data),
@@ -113,7 +115,8 @@ typedef enum {
     NXT_PORT_MSG_NEW_PORT         = nxt_msg_last(_NXT_PORT_MSG_NEW_PORT),
     NXT_PORT_MSG_GET_PORT         = nxt_msg_last(_NXT_PORT_MSG_GET_PORT),
     NXT_PORT_MSG_MMAP             = nxt_msg_last(_NXT_PORT_MSG_MMAP)
-                                    | NXT_PORT_MSG_CLOSE_FD | NXT_PORT_MSG_SYNC,
+                                    | NXT_PORT_MSG_SYNC,
+    NXT_PORT_MSG_GET_MMAP         = nxt_msg_last(_NXT_PORT_MSG_GET_MMAP),
 
     NXT_PORT_MSG_PROCESS_CREATED  = nxt_msg_last(_NXT_PORT_MSG_PROCESS_CREATED),
     NXT_PORT_MSG_PROCESS_READY    = nxt_msg_last(_NXT_PORT_MSG_PROCESS_READY),
@@ -193,6 +196,7 @@ struct nxt_port_s {
 
     nxt_queue_link_t    app_link;   /* for nxt_app_t.ports */
     nxt_app_t           *app;
+    nxt_port_t          *main_app_port;
 
     nxt_queue_link_t    idle_link;  /* for nxt_app_t.idle_ports */
     nxt_msec_t          idle_start;
@@ -205,11 +209,10 @@ struct nxt_port_s {
     /* Maximum interleave of message parts. */
     uint32_t            max_share;
 
-    uint32_t            app_pending_responses;
     uint32_t            app_responses;
-    nxt_queue_t         pending_requests;
 
-    nxt_queue_t         active_websockets;
+    uint32_t            active_websockets;
+    uint32_t            active_requests;
 
     nxt_port_handler_t  handler;
     nxt_port_handler_t  *data;
