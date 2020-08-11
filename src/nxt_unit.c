@@ -898,7 +898,6 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_read_buf_t *rbuf)
 
     lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
 
-    rc = NXT_UNIT_ERROR;
     recv_msg.fd[0] = -1;
     recv_msg.fd[1] = -1;
     port_msg = (nxt_port_msg_t *) rbuf->buf;
@@ -924,12 +923,13 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_read_buf_t *rbuf)
 
             nxt_unit_quit(ctx);
             rc = NXT_UNIT_OK;
-
-            goto fail;
+            goto done;
         }
 
         nxt_unit_alert(ctx, "message too small (%d bytes)", (int) rbuf->size);
-        goto fail;
+
+        rc = NXT_UNIT_ERROR;
+        goto done;
     }
 
     nxt_unit_debug(ctx, "#%"PRIu32": process message %d fd[0] %d fd[1] %d",
@@ -946,16 +946,18 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_read_buf_t *rbuf)
     recv_msg.size = rbuf->size - sizeof(nxt_port_msg_t);
 
     if (nxt_slow_path(port_msg->type >= NXT_PORT_MSG_MAX)) {
-        nxt_unit_warn(ctx, "#%"PRIu32": unknown message type (%d)",
-                      port_msg->stream, (int) port_msg->type);
-        goto fail;
+        nxt_unit_alert(ctx, "#%"PRIu32": unknown message type (%d)",
+                       port_msg->stream, (int) port_msg->type);
+        rc = NXT_UNIT_ERROR;
+        goto done;
     }
 
     /* Fragmentation is unsupported. */
     if (nxt_slow_path(port_msg->nf != 0 || port_msg->mf != 0)) {
-        nxt_unit_warn(ctx, "#%"PRIu32": fragmented message type (%d)",
-                      port_msg->stream, (int) port_msg->type);
-        goto fail;
+        nxt_unit_alert(ctx, "#%"PRIu32": fragmented message type (%d)",
+                       port_msg->stream, (int) port_msg->type);
+        rc = NXT_UNIT_ERROR;
+        goto done;
     }
 
     if (port_msg->mmap) {
@@ -967,7 +969,7 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_read_buf_t *rbuf)
                 recv_msg.fd[1] = -1;
             }
 
-            goto fail;
+            goto done;
         }
     }
 
@@ -993,7 +995,8 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_read_buf_t *rbuf)
                            port_msg->stream, recv_msg.fd[0], lib->log_fd,
                            strerror(errno), errno);
 
-            goto fail;
+            rc = NXT_UNIT_ERROR;
+            goto done;
         }
 
         rc = NXT_UNIT_OK;
@@ -1004,7 +1007,8 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_read_buf_t *rbuf)
             nxt_unit_alert(ctx, "#%"PRIu32": invalid fd %d for mmap",
                            port_msg->stream, recv_msg.fd[0]);
 
-            goto fail;
+            rc = NXT_UNIT_ERROR;
+            goto done;
         }
 
         rc = nxt_unit_incoming_mmap(ctx, port_msg->pid, recv_msg.fd[0]);
@@ -1024,11 +1028,12 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_read_buf_t *rbuf)
 
     case _NXT_PORT_MSG_REMOVE_PID:
         if (nxt_slow_path(recv_msg.size != sizeof(pid))) {
-            nxt_unit_warn(ctx, "#%"PRIu32": remove_pid: invalid message size "
-                          "(%d != %d)", port_msg->stream, (int) recv_msg.size,
-                          (int) sizeof(pid));
+            nxt_unit_alert(ctx, "#%"PRIu32": remove_pid: invalid message size "
+                           "(%d != %d)", port_msg->stream, (int) recv_msg.size,
+                           (int) sizeof(pid));
 
-            goto fail;
+            rc = NXT_UNIT_ERROR;
+            goto done;
         }
 
         memcpy(&pid, recv_msg.start, sizeof(pid));
@@ -1049,10 +1054,11 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_read_buf_t *rbuf)
         nxt_unit_debug(ctx, "#%"PRIu32": ignore message type: %d",
                        port_msg->stream, (int) port_msg->type);
 
-        goto fail;
+        rc = NXT_UNIT_ERROR;
+        goto done;
     }
 
-fail:
+done:
 
     if (recv_msg.fd[0] != -1) {
         nxt_unit_close(recv_msg.fd[0]);
