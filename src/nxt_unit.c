@@ -192,6 +192,7 @@ struct nxt_unit_recv_msg_s {
     uint32_t                 size;
 
     int                      fd;
+    int                      fd2;
 
     nxt_unit_mmap_buf_t      *incoming_buf;
 };
@@ -805,14 +806,20 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_read_buf_t *rbuf)
 
     rc = NXT_UNIT_ERROR;
     recv_msg.fd = -1;
+    recv_msg.fd2 = -1;
     port_msg = (nxt_port_msg_t *) rbuf->buf;
     cm = (struct cmsghdr *) rbuf->oob;
 
-    if (cm->cmsg_len == CMSG_LEN(sizeof(int))
-        && cm->cmsg_level == SOL_SOCKET
+    if (cm->cmsg_level == SOL_SOCKET
         && cm->cmsg_type == SCM_RIGHTS)
     {
-        memcpy(&recv_msg.fd, CMSG_DATA(cm), sizeof(int));
+        if (cm->cmsg_len == CMSG_LEN(sizeof(int))) {
+            memcpy(&recv_msg.fd, CMSG_DATA(cm), sizeof(int));
+        }
+
+        if (cm->cmsg_len == CMSG_LEN(sizeof(int) * 2)) {
+            memcpy(&recv_msg.fd, CMSG_DATA(cm), sizeof(int) * 2);
+        }
     }
 
     recv_msg.incoming_buf = NULL;
@@ -852,6 +859,7 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_read_buf_t *rbuf)
         if (nxt_slow_path(rc != NXT_UNIT_OK)) {
             if (rc == NXT_UNIT_AGAIN) {
                 recv_msg.fd = -1;
+                recv_msg.fd2 = -1;
             }
 
             goto fail;
@@ -871,6 +879,7 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_read_buf_t *rbuf)
         if (nxt_slow_path(rc != NXT_UNIT_OK)) {
             if (rc == NXT_UNIT_AGAIN) {
                 recv_msg.fd = -1;
+                recv_msg.fd2 = -1;
             }
 
             goto fail;
@@ -958,6 +967,10 @@ fail:
 
     if (recv_msg.fd != -1) {
         close(recv_msg.fd);
+    }
+
+    if (recv_msg.fd2 != -1) {
+        close(recv_msg.fd2);
     }
 
     while (recv_msg.incoming_buf != NULL) {

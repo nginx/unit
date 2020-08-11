@@ -156,6 +156,7 @@ nxt_port_socket_twrite(nxt_task_t *task, nxt_port_t *port, nxt_uint_t type,
     msg.buf = b;
     msg.share = 0;
     msg.fd = fd;
+    msg.fd2 = -1;
     msg.close_fd = (type & NXT_PORT_MSG_CLOSE_FD) != 0;
     msg.allocated = 0;
 
@@ -331,7 +332,7 @@ next_fragment:
         msg->port_msg.last |= sb.last;
         msg->port_msg.mf = sb.limit_reached || sb.nmax_reached;
 
-        n = nxt_socketpair_send(&port->socket, msg->fd, iov, sb.niov + 1);
+        n = nxt_socketpair_send(&port->socket, &msg->fd, iov, sb.niov + 1);
 
         if (n > 0) {
             if (nxt_slow_path((size_t) n != sb.size + iov[0].iov_len)) {
@@ -346,6 +347,12 @@ next_fragment:
                 msg->fd = -1;
             }
 
+            if (msg->fd2 != -1 && msg->close_fd != 0) {
+                nxt_fd_close(msg->fd2);
+
+                msg->fd2 = -1;
+            }
+
             msg->buf = nxt_port_buf_completion(task, wq, msg->buf, plain_size,
                                                m == NXT_PORT_METHOD_MMAP);
 
@@ -358,6 +365,7 @@ next_fragment:
                  * in the first message of a stream.
                  */
                 msg->fd = -1;
+                msg->fd2 = -1;
                 msg->share += n;
                 msg->port_msg.nf = 1;
                 msg->port_msg.tracking = 0;
@@ -810,6 +818,10 @@ nxt_port_read_msg_process(nxt_task_t *task, nxt_port_t *port,
             nxt_fd_close(msg->fd);
         }
 
+        if (msg->fd2 != -1) {
+            nxt_fd_close(msg->fd2);
+        }
+
         return;
     }
 
@@ -854,6 +866,7 @@ nxt_port_read_msg_process(nxt_task_t *task, nxt_port_t *port,
 
                 msg->buf = fmsg->buf;
                 msg->fd = fmsg->fd;
+                msg->fd2 = fmsg->fd2;
 
                 /*
                  * To disable instant completion or buffer re-usage,
@@ -888,11 +901,16 @@ nxt_port_read_msg_process(nxt_task_t *task, nxt_port_t *port,
             if (nxt_fast_path(msg->cancelled == 0)) {
                 msg->buf = NULL;
                 msg->fd = -1;
+                msg->fd2 = -1;
                 b = NULL;
 
             } else {
                 if (msg->fd != -1) {
                     nxt_fd_close(msg->fd);
+                }
+
+                if (msg->fd2 != -1) {
+                    nxt_fd_close(msg->fd2);
                 }
             }
         } else {
@@ -997,6 +1015,12 @@ nxt_port_error_handler(nxt_task_t *task, void *obj, void *data)
             nxt_fd_close(msg->fd);
 
             msg->fd = -1;
+        }
+
+        if (msg->fd2 != -1 && msg->close_fd != 0) {
+            nxt_fd_close(msg->fd2);
+
+            msg->fd2 = -1;
         }
 
         for (b = msg->buf; b != NULL; b = next) {
