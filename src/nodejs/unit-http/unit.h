@@ -40,7 +40,7 @@ private:
     void shm_ack_handler(nxt_unit_ctx_t *ctx);
 
     static int add_port(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port);
-    static void remove_port(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id);
+    static void remove_port(nxt_unit_t *unit, nxt_unit_port_t *port);
 
     static void quit_cb(nxt_unit_ctx_t *ctx);
     void quit(nxt_unit_ctx_t *ctx);

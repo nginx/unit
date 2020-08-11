@@ -18,7 +18,8 @@ static void delete_port_data(uv_handle_t* handle);
 napi_ref Unit::constructor_;
 
 
-struct nxt_nodejs_ctx_t {
+struct port_data_t {
+    nxt_unit_ctx_t      *ctx;
     nxt_unit_port_id_t  port_id;
     uv_poll_t           poll;
 };
@@ -360,8 +361,8 @@ Unit::add_port(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port)
     int               err;
     Unit              *obj;
     uv_loop_t         *loop;
+    port_data_t       *data;
     napi_status       status;
-    nxt_nodejs_ctx_t  *node_ctx;
 
     if (port->in_fd != -1) {
         obj = reinterpret_cast<Unit *>(ctx->unit->data);
@@ -378,27 +379,28 @@ Unit::add_port(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port)
             return NXT_UNIT_ERROR;
         }
 
-        node_ctx = new nxt_nodejs_ctx_t;
+        data = new port_data_t;
 
-        err = uv_poll_init(loop, &node_ctx->poll, port->in_fd);
+        err = uv_poll_init(loop, &data->poll, port->in_fd);
         if (err < 0) {
             nxt_unit_warn(ctx, "Failed to init uv.poll");
             return NXT_UNIT_ERROR;
         }
 
-        err = uv_poll_start(&node_ctx->poll, UV_READABLE, nxt_uv_read_callback);
+        err = uv_poll_start(&data->poll, UV_READABLE, nxt_uv_read_callback);
         if (err < 0) {
             nxt_unit_warn(ctx, "Failed to start uv.poll");
             return NXT_UNIT_ERROR;
         }
 
-        ctx->data = node_ctx;
+        port->data = data;
 
-        node_ctx->port_id = port->id;
-        node_ctx->poll.data = ctx;
+        data->ctx = ctx;
+        data->port_id = port->id;
+        data->poll.data = ctx;
     }
 
-    return nxt_unit_add_port(ctx, port);
+    return NXT_UNIT_OK;
 }
 
 
@@ -410,35 +412,31 @@ operator == (const nxt_unit_port_id_t &p1, const nxt_unit_port_id_t &p2)
 
 
 void
-Unit::remove_port(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id)
+Unit::remove_port(nxt_unit_t *unit, nxt_unit_port_t *port)
 {
-    nxt_nodejs_ctx_t  *node_ctx;
+    port_data_t  *data;
 
-    if (ctx->data != NULL) {
-        node_ctx = (nxt_nodejs_ctx_t *) ctx->data;
+    if (port->data != NULL) {
+        data = (port_data_t *) port->data;
 
-        if (node_ctx->port_id == *port_id) {
-            uv_poll_stop(&node_ctx->poll);
+        if (data->port_id == port->id) {
+            uv_poll_stop(&data->poll);
 
-            node_ctx->poll.data = node_ctx;
-            uv_close((uv_handle_t *) &node_ctx->poll, delete_port_data);
-
-            ctx->data = NULL;
+            data->poll.data = data;
+            uv_close((uv_handle_t *) &data->poll, delete_port_data);
         }
     }
-
-    nxt_unit_remove_port(ctx, port_id);
 }
 
 
 static void
 delete_port_data(uv_handle_t* handle)
 {
-    nxt_nodejs_ctx_t  *node_ctx;
+    port_data_t  *data;
 
-    node_ctx = (nxt_nodejs_ctx_t *) handle->data;
+    data = (port_data_t *) handle->data;
 
-    delete node_ctx;
+    delete data;
 }
 
 

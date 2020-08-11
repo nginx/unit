@@ -130,15 +130,15 @@ struct nxt_unit_callbacks_s {
     int      (*add_port)(nxt_unit_ctx_t *, nxt_unit_port_t *port);
 
     /* Remove previously added port. Optional. */
-    void     (*remove_port)(nxt_unit_ctx_t *, nxt_unit_port_id_t *port_id);
+    void     (*remove_port)(nxt_unit_t *, nxt_unit_port_t *port);
 
     /* Remove all data associated with process pid including ports. Optional. */
-    void     (*remove_pid)(nxt_unit_ctx_t *, pid_t pid);
+    void     (*remove_pid)(nxt_unit_t *, pid_t pid);
 
     /* Gracefully quit the application. Optional. */
     void     (*quit)(nxt_unit_ctx_t *);
 
-    /* Shared memory release acknowledgement. */
+    /* Shared memory release acknowledgement. Optional. */
     void     (*shm_ack_handler)(nxt_unit_ctx_t *);
 
     /* Send data and control to process pid using port id. Optional. */
@@ -149,7 +149,6 @@ struct nxt_unit_callbacks_s {
     /* Receive data on port id. Optional. */
     ssize_t  (*port_recv)(nxt_unit_ctx_t *, nxt_unit_port_id_t *port_id,
                  void *buf, size_t buf_size, void *oob, size_t oob_size);
-
 };
 
 
@@ -165,6 +164,7 @@ struct nxt_unit_init_s {
 
     nxt_unit_port_t       ready_port;
     uint32_t              ready_stream;
+    nxt_unit_port_t       router_port;
     nxt_unit_port_t       read_port;
     int                   log_fd;
 };
@@ -222,44 +222,8 @@ void nxt_unit_done(nxt_unit_ctx_t *);
  */
 nxt_unit_ctx_t *nxt_unit_ctx_alloc(nxt_unit_ctx_t *, void *);
 
-/* Free unused context.  It is not required to free main context. */
-void nxt_unit_ctx_free(nxt_unit_ctx_t *);
-
 /* Initialize port_id, calculate hash. */
 void nxt_unit_port_id_init(nxt_unit_port_id_t *port_id, pid_t pid, uint16_t id);
-
-/*
- * Create extra incoming port, perform all required actions to propogate
- * the port to Unit server.  Fills structure referenced by port_id with
- * current pid and new port id.
- */
-int nxt_unit_create_send_port(nxt_unit_ctx_t *, nxt_unit_port_id_t *dst,
-    nxt_unit_port_id_t *port_id);
-
-/* Default 'add_port' implementation. */
-int nxt_unit_add_port(nxt_unit_ctx_t *, nxt_unit_port_t *port);
-
-/* Find previously added port. */
-nxt_unit_port_t *nxt_unit_find_port(nxt_unit_ctx_t *,
-    nxt_unit_port_id_t *port_id);
-
-/* Find, fill output 'port' and remove port from storage.  */
-void nxt_unit_find_remove_port(nxt_unit_ctx_t *, nxt_unit_port_id_t *port_id,
-    nxt_unit_port_t *port);
-
-/* Default 'remove_port' implementation. */
-void nxt_unit_remove_port(nxt_unit_ctx_t *, nxt_unit_port_id_t *port_id);
-
-/* Default 'remove_pid' implementation. */
-void nxt_unit_remove_pid(nxt_unit_ctx_t *, pid_t pid);
-
-/* Default 'quit' implementation. */
-void nxt_unit_quit(nxt_unit_ctx_t *);
-
-/* Default 'port_send' implementation. */
-ssize_t nxt_unit_port_send(nxt_unit_ctx_t *, int fd,
-    const void *buf, size_t buf_size,
-    const void *oob, size_t oob_size);
 
 /* Default 'port_recv' implementation. */
 ssize_t nxt_unit_port_recv(nxt_unit_ctx_t *, int fd, void *buf, size_t buf_size,

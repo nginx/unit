@@ -61,7 +61,7 @@ nxt_bool_t  nxt_proc_conn_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
     { 1, 0, 0, 0, 0 },
     { 1, 0, 0, 1, 0 },
     { 1, 0, 1, 0, 1 },
-    { 1, 0, 0, 0, 0 },
+    { 1, 0, 0, 1, 0 },
 };
 
 nxt_bool_t  nxt_proc_remove_notify_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {

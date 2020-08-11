@@ -1263,7 +1263,7 @@ nxt_app_parse_type(u_char *p, size_t length)
 nxt_int_t
 nxt_unit_default_init(nxt_task_t *task, nxt_unit_init_t *init)
 {
-    nxt_port_t     *my_port, *main_port;
+    nxt_port_t     *my_port, *main_port, *router_port;
     nxt_runtime_t  *rt;
 
     nxt_memzero(init, sizeof(nxt_unit_init_t));
@@ -1272,6 +1272,11 @@ nxt_unit_default_init(nxt_task_t *task, nxt_unit_init_t *init)
 
     main_port = rt->port_by_type[NXT_PROCESS_MAIN];
     if (nxt_slow_path(main_port == NULL)) {
+        return NXT_ERROR;
+    }
+
+    router_port = rt->port_by_type[NXT_PROCESS_ROUTER];
+    if (nxt_slow_path(router_port == NULL)) {
         return NXT_ERROR;
     }
 
@@ -1288,6 +1293,13 @@ nxt_unit_default_init(nxt_task_t *task, nxt_unit_init_t *init)
     nxt_fd_blocking(task, main_port->pair[1]);
 
     init->ready_stream = my_port->process->stream;
+
+    init->router_port.id.pid = router_port->pid;
+    init->router_port.id.id = router_port->id;
+    init->router_port.in_fd = -1;
+    init->router_port.out_fd = router_port->pair[1];
+
+    nxt_fd_blocking(task, router_port->pair[1]);
 
     init->read_port.id.pid = my_port->pid;
     init->read_port.id.id = my_port->id;
