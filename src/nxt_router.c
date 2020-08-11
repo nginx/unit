@@ -437,6 +437,8 @@ nxt_router_start_app_process(nxt_task_t *task, nxt_app_t *app)
     nxt_port_t     *router_port;
     nxt_runtime_t  *rt;
 
+    nxt_debug(task, "app '%V' start process", &app->name);
+
     rt = task->thread->runtime;
     router_port = rt->port_by_type[NXT_PROCESS_ROUTER];
 
@@ -2267,6 +2269,10 @@ nxt_router_app_prefork_ready(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
     nxt_queue_insert_tail(&app->ports, &port->app_link);
     nxt_queue_insert_tail(&app->spare_ports, &port->idle_link);
+
+    nxt_debug(task, "app '%V' move new port %PI:%d to spare_ports",
+              &app->name, port->pid, port->id);
+
     nxt_port_hash_add(&app->port_hash, port);
     app->port_hash_count++;
 
@@ -3690,6 +3696,10 @@ nxt_router_req_headers_ack_handler(nxt_task_t *task,
     if (nxt_queue_chk_remove(&main_app_port->idle_link)) {
         app->idle_processes--;
 
+        nxt_debug(task, "app '%V' move port %PI:%d out of %s (ack)",
+                  &app->name, main_app_port->pid, main_app_port->id,
+                  (main_app_port->idle_start ? "idle_ports" : "spare_ports"));
+
         /* Check port was in 'spare_ports' using idle_start field. */
         if (main_app_port->idle_start == 0
             && app->idle_processes >= app->spare_processes)
@@ -3707,6 +3717,10 @@ nxt_router_req_headers_ack_handler(nxt_task_t *task,
             nxt_queue_insert_tail(&app->spare_ports, idle_lnk);
 
             idle_port->idle_start = 0;
+
+            nxt_debug(task, "app '%V' move port %PI:%d from idle_ports "
+                      "to spare_ports",
+                      &app->name, idle_port->pid, idle_port->id);
         }
 
         if (nxt_router_app_can_start(app) && nxt_router_app_need_start(app)) {
@@ -3925,7 +3939,7 @@ nxt_router_app_use(nxt_task_t *task, nxt_app_t *app, int i)
 
 
 nxt_inline nxt_port_t *
-nxt_router_app_get_port_for_quit(nxt_app_t *app)
+nxt_router_app_get_port_for_quit(nxt_task_t *task, nxt_app_t *app)
 {
     nxt_port_t  *port;
 
@@ -3940,6 +3954,10 @@ nxt_router_app_get_port_for_quit(nxt_app_t *app)
 
         if (nxt_queue_chk_remove(&port->idle_link)) {
             app->idle_processes--;
+
+            nxt_debug(task, "app '%V' move port %PI:%d out of %s for quit",
+                      &app->name, port->pid, port->id,
+                      (port->idle_start ? "idle_ports" : "spare_ports"));
         }
 
         nxt_port_hash_remove(&app->port_hash, port);
@@ -4074,10 +4092,15 @@ nxt_router_app_port_release(nxt_task_t *task, nxt_port_t *port,
         if (app->idle_processes < app->spare_processes) {
             nxt_queue_insert_tail(&app->spare_ports, &main_app_port->idle_link);
 
+            nxt_debug(task, "app '%V' move port %PI:%d to spare_ports",
+                      &app->name, main_app_port->pid, main_app_port->id);
         } else {
             nxt_queue_insert_tail(&app->idle_ports, &main_app_port->idle_link);
 
             main_app_port->idle_start = task->thread->engine->timers.now;
+
+            nxt_debug(task, "app '%V' move port %PI:%d to idle_ports",
+                      &app->name, main_app_port->pid, main_app_port->id);
         }
 
         app->idle_processes++;
@@ -4151,6 +4174,10 @@ nxt_router_app_port_close(nxt_task_t *task, nxt_port_t *port)
     if (nxt_queue_chk_remove(&port->idle_link)) {
         app->idle_processes--;
 
+        nxt_debug(task, "app '%V' move port %PI:%d out of %s before close",
+                  &app->name, port->pid, port->id,
+                  (port->idle_start ? "idle_ports" : "spare_ports"));
+
         if (port->idle_start == 0
             && app->idle_processes >= app->spare_processes)
         {
@@ -4163,6 +4190,10 @@ nxt_router_app_port_close(nxt_task_t *task, nxt_port_t *port)
             nxt_queue_insert_tail(&app->spare_ports, idle_lnk);
 
             idle_port->idle_start = 0;
+
+            nxt_debug(task, "app '%V' move port %PI:%d from idle_ports "
+                      "to spare_ports",
+                      &app->name, idle_port->pid, idle_port->id);
         }
     }
 
@@ -4243,6 +4274,9 @@ nxt_router_adjust_idle_timer(nxt_task_t *task, void *obj, void *data)
         nxt_queue_remove(lnk);
         lnk->next = NULL;
 
+        nxt_debug(task, "app '%V' move port %PI:%d out of idle_ports (timeout)",
+                  &app->name, port->pid, port->id);
+
         nxt_queue_chk_remove(&port->app_link);
 
         nxt_port_hash_remove(&app->port_hash, port);
@@ -4318,7 +4352,7 @@ nxt_router_free_app(nxt_task_t *task, void *obj, void *data)
     app = app_joint->app;
 
     for ( ;; ) {
-        port = nxt_router_app_get_port_for_quit(app);
+        port = nxt_router_app_get_port_for_quit(task, app);
         if (port == NULL) {
             break;
         }
