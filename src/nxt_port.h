@@ -25,6 +25,7 @@ struct nxt_port_handlers_s {
     /* File descriptor exchange. */
     nxt_port_handler_t  change_file;
     nxt_port_handler_t  new_port;
+    nxt_port_handler_t  get_port;
     nxt_port_handler_t  mmap;
 
     /* New process */
@@ -77,6 +78,7 @@ typedef enum {
 
     _NXT_PORT_MSG_CHANGE_FILE     = nxt_port_handler_idx(change_file),
     _NXT_PORT_MSG_NEW_PORT        = nxt_port_handler_idx(new_port),
+    _NXT_PORT_MSG_GET_PORT        = nxt_port_handler_idx(get_port),
     _NXT_PORT_MSG_MMAP            = nxt_port_handler_idx(mmap),
 
     _NXT_PORT_MSG_PROCESS_CREATED = nxt_port_handler_idx(process_created),
@@ -107,6 +109,7 @@ typedef enum {
     NXT_PORT_MSG_ACCESS_LOG       = nxt_msg_last(_NXT_PORT_MSG_ACCESS_LOG),
     NXT_PORT_MSG_CHANGE_FILE      = nxt_msg_last(_NXT_PORT_MSG_CHANGE_FILE),
     NXT_PORT_MSG_NEW_PORT         = nxt_msg_last(_NXT_PORT_MSG_NEW_PORT),
+    NXT_PORT_MSG_GET_PORT         = nxt_msg_last(_NXT_PORT_MSG_GET_PORT),
     NXT_PORT_MSG_MMAP             = nxt_msg_last(_NXT_PORT_MSG_MMAP)
                                     | NXT_PORT_MSG_CLOSE_FD | NXT_PORT_MSG_SYNC,
 
@@ -236,6 +239,12 @@ typedef struct {
     size_t              max_share;
     nxt_process_type_t  type:8;
 } nxt_port_msg_new_port_t;
+
+
+typedef struct {
+    nxt_port_id_t       id;
+    nxt_pid_t           pid;
+} nxt_port_msg_get_port_t;
 
 
 /*

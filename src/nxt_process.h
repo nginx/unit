@@ -95,7 +95,6 @@ typedef struct {
     nxt_port_mmaps_t         outgoing;
 
     nxt_thread_mutex_t       cp_mutex;
-    nxt_lvlhsh_t             connected_ports; /* of nxt_port_t */
 
     uint32_t                 stream;
 
@@ -171,14 +170,6 @@ nxt_process_type_t nxt_process_type(nxt_process_t *process);
 void nxt_process_use(nxt_task_t *task, nxt_process_t *process, int i);
 
 void nxt_process_close_ports(nxt_task_t *task, nxt_process_t *process);
-
-void nxt_process_connected_port_add(nxt_process_t *process, nxt_port_t *port);
-
-void nxt_process_connected_port_remove(nxt_process_t *process,
-    nxt_port_t *port);
-
-nxt_port_t *nxt_process_connected_port_find(nxt_process_t *process,
-    nxt_port_t *port);
 
 void nxt_process_quit(nxt_task_t *task, nxt_uint_t exit_status);
 void nxt_signal_quit_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);

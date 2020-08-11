@@ -1389,8 +1389,6 @@ nxt_runtime_process_new(nxt_runtime_t *rt)
 void
 nxt_runtime_process_release(nxt_runtime_t *rt, nxt_process_t *process)
 {
-    nxt_port_t  *port;
-
     if (process->registered == 1) {
         nxt_runtime_process_remove(rt, process);
     }
@@ -1400,11 +1398,6 @@ nxt_runtime_process_release(nxt_runtime_t *rt, nxt_process_t *process)
 
     nxt_port_mmaps_destroy(&process->incoming, 1);
     nxt_port_mmaps_destroy(&process->outgoing, 1);
-
-    do {
-        port = nxt_port_hash_retrieve(&process->connected_ports);
-
-    } while (port != NULL);
 
     nxt_thread_mutex_destroy(&process->incoming.mutex);
     nxt_thread_mutex_destroy(&process->outgoing.mutex);

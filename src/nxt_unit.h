@@ -19,6 +19,7 @@
 enum {
     NXT_UNIT_OK          = 0,
     NXT_UNIT_ERROR       = 1,
+    NXT_UNIT_AGAIN       = 2,
 };
 
 enum {
