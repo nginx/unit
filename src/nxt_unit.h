@@ -91,8 +91,7 @@ struct nxt_unit_request_info_s {
     nxt_unit_t            *unit;
     nxt_unit_ctx_t        *ctx;
 
-    nxt_unit_port_id_t    request_port;
-    nxt_unit_port_id_t    response_port;
+    nxt_unit_port_t       *response_port;
 
     nxt_unit_request_t    *request;
     nxt_unit_buf_t        *request_buf;
@@ -142,12 +141,12 @@ struct nxt_unit_callbacks_s {
     void     (*shm_ack_handler)(nxt_unit_ctx_t *);
 
     /* Send data and control to process pid using port id. Optional. */
-    ssize_t  (*port_send)(nxt_unit_ctx_t *, nxt_unit_port_id_t *port_id,
+    ssize_t  (*port_send)(nxt_unit_ctx_t *, nxt_unit_port_t *port,
                  const void *buf, size_t buf_size,
                  const void *oob, size_t oob_size);
 
     /* Receive data on port id. Optional. */
-    ssize_t  (*port_recv)(nxt_unit_ctx_t *, nxt_unit_port_id_t *port_id,
+    ssize_t  (*port_recv)(nxt_unit_ctx_t *, nxt_unit_port_t *port,
                  void *buf, size_t buf_size, void *oob, size_t oob_size);
 };
 
@@ -195,7 +194,7 @@ nxt_unit_ctx_t *nxt_unit_init(nxt_unit_init_t *);
  * from port socket should be initially processed by unit.  This function
  * may invoke other application-defined callback for message processing.
  */
-int nxt_unit_process_msg(nxt_unit_ctx_t *, nxt_unit_port_id_t *port_id,
+int nxt_unit_process_msg(nxt_unit_ctx_t *,
     void *buf, size_t buf_size, void *oob, size_t oob_size);
 
 /*
@@ -224,10 +223,6 @@ nxt_unit_ctx_t *nxt_unit_ctx_alloc(nxt_unit_ctx_t *, void *);
 
 /* Initialize port_id, calculate hash. */
 void nxt_unit_port_id_init(nxt_unit_port_id_t *port_id, pid_t pid, uint16_t id);
-
-/* Default 'port_recv' implementation. */
-ssize_t nxt_unit_port_recv(nxt_unit_ctx_t *, int fd, void *buf, size_t buf_size,
-    void *oob, size_t oob_size);
 
 /* Calculates hash for given field name. */
 uint16_t nxt_unit_field_hash(const char* name, size_t name_length);
