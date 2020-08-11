@@ -20,6 +20,7 @@ enum {
     NXT_UNIT_OK          = 0,
     NXT_UNIT_ERROR       = 1,
     NXT_UNIT_AGAIN       = 2,
+    NXT_UNIT_CANCELLED   = 3,
 };
 
 enum {
@@ -187,16 +188,6 @@ struct nxt_unit_read_info_s {
  * ready/reply port parameters, send 'READY' response to master.
  */
 nxt_unit_ctx_t *nxt_unit_init(nxt_unit_init_t *);
-
-/*
- * Process received message, invoke configured callbacks.
- *
- * If application implements it's own event loop, each datagram received
- * from port socket should be initially processed by unit.  This function
- * may invoke other application-defined callback for message processing.
- */
-int nxt_unit_process_msg(nxt_unit_ctx_t *,
-    void *buf, size_t buf_size, void *oob, size_t oob_size);
 
 /*
  * Main function useful in case when application does not have it's own

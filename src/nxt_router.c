@@ -257,6 +257,8 @@ static void nxt_router_http_request_release(nxt_task_t *task, void *obj,
 static void nxt_router_oosm_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 static void nxt_router_get_port_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
+static void nxt_router_get_mmap_handler(nxt_task_t *task,
+    nxt_port_recv_msg_t *msg);
 
 extern const nxt_http_request_state_t  nxt_http_websocket;
 
@@ -281,6 +283,7 @@ static const nxt_port_handlers_t  nxt_router_process_port_handlers = {
     .get_port     = nxt_router_get_port_handler,
     .change_file  = nxt_port_change_log_file_handler,
     .mmap         = nxt_port_mmap_handler,
+    .get_mmap     = nxt_router_get_mmap_handler,
     .data         = nxt_router_conf_data_handler,
     .remove_pid   = nxt_router_remove_pid_handler,
     .access_log   = nxt_router_access_log_reopen_handler,
@@ -5008,7 +5011,7 @@ nxt_router_app_prepare_request(nxt_task_t *task,
 
     buf = req_app_link->msg_info.buf;
 
-    res = nxt_port_mmap_get_tracking(task, port,
+    res = nxt_port_mmap_get_tracking(task, &port->process->outgoing,
                                      &req_app_link->msg_info.tracking,
                                      req_app_link->stream);
     if (nxt_slow_path(res != NXT_OK)) {
@@ -5138,7 +5141,7 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_http_request_t *r,
         return NULL;
     }
 
-    out = nxt_port_mmap_get_buf(task, port,
+    out = nxt_port_mmap_get_buf(task, &port->process->outgoing,
               nxt_min(req_size + content_length, PORT_MMAP_DATA_SIZE));
     if (nxt_slow_path(out == NULL)) {
         return NULL;
@@ -5320,7 +5323,8 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_http_request_t *r,
             if (buf == NULL) {
                 free_size = nxt_min(size, PORT_MMAP_DATA_SIZE);
 
-                buf = nxt_port_mmap_get_buf(task, port, free_size);
+                buf = nxt_port_mmap_get_buf(task, &port->process->outgoing,
+                                            free_size);
                 if (nxt_slow_path(buf == NULL)) {
                     while (out != NULL) {
                         buf = out->next;
@@ -5552,6 +5556,65 @@ nxt_router_oosm_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         (void) nxt_port_socket_write(task, msg->port, NXT_PORT_MSG_SHM_ACK,
                                      -1, 0, 0, NULL);
     }
+}
+
+
+static void
+nxt_router_get_mmap_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
+{
+    nxt_fd_t                 fd;
+    nxt_port_t               *port;
+    nxt_runtime_t            *rt;
+    nxt_port_mmaps_t         *mmaps;
+    nxt_port_msg_get_mmap_t  *get_mmap_msg;
+    nxt_port_mmap_handler_t  *mmap_handler;
+
+    rt = task->thread->runtime;
+
+    port = nxt_runtime_port_find(rt, msg->port_msg.pid,
+                                 msg->port_msg.reply_port);
+    if (nxt_slow_path(port == NULL)) {
+        nxt_alert(task, "get_mmap_handler: reply_port %PI:%d not found",
+                  msg->port_msg.pid, msg->port_msg.reply_port);
+
+        return;
+    }
+
+    if (nxt_slow_path(nxt_buf_used_size(msg->buf)
+                      < (int) sizeof(nxt_port_msg_get_mmap_t)))
+    {
+        nxt_alert(task, "get_mmap_handler: message buffer too small (%d)",
+                  (int) nxt_buf_used_size(msg->buf));
+
+        return;
+    }
+
+    get_mmap_msg = (nxt_port_msg_get_mmap_t *) msg->buf->mem.pos;
+
+    nxt_assert(port->type == NXT_PROCESS_APP);
+
+    mmaps = &port->process->outgoing;
+    nxt_thread_mutex_lock(&mmaps->mutex);
+
+    if (nxt_slow_path(get_mmap_msg->id >= mmaps->size)) {
+        nxt_thread_mutex_unlock(&mmaps->mutex);
+
+        nxt_alert(task, "get_mmap_handler: mmap id is too big (%d)",
+                  (int) get_mmap_msg->id);
+
+        return;
+    }
+
+    mmap_handler = mmaps->elts[get_mmap_msg->id].mmap_handler;
+
+    fd = mmap_handler->fd;
+
+    nxt_thread_mutex_unlock(&mmaps->mutex);
+
+    nxt_debug(task, "get mmap %PI:%d found",
+              msg->port_msg.pid, (int) get_mmap_msg->id);
+
+    (void) nxt_port_socket_write(task, port, NXT_PORT_MSG_MMAP, fd, 0, 0, NULL);
 }
 
 

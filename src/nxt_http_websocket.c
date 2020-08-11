@@ -69,7 +69,8 @@ nxt_http_websocket_client(nxt_task_t *task, void *obj, void *data)
             if (buf == NULL || buf_free_size == 0) {
                 buf_free_size = nxt_min(frame_size, PORT_MMAP_DATA_SIZE);
 
-                buf = nxt_port_mmap_get_buf(task, req_app_link->app_port,
+                buf = nxt_port_mmap_get_buf(task,
+                                     &req_app_link->app_port->process->outgoing,
                                             buf_free_size);
 
                 *out_tail = buf;

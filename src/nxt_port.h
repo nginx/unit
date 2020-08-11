@@ -27,6 +27,7 @@ struct nxt_port_handlers_s {
     nxt_port_handler_t  new_port;
     nxt_port_handler_t  get_port;
     nxt_port_handler_t  mmap;
+    nxt_port_handler_t  get_mmap;
 
     /* New process */
     nxt_port_handler_t  process_created;
@@ -80,6 +81,7 @@ typedef enum {
     _NXT_PORT_MSG_NEW_PORT        = nxt_port_handler_idx(new_port),
     _NXT_PORT_MSG_GET_PORT        = nxt_port_handler_idx(get_port),
     _NXT_PORT_MSG_MMAP            = nxt_port_handler_idx(mmap),
+    _NXT_PORT_MSG_GET_MMAP        = nxt_port_handler_idx(get_mmap),
 
     _NXT_PORT_MSG_PROCESS_CREATED = nxt_port_handler_idx(process_created),
     _NXT_PORT_MSG_PROCESS_READY   = nxt_port_handler_idx(process_ready),
@@ -245,6 +247,11 @@ typedef struct {
     nxt_port_id_t       id;
     nxt_pid_t           pid;
 } nxt_port_msg_get_port_t;
+
+
+typedef struct {
+    uint32_t            id;
+} nxt_port_msg_get_mmap_t;
 
 
 /*

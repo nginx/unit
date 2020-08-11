@@ -63,6 +63,7 @@ struct nxt_port_mmap_header_s {
 struct nxt_port_mmap_handler_s {
     nxt_port_mmap_header_t  *hdr;
     nxt_atomic_t            use_count;
+    nxt_fd_t                fd;
 };
 
 /*
