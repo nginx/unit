@@ -138,6 +138,7 @@ struct nxt_app_s {
     nxt_str_t              conf;
 
     nxt_atomic_t           use_count;
+    nxt_queue_t            ack_waiting_req; /* of nxt_http_request_t.app_link */
 
     nxt_app_joint_t        *joint;
     nxt_port_t             *shared_port;
