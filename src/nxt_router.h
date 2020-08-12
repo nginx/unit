@@ -48,6 +48,7 @@ typedef struct {
     nxt_upstreams_t          *upstreams;
 
     nxt_lvlhsh_t             mtypes_hash;
+    nxt_lvlhsh_t             apps_hash;
 
     nxt_router_access_log_t  *access_log;
 } nxt_router_conf_t;
@@ -221,9 +222,8 @@ struct nxt_router_access_log_s {
 void nxt_router_process_http_request(nxt_task_t *task, nxt_http_request_t *r,
     nxt_app_t *app);
 void nxt_router_app_port_close(nxt_task_t *task, nxt_port_t *port);
-void nxt_router_listener_application(nxt_router_temp_conf_t *tmcf,
+nxt_int_t nxt_router_listener_application(nxt_router_conf_t *rtcf,
     nxt_str_t *name, nxt_http_action_t *action);
-void nxt_router_app_use(nxt_task_t *task, nxt_app_t *app, int i);
 void nxt_router_listen_event_release(nxt_task_t *task, nxt_listen_event_t *lev,
     nxt_socket_conf_joint_t *joint);
 void nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint);

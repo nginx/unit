@@ -71,7 +71,7 @@ nxt_upstreams_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 }
 
 
-void
+nxt_int_t
 nxt_upstream_find(nxt_upstreams_t *upstreams, nxt_str_t *name,
     nxt_http_action_t *action)
 {
@@ -86,9 +86,11 @@ nxt_upstream_find(nxt_upstreams_t *upstreams, nxt_str_t *name,
             action->u.upstream_number = i;
             action->handler = nxt_upstream_handler;
 
-            return;
+            return NXT_DECLINED;
         }
     }
+
+    return NXT_OK;
 }
 
 

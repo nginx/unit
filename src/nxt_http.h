@@ -164,6 +164,8 @@ struct nxt_http_request_s {
     nxt_timer_t                     timer;
     void                            *timer_data;
 
+    nxt_var_query_t                 *var_query;
+
     void                            *req_rpc_data;
 
     nxt_http_peer_t                 *peer;
@@ -202,6 +204,7 @@ struct nxt_http_action_s {
         nxt_upstream_t              *upstream;
         uint32_t                    upstream_number;
         nxt_http_status_t           return_code;
+        nxt_var_t                   *var;
     } u;
 
     nxt_str_t                       name;
@@ -287,14 +290,15 @@ nxt_int_t nxt_http_routes_resolve(nxt_task_t *task,
 nxt_int_t nxt_http_pass_segments(nxt_mp_t *mp, nxt_str_t *pass,
     nxt_str_t *segments, nxt_uint_t n);
 nxt_http_action_t *nxt_http_pass_application(nxt_task_t *task,
-    nxt_router_temp_conf_t *tmcf, nxt_str_t *name);
-void nxt_http_routes_cleanup(nxt_task_t *task, nxt_http_routes_t *routes);
-void nxt_http_action_cleanup(nxt_task_t *task, nxt_http_action_t *action);
+    nxt_router_conf_t *rtcf, nxt_str_t *name);
 
 nxt_int_t nxt_upstreams_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_conf_value_t *conf);
 nxt_int_t nxt_upstreams_joint_create(nxt_router_temp_conf_t *tmcf,
     nxt_upstream_t ***upstream_joint);
+
+void nxt_http_request_action(nxt_task_t *task, nxt_http_request_t *r,
+    nxt_http_action_t *action);
 
 nxt_http_action_t *nxt_http_return_handler(nxt_task_t *task,
     nxt_http_request_t *r, nxt_http_action_t *action);
@@ -309,7 +313,7 @@ nxt_str_t *nxt_http_static_mtypes_hash_find(nxt_lvlhsh_t *hash,
 
 nxt_http_action_t *nxt_http_application_handler(nxt_task_t *task,
     nxt_http_request_t *r, nxt_http_action_t *action);
-void nxt_upstream_find(nxt_upstreams_t *upstreams, nxt_str_t *name,
+nxt_int_t nxt_upstream_find(nxt_upstreams_t *upstreams, nxt_str_t *name,
     nxt_http_action_t *action);
 nxt_http_action_t *nxt_upstream_proxy_handler(nxt_task_t *task,
     nxt_http_request_t *r, nxt_upstream_t *upstream);

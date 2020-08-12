@@ -124,6 +124,14 @@ nxt_runtime_create(nxt_task_t *task)
         goto fail;
     }
 
+    if (nxt_slow_path(nxt_http_register_variables() != NXT_OK)) {
+        goto fail;
+    }
+
+    if (nxt_slow_path(nxt_var_index_init() != NXT_OK)) {
+        goto fail;
+    }
+
     nxt_work_queue_add(&task->thread->engine->fast_work_queue,
                        nxt_runtime_start, task, rt, NULL);
 

@@ -18,6 +18,14 @@ typedef struct {
 } nxt_array_t;
 
 
+nxt_inline void
+nxt_array_init(nxt_array_t *array, nxt_mp_t *mp, size_t size)
+{
+    array->elts = nxt_pointer_to(array, sizeof(nxt_array_t));
+    array->size = size;
+    array->mem_pool = mp;
+}
+
 NXT_EXPORT nxt_array_t *nxt_array_create(nxt_mp_t *mp, nxt_uint_t n,
     size_t size);
 NXT_EXPORT void nxt_array_destroy(nxt_array_t *array);

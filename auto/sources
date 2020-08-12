@@ -31,6 +31,7 @@ NXT_LIB_SRCS=" \
     src/nxt_utf8.c \
     src/nxt_parse.c \
     src/nxt_sprintf.c \
+    src/nxt_var.c \
     src/nxt_file_name.c \
     src/nxt_log.c \
     src/nxt_djb_hash.c \
@@ -91,6 +92,7 @@ NXT_LIB_SRCS=" \
     src/nxt_http_static.c \
     src/nxt_http_proxy.c \
     src/nxt_http_chunk_parse.c \
+    src/nxt_http_variables.c \
     src/nxt_application.c \
     src/nxt_external.c \
     src/nxt_port_hash.c \

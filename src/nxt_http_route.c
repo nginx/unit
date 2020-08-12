@@ -221,9 +221,16 @@ static nxt_int_t nxt_http_route_resolve(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_http_route_t *route);
 static nxt_int_t nxt_http_action_resolve(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_http_action_t *action);
-static void nxt_http_route_find(nxt_http_routes_t *routes, nxt_str_t *name,
+static nxt_http_action_t *nxt_http_action_pass_var(nxt_task_t *task,
+    nxt_http_request_t *r, nxt_http_action_t *action);
+static void nxt_http_action_pass_var_ready(nxt_task_t *task, void *obj,
+    void *data);
+static void nxt_http_action_pass_var_error(nxt_task_t *task, void *obj,
+    void *data);
+static nxt_int_t nxt_http_pass_find(nxt_task_t *task, nxt_mp_t *mp,
+    nxt_router_conf_t *rtcf, nxt_http_action_t *action);
+static nxt_int_t nxt_http_route_find(nxt_http_routes_t *routes, nxt_str_t *name,
     nxt_http_action_t *action);
-static void nxt_http_route_cleanup(nxt_task_t *task, nxt_http_route_t *routes);
 
 static nxt_http_action_t *nxt_http_route_handler(nxt_task_t *task,
     nxt_http_request_t *r, nxt_http_action_t *start);
@@ -1353,10 +1360,8 @@ static nxt_int_t
 nxt_http_action_resolve(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_http_action_t *action)
 {
-    nxt_str_t   *targets;
-    nxt_int_t   ret;
-    nxt_uint_t  i;
-    nxt_str_t   segments[3];
+    nxt_var_t  *var;
+    nxt_int_t  ret;
 
     if (action->handler != NULL) {
         if (action->handler == nxt_http_static_handler
@@ -1368,14 +1373,118 @@ nxt_http_action_resolve(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         return NXT_OK;
     }
 
-    ret = nxt_http_pass_segments(tmcf->mem_pool, &action->name, segments, 3);
+    if (nxt_is_var(&action->name)) {
+        var = nxt_var_compile(&action->name, tmcf->router_conf->mem_pool);
+        if (nxt_slow_path(var == NULL)) {
+            return NXT_ERROR;
+        }
+
+        action->u.var = var;
+        action->handler = nxt_http_action_pass_var;
+        return NXT_OK;
+    }
+
+    ret = nxt_http_pass_find(task, tmcf->mem_pool, tmcf->router_conf, action);
     if (nxt_slow_path(ret != NXT_OK)) {
         return NXT_ERROR;
     }
 
+    return NXT_OK;
+}
+
+
+static nxt_http_action_t *
+nxt_http_action_pass_var(nxt_task_t *task, nxt_http_request_t *r,
+    nxt_http_action_t *action)
+{
+    nxt_var_t  *var;
+    nxt_int_t  ret;
+
+    ret = nxt_var_query_init(&r->var_query, r, r->mem_pool);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        goto fail;
+    }
+
+    var = action->u.var;
+
+    action = nxt_mp_get(r->mem_pool, sizeof(nxt_http_action_t));
+    if (nxt_slow_path(action == NULL)) {
+        goto fail;
+    }
+
+    nxt_var_query(task, r->var_query, var, &action->name);
+    nxt_var_query_resolve(task, r->var_query, action,
+                          nxt_http_action_pass_var_ready,
+                          nxt_http_action_pass_var_error);
+    return NULL;
+
+fail:
+
+    nxt_http_request_error(task, r, NXT_HTTP_INTERNAL_SERVER_ERROR);
+    return NULL;
+}
+
+
+static void
+nxt_http_action_pass_var_ready(nxt_task_t *task, void *obj, void *data)
+{
+    nxt_int_t           ret;
+    nxt_router_conf_t   *rtcf;
+    nxt_http_action_t   *action;
+    nxt_http_status_t   status;
+    nxt_http_request_t  *r;
+
+    r = obj;
+    action = data;
+    rtcf = r->conf->socket_conf->router_conf;
+
+    nxt_debug(task, "http pass lookup: %V", &action->name);
+
+    ret = nxt_http_pass_find(task, r->mem_pool, rtcf, action);
+
+    if (ret != NXT_OK) {
+        status = (ret == NXT_DECLINED) ? NXT_HTTP_NOT_FOUND
+                                       : NXT_HTTP_INTERNAL_SERVER_ERROR;
+
+        nxt_http_request_error(task, r, status);
+        return;
+    }
+
+    nxt_http_request_action(task, r, action);
+}
+
+
+static void
+nxt_http_action_pass_var_error(nxt_task_t *task, void *obj, void *data)
+{
+    nxt_http_request_t  *r;
+
+    r = obj;
+
+    nxt_http_request_error(task, r, NXT_HTTP_INTERNAL_SERVER_ERROR);
+}
+
+
+static nxt_int_t
+nxt_http_pass_find(nxt_task_t *task, nxt_mp_t *mp, nxt_router_conf_t *rtcf,
+    nxt_http_action_t *action)
+{
+    nxt_str_t   *targets;
+    nxt_int_t   ret;
+    nxt_uint_t  i;
+    nxt_str_t   segments[3];
+
+    ret = nxt_http_pass_segments(mp, &action->name, segments, 3);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        return ret;
+    }
+
     if (nxt_str_eq(&segments[0], "applications", 12)) {
-        nxt_router_listener_application(tmcf, &segments[1], action);
-        nxt_router_app_use(task, action->u.application, 1);
+        ret = nxt_router_listener_application(rtcf, &segments[1], action);
+
+        if (ret != NXT_OK) {
+            return ret;
+        }
 
         if (segments[2].length != 0) {
             targets = action->u.application->targets;
@@ -1388,14 +1497,20 @@ nxt_http_action_resolve(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             action->target = 0;
         }
 
-    } else if (nxt_str_eq(&segments[0], "upstreams", 9)) {
-        nxt_upstream_find(tmcf->router_conf->upstreams, &segments[1], action);
-
-    } else if (nxt_str_eq(&segments[0], "routes", 6)) {
-        nxt_http_route_find(tmcf->router_conf->routes, &segments[1], action);
+        return NXT_OK;
     }
 
-    return NXT_OK;
+    if (segments[2].length == 0) {
+        if (nxt_str_eq(&segments[0], "upstreams", 9)) {
+            return nxt_upstream_find(rtcf->upstreams, &segments[1], action);
+        }
+
+        if (nxt_str_eq(&segments[0], "routes", 6)) {
+            return nxt_http_route_find(rtcf->routes, &segments[1], action);
+        }
+    }
+
+    return NXT_DECLINED;
 }
 
 
@@ -1451,7 +1566,7 @@ nxt_http_pass_segments(nxt_mp_t *mp, nxt_str_t *pass, nxt_str_t *segments,
 }
 
 
-static void
+static nxt_int_t
 nxt_http_route_find(nxt_http_routes_t *routes, nxt_str_t *name,
     nxt_http_action_t *action)
 {
@@ -1465,11 +1580,13 @@ nxt_http_route_find(nxt_http_routes_t *routes, nxt_str_t *name,
             action->u.route = *route;
             action->handler = nxt_http_route_handler;
 
-            return;
+            return NXT_OK;
         }
 
         route++;
     }
+
+    return NXT_DECLINED;
 }
 
 
@@ -1497,75 +1614,23 @@ nxt_http_action_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 /* COMPATIBILITY: listener application. */
 
 nxt_http_action_t *
-nxt_http_pass_application(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
+nxt_http_pass_application(nxt_task_t *task, nxt_router_conf_t *rtcf,
     nxt_str_t *name)
 {
     nxt_http_action_t  *action;
 
-    action = nxt_mp_alloc(tmcf->router_conf->mem_pool,
-                          sizeof(nxt_http_action_t));
+    action = nxt_mp_alloc(rtcf->mem_pool, sizeof(nxt_http_action_t));
     if (nxt_slow_path(action == NULL)) {
         return NULL;
     }
 
     action->name = *name;
 
-    nxt_router_listener_application(tmcf, name, action);
-    nxt_router_app_use(task, action->u.application, 1);
+    (void) nxt_router_listener_application(rtcf, name, action);
 
     action->target = 0;
 
     return action;
-}
-
-
-void
-nxt_http_routes_cleanup(nxt_task_t *task, nxt_http_routes_t *routes)
-{
-    nxt_http_route_t  **route, **end;
-
-    if (routes != NULL) {
-        route = &routes->route[0];
-        end = route + routes->items;
-
-        while (route < end) {
-            nxt_http_route_cleanup(task, *route);
-
-            route++;
-        }
-    }
-}
-
-
-static void
-nxt_http_route_cleanup(nxt_task_t *task, nxt_http_route_t *route)
-{
-    nxt_http_route_match_t  **match, **end;
-
-    match = &route->match[0];
-    end = match + route->items;
-
-    while (match < end) {
-        nxt_http_action_cleanup(task, &(*match)->action);
-
-        match++;
-    }
-}
-
-
-void
-nxt_http_action_cleanup(nxt_task_t *task, nxt_http_action_t *action)
-{
-    if (action->handler == nxt_http_application_handler) {
-        nxt_router_app_use(task, action->u.application, -1);
-        return;
-    }
-
-    if (action->handler == nxt_http_static_handler
-        && action->u.fallback != NULL)
-    {
-        nxt_http_action_cleanup(task, action->u.fallback);
-    }
 }
 
 

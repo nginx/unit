@@ -64,6 +64,8 @@ static nxt_int_t nxt_conf_vldt_type(nxt_conf_validation_t *vldt,
     nxt_str_t *name, nxt_conf_value_t *value, nxt_conf_vldt_type_t type);
 static nxt_int_t nxt_conf_vldt_error(nxt_conf_validation_t *vldt,
     const char *fmt, ...);
+static nxt_int_t nxt_conf_vldt_var(nxt_conf_validation_t *vldt,
+    const char *option, nxt_str_t *value);
 
 static nxt_int_t nxt_conf_vldt_mtypes(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
@@ -1065,6 +1067,21 @@ nxt_conf_vldt_error(nxt_conf_validation_t *vldt, const char *fmt, ...)
 }
 
 
+static nxt_int_t
+nxt_conf_vldt_var(nxt_conf_validation_t *vldt, const char *option,
+    nxt_str_t *value)
+{
+    u_char  error[NXT_MAX_ERROR_STR];
+
+    if (nxt_var_test(value, error) != NXT_OK) {
+        return nxt_conf_vldt_error(vldt, "%s in the \"%s\" value.",
+                                   error, option);
+    }
+
+    return NXT_OK;
+}
+
+
 typedef struct {
     nxt_mp_t      *pool;
     nxt_str_t     *type;
@@ -1241,6 +1258,10 @@ nxt_conf_vldt_pass(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     static nxt_str_t  targets_str = nxt_string("targets");
 
     nxt_conf_get_string(value, &pass);
+
+    if (nxt_is_var(&pass)) {
+        return nxt_conf_vldt_var(vldt, "pass", &pass);
+    }
 
     ret = nxt_http_pass_segments(vldt->pool, &pass, segments, 3);
 

@@ -51,7 +51,7 @@ nxt_array_add(nxt_array_t *array)
 
         if (nalloc < 16) {
             /* Allocate new array twice larger than current. */
-            new_alloc = nalloc * 2;
+            new_alloc = (nalloc == 0) ? 4 : nalloc * 2;
 
         } else {
             /* Allocate new array 1.5 times larger than current. */

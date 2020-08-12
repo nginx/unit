@@ -93,7 +93,16 @@ static nxt_int_t nxt_router_conf_create(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, u_char *start, u_char *end);
 static nxt_int_t nxt_router_conf_process_static(nxt_task_t *task,
     nxt_router_conf_t *rtcf, nxt_conf_value_t *conf);
+
 static nxt_app_t *nxt_router_app_find(nxt_queue_t *queue, nxt_str_t *name);
+static nxt_int_t nxt_router_apps_hash_test(nxt_lvlhsh_query_t *lhq, void *data);
+static nxt_int_t nxt_router_apps_hash_add(nxt_router_conf_t *rtcf,
+    nxt_app_t *app);
+static nxt_app_t *nxt_router_apps_hash_get(nxt_router_conf_t *rtcf,
+    nxt_str_t *name);
+static void nxt_router_apps_hash_use(nxt_task_t *task, nxt_router_conf_t *rtcf,
+    int i);
+
 static nxt_int_t nxt_router_app_queue_init(nxt_task_t *task,
     nxt_port_t *port);
 static nxt_int_t nxt_router_port_queue_init(nxt_task_t *task,
@@ -198,6 +207,7 @@ static nxt_int_t nxt_router_app_shared_port_send(nxt_task_t *task,
 static void nxt_router_app_port_error(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
 
+static void nxt_router_app_use(nxt_task_t *task, nxt_app_t *app, int i);
 static void nxt_router_app_unlink(nxt_task_t *task, nxt_app_t *app);
 
 static void nxt_router_app_port_release(nxt_task_t *task, nxt_port_t *port,
@@ -954,6 +964,8 @@ nxt_router_conf_apply(nxt_task_t *task, void *obj, void *data)
 
     nxt_router_apps_sort(task, router, tmcf);
 
+    nxt_router_apps_hash_use(task, rtcf, 1); 
+
     nxt_router_engines_post(router, tmcf);
 
     nxt_queue_add(&router->sockets, &updating_sockets);
@@ -1012,7 +1024,7 @@ nxt_router_conf_ready(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
     nxt_debug(task, "rtcf %p: %D", rtcf, count);
 
     if (count == 0) {
-        nxt_http_routes_cleanup(task, rtcf->routes);
+        nxt_router_apps_hash_use(task, rtcf, -1);
 
         nxt_router_access_log_release(task, lock, rtcf->access_log);
 
@@ -1056,16 +1068,6 @@ nxt_router_conf_error(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
     nxt_queue_add(&new_socket_confs, &creating_sockets);
 
     rtcf = tmcf->router_conf;
-
-    nxt_http_routes_cleanup(task, rtcf->routes);
-
-    nxt_queue_each(skcf, &new_socket_confs, nxt_socket_conf_t, link) {
-
-        if (skcf->action != NULL) {
-            nxt_http_action_cleanup(task, skcf->action);
-        }
-
-    } nxt_queue_loop;
 
     nxt_queue_each(app, &tmcf->apps, nxt_app_t, link) {
 
@@ -1406,6 +1408,12 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
                 nxt_queue_remove(&prev->link);
                 nxt_queue_insert_tail(&tmcf->previous, &prev->link);
+
+                ret = nxt_router_apps_hash_add(tmcf->router_conf, prev);
+                if (nxt_slow_path(ret != NXT_OK)) {
+                    goto fail;
+                }
+
                 continue;
             }
 
@@ -1542,6 +1550,11 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             app->adjust_idle_work.obj = app;
 
             nxt_queue_insert_tail(&tmcf->apps, &app->link);
+
+            ret = nxt_router_apps_hash_add(tmcf->router_conf, app);
+            if (nxt_slow_path(ret != NXT_OK)) {
+                goto app_fail;
+            }
 
             nxt_router_app_use(task, app, 1);
 
@@ -1717,7 +1730,8 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
             /* COMPATIBILITY: listener application. */
             } else if (lscf.application.length > 0) {
-                skcf->action = nxt_http_pass_application(task, tmcf,
+                skcf->action = nxt_http_pass_application(task,
+                                                         tmcf->router_conf,
                                                          &lscf.application);
             }
         }
@@ -1959,20 +1973,106 @@ nxt_router_port_queue_map(nxt_task_t *task, nxt_port_t *port, nxt_fd_t fd)
 }
 
 
-void
-nxt_router_listener_application(nxt_router_temp_conf_t *tmcf, nxt_str_t *name,
+static const nxt_lvlhsh_proto_t  nxt_router_apps_hash_proto  nxt_aligned(64) = {
+    NXT_LVLHSH_DEFAULT,
+    nxt_router_apps_hash_test,
+    nxt_mp_lvlhsh_alloc,
+    nxt_mp_lvlhsh_free,
+};
+
+
+static nxt_int_t
+nxt_router_apps_hash_test(nxt_lvlhsh_query_t *lhq, void *data)
+{
+    nxt_app_t  *app;
+
+    app = data;
+
+    return nxt_strstr_eq(&lhq->key, &app->name) ? NXT_OK : NXT_DECLINED;
+}
+
+
+static nxt_int_t
+nxt_router_apps_hash_add(nxt_router_conf_t *rtcf, nxt_app_t *app)
+{
+    nxt_lvlhsh_query_t  lhq;
+
+    lhq.key_hash = nxt_djb_hash(app->name.start, app->name.length);
+    lhq.replace = 0;
+    lhq.key = app->name;
+    lhq.value = app;
+    lhq.proto = &nxt_router_apps_hash_proto;
+    lhq.pool = rtcf->mem_pool;
+
+    switch (nxt_lvlhsh_insert(&rtcf->apps_hash, &lhq)) {
+
+    case NXT_OK:
+        return NXT_OK;
+
+    case NXT_DECLINED:
+        nxt_thread_log_alert("router app hash adding failed: "
+                             "\"%V\" is already in hash", &lhq.key);
+        /* Fall through. */
+    default:
+        return NXT_ERROR;
+    }
+}
+
+
+static nxt_app_t *
+nxt_router_apps_hash_get(nxt_router_conf_t *rtcf, nxt_str_t *name)
+{
+    nxt_lvlhsh_query_t  lhq;
+
+    lhq.key_hash = nxt_djb_hash(name->start, name->length);
+    lhq.key = *name;
+    lhq.proto = &nxt_router_apps_hash_proto;
+
+    if (nxt_lvlhsh_find(&rtcf->apps_hash, &lhq) != NXT_OK) {
+        return NULL;
+    }
+
+    return lhq.value;
+}
+
+
+static void
+nxt_router_apps_hash_use(nxt_task_t *task, nxt_router_conf_t *rtcf, int i)
+{
+    nxt_app_t          *app;
+    nxt_lvlhsh_each_t  lhe;
+
+    nxt_lvlhsh_each_init(&lhe, &nxt_router_apps_hash_proto);
+
+    for ( ;; ) {
+        app = nxt_lvlhsh_each(&rtcf->apps_hash, &lhe);
+
+        if (app == NULL) {
+            break;
+        }
+
+        nxt_router_app_use(task, app, i);
+    }
+}
+
+
+
+nxt_int_t
+nxt_router_listener_application(nxt_router_conf_t *rtcf, nxt_str_t *name,
     nxt_http_action_t *action)
 {
     nxt_app_t  *app;
 
-    app = nxt_router_app_find(&tmcf->apps, name);
+    app = nxt_router_apps_hash_get(rtcf, name);
 
     if (app == NULL) {
-        app = nxt_router_app_find(&tmcf->previous, name);
+        return NXT_DECLINED;
     }
 
     action->u.application = app;
     action->handler = nxt_http_application_handler;
+
+    return NXT_OK;
 }
 
 
@@ -3201,24 +3301,18 @@ nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
 
     nxt_thread_spin_unlock(lock);
 
-    if (skcf != NULL) {
-        if (skcf->action != NULL) {
-            nxt_http_action_cleanup(task, skcf->action);
-        }
-
 #if (NXT_TLS)
-        if (skcf->tls != NULL) {
-            task->thread->runtime->tls->server_free(task, skcf->tls);
-        }
-#endif
+    if (skcf != NULL && skcf->tls != NULL) {
+        task->thread->runtime->tls->server_free(task, skcf->tls);
     }
+#endif
 
     /* TODO remove engine->port */
 
     if (rtcf != NULL) {
         nxt_debug(task, "old router conf is destroyed");
 
-        nxt_http_routes_cleanup(task, rtcf->routes);
+        nxt_router_apps_hash_use(task, rtcf, -1);
 
         nxt_router_access_log_release(task, lock, rtcf->access_log);
 
@@ -4126,24 +4220,6 @@ nxt_router_app_port_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 }
 
 
-void
-nxt_router_app_use(nxt_task_t *task, nxt_app_t *app, int i)
-{
-    int  c;
-
-    c = nxt_atomic_fetch_add(&app->use_count, i);
-
-    if (i < 0 && c == -i) {
-
-        if (task->thread->engine != app->engine) {
-            nxt_event_engine_post(app->engine, &app->joint->free_app_work);
-
-        } else {
-            nxt_router_free_app(task, app->joint, NULL);
-        }
-    }
-}
-
 
 nxt_inline nxt_port_t *
 nxt_router_app_get_port_for_quit(nxt_task_t *task, nxt_app_t *app)
@@ -4180,6 +4256,25 @@ nxt_router_app_get_port_for_quit(nxt_task_t *task, nxt_app_t *app)
     nxt_thread_mutex_unlock(&app->mutex);
 
     return port;
+}
+
+
+static void
+nxt_router_app_use(nxt_task_t *task, nxt_app_t *app, int i)
+{
+    int  c;
+
+    c = nxt_atomic_fetch_add(&app->use_count, i);
+
+    if (i < 0 && c == -i) {
+
+        if (task->thread->engine != app->engine) {
+            nxt_event_engine_post(app->engine, &app->joint->free_app_work);
+
+        } else {
+            nxt_router_free_app(task, app->joint, NULL);
+        }
+    }
 }
 
 

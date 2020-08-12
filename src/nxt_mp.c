@@ -1059,3 +1059,17 @@ nxt_mp_cleanup(nxt_mp_t *mp, nxt_work_handler_t handler,
 
     return NXT_OK;
 }
+
+
+void *
+nxt_mp_lvlhsh_alloc(void *pool, size_t size)
+{
+    return nxt_mp_align(pool, size, size);
+}
+
+
+void
+nxt_mp_lvlhsh_free(void *pool, void *p)
+{
+    nxt_mp_free(pool, p);
+}
