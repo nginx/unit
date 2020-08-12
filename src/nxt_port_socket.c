@@ -208,6 +208,10 @@ nxt_port_socket_write2(nxt_task_t *task, nxt_port_t *port, nxt_uint_t type,
             nxt_debug(task, "port{%d,%d} %d: enqueue 1 notify %d, %d",
                       (int) port->pid, (int) port->id, port->socket.fd,
                       notify, res);
+
+            if (nxt_slow_path(res == NXT_AGAIN)) {
+                return NXT_AGAIN;
+            }
         }
     }
 
@@ -737,8 +741,6 @@ nxt_port_queue_read_handler(nxt_task_t *task, void *obj, void *data)
                 nxt_debug(task, "port{%d,%d} %d: dequeue 1 read_socket %d",
                           (int) port->pid, (int) port->id, port->socket.fd,
                           port->from_socket);
-
-                n = -1;
 
                 continue;
             }
