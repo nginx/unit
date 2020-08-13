@@ -13,6 +13,124 @@
                 unit-perl
                 unit-ruby
                 unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11"
+         ver="1.19.0" rev="1"
+         date="2020-08-13" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.19.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.19.0" rev="1"
+         date="2020-08-13" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="feature">
+<para>
+reworked IPC between the router process and the applications to lower latencies,
+increase performance, and improve scalability.
+</para>
+</change>
+
+<change type="feature">
+<para>
+support for an arbitrary number of wildcards in route matching patterns.
+</para>
+</change>
+
+<change type="feature">
+<para>
+chunked transfer encoding in proxy responses.
+</para>
+</change>
+
+<change type="feature">
+<para>
+basic variables support in the "pass" option.
+</para>
+</change>
+
+<change type="feature">
+<para>
+compatibility with PHP 8 Beta 1.
+Thanks to Remi Collet.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the router process could crash while passing requests to an application under
+high load.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a number of language modules failed to build on some systems;
+the bug had appeared in 1.18.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+time in error log messages from PHP applications could lag.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+reconfiguration requests could hang if an application had failed to start;
+the bug had appeared in 1.18.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+memory leak during reconfiguration.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the daemon didn't start without language modules;
+the bug had appeared in 1.18.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the router process could crash at exit.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Node.js applications could crash at exit.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the Ruby module could be linked against a wrong library version.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11"
          ver="1.18.0" rev="1"
          date="2020-05-28" time="18:00:00 +0300"
          packager="Andrei Belov &lt;defan@nginx.com&gt;">
