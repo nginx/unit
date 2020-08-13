@@ -409,6 +409,33 @@ class TestConfiguration(TestControl):
 
         self.assertIn('success', self.conf(conf))
 
+    def test_unprivileged_user_error(self):
+        self.skip_alerts.extend(
+            [
+                r'cannot set user "root"',
+                r'failed to apply new conf',
+            ]
+        )
+        if self.is_su:
+            print('unprivileged tests, skip this')
+            raise unittest.SkipTest()
+
+        self.assertIn(
+            'error',
+            self.conf(
+                {
+                    "app": {
+                        "type": "external",
+                        "processes": 1,
+                        "executable": "/app",
+                        "user": "root",
+                    }
+                },
+                'applications',
+            ),
+            'setting user',
+        )
+
 
 if __name__ == '__main__':
     TestConfiguration.main()
