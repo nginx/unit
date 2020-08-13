@@ -1294,7 +1294,7 @@ nxt_http_route_pattern_slice(nxt_array_t *slices,
     }
 
     slice = nxt_array_add(slices);
-    if (nxt_slow_path(slices == NULL)) {
+    if (nxt_slow_path(slice == NULL)) {
         return NXT_ERROR;
     }
 
