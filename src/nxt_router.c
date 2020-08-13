@@ -219,6 +219,8 @@ static void nxt_router_http_request_error(nxt_task_t *task, void *obj,
 static void nxt_router_http_request_done(nxt_task_t *task, void *obj,
     void *data);
 
+static void nxt_router_dummy_buf_completion(nxt_task_t *task, void *obj,
+    void *data);
 static void nxt_router_app_prepare_request(nxt_task_t *task,
     nxt_request_rpc_data_t *req_rpc_data);
 static nxt_buf_t *nxt_router_prepare_msg(nxt_task_t *task,
@@ -2218,6 +2220,8 @@ nxt_router_listen_socket_rpc_create(nxt_task_t *task,
         goto fail;
     }
 
+    b->completion_handler = nxt_router_dummy_buf_completion;
+
     b->mem.free = nxt_cpymem(b->mem.free, skcf->listen->sockaddr, size);
 
     rt = task->thread->runtime;
@@ -2445,6 +2449,8 @@ nxt_router_app_rpc_create(nxt_task_t *task,
     if (nxt_slow_path(b == NULL)) {
         goto fail;
     }
+
+    b->completion_handler = nxt_router_dummy_buf_completion;
 
     nxt_buf_cpystr(b, &app->name);
     *b->mem.free++ = '\0';
@@ -3468,6 +3474,8 @@ nxt_router_access_log_open(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
     if (nxt_slow_path(b == NULL)) {
         goto fail;
     }
+
+    b->completion_handler = nxt_router_dummy_buf_completion;
 
     nxt_buf_cpystr(b, &access_log->path);
     *b->mem.free++ = '\0';
