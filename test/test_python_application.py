@@ -579,6 +579,17 @@ last line: 987654321
 
         self.assertEqual(self.get()['status'], 500, 'syntax error')
 
+    def test_python_application_loading_error(self):
+        self.skip_alerts.append(r'Python failed to import module "blah"')
+
+        self.load('empty')
+
+        self.assertIn(
+            'success', self.conf('"blah"', 'applications/empty/module'),
+        )
+
+        self.assertEqual(self.get()['status'], 503, 'loading error')
+
     def test_python_application_close(self):
         self.load('close')
 
