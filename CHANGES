@@ -1,4 +1,42 @@
 
+Changes with Unit 1.19.0                                         13 Aug 2020
+
+    *) Feature: reworked IPC between the router process and the applications
+       to lower latencies, increase performance, and improve scalability.
+
+    *) Feature: support for an arbitrary number of wildcards in route
+       matching patterns.
+
+    *) Feature: chunked transfer encoding in proxy responses.
+
+    *) Feature: basic variables support in the "pass" option.
+
+    *) Feature: compatibility with PHP 8 Beta 1. Thanks to Remi Collet.
+
+    *) Bugfix: the router process could crash while passing requests to an
+       application under high load.
+
+    *) Bugfix: a number of language modules failed to build on some systems;
+       the bug had appeared in 1.18.0.
+
+    *) Bugfix: time in error log messages from PHP applications could lag.
+
+    *) Bugfix: reconfiguration requests could hang if an application had
+       failed to start; the bug had appeared in 1.18.0.
+
+    *) Bugfix: memory leak during reconfiguration.
+
+    *) Bugfix: the daemon didn't start without language modules; the bug had
+       appeared in 1.18.0.
+
+    *) Bugfix: the router process could crash at exit.
+
+    *) Bugfix: Node.js applications could crash at exit.
+
+    *) Bugfix: the Ruby module could be linked against a wrong library
+       version.
+
+
 Changes with Unit 1.18.0                                         28 May 2020
 
     *) Feature: the "rootfs" isolation option for changing root filesystem

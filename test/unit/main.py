@@ -58,7 +58,6 @@ class TestUnit(unittest.TestCase):
                 if prereq_version == 'all':
                     for version in available_versions:
                         self.application_type = type + ' ' + version
-                        self.application_version = version
                         super().run(result)
                 elif prereq_version == 'any':
                     self.application_type = type + ' ' + available_versions[0]
@@ -166,7 +165,7 @@ class TestUnit(unittest.TestCase):
         self._run()
 
     def _run(self):
-        build_dir  = os.path.join(self.pardir, 'build')
+        build_dir = self.pardir + '/build'
         self.unitd = build_dir + '/unitd'
 
         if not os.path.isfile(self.unitd):
@@ -202,6 +201,8 @@ class TestUnit(unittest.TestCase):
             self._print_log()
             exit("Could not start unit")
 
+        self._started = True
+
         self.skip_alerts = [
             r'read signalfd\(4\) failed',
             r'sendmsg.+failed',
@@ -210,7 +211,7 @@ class TestUnit(unittest.TestCase):
         self.skip_sanitizer = False
 
     def tearDown(self):
-        stop_errs = self.stop()
+        self.stop()
 
         # detect errors and failures for current test
 
@@ -245,18 +246,21 @@ class TestUnit(unittest.TestCase):
         else:
             self._print_log()
 
-        self.assertListEqual(stop_errs, [None, None], 'stop errors')
+        self.assertListEqual(self.stop_errors, [None, None], 'stop errors')
 
     def stop(self):
-        errors = []
+        if not self._started:
+            return
 
-        errors.append(self._stop())
+        self.stop_errors = []
 
-        errors.append(self.stop_processes())
+        self.stop_errors.append(self._stop())
+
+        self.stop_errors.append(self.stop_processes())
 
         atexit.unregister(self.stop)
 
-        return errors
+        self._started = False
 
     def _stop(self):
         if self._p.poll() is not None:
@@ -407,8 +411,11 @@ class TestUnit(unittest.TestCase):
         print('Path to unit.log:\n' + path + '\n')
 
         if TestUnit.print_log:
+            os.set_blocking(sys.stdout.fileno(), True)
+            sys.stdout.flush()
+
             if data is None:
                 with open(path, 'r', encoding='utf-8', errors='ignore') as f:
-                    data = f.read()
-
-            print(data)
+                    shutil.copyfileobj(f, sys.stdout)
+            else:
+                sys.stdout.write(data)

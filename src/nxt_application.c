@@ -41,19 +41,21 @@ static void nxt_discovery_quit(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     void *data);
 static nxt_app_module_t *nxt_app_module_load(nxt_task_t *task,
     const char *name);
-static nxt_int_t nxt_app_prefork(nxt_task_t *task, nxt_process_t *process,
+static nxt_int_t nxt_app_main_prefork(nxt_task_t *task, nxt_process_t *process,
     nxt_mp_t *mp);
 static nxt_int_t nxt_app_setup(nxt_task_t *task, nxt_process_t *process);
 static nxt_int_t nxt_app_set_environment(nxt_conf_value_t *environment);
 static u_char *nxt_cstr_dup(nxt_mp_t *mp, u_char *dst, u_char *src);
 
 #if (NXT_HAVE_ISOLATION_ROOTFS)
-static nxt_int_t nxt_app_prepare_rootfs(nxt_task_t *task,
-    nxt_process_t *process);
-static nxt_int_t nxt_app_prepare_lang_mounts(nxt_task_t *task,
+static nxt_int_t nxt_app_set_isolation_mounts(nxt_task_t *task,
+    nxt_process_t *process, nxt_str_t *app_type);
+static nxt_int_t nxt_app_set_lang_mounts(nxt_task_t *task,
     nxt_process_t *process, nxt_array_t *syspaths);
 static nxt_int_t nxt_app_set_isolation_rootfs(nxt_task_t *task,
     nxt_conf_value_t *isolation, nxt_process_t *process);
+static nxt_int_t nxt_app_prepare_rootfs(nxt_task_t *task,
+    nxt_process_t *process);
 #endif
 
 static nxt_int_t nxt_app_set_isolation(nxt_task_t *task,
@@ -124,7 +126,7 @@ const nxt_process_init_t  nxt_discovery_process = {
 const nxt_process_init_t  nxt_app_process = {
     .type           = NXT_PROCESS_APP,
     .setup          = nxt_app_setup,
-    .prefork        = nxt_app_prefork,
+    .prefork        = nxt_app_main_prefork,
     .restart        = 0,
     .start          = NULL,     /* set to module->start */
     .port_handlers  = &nxt_app_process_port_handlers,
@@ -287,7 +289,7 @@ nxt_discovery_modules(nxt_task_t *task, const char *path)
 
     *p++ = ']';
 
-    if (nxt_slow_path(p >= end)) {
+    if (nxt_slow_path(p > end)) {
         nxt_alert(task, "discovery write past the buffer");
         goto fail;
     }
@@ -472,22 +474,16 @@ nxt_discovery_quit(nxt_task_t *task, nxt_port_recv_msg_t *msg, void *data)
 
 
 static nxt_int_t
-nxt_app_prefork(nxt_task_t *task, nxt_process_t *process, nxt_mp_t *mp)
+nxt_app_main_prefork(nxt_task_t *task, nxt_process_t *process, nxt_mp_t *mp)
 {
-    nxt_int_t              cap_setid, cap_chroot;
+    nxt_int_t              cap_setid;
     nxt_int_t              ret;
     nxt_runtime_t          *rt;
     nxt_common_app_conf_t  *app_conf;
-    nxt_app_lang_module_t  *lang;
 
     rt = task->thread->runtime;
     app_conf = process->data.app;
     cap_setid = rt->capabilities.setid;
-    cap_chroot = rt->capabilities.chroot;
-
-    lang = nxt_app_lang_module(rt, &app_conf->type);
-
-    nxt_assert(lang != NULL);
 
     if (app_conf->isolation != NULL) {
         ret = nxt_app_set_isolation(task, app_conf->isolation, process);
@@ -499,24 +495,14 @@ nxt_app_prefork(nxt_task_t *task, nxt_process_t *process, nxt_mp_t *mp)
 #if (NXT_HAVE_CLONE_NEWUSER)
     if (nxt_is_clone_flag_set(process->isolation.clone.flags, NEWUSER)) {
         cap_setid = 1;
-        cap_chroot = 1;
     }
 #endif
 
 #if (NXT_HAVE_ISOLATION_ROOTFS)
     if (process->isolation.rootfs != NULL) {
-        if (!cap_chroot) {
-            nxt_log(task, NXT_LOG_ERR,
-                    "The \"rootfs\" field requires privileges");
-
-            return NXT_ERROR;
-        }
-
-        if (lang->mounts != NULL && lang->mounts->nelts > 0) {
-            ret = nxt_app_prepare_lang_mounts(task, process, lang->mounts);
-            if (nxt_slow_path(ret != NXT_OK)) {
-                return NXT_ERROR;
-            }
+        ret = nxt_app_set_isolation_mounts(task, process, &app_conf->type);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            return ret;
         }
     }
 #endif
@@ -765,71 +751,6 @@ nxt_app_set_isolation_namespaces(nxt_task_t *task, nxt_conf_value_t *isolation,
 #endif
 
 
-#if (NXT_HAVE_ISOLATION_ROOTFS)
-
-static nxt_int_t
-nxt_app_set_isolation_rootfs(nxt_task_t *task, nxt_conf_value_t *isolation,
-    nxt_process_t *process)
-{
-    nxt_str_t         str;
-    nxt_conf_value_t  *obj;
-
-    static nxt_str_t  rootfs_name = nxt_string("rootfs");
-
-    obj = nxt_conf_get_object_member(isolation, &rootfs_name, NULL);
-    if (obj != NULL) {
-        nxt_conf_get_string(obj, &str);
-
-        if (nxt_slow_path(str.length <= 1 || str.start[0] != '/')) {
-            nxt_log(task, NXT_LOG_ERR, "rootfs requires an absolute path other "
-                    "than \"/\" but given \"%V\"", &str);
-
-            return NXT_ERROR;
-        }
-
-        if (str.start[str.length - 1] == '/') {
-            str.length--;
-        }
-
-        process->isolation.rootfs = nxt_mp_alloc(process->mem_pool,
-                                                 str.length + 1);
-
-        if (nxt_slow_path(process->isolation.rootfs == NULL)) {
-            return NXT_ERROR;
-        }
-
-        nxt_memcpy(process->isolation.rootfs, str.start, str.length);
-
-        process->isolation.rootfs[str.length] = '\0';
-    }
-
-    return NXT_OK;
-}
-
-#endif
-
-
-#if (NXT_HAVE_PR_SET_NO_NEW_PRIVS)
-
-static nxt_int_t
-nxt_app_set_isolation_new_privs(nxt_task_t *task, nxt_conf_value_t *isolation,
-    nxt_process_t *process)
-{
-    nxt_conf_value_t  *obj;
-
-    static nxt_str_t  new_privs_name = nxt_string("new_privs");
-
-    obj = nxt_conf_get_object_member(isolation, &new_privs_name, NULL);
-    if (obj != NULL) {
-        process->isolation.new_privs = nxt_conf_get_boolean(obj);
-    }
-
-    return NXT_OK;
-}
-
-#endif
-
-
 #if (NXT_HAVE_CLONE_NEWUSER)
 
 static nxt_int_t
@@ -1002,7 +923,83 @@ nxt_app_clone_flags(nxt_task_t *task, nxt_conf_value_t *namespaces,
 #if (NXT_HAVE_ISOLATION_ROOTFS)
 
 static nxt_int_t
-nxt_app_prepare_lang_mounts(nxt_task_t *task, nxt_process_t *process,
+nxt_app_set_isolation_rootfs(nxt_task_t *task, nxt_conf_value_t *isolation,
+    nxt_process_t *process)
+{
+    nxt_str_t         str;
+    nxt_conf_value_t  *obj;
+
+    static nxt_str_t  rootfs_name = nxt_string("rootfs");
+
+    obj = nxt_conf_get_object_member(isolation, &rootfs_name, NULL);
+    if (obj != NULL) {
+        nxt_conf_get_string(obj, &str);
+
+        if (nxt_slow_path(str.length <= 1 || str.start[0] != '/')) {
+            nxt_log(task, NXT_LOG_ERR, "rootfs requires an absolute path other "
+                    "than \"/\" but given \"%V\"", &str);
+
+            return NXT_ERROR;
+        }
+
+        if (str.start[str.length - 1] == '/') {
+            str.length--;
+        }
+
+        process->isolation.rootfs = nxt_mp_alloc(process->mem_pool,
+                                                 str.length + 1);
+
+        if (nxt_slow_path(process->isolation.rootfs == NULL)) {
+            return NXT_ERROR;
+        }
+
+        nxt_memcpy(process->isolation.rootfs, str.start, str.length);
+
+        process->isolation.rootfs[str.length] = '\0';
+    }
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_app_set_isolation_mounts(nxt_task_t *task, nxt_process_t *process,
+    nxt_str_t *app_type)
+{
+    nxt_int_t              ret, cap_chroot;
+    nxt_runtime_t          *rt;
+    nxt_app_lang_module_t  *lang;
+
+    rt = task->thread->runtime;
+    cap_chroot = rt->capabilities.chroot;
+    lang = nxt_app_lang_module(rt, app_type);
+
+    nxt_assert(lang != NULL);
+
+#if (NXT_HAVE_CLONE_NEWUSER)
+    if (nxt_is_clone_flag_set(process->isolation.clone.flags, NEWUSER)) {
+        cap_chroot = 1;
+    }
+#endif
+
+    if (!cap_chroot) {
+        nxt_log(task, NXT_LOG_ERR, "The \"rootfs\" field requires privileges");
+        return NXT_ERROR;
+    }
+
+    if (lang->mounts != NULL && lang->mounts->nelts > 0) {
+        ret = nxt_app_set_lang_mounts(task, process, lang->mounts);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            return NXT_ERROR;
+        }
+    }
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_app_set_lang_mounts(nxt_task_t *task, nxt_process_t *process,
     nxt_array_t *lang_mounts)
 {
     u_char          *p;
@@ -1043,7 +1040,6 @@ nxt_app_prepare_lang_mounts(nxt_task_t *task, nxt_process_t *process,
 
     return NXT_OK;
 }
-
 
 
 static nxt_int_t
@@ -1132,6 +1128,27 @@ undo:
     }
 
     return NXT_ERROR;
+}
+
+#endif
+
+
+#if (NXT_HAVE_PR_SET_NO_NEW_PRIVS)
+
+static nxt_int_t
+nxt_app_set_isolation_new_privs(nxt_task_t *task, nxt_conf_value_t *isolation,
+    nxt_process_t *process)
+{
+    nxt_conf_value_t  *obj;
+
+    static nxt_str_t  new_privs_name = nxt_string("new_privs");
+
+    obj = nxt_conf_get_object_member(isolation, &new_privs_name, NULL);
+    if (obj != NULL) {
+        process->isolation.new_privs = nxt_conf_get_boolean(obj);
+    }
+
+    return NXT_OK;
 }
 
 #endif
@@ -1246,7 +1263,7 @@ nxt_app_parse_type(u_char *p, size_t length)
 nxt_int_t
 nxt_unit_default_init(nxt_task_t *task, nxt_unit_init_t *init)
 {
-    nxt_port_t     *my_port, *main_port;
+    nxt_port_t     *my_port, *main_port, *router_port;
     nxt_runtime_t  *rt;
 
     nxt_memzero(init, sizeof(nxt_unit_init_t));
@@ -1258,6 +1275,11 @@ nxt_unit_default_init(nxt_task_t *task, nxt_unit_init_t *init)
         return NXT_ERROR;
     }
 
+    router_port = rt->port_by_type[NXT_PROCESS_ROUTER];
+    if (nxt_slow_path(router_port == NULL)) {
+        return NXT_ERROR;
+    }
+
     my_port = nxt_runtime_port_find(rt, nxt_pid, 0);
     if (nxt_slow_path(my_port == NULL)) {
         return NXT_ERROR;
@@ -1265,17 +1287,20 @@ nxt_unit_default_init(nxt_task_t *task, nxt_unit_init_t *init)
 
     init->ready_port.id.pid = main_port->pid;
     init->ready_port.id.id = main_port->id;
+    init->ready_port.in_fd = -1;
     init->ready_port.out_fd = main_port->pair[1];
 
-    nxt_fd_blocking(task, main_port->pair[1]);
-
     init->ready_stream = my_port->process->stream;
+
+    init->router_port.id.pid = router_port->pid;
+    init->router_port.id.id = router_port->id;
+    init->router_port.in_fd = -1;
+    init->router_port.out_fd = router_port->pair[1];
 
     init->read_port.id.pid = my_port->pid;
     init->read_port.id.id = my_port->id;
     init->read_port.in_fd = my_port->pair[0];
-
-    nxt_fd_blocking(task, my_port->pair[0]);
+    init->read_port.out_fd = -1;
 
     init->log_fd = 2;
 

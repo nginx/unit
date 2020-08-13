@@ -124,6 +124,14 @@ nxt_runtime_create(nxt_task_t *task)
         goto fail;
     }
 
+    if (nxt_slow_path(nxt_http_register_variables() != NXT_OK)) {
+        goto fail;
+    }
+
+    if (nxt_slow_path(nxt_var_index_init() != NXT_OK)) {
+        goto fail;
+    }
+
     nxt_work_queue_add(&task->thread->engine->fast_work_queue,
                        nxt_runtime_start, task, rt, NULL);
 
@@ -527,7 +535,7 @@ nxt_runtime_stop_all_processes(nxt_task_t *task, nxt_runtime_t *rt)
 static void
 nxt_runtime_exit(nxt_task_t *task, void *obj, void *data)
 {
-    int                 status;
+    int                 status, engine_count;
     nxt_runtime_t       *rt;
     nxt_process_t       *process;
     nxt_event_engine_t  *engine;
@@ -571,14 +579,25 @@ nxt_runtime_exit(nxt_task_t *task, void *obj, void *data)
 
     } nxt_runtime_process_loop;
 
-    if (rt->port_by_type[rt->type] != NULL) {
-        nxt_port_use(task, rt->port_by_type[rt->type], -1);
-    }
-
-    nxt_thread_mutex_destroy(&rt->processes_mutex);
-
     status = rt->status;
-    nxt_mp_destroy(rt->mem_pool);
+
+    engine_count = 0;
+
+    nxt_queue_each(engine, &rt->engines, nxt_event_engine_t, link) {
+
+        engine_count++;
+
+    } nxt_queue_loop;
+
+    if (engine_count <= 1) {
+        if (rt->port_by_type[rt->type] != NULL) {
+            nxt_port_use(task, rt->port_by_type[rt->type], -1);
+        }
+
+        nxt_thread_mutex_destroy(&rt->processes_mutex);
+
+        nxt_mp_destroy(rt->mem_pool);
+    }
 
     nxt_debug(task, "exit: %d", status);
 
@@ -1366,7 +1385,6 @@ nxt_runtime_process_new(nxt_runtime_t *rt)
     nxt_queue_init(&process->ports);
 
     nxt_thread_mutex_create(&process->incoming.mutex);
-    nxt_thread_mutex_create(&process->outgoing.mutex);
     nxt_thread_mutex_create(&process->cp_mutex);
 
     process->use_count = 1;
@@ -1378,8 +1396,6 @@ nxt_runtime_process_new(nxt_runtime_t *rt)
 void
 nxt_runtime_process_release(nxt_runtime_t *rt, nxt_process_t *process)
 {
-    nxt_port_t  *port;
-
     if (process->registered == 1) {
         nxt_runtime_process_remove(rt, process);
     }
@@ -1388,15 +1404,8 @@ nxt_runtime_process_release(nxt_runtime_t *rt, nxt_process_t *process)
     nxt_assert(process->registered == 0);
 
     nxt_port_mmaps_destroy(&process->incoming, 1);
-    nxt_port_mmaps_destroy(&process->outgoing, 1);
-
-    do {
-        port = nxt_port_hash_retrieve(&process->connected_ports);
-
-    } while (port != NULL);
 
     nxt_thread_mutex_destroy(&process->incoming.mutex);
-    nxt_thread_mutex_destroy(&process->outgoing.mutex);
     nxt_thread_mutex_destroy(&process->cp_mutex);
 
     /* processes from nxt_runtime_process_get() have no memory pool */

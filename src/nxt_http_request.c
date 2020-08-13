@@ -10,7 +10,7 @@
 
 static nxt_int_t nxt_http_validate_host(nxt_str_t *host, nxt_mp_t *mp);
 static void nxt_http_request_start(nxt_task_t *task, void *obj, void *data);
-static void nxt_http_request_action(nxt_task_t *task, void *obj, void *data);
+static void nxt_http_request_ready(nxt_task_t *task, void *obj, void *data);
 static void nxt_http_request_proto_info(nxt_task_t *task,
     nxt_http_request_t *r);
 static void nxt_http_request_mem_buf_completion(nxt_task_t *task, void *obj,
@@ -285,21 +285,28 @@ nxt_http_request_start(nxt_task_t *task, void *obj, void *data)
 static const nxt_http_request_state_t  nxt_http_request_body_state
     nxt_aligned(64) =
 {
-    .ready_handler = nxt_http_request_action,
+    .ready_handler = nxt_http_request_ready,
     .error_handler = nxt_http_request_close_handler,
 };
 
 
 static void
-nxt_http_request_action(nxt_task_t *task, void *obj, void *data)
+nxt_http_request_ready(nxt_task_t *task, void *obj, void *data)
 {
     nxt_http_action_t   *action;
     nxt_http_request_t  *r;
 
     r = obj;
-
     action = r->conf->socket_conf->action;
 
+    nxt_http_request_action(task, r, action);
+}
+
+
+void
+nxt_http_request_action(nxt_task_t *task, nxt_http_request_t *r,
+    nxt_http_action_t *action)
+{
     if (nxt_fast_path(action != NULL)) {
 
         do {

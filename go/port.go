@@ -93,7 +93,7 @@ func getUnixConn(fd int) *net.UnixConn {
 }
 
 //export nxt_go_add_port
-func nxt_go_add_port(pid C.int, id C.int, rcv C.int, snd C.int) {
+func nxt_go_add_port(ctx C.uintptr_t, pid C.int, id C.int, rcv C.int, snd C.int) {
 	p := &port{
 		key: port_key{
 			pid: int(pid),
@@ -104,6 +104,12 @@ func nxt_go_add_port(pid C.int, id C.int, rcv C.int, snd C.int) {
 	}
 
 	add_port(p)
+
+	if id == 65535 {
+		go func(ctx C.uintptr_t) {
+			C.nxt_cgo_unit_run_shared(ctx);
+		}(ctx)
+	}
 }
 
 //export nxt_go_remove_port

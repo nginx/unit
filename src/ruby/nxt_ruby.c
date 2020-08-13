@@ -7,7 +7,8 @@
 
 #include <nxt_unit.h>
 #include <nxt_unit_request.h>
-#include <nxt_ruby_mounts.h>
+
+#include NXT_RUBY_MOUNTS_H
 
 
 #define NXT_RUBY_RACK_API_VERSION_MAJOR  1
@@ -79,10 +80,8 @@ NXT_EXPORT nxt_app_module_t  nxt_app_module = {
     compat,
     nxt_string("ruby"),
     ruby_version,
-#if (NXT_HAVE_ISOLATION_ROOTFS)
     nxt_ruby_mounts,
     nxt_nitems(nxt_ruby_mounts),
-#endif
     NULL,
     nxt_ruby_start,
 };

@@ -35,16 +35,13 @@ static void nxt_process_created_error(nxt_task_t *task,
 
 #if (NXT_HAVE_ISOLATION_ROOTFS)
 static nxt_int_t nxt_process_chroot(nxt_task_t *task, const char *path);
-#endif
 
-#if (NXT_HAVE_PIVOT_ROOT)
+#if (NXT_HAVE_PIVOT_ROOT) && (NXT_HAVE_CLONE_NEWNS)
 static nxt_int_t nxt_process_pivot_root(nxt_task_t *task, const char *rootfs);
 static nxt_int_t nxt_process_private_mount(nxt_task_t *task,
     const char *rootfs);
-#endif
-
-#if (NXT_HAVE_PIVOT_ROOT)
 static int nxt_pivot_root(const char *new_root, const char *old_root);
+#endif
 #endif
 
 /* A cached process pid. */
@@ -64,7 +61,7 @@ nxt_bool_t  nxt_proc_conn_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
     { 1, 0, 0, 0, 0 },
     { 1, 0, 0, 1, 0 },
     { 1, 0, 1, 0, 1 },
-    { 1, 0, 0, 0, 0 },
+    { 1, 0, 0, 1, 0 },
 };
 
 nxt_bool_t  nxt_proc_remove_notify_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
@@ -149,7 +146,6 @@ nxt_process_child_fixup(nxt_task_t *task, nxt_process_t *process)
         }
 
         nxt_port_mmaps_destroy(&p->incoming, 0);
-        nxt_port_mmaps_destroy(&p->outgoing, 0);
 
     } nxt_runtime_process_loop;
 
@@ -590,11 +586,6 @@ nxt_process_change_root(nxt_task_t *task, nxt_process_t *process)
 #endif
 
 
-#endif
-
-
-#if (NXT_HAVE_ISOLATION_ROOTFS)
-
 static nxt_int_t
 nxt_process_chroot(nxt_task_t *task, const char *path)
 {
@@ -624,8 +615,6 @@ nxt_process_unmount_all(nxt_task_t *task, nxt_process_t *process)
         nxt_fs_unmount(mnt[i].dst);
     }
 }
-
-#endif
 
 
 #if (NXT_HAVE_PIVOT_ROOT) && (NXT_HAVE_CLONE_NEWNS)
@@ -853,6 +842,8 @@ nxt_pivot_root(const char *new_root, const char *old_root)
 {
     return syscall(__NR_pivot_root, new_root, old_root);
 }
+
+#endif
 
 #endif
 
@@ -1112,43 +1103,6 @@ nxt_process_close_ports(nxt_task_t *task, nxt_process_t *process)
         nxt_runtime_port_remove(task, port);
 
     } nxt_process_port_loop;
-}
-
-
-void
-nxt_process_connected_port_add(nxt_process_t *process, nxt_port_t *port)
-{
-    nxt_thread_mutex_lock(&process->cp_mutex);
-
-    nxt_port_hash_add(&process->connected_ports, port);
-
-    nxt_thread_mutex_unlock(&process->cp_mutex);
-}
-
-
-void
-nxt_process_connected_port_remove(nxt_process_t *process, nxt_port_t *port)
-{
-    nxt_thread_mutex_lock(&process->cp_mutex);
-
-    nxt_port_hash_remove(&process->connected_ports, port);
-
-    nxt_thread_mutex_unlock(&process->cp_mutex);
-}
-
-
-nxt_port_t *
-nxt_process_connected_port_find(nxt_process_t *process, nxt_port_t *port)
-{
-    nxt_port_t  *res;
-
-    nxt_thread_mutex_lock(&process->cp_mutex);
-
-    res = nxt_port_hash_find(&process->connected_ports, port->pid, port->id);
-
-    nxt_thread_mutex_unlock(&process->cp_mutex);
-
-    return res;
 }
 
 

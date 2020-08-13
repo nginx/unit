@@ -18,6 +18,8 @@ typedef struct nxt_h1p_websocket_timer_s nxt_h1p_websocket_timer_t;
 
 struct nxt_h1proto_s {
     nxt_http_request_parse_t  parser;
+    nxt_http_chunk_parse_t    chunked_parse;
+    nxt_off_t                 remainder;
 
     uint8_t                   nbuffers;
     uint8_t                   header_buffer_slot;

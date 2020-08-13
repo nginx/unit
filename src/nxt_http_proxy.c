@@ -27,8 +27,6 @@ static void nxt_http_proxy_header_send(nxt_task_t *task, void *obj, void *data);
 static void nxt_http_proxy_header_sent(nxt_task_t *task, void *obj, void *data);
 static void nxt_http_proxy_header_read(nxt_task_t *task, void *obj, void *data);
 static void nxt_http_proxy_send_body(nxt_task_t *task, void *obj, void *data);
-static void nxt_http_proxy_request_send(nxt_task_t *task,
-    nxt_http_request_t *r, nxt_buf_t *out);
 static void nxt_http_proxy_read(nxt_task_t *task, void *obj, void *data);
 static void nxt_http_proxy_buf_mem_completion(nxt_task_t *task, void *obj,
     void *data);
@@ -253,10 +251,6 @@ nxt_http_proxy_header_read(nxt_task_t *task, void *obj, void *data)
 
     nxt_debug(task, "http proxy status: %d", peer->status);
 
-    if (r->resp.content_length_n > 0) {
-        peer->remainder = r->resp.content_length_n;
-    }
-
     nxt_list_each(field, peer->fields) {
 
         nxt_debug(task, "http proxy header: \"%*s: %*s\"",
@@ -275,6 +269,8 @@ nxt_http_proxy_header_read(nxt_task_t *task, void *obj, void *data)
 
     } nxt_list_loop;
 
+    r->state = &nxt_http_proxy_read_state;
+
     nxt_http_request_header_send(task, r, nxt_http_proxy_send_body, peer);
 }
 
@@ -292,27 +288,13 @@ nxt_http_proxy_send_body(nxt_task_t *task, void *obj, void *data)
 
     if (out != NULL) {
         peer->body = NULL;
-        nxt_http_proxy_request_send(task, r, out);
+        nxt_http_request_send(task, r, out);
+
     }
 
-    r->state = &nxt_http_proxy_read_state;
-
-    nxt_http_proto[peer->protocol].peer_read(task, peer);
-}
-
-
-static void
-nxt_http_proxy_request_send(nxt_task_t *task, nxt_http_request_t *r,
-    nxt_buf_t *out)
-{
-    size_t  length;
-
-    if (r->peer->remainder > 0) {
-        length = nxt_buf_chain_length(out);
-        r->peer->remainder -= length;
+    if (!peer->closed) {
+        nxt_http_proto[peer->protocol].peer_read(task, peer);
     }
-
-    nxt_http_request_send(task, r, out);
 }
 
 
@@ -328,7 +310,6 @@ static void
 nxt_http_proxy_read(nxt_task_t *task, void *obj, void *data)
 {
     nxt_buf_t           *out;
-    nxt_bool_t          last;
     nxt_http_peer_t     *peer;
     nxt_http_request_t  *r;
 
@@ -336,16 +317,15 @@ nxt_http_proxy_read(nxt_task_t *task, void *obj, void *data)
     peer = data;
     out = peer->body;
     peer->body = NULL;
-    last = nxt_buf_is_last(out);
 
-    nxt_http_proxy_request_send(task, r, out);
+    if (out != NULL) {
+        nxt_http_request_send(task, r, out);
+    }
 
-    if (!last) {
+    if (!peer->closed) {
         nxt_http_proto[peer->protocol].peer_read(task, peer);
 
     } else {
-        r->inconsistent = (peer->remainder != 0);
-
         nxt_http_proto[peer->protocol].peer_close(task, peer);
 
         nxt_mp_release(r->mem_pool);
@@ -422,7 +402,7 @@ nxt_http_proxy_error(nxt_task_t *task, void *obj, void *data)
 
     nxt_mp_release(r->mem_pool);
 
-    nxt_http_request_error(task, r, peer->status);
+    nxt_http_request_error(&r->task, r, peer->status);
 }
 
 

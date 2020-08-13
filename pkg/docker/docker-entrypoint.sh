@@ -18,7 +18,7 @@ curl_put()
     return 0
 }
 
-if [ "$1" = "unitd" ]; then
+if [ "$1" = "unitd" -o "$1" = "unitd-debug" ]; then
     if /usr/bin/find "/var/lib/unit/" -mindepth 1 -print -quit 2>/dev/null | /bin/grep -q .; then
         echo "$0: /var/lib/unit/ is not empty, skipping initial configuration..."
     else

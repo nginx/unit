@@ -48,6 +48,7 @@ typedef struct {
     nxt_upstreams_t          *upstreams;
 
     nxt_lvlhsh_t             mtypes_hash;
+    nxt_lvlhsh_t             apps_hash;
 
     nxt_router_access_log_t  *access_log;
 } nxt_router_conf_t;
@@ -66,12 +67,6 @@ typedef struct {
 
 
 typedef struct {
-    nxt_queue_t            creating;   /* of nxt_socket_conf_t */
-    nxt_queue_t            pending;    /* of nxt_socket_conf_t */
-    nxt_queue_t            updating;   /* of nxt_socket_conf_t */
-    nxt_queue_t            keeping;    /* of nxt_socket_conf_t */
-    nxt_queue_t            deleting;   /* of nxt_socket_conf_t */
-
 #if (NXT_TLS)
     nxt_queue_t            tls;        /* of nxt_router_tlssock_t */
 #endif
@@ -107,18 +102,20 @@ typedef struct {
 
 
 struct nxt_app_s {
-    nxt_thread_mutex_t     mutex;    /* Protects ports queue. */
-    nxt_queue_t            ports;    /* of nxt_port_t.app_link */
+    nxt_thread_mutex_t     mutex;       /* Protects ports queue. */
+    nxt_queue_t            ports;       /* of nxt_port_t.app_link */
+    nxt_lvlhsh_t           port_hash;   /* of nxt_port_t */
 
     nxt_queue_t            spare_ports; /* of nxt_port_t.idle_link */
     nxt_queue_t            idle_ports;  /* of nxt_port_t.idle_link */
     nxt_work_t             adjust_idle_work;
     nxt_event_engine_t     *engine;
 
-    nxt_queue_t            requests; /* of nxt_request_app_link_t */
-    nxt_queue_t            pending;  /* of nxt_request_app_link_t */
     nxt_str_t              name;
 
+    uint32_t               port_hash_count;
+
+    uint32_t               active_requests;
     uint32_t               pending_processes;
     uint32_t               processes;
     uint32_t               idle_processes;
@@ -126,7 +123,6 @@ struct nxt_app_s {
     uint32_t               max_processes;
     uint32_t               spare_processes;
     uint32_t               max_pending_processes;
-    uint32_t               max_pending_responses;
     uint32_t               max_requests;
 
     nxt_msec_t             timeout;
@@ -143,8 +139,12 @@ struct nxt_app_s {
     nxt_str_t              conf;
 
     nxt_atomic_t           use_count;
+    nxt_queue_t            ack_waiting_req; /* of nxt_http_request_t.app_link */
 
     nxt_app_joint_t        *joint;
+    nxt_port_t             *shared_port;
+
+    nxt_port_mmaps_t       outgoing;
 };
 
 
@@ -219,18 +219,11 @@ struct nxt_router_access_log_s {
 };
 
 
-void nxt_router_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
-void nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
-void nxt_router_remove_pid_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
-void nxt_router_access_log_reopen_handler(nxt_task_t *task,
-    nxt_port_recv_msg_t *msg);
-
 void nxt_router_process_http_request(nxt_task_t *task, nxt_http_request_t *r,
     nxt_app_t *app);
 void nxt_router_app_port_close(nxt_task_t *task, nxt_port_t *port);
-void nxt_router_listener_application(nxt_router_temp_conf_t *tmcf,
+nxt_int_t nxt_router_listener_application(nxt_router_conf_t *rtcf,
     nxt_str_t *name, nxt_http_action_t *action);
-void nxt_router_app_use(nxt_task_t *task, nxt_app_t *app, int i);
 void nxt_router_listen_event_release(nxt_task_t *task, nxt_listen_event_t *lev,
     nxt_socket_conf_joint_t *joint);
 void nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint);

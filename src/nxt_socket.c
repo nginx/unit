@@ -51,18 +51,6 @@ nxt_socket_create(nxt_task_t *task, nxt_uint_t domain, nxt_uint_t type,
 
 
 void
-nxt_socket_close(nxt_task_t *task, nxt_socket_t s)
-{
-    if (nxt_fast_path(close(s) == 0)) {
-        nxt_debug(task, "socket close(%d)", s);
-
-    } else {
-        nxt_alert(task, "socket close(%d) failed %E", s, nxt_socket_errno);
-    }
-}
-
-
-void
 nxt_socket_defer_accept(nxt_task_t *task, nxt_socket_t s, nxt_sockaddr_t *sa)
 {
 #if (NXT_HAVE_UNIX_DOMAIN)
@@ -288,6 +276,41 @@ nxt_socket_shutdown(nxt_task_t *task, nxt_socket_t s, nxt_uint_t how)
     }
 
     nxt_log(task, level, "shutdown(%d, %ui) failed %E", s, how, err);
+}
+
+
+void
+nxt_socket_close(nxt_task_t *task, nxt_socket_t s)
+{
+    nxt_err_t   err;
+    nxt_uint_t  level;
+
+    if (nxt_fast_path(close(s) == 0)) {
+        nxt_debug(task, "socket close(%d)", s);
+        return;
+    }
+
+    err = nxt_socket_errno;
+
+    switch (err) {
+
+    case NXT_ENOTCONN:
+        level = NXT_LOG_DEBUG;
+        break;
+
+    case NXT_ECONNRESET:
+    case NXT_ENETDOWN:
+    case NXT_ENETUNREACH:
+    case NXT_EHOSTDOWN:
+    case NXT_EHOSTUNREACH:
+        level = NXT_LOG_ERR;
+        break;
+
+    default:
+        level = NXT_LOG_ALERT;
+    }
+
+    nxt_log(task, level, "socket close(%d) failed %E", s, err);
 }
 
 

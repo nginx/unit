@@ -26,7 +26,6 @@ typedef enum {
 typedef enum {
     NXT_HTTP_ROUTE_PATTERN_EXACT = 0,
     NXT_HTTP_ROUTE_PATTERN_BEGIN,
-    NXT_HTTP_ROUTE_PATTERN_MIDDLE,
     NXT_HTTP_ROUTE_PATTERN_END,
     NXT_HTTP_ROUTE_PATTERN_SUBSTRING,
 } nxt_http_route_pattern_type_t;
@@ -70,13 +69,16 @@ typedef struct {
 
 
 typedef struct {
-    u_char                         *start1;
-    u_char                         *start2;
-    uint32_t                       length1;
-    uint32_t                       length2;
-    uint32_t                       min_length;
-
+    u_char                         *start;
+    uint32_t                       length;
     nxt_http_route_pattern_type_t  type:8;
+} nxt_http_route_pattern_slice_t;
+
+
+typedef struct {
+    uint32_t                       min_length;
+    nxt_array_t                    *pattern_slices;
+
     uint8_t                        case_sensitive;  /* 1 bit */
     uint8_t                        negative;        /* 1 bit */
     uint8_t                        any;             /* 1 bit */
@@ -169,7 +171,7 @@ struct nxt_http_routes_s {
 };
 
 
-#define NJS_COOKIE_HASH                                                       \
+#define NXT_COOKIE_HASH                                                       \
     (nxt_http_field_hash_end(                                                 \
      nxt_http_field_hash_char(                                                \
      nxt_http_field_hash_char(                                                \
@@ -209,16 +211,26 @@ static nxt_int_t nxt_http_route_pattern_create(nxt_task_t *task, nxt_mp_t *mp,
     nxt_http_route_encoding_t encoding);
 static nxt_int_t nxt_http_route_decode_str(nxt_str_t *str,
     nxt_http_route_encoding_t encoding);
-static u_char *nxt_http_route_pattern_copy(nxt_mp_t *mp, nxt_str_t *test,
+static nxt_int_t nxt_http_route_pattern_slice(nxt_array_t *slices,
+    nxt_str_t *test,
+    nxt_http_route_pattern_type_t type,
+    nxt_http_route_encoding_t encoding,
     nxt_http_route_pattern_case_t pattern_case);
 
 static nxt_int_t nxt_http_route_resolve(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_http_route_t *route);
 static nxt_int_t nxt_http_action_resolve(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_http_action_t *action);
-static void nxt_http_route_find(nxt_http_routes_t *routes, nxt_str_t *name,
+static nxt_http_action_t *nxt_http_action_pass_var(nxt_task_t *task,
+    nxt_http_request_t *r, nxt_http_action_t *action);
+static void nxt_http_action_pass_var_ready(nxt_task_t *task, void *obj,
+    void *data);
+static void nxt_http_action_pass_var_error(nxt_task_t *task, void *obj,
+    void *data);
+static nxt_int_t nxt_http_pass_find(nxt_task_t *task, nxt_mp_t *mp,
+    nxt_router_conf_t *rtcf, nxt_http_action_t *action);
+static nxt_int_t nxt_http_route_find(nxt_http_routes_t *routes, nxt_str_t *name,
     nxt_http_action_t *action);
-static void nxt_http_route_cleanup(nxt_task_t *task, nxt_http_route_t *routes);
 
 static nxt_http_action_t *nxt_http_route_handler(nxt_task_t *task,
     nxt_http_request_t *r, nxt_http_action_t *start);
@@ -1044,103 +1056,163 @@ nxt_http_route_pattern_create(nxt_task_t *task, nxt_mp_t *mp,
     nxt_http_route_pattern_case_t pattern_case,
     nxt_http_route_encoding_t encoding)
 {
-    u_char                         *start;
-    nxt_str_t                      test, test2;
-    nxt_int_t                      ret;
-    nxt_uint_t                     n, length;
-    nxt_http_route_pattern_type_t  type;
+    u_char                          c, *p, *end;
+    nxt_str_t                       test, tmp;
+    nxt_int_t                       ret;
+    nxt_array_t                     *slices;
+    nxt_http_route_pattern_type_t   type;
+
+    nxt_http_route_pattern_slice_t  *slice;
 
     type = NXT_HTTP_ROUTE_PATTERN_EXACT;
 
     nxt_conf_get_string(cv, &test);
 
+    slices = nxt_array_create(mp, 1, sizeof(nxt_http_route_pattern_slice_t));
+    if (nxt_slow_path(slices == NULL)) {
+        return NXT_ERROR;
+    }
+
+    pattern->pattern_slices = slices;
+
     pattern->negative = 0;
     pattern->any = 1;
     pattern->min_length = 0;
 
-    if (test.length != 0) {
+    if (test.length != 0 && test.start[0] == '!') {
+        test.start++;
+        test.length--;
 
-        if (test.start[0] == '!') {
-            test.start++;
-            test.length--;
+        pattern->negative = 1;
+        pattern->any = 0;
 
-            pattern->negative = 1;
-            pattern->any = 0;
-        }
-
-        if (test.length != 0) {
-            if (test.start[0] == '*') {
-                test.start++;
-                test.length--;
-
-                if (test.length != 0) {
-                    if (test.start[test.length - 1] == '*') {
-                        test.length--;
-                        type = NXT_HTTP_ROUTE_PATTERN_SUBSTRING;
-
-                    } else {
-                        type = NXT_HTTP_ROUTE_PATTERN_END;
-                    }
-
-                } else {
-                    type = NXT_HTTP_ROUTE_PATTERN_BEGIN;
-                }
-
-            } else if (test.start[test.length - 1] == '*') {
-                test.length--;
-                type = NXT_HTTP_ROUTE_PATTERN_BEGIN;
-
-            } else {
-                length = test.length - 1;
-
-                for (n = 1; n < length; n++) {
-                    if (test.start[n] != '*') {
-                        continue;
-                    }
-
-                    test.length = n;
-
-                    test2.start = &test.start[n + 1];
-                    test2.length = length - n;
-
-                    ret = nxt_http_route_decode_str(&test2, encoding);
-                    if (nxt_slow_path(ret != NXT_OK)) {
-                        return ret;
-                    }
-
-                    type = NXT_HTTP_ROUTE_PATTERN_MIDDLE;
-
-                    pattern->length2 = test2.length;
-                    pattern->min_length += test2.length;
-
-                    start = nxt_http_route_pattern_copy(mp, &test2,
-                                                        pattern_case);
-                    if (nxt_slow_path(start == NULL)) {
-                        return NXT_ERROR;
-                    }
-
-                    pattern->start2 = start;
-                    break;
-                }
-            }
-
-            ret = nxt_http_route_decode_str(&test, encoding);
-            if (nxt_slow_path(ret != NXT_OK)) {
-                return ret;
-            }
+        if (test.length == 0) {
+            return NXT_OK;
         }
     }
 
-    pattern->type = type;
-    pattern->min_length += test.length;
-    pattern->length1 = test.length;
+    if (test.length == 0) {
+        slice = nxt_array_add(slices);
+        if (nxt_slow_path(slice == NULL)) {
+            return NXT_ERROR;
+        }
 
-    start = nxt_http_route_pattern_copy(mp, &test, pattern_case);
-    if (nxt_slow_path(start == NULL)) {
-        return NXT_ERROR;
+        slice->type = NXT_HTTP_ROUTE_PATTERN_EXACT;
+        slice->start = NULL;
+        slice->length = 0;
+
+        return NXT_OK;
     }
 
-    pattern->start1 = start;
+    if (test.start[0] == '*') {
+        /* 'type' is no longer 'EXACT', assume 'END'. */
+        type = NXT_HTTP_ROUTE_PATTERN_END;
+        test.start++;
+        test.length--;
+    }
+
+    if (type == NXT_HTTP_ROUTE_PATTERN_EXACT) {
+        tmp.start = test.start;
+
+        p = nxt_memchr(test.start, '*', test.length);
+
+        if (p == NULL) {
+            /* No '*' found - EXACT pattern. */
+            tmp.length = test.length;
+            type = NXT_HTTP_ROUTE_PATTERN_EXACT;
+
+            test.start += test.length;
+            test.length = 0;
+
+        } else {
+            /* '*' found - BEGIN pattern. */
+            tmp.length = p - test.start;
+            type = NXT_HTTP_ROUTE_PATTERN_BEGIN;
+
+            test.start = p + 1;
+            test.length -= tmp.length + 1;
+        }
+
+        ret = nxt_http_route_pattern_slice(slices, &tmp, type, encoding,
+                                           pattern_case);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            return ret;
+        }
+
+        pattern->min_length += tmp.length;
+    }
+
+    end = test.start + test.length;
+
+    if (test.length != 0 && end[-1] != '*') {
+        p = end - 1;
+
+        while (p != test.start) {
+            c = *p--;
+
+            if (c == '*') {
+                p += 2;
+                break;
+            }
+        }
+
+        tmp.start = p;
+        tmp.length = end - p;
+
+        test.length -= tmp.length;
+        end = p;
+
+        ret = nxt_http_route_pattern_slice(slices, &tmp,
+                                           NXT_HTTP_ROUTE_PATTERN_END,
+                                           encoding, pattern_case);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            return ret;
+        }
+
+        pattern->min_length += tmp.length;
+    }
+
+    tmp.start = test.start;
+    tmp.length = 0;
+
+    p = tmp.start;
+
+    while (p != end) {
+        c = *p++;
+
+        if (c != '*') {
+            tmp.length++;
+            continue;
+        }
+
+        if (tmp.length == 0) {
+            tmp.start = p;
+            continue;
+        }
+
+        ret = nxt_http_route_pattern_slice(slices, &tmp,
+                                           NXT_HTTP_ROUTE_PATTERN_SUBSTRING,
+                                           encoding, pattern_case);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            return ret;
+        }
+
+        pattern->min_length += tmp.length;
+
+        tmp.start = p;
+        tmp.length = 0;
+    }
+
+    if (tmp.length != 0) {
+        ret = nxt_http_route_pattern_slice(slices, &tmp,
+                                           NXT_HTTP_ROUTE_PATTERN_SUBSTRING,
+                                           encoding, pattern_case);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            return ret;
+        }
+
+        pattern->min_length += tmp.length;
+    }
 
     return NXT_OK;
 }
@@ -1185,15 +1257,25 @@ nxt_http_route_decode_str(nxt_str_t *str, nxt_http_route_encoding_t encoding)
 }
 
 
-static u_char *
-nxt_http_route_pattern_copy(nxt_mp_t *mp, nxt_str_t *test,
+static nxt_int_t
+nxt_http_route_pattern_slice(nxt_array_t *slices,
+    nxt_str_t *test,
+    nxt_http_route_pattern_type_t type,
+    nxt_http_route_encoding_t encoding,
     nxt_http_route_pattern_case_t pattern_case)
 {
-    u_char  *start;
+    u_char                          *start;
+    nxt_int_t                       ret;
+    nxt_http_route_pattern_slice_t  *slice;
 
-    start = nxt_mp_nget(mp, test->length);
+    ret = nxt_http_route_decode_str(test, encoding);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        return ret;
+    }
+
+    start = nxt_mp_nget(slices->mem_pool, test->length);
     if (nxt_slow_path(start == NULL)) {
-        return start;
+        return NXT_ERROR;
     }
 
     switch (pattern_case) {
@@ -1211,7 +1293,16 @@ nxt_http_route_pattern_copy(nxt_mp_t *mp, nxt_str_t *test,
         break;
     }
 
-    return start;
+    slice = nxt_array_add(slices);
+    if (nxt_slow_path(slice == NULL)) {
+        return NXT_ERROR;
+    }
+
+    slice->type = type;
+    slice->start = start;
+    slice->length = test->length;
+
+    return NXT_OK;
 }
 
 
@@ -1269,10 +1360,8 @@ static nxt_int_t
 nxt_http_action_resolve(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_http_action_t *action)
 {
-    nxt_str_t   *targets;
-    nxt_int_t   ret;
-    nxt_uint_t  i;
-    nxt_str_t   segments[3];
+    nxt_var_t  *var;
+    nxt_int_t  ret;
 
     if (action->handler != NULL) {
         if (action->handler == nxt_http_static_handler
@@ -1284,14 +1373,118 @@ nxt_http_action_resolve(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         return NXT_OK;
     }
 
-    ret = nxt_http_pass_segments(tmcf->mem_pool, &action->name, segments, 3);
+    if (nxt_is_var(&action->name)) {
+        var = nxt_var_compile(&action->name, tmcf->router_conf->mem_pool);
+        if (nxt_slow_path(var == NULL)) {
+            return NXT_ERROR;
+        }
+
+        action->u.var = var;
+        action->handler = nxt_http_action_pass_var;
+        return NXT_OK;
+    }
+
+    ret = nxt_http_pass_find(task, tmcf->mem_pool, tmcf->router_conf, action);
     if (nxt_slow_path(ret != NXT_OK)) {
         return NXT_ERROR;
     }
 
+    return NXT_OK;
+}
+
+
+static nxt_http_action_t *
+nxt_http_action_pass_var(nxt_task_t *task, nxt_http_request_t *r,
+    nxt_http_action_t *action)
+{
+    nxt_var_t  *var;
+    nxt_int_t  ret;
+
+    ret = nxt_var_query_init(&r->var_query, r, r->mem_pool);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        goto fail;
+    }
+
+    var = action->u.var;
+
+    action = nxt_mp_get(r->mem_pool, sizeof(nxt_http_action_t));
+    if (nxt_slow_path(action == NULL)) {
+        goto fail;
+    }
+
+    nxt_var_query(task, r->var_query, var, &action->name);
+    nxt_var_query_resolve(task, r->var_query, action,
+                          nxt_http_action_pass_var_ready,
+                          nxt_http_action_pass_var_error);
+    return NULL;
+
+fail:
+
+    nxt_http_request_error(task, r, NXT_HTTP_INTERNAL_SERVER_ERROR);
+    return NULL;
+}
+
+
+static void
+nxt_http_action_pass_var_ready(nxt_task_t *task, void *obj, void *data)
+{
+    nxt_int_t           ret;
+    nxt_router_conf_t   *rtcf;
+    nxt_http_action_t   *action;
+    nxt_http_status_t   status;
+    nxt_http_request_t  *r;
+
+    r = obj;
+    action = data;
+    rtcf = r->conf->socket_conf->router_conf;
+
+    nxt_debug(task, "http pass lookup: %V", &action->name);
+
+    ret = nxt_http_pass_find(task, r->mem_pool, rtcf, action);
+
+    if (ret != NXT_OK) {
+        status = (ret == NXT_DECLINED) ? NXT_HTTP_NOT_FOUND
+                                       : NXT_HTTP_INTERNAL_SERVER_ERROR;
+
+        nxt_http_request_error(task, r, status);
+        return;
+    }
+
+    nxt_http_request_action(task, r, action);
+}
+
+
+static void
+nxt_http_action_pass_var_error(nxt_task_t *task, void *obj, void *data)
+{
+    nxt_http_request_t  *r;
+
+    r = obj;
+
+    nxt_http_request_error(task, r, NXT_HTTP_INTERNAL_SERVER_ERROR);
+}
+
+
+static nxt_int_t
+nxt_http_pass_find(nxt_task_t *task, nxt_mp_t *mp, nxt_router_conf_t *rtcf,
+    nxt_http_action_t *action)
+{
+    nxt_str_t   *targets;
+    nxt_int_t   ret;
+    nxt_uint_t  i;
+    nxt_str_t   segments[3];
+
+    ret = nxt_http_pass_segments(mp, &action->name, segments, 3);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        return ret;
+    }
+
     if (nxt_str_eq(&segments[0], "applications", 12)) {
-        nxt_router_listener_application(tmcf, &segments[1], action);
-        nxt_router_app_use(task, action->u.application, 1);
+        ret = nxt_router_listener_application(rtcf, &segments[1], action);
+
+        if (ret != NXT_OK) {
+            return ret;
+        }
 
         if (segments[2].length != 0) {
             targets = action->u.application->targets;
@@ -1304,14 +1497,20 @@ nxt_http_action_resolve(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             action->target = 0;
         }
 
-    } else if (nxt_str_eq(&segments[0], "upstreams", 9)) {
-        nxt_upstream_find(tmcf->router_conf->upstreams, &segments[1], action);
-
-    } else if (nxt_str_eq(&segments[0], "routes", 6)) {
-        nxt_http_route_find(tmcf->router_conf->routes, &segments[1], action);
+        return NXT_OK;
     }
 
-    return NXT_OK;
+    if (segments[2].length == 0) {
+        if (nxt_str_eq(&segments[0], "upstreams", 9)) {
+            return nxt_upstream_find(rtcf->upstreams, &segments[1], action);
+        }
+
+        if (nxt_str_eq(&segments[0], "routes", 6)) {
+            return nxt_http_route_find(rtcf->routes, &segments[1], action);
+        }
+    }
+
+    return NXT_DECLINED;
 }
 
 
@@ -1367,7 +1566,7 @@ nxt_http_pass_segments(nxt_mp_t *mp, nxt_str_t *pass, nxt_str_t *segments,
 }
 
 
-static void
+static nxt_int_t
 nxt_http_route_find(nxt_http_routes_t *routes, nxt_str_t *name,
     nxt_http_action_t *action)
 {
@@ -1381,11 +1580,13 @@ nxt_http_route_find(nxt_http_routes_t *routes, nxt_str_t *name,
             action->u.route = *route;
             action->handler = nxt_http_route_handler;
 
-            return;
+            return NXT_OK;
         }
 
         route++;
     }
+
+    return NXT_DECLINED;
 }
 
 
@@ -1413,75 +1614,23 @@ nxt_http_action_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 /* COMPATIBILITY: listener application. */
 
 nxt_http_action_t *
-nxt_http_pass_application(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
+nxt_http_pass_application(nxt_task_t *task, nxt_router_conf_t *rtcf,
     nxt_str_t *name)
 {
     nxt_http_action_t  *action;
 
-    action = nxt_mp_alloc(tmcf->router_conf->mem_pool,
-                          sizeof(nxt_http_action_t));
+    action = nxt_mp_alloc(rtcf->mem_pool, sizeof(nxt_http_action_t));
     if (nxt_slow_path(action == NULL)) {
         return NULL;
     }
 
     action->name = *name;
 
-    nxt_router_listener_application(tmcf, name, action);
-    nxt_router_app_use(task, action->u.application, 1);
+    (void) nxt_router_listener_application(rtcf, name, action);
 
     action->target = 0;
 
     return action;
-}
-
-
-void
-nxt_http_routes_cleanup(nxt_task_t *task, nxt_http_routes_t *routes)
-{
-    nxt_http_route_t  **route, **end;
-
-    if (routes != NULL) {
-        route = &routes->route[0];
-        end = route + routes->items;
-
-        while (route < end) {
-            nxt_http_route_cleanup(task, *route);
-
-            route++;
-        }
-    }
-}
-
-
-static void
-nxt_http_route_cleanup(nxt_task_t *task, nxt_http_route_t *route)
-{
-    nxt_http_route_match_t  **match, **end;
-
-    match = &route->match[0];
-    end = match + route->items;
-
-    while (match < end) {
-        nxt_http_action_cleanup(task, &(*match)->action);
-
-        match++;
-    }
-}
-
-
-void
-nxt_http_action_cleanup(nxt_task_t *task, nxt_http_action_t *action)
-{
-    if (action->handler == nxt_http_application_handler) {
-        nxt_router_app_use(task, action->u.application, -1);
-        return;
-    }
-
-    if (action->handler == nxt_http_static_handler
-        && action->u.fallback != NULL)
-    {
-        nxt_http_action_cleanup(task, action->u.fallback);
-    }
 }
 
 
@@ -2037,9 +2186,11 @@ nxt_http_route_test_argument(nxt_http_request_t *r,
 static nxt_int_t
 nxt_http_route_scheme(nxt_http_request_t *r, nxt_http_route_rule_t *rule)
 {
-    nxt_bool_t  tls, https;
+    nxt_bool_t                      tls, https;
+    nxt_http_route_pattern_slice_t  *pattern_slice;
 
-    https = (rule->pattern[0].length1 == nxt_length("https"));
+    pattern_slice = rule->pattern[0].pattern_slices->elts;
+    https = (pattern_slice->length == nxt_length("https"));
     tls = (r->tls != NULL);
 
     return (tls == https);
@@ -2078,7 +2229,7 @@ nxt_http_route_cookies_parse(nxt_http_request_t *r)
 
     nxt_list_each(f, r->fields) {
 
-        if (f->hash != NJS_COOKIE_HASH
+        if (f->hash != NXT_COOKIE_HASH
             || f->name_length != 6
             || nxt_strncasecmp(f->name, (u_char *) "Cookie", 6) != 0)
         {
@@ -2246,60 +2397,69 @@ static nxt_int_t
 nxt_http_route_pattern(nxt_http_request_t *r, nxt_http_route_pattern_t *pattern,
     u_char *start, size_t length)
 {
-    u_char     *p, *end, *test;
-    size_t     test_length;
-    nxt_int_t  ret;
+    u_char                          *p, *end, *test;
+    size_t                          test_length;
+    uint32_t                        i;
+    nxt_array_t                     *pattern_slices;
+    nxt_http_route_pattern_slice_t  *pattern_slice;
 
     if (length < pattern->min_length) {
         return 0;
     }
 
-    test = pattern->start1;
-    test_length = pattern->length1;
+    pattern_slices = pattern->pattern_slices;
+    pattern_slice = pattern_slices->elts;
+    end = start + length;
 
-    switch (pattern->type) {
+    for (i = 0; i < pattern_slices->nelts; i++, pattern_slice++) {
+        test = pattern_slice->start;
+        test_length = pattern_slice->length;
 
-    case NXT_HTTP_ROUTE_PATTERN_EXACT:
-        if (length != test_length) {
+        switch (pattern_slice->type) {
+        case NXT_HTTP_ROUTE_PATTERN_EXACT:
+            return ((length == pattern->min_length) &&
+                    nxt_http_route_memcmp(start, test, test_length,
+                                          pattern->case_sensitive));
+
+        case NXT_HTTP_ROUTE_PATTERN_BEGIN:
+            if (nxt_http_route_memcmp(start, test, test_length,
+                                      pattern->case_sensitive))
+            {
+                start += test_length;
+                break;
+            }
+
             return 0;
+
+        case NXT_HTTP_ROUTE_PATTERN_END:
+            p = end - test_length;
+
+            if (nxt_http_route_memcmp(p, test, test_length,
+                                      pattern->case_sensitive))
+            {
+                end = p;
+                break;
+            }
+
+            return 0;
+
+        case NXT_HTTP_ROUTE_PATTERN_SUBSTRING:
+            if (pattern->case_sensitive) {
+                p = nxt_memstrn(start, end, (char *) test, test_length);
+
+            } else {
+                p = nxt_memcasestrn(start, end, (char *) test, test_length);
+            }
+
+            if (p == NULL) {
+                return 0;
+            }
+
+            start = p + test_length;
         }
-
-        break;
-
-    case NXT_HTTP_ROUTE_PATTERN_BEGIN:
-        break;
-
-    case NXT_HTTP_ROUTE_PATTERN_MIDDLE:
-        ret = nxt_http_route_memcmp(start, test, test_length,
-                                    pattern->case_sensitive);
-        if (!ret) {
-            return ret;
-        }
-
-        test = pattern->start2;
-        test_length = pattern->length2;
-
-        /* Fall through. */
-
-    case NXT_HTTP_ROUTE_PATTERN_END:
-        start += length - test_length;
-        break;
-
-    case NXT_HTTP_ROUTE_PATTERN_SUBSTRING:
-        end = start + length;
-
-        if (pattern->case_sensitive) {
-            p = nxt_memstrn(start, end, (char *) test, test_length);
-
-        } else {
-            p = nxt_memcasestrn(start, end, (char *) test, test_length);
-        }
-
-        return (p != NULL);
     }
 
-    return nxt_http_route_memcmp(start, test, test_length,
-                                 pattern->case_sensitive);
+    return 1;
 }
 
 

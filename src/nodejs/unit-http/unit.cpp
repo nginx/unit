@@ -13,11 +13,14 @@
 #include <nxt_unit_websocket.h>
 
 
+static void delete_port_data(uv_handle_t* handle);
+
 napi_ref Unit::constructor_;
 
 
-struct nxt_nodejs_ctx_t {
-    nxt_unit_port_id_t  port_id;
+struct port_data_t {
+    nxt_unit_ctx_t      *ctx;
+    nxt_unit_port_t     *port;
     uv_poll_t           poll;
 };
 
@@ -348,7 +351,11 @@ Unit::shm_ack_handler(nxt_unit_ctx_t *ctx)
 static void
 nxt_uv_read_callback(uv_poll_t *handle, int status, int events)
 {
-    nxt_unit_run_once((nxt_unit_ctx_t *) handle->data);
+    port_data_t  *data;
+
+    data = (port_data_t *) handle->data;
+
+    nxt_unit_process_port_msg(data->ctx, data->port);
 }
 
 
@@ -358,8 +365,8 @@ Unit::add_port(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port)
     int               err;
     Unit              *obj;
     uv_loop_t         *loop;
+    port_data_t       *data;
     napi_status       status;
-    nxt_nodejs_ctx_t  *node_ctx;
 
     if (port->in_fd != -1) {
         obj = reinterpret_cast<Unit *>(ctx->unit->data);
@@ -376,55 +383,56 @@ Unit::add_port(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port)
             return NXT_UNIT_ERROR;
         }
 
-        node_ctx = new nxt_nodejs_ctx_t;
+        data = new port_data_t;
 
-        err = uv_poll_init(loop, &node_ctx->poll, port->in_fd);
+        err = uv_poll_init(loop, &data->poll, port->in_fd);
         if (err < 0) {
             nxt_unit_warn(ctx, "Failed to init uv.poll");
             return NXT_UNIT_ERROR;
         }
 
-        err = uv_poll_start(&node_ctx->poll, UV_READABLE, nxt_uv_read_callback);
+        err = uv_poll_start(&data->poll, UV_READABLE, nxt_uv_read_callback);
         if (err < 0) {
             nxt_unit_warn(ctx, "Failed to start uv.poll");
             return NXT_UNIT_ERROR;
         }
 
-        ctx->data = node_ctx;
+        port->data = data;
 
-        node_ctx->port_id = port->id;
-        node_ctx->poll.data = ctx;
+        data->ctx = ctx;
+        data->port = port;
+        data->poll.data = data;
     }
 
-    return nxt_unit_add_port(ctx, port);
-}
-
-
-inline bool
-operator == (const nxt_unit_port_id_t &p1, const nxt_unit_port_id_t &p2)
-{
-    return p1.pid == p2.pid && p1.id == p2.id;
+    return NXT_UNIT_OK;
 }
 
 
 void
-Unit::remove_port(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id)
+Unit::remove_port(nxt_unit_t *unit, nxt_unit_port_t *port)
 {
-    nxt_nodejs_ctx_t  *node_ctx;
+    port_data_t  *data;
 
-    if (ctx->data != NULL) {
-        node_ctx = (nxt_nodejs_ctx_t *) ctx->data;
+    if (port->data != NULL) {
+        data = (port_data_t *) port->data;
 
-        if (node_ctx->port_id == *port_id) {
-            uv_poll_stop(&node_ctx->poll);
+        if (data->port == port) {
+            uv_poll_stop(&data->poll);
 
-            delete node_ctx;
-
-            ctx->data = NULL;
+            uv_close((uv_handle_t *) &data->poll, delete_port_data);
         }
     }
+}
 
-    nxt_unit_remove_port(ctx, port_id);
+
+static void
+delete_port_data(uv_handle_t* handle)
+{
+    port_data_t  *data;
+
+    data = (port_data_t *) handle->data;
+
+    delete data;
 }
 
 

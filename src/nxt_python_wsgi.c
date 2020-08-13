@@ -18,7 +18,8 @@
 #include <nxt_unit_field.h>
 #include <nxt_unit_request.h>
 #include <nxt_unit_response.h>
-#include <nxt_python_mounts.h>
+
+#include NXT_PYTHON_MOUNTS_H
 
 /*
  * According to "PEP 3333 / A Note On String Types"
@@ -38,11 +39,6 @@
  *   will use PyString_* or corresponding PyBytes_* functions
  */
 
-
-#define _NXT_PYTHON_MOUNTS(major, minor)                                      \
-    nxt_python ## major ## minor ## _mounts
-
-#define NXT_PYTHON_MOUNTS(major, minor) _NXT_PYTHON_MOUNTS(major, minor)
 
 #if PY_MAJOR_VERSION == 3
 #define NXT_PYTHON_BYTES_TYPE       "bytestring"
@@ -123,8 +119,8 @@ NXT_EXPORT nxt_app_module_t  nxt_app_module = {
     compat,
     nxt_string("python"),
     PY_VERSION,
-    NXT_PYTHON_MOUNTS(PY_MAJOR_VERSION, PY_MINOR_VERSION),
-    nxt_nitems(NXT_PYTHON_MOUNTS(PY_MAJOR_VERSION, PY_MINOR_VERSION)),
+    nxt_python_mounts,
+    nxt_nitems(nxt_python_mounts),
     NULL,
     nxt_python_start,
 };
@@ -242,11 +238,6 @@ nxt_python_start(nxt_task_t *task, nxt_process_data_t *data)
 
     app_conf = data->app;
     c = &app_conf->u.python;
-
-    if (c->module.length == 0) {
-        nxt_alert(task, "python module is empty");
-        return NXT_ERROR;
-    }
 
     if (c->home != NULL) {
         len = nxt_strlen(c->home);

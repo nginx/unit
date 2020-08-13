@@ -33,6 +33,7 @@ class TestPythonProcman(TestApplicationPython):
 
         self.assertIn('success', self.conf(conf, path), 'configure processes')
 
+    @unittest.skip('not yet')
     def test_python_processes_idle_timeout_zero(self):
         self.conf_proc({"spare": 0, "max": 2, "idle_timeout": 0})
 

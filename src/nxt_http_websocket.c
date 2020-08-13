@@ -33,15 +33,13 @@ nxt_http_websocket_client(nxt_task_t *task, void *obj, void *data)
     nxt_buf_t               *out, *buf, **out_tail, *b, *next;
     nxt_int_t               res;
     nxt_http_request_t      *r;
-    nxt_request_app_link_t  *req_app_link;
     nxt_request_rpc_data_t  *req_rpc_data;
     nxt_websocket_header_t  *wsh;
 
     r = obj;
+    req_rpc_data = r->req_rpc_data;
 
-    if (nxt_slow_path((req_rpc_data = r->req_rpc_data) == NULL
-         || (req_app_link = req_rpc_data->req_app_link) == NULL))
-    {
+    if (nxt_slow_path(req_rpc_data == NULL)) {
         nxt_debug(task, "websocket client frame for destroyed request");
 
         return;
@@ -69,7 +67,7 @@ nxt_http_websocket_client(nxt_task_t *task, void *obj, void *data)
             if (buf == NULL || buf_free_size == 0) {
                 buf_free_size = nxt_min(frame_size, PORT_MMAP_DATA_SIZE);
 
-                buf = nxt_port_mmap_get_buf(task, req_app_link->app_port,
+                buf = nxt_port_mmap_get_buf(task, &req_rpc_data->app->outgoing,
                                             buf_free_size);
 
                 *out_tail = buf;
@@ -100,10 +98,10 @@ nxt_http_websocket_client(nxt_task_t *task, void *obj, void *data)
         b = next;
     }
 
-    res = nxt_port_socket_twrite(task, req_app_link->app_port,
-                                 NXT_PORT_MSG_WEBSOCKET, -1,
-                                 req_app_link->stream,
-                                 req_app_link->reply_port->id, out, NULL);
+    res = nxt_port_socket_write(task, req_rpc_data->app_port,
+                                NXT_PORT_MSG_WEBSOCKET, -1,
+                                req_rpc_data->stream,
+                                task->thread->engine->port->id, out);
     if (nxt_slow_path(res != NXT_OK)) {
         // TODO: handle
     }
@@ -129,32 +127,27 @@ static void
 nxt_http_websocket_error_handler(nxt_task_t *task, void *obj, void *data)
 {
     nxt_http_request_t      *r;
-    nxt_request_app_link_t  *req_app_link;
     nxt_request_rpc_data_t  *req_rpc_data;
 
     nxt_debug(task, "http websocket error handler");
 
     r = obj;
+    req_rpc_data = r->req_rpc_data;
 
-    if ((req_rpc_data = r->req_rpc_data) == NULL) {
+    if (req_rpc_data == NULL) {
         nxt_debug(task, "  req_rpc_data is NULL");
         goto close_handler;
     }
 
-    if ((req_app_link = req_rpc_data->req_app_link) == NULL) {
-        nxt_debug(task, "  req_app_link is NULL");
-        goto close_handler;
-    }
-
-    if (req_app_link->app_port == NULL) {
+    if (req_rpc_data->app_port == NULL) {
         nxt_debug(task, "  app_port is NULL");
         goto close_handler;
     }
 
-    (void) nxt_port_socket_twrite(task, req_app_link->app_port,
-                                  NXT_PORT_MSG_WEBSOCKET_LAST,
-                                  -1, req_app_link->stream,
-                                  req_app_link->reply_port->id, NULL, NULL);
+    (void) nxt_port_socket_write(task, req_rpc_data->app_port,
+                                 NXT_PORT_MSG_WEBSOCKET_LAST,
+                                 -1, req_rpc_data->stream,
+                                 task->thread->engine->port->id, NULL);
 
 close_handler:
 

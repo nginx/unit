@@ -26,7 +26,8 @@
 #include "java/nxt_jni_URLClassLoader.h"
 
 #include "nxt_jars.h"
-#include "nxt_java_mounts.h"
+
+#include NXT_JAVA_MOUNTS_H
 
 static nxt_int_t nxt_java_setup(nxt_task_t *task, nxt_process_t *process,
     nxt_common_app_conf_t *conf);

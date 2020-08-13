@@ -1,5 +1,5 @@
-import shutil
 import os
+import shutil
 
 from unit.applications.proto import TestApplicationProto
 

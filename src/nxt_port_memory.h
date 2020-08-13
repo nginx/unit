@@ -23,7 +23,7 @@ struct nxt_port_mmap_tracking_s {
 };
 
 nxt_int_t
-nxt_port_mmap_get_tracking(nxt_task_t *task, nxt_port_t *port,
+nxt_port_mmap_get_tracking(nxt_task_t *task, nxt_port_mmaps_t *mmaps,
     nxt_port_mmap_tracking_t *tracking, uint32_t stream);
 
 nxt_bool_t
@@ -37,14 +37,12 @@ nxt_bool_t
 nxt_port_mmap_tracking_read(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 
 /*
- * Allocates nxt_but_t structure from port's mem_pool, assigns this buf 'mem'
- * pointers to first available shared mem bucket(s). 'size' used as a hint to
- * acquire several successive buckets if possible.
- *
- * This function assumes that current thread operates the 'port' exclusively.
+ * Allocates nxt_but_t structure from task's thread engine mem_pool, assigns
+ * this buf 'mem' pointers to first available shared mem bucket(s). 'size'
+ * used as a hint to acquire several successive buckets if possible.
  */
 nxt_buf_t *
-nxt_port_mmap_get_buf(nxt_task_t *task, nxt_port_t *port, size_t size);
+nxt_port_mmap_get_buf(nxt_task_t *task, nxt_port_mmaps_t *mmaps, size_t size);
 
 nxt_int_t nxt_port_mmap_increase_buf(nxt_task_t *task, nxt_buf_t *b,
     size_t size, size_t min_size);
@@ -71,5 +69,6 @@ typedef enum nxt_port_method_e nxt_port_method_t;
 nxt_port_method_t
 nxt_port_mmap_get_method(nxt_task_t *task, nxt_port_t *port, nxt_buf_t *b);
 
+nxt_int_t nxt_shm_open(nxt_task_t *task, size_t size);
 
 #endif /* _NXT_PORT_MEMORY_H_INCLUDED_ */

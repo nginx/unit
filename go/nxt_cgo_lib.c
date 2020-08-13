@@ -14,10 +14,10 @@ static void nxt_cgo_request_handler(nxt_unit_request_info_t *req);
 static nxt_cgo_str_t *nxt_cgo_str_init(nxt_cgo_str_t *dst,
     nxt_unit_sptr_t *sptr, uint32_t length);
 static int nxt_cgo_add_port(nxt_unit_ctx_t *, nxt_unit_port_t *port);
-static void nxt_cgo_remove_port(nxt_unit_ctx_t *, nxt_unit_port_id_t *port_id);
-static ssize_t nxt_cgo_port_send(nxt_unit_ctx_t *, nxt_unit_port_id_t *port_id,
+static void nxt_cgo_remove_port(nxt_unit_t *, nxt_unit_port_t *port);
+static ssize_t nxt_cgo_port_send(nxt_unit_ctx_t *, nxt_unit_port_t *port,
     const void *buf, size_t buf_size, const void *oob, size_t oob_size);
-static ssize_t nxt_cgo_port_recv(nxt_unit_ctx_t *, nxt_unit_port_id_t *port_id,
+static ssize_t nxt_cgo_port_recv(nxt_unit_ctx_t *, nxt_unit_port_t *port,
     void *buf, size_t buf_size, void *oob, size_t oob_size);
 static void nxt_cgo_shm_ack_handler(nxt_unit_ctx_t *ctx);
 
@@ -44,7 +44,7 @@ nxt_cgo_run(uintptr_t handler)
         return NXT_UNIT_ERROR;
     }
 
-    rc = nxt_unit_run(ctx);
+    rc = nxt_unit_run_ctx(ctx);
 
     nxt_unit_done(ctx);
 
@@ -105,36 +105,37 @@ nxt_cgo_str_init(nxt_cgo_str_t *dst, nxt_unit_sptr_t *sptr, uint32_t length)
 static int
 nxt_cgo_add_port(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port)
 {
-    nxt_go_add_port(port->id.pid, port->id.id,
+    nxt_go_add_port((uintptr_t) ctx, port->id.pid, port->id.id,
                     port->in_fd, port->out_fd);
 
-    return nxt_unit_add_port(ctx, port);
+    port->in_fd = -1;
+    port->out_fd = -1;
+
+    return NXT_UNIT_OK;
 }
 
 
 static void
-nxt_cgo_remove_port(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id)
+nxt_cgo_remove_port(nxt_unit_t *unit, nxt_unit_port_t *port)
 {
-    nxt_go_remove_port(port_id->pid, port_id->id);
-
-    nxt_unit_remove_port(ctx, port_id);
+    nxt_go_remove_port(port->id.pid, port->id.id);
 }
 
 
 static ssize_t
-nxt_cgo_port_send(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
+nxt_cgo_port_send(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port,
     const void *buf, size_t buf_size, const void *oob, size_t oob_size)
 {
-    return nxt_go_port_send(port_id->pid, port_id->id,
+    return nxt_go_port_send(port->id.pid, port->id.id,
                             (void *) buf, buf_size, (void *) oob, oob_size);
 }
 
 
 static ssize_t
-nxt_cgo_port_recv(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
+nxt_cgo_port_recv(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port,
     void *buf, size_t buf_size, void *oob, size_t oob_size)
 {
-    return nxt_go_port_recv(port_id->pid, port_id->id,
+    return nxt_go_port_recv(port->id.pid, port->id.id,
                             buf, buf_size, oob, oob_size);
 }
 
@@ -199,6 +200,13 @@ void
 nxt_cgo_request_done(uintptr_t req, int res)
 {
     nxt_unit_request_done((nxt_unit_request_info_t *) req, res);
+}
+
+
+void
+nxt_cgo_unit_run_shared(uintptr_t ctx)
+{
+    nxt_unit_run_shared((nxt_unit_ctx_t *) ctx);
 }
 
 

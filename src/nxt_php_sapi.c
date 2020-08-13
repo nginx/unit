@@ -28,6 +28,9 @@
 #if PHP_VERSION_ID >= 70000
 #define NXT_PHP7 1
 #endif
+#if PHP_VERSION_ID >= 80000
+#define NXT_PHP8 1
+#endif
 
 /* PHP 8 */
 #ifndef TSRMLS_CC
@@ -61,7 +64,9 @@ typedef struct {
 } nxt_php_run_ctx_t;
 
 
-#ifdef NXT_PHP7
+#if NXT_PHP8
+typedef int (*nxt_php_disable_t)(const char *p, size_t size);
+#elif NXT_PHP7
 typedef int (*nxt_php_disable_t)(char *p, size_t size);
 #else
 typedef int (*nxt_php_disable_t)(char *p, uint TSRMLS_DC);
@@ -105,10 +110,14 @@ nxt_inline void nxt_php_set_str(nxt_unit_request_info_t *req, const char *name,
 static void nxt_php_set_cstr(nxt_unit_request_info_t *req, const char *name,
     const char *str, uint32_t len, zval *track_vars_array TSRMLS_DC);
 static void nxt_php_register_variables(zval *track_vars_array TSRMLS_DC);
+#if NXT_PHP8
+static void nxt_php_log_message(const char *message, int syslog_type_int);
+#else
 #ifdef NXT_HAVE_PHP_LOG_MESSAGE_WITH_SYSLOG_TYPE
 static void nxt_php_log_message(char *message, int syslog_type_int);
 #else
 static void nxt_php_log_message(char *message TSRMLS_DC);
+#endif
 #endif
 
 #ifdef NXT_PHP7
@@ -251,9 +260,9 @@ NXT_EXPORT nxt_app_module_t  nxt_app_module = {
 static nxt_php_target_t  *nxt_php_targets;
 static nxt_int_t         nxt_php_last_target = -1;
 
-static nxt_task_t  *nxt_php_task;
+static nxt_unit_ctx_t    *nxt_php_unit_ctx;
 #if defined(ZTS) && PHP_VERSION_ID < 70400
-static void        ***tsrm_ls;
+static void              ***tsrm_ls;
 #endif
 
 
@@ -265,8 +274,6 @@ nxt_php_start(nxt_task_t *task, nxt_process_data_t *data)
     nxt_str_t              ini_path, name;
     nxt_int_t              ret;
     nxt_uint_t             n;
-    nxt_port_t             *my_port, *main_port;
-    nxt_runtime_t          *rt;
     nxt_unit_ctx_t         *unit_ctx;
     nxt_unit_init_t        php_init;
     nxt_conf_value_t       *value;
@@ -276,8 +283,6 @@ nxt_php_start(nxt_task_t *task, nxt_process_data_t *data)
     static nxt_str_t  file_str = nxt_string("file");
     static nxt_str_t  user_str = nxt_string("user");
     static nxt_str_t  admin_str = nxt_string("admin");
-
-    nxt_php_task = task;
 
     conf = data->app;
     c = &conf->u.php;
@@ -365,45 +370,21 @@ nxt_php_start(nxt_task_t *task, nxt_process_data_t *data)
         nxt_php_set_options(task, value, ZEND_INI_USER);
     }
 
-    rt = task->thread->runtime;
-
-    main_port = rt->port_by_type[NXT_PROCESS_MAIN];
-    if (nxt_slow_path(main_port == NULL)) {
-        nxt_alert(task, "main process not found");
-        return NXT_ERROR;
+    ret = nxt_unit_default_init(task, &php_init);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        nxt_alert(task, "nxt_unit_default_init() failed");
+        return ret;
     }
-
-    my_port = nxt_runtime_port_find(rt, nxt_pid, 0);
-    if (nxt_slow_path(my_port == NULL)) {
-        nxt_alert(task, "my_port not found");
-        return NXT_ERROR;
-    }
-
-    nxt_memzero(&php_init, sizeof(nxt_unit_init_t));
 
     php_init.callbacks.request_handler = nxt_php_request_handler;
-
-    php_init.ready_port.id.pid = main_port->pid;
-    php_init.ready_port.id.id = main_port->id;
-    php_init.ready_port.out_fd = main_port->pair[1];
-
-    nxt_fd_blocking(task, main_port->pair[1]);
-
-    php_init.ready_stream = my_port->process->stream;
-
-    php_init.read_port.id.pid = my_port->pid;
-    php_init.read_port.id.id = my_port->id;
-    php_init.read_port.in_fd = my_port->pair[0];
-
-    nxt_fd_blocking(task, my_port->pair[0]);
-
-    php_init.log_fd = 2;
     php_init.shm_limit = conf->shm_limit;
 
     unit_ctx = nxt_unit_init(&php_init);
     if (nxt_slow_path(unit_ctx == NULL)) {
         return NXT_ERROR;
     }
+
+    nxt_php_unit_ctx = unit_ctx;
 
     nxt_unit_run(unit_ctx);
 
@@ -429,11 +410,6 @@ nxt_php_set_target(nxt_task_t *task, nxt_php_target_t *target,
     static nxt_str_t  index_str = nxt_string("index");
 
     value = nxt_conf_get_object_member(conf, &root_str, NULL);
-
-    if (value == NULL) {
-        nxt_alert(task, "no php root specified");
-        return NXT_ERROR;
-    }
 
     nxt_conf_get_string(value, &str);
 
@@ -707,7 +683,11 @@ nxt_php_dirname(const nxt_str_t *file, nxt_str_t *dir)
 {
     size_t  length;
 
-    nxt_assert(file->length > 0 && file->start[0] == '/');
+    if (file->length == 0 || file->start[0] != '/') {
+        nxt_unit_alert(NULL, "php_dirname: invalid file name "
+                       "(not starts from '/')");
+        return NXT_ERROR;
+    }
 
     length = file->length;
 
@@ -1269,6 +1249,10 @@ nxt_php_set_cstr(nxt_unit_request_info_t *req, const char *name,
 }
 
 
+#if NXT_PHP8
+static void
+nxt_php_log_message(const char *message, int syslog_type_int)
+#else
 #ifdef NXT_HAVE_PHP_LOG_MESSAGE_WITH_SYSLOG_TYPE
 static void
 nxt_php_log_message(char *message, int syslog_type_int)
@@ -1276,6 +1260,18 @@ nxt_php_log_message(char *message, int syslog_type_int)
 static void
 nxt_php_log_message(char *message TSRMLS_DC)
 #endif
+#endif
 {
-    nxt_log(nxt_php_task, NXT_LOG_NOTICE, "php message: %s", message);
+    nxt_php_run_ctx_t  *ctx;
+
+    ctx = SG(server_context);
+
+    if (ctx != NULL) {
+        nxt_unit_req_log(ctx->req, NXT_UNIT_LOG_NOTICE,
+                         "php message: %s", message);
+
+    } else {
+        nxt_unit_log(nxt_php_unit_ctx, NXT_UNIT_LOG_NOTICE,
+                     "php message: %s", message);
+    }
 }

@@ -20,7 +20,7 @@
 #endif
 
 
-static ssize_t nxt_sendmsg(nxt_socket_t s, nxt_fd_t fd, nxt_iobuf_t *iob,
+static ssize_t nxt_sendmsg(nxt_socket_t s, nxt_fd_t *fd, nxt_iobuf_t *iob,
     nxt_uint_t niob);
 static ssize_t nxt_recvmsg(nxt_socket_t s, nxt_fd_t *fd, nxt_iobuf_t *iob,
     nxt_uint_t niob);
@@ -71,7 +71,7 @@ nxt_socketpair_close(nxt_task_t *task, nxt_socket_t *pair)
 
 
 ssize_t
-nxt_socketpair_send(nxt_fd_event_t *ev, nxt_fd_t fd, nxt_iobuf_t *iob,
+nxt_socketpair_send(nxt_fd_event_t *ev, nxt_fd_t *fd, nxt_iobuf_t *iob,
     nxt_uint_t niob)
 {
     ssize_t    n;
@@ -82,7 +82,8 @@ nxt_socketpair_send(nxt_fd_event_t *ev, nxt_fd_t fd, nxt_iobuf_t *iob,
 
         err = (n == -1) ? nxt_socket_errno : 0;
 
-        nxt_debug(ev->task, "sendmsg(%d, %FD, %ui): %z", ev->fd, fd, niob, n);
+        nxt_debug(ev->task, "sendmsg(%d, %FD, %FD, %ui): %z", ev->fd, fd[0],
+                  fd[1], niob, n);
 
         if (n > 0) {
             return n;
@@ -108,8 +109,8 @@ nxt_socketpair_send(nxt_fd_event_t *ev, nxt_fd_t fd, nxt_iobuf_t *iob,
             continue;
 
         default:
-            nxt_alert(ev->task, "sendmsg(%d, %FD, %ui) failed %E",
-                      ev->fd, fd, niob, err);
+            nxt_alert(ev->task, "sendmsg(%d, %FD, %FD, %ui) failed %E",
+                      ev->fd, fd[0], fd[1], niob, err);
 
             return NXT_ERROR;
         }
@@ -133,7 +134,8 @@ nxt_socketpair_recv(nxt_fd_event_t *ev, nxt_fd_t *fd, nxt_iobuf_t *iob,
 
         err = (n == -1) ? nxt_socket_errno : 0;
 
-        nxt_debug(ev->task, "recvmsg(%d, %FD, %ui): %z", ev->fd, *fd, niob, n);
+        nxt_debug(ev->task, "recvmsg(%d, %FD, %FD, %ui): %z", ev->fd, fd[0],
+                  fd[1], niob, n);
 
         if (n > 0) {
             return n;
@@ -178,12 +180,13 @@ nxt_socketpair_recv(nxt_fd_event_t *ev, nxt_fd_t *fd, nxt_iobuf_t *iob,
  */
 
 static ssize_t
-nxt_sendmsg(nxt_socket_t s, nxt_fd_t fd, nxt_iobuf_t *iob, nxt_uint_t niob)
+nxt_sendmsg(nxt_socket_t s, nxt_fd_t *fd, nxt_iobuf_t *iob, nxt_uint_t niob)
 {
+    size_t              csize;
     struct msghdr       msg;
     union {
         struct cmsghdr  cm;
-        char            space[CMSG_SPACE(sizeof(int))];
+        char            space[CMSG_SPACE(sizeof(int) * 2)];
     } cmsg;
 
     msg.msg_name = NULL;
@@ -193,15 +196,17 @@ nxt_sendmsg(nxt_socket_t s, nxt_fd_t fd, nxt_iobuf_t *iob, nxt_uint_t niob)
     /* Flags are cleared just to suppress valgrind warning. */
     msg.msg_flags = 0;
 
-    if (fd != -1) {
+    if (fd[0] != -1) {
+        csize = (fd[1] == -1) ? sizeof(int) : sizeof(int) * 2;
+
         msg.msg_control = (caddr_t) &cmsg;
-        msg.msg_controllen = sizeof(cmsg);
+        msg.msg_controllen = CMSG_SPACE(csize);
 
 #if (NXT_VALGRIND)
         nxt_memzero(&cmsg, sizeof(cmsg));
 #endif
 
-        cmsg.cm.cmsg_len = CMSG_LEN(sizeof(int));
+        cmsg.cm.cmsg_len = CMSG_LEN(csize);
         cmsg.cm.cmsg_level = SOL_SOCKET;
         cmsg.cm.cmsg_type = SCM_RIGHTS;
 
@@ -214,7 +219,7 @@ nxt_sendmsg(nxt_socket_t s, nxt_fd_t fd, nxt_iobuf_t *iob, nxt_uint_t niob)
          * Fortunately, GCC with -O1 compiles this nxt_memcpy()
          * in the same simple assignment as in the code above.
          */
-        nxt_memcpy(CMSG_DATA(&cmsg.cm), &fd, sizeof(int));
+        nxt_memcpy(CMSG_DATA(&cmsg.cm), fd, csize);
 
     } else {
         msg.msg_control = NULL;
@@ -232,7 +237,7 @@ nxt_recvmsg(nxt_socket_t s, nxt_fd_t *fd, nxt_iobuf_t *iob, nxt_uint_t niob)
     struct msghdr       msg;
     union {
         struct cmsghdr  cm;
-        char            space[CMSG_SPACE(sizeof(int))];
+        char            space[CMSG_SPACE(sizeof(int) * 2)];
     } cmsg;
 
     msg.msg_name = NULL;
@@ -242,7 +247,8 @@ nxt_recvmsg(nxt_socket_t s, nxt_fd_t *fd, nxt_iobuf_t *iob, nxt_uint_t niob)
     msg.msg_control = (caddr_t) &cmsg;
     msg.msg_controllen = sizeof(cmsg);
 
-    *fd = -1;
+    fd[0] = -1;
+    fd[1] = -1;
 
 #if (NXT_VALGRIND)
     nxt_memzero(&cmsg, sizeof(cmsg));
@@ -251,12 +257,16 @@ nxt_recvmsg(nxt_socket_t s, nxt_fd_t *fd, nxt_iobuf_t *iob, nxt_uint_t niob)
     n = recvmsg(s, &msg, 0);
 
     if (n > 0
-        && cmsg.cm.cmsg_len == CMSG_LEN(sizeof(int))
         && cmsg.cm.cmsg_level == SOL_SOCKET
         && cmsg.cm.cmsg_type == SCM_RIGHTS)
     {
-        /* (*fd) = *(int *) CMSG_DATA(&cmsg.cm); */
-        nxt_memcpy(fd, CMSG_DATA(&cmsg.cm), sizeof(int));
+        if (cmsg.cm.cmsg_len == CMSG_LEN(sizeof(int))) {
+            nxt_memcpy(fd, CMSG_DATA(&cmsg.cm), sizeof(int));
+        }
+
+        if (cmsg.cm.cmsg_len == CMSG_LEN(sizeof(int) * 2)) {
+            nxt_memcpy(fd, CMSG_DATA(&cmsg.cm), sizeof(int) * 2);
+        }
     }
 
     return n;
@@ -267,7 +277,7 @@ nxt_recvmsg(nxt_socket_t s, nxt_fd_t *fd, nxt_iobuf_t *iob, nxt_uint_t niob)
 /* Solaris 4.3BSD sockets. */
 
 static ssize_t
-nxt_sendmsg(nxt_socket_t s, nxt_fd_t fd, nxt_iobuf_t *iob, nxt_uint_t niob)
+nxt_sendmsg(nxt_socket_t s, nxt_fd_t *fd, nxt_iobuf_t *iob, nxt_uint_t niob)
 {
     struct msghdr  msg;
 
@@ -276,9 +286,13 @@ nxt_sendmsg(nxt_socket_t s, nxt_fd_t fd, nxt_iobuf_t *iob, nxt_uint_t niob)
     msg.msg_iov = iob;
     msg.msg_iovlen = niob;
 
-    if (fd != -1) {
-        msg.msg_accrights = (caddr_t) &fd;
+    if (fd[0] != -1) {
+        msg.msg_accrights = (caddr_t) fd;
         msg.msg_accrightslen = sizeof(int);
+
+        if (fd[1] != -1) {
+            msg.msg_accrightslen += sizeof(int);
+        }
 
     } else {
         msg.msg_accrights = NULL;
@@ -294,14 +308,15 @@ nxt_recvmsg(nxt_socket_t s, nxt_fd_t *fd, nxt_iobuf_t *iob, nxt_uint_t niob)
 {
     struct msghdr  msg;
 
-    *fd = -1;
+    fd[0] = -1;
+    fd[1] = -1;
 
     msg.msg_name = NULL;
     msg.msg_namelen = 0;
     msg.msg_iov = iob;
     msg.msg_iovlen = niob;
     msg.msg_accrights = (caddr_t) fd;
-    msg.msg_accrightslen = sizeof(int);
+    msg.msg_accrightslen = sizeof(int) * 2;
 
     return recvmsg(s, &msg, 0);
 }

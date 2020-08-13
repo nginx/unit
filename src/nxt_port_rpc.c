@@ -389,7 +389,8 @@ nxt_port_rpc_remove_peer(nxt_task_t *task, nxt_port_t *port, nxt_pid_t peer)
     nxt_memzero(&msg, sizeof(msg));
     nxt_memzero(&buf, sizeof(buf));
 
-    msg.fd = -1;
+    msg.fd[0] = -1;
+    msg.fd[1] = -1;
     msg.buf = &buf;
     msg.port = port;
 
@@ -500,7 +501,8 @@ nxt_port_rpc_close(nxt_task_t *task, nxt_port_t *port)
             return;
         }
 
-        msg.fd = -1;
+        msg.fd[0] = -1;
+        msg.fd[1] = -1;
         msg.buf = &nxt_port_close_dummy_buf;
         msg.port = port;
         msg.port_msg.stream = reg->stream;

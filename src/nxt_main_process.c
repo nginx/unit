@@ -605,25 +605,22 @@ nxt_main_start_process(nxt_task_t *task, nxt_process_t *process)
 
     nxt_process_port_add(task, process, port);
 
-    nxt_process_use(task, process, -1);
-
-    ret = NXT_ERROR;
-    tmp_mp = NULL;
-
     ret = nxt_port_socket_init(task, port, 0);
     if (nxt_slow_path(ret != NXT_OK)) {
-        goto fail;
+        goto free_port;
     }
 
     tmp_mp = nxt_mp_create(1024, 128, 256, 32);
-    if (tmp_mp == NULL) {
-        goto fail;
+    if (nxt_slow_path(tmp_mp == NULL)) {
+        ret = NXT_ERROR;
+
+        goto close_port;
     }
 
     if (init->prefork) {
         ret = init->prefork(task, process, tmp_mp);
         if (nxt_slow_path(ret != NXT_OK)) {
-            goto fail;
+            goto free_mempool;
         }
     }
 
@@ -632,17 +629,21 @@ nxt_main_start_process(nxt_task_t *task, nxt_process_t *process)
     switch (pid) {
 
     case -1:
-        nxt_port_close(task, port);
+        ret = NXT_ERROR;
         break;
 
     case 0:
         /* The child process: return to the event engine work queue loop. */
+
+        nxt_process_use(task, process, -1);
 
         ret = NXT_AGAIN;
         break;
 
     default:
         /* The main process created a new process. */
+
+        nxt_process_use(task, process, -1);
 
         nxt_port_read_close(port);
         nxt_port_write_enable(task, port);
@@ -651,13 +652,19 @@ nxt_main_start_process(nxt_task_t *task, nxt_process_t *process)
         break;
     }
 
-fail:
+free_mempool:
+
+    nxt_mp_destroy(tmp_mp);
+
+close_port:
+
+    if (nxt_slow_path(ret == NXT_ERROR)) {
+        nxt_port_close(task, port);
+    }
+
+free_port:
 
     nxt_port_use(task, port, -1);
-
-    if (nxt_fast_path(tmp_mp != NULL)) {
-        nxt_mp_destroy(tmp_mp);
-    }
 
     return ret;
 }

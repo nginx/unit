@@ -112,4 +112,8 @@ NXT_EXPORT nxt_int_t nxt_mp_cleanup(nxt_mp_t *mp, nxt_work_handler_t handler,
 
 NXT_EXPORT void nxt_mp_thread_adopt(nxt_mp_t *mp);
 
+
+NXT_EXPORT void *nxt_mp_lvlhsh_alloc(void *pool, size_t size);
+NXT_EXPORT void nxt_mp_lvlhsh_free(void *pool, void *p);
+
 #endif /* _NXT_MP_H_INCLUDED_ */

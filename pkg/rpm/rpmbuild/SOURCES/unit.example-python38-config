@@ -1,0 +1,17 @@
+{
+	"applications": {
+		"example_python": {
+			"type": "python 3.8",
+			"user": "nobody",
+			"processes": 2,
+			"path": "/usr/share/doc/unit-python38/examples/python-app",
+			"module": "wsgi"
+		}
+	},
+
+	"listeners": {
+		"*:8400": {
+			"pass": "applications/example_python"
+		}
+	}
+}

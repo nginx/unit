@@ -10,7 +10,8 @@ if (isset($_GET['chdir']) && $_GET['chdir'] != "") {
 $opcache = -1;
 
 if (function_exists('opcache_get_status')) {
-    $opcache = opcache_get_status()->opcache_enabled;
+    $status = opcache_get_status();
+    $opcache = $status['opcache_enabled'];
 }
 
 header('X-OPcache: ' . $opcache);
