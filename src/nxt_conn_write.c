@@ -268,7 +268,24 @@ nxt_sendfile(int fd, int s, off_t pos, size_t size)
 
 #else
 
-    res = -1;
+    int    err;
+    void   *map;
+    off_t  page_off;
+
+    page_off = pos % nxt_pagesize;
+
+    map = nxt_mem_mmap(NULL, size + page_off, PROT_READ, MAP_SHARED, fd,
+                       pos - page_off);
+    if (nxt_slow_path(map == MAP_FAILED)) {
+        return -1;
+    }
+
+    res = write(s, nxt_pointer_to(map, page_off), size);
+
+    /* Backup and restore errno to catch socket errors in the upper level. */
+    err = errno;
+    nxt_mem_munmap(map, size + page_off);
+    errno = err;
 
 #endif
 
