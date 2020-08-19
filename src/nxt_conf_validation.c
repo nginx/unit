@@ -1188,10 +1188,17 @@ static nxt_int_t
 nxt_conf_vldt_listener(nxt_conf_validation_t *vldt, nxt_str_t *name,
     nxt_conf_value_t *value)
 {
-    nxt_int_t  ret;
+    nxt_int_t       ret;
+    nxt_sockaddr_t  *sa;
+
+    sa = nxt_sockaddr_parse(vldt->pool, name);
+    if (nxt_slow_path(sa == NULL)) {
+        return nxt_conf_vldt_error(vldt,
+                                   "The listener address \"%V\" is invalid.",
+                                   name);
+    }
 
     ret = nxt_conf_vldt_type(vldt, name, value, NXT_CONF_VLDT_OBJECT);
-
     if (ret != NXT_OK) {
         return ret;
     }
