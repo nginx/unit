@@ -31,6 +31,16 @@ nxt_strlen(s)                                                                 \
 
 
 #define                                                                       \
+nxt_strdup(s)                                                                 \
+    strdup((char *) s)
+
+
+#define                                                                       \
+nxt_strchr(buf, delim)                                                        \
+    (u_char *) strchr((char *) buf, delim)
+
+
+#define                                                                       \
 nxt_memzero(buf, length)                                                      \
     (void) memset(buf, 0, length)
 
