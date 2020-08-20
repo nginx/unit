@@ -878,11 +878,9 @@ nxt_main_cleanup_process(nxt_task_t *task, nxt_pid_t pid)
         return;
     }
 
-#if (NXT_HAVE_ISOLATION_ROOTFS)
-    if (process->isolation.rootfs != NULL && process->isolation.mounts) {
-        (void) nxt_process_unmount_all(task, process);
+    if (process->isolation.cleanup != NULL) {
+        process->isolation.cleanup(task, process);
     }
-#endif
 
     name = process->name;
     stream = process->stream;
