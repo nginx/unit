@@ -126,7 +126,6 @@ struct nxt_app_s {
     uint32_t               max_requests;
 
     nxt_msec_t             timeout;
-    nxt_nsec_t             res_timeout;
     nxt_msec_t             idle_timeout;
 
     nxt_str_t              *targets;
