@@ -233,11 +233,11 @@ NXT_PHP_MOUNTS_HEADER=nxt_${NXT_PHP_MODULE}_mounts.h
 cat << END > $NXT_BUILD_DIR/$NXT_PHP_MOUNTS_HEADER
 static const nxt_fs_mount_t  nxt_php_mounts[] = {
     {(u_char *) "$NXT_PHP_EXT_DIR", (u_char *) "$NXT_PHP_EXT_DIR",
-     (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL},
+     (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL, 1},
     {(u_char *) "$NXT_PHP_LIBC_DIR", (u_char *) "$NXT_PHP_LIBC_DIR",
-     (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL},
+     (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL, 1},
     {(u_char *) "$NXT_PHP_SYSLIB_DIR", (u_char *) "$NXT_PHP_SYSLIB_DIR",
-     (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL},
+     (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL, 1},
 };
 
 END

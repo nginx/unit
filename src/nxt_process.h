@@ -72,18 +72,25 @@ typedef struct {
     nxt_port_mmap_t     *elts;
 } nxt_port_mmaps_t;
 
-typedef struct {
-    u_char                     *rootfs;
-    nxt_array_t                *mounts;     /* of nxt_mount_t */
 
-    nxt_isolation_cleanup_t    cleanup;
+typedef struct {
+    uint8_t             language_deps;      /* 1-byte */
+} nxt_process_automount_t;
+
+
+typedef struct {
+    u_char                   *rootfs;
+    nxt_process_automount_t  automount;
+    nxt_array_t              *mounts;     /* of nxt_mount_t */
+
+    nxt_isolation_cleanup_t  cleanup;
 
 #if (NXT_HAVE_CLONE)
-    nxt_clone_t                clone;
+    nxt_clone_t              clone;
 #endif
 
 #if (NXT_HAVE_PR_SET_NO_NEW_PRIVS)
-    uint8_t                    new_privs;   /* 1 bit */
+    uint8_t                  new_privs;   /* 1 bit */
 #endif
 } nxt_process_isolation_t;
 

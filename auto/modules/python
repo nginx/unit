@@ -138,7 +138,7 @@ pyver = "python" + str(sys.version_info[0]) + "." + str(sys.version_info[1])
 
 print("static const nxt_fs_mount_t  nxt_python_mounts[] = {")
 
-pattern = "{(u_char *) \"%s\", (u_char *) \"%s\", (u_char *) \"bind\", NXT_MS_BIND|NXT_MS_REC, NULL},"
+pattern = "{(u_char *) \"%s\", (u_char *) \"%s\", (u_char *) \"bind\", NXT_MS_BIND|NXT_MS_REC, NULL, 1},"
 base = None
 for p in sys.path:
     if len(p) > 0:

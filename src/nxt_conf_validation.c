@@ -616,6 +616,21 @@ static nxt_conf_vldt_object_t nxt_conf_vldt_app_procmap_members[] = {
 #endif
 
 
+#if (NXT_HAVE_ISOLATION_ROOTFS)
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_app_automount_members[] = {
+    { nxt_string("language_deps"),
+      NXT_CONF_VLDT_BOOLEAN,
+      0,
+      NULL,
+      NULL },
+
+    NXT_CONF_VLDT_END
+};
+
+#endif
+
+
 static nxt_conf_vldt_object_t  nxt_conf_vldt_app_isolation_members[] = {
     { nxt_string("namespaces"),
       NXT_CONF_VLDT_OBJECT,
@@ -646,6 +661,12 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_isolation_members[] = {
       0,
       NULL,
       NULL },
+
+    { nxt_string("automount"),
+      NXT_CONF_VLDT_OBJECT,
+      0,
+      &nxt_conf_vldt_object,
+      (void *) &nxt_conf_vldt_app_automount_members },
 
 #endif
 

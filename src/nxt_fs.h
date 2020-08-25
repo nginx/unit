@@ -44,11 +44,12 @@
 
 
 typedef struct {
-    u_char     *src;
-    u_char     *dst;
-    u_char     *fstype;
-    nxt_int_t  flags;
-    u_char     *data;
+    u_char      *src;
+    u_char      *dst;
+    u_char      *fstype;
+    nxt_int_t   flags;
+    u_char      *data;
+    nxt_uint_t  builtin;  /* 1-bit */
 } nxt_fs_mount_t;
 
 

@@ -35,6 +35,8 @@ static nxt_int_t nxt_isolation_vldt_creds(nxt_task_t *task,
 #if (NXT_HAVE_ISOLATION_ROOTFS)
 static nxt_int_t nxt_isolation_set_rootfs(nxt_task_t *task,
     nxt_conf_value_t *isolation, nxt_process_t *process);
+static nxt_int_t nxt_isolation_set_automount(nxt_task_t *task,
+    nxt_conf_value_t *isolation, nxt_process_t *process);
 static nxt_int_t nxt_isolation_set_mounts(nxt_task_t *task,
     nxt_process_t *process, nxt_str_t *app_type);
 static nxt_int_t nxt_isolation_set_lang_mounts(nxt_task_t *task,
@@ -155,6 +157,12 @@ nxt_isolation_set(nxt_task_t *task, nxt_conf_value_t *isolation,
 
 #if (NXT_HAVE_ISOLATION_ROOTFS)
     if (nxt_slow_path(nxt_isolation_set_rootfs(task, isolation, process)
+                      != NXT_OK))
+    {
+        return NXT_ERROR;
+    }
+
+    if (nxt_slow_path(nxt_isolation_set_automount(task, isolation, process)
                       != NXT_OK))
     {
         return NXT_ERROR;
@@ -452,6 +460,32 @@ nxt_isolation_set_rootfs(nxt_task_t *task, nxt_conf_value_t *isolation,
 
 
 static nxt_int_t
+nxt_isolation_set_automount(nxt_task_t *task, nxt_conf_value_t *isolation,
+    nxt_process_t *process)
+{
+    nxt_conf_value_t         *conf, *value;
+    nxt_process_automount_t  *automount;
+
+    static nxt_str_t  automount_name = nxt_string("automount");
+    static nxt_str_t  langdeps_name = nxt_string("language_deps");
+
+    automount = &process->isolation.automount;
+
+    automount->language_deps = 1;
+
+    conf = nxt_conf_get_object_member(isolation, &automount_name, NULL);
+    if (conf != NULL) {
+        value = nxt_conf_get_object_member(conf, &langdeps_name, NULL);
+        if (value != NULL) {
+            automount->language_deps = nxt_conf_get_boolean(value);
+        }
+    }
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
 nxt_isolation_set_mounts(nxt_task_t *task, nxt_process_t *process,
     nxt_str_t *app_type)
 {
@@ -535,6 +569,7 @@ nxt_isolation_set_lang_mounts(nxt_task_t *task, nxt_process_t *process,
     mnt->fstype = (u_char *) "tmpfs";
     mnt->flags = NXT_MS_NOSUID | NXT_MS_NODEV | NXT_MS_NOEXEC | NXT_MS_RELATIME;
     mnt->data = (u_char *) "size=1m,mode=777";
+    mnt->builtin = 1;
 
     mnt->dst = nxt_mp_nget(mp, rootfs_len + nxt_length("/tmp") + 1);
     if (nxt_slow_path(mnt->dst == NULL)) {
@@ -581,17 +616,23 @@ nxt_isolation_set_lang_mounts(nxt_task_t *task, nxt_process_t *process,
 void
 nxt_isolation_unmount_all(nxt_task_t *task, nxt_process_t *process)
 {
-    size_t          i, n;
-    nxt_array_t     *mounts;
-    nxt_fs_mount_t  *mnt;
+    size_t                   i, n;
+    nxt_array_t              *mounts;
+    nxt_fs_mount_t           *mnt;
+    nxt_process_automount_t  *automount;
 
     nxt_debug(task, "unmount all (%s)", process->name);
 
+    automount = &process->isolation.automount;
     mounts = process->isolation.mounts;
     n = mounts->nelts;
     mnt = mounts->elts;
 
     for (i = 0; i < n; i++) {
+        if (mnt[i].builtin && !automount->language_deps) {
+            continue;
+        }
+
         nxt_fs_unmount(mnt[i].dst);
     }
 }
@@ -600,13 +641,15 @@ nxt_isolation_unmount_all(nxt_task_t *task, nxt_process_t *process)
 nxt_int_t
 nxt_isolation_prepare_rootfs(nxt_task_t *task, nxt_process_t *process)
 {
-    size_t          i, n;
-    nxt_int_t       ret;
-    struct stat     st;
-    nxt_array_t     *mounts;
-    const u_char    *dst;
-    nxt_fs_mount_t  *mnt;
+    size_t                   i, n;
+    nxt_int_t                ret;
+    struct stat              st;
+    nxt_array_t              *mounts;
+    const u_char             *dst;
+    nxt_fs_mount_t           *mnt;
+    nxt_process_automount_t  *automount;
 
+    automount = &process->isolation.automount;
     mounts = process->isolation.mounts;
 
     n = mounts->nelts;
@@ -614,6 +657,10 @@ nxt_isolation_prepare_rootfs(nxt_task_t *task, nxt_process_t *process)
 
     for (i = 0; i < n; i++) {
         dst = mnt[i].dst;
+
+        if (mnt[i].builtin && !automount->language_deps) {
+            continue;
+        }
 
         if (nxt_slow_path(nxt_memcmp(mnt[i].fstype, "bind", 4) == 0
                           && stat((const char *) mnt[i].src, &st) != 0))

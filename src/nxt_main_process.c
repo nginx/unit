@@ -1290,6 +1290,8 @@ nxt_main_port_modules_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
                 goto fail;
             }
 
+            mnt->builtin = 1;
+
             ret = nxt_conf_map_object(rt->mem_pool, value,
                                       nxt_app_lang_mounts_map,
                                       nxt_nitems(nxt_app_lang_mounts_map), mnt);
