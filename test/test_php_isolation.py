@@ -52,6 +52,60 @@ class TestPHPIsolation(TestApplicationPHP):
 
         self.assertEqual(self.get()['status'], 200, 'empty rootfs')
 
+    def test_php_isolation_rootfs_extensions(self):
+        isolation_features = self.available['features']['isolation'].keys()
+
+        if not self.is_su:
+            if 'user' not in isolation_features:
+                print('requires unprivileged userns or root')
+                raise unittest.SkipTest()
+
+            if not 'unprivileged_userns_clone' in isolation_features:
+                print('requires unprivileged userns or root')
+                raise unittest.SkipTest()
+
+            if 'mnt' not in isolation_features:
+                print('requires mnt ns')
+                raise unittest.SkipTest()
+
+        isolation = {
+            'rootfs': self.current_dir,
+            'namespaces': {
+                'credential': not self.is_su,
+                'mount': not self.is_su,
+            },
+        }
+
+        self.load('list-extensions', isolation=isolation)
+
+        self.assertIn(
+            'success',
+            self.conf(
+                '"/php/list-extensions"', 'applications/list-extensions/root'
+            ),
+        )
+
+        self.assertIn(
+            'success',
+            self.conf(
+                {'file': '/php/list-extensions/php.ini'},
+                'applications/list-extensions/options',
+            ),
+        )
+
+        self.assertIn(
+            'success',
+            self.conf(
+                '"/php/list-extensions"',
+                'applications/list-extensions/working_directory',
+            ),
+        )
+
+        extensions = self.getjson()['body']
+
+        self.assertIn('json', extensions, 'json in extensions list')
+        self.assertIn('unit', extensions, 'unit in extensions list')
+
 
 if __name__ == '__main__':
     TestPHPIsolation.main()
