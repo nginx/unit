@@ -86,11 +86,11 @@ nxt_upstream_find(nxt_upstreams_t *upstreams, nxt_str_t *name,
             action->u.upstream_number = i;
             action->handler = nxt_upstream_handler;
 
-            return NXT_DECLINED;
+            return NXT_OK;
         }
     }
 
-    return NXT_OK;
+    return NXT_DECLINED;
 }
 
 

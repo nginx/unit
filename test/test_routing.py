@@ -329,10 +329,89 @@ class TestRouting(TestApplicationProto):
             [{"match": {"method": "GET"}}], 'routes'
         ), 'route pass absent configure'
 
+    def test_routes_route_pass(self):
+        assert 'success' in self.conf(
+            {
+                "applications": {
+                    "app": {
+                        "type": "python",
+                        "processes": {"spare": 0},
+                        "path": "/app",
+                        "module": "wsgi",
+                    }
+                },
+                "upstreams": {
+                    "one": {
+                        "servers": {
+                            "127.0.0.1:7081": {},
+                            "127.0.0.1:7082": {},
+                        },
+                    },
+                    "two": {
+                        "servers": {
+                            "127.0.0.1:7081": {},
+                            "127.0.0.1:7082": {},
+                        },
+                    },
+                },
+            }
+        )
+
+        assert 'success' in self.conf(
+            [{"action": {"pass": "routes"}}], 'routes'
+        )
+        assert 'success' in self.conf(
+            [{"action": {"pass": "applications/app"}}], 'routes'
+        )
+        assert 'success' in self.conf(
+            [{"action": {"pass": "upstreams/one"}}], 'routes'
+        )
+
     def test_routes_route_pass_absent(self):
         assert 'error' in self.conf(
             [{"match": {"method": "GET"}, "action": {}}], 'routes'
         ), 'route pass absent configure'
+
+    def test_routes_route_pass_invalid(self):
+        assert 'success' in self.conf(
+            {
+                "applications": {
+                    "app": {
+                        "type": "python",
+                        "processes": {"spare": 0},
+                        "path": "/app",
+                        "module": "wsgi",
+                    }
+                },
+                "upstreams": {
+                    "one": {
+                        "servers": {
+                            "127.0.0.1:7081": {},
+                            "127.0.0.1:7082": {},
+                        },
+                    },
+                    "two": {
+                        "servers": {
+                            "127.0.0.1:7081": {},
+                            "127.0.0.1:7082": {},
+                        },
+                    },
+                },
+            }
+        )
+
+        assert 'error' in self.conf(
+            [{"action": {"pass": "blah"}}], 'routes'
+        ), 'route pass invalid'
+        assert 'error' in self.conf(
+            [{"action": {"pass": "routes/blah"}}], 'routes'
+        ), 'route pass routes invalid'
+        assert 'error' in self.conf(
+            [{"action": {"pass": "applications/blah"}}], 'routes'
+        ), 'route pass applications invalid'
+        assert 'error' in self.conf(
+            [{"action": {"pass": "upstreams/blah"}}], 'routes'
+        ), 'route pass upstreams invalid'
 
     def test_routes_action_unique(self):
         assert 'success' in self.conf(

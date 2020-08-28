@@ -1725,6 +1725,10 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
                                                          tmcf->router_conf,
                                                          &lscf.application);
             }
+
+            if (nxt_slow_path(skcf->action == NULL)) {
+                goto fail;
+            }
         }
     }
 
