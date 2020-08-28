@@ -11,6 +11,8 @@ static nxt_int_t nxt_http_var_method(nxt_task_t *task, nxt_var_query_t *query,
     nxt_str_t *str, void *ctx);
 static nxt_int_t nxt_http_var_uri(nxt_task_t *task, nxt_var_query_t *query,
     nxt_str_t *str, void *ctx);
+static nxt_int_t nxt_http_var_host(nxt_task_t *task, nxt_var_query_t *query,
+    nxt_str_t *str, void *ctx);
 
 
 static nxt_var_decl_t  nxt_http_vars[] = {
@@ -20,6 +22,10 @@ static nxt_var_decl_t  nxt_http_vars[] = {
 
     { nxt_string("uri"),
       &nxt_http_var_uri,
+      0 },
+
+    { nxt_string("host"),
+      &nxt_http_var_host,
       0 },
 };
 
@@ -54,6 +60,20 @@ nxt_http_var_uri(nxt_task_t *task, nxt_var_query_t *query, nxt_str_t *str,
     r = ctx;
 
     *str = *r->path;
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_http_var_host(nxt_task_t *task, nxt_var_query_t *query, nxt_str_t *str,
+    void *ctx)
+{
+    nxt_http_request_t  *r;
+
+    r = ctx;
+
+    *str = r->host;
 
     return NXT_OK;
 }
