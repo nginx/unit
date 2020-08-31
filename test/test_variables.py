@@ -16,10 +16,11 @@ class TestVariables(TestApplicationProto):
                         "GET": [{"action": {"return": 201}}],
                         "POST": [{"action": {"return": 202}}],
                         "3": [{"action": {"return": 203}}],
-                        "4": [{"action": {"return": 204}}],
+                        "4*": [{"action": {"return": 204}}],
                         "blahGET}": [{"action": {"return": 205}}],
                         "5GET": [{"action": {"return": 206}}],
                         "GETGET": [{"action": {"return": 207}}],
+                        "localhost": [{"action": {"return": 208}}],
                     },
                 },
             ),
@@ -27,10 +28,7 @@ class TestVariables(TestApplicationProto):
         )
 
     def conf_routes(self, routes):
-        self.assertIn(
-            'success',
-            self.conf(routes, 'listeners/*:7080/pass')
-        )
+        self.assertIn('success', self.conf(routes, 'listeners/*:7080/pass'))
 
     def test_variables_method(self):
         self.assertEqual(self.get()['status'], 201, 'method GET')
@@ -40,7 +38,26 @@ class TestVariables(TestApplicationProto):
         self.conf_routes("\"routes$uri\"")
 
         self.assertEqual(self.get(url='/3')['status'], 203, 'uri')
-        self.assertEqual(self.get(url='/4')['status'], 204, 'uri 2')
+        self.assertEqual(self.get(url='/4*')['status'], 204, 'uri 2')
+        self.assertEqual(self.get(url='/4%2A')['status'], 204, 'uri 3')
+
+    def test_variables_host(self):
+        self.conf_routes("\"routes/$host\"")
+
+        def check_host(host, status=208):
+            self.assertEqual(
+                self.get(headers={'Host': host, 'Connection': 'close'})[
+                    'status'
+                ],
+                status,
+            )
+
+        check_host('localhost')
+        check_host('localhost.')
+        check_host('localhost:7080')
+        check_host('.localhost', 404)
+        check_host('www.localhost', 404)
+        check_host('localhost1', 404)
 
     def test_variables_many(self):
         self.conf_routes("\"routes$uri$method\"")
@@ -69,7 +86,7 @@ class TestVariables(TestApplicationProto):
         self.assertEqual(self.post()['status'], 202)
 
         self.conf_routes("\"routes${uri}\"")
-        self.assertEqual(self.get(url='/4')['status'], 204)
+        self.assertEqual(self.get(url='/4*')['status'], 204)
 
         self.conf_routes("\"routes/blah$method}\"")
         self.assertEqual(self.get()['status'], 205)
