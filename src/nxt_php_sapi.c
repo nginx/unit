@@ -537,9 +537,13 @@ nxt_php_set_options(nxt_task_t *task, nxt_conf_value_t *options, int type)
             }
 
             if (nxt_str_eq(&name, "disable_functions", 17)) {
+#ifdef NXT_PHP8
+                zend_disable_functions((const char *)value.start);
+#else
                 nxt_php_disable(task, "function", &value,
                                 &PG(disable_functions),
                                 zend_disable_function);
+#endif
                 continue;
             }
 
