@@ -65,3 +65,33 @@ class TestPythonIsolation(TestApplicationPython):
         assert (
             ret['body']['FileExists'] == True
         ), 'application exists in rootfs'
+
+    def test_python_isolation_rootfs_no_language_deps(self, is_su):
+        isolation_features = self.available['features']['isolation'].keys()
+
+        if 'mnt' not in isolation_features:
+            pytest.skip('requires mnt ns')
+
+        if not is_su:
+            if 'user' not in isolation_features:
+                pytest.skip('requires unprivileged userns or root')
+
+            if not 'unprivileged_userns_clone' in isolation_features:
+                pytest.skip('requires unprivileged userns or root')
+
+        isolation = {
+            'namespaces': {'credential': not is_su, 'mount': True},
+            'rootfs': self.temp_dir,
+            'automount': {'language_deps': False}
+        }
+
+        self.load('empty', isolation=isolation)
+
+        assert (self.get()['status'] != 200), 'disabled language_deps'
+
+        isolation['automount']['language_deps'] = True
+
+        self.load('empty', isolation=isolation)
+
+        assert (self.get()['status'] == 200), 'enabled language_deps'
+

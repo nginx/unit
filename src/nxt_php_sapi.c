@@ -14,8 +14,6 @@
 #include <nxt_unit.h>
 #include <nxt_unit_request.h>
 
-#include NXT_PHP_MOUNTS_H
-
 
 #if PHP_VERSION_ID >= 50400
 #define NXT_HAVE_PHP_IGNORE_CWD 1
@@ -79,9 +77,13 @@ typedef void (*zif_handler)(INTERNAL_FUNCTION_PARAMETERS);
 #endif
 
 
+static nxt_int_t nxt_php_setup(nxt_task_t *task, nxt_process_t *process,
+    nxt_common_app_conf_t *conf);
 static nxt_int_t nxt_php_start(nxt_task_t *task, nxt_process_data_t *data);
 static nxt_int_t nxt_php_set_target(nxt_task_t *task, nxt_php_target_t *target,
     nxt_conf_value_t *conf);
+static nxt_int_t nxt_php_set_ini_path(nxt_task_t *task, nxt_str_t *path,
+    char *workdir);
 static void nxt_php_set_options(nxt_task_t *task, nxt_conf_value_t *options,
     int type);
 static nxt_int_t nxt_php_alter_option(nxt_str_t *name, nxt_str_t *value,
@@ -252,9 +254,9 @@ NXT_EXPORT nxt_app_module_t  nxt_app_module = {
     compat,
     nxt_string("php"),
     PHP_VERSION,
-    nxt_php_mounts,
-    nxt_nitems(nxt_php_mounts),
     NULL,
+    0,
+    nxt_php_setup,
     nxt_php_start,
 };
 
@@ -269,22 +271,87 @@ static void              ***tsrm_ls;
 
 
 static nxt_int_t
+nxt_php_setup(nxt_task_t *task, nxt_process_t *process,
+    nxt_common_app_conf_t *conf)
+{
+    nxt_str_t           ini_path;
+    nxt_int_t           ret;
+    nxt_conf_value_t    *value;
+    nxt_php_app_conf_t  *c;
+
+    static nxt_str_t  file_str = nxt_string("file");
+    static nxt_str_t  user_str = nxt_string("user");
+    static nxt_str_t  admin_str = nxt_string("admin");
+
+    c = &conf->u.php;
+
+#ifdef ZTS
+
+#if PHP_VERSION_ID >= 70400
+    php_tsrm_startup();
+#else
+    tsrm_startup(1, 1, 0, NULL);
+    tsrm_ls = ts_resource(0);
+#endif
+
+#endif
+
+#if defined(NXT_PHP7) && defined(ZEND_SIGNALS)
+
+#if (NXT_ZEND_SIGNAL_STARTUP)
+    zend_signal_startup();
+#elif defined(ZTS)
+#error PHP is built with thread safety and broken signals.
+#endif
+
+#endif
+
+    sapi_startup(&nxt_php_sapi_module);
+
+    if (c->options != NULL) {
+        value = nxt_conf_get_object_member(c->options, &file_str, NULL);
+
+        if (value != NULL) {
+            nxt_conf_get_string(value, &ini_path);
+
+            ret = nxt_php_set_ini_path(task, &ini_path,
+                                       conf->working_directory);
+
+            if (nxt_slow_path(ret != NXT_OK)) {
+                return NXT_ERROR;
+            }
+        }
+    }
+
+    if (nxt_slow_path(nxt_php_startup(&nxt_php_sapi_module) == FAILURE)) {
+        nxt_alert(task, "failed to initialize SAPI module and extension");
+        return NXT_ERROR;
+    }
+
+    if (c->options != NULL) {
+        value = nxt_conf_get_object_member(c->options, &admin_str, NULL);
+        nxt_php_set_options(task, value, ZEND_INI_SYSTEM);
+
+        value = nxt_conf_get_object_member(c->options, &user_str, NULL);
+        nxt_php_set_options(task, value, ZEND_INI_USER);
+    }
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
 nxt_php_start(nxt_task_t *task, nxt_process_data_t *data)
 {
-    u_char                 *p;
     uint32_t               next;
-    nxt_str_t              ini_path, name;
     nxt_int_t              ret;
+    nxt_str_t              name;
     nxt_uint_t             n;
     nxt_unit_ctx_t         *unit_ctx;
     nxt_unit_init_t        php_init;
     nxt_conf_value_t       *value;
     nxt_php_app_conf_t     *c;
     nxt_common_app_conf_t  *conf;
-
-    static nxt_str_t  file_str = nxt_string("file");
-    static nxt_str_t  user_str = nxt_string("user");
-    static nxt_str_t  admin_str = nxt_string("admin");
 
     conf = data->app;
     c = &conf->u.php;
@@ -318,60 +385,6 @@ nxt_php_start(nxt_task_t *task, nxt_process_data_t *data)
         }
     }
 
-#ifdef ZTS
-
-#if PHP_VERSION_ID >= 70400
-    php_tsrm_startup();
-#else
-    tsrm_startup(1, 1, 0, NULL);
-    tsrm_ls = ts_resource(0);
-#endif
-
-#endif
-
-#if defined(NXT_PHP7) && defined(ZEND_SIGNALS)
-
-#if (NXT_ZEND_SIGNAL_STARTUP)
-    zend_signal_startup();
-#elif defined(ZTS)
-#error PHP is built with thread safety and broken signals.
-#endif
-
-#endif
-
-    sapi_startup(&nxt_php_sapi_module);
-
-    if (c->options != NULL) {
-        value = nxt_conf_get_object_member(c->options, &file_str, NULL);
-
-        if (value != NULL) {
-            nxt_conf_get_string(value, &ini_path);
-
-            p = nxt_malloc(ini_path.length + 1);
-            if (nxt_slow_path(p == NULL)) {
-                return NXT_ERROR;
-            }
-
-            nxt_php_sapi_module.php_ini_path_override = (char *) p;
-
-            p = nxt_cpymem(p, ini_path.start, ini_path.length);
-            *p = '\0';
-        }
-    }
-
-    if (nxt_slow_path(nxt_php_startup(&nxt_php_sapi_module) == FAILURE)) {
-        nxt_alert(task, "failed to initialize SAPI module and extension");
-        return NXT_ERROR;
-    }
-
-    if (c->options != NULL) {
-        value = nxt_conf_get_object_member(c->options, &admin_str, NULL);
-        nxt_php_set_options(task, value, ZEND_INI_SYSTEM);
-
-        value = nxt_conf_get_object_member(c->options, &user_str, NULL);
-        nxt_php_set_options(task, value, ZEND_INI_USER);
-    }
-
     ret = nxt_unit_default_init(task, &php_init);
     if (nxt_slow_path(ret != NXT_OK)) {
         nxt_alert(task, "nxt_unit_default_init() failed");
@@ -388,9 +401,8 @@ nxt_php_start(nxt_task_t *task, nxt_process_data_t *data)
 
     nxt_php_unit_ctx = unit_ctx;
 
-    nxt_unit_run(unit_ctx);
-
-    nxt_unit_done(unit_ctx);
+    nxt_unit_run(nxt_php_unit_ctx);
+    nxt_unit_done(nxt_php_unit_ctx);
 
     exit(0);
 
@@ -507,6 +519,46 @@ nxt_php_set_target(nxt_task_t *task, nxt_php_target_t *target,
             nxt_str_set(&target->index, "index.php");
         }
     }
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_php_set_ini_path(nxt_task_t *task, nxt_str_t *ini_path, char *workdir)
+{
+    size_t  wdlen;
+    u_char  *p, *start;
+
+    if (ini_path->start[0] == '/' || workdir == NULL) {
+        p = nxt_malloc(ini_path->length + 1);
+        if (nxt_slow_path(p == NULL)) {
+            return NXT_ERROR;
+        }
+
+        start = p;
+
+    } else {
+        wdlen = nxt_strlen(workdir);
+
+        p = nxt_malloc(wdlen + ini_path->length + 2);
+        if (nxt_slow_path(p == NULL)) {
+            return NXT_ERROR;
+        }
+
+        start = p;
+
+        p = nxt_cpymem(p, workdir, wdlen);
+
+        if (workdir[wdlen - 1] != '/') {
+            *p++ = '/';
+        }
+    }
+
+    p = nxt_cpymem(p, ini_path->start, ini_path->length);
+    *p = '\0';
+
+    nxt_php_sapi_module.php_ini_path_override = (char *) start;
 
     return NXT_OK;
 }
