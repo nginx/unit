@@ -3288,7 +3288,7 @@ int
 nxt_unit_websocket_retain(nxt_unit_websocket_frame_t *ws)
 {
     char                             *b;
-    size_t                           size;
+    size_t                           size, hsize;
     nxt_unit_websocket_frame_impl_t  *ws_impl;
 
     ws_impl = nxt_container_of(ws, nxt_unit_websocket_frame_impl_t, ws);
@@ -3306,11 +3306,22 @@ nxt_unit_websocket_retain(nxt_unit_websocket_frame_t *ws)
 
     memcpy(b, ws_impl->buf->buf.start, size);
 
+    hsize = nxt_websocket_frame_header_size(b);
+
     ws_impl->buf->buf.start = b;
-    ws_impl->buf->buf.free = b;
+    ws_impl->buf->buf.free = b + hsize;
     ws_impl->buf->buf.end = b + size;
 
     ws_impl->buf->free_ptr = b;
+
+    ws_impl->ws.header = (nxt_websocket_header_t *) b;
+
+    if (ws_impl->ws.header->mask) {
+        ws_impl->ws.mask = (uint8_t *) b + hsize - 4;
+
+    } else {
+        ws_impl->ws.mask = NULL;
+    }
 
     return NXT_UNIT_OK;
 }
