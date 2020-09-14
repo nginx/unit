@@ -167,7 +167,7 @@ $echo " + Python module: ${NXT_PYTHON_MODULE}.unit.so"
 $echo >> $NXT_MAKEFILE
 
 NXT_PYTHON_MODULE_SRCS=" \
-    src/nxt_python_wsgi.c \
+    src/python/nxt_python_wsgi.c \
 "
 
 # The python module object files.
@@ -185,6 +185,7 @@ for nxt_src in $NXT_PYTHON_MODULE_SRCS; do
     cat << END >> $NXT_MAKEFILE
 
 $NXT_BUILD_DIR/$nxt_obj:	$nxt_src $NXT_VERSION_H
+	mkdir -p $NXT_BUILD_DIR/src/python
 	\$(CC) -c \$(CFLAGS) -DNXT_PYTHON_MOUNTS_H=\"$NXT_PYTHON_MOUNTS_HEADER\" \\
            \$(NXT_INCS) $NXT_PYTHON_INCLUDE \\
 	$nxt_dep_flags \\
