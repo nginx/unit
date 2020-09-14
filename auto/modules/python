@@ -167,6 +167,7 @@ $echo " + Python module: ${NXT_PYTHON_MODULE}.unit.so"
 $echo >> $NXT_MAKEFILE
 
 NXT_PYTHON_MODULE_SRCS=" \
+    src/python/nxt_python.c \
     src/python/nxt_python_wsgi.c \
 "
 
