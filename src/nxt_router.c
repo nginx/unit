@@ -259,7 +259,7 @@ static const nxt_str_t empty_prefix = nxt_string("");
 
 static const nxt_str_t  *nxt_app_msg_prefix[] = {
     &empty_prefix,
-    &http_prefix,
+    &empty_prefix,
     &http_prefix,
     &http_prefix,
     &http_prefix,

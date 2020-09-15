@@ -43,6 +43,7 @@
 
 #define PyString_FromStringAndSize(str, size)                                 \
             PyUnicode_DecodeLatin1((str), (size), "strict")
+#define PyString_AS_STRING          PyUnicode_DATA
 
 #else
 #define NXT_PYTHON_BYTES_TYPE       "string"
@@ -73,7 +74,10 @@ static PyObject *nxt_python_get_environ(nxt_python_run_ctx_t *ctx);
 static int nxt_python_add_sptr(nxt_python_run_ctx_t *ctx, PyObject *name,
     nxt_unit_sptr_t *sptr, uint32_t size);
 static int nxt_python_add_field(nxt_python_run_ctx_t *ctx,
-    nxt_unit_field_t *field);
+    nxt_unit_field_t *field, int n, uint32_t vl);
+static PyObject *nxt_python_field_name(const char *name, uint8_t len);
+static PyObject *nxt_python_field_value(nxt_unit_field_t *f, int n,
+    uint32_t vl);
 static int nxt_python_add_obj(nxt_python_run_ctx_t *ctx, PyObject *name,
     PyObject *value);
 
@@ -511,9 +515,9 @@ static PyObject *
 nxt_python_get_environ(nxt_python_run_ctx_t *ctx)
 {
     int                 rc;
-    uint32_t            i;
+    uint32_t            i, j, vl;
     PyObject            *environ;
-    nxt_unit_field_t    *f;
+    nxt_unit_field_t    *f, *f2;
     nxt_unit_request_t  *r;
 
     environ = PyDict_Copy(nxt_py_environ_ptyp);
@@ -565,10 +569,27 @@ nxt_python_get_environ(nxt_python_run_ctx_t *ctx)
                            r->server_name_length));
     RC(nxt_python_add_obj(ctx, nxt_py_server_port_str, nxt_py_80_str));
 
-    for (i = 0; i < r->fields_count; i++) {
-        f = r->fields + i;
+    nxt_unit_request_group_dup_fields(ctx->req);
 
-        RC(nxt_python_add_field(ctx, f));
+    for (i = 0; i < r->fields_count;) {
+        f = r->fields + i;
+        vl = f->value_length;
+
+        for (j = i + 1; j < r->fields_count; j++) {
+            f2 = r->fields + j;
+
+            if (f2->hash != f->hash
+                || nxt_unit_sptr_get(&f2->name) != nxt_unit_sptr_get(&f->name))
+            {
+                break;
+            }
+
+            vl += 2 + f2->value_length;
+        }
+
+        RC(nxt_python_add_field(ctx, f, j - i, vl));
+
+        i = j;
     }
 
     if (r->content_length_field != NXT_UNIT_NONE_FIELD) {
@@ -632,14 +653,15 @@ nxt_python_add_sptr(nxt_python_run_ctx_t *ctx, PyObject *name,
 
 
 static int
-nxt_python_add_field(nxt_python_run_ctx_t *ctx, nxt_unit_field_t *field)
+nxt_python_add_field(nxt_python_run_ctx_t *ctx, nxt_unit_field_t *field, int n,
+    uint32_t vl)
 {
     char      *src;
     PyObject  *name, *value;
 
     src = nxt_unit_sptr_get(&field->name);
 
-    name = PyString_FromStringAndSize(src, field->name_length);
+    name = nxt_python_field_name(src, field->name_length);
     if (nxt_slow_path(name == NULL)) {
         nxt_unit_req_error(ctx->req,
                            "Python failed to create name string \"%.*s\"",
@@ -649,13 +671,13 @@ nxt_python_add_field(nxt_python_run_ctx_t *ctx, nxt_unit_field_t *field)
         return NXT_UNIT_ERROR;
     }
 
-    src = nxt_unit_sptr_get(&field->value);
+    value = nxt_python_field_value(field, n, vl);
 
-    value = PyString_FromStringAndSize(src, field->value_length);
     if (nxt_slow_path(value == NULL)) {
         nxt_unit_req_error(ctx->req,
                            "Python failed to create value string \"%.*s\"",
-                           (int) field->value_length, src);
+                           (int) field->value_length,
+                           (char *) nxt_unit_sptr_get(&field->value));
         nxt_python_print_exception();
 
         goto fail;
@@ -679,6 +701,80 @@ fail:
     Py_XDECREF(value);
 
     return NXT_UNIT_ERROR;
+}
+
+
+static PyObject *
+nxt_python_field_name(const char *name, uint8_t len)
+{
+    char      *p, c;
+    uint8_t   i;
+    PyObject  *res;
+
+#if PY_MAJOR_VERSION == 3
+    res = PyUnicode_New(len + 5, 255);
+#else
+    res = PyString_FromStringAndSize(NULL, len + 5);
+#endif
+
+    if (nxt_slow_path(res == NULL)) {
+        return NULL;
+    }
+
+    p = PyString_AS_STRING(res);
+
+    p = nxt_cpymem(p, "HTTP_", 5);
+
+    for (i = 0; i < len; i++) {
+        c = name[i];
+
+        if (c >= 'a' && c <= 'z') {
+            *p++ = (c & ~0x20);
+            continue;
+        }
+
+        if (c == '-') {
+            *p++ = '_';
+            continue;
+        }
+
+        *p++ = c;
+    }
+
+    return res;
+}
+
+
+static PyObject *
+nxt_python_field_value(nxt_unit_field_t *f, int n, uint32_t vl)
+{
+    int       i;
+    char      *p, *src;
+    PyObject  *res;
+
+#if PY_MAJOR_VERSION == 3
+    res = PyUnicode_New(vl, 255);
+#else
+    res = PyString_FromStringAndSize(NULL, vl);
+#endif
+
+    if (nxt_slow_path(res == NULL)) {
+        return NULL;
+    }
+
+    p = PyString_AS_STRING(res);
+
+    src = nxt_unit_sptr_get(&f->value);
+    p = nxt_cpymem(p, src, f->value_length);
+
+    for (i = 1; i < n; i++) {
+        p = nxt_cpymem(p, ", ", 2);
+
+        src = nxt_unit_sptr_get(&f[i].value);
+        p = nxt_cpymem(p, src, f[i].value_length);
+    }
+
+    return res;
 }
 
 
