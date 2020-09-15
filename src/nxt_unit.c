@@ -184,6 +184,7 @@ static nxt_unit_request_info_t *nxt_unit_request_hash_find(
     nxt_unit_ctx_t *ctx, uint32_t stream, int remove);
 
 static char * nxt_unit_snprint_prefix(char *p, char *end, pid_t pid, int level);
+static int nxt_unit_memcasecmp(const void *p1, const void *p2, size_t length);
 
 
 struct nxt_unit_mmap_buf_s {
@@ -1815,9 +1816,14 @@ nxt_unit_field_hash(const char *name, size_t name_length)
 void
 nxt_unit_request_group_dup_fields(nxt_unit_request_info_t *req)
 {
+    char                *name;
     uint32_t            i, j;
     nxt_unit_field_t    *fields, f;
     nxt_unit_request_t  *r;
+
+    static nxt_str_t  content_length = nxt_string("content-length");
+    static nxt_str_t  content_type = nxt_string("content-type");
+    static nxt_str_t  cookie = nxt_string("cookie");
 
     nxt_unit_req_debug(req, "group_dup_fields");
 
@@ -1825,32 +1831,51 @@ nxt_unit_request_group_dup_fields(nxt_unit_request_info_t *req)
     fields = r->fields;
 
     for (i = 0; i < r->fields_count; i++) {
+        name = nxt_unit_sptr_get(&fields[i].name);
 
         switch (fields[i].hash) {
         case NXT_UNIT_HASH_CONTENT_LENGTH:
-            r->content_length_field = i;
+            if (fields[i].name_length == content_length.length
+                && nxt_unit_memcasecmp(name, content_length.start,
+                                       content_length.length) == 0)
+            {
+                r->content_length_field = i;
+            }
+
             break;
 
         case NXT_UNIT_HASH_CONTENT_TYPE:
-            r->content_type_field = i;
+            if (fields[i].name_length == content_type.length
+                && nxt_unit_memcasecmp(name, content_type.start,
+                                       content_type.length) == 0)
+            {
+                r->content_type_field = i;
+            }
+
             break;
 
         case NXT_UNIT_HASH_COOKIE:
-            r->cookie_field = i;
-            break;
-        };
-
-        for (j = i + 1; j < r->fields_count; j++) {
-            if (fields[i].hash != fields[j].hash) {
-                continue;
+            if (fields[i].name_length == cookie.length
+                && nxt_unit_memcasecmp(name, cookie.start,
+                                       cookie.length) == 0)
+            {
+                r->cookie_field = i;
             }
 
-            if (j == i + 1) {
+            break;
+        }
+
+        for (j = i + 1; j < r->fields_count; j++) {
+            if (fields[i].hash != fields[j].hash
+                || fields[i].name_length != fields[j].name_length
+                || nxt_unit_memcasecmp(name,
+                                       nxt_unit_sptr_get(&fields[j].name),
+                                       fields[j].name_length) != 0)
+            {
                 continue;
             }
 
             f = fields[j];
-            f.name.offset += (j - (i + 1)) * sizeof(f);
             f.value.offset += (j - (i + 1)) * sizeof(f);
 
             while (j > i + 1) {
@@ -1861,6 +1886,9 @@ nxt_unit_request_group_dup_fields(nxt_unit_request_info_t *req)
             }
 
             fields[j] = f;
+
+            /* Assign the same name pointer for further grouping simplicity. */
+            nxt_unit_sptr_set(&fields[j].name, name);
 
             i++;
         }
@@ -6334,6 +6362,35 @@ nxt_memalign(size_t alignment, size_t size)
 
     return NULL;
 }
+
+
+static int
+nxt_unit_memcasecmp(const void *p1, const void *p2, size_t length)
+{
+    u_char        c1, c2;
+    nxt_int_t     n;
+    const u_char  *s1, *s2;
+
+    s1 = p1;
+    s2 = p2;
+
+    while (length-- != 0) {
+        c1 = *s1++;
+        c2 = *s2++;
+
+        c1 = nxt_lowcase(c1);
+        c2 = nxt_lowcase(c2);
+
+        n = c1 - c2;
+
+        if (n != 0) {
+            return n;
+        }
+    }
+
+    return 0;
+}
+
 
 #if (NXT_DEBUG)
 
