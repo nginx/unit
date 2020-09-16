@@ -6,8 +6,8 @@ from unit.applications.proto import TestApplicationProto
 class TestReturn(TestApplicationProto):
     prerequisites = {}
 
-    def setUp(self):
-        super().setUp()
+    def setup_method(self):
+        super().setup_method()
 
         self._load_conf(
             {
@@ -35,59 +35,61 @@ Connection: close
 
     def test_return(self):
         resp = self.get()
-        self.assertEqual(resp['status'], 200)
-        self.assertIn('Server', resp['headers'])
-        self.assertIn('Date', resp['headers'])
-        self.assertEqual(resp['headers']['Content-Length'], '0')
-        self.assertEqual(resp['headers']['Connection'], 'close')
-        self.assertEqual(resp['body'], '', 'body')
+        assert resp['status'] == 200
+        assert 'Server' in resp['headers']
+        assert 'Date' in resp['headers']
+        assert resp['headers']['Content-Length'] == '0'
+        assert resp['headers']['Connection'] == 'close'
+        assert resp['body'] == '', 'body'
 
         resp = self.post(body='blah')
-        self.assertEqual(resp['status'], 200)
-        self.assertEqual(resp['body'], '', 'body')
+        assert resp['status'] == 200
+        assert resp['body'] == '', 'body'
 
         resp = self.get_resps_sc()
-        self.assertEqual(len(re.findall('200 OK', resp)), 10)
-        self.assertEqual(len(re.findall('Connection:', resp)), 1)
-        self.assertEqual(len(re.findall('Connection: close', resp)), 1)
+        assert len(re.findall('200 OK', resp)) == 10
+        assert len(re.findall('Connection:', resp)) == 1
+        assert len(re.findall('Connection: close', resp)) == 1
 
         resp = self.get(http_10=True)
-        self.assertEqual(resp['status'], 200)
-        self.assertIn('Server', resp['headers'])
-        self.assertIn('Date', resp['headers'])
-        self.assertEqual(resp['headers']['Content-Length'], '0')
-        self.assertNotIn('Connection', resp['headers'])
-        self.assertEqual(resp['body'], '', 'body')
+        assert resp['status'] == 200
+        assert 'Server' in resp['headers']
+        assert 'Date' in resp['headers']
+        assert resp['headers']['Content-Length'] == '0'
+        assert 'Connection' not in resp['headers']
+        assert resp['body'] == '', 'body'
 
     def test_return_update(self):
-        self.assertIn('success', self.conf('0', 'routes/0/action/return'))
+        assert 'success' in self.conf('0', 'routes/0/action/return')
 
         resp = self.get()
-        self.assertEqual(resp['status'], 0)
-        self.assertEqual(resp['body'], '')
+        assert resp['status'] == 0
+        assert resp['body'] == ''
 
-        self.assertIn('success', self.conf('404', 'routes/0/action/return'))
-
-        resp = self.get()
-        self.assertEqual(resp['status'], 404)
-        self.assertNotEqual(resp['body'], '')
-
-        self.assertIn('success', self.conf('598', 'routes/0/action/return'))
+        assert 'success' in self.conf('404', 'routes/0/action/return')
 
         resp = self.get()
-        self.assertEqual(resp['status'], 598)
-        self.assertNotEqual(resp['body'], '')
+        assert resp['status'] == 404
+        assert resp['body'] != ''
 
-        self.assertIn('success', self.conf('999', 'routes/0/action/return'))
+        assert 'success' in self.conf('598', 'routes/0/action/return')
 
         resp = self.get()
-        self.assertEqual(resp['status'], 999)
-        self.assertEqual(resp['body'], '')
+        assert resp['status'] == 598
+        assert resp['body'] != ''
+
+        assert 'success' in self.conf('999', 'routes/0/action/return')
+
+        resp = self.get()
+        assert resp['status'] == 999
+        assert resp['body'] == ''
 
     def test_return_location(self):
         reserved = ":/?#[]@!$&'()*+,;="
-        unreserved = ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-                      "0123456789-._~")
+        unreserved = (
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+            "0123456789-._~"
+        )
         unsafe = " \"%<>\\^`{|}"
         unsafe_enc = "%20%22%25%3C%3E%5C%5E%60%7B%7C%7D"
 
@@ -95,15 +97,11 @@ Connection: close
             if expect is None:
                 expect = location
 
-            self.assertIn(
-                'success',
-                self.conf(
-                    {"return": 301, "location": location}, 'routes/0/action'
-                ),
-                'configure location'
-            )
+            assert 'success' in self.conf(
+                {"return": 301, "location": location}, 'routes/0/action'
+            ), 'configure location'
 
-            self.assertEqual(self.get()['headers']['Location'], expect)
+            assert self.get()['headers']['Location'] == expect
 
         # FAIL: can't specify empty header value.
         # check_location("")
@@ -145,39 +143,29 @@ Connection: close
         check_location("/%20?%20#%20 ", "/%2520?%2520#%2520%20")
 
     def test_return_location_edit(self):
-        self.assertIn(
-            'success',
-            self.conf(
-                {"return": 302, "location": "blah"}, 'routes/0/action'
-            ),
-            'configure init location'
-        )
-        self.assertEqual(self.get()['headers']['Location'], 'blah')
+        assert 'success' in self.conf(
+            {"return": 302, "location": "blah"}, 'routes/0/action'
+        ), 'configure init location'
+        assert self.get()['headers']['Location'] == 'blah'
 
-        self.assertIn(
-            'success',
-            self.conf_delete('routes/0/action/location'),
-            'location delete'
-        )
-        self.assertNotIn('Location', self.get()['headers'])
+        assert 'success' in self.conf_delete(
+            'routes/0/action/location'
+        ), 'location delete'
+        assert 'Location' not in self.get()['headers']
 
-        self.assertIn(
-            'success',
-            self.conf('"blah"', 'routes/0/action/location'),
-            'location restore'
-        )
-        self.assertEqual(self.get()['headers']['Location'], 'blah')
+        assert 'success' in self.conf(
+            '"blah"', 'routes/0/action/location'
+        ), 'location restore'
+        assert self.get()['headers']['Location'] == 'blah'
 
-        self.assertIn(
-            'error',
-            self.conf_post('"blah"', 'routes/0/action/location'),
-            'location method not allowed'
-        )
-        self.assertEqual(self.get()['headers']['Location'], 'blah')
+        assert 'error' in self.conf_post(
+            '"blah"', 'routes/0/action/location'
+        ), 'location method not allowed'
+        assert self.get()['headers']['Location'] == 'blah'
 
     def test_return_invalid(self):
         def check_error(conf):
-            self.assertIn('error', self.conf(conf, 'routes/0/action'))
+            assert 'error' in self.conf(conf, 'routes/0/action')
 
         check_error({"return": "200"})
         check_error({"return": []})
@@ -186,13 +174,9 @@ Connection: close
         check_error({"return": -1})
         check_error({"return": 200, "share": "/blah"})
 
-        self.assertIn(
-            'error', self.conf('001', 'routes/0/action/return'), 'leading zero'
-        )
+        assert 'error' in self.conf(
+            '001', 'routes/0/action/return'
+        ), 'leading zero'
 
         check_error({"return": 301, "location": 0})
         check_error({"return": 301, "location": []})
-
-
-if __name__ == '__main__':
-    TestReturn.main()

@@ -1,9 +1,10 @@
+import pytest
 import re
 import socket
 import time
-import unittest
 
 from unit.applications.lang.python import TestApplicationPython
+from conftest import option, skip_alert
 
 
 class TestProxy(TestApplicationPython):
@@ -42,7 +43,7 @@ Content-Length: 10
 
             to_send = req
 
-            m = re.search('X-Len: (\d+)', data)
+            m = re.search(r'X-Len: (\d+)', data)
             if m:
                 to_send += b'X' * int(m.group(1))
 
@@ -56,145 +57,127 @@ Content-Length: 10
     def post_http10(self, *args, **kwargs):
         return self.post(*args, http_10=True, **kwargs)
 
-    def setUp(self):
-        super().setUp()
+    def setup_method(self):
+        super().setup_method()
 
         self.run_process(self.run_server, self.SERVER_PORT)
         self.waitforsocket(self.SERVER_PORT)
 
-        self.assertIn(
-            'success',
-            self.conf(
-                {
-                    "listeners": {
-                        "*:7080": {"pass": "routes"},
-                        "*:7081": {"pass": "applications/mirror"},
+        assert 'success' in self.conf(
+            {
+                "listeners": {
+                    "*:7080": {"pass": "routes"},
+                    "*:7081": {"pass": "applications/mirror"},
+                },
+                "routes": [{"action": {"proxy": "http://127.0.0.1:7081"}}],
+                "applications": {
+                    "mirror": {
+                        "type": "python",
+                        "processes": {"spare": 0},
+                        "path": option.test_dir + "/python/mirror",
+                        "working_directory": option.test_dir
+                        + "/python/mirror",
+                        "module": "wsgi",
                     },
-                    "routes": [{"action": {"proxy": "http://127.0.0.1:7081"}}],
-                    "applications": {
-                        "mirror": {
-                            "type": "python",
-                            "processes": {"spare": 0},
-                            "path": self.current_dir + "/python/mirror",
-                            "working_directory": self.current_dir
-                            + "/python/mirror",
-                            "module": "wsgi",
-                        },
-                        "custom_header": {
-                            "type": "python",
-                            "processes": {"spare": 0},
-                            "path": self.current_dir + "/python/custom_header",
-                            "working_directory": self.current_dir
-                            + "/python/custom_header",
-                            "module": "wsgi",
-                        },
-                        "delayed": {
-                            "type": "python",
-                            "processes": {"spare": 0},
-                            "path": self.current_dir + "/python/delayed",
-                            "working_directory": self.current_dir
-                            + "/python/delayed",
-                            "module": "wsgi",
-                        },
+                    "custom_header": {
+                        "type": "python",
+                        "processes": {"spare": 0},
+                        "path": option.test_dir + "/python/custom_header",
+                        "working_directory": option.test_dir
+                        + "/python/custom_header",
+                        "module": "wsgi",
                     },
-                }
-            ),
-            'proxy initial configuration',
-        )
+                    "delayed": {
+                        "type": "python",
+                        "processes": {"spare": 0},
+                        "path": option.test_dir + "/python/delayed",
+                        "working_directory": option.test_dir
+                        + "/python/delayed",
+                        "module": "wsgi",
+                    },
+                },
+            }
+        ), 'proxy initial configuration'
 
     def test_proxy_http10(self):
         for _ in range(10):
-            self.assertEqual(self.get_http10()['status'], 200, 'status')
+            assert self.get_http10()['status'] == 200, 'status'
 
     def test_proxy_chain(self):
-        self.assertIn(
-            'success',
-            self.conf(
-                {
-                    "listeners": {
-                        "*:7080": {"pass": "routes/first"},
-                        "*:7081": {"pass": "routes/second"},
-                        "*:7082": {"pass": "routes/third"},
-                        "*:7083": {"pass": "routes/fourth"},
-                        "*:7084": {"pass": "routes/fifth"},
-                        "*:7085": {"pass": "applications/mirror"},
-                    },
-                    "routes": {
-                        "first": [
-                            {"action": {"proxy": "http://127.0.0.1:7081"}}
-                        ],
-                        "second": [
-                            {"action": {"proxy": "http://127.0.0.1:7082"}}
-                        ],
-                        "third": [
-                            {"action": {"proxy": "http://127.0.0.1:7083"}}
-                        ],
-                        "fourth": [
-                            {"action": {"proxy": "http://127.0.0.1:7084"}}
-                        ],
-                        "fifth": [
-                            {"action": {"proxy": "http://127.0.0.1:7085"}}
-                        ],
-                    },
-                    "applications": {
-                        "mirror": {
-                            "type": "python",
-                            "processes": {"spare": 0},
-                            "path": self.current_dir + "/python/mirror",
-                            "working_directory": self.current_dir
-                            + "/python/mirror",
-                            "module": "wsgi",
-                        }
-                    },
-                }
-            ),
-            'proxy chain configuration',
-        )
+        assert 'success' in self.conf(
+            {
+                "listeners": {
+                    "*:7080": {"pass": "routes/first"},
+                    "*:7081": {"pass": "routes/second"},
+                    "*:7082": {"pass": "routes/third"},
+                    "*:7083": {"pass": "routes/fourth"},
+                    "*:7084": {"pass": "routes/fifth"},
+                    "*:7085": {"pass": "applications/mirror"},
+                },
+                "routes": {
+                    "first": [{"action": {"proxy": "http://127.0.0.1:7081"}}],
+                    "second": [{"action": {"proxy": "http://127.0.0.1:7082"}}],
+                    "third": [{"action": {"proxy": "http://127.0.0.1:7083"}}],
+                    "fourth": [{"action": {"proxy": "http://127.0.0.1:7084"}}],
+                    "fifth": [{"action": {"proxy": "http://127.0.0.1:7085"}}],
+                },
+                "applications": {
+                    "mirror": {
+                        "type": "python",
+                        "processes": {"spare": 0},
+                        "path": option.test_dir + "/python/mirror",
+                        "working_directory": option.test_dir
+                        + "/python/mirror",
+                        "module": "wsgi",
+                    }
+                },
+            }
+        ), 'proxy chain configuration'
 
-        self.assertEqual(self.get_http10()['status'], 200, 'status')
+        assert self.get_http10()['status'] == 200, 'status'
 
     def test_proxy_body(self):
         payload = '0123456789'
         for _ in range(10):
             resp = self.post_http10(body=payload)
 
-            self.assertEqual(resp['status'], 200, 'status')
-            self.assertEqual(resp['body'], payload, 'body')
+            assert resp['status'] == 200, 'status'
+            assert resp['body'] == payload, 'body'
 
         payload = 'X' * 4096
         for _ in range(10):
             resp = self.post_http10(body=payload)
 
-            self.assertEqual(resp['status'], 200, 'status')
-            self.assertEqual(resp['body'], payload, 'body')
+            assert resp['status'] == 200, 'status'
+            assert resp['body'] == payload, 'body'
 
         payload = 'X' * 4097
         for _ in range(10):
             resp = self.post_http10(body=payload)
 
-            self.assertEqual(resp['status'], 200, 'status')
-            self.assertEqual(resp['body'], payload, 'body')
+            assert resp['status'] == 200, 'status'
+            assert resp['body'] == payload, 'body'
 
         payload = 'X' * 4096 * 256
         for _ in range(10):
             resp = self.post_http10(body=payload, read_buffer_size=4096 * 128)
 
-            self.assertEqual(resp['status'], 200, 'status')
-            self.assertEqual(resp['body'], payload, 'body')
+            assert resp['status'] == 200, 'status'
+            assert resp['body'] == payload, 'body'
 
         payload = 'X' * 4096 * 257
         for _ in range(10):
             resp = self.post_http10(body=payload, read_buffer_size=4096 * 128)
 
-            self.assertEqual(resp['status'], 200, 'status')
-            self.assertEqual(resp['body'], payload, 'body')
+            assert resp['status'] == 200, 'status'
+            assert resp['body'] == payload, 'body'
 
         self.conf({'http': {'max_body_size': 32 * 1024 * 1024}}, 'settings')
 
         payload = '0123456789abcdef' * 32 * 64 * 1024
         resp = self.post_http10(body=payload, read_buffer_size=1024 * 1024)
-        self.assertEqual(resp['status'], 200, 'status')
-        self.assertEqual(resp['body'], payload, 'body')
+        assert resp['status'] == 200, 'status'
+        assert resp['body'] == payload, 'body'
 
     def test_proxy_parallel(self):
         payload = 'X' * 4096 * 257
@@ -216,62 +199,53 @@ Content-Length: 10
 
             resp = self._resp_to_dict(resp)
 
-            self.assertEqual(resp['status'], 200, 'status')
-            self.assertEqual(resp['body'], payload + str(i), 'body')
+            assert resp['status'] == 200, 'status'
+            assert resp['body'] == payload + str(i), 'body'
 
     def test_proxy_header(self):
-        self.assertIn(
-            'success',
-            self.conf(
-                {"pass": "applications/custom_header"}, 'listeners/*:7081'
-            ),
-            'custom_header configure',
-        )
+        assert 'success' in self.conf(
+            {"pass": "applications/custom_header"}, 'listeners/*:7081'
+        ), 'custom_header configure'
 
         header_value = 'blah'
-        self.assertEqual(
+        assert (
             self.get_http10(
                 headers={'Host': 'localhost', 'Custom-Header': header_value}
-            )['headers']['Custom-Header'],
-            header_value,
-            'custom header',
-        )
+            )['headers']['Custom-Header']
+            == header_value
+        ), 'custom header'
 
         header_value = '(),/:;<=>?@[\]{}\t !#$%&\'*+-.^_`|~'
-        self.assertEqual(
+        assert (
             self.get_http10(
                 headers={'Host': 'localhost', 'Custom-Header': header_value}
-            )['headers']['Custom-Header'],
-            header_value,
-            'custom header 2',
-        )
+            )['headers']['Custom-Header']
+            == header_value
+        ), 'custom header 2'
 
         header_value = 'X' * 4096
-        self.assertEqual(
+        assert (
             self.get_http10(
                 headers={'Host': 'localhost', 'Custom-Header': header_value}
-            )['headers']['Custom-Header'],
-            header_value,
-            'custom header 3',
-        )
+            )['headers']['Custom-Header']
+            == header_value
+        ), 'custom header 3'
 
         header_value = 'X' * 8191
-        self.assertEqual(
+        assert (
             self.get_http10(
                 headers={'Host': 'localhost', 'Custom-Header': header_value}
-            )['headers']['Custom-Header'],
-            header_value,
-            'custom header 4',
-        )
+            )['headers']['Custom-Header']
+            == header_value
+        ), 'custom header 4'
 
         header_value = 'X' * 8192
-        self.assertEqual(
+        assert (
             self.get_http10(
                 headers={'Host': 'localhost', 'Custom-Header': header_value}
-            )['status'],
-            431,
-            'custom header 5',
-        )
+            )['status']
+            == 431
+        ), 'custom header 5'
 
     def test_proxy_fragmented(self):
         _, sock = self.http(
@@ -286,9 +260,9 @@ Content-Length: 10
 
         sock.sendall("t\r\n\r\n".encode())
 
-        self.assertRegex(
-            self.recvall(sock).decode(), '200 OK', 'fragmented send'
-        )
+        assert re.search(
+            '200 OK', self.recvall(sock).decode()
+        ), 'fragmented send'
         sock.close()
 
     def test_proxy_fragmented_close(self):
@@ -328,8 +302,8 @@ Content-Length: 10
         resp = self._resp_to_dict(self.recvall(sock).decode())
         sock.close()
 
-        self.assertEqual(resp['status'], 200, 'status')
-        self.assertEqual(resp['body'], "X" * 30000, 'body')
+        assert resp['status'] == 200, 'status'
+        assert resp['body'] == "X" * 30000, 'body'
 
     def test_proxy_fragmented_body_close(self):
         _, sock = self.http(
@@ -349,70 +323,48 @@ Content-Length: 10
         sock.close()
 
     def test_proxy_nowhere(self):
-        self.assertIn(
-            'success',
-            self.conf(
-                [{"action": {"proxy": "http://127.0.0.1:7082"}}], 'routes'
-            ),
-            'proxy path changed',
-        )
+        assert 'success' in self.conf(
+            [{"action": {"proxy": "http://127.0.0.1:7082"}}], 'routes'
+        ), 'proxy path changed'
 
-        self.assertEqual(self.get_http10()['status'], 502, 'status')
+        assert self.get_http10()['status'] == 502, 'status'
 
     def test_proxy_ipv6(self):
-        self.assertIn(
-            'success',
-            self.conf(
-                {
-                    "*:7080": {"pass": "routes"},
-                    "[::1]:7081": {'application': 'mirror'},
-                },
-                'listeners',
-            ),
-            'add ipv6 listener configure',
-        )
+        assert 'success' in self.conf(
+            {
+                "*:7080": {"pass": "routes"},
+                "[::1]:7081": {'application': 'mirror'},
+            },
+            'listeners',
+        ), 'add ipv6 listener configure'
 
-        self.assertIn(
-            'success',
-            self.conf([{"action": {"proxy": "http://[::1]:7081"}}], 'routes'),
-            'proxy ipv6 configure',
-        )
+        assert 'success' in self.conf(
+            [{"action": {"proxy": "http://[::1]:7081"}}], 'routes'
+        ), 'proxy ipv6 configure'
 
-        self.assertEqual(self.get_http10()['status'], 200, 'status')
+        assert self.get_http10()['status'] == 200, 'status'
 
     def test_proxy_unix(self):
-        addr = self.testdir + '/sock'
+        addr = self.temp_dir + '/sock'
 
-        self.assertIn(
-            'success',
-            self.conf(
-                {
-                    "*:7080": {"pass": "routes"},
-                    "unix:" + addr: {'application': 'mirror'},
-                },
-                'listeners',
-            ),
-            'add unix listener configure',
-        )
+        assert 'success' in self.conf(
+            {
+                "*:7080": {"pass": "routes"},
+                "unix:" + addr: {'application': 'mirror'},
+            },
+            'listeners',
+        ), 'add unix listener configure'
 
-        self.assertIn(
-            'success',
-            self.conf(
-                [{"action": {"proxy": 'http://unix:' + addr}}], 'routes'
-            ),
-            'proxy unix configure',
-        )
+        assert 'success' in self.conf(
+            [{"action": {"proxy": 'http://unix:' + addr}}], 'routes'
+        ), 'proxy unix configure'
 
-        self.assertEqual(self.get_http10()['status'], 200, 'status')
+        assert self.get_http10()['status'] == 200, 'status'
 
     def test_proxy_delayed(self):
-        self.assertIn(
-            'success',
-            self.conf(
-                {"pass": "applications/delayed"}, 'listeners/*:7081'
-            ),
-            'delayed configure',
-        )
+        assert 'success' in self.conf(
+            {"pass": "applications/delayed"}, 'listeners/*:7081'
+        ), 'delayed configure'
 
         body = '0123456789' * 1000
         resp = self.post_http10(
@@ -426,8 +378,8 @@ Content-Length: 10
             body=body,
         )
 
-        self.assertEqual(resp['status'], 200, 'status')
-        self.assertEqual(resp['body'], body, 'body')
+        assert resp['status'] == 200, 'status'
+        assert resp['body'] == body, 'body'
 
         resp = self.post_http10(
             headers={
@@ -440,17 +392,13 @@ Content-Length: 10
             body=body,
         )
 
-        self.assertEqual(resp['status'], 200, 'status')
-        self.assertEqual(resp['body'], body, 'body')
+        assert resp['status'] == 200, 'status'
+        assert resp['body'] == body, 'body'
 
     def test_proxy_delayed_close(self):
-        self.assertIn(
-            'success',
-            self.conf(
-                {"pass": "applications/delayed"}, 'listeners/*:7081'
-            ),
-            'delayed configure',
-        )
+        assert 'success' in self.conf(
+            {"pass": "applications/delayed"}, 'listeners/*:7081'
+        ), 'delayed configure'
 
         _, sock = self.post_http10(
             headers={
@@ -465,9 +413,7 @@ Content-Length: 10
             no_recv=True,
         )
 
-        self.assertRegex(
-            sock.recv(100).decode(), '200 OK', 'first'
-        )
+        assert re.search('200 OK', sock.recv(100).decode()), 'first'
         sock.close()
 
         _, sock = self.post_http10(
@@ -483,51 +429,42 @@ Content-Length: 10
             no_recv=True,
         )
 
-        self.assertRegex(
-            sock.recv(100).decode(), '200 OK', 'second'
-        )
+        assert re.search('200 OK', sock.recv(100).decode()), 'second'
         sock.close()
 
-    @unittest.skip('not yet')
+    @pytest.mark.skip('not yet')
     def test_proxy_content_length(self):
-        self.assertIn(
-            'success',
-            self.conf(
-                [
-                    {
-                        "action": {
-                            "proxy": "http://127.0.0.1:"
-                            + str(self.SERVER_PORT)
-                        }
+        assert 'success' in self.conf(
+            [
+                {
+                    "action": {
+                        "proxy": "http://127.0.0.1:" + str(self.SERVER_PORT)
                     }
-                ],
-                'routes',
-            ),
-            'proxy backend configure',
-        )
+                }
+            ],
+            'routes',
+        ), 'proxy backend configure'
 
         resp = self.get_http10()
-        self.assertEqual(len(resp['body']), 0, 'body lt Content-Length 0')
+        assert len(resp['body']) == 0, 'body lt Content-Length 0'
 
         resp = self.get_http10(headers={'Host': 'localhost', 'X-Len': '5'})
-        self.assertEqual(len(resp['body']), 5, 'body lt Content-Length 5')
+        assert len(resp['body']) == 5, 'body lt Content-Length 5'
 
         resp = self.get_http10(headers={'Host': 'localhost', 'X-Len': '9'})
-        self.assertEqual(len(resp['body']), 9, 'body lt Content-Length 9')
+        assert len(resp['body']) == 9, 'body lt Content-Length 9'
 
         resp = self.get_http10(headers={'Host': 'localhost', 'X-Len': '11'})
-        self.assertEqual(len(resp['body']), 10, 'body gt Content-Length 11')
+        assert len(resp['body']) == 10, 'body gt Content-Length 11'
 
         resp = self.get_http10(headers={'Host': 'localhost', 'X-Len': '15'})
-        self.assertEqual(len(resp['body']), 10, 'body gt Content-Length 15')
+        assert len(resp['body']) == 10, 'body gt Content-Length 15'
 
     def test_proxy_invalid(self):
         def check_proxy(proxy):
-            self.assertIn(
-                'error',
-                self.conf([{"action": {"proxy": proxy}}], 'routes'),
-                'proxy invalid',
-            )
+            assert 'error' in \
+                self.conf([{"action": {"proxy": proxy}}], 'routes'), \
+                'proxy invalid'
 
         check_proxy('blah')
         check_proxy('/blah')
@@ -544,12 +481,10 @@ Content-Length: 10
         check_proxy('http://[::7080')
 
     def test_proxy_loop(self):
-        self.skip_alerts.extend(
-            [
-                r'socket.*failed',
-                r'accept.*failed',
-                r'new connections are not accepted',
-            ]
+        skip_alert(
+            r'socket.*failed',
+            r'accept.*failed',
+            r'new connections are not accepted',
         )
         self.conf(
             {
@@ -563,9 +498,8 @@ Content-Length: 10
                     "mirror": {
                         "type": "python",
                         "processes": {"spare": 0},
-                        "path": self.current_dir + "/python/mirror",
-                        "working_directory": self.current_dir
-                        + "/python/mirror",
+                        "path": option.test_dir + "/python/mirror",
+                        "working_directory": option.test_dir + "/python/mirror",
                         "module": "wsgi",
                     },
                 },
@@ -574,6 +508,3 @@ Content-Length: 10
 
         self.get_http10(no_recv=True)
         self.get_http10(read_timeout=1)
-
-if __name__ == '__main__':
-    TestProxy.main()

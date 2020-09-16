@@ -7,97 +7,81 @@ class TestPythonEnvironment(TestApplicationPython):
     def test_python_environment_name_null(self):
         self.load('environment')
 
-        self.assertIn(
-            'error',
-            self.conf(
-                {"va\0r": "val1"}, 'applications/environment/environment'
-            ),
-            'name null',
-        )
+        assert 'error' in self.conf(
+            {"va\0r": "val1"}, 'applications/environment/environment'
+        ), 'name null'
 
     def test_python_environment_name_equals(self):
         self.load('environment')
 
-        self.assertIn(
-            'error',
-            self.conf(
-                {"var=": "val1"}, 'applications/environment/environment'
-            ),
-            'name equals',
-        )
+        assert 'error' in self.conf(
+            {"var=": "val1"}, 'applications/environment/environment'
+        ), 'name equals'
 
     def test_python_environment_value_null(self):
         self.load('environment')
 
-        self.assertIn(
-            'error',
-            self.conf(
-                {"var": "\0val"}, 'applications/environment/environment'
-            ),
-            'value null',
-        )
+        assert 'error' in self.conf(
+            {"var": "\0val"}, 'applications/environment/environment'
+        ), 'value null'
 
     def test_python_environment_update(self):
         self.load('environment')
 
         self.conf({"var": "val1"}, 'applications/environment/environment')
 
-        self.assertEqual(
+        assert (
             self.get(
                 headers={
                     'Host': 'localhost',
                     'X-Variables': 'var',
                     'Connection': 'close',
                 }
-            )['body'],
-            'val1,',
-            'set',
-        )
+            )['body']
+            == 'val1,'
+        ), 'set'
 
         self.conf({"var": "val2"}, 'applications/environment/environment')
 
-        self.assertEqual(
+        assert (
             self.get(
                 headers={
                     'Host': 'localhost',
                     'X-Variables': 'var',
                     'Connection': 'close',
                 }
-            )['body'],
-            'val2,',
-            'update',
-        )
+            )['body']
+            == 'val2,'
+        ), 'update'
 
     def test_python_environment_replace(self):
         self.load('environment')
 
         self.conf({"var1": "val1"}, 'applications/environment/environment')
 
-        self.assertEqual(
+        assert (
             self.get(
                 headers={
                     'Host': 'localhost',
                     'X-Variables': 'var1',
                     'Connection': 'close',
                 }
-            )['body'],
-            'val1,',
-            'set',
-        )
+            )['body']
+            == 'val1,'
+        ), 'set'
 
         self.conf({"var2": "val2"}, 'applications/environment/environment')
 
-        self.assertEqual(
+        assert (
             self.get(
                 headers={
                     'Host': 'localhost',
                     'X-Variables': 'var1,var2',
                     'Connection': 'close',
                 }
-            )['body'],
-            'val2,',
-            'replace',
-        )
+            )['body']
+            == 'val2,'
+        ), 'replace'
 
     def test_python_environment_clear(self):
         self.load('environment')
@@ -107,31 +91,29 @@ class TestPythonEnvironment(TestApplicationPython):
             'applications/environment/environment',
         )
 
-        self.assertEqual(
+        assert (
             self.get(
                 headers={
                     'Host': 'localhost',
                     'X-Variables': 'var1,var2',
                     'Connection': 'close',
                 }
-            )['body'],
-            'val1,val2,',
-            'set',
-        )
+            )['body']
+            == 'val1,val2,'
+        ), 'set'
 
         self.conf({}, 'applications/environment/environment')
 
-        self.assertEqual(
+        assert (
             self.get(
                 headers={
                     'Host': 'localhost',
                     'X-Variables': 'var1,var2',
                     'Connection': 'close',
                 }
-            )['body'],
-            '',
-            'clear',
-        )
+            )['body']
+            == ''
+        ), 'clear'
 
     def test_python_environment_replace_default(self):
         self.load('environment')
@@ -144,36 +126,30 @@ class TestPythonEnvironment(TestApplicationPython):
             }
         )['body']
 
-        self.assertGreater(len(home_default), 1, 'get default')
+        assert len(home_default) > 1, 'get default'
 
         self.conf({"HOME": "/"}, 'applications/environment/environment')
 
-        self.assertEqual(
+        assert (
             self.get(
                 headers={
                     'Host': 'localhost',
                     'X-Variables': 'HOME',
                     'Connection': 'close',
                 }
-            )['body'],
-            '/,',
-            'replace default',
-        )
+            )['body']
+            == '/,'
+        ), 'replace default'
 
         self.conf({}, 'applications/environment/environment')
 
-        self.assertEqual(
+        assert (
             self.get(
                 headers={
                     'Host': 'localhost',
                     'X-Variables': 'HOME',
                     'Connection': 'close',
                 }
-            )['body'],
-            home_default,
-            'restore default',
-        )
-
-
-if __name__ == '__main__':
-    TestPythonEnvironment.main()
+            )['body']
+            == home_default
+        ), 'restore default'

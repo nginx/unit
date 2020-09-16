@@ -1,11 +1,12 @@
 from unit.applications.proto import TestApplicationProto
+from conftest import option
 
 
 class TestApplicationPerl(TestApplicationProto):
     application_type = "perl"
 
     def load(self, script, name='psgi.pl', **kwargs):
-        script_path = self.current_dir + '/perl/' + script
+        script_path = option.test_dir + '/perl/' + script
 
         self._load_conf(
             {

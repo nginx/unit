@@ -4,52 +4,48 @@ from unit.applications.proto import TestApplicationProto
 class TestVariables(TestApplicationProto):
     prerequisites = {}
 
-    def setUp(self):
-        super().setUp()
+    def setup_method(self):
+        super().setup_method()
 
-        self.assertIn(
-            'success',
-            self.conf(
-                {
-                    "listeners": {"*:7080": {"pass": "routes/$method"}},
-                    "routes": {
-                        "GET": [{"action": {"return": 201}}],
-                        "POST": [{"action": {"return": 202}}],
-                        "3": [{"action": {"return": 203}}],
-                        "4*": [{"action": {"return": 204}}],
-                        "blahGET}": [{"action": {"return": 205}}],
-                        "5GET": [{"action": {"return": 206}}],
-                        "GETGET": [{"action": {"return": 207}}],
-                        "localhost": [{"action": {"return": 208}}],
-                    },
+        assert 'success' in self.conf(
+            {
+                "listeners": {"*:7080": {"pass": "routes/$method"}},
+                "routes": {
+                    "GET": [{"action": {"return": 201}}],
+                    "POST": [{"action": {"return": 202}}],
+                    "3": [{"action": {"return": 203}}],
+                    "4*": [{"action": {"return": 204}}],
+                    "blahGET}": [{"action": {"return": 205}}],
+                    "5GET": [{"action": {"return": 206}}],
+                    "GETGET": [{"action": {"return": 207}}],
+                    "localhost": [{"action": {"return": 208}}],
                 },
-            ),
-            'configure routes',
-        )
+            },
+        ), 'configure routes'
 
     def conf_routes(self, routes):
-        self.assertIn('success', self.conf(routes, 'listeners/*:7080/pass'))
+        assert 'success' in self.conf(routes, 'listeners/*:7080/pass')
 
     def test_variables_method(self):
-        self.assertEqual(self.get()['status'], 201, 'method GET')
-        self.assertEqual(self.post()['status'], 202, 'method POST')
+        assert self.get()['status'] == 201, 'method GET'
+        assert self.post()['status'] == 202, 'method POST'
 
     def test_variables_uri(self):
         self.conf_routes("\"routes$uri\"")
 
-        self.assertEqual(self.get(url='/3')['status'], 203, 'uri')
-        self.assertEqual(self.get(url='/4*')['status'], 204, 'uri 2')
-        self.assertEqual(self.get(url='/4%2A')['status'], 204, 'uri 3')
+        assert self.get(url='/3')['status'] == 203, 'uri'
+        assert self.get(url='/4*')['status'] == 204, 'uri 2'
+        assert self.get(url='/4%2A')['status'] == 204, 'uri 3'
 
     def test_variables_host(self):
         self.conf_routes("\"routes/$host\"")
 
         def check_host(host, status=208):
-            self.assertEqual(
+            assert (
                 self.get(headers={'Host': host, 'Connection': 'close'})[
                     'status'
-                ],
-                status,
+                ]
+                == status
             )
 
         check_host('localhost')
@@ -61,43 +57,41 @@ class TestVariables(TestApplicationProto):
 
     def test_variables_many(self):
         self.conf_routes("\"routes$uri$method\"")
-        self.assertEqual(self.get(url='/5')['status'], 206, 'many')
+        assert self.get(url='/5')['status'] == 206, 'many'
 
         self.conf_routes("\"routes${uri}${method}\"")
-        self.assertEqual(self.get(url='/5')['status'], 206, 'many 2')
+        assert self.get(url='/5')['status'] == 206, 'many 2'
 
         self.conf_routes("\"routes${uri}$method\"")
-        self.assertEqual(self.get(url='/5')['status'], 206, 'many 3')
+        assert self.get(url='/5')['status'] == 206, 'many 3'
 
         self.conf_routes("\"routes/$method$method\"")
-        self.assertEqual(self.get()['status'], 207, 'many 4')
+        assert self.get()['status'] == 207, 'many 4'
 
         self.conf_routes("\"routes/$method$uri\"")
-        self.assertEqual(self.get()['status'], 404, 'no route')
-        self.assertEqual(self.get(url='/blah')['status'], 404, 'no route 2')
+        assert self.get()['status'] == 404, 'no route'
+        assert self.get(url='/blah')['status'] == 404, 'no route 2'
 
     def test_variables_replace(self):
-        self.assertEqual(self.get()['status'], 201)
+        assert self.get()['status'] == 201
 
         self.conf_routes("\"routes$uri\"")
-        self.assertEqual(self.get(url='/3')['status'], 203)
+        assert self.get(url='/3')['status'] == 203
 
         self.conf_routes("\"routes/${method}\"")
-        self.assertEqual(self.post()['status'], 202)
+        assert self.post()['status'] == 202
 
         self.conf_routes("\"routes${uri}\"")
-        self.assertEqual(self.get(url='/4*')['status'], 204)
+        assert self.get(url='/4*')['status'] == 204
 
         self.conf_routes("\"routes/blah$method}\"")
-        self.assertEqual(self.get()['status'], 205)
+        assert self.get()['status'] == 205
 
     def test_variables_invalid(self):
         def check_variables(routes):
-            self.assertIn(
-                'error',
-                self.conf(routes, 'listeners/*:7080/pass'),
-                'invalid variables',
-            )
+            assert 'error' in self.conf(
+                routes, 'listeners/*:7080/pass'
+            ), 'invalid variables'
 
         check_variables("\"routes$\"")
         check_variables("\"routes${\"")
@@ -106,6 +100,3 @@ class TestVariables(TestApplicationProto):
         check_variables("\"routes$uriblah\"")
         check_variables("\"routes${uri\"")
         check_variables("\"routes${{uri}\"")
-
-if __name__ == '__main__':
-    TestVariables.main()

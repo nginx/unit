@@ -1,17 +1,19 @@
 import glob
 import os
+import pytest
 import shutil
 import subprocess
 
 from unit.applications.proto import TestApplicationProto
+from conftest import option
 
 
 class TestApplicationJava(TestApplicationProto):
     def load(self, script, name='app', **kwargs):
-        app_path = self.testdir + '/java'
+        app_path = self.temp_dir + '/java'
         web_inf_path = app_path + '/WEB-INF/'
         classes_path = web_inf_path + 'classes/'
-        script_path = self.current_dir + '/java/' + script + '/'
+        script_path = option.test_dir + '/java/' + script + '/'
 
         if not os.path.isdir(app_path):
             os.makedirs(app_path)
@@ -54,7 +56,7 @@ class TestApplicationJava(TestApplicationProto):
             )
 
             if not ws_jars:
-                self.fail('websocket api jar not found.')
+                pytest.fail('websocket api jar not found.')
 
             javac = [
                 'javac',
@@ -69,7 +71,7 @@ class TestApplicationJava(TestApplicationProto):
                 process.communicate()
 
             except:
-                self.fail('Cann\'t run javac process.')
+                pytest.fail('Cann\'t run javac process.')
 
         self._load_conf(
             {

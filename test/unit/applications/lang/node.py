@@ -3,12 +3,13 @@ import shutil
 from urllib.parse import quote
 
 from unit.applications.proto import TestApplicationProto
+from conftest import option, public_dir
 
 
 class TestApplicationNode(TestApplicationProto):
     @classmethod
-    def setUpClass(cls, complete_check=True):
-        unit = super().setUpClass(complete_check=False)
+    def setup_class(cls, complete_check=True):
+        unit = super().setup_class(complete_check=False)
 
         # check node module
 
@@ -21,17 +22,17 @@ class TestApplicationNode(TestApplicationProto):
         # copy application
 
         shutil.copytree(
-            self.current_dir + '/node/' + script, self.testdir + '/node'
+            option.test_dir + '/node/' + script, self.temp_dir + '/node'
         )
 
         # copy modules
 
         shutil.copytree(
             self.pardir + '/node/node_modules',
-            self.testdir + '/node/node_modules',
+            self.temp_dir + '/node/node_modules',
         )
 
-        self.public_dir(self.testdir + '/node')
+        public_dir(self.temp_dir + '/node')
 
         self._load_conf(
             {
@@ -42,7 +43,7 @@ class TestApplicationNode(TestApplicationProto):
                     script: {
                         "type": "external",
                         "processes": {"spare": 0},
-                        "working_directory": self.testdir + '/node',
+                        "working_directory": self.temp_dir + '/node',
                         "executable": name,
                     }
                 },

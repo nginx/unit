@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import itertools
+import pytest
 import random
 import re
 import select
@@ -20,9 +21,6 @@ class TestApplicationWebsocket(TestApplicationProto):
     OP_PING = 0x09
     OP_PONG = 0x0A
     CLOSE_CODES = [1000, 1001, 1002, 1003, 1007, 1008, 1009, 1010, 1011]
-
-    def __init__(self, preinit=False):
-        self.preinit = preinit
 
     def key(self):
         raw_key = bytes(random.getrandbits(8) for _ in range(16))
@@ -56,7 +54,7 @@ class TestApplicationWebsocket(TestApplicationProto):
         while True:
             rlist = select.select([sock], [], [], 60)[0]
             if not rlist:
-                self.fail('Can\'t read response from server.')
+                pytest.fail('Can\'t read response from server.')
 
             resp += sock.recv(4096).decode()
 
@@ -84,7 +82,7 @@ class TestApplicationWebsocket(TestApplicationProto):
                     # For all current cases if the "read_timeout" was changed
                     # than test do not expect to get a response from server.
                     if read_timeout == 60:
-                        self.fail('Can\'t read response from server.')
+                        pytest.fail('Can\'t read response from server.')
                     break
 
                 data += sock.recv(bytes - len(data))
@@ -130,19 +128,19 @@ class TestApplicationWebsocket(TestApplicationProto):
                 code, = struct.unpack('!H', data[:2])
                 reason = data[2:].decode('utf-8')
                 if not (code in self.CLOSE_CODES or 3000 <= code < 5000):
-                    self.fail('Invalid status code')
+                    pytest.fail('Invalid status code')
                 frame['code'] = code
                 frame['reason'] = reason
             elif length == 0:
                 frame['code'] = 1005
                 frame['reason'] = ''
             else:
-                self.fail('Close frame too short')
+                pytest.fail('Close frame too short')
 
         frame['data'] = data
 
         if frame['mask']:
-            self.fail('Received frame with mask')
+            pytest.fail('Received frame with mask')
 
         return frame
 

@@ -1,8 +1,9 @@
+import pytest
 import socket
 import time
-import unittest
 
 from unit.applications.lang.python import TestApplicationPython
+import re
 
 
 class TestSettings(TestApplicationPython):
@@ -32,7 +33,7 @@ Connection: close
             raw=True,
         )
 
-        self.assertEqual(resp['status'], 408, 'status header read timeout')
+        assert resp['status'] == 408, 'status header read timeout'
 
     def test_settings_header_read_timeout_update(self):
         self.load('empty')
@@ -83,9 +84,7 @@ Connection: close
                 raw=True,
             )
 
-        self.assertEqual(
-            resp['status'], 408, 'status header read timeout update'
-        )
+        assert resp['status'] == 408, 'status header read timeout update'
 
     def test_settings_body_read_timeout(self):
         self.load('empty')
@@ -109,7 +108,7 @@ Connection: close
 
         resp = self.http(b"""0123456789""", sock=sock, raw=True)
 
-        self.assertEqual(resp['status'], 408, 'status body read timeout')
+        assert resp['status'] == 408, 'status body read timeout'
 
     def test_settings_body_read_timeout_update(self):
         self.load('empty')
@@ -144,9 +143,7 @@ Connection: close
 
         resp = self.http(b"""6789""", sock=sock, raw=True)
 
-        self.assertEqual(
-            resp['status'], 200, 'status body read timeout update'
-        )
+        assert resp['status'] == 200, 'status body read timeout update'
 
     def test_settings_send_timeout(self):
         self.load('mirror')
@@ -155,7 +152,7 @@ Connection: close
 
         self.conf({'http': {'send_timeout': 1}}, 'settings')
 
-        addr = self.testdir + '/sock'
+        addr = self.temp_dir + '/sock'
 
         self.conf({"unix:" + addr: {'application': 'mirror'}}, 'listeners')
 
@@ -182,13 +179,13 @@ Connection: close
 
         sock.close()
 
-        self.assertRegex(data, r'200 OK', 'status send timeout')
-        self.assertLess(len(data), data_len, 'data send timeout')
+        assert re.search(r'200 OK', data), 'status send timeout'
+        assert len(data) < data_len, 'data send timeout'
 
     def test_settings_idle_timeout(self):
         self.load('empty')
 
-        self.assertEqual(self.get()['status'], 200, 'init')
+        assert self.get()['status'] == 200, 'init'
 
         self.conf({'http': {'idle_timeout': 2}}, 'settings')
 
@@ -204,17 +201,15 @@ Connection: close
             headers={'Host': 'localhost', 'Connection': 'close'}, sock=sock
         )
 
-        self.assertEqual(resp['status'], 408, 'status idle timeout')
+        assert resp['status'] == 408, 'status idle timeout'
 
     def test_settings_max_body_size(self):
         self.load('empty')
 
         self.conf({'http': {'max_body_size': 5}}, 'settings')
 
-        self.assertEqual(self.post(body='01234')['status'], 200, 'status size')
-        self.assertEqual(
-            self.post(body='012345')['status'], 413, 'status size max'
-        )
+        assert self.post(body='01234')['status'] == 200, 'status size'
+        assert self.post(body='012345')['status'] == 413, 'status size max'
 
     def test_settings_max_body_size_large(self):
         self.load('mirror')
@@ -223,32 +218,26 @@ Connection: close
 
         body = '0123456789abcdef' * 4 * 64 * 1024
         resp = self.post(body=body, read_buffer_size=1024 * 1024)
-        self.assertEqual(resp['status'], 200, 'status size 4')
-        self.assertEqual(resp['body'], body, 'status body 4')
+        assert resp['status'] == 200, 'status size 4'
+        assert resp['body'] == body, 'status body 4'
 
         body = '0123456789abcdef' * 8 * 64 * 1024
         resp = self.post(body=body, read_buffer_size=1024 * 1024)
-        self.assertEqual(resp['status'], 200, 'status size 8')
-        self.assertEqual(resp['body'], body, 'status body 8')
+        assert resp['status'] == 200, 'status size 8'
+        assert resp['body'] == body, 'status body 8'
 
         body = '0123456789abcdef' * 16 * 64 * 1024
         resp = self.post(body=body, read_buffer_size=1024 * 1024)
-        self.assertEqual(resp['status'], 200, 'status size 16')
-        self.assertEqual(resp['body'], body, 'status body 16')
+        assert resp['status'] == 200, 'status size 16'
+        assert resp['body'] == body, 'status body 16'
 
         body = '0123456789abcdef' * 32 * 64 * 1024
         resp = self.post(body=body, read_buffer_size=1024 * 1024)
-        self.assertEqual(resp['status'], 200, 'status size 32')
-        self.assertEqual(resp['body'], body, 'status body 32')
+        assert resp['status'] == 200, 'status size 32'
+        assert resp['body'] == body, 'status body 32'
 
-    @unittest.skip('not yet')
+    @pytest.mark.skip('not yet')
     def test_settings_negative_value(self):
-        self.assertIn(
-            'error',
-            self.conf({'http': {'max_body_size': -1}}, 'settings'),
-            'settings negative value',
-        )
-
-
-if __name__ == '__main__':
-    TestSettings.main()
+        assert 'error' in self.conf(
+            {'http': {'max_body_size': -1}}, 'settings'
+        ), 'settings negative value'

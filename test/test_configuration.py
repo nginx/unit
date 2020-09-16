@@ -1,22 +1,21 @@
-import unittest
+import pytest
 
 from unit.control import TestControl
+from conftest import skip_alert
 
 
 class TestConfiguration(TestControl):
     prerequisites = {'modules': {'python': 'any'}}
 
     def test_json_empty(self):
-        self.assertIn('error', self.conf(''), 'empty')
+        assert 'error' in self.conf(''), 'empty'
 
     def test_json_leading_zero(self):
-        self.assertIn('error', self.conf('00'), 'leading zero')
+        assert 'error' in self.conf('00'), 'leading zero'
 
     def test_json_unicode(self):
-        self.assertIn(
-            'success',
-            self.conf(
-                b"""
+        assert 'success' in self.conf(
+            b"""
             {
                 "ap\u0070": {
                     "type": "\u0070ython",
@@ -26,50 +25,36 @@ class TestConfiguration(TestControl):
                 }
             }
             """,
-                'applications',
-            ),
-            'unicode',
-        )
+            'applications',
+        ), 'unicode'
 
-        self.assertDictEqual(
-            self.conf_get('applications'),
+        assert self.conf_get('applications') == {
+            "app": {
+                "type": "python",
+                "processes": {"spare": 0},
+                "path": "/app",
+                "module": "wsgi",
+            }
+        }, 'unicode get'
+
+    def test_json_unicode_2(self):
+        assert 'success' in self.conf(
             {
-                "app": {
+                "приложение": {
                     "type": "python",
                     "processes": {"spare": 0},
                     "path": "/app",
                     "module": "wsgi",
                 }
             },
-            'unicode get',
-        )
+            'applications',
+        ), 'unicode 2'
 
-    def test_json_unicode_2(self):
-        self.assertIn(
-            'success',
-            self.conf(
-                {
-                    "приложение": {
-                        "type": "python",
-                        "processes": {"spare": 0},
-                        "path": "/app",
-                        "module": "wsgi",
-                    }
-                },
-                'applications',
-            ),
-            'unicode 2',
-        )
-
-        self.assertIn(
-            'приложение', self.conf_get('applications'), 'unicode 2 get'
-        )
+        assert 'приложение' in self.conf_get('applications'), 'unicode 2 get'
 
     def test_json_unicode_number(self):
-        self.assertIn(
-            'error',
-            self.conf(
-                b"""
+        assert 'error' in self.conf(
+            b"""
             {
                 "app": {
                     "type": "python",
@@ -79,16 +64,12 @@ class TestConfiguration(TestControl):
                 }
             }
             """,
-                'applications',
-            ),
-            'unicode number',
-        )
+            'applications',
+        ), 'unicode number'
 
     def test_json_utf8_bom(self):
-        self.assertIn(
-            'success',
-            self.conf(
-                b"""\xEF\xBB\xBF
+        assert 'success' in self.conf(
+            b"""\xEF\xBB\xBF
             {
                 "app": {
                     "type": "python",
@@ -98,16 +79,12 @@ class TestConfiguration(TestControl):
                 }
             }
             """,
-                'applications',
-            ),
-            'UTF-8 BOM',
-        )
+            'applications',
+        ), 'UTF-8 BOM'
 
     def test_json_comment_single_line(self):
-        self.assertIn(
-            'success',
-            self.conf(
-                b"""
+        assert 'success' in self.conf(
+            b"""
             // this is bridge
             {
                 "//app": {
@@ -121,16 +98,12 @@ class TestConfiguration(TestControl):
             }
             // end of json \xEF\t
             """,
-                'applications',
-            ),
-            'single line comments',
-        )
+            'applications',
+        ), 'single line comments'
 
     def test_json_comment_multi_line(self):
-        self.assertIn(
-            'success',
-            self.conf(
-                b"""
+        assert 'success' in self.conf(
+            b"""
             /* this is bridge */
             {
                 "/*app": {
@@ -148,41 +121,31 @@ class TestConfiguration(TestControl):
             }
             /* end of json \xEF\t\b */
             """,
-                'applications',
-            ),
-            'multi line comments',
-        )
+            'applications',
+        ), 'multi line comments'
 
     def test_json_comment_invalid(self):
-        self.assertIn('error', self.conf(b'/{}', 'applications'), 'slash')
-        self.assertIn('error', self.conf(b'//{}', 'applications'), 'comment')
-        self.assertIn('error', self.conf(b'{} /', 'applications'), 'slash end')
-        self.assertIn(
-            'error', self.conf(b'/*{}', 'applications'), 'slash star'
-        )
-        self.assertIn(
-            'error', self.conf(b'{} /*', 'applications'), 'slash star end'
-        )
+        assert 'error' in self.conf(b'/{}', 'applications'), 'slash'
+        assert 'error' in self.conf(b'//{}', 'applications'), 'comment'
+        assert 'error' in self.conf(b'{} /', 'applications'), 'slash end'
+        assert 'error' in self.conf(b'/*{}', 'applications'), 'slash star'
+        assert 'error' in self.conf(b'{} /*', 'applications'), 'slash star end'
 
     def test_applications_open_brace(self):
-        self.assertIn('error', self.conf('{', 'applications'), 'open brace')
+        assert 'error' in self.conf('{', 'applications'), 'open brace'
 
     def test_applications_string(self):
-        self.assertIn('error', self.conf('"{}"', 'applications'), 'string')
+        assert 'error' in self.conf('"{}"', 'applications'), 'string'
 
-    @unittest.skip('not yet, unsafe')
+    @pytest.mark.skip('not yet, unsafe')
     def test_applications_type_only(self):
-        self.assertIn(
-            'error',
-            self.conf({"app": {"type": "python"}}, 'applications'),
-            'type only',
-        )
+        assert 'error' in self.conf(
+            {"app": {"type": "python"}}, 'applications'
+        ), 'type only'
 
     def test_applications_miss_quote(self):
-        self.assertIn(
-            'error',
-            self.conf(
-                """
+        assert 'error' in self.conf(
+            """
             {
                 app": {
                     "type": "python",
@@ -192,16 +155,12 @@ class TestConfiguration(TestControl):
                 }
             }
             """,
-                'applications',
-            ),
-            'miss quote',
-        )
+            'applications',
+        ), 'miss quote'
 
     def test_applications_miss_colon(self):
-        self.assertIn(
-            'error',
-            self.conf(
-                """
+        assert 'error' in self.conf(
+            """
             {
                 "app" {
                     "type": "python",
@@ -211,16 +170,12 @@ class TestConfiguration(TestControl):
                 }
             }
             """,
-                'applications',
-            ),
-            'miss colon',
-        )
+            'applications',
+        ), 'miss colon'
 
     def test_applications_miss_comma(self):
-        self.assertIn(
-            'error',
-            self.conf(
-                """
+        assert 'error' in self.conf(
+            """
             {
                 "app": {
                     "type": "python"
@@ -230,144 +185,117 @@ class TestConfiguration(TestControl):
                 }
             }
             """,
-                'applications',
-            ),
-            'miss comma',
-        )
+            'applications',
+        ), 'miss comma'
 
     def test_applications_skip_spaces(self):
-        self.assertIn(
-            'success', self.conf(b'{ \n\r\t}', 'applications'), 'skip spaces'
-        )
+        assert 'success' in self.conf(
+            b'{ \n\r\t}', 'applications'
+        ), 'skip spaces'
 
     def test_applications_relative_path(self):
-        self.assertIn(
-            'success',
-            self.conf(
-                {
+        assert 'success' in self.conf(
+            {
+                "app": {
+                    "type": "python",
+                    "processes": {"spare": 0},
+                    "path": "../app",
+                    "module": "wsgi",
+                }
+            },
+            'applications',
+        ), 'relative path'
+
+    @pytest.mark.skip('not yet, unsafe')
+    def test_listeners_empty(self):
+        assert 'error' in self.conf(
+            {"*:7080": {}}, 'listeners'
+        ), 'listener empty'
+
+    def test_listeners_no_app(self):
+        assert 'error' in self.conf(
+            {"*:7080": {"pass": "applications/app"}}, 'listeners'
+        ), 'listeners no app'
+
+    def test_listeners_wildcard(self):
+        assert 'success' in self.conf(
+            {
+                "listeners": {"*:7080": {"pass": "applications/app"}},
+                "applications": {
                     "app": {
                         "type": "python",
                         "processes": {"spare": 0},
-                        "path": "../app",
+                        "path": "/app",
                         "module": "wsgi",
                     }
                 },
-                'applications',
-            ),
-            'relative path',
-        )
-
-    @unittest.skip('not yet, unsafe')
-    def test_listeners_empty(self):
-        self.assertIn(
-            'error', self.conf({"*:7080": {}}, 'listeners'), 'listener empty'
-        )
-
-    def test_listeners_no_app(self):
-        self.assertIn(
-            'error',
-            self.conf({"*:7080": {"pass": "applications/app"}}, 'listeners'),
-            'listeners no app',
-        )
-
-    def test_listeners_wildcard(self):
-        self.assertIn(
-            'success',
-            self.conf(
-                {
-                    "listeners": {"*:7080": {"pass": "applications/app"}},
-                    "applications": {
-                        "app": {
-                            "type": "python",
-                            "processes": {"spare": 0},
-                            "path": "/app",
-                            "module": "wsgi",
-                        }
-                    },
-                }
-            ),
-            'listeners wildcard',
-        )
+            }
+        ), 'listeners wildcard'
 
     def test_listeners_explicit(self):
-        self.assertIn(
-            'success',
-            self.conf(
-                {
-                    "listeners": {"127.0.0.1:7080": {"pass": "applications/app"}},
-                    "applications": {
-                        "app": {
-                            "type": "python",
-                            "processes": {"spare": 0},
-                            "path": "/app",
-                            "module": "wsgi",
-                        }
-                    },
-                }
-            ),
-            'explicit',
-        )
+        assert 'success' in self.conf(
+            {
+                "listeners": {"127.0.0.1:7080": {"pass": "applications/app"}},
+                "applications": {
+                    "app": {
+                        "type": "python",
+                        "processes": {"spare": 0},
+                        "path": "/app",
+                        "module": "wsgi",
+                    }
+                },
+            }
+        ), 'explicit'
 
     def test_listeners_explicit_ipv6(self):
-        self.assertIn(
-            'success',
-            self.conf(
-                {
-                    "listeners": {"[::1]:7080": {"pass": "applications/app"}},
-                    "applications": {
-                        "app": {
-                            "type": "python",
-                            "processes": {"spare": 0},
-                            "path": "/app",
-                            "module": "wsgi",
-                        }
-                    },
-                }
-            ),
-            'explicit ipv6',
-        )
+        assert 'success' in self.conf(
+            {
+                "listeners": {"[::1]:7080": {"pass": "applications/app"}},
+                "applications": {
+                    "app": {
+                        "type": "python",
+                        "processes": {"spare": 0},
+                        "path": "/app",
+                        "module": "wsgi",
+                    }
+                },
+            }
+        ), 'explicit ipv6'
 
-    @unittest.skip('not yet, unsafe')
+    @pytest.mark.skip('not yet, unsafe')
     def test_listeners_no_port(self):
-        self.assertIn(
-            'error',
-            self.conf(
-                {
-                    "listeners": {"127.0.0.1": {"pass": "applications/app"}},
-                    "applications": {
-                        "app": {
-                            "type": "python",
-                            "processes": {"spare": 0},
-                            "path": "/app",
-                            "module": "wsgi",
-                        }
-                    },
-                }
-            ),
-            'no port',
-        )
+        assert 'error' in self.conf(
+            {
+                "listeners": {"127.0.0.1": {"pass": "applications/app"}},
+                "applications": {
+                    "app": {
+                        "type": "python",
+                        "processes": {"spare": 0},
+                        "path": "/app",
+                        "module": "wsgi",
+                    }
+                },
+            }
+        ), 'no port'
 
     def test_json_application_name_large(self):
         name = "X" * 1024 * 1024
 
-        self.assertIn(
-            'success',
-            self.conf(
-                {
-                    "listeners": {"*:7080": {"pass": "applications/" + name}},
-                    "applications": {
-                        name: {
-                            "type": "python",
-                            "processes": {"spare": 0},
-                            "path": "/app",
-                            "module": "wsgi",
-                        }
-                    },
-                }
-            ),
+        assert 'success' in self.conf(
+            {
+                "listeners": {"*:7080": {"pass": "applications/" + name}},
+                "applications": {
+                    name: {
+                        "type": "python",
+                        "processes": {"spare": 0},
+                        "path": "/app",
+                        "module": "wsgi",
+                    }
+                },
+            }
         )
 
-    @unittest.skip('not yet')
+    @pytest.mark.skip('not yet')
     def test_json_application_many(self):
         apps = 999
 
@@ -388,7 +316,7 @@ class TestConfiguration(TestControl):
             },
         }
 
-        self.assertIn('success', self.conf(conf))
+        assert 'success' in self.conf(conf)
 
     def test_json_application_many2(self):
         conf = {
@@ -407,35 +335,21 @@ class TestConfiguration(TestControl):
             "listeners": {"*:7080": {"pass": "applications/app-1"}},
         }
 
-        self.assertIn('success', self.conf(conf))
+        assert 'success' in self.conf(conf)
 
-    def test_unprivileged_user_error(self):
-        self.skip_alerts.extend(
-            [
-                r'cannot set user "root"',
-                r'failed to apply new conf',
-            ]
-        )
-        if self.is_su:
-            print('unprivileged tests, skip this')
-            raise unittest.SkipTest()
+    def test_unprivileged_user_error(self, is_su):
+        skip_alert(r'cannot set user "root"', r'failed to apply new conf')
+        if is_su:
+            pytest.skip('unprivileged tests')
 
-        self.assertIn(
-            'error',
-            self.conf(
-                {
-                    "app": {
-                        "type": "external",
-                        "processes": 1,
-                        "executable": "/app",
-                        "user": "root",
-                    }
-                },
-                'applications',
-            ),
-            'setting user',
-        )
-
-
-if __name__ == '__main__':
-    TestConfiguration.main()
+        assert 'error' in self.conf(
+            {
+                "app": {
+                    "type": "external",
+                    "processes": 1,
+                    "executable": "/app",
+                    "user": "root",
+                }
+            },
+            'applications',
+        ), 'setting user'

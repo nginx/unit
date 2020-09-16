@@ -4,19 +4,20 @@ import ssl
 import subprocess
 
 from unit.applications.proto import TestApplicationProto
+from conftest import option
 
 
 class TestApplicationTLS(TestApplicationProto):
-    def __init__(self, test):
-        super().__init__(test)
+    def setup_method(self):
+        super().setup_method()
 
         self.context = ssl.create_default_context()
         self.context.check_hostname = False
         self.context.verify_mode = ssl.CERT_NONE
 
     @classmethod
-    def setUpClass(cls, complete_check=True):
-        unit = super().setUpClass(complete_check=False)
+    def setup_class(cls, complete_check=True):
+        unit = super().setup_class(complete_check=False)
 
         # check tls module
 
@@ -45,9 +46,9 @@ class TestApplicationTLS(TestApplicationProto):
                 '-x509',
                 '-new',
                 '-subj',    '/CN=' + name + '/',
-                '-config',  self.testdir + '/openssl.conf',
-                '-out',     self.testdir + '/' + name + '.crt',
-                '-keyout',  self.testdir + '/' + name + '.key',
+                '-config',  self.temp_dir + '/openssl.conf',
+                '-out',     self.temp_dir + '/' + name + '.crt',
+                '-keyout',  self.temp_dir + '/' + name + '.key',
             ],
             stderr=subprocess.STDOUT,
         )
@@ -59,8 +60,8 @@ class TestApplicationTLS(TestApplicationProto):
         if key is None:
             key = crt
 
-        key_path = self.testdir + '/' + key + '.key'
-        crt_path = self.testdir + '/' + crt + '.crt'
+        key_path = self.temp_dir + '/' + key + '.key'
+        crt_path = self.temp_dir + '/' + crt + '.crt'
 
         with open(key_path, 'rb') as k, open(crt_path, 'rb') as c:
             return self.conf(k.read() + c.read(), '/certificates/' + crt)
@@ -87,7 +88,7 @@ class TestApplicationTLS(TestApplicationProto):
         return ssl.get_server_certificate(addr, ssl_version=ssl_version)
 
     def openssl_conf(self):
-        conf_path = self.testdir + '/openssl.conf'
+        conf_path = self.temp_dir + '/openssl.conf'
 
         if os.path.exists(conf_path):
             return
@@ -105,7 +106,7 @@ distinguished_name = req_distinguished_name
         if name is None:
             name = script
 
-        script_path = self.current_dir + '/python/' + script
+        script_path = option.test_dir + '/python/' + script
 
         self._load_conf(
             {

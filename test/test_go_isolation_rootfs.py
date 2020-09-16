@@ -1,5 +1,5 @@
 import os
-import unittest
+import pytest
 
 from unit.applications.lang.go import TestApplicationGo
 
@@ -7,28 +7,22 @@ from unit.applications.lang.go import TestApplicationGo
 class TestGoIsolationRootfs(TestApplicationGo):
     prerequisites = {'modules': {'go': 'all'}}
 
-    def test_go_isolation_rootfs_chroot(self):
-        if not self.is_su:
-            print("requires root")
-            raise unittest.SkipTest()
+    def test_go_isolation_rootfs_chroot(self, is_su):
+        if not is_su:
+            pytest.skip('requires root')
 
         if os.uname().sysname == 'Darwin':
-            print('chroot tests not supported on OSX')
-            raise unittest.SkipTest()
+            pytest.skip('chroot tests not supported on OSX')
 
         isolation = {
-            'rootfs': self.testdir,
+            'rootfs': self.temp_dir,
         }
 
         self.load('ns_inspect', isolation=isolation)
 
         obj = self.getjson(url='/?file=/go/app')['body']
 
-        self.assertEqual(obj['FileExists'], True, 'app relative to rootfs')
+        assert obj['FileExists'] == True, 'app relative to rootfs'
 
         obj = self.getjson(url='/?file=/bin/sh')['body']
-        self.assertEqual(obj['FileExists'], False, 'file should not exists')
-
-
-if __name__ == '__main__':
-    TestGoIsolationRootfs.main()
+        assert obj['FileExists'] == False, 'file should not exists'

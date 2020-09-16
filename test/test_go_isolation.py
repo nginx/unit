@@ -1,10 +1,10 @@
 import grp
+import os
 import pwd
-import unittest
+import pytest
 
 from unit.applications.lang.go import TestApplicationGo
 from unit.feature.isolation import TestFeatureIsolation
-
 
 class TestGoIsolation(TestApplicationGo):
     prerequisites = {'modules': {'go': 'any'}, 'features': ['isolation']}
@@ -12,10 +12,10 @@ class TestGoIsolation(TestApplicationGo):
     isolation = TestFeatureIsolation()
 
     @classmethod
-    def setUpClass(cls, complete_check=True):
-        unit = super().setUpClass(complete_check=False)
+    def setup_class(cls, complete_check=True):
+        unit = super().setup_class(complete_check=False)
 
-        TestFeatureIsolation().check(cls.available, unit.testdir)
+        TestFeatureIsolation().check(cls.available, unit.temp_dir)
 
         return unit if not complete_check else unit.complete()
 
@@ -41,24 +41,20 @@ class TestGoIsolation(TestApplicationGo):
 
         for ns, ns_value in self.available['features']['isolation'].items():
             if ns.upper() in obj['NS']:
-                self.assertEqual(
-                    obj['NS'][ns.upper()], ns_value, '%s match' % ns
-                )
+                assert obj['NS'][ns.upper()] == ns_value, '%s match' % ns
 
-    def test_isolation_unpriv_user(self):
+    def test_isolation_unpriv_user(self, is_su):
         if not self.isolation_key('unprivileged_userns_clone'):
-            print('unprivileged clone is not available')
-            raise unittest.SkipTest()
+            pytest.skip('unprivileged clone is not available')
 
-        if self.is_su:
-            print('privileged tests, skip this')
-            raise unittest.SkipTest()
+        if is_su:
+            pytest.skip('privileged tests, skip this')
 
         self.load('ns_inspect')
         obj = self.getjson()['body']
 
-        self.assertEqual(obj['UID'], self.uid, 'uid match')
-        self.assertEqual(obj['GID'], self.gid, 'gid match')
+        assert obj['UID'] == os.geteuid(), 'uid match'
+        assert obj['GID'] == os.getegid(), 'gid match'
 
         self.load('ns_inspect', isolation={'namespaces': {'credential': True}})
 
@@ -67,8 +63,8 @@ class TestGoIsolation(TestApplicationGo):
         nobody_uid, nogroup_gid, nogroup = self.unpriv_creds()
 
         # unprivileged unit map itself to nobody in the container by default
-        self.assertEqual(obj['UID'], nobody_uid, 'uid of nobody')
-        self.assertEqual(obj['GID'], nogroup_gid, 'gid of %s' % nogroup)
+        assert obj['UID'] == nobody_uid, 'uid of nobody'
+        assert obj['GID'] == nogroup_gid, 'gid of %s' % nogroup
 
         self.load(
             'ns_inspect',
@@ -78,8 +74,8 @@ class TestGoIsolation(TestApplicationGo):
 
         obj = self.getjson()['body']
 
-        self.assertEqual(obj['UID'], 0, 'uid match user=root')
-        self.assertEqual(obj['GID'], 0, 'gid match user=root')
+        assert obj['UID'] == 0, 'uid match user=root'
+        assert obj['GID'] == 0, 'gid match user=root'
 
         self.load(
             'ns_inspect',
@@ -90,10 +86,8 @@ class TestGoIsolation(TestApplicationGo):
 
         obj = self.getjson()['body']
 
-        self.assertEqual(obj['UID'], 0, 'uid match user=root group=nogroup')
-        self.assertEqual(
-            obj['GID'], nogroup_gid, 'gid match user=root group=nogroup'
-        )
+        assert obj['UID'] == 0, 'uid match user=root group=nogroup'
+        assert obj['GID'] == nogroup_gid, 'gid match user=root group=nogroup'
 
         self.load(
             'ns_inspect',
@@ -101,20 +95,19 @@ class TestGoIsolation(TestApplicationGo):
             group='root',
             isolation={
                 'namespaces': {'credential': True},
-                'uidmap': [{'container': 0, 'host': self.uid, 'size': 1}],
-                'gidmap': [{'container': 0, 'host': self.gid, 'size': 1}],
+                'uidmap': [{'container': 0, 'host': os.geteuid(), 'size': 1}],
+                'gidmap': [{'container': 0, 'host': os.getegid(), 'size': 1}],
             },
         )
 
         obj = self.getjson()['body']
 
-        self.assertEqual(obj['UID'], 0, 'uid match uidmap')
-        self.assertEqual(obj['GID'], 0, 'gid match gidmap')
+        assert obj['UID'] == 0, 'uid match uidmap'
+        assert obj['GID'] == 0, 'gid match gidmap'
 
-    def test_isolation_priv_user(self):
-        if not self.is_su:
-            print('unprivileged tests, skip this')
-            raise unittest.SkipTest()
+    def test_isolation_priv_user(self, is_su):
+        if not is_su:
+            pytest.skip('unprivileged tests, skip this')
 
         self.load('ns_inspect')
 
@@ -122,16 +115,16 @@ class TestGoIsolation(TestApplicationGo):
 
         obj = self.getjson()['body']
 
-        self.assertEqual(obj['UID'], nobody_uid, 'uid match')
-        self.assertEqual(obj['GID'], nogroup_gid, 'gid match')
+        assert obj['UID'] == nobody_uid, 'uid match'
+        assert obj['GID'] == nogroup_gid, 'gid match'
 
         self.load('ns_inspect', isolation={'namespaces': {'credential': True}})
 
         obj = self.getjson()['body']
 
         # privileged unit map app creds in the container by default
-        self.assertEqual(obj['UID'], nobody_uid, 'uid nobody')
-        self.assertEqual(obj['GID'], nogroup_gid, 'gid nobody')
+        assert obj['UID'] == nobody_uid, 'uid nobody'
+        assert obj['GID'] == nogroup_gid, 'gid nobody'
 
         self.load(
             'ns_inspect',
@@ -141,8 +134,8 @@ class TestGoIsolation(TestApplicationGo):
 
         obj = self.getjson()['body']
 
-        self.assertEqual(obj['UID'], 0, 'uid nobody user=root')
-        self.assertEqual(obj['GID'], 0, 'gid nobody user=root')
+        assert obj['UID'] == 0, 'uid nobody user=root'
+        assert obj['GID'] == 0, 'gid nobody user=root'
 
         self.load(
             'ns_inspect',
@@ -153,10 +146,8 @@ class TestGoIsolation(TestApplicationGo):
 
         obj = self.getjson()['body']
 
-        self.assertEqual(obj['UID'], 0, 'uid match user=root group=nogroup')
-        self.assertEqual(
-            obj['GID'], nogroup_gid, 'gid match user=root group=nogroup'
-        )
+        assert obj['UID'] == 0, 'uid match user=root group=nogroup'
+        assert obj['GID'] == nogroup_gid, 'gid match user=root group=nogroup'
 
         self.load(
             'ns_inspect',
@@ -171,8 +162,8 @@ class TestGoIsolation(TestApplicationGo):
 
         obj = self.getjson()['body']
 
-        self.assertEqual(obj['UID'], 0, 'uid match uidmap user=root')
-        self.assertEqual(obj['GID'], 0, 'gid match gidmap user=root')
+        assert obj['UID'] == 0, 'uid match uidmap user=root'
+        assert obj['GID'] == 0, 'gid match gidmap user=root'
 
         # map 65535 uids
         self.load(
@@ -188,21 +179,15 @@ class TestGoIsolation(TestApplicationGo):
 
         obj = self.getjson()['body']
 
-        self.assertEqual(
-            obj['UID'], nobody_uid, 'uid match uidmap user=nobody'
-        )
-        self.assertEqual(
-            obj['GID'], nogroup_gid, 'gid match uidmap user=nobody'
-        )
+        assert obj['UID'] == nobody_uid, 'uid match uidmap user=nobody'
+        assert obj['GID'] == nogroup_gid, 'gid match uidmap user=nobody'
 
     def test_isolation_mnt(self):
         if not self.isolation_key('mnt'):
-            print('mnt namespace is not supported')
-            raise unittest.SkipTest()
+            pytest.skip('mnt namespace is not supported')
 
         if not self.isolation_key('unprivileged_userns_clone'):
-            print('unprivileged clone is not available')
-            raise unittest.SkipTest()
+            pytest.skip('unprivileged clone is not available')
 
         self.load(
             'ns_inspect',
@@ -218,27 +203,20 @@ class TestGoIsolation(TestApplicationGo):
 
         for ns in allns:
             if ns.upper() in obj['NS']:
-                self.assertEqual(
-                    obj['NS'][ns.upper()],
-                    self.available['features']['isolation'][ns],
-                    '%s match' % ns,
-                )
+                assert (
+                    obj['NS'][ns.upper()]
+                    == self.available['features']['isolation'][ns]
+                ), ('%s match' % ns)
 
-        self.assertNotEqual(
-            obj['NS']['MNT'], self.isolation.getns('mnt'), 'mnt set'
-        )
-        self.assertNotEqual(
-            obj['NS']['USER'], self.isolation.getns('user'), 'user set'
-        )
+        assert obj['NS']['MNT'] != self.isolation.getns('mnt'), 'mnt set'
+        assert obj['NS']['USER'] != self.isolation.getns('user'), 'user set'
 
-    def test_isolation_pid(self):
+    def test_isolation_pid(self, is_su):
         if not self.isolation_key('pid'):
-            print('pid namespace is not supported')
-            raise unittest.SkipTest()
+            pytest.skip('pid namespace is not supported')
 
-        if not (self.is_su or self.isolation_key('unprivileged_userns_clone')):
-            print('requires root or unprivileged_userns_clone')
-            raise unittest.SkipTest()
+        if not (is_su or self.isolation_key('unprivileged_userns_clone')):
+            pytest.skip('requires root or unprivileged_userns_clone')
 
         self.load(
             'ns_inspect',
@@ -247,7 +225,7 @@ class TestGoIsolation(TestApplicationGo):
 
         obj = self.getjson()['body']
 
-        self.assertEqual(obj['PID'], 1, 'pid of container is 1')
+        assert obj['PID'] == 1, 'pid of container is 1'
 
     def test_isolation_namespace_false(self):
         self.load('ns_inspect')
@@ -275,78 +253,67 @@ class TestGoIsolation(TestApplicationGo):
 
         for ns in allns:
             if ns.upper() in obj['NS']:
-                self.assertEqual(
-                    obj['NS'][ns.upper()],
-                    self.available['features']['isolation'][ns],
-                    '%s match' % ns,
-                )
+                assert (
+                    obj['NS'][ns.upper()]
+                    == self.available['features']['isolation'][ns]
+                ), ('%s match' % ns)
 
     def test_go_isolation_rootfs_container(self):
         if not self.isolation_key('unprivileged_userns_clone'):
-            print('unprivileged clone is not available')
-            raise unittest.SkipTest()
+            pytest.skip('unprivileged clone is not available')
 
         if not self.isolation_key('mnt'):
-            print('mnt namespace is not supported')
-            raise unittest.SkipTest()
+            pytest.skip('mnt namespace is not supported')
 
         isolation = {
             'namespaces': {'mount': True, 'credential': True},
-            'rootfs': self.testdir,
+            'rootfs': self.temp_dir,
         }
 
         self.load('ns_inspect', isolation=isolation)
 
         obj = self.getjson(url='/?file=/go/app')['body']
 
-        self.assertEqual(obj['FileExists'], True, 'app relative to rootfs')
+        assert obj['FileExists'] == True, 'app relative to rootfs'
 
         obj = self.getjson(url='/?file=/bin/sh')['body']
-        self.assertEqual(obj['FileExists'], False, 'file should not exists')
+        assert obj['FileExists'] == False, 'file should not exists'
 
-    def test_go_isolation_rootfs_container_priv(self):
-        if not self.is_su:
-            print("requires root")
-            raise unittest.SkipTest()
+    def test_go_isolation_rootfs_container_priv(self, is_su):
+        if not is_su:
+            pytest.skip('requires root')
 
         if not self.isolation_key('mnt'):
-            print('mnt namespace is not supported')
-            raise unittest.SkipTest()
+            pytest.skip('mnt namespace is not supported')
 
         isolation = {
             'namespaces': {'mount': True},
-            'rootfs': self.testdir,
+            'rootfs': self.temp_dir,
         }
 
         self.load('ns_inspect', isolation=isolation)
 
         obj = self.getjson(url='/?file=/go/app')['body']
 
-        self.assertEqual(obj['FileExists'], True, 'app relative to rootfs')
+        assert obj['FileExists'] == True, 'app relative to rootfs'
 
         obj = self.getjson(url='/?file=/bin/sh')['body']
-        self.assertEqual(obj['FileExists'], False, 'file should not exists')
+        assert obj['FileExists'] == False, 'file should not exists'
 
     def test_go_isolation_rootfs_default_tmpfs(self):
         if not self.isolation_key('unprivileged_userns_clone'):
-            print('unprivileged clone is not available')
-            raise unittest.SkipTest()
+            pytest.skip('unprivileged clone is not available')
 
         if not self.isolation_key('mnt'):
-            print('mnt namespace is not supported')
-            raise unittest.SkipTest()
+            pytest.skip('mnt namespace is not supported')
 
         isolation = {
             'namespaces': {'mount': True, 'credential': True},
-            'rootfs': self.testdir,
+            'rootfs': self.temp_dir,
         }
 
         self.load('ns_inspect', isolation=isolation)
 
         obj = self.getjson(url='/?file=/tmp')['body']
 
-        self.assertEqual(obj['FileExists'], True, 'app has /tmp')
-
-
-if __name__ == '__main__':
-    TestGoIsolation.main()
+        assert obj['FileExists'] == True, 'app has /tmp'

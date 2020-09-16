@@ -1,11 +1,12 @@
 from unit.applications.proto import TestApplicationProto
+from conftest import option
 
 
 class TestApplicationPHP(TestApplicationProto):
     application_type = "php"
 
     def load(self, script, index='index.php', **kwargs):
-        script_path = self.current_dir + '/php/' + script
+        script_path = option.test_dir + '/php/' + script
 
         self._load_conf(
             {
