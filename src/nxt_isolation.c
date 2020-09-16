@@ -707,7 +707,7 @@ nxt_isolation_change_root(nxt_task_t *task, nxt_process_t *process)
 
     nxt_debug(task, "change root: %s", rootfs);
 
-    if (NXT_CLONE_MNT(process->isolation.clone.flags)) {
+    if (nxt_is_clone_flag_set(process->isolation.clone.flags, NEWNS)) {
         ret = nxt_isolation_pivot_root(task, rootfs);
 
     } else {

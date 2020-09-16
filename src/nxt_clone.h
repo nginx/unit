@@ -42,9 +42,6 @@ pid_t nxt_clone(nxt_int_t flags);
 
 #if (NXT_HAVE_CLONE_NEWUSER)
 
-#define NXT_CLONE_MNT(flags)                                                  \
-    ((flags & CLONE_NEWNS) == CLONE_NEWNS)
-
 NXT_EXPORT nxt_int_t nxt_clone_credential_map(nxt_task_t *task, pid_t pid,
     nxt_credential_t *creds, nxt_clone_t *clone);
 NXT_EXPORT nxt_int_t nxt_clone_vldt_credential_uidmap(nxt_task_t *task,
