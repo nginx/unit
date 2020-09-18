@@ -1749,7 +1749,15 @@ nxt_h1p_conn_timer_value(nxt_conn_t *c, uintptr_t data)
 
     joint = c->listen->socket.data;
 
-    return nxt_value_at(nxt_msec_t, joint->socket_conf, data);
+    if (nxt_fast_path(joint != NULL)) {
+        return nxt_value_at(nxt_msec_t, joint->socket_conf, data);
+    }
+
+    /*
+     * Listening socket had been closed while
+     * connection was in keep-alive state.
+     */
+    return 1;
 }
 
 
