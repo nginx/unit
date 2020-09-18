@@ -1829,6 +1829,8 @@ nxt_h1p_idle_close(nxt_task_t *task, void *obj, void *data)
 
     nxt_debug(task, "h1p idle close");
 
+    nxt_queue_remove(&c->link);
+
     nxt_h1p_idle_response(task, c);
 }
 
