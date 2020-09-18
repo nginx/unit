@@ -60,6 +60,7 @@ nxt_python_start(nxt_task_t *task, nxt_process_data_t *data)
     char                   *nxt_py_module;
     size_t                 len;
     PyObject               *obj, *pypath, *module;
+    const char             *callable;
     nxt_unit_ctx_t         *unit_ctx;
     nxt_unit_init_t        python_init;
     nxt_common_app_conf_t  *app_conf;
@@ -199,16 +200,18 @@ nxt_python_start(nxt_task_t *task, nxt_process_data_t *data)
         goto fail;
     }
 
-    obj = PyDict_GetItemString(PyModule_GetDict(module), "application");
+    callable = (c->callable != NULL) ? c->callable : "application";
+
+    obj = PyDict_GetItemString(PyModule_GetDict(module), callable);
     if (nxt_slow_path(obj == NULL)) {
-        nxt_alert(task, "Python failed to get \"application\" "
-                  "from module \"%s\"", nxt_py_module);
+        nxt_alert(task, "Python failed to get \"%s\" "
+                  "from module \"%s\"", callable, nxt_py_module);
         goto fail;
     }
 
     if (nxt_slow_path(PyCallable_Check(obj) == 0)) {
-        nxt_alert(task, "\"application\" in module \"%s\" "
-                  "is not a callable object", nxt_py_module);
+        nxt_alert(task, "\"%s\" in module \"%s\" "
+                  "is not a callable object", callable, nxt_py_module);
         goto fail;
     }
 

@@ -773,6 +773,12 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_python_members[] = {
       NULL,
       NULL },
 
+    { nxt_string("callable"),
+      NXT_CONF_VLDT_STRING,
+      0,
+      NULL,
+      NULL },
+
     NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_common_members)
 };
 

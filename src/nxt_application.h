@@ -50,6 +50,7 @@ typedef struct {
     char       *home;
     nxt_str_t  path;
     nxt_str_t  module;
+    char       *callable;
 } nxt_python_app_conf_t;
 
 
