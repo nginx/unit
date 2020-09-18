@@ -1873,10 +1873,9 @@ nxt_h1p_idle_timeout(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_h1p_idle_response(nxt_task_t *task, nxt_conn_t *c)
 {
-    u_char         *p;
-    size_t         size;
-    nxt_buf_t      *out, *last;
-    nxt_h1proto_t  *h1p;
+    u_char     *p;
+    size_t     size;
+    nxt_buf_t  *out, *last;
 
     size = nxt_length(NXT_H1P_IDLE_TIMEOUT)
            + nxt_http_date_cache.size
@@ -1905,9 +1904,6 @@ nxt_h1p_idle_response(nxt_task_t *task, nxt_conn_t *c)
 
     last->completion_handler = nxt_h1p_idle_response_sent;
     last->parent = c;
-
-    h1p = c->socket.data;
-    h1p->conn_write_tail = &last->next;
 
     c->write = out;
     c->write_state = &nxt_h1p_timeout_response_state;
