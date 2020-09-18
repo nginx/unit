@@ -740,7 +740,7 @@ nxt_isolation_pivot_root(nxt_task_t *task, const char *path)
      */
 
     if (nxt_slow_path(mount("", "/", "", MS_SLAVE|MS_REC, "") != 0)) {
-        nxt_alert(task, "failed to make / a slave mount %E", nxt_errno);
+        nxt_alert(task, "mount(\"/\", MS_SLAVE|MS_REC) failed: %E", nxt_errno);
         return NXT_ERROR;
     }
 
@@ -764,8 +764,8 @@ nxt_isolation_pivot_root(nxt_task_t *task, const char *path)
     }
 
     /*
-     * Make oldroot a slave mount to avoid unmounts getting propagated to the
-     * host.
+     * Demote the oldroot mount to avoid unmounts getting propagated to
+     * the host.
      */
     if (nxt_slow_path(mount("", ".", "", MS_SLAVE | MS_REC, NULL) != 0)) {
         nxt_alert(task, "failed to bind mount rootfs %E", nxt_errno);

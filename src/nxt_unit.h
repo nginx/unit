@@ -187,7 +187,7 @@ struct nxt_unit_read_info_s {
 
 /*
  * Initialize Unit application library with necessary callbacks and
- * ready/reply port parameters, send 'READY' response to master.
+ * ready/reply port parameters, send 'READY' response to main.
  */
 nxt_unit_ctx_t *nxt_unit_init(nxt_unit_init_t *);
 
