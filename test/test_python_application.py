@@ -797,3 +797,31 @@ last line: 987654321
             obj = self.getjson()['body']
             assert obj['UID'] == nobody_uid, 'root uid group=root'
             assert obj['GID'] == 0, 'root gid group=root'
+
+    def test_python_application_callable(self):
+        skip_alert(r'Python failed to get "blah" from module')
+        self.load('callable')
+
+        assert self.get()['status'] == 204, 'default application response'
+
+        assert 'success' in self.conf(
+            '"app"', 'applications/callable/callable'
+        )
+
+        assert self.get()['status'] == 200, 'callable response'
+
+        assert 'success' in self.conf(
+            '"blah"', 'applications/callable/callable'
+        )
+
+        assert self.get()['status'] not in [200, 204], 'callable response inv'
+
+        assert 'success' in self.conf(
+            '"app"', 'applications/callable/callable'
+        )
+
+        assert self.get()['status'] == 200, 'callable response 2'
+
+        assert 'success' in self.conf_delete('applications/callable/callable')
+
+        assert self.get()['status'] == 204, 'default response 2'
