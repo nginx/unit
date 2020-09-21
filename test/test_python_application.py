@@ -20,14 +20,18 @@ class TestPythonApplication(TestApplicationPython):
 
         body = 'Test body string.'
 
-        resp = self.post(
-            headers={
-                'Host': 'localhost',
-                'Content-Type': 'text/html',
-                'Custom-Header': 'blah',
-                'Connection': 'close',
-            },
-            body=body,
+        resp = self.http(
+            b"""POST / HTTP/1.1
+Host: localhost
+Content-Length: %d
+Custom-Header: blah
+Custom-hEader: Blah
+Content-Type: text/html
+Connection: close
+custom-header: BLAH
+
+%s""" % (len(body), body.encode()),
+            raw=True,
         )
 
         assert resp['status'] == 200, 'status'
@@ -52,7 +56,7 @@ class TestPythonApplication(TestApplicationPython):
             'Request-Uri': '/',
             'Http-Host': 'localhost',
             'Server-Protocol': 'HTTP/1.1',
-            'Custom-Header': 'blah',
+            'Custom-Header': 'blah, Blah, BLAH',
             'Wsgi-Version': '(1, 0)',
             'Wsgi-Url-Scheme': 'http',
             'Wsgi-Multithread': 'False',
