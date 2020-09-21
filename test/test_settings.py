@@ -203,6 +203,24 @@ Connection: close
 
         assert resp['status'] == 408, 'status idle timeout'
 
+    def test_settings_idle_timeout_2(self):
+        self.load('empty')
+
+        assert self.get()['status'] == 200, 'init'
+
+        self.conf({'http': {'idle_timeout': 1}}, 'settings')
+
+        _, sock = self.http(b'', start=True, raw=True, no_recv=True)
+
+        time.sleep(2)
+
+        assert (
+            self.get(
+                headers={'Host': 'localhost', 'Connection': 'close'}, sock=sock
+            )['status']
+            == 408
+        ), 'status idle timeout'
+
     def test_settings_max_body_size(self):
         self.load('empty')
 
