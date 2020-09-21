@@ -87,6 +87,29 @@ class TestVariables(TestApplicationProto):
         self.conf_routes("\"routes/blah$method}\"")
         assert self.get()['status'] == 205
 
+    def test_variables_upstream(self):
+        assert 'success' in self.conf(
+            {
+                "listeners": {
+                    "*:7080": {"pass": "upstreams$uri"},
+                    "*:7081": {"pass": "routes/one"},
+                },
+                "upstreams": {
+                    "1": {
+                        "servers": {
+                            "127.0.0.1:7081": {},
+                        },
+                    },
+                },
+                "routes": {
+                    "one": [{"action": {"return": 200}}],
+                },
+            },
+        ), 'upstreams initial configuration'
+
+        assert self.get(url='/1')['status'] == 200
+        assert self.get(url='/2')['status'] == 404
+
     def test_variables_invalid(self):
         def check_variables(routes):
             assert 'error' in self.conf(
