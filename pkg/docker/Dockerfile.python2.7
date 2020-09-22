@@ -21,6 +21,8 @@ RUN set -x \
 	done; \
 	test -z "$found" && echo >&2 "error: failed to fetch GPG key $NGINX_GPGKEY" && exit 1; \
 	apt-get remove --purge --auto-remove -y gnupg1 && rm -rf /var/lib/apt/lists/* \
+# work-around debian bug 863199
+	&& mkdir -p /usr/share/man/man1 \
 	&& dpkgArch="$(dpkg --print-architecture)" \
 	&& unitPackages="unit=${UNIT_VERSION} unit-python2.7=${UNIT_VERSION}" \
 	&& case "$dpkgArch" in \

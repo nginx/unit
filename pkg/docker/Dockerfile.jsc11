@@ -24,7 +24,7 @@ RUN set -x \
 # work-around debian bug 863199
 	&& mkdir -p /usr/share/man/man1 \
 	&& dpkgArch="$(dpkg --print-architecture)" \
-	&& unitPackages="unit=${UNIT_VERSION} unit-perl=${UNIT_VERSION}" \
+	&& unitPackages="unit=${UNIT_VERSION} unit-jsc11=${UNIT_VERSION}" \
 	&& case "$dpkgArch" in \
 		amd64|i386) \
 # arches officialy built by upstream
