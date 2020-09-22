@@ -58,10 +58,7 @@ class TestApplicationWebsocket(TestApplicationProto):
 
             resp += sock.recv(4096).decode()
 
-            if (
-                re.search('101 Switching Protocols', resp)
-                and resp[-4:] == '\r\n\r\n'
-            ):
+            if (resp.startswith('HTTP/') and '\r\n\r\n' in resp):
                 resp = self._resp_to_dict(resp)
                 break
 
