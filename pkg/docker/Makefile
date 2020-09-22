@@ -38,7 +38,7 @@ default:
 	@echo "valid targets: all build dockerfiles push tag export clean"
 
 dockerfiles: $(addprefix Dockerfile., $(MODULES))
-build: $(addprefix build-,$(MODULES))
+build: refresh-base $(addprefix build-,$(MODULES))
 tag: $(addprefix tag-,$(MODULES))
 push: $(addprefix push-,$(MODULES)) latest
 export: $(addsuffix .tar.gz,$(addprefix $(EXPORT_DIR)/nginx-unit-$(VERSION)-,$(MODULES))) $(addsuffix .tar.gz.sha512, $(addprefix $(EXPORT_DIR)/nginx-unit-$(VERSION)-,$(MODULES)))
@@ -51,7 +51,7 @@ Dockerfile.%: ../../version
 			> $@
 
 build-%: Dockerfile.%
-	docker build -t unit:$(VERSION)-$* -f Dockerfile.$* .
+	docker build --no-cache -t unit:$(VERSION)-$* -f Dockerfile.$* .
 
 tag-%: build-%
 	docker tag unit:$(VERSION)-$* nginx/unit:$(VERSION)-$*
@@ -62,6 +62,9 @@ push-%: tag-%
 latest:
 	docker tag nginx/unit:$(VERSION)-full nginx/unit:latest
 	docker push nginx/unit:latest
+
+refresh-base:
+	docker pull $(shell head -n 1 Dockerfile.tmpl | cut -d' ' -f 2)
 
 $(EXPORT_DIR):
 	mkdir -p $@
@@ -78,4 +81,4 @@ clean:
 	rm -f $(addprefix Dockerfile., $(MODULES))
 	rm -rf $(EXPORT_DIR)
 
-.PHONY: default all build dockerfiles latest push tag export clean
+.PHONY: default all build dockerfiles latest push tag export clean refresh-base
