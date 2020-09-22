@@ -14,20 +14,15 @@ from conftest import option
 
 class TestHTTP(TestUnit):
     def http(self, start_str, **kwargs):
-        sock_type = (
-            'ipv4' if 'sock_type' not in kwargs else kwargs['sock_type']
-        )
-        port = 7080 if 'port' not in kwargs else kwargs['port']
-        url = '/' if 'url' not in kwargs else kwargs['url']
+        sock_type = kwargs.get('sock_type', 'ipv4')
+        port = kwargs.get('port', 7080)
+        url = kwargs.get('url', '/')
         http = 'HTTP/1.0' if 'http_10' in kwargs else 'HTTP/1.1'
 
-        headers = (
-            {'Host': 'localhost', 'Connection': 'close'}
-            if 'headers' not in kwargs
-            else kwargs['headers']
-        )
+        headers = kwargs.get('headers',
+                             {'Host': 'localhost', 'Connection': 'close'})
 
-        body = b'' if 'body' not in kwargs else kwargs['body']
+        body = kwargs.get('body', b'')
         crlf = '\r\n'
 
         if 'addr' not in kwargs:
@@ -92,7 +87,7 @@ class TestHTTP(TestUnit):
 
         sock.sendall(req)
 
-        encoding = 'utf-8' if 'encoding' not in kwargs else kwargs['encoding']
+        encoding = kwargs.get('encoding', 'utf-8')
 
         self.log_out(req, encoding)
 
@@ -178,12 +173,8 @@ class TestHTTP(TestUnit):
     def recvall(self, sock, **kwargs):
         timeout_default = 60
 
-        timeout = (
-            timeout_default
-            if 'read_timeout' not in kwargs
-            else kwargs['read_timeout']
-        )
-        buff_size = 4096 if 'buff_size' not in kwargs else kwargs['buff_size']
+        timeout = kwargs.get('read_timeout', timeout_default)
+        buff_size = kwargs.get('buff_size', 4096)
 
         data = b''
         while True:
