@@ -12,7 +12,7 @@ CODENAME := buster
 UNIT_VERSION = $(VERSION)-$(RELEASE)~$(CODENAME)
 
 MODULES = python2.7 python3.7 php7.3 go1.11-dev perl5.28 ruby2.5 \
-          full minimal
+          jsc11 full minimal
 
 MODULE_php7.3="unit=$${UNIT_VERSION} unit-php=$${UNIT_VERSION}"
 
@@ -26,7 +26,9 @@ MODULE_perl5.28="unit=$${UNIT_VERSION} unit-perl=$${UNIT_VERSION}"
 
 MODULE_ruby2.5="unit=$${UNIT_VERSION} unit-ruby=$${UNIT_VERSION}"
 
-MODULE_full="unit=$${UNIT_VERSION} unit-php=$${UNIT_VERSION} unit-python2.7=$${UNIT_VERSION} unit-python3.7=$${UNIT_VERSION} unit-perl=$${UNIT_VERSION} unit-ruby=$${UNIT_VERSION}"
+MODULE_jsc11="unit=$${UNIT_VERSION} unit-jsc11=$${UNIT_VERSION}"
+
+MODULE_full="unit=$${UNIT_VERSION} unit-php=$${UNIT_VERSION} unit-python2.7=$${UNIT_VERSION} unit-python3.7=$${UNIT_VERSION} unit-perl=$${UNIT_VERSION} unit-ruby=$${UNIT_VERSION} unit-jsc11=$${UNIT_VERSION}"
 
 MODULE_minimal="unit=$${UNIT_VERSION}"
 
