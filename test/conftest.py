@@ -67,32 +67,40 @@ def pytest_generate_tests(metafunc):
 
     type = cls.application_type
 
+    def generate_tests(versions):
+        metafunc.fixturenames.append('tmp_ct')
+        metafunc.parametrize('tmp_ct', range(len(versions)))
+
+        for i, version in enumerate(versions):
+            option.generated_tests[
+                metafunc.function.__name__ + '[{}]'.format(i)
+            ] = (type + ' ' + version)
+
     # take available module from option and generate tests for each version
 
-    for module in cls.prerequisites['modules']:
+    for module, prereq_version in cls.prerequisites['modules'].items():
         if module in option.available['modules']:
-            prereq_version = cls.prerequisites['modules'][module]
             available_versions = option.available['modules'][module]
 
             if prereq_version == 'all':
-                metafunc.fixturenames.append('tmp_ct')
-                metafunc.parametrize('tmp_ct', range(len(available_versions)))
+                generate_tests(available_versions)
 
-                for i in range(len(available_versions)):
-                    version = available_versions[i]
-                    option.generated_tests[
-                        metafunc.function.__name__ + '[{}]'.format(i)
-                    ] = (type + ' ' + version)
             elif prereq_version == 'any':
                 option.generated_tests[metafunc.function.__name__] = (
                     type + ' ' + available_versions[0]
                 )
+            elif callable(prereq_version):
+                generate_tests(
+                    list(filter(prereq_version, available_versions))
+                )
+
             else:
-                for version in available_versions:
-                    if version.startswith(prereq_version):
-                        option.generated_tests[metafunc.function.__name__] = (
-                            type + ' ' + version
-                        )
+                raise ValueError(
+                    """
+Unexpected prerequisite version "%s" for module "%s" in %s.
+'all', 'any' or callable expected."""
+                    % (str(prereq_version), module, str(cls))
+                )
 
 
 def pytest_sessionstart(session):
