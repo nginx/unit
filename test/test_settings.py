@@ -212,7 +212,7 @@ Connection: close
 
         _, sock = self.http(b'', start=True, raw=True, no_recv=True)
 
-        time.sleep(2)
+        time.sleep(3)
 
         assert (
             self.get(
