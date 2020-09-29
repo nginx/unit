@@ -470,13 +470,16 @@ nxt_http_static_mtypes_init(nxt_mp_t *mp, nxt_lvlhsh_t *hash)
         { nxt_string("text/css"),       ".css"   },
 
         { nxt_string("image/svg+xml"),  ".svg"   },
-        { nxt_string("image/svg+xml"),  ".svg"   },
         { nxt_string("image/webp"),     ".webp"  },
         { nxt_string("image/png"),      ".png"   },
+        { nxt_string("image/apng"),     ".apng"  },
         { nxt_string("image/jpeg"),     ".jpeg"  },
         { nxt_string("image/jpeg"),     ".jpg"   },
         { nxt_string("image/gif"),      ".gif"   },
         { nxt_string("image/x-icon"),   ".ico"   },
+
+        { nxt_string("image/avif"),           ".avif"  },
+        { nxt_string("image/avif-sequence"),  ".avifs" },
 
         { nxt_string("font/woff"),      ".woff"  },
         { nxt_string("font/woff2"),     ".woff2" },
