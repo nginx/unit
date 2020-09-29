@@ -4941,6 +4941,9 @@ nxt_router_app_prepare_request(nxt_task_t *task,
             nxt_debug(task, "queue is not empty");
         }
 
+        buf->is_port_mmap_sent = 1;
+        buf->mem.pos = buf->mem.free;
+
     } else {
         nxt_alert(task, "stream #%uD, app '%V': failed to send app message",
                   req_rpc_data->stream, &app->name);
