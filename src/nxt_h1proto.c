@@ -734,8 +734,15 @@ nxt_h1p_connection(void *ctx, nxt_http_field_t *field, uintptr_t data)
     r = ctx;
     field->hopbyhop = 1;
 
-    if (field->value_length == 5 && nxt_memcmp(field->value, "close", 5) == 0) {
+    if (field->value_length == 5
+        && nxt_memcasecmp(field->value, "close", 5) == 0)
+    {
         r->proto.h1->keepalive = 0;
+
+    } else if (field->value_length == 10
+               && nxt_memcasecmp(field->value, "keep-alive", 10) == 0)
+    {
+        r->proto.h1->keepalive = 1;
 
     } else if (field->value_length == 7
                && nxt_memcasecmp(field->value, "upgrade", 7) == 0)
