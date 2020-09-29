@@ -6202,7 +6202,9 @@ nxt_unit_request_hash_find(nxt_unit_ctx_t *ctx, uint32_t stream, int remove)
     case NXT_OK:
         req_impl = nxt_container_of(lhq.value, nxt_unit_request_info_impl_t,
                                     req);
-        req_impl->in_hash = 0;
+        if (remove) {
+            req_impl->in_hash = 0;
+        }
 
         return lhq.value;
 
