@@ -81,6 +81,22 @@ nxt_realloc(void *p, size_t size)
 }
 
 
+/* nxt_lvlhsh_* functions moved here to avoid references from nxt_lvlhsh.c. */
+
+void *
+nxt_lvlhsh_alloc(void *data, size_t size)
+{
+    return nxt_memalign(size, size);
+}
+
+
+void
+nxt_lvlhsh_free(void *data, void *p)
+{
+    nxt_free(p);
+}
+
+
 #if (NXT_DEBUG)
 
 void

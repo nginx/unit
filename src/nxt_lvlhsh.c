@@ -1015,17 +1015,3 @@ nxt_lvlhsh_retrieve(nxt_lvlhsh_t *lh, const nxt_lvlhsh_proto_t *proto,
 
     return NULL;
 }
-
-
-void *
-nxt_lvlhsh_alloc(void *data, size_t size)
-{
-    return nxt_memalign(size, size);
-}
-
-
-void
-nxt_lvlhsh_free(void *data, void *p)
-{
-    nxt_free(p);
-}
