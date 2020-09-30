@@ -503,7 +503,10 @@ nxt_h1p_conn_request_init(nxt_task_t *task, void *obj, void *data)
             joint->count++;
 
             r->conf = joint;
-            c->local = joint->socket_conf->sockaddr;
+
+            if (c->local == NULL) {
+                c->local = joint->socket_conf->sockaddr;
+            }
 
             nxt_h1p_conn_request_header_parse(task, c, h1p);
             return;
