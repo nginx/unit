@@ -16,11 +16,6 @@ from multiprocessing import Process
 
 
 class TestUnit():
-
-    pardir = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
-    )
-
     @classmethod
     def setup_class(cls, complete_check=True):
         cls.available = option.available
@@ -41,16 +36,8 @@ class TestUnit():
                     break
 
         if m is None:
-            _print_log()
+            _print_log(path=unit.temp_dir + '/unit.log')
             exit("Unit is writing log too long")
-
-        # discover available modules from unit.log
-
-        for module in re.findall(r'module: ([a-zA-Z]+) (.*) ".*"$', log, re.M):
-            if module[0] not in cls.available['modules']:
-                cls.available['modules'][module[0]] = [module[1]]
-            else:
-                cls.available['modules'][module[0]].append(module[1])
 
         def check(available, prerequisites):
             missed = []
@@ -102,7 +89,7 @@ class TestUnit():
         self._run()
 
     def _run(self):
-        build_dir = self.pardir + '/build'
+        build_dir = option.current_dir + '/build'
         self.unitd = build_dir + '/unitd'
 
         if not os.path.isfile(self.unitd):
@@ -122,7 +109,7 @@ class TestUnit():
                 [
                     self.unitd,
                     '--no-daemon',
-                    '--modules',  self.pardir + '/build',
+                    '--modules',  build_dir,
                     '--state',    self.temp_dir + '/state',
                     '--pid',      self.temp_dir + '/unit.pid',
                     '--log',      self.temp_dir + '/unit.log',
@@ -135,7 +122,7 @@ class TestUnit():
         atexit.register(self.stop)
 
         if not waitforfiles(self.temp_dir + '/control.unit.sock'):
-            _print_log()
+            _print_log(path=self.temp_dir + '/unit.log')
             exit("Could not start unit")
 
         self._started = True
@@ -155,7 +142,7 @@ class TestUnit():
         if not option.save_log:
             shutil.rmtree(self.temp_dir)
         else:
-            _print_log()
+            _print_log(path=self.temp_dir)
 
         assert self.stop_errors == [None, None], 'stop errors'
 

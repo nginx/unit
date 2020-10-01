@@ -7,17 +7,6 @@ from conftest import option, public_dir
 
 
 class TestApplicationNode(TestApplicationProto):
-    @classmethod
-    def setup_class(cls, complete_check=True):
-        unit = super().setup_class(complete_check=False)
-
-        # check node module
-
-        if os.path.exists(unit.pardir + '/node/node_modules'):
-            cls.available['modules']['node'] = []
-
-        return unit if not complete_check else unit.complete()
-
     def load(self, script, name='app.js', **kwargs):
         # copy application
 
@@ -28,7 +17,7 @@ class TestApplicationNode(TestApplicationProto):
         # copy modules
 
         shutil.copytree(
-            self.pardir + '/node/node_modules',
+            option.current_dir + '/node/node_modules',
             self.temp_dir + '/node/node_modules',
         )
 

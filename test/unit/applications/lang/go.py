@@ -6,26 +6,12 @@ from conftest import option
 
 
 class TestApplicationGo(TestApplicationProto):
-    @classmethod
-    def setup_class(cls, complete_check=True):
-        unit = super().setup_class(complete_check=False)
-
-        # check go module
-
-        go_app = TestApplicationGo()
-        go_app.temp_dir = unit.temp_dir
-        proc = go_app.prepare_env('empty', 'app')
-        if proc and proc.returncode == 0:
-            cls.available['modules']['go'] = []
-
-        return unit if not complete_check else unit.complete()
-
     def prepare_env(self, script, name, static=False):
         if not os.path.exists(self.temp_dir + '/go'):
             os.mkdir(self.temp_dir + '/go')
 
         env = os.environ.copy()
-        env['GOPATH'] = self.pardir + '/build/go'
+        env['GOPATH'] = option.current_dir + '/build/go'
 
         if static:
             args = [

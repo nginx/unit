@@ -49,10 +49,12 @@ class TestApplicationJava(TestApplicationProto):
             if not os.path.isdir(classes_path):
                 os.makedirs(classes_path)
 
-            classpath = self.pardir + '/build/tomcat-servlet-api-9.0.13.jar'
+            classpath = (
+                option.current_dir + '/build/tomcat-servlet-api-9.0.13.jar'
+            )
 
             ws_jars = glob.glob(
-                self.pardir + '/build/websocket-api-java-*.jar'
+                option.current_dir + '/build/websocket-api-java-*.jar'
             )
 
             if not ws_jars:
@@ -78,7 +80,7 @@ class TestApplicationJava(TestApplicationProto):
                 "listeners": {"*:7080": {"pass": "applications/" + script}},
                 "applications": {
                     script: {
-                        "unit_jars": self.pardir + '/build',
+                        "unit_jars": option.current_dir + '/build',
                         "type": 'java',
                         "processes": {"spare": 0},
                         "working_directory": script_path,

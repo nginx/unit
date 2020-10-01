@@ -15,27 +15,6 @@ class TestApplicationTLS(TestApplicationProto):
         self.context.check_hostname = False
         self.context.verify_mode = ssl.CERT_NONE
 
-    @classmethod
-    def setup_class(cls, complete_check=True):
-        unit = super().setup_class(complete_check=False)
-
-        # check tls module
-
-        try:
-            subprocess.check_output(['which', 'openssl'])
-
-            output = subprocess.check_output(
-                [unit.unitd, '--version'], stderr=subprocess.STDOUT
-            )
-
-            if re.search('--openssl', output.decode()):
-                cls.available['modules']['openssl'] = []
-
-        except:
-            pass
-
-        return unit if not complete_check else unit.complete()
-
     def certificate(self, name='default', load=True):
         self.openssl_conf()
 

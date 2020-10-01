@@ -3,6 +3,7 @@ import subprocess
 import pytest
 
 from unit.applications.lang.java import TestApplicationJava
+from conftest import option
 
 
 class TestJavaIsolationRootfs(TestApplicationJava):
@@ -23,7 +24,7 @@ class TestJavaIsolationRootfs(TestApplicationJava):
                 [
                     "mount",
                     "--bind",
-                    self.pardir + "/build",
+                    option.current_dir + "/build",
                     self.temp_dir + "/jars",
                 ],
                 stderr=subprocess.STDOUT,

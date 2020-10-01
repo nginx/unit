@@ -2,6 +2,7 @@ import fcntl
 import os
 import platform
 import pytest
+import shutil
 import signal
 import stat
 import subprocess
@@ -9,6 +10,10 @@ import sys
 import re
 import tempfile
 import time
+
+from unit.check.go import check_go
+from unit.check.node import check_node
+from unit.check.tls import check_openssl
 
 
 def pytest_addoption(parser):
@@ -132,6 +137,20 @@ def pytest_sessionstart(session):
         else:
             option.available['modules'][module[0]].append(module[1])
 
+    # discover modules from check
+
+    option.available['modules']['openssl'] = check_openssl(unit['unitd'])
+    option.available['modules']['go'] = check_go(
+        option.current_dir, unit['temp_dir'], option.test_dir
+    )
+    option.available['modules']['node'] = check_node(option.current_dir)
+
+    # remove None values
+
+    option.available['modules'] = {
+        k: v for k, v in option.available['modules'].items() if v is not None
+    }
+
     unit_stop()
 
 
@@ -216,6 +235,7 @@ def unit_stop():
         p.kill()
         return 'Could not terminate unit'
 
+    shutil.rmtree(unit_instance['temp_dir'])
 
 def public_dir(path):
     os.chmod(path, 0o777)
@@ -265,31 +285,32 @@ def _check_alerts(log):
             alerts = [al for al in alerts if re.search(skip, al) is None]
 
     if alerts:
-        _print_log(log)
+        _print_log(data=log)
         assert not alerts, 'alert(s)'
 
     if not option.skip_sanitizer:
         sanitizer_errors = re.findall('.+Sanitizer.+', log)
 
         if sanitizer_errors:
-            _print_log(log)
+            _print_log(data=log)
             assert not sanitizer_errors, 'sanitizer error(s)'
 
     if found:
         print('skipped.')
 
 
-def _print_log(data=None):
-    unit_log = unit_instance['log']
+def _print_log(path=None, data=None):
+    if path is None:
+        path = unit_instance['log']
 
-    print('Path to unit.log:\n' + unit_log + '\n')
+    print('Path to unit.log:\n' + path + '\n')
 
     if option.print_log:
         os.set_blocking(sys.stdout.fileno(), True)
         sys.stdout.flush()
 
         if data is None:
-            with open(unit_log, 'r', encoding='utf-8', errors='ignore') as f:
+            with open(path, 'r', encoding='utf-8', errors='ignore') as f:
                 shutil.copyfileobj(f, sys.stdout)
         else:
             sys.stdout.write(data)
