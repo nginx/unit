@@ -40,7 +40,7 @@ class TestApplicationWebsocket(TestApplicationProto):
                 'Upgrade': 'websocket',
                 'Connection': 'Upgrade',
                 'Sec-WebSocket-Key': key,
-                'Sec-WebSocket-Protocol': 'chat',
+                'Sec-WebSocket-Protocol': 'chat, phone, video',
                 'Sec-WebSocket-Version': 13,
             }
 
