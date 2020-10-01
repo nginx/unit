@@ -168,6 +168,11 @@ $echo >> $NXT_MAKEFILE
 
 NXT_PYTHON_MODULE_SRCS=" \
     src/python/nxt_python.c \
+    src/python/nxt_python_asgi.c \
+    src/python/nxt_python_asgi_http.c \
+    src/python/nxt_python_asgi_lifespan.c \
+    src/python/nxt_python_asgi_str.c \
+    src/python/nxt_python_asgi_websocket.c \
     src/python/nxt_python_wsgi.c \
 "
 

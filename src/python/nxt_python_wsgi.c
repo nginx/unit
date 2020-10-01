@@ -38,24 +38,6 @@
  */
 
 
-#if PY_MAJOR_VERSION == 3
-#define NXT_PYTHON_BYTES_TYPE       "bytestring"
-
-#define PyString_FromStringAndSize(str, size)                                 \
-            PyUnicode_DecodeLatin1((str), (size), "strict")
-#define PyString_AS_STRING          PyUnicode_DATA
-
-#else
-#define NXT_PYTHON_BYTES_TYPE       "string"
-
-#define PyBytes_FromStringAndSize   PyString_FromStringAndSize
-#define PyBytes_Check               PyString_Check
-#define PyBytes_GET_SIZE            PyString_GET_SIZE
-#define PyBytes_AS_STRING           PyString_AS_STRING
-#define PyUnicode_InternInPlace     PyString_InternInPlace
-#define PyUnicode_AsUTF8            PyString_AS_STRING
-#endif
-
 typedef struct nxt_python_run_ctx_s  nxt_python_run_ctx_t;
 
 typedef struct {

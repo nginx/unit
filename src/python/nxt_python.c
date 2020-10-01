@@ -15,14 +15,6 @@
 #include NXT_PYTHON_MOUNTS_H
 
 
-#if PY_MAJOR_VERSION == 3
-#define PyString_FromStringAndSize(str, size)                                 \
-            PyUnicode_DecodeLatin1((str), (size), "strict")
-
-#else
-#define PyUnicode_InternInPlace     PyString_InternInPlace
-#endif
-
 static nxt_int_t nxt_python_start(nxt_task_t *task,
     nxt_process_data_t *data);
 static void nxt_python_atexit(void);
@@ -56,7 +48,7 @@ static char               *nxt_py_home;
 static nxt_int_t
 nxt_python_start(nxt_task_t *task, nxt_process_data_t *data)
 {
-    int                    rc;
+    int                    rc, asgi;
     char                   *nxt_py_module;
     size_t                 len;
     PyObject               *obj, *pypath, *module;
@@ -226,7 +218,15 @@ nxt_python_start(nxt_task_t *task, nxt_process_data_t *data)
 
     python_init.shm_limit = data->app->shm_limit;
 
-    rc = nxt_python_wsgi_init(task, &python_init);
+    asgi = nxt_python_asgi_check(nxt_py_application);
+
+    if (asgi) {
+        rc = nxt_python_asgi_init(task, &python_init);
+
+    } else {
+        rc = nxt_python_wsgi_init(task, &python_init);
+    }
+
     if (nxt_slow_path(rc == NXT_ERROR)) {
         goto fail;
     }
@@ -236,7 +236,12 @@ nxt_python_start(nxt_task_t *task, nxt_process_data_t *data)
         goto fail;
     }
 
-    rc = nxt_python_wsgi_run(unit_ctx);
+    if (asgi) {
+        rc = nxt_python_asgi_run(unit_ctx);
+
+    } else {
+        rc = nxt_python_wsgi_run(unit_ctx);
+    }
 
     nxt_unit_done(unit_ctx);
 
@@ -300,6 +305,7 @@ static void
 nxt_python_atexit(void)
 {
     nxt_python_wsgi_done();
+    nxt_python_asgi_done();
 
     Py_XDECREF(nxt_py_stderr_flush);
     Py_XDECREF(nxt_py_application);
