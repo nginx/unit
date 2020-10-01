@@ -322,6 +322,10 @@ int nxt_unit_websocket_retain(nxt_unit_websocket_frame_t *ws);
 void nxt_unit_websocket_done(nxt_unit_websocket_frame_t *ws);
 
 
+void *nxt_unit_malloc(nxt_unit_ctx_t *ctx, size_t size);
+
+void nxt_unit_free(nxt_unit_ctx_t *ctx, void *p);
+
 #if defined __has_attribute
 
 #if __has_attribute(format)

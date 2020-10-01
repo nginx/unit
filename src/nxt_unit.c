@@ -74,7 +74,8 @@ static void nxt_unit_request_info_free(nxt_unit_request_info_impl_t *req);
 static nxt_unit_websocket_frame_impl_t *nxt_unit_websocket_frame_get(
     nxt_unit_ctx_t *ctx);
 static void nxt_unit_websocket_frame_release(nxt_unit_websocket_frame_t *ws);
-static void nxt_unit_websocket_frame_free(nxt_unit_websocket_frame_impl_t *ws);
+static void nxt_unit_websocket_frame_free(nxt_unit_ctx_t *ctx,
+    nxt_unit_websocket_frame_impl_t *ws);
 static nxt_unit_mmap_buf_t *nxt_unit_mmap_buf_get(nxt_unit_ctx_t *ctx);
 static void nxt_unit_mmap_buf_release(nxt_unit_mmap_buf_t *mmap_buf);
 static int nxt_unit_mmap_buf_send(nxt_unit_request_info_t *req,
@@ -119,8 +120,7 @@ static void nxt_unit_mmap_release(nxt_unit_ctx_t *ctx,
     nxt_port_mmap_header_t *hdr, void *start, uint32_t size);
 static int nxt_unit_send_shm_ack(nxt_unit_ctx_t *ctx, pid_t pid);
 
-static nxt_unit_process_t *nxt_unit_process_get(nxt_unit_impl_t *lib,
-    pid_t pid);
+static nxt_unit_process_t *nxt_unit_process_get(nxt_unit_ctx_t *ctx, pid_t pid);
 static nxt_unit_process_t *nxt_unit_process_find(nxt_unit_impl_t *lib,
     pid_t pid, int remove);
 static nxt_unit_process_t *nxt_unit_process_pop_first(nxt_unit_impl_t *lib);
@@ -186,8 +186,6 @@ static nxt_unit_request_info_t *nxt_unit_request_hash_find(
 static char * nxt_unit_snprint_prefix(char *p, char *end, pid_t pid, int level);
 static void *nxt_unit_lvlhsh_alloc(void *data, size_t size);
 static void nxt_unit_lvlhsh_free(void *data, void *p);
-static void *nxt_unit_malloc(size_t size);
-static void nxt_unit_free(void *p);
 static int nxt_unit_memcasecmp(const void *p1, const void *p2, size_t length);
 
 
@@ -536,7 +534,8 @@ nxt_unit_create(nxt_unit_init_t *init)
     nxt_unit_impl_t       *lib;
     nxt_unit_callbacks_t  *cb;
 
-    lib = nxt_unit_malloc(sizeof(nxt_unit_impl_t) + init->request_data_size);
+    lib = nxt_unit_malloc(NULL,
+                          sizeof(nxt_unit_impl_t) + init->request_data_size);
     if (nxt_slow_path(lib == NULL)) {
         nxt_unit_alert(NULL, "failed to allocate unit struct");
 
@@ -591,7 +590,7 @@ nxt_unit_create(nxt_unit_init_t *init)
 
 fail:
 
-    nxt_unit_free(lib);
+    nxt_unit_free(NULL, lib);
 
     return NULL;
 }
@@ -715,7 +714,7 @@ nxt_unit_lib_release(nxt_unit_impl_t *lib)
         nxt_unit_mmaps_destroy(&lib->incoming);
         nxt_unit_mmaps_destroy(&lib->outgoing);
 
-        nxt_unit_free(lib);
+        nxt_unit_free(NULL, lib);
     }
 }
 
@@ -1393,7 +1392,7 @@ nxt_unit_request_check_response_port(nxt_unit_request_info_t *req,
         return NXT_UNIT_AGAIN;
     }
 
-    port_impl = nxt_unit_malloc(sizeof(nxt_unit_port_impl_t));
+    port_impl = nxt_unit_malloc(ctx, sizeof(nxt_unit_port_impl_t));
     if (nxt_slow_path(port_impl == NULL)) {
         nxt_unit_alert(ctx, "check_response_port: malloc(%d) failed",
                        (int) sizeof(nxt_unit_port_impl_t));
@@ -1417,7 +1416,7 @@ nxt_unit_request_check_response_port(nxt_unit_request_info_t *req,
 
         pthread_mutex_unlock(&lib->mutex);
 
-        nxt_unit_free(port);
+        nxt_unit_free(ctx, port);
 
         return NXT_UNIT_ERROR;
     }
@@ -1431,7 +1430,7 @@ nxt_unit_request_check_response_port(nxt_unit_request_info_t *req,
 
         pthread_mutex_unlock(&lib->mutex);
 
-        nxt_unit_free(port);
+        nxt_unit_free(ctx, port);
 
         return NXT_UNIT_ERROR;
     }
@@ -1639,8 +1638,8 @@ nxt_unit_request_info_get(nxt_unit_ctx_t *ctx)
     if (nxt_queue_is_empty(&ctx_impl->free_req)) {
         pthread_mutex_unlock(&ctx_impl->mutex);
 
-        req_impl = nxt_unit_malloc(sizeof(nxt_unit_request_info_impl_t)
-                          + lib->request_data_size);
+        req_impl = nxt_unit_malloc(ctx, sizeof(nxt_unit_request_info_impl_t)
+                                        + lib->request_data_size);
         if (nxt_slow_path(req_impl == NULL)) {
             return NULL;
         }
@@ -1727,7 +1726,7 @@ nxt_unit_request_info_free(nxt_unit_request_info_impl_t *req_impl)
     nxt_queue_remove(&req_impl->link);
 
     if (req_impl != &ctx_impl->req) {
-        nxt_unit_free(req_impl);
+        nxt_unit_free(&ctx_impl->ctx, req_impl);
     }
 }
 
@@ -1746,7 +1745,7 @@ nxt_unit_websocket_frame_get(nxt_unit_ctx_t *ctx)
     if (nxt_queue_is_empty(&ctx_impl->free_ws)) {
         pthread_mutex_unlock(&ctx_impl->mutex);
 
-        ws_impl = nxt_unit_malloc(sizeof(nxt_unit_websocket_frame_impl_t));
+        ws_impl = nxt_unit_malloc(ctx, sizeof(nxt_unit_websocket_frame_impl_t));
         if (nxt_slow_path(ws_impl == NULL)) {
             return NULL;
         }
@@ -1788,11 +1787,12 @@ nxt_unit_websocket_frame_release(nxt_unit_websocket_frame_t *ws)
 
 
 static void
-nxt_unit_websocket_frame_free(nxt_unit_websocket_frame_impl_t *ws_impl)
+nxt_unit_websocket_frame_free(nxt_unit_ctx_t *ctx,
+    nxt_unit_websocket_frame_impl_t *ws_impl)
 {
     nxt_queue_remove(&ws_impl->link);
 
-    nxt_unit_free(ws_impl);
+    nxt_unit_free(ctx, ws_impl);
 }
 
 
@@ -2329,7 +2329,7 @@ nxt_unit_mmap_buf_get(nxt_unit_ctx_t *ctx)
     if (ctx_impl->free_buf == NULL) {
         pthread_mutex_unlock(&ctx_impl->mutex);
 
-        mmap_buf = nxt_unit_malloc(sizeof(nxt_unit_mmap_buf_t));
+        mmap_buf = nxt_unit_malloc(ctx, sizeof(nxt_unit_mmap_buf_t));
         if (nxt_slow_path(mmap_buf == NULL)) {
             return NULL;
         }
@@ -2647,7 +2647,7 @@ nxt_unit_free_outgoing_buf(nxt_unit_mmap_buf_t *mmap_buf)
     }
 
     if (mmap_buf->free_ptr != NULL) {
-        nxt_unit_free(mmap_buf->free_ptr);
+        nxt_unit_free(&mmap_buf->ctx_impl->ctx, mmap_buf->free_ptr);
 
         mmap_buf->free_ptr = NULL;
     }
@@ -2689,7 +2689,7 @@ nxt_unit_read_buf_get_impl(nxt_unit_ctx_impl_t *ctx_impl)
         return rbuf;
     }
 
-    rbuf = nxt_unit_malloc(sizeof(nxt_unit_read_buf_t));
+    rbuf = nxt_unit_malloc(&ctx_impl->ctx, sizeof(nxt_unit_read_buf_t));
 
     if (nxt_fast_path(rbuf != NULL)) {
         rbuf->ctx_impl = ctx_impl;
@@ -3048,7 +3048,7 @@ nxt_unit_request_preread(nxt_unit_request_info_t *req, size_t size)
         return NULL;
     }
 
-    mmap_buf->free_ptr = nxt_unit_malloc(size);
+    mmap_buf->free_ptr = nxt_unit_malloc(req->ctx, size);
     if (nxt_slow_path(mmap_buf->free_ptr == NULL)) {
         nxt_unit_req_alert(req, "preread: failed to allocate buf memory");
         nxt_unit_mmap_buf_release(mmap_buf);
@@ -3331,7 +3331,7 @@ nxt_unit_websocket_retain(nxt_unit_websocket_frame_t *ws)
 
     size = ws_impl->buf->buf.end - ws_impl->buf->buf.start;
 
-    b = nxt_unit_malloc(size);
+    b = nxt_unit_malloc(ws->req->ctx, size);
     if (nxt_slow_path(b == NULL)) {
         return NXT_UNIT_ERROR;
     }
@@ -3839,7 +3839,8 @@ nxt_unit_get_outgoing_buf(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port,
             mmap_buf->plain_ptr = local_buf;
 
         } else {
-            mmap_buf->free_ptr = nxt_unit_malloc(size + sizeof(nxt_port_msg_t));
+            mmap_buf->free_ptr = nxt_unit_malloc(ctx,
+                                                 size + sizeof(nxt_port_msg_t));
             if (nxt_slow_path(mmap_buf->free_ptr == NULL)) {
                 return NXT_UNIT_ERROR;
             }
@@ -4009,7 +4010,7 @@ nxt_unit_process_release(nxt_unit_process_t *process)
     if (c == 1) {
         nxt_unit_debug(NULL, "destroy process #%d", (int) process->pid);
 
-        nxt_unit_free(process);
+        nxt_unit_free(NULL, process);
     }
 }
 
@@ -4026,7 +4027,7 @@ nxt_unit_mmaps_destroy(nxt_unit_mmaps_t *mmaps)
             munmap(mm->hdr, PORT_MMAP_SIZE);
         }
 
-        nxt_unit_free(mmaps->elts);
+        nxt_unit_free(NULL, mmaps->elts);
     }
 
     pthread_mutex_destroy(&mmaps->mutex);
@@ -4314,10 +4315,13 @@ nxt_unit_process_lhq_pid(nxt_lvlhsh_query_t *lhq, pid_t *pid)
 
 
 static nxt_unit_process_t *
-nxt_unit_process_get(nxt_unit_impl_t *lib, pid_t pid)
+nxt_unit_process_get(nxt_unit_ctx_t *ctx, pid_t pid)
 {
+    nxt_unit_impl_t     *lib;
     nxt_unit_process_t  *process;
     nxt_lvlhsh_query_t  lhq;
+
+    lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
 
     nxt_unit_process_lhq_pid(&lhq, &pid);
 
@@ -4328,9 +4332,9 @@ nxt_unit_process_get(nxt_unit_impl_t *lib, pid_t pid)
         return process;
     }
 
-    process = nxt_unit_malloc(sizeof(nxt_unit_process_t));
+    process = nxt_unit_malloc(ctx, sizeof(nxt_unit_process_t));
     if (nxt_slow_path(process == NULL)) {
-        nxt_unit_alert(NULL, "failed to allocate process for #%d", (int) pid);
+        nxt_unit_alert(ctx, "failed to allocate process for #%d", (int) pid);
 
         return NULL;
     }
@@ -4351,9 +4355,9 @@ nxt_unit_process_get(nxt_unit_impl_t *lib, pid_t pid)
         break;
 
     default:
-        nxt_unit_alert(NULL, "process %d insert failed", (int) pid);
+        nxt_unit_alert(ctx, "process %d insert failed", (int) pid);
 
-        nxt_unit_free(process);
+        nxt_unit_free(ctx, process);
         process = NULL;
         break;
     }
@@ -4924,8 +4928,8 @@ nxt_unit_ctx_alloc(nxt_unit_ctx_t *ctx, void *data)
 
     lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
 
-    new_ctx = nxt_unit_malloc(sizeof(nxt_unit_ctx_impl_t)
-                              + lib->request_data_size);
+    new_ctx = nxt_unit_malloc(ctx, sizeof(nxt_unit_ctx_impl_t)
+                                   + lib->request_data_size);
     if (nxt_slow_path(new_ctx == NULL)) {
         nxt_unit_alert(ctx, "failed to allocate context");
 
@@ -4934,7 +4938,7 @@ nxt_unit_ctx_alloc(nxt_unit_ctx_t *ctx, void *data)
 
     rc = nxt_unit_ctx_init(lib, new_ctx, data);
     if (nxt_slow_path(rc != NXT_UNIT_OK)) {
-         nxt_unit_free(new_ctx);
+         nxt_unit_free(ctx, new_ctx);
 
          return NULL;
     }
@@ -5013,7 +5017,7 @@ nxt_unit_ctx_free(nxt_unit_ctx_impl_t *ctx_impl)
     while (ctx_impl->free_buf != NULL) {
         mmap_buf = ctx_impl->free_buf;
         nxt_unit_mmap_buf_unlink(mmap_buf);
-        nxt_unit_free(mmap_buf);
+        nxt_unit_free(&ctx_impl->ctx, mmap_buf);
     }
 
     nxt_queue_each(req_impl, &ctx_impl->free_req,
@@ -5026,7 +5030,7 @@ nxt_unit_ctx_free(nxt_unit_ctx_impl_t *ctx_impl)
     nxt_queue_each(ws_impl, &ctx_impl->free_ws,
                    nxt_unit_websocket_frame_impl_t, link)
     {
-        nxt_unit_websocket_frame_free(ws_impl);
+        nxt_unit_websocket_frame_free(&ctx_impl->ctx, ws_impl);
 
     } nxt_queue_loop;
 
@@ -5040,7 +5044,7 @@ nxt_unit_ctx_free(nxt_unit_ctx_impl_t *ctx_impl)
     }
 
     if (ctx_impl != &lib->main_ctx) {
-        nxt_unit_free(ctx_impl);
+        nxt_unit_free(&lib->main_ctx.ctx, ctx_impl);
     }
 
     nxt_unit_lib_release(lib);
@@ -5092,7 +5096,7 @@ nxt_unit_create_port(nxt_unit_ctx_t *ctx)
 
     pthread_mutex_lock(&lib->mutex);
 
-    process = nxt_unit_process_get(lib, lib->pid);
+    process = nxt_unit_process_get(ctx, lib->pid);
     if (nxt_slow_path(process == NULL)) {
         pthread_mutex_unlock(&lib->mutex);
 
@@ -5225,7 +5229,7 @@ nxt_inline void nxt_unit_port_release(nxt_unit_port_t *port)
                                      : sizeof(nxt_port_queue_t));
         }
 
-        nxt_unit_free(port_impl);
+        nxt_unit_free(NULL, port_impl);
     }
 }
 
@@ -5332,7 +5336,7 @@ nxt_unit_add_port(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port, void *queue)
                    port->id.pid, port->id.id,
                    port->in_fd, port->out_fd, queue);
 
-    process = nxt_unit_process_get(lib, port->id.pid);
+    process = nxt_unit_process_get(ctx, port->id.pid);
     if (nxt_slow_path(process == NULL)) {
         goto unlock;
     }
@@ -5341,7 +5345,7 @@ nxt_unit_add_port(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port, void *queue)
         process->next_port_id = port->id.id + 1;
     }
 
-    new_port = nxt_unit_malloc(sizeof(nxt_unit_port_impl_t));
+    new_port = nxt_unit_malloc(ctx, sizeof(nxt_unit_port_impl_t));
     if (nxt_slow_path(new_port == NULL)) {
         nxt_unit_alert(ctx, "add_port: %d,%d malloc() failed",
                        port->id.pid, port->id.id);
@@ -5356,7 +5360,7 @@ nxt_unit_add_port(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port, void *queue)
         nxt_unit_alert(ctx, "add_port: %d,%d hash_add failed",
                        port->id.pid, port->id.id);
 
-        nxt_unit_free(new_port);
+        nxt_unit_free(ctx, new_port);
 
         new_port = NULL;
 
@@ -6376,22 +6380,22 @@ nxt_unit_lvlhsh_alloc(void *data, size_t size)
 static void
 nxt_unit_lvlhsh_free(void *data, void *p)
 {
-    nxt_unit_free(p);
+    nxt_unit_free(NULL, p);
 }
 
 
-static void *
-nxt_unit_malloc(size_t size)
+void *
+nxt_unit_malloc(nxt_unit_ctx_t *ctx, size_t size)
 {
     void  *p;
 
     p = malloc(size);
 
     if (nxt_fast_path(p != NULL)) {
-        nxt_unit_debug(NULL, "malloc(%d): %p", (int) size, p);
+        nxt_unit_debug(ctx, "malloc(%d): %p", (int) size, p);
 
     } else {
-        nxt_unit_alert(NULL, "malloc(%d) failed: %s (%d)",
+        nxt_unit_alert(ctx, "malloc(%d) failed: %s (%d)",
                        (int) size, strerror(errno), errno);
     }
 
@@ -6399,10 +6403,10 @@ nxt_unit_malloc(size_t size)
 }
 
 
-static void
-nxt_unit_free(void *p)
+void
+nxt_unit_free(nxt_unit_ctx_t *ctx, void *p)
 {
-    nxt_unit_debug(NULL, "free(%p)", p);
+    nxt_unit_debug(ctx, "free(%p)", p);
 
     free(p);
 }
