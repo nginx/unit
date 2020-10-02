@@ -74,7 +74,7 @@ nxt_http_chunk_parse(nxt_task_t *task, nxt_http_chunk_parse_t *hcp,
                     goto next;
                 }
 
-                /* ret == NXT_HTTP_CHUNK_END_ON_BORDER */
+                /* ret == NXT_HTTP_CHUNK_END */
             }
 
             ch = *hcp->pos++;
