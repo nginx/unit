@@ -74,11 +74,11 @@ def pytest_generate_tests(metafunc):
 
     def generate_tests(versions):
         metafunc.fixturenames.append('tmp_ct')
-        metafunc.parametrize('tmp_ct', range(len(versions)))
+        metafunc.parametrize('tmp_ct', versions)
 
-        for i, version in enumerate(versions):
+        for version in versions:
             option.generated_tests[
-                metafunc.function.__name__ + '[{}]'.format(i)
+                metafunc.function.__name__ + '[{}]'.format(version)
             ] = (type + ' ' + version)
 
     # take available module from option and generate tests for each version
