@@ -128,6 +128,18 @@ class TestASGIWebsockets(TestApplicationPython):
 
         sock.close()
 
+    def test_asgi_websockets_length_long(self):
+        self.load('websockets/mirror')
+
+        _, sock, _ = self.ws.upgrade()
+
+        self.ws.frame_write(sock, self.ws.OP_TEXT, 'fragment1', fin=False)
+        self.ws.frame_write(
+            sock, self.ws.OP_CONT, 'fragment2', length=2**64 - 1
+        )
+
+        self.check_close(sock, 1009)  # 1009 - CLOSE_TOO_LARGE
+
     def test_asgi_websockets_frame_fragmentation_invalid(self):
         self.load('websockets/mirror')
 
