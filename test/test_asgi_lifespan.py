@@ -3,7 +3,7 @@ import pytest
 from distutils.version import LooseVersion
 
 from unit.applications.lang.python import TestApplicationPython
-from conftest import option
+from conftest import option, public_dir
 
 
 class TestASGILifespan(TestApplicationPython):
@@ -22,6 +22,8 @@ class TestASGILifespan(TestApplicationPython):
         open(startup_path, 'a').close()
         open(shutdown_path, 'a').close()
         open(version_path, 'a').close()
+
+        public_dir(option.test_dir + '/python/lifespan/empty')
 
         assert self.get()['status'] == 204
 

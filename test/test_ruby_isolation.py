@@ -33,15 +33,9 @@ class TestRubyIsolation(TestApplicationRuby):
             if not 'unprivileged_userns_clone' in isolation_features:
                 pytest.skip('requires unprivileged userns or root')
 
-        os.mkdir(self.temp_dir + '/ruby')
-
-        shutil.copytree(
-            option.test_dir + '/ruby/status_int',
-            self.temp_dir + '/ruby/status_int',
-        )
         isolation = {
             'namespaces': {'credential': not is_su, 'mount': True},
-            'rootfs': self.temp_dir,
+            'rootfs': option.test_dir,
         }
 
         self.load('status_int', isolation=isolation)
