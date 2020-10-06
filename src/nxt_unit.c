@@ -5764,10 +5764,6 @@ retry:
         nxt_unit_debug(ctx, "port{%d,%d} recv %d read_queue",
                        (int) port->id.pid, (int) port->id.id, (int) rbuf->size);
 
-        if (port_impl->from_socket) {
-            nxt_unit_warn(ctx, "port protocol warning: READ_QUEUE after READ_SOCKET");
-        }
-
         goto retry;
     }
 
