@@ -198,9 +198,9 @@ class TestPHPApplication(TestApplicationPHP):
 
         resp = self.get(url='/?var1=val1&var2=&var3')
         assert resp['headers']['X-Var-1'] == 'val1', 'GET variables'
-        assert resp['headers']['X-Var-2'] == '1', 'GET variables 2'
-        assert resp['headers']['X-Var-3'] == '1', 'GET variables 3'
-        assert resp['headers']['X-Var-4'] == '', 'GET variables 4'
+        assert resp['headers']['X-Var-2'] == '', 'GET variables 2'
+        assert resp['headers']['X-Var-3'] == '', 'GET variables 3'
+        assert resp['headers']['X-Var-4'] == 'not set', 'GET variables 4'
 
     def test_php_application_post_variables(self):
         self.load('post_variables')
@@ -214,8 +214,8 @@ class TestPHPApplication(TestApplicationPHP):
             body='var1=val1&var2=',
         )
         assert resp['headers']['X-Var-1'] == 'val1', 'POST variables'
-        assert resp['headers']['X-Var-2'] == '1', 'POST variables 2'
-        assert resp['headers']['X-Var-3'] == '', 'POST variables 3'
+        assert resp['headers']['X-Var-2'] == '', 'POST variables 2'
+        assert resp['headers']['X-Var-3'] == 'not set', 'POST variables 3'
 
     def test_php_application_cookies(self):
         self.load('cookies')

@@ -88,6 +88,9 @@ static void nxt_php_set_options(nxt_task_t *task, nxt_conf_value_t *options,
     int type);
 static nxt_int_t nxt_php_alter_option(nxt_str_t *name, nxt_str_t *value,
     int type);
+#ifdef NXT_PHP8
+static void nxt_php_disable_functions(nxt_str_t *str);
+#endif
 static void nxt_php_disable(nxt_task_t *task, const char *type,
     nxt_str_t *value, char **ptr, nxt_php_disable_t disable);
 
@@ -589,9 +592,13 @@ nxt_php_set_options(nxt_task_t *task, nxt_conf_value_t *options, int type)
             }
 
             if (nxt_str_eq(&name, "disable_functions", 17)) {
+#ifdef NXT_PHP8
+                nxt_php_disable_functions(&value);
+#else
                 nxt_php_disable(task, "function", &value,
                                 &PG(disable_functions),
                                 zend_disable_function);
+#endif
                 continue;
             }
 
@@ -675,6 +682,29 @@ nxt_php_alter_option(nxt_str_t *name, nxt_str_t *value, int type)
     ini_entry->modifiable = type;
 
     return NXT_OK;
+}
+
+#endif
+
+
+#ifdef NXT_PHP8
+
+static void
+nxt_php_disable_functions(nxt_str_t *str)
+{
+    char  *p;
+
+    p = nxt_malloc(str->length + 1);
+    if (nxt_slow_path(p == NULL)) {
+        return;
+    }
+
+    nxt_memcpy(p, str->start, str->length);
+    p[str->length] = '\0';
+
+    zend_disable_functions(p);
+
+    nxt_free(p);
 }
 
 #endif
