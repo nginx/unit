@@ -1,6 +1,7 @@
 import grp
 import os
 import pwd
+
 import pytest
 
 from unit.applications.lang.go import TestApplicationGo

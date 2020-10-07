@@ -1,18 +1,20 @@
-import argparse
 import atexit
 import os
-import platform
-import pytest
 import re
 import shutil
 import signal
 import stat
 import subprocess
-import sys
 import tempfile
 import time
-from conftest import option, public_dir, waitforfiles, _check_alerts, _print_log
 from multiprocessing import Process
+
+import pytest
+from conftest import _check_alerts
+from conftest import _print_log
+from conftest import option
+from conftest import public_dir
+from conftest import waitforfiles
 
 
 class TestUnit():

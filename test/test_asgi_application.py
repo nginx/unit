@@ -1,12 +1,11 @@
-import grp
-import pytest
-import pwd
 import re
 import time
 from distutils.version import LooseVersion
 
-from unit.applications.lang.python import TestApplicationPython
+import pytest
+
 from conftest import skip_alert
+from unit.applications.lang.python import TestApplicationPython
 
 
 class TestASGIApplication(TestApplicationPython):
@@ -18,7 +17,7 @@ class TestASGIApplication(TestApplicationPython):
         with open(self.temp_dir + '/unit.log', 'r', errors='ignore') as f:
             return re.findall(pattern, f.read())
 
-    def test_asgi_application__variables(self):
+    def test_asgi_application_variables(self):
         self.load('variables')
 
         body = 'Test body string.'
@@ -63,7 +62,7 @@ custom-header: BLAH
         }, 'headers'
         assert resp['body'] == body, 'body'
 
-    def test_asgi_application__query_string(self):
+    def test_asgi_application_query_string(self):
         self.load('query_string')
 
         resp = self.get(url='/?var1=val1&var2=val2')
@@ -72,7 +71,7 @@ custom-header: BLAH
             resp['headers']['query-string'] == 'var1=val1&var2=val2'
         ), 'query-string header'
 
-    def test_asgi_application__query_string_space(self):
+    def test_asgi_application_query_string_space(self):
         self.load('query_string')
 
         resp = self.get(url='/ ?var1=val1&var2=val2')
@@ -95,7 +94,7 @@ custom-header: BLAH
             resp['headers']['query-string'] == ' var1= val1 & var2=val2'
         ), 'query-string space 4'
 
-    def test_asgi_application__query_string_empty(self):
+    def test_asgi_application_query_string_empty(self):
         self.load('query_string')
 
         resp = self.get(url='/?')
@@ -103,7 +102,7 @@ custom-header: BLAH
         assert resp['status'] == 200, 'query string empty status'
         assert resp['headers']['query-string'] == '', 'query string empty'
 
-    def test_asgi_application__query_string_absent(self):
+    def test_asgi_application_query_string_absent(self):
         self.load('query_string')
 
         resp = self.get()
@@ -112,7 +111,7 @@ custom-header: BLAH
         assert resp['headers']['query-string'] == '', 'query string absent'
 
     @pytest.mark.skip('not yet')
-    def test_asgi_application__server_port(self):
+    def test_asgi_application_server_port(self):
         self.load('server_port')
 
         assert (
@@ -120,7 +119,7 @@ custom-header: BLAH
         ), 'Server-Port header'
 
     @pytest.mark.skip('not yet')
-    def test_asgi_application__working_directory_invalid(self):
+    def test_asgi_application_working_directory_invalid(self):
         self.load('empty')
 
         assert 'success' in self.conf(
@@ -129,14 +128,14 @@ custom-header: BLAH
 
         assert self.get()['status'] == 500, 'status'
 
-    def test_asgi_application__204_transfer_encoding(self):
+    def test_asgi_application_204_transfer_encoding(self):
         self.load('204_no_content')
 
         assert (
             'Transfer-Encoding' not in self.get()['headers']
         ), '204 header transfer encoding'
 
-    def test_asgi_application__shm_ack_handle(self):
+    def test_asgi_application_shm_ack_handle(self):
         self.load('mirror')
 
         # Minimum possible limit
@@ -379,7 +378,7 @@ Connection: close
 
         self.get(headers=headers_delay_1)
 
-    def test_asgi_application__loading_error(self):
+    def test_asgi_application_loading_error(self):
         skip_alert(r'Python failed to import module "blah"')
 
         self.load('empty')
@@ -388,7 +387,7 @@ Connection: close
 
         assert self.get()['status'] == 503, 'loading error'
 
-    def test_asgi_application__threading(self):
+    def test_asgi_application_threading(self):
         """wait_for_record() timeouts after 5s while every thread works at
         least 3s.  So without releasing GIL test should fail.
         """

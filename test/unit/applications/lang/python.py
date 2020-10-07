@@ -1,10 +1,10 @@
 import os
 import shutil
-import pytest
-
-from unit.applications.proto import TestApplicationProto
 from urllib.parse import quote
+
+import pytest
 from conftest import option
+from unit.applications.proto import TestApplicationProto
 
 
 class TestApplicationPython(TestApplicationProto):

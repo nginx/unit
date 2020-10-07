@@ -1,4 +1,5 @@
 import os
+
 import pytest
 
 from unit.applications.lang.go import TestApplicationGo

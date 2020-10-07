@@ -1,15 +1,16 @@
 import fcntl
 import os
 import platform
-import pytest
+import re
 import shutil
 import signal
 import stat
 import subprocess
 import sys
-import re
 import tempfile
 import time
+
+import pytest
 
 from unit.check.go import check_go
 from unit.check.node import check_node

@@ -51,7 +51,7 @@ class TestProxyChunked(TestApplicationPython):
 
                 for line in re.split('\r\n', body):
                     add = ''
-                    m1 = re.search('(.*)\sX\s(\d+)', line)
+                    m1 = re.search(r'(.*)\sX\s(\d+)', line)
 
                     if m1 is not None:
                         add = m1.group(1) * int(m1.group(2))

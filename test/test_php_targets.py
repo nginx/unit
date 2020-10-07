@@ -1,5 +1,5 @@
-from unit.applications.lang.php import TestApplicationPHP
 from conftest import option
+from unit.applications.lang.php import TestApplicationPHP
 
 
 class TestPHPTargets(TestApplicationPHP):

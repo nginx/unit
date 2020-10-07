@@ -1,11 +1,11 @@
 import glob
 import os
-import pytest
 import shutil
 import subprocess
 
-from unit.applications.proto import TestApplicationProto
+import pytest
 from conftest import option
+from unit.applications.proto import TestApplicationProto
 
 
 class TestApplicationJava(TestApplicationProto):

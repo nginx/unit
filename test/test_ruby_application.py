@@ -1,8 +1,9 @@
-import pytest
 import re
 
-from unit.applications.lang.ruby import TestApplicationRuby
+import pytest
+
 from conftest import skip_alert
+from unit.applications.lang.ruby import TestApplicationRuby
 
 
 class TestRubyApplication(TestApplicationRuby):

@@ -1,12 +1,11 @@
 import base64
 import hashlib
 import itertools
-import pytest
 import random
-import re
 import select
 import struct
 
+import pytest
 from unit.applications.proto import TestApplicationProto
 
 GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"

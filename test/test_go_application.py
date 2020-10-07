@@ -1,5 +1,6 @@
-from unit.applications.lang.go import TestApplicationGo
 import re
+
+from unit.applications.lang.go import TestApplicationGo
 
 
 class TestGoApplication(TestApplicationGo):

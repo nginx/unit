@@ -2,14 +2,14 @@ import binascii
 import io
 import json
 import os
-import pytest
 import re
 import select
 import socket
 import time
 
-from unit.main import TestUnit
+import pytest
 from conftest import option
+from unit.main import TestUnit
 
 
 class TestHTTP(TestUnit):

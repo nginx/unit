@@ -1,8 +1,8 @@
 import os
 from subprocess import call
 
-from unit.applications.lang.python import TestApplicationPython
 from conftest import waitforfiles
+from unit.applications.lang.python import TestApplicationPython
 
 
 class TestUSR1(TestApplicationPython):

@@ -1,5 +1,5 @@
-from unit.applications.proto import TestApplicationProto
 from conftest import option
+from unit.applications.proto import TestApplicationProto
 
 
 class TestApplicationPHP(TestApplicationProto):

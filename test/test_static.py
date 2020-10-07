@@ -1,9 +1,10 @@
 import os
-import pytest
 import socket
 
-from unit.applications.proto import TestApplicationProto
+import pytest
+
 from conftest import waitforfiles
+from unit.applications.proto import TestApplicationProto
 
 
 class TestStatic(TestApplicationProto):

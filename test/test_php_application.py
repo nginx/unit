@@ -1,11 +1,12 @@
 import os
-import pytest
 import re
 import shutil
 import time
 
-from unit.applications.lang.php import TestApplicationPHP
+import pytest
+
 from conftest import option
+from unit.applications.lang.php import TestApplicationPHP
 
 class TestPHPApplication(TestApplicationPHP):
     prerequisites = {'modules': {'php': 'all'}}

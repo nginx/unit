@@ -1,11 +1,13 @@
-import pytest
 import struct
 import time
 from distutils.version import LooseVersion
 
+import pytest
+
+from conftest import option
+from conftest import skip_alert
 from unit.applications.lang.python import TestApplicationPython
 from unit.applications.websockets import TestApplicationWebsocket
-from conftest import option, skip_alert
 
 
 class TestASGIWebsockets(TestApplicationPython):

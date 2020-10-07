@@ -1,8 +1,8 @@
 import pytest
 
+from conftest import option
 from unit.applications.lang.php import TestApplicationPHP
 from unit.feature.isolation import TestFeatureIsolation
-from conftest import option
 
 
 class TestPHPIsolation(TestApplicationPHP):

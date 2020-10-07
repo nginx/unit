@@ -1,9 +1,9 @@
-import os
 import shutil
 from urllib.parse import quote
 
+from conftest import option
+from conftest import public_dir
 from unit.applications.proto import TestApplicationProto
-from conftest import option, public_dir
 
 
 class TestApplicationNode(TestApplicationProto):

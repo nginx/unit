@@ -1,9 +1,10 @@
-import pytest
+import re
 import socket
 import time
 
+import pytest
+
 from unit.applications.lang.python import TestApplicationPython
-import re
 
 
 class TestSettings(TestApplicationPython):

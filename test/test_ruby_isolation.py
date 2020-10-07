@@ -1,10 +1,9 @@
-import os
-import pytest
-import shutil
 
+import pytest
+
+from conftest import option
 from unit.applications.lang.ruby import TestApplicationRuby
 from unit.feature.isolation import TestFeatureIsolation
-from conftest import option
 
 
 class TestRubyIsolation(TestApplicationRuby):

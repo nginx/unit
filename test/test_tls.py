@@ -1,11 +1,12 @@
 import io
-import pytest
 import re
 import ssl
 import subprocess
 
-from unit.applications.tls import TestApplicationTLS
+import pytest
+
 from conftest import skip_alert
+from unit.applications.tls import TestApplicationTLS
 
 
 class TestTLS(TestApplicationTLS):
@@ -527,7 +528,7 @@ basicConstraints = critical,CA:TRUE"""
 
         self.wait_for_record(
             re.compile(
-                ' (?!' + app_id + '#)(\d+)#\d+ "mirror" application started'
+                r' (?!' + app_id + r'#)(\d+)#\d+ "mirror" application started'
             )
         )
 

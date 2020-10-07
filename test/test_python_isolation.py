@@ -94,4 +94,3 @@ class TestPythonIsolation(TestApplicationPython):
         self.load('empty', isolation=isolation)
 
         assert (self.get()['status'] == 200), 'enabled language_deps'
-

@@ -3,8 +3,10 @@ import os
 import re
 import time
 
+from conftest import option
+from conftest import public_dir
+from conftest import skip_alert
 from unit.applications.lang.java import TestApplicationJava
-from conftest import option, public_dir, skip_alert
 
 class TestJavaApplication(TestApplicationJava):
     prerequisites = {'modules': {'java': 'all'}}

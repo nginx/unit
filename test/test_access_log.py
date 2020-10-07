@@ -1,5 +1,6 @@
-import pytest
 import time
+
+import pytest
 
 from unit.applications.lang.python import TestApplicationPython
 

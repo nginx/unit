@@ -1,7 +1,7 @@
 import os
 
-from unit.applications.proto import TestApplicationProto
 from conftest import skip_alert
+from unit.applications.proto import TestApplicationProto
 
 
 class TestStatic(TestApplicationProto):

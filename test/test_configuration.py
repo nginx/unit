@@ -1,7 +1,7 @@
 import pytest
 
-from unit.control import TestControl
 from conftest import skip_alert
+from unit.control import TestControl
 
 
 class TestConfiguration(TestControl):
@@ -15,7 +15,7 @@ class TestConfiguration(TestControl):
 
     def test_json_unicode(self):
         assert 'success' in self.conf(
-            b"""
+            u"""
             {
                 "ap\u0070": {
                     "type": "\u0070ython",
@@ -53,8 +53,8 @@ class TestConfiguration(TestControl):
         assert 'приложение' in self.conf_get('applications'), 'unicode 2 get'
 
     def test_json_unicode_number(self):
-        assert 'error' in self.conf(
-            b"""
+        assert 'success' in self.conf(
+            u"""
             {
                 "app": {
                     "type": "python",

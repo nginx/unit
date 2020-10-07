@@ -1,11 +1,12 @@
 import grp
-import pytest
 import pwd
 import re
 import time
 
-from unit.applications.lang.python import TestApplicationPython
+import pytest
+
 from conftest import skip_alert
+from unit.applications.lang.python import TestApplicationPython
 
 
 class TestPythonApplication(TestApplicationPython):

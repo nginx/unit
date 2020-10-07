@@ -1,8 +1,9 @@
-import pytest
 import re
 
-from unit.applications.lang.node import TestApplicationNode
+import pytest
+
 from conftest import waitforfiles
+from unit.applications.lang.node import TestApplicationNode
 
 
 class TestNodeApplication(TestApplicationNode):
@@ -50,8 +51,8 @@ class TestNodeApplication(TestApplicationNode):
         raw_headers = headers.pop('Request-Raw-Headers')
         assert re.search(
             r'^(?:Host|localhost|Content-Type|'
-            'text\/html|Custom-Header|blah|Content-Length|17|Connection|'
-            'close|,)+$',
+            r'text\/html|Custom-Header|blah|Content-Length|17|Connection|'
+            r'close|,)+$',
             raw_headers,
         ), 'raw headers'
 

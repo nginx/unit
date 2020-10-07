@@ -1,9 +1,11 @@
 import os
-import pytest
 from distutils.version import LooseVersion
 
+import pytest
+
+from conftest import option
+from conftest import public_dir
 from unit.applications.lang.python import TestApplicationPython
-from conftest import option, public_dir
 
 
 class TestASGILifespan(TestApplicationPython):
@@ -19,11 +21,16 @@ class TestASGILifespan(TestApplicationPython):
         shutdown_path = option.test_dir + '/python/lifespan/empty/shutdown'
         version_path = option.test_dir + '/python/lifespan/empty/version'
 
-        open(startup_path, 'a').close()
-        open(shutdown_path, 'a').close()
-        open(version_path, 'a').close()
+        os.chmod(option.test_dir + '/python/lifespan/empty', 0o777)
 
-        public_dir(option.test_dir + '/python/lifespan/empty')
+        open(startup_path, 'a').close()
+        os.chmod(startup_path, 0o777)
+
+        open(shutdown_path, 'a').close()
+        os.chmod(shutdown_path, 0o777)
+
+        open(version_path, 'a').close()
+        os.chmod(version_path, 0o777)
 
         assert self.get()['status'] == 204
 

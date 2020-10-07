@@ -1,8 +1,9 @@
-import pytest
 import re
 
-from unit.applications.lang.perl import TestApplicationPerl
+import pytest
+
 from conftest import skip_alert
+from unit.applications.lang.perl import TestApplicationPerl
 
 
 class TestPerlApplication(TestApplicationPerl):

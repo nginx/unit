@@ -1,10 +1,12 @@
-import pytest
 import re
 import socket
 import time
 
+import pytest
+
+from conftest import option
+from conftest import skip_alert
 from unit.applications.lang.python import TestApplicationPython
-from conftest import option, skip_alert
 
 
 class TestProxy(TestApplicationPython):
@@ -215,7 +217,7 @@ Content-Length: 10
             == header_value
         ), 'custom header'
 
-        header_value = '(),/:;<=>?@[\]{}\t !#$%&\'*+-.^_`|~'
+        header_value = r'(),/:;<=>?@[\]{}\t !#$%&\'*+-.^_`|~'
         assert (
             self.get_http10(
                 headers={'Host': 'localhost', 'Custom-Header': header_value}
