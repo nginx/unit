@@ -118,6 +118,9 @@ class TestRouting(TestApplicationProto):
 
     def test_routes_match_negative(self):
         self.route_match({"uri": "!"})
+        assert self.get()['status'] == 200
+
+        self.route_match({"uri": "!*"})
         assert self.get()['status'] == 404
 
         self.route_match({"uri": "!/"})
@@ -1187,6 +1190,18 @@ class TestRouting(TestApplicationProto):
         assert self.get(url='/?foo=barxx&x%=%')['status'] == 404
 
     def test_routes_match_arguments_negative(self):
+        self.route_match({"arguments": {"foo": "!"}})
+        assert self.get(url='/?bar')['status'] == 404
+        assert self.get(url='/?foo')['status'] == 404
+        assert self.get(url='/?foo=')['status'] == 404
+        assert self.get(url='/?foo=%25')['status'] == 200
+
+        self.route_match({"arguments": {"foo": "!*"}})
+        assert self.get(url='/?bar')['status'] == 404
+        assert self.get(url='/?foo')['status'] == 404
+        assert self.get(url='/?foo=')['status'] == 404
+        assert self.get(url='/?foo=blah')['status'] == 404
+
         self.route_match({"arguments": {"foo": "!%25"}})
         assert self.get(url='/?foo=blah')['status'] == 200
         assert self.get(url='/?foo=%')['status'] == 404

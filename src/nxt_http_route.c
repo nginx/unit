@@ -1085,10 +1085,6 @@ nxt_http_route_pattern_create(nxt_task_t *task, nxt_mp_t *mp,
 
         pattern->negative = 1;
         pattern->any = 0;
-
-        if (test.length == 0) {
-            return NXT_OK;
-        }
     }
 
     if (test.length == 0) {
