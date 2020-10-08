@@ -7,6 +7,8 @@ Changes with Unit 1.20.0                                         08 Oct 2020
     *) Change: AVIF and APNG image formats added to the default MIME type
        list.
 
+    *) Change: functional tests migrated to the pytest framework.
+
     *) Feature: the Python module now fully supports applications that use
        the ASGI 3.0 server interface.
 

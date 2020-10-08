@@ -43,6 +43,12 @@ AVIF and APNG image formats added to the default MIME type list.
 </para>
 </change>
 
+<change type="change">
+<para>
+functional tests migrated to the pytest framework.
+</para>
+</change>
+
 <change type="feature">
 <para>
 the Python module now fully supports applications that use the ASGI 3.0 server
