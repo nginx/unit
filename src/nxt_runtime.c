@@ -84,7 +84,11 @@ nxt_runtime_create(nxt_task_t *task)
     lang->version = (u_char *) "";
     lang->file = NULL;
     lang->module = &nxt_external_module;
-    lang->mounts = NULL;
+
+    lang->mounts = nxt_array_create(mp, 1, sizeof(nxt_fs_mount_t));
+    if (nxt_slow_path(lang->mounts == NULL)) {
+        goto fail;
+    }
 
     listen_sockets = nxt_array_create(mp, 1, sizeof(nxt_listen_socket_t));
     if (nxt_slow_path(listen_sockets == NULL)) {

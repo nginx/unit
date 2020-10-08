@@ -60,6 +60,9 @@ typedef enum {
 
 
 typedef struct nxt_port_mmap_s  nxt_port_mmap_t;
+typedef struct nxt_process_s    nxt_process_t;
+typedef void (*nxt_isolation_cleanup_t)(nxt_task_t *task,
+    nxt_process_t *process);
 
 
 typedef struct {
@@ -69,21 +72,30 @@ typedef struct {
     nxt_port_mmap_t     *elts;
 } nxt_port_mmaps_t;
 
+
 typedef struct {
-    u_char                     *rootfs;
-    nxt_array_t                *mounts;     /* of nxt_mount_t */
+    uint8_t             language_deps;      /* 1-byte */
+} nxt_process_automount_t;
+
+
+typedef struct {
+    u_char                   *rootfs;
+    nxt_process_automount_t  automount;
+    nxt_array_t              *mounts;     /* of nxt_mount_t */
+
+    nxt_isolation_cleanup_t  cleanup;
 
 #if (NXT_HAVE_CLONE)
-    nxt_clone_t                clone;
+    nxt_clone_t              clone;
 #endif
 
 #if (NXT_HAVE_PR_SET_NO_NEW_PRIVS)
-    uint8_t                    new_privs;   /* 1 bit */
+    uint8_t                  new_privs;   /* 1 bit */
 #endif
 } nxt_process_isolation_t;
 
 
-typedef struct {
+struct nxt_process_s {
     nxt_pid_t                pid;
     const char               *name;
     nxt_queue_t              ports;      /* of nxt_port_t */
@@ -103,7 +115,7 @@ typedef struct {
     nxt_process_data_t       data;
 
     nxt_process_isolation_t  isolation;
-} nxt_process_t;
+};
 
 
 typedef nxt_int_t (*nxt_process_prefork_t)(nxt_task_t *task,
@@ -177,17 +189,6 @@ nxt_int_t nxt_process_core_setup(nxt_task_t *task, nxt_process_t *process);
 nxt_int_t nxt_process_creds_set(nxt_task_t *task, nxt_process_t *process,
     nxt_str_t *user, nxt_str_t *group);
 nxt_int_t nxt_process_apply_creds(nxt_task_t *task, nxt_process_t *process);
-
-#if (NXT_HAVE_CLONE_NEWUSER)
-nxt_int_t nxt_process_vldt_isolation_creds(nxt_task_t *task,
-    nxt_process_t *process);
-#endif
-
-nxt_int_t nxt_process_change_root(nxt_task_t *task, nxt_process_t *process);
-
-#if (NXT_HAVE_ISOLATION_ROOTFS)
-void nxt_process_unmount_all(nxt_task_t *task, nxt_process_t *process);
-#endif
 
 #if (NXT_HAVE_SETPROCTITLE)
 

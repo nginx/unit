@@ -12,7 +12,7 @@ class TestProxyChunked(TestApplicationPython):
     SERVER_PORT = 7999
 
     @staticmethod
-    def run_server(server_port, testdir):
+    def run_server(server_port, temp_dir):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
@@ -51,7 +51,7 @@ class TestProxyChunked(TestApplicationPython):
 
                 for line in re.split('\r\n', body):
                     add = ''
-                    m1 = re.search('(.*)\sX\s(\d+)', line)
+                    m1 = re.search(r'(.*)\sX\s(\d+)', line)
 
                     if m1 is not None:
                         add = m1.group(1) * int(m1.group(2))
@@ -81,68 +81,62 @@ class TestProxyChunked(TestApplicationPython):
     def get_http10(self, *args, **kwargs):
         return self.get(*args, http_10=True, **kwargs)
 
-    def setUp(self):
-        super().setUp()
+    def setup_method(self):
+        super().setup_method()
 
-        self.run_process(self.run_server, self.SERVER_PORT, self.testdir)
+        self.run_process(self.run_server, self.SERVER_PORT, self.temp_dir)
         self.waitforsocket(self.SERVER_PORT)
 
-        self.assertIn(
-            'success',
-            self.conf(
-                {
-                    "listeners": {"*:7080": {"pass": "routes"},},
-                    "routes": [
-                        {
-                            "action": {
-                                "proxy": "http://127.0.0.1:"
-                                + str(self.SERVER_PORT)
-                            }
+        assert 'success' in self.conf(
+            {
+                "listeners": {"*:7080": {"pass": "routes"},},
+                "routes": [
+                    {
+                        "action": {
+                            "proxy": "http://127.0.0.1:"
+                            + str(self.SERVER_PORT)
                         }
-                    ],
-                }
-            ),
-            'proxy initial configuration',
-        )
+                    }
+                ],
+            }
+        ), 'proxy initial configuration'
 
     def test_proxy_chunked(self):
         for _ in range(10):
-            self.assertEqual(
-                self.get_http10(body='\r\n\r\n0\r\n\r\n')['status'], 200
-            )
+            assert self.get_http10(body='\r\n\r\n0\r\n\r\n')['status'] == 200
 
     def test_proxy_chunked_body(self):
         part = '0123456789abcdef'
 
-        self.assertEqual(
+        assert (
             self.get_http10(body=self.chunks([('1000', part + ' X 256')]))[
                 'body'
-            ],
-            part * 256,
+            ]
+            == part * 256
         )
-        self.assertEqual(
+        assert (
             self.get_http10(body=self.chunks([('100000', part + ' X 65536')]))[
                 'body'
-            ],
-            part * 65536,
+            ]
+            == part * 65536
         )
-        self.assertEqual(
+        assert (
             self.get_http10(
                 body=self.chunks([('1000000', part + ' X 1048576')]),
                 read_buffer_size=4096 * 4096,
-            )['body'],
-            part * 1048576,
+            )['body']
+            == part * 1048576
         )
 
-        self.assertEqual(
+        assert (
             self.get_http10(
                 body=self.chunks(
                     [('1000', part + ' X 256'), ('1000', part + ' X 256')]
                 )
-            )['body'],
-            part * 256 * 2,
+            )['body']
+            == part * 256 * 2
         )
-        self.assertEqual(
+        assert (
             self.get_http10(
                 body=self.chunks(
                     [
@@ -150,10 +144,10 @@ class TestProxyChunked(TestApplicationPython):
                         ('100000', part + ' X 65536'),
                     ]
                 )
-            )['body'],
-            part * 65536 * 2,
+            )['body']
+            == part * 65536 * 2
         )
-        self.assertEqual(
+        assert (
             self.get_http10(
                 body=self.chunks(
                     [
@@ -162,42 +156,40 @@ class TestProxyChunked(TestApplicationPython):
                     ]
                 ),
                 read_buffer_size=4096 * 4096,
-            )['body'],
-            part * 1048576 * 2,
+            )['body']
+            == part * 1048576 * 2
         )
 
     def test_proxy_chunked_fragmented(self):
         part = '0123456789abcdef'
 
-        self.assertEqual(
+        assert (
             self.get_http10(
                 body=self.chunks(
                     [('1', hex(i % 16)[2:]) for i in range(4096)]
                 ),
-            )['body'],
-            part * 256,
+            )['body']
+            == part * 256
         )
 
     def test_proxy_chunked_send(self):
-        self.assertEqual(
-            self.get_http10(body='\r\n\r\n@0@\r\n\r\n')['status'], 200
-        )
-        self.assertEqual(
+        assert self.get_http10(body='\r\n\r\n@0@\r\n\r\n')['status'] == 200
+        assert (
             self.get_http10(
                 body='\r@\n\r\n2\r@\na@b\r\n2\r\ncd@\r\n0\r@\n\r\n'
-            )['body'],
-            'abcd',
+            )['body']
+            == 'abcd'
         )
-        self.assertEqual(
+        assert (
             self.get_http10(
                 body='\r\n\r\n2\r#\na#b\r\n##2\r\n#cd\r\n0\r\n#\r#\n'
-            )['body'],
-            'abcd',
+            )['body']
+            == 'abcd'
         )
 
     def test_proxy_chunked_invalid(self):
         def check_invalid(body):
-            self.assertNotEqual(self.get_http10(body=body)['status'], 200)
+            assert self.get_http10(body=body)['status'] != 200
 
         check_invalid('\r\n\r0')
         check_invalid('\r\n\r\n\r0')
@@ -209,41 +201,38 @@ class TestProxyChunked(TestApplicationPython):
         check_invalid('\r\n\r\n0\r\nX')
 
         resp = self.get_http10(body='\r\n\r\n65#\r\nA X 100')
-        self.assertEqual(resp['status'], 200, 'incomplete chunk status')
-        self.assertNotEqual(resp['body'][-5:], '0\r\n\r\n', 'incomplete chunk')
+        assert resp['status'] == 200, 'incomplete chunk status'
+        assert resp['body'][-5:] != '0\r\n\r\n', 'incomplete chunk'
 
         resp = self.get_http10(body='\r\n\r\n64#\r\nA X 100')
-        self.assertEqual(resp['status'], 200, 'no zero chunk status')
-        self.assertNotEqual(resp['body'][-5:], '0\r\n\r\n', 'no zero chunk')
+        assert resp['status'] == 200, 'no zero chunk status'
+        assert resp['body'][-5:] != '0\r\n\r\n', 'no zero chunk'
 
-        self.assertEqual(
-            self.get_http10(body='\r\n\r\n80000000\r\nA X 100')['status'], 200,
+        assert (
+            self.get_http10(body='\r\n\r\n80000000\r\nA X 100')['status']
+            == 200
         )
-        self.assertEqual(
+        assert (
             self.get_http10(body='\r\n\r\n10000000000000000\r\nA X 100')[
                 'status'
-            ],
-            502,
+            ]
+            == 502
         )
-        self.assertGreaterEqual(
+        assert (
             len(
                 self.get_http10(
                     body='\r\n\r\n1000000\r\nA X 1048576\r\n1000000\r\nA X 100',
                     read_buffer_size=4096 * 4096,
                 )['body']
-            ),
-            1048576,
+            )
+            >= 1048576
         )
-        self.assertGreaterEqual(
+        assert (
             len(
                 self.get_http10(
                     body='\r\n\r\n1000000\r\nA X 1048576\r\nXXX\r\nA X 100',
                     read_buffer_size=4096 * 4096,
                 )['body']
-            ),
-            1048576,
+            )
+            >= 1048576
         )
-
-
-if __name__ == '__main__':
-    TestProxyChunked.main()

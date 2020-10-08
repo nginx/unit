@@ -18,13 +18,38 @@
 #define NXT_MS_REC 0
 #endif
 
+#ifdef MS_NOSUID
+#define NXT_MS_NOSUID MS_NOSUID
+#else
+#define NXT_MS_NOSUID 0
+#endif
+
+#ifdef MS_NOEXEC
+#define NXT_MS_NOEXEC MS_NOEXEC
+#else
+#define NXT_MS_NOEXEC 0
+#endif
+
+#ifdef MS_RELATIME
+#define NXT_MS_RELATIME MS_RELATIME
+#else
+#define NXT_MS_RELATIME 0
+#endif
+
+#ifdef MS_NODEV
+#define NXT_MS_NODEV MS_NODEV
+#else
+#define NXT_MS_NODEV 0
+#endif
+
 
 typedef struct {
-    u_char     *src;
-    u_char     *dst;
-    u_char     *fstype;
-    nxt_int_t  flags;
-    u_char     *data;
+    u_char      *src;
+    u_char      *dst;
+    u_char      *fstype;
+    nxt_int_t   flags;
+    u_char      *data;
+    nxt_uint_t  builtin;  /* 1-bit */
 } nxt_fs_mount_t;
 
 

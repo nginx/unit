@@ -2,7 +2,7 @@ FROM debian:buster-slim
 
 LABEL maintainer="NGINX Docker Maintainers <docker-maint@nginx.com>"
 
-ENV UNIT_VERSION          1.19.0-1~buster
+ENV UNIT_VERSION          1.20.0-1~buster
 
 RUN set -x \
 	&& apt-get update \
@@ -21,6 +21,8 @@ RUN set -x \
 	done; \
 	test -z "$found" && echo >&2 "error: failed to fetch GPG key $NGINX_GPGKEY" && exit 1; \
 	apt-get remove --purge --auto-remove -y gnupg1 && rm -rf /var/lib/apt/lists/* \
+# work-around debian bug 863199
+	&& mkdir -p /usr/share/man/man1 \
 	&& dpkgArch="$(dpkg --print-architecture)" \
 	&& unitPackages="unit=${UNIT_VERSION} unit-perl=${UNIT_VERSION}" \
 	&& case "$dpkgArch" in \

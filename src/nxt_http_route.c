@@ -1085,10 +1085,6 @@ nxt_http_route_pattern_create(nxt_task_t *task, nxt_mp_t *mp,
 
         pattern->negative = 1;
         pattern->any = 0;
-
-        if (test.length == 0) {
-            return NXT_OK;
-        }
     }
 
     if (test.length == 0) {
@@ -1594,6 +1590,7 @@ nxt_http_action_t *
 nxt_http_action_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_str_t *name)
 {
+    nxt_int_t          ret;
     nxt_http_action_t  *action;
 
     action = nxt_mp_alloc(tmcf->router_conf->mem_pool,
@@ -1605,7 +1602,10 @@ nxt_http_action_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     action->name = *name;
     action->handler = NULL;
 
-    nxt_http_action_resolve(task, tmcf, action);
+    ret = nxt_http_action_resolve(task, tmcf, action);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        return NULL;
+    }
 
     return action;
 }

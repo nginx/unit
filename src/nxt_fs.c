@@ -40,30 +40,31 @@ nxt_fs_mount(nxt_task_t *task, nxt_fs_mount_t *mnt)
 nxt_int_t
 nxt_fs_mount(nxt_task_t *task, nxt_fs_mount_t *mnt)
 {
+    u_char        *data, *p, *end;
+    size_t        iovlen;
+    nxt_int_t     ret;
     const char    *fstype;
-    uint8_t       is_bind, is_proc;
-    struct iovec  iov[8];
+    struct iovec  iov[128];
     char          errmsg[256];
 
-    is_bind = nxt_strncmp(mnt->fstype, "bind", 4) == 0;
-    is_proc = nxt_strncmp(mnt->fstype, "proc", 4) == 0;
-
-    if (nxt_slow_path(!is_bind && !is_proc)) {
-        nxt_alert(task, "mount type \"%s\" not implemented.", mnt->fstype);
-        return NXT_ERROR;
-    }
-
-    if (is_bind) {
+    if (nxt_strncmp(mnt->fstype, "bind", 4) == 0) {
         fstype = "nullfs";
 
-    } else {
+    } else if (nxt_strncmp(mnt->fstype, "proc", 4) == 0) {
         fstype = "procfs";
+
+    } else if (nxt_strncmp(mnt->fstype, "tmpfs", 5) == 0) {
+        fstype = "tmpfs";
+
+    } else {
+        nxt_alert(task, "mount type \"%s\" not implemented.", mnt->fstype);
+        return NXT_ERROR;
     }
 
     iov[0].iov_base = (void *) "fstype";
     iov[0].iov_len = 7;
     iov[1].iov_base = (void *) fstype;
-    iov[1].iov_len = strlen(fstype) + 1;
+    iov[1].iov_len = nxt_strlen(fstype) + 1;
     iov[2].iov_base = (void *) "fspath";
     iov[2].iov_len = 7;
     iov[3].iov_base = (void *) mnt->dst;
@@ -77,12 +78,55 @@ nxt_fs_mount(nxt_task_t *task, nxt_fs_mount_t *mnt)
     iov[7].iov_base = (void *) errmsg;
     iov[7].iov_len = sizeof(errmsg);
 
-    if (nxt_slow_path(nmount(iov, 8, 0) < 0)) {
-        nxt_alert(task, "nmount(%p, 8, 0) %s", errmsg);
-        return NXT_ERROR;
+    iovlen = 8;
+
+    data = NULL;
+
+    if (mnt->data != NULL) {
+        data = (u_char *) nxt_strdup(mnt->data);
+        if (nxt_slow_path(data == NULL)) {
+            return NXT_ERROR;
+        }
+
+        end = data - 1;
+
+        do {
+            p = end + 1;
+            end = nxt_strchr(p, '=');
+            if (end == NULL) {
+                break;
+            }
+
+            *end = '\0';
+
+            iov[iovlen++].iov_base = (void *) p;
+            iov[iovlen++].iov_len = (end - p) + 1;
+
+            p = end + 1;
+
+            end = nxt_strchr(p, ',');
+            if (end != NULL) {
+                *end = '\0';
+            }
+
+            iov[iovlen++].iov_base = (void *) p;
+            iov[iovlen++].iov_len = nxt_strlen(p) + 1;
+
+        } while (end != NULL && nxt_nitems(iov) > (iovlen + 2));
     }
 
-    return NXT_OK;
+    ret = NXT_OK;
+
+    if (nxt_slow_path(nmount(iov, iovlen, 0) < 0)) {
+        nxt_alert(task, "nmount(%p, %d, 0) %s", iov, iovlen, errmsg);
+        ret = NXT_ERROR;
+    }
+
+    if (data != NULL) {
+        free(data);
+    }
+
+    return ret;
 }
 
 #endif

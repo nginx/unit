@@ -1,3 +1,5 @@
+import re
+
 from unit.applications.lang.go import TestApplicationGo
 
 
@@ -19,44 +21,38 @@ class TestGoApplication(TestApplicationGo):
             body=body,
         )
 
-        self.assertEqual(resp['status'], 200, 'status')
+        assert resp['status'] == 200, 'status'
         headers = resp['headers']
         header_server = headers.pop('Server')
-        self.assertRegex(header_server, r'Unit/[\d\.]+', 'server header')
+        assert re.search(r'Unit/[\d\.]+', header_server), 'server header'
 
         date = headers.pop('Date')
-        self.assertEqual(date[-4:], ' GMT', 'date header timezone')
-        self.assertLess(
-            abs(self.date_to_sec_epoch(date) - self.sec_epoch()),
-            5,
-            'date header',
-        )
+        assert date[-4:] == ' GMT', 'date header timezone'
+        assert (
+            abs(self.date_to_sec_epoch(date) - self.sec_epoch()) < 5
+        ), 'date header'
 
-        self.assertDictEqual(
-            headers,
-            {
-                'Content-Length': str(len(body)),
-                'Content-Type': 'text/html',
-                'Request-Method': 'POST',
-                'Request-Uri': '/',
-                'Http-Host': 'localhost',
-                'Server-Protocol': 'HTTP/1.1',
-                'Server-Protocol-Major': '1',
-                'Server-Protocol-Minor': '1',
-                'Custom-Header': 'blah',
-                'Connection': 'close',
-            },
-            'headers',
-        )
-        self.assertEqual(resp['body'], body, 'body')
+        assert headers == {
+            'Content-Length': str(len(body)),
+            'Content-Type': 'text/html',
+            'Request-Method': 'POST',
+            'Request-Uri': '/',
+            'Http-Host': 'localhost',
+            'Server-Protocol': 'HTTP/1.1',
+            'Server-Protocol-Major': '1',
+            'Server-Protocol-Minor': '1',
+            'Custom-Header': 'blah',
+            'Connection': 'close',
+        }, 'headers'
+        assert resp['body'] == body, 'body'
 
     def test_go_application_get_variables(self):
         self.load('get_variables')
 
         resp = self.get(url='/?var1=val1&var2=&var3')
-        self.assertEqual(resp['headers']['X-Var-1'], 'val1', 'GET variables')
-        self.assertEqual(resp['headers']['X-Var-2'], '', 'GET variables 2')
-        self.assertEqual(resp['headers']['X-Var-3'], '', 'GET variables 3')
+        assert resp['headers']['X-Var-1'] == 'val1', 'GET variables'
+        assert resp['headers']['X-Var-2'] == '', 'GET variables 2'
+        assert resp['headers']['X-Var-3'] == '', 'GET variables 3'
 
     def test_go_application_post_variables(self):
         self.load('post_variables')
@@ -70,24 +66,24 @@ class TestGoApplication(TestApplicationGo):
             body='var1=val1&var2=&var3',
         )
 
-        self.assertEqual(resp['headers']['X-Var-1'], 'val1', 'POST variables')
-        self.assertEqual(resp['headers']['X-Var-2'], '', 'POST variables 2')
-        self.assertEqual(resp['headers']['X-Var-3'], '', 'POST variables 3')
+        assert resp['headers']['X-Var-1'] == 'val1', 'POST variables'
+        assert resp['headers']['X-Var-2'] == '', 'POST variables 2'
+        assert resp['headers']['X-Var-3'] == '', 'POST variables 3'
 
     def test_go_application_404(self):
         self.load('404')
 
         resp = self.get()
 
-        self.assertEqual(resp['status'], 404, '404 status')
-        self.assertRegex(
-            resp['body'], r'<title>404 Not Found</title>', '404 body'
-        )
+        assert resp['status'] == 404, '404 status'
+        assert re.search(
+            r'<title>404 Not Found</title>', resp['body']
+        ), '404 body'
 
     def test_go_keepalive_body(self):
         self.load('mirror')
 
-        self.assertEqual(self.get()['status'], 200, 'init')
+        assert self.get()['status'] == 200, 'init'
 
         body = '0123456789' * 500
         (resp, sock) = self.post(
@@ -101,7 +97,7 @@ class TestGoApplication(TestApplicationGo):
             read_timeout=1,
         )
 
-        self.assertEqual(resp['body'], body, 'keep-alive 1')
+        assert resp['body'] == body, 'keep-alive 1'
 
         body = '0123456789'
         resp = self.post(
@@ -114,7 +110,7 @@ class TestGoApplication(TestApplicationGo):
             body=body,
         )
 
-        self.assertEqual(resp['body'], body, 'keep-alive 2')
+        assert resp['body'] == body, 'keep-alive 2'
 
     def test_go_application_cookies(self):
         self.load('cookies')
@@ -127,28 +123,24 @@ class TestGoApplication(TestApplicationGo):
             }
         )
 
-        self.assertEqual(resp['headers']['X-Cookie-1'], 'val1', 'cookie 1')
-        self.assertEqual(resp['headers']['X-Cookie-2'], 'val2', 'cookie 2')
+        assert resp['headers']['X-Cookie-1'] == 'val1', 'cookie 1'
+        assert resp['headers']['X-Cookie-2'] == 'val2', 'cookie 2'
 
     def test_go_application_command_line_arguments_type(self):
         self.load('command_line_arguments')
 
-        self.assertIn(
-            'error',
+        assert 'error' in \
             self.conf(
                 '' "a b c", 'applications/command_line_arguments/arguments'
-            ),
-            'arguments type',
-        )
+            ), \
+            'arguments type'
 
     def test_go_application_command_line_arguments_0(self):
         self.load('command_line_arguments')
 
-        self.assertEqual(
-            self.get()['headers']['X-Arg-0'],
-            self.conf_get('applications/command_line_arguments/executable'),
-            'argument 0',
-        )
+        assert self.get()['headers']['X-Arg-0'] == self.conf_get(
+            'applications/command_line_arguments/executable'
+        ), 'argument 0'
 
     def test_go_application_command_line_arguments(self):
         self.load('command_line_arguments')
@@ -162,9 +154,9 @@ class TestGoApplication(TestApplicationGo):
             'applications/command_line_arguments/arguments',
         )
 
-        self.assertEqual(
-            self.get()['body'], arg1 + ',' + arg2 + ',' + arg3, 'arguments'
-        )
+        assert (
+            self.get()['body'] == arg1 + ',' + arg2 + ',' + arg3
+        ), 'arguments'
 
     def test_go_application_command_line_arguments_change(self):
         self.load('command_line_arguments')
@@ -173,18 +165,14 @@ class TestGoApplication(TestApplicationGo):
 
         self.conf('["0", "a", "$", ""]', args_path)
 
-        self.assertEqual(self.get()['body'], '0,a,$,', 'arguments')
+        assert self.get()['body'] == '0,a,$,', 'arguments'
 
         self.conf('["-1", "b", "%"]', args_path)
 
-        self.assertEqual(self.get()['body'], '-1,b,%', 'arguments change')
+        assert self.get()['body'] == '-1,b,%', 'arguments change'
 
         self.conf('[]', args_path)
 
-        self.assertEqual(
-            self.get()['headers']['Content-Length'], '0', 'arguments empty'
-        )
-
-
-if __name__ == '__main__':
-    TestGoApplication.main()
+        assert (
+            self.get()['headers']['Content-Length'] == '0'
+        ), 'arguments empty'

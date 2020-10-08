@@ -8,16 +8,14 @@
 
 #include <Python.h>
 
-#include <compile.h>
-#include <node.h>
-
 #include <nxt_main.h>
-#include <nxt_runtime.h>
 #include <nxt_router.h>
 #include <nxt_unit.h>
 #include <nxt_unit_field.h>
 #include <nxt_unit_request.h>
 #include <nxt_unit_response.h>
+
+#include <python/nxt_python.h>
 
 #include NXT_PYTHON_MOUNTS_H
 
@@ -40,23 +38,6 @@
  */
 
 
-#if PY_MAJOR_VERSION == 3
-#define NXT_PYTHON_BYTES_TYPE       "bytestring"
-
-#define PyString_FromStringAndSize(str, size)                                 \
-            PyUnicode_DecodeLatin1((str), (size), "strict")
-
-#else
-#define NXT_PYTHON_BYTES_TYPE       "string"
-
-#define PyBytes_FromStringAndSize   PyString_FromStringAndSize
-#define PyBytes_Check               PyString_Check
-#define PyBytes_GET_SIZE            PyString_GET_SIZE
-#define PyBytes_AS_STRING           PyString_AS_STRING
-#define PyUnicode_InternInPlace     PyString_InternInPlace
-#define PyUnicode_AsUTF8            PyString_AS_STRING
-#endif
-
 typedef struct nxt_python_run_ctx_s  nxt_python_run_ctx_t;
 
 typedef struct {
@@ -68,18 +49,17 @@ typedef struct {
     PyObject_HEAD
 } nxt_py_error_t;
 
-static nxt_int_t nxt_python_start(nxt_task_t *task,
-    nxt_process_data_t *data);
-static nxt_int_t nxt_python_init_strings(void);
 static void nxt_python_request_handler(nxt_unit_request_info_t *req);
-static void nxt_python_atexit(void);
 
 static PyObject *nxt_python_create_environ(nxt_task_t *task);
 static PyObject *nxt_python_get_environ(nxt_python_run_ctx_t *ctx);
 static int nxt_python_add_sptr(nxt_python_run_ctx_t *ctx, PyObject *name,
     nxt_unit_sptr_t *sptr, uint32_t size);
 static int nxt_python_add_field(nxt_python_run_ctx_t *ctx,
-    nxt_unit_field_t *field);
+    nxt_unit_field_t *field, int n, uint32_t vl);
+static PyObject *nxt_python_field_name(const char *name, uint8_t len);
+static PyObject *nxt_python_field_value(nxt_unit_field_t *f, int n,
+    uint32_t vl);
 static int nxt_python_add_obj(nxt_python_run_ctx_t *ctx, PyObject *name,
     PyObject *value);
 
@@ -99,7 +79,6 @@ static PyObject *nxt_py_input_readlines(nxt_py_input_t *self, PyObject *args);
 static PyObject *nxt_py_input_iter(PyObject *self);
 static PyObject *nxt_py_input_next(PyObject *self);
 
-static void nxt_python_print_exception(void);
 static int nxt_python_write(nxt_python_run_ctx_t *ctx, PyObject *bytes);
 
 struct nxt_python_run_ctx_s {
@@ -107,22 +86,6 @@ struct nxt_python_run_ctx_s {
     uint64_t                 bytes_sent;
     PyObject                 *environ;
     nxt_unit_request_info_t  *req;
-};
-
-static uint32_t  compat[] = {
-    NXT_VERNUM, NXT_DEBUG,
-};
-
-
-NXT_EXPORT nxt_app_module_t  nxt_app_module = {
-    sizeof(compat),
-    compat,
-    nxt_string("python"),
-    PY_VERSION,
-    nxt_python_mounts,
-    nxt_nitems(nxt_python_mounts),
-    NULL,
-    nxt_python_start,
 };
 
 
@@ -158,21 +121,12 @@ static PyTypeObject nxt_py_input_type = {
 };
 
 
-static PyObject           *nxt_py_stderr_flush;
-static PyObject           *nxt_py_application;
 static PyObject           *nxt_py_start_resp_obj;
 static PyObject           *nxt_py_write_obj;
 static PyObject           *nxt_py_environ_ptyp;
 
-#if PY_MAJOR_VERSION == 3
-static wchar_t            *nxt_py_home;
-#else
-static char               *nxt_py_home;
-#endif
-
 static PyThreadState         *nxt_python_thread_state;
 static nxt_python_run_ctx_t  *nxt_python_run_ctx;
-
 
 static PyObject  *nxt_py_80_str;
 static PyObject  *nxt_py_close_str;
@@ -191,11 +145,6 @@ static PyObject  *nxt_py_server_port_str;
 static PyObject  *nxt_py_server_protocol_str;
 static PyObject  *nxt_py_wsgi_uri_scheme_str;
 
-typedef struct {
-    nxt_str_t  string;
-    PyObject   **object_p;
-} nxt_python_string_t;
-
 static nxt_python_string_t nxt_python_strings[] = {
     { nxt_string("80"), &nxt_py_80_str },
     { nxt_string("close"), &nxt_py_close_str },
@@ -213,134 +162,20 @@ static nxt_python_string_t nxt_python_strings[] = {
     { nxt_string("SERVER_PORT"), &nxt_py_server_port_str },
     { nxt_string("SERVER_PROTOCOL"), &nxt_py_server_protocol_str },
     { nxt_string("wsgi.url_scheme"), &nxt_py_wsgi_uri_scheme_str },
+    { nxt_null_string, NULL },
 };
 
 
-static nxt_int_t
-nxt_python_start(nxt_task_t *task, nxt_process_data_t *data)
+nxt_int_t
+nxt_python_wsgi_init(nxt_task_t *task, nxt_unit_init_t *init)
 {
-    int                    rc;
-    char                   *nxt_py_module;
-    size_t                 len;
-    PyObject               *obj, *pypath, *module;
-    nxt_unit_ctx_t         *unit_ctx;
-    nxt_unit_init_t        python_init;
-    nxt_common_app_conf_t  *app_conf;
-    nxt_python_app_conf_t  *c;
-#if PY_MAJOR_VERSION == 3
-    char                   *path;
-    size_t                 size;
-    nxt_int_t              pep405;
+    PyObject  *obj;
 
-    static const char pyvenv[] = "/pyvenv.cfg";
-    static const char bin_python[] = "/bin/python";
-#endif
-
-    app_conf = data->app;
-    c = &app_conf->u.python;
-
-    if (c->home != NULL) {
-        len = nxt_strlen(c->home);
-
-#if PY_MAJOR_VERSION == 3
-
-        path = nxt_malloc(len + sizeof(pyvenv));
-        if (nxt_slow_path(path == NULL)) {
-            nxt_alert(task, "Failed to allocate memory");
-            return NXT_ERROR;
-        }
-
-        nxt_memcpy(path, c->home, len);
-        nxt_memcpy(path + len, pyvenv, sizeof(pyvenv));
-
-        pep405 = (access(path, R_OK) == 0);
-
-        nxt_free(path);
-
-        if (pep405) {
-            size = (len + sizeof(bin_python)) * sizeof(wchar_t);
-
-        } else {
-            size = (len + 1) * sizeof(wchar_t);
-        }
-
-        nxt_py_home = nxt_malloc(size);
-        if (nxt_slow_path(nxt_py_home == NULL)) {
-            nxt_alert(task, "Failed to allocate memory");
-            return NXT_ERROR;
-        }
-
-        if (pep405) {
-            mbstowcs(nxt_py_home, c->home, len);
-            mbstowcs(nxt_py_home + len, bin_python, sizeof(bin_python));
-            Py_SetProgramName(nxt_py_home);
-
-        } else {
-            mbstowcs(nxt_py_home, c->home, len + 1);
-            Py_SetPythonHome(nxt_py_home);
-        }
-
-#else
-        nxt_py_home = nxt_malloc(len + 1);
-        if (nxt_slow_path(nxt_py_home == NULL)) {
-            nxt_alert(task, "Failed to allocate memory");
-            return NXT_ERROR;
-        }
-
-        nxt_memcpy(nxt_py_home, c->home, len + 1);
-        Py_SetPythonHome(nxt_py_home);
-#endif
-    }
-
-    Py_InitializeEx(0);
-
-    module = NULL;
     obj = NULL;
 
-    if (nxt_slow_path(nxt_python_init_strings() != NXT_OK)) {
+    if (nxt_slow_path(nxt_python_init_strings(nxt_python_strings) != NXT_OK)) {
         nxt_alert(task, "Python failed to init string objects");
         goto fail;
-    }
-
-    obj = PySys_GetObject((char *) "stderr");
-    if (nxt_slow_path(obj == NULL)) {
-        nxt_alert(task, "Python failed to get \"sys.stderr\" object");
-        goto fail;
-    }
-
-    nxt_py_stderr_flush = PyObject_GetAttrString(obj, "flush");
-    if (nxt_slow_path(nxt_py_stderr_flush == NULL)) {
-        nxt_alert(task, "Python failed to get \"flush\" attribute of "
-                        "\"sys.stderr\" object");
-        goto fail;
-    }
-
-    Py_DECREF(obj);
-
-    if (c->path.length > 0) {
-        obj = PyString_FromStringAndSize((char *) c->path.start,
-                                         c->path.length);
-
-        if (nxt_slow_path(obj == NULL)) {
-            nxt_alert(task, "Python failed to create string object \"%V\"",
-                      &c->path);
-            goto fail;
-        }
-
-        pypath = PySys_GetObject((char *) "path");
-
-        if (nxt_slow_path(pypath == NULL)) {
-            nxt_alert(task, "Python failed to get \"sys.path\" list");
-            goto fail;
-        }
-
-        if (nxt_slow_path(PyList_Insert(pypath, 0, obj) != 0)) {
-            nxt_alert(task, "Python failed to insert \"%V\" into \"sys.path\"",
-                      &c->path);
-            goto fail;
-        }
-
-        Py_DECREF(obj);
     }
 
     obj = PyCFunction_New(nxt_py_start_resp_method, NULL);
@@ -366,107 +201,43 @@ nxt_python_start(nxt_task_t *task, nxt_process_data_t *data)
     }
 
     nxt_py_environ_ptyp = obj;
-
-    obj = Py_BuildValue("[s]", "unit");
-    if (nxt_slow_path(obj == NULL)) {
-        nxt_alert(task, "Python failed to create the \"sys.argv\" list");
-        goto fail;
-    }
-
-    if (nxt_slow_path(PySys_SetObject((char *) "argv", obj) != 0)) {
-        nxt_alert(task, "Python failed to set the \"sys.argv\" list");
-        goto fail;
-    }
-
-    Py_CLEAR(obj);
-
-    nxt_py_module = nxt_alloca(c->module.length + 1);
-    nxt_memcpy(nxt_py_module, c->module.start, c->module.length);
-    nxt_py_module[c->module.length] = '\0';
-
-    module = PyImport_ImportModule(nxt_py_module);
-    if (nxt_slow_path(module == NULL)) {
-        nxt_alert(task, "Python failed to import module \"%s\"", nxt_py_module);
-        nxt_python_print_exception();
-        goto fail;
-    }
-
-    obj = PyDict_GetItemString(PyModule_GetDict(module), "application");
-    if (nxt_slow_path(obj == NULL)) {
-        nxt_alert(task, "Python failed to get \"application\" "
-                  "from module \"%s\"", nxt_py_module);
-        goto fail;
-    }
-
-    if (nxt_slow_path(PyCallable_Check(obj) == 0)) {
-        nxt_alert(task, "\"application\" in module \"%s\" "
-                  "is not a callable object", nxt_py_module);
-        goto fail;
-    }
-
-    Py_INCREF(obj);
-    Py_CLEAR(module);
-
-    nxt_py_application = obj;
     obj = NULL;
 
-    nxt_unit_default_init(task, &python_init);
-
-    python_init.callbacks.request_handler = nxt_python_request_handler;
-    python_init.shm_limit = data->app->shm_limit;
-
-    unit_ctx = nxt_unit_init(&python_init);
-    if (nxt_slow_path(unit_ctx == NULL)) {
-        goto fail;
-    }
-
-    nxt_python_thread_state = PyEval_SaveThread();
-
-    rc = nxt_unit_run(unit_ctx);
-
-    nxt_unit_done(unit_ctx);
-
-    PyEval_RestoreThread(nxt_python_thread_state);
-
-    nxt_python_atexit();
-
-    exit(rc);
+    init->callbacks.request_handler = nxt_python_request_handler;
 
     return NXT_OK;
 
 fail:
 
     Py_XDECREF(obj);
-    Py_XDECREF(module);
-
-    nxt_python_atexit();
 
     return NXT_ERROR;
 }
 
 
-static nxt_int_t
-nxt_python_init_strings(void)
+int
+nxt_python_wsgi_run(nxt_unit_ctx_t *ctx)
 {
-    PyObject             *obj;
-    nxt_uint_t           i;
-    nxt_python_string_t  *pstr;
+    int  rc;
 
-    for (i = 0; i < nxt_nitems(nxt_python_strings); i++) {
-        pstr = &nxt_python_strings[i];
+    nxt_python_thread_state = PyEval_SaveThread();
 
-        obj = PyString_FromStringAndSize((char *) pstr->string.start,
-                                         pstr->string.length);
-        if (nxt_slow_path(obj == NULL)) {
-            return NXT_ERROR;
-        }
+    rc = nxt_unit_run(ctx);
 
-        PyUnicode_InternInPlace(&obj);
+    PyEval_RestoreThread(nxt_python_thread_state);
 
-        *pstr->object_p = obj;
-    }
+    return rc;
+}
 
-    return NXT_OK;
+
+void
+nxt_python_wsgi_done(void)
+{
+    nxt_python_done_strings(nxt_python_strings);
+
+    Py_XDECREF(nxt_py_start_resp_obj);
+    Py_XDECREF(nxt_py_write_obj);
+    Py_XDECREF(nxt_py_environ_ptyp);
 }
 
 
@@ -594,29 +365,6 @@ done:
 
     nxt_python_run_ctx = NULL;
     nxt_unit_request_done(req, rc);
-}
-
-
-static void
-nxt_python_atexit(void)
-{
-    nxt_uint_t  i;
-
-    for (i = 0; i < nxt_nitems(nxt_python_strings); i++) {
-        Py_XDECREF(*nxt_python_strings[i].object_p);
-    }
-
-    Py_XDECREF(nxt_py_stderr_flush);
-    Py_XDECREF(nxt_py_application);
-    Py_XDECREF(nxt_py_start_resp_obj);
-    Py_XDECREF(nxt_py_write_obj);
-    Py_XDECREF(nxt_py_environ_ptyp);
-
-    Py_Finalize();
-
-    if (nxt_py_home != NULL) {
-        nxt_free(nxt_py_home);
-    }
 }
 
 
@@ -749,9 +497,9 @@ static PyObject *
 nxt_python_get_environ(nxt_python_run_ctx_t *ctx)
 {
     int                 rc;
-    uint32_t            i;
+    uint32_t            i, j, vl;
     PyObject            *environ;
-    nxt_unit_field_t    *f;
+    nxt_unit_field_t    *f, *f2;
     nxt_unit_request_t  *r;
 
     environ = PyDict_Copy(nxt_py_environ_ptyp);
@@ -803,10 +551,27 @@ nxt_python_get_environ(nxt_python_run_ctx_t *ctx)
                            r->server_name_length));
     RC(nxt_python_add_obj(ctx, nxt_py_server_port_str, nxt_py_80_str));
 
-    for (i = 0; i < r->fields_count; i++) {
-        f = r->fields + i;
+    nxt_unit_request_group_dup_fields(ctx->req);
 
-        RC(nxt_python_add_field(ctx, f));
+    for (i = 0; i < r->fields_count;) {
+        f = r->fields + i;
+        vl = f->value_length;
+
+        for (j = i + 1; j < r->fields_count; j++) {
+            f2 = r->fields + j;
+
+            if (f2->hash != f->hash
+                || nxt_unit_sptr_get(&f2->name) != nxt_unit_sptr_get(&f->name))
+            {
+                break;
+            }
+
+            vl += 2 + f2->value_length;
+        }
+
+        RC(nxt_python_add_field(ctx, f, j - i, vl));
+
+        i = j;
     }
 
     if (r->content_length_field != NXT_UNIT_NONE_FIELD) {
@@ -870,14 +635,15 @@ nxt_python_add_sptr(nxt_python_run_ctx_t *ctx, PyObject *name,
 
 
 static int
-nxt_python_add_field(nxt_python_run_ctx_t *ctx, nxt_unit_field_t *field)
+nxt_python_add_field(nxt_python_run_ctx_t *ctx, nxt_unit_field_t *field, int n,
+    uint32_t vl)
 {
     char      *src;
     PyObject  *name, *value;
 
     src = nxt_unit_sptr_get(&field->name);
 
-    name = PyString_FromStringAndSize(src, field->name_length);
+    name = nxt_python_field_name(src, field->name_length);
     if (nxt_slow_path(name == NULL)) {
         nxt_unit_req_error(ctx->req,
                            "Python failed to create name string \"%.*s\"",
@@ -887,13 +653,13 @@ nxt_python_add_field(nxt_python_run_ctx_t *ctx, nxt_unit_field_t *field)
         return NXT_UNIT_ERROR;
     }
 
-    src = nxt_unit_sptr_get(&field->value);
+    value = nxt_python_field_value(field, n, vl);
 
-    value = PyString_FromStringAndSize(src, field->value_length);
     if (nxt_slow_path(value == NULL)) {
         nxt_unit_req_error(ctx->req,
                            "Python failed to create value string \"%.*s\"",
-                           (int) field->value_length, src);
+                           (int) field->value_length,
+                           (char *) nxt_unit_sptr_get(&field->value));
         nxt_python_print_exception();
 
         goto fail;
@@ -917,6 +683,80 @@ fail:
     Py_XDECREF(value);
 
     return NXT_UNIT_ERROR;
+}
+
+
+static PyObject *
+nxt_python_field_name(const char *name, uint8_t len)
+{
+    char      *p, c;
+    uint8_t   i;
+    PyObject  *res;
+
+#if PY_MAJOR_VERSION == 3
+    res = PyUnicode_New(len + 5, 255);
+#else
+    res = PyString_FromStringAndSize(NULL, len + 5);
+#endif
+
+    if (nxt_slow_path(res == NULL)) {
+        return NULL;
+    }
+
+    p = PyString_AS_STRING(res);
+
+    p = nxt_cpymem(p, "HTTP_", 5);
+
+    for (i = 0; i < len; i++) {
+        c = name[i];
+
+        if (c >= 'a' && c <= 'z') {
+            *p++ = (c & ~0x20);
+            continue;
+        }
+
+        if (c == '-') {
+            *p++ = '_';
+            continue;
+        }
+
+        *p++ = c;
+    }
+
+    return res;
+}
+
+
+static PyObject *
+nxt_python_field_value(nxt_unit_field_t *f, int n, uint32_t vl)
+{
+    int       i;
+    char      *p, *src;
+    PyObject  *res;
+
+#if PY_MAJOR_VERSION == 3
+    res = PyUnicode_New(vl, 255);
+#else
+    res = PyString_FromStringAndSize(NULL, vl);
+#endif
+
+    if (nxt_slow_path(res == NULL)) {
+        return NULL;
+    }
+
+    p = PyString_AS_STRING(res);
+
+    src = nxt_unit_sptr_get(&f->value);
+    p = nxt_cpymem(p, src, f->value_length);
+
+    for (i = 1; i < n; i++) {
+        p = nxt_cpymem(p, ", ", 2);
+
+        src = nxt_unit_sptr_get(&f[i].value);
+        p = nxt_cpymem(p, src, f[i].value_length);
+    }
+
+    return res;
 }
 
 
@@ -1383,28 +1223,6 @@ nxt_py_input_next(PyObject *self)
     }
 
     return line;
-}
-
-
-static void
-nxt_python_print_exception(void)
-{
-    PyErr_Print();
-
-#if PY_MAJOR_VERSION == 3
-    /* The backtrace may be buffered in sys.stderr file object. */
-    {
-        PyObject  *result;
-
-        result = PyObject_CallFunction(nxt_py_stderr_flush, NULL);
-        if (nxt_slow_path(result == NULL)) {
-            PyErr_Clear();
-            return;
-        }
-
-        Py_DECREF(result);
-    }
-#endif
 }
 
 

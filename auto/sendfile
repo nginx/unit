@@ -84,10 +84,8 @@ fi
 
 
 if [ $nxt_found = no ]; then
-    $echo
-    $echo "$0: error: no supported sendfile() found."
-    $echo
-    exit 1;
+    # No supported sendfile() found.  Using our replacement.
+    nxt_found=yes
 fi
 
 

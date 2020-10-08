@@ -1,30 +1,32 @@
 import os
 import subprocess
-import unittest
 
+import pytest
+
+from conftest import option
 from unit.applications.lang.java import TestApplicationJava
 
 
 class TestJavaIsolationRootfs(TestApplicationJava):
     prerequisites = {'modules': {'java': 'all'}}
 
-    def setUp(self):
-        if not self.is_su:
+    def setup_method(self, is_su):
+        super().setup_method()
+
+        if not is_su:
             return
 
-        super().setUp()
-
-        os.makedirs(self.testdir + '/jars')
-        os.makedirs(self.testdir + '/tmp')
-        os.chmod(self.testdir + '/tmp', 0o777)
+        os.makedirs(self.temp_dir + '/jars')
+        os.makedirs(self.temp_dir + '/tmp')
+        os.chmod(self.temp_dir + '/tmp', 0o777)
 
         try:
             process = subprocess.Popen(
                 [
                     "mount",
                     "--bind",
-                    self.pardir + "/build",
-                    self.testdir + "/jars",
+                    option.current_dir + "/build",
+                    self.temp_dir + "/jars",
                 ],
                 stderr=subprocess.STDOUT,
             )
@@ -32,54 +34,45 @@ class TestJavaIsolationRootfs(TestApplicationJava):
             process.communicate()
 
         except:
-            self.fail('Cann\'t run mount process.')
+            pytest.fail('Cann\'t run mount process.')
 
-    def tearDown(self):
-        if not self.is_su:
+    def teardown_method(self, is_su):
+        if not is_su:
             return
 
         try:
             process = subprocess.Popen(
-                ["umount", "--lazy", self.testdir + "/jars"],
+                ["umount", "--lazy", self.temp_dir + "/jars"],
                 stderr=subprocess.STDOUT,
             )
 
             process.communicate()
 
         except:
-            self.fail('Cann\'t run mount process.')
+            pytest.fail('Cann\'t run mount process.')
 
         # super teardown must happen after unmount to avoid deletion of /build
-        super().tearDown()
+        super().teardown_method()
 
-    def test_java_isolation_rootfs_chroot_war(self):
-        if not self.is_su:
-            print('require root')
-            raise unittest.SkipTest()
+    def test_java_isolation_rootfs_chroot_war(self, is_su):
+        if not is_su:
+            pytest.skip('require root')
 
         isolation = {
-            'rootfs': self.testdir,
+            'rootfs': self.temp_dir,
         }
 
         self.load('empty_war', isolation=isolation)
 
-        self.assertIn(
-            'success',
-            self.conf(
-                '"/"', '/config/applications/empty_war/working_directory',
-            ),
+        assert 'success' in self.conf(
+            '"/"', '/config/applications/empty_war/working_directory',
         )
 
-        self.assertIn(
-            'success', self.conf('"/jars"', 'applications/empty_war/unit_jars')
+        assert 'success' in self.conf(
+            '"/jars"', 'applications/empty_war/unit_jars'
         )
-        self.assertIn(
-            'success',
-            self.conf('"/java/empty.war"', 'applications/empty_war/webapp'),
+        assert 'success' in self.conf(
+            '"/java/empty.war"', 'applications/empty_war/webapp'
         )
 
-        self.assertEqual(self.get()['status'], 200, 'war')
-
-
-if __name__ == '__main__':
-    TestJavaIsolationRootfs.main()
+        assert self.get()['status'] == 200, 'war'

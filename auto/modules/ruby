@@ -156,23 +156,23 @@ cat << END > $NXT_RUBY_MOUNTS_PATH
 
 static const nxt_fs_mount_t  nxt_ruby_mounts[] = {
     {(u_char *) "$NXT_RUBY_RUBYHDRDIR", (u_char *) "$NXT_RUBY_RUBYHDRDIR",
-     (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL},
+     (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL, 1},
     {(u_char *) "$NXT_RUBY_ARCHHDRDIR", (u_char *) "$NXT_RUBY_ARCHHDRDIR",
-     (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL},
+     (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL, 1},
     {(u_char *) "$NXT_RUBY_SITEDIR", (u_char *) "$NXT_RUBY_SITEDIR",
-     (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL},
+     (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL, 1},
     {(u_char *) "$NXT_RUBY_LIBDIR", (u_char *) "$NXT_RUBY_LIBDIR",
-     (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL},
+     (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL, 1},
     {(u_char *) "$NXT_RUBY_TOPDIR", (u_char *) "$NXT_RUBY_TOPDIR",
-     (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL},
+     (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL, 1},
     {(u_char *) "$NXT_RUBY_PREFIXDIR", (u_char *) "$NXT_RUBY_PREFIXDIR",
-     (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL},
+     (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL, 1},
 
 END
 
 for path in `echo $NXT_RUBY_GEMPATH | tr ':' '\n'`; do
    $echo "{(u_char *) \"$path\", (u_char *) \"$path\"," >> $NXT_RUBY_MOUNTS_PATH
-   $echo "(u_char *) \"bind\", NXT_MS_BIND | NXT_MS_REC, NULL}," >> $NXT_RUBY_MOUNTS_PATH
+   $echo "(u_char *) \"bind\", NXT_MS_BIND | NXT_MS_REC, NULL, 1}," >> $NXT_RUBY_MOUNTS_PATH
 done
 
 $echo "};" >> $NXT_RUBY_MOUNTS_PATH

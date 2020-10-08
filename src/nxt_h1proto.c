@@ -503,7 +503,10 @@ nxt_h1p_conn_request_init(nxt_task_t *task, void *obj, void *data)
             joint->count++;
 
             r->conf = joint;
-            c->local = joint->socket_conf->sockaddr;
+
+            if (c->local == NULL) {
+                c->local = joint->socket_conf->sockaddr;
+            }
 
             nxt_h1p_conn_request_header_parse(task, c, h1p);
             return;
@@ -734,8 +737,15 @@ nxt_h1p_connection(void *ctx, nxt_http_field_t *field, uintptr_t data)
     r = ctx;
     field->hopbyhop = 1;
 
-    if (field->value_length == 5 && nxt_memcmp(field->value, "close", 5) == 0) {
+    if (field->value_length == 5
+        && nxt_memcasecmp(field->value, "close", 5) == 0)
+    {
         r->proto.h1->keepalive = 0;
+
+    } else if (field->value_length == 10
+               && nxt_memcasecmp(field->value, "keep-alive", 10) == 0)
+    {
+        r->proto.h1->keepalive = 1;
 
     } else if (field->value_length == 7
                && nxt_memcasecmp(field->value, "upgrade", 7) == 0)
@@ -1749,7 +1759,15 @@ nxt_h1p_conn_timer_value(nxt_conn_t *c, uintptr_t data)
 
     joint = c->listen->socket.data;
 
-    return nxt_value_at(nxt_msec_t, joint->socket_conf, data);
+    if (nxt_fast_path(joint != NULL)) {
+        return nxt_value_at(nxt_msec_t, joint->socket_conf, data);
+    }
+
+    /*
+     * Listening socket had been closed while
+     * connection was in keep-alive state.
+     */
+    return 1;
 }
 
 
@@ -1829,6 +1847,8 @@ nxt_h1p_idle_close(nxt_task_t *task, void *obj, void *data)
 
     nxt_debug(task, "h1p idle close");
 
+    nxt_queue_remove(&c->link);
+
     nxt_h1p_idle_response(task, c);
 }
 
@@ -1863,10 +1883,9 @@ nxt_h1p_idle_timeout(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_h1p_idle_response(nxt_task_t *task, nxt_conn_t *c)
 {
-    u_char         *p;
-    size_t         size;
-    nxt_buf_t      *out, *last;
-    nxt_h1proto_t  *h1p;
+    u_char     *p;
+    size_t     size;
+    nxt_buf_t  *out, *last;
 
     size = nxt_length(NXT_H1P_IDLE_TIMEOUT)
            + nxt_http_date_cache.size
@@ -1895,9 +1914,6 @@ nxt_h1p_idle_response(nxt_task_t *task, nxt_conn_t *c)
 
     last->completion_handler = nxt_h1p_idle_response_sent;
     last->parent = c;
-
-    h1p = c->socket.data;
-    h1p->conn_write_tail = &last->next;
 
     c->write = out;
     c->write_state = &nxt_h1p_timeout_response_state;

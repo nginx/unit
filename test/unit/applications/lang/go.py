@@ -1,30 +1,17 @@
 import os
 import subprocess
 
+from conftest import option
 from unit.applications.proto import TestApplicationProto
 
 
 class TestApplicationGo(TestApplicationProto):
-    @classmethod
-    def setUpClass(cls, complete_check=True):
-        unit = super().setUpClass(complete_check=False)
-
-        # check go module
-
-        go_app = TestApplicationGo()
-        go_app.testdir = unit.testdir
-        proc = go_app.prepare_env('empty', 'app')
-        if proc and proc.returncode == 0:
-            cls.available['modules']['go'] = []
-
-        return unit if not complete_check else unit.complete()
-
     def prepare_env(self, script, name, static=False):
-        if not os.path.exists(self.testdir + '/go'):
-            os.mkdir(self.testdir + '/go')
+        if not os.path.exists(self.temp_dir + '/go'):
+            os.mkdir(self.temp_dir + '/go')
 
         env = os.environ.copy()
-        env['GOPATH'] = self.pardir + '/build/go'
+        env['GOPATH'] = option.current_dir + '/build/go'
 
         if static:
             args = [
@@ -35,16 +22,16 @@ class TestApplicationGo(TestApplicationProto):
                 '-ldflags',
                 '-extldflags "-static"',
                 '-o',
-                self.testdir + '/go/' + name,
-                self.current_dir + '/go/' + script + '/' + name + '.go',
+                self.temp_dir + '/go/' + name,
+                option.test_dir + '/go/' + script + '/' + name + '.go',
             ]
         else:
             args = [
                 'go',
                 'build',
                 '-o',
-                self.testdir + '/go/' + name,
-                self.current_dir + '/go/' + script + '/' + name + '.go',
+                self.temp_dir + '/go/' + name,
+                option.test_dir + '/go/' + script + '/' + name + '.go',
             ]
 
         try:
@@ -59,8 +46,8 @@ class TestApplicationGo(TestApplicationProto):
     def load(self, script, name='app', **kwargs):
         static_build = False
 
-        wdir = self.current_dir + "/go/" + script
-        executable = self.testdir + "/go/" + name
+        wdir = option.test_dir + "/go/" + script
+        executable = self.temp_dir + "/go/" + name
 
         if 'isolation' in kwargs and 'rootfs' in kwargs['isolation']:
             wdir = "/go/"

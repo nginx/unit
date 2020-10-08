@@ -191,6 +191,12 @@ static nxt_conf_map_t  nxt_python_app_conf[] = {
         NXT_CONF_MAP_STR,
         offsetof(nxt_common_app_conf_t, u.python.module),
     },
+
+    {
+        nxt_string("callable"),
+        NXT_CONF_MAP_CSTRZ,
+        offsetof(nxt_common_app_conf_t, u.python.callable),
+    },
 };
 
 
@@ -878,11 +884,9 @@ nxt_main_cleanup_process(nxt_task_t *task, nxt_pid_t pid)
         return;
     }
 
-#if (NXT_HAVE_ISOLATION_ROOTFS)
-    if (process->isolation.rootfs != NULL && process->isolation.mounts) {
-        (void) nxt_process_unmount_all(task, process);
+    if (process->isolation.cleanup != NULL) {
+        process->isolation.cleanup(task, process);
     }
-#endif
 
     name = process->name;
     stream = process->stream;
@@ -1291,6 +1295,8 @@ nxt_main_port_modules_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
             if (mnt == NULL) {
                 goto fail;
             }
+
+            mnt->builtin = 1;
 
             ret = nxt_conf_map_object(rt->mem_pool, value,
                                       nxt_app_lang_mounts_map,

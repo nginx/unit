@@ -74,6 +74,8 @@ if /bin/sh -c "${NXT_PHP_CONFIG} --version" >> $NXT_AUTOCONF_ERR 2>&1; then
     $echo " found"
 
     NXT_PHP_VERSION="`${NXT_PHP_CONFIG} --version`"
+    NXT_PHP_EXT_DIR="`${NXT_PHP_CONFIG} --extension-dir`"
+
     $echo " + PHP SAPI: [`${NXT_PHP_CONFIG} --php-sapis`]"
 
     NXT_PHP_MAJOR_VERSION=${NXT_PHP_VERSION%%.*}
@@ -212,6 +214,7 @@ if grep ^$NXT_PHP_MODULE: $NXT_MAKEFILE 2>&1 > /dev/null; then
     $echo
     exit 1;
 fi
+
 
 $echo " + PHP module: ${NXT_PHP_MODULE}.unit.so"
 

@@ -3,15 +3,17 @@ import os
 import shutil
 import subprocess
 
+import pytest
+from conftest import option
 from unit.applications.proto import TestApplicationProto
 
 
 class TestApplicationJava(TestApplicationProto):
     def load(self, script, name='app', **kwargs):
-        app_path = self.testdir + '/java'
+        app_path = self.temp_dir + '/java'
         web_inf_path = app_path + '/WEB-INF/'
         classes_path = web_inf_path + 'classes/'
-        script_path = self.current_dir + '/java/' + script + '/'
+        script_path = option.test_dir + '/java/' + script + '/'
 
         if not os.path.isdir(app_path):
             os.makedirs(app_path)
@@ -47,14 +49,16 @@ class TestApplicationJava(TestApplicationProto):
             if not os.path.isdir(classes_path):
                 os.makedirs(classes_path)
 
-            classpath = self.pardir + '/build/tomcat-servlet-api-9.0.13.jar'
+            classpath = (
+                option.current_dir + '/build/tomcat-servlet-api-9.0.13.jar'
+            )
 
             ws_jars = glob.glob(
-                self.pardir + '/build/websocket-api-java-*.jar'
+                option.current_dir + '/build/websocket-api-java-*.jar'
             )
 
             if not ws_jars:
-                self.fail('websocket api jar not found.')
+                pytest.fail('websocket api jar not found.')
 
             javac = [
                 'javac',
@@ -69,14 +73,14 @@ class TestApplicationJava(TestApplicationProto):
                 process.communicate()
 
             except:
-                self.fail('Cann\'t run javac process.')
+                pytest.fail('Cann\'t run javac process.')
 
         self._load_conf(
             {
                 "listeners": {"*:7080": {"pass": "applications/" + script}},
                 "applications": {
                     script: {
-                        "unit_jars": self.pardir + '/build',
+                        "unit_jars": option.current_dir + '/build',
                         "type": 'java',
                         "processes": {"spare": 0},
                         "working_directory": script_path,

@@ -496,12 +496,6 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_limits_members[] = {
       NULL,
       NULL },
 
-    { nxt_string("reschedule_timeout"),
-      NXT_CONF_VLDT_INTEGER,
-      0,
-      NULL,
-      NULL },
-
     { nxt_string("requests"),
       NXT_CONF_VLDT_INTEGER,
       0,
@@ -622,6 +616,21 @@ static nxt_conf_vldt_object_t nxt_conf_vldt_app_procmap_members[] = {
 #endif
 
 
+#if (NXT_HAVE_ISOLATION_ROOTFS)
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_app_automount_members[] = {
+    { nxt_string("language_deps"),
+      NXT_CONF_VLDT_BOOLEAN,
+      0,
+      NULL,
+      NULL },
+
+    NXT_CONF_VLDT_END
+};
+
+#endif
+
+
 static nxt_conf_vldt_object_t  nxt_conf_vldt_app_isolation_members[] = {
     { nxt_string("namespaces"),
       NXT_CONF_VLDT_OBJECT,
@@ -652,6 +661,12 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_isolation_members[] = {
       0,
       NULL,
       NULL },
+
+    { nxt_string("automount"),
+      NXT_CONF_VLDT_OBJECT,
+      0,
+      &nxt_conf_vldt_object,
+      (void *) &nxt_conf_vldt_app_automount_members },
 
 #endif
 
@@ -755,6 +770,12 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_python_members[] = {
     { nxt_string("module"),
       NXT_CONF_VLDT_STRING,
       NXT_CONF_VLDT_REQUIRED,
+      NULL,
+      NULL },
+
+    { nxt_string("callable"),
+      NXT_CONF_VLDT_STRING,
+      0,
       NULL,
       NULL },
 
@@ -1188,10 +1209,17 @@ static nxt_int_t
 nxt_conf_vldt_listener(nxt_conf_validation_t *vldt, nxt_str_t *name,
     nxt_conf_value_t *value)
 {
-    nxt_int_t  ret;
+    nxt_int_t       ret;
+    nxt_sockaddr_t  *sa;
+
+    sa = nxt_sockaddr_parse(vldt->pool, name);
+    if (nxt_slow_path(sa == NULL)) {
+        return nxt_conf_vldt_error(vldt,
+                                   "The listener address \"%V\" is invalid.",
+                                   name);
+    }
 
     ret = nxt_conf_vldt_type(vldt, name, value, NXT_CONF_VLDT_OBJECT);
-
     if (ret != NXT_OK) {
         return ret;
     }

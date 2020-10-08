@@ -13,7 +13,7 @@ from unit.applications.proto import TestApplicationProto
 class TestFeatureIsolation(TestApplicationProto):
     allns = ['pid', 'mnt', 'ipc', 'uts', 'cgroup', 'net']
 
-    def check(self, available, testdir):
+    def check(self, available, temp_dir):
         test_conf = {"namespaces": {"credential": True}}
 
         module = ''
@@ -45,7 +45,7 @@ class TestFeatureIsolation(TestApplicationProto):
         if not module:
             return
 
-        module.testdir = testdir
+        module.temp_dir = temp_dir
         module.load(app)
 
         resp = module.conf(test_conf, 'applications/' + app + '/isolation')

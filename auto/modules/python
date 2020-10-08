@@ -138,7 +138,7 @@ pyver = "python" + str(sys.version_info[0]) + "." + str(sys.version_info[1])
 
 print("static const nxt_fs_mount_t  nxt_python_mounts[] = {")
 
-pattern = "{(u_char *) \"%s\", (u_char *) \"%s\", (u_char *) \"bind\", NXT_MS_BIND|NXT_MS_REC, NULL},"
+pattern = "{(u_char *) \"%s\", (u_char *) \"%s\", (u_char *) \"bind\", NXT_MS_BIND|NXT_MS_REC, NULL, 1},"
 base = None
 for p in sys.path:
     if len(p) > 0:
@@ -167,7 +167,13 @@ $echo " + Python module: ${NXT_PYTHON_MODULE}.unit.so"
 $echo >> $NXT_MAKEFILE
 
 NXT_PYTHON_MODULE_SRCS=" \
-    src/nxt_python_wsgi.c \
+    src/python/nxt_python.c \
+    src/python/nxt_python_asgi.c \
+    src/python/nxt_python_asgi_http.c \
+    src/python/nxt_python_asgi_lifespan.c \
+    src/python/nxt_python_asgi_str.c \
+    src/python/nxt_python_asgi_websocket.c \
+    src/python/nxt_python_wsgi.c \
 "
 
 # The python module object files.
@@ -185,6 +191,7 @@ for nxt_src in $NXT_PYTHON_MODULE_SRCS; do
     cat << END >> $NXT_MAKEFILE
 
 $NXT_BUILD_DIR/$nxt_obj:	$nxt_src $NXT_VERSION_H
+	mkdir -p $NXT_BUILD_DIR/src/python
 	\$(CC) -c \$(CFLAGS) -DNXT_PYTHON_MOUNTS_H=\"$NXT_PYTHON_MOUNTS_HEADER\" \\
            \$(NXT_INCS) $NXT_PYTHON_INCLUDE \\
 	$nxt_dep_flags \\

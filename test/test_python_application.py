@@ -2,8 +2,10 @@ import grp
 import pwd
 import re
 import time
-import unittest
 
+import pytest
+
+from conftest import skip_alert
 from unit.applications.lang.python import TestApplicationPython
 
 
@@ -11,7 +13,7 @@ class TestPythonApplication(TestApplicationPython):
     prerequisites = {'modules': {'python': 'all'}}
 
     def findall(self, pattern):
-        with open(self.testdir + '/unit.log', 'r', errors='ignore') as f:
+        with open(self.temp_dir + '/unit.log', 'r', errors='ignore') as f:
             return re.findall(pattern, f.read())
 
     def test_python_application_variables(self):
@@ -19,145 +21,123 @@ class TestPythonApplication(TestApplicationPython):
 
         body = 'Test body string.'
 
-        resp = self.post(
-            headers={
-                'Host': 'localhost',
-                'Content-Type': 'text/html',
-                'Custom-Header': 'blah',
-                'Connection': 'close',
-            },
-            body=body,
+        resp = self.http(
+            b"""POST / HTTP/1.1
+Host: localhost
+Content-Length: %d
+Custom-Header: blah
+Custom-hEader: Blah
+Content-Type: text/html
+Connection: close
+custom-header: BLAH
+
+%s""" % (len(body), body.encode()),
+            raw=True,
         )
 
-        self.assertEqual(resp['status'], 200, 'status')
+        assert resp['status'] == 200, 'status'
         headers = resp['headers']
         header_server = headers.pop('Server')
-        self.assertRegex(header_server, r'Unit/[\d\.]+', 'server header')
-        self.assertEqual(
-            headers.pop('Server-Software'),
-            header_server,
-            'server software header',
-        )
+        assert re.search(r'Unit/[\d\.]+', header_server), 'server header'
+        assert (
+            headers.pop('Server-Software') == header_server
+        ), 'server software header'
 
         date = headers.pop('Date')
-        self.assertEqual(date[-4:], ' GMT', 'date header timezone')
-        self.assertLess(
-            abs(self.date_to_sec_epoch(date) - self.sec_epoch()),
-            5,
-            'date header',
-        )
+        assert date[-4:] == ' GMT', 'date header timezone'
+        assert (
+            abs(self.date_to_sec_epoch(date) - self.sec_epoch()) < 5
+        ), 'date header'
 
-        self.assertDictEqual(
-            headers,
-            {
-                'Connection': 'close',
-                'Content-Length': str(len(body)),
-                'Content-Type': 'text/html',
-                'Request-Method': 'POST',
-                'Request-Uri': '/',
-                'Http-Host': 'localhost',
-                'Server-Protocol': 'HTTP/1.1',
-                'Custom-Header': 'blah',
-                'Wsgi-Version': '(1, 0)',
-                'Wsgi-Url-Scheme': 'http',
-                'Wsgi-Multithread': 'False',
-                'Wsgi-Multiprocess': 'True',
-                'Wsgi-Run-Once': 'False',
-            },
-            'headers',
-        )
-        self.assertEqual(resp['body'], body, 'body')
+        assert headers == {
+            'Connection': 'close',
+            'Content-Length': str(len(body)),
+            'Content-Type': 'text/html',
+            'Request-Method': 'POST',
+            'Request-Uri': '/',
+            'Http-Host': 'localhost',
+            'Server-Protocol': 'HTTP/1.1',
+            'Custom-Header': 'blah, Blah, BLAH',
+            'Wsgi-Version': '(1, 0)',
+            'Wsgi-Url-Scheme': 'http',
+            'Wsgi-Multithread': 'False',
+            'Wsgi-Multiprocess': 'True',
+            'Wsgi-Run-Once': 'False',
+        }, 'headers'
+        assert resp['body'] == body, 'body'
 
     def test_python_application_query_string(self):
         self.load('query_string')
 
         resp = self.get(url='/?var1=val1&var2=val2')
 
-        self.assertEqual(
-            resp['headers']['Query-String'],
-            'var1=val1&var2=val2',
-            'Query-String header',
-        )
+        assert (
+            resp['headers']['Query-String'] == 'var1=val1&var2=val2'
+        ), 'Query-String header'
 
     def test_python_application_query_string_space(self):
         self.load('query_string')
 
         resp = self.get(url='/ ?var1=val1&var2=val2')
-        self.assertEqual(
-            resp['headers']['Query-String'],
-            'var1=val1&var2=val2',
-            'Query-String space',
-        )
+        assert (
+            resp['headers']['Query-String'] == 'var1=val1&var2=val2'
+        ), 'Query-String space'
 
         resp = self.get(url='/ %20?var1=val1&var2=val2')
-        self.assertEqual(
-            resp['headers']['Query-String'],
-            'var1=val1&var2=val2',
-            'Query-String space 2',
-        )
+        assert (
+            resp['headers']['Query-String'] == 'var1=val1&var2=val2'
+        ), 'Query-String space 2'
 
         resp = self.get(url='/ %20 ?var1=val1&var2=val2')
-        self.assertEqual(
-            resp['headers']['Query-String'],
-            'var1=val1&var2=val2',
-            'Query-String space 3',
-        )
+        assert (
+            resp['headers']['Query-String'] == 'var1=val1&var2=val2'
+        ), 'Query-String space 3'
 
         resp = self.get(url='/blah %20 blah? var1= val1 & var2=val2')
-        self.assertEqual(
-            resp['headers']['Query-String'],
-            ' var1= val1 & var2=val2',
-            'Query-String space 4',
-        )
+        assert (
+            resp['headers']['Query-String'] == ' var1= val1 & var2=val2'
+        ), 'Query-String space 4'
 
     def test_python_application_query_string_empty(self):
         self.load('query_string')
 
         resp = self.get(url='/?')
 
-        self.assertEqual(resp['status'], 200, 'query string empty status')
-        self.assertEqual(
-            resp['headers']['Query-String'], '', 'query string empty'
-        )
+        assert resp['status'] == 200, 'query string empty status'
+        assert resp['headers']['Query-String'] == '', 'query string empty'
 
     def test_python_application_query_string_absent(self):
         self.load('query_string')
 
         resp = self.get()
 
-        self.assertEqual(resp['status'], 200, 'query string absent status')
-        self.assertEqual(
-            resp['headers']['Query-String'], '', 'query string absent'
-        )
+        assert resp['status'] == 200, 'query string absent status'
+        assert resp['headers']['Query-String'] == '', 'query string absent'
 
-    @unittest.skip('not yet')
+    @pytest.mark.skip('not yet')
     def test_python_application_server_port(self):
         self.load('server_port')
 
-        self.assertEqual(
-            self.get()['headers']['Server-Port'], '7080', 'Server-Port header'
-        )
+        assert (
+            self.get()['headers']['Server-Port'] == '7080'
+        ), 'Server-Port header'
 
-    @unittest.skip('not yet')
+    @pytest.mark.skip('not yet')
     def test_python_application_working_directory_invalid(self):
         self.load('empty')
 
-        self.assertIn(
-            'success',
-            self.conf('"/blah"', 'applications/empty/working_directory'),
-            'configure invalid working_directory',
-        )
+        assert 'success' in self.conf(
+            '"/blah"', 'applications/empty/working_directory'
+        ), 'configure invalid working_directory'
 
-        self.assertEqual(self.get()['status'], 500, 'status')
+        assert self.get()['status'] == 500, 'status'
 
     def test_python_application_204_transfer_encoding(self):
         self.load('204_no_content')
 
-        self.assertNotIn(
-            'Transfer-Encoding',
-            self.get()['headers'],
-            '204 header transfer encoding',
-        )
+        assert (
+            'Transfer-Encoding' not in self.get()['headers']
+        ), '204 header transfer encoding'
 
     def test_python_application_ctx_iter_atexit(self):
         self.load('ctx_iter_atexit')
@@ -171,21 +151,21 @@ class TestPythonApplication(TestApplicationPython):
             body='0123456789',
         )
 
-        self.assertEqual(resp['status'], 200, 'ctx iter status')
-        self.assertEqual(resp['body'], '0123456789', 'ctx iter body')
+        assert resp['status'] == 200, 'ctx iter status'
+        assert resp['body'] == '0123456789', 'ctx iter body'
 
         self.conf({"listeners": {}, "applications": {}})
 
         self.stop()
 
-        self.assertIsNotNone(
-            self.wait_for_record(r'RuntimeError'), 'ctx iter atexit'
-        )
+        assert (
+            self.wait_for_record(r'RuntimeError') is not None
+        ), 'ctx iter atexit'
 
     def test_python_keepalive_body(self):
         self.load('mirror')
 
-        self.assertEqual(self.get()['status'], 200, 'init')
+        assert self.get()['status'] == 200, 'init'
 
         body = '0123456789' * 500
         (resp, sock) = self.post(
@@ -199,7 +179,7 @@ class TestPythonApplication(TestApplicationPython):
             read_timeout=1,
         )
 
-        self.assertEqual(resp['body'], body, 'keep-alive 1')
+        assert resp['body'] == body, 'keep-alive 1'
 
         body = '0123456789'
         resp = self.post(
@@ -212,19 +192,17 @@ class TestPythonApplication(TestApplicationPython):
             body=body,
         )
 
-        self.assertEqual(resp['body'], body, 'keep-alive 2')
+        assert resp['body'] == body, 'keep-alive 2'
 
     def test_python_keepalive_reconfigure(self):
-        self.skip_alerts.extend(
-            [
-                r'pthread_mutex.+failed',
-                r'failed to apply',
-                r'process \d+ exited on signal',
-            ]
+        skip_alert(
+            r'pthread_mutex.+failed',
+            r'failed to apply',
+            r'process \d+ exited on signal',
         )
         self.load('mirror')
 
-        self.assertEqual(self.get()['status'], 200, 'init')
+        assert self.get()['status'] == 200, 'init'
 
         body = '0123456789'
         conns = 3
@@ -242,12 +220,10 @@ class TestPythonApplication(TestApplicationPython):
                 read_timeout=1,
             )
 
-            self.assertEqual(resp['body'], body, 'keep-alive open')
-            self.assertIn(
-                'success',
-                self.conf(str(i + 1), 'applications/mirror/processes'),
-                'reconfigure',
-            )
+            assert resp['body'] == body, 'keep-alive open'
+            assert 'success' in self.conf(
+                str(i + 1), 'applications/mirror/processes'
+            ), 'reconfigure'
 
             socks.append(sock)
 
@@ -264,12 +240,10 @@ class TestPythonApplication(TestApplicationPython):
                 read_timeout=1,
             )
 
-            self.assertEqual(resp['body'], body, 'keep-alive request')
-            self.assertIn(
-                'success',
-                self.conf(str(i + 1), 'applications/mirror/processes'),
-                'reconfigure 2',
-            )
+            assert resp['body'] == body, 'keep-alive request'
+            assert 'success' in self.conf(
+                str(i + 1), 'applications/mirror/processes'
+            ), 'reconfigure 2'
 
         for i in range(conns):
             resp = self.post(
@@ -282,17 +256,15 @@ class TestPythonApplication(TestApplicationPython):
                 body=body,
             )
 
-            self.assertEqual(resp['body'], body, 'keep-alive close')
-            self.assertIn(
-                'success',
-                self.conf(str(i + 1), 'applications/mirror/processes'),
-                'reconfigure 3',
-            )
+            assert resp['body'] == body, 'keep-alive close'
+            assert 'success' in self.conf(
+                str(i + 1), 'applications/mirror/processes'
+            ), 'reconfigure 3'
 
     def test_python_keepalive_reconfigure_2(self):
         self.load('mirror')
 
-        self.assertEqual(self.get()['status'], 200, 'init')
+        assert self.get()['status'] == 200, 'init'
 
         body = '0123456789'
 
@@ -307,11 +279,11 @@ class TestPythonApplication(TestApplicationPython):
             read_timeout=1,
         )
 
-        self.assertEqual(resp['body'], body, 'reconfigure 2 keep-alive 1')
+        assert resp['body'] == body, 'reconfigure 2 keep-alive 1'
 
         self.load('empty')
 
-        self.assertEqual(self.get()['status'], 200, 'init')
+        assert self.get()['status'] == 200, 'init'
 
         (resp, sock) = self.post(
             headers={
@@ -324,23 +296,21 @@ class TestPythonApplication(TestApplicationPython):
             body=body,
         )
 
-        self.assertEqual(resp['status'], 200, 'reconfigure 2 keep-alive 2')
-        self.assertEqual(resp['body'], '', 'reconfigure 2 keep-alive 2 body')
+        assert resp['status'] == 200, 'reconfigure 2 keep-alive 2'
+        assert resp['body'] == '', 'reconfigure 2 keep-alive 2 body'
 
-        self.assertIn(
-            'success',
-            self.conf({"listeners": {}, "applications": {}}),
-            'reconfigure 2 clear configuration',
-        )
+        assert 'success' in self.conf(
+            {"listeners": {}, "applications": {}}
+        ), 'reconfigure 2 clear configuration'
 
         resp = self.get(sock=sock)
 
-        self.assertEqual(resp, {}, 'reconfigure 2 keep-alive 3')
+        assert resp == {}, 'reconfigure 2 keep-alive 3'
 
     def test_python_keepalive_reconfigure_3(self):
         self.load('empty')
 
-        self.assertEqual(self.get()['status'], 200, 'init')
+        assert self.get()['status'] == 200, 'init'
 
         (_, sock) = self.http(
             b"""GET / HTTP/1.1
@@ -350,13 +320,11 @@ class TestPythonApplication(TestApplicationPython):
             no_recv=True,
         )
 
-        self.assertEqual(self.get()['status'], 200)
+        assert self.get()['status'] == 200
 
-        self.assertIn(
-            'success',
-            self.conf({"listeners": {}, "applications": {}}),
-            'reconfigure 3 clear configuration',
-        )
+        assert 'success' in self.conf(
+            {"listeners": {}, "applications": {}}
+        ), 'reconfigure 3 clear configuration'
 
         resp = self.http(
             b"""Host: localhost
@@ -367,7 +335,7 @@ Connection: close
             raw=True,
         )
 
-        self.assertEqual(resp['status'], 200, 'reconfigure 3')
+        assert resp['status'] == 200, 'reconfigure 3'
 
     def test_python_atexit(self):
         self.load('atexit')
@@ -378,25 +346,24 @@ Connection: close
 
         self.stop()
 
-        self.assertIsNotNone(
-            self.wait_for_record(r'At exit called\.'), 'atexit'
-        )
+        assert self.wait_for_record(r'At exit called\.') is not None, 'atexit'
 
     def test_python_process_switch(self):
         self.load('delayed')
 
-        self.assertIn(
-            'success',
-            self.conf('2', 'applications/delayed/processes'),
-            'configure 2 processes',
-        )
+        assert 'success' in self.conf(
+            '2', 'applications/delayed/processes'
+        ), 'configure 2 processes'
 
-        self.get(headers={
-            'Host': 'localhost',
-            'Content-Length': '0',
-            'X-Delay': '5',
-            'Connection': 'close',
-        }, no_recv=True)
+        self.get(
+            headers={
+                'Host': 'localhost',
+                'Content-Length': '0',
+                'X-Delay': '5',
+                'Connection': 'close',
+            },
+            no_recv=True,
+        )
 
         headers_delay_1 = {
             'Connection': 'close',
@@ -414,11 +381,11 @@ Connection: close
 
         self.get(headers=headers_delay_1)
 
-    @unittest.skip('not yet')
+    @pytest.mark.skip('not yet')
     def test_python_application_start_response_exit(self):
         self.load('start_response_exit')
 
-        self.assertEqual(self.get()['status'], 500, 'start response exit')
+        assert self.get()['status'] == 500, 'start response exit'
 
     def test_python_application_input_iter(self):
         self.load('input_iter')
@@ -429,10 +396,8 @@ next line
 last line'''
 
         resp = self.post(body=body)
-        self.assertEqual(resp['body'], body, 'input iter')
-        self.assertEqual(
-            resp['headers']['X-Lines-Count'], '4', 'input iter lines'
-        )
+        assert resp['body'] == body, 'input iter'
+        assert resp['headers']['X-Lines-Count'] == '4', 'input iter lines'
 
     def test_python_application_input_readline(self):
         self.load('input_readline')
@@ -443,10 +408,8 @@ next line
 last line'''
 
         resp = self.post(body=body)
-        self.assertEqual(resp['body'], body, 'input readline')
-        self.assertEqual(
-            resp['headers']['X-Lines-Count'], '4', 'input readline lines'
-        )
+        assert resp['body'] == body, 'input readline'
+        assert resp['headers']['X-Lines-Count'] == '4', 'input readline lines'
 
     def test_python_application_input_readline_size(self):
         self.load('input_readline_size')
@@ -456,12 +419,10 @@ next line
 
 last line'''
 
-        self.assertEqual(
-            self.post(body=body)['body'], body, 'input readline size'
-        )
-        self.assertEqual(
-            self.post(body='0123')['body'], '0123', 'input readline size less'
-        )
+        assert self.post(body=body)['body'] == body, 'input readline size'
+        assert (
+            self.post(body='0123')['body'] == '0123'
+        ), 'input readline size less'
 
     def test_python_application_input_readlines(self):
         self.load('input_readlines')
@@ -472,10 +433,8 @@ next line
 last line'''
 
         resp = self.post(body=body)
-        self.assertEqual(resp['body'], body, 'input readlines')
-        self.assertEqual(
-            resp['headers']['X-Lines-Count'], '4', 'input readlines lines'
-        )
+        assert resp['body'] == body, 'input readlines'
+        assert resp['headers']['X-Lines-Count'] == '4', 'input readlines lines'
 
     def test_python_application_input_readlines_huge(self):
         self.load('input_readlines')
@@ -489,11 +448,9 @@ last line: 987654321
             * 512
         )
 
-        self.assertEqual(
-            self.post(body=body, read_buffer_size=16384)['body'],
-            body,
-            'input readlines huge',
-        )
+        assert (
+            self.post(body=body, read_buffer_size=16384)['body'] == body
+        ), 'input readlines huge'
 
     def test_python_application_input_read_length(self):
         self.load('input_read_length')
@@ -509,7 +466,7 @@ last line: 987654321
             body=body,
         )
 
-        self.assertEqual(resp['body'], body[:5], 'input read length lt body')
+        assert resp['body'] == body[:5], 'input read length lt body'
 
         resp = self.post(
             headers={
@@ -520,7 +477,7 @@ last line: 987654321
             body=body,
         )
 
-        self.assertEqual(resp['body'], body, 'input read length gt body')
+        assert resp['body'] == body, 'input read length gt body'
 
         resp = self.post(
             headers={
@@ -531,7 +488,7 @@ last line: 987654321
             body=body,
         )
 
-        self.assertEqual(resp['body'], '', 'input read length zero')
+        assert resp['body'] == '', 'input read length zero'
 
         resp = self.post(
             headers={
@@ -542,9 +499,9 @@ last line: 987654321
             body=body,
         )
 
-        self.assertEqual(resp['body'], body, 'input read length negative')
+        assert resp['body'] == body, 'input read length negative'
 
-    @unittest.skip('not yet')
+    @pytest.mark.skip('not yet')
     def test_python_application_errors_write(self):
         self.load('errors_write')
 
@@ -552,43 +509,41 @@ last line: 987654321
 
         self.stop()
 
-        self.assertIsNotNone(
-            self.wait_for_record(r'\[error\].+Error in application\.'),
-            'errors write',
-        )
+        assert (
+            self.wait_for_record(r'\[error\].+Error in application\.')
+            is not None
+        ), 'errors write'
 
     def test_python_application_body_array(self):
         self.load('body_array')
 
-        self.assertEqual(self.get()['body'], '0123456789', 'body array')
+        assert self.get()['body'] == '0123456789', 'body array'
 
     def test_python_application_body_io(self):
         self.load('body_io')
 
-        self.assertEqual(self.get()['body'], '0123456789', 'body io')
+        assert self.get()['body'] == '0123456789', 'body io'
 
     def test_python_application_body_io_file(self):
         self.load('body_io_file')
 
-        self.assertEqual(self.get()['body'], 'body\n', 'body io file')
+        assert self.get()['body'] == 'body\n', 'body io file'
 
-    @unittest.skip('not yet')
+    @pytest.mark.skip('not yet')
     def test_python_application_syntax_error(self):
-        self.skip_alerts.append(r'Python failed to import module "wsgi"')
+        skip_alert(r'Python failed to import module "wsgi"')
         self.load('syntax_error')
 
-        self.assertEqual(self.get()['status'], 500, 'syntax error')
+        assert self.get()['status'] == 500, 'syntax error'
 
     def test_python_application_loading_error(self):
-        self.skip_alerts.append(r'Python failed to import module "blah"')
+        skip_alert(r'Python failed to import module "blah"')
 
         self.load('empty')
 
-        self.assertIn(
-            'success', self.conf('"blah"', 'applications/empty/module'),
-        )
+        assert 'success' in self.conf('"blah"', 'applications/empty/module')
 
-        self.assertEqual(self.get()['status'], 503, 'loading error')
+        assert self.get()['status'] == 503, 'loading error'
 
     def test_python_application_close(self):
         self.load('close')
@@ -597,7 +552,7 @@ last line: 987654321
 
         self.stop()
 
-        self.assertIsNotNone(self.wait_for_record(r'Close called\.'), 'close')
+        assert self.wait_for_record(r'Close called\.') is not None, 'close'
 
     def test_python_application_close_error(self):
         self.load('close_error')
@@ -606,9 +561,9 @@ last line: 987654321
 
         self.stop()
 
-        self.assertIsNotNone(
-            self.wait_for_record(r'Close called\.'), 'close error'
-        )
+        assert (
+            self.wait_for_record(r'Close called\.') is not None
+        ), 'close error'
 
     def test_python_application_not_iterable(self):
         self.load('not_iterable')
@@ -617,17 +572,17 @@ last line: 987654321
 
         self.stop()
 
-        self.assertIsNotNone(
+        assert (
             self.wait_for_record(
                 r'\[error\].+the application returned not an iterable object'
-            ),
-            'not iterable',
-        )
+            )
+            is not None
+        ), 'not iterable'
 
     def test_python_application_write(self):
         self.load('write')
 
-        self.assertEqual(self.get()['body'], '0123456789', 'write')
+        assert self.get()['body'] == '0123456789', 'write'
 
     def test_python_application_threading(self):
         """wait_for_record() timeouts after 5s while every thread works at
@@ -639,9 +594,9 @@ last line: 987654321
         for _ in range(10):
             self.get(no_recv=True)
 
-        self.assertIsNotNone(
-            self.wait_for_record(r'\(5\) Thread: 100'), 'last thread finished'
-        )
+        assert (
+            self.wait_for_record(r'\(5\) Thread: 100') is not None
+        ), 'last thread finished'
 
     def test_python_application_iter_exception(self):
         self.load('iter_exception')
@@ -656,43 +611,38 @@ last line: 987654321
                 'Connection': 'close',
             }
         )
-        self.assertEqual(resp['status'], 200, 'status')
-        self.assertEqual(resp['body'], 'XXXXXXX', 'body')
+        assert resp['status'] == 200, 'status'
+        assert resp['body'] == 'XXXXXXX', 'body'
 
         # Exception before start_response().
 
-        self.assertEqual(self.get()['status'], 503, 'error')
+        assert self.get()['status'] == 503, 'error'
 
-        self.assertIsNotNone(self.wait_for_record(r'Traceback'), 'traceback')
-        self.assertIsNotNone(
-            self.wait_for_record(r'raise Exception\(\'first exception\'\)'),
-            'first exception raise',
-        )
-        self.assertEqual(
-            len(self.findall(r'Traceback')), 1, 'traceback count 1'
-        )
+        assert self.wait_for_record(r'Traceback') is not None, 'traceback'
+        assert (
+            self.wait_for_record(r'raise Exception\(\'first exception\'\)')
+            is not None
+        ), 'first exception raise'
+        assert len(self.findall(r'Traceback')) == 1, 'traceback count 1'
 
         # Exception after start_response(), before first write().
 
-        self.assertEqual(
+        assert (
             self.get(
                 headers={
                     'Host': 'localhost',
                     'X-Skip': '1',
                     'Connection': 'close',
                 }
-            )['status'],
-            503,
-            'error 2',
-        )
+            )['status']
+            == 503
+        ), 'error 2'
 
-        self.assertIsNotNone(
-            self.wait_for_record(r'raise Exception\(\'second exception\'\)'),
-            'exception raise second',
-        )
-        self.assertEqual(
-            len(self.findall(r'Traceback')), 2, 'traceback count 2'
-        )
+        assert (
+            self.wait_for_record(r'raise Exception\(\'second exception\'\)')
+            is not None
+        ), 'exception raise second'
+        assert len(self.findall(r'Traceback')) == 2, 'traceback count 2'
 
         # Exception after first write(), before first __next__().
 
@@ -705,15 +655,13 @@ last line: 987654321
             start=True,
         )
 
-        self.assertIsNotNone(
-            self.wait_for_record(r'raise Exception\(\'third exception\'\)'),
-            'exception raise third',
-        )
-        self.assertEqual(
-            len(self.findall(r'Traceback')), 3, 'traceback count 3'
-        )
+        assert (
+            self.wait_for_record(r'raise Exception\(\'third exception\'\)')
+            is not None
+        ), 'exception raise third'
+        assert len(self.findall(r'Traceback')) == 3, 'traceback count 3'
 
-        self.assertDictEqual(self.get(sock=sock), {}, 'closed connection')
+        assert self.get(sock=sock) == {}, 'closed connection'
 
         # Exception after first write(), before first __next__(),
         # chunked (incomplete body).
@@ -725,13 +673,11 @@ last line: 987654321
                 'X-Chunked': '1',
                 'Connection': 'close',
             },
-            raw_resp=True
+            raw_resp=True,
         )
         if resp:
-            self.assertNotEqual(resp[-5:], '0\r\n\r\n', 'incomplete body')
-        self.assertEqual(
-            len(self.findall(r'Traceback')), 4, 'traceback count 4'
-        )
+            assert resp[-5:] != '0\r\n\r\n', 'incomplete body'
+        assert len(self.findall(r'Traceback')) == 4, 'traceback count 4'
 
         # Exception in __next__().
 
@@ -744,15 +690,13 @@ last line: 987654321
             start=True,
         )
 
-        self.assertIsNotNone(
-            self.wait_for_record(r'raise Exception\(\'next exception\'\)'),
-            'exception raise next',
-        )
-        self.assertEqual(
-            len(self.findall(r'Traceback')), 5, 'traceback count 5'
-        )
+        assert (
+            self.wait_for_record(r'raise Exception\(\'next exception\'\)')
+            is not None
+        ), 'exception raise next'
+        assert len(self.findall(r'Traceback')) == 5, 'traceback count 5'
 
-        self.assertDictEqual(self.get(sock=sock), {}, 'closed connection 2')
+        assert self.get(sock=sock) == {}, 'closed connection 2'
 
         # Exception in __next__(), chunked (incomplete body).
 
@@ -763,40 +707,34 @@ last line: 987654321
                 'X-Chunked': '1',
                 'Connection': 'close',
             },
-            raw_resp=True
+            raw_resp=True,
         )
         if resp:
-            self.assertNotEqual(resp[-5:], '0\r\n\r\n', 'incomplete body 2')
-        self.assertEqual(
-            len(self.findall(r'Traceback')), 6, 'traceback count 6'
-        )
+            assert resp[-5:] != '0\r\n\r\n', 'incomplete body 2'
+        assert len(self.findall(r'Traceback')) == 6, 'traceback count 6'
 
         # Exception before start_response() and in close().
 
-        self.assertEqual(
+        assert (
             self.get(
                 headers={
                     'Host': 'localhost',
                     'X-Not-Skip-Close': '1',
                     'Connection': 'close',
                 }
-            )['status'],
-            503,
-            'error',
-        )
+            )['status']
+            == 503
+        ), 'error'
 
-        self.assertIsNotNone(
-            self.wait_for_record(r'raise Exception\(\'close exception\'\)'),
-            'exception raise close',
-        )
-        self.assertEqual(
-            len(self.findall(r'Traceback')), 8, 'traceback count 8'
-        )
+        assert (
+            self.wait_for_record(r'raise Exception\(\'close exception\'\)')
+            is not None
+        ), 'exception raise close'
+        assert len(self.findall(r'Traceback')) == 8, 'traceback count 8'
 
-    def test_python_user_group(self):
-        if not self.is_su:
-            print("requires root")
-            raise unittest.SkipTest()
+    def test_python_user_group(self, is_su):
+        if not is_su:
+            pytest.skip('requires root')
 
         nobody_uid = pwd.getpwnam('nobody').pw_uid
 
@@ -811,40 +749,38 @@ last line: 987654321
         self.load('user_group')
 
         obj = self.getjson()['body']
-        self.assertEqual(obj['UID'], nobody_uid, 'nobody uid')
-        self.assertEqual(obj['GID'], group_id, 'nobody gid')
+        assert obj['UID'] == nobody_uid, 'nobody uid'
+        assert obj['GID'] == group_id, 'nobody gid'
 
         self.load('user_group', user='nobody')
 
         obj = self.getjson()['body']
-        self.assertEqual(obj['UID'], nobody_uid, 'nobody uid user=nobody')
-        self.assertEqual(obj['GID'], group_id, 'nobody gid user=nobody')
+        assert obj['UID'] == nobody_uid, 'nobody uid user=nobody'
+        assert obj['GID'] == group_id, 'nobody gid user=nobody'
 
         self.load('user_group', user='nobody', group=group)
 
         obj = self.getjson()['body']
-        self.assertEqual(
-            obj['UID'], nobody_uid, 'nobody uid user=nobody group=%s' % group
+        assert obj['UID'] == nobody_uid, (
+            'nobody uid user=nobody group=%s' % group
         )
 
-        self.assertEqual(
-            obj['GID'], group_id, 'nobody gid user=nobody group=%s' % group
+        assert obj['GID'] == group_id, (
+            'nobody gid user=nobody group=%s' % group
         )
 
         self.load('user_group', group=group)
 
         obj = self.getjson()['body']
-        self.assertEqual(
-            obj['UID'], nobody_uid, 'nobody uid group=%s' % group
-        )
+        assert obj['UID'] == nobody_uid, 'nobody uid group=%s' % group
 
-        self.assertEqual(obj['GID'], group_id, 'nobody gid group=%s' % group)
+        assert obj['GID'] == group_id, 'nobody gid group=%s' % group
 
         self.load('user_group', user='root')
 
         obj = self.getjson()['body']
-        self.assertEqual(obj['UID'], 0, 'root uid user=root')
-        self.assertEqual(obj['GID'], 0, 'root gid user=root')
+        assert obj['UID'] == 0, 'root uid user=root'
+        assert obj['GID'] == 0, 'root gid user=root'
 
         group = 'root'
 
@@ -858,14 +794,39 @@ last line: 987654321
             self.load('user_group', user='root', group='root')
 
             obj = self.getjson()['body']
-            self.assertEqual(obj['UID'], 0, 'root uid user=root group=root')
-            self.assertEqual(obj['GID'], 0, 'root gid user=root group=root')
+            assert obj['UID'] == 0, 'root uid user=root group=root'
+            assert obj['GID'] == 0, 'root gid user=root group=root'
 
             self.load('user_group', group='root')
 
             obj = self.getjson()['body']
-            self.assertEqual(obj['UID'], nobody_uid, 'root uid group=root')
-            self.assertEqual(obj['GID'], 0, 'root gid group=root')
+            assert obj['UID'] == nobody_uid, 'root uid group=root'
+            assert obj['GID'] == 0, 'root gid group=root'
 
-if __name__ == '__main__':
-    TestPythonApplication.main()
+    def test_python_application_callable(self):
+        skip_alert(r'Python failed to get "blah" from module')
+        self.load('callable')
+
+        assert self.get()['status'] == 204, 'default application response'
+
+        assert 'success' in self.conf(
+            '"app"', 'applications/callable/callable'
+        )
+
+        assert self.get()['status'] == 200, 'callable response'
+
+        assert 'success' in self.conf(
+            '"blah"', 'applications/callable/callable'
+        )
+
+        assert self.get()['status'] not in [200, 204], 'callable response inv'
+
+        assert 'success' in self.conf(
+            '"app"', 'applications/callable/callable'
+        )
+
+        assert self.get()['status'] == 200, 'callable response 2'
+
+        assert 'success' in self.conf_delete('applications/callable/callable')
+
+        assert self.get()['status'] == 204, 'default response 2'

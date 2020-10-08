@@ -187,7 +187,7 @@ struct nxt_unit_read_info_s {
 
 /*
  * Initialize Unit application library with necessary callbacks and
- * ready/reply port parameters, send 'READY' response to master.
+ * ready/reply port parameters, send 'READY' response to main.
  */
 nxt_unit_ctx_t *nxt_unit_init(nxt_unit_init_t *);
 
@@ -321,6 +321,10 @@ int nxt_unit_websocket_retain(nxt_unit_websocket_frame_t *ws);
 
 void nxt_unit_websocket_done(nxt_unit_websocket_frame_t *ws);
 
+
+void *nxt_unit_malloc(nxt_unit_ctx_t *ctx, size_t size);
+
+void nxt_unit_free(nxt_unit_ctx_t *ctx, void *p);
 
 #if defined __has_attribute
 

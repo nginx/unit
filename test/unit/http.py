@@ -7,25 +7,22 @@ import select
 import socket
 import time
 
+import pytest
+from conftest import option
 from unit.main import TestUnit
 
 
 class TestHTTP(TestUnit):
     def http(self, start_str, **kwargs):
-        sock_type = (
-            'ipv4' if 'sock_type' not in kwargs else kwargs['sock_type']
-        )
-        port = 7080 if 'port' not in kwargs else kwargs['port']
-        url = '/' if 'url' not in kwargs else kwargs['url']
+        sock_type = kwargs.get('sock_type', 'ipv4')
+        port = kwargs.get('port', 7080)
+        url = kwargs.get('url', '/')
         http = 'HTTP/1.0' if 'http_10' in kwargs else 'HTTP/1.1'
 
-        headers = (
-            {'Host': 'localhost', 'Connection': 'close'}
-            if 'headers' not in kwargs
-            else kwargs['headers']
-        )
+        headers = kwargs.get('headers',
+                             {'Host': 'localhost', 'Connection': 'close'})
 
-        body = b'' if 'body' not in kwargs else kwargs['body']
+        body = kwargs.get('body', b'')
         crlf = '\r\n'
 
         if 'addr' not in kwargs:
@@ -56,7 +53,7 @@ class TestHTTP(TestUnit):
                 sock.connect(connect_args)
             except ConnectionRefusedError:
                 sock.close()
-                self.fail('Client can\'t connect to the server.')
+                pytest.fail('Client can\'t connect to the server.')
 
         else:
             sock = kwargs['sock']
@@ -90,7 +87,7 @@ class TestHTTP(TestUnit):
 
         sock.sendall(req)
 
-        encoding = 'utf-8' if 'encoding' not in kwargs else kwargs['encoding']
+        encoding = kwargs.get('encoding', 'utf-8')
 
         self.log_out(req, encoding)
 
@@ -128,7 +125,7 @@ class TestHTTP(TestUnit):
         return (resp, sock)
 
     def log_out(self, log, encoding):
-        if TestUnit.detailed:
+        if option.detailed:
             print('>>>')
             log = self.log_truncate(log)
             try:
@@ -137,7 +134,7 @@ class TestHTTP(TestUnit):
                 print(log)
 
     def log_in(self, log):
-        if TestUnit.detailed:
+        if option.detailed:
             print('<<<')
             log = self.log_truncate(log)
             try:
@@ -176,12 +173,8 @@ class TestHTTP(TestUnit):
     def recvall(self, sock, **kwargs):
         timeout_default = 60
 
-        timeout = (
-            timeout_default
-            if 'read_timeout' not in kwargs
-            else kwargs['read_timeout']
-        )
-        buff_size = 4096 if 'buff_size' not in kwargs else kwargs['buff_size']
+        timeout = kwargs.get('read_timeout', timeout_default)
+        buff_size = kwargs.get('buff_size', 4096)
 
         data = b''
         while True:
@@ -190,7 +183,7 @@ class TestHTTP(TestUnit):
                 # For all current cases if the "read_timeout" was changed
                 # than test do not expect to get a response from server.
                 if timeout == timeout_default:
-                    self.fail('Can\'t read response from server.')
+                    pytest.fail('Can\'t read response from server.')
                 break
 
             try:
@@ -243,28 +236,28 @@ class TestHTTP(TestUnit):
         chunks = raw_body.split(crlf)
 
         if len(chunks) < 3:
-            self.fail('Invalid chunked body')
+            pytest.fail('Invalid chunked body')
 
         if chunks.pop() != b'':
-            self.fail('No CRLF at the end of the body')
+            pytest.fail('No CRLF at the end of the body')
 
         try:
             last_size = int(chunks[-2], 16)
         except:
-            self.fail('Invalid zero size chunk')
+            pytest.fail('Invalid zero size chunk')
 
         if last_size != 0 or chunks[-1] != b'':
-            self.fail('Incomplete body')
+            pytest.fail('Incomplete body')
 
         body = b''
         while len(chunks) >= 2:
             try:
                 size = int(chunks.pop(0), 16)
             except:
-                self.fail('Invalid chunk size %s' % str(size))
+                pytest.fail('Invalid chunk size %s' % str(size))
 
             if size == 0:
-                self.assertEqual(len(chunks), 1, 'last zero size')
+                assert len(chunks) == 1, 'last zero size'
                 break
 
             temp_body = crlf.join(chunks)
@@ -280,8 +273,8 @@ class TestHTTP(TestUnit):
     def _parse_json(self, resp):
         headers = resp['headers']
 
-        self.assertIn('Content-Type', headers)
-        self.assertEqual(headers['Content-Type'], 'application/json')
+        assert 'Content-Type' in headers
+        assert headers['Content-Type'] == 'application/json'
 
         resp['body'] = json.loads(resp['body'])
 
@@ -305,7 +298,7 @@ class TestHTTP(TestUnit):
 
         sock.close()
 
-        self.assertTrue(ret, 'socket connected')
+        assert ret, 'socket connected'
 
     def form_encode(self, fields):
         is_multipart = False
@@ -345,7 +338,7 @@ class TestHTTP(TestUnit):
                     datatype = value['type']
 
                 if not isinstance(value['data'], io.IOBase):
-                    self.fail('multipart encoding of file requires a stream.')
+                    pytest.fail('multipart encoding of file requires a stream.')
 
                 data = value['data'].read()
 
@@ -353,7 +346,7 @@ class TestHTTP(TestUnit):
                 data = value
 
             else:
-                self.fail('multipart requires a string or stream data')
+                pytest.fail('multipart requires a string or stream data')
 
             body += (
                 "--%s\r\nContent-Disposition: form-data; name=\"%s\""

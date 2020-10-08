@@ -53,7 +53,7 @@ class TestControl(TestHTTP):
         args = {
             'url': url,
             'sock_type': 'unix',
-            'addr': self.testdir + '/control.unit.sock',
+            'addr': self.temp_dir + '/control.unit.sock',
         }
 
         if conf is not None:

@@ -246,24 +246,47 @@ nxt_sendfile(int fd, int s, off_t pos, size_t size)
 {
     ssize_t  res;
 
-#ifdef NXT_HAVE_MACOSX_SENDFILE
+#if (NXT_HAVE_MACOSX_SENDFILE)
+
     off_t sent = size;
 
     int rc = sendfile(fd, s, pos, &sent, NULL, 0);
 
     res = (rc == 0 || sent > 0) ? sent : -1;
-#endif
 
-#ifdef NXT_HAVE_FREEBSD_SENDFILE
+#elif (NXT_HAVE_FREEBSD_SENDFILE)
+
     off_t sent = 0;
 
     int rc = sendfile(fd, s, pos, size, NULL, &sent, 0);
 
     res = (rc == 0 || sent > 0) ? sent : -1;
-#endif
 
-#ifdef NXT_HAVE_LINUX_SENDFILE
+#elif (NXT_HAVE_LINUX_SENDFILE)
+
     res = sendfile(s, fd, &pos, size);
+
+#else
+
+    int    err;
+    void   *map;
+    off_t  page_off;
+
+    page_off = pos % nxt_pagesize;
+
+    map = nxt_mem_mmap(NULL, size + page_off, PROT_READ, MAP_SHARED, fd,
+                       pos - page_off);
+    if (nxt_slow_path(map == MAP_FAILED)) {
+        return -1;
+    }
+
+    res = write(s, nxt_pointer_to(map, page_off), size);
+
+    /* Backup and restore errno to catch socket errors in the upper level. */
+    err = errno;
+    nxt_mem_munmap(map, size + page_off);
+    errno = err;
+
 #endif
 
     return res;

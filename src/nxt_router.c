@@ -24,7 +24,6 @@ typedef struct {
     uint32_t          max_processes;
     uint32_t          spare_processes;
     nxt_msec_t        timeout;
-    nxt_msec_t        res_timeout;
     nxt_msec_t        idle_timeout;
     uint32_t          requests;
     nxt_conf_value_t  *limits_value;
@@ -260,7 +259,7 @@ static const nxt_str_t empty_prefix = nxt_string("");
 
 static const nxt_str_t  *nxt_app_msg_prefix[] = {
     &empty_prefix,
-    &http_prefix,
+    &empty_prefix,
     &http_prefix,
     &http_prefix,
     &http_prefix,
@@ -1158,12 +1157,6 @@ static nxt_conf_map_t  nxt_router_app_limits_conf[] = {
     },
 
     {
-        nxt_string("reschedule_timeout"),
-        NXT_CONF_MAP_MSEC,
-        offsetof(nxt_router_app_conf_t, res_timeout),
-    },
-
-    {
         nxt_string("requests"),
         NXT_CONF_MAP_INT32,
         offsetof(nxt_router_app_conf_t, requests),
@@ -1423,7 +1416,6 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             apcf.max_processes = 1;
             apcf.spare_processes = 0;
             apcf.timeout = 0;
-            apcf.res_timeout = 1000;
             apcf.idle_timeout = 15000;
             apcf.requests = 0;
             apcf.limits_value = NULL;
@@ -1505,8 +1497,6 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             nxt_debug(task, "application type: %V", &apcf.type);
             nxt_debug(task, "application processes: %D", apcf.processes);
             nxt_debug(task, "application request timeout: %M", apcf.timeout);
-            nxt_debug(task, "application reschedule timeout: %M",
-                      apcf.res_timeout);
             nxt_debug(task, "application requests: %D", apcf.requests);
 
             lang = nxt_app_lang_module(task->thread->runtime, &apcf.type);
@@ -1537,7 +1527,6 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             app->max_pending_processes = apcf.spare_processes
                                          ? apcf.spare_processes : 1;
             app->timeout = apcf.timeout;
-            app->res_timeout = apcf.res_timeout * 1000000;
             app->idle_timeout = apcf.idle_timeout;
             app->max_requests = apcf.requests;
 
@@ -1735,6 +1724,10 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
                 skcf->action = nxt_http_pass_application(task,
                                                          tmcf->router_conf,
                                                          &lscf.application);
+            }
+
+            if (nxt_slow_path(skcf->action == NULL)) {
+                goto fail;
             }
         }
     }
@@ -4947,6 +4940,9 @@ nxt_router_app_prepare_request(nxt_task_t *task,
         } else {
             nxt_debug(task, "queue is not empty");
         }
+
+        buf->is_port_mmap_sent = 1;
+        buf->mem.pos = buf->mem.free;
 
     } else {
         nxt_alert(task, "stream #%uD, app '%V': failed to send app message",
