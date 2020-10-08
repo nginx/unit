@@ -13,6 +13,127 @@
                 unit-perl
                 unit-ruby
                 unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11"
+         ver="1.20.0" rev="1"
+         date="2020-10-08" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.20.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.20.0" rev="1"
+         date="2020-10-08" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="change">
+<para>
+the PHP module is now initialized before chrooting; this enables loading all
+extensions from the host system.
+</para>
+</change>
+
+<change type="change">
+<para>
+AVIF and APNG image formats added to the default MIME type list.
+</para>
+</change>
+
+<change type="feature">
+<para>
+the Python module now fully supports applications that use the ASGI 3.0 server
+interface.
+</para>
+</change>
+
+<change type="feature">
+<para>
+the Python module now has a built-in WebSocket server implementation for
+applications, compatible with the HTTP &amp; WebSocket ASGI Message Format 2.1
+specification.
+</para>
+</change>
+
+<change type="feature">
+<para>
+automatic mounting of an isolated "/tmp" file system into chrooted application
+environments.
+</para>
+</change>
+
+<change type="feature">
+<para>
+the $host variable contains a normalized "Host" request value.
+</para>
+</change>
+
+<change type="feature">
+<para>
+the "callable" option sets Python application callable names.
+</para>
+</change>
+
+<change type="feature">
+<para>
+compatibility with PHP 8 RC 1. Thanks to Remi Collet.
+</para>
+</change>
+
+<change type="feature">
+<para>
+the "automount" option in the "isolation" object allows to turn off the
+automatic mounting of language module dependencies.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+"pass"-ing requests to upstreams from a route was broken; the bug had appeared
+in 1.19.0.  Thanks to 洪志道 (Hong Zhi Dao) for discovering and fixing it.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the router process could crash during reconfiguration.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a memory leak occurring in the router process; the bug had appeared in 1.18.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the "!" (non-empty) pattern was matched incorrectly;
+the bug had appeared in 1.19.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+fixed building on platforms without sendfile() support, notably NetBSD;
+the bug had appeared in 1.16.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11"
          ver="1.19.0" rev="1"
          date="2020-08-13" time="18:00:00 +0300"
          packager="Andrei Belov &lt;defan@nginx.com&gt;">
