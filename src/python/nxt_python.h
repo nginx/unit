@@ -28,6 +28,7 @@
 #define PyBytes_AS_STRING           PyString_AS_STRING
 #define PyUnicode_InternInPlace     PyString_InternInPlace
 #define PyUnicode_AsUTF8            PyString_AS_STRING
+#define PyUnicode_GET_LENGTH        PyUnicode_GET_SIZE
 #endif
 
 #if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION >= 5

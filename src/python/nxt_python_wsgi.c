@@ -831,7 +831,7 @@ nxt_py_start_resp(PyObject *self, PyObject *args)
             fields_size += PyBytes_GET_SIZE(string);
 
         } else if (PyUnicode_Check(string)) {
-            fields_size += PyUnicode_GET_SIZE(string);
+            fields_size += PyUnicode_GET_LENGTH(string);
 
         } else {
             return PyErr_Format(PyExc_TypeError,
@@ -843,7 +843,7 @@ nxt_py_start_resp(PyObject *self, PyObject *args)
             fields_size += PyBytes_GET_SIZE(string);
 
         } else if (PyUnicode_Check(string)) {
-            fields_size += PyUnicode_GET_SIZE(string);
+            fields_size += PyUnicode_GET_LENGTH(string);
 
         } else {
             return PyErr_Format(PyExc_TypeError,
