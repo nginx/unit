@@ -39,26 +39,34 @@ typedef enum {
 typedef nxt_int_t (*nxt_conf_vldt_handler_t)(nxt_conf_validation_t *vldt,
                                              nxt_conf_value_t *value,
                                              void *data);
-
-
-typedef struct {
-    nxt_str_t                name;
-    nxt_conf_vldt_type_t     type:32;
-    nxt_conf_vldt_flags_t    flags:32;
-    nxt_conf_vldt_handler_t  validator;
-    void                     *data;
-} nxt_conf_vldt_object_t;
-
-
-#define NXT_CONF_VLDT_NEXT(f)  { .data = f }
-#define NXT_CONF_VLDT_END      { .name = nxt_null_string }
-
-
 typedef nxt_int_t (*nxt_conf_vldt_member_t)(nxt_conf_validation_t *vldt,
                                             nxt_str_t *name,
                                             nxt_conf_value_t *value);
 typedef nxt_int_t (*nxt_conf_vldt_element_t)(nxt_conf_validation_t *vldt,
                                              nxt_conf_value_t *value);
+
+
+typedef struct nxt_conf_vldt_object_s  nxt_conf_vldt_object_t;
+
+struct nxt_conf_vldt_object_s {
+    nxt_str_t                     name;
+    nxt_conf_vldt_type_t          type:32;
+    nxt_conf_vldt_flags_t         flags:32;
+    nxt_conf_vldt_handler_t       validator;
+
+    union {
+        nxt_conf_vldt_object_t    *members;
+        nxt_conf_vldt_object_t    *next;
+        nxt_conf_vldt_member_t    object;
+        nxt_conf_vldt_element_t   array;
+        const char                *string;
+    } u;
+};
+
+
+#define NXT_CONF_VLDT_NEXT(next)  { .u.members = next }
+#define NXT_CONF_VLDT_END         { .name = nxt_null_string }
+
 
 static nxt_int_t nxt_conf_vldt_type(nxt_conf_validation_t *vldt,
     nxt_str_t *name, nxt_conf_value_t *value, nxt_conf_vldt_type_t type);
@@ -195,27 +203,27 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_root_members[] = {
     {
         .name       = nxt_string("settings"),
         .type       = NXT_CONF_VLDT_OBJECT,
-        .validator  = &nxt_conf_vldt_object,
-        .data       = (void *) &nxt_conf_vldt_setting_members,
+        .validator  = nxt_conf_vldt_object,
+        .u.members  = nxt_conf_vldt_setting_members,
     }, {
         .name       = nxt_string("listeners"),
         .type       = NXT_CONF_VLDT_OBJECT,
-        .validator  = &nxt_conf_vldt_object_iterator,
-        .data       = (void *) &nxt_conf_vldt_listener,
+        .validator  = nxt_conf_vldt_object_iterator,
+        .u.object   = nxt_conf_vldt_listener,
     }, {
         .name       = nxt_string("routes"),
         .type       = NXT_CONF_VLDT_ARRAY | NXT_CONF_VLDT_OBJECT,
-        .validator  = &nxt_conf_vldt_routes,
+        .validator  = nxt_conf_vldt_routes,
     }, {
         .name       = nxt_string("applications"),
         .type       = NXT_CONF_VLDT_OBJECT,
-        .validator  = &nxt_conf_vldt_object_iterator,
-        .data       = (void *) &nxt_conf_vldt_app,
+        .validator  = nxt_conf_vldt_object_iterator,
+        .u.object   = nxt_conf_vldt_app,
     }, {
         .name       = nxt_string("upstreams"),
         .type       = NXT_CONF_VLDT_OBJECT,
-        .validator  = &nxt_conf_vldt_object_iterator,
-        .data       = (void *) &nxt_conf_vldt_upstream,
+        .validator  = nxt_conf_vldt_object_iterator,
+        .u.object   = nxt_conf_vldt_upstream,
     }, {
         .name       = nxt_string("access_log"),
         .type       = NXT_CONF_VLDT_STRING,
@@ -229,8 +237,8 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_setting_members[] = {
     {
         .name       = nxt_string("http"),
         .type       = NXT_CONF_VLDT_OBJECT,
-        .validator  = &nxt_conf_vldt_object,
-        .data       = (void *) &nxt_conf_vldt_http_members,
+        .validator  = nxt_conf_vldt_object,
+        .u.members  = nxt_conf_vldt_http_members,
     },
 
     NXT_CONF_VLDT_END
@@ -262,13 +270,13 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[] = {
     }, {
         .name       = nxt_string("websocket"),
         .type       = NXT_CONF_VLDT_OBJECT,
-        .validator  = &nxt_conf_vldt_object,
-        .data       = (void *) &nxt_conf_vldt_websocket_members,
+        .validator  = nxt_conf_vldt_object,
+        .u.members  = nxt_conf_vldt_websocket_members,
     }, {
         .name       = nxt_string("static"),
         .type       = NXT_CONF_VLDT_OBJECT,
-        .validator  = &nxt_conf_vldt_object,
-        .data       = (void *) &nxt_conf_vldt_static_members,
+        .validator  = nxt_conf_vldt_object,
+        .u.members  = nxt_conf_vldt_static_members,
     },
 
     NXT_CONF_VLDT_END
@@ -296,7 +304,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_static_members[] = {
     {
         .name       = nxt_string("mime_types"),
         .type       = NXT_CONF_VLDT_OBJECT,
-        .validator  = &nxt_conf_vldt_mtypes,
+        .validator  = nxt_conf_vldt_mtypes,
     },
 
     NXT_CONF_VLDT_END
@@ -307,19 +315,19 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_listener_members[] = {
     {
         .name       = nxt_string("pass"),
         .type       = NXT_CONF_VLDT_STRING,
-        .validator  = &nxt_conf_vldt_pass,
+        .validator  = nxt_conf_vldt_pass,
     }, {
         .name       = nxt_string("application"),
         .type       = NXT_CONF_VLDT_STRING,
-        .validator  = &nxt_conf_vldt_app_name,
+        .validator  = nxt_conf_vldt_app_name,
     },
 
 #if (NXT_TLS)
     {
         .name       = nxt_string("tls"),
         .type       = NXT_CONF_VLDT_OBJECT,
-        .validator  = &nxt_conf_vldt_object,
-        .data       = (void *) &nxt_conf_vldt_tls_members,
+        .validator  = nxt_conf_vldt_object,
+        .u.members  = nxt_conf_vldt_tls_members,
     },
 #endif
 
@@ -333,7 +341,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_tls_members[] = {
     {
         .name       = nxt_string("certificate"),
         .type       = NXT_CONF_VLDT_STRING,
-        .validator  = &nxt_conf_vldt_certificate,
+        .validator  = nxt_conf_vldt_certificate,
     },
 
     NXT_CONF_VLDT_END
@@ -346,12 +354,12 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_route_members[] = {
     {
         .name       = nxt_string("match"),
         .type       = NXT_CONF_VLDT_OBJECT,
-        .validator  = &nxt_conf_vldt_object,
-        .data       = (void *) &nxt_conf_vldt_match_members,
+        .validator  = nxt_conf_vldt_object,
+        .u.members  = nxt_conf_vldt_match_members,
     }, {
         .name       = nxt_string("action"),
         .type       = NXT_CONF_VLDT_OBJECT,
-        .validator  = &nxt_conf_vldt_action,
+        .validator  = nxt_conf_vldt_action,
     },
 
     NXT_CONF_VLDT_END
@@ -362,39 +370,39 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_match_members[] = {
     {
         .name       = nxt_string("method"),
         .type       = NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
-        .validator  = &nxt_conf_vldt_match_patterns,
+        .validator  = nxt_conf_vldt_match_patterns,
     }, {
         .name       = nxt_string("scheme"),
         .type       = NXT_CONF_VLDT_STRING,
-        .validator  = &nxt_conf_vldt_match_scheme_pattern,
+        .validator  = nxt_conf_vldt_match_scheme_pattern,
     }, {
         .name       = nxt_string("host"),
         .type       = NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
-        .validator  = &nxt_conf_vldt_match_patterns,
+        .validator  = nxt_conf_vldt_match_patterns,
     }, {
         .name       = nxt_string("source"),
         .type       = NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
-        .validator  = &nxt_conf_vldt_match_addrs,
+        .validator  = nxt_conf_vldt_match_addrs,
     }, {
         .name       = nxt_string("destination"),
         .type       = NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
-        .validator  = &nxt_conf_vldt_match_addrs,
+        .validator  = nxt_conf_vldt_match_addrs,
     }, {
         .name       = nxt_string("uri"),
         .type       = NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
-        .validator  = &nxt_conf_vldt_match_encoded_patterns,
+        .validator  = nxt_conf_vldt_match_encoded_patterns,
     }, {
         .name       = nxt_string("arguments"),
         .type       = NXT_CONF_VLDT_OBJECT | NXT_CONF_VLDT_ARRAY,
-        .validator  = &nxt_conf_vldt_match_encoded_patterns_sets,
+        .validator  = nxt_conf_vldt_match_encoded_patterns_sets,
     }, {
         .name       = nxt_string("headers"),
         .type       = NXT_CONF_VLDT_OBJECT | NXT_CONF_VLDT_ARRAY,
-        .validator  = &nxt_conf_vldt_match_patterns_sets,
+        .validator  = nxt_conf_vldt_match_patterns_sets,
     }, {
         .name       = nxt_string("cookies"),
         .type       = NXT_CONF_VLDT_OBJECT | NXT_CONF_VLDT_ARRAY,
-        .validator  = &nxt_conf_vldt_match_patterns_sets,
+        .validator  = nxt_conf_vldt_match_patterns_sets,
     },
 
     NXT_CONF_VLDT_END
@@ -405,7 +413,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_pass_action_members[] = {
     {
         .name       = nxt_string("pass"),
         .type       = NXT_CONF_VLDT_STRING,
-        .validator  = &nxt_conf_vldt_pass,
+        .validator  = nxt_conf_vldt_pass,
     },
 
     NXT_CONF_VLDT_END
@@ -416,7 +424,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_return_action_members[] = {
     {
         .name       = nxt_string("return"),
         .type       = NXT_CONF_VLDT_INTEGER,
-        .validator  = &nxt_conf_vldt_return,
+        .validator  = nxt_conf_vldt_return,
     }, {
         .name       = nxt_string("location"),
         .type       = NXT_CONF_VLDT_STRING,
@@ -433,7 +441,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_share_action_members[] = {
     }, {
         .name       = nxt_string("fallback"),
         .type       = NXT_CONF_VLDT_OBJECT,
-        .validator  = &nxt_conf_vldt_action,
+        .validator  = nxt_conf_vldt_action,
     },
 
     NXT_CONF_VLDT_END
@@ -444,7 +452,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_proxy_action_members[] = {
     {
         .name       = nxt_string("proxy"),
         .type       = NXT_CONF_VLDT_STRING,
-        .validator  = &nxt_conf_vldt_proxy,
+        .validator  = nxt_conf_vldt_proxy,
     },
 
     NXT_CONF_VLDT_END
@@ -459,11 +467,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_external_members[] = {
     }, {
         .name       = nxt_string("arguments"),
         .type       = NXT_CONF_VLDT_ARRAY,
-        .validator  = &nxt_conf_vldt_array_iterator,
-        .data       = (void *) &nxt_conf_vldt_argument,
+        .validator  = nxt_conf_vldt_array_iterator,
+        .u.array    = nxt_conf_vldt_argument,
     },
 
-    NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_common_members)
+    NXT_CONF_VLDT_NEXT(nxt_conf_vldt_common_members)
 };
 
 
@@ -483,7 +491,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_python_members[] = {
         .type       = NXT_CONF_VLDT_STRING,
     },
 
-    NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_common_members)
+    NXT_CONF_VLDT_NEXT(nxt_conf_vldt_common_members)
 };
 
 
@@ -491,25 +499,25 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_php_members[] = {
     {
         .name       = nxt_string("root"),
         .type       = NXT_CONF_VLDT_ANY_TYPE,
-        .validator  = &nxt_conf_vldt_php_targets_exclusive,
-        .data       = (void *) "root",
+        .validator  = nxt_conf_vldt_php_targets_exclusive,
+        .u.string   = "root",
     }, {
         .name       = nxt_string("script"),
         .type       = NXT_CONF_VLDT_ANY_TYPE,
-        .validator  = &nxt_conf_vldt_php_targets_exclusive,
-        .data       = (void *) "script",
+        .validator  = nxt_conf_vldt_php_targets_exclusive,
+        .u.string   = "script",
     }, {
         .name       = nxt_string("index"),
         .type       = NXT_CONF_VLDT_ANY_TYPE,
-        .validator  = &nxt_conf_vldt_php_targets_exclusive,
-        .data       = (void *) "index",
+        .validator  = nxt_conf_vldt_php_targets_exclusive,
+        .u.string   = "index",
     }, {
         .name       = nxt_string("targets"),
         .type       = NXT_CONF_VLDT_OBJECT,
-        .validator  = &nxt_conf_vldt_php_targets,
+        .validator  = nxt_conf_vldt_php_targets,
     },
 
-    NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_php_common_members)
+    NXT_CONF_VLDT_NEXT(nxt_conf_vldt_php_common_members)
 };
 
 
@@ -517,11 +525,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_php_common_members[] = {
     {
         .name       = nxt_string("options"),
         .type       = NXT_CONF_VLDT_OBJECT,
-        .validator  = &nxt_conf_vldt_object,
-        .data       = (void *) &nxt_conf_vldt_php_options_members,
+        .validator  = nxt_conf_vldt_object,
+        .u.members  = nxt_conf_vldt_php_options_members,
     },
 
-    NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_common_members)
+    NXT_CONF_VLDT_NEXT(nxt_conf_vldt_common_members)
 };
 
 
@@ -532,13 +540,13 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_php_options_members[] = {
     }, {
         .name       = nxt_string("admin"),
         .type       = NXT_CONF_VLDT_OBJECT,
-        .validator  = &nxt_conf_vldt_object_iterator,
-        .data       = (void *) &nxt_conf_vldt_php_option,
+        .validator  = nxt_conf_vldt_object_iterator,
+        .u.object   = nxt_conf_vldt_php_option,
     }, {
         .name       = nxt_string("user"),
         .type       = NXT_CONF_VLDT_OBJECT,
-        .validator  = &nxt_conf_vldt_object_iterator,
-        .data       = (void *) &nxt_conf_vldt_php_option,
+        .validator  = nxt_conf_vldt_object_iterator,
+        .u.object   = nxt_conf_vldt_php_option,
     },
 
     NXT_CONF_VLDT_END
@@ -575,7 +583,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_php_notargets_members[] = {
         .type       = NXT_CONF_VLDT_STRING,
     },
 
-    NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_php_common_members)
+    NXT_CONF_VLDT_NEXT(nxt_conf_vldt_php_common_members)
 };
 
 
@@ -586,7 +594,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_perl_members[] = {
         .flags      = NXT_CONF_VLDT_REQUIRED,
     },
 
-    NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_common_members)
+    NXT_CONF_VLDT_NEXT(nxt_conf_vldt_common_members)
 };
 
 
@@ -597,7 +605,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_ruby_members[] = {
         .flags      = NXT_CONF_VLDT_REQUIRED,
     },
 
-    NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_common_members)
+    NXT_CONF_VLDT_NEXT(nxt_conf_vldt_common_members)
 };
 
 
@@ -605,8 +613,8 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_java_members[] = {
     {
         .name       = nxt_string("classpath"),
         .type       = NXT_CONF_VLDT_ARRAY,
-        .validator  = &nxt_conf_vldt_array_iterator,
-        .data       = (void *) &nxt_conf_vldt_java_classpath,
+        .validator  = nxt_conf_vldt_array_iterator,
+        .u.array    = nxt_conf_vldt_java_classpath,
     }, {
         .name       = nxt_string("webapp"),
         .type       = NXT_CONF_VLDT_STRING,
@@ -614,14 +622,14 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_java_members[] = {
     }, {
         .name       = nxt_string("options"),
         .type       = NXT_CONF_VLDT_ARRAY,
-        .validator  = &nxt_conf_vldt_array_iterator,
-        .data       = (void *) &nxt_conf_vldt_java_option,
+        .validator  = nxt_conf_vldt_array_iterator,
+        .u.array    = nxt_conf_vldt_java_option,
     }, {
         .name       = nxt_string("unit_jars"),
         .type       = NXT_CONF_VLDT_STRING,
     },
 
-    NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_common_members)
+    NXT_CONF_VLDT_NEXT(nxt_conf_vldt_common_members)
 };
 
 
@@ -632,13 +640,13 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[] = {
     }, {
         .name       = nxt_string("limits"),
         .type       = NXT_CONF_VLDT_OBJECT,
-        .validator  = &nxt_conf_vldt_object,
-        .data       = (void *) &nxt_conf_vldt_app_limits_members,
+        .validator  = nxt_conf_vldt_object,
+        .u.members  = nxt_conf_vldt_app_limits_members,
     }, {
         .name       = nxt_string("processes"),
         .type       = NXT_CONF_VLDT_INTEGER | NXT_CONF_VLDT_OBJECT,
-        .validator  = &nxt_conf_vldt_processes,
-        .data       = (void *) &nxt_conf_vldt_app_processes_members,
+        .validator  = nxt_conf_vldt_processes,
+        .u.members  = nxt_conf_vldt_app_processes_members,
     }, {
         .name       = nxt_string("user"),
         .type       = NXT_CONF_VLDT_STRING,
@@ -651,13 +659,13 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[] = {
     }, {
         .name       = nxt_string("environment"),
         .type       = NXT_CONF_VLDT_OBJECT,
-        .validator  = &nxt_conf_vldt_object_iterator,
-        .data       = (void *) &nxt_conf_vldt_environment,
+        .validator  = nxt_conf_vldt_object_iterator,
+        .u.object   = nxt_conf_vldt_environment,
     }, {
         .name       = nxt_string("isolation"),
         .type       = NXT_CONF_VLDT_OBJECT,
-        .validator  = &nxt_conf_vldt_isolation,
-        .data       = (void *) &nxt_conf_vldt_app_isolation_members,
+        .validator  = nxt_conf_vldt_isolation,
+        .u.members  = nxt_conf_vldt_app_isolation_members,
     },
 
     NXT_CONF_VLDT_END
@@ -700,21 +708,21 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_isolation_members[] = {
     {
         .name       = nxt_string("namespaces"),
         .type       = NXT_CONF_VLDT_OBJECT,
-        .validator  = &nxt_conf_vldt_clone_namespaces,
-        .data       = (void *) &nxt_conf_vldt_app_namespaces_members,
+        .validator  = nxt_conf_vldt_clone_namespaces,
+        .u.members  = nxt_conf_vldt_app_namespaces_members,
     },
 
 #if (NXT_HAVE_CLONE_NEWUSER)
     {
         .name       = nxt_string("uidmap"),
         .type       = NXT_CONF_VLDT_ARRAY,
-        .validator  = &nxt_conf_vldt_array_iterator,
-        .data       = (void *) &nxt_conf_vldt_clone_uidmap,
+        .validator  = nxt_conf_vldt_array_iterator,
+        .u.array    = nxt_conf_vldt_clone_uidmap,
     }, {
         .name       = nxt_string("gidmap"),
         .type       = NXT_CONF_VLDT_ARRAY,
-        .validator  = &nxt_conf_vldt_array_iterator,
-        .data       = (void *) &nxt_conf_vldt_clone_gidmap,
+        .validator  = nxt_conf_vldt_array_iterator,
+        .u.array    = nxt_conf_vldt_clone_gidmap,
     },
 #endif
 
@@ -725,8 +733,8 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_isolation_members[] = {
     }, {
         .name       = nxt_string("automount"),
         .type       = NXT_CONF_VLDT_OBJECT,
-        .validator  = &nxt_conf_vldt_object,
-        .data       = (void *) &nxt_conf_vldt_app_automount_members,
+        .validator  = nxt_conf_vldt_object,
+        .u.members  = nxt_conf_vldt_app_automount_members,
     },
 #endif
 
@@ -827,8 +835,8 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_upstream_members[] = {
     {
         .name       = nxt_string("servers"),
         .type       = NXT_CONF_VLDT_OBJECT,
-        .validator  = &nxt_conf_vldt_object_iterator,
-        .data       = (void *) &nxt_conf_vldt_server,
+        .validator  = nxt_conf_vldt_object_iterator,
+        .u.object   = nxt_conf_vldt_server,
     },
 
     NXT_CONF_VLDT_END
@@ -839,7 +847,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_upstream_server_members[] = {
     {
         .name       = nxt_string("weight"),
         .type       = NXT_CONF_VLDT_NUMBER,
-        .validator  = &nxt_conf_vldt_server_weight,
+        .validator  = nxt_conf_vldt_server_weight,
     },
 
     NXT_CONF_VLDT_END
@@ -1768,8 +1776,8 @@ nxt_conf_vldt_object(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     for ( ;; ) {
         if (vals->name.length == 0) {
 
-            if (vals->data != NULL) {
-                vals = vals->data;
+            if (vals->u.members != NULL) {
+                vals = vals->u.members;
                 continue;
             }
 
@@ -1802,8 +1810,8 @@ nxt_conf_vldt_object(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
         for ( ;; ) {
             if (vals->name.length == 0) {
 
-                if (vals->data != NULL) {
-                    vals = vals->data;
+                if (vals->u.members != NULL) {
+                    vals = vals->u.members;
                     continue;
                 }
 
@@ -1823,7 +1831,7 @@ nxt_conf_vldt_object(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
             }
 
             if (vals->validator != NULL) {
-                ret = vals->validator(vldt, member, vals->data);
+                ret = vals->validator(vldt, member, vals->u.members);
 
                 if (ret != NXT_OK) {
                     return ret;
