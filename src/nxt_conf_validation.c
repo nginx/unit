@@ -170,21 +170,60 @@ static nxt_int_t nxt_conf_vldt_clone_gidmap(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value);
 #endif
 
-static nxt_conf_vldt_object_t  nxt_conf_vldt_websocket_members[] = {
-    { nxt_string("read_timeout"),
-      NXT_CONF_VLDT_INTEGER,
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_setting_members[];
+static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[];
+static nxt_conf_vldt_object_t  nxt_conf_vldt_websocket_members[];
+static nxt_conf_vldt_object_t  nxt_conf_vldt_static_members[];
+#if (NXT_TLS)
+static nxt_conf_vldt_object_t  nxt_conf_vldt_tls_members[];
+#endif
+static nxt_conf_vldt_object_t  nxt_conf_vldt_match_members[];
+static nxt_conf_vldt_object_t  nxt_conf_vldt_php_common_members[];
+static nxt_conf_vldt_object_t  nxt_conf_vldt_php_options_members[];
+static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[];
+static nxt_conf_vldt_object_t  nxt_conf_vldt_app_limits_members[];
+static nxt_conf_vldt_object_t  nxt_conf_vldt_app_processes_members[];
+static nxt_conf_vldt_object_t  nxt_conf_vldt_app_isolation_members[];
+static nxt_conf_vldt_object_t  nxt_conf_vldt_app_namespaces_members[];
+#if (NXT_HAVE_ISOLATION_ROOTFS)
+static nxt_conf_vldt_object_t  nxt_conf_vldt_app_automount_members[];
+#endif
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_root_members[] = {
+    { nxt_string("settings"),
+      NXT_CONF_VLDT_OBJECT,
       0,
-      NULL,
+      &nxt_conf_vldt_object,
+      (void *) &nxt_conf_vldt_setting_members },
+
+    { nxt_string("listeners"),
+      NXT_CONF_VLDT_OBJECT,
+      0,
+      &nxt_conf_vldt_object_iterator,
+      (void *) &nxt_conf_vldt_listener },
+
+    { nxt_string("routes"),
+      NXT_CONF_VLDT_ARRAY | NXT_CONF_VLDT_OBJECT,
+      0,
+      &nxt_conf_vldt_routes,
       NULL },
 
-    { nxt_string("keepalive_interval"),
-      NXT_CONF_VLDT_INTEGER,
+    { nxt_string("applications"),
+      NXT_CONF_VLDT_OBJECT,
       0,
-      NULL,
-      NULL },
+      &nxt_conf_vldt_object_iterator,
+      (void *) &nxt_conf_vldt_app },
 
-    { nxt_string("max_frame_size"),
-      NXT_CONF_VLDT_INTEGER,
+    { nxt_string("upstreams"),
+      NXT_CONF_VLDT_OBJECT,
+      0,
+      &nxt_conf_vldt_object_iterator,
+      (void *) &nxt_conf_vldt_upstream },
+
+    { nxt_string("access_log"),
+      NXT_CONF_VLDT_STRING,
       0,
       NULL,
       NULL },
@@ -193,12 +232,12 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_websocket_members[] = {
 };
 
 
-static nxt_conf_vldt_object_t  nxt_conf_vldt_static_members[] = {
-    { nxt_string("mime_types"),
+static nxt_conf_vldt_object_t  nxt_conf_vldt_setting_members[] = {
+    { nxt_string("http"),
       NXT_CONF_VLDT_OBJECT,
       0,
-      &nxt_conf_vldt_mtypes,
-      NULL },
+      &nxt_conf_vldt_object,
+      (void *) &nxt_conf_vldt_http_members },
 
     NXT_CONF_VLDT_END
 };
@@ -263,50 +302,21 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[] = {
 };
 
 
-static nxt_conf_vldt_object_t  nxt_conf_vldt_setting_members[] = {
-    { nxt_string("http"),
-      NXT_CONF_VLDT_OBJECT,
+static nxt_conf_vldt_object_t  nxt_conf_vldt_websocket_members[] = {
+    { nxt_string("read_timeout"),
+      NXT_CONF_VLDT_INTEGER,
       0,
-      &nxt_conf_vldt_object,
-      (void *) &nxt_conf_vldt_http_members },
-
-    NXT_CONF_VLDT_END
-};
-
-
-static nxt_conf_vldt_object_t  nxt_conf_vldt_root_members[] = {
-    { nxt_string("settings"),
-      NXT_CONF_VLDT_OBJECT,
-      0,
-      &nxt_conf_vldt_object,
-      (void *) &nxt_conf_vldt_setting_members },
-
-    { nxt_string("listeners"),
-      NXT_CONF_VLDT_OBJECT,
-      0,
-      &nxt_conf_vldt_object_iterator,
-      (void *) &nxt_conf_vldt_listener },
-
-    { nxt_string("routes"),
-      NXT_CONF_VLDT_ARRAY | NXT_CONF_VLDT_OBJECT,
-      0,
-      &nxt_conf_vldt_routes,
+      NULL,
       NULL },
 
-    { nxt_string("applications"),
-      NXT_CONF_VLDT_OBJECT,
+    { nxt_string("keepalive_interval"),
+      NXT_CONF_VLDT_INTEGER,
       0,
-      &nxt_conf_vldt_object_iterator,
-      (void *) &nxt_conf_vldt_app },
+      NULL,
+      NULL },
 
-    { nxt_string("upstreams"),
-      NXT_CONF_VLDT_OBJECT,
-      0,
-      &nxt_conf_vldt_object_iterator,
-      (void *) &nxt_conf_vldt_upstream },
-
-    { nxt_string("access_log"),
-      NXT_CONF_VLDT_STRING,
+    { nxt_string("max_frame_size"),
+      NXT_CONF_VLDT_INTEGER,
       0,
       NULL,
       NULL },
@@ -315,19 +325,15 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_root_members[] = {
 };
 
 
-#if (NXT_TLS)
-
-static nxt_conf_vldt_object_t  nxt_conf_vldt_tls_members[] = {
-    { nxt_string("certificate"),
-      NXT_CONF_VLDT_STRING,
+static nxt_conf_vldt_object_t  nxt_conf_vldt_static_members[] = {
+    { nxt_string("mime_types"),
+      NXT_CONF_VLDT_OBJECT,
       0,
-      &nxt_conf_vldt_certificate,
+      &nxt_conf_vldt_mtypes,
       NULL },
 
     NXT_CONF_VLDT_END
 };
-
-#endif
 
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_listener_members[] = {
@@ -352,6 +358,38 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_listener_members[] = {
       (void *) &nxt_conf_vldt_tls_members },
 
 #endif
+
+    NXT_CONF_VLDT_END
+};
+
+
+#if (NXT_TLS)
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_tls_members[] = {
+    { nxt_string("certificate"),
+      NXT_CONF_VLDT_STRING,
+      0,
+      &nxt_conf_vldt_certificate,
+      NULL },
+
+    NXT_CONF_VLDT_END
+};
+
+#endif
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_route_members[] = {
+    { nxt_string("match"),
+      NXT_CONF_VLDT_OBJECT,
+      0,
+      &nxt_conf_vldt_object,
+      (void *) &nxt_conf_vldt_match_members },
+
+    { nxt_string("action"),
+      NXT_CONF_VLDT_OBJECT,
+      0,
+      &nxt_conf_vldt_action,
+      NULL },
 
     NXT_CONF_VLDT_END
 };
@@ -472,18 +510,260 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_proxy_action_members[] = {
 };
 
 
-static nxt_conf_vldt_object_t  nxt_conf_vldt_route_members[] = {
-    { nxt_string("match"),
+static nxt_conf_vldt_object_t  nxt_conf_vldt_external_members[] = {
+    { nxt_string("executable"),
+      NXT_CONF_VLDT_STRING,
+      NXT_CONF_VLDT_REQUIRED,
+      NULL,
+      NULL },
+
+    { nxt_string("arguments"),
+      NXT_CONF_VLDT_ARRAY,
+      0,
+      &nxt_conf_vldt_array_iterator,
+      (void *) &nxt_conf_vldt_argument },
+
+    NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_common_members)
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_python_members[] = {
+    { nxt_string("home"),
+      NXT_CONF_VLDT_STRING,
+      0,
+      NULL,
+      NULL },
+
+    { nxt_string("path"),
+      NXT_CONF_VLDT_STRING,
+      0,
+      NULL,
+      NULL },
+
+    { nxt_string("module"),
+      NXT_CONF_VLDT_STRING,
+      NXT_CONF_VLDT_REQUIRED,
+      NULL,
+      NULL },
+
+    { nxt_string("callable"),
+      NXT_CONF_VLDT_STRING,
+      0,
+      NULL,
+      NULL },
+
+    NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_common_members)
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_php_members[] = {
+    { nxt_string("root"),
+      NXT_CONF_VLDT_ANY_TYPE,
+      0,
+      &nxt_conf_vldt_php_targets_exclusive,
+      (void *) "root" },
+
+    { nxt_string("script"),
+      NXT_CONF_VLDT_ANY_TYPE,
+      0,
+      &nxt_conf_vldt_php_targets_exclusive,
+      (void *) "script" },
+
+    { nxt_string("index"),
+      NXT_CONF_VLDT_ANY_TYPE,
+      0,
+      &nxt_conf_vldt_php_targets_exclusive,
+      (void *) "index" },
+
+    { nxt_string("targets"),
+      NXT_CONF_VLDT_OBJECT,
+      0,
+      &nxt_conf_vldt_php_targets,
+      NULL },
+
+    NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_php_common_members)
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_php_common_members[] = {
+    { nxt_string("options"),
       NXT_CONF_VLDT_OBJECT,
       0,
       &nxt_conf_vldt_object,
-      (void *) &nxt_conf_vldt_match_members },
+      (void *) &nxt_conf_vldt_php_options_members },
 
-    { nxt_string("action"),
+    NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_common_members)
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_php_options_members[] = {
+    { nxt_string("file"),
+      NXT_CONF_VLDT_STRING,
+      0,
+      NULL,
+      NULL },
+
+    { nxt_string("admin"),
       NXT_CONF_VLDT_OBJECT,
       0,
-      &nxt_conf_vldt_action,
+      &nxt_conf_vldt_object_iterator,
+      (void *) &nxt_conf_vldt_php_option },
+
+    { nxt_string("user"),
+      NXT_CONF_VLDT_OBJECT,
+      0,
+      &nxt_conf_vldt_object_iterator,
+      (void *) &nxt_conf_vldt_php_option },
+
+    NXT_CONF_VLDT_END
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_php_target_members[] = {
+    { nxt_string("root"),
+      NXT_CONF_VLDT_STRING,
+      NXT_CONF_VLDT_REQUIRED,
+      NULL,
       NULL },
+
+    { nxt_string("script"),
+      NXT_CONF_VLDT_STRING,
+      0,
+      NULL,
+      NULL },
+
+    { nxt_string("index"),
+      NXT_CONF_VLDT_STRING,
+      0,
+      NULL,
+      NULL },
+
+    NXT_CONF_VLDT_END
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_php_notargets_members[] = {
+    { nxt_string("root"),
+      NXT_CONF_VLDT_STRING,
+      NXT_CONF_VLDT_REQUIRED,
+      NULL,
+      NULL },
+
+    { nxt_string("script"),
+      NXT_CONF_VLDT_STRING,
+      0,
+      NULL,
+      NULL },
+
+    { nxt_string("index"),
+      NXT_CONF_VLDT_STRING,
+      0,
+      NULL,
+      NULL },
+
+    NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_php_common_members)
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_perl_members[] = {
+    { nxt_string("script"),
+      NXT_CONF_VLDT_STRING,
+      NXT_CONF_VLDT_REQUIRED,
+      NULL,
+      NULL },
+
+    NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_common_members)
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_ruby_members[] = {
+    { nxt_string("script"),
+      NXT_CONF_VLDT_STRING,
+      NXT_CONF_VLDT_REQUIRED,
+      NULL,
+      NULL },
+
+    NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_common_members)
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_java_members[] = {
+    { nxt_string("classpath"),
+      NXT_CONF_VLDT_ARRAY,
+      0,
+      &nxt_conf_vldt_array_iterator,
+      (void *) &nxt_conf_vldt_java_classpath },
+
+    { nxt_string("webapp"),
+      NXT_CONF_VLDT_STRING,
+      NXT_CONF_VLDT_REQUIRED,
+      NULL,
+      NULL },
+
+    { nxt_string("options"),
+      NXT_CONF_VLDT_ARRAY,
+      0,
+      &nxt_conf_vldt_array_iterator,
+      (void *) &nxt_conf_vldt_java_option },
+
+    { nxt_string("unit_jars"),
+      NXT_CONF_VLDT_STRING,
+      0,
+      NULL,
+      NULL },
+
+    NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_common_members)
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[] = {
+    { nxt_string("type"),
+      NXT_CONF_VLDT_STRING,
+      0,
+      NULL,
+      NULL },
+
+    { nxt_string("limits"),
+      NXT_CONF_VLDT_OBJECT,
+      0,
+      &nxt_conf_vldt_object,
+      (void *) &nxt_conf_vldt_app_limits_members },
+
+    { nxt_string("processes"),
+      NXT_CONF_VLDT_INTEGER | NXT_CONF_VLDT_OBJECT,
+      0,
+      &nxt_conf_vldt_processes,
+      (void *) &nxt_conf_vldt_app_processes_members },
+
+    { nxt_string("user"),
+      NXT_CONF_VLDT_STRING,
+      0,
+      NULL,
+      NULL },
+
+    { nxt_string("group"),
+      NXT_CONF_VLDT_STRING,
+      0,
+      NULL,
+      NULL },
+
+    { nxt_string("working_directory"),
+      NXT_CONF_VLDT_STRING,
+      0,
+      NULL,
+      NULL },
+
+    { nxt_string("environment"),
+      NXT_CONF_VLDT_OBJECT,
+      0,
+      &nxt_conf_vldt_object_iterator,
+      (void *) &nxt_conf_vldt_environment },
+
+    { nxt_string("isolation"),
+      NXT_CONF_VLDT_OBJECT,
+      0,
+      &nxt_conf_vldt_isolation,
+      (void *) &nxt_conf_vldt_app_isolation_members },
 
     NXT_CONF_VLDT_END
 };
@@ -530,6 +810,59 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_processes_members[] = {
       0,
       NULL,
       NULL },
+
+    NXT_CONF_VLDT_END
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_app_isolation_members[] = {
+    { nxt_string("namespaces"),
+      NXT_CONF_VLDT_OBJECT,
+      0,
+      &nxt_conf_vldt_clone_namespaces,
+      (void *) &nxt_conf_vldt_app_namespaces_members },
+
+#if (NXT_HAVE_CLONE_NEWUSER)
+
+    { nxt_string("uidmap"),
+      NXT_CONF_VLDT_ARRAY,
+      0,
+      &nxt_conf_vldt_array_iterator,
+      (void *) &nxt_conf_vldt_clone_uidmap },
+
+    { nxt_string("gidmap"),
+      NXT_CONF_VLDT_ARRAY,
+      0,
+      &nxt_conf_vldt_array_iterator,
+      (void *) &nxt_conf_vldt_clone_gidmap },
+
+#endif
+
+#if (NXT_HAVE_ISOLATION_ROOTFS)
+
+    { nxt_string("rootfs"),
+      NXT_CONF_VLDT_STRING,
+      0,
+      NULL,
+      NULL },
+
+    { nxt_string("automount"),
+      NXT_CONF_VLDT_OBJECT,
+      0,
+      &nxt_conf_vldt_object,
+      (void *) &nxt_conf_vldt_app_automount_members },
+
+#endif
+
+#if (NXT_HAVE_PR_SET_NO_NEW_PRIVS)
+
+    { nxt_string("new_privs"),
+      NXT_CONF_VLDT_BOOLEAN,
+      0,
+      NULL,
+      NULL },
+
+#endif
 
     NXT_CONF_VLDT_END
 };
@@ -589,6 +922,21 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_namespaces_members[] = {
 };
 
 
+#if (NXT_HAVE_ISOLATION_ROOTFS)
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_app_automount_members[] = {
+    { nxt_string("language_deps"),
+      NXT_CONF_VLDT_BOOLEAN,
+      0,
+      NULL,
+      NULL },
+
+    NXT_CONF_VLDT_END
+};
+
+#endif
+
+
 #if (NXT_HAVE_CLONE_NEWUSER)
 
 static nxt_conf_vldt_object_t nxt_conf_vldt_app_procmap_members[] = {
@@ -614,333 +962,6 @@ static nxt_conf_vldt_object_t nxt_conf_vldt_app_procmap_members[] = {
 };
 
 #endif
-
-
-#if (NXT_HAVE_ISOLATION_ROOTFS)
-
-static nxt_conf_vldt_object_t  nxt_conf_vldt_app_automount_members[] = {
-    { nxt_string("language_deps"),
-      NXT_CONF_VLDT_BOOLEAN,
-      0,
-      NULL,
-      NULL },
-
-    NXT_CONF_VLDT_END
-};
-
-#endif
-
-
-static nxt_conf_vldt_object_t  nxt_conf_vldt_app_isolation_members[] = {
-    { nxt_string("namespaces"),
-      NXT_CONF_VLDT_OBJECT,
-      0,
-      &nxt_conf_vldt_clone_namespaces,
-      (void *) &nxt_conf_vldt_app_namespaces_members },
-
-#if (NXT_HAVE_CLONE_NEWUSER)
-
-    { nxt_string("uidmap"),
-      NXT_CONF_VLDT_ARRAY,
-      0,
-      &nxt_conf_vldt_array_iterator,
-      (void *) &nxt_conf_vldt_clone_uidmap },
-
-    { nxt_string("gidmap"),
-      NXT_CONF_VLDT_ARRAY,
-      0,
-      &nxt_conf_vldt_array_iterator,
-      (void *) &nxt_conf_vldt_clone_gidmap },
-
-#endif
-
-#if (NXT_HAVE_ISOLATION_ROOTFS)
-
-    { nxt_string("rootfs"),
-      NXT_CONF_VLDT_STRING,
-      0,
-      NULL,
-      NULL },
-
-    { nxt_string("automount"),
-      NXT_CONF_VLDT_OBJECT,
-      0,
-      &nxt_conf_vldt_object,
-      (void *) &nxt_conf_vldt_app_automount_members },
-
-#endif
-
-#if (NXT_HAVE_PR_SET_NO_NEW_PRIVS)
-
-    { nxt_string("new_privs"),
-      NXT_CONF_VLDT_BOOLEAN,
-      0,
-      NULL,
-      NULL },
-
-#endif
-
-    NXT_CONF_VLDT_END
-};
-
-
-static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[] = {
-    { nxt_string("type"),
-      NXT_CONF_VLDT_STRING,
-      0,
-      NULL,
-      NULL },
-
-    { nxt_string("limits"),
-      NXT_CONF_VLDT_OBJECT,
-      0,
-      &nxt_conf_vldt_object,
-      (void *) &nxt_conf_vldt_app_limits_members },
-
-    { nxt_string("processes"),
-      NXT_CONF_VLDT_INTEGER | NXT_CONF_VLDT_OBJECT,
-      0,
-      &nxt_conf_vldt_processes,
-      (void *) &nxt_conf_vldt_app_processes_members },
-
-    { nxt_string("user"),
-      NXT_CONF_VLDT_STRING,
-      0,
-      NULL,
-      NULL },
-
-    { nxt_string("group"),
-      NXT_CONF_VLDT_STRING,
-      0,
-      NULL,
-      NULL },
-
-    { nxt_string("working_directory"),
-      NXT_CONF_VLDT_STRING,
-      0,
-      NULL,
-      NULL },
-
-    { nxt_string("environment"),
-      NXT_CONF_VLDT_OBJECT,
-      0,
-      &nxt_conf_vldt_object_iterator,
-      (void *) &nxt_conf_vldt_environment },
-
-    { nxt_string("isolation"),
-      NXT_CONF_VLDT_OBJECT,
-      0,
-      &nxt_conf_vldt_isolation,
-      (void *) &nxt_conf_vldt_app_isolation_members },
-
-    NXT_CONF_VLDT_END
-};
-
-
-static nxt_conf_vldt_object_t  nxt_conf_vldt_external_members[] = {
-    { nxt_string("executable"),
-      NXT_CONF_VLDT_STRING,
-      NXT_CONF_VLDT_REQUIRED,
-      NULL,
-      NULL },
-
-    { nxt_string("arguments"),
-      NXT_CONF_VLDT_ARRAY,
-      0,
-      &nxt_conf_vldt_array_iterator,
-      (void *) &nxt_conf_vldt_argument },
-
-    NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_common_members)
-};
-
-
-static nxt_conf_vldt_object_t  nxt_conf_vldt_python_members[] = {
-    { nxt_string("home"),
-      NXT_CONF_VLDT_STRING,
-      0,
-      NULL,
-      NULL },
-
-    { nxt_string("path"),
-      NXT_CONF_VLDT_STRING,
-      0,
-      NULL,
-      NULL },
-
-    { nxt_string("module"),
-      NXT_CONF_VLDT_STRING,
-      NXT_CONF_VLDT_REQUIRED,
-      NULL,
-      NULL },
-
-    { nxt_string("callable"),
-      NXT_CONF_VLDT_STRING,
-      0,
-      NULL,
-      NULL },
-
-    NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_common_members)
-};
-
-
-static nxt_conf_vldt_object_t  nxt_conf_vldt_php_target_members[] = {
-    { nxt_string("root"),
-      NXT_CONF_VLDT_STRING,
-      NXT_CONF_VLDT_REQUIRED,
-      NULL,
-      NULL },
-
-    { nxt_string("script"),
-      NXT_CONF_VLDT_STRING,
-      0,
-      NULL,
-      NULL },
-
-    { nxt_string("index"),
-      NXT_CONF_VLDT_STRING,
-      0,
-      NULL,
-      NULL },
-
-    NXT_CONF_VLDT_END
-};
-
-
-static nxt_conf_vldt_object_t  nxt_conf_vldt_php_options_members[] = {
-    { nxt_string("file"),
-      NXT_CONF_VLDT_STRING,
-      0,
-      NULL,
-      NULL },
-
-    { nxt_string("admin"),
-      NXT_CONF_VLDT_OBJECT,
-      0,
-      &nxt_conf_vldt_object_iterator,
-      (void *) &nxt_conf_vldt_php_option },
-
-    { nxt_string("user"),
-      NXT_CONF_VLDT_OBJECT,
-      0,
-      &nxt_conf_vldt_object_iterator,
-      (void *) &nxt_conf_vldt_php_option },
-
-    NXT_CONF_VLDT_END
-};
-
-
-static nxt_conf_vldt_object_t  nxt_conf_vldt_php_common_members[] = {
-    { nxt_string("options"),
-      NXT_CONF_VLDT_OBJECT,
-      0,
-      &nxt_conf_vldt_object,
-      (void *) &nxt_conf_vldt_php_options_members },
-
-    NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_common_members)
-};
-
-
-static nxt_conf_vldt_object_t  nxt_conf_vldt_php_notargets_members[] = {
-    { nxt_string("root"),
-      NXT_CONF_VLDT_STRING,
-      NXT_CONF_VLDT_REQUIRED,
-      NULL,
-      NULL },
-
-    { nxt_string("script"),
-      NXT_CONF_VLDT_STRING,
-      0,
-      NULL,
-      NULL },
-
-    { nxt_string("index"),
-      NXT_CONF_VLDT_STRING,
-      0,
-      NULL,
-      NULL },
-
-    NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_php_common_members)
-};
-
-
-static nxt_conf_vldt_object_t  nxt_conf_vldt_php_members[] = {
-    { nxt_string("root"),
-      NXT_CONF_VLDT_ANY_TYPE,
-      0,
-      &nxt_conf_vldt_php_targets_exclusive,
-      (void *) "root" },
-
-    { nxt_string("script"),
-      NXT_CONF_VLDT_ANY_TYPE,
-      0,
-      &nxt_conf_vldt_php_targets_exclusive,
-      (void *) "script" },
-
-    { nxt_string("index"),
-      NXT_CONF_VLDT_ANY_TYPE,
-      0,
-      &nxt_conf_vldt_php_targets_exclusive,
-      (void *) "index" },
-
-    { nxt_string("targets"),
-      NXT_CONF_VLDT_OBJECT,
-      0,
-      &nxt_conf_vldt_php_targets,
-      NULL },
-
-    NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_php_common_members)
-};
-
-
-static nxt_conf_vldt_object_t  nxt_conf_vldt_perl_members[] = {
-    { nxt_string("script"),
-      NXT_CONF_VLDT_STRING,
-      NXT_CONF_VLDT_REQUIRED,
-      NULL,
-      NULL },
-
-    NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_common_members)
-};
-
-
-static nxt_conf_vldt_object_t  nxt_conf_vldt_ruby_members[] = {
-    { nxt_string("script"),
-      NXT_CONF_VLDT_STRING,
-      NXT_CONF_VLDT_REQUIRED,
-      NULL,
-      NULL },
-
-    NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_common_members)
-};
-
-
-static nxt_conf_vldt_object_t  nxt_conf_vldt_java_members[] = {
-    { nxt_string("classpath"),
-      NXT_CONF_VLDT_ARRAY,
-      0,
-      &nxt_conf_vldt_array_iterator,
-      (void *) &nxt_conf_vldt_java_classpath },
-
-    { nxt_string("webapp"),
-      NXT_CONF_VLDT_STRING,
-      NXT_CONF_VLDT_REQUIRED,
-      NULL,
-      NULL },
-
-    { nxt_string("options"),
-      NXT_CONF_VLDT_ARRAY,
-      0,
-      &nxt_conf_vldt_array_iterator,
-      (void *) &nxt_conf_vldt_java_option },
-
-    { nxt_string("unit_jars"),
-      NXT_CONF_VLDT_STRING,
-      0,
-      NULL,
-      NULL },
-
-    NXT_CONF_VLDT_NEXT(&nxt_conf_vldt_common_members)
-};
 
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_upstream_members[] = {
