@@ -2,6 +2,7 @@ import re
 import subprocess
 import time
 
+from conftest import option
 from conftest import skip_alert
 from unit.applications.lang.python import TestApplicationPython
 
@@ -13,9 +14,7 @@ class TestRespawn(TestApplicationPython):
     PATTERN_CONTROLLER = 'unit: controller'
 
     def setup_method(self):
-        super().setup_method()
-
-        self.app_name = "app-" + self.temp_dir.split('/')[-1]
+        self.app_name = "app-" + option.temp_dir.split('/')[-1]
 
         self.load('empty', self.app_name)
 

@@ -3,6 +3,7 @@ import socket
 
 import pytest
 
+from conftest import option
 from conftest import waitforfiles
 from unit.applications.proto import TestApplicationProto
 
@@ -11,13 +12,13 @@ class TestStatic(TestApplicationProto):
     prerequisites = {}
 
     def setup_method(self):
-        super().setup_method()
-
-        os.makedirs(self.temp_dir + '/assets/dir')
-        with open(self.temp_dir + '/assets/index.html', 'w') as index, open(
-            self.temp_dir + '/assets/README', 'w'
-        ) as readme, open(self.temp_dir + '/assets/log.log', 'w') as log, open(
-            self.temp_dir + '/assets/dir/file', 'w'
+        os.makedirs(option.temp_dir + '/assets/dir')
+        with open(option.temp_dir + '/assets/index.html', 'w') as index, open(
+            option.temp_dir + '/assets/README', 'w'
+        ) as readme, open(
+            option.temp_dir + '/assets/log.log', 'w'
+        ) as log, open(
+            option.temp_dir + '/assets/dir/file', 'w'
         ) as file:
             index.write('0123456789')
             readme.write('readme')
@@ -27,7 +28,7 @@ class TestStatic(TestApplicationProto):
         self._load_conf(
             {
                 "listeners": {"*:7080": {"pass": "routes"}},
-                "routes": [{"action": {"share": self.temp_dir + "/assets"}}],
+                "routes": [{"action": {"share": option.temp_dir + "/assets"}}],
                 "settings": {
                     "http": {
                         "static": {
@@ -54,9 +55,9 @@ class TestStatic(TestApplicationProto):
             resp['headers']['Content-Type'] == 'text/html'
         ), 'index not found 2 Content-Type'
 
-    def test_static_large_file(self):
+    def test_static_large_file(self, temp_dir):
         file_size = 32 * 1024 * 1024
-        with open(self.temp_dir + '/assets/large', 'wb') as f:
+        with open(temp_dir + '/assets/large', 'wb') as f:
             f.seek(file_size - 1)
             f.write(b'\0')
 
@@ -65,14 +66,14 @@ class TestStatic(TestApplicationProto):
             == file_size
         ), 'large file'
 
-    def test_static_etag(self):
+    def test_static_etag(self, temp_dir):
         etag = self.get(url='/')['headers']['ETag']
         etag_2 = self.get(url='/README')['headers']['ETag']
 
         assert etag != etag_2, 'different ETag'
         assert etag == self.get(url='/')['headers']['ETag'], 'same ETag'
 
-        with open(self.temp_dir + '/assets/index.html', 'w') as f:
+        with open(temp_dir + '/assets/index.html', 'w') as f:
             f.write('blah')
 
         assert etag != self.get(url='/')['headers']['ETag'], 'new ETag'
@@ -83,22 +84,22 @@ class TestStatic(TestApplicationProto):
         assert resp['headers']['Location'] == '/dir/', 'redirect Location'
         assert 'Content-Type' not in resp['headers'], 'redirect Content-Type'
 
-    def test_static_space_in_name(self):
+    def test_static_space_in_name(self, temp_dir):
         os.rename(
-            self.temp_dir + '/assets/dir/file',
-            self.temp_dir + '/assets/dir/fi le',
+            temp_dir + '/assets/dir/file',
+            temp_dir + '/assets/dir/fi le',
         )
-        assert waitforfiles(self.temp_dir + '/assets/dir/fi le')
+        assert waitforfiles(temp_dir + '/assets/dir/fi le')
         assert self.get(url='/dir/fi le')['body'] == 'blah', 'file name'
 
-        os.rename(self.temp_dir + '/assets/dir', self.temp_dir + '/assets/di r')
-        assert waitforfiles(self.temp_dir + '/assets/di r/fi le')
+        os.rename(temp_dir + '/assets/dir', temp_dir + '/assets/di r')
+        assert waitforfiles(temp_dir + '/assets/di r/fi le')
         assert self.get(url='/di r/fi le')['body'] == 'blah', 'dir name'
 
         os.rename(
-            self.temp_dir + '/assets/di r', self.temp_dir + '/assets/ di r '
+            temp_dir + '/assets/di r', temp_dir + '/assets/ di r '
         )
-        assert waitforfiles(self.temp_dir + '/assets/ di r /fi le')
+        assert waitforfiles(temp_dir + '/assets/ di r /fi le')
         assert (
             self.get(url='/ di r /fi le')['body'] == 'blah'
         ), 'dir name enclosing'
@@ -121,16 +122,16 @@ class TestStatic(TestApplicationProto):
         ), 'encoded 2'
 
         os.rename(
-            self.temp_dir + '/assets/ di r /fi le',
-            self.temp_dir + '/assets/ di r / fi le ',
+            temp_dir + '/assets/ di r /fi le',
+            temp_dir + '/assets/ di r / fi le ',
         )
-        assert waitforfiles(self.temp_dir + '/assets/ di r / fi le ')
+        assert waitforfiles(temp_dir + '/assets/ di r / fi le ')
         assert (
             self.get(url='/%20di%20r%20/%20fi%20le%20')['body'] == 'blah'
         ), 'file name enclosing'
 
         try:
-            open(self.temp_dir + '/ф а', 'a').close()
+            open(temp_dir + '/ф а', 'a').close()
             utf8 = True
 
         except:
@@ -138,38 +139,38 @@ class TestStatic(TestApplicationProto):
 
         if utf8:
             os.rename(
-                self.temp_dir + '/assets/ di r / fi le ',
-                self.temp_dir + '/assets/ di r /фа йл',
+                temp_dir + '/assets/ di r / fi le ',
+                temp_dir + '/assets/ di r /фа йл',
             )
-            assert waitforfiles(self.temp_dir + '/assets/ di r /фа йл')
+            assert waitforfiles(temp_dir + '/assets/ di r /фа йл')
             assert (
                 self.get(url='/ di r /фа йл')['body'] == 'blah'
             ), 'file name 2'
 
             os.rename(
-                self.temp_dir + '/assets/ di r ',
-                self.temp_dir + '/assets/ди ректория',
+                temp_dir + '/assets/ di r ',
+                temp_dir + '/assets/ди ректория',
             )
-            assert waitforfiles(self.temp_dir + '/assets/ди ректория/фа йл')
+            assert waitforfiles(temp_dir + '/assets/ди ректория/фа йл')
             assert (
                 self.get(url='/ди ректория/фа йл')['body'] == 'blah'
             ), 'dir name 2'
 
-    def test_static_unix_socket(self):
+    def test_static_unix_socket(self, temp_dir):
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        sock.bind(self.temp_dir + '/assets/unix_socket')
+        sock.bind(temp_dir + '/assets/unix_socket')
 
         assert self.get(url='/unix_socket')['status'] == 404, 'socket'
 
         sock.close()
 
-    def test_static_unix_fifo(self):
-        os.mkfifo(self.temp_dir + '/assets/fifo')
+    def test_static_unix_fifo(self, temp_dir):
+        os.mkfifo(temp_dir + '/assets/fifo')
 
         assert self.get(url='/fifo')['status'] == 404, 'fifo'
 
-    def test_static_symlink(self):
-        os.symlink(self.temp_dir + '/assets/dir', self.temp_dir + '/assets/link')
+    def test_static_symlink(self, temp_dir):
+        os.symlink(temp_dir + '/assets/dir', temp_dir + '/assets/link')
 
         assert self.get(url='/dir')['status'] == 301, 'dir'
         assert self.get(url='/dir/file')['status'] == 200, 'file'
@@ -312,7 +313,7 @@ class TestStatic(TestApplicationProto):
         ), 'mime_types same extensions case insensitive'
 
     @pytest.mark.skip('not yet')
-    def test_static_mime_types_invalid(self):
+    def test_static_mime_types_invalid(self, temp_dir):
         assert 'error' in self.http(
             b"""PUT /config/settings/http/static/mime_types/%0%00% HTTP/1.1\r
 Host: localhost\r
@@ -323,5 +324,5 @@ Content-Length: 6\r
             raw_resp=True,
             raw=True,
             sock_type='unix',
-            addr=self.temp_dir + '/control.unit.sock',
+            addr=temp_dir + '/control.unit.sock',
         ), 'mime_types invalid'

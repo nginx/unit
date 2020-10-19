@@ -139,11 +139,11 @@ class TestNodeApplication(TestApplicationNode):
 
         assert self.get()['body'] == 'buffer', 'write buffer'
 
-    def test_node_application_write_callback(self):
+    def test_node_application_write_callback(self, temp_dir):
         self.load('write_callback')
 
         assert self.get()['body'] == 'helloworld', 'write callback order'
-        assert waitforfiles(self.temp_dir + '/node/callback'), 'write callback'
+        assert waitforfiles(temp_dir + '/node/callback'), 'write callback'
 
     def test_node_application_write_before_write_head(self):
         self.load('write_before_write_head')
@@ -222,7 +222,7 @@ class TestNodeApplication(TestApplicationNode):
         assert 'X-Header' not in headers, 'insensitive'
         assert 'X-header' not in headers, 'insensitive 2'
 
-    def test_node_application_promise_handler(self):
+    def test_node_application_promise_handler(self, temp_dir):
         self.load('promise_handler')
 
         assert (
@@ -236,7 +236,7 @@ class TestNodeApplication(TestApplicationNode):
             )['status']
             == 200
         ), 'promise handler request'
-        assert waitforfiles(self.temp_dir + '/node/callback'), 'promise handler'
+        assert waitforfiles(temp_dir + '/node/callback'), 'promise handler'
 
     def test_node_application_promise_handler_write_after_end(self):
         self.load('promise_handler')
@@ -254,7 +254,7 @@ class TestNodeApplication(TestApplicationNode):
             == 200
         ), 'promise handler request write after end'
 
-    def test_node_application_promise_end(self):
+    def test_node_application_promise_end(self, temp_dir):
         self.load('promise_end')
 
         assert (
@@ -268,9 +268,9 @@ class TestNodeApplication(TestApplicationNode):
             )['status']
             == 200
         ), 'promise end request'
-        assert waitforfiles(self.temp_dir + '/node/callback'), 'promise end'
+        assert waitforfiles(temp_dir + '/node/callback'), 'promise end'
 
-    def test_node_application_promise_multiple_calls(self):
+    def test_node_application_promise_multiple_calls(self, temp_dir):
         self.load('promise_handler')
 
         self.post(
@@ -283,7 +283,7 @@ class TestNodeApplication(TestApplicationNode):
         )
 
         assert waitforfiles(
-            self.temp_dir + '/node/callback1'
+            temp_dir + '/node/callback1'
         ), 'promise first call'
 
         self.post(
@@ -296,7 +296,7 @@ class TestNodeApplication(TestApplicationNode):
         )
 
         assert waitforfiles(
-            self.temp_dir + '/node/callback2'
+            temp_dir + '/node/callback2'
         ), 'promise second call'
 
     @pytest.mark.skip('not yet')

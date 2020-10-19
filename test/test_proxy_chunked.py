@@ -3,6 +3,9 @@ import select
 import socket
 import time
 
+from conftest import option
+from conftest import run_process
+from conftest import waitforsocket
 from unit.applications.lang.python import TestApplicationPython
 
 
@@ -82,10 +85,8 @@ class TestProxyChunked(TestApplicationPython):
         return self.get(*args, http_10=True, **kwargs)
 
     def setup_method(self):
-        super().setup_method()
-
-        self.run_process(self.run_server, self.SERVER_PORT, self.temp_dir)
-        self.waitforsocket(self.SERVER_PORT)
+        run_process(self.run_server, self.SERVER_PORT, option.temp_dir)
+        waitforsocket(self.SERVER_PORT)
 
         assert 'success' in self.conf(
             {

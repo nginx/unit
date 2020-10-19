@@ -7,8 +7,6 @@ class TestReturn(TestApplicationProto):
     prerequisites = {}
 
     def setup_method(self):
-        super().setup_method()
-
         self._load_conf(
             {
                 "listeners": {"*:7080": {"pass": "routes"}},

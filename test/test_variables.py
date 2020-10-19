@@ -5,8 +5,6 @@ class TestVariables(TestApplicationProto):
     prerequisites = {}
 
     def setup_method(self):
-        super().setup_method()
-
         assert 'success' in self.conf(
             {
                 "listeners": {"*:7080": {"pass": "routes/$method"}},

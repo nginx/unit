@@ -15,8 +15,6 @@ class TestJavaWebsockets(TestApplicationJava):
     ws = TestApplicationWebsocket()
 
     def setup_method(self):
-        super().setup_method()
-
         assert 'success' in self.conf(
             {'http': {'websocket': {'keepalive_interval': 0}}}, 'settings'
         ), 'clear keepalive_interval'

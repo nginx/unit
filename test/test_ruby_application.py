@@ -3,6 +3,7 @@ import re
 import pytest
 
 from conftest import skip_alert
+from conftest import unit_stop
 from unit.applications.lang.ruby import TestApplicationRuby
 
 
@@ -175,7 +176,7 @@ class TestRubyApplication(TestApplicationRuby):
 
         self.get()
 
-        self.stop()
+        unit_stop()
 
         assert (
             self.wait_for_record(r'\[error\].+Error in application')
@@ -187,7 +188,7 @@ class TestRubyApplication(TestApplicationRuby):
 
         self.get()
 
-        self.stop()
+        unit_stop()
 
         assert (
             self.wait_for_record(r'\[error\].+1234567890') is not None
@@ -198,7 +199,7 @@ class TestRubyApplication(TestApplicationRuby):
 
         self.get()
 
-        self.stop()
+        unit_stop()
 
         assert (
             self.wait_for_record(r'\[error\].+Error in application')
@@ -215,7 +216,7 @@ class TestRubyApplication(TestApplicationRuby):
 
         self.get()
 
-        self.stop()
+        unit_stop()
 
         assert (
             self.wait_for_record(r'\[error\].+1234567890') is not None
@@ -228,7 +229,7 @@ class TestRubyApplication(TestApplicationRuby):
 
         self.conf({"listeners": {}, "applications": {}})
 
-        self.stop()
+        unit_stop()
 
         assert (
             self.wait_for_record(r'\[error\].+At exit called\.') is not None
@@ -289,7 +290,7 @@ class TestRubyApplication(TestApplicationRuby):
 
         assert self.get()['status'] == 500, 'body each error status'
 
-        self.stop()
+        unit_stop()
 
         assert (
             self.wait_for_record(r'\[error\].+Failed to run ruby script')

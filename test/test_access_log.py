@@ -2,6 +2,8 @@ import time
 
 import pytest
 
+from conftest import option
+from conftest import unit_stop
 from unit.applications.lang.python import TestApplicationPython
 
 
@@ -12,7 +14,7 @@ class TestAccessLog(TestApplicationPython):
         super().load(script)
 
         assert 'success' in self.conf(
-            '"' + self.temp_dir + '/access.log"', 'access_log'
+            '"' + option.temp_dir + '/access.log"', 'access_log'
         ), 'access_log configure'
 
     def wait_for_record(self, pattern, name='access.log'):
@@ -48,7 +50,7 @@ class TestAccessLog(TestApplicationPython):
             body='0123456789',
         )
 
-        self.stop()
+        unit_stop()
 
         assert (
             self.wait_for_record(r'"POST / HTTP/1.1" 200 10') is not None
@@ -76,7 +78,7 @@ Connection: close
             raw=True,
         )
 
-        self.stop()
+        unit_stop()
 
         assert (
             self.wait_for_record(r'"GET / HTTP/1.1" 200 0 "Referer-1" "-"')
@@ -98,7 +100,7 @@ Connection: close
 
         self.get(sock_type='ipv6')
 
-        self.stop()
+        unit_stop()
 
         assert (
             self.wait_for_record(
@@ -110,7 +112,7 @@ Connection: close
     def test_access_log_unix(self):
         self.load('empty')
 
-        addr = self.temp_dir + '/sock'
+        addr = option.temp_dir + '/sock'
 
         self.conf(
             {"unix:" + addr: {"pass": "applications/empty"}}, 'listeners'
@@ -118,7 +120,7 @@ Connection: close
 
         self.get(sock_type='unix', addr=addr)
 
-        self.stop()
+        unit_stop()
 
         assert (
             self.wait_for_record(
@@ -138,7 +140,7 @@ Connection: close
             }
         )
 
-        self.stop()
+        unit_stop()
 
         assert (
             self.wait_for_record(r'"GET / HTTP/1.1" 200 0 "referer-value" "-"')
@@ -156,7 +158,7 @@ Connection: close
             }
         )
 
-        self.stop()
+        unit_stop()
 
         assert (
             self.wait_for_record(
@@ -170,7 +172,7 @@ Connection: close
 
         self.get(http_10=True)
 
-        self.stop()
+        unit_stop()
 
         assert (
             self.wait_for_record(r'"GET / HTTP/1.0" 200 0 "-" "-"') is not None
@@ -185,7 +187,7 @@ Connection: close
 
         time.sleep(1)
 
-        self.stop()
+        unit_stop()
 
         assert (
             self.wait_for_record(r'"GE" 400 0 "-" "-"') is not None
@@ -198,7 +200,7 @@ Connection: close
 
         self.http(b"""GET /\n""", raw=True)
 
-        self.stop()
+        unit_stop()
 
         assert (
             self.wait_for_record(r'"GET /" 400 \d+ "-" "-"') is not None
@@ -213,7 +215,7 @@ Connection: close
 
         time.sleep(1)
 
-        self.stop()
+        unit_stop()
 
         assert (
             self.wait_for_record(r'"GET /" 400 0 "-" "-"') is not None
@@ -228,7 +230,7 @@ Connection: close
 
         time.sleep(1)
 
-        self.stop()
+        unit_stop()
 
         assert (
             self.wait_for_record(r'"GET / HTTP/1.1" 400 0 "-" "-"') is not None
@@ -242,7 +244,7 @@ Connection: close
 
         self.get(headers={'Connection': 'close'})
 
-        self.stop()
+        unit_stop()
 
         assert (
             self.wait_for_record(r'"GET / HTTP/1.1" 400 \d+ "-" "-"')
@@ -254,7 +256,7 @@ Connection: close
 
         self.get(url='/?blah&var=val')
 
-        self.stop()
+        unit_stop()
 
         assert (
             self.wait_for_record(
@@ -270,20 +272,20 @@ Connection: close
 
         self.get(url='/delete')
 
-        self.stop()
+        unit_stop()
 
         assert self.search_in_log(r'/delete', 'access.log') is None, 'delete'
 
-    def test_access_log_change(self):
+    def test_access_log_change(self, temp_dir):
         self.load('empty')
 
         self.get()
 
-        self.conf('"' + self.temp_dir + '/new.log"', 'access_log')
+        self.conf('"' + option.temp_dir + '/new.log"', 'access_log')
 
         self.get()
 
-        self.stop()
+        unit_stop()
 
         assert (
             self.wait_for_record(r'"GET / HTTP/1.1" 200 0 "-" "-"', 'new.log')

@@ -7,12 +7,12 @@ from unit.feature.isolation import TestFeatureIsolation
 class TestPythonIsolation(TestApplicationPython):
     prerequisites = {'modules': {'python': 'any'}}
 
-    def test_python_isolation_chroot(self, is_su):
+    def test_python_isolation_chroot(self, is_su, temp_dir):
         if not is_su:
             pytest.skip('requires root')
 
         isolation = {
-            'rootfs': self.temp_dir,
+            'rootfs': temp_dir,
         }
 
         self.load('empty', isolation=isolation)
@@ -22,7 +22,7 @@ class TestPythonIsolation(TestApplicationPython):
         self.load('ns_inspect', isolation=isolation)
 
         assert (
-            self.getjson(url='/?path=' + self.temp_dir)['body']['FileExists']
+            self.getjson(url='/?path=' + temp_dir)['body']['FileExists']
             == False
         ), 'temp_dir does not exists in rootfs'
 

@@ -1,5 +1,10 @@
+import shutil
+
 import pytest
 
+from conftest import option
+from conftest import unit_run
+from conftest import unit_stop
 from unit.applications.lang.python import TestApplicationPython
 from unit.feature.isolation import TestFeatureIsolation
 
@@ -7,18 +12,22 @@ from unit.feature.isolation import TestFeatureIsolation
 class TestPythonIsolation(TestApplicationPython):
     prerequisites = {'modules': {'python': 'any'}, 'features': ['isolation']}
 
-    isolation = TestFeatureIsolation()
-
     @classmethod
     def setup_class(cls, complete_check=True):
-        unit = super().setup_class(complete_check=False)
+        check = super().setup_class(complete_check=False)
 
-        TestFeatureIsolation().check(cls.available, unit.temp_dir)
+        unit = unit_run()
+        option.temp_dir = unit['temp_dir']
 
-        return unit if not complete_check else unit.complete()
+        TestFeatureIsolation().check(option.available, unit['temp_dir'])
 
-    def test_python_isolation_rootfs(self, is_su):
-        isolation_features = self.available['features']['isolation'].keys()
+        assert unit_stop() is None
+        shutil.rmtree(unit['temp_dir'])
+
+        return check if not complete_check else check()
+
+    def test_python_isolation_rootfs(self, is_su, temp_dir):
+        isolation_features = option.available['features']['isolation'].keys()
 
         if 'mnt' not in isolation_features:
             pytest.skip('requires mnt ns')
@@ -32,7 +41,7 @@ class TestPythonIsolation(TestApplicationPython):
 
         isolation = {
             'namespaces': {'credential': not is_su, 'mount': True},
-            'rootfs': self.temp_dir,
+            'rootfs': temp_dir,
         }
 
         self.load('empty', isolation=isolation)
@@ -42,7 +51,7 @@ class TestPythonIsolation(TestApplicationPython):
         self.load('ns_inspect', isolation=isolation)
 
         assert (
-            self.getjson(url='/?path=' + self.temp_dir)['body']['FileExists']
+            self.getjson(url='/?path=' + temp_dir)['body']['FileExists']
             == False
         ), 'temp_dir does not exists in rootfs'
 
@@ -66,8 +75,8 @@ class TestPythonIsolation(TestApplicationPython):
             ret['body']['FileExists'] == True
         ), 'application exists in rootfs'
 
-    def test_python_isolation_rootfs_no_language_deps(self, is_su):
-        isolation_features = self.available['features']['isolation'].keys()
+    def test_python_isolation_rootfs_no_language_deps(self, is_su, temp_dir):
+        isolation_features = option.available['features']['isolation'].keys()
 
         if 'mnt' not in isolation_features:
             pytest.skip('requires mnt ns')
@@ -81,7 +90,7 @@ class TestPythonIsolation(TestApplicationPython):
 
         isolation = {
             'namespaces': {'credential': not is_su, 'mount': True},
-            'rootfs': self.temp_dir,
+            'rootfs': temp_dir,
             'automount': {'language_deps': False}
         }
 

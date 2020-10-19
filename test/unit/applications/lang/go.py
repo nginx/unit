@@ -7,8 +7,8 @@ from unit.applications.proto import TestApplicationProto
 
 class TestApplicationGo(TestApplicationProto):
     def prepare_env(self, script, name, static=False):
-        if not os.path.exists(self.temp_dir + '/go'):
-            os.mkdir(self.temp_dir + '/go')
+        if not os.path.exists(option.temp_dir + '/go'):
+            os.mkdir(option.temp_dir + '/go')
 
         env = os.environ.copy()
         env['GOPATH'] = option.current_dir + '/build/go'
@@ -22,7 +22,7 @@ class TestApplicationGo(TestApplicationProto):
                 '-ldflags',
                 '-extldflags "-static"',
                 '-o',
-                self.temp_dir + '/go/' + name,
+                option.temp_dir + '/go/' + name,
                 option.test_dir + '/go/' + script + '/' + name + '.go',
             ]
         else:
@@ -30,7 +30,7 @@ class TestApplicationGo(TestApplicationProto):
                 'go',
                 'build',
                 '-o',
-                self.temp_dir + '/go/' + name,
+                option.temp_dir + '/go/' + name,
                 option.test_dir + '/go/' + script + '/' + name + '.go',
             ]
 
@@ -47,7 +47,7 @@ class TestApplicationGo(TestApplicationProto):
         static_build = False
 
         wdir = option.test_dir + "/go/" + script
-        executable = self.temp_dir + "/go/" + name
+        executable = option.temp_dir + "/go/" + name
 
         if 'isolation' in kwargs and 'rootfs' in kwargs['isolation']:
             wdir = "/go/"

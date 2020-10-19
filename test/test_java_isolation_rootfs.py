@@ -11,14 +11,12 @@ class TestJavaIsolationRootfs(TestApplicationJava):
     prerequisites = {'modules': {'java': 'all'}}
 
     def setup_method(self, is_su):
-        super().setup_method()
-
         if not is_su:
             return
 
-        os.makedirs(self.temp_dir + '/jars')
-        os.makedirs(self.temp_dir + '/tmp')
-        os.chmod(self.temp_dir + '/tmp', 0o777)
+        os.makedirs(option.temp_dir + '/jars')
+        os.makedirs(option.temp_dir + '/tmp')
+        os.chmod(option.temp_dir + '/tmp', 0o777)
 
         try:
             process = subprocess.Popen(
@@ -26,7 +24,7 @@ class TestJavaIsolationRootfs(TestApplicationJava):
                     "mount",
                     "--bind",
                     option.current_dir + "/build",
-                    self.temp_dir + "/jars",
+                    option.temp_dir + "/jars",
                 ],
                 stderr=subprocess.STDOUT,
             )
@@ -42,7 +40,7 @@ class TestJavaIsolationRootfs(TestApplicationJava):
 
         try:
             process = subprocess.Popen(
-                ["umount", "--lazy", self.temp_dir + "/jars"],
+                ["umount", "--lazy", option.temp_dir + "/jars"],
                 stderr=subprocess.STDOUT,
             )
 
@@ -51,15 +49,12 @@ class TestJavaIsolationRootfs(TestApplicationJava):
         except:
             pytest.fail('Cann\'t run mount process.')
 
-        # super teardown must happen after unmount to avoid deletion of /build
-        super().teardown_method()
-
-    def test_java_isolation_rootfs_chroot_war(self, is_su):
+    def test_java_isolation_rootfs_chroot_war(self, is_su, temp_dir):
         if not is_su:
             pytest.skip('require root')
 
         isolation = {
-            'rootfs': self.temp_dir,
+            'rootfs': temp_dir,
         }
 
         self.load('empty_war', isolation=isolation)

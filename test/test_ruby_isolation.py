@@ -1,7 +1,10 @@
+import shutil
 
 import pytest
 
 from conftest import option
+from conftest import unit_run
+from conftest import unit_stop
 from unit.applications.lang.ruby import TestApplicationRuby
 from unit.feature.isolation import TestFeatureIsolation
 
@@ -9,18 +12,22 @@ from unit.feature.isolation import TestFeatureIsolation
 class TestRubyIsolation(TestApplicationRuby):
     prerequisites = {'modules': {'ruby': 'any'}, 'features': ['isolation']}
 
-    isolation = TestFeatureIsolation()
-
     @classmethod
     def setup_class(cls, complete_check=True):
-        unit = super().setup_class(complete_check=False)
+        check = super().setup_class(complete_check=False)
 
-        TestFeatureIsolation().check(cls.available, unit.temp_dir)
+        unit = unit_run()
+        option.temp_dir = unit['temp_dir']
 
-        return unit if not complete_check else unit.complete()
+        TestFeatureIsolation().check(option.available, unit['temp_dir'])
+
+        assert unit_stop() is None
+        shutil.rmtree(unit['temp_dir'])
+
+        return check if not complete_check else check()
 
     def test_ruby_isolation_rootfs(self, is_su):
-        isolation_features = self.available['features']['isolation'].keys()
+        isolation_features = option.available['features']['isolation'].keys()
 
         if 'mnt' not in isolation_features:
             pytest.skip('requires mnt ns')

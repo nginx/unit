@@ -1,9 +1,13 @@
 import grp
 import os
 import pwd
+import shutil
 
 import pytest
 
+from conftest import option
+from conftest import unit_run
+from conftest import unit_stop
 from unit.applications.lang.go import TestApplicationGo
 from unit.feature.isolation import TestFeatureIsolation
 
@@ -14,11 +18,17 @@ class TestGoIsolation(TestApplicationGo):
 
     @classmethod
     def setup_class(cls, complete_check=True):
-        unit = super().setup_class(complete_check=False)
+        check = super().setup_class(complete_check=False)
 
-        TestFeatureIsolation().check(cls.available, unit.temp_dir)
+        unit = unit_run()
+        option.temp_dir = unit['temp_dir']
 
-        return unit if not complete_check else unit.complete()
+        TestFeatureIsolation().check(option.available, unit['temp_dir'])
+
+        assert unit_stop() is None
+        shutil.rmtree(unit['temp_dir'])
+
+        return check if not complete_check else check()
 
     def unpriv_creds(self):
         nobody_uid = pwd.getpwnam('nobody').pw_uid
@@ -33,14 +43,14 @@ class TestGoIsolation(TestApplicationGo):
         return (nobody_uid, nogroup_gid, nogroup)
 
     def isolation_key(self, key):
-        return key in self.available['features']['isolation'].keys()
+        return key in option.available['features']['isolation'].keys()
 
     def test_isolation_values(self):
         self.load('ns_inspect')
 
         obj = self.getjson()['body']
 
-        for ns, ns_value in self.available['features']['isolation'].items():
+        for ns, ns_value in option.available['features']['isolation'].items():
             if ns.upper() in obj['NS']:
                 assert obj['NS'][ns.upper()] == ns_value, '%s match' % ns
 
@@ -198,7 +208,7 @@ class TestGoIsolation(TestApplicationGo):
         obj = self.getjson()['body']
 
         # all but user and mnt
-        allns = list(self.available['features']['isolation'].keys())
+        allns = list(option.available['features']['isolation'].keys())
         allns.remove('user')
         allns.remove('mnt')
 
@@ -206,7 +216,7 @@ class TestGoIsolation(TestApplicationGo):
             if ns.upper() in obj['NS']:
                 assert (
                     obj['NS'][ns.upper()]
-                    == self.available['features']['isolation'][ns]
+                    == option.available['features']['isolation'][ns]
                 ), ('%s match' % ns)
 
         assert obj['NS']['MNT'] != self.isolation.getns('mnt'), 'mnt set'
@@ -230,7 +240,7 @@ class TestGoIsolation(TestApplicationGo):
 
     def test_isolation_namespace_false(self):
         self.load('ns_inspect')
-        allns = list(self.available['features']['isolation'].keys())
+        allns = list(option.available['features']['isolation'].keys())
 
         remove_list = ['unprivileged_userns_clone', 'ipc', 'cgroup']
         allns = [ns for ns in allns if ns not in remove_list]
@@ -256,10 +266,10 @@ class TestGoIsolation(TestApplicationGo):
             if ns.upper() in obj['NS']:
                 assert (
                     obj['NS'][ns.upper()]
-                    == self.available['features']['isolation'][ns]
+                    == option.available['features']['isolation'][ns]
                 ), ('%s match' % ns)
 
-    def test_go_isolation_rootfs_container(self):
+    def test_go_isolation_rootfs_container(self, temp_dir):
         if not self.isolation_key('unprivileged_userns_clone'):
             pytest.skip('unprivileged clone is not available')
 
@@ -268,7 +278,7 @@ class TestGoIsolation(TestApplicationGo):
 
         isolation = {
             'namespaces': {'mount': True, 'credential': True},
-            'rootfs': self.temp_dir,
+            'rootfs': temp_dir,
         }
 
         self.load('ns_inspect', isolation=isolation)
@@ -280,7 +290,7 @@ class TestGoIsolation(TestApplicationGo):
         obj = self.getjson(url='/?file=/bin/sh')['body']
         assert obj['FileExists'] == False, 'file should not exists'
 
-    def test_go_isolation_rootfs_container_priv(self, is_su):
+    def test_go_isolation_rootfs_container_priv(self, is_su, temp_dir):
         if not is_su:
             pytest.skip('requires root')
 
@@ -289,7 +299,7 @@ class TestGoIsolation(TestApplicationGo):
 
         isolation = {
             'namespaces': {'mount': True},
-            'rootfs': self.temp_dir,
+            'rootfs': temp_dir,
         }
 
         self.load('ns_inspect', isolation=isolation)
@@ -301,7 +311,7 @@ class TestGoIsolation(TestApplicationGo):
         obj = self.getjson(url='/?file=/bin/sh')['body']
         assert obj['FileExists'] == False, 'file should not exists'
 
-    def test_go_isolation_rootfs_default_tmpfs(self):
+    def test_go_isolation_rootfs_default_tmpfs(self, temp_dir):
         if not self.isolation_key('unprivileged_userns_clone'):
             pytest.skip('unprivileged clone is not available')
 
@@ -310,7 +320,7 @@ class TestGoIsolation(TestApplicationGo):
 
         isolation = {
             'namespaces': {'mount': True, 'credential': True},
-            'rootfs': self.temp_dir,
+            'rootfs': temp_dir,
         }
 
         self.load('ns_inspect', isolation=isolation)

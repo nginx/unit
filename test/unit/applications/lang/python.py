@@ -12,7 +12,6 @@ class TestApplicationPython(TestApplicationProto):
     load_module = "wsgi"
 
     def load(self, script, name=None, module=None, **kwargs):
-        print()
         if name is None:
             name = script
 

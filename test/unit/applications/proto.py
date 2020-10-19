@@ -14,7 +14,7 @@ class TestApplicationProto(TestControl):
         return time.mktime(time.strptime(date, template))
 
     def search_in_log(self, pattern, name='unit.log'):
-        with open(self.temp_dir + '/' + name, 'r', errors='ignore') as f:
+        with open(option.temp_dir + '/' + name, 'r', errors='ignore') as f:
             return re.search(pattern, f.read())
 
     def wait_for_record(self, pattern, name='unit.log'):

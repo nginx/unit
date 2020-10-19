@@ -146,14 +146,14 @@ Connection: close
 
         assert resp['status'] == 200, 'status body read timeout update'
 
-    def test_settings_send_timeout(self):
+    def test_settings_send_timeout(self, temp_dir):
         self.load('mirror')
 
         data_len = 1048576
 
         self.conf({'http': {'send_timeout': 1}}, 'settings')
 
-        addr = self.temp_dir + '/sock'
+        addr = temp_dir + '/sock'
 
         self.conf({"unix:" + addr: {'application': 'mirror'}}, 'listeners')
 

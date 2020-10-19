@@ -3,6 +3,7 @@ import re
 import pytest
 
 from conftest import skip_alert
+from conftest import unit_stop
 from unit.applications.lang.perl import TestApplicationPerl
 
 
@@ -119,7 +120,7 @@ class TestPerlApplication(TestApplicationPerl):
 
         assert self.get()['body'] == '1', 'errors result'
 
-        self.stop()
+        unit_stop()
 
         assert (
             self.wait_for_record(r'\[error\].+Error in application')

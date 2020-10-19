@@ -11,7 +11,7 @@ from unit.applications.lang.java import TestApplicationJava
 class TestJavaApplication(TestApplicationJava):
     prerequisites = {'modules': {'java': 'all'}}
 
-    def test_java_conf_error(self):
+    def test_java_conf_error(self, temp_dir):
         skip_alert(
             r'realpath.*failed',
             r'failed to apply new conf',
@@ -25,18 +25,18 @@ class TestJavaApplication(TestApplicationJava):
                         "type": "java",
                         "processes": 1,
                         "working_directory": option.test_dir + "/java/empty",
-                        "webapp": self.temp_dir + "/java",
-                        "unit_jars": self.temp_dir + "/no_such_dir",
+                        "webapp": temp_dir + "/java",
+                        "unit_jars": temp_dir + "/no_such_dir",
                     }
                 },
             }
         ), 'conf error'
 
-    def test_java_war(self):
+    def test_java_war(self, temp_dir):
         self.load('empty_war')
 
         assert 'success' in self.conf(
-            '"' + self.temp_dir + '/java/empty.war"',
+            '"' + temp_dir + '/java/empty.war"',
             '/config/applications/empty_war/webapp',
         ), 'configure war'
 
@@ -969,11 +969,11 @@ class TestJavaApplication(TestApplicationJava):
         ), 'set date header'
         assert headers['X-Get-Date'] == date, 'get date header'
 
-    def test_java_application_multipart(self):
+    def test_java_application_multipart(self, temp_dir):
         self.load('multipart')
 
         reldst = '/uploads'
-        fulldst = self.temp_dir + reldst
+        fulldst = temp_dir + reldst
         os.mkdir(fulldst)
         public_dir(fulldst)
 

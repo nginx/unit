@@ -4,6 +4,7 @@ import time
 
 import pytest
 
+from conftest import option
 from unit.applications.lang.python import TestApplicationPython
 
 
@@ -11,9 +12,7 @@ class TestPythonProcman(TestApplicationPython):
     prerequisites = {'modules': {'python': 'any'}}
 
     def setup_method(self):
-        super().setup_method()
-
-        self.app_name = "app-" + self.temp_dir.split('/')[-1]
+        self.app_name = "app-" + option.temp_dir.split('/')[-1]
         self.app_proc = 'applications/' + self.app_name + '/processes'
         self.load('empty', self.app_name)
 

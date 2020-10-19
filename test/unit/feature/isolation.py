@@ -21,6 +21,16 @@ class TestFeatureIsolation(TestApplicationProto):
         if 'go' in available['modules']:
             module = TestApplicationGo()
 
+        elif 'python' in available['modules']:
+            module = TestApplicationPython()
+
+        elif 'php' in available['modules']:
+            module = TestApplicationPHP()
+            app = 'phpinfo'
+
+        elif 'ruby' in available['modules']:
+            module = TestApplicationRuby()
+
         elif 'java' in available['modules']:
             module = TestApplicationJava()
 
@@ -31,16 +41,6 @@ class TestFeatureIsolation(TestApplicationProto):
         elif 'perl' in available['modules']:
             module = TestApplicationPerl()
             app = 'body_empty'
-
-        elif 'php' in available['modules']:
-            module = TestApplicationPHP()
-            app = 'phpinfo'
-
-        elif 'python' in available['modules']:
-            module = TestApplicationPython()
-
-        elif 'ruby' in available['modules']:
-            module = TestApplicationRuby()
 
         if not module:
             return

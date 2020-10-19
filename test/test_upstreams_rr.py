@@ -9,8 +9,6 @@ class TestUpstreamsRR(TestApplicationPython):
     prerequisites = {'modules': {'python': 'any'}}
 
     def setup_method(self):
-        super().setup_method()
-
         assert 'success' in self.conf(
             {
                 "listeners": {
@@ -391,9 +389,9 @@ Connection: close
         assert sum(resps) == 100, 'post sum'
         assert abs(resps[0] - resps[1]) <= self.cpu_count, 'post'
 
-    def test_upstreams_rr_unix(self):
-        addr_0 = self.temp_dir + '/sock_0'
-        addr_1 = self.temp_dir + '/sock_1'
+    def test_upstreams_rr_unix(self, temp_dir):
+        addr_0 = temp_dir + '/sock_0'
+        addr_1 = temp_dir + '/sock_1'
 
         assert 'success' in self.conf(
             {

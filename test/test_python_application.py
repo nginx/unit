@@ -5,7 +5,9 @@ import time
 
 import pytest
 
+from conftest import option
 from conftest import skip_alert
+from conftest import unit_stop
 from unit.applications.lang.python import TestApplicationPython
 
 
@@ -13,7 +15,7 @@ class TestPythonApplication(TestApplicationPython):
     prerequisites = {'modules': {'python': 'all'}}
 
     def findall(self, pattern):
-        with open(self.temp_dir + '/unit.log', 'r', errors='ignore') as f:
+        with open(option.temp_dir + '/unit.log', 'r', errors='ignore') as f:
             return re.findall(pattern, f.read())
 
     def test_python_application_variables(self):
@@ -156,7 +158,7 @@ custom-header: BLAH
 
         self.conf({"listeners": {}, "applications": {}})
 
-        self.stop()
+        unit_stop()
 
         assert (
             self.wait_for_record(r'RuntimeError') is not None
@@ -344,7 +346,7 @@ Connection: close
 
         self.conf({"listeners": {}, "applications": {}})
 
-        self.stop()
+        unit_stop()
 
         assert self.wait_for_record(r'At exit called\.') is not None, 'atexit'
 
@@ -507,7 +509,7 @@ last line: 987654321
 
         self.get()
 
-        self.stop()
+        unit_stop()
 
         assert (
             self.wait_for_record(r'\[error\].+Error in application\.')
@@ -550,7 +552,7 @@ last line: 987654321
 
         self.get()
 
-        self.stop()
+        unit_stop()
 
         assert self.wait_for_record(r'Close called\.') is not None, 'close'
 
@@ -559,7 +561,7 @@ last line: 987654321
 
         self.get()
 
-        self.stop()
+        unit_stop()
 
         assert (
             self.wait_for_record(r'Close called\.') is not None
@@ -570,7 +572,7 @@ last line: 987654321
 
         self.get()
 
-        self.stop()
+        unit_stop()
 
         assert (
             self.wait_for_record(

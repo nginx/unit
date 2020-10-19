@@ -10,8 +10,6 @@ class TestRouting(TestApplicationProto):
     prerequisites = {'modules': {'python': 'any'}}
 
     def setup_method(self):
-        super().setup_method()
-
         assert 'success' in self.conf(
             {
                 "listeners": {"*:7080": {"pass": "routes"}},
@@ -417,7 +415,7 @@ class TestRouting(TestApplicationProto):
             [{"action": {"pass": "upstreams/blah"}}], 'routes'
         ), 'route pass upstreams invalid'
 
-    def test_routes_action_unique(self):
+    def test_routes_action_unique(self, temp_dir):
         assert 'success' in self.conf(
             {
                 "listeners": {
@@ -437,7 +435,7 @@ class TestRouting(TestApplicationProto):
         )
 
         assert 'error' in self.conf(
-            {"proxy": "http://127.0.0.1:7081", "share": self.temp_dir},
+            {"proxy": "http://127.0.0.1:7081", "share": temp_dir},
             'routes/0/action',
         ), 'proxy share'
         assert 'error' in self.conf(
@@ -445,7 +443,7 @@ class TestRouting(TestApplicationProto):
             'routes/0/action',
         ), 'proxy pass'
         assert 'error' in self.conf(
-            {"share": self.temp_dir, "pass": "applications/app"},
+            {"share": temp_dir, "pass": "applications/app"},
             'routes/0/action',
         ), 'share pass'
 
@@ -1665,8 +1663,8 @@ class TestRouting(TestApplicationProto):
         assert self.get(sock_type='ipv6')['status'] == 200, '0'
         assert self.get(port=7081)['status'] == 404, '0 ipv4'
 
-    def test_routes_source_unix(self):
-        addr = self.temp_dir + '/sock'
+    def test_routes_source_unix(self, temp_dir):
+        addr = temp_dir + '/sock'
 
         assert 'success' in self.conf(
             {"unix:" + addr: {"pass": "routes"}}, 'listeners'
