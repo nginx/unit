@@ -73,7 +73,7 @@ if /bin/sh -c "$NXT_PYTHON_CONFIG --prefix" >> $NXT_AUTOCONF_ERR 2>&1; then
 
     if [ "$NXT_PYTHON_LIB_PATH" != "" ]; then
         # "python-config --ldflags" may not contain path to libpython.
-        NXT_PYTHON_LDFLAGS="-L$NXT_PYTHON_LIB_PATH -Wl,-rpath $NXT_PYTHON_LIB_PATH"
+        NXT_PYTHON_LDFLAGS="-L$NXT_PYTHON_LIB_PATH -Wl,-rpath,$NXT_PYTHON_LIB_PATH"
     else
         NXT_PYTHON_LDFLAGS=""
     fi
