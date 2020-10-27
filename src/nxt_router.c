@@ -5389,8 +5389,7 @@ nxt_router_oosm_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_thread_mutex_unlock(&process->incoming.mutex);
 
     if (ack) {
-        (void) nxt_port_socket_write(task, msg->port, NXT_PORT_MSG_SHM_ACK,
-                                     -1, 0, 0, NULL);
+        nxt_process_broadcast_shm_ack(task, process);
     }
 }
 
