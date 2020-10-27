@@ -4667,6 +4667,25 @@ nxt_router_free_app(nxt_task_t *task, void *obj, void *data)
         nxt_port_use(task, port, -1);
     }
 
+    nxt_thread_mutex_lock(&app->mutex);
+
+    for ( ;; ) {
+        port = nxt_port_hash_retrieve(&app->port_hash);
+        if (port == NULL) {
+            break;
+        }
+
+        app->port_hash_count--;
+
+        port->app = NULL;
+
+        nxt_port_close(task, port);
+
+        nxt_port_use(task, port, -1);
+    }
+
+    nxt_thread_mutex_unlock(&app->mutex);
+
     nxt_assert(app->processes == 0);
     nxt_assert(app->active_requests == 0);
     nxt_assert(app->port_hash_count == 0);
