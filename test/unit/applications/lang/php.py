@@ -7,17 +7,13 @@ class TestApplicationPHP(TestApplicationProto):
 
     def load(self, script, index='index.php', **kwargs):
         script_path = option.test_dir + '/php/' + script
-        appication_type = self.get_appication_type()
-
-        if appication_type is None:
-            appication_type = self.application_type
 
         self._load_conf(
             {
                 "listeners": {"*:7080": {"pass": "applications/" + script}},
                 "applications": {
                     script: {
-                        "type": appication_type,
+                        "type": self.get_application_type(),
                         "processes": {"spare": 0},
                         "root": script_path,
                         "working_directory": script_path,

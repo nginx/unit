@@ -9,6 +9,8 @@ from unit.applications.proto import TestApplicationProto
 
 
 class TestApplicationJava(TestApplicationProto):
+    application_type = "java"
+
     def prepare_env(self, script):
         app_path = option.temp_dir + '/java'
         web_inf_path = app_path + '/WEB-INF/'
@@ -84,7 +86,7 @@ class TestApplicationJava(TestApplicationProto):
                 "applications": {
                     script: {
                         "unit_jars": option.current_dir + '/build',
-                        "type": 'java',
+                        "type": self.get_application_type(),
                         "processes": {"spare": 0},
                         "working_directory": option.test_dir
                         + '/java/'

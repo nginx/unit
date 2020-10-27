@@ -7,6 +7,8 @@ from unit.control import TestControl
 
 
 class TestApplicationProto(TestControl):
+    application_type = None
+
     def sec_epoch(self):
         return time.mktime(time.gmtime())
 
@@ -28,15 +30,12 @@ class TestApplicationProto(TestControl):
 
         return found
 
-    def get_appication_type(self):
+    def get_application_type(self):
         current_test = (
             os.environ.get('PYTEST_CURRENT_TEST').split(':')[-1].split(' ')[0]
         )
 
-        if current_test in option.generated_tests:
-            return option.generated_tests[current_test]
-
-        return None
+        return option.generated_tests.get(current_test, self.application_type)
 
     def _load_conf(self, conf, **kwargs):
         if 'applications' in conf:

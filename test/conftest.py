@@ -75,7 +75,9 @@ def skip_alert(*alerts):
 
 def pytest_generate_tests(metafunc):
     cls = metafunc.cls
-    if not hasattr(cls, 'application_type'):
+    if (not hasattr(cls, 'application_type')
+            or cls.application_type == None
+            or cls.application_type == 'external'):
         return
 
     type = cls.application_type

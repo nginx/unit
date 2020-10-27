@@ -34,11 +34,6 @@ class TestApplicationPython(TestApplicationProto):
 
             script_path = '/app/python/' + name
 
-        appication_type = self.get_appication_type()
-
-        if appication_type is None:
-            appication_type = self.application_type
-
         self._load_conf(
             {
                 "listeners": {
@@ -46,7 +41,7 @@ class TestApplicationPython(TestApplicationProto):
                 },
                 "applications": {
                     name: {
-                        "type": appication_type,
+                        "type": self.get_application_type(),
                         "processes": {"spare": 0},
                         "path": script_path,
                         "working_directory": script_path,
