@@ -34,6 +34,8 @@ enum {
 
 #define NXT_UNIT_INIT_ENV  "NXT_UNIT_INIT"
 
+#define NXT_UNIT_SHARED_PORT_ID  ((uint16_t) 0xFFFFu)
+
 /*
  * Mostly opaque structure with library state.
  *
