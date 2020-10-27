@@ -3787,7 +3787,7 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
         nxt_http_request_send_body(task, r, NULL);
 
     } else {
-        size_t b_size = nxt_buf_mem_used_size(&b->mem);
+        size_t b_size = nxt_buf_is_mem(b) ? nxt_buf_mem_used_size(&b->mem) : 0;
 
         if (nxt_slow_path(b_size < sizeof(*resp))) {
             goto fail;
