@@ -3722,6 +3722,7 @@ static void
 nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     void *data)
 {
+    size_t                  b_size, count;
     nxt_int_t               ret;
     nxt_app_t               *app;
     nxt_buf_t               *b, *next;
@@ -3787,15 +3788,20 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
         nxt_http_request_send_body(task, r, NULL);
 
     } else {
-        size_t b_size = nxt_buf_is_mem(b) ? nxt_buf_mem_used_size(&b->mem) : 0;
+        b_size = nxt_buf_is_mem(b) ? nxt_buf_mem_used_size(&b->mem) : 0;
 
-        if (nxt_slow_path(b_size < sizeof(*resp))) {
+        if (nxt_slow_path(b_size < sizeof(nxt_unit_response_t))) {
+            nxt_alert(task, "response buffer too small: %z", b_size);
             goto fail;
         }
 
         resp = (void *) b->mem.pos;
-        if (nxt_slow_path(b_size < sizeof(*resp)
-              + resp->fields_count * sizeof(nxt_unit_field_t))) {
+        count = (b_size - sizeof(nxt_unit_response_t))
+                    / sizeof(nxt_unit_field_t);
+
+        if (nxt_slow_path(count < resp->fields_count)) {
+            nxt_alert(task, "response buffer too small for fields count: %D",
+                      resp->fields_count);
             goto fail;
         }
 
