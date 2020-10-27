@@ -3,9 +3,14 @@
  * Copyright (C) NGINX, Inc.
  */
 
+#include <nxt_auto_config.h>
+#include <nxt_version.h>
 #include <nxt_unit.h>
 #include <nxt_unit_request.h>
 #include <nxt_clang.h>
+#include <pthread.h>
+#include <string.h>
+#include <stdlib.h>
 
 
 #define CONTENT_TYPE  "Content-Type"
@@ -28,12 +33,106 @@
 #define BODY          "  Body:\n"
 
 
-static inline char *
-copy(char *p, const void *src, uint32_t len)
-{
-    memcpy(p, src, len);
+static int ready_handler(nxt_unit_ctx_t *ctx);
+static void *worker(void *main_ctx);
+static void greeting_app_request_handler(nxt_unit_request_info_t *req);
+static inline char *copy(char *p, const void *src, uint32_t len);
 
-    return p + len;
+
+static int        thread_count;
+static pthread_t  *threads;
+
+
+int
+main(int argc, char **argv)
+{
+    int              i, err;
+    nxt_unit_ctx_t   *ctx;
+    nxt_unit_init_t  init;
+
+    if (argc == 3 && strcmp(argv[1], "-t") == 0) {
+        thread_count = atoi(argv[2]);
+    }
+
+    memset(&init, 0, sizeof(nxt_unit_init_t));
+
+    init.callbacks.request_handler = greeting_app_request_handler;
+    init.callbacks.ready_handler = ready_handler;
+
+    ctx = nxt_unit_init(&init);
+    if (ctx == NULL) {
+        return 1;
+    }
+
+    err = nxt_unit_run(ctx);
+
+    nxt_unit_debug(ctx, "main worker finished with %d code", err);
+
+    if (thread_count > 1) {
+        for (i = 0; i < thread_count - 1; i++) {
+            err = pthread_join(threads[i], NULL);
+
+            nxt_unit_debug(ctx, "join thread #%d: %d", i, err);
+        }
+
+        nxt_unit_free(ctx, threads);
+    }
+
+    nxt_unit_done(ctx);
+
+    nxt_unit_debug(NULL, "main worker done");
+
+    return 0;
+}
+
+
+static int
+ready_handler(nxt_unit_ctx_t *ctx)
+{
+    int  i, err;
+
+    nxt_unit_debug(ctx, "ready");
+
+    if (!nxt_unit_is_main_ctx(ctx) || thread_count <= 1) {
+        return NXT_UNIT_OK;
+    }
+
+    threads = nxt_unit_malloc(ctx, sizeof(pthread_t) * (thread_count - 1));
+    if (threads == NULL) {
+        return NXT_UNIT_ERROR;
+    }
+
+    for (i = 0; i < thread_count - 1; i++) {
+        err = pthread_create(&threads[i], NULL, worker, ctx);
+        if (err != 0) {
+            return NXT_UNIT_ERROR;
+        }
+    }
+
+    return NXT_UNIT_OK;
+}
+
+
+static void *
+worker(void *main_ctx)
+{
+    int             rc;
+    nxt_unit_ctx_t  *ctx;
+
+    ctx = nxt_unit_ctx_alloc(main_ctx, NULL);
+    if (ctx == NULL) {
+        return NULL;
+    }
+
+    nxt_unit_debug(ctx, "start worker");
+
+    rc = nxt_unit_run(ctx);
+
+    nxt_unit_debug(ctx, "worker finished with %d code", rc);
+
+    nxt_unit_done(ctx);
+
+    return NULL;
 }
 
 
@@ -168,24 +267,11 @@ fail:
     nxt_unit_request_done(req, rc);
 }
 
-int
-main()
+
+static inline char *
+copy(char *p, const void *src, uint32_t len)
 {
-    nxt_unit_ctx_t   *ctx;
-    nxt_unit_init_t  init;
+    memcpy(p, src, len);
 
-    memset(&init, 0, sizeof(nxt_unit_init_t));
-
-    init.callbacks.request_handler = greeting_app_request_handler;
-
-    ctx = nxt_unit_init(&init);
-    if (ctx == NULL) {
-        return 1;
-    }
-
-    nxt_unit_run(ctx);
-
-    nxt_unit_done(ctx);
-
-    return 0;
+    return p + len;
 }
