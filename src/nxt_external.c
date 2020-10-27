@@ -101,18 +101,24 @@ nxt_external_start(nxt_task_t *task, nxt_process_data_t *data)
         return NXT_ERROR;
     }
 
+    rc = nxt_external_fd_no_cloexec(task, my_port->pair[1]);
+    if (nxt_slow_path(rc != NXT_OK)) {
+        return NXT_ERROR;
+    }
+
     end = buf + sizeof(buf);
 
     p = nxt_sprintf(buf, end,
                     "%s;%uD;"
                     "%PI,%ud,%d;"
                     "%PI,%ud,%d;"
-                    "%PI,%ud,%d;"
+                    "%PI,%ud,%d,%d;"
                     "%d,%z,%Z",
                     NXT_VERSION, my_port->process->stream,
                     main_port->pid, main_port->id, main_port->pair[1],
                     router_port->pid, router_port->id, router_port->pair[1],
                     my_port->pid, my_port->id, my_port->pair[0],
+                                               my_port->pair[1],
                     2, conf->shm_limit);
 
     if (nxt_slow_path(p == end)) {

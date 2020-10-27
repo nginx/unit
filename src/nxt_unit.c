@@ -780,7 +780,7 @@ nxt_unit_read_env(nxt_unit_port_t *ready_port, nxt_unit_port_t *router_port,
     uint32_t *shm_limit)
 {
     int       rc;
-    int       ready_fd, router_fd, read_fd;
+    int       ready_fd, router_fd, read_in_fd, read_out_fd;
     char      *unit_init, *version_end;
     long      version_length;
     int64_t   ready_pid, router_pid, read_pid;
@@ -812,15 +812,15 @@ nxt_unit_read_env(nxt_unit_port_t *ready_port, nxt_unit_port_t *router_port,
                 "%"PRIu32";"
                 "%"PRId64",%"PRIu32",%d;"
                 "%"PRId64",%"PRIu32",%d;"
-                "%"PRId64",%"PRIu32",%d;"
+                "%"PRId64",%"PRIu32",%d,%d;"
                 "%d,%"PRIu32,
                 &ready_stream,
                 &ready_pid, &ready_id, &ready_fd,
                 &router_pid, &router_id, &router_fd,
-                &read_pid, &read_id, &read_fd,
+                &read_pid, &read_id, &read_in_fd, &read_out_fd,
                 log_fd, shm_limit);
 
-    if (nxt_slow_path(rc != 12)) {
+    if (nxt_slow_path(rc != 13)) {
         nxt_unit_alert(NULL, "failed to scan variables: %d", rc);
 
         return NXT_UNIT_ERROR;
@@ -840,8 +840,8 @@ nxt_unit_read_env(nxt_unit_port_t *ready_port, nxt_unit_port_t *router_port,
 
     nxt_unit_port_id_init(&read_port->id, (pid_t) read_pid, read_id);
 
-    read_port->in_fd = read_fd;
-    read_port->out_fd = -1;
+    read_port->in_fd = read_in_fd;
+    read_port->out_fd = read_out_fd;
     read_port->data = NULL;
 
     *stream = ready_stream;

@@ -248,8 +248,6 @@ nxt_process_setup(nxt_task_t *task, nxt_process_t *process)
 
     port = nxt_process_port_first(process);
 
-    nxt_port_write_close(port);
-
     nxt_port_enable(task, port, init->port_handlers);
 
     ret = init->setup(task, process);
@@ -272,6 +270,9 @@ nxt_process_setup(nxt_task_t *task, nxt_process_t *process)
         }
 
         ret = init->start(task, &process->data);
+
+        nxt_port_write_close(port);
+
         break;
 
     default:
