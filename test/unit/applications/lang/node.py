@@ -7,7 +7,7 @@ from unit.applications.proto import TestApplicationProto
 
 
 class TestApplicationNode(TestApplicationProto):
-    def load(self, script, name='app.js', **kwargs):
+    def prepare_env(self, script):
         # copy application
 
         shutil.copytree(
@@ -22,6 +22,9 @@ class TestApplicationNode(TestApplicationProto):
         )
 
         public_dir(option.temp_dir + '/node')
+
+    def load(self, script, name='app.js', **kwargs):
+        self.prepare_env(script)
 
         self._load_conf(
             {

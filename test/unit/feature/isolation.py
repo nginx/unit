@@ -3,11 +3,8 @@ import os
 from unit.applications.lang.go import TestApplicationGo
 from unit.applications.lang.java import TestApplicationJava
 from unit.applications.lang.node import TestApplicationNode
-from unit.applications.lang.perl import TestApplicationPerl
-from unit.applications.lang.php import TestApplicationPHP
-from unit.applications.lang.python import TestApplicationPython
-from unit.applications.lang.ruby import TestApplicationRuby
 from unit.applications.proto import TestApplicationProto
+from conftest import option
 
 
 class TestFeatureIsolation(TestApplicationProto):
@@ -16,40 +13,119 @@ class TestFeatureIsolation(TestApplicationProto):
     def check(self, available, temp_dir):
         test_conf = {"namespaces": {"credential": True}}
 
-        module = ''
-        app = 'empty'
+        conf = ''
         if 'go' in available['modules']:
-            module = TestApplicationGo()
+            TestApplicationGo().prepare_env('empty', 'app')
+
+            conf = {
+                "listeners": {"*:7080": {"pass": "applications/empty"}},
+                "applications": {
+                    "empty": {
+                        "type": "external",
+                        "processes": {"spare": 0},
+                        "working_directory": option.test_dir + "/go/empty",
+                        "executable": option.temp_dir + "/go/app",
+                        "isolation": {"namespaces": {"credential": True}},
+                    },
+                },
+            }
 
         elif 'python' in available['modules']:
-            module = TestApplicationPython()
+            conf = {
+                "listeners": {"*:7080": {"pass": "applications/empty"}},
+                "applications": {
+                    "empty": {
+                        "type": "python",
+                        "processes": {"spare": 0},
+                        "path": option.test_dir + "/python/empty",
+                        "working_directory": option.test_dir + "/python/empty",
+                        "module": "wsgi",
+                        "isolation": {"namespaces": {"credential": True}},
+                    }
+                },
+            }
 
         elif 'php' in available['modules']:
-            module = TestApplicationPHP()
-            app = 'phpinfo'
+            conf = {
+                "listeners": {"*:7080": {"pass": "applications/phpinfo"}},
+                "applications": {
+                    "phpinfo": {
+                        "type": "php",
+                        "processes": {"spare": 0},
+                        "root": option.test_dir + "/php/phpinfo",
+                        "working_directory": option.test_dir + "/php/phpinfo",
+                        "index": "index.php",
+                        "isolation": {"namespaces": {"credential": True}},
+                    }
+                },
+            }
 
         elif 'ruby' in available['modules']:
-            module = TestApplicationRuby()
+            conf = {
+                "listeners": {"*:7080": {"pass": "applications/empty"}},
+                "applications": {
+                    "empty": {
+                        "type": "ruby",
+                        "processes": {"spare": 0},
+                        "working_directory": option.test_dir + "/ruby/empty",
+                        "script": option.test_dir + "/ruby/empty/config.ru",
+                        "isolation": {"namespaces": {"credential": True}},
+                    }
+                },
+            }
 
         elif 'java' in available['modules']:
-            module = TestApplicationJava()
+            TestApplicationJava().prepare_env('empty')
+
+            conf = {
+                "listeners": {"*:7080": {"pass": "applications/empty"}},
+                "applications": {
+                    "empty": {
+                        "unit_jars": option.current_dir + "/build",
+                        "type": "java",
+                        "processes": {"spare": 0},
+                        "working_directory": option.test_dir + "/java/empty/",
+                        "webapp": option.temp_dir + "/java",
+                        "isolation": {"namespaces": {"credential": True}},
+                    }
+                },
+            }
 
         elif 'node' in available['modules']:
-            module = TestApplicationNode()
-            app = 'basic'
+            TestApplicationNode().prepare_env('basic')
+
+            conf = {
+                "listeners": {"*:7080": {"pass": "applications/basic"}},
+                "applications": {
+                    "basic": {
+                        "type": "external",
+                        "processes": {"spare": 0},
+                        "working_directory": option.temp_dir + "/node",
+                        "executable": "app.js",
+                        "isolation": {"namespaces": {"credential": True}},
+                    }
+                },
+            }
 
         elif 'perl' in available['modules']:
-            module = TestApplicationPerl()
-            app = 'body_empty'
+            conf = {
+                "listeners": {"*:7080": {"pass": "applications/body_empty"}},
+                "applications": {
+                    "body_empty": {
+                        "type": "perl",
+                        "processes": {"spare": 0},
+                        "working_directory": option.test_dir
+                        + "/perl/body_empty",
+                        "script": option.test_dir + "/perl/body_empty/psgi.pl",
+                        "isolation": {"namespaces": {"credential": True}},
+                    }
+                },
+            }
 
-        if not module:
+        else:
             return
 
-        module.temp_dir = temp_dir
-        module.load(app)
-
-        resp = module.conf(test_conf, 'applications/' + app + '/isolation')
-        if 'success' not in resp:
+        if 'success' not in self.conf(conf):
             return
 
         userns = self.getns('user')

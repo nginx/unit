@@ -9,7 +9,7 @@ from unit.applications.proto import TestApplicationProto
 
 
 class TestApplicationJava(TestApplicationProto):
-    def load(self, script, name='app', **kwargs):
+    def prepare_env(self, script):
         app_path = option.temp_dir + '/java'
         web_inf_path = app_path + '/WEB-INF/'
         classes_path = web_inf_path + 'classes/'
@@ -75,6 +75,9 @@ class TestApplicationJava(TestApplicationProto):
             except:
                 pytest.fail('Cann\'t run javac process.')
 
+    def load(self, script, **kwargs):
+        self.prepare_env(script)
+
         self._load_conf(
             {
                 "listeners": {"*:7080": {"pass": "applications/" + script}},
@@ -83,8 +86,11 @@ class TestApplicationJava(TestApplicationProto):
                         "unit_jars": option.current_dir + '/build',
                         "type": 'java',
                         "processes": {"spare": 0},
-                        "working_directory": script_path,
-                        "webapp": app_path,
+                        "working_directory": option.test_dir
+                        + '/java/'
+                        + script
+                        + '/',
+                        "webapp": option.temp_dir + '/java',
                     }
                 },
             },
