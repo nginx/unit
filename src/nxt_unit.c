@@ -5023,6 +5023,7 @@ nxt_unit_ctx_free(nxt_unit_ctx_impl_t *ctx_impl)
 {
     nxt_unit_impl_t                  *lib;
     nxt_unit_mmap_buf_t              *mmap_buf;
+    nxt_unit_read_buf_t              *rbuf;
     nxt_unit_request_info_impl_t     *req_impl;
     nxt_unit_websocket_frame_impl_t  *ws_impl;
 
@@ -5058,6 +5059,13 @@ nxt_unit_ctx_free(nxt_unit_ctx_impl_t *ctx_impl)
     {
         nxt_unit_websocket_frame_free(&ctx_impl->ctx, ws_impl);
 
+    } nxt_queue_loop;
+
+    nxt_queue_each(rbuf, &ctx_impl->free_rbuf, nxt_unit_read_buf_t, link)
+    {
+        if (rbuf != &ctx_impl->ctx_read_buf) {
+            nxt_unit_free(&ctx_impl->ctx, rbuf);
+        }
     } nxt_queue_loop;
 
     pthread_mutex_destroy(&ctx_impl->mutex);
