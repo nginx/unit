@@ -4855,6 +4855,17 @@ nxt_unit_run_shared(nxt_unit_ctx_t *ctx)
 
 
 int
+nxt_unit_is_main_ctx(nxt_unit_ctx_t *ctx)
+{
+    nxt_unit_impl_t  *lib;
+
+    lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
+
+    return (ctx == &lib->main_ctx.ctx);
+}
+
+
+int
 nxt_unit_process_port_msg(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port)
 {
     int  rc;

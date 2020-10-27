@@ -210,6 +210,8 @@ int nxt_unit_run_ctx(nxt_unit_ctx_t *ctx);
 
 int nxt_unit_run_shared(nxt_unit_ctx_t *ctx);
 
+int nxt_unit_is_main_ctx(nxt_unit_ctx_t *ctx);
+
 /*
  * Receive and process one message, invoke configured callbacks.
  *
