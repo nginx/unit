@@ -154,6 +154,8 @@ struct nxt_unit_callbacks_s {
     /* Receive data on port id. Optional. */
     ssize_t  (*port_recv)(nxt_unit_ctx_t *, nxt_unit_port_t *port,
                  void *buf, size_t buf_size, void *oob, size_t oob_size);
+
+    int      (*ready_handler)(nxt_unit_ctx_t *);
 };
 
 

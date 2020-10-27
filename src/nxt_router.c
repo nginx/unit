@@ -688,6 +688,8 @@ nxt_router_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     port->app = app;
     port->main_app_port = main_app_port;
+
+    nxt_port_socket_write(task, port, NXT_PORT_MSG_PORT_ACK, -1, 0, 0, NULL);
 }
 
 

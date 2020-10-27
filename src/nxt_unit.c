@@ -57,6 +57,7 @@ static int nxt_unit_ready(nxt_unit_ctx_t *ctx, int ready_fd, uint32_t stream,
 static int nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_read_buf_t *rbuf);
 static int nxt_unit_process_new_port(nxt_unit_ctx_t *ctx,
     nxt_unit_recv_msg_t *recv_msg);
+static int nxt_unit_ctx_ready(nxt_unit_ctx_t *ctx);
 static int nxt_unit_process_req_headers(nxt_unit_ctx_t *ctx,
     nxt_unit_recv_msg_t *recv_msg);
 static int nxt_unit_process_req_body(nxt_unit_ctx_t *ctx,
@@ -306,6 +307,7 @@ struct nxt_unit_ctx_impl_s {
     nxt_queue_t                   free_rbuf;
 
     int                           online;
+    int                           ready;
 
     nxt_unit_mmap_buf_t           ctx_buf[2];
     nxt_unit_read_buf_t           ctx_read_buf;
@@ -624,6 +626,7 @@ nxt_unit_ctx_init(nxt_unit_impl_t *lib, nxt_unit_ctx_impl_t *ctx_impl,
     ctx_impl->use_count = 1;
     ctx_impl->wait_items = 0;
     ctx_impl->online = 1;
+    ctx_impl->ready = 0;
 
     nxt_queue_init(&ctx_impl->free_req);
     nxt_queue_init(&ctx_impl->free_ws);
@@ -996,6 +999,10 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_read_buf_t *rbuf)
         rc = nxt_unit_process_new_port(ctx, &recv_msg);
         break;
 
+    case _NXT_PORT_MSG_PORT_ACK:
+        rc = nxt_unit_ctx_ready(ctx);
+        break;
+
     case _NXT_PORT_MSG_CHANGE_FILE:
         nxt_unit_debug(ctx, "#%"PRIu32": change_file: fd %d",
                        port_msg->stream, recv_msg.fd[0]);
@@ -1169,8 +1176,28 @@ nxt_unit_process_new_port(nxt_unit_ctx_t *ctx, nxt_unit_recv_msg_t *recv_msg)
     if (new_port_msg->id == NXT_UNIT_SHARED_PORT_ID) {
         lib->shared_port = port;
 
-    } else {
-        nxt_unit_port_release(port);
+        return nxt_unit_ctx_ready(ctx);
+    }
+
+    nxt_unit_port_release(port);
+
+    return NXT_UNIT_OK;
+}
+
+
+static int
+nxt_unit_ctx_ready(nxt_unit_ctx_t *ctx)
+{
+    nxt_unit_impl_t      *lib;
+    nxt_unit_ctx_impl_t  *ctx_impl;
+
+    lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
+    ctx_impl = nxt_container_of(ctx, nxt_unit_ctx_impl_t, ctx);
+
+    ctx_impl->ready = 1;
+
+    if (lib->callbacks.ready_handler) {
+        return lib->callbacks.ready_handler(ctx);
     }
 
     return NXT_UNIT_OK;
@@ -4495,16 +4522,16 @@ nxt_unit_read_buf(nxt_unit_ctx_t *ctx, nxt_unit_read_buf_t *rbuf)
     nxt_unit_port_impl_t  *port_impl;
     struct pollfd         fds[2];
 
-    lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
     ctx_impl = nxt_container_of(ctx, nxt_unit_ctx_impl_t, ctx);
 
-    if (ctx_impl->wait_items > 0 || lib->shared_port == NULL) {
-
+    if (ctx_impl->wait_items > 0 || ctx_impl->ready == 0) {
         return nxt_unit_ctx_port_recv(ctx, ctx_impl->read_port, rbuf);
     }
 
     port_impl = nxt_container_of(ctx_impl->read_port, nxt_unit_port_impl_t,
                                  port);
+
+    lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
 
 retry:
 
