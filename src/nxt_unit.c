@@ -314,6 +314,7 @@ struct nxt_unit_ctx_impl_s {
 
 struct nxt_unit_mmap_s {
     nxt_port_mmap_header_t   *hdr;
+    pthread_t                src_thread;
 
     /*  of nxt_unit_read_buf_t */
     nxt_queue_t              awaiting_rbuf;
@@ -3389,7 +3390,10 @@ retry:
     for (mm = lib->outgoing.elts; mm < mm_end; mm++) {
         hdr = mm->hdr;
 
-        if (hdr->sent_over != 0xFFFFu && hdr->sent_over != port->id.id) {
+        if (hdr->sent_over != 0xFFFFu
+            && (hdr->sent_over != port->id.id
+                || mm->src_thread != pthread_self()))
+        {
             continue;
         }
 
@@ -3657,6 +3661,7 @@ nxt_unit_new_mmap(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port, int n)
     hdr->src_pid = lib->pid;
     hdr->dst_pid = port->id.pid;
     hdr->sent_over = port->id.id;
+    mm->src_thread = pthread_self();
 
     /* Mark first n chunk(s) as busy */
     for (i = 0; i < n; i++) {
