@@ -26,7 +26,7 @@ class TestRubyIsolation(TestApplicationRuby):
 
         return check if not complete_check else check()
 
-    def test_ruby_isolation_rootfs(self, is_su):
+    def test_ruby_isolation_rootfs_mount_namespace(self, is_su):
         isolation_features = option.available['features']['isolation'].keys()
 
         if 'mnt' not in isolation_features:
@@ -43,6 +43,25 @@ class TestRubyIsolation(TestApplicationRuby):
             'namespaces': {'credential': not is_su, 'mount': True},
             'rootfs': option.test_dir,
         }
+
+        self.load('status_int', isolation=isolation)
+
+        assert 'success' in self.conf(
+            '"/ruby/status_int/config.ru"', 'applications/status_int/script',
+        )
+
+        assert 'success' in self.conf(
+            '"/ruby/status_int"', 'applications/status_int/working_directory',
+        )
+
+        assert self.get()['status'] == 200, 'status int'
+
+    def test_ruby_isolation_rootfs(self, is_su):
+        if not is_su:
+            pytest.skip('requires root')
+            return
+
+        isolation = {'rootfs': option.test_dir}
 
         self.load('status_int', isolation=isolation)
 
