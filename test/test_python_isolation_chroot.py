@@ -28,7 +28,7 @@ class TestPythonIsolation(TestApplicationPython):
 
         assert (
             self.getjson(url='/?path=/proc/self')['body']['FileExists']
-            == False
+            == True
         ), 'no /proc/self'
 
         assert (

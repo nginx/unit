@@ -326,11 +326,10 @@ cat << END > $NXT_BUILD_DIR/$NXT_JAVA_MOUNTS_HEADER
 
 
 static const nxt_fs_mount_t  nxt_java_mounts[] = {
-    {(u_char *) "proc", (u_char *) "/proc", (u_char *) "proc", 0, NULL, 1},
     {(u_char *) "$NXT_JAVA_LIBC_DIR", (u_char *) "$NXT_JAVA_LIBC_DIR",
-     (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL, 1},
+     NXT_FS_BIND, (u_char *) "bind", 0, NULL, 1, 1},
     {(u_char *) "$NXT_JAVA_HOME", (u_char *) "$NXT_JAVA_HOME",
-     (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL, 1},
+     NXT_FS_BIND, (u_char *) "bind", 0, NULL, 1, 1},
 };
 
 

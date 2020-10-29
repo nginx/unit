@@ -1163,9 +1163,14 @@ static nxt_conf_map_t  nxt_app_lang_mounts_map[] = {
         offsetof(nxt_fs_mount_t, dst),
     },
     {
-        nxt_string("fstype"),
+        nxt_string("name"),
         NXT_CONF_MAP_CSTRZ,
-        offsetof(nxt_fs_mount_t, fstype),
+        offsetof(nxt_fs_mount_t, name),
+    },
+    {
+        nxt_string("type"),
+        NXT_CONF_MAP_INT,
+        offsetof(nxt_fs_mount_t, type),
     },
     {
         nxt_string("flags"),
@@ -1297,6 +1302,7 @@ nxt_main_port_modules_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
             }
 
             mnt->builtin = 1;
+            mnt->deps = 1;
 
             ret = nxt_conf_map_object(rt->mem_pool, value,
                                       nxt_app_lang_mounts_map,

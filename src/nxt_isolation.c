@@ -87,15 +87,6 @@ nxt_isolation_main_prefork(nxt_task_t *task, nxt_process_t *process,
     }
 #endif
 
-#if (NXT_HAVE_ISOLATION_ROOTFS)
-    if (process->isolation.rootfs != NULL) {
-        ret = nxt_isolation_set_mounts(task, process, &app_conf->type);
-        if (nxt_slow_path(ret != NXT_OK)) {
-            return ret;
-        }
-    }
-#endif
-
     if (cap_setid) {
         ret = nxt_process_creds_set(task, process, &app_conf->user,
                                     &app_conf->group);
@@ -125,6 +116,29 @@ nxt_isolation_main_prefork(nxt_task_t *task, nxt_process_t *process,
             return NXT_ERROR;
         }
     }
+
+#if (NXT_HAVE_ISOLATION_ROOTFS)
+    if (process->isolation.rootfs != NULL) {
+        nxt_int_t  has_mnt;
+
+        ret = nxt_isolation_set_mounts(task, process, &app_conf->type);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            return ret;
+        }
+
+        has_mnt = 0;
+
+#if (NXT_HAVE_CLONE_NEWNS)
+        has_mnt = nxt_is_clone_flag_set(process->isolation.clone.flags, NEWNS);
+#endif
+
+        if (process->user_cred->uid == 0 && !has_mnt) {
+            nxt_log(task, NXT_LOG_WARN,
+                    "setting user \"root\" with \"rootfs\" is unsafe without "
+                    "\"mount\" namespace isolation");
+        }
+    }
+#endif
 
 #if (NXT_HAVE_CLONE_NEWUSER)
     ret = nxt_isolation_vldt_creds(task, process);
@@ -568,10 +582,13 @@ nxt_isolation_set_lang_mounts(nxt_task_t *task, nxt_process_t *process,
     }
 
     mnt->src = (u_char *) "tmpfs";
-    mnt->fstype = (u_char *) "tmpfs";
-    mnt->flags = NXT_MS_NOSUID | NXT_MS_NODEV | NXT_MS_NOEXEC | NXT_MS_RELATIME;
+    mnt->name = (u_char *) "tmpfs";
+    mnt->type = NXT_FS_TMP;
+    mnt->flags = (NXT_FS_FLAGS_NOSUID | NXT_FS_FLAGS_NODEV
+                  | NXT_FS_FLAGS_NOEXEC);
     mnt->data = (u_char *) "size=1m,mode=777";
     mnt->builtin = 1;
+    mnt->deps = 0;
 
     mnt->dst = nxt_mp_nget(mp, rootfs_len + nxt_length("/tmp") + 1);
     if (nxt_slow_path(mnt->dst == NULL)) {
@@ -582,32 +599,27 @@ nxt_isolation_set_lang_mounts(nxt_task_t *task, nxt_process_t *process,
     p = nxt_cpymem(p, "/tmp", 4);
     *p = '\0';
 
-#if (NXT_HAVE_CLONE_NEWPID) && (NXT_HAVE_CLONE_NEWNS)
-
-    if (nxt_is_clone_flag_set(process->isolation.clone.flags, NEWPID)
-        && nxt_is_clone_flag_set(process->isolation.clone.flags, NEWNS))
-    {
-        mnt = nxt_array_add(mounts);
-        if (nxt_slow_path(mnt == NULL)) {
-            return NXT_ERROR;
-        }
-
-        mnt->fstype = (u_char *) "proc";
-        mnt->src = (u_char *) "proc";
-
-        mnt->dst = nxt_mp_nget(mp, rootfs_len + nxt_length("/proc") + 1);
-        if (nxt_slow_path(mnt->dst == NULL)) {
-            return NXT_ERROR;
-        }
-
-        p = nxt_cpymem(mnt->dst, rootfs, rootfs_len);
-        p = nxt_cpymem(p, "/proc", 5);
-        *p = '\0';
-
-        mnt->data = (u_char *) "";
-        mnt->flags = 0;
+    mnt = nxt_array_add(mounts);
+    if (nxt_slow_path(mnt == NULL)) {
+        return NXT_ERROR;
     }
-#endif
+
+    mnt->name = (u_char *) "proc";
+    mnt->type = NXT_FS_PROC;
+    mnt->src = (u_char *) "none";
+    mnt->dst = nxt_mp_nget(mp, rootfs_len + nxt_length("/proc") + 1);
+    if (nxt_slow_path(mnt->dst == NULL)) {
+        return NXT_ERROR;
+    }
+
+    p = nxt_cpymem(mnt->dst, rootfs, rootfs_len);
+    p = nxt_cpymem(p, "/proc", 5);
+    *p = '\0';
+
+    mnt->data = (u_char *) "";
+    mnt->flags = NXT_FS_FLAGS_NOEXEC | NXT_FS_FLAGS_NOSUID;
+    mnt->builtin = 1;
+    mnt->deps = 0;
 
     qsort(mounts->elts, mounts->nelts, sizeof(nxt_fs_mount_t),
           nxt_isolation_mount_compare);
@@ -661,7 +673,7 @@ nxt_isolation_unmount_all(nxt_task_t *task, nxt_process_t *process)
     while (n > 0) {
         n--;
 
-        if (mnt[n].builtin && !automount->language_deps) {
+        if (mnt[n].deps && !automount->language_deps) {
             continue;
         }
 
@@ -690,11 +702,11 @@ nxt_isolation_prepare_rootfs(nxt_task_t *task, nxt_process_t *process)
     for (i = 0; i < n; i++) {
         dst = mnt[i].dst;
 
-        if (mnt[i].builtin && !automount->language_deps) {
+        if (mnt[i].deps && !automount->language_deps) {
             continue;
         }
 
-        if (nxt_slow_path(nxt_memcmp(mnt[i].fstype, "bind", 4) == 0
+        if (nxt_slow_path(mnt[i].type == NXT_FS_BIND
                           && stat((const char *) mnt[i].src, &st) != 0))
         {
             nxt_log(task, NXT_LOG_WARN, "host path not found: %s", mnt[i].src);

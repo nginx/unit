@@ -26,57 +26,71 @@ class TestPHPIsolation(TestApplicationPHP):
 
         return check if not complete_check else check()
 
-    def test_php_isolation_rootfs(self, is_su):
+    def test_php_isolation_rootfs(self, is_su, temp_dir):
         isolation_features = option.available['features']['isolation'].keys()
 
-        if 'mnt' not in isolation_features:
-            pytest.skip('requires mnt ns')
-
         if not is_su:
-            if 'user' not in isolation_features:
-                pytest.skip('requires unprivileged userns or root')
-
             if not 'unprivileged_userns_clone' in isolation_features:
                 pytest.skip('requires unprivileged userns or root')
 
-        isolation = {
-            'namespaces': {'credential': not is_su, 'mount': True},
-            'rootfs': option.test_dir,
-        }
+            if 'user' not in isolation_features:
+                pytest.skip('user namespace is not supported')
+
+            if 'mnt' not in isolation_features:
+                pytest.skip('mnt namespace is not supported')
+
+            if 'pid' not in isolation_features:
+                pytest.skip('pid namespace is not supported')
+
+        isolation = {'rootfs': temp_dir}
+
+        if not is_su:
+            isolation['namespaces'] = {
+                'mount': True,
+                'credential': True,
+                'pid': True
+            }
 
         self.load('phpinfo', isolation=isolation)
 
         assert 'success' in self.conf(
-            '"/php/phpinfo"', 'applications/phpinfo/root'
+            '"/app/php/phpinfo"', 'applications/phpinfo/root'
         )
         assert 'success' in self.conf(
-            '"/php/phpinfo"', 'applications/phpinfo/working_directory'
+            '"/app/php/phpinfo"', 'applications/phpinfo/working_directory'
         )
 
         assert self.get()['status'] == 200, 'empty rootfs'
 
-    def test_php_isolation_rootfs_extensions(self, is_su):
+    def test_php_isolation_rootfs_extensions(self, is_su, temp_dir):
         isolation_features = option.available['features']['isolation'].keys()
 
         if not is_su:
-            if 'user' not in isolation_features:
-                pytest.skip('requires unprivileged userns or root')
-
             if not 'unprivileged_userns_clone' in isolation_features:
                 pytest.skip('requires unprivileged userns or root')
 
-            if 'mnt' not in isolation_features:
-                pytest.skip('requires mnt ns')
+            if 'user' not in isolation_features:
+                pytest.skip('user namespace is not supported')
 
-        isolation = {
-            'rootfs': option.test_dir,
-            'namespaces': {'credential': not is_su, 'mount': not is_su},
-        }
+            if 'mnt' not in isolation_features:
+                pytest.skip('mnt namespace is not supported')
+
+            if 'pid' not in isolation_features:
+                pytest.skip('pid namespace is not supported')
+
+        isolation = {'rootfs': temp_dir}
+
+        if not is_su:
+            isolation['namespaces'] = {
+                'mount': True,
+                'credential': True,
+                'pid': True
+            }
 
         self.load('list-extensions', isolation=isolation)
 
         assert 'success' in self.conf(
-            '"/php/list-extensions"', 'applications/list-extensions/root'
+            '"/app/php/list-extensions"', 'applications/list-extensions/root'
         )
 
         assert 'success' in self.conf(
@@ -85,7 +99,7 @@ class TestPHPIsolation(TestApplicationPHP):
         )
 
         assert 'success' in self.conf(
-            '"/php/list-extensions"',
+            '"/app/php/list-extensions"',
             'applications/list-extensions/working_directory',
         )
 

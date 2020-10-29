@@ -74,7 +74,7 @@ typedef struct {
 
 
 typedef struct {
-    uint8_t             language_deps;      /* 1-byte */
+    uint8_t             language_deps;      /* 1-bit */
 } nxt_process_automount_t;
 
 

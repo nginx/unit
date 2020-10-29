@@ -226,13 +226,23 @@ class TestGoIsolation(TestApplicationGo):
         if not self.isolation_key('pid'):
             pytest.skip('pid namespace is not supported')
 
-        if not (is_su or self.isolation_key('unprivileged_userns_clone')):
-            pytest.skip('requires root or unprivileged_userns_clone')
+        if not is_su:
+            if not self.isolation_key('unprivileged_userns_clone'):
+                pytest.skip('unprivileged clone is not available')
 
-        self.load(
-            'ns_inspect',
-            isolation={'namespaces': {'pid': True, 'credential': True}},
-        )
+            if not self.isolation_key('user'):
+                pytest.skip('user namespace is not supported')
+
+            if not self.isolation_key('mnt'):
+                pytest.skip('mnt namespace is not supported')
+
+        isolation = {'namespaces': {'pid': True}}
+
+        if not is_su:
+            isolation['namespaces']['mount'] = True
+            isolation['namespaces']['credential'] = True
+
+        self.load('ns_inspect', isolation=isolation)
 
         obj = self.getjson()['body']
 
@@ -269,17 +279,28 @@ class TestGoIsolation(TestApplicationGo):
                     == option.available['features']['isolation'][ns]
                 ), ('%s match' % ns)
 
-    def test_go_isolation_rootfs_container(self, temp_dir):
-        if not self.isolation_key('unprivileged_userns_clone'):
-            pytest.skip('unprivileged clone is not available')
+    def test_go_isolation_rootfs_container(self, is_su, temp_dir):
+        if not is_su:
+            if not self.isolation_key('unprivileged_userns_clone'):
+                pytest.skip('unprivileged clone is not available')
 
-        if not self.isolation_key('mnt'):
-            pytest.skip('mnt namespace is not supported')
+            if not self.isolation_key('user'):
+                pytest.skip('user namespace is not supported')
 
-        isolation = {
-            'namespaces': {'mount': True, 'credential': True},
-            'rootfs': temp_dir,
-        }
+            if not self.isolation_key('mnt'):
+                pytest.skip('mnt namespace is not supported')
+
+            if not self.isolation_key('pid'):
+                pytest.skip('pid namespace is not supported')
+
+        isolation = {'rootfs': temp_dir}
+
+        if not is_su:
+            isolation['namespaces'] = {
+                'mount': True,
+                'credential': True,
+                'pid': True
+            }
 
         self.load('ns_inspect', isolation=isolation)
 
@@ -311,17 +332,28 @@ class TestGoIsolation(TestApplicationGo):
         obj = self.getjson(url='/?file=/bin/sh')['body']
         assert obj['FileExists'] == False, 'file should not exists'
 
-    def test_go_isolation_rootfs_default_tmpfs(self, temp_dir):
-        if not self.isolation_key('unprivileged_userns_clone'):
-            pytest.skip('unprivileged clone is not available')
+    def test_go_isolation_rootfs_default_tmpfs(self, is_su, temp_dir):
+        if not is_su:
+            if not self.isolation_key('unprivileged_userns_clone'):
+                pytest.skip('unprivileged clone is not available')
 
-        if not self.isolation_key('mnt'):
-            pytest.skip('mnt namespace is not supported')
+            if not self.isolation_key('user'):
+                pytest.skip('user namespace is not supported')
 
-        isolation = {
-            'namespaces': {'mount': True, 'credential': True},
-            'rootfs': temp_dir,
-        }
+            if not self.isolation_key('mnt'):
+                pytest.skip('mnt namespace is not supported')
+
+            if not self.isolation_key('pid'):
+                pytest.skip('pid namespace is not supported')
+
+        isolation = {'rootfs': temp_dir}
+
+        if not is_su:
+            isolation['namespaces'] = {
+                'mount': True,
+                'credential': True,
+                'pid': True
+            }
 
         self.load('ns_inspect', isolation=isolation)
 
