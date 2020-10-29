@@ -41,6 +41,8 @@ static nxt_int_t nxt_isolation_set_mounts(nxt_task_t *task,
     nxt_process_t *process, nxt_str_t *app_type);
 static nxt_int_t nxt_isolation_set_lang_mounts(nxt_task_t *task,
     nxt_process_t *process, nxt_array_t *syspaths);
+static int nxt_cdecl nxt_isolation_mount_compare(const void *v1,
+    const void *v2);
 static void nxt_isolation_unmount_all(nxt_task_t *task, nxt_process_t *process);
 
 #if (NXT_HAVE_PIVOT_ROOT) && (NXT_HAVE_CLONE_NEWNS)
@@ -607,19 +609,47 @@ nxt_isolation_set_lang_mounts(nxt_task_t *task, nxt_process_t *process,
     }
 #endif
 
+    qsort(mounts->elts, mounts->nelts, sizeof(nxt_fs_mount_t),
+          nxt_isolation_mount_compare);
+
     process->isolation.mounts = mounts;
 
     return NXT_OK;
 }
 
 
+static int nxt_cdecl
+nxt_isolation_mount_compare(const void *v1, const void *v2)
+{
+    const nxt_fs_mount_t  *mnt1, *mnt2;
+
+    mnt1 = v1;
+    mnt2 = v2;
+
+    return nxt_strlen(mnt1->src) > nxt_strlen(mnt2->src);
+}
+
+
 void
 nxt_isolation_unmount_all(nxt_task_t *task, nxt_process_t *process)
 {
-    size_t                   i, n;
+    size_t                   n;
     nxt_array_t              *mounts;
+    nxt_runtime_t            *rt;
     nxt_fs_mount_t           *mnt;
     nxt_process_automount_t  *automount;
+
+    rt = task->thread->runtime;
+
+    if (!rt->capabilities.setid) {
+        return;
+    }
+
+#if (NXT_HAVE_CLONE_NEWNS)
+    if (nxt_is_clone_flag_set(process->isolation.clone.flags, NEWNS)) {
+        return;
+    }
+#endif
 
     nxt_debug(task, "unmount all (%s)", process->name);
 
@@ -628,12 +658,14 @@ nxt_isolation_unmount_all(nxt_task_t *task, nxt_process_t *process)
     n = mounts->nelts;
     mnt = mounts->elts;
 
-    for (i = 0; i < n; i++) {
-        if (mnt[i].builtin && !automount->language_deps) {
+    while (n > 0) {
+        n--;
+
+        if (mnt[n].builtin && !automount->language_deps) {
             continue;
         }
 
-        nxt_fs_unmount(mnt[i].dst);
+        nxt_fs_unmount(mnt[n].dst);
     }
 }
 
