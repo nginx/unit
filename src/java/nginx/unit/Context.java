@@ -1214,6 +1214,16 @@ public class Context implements ServletContext, InitParams
                     processXmlInitParam(reg, (Element) child_node);
                     continue;
                 }
+
+                if (tag_name.equals("filter-name")
+                    || tag_name.equals("#text")
+                    || tag_name.equals("#comment"))
+                {
+                    continue;
+                }
+
+                log("processWebXml: tag '" + tag_name + "' for filter '"
+                    + filter_name + "' is ignored");
             }
 
             filters_.add(reg);
@@ -1306,6 +1316,22 @@ public class Context implements ServletContext, InitParams
                     reg.setLoadOnStartup(Integer.parseInt(child_node.getTextContent().trim()));
                     continue;
                 }
+
+                if (tag_name.equals("jsp-file")) {
+                    reg.setJspFile(child_node.getTextContent().trim());
+                    continue;
+                }
+
+                if (tag_name.equals("servlet-name")
+                    || tag_name.equals("display-name")
+                    || tag_name.equals("#text")
+                    || tag_name.equals("#comment"))
+                {
+                    continue;
+                }
+
+                log("processWebXml: tag '" + tag_name + "' for servlet '"
+                    + servlet_name + "' is ignored");
             }
 
             servlets_.add(reg);
@@ -1888,6 +1914,7 @@ public class Context implements ServletContext, InitParams
         private boolean initialized_ = false;
         private final List<FilterMap> filters_ = new ArrayList<>();
         private boolean system_jsp_servlet_ = false;
+        private String jsp_file_;
         private MultipartConfigElement multipart_config_;
 
         public ServletReg(String name, Class<?> servlet_class)
@@ -1920,6 +1947,21 @@ public class Context implements ServletContext, InitParams
             }
 
             trace("ServletReg.init(): " + getName());
+
+            if (jsp_file_ != null) {
+                setInitParameter("jspFile", jsp_file_);
+                jsp_file_ = null;
+
+                ServletReg jsp_servlet = name2servlet_.get("jsp");
+
+                if (jsp_servlet.servlet_class_ != null) {
+                    servlet_class_ = jsp_servlet.servlet_class_;
+                } else {
+                    setClassName(jsp_servlet.getClassName());
+                }
+
+                system_jsp_servlet_ = jsp_servlet.system_jsp_servlet_;
+            }
 
             if (system_jsp_servlet_) {
                 JasperInitializer ji = new JasperInitializer();
@@ -1972,6 +2014,10 @@ public class Context implements ServletContext, InitParams
                 throw new IllegalStateException("Class already initialized");
             }
 
+            if (jsp_file_ != null) {
+                throw new IllegalStateException("jsp-file already initialized");
+            }
+
             super.setClassName(class_name);
         }
 
@@ -1985,9 +2031,29 @@ public class Context implements ServletContext, InitParams
                 throw new IllegalStateException("Class already initialized");
             }
 
+            if (jsp_file_ != null) {
+                throw new IllegalStateException("jsp-file already initialized");
+            }
+
             super.setClassName(servlet_class.getName());
             servlet_class_ = servlet_class;
             getAnnotationMultipartConfig();
+        }
+
+        public void setJspFile(String jsp_file) throws IllegalStateException
+        {
+            if (servlet_ != null
+                || servlet_class_ != null
+                || getClassName() != null)
+            {
+                throw new IllegalStateException("Class already initialized");
+            }
+
+            if (jsp_file_ != null) {
+                throw new IllegalStateException("jsp-file already initialized");
+            }
+
+            jsp_file_ = jsp_file;
         }
 
         private void getAnnotationMultipartConfig() {
