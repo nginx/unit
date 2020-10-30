@@ -172,8 +172,10 @@ nxt_fs_mount(nxt_task_t *task, nxt_fs_mount_t *mnt)
 
             *end = '\0';
 
-            iov[iovlen++].iov_base = (void *) p;
-            iov[iovlen++].iov_len = (end - p) + 1;
+            iov[iovlen].iov_base = (void *) p;
+            iov[iovlen].iov_len = (end - p) + 1;
+
+            iovlen++;
 
             p = end + 1;
 
@@ -182,8 +184,10 @@ nxt_fs_mount(nxt_task_t *task, nxt_fs_mount_t *mnt)
                 *end = '\0';
             }
 
-            iov[iovlen++].iov_base = (void *) p;
-            iov[iovlen++].iov_len = nxt_strlen(p) + 1;
+            iov[iovlen].iov_base = (void *) p;
+            iov[iovlen].iov_len = nxt_strlen(p) + 1;
+
+            iovlen++;
 
         } while (end != NULL && nxt_nitems(iov) > (iovlen + 2));
     }
