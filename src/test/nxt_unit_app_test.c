@@ -72,7 +72,13 @@ main(int argc, char **argv)
         for (i = 0; i < thread_count - 1; i++) {
             err = pthread_join(threads[i], NULL);
 
-            nxt_unit_debug(ctx, "join thread #%d: %d", i, err);
+            if (nxt_fast_path(err == 0)) {
+                nxt_unit_debug(ctx, "join thread #%d", i);
+
+            } else {
+                nxt_unit_alert(ctx, "pthread_join(#%d) failed: %s (%d)",
+                                    i, strerror(err), err);
+            }
         }
 
         nxt_unit_free(ctx, threads);
@@ -132,7 +138,7 @@ worker(void *main_ctx)
 
     nxt_unit_done(ctx);
 
-    return NULL;
+    return (void *) (intptr_t) rc;
 }
 
 
