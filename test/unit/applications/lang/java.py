@@ -64,6 +64,7 @@ class TestApplicationJava(TestApplicationProto):
 
             javac = [
                 'javac',
+                '-target', '8', '-source', '8', '-nowarn',
                 '-encoding',   'utf-8',
                 '-d',          classes_path,
                 '-classpath',  classpath + ':' + ws_jars[0],
