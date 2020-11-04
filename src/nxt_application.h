@@ -77,6 +77,8 @@ typedef struct {
     char                       *webapp;
     nxt_conf_value_t           *options;
     char                       *unit_jars;
+    uint32_t                   threads;
+    uint32_t                   thread_stack_size;
 } nxt_java_app_conf_t;
 
 
