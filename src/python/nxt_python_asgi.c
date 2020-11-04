@@ -330,7 +330,7 @@ nxt_python_asgi_run(nxt_unit_ctx_t *ctx)
 static void
 nxt_py_asgi_remove_reader(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port)
 {
-    PyObject                *res;
+    PyObject                *res, *fd;
     nxt_py_asgi_ctx_data_t  *ctx_data;
 
     if (port == NULL || port->in_fd == -1) {
@@ -341,16 +341,24 @@ nxt_py_asgi_remove_reader(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port)
 
     nxt_unit_debug(ctx, "asgi_remove_reader %d %p", port->in_fd, port);
 
-    res = PyObject_CallFunctionObjArgs(ctx_data->loop_remove_reader,
-                                       PyLong_FromLong(port->in_fd), NULL);
-    if (nxt_slow_path(res == NULL)) {
-        nxt_unit_alert(ctx, "Python failed to remove_reader");
+    fd = PyLong_FromLong(port->in_fd);
+    if (nxt_slow_path(fd == NULL)) {
+        nxt_unit_alert(ctx, "Python failed to create Long object");
         nxt_python_print_exception();
 
         return;
     }
 
-    Py_DECREF(res);
+    res = PyObject_CallFunctionObjArgs(ctx_data->loop_remove_reader, fd, NULL);
+    if (nxt_slow_path(res == NULL)) {
+        nxt_unit_alert(ctx, "Python failed to remove_reader");
+        nxt_python_print_exception();
+
+    } else {
+        Py_DECREF(res);
+    }
+
+    Py_DECREF(fd);
 }
 
 
@@ -789,7 +797,8 @@ fail:
 static int
 nxt_python_asgi_ready(nxt_unit_ctx_t *ctx)
 {
-    PyObject                *res;
+    int                     rc;
+    PyObject                *res, *fd, *py_ctx, *py_port;
     nxt_unit_port_t         *port;
     nxt_py_asgi_ctx_data_t  *ctx_data;
 
@@ -803,29 +812,64 @@ nxt_python_asgi_ready(nxt_unit_ctx_t *ctx)
 
     ctx_data = ctx->data;
 
+    rc = NXT_UNIT_ERROR;
+
+    fd = PyLong_FromLong(port->in_fd);
+    if (nxt_slow_path(fd == NULL)) {
+        nxt_unit_alert(ctx, "Python failed to create fd");
+        nxt_python_print_exception();
+
+        return rc;
+    }
+
+    py_ctx = PyLong_FromVoidPtr(ctx);
+    if (nxt_slow_path(py_ctx == NULL)) {
+        nxt_unit_alert(ctx, "Python failed to create py_ctx");
+        nxt_python_print_exception();
+
+        goto clean_fd;
+    }
+
+    py_port = PyLong_FromVoidPtr(port);
+    if (nxt_slow_path(py_port == NULL)) {
+        nxt_unit_alert(ctx, "Python failed to create py_port");
+        nxt_python_print_exception();
+
+        goto clean_py_ctx;
+    }
+
     res = PyObject_CallFunctionObjArgs(ctx_data->loop_add_reader,
-                                       PyLong_FromLong(port->in_fd),
-                                       nxt_py_port_read,
-                                       PyLong_FromVoidPtr(ctx),
-                                       PyLong_FromVoidPtr(port), NULL);
+                                       fd, nxt_py_port_read,
+                                       py_ctx, py_port, NULL);
     if (nxt_slow_path(res == NULL)) {
         nxt_unit_alert(ctx, "Python failed to add_reader");
         nxt_python_print_exception();
 
-        return NXT_UNIT_ERROR;
+    } else {
+        Py_DECREF(res);
+
+        rc = NXT_UNIT_OK;
     }
 
-    Py_DECREF(res);
+    Py_DECREF(py_port);
 
-    return NXT_UNIT_OK;
+clean_py_ctx:
+
+    Py_DECREF(py_ctx);
+
+clean_fd:
+
+    Py_DECREF(fd);
+
+    return rc;
 }
 
 
 static int
 nxt_py_asgi_add_port(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port)
 {
-    int                     nb;
-    PyObject                *res;
+    int                     nb, rc;
+    PyObject                *res, *fd, *py_ctx, *py_port;
     nxt_py_asgi_ctx_data_t  *ctx_data;
 
     if (port->in_fd == -1) {
@@ -854,21 +898,56 @@ nxt_py_asgi_add_port(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port)
     ctx_data->port = port;
     port->data = ctx_data;
 
+    rc = NXT_UNIT_ERROR;
+
+    fd = PyLong_FromLong(port->in_fd);
+    if (nxt_slow_path(fd == NULL)) {
+        nxt_unit_alert(ctx, "Python failed to create fd");
+        nxt_python_print_exception();
+
+        return rc;
+    }
+
+    py_ctx = PyLong_FromVoidPtr(ctx);
+    if (nxt_slow_path(py_ctx == NULL)) {
+        nxt_unit_alert(ctx, "Python failed to create py_ctx");
+        nxt_python_print_exception();
+
+        goto clean_fd;
+    }
+
+    py_port = PyLong_FromVoidPtr(port);
+    if (nxt_slow_path(py_port == NULL)) {
+        nxt_unit_alert(ctx, "Python failed to create py_port");
+        nxt_python_print_exception();
+
+        goto clean_py_ctx;
+    }
+
     res = PyObject_CallFunctionObjArgs(ctx_data->loop_add_reader,
-                                       PyLong_FromLong(port->in_fd),
-                                       nxt_py_port_read,
-                                       PyLong_FromVoidPtr(ctx),
-                                       PyLong_FromVoidPtr(port), NULL);
+                                       fd, nxt_py_port_read,
+                                       py_ctx, py_port, NULL);
     if (nxt_slow_path(res == NULL)) {
         nxt_unit_alert(ctx, "Python failed to add_reader");
         nxt_python_print_exception();
 
-        return NXT_UNIT_ERROR;
+    } else {
+        Py_DECREF(res);
+
+        rc = NXT_UNIT_OK;
     }
 
-    Py_DECREF(res);
+    Py_DECREF(py_port);
 
-    return NXT_UNIT_OK;
+clean_py_ctx:
+
+    Py_DECREF(py_ctx);
+
+clean_fd:
+
+    Py_DECREF(fd);
+
+    return rc;
 }
 
 
@@ -890,7 +969,7 @@ nxt_py_asgi_remove_port(nxt_unit_t *lib, nxt_unit_port_t *port)
 static void
 nxt_py_asgi_quit(nxt_unit_ctx_t *ctx)
 {
-    PyObject                *res;
+    PyObject                *res, *p;
     nxt_py_asgi_ctx_data_t  *ctx_data;
 
     nxt_unit_debug(ctx, "asgi_quit %p", ctx);
@@ -898,25 +977,43 @@ nxt_py_asgi_quit(nxt_unit_ctx_t *ctx)
     ctx_data = ctx->data;
 
     if (nxt_py_shared_port != NULL) {
-        res = PyObject_CallFunctionObjArgs(ctx_data->loop_remove_reader,
-                              PyLong_FromLong(nxt_py_shared_port->in_fd), NULL);
+        p = PyLong_FromLong(nxt_py_shared_port->in_fd);
+        if (nxt_slow_path(p == NULL)) {
+            nxt_unit_alert(NULL, "Python failed to create Long");
+            nxt_python_print_exception();
+
+        } else {
+            res = PyObject_CallFunctionObjArgs(ctx_data->loop_remove_reader,
+                                               p, NULL);
+            if (nxt_slow_path(res == NULL)) {
+                nxt_unit_alert(NULL, "Python failed to remove_reader");
+                nxt_python_print_exception();
+
+            } else {
+                Py_DECREF(res);
+            }
+
+            Py_DECREF(p);
+        }
+    }
+
+    p = PyLong_FromLong(0);
+    if (nxt_slow_path(p == NULL)) {
+        nxt_unit_alert(NULL, "Python failed to create Long");
+        nxt_python_print_exception();
+
+    } else {
+        res = PyObject_CallFunctionObjArgs(ctx_data->quit_future_set_result,
+                                           p, NULL);
         if (nxt_slow_path(res == NULL)) {
-            nxt_unit_alert(NULL, "Python failed to remove_reader");
+            nxt_unit_alert(ctx, "Python failed to set_result");
             nxt_python_print_exception();
 
         } else {
             Py_DECREF(res);
         }
-    }
 
-    res = PyObject_CallFunctionObjArgs(ctx_data->quit_future_set_result,
-                                       PyLong_FromLong(0), NULL);
-    if (nxt_slow_path(res == NULL)) {
-        nxt_unit_alert(ctx, "Python failed to set_result");
-        nxt_python_print_exception();
-
-    } else {
-        Py_DECREF(res);
+        Py_DECREF(p);
     }
 }
 
