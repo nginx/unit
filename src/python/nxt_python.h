@@ -11,6 +11,8 @@
 #include <nxt_main.h>
 #include <nxt_unit.h>
 
+#define NXT_PYTHON_VER(maj, min)    ((maj << 24) | (min << 16))
+
 
 #if PY_MAJOR_VERSION == 3
 #define NXT_PYTHON_BYTES_TYPE       "bytestring"
@@ -31,7 +33,7 @@
 #define PyUnicode_GET_LENGTH        PyUnicode_GET_SIZE
 #endif
 
-#if PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION >= 5
+#if PY_VERSION_HEX >= NXT_PYTHON_VER(3, 5)
 #define NXT_HAVE_ASGI  1
 #endif
 
