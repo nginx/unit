@@ -197,6 +197,18 @@ static nxt_conf_map_t  nxt_python_app_conf[] = {
         NXT_CONF_MAP_CSTRZ,
         offsetof(nxt_common_app_conf_t, u.python.callable),
     },
+
+    {
+        nxt_string("threads"),
+        NXT_CONF_MAP_INT32,
+        offsetof(nxt_common_app_conf_t, u.python.threads),
+    },
+
+    {
+        nxt_string("thread_stack_size"),
+        NXT_CONF_MAP_INT32,
+        offsetof(nxt_common_app_conf_t, u.python.thread_stack_size),
+    },
 };
 
 

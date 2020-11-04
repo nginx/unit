@@ -62,7 +62,7 @@ extern PyObject  *nxt_py_ws_str;
 extern PyObject  *nxt_py_wss_str;
 
 
-nxt_int_t nxt_py_asgi_str_init(void);
+int nxt_py_asgi_str_init(void);
 void nxt_py_asgi_str_done(void);
 
 

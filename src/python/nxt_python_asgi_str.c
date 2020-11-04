@@ -124,7 +124,7 @@ static nxt_python_string_t nxt_py_asgi_strings[] = {
 };
 
 
-nxt_int_t
+int
 nxt_py_asgi_str_init(void)
 {
     return nxt_python_init_strings(nxt_py_asgi_strings);

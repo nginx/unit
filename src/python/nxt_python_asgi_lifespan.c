@@ -15,15 +15,16 @@
 
 typedef struct  {
     PyObject_HEAD
-    int       disabled;
-    int       startup_received;
-    int       startup_sent;
-    int       shutdown_received;
-    int       shutdown_sent;
-    int       shutdown_called;
-    PyObject  *startup_future;
-    PyObject  *shutdown_future;
-    PyObject  *receive_future;
+    nxt_py_asgi_ctx_data_t  *ctx_data;
+    int                     disabled;
+    int                     startup_received;
+    int                     startup_sent;
+    int                     shutdown_received;
+    int                     shutdown_sent;
+    int                     shutdown_called;
+    PyObject                *startup_future;
+    PyObject                *shutdown_future;
+    PyObject                *receive_future;
 } nxt_py_asgi_lifespan_t;
 
 
@@ -38,8 +39,6 @@ static PyObject *nxt_py_asgi_lifespan_send_shutdown(
 static PyObject *nxt_py_asgi_lifespan_disable(nxt_py_asgi_lifespan_t *lifespan);
 static PyObject *nxt_py_asgi_lifespan_done(PyObject *self, PyObject *future);
 
-
-static nxt_py_asgi_lifespan_t  *nxt_py_lifespan;
 
 static PyMethodDef nxt_py_asgi_lifespan_methods[] = {
     { "receive",   nxt_py_asgi_lifespan_receive, METH_NOARGS, 0 },
@@ -67,46 +66,46 @@ static PyTypeObject nxt_py_asgi_lifespan_type = {
 };
 
 
-nxt_int_t
-nxt_py_asgi_lifespan_startup(nxt_task_t *task)
+int
+nxt_py_asgi_lifespan_startup(nxt_py_asgi_ctx_data_t *ctx_data)
 {
+    int                     rc;
     PyObject                *scope, *res, *py_task, *receive, *send, *done;
-    nxt_int_t               rc;
     nxt_py_asgi_lifespan_t  *lifespan;
 
     if (nxt_slow_path(PyType_Ready(&nxt_py_asgi_lifespan_type) != 0)) {
-        nxt_alert(task,
+        nxt_unit_alert(NULL,
                  "Python failed to initialize the 'asgi_lifespan' type object");
-        return NXT_ERROR;
+        return NXT_UNIT_ERROR;
     }
 
     lifespan = PyObject_New(nxt_py_asgi_lifespan_t, &nxt_py_asgi_lifespan_type);
     if (nxt_slow_path(lifespan == NULL)) {
-        nxt_alert(task, "Python failed to create lifespan object");
-        return NXT_ERROR;
+        nxt_unit_alert(NULL, "Python failed to create lifespan object");
+        return NXT_UNIT_ERROR;
     }
 
-    rc = NXT_ERROR;
+    rc = NXT_UNIT_ERROR;
 
     receive = PyObject_GetAttrString((PyObject *) lifespan, "receive");
     if (nxt_slow_path(receive == NULL)) {
-        nxt_alert(task, "Python failed to get 'receive' method");
+        nxt_unit_alert(NULL, "Python failed to get 'receive' method");
         goto release_lifespan;
     }
 
     send = PyObject_GetAttrString((PyObject *) lifespan, "send");
     if (nxt_slow_path(receive == NULL)) {
-        nxt_alert(task, "Python failed to get 'send' method");
+        nxt_unit_alert(NULL, "Python failed to get 'send' method");
         goto release_receive;
     }
 
     done = PyObject_GetAttrString((PyObject *) lifespan, "_done");
     if (nxt_slow_path(receive == NULL)) {
-        nxt_alert(task, "Python failed to get '_done' method");
+        nxt_unit_alert(NULL, "Python failed to get '_done' method");
         goto release_send;
     }
 
-    lifespan->startup_future = PyObject_CallObject(nxt_py_loop_create_future,
+    lifespan->startup_future = PyObject_CallObject(ctx_data->loop_create_future,
                                                    NULL);
     if (nxt_slow_path(lifespan->startup_future == NULL)) {
         nxt_unit_alert(NULL, "Python failed to create Future object");
@@ -115,6 +114,7 @@ nxt_py_asgi_lifespan_startup(nxt_task_t *task)
         goto release_done;
     }
 
+    lifespan->ctx_data = ctx_data;
     lifespan->disabled = 0;
     lifespan->startup_received = 0;
     lifespan->startup_sent = 0;
@@ -132,21 +132,20 @@ nxt_py_asgi_lifespan_startup(nxt_task_t *task)
     res = PyObject_CallFunctionObjArgs(nxt_py_application,
                                        scope, receive, send, NULL);
     if (nxt_slow_path(res == NULL)) {
-        nxt_log(task, NXT_LOG_ERR, "Python failed to call the application");
+        nxt_unit_error(NULL, "Python failed to call the application");
         nxt_python_print_exception();
         goto release_scope;
     }
 
     if (nxt_slow_path(!PyCoro_CheckExact(res))) {
-        nxt_log(task, NXT_LOG_ERR,
-                "Application result type is not a coroutine");
+        nxt_unit_error(NULL, "Application result type is not a coroutine");
         Py_DECREF(res);
         goto release_scope;
     }
 
-    py_task = PyObject_CallFunctionObjArgs(nxt_py_loop_create_task, res, NULL);
+    py_task = PyObject_CallFunctionObjArgs(ctx_data->loop_create_task, res, NULL);
     if (nxt_slow_path(py_task == NULL)) {
-        nxt_log(task, NXT_LOG_ERR, "Python failed to call the create_task");
+        nxt_unit_alert(NULL, "Python failed to call the create_task");
         nxt_python_print_exception();
         Py_DECREF(res);
         goto release_scope;
@@ -157,18 +156,17 @@ nxt_py_asgi_lifespan_startup(nxt_task_t *task)
     res = PyObject_CallMethodObjArgs(py_task, nxt_py_add_done_callback_str,
                                      done, NULL);
     if (nxt_slow_path(res == NULL)) {
-        nxt_log(task, NXT_LOG_ERR,
-                              "Python failed to call 'task.add_done_callback'");
+        nxt_unit_alert(NULL, "Python failed to call 'task.add_done_callback'");
         nxt_python_print_exception();
         goto release_task;
     }
 
     Py_DECREF(res);
 
-    res = PyObject_CallFunctionObjArgs(nxt_py_loop_run_until_complete,
+    res = PyObject_CallFunctionObjArgs(ctx_data->loop_run_until_complete,
                                        lifespan->startup_future, NULL);
     if (nxt_slow_path(res == NULL)) {
-        nxt_alert(task, "Python failed to call loop.run_until_complete");
+        nxt_unit_alert(NULL, "Python failed to call loop.run_until_complete");
         nxt_python_print_exception();
         goto release_task;
     }
@@ -176,10 +174,10 @@ nxt_py_asgi_lifespan_startup(nxt_task_t *task)
     Py_DECREF(res);
 
     if (lifespan->startup_sent == 1 || lifespan->disabled) {
-        nxt_py_lifespan = lifespan;
-        Py_INCREF(nxt_py_lifespan);
+        ctx_data->lifespan = (PyObject *) lifespan;
+        Py_INCREF(ctx_data->lifespan);
 
-        rc = NXT_OK;
+        rc = NXT_UNIT_OK;
     }
 
 release_task:
@@ -201,17 +199,21 @@ release_lifespan:
 }
 
 
-nxt_int_t
-nxt_py_asgi_lifespan_shutdown(void)
+int
+nxt_py_asgi_lifespan_shutdown(nxt_unit_ctx_t *ctx)
 {
     PyObject                *msg, *future, *res;
     nxt_py_asgi_lifespan_t  *lifespan;
+    nxt_py_asgi_ctx_data_t  *ctx_data;
 
-    if (nxt_slow_path(nxt_py_lifespan == NULL || nxt_py_lifespan->disabled)) {
-        return NXT_OK;
+    ctx_data = ctx->data;
+
+    lifespan = (nxt_py_asgi_lifespan_t *) ctx_data->lifespan;
+
+    if (nxt_slow_path(lifespan == NULL || lifespan->disabled)) {
+        return NXT_UNIT_OK;
     }
 
-    lifespan = nxt_py_lifespan;
     lifespan->shutdown_called = 1;
 
     if (lifespan->receive_future != NULL) {
@@ -231,29 +233,29 @@ nxt_py_asgi_lifespan_shutdown(void)
     }
 
     if (lifespan->shutdown_sent) {
-        return NXT_OK;
+        return NXT_UNIT_OK;
     }
 
-    lifespan->shutdown_future = PyObject_CallObject(nxt_py_loop_create_future,
+    lifespan->shutdown_future = PyObject_CallObject(ctx_data->loop_create_future,
                                                     NULL);
     if (nxt_slow_path(lifespan->shutdown_future == NULL)) {
         nxt_unit_alert(NULL, "Python failed to create Future object");
         nxt_python_print_exception();
-        return NXT_ERROR;
+        return NXT_UNIT_ERROR;
     }
 
-    res = PyObject_CallFunctionObjArgs(nxt_py_loop_run_until_complete,
+    res = PyObject_CallFunctionObjArgs(ctx_data->loop_run_until_complete,
                                        lifespan->shutdown_future, NULL);
     if (nxt_slow_path(res == NULL)) {
         nxt_unit_alert(NULL, "Python failed to call loop.run_until_complete");
         nxt_python_print_exception();
-        return NXT_ERROR;
+        return NXT_UNIT_ERROR;
     }
 
     Py_DECREF(res);
     Py_CLEAR(lifespan->shutdown_future);
 
-    return NXT_OK;
+    return NXT_UNIT_OK;
 }
 
 
@@ -262,12 +264,14 @@ nxt_py_asgi_lifespan_receive(PyObject *self, PyObject *none)
 {
     PyObject                *msg, *future;
     nxt_py_asgi_lifespan_t  *lifespan;
+    nxt_py_asgi_ctx_data_t  *ctx_data;
 
     lifespan = (nxt_py_asgi_lifespan_t *) self;
+    ctx_data = lifespan->ctx_data;
 
     nxt_unit_debug(NULL, "asgi_lifespan_receive");
 
-    future = PyObject_CallObject(nxt_py_loop_create_future, NULL);
+    future = PyObject_CallObject(ctx_data->loop_create_future, NULL);
     if (nxt_slow_path(future == NULL)) {
         nxt_unit_alert(NULL, "Python failed to create Future object");
         nxt_python_print_exception();
@@ -281,7 +285,7 @@ nxt_py_asgi_lifespan_receive(PyObject *self, PyObject *none)
 
         msg = nxt_py_asgi_new_msg(NULL, nxt_py_lifespan_startup_str);
 
-        return nxt_py_asgi_set_result_soon(NULL, future, msg);
+        return nxt_py_asgi_set_result_soon(NULL, ctx_data, future, msg);
     }
 
     if (lifespan->shutdown_called && !lifespan->shutdown_received) {
@@ -289,7 +293,7 @@ nxt_py_asgi_lifespan_receive(PyObject *self, PyObject *none)
 
         msg = nxt_py_asgi_new_msg(NULL, nxt_py_lifespan_shutdown_str);
 
-        return nxt_py_asgi_set_result_soon(NULL, future, msg);
+        return nxt_py_asgi_set_result_soon(NULL, ctx_data, future, msg);
     }
 
     Py_INCREF(future);

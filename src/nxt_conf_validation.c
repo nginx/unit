@@ -95,6 +95,10 @@ static nxt_int_t nxt_conf_vldt_return(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_proxy(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_threads(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_thread_stack_size(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_routes(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_routes_member(nxt_conf_validation_t *vldt,
@@ -489,6 +493,14 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_python_members[] = {
     }, {
         .name       = nxt_string("callable"),
         .type       = NXT_CONF_VLDT_STRING,
+    }, {
+        .name       = nxt_string("threads"),
+        .type       = NXT_CONF_VLDT_INTEGER,
+        .validator  = nxt_conf_vldt_threads,
+    }, {
+        .name       = nxt_string("thread_stack_size"),
+        .type       = NXT_CONF_VLDT_INTEGER,
+        .validator  = nxt_conf_vldt_thread_stack_size,
     },
 
     NXT_CONF_VLDT_NEXT(nxt_conf_vldt_common_members)
@@ -1325,6 +1337,52 @@ nxt_conf_vldt_proxy(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 
     return nxt_conf_vldt_error(vldt, "The \"proxy\" address is invalid \"%V\"",
                                &name);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_threads(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
+{
+    int64_t  threads;
+
+    threads = nxt_conf_get_number(value);
+
+    if (threads < 1) {
+        return nxt_conf_vldt_error(vldt, "The \"threads\" number must be "
+                                   "equal to or greater than 1.");
+    }
+
+    if (threads > NXT_INT32_T_MAX) {
+        return nxt_conf_vldt_error(vldt, "The \"threads\" number must "
+                                   "not exceed %d.", NXT_INT32_T_MAX);
+    }
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_thread_stack_size(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data)
+{
+    int64_t  size;
+
+    size = nxt_conf_get_number(value);
+
+    if (size < PTHREAD_STACK_MIN) {
+        return nxt_conf_vldt_error(vldt, "The \"thread_stack_size\" number "
+                                   "must be equal to or greater than %d.",
+                                   PTHREAD_STACK_MIN);
+    }
+
+    if ((size % nxt_pagesize) != 0) {
+        return nxt_conf_vldt_error(vldt, "The \"thread_stack_size\" number "
+                             "must be a multiple of the system page size (%d).",
+                             nxt_pagesize);
+    }
+
+    return NXT_OK;
 }
 
 

@@ -44,20 +44,25 @@ typedef struct {
     PyObject   **object_p;
 } nxt_python_string_t;
 
+typedef struct {
+    int   (*ctx_data_alloc)(void **pdata);
+    void  (*ctx_data_free)(void *data);
+    int   (*startup)(void *data);
+    int   (*run)(nxt_unit_ctx_t *ctx);
+    int   (*ready)(nxt_unit_ctx_t *ctx);
+    void  (*done)(void);
+} nxt_python_proto_t;
 
-nxt_int_t nxt_python_init_strings(nxt_python_string_t *pstr);
+
+int nxt_python_init_strings(nxt_python_string_t *pstr);
 void nxt_python_done_strings(nxt_python_string_t *pstr);
 
 void nxt_python_print_exception(void);
 
-nxt_int_t nxt_python_wsgi_init(nxt_task_t *task, nxt_unit_init_t *init);
-int nxt_python_wsgi_run(nxt_unit_ctx_t *ctx);
-void nxt_python_wsgi_done(void);
+int nxt_python_wsgi_init(nxt_unit_init_t *init, nxt_python_proto_t *proto);
 
 int nxt_python_asgi_check(PyObject *obj);
-nxt_int_t nxt_python_asgi_init(nxt_task_t *task, nxt_unit_init_t *init);
-nxt_int_t nxt_python_asgi_run(nxt_unit_ctx_t *ctx);
-void nxt_python_asgi_done(void);
+int nxt_python_asgi_init(nxt_unit_init_t *init, nxt_python_proto_t *proto);
 
 
 #endif  /* _NXT_PYTHON_H_INCLUDED_ */
