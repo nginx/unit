@@ -14,14 +14,6 @@
 #define NXT_RUBY_RACK_API_VERSION_MAJOR  1
 #define NXT_RUBY_RACK_API_VERSION_MINOR  3
 
-#define NXT_RUBY_STRINGIZE_HELPER(x)     #x
-#define NXT_RUBY_STRINGIZE(x)            NXT_RUBY_STRINGIZE_HELPER(x)
-
-#define NXT_RUBY_LIB_VERSION                                                   \
-    NXT_RUBY_STRINGIZE(RUBY_API_VERSION_MAJOR)                                 \
-    "." NXT_RUBY_STRINGIZE(RUBY_API_VERSION_MINOR)                             \
-    "." NXT_RUBY_STRINGIZE(RUBY_API_VERSION_TEENY)
-
 
 typedef struct {
     nxt_task_t  *task;
@@ -45,10 +37,8 @@ static void nxt_ruby_request_handler(nxt_unit_request_info_t *req);
 
 static VALUE nxt_ruby_rack_app_run(VALUE arg);
 static int nxt_ruby_read_request(VALUE hash_env);
-nxt_inline void nxt_ruby_add_sptr(VALUE hash_env,
-    const char *name, uint32_t name_len, nxt_unit_sptr_t *sptr, uint32_t len);
-nxt_inline void nxt_ruby_add_str(VALUE hash_env,
-    const char *name, uint32_t name_len, const char *str, uint32_t len);
+nxt_inline void nxt_ruby_add_sptr(VALUE hash_env, VALUE name,
+    nxt_unit_sptr_t *sptr, uint32_t len);
 static nxt_int_t nxt_ruby_rack_result_status(VALUE result);
 static int nxt_ruby_rack_result_headers(VALUE result, nxt_int_t status);
 static int nxt_ruby_hash_info(VALUE r_key, VALUE r_value, VALUE arg);
@@ -86,6 +76,93 @@ NXT_EXPORT nxt_app_module_t  nxt_app_module = {
     nxt_ruby_start,
 };
 
+typedef struct {
+    nxt_str_t  string;
+    VALUE      *v;
+} nxt_ruby_string_t;
+
+static VALUE  nxt_rb_80_str;
+static VALUE  nxt_rb_content_length_str;
+static VALUE  nxt_rb_content_type_str;
+static VALUE  nxt_rb_http_str;
+static VALUE  nxt_rb_https_str;
+static VALUE  nxt_rb_path_info_str;
+static VALUE  nxt_rb_query_string_str;
+static VALUE  nxt_rb_rack_url_scheme_str;
+static VALUE  nxt_rb_remote_addr_str;
+static VALUE  nxt_rb_request_method_str;
+static VALUE  nxt_rb_request_uri_str;
+static VALUE  nxt_rb_server_addr_str;
+static VALUE  nxt_rb_server_name_str;
+static VALUE  nxt_rb_server_port_str;
+static VALUE  nxt_rb_server_protocol_str;
+
+static nxt_ruby_string_t nxt_rb_strings[] = {
+    { nxt_string("80"), &nxt_rb_80_str },
+    { nxt_string("CONTENT_LENGTH"), &nxt_rb_content_length_str },
+    { nxt_string("CONTENT_TYPE"), &nxt_rb_content_type_str },
+    { nxt_string("http"), &nxt_rb_http_str },
+    { nxt_string("https"), &nxt_rb_https_str },
+    { nxt_string("PATH_INFO"), &nxt_rb_path_info_str },
+    { nxt_string("QUERY_STRING"), &nxt_rb_query_string_str },
+    { nxt_string("rack.url_scheme"), &nxt_rb_rack_url_scheme_str },
+    { nxt_string("REMOTE_ADDR"), &nxt_rb_remote_addr_str },
+    { nxt_string("REQUEST_METHOD"), &nxt_rb_request_method_str },
+    { nxt_string("REQUEST_URI"), &nxt_rb_request_uri_str },
+    { nxt_string("SERVER_ADDR"), &nxt_rb_server_addr_str },
+    { nxt_string("SERVER_NAME"), &nxt_rb_server_name_str },
+    { nxt_string("SERVER_PORT"), &nxt_rb_server_port_str },
+    { nxt_string("SERVER_PROTOCOL"), &nxt_rb_server_protocol_str },
+    { nxt_null_string, NULL },
+};
+
+
+static int
+nxt_ruby_init_strings(void)
+{
+    VALUE              v;
+    nxt_ruby_string_t  *pstr;
+
+    pstr = nxt_rb_strings;
+
+    while (pstr->string.start != NULL) {
+        v = rb_str_new_static((char *) pstr->string.start, pstr->string.length);
+
+        if (nxt_slow_path(v == Qnil)) {
+            nxt_unit_alert(NULL, "Ruby: failed to create const string '%.*s'",
+                           (int) pstr->string.length,
+                           (char *) pstr->string.start);
+
+            return NXT_UNIT_ERROR;
+        }
+
+        *pstr->v = v;
+
+        rb_gc_register_address(pstr->v);
+
+        pstr++;
+    }
+
+    return NXT_UNIT_OK;
+}
+
+
+static void
+nxt_ruby_done_strings(void)
+{
+    nxt_ruby_string_t  *pstr;
+
+    pstr = nxt_rb_strings;
+
+    while (pstr->string.start != NULL) {
+        rb_gc_unregister_address(pstr->v);
+
+        *pstr->v = Qnil;
+
+        pstr++;
+    }
+}
+
 
 static nxt_int_t
 nxt_ruby_start(nxt_task_t *task, nxt_process_data_t *data)
@@ -108,6 +185,8 @@ nxt_ruby_start(nxt_task_t *task, nxt_process_data_t *data)
 
     rack_init.task = task;
     rack_init.script = &conf->u.ruby.script;
+
+    nxt_ruby_init_strings();
 
     res = rb_protect(nxt_ruby_init_basic,
                      (VALUE) (uintptr_t) &rack_init, &state);
@@ -440,78 +519,69 @@ fail:
 static int
 nxt_ruby_read_request(VALUE hash_env)
 {
+    VALUE               name;
     uint32_t            i;
     nxt_unit_field_t    *f;
     nxt_unit_request_t  *r;
 
     r = nxt_ruby_run_ctx.req->request;
 
-#define NL(S) (S), sizeof(S)-1
-
-    nxt_ruby_add_sptr(hash_env, NL("REQUEST_METHOD"), &r->method,
+    nxt_ruby_add_sptr(hash_env, nxt_rb_request_method_str, &r->method,
                       r->method_length);
-    nxt_ruby_add_sptr(hash_env, NL("REQUEST_URI"), &r->target,
+    nxt_ruby_add_sptr(hash_env, nxt_rb_request_uri_str, &r->target,
                       r->target_length);
-    nxt_ruby_add_sptr(hash_env, NL("PATH_INFO"), &r->path, r->path_length);
-    nxt_ruby_add_sptr(hash_env, NL("QUERY_STRING"), &r->query,
+    nxt_ruby_add_sptr(hash_env, nxt_rb_path_info_str, &r->path, r->path_length);
+    nxt_ruby_add_sptr(hash_env, nxt_rb_query_string_str, &r->query,
                       r->query_length);
-    nxt_ruby_add_sptr(hash_env, NL("SERVER_PROTOCOL"), &r->version,
+    nxt_ruby_add_sptr(hash_env, nxt_rb_server_protocol_str, &r->version,
                       r->version_length);
-    nxt_ruby_add_sptr(hash_env, NL("REMOTE_ADDR"), &r->remote,
+    nxt_ruby_add_sptr(hash_env, nxt_rb_remote_addr_str, &r->remote,
                       r->remote_length);
-    nxt_ruby_add_sptr(hash_env, NL("SERVER_ADDR"), &r->local, r->local_length);
-
-    nxt_ruby_add_sptr(hash_env, NL("SERVER_NAME"), &r->server_name,
+    nxt_ruby_add_sptr(hash_env, nxt_rb_server_addr_str, &r->local,
+                      r->local_length);
+    nxt_ruby_add_sptr(hash_env, nxt_rb_server_name_str, &r->server_name,
                       r->server_name_length);
-    nxt_ruby_add_str(hash_env, NL("SERVER_PORT"), "80", 2);
 
-    rb_hash_aset(hash_env, rb_str_new2("rack.url_scheme"),
-                 r->tls ? rb_str_new2("https") : rb_str_new2("http"));
+    rb_hash_aset(hash_env, nxt_rb_server_port_str, nxt_rb_80_str);
+
+    rb_hash_aset(hash_env, nxt_rb_rack_url_scheme_str,
+                 r->tls ? nxt_rb_https_str : nxt_rb_http_str);
 
     for (i = 0; i < r->fields_count; i++) {
         f = r->fields + i;
 
-        nxt_ruby_add_sptr(hash_env, nxt_unit_sptr_get(&f->name), f->name_length,
-                          &f->value, f->value_length);
+        name = rb_str_new(nxt_unit_sptr_get(&f->name), f->name_length);
+
+        nxt_ruby_add_sptr(hash_env, name, &f->value, f->value_length);
     }
 
     if (r->content_length_field != NXT_UNIT_NONE_FIELD) {
         f = r->fields + r->content_length_field;
 
-        nxt_ruby_add_sptr(hash_env, NL("CONTENT_LENGTH"),
+        nxt_ruby_add_sptr(hash_env, nxt_rb_content_length_str,
                           &f->value, f->value_length);
     }
 
     if (r->content_type_field != NXT_UNIT_NONE_FIELD) {
         f = r->fields + r->content_type_field;
 
-        nxt_ruby_add_sptr(hash_env, NL("CONTENT_TYPE"),
+        nxt_ruby_add_sptr(hash_env, nxt_rb_content_type_str,
                           &f->value, f->value_length);
     }
-
-#undef NL
 
     return NXT_UNIT_OK;
 }
 
 
 nxt_inline void
-nxt_ruby_add_sptr(VALUE hash_env,
-    const char *name, uint32_t name_len, nxt_unit_sptr_t *sptr, uint32_t len)
+nxt_ruby_add_sptr(VALUE hash_env, VALUE name,
+    nxt_unit_sptr_t *sptr, uint32_t len)
 {
     char  *str;
 
     str = nxt_unit_sptr_get(sptr);
 
-    rb_hash_aset(hash_env, rb_str_new(name, name_len), rb_str_new(str, len));
-}
-
-
-nxt_inline void
-nxt_ruby_add_str(VALUE hash_env,
-    const char *name, uint32_t name_len, const char *str, uint32_t len)
-{
-    rb_hash_aset(hash_env, rb_str_new(name, name_len), rb_str_new(str, len));
+    rb_hash_aset(hash_env, name, rb_str_new(str, len));
 }
 
 
@@ -900,6 +970,8 @@ nxt_ruby_atexit(void)
     rb_gc_unregister_address(&nxt_ruby_rackup);
     rb_gc_unregister_address(&nxt_ruby_call);
     rb_gc_unregister_address(&nxt_ruby_env);
+
+    nxt_ruby_done_strings();
 
     ruby_cleanup(0);
 }
