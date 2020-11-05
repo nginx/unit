@@ -233,6 +233,18 @@ static nxt_conf_map_t  nxt_perl_app_conf[] = {
         NXT_CONF_MAP_CSTRZ,
         offsetof(nxt_common_app_conf_t, u.perl.script),
     },
+
+    {
+        nxt_string("threads"),
+        NXT_CONF_MAP_INT32,
+        offsetof(nxt_common_app_conf_t, u.perl.threads),
+    },
+
+    {
+        nxt_string("thread_stack_size"),
+        NXT_CONF_MAP_INT32,
+        offsetof(nxt_common_app_conf_t, u.perl.thread_stack_size),
+    },
 };
 
 

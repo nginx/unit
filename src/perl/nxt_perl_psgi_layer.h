@@ -14,7 +14,7 @@
 #include <perliol.h>
 
 
-typedef struct nxt_perl_psgi_io_arg nxt_perl_psgi_io_arg_t;
+typedef struct nxt_perl_psgi_io_arg_s nxt_perl_psgi_io_arg_t;
 
 typedef long (*nxt_perl_psgi_io_read_f)(PerlInterpreter *my_perl,
     nxt_perl_psgi_io_arg_t *arg, void *vbuf, size_t length);
@@ -24,7 +24,7 @@ typedef long (*nxt_perl_psgi_io_arg_f)(PerlInterpreter *my_perl,
     nxt_perl_psgi_io_arg_t *arg);
 
 
-struct nxt_perl_psgi_io_arg {
+struct nxt_perl_psgi_io_arg_s {
     SV                        *io;
     PerlIO                    *fp;
 
@@ -32,7 +32,7 @@ struct nxt_perl_psgi_io_arg {
     nxt_perl_psgi_io_read_f   read;
     nxt_perl_psgi_io_write_f  write;
 
-    void                      *ctx;
+    void                      *pctx;
 };
 
 

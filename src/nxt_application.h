@@ -64,6 +64,8 @@ typedef struct {
 
 typedef struct {
     char       *script;
+    uint32_t   threads;
+    uint32_t   thread_stack_size;
 } nxt_perl_app_conf_t;
 
 
