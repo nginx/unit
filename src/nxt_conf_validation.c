@@ -615,6 +615,10 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_ruby_members[] = {
         .name       = nxt_string("script"),
         .type       = NXT_CONF_VLDT_STRING,
         .flags      = NXT_CONF_VLDT_REQUIRED,
+    }, {
+        .name       = nxt_string("threads"),
+        .type       = NXT_CONF_VLDT_INTEGER,
+        .validator  = nxt_conf_vldt_threads,
     },
 
     NXT_CONF_VLDT_NEXT(nxt_conf_vldt_common_members)

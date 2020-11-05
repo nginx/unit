@@ -21,9 +21,13 @@
 
 
 typedef struct {
-    nxt_unit_ctx_t           *unit_ctx;
+    VALUE                    env;
+    VALUE                    io_input;
+    VALUE                    io_error;
+    VALUE                    thread;
+    nxt_unit_ctx_t           *ctx;
     nxt_unit_request_info_t  *req;
-} nxt_ruby_run_ctx_t;
+} nxt_ruby_ctx_t;
 
 
 VALUE nxt_ruby_stream_io_input_init(void);

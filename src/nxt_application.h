@@ -69,6 +69,7 @@ typedef struct {
 
 typedef struct {
     nxt_str_t  script;
+    uint32_t   threads;
 } nxt_ruby_app_conf_t;
 
 
