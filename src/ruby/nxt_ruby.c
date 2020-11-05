@@ -1150,6 +1150,8 @@ nxt_ruby_ready_handler(nxt_unit_ctx_t *ctx)
 
         } else {
             nxt_unit_alert(ctx, "thread #%d create failed", (int) (i + 1));
+
+            return NXT_UNIT_ERROR;
         }
     }
 
@@ -1253,7 +1255,7 @@ nxt_ruby_join_threads(nxt_unit_ctx_t *ctx, nxt_ruby_app_conf_t *c)
         return;
     }
 
-    for(i = 0; i < c->threads - 1; i++) {
+    for (i = 0; i < c->threads - 1; i++) {
         rctx = &nxt_ruby_ctxs[i];
 
         if (rctx->thread != Qnil) {
@@ -1264,8 +1266,10 @@ nxt_ruby_join_threads(nxt_unit_ctx_t *ctx, nxt_ruby_app_conf_t *c)
         } else {
             nxt_unit_debug(ctx, "thread #%d not started", (int) (i + 1));
         }
+    }
 
-        nxt_ruby_ctx_done(rctx);
+    for (i = 0; i < c->threads - 1; i++) {
+        nxt_ruby_ctx_done(&nxt_ruby_ctxs[i]);
     }
 
     nxt_unit_free(ctx, nxt_ruby_ctxs);
