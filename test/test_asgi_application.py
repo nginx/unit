@@ -406,16 +406,16 @@ Connection: close
         self.load('threads')
 
         assert 'success' in self.conf(
-            '4', 'applications/threads/threads'
-        ), 'configure 4 threads'
+            '2', 'applications/threads/threads'
+        ), 'configure 2 threads'
 
         socks = []
 
-        for i in range(4):
+        for i in range(2):
             (_, sock) = self.get(
                 headers={
                     'Host': 'localhost',
-                    'X-Delay': '2',
+                    'X-Delay': '3',
                     'Connection': 'close',
                 },
                 no_recv=True,
@@ -424,7 +424,7 @@ Connection: close
 
             socks.append(sock)
 
-            time.sleep(0.25) # required to avoid greedy request reading
+            time.sleep(1.0) # required to avoid greedy request reading
 
         threads = set()
 
