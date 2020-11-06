@@ -313,7 +313,7 @@ NXT_JAVA_LIBJVM="$NXT_JAVA_LIB_SERVER_PATH/libjvm.so"
 if [ "$NXT_SYSTEM" = "Darwin" ]; then
 NXT_JAVA_LIBC_DIR="/usr/lib"
 else
-NXT_JAVA_LIBC_DIR=`ldd "$NXT_JAVA_LIBJVM" | grep -E "libc.so|libc.musl-x86_64.so.1" | cut -d' ' -f3`
+NXT_JAVA_LIBC_DIR=`ldd "$NXT_JAVA_LIBJVM" | grep -E "libc.so|libc.musl-x86_64.so" | cut -d' ' -f3`
 NXT_JAVA_LIBC_DIR=`dirname $NXT_JAVA_LIBC_DIR`
 fi
 
