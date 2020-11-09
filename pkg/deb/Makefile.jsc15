@@ -1,0 +1,71 @@
+MODULES+=		jsc15
+MODULE_SUFFIX_jsc15=	jsc15
+
+MODULE_SUMMARY_jsc15=	Java 15 module for NGINX Unit
+
+MODULE_VERSION_jsc15=	$(VERSION)
+MODULE_RELEASE_jsc15=	1
+
+MODULE_CONFARGS_jsc15=	java --module=java15 --home=/usr/lib/jvm/java-15-openjdk-$$\(DEB_HOST_ARCH\) --jars=/usr/share/unit-jsc-common/
+MODULE_MAKEARGS_jsc15=	java15
+MODULE_INSTARGS_jsc15=	java15-install
+
+MODULE_SOURCES_jsc15=	unit.example-jsc-app \
+			unit.example-jsc15-config
+
+BUILD_DEPENDS_jsc15=	openjdk-15-jdk-headless openjdk-15-jre-headless
+BUILD_DEPENDS+=		$(BUILD_DEPENDS_jsc15)
+
+MODULE_BUILD_DEPENDS_jsc15=,openjdk-15-jdk-headless
+MODULE_DEPENDS_jsc15=,openjdk-15-jre-headless,unit-jsc-common (= $(MODULE_VERSION_jsc_common)-$(MODULE_RELEASE_jsc_common)~$(CODENAME))
+
+define MODULE_PREINSTALL_jsc15
+	mkdir -p debian/unit-jsc15/usr/share/doc/unit-jsc15/examples/jsc-app
+	install -m 644 -p debian/unit.example-jsc-app debian/unit-jsc15/usr/share/doc/unit-jsc15/examples/jsc-app/index.jsp
+	install -m 644 -p debian/unit.example-jsc15-config debian/unit-jsc15/usr/share/doc/unit-jsc15/examples/unit.config
+	install -m 644 -p src/java/README.JSR-340 debian/unit-jsc15/usr/share/doc/unit-jsc15/
+endef
+export MODULE_PREINSTALL_jsc15
+
+define MODULE_POSTINSTALL_jsc15
+	cd $$\(BUILDDIR_unit\) \&\& \
+        DESTDIR=$$\(INSTALLDIR\) make java-shared-uninstall
+endef
+export MODULE_POSTINSTALL_jsc15
+
+define MODULE_POST_jsc15
+cat <<BANNER
+----------------------------------------------------------------------
+
+The $(MODULE_SUMMARY_jsc15) has been installed.
+
+To check out the sample app, run these commands:
+
+ sudo service unit restart
+ cd /usr/share/doc/unit-$(MODULE_SUFFIX_jsc15)/examples
+ sudo curl -X PUT --data-binary @unit.config --unix-socket /var/run/control.unit.sock http://localhost/config
+ curl http://localhost:8800/
+
+Online documentation is available at https://unit.nginx.org
+
+NOTICE:
+
+This version of Unit code is made available in support of the open source
+development process.  This is an intermediate build made available for
+testing purposes only.  This Unit code is untested and presumed incompatible
+with the JSR 340 Java Servlet 3.1 specification.  You should not deploy or
+write to this code.  You should instead deploy and write production
+applications on pre-built binaries that have been tested and certified
+to meet the JSR-340 compatibility requirements such as certified binaries
+published for the JSR-340 reference implementation available at
+https://javaee.github.io/glassfish/.
+
+Redistribution of any Intermediate Build must retain this notice.
+
+Oracle and Java are registered trademarks of Oracle and/or its affiliates.
+Other names may be trademarks of their respective owners.
+
+----------------------------------------------------------------------
+BANNER
+endef
+export MODULE_POST_jsc15

@@ -16,6 +16,21 @@ BUILD_DEPENDS = $(BUILD_DEPENDS_unit)
 
 MODULES=
 
+# Ubuntu 20.10
+ifeq ($(CODENAME),groovy)
+include Makefile.php
+include Makefile.python27
+include Makefile.python38
+include Makefile.go
+include Makefile.perl
+include Makefile.ruby
+include Makefile.jsc-common
+include Makefile.jsc11
+include Makefile.jsc13
+include Makefile.jsc14
+include Makefile.jsc15
+endif
+
 # Ubuntu 20.04
 ifeq ($(CODENAME),focal)
 include Makefile.php
