@@ -197,11 +197,6 @@ custom-header: BLAH
         assert resp['body'] == body, 'keep-alive 2'
 
     def test_python_keepalive_reconfigure(self):
-        skip_alert(
-            r'pthread_mutex.+failed',
-            r'failed to apply',
-            r'process \d+ exited on signal',
-        )
         self.load('mirror')
 
         assert self.get()['status'] == 200, 'init'
@@ -223,9 +218,8 @@ custom-header: BLAH
             )
 
             assert resp['body'] == body, 'keep-alive open'
-            assert 'success' in self.conf(
-                str(i + 1), 'applications/mirror/processes'
-            ), 'reconfigure'
+
+            self.load('mirror', processes=i + 1)
 
             socks.append(sock)
 
@@ -243,9 +237,8 @@ custom-header: BLAH
             )
 
             assert resp['body'] == body, 'keep-alive request'
-            assert 'success' in self.conf(
-                str(i + 1), 'applications/mirror/processes'
-            ), 'reconfigure 2'
+
+            self.load('mirror', processes=i + 1)
 
         for i in range(conns):
             resp = self.post(
@@ -259,9 +252,8 @@ custom-header: BLAH
             )
 
             assert resp['body'] == body, 'keep-alive close'
-            assert 'success' in self.conf(
-                str(i + 1), 'applications/mirror/processes'
-            ), 'reconfigure 3'
+
+            self.load('mirror', processes=i + 1)
 
     def test_python_keepalive_reconfigure_2(self):
         self.load('mirror')
@@ -351,11 +343,7 @@ Connection: close
         assert self.wait_for_record(r'At exit called\.') is not None, 'atexit'
 
     def test_python_process_switch(self):
-        self.load('delayed')
-
-        assert 'success' in self.conf(
-            '2', 'applications/delayed/processes'
-        ), 'configure 2 processes'
+        self.load('delayed', processes=2)
 
         self.get(
             headers={
@@ -541,9 +529,7 @@ last line: 987654321
     def test_python_application_loading_error(self):
         skip_alert(r'Python failed to import module "blah"')
 
-        self.load('empty')
-
-        assert 'success' in self.conf('"blah"', 'applications/empty/module')
+        self.load('empty', module="blah")
 
         assert self.get()['status'] == 503, 'loading error'
 
@@ -811,34 +797,16 @@ last line: 987654321
 
         assert self.get()['status'] == 204, 'default application response'
 
-        assert 'success' in self.conf(
-            '"app"', 'applications/callable/callable'
-        )
+        self.load('callable', callable="app")
 
         assert self.get()['status'] == 200, 'callable response'
 
-        assert 'success' in self.conf(
-            '"blah"', 'applications/callable/callable'
-        )
+        self.load('callable', callable="blah")
 
         assert self.get()['status'] not in [200, 204], 'callable response inv'
 
-        assert 'success' in self.conf(
-            '"app"', 'applications/callable/callable'
-        )
-
-        assert self.get()['status'] == 200, 'callable response 2'
-
-        assert 'success' in self.conf_delete('applications/callable/callable')
-
-        assert self.get()['status'] == 204, 'default response 2'
-
     def test_python_application_threads(self):
-        self.load('threads')
-
-        assert 'success' in self.conf(
-            '4', 'applications/threads/threads'
-        ), 'configure 4 threads'
+        self.load('threads', threads=4)
 
         socks = []
 

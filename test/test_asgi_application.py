@@ -137,23 +137,17 @@ custom-header: BLAH
         ), '204 header transfer encoding'
 
     def test_asgi_application_shm_ack_handle(self):
-        self.load('mirror')
-
         # Minimum possible limit
         shm_limit = 10 * 1024 * 1024
 
-        assert (
-            'success' in self.conf('{"shm": ' + str(shm_limit) + '}',
-                                 'applications/mirror/limits')
-        )
+        self.load('mirror', limits={"shm": shm_limit})
 
         # Should exceed shm_limit
         max_body_size = 12 * 1024 * 1024
 
-        assert (
-            'success' in self.conf('{"http":{"max_body_size": '
-                                  + str(max_body_size) + ' }}',
-                                 'settings')
+        assert 'success' in self.conf(
+            '{"http":{"max_body_size": ' + str(max_body_size) + ' }}',
+            'settings'
         )
 
         assert self.get()['status'] == 200, 'init'
@@ -204,11 +198,6 @@ custom-header: BLAH
         assert resp['body'] == body, 'keep-alive 2'
 
     def test_asgi_keepalive_reconfigure(self):
-        skip_alert(
-            r'pthread_mutex.+failed',
-            r'failed to apply',
-            r'process \d+ exited on signal',
-        )
         self.load('mirror')
 
         assert self.get()['status'] == 200, 'init'
@@ -230,9 +219,8 @@ custom-header: BLAH
             )
 
             assert resp['body'] == body, 'keep-alive open'
-            assert 'success' in self.conf(
-                str(i + 1), 'applications/mirror/processes'
-            ), 'reconfigure'
+
+            self.load('mirror', processes=i + 1)
 
             socks.append(sock)
 
@@ -250,9 +238,8 @@ custom-header: BLAH
             )
 
             assert resp['body'] == body, 'keep-alive request'
-            assert 'success' in self.conf(
-                str(i + 1), 'applications/mirror/processes'
-            ), 'reconfigure 2'
+
+            self.load('mirror', processes=i + 1)
 
         for i in range(conns):
             resp = self.post(
@@ -266,9 +253,8 @@ custom-header: BLAH
             )
 
             assert resp['body'] == body, 'keep-alive close'
-            assert 'success' in self.conf(
-                str(i + 1), 'applications/mirror/processes'
-            ), 'reconfigure 3'
+
+            self.load('mirror', processes=i + 1)
 
     def test_asgi_keepalive_reconfigure_2(self):
         self.load('mirror')
@@ -347,11 +333,7 @@ Connection: close
         assert resp['status'] == 200, 'reconfigure 3'
 
     def test_asgi_process_switch(self):
-        self.load('delayed')
-
-        assert 'success' in self.conf(
-            '2', 'applications/delayed/processes'
-        ), 'configure 2 processes'
+        self.load('delayed', processes=2)
 
         self.get(
             headers={
@@ -382,9 +364,7 @@ Connection: close
     def test_asgi_application_loading_error(self):
         skip_alert(r'Python failed to import module "blah"')
 
-        self.load('empty')
-
-        assert 'success' in self.conf('"blah"', 'applications/empty/module')
+        self.load('empty', module="blah")
 
         assert self.get()['status'] == 503, 'loading error'
 
@@ -403,11 +383,7 @@ Connection: close
         ), 'last thread finished'
 
     def test_asgi_application_threads(self):
-        self.load('threads')
-
-        assert 'success' in self.conf(
-            '2', 'applications/threads/threads'
-        ), 'configure 2 threads'
+        self.load('threads', threads=2)
 
         socks = []
 
