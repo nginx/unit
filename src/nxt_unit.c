@@ -1357,8 +1357,14 @@ nxt_unit_process_req_body(nxt_unit_ctx_t *ctx, nxt_unit_recv_msg_t *recv_msg)
     if (recv_msg->incoming_buf != NULL) {
         b = nxt_container_of(req->content_buf, nxt_unit_mmap_buf_t, buf);
 
+        while (b->next != NULL) {
+            b = b->next;
+        }
+
         /* "Move" incoming buffer list to req_impl. */
-        nxt_unit_mmap_buf_insert_tail(&b->next, recv_msg->incoming_buf);
+        b->next = recv_msg->incoming_buf;
+        b->next->prev = &b->next;
+
         recv_msg->incoming_buf = NULL;
     }
 
@@ -2987,8 +2993,6 @@ nxt_unit_request_read(nxt_unit_request_info_t *req, void *dst, size_t size)
 
     buf_res = nxt_unit_buf_read(&req->content_buf, &req->content_length,
                                 dst, size);
-
-    nxt_unit_req_debug(req, "read: %d", (int) buf_res);
 
     if (buf_res < (ssize_t) size && req->content_fd != -1) {
         res = read(req->content_fd, dst, size);
