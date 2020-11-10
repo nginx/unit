@@ -68,4 +68,6 @@ int nxt_py_asgi_lifespan_startup(nxt_py_asgi_ctx_data_t *ctx_data);
 int nxt_py_asgi_lifespan_shutdown(nxt_unit_ctx_t *ctx);
 
 
+extern int  nxt_py_asgi_legacy;
+
 #endif  /* _NXT_PYTHON_ASGI_H_INCLUDED_ */

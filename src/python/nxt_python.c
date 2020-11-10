@@ -68,6 +68,7 @@ nxt_python_start(nxt_task_t *task, nxt_process_data_t *data)
     char                   *nxt_py_module;
     size_t                 len;
     PyObject               *obj, *pypath, *module;
+    nxt_str_t              proto;
     const char             *callable;
     nxt_unit_ctx_t         *unit_ctx;
     nxt_unit_init_t        python_init;
@@ -81,6 +82,9 @@ nxt_python_start(nxt_task_t *task, nxt_process_data_t *data)
     static const char pyvenv[] = "/pyvenv.cfg";
     static const char bin_python[] = "/bin/python";
 #endif
+
+    static const nxt_str_t  wsgi = nxt_string("wsgi");
+    static const nxt_str_t  asgi = nxt_string("asgi");
 
     app_conf = data->app;
     c = &app_conf->u.python;
@@ -244,7 +248,13 @@ nxt_python_start(nxt_task_t *task, nxt_process_data_t *data)
     python_init.shm_limit = data->app->shm_limit;
     python_init.callbacks.ready_handler = nxt_python_ready_handler;
 
-    if (nxt_python_asgi_check(nxt_py_application)) {
+    proto = c->protocol;
+
+    if (proto.length == 0) {
+        proto = nxt_python_asgi_check(nxt_py_application) ? asgi : wsgi;
+    }
+
+    if (nxt_strstr_eq(&proto, &asgi)) {
         rc = nxt_python_asgi_init(&python_init, &nxt_py_proto);
 
     } else {

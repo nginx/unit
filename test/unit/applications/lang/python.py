@@ -42,7 +42,8 @@ class TestApplicationPython(TestApplicationProto):
             "module": module,
         }
 
-        for attr in ('callable', 'home', 'limits', 'path', 'threads'):
+        for attr in ('callable', 'home', 'limits', 'path', 'protocol',
+                     'threads'):
             if attr in kwargs:
                 app[attr] = kwargs.pop(attr)
 

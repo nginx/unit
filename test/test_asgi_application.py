@@ -418,3 +418,29 @@ Connection: close
             sock.close()
 
         assert len(socks) == len(threads), 'threads differs'
+
+    def test_asgi_application_legacy(self):
+        self.load('legacy')
+
+        resp = self.get(
+            headers={
+                'Host': 'localhost',
+                'Content-Length': '0',
+                'Connection': 'close',
+            },
+        )
+
+        assert resp['status'] == 200, 'status'
+
+    def test_asgi_application_legacy_force(self):
+        self.load('legacy_force', protocol='asgi')
+
+        resp = self.get(
+            headers={
+                'Host': 'localhost',
+                'Content-Length': '0',
+                'Connection': 'close',
+            },
+        )
+
+        assert resp['status'] == 200, 'status'
