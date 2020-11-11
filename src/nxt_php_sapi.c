@@ -8,6 +8,7 @@
 #include "SAPI.h"
 #include "php_main.h"
 #include "php_variables.h"
+#include "ext/standard/php_standard.h"
 
 #include <nxt_main.h>
 #include <nxt_router.h>
@@ -137,8 +138,30 @@ static int nxt_php_read_post(char *buffer, uint count_bytes TSRMLS_DC);
 #endif
 
 
+#ifdef NXT_PHP7
+#if PHP_VERSION_ID < 70200
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_fastcgi_finish_request, 0, 0,
+                                        _IS_BOOL, NULL, 0)
+#else
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_fastcgi_finish_request, 0, 0,
+                                        _IS_BOOL, 0)
+#endif
+#else /* PHP5 */
+ZEND_BEGIN_ARG_INFO_EX(arginfo_fastcgi_finish_request, 0, 0, 0)
+#endif
+ZEND_END_ARG_INFO()
+
+ZEND_FUNCTION(fastcgi_finish_request);
+
 PHP_MINIT_FUNCTION(nxt_php_ext);
 ZEND_NAMED_FUNCTION(nxt_php_chdir);
+
+
+static const zend_function_entry  nxt_php_ext_functions[] = {
+    ZEND_FE(fastcgi_finish_request, arginfo_fastcgi_finish_request)
+    ZEND_FE_END
+};
+
 
 zif_handler  nxt_php_chdir_handler;
 
@@ -146,7 +169,7 @@ zif_handler  nxt_php_chdir_handler;
 static zend_module_entry  nxt_php_unit_module = {
     STANDARD_MODULE_HEADER,
     "unit",
-    NULL,                        /* function table */
+    nxt_php_ext_functions,       /* function table */
     PHP_MINIT(nxt_php_ext),      /* initialization */
     NULL,                        /* shutdown */
     NULL,                        /* request initialization */
@@ -183,6 +206,55 @@ ZEND_NAMED_FUNCTION(nxt_php_chdir)
     ctx->chdir = 1;
 
     nxt_php_chdir_handler(INTERNAL_FUNCTION_PARAM_PASSTHRU);
+}
+
+
+PHP_FUNCTION(fastcgi_finish_request)
+{
+    nxt_php_run_ctx_t  *ctx;
+
+    if (nxt_slow_path(zend_parse_parameters_none() == FAILURE)) {
+#ifdef NXT_PHP8
+        RETURN_THROWS();
+#else
+        return;
+#endif
+    }
+
+    ctx = SG(server_context);
+
+    if (nxt_slow_path(ctx->req == NULL)) {
+        RETURN_FALSE;
+    }
+
+#ifdef NXT_PHP7
+    php_output_end_all();
+    php_header();
+#else
+#ifdef PHP_OUTPUT_NEWAPI
+    php_output_end_all(TSRMLS_C);
+#else
+    php_end_ob_buffers(1 TSRMLS_CC);
+#endif
+
+    php_header(TSRMLS_C);
+#endif
+
+    nxt_unit_request_done(ctx->req, NXT_UNIT_OK);
+    ctx->req = NULL;
+
+    PG(connection_status) = PHP_CONNECTION_ABORTED;
+#ifdef NXT_PHP7
+    php_output_set_status(PHP_OUTPUT_DISABLED);
+#else
+#ifdef PHP_OUTPUT_NEWAPI
+    php_output_set_status(PHP_OUTPUT_DISABLED TSRMLS_CC);
+#else
+    php_output_set_status(0 TSRMLS_CC);
+#endif
+#endif
+
+    RETURN_TRUE;
 }
 
 
@@ -1003,7 +1075,9 @@ nxt_php_execute(nxt_php_run_ctx_t *ctx, nxt_unit_request_t *r)
 
     php_request_shutdown(NULL);
 
-    nxt_unit_request_done(ctx->req, NXT_UNIT_OK);
+    if (ctx->req != NULL) {
+        nxt_unit_request_done(ctx->req, NXT_UNIT_OK);
+    }
 
 #if (PHP_VERSION_ID < 50600)
     sapi_module.read_post = read_post;
