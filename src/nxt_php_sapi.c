@@ -934,6 +934,9 @@ nxt_php_dynamic_request(nxt_php_run_ctx_t *ctx, nxt_unit_request_t *r)
 static void
 nxt_php_execute(nxt_php_run_ctx_t *ctx, nxt_unit_request_t *r)
 {
+#if (PHP_VERSION_ID < 50600)
+    void              *read_post;
+#endif
     nxt_unit_field_t  *f;
     zend_file_handle  file_handle;
 
@@ -990,9 +993,21 @@ nxt_php_execute(nxt_php_run_ctx_t *ctx, nxt_unit_request_t *r)
 
     php_execute_script(&file_handle TSRMLS_CC);
 
+    /* Prevention of consuming possible unread request body. */
+#if (PHP_VERSION_ID < 50600)
+    read_post = sapi_module.read_post;
+    sapi_module.read_post = NULL;
+#else
+    SG(post_read) = 1;
+#endif
+
     php_request_shutdown(NULL);
 
     nxt_unit_request_done(ctx->req, NXT_UNIT_OK);
+
+#if (PHP_VERSION_ID < 50600)
+    sapi_module.read_post = read_post;
+#endif
 }
 
 
