@@ -484,16 +484,23 @@ nxt_isolation_set_automount(nxt_task_t *task, nxt_conf_value_t *isolation,
 
     static nxt_str_t  automount_name = nxt_string("automount");
     static nxt_str_t  langdeps_name = nxt_string("language_deps");
+    static nxt_str_t  tmp_name = nxt_string("tmpfs");
 
     automount = &process->isolation.automount;
 
     automount->language_deps = 1;
+    automount->tmpfs = 1;
 
     conf = nxt_conf_get_object_member(isolation, &automount_name, NULL);
     if (conf != NULL) {
         value = nxt_conf_get_object_member(conf, &langdeps_name, NULL);
         if (value != NULL) {
             automount->language_deps = nxt_conf_get_boolean(value);
+        }
+
+        value = nxt_conf_get_object_member(conf, &tmp_name, NULL);
+        if (value != NULL) {
+            automount->tmpfs = nxt_conf_get_boolean(value);
         }
     }
 
@@ -576,28 +583,31 @@ nxt_isolation_set_lang_mounts(nxt_task_t *task, nxt_process_t *process,
         *p = '\0';
     }
 
-    mnt = nxt_array_add(mounts);
-    if (nxt_slow_path(mnt == NULL)) {
-        return NXT_ERROR;
+    if (process->isolation.automount.tmpfs) {
+        mnt = nxt_array_add(mounts);
+        if (nxt_slow_path(mnt == NULL)) {
+            return NXT_ERROR;
+        }
+
+        mnt->src = (u_char *) "tmpfs";
+        mnt->name = (u_char *) "tmpfs";
+        mnt->type = NXT_FS_TMP;
+        mnt->flags = (NXT_FS_FLAGS_NOSUID
+                      | NXT_FS_FLAGS_NODEV
+                      | NXT_FS_FLAGS_NOEXEC);
+        mnt->data = (u_char *) "size=1m,mode=777";
+        mnt->builtin = 1;
+        mnt->deps = 0;
+
+        mnt->dst = nxt_mp_nget(mp, rootfs_len + nxt_length("/tmp") + 1);
+        if (nxt_slow_path(mnt->dst == NULL)) {
+            return NXT_ERROR;
+        }
+
+        p = nxt_cpymem(mnt->dst, rootfs, rootfs_len);
+        p = nxt_cpymem(p, "/tmp", 4);
+        *p = '\0';
     }
-
-    mnt->src = (u_char *) "tmpfs";
-    mnt->name = (u_char *) "tmpfs";
-    mnt->type = NXT_FS_TMP;
-    mnt->flags = (NXT_FS_FLAGS_NOSUID | NXT_FS_FLAGS_NODEV
-                  | NXT_FS_FLAGS_NOEXEC);
-    mnt->data = (u_char *) "size=1m,mode=777";
-    mnt->builtin = 1;
-    mnt->deps = 0;
-
-    mnt->dst = nxt_mp_nget(mp, rootfs_len + nxt_length("/tmp") + 1);
-    if (nxt_slow_path(mnt->dst == NULL)) {
-        return NXT_ERROR;
-    }
-
-    p = nxt_cpymem(mnt->dst, rootfs, rootfs_len);
-    p = nxt_cpymem(p, "/tmp", 4);
-    *p = '\0';
 
     mnt = nxt_array_add(mounts);
     if (nxt_slow_path(mnt == NULL)) {

@@ -841,6 +841,9 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_automount_members[] = {
     {
         .name       = nxt_string("language_deps"),
         .type       = NXT_CONF_VLDT_BOOLEAN,
+    }, {
+        .name       = nxt_string("tmpfs"),
+        .type       = NXT_CONF_VLDT_BOOLEAN,
     },
 
     NXT_CONF_VLDT_END
