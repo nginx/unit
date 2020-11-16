@@ -730,7 +730,7 @@ last line: 987654321
 
         try:
             group_id = grp.getgrnam(group).gr_gid
-        except:
+        except KeyError:
             group = 'nogroup'
             group_id = grp.getgrnam(group).gr_gid
 
@@ -775,7 +775,7 @@ last line: 987654321
         try:
             grp.getgrnam(group)
             group = True
-        except:
+        except KeyError:
             group = False
 
         if group:

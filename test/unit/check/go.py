@@ -25,5 +25,8 @@ def check_go(current_dir, temp_dir, test_dir):
         if process.returncode == 0:
             return True
 
+    except KeyboardInterrupt:
+        raise
+
     except:
         return None

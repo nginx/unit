@@ -36,7 +36,7 @@ class TestGoIsolation(TestApplicationGo):
         try:
             nogroup_gid = grp.getgrnam('nogroup').gr_gid
             nogroup = 'nogroup'
-        except:
+        except KeyError:
             nogroup_gid = grp.getgrnam('nobody').gr_gid
             nogroup = 'nobody'
 

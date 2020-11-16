@@ -215,7 +215,7 @@ def run(request):
 
     # print unit.log in case of error
 
-    if request.node.rep_call.failed:
+    if hasattr(request.node, 'rep_call') and request.node.rep_call.failed:
         _print_log()
 
     # remove unit.log
@@ -284,6 +284,11 @@ def unit_stop():
         retcode = p.wait(15)
         if retcode:
             return 'Child process terminated with code ' + str(retcode)
+
+    except KeyboardInterrupt:
+        p.kill()
+        raise
+
     except:
         p.kill()
         return 'Could not terminate unit'
@@ -403,6 +408,10 @@ def waitforsocket(port):
             sock.connect(('127.0.0.1', port))
             ret = True
             break
+
+        except KeyboardInterrupt:
+            raise
+
         except:
             sock.close()
             time.sleep(0.1)

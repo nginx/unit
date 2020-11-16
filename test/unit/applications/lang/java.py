@@ -71,12 +71,18 @@ class TestApplicationJava(TestApplicationProto):
             ]
             javac.extend(src)
 
+            if option.detailed:
+                print("\n$ " + " ".join(javac))
+
             try:
                 process = subprocess.Popen(javac, stderr=subprocess.STDOUT)
                 process.communicate()
 
+            except KeyboardInterrupt:
+                raise
+
             except:
-                pytest.fail('Cann\'t run javac process.')
+                pytest.fail('Can\'t run javac process.')
 
     def load(self, script, **kwargs):
         self.prepare_env(script)

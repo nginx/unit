@@ -34,9 +34,15 @@ class TestApplicationGo(TestApplicationProto):
                 option.test_dir + '/go/' + script + '/' + name + '.go',
             ]
 
+        if option.detailed:
+            print("\n$ GOPATH=" + env['GOPATH'] + " " + " ".join(args))
+
         try:
             process = subprocess.Popen(args, env=env)
             process.communicate()
+
+        except KeyboardInterrupt:
+            raise
 
         except:
             return None
