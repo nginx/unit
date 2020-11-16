@@ -142,10 +142,9 @@ def pytest_sessionstart(session):
     # discover available modules from unit.log
 
     for module in re.findall(r'module: ([a-zA-Z]+) (.*) ".*"$', log, re.M):
-        if module[0] not in option.available['modules']:
-            option.available['modules'][module[0]] = [module[1]]
-        else:
-            option.available['modules'][module[0]].append(module[1])
+        versions = option.available['modules'].setdefault(module[0], [])
+        if module[1] not in versions:
+            versions.append(module[1])
 
     # discover modules from check
 
