@@ -191,6 +191,8 @@ typedef struct {
 
     nxt_str_t              body_temp_path;
 
+    uint8_t                discard_unsafe_fields;  /* 1 bit */
+
 #if (NXT_TLS)
     nxt_tls_conf_t         *tls;
 #endif

@@ -274,6 +274,9 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[] = {
         .name       = nxt_string("body_temp_path"),
         .type       = NXT_CONF_VLDT_STRING,
     }, {
+        .name       = nxt_string("discard_unsafe_fields"),
+        .type       = NXT_CONF_VLDT_BOOLEAN,
+    }, {
         .name       = nxt_string("websocket"),
         .type       = NXT_CONF_VLDT_OBJECT,
         .validator  = nxt_conf_vldt_object,

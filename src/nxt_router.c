@@ -1262,6 +1262,12 @@ static nxt_conf_map_t  nxt_router_http_conf[] = {
         NXT_CONF_MAP_STR,
         offsetof(nxt_socket_conf_t, body_temp_path),
     },
+
+    {
+        nxt_string("discard_unsafe_fields"),
+        NXT_CONF_MAP_INT8,
+        offsetof(nxt_socket_conf_t, discard_unsafe_fields),
+    },
 };
 
 
@@ -1649,6 +1655,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             skcf->header_buffer_size = 2048;
             skcf->large_header_buffer_size = 8192;
             skcf->large_header_buffers = 4;
+            skcf->discard_unsafe_fields = 1;
             skcf->body_buffer_size = 16 * 1024;
             skcf->max_body_size = 8 * 1024 * 1024;
             skcf->proxy_header_buffer_size = 64 * 1024;
