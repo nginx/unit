@@ -7,6 +7,8 @@
 #ifndef _NXT_HTTP_H_INCLUDED_
 #define _NXT_HTTP_H_INCLUDED_
 
+#include <nxt_regex.h>
+
 
 typedef enum {
     NXT_HTTP_UNSET = -1,
@@ -167,6 +169,10 @@ struct nxt_http_request_s {
     nxt_var_query_t                 *var_query;
 
     void                            *req_rpc_data;
+
+#if (NXT_HAVE_REGEX)
+    nxt_regex_match_t               *regex_match;
+#endif
 
     nxt_http_peer_t                 *peer;
     nxt_buf_t                       *last;

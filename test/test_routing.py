@@ -230,6 +230,48 @@ class TestRouting(TestApplicationProto):
         assert self.get(url='/aBCaBbc')['status'] == 200
         assert self.get(url='/ABc')['status'] == 404
 
+    def test_routes_empty_regex(self):
+        self.route_match({"uri":"~"})
+        assert self.get(url='/')['status'] == 200, 'empty regexp'
+        assert self.get(url='/anything')['status'] == 200, '/anything'
+
+        self.route_match({"uri":"!~"})
+        assert self.get(url='/')['status'] == 404, 'empty regexp 2'
+        assert self.get(url='/nothing')['status'] == 404, '/nothing'
+
+    def test_routes_bad_regex(self):
+        assert 'error' in self.route(
+            {"match": {"uri": "~/bl[ah"}, "action": {"return": 200}}
+        ), 'bad regex'
+
+        status = self.route(
+            {"match": {"uri": "~(?R)?z"}, "action": {"return": 200}}
+        )
+        if 'error' not in status:
+            assert self.get(url='/nothing_z')['status'] == 500, '/nothing_z'
+
+        status = self.route(
+            {"match": {"uri": "~((?1)?z)"}, "action": {"return": 200}}
+        )
+        if 'error' not in status:
+            assert self.get(url='/nothing_z')['status'] == 500, '/nothing_z'
+
+    def test_routes_match_regex_case_sensitive(self):
+        self.route_match({"uri": "~/bl[ah]"})
+
+        assert self.get(url='/rlah')['status'] == 404, '/rlah'
+        assert self.get(url='/blah')['status'] == 200, '/blah'
+        assert self.get(url='/blh')['status'] == 200, '/blh'
+        assert self.get(url='/BLAH')['status'] == 404, '/BLAH'
+
+    def test_routes_match_regex_negative_case_sensitive(self):
+        self.route_match({"uri": "!~/bl[ah]"})
+
+        assert self.get(url='/rlah')['status'] == 200, '/rlah'
+        assert self.get(url='/blah')['status'] == 404, '/blah'
+        assert self.get(url='/blh')['status'] == 404, '/blh'
+        assert self.get(url='/BLAH')['status'] == 200, '/BLAH'
+
     def test_routes_pass_encode(self):
         def check_pass(path, name):
             assert 'success' in self.conf(

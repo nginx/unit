@@ -11,6 +11,7 @@
 #include <nxt_http.h>
 #include <nxt_sockaddr.h>
 #include <nxt_http_route_addr.h>
+#include <nxt_regex.h>
 
 
 typedef enum {
@@ -1504,8 +1505,12 @@ static nxt_int_t
 nxt_conf_vldt_match_pattern(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value)
 {
-    nxt_str_t   pattern;
-    nxt_uint_t  i, first, last;
+    nxt_str_t        pattern;
+    nxt_uint_t       i, first, last;
+#if (NXT_HAVE_REGEX)
+    nxt_regex_t      *re;
+    nxt_regex_err_t  err;
+#endif
 
     if (nxt_conf_type(value) != NXT_CONF_STRING) {
         return nxt_conf_vldt_error(vldt, "The \"match\" patterns for \"host\", "
@@ -1519,6 +1524,32 @@ nxt_conf_vldt_match_pattern(nxt_conf_validation_t *vldt,
     }
 
     first = (pattern.start[0] == '!');
+
+    if (first < pattern.length && pattern.start[first] == '~') {
+#if (NXT_HAVE_REGEX)
+        pattern.start += first + 1;
+        pattern.length -= first + 1;
+
+        re = nxt_regex_compile(vldt->pool, &pattern, &err);
+        if (nxt_slow_path(re == NULL)) {
+            if (err.offset < pattern.length) {
+                return nxt_conf_vldt_error(vldt, "Invalid regular expression: "
+                                           "%s at offset %d",
+                                           err.msg, err.offset);
+            }
+
+            return nxt_conf_vldt_error(vldt, "Invalid regular expression: %s",
+                                       err.msg);
+        }
+
+        return NXT_OK;
+#else
+        return nxt_conf_vldt_error(vldt, "Unit is built without support of "
+                                   "regular expressions: \"--no-regex\" "
+                                   "./configure option was set.");
+#endif
+    }
+
     last = pattern.length - 1;
 
     for (i = first; i < last; i++) {

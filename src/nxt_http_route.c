@@ -8,6 +8,7 @@
 #include <nxt_http.h>
 #include <nxt_sockaddr.h>
 #include <nxt_http_route_addr.h>
+#include <nxt_regex.h>
 
 
 typedef enum {
@@ -76,12 +77,20 @@ typedef struct {
 
 
 typedef struct {
+    union {
+        nxt_array_t                *pattern_slices;
+#if (NXT_HAVE_REGEX)
+        nxt_regex_t                *regex;
+#endif
+    } u;
     uint32_t                       min_length;
-    nxt_array_t                    *pattern_slices;
 
     uint8_t                        case_sensitive;  /* 1 bit */
     uint8_t                        negative;        /* 1 bit */
     uint8_t                        any;             /* 1 bit */
+#if (NXT_HAVE_REGEX)
+    uint8_t                        regex;           /* 1 bit */
+#endif
 } nxt_http_route_pattern_t;
 
 
@@ -1060,24 +1069,24 @@ nxt_http_route_pattern_create(nxt_task_t *task, nxt_mp_t *mp,
     nxt_str_t                       test, tmp;
     nxt_int_t                       ret;
     nxt_array_t                     *slices;
+#if (NXT_HAVE_REGEX)
+    nxt_regex_t                     *re;
+    nxt_regex_err_t                 err;
+#endif
     nxt_http_route_pattern_type_t   type;
-
     nxt_http_route_pattern_slice_t  *slice;
 
     type = NXT_HTTP_ROUTE_PATTERN_EXACT;
 
     nxt_conf_get_string(cv, &test);
 
-    slices = nxt_array_create(mp, 1, sizeof(nxt_http_route_pattern_slice_t));
-    if (nxt_slow_path(slices == NULL)) {
-        return NXT_ERROR;
-    }
-
-    pattern->pattern_slices = slices;
-
+    pattern->u.pattern_slices = NULL;
     pattern->negative = 0;
     pattern->any = 1;
     pattern->min_length = 0;
+#if (NXT_HAVE_REGEX)
+    pattern->regex = 0;
+#endif
 
     if (test.length != 0 && test.start[0] == '!') {
         test.start++;
@@ -1086,6 +1095,41 @@ nxt_http_route_pattern_create(nxt_task_t *task, nxt_mp_t *mp,
         pattern->negative = 1;
         pattern->any = 0;
     }
+
+    if (test.length > 0 && test.start[0] == '~') {
+#if (NXT_HAVE_REGEX)
+        test.start++;
+        test.length--;
+
+        re = nxt_regex_compile(mp, &test, &err);
+        if (nxt_slow_path(re == NULL)) {
+            if (err.offset < test.length) {
+                nxt_alert(task, "nxt_regex_compile(%V) failed: %s at offset %d",
+                          &test, err.msg, (int) err.offset);
+                return NXT_ERROR;
+            }
+
+            nxt_alert(task, "nxt_regex_compile(%V) failed %s", &test, err.msg);
+
+            return NXT_ERROR;
+        }
+
+        pattern->u.regex = re;
+        pattern->regex = 1;
+
+        return NXT_OK;
+
+#else
+        return NXT_ERROR;
+#endif
+    }
+
+    slices = nxt_array_create(mp, 1, sizeof(nxt_http_route_pattern_slice_t));
+    if (nxt_slow_path(slices == NULL)) {
+        return NXT_ERROR;
+    }
+
+    pattern->u.pattern_slices = slices;
 
     if (test.length == 0) {
         slice = nxt_array_add(slices);
@@ -1980,6 +2024,9 @@ nxt_http_route_header(nxt_http_request_t *r, nxt_http_route_rule_t *rule)
         }
 
         ret = nxt_http_route_test_rule(r, rule, f->value, f->value_length);
+        if (nxt_slow_path(ret == NXT_ERROR)) {
+            return NXT_ERROR;
+        }
 
         if (ret == 0) {
             return ret;
@@ -2155,7 +2202,7 @@ static nxt_int_t
 nxt_http_route_test_argument(nxt_http_request_t *r,
     nxt_http_route_rule_t *rule, nxt_array_t *array)
 {
-    nxt_bool_t             ret;
+    nxt_int_t              ret;
     nxt_http_name_value_t  *nv, *end;
 
     ret = 0;
@@ -2171,6 +2218,10 @@ nxt_http_route_test_argument(nxt_http_request_t *r,
         {
             ret = nxt_http_route_test_rule(r, rule, nv->value,
                                            nv->value_length);
+            if (nxt_slow_path(ret == NXT_ERROR)) {
+                return NXT_ERROR;
+            }
+
             if (ret == 0) {
                 break;
             }
@@ -2189,7 +2240,7 @@ nxt_http_route_scheme(nxt_http_request_t *r, nxt_http_route_rule_t *rule)
     nxt_bool_t                      tls, https;
     nxt_http_route_pattern_slice_t  *pattern_slice;
 
-    pattern_slice = rule->pattern[0].pattern_slices->elts;
+    pattern_slice = rule->pattern[0].u.pattern_slices->elts;
     https = (pattern_slice->length == nxt_length("https"));
     tls = (r->tls != NULL);
 
@@ -2337,7 +2388,7 @@ static nxt_int_t
 nxt_http_route_test_cookie(nxt_http_request_t *r,
     nxt_http_route_rule_t *rule, nxt_array_t *array)
 {
-    nxt_bool_t             ret;
+    nxt_int_t              ret;
     nxt_http_name_value_t  *nv, *end;
 
     ret = 0;
@@ -2353,6 +2404,10 @@ nxt_http_route_test_cookie(nxt_http_request_t *r,
         {
             ret = nxt_http_route_test_rule(r, rule, nv->value,
                                            nv->value_length);
+            if (nxt_slow_path(ret == NXT_ERROR)) {
+                return NXT_ERROR;
+            }
+
             if (ret == 0) {
                 break;
             }
@@ -2378,6 +2433,9 @@ nxt_http_route_test_rule(nxt_http_request_t *r, nxt_http_route_rule_t *rule,
 
     while (pattern < end) {
         ret = nxt_http_route_pattern(r, pattern, start, length);
+        if (nxt_slow_path(ret == NXT_ERROR)) {
+            return NXT_ERROR;
+        }
 
         /* nxt_http_route_pattern() returns either 1 or 0. */
         ret ^= pattern->negative;
@@ -2403,11 +2461,26 @@ nxt_http_route_pattern(nxt_http_request_t *r, nxt_http_route_pattern_t *pattern,
     nxt_array_t                     *pattern_slices;
     nxt_http_route_pattern_slice_t  *pattern_slice;
 
+#if (NXT_HAVE_REGEX)
+    if (pattern->regex) {
+        if (r->regex_match == NULL) {
+            r->regex_match = nxt_regex_match_create(r->mem_pool, 0);
+            if (nxt_slow_path(r->regex_match == NULL)) {
+                return NXT_ERROR;
+            }
+        }
+
+        return nxt_regex_match(pattern->u.regex, start, length, r->regex_match);
+    }
+#endif
+
     if (length < pattern->min_length) {
         return 0;
     }
 
-    pattern_slices = pattern->pattern_slices;
+    nxt_assert(pattern->u.pattern_slices != NULL);
+
+    pattern_slices = pattern->u.pattern_slices;
     pattern_slice = pattern_slices->elts;
     end = start + length;
 
