@@ -12,6 +12,7 @@
 #include <sys/uio.h>
 #include <string.h>
 
+#include "nxt_auto_config.h"
 #include "nxt_version.h"
 #include "nxt_unit_typedefs.h"
 

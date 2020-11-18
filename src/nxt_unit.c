@@ -6527,7 +6527,9 @@ nxt_unit_malloc(nxt_unit_ctx_t *ctx, size_t size)
     p = malloc(size);
 
     if (nxt_fast_path(p != NULL)) {
+#if (NXT_DEBUG_ALLOC)
         nxt_unit_debug(ctx, "malloc(%d): %p", (int) size, p);
+#endif
 
     } else {
         nxt_unit_alert(ctx, "malloc(%d) failed: %s (%d)",
@@ -6541,7 +6543,9 @@ nxt_unit_malloc(nxt_unit_ctx_t *ctx, size_t size)
 void
 nxt_unit_free(nxt_unit_ctx_t *ctx, void *p)
 {
+#if (NXT_DEBUG_ALLOC)
     nxt_unit_debug(ctx, "free(%p)", p);
+#endif
 
     free(p);
 }
