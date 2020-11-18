@@ -262,22 +262,23 @@ nxt_py_asgi_http_send(PyObject *self, PyObject *dict)
     nxt_unit_req_debug(http->req, "asgi_http_send type is '%.*s'",
                        (int) type_len, type_str);
 
-    if (type_len == (Py_ssize_t) response_start.length
-        && memcmp(type_str, response_start.start, type_len) == 0)
-    {
+    if (nxt_unit_response_is_init(http->req)) {
+        if (nxt_str_eq(&response_body, type_str, (size_t) type_len)) {
+            return nxt_py_asgi_http_response_body(http, dict);
+        }
+
+        return PyErr_Format(PyExc_RuntimeError,
+                            "Expected ASGI message 'http.response.body', "
+                            "but got '%U'", type);
+    }
+
+    if (nxt_str_eq(&response_start, type_str, (size_t) type_len)) {
         return nxt_py_asgi_http_response_start(http, dict);
     }
 
-    if (type_len == (Py_ssize_t) response_body.length
-        && memcmp(type_str, response_body.start, type_len) == 0)
-    {
-        return nxt_py_asgi_http_response_body(http, dict);
-    }
-
-    nxt_unit_req_error(http->req, "asgi_http_send: unexpected 'type': '%.*s'",
-                       (int) type_len, type_str);
-
-    return PyErr_Format(PyExc_AssertionError, "unexpected 'type': '%U'", type);
+    return PyErr_Format(PyExc_RuntimeError,
+                        "Expected ASGI message 'http.response.start', "
+                        "but got '%U'", type);
 }
 
 
