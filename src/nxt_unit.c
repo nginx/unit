@@ -5029,12 +5029,12 @@ retry:
 
     nxt_unit_process_ready_req(ctx);
 
-    rbuf = nxt_unit_read_buf_get(ctx);
-    if (nxt_slow_path(rbuf == NULL)) {
-        return NXT_UNIT_ERROR;
-    }
-
     if (ctx_impl->online) {
+        rbuf = nxt_unit_read_buf_get(ctx);
+        if (nxt_slow_path(rbuf == NULL)) {
+            return NXT_UNIT_ERROR;
+        }
+
         goto retry;
     }
 
