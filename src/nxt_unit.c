@@ -4675,8 +4675,6 @@ nxt_unit_process_pending_rbuf(nxt_unit_ctx_t *ctx)
     nxt_unit_ctx_impl_t  *ctx_impl;
     nxt_unit_read_buf_t  *rbuf;
 
-    nxt_queue_init(&pending_rbuf);
-
     ctx_impl = nxt_container_of(ctx, nxt_unit_ctx_impl_t, ctx);
 
     pthread_mutex_lock(&ctx_impl->mutex);
@@ -4686,6 +4684,8 @@ nxt_unit_process_pending_rbuf(nxt_unit_ctx_t *ctx)
 
         return NXT_UNIT_OK;
     }
+
+    nxt_queue_init(&pending_rbuf);
 
     nxt_queue_add(&pending_rbuf, &ctx_impl->pending_rbuf);
     nxt_queue_init(&ctx_impl->pending_rbuf);
@@ -4719,8 +4719,6 @@ nxt_unit_process_ready_req(nxt_unit_ctx_t *ctx)
     nxt_unit_request_info_t       *req;
     nxt_unit_request_info_impl_t  *req_impl;
 
-    nxt_queue_init(&ready_req);
-
     ctx_impl = nxt_container_of(ctx, nxt_unit_ctx_impl_t, ctx);
 
     pthread_mutex_lock(&ctx_impl->mutex);
@@ -4730,6 +4728,8 @@ nxt_unit_process_ready_req(nxt_unit_ctx_t *ctx)
 
         return;
     }
+
+    nxt_queue_init(&ready_req);
 
     nxt_queue_add(&ready_req, &ctx_impl->ready_req);
     nxt_queue_init(&ctx_impl->ready_req);
@@ -4917,13 +4917,6 @@ nxt_unit_run_shared(nxt_unit_ctx_t *ctx)
         if (nxt_slow_path(rc == NXT_UNIT_ERROR)) {
             break;
         }
-
-        rc = nxt_unit_process_pending_rbuf(ctx);
-        if (nxt_slow_path(rc == NXT_UNIT_ERROR)) {
-            break;
-        }
-
-        nxt_unit_process_ready_req(ctx);
     }
 
     nxt_unit_ctx_release(ctx);
