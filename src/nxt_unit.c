@@ -1643,8 +1643,6 @@ nxt_unit_process_websocket(nxt_unit_ctx_t *ctx, nxt_unit_recv_msg_t *recv_msg)
     }
 
     if (recv_msg->last) {
-        req_impl->websocket = 0;
-
         if (cb->close_handler) {
             nxt_unit_req_debug(req, "close_handler");
 
@@ -1736,8 +1734,6 @@ nxt_unit_request_info_release(nxt_unit_request_info_t *req)
     if (req_impl->in_hash) {
         nxt_unit_request_hash_find(req->ctx, req_impl->stream, 1);
     }
-
-    req_impl->websocket = 0;
 
     while (req_impl->outgoing_buf != NULL) {
         nxt_unit_mmap_buf_free(req_impl->outgoing_buf);
@@ -5708,9 +5704,12 @@ nxt_unit_remove_process(nxt_unit_impl_t *lib, nxt_unit_process_t *process)
 static void
 nxt_unit_quit(nxt_unit_ctx_t *ctx)
 {
-    nxt_port_msg_t       msg;
-    nxt_unit_impl_t      *lib;
-    nxt_unit_ctx_impl_t  *ctx_impl;
+    nxt_port_msg_t                msg;
+    nxt_unit_impl_t               *lib;
+    nxt_unit_ctx_impl_t           *ctx_impl;
+    nxt_unit_callbacks_t          *cb;
+    nxt_unit_request_info_t       *req;
+    nxt_unit_request_info_impl_t  *req_impl;
 
     lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
     ctx_impl = nxt_container_of(ctx, nxt_unit_ctx_impl_t, ctx);
@@ -5721,9 +5720,29 @@ nxt_unit_quit(nxt_unit_ctx_t *ctx)
 
     ctx_impl->online = 0;
 
-    if (lib->callbacks.quit != NULL) {
-        lib->callbacks.quit(ctx);
+    cb = &lib->callbacks;
+
+    if (cb->quit != NULL) {
+        cb->quit(ctx);
     }
+
+    nxt_queue_each(req_impl, &ctx_impl->active_req,
+                   nxt_unit_request_info_impl_t, link)
+    {
+        req = &req_impl->req;
+
+        nxt_unit_req_warn(req, "active request on ctx quit");
+
+        if (cb->close_handler) {
+            nxt_unit_req_debug(req, "close_handler");
+
+            cb->close_handler(req);
+
+        } else {
+            nxt_unit_request_done(req, NXT_UNIT_ERROR);
+        }
+
+    } nxt_queue_loop;
 
     if (ctx != &lib->main_ctx.ctx) {
         return;

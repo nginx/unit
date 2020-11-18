@@ -58,6 +58,7 @@ int nxt_py_asgi_http_init(void);
 PyObject *nxt_py_asgi_http_create(nxt_unit_request_info_t *req);
 void nxt_py_asgi_http_data_handler(nxt_unit_request_info_t *req);
 int nxt_py_asgi_http_drain(nxt_queue_link_t *lnk);
+void nxt_py_asgi_http_close_handler(nxt_unit_request_info_t *req);
 
 int nxt_py_asgi_websocket_init(void);
 PyObject *nxt_py_asgi_websocket_create(nxt_unit_request_info_t *req);

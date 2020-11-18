@@ -25,6 +25,7 @@ static int nxt_python_asgi_run(nxt_unit_ctx_t *ctx);
 static void nxt_py_asgi_remove_reader(nxt_unit_ctx_t *ctx,
     nxt_unit_port_t *port);
 static void nxt_py_asgi_request_handler(nxt_unit_request_info_t *req);
+static void nxt_py_asgi_close_handler(nxt_unit_request_info_t *req);
 
 static PyObject *nxt_py_asgi_create_http_scope(nxt_unit_request_info_t *req);
 static PyObject *nxt_py_asgi_create_address(nxt_unit_sptr_t *sptr, uint8_t len,
@@ -179,7 +180,7 @@ nxt_python_asgi_init(nxt_unit_init_t *init, nxt_python_proto_t *proto)
     init->callbacks.request_handler = nxt_py_asgi_request_handler;
     init->callbacks.data_handler = nxt_py_asgi_http_data_handler;
     init->callbacks.websocket_handler = nxt_py_asgi_websocket_handler;
-    init->callbacks.close_handler = nxt_py_asgi_websocket_close_handler;
+    init->callbacks.close_handler = nxt_py_asgi_close_handler;
     init->callbacks.quit = nxt_py_asgi_quit;
     init->callbacks.shm_ack_handler = nxt_py_asgi_shm_ack_handler;
     init->callbacks.add_port = nxt_py_asgi_add_port;
@@ -548,6 +549,18 @@ release_receive:
     Py_DECREF(receive);
 release_asgi:
     Py_DECREF(asgi);
+}
+
+
+static void
+nxt_py_asgi_close_handler(nxt_unit_request_info_t *req)
+{
+    if (req->request->websocket_handshake) {
+        nxt_py_asgi_websocket_close_handler(req);
+
+    } else {
+        nxt_py_asgi_http_close_handler(req);
+    }
 }
 
 
