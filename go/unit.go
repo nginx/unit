@@ -30,15 +30,15 @@ func buf_ref(buf []byte) C.uintptr_t {
 	return C.uintptr_t(uintptr(unsafe.Pointer(&buf[0])))
 }
 
-type StringHeader struct {
+type string_header struct {
 	Data unsafe.Pointer
 	Len int
 }
 
-func str_ref(s string) C.uintptr_t {
-	header := (*StringHeader)(unsafe.Pointer(&s))
+func str_ref(s string) *C.char {
+	header := (*string_header)(unsafe.Pointer(&s))
 
-	return C.uintptr_t(uintptr(unsafe.Pointer(header.Data)))
+	return (*C.char)(header.Data)
 }
 
 func (buf *cbuf) init_bytes(b []byte) {
@@ -46,12 +46,7 @@ func (buf *cbuf) init_bytes(b []byte) {
 	buf.s = C.size_t(len(b))
 }
 
-func (buf *cbuf) init_string(s string) {
-	buf.b = str_ref(s)
-	buf.s = C.size_t(len(s))
-}
-
-type SliceHeader struct {
+type slice_header struct {
 	Data unsafe.Pointer
 	Len int
 	Cap int
@@ -63,17 +58,17 @@ func (buf *cbuf) GoBytes() []byte {
 		return b[:0]
 	}
 
-	bytesHeader := &SliceHeader{
+	header := &slice_header{
 		Data: unsafe.Pointer(uintptr(buf.b)),
 		Len: int(buf.s),
 		Cap: int(buf.s),
 	}
 
-	return *(*[]byte)(unsafe.Pointer(bytesHeader))
+	return *(*[]byte)(unsafe.Pointer(header))
 }
 
 func GoBytes(buf unsafe.Pointer, size C.int) []byte {
-	bytesHeader := &SliceHeader{
+	bytesHeader := &slice_header{
 		Data: buf,
 		Len: int(size),
 		Cap: int(size),
@@ -82,10 +77,23 @@ func GoBytes(buf unsafe.Pointer, size C.int) []byte {
 	return *(*[]byte)(unsafe.Pointer(bytesHeader))
 }
 
+func GoStringN(sptr *C.nxt_unit_sptr_t, l C.int) string {
+	p := unsafe.Pointer(sptr)
+	b := uintptr(p) + uintptr(*(*C.uint32_t)(p))
+
+	return C.GoStringN((*C.char)(unsafe.Pointer(b)), l)
+}
+
 func nxt_go_warn(format string, args ...interface{}) {
 	str := fmt.Sprintf("[go] " + format, args...)
 
 	C.nxt_cgo_warn(str_ref(str), C.uint32_t(len(str)))
+}
+
+func nxt_go_alert(format string, args ...interface{}) {
+	str := fmt.Sprintf("[go] " + format, args...)
+
+	C.nxt_cgo_alert(str_ref(str), C.uint32_t(len(str)))
 }
 
 type handler_registry struct {

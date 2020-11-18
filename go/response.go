@@ -16,20 +16,9 @@ import (
 
 type response struct {
 	header     http.Header
-	headerSent bool
-	req        *http.Request
-	c_req      C.uintptr_t
+	header_sent bool
+	c_req      *C.nxt_unit_request_info_t
 	ch         chan int
-}
-
-func new_response(c_req C.uintptr_t, req *http.Request) *response {
-	resp := &response{
-		header: http.Header{},
-		req:    req,
-		c_req:  c_req,
-	}
-
-	return resp
 }
 
 func (r *response) Header() http.Header {
@@ -37,7 +26,7 @@ func (r *response) Header() http.Header {
 }
 
 func (r *response) Write(p []byte) (n int, err error) {
-	if !r.headerSent {
+	if !r.header_sent {
 		r.WriteHeader(http.StatusOK)
 	}
 
@@ -64,12 +53,11 @@ func (r *response) Write(p []byte) (n int, err error) {
 }
 
 func (r *response) WriteHeader(code int) {
-	if r.headerSent {
-		// Note: explicitly using Stderr, as Stdout is our HTTP output.
+	if r.header_sent {
 		nxt_go_warn("multiple response.WriteHeader calls")
 		return
 	}
-	r.headerSent = true
+	r.header_sent = true
 
 	// Set a default Content-Type
 	if _, hasType := r.header["Content-Type"]; !hasType {
@@ -86,21 +74,21 @@ func (r *response) WriteHeader(code int) {
 		}
 	}
 
-	C.nxt_cgo_response_create(r.c_req, C.int(code), C.int(fields),
+	C.nxt_unit_response_init(r.c_req, C.uint16_t(code), C.uint32_t(fields),
 		C.uint32_t(fields_size))
 
 	for k, vv := range r.header {
 		for _, v := range vv {
-			C.nxt_cgo_response_add_field(r.c_req, str_ref(k), C.uint8_t(len(k)),
+			C.nxt_unit_response_add_field(r.c_req, str_ref(k), C.uint8_t(len(k)),
 				str_ref(v), C.uint32_t(len(v)))
 		}
 	}
 
-	C.nxt_cgo_response_send(r.c_req)
+	C.nxt_unit_response_send(r.c_req)
 }
 
 func (r *response) Flush() {
-	if !r.headerSent {
+	if !r.header_sent {
 		r.WriteHeader(http.StatusOK)
 	}
 }
@@ -114,6 +102,6 @@ func wait_shm_ack(c chan int) {
 }
 
 //export nxt_go_shm_ack_handler
-func nxt_go_shm_ack_handler() {
+func nxt_go_shm_ack_handler(ctx *C.nxt_unit_ctx_t) {
 	observer_registry_.notify(1)
 }

@@ -213,6 +213,8 @@ int nxt_unit_run_ctx(nxt_unit_ctx_t *ctx);
 
 int nxt_unit_run_shared(nxt_unit_ctx_t *ctx);
 
+nxt_unit_request_info_t *nxt_unit_dequeue_request(nxt_unit_ctx_t *ctx);
+
 int nxt_unit_is_main_ctx(nxt_unit_ctx_t *ctx);
 
 /*
