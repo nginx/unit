@@ -1751,6 +1751,8 @@ nxt_unit_request_info_release(nxt_unit_request_info_t *req)
         req->response_port = NULL;
     }
 
+    req_impl->state = NXT_UNIT_RS_RELEASED;
+
     pthread_mutex_lock(&ctx_impl->mutex);
 
     nxt_queue_remove(&req_impl->link);
@@ -1758,8 +1760,6 @@ nxt_unit_request_info_release(nxt_unit_request_info_t *req)
     nxt_queue_insert_tail(&ctx_impl->free_req, &req_impl->link);
 
     pthread_mutex_unlock(&ctx_impl->mutex);
-
-    req_impl->state = NXT_UNIT_RS_RELEASED;
 }
 
 
