@@ -431,3 +431,41 @@ Connection: close
             )['status']
             == 400
         ), 'Host multiple fields'
+
+    def test_http_discard_unsafe_fields(self):
+        self.load('header_fields')
+
+        def check_status(header):
+            resp = self.get(
+                headers={
+                    'Host': 'localhost',
+                    header: 'blah',
+                    'Connection': 'close',
+                }
+            )
+
+            assert resp['status'] == 200
+            return resp
+
+        resp = check_status("!Custom-Header")
+        assert 'CUSTOM' not in resp['headers']['All-Headers']
+
+        resp = check_status("Custom_Header")
+        assert 'CUSTOM' not in resp['headers']['All-Headers']
+
+        assert 'success' in self.conf(
+            {'http': {'discard_unsafe_fields': False}}, 'settings',
+        )
+
+        resp = check_status("!#$%&'*+.^`|~Custom_Header")
+        assert 'CUSTOM' in resp['headers']['All-Headers']
+
+        assert 'success' in self.conf(
+            {'http': {'discard_unsafe_fields': True}}, 'settings',
+        )
+
+        resp = check_status("!Custom-Header")
+        assert 'CUSTOM' not in resp['headers']['All-Headers']
+
+        resp = check_status("Custom_Header")
+        assert 'CUSTOM' not in resp['headers']['All-Headers']
