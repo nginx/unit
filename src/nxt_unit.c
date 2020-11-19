@@ -4948,6 +4948,7 @@ nxt_unit_dequeue_request(nxt_unit_ctx_t *ctx)
 
     rc = nxt_unit_app_queue_recv(lib->shared_port, rbuf);
     if (rc != NXT_UNIT_OK) {
+        nxt_unit_read_buf_release(ctx, rbuf);
         goto done;
     }
 
