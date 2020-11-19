@@ -154,54 +154,58 @@ Connection: close
     def test_http_header_field_leading_sp(self):
         self.load('empty')
 
-        resp = self.get(
-            headers={
-                'Host': 'localhost',
-                ' Custom-Header': 'blah',
-                'Connection': 'close',
-            }
-        )
-
-        assert resp['status'] == 400, 'field leading sp'
+        assert (
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    ' Custom-Header': 'blah',
+                    'Connection': 'close',
+                }
+            )['status']
+            == 400
+        ), 'field leading sp'
 
     def test_http_header_field_leading_htab(self):
         self.load('empty')
 
-        resp = self.get(
-            headers={
-                'Host': 'localhost',
-                '\tCustom-Header': 'blah',
-                'Connection': 'close',
-            }
-        )
-
-        assert resp['status'] == 400, 'field leading htab'
+        assert (
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    '\tCustom-Header': 'blah',
+                    'Connection': 'close',
+                }
+            )['status']
+            == 400
+        ), 'field leading htab'
 
     def test_http_header_field_trailing_sp(self):
         self.load('empty')
 
-        resp = self.get(
-            headers={
-                'Host': 'localhost',
-                'Custom-Header ': 'blah',
-                'Connection': 'close',
-            }
-        )
-
-        assert resp['status'] == 400, 'field trailing sp'
+        assert (
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Custom-Header ': 'blah',
+                    'Connection': 'close',
+                }
+            )['status']
+            == 400
+        ), 'field trailing sp'
 
     def test_http_header_field_trailing_htab(self):
         self.load('empty')
 
-        resp = self.get(
-            headers={
-                'Host': 'localhost',
-                'Custom-Header\t': 'blah',
-                'Connection': 'close',
-            }
-        )
-
-        assert resp['status'] == 400, 'field trailing htab'
+        assert (
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Custom-Header\t': 'blah',
+                    'Connection': 'close',
+                }
+            )['status']
+            == 400
+        ), 'field trailing htab'
 
     def test_http_header_content_length_big(self):
         self.load('empty')
