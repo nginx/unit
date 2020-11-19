@@ -128,6 +128,9 @@ NXT_LIB_GNUTLS_SRCS="src/nxt_gnutls.c"
 NXT_LIB_CYASSL_SRCS="src/nxt_cyassl.c"
 NXT_LIB_POLARSSL_SRCS="src/nxt_polarssl.c"
 
+NXT_LIB_PCRE_SRCS="src/nxt_pcre.c"
+NXT_LIB_PCRE2_SRCS="src/nxt_pcre2.c"
+
 NXT_LIB_EPOLL_SRCS="src/nxt_epoll_engine.c"
 NXT_LIB_KQUEUE_SRCS="src/nxt_kqueue_engine.c"
 NXT_LIB_EVENTPORT_SRCS="src/nxt_eventport_engine.c"
@@ -210,6 +213,14 @@ if [ $NXT_POLARSSL = YES ]; then
     NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_POLARSSL_SRCS"
 fi
 
+
+if [ "$NXT_REGEX" = "YES" ]; then
+    if [ "$NXT_HAVE_PCRE2" = "YES" ]; then
+        NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_PCRE2_SRCS"
+    else
+        NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_PCRE_SRCS"
+    fi
+fi
 
 if [ "$NXT_HAVE_EPOLL" = "YES" -o "$NXT_TEST_BUILD_EPOLL" = "YES" ]; then
     NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_EPOLL_SRCS"

@@ -5,6 +5,7 @@ import subprocess
 
 import pytest
 
+from conftest import option
 from conftest import skip_alert
 from unit.applications.tls import TestApplicationTLS
 
@@ -13,7 +14,7 @@ class TestTLS(TestApplicationTLS):
     prerequisites = {'modules': {'python': 'any', 'openssl': 'any'}}
 
     def findall(self, pattern):
-        with open(self.temp_dir + '/unit.log', 'r', errors='ignore') as f:
+        with open(option.temp_dir + '/unit.log', 'r', errors='ignore') as f:
             return re.findall(pattern, f.read())
 
     def openssl_date_to_sec_epoch(self, date):
@@ -134,7 +135,7 @@ class TestTLS(TestApplicationTLS):
             self.conf_get('/certificates/default/key') == 'RSA (2048 bits)'
         ), 'certificate key rsa'
 
-    def test_tls_certificate_key_ec(self):
+    def test_tls_certificate_key_ec(self, temp_dir):
         self.load('empty')
 
         self.openssl_conf()
@@ -146,7 +147,7 @@ class TestTLS(TestApplicationTLS):
                 '-noout',
                 '-genkey',
                 '-out',
-                self.temp_dir + '/ec.key',
+                temp_dir + '/ec.key',
                 '-name',
                 'prime256v1',
             ],
@@ -162,11 +163,11 @@ class TestTLS(TestApplicationTLS):
                 '-subj',
                 '/CN=ec/',
                 '-config',
-                self.temp_dir + '/openssl.conf',
+                temp_dir + '/openssl.conf',
                 '-key',
-                self.temp_dir + '/ec.key',
+                temp_dir + '/ec.key',
                 '-out',
-                self.temp_dir + '/ec.crt',
+                temp_dir + '/ec.crt',
             ],
             stderr=subprocess.STDOUT,
         )
@@ -208,7 +209,7 @@ class TestTLS(TestApplicationTLS):
             == 2592000
         ), 'certificate validity until'
 
-    def test_tls_certificate_chain(self):
+    def test_tls_certificate_chain(self, temp_dir):
         self.load('empty')
 
         self.certificate('root', False)
@@ -221,11 +222,11 @@ class TestTLS(TestApplicationTLS):
                 '-subj',
                 '/CN=int/',
                 '-config',
-                self.temp_dir + '/openssl.conf',
+                temp_dir + '/openssl.conf',
                 '-out',
-                self.temp_dir + '/int.csr',
+                temp_dir + '/int.csr',
                 '-keyout',
-                self.temp_dir + '/int.key',
+                temp_dir + '/int.key',
             ],
             stderr=subprocess.STDOUT,
         )
@@ -238,16 +239,16 @@ class TestTLS(TestApplicationTLS):
                 '-subj',
                 '/CN=end/',
                 '-config',
-                self.temp_dir + '/openssl.conf',
+                temp_dir + '/openssl.conf',
                 '-out',
-                self.temp_dir + '/end.csr',
+                temp_dir + '/end.csr',
                 '-keyout',
-                self.temp_dir + '/end.key',
+                temp_dir + '/end.key',
             ],
             stderr=subprocess.STDOUT,
         )
 
-        with open(self.temp_dir + '/ca.conf', 'w') as f:
+        with open(temp_dir + '/ca.conf', 'w') as f:
             f.write(
                 """[ ca ]
 default_ca = myca
@@ -267,16 +268,16 @@ commonName = supplied
 [ myca_extensions ]
 basicConstraints = critical,CA:TRUE"""
                 % {
-                    'dir': self.temp_dir,
-                    'database': self.temp_dir + '/certindex',
-                    'certserial': self.temp_dir + '/certserial',
+                    'dir': temp_dir,
+                    'database': temp_dir + '/certindex',
+                    'certserial': temp_dir + '/certserial',
                 }
             )
 
-        with open(self.temp_dir + '/certserial', 'w') as f:
+        with open(temp_dir + '/certserial', 'w') as f:
             f.write('1000')
 
-        with open(self.temp_dir + '/certindex', 'w') as f:
+        with open(temp_dir + '/certindex', 'w') as f:
             f.write('')
 
         subprocess.call(
@@ -287,15 +288,15 @@ basicConstraints = critical,CA:TRUE"""
                 '-subj',
                 '/CN=int/',
                 '-config',
-                self.temp_dir + '/ca.conf',
+                temp_dir + '/ca.conf',
                 '-keyfile',
-                self.temp_dir + '/root.key',
+                temp_dir + '/root.key',
                 '-cert',
-                self.temp_dir + '/root.crt',
+                temp_dir + '/root.crt',
                 '-in',
-                self.temp_dir + '/int.csr',
+                temp_dir + '/int.csr',
                 '-out',
-                self.temp_dir + '/int.crt',
+                temp_dir + '/int.crt',
             ],
             stderr=subprocess.STDOUT,
         )
@@ -308,22 +309,22 @@ basicConstraints = critical,CA:TRUE"""
                 '-subj',
                 '/CN=end/',
                 '-config',
-                self.temp_dir + '/ca.conf',
+                temp_dir + '/ca.conf',
                 '-keyfile',
-                self.temp_dir + '/int.key',
+                temp_dir + '/int.key',
                 '-cert',
-                self.temp_dir + '/int.crt',
+                temp_dir + '/int.crt',
                 '-in',
-                self.temp_dir + '/end.csr',
+                temp_dir + '/end.csr',
                 '-out',
-                self.temp_dir + '/end.crt',
+                temp_dir + '/end.crt',
             ],
             stderr=subprocess.STDOUT,
         )
 
-        crt_path = self.temp_dir + '/end-int.crt'
-        end_path = self.temp_dir + '/end.crt'
-        int_path = self.temp_dir + '/int.crt'
+        crt_path = temp_dir + '/end-int.crt'
+        end_path = temp_dir + '/end.crt'
+        int_path = temp_dir + '/int.crt'
 
         with open(crt_path, 'wb') as crt, open(end_path, 'rb') as end, open(
             int_path, 'rb'
@@ -333,7 +334,7 @@ basicConstraints = critical,CA:TRUE"""
         self.context = ssl.create_default_context()
         self.context.check_hostname = False
         self.context.verify_mode = ssl.CERT_REQUIRED
-        self.context.load_verify_locations(self.temp_dir + '/root.crt')
+        self.context.load_verify_locations(temp_dir + '/root.crt')
 
         # incomplete chain
 
@@ -485,6 +486,10 @@ basicConstraints = critical,CA:TRUE"""
             resp = self.get_ssl(
                 headers={'Host': 'localhost', 'Connection': 'close'}, sock=sock
             )
+
+        except KeyboardInterrupt:
+            raise
+
         except:
             resp = None
 

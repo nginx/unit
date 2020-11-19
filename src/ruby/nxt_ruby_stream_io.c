@@ -8,7 +8,7 @@
 #include <nxt_unit.h>
 
 
-static VALUE nxt_ruby_stream_io_new(VALUE class, VALUE wrap);
+static VALUE nxt_ruby_stream_io_new(VALUE class, VALUE arg);
 static VALUE nxt_ruby_stream_io_initialize(int argc, VALUE *argv, VALUE self);
 static VALUE nxt_ruby_stream_io_gets(VALUE obj);
 static VALUE nxt_ruby_stream_io_each(VALUE obj);
@@ -16,8 +16,7 @@ static VALUE nxt_ruby_stream_io_read(VALUE obj, VALUE args);
 static VALUE nxt_ruby_stream_io_rewind(VALUE obj);
 static VALUE nxt_ruby_stream_io_puts(VALUE obj, VALUE args);
 static VALUE nxt_ruby_stream_io_write(VALUE obj, VALUE args);
-nxt_inline long nxt_ruby_stream_io_s_write(nxt_ruby_run_ctx_t *run_ctx,
-    VALUE val);
+nxt_inline long nxt_ruby_stream_io_s_write(nxt_ruby_ctx_t *rctx, VALUE val);
 static VALUE nxt_ruby_stream_io_flush(VALUE obj);
 
 
@@ -63,13 +62,11 @@ nxt_ruby_stream_io_error_init(void)
 
 
 static VALUE
-nxt_ruby_stream_io_new(VALUE class, VALUE wrap)
+nxt_ruby_stream_io_new(VALUE class, VALUE arg)
 {
-    VALUE               self;
-    nxt_ruby_run_ctx_t  *run_ctx;
+    VALUE  self;
 
-    Data_Get_Struct(wrap, nxt_ruby_run_ctx_t, run_ctx);
-    self = Data_Wrap_Struct(class, 0, 0, run_ctx);
+    self = Data_Wrap_Struct(class, 0, 0, (void *) (uintptr_t) arg);
 
     rb_obj_call_init(self, 0, NULL);
 
@@ -89,12 +86,11 @@ nxt_ruby_stream_io_gets(VALUE obj)
 {
     VALUE                    buf;
     ssize_t                  res;
-    nxt_ruby_run_ctx_t       *run_ctx;
+    nxt_ruby_ctx_t           *rctx;
     nxt_unit_request_info_t  *req;
 
-    Data_Get_Struct(obj, nxt_ruby_run_ctx_t, run_ctx);
-
-    req = run_ctx->req;
+    Data_Get_Struct(obj, nxt_ruby_ctx_t, rctx);
+    req = rctx->req;
 
     if (req->content_length == 0) {
         return Qnil;
@@ -145,13 +141,13 @@ nxt_ruby_stream_io_each(VALUE obj)
 static VALUE
 nxt_ruby_stream_io_read(VALUE obj, VALUE args)
 {
-    VALUE                buf;
-    long                 copy_size, u_size;
-    nxt_ruby_run_ctx_t  *run_ctx;
+    VALUE           buf;
+    long            copy_size, u_size;
+    nxt_ruby_ctx_t  *rctx;
 
-    Data_Get_Struct(obj, nxt_ruby_run_ctx_t, run_ctx);
+    Data_Get_Struct(obj, nxt_ruby_ctx_t, rctx);
 
-    copy_size = run_ctx->req->content_length;
+    copy_size = rctx->req->content_length;
 
     if (RARRAY_LEN(args) > 0 && TYPE(RARRAY_PTR(args)[0]) == T_FIXNUM) {
         u_size = NUM2LONG(RARRAY_PTR(args)[0]);
@@ -175,8 +171,7 @@ nxt_ruby_stream_io_read(VALUE obj, VALUE args)
         return Qnil;
     }
 
-    copy_size = nxt_unit_request_read(run_ctx->req, RSTRING_PTR(buf),
-                                      copy_size);
+    copy_size = nxt_unit_request_read(rctx->req, RSTRING_PTR(buf), copy_size);
 
     if (RARRAY_LEN(args) > 1 && TYPE(RARRAY_PTR(args)[1]) == T_STRING) {
 
@@ -200,15 +195,15 @@ nxt_ruby_stream_io_rewind(VALUE obj)
 static VALUE
 nxt_ruby_stream_io_puts(VALUE obj, VALUE args)
 {
-    nxt_ruby_run_ctx_t  *run_ctx;
+    nxt_ruby_ctx_t  *rctx;
 
     if (RARRAY_LEN(args) != 1) {
         return Qnil;
     }
 
-    Data_Get_Struct(obj, nxt_ruby_run_ctx_t, run_ctx);
+    Data_Get_Struct(obj, nxt_ruby_ctx_t, rctx);
 
-    nxt_ruby_stream_io_s_write(run_ctx, RARRAY_PTR(args)[0]);
+    nxt_ruby_stream_io_s_write(rctx, RARRAY_PTR(args)[0]);
 
     return Qnil;
 }
@@ -217,23 +212,23 @@ nxt_ruby_stream_io_puts(VALUE obj, VALUE args)
 static VALUE
 nxt_ruby_stream_io_write(VALUE obj, VALUE args)
 {
-    long                len;
-    nxt_ruby_run_ctx_t  *run_ctx;
+    long            len;
+    nxt_ruby_ctx_t  *rctx;
 
     if (RARRAY_LEN(args) != 1) {
         return Qnil;
     }
 
-    Data_Get_Struct(obj, nxt_ruby_run_ctx_t, run_ctx);
+    Data_Get_Struct(obj, nxt_ruby_ctx_t, rctx);
 
-    len = nxt_ruby_stream_io_s_write(run_ctx, RARRAY_PTR(args)[0]);
+    len = nxt_ruby_stream_io_s_write(rctx, RARRAY_PTR(args)[0]);
 
     return LONG2FIX(len);
 }
 
 
 nxt_inline long
-nxt_ruby_stream_io_s_write(nxt_ruby_run_ctx_t *run_ctx, VALUE val)
+nxt_ruby_stream_io_s_write(nxt_ruby_ctx_t *rctx, VALUE val)
 {
     if (nxt_slow_path(val == Qnil)) {
         return 0;
@@ -247,7 +242,7 @@ nxt_ruby_stream_io_s_write(nxt_ruby_run_ctx_t *run_ctx, VALUE val)
         }
     }
 
-    nxt_unit_req_error(run_ctx->req, "Ruby: %s", RSTRING_PTR(val));
+    nxt_unit_req_error(rctx->req, "Ruby: %s", RSTRING_PTR(val));
 
     return RSTRING_LEN(val);
 }

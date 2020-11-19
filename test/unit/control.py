@@ -1,5 +1,6 @@
 import json
 
+from conftest import option
 from unit.http import TestHTTP
 
 
@@ -53,7 +54,7 @@ class TestControl(TestHTTP):
         args = {
             'url': url,
             'sock_type': 'unix',
-            'addr': self.temp_dir + '/control.unit.sock',
+            'addr': option.temp_dir + '/control.unit.sock',
         }
 
         if conf is not None:

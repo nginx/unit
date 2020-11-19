@@ -6,6 +6,7 @@ import time
 import pytest
 
 from conftest import option
+from conftest import unit_stop
 from unit.applications.lang.php import TestApplicationPHP
 
 class TestPHPApplication(TestApplicationPHP):
@@ -92,6 +93,32 @@ class TestPHPApplication(TestApplicationPHP):
 
         assert resp['status'] == 200, 'query string empty status'
         assert resp['headers']['Query-String'] == '', 'query string empty'
+
+    def test_php_application_fastcgi_finish_request(self, temp_dir):
+        self.load('fastcgi_finish_request')
+
+        assert self.get()['body'] == '0123'
+
+        unit_stop()
+
+        with open(temp_dir + '/unit.log', 'r', errors='ignore') as f:
+            errs = re.findall(r'Error in fastcgi_finish_request', f.read())
+
+            assert len(errs) == 0, 'no error'
+
+    def test_php_application_fastcgi_finish_request_2(self, temp_dir):
+        self.load('fastcgi_finish_request')
+
+        resp = self.get(url='/?skip')
+        assert resp['status'] == 200
+        assert resp['body'] == ''
+
+        unit_stop()
+
+        with open(temp_dir + '/unit.log', 'r', errors='ignore') as f:
+            errs = re.findall(r'Error in fastcgi_finish_request', f.read())
+
+            assert len(errs) == 0, 'no error'
 
     def test_php_application_query_string_absent(self):
         self.load('query_string')
@@ -444,7 +471,7 @@ class TestPHPApplication(TestApplicationPHP):
             r'012345', self.get()['body']
         ), 'disable_classes before'
 
-    def test_php_application_error_log(self):
+    def test_php_application_error_log(self, temp_dir):
         self.load('error_log')
 
         assert self.get()['status'] == 200, 'status'
@@ -453,13 +480,13 @@ class TestPHPApplication(TestApplicationPHP):
 
         assert self.get()['status'] == 200, 'status 2'
 
-        self.stop()
+        unit_stop()
 
         pattern = r'\d{4}\/\d\d\/\d\d\s\d\d:.+\[notice\].+Error in application'
 
         assert self.wait_for_record(pattern) is not None, 'errors print'
 
-        with open(self.temp_dir + '/unit.log', 'r', errors='ignore') as f:
+        with open(temp_dir + '/unit.log', 'r', errors='ignore') as f:
             errs = re.findall(pattern, f.read())
 
             assert len(errs) == 2, 'error_log count'
@@ -507,12 +534,12 @@ class TestPHPApplication(TestApplicationPHP):
         assert resp['status'] == 200, 'status'
         assert resp['body'] != '', 'body not empty'
 
-    def test_php_application_extension_check(self):
+    def test_php_application_extension_check(self, temp_dir):
         self.load('phpinfo')
 
         assert self.get(url='/index.wrong')['status'] != 200, 'status'
 
-        new_root = self.temp_dir + "/php"
+        new_root = temp_dir + "/php"
         os.mkdir(new_root)
         shutil.copy(option.test_dir + '/php/phpinfo/index.wrong', new_root)
 

@@ -127,7 +127,11 @@ NXT_LIBRT=
 . auto/unix
 . auto/os/conf
 . auto/ssltls
-. auto/pcre
+
+if [ $NXT_REGEX = YES ]; then
+    . auto/pcre
+fi
+
 . auto/isolation
 . auto/capability
 

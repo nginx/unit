@@ -288,11 +288,13 @@ continue_target:
         case NXT_HTTP_TARGET_SPACE:
             rp->target_end = p;
             goto space_after_target;
-
+#if 0
         case NXT_HTTP_TARGET_QUOTE_MARK:
             rp->quoted_target = 1;
             goto rest_of_target;
-
+#else
+        case NXT_HTTP_TARGET_QUOTE_MARK:
+#endif
         case NXT_HTTP_TARGET_HASH:
             rp->complex_target = 1;
             goto rest_of_target;
@@ -378,7 +380,7 @@ space_after_target:
             }
         }
 
-        rp->space_in_target = 1;
+        //rp->space_in_target = 1;
 
         if (rest) {
             goto rest_of_target;
@@ -397,7 +399,7 @@ space_after_target:
             goto space_after_target;
         }
 
-        rp->space_in_target = 1;
+        //rp->space_in_target = 1;
 
         if (rest) {
             goto rest_of_target;
@@ -432,7 +434,12 @@ space_after_target:
             *pos = p + 10;
         }
 
-        if (rp->complex_target != 0 || rp->quoted_target != 0) {
+        if (rp->complex_target != 0
+#if 0
+            || rp->quoted_target != 0
+#endif
+           )
+        {
             rc = nxt_http_parse_complex_target(rp);
 
             if (nxt_slow_path(rc != NXT_OK)) {
@@ -518,11 +525,13 @@ nxt_http_parse_field_name(nxt_http_request_parse_t *rp, u_char **pos,
 
     static const u_char  normal[256]  nxt_aligned(64) =
         "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-        "\0\0\0\0\0\0\0\0\0\0\0\0\0-\0\0" "0123456789\0\0\0\0\0\0"
+    /*   \s ! " # $ % & ' ( ) * + ,        . /                 : ; < = > ?   */
+        "\0\1\0\1\1\1\1\1\0\0\1\1\0" "-" "\1\0" "0123456789" "\0\0\0\0\0\0"
 
-        /* These 64 bytes should reside in one cache line. */
-        "\0abcdefghijklmnopqrstuvwxyz\0\0\0\0_"
-        "\0abcdefghijklmnopqrstuvwxyz\0\0\0\0\0"
+    /*    @                                 [ \ ] ^ _                        */
+        "\0" "abcdefghijklmnopqrstuvwxyz" "\0\0\0\1\1"
+    /*    `                                 { | } ~                          */
+        "\1" "abcdefghijklmnopqrstuvwxyz" "\0\1\0\1\0"
 
         "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
         "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
@@ -538,9 +547,14 @@ nxt_http_parse_field_name(nxt_http_request_parse_t *rp, u_char **pos,
                                                                               \
         c = normal[ch];                                                       \
                                                                               \
-        if (nxt_slow_path(c == '\0')) {                                       \
-            p = &(ch);                                                        \
-            goto name_end;                                                    \
+        if (nxt_slow_path(c <= '\1')) {                                       \
+            if (c == '\0') {                                                  \
+                p = &(ch);                                                    \
+                goto name_end;                                                \
+            }                                                                 \
+                                                                              \
+            rp->skip_field = rp->discard_unsafe_fields;                       \
+            c = ch;                                                           \
         }                                                                     \
                                                                               \
         hash = nxt_http_field_hash_char(hash, c);
@@ -777,20 +791,25 @@ nxt_http_parse_field_end(nxt_http_request_parse_t *rp, u_char **pos,
         *pos = p + 1;
 
         if (rp->field_name.length != 0) {
-            field = nxt_list_add(rp->fields);
+            if (rp->skip_field) {
+                rp->skip_field = 0;
 
-            if (nxt_slow_path(field == NULL)) {
-                return NXT_ERROR;
+            } else {
+                field = nxt_list_add(rp->fields);
+
+                if (nxt_slow_path(field == NULL)) {
+                    return NXT_ERROR;
+                }
+
+                field->hash = nxt_http_field_hash_end(rp->field_hash);
+                field->skip = 0;
+                field->hopbyhop = 0;
+
+                field->name_length = rp->field_name.length;
+                field->value_length = rp->field_value.length;
+                field->name = rp->field_name.start;
+                field->value = rp->field_value.start;
             }
-
-            field->hash = nxt_http_field_hash_end(rp->field_hash);
-            field->skip = 0;
-            field->hopbyhop = 0;
-
-            field->name_length = rp->field_name.length;
-            field->value_length = rp->field_value.length;
-            field->name = rp->field_name.start;
-            field->value = rp->field_value.start;
 
             rp->field_hash = NXT_HTTP_FIELD_HASH_INIT;
 
@@ -1023,7 +1042,7 @@ nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
             break;
 
         case sw_quoted:
-            rp->quoted_target = 1;
+            //rp->quoted_target = 1;
 
             if (ch >= '0' && ch <= '9') {
                 high = (u_char) (ch - '0');

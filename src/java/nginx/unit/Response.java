@@ -40,11 +40,13 @@ public class Response implements HttpServletResponse {
     private String characterEncoding = defaultCharacterEncoding;
     private String contentType = null;
     private String contentTypeHeader = null;
+    private Locale locale = null;
 
     private static final Charset ISO_8859_1 = StandardCharsets.ISO_8859_1;
     private static final Charset UTF_8 = StandardCharsets.UTF_8;
 
     private static final String CONTENT_TYPE = "Content-Type";
+    private static final byte[] CONTENT_LANGUAGE_BYTES = "Content-Language".getBytes(ISO_8859_1);
     private static final byte[] SET_COOKIE_BYTES = "Set-Cookie".getBytes(ISO_8859_1);
     private static final byte[] EXPIRES_BYTES = "Expires".getBytes(ISO_8859_1);
 
@@ -590,9 +592,13 @@ public class Response implements HttpServletResponse {
     @Override
     public Locale getLocale()
     {
-        log("getLocale");
+        trace("getLocale");
 
-        return null;
+        if (locale == null) {
+            return Locale.getDefault();
+        }
+
+        return locale;
     }
 
     @Override
@@ -795,7 +801,16 @@ public class Response implements HttpServletResponse {
     @Override
     public void setLocale(Locale loc)
     {
-        log("setLocale: " + loc);
+        trace("setLocale: " + loc);
+
+        if (loc == null || isCommitted()) {
+            return;
+        }
+
+        locale = loc;
+        String lang = locale.toString().replace('_', '-');
+
+        setHeader(req_info_ptr, CONTENT_LANGUAGE_BYTES, lang.getBytes(ISO_8859_1));
     }
 
     private void log(String msg)

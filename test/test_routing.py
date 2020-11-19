@@ -10,8 +10,6 @@ class TestRouting(TestApplicationProto):
     prerequisites = {'modules': {'python': 'any'}}
 
     def setup_method(self):
-        super().setup_method()
-
         assert 'success' in self.conf(
             {
                 "listeners": {"*:7080": {"pass": "routes"}},
@@ -232,6 +230,48 @@ class TestRouting(TestApplicationProto):
         assert self.get(url='/aBCaBbc')['status'] == 200
         assert self.get(url='/ABc')['status'] == 404
 
+    def test_routes_empty_regex(self):
+        self.route_match({"uri":"~"})
+        assert self.get(url='/')['status'] == 200, 'empty regexp'
+        assert self.get(url='/anything')['status'] == 200, '/anything'
+
+        self.route_match({"uri":"!~"})
+        assert self.get(url='/')['status'] == 404, 'empty regexp 2'
+        assert self.get(url='/nothing')['status'] == 404, '/nothing'
+
+    def test_routes_bad_regex(self):
+        assert 'error' in self.route(
+            {"match": {"uri": "~/bl[ah"}, "action": {"return": 200}}
+        ), 'bad regex'
+
+        status = self.route(
+            {"match": {"uri": "~(?R)?z"}, "action": {"return": 200}}
+        )
+        if 'error' not in status:
+            assert self.get(url='/nothing_z')['status'] == 500, '/nothing_z'
+
+        status = self.route(
+            {"match": {"uri": "~((?1)?z)"}, "action": {"return": 200}}
+        )
+        if 'error' not in status:
+            assert self.get(url='/nothing_z')['status'] == 500, '/nothing_z'
+
+    def test_routes_match_regex_case_sensitive(self):
+        self.route_match({"uri": "~/bl[ah]"})
+
+        assert self.get(url='/rlah')['status'] == 404, '/rlah'
+        assert self.get(url='/blah')['status'] == 200, '/blah'
+        assert self.get(url='/blh')['status'] == 200, '/blh'
+        assert self.get(url='/BLAH')['status'] == 404, '/BLAH'
+
+    def test_routes_match_regex_negative_case_sensitive(self):
+        self.route_match({"uri": "!~/bl[ah]"})
+
+        assert self.get(url='/rlah')['status'] == 200, '/rlah'
+        assert self.get(url='/blah')['status'] == 404, '/blah'
+        assert self.get(url='/blh')['status'] == 404, '/blh'
+        assert self.get(url='/BLAH')['status'] == 200, '/BLAH'
+
     def test_routes_pass_encode(self):
         def check_pass(path, name):
             assert 'success' in self.conf(
@@ -417,7 +457,7 @@ class TestRouting(TestApplicationProto):
             [{"action": {"pass": "upstreams/blah"}}], 'routes'
         ), 'route pass upstreams invalid'
 
-    def test_routes_action_unique(self):
+    def test_routes_action_unique(self, temp_dir):
         assert 'success' in self.conf(
             {
                 "listeners": {
@@ -437,7 +477,7 @@ class TestRouting(TestApplicationProto):
         )
 
         assert 'error' in self.conf(
-            {"proxy": "http://127.0.0.1:7081", "share": self.temp_dir},
+            {"proxy": "http://127.0.0.1:7081", "share": temp_dir},
             'routes/0/action',
         ), 'proxy share'
         assert 'error' in self.conf(
@@ -445,7 +485,7 @@ class TestRouting(TestApplicationProto):
             'routes/0/action',
         ), 'proxy pass'
         assert 'error' in self.conf(
-            {"share": self.temp_dir, "pass": "applications/app"},
+            {"share": temp_dir, "pass": "applications/app"},
             'routes/0/action',
         ), 'share pass'
 
@@ -1665,8 +1705,8 @@ class TestRouting(TestApplicationProto):
         assert self.get(sock_type='ipv6')['status'] == 200, '0'
         assert self.get(port=7081)['status'] == 404, '0 ipv4'
 
-    def test_routes_source_unix(self):
-        addr = self.temp_dir + '/sock'
+    def test_routes_source_unix(self, temp_dir):
+        addr = temp_dir + '/sock'
 
         assert 'success' in self.conf(
             {"unix:" + addr: {"pass": "routes"}}, 'listeners'

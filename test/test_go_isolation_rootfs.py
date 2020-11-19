@@ -8,7 +8,7 @@ from unit.applications.lang.go import TestApplicationGo
 class TestGoIsolationRootfs(TestApplicationGo):
     prerequisites = {'modules': {'go': 'all'}}
 
-    def test_go_isolation_rootfs_chroot(self, is_su):
+    def test_go_isolation_rootfs_chroot(self, is_su, temp_dir):
         if not is_su:
             pytest.skip('requires root')
 
@@ -16,7 +16,7 @@ class TestGoIsolationRootfs(TestApplicationGo):
             pytest.skip('chroot tests not supported on OSX')
 
         isolation = {
-            'rootfs': self.temp_dir,
+            'rootfs': temp_dir,
         }
 
         self.load('ns_inspect', isolation=isolation)

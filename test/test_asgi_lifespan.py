@@ -5,6 +5,7 @@ import pytest
 
 from conftest import option
 from conftest import public_dir
+from conftest import unit_stop
 from unit.applications.lang.python import TestApplicationPython
 
 
@@ -34,7 +35,7 @@ class TestASGILifespan(TestApplicationPython):
 
         assert self.get()['status'] == 204
 
-        self.stop()
+        unit_stop()
 
         is_startup = os.path.isfile(startup_path)
         is_shutdown = os.path.isfile(shutdown_path)

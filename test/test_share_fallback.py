@@ -1,5 +1,6 @@
 import os
 
+from conftest import option
 from conftest import skip_alert
 from unit.applications.proto import TestApplicationProto
 
@@ -8,14 +9,12 @@ class TestStatic(TestApplicationProto):
     prerequisites = {}
 
     def setup_method(self):
-        super().setup_method()
-
-        os.makedirs(self.temp_dir + '/assets/dir')
-        with open(self.temp_dir + '/assets/index.html', 'w') as index:
+        os.makedirs(option.temp_dir + '/assets/dir')
+        with open(option.temp_dir + '/assets/index.html', 'w') as index:
             index.write('0123456789')
 
-        os.makedirs(self.temp_dir + '/assets/403')
-        os.chmod(self.temp_dir + '/assets/403', 0o000)
+        os.makedirs(option.temp_dir + '/assets/403')
+        os.chmod(option.temp_dir + '/assets/403', 0o000)
 
         self._load_conf(
             {
@@ -23,15 +22,13 @@ class TestStatic(TestApplicationProto):
                     "*:7080": {"pass": "routes"},
                     "*:7081": {"pass": "routes"},
                 },
-                "routes": [{"action": {"share": self.temp_dir + "/assets"}}],
+                "routes": [{"action": {"share": option.temp_dir + "/assets"}}],
                 "applications": {},
             }
         )
 
     def teardown_method(self):
-        os.chmod(self.temp_dir + '/assets/403', 0o777)
-
-        super().teardown_method()
+        os.chmod(option.temp_dir + '/assets/403', 0o777)
 
     def action_update(self, conf):
         assert 'success' in self.conf(conf, 'routes/0/action')
@@ -46,9 +43,9 @@ class TestStatic(TestApplicationProto):
         assert resp['status'] == 200, 'bad path fallback status'
         assert resp['body'] == '', 'bad path fallback'
 
-    def test_fallback_valid_path(self):
+    def test_fallback_valid_path(self, temp_dir):
         self.action_update(
-            {"share": self.temp_dir + "/assets", "fallback": {"return": 200}}
+            {"share": temp_dir + "/assets", "fallback": {"return": 200}}
         )
         resp = self.get()
         assert resp['status'] == 200, 'fallback status'
@@ -79,11 +76,11 @@ class TestStatic(TestApplicationProto):
         assert resp['status'] == 200, 'fallback nested status'
         assert resp['body'] == '', 'fallback nested'
 
-    def test_fallback_share(self):
+    def test_fallback_share(self, temp_dir):
         self.action_update(
             {
                 "share": "/blah",
-                "fallback": {"share": self.temp_dir + "/assets"},
+                "fallback": {"share": temp_dir + "/assets"},
             }
         )
 

@@ -91,9 +91,12 @@ nxt_lib_start(const char *app, char **argv, char ***envp)
 #elif (NXT_HPUX)
     n = mpctl(MPC_GETNUMSPUS, NULL, NULL);
 
+#else
+    n = 0;
+
 #endif
 
-    nxt_debug(&nxt_main_task, "ncpu: %ui", n);
+    nxt_debug(&nxt_main_task, "ncpu: %d", n);
 
     if (n > 1) {
         nxt_ncpu = n;

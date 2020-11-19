@@ -12,6 +12,7 @@
 #include <sys/uio.h>
 #include <string.h>
 
+#include "nxt_auto_config.h"
 #include "nxt_version.h"
 #include "nxt_unit_typedefs.h"
 
@@ -33,6 +34,8 @@ enum {
 };
 
 #define NXT_UNIT_INIT_ENV  "NXT_UNIT_INIT"
+
+#define NXT_UNIT_SHARED_PORT_ID  ((uint16_t) 0xFFFFu)
 
 /*
  * Mostly opaque structure with library state.
@@ -152,6 +155,8 @@ struct nxt_unit_callbacks_s {
     /* Receive data on port id. Optional. */
     ssize_t  (*port_recv)(nxt_unit_ctx_t *, nxt_unit_port_t *port,
                  void *buf, size_t buf_size, void *oob, size_t oob_size);
+
+    int      (*ready_handler)(nxt_unit_ctx_t *);
 };
 
 
@@ -207,6 +212,10 @@ int nxt_unit_run(nxt_unit_ctx_t *);
 int nxt_unit_run_ctx(nxt_unit_ctx_t *ctx);
 
 int nxt_unit_run_shared(nxt_unit_ctx_t *ctx);
+
+nxt_unit_request_info_t *nxt_unit_dequeue_request(nxt_unit_ctx_t *ctx);
+
+int nxt_unit_is_main_ctx(nxt_unit_ctx_t *ctx);
 
 /*
  * Receive and process one message, invoke configured callbacks.

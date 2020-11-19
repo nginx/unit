@@ -220,7 +220,7 @@ nxt_http_request_create(nxt_task_t *task)
     nxt_buf_t           *last;
     nxt_http_request_t  *r;
 
-    mp = nxt_mp_create(1024, 128, 256, 32);
+    mp = nxt_mp_create(4096, 128, 512, 32);
     if (nxt_slow_path(mp == NULL)) {
         return NULL;
     }

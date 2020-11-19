@@ -9,8 +9,10 @@ from unit.applications.proto import TestApplicationProto
 
 
 class TestApplicationJava(TestApplicationProto):
-    def load(self, script, name='app', **kwargs):
-        app_path = self.temp_dir + '/java'
+    application_type = "java"
+
+    def prepare_env(self, script):
+        app_path = option.temp_dir + '/java'
         web_inf_path = app_path + '/WEB-INF/'
         classes_path = web_inf_path + 'classes/'
         script_path = option.test_dir + '/java/' + script + '/'
@@ -50,7 +52,7 @@ class TestApplicationJava(TestApplicationProto):
                 os.makedirs(classes_path)
 
             classpath = (
-                option.current_dir + '/build/tomcat-servlet-api-9.0.13.jar'
+                option.current_dir + '/build/tomcat-servlet-api-9.0.39.jar'
             )
 
             ws_jars = glob.glob(
@@ -62,18 +64,28 @@ class TestApplicationJava(TestApplicationProto):
 
             javac = [
                 'javac',
+                '-target', '8', '-source', '8', '-nowarn',
                 '-encoding',   'utf-8',
                 '-d',          classes_path,
                 '-classpath',  classpath + ':' + ws_jars[0],
             ]
             javac.extend(src)
 
+            if option.detailed:
+                print("\n$ " + " ".join(javac))
+
             try:
                 process = subprocess.Popen(javac, stderr=subprocess.STDOUT)
                 process.communicate()
 
+            except KeyboardInterrupt:
+                raise
+
             except:
-                pytest.fail('Cann\'t run javac process.')
+                pytest.fail('Can\'t run javac process.')
+
+    def load(self, script, **kwargs):
+        self.prepare_env(script)
 
         self._load_conf(
             {
@@ -81,10 +93,13 @@ class TestApplicationJava(TestApplicationProto):
                 "applications": {
                     script: {
                         "unit_jars": option.current_dir + '/build',
-                        "type": 'java',
+                        "type": self.get_application_type(),
                         "processes": {"spare": 0},
-                        "working_directory": script_path,
-                        "webapp": app_path,
+                        "working_directory": option.test_dir
+                        + '/java/'
+                        + script
+                        + '/',
+                        "webapp": option.temp_dir + '/java',
                     }
                 },
             },

@@ -3,6 +3,7 @@ import re
 import pytest
 
 from conftest import skip_alert
+from conftest import unit_stop
 from unit.applications.lang.ruby import TestApplicationRuby
 
 
@@ -175,7 +176,7 @@ class TestRubyApplication(TestApplicationRuby):
 
         self.get()
 
-        self.stop()
+        unit_stop()
 
         assert (
             self.wait_for_record(r'\[error\].+Error in application')
@@ -187,7 +188,7 @@ class TestRubyApplication(TestApplicationRuby):
 
         self.get()
 
-        self.stop()
+        unit_stop()
 
         assert (
             self.wait_for_record(r'\[error\].+1234567890') is not None
@@ -198,7 +199,7 @@ class TestRubyApplication(TestApplicationRuby):
 
         self.get()
 
-        self.stop()
+        unit_stop()
 
         assert (
             self.wait_for_record(r'\[error\].+Error in application')
@@ -215,7 +216,7 @@ class TestRubyApplication(TestApplicationRuby):
 
         self.get()
 
-        self.stop()
+        unit_stop()
 
         assert (
             self.wait_for_record(r'\[error\].+1234567890') is not None
@@ -228,7 +229,7 @@ class TestRubyApplication(TestApplicationRuby):
 
         self.conf({"listeners": {}, "applications": {}})
 
-        self.stop()
+        unit_stop()
 
         assert (
             self.wait_for_record(r'\[error\].+At exit called\.') is not None
@@ -289,7 +290,7 @@ class TestRubyApplication(TestApplicationRuby):
 
         assert self.get()['status'] == 500, 'body each error status'
 
-        self.stop()
+        unit_stop()
 
         assert (
             self.wait_for_record(r'\[error\].+Failed to run ruby script')
@@ -350,3 +351,44 @@ class TestRubyApplication(TestApplicationRuby):
         assert len(headers['X-Release-Date']) > 0, 'RUBY_RELEASE_DATE'
         assert len(headers['X-Revision']) > 0, 'RUBY_REVISION'
         assert len(headers['X-Version']) > 0, 'RUBY_VERSION'
+
+    def test_ruby_application_threads(self):
+        self.load('threads')
+
+        assert 'success' in self.conf(
+            '4', 'applications/threads/threads'
+        ), 'configure 4 threads'
+
+        socks = []
+
+        for i in range(4):
+            (_, sock) = self.get(
+                headers={
+                    'Host': 'localhost',
+                    'X-Delay': '2',
+                    'Connection': 'close',
+                },
+                no_recv=True,
+                start=True,
+            )
+
+            socks.append(sock)
+
+        threads = set()
+
+        for sock in socks:
+            resp = self.recvall(sock).decode('utf-8')
+
+            self.log_in(resp)
+
+            resp = self._resp_to_dict(resp)
+
+            assert resp['status'] == 200, 'status'
+
+            threads.add(resp['headers']['X-Thread'])
+
+            assert resp['headers']['Rack-Multithread'] == 'true', 'multithread'
+
+            sock.close()
+
+        assert len(socks) == len(threads), 'threads differs'

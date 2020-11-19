@@ -98,16 +98,16 @@ static uint64_t  nxt_py_asgi_ws_max_frame_size = 1024 * 1024;
 static uint64_t  nxt_py_asgi_ws_max_buffer_size = 10 * 1024 * 1024;
 
 
-nxt_int_t
-nxt_py_asgi_websocket_init(nxt_task_t *task)
+int
+nxt_py_asgi_websocket_init(void)
 {
     if (nxt_slow_path(PyType_Ready(&nxt_py_asgi_websocket_type) != 0)) {
-        nxt_alert(task,
+        nxt_unit_alert(NULL,
               "Python failed to initialize the \"asgi_websocket\" type object");
-        return NXT_ERROR;
+        return NXT_UNIT_ERROR;
     }
 
-    return NXT_OK;
+    return NXT_UNIT_OK;
 }
 
 
@@ -137,6 +137,7 @@ static PyObject *
 nxt_py_asgi_websocket_receive(PyObject *self, PyObject *none)
 {
     PyObject                 *future, *msg;
+    nxt_py_asgi_ctx_data_t   *ctx_data;
     nxt_py_asgi_websocket_t  *ws;
 
     ws = (nxt_py_asgi_websocket_t *) self;
@@ -160,7 +161,9 @@ nxt_py_asgi_websocket_receive(PyObject *self, PyObject *none)
                             "WebSocket already closed");
     }
 
-    future = PyObject_CallObject(nxt_py_loop_create_future, NULL);
+    ctx_data = ws->req->ctx->data;
+
+    future = PyObject_CallObject(ctx_data->loop_create_future, NULL);
     if (nxt_slow_path(future == NULL)) {
         nxt_unit_req_alert(ws->req, "Python failed to create Future object");
         nxt_python_print_exception();
@@ -174,19 +177,19 @@ nxt_py_asgi_websocket_receive(PyObject *self, PyObject *none)
 
         msg = nxt_py_asgi_new_msg(ws->req, nxt_py_websocket_connect_str);
 
-        return nxt_py_asgi_set_result_soon(ws->req, future, msg);
+        return nxt_py_asgi_set_result_soon(ws->req, ctx_data, future, msg);
     }
 
     if (ws->pending_fins > 0) {
         msg = nxt_py_asgi_websocket_pop_msg(ws, NULL);
 
-        return nxt_py_asgi_set_result_soon(ws->req, future, msg);
+        return nxt_py_asgi_set_result_soon(ws->req, ctx_data, future, msg);
     }
 
     if (nxt_slow_path(ws->state == NXT_WS_DISCONNECTED)) {
         msg = nxt_py_asgi_websocket_disconnect_msg(ws);
 
-        return nxt_py_asgi_set_result_soon(ws->req, future, msg);
+        return nxt_py_asgi_set_result_soon(ws->req, ctx_data, future, msg);
     }
 
     ws->receive_future = future;

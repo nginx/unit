@@ -12,7 +12,6 @@ class TestApplicationPython(TestApplicationProto):
     load_module = "wsgi"
 
     def load(self, script, name=None, module=None, **kwargs):
-        print()
         if name is None:
             name = script
 
@@ -35,25 +34,25 @@ class TestApplicationPython(TestApplicationProto):
 
             script_path = '/app/python/' + name
 
-        appication_type = self.get_appication_type()
+        app = {
+            "type": self.get_application_type(),
+            "processes": kwargs.pop('processes', {"spare": 0}),
+            "path": script_path,
+            "working_directory": script_path,
+            "module": module,
+        }
 
-        if appication_type is None:
-            appication_type = self.application_type
+        for attr in ('callable', 'home', 'limits', 'path', 'protocol',
+                     'threads'):
+            if attr in kwargs:
+                app[attr] = kwargs.pop(attr)
 
         self._load_conf(
             {
                 "listeners": {
                     "*:7080": {"pass": "applications/" + quote(name, '')}
                 },
-                "applications": {
-                    name: {
-                        "type": appication_type,
-                        "processes": {"spare": 0},
-                        "path": script_path,
-                        "working_directory": script_path,
-                        "module": module,
-                    }
-                },
+                "applications": {name: app},
             },
             **kwargs
         )

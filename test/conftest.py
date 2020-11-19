@@ -4,11 +4,13 @@ import platform
 import re
 import shutil
 import signal
+import socket
 import stat
 import subprocess
 import sys
 import tempfile
 import time
+from multiprocessing import Process
 
 import pytest
 
@@ -45,6 +47,7 @@ def pytest_addoption(parser):
 
 
 unit_instance = {}
+_processes = []
 option = None
 
 
@@ -66,9 +69,15 @@ def pytest_configure(config):
         fcntl.fcntl(sys.stdout.fileno(), fcntl.F_SETFL, 0)
 
 
+def skip_alert(*alerts):
+    option.skip_alerts.extend(alerts)
+
+
 def pytest_generate_tests(metafunc):
     cls = metafunc.cls
-    if not hasattr(cls, 'application_type'):
+    if (not hasattr(cls, 'application_type')
+            or cls.application_type == None
+            or cls.application_type == 'external'):
         return
 
     type = cls.application_type
@@ -127,16 +136,15 @@ def pytest_sessionstart(session):
                 break
 
     if m is None:
-        _print_log()
+        _print_log(log)
         exit("Unit is writing log too long")
 
     # discover available modules from unit.log
 
     for module in re.findall(r'module: ([a-zA-Z]+) (.*) ".*"$', log, re.M):
-        if module[0] not in option.available['modules']:
-            option.available['modules'][module[0]] = [module[1]]
-        else:
-            option.available['modules'][module[0]].append(module[1])
+        versions = option.available['modules'].setdefault(module[0], [])
+        if module[1] not in versions:
+            versions.append(module[1])
 
     # discover modules from check
 
@@ -154,14 +162,66 @@ def pytest_sessionstart(session):
 
     unit_stop()
 
+    shutil.rmtree(unit_instance['temp_dir'])
 
-def setup_method(self):
+
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    # execute all other hooks to obtain the report object
+    outcome = yield
+    rep = outcome.get_result()
+
+    # set a report attribute for each phase of a call, which can
+    # be "setup", "call", "teardown"
+
+    setattr(item, "rep_" + rep.when, rep)
+
+
+@pytest.fixture(autouse=True)
+def run(request):
+    unit = unit_run()
+    option.temp_dir = unit['temp_dir']
+
     option.skip_alerts = [
         r'read signalfd\(4\) failed',
         r'sendmsg.+failed',
         r'recvmsg.+failed',
     ]
     option.skip_sanitizer = False
+
+    yield
+
+    # stop unit
+
+    error = unit_stop()
+
+    if error:
+        _print_log()
+
+    assert error is None, 'stop unit'
+
+    # stop all processes
+
+    error = stop_processes()
+
+    if error:
+        _print_log()
+
+    assert error is None, 'stop unit'
+
+    # check unit.log for alerts
+
+    _check_alerts()
+
+    # print unit.log in case of error
+
+    if hasattr(request.node, 'rep_call') and request.node.rep_call.failed:
+        _print_log()
+
+    # remove unit.log
+
+    if not option.save_log:
+        shutil.rmtree(unit['temp_dir'])
 
 def unit_run():
     global unit_instance
@@ -204,14 +264,6 @@ def unit_run():
         _print_log()
         exit('Could not start unit')
 
-    # dumb (TODO: remove)
-    option.skip_alerts = [
-        r'read signalfd\(4\) failed',
-        r'sendmsg.+failed',
-        r'recvmsg.+failed',
-    ]
-    option.skip_sanitizer = False
-
     unit_instance['temp_dir'] = temp_dir
     unit_instance['log'] = temp_dir + '/unit.log'
     unit_instance['control_sock'] = temp_dir + '/control.unit.sock'
@@ -232,11 +284,14 @@ def unit_stop():
         retcode = p.wait(15)
         if retcode:
             return 'Child process terminated with code ' + str(retcode)
+
+    except KeyboardInterrupt:
+        p.kill()
+        raise
+
     except:
         p.kill()
         return 'Could not terminate unit'
-
-    shutil.rmtree(unit_instance['temp_dir'])
 
 def public_dir(path):
     os.chmod(path, 0o777)
@@ -267,11 +322,14 @@ def waitforfiles(*files):
     return ret
 
 
-def skip_alert(*alerts):
-    option.skip_alerts.extend(alerts)
 
+def _check_alerts(path=None):
+    if path is None:
+        path = unit_instance['log']
 
-def _check_alerts(log):
+    with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+        log = f.read()
+
     found = False
 
     alerts = re.findall(r'.+\[alert\].+', log)
@@ -286,23 +344,22 @@ def _check_alerts(log):
             alerts = [al for al in alerts if re.search(skip, al) is None]
 
     if alerts:
-        _print_log(data=log)
+        _print_log(log)
         assert not alerts, 'alert(s)'
 
     if not option.skip_sanitizer:
         sanitizer_errors = re.findall('.+Sanitizer.+', log)
 
         if sanitizer_errors:
-            _print_log(data=log)
+            _print_log(log)
             assert not sanitizer_errors, 'sanitizer error(s)'
 
     if found:
         print('skipped.')
 
 
-def _print_log(path=None, data=None):
-    if path is None:
-        path = unit_instance['log']
+def _print_log(data=None):
+    path = unit_instance['log']
 
     print('Path to unit.log:\n' + path + '\n')
 
@@ -316,6 +373,56 @@ def _print_log(path=None, data=None):
         else:
             sys.stdout.write(data)
 
+
+def run_process(target, *args):
+    global _processes
+
+    process = Process(target=target, args=args)
+    process.start()
+
+    _processes.append(process)
+
+def stop_processes():
+    if not _processes:
+        return
+
+    fail = False
+    for process in _processes:
+        if process.is_alive():
+            process.terminate()
+            process.join(timeout=15)
+
+            if process.is_alive():
+                fail = True
+
+    if fail:
+        return 'Fail to stop process(es)'
+
+
+def waitforsocket(port):
+    ret = False
+
+    for i in range(50):
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.connect(('127.0.0.1', port))
+            ret = True
+            break
+
+        except KeyboardInterrupt:
+            raise
+
+        except:
+            sock.close()
+            time.sleep(0.1)
+
+    sock.close()
+
+    assert ret, 'socket connected'
+
+@pytest.fixture
+def temp_dir(request):
+    return unit_instance['temp_dir']
 
 @pytest.fixture
 def is_unsafe(request):

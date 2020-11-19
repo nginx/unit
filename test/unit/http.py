@@ -5,7 +5,6 @@ import os
 import re
 import select
 import socket
-import time
 
 import pytest
 from conftest import option
@@ -188,6 +187,10 @@ class TestHTTP(TestUnit):
 
             try:
                 part = sock.recv(buff_size)
+
+            except KeyboardInterrupt:
+                raise
+
             except:
                 break
 
@@ -243,7 +246,8 @@ class TestHTTP(TestUnit):
 
         try:
             last_size = int(chunks[-2], 16)
-        except:
+
+        except ValueError:
             pytest.fail('Invalid zero size chunk')
 
         if last_size != 0 or chunks[-1] != b'':
@@ -253,7 +257,8 @@ class TestHTTP(TestUnit):
         while len(chunks) >= 2:
             try:
                 size = int(chunks.pop(0), 16)
-            except:
+
+            except ValueError:
                 pytest.fail('Invalid chunk size %s' % str(size))
 
             if size == 0:
@@ -282,23 +287,6 @@ class TestHTTP(TestUnit):
 
     def getjson(self, **kwargs):
         return self.get(json=True, **kwargs)
-
-    def waitforsocket(self, port):
-        ret = False
-
-        for i in range(50):
-            try:
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.connect(('127.0.0.1', port))
-                ret = True
-                break
-            except:
-                sock.close()
-                time.sleep(0.1)
-
-        sock.close()
-
-        assert ret, 'socket connected'
 
     def form_encode(self, fields):
         is_multipart = False

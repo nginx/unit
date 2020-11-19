@@ -146,14 +146,14 @@ Connection: close
 
         assert resp['status'] == 200, 'status body read timeout update'
 
-    def test_settings_send_timeout(self):
+    def test_settings_send_timeout(self, temp_dir):
         self.load('mirror')
 
         data_len = 1048576
 
         self.conf({'http': {'send_timeout': 1}}, 'settings')
 
-        addr = self.temp_dir + '/sock'
+        addr = temp_dir + '/sock'
 
         self.conf({"unix:" + addr: {'application': 'mirror'}}, 'listeners')
 
@@ -260,3 +260,41 @@ Connection: close
         assert 'error' in self.conf(
             {'http': {'max_body_size': -1}}, 'settings'
         ), 'settings negative value'
+
+    def test_settings_body_buffer_size(self):
+        self.load('mirror')
+
+        assert 'success' in self.conf(
+            {
+                'http': {
+                    'max_body_size': 64 * 1024 * 1024,
+                    'body_buffer_size': 32 * 1024 * 1024,
+                }
+            },
+            'settings',
+        )
+
+        body = '0123456789abcdef'
+        resp = self.post(body=body)
+        assert bool(resp), 'response from application'
+        assert resp['status'] == 200, 'status'
+        assert resp['body'] == body, 'body'
+
+        body = '0123456789abcdef' * 1024 * 1024
+        resp = self.post(body=body, read_buffer_size=1024 * 1024)
+        assert bool(resp), 'response from application 2'
+        assert resp['status'] == 200, 'status 2'
+        assert resp['body'] == body, 'body 2'
+
+        body = '0123456789abcdef' * 2 * 1024 * 1024
+        resp = self.post(body=body, read_buffer_size=1024 * 1024)
+        assert bool(resp), 'response from application 3'
+        assert resp['status'] == 200, 'status 3'
+        assert resp['body'] == body, 'body 3'
+
+        body = '0123456789abcdef' * 3 * 1024 * 1024
+        resp = self.post(body=body, read_buffer_size=1024 * 1024)
+        assert bool(resp), 'response from application 4'
+        assert resp['status'] == 200, 'status 4'
+        assert resp['body'] == body, 'body 4'
+

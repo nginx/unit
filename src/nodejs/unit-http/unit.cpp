@@ -307,6 +307,8 @@ Unit::close_handler(nxt_unit_request_info_t *req)
     } catch (exception &e) {
         nxt_unit_req_warn(req, "close_handler: %s", e.str);
 
+        nxt_unit_request_done(req, NXT_UNIT_ERROR);
+
         return;
     }
 

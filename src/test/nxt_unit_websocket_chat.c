@@ -30,7 +30,7 @@ typedef struct {
 
 
 static int ws_chat_root(nxt_unit_request_info_t *req);
-static void ws_chat_broadcast(const void *buf, size_t size);
+static void ws_chat_broadcast(const char *buf, size_t size);
 
 
 static const char     ws_chat_index_html[];
@@ -139,18 +139,18 @@ ws_chat_root(nxt_unit_request_info_t *req)
 
 
 static void
-ws_chat_broadcast(const void *buf, size_t size)
+ws_chat_broadcast(const char *buf, size_t size)
 {
     ws_chat_request_data_t   *data;
     nxt_unit_request_info_t  *req;
 
-    nxt_unit_debug(NULL, "broadcast: %s", buf);
+    nxt_unit_debug(NULL, "broadcast: %*.s", (int) size, buf);
 
     nxt_queue_each(data, &ws_chat_sessions, ws_chat_request_data_t, link) {
 
         req = nxt_unit_get_request_info_from_data(data);
 
-        nxt_unit_req_debug(req, "broadcast: %s", buf);
+        nxt_unit_req_debug(req, "send: %*.s", (int) size, buf);
 
         nxt_unit_websocket_send(req, NXT_WEBSOCKET_OP_TEXT, 1, buf, size);
     } nxt_queue_loop;

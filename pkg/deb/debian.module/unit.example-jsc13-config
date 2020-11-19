@@ -1,0 +1,15 @@
+{
+	"applications": {
+		"example_java13": {
+			"processes": 1,
+			"type": "java 13",
+			"webapp": "/usr/share/doc/unit-jsc13/examples/jsc-app"
+		}
+	},
+
+	"listeners": {
+		"*:8800": {
+			"pass": "applications/example_java13"
+		}
+	}
+}

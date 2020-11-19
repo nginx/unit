@@ -17,6 +17,10 @@
 #include <nxt_port_memory_int.h>
 
 
+static void nxt_port_broadcast_shm_ack(nxt_task_t *task, nxt_port_t *port,
+    void *data);
+
+
 nxt_inline void
 nxt_port_mmap_handler_use(nxt_port_mmap_handler_t *mmap_handler, int i)
 {
@@ -112,7 +116,6 @@ nxt_port_mmap_buf_completion(nxt_task_t *task, void *obj, void *data)
     u_char                   *p;
     nxt_mp_t                 *mp;
     nxt_buf_t                *b, *next;
-    nxt_port_t               *port;
     nxt_process_t            *process;
     nxt_chunk_id_t           c;
     nxt_port_mmap_header_t   *hdr;
@@ -171,14 +174,7 @@ complete_buf:
     {
         process = nxt_runtime_process_find(task->thread->runtime, hdr->src_pid);
 
-        if (process != NULL && !nxt_queue_is_empty(&process->ports)) {
-            port = nxt_process_port_first(process);
-
-            if (port->type == NXT_PROCESS_APP) {
-                (void) nxt_port_socket_write(task, port, NXT_PORT_MSG_SHM_ACK,
-                                             -1, 0, 0, NULL);
-            }
-        }
+        nxt_process_broadcast_shm_ack(task, process);
     }
 
 release_buf:
@@ -975,4 +971,36 @@ nxt_port_mmap_get_method(nxt_task_t *task, nxt_port_t *port, nxt_buf_t *b)
     }
 
     return m;
+}
+
+
+void
+nxt_process_broadcast_shm_ack(nxt_task_t *task, nxt_process_t *process)
+{
+    nxt_port_t  *port;
+
+    if (nxt_slow_path(process == NULL || nxt_queue_is_empty(&process->ports)))
+    {
+        return;
+    }
+
+    port = nxt_process_port_first(process);
+
+    if (port->type == NXT_PROCESS_APP) {
+        nxt_port_post(task, port, nxt_port_broadcast_shm_ack, process);
+    }
+}
+
+
+static void
+nxt_port_broadcast_shm_ack(nxt_task_t *task, nxt_port_t *port, void *data)
+{
+    nxt_process_t  *process;
+
+    process = data;
+
+    nxt_queue_each(port, &process->ports, nxt_port_t, link) {
+        (void) nxt_port_socket_write(task, port, NXT_PORT_MSG_SHM_ACK,
+                                     -1, 0, 0, NULL);
+    } nxt_queue_loop;
 }

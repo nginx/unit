@@ -208,14 +208,14 @@ nxt_discovery_modules(nxt_task_t *task, const char *path)
         mounts = module[i].mounts;
 
         size += mounts->nelts * nxt_length("{\"src\": \"\", \"dst\": \"\", "
-                                            "\"fstype\": \"\", \"flags\": , "
-                                            "\"data\": \"\"},");
+                                            "\"type\": , \"name\": \"\", "
+                                            "\"flags\": , \"data\": \"\"},");
 
         mnt = mounts->elts;
 
         for (j = 0; j < mounts->nelts; j++) {
             size += nxt_strlen(mnt[j].src) + nxt_strlen(mnt[j].dst)
-                    + nxt_strlen(mnt[j].fstype) + NXT_INT_T_LEN
+                    + nxt_strlen(mnt[j].name) + (2 * NXT_INT_T_LEN)
                     + (mnt[j].data == NULL ? 0 : nxt_strlen(mnt[j].data));
         }
     }
@@ -242,9 +242,10 @@ nxt_discovery_modules(nxt_task_t *task, const char *path)
         for (j = 0; j < mounts->nelts; j++) {
             p = nxt_sprintf(p, end,
                             "{\"src\": \"%s\", \"dst\": \"%s\", "
-                            "\"fstype\": \"%s\", \"flags\": %d, "
+                            "\"name\": \"%s\", \"type\": %d, \"flags\": %d, "
                             "\"data\": \"%s\"},",
-                            mnt[j].src, mnt[j].dst, mnt[j].fstype, mnt[j].flags,
+                            mnt[j].src, mnt[j].dst, mnt[j].name, mnt[j].type,
+                            mnt[j].flags,
                             mnt[j].data == NULL ? (u_char *) "" : mnt[j].data);
         }
 
@@ -386,10 +387,12 @@ nxt_discovery_module(nxt_task_t *task, nxt_mp_t *mp, nxt_array_t *modules,
                 goto fail;
             }
 
-            to->fstype = nxt_cstr_dup(mp, to->fstype, from->fstype);
-            if (nxt_slow_path(to->fstype == NULL)) {
+            to->name = nxt_cstr_dup(mp, to->name, from->name);
+            if (nxt_slow_path(to->name == NULL)) {
                 goto fail;
             }
+
+            to->type = from->type;
 
             if (from->data != NULL) {
                 to->data = nxt_cstr_dup(mp, to->data, from->data);
@@ -723,7 +726,7 @@ nxt_unit_default_init(nxt_task_t *task, nxt_unit_init_t *init)
     init->read_port.id.pid = my_port->pid;
     init->read_port.id.id = my_port->id;
     init->read_port.in_fd = my_port->pair[0];
-    init->read_port.out_fd = -1;
+    init->read_port.out_fd = my_port->pair[1];
 
     init->log_fd = 2;
 

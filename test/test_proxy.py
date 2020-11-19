@@ -5,7 +5,9 @@ import time
 import pytest
 
 from conftest import option
+from conftest import run_process
 from conftest import skip_alert
+from conftest import waitforsocket
 from unit.applications.lang.python import TestApplicationPython
 
 
@@ -60,10 +62,8 @@ Content-Length: 10
         return self.post(*args, http_10=True, **kwargs)
 
     def setup_method(self):
-        super().setup_method()
-
-        self.run_process(self.run_server, self.SERVER_PORT)
-        self.waitforsocket(self.SERVER_PORT)
+        run_process(self.run_server, self.SERVER_PORT)
+        waitforsocket(self.SERVER_PORT)
 
         assert 'success' in self.conf(
             {
@@ -346,8 +346,8 @@ Content-Length: 10
 
         assert self.get_http10()['status'] == 200, 'status'
 
-    def test_proxy_unix(self):
-        addr = self.temp_dir + '/sock'
+    def test_proxy_unix(self, temp_dir):
+        addr = temp_dir + '/sock'
 
         assert 'success' in self.conf(
             {

@@ -26,6 +26,7 @@ struct nxt_port_handlers_s {
     nxt_port_handler_t  change_file;
     nxt_port_handler_t  new_port;
     nxt_port_handler_t  get_port;
+    nxt_port_handler_t  port_ack;
     nxt_port_handler_t  mmap;
     nxt_port_handler_t  get_mmap;
 
@@ -84,6 +85,7 @@ typedef enum {
     _NXT_PORT_MSG_CHANGE_FILE     = nxt_port_handler_idx(change_file),
     _NXT_PORT_MSG_NEW_PORT        = nxt_port_handler_idx(new_port),
     _NXT_PORT_MSG_GET_PORT        = nxt_port_handler_idx(get_port),
+    _NXT_PORT_MSG_PORT_ACK        = nxt_port_handler_idx(port_ack),
     _NXT_PORT_MSG_MMAP            = nxt_port_handler_idx(mmap),
     _NXT_PORT_MSG_GET_MMAP        = nxt_port_handler_idx(get_mmap),
 
@@ -120,6 +122,7 @@ typedef enum {
     NXT_PORT_MSG_CHANGE_FILE      = nxt_msg_last(_NXT_PORT_MSG_CHANGE_FILE),
     NXT_PORT_MSG_NEW_PORT         = nxt_msg_last(_NXT_PORT_MSG_NEW_PORT),
     NXT_PORT_MSG_GET_PORT         = nxt_msg_last(_NXT_PORT_MSG_GET_PORT),
+    NXT_PORT_MSG_PORT_ACK         = nxt_msg_last(_NXT_PORT_MSG_PORT_ACK),
     NXT_PORT_MSG_MMAP             = nxt_msg_last(_NXT_PORT_MSG_MMAP)
                                     | NXT_PORT_MSG_SYNC,
     NXT_PORT_MSG_GET_MMAP         = nxt_msg_last(_NXT_PORT_MSG_GET_MMAP),

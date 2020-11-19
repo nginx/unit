@@ -197,6 +197,24 @@ static nxt_conf_map_t  nxt_python_app_conf[] = {
         NXT_CONF_MAP_CSTRZ,
         offsetof(nxt_common_app_conf_t, u.python.callable),
     },
+
+    {
+        nxt_string("protocol"),
+        NXT_CONF_MAP_STR,
+        offsetof(nxt_common_app_conf_t, u.python.protocol),
+    },
+
+    {
+        nxt_string("threads"),
+        NXT_CONF_MAP_INT32,
+        offsetof(nxt_common_app_conf_t, u.python.threads),
+    },
+
+    {
+        nxt_string("thread_stack_size"),
+        NXT_CONF_MAP_INT32,
+        offsetof(nxt_common_app_conf_t, u.python.thread_stack_size),
+    },
 };
 
 
@@ -221,6 +239,18 @@ static nxt_conf_map_t  nxt_perl_app_conf[] = {
         NXT_CONF_MAP_CSTRZ,
         offsetof(nxt_common_app_conf_t, u.perl.script),
     },
+
+    {
+        nxt_string("threads"),
+        NXT_CONF_MAP_INT32,
+        offsetof(nxt_common_app_conf_t, u.perl.threads),
+    },
+
+    {
+        nxt_string("thread_stack_size"),
+        NXT_CONF_MAP_INT32,
+        offsetof(nxt_common_app_conf_t, u.perl.thread_stack_size),
+    },
 };
 
 
@@ -229,6 +259,11 @@ static nxt_conf_map_t  nxt_ruby_app_conf[] = {
         nxt_string("script"),
         NXT_CONF_MAP_STR,
         offsetof(nxt_common_app_conf_t, u.ruby.script),
+    },
+    {
+        nxt_string("threads"),
+        NXT_CONF_MAP_INT32,
+        offsetof(nxt_common_app_conf_t, u.ruby.threads),
     },
 };
 
@@ -253,6 +288,16 @@ static nxt_conf_map_t  nxt_java_app_conf[] = {
         nxt_string("unit_jars"),
         NXT_CONF_MAP_CSTRZ,
         offsetof(nxt_common_app_conf_t, u.java.unit_jars),
+    },
+    {
+        nxt_string("threads"),
+        NXT_CONF_MAP_INT32,
+        offsetof(nxt_common_app_conf_t, u.java.threads),
+    },
+    {
+        nxt_string("thread_stack_size"),
+        NXT_CONF_MAP_INT32,
+        offsetof(nxt_common_app_conf_t, u.java.thread_stack_size),
     },
 
 };
@@ -1163,9 +1208,14 @@ static nxt_conf_map_t  nxt_app_lang_mounts_map[] = {
         offsetof(nxt_fs_mount_t, dst),
     },
     {
-        nxt_string("fstype"),
+        nxt_string("name"),
         NXT_CONF_MAP_CSTRZ,
-        offsetof(nxt_fs_mount_t, fstype),
+        offsetof(nxt_fs_mount_t, name),
+    },
+    {
+        nxt_string("type"),
+        NXT_CONF_MAP_INT,
+        offsetof(nxt_fs_mount_t, type),
     },
     {
         nxt_string("flags"),
@@ -1297,6 +1347,7 @@ nxt_main_port_modules_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
             }
 
             mnt->builtin = 1;
+            mnt->deps = 1;
 
             ret = nxt_conf_map_object(rt->mem_pool, value,
                                       nxt_app_lang_mounts_map,

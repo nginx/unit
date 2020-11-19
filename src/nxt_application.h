@@ -51,6 +51,9 @@ typedef struct {
     nxt_str_t  path;
     nxt_str_t  module;
     char       *callable;
+    nxt_str_t  protocol;
+    uint32_t   threads;
+    uint32_t   thread_stack_size;
 } nxt_python_app_conf_t;
 
 
@@ -62,11 +65,14 @@ typedef struct {
 
 typedef struct {
     char       *script;
+    uint32_t   threads;
+    uint32_t   thread_stack_size;
 } nxt_perl_app_conf_t;
 
 
 typedef struct {
     nxt_str_t  script;
+    uint32_t   threads;
 } nxt_ruby_app_conf_t;
 
 
@@ -75,6 +81,8 @@ typedef struct {
     char                       *webapp;
     nxt_conf_value_t           *options;
     char                       *unit_jars;
+    uint32_t                   threads;
+    uint32_t                   thread_stack_size;
 } nxt_java_app_conf_t;
 
 

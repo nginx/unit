@@ -1,4 +1,50 @@
 
+Changes with Unit 1.21.0                                         19 Nov 2020
+
+    *) Change: procfs is mounted by default for all languages when "rootfs"
+       isolation is used.
+
+    *) Change: any characters valid according to RFC 7230 are now allowed in
+       HTTP header field names.
+
+    *) Change: HTTP header fields with underscores ("_") are now discarded
+       from requests by default.
+
+    *) Feature: optional multithreaded request processing for Java, Python,
+       Perl, and Ruby apps.
+
+    *) Feature: regular expressions in route matching patterns.
+
+    *) Feature: compatibility with Python 3.9.
+
+    *) Feature: the Python module now supports ASGI 2.0 legacy applications.
+
+    *) Feature: the "protocol" option in Python applications aids choice
+       between ASGI and WSGI.
+
+    *) Feature: the fastcgi_finish_request() PHP function that finalizes
+       request processing and continues code execution without holding onto
+       the client connection.
+
+    *) Feature: the "discard_unsafe_fields" HTTP option that enables
+       discarding request header fields with irregular (but still valid)
+       characters in the field name.
+
+    *) Feature: the "procfs" and "tmpfs" automount isolation options to
+       disable automatic mounting of eponymous filesystems.
+
+    *) Bugfix: the router process could crash when running Go applications
+       under high load; the bug had appeared in 1.19.0.
+
+    *) Bugfix: some language dependencies could remain mounted after using
+       "rootfs" isolation.
+
+    *) Bugfix: various compatibility issues in Java applications.
+
+    *) Bugfix: the Java module built with the musl C library couldn't run
+       applications that use "rootfs" isolation.
+
+
 Changes with Unit 1.20.0                                         08 Oct 2020
 
     *) Change: the PHP module is now initialized before chrooting; this

@@ -73,7 +73,7 @@ if /bin/sh -c "$NXT_PYTHON_CONFIG --prefix" >> $NXT_AUTOCONF_ERR 2>&1; then
 
     if [ "$NXT_PYTHON_LIB_PATH" != "" ]; then
         # "python-config --ldflags" may not contain path to libpython.
-        NXT_PYTHON_LDFLAGS="-L$NXT_PYTHON_LIB_PATH -Wl,-rpath $NXT_PYTHON_LIB_PATH"
+        NXT_PYTHON_LDFLAGS="-L$NXT_PYTHON_LIB_PATH -Wl,-rpath,$NXT_PYTHON_LIB_PATH"
     else
         NXT_PYTHON_LDFLAGS=""
     fi
@@ -138,7 +138,7 @@ pyver = "python" + str(sys.version_info[0]) + "." + str(sys.version_info[1])
 
 print("static const nxt_fs_mount_t  nxt_python_mounts[] = {")
 
-pattern = "{(u_char *) \"%s\", (u_char *) \"%s\", (u_char *) \"bind\", NXT_MS_BIND|NXT_MS_REC, NULL, 1},"
+pattern = "{(u_char *) \"%s\", (u_char *) \"%s\", NXT_FS_BIND, (u_char *) \"bind\", 0, NULL, 1, 1},"
 base = None
 for p in sys.path:
     if len(p) > 0:

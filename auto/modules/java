@@ -178,7 +178,7 @@ fi
 
 NXT_JAVA_LIB_SERVER_PATH="${NXT_JAVA_LIB_PATH}/server"
 
-NXT_JAVA_LDFLAGS="-L${NXT_JAVA_LIB_SERVER_PATH} -Wl,-rpath ${NXT_JAVA_LIB_SERVER_PATH} -ljvm"
+NXT_JAVA_LDFLAGS="-L${NXT_JAVA_LIB_SERVER_PATH} -Wl,-rpath,${NXT_JAVA_LIB_SERVER_PATH} -ljvm"
 
 
 nxt_found=no
@@ -238,7 +238,7 @@ cat << END > $NXT_JAVA_JARS
 static const char *nxt_java_system_jars[] = {
 END
 
-NXT_TOMCAT_VERSION=9.0.13
+NXT_TOMCAT_VERSION=9.0.39
 
 NXT_JAR_VERSION=$NXT_TOMCAT_VERSION
 
@@ -271,7 +271,7 @@ NXT_JAR_NAME=tomcat-util
 . auto/modules/java_get_jar
 
 NXT_JAR_NAME=ecj
-NXT_JAR_VERSION=3.13.102
+NXT_JAR_VERSION=3.23.0
 NXT_JAR_NAMESPACE=org/eclipse/jdt/
 . auto/modules/java_get_jar
 
@@ -284,7 +284,7 @@ static const char *nxt_java_unit_jars[] = {
     "$NXT_UNIT_JAR",
 END
 
-NXT_JAR_VERSION=9.4.12.v20180830
+NXT_JAR_VERSION=9.4.33.v20201020
 NXT_JAR_NAMESPACE=org/eclipse/jetty/
 
 NXT_JAR_NAME=jetty-util
@@ -297,7 +297,7 @@ NXT_JAR_NAME=jetty-http
 . auto/modules/java_get_jar
 
 NXT_JAR_NAME=classgraph
-NXT_JAR_VERSION=4.4.11
+NXT_JAR_VERSION=4.8.90
 NXT_JAR_NAMESPACE=io/github/classgraph/
 . auto/modules/java_get_jar
 
@@ -313,7 +313,7 @@ NXT_JAVA_LIBJVM="$NXT_JAVA_LIB_SERVER_PATH/libjvm.so"
 if [ "$NXT_SYSTEM" = "Darwin" ]; then
 NXT_JAVA_LIBC_DIR="/usr/lib"
 else
-NXT_JAVA_LIBC_DIR=`ldd "$NXT_JAVA_LIBJVM" | grep libc.so | cut -d' ' -f3`
+NXT_JAVA_LIBC_DIR=`ldd "$NXT_JAVA_LIBJVM" | grep -F libc. | cut -d' ' -f3`
 NXT_JAVA_LIBC_DIR=`dirname $NXT_JAVA_LIBC_DIR`
 fi
 
@@ -326,11 +326,10 @@ cat << END > $NXT_BUILD_DIR/$NXT_JAVA_MOUNTS_HEADER
 
 
 static const nxt_fs_mount_t  nxt_java_mounts[] = {
-    {(u_char *) "proc", (u_char *) "/proc", (u_char *) "proc", 0, NULL, 1},
     {(u_char *) "$NXT_JAVA_LIBC_DIR", (u_char *) "$NXT_JAVA_LIBC_DIR",
-     (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL, 1},
+     NXT_FS_BIND, (u_char *) "bind", 0, NULL, 1, 1},
     {(u_char *) "$NXT_JAVA_HOME", (u_char *) "$NXT_JAVA_HOME",
-     (u_char *) "bind", NXT_MS_BIND | NXT_MS_REC, NULL, 1},
+     NXT_FS_BIND, (u_char *) "bind", 0, NULL, 1, 1},
 };
 
 
