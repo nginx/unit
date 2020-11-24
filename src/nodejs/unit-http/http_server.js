@@ -11,10 +11,13 @@ const util = require('util');
 const unit_lib = require('./build/Release/unit-http');
 const Socket = require('./socket');
 const WebSocketFrame = require('./websocket_frame');
-
+const stream = require('stream');
+const Writable = stream.Writable;
+const Readable = stream.Readable;
 
 function ServerResponse(req) {
     EventEmitter.call(this);
+    Writable.call(this);
 
     this.headers = {};
 
@@ -25,6 +28,7 @@ function ServerResponse(req) {
     this.connection = req.connection;
 }
 util.inherits(ServerResponse, EventEmitter);
+util.inherits(ServerResponse, Writable);
 
 ServerResponse.prototype.statusCode = 200;
 ServerResponse.prototype.statusMessage = undefined;
@@ -63,7 +67,7 @@ ServerResponse.prototype.setHeader = function setHeader(name, value) {
     if (Array.isArray(value)) {
         count = value.length;
 
-        value.forEach(function(val) {
+        value.forEach(function (val) {
             value_len += Buffer.byteLength(val + "", 'latin1');
         });
 
@@ -138,7 +142,7 @@ ServerResponse.prototype._removeHeader = function _removeHeader(lc_name) {
         this.headers_count -= value.length;
         this.headers_len -= value.length * name_len;
 
-        value.forEach(function(val) {
+        value.forEach(function (val) {
             this.headers_len -= Buffer.byteLength(val + "", 'latin1');
         });
 
@@ -217,7 +221,7 @@ ServerResponse.prototype._send_headers = unit_lib.response_send_headers;
 ServerResponse.prototype._sendHeaders = function _sendHeaders() {
     if (!this.headersSent) {
         this._send_headers(this.statusCode, this.headers, this.headers_count,
-                           this.headers_len);
+            this.headers_len);
 
         this.headersSent = true;
     }
@@ -225,7 +229,7 @@ ServerResponse.prototype._sendHeaders = function _sendHeaders() {
 
 ServerResponse.prototype._write = unit_lib.response_write;
 
-ServerResponse.prototype._writeBody = function(chunk, encoding, callback) {
+ServerResponse.prototype._writeBody = function (chunk, encoding, callback) {
     var contentLength = 0;
     var res, o;
 
@@ -331,6 +335,7 @@ ServerResponse.prototype.end = function end(chunk, encoding, callback) {
         });
 
         this.finished = true;
+        this.emit('finish');
     }
 
     return this;
@@ -338,14 +343,14 @@ ServerResponse.prototype.end = function end(chunk, encoding, callback) {
 
 function ServerRequest(server, socket) {
     EventEmitter.call(this);
+    Readable.call(this);
 
     this.server = server;
     this.socket = socket;
     this.connection = socket;
 }
 util.inherits(ServerRequest, EventEmitter);
-
-ServerRequest.prototype.unpipe = undefined;
+util.inherits(ServerRequest, Readable);
 
 ServerRequest.prototype.setTimeout = function setTimeout(msecs, callback) {
     this.timeout = msecs;
@@ -425,11 +430,11 @@ function Server(requestListener) {
     }
 
     this._upgradeListenerCount = 0;
-    this.on('newListener', function(ev) {
-        if (ev === 'upgrade'){
+    this.on('newListener', function (ev) {
+        if (ev === 'upgrade') {
             this._upgradeListenerCount++;
         }
-      }).on('removeListener', function(ev) {
+    }).on('removeListener', function (ev) {
         if (ev === 'upgrade') {
             this._upgradeListenerCount--;
         }
