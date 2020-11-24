@@ -407,7 +407,6 @@ ServerRequest.prototype.on = function on(ev, fn) {
             if (this._data.length !== 0) {
                 this.emit("data", this._data);
             }
-
         }.bind(this));
     }
 };
@@ -480,10 +479,10 @@ Server.prototype.emit_request = function (req, res) {
         this.emit("request", req, res);
     }
 
-    process.nextTick(() => {
+    setTimeout(() => {
         req.emit("finish");
         req.emit("end");
-    });
+    }, 0);
 };
 
 Server.prototype.emit_close = function () {
