@@ -96,7 +96,7 @@ install: build do.tests
 	dh_testroot
 	dh_prep
 	dh_installdirs
-	dh_installinit
+	dh_installsystemd
 	dh_installlogrotate
 	cd $(BUILDDIR_unit) && DESTDIR=$(INSTALLDIR) make install
 	cd $(BUILDDIR_unit) && DESTDIR=$(INSTALLDIR_dev) make libunit-install

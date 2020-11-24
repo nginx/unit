@@ -1,18 +1,6 @@
 # distribution specific definitions
-%define use_systemd (0%{?rhel} >= 7 || 0%{?fedora} >= 19 || 0%{?suse_version} >= 1315)
 %define bdir %{_builddir}/%{name}-%{version}
 %define dotests 0
-
-%if ( 0%{?rhel} == 5 || 0%{?rhel} == 6 )
-Requires: initscripts >= 8.36
-%endif
-
-%if %{use_systemd}
-BuildRequires: systemd
-Requires(post):    systemd
-Requires(preun):   systemd
-Requires(postun):  systemd
-%endif
 
 %if 0%{?rhel}%{?fedora}
 BuildRequires: gcc
@@ -48,12 +36,14 @@ Group: System Environment/Daemons
 
 Source0: unit-%{version}.tar.gz
 Source1: unit.service
-Source2: unit.init
-Source3: unit.sysconf
-Source4: unit.example.config
-Source5: unit.logrotate
+Source2: unit.example.config
+Source3: unit.logrotate
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+BuildRequires: systemd
+Requires(post):    systemd
+Requires(preun):   systemd
+Requires(postun):  systemd
 
 %description
 NGINX Unit is a runtime and delivery environment for modern distributed
@@ -116,17 +106,12 @@ DESTDIR=%{buildroot} make unitd-install libunit-install
 %{__mkdir} -p %{buildroot}%{_sharedstatedir}/unit
 %{__mkdir} -p %{buildroot}%{_localstatedir}/log/unit
 %{__mkdir} -p %{buildroot}%{_localstatedir}/run/unit
-%if ! %{use_systemd}
-%{__mkdir} -p %{buildroot}%{_sysconfdir}/sysconfig
-%{__install} -m 644 -p %{SOURCE3} \
-    %{buildroot}%{_sysconfdir}/sysconfig/unitd
-%endif
 %{__mkdir} -p %{buildroot}%{_sysconfdir}/logrotate.d
-%{__install} -m 644 -p %{SOURCE5} \
+%{__install} -m 644 -p %{SOURCE3} \
     %{buildroot}%{_sysconfdir}/logrotate.d/unit
 %{__mkdir} -p %{buildroot}%{_sysconfdir}/unit
 %{__mkdir} -p %{buildroot}%{_datadir}/doc/unit/examples
-%{__install} -m 644 -p %{SOURCE4} \
+%{__install} -m 644 -p %{SOURCE2} \
     %{buildroot}%{_datadir}/doc/unit/examples/example.config
 %{__install} -m 644 -p CHANGES \
     %{buildroot}%{_datadir}/doc/unit/
@@ -135,14 +120,8 @@ DESTDIR=%{buildroot} make unitd-install libunit-install
 %{__install} -m 644 -p README \
     %{buildroot}%{_datadir}/doc/unit/
 
-# init scripts
-%if %{use_systemd}
 %{__rm} -rf %{buildroot}%{_initrddir}/
 %{__install} -p -D -m 0644 %{SOURCE1} %{buildroot}%{_unitdir}/unit.service
-%else
-%{__mkdir} -p %{buildroot}%{_initrddir}
-%{__install} -p -D -m 0755 %{SOURCE2} %{buildroot}%{_initrddir}/unit
-%endif
 
 QA_SKIP_BUILD_ROOT=1
 export QA_SKIP_BUILD_ROOT
@@ -164,11 +143,7 @@ cat /dev/null > debugsourcefiles.list
 
 %post
 if [ $1 -eq 1 ]; then
-%if %{use_systemd}
     /usr/bin/systemctl preset unit.service >/dev/null 2>&1 ||:
-%else
-    /sbin/chkconfig --add unit
-%endif
     cat <<BANNER
 ----------------------------------------------------------------------
 
@@ -185,25 +160,14 @@ fi
 
 %preun
 if [ $1 -eq 0 ]; then
-%if %{use_systemd}
     /usr/bin/systemctl --no-reload disable unit.service >/dev/null 2>&1 ||:
     /usr/bin/systemctl stop unit.service >/dev/null 2>&1 ||:
-%else
-    /sbin/service unit stop >/dev/null 2>&1
-    /sbin/chkconfig --del unit
-%endif
 fi
 
 %postun
-%if %{use_systemd}
 /usr/bin/systemctl daemon-reload >/dev/null 2>&1 ||:
-%endif
 if [ $1 -ge 1 ]; then
-%if %{use_systemd}
     /usr/bin/systemctl try-restart unit.service >/dev/null 2>&1 ||:
-%else
-    /sbin/service unit condrestart >/dev/null 2>&1 ||:
-%endif
 fi
 
 %files
@@ -211,14 +175,8 @@ fi
 %attr(0755,root,root) %{_sbindir}/unitd
 %attr(0755,root,root) %{_sbindir}/unitd-debug
 %dir %{_sysconfdir}/unit
-%if %{use_systemd}
 %{_unitdir}/unit.service
 %dir %attr(0755,root,root) %ghost %{_localstatedir}/run/unit
-%else
-%config(noreplace) %{_sysconfdir}/sysconfig/unitd
-%dir %attr(0755,root,root) %{_localstatedir}/run/unit
-%{_initrddir}/unit
-%endif
 %dir %{_datadir}/doc/unit
 %{_datadir}/doc/unit/*
 %dir %{_libdir}/unit/modules

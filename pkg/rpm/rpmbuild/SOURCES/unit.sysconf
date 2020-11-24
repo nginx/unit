@@ -1,1 +1,0 @@
-UNITD_OPTIONS="--log /var/log/unit/unit.log --pid /var/run/unit/unit.pid"
