@@ -1004,7 +1004,7 @@ Unit::conn_destroy(napi_env env, void *nativeObject, void *finalize_hint)
 
     req = (nxt_unit_request_info_t *) nativeObject;
 
-    nxt_unit_warn(NULL, "conn_destroy: %p", req);
+    nxt_unit_debug(NULL, "conn_destroy: %p", req);
 }
 
 
@@ -1015,7 +1015,7 @@ Unit::sock_destroy(napi_env env, void *nativeObject, void *finalize_hint)
 
     req = (nxt_unit_request_info_t *) nativeObject;
 
-    nxt_unit_warn(NULL, "sock_destroy: %p", req);
+    nxt_unit_debug(NULL, "sock_destroy: %p", req);
 }
 
 
@@ -1026,5 +1026,5 @@ Unit::resp_destroy(napi_env env, void *nativeObject, void *finalize_hint)
 
     req = (nxt_unit_request_info_t *) nativeObject;
 
-    nxt_unit_warn(NULL, "resp_destroy: %p", req);
+    nxt_unit_debug(NULL, "resp_destroy: %p", req);
 }
