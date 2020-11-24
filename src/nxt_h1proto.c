@@ -467,6 +467,7 @@ nxt_h1p_conn_request_init(nxt_task_t *task, void *obj, void *data)
     nxt_int_t                ret;
     nxt_conn_t               *c;
     nxt_h1proto_t            *h1p;
+    nxt_socket_conf_t        *skcf;
     nxt_http_request_t       *r;
     nxt_socket_conf_joint_t  *joint;
 
@@ -503,10 +504,13 @@ nxt_h1p_conn_request_init(nxt_task_t *task, void *obj, void *data)
             joint->count++;
 
             r->conf = joint;
+            skcf = joint->socket_conf;
 
             if (c->local == NULL) {
-                c->local = joint->socket_conf->sockaddr;
+                c->local = skcf->sockaddr;
             }
+
+            h1p->parser.discard_unsafe_fields = skcf->discard_unsafe_fields;
 
             nxt_h1p_conn_request_header_parse(task, c, h1p);
             return;

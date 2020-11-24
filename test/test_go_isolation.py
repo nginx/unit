@@ -36,7 +36,7 @@ class TestGoIsolation(TestApplicationGo):
         try:
             nogroup_gid = grp.getgrnam('nogroup').gr_gid
             nogroup = 'nogroup'
-        except:
+        except KeyError:
             nogroup_gid = grp.getgrnam('nobody').gr_gid
             nogroup = 'nobody'
 
@@ -332,7 +332,12 @@ class TestGoIsolation(TestApplicationGo):
         obj = self.getjson(url='/?file=/bin/sh')['body']
         assert obj['FileExists'] == False, 'file should not exists'
 
-    def test_go_isolation_rootfs_default_tmpfs(self, is_su, temp_dir):
+    def test_go_isolation_rootfs_automount_tmpfs(self, is_su, temp_dir):
+        try:
+            open("/proc/self/mountinfo")
+        except:
+            pytest.skip('The system lacks /proc/self/mountinfo file')
+
         if not is_su:
             if not self.isolation_key('unprivileged_userns_clone'):
                 pytest.skip('unprivileged clone is not available')
@@ -357,6 +362,20 @@ class TestGoIsolation(TestApplicationGo):
 
         self.load('ns_inspect', isolation=isolation)
 
-        obj = self.getjson(url='/?file=/tmp')['body']
+        obj = self.getjson(url='/?mounts=true')['body']
 
-        assert obj['FileExists'] == True, 'app has /tmp'
+        assert (
+            "/ /tmp" in obj['Mounts'] and "tmpfs" in obj['Mounts']
+        ), 'app has /tmp mounted on /'
+
+        isolation['automount'] = {
+            'tmpfs': False
+        }
+
+        self.load('ns_inspect', isolation=isolation)
+
+        obj = self.getjson(url='/?mounts=true')['body']
+
+        assert (
+            "/ /tmp" not in obj['Mounts'] and "tmpfs" not in obj['Mounts']
+        ), 'app has no /tmp mounted'

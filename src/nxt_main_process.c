@@ -199,6 +199,12 @@ static nxt_conf_map_t  nxt_python_app_conf[] = {
     },
 
     {
+        nxt_string("protocol"),
+        NXT_CONF_MAP_STR,
+        offsetof(nxt_common_app_conf_t, u.python.protocol),
+    },
+
+    {
         nxt_string("threads"),
         NXT_CONF_MAP_INT32,
         offsetof(nxt_common_app_conf_t, u.python.threads),

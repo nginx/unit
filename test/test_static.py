@@ -134,6 +134,9 @@ class TestStatic(TestApplicationProto):
             open(temp_dir + '/ф а', 'a').close()
             utf8 = True
 
+        except KeyboardInterrupt:
+            raise
+
         except:
             utf8 = False
 

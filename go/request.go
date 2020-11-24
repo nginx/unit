@@ -19,9 +19,9 @@ import (
 )
 
 type request struct {
-	req   http.Request
-	resp  *response
-	c_req C.uintptr_t
+	req    http.Request
+	resp   response
+	c_req  *C.nxt_unit_request_info_t
 }
 
 func (r *request) Read(p []byte) (n int, err error) {
@@ -35,110 +35,102 @@ func (r *request) Read(p []byte) (n int, err error) {
 }
 
 func (r *request) Close() error {
-	C.nxt_cgo_request_close(r.c_req)
 	return nil
 }
 
-func (r *request) response() *response {
-	if r.resp == nil {
-		r.resp = new_response(r.c_req, &r.req)
+func new_request(c_req *C.nxt_unit_request_info_t) (r *request, err error) {
+	req := c_req.request
+
+	uri := GoStringN(&req.target, C.int(req.target_length))
+
+	URL, err := url.ParseRequestURI(uri)
+	if err != nil {
+		return nil, err
 	}
 
-	return r.resp
-}
+	proto := GoStringN(&req.version, C.int(req.version_length))
 
-func (r *request) done() {
-	resp := r.response()
-	if !resp.headerSent {
-		resp.WriteHeader(http.StatusOK)
-	}
-	C.nxt_cgo_request_done(r.c_req, 0)
-}
-
-func get_request(go_req uintptr) *request {
-	return (*request)(unsafe.Pointer(go_req))
-}
-
-//export nxt_go_request_create
-func nxt_go_request_create(c_req C.uintptr_t,
-	c_method *C.nxt_cgo_str_t, c_uri *C.nxt_cgo_str_t) uintptr {
-
-	uri := C.GoStringN(c_uri.start, c_uri.length)
-
-	var URL *url.URL
-	var err error
-	if URL, err = url.ParseRequestURI(uri); err != nil {
-		return 0
-	}
-
-	r := &request{
-		req: http.Request{
-			Method:     C.GoStringN(c_method.start, c_method.length),
-			URL:        URL,
-			Header:     http.Header{},
-			Body:       nil,
+	r = &request{
+		req: http.Request {
+			URL: URL,
+			Header: http.Header{},
 			RequestURI: uri,
+			Method: GoStringN(&req.method, C.int(req.method_length)),
+			Proto: proto,
+			ProtoMajor: 1,
+			ProtoMinor: int(proto[7] - '0'),
+			ContentLength: int64(req.content_length),
+			Host: GoStringN(&req.server_name, C.int(req.server_name_length)),
+			RemoteAddr: GoStringN(&req.remote, C.int(req.remote_length)),
 		},
+		resp: response{header: http.Header{}, c_req: c_req},
 		c_req: c_req,
 	}
+
 	r.req.Body = r
 
-	return uintptr(unsafe.Pointer(r))
+	if req.tls != 0 {
+		r.req.TLS = &tls.ConnectionState{ }
+		r.req.URL.Scheme = "https"
+
+	} else {
+		r.req.URL.Scheme = "http"
+	}
+
+	fields := get_fields(req)
+
+	for i := 0; i < len(fields); i++ {
+		f := &fields[i]
+
+		n := GoStringN(&f.name, C.int(f.name_length))
+		v := GoStringN(&f.value, C.int(f.value_length))
+
+		r.req.Header.Add(n, v)
+	}
+
+	return r, nil
 }
 
-//export nxt_go_request_set_proto
-func nxt_go_request_set_proto(go_req uintptr, proto *C.nxt_cgo_str_t,
-	maj C.int, min C.int) {
+func get_fields(req *C.nxt_unit_request_t) []C.nxt_unit_field_t {
+	f := uintptr(unsafe.Pointer(req)) + uintptr(C.NXT_FIELDS_OFFSET)
 
-	r := get_request(go_req)
-	r.req.Proto = C.GoStringN(proto.start, proto.length)
-	r.req.ProtoMajor = int(maj)
-	r.req.ProtoMinor = int(min)
-}
+	h := &slice_header{
+		Data: unsafe.Pointer(f),
+		Len: int(req.fields_count),
+		Cap: int(req.fields_count),
+	}
 
-//export nxt_go_request_add_header
-func nxt_go_request_add_header(go_req uintptr, name *C.nxt_cgo_str_t,
-	value *C.nxt_cgo_str_t) {
-
-	r := get_request(go_req)
-	r.req.Header.Add(C.GoStringN(name.start, name.length),
-		C.GoStringN(value.start, value.length))
-}
-
-//export nxt_go_request_set_content_length
-func nxt_go_request_set_content_length(go_req uintptr, l C.int64_t) {
-	get_request(go_req).req.ContentLength = int64(l)
-}
-
-//export nxt_go_request_set_host
-func nxt_go_request_set_host(go_req uintptr, host *C.nxt_cgo_str_t) {
-	get_request(go_req).req.Host = C.GoStringN(host.start, host.length)
-}
-
-//export nxt_go_request_set_url
-func nxt_go_request_set_url(go_req uintptr, scheme *C.char) {
-	get_request(go_req).req.URL.Scheme = C.GoString(scheme)
-}
-
-//export nxt_go_request_set_remote_addr
-func nxt_go_request_set_remote_addr(go_req uintptr, addr *C.nxt_cgo_str_t) {
-
-	get_request(go_req).req.RemoteAddr = C.GoStringN(addr.start, addr.length)
-}
-
-//export nxt_go_request_set_tls
-func nxt_go_request_set_tls(go_req uintptr) {
-
-	get_request(go_req).req.TLS = &tls.ConnectionState{ }
+	return *(*[]C.nxt_unit_field_t)(unsafe.Pointer(h))
 }
 
 //export nxt_go_request_handler
-func nxt_go_request_handler(go_req uintptr, h uintptr) {
-	r := get_request(go_req)
-	handler := get_handler(h)
+func nxt_go_request_handler(c_req *C.nxt_unit_request_info_t) {
 
-	go func(r *request) {
-		handler.ServeHTTP(r.response(), &r.req)
-		r.done()
-	}(r)
+	go func(c_req *C.nxt_unit_request_info_t, handler http.Handler) {
+
+		ctx := c_req.ctx
+
+		for {
+			r, err := new_request(c_req)
+
+			if err == nil {
+				handler.ServeHTTP(&r.resp, &r.req)
+
+				if !r.resp.header_sent {
+					r.resp.WriteHeader(http.StatusOK)
+				}
+
+				C.nxt_unit_request_done(c_req, C.NXT_UNIT_OK)
+
+			} else {
+				C.nxt_unit_request_done(c_req, C.NXT_UNIT_ERROR)
+			}
+
+			c_req = C.nxt_unit_dequeue_request(ctx)
+			if c_req == nil {
+				break
+			}
+		}
+
+	}(c_req, get_handler(uintptr(c_req.unit.data)))
 }

@@ -16,6 +16,7 @@
 #include <python/nxt_python_asgi_str.h>
 
 
+static PyObject *nxt_python_asgi_get_func(PyObject *obj);
 static int nxt_python_asgi_ctx_data_alloc(void **pdata);
 static void nxt_python_asgi_ctx_data_free(void *data);
 static int nxt_python_asgi_startup(void *data);
@@ -24,6 +25,7 @@ static int nxt_python_asgi_run(nxt_unit_ctx_t *ctx);
 static void nxt_py_asgi_remove_reader(nxt_unit_ctx_t *ctx,
     nxt_unit_port_t *port);
 static void nxt_py_asgi_request_handler(nxt_unit_request_info_t *req);
+static void nxt_py_asgi_close_handler(nxt_unit_request_info_t *req);
 
 static PyObject *nxt_py_asgi_create_http_scope(nxt_unit_request_info_t *req);
 static PyObject *nxt_py_asgi_create_address(nxt_unit_sptr_t *sptr, uint8_t len,
@@ -42,6 +44,7 @@ static PyObject *nxt_py_asgi_port_read(PyObject *self, PyObject *args);
 static void nxt_python_asgi_done(void);
 
 
+int                       nxt_py_asgi_legacy;
 static PyObject           *nxt_py_port_read;
 static nxt_unit_port_t    *nxt_py_shared_port;
 
@@ -64,56 +67,78 @@ int
 nxt_python_asgi_check(PyObject *obj)
 {
     int           res;
-    PyObject      *call;
+    PyObject      *func;
     PyCodeObject  *code;
 
-    if (PyFunction_Check(obj)) {
-        code = (PyCodeObject *) PyFunction_GET_CODE(obj);
+    func = nxt_python_asgi_get_func(obj);
 
-        return (code->co_flags & CO_COROUTINE) != 0;
+    if (func == NULL) {
+        return 0;
+    }
+
+    code = (PyCodeObject *) PyFunction_GET_CODE(func);
+
+    nxt_unit_debug(NULL, "asgi_check: callable is %sa coroutine function with "
+                         "%d argument(s)",
+                   (code->co_flags & CO_COROUTINE) != 0 ? "" : "not ",
+                   code->co_argcount);
+
+    res = (code->co_flags & CO_COROUTINE) != 0 || code->co_argcount == 1;
+
+    Py_DECREF(func);
+
+    return res;
+}
+
+
+static PyObject *
+nxt_python_asgi_get_func(PyObject *obj)
+{
+    PyObject  *call;
+
+    if (PyFunction_Check(obj)) {
+        Py_INCREF(obj);
+        return obj;
     }
 
     if (PyMethod_Check(obj)) {
         obj = PyMethod_GET_FUNCTION(obj);
 
-        code = (PyCodeObject *) PyFunction_GET_CODE(obj);
-
-        return (code->co_flags & CO_COROUTINE) != 0;
+        Py_INCREF(obj);
+        return obj;
     }
 
     call = PyObject_GetAttrString(obj, "__call__");
 
     if (call == NULL) {
-        return 0;
+        return NULL;
     }
 
     if (PyFunction_Check(call)) {
-        code = (PyCodeObject *) PyFunction_GET_CODE(call);
+        return call;
+    }
 
-        res = (code->co_flags & CO_COROUTINE) != 0;
+    if (PyMethod_Check(call)) {
+        obj = PyMethod_GET_FUNCTION(call);
 
-    } else {
-        if (PyMethod_Check(call)) {
-            obj = PyMethod_GET_FUNCTION(call);
+        Py_INCREF(obj);
+        Py_DECREF(call);
 
-            code = (PyCodeObject *) PyFunction_GET_CODE(obj);
-
-            res = (code->co_flags & CO_COROUTINE) != 0;
-
-        } else {
-            res = 0;
-        }
+        return obj;
     }
 
     Py_DECREF(call);
 
-    return res;
+    return NULL;
 }
 
 
 int
 nxt_python_asgi_init(nxt_unit_init_t *init, nxt_python_proto_t *proto)
 {
+    PyObject      *func;
+    PyCodeObject  *code;
+
     nxt_unit_debug(NULL, "asgi_init");
 
     if (nxt_slow_path(nxt_py_asgi_str_init() != NXT_UNIT_OK)) {
@@ -136,10 +161,26 @@ nxt_python_asgi_init(nxt_unit_init_t *init, nxt_python_proto_t *proto)
         return NXT_UNIT_ERROR;
     }
 
+    func = nxt_python_asgi_get_func(nxt_py_application);
+    if (nxt_slow_path(func == NULL)) {
+        nxt_unit_alert(NULL, "Python cannot find function for callable");
+        return NXT_UNIT_ERROR;
+    }
+
+    code = (PyCodeObject *) PyFunction_GET_CODE(func);
+
+    if ((code->co_flags & CO_COROUTINE) == 0) {
+        nxt_unit_debug(NULL, "asgi: callable is not a coroutine function "
+                             "switching to legacy mode");
+        nxt_py_asgi_legacy = 1;
+    }
+
+    Py_DECREF(func);
+
     init->callbacks.request_handler = nxt_py_asgi_request_handler;
     init->callbacks.data_handler = nxt_py_asgi_http_data_handler;
     init->callbacks.websocket_handler = nxt_py_asgi_websocket_handler;
-    init->callbacks.close_handler = nxt_py_asgi_websocket_close_handler;
+    init->callbacks.close_handler = nxt_py_asgi_close_handler;
     init->callbacks.quit = nxt_py_asgi_quit;
     init->callbacks.shm_ack_handler = nxt_py_asgi_shm_ack_handler;
     init->callbacks.add_port = nxt_py_asgi_add_port;
@@ -366,6 +407,7 @@ static void
 nxt_py_asgi_request_handler(nxt_unit_request_info_t *req)
 {
     PyObject                *scope, *res, *task, *receive, *send, *done, *asgi;
+    PyObject                *stage2;
     nxt_py_asgi_ctx_data_t  *ctx_data;
 
     if (req->request->websocket_handshake) {
@@ -415,8 +457,42 @@ nxt_py_asgi_request_handler(nxt_unit_request_info_t *req)
 
     req->data = asgi;
 
-    res = PyObject_CallFunctionObjArgs(nxt_py_application,
-                                       scope, receive, send, NULL);
+    if (!nxt_py_asgi_legacy) {
+        nxt_unit_req_debug(req, "Python call ASGI 3.0 application");
+
+        res = PyObject_CallFunctionObjArgs(nxt_py_application,
+                                           scope, receive, send, NULL);
+
+    } else {
+        nxt_unit_req_debug(req, "Python call legacy application");
+
+        res = PyObject_CallFunctionObjArgs(nxt_py_application, scope, NULL);
+
+        if (nxt_slow_path(res == NULL)) {
+            nxt_unit_req_error(req, "Python failed to call legacy app stage1");
+            nxt_python_print_exception();
+            nxt_unit_request_done(req, NXT_UNIT_ERROR);
+
+            goto release_scope;
+        }
+
+        if (nxt_slow_path(PyCallable_Check(res) == 0)) {
+            nxt_unit_req_error(req,
+                              "Legacy ASGI application returns not a callable");
+            nxt_unit_request_done(req, NXT_UNIT_ERROR);
+
+            Py_DECREF(res);
+
+            goto release_scope;
+        }
+
+        stage2 = res;
+
+        res = PyObject_CallFunctionObjArgs(stage2, receive, send, NULL);
+
+        Py_DECREF(stage2);
+    }
+
     if (nxt_slow_path(res == NULL)) {
         nxt_unit_req_error(req, "Python failed to call the application");
         nxt_python_print_exception();
@@ -473,6 +549,18 @@ release_receive:
     Py_DECREF(receive);
 release_asgi:
     Py_DECREF(asgi);
+}
+
+
+static void
+nxt_py_asgi_close_handler(nxt_unit_request_info_t *req)
+{
+    if (req->request->websocket_handshake) {
+        nxt_py_asgi_websocket_close_handler(req);
+
+    } else {
+        nxt_py_asgi_http_close_handler(req);
+    }
 }
 
 

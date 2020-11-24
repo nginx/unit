@@ -3,8 +3,6 @@
  * Copyright (C) NGINX, Inc.
  */
 
-#include <nxt_auto_config.h>
-#include <nxt_version.h>
 #include <nxt_unit.h>
 #include <nxt_unit_request.h>
 #include <nxt_clang.h>

@@ -187,6 +187,10 @@ class TestHTTP(TestUnit):
 
             try:
                 part = sock.recv(buff_size)
+
+            except KeyboardInterrupt:
+                raise
+
             except:
                 break
 
@@ -242,7 +246,8 @@ class TestHTTP(TestUnit):
 
         try:
             last_size = int(chunks[-2], 16)
-        except:
+
+        except ValueError:
             pytest.fail('Invalid zero size chunk')
 
         if last_size != 0 or chunks[-1] != b'':
@@ -252,7 +257,8 @@ class TestHTTP(TestUnit):
         while len(chunks) >= 2:
             try:
                 size = int(chunks.pop(0), 16)
-            except:
+
+            except ValueError:
                 pytest.fail('Invalid chunk size %s' % str(size))
 
             if size == 0:

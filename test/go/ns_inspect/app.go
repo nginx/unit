@@ -7,6 +7,7 @@ import (
 	"unit.nginx.org/go"
 	"os"
 	"strconv"
+	"io/ioutil"
 )
 
 type (
@@ -26,6 +27,7 @@ type (
 		GID        int
 		NS         NS
 		FileExists bool
+		Mounts     string
 	}
 )
 
@@ -75,6 +77,11 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	if fname := r.Form.Get("file"); fname != "" {
 		_, err = os.Stat(fname);
 		out.FileExists = err == nil
+	}
+
+	if mounts := r.Form.Get("mounts"); mounts != "" {
+		data, _ := ioutil.ReadFile("/proc/self/mountinfo")
+		out.Mounts = string(data)
 	}
 
 	data, err := json.Marshal(out)

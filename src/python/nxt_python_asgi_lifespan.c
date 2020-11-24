@@ -71,6 +71,7 @@ nxt_py_asgi_lifespan_startup(nxt_py_asgi_ctx_data_t *ctx_data)
 {
     int                     rc;
     PyObject                *scope, *res, *py_task, *receive, *send, *done;
+    PyObject                *stage2;
     nxt_py_asgi_lifespan_t  *lifespan;
 
     if (nxt_slow_path(PyType_Ready(&nxt_py_asgi_lifespan_type) != 0)) {
@@ -129,8 +130,43 @@ nxt_py_asgi_lifespan_startup(nxt_py_asgi_ctx_data_t *ctx_data)
         goto release_future;
     }
 
-    res = PyObject_CallFunctionObjArgs(nxt_py_application,
-                                       scope, receive, send, NULL);
+    if (!nxt_py_asgi_legacy) {
+        nxt_unit_req_debug(NULL, "Python call ASGI 3.0 application");
+
+        res = PyObject_CallFunctionObjArgs(nxt_py_application,
+                                           scope, receive, send, NULL);
+
+    } else {
+        nxt_unit_req_debug(NULL, "Python call legacy application");
+
+        res = PyObject_CallFunctionObjArgs(nxt_py_application, scope, NULL);
+        if (nxt_slow_path(res == NULL)) {
+            nxt_unit_log(NULL, NXT_UNIT_LOG_INFO,
+                         "ASGI Lifespan processing exception");
+            nxt_python_print_exception();
+
+            lifespan->disabled = 1;
+            rc = NXT_UNIT_OK;
+
+            goto release_scope;
+        }
+
+        if (nxt_slow_path(PyCallable_Check(res) == 0)) {
+            nxt_unit_req_error(NULL,
+                              "Legacy ASGI application returns not a callable");
+
+            Py_DECREF(res);
+
+            goto release_scope;
+        }
+
+        stage2 = res;
+
+        res = PyObject_CallFunctionObjArgs(stage2, receive, send, NULL);
+
+        Py_DECREF(stage2);
+    }
+
     if (nxt_slow_path(res == NULL)) {
         nxt_unit_error(NULL, "Python failed to call the application");
         nxt_python_print_exception();
@@ -143,7 +179,8 @@ nxt_py_asgi_lifespan_startup(nxt_py_asgi_ctx_data_t *ctx_data)
         goto release_scope;
     }
 
-    py_task = PyObject_CallFunctionObjArgs(ctx_data->loop_create_task, res, NULL);
+    py_task = PyObject_CallFunctionObjArgs(ctx_data->loop_create_task, res,
+                                           NULL);
     if (nxt_slow_path(py_task == NULL)) {
         nxt_unit_alert(NULL, "Python failed to call the create_task");
         nxt_python_print_exception();

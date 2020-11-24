@@ -142,10 +142,9 @@ def pytest_sessionstart(session):
     # discover available modules from unit.log
 
     for module in re.findall(r'module: ([a-zA-Z]+) (.*) ".*"$', log, re.M):
-        if module[0] not in option.available['modules']:
-            option.available['modules'][module[0]] = [module[1]]
-        else:
-            option.available['modules'][module[0]].append(module[1])
+        versions = option.available['modules'].setdefault(module[0], [])
+        if module[1] not in versions:
+            versions.append(module[1])
 
     # discover modules from check
 
@@ -216,7 +215,7 @@ def run(request):
 
     # print unit.log in case of error
 
-    if request.node.rep_call.failed:
+    if hasattr(request.node, 'rep_call') and request.node.rep_call.failed:
         _print_log()
 
     # remove unit.log
@@ -285,6 +284,11 @@ def unit_stop():
         retcode = p.wait(15)
         if retcode:
             return 'Child process terminated with code ' + str(retcode)
+
+    except KeyboardInterrupt:
+        p.kill()
+        raise
+
     except:
         p.kill()
         return 'Could not terminate unit'
@@ -404,6 +408,10 @@ def waitforsocket(port):
             sock.connect(('127.0.0.1', port))
             ret = True
             break
+
+        except KeyboardInterrupt:
+            raise
+
         except:
             sock.close()
             time.sleep(0.1)

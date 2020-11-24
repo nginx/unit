@@ -94,6 +94,32 @@ class TestPHPApplication(TestApplicationPHP):
         assert resp['status'] == 200, 'query string empty status'
         assert resp['headers']['Query-String'] == '', 'query string empty'
 
+    def test_php_application_fastcgi_finish_request(self, temp_dir):
+        self.load('fastcgi_finish_request')
+
+        assert self.get()['body'] == '0123'
+
+        unit_stop()
+
+        with open(temp_dir + '/unit.log', 'r', errors='ignore') as f:
+            errs = re.findall(r'Error in fastcgi_finish_request', f.read())
+
+            assert len(errs) == 0, 'no error'
+
+    def test_php_application_fastcgi_finish_request_2(self, temp_dir):
+        self.load('fastcgi_finish_request')
+
+        resp = self.get(url='/?skip')
+        assert resp['status'] == 200
+        assert resp['body'] == ''
+
+        unit_stop()
+
+        with open(temp_dir + '/unit.log', 'r', errors='ignore') as f:
+            errs = re.findall(r'Error in fastcgi_finish_request', f.read())
+
+            assert len(errs) == 0, 'no error'
+
     def test_php_application_query_string_absent(self):
         self.load('query_string')
 

@@ -54,12 +54,13 @@ static int nxt_unit_read_env(nxt_unit_port_t *ready_port,
     int *log_fd, uint32_t *stream, uint32_t *shm_limit);
 static int nxt_unit_ready(nxt_unit_ctx_t *ctx, int ready_fd, uint32_t stream,
     int queue_fd);
-static int nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_read_buf_t *rbuf);
+static int nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_read_buf_t *rbuf,
+    nxt_unit_request_info_t **preq);
 static int nxt_unit_process_new_port(nxt_unit_ctx_t *ctx,
     nxt_unit_recv_msg_t *recv_msg);
 static int nxt_unit_ctx_ready(nxt_unit_ctx_t *ctx);
 static int nxt_unit_process_req_headers(nxt_unit_ctx_t *ctx,
-    nxt_unit_recv_msg_t *recv_msg);
+    nxt_unit_recv_msg_t *recv_msg, nxt_unit_request_info_t **preq);
 static int nxt_unit_process_req_body(nxt_unit_ctx_t *ctx,
     nxt_unit_recv_msg_t *recv_msg);
 static int nxt_unit_request_check_response_port(nxt_unit_request_info_t *req,
@@ -147,6 +148,8 @@ nxt_inline void nxt_unit_port_use(nxt_unit_port_t *port);
 nxt_inline void nxt_unit_port_release(nxt_unit_port_t *port);
 static nxt_unit_port_t *nxt_unit_add_port(nxt_unit_ctx_t *ctx,
     nxt_unit_port_t *port, void *queue);
+static void nxt_unit_process_awaiting_req(nxt_unit_ctx_t *ctx,
+    nxt_queue_t *awaiting_req);
 static void nxt_unit_remove_port(nxt_unit_impl_t *lib,
     nxt_unit_port_id_t *port_id);
 static nxt_unit_port_t *nxt_unit_remove_port_unsafe(nxt_unit_impl_t *lib,
@@ -781,8 +784,8 @@ nxt_unit_read_env(nxt_unit_port_t *ready_port, nxt_unit_port_t *router_port,
 {
     int       rc;
     int       ready_fd, router_fd, read_in_fd, read_out_fd;
-    char      *unit_init, *version_end;
-    long      version_length;
+    char      *unit_init, *version_end, *vars;
+    size_t    version_length;
     int64_t   ready_pid, router_pid, read_pid;
     uint32_t  ready_stream, router_id, ready_id, read_id;
 
@@ -794,21 +797,30 @@ nxt_unit_read_env(nxt_unit_port_t *ready_port, nxt_unit_port_t *router_port,
         return NXT_UNIT_ERROR;
     }
 
-    nxt_unit_debug(NULL, "%s='%s'", NXT_UNIT_INIT_ENV, unit_init);
-
-    version_length = nxt_length(NXT_VERSION);
-
     version_end = strchr(unit_init, ';');
-    if (version_end == NULL
-        || version_end - unit_init != version_length
-        || memcmp(unit_init, NXT_VERSION, version_length) != 0)
-    {
-        nxt_unit_alert(NULL, "version check error");
+    if (nxt_slow_path(version_end == NULL)) {
+        nxt_unit_alert(NULL, "Unit version not found in %s=\"%s\"",
+                       NXT_UNIT_INIT_ENV, unit_init);
 
         return NXT_UNIT_ERROR;
     }
 
-    rc = sscanf(version_end + 1,
+    version_length = version_end - unit_init;
+
+    rc = version_length != nxt_length(NXT_VERSION)
+         || memcmp(unit_init, NXT_VERSION, nxt_length(NXT_VERSION));
+
+    if (nxt_slow_path(rc != 0)) {
+        nxt_unit_alert(NULL, "versions mismatch: the Unit daemon has version "
+                       "%.*s, while the app was compiled with libunit %s",
+                       (int) version_length, unit_init, NXT_VERSION);
+
+        return NXT_UNIT_ERROR;
+    }
+
+    vars = version_end + 1;
+
+    rc = sscanf(vars,
                 "%"PRIu32";"
                 "%"PRId64",%"PRIu32",%d;"
                 "%"PRId64",%"PRIu32",%d;"
@@ -820,11 +832,21 @@ nxt_unit_read_env(nxt_unit_port_t *ready_port, nxt_unit_port_t *router_port,
                 &read_pid, &read_id, &read_in_fd, &read_out_fd,
                 log_fd, shm_limit);
 
-    if (nxt_slow_path(rc != 13)) {
-        nxt_unit_alert(NULL, "failed to scan variables: %d", rc);
+    if (nxt_slow_path(rc == EOF)) {
+        nxt_unit_alert(NULL, "sscanf(%s) failed: %s (%d) for %s env",
+                       vars, strerror(errno), errno, NXT_UNIT_INIT_ENV);
 
         return NXT_UNIT_ERROR;
     }
+
+    if (nxt_slow_path(rc != 13)) {
+        nxt_unit_alert(NULL, "invalid number of variables in %s env: "
+                       "found %d of %d in %s", NXT_UNIT_INIT_ENV, rc, 13, vars);
+
+        return NXT_UNIT_ERROR;
+    }
+
+    nxt_unit_debug(NULL, "%s='%s'", NXT_UNIT_INIT_ENV, unit_init);
 
     nxt_unit_port_id_init(&ready_port->id, (pid_t) ready_pid, ready_id);
 
@@ -902,7 +924,8 @@ nxt_unit_ready(nxt_unit_ctx_t *ctx, int ready_fd, uint32_t stream, int queue_fd)
 
 
 static int
-nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_read_buf_t *rbuf)
+nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_read_buf_t *rbuf,
+    nxt_unit_request_info_t **preq)
 {
     int                  rc;
     pid_t                pid;
@@ -1038,7 +1061,7 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_read_buf_t *rbuf)
         break;
 
     case _NXT_PORT_MSG_REQ_HEADERS:
-        rc = nxt_unit_process_req_headers(ctx, &recv_msg);
+        rc = nxt_unit_process_req_headers(ctx, &recv_msg, preq);
         break;
 
     case _NXT_PORT_MSG_REQ_BODY:
@@ -1211,7 +1234,8 @@ nxt_unit_ctx_ready(nxt_unit_ctx_t *ctx)
 
 
 static int
-nxt_unit_process_req_headers(nxt_unit_ctx_t *ctx, nxt_unit_recv_msg_t *recv_msg)
+nxt_unit_process_req_headers(nxt_unit_ctx_t *ctx, nxt_unit_recv_msg_t *recv_msg,
+    nxt_unit_request_info_t **preq)
 {
     int                           res;
     nxt_unit_impl_t               *lib;
@@ -1327,7 +1351,12 @@ nxt_unit_process_req_headers(nxt_unit_ctx_t *ctx, nxt_unit_recv_msg_t *recv_msg)
             }
         }
 
-        lib->callbacks.request_handler(req);
+        if (preq == NULL) {
+            lib->callbacks.request_handler(req);
+
+        } else {
+            *preq = req;
+        }
     }
 
     return NXT_UNIT_OK;
@@ -1357,8 +1386,14 @@ nxt_unit_process_req_body(nxt_unit_ctx_t *ctx, nxt_unit_recv_msg_t *recv_msg)
     if (recv_msg->incoming_buf != NULL) {
         b = nxt_container_of(req->content_buf, nxt_unit_mmap_buf_t, buf);
 
+        while (b->next != NULL) {
+            b = b->next;
+        }
+
         /* "Move" incoming buffer list to req_impl. */
-        nxt_unit_mmap_buf_insert_tail(&b->next, recv_msg->incoming_buf);
+        b->next = recv_msg->incoming_buf;
+        b->next->prev = &b->next;
+
         recv_msg->incoming_buf = NULL;
     }
 
@@ -1627,8 +1662,6 @@ nxt_unit_process_websocket(nxt_unit_ctx_t *ctx, nxt_unit_recv_msg_t *recv_msg)
     }
 
     if (recv_msg->last) {
-        req_impl->websocket = 0;
-
         if (cb->close_handler) {
             nxt_unit_req_debug(req, "close_handler");
 
@@ -1721,8 +1754,6 @@ nxt_unit_request_info_release(nxt_unit_request_info_t *req)
         nxt_unit_request_hash_find(req->ctx, req_impl->stream, 1);
     }
 
-    req_impl->websocket = 0;
-
     while (req_impl->outgoing_buf != NULL) {
         nxt_unit_mmap_buf_free(req_impl->outgoing_buf);
     }
@@ -1743,6 +1774,8 @@ nxt_unit_request_info_release(nxt_unit_request_info_t *req)
         req->response_port = NULL;
     }
 
+    req_impl->state = NXT_UNIT_RS_RELEASED;
+
     pthread_mutex_lock(&ctx_impl->mutex);
 
     nxt_queue_remove(&req_impl->link);
@@ -1750,8 +1783,6 @@ nxt_unit_request_info_release(nxt_unit_request_info_t *req)
     nxt_queue_insert_tail(&ctx_impl->free_req, &req_impl->link);
 
     pthread_mutex_unlock(&ctx_impl->mutex);
-
-    req_impl->state = NXT_UNIT_RS_RELEASED;
 }
 
 
@@ -2171,7 +2202,8 @@ nxt_unit_response_add_field(nxt_unit_request_info_t *req,
     resp = req->response;
 
     if (nxt_slow_path(resp->fields_count >= req->response_max_fields)) {
-        nxt_unit_req_warn(req, "add_field: too many response fields");
+        nxt_unit_req_warn(req, "add_field: too many response fields (%d)",
+                          (int) resp->fields_count);
 
         return NXT_UNIT_ERROR;
     }
@@ -2347,6 +2379,8 @@ nxt_unit_response_buf_alloc(nxt_unit_request_info_t *req, uint32_t size)
                                    NULL);
     if (nxt_slow_path(rc != NXT_UNIT_OK)) {
         nxt_unit_mmap_buf_release(mmap_buf);
+
+        nxt_unit_req_alert(req, "response_buf_alloc: failed to get out buf");
 
         return NULL;
     }
@@ -2987,8 +3021,6 @@ nxt_unit_request_read(nxt_unit_request_info_t *req, void *dst, size_t size)
 
     buf_res = nxt_unit_buf_read(&req->content_buf, &req->content_length,
                                 dst, size);
-
-    nxt_unit_req_debug(req, "read: %d", (int) buf_res);
 
     if (buf_res < (ssize_t) size && req->content_fd != -1) {
         res = read(req->content_fd, dst, size);
@@ -4531,7 +4563,7 @@ nxt_unit_run_once_impl(nxt_unit_ctx_t *ctx)
         return rc;
     }
 
-    rc = nxt_unit_process_msg(ctx, rbuf);
+    rc = nxt_unit_process_msg(ctx, rbuf, NULL);
     if (nxt_slow_path(rc == NXT_UNIT_ERROR)) {
         return NXT_UNIT_ERROR;
     }
@@ -4658,8 +4690,6 @@ nxt_unit_process_pending_rbuf(nxt_unit_ctx_t *ctx)
     nxt_unit_ctx_impl_t  *ctx_impl;
     nxt_unit_read_buf_t  *rbuf;
 
-    nxt_queue_init(&pending_rbuf);
-
     ctx_impl = nxt_container_of(ctx, nxt_unit_ctx_impl_t, ctx);
 
     pthread_mutex_lock(&ctx_impl->mutex);
@@ -4669,6 +4699,8 @@ nxt_unit_process_pending_rbuf(nxt_unit_ctx_t *ctx)
 
         return NXT_UNIT_OK;
     }
+
+    nxt_queue_init(&pending_rbuf);
 
     nxt_queue_add(&pending_rbuf, &ctx_impl->pending_rbuf);
     nxt_queue_init(&ctx_impl->pending_rbuf);
@@ -4680,7 +4712,7 @@ nxt_unit_process_pending_rbuf(nxt_unit_ctx_t *ctx)
     nxt_queue_each(rbuf, &pending_rbuf, nxt_unit_read_buf_t, link) {
 
         if (nxt_fast_path(rc != NXT_UNIT_ERROR)) {
-            rc = nxt_unit_process_msg(&ctx_impl->ctx, rbuf);
+            rc = nxt_unit_process_msg(&ctx_impl->ctx, rbuf, NULL);
 
         } else {
             nxt_unit_read_buf_release(ctx, rbuf);
@@ -4702,8 +4734,6 @@ nxt_unit_process_ready_req(nxt_unit_ctx_t *ctx)
     nxt_unit_request_info_t       *req;
     nxt_unit_request_info_impl_t  *req_impl;
 
-    nxt_queue_init(&ready_req);
-
     ctx_impl = nxt_container_of(ctx, nxt_unit_ctx_impl_t, ctx);
 
     pthread_mutex_lock(&ctx_impl->mutex);
@@ -4713,6 +4743,8 @@ nxt_unit_process_ready_req(nxt_unit_ctx_t *ctx)
 
         return;
     }
+
+    nxt_queue_init(&ready_req);
 
     nxt_queue_add(&ready_req, &ctx_impl->ready_req);
     nxt_queue_init(&ctx_impl->ready_req);
@@ -4787,7 +4819,7 @@ nxt_unit_run_ctx(nxt_unit_ctx_t *ctx)
             goto retry;
         }
 
-        rc = nxt_unit_process_msg(ctx, rbuf);
+        rc = nxt_unit_process_msg(ctx, rbuf, NULL);
         if (nxt_slow_path(rc == NXT_UNIT_ERROR)) {
             break;
         }
@@ -4896,22 +4928,56 @@ nxt_unit_run_shared(nxt_unit_ctx_t *ctx)
             break;
         }
 
-        rc = nxt_unit_process_msg(ctx, rbuf);
+        rc = nxt_unit_process_msg(ctx, rbuf, NULL);
         if (nxt_slow_path(rc == NXT_UNIT_ERROR)) {
             break;
         }
-
-        rc = nxt_unit_process_pending_rbuf(ctx);
-        if (nxt_slow_path(rc == NXT_UNIT_ERROR)) {
-            break;
-        }
-
-        nxt_unit_process_ready_req(ctx);
     }
 
     nxt_unit_ctx_release(ctx);
 
     return rc;
+}
+
+
+nxt_unit_request_info_t *
+nxt_unit_dequeue_request(nxt_unit_ctx_t *ctx)
+{
+    int                      rc;
+    nxt_unit_impl_t          *lib;
+    nxt_unit_read_buf_t      *rbuf;
+    nxt_unit_ctx_impl_t      *ctx_impl;
+    nxt_unit_request_info_t  *req;
+
+    nxt_unit_ctx_use(ctx);
+
+    lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
+    ctx_impl = nxt_container_of(ctx, nxt_unit_ctx_impl_t, ctx);
+
+    req = NULL;
+
+    if (nxt_slow_path(!ctx_impl->online)) {
+        goto done;
+    }
+
+    rbuf = nxt_unit_read_buf_get(ctx);
+    if (nxt_slow_path(rbuf == NULL)) {
+        goto done;
+    }
+
+    rc = nxt_unit_app_queue_recv(lib->shared_port, rbuf);
+    if (rc != NXT_UNIT_OK) {
+        nxt_unit_read_buf_release(ctx, rbuf);
+        goto done;
+    }
+
+    (void) nxt_unit_process_msg(ctx, rbuf, &req);
+
+done:
+
+    nxt_unit_ctx_release(ctx);
+
+    return req;
 }
 
 
@@ -4971,7 +5037,7 @@ retry:
         return rc;
     }
 
-    rc = nxt_unit_process_msg(ctx, rbuf);
+    rc = nxt_unit_process_msg(ctx, rbuf, NULL);
     if (nxt_slow_path(rc == NXT_UNIT_ERROR)) {
         return NXT_UNIT_ERROR;
     }
@@ -4983,12 +5049,12 @@ retry:
 
     nxt_unit_process_ready_req(ctx);
 
-    rbuf = nxt_unit_read_buf_get(ctx);
-    if (nxt_slow_path(rbuf == NULL)) {
-        return NXT_UNIT_ERROR;
-    }
-
     if (ctx_impl->online) {
+        rbuf = nxt_unit_read_buf_get(ctx);
+        if (nxt_slow_path(rbuf == NULL)) {
+            return NXT_UNIT_ERROR;
+        }
+
         goto retry;
     }
 
@@ -5336,14 +5402,12 @@ nxt_inline void nxt_unit_port_release(nxt_unit_port_t *port)
 static nxt_unit_port_t *
 nxt_unit_add_port(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port, void *queue)
 {
-    int                           rc;
-    nxt_queue_t                   awaiting_req;
-    nxt_unit_impl_t               *lib;
-    nxt_unit_port_t               *old_port;
-    nxt_unit_process_t            *process;
-    nxt_unit_ctx_impl_t           *ctx_impl;
-    nxt_unit_port_impl_t          *new_port, *old_port_impl;
-    nxt_unit_request_info_impl_t  *req_impl;
+    int                   rc, ready;
+    nxt_queue_t           awaiting_req;
+    nxt_unit_impl_t       *lib;
+    nxt_unit_port_t       *old_port;
+    nxt_unit_process_t    *process;
+    nxt_unit_port_impl_t  *new_port, *old_port_impl;
 
     lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
 
@@ -5392,46 +5456,45 @@ nxt_unit_add_port(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port, void *queue)
             old_port_impl->queue = queue;
         }
 
-        if (!nxt_queue_is_empty(&old_port_impl->awaiting_req)) {
-            nxt_queue_add(&awaiting_req, &old_port_impl->awaiting_req);
-            nxt_queue_init(&old_port_impl->awaiting_req);
-        }
+        ready = (port->in_fd != -1 || port->out_fd != -1);
 
-        old_port_impl->ready = (port->in_fd != -1 || port->out_fd != -1);
+        /*
+         * Port can be market as 'ready' only after callbacks.add_port() call.
+         * Otherwise, request may try to use the port before callback.
+         */
+        if (lib->callbacks.add_port == NULL && ready) {
+            old_port_impl->ready = ready;
+
+            if (!nxt_queue_is_empty(&old_port_impl->awaiting_req)) {
+                nxt_queue_add(&awaiting_req, &old_port_impl->awaiting_req);
+                nxt_queue_init(&old_port_impl->awaiting_req);
+            }
+        }
 
         pthread_mutex_unlock(&lib->mutex);
 
-        if (lib->callbacks.add_port != NULL
-            && (port->in_fd != -1 || port->out_fd != -1))
-        {
+        if (lib->callbacks.add_port != NULL && ready) {
             lib->callbacks.add_port(ctx, old_port);
+
+            pthread_mutex_lock(&lib->mutex);
+
+            old_port_impl->ready = ready;
+
+            if (!nxt_queue_is_empty(&old_port_impl->awaiting_req)) {
+                nxt_queue_add(&awaiting_req, &old_port_impl->awaiting_req);
+                nxt_queue_init(&old_port_impl->awaiting_req);
+            }
+
+            pthread_mutex_unlock(&lib->mutex);
         }
 
-        nxt_queue_each(req_impl, &awaiting_req,
-                       nxt_unit_request_info_impl_t, port_wait_link)
-        {
-            nxt_queue_remove(&req_impl->port_wait_link);
-
-            ctx_impl = nxt_container_of(req_impl->req.ctx, nxt_unit_ctx_impl_t,
-                                        ctx);
-
-            pthread_mutex_lock(&ctx_impl->mutex);
-
-            nxt_queue_insert_tail(&ctx_impl->ready_req,
-                                  &req_impl->port_wait_link);
-
-            pthread_mutex_unlock(&ctx_impl->mutex);
-
-            nxt_atomic_fetch_add(&ctx_impl->wait_items, -1);
-
-            nxt_unit_awake_ctx(ctx, ctx_impl);
-
-        } nxt_queue_loop;
+        nxt_unit_process_awaiting_req(ctx, &awaiting_req);
 
         return old_port;
     }
 
     new_port = NULL;
+    ready = 0;
 
     nxt_unit_debug(ctx, "add_port: port{%d,%d} in_fd %d out_fd %d queue %p",
                    port->id.pid, port->id.id,
@@ -5474,12 +5537,20 @@ nxt_unit_add_port(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port, void *queue)
 
     new_port->use_count = 2;
     new_port->process = process;
-    new_port->ready = (port->in_fd != -1 || port->out_fd != -1);
     new_port->queue = queue;
     new_port->from_socket = 0;
     new_port->socket_rbuf = NULL;
 
     nxt_queue_init(&new_port->awaiting_req);
+
+    ready = (port->in_fd != -1 || port->out_fd != -1);
+
+    if (lib->callbacks.add_port == NULL) {
+        new_port->ready = ready;
+
+    } else {
+        new_port->ready = 0;
+    }
 
     process = NULL;
 
@@ -5491,14 +5562,55 @@ unlock:
         nxt_unit_process_release(process);
     }
 
-    if (lib->callbacks.add_port != NULL
-        && new_port != NULL
-        && (port->in_fd != -1 || port->out_fd != -1))
-    {
+    if (lib->callbacks.add_port != NULL && new_port != NULL && ready) {
         lib->callbacks.add_port(ctx, &new_port->port);
+
+        nxt_queue_init(&awaiting_req);
+
+        pthread_mutex_lock(&lib->mutex);
+
+        new_port->ready = 1;
+
+        if (!nxt_queue_is_empty(&new_port->awaiting_req)) {
+            nxt_queue_add(&awaiting_req, &new_port->awaiting_req);
+            nxt_queue_init(&new_port->awaiting_req);
+        }
+
+        pthread_mutex_unlock(&lib->mutex);
+
+        nxt_unit_process_awaiting_req(ctx, &awaiting_req);
     }
 
-    return &new_port->port;
+    return (new_port == NULL) ? NULL : &new_port->port;
+}
+
+
+static void
+nxt_unit_process_awaiting_req(nxt_unit_ctx_t *ctx, nxt_queue_t *awaiting_req)
+{
+    nxt_unit_ctx_impl_t           *ctx_impl;
+    nxt_unit_request_info_impl_t  *req_impl;
+
+    nxt_queue_each(req_impl, awaiting_req,
+                   nxt_unit_request_info_impl_t, port_wait_link)
+    {
+        nxt_queue_remove(&req_impl->port_wait_link);
+
+        ctx_impl = nxt_container_of(req_impl->req.ctx, nxt_unit_ctx_impl_t,
+                                    ctx);
+
+        pthread_mutex_lock(&ctx_impl->mutex);
+
+        nxt_queue_insert_tail(&ctx_impl->ready_req,
+                              &req_impl->port_wait_link);
+
+        pthread_mutex_unlock(&ctx_impl->mutex);
+
+        nxt_atomic_fetch_add(&ctx_impl->wait_items, -1);
+
+        nxt_unit_awake_ctx(ctx, ctx_impl);
+
+    } nxt_queue_loop;
 }
 
 
@@ -5612,9 +5724,12 @@ nxt_unit_remove_process(nxt_unit_impl_t *lib, nxt_unit_process_t *process)
 static void
 nxt_unit_quit(nxt_unit_ctx_t *ctx)
 {
-    nxt_port_msg_t       msg;
-    nxt_unit_impl_t      *lib;
-    nxt_unit_ctx_impl_t  *ctx_impl;
+    nxt_port_msg_t                msg;
+    nxt_unit_impl_t               *lib;
+    nxt_unit_ctx_impl_t           *ctx_impl;
+    nxt_unit_callbacks_t          *cb;
+    nxt_unit_request_info_t       *req;
+    nxt_unit_request_info_impl_t  *req_impl;
 
     lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
     ctx_impl = nxt_container_of(ctx, nxt_unit_ctx_impl_t, ctx);
@@ -5625,9 +5740,29 @@ nxt_unit_quit(nxt_unit_ctx_t *ctx)
 
     ctx_impl->online = 0;
 
-    if (lib->callbacks.quit != NULL) {
-        lib->callbacks.quit(ctx);
+    cb = &lib->callbacks;
+
+    if (cb->quit != NULL) {
+        cb->quit(ctx);
     }
+
+    nxt_queue_each(req_impl, &ctx_impl->active_req,
+                   nxt_unit_request_info_impl_t, link)
+    {
+        req = &req_impl->req;
+
+        nxt_unit_req_warn(req, "active request on ctx quit");
+
+        if (cb->close_handler) {
+            nxt_unit_req_debug(req, "close_handler");
+
+            cb->close_handler(req);
+
+        } else {
+            nxt_unit_request_done(req, NXT_UNIT_ERROR);
+        }
+
+    } nxt_queue_loop;
 
     if (ctx != &lib->main_ctx.ctx) {
         return;
@@ -6523,7 +6658,9 @@ nxt_unit_malloc(nxt_unit_ctx_t *ctx, size_t size)
     p = malloc(size);
 
     if (nxt_fast_path(p != NULL)) {
+#if (NXT_DEBUG_ALLOC)
         nxt_unit_debug(ctx, "malloc(%d): %p", (int) size, p);
+#endif
 
     } else {
         nxt_unit_alert(ctx, "malloc(%d) failed: %s (%d)",
@@ -6537,7 +6674,9 @@ nxt_unit_malloc(nxt_unit_ctx_t *ctx, size_t size)
 void
 nxt_unit_free(nxt_unit_ctx_t *ctx, void *p)
 {
+#if (NXT_DEBUG_ALLOC)
     nxt_unit_debug(ctx, "free(%p)", p);
+#endif
 
     free(p);
 }

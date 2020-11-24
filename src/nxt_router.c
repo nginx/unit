@@ -1262,6 +1262,12 @@ static nxt_conf_map_t  nxt_router_http_conf[] = {
         NXT_CONF_MAP_STR,
         offsetof(nxt_socket_conf_t, body_temp_path),
     },
+
+    {
+        nxt_string("discard_unsafe_fields"),
+        NXT_CONF_MAP_INT8,
+        offsetof(nxt_socket_conf_t, discard_unsafe_fields),
+    },
 };
 
 
@@ -1649,6 +1655,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             skcf->header_buffer_size = 2048;
             skcf->large_header_buffer_size = 8192;
             skcf->large_header_buffers = 4;
+            skcf->discard_unsafe_fields = 1;
             skcf->body_buffer_size = 16 * 1024;
             skcf->max_body_size = 8 * 1024 * 1024;
             skcf->proxy_header_buffer_size = 64 * 1024;
@@ -3912,6 +3919,7 @@ nxt_router_req_headers_ack_handler(nxt_task_t *task,
 {
     int                 res;
     nxt_app_t           *app;
+    nxt_buf_t           *b;
     nxt_bool_t          start_process, unlinked;
     nxt_port_t          *app_port, *main_app_port, *idle_port;
     nxt_queue_link_t    *idle_lnk;
@@ -4009,16 +4017,25 @@ nxt_router_req_headers_ack_handler(nxt_task_t *task,
 
     req_rpc_data->app_port = app_port;
 
-    if (req_rpc_data->msg_info.body_fd != -1) {
+    b = req_rpc_data->msg_info.buf;
+
+    if (b != NULL) {
+        /* First buffer is already sent.  Start from second. */
+        b = b->next;
+    }
+
+    if (req_rpc_data->msg_info.body_fd != -1 || b != NULL) {
         nxt_debug(task, "stream #%uD: send body fd %d", req_rpc_data->stream,
                   req_rpc_data->msg_info.body_fd);
 
-        lseek(req_rpc_data->msg_info.body_fd, 0, SEEK_SET);
+        if (req_rpc_data->msg_info.body_fd != -1) {
+            lseek(req_rpc_data->msg_info.body_fd, 0, SEEK_SET);
+        }
 
         res = nxt_port_socket_write(task, app_port, NXT_PORT_MSG_REQ_BODY,
                                     req_rpc_data->msg_info.body_fd,
                                     req_rpc_data->stream,
-                                    task->thread->engine->port->id, NULL);
+                                    task->thread->engine->port->id, b);
 
         if (nxt_slow_path(res != NXT_OK)) {
             nxt_http_request_error(task, r, NXT_HTTP_INTERNAL_SERVER_ERROR);

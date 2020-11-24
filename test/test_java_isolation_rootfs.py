@@ -31,8 +31,11 @@ class TestJavaIsolationRootfs(TestApplicationJava):
 
             process.communicate()
 
+        except KeyboardInterrupt:
+            raise
+
         except:
-            pytest.fail('Cann\'t run mount process.')
+            pytest.fail('Can\'t run mount process.')
 
     def teardown_method(self, is_su):
         if not is_su:
@@ -46,8 +49,11 @@ class TestJavaIsolationRootfs(TestApplicationJava):
 
             process.communicate()
 
+        except KeyboardInterrupt:
+            raise
+
         except:
-            pytest.fail('Cann\'t run mount process.')
+            pytest.fail('Can\'t run mount process.')
 
     def test_java_isolation_rootfs_chroot_war(self, is_su, temp_dir):
         if not is_su:

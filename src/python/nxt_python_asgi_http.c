@@ -24,6 +24,7 @@ typedef struct {
     uint64_t                 content_length;
     uint64_t                 bytes_sent;
     int                      complete;
+    int                      closed;
     PyObject                 *send_body;
     Py_ssize_t               send_body_off;
 } nxt_py_asgi_http_t;
@@ -94,6 +95,7 @@ nxt_py_asgi_http_create(nxt_unit_request_info_t *req)
         http->content_length = -1;
         http->bytes_sent = 0;
         http->complete = 0;
+        http->closed = 0;
         http->send_body = NULL;
         http->send_body_off = 0;
     }
@@ -115,7 +117,13 @@ nxt_py_asgi_http_receive(PyObject *self, PyObject *none)
 
     nxt_unit_req_debug(req, "asgi_http_receive");
 
-    msg = nxt_py_asgi_http_read_msg(http);
+    if (nxt_slow_path(http->closed || nxt_unit_response_is_sent(req))) {
+        msg = nxt_py_asgi_new_msg(req, nxt_py_http_disconnect_str);
+
+    } else {
+        msg = nxt_py_asgi_http_read_msg(http);
+    }
+
     if (nxt_slow_path(msg == NULL)) {
         return NULL;
     }
@@ -254,22 +262,23 @@ nxt_py_asgi_http_send(PyObject *self, PyObject *dict)
     nxt_unit_req_debug(http->req, "asgi_http_send type is '%.*s'",
                        (int) type_len, type_str);
 
-    if (type_len == (Py_ssize_t) response_start.length
-        && memcmp(type_str, response_start.start, type_len) == 0)
-    {
+    if (nxt_unit_response_is_init(http->req)) {
+        if (nxt_str_eq(&response_body, type_str, (size_t) type_len)) {
+            return nxt_py_asgi_http_response_body(http, dict);
+        }
+
+        return PyErr_Format(PyExc_RuntimeError,
+                            "Expected ASGI message 'http.response.body', "
+                            "but got '%U'", type);
+    }
+
+    if (nxt_str_eq(&response_start, type_str, (size_t) type_len)) {
         return nxt_py_asgi_http_response_start(http, dict);
     }
 
-    if (type_len == (Py_ssize_t) response_body.length
-        && memcmp(type_str, response_body.start, type_len) == 0)
-    {
-        return nxt_py_asgi_http_response_body(http, dict);
-    }
-
-    nxt_unit_req_error(http->req, "asgi_http_send: unexpected 'type': '%.*s'",
-                       (int) type_len, type_str);
-
-    return PyErr_Format(PyExc_AssertionError, "unexpected 'type': '%U'", type);
+    return PyErr_Format(PyExc_RuntimeError,
+                        "Expected ASGI message 'http.response.start', "
+                        "but got '%U'", type);
 }
 
 
@@ -558,6 +567,48 @@ fail:
     Py_DECREF(exc);
 
     return NXT_UNIT_ERROR;
+}
+
+
+void
+nxt_py_asgi_http_close_handler(nxt_unit_request_info_t *req)
+{
+    PyObject            *msg, *future, *res;
+    nxt_py_asgi_http_t  *http;
+
+    http = req->data;
+
+    nxt_unit_req_debug(req, "asgi_http_close_handler");
+
+    http->closed = 1;
+
+    if (http->receive_future == NULL) {
+        return;
+    }
+
+    msg = nxt_py_asgi_new_msg(req, nxt_py_http_disconnect_str);
+    if (nxt_slow_path(msg == NULL)) {
+        return;
+    }
+
+    if (msg == Py_None) {
+        Py_DECREF(msg);
+        return;
+    }
+
+    future = http->receive_future;
+    http->receive_future = NULL;
+
+    res = PyObject_CallMethodObjArgs(future, nxt_py_set_result_str, msg, NULL);
+    if (nxt_slow_path(res == NULL)) {
+        nxt_unit_req_alert(req, "'set_result' call failed");
+        nxt_python_print_exception();
+    }
+
+    Py_XDECREF(res);
+    Py_DECREF(future);
+
+    Py_DECREF(msg);
 }
 
 

@@ -443,7 +443,7 @@ public class Context implements ServletContext, InitParams
                 .enableClassInfo()
                 .enableAnnotationInfo()
                 //.enableSystemPackages()
-                .whitelistModules("javax.*")
+                .acceptModules("javax.*")
                 //.enableAllInfo()
                 ;
 

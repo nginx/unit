@@ -12,6 +12,7 @@
 #include <sys/uio.h>
 #include <string.h>
 
+#include "nxt_auto_config.h"
 #include "nxt_version.h"
 #include "nxt_unit_typedefs.h"
 
@@ -211,6 +212,8 @@ int nxt_unit_run(nxt_unit_ctx_t *);
 int nxt_unit_run_ctx(nxt_unit_ctx_t *ctx);
 
 int nxt_unit_run_shared(nxt_unit_ctx_t *ctx);
+
+nxt_unit_request_info_t *nxt_unit_dequeue_request(nxt_unit_ctx_t *ctx);
 
 int nxt_unit_is_main_ctx(nxt_unit_ctx_t *ctx);
 

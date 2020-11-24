@@ -486,6 +486,10 @@ basicConstraints = critical,CA:TRUE"""
             resp = self.get_ssl(
                 headers={'Host': 'localhost', 'Connection': 'close'}, sock=sock
             )
+
+        except KeyboardInterrupt:
+            raise
+
         except:
             resp = None
 

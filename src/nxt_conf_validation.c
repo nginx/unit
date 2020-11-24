@@ -11,6 +11,7 @@
 #include <nxt_http.h>
 #include <nxt_sockaddr.h>
 #include <nxt_http_route_addr.h>
+#include <nxt_regex.h>
 
 
 typedef enum {
@@ -94,6 +95,8 @@ static nxt_int_t nxt_conf_vldt_pass(nxt_conf_validation_t *vldt,
 static nxt_int_t nxt_conf_vldt_return(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_proxy(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_python_protocol(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_threads(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
@@ -271,6 +274,9 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[] = {
     }, {
         .name       = nxt_string("body_temp_path"),
         .type       = NXT_CONF_VLDT_STRING,
+    }, {
+        .name       = nxt_string("discard_unsafe_fields"),
+        .type       = NXT_CONF_VLDT_BOOLEAN,
     }, {
         .name       = nxt_string("websocket"),
         .type       = NXT_CONF_VLDT_OBJECT,
@@ -493,6 +499,10 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_python_members[] = {
     }, {
         .name       = nxt_string("callable"),
         .type       = NXT_CONF_VLDT_STRING,
+    }, {
+        .name       = nxt_string("protocol"),
+        .type       = NXT_CONF_VLDT_STRING,
+        .validator  = nxt_conf_vldt_python_protocol,
     }, {
         .name       = nxt_string("threads"),
         .type       = NXT_CONF_VLDT_INTEGER,
@@ -834,6 +844,12 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_namespaces_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_app_automount_members[] = {
     {
         .name       = nxt_string("language_deps"),
+        .type       = NXT_CONF_VLDT_BOOLEAN,
+    }, {
+        .name       = nxt_string("tmpfs"),
+        .type       = NXT_CONF_VLDT_BOOLEAN,
+    }, {
+        .name       = nxt_string("procfs"),
         .type       = NXT_CONF_VLDT_BOOLEAN,
     },
 
@@ -1361,6 +1377,26 @@ nxt_conf_vldt_proxy(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 
 
 static nxt_int_t
+nxt_conf_vldt_python_protocol(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data)
+{
+    nxt_str_t  proto;
+
+    static const nxt_str_t  wsgi = nxt_string("wsgi");
+    static const nxt_str_t  asgi = nxt_string("asgi");
+
+    nxt_conf_get_string(value, &proto);
+
+    if (nxt_strstr_eq(&proto, &wsgi) || nxt_strstr_eq(&proto, &asgi)) {
+        return NXT_OK;
+    }
+
+    return nxt_conf_vldt_error(vldt, "The \"protocol\" can either be "
+                                     "\"wsgi\" or \"asgi\".");
+}
+
+
+static nxt_int_t
 nxt_conf_vldt_threads(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     void *data)
 {
@@ -1469,8 +1505,12 @@ static nxt_int_t
 nxt_conf_vldt_match_pattern(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value)
 {
-    nxt_str_t   pattern;
-    nxt_uint_t  i, first, last;
+    nxt_str_t        pattern;
+    nxt_uint_t       i, first, last;
+#if (NXT_HAVE_REGEX)
+    nxt_regex_t      *re;
+    nxt_regex_err_t  err;
+#endif
 
     if (nxt_conf_type(value) != NXT_CONF_STRING) {
         return nxt_conf_vldt_error(vldt, "The \"match\" patterns for \"host\", "
@@ -1484,6 +1524,32 @@ nxt_conf_vldt_match_pattern(nxt_conf_validation_t *vldt,
     }
 
     first = (pattern.start[0] == '!');
+
+    if (first < pattern.length && pattern.start[first] == '~') {
+#if (NXT_HAVE_REGEX)
+        pattern.start += first + 1;
+        pattern.length -= first + 1;
+
+        re = nxt_regex_compile(vldt->pool, &pattern, &err);
+        if (nxt_slow_path(re == NULL)) {
+            if (err.offset < pattern.length) {
+                return nxt_conf_vldt_error(vldt, "Invalid regular expression: "
+                                           "%s at offset %d",
+                                           err.msg, err.offset);
+            }
+
+            return nxt_conf_vldt_error(vldt, "Invalid regular expression: %s",
+                                       err.msg);
+        }
+
+        return NXT_OK;
+#else
+        return nxt_conf_vldt_error(vldt, "Unit is built without support of "
+                                   "regular expressions: \"--no-regex\" "
+                                   "./configure option was set.");
+#endif
+    }
+
     last = pattern.length - 1;
 
     for (i = first; i < last; i++) {

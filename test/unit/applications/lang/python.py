@@ -34,20 +34,25 @@ class TestApplicationPython(TestApplicationProto):
 
             script_path = '/app/python/' + name
 
+        app = {
+            "type": self.get_application_type(),
+            "processes": kwargs.pop('processes', {"spare": 0}),
+            "path": script_path,
+            "working_directory": script_path,
+            "module": module,
+        }
+
+        for attr in ('callable', 'home', 'limits', 'path', 'protocol',
+                     'threads'):
+            if attr in kwargs:
+                app[attr] = kwargs.pop(attr)
+
         self._load_conf(
             {
                 "listeners": {
                     "*:7080": {"pass": "applications/" + quote(name, '')}
                 },
-                "applications": {
-                    name: {
-                        "type": self.get_application_type(),
-                        "processes": {"spare": 0},
-                        "path": script_path,
-                        "working_directory": script_path,
-                        "module": module,
-                    }
-                },
+                "applications": {name: app},
             },
             **kwargs
         )
