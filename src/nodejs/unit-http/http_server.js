@@ -335,7 +335,9 @@ ServerResponse.prototype.end = function end(chunk, encoding, callback) {
         });
 
         this.finished = true;
-        this.emit('finish');
+        process.nextTick(() => {
+            this.emit('finish');
+        });
     }
 
     return this;
