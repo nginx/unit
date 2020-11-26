@@ -479,10 +479,10 @@ Server.prototype.emit_request = function (req, res) {
         this.emit("request", req, res);
     }
 
-    setTimeout(() => {
+    setImmediate(() => {
         req.emit("finish");
         req.emit("end");
-    }, 0);
+    });
 };
 
 Server.prototype.emit_close = function () {
