@@ -16,7 +16,6 @@ const Writable = stream.Writable;
 const Readable = stream.Readable;
 
 function ServerResponse(req) {
-    EventEmitter.call(this);
     Writable.call(this);
 
     this.headers = {};
@@ -27,7 +26,6 @@ function ServerResponse(req) {
     this.socket = req.socket;
     this.connection = req.connection;
 }
-util.inherits(ServerResponse, EventEmitter);
 util.inherits(ServerResponse, Writable);
 
 ServerResponse.prototype.statusCode = 200;
@@ -344,14 +342,12 @@ ServerResponse.prototype.end = function end(chunk, encoding, callback) {
 };
 
 function ServerRequest(server, socket) {
-    EventEmitter.call(this);
     Readable.call(this);
 
     this.server = server;
     this.socket = socket;
     this.connection = socket;
 }
-util.inherits(ServerRequest, EventEmitter);
 util.inherits(ServerRequest, Readable);
 
 ServerRequest.prototype.setTimeout = function setTimeout(msecs, callback) {
@@ -384,10 +380,6 @@ ServerRequest.prototype.STATUS_CODES = function STATUS_CODES() {
     return http.STATUS_CODES;
 };
 
-ServerRequest.prototype.listeners = function listeners() {
-    return [];
-};
-
 ServerRequest.prototype.resume = function resume() {
     return [];
 };
@@ -410,8 +402,6 @@ ServerRequest.prototype.on = function on(ev, fn) {
         }.bind(this));
     }
 };
-
-ServerRequest.prototype.addListener = ServerRequest.prototype.on;
 
 function Server(requestListener) {
     EventEmitter.call(this);
