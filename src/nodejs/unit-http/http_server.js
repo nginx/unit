@@ -283,15 +283,15 @@ ServerResponse.prototype._writeBody = function (chunk, encoding, callback) {
     if (typeof callback === 'function') {
         /*
          * The callback must be called only when response.write() caller
-         * completes.  process.nextTick() postpones the callback execution.
+         * completes.  setImmediate() postpones the callback execution.
          *
-         * process.nextTick() is not technically part of the event loop.
+         * setImmediate() is not technically part of the event loop.
          * Instead, the nextTickQueue will be processed after the current
          * operation completes, regardless of the current phase of
-         * the event loop.  All callbacks passed to process.nextTick()
+         * the event loop.  All callbacks passed to setImmediate()
          * will be resolved before the event loop continues.
          */
-        process.nextTick(callback);
+        setImmediate(callback);
     }
 
     return true;
@@ -305,7 +305,7 @@ ServerResponse.prototype.write = function write(chunk, encoding, callback) {
         }
 
         var err = new Error("Write after end");
-        process.nextTick(() => {
+        setImmediate(() => {
             this.emit('error', err);
 
             if (typeof callback === 'function') {
@@ -335,7 +335,7 @@ ServerResponse.prototype.end = function end(chunk, encoding, callback) {
         });
 
         this.finished = true;
-        process.nextTick(() => {
+        setImmediate(() => {
             this.emit('finish');
         });
     }
@@ -396,14 +396,14 @@ ServerRequest.prototype.resume = function resume() {
  * The "on" method is overridden to defer reading data until user code is
  * ready, that is (ev === "data").  This can occur after req.emit("end") is
  * executed, since the user code can be scheduled asynchronously by Promises
- * and so on.  Passing the data is postponed by process.nextTick() until
+ * and so on.  Passing the data is postponed by setImmediate() until
  * the "on" method caller completes.
  */
 ServerRequest.prototype.on = function on(ev, fn) {
     Server.prototype.on.call(this, ev, fn);
 
     if (ev === "data") {
-        process.nextTick(function () {
+        setImmediate(function () {
             if (this._data.length !== 0) {
                 this.emit("data", this._data);
             }
@@ -516,7 +516,7 @@ Server.prototype.emit_drain = function () {
         this._drain_resp.add(o.resp);
 
         if (typeof o.callback === 'function') {
-            process.nextTick(o.callback);
+            setImmediate(o.callback);
         }
 
         this._output.shift();
@@ -530,7 +530,7 @@ Server.prototype.emit_drain = function () {
 
         resp.socket.writable = true;
 
-        process.nextTick(() => {
+        setImmediate(() => {
             resp.emit("drain");
         });
     }
