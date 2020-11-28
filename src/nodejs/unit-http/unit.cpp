@@ -1000,31 +1000,37 @@ Unit::websocket_set_sock(napi_env env, napi_callback_info info)
 void
 Unit::conn_destroy(napi_env env, void *nativeObject, void *finalize_hint)
 {
+#if (NXT_DEBUG)
     nxt_unit_request_info_t  *req;
 
     req = (nxt_unit_request_info_t *) nativeObject;
 
     nxt_unit_warn(NULL, "conn_destroy: %p", req);
+#endif
 }
 
 
 void
 Unit::sock_destroy(napi_env env, void *nativeObject, void *finalize_hint)
 {
+#if (NXT_DEBUG)
     nxt_unit_request_info_t  *req;
 
     req = (nxt_unit_request_info_t *) nativeObject;
 
     nxt_unit_warn(NULL, "sock_destroy: %p", req);
+#endif
 }
 
 
 void
 Unit::resp_destroy(napi_env env, void *nativeObject, void *finalize_hint)
 {
+#if (NXT_DEBUG)
     nxt_unit_request_info_t  *req;
 
     req = (nxt_unit_request_info_t *) nativeObject;
 
     nxt_unit_warn(NULL, "resp_destroy: %p", req);
+#endif
 }
