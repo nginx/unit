@@ -15,9 +15,6 @@ const stream = require('stream');
 const Readable = stream.Readable;
 const Writable = stream.Writable;
 
-// @mar0x for your review, later will be remove 
-const logger = require('./logger');
-
 
 function ServerResponse(req) {
     Writable.call(this);
@@ -30,7 +27,7 @@ function ServerResponse(req) {
     this.socket = req.socket;
     this.connection = req.connection;
 }
-// for piping stream to ServerResponse
+// for piping third stream to ServerResponse
 util.inherits(ServerResponse, Writable);
 
 ServerResponse.prototype.statusCode = 200;
@@ -285,11 +282,11 @@ ServerResponse.prototype._writeBody = function (chunk, encoding, callback) {
 
     if (typeof callback === 'function') {
         /* 
-         * if the server receive too many requests in short time, for example: ab -c 1000 -n 100000 http://server/
-         * the "finish" & "end" event triggered in "Server.prototype.emit_request" will not response in timely
-         * refer: https://nodejs.org/en/docs/guides/event-loop-timers-and-nexttick/#understanding-process-nexttick
+         * if the server receive too many requests in short time.
+         * the "finish" & "end" event triggered in "Server.prototype.emit_request" will not response in timely.
+         * refer: https://nodejs.org/en/docs/guides/event-loop-timers-and-nexttick/#understanding-process-nexttick.
          * so we change process.nextTick to setImmediate to give "chance" for executing "finish" and "end" event's callback.
-         * you can simulate this case by change 
+         * you can simulate this case by change
          * Server.prototype.emit_request = function (req, res) {
          *   if (req._websocket_handshake && this._upgradeListenerCount > 0) {
          *     this.emit('upgrade', req, req.socket);
@@ -410,17 +407,12 @@ ServerRequest.prototype.resume = function resume() {
 ServerRequest.prototype.on = function on(ev, fn) {
     Server.prototype.on.call(this, ev, fn);
 
-    // @mar0x for your review, later will be remove
-    logger.info(`ServerRequest:${ev}`)
-
     if (ev === "data") {
-        // @mar0x for your review, later will be remove
-        logger.info(`ServerRequest: _data.length = ${this._data.length}`)
         /* 
-         * if the server receive too many requests in short time, for example: ab -c 1000 -n 100000 http://server/
+         * if the server receive too many requests in short time
          * the "finish" & "end" event triggered in "Server.prototype.emit_request" will not response in timely
          * refer: https://nodejs.org/en/docs/guides/event-loop-timers-and-nexttick/#understanding-process-nexttick
-         * so we change process.nextTick to setImmediate to give "chance" for executing "finish" and "end" event's callback.
+         * so we change process.nextTick to setImmediate to give "chance" for executing "finish" and "end" event's callback
          * you can simulate this case by change 
          * Server.prototype.emit_request = function (req, res) {
          *   if (req._websocket_handshake && this._upgradeListenerCount > 0) {
@@ -512,9 +504,12 @@ Server.prototype.emit_request = function (req, res) {
         this.emit("request", req, res);
     }
 
+    /*
+     * if we change setImmediate to process.nextTick(),
+     * it cause cannot processing "multipart/form-data" body by upload file middleware, such as "multer"
+     * https://github.com/expressjs/multer
+     */
     setImmediate(() => {
-        // @mar0x for your review, later will be remove
-        logger.info('Server: finish & end')
         req.emit("finish");
         req.emit("end");
     });
