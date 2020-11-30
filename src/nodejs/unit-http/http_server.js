@@ -436,8 +436,6 @@ ServerRequest.prototype.on = function on(ev, fn) {
     }
 };
 
-ServerRequest.prototype.addListener = ServerRequest.prototype.on;
-
 function Server(requestListener) {
     EventEmitter.call(this);
 
