@@ -286,7 +286,7 @@ ServerResponse.prototype._writeBody = function (chunk, encoding, callback) {
          * the "finish" & "end" event triggered in "Server.prototype.emit_request" will not response in timely.
          * refer: https://nodejs.org/en/docs/guides/event-loop-timers-and-nexttick/#understanding-process-nexttick.
          * so we change process.nextTick to setImmediate to give "chance" for executing "finish" and "end" event's callback.
-         * you can simulate this case by change
+         * you can simulate this case by add logger before req.emit('finish'), then call "ab -c 1000 -n 5000 http://<your service>"
          * Server.prototype.emit_request = function (req, res) {
          *   if (req._websocket_handshake && this._upgradeListenerCount > 0) {
          *     this.emit('upgrade', req, req.socket);
@@ -413,7 +413,7 @@ ServerRequest.prototype.on = function on(ev, fn) {
          * the "finish" & "end" event triggered in "Server.prototype.emit_request" will not response in timely
          * refer: https://nodejs.org/en/docs/guides/event-loop-timers-and-nexttick/#understanding-process-nexttick
          * so we change process.nextTick to setImmediate to give "chance" for executing "finish" and "end" event's callback
-         * you can simulate this case by change 
+         * you can simulate this case by add logger before req.emit('finish'), then call "ab -c 1000 -n 5000 http://<your service>"
          * Server.prototype.emit_request = function (req, res) {
          *   if (req._websocket_handshake && this._upgradeListenerCount > 0) {
          *     this.emit('upgrade', req, req.socket);
