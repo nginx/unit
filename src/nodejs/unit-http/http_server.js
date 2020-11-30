@@ -505,6 +505,7 @@ Server.prototype.emit_request = function (req, res) {
     /*
      * if we change setImmediate to process.nextTick(),
      * it cause cannot processing "multipart/form-data" body by upload file middleware, such as "multer"
+     * process.nextTick let "finish & end" event early trigrered, it cause `multer` receive incomplteted data.
      * https://github.com/expressjs/multer
      */
     setImmediate(() => {
