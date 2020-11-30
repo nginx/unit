@@ -11,10 +11,16 @@ const util = require('util');
 const unit_lib = require('./build/Release/unit-http');
 const Socket = require('./socket');
 const WebSocketFrame = require('./websocket_frame');
+const stream = require('stream');
+const Readable = stream.Readable;
+const Writable = stream.Writable;
+
+// @mar0x for your review, later will be remove 
+const logger = require('./logger');
 
 
 function ServerResponse(req) {
-    EventEmitter.call(this);
+    Writable.call(this);
 
     this.headers = {};
 
@@ -24,7 +30,8 @@ function ServerResponse(req) {
     this.socket = req.socket;
     this.connection = req.connection;
 }
-util.inherits(ServerResponse, EventEmitter);
+// for piping stream to ServerResponse
+util.inherits(ServerResponse, Writable);
 
 ServerResponse.prototype.statusCode = 200;
 ServerResponse.prototype.statusMessage = undefined;
@@ -63,7 +70,7 @@ ServerResponse.prototype.setHeader = function setHeader(name, value) {
     if (Array.isArray(value)) {
         count = value.length;
 
-        value.forEach(function(val) {
+        value.forEach(function (val) {
             value_len += Buffer.byteLength(val + "", 'latin1');
         });
 
@@ -138,7 +145,7 @@ ServerResponse.prototype._removeHeader = function _removeHeader(lc_name) {
         this.headers_count -= value.length;
         this.headers_len -= value.length * name_len;
 
-        value.forEach(function(val) {
+        value.forEach(function (val) {
             this.headers_len -= Buffer.byteLength(val + "", 'latin1');
         });
 
@@ -217,7 +224,7 @@ ServerResponse.prototype._send_headers = unit_lib.response_send_headers;
 ServerResponse.prototype._sendHeaders = function _sendHeaders() {
     if (!this.headersSent) {
         this._send_headers(this.statusCode, this.headers, this.headers_count,
-                           this.headers_len);
+            this.headers_len);
 
         this.headersSent = true;
     }
@@ -225,7 +232,7 @@ ServerResponse.prototype._sendHeaders = function _sendHeaders() {
 
 ServerResponse.prototype._write = unit_lib.response_write;
 
-ServerResponse.prototype._writeBody = function(chunk, encoding, callback) {
+ServerResponse.prototype._writeBody = function (chunk, encoding, callback) {
     var contentLength = 0;
     var res, o;
 
@@ -277,17 +284,27 @@ ServerResponse.prototype._writeBody = function(chunk, encoding, callback) {
     }
 
     if (typeof callback === 'function') {
-        /*
-         * The callback must be called only when response.write() caller
-         * completes.  process.nextTick() postpones the callback execution.
-         *
-         * process.nextTick() is not technically part of the event loop.
-         * Instead, the nextTickQueue will be processed after the current
-         * operation completes, regardless of the current phase of
-         * the event loop.  All callbacks passed to process.nextTick()
-         * will be resolved before the event loop continues.
+        /* 
+         * if the server receive too many requests in short time, for example: ab -c 1000 -n 100000 http://server/
+         * the "finish" & "end" event triggered in "Server.prototype.emit_request" will not response in timely
+         * refer: https://nodejs.org/en/docs/guides/event-loop-timers-and-nexttick/#understanding-process-nexttick
+         * so we change process.nextTick to setImmediate to give "chance" for executing "finish" and "end" event's callback.
+         * you can simulate this case by change 
+         * Server.prototype.emit_request = function (req, res) {
+         *   if (req._websocket_handshake && this._upgradeListenerCount > 0) {
+         *     this.emit('upgrade', req, req.socket);
+         *   } else {
+         *     this.emit("request", req, res);
+         *   }
+         *   setImmediate(() => {
+         *     // add logger for monitering event trigger
+         *     logger.info('Server: finish & end')
+         *     req.emit("finish");
+         *     req.emit("end");
+         *   });
+         * };
          */
-        process.nextTick(callback);
+        setImmediate(callback);
     }
 
     return true;
@@ -337,15 +354,13 @@ ServerResponse.prototype.end = function end(chunk, encoding, callback) {
 };
 
 function ServerRequest(server, socket) {
-    EventEmitter.call(this);
+    Readable.call(this);
 
     this.server = server;
     this.socket = socket;
     this.connection = socket;
 }
-util.inherits(ServerRequest, EventEmitter);
-
-ServerRequest.prototype.unpipe = undefined;
+util.inherits(ServerRequest, Readable);
 
 ServerRequest.prototype.setTimeout = function setTimeout(msecs, callback) {
     this.timeout = msecs;
@@ -389,18 +404,42 @@ ServerRequest.prototype.resume = function resume() {
  * The "on" method is overridden to defer reading data until user code is
  * ready, that is (ev === "data").  This can occur after req.emit("end") is
  * executed, since the user code can be scheduled asynchronously by Promises
- * and so on.  Passing the data is postponed by process.nextTick() until
+ * and so on.  Passing the data is postponed by setImmediate until
  * the "on" method caller completes.
  */
 ServerRequest.prototype.on = function on(ev, fn) {
     Server.prototype.on.call(this, ev, fn);
 
+    // @mar0x for your review, later will be remove
+    logger.info(`ServerRequest:${ev}`)
+
     if (ev === "data") {
-        process.nextTick(function () {
+        // @mar0x for your review, later will be remove
+        logger.info(`ServerRequest: _data.length = ${this._data.length}`)
+        /* 
+         * if the server receive too many requests in short time, for example: ab -c 1000 -n 100000 http://server/
+         * the "finish" & "end" event triggered in "Server.prototype.emit_request" will not response in timely
+         * refer: https://nodejs.org/en/docs/guides/event-loop-timers-and-nexttick/#understanding-process-nexttick
+         * so we change process.nextTick to setImmediate to give "chance" for executing "finish" and "end" event's callback.
+         * you can simulate this case by change 
+         * Server.prototype.emit_request = function (req, res) {
+         *   if (req._websocket_handshake && this._upgradeListenerCount > 0) {
+         *     this.emit('upgrade', req, req.socket);
+         *   } else {
+         *     this.emit("request", req, res);
+         *   }
+         *   setImmediate(() => {
+         *     // add logger for monitering event trigger
+         *     logger.info('Server: finish & end')
+         *     req.emit("finish");
+         *     req.emit("end");
+         *   });
+         * };
+         */
+        setImmediate(function () {
             if (this._data.length !== 0) {
                 this.emit("data", this._data);
             }
-
         }.bind(this));
     }
 };
@@ -425,11 +464,11 @@ function Server(requestListener) {
     }
 
     this._upgradeListenerCount = 0;
-    this.on('newListener', function(ev) {
-        if (ev === 'upgrade'){
+    this.on('newListener', function (ev) {
+        if (ev === 'upgrade') {
             this._upgradeListenerCount++;
         }
-      }).on('removeListener', function(ev) {
+    }).on('removeListener', function (ev) {
         if (ev === 'upgrade') {
             this._upgradeListenerCount--;
         }
@@ -473,7 +512,9 @@ Server.prototype.emit_request = function (req, res) {
         this.emit("request", req, res);
     }
 
-    process.nextTick(() => {
+    setImmediate(() => {
+        // @mar0x for your review, later will be remove
+        logger.info('Server: finish & end')
         req.emit("finish");
         req.emit("end");
     });
