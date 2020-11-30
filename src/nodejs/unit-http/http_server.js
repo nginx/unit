@@ -389,10 +389,6 @@ ServerRequest.prototype.STATUS_CODES = function STATUS_CODES() {
     return http.STATUS_CODES;
 };
 
-ServerRequest.prototype.listeners = function listeners() {
-    return [];
-};
-
 ServerRequest.prototype.resume = function resume() {
     return [];
 };
