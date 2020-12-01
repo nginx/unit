@@ -784,8 +784,8 @@ nxt_unit_read_env(nxt_unit_port_t *ready_port, nxt_unit_port_t *router_port,
 {
     int       rc;
     int       ready_fd, router_fd, read_in_fd, read_out_fd;
-    char      *unit_init, *version_end;
-    long      version_length;
+    char      *unit_init, *version_end, *vars;
+    size_t    version_length;
     int64_t   ready_pid, router_pid, read_pid;
     uint32_t  ready_stream, router_id, ready_id, read_id;
 
@@ -797,21 +797,30 @@ nxt_unit_read_env(nxt_unit_port_t *ready_port, nxt_unit_port_t *router_port,
         return NXT_UNIT_ERROR;
     }
 
-    nxt_unit_debug(NULL, "%s='%s'", NXT_UNIT_INIT_ENV, unit_init);
-
-    version_length = nxt_length(NXT_VERSION);
-
     version_end = strchr(unit_init, ';');
-    if (version_end == NULL
-        || version_end - unit_init != version_length
-        || memcmp(unit_init, NXT_VERSION, version_length) != 0)
-    {
-        nxt_unit_alert(NULL, "version check error");
+    if (nxt_slow_path(version_end == NULL)) {
+        nxt_unit_alert(NULL, "Unit version not found in %s=\"%s\"",
+                       NXT_UNIT_INIT_ENV, unit_init);
 
         return NXT_UNIT_ERROR;
     }
 
-    rc = sscanf(version_end + 1,
+    version_length = version_end - unit_init;
+
+    rc = version_length != nxt_length(NXT_VERSION)
+         || memcmp(unit_init, NXT_VERSION, nxt_length(NXT_VERSION));
+
+    if (nxt_slow_path(rc != 0)) {
+        nxt_unit_alert(NULL, "versions mismatch: the Unit daemon has version "
+                       "%.*s, while the app was compiled with libunit %s",
+                       (int) version_length, unit_init, NXT_VERSION);
+
+        return NXT_UNIT_ERROR;
+    }
+
+    vars = version_end + 1;
+
+    rc = sscanf(vars,
                 "%"PRIu32";"
                 "%"PRId64",%"PRIu32",%d;"
                 "%"PRId64",%"PRIu32",%d;"
@@ -823,11 +832,21 @@ nxt_unit_read_env(nxt_unit_port_t *ready_port, nxt_unit_port_t *router_port,
                 &read_pid, &read_id, &read_in_fd, &read_out_fd,
                 log_fd, shm_limit);
 
-    if (nxt_slow_path(rc != 13)) {
-        nxt_unit_alert(NULL, "failed to scan variables: %d", rc);
+    if (nxt_slow_path(rc == EOF)) {
+        nxt_unit_alert(NULL, "sscanf(%s) failed: %s (%d) for %s env",
+                       vars, strerror(errno), errno, NXT_UNIT_INIT_ENV);
 
         return NXT_UNIT_ERROR;
     }
+
+    if (nxt_slow_path(rc != 13)) {
+        nxt_unit_alert(NULL, "invalid number of variables in %s env: "
+                       "found %d of %d in %s", NXT_UNIT_INIT_ENV, rc, 13, vars);
+
+        return NXT_UNIT_ERROR;
+    }
+
+    nxt_unit_debug(NULL, "%s='%s'", NXT_UNIT_INIT_ENV, unit_init);
 
     nxt_unit_port_id_init(&ready_port->id, (pid_t) ready_pid, ready_id);
 
