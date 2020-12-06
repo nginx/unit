@@ -1,5 +1,5 @@
 import pytest
-from conftest import option
+from unit.option import option
 
 
 class TestUnit():

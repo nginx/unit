@@ -3,10 +3,10 @@ from distutils.version import LooseVersion
 
 import pytest
 
-from conftest import option
 from conftest import public_dir
 from conftest import unit_stop
 from unit.applications.lang.python import TestApplicationPython
+from unit.option import option
 
 
 class TestASGILifespan(TestApplicationPython):

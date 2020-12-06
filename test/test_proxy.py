@@ -4,11 +4,11 @@ import time
 
 import pytest
 
-from conftest import option
 from conftest import run_process
 from conftest import skip_alert
 from conftest import waitforsocket
 from unit.applications.lang.python import TestApplicationPython
+from unit.option import option
 
 
 class TestProxy(TestApplicationPython):

@@ -2,9 +2,9 @@ import time
 
 import pytest
 
-from conftest import option
 from conftest import unit_stop
 from unit.applications.lang.python import TestApplicationPython
+from unit.option import option
 
 
 class TestAccessLog(TestApplicationPython):

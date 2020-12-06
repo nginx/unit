@@ -4,8 +4,8 @@ import time
 
 import pytest
 
-from conftest import option
 from unit.applications.lang.python import TestApplicationPython
+from unit.option import option
 
 
 class TestPythonProcman(TestApplicationPython):

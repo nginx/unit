@@ -1,8 +1,8 @@
 import os
 import re
 
-from conftest import option
 from unit.applications.lang.python import TestApplicationPython
+from unit.option import option
 
 
 class TestUpstreamsRR(TestApplicationPython):

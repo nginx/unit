@@ -17,6 +17,7 @@ import pytest
 from unit.check.go import check_go
 from unit.check.node import check_node
 from unit.check.tls import check_openssl
+from unit.option import option
 
 
 def pytest_addoption(parser):
@@ -48,12 +49,14 @@ def pytest_addoption(parser):
 
 unit_instance = {}
 _processes = []
-option = None
-
 
 def pytest_configure(config):
-    global option
-    option = config.option
+    option.config = config.option
+
+    option.detailed = config.option.detailed
+    option.print_log = config.option.print_log
+    option.save_log = config.option.save_log
+    option.unsafe = config.option.unsafe
 
     option.generated_tests = {}
     option.current_dir = os.path.abspath(
@@ -161,6 +164,8 @@ def pytest_sessionstart(session):
     }
 
     unit_stop()
+
+    _check_alerts()
 
     shutil.rmtree(unit_instance['temp_dir'])
 

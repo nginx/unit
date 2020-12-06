@@ -5,11 +5,11 @@ import shutil
 
 import pytest
 
-from conftest import option
 from conftest import unit_run
 from conftest import unit_stop
 from unit.applications.lang.go import TestApplicationGo
 from unit.feature.isolation import TestFeatureIsolation
+from unit.option import option
 
 class TestGoIsolation(TestApplicationGo):
     prerequisites = {'modules': {'go': 'any'}, 'features': ['isolation']}

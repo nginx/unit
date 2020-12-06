@@ -2,11 +2,11 @@ import shutil
 
 import pytest
 
-from conftest import option
 from conftest import unit_run
 from conftest import unit_stop
 from unit.applications.lang.ruby import TestApplicationRuby
 from unit.feature.isolation import TestFeatureIsolation
+from unit.option import option
 
 
 class TestRubyIsolation(TestApplicationRuby):

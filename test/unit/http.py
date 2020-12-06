@@ -7,8 +7,8 @@ import select
 import socket
 
 import pytest
-from conftest import option
 from unit.main import TestUnit
+from unit.option import option
 
 
 class TestHTTP(TestUnit):

@@ -1,8 +1,8 @@
-from conftest import option
 import os
 import shutil
 
 from unit.applications.proto import TestApplicationProto
+from unit.option import option
 
 
 class TestApplicationPHP(TestApplicationProto):

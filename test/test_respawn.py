@@ -2,9 +2,9 @@ import re
 import subprocess
 import time
 
-from conftest import option
 from conftest import skip_alert
 from unit.applications.lang.python import TestApplicationPython
+from unit.option import option
 
 
 class TestRespawn(TestApplicationPython):

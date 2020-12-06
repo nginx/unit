@@ -3,9 +3,9 @@ import socket
 
 import pytest
 
-from conftest import option
 from conftest import waitforfiles
 from unit.applications.proto import TestApplicationProto
+from unit.option import option
 
 
 class TestStatic(TestApplicationProto):

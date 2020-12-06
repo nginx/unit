@@ -3,10 +3,10 @@ import time
 
 import pytest
 
-from conftest import option
 from conftest import skip_alert
 from unit.applications.lang.java import TestApplicationJava
 from unit.applications.websockets import TestApplicationWebsocket
+from unit.option import option
 
 
 class TestJavaWebsockets(TestApplicationJava):

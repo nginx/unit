@@ -5,9 +5,9 @@ import subprocess
 
 import pytest
 
-from conftest import option
 from conftest import skip_alert
 from unit.applications.tls import TestApplicationTLS
+from unit.option import option
 
 
 class TestTLS(TestApplicationTLS):

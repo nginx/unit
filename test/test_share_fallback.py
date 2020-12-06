@@ -1,8 +1,8 @@
 import os
 
-from conftest import option
 from conftest import skip_alert
 from unit.applications.proto import TestApplicationProto
+from unit.option import option
 
 
 class TestStatic(TestApplicationProto):

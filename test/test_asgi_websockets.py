@@ -4,10 +4,10 @@ from distutils.version import LooseVersion
 
 import pytest
 
-from conftest import option
 from conftest import skip_alert
 from unit.applications.lang.python import TestApplicationPython
 from unit.applications.websockets import TestApplicationWebsocket
+from unit.option import option
 
 
 class TestASGIWebsockets(TestApplicationPython):

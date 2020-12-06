@@ -1,7 +1,7 @@
 import json
 
-from conftest import option
 from unit.http import TestHTTP
+from unit.option import option
 
 
 def args_handler(conf_func):

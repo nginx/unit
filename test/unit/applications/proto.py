@@ -2,8 +2,8 @@ import os
 import re
 import time
 
-from conftest import option
 from unit.control import TestControl
+from unit.option import option
 
 
 class TestApplicationProto(TestControl):

@@ -5,9 +5,9 @@ import time
 
 import pytest
 
-from conftest import option
 from conftest import unit_stop
 from unit.applications.lang.php import TestApplicationPHP
+from unit.option import option
 
 class TestPHPApplication(TestApplicationPHP):
     prerequisites = {'modules': {'php': 'all'}}
