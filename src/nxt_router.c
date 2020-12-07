@@ -5169,6 +5169,7 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_http_request_t *r,
     req->content_length_field = NXT_UNIT_NONE_FIELD;
     req->content_type_field   = NXT_UNIT_NONE_FIELD;
     req->cookie_field         = NXT_UNIT_NONE_FIELD;
+    req->authorization_field  = NXT_UNIT_NONE_FIELD;
 
     dst_field = req->fields;
 
@@ -5193,6 +5194,9 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_http_request_t *r,
 
         } else if (field == r->cookie) {
             req->cookie_field = dst_field - req->fields;
+
+        } else if (field == r->authorization) {
+            req->authorization_field = dst_field - req->fields;
         }
 
         nxt_debug(task, "add field 0x%04Xd, %d, %d, %p : %d %p",

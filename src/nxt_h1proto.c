@@ -174,6 +174,8 @@ static nxt_http_field_proc_t           nxt_h1p_fields[] = {
     { nxt_string("Content-Type"),      &nxt_http_request_field,
         offsetof(nxt_http_request_t, content_type) },
     { nxt_string("Content-Length"),    &nxt_http_request_content_length, 0 },
+    { nxt_string("Authorization"),     &nxt_http_request_field,
+        offsetof(nxt_http_request_t, authorization) },
 };
 
 

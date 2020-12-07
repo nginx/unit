@@ -15,6 +15,13 @@ invalid HTTP responses were generated for some unusual status codes.
 </para>
 </change>
 
+<change type="bugfix">
+<para>
+PHP_AUTH_USER, PHP_AUTH_PW, and PHP_AUTH_DIGEST server variables were missing
+in PHP module.
+</para>
+</change>
+
 </changes>
 
 
