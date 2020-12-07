@@ -38,6 +38,7 @@ static int nxt_ruby_init_io(nxt_ruby_ctx_t *rctx);
 static void nxt_ruby_request_handler(nxt_unit_request_info_t *req);
 static void *nxt_ruby_request_handler_gvl(void *req);
 static int nxt_ruby_ready_handler(nxt_unit_ctx_t *ctx);
+static void *nxt_ruby_thread_create_gvl(void *rctx);
 static VALUE nxt_ruby_thread_func(VALUE arg);
 static void *nxt_ruby_unit_run(void *ctx);
 static void nxt_ruby_ubf(void *ctx);
@@ -1141,7 +1142,7 @@ nxt_ruby_ready_handler(nxt_unit_ctx_t *ctx)
 
         rctx->ctx = ctx;
 
-        res = rb_thread_create(RUBY_METHOD_FUNC(nxt_ruby_thread_func), rctx);
+        res = (VALUE) rb_thread_call_with_gvl(nxt_ruby_thread_create_gvl, rctx);
 
         if (nxt_fast_path(res != Qnil)) {
             nxt_unit_debug(ctx, "thread #%d created", (int) (i + 1));
@@ -1156,6 +1157,17 @@ nxt_ruby_ready_handler(nxt_unit_ctx_t *ctx)
     }
 
     return NXT_UNIT_OK;
+}
+
+
+static void *
+nxt_ruby_thread_create_gvl(void *rctx)
+{
+    VALUE  res;
+
+    res = rb_thread_create(RUBY_METHOD_FUNC(nxt_ruby_thread_func), rctx);
+
+    return (void *) (uintptr_t) res;
 }
 
 

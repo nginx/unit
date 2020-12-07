@@ -22,6 +22,12 @@ in PHP module.
 </para>
 </change>
 
+<change type="bugfix">
+<para>
+Ruby apps with configured mutlithreading could crash on start under load.
+</para>
+</change>
+
 </changes>
 
 
