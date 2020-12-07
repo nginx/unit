@@ -1000,19 +1000,19 @@ Unit::websocket_set_sock(napi_env env, napi_callback_info info)
 void
 Unit::conn_destroy(napi_env env, void *r, void *finalize_hint)
 {
-    nxt_unit_req_debug((nxt_unit_request_info_t *) r, "conn_destroy: %p", r);
+    nxt_unit_req_debug(NULL, "conn_destroy: %p", r);
 }
 
 
 void
 Unit::sock_destroy(napi_env env, void *r, void *finalize_hint)
 {
-    nxt_unit_req_debug((nxt_unit_request_info_t *) r, "sock_destroy: %p", r);
+    nxt_unit_req_debug(NULL, "sock_destroy: %p", r);
 }
 
 
 void
 Unit::resp_destroy(napi_env env, void *r, void *finalize_hint)
 {
-    nxt_unit_req_debug((nxt_unit_request_info_t *) r, "resp_destroy: %p", r);
+    nxt_unit_req_debug(NULL, "resp_destroy: %p", r);
 }
