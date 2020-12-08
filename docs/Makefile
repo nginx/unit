@@ -14,6 +14,9 @@ PACKAGES=	unit 							\
 		unit-ruby						\
 		unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11
 
+CURDATE:=$(shell date +"%Y-%m-%d")
+CURTIME:=$(shell date +"%H:%M:%S %z")
+
 
 all:		changes changelogs
 
@@ -31,6 +34,8 @@ $(DEST)/CHANGES:		changes.dtd				\
 
 	xmllint --noout --valid changes.xml
 	xsltproc --stringparam format generic				\
+		--stringparam curdate '$(CURDATE)'			\
+		--stringparam curtime '$(CURTIME)'			\
 		-o $@ changes.xslt changes.xml
 
 $(DEST)/%.rpm-changelog:	changes.dtd 				\
@@ -40,6 +45,8 @@ $(DEST)/%.rpm-changelog:	changes.dtd 				\
 	mkdir -p $(DEST)
 	xmllint --noout --valid changes.xml
 	xsltproc --stringparam pkgname $* --stringparam format rpm	\
+		--stringparam curdate '$(CURDATE)'			\
+		--stringparam curtime '$(CURTIME)'			\
 		-o $@ changes.xslt changes.xml
 
 $(DEST)/%.deb-changelog:	changes.dtd 				\
@@ -49,6 +56,8 @@ $(DEST)/%.deb-changelog:	changes.dtd 				\
 	mkdir -p $(DEST)
 	xmllint --noout --valid changes.xml
 	xsltproc --stringparam pkgname $* --stringparam format deb	\
+		--stringparam curdate '$(CURDATE)'			\
+		--stringparam curtime '$(CURTIME)'			\
 		-o $@ changes.xslt changes.xml
 
 changes.xslt:	changes.xsls

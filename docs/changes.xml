@@ -6,7 +6,7 @@
 
 
 <changes apply="unit" ver="1.22.0" rev="1"
-         date="" time="18:00:00 +0300"
+         date="" time=""
          packager="Andrei Belov &lt;defan@nginx.com&gt;">
 
 <change type="bugfix">
