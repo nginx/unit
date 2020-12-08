@@ -1,5 +1,6 @@
 import shutil
 
+import os
 import pytest
 
 from conftest import unit_run
@@ -26,7 +27,7 @@ class TestRubyIsolation(TestApplicationRuby):
 
         return check if not complete_check else check()
 
-    def test_ruby_isolation_rootfs_mount_namespace(self, is_su):
+    def test_ruby_isolation_rootfs(self, is_su):
         isolation_features = option.available['features']['isolation'].keys()
 
         if not is_su:
@@ -42,33 +43,21 @@ class TestRubyIsolation(TestApplicationRuby):
             if 'pid' not in isolation_features:
                 pytest.skip('pid namespace is not supported')
 
-        isolation = {'rootfs': option.test_dir}
+        isolation = {'rootfs': option.temp_dir}
 
         if not is_su:
             isolation['namespaces'] = {
                 'mount': True,
                 'credential': True,
-                'pid': True
+                'pid': True,
             }
 
-        self.load('status_int', isolation=isolation)
+        os.mkdir(option.temp_dir + '/ruby')
 
-        assert 'success' in self.conf(
-            '"/ruby/status_int/config.ru"', 'applications/status_int/script',
+        shutil.copytree(
+            option.test_dir + '/ruby/status_int',
+            option.temp_dir + '/ruby/status_int',
         )
-
-        assert 'success' in self.conf(
-            '"/ruby/status_int"', 'applications/status_int/working_directory',
-        )
-
-        assert self.get()['status'] == 200, 'status int'
-
-    def test_ruby_isolation_rootfs(self, is_su):
-        if not is_su:
-            pytest.skip('requires root')
-            return
-
-        isolation = {'rootfs': option.test_dir}
 
         self.load('status_int', isolation=isolation)
 
