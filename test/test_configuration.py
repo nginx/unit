@@ -1,6 +1,5 @@
 import pytest
 
-from conftest import skip_alert
 from unit.control import TestControl
 
 
@@ -337,7 +336,7 @@ class TestConfiguration(TestControl):
 
         assert 'success' in self.conf(conf)
 
-    def test_unprivileged_user_error(self, is_su):
+    def test_unprivileged_user_error(self, is_su, skip_alert):
         skip_alert(r'cannot set user "root"', r'failed to apply new conf')
         if is_su:
             pytest.skip('unprivileged tests')

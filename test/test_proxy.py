@@ -5,7 +5,6 @@ import time
 import pytest
 
 from conftest import run_process
-from conftest import skip_alert
 from unit.applications.lang.python import TestApplicationPython
 from unit.option import option
 from unit.utils import waitforsocket
@@ -482,7 +481,7 @@ Content-Length: 10
         check_proxy('http://[:]:7080')
         check_proxy('http://[::7080')
 
-    def test_proxy_loop(self):
+    def test_proxy_loop(self, skip_alert):
         skip_alert(
             r'socket.*failed',
             r'accept.*failed',

@@ -74,10 +74,6 @@ def pytest_configure(config):
         fcntl.fcntl(sys.stdout.fileno(), fcntl.F_SETFL, 0)
 
 
-def skip_alert(*alerts):
-    option.skip_alerts.extend(alerts)
-
-
 def pytest_generate_tests(metafunc):
     cls = metafunc.cls
     if (not hasattr(cls, 'application_type')
@@ -314,7 +310,7 @@ def _check_alerts(path=None):
     alerts = re.findall(r'.+\[alert\].+', log)
 
     if alerts:
-        print('All alerts/sanitizer errors found in log:')
+        print('\nAll alerts/sanitizer errors found in log:')
         [print(alert) for alert in alerts]
         found = True
 
@@ -376,6 +372,14 @@ def stop_processes():
 
     if fail:
         return 'Fail to stop process(es)'
+
+
+@pytest.fixture()
+def skip_alert():
+    def _skip(*alerts):
+        option.skip_alerts.extend(alerts)
+
+    return _skip
 
 
 @pytest.fixture

@@ -5,7 +5,6 @@ import subprocess
 
 import pytest
 
-from conftest import skip_alert
 from unit.applications.tls import TestApplicationTLS
 from unit.option import option
 
@@ -505,7 +504,7 @@ basicConstraints = critical,CA:TRUE"""
             '/certificates'
         ), 'remove all certificates'
 
-    def test_tls_application_respawn(self):
+    def test_tls_application_respawn(self, skip_alert):
         self.load('mirror')
 
         self.certificate()

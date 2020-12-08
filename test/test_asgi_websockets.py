@@ -4,7 +4,6 @@ from distutils.version import LooseVersion
 
 import pytest
 
-from conftest import skip_alert
 from unit.applications.lang.python import TestApplicationPython
 from unit.applications.websockets import TestApplicationWebsocket
 from unit.option import option
@@ -17,7 +16,8 @@ class TestASGIWebsockets(TestApplicationPython):
 
     ws = TestApplicationWebsocket()
 
-    def setup_method(self):
+    @pytest.fixture(autouse=True)
+    def setup_method_fixture(self, request, skip_alert):
         assert 'success' in self.conf(
             {'http': {'websocket': {'keepalive_interval': 0}}}, 'settings'
         ), 'clear keepalive_interval'

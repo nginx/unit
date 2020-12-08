@@ -2,7 +2,6 @@ import re
 
 import pytest
 
-from conftest import skip_alert
 from conftest import unit_stop
 from unit.applications.lang.ruby import TestApplicationRuby
 
@@ -160,7 +159,7 @@ class TestRubyApplication(TestApplicationRuby):
         assert self.post(body=body)['body'] == body, 'input rewind'
 
     @pytest.mark.skip('not yet')
-    def test_ruby_application_syntax_error(self):
+    def test_ruby_application_syntax_error(self, skip_alert):
         skip_alert(
             r'Failed to parse rack script',
             r'syntax error',

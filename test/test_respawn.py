@@ -2,7 +2,6 @@ import re
 import subprocess
 import time
 
-from conftest import skip_alert
 from unit.applications.lang.python import TestApplicationPython
 from unit.option import option
 
@@ -56,7 +55,7 @@ class TestRespawn(TestApplicationPython):
         assert len(re.findall(self.PATTERN_CONTROLLER, output)) == 1
         assert len(re.findall(self.app_name, output)) == 1
 
-    def test_respawn_router(self):
+    def test_respawn_router(self, skip_alert):
         pid = self.pid_by_name(self.PATTERN_ROUTER)
 
         self.kill_pids(pid)
@@ -66,7 +65,7 @@ class TestRespawn(TestApplicationPython):
 
         self.smoke_test()
 
-    def test_respawn_controller(self):
+    def test_respawn_controller(self, skip_alert):
         pid = self.pid_by_name(self.PATTERN_CONTROLLER)
 
         self.kill_pids(pid)
@@ -78,7 +77,7 @@ class TestRespawn(TestApplicationPython):
 
         self.smoke_test()
 
-    def test_respawn_application(self):
+    def test_respawn_application(self, skip_alert):
         pid = self.pid_by_name(self.app_name)
 
         self.kill_pids(pid)

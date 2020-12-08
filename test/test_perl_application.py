@@ -2,7 +2,6 @@ import re
 
 import pytest
 
-from conftest import skip_alert
 from conftest import unit_stop
 from unit.applications.lang.perl import TestApplicationPerl
 
@@ -170,7 +169,7 @@ class TestPerlApplication(TestApplicationPerl):
         assert self.get()['body'] == 'body\n', 'body io file'
 
     @pytest.mark.skip('not yet')
-    def test_perl_application_syntax_error(self):
+    def test_perl_application_syntax_error(self, skip_alert):
         skip_alert(r'PSGI: Failed to parse script')
         self.load('syntax_error')
 

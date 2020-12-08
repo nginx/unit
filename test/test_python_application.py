@@ -5,7 +5,6 @@ import time
 
 import pytest
 
-from conftest import skip_alert
 from conftest import unit_stop
 from unit.applications.lang.python import TestApplicationPython
 from unit.option import option
@@ -520,13 +519,13 @@ last line: 987654321
         assert self.get()['body'] == 'body\n', 'body io file'
 
     @pytest.mark.skip('not yet')
-    def test_python_application_syntax_error(self):
+    def test_python_application_syntax_error(self, skip_alert):
         skip_alert(r'Python failed to import module "wsgi"')
         self.load('syntax_error')
 
         assert self.get()['status'] == 500, 'syntax error'
 
-    def test_python_application_loading_error(self):
+    def test_python_application_loading_error(self, skip_alert):
         skip_alert(r'Python failed to import module "blah"')
 
         self.load('empty', module="blah")
@@ -791,7 +790,7 @@ last line: 987654321
             assert obj['UID'] == nobody_uid, 'root uid group=root'
             assert obj['GID'] == 0, 'root gid group=root'
 
-    def test_python_application_callable(self):
+    def test_python_application_callable(self, skip_alert):
         skip_alert(r'Python failed to get "blah" from module')
         self.load('callable')
 
