@@ -4,9 +4,9 @@ import socket
 import time
 
 from conftest import run_process
-from conftest import waitforsocket
 from unit.applications.lang.python import TestApplicationPython
 from unit.option import option
+from unit.utils import waitforsocket
 
 
 class TestProxyChunked(TestApplicationPython):

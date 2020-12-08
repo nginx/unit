@@ -18,6 +18,8 @@ from unit.check.go import check_go
 from unit.check.node import check_node
 from unit.check.tls import check_openssl
 from unit.option import option
+from unit.utils import public_dir
+from unit.utils import waitforfiles
 
 
 def pytest_addoption(parser):
@@ -298,34 +300,6 @@ def unit_stop():
         p.kill()
         return 'Could not terminate unit'
 
-def public_dir(path):
-    os.chmod(path, 0o777)
-
-    for root, dirs, files in os.walk(path):
-        for d in dirs:
-            os.chmod(os.path.join(root, d), 0o777)
-        for f in files:
-            os.chmod(os.path.join(root, f), 0o777)
-
-def waitforfiles(*files):
-    for i in range(50):
-        wait = False
-        ret = False
-
-        for f in files:
-            if not os.path.exists(f):
-                wait = True
-                break
-
-        if wait:
-            time.sleep(0.1)
-
-        else:
-            ret = True
-            break
-
-    return ret
-
 
 
 def _check_alerts(path=None):
@@ -403,27 +377,6 @@ def stop_processes():
     if fail:
         return 'Fail to stop process(es)'
 
-
-def waitforsocket(port):
-    ret = False
-
-    for i in range(50):
-        try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.connect(('127.0.0.1', port))
-            ret = True
-            break
-
-        except KeyboardInterrupt:
-            raise
-
-        except:
-            sock.close()
-            time.sleep(0.1)
-
-    sock.close()
-
-    assert ret, 'socket connected'
 
 @pytest.fixture
 def temp_dir(request):

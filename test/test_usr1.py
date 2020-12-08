@@ -2,8 +2,8 @@ import os
 from subprocess import call
 
 from conftest import unit_stop
-from conftest import waitforfiles
 from unit.applications.lang.python import TestApplicationPython
+from unit.utils import waitforfiles
 
 
 class TestUSR1(TestApplicationPython):

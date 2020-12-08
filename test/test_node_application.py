@@ -2,8 +2,8 @@ import re
 
 import pytest
 
-from conftest import waitforfiles
 from unit.applications.lang.node import TestApplicationNode
+from unit.utils import waitforfiles
 
 
 class TestNodeApplication(TestApplicationNode):
