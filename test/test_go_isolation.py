@@ -5,30 +5,12 @@ import shutil
 
 import pytest
 
-from conftest import unit_run
-from conftest import unit_stop
 from unit.applications.lang.go import TestApplicationGo
-from unit.feature.isolation import TestFeatureIsolation
 from unit.option import option
+from unit.utils import getns
 
 class TestGoIsolation(TestApplicationGo):
     prerequisites = {'modules': {'go': 'any'}, 'features': ['isolation']}
-
-    isolation = TestFeatureIsolation()
-
-    @classmethod
-    def setup_class(cls, complete_check=True):
-        check = super().setup_class(complete_check=False)
-
-        unit = unit_run()
-        option.temp_dir = unit['temp_dir']
-
-        TestFeatureIsolation().check(option.available, unit['temp_dir'])
-
-        assert unit_stop() is None
-        shutil.rmtree(unit['temp_dir'])
-
-        return check if not complete_check else check()
 
     def unpriv_creds(self):
         nobody_uid = pwd.getpwnam('nobody').pw_uid
@@ -219,8 +201,8 @@ class TestGoIsolation(TestApplicationGo):
                     == option.available['features']['isolation'][ns]
                 ), ('%s match' % ns)
 
-        assert obj['NS']['MNT'] != self.isolation.getns('mnt'), 'mnt set'
-        assert obj['NS']['USER'] != self.isolation.getns('user'), 'user set'
+        assert obj['NS']['MNT'] != getns('mnt'), 'mnt set'
+        assert obj['NS']['USER'] != getns('user'), 'user set'
 
     def test_isolation_pid(self, is_su):
         if not self.isolation_key('pid'):

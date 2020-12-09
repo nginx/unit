@@ -48,3 +48,15 @@ def waitforsocket(port):
 
     pytest.fail('Can\'t connect to the 127.0.0.1:' + port)
 
+
+def getns(nstype):
+    # read namespace id from symlink file:
+    # it points to: '<nstype>:[<ns id>]'
+    # # eg.: 'pid:[4026531836]'
+    nspath = '/proc/self/ns/' + nstype
+    data = None
+
+    if os.path.exists(nspath):
+        data = int(os.readlink(nspath)[len(nstype) + 2 : -1])
+
+    return data

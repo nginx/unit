@@ -1,7 +1,6 @@
 import pytest
 
 from unit.applications.lang.python import TestApplicationPython
-from unit.feature.isolation import TestFeatureIsolation
 
 
 class TestPythonIsolation(TestApplicationPython):

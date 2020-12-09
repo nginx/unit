@@ -17,6 +17,7 @@ import pytest
 from unit.check.go import check_go
 from unit.check.node import check_node
 from unit.check.tls import check_openssl
+from unit.check.isolation import check_isolation
 from unit.option import option
 from unit.utils import public_dir
 from unit.utils import waitforfiles
@@ -123,6 +124,7 @@ def pytest_sessionstart(session):
     option.available = {'modules': {}, 'features': {}}
 
     unit = unit_run()
+    option.temp_dir = unit['temp_dir']
 
     # read unit.log
 
@@ -160,6 +162,8 @@ def pytest_sessionstart(session):
     option.available['modules'] = {
         k: v for k, v in option.available['modules'].items() if v is not None
     }
+
+    check_isolation()
 
     unit_stop()
 
