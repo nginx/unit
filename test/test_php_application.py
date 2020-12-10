@@ -384,6 +384,64 @@ class TestPHPApplication(TestApplicationPHP):
             r'exec: \/\w+', body
         ), 'disable_functions comma exec'
 
+    def test_php_application_auth(self):
+        self.load('auth')
+
+        resp = self.get()
+        assert resp['status'] == 200, 'status'
+        assert resp['headers']['X-Digest'] == 'not set', 'digest'
+        assert resp['headers']['X-User'] == 'not set', 'user'
+        assert resp['headers']['X-Password'] == 'not set', 'password'
+
+        resp = self.get(
+            headers={
+                'Host': 'localhost',
+                'Authorization': 'Basic dXNlcjpwYXNzd29yZA==',
+                'Connection': 'close',
+            }
+        )
+        assert resp['status'] == 200, 'basic status'
+        assert resp['headers']['X-Digest'] == 'not set', 'basic digest'
+        assert resp['headers']['X-User'] == 'user', 'basic user'
+        assert resp['headers']['X-Password'] == 'password', 'basic password'
+
+        resp = self.get(
+            headers={
+                'Host': 'localhost',
+                'Authorization': 'Digest username="blah", realm="", uri="/"',
+                'Connection': 'close',
+            }
+        )
+        assert resp['status'] == 200, 'digest status'
+        assert (
+            resp['headers']['X-Digest'] == 'username="blah", realm="", uri="/"'
+        ), 'digest digest'
+        assert resp['headers']['X-User'] == 'not set', 'digest user'
+        assert resp['headers']['X-Password'] == 'not set', 'digest password'
+
+    def test_php_application_auth_invalid(self):
+        self.load('auth')
+
+        def check_auth(auth):
+            resp = self.get(headers={
+                'Host': 'localhost',
+                'Authorization': auth,
+                'Connection': 'close',
+            })
+
+            assert resp['status'] == 200, 'status'
+            assert resp['headers']['X-Digest'] == 'not set', 'Digest'
+            assert resp['headers']['X-User'] == 'not set', 'User'
+            assert resp['headers']['X-Password'] == 'not set', 'Password'
+
+        check_auth('Basic dXN%cjpwYXNzd29yZA==')
+        check_auth('Basic XNlcjpwYXNzd29yZA==')
+        check_auth('Basic DdXNlcjpwYXNzd29yZA==')
+        check_auth('Basic blah')
+        check_auth('Basic')
+        check_auth('Digest')
+        check_auth('blah')
+
     def test_php_application_disable_functions_space(self):
         self.load('time_exec')
 
