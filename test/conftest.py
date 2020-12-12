@@ -31,13 +31,13 @@ def pytest_addoption(parser):
         help="Detailed output for tests",
     )
     parser.addoption(
-        "--print_log",
+        "--print-log",
         default=False,
         action="store_true",
         help="Print unit.log to stdout in case of errors",
     )
     parser.addoption(
-        "--save_log",
+        "--save-log",
         default=False,
         action="store_true",
         help="Save unit.log after the test execution",
