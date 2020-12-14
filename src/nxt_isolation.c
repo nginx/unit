@@ -676,12 +676,6 @@ nxt_isolation_unmount_all(nxt_task_t *task, nxt_process_t *process)
         return;
     }
 
-#if (NXT_HAVE_CLONE_NEWNS)
-    if (nxt_is_clone_flag_set(process->isolation.clone.flags, NEWNS)) {
-        return;
-    }
-#endif
-
     nxt_debug(task, "unmount all (%s)", process->name);
 
     automount = &process->isolation.automount;
