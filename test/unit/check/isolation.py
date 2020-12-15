@@ -135,7 +135,7 @@ def check_isolation():
         body=json.dumps(conf),
     )
 
-    if 'success' not in resp:
+    if 'success' not in resp['body']:
         return
 
     userns = getns('user')
