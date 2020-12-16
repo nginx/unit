@@ -205,6 +205,7 @@ debuild/$(SRCDIR)/debian:
         cat debian/rules.in | sed \
                 -e "s#%%CONFIGURE_ARGS%%#$(CONFIGURE_ARGS)#g" \
         > debuild/$(SRCDIR)/debian/rules ; \
+	chmod +x debuild/$(SRCDIR)/debian/rules ; \
 	}
 
 debuild/$(SRCDIR)/debian/changelog: ../../docs/changes.xml | debuild/$(SRCDIR)/debian
