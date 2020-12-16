@@ -104,8 +104,9 @@ install: build do.tests
 	install -m 644 $(BUILDDIR_unit_debug)/build/libunit.a $(INSTALLDIR_dev)/usr/lib/$(DEB_HOST_MULTIARCH)/libunit-debug.a
 	mkdir -p $(INSTALLDIR)/usr/share/doc/unit/examples
 	install -m 644 debian/unit.example.config $(INSTALLDIR)/usr/share/doc/unit/examples/example.config
-	install -m 644 CHANGES $(INSTALLDIR)/usr/share/doc/unit/
+	install -m 644 CHANGES $(INSTALLDIR)/usr/share/doc/unit/changelog
 	install -m 644 README $(INSTALLDIR)/usr/share/doc/unit/
+	install -m 644 NOTICE $(INSTALLDIR)/usr/share/doc/unit/
 
 binary-indep: build install
 	dh_testdir
