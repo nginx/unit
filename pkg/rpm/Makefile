@@ -274,7 +274,7 @@ test: unit modules
 		test -h rpmbuild/BUILD/unit-$(VERSION)/build-nodebug/$${soname} || \
 		ln -fs `pwd`/$${so} rpmbuild/BUILD/unit-$(VERSION)/build-nodebug/$${soname} ; \
 	done ; \
-	( cd rpmbuild/BUILD/unit-$(VERSION) && rm -f build && ln -s build-nodebug build && env python3 -m pytest ) ; \
+	( cd rpmbuild/BUILD/unit-$(VERSION) && rm -f build && ln -s build-nodebug build && env python3 -m pytest $(PYTEST_ARGS) ) ; \
 	}
 
 test-debug: unit modules
@@ -285,7 +285,7 @@ test-debug: unit modules
 		test -h rpmbuild/BUILD/unit-$(VERSION)/build-debug/$${soname} || \
 		ln -fs `pwd`/$${so} rpmbuild/BUILD/unit-$(VERSION)/build-debug/$${soname} ; \
 	done ; \
-	( cd rpmbuild/BUILD/unit-$(VERSION) && rm -f build && ln -s build-debug build && env python3 -m pytest ) ; \
+	( cd rpmbuild/BUILD/unit-$(VERSION) && rm -f build && ln -s build-debug build && env python3 -m pytest $(PYTEST_ARGS) ) ; \
 	}
 
 clean:
