@@ -35,6 +35,12 @@ bug had appeared in 1.21.0.
 </para>
 </change>
 
+<change type="bugfix">
+<para>
+the router process could crash with multithreaded applications under high load.
+</para>
+</change>
+
 </changes>
 
 
