@@ -6092,7 +6092,10 @@ static int
 nxt_unit_shared_port_recv(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port,
     nxt_unit_read_buf_t *rbuf)
 {
-    int  res;
+    int                   res;
+    nxt_unit_port_impl_t  *port_impl;
+
+    port_impl = nxt_container_of(port, nxt_unit_port_impl_t, port);
 
 retry:
 
@@ -6105,6 +6108,8 @@ retry:
         }
 
         if (nxt_unit_is_read_queue(rbuf)) {
+            nxt_app_queue_notification_received(port_impl->queue);
+
             nxt_unit_debug(ctx, "port{%d,%d} recv %d read_queue",
                            (int) port->id.pid, (int) port->id.id, (int) rbuf->size);
 

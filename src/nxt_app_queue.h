@@ -23,7 +23,7 @@ typedef struct {
 
 
 typedef struct {
-    nxt_app_nncq_atomic_t  nitems;
+    nxt_app_nncq_atomic_t  notified;
     nxt_app_nncq_t         free_items;
     nxt_app_nncq_t         queue;
     nxt_app_queue_item_t   items[NXT_APP_QUEUE_SIZE];
@@ -42,7 +42,7 @@ nxt_app_queue_init(nxt_app_queue_t volatile *q)
         nxt_app_nncq_enqueue(&q->free_items, i);
     }
 
-    q->nitems = 0;
+    q->notified = 0;
 }
 
 
@@ -50,6 +50,7 @@ nxt_inline nxt_int_t
 nxt_app_queue_send(nxt_app_queue_t volatile *q, const void *p,
     uint8_t size, uint32_t tracking, int *notify, uint32_t *cookie)
 {
+    int                    n;
     nxt_app_queue_item_t   *qi;
     nxt_app_nncq_atomic_t  i;
 
@@ -67,13 +68,20 @@ nxt_app_queue_send(nxt_app_queue_t volatile *q, const void *p,
 
     nxt_app_nncq_enqueue(&q->queue, i);
 
-    i = nxt_atomic_fetch_add(&q->nitems, 1);
+    n = nxt_atomic_cmp_set(&q->notified, 0, 1);
 
     if (notify != NULL) {
-        *notify = (i == 0);
+        *notify = n;
     }
 
     return NXT_OK;
+}
+
+
+nxt_inline void
+nxt_app_queue_notification_received(nxt_app_queue_t volatile *q)
+{
+    q->notified = 0;
 }
 
 
@@ -109,8 +117,6 @@ nxt_app_queue_recv(nxt_app_queue_t volatile *q, void *p, uint32_t *cookie)
     *cookie = i;
 
     nxt_app_nncq_enqueue(&q->free_items, i);
-
-    nxt_atomic_fetch_add(&q->nitems, -1);
 
     return res;
 }

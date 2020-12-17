@@ -41,6 +41,13 @@ the router process could crash with multithreaded applications under high load.
 </para>
 </change>
 
+<change type="bugfix">
+<para>
+applications could stop processing new requests under high load; the bug had
+appeared in 1.19.0.
+</para>
+</change>
+
 </changes>
 
 
