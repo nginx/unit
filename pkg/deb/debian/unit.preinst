@@ -17,6 +17,7 @@ Online documentation is available at https://unit.nginx.org/
 ----------------------------------------------------------------------
 BANNER
         ;;
+
     upgrade)
         ;;
 

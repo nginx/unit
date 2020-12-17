@@ -149,6 +149,8 @@ CONFIGURE_ARGS=\
 	--pid=/var/run/unit/unit.pid \
 	--log=/var/log/unit/unit.log \
 	--tmp=/var/tmp \
+	--user=unit \
+	--group=unit \
 	--tests \
 	--openssl
 

@@ -145,6 +145,10 @@ cat /dev/null > debugsourcefiles.list
 
 %post
 if [ $1 -eq 1 ]; then
+    getent group unit >/dev/null || groupadd -r unit
+    getent passwd unit >/dev/null || \
+        useradd -r -g unit -s /sbin/nologin \
+        -d /nonexistent -c "unit user" unit
     /usr/bin/systemctl preset unit.service >/dev/null 2>&1 ||:
     cat <<BANNER
 ----------------------------------------------------------------------
@@ -171,6 +175,21 @@ fi
 if [ $1 -ge 1 ]; then
     /usr/bin/systemctl try-restart unit.service >/dev/null 2>&1 ||:
 fi
+
+%triggerpostun -- unit < 1.22.0
+cat <<BANNER
+----------------------------------------------------------------------
+
+WARNING:
+
+Since version 1.22.0, Unit's non-privileged processes run as unit:unit by
+default.  Review your system permissions and Unit configuration so apps and
+routes that relied on these processes running as nobody:nogroup stay working.
+
+More info: https://unit.nginx.org/installation/#official-packages
+
+----------------------------------------------------------------------
+BANNER
 
 %files
 %defattr(-,root,root,-)
