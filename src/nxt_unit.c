@@ -3606,7 +3606,10 @@ nxt_unit_wait_shm_ack(nxt_unit_ctx_t *ctx)
             return NXT_UNIT_ERROR;
         }
 
-        res = nxt_unit_ctx_port_recv(ctx, ctx_impl->read_port, rbuf);
+        do {
+            res = nxt_unit_ctx_port_recv(ctx, ctx_impl->read_port, rbuf);
+        } while (res == NXT_UNIT_AGAIN);
+
         if (res == NXT_UNIT_ERROR) {
             nxt_unit_read_buf_release(ctx, rbuf);
 
