@@ -24,7 +24,7 @@ RUN set -x \
 # work-around debian bug 863199
 	&& mkdir -p /usr/share/man/man1 \
 	&& dpkgArch="$(dpkg --print-architecture)" \
-	&& unitPackages="unit=${UNIT_VERSION} unit-go=${UNIT_VERSION} gcc" \
+	&& unitPackages="unit=${UNIT_VERSION} unit-go=${UNIT_VERSION} gcc libc6-dev" \
 	&& case "$dpkgArch" in \
 		amd64|i386) \
 # arches officialy built by upstream
