@@ -69,6 +69,9 @@ def pytest_configure(config):
     option.architecture = platform.architecture()[0]
     option.system = platform.system()
 
+    option.cache_dir = tempfile.mkdtemp(prefix='unit-test-cache-')
+    public_dir(option.cache_dir)
+
     # set stdout to non-blocking
 
     if option.detailed or option.print_log:
@@ -434,3 +437,4 @@ def is_su(request):
 
 def pytest_sessionfinish(session):
     unit_stop()
+    shutil.rmtree(option.cache_dir)
