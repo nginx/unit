@@ -182,7 +182,7 @@ static nxt_conf_map_t  nxt_python_app_conf[] = {
 
     {
         nxt_string("path"),
-        NXT_CONF_MAP_STR,
+        NXT_CONF_MAP_PTR,
         offsetof(nxt_common_app_conf_t, u.python.path),
     },
 

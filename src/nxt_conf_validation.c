@@ -96,6 +96,10 @@ static nxt_int_t nxt_conf_vldt_return(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_proxy(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_python_path(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_python_path_element(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_python_protocol(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_threads(nxt_conf_validation_t *vldt,
@@ -491,7 +495,8 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_python_members[] = {
         .type       = NXT_CONF_VLDT_STRING,
     }, {
         .name       = nxt_string("path"),
-        .type       = NXT_CONF_VLDT_STRING,
+        .type       = NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
+        .validator  = nxt_conf_vldt_python_path,
     }, {
         .name       = nxt_string("module"),
         .type       = NXT_CONF_VLDT_STRING,
@@ -1373,6 +1378,34 @@ nxt_conf_vldt_proxy(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 
     return nxt_conf_vldt_error(vldt, "The \"proxy\" address is invalid \"%V\"",
                                &name);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_python_path(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data)
+{
+    if (nxt_conf_type(value) == NXT_CONF_ARRAY) {
+        return nxt_conf_vldt_array_iterator(vldt, value,
+                                            &nxt_conf_vldt_python_path_element);
+    }
+
+    /* NXT_CONF_STRING */
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_python_path_element(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value)
+{
+    if (nxt_conf_type(value) != NXT_CONF_STRING) {
+        return nxt_conf_vldt_error(vldt, "The \"path\" array must contain "
+                                   "only string values.");
+    }
+
+    return NXT_OK;
 }
 
 

@@ -9,6 +9,12 @@
          date="" time=""
          packager="Andrei Belov &lt;defan@nginx.com&gt;">
 
+<change type="feature">
+<para>
+ability to specify multiple directories in the "path" option of Python apps.
+</para>
+</change>
+
 <change type="bugfix">
 <para>
 invalid HTTP responses were generated for some unusual status codes.

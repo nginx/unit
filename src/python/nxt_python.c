@@ -24,6 +24,7 @@ typedef struct {
 
 static nxt_int_t nxt_python_start(nxt_task_t *task,
     nxt_process_data_t *data);
+static nxt_int_t nxt_python_set_path(nxt_task_t *task, nxt_conf_value_t *value);
 static int nxt_python_init_threads(nxt_python_app_conf_t *c);
 static int nxt_python_ready_handler(nxt_unit_ctx_t *ctx);
 static void *nxt_python_thread_func(void *main_ctx);
@@ -67,7 +68,7 @@ nxt_python_start(nxt_task_t *task, nxt_process_data_t *data)
     int                    rc;
     char                   *nxt_py_module;
     size_t                 len;
-    PyObject               *obj, *pypath, *module;
+    PyObject               *obj, *module;
     nxt_str_t              proto;
     const char             *callable;
     nxt_unit_ctx_t         *unit_ctx;
@@ -162,38 +163,18 @@ nxt_python_start(nxt_task_t *task, nxt_process_data_t *data)
     }
 
     nxt_py_stderr_flush = PyObject_GetAttrString(obj, "flush");
+
+    /* obj is a Borrowed reference. */
+    obj = NULL;
+
     if (nxt_slow_path(nxt_py_stderr_flush == NULL)) {
         nxt_alert(task, "Python failed to get \"flush\" attribute of "
                         "\"sys.stderr\" object");
         goto fail;
     }
 
-    /* obj is a Borrowed reference. */
-
-    if (c->path.length > 0) {
-        obj = PyString_FromStringAndSize((char *) c->path.start,
-                                         c->path.length);
-
-        if (nxt_slow_path(obj == NULL)) {
-            nxt_alert(task, "Python failed to create string object \"%V\"",
-                      &c->path);
-            goto fail;
-        }
-
-        pypath = PySys_GetObject((char *) "path");
-
-        if (nxt_slow_path(pypath == NULL)) {
-            nxt_alert(task, "Python failed to get \"sys.path\" list");
-            goto fail;
-        }
-
-        if (nxt_slow_path(PyList_Insert(pypath, 0, obj) != 0)) {
-            nxt_alert(task, "Python failed to insert \"%V\" into \"sys.path\"",
-                      &c->path);
-            goto fail;
-        }
-
-        Py_DECREF(obj);
+    if (nxt_slow_path(nxt_python_set_path(task, c->path) != NXT_OK)) {
+        goto fail;
     }
 
     obj = Py_BuildValue("[s]", "unit");
@@ -314,6 +295,74 @@ fail:
     nxt_python_atexit();
 
     return NXT_ERROR;
+}
+
+
+static nxt_int_t
+nxt_python_set_path(nxt_task_t *task, nxt_conf_value_t *value)
+{
+    int               ret;
+    PyObject          *path, *sys;
+    nxt_str_t         str;
+    nxt_uint_t        n;
+    nxt_conf_value_t  *array;
+
+    if (value == NULL) {
+        return NXT_OK;
+    }
+
+    sys = PySys_GetObject((char *) "path");
+    if (nxt_slow_path(sys == NULL)) {
+        nxt_alert(task, "Python failed to get \"sys.path\" list");
+        return NXT_ERROR;
+    }
+
+    /* sys is a Borrowed reference. */
+
+    if (nxt_conf_type(value) == NXT_CONF_STRING) {
+        n = 0;
+        goto value_is_string;
+    }
+
+    /* NXT_CONF_ARRAY */
+    array = value;
+
+    n = nxt_conf_array_elements_count(array);
+
+    while (n != 0) {
+        n--;
+
+        /*
+         * Insertion in front of existing paths starting from the last element
+         * to preserve original order while giving priority to the values
+         * specified in the "path" option.
+         */
+
+        value = nxt_conf_get_array_element(array, n);
+
+    value_is_string:
+
+        nxt_conf_get_string(value, &str);
+
+        path = PyString_FromStringAndSize((char *) str.start, str.length);
+        if (nxt_slow_path(path == NULL)) {
+            nxt_alert(task, "Python failed to create string object \"%V\"",
+                      &str);
+            return NXT_ERROR;
+        }
+
+        ret = PyList_Insert(sys, 0, path);
+
+        Py_DECREF(path);
+
+        if (nxt_slow_path(ret != 0)) {
+            nxt_alert(task, "Python failed to insert \"%V\" into \"sys.path\"",
+                      &str);
+            return NXT_ERROR;
+        }
+    }
+
+    return NXT_OK;
 }
 
 
