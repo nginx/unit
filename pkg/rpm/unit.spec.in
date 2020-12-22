@@ -144,11 +144,11 @@ cat /dev/null > debugsourcefiles.list
 %{__rm} -rf %{buildroot}
 
 %post
+getent group unit >/dev/null || groupadd -r unit
+getent passwd unit >/dev/null || \
+    useradd -r -g unit -s /sbin/nologin \
+    -d /nonexistent -c "unit user" unit
 if [ $1 -eq 1 ]; then
-    getent group unit >/dev/null || groupadd -r unit
-    getent passwd unit >/dev/null || \
-        useradd -r -g unit -s /sbin/nologin \
-        -d /nonexistent -c "unit user" unit
     /usr/bin/systemctl preset unit.service >/dev/null 2>&1 ||:
     cat <<BANNER
 ----------------------------------------------------------------------
