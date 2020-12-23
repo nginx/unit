@@ -317,7 +317,7 @@ test: unit modules
 		test -h debuild/unit-$(VERSION)/debian/build-unit/build/$${soname} || \
 		ln -fs `pwd`/$${so} debuild/unit-$(VERSION)/debian/build-unit/build/$${soname} ; \
 	done ; \
-	( cd debuild/unit-$(VERSION)/debian/build-unit && env python3 -m pytest $(PYTEST_ARGS) ) ; \
+	( cd debuild/unit-$(VERSION)/debian/build-unit && env python3 -m pytest --user=nobody $(PYTEST_ARGS) ) ; \
 	}
 
 test-debug: unit modules
@@ -328,7 +328,7 @@ test-debug: unit modules
 		test -h debuild/unit-$(VERSION)/debian/build-unit-debug/build/$${soname} || \
 		ln -fs `pwd`/$${so} debuild/unit-$(VERSION)/debian/build-unit-debug/build/$${soname} ; \
 	done ; \
-	( cd debuild/unit-$(VERSION)/debian/build-unit-debug && env python3 -m pytest $(PYTEST_ARGS) ) ; \
+	( cd debuild/unit-$(VERSION)/debian/build-unit-debug && env python3 -m pytest --user=nobody $(PYTEST_ARGS) ) ; \
 	}
 
 clean:
