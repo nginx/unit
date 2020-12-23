@@ -48,6 +48,11 @@ def pytest_addoption(parser):
         action="store_true",
         help="Run unsafe tests",
     )
+    parser.addoption(
+        "--user",
+        type=str,
+        help="Default user for non-privileged processes of unitd",
+    )
 
 
 unit_instance = {}
@@ -60,6 +65,7 @@ def pytest_configure(config):
     option.print_log = config.option.print_log
     option.save_log = config.option.save_log
     option.unsafe = config.option.unsafe
+    option.user = config.option.user
 
     option.generated_tests = {}
     option.current_dir = os.path.abspath(
@@ -283,26 +289,28 @@ def unit_run():
 
     os.mkdir(temp_dir + '/state')
 
+    unitd_args = [
+        unitd,
+        '--no-daemon',
+        '--modules',
+        build_dir,
+        '--state',
+        temp_dir + '/state',
+        '--pid',
+        temp_dir + '/unit.pid',
+        '--log',
+        temp_dir + '/unit.log',
+        '--control',
+        'unix:' + temp_dir + '/control.unit.sock',
+        '--tmp',
+        temp_dir,
+    ]
+
+    if option.user:
+        unitd_args.extend(['--user', option.user])
+
     with open(temp_dir + '/unit.log', 'w') as log:
-        unit_instance['process'] = subprocess.Popen(
-            [
-                unitd,
-                '--no-daemon',
-                '--modules',
-                build_dir,
-                '--state',
-                temp_dir + '/state',
-                '--pid',
-                temp_dir + '/unit.pid',
-                '--log',
-                temp_dir + '/unit.log',
-                '--control',
-                'unix:' + temp_dir + '/control.unit.sock',
-                '--tmp',
-                temp_dir,
-            ],
-            stderr=log,
-        )
+        unit_instance['process'] = subprocess.Popen(unitd_args, stderr=log)
 
     if not waitforfiles(temp_dir + '/control.unit.sock'):
         _print_log()
