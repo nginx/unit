@@ -2,9 +2,10 @@
 
 include ../../version
 
+DEFAULT_VERSION := $(NXT_VERSION)
 DEFAULT_RELEASE := 1
 
-VERSION ?= $(NXT_VERSION)
+VERSION ?= $(DEFAULT_VERSION)
 RELEASE ?= $(DEFAULT_RELEASE)
 
 ifeq ($(shell test `rpm --eval '0%{?rhel} -eq 6 -a 0%{?amzn} -eq 0'`; echo $$?), 0)

@@ -3,9 +3,10 @@
 include ../../version
 include ../shasum.mak
 
+DEFAULT_VERSION := $(NXT_VERSION)
 DEFAULT_RELEASE := 1
 
-VERSION ?= $(NXT_VERSION)
+VERSION ?= $(DEFAULT_VERSION)
 RELEASE ?= $(DEFAULT_RELEASE)
 CODENAME := buster
 
