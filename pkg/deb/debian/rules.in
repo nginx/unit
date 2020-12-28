@@ -10,6 +10,7 @@ DPKG_EXPORT_BUILDFLAGS = 1
 include /usr/share/dpkg/buildflags.mk
 
 DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
+CODENAME := $(shell lsb_release -cs)
 
 BUILDDIR_unit = $(CURDIR)/debian/build-unit
 BUILDDIR_unit_debug = $(CURDIR)/debian/build-unit-debug
@@ -96,7 +97,11 @@ install: build do.tests
 	dh_testroot
 	dh_prep
 	dh_installdirs
+ifeq ($(CODENAME), xenial)
+	dh_installinit
+else
 	dh_installsystemd
+endif
 	dh_installlogrotate
 	cd $(BUILDDIR_unit) && DESTDIR=$(INSTALLDIR) make install
 	cd $(BUILDDIR_unit) && DESTDIR=$(INSTALLDIR_dev) make libunit-install
