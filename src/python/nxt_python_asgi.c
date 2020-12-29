@@ -1131,11 +1131,12 @@ nxt_py_asgi_shm_ack_handler(nxt_unit_ctx_t *ctx)
 static PyObject *
 nxt_py_asgi_port_read(PyObject *self, PyObject *args)
 {
-    int              rc;
-    PyObject         *arg;
-    Py_ssize_t       n;
-    nxt_unit_ctx_t   *ctx;
-    nxt_unit_port_t  *port;
+    int                     rc;
+    PyObject                *arg0, *arg1, *res;
+    Py_ssize_t              n;
+    nxt_unit_ctx_t          *ctx;
+    nxt_unit_port_t         *port;
+    nxt_py_asgi_ctx_data_t  *ctx_data;
 
     n = PyTuple_GET_SIZE(args);
 
@@ -1147,29 +1148,43 @@ nxt_py_asgi_port_read(PyObject *self, PyObject *args)
         return PyErr_Format(PyExc_TypeError, "invalid number of arguments");
     }
 
-    arg = PyTuple_GET_ITEM(args, 0);
-    if (nxt_slow_path(arg == NULL || PyLong_Check(arg) == 0)) {
+    arg0 = PyTuple_GET_ITEM(args, 0);
+    if (nxt_slow_path(arg0 == NULL || PyLong_Check(arg0) == 0)) {
         return PyErr_Format(PyExc_TypeError,
                             "the first argument is not a long");
     }
 
-    ctx = PyLong_AsVoidPtr(arg);
+    ctx = PyLong_AsVoidPtr(arg0);
 
-    arg = PyTuple_GET_ITEM(args, 1);
-    if (nxt_slow_path(arg == NULL || PyLong_Check(arg) == 0)) {
+    arg1 = PyTuple_GET_ITEM(args, 1);
+    if (nxt_slow_path(arg1 == NULL || PyLong_Check(arg1) == 0)) {
         return PyErr_Format(PyExc_TypeError,
                             "the second argument is not a long");
     }
 
-    port = PyLong_AsVoidPtr(arg);
-
-    nxt_unit_debug(ctx, "asgi_port_read %p %p", ctx, port);
+    port = PyLong_AsVoidPtr(arg1);
 
     rc = nxt_unit_process_port_msg(ctx, port);
+
+    nxt_unit_debug(ctx, "asgi_port_read(%p,%p): %d", ctx, port, rc);
 
     if (nxt_slow_path(rc == NXT_UNIT_ERROR)) {
         return PyErr_Format(PyExc_RuntimeError,
                             "error processing port %d message", port->id.id);
+    }
+
+    if (rc == NXT_UNIT_OK) {
+        ctx_data = ctx->data;
+
+        res = PyObject_CallFunctionObjArgs(ctx_data->loop_call_soon,
+                                           nxt_py_port_read,
+                                           arg0, arg1, NULL);
+        if (nxt_slow_path(res == NULL)) {
+            nxt_unit_alert(ctx, "Python failed to call 'loop.call_soon'");
+            nxt_python_print_exception();
+        }
+
+        Py_XDECREF(res);
     }
 
     Py_RETURN_NONE;
