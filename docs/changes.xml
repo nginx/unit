@@ -37,6 +37,13 @@ ability to specify multiple directories in the "path" option of Python apps.
 </para>
 </change>
 
+<change type="feature">
+<para>
+ServerRequest and ServerResponse objects of Node.js module are now compliant
+to Stream API.
+</para>
+</change>
+
 <change type="bugfix">
 <para>
 invalid HTTP responses were generated for some unusual status codes.

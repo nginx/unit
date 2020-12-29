@@ -222,22 +222,6 @@ class TestNodeApplication(TestApplicationNode):
         assert 'X-Header' not in headers, 'insensitive'
         assert 'X-header' not in headers, 'insensitive 2'
 
-    def test_node_application_promise_handler(self, temp_dir):
-        self.load('promise_handler')
-
-        assert (
-            self.post(
-                headers={
-                    'Host': 'localhost',
-                    'Content-Type': 'text/html',
-                    'Connection': 'close',
-                },
-                body='callback',
-            )['status']
-            == 200
-        ), 'promise handler request'
-        assert waitforfiles(temp_dir + '/node/callback'), 'promise handler'
-
     def test_node_application_promise_handler_write_after_end(self):
         self.load('promise_handler')
 
@@ -269,35 +253,6 @@ class TestNodeApplication(TestApplicationNode):
             == 200
         ), 'promise end request'
         assert waitforfiles(temp_dir + '/node/callback'), 'promise end'
-
-    def test_node_application_promise_multiple_calls(self, temp_dir):
-        self.load('promise_handler')
-
-        self.post(
-            headers={
-                'Host': 'localhost',
-                'Content-Type': 'text/html',
-                'Connection': 'close',
-            },
-            body='callback1',
-        )
-
-        assert waitforfiles(
-            temp_dir + '/node/callback1'
-        ), 'promise first call'
-
-        self.post(
-            headers={
-                'Host': 'localhost',
-                'Content-Type': 'text/html',
-                'Connection': 'close',
-            },
-            body='callback2',
-        )
-
-        assert waitforfiles(
-            temp_dir + '/node/callback2'
-        ), 'promise second call'
 
     @pytest.mark.skip('not yet')
     def test_node_application_header_name_valid(self):

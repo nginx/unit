@@ -27,6 +27,7 @@ struct port_data_t {
 
 struct req_data_t {
     napi_ref  sock_ref;
+    napi_ref  req_ref;
     napi_ref  resp_ref;
     napi_ref  conn_ref;
 };
@@ -65,6 +66,7 @@ Unit::init(napi_env env, napi_value exports)
         constructor_ = napi.create_reference(ctor);
 
         napi.set_named_property(exports, "Unit", ctor);
+        napi.set_named_property(exports, "request_read", request_read);
         napi.set_named_property(exports, "response_send_headers",
                                 response_send_headers);
         napi.set_named_property(exports, "response_write", response_write);
@@ -206,7 +208,7 @@ Unit::request_handler(nxt_unit_request_info_t *req)
         server_obj = get_server_object();
 
         socket = create_socket(server_obj, req);
-        request = create_request(server_obj, socket);
+        request = create_request(server_obj, socket, req);
         response = create_response(server_obj, request, req);
 
         create_headers(req, request);
@@ -301,6 +303,7 @@ Unit::close_handler(nxt_unit_request_info_t *req)
                       nxt_napi::create(0));
 
         remove_wrap(req_data->sock_ref);
+        remove_wrap(req_data->req_ref);
         remove_wrap(req_data->resp_ref);
         remove_wrap(req_data->conn_ref);
 
@@ -488,9 +491,8 @@ Unit::get_server_object()
 void
 Unit::create_headers(nxt_unit_request_info_t *req, napi_value request)
 {
-    void                *data;
     uint32_t            i;
-    napi_value          headers, raw_headers, buffer;
+    napi_value          headers, raw_headers;
     napi_status         status;
     nxt_unit_request_t  *r;
 
@@ -515,11 +517,6 @@ Unit::create_headers(nxt_unit_request_info_t *req, napi_value request)
     set_named_property(request, "url", r->target, r->target_length);
 
     set_named_property(request, "_websocket_handshake", r->websocket_handshake);
-
-    buffer = create_buffer((size_t) req->content_length, &data);
-    nxt_unit_request_read(req, data, req->content_length);
-
-    set_named_property(request, "_data", buffer);
 }
 
 
@@ -577,13 +574,20 @@ Unit::create_socket(napi_value server_obj, nxt_unit_request_info_t *req)
 
 
 napi_value
-Unit::create_request(napi_value server_obj, napi_value socket)
+Unit::create_request(napi_value server_obj, napi_value socket,
+    nxt_unit_request_info_t *req)
 {
-    napi_value  constructor;
+    napi_value  constructor, res;
+    req_data_t  *req_data;
 
     constructor = get_named_property(server_obj, "ServerRequest");
 
-    return new_instance(constructor, server_obj, socket);
+    res = new_instance(constructor, server_obj, socket);
+
+    req_data = (req_data_t *) req->data;
+    req_data->req_ref = wrap(res, req, req_destroy);
+
+    return res;
 }
 
 
@@ -639,6 +643,47 @@ Unit::create_websocket_frame(napi_value server_obj,
     set_named_property(res, "binaryPayload", buffer);
 
     return res;
+}
+
+
+napi_value
+Unit::request_read(napi_env env, napi_callback_info info)
+{
+    void                     *data;
+    uint32_t                 wm;
+    nxt_napi                 napi(env);
+    napi_value               this_arg, argv, buffer;
+    nxt_unit_request_info_t  *req;
+
+    try {
+        this_arg = napi.get_cb_info(info, argv);
+
+        try {
+            req = napi.get_request_info(this_arg);
+
+        } catch (exception &e) {
+            return nullptr;
+        }
+
+        if (req->content_length == 0) {
+            return nullptr;
+        }
+
+        wm = napi.get_value_uint32(argv);
+
+        if (wm > req->content_length) {
+            wm = req->content_length;
+        }
+
+        buffer = napi.create_buffer((size_t) wm, &data);
+        nxt_unit_request_read(req, data, wm);
+
+    } catch (exception &e) {
+        napi.throw_error(e);
+        return nullptr;
+    }
+
+    return buffer;
 }
 
 
@@ -884,6 +929,7 @@ Unit::response_end(napi_env env, napi_callback_info info)
         req_data = (req_data_t *) req->data;
 
         napi.remove_wrap(req_data->sock_ref);
+        napi.remove_wrap(req_data->req_ref);
         napi.remove_wrap(req_data->resp_ref);
         napi.remove_wrap(req_data->conn_ref);
 
@@ -1008,6 +1054,13 @@ void
 Unit::sock_destroy(napi_env env, void *r, void *finalize_hint)
 {
     nxt_unit_req_debug(NULL, "sock_destroy: %p", r);
+}
+
+
+void
+Unit::req_destroy(napi_env env, void *r, void *finalize_hint)
+{
+    nxt_unit_req_debug(NULL, "req_destroy: %p", r);
 }
 
 

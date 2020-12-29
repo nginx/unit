@@ -11,6 +11,7 @@ const util = require('util');
 const unit_lib = require('./build/Release/unit-http');
 const Socket = require('./socket');
 const WebSocketFrame = require('./websocket_frame');
+const Readable = require('stream').Readable;
 
 
 function ServerResponse(req) {
@@ -23,6 +24,7 @@ function ServerResponse(req) {
     req._response = this;
     this.socket = req.socket;
     this.connection = req.connection;
+    this.writable = true;
 }
 util.inherits(ServerResponse, EventEmitter);
 
@@ -268,6 +270,7 @@ ServerResponse.prototype._writeBody = function(chunk, encoding, callback) {
         res = this._write(chunk, 0, contentLength);
         if (res < contentLength) {
             this.socket.writable = false;
+            this.writable = false;
 
             o = new BufferedOutput(this, res, chunk, encoding, callback);
             this.server._output.push(o);
@@ -328,6 +331,8 @@ ServerResponse.prototype.end = function end(chunk, encoding, callback) {
             if (typeof callback === 'function') {
                 callback();
             }
+
+            this.emit("finish");
         });
 
         this.finished = true;
@@ -337,15 +342,14 @@ ServerResponse.prototype.end = function end(chunk, encoding, callback) {
 };
 
 function ServerRequest(server, socket) {
-    EventEmitter.call(this);
+    Readable.call(this);
 
     this.server = server;
     this.socket = socket;
     this.connection = socket;
+    this._pushed_eofchunk = false;
 }
-util.inherits(ServerRequest, EventEmitter);
-
-ServerRequest.prototype.unpipe = undefined;
+util.inherits(ServerRequest, Readable);
 
 ServerRequest.prototype.setTimeout = function setTimeout(msecs, callback) {
     this.timeout = msecs;
@@ -377,35 +381,21 @@ ServerRequest.prototype.STATUS_CODES = function STATUS_CODES() {
     return http.STATUS_CODES;
 };
 
-ServerRequest.prototype.listeners = function listeners() {
-    return [];
-};
+ServerRequest.prototype._request_read = unit_lib.request_read;
 
-ServerRequest.prototype.resume = function resume() {
-    return [];
-};
+ServerRequest.prototype._read = function _read(n) {
+    const b = this._request_read(n);
 
-/*
- * The "on" method is overridden to defer reading data until user code is
- * ready, that is (ev === "data").  This can occur after req.emit("end") is
- * executed, since the user code can be scheduled asynchronously by Promises
- * and so on.  Passing the data is postponed by process.nextTick() until
- * the "on" method caller completes.
- */
-ServerRequest.prototype.on = function on(ev, fn) {
-    Server.prototype.on.call(this, ev, fn);
+    if (b != null) {
+        this.push(b);
+    }
 
-    if (ev === "data") {
-        process.nextTick(function () {
-            if (this._data.length !== 0) {
-                this.emit("data", this._data);
-            }
-
-        }.bind(this));
+    if (!this._pushed_eofchunk && (b == null || b.length < n)) {
+        this._pushed_eofchunk = true;
+        this.push(null);
     }
 };
 
-ServerRequest.prototype.addListener = ServerRequest.prototype.on;
 
 function Server(requestListener) {
     EventEmitter.call(this);
@@ -472,11 +462,6 @@ Server.prototype.emit_request = function (req, res) {
     } else {
         this.emit("request", req, res);
     }
-
-    process.nextTick(() => {
-        req.emit("finish");
-        req.emit("end");
-    });
 };
 
 Server.prototype.emit_close = function () {
@@ -523,6 +508,7 @@ Server.prototype.emit_drain = function () {
         }
 
         resp.socket.writable = true;
+        resp.writable = true;
 
         process.nextTick(() => {
             resp.emit("drain");
