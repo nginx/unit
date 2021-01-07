@@ -342,14 +342,6 @@ class TestGoIsolation(TestApplicationGo):
                 'pid': True
             }
 
-        self.load('ns_inspect', isolation=isolation)
-
-        obj = self.getjson(url='/?mounts=true')['body']
-
-        assert (
-            "/ /tmp" in obj['Mounts'] and "tmpfs" in obj['Mounts']
-        ), 'app has /tmp mounted on /'
-
         isolation['automount'] = {
             'tmpfs': False
         }
@@ -361,3 +353,15 @@ class TestGoIsolation(TestApplicationGo):
         assert (
             "/ /tmp" not in obj['Mounts'] and "tmpfs" not in obj['Mounts']
         ), 'app has no /tmp mounted'
+
+        isolation['automount'] = {
+            'tmpfs': True
+        }
+
+        self.load('ns_inspect', isolation=isolation)
+
+        obj = self.getjson(url='/?mounts=true')['body']
+
+        assert (
+            "/ /tmp" in obj['Mounts'] and "tmpfs" in obj['Mounts']
+        ), 'app has /tmp mounted on /'
