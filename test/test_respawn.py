@@ -21,17 +21,17 @@ class TestRespawn(TestApplicationPython):
             '1', 'applications/' + self.app_name + '/processes'
         )
 
-    def pid_by_name(self, name):
-        output = subprocess.check_output(['ps', 'ax']).decode()
-        m = re.search(r'\s*(\d+).*' + name, output)
-        return m if m is None else m.group(1)
+    def pid_by_name(self, name, ppid):
+        output = subprocess.check_output(['ps', 'ax', '-O', 'ppid']).decode()
+        m = re.search(r'\s*(\d+)\s*' + str(ppid) + r'.*' + name, output)
+        return None if m is None else m.group(1)
 
     def kill_pids(self, *pids):
         subprocess.call(['kill', '-9'] + list(pids))
 
-    def wait_for_process(self, process):
+    def wait_for_process(self, process, unit_pid):
         for i in range(50):
-            found = self.pid_by_name(process)
+            found = self.pid_by_name(process, unit_pid)
 
             if found is not None:
                 break
@@ -40,7 +40,10 @@ class TestRespawn(TestApplicationPython):
 
         return found
 
-    def smoke_test(self):
+    def find_proc(self, name, ppid, ps_output):
+        return re.findall(str(ppid) + r'.*' + name, ps_output)
+
+    def smoke_test(self, unit_pid):
         for _ in range(5):
             assert 'success' in self.conf(
                 '1', 'applications/' + self.app_name + '/processes'
@@ -50,39 +53,41 @@ class TestRespawn(TestApplicationPython):
         # Check if the only one router, controller,
         # and application processes running.
 
-        output = subprocess.check_output(['ps', 'ax']).decode()
-        assert len(re.findall(self.PATTERN_ROUTER, output)) == 1
-        assert len(re.findall(self.PATTERN_CONTROLLER, output)) == 1
-        assert len(re.findall(self.app_name, output)) == 1
+        out = subprocess.check_output(['ps', 'ax', '-O', 'ppid']).decode()
+        assert len(self.find_proc(self.PATTERN_ROUTER, unit_pid, out)) == 1
+        assert len(self.find_proc(self.PATTERN_CONTROLLER, unit_pid, out)) == 1
+        assert len(self.find_proc(self.app_name, unit_pid, out)) == 1
 
-    def test_respawn_router(self, skip_alert):
-        pid = self.pid_by_name(self.PATTERN_ROUTER)
-
-        self.kill_pids(pid)
-        skip_alert(r'process %s exited on signal 9' % pid)
-
-        assert self.wait_for_process(self.PATTERN_ROUTER) is not None
-
-        self.smoke_test()
-
-    def test_respawn_controller(self, skip_alert):
-        pid = self.pid_by_name(self.PATTERN_CONTROLLER)
+    def test_respawn_router(self, skip_alert, unit_pid):
+        pid = self.pid_by_name(self.PATTERN_ROUTER, unit_pid)
 
         self.kill_pids(pid)
         skip_alert(r'process %s exited on signal 9' % pid)
 
-        assert self.wait_for_process(self.PATTERN_CONTROLLER) is not None
+        assert self.wait_for_process(self.PATTERN_ROUTER, unit_pid) is not None
+
+        self.smoke_test(unit_pid)
+
+    def test_respawn_controller(self, skip_alert, unit_pid):
+        pid = self.pid_by_name(self.PATTERN_CONTROLLER, unit_pid)
+
+        self.kill_pids(pid)
+        skip_alert(r'process %s exited on signal 9' % pid)
+
+        assert self.wait_for_process(
+            self.PATTERN_CONTROLLER, unit_pid
+        ) is not None
 
         assert self.get()['status'] == 200
 
-        self.smoke_test()
+        self.smoke_test(unit_pid)
 
-    def test_respawn_application(self, skip_alert):
-        pid = self.pid_by_name(self.app_name)
+    def test_respawn_application(self, skip_alert, unit_pid):
+        pid = self.pid_by_name(self.app_name, unit_pid)
 
         self.kill_pids(pid)
         skip_alert(r'process %s exited on signal 9' % pid)
 
-        assert self.wait_for_process(self.app_name) is not None
+        assert self.wait_for_process(self.app_name, unit_pid) is not None
 
-        self.smoke_test()
+        self.smoke_test(unit_pid)

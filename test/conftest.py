@@ -443,6 +443,10 @@ def is_unsafe(request):
 def is_su(request):
     return os.geteuid() == 0
 
+@pytest.fixture
+def unit_pid(request):
+    return unit_instance['process'].pid
+
 def pytest_sessionfinish(session):
     unit_stop()
     shutil.rmtree(option.cache_dir)
