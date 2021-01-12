@@ -2,10 +2,10 @@ import os
 import re
 import shutil
 import time
+from subprocess import call
 
 import pytest
 
-from conftest import unit_stop
 from unit.applications.lang.php import TestApplicationPHP
 from unit.option import option
 
@@ -20,7 +20,7 @@ class TestPHPApplication(TestApplicationPHP):
 
     def set_opcache(self, app, val):
         assert 'success' in self.conf(
-            {"admin": {"opcache.enable": val, "opcache.enable_cli": val,},},
+            {"admin": {"opcache.enable": val, "opcache.enable_cli": val}},
             'applications/' + app + '/options',
         )
 
@@ -99,7 +99,10 @@ class TestPHPApplication(TestApplicationPHP):
 
         assert self.get()['body'] == '0123'
 
-        unit_stop()
+        with open(temp_dir + '/unit.pid', 'r') as f:
+            pid = f.read().rstrip()
+
+        call(['kill', '-s', 'USR1', pid])
 
         with open(temp_dir + '/unit.log', 'r', errors='ignore') as f:
             errs = re.findall(r'Error in fastcgi_finish_request', f.read())
@@ -113,7 +116,10 @@ class TestPHPApplication(TestApplicationPHP):
         assert resp['status'] == 200
         assert resp['body'] == ''
 
-        unit_stop()
+        with open(temp_dir + '/unit.pid', 'r') as f:
+            pid = f.read().rstrip()
+
+        call(['kill', '-s', 'USR1', pid])
 
         with open(temp_dir + '/unit.log', 'r', errors='ignore') as f:
             errs = re.findall(r'Error in fastcgi_finish_request', f.read())
@@ -537,8 +543,6 @@ class TestPHPApplication(TestApplicationPHP):
         time.sleep(1)
 
         assert self.get()['status'] == 200, 'status 2'
-
-        unit_stop()
 
         pattern = r'\d{4}\/\d\d\/\d\d\s\d\d:.+\[notice\].+Error in application'
 

@@ -5,7 +5,6 @@ import time
 
 import pytest
 
-from conftest import unit_stop
 from unit.applications.lang.python import TestApplicationPython
 from unit.option import option
 
@@ -156,8 +155,6 @@ custom-header: BLAH
         assert resp['body'] == '0123456789', 'ctx iter body'
 
         self.conf({"listeners": {}, "applications": {}})
-
-        unit_stop()
 
         assert (
             self.wait_for_record(r'RuntimeError') is not None
@@ -337,8 +334,6 @@ Connection: close
 
         self.conf({"listeners": {}, "applications": {}})
 
-        unit_stop()
-
         assert self.wait_for_record(r'At exit called\.') is not None, 'atexit'
 
     def test_python_process_switch(self):
@@ -496,8 +491,6 @@ last line: 987654321
 
         self.get()
 
-        unit_stop()
-
         assert (
             self.wait_for_record(r'\[error\].+Error in application\.')
             is not None
@@ -537,16 +530,12 @@ last line: 987654321
 
         self.get()
 
-        unit_stop()
-
         assert self.wait_for_record(r'Close called\.') is not None, 'close'
 
     def test_python_application_close_error(self):
         self.load('close_error')
 
         self.get()
-
-        unit_stop()
 
         assert (
             self.wait_for_record(r'Close called\.') is not None
@@ -556,8 +545,6 @@ last line: 987654321
         self.load('not_iterable')
 
         self.get()
-
-        unit_stop()
 
         assert (
             self.wait_for_record(
