@@ -88,3 +88,26 @@ class TestPythonIsolation(TestApplicationPython):
         self.conf({"listeners": {}, "applications": {}})
 
         assert waitforunmount(temp_dir), 'language_deps unmount'
+
+    def test_python_isolation_procfs(self, is_su, temp_dir):
+        isolation_features = option.available['features']['isolation'].keys()
+
+        if not is_su:
+            pytest.skip('requires root')
+
+        isolation = {'rootfs': temp_dir, 'automount': {'procfs': False}}
+
+        self.load('ns_inspect', isolation=isolation)
+
+        assert (
+            self.getjson(url='/?path=/proc/self')['body']['FileExists']
+            == False
+        ), 'no /proc/self'
+
+        isolation['automount']['procfs'] = True
+
+        self.load('ns_inspect', isolation=isolation)
+
+        assert (
+            self.getjson(url='/?path=/proc/self')['body']['FileExists'] == True
+        ), '/proc/self'
