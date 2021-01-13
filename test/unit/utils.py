@@ -1,5 +1,6 @@
 import os
 import socket
+import subprocess
 import time
 
 import pytest
@@ -47,6 +48,37 @@ def waitforsocket(port):
                 raise
 
     pytest.fail('Can\'t connect to the 127.0.0.1:' + port)
+
+
+def findmnt():
+    try:
+        out = subprocess.check_output(
+            ['findmnt', '--raw'], stderr=subprocess.STDOUT
+        ).decode()
+    except FileNotFoundError:
+        pytest.skip('requires findmnt')
+
+    return out
+
+
+def waitformount(template, wait=50):
+    for i in range(wait):
+        if findmnt().find(template) != -1:
+            return True
+
+        time.sleep(0.1)
+
+    return False
+
+
+def waitforunmount(template, wait=50):
+    for i in range(wait):
+        if findmnt().find(template) == -1:
+            return True
+
+        time.sleep(0.1)
+
+    return False
 
 
 def getns(nstype):
