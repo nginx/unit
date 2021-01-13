@@ -1,8 +1,7 @@
+import os
 import shutil
 
-import os
 import pytest
-
 from unit.applications.lang.ruby import TestApplicationRuby
 from unit.option import option
 

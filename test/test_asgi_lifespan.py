@@ -2,7 +2,6 @@ import os
 from distutils.version import LooseVersion
 
 import pytest
-
 from conftest import unit_stop
 from unit.applications.lang.python import TestApplicationPython
 from unit.option import option

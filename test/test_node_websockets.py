@@ -2,7 +2,6 @@ import struct
 import time
 
 import pytest
-
 from unit.applications.lang.node import TestApplicationNode
 from unit.applications.websockets import TestApplicationWebsocket
 from unit.option import option

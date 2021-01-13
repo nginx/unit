@@ -4,7 +4,6 @@ import re
 import time
 
 import pytest
-
 from unit.applications.lang.python import TestApplicationPython
 from unit.option import option
 

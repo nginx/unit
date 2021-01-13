@@ -1,10 +1,8 @@
 import grp
 import os
 import pwd
-import shutil
 
 import pytest
-
 from unit.applications.lang.go import TestApplicationGo
 from unit.option import option
 from unit.utils import getns

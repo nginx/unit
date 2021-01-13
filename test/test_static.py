@@ -2,7 +2,6 @@ import os
 import socket
 
 import pytest
-
 from unit.applications.proto import TestApplicationProto
 from unit.option import option
 from unit.utils import waitforfiles

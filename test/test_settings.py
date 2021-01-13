@@ -3,7 +3,6 @@ import socket
 import time
 
 import pytest
-
 from unit.applications.lang.python import TestApplicationPython
 
 
@@ -297,4 +296,3 @@ Connection: close
         assert bool(resp), 'response from application 4'
         assert resp['status'] == 200, 'status 4'
         assert resp['body'] == body, 'body 4'
-

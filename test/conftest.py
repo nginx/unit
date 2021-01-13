@@ -4,7 +4,6 @@ import platform
 import re
 import shutil
 import signal
-import socket
 import stat
 import subprocess
 import sys
@@ -13,11 +12,10 @@ import time
 from multiprocessing import Process
 
 import pytest
-
 from unit.check.go import check_go
+from unit.check.isolation import check_isolation
 from unit.check.node import check_node
 from unit.check.tls import check_openssl
-from unit.check.isolation import check_isolation
 from unit.option import option
 from unit.utils import public_dir
 from unit.utils import waitforfiles
