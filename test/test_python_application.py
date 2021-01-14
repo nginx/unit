@@ -153,7 +153,7 @@ custom-header: BLAH
         assert resp['status'] == 200, 'ctx iter status'
         assert resp['body'] == '0123456789', 'ctx iter body'
 
-        self.conf({"listeners": {}, "applications": {}})
+        assert 'success' in self.conf({"listeners": {}, "applications": {}})
 
         assert (
             self.wait_for_record(r'RuntimeError') is not None
@@ -331,7 +331,7 @@ Connection: close
 
         self.get()
 
-        self.conf({"listeners": {}, "applications": {}})
+        assert 'success' in self.conf({"listeners": {}, "applications": {}})
 
         assert self.wait_for_record(r'At exit called\.') is not None, 'atexit'
 

@@ -197,6 +197,6 @@ class TestPythonProcman(TestApplicationPython):
         ), 'max zero'
 
     def stop_all(self):
-        self.conf({"listeners": {}, "applications": {}})
+        assert 'success' in self.conf({"listeners": {}, "applications": {}})
 
         assert len(self.pids_for_process()) == 0, 'stop all'

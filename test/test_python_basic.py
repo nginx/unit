@@ -58,7 +58,7 @@ class TestPythonBasic(TestControl):
         assert self.conf_get('applications/app/processes/spare') == 0, 'spare'
 
     def test_python_get_listeners(self):
-        self.conf(self.conf_basic)
+        assert 'success' in self.conf(self.conf_basic)
 
         assert self.conf_get()['listeners'] == {
             "*:7080": {"pass": "applications/app"}
@@ -73,16 +73,20 @@ class TestPythonBasic(TestControl):
         }, 'listeners prefix 2'
 
     def test_python_change_listener(self):
-        self.conf(self.conf_basic)
-        self.conf({"*:7081": {"pass": "applications/app"}}, 'listeners')
+        assert 'success' in self.conf(self.conf_basic)
+        assert 'success' in self.conf(
+            {"*:7081": {"pass": "applications/app"}}, 'listeners'
+        )
 
         assert self.conf_get('listeners') == {
             "*:7081": {"pass": "applications/app"}
         }, 'change listener'
 
     def test_python_add_listener(self):
-        self.conf(self.conf_basic)
-        self.conf({"pass": "applications/app"}, 'listeners/*:7082')
+        assert 'success' in self.conf(self.conf_basic)
+        assert 'success' in self.conf(
+            {"pass": "applications/app"}, 'listeners/*:7082'
+        )
 
         assert self.conf_get('listeners') == {
             "*:7080": {"pass": "applications/app"},
@@ -90,20 +94,20 @@ class TestPythonBasic(TestControl):
         }, 'add listener'
 
     def test_python_change_application(self):
-        self.conf(self.conf_basic)
+        assert 'success' in self.conf(self.conf_basic)
 
-        self.conf('30', 'applications/app/processes/max')
+        assert 'success' in self.conf('30', 'applications/app/processes/max')
         assert (
             self.conf_get('applications/app/processes/max') == 30
         ), 'change application max'
 
-        self.conf('"/www"', 'applications/app/path')
+        assert 'success' in self.conf('"/www"', 'applications/app/path')
         assert (
             self.conf_get('applications/app/path') == '/www'
         ), 'change application path'
 
     def test_python_delete(self):
-        self.conf(self.conf_basic)
+        assert 'success' in self.conf(self.conf_basic)
 
         assert 'error' in self.conf_delete('applications/app')
         assert 'success' in self.conf_delete('listeners/*:7080')
@@ -111,7 +115,7 @@ class TestPythonBasic(TestControl):
         assert 'error' in self.conf_delete('applications/app')
 
     def test_python_delete_blocks(self):
-        self.conf(self.conf_basic)
+        assert 'success' in self.conf(self.conf_basic)
 
         assert 'success' in self.conf_delete('listeners')
         assert 'success' in self.conf_delete('applications')

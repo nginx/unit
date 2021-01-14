@@ -19,7 +19,7 @@ class TestTLS(TestApplicationTLS):
         return self.date_to_sec_epoch(date, '%b %d %H:%M:%S %Y %Z')
 
     def add_tls(self, application='empty', cert='default', port=7080):
-        self.conf(
+        assert 'success' in self.conf(
             {
                 "pass": "applications/" + application,
                 "tls": {"certificate": cert}
@@ -28,7 +28,7 @@ class TestTLS(TestApplicationTLS):
         )
 
     def remove_tls(self, application='empty', port=7080):
-        self.conf(
+        assert 'success' in self.conf(
             {"pass": "applications/" + application}, 'listeners/*:' + str(port)
         )
 
@@ -477,8 +477,10 @@ basicConstraints = critical,CA:TRUE"""
             read_timeout=1,
         )
 
-        self.conf({"pass": "applications/empty"}, 'listeners/*:7080')
-        self.conf_delete('/certificates/default')
+        assert 'success' in self.conf(
+            {"pass": "applications/empty"}, 'listeners/*:7080'
+        )
+        assert 'success' in self.conf_delete('/certificates/default')
 
         try:
             resp = self.get_ssl(
@@ -508,7 +510,7 @@ basicConstraints = critical,CA:TRUE"""
 
         self.certificate()
 
-        self.conf('1', 'applications/mirror/processes')
+        assert 'success' in self.conf('1', 'applications/mirror/processes')
 
         self.add_tls(application='mirror')
 

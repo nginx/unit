@@ -268,7 +268,7 @@ class TestPHPApplication(TestApplicationPHP):
 
         assert self.get()['headers']['X-Precision'] != '4', 'ini value default'
 
-        self.conf(
+        assert 'success' in self.conf(
             {"file": "ini/php.ini"}, 'applications/ini_precision/options'
         )
 
@@ -290,7 +290,7 @@ class TestPHPApplication(TestApplicationPHP):
     def test_php_application_ini_admin(self):
         self.load('ini_precision')
 
-        self.conf(
+        assert 'success' in self.conf(
             {"file": "php.ini", "admin": {"precision": "5"}},
             'applications/ini_precision/options',
         )
@@ -300,7 +300,7 @@ class TestPHPApplication(TestApplicationPHP):
     def test_php_application_ini_user(self):
         self.load('ini_precision')
 
-        self.conf(
+        assert 'success' in self.conf(
             {"file": "php.ini", "user": {"precision": "5"}},
             'applications/ini_precision/options',
         )
@@ -310,13 +310,13 @@ class TestPHPApplication(TestApplicationPHP):
     def test_php_application_ini_user_2(self):
         self.load('ini_precision')
 
-        self.conf(
+        assert 'success' in self.conf(
             {"file": "ini/php.ini"}, 'applications/ini_precision/options'
         )
 
         assert self.get()['headers']['X-Precision'] == '4', 'ini user file'
 
-        self.conf(
+        assert 'success' in self.conf(
             {"precision": "5"}, 'applications/ini_precision/options/user'
         )
 
@@ -325,7 +325,7 @@ class TestPHPApplication(TestApplicationPHP):
     def test_php_application_ini_set_admin(self):
         self.load('ini_precision')
 
-        self.conf(
+        assert 'success' in self.conf(
             {"admin": {"precision": "5"}}, 'applications/ini_precision/options'
         )
 
@@ -336,7 +336,7 @@ class TestPHPApplication(TestApplicationPHP):
     def test_php_application_ini_set_user(self):
         self.load('ini_precision')
 
-        self.conf(
+        assert 'success' in self.conf(
             {"user": {"precision": "5"}}, 'applications/ini_precision/options'
         )
 
@@ -347,7 +347,7 @@ class TestPHPApplication(TestApplicationPHP):
     def test_php_application_ini_repeat(self):
         self.load('ini_precision')
 
-        self.conf(
+        assert 'success' in self.conf(
             {"user": {"precision": "5"}}, 'applications/ini_precision/options'
         )
 
@@ -360,7 +360,7 @@ class TestPHPApplication(TestApplicationPHP):
 
         self.before_disable_functions()
 
-        self.conf(
+        assert 'success' in self.conf(
             {"admin": {"disable_functions": "exec"}},
             'applications/time_exec/options',
         )
@@ -375,7 +375,7 @@ class TestPHPApplication(TestApplicationPHP):
 
         self.before_disable_functions()
 
-        self.conf(
+        assert 'success' in self.conf(
             {"admin": {"disable_functions": "exec,time"}},
             'applications/time_exec/options',
         )
@@ -452,7 +452,7 @@ class TestPHPApplication(TestApplicationPHP):
 
         self.before_disable_functions()
 
-        self.conf(
+        assert 'success' in self.conf(
             {"admin": {"disable_functions": "exec time"}},
             'applications/time_exec/options',
         )
@@ -471,7 +471,7 @@ class TestPHPApplication(TestApplicationPHP):
 
         self.before_disable_functions()
 
-        self.conf(
+        assert 'success' in self.conf(
             {"user": {"disable_functions": "exec"}},
             'applications/time_exec/options',
         )
@@ -488,7 +488,7 @@ class TestPHPApplication(TestApplicationPHP):
 
         self.before_disable_functions()
 
-        self.conf(
+        assert 'success' in self.conf(
             {"admin": {"disable_functions": "blah"}},
             'applications/time_exec/options',
         )
@@ -509,7 +509,7 @@ class TestPHPApplication(TestApplicationPHP):
             r'012345', self.get()['body']
         ), 'disable_classes before'
 
-        self.conf(
+        assert 'success' in self.conf(
             {"admin": {"disable_classes": "DateTime"}},
             'applications/date_time/options',
         )
@@ -525,7 +525,7 @@ class TestPHPApplication(TestApplicationPHP):
             r'012345', self.get()['body']
         ), 'disable_classes before'
 
-        self.conf(
+        assert 'success' in self.conf(
             {"user": {"disable_classes": "DateTime"}},
             'applications/date_time/options',
         )

@@ -316,7 +316,7 @@ class TestRouting(TestApplicationProto):
         check_pass_error("%1", "%1")
 
     def test_routes_absent(self):
-        self.conf(
+        assert 'success' in self.conf(
             {
                 "listeners": {"*:7081": {"pass": "applications/empty"}},
                 "applications": {

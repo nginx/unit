@@ -149,7 +149,7 @@ class TestGoApplication(TestApplicationGo):
         arg2 = '--cc-opt=\'-O0 -DNXT_DEBUG_MEMORY=1 -fsanitize=address\''
         arg3 = '--debug'
 
-        self.conf(
+        assert 'success' in self.conf(
             '["' + arg1 + '", "' + arg2 + '", "' + arg3 + '"]',
             'applications/command_line_arguments/arguments',
         )
@@ -163,15 +163,15 @@ class TestGoApplication(TestApplicationGo):
 
         args_path = 'applications/command_line_arguments/arguments'
 
-        self.conf('["0", "a", "$", ""]', args_path)
+        assert 'success' in self.conf('["0", "a", "$", ""]', args_path)
 
         assert self.get()['body'] == '0,a,$,', 'arguments'
 
-        self.conf('["-1", "b", "%"]', args_path)
+        assert 'success' in self.conf('["-1", "b", "%"]', args_path)
 
         assert self.get()['body'] == '-1,b,%', 'arguments change'
 
-        self.conf('[]', args_path)
+        assert 'success' in self.conf('[]', args_path)
 
         assert (
             self.get()['headers']['Content-Length'] == '0'

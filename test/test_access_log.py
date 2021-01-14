@@ -90,7 +90,9 @@ Connection: close
     def test_access_log_ipv6(self):
         self.load('empty')
 
-        self.conf({"[::1]:7080": {"pass": "applications/empty"}}, 'listeners')
+        assert 'success' in self.conf(
+            {"[::1]:7080": {"pass": "applications/empty"}}, 'listeners'
+        )
 
         self.get(sock_type='ipv6')
 
@@ -106,7 +108,7 @@ Connection: close
 
         addr = option.temp_dir + '/sock'
 
-        self.conf(
+        assert 'success' in self.conf(
             {"unix:" + addr: {"pass": "applications/empty"}}, 'listeners'
         )
 
@@ -240,7 +242,7 @@ Connection: close
     def test_access_log_delete(self):
         self.load('empty')
 
-        self.conf_delete('access_log')
+        assert 'success' in self.conf_delete('access_log')
 
         self.get(url='/delete')
 
@@ -251,7 +253,9 @@ Connection: close
 
         self.get()
 
-        self.conf('"' + option.temp_dir + '/new.log"', 'access_log')
+        assert 'success' in self.conf(
+            '"' + option.temp_dir + '/new.log"', 'access_log'
+        )
 
         self.get()
 

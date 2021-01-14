@@ -217,7 +217,7 @@ class TestRubyApplication(TestApplicationRuby):
 
         self.get()
 
-        self.conf({"listeners": {}, "applications": {}})
+        assert 'success' in self.conf({"listeners": {}, "applications": {}})
 
         assert (
             self.wait_for_record(r'\[error\].+At exit called\.') is not None

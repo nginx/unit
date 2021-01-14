@@ -172,7 +172,9 @@ Content-Length: 10
             assert resp['status'] == 200, 'status'
             assert resp['body'] == payload, 'body'
 
-        self.conf({'http': {'max_body_size': 32 * 1024 * 1024}}, 'settings')
+        assert 'success' in self.conf(
+            {'http': {'max_body_size': 32 * 1024 * 1024}}, 'settings'
+        )
 
         payload = '0123456789abcdef' * 32 * 64 * 1024
         resp = self.post_http10(body=payload, read_buffer_size=1024 * 1024)
@@ -486,7 +488,7 @@ Content-Length: 10
             r'accept.*failed',
             r'new connections are not accepted',
         )
-        self.conf(
+        assert 'success' in self.conf(
             {
                 "listeners": {
                     "*:7080": {"pass": "routes"},
