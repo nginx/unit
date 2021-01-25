@@ -1586,6 +1586,8 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
             ret = nxt_router_app_queue_init(task, port);
             if (nxt_slow_path(ret != NXT_OK)) {
+                nxt_port_write_close(port);
+                nxt_port_read_close(port);
                 nxt_port_use(task, port, -1);
                 return NXT_ERROR;
             }
