@@ -699,26 +699,39 @@ nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     void                    *p;
     size_t                  size;
     nxt_int_t               ret;
+    nxt_port_t              *port;
     nxt_router_temp_conf_t  *tmcf;
 
-    tmcf = nxt_router_temp_conf(task);
-    if (nxt_slow_path(tmcf == NULL)) {
+    port = nxt_runtime_port_find(task->thread->runtime,
+                                 msg->port_msg.pid,
+                                 msg->port_msg.reply_port);
+    if (nxt_slow_path(port == NULL)) {
+        nxt_alert(task, "conf_data_handler: reply port not found");
         return;
     }
 
+    p = MAP_FAILED;
+
+    /*
+     * Ancient compilers like gcc 4.8.5 on CentOS 7 wants 'size' to be
+     * initialized in 'cleanup' section.
+     */
+    size = 0;
+
+    tmcf = nxt_router_temp_conf(task);
+    if (nxt_slow_path(tmcf == NULL)) {
+        goto fail;
+    }
+
     if (nxt_slow_path(msg->fd[0] == -1)) {
-        nxt_alert(task, "conf_data_handler: invalid file shm fd");
-        return;
+        nxt_alert(task, "conf_data_handler: invalid shm fd");
+        goto fail;
     }
 
     if (nxt_buf_mem_used_size(&msg->buf->mem) != sizeof(size_t)) {
         nxt_alert(task, "conf_data_handler: unexpected buffer size (%d)",
                   (int) nxt_buf_mem_used_size(&msg->buf->mem));
-
-        nxt_fd_close(msg->fd[0]);
-        msg->fd[0] = -1;
-
-        return;
+        goto fail;
     }
 
     nxt_memcpy(&size, msg->buf->mem.pos, sizeof(size_t));
@@ -729,22 +742,14 @@ nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     msg->fd[0] = -1;
 
     if (nxt_slow_path(p == MAP_FAILED)) {
-        return;
+        goto fail;
     }
 
     nxt_debug(task, "conf_data_handler(%uz): %*s", size, size, p);
 
     tmcf->router_conf->router = nxt_router;
     tmcf->stream = msg->port_msg.stream;
-    tmcf->port = nxt_runtime_port_find(task->thread->runtime,
-                                       msg->port_msg.pid,
-                                       msg->port_msg.reply_port);
-
-    if (nxt_slow_path(tmcf->port == NULL)) {
-        nxt_alert(task, "reply port not found");
-
-        goto fail;
-    }
+    tmcf->port = port;
 
     nxt_port_use(task, tmcf->port, 1);
 
@@ -757,9 +762,27 @@ nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         nxt_router_conf_error(task, tmcf);
     }
 
+    goto cleanup;
+
 fail:
 
-    nxt_mem_munmap(p, size);
+    nxt_port_socket_write(task, port, NXT_PORT_MSG_RPC_ERROR, -1,
+                          msg->port_msg.stream, 0, NULL);
+
+    if (tmcf != NULL) {
+        nxt_mp_destroy(tmcf->mem_pool);
+    }
+
+cleanup:
+
+    if (p != MAP_FAILED) {
+        nxt_mem_munmap(p, size);
+    }
+
+    if (msg->fd[0] != -1) {
+        nxt_fd_close(msg->fd[0]);
+        msg->fd[0] = -1;
+    }
 }
 
 
