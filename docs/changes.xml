@@ -65,7 +65,7 @@ Ruby apps with configured mutlithreading could crash on start under load.
 
 <change type="bugfix">
 <para>
-Mount points were not unmounted when using "mount" namespace isolation; the
+mount points were not unmounted when using "mount" namespace isolation; the
 bug had appeared in 1.21.0.
 </para>
 </change>
