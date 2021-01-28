@@ -3796,7 +3796,10 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
         nxt_buf_chain_add(&b, nxt_http_buf_last(r));
 
         req_rpc_data->rpc_cancel = 0;
-        req_rpc_data->apr_action = NXT_APR_GOT_RESPONSE;
+
+        if (req_rpc_data->apr_action == NXT_APR_REQUEST_FAILED) {
+            req_rpc_data->apr_action = NXT_APR_GOT_RESPONSE;
+        }
 
         nxt_request_rpc_data_unlink(task, req_rpc_data);
 

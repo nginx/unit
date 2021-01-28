@@ -97,6 +97,13 @@ a memory leak occurring in the router process when serving a file larger than
 </para>
 </change>
 
+<change type="bugfix">
+<para>
+the router process could crash while removing or reconfiguring an application
+that uses WebSocket.
+</para>
+</change>
+
 </changes>
 
 
