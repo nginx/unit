@@ -107,8 +107,6 @@ struct nxt_process_s {
 
     nxt_port_mmaps_t         incoming;
 
-    nxt_thread_mutex_t       cp_mutex;
-
     uint32_t                 stream;
 
     nxt_mp_t                 *mem_pool;

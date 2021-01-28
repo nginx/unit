@@ -1387,7 +1387,6 @@ nxt_runtime_process_new(nxt_runtime_t *rt)
     nxt_queue_init(&process->ports);
 
     nxt_thread_mutex_create(&process->incoming.mutex);
-    nxt_thread_mutex_create(&process->cp_mutex);
 
     process->use_count = 1;
 
@@ -1408,7 +1407,6 @@ nxt_runtime_process_release(nxt_runtime_t *rt, nxt_process_t *process)
     nxt_port_mmaps_destroy(&process->incoming, 1);
 
     nxt_thread_mutex_destroy(&process->incoming.mutex);
-    nxt_thread_mutex_destroy(&process->cp_mutex);
 
     /* processes from nxt_runtime_process_get() have no memory pool */
     if (process->mem_pool != NULL) {
