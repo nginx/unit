@@ -1,4 +1,4 @@
-FROM debian:buster-slim as BUILDER
+FROM golang:1.15 as BUILDER
 
 LABEL maintainer="NGINX Docker Maintainers <docker-maint@nginx.com>"
 
@@ -32,21 +32,23 @@ RUN set -ex \
     && install -pm755 build/unitd /usr/sbin/unitd \
     && make clean \
     && ./configure $CONFIGURE_ARGS --cc-opt="$CC_OPT" --modules=/usr/lib/unit/debug-modules --debug \
-    && ./configure  \
-    && make -j $NCPU version \
+    && ./configure go --go-path=$GOPATH \
+    && make -j $NCPU go-install-src libunit-install \
     && make clean \
     && ./configure $CONFIGURE_ARGS --cc-opt="$CC_OPT" --modules=/usr/lib/unit/modules \
-    && ./configure  \
-    && make -j $NCPU version \
+    && ./configure go --go-path=$GOPATH \
+    && make -j $NCPU go-install-src libunit-install \
     && ldd /usr/sbin/unitd | awk '/=>/{print $(NF-1)}' | while read n; do dpkg-query -S $n; done | sed 's/^\([^:]\+\):.*$/\1/' | sort | uniq > /requirements.apt
 
-FROM debian:buster-slim
+FROM golang:1.15
 COPY docker-entrypoint.sh /usr/local/bin/
 COPY --from=BUILDER /usr/sbin/unitd /usr/sbin/unitd
 COPY --from=BUILDER /usr/sbin/unitd-debug /usr/sbin/unitd-debug
 COPY --from=BUILDER /usr/lib/unit/ /usr/lib/unit/
 COPY --from=BUILDER /requirements.apt /requirements.apt
-
+COPY --from=BUILDER /usr/lib/x86_64-linux-gnu/libunit.a /usr/lib/x86_64-linux-gnu/
+COPY --from=BUILDER /usr/include/nxt_* /usr/include/
+COPY --from=BUILDER /go/src/ /go/src/
 RUN set -x \
     && mkdir -p /var/lib/unit/ \
     && mkdir /docker-entrypoint.d/ \

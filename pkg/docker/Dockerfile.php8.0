@@ -1,4 +1,4 @@
-FROM debian:buster-slim as BUILDER
+FROM php:8.0-cli as BUILDER
 
 LABEL maintainer="NGINX Docker Maintainers <docker-maint@nginx.com>"
 
@@ -32,21 +32,21 @@ RUN set -ex \
     && install -pm755 build/unitd /usr/sbin/unitd \
     && make clean \
     && ./configure $CONFIGURE_ARGS --cc-opt="$CC_OPT" --modules=/usr/lib/unit/debug-modules --debug \
-    && ./configure  \
-    && make -j $NCPU version \
+    && ./configure php \
+    && make -j $NCPU php-install \
     && make clean \
     && ./configure $CONFIGURE_ARGS --cc-opt="$CC_OPT" --modules=/usr/lib/unit/modules \
-    && ./configure  \
-    && make -j $NCPU version \
+    && ./configure php \
+    && make -j $NCPU php-install \
     && ldd /usr/sbin/unitd | awk '/=>/{print $(NF-1)}' | while read n; do dpkg-query -S $n; done | sed 's/^\([^:]\+\):.*$/\1/' | sort | uniq > /requirements.apt
 
-FROM debian:buster-slim
+FROM php:8.0-cli
 COPY docker-entrypoint.sh /usr/local/bin/
 COPY --from=BUILDER /usr/sbin/unitd /usr/sbin/unitd
 COPY --from=BUILDER /usr/sbin/unitd-debug /usr/sbin/unitd-debug
 COPY --from=BUILDER /usr/lib/unit/ /usr/lib/unit/
 COPY --from=BUILDER /requirements.apt /requirements.apt
-
+RUN ldconfig
 RUN set -x \
     && mkdir -p /var/lib/unit/ \
     && mkdir /docker-entrypoint.d/ \
