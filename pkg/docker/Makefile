@@ -97,11 +97,9 @@ build-%: Dockerfile.%
 
 tag-%: build-%
 	docker tag unit:$(VERSION)-$* nginx/unit:$(VERSION)-$*
-	docker tag unit:$(VERSION)-$* public.ecr.aws/nginx/unit:$(VERSION)-$*
 
 push-%: tag-%
 	docker push nginx/unit:$(VERSION)-$*
-	docker push public.ecr.aws/nginx/unit:$(VERSION)-$*
 
 $(EXPORT_DIR):
 	mkdir -p $@
