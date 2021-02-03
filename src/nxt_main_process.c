@@ -1408,11 +1408,44 @@ nxt_app_lang_compare(const void *v1, const void *v2)
 static void
 nxt_main_port_conf_store_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
-    ssize_t        n, size, offset;
-    nxt_buf_t      *b;
+    void           *p;
+    size_t         size;
+    ssize_t        n;
     nxt_int_t      ret;
     nxt_file_t     file;
     nxt_runtime_t  *rt;
+
+    p = MAP_FAILED;
+
+    /*
+     * Ancient compilers like gcc 4.8.5 on CentOS 7 wants 'size' to be
+     * initialized in 'cleanup' section.
+     */
+    size = 0;
+
+    if (nxt_slow_path(msg->fd[0] == -1)) {
+        nxt_alert(task, "conf_store_handler: invalid shm fd");
+        goto error;
+    }
+
+    if (nxt_buf_mem_used_size(&msg->buf->mem) != sizeof(size_t)) {
+        nxt_alert(task, "conf_store_handler: unexpected buffer size (%d)",
+                  (int) nxt_buf_mem_used_size(&msg->buf->mem));
+        goto error;
+    }
+
+    nxt_memcpy(&size, msg->buf->mem.pos, sizeof(size_t));
+
+    p = nxt_mem_mmap(NULL, size, PROT_READ, MAP_SHARED, msg->fd[0], 0);
+
+    nxt_fd_close(msg->fd[0]);
+    msg->fd[0] = -1;
+
+    if (nxt_slow_path(p == MAP_FAILED)) {
+        goto error;
+    }
+
+    nxt_debug(task, "conf_store_handler(%uz): %*s", size, size, p);
 
     nxt_memzero(&file, sizeof(nxt_file_t));
 
@@ -1427,33 +1460,35 @@ nxt_main_port_conf_store_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         goto error;
     }
 
-    offset = 0;
-
-    for (b = msg->buf; b != NULL; b = b->next) {
-        size = nxt_buf_mem_used_size(&b->mem);
-
-        n = nxt_file_write(&file, b->mem.pos, size, offset);
-
-        if (nxt_slow_path(n != size)) {
-            nxt_file_close(task, &file);
-            (void) nxt_file_delete(file.name);
-            goto error;
-        }
-
-        offset += n;
-    }
+    n = nxt_file_write(&file, p, size, 0);
 
     nxt_file_close(task, &file);
+
+    if (nxt_slow_path(n != (ssize_t) size)) {
+        (void) nxt_file_delete(file.name);
+        goto error;
+    }
 
     ret = nxt_file_rename(file.name, (nxt_file_name_t *) rt->conf);
 
     if (nxt_fast_path(ret == NXT_OK)) {
-        return;
+        goto cleanup;
     }
 
 error:
 
     nxt_alert(task, "failed to store current configuration");
+
+cleanup:
+
+    if (p != MAP_FAILED) {
+        nxt_mem_munmap(p, size);
+    }
+
+    if (msg->fd[0] != -1) {
+        nxt_fd_close(msg->fd[0]);
+        msg->fd[0] = -1;
+    }
 }
 
 
