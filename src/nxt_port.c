@@ -8,6 +8,7 @@
 #include <nxt_runtime.h>
 #include <nxt_port.h>
 #include <nxt_router.h>
+#include <nxt_app_queue.h>
 #include <nxt_port_queue.h>
 
 
@@ -84,6 +85,8 @@ nxt_port_new(nxt_task_t *task, nxt_port_id_t id, nxt_pid_t pid,
 void
 nxt_port_close(nxt_task_t *task, nxt_port_t *port)
 {
+    size_t  size;
+
     nxt_debug(task, "port %p %d:%d close, type %d", port, port->pid,
               port->id, port->type);
 
@@ -109,7 +112,10 @@ nxt_port_close(nxt_task_t *task, nxt_port_t *port)
     }
 
     if (port->queue != NULL) {
-        nxt_mem_munmap(port->queue, sizeof(nxt_port_queue_t));
+        size = (port->id == (nxt_port_id_t) -1) ? sizeof(nxt_app_queue_t)
+                                                : sizeof(nxt_port_queue_t);
+        nxt_mem_munmap(port->queue, size);
+
         port->queue = NULL;
     }
 }
