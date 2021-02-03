@@ -1001,20 +1001,21 @@ nxt_main_port_socket_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_listening_socket_t  ls;
     u_char                  message[2048];
 
+    port = nxt_runtime_port_find(task->thread->runtime, msg->port_msg.pid,
+                                 msg->port_msg.reply_port);
+    if (nxt_slow_path(port == NULL)) {
+        return;
+    }
+
     b = msg->buf;
     sa = (nxt_sockaddr_t *) b->mem.pos;
 
     /* TODO check b size and make plain */
 
-    out = NULL;
-
     ls.socket = -1;
     ls.error = NXT_SOCKET_ERROR_SYSTEM;
     ls.start = message;
     ls.end = message + sizeof(message);
-
-    port = nxt_runtime_port_find(task->thread->runtime, msg->port_msg.pid,
-                                 msg->port_msg.reply_port);
 
     nxt_debug(task, "listening socket \"%*s\"",
               (size_t) sa->length, nxt_sockaddr_start(sa));
@@ -1025,6 +1026,8 @@ nxt_main_port_socket_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         nxt_debug(task, "socket(\"%*s\"): %d",
                   (size_t) sa->length, nxt_sockaddr_start(sa), ls.socket);
 
+        out = NULL;
+
         type = NXT_PORT_MSG_RPC_READY_LAST | NXT_PORT_MSG_CLOSE_FD;
 
     } else {
@@ -1034,13 +1037,11 @@ nxt_main_port_socket_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
         out = nxt_buf_mem_ts_alloc(task, task->thread->engine->mem_pool,
                                    size + 1);
-        if (nxt_slow_path(out == NULL)) {
-            return;
+        if (nxt_fast_path(out != NULL)) {
+            *out->mem.free++ = (uint8_t) ls.error;
+
+            out->mem.free = nxt_cpymem(out->mem.free, ls.start, size);
         }
-
-        *out->mem.free++ = (uint8_t) ls.error;
-
-        out->mem.free = nxt_cpymem(out->mem.free, ls.start, size);
 
         type = NXT_PORT_MSG_RPC_ERROR;
     }
