@@ -33,14 +33,15 @@ NGINX Unit updated to 1.22.0.
 
 <change type="feature">
 <para>
-ability to specify multiple directories in the "path" option of Python apps.
+support for specifying multiple directories in the "path" option of Python
+apps.
 </para>
 </change>
 
 <change type="feature">
 <para>
-ServerRequest and ServerResponse objects of Node.js module are now compliant
-to Stream API.
+the ServerRequest and ServerResponse objects of Node.js module are now
+compliant with Stream API.
 </para>
 </change>
 
@@ -52,55 +53,55 @@ invalid HTTP responses were generated for some unusual status codes.
 
 <change type="bugfix">
 <para>
-PHP_AUTH_USER, PHP_AUTH_PW, and PHP_AUTH_DIGEST server variables were missing
-in PHP module.
+the PHP_AUTH_USER, PHP_AUTH_PW, and PHP_AUTH_DIGEST server variables were
+missing in the PHP module.
 </para>
 </change>
 
 <change type="bugfix">
 <para>
-Ruby apps with configured mutlithreading could crash on start under load.
+Ruby apps with multithreading configured could crash on start under load.
 </para>
 </change>
 
 <change type="bugfix">
 <para>
-mount points were not unmounted when using "mount" namespace isolation; the
-bug had appeared in 1.21.0.
+mount points weren't unmounted when the "mount" namespace isolation was used;
+the bug had appeared in 1.21.0.
 </para>
 </change>
 
 <change type="bugfix">
 <para>
-the router process could crash with multithreaded applications under high load.
+the router process could crash with multithreaded apps under high load.
 </para>
 </change>
 
 <change type="bugfix">
 <para>
-applications could stop processing new requests under high load; the bug had
+apps could stop processing new requests under high load; the bug had
 appeared in 1.19.0.
 </para>
 </change>
 
 <change type="bugfix">
 <para>
-application processes could terminate unexpectedly under high load; the bug
-had appeared in 1.19.0.
+app processes could terminate unexpectedly under high load; the bug had
+appeared in 1.19.0.
 </para>
 </change>
 
 <change type="bugfix">
 <para>
-a memory leak occurring in the router process when serving a file larger than
+a memory leak occurred in the router process when serving files larger than
 128K; the bug had appeared in 1.13.0.
 </para>
 </change>
 
 <change type="bugfix">
 <para>
-the router process could crash while removing or reconfiguring an application
-that uses WebSocket.
+the router process could crash while removing or reconfiguring an app that used
+WebSocket.
 </para>
 </change>
 
