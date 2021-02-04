@@ -1,4 +1,43 @@
 
+Changes with Unit 1.22.0                                         04 Feb 2021
+
+    *) Feature: the ServerRequest and ServerResponse objects of Node.js
+       module are now compliant with Stream API.
+
+    *) Feature: support for specifying multiple directories in the "path"
+       option of Python apps.
+
+    *) Bugfix: a memory leak occurred in the router process when serving
+       files larger than 128K; the bug had appeared in 1.13.0.
+
+    *) Bugfix: apps could stop processing new requests under high load; the
+       bug had appeared in 1.19.0.
+
+    *) Bugfix: app processes could terminate unexpectedly under high load;
+       the bug had appeared in 1.19.0.
+
+    *) Bugfix: invalid HTTP responses were generated for some unusual status
+       codes.
+
+    *) Bugfix: the PHP_AUTH_USER, PHP_AUTH_PW, and PHP_AUTH_DIGEST server
+       variables were missing in the PHP module.
+
+    *) Bugfix: the router process could crash with multithreaded apps under
+       high load.
+
+    *) Bugfix: Ruby apps with multithreading configured could crash on start
+       under load.
+
+    *) Bugfix: mount points weren't unmounted when the "mount" namespace
+       isolation was used; the bug had appeared in 1.21.0.
+
+    *) Bugfix: the router process could crash while removing or
+       reconfiguring an app that used WebSocket.
+
+    *) Bugfix: a memory leak occurring in the router process when removing
+       or reconfiguring an application; the bug had appeared in 1.19.0.
+
+
 Changes with Unit 1.21.0                                         19 Nov 2020
 
     *) Change: procfs is mounted by default for all languages when "rootfs"

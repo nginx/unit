@@ -15,7 +15,7 @@
                 unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11 unit-jsc13
                 unit-jsc14 unit-jsc15"
          ver="1.22.0" rev="1"
-         date="" time=""
+         date="2021-02-04" time="18:00:00 +0300"
          packager="Andrei Belov &lt;defan@nginx.com&gt;">
 
 <change>
@@ -28,7 +28,7 @@ NGINX Unit updated to 1.22.0.
 
 
 <changes apply="unit" ver="1.22.0" rev="1"
-         date="" time=""
+         date="2021-02-04" time="18:00:00 +0300"
          packager="Andrei Belov &lt;defan@nginx.com&gt;">
 
 <change type="feature">
