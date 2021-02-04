@@ -33,47 +33,22 @@ NGINX Unit updated to 1.22.0.
 
 <change type="feature">
 <para>
-support for specifying multiple directories in the "path" option of Python
-apps.
-</para>
-</change>
-
-<change type="feature">
-<para>
 the ServerRequest and ServerResponse objects of Node.js module are now
 compliant with Stream API.
 </para>
 </change>
 
-<change type="bugfix">
+<change type="feature">
 <para>
-invalid HTTP responses were generated for some unusual status codes.
+support for specifying multiple directories in the "path" option of Python
+apps.
 </para>
 </change>
 
 <change type="bugfix">
 <para>
-the PHP_AUTH_USER, PHP_AUTH_PW, and PHP_AUTH_DIGEST server variables were
-missing in the PHP module.
-</para>
-</change>
-
-<change type="bugfix">
-<para>
-Ruby apps with multithreading configured could crash on start under load.
-</para>
-</change>
-
-<change type="bugfix">
-<para>
-mount points weren't unmounted when the "mount" namespace isolation was used;
-the bug had appeared in 1.21.0.
-</para>
-</change>
-
-<change type="bugfix">
-<para>
-the router process could crash with multithreaded apps under high load.
+a memory leak occurred in the router process when serving files larger than
+128K; the bug had appeared in 1.13.0.
 </para>
 </change>
 
@@ -93,8 +68,33 @@ appeared in 1.19.0.
 
 <change type="bugfix">
 <para>
-a memory leak occurred in the router process when serving files larger than
-128K; the bug had appeared in 1.13.0.
+invalid HTTP responses were generated for some unusual status codes.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the PHP_AUTH_USER, PHP_AUTH_PW, and PHP_AUTH_DIGEST server variables were
+missing in the PHP module.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the router process could crash with multithreaded apps under high load.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Ruby apps with multithreading configured could crash on start under load.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+mount points weren't unmounted when the "mount" namespace isolation was used;
+the bug had appeared in 1.21.0.
 </para>
 </change>
 
