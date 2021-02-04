@@ -7,6 +7,15 @@
 %define dist .el7
 %endif
 
+%if 0%{?rhel}%{?fedora}
+BuildRequires: gcc
+BuildRequires: openssl-devel
+%endif
+
+%if 0%{?suse_version} >= 1315
+BuildRequires: libopenssl-devel
+%endif
+
 %define unit_version %%UNIT_VERSION%%
 %define unit_release %%UNIT_RELEASE%%%{?dist}.ngx
 
@@ -28,6 +37,8 @@ Source0: unit-%{version}.tar.gz
 %%MODULE_SOURCES%%
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+
+BuildRequires: pcre2-devel
 
 Requires: unit == %%UNIT_VERSION%%-%%UNIT_RELEASE%%%{?dist}.ngx
 

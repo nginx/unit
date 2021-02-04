@@ -2,7 +2,6 @@
 	"applications": {
 		"example_python": {
 			"type": "python 2.7",
-			"user": "nobody",
 			"processes": 2,
 			"path": "/usr/share/doc/unit-python27/examples/python-app",
 			"module": "wsgi"

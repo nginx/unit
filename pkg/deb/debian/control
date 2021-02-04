@@ -4,7 +4,8 @@ Priority: extra
 Maintainer: Andrei Belov <defan@nginx.com>
 Build-Depends: debhelper (>= 9),
                linux-libc-dev,
-               libssl-dev
+               libssl-dev,
+               libpcre2-dev
 Standards-Version: 3.9.5
 Homepage: https://unit.nginx.org
 

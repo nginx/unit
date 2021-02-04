@@ -3,10 +3,8 @@ import time
 from distutils.version import LooseVersion
 
 import pytest
-
-from conftest import option
-from conftest import skip_alert
 from unit.applications.lang.python import TestApplicationPython
+from unit.option import option
 
 
 class TestASGIApplication(TestApplicationPython):
@@ -361,7 +359,7 @@ Connection: close
 
         self.get(headers=headers_delay_1)
 
-    def test_asgi_application_loading_error(self):
+    def test_asgi_application_loading_error(self, skip_alert):
         skip_alert(r'Python failed to import module "blah"')
 
         self.load('empty', module="blah")

@@ -1038,6 +1038,17 @@ nxt_php_execute(nxt_php_run_ctx_t *ctx, nxt_unit_request_t *r)
         ctx->cookie = nxt_unit_sptr_get(&f->value);
     }
 
+    if (r->authorization_field != NXT_UNIT_NONE_FIELD) {
+        f = r->fields + r->authorization_field;
+
+        php_handle_auth_data(nxt_unit_sptr_get(&f->value));
+
+    } else {
+        SG(request_info).auth_digest = NULL;
+        SG(request_info).auth_user = NULL;
+        SG(request_info).auth_password = NULL;
+    }
+
     SG(sapi_headers).http_response_code = 200;
 
     SG(request_info).path_translated = NULL;

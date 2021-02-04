@@ -699,26 +699,39 @@ nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     void                    *p;
     size_t                  size;
     nxt_int_t               ret;
+    nxt_port_t              *port;
     nxt_router_temp_conf_t  *tmcf;
 
-    tmcf = nxt_router_temp_conf(task);
-    if (nxt_slow_path(tmcf == NULL)) {
+    port = nxt_runtime_port_find(task->thread->runtime,
+                                 msg->port_msg.pid,
+                                 msg->port_msg.reply_port);
+    if (nxt_slow_path(port == NULL)) {
+        nxt_alert(task, "conf_data_handler: reply port not found");
         return;
     }
 
+    p = MAP_FAILED;
+
+    /*
+     * Ancient compilers like gcc 4.8.5 on CentOS 7 wants 'size' to be
+     * initialized in 'cleanup' section.
+     */
+    size = 0;
+
+    tmcf = nxt_router_temp_conf(task);
+    if (nxt_slow_path(tmcf == NULL)) {
+        goto fail;
+    }
+
     if (nxt_slow_path(msg->fd[0] == -1)) {
-        nxt_alert(task, "conf_data_handler: invalid file shm fd");
-        return;
+        nxt_alert(task, "conf_data_handler: invalid shm fd");
+        goto fail;
     }
 
     if (nxt_buf_mem_used_size(&msg->buf->mem) != sizeof(size_t)) {
         nxt_alert(task, "conf_data_handler: unexpected buffer size (%d)",
                   (int) nxt_buf_mem_used_size(&msg->buf->mem));
-
-        nxt_fd_close(msg->fd[0]);
-        msg->fd[0] = -1;
-
-        return;
+        goto fail;
     }
 
     nxt_memcpy(&size, msg->buf->mem.pos, sizeof(size_t));
@@ -729,22 +742,14 @@ nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     msg->fd[0] = -1;
 
     if (nxt_slow_path(p == MAP_FAILED)) {
-        return;
+        goto fail;
     }
 
     nxt_debug(task, "conf_data_handler(%uz): %*s", size, size, p);
 
     tmcf->router_conf->router = nxt_router;
     tmcf->stream = msg->port_msg.stream;
-    tmcf->port = nxt_runtime_port_find(task->thread->runtime,
-                                       msg->port_msg.pid,
-                                       msg->port_msg.reply_port);
-
-    if (nxt_slow_path(tmcf->port == NULL)) {
-        nxt_alert(task, "reply port not found");
-
-        goto fail;
-    }
+    tmcf->port = port;
 
     nxt_port_use(task, tmcf->port, 1);
 
@@ -757,9 +762,27 @@ nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         nxt_router_conf_error(task, tmcf);
     }
 
+    goto cleanup;
+
 fail:
 
-    nxt_mem_munmap(p, size);
+    nxt_port_socket_write(task, port, NXT_PORT_MSG_RPC_ERROR, -1,
+                          msg->port_msg.stream, 0, NULL);
+
+    if (tmcf != NULL) {
+        nxt_mp_destroy(tmcf->mem_pool);
+    }
+
+cleanup:
+
+    if (p != MAP_FAILED) {
+        nxt_mem_munmap(p, size);
+    }
+
+    if (msg->fd[0] != -1) {
+        nxt_fd_close(msg->fd[0]);
+        msg->fd[0] = -1;
+    }
 }
 
 
@@ -1586,6 +1609,8 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
             ret = nxt_router_app_queue_init(task, port);
             if (nxt_slow_path(ret != NXT_OK)) {
+                nxt_port_write_close(port);
+                nxt_port_read_close(port);
                 nxt_port_use(task, port, -1);
                 return NXT_ERROR;
             }
@@ -3771,7 +3796,10 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
         nxt_buf_chain_add(&b, nxt_http_buf_last(r));
 
         req_rpc_data->rpc_cancel = 0;
-        req_rpc_data->apr_action = NXT_APR_GOT_RESPONSE;
+
+        if (req_rpc_data->apr_action == NXT_APR_REQUEST_FAILED) {
+            req_rpc_data->apr_action = NXT_APR_GOT_RESPONSE;
+        }
 
         nxt_request_rpc_data_unlink(task, req_rpc_data);
 
@@ -5169,6 +5197,7 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_http_request_t *r,
     req->content_length_field = NXT_UNIT_NONE_FIELD;
     req->content_type_field   = NXT_UNIT_NONE_FIELD;
     req->cookie_field         = NXT_UNIT_NONE_FIELD;
+    req->authorization_field  = NXT_UNIT_NONE_FIELD;
 
     dst_field = req->fields;
 
@@ -5193,6 +5222,9 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_http_request_t *r,
 
         } else if (field == r->cookie) {
             req->cookie_field = dst_field - req->fields;
+
+        } else if (field == r->authorization) {
+            req->authorization_field = dst_field - req->fields;
         }
 
         nxt_debug(task, "add field 0x%04Xd, %d, %d, %p : %d %p",
@@ -5369,7 +5401,7 @@ nxt_router_oosm_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_bool_t               ack;
     nxt_process_t            *process;
     nxt_free_map_t           *m;
-    nxt_port_mmap_header_t   *hdr;
+    nxt_port_mmap_handler_t  *mmap_handler;
 
     nxt_debug(task, "oosm in %PI", msg->port_msg.pid);
 
@@ -5390,8 +5422,13 @@ nxt_router_oosm_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_thread_mutex_lock(&process->incoming.mutex);
 
     for (i = 0; i < process->incoming.size; i++) {
-        hdr = process->incoming.elts[i].mmap_handler->hdr;
-        m = hdr->free_map;
+        mmap_handler = process->incoming.elts[i].mmap_handler;
+
+        if (nxt_slow_path(mmap_handler == NULL)) {
+            continue;
+        }
+
+        m = mmap_handler->hdr->free_map;
 
         for (mi = 0; mi < MAX_FREE_IDX; mi++) {
             if (m[mi] != 0) {

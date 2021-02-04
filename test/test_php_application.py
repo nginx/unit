@@ -2,12 +2,11 @@ import os
 import re
 import shutil
 import time
+from subprocess import call
 
 import pytest
-
-from conftest import option
-from conftest import unit_stop
 from unit.applications.lang.php import TestApplicationPHP
+from unit.option import option
 
 class TestPHPApplication(TestApplicationPHP):
     prerequisites = {'modules': {'php': 'all'}}
@@ -20,7 +19,7 @@ class TestPHPApplication(TestApplicationPHP):
 
     def set_opcache(self, app, val):
         assert 'success' in self.conf(
-            {"admin": {"opcache.enable": val, "opcache.enable_cli": val,},},
+            {"admin": {"opcache.enable": val, "opcache.enable_cli": val}},
             'applications/' + app + '/options',
         )
 
@@ -99,7 +98,10 @@ class TestPHPApplication(TestApplicationPHP):
 
         assert self.get()['body'] == '0123'
 
-        unit_stop()
+        with open(temp_dir + '/unit.pid', 'r') as f:
+            pid = f.read().rstrip()
+
+        call(['kill', '-s', 'USR1', pid])
 
         with open(temp_dir + '/unit.log', 'r', errors='ignore') as f:
             errs = re.findall(r'Error in fastcgi_finish_request', f.read())
@@ -113,7 +115,10 @@ class TestPHPApplication(TestApplicationPHP):
         assert resp['status'] == 200
         assert resp['body'] == ''
 
-        unit_stop()
+        with open(temp_dir + '/unit.pid', 'r') as f:
+            pid = f.read().rstrip()
+
+        call(['kill', '-s', 'USR1', pid])
 
         with open(temp_dir + '/unit.log', 'r', errors='ignore') as f:
             errs = re.findall(r'Error in fastcgi_finish_request', f.read())
@@ -263,7 +268,7 @@ class TestPHPApplication(TestApplicationPHP):
 
         assert self.get()['headers']['X-Precision'] != '4', 'ini value default'
 
-        self.conf(
+        assert 'success' in self.conf(
             {"file": "ini/php.ini"}, 'applications/ini_precision/options'
         )
 
@@ -285,7 +290,7 @@ class TestPHPApplication(TestApplicationPHP):
     def test_php_application_ini_admin(self):
         self.load('ini_precision')
 
-        self.conf(
+        assert 'success' in self.conf(
             {"file": "php.ini", "admin": {"precision": "5"}},
             'applications/ini_precision/options',
         )
@@ -295,7 +300,7 @@ class TestPHPApplication(TestApplicationPHP):
     def test_php_application_ini_user(self):
         self.load('ini_precision')
 
-        self.conf(
+        assert 'success' in self.conf(
             {"file": "php.ini", "user": {"precision": "5"}},
             'applications/ini_precision/options',
         )
@@ -305,13 +310,13 @@ class TestPHPApplication(TestApplicationPHP):
     def test_php_application_ini_user_2(self):
         self.load('ini_precision')
 
-        self.conf(
+        assert 'success' in self.conf(
             {"file": "ini/php.ini"}, 'applications/ini_precision/options'
         )
 
         assert self.get()['headers']['X-Precision'] == '4', 'ini user file'
 
-        self.conf(
+        assert 'success' in self.conf(
             {"precision": "5"}, 'applications/ini_precision/options/user'
         )
 
@@ -320,7 +325,7 @@ class TestPHPApplication(TestApplicationPHP):
     def test_php_application_ini_set_admin(self):
         self.load('ini_precision')
 
-        self.conf(
+        assert 'success' in self.conf(
             {"admin": {"precision": "5"}}, 'applications/ini_precision/options'
         )
 
@@ -331,7 +336,7 @@ class TestPHPApplication(TestApplicationPHP):
     def test_php_application_ini_set_user(self):
         self.load('ini_precision')
 
-        self.conf(
+        assert 'success' in self.conf(
             {"user": {"precision": "5"}}, 'applications/ini_precision/options'
         )
 
@@ -342,7 +347,7 @@ class TestPHPApplication(TestApplicationPHP):
     def test_php_application_ini_repeat(self):
         self.load('ini_precision')
 
-        self.conf(
+        assert 'success' in self.conf(
             {"user": {"precision": "5"}}, 'applications/ini_precision/options'
         )
 
@@ -355,7 +360,7 @@ class TestPHPApplication(TestApplicationPHP):
 
         self.before_disable_functions()
 
-        self.conf(
+        assert 'success' in self.conf(
             {"admin": {"disable_functions": "exec"}},
             'applications/time_exec/options',
         )
@@ -370,7 +375,7 @@ class TestPHPApplication(TestApplicationPHP):
 
         self.before_disable_functions()
 
-        self.conf(
+        assert 'success' in self.conf(
             {"admin": {"disable_functions": "exec,time"}},
             'applications/time_exec/options',
         )
@@ -384,12 +389,70 @@ class TestPHPApplication(TestApplicationPHP):
             r'exec: \/\w+', body
         ), 'disable_functions comma exec'
 
+    def test_php_application_auth(self):
+        self.load('auth')
+
+        resp = self.get()
+        assert resp['status'] == 200, 'status'
+        assert resp['headers']['X-Digest'] == 'not set', 'digest'
+        assert resp['headers']['X-User'] == 'not set', 'user'
+        assert resp['headers']['X-Password'] == 'not set', 'password'
+
+        resp = self.get(
+            headers={
+                'Host': 'localhost',
+                'Authorization': 'Basic dXNlcjpwYXNzd29yZA==',
+                'Connection': 'close',
+            }
+        )
+        assert resp['status'] == 200, 'basic status'
+        assert resp['headers']['X-Digest'] == 'not set', 'basic digest'
+        assert resp['headers']['X-User'] == 'user', 'basic user'
+        assert resp['headers']['X-Password'] == 'password', 'basic password'
+
+        resp = self.get(
+            headers={
+                'Host': 'localhost',
+                'Authorization': 'Digest username="blah", realm="", uri="/"',
+                'Connection': 'close',
+            }
+        )
+        assert resp['status'] == 200, 'digest status'
+        assert (
+            resp['headers']['X-Digest'] == 'username="blah", realm="", uri="/"'
+        ), 'digest digest'
+        assert resp['headers']['X-User'] == 'not set', 'digest user'
+        assert resp['headers']['X-Password'] == 'not set', 'digest password'
+
+    def test_php_application_auth_invalid(self):
+        self.load('auth')
+
+        def check_auth(auth):
+            resp = self.get(headers={
+                'Host': 'localhost',
+                'Authorization': auth,
+                'Connection': 'close',
+            })
+
+            assert resp['status'] == 200, 'status'
+            assert resp['headers']['X-Digest'] == 'not set', 'Digest'
+            assert resp['headers']['X-User'] == 'not set', 'User'
+            assert resp['headers']['X-Password'] == 'not set', 'Password'
+
+        check_auth('Basic dXN%cjpwYXNzd29yZA==')
+        check_auth('Basic XNlcjpwYXNzd29yZA==')
+        check_auth('Basic DdXNlcjpwYXNzd29yZA==')
+        check_auth('Basic blah')
+        check_auth('Basic')
+        check_auth('Digest')
+        check_auth('blah')
+
     def test_php_application_disable_functions_space(self):
         self.load('time_exec')
 
         self.before_disable_functions()
 
-        self.conf(
+        assert 'success' in self.conf(
             {"admin": {"disable_functions": "exec time"}},
             'applications/time_exec/options',
         )
@@ -408,7 +471,7 @@ class TestPHPApplication(TestApplicationPHP):
 
         self.before_disable_functions()
 
-        self.conf(
+        assert 'success' in self.conf(
             {"user": {"disable_functions": "exec"}},
             'applications/time_exec/options',
         )
@@ -425,7 +488,7 @@ class TestPHPApplication(TestApplicationPHP):
 
         self.before_disable_functions()
 
-        self.conf(
+        assert 'success' in self.conf(
             {"admin": {"disable_functions": "blah"}},
             'applications/time_exec/options',
         )
@@ -446,7 +509,7 @@ class TestPHPApplication(TestApplicationPHP):
             r'012345', self.get()['body']
         ), 'disable_classes before'
 
-        self.conf(
+        assert 'success' in self.conf(
             {"admin": {"disable_classes": "DateTime"}},
             'applications/date_time/options',
         )
@@ -462,7 +525,7 @@ class TestPHPApplication(TestApplicationPHP):
             r'012345', self.get()['body']
         ), 'disable_classes before'
 
-        self.conf(
+        assert 'success' in self.conf(
             {"user": {"disable_classes": "DateTime"}},
             'applications/date_time/options',
         )
@@ -479,8 +542,6 @@ class TestPHPApplication(TestApplicationPHP):
         time.sleep(1)
 
         assert self.get()['status'] == 200, 'status 2'
-
-        unit_stop()
 
         pattern = r'\d{4}\/\d\d\/\d\d\s\d\d:.+\[notice\].+Error in application'
 

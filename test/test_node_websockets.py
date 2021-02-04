@@ -2,11 +2,9 @@ import struct
 import time
 
 import pytest
-
-from conftest import option
-from conftest import skip_alert
 from unit.applications.lang.node import TestApplicationNode
 from unit.applications.websockets import TestApplicationWebsocket
+from unit.option import option
 
 
 class TestNodeWebsockets(TestApplicationNode):
@@ -14,7 +12,8 @@ class TestNodeWebsockets(TestApplicationNode):
 
     ws = TestApplicationWebsocket()
 
-    def setup_method(self):
+    @pytest.fixture(autouse=True)
+    def setup_method_fixture(self, request, skip_alert):
         assert 'success' in self.conf(
             {'http': {'websocket': {'keepalive_interval': 0}}}, 'settings'
         ), 'clear keepalive_interval'

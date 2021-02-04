@@ -6,6 +6,8 @@
 <xsl:param select="'generic'" name="format"/>
 <xsl:param select="'unit'" name="pkgname"/>
 <xsl:param select="'change_log_conf.xml'" name="configuration"/>
+<xsl:param name="curdate"/>
+<xsl:param name="curtime"/>
 
 <xsl:variable select="document($configuration)/configuration" name="conf"/>
 
@@ -59,8 +61,10 @@
 
 
 <xsl:template match="changes">
-    <xsl:variable name="pday"> <xsl:call-template name="padded_day"><xsl:with-param select="@date" name="date"/></xsl:call-template></xsl:variable>
-    <xsl:variable name="dow"> <xsl:call-template name="day_of_week"><xsl:with-param select="@date" name="date"/></xsl:call-template></xsl:variable>
+    <xsl:variable name="date_"> <xsl:call-template name="getdate"><xsl:with-param select="@date" name="date"/><xsl:with-param select="$curdate" name="curdate"/></xsl:call-template></xsl:variable>
+    <xsl:variable name="time_"> <xsl:call-template name="gettime"><xsl:with-param select="@time" name="time"/><xsl:with-param select="$curtime" name="curtime"/></xsl:call-template></xsl:variable>
+    <xsl:variable name="pday"> <xsl:call-template name="padded_day"><xsl:with-param select="$date_" name="date"/></xsl:call-template></xsl:variable>
+    <xsl:variable name="dow"> <xsl:call-template name="day_of_week"><xsl:with-param select="$date_" name="date"/></xsl:call-template></xsl:variable>
     <xsl:variable name="apply"> <xsl:call-template name="string_in_list"><xsl:with-param select="@apply" name="list"/><xsl:with-param select="$pkgname" name="string"/></xsl:call-template></xsl:variable>
     <xsl:variable name="pkgname_"> <xsl:call-template name="beautify"><xsl:with-param select="$pkgname" name="pkgname"/></xsl:call-template></xsl:variable>
 
@@ -78,17 +82,16 @@
                            '                                                    '),
                     1, $conf/changes/length)"/>
 
-        <xsl:value-of select="substring(@date, 9, 2)"/>
-        <xsl:value-of select="$conf/changes/month[number(substring(current()/@date,
-                                                            6, 2))]"/>
-        <xsl:value-of select="substring(@date, 1, 4)"/>
+        <xsl:value-of select="substring($date_, 9, 2)"/>
+        <xsl:value-of select="$conf/changes/month[number(substring($date_, 6, 2))]"/>
+        <xsl:value-of select="substring($date_, 1, 4)"/>
     </xsl:if>
 
     <xsl:if test="$format='rpm'">
         <xsl:value-of select="concat('* ', $conf/changes/day[number($dow)],
-                 $conf/changes/month[number(substring(current()/@date, 6, 2))],
+                 $conf/changes/month[number(substring($date_, 6, 2))],
                  $pday, ' ',
-                 substring(@date, 1, 4), ' ', @packager, ' - ',
+                 substring($date_, 1, 4), ' ', @packager, ' - ',
                  @ver, '-', @rev, '%{?dist}.ngx')"/>
     </xsl:if>
 
@@ -109,8 +112,8 @@
         <xsl:value-of select="concat(' -- ', @packager, '  ',
                  $conf/changes/day[number($dow)], ', ',
                  $pday,
-                 $conf/changes/month[number(substring(current()/@date, 6, 2))],
-                 substring(@date, 1, 4), ' ', @time)"/>
+                 $conf/changes/month[number(substring($date_, 6, 2))],
+                 substring($date_, 1, 4), ' ', $time_)"/>
 
         <xsl:text>&#10;</xsl:text>
         <xsl:text>&#10;</xsl:text>
@@ -241,6 +244,30 @@
         <xsl:when test="$pkgname='unit'">Unit</xsl:when>
         <xsl:otherwise>
             <xsl:value-of select="$pkgname"/>
+        </xsl:otherwise>
+    </xsl:choose>
+</xsl:template>
+
+
+<xsl:template name="getdate"><xsl:param name="date"/><xsl:param name="curdate"/>
+    <xsl:choose>
+        <xsl:when test="$date=''">
+            <xsl:value-of select="$curdate"/>
+        </xsl:when>
+        <xsl:otherwise>
+            <xsl:value-of select="$date"/>
+        </xsl:otherwise>
+    </xsl:choose>
+</xsl:template>
+
+
+<xsl:template name="gettime"><xsl:param name="time"/><xsl:param name="curtime"/>
+    <xsl:choose>
+        <xsl:when test="$time=''">
+            <xsl:value-of select="$curtime"/>
+        </xsl:when>
+        <xsl:otherwise>
+            <xsl:value-of select="$time"/>
         </xsl:otherwise>
     </xsl:choose>
 </xsl:template>

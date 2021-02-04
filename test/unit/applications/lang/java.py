@@ -4,8 +4,8 @@ import shutil
 import subprocess
 
 import pytest
-from conftest import option
 from unit.applications.proto import TestApplicationProto
+from unit.option import option
 
 
 class TestApplicationJava(TestApplicationProto):

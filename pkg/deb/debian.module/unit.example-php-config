@@ -2,7 +2,6 @@
 	"applications": {
 		"example_php": {
 			"type": "php",
-			"user": "nobody",
 			"processes": 2,
 			"root": "/usr/share/doc/unit-php/examples/phpinfo-app",
 			"index": "index.php"

@@ -19,7 +19,7 @@ class TestPHPBasic(TestControl):
     }
 
     def test_php_get_applications(self):
-        self.conf(self.conf_app, 'applications')
+        assert 'success' in self.conf(self.conf_app, 'applications')
 
         conf = self.conf_get()
 
@@ -55,7 +55,7 @@ class TestPHPBasic(TestControl):
         ), 'spare processes'
 
     def test_php_get_listeners(self):
-        self.conf(self.conf_basic)
+        assert 'success' in self.conf(self.conf_basic)
 
         assert self.conf_get()['listeners'] == {
             "*:7080": {"pass": "applications/app"}
@@ -70,16 +70,20 @@ class TestPHPBasic(TestControl):
         }, 'listeners prefix 2'
 
     def test_php_change_listener(self):
-        self.conf(self.conf_basic)
-        self.conf({"*:7081": {"pass": "applications/app"}}, 'listeners')
+        assert 'success' in self.conf(self.conf_basic)
+        assert 'success' in self.conf(
+            {"*:7081": {"pass": "applications/app"}}, 'listeners'
+        )
 
         assert self.conf_get('listeners') == {
             "*:7081": {"pass": "applications/app"}
         }, 'change listener'
 
     def test_php_add_listener(self):
-        self.conf(self.conf_basic)
-        self.conf({"pass": "applications/app"}, 'listeners/*:7082')
+        assert 'success' in self.conf(self.conf_basic)
+        assert 'success' in self.conf(
+            {"pass": "applications/app"}, 'listeners/*:7082'
+        )
 
         assert self.conf_get('listeners') == {
             "*:7080": {"pass": "applications/app"},
@@ -87,20 +91,20 @@ class TestPHPBasic(TestControl):
         }, 'add listener'
 
     def test_php_change_application(self):
-        self.conf(self.conf_basic)
+        assert 'success' in self.conf(self.conf_basic)
 
-        self.conf('30', 'applications/app/processes/max')
+        assert 'success' in self.conf('30', 'applications/app/processes/max')
         assert (
             self.conf_get('applications/app/processes/max') == 30
         ), 'change application max'
 
-        self.conf('"/www"', 'applications/app/root')
+        assert 'success' in self.conf('"/www"', 'applications/app/root')
         assert (
             self.conf_get('applications/app/root') == '/www'
         ), 'change application root'
 
     def test_php_delete(self):
-        self.conf(self.conf_basic)
+        assert 'success' in self.conf(self.conf_basic)
 
         assert 'error' in self.conf_delete('applications/app')
         assert 'success' in self.conf_delete('listeners/*:7080')
@@ -108,7 +112,7 @@ class TestPHPBasic(TestControl):
         assert 'error' in self.conf_delete('applications/app')
 
     def test_php_delete_blocks(self):
-        self.conf(self.conf_basic)
+        assert 'success' in self.conf(self.conf_basic)
 
         assert 'success' in self.conf_delete('listeners')
         assert 'success' in self.conf_delete('applications')

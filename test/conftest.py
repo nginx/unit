@@ -4,7 +4,6 @@ import platform
 import re
 import shutil
 import signal
-import socket
 import stat
 import subprocess
 import sys
@@ -13,10 +12,13 @@ import time
 from multiprocessing import Process
 
 import pytest
-
 from unit.check.go import check_go
+from unit.check.isolation import check_isolation
 from unit.check.node import check_node
 from unit.check.tls import check_openssl
+from unit.option import option
+from unit.utils import public_dir
+from unit.utils import waitforfiles
 
 
 def pytest_addoption(parser):
@@ -27,13 +29,13 @@ def pytest_addoption(parser):
         help="Detailed output for tests",
     )
     parser.addoption(
-        "--print_log",
+        "--print-log",
         default=False,
         action="store_true",
         help="Print unit.log to stdout in case of errors",
     )
     parser.addoption(
-        "--save_log",
+        "--save-log",
         default=False,
         action="store_true",
         help="Save unit.log after the test execution",
@@ -44,16 +46,24 @@ def pytest_addoption(parser):
         action="store_true",
         help="Run unsafe tests",
     )
+    parser.addoption(
+        "--user",
+        type=str,
+        help="Default user for non-privileged processes of unitd",
+    )
 
 
 unit_instance = {}
 _processes = []
-option = None
-
 
 def pytest_configure(config):
-    global option
-    option = config.option
+    option.config = config.option
+
+    option.detailed = config.option.detailed
+    option.print_log = config.option.print_log
+    option.save_log = config.option.save_log
+    option.unsafe = config.option.unsafe
+    option.user = config.option.user
 
     option.generated_tests = {}
     option.current_dir = os.path.abspath(
@@ -63,14 +73,13 @@ def pytest_configure(config):
     option.architecture = platform.architecture()[0]
     option.system = platform.system()
 
+    option.cache_dir = tempfile.mkdtemp(prefix='unit-test-cache-')
+    public_dir(option.cache_dir)
+
     # set stdout to non-blocking
 
     if option.detailed or option.print_log:
         fcntl.fcntl(sys.stdout.fileno(), fcntl.F_SETFL, 0)
-
-
-def skip_alert(*alerts):
-    option.skip_alerts.extend(alerts)
 
 
 def pytest_generate_tests(metafunc):
@@ -122,6 +131,7 @@ def pytest_sessionstart(session):
     option.available = {'modules': {}, 'features': {}}
 
     unit = unit_run()
+    option.temp_dir = unit['temp_dir']
 
     # read unit.log
 
@@ -160,7 +170,11 @@ def pytest_sessionstart(session):
         k: v for k, v in option.available['modules'].items() if v is not None
     }
 
+    check_isolation()
+
     unit_stop()
+
+    _check_alerts()
 
     shutil.rmtree(unit_instance['temp_dir'])
 
@@ -175,6 +189,40 @@ def pytest_runtest_makereport(item, call):
     # be "setup", "call", "teardown"
 
     setattr(item, "rep_" + rep.when, rep)
+
+
+@pytest.fixture(scope='class', autouse=True)
+def check_prerequisites(request):
+    cls = request.cls
+    missed = []
+
+    # check modules
+
+    if 'modules' in cls.prerequisites:
+        available_modules = list(option.available['modules'].keys())
+
+        for module in cls.prerequisites['modules']:
+            if module in available_modules:
+                continue
+
+            missed.append(module)
+
+    if missed:
+        pytest.skip('Unit has no ' + ', '.join(missed) + ' module(s)')
+
+    # check features
+
+    if 'features' in cls.prerequisites:
+        available_features = list(option.available['features'].keys())
+
+        for feature in cls.prerequisites['features']:
+            if feature in available_features:
+                continue
+
+            missed.append(feature)
+
+    if missed:
+        pytest.skip(', '.join(missed) + ' feature(s) not supported')
 
 
 @pytest.fixture(autouse=True)
@@ -239,26 +287,28 @@ def unit_run():
 
     os.mkdir(temp_dir + '/state')
 
+    unitd_args = [
+        unitd,
+        '--no-daemon',
+        '--modules',
+        build_dir,
+        '--state',
+        temp_dir + '/state',
+        '--pid',
+        temp_dir + '/unit.pid',
+        '--log',
+        temp_dir + '/unit.log',
+        '--control',
+        'unix:' + temp_dir + '/control.unit.sock',
+        '--tmp',
+        temp_dir,
+    ]
+
+    if option.user:
+        unitd_args.extend(['--user', option.user])
+
     with open(temp_dir + '/unit.log', 'w') as log:
-        unit_instance['process'] = subprocess.Popen(
-            [
-                unitd,
-                '--no-daemon',
-                '--modules',
-                build_dir,
-                '--state',
-                temp_dir + '/state',
-                '--pid',
-                temp_dir + '/unit.pid',
-                '--log',
-                temp_dir + '/unit.log',
-                '--control',
-                'unix:' + temp_dir + '/control.unit.sock',
-                '--tmp',
-                temp_dir,
-            ],
-            stderr=log,
-        )
+        unit_instance['process'] = subprocess.Popen(unitd_args, stderr=log)
 
     if not waitforfiles(temp_dir + '/control.unit.sock'):
         _print_log()
@@ -293,34 +343,6 @@ def unit_stop():
         p.kill()
         return 'Could not terminate unit'
 
-def public_dir(path):
-    os.chmod(path, 0o777)
-
-    for root, dirs, files in os.walk(path):
-        for d in dirs:
-            os.chmod(os.path.join(root, d), 0o777)
-        for f in files:
-            os.chmod(os.path.join(root, f), 0o777)
-
-def waitforfiles(*files):
-    for i in range(50):
-        wait = False
-        ret = False
-
-        for f in files:
-            if not os.path.exists(f):
-                wait = True
-                break
-
-        if wait:
-            time.sleep(0.1)
-
-        else:
-            ret = True
-            break
-
-    return ret
-
 
 
 def _check_alerts(path=None):
@@ -335,7 +357,7 @@ def _check_alerts(path=None):
     alerts = re.findall(r'.+\[alert\].+', log)
 
     if alerts:
-        print('All alerts/sanitizer errors found in log:')
+        print('\nAll alerts/sanitizer errors found in log:')
         [print(alert) for alert in alerts]
         found = True
 
@@ -399,26 +421,13 @@ def stop_processes():
         return 'Fail to stop process(es)'
 
 
-def waitforsocket(port):
-    ret = False
+@pytest.fixture()
+def skip_alert():
+    def _skip(*alerts):
+        option.skip_alerts.extend(alerts)
 
-    for i in range(50):
-        try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.connect(('127.0.0.1', port))
-            ret = True
-            break
+    return _skip
 
-        except KeyboardInterrupt:
-            raise
-
-        except:
-            sock.close()
-            time.sleep(0.1)
-
-    sock.close()
-
-    assert ret, 'socket connected'
 
 @pytest.fixture
 def temp_dir(request):
@@ -432,5 +441,10 @@ def is_unsafe(request):
 def is_su(request):
     return os.geteuid() == 0
 
+@pytest.fixture
+def unit_pid(request):
+    return unit_instance['process'].pid
+
 def pytest_sessionfinish(session):
     unit_stop()
+    shutil.rmtree(option.cache_dir)

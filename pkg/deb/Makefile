@@ -2,9 +2,10 @@
 
 include ../../version
 
+DEFAULT_VERSION := $(NXT_VERSION)
 DEFAULT_RELEASE := 1
 
-VERSION ?= $(NXT_VERSION)
+VERSION ?= $(DEFAULT_VERSION)
 RELEASE ?= $(DEFAULT_RELEASE)
 
 SRCDIR=	unit-$(VERSION)
@@ -157,6 +158,8 @@ CONFIGURE_ARGS=\
 	--pid=/var/run/unit.pid \
 	--log=/var/log/unit.log \
 	--tmp=/var/tmp \
+	--user=unit \
+	--group=unit \
 	--tests \
 	--openssl
 
@@ -205,6 +208,7 @@ debuild/$(SRCDIR)/debian:
         cat debian/rules.in | sed \
                 -e "s#%%CONFIGURE_ARGS%%#$(CONFIGURE_ARGS)#g" \
         > debuild/$(SRCDIR)/debian/rules ; \
+	chmod +x debuild/$(SRCDIR)/debian/rules ; \
 	}
 
 debuild/$(SRCDIR)/debian/changelog: ../../docs/changes.xml | debuild/$(SRCDIR)/debian
@@ -314,7 +318,7 @@ test: unit modules
 		test -h debuild/unit-$(VERSION)/debian/build-unit/build/$${soname} || \
 		ln -fs `pwd`/$${so} debuild/unit-$(VERSION)/debian/build-unit/build/$${soname} ; \
 	done ; \
-	( cd debuild/unit-$(VERSION)/debian/build-unit && env python3 -m pytest ) ; \
+	( cd debuild/unit-$(VERSION)/debian/build-unit && env python3 -m pytest --user=nobody $(PYTEST_ARGS) ) ; \
 	}
 
 test-debug: unit modules
@@ -325,7 +329,7 @@ test-debug: unit modules
 		test -h debuild/unit-$(VERSION)/debian/build-unit-debug/build/$${soname} || \
 		ln -fs `pwd`/$${so} debuild/unit-$(VERSION)/debian/build-unit-debug/build/$${soname} ; \
 	done ; \
-	( cd debuild/unit-$(VERSION)/debian/build-unit-debug && env python3 -m pytest ) ; \
+	( cd debuild/unit-$(VERSION)/debian/build-unit-debug && env python3 -m pytest --user=nobody $(PYTEST_ARGS) ) ; \
 	}
 
 clean:

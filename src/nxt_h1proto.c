@@ -174,6 +174,8 @@ static nxt_http_field_proc_t           nxt_h1p_fields[] = {
     { nxt_string("Content-Type"),      &nxt_http_request_field,
         offsetof(nxt_http_request_t, content_type) },
     { nxt_string("Content-Length"),    &nxt_http_request_content_length, 0 },
+    { nxt_string("Authorization"),     &nxt_http_request_field,
+        offsetof(nxt_http_request_t, authorization) },
 };
 
 
@@ -1151,19 +1153,19 @@ static const nxt_str_t  nxt_http_client_error[] = {
     nxt_string("HTTP/1.1 415 Unsupported Media Type\r\n"),
     nxt_string("HTTP/1.1 416 Range Not Satisfiable\r\n"),
     nxt_string("HTTP/1.1 417 Expectation Failed\r\n"),
-    nxt_string("HTTP/1.1 418\r\n"),
-    nxt_string("HTTP/1.1 419\r\n"),
-    nxt_string("HTTP/1.1 420\r\n"),
-    nxt_string("HTTP/1.1 421\r\n"),
-    nxt_string("HTTP/1.1 422\r\n"),
-    nxt_string("HTTP/1.1 423\r\n"),
-    nxt_string("HTTP/1.1 424\r\n"),
-    nxt_string("HTTP/1.1 425\r\n"),
+    nxt_string("HTTP/1.1 418 I'm a teapot\r\n"),
+    nxt_string("HTTP/1.1 419 \r\n"),
+    nxt_string("HTTP/1.1 420 \r\n"),
+    nxt_string("HTTP/1.1 421 Misdirected Request\r\n"),
+    nxt_string("HTTP/1.1 422 Unprocessable Entity\r\n"),
+    nxt_string("HTTP/1.1 423 Locked\r\n"),
+    nxt_string("HTTP/1.1 424 Failed Dependency\r\n"),
+    nxt_string("HTTP/1.1 425 \r\n"),
     nxt_string("HTTP/1.1 426 Upgrade Required\r\n"),
-    nxt_string("HTTP/1.1 427\r\n"),
-    nxt_string("HTTP/1.1 428\r\n"),
-    nxt_string("HTTP/1.1 429\r\n"),
-    nxt_string("HTTP/1.1 430\r\n"),
+    nxt_string("HTTP/1.1 427 \r\n"),
+    nxt_string("HTTP/1.1 428 \r\n"),
+    nxt_string("HTTP/1.1 429 \r\n"),
+    nxt_string("HTTP/1.1 430 \r\n"),
     nxt_string("HTTP/1.1 431 Request Header Fields Too Large\r\n"),
 };
 
@@ -1190,7 +1192,7 @@ static const nxt_str_t  nxt_http_server_error[] = {
 };
 
 
-#define UNKNOWN_STATUS_LENGTH  nxt_length("HTTP/1.1 65536\r\n")
+#define UNKNOWN_STATUS_LENGTH  nxt_length("HTTP/1.1 999 \r\n")
 
 static void
 nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r,
@@ -1248,13 +1250,16 @@ nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r,
     {
         status = &nxt_http_server_error[n - NXT_HTTP_INTERNAL_SERVER_ERROR];
 
-    } else {
-        p = nxt_sprintf(buf, buf + UNKNOWN_STATUS_LENGTH,
-                        "HTTP/1.1 %03d\r\n", n);
+    } else if (n <= NXT_HTTP_STATUS_MAX) {
+        (void) nxt_sprintf(buf, buf + UNKNOWN_STATUS_LENGTH,
+                           "HTTP/1.1 %03d \r\n", n);
 
-        unknown_status.length = p - buf;
+        unknown_status.length = UNKNOWN_STATUS_LENGTH;
         unknown_status.start = buf;
         status = &unknown_status;
+
+    } else {
+        status = &nxt_http_server_error[0];
     }
 
     size = status->length;

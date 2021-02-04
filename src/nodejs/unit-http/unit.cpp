@@ -13,23 +13,138 @@
 #include <nxt_unit_websocket.h>
 
 
-static void delete_port_data(uv_handle_t* handle);
-
 napi_ref Unit::constructor_;
 
 
 struct port_data_t {
-    nxt_unit_ctx_t      *ctx;
-    nxt_unit_port_t     *port;
-    uv_poll_t           poll;
+    port_data_t(nxt_unit_ctx_t *c, nxt_unit_port_t *p);
+
+    void process_port_msg();
+    void stop();
+
+    template<typename T>
+    static port_data_t *get(T *handle);
+
+    static void read_callback(uv_poll_t *handle, int status, int events);
+    static void timer_callback(uv_timer_t *handle);
+    static void delete_data(uv_handle_t* handle);
+
+    nxt_unit_ctx_t   *ctx;
+    nxt_unit_port_t  *port;
+    uv_poll_t        poll;
+    uv_timer_t       timer;
+    int              ref_count;
+    bool             scheduled;
+    bool             stopped;
 };
 
 
 struct req_data_t {
     napi_ref  sock_ref;
+    napi_ref  req_ref;
     napi_ref  resp_ref;
     napi_ref  conn_ref;
 };
+
+
+port_data_t::port_data_t(nxt_unit_ctx_t *c, nxt_unit_port_t *p) :
+    ctx(c), port(p), ref_count(0), scheduled(false), stopped(false)
+{
+    timer.type = UV_UNKNOWN_HANDLE;
+}
+
+
+void
+port_data_t::process_port_msg()
+{
+    int  rc, err;
+
+    rc = nxt_unit_process_port_msg(ctx, port);
+
+    if (rc != NXT_UNIT_OK) {
+        return;
+    }
+
+    if (timer.type == UV_UNKNOWN_HANDLE) {
+        err = uv_timer_init(poll.loop, &timer);
+        if (err < 0) {
+            nxt_unit_warn(ctx, "Failed to init uv.poll");
+            return;
+        }
+
+        ref_count++;
+        timer.data = this;
+    }
+
+    if (!scheduled && !stopped) {
+        uv_timer_start(&timer, timer_callback, 0, 0);
+
+        scheduled = true;
+    }
+}
+
+
+void
+port_data_t::stop()
+{
+    stopped = true;
+
+    uv_poll_stop(&poll);
+
+    uv_close((uv_handle_t *) &poll, delete_data);
+
+    if (timer.type == UV_UNKNOWN_HANDLE) {
+        return;
+    }
+
+    uv_timer_stop(&timer);
+
+    uv_close((uv_handle_t *) &timer, delete_data);
+}
+
+
+template<typename T>
+port_data_t *
+port_data_t::get(T *handle)
+{
+    return (port_data_t *) handle->data;
+}
+
+
+void
+port_data_t::read_callback(uv_poll_t *handle, int status, int events)
+{
+    get(handle)->process_port_msg();
+}
+
+
+void
+port_data_t::timer_callback(uv_timer_t *handle)
+{
+    port_data_t  *data;
+
+    data = get(handle);
+
+    data->scheduled = false;
+    if (data->stopped) {
+        return;
+    }
+
+    data->process_port_msg();
+}
+
+
+void
+port_data_t::delete_data(uv_handle_t* handle)
+{
+    port_data_t  *data;
+
+    data = get(handle);
+
+    if (--data->ref_count <= 0) {
+        delete data;
+    }
+}
 
 
 Unit::Unit(napi_env env, napi_value jsthis):
@@ -65,6 +180,7 @@ Unit::init(napi_env env, napi_value exports)
         constructor_ = napi.create_reference(ctor);
 
         napi.set_named_property(exports, "Unit", ctor);
+        napi.set_named_property(exports, "request_read", request_read);
         napi.set_named_property(exports, "response_send_headers",
                                 response_send_headers);
         napi.set_named_property(exports, "response_write", response_write);
@@ -206,7 +322,7 @@ Unit::request_handler(nxt_unit_request_info_t *req)
         server_obj = get_server_object();
 
         socket = create_socket(server_obj, req);
-        request = create_request(server_obj, socket);
+        request = create_request(server_obj, socket, req);
         response = create_response(server_obj, request, req);
 
         create_headers(req, request);
@@ -301,6 +417,7 @@ Unit::close_handler(nxt_unit_request_info_t *req)
                       nxt_napi::create(0));
 
         remove_wrap(req_data->sock_ref);
+        remove_wrap(req_data->req_ref);
         remove_wrap(req_data->resp_ref);
         remove_wrap(req_data->conn_ref);
 
@@ -350,34 +467,23 @@ Unit::shm_ack_handler(nxt_unit_ctx_t *ctx)
 }
 
 
-static void
-nxt_uv_read_callback(uv_poll_t *handle, int status, int events)
-{
-    port_data_t  *data;
-
-    data = (port_data_t *) handle->data;
-
-    nxt_unit_process_port_msg(data->ctx, data->port);
-}
-
-
 int
 Unit::add_port(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port)
 {
-    int               err;
-    Unit              *obj;
-    uv_loop_t         *loop;
-    port_data_t       *data;
-    napi_status       status;
+    int          err;
+    Unit         *obj;
+    uv_loop_t    *loop;
+    port_data_t  *data;
+    napi_status  status;
 
     if (port->in_fd != -1) {
-        obj = reinterpret_cast<Unit *>(ctx->unit->data);
-
         if (fcntl(port->in_fd, F_SETFL, O_NONBLOCK) == -1) {
             nxt_unit_warn(ctx, "fcntl(%d, O_NONBLOCK) failed: %s (%d)",
                           port->in_fd, strerror(errno), errno);
             return -1;
         }
+
+        obj = reinterpret_cast<Unit *>(ctx->unit->data);
 
         status = napi_get_uv_event_loop(obj->env(), &loop);
         if (status != napi_ok) {
@@ -385,24 +491,26 @@ Unit::add_port(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port)
             return NXT_UNIT_ERROR;
         }
 
-        data = new port_data_t;
+        data = new port_data_t(ctx, port);
 
         err = uv_poll_init(loop, &data->poll, port->in_fd);
         if (err < 0) {
             nxt_unit_warn(ctx, "Failed to init uv.poll");
+            delete data;
             return NXT_UNIT_ERROR;
         }
 
-        err = uv_poll_start(&data->poll, UV_READABLE, nxt_uv_read_callback);
+        err = uv_poll_start(&data->poll, UV_READABLE,
+                            port_data_t::read_callback);
         if (err < 0) {
             nxt_unit_warn(ctx, "Failed to start uv.poll");
+            delete data;
             return NXT_UNIT_ERROR;
         }
 
         port->data = data;
 
-        data->ctx = ctx;
-        data->port = port;
+        data->ref_count++;
         data->poll.data = data;
     }
 
@@ -418,23 +526,8 @@ Unit::remove_port(nxt_unit_t *unit, nxt_unit_port_t *port)
     if (port->data != NULL) {
         data = (port_data_t *) port->data;
 
-        if (data->port == port) {
-            uv_poll_stop(&data->poll);
-
-            uv_close((uv_handle_t *) &data->poll, delete_port_data);
-        }
+        data->stop();
     }
-}
-
-
-static void
-delete_port_data(uv_handle_t* handle)
-{
-    port_data_t  *data;
-
-    data = (port_data_t *) handle->data;
-
-    delete data;
 }
 
 
@@ -488,9 +581,8 @@ Unit::get_server_object()
 void
 Unit::create_headers(nxt_unit_request_info_t *req, napi_value request)
 {
-    void                *data;
     uint32_t            i;
-    napi_value          headers, raw_headers, buffer;
+    napi_value          headers, raw_headers;
     napi_status         status;
     nxt_unit_request_t  *r;
 
@@ -515,11 +607,6 @@ Unit::create_headers(nxt_unit_request_info_t *req, napi_value request)
     set_named_property(request, "url", r->target, r->target_length);
 
     set_named_property(request, "_websocket_handshake", r->websocket_handshake);
-
-    buffer = create_buffer((size_t) req->content_length, &data);
-    nxt_unit_request_read(req, data, req->content_length);
-
-    set_named_property(request, "_data", buffer);
 }
 
 
@@ -577,13 +664,20 @@ Unit::create_socket(napi_value server_obj, nxt_unit_request_info_t *req)
 
 
 napi_value
-Unit::create_request(napi_value server_obj, napi_value socket)
+Unit::create_request(napi_value server_obj, napi_value socket,
+    nxt_unit_request_info_t *req)
 {
-    napi_value  constructor;
+    napi_value  constructor, res;
+    req_data_t  *req_data;
 
     constructor = get_named_property(server_obj, "ServerRequest");
 
-    return new_instance(constructor, server_obj, socket);
+    res = new_instance(constructor, server_obj, socket);
+
+    req_data = (req_data_t *) req->data;
+    req_data->req_ref = wrap(res, req, req_destroy);
+
+    return res;
 }
 
 
@@ -639,6 +733,47 @@ Unit::create_websocket_frame(napi_value server_obj,
     set_named_property(res, "binaryPayload", buffer);
 
     return res;
+}
+
+
+napi_value
+Unit::request_read(napi_env env, napi_callback_info info)
+{
+    void                     *data;
+    uint32_t                 wm;
+    nxt_napi                 napi(env);
+    napi_value               this_arg, argv, buffer;
+    nxt_unit_request_info_t  *req;
+
+    try {
+        this_arg = napi.get_cb_info(info, argv);
+
+        try {
+            req = napi.get_request_info(this_arg);
+
+        } catch (exception &e) {
+            return nullptr;
+        }
+
+        if (req->content_length == 0) {
+            return nullptr;
+        }
+
+        wm = napi.get_value_uint32(argv);
+
+        if (wm > req->content_length) {
+            wm = req->content_length;
+        }
+
+        buffer = napi.create_buffer((size_t) wm, &data);
+        nxt_unit_request_read(req, data, wm);
+
+    } catch (exception &e) {
+        napi.throw_error(e);
+        return nullptr;
+    }
+
+    return buffer;
 }
 
 
@@ -884,6 +1019,7 @@ Unit::response_end(napi_env env, napi_callback_info info)
         req_data = (req_data_t *) req->data;
 
         napi.remove_wrap(req_data->sock_ref);
+        napi.remove_wrap(req_data->req_ref);
         napi.remove_wrap(req_data->resp_ref);
         napi.remove_wrap(req_data->conn_ref);
 
@@ -998,33 +1134,28 @@ Unit::websocket_set_sock(napi_env env, napi_callback_info info)
 
 
 void
-Unit::conn_destroy(napi_env env, void *nativeObject, void *finalize_hint)
+Unit::conn_destroy(napi_env env, void *r, void *finalize_hint)
 {
-    nxt_unit_request_info_t  *req;
-
-    req = (nxt_unit_request_info_t *) nativeObject;
-
-    nxt_unit_warn(NULL, "conn_destroy: %p", req);
+    nxt_unit_req_debug(NULL, "conn_destroy: %p", r);
 }
 
 
 void
-Unit::sock_destroy(napi_env env, void *nativeObject, void *finalize_hint)
+Unit::sock_destroy(napi_env env, void *r, void *finalize_hint)
 {
-    nxt_unit_request_info_t  *req;
-
-    req = (nxt_unit_request_info_t *) nativeObject;
-
-    nxt_unit_warn(NULL, "sock_destroy: %p", req);
+    nxt_unit_req_debug(NULL, "sock_destroy: %p", r);
 }
 
 
 void
-Unit::resp_destroy(napi_env env, void *nativeObject, void *finalize_hint)
+Unit::req_destroy(napi_env env, void *r, void *finalize_hint)
 {
-    nxt_unit_request_info_t  *req;
+    nxt_unit_req_debug(NULL, "req_destroy: %p", r);
+}
 
-    req = (nxt_unit_request_info_t *) nativeObject;
 
-    nxt_unit_warn(NULL, "resp_destroy: %p", req);
+void
+Unit::resp_destroy(napi_env env, void *r, void *finalize_hint)
+{
+    nxt_unit_req_debug(NULL, "resp_destroy: %p", r);
 }

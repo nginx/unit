@@ -2,8 +2,8 @@ import os
 import ssl
 import subprocess
 
-from conftest import option
 from unit.applications.proto import TestApplicationProto
+from unit.option import option
 
 
 class TestApplicationTLS(TestApplicationProto):

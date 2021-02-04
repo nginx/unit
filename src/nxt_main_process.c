@@ -182,7 +182,7 @@ static nxt_conf_map_t  nxt_python_app_conf[] = {
 
     {
         nxt_string("path"),
-        NXT_CONF_MAP_STR,
+        NXT_CONF_MAP_PTR,
         offsetof(nxt_common_app_conf_t, u.python.path),
     },
 
@@ -1001,20 +1001,21 @@ nxt_main_port_socket_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_listening_socket_t  ls;
     u_char                  message[2048];
 
+    port = nxt_runtime_port_find(task->thread->runtime, msg->port_msg.pid,
+                                 msg->port_msg.reply_port);
+    if (nxt_slow_path(port == NULL)) {
+        return;
+    }
+
     b = msg->buf;
     sa = (nxt_sockaddr_t *) b->mem.pos;
 
     /* TODO check b size and make plain */
 
-    out = NULL;
-
     ls.socket = -1;
     ls.error = NXT_SOCKET_ERROR_SYSTEM;
     ls.start = message;
     ls.end = message + sizeof(message);
-
-    port = nxt_runtime_port_find(task->thread->runtime, msg->port_msg.pid,
-                                 msg->port_msg.reply_port);
 
     nxt_debug(task, "listening socket \"%*s\"",
               (size_t) sa->length, nxt_sockaddr_start(sa));
@@ -1025,6 +1026,8 @@ nxt_main_port_socket_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         nxt_debug(task, "socket(\"%*s\"): %d",
                   (size_t) sa->length, nxt_sockaddr_start(sa), ls.socket);
 
+        out = NULL;
+
         type = NXT_PORT_MSG_RPC_READY_LAST | NXT_PORT_MSG_CLOSE_FD;
 
     } else {
@@ -1034,13 +1037,11 @@ nxt_main_port_socket_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
         out = nxt_buf_mem_ts_alloc(task, task->thread->engine->mem_pool,
                                    size + 1);
-        if (nxt_slow_path(out == NULL)) {
-            return;
+        if (nxt_fast_path(out != NULL)) {
+            *out->mem.free++ = (uint8_t) ls.error;
+
+            out->mem.free = nxt_cpymem(out->mem.free, ls.start, size);
         }
-
-        *out->mem.free++ = (uint8_t) ls.error;
-
-        out->mem.free = nxt_cpymem(out->mem.free, ls.start, size);
 
         type = NXT_PORT_MSG_RPC_ERROR;
     }
@@ -1408,11 +1409,44 @@ nxt_app_lang_compare(const void *v1, const void *v2)
 static void
 nxt_main_port_conf_store_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
-    ssize_t        n, size, offset;
-    nxt_buf_t      *b;
+    void           *p;
+    size_t         size;
+    ssize_t        n;
     nxt_int_t      ret;
     nxt_file_t     file;
     nxt_runtime_t  *rt;
+
+    p = MAP_FAILED;
+
+    /*
+     * Ancient compilers like gcc 4.8.5 on CentOS 7 wants 'size' to be
+     * initialized in 'cleanup' section.
+     */
+    size = 0;
+
+    if (nxt_slow_path(msg->fd[0] == -1)) {
+        nxt_alert(task, "conf_store_handler: invalid shm fd");
+        goto error;
+    }
+
+    if (nxt_buf_mem_used_size(&msg->buf->mem) != sizeof(size_t)) {
+        nxt_alert(task, "conf_store_handler: unexpected buffer size (%d)",
+                  (int) nxt_buf_mem_used_size(&msg->buf->mem));
+        goto error;
+    }
+
+    nxt_memcpy(&size, msg->buf->mem.pos, sizeof(size_t));
+
+    p = nxt_mem_mmap(NULL, size, PROT_READ, MAP_SHARED, msg->fd[0], 0);
+
+    nxt_fd_close(msg->fd[0]);
+    msg->fd[0] = -1;
+
+    if (nxt_slow_path(p == MAP_FAILED)) {
+        goto error;
+    }
+
+    nxt_debug(task, "conf_store_handler(%uz): %*s", size, size, p);
 
     nxt_memzero(&file, sizeof(nxt_file_t));
 
@@ -1427,33 +1461,35 @@ nxt_main_port_conf_store_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         goto error;
     }
 
-    offset = 0;
-
-    for (b = msg->buf; b != NULL; b = b->next) {
-        size = nxt_buf_mem_used_size(&b->mem);
-
-        n = nxt_file_write(&file, b->mem.pos, size, offset);
-
-        if (nxt_slow_path(n != size)) {
-            nxt_file_close(task, &file);
-            (void) nxt_file_delete(file.name);
-            goto error;
-        }
-
-        offset += n;
-    }
+    n = nxt_file_write(&file, p, size, 0);
 
     nxt_file_close(task, &file);
+
+    if (nxt_slow_path(n != (ssize_t) size)) {
+        (void) nxt_file_delete(file.name);
+        goto error;
+    }
 
     ret = nxt_file_rename(file.name, (nxt_file_name_t *) rt->conf);
 
     if (nxt_fast_path(ret == NXT_OK)) {
-        return;
+        goto cleanup;
     }
 
 error:
 
     nxt_alert(task, "failed to store current configuration");
+
+cleanup:
+
+    if (p != MAP_FAILED) {
+        nxt_mem_munmap(p, size);
+    }
+
+    if (msg->fd[0] != -1) {
+        nxt_fd_close(msg->fd[0]);
+        msg->fd[0] = -1;
+    }
 }
 
 

@@ -1,9 +1,8 @@
 import os
 from subprocess import call
 
-from conftest import unit_stop
-from conftest import waitforfiles
 from unit.applications.lang.python import TestApplicationPython
+from unit.utils import waitforfiles
 
 
 class TestUSR1(TestApplicationPython):
@@ -41,8 +40,6 @@ class TestUSR1(TestApplicationPython):
 
         assert self.get(url='/usr1')['status'] == 200
 
-        unit_stop()
-
         assert (
             self.wait_for_record(r'"GET /usr1 HTTP/1.1" 200 0 "-" "-"', log)
             is not None
@@ -73,8 +70,6 @@ class TestUSR1(TestApplicationPython):
 
         body = 'body_for_a_log_unit'
         assert self.post(body=body)['status'] == 200
-
-        unit_stop()
 
         assert self.wait_for_record(body) is not None, 'rename new'
         assert self.search_in_log(body, log_new) is None, 'rename new 2'

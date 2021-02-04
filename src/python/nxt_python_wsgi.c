@@ -59,6 +59,7 @@ static void nxt_python_wsgi_done(void);
 static void nxt_python_request_handler(nxt_unit_request_info_t *req);
 
 static PyObject *nxt_python_create_environ(nxt_python_app_conf_t *c);
+static PyObject *nxt_python_copy_environ(nxt_unit_request_info_t *req);
 static PyObject *nxt_python_get_environ(nxt_python_ctx_t *pctx);
 static int nxt_python_add_sptr(nxt_python_ctx_t *pctx, PyObject *name,
     nxt_unit_sptr_t *sptr, uint32_t size);
@@ -221,6 +222,7 @@ nxt_python_wsgi_ctx_data_alloc(void **pdata)
     }
 
     pctx->write = NULL;
+    pctx->environ = NULL;
 
     pctx->start_resp = PyCFunction_New(nxt_py_start_resp_method,
                                        (PyObject *) pctx);
@@ -234,6 +236,11 @@ nxt_python_wsgi_ctx_data_alloc(void **pdata)
     if (nxt_slow_path(pctx->write == NULL)) {
         nxt_unit_alert(NULL,
                        "Python failed to initialize the \"write\" function");
+        goto fail;
+    }
+
+    pctx->environ = nxt_python_copy_environ(NULL);
+    if (nxt_slow_path(pctx->environ == NULL)) {
         goto fail;
     }
 
@@ -258,6 +265,7 @@ nxt_python_wsgi_ctx_data_free(void *data)
 
     Py_XDECREF(pctx->start_resp);
     Py_XDECREF(pctx->write);
+    Py_XDECREF(pctx->environ);
     Py_XDECREF(pctx);
 }
 
@@ -295,6 +303,7 @@ nxt_python_request_handler(nxt_unit_request_info_t *req)
     int               rc;
     PyObject          *environ, *args, *response, *iterator, *item;
     PyObject          *close, *result;
+    nxt_bool_t        prepare_environ;
     nxt_python_ctx_t  *pctx;
 
     pctx = req->ctx->data;
@@ -304,6 +313,19 @@ nxt_python_request_handler(nxt_unit_request_info_t *req)
     pctx->req = req;
 
     PyEval_RestoreThread(pctx->thread_state);
+
+    if (nxt_slow_path(pctx->environ == NULL)) {
+        pctx->environ = nxt_python_copy_environ(req);
+
+        if (pctx->environ == NULL) {
+            prepare_environ = 0;
+
+            rc = NXT_UNIT_ERROR;
+            goto done;
+        }
+    }
+
+    prepare_environ = 1;
 
     environ = nxt_python_get_environ(pctx);
     if (nxt_slow_path(environ == NULL)) {
@@ -418,6 +440,14 @@ done:
     pctx->req = NULL;
 
     nxt_unit_request_done(req, rc);
+
+    if (nxt_fast_path(prepare_environ)) {
+        PyEval_RestoreThread(pctx->thread_state);
+
+        pctx->environ = nxt_python_copy_environ(NULL);
+
+        pctx->thread_state = PyEval_SaveThread();
+    }
 }
 
 
@@ -532,6 +562,23 @@ fail:
 
 
 static PyObject *
+nxt_python_copy_environ(nxt_unit_request_info_t *req)
+{
+    PyObject  *environ;
+
+    environ = PyDict_Copy(nxt_py_environ_ptyp);
+
+    if (nxt_slow_path(environ == NULL)) {
+        nxt_unit_req_alert(req,
+                           "Python failed to copy the \"environ\" dictionary");
+        nxt_python_print_exception();
+    }
+
+    return environ;
+}
+
+
+static PyObject *
 nxt_python_get_environ(nxt_python_ctx_t *pctx)
 {
     int                 rc;
@@ -539,16 +586,6 @@ nxt_python_get_environ(nxt_python_ctx_t *pctx)
     PyObject            *environ;
     nxt_unit_field_t    *f, *f2;
     nxt_unit_request_t  *r;
-
-    environ = PyDict_Copy(nxt_py_environ_ptyp);
-    if (nxt_slow_path(environ == NULL)) {
-        nxt_unit_req_error(pctx->req,
-                           "Python failed to copy the \"environ\" dictionary");
-
-        return NULL;
-    }
-
-    pctx->environ = environ;
 
     r = pctx->req->request;
 
@@ -628,7 +665,7 @@ nxt_python_get_environ(nxt_python_ctx_t *pctx)
 
 #undef RC
 
-    if (nxt_slow_path(PyDict_SetItem(environ, nxt_py_wsgi_input_str,
+    if (nxt_slow_path(PyDict_SetItem(pctx->environ, nxt_py_wsgi_input_str,
                                      (PyObject *) pctx) != 0))
     {
         nxt_unit_req_error(pctx->req,
@@ -636,11 +673,15 @@ nxt_python_get_environ(nxt_python_ctx_t *pctx)
         goto fail;
     }
 
+    environ = pctx->environ;
+    pctx->environ = NULL;
+
     return environ;
 
 fail:
 
-    Py_DECREF(environ);
+    Py_DECREF(pctx->environ);
+    pctx->environ = NULL;
 
     return NULL;
 }

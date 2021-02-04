@@ -3,8 +3,8 @@ import shutil
 from urllib.parse import quote
 
 import pytest
-from conftest import option
 from unit.applications.proto import TestApplicationProto
+from unit.option import option
 
 
 class TestApplicationPython(TestApplicationProto):

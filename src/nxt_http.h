@@ -156,6 +156,7 @@ struct nxt_http_request_s {
     nxt_http_field_t                *cookie;
     nxt_http_field_t                *referer;
     nxt_http_field_t                *user_agent;
+    nxt_http_field_t                *authorization;
     nxt_off_t                       content_length_n;
 
     nxt_sockaddr_t                  *remote;

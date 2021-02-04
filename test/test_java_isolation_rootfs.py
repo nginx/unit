@@ -2,9 +2,8 @@ import os
 import subprocess
 
 import pytest
-
-from conftest import option
 from unit.applications.lang.java import TestApplicationJava
+from unit.option import option
 
 
 class TestJavaIsolationRootfs(TestApplicationJava):

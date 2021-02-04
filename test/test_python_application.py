@@ -1,14 +1,12 @@
 import grp
+import os
 import pwd
 import re
 import time
 
 import pytest
-
-from conftest import option
-from conftest import skip_alert
-from conftest import unit_stop
 from unit.applications.lang.python import TestApplicationPython
+from unit.option import option
 
 
 class TestPythonApplication(TestApplicationPython):
@@ -156,9 +154,7 @@ custom-header: BLAH
         assert resp['status'] == 200, 'ctx iter status'
         assert resp['body'] == '0123456789', 'ctx iter body'
 
-        self.conf({"listeners": {}, "applications": {}})
-
-        unit_stop()
+        assert 'success' in self.conf({"listeners": {}, "applications": {}})
 
         assert (
             self.wait_for_record(r'RuntimeError') is not None
@@ -336,9 +332,7 @@ Connection: close
 
         self.get()
 
-        self.conf({"listeners": {}, "applications": {}})
-
-        unit_stop()
+        assert 'success' in self.conf({"listeners": {}, "applications": {}})
 
         assert self.wait_for_record(r'At exit called\.') is not None, 'atexit'
 
@@ -497,8 +491,6 @@ last line: 987654321
 
         self.get()
 
-        unit_stop()
-
         assert (
             self.wait_for_record(r'\[error\].+Error in application\.')
             is not None
@@ -520,13 +512,13 @@ last line: 987654321
         assert self.get()['body'] == 'body\n', 'body io file'
 
     @pytest.mark.skip('not yet')
-    def test_python_application_syntax_error(self):
+    def test_python_application_syntax_error(self, skip_alert):
         skip_alert(r'Python failed to import module "wsgi"')
         self.load('syntax_error')
 
         assert self.get()['status'] == 500, 'syntax error'
 
-    def test_python_application_loading_error(self):
+    def test_python_application_loading_error(self, skip_alert):
         skip_alert(r'Python failed to import module "blah"')
 
         self.load('empty', module="blah")
@@ -538,16 +530,12 @@ last line: 987654321
 
         self.get()
 
-        unit_stop()
-
         assert self.wait_for_record(r'Close called\.') is not None, 'close'
 
     def test_python_application_close_error(self):
         self.load('close_error')
 
         self.get()
-
-        unit_stop()
 
         assert (
             self.wait_for_record(r'Close called\.') is not None
@@ -557,8 +545,6 @@ last line: 987654321
         self.load('not_iterable')
 
         self.get()
-
-        unit_stop()
 
         assert (
             self.wait_for_record(
@@ -791,7 +777,7 @@ last line: 987654321
             assert obj['UID'] == nobody_uid, 'root uid group=root'
             assert obj['GID'] == 0, 'root gid group=root'
 
-    def test_python_application_callable(self):
+    def test_python_application_callable(self, skip_alert):
         skip_alert(r'Python failed to get "blah" from module')
         self.load('callable')
 
@@ -804,6 +790,42 @@ last line: 987654321
         self.load('callable', callable="blah")
 
         assert self.get()['status'] not in [200, 204], 'callable response inv'
+
+    def test_python_application_path(self):
+        self.load('path')
+
+        def set_path(path):
+            assert 'success' in self.conf(path, 'applications/path/path')
+
+        def get_path():
+            return self.get()['body'].split(os.pathsep)
+
+        default_path = self.conf_get('/config/applications/path/path')
+        assert 'success' in self.conf(
+            {"PYTHONPATH": default_path},
+            '/config/applications/path/environment',
+        )
+
+        self.conf_delete('/config/applications/path/path')
+        sys_path = get_path()
+
+        set_path('"/blah"')
+        assert ['/blah', *sys_path] == get_path(), 'check path'
+
+        set_path('"/new"')
+        assert ['/new', *sys_path] == get_path(), 'check path update'
+
+        set_path('["/blah1", "/blah2"]')
+        assert ['/blah1', '/blah2', *sys_path] == get_path(), 'check path array'
+
+    def test_python_application_path_invalid(self):
+        self.load('path')
+
+        def check_path(path):
+            assert 'error' in self.conf(path, 'applications/path/path')
+
+        check_path('{}')
+        check_path('["/blah", []]')
 
     def test_python_application_threads(self):
         self.load('threads', threads=4)

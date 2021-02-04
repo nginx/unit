@@ -31,6 +31,7 @@ struct nxt_unit_request_s {
     uint32_t              content_length_field;
     uint32_t              content_type_field;
     uint32_t              cookie_field;
+    uint32_t              authorization_field;
 
     uint64_t              content_length;
 

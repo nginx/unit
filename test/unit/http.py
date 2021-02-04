@@ -7,11 +7,10 @@ import select
 import socket
 
 import pytest
-from conftest import option
-from unit.main import TestUnit
+from unit.option import option
 
 
-class TestHTTP(TestUnit):
+class TestHTTP():
     def http(self, start_str, **kwargs):
         sock_type = kwargs.get('sock_type', 'ipv4')
         port = kwargs.get('port', 7080)

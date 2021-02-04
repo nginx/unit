@@ -3,15 +3,14 @@ import os
 import re
 import time
 
-from conftest import option
-from conftest import public_dir
-from conftest import skip_alert
 from unit.applications.lang.java import TestApplicationJava
+from unit.option import option
+from unit.utils import public_dir
 
 class TestJavaApplication(TestApplicationJava):
     prerequisites = {'modules': {'java': 'all'}}
 
-    def test_java_conf_error(self, temp_dir):
+    def test_java_conf_error(self, temp_dir, skip_alert):
         skip_alert(
             r'realpath.*failed',
             r'failed to apply new conf',

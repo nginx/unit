@@ -1,8 +1,8 @@
 import os
 import subprocess
 
-from conftest import option
 from unit.applications.proto import TestApplicationProto
+from unit.option import option
 
 
 class TestApplicationGo(TestApplicationProto):
@@ -12,6 +12,7 @@ class TestApplicationGo(TestApplicationProto):
 
         env = os.environ.copy()
         env['GOPATH'] = option.current_dir + '/build/go'
+        env['GOCACHE'] = option.cache_dir + '/go'
 
         if static:
             args = [

@@ -3,12 +3,10 @@ import socket
 import time
 
 import pytest
-
-from conftest import option
 from conftest import run_process
-from conftest import skip_alert
-from conftest import waitforsocket
 from unit.applications.lang.python import TestApplicationPython
+from unit.option import option
+from unit.utils import waitforsocket
 
 
 class TestProxy(TestApplicationPython):
@@ -174,7 +172,9 @@ Content-Length: 10
             assert resp['status'] == 200, 'status'
             assert resp['body'] == payload, 'body'
 
-        self.conf({'http': {'max_body_size': 32 * 1024 * 1024}}, 'settings')
+        assert 'success' in self.conf(
+            {'http': {'max_body_size': 32 * 1024 * 1024}}, 'settings'
+        )
 
         payload = '0123456789abcdef' * 32 * 64 * 1024
         resp = self.post_http10(body=payload, read_buffer_size=1024 * 1024)
@@ -482,13 +482,13 @@ Content-Length: 10
         check_proxy('http://[:]:7080')
         check_proxy('http://[::7080')
 
-    def test_proxy_loop(self):
+    def test_proxy_loop(self, skip_alert):
         skip_alert(
             r'socket.*failed',
             r'accept.*failed',
             r'new connections are not accepted',
         )
-        self.conf(
+        assert 'success' in self.conf(
             {
                 "listeners": {
                     "*:7080": {"pass": "routes"},

@@ -3,11 +3,9 @@ import time
 from distutils.version import LooseVersion
 
 import pytest
-
-from conftest import option
-from conftest import skip_alert
 from unit.applications.lang.python import TestApplicationPython
 from unit.applications.websockets import TestApplicationWebsocket
+from unit.option import option
 
 
 class TestASGIWebsockets(TestApplicationPython):
@@ -17,7 +15,8 @@ class TestASGIWebsockets(TestApplicationPython):
 
     ws = TestApplicationWebsocket()
 
-    def setup_method(self):
+    @pytest.fixture(autouse=True)
+    def setup_method_fixture(self, request, skip_alert):
         assert 'success' in self.conf(
             {'http': {'websocket': {'keepalive_interval': 0}}}, 'settings'
         ), 'clear keepalive_interval'
@@ -64,6 +63,9 @@ class TestASGIWebsockets(TestApplicationPython):
             key
         ), 'key'
 
+        # remove "mirror" application
+        self.load('websockets/subprotocol')
+
     def test_asgi_websockets_subprotocol(self):
         self.load('websockets/subprotocol')
 
@@ -85,6 +87,27 @@ class TestASGIWebsockets(TestApplicationPython):
         frame = self.ws.frame_read(sock)
 
         assert message == frame['data'].decode('utf-8'), 'mirror'
+
+        self.ws.frame_write(sock, self.ws.OP_TEXT, message)
+        frame = self.ws.frame_read(sock)
+
+        assert message == frame['data'].decode('utf-8'), 'mirror 2'
+
+        sock.close()
+
+    def test_asgi_websockets_mirror_app_change(self):
+        self.load('websockets/mirror')
+
+        message = 'blah'
+
+        _, sock, _ = self.ws.upgrade()
+
+        self.ws.frame_write(sock, self.ws.OP_TEXT, message)
+        frame = self.ws.frame_read(sock)
+
+        assert message == frame['data'].decode('utf-8'), 'mirror'
+
+        self.load('websockets/subprotocol')
 
         self.ws.frame_write(sock, self.ws.OP_TEXT, message)
         frame = self.ws.frame_read(sock)

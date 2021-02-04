@@ -1686,7 +1686,10 @@ nxt_controller_conf_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 static void
 nxt_controller_conf_store(nxt_task_t *task, nxt_conf_value_t *conf)
 {
+    void           *mem;
+    u_char         *end;
     size_t         size;
+    nxt_fd_t       fd;
     nxt_buf_t      *b;
     nxt_port_t     *main_port;
     nxt_runtime_t  *rt;
@@ -1697,14 +1700,38 @@ nxt_controller_conf_store(nxt_task_t *task, nxt_conf_value_t *conf)
 
     size = nxt_conf_json_length(conf, NULL);
 
-    b = nxt_buf_mem_ts_alloc(task, task->thread->engine->mem_pool, size);
-
-    if (nxt_fast_path(b != NULL)) {
-        b->mem.free = nxt_conf_json_print(b->mem.free, conf, NULL);
-
-        (void) nxt_port_socket_write(task, main_port, NXT_PORT_MSG_CONF_STORE,
-                                     -1, 0, -1, b);
+    fd = nxt_shm_open(task, size);
+    if (nxt_slow_path(fd == -1)) {
+        return;
     }
+
+    mem = nxt_mem_mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (nxt_slow_path(mem == MAP_FAILED)) {
+        goto fail;
+    }
+
+    end = nxt_conf_json_print(mem, conf, NULL);
+
+    nxt_mem_munmap(mem, size);
+
+    size = end - (u_char *) mem;
+
+    b = nxt_buf_mem_alloc(task->thread->engine->mem_pool, sizeof(size_t), 0);
+    if (nxt_slow_path(b == NULL)) {
+        goto fail;
+    }
+
+    b->mem.free = nxt_cpymem(b->mem.pos, &size, sizeof(size_t));
+
+    (void) nxt_port_socket_write(task, main_port,
+                                NXT_PORT_MSG_CONF_STORE | NXT_PORT_MSG_CLOSE_FD,
+                                 fd, 0, -1, b);
+
+    return;
+
+fail:
+
+    nxt_fd_close(fd);
 }
 
 

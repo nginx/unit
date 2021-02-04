@@ -813,6 +813,12 @@ nxt_http_route_ruleset_create(nxt_task_t *task, nxt_mp_t *mp,
 
     next = 0;
 
+    /*
+     * A workaround for GCC 10 with -flto -O2 flags that warns about "name"
+     * may be uninitialized in nxt_http_route_rule_name_create().
+     */
+    nxt_str_null(&name);
+
     for (i = 0; i < n; i++) {
         rule_cv = nxt_conf_next_object_member(ruleset_cv, &name, &next);
 

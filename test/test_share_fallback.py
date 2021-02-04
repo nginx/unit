@@ -1,8 +1,7 @@
 import os
 
-from conftest import option
-from conftest import skip_alert
 from unit.applications.proto import TestApplicationProto
+from unit.option import option
 
 
 class TestStatic(TestApplicationProto):
@@ -117,7 +116,7 @@ class TestStatic(TestApplicationProto):
         assert resp['status'] == 200, 'fallback proxy status'
         assert resp['body'] == '', 'fallback proxy'
 
-    def test_fallback_proxy_loop(self):
+    def test_fallback_proxy_loop(self, skip_alert):
         skip_alert(
             r'open.*/blah/index.html.*failed',
             r'accept.*failed',

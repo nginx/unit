@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 import pytest
-
-from conftest import option
-from conftest import skip_alert
 from unit.applications.proto import TestApplicationProto
+from unit.option import option
 
 
 class TestRouting(TestApplicationProto):
@@ -318,7 +316,7 @@ class TestRouting(TestApplicationProto):
         check_pass_error("%1", "%1")
 
     def test_routes_absent(self):
-        self.conf(
+        assert 'success' in self.conf(
             {
                 "listeners": {"*:7081": {"pass": "applications/empty"}},
                 "applications": {
@@ -366,7 +364,7 @@ class TestRouting(TestApplicationProto):
 
         assert self.get()['status'] == 200, 'route match absent'
 
-    def test_routes_route_action_absent(self):
+    def test_routes_route_action_absent(self, skip_alert):
         skip_alert(r'failed to apply new conf')
 
         assert 'error' in self.conf(
@@ -755,7 +753,7 @@ class TestRouting(TestApplicationProto):
             'routes/main'
         ), 'route edit configure 9'
 
-    def test_match_edit(self):
+    def test_match_edit(self, skip_alert):
         skip_alert(r'failed to apply new conf')
 
         self.route_match({"method": ["GET", "POST"]})
@@ -1352,7 +1350,7 @@ class TestRouting(TestApplicationProto):
         assert self.get(url='/?var2=val2')['status'] == 404, 'arr 7'
         assert self.get(url='/?var3=foo')['status'] == 200, 'arr 8'
 
-    def test_routes_match_arguments_invalid(self):
+    def test_routes_match_arguments_invalid(self, skip_alert):
         # TODO remove it after controller fixed
         skip_alert(r'failed to apply new conf')
 

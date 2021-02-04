@@ -2,7 +2,6 @@
 	"applications": {
 		"example_perl": {
 			"type": "perl",
-			"user": "nobody",
 			"processes": 1,
 			"working_directory": "/usr/share/doc/unit-perl/examples/perl-app",
 			"script": "/usr/share/doc/unit-perl/examples/perl-app/index.pl"

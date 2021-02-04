@@ -5,6 +5,8 @@ X:output method="text";
 X:param format="'generic'";
 X:param pkgname="'unit'";
 X:param configuration="'change_log_conf.xml'";
+X:param curdate;
+X:param curtime;
 
 X:var conf = "document($configuration)/configuration";
 
@@ -58,8 +60,10 @@ X:template = "change_log" { !! "changes"; }
 
 
 X:template = "changes" {
-    X:var pday = { !padded_day(date="@date") }
-    X:var dow = { !day_of_week(date="@date") }
+    X:var date_ = { !getdate(date="@date", curdate="$curdate") }
+    X:var time_ = { !gettime(time="@time", curtime="$curtime") }
+    X:var pday = { !padded_day(date="$date_") }
+    X:var dow = { !day_of_week(date="$date_") }
     X:var apply = { !string_in_list(list="@apply", string="$pkgname") }
     X:var pkgname_ = { !beautify(pkgname="$pkgname") }
 
@@ -77,17 +81,16 @@ X:template = "changes" {
                            '                                                    '),
                     1, $conf/changes/length)}
 
-        !{substring(@date, 9, 2)}
-        !{$conf/changes/month[number(substring(current()/@date,
-                                                            6, 2))]}
-        !{substring(@date, 1, 4)}
+        !{substring($date_, 9, 2)}
+        !{$conf/changes/month[number(substring($date_, 6, 2))]}
+        !{substring($date_, 1, 4)}
     }
 
     X:if "$format='rpm'" {
         !{concat('* ', $conf/changes/day[number($dow)],
-                 $conf/changes/month[number(substring(current()/@date, 6, 2))],
+                 $conf/changes/month[number(substring($date_, 6, 2))],
                  $pday, ' ',
-                 substring(@date, 1, 4), ' ', @packager, ' - ',
+                 substring($date_, 1, 4), ' ', @packager, ' - ',
                  @ver, '-', @rev, '%{?dist}.ngx')}
     }
 
@@ -108,8 +111,8 @@ X:template = "changes" {
         !{concat(' -- ', @packager, '  ',
                  $conf/changes/day[number($dow)], ', ',
                  $pday,
-                 $conf/changes/month[number(substring(current()/@date, 6, 2))],
-                 substring(@date, 1, 4), ' ', @time)}
+                 $conf/changes/month[number(substring($date_, 6, 2))],
+                 substring($date_, 1, 4), ' ', $time_)}
 
         X:text {&#10;}
         X:text {&#10;}
@@ -249,6 +252,30 @@ X:template beautify(pkgname) {
         X:when "$pkgname='unit'" {Unit}
         X:otherwise {
             !{$pkgname}
+        }
+    }
+}
+
+
+X:template getdate(date, curdate) {
+    X:choose {
+        X:when "$date=''" {
+            !{$curdate}
+        }
+        X:otherwise {
+            !{$date}
+        }
+    }
+}
+
+
+X:template gettime(time, curtime) {
+    X:choose {
+        X:when "$time=''" {
+            !{$curtime}
+        }
+        X:otherwise {
+            !{$time}
         }
     }
 }

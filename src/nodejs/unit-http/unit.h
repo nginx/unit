@@ -21,6 +21,7 @@ private:
     static void destroy(napi_env env, void *nativeObject, void *finalize_hint);
     static void conn_destroy(napi_env env, void *nativeObject, void *finalize_hint);
     static void sock_destroy(napi_env env, void *nativeObject, void *finalize_hint);
+    static void req_destroy(napi_env env, void *nativeObject, void *finalize_hint);
     static void resp_destroy(napi_env env, void *nativeObject, void *finalize_hint);
 
     static napi_value create_server(napi_env env, napi_callback_info info);
@@ -50,13 +51,16 @@ private:
     napi_value create_socket(napi_value server_obj,
                              nxt_unit_request_info_t *req);
 
-    napi_value create_request(napi_value server_obj, napi_value socket);
+    napi_value create_request(napi_value server_obj, napi_value socket,
+                              nxt_unit_request_info_t *req);
 
     napi_value create_response(napi_value server_obj, napi_value request,
                                nxt_unit_request_info_t *req);
 
     napi_value create_websocket_frame(napi_value server_obj,
                                       nxt_unit_websocket_frame_t *ws);
+
+    static napi_value request_read(napi_env env, napi_callback_info info);
 
     static napi_value response_send_headers(napi_env env,
                                             napi_callback_info info);

@@ -1,10 +1,8 @@
 import time
 
 import pytest
-
-from conftest import option
-from conftest import unit_stop
 from unit.applications.lang.python import TestApplicationPython
+from unit.option import option
 
 
 class TestAccessLog(TestApplicationPython):
@@ -50,8 +48,6 @@ class TestAccessLog(TestApplicationPython):
             body='0123456789',
         )
 
-        unit_stop()
-
         assert (
             self.wait_for_record(r'"POST / HTTP/1.1" 200 10') is not None
         ), 'keepalive 2'
@@ -78,8 +74,6 @@ Connection: close
             raw=True,
         )
 
-        unit_stop()
-
         assert (
             self.wait_for_record(r'"GET / HTTP/1.1" 200 0 "Referer-1" "-"')
             is not None
@@ -96,11 +90,11 @@ Connection: close
     def test_access_log_ipv6(self):
         self.load('empty')
 
-        self.conf({"[::1]:7080": {"pass": "applications/empty"}}, 'listeners')
+        assert 'success' in self.conf(
+            {"[::1]:7080": {"pass": "applications/empty"}}, 'listeners'
+        )
 
         self.get(sock_type='ipv6')
-
-        unit_stop()
 
         assert (
             self.wait_for_record(
@@ -114,13 +108,11 @@ Connection: close
 
         addr = option.temp_dir + '/sock'
 
-        self.conf(
+        assert 'success' in self.conf(
             {"unix:" + addr: {"pass": "applications/empty"}}, 'listeners'
         )
 
         self.get(sock_type='unix', addr=addr)
-
-        unit_stop()
 
         assert (
             self.wait_for_record(
@@ -140,8 +132,6 @@ Connection: close
             }
         )
 
-        unit_stop()
-
         assert (
             self.wait_for_record(r'"GET / HTTP/1.1" 200 0 "referer-value" "-"')
             is not None
@@ -158,8 +148,6 @@ Connection: close
             }
         )
 
-        unit_stop()
-
         assert (
             self.wait_for_record(
                 r'"GET / HTTP/1.1" 200 0 "-" "user-agent-value"'
@@ -171,8 +159,6 @@ Connection: close
         self.load('empty')
 
         self.get(http_10=True)
-
-        unit_stop()
 
         assert (
             self.wait_for_record(r'"GET / HTTP/1.0" 200 0 "-" "-"') is not None
@@ -187,8 +173,6 @@ Connection: close
 
         time.sleep(1)
 
-        unit_stop()
-
         assert (
             self.wait_for_record(r'"GE" 400 0 "-" "-"') is not None
         ), 'partial'
@@ -199,8 +183,6 @@ Connection: close
         assert self.post()['status'] == 200, 'init'
 
         self.http(b"""GET /\n""", raw=True)
-
-        unit_stop()
 
         assert (
             self.wait_for_record(r'"GET /" 400 \d+ "-" "-"') is not None
@@ -215,8 +197,6 @@ Connection: close
 
         time.sleep(1)
 
-        unit_stop()
-
         assert (
             self.wait_for_record(r'"GET /" 400 0 "-" "-"') is not None
         ), 'partial 3'
@@ -230,8 +210,6 @@ Connection: close
 
         time.sleep(1)
 
-        unit_stop()
-
         assert (
             self.wait_for_record(r'"GET / HTTP/1.1" 400 0 "-" "-"') is not None
         ), 'partial 4'
@@ -244,8 +222,6 @@ Connection: close
 
         self.get(headers={'Connection': 'close'})
 
-        unit_stop()
-
         assert (
             self.wait_for_record(r'"GET / HTTP/1.1" 400 \d+ "-" "-"')
             is not None
@@ -255,8 +231,6 @@ Connection: close
         self.load('empty')
 
         self.get(url='/?blah&var=val')
-
-        unit_stop()
 
         assert (
             self.wait_for_record(
@@ -268,11 +242,9 @@ Connection: close
     def test_access_log_delete(self):
         self.load('empty')
 
-        self.conf_delete('access_log')
+        assert 'success' in self.conf_delete('access_log')
 
         self.get(url='/delete')
-
-        unit_stop()
 
         assert self.search_in_log(r'/delete', 'access.log') is None, 'delete'
 
@@ -281,11 +253,11 @@ Connection: close
 
         self.get()
 
-        self.conf('"' + option.temp_dir + '/new.log"', 'access_log')
+        assert 'success' in self.conf(
+            '"' + option.temp_dir + '/new.log"', 'access_log'
+        )
 
         self.get()
-
-        unit_stop()
 
         assert (
             self.wait_for_record(r'"GET / HTTP/1.1" 200 0 "-" "-"', 'new.log')

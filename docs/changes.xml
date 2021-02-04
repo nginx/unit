@@ -5,6 +5,116 @@
 <change_log title="unit">
 
 
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11 unit-jsc13
+                unit-jsc14 unit-jsc15"
+         ver="1.22.0" rev="1"
+         date="2021-02-04" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.22.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.22.0" rev="1"
+         date="2021-02-04" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="feature">
+<para>
+the ServerRequest and ServerResponse objects of Node.js module are now
+compliant with Stream API.
+</para>
+</change>
+
+<change type="feature">
+<para>
+support for specifying multiple directories in the "path" option of Python
+apps.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a memory leak occurred in the router process when serving files larger than
+128K; the bug had appeared in 1.13.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+apps could stop processing new requests under high load; the bug had
+appeared in 1.19.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+app processes could terminate unexpectedly under high load; the bug had
+appeared in 1.19.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+invalid HTTP responses were generated for some unusual status codes.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the PHP_AUTH_USER, PHP_AUTH_PW, and PHP_AUTH_DIGEST server variables were
+missing in the PHP module.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the router process could crash with multithreaded apps under high load.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Ruby apps with multithreading configured could crash on start under load.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+mount points weren't unmounted when the "mount" namespace isolation was used;
+the bug had appeared in 1.21.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the router process could crash while removing or reconfiguring an app that used
+WebSocket.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a memory leak occurring in the router process when removing or reconfiguring
+an application; the bug had appeared in 1.19.0.
+</para>
+</change>
+
+</changes>
+
+
 <changes apply="unit-jsc15" ver="1.21.0" rev="1"
          date="2020-11-19" time="18:00:00 +0300"
          packager="Andrei Belov &lt;defan@nginx.com&gt;">

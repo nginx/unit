@@ -395,12 +395,15 @@ static void
 nxt_http_static_buf_completion(nxt_task_t *task, void *obj, void *data)
 {
     ssize_t             n, size;
-    nxt_buf_t           *b, *fb;
+    nxt_buf_t           *b, *fb, *next;
     nxt_off_t           rest;
     nxt_http_request_t  *r;
 
     b = obj;
     r = data;
+
+complete_buf:
+
     fb = r->out;
 
     if (nxt_slow_path(fb == NULL || r->error)) {
@@ -424,6 +427,8 @@ nxt_http_static_buf_completion(nxt_task_t *task, void *obj, void *data)
         goto clean;
     }
 
+    next = b->next;
+
     if (n == rest) {
         nxt_file_close(task, fb->file);
         r->out = NULL;
@@ -439,12 +444,24 @@ nxt_http_static_buf_completion(nxt_task_t *task, void *obj, void *data)
     b->mem.free = b->mem.pos + n;
 
     nxt_http_request_send(task, r, b);
+
+    if (next != NULL) {
+        b = next;
+        goto complete_buf;
+    }
+
     return;
 
 clean:
 
-    nxt_mp_free(r->mem_pool, b);
-    nxt_mp_release(r->mem_pool);
+    do {
+        next = b->next;
+
+        nxt_mp_free(r->mem_pool, b);
+        nxt_mp_release(r->mem_pool);
+
+        b = next;
+    } while (b != NULL);
 
     if (fb != NULL) {
         nxt_file_close(task, fb->file);

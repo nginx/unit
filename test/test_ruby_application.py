@@ -1,9 +1,6 @@
 import re
 
 import pytest
-
-from conftest import skip_alert
-from conftest import unit_stop
 from unit.applications.lang.ruby import TestApplicationRuby
 
 
@@ -160,7 +157,7 @@ class TestRubyApplication(TestApplicationRuby):
         assert self.post(body=body)['body'] == body, 'input rewind'
 
     @pytest.mark.skip('not yet')
-    def test_ruby_application_syntax_error(self):
+    def test_ruby_application_syntax_error(self, skip_alert):
         skip_alert(
             r'Failed to parse rack script',
             r'syntax error',
@@ -176,8 +173,6 @@ class TestRubyApplication(TestApplicationRuby):
 
         self.get()
 
-        unit_stop()
-
         assert (
             self.wait_for_record(r'\[error\].+Error in application')
             is not None
@@ -188,8 +183,6 @@ class TestRubyApplication(TestApplicationRuby):
 
         self.get()
 
-        unit_stop()
-
         assert (
             self.wait_for_record(r'\[error\].+1234567890') is not None
         ), 'errors puts int'
@@ -198,8 +191,6 @@ class TestRubyApplication(TestApplicationRuby):
         self.load('errors_write')
 
         self.get()
-
-        unit_stop()
 
         assert (
             self.wait_for_record(r'\[error\].+Error in application')
@@ -216,7 +207,6 @@ class TestRubyApplication(TestApplicationRuby):
 
         self.get()
 
-        unit_stop()
 
         assert (
             self.wait_for_record(r'\[error\].+1234567890') is not None
@@ -227,9 +217,7 @@ class TestRubyApplication(TestApplicationRuby):
 
         self.get()
 
-        self.conf({"listeners": {}, "applications": {}})
-
-        unit_stop()
+        assert 'success' in self.conf({"listeners": {}, "applications": {}})
 
         assert (
             self.wait_for_record(r'\[error\].+At exit called\.') is not None
@@ -289,8 +277,6 @@ class TestRubyApplication(TestApplicationRuby):
         self.load('body_each_error')
 
         assert self.get()['status'] == 500, 'body each error status'
-
-        unit_stop()
 
         assert (
             self.wait_for_record(r'\[error\].+Failed to run ruby script')
