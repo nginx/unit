@@ -1,9 +1,12 @@
 import fcntl
+import inspect
+import json
 import os
 import platform
 import re
 import shutil
 import signal
+import socket
 import stat
 import subprocess
 import sys
@@ -16,6 +19,7 @@ from unit.check.go import check_go
 from unit.check.isolation import check_isolation
 from unit.check.node import check_node
 from unit.check.tls import check_openssl
+from unit.http import TestHTTP
 from unit.option import option
 from unit.utils import public_dir
 from unit.utils import waitforfiles
@@ -51,10 +55,18 @@ def pytest_addoption(parser):
         type=str,
         help="Default user for non-privileged processes of unitd",
     )
+    parser.addoption(
+        "--restart",
+        default=False,
+        action="store_true",
+        help="Force Unit to restart after every test",
+    )
 
 
 unit_instance = {}
+unit_log_copy = "unit.log.copy"
 _processes = []
+http = TestHTTP()
 
 def pytest_configure(config):
     option.config = config.option
@@ -64,6 +76,7 @@ def pytest_configure(config):
     option.save_log = config.option.save_log
     option.unsafe = config.option.unsafe
     option.user = config.option.user
+    option.restart = config.option.restart
 
     option.generated_tests = {}
     option.current_dir = os.path.abspath(
@@ -172,12 +185,17 @@ def pytest_sessionstart(session):
 
     check_isolation()
 
+    assert 'success' in _clear_conf(unit['temp_dir'] + '/control.unit.sock')
+
     unit_stop()
 
     _check_alerts()
 
-    shutil.rmtree(unit_instance['temp_dir'])
+    if option.restart:
+        shutil.rmtree(unit_instance['temp_dir'])
 
+    elif option.save_log:
+        open(unit_instance['temp_dir'] + '/' + unit_log_copy, 'w').close()
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
@@ -241,38 +259,74 @@ def run(request):
 
     # stop unit
 
-    error = unit_stop()
+    error_stop_unit = unit_stop()
+    error_stop_processes = stop_processes()
 
-    if error:
-        _print_log()
+    # prepare log
 
-    assert error is None, 'stop unit'
+    with open(
+        unit_instance['log'], 'r', encoding='utf-8', errors='ignore'
+    ) as f:
+        log = f.read()
 
-    # stop all processes
+    if not option.restart and option.save_log:
+        with open(unit_instance['temp_dir'] + '/' + unit_log_copy, 'a') as f:
+            f.write(log)
 
-    error = stop_processes()
+    # remove unit.log
 
-    if error:
-        _print_log()
+    if not option.save_log and option.restart:
+        shutil.rmtree(unit['temp_dir'])
 
-    assert error is None, 'stop unit'
+    # clean temp_dir before the next test
 
-    # check unit.log for alerts
+    if not option.restart:
+        conf_resp = _clear_conf(unit['temp_dir'] + '/control.unit.sock')
 
-    _check_alerts()
+        if 'success' not in conf_resp:
+            _print_log(log)
+            assert 'success' in conf_resp
+
+        open(unit['log'], 'w').close()
+
+        for item in os.listdir(unit['temp_dir']):
+            if item not in [
+                'control.unit.sock',
+                'state',
+                'unit.pid',
+                'unit.log',
+                unit_log_copy,
+            ]:
+                path = os.path.join(unit['temp_dir'], item)
+
+                public_dir(path)
+
+                if os.path.isfile(path) or stat.S_ISSOCK(os.stat(path).st_mode):
+                    os.remove(path)
+                else:
+                    shutil.rmtree(path)
 
     # print unit.log in case of error
 
     if hasattr(request.node, 'rep_call') and request.node.rep_call.failed:
-        _print_log()
+        _print_log(log)
 
-    # remove unit.log
+    if error_stop_unit or error_stop_processes:
+        _print_log(log)
 
-    if not option.save_log:
-        shutil.rmtree(unit['temp_dir'])
+    # check unit.log for errors
+
+    assert error_stop_unit is None, 'stop unit'
+    assert error_stop_processes is None, 'stop processes'
+
+    _check_alerts(log=log)
 
 def unit_run():
     global unit_instance
+
+    if not option.restart and 'unitd' in unit_instance:
+        return unit_instance
+
     build_dir = option.current_dir + '/build'
     unitd = build_dir + '/unitd'
 
@@ -323,6 +377,12 @@ def unit_run():
 
 
 def unit_stop():
+    if not option.restart:
+        if inspect.stack()[1].function.startswith('test_'):
+            pytest.skip('no restart mode')
+
+        return
+
     p = unit_instance['process']
 
     if p.poll() is not None:
@@ -345,12 +405,13 @@ def unit_stop():
 
 
 
-def _check_alerts(path=None):
+def _check_alerts(path=None, log=None):
     if path is None:
         path = unit_instance['log']
 
-    with open(path, 'r', encoding='utf-8', errors='ignore') as f:
-        log = f.read()
+    if log is None:
+        with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+            log = f.read()
 
     found = False
 
@@ -394,6 +455,15 @@ def _print_log(data=None):
                 shutil.copyfileobj(f, sys.stdout)
         else:
             sys.stdout.write(data)
+
+
+def _clear_conf(sock):
+    return http.put(
+        url='/config',
+        sock_type='unix',
+        addr=sock,
+        body=json.dumps({"listeners": {}, "applications": {}}),
+    )['body']
 
 
 def run_process(target, *args):
@@ -446,5 +516,10 @@ def unit_pid(request):
     return unit_instance['process'].pid
 
 def pytest_sessionfinish(session):
+    if not option.restart and option.save_log:
+        print('Path to unit.log:\n' + unit_instance['log'] + '\n')
+
+    option.restart = True
+
     unit_stop()
     shutil.rmtree(option.cache_dir)

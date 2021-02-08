@@ -482,6 +482,7 @@ Content-Length: 10
         check_proxy('http://[:]:7080')
         check_proxy('http://[::7080')
 
+    @pytest.mark.skip('not yet')
     def test_proxy_loop(self, skip_alert):
         skip_alert(
             r'socket.*failed',
