@@ -19,8 +19,8 @@ class TestApplicationProto(TestControl):
         with open(option.temp_dir + '/' + name, 'r', errors='ignore') as f:
             return re.search(pattern, f.read())
 
-    def wait_for_record(self, pattern, name='unit.log'):
-        for i in range(50):
+    def wait_for_record(self, pattern, name='unit.log', wait=150):
+        for i in range(wait):
             found = self.search_in_log(pattern, name)
 
             if found is not None:

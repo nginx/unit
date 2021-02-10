@@ -377,7 +377,7 @@ Connection: close
             self.get(no_recv=True)
 
         assert (
-            self.wait_for_record(r'\(5\) Thread: 100') is not None
+            self.wait_for_record(r'\(5\) Thread: 100', wait=50) is not None
         ), 'last thread finished'
 
     def test_asgi_application_threads(self):
