@@ -185,7 +185,7 @@ def pytest_sessionstart(session):
 
     check_isolation()
 
-    assert 'success' in _clear_conf(unit['temp_dir'] + '/control.unit.sock')
+    _clear_conf(unit['temp_dir'] + '/control.unit.sock')
 
     unit_stop()
 
@@ -281,11 +281,7 @@ def run(request):
     # clean temp_dir before the next test
 
     if not option.restart:
-        conf_resp = _clear_conf(unit['temp_dir'] + '/control.unit.sock')
-
-        if 'success' not in conf_resp:
-            _print_log(log)
-            assert 'success' in conf_resp
+        _clear_conf(unit['temp_dir'] + '/control.unit.sock', log)
 
         open(unit['log'], 'w').close()
 
@@ -457,14 +453,39 @@ def _print_log(data=None):
             sys.stdout.write(data)
 
 
-def _clear_conf(sock):
-    return http.put(
+def _clear_conf(sock, log=None):
+    def check_success(resp):
+        if 'success' not in resp:
+            _print_log(log)
+            assert 'success' in resp
+
+    resp = http.put(
         url='/config',
         sock_type='unix',
         addr=sock,
         body=json.dumps({"listeners": {}, "applications": {}}),
     )['body']
 
+    check_success(resp)
+
+    try:
+        certs = json.loads(http.get(
+            url='/certificates',
+            sock_type='unix',
+            addr=sock,
+        )['body']).keys()
+
+    except json.JSONDecodeError:
+        pytest.fail('Can\'t parse certificates list.')
+
+    for cert in certs:
+        resp = http.delete(
+            url='/certificates/' + cert,
+            sock_type='unix',
+            addr=sock,
+        )['body']
+
+        check_success(resp)
 
 def run_process(target, *args):
     global _processes
