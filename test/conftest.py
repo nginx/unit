@@ -19,6 +19,7 @@ from unit.check.go import check_go
 from unit.check.isolation import check_isolation
 from unit.check.node import check_node
 from unit.check.tls import check_openssl
+from unit.check.regex import check_regex
 from unit.http import TestHTTP
 from unit.option import option
 from unit.utils import public_dir
@@ -176,6 +177,7 @@ def pytest_sessionstart(session):
         option.current_dir, unit['temp_dir'], option.test_dir
     )
     option.available['modules']['node'] = check_node(option.current_dir)
+    option.available['modules']['regex'] = check_regex(unit['unitd'])
 
     # remove None values
 
