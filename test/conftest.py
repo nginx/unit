@@ -470,6 +470,9 @@ def _clear_conf(sock, log=None):
 
     check_success(resp)
 
+    if 'openssl' not in option.available['modules']:
+        return
+
     try:
         certs = json.loads(http.get(
             url='/certificates',
