@@ -34,6 +34,10 @@ nxt_port_mmap_handler_use(nxt_port_mmap_handler_t *mmap_handler, int i)
             mmap_handler->hdr = NULL;
         }
 
+        if (mmap_handler->fd != -1) {
+            nxt_fd_close(mmap_handler->fd);
+        }
+
         nxt_free(mmap_handler);
     }
 }
@@ -238,6 +242,7 @@ nxt_port_incoming_port_mmap(nxt_task_t *task, nxt_process_t *process,
     }
 
     mmap_handler->hdr = hdr;
+    mmap_handler->fd = -1;
 
     if (nxt_slow_path(hdr->src_pid != process->pid
                       || hdr->dst_pid != nxt_pid))

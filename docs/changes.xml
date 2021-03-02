@@ -9,6 +9,12 @@
          date="" time=""
          packager="Andrei Belov &lt;defan@nginx.com&gt;">
 
+<change type="bugfix">
+<para>
+a descriptor leak occurring in the router process when removing or
+reconfiguring an application; the bug had appeared in 1.19.0.
+</para>
+</change>
 
 </changes>
 
