@@ -1459,10 +1459,10 @@ nxt_conf_vldt_thread_stack_size(nxt_conf_validation_t *vldt,
 
     size = nxt_conf_get_number(value);
 
-    if (size < PTHREAD_STACK_MIN) {
+    if (size < NXT_THREAD_STACK_MIN) {
         return nxt_conf_vldt_error(vldt, "The \"thread_stack_size\" number "
                                    "must be equal to or greater than %d.",
-                                   PTHREAD_STACK_MIN);
+                                   NXT_THREAD_STACK_MIN);
     }
 
     if ((size % nxt_pagesize) != 0) {
