@@ -37,6 +37,12 @@ Linux, and all uploaded certificate bundles were forgotten after restart.
 </para>
 </change>
 
+<change type="bugfix">
+<para>
+the Ruby module didn't respect user locale for defaults in the Encoding class.
+</para>
+</change>
+
 </changes>
 
 
