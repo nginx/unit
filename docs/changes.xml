@@ -30,6 +30,13 @@ reconfiguring an application; the bug had appeared in 1.19.0.
 </para>
 </change>
 
+<change type="bugfix">
+<para>
+persistent storage of certificates might've not worked with some filesystems in
+Linux, and all uploaded certificate bundles were forgotten after restart.
+</para>
+</change>
+
 </changes>
 
 

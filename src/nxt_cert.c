@@ -838,7 +838,12 @@ nxt_cert_store_load(nxt_task_t *task, nxt_mp_t *mp)
             break;
         }
 
-        if (de->d_type != DT_REG) {
+        nxt_debug(task, "readdir(\"%s\"): \"%s\"", rt->certs.start, de->d_name);
+
+        name.length = nxt_strlen(de->d_name);
+        name.start = (u_char *) de->d_name;
+
+        if (nxt_str_eq(&name, ".", 1) || nxt_str_eq(&name, "..", 2)) {
             continue;
         }
 
@@ -848,9 +853,6 @@ nxt_cert_store_load(nxt_task_t *task, nxt_mp_t *mp)
         }
 
         item->fd = -1;
-
-        name.length = nxt_strlen(de->d_name);
-        name.start = (u_char *) de->d_name;
 
         size = rt->certs.length + name.length + 1;
 
