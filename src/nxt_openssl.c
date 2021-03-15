@@ -720,10 +720,6 @@ nxt_openssl_conn_io_shutdown(nxt_task_t *task, void *obj, void *data)
 
     nxt_debug(task, "openssl conn shutdown fd:%d", c->socket.fd);
 
-    if (c->socket.error != 0) {
-        return;
-    }
-
     c->read_state = NULL;
     tls = c->u.tls;
 

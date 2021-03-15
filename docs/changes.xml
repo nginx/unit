@@ -11,6 +11,20 @@
 
 <change type="bugfix">
 <para>
+the router process could crash on premature TLS connection close; the bug had
+appeared in 1.17.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a connection leak occurring on premature TLS connection close; the bug had
+appeared in 1.6.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
 a descriptor leak occurring in the router process when removing or
 reconfiguring an application; the bug had appeared in 1.19.0.
 </para>
