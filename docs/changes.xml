@@ -43,6 +43,13 @@ the Ruby module didn't respect user locale for defaults in the Encoding class.
 </para>
 </change>
 
+<change type="bugfix">
+<para>
+the PHP 5 module failed to build with thread safety enabled; the bug had
+appeared in 1.22.0.
+</para>
+</change>
+
 </changes>
 
 
