@@ -11,6 +11,13 @@
 
 <change type="feature">
 <para>
+support for multiple certificate bundles on a listener via Server Name
+Indication (SNI) TLS extension.
+</para>
+</change>
+
+<change type="feature">
+<para>
 "--mandir" ./configure option to specify the directory for man page installation.
 </para>
 </change>

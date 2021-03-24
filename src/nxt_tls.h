@@ -23,28 +23,47 @@
 #define NXT_TLS_BUFFER_SIZE       4096
 
 
-typedef struct nxt_tls_conf_s     nxt_tls_conf_t;
-
+typedef struct nxt_tls_conf_s         nxt_tls_conf_t;
+typedef struct nxt_tls_bundle_conf_s  nxt_tls_bundle_conf_t;
 
 typedef struct {
     nxt_int_t                     (*library_init)(nxt_task_t *task);
     void                          (*library_free)(nxt_task_t *task);
 
     nxt_int_t                     (*server_init)(nxt_task_t *task,
-                                      nxt_tls_conf_t *conf);
+                                      nxt_tls_conf_t *conf, nxt_mp_t *mp,
+                                      nxt_bool_t last);
     void                          (*server_free)(nxt_task_t *task,
                                       nxt_tls_conf_t *conf);
 } nxt_tls_lib_t;
 
 
-struct nxt_tls_conf_s {
+typedef struct {
+    nxt_tls_bundle_conf_t         *bundle;
+
+    nxt_str_t                     name;
+} nxt_tls_bundle_hash_item_t;
+
+
+struct nxt_tls_bundle_conf_s {
     void                          *ctx;
+
+    nxt_fd_t                      chain_file;
+    nxt_str_t                     *name;
+
+    nxt_tls_bundle_conf_t         *next;
+};
+
+
+struct nxt_tls_conf_s {
+    nxt_tls_bundle_conf_t         *bundle;
+    nxt_lvlhsh_t                  bundle_hash;
+
     void                          (*conn_init)(nxt_task_t *task,
                                       nxt_tls_conf_t *conf, nxt_conn_t *c);
 
     const nxt_tls_lib_t           *lib;
 
-    nxt_fd_t                      chain_file;
     char                          *ciphers;
 
     char                          *ca_certificate;
