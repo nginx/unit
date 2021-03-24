@@ -690,38 +690,6 @@ nxt_cert_name_details(nxt_mp_t *mp, X509 *x509, nxt_bool_t issuer)
                                  NULL, NULL);
 
     if (alt_names != NULL) {
-        count++;
-    }
-
-    object = nxt_conf_create_object(mp, count);
-    if (nxt_slow_path(object == NULL)) {
-        goto fail;
-    }
-
-    for (n = 0, i = 0; n != nxt_nitems(nids) && i != count; n++) {
-
-        len = X509_NAME_get_text_by_NID(x509_name, nids[n].nid,
-                                        (char *) buf, sizeof(buf));
-
-        if (len < 0) {
-            continue;
-        }
-
-        if (i == 1 && alt_names != NULL) {
-            i++;
-        }
-
-        str.length = len;
-        str.start = buf;
-
-        ret = nxt_conf_set_member_string_dup(object, mp, &nids[n].name,
-                                             &str, i++);
-        if (nxt_slow_path(ret != NXT_OK)) {
-            goto fail;
-        }
-    }
-
-    if (alt_names != NULL) {
         names = nxt_cert_alt_names_details(mp, alt_names);
 
         sk_GENERAL_NAME_pop_free(alt_names, GENERAL_NAME_free);
@@ -730,18 +698,41 @@ nxt_cert_name_details(nxt_mp_t *mp, X509 *x509, nxt_bool_t issuer)
             return NULL;
         }
 
-        nxt_conf_set_member(object, &alt_names_str, names, 1);
+        count++;
+
+    } else {
+        names = NULL;
+    }
+
+    object = nxt_conf_create_object(mp, count);
+    if (nxt_slow_path(object == NULL)) {
+        return NULL;
+    }
+
+    for (n = 0, i = 0; n != nxt_nitems(nids) && i != count; n++) {
+
+        len = X509_NAME_get_text_by_NID(x509_name, nids[n].nid,
+                                        (char *) buf, sizeof(buf));
+
+        if (n == 1 && names != NULL) {
+            nxt_conf_set_member(object, &alt_names_str, names, i++);
+        }
+
+        if (len < 0) {
+            continue;
+        }
+
+        str.length = len;
+        str.start = buf;
+
+        ret = nxt_conf_set_member_string_dup(object, mp, &nids[n].name,
+                                             &str, i++);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            return NULL;
+        }
     }
 
     return object;
-
-fail:
-
-    if (alt_names != NULL) {
-        sk_GENERAL_NAME_pop_free(alt_names, GENERAL_NAME_free);
-    }
-
-    return NULL;
 }
 
 

@@ -46,6 +46,13 @@ certificate with a non-DNS SAN entry.
 
 <change type="bugfix">
 <para>
+the controller process could crash on manipulations with a certificate
+containing a SAN and no standart name attributes in subject or issuer.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
 the Ruby module didn't respect user locale for defaults in the Encoding class.
 </para>
 </change>
