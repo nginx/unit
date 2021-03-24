@@ -60,6 +60,7 @@ Exit status is 0 on success, or 1 if the daemon encounters an error.
 The PID file of Unit's main process.
 .It Pa %%ERROR_LOG_PATH%%
 A general-purpose log for diagnostics and troubleshooting.
+.El
 .Sh SOCKETS
 .Bl -tag -width indent
 .It Pa %%SOCKET_PATH%%
