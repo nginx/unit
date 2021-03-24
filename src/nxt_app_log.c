@@ -19,7 +19,10 @@ static u_char *nxt_log_debug_time(u_char *buf, nxt_realtime_t *now,
 void nxt_cdecl
 nxt_log_time_handler(nxt_uint_t level, nxt_log_t *log, const char *fmt, ...)
 {
-    u_char             *p, *syslogmsg, *end;
+    u_char             *p, *end;
+#if 0
+    u_char             *syslogmsg;
+#endif
     va_list            args;
     nxt_thread_t       *thr;
     nxt_time_string_t  *time_cache;
@@ -34,7 +37,9 @@ nxt_log_time_handler(nxt_uint_t level, nxt_log_t *log, const char *fmt, ...)
 
     p = nxt_thread_time_string(thr, time_cache, msg);
 
+#if 0
     syslogmsg = p;
+#endif
 
 #if 0
     nxt_fid_t    fid;
@@ -79,6 +84,7 @@ nxt_log_time_handler(nxt_uint_t level, nxt_log_t *log, const char *fmt, ...)
 
     (void) nxt_write_console(nxt_stderr, msg, p - msg);
 
+#if 0
     if (level == NXT_LOG_ALERT) {
         *(p - nxt_length("\n")) = '\0';
 
@@ -88,6 +94,7 @@ nxt_log_time_handler(nxt_uint_t level, nxt_log_t *log, const char *fmt, ...)
          */
         nxt_write_syslog(LOG_ALERT, syslogmsg);
     }
+#endif
 }
 
 
