@@ -8,6 +8,7 @@
 #include <openssl/ssl.h>
 #include <openssl/conf.h>
 #include <openssl/err.h>
+#include <openssl/rand.h>
 
 
 typedef struct {
@@ -355,6 +356,11 @@ fail:
 
     SSL_CTX_free(ctx);
 
+#if (OPENSSL_VERSION_NUMBER >= 0x1010100fL \
+     && OPENSSL_VERSION_NUMBER < 0x1010101fL)
+    RAND_keep_random_devices_open(0);
+#endif
+
     return NXT_ERROR;
 }
 
@@ -442,6 +448,11 @@ static void
 nxt_openssl_server_free(nxt_task_t *task, nxt_tls_conf_t *conf)
 {
     SSL_CTX_free(conf->ctx);
+
+#if (OPENSSL_VERSION_NUMBER >= 0x1010100fL \
+     && OPENSSL_VERSION_NUMBER < 0x1010101fL)
+    RAND_keep_random_devices_open(0);
+#endif
 }
 
 
