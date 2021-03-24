@@ -18,6 +18,7 @@ cat << END
                        default: "$NXT_SBINDIR"
   --libdir=DIRECTORY   set library directory name, default: "$NXT_LIBDIR"
   --incdir=DIRECTORY   set includes directory name, default: "$NXT_INCDIR"
+  --mandir=DIRECTORY   set man pages directory name, default: "$NXT_MANDIR"
   --modules=DIRECTORY  set modules directory name, default: "$NXT_MODULES"
   --state=DIRECTORY    set state directory name, default: "$NXT_STATE"
   --tmp=DIRECTORY      set tmp directory name, default: "$NXT_TMP"

@@ -59,6 +59,7 @@ do
         --sbindir=*)                     NXT_SBINDIR="$value"                ;;
         --libdir=*)                      NXT_LIBDIR="$value"                 ;;
         --incdir=*)                      NXT_INCDIR="$value"                 ;;
+        --mandir=*)                      NXT_MANDIR="$value"                 ;;
         --modules=*)                     NXT_MODULES="$value"                ;;
         --state=*)                       NXT_STATE="$value"                  ;;
         --tmp=*)                         NXT_TMP="$value"                    ;;
@@ -142,6 +143,11 @@ esac
 case "$NXT_INCDIR" in
     /*)  ;;
      *)  NXT_INCDIR="$NXT_PREFIX$NXT_INCDIR"  ;;
+esac
+
+case "$NXT_MANDIR" in
+    /*)  ;;
+     *)  NXT_MANDIR="$NXT_PREFIX$NXT_MANDIR"  ;;
 esac
 
 case "$NXT_MODULES" in

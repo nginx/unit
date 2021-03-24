@@ -9,6 +9,12 @@
          date="" time=""
          packager="Andrei Belov &lt;defan@nginx.com&gt;">
 
+<change type="feature">
+<para>
+"--mandir" ./configure option to specify the directory for man page installation.
+</para>
+</change>
+
 <change type="bugfix">
 <para>
 the router process could crash on premature TLS connection close; the bug had
