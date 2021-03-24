@@ -30,8 +30,9 @@ class TestASGIWebsockets(TestApplicationPython):
 
         self.check_close(sock)
 
-    def check_close(self, sock, code=1000, no_close=False):
-        frame = self.ws.frame_read(sock)
+    def check_close(self, sock, code=1000, no_close=False, frame=None):
+        if frame == None:
+            frame = self.ws.frame_read(sock)
 
         assert frame['fin'] == True, 'close fin'
         assert frame['opcode'] == self.ws.OP_CLOSE, 'close opcode'
@@ -930,7 +931,14 @@ class TestASGIWebsockets(TestApplicationPython):
         self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment2', fin=True)
         self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment3', fin=False)
         self.ws.frame_write(sock, self.ws.OP_TEXT, 'fragment4', fin=True)
-        self.check_close(sock, 1002)
+
+        frame = self.ws.frame_read(sock)
+
+        if frame['opcode'] == self.ws.OP_TEXT:
+            self.check_frame(frame, True, self.ws.OP_TEXT, 'fragment1fragment2')
+            frame = None
+
+        self.check_close(sock, 1002, frame=frame)
 
         # 5_16
 
