@@ -39,6 +39,13 @@ Linux, and all uploaded certificate bundles were forgotten after restart.
 
 <change type="bugfix">
 <para>
+the controller process could crash while requesting information about a
+certificate with a non-DNS SAN entry.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
 the Ruby module didn't respect user locale for defaults in the Encoding class.
 </para>
 </change>

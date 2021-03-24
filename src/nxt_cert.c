@@ -722,13 +722,16 @@ nxt_cert_name_details(nxt_mp_t *mp, X509 *x509, nxt_bool_t issuer)
 
     if (alt_names != NULL) {
         count = sk_GENERAL_NAME_num(alt_names);
+        n = 0;
 
-        for (n = 0; n != count; n++) {
-            name = sk_GENERAL_NAME_value(alt_names, n);
+        for (i = 0; i != count; i++) {
+            name = sk_GENERAL_NAME_value(alt_names, i);
 
             if (name->type != GEN_DNS) {
                 continue;
             }
+
+            n++;
         }
 
         names = nxt_conf_create_array(mp, n);
