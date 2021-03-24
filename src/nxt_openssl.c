@@ -249,7 +249,7 @@ nxt_openssl_server_init(nxt_task_t *task, nxt_tls_conf_t *conf)
 {
     SSL_CTX              *ctx;
     nxt_fd_t             fd;
-    const char           *ciphers, *ca_certificate;
+    const char           *ca_certificate;
     STACK_OF(X509_NAME)  *list;
 
     ctx = SSL_CTX_new(SSLv23_server_method());
@@ -304,13 +304,13 @@ nxt_openssl_server_init(nxt_task_t *task, nxt_tls_conf_t *conf)
         goto fail;
     }
 */
-    ciphers = (conf->ciphers != NULL) ? conf->ciphers : "HIGH:!aNULL:!MD5";
-
-    if (SSL_CTX_set_cipher_list(ctx, ciphers) == 0) {
-        nxt_openssl_log_error(task, NXT_LOG_ALERT,
+    if (conf->ciphers) { /* else use system crypto policy */
+        if (SSL_CTX_set_cipher_list(ctx, conf->ciphers) == 0) {
+            nxt_openssl_log_error(task, NXT_LOG_ALERT,
                               "SSL_CTX_set_cipher_list(\"%s\") failed",
-                              ciphers);
-        goto fail;
+                              conf->ciphers);
+            goto fail;
+        }
     }
 
     SSL_CTX_set_options(ctx, SSL_OP_CIPHER_SERVER_PREFERENCE);
