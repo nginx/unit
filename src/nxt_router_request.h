@@ -11,7 +11,6 @@ typedef struct {
     nxt_buf_t                 *buf;
     nxt_fd_t                  body_fd;
     uint32_t                  tracking_cookie;
-    nxt_work_handler_t        completion_handler;
 } nxt_msg_info_t;
 
 

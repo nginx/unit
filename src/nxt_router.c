@@ -523,12 +523,11 @@ nxt_router_msg_cancel(nxt_task_t *task, nxt_request_rpc_data_t *req_rpc_data)
         next = b->next;
         b->next = NULL;
 
-        b->completion_handler = msg_info->completion_handler;
-
         if (b->is_port_mmap_sent) {
             b->is_port_mmap_sent = cancelled == 0;
-            b->completion_handler(task, b, b->parent);
         }
+
+        b->completion_handler(task, b, b->parent);
     }
 
     msg_info->buf = NULL;
@@ -4113,6 +4112,8 @@ nxt_router_req_headers_ack_handler(nxt_task_t *task,
     if (b != NULL) {
         /* First buffer is already sent.  Start from second. */
         b = b->next;
+
+        req_rpc_data->msg_info.buf->next = NULL;
     }
 
     if (req_rpc_data->msg_info.body_fd != -1 || b != NULL) {
@@ -5025,14 +5026,6 @@ nxt_router_app_prepare_request(nxt_task_t *task,
                     port->socket.fd);
 
     req_rpc_data->msg_info.buf = buf;
-    req_rpc_data->msg_info.completion_handler = buf->completion_handler;
-
-    do {
-        buf->completion_handler = nxt_router_dummy_buf_completion;
-        buf = buf->next;
-    } while (buf != NULL);
-
-    buf = req_rpc_data->msg_info.buf;
 
     body = req_rpc_data->request->body;
 
