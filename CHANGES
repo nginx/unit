@@ -1,4 +1,44 @@
 
+Changes with Unit 1.23.0                                         25 Mar 2021
+
+    *) Feature: support for multiple certificate bundles on a listener via
+       the Server Name Indication (SNI) TLS extension.
+
+    *) Feature: "--mandir" ./configure option to specify the directory for
+       man page installation.
+
+    *) Bugfix: the router process could crash on premature TLS connection
+       close; the bug had appeared in 1.17.0.
+
+    *) Bugfix: a connection leak occurred on premature TLS connection close;
+       the bug had appeared in 1.6.
+
+    *) Bugfix: a descriptor and memory leak occurred in the router process
+       when processing small WebSocket frames from a client; the bug had
+       appeared in 1.19.0.
+
+    *) Bugfix: a descriptor leak occurred in the router process when
+       removing or reconfiguring an application; the bug had appeared in
+       1.19.0.
+
+    *) Bugfix: persistent storage of certificates might've not worked with
+       some filesystems in Linux, and all uploaded certificate bundles were
+       forgotten after restart.
+
+    *) Bugfix: the controller process could crash while requesting
+       information about a certificate with a non-DNS SAN entry.
+
+    *) Bugfix: the controller process could crash on manipulations with a
+       certificate containing a SAN and no standard name attributes in
+       subject or issuer.
+
+    *) Bugfix: the Ruby module didn't respect the user locale for defaults
+       in the Encoding class.
+
+    *) Bugfix: the PHP 5 module failed to build with thread safety enabled;
+       the bug had appeared in 1.22.0.
+
+
 Changes with Unit 1.22.0                                         04 Feb 2021
 
     *) Feature: the ServerRequest and ServerResponse objects of Node.js
