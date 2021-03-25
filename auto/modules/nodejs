@@ -122,8 +122,11 @@ fi
 
 
 NXT_NODE_TMP=${NXT_BUILD_DIR}/src/${NXT_NODE}/unit-http
+NXT_NODE_TMP_G=${NXT_BUILD_DIR}/src/${NXT_NODE}/unit-http-g
 NXT_NODE_TARBALL=${NXT_BUILD_DIR}/${NXT_NODE}-unit-http.tar.gz
-NXT_NODE_VERSION_FILE=${NXT_NODE_TMP}/version.h
+NXT_NODE_TARBALL_G=${NXT_BUILD_DIR}/${NXT_NODE}-unit-http-g.tar.gz
+NXT_NODE_VERSION_FILE=${NXT_BUILD_DIR}/src/${NXT_NODE}/version.h
+NXT_NODE_PACKAGE_FILE=${NXT_BUILD_DIR}/src/${NXT_NODE}/package.json
 NXT_NODE_EXPORTS="export UNIT_SRC_PATH=${PWD}/src \
     && export UNIT_BUILD_PATH=${PWD}/${NXT_BUILD_DIR} \
     && export UNIT_LIB_STATIC_PATH=${PWD}/${NXT_BUILD_DIR}/libunit.a"
@@ -138,6 +141,7 @@ cat << END >> $NXT_MAKEFILE
 
 .PHONY: ${NXT_NODE}
 .PHONY: ${NXT_NODE}-copy
+.PHONY: ${NXT_NODE}-copy-g
 .PHONY: ${NXT_NODE}-install
 .PHONY: ${NXT_NODE}-uninstall
 .PHONY: ${NXT_NODE}-local-check
@@ -149,27 +153,37 @@ ${NXT_NODE}: ${NXT_NODE}-copy $NXT_BUILD_DIR/$NXT_LIB_UNIT_STATIC
 	${NXT_NODE_EXPORTS} && \\
 	cd ${NXT_NODE_TMP} && ${NXT_NODE_GYP} configure build clean
 
-${NXT_NODE}-copy: ${NXT_NODE_VERSION_FILE}
-	mkdir -p ${NXT_BUILD_DIR}/src/
-	cp -rp src/nodejs/* ${NXT_BUILD_DIR}/src/${NXT_NODE}
+${NXT_NODE}-copy: ${NXT_NODE_VERSION_FILE} ${NXT_NODE_PACKAGE_FILE}
+	mkdir -p ${NXT_NODE_TMP}
+	cp -rp src/nodejs/unit-http/* ${NXT_NODE_TMP}/
+	cp -p ${NXT_NODE_VERSION_FILE} ${NXT_NODE_PACKAGE_FILE} ${NXT_NODE_TMP}/
+
+${NXT_NODE}-copy-g: ${NXT_NODE_VERSION_FILE} ${NXT_NODE_PACKAGE_FILE}
+	mkdir -p ${NXT_NODE_TMP_G}
+	cp -rp src/nodejs/unit-http/* ${NXT_NODE_TMP_G}/
+	cp -p ${NXT_NODE_VERSION_FILE} ${NXT_NODE_PACKAGE_FILE} ${NXT_NODE_TMP_G}/
+	mv ${NXT_NODE_TMP_G}/binding_pub.gyp ${NXT_NODE_TMP_G}/binding.gyp
 
 ${NXT_NODE_VERSION_FILE}: ${NXT_VERSION_H}
-	mkdir -p ${NXT_NODE_TMP}
+	mkdir -p ${NXT_BUILD_DIR}/src/${NXT_NODE}
 	$echo '#define NXT_NODE_VERNUM \$(NXT_VERNUM)' > $NXT_NODE_VERSION_FILE
 
-${NXT_NODE_TARBALL}: ${NXT_NODE}-copy
+${NXT_NODE_PACKAGE_FILE}: ${NXT_VERSION_H} src/nodejs/unit-http/package.json
+	mkdir -p ${NXT_BUILD_DIR}/src/${NXT_NODE}
 	sed -e 's/"version"\s*:.*/"version": "\$(NXT_VERSION)",/' \
-		${NXT_NODE_TMP}/package.json > ${NXT_NODE_TMP}/package.json.tmp
-	mv ${NXT_NODE_TMP}/package.json.tmp ${NXT_NODE_TMP}/package.json
+		src/nodejs/unit-http/package.json > ${NXT_NODE_PACKAGE_FILE}
+
+${NXT_NODE_TARBALL}: ${NXT_NODE}-copy
 	tar -zcvf ${NXT_NODE_TARBALL} -C ${NXT_NODE_TMP} .
+
+${NXT_NODE_TARBALL_G}: ${NXT_NODE}-copy-g
+	tar -zcvf ${NXT_NODE_TARBALL_G} -C ${NXT_NODE_TMP_G} .
 
 
 install: ${NXT_NODE}-$NXT_NODE_INSTALL
 
-${NXT_NODE}-install: ${NXT_NODE_TARBALL} \
-    $NXT_BUILD_DIR/$NXT_LIB_UNIT_STATIC
-	${NXT_NODE_EXPORTS} && \\
-	${NXT_NPM} install -g --unsafe-perm ${PWD}/${NXT_NODE_TARBALL}
+${NXT_NODE}-install: ${NXT_NODE_TARBALL_G} libunit-install
+	${NXT_NPM} install -g --unsafe-perm ${PWD}/${NXT_NODE_TARBALL_G}
 
 ${NXT_NODE}-uninstall:
 	${NXT_NPM} uninstall -g unit-http
