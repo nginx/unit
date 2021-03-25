@@ -11,14 +11,15 @@
 
 <change type="feature">
 <para>
-support for multiple certificate bundles on a listener via Server Name
+support for multiple certificate bundles on a listener via the Server Name
 Indication (SNI) TLS extension.
 </para>
 </change>
 
 <change type="feature">
 <para>
-"--mandir" ./configure option to specify the directory for man page installation.
+"--mandir" ./configure option to specify the directory for man page
+installation.
 </para>
 </change>
 
@@ -31,21 +32,21 @@ appeared in 1.17.0.
 
 <change type="bugfix">
 <para>
-a connection leak occurring on premature TLS connection close; the bug had
+a connection leak occurred on premature TLS connection close; the bug had
 appeared in 1.6.
 </para>
 </change>
 
 <change type="bugfix">
 <para>
-a descriptor and memory leak occurring in the router process when processing
+a descriptor and memory leak occurred in the router process when processing
 small WebSocket frames from a client; the bug had appeared in 1.19.0.
 </para>
 </change>
 
 <change type="bugfix">
 <para>
-a descriptor leak occurring in the router process when removing or
+a descriptor leak occurred in the router process when removing or
 reconfiguring an application; the bug had appeared in 1.19.0.
 </para>
 </change>
@@ -67,13 +68,14 @@ certificate with a non-DNS SAN entry.
 <change type="bugfix">
 <para>
 the controller process could crash on manipulations with a certificate
-containing a SAN and no standart name attributes in subject or issuer.
+containing a SAN and no standard name attributes in subject or issuer.
 </para>
 </change>
 
 <change type="bugfix">
 <para>
-the Ruby module didn't respect user locale for defaults in the Encoding class.
+the Ruby module didn't respect the user locale for defaults in the Encoding
+class.
 </para>
 </change>
 
