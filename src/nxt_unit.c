@@ -3785,7 +3785,7 @@ nxt_unit_shm_open(nxt_unit_ctx_t *ctx, size_t size)
     char             name[64];
 
     snprintf(name, sizeof(name), NXT_SHM_PREFIX "unit.%d.%p",
-             lib->pid, (void *) pthread_self());
+             lib->pid, (void *) (uintptr_t) pthread_self());
 #endif
 
 #if (NXT_HAVE_MEMFD_CREATE)

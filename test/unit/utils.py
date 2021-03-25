@@ -47,7 +47,7 @@ def waitforsocket(port):
             except KeyboardInterrupt:
                 raise
 
-    pytest.fail('Can\'t connect to the 127.0.0.1:' + port)
+    pytest.fail('Can\'t connect to the 127.0.0.1:' + str(port))
 
 
 def findmnt():

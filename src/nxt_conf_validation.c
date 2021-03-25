@@ -87,6 +87,8 @@ static nxt_int_t nxt_conf_vldt_listener(nxt_conf_validation_t *vldt,
 #if (NXT_TLS)
 static nxt_int_t nxt_conf_vldt_certificate(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_certificate_element(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value);
 #endif
 static nxt_int_t nxt_conf_vldt_action(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
@@ -354,7 +356,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_listener_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_tls_members[] = {
     {
         .name       = nxt_string("certificate"),
-        .type       = NXT_CONF_VLDT_STRING,
+        .type       = NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
         .validator  = nxt_conf_vldt_certificate,
     },
 
@@ -1459,10 +1461,10 @@ nxt_conf_vldt_thread_stack_size(nxt_conf_validation_t *vldt,
 
     size = nxt_conf_get_number(value);
 
-    if (size < PTHREAD_STACK_MIN) {
+    if (size < NXT_THREAD_STACK_MIN) {
         return nxt_conf_vldt_error(vldt, "The \"thread_stack_size\" number "
                                    "must be equal to or greater than %d.",
-                                   PTHREAD_STACK_MIN);
+                                   NXT_THREAD_STACK_MIN);
     }
 
     if ((size % nxt_pagesize) != 0) {
@@ -1827,8 +1829,33 @@ static nxt_int_t
 nxt_conf_vldt_certificate(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     void *data)
 {
+    if (nxt_conf_type(value) == NXT_CONF_ARRAY) {
+        if (nxt_conf_array_elements_count(value) == 0) {
+            return nxt_conf_vldt_error(vldt, "The \"certificate\" array "
+                                       "must contain at least one element.");
+        }
+
+        return nxt_conf_vldt_array_iterator(vldt, value,
+                                            &nxt_conf_vldt_certificate_element);
+    }
+
+    /* NXT_CONF_STRING */
+
+    return nxt_conf_vldt_certificate_element(vldt, value);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_certificate_element(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value)
+{
     nxt_str_t         name;
     nxt_conf_value_t  *cert;
+
+    if (nxt_conf_type(value) != NXT_CONF_STRING) {
+        return nxt_conf_vldt_error(vldt, "The \"certificate\" array must "
+                                   "contain only string values.");
+    }
 
     nxt_conf_get_string(value, &name);
 

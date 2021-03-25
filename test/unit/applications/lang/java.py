@@ -52,7 +52,7 @@ class TestApplicationJava(TestApplicationProto):
                 os.makedirs(classes_path)
 
             classpath = (
-                option.current_dir + '/build/tomcat-servlet-api-9.0.39.jar'
+                option.current_dir + '/build/tomcat-servlet-api-9.0.44.jar'
             )
 
             ws_jars = glob.glob(

@@ -1,0 +1,80 @@
+.\" (C) 2017-2021, NGINX, Inc.
+.\"
+.Dd March 16, 2021
+.Dt UNITD 8
+.Os
+.Sh NAME
+.Nm unitd
+.Nd "runs the NGINX Unit daemon"
+.Sh SYNOPSIS
+.Nm
+.Op Fl Fl no-daemon
+.Op Fl Fl control Ar socket
+.Op Fl Fl group Ar name
+.Op Fl Fl user Ar name
+.Op Fl Fl log Ar file
+.Op Fl Fl modules Ar directory
+.Op Fl Fl pid Ar file
+.Op Fl Fl state Ar directory
+.Nm
+.Op Fl h | Fl Fl help | v | Fl Fl version
+.Sh DESCRIPTION
+NGINX Unit is a polyglot app server, a reverse proxy, and a static file server
+for UNIX-like systems.
+It was built by
+.Xr nginx 8
+team members from
+scratch to be highly efficient and fully configurable at runtime.
+.Sh OPTIONS
+.Bl -tag -width indent
+.It Fl h , Fl Fl help
+Displays a summary of Unit's command-line options and their
+compile-time defaults.
+.It Fl v , Fl Fl version
+Displays Unit's version and the
+.Pa ./configure
+settings it was built with.
+.It Fl Fl no-daemon
+Runs Unit in non-daemon mode.
+.It Fl Fl control Ar socket
+Overrides the control API's socket address in IPv4, IPv6,
+or UNIX-domain format.
+.It Fl Fl group Ar name , Fl Fl user Ar name
+Override group name and user name used to run Unit's non-privileged processes.
+.It Fl Fl log Ar file
+Overrides the pathname for Unit's log.
+.It Fl Fl modules Ar directory
+Overrides the directory path for Unit's language modules
+.Po Pa *.unit.so
+.Pc files .
+.It Fl Fl pid Ar file
+Overrides the pathname for the PID file of Unit's main process.
+.It Fl Fl state Ar directory
+Overrides the directory path for Unit's state storage.
+.El
+.Sh EXIT STATUS
+Exit status is 0 on success, or 1 if the daemon encounters an error.
+.Sh FILES
+.Bl -tag -width indent
+.It Pa %%PID_PATH%%
+The PID file of Unit's main process.
+.It Pa %%ERROR_LOG_PATH%%
+A general-purpose log for diagnostics and troubleshooting.
+.El
+.Sh SOCKETS
+.Bl -tag -width indent
+.It Pa %%SOCKET_PATH%%
+The socket address of Unit's control API.
+.El
+.Sh AUTHORS
+(C) 2017-2021, NGINX, Inc.
+.Sh SEE ALSO
+.Pp
+Website:
+.Pa https://unit.nginx.org
+.Pp
+User mailing list:
+.Pa https://mailman.nginx.org/mailman/listinfo/unit
+.Pp
+GitHub:
+.Pa https://github.com/nginx/unit

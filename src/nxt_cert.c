@@ -46,6 +46,8 @@ static int nxt_nxt_cert_pem_suffix(char *pem_str, const char *suffix);
 static nxt_conf_value_t *nxt_cert_details(nxt_mp_t *mp, nxt_cert_t *cert);
 static nxt_conf_value_t *nxt_cert_name_details(nxt_mp_t *mp, X509 *x509,
     nxt_bool_t issuer);
+static nxt_conf_value_t *nxt_cert_alt_names_details(nxt_mp_t *mp,
+    STACK_OF(GENERAL_NAME) *alt_names);
 
 
 static nxt_lvlhsh_t  nxt_cert_info;
@@ -654,7 +656,6 @@ nxt_cert_name_details(nxt_mp_t *mp, X509 *x509, nxt_bool_t issuer)
     nxt_str_t               str;
     nxt_int_t               ret;
     nxt_uint_t              i, n, count;
-    GENERAL_NAME            *name;
     nxt_conf_value_t        *object, *names;
     STACK_OF(GENERAL_NAME)  *alt_names;
     u_char                  buf[256];
@@ -689,12 +690,23 @@ nxt_cert_name_details(nxt_mp_t *mp, X509 *x509, nxt_bool_t issuer)
                                  NULL, NULL);
 
     if (alt_names != NULL) {
+        names = nxt_cert_alt_names_details(mp, alt_names);
+
+        sk_GENERAL_NAME_pop_free(alt_names, GENERAL_NAME_free);
+
+        if (nxt_slow_path(names == NULL)) {
+            return NULL;
+        }
+
         count++;
+
+    } else {
+        names = NULL;
     }
 
     object = nxt_conf_create_object(mp, count);
     if (nxt_slow_path(object == NULL)) {
-        goto fail;
+        return NULL;
     }
 
     for (n = 0, i = 0; n != nxt_nitems(nids) && i != count; n++) {
@@ -702,12 +714,12 @@ nxt_cert_name_details(nxt_mp_t *mp, X509 *x509, nxt_bool_t issuer)
         len = X509_NAME_get_text_by_NID(x509_name, nids[n].nid,
                                         (char *) buf, sizeof(buf));
 
-        if (len < 0) {
-            continue;
+        if (n == 1 && names != NULL) {
+            nxt_conf_set_member(object, &alt_names_str, names, i++);
         }
 
-        if (i == 1 && alt_names != NULL) {
-            i++;
+        if (len < 0) {
+            continue;
         }
 
         str.length = len;
@@ -716,60 +728,62 @@ nxt_cert_name_details(nxt_mp_t *mp, X509 *x509, nxt_bool_t issuer)
         ret = nxt_conf_set_member_string_dup(object, mp, &nids[n].name,
                                              &str, i++);
         if (nxt_slow_path(ret != NXT_OK)) {
-            goto fail;
+            return NULL;
         }
-    }
-
-    if (alt_names != NULL) {
-        count = sk_GENERAL_NAME_num(alt_names);
-
-        for (n = 0; n != count; n++) {
-            name = sk_GENERAL_NAME_value(alt_names, n);
-
-            if (name->type != GEN_DNS) {
-                continue;
-            }
-        }
-
-        names = nxt_conf_create_array(mp, n);
-        if (nxt_slow_path(names == NULL)) {
-            goto fail;
-        }
-
-        for (n = 0, i = 0; n != count; n++) {
-            name = sk_GENERAL_NAME_value(alt_names, n);
-
-            if (name->type != GEN_DNS) {
-                continue;
-            }
-
-            str.length = ASN1_STRING_length(name->d.dNSName);
-#if OPENSSL_VERSION_NUMBER > 0x10100000L
-            str.start = (u_char *) ASN1_STRING_get0_data(name->d.dNSName);
-#else
-            str.start = ASN1_STRING_data(name->d.dNSName);
-#endif
-
-            ret = nxt_conf_set_element_string_dup(names, mp, i++, &str);
-            if (nxt_slow_path(ret != NXT_OK)) {
-                goto fail;
-            }
-        }
-
-        sk_GENERAL_NAME_pop_free(alt_names, GENERAL_NAME_free);
-
-        nxt_conf_set_member(object, &alt_names_str, names, 1);
     }
 
     return object;
+}
 
-fail:
 
-    if (alt_names != NULL) {
-        sk_GENERAL_NAME_pop_free(alt_names, GENERAL_NAME_free);
+static nxt_conf_value_t *
+nxt_cert_alt_names_details(nxt_mp_t *mp, STACK_OF(GENERAL_NAME) *alt_names)
+{
+    nxt_str_t         str;
+    nxt_int_t         ret;
+    nxt_uint_t        i, n, count;
+    GENERAL_NAME      *name;
+    nxt_conf_value_t  *array;
+
+    count = sk_GENERAL_NAME_num(alt_names);
+    n = 0;
+
+    for (i = 0; i != count; i++) {
+        name = sk_GENERAL_NAME_value(alt_names, i);
+
+        if (name->type != GEN_DNS) {
+            continue;
+        }
+
+        n++;
     }
 
-    return NULL;
+    array = nxt_conf_create_array(mp, n);
+    if (nxt_slow_path(array == NULL)) {
+        return NULL;
+    }
+
+    for (n = 0, i = 0; n != count; n++) {
+        name = sk_GENERAL_NAME_value(alt_names, n);
+
+        if (name->type != GEN_DNS) {
+            continue;
+        }
+
+        str.length = ASN1_STRING_length(name->d.dNSName);
+#if OPENSSL_VERSION_NUMBER > 0x10100000L
+        str.start = (u_char *) ASN1_STRING_get0_data(name->d.dNSName);
+#else
+        str.start = ASN1_STRING_data(name->d.dNSName);
+#endif
+
+        ret = nxt_conf_set_element_string_dup(array, mp, i++, &str);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            return NULL;
+        }
+    }
+
+    return array;
 }
 
 
@@ -838,7 +852,12 @@ nxt_cert_store_load(nxt_task_t *task, nxt_mp_t *mp)
             break;
         }
 
-        if (de->d_type != DT_REG) {
+        nxt_debug(task, "readdir(\"%s\"): \"%s\"", rt->certs.start, de->d_name);
+
+        name.length = nxt_strlen(de->d_name);
+        name.start = (u_char *) de->d_name;
+
+        if (nxt_str_eq(&name, ".", 1) || nxt_str_eq(&name, "..", 2)) {
             continue;
         }
 
@@ -848,9 +867,6 @@ nxt_cert_store_load(nxt_task_t *task, nxt_mp_t *mp)
         }
 
         item->fd = -1;
-
-        name.length = nxt_strlen(de->d_name);
-        name.start = (u_char *) de->d_name;
 
         size = rt->certs.length + name.length + 1;
 

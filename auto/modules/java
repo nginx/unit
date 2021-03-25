@@ -238,7 +238,7 @@ cat << END > $NXT_JAVA_JARS
 static const char *nxt_java_system_jars[] = {
 END
 
-NXT_TOMCAT_VERSION=9.0.39
+NXT_TOMCAT_VERSION=9.0.44
 
 NXT_JAR_VERSION=$NXT_TOMCAT_VERSION
 
@@ -271,7 +271,7 @@ NXT_JAR_NAME=tomcat-util
 . auto/modules/java_get_jar
 
 NXT_JAR_NAME=ecj
-NXT_JAR_VERSION=3.23.0
+NXT_JAR_VERSION=3.25.0
 NXT_JAR_NAMESPACE=org/eclipse/jdt/
 . auto/modules/java_get_jar
 
@@ -284,7 +284,7 @@ static const char *nxt_java_unit_jars[] = {
     "$NXT_UNIT_JAR",
 END
 
-NXT_JAR_VERSION=9.4.33.v20201020
+NXT_JAR_VERSION=9.4.38.v20210224
 NXT_JAR_NAMESPACE=org/eclipse/jetty/
 
 NXT_JAR_NAME=jetty-util
@@ -297,7 +297,7 @@ NXT_JAR_NAME=jetty-http
 . auto/modules/java_get_jar
 
 NXT_JAR_NAME=classgraph
-NXT_JAR_VERSION=4.8.90
+NXT_JAR_VERSION=4.8.102
 NXT_JAR_NAMESPACE=io/github/classgraph/
 . auto/modules/java_get_jar
 

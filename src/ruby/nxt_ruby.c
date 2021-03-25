@@ -12,6 +12,8 @@
 
 #include NXT_RUBY_MOUNTS_H
 
+#include <locale.h>
+
 
 #define NXT_RUBY_RACK_API_VERSION_MAJOR  1
 #define NXT_RUBY_RACK_API_VERSION_MINOR  3
@@ -199,6 +201,8 @@ nxt_ruby_start(nxt_task_t *task, nxt_process_data_t *data)
     c = &conf->u.ruby;
 
     nxt_ruby_threads = c->threads;
+
+    setlocale(LC_CTYPE, "");
 
     RUBY_INIT_STACK
     ruby_init();

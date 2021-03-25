@@ -142,6 +142,14 @@ nxt_thread_yield()                                                            \
 #endif
 
 
+#if (PTHREAD_STACK_MIN)
+#define NXT_THREAD_STACK_MIN  PTHREAD_STACK_MIN
+
+#else
+#define NXT_THREAD_STACK_MIN  sysconf(_SC_THREAD_STACK_MIN)
+#endif
+
+
 struct nxt_thread_s {
     nxt_log_t                *log;
     nxt_log_t                main_log;

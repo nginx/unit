@@ -66,7 +66,10 @@ nxt_log_set_ctx(nxt_log_t *log, nxt_log_ctx_handler_t handler, void *ctx)
 void nxt_cdecl
 nxt_log_handler(nxt_uint_t level, nxt_log_t *log, const char *fmt, ...)
 {
-    u_char   *p, *syslogmsg, *end;
+    u_char   *p, *end;
+#if 0
+    u_char   *syslogmsg;
+#endif
     va_list  args;
     u_char   msg[NXT_MAX_ERROR_STR];
 
@@ -79,7 +82,9 @@ nxt_log_handler(nxt_uint_t level, nxt_log_t *log, const char *fmt, ...)
         *p++ = ' ';
     }
 
+#if 0
     syslogmsg = p;
+#endif
 
     p = nxt_sprintf(p, end, (log->ident != 0) ? "[%V] *%D " : "[%V] ",
                     &nxt_log_levels[level], log->ident);
@@ -100,6 +105,7 @@ nxt_log_handler(nxt_uint_t level, nxt_log_t *log, const char *fmt, ...)
 
     (void) nxt_write_console(nxt_stderr, msg, p - msg);
 
+#if 0
     if (level == NXT_LOG_ALERT) {
         *(p - nxt_length("\n")) = '\0';
 
@@ -109,4 +115,5 @@ nxt_log_handler(nxt_uint_t level, nxt_log_t *log, const char *fmt, ...)
          */
         nxt_write_syslog(LOG_ALERT, syslogmsg);
     }
+#endif
 }

@@ -1041,7 +1041,11 @@ nxt_php_execute(nxt_php_run_ctx_t *ctx, nxt_unit_request_t *r)
     if (r->authorization_field != NXT_UNIT_NONE_FIELD) {
         f = r->fields + r->authorization_field;
 
+#ifdef NXT_PHP7
         php_handle_auth_data(nxt_unit_sptr_get(&f->value));
+#else
+        php_handle_auth_data(nxt_unit_sptr_get(&f->value) TSRMLS_CC);
+#endif
 
     } else {
         SG(request_info).auth_digest = NULL;

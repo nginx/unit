@@ -229,6 +229,9 @@ class TestRouting(TestApplicationProto):
         assert self.get(url='/ABc')['status'] == 404
 
     def test_routes_empty_regex(self):
+        if not option.available['modules']['regex']:
+            pytest.skip('requires regex')
+
         self.route_match({"uri":"~"})
         assert self.get(url='/')['status'] == 200, 'empty regexp'
         assert self.get(url='/anything')['status'] == 200, '/anything'
@@ -238,6 +241,9 @@ class TestRouting(TestApplicationProto):
         assert self.get(url='/nothing')['status'] == 404, '/nothing'
 
     def test_routes_bad_regex(self):
+        if not option.available['modules']['regex']:
+            pytest.skip('requires regex')
+
         assert 'error' in self.route(
             {"match": {"uri": "~/bl[ah"}, "action": {"return": 200}}
         ), 'bad regex'
@@ -255,6 +261,9 @@ class TestRouting(TestApplicationProto):
             assert self.get(url='/nothing_z')['status'] == 500, '/nothing_z'
 
     def test_routes_match_regex_case_sensitive(self):
+        if not option.available['modules']['regex']:
+            pytest.skip('requires regex')
+
         self.route_match({"uri": "~/bl[ah]"})
 
         assert self.get(url='/rlah')['status'] == 404, '/rlah'
@@ -263,6 +272,9 @@ class TestRouting(TestApplicationProto):
         assert self.get(url='/BLAH')['status'] == 404, '/BLAH'
 
     def test_routes_match_regex_negative_case_sensitive(self):
+        if not option.available['modules']['regex']:
+            pytest.skip('requires regex')
+
         self.route_match({"uri": "!~/bl[ah]"})
 
         assert self.get(url='/rlah')['status'] == 200, '/rlah'

@@ -8,17 +8,20 @@
 #include <openssl/ssl.h>
 #include <openssl/conf.h>
 #include <openssl/err.h>
+#include <openssl/rand.h>
+#include <openssl/x509v3.h>
 
 
 typedef struct {
-    SSL            *session;
-    nxt_conn_t     *conn;
+    SSL             *session;
+    nxt_conn_t      *conn;
 
-    int            ssl_error;
-    uint8_t        times;      /* 2 bits */
-    uint8_t        handshake;  /* 1 bit  */
+    int             ssl_error;
+    uint8_t         times;      /* 2 bits */
+    uint8_t         handshake;  /* 1 bit  */
 
-    nxt_buf_mem_t  buffer;
+    nxt_tls_conf_t  *conf;
+    nxt_buf_mem_t   buffer;
 } nxt_openssl_conn_t;
 
 
@@ -39,8 +42,18 @@ static unsigned long nxt_openssl_thread_id(void);
 static void nxt_openssl_locks_free(void);
 #endif
 static nxt_int_t nxt_openssl_server_init(nxt_task_t *task,
-    nxt_tls_conf_t *conf);
-static nxt_int_t nxt_openssl_chain_file(SSL_CTX *ctx, nxt_fd_t fd);
+    nxt_tls_conf_t *conf, nxt_mp_t *mp, nxt_bool_t last);
+static nxt_int_t nxt_openssl_chain_file(nxt_task_t *task, SSL_CTX *ctx,
+    nxt_tls_conf_t *conf, nxt_mp_t *mp, nxt_bool_t single);
+static nxt_uint_t nxt_openssl_cert_get_names(nxt_task_t *task, X509 *cert,
+    nxt_tls_conf_t *conf, nxt_mp_t *mp);
+static nxt_int_t nxt_openssl_bundle_hash_test(nxt_lvlhsh_query_t *lhq,
+    void *data);
+static nxt_int_t nxt_openssl_bundle_hash_insert(nxt_task_t *task,
+    nxt_lvlhsh_t *lvlhsh, nxt_tls_bundle_hash_item_t *item, nxt_mp_t * mp);
+static nxt_int_t nxt_openssl_servername(SSL *s, int *ad, void *arg);
+static nxt_tls_bundle_conf_t *nxt_openssl_find_ctx(nxt_tls_conf_t *conf,
+    nxt_str_t *sn);
 static void nxt_openssl_server_free(nxt_task_t *task, nxt_tls_conf_t *conf);
 static void nxt_openssl_conn_init(nxt_task_t *task, nxt_tls_conf_t *conf,
     nxt_conn_t *c);
@@ -244,12 +257,13 @@ nxt_openssl_locks_free(void)
 
 
 static nxt_int_t
-nxt_openssl_server_init(nxt_task_t *task, nxt_tls_conf_t *conf)
+nxt_openssl_server_init(nxt_task_t *task, nxt_tls_conf_t *conf,
+    nxt_mp_t *mp, nxt_bool_t last)
 {
-    SSL_CTX              *ctx;
-    nxt_fd_t             fd;
-    const char           *ciphers, *ca_certificate;
-    STACK_OF(X509_NAME)  *list;
+    SSL_CTX                *ctx;
+    const char             *ciphers, *ca_certificate;
+    STACK_OF(X509_NAME)    *list;
+    nxt_tls_bundle_conf_t  *bundle;
 
     ctx = SSL_CTX_new(SSLv23_server_method());
     if (ctx == NULL) {
@@ -257,8 +271,10 @@ nxt_openssl_server_init(nxt_task_t *task, nxt_tls_conf_t *conf)
         return NXT_ERROR;
     }
 
-    conf->ctx = ctx;
-    conf->conn_init = nxt_openssl_conn_init;
+    bundle = conf->bundle;
+    nxt_assert(bundle != NULL);
+
+    bundle->ctx = ctx;
 
 #ifdef SSL_OP_NO_RENEGOTIATION
     /* Renegration is not currently supported. */
@@ -286,11 +302,10 @@ nxt_openssl_server_init(nxt_task_t *task, nxt_tls_conf_t *conf)
 
 #endif
 
-    fd = conf->chain_file;
-
-    if (nxt_openssl_chain_file(ctx, fd) != NXT_OK) {
-        nxt_openssl_log_error(task, NXT_LOG_ALERT,
-                              "nxt_openssl_chain_file() failed");
+    if (nxt_openssl_chain_file(task, ctx, conf, mp,
+                               last && bundle->next == NULL)
+        != NXT_OK)
+    {
         goto fail;
     }
 /*
@@ -349,33 +364,51 @@ nxt_openssl_server_init(nxt_task_t *task, nxt_tls_conf_t *conf)
         SSL_CTX_set_client_CA_list(ctx, list);
     }
 
+    if (last) {
+        conf->conn_init = nxt_openssl_conn_init;
+
+        if (bundle->next != NULL) {
+            SSL_CTX_set_tlsext_servername_callback(ctx, nxt_openssl_servername);
+        }
+    }
+
     return NXT_OK;
 
 fail:
 
     SSL_CTX_free(ctx);
 
+#if (OPENSSL_VERSION_NUMBER >= 0x1010100fL \
+     && OPENSSL_VERSION_NUMBER < 0x1010101fL)
+    RAND_keep_random_devices_open(0);
+#endif
+
     return NXT_ERROR;
 }
 
 
 static nxt_int_t
-nxt_openssl_chain_file(SSL_CTX *ctx, nxt_fd_t fd)
+nxt_openssl_chain_file(nxt_task_t *task, SSL_CTX *ctx, nxt_tls_conf_t *conf,
+    nxt_mp_t *mp, nxt_bool_t single)
 {
-    BIO            *bio;
-    X509           *cert, *ca;
-    long           reason;
-    EVP_PKEY       *key;
-    nxt_int_t      ret;
+    BIO                    *bio;
+    X509                   *cert, *ca;
+    long                   reason;
+    EVP_PKEY               *key;
+    nxt_int_t              ret;
+    nxt_tls_bundle_conf_t  *bundle;
+
+    ret = NXT_ERROR;
+    cert = NULL;
 
     bio = BIO_new(BIO_s_fd());
     if (bio == NULL) {
-        return NXT_ERROR;
+        goto end;
     }
 
-    BIO_set_fd(bio, fd, BIO_CLOSE);
+    bundle = conf->bundle;
 
-    ret = NXT_ERROR;
+    BIO_set_fd(bio, bundle->chain_file, BIO_CLOSE);
 
     cert = PEM_read_bio_X509_AUX(bio, NULL, NULL, NULL);
     if (cert == NULL) {
@@ -384,6 +417,10 @@ nxt_openssl_chain_file(SSL_CTX *ctx, nxt_fd_t fd)
 
     if (SSL_CTX_use_certificate(ctx, cert) != 1) {
         goto end;
+    }
+
+    if (!single && nxt_openssl_cert_get_names(task, cert, conf, mp) != NXT_OK) {
+        goto clean;
     }
 
     for ( ;; ) {
@@ -431,17 +468,324 @@ nxt_openssl_chain_file(SSL_CTX *ctx, nxt_fd_t fd)
 
 end:
 
-    X509_free(cert);
+    if (ret != NXT_OK) {
+        nxt_openssl_log_error(task, NXT_LOG_ALERT,
+                              "nxt_openssl_chain_file() failed");
+    }
+
+clean:
+
     BIO_free(bio);
+    X509_free(cert);
 
     return ret;
+}
+
+
+static nxt_uint_t
+nxt_openssl_cert_get_names(nxt_task_t *task, X509 *cert, nxt_tls_conf_t *conf,
+    nxt_mp_t *mp)
+{
+    int                         len;
+    nxt_str_t                   domain, str;
+    X509_NAME                   *x509_name;
+    nxt_uint_t                  i, n;
+    GENERAL_NAME                *name;
+    nxt_tls_bundle_conf_t       *bundle;
+    STACK_OF(GENERAL_NAME)      *alt_names;
+    nxt_tls_bundle_hash_item_t  *item;
+
+    bundle = conf->bundle;
+
+    alt_names = X509_get_ext_d2i(cert, NID_subject_alt_name, NULL, NULL);
+
+    if (alt_names != NULL) {
+        n = sk_GENERAL_NAME_num(alt_names);
+
+        for (i = 0; i != n; i++) {
+            name = sk_GENERAL_NAME_value(alt_names, i);
+
+            if (name->type != GEN_DNS) {
+                continue;
+            }
+
+            str.length = ASN1_STRING_length(name->d.dNSName);
+#if OPENSSL_VERSION_NUMBER > 0x10100000L
+            str.start = (u_char *) ASN1_STRING_get0_data(name->d.dNSName);
+#else
+            str.start = ASN1_STRING_data(name->d.dNSName);
+#endif
+
+            domain.start = nxt_mp_nget(mp, str.length);
+            if (nxt_slow_path(domain.start == NULL)) {
+                goto fail;
+            }
+
+            domain.length = str.length;
+            nxt_memcpy_lowcase(domain.start, str.start, str.length);
+
+            item = nxt_mp_get(mp, sizeof(nxt_tls_bundle_hash_item_t));
+            if (nxt_slow_path(item == NULL)) {
+                goto fail;
+            }
+
+            item->name = domain;
+            item->bundle = bundle;
+
+            if (nxt_openssl_bundle_hash_insert(task, &conf->bundle_hash,
+                                               item, mp)
+                == NXT_ERROR)
+            {
+                goto fail;
+            }
+        }
+
+        sk_GENERAL_NAME_pop_free(alt_names, GENERAL_NAME_free);
+
+    } else {
+        x509_name = X509_get_subject_name(cert);
+        len = X509_NAME_get_text_by_NID(x509_name, NID_commonName,
+                                        NULL, 0);
+        if (len <= 0) {
+            nxt_log(task, NXT_LOG_WARN, "certificate \"%V\" has neither "
+                    "Subject Alternative Name nor Common Name", bundle->name);
+            return NXT_OK;
+        }
+
+        domain.start = nxt_mp_nget(mp, len + 1);
+        if (nxt_slow_path(domain.start == NULL)) {
+            return NXT_ERROR;
+        }
+
+        domain.length = X509_NAME_get_text_by_NID(x509_name, NID_commonName,
+                                                  (char *) domain.start,
+                                                  len + 1);
+        nxt_memcpy_lowcase(domain.start, domain.start, domain.length);
+
+        item = nxt_mp_get(mp, sizeof(nxt_tls_bundle_hash_item_t));
+        if (nxt_slow_path(item == NULL)) {
+            return NXT_ERROR;
+        }
+
+        item->name = domain;
+        item->bundle = bundle;
+
+        if (nxt_openssl_bundle_hash_insert(task, &conf->bundle_hash, item,
+                                           mp)
+            == NXT_ERROR)
+        {
+            return NXT_ERROR;
+        }
+    }
+
+    return NXT_OK;
+
+fail:
+
+    sk_GENERAL_NAME_pop_free(alt_names, GENERAL_NAME_free);
+
+    return NXT_ERROR;
+}
+
+
+static const nxt_lvlhsh_proto_t  nxt_openssl_bundle_hash_proto
+    nxt_aligned(64) =
+{
+    NXT_LVLHSH_DEFAULT,
+    nxt_openssl_bundle_hash_test,
+    nxt_mp_lvlhsh_alloc,
+    nxt_mp_lvlhsh_free,
+};
+
+
+static nxt_int_t
+nxt_openssl_bundle_hash_test(nxt_lvlhsh_query_t *lhq, void *data)
+{
+    nxt_tls_bundle_hash_item_t  *item;
+
+    item = data;
+
+    return nxt_strstr_eq(&lhq->key, &item->name) ? NXT_OK : NXT_DECLINED;
+}
+
+
+static nxt_int_t
+nxt_openssl_bundle_hash_insert(nxt_task_t *task, nxt_lvlhsh_t *lvlhsh,
+    nxt_tls_bundle_hash_item_t *item, nxt_mp_t *mp)
+{
+    nxt_str_t                   str;
+    nxt_int_t                   ret;
+    nxt_lvlhsh_query_t          lhq;
+    nxt_tls_bundle_hash_item_t  *old;
+
+    str = item->name;
+
+    if (item->name.start[0] == '*') {
+        item->name.start++;
+        item->name.length--;
+
+        if (item->name.length == 0 || item->name.start[0] != '.') {
+            nxt_log(task, NXT_LOG_WARN, "ignored invalid name \"%V\" "
+                    "in certificate \"%V\": missing \".\" "
+                    "after wildcard symbol", &str, item->bundle->name);
+            return NXT_OK;
+        }
+    }
+
+    lhq.pool = mp;
+    lhq.key = item->name;
+    lhq.value = item;
+    lhq.proto = &nxt_openssl_bundle_hash_proto;
+    lhq.replace = 0;
+    lhq.key_hash = nxt_murmur_hash2(item->name.start, item->name.length);
+
+    ret = nxt_lvlhsh_insert(lvlhsh, &lhq);
+    if (nxt_fast_path(ret == NXT_OK)) {
+        nxt_debug(task, "name \"%V\" for certificate \"%V\" is inserted",
+                  &str, item->bundle->name);
+        return NXT_OK;
+    }
+
+    if (nxt_fast_path(ret == NXT_DECLINED)) {
+        old = lhq.value;
+        if (old->bundle != item->bundle) {
+            nxt_log(task, NXT_LOG_WARN, "ignored duplicate name \"%V\" "
+                    "in certificate \"%V\", identical name appears in \"%V\"",
+                    &str, old->bundle->name, item->bundle->name);
+
+            old->bundle = item->bundle;
+        }
+
+        return NXT_OK;
+    }
+
+    return NXT_ERROR;
+}
+
+
+static nxt_int_t
+nxt_openssl_servername(SSL *s, int *ad, void *arg)
+{
+    nxt_str_t              str;
+    nxt_uint_t             i;
+    nxt_conn_t             *c;
+    const char             *servername;
+    nxt_tls_conf_t         *conf;
+    nxt_openssl_conn_t     *tls;
+    nxt_tls_bundle_conf_t  *bundle;
+
+    c = SSL_get_ex_data(s, nxt_openssl_connection_index);
+
+    if (nxt_slow_path(c == NULL)) {
+        nxt_thread_log_alert("SSL_get_ex_data() failed");
+        return SSL_TLSEXT_ERR_ALERT_FATAL;
+    }
+
+    servername = SSL_get_servername(s, TLSEXT_NAMETYPE_host_name);
+    if (nxt_slow_path(servername == NULL)) {
+        nxt_log(c->socket.task, NXT_LOG_ALERT, "SSL_get_servername() returned "
+                                               "NULL in server name callback");
+        return SSL_TLSEXT_ERR_ALERT_FATAL;
+    }
+
+    str.length = nxt_strlen(servername);
+    if (str.length == 0) {
+        nxt_debug(c->socket.task, "client sent zero-length server name");
+        goto done;
+    }
+
+    if (servername[0] == '.') {
+        nxt_debug(c->socket.task, "ignored the server name \"%s\": "
+                                  "leading \".\"", servername);
+        goto done;
+    }
+
+    nxt_debug(c->socket.task, "tls with servername \"%s\"", servername);
+
+    str.start = nxt_mp_nget(c->mem_pool, str.length);
+    if (nxt_slow_path(str.start == NULL)) {
+        return SSL_TLSEXT_ERR_ALERT_FATAL;
+    }
+
+    nxt_memcpy_lowcase(str.start, (const u_char *) servername, str.length);
+
+    tls = c->u.tls;
+    conf = tls->conf;
+
+    bundle = nxt_openssl_find_ctx(conf, &str);
+
+    if (bundle == NULL) {
+        for (i = 1; i < str.length; i++) {
+            if (str.start[i] == '.') {
+                str.start += i;
+                str.length -= i;
+
+                bundle = nxt_openssl_find_ctx(conf, &str);
+                break;
+            }
+        }
+    }
+
+    if (bundle != NULL) {
+        nxt_debug(c->socket.task, "new tls context found for \"%V\": \"%V\" "
+                                  "(old: \"%V\")", &str, bundle->name,
+                                  conf->bundle->name);
+
+        if (bundle != conf->bundle) {
+            if (SSL_set_SSL_CTX(s, bundle->ctx) == NULL) {
+                nxt_openssl_log_error(c->socket.task, NXT_LOG_ALERT,
+                                      "SSL_set_SSL_CTX() failed");
+
+                return SSL_TLSEXT_ERR_ALERT_FATAL;
+            }
+        }
+    }
+
+done:
+
+    return SSL_TLSEXT_ERR_OK;
+}
+
+
+static nxt_tls_bundle_conf_t *
+nxt_openssl_find_ctx(nxt_tls_conf_t *conf, nxt_str_t *sn)
+{
+    nxt_int_t                   ret;
+    nxt_lvlhsh_query_t          lhq;
+    nxt_tls_bundle_hash_item_t  *item;
+
+    lhq.key_hash = nxt_murmur_hash2(sn->start, sn->length);
+    lhq.key = *sn;
+    lhq.proto = &nxt_openssl_bundle_hash_proto;
+
+    ret = nxt_lvlhsh_find(&conf->bundle_hash, &lhq);
+    if (ret != NXT_OK) {
+        return NULL;
+    }
+
+    item = lhq.value;
+
+    return item->bundle;
 }
 
 
 static void
 nxt_openssl_server_free(nxt_task_t *task, nxt_tls_conf_t *conf)
 {
-    SSL_CTX_free(conf->ctx);
+    nxt_tls_bundle_conf_t  *bundle;
+
+    bundle = conf->bundle;
+    nxt_assert(bundle != NULL);
+
+    do {
+        SSL_CTX_free(bundle->ctx);
+        bundle = bundle->next;
+    } while (bundle != NULL);
+
+#if (OPENSSL_VERSION_NUMBER >= 0x1010100fL \
+     && OPENSSL_VERSION_NUMBER < 0x1010101fL)
+    RAND_keep_random_devices_open(0);
+#endif
 }
 
 
@@ -463,7 +807,7 @@ nxt_openssl_conn_init(nxt_task_t *task, nxt_tls_conf_t *conf, nxt_conn_t *c)
     c->u.tls = tls;
     nxt_buf_mem_set_size(&tls->buffer, conf->buffer_size);
 
-    ctx = conf->ctx;
+    ctx = conf->bundle->ctx;
 
     s = SSL_new(ctx);
     if (s == NULL) {
@@ -472,6 +816,8 @@ nxt_openssl_conn_init(nxt_task_t *task, nxt_tls_conf_t *conf, nxt_conn_t *c)
     }
 
     tls->session = s;
+    /* To pass TLS config to the nxt_openssl_servername() callback. */
+    tls->conf = conf;
     tls->conn = c;
 
     ret = SSL_set_fd(s, c->socket.fd);
@@ -493,6 +839,11 @@ nxt_openssl_conn_init(nxt_task_t *task, nxt_tls_conf_t *conf, nxt_conn_t *c)
     c->sendfile = NXT_CONN_SENDFILE_OFF;
 
     nxt_openssl_conn_handshake(task, c, c->socket.data);
+    /*
+     * TLS configuration might be destroyed after the TLS connection
+     * is established.
+     */
+    tls->conf = NULL;
     return;
 
 fail:
@@ -719,10 +1070,6 @@ nxt_openssl_conn_io_shutdown(nxt_task_t *task, void *obj, void *data)
     c = obj;
 
     nxt_debug(task, "openssl conn shutdown fd:%d", c->socket.fd);
-
-    if (c->socket.error != 0) {
-        return;
-    }
 
     c->read_state = NULL;
     tls = c->u.tls;
