@@ -38,6 +38,13 @@ appeared in 1.6.
 
 <change type="bugfix">
 <para>
+a descriptor and memory leak occurring in the router process when processing
+small WebSocket frames from a client; the bug had appeared in 1.19.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
 a descriptor leak occurring in the router process when removing or
 reconfiguring an application; the bug had appeared in 1.19.0.
 </para>
