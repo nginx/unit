@@ -1,6 +1,6 @@
 {
     "name": "unit-http",
-    "version": "1.0.0",
+    "version": "%%VERSION%%",
     "description": "HTTP module for NGINX Unit",
     "main": "http.js",
     "files": [

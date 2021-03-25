@@ -170,7 +170,7 @@ ${NXT_NODE_VERSION_FILE}: ${NXT_VERSION_H}
 
 ${NXT_NODE_PACKAGE_FILE}: ${NXT_VERSION_H} src/nodejs/unit-http/package.json
 	mkdir -p ${NXT_BUILD_DIR}/src/${NXT_NODE}
-	sed -e 's/"version"\s*:.*/"version": "\$(NXT_VERSION)",/' \
+	sed -e "s|%%VERSION%%|\$(NXT_VERSION)|" \
 		src/nodejs/unit-http/package.json > ${NXT_NODE_PACKAGE_FILE}
 
 ${NXT_NODE_TARBALL}: ${NXT_NODE}-copy
