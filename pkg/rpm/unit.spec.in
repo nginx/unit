@@ -203,7 +203,7 @@ BANNER
 %dir %{_libdir}/unit/modules
 %dir %{_libdir}/unit/debug-modules
 %dir %{_sharedstatedir}/unit
-%dir %attr(0700,root,root) %{_localstatedir}/log/unit
+%dir %attr(0755,root,root) %{_localstatedir}/log/unit
 %config(noreplace) %{_sysconfdir}/logrotate.d/%{name}
 %{_mandir}/man8/unitd.8*
 
