@@ -1362,10 +1362,7 @@ class TestRouting(TestApplicationProto):
         assert self.get(url='/?var2=val2')['status'] == 404, 'arr 7'
         assert self.get(url='/?var3=foo')['status'] == 200, 'arr 8'
 
-    def test_routes_match_arguments_invalid(self, skip_alert):
-        # TODO remove it after controller fixed
-        skip_alert(r'failed to apply new conf')
-
+    def test_routes_match_arguments_invalid(self):
         self.route_match_invalid({"arguments": ["var"]})
         self.route_match_invalid({"arguments": [{"var1": {}}]})
         self.route_match_invalid({"arguments": {"": "bar"}})
