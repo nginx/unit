@@ -14,7 +14,7 @@ dist:
 	hg archive unit-$(VERSION).tar.gz \
 		-r $(VERSION) \
 		-p unit-$(VERSION) \
-		-X "../.hg*" -X "../pkg/" -X "../docs/"
+		-X "../.hg*" -X "../pkg/" -X "../docs/*.*" -X "../docs/Makefile"
 	$(SHA512SUM) unit-$(VERSION).tar.gz > unit-$(VERSION).tar.gz.sha512
 
 rpm:
