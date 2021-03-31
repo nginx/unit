@@ -57,6 +57,12 @@ def pytest_addoption(parser):
         help="Default user for non-privileged processes of unitd",
     )
     parser.addoption(
+        "--fds-threshold",
+        type=int,
+        default=0,
+        help="File descriptors threshold",
+    )
+    parser.addoption(
         "--restart",
         default=False,
         action="store_true",
@@ -67,12 +73,23 @@ def pytest_addoption(parser):
 unit_instance = {}
 unit_log_copy = "unit.log.copy"
 _processes = []
+_fds_check = {
+    'main': {'fds': 0, 'skip': False},
+    'router': {'name': 'unit: router', 'pid': -1, 'fds': 0, 'skip': False},
+    'controller': {
+        'name': 'unit: controller',
+        'pid': -1,
+        'fds': 0,
+        'skip': False,
+    },
+}
 http = TestHTTP()
 
 def pytest_configure(config):
     option.config = config.option
 
     option.detailed = config.option.detailed
+    option.fds_threshold = config.option.fds_threshold
     option.print_log = config.option.print_log
     option.save_log = config.option.save_log
     option.unsafe = config.option.unsafe
@@ -257,6 +274,10 @@ def run(request):
     ]
     option.skip_sanitizer = False
 
+    _fds_check['main']['skip'] = False
+    _fds_check['router']['skip'] = False
+    _fds_check['router']['skip'] = False
+
     yield
 
     # stop unit
@@ -303,6 +324,50 @@ def run(request):
                     os.remove(path)
                 else:
                     shutil.rmtree(path)
+
+    # check descriptors (wait for some time before check)
+
+    def waitforfds(diff):
+        for i in range(600):
+            fds_diff = diff()
+
+            if fds_diff <= option.fds_threshold:
+                break
+
+            time.sleep(0.1)
+
+        return fds_diff
+
+    ps = _fds_check['main']
+    if not ps['skip']:
+        fds_diff = waitforfds(
+            lambda: _count_fds(unit_instance['pid']) - ps['fds']
+        )
+        ps['fds'] += fds_diff
+
+        assert (
+            fds_diff <= option.fds_threshold
+        ), 'descriptors leak main process'
+
+    else:
+        ps['fds'] = _count_fds(unit_instance['pid'])
+
+    for name in ['controller', 'router']:
+        ps = _fds_check[name]
+        ps_pid = ps['pid']
+        ps['pid'] = pid_by_name(ps['name'])
+
+        if not ps['skip']:
+            fds_diff = waitforfds(lambda: _count_fds(ps['pid']) - ps['fds'])
+            ps['fds'] += fds_diff
+
+            assert ps['pid'] == ps_pid, 'same pid %s' % name
+            assert fds_diff <= option.fds_threshold, (
+                'descriptors leak %s' % name
+            )
+
+        else:
+            ps['fds'] = _count_fds(ps['pid'])
 
     # print unit.log in case of error
 
@@ -370,6 +435,21 @@ def unit_run():
     unit_instance['log'] = temp_dir + '/unit.log'
     unit_instance['control_sock'] = temp_dir + '/control.unit.sock'
     unit_instance['unitd'] = unitd
+
+    with open(temp_dir + '/unit.pid', 'r') as f:
+        unit_instance['pid'] = f.read().rstrip()
+
+    _clear_conf(unit_instance['temp_dir'] + '/control.unit.sock')
+
+    _fds_check['main']['fds'] = _count_fds(unit_instance['pid'])
+
+    router = _fds_check['router']
+    router['pid'] = pid_by_name(router['name'])
+    router['fds'] = _count_fds(router['pid'])
+
+    controller = _fds_check['controller']
+    controller['pid'] = pid_by_name(controller['name'])
+    controller['fds'] = _count_fds(controller['pid'])
 
     return unit_instance
 
@@ -492,6 +572,32 @@ def _clear_conf(sock, log=None):
 
         check_success(resp)
 
+def _count_fds(pid):
+    procfile = '/proc/%s/fd' % pid
+    if os.path.isdir(procfile):
+        return len(os.listdir(procfile))
+
+    try:
+        out = subprocess.check_output(
+            ['procstat', '-f', pid], stderr=subprocess.STDOUT,
+        ).decode()
+        return len(out.splitlines())
+
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        pass
+
+    try:
+        out = subprocess.check_output(
+            ['lsof', '-n', '-p', pid], stderr=subprocess.STDOUT,
+        ).decode()
+        return len(out.splitlines())
+
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        pass
+
+    return 0
+
+
 def run_process(target, *args):
     global _processes
 
@@ -517,10 +623,32 @@ def stop_processes():
         return 'Fail to stop process(es)'
 
 
+def pid_by_name(name):
+    output = subprocess.check_output(['ps', 'ax', '-O', 'ppid']).decode()
+    m = re.search(
+        r'\s*(\d+)\s*' + str(unit_instance['pid']) + r'.*' + name, output
+    )
+    return None if m is None else m.group(1)
+
+
+def find_proc(name, ps_output):
+    return re.findall(str(unit_instance['pid']) + r'.*' + name, ps_output)
+
+
 @pytest.fixture()
 def skip_alert():
     def _skip(*alerts):
         option.skip_alerts.extend(alerts)
+
+    return _skip
+
+
+@pytest.fixture()
+def skip_fds_check():
+    def _skip(main=False, router=False, controller=False):
+        _fds_check['main']['skip'] = main
+        _fds_check['router']['skip'] = router
+        _fds_check['controller']['skip'] = controller
 
     return _skip
 
