@@ -250,7 +250,8 @@ class TestRubyApplication(TestApplicationRuby):
 
         def check_locale(enc):
             assert 'success' in self.conf(
-                {"LC_CTYPE": enc}, '/config/applications/encoding/environment',
+                {"LC_CTYPE": enc, "LC_ALL": ""},
+                '/config/applications/encoding/environment',
             )
 
             resp = self.get()
