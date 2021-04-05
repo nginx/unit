@@ -2,6 +2,7 @@ import os
 import subprocess
 
 import pytest
+
 from unit.applications.lang.java import TestApplicationJava
 from unit.option import option
 

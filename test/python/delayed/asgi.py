@@ -1,5 +1,6 @@
 import asyncio
 
+
 async def application(scope, receive, send):
     assert scope['type'] == 'http'
 
@@ -28,13 +29,13 @@ async def application(scope, receive, send):
         loop.call_later(n, future.set_result, None)
         await future
 
-    await send({
-        'type': 'http.response.start',
-        'status': 200,
-        'headers': [
-            (b'content-length', str(len(body)).encode()),
-        ]
-    })
+    await send(
+        {
+            'type': 'http.response.start',
+            'status': 200,
+            'headers': [(b'content-length', str(len(body)).encode()),],
+        }
+    )
 
     if not body:
         await sleep(delay)
@@ -42,10 +43,12 @@ async def application(scope, receive, send):
 
     step = int(len(body) / parts)
     for i in range(0, len(body), step):
-        await send({
-            'type': 'http.response.body',
-            'body': body[i : i + step],
-            'more_body': True,
-        })
+        await send(
+            {
+                'type': 'http.response.body',
+                'body': body[i : i + step],
+                'more_body': True,
+            }
+        )
 
         await sleep(delay)

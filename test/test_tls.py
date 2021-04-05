@@ -4,6 +4,7 @@ import ssl
 import subprocess
 
 import pytest
+
 from unit.applications.tls import TestApplicationTLS
 from unit.option import option
 
@@ -22,7 +23,7 @@ class TestTLS(TestApplicationTLS):
         assert 'success' in self.conf(
             {
                 "pass": "applications/" + application,
-                "tls": {"certificate": cert}
+                "tls": {"certificate": cert},
             },
             'listeners/*:' + str(port),
         )

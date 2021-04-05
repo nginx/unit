@@ -1,5 +1,6 @@
 import atexit
 
+
 def application(environ, start_response):
     def at_exit():
         environ['wsgi.errors'].write('At exit called.\n')

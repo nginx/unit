@@ -6,7 +6,6 @@ import platform
 import re
 import shutil
 import signal
-import socket
 import stat
 import subprocess
 import sys
@@ -15,11 +14,12 @@ import time
 from multiprocessing import Process
 
 import pytest
+
 from unit.check.go import check_go
 from unit.check.isolation import check_isolation
 from unit.check.node import check_node
-from unit.check.tls import check_openssl
 from unit.check.regex import check_regex
+from unit.check.tls import check_openssl
 from unit.http import TestHTTP
 from unit.option import option
 from unit.utils import public_dir
@@ -85,6 +85,7 @@ _fds_check = {
 }
 http = TestHTTP()
 
+
 def pytest_configure(config):
     option.config = config.option
 
@@ -115,9 +116,11 @@ def pytest_configure(config):
 
 def pytest_generate_tests(metafunc):
     cls = metafunc.cls
-    if (not hasattr(cls, 'application_type')
-            or cls.application_type == None
-            or cls.application_type == 'external'):
+    if (
+        not hasattr(cls, 'application_type')
+        or cls.application_type == None
+        or cls.application_type == 'external'
+    ):
         return
 
     type = cls.application_type
@@ -215,6 +218,7 @@ def pytest_sessionstart(session):
 
     elif option.save_log:
         open(unit_instance['temp_dir'] + '/' + unit_log_copy, 'w').close()
+
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
@@ -320,7 +324,9 @@ def run(request):
 
                 public_dir(path)
 
-                if os.path.isfile(path) or stat.S_ISSOCK(os.stat(path).st_mode):
+                if os.path.isfile(path) or stat.S_ISSOCK(
+                    os.stat(path).st_mode
+                ):
                     os.remove(path)
                 else:
                     shutil.rmtree(path)
@@ -383,6 +389,7 @@ def run(request):
     assert error_stop_processes is None, 'stop processes'
 
     _check_alerts(log=log)
+
 
 def unit_run():
     global unit_instance
@@ -482,7 +489,6 @@ def unit_stop():
         return 'Could not terminate unit'
 
 
-
 def _check_alerts(path=None, log=None):
     if path is None:
         path = unit_instance['log']
@@ -554,23 +560,20 @@ def _clear_conf(sock, log=None):
         return
 
     try:
-        certs = json.loads(http.get(
-            url='/certificates',
-            sock_type='unix',
-            addr=sock,
-        )['body']).keys()
+        certs = json.loads(
+            http.get(url='/certificates', sock_type='unix', addr=sock,)['body']
+        ).keys()
 
     except json.JSONDecodeError:
         pytest.fail('Can\'t parse certificates list.')
 
     for cert in certs:
         resp = http.delete(
-            url='/certificates/' + cert,
-            sock_type='unix',
-            addr=sock,
+            url='/certificates/' + cert, sock_type='unix', addr=sock,
         )['body']
 
         check_success(resp)
+
 
 def _count_fds(pid):
     procfile = '/proc/%s/fd' % pid
@@ -605,6 +608,7 @@ def run_process(target, *args):
     process.start()
 
     _processes.append(process)
+
 
 def stop_processes():
     if not _processes:
@@ -657,17 +661,21 @@ def skip_fds_check():
 def temp_dir(request):
     return unit_instance['temp_dir']
 
+
 @pytest.fixture
 def is_unsafe(request):
     return request.config.getoption("--unsafe")
+
 
 @pytest.fixture
 def is_su(request):
     return os.geteuid() == 0
 
+
 @pytest.fixture
 def unit_pid(request):
     return unit_instance['process'].pid
+
 
 def pytest_sessionfinish(session):
     if not option.restart and option.save_log:

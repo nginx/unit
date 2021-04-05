@@ -1,7 +1,8 @@
-import subprocess
 import ssl
+import subprocess
 
 import pytest
+
 from unit.applications.tls import TestApplicationTLS
 from unit.option import option
 
@@ -23,10 +24,7 @@ class TestTLSSNI(TestApplicationTLS):
 
     def add_tls(self, cert='default'):
         assert 'success' in self.conf(
-            {
-                "pass": "routes",
-                "tls": {"certificate": cert}
-            },
+            {"pass": "routes", "tls": {"certificate": cert}},
             'listeners/*:7080',
         )
 
@@ -153,10 +151,7 @@ basicConstraints = critical,CA:TRUE"""
 
     def test_tls_sni(self):
         bundles = {
-            "default": {
-                "subj": "default",
-                "alt_names": ["default"],
-            },
+            "default": {"subj": "default", "alt_names": ["default"]},
             "localhost.com": {
                 "subj": "localhost.com",
                 "alt_names": ["alt1.localhost.com"],
@@ -205,10 +200,7 @@ basicConstraints = critical,CA:TRUE"""
 
     def test_tls_sni_wildcard(self):
         bundles = {
-            "localhost.com": {
-                "subj": "localhost.com",
-                "alt_names": [],
-            },
+            "localhost.com": {"subj": "localhost.com", "alt_names": []},
             "example.com": {
                 "subj": "example.com",
                 "alt_names": ["*.example.com", "*.alt.example.com"],
@@ -248,11 +240,7 @@ basicConstraints = critical,CA:TRUE"""
         self.check_cert('example', bundles['localhost']['subj'])
 
     def test_tls_sni_empty_cn(self):
-        bundles = {
-            "localhost": {
-                "alt_names": ["alt.localhost.com"],
-            }
-        }
+        bundles = {"localhost": {"alt_names": ["alt.localhost.com"]}}
         self.config_bundles(bundles)
         self.add_tls(["localhost"])
 
@@ -266,7 +254,9 @@ basicConstraints = critical,CA:TRUE"""
         )
 
         assert resp['status'] == 200
-        assert sock.getpeercert()['subjectAltName'][0][1] == 'alt.localhost.com'
+        assert (
+            sock.getpeercert()['subjectAltName'][0][1] == 'alt.localhost.com'
+        )
 
     def test_tls_sni_invalid(self):
         self.config_bundles({"localhost": {"subj": "subj1", "alt_names": ''}})

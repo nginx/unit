@@ -76,9 +76,10 @@ class TestRespawn(TestApplicationPython):
         self.kill_pids(pid)
         skip_alert(r'process %s exited on signal 9' % pid)
 
-        assert self.wait_for_process(
-            self.PATTERN_CONTROLLER, unit_pid
-        ) is not None
+        assert (
+            self.wait_for_process(self.PATTERN_CONTROLLER, unit_pid)
+            is not None
+        )
 
         assert self.get()['status'] == 200
 

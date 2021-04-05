@@ -1,5 +1,6 @@
 import os
 
+
 def application(env, start_response):
     body = ''
     vars = env.get('HTTP_X_VARIABLES').split(',')

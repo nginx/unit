@@ -43,11 +43,7 @@ class TestApplicationWebsocket(TestApplicationProto):
                 'Sec-WebSocket-Version': 13,
             }
 
-        _, sock = self.get(
-            headers=headers,
-            no_recv=True,
-            start=True,
-        )
+        _, sock = self.get(headers=headers, no_recv=True, start=True,)
 
         resp = ''
         while True:
@@ -57,7 +53,7 @@ class TestApplicationWebsocket(TestApplicationProto):
 
             resp += sock.recv(4096).decode()
 
-            if (resp.startswith('HTTP/') and '\r\n\r\n' in resp):
+            if resp.startswith('HTTP/') and '\r\n\r\n' in resp:
                 resp = self._resp_to_dict(resp)
                 break
 
@@ -90,8 +86,8 @@ class TestApplicationWebsocket(TestApplicationProto):
 
         frame = {}
 
-        head1, = struct.unpack('!B', recv_bytes(sock, 1))
-        head2, = struct.unpack('!B', recv_bytes(sock, 1))
+        (head1,) = struct.unpack('!B', recv_bytes(sock, 1))
+        (head2,) = struct.unpack('!B', recv_bytes(sock, 1))
 
         frame['fin'] = bool(head1 & 0b10000000)
         frame['rsv1'] = bool(head1 & 0b01000000)
@@ -103,10 +99,10 @@ class TestApplicationWebsocket(TestApplicationProto):
         length = head2 & 0b01111111
         if length == 126:
             data = recv_bytes(sock, 2)
-            length, = struct.unpack('!H', data)
+            (length,) = struct.unpack('!H', data)
         elif length == 127:
             data = recv_bytes(sock, 8)
-            length, = struct.unpack('!Q', data)
+            (length,) = struct.unpack('!Q', data)
 
         if frame['mask']:
             mask_bits = recv_bytes(sock, 4)
@@ -121,7 +117,7 @@ class TestApplicationWebsocket(TestApplicationProto):
 
         if frame['opcode'] == self.OP_CLOSE:
             if length >= 2:
-                code, = struct.unpack('!H', data[:2])
+                (code,) = struct.unpack('!H', data[:2])
                 reason = data[2:].decode('utf-8')
                 if not (code in self.CLOSE_CODES or 3000 <= code < 5000):
                     pytest.fail('Invalid status code')

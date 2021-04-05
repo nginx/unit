@@ -1,4 +1,5 @@
 import pytest
+
 from unit.applications.lang.php import TestApplicationPHP
 from unit.option import option
 
@@ -28,7 +29,7 @@ class TestPHPIsolation(TestApplicationPHP):
             isolation['namespaces'] = {
                 'mount': True,
                 'credential': True,
-                'pid': True
+                'pid': True,
             }
 
         self.load('phpinfo', isolation=isolation)
@@ -64,7 +65,7 @@ class TestPHPIsolation(TestApplicationPHP):
             isolation['namespaces'] = {
                 'mount': True,
                 'credential': True,
-                'pid': True
+                'pid': True,
             }
 
         self.load('list-extensions', isolation=isolation)

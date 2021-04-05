@@ -21,10 +21,14 @@ class TestApplicationTLS(TestApplicationProto):
                 'req',
                 '-x509',
                 '-new',
-                '-subj',    '/CN=' + name + '/',
-                '-config',  option.temp_dir + '/openssl.conf',
-                '-out',     option.temp_dir + '/' + name + '.crt',
-                '-keyout',  option.temp_dir + '/' + name + '.key',
+                '-subj',
+                '/CN=' + name + '/',
+                '-config',
+                option.temp_dir + '/openssl.conf',
+                '-out',
+                option.temp_dir + '/' + name + '.crt',
+                '-keyout',
+                option.temp_dir + '/' + name + '.key',
             ],
             stderr=subprocess.STDOUT,
         )
@@ -75,12 +79,14 @@ class TestApplicationTLS(TestApplicationProto):
             a_names += "DNS.%d = %s\n" % (i, k)
 
             # Generates section for sign request extension
-        a_sec  = """req_extensions = myca_req_extensions
+        a_sec = """req_extensions = myca_req_extensions
 
 [ myca_req_extensions ]
 subjectAltName = @alt_names
 
-{a_names}""".format(a_names=a_names)
+{a_names}""".format(
+            a_names=a_names
+        )
 
         with open(conf_path, 'w') as f:
             f.write(
@@ -90,7 +96,9 @@ encrypt_key = no
 distinguished_name = req_distinguished_name
 
 {a_sec}
-[ req_distinguished_name ]""".format(a_sec=a_sec if alt_names else "")
+[ req_distinguished_name ]""".format(
+                    a_sec=a_sec if alt_names else ""
+                )
             )
 
     def load(self, script, name=None):

@@ -129,11 +129,9 @@ class TestGoApplication(TestApplicationGo):
     def test_go_application_command_line_arguments_type(self):
         self.load('command_line_arguments')
 
-        assert 'error' in \
-            self.conf(
-                '' "a b c", 'applications/command_line_arguments/arguments'
-            ), \
-            'arguments type'
+        assert 'error' in self.conf(
+            '' "a b c", 'applications/command_line_arguments/arguments'
+        ), 'arguments type'
 
     def test_go_application_command_line_arguments_0(self):
         self.load('command_line_arguments')

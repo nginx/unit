@@ -5,8 +5,10 @@ import time
 from subprocess import call
 
 import pytest
+
 from unit.applications.lang.php import TestApplicationPHP
 from unit.option import option
+
 
 class TestPHPApplication(TestApplicationPHP):
     prerequisites = {'modules': {'php': 'all'}}
@@ -428,11 +430,13 @@ class TestPHPApplication(TestApplicationPHP):
         self.load('auth')
 
         def check_auth(auth):
-            resp = self.get(headers={
-                'Host': 'localhost',
-                'Authorization': auth,
-                'Connection': 'close',
-            })
+            resp = self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Authorization': auth,
+                    'Connection': 'close',
+                }
+            )
 
             assert resp['status'] == 200, 'status'
             assert resp['headers']['X-Digest'] == 'not set', 'Digest'

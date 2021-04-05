@@ -1,6 +1,7 @@
 import os
 
 import pytest
+
 from unit.applications.proto import TestApplicationProto
 from unit.option import option
 
@@ -81,10 +82,7 @@ class TestStatic(TestApplicationProto):
 
     def test_fallback_share(self, temp_dir):
         self.action_update(
-            {
-                "share": "/blah",
-                "fallback": {"share": temp_dir + "/assets"},
-            }
+            {"share": "/blah", "fallback": {"share": temp_dir + "/assets"},}
         )
 
         resp = self.get()

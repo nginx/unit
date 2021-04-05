@@ -2,6 +2,7 @@ import re
 import subprocess
 
 import pytest
+
 from unit.applications.lang.ruby import TestApplicationRuby
 
 
@@ -208,7 +209,6 @@ class TestRubyApplication(TestApplicationRuby):
 
         self.get()
 
-
         assert (
             self.wait_for_record(r'\[error\].+1234567890') is not None
         ), 'errors write int'
@@ -228,9 +228,13 @@ class TestRubyApplication(TestApplicationRuby):
         self.load('encoding')
 
         try:
-            locales = subprocess.check_output(
-                ['locale', '-a'], stderr=subprocess.STDOUT,
-            ).decode().split('\n')
+            locales = (
+                subprocess.check_output(
+                    ['locale', '-a'], stderr=subprocess.STDOUT,
+                )
+                .decode()
+                .split('\n')
+            )
 
         except (FileNotFoundError, subprocess.CalledProcessError):
             pytest.skip('require locale')

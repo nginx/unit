@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import pytest
+
 from unit.applications.proto import TestApplicationProto
 from unit.option import option
 
@@ -232,11 +233,11 @@ class TestRouting(TestApplicationProto):
         if not option.available['modules']['regex']:
             pytest.skip('requires regex')
 
-        self.route_match({"uri":"~"})
+        self.route_match({"uri": "~"})
         assert self.get(url='/')['status'] == 200, 'empty regexp'
         assert self.get(url='/anything')['status'] == 200, '/anything'
 
-        self.route_match({"uri":"!~"})
+        self.route_match({"uri": "!~"})
         assert self.get(url='/')['status'] == 404, 'empty regexp 2'
         assert self.get(url='/nothing')['status'] == 404, '/nothing'
 
@@ -336,8 +337,7 @@ class TestRouting(TestApplicationProto):
                         "type": "python",
                         "processes": {"spare": 0},
                         "path": option.test_dir + '/python/empty',
-                        "working_directory": option.test_dir
-                        + '/python/empty',
+                        "working_directory": option.test_dir + '/python/empty',
                         "module": "wsgi",
                     }
                 },
@@ -495,8 +495,7 @@ class TestRouting(TestApplicationProto):
             'routes/0/action',
         ), 'proxy pass'
         assert 'error' in self.conf(
-            {"share": temp_dir, "pass": "applications/app"},
-            'routes/0/action',
+            {"share": temp_dir, "pass": "applications/app"}, 'routes/0/action',
         ), 'share pass'
 
     def test_routes_rules_two(self):

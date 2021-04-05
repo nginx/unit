@@ -92,16 +92,8 @@ class TestVariables(TestApplicationProto):
                     "*:7080": {"pass": "upstreams$uri"},
                     "*:7081": {"pass": "routes/one"},
                 },
-                "upstreams": {
-                    "1": {
-                        "servers": {
-                            "127.0.0.1:7081": {},
-                        },
-                    },
-                },
-                "routes": {
-                    "one": [{"action": {"return": 200}}],
-                },
+                "upstreams": {"1": {"servers": {"127.0.0.1:7081": {}}}},
+                "routes": {"one": [{"action": {"return": 200}}]},
             },
         ), 'upstreams initial configuration'
 

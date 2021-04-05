@@ -3,13 +3,15 @@ import time
 from distutils.version import LooseVersion
 
 import pytest
+
 from unit.applications.lang.python import TestApplicationPython
 from unit.option import option
 
 
 class TestASGIApplication(TestApplicationPython):
-    prerequisites = {'modules': {'python':
-                            lambda v: LooseVersion(v) >= LooseVersion('3.5')}}
+    prerequisites = {
+        'modules': {'python': lambda v: LooseVersion(v) >= LooseVersion('3.5')}
+    }
     load_module = 'asgi'
 
     def findall(self, pattern):
@@ -31,7 +33,8 @@ Content-Type: text/html
 Connection: close
 custom-header: BLAH
 
-%s""" % (len(body), body.encode()),
+%s"""
+            % (len(body), body.encode()),
             raw=True,
         )
 
@@ -145,7 +148,7 @@ custom-header: BLAH
 
         assert 'success' in self.conf(
             '{"http":{"max_body_size": ' + str(max_body_size) + ' }}',
-            'settings'
+            'settings',
         )
 
         assert self.get()['status'] == 200, 'init'
@@ -398,7 +401,7 @@ Connection: close
 
             socks.append(sock)
 
-            time.sleep(1.0) # required to avoid greedy request reading
+            time.sleep(1.0)  # required to avoid greedy request reading
 
         threads = set()
 

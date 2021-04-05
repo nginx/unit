@@ -1,4 +1,5 @@
 import pytest
+
 from unit.applications.lang.python import TestApplicationPython
 
 
@@ -21,8 +22,7 @@ class TestPythonIsolation(TestApplicationPython):
         ), 'temp_dir does not exists in rootfs'
 
         assert (
-            self.getjson(url='/?path=/proc/self')['body']['FileExists']
-            == True
+            self.getjson(url='/?path=/proc/self')['body']['FileExists'] == True
         ), 'no /proc/self'
 
         assert (

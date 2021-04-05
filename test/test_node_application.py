@@ -1,6 +1,7 @@
 import re
 
 import pytest
+
 from unit.applications.lang.node import TestApplicationNode
 from unit.utils import waitforfiles
 
@@ -205,7 +206,9 @@ class TestNodeApplication(TestApplicationNode):
     def test_node_application_status_message(self):
         self.load('status_message')
 
-        assert re.search(r'200 blah', self.get(raw_resp=True)), 'status message'
+        assert re.search(
+            r'200 blah', self.get(raw_resp=True)
+        ), 'status message'
 
     def test_node_application_get_header_type(self):
         self.load('get_header_type')

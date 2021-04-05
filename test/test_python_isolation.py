@@ -1,5 +1,5 @@
-
 import pytest
+
 from unit.applications.lang.python import TestApplicationPython
 from unit.option import option
 from unit.utils import findmnt
@@ -32,7 +32,7 @@ class TestPythonIsolation(TestApplicationPython):
             isolation['namespaces'] = {
                 'mount': True,
                 'credential': True,
-                'pid': True
+                'pid': True,
             }
 
         self.load('ns_inspect', isolation=isolation)
@@ -43,8 +43,7 @@ class TestPythonIsolation(TestApplicationPython):
         ), 'temp_dir does not exists in rootfs'
 
         assert (
-            self.getjson(url='/?path=/proc/self')['body']['FileExists']
-            == True
+            self.getjson(url='/?path=/proc/self')['body']['FileExists'] == True
         ), 'no /proc/self'
 
         assert (
@@ -66,15 +65,12 @@ class TestPythonIsolation(TestApplicationPython):
         if not is_su:
             pytest.skip('requires root')
 
-        isolation = {
-            'rootfs': temp_dir,
-            'automount': {'language_deps': False}
-        }
+        isolation = {'rootfs': temp_dir, 'automount': {'language_deps': False}}
 
         self.load('empty', isolation=isolation)
 
         assert findmnt().find(temp_dir) == -1
-        assert (self.get()['status'] != 200), 'disabled language_deps'
+        assert self.get()['status'] != 200, 'disabled language_deps'
         assert findmnt().find(temp_dir) == -1
 
         isolation['automount']['language_deps'] = True
@@ -82,7 +78,7 @@ class TestPythonIsolation(TestApplicationPython):
         self.load('empty', isolation=isolation)
 
         assert findmnt().find(temp_dir) == -1
-        assert (self.get()['status'] == 200), 'enabled language_deps'
+        assert self.get()['status'] == 200, 'enabled language_deps'
         assert waitformount(temp_dir), 'language_deps mount'
 
         self.conf({"listeners": {}, "applications": {}})
@@ -90,8 +86,6 @@ class TestPythonIsolation(TestApplicationPython):
         assert waitforunmount(temp_dir), 'language_deps unmount'
 
     def test_python_isolation_procfs(self, is_su, temp_dir):
-        isolation_features = option.available['features']['isolation'].keys()
-
         if not is_su:
             pytest.skip('requires root')
 

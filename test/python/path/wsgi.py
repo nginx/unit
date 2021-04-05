@@ -1,6 +1,7 @@
 import os
 import sys
 
+
 def application(environ, start_response):
     body = os.pathsep.join(sys.path).encode()
 

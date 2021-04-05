@@ -3,9 +3,11 @@ import os
 import pwd
 
 import pytest
+
 from unit.applications.lang.go import TestApplicationGo
 from unit.option import option
 from unit.utils import getns
+
 
 class TestGoIsolation(TestApplicationGo):
     prerequisites = {'modules': {'go': 'any'}, 'features': ['isolation']}
@@ -279,7 +281,7 @@ class TestGoIsolation(TestApplicationGo):
             isolation['namespaces'] = {
                 'mount': True,
                 'credential': True,
-                'pid': True
+                'pid': True,
             }
 
         self.load('ns_inspect', isolation=isolation)
@@ -337,12 +339,10 @@ class TestGoIsolation(TestApplicationGo):
             isolation['namespaces'] = {
                 'mount': True,
                 'credential': True,
-                'pid': True
+                'pid': True,
             }
 
-        isolation['automount'] = {
-            'tmpfs': False
-        }
+        isolation['automount'] = {'tmpfs': False}
 
         self.load('ns_inspect', isolation=isolation)
 
@@ -352,9 +352,7 @@ class TestGoIsolation(TestApplicationGo):
             "/ /tmp" not in obj['Mounts'] and "tmpfs" not in obj['Mounts']
         ), 'app has no /tmp mounted'
 
-        isolation['automount'] = {
-            'tmpfs': True
-        }
+        isolation['automount'] = {'tmpfs': True}
 
         self.load('ns_inspect', isolation=isolation)
 
