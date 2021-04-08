@@ -14,10 +14,6 @@ class TestASGIApplication(TestApplicationPython):
     }
     load_module = 'asgi'
 
-    def findall(self, pattern):
-        with open(option.temp_dir + '/unit.log', 'r', errors='ignore') as f:
-            return re.findall(pattern, f.read())
-
     def test_asgi_application_variables(self):
         self.load('variables')
 

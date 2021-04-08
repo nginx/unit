@@ -6,15 +6,10 @@ import subprocess
 import pytest
 
 from unit.applications.tls import TestApplicationTLS
-from unit.option import option
 
 
 class TestTLS(TestApplicationTLS):
     prerequisites = {'modules': {'python': 'any', 'openssl': 'any'}}
-
-    def findall(self, pattern):
-        with open(option.temp_dir + '/unit.log', 'r', errors='ignore') as f:
-            return re.findall(pattern, f.read())
 
     def openssl_date_to_sec_epoch(self, date):
         return self.date_to_sec_epoch(date, '%b %d %H:%M:%S %Y %Z')

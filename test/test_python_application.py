@@ -7,15 +7,10 @@ import time
 import pytest
 
 from unit.applications.lang.python import TestApplicationPython
-from unit.option import option
 
 
 class TestPythonApplication(TestApplicationPython):
     prerequisites = {'modules': {'python': 'all'}}
-
-    def findall(self, pattern):
-        with open(option.temp_dir + '/unit.log', 'r', errors='ignore') as f:
-            return re.findall(pattern, f.read())
 
     def test_python_application_variables(self):
         self.load('variables')

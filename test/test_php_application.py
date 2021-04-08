@@ -1,8 +1,8 @@
 import os
 import re
 import shutil
+import signal
 import time
-from subprocess import call
 
 import pytest
 
@@ -95,37 +95,29 @@ class TestPHPApplication(TestApplicationPHP):
         assert resp['status'] == 200, 'query string empty status'
         assert resp['headers']['Query-String'] == '', 'query string empty'
 
-    def test_php_application_fastcgi_finish_request(self, temp_dir):
+    def test_php_application_fastcgi_finish_request(self, unit_pid):
         self.load('fastcgi_finish_request')
 
         assert self.get()['body'] == '0123'
 
-        with open(temp_dir + '/unit.pid', 'r') as f:
-            pid = f.read().rstrip()
+        os.kill(unit_pid, signal.SIGUSR1);
 
-        call(['kill', '-s', 'USR1', pid])
+        errs = self.findall(r'Error in fastcgi_finish_request')
 
-        with open(temp_dir + '/unit.log', 'r', errors='ignore') as f:
-            errs = re.findall(r'Error in fastcgi_finish_request', f.read())
+        assert len(errs) == 0, 'no error'
 
-            assert len(errs) == 0, 'no error'
-
-    def test_php_application_fastcgi_finish_request_2(self, temp_dir):
+    def test_php_application_fastcgi_finish_request_2(self, unit_pid):
         self.load('fastcgi_finish_request')
 
         resp = self.get(url='/?skip')
         assert resp['status'] == 200
         assert resp['body'] == ''
 
-        with open(temp_dir + '/unit.pid', 'r') as f:
-            pid = f.read().rstrip()
+        os.kill(unit_pid, signal.SIGUSR1);
 
-        call(['kill', '-s', 'USR1', pid])
+        errs = self.findall(r'Error in fastcgi_finish_request')
 
-        with open(temp_dir + '/unit.log', 'r', errors='ignore') as f:
-            errs = re.findall(r'Error in fastcgi_finish_request', f.read())
-
-            assert len(errs) == 0, 'no error'
+        assert len(errs) == 0, 'no error'
 
     def test_php_application_query_string_absent(self):
         self.load('query_string')
@@ -538,7 +530,7 @@ class TestPHPApplication(TestApplicationPHP):
             r'012345', self.get()['body']
         ), 'disable_classes before'
 
-    def test_php_application_error_log(self, temp_dir):
+    def test_php_application_error_log(self):
         self.load('error_log')
 
         assert self.get()['status'] == 200, 'status'
@@ -551,14 +543,13 @@ class TestPHPApplication(TestApplicationPHP):
 
         assert self.wait_for_record(pattern) is not None, 'errors print'
 
-        with open(temp_dir + '/unit.log', 'r', errors='ignore') as f:
-            errs = re.findall(pattern, f.read())
+        errs = self.findall(pattern)
 
-            assert len(errs) == 2, 'error_log count'
+        assert len(errs) == 2, 'error_log count'
 
-            date = errs[0].split('[')[0]
-            date2 = errs[1].split('[')[0]
-            assert date != date2, 'date diff'
+        date = errs[0].split('[')[0]
+        date2 = errs[1].split('[')[0]
+        assert date != date2, 'date diff'
 
     def test_php_application_script(self):
         assert 'success' in self.conf(

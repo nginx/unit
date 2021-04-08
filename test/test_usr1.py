@@ -1,14 +1,15 @@
 import os
-from subprocess import call
+import signal
 
 from unit.applications.lang.python import TestApplicationPython
+from unit.log import Log
 from unit.utils import waitforfiles
 
 
 class TestUSR1(TestApplicationPython):
     prerequisites = {'modules': {'python': 'any'}}
 
-    def test_usr1_access_log(self, temp_dir):
+    def test_usr1_access_log(self, temp_dir, unit_pid):
         self.load('empty')
 
         log = 'access.log'
@@ -31,10 +32,7 @@ class TestUSR1(TestApplicationPython):
         ), 'rename new'
         assert not os.path.isfile(log_path), 'rename old'
 
-        with open(temp_dir + '/unit.pid', 'r') as f:
-            pid = f.read().rstrip()
-
-        call(['kill', '-s', 'USR1', pid])
+        os.kill(unit_pid, signal.SIGUSR1)
 
         assert waitforfiles(log_path), 'reopen'
 
@@ -46,7 +44,7 @@ class TestUSR1(TestApplicationPython):
         ), 'reopen 2'
         assert self.search_in_log(r'/usr1', log_new) is None, 'rename new 2'
 
-    def test_usr1_unit_log(self, temp_dir):
+    def test_usr1_unit_log(self, temp_dir, unit_pid):
         self.load('log_body')
 
         log_new = 'new.log'
@@ -55,28 +53,37 @@ class TestUSR1(TestApplicationPython):
 
         os.rename(log_path, log_path_new)
 
-        body = 'body_for_a_log_new'
-        assert self.post(body=body)['status'] == 200
+        Log.swap(log_new)
 
-        assert self.wait_for_record(body, log_new) is not None, 'rename new'
-        assert not os.path.isfile(log_path), 'rename old'
+        try:
+            body = 'body_for_a_log_new\n'
+            assert self.post(body=body)['status'] == 200
 
-        with open(temp_dir + '/unit.pid', 'r') as f:
-            pid = f.read().rstrip()
+            assert (
+                self.wait_for_record(body, log_new) is not None
+            ), 'rename new'
+            assert not os.path.isfile(log_path), 'rename old'
 
-        call(['kill', '-s', 'USR1', pid])
+            os.kill(unit_pid, signal.SIGUSR1)
 
-        assert waitforfiles(log_path), 'reopen'
+            assert waitforfiles(log_path), 'reopen'
 
-        body = 'body_for_a_log_unit'
-        assert self.post(body=body)['status'] == 200
+            body = 'body_for_a_log_unit\n'
+            assert self.post(body=body)['status'] == 200
 
-        assert self.wait_for_record(body) is not None, 'rename new'
-        assert self.search_in_log(body, log_new) is None, 'rename new 2'
+            assert self.wait_for_record(body) is not None, 'rename new'
+            assert self.search_in_log(body, log_new) is None, 'rename new 2'
 
-        # merge two log files into unit.log to check alerts
+        finally:
+            # merge two log files into unit.log to check alerts
 
-        with open(log_path, 'w') as unit_log, open(
-            log_path_new, 'r'
-        ) as unit_log_new:
-            unit_log.write(unit_log_new.read())
+            with open(log_path, 'r', errors='ignore') as unit_log:
+                log = unit_log.read()
+
+            with open(log_path, 'w') as unit_log, open(
+                log_path_new, 'r', errors='ignore'
+            ) as unit_log_new:
+                unit_log.write(unit_log_new.read())
+                unit_log.write(log)
+
+            Log.swap(log_new)

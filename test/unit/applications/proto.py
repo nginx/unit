@@ -4,6 +4,7 @@ import time
 
 from unit.control import TestControl
 from unit.option import option
+from unit.log import Log
 
 
 class TestApplicationProto(TestControl):
@@ -15,18 +16,23 @@ class TestApplicationProto(TestControl):
     def date_to_sec_epoch(self, date, template='%a, %d %b %Y %H:%M:%S %Z'):
         return time.mktime(time.strptime(date, template))
 
+    def findall(self, pattern, name='unit.log'):
+        with Log.open(name) as f:
+            return re.findall(pattern, f.read())
+
     def search_in_log(self, pattern, name='unit.log'):
-        with open(option.temp_dir + '/' + name, 'r', errors='ignore') as f:
+        with Log.open(name) as f:
             return re.search(pattern, f.read())
 
     def wait_for_record(self, pattern, name='unit.log', wait=150):
-        for i in range(wait):
-            found = self.search_in_log(pattern, name)
+        with Log.open(name) as f:
+            for i in range(wait):
+                found = re.search(pattern, f.read())
 
-            if found is not None:
-                break
+                if found is not None:
+                    break
 
-            time.sleep(0.1)
+                time.sleep(0.1)
 
         return found
 

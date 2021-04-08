@@ -249,7 +249,7 @@ Connection: close
 
         assert self.search_in_log(r'/delete', 'access.log') is None, 'delete'
 
-    def test_access_log_change(self, temp_dir):
+    def test_access_log_change(self):
         self.load('empty')
 
         self.get()
