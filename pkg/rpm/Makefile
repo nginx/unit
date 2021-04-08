@@ -41,7 +41,11 @@ endif
 ifneq (,$(findstring $(OSVER),opensuse-leap opensuse-tumbleweed sles))
 BUILD_DEPENDS_unit += libxml2-tools libxslt1 libopenssl-devel
 else
+ifneq (,$(findstring $(OSVER),amazonlinux2))
+BUILD_DEPENDS_unit += libxml2 libxslt openssl11-devel
+else
 BUILD_DEPENDS_unit += libxml2 libxslt openssl-devel
+endif
 endif
 
 BUILD_DEPENDS = $(BUILD_DEPENDS_unit)
