@@ -9,7 +9,11 @@
 
 %if 0%{?rhel}%{?fedora}
 BuildRequires: gcc
+%if 0%{?amzn2}
+BuildRequires: openssl11-devel
+%else
 BuildRequires: openssl-devel
+%endif
 %endif
 
 %if 0%{?suse_version} >= 1315
