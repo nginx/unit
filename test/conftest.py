@@ -275,7 +275,7 @@ def run(request):
 
     _fds_check['main']['skip'] = False
     _fds_check['router']['skip'] = False
-    _fds_check['router']['skip'] = False
+    _fds_check['controller']['skip'] = False
 
     yield
 
