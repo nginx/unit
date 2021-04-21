@@ -32,9 +32,8 @@ Summary: %%SUMMARY%%
 Version: %%VERSION%%
 Release: %%RELEASE%%%{?dist}.ngx
 License: ASL 2.0
-Vendor: Nginx Software, Inc.
+Vendor: %%PACKAGE_VENDOR%%
 URL: https://unit.nginx.org/
-Packager: Nginx Software, Inc. <https://www.nginx.com>
 Group: System Environment/Daemons
 
 Source0: unit-%{version}.tar.gz

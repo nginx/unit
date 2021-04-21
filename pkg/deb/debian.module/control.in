@@ -1,7 +1,7 @@
 Source: %%NAME%%
 Section: admin
 Priority: extra
-Maintainer: Andrei Belov <defan@nginx.com>
+Maintainer: %%PACKAGE_VENDOR%%
 Build-Depends: debhelper (>= 9),
                linux-libc-dev,
                libssl-dev,
