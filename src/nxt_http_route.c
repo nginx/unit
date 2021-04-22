@@ -627,14 +627,14 @@ static nxt_conf_map_t  nxt_http_route_action_conf[] = {
         offsetof(nxt_http_route_action_conf_t, location)
     },
     {
-        nxt_string("share"),
-        NXT_CONF_MAP_PTR,
-        offsetof(nxt_http_route_action_conf_t, share)
-    },
-    {
         nxt_string("proxy"),
         NXT_CONF_MAP_PTR,
         offsetof(nxt_http_route_action_conf_t, proxy)
+    },
+    {
+        nxt_string("share"),
+        NXT_CONF_MAP_PTR,
+        offsetof(nxt_http_route_action_conf_t, share)
     },
     {
         nxt_string("fallback"),
@@ -700,14 +700,14 @@ nxt_http_route_action_create(nxt_router_temp_conf_t *tmcf, nxt_conf_value_t *cv,
         return NXT_OK;
     }
 
-    conf = accf.pass;
-
     if (accf.share != NULL) {
         conf = accf.share;
-        action->handler = nxt_http_static_handler;
 
     } else if (accf.proxy != NULL) {
         conf = accf.proxy;
+
+    } else {
+        conf = accf.pass;
     }
 
     nxt_conf_get_string(conf, &name);
@@ -717,14 +717,21 @@ nxt_http_route_action_create(nxt_router_temp_conf_t *tmcf, nxt_conf_value_t *cv,
         return NXT_ERROR;
     }
 
-    if (accf.fallback != NULL) {
-        action->u.fallback = nxt_mp_alloc(mp, sizeof(nxt_http_action_t));
-        if (nxt_slow_path(action->u.fallback == NULL)) {
-            return NXT_ERROR;
+    if (accf.share != NULL) {
+        action->handler = nxt_http_static_handler;
+
+        if (accf.fallback != NULL) {
+            action->u.share.fallback = nxt_mp_alloc(mp,
+                                                    sizeof(nxt_http_action_t));
+            if (nxt_slow_path(action->u.share.fallback == NULL)) {
+                return NXT_ERROR;
+            }
+
+            return nxt_http_route_action_create(tmcf, accf.fallback,
+                                                action->u.share.fallback);
         }
 
-        return nxt_http_route_action_create(tmcf, accf.fallback,
-                                            action->u.fallback);
+        return NXT_OK;
     }
 
     if (accf.proxy != NULL) {
@@ -1411,9 +1418,10 @@ nxt_http_action_resolve(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
     if (action->handler != NULL) {
         if (action->handler == nxt_http_static_handler
-            && action->u.fallback != NULL)
+            && action->u.share.fallback != NULL)
         {
-            return nxt_http_action_resolve(task, tmcf, action->u.fallback);
+            return nxt_http_action_resolve(task, tmcf,
+                                           action->u.share.fallback);
         }
 
         return NXT_OK;
@@ -1533,14 +1541,14 @@ nxt_http_pass_find(nxt_task_t *task, nxt_mp_t *mp, nxt_router_conf_t *rtcf,
         }
 
         if (segments[2].length != 0) {
-            targets = action->u.application->targets;
+            targets = action->u.app.application->targets;
 
             for (i = 0; !nxt_strstr_eq(&segments[2], &targets[i]); i++);
 
-            action->target = i;
+            action->u.app.target = i;
 
         } else {
-            action->target = 0;
+            action->u.app.target = 0;
         }
 
         return NXT_OK;
@@ -1678,7 +1686,7 @@ nxt_http_pass_application(nxt_task_t *task, nxt_router_conf_t *rtcf,
 
     (void) nxt_router_listener_application(rtcf, name, action);
 
-    action->target = 0;
+    action->u.app.target = 0;
 
     return action;
 }

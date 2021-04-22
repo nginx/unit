@@ -2144,7 +2144,7 @@ nxt_router_listener_application(nxt_router_conf_t *rtcf, nxt_str_t *name,
         return NXT_DECLINED;
     }
 
-    action->u.application = app;
+    action->u.app.application = app;
     action->handler = nxt_http_application_handler;
 
     return NXT_OK;

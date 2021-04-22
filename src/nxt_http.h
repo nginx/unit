@@ -206,16 +206,22 @@ struct nxt_http_action_s {
                                         nxt_http_action_t *action);
     union {
         nxt_http_route_t            *route;
-        nxt_app_t                   *application;
-        nxt_http_action_t           *fallback;
         nxt_upstream_t              *upstream;
         uint32_t                    upstream_number;
         nxt_http_status_t           return_code;
         nxt_var_t                   *var;
+
+        struct {
+            nxt_app_t               *application;
+            nxt_int_t               target;
+        } app;
+
+        struct {
+            nxt_http_action_t       *fallback;
+        } share;
     } u;
 
     nxt_str_t                       name;
-    nxt_int_t                       target;
 };
 
 
