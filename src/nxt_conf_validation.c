@@ -75,6 +75,8 @@ static nxt_int_t nxt_conf_vldt_error(nxt_conf_validation_t *vldt,
     const char *fmt, ...);
 static nxt_int_t nxt_conf_vldt_var(nxt_conf_validation_t *vldt,
     const char *option, nxt_str_t *value);
+nxt_inline nxt_int_t nxt_conf_vldt_unsupported(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
 
 static nxt_int_t nxt_conf_vldt_mtypes(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
@@ -458,6 +460,27 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_share_action_members[] = {
         .name       = nxt_string("fallback"),
         .type       = NXT_CONF_VLDT_OBJECT,
         .validator  = nxt_conf_vldt_action,
+    }, {
+        .name       = nxt_string("chroot"),
+        .type       = NXT_CONF_VLDT_STRING,
+#if !(NXT_HAVE_OPENAT2)
+        .validator  = nxt_conf_vldt_unsupported,
+        .u.string   = "chroot",
+#endif
+    }, {
+        .name       = nxt_string("follow_symlinks"),
+        .type       = NXT_CONF_VLDT_BOOLEAN,
+#if !(NXT_HAVE_OPENAT2)
+        .validator  = nxt_conf_vldt_unsupported,
+        .u.string   = "follow_symlinks",
+#endif
+    }, {
+        .name       = nxt_string("traverse_mounts"),
+        .type       = NXT_CONF_VLDT_BOOLEAN,
+#if !(NXT_HAVE_OPENAT2)
+        .validator  = nxt_conf_vldt_unsupported,
+        .u.string   = "traverse_mounts",
+#endif
     },
 
     NXT_CONF_VLDT_END
@@ -1029,6 +1052,15 @@ nxt_conf_vldt_error(nxt_conf_validation_t *vldt, const char *fmt, ...)
     vldt->error.start = p;
 
     return NXT_DECLINED;
+}
+
+
+nxt_inline nxt_int_t
+nxt_conf_vldt_unsupported(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
+{
+    return nxt_conf_vldt_error(vldt, "Unit is built without the \"%s\" "
+                                     "option support.", data);
 }
 
 

@@ -31,15 +31,15 @@ nxt_http_action_t *
 nxt_http_static_handler(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_action_t *action)
 {
-    size_t              alloc, encode;
-    u_char              *p;
+    size_t              length, encode;
+    u_char              *p, *fname;
     struct tm           tm;
     nxt_buf_t           *fb;
     nxt_int_t           ret;
-    nxt_str_t           index, extension, *mtype;
+    nxt_str_t           index, extension, *mtype, *chroot;
     nxt_uint_t          level;
     nxt_bool_t          need_body;
-    nxt_file_t          *f;
+    nxt_file_t          *f, af, file;
     nxt_file_info_t     fi;
     nxt_http_field_t    *field;
     nxt_http_status_t   status;
@@ -63,13 +63,6 @@ nxt_http_static_handler(nxt_task_t *task, nxt_http_request_t *r,
         need_body = 1;
     }
 
-    f = nxt_mp_zget(r->mem_pool, sizeof(nxt_file_t));
-    if (nxt_slow_path(f == NULL)) {
-        goto fail;
-    }
-
-    f->fd = NXT_FILE_INVALID;
-
     if (r->path->start[r->path->length - 1] == '/') {
         /* TODO: dynamic index setting. */
         nxt_str_set(&index, "index.html");
@@ -80,23 +73,83 @@ nxt_http_static_handler(nxt_task_t *task, nxt_http_request_t *r,
         nxt_str_null(&extension);
     }
 
-    alloc = action->name.length + r->path->length + index.length + 1;
+    f = NULL;
 
-    f->name = nxt_mp_nget(r->mem_pool, alloc);
-    if (nxt_slow_path(f->name == NULL)) {
+    length = action->name.length + r->path->length + index.length;
+
+    fname = nxt_mp_nget(r->mem_pool, length + 1);
+    if (nxt_slow_path(fname == NULL)) {
         goto fail;
     }
 
-    p = f->name;
+    p = fname;
     p = nxt_cpymem(p, action->name.start, action->name.length);
     p = nxt_cpymem(p, r->path->start, r->path->length);
     p = nxt_cpymem(p, index.start, index.length);
     *p = '\0';
 
-    ret = nxt_file_open(task, f, NXT_FILE_RDONLY, NXT_FILE_OPEN, 0);
+    nxt_memzero(&file, sizeof(nxt_file_t));
+
+    file.name = fname;
+
+    chroot = &action->u.share.chroot;
+
+#if (NXT_HAVE_OPENAT2)
+
+    if (action->u.share.resolve != 0) {
+
+        if (chroot->length > 0) {
+            file.name = chroot->start;
+
+            if (length > chroot->length
+                && nxt_memcmp(fname, chroot->start, chroot->length) == 0)
+            {
+                fname += chroot->length;
+                ret = nxt_file_open(task, &file, NXT_FILE_SEARCH, NXT_FILE_OPEN,
+                                    0);
+
+            } else {
+                file.error = NXT_EACCES;
+                ret = NXT_ERROR;
+            }
+
+        } else if (fname[0] == '/') {
+            file.name = (u_char *) "/";
+            ret = nxt_file_open(task, &file, NXT_FILE_SEARCH, NXT_FILE_OPEN, 0);
+
+        } else {
+            file.name = (u_char *) ".";
+            file.fd = AT_FDCWD;
+            ret = NXT_OK;
+        }
+
+        if (nxt_fast_path(ret == NXT_OK)) {
+            af = file;
+            nxt_memzero(&file, sizeof(nxt_file_t));
+            file.name = fname;
+
+            ret = nxt_file_openat2(task, &file, NXT_FILE_RDONLY,
+                                   NXT_FILE_OPEN, 0, af.fd,
+                                   action->u.share.resolve);
+
+            if (af.fd != AT_FDCWD) {
+                nxt_file_close(task, &af);
+            }
+        }
+
+    } else {
+        ret = nxt_file_open(task, &file, NXT_FILE_RDONLY, NXT_FILE_OPEN, 0);
+    }
+
+#else
+
+    ret = nxt_file_open(task, &file, NXT_FILE_RDONLY, NXT_FILE_OPEN, 0);
+
+#endif
 
     if (nxt_slow_path(ret != NXT_OK)) {
-        switch (f->error) {
+
+        switch (file.error) {
 
         /*
          * For Unix domain sockets "errno" is set to:
@@ -117,6 +170,10 @@ nxt_http_static_handler(nxt_task_t *task, nxt_http_request_t *r,
             break;
 
         case NXT_EACCES:
+#if (NXT_HAVE_OPENAT2)
+        case NXT_ELOOP:
+        case NXT_EXDEV:
+#endif
             level = NXT_LOG_ERR;
             status = NXT_HTTP_FORBIDDEN;
             break;
@@ -132,12 +189,26 @@ nxt_http_static_handler(nxt_task_t *task, nxt_http_request_t *r,
         }
 
         if (status != NXT_HTTP_NOT_FOUND) {
-            nxt_log(task, level, "open(\"%FN\") failed %E", f->name, f->error);
+            if (chroot->length > 0) {
+                nxt_log(task, level, "opening \"%FN\" at \"%FN\" failed %E",
+                        fname, chroot, file.error);
+
+            } else {
+                nxt_log(task, level, "opening \"%FN\" failed %E",
+                        fname, file.error);
+            }
         }
 
         nxt_http_request_error(task, r, status);
         return NULL;
     }
+
+    f = nxt_mp_get(r->mem_pool, sizeof(nxt_file_t));
+    if (nxt_slow_path(f == NULL)) {
+        goto fail;
+    }
+
+    *f = file;
 
     ret = nxt_file_info(f, &fi);
     if (nxt_slow_path(ret != NXT_OK)) {
@@ -172,15 +243,15 @@ nxt_http_static_handler(nxt_task_t *task, nxt_http_request_t *r,
 
         nxt_http_field_name_set(field, "ETag");
 
-        alloc = NXT_TIME_T_HEXLEN + NXT_OFF_T_HEXLEN + 3;
+        length = NXT_TIME_T_HEXLEN + NXT_OFF_T_HEXLEN + 3;
 
-        p = nxt_mp_nget(r->mem_pool, alloc);
+        p = nxt_mp_nget(r->mem_pool, length);
         if (nxt_slow_path(p == NULL)) {
             goto fail;
         }
 
         field->value = p;
-        field->value_length = nxt_sprintf(p, p + alloc, "\"%xT-%xO\"",
+        field->value_length = nxt_sprintf(p, p + length, "\"%xT-%xO\"",
                                           nxt_file_mtime(&fi),
                                           nxt_file_size(&fi))
                               - p;
@@ -254,19 +325,19 @@ nxt_http_static_handler(nxt_task_t *task, nxt_http_request_t *r,
         nxt_http_field_name_set(field, "Location");
 
         encode = nxt_encode_uri(NULL, r->path->start, r->path->length);
-        alloc = r->path->length + encode * 2 + 1;
+        length = r->path->length + encode * 2 + 1;
 
         if (r->args->length > 0) {
-            alloc += 1 + r->args->length;
+            length += 1 + r->args->length;
         }
 
-        p = nxt_mp_nget(r->mem_pool, alloc);
+        p = nxt_mp_nget(r->mem_pool, length);
         if (nxt_slow_path(p == NULL)) {
             goto fail;
         }
 
         field->value = p;
-        field->value_length = alloc;
+        field->value_length = length;
 
         if (encode > 0) {
             p = (u_char *) nxt_encode_uri(p, r->path->start, r->path->length);
@@ -294,7 +365,7 @@ fail:
 
     nxt_http_request_error(task, r, NXT_HTTP_INTERNAL_SERVER_ERROR);
 
-    if (f != NULL && f->fd != NXT_FILE_INVALID) {
+    if (f != NULL) {
         nxt_file_close(task, f);
     }
 

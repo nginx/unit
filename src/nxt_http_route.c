@@ -50,8 +50,11 @@ typedef struct {
     nxt_conf_value_t               *pass;
     nxt_conf_value_t               *ret;
     nxt_str_t                      location;
-    nxt_conf_value_t               *share;
     nxt_conf_value_t               *proxy;
+    nxt_conf_value_t               *share;
+    nxt_str_t                      chroot;
+    nxt_conf_value_t               *follow_symlinks;
+    nxt_conf_value_t               *traverse_mounts;
     nxt_conf_value_t               *fallback;
 } nxt_http_route_action_conf_t;
 
@@ -637,6 +640,21 @@ static nxt_conf_map_t  nxt_http_route_action_conf[] = {
         offsetof(nxt_http_route_action_conf_t, share)
     },
     {
+        nxt_string("chroot"),
+        NXT_CONF_MAP_STR,
+        offsetof(nxt_http_route_action_conf_t, chroot)
+    },
+    {
+        nxt_string("follow_symlinks"),
+        NXT_CONF_MAP_PTR,
+        offsetof(nxt_http_route_action_conf_t, follow_symlinks)
+    },
+    {
+        nxt_string("traverse_mounts"),
+        NXT_CONF_MAP_PTR,
+        offsetof(nxt_http_route_action_conf_t, traverse_mounts)
+    },
+    {
         nxt_string("fallback"),
         NXT_CONF_MAP_PTR,
         offsetof(nxt_http_route_action_conf_t, fallback)
@@ -648,6 +666,11 @@ static nxt_int_t
 nxt_http_route_action_create(nxt_router_temp_conf_t *tmcf, nxt_conf_value_t *cv,
     nxt_http_action_t *action)
 {
+#if (NXT_HAVE_OPENAT2)
+    u_char                        *p;
+    uint8_t                       slash;
+    nxt_str_t                     *chroot;
+#endif
     nxt_mp_t                      *mp;
     nxt_int_t                     ret;
     nxt_str_t                     name, *string;
@@ -719,6 +742,44 @@ nxt_http_route_action_create(nxt_router_temp_conf_t *tmcf, nxt_conf_value_t *cv,
 
     if (accf.share != NULL) {
         action->handler = nxt_http_static_handler;
+
+#if (NXT_HAVE_OPENAT2)
+        string = &accf.chroot;
+        chroot = &action->u.share.chroot;
+
+        if (string->length > 0) {
+            action->u.share.resolve |= RESOLVE_IN_ROOT;
+
+            slash = (string->start[string->length - 1] != '/');
+
+            chroot->length = string->length + (slash ? 1 : 0);
+
+            chroot->start = nxt_mp_alloc(mp, chroot->length + 1);
+            if (nxt_slow_path(chroot->start == NULL)) {
+                return NXT_ERROR;
+            }
+
+            p = nxt_cpymem(chroot->start, string->start, string->length);
+
+            if (slash) {
+                *p++ = '/';
+            }
+
+            *p = '\0';
+        }
+
+        if (accf.follow_symlinks != NULL
+            && !nxt_conf_get_boolean(accf.follow_symlinks))
+        {
+            action->u.share.resolve |= RESOLVE_NO_SYMLINKS;
+        }
+
+        if (accf.traverse_mounts != NULL
+            && !nxt_conf_get_boolean(accf.traverse_mounts))
+        {
+            action->u.share.resolve |= RESOLVE_NO_XDEV;
+        }
+#endif
 
         if (accf.fallback != NULL) {
             action->u.share.fallback = nxt_mp_alloc(mp,

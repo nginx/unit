@@ -217,6 +217,8 @@ struct nxt_http_action_s {
         } app;
 
         struct {
+            nxt_str_t               chroot;
+            nxt_uint_t              resolve;
             nxt_http_action_t       *fallback;
         } share;
     } u;

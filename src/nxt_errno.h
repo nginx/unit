@@ -22,6 +22,7 @@ typedef int                        nxt_err_t;
 #define NXT_EACCES                 EACCES
 #define NXT_EBUSY                  EBUSY
 #define NXT_EEXIST                 EEXIST
+#define NXT_ELOOP                  ELOOP
 #define NXT_EXDEV                  EXDEV
 #define NXT_ENOTDIR                ENOTDIR
 #define NXT_EISDIR                 EISDIR

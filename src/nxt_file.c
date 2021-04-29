@@ -42,6 +42,50 @@ nxt_file_open(nxt_task_t *task, nxt_file_t *file, nxt_uint_t mode,
 }
 
 
+#if (NXT_HAVE_OPENAT2)
+
+nxt_int_t
+nxt_file_openat2(nxt_task_t *task, nxt_file_t *file, nxt_uint_t mode,
+    nxt_uint_t create, nxt_file_access_t access, nxt_fd_t dfd,
+    nxt_uint_t resolve)
+{
+    struct open_how  how;
+
+    nxt_memzero(&how, sizeof(how));
+
+    /* O_NONBLOCK is to prevent blocking on FIFOs, special devices, etc. */
+    mode |= (O_NONBLOCK | create);
+
+    how.flags = mode;
+    how.mode = access;
+    how.resolve = resolve;
+
+    file->fd = syscall(SYS_openat2, dfd, file->name, &how, sizeof(how));
+
+    file->error = (file->fd == -1) ? nxt_errno : 0;
+
+#if (NXT_DEBUG)
+    nxt_thread_time_update(task->thread);
+#endif
+
+    nxt_debug(task, "openat2(%FD, \"%FN\"): %FD err:%d", dfd, file->name,
+              file->fd, file->error);
+
+    if (file->fd != -1) {
+        return NXT_OK;
+    }
+
+    if (file->log_level != 0) {
+        nxt_log(task, file->log_level, "openat2(%FD, \"%FN\") failed %E", dfd,
+                file->name, file->error);
+    }
+
+    return NXT_ERROR;
+}
+
+#endif
+
+
 void
 nxt_file_close(nxt_task_t *task, nxt_file_t *file)
 {

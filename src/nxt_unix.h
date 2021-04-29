@@ -242,6 +242,10 @@
 #include <sys/mount.h>
 #endif
 
+#if (NXT_HAVE_OPENAT2)
+#include <linux/openat2.h>
+#endif
+
 #if (NXT_TEST_BUILD)
 #include <nxt_test_build.h>
 #endif
