@@ -15,6 +15,7 @@ from multiprocessing import Process
 
 import pytest
 
+from unit.check.chroot import check_chroot
 from unit.check.go import check_go
 from unit.check.isolation import check_isolation
 from unit.check.node import check_node
@@ -204,6 +205,7 @@ def pytest_sessionstart(session):
         k: v for k, v in option.available['modules'].items() if v is not None
     }
 
+    check_chroot()
     check_isolation()
 
     _clear_conf(unit['temp_dir'] + '/control.unit.sock')

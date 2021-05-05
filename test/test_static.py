@@ -168,14 +168,6 @@ class TestStatic(TestApplicationProto):
 
         assert self.get(url='/fifo')['status'] == 404, 'fifo'
 
-    def test_static_symlink(self, temp_dir):
-        os.symlink(temp_dir + '/assets/dir', temp_dir + '/assets/link')
-
-        assert self.get(url='/dir')['status'] == 301, 'dir'
-        assert self.get(url='/dir/file')['status'] == 200, 'file'
-        assert self.get(url='/link')['status'] == 301, 'symlink dir'
-        assert self.get(url='/link/file')['status'] == 200, 'symlink file'
-
     def test_static_method(self):
         resp = self.head()
         assert resp['status'] == 200, 'HEAD status'
