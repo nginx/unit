@@ -192,11 +192,11 @@ nxt_http_static_handler(nxt_task_t *task, nxt_http_request_t *r,
 
         if (status != NXT_HTTP_NOT_FOUND) {
             if (chroot->length > 0) {
-                nxt_log(task, level, "opening \"%FN\" at \"%FN\" failed %E",
+                nxt_log(task, level, "opening \"%s\" at \"%V\" failed %E",
                         fname, chroot, file.error);
 
             } else {
-                nxt_log(task, level, "opening \"%FN\" failed %E",
+                nxt_log(task, level, "opening \"%s\" failed %E",
                         fname, file.error);
             }
         }
