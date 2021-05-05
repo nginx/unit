@@ -39,7 +39,7 @@ nxt_http_static_handler(nxt_task_t *task, nxt_http_request_t *r,
     nxt_str_t           index, extension, *mtype, *chroot;
     nxt_uint_t          level;
     nxt_bool_t          need_body;
-    nxt_file_t          *f, af, file;
+    nxt_file_t          *f, file;
     nxt_file_info_t     fi;
     nxt_http_field_t    *field;
     nxt_http_status_t   status;
@@ -124,6 +124,8 @@ nxt_http_static_handler(nxt_task_t *task, nxt_http_request_t *r,
         }
 
         if (nxt_fast_path(ret == NXT_OK)) {
+            nxt_file_t  af;
+
             af = file;
             nxt_memzero(&file, sizeof(nxt_file_t));
             file.name = fname;
