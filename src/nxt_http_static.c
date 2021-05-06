@@ -75,6 +75,37 @@ nxt_http_static_handler(nxt_task_t *task, nxt_http_request_t *r,
 
     f = NULL;
 
+    rtcf = r->conf->socket_conf->router_conf;
+
+    mtype = NULL;
+
+    if (action->u.share.types != NULL && extension.start == NULL) {
+        nxt_http_static_extract_extension(r->path, &extension);
+        mtype = nxt_http_static_mtypes_hash_find(&rtcf->mtypes_hash,
+                                                 &extension);
+
+        if (mtype != NULL) {
+            ret = nxt_http_route_test_rule(r, action->u.share.types,
+                                           mtype->start, mtype->length);
+            if (ret == 1) {
+                goto mime_ok;
+            }
+
+            if (nxt_slow_path(ret == NXT_ERROR)) {
+                goto fail;
+            }
+        }
+
+        if (action->u.share.fallback != NULL) {
+            return action->u.share.fallback;
+        }
+
+        nxt_http_request_error(task, r, NXT_HTTP_FORBIDDEN);
+        return NULL;
+    }
+
+mime_ok:
+
     length = action->name.length + r->path->length + index.length;
 
     fname = nxt_mp_nget(r->mem_pool, length + 1);
@@ -262,10 +293,10 @@ nxt_http_static_handler(nxt_task_t *task, nxt_http_request_t *r,
             nxt_http_static_extract_extension(r->path, &extension);
         }
 
-        rtcf = r->conf->socket_conf->router_conf;
-
-        mtype = nxt_http_static_mtypes_hash_find(&rtcf->mtypes_hash,
-                                                 &extension);
+        if (mtype == NULL) {
+            mtype = nxt_http_static_mtypes_hash_find(&rtcf->mtypes_hash,
+                                                     &extension);
+        }
 
         if (mtype != NULL) {
             field = nxt_list_zero_add(r->resp.fields);

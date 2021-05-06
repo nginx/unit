@@ -197,7 +197,8 @@ struct nxt_http_request_s {
 };
 
 
-typedef struct nxt_http_route_s     nxt_http_route_t;
+typedef struct nxt_http_route_s       nxt_http_route_t;
+typedef struct nxt_http_route_rule_s  nxt_http_route_rule_t;
 
 
 struct nxt_http_action_s {
@@ -219,6 +220,7 @@ struct nxt_http_action_s {
         struct {
             nxt_str_t               chroot;
             nxt_uint_t              resolve;
+            nxt_http_route_rule_t   *types;
             nxt_http_action_t       *fallback;
         } share;
     } u;
@@ -306,6 +308,8 @@ nxt_int_t nxt_http_pass_segments(nxt_mp_t *mp, nxt_str_t *pass,
     nxt_str_t *segments, nxt_uint_t n);
 nxt_http_action_t *nxt_http_pass_application(nxt_task_t *task,
     nxt_router_conf_t *rtcf, nxt_str_t *name);
+nxt_int_t nxt_http_route_test_rule(nxt_http_request_t *r,
+    nxt_http_route_rule_t *rule, u_char *start, size_t length);
 
 nxt_int_t nxt_upstreams_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_conf_value_t *conf);

@@ -33,6 +33,12 @@ NGINX Unit updated to 1.24.0.
 
 <change type="feature">
 <para>
+ability to limit serving of static files by MIME types.
+</para>
+</change>
+
+<change type="feature">
+<para>
 support for chrooting, rejecting symlinks, and rejecting crossing mounting
 points on a per-request basis during static file serving.
 </para>

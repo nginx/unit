@@ -457,6 +457,10 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_share_action_members[] = {
         .name       = nxt_string("share"),
         .type       = NXT_CONF_VLDT_STRING,
     }, {
+        .name       = nxt_string("types"),
+        .type       = NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
+        .validator  = nxt_conf_vldt_match_patterns,
+    }, {
         .name       = nxt_string("fallback"),
         .type       = NXT_CONF_VLDT_OBJECT,
         .validator  = nxt_conf_vldt_action,
