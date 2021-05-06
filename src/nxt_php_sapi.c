@@ -65,6 +65,15 @@ typedef struct {
 } nxt_php_run_ctx_t;
 
 
+HashTable nxt_php_user_config_cache;
+
+
+typedef struct {
+    nxt_time_t  expires;
+    HashTable   *user_config;
+} user_config_cache_entry;
+
+
 #if NXT_PHP8
 typedef int (*nxt_php_disable_t)(const char *p, size_t size);
 #elif NXT_PHP7
@@ -137,6 +146,8 @@ static int nxt_php_unbuffered_write(const char *str, uint str_length TSRMLS_DC);
 static int nxt_php_read_post(char *buffer, uint count_bytes TSRMLS_DC);
 #endif
 
+static void nxt_php_user_config_cache_entry_dtor(user_config_cache_entry *entry);
+static void nxt_php_activate_user_config(nxt_php_run_ctx_t ctx);
 
 #ifdef NXT_PHP7
 #if PHP_VERSION_ID < 70200
@@ -411,7 +422,60 @@ nxt_php_setup(nxt_task_t *task, nxt_process_t *process,
         nxt_php_set_options(task, value, ZEND_INI_USER);
     }
 
+    zend_hash_init(&nxt_php_user_config_cache, 0, NULL, (dtor_func_t) nxt_php_user_config_cache_entry_dtor, 1);
+
     return NXT_OK;
+}
+
+
+static void
+nxt_php_activate_user_config(nxt_php_run_ctx_t ctx) {
+    char                     *ptr;
+    user_config_cache_entry  *new_entry, *entry;
+    nxt_time_t               request_time = (nxt_time_t) sapi_get_request_time();
+    char                     path[ctx.script_filename.length + 1];
+
+    nxt_memcpy(path, ctx.script_filename.start, ctx.script_filename.length);
+
+#ifdef NXT_PHP7
+    if ((entry = zend_hash_str_find_ptr(&nxt_php_user_config_cache, path, ctx.script_filename.length)) == NULL) {
+#else /* PHP 5. */
+    if (zend_hash_find(&nxt_php_user_config_cache, path, ctx.script_filename.length + 1, (void **) &entry) == FAILURE) {
+#endif
+        new_entry = nxt_malloc(sizeof(user_config_cache_entry));
+        if (nxt_slow_path(new_entry == NULL)) {
+            return;
+        }
+
+        new_entry->expires = 0;
+        new_entry->user_config = (HashTable *) nxt_malloc(sizeof(HashTable));
+        if (nxt_slow_path(new_entry->user_config == NULL)) {
+            return;
+        }
+
+        zend_hash_init(new_entry->user_config, 0, NULL, (dtor_func_t) config_zval_dtor, 1);
+#ifdef NXT_PHP7
+        entry = zend_hash_str_update_ptr(&nxt_php_user_config_cache, path, ctx.script_filename.length, new_entry);
+#else /* PHP 5. */
+        zend_hash_update(&nxt_php_user_config_cache, path, ctx.script_filename.length + 1, new_entry, sizeof(user_config_cache_entry), (void **) &entry);
+#endif
+    }
+
+    if (request_time > entry->expires) {
+        zend_hash_clean(entry->user_config);
+        ptr = path + (ctx.root->length - 1);
+
+        while ((ptr = strchr(ptr, DEFAULT_SLASH)) != NULL) {
+            *ptr = 0;
+            php_parse_user_ini_file(path, PG(user_ini_filename), entry->user_config);
+            *ptr = '/';
+            ptr++;
+        }
+
+        entry->expires = request_time + PG(user_ini_cache_ttl);
+    }
+
+    php_ini_activate_config(entry->user_config, PHP_INI_PERDIR, PHP_INI_STAGE_HTACCESS);
 }
 
 
@@ -1057,6 +1121,8 @@ nxt_php_execute(nxt_php_run_ctx_t *ctx, nxt_unit_request_t *r)
 
     SG(request_info).path_translated = NULL;
 
+    nxt_php_activate_user_config(*ctx);
+
 #ifdef NXT_PHP7
     if (nxt_slow_path(php_request_startup() == FAILURE)) {
 #else
@@ -1462,4 +1528,12 @@ nxt_php_log_message(char *message TSRMLS_DC)
         nxt_unit_log(nxt_php_unit_ctx, NXT_UNIT_LOG_NOTICE,
                      "php message: %s", message);
     }
+}
+
+static void
+nxt_php_user_config_cache_entry_dtor(user_config_cache_entry *entry)
+{
+    zend_hash_destroy(entry->user_config);
+    free(entry->user_config);
+    free(entry);
 }
