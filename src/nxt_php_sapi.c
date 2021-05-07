@@ -163,7 +163,8 @@ static const zend_function_entry  nxt_php_ext_functions[] = {
 };
 
 
-zif_handler  nxt_php_chdir_handler;
+zif_handler       nxt_php_chdir_handler;
+zend_auto_global  *nxt_php_server_ag;
 
 
 static zend_module_entry  nxt_php_unit_module = {
@@ -211,6 +212,7 @@ ZEND_NAMED_FUNCTION(nxt_php_chdir)
 
 PHP_FUNCTION(fastcgi_finish_request)
 {
+    zend_auto_global   *ag;
     nxt_php_run_ctx_t  *ctx;
 
     if (nxt_slow_path(zend_parse_parameters_none() == FAILURE)) {
@@ -239,6 +241,16 @@ PHP_FUNCTION(fastcgi_finish_request)
 
     php_header(TSRMLS_C);
 #endif
+
+    ag = nxt_php_server_ag;
+
+    if (ag->armed) {
+#ifdef NXT_PHP7
+        ag->armed = ag->auto_global_callback(ag->name);
+#else
+        ag->armed = ag->auto_global_callback(ag->name, ag->name_len TSRMLS_CC);
+#endif
+    }
 
     nxt_unit_request_done(ctx->req, NXT_UNIT_OK);
     ctx->req = NULL;
@@ -409,6 +421,19 @@ nxt_php_setup(nxt_task_t *task, nxt_process_t *process,
 
         value = nxt_conf_get_object_member(c->options, &user_str, NULL);
         nxt_php_set_options(task, value, ZEND_INI_USER);
+    }
+
+#ifdef NXT_PHP7
+    nxt_php_server_ag = zend_hash_str_find_ptr(CG(auto_globals), "_SERVER",
+                                               nxt_length("_SERVER"));
+#else
+    zend_hash_quick_find(CG(auto_globals), "_SERVER", sizeof("_SERVER"),
+                         zend_hash_func("_SERVER", sizeof("_SERVER")),
+                         (void **) &nxt_php_server_ag);
+#endif
+    if (nxt_slow_path(nxt_php_server_ag == NULL)) {
+        nxt_alert(task, "failed to find $_SERVER auto global");
+        return NXT_ERROR;
     }
 
     return NXT_OK;
