@@ -8,4 +8,6 @@ if (!fastcgi_finish_request()) {
 }
 
 echo "4567";
+
+include 'server.php';
 ?>

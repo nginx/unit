@@ -98,9 +98,14 @@ class TestPHPApplication(TestApplicationPHP):
     def test_php_application_fastcgi_finish_request(self, unit_pid):
         self.load('fastcgi_finish_request')
 
+        assert 'success' in self.conf(
+            {"admin": {"auto_globals_jit": "1"}},
+            'applications/fastcgi_finish_request/options',
+        )
+
         assert self.get()['body'] == '0123'
 
-        os.kill(unit_pid, signal.SIGUSR1);
+        os.kill(unit_pid, signal.SIGUSR1)
 
         errs = self.findall(r'Error in fastcgi_finish_request')
 
@@ -109,11 +114,16 @@ class TestPHPApplication(TestApplicationPHP):
     def test_php_application_fastcgi_finish_request_2(self, unit_pid):
         self.load('fastcgi_finish_request')
 
+        assert 'success' in self.conf(
+            {"admin": {"auto_globals_jit": "1"}},
+            'applications/fastcgi_finish_request/options',
+        )
+
         resp = self.get(url='/?skip')
         assert resp['status'] == 200
         assert resp['body'] == ''
 
-        os.kill(unit_pid, signal.SIGUSR1);
+        os.kill(unit_pid, signal.SIGUSR1)
 
         errs = self.findall(r'Error in fastcgi_finish_request')
 
