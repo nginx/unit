@@ -671,4 +671,10 @@ def pytest_sessionfinish(session):
     option.restart = True
 
     unit_stop()
+
+    public_dir(option.cache_dir)
     shutil.rmtree(option.cache_dir)
+
+    if not option.save_log:
+        public_dir(option.temp_dir)
+        shutil.rmtree(option.temp_dir)
