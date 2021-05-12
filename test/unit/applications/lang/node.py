@@ -7,15 +7,16 @@ from unit.utils import public_dir
 
 
 class TestApplicationNode(TestApplicationProto):
+    application_type = "node"
+    es_modules = False
+
     def prepare_env(self, script):
         # copy application
-
         shutil.copytree(
             option.test_dir + '/node/' + script, option.temp_dir + '/node'
         )
 
         # copy modules
-
         shutil.copytree(
             option.current_dir + '/node/node_modules',
             option.temp_dir + '/node/node_modules',
@@ -25,6 +26,19 @@ class TestApplicationNode(TestApplicationProto):
 
     def load(self, script, name='app.js', **kwargs):
         self.prepare_env(script)
+
+        if self.es_modules:
+            arguments = [
+                "node",
+                "--loader",
+                "unit-http/require_shim.mjs",
+                "--require",
+                "unit-http/require_shim",
+                name,
+            ]
+
+        else:
+            arguments = ["node", "--require", "unit-http/require_shim", name]
 
         self._load_conf(
             {
@@ -36,7 +50,8 @@ class TestApplicationNode(TestApplicationProto):
                         "type": "external",
                         "processes": {"spare": 0},
                         "working_directory": option.temp_dir + '/node',
-                        "executable": name,
+                        "executable": '/usr/bin/env',
+                        "arguments": arguments,
                     }
                 },
             },

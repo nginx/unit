@@ -33,6 +33,12 @@ NGINX Unit updated to 1.24.0.
 
 <change type="feature">
 <para>
+a shim for automatic overriding "http" and "websocket" modules in Node.js.
+</para>
+</change>
+
+<change type="feature">
+<para>
 ability to limit serving of static files by MIME types.
 </para>
 </change>

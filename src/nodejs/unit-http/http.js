@@ -5,19 +5,22 @@
 
 'use strict';
 
-const server = require('unit-http/http_server');
-
-const { Server } = server;
+const {
+    Server,
+    ServerRequest,
+    ServerResponse,
+} = require('./http_server');
 
 function createServer (requestHandler) {
     return new Server(requestHandler);
 }
 
+const http = require("http")
 
 module.exports = {
+    ...http,
     Server,
-    STATUS_CODES: server.STATUS_CODES,
     createServer,
-    IncomingMessage: server.ServerRequest,
-    ServerResponse: server.ServerResponse
+    IncomingMessage: ServerRequest,
+    ServerResponse,
 };

@@ -1,6 +1,8 @@
+import http from "http"
+import websocket from "websocket"
 
-server = require('http').createServer(function() {});
-webSocketServer = require('websocket').server;
+let server = http.createServer(function() {});
+let webSocketServer = websocket.server;
 
 server.listen(7080, function() {});
 

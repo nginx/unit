@@ -1,8 +1,7 @@
-#!/usr/bin/env node
 
 var fs = require('fs');
 
-require('unit-http').createServer(function (req, res) {
+require('http').createServer(function (req, res) {
     res.write('blah');
 
     Promise.resolve().then(() => {
