@@ -76,9 +76,14 @@ class TestApplicationTLS(TestApplicationProto):
         # Generates alt_names section with dns names
         a_names = "[alt_names]\n"
         for i, k in enumerate(alt_names, 1):
-            a_names += "DNS.%d = %s\n" % (i, k)
+            k = k.split('|')
 
-            # Generates section for sign request extension
+            if k[0] == 'IP':
+                a_names += "IP.%d = %s\n" % (i, k[1])
+            else:
+                a_names += "DNS.%d = %s\n" % (i, k[0])
+
+        # Generates section for sign request extension
         a_sec = """req_extensions = myca_req_extensions
 
 [ myca_req_extensions ]

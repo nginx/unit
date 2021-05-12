@@ -423,6 +423,29 @@ basicConstraints = critical,CA:TRUE"""
         }, 'subject alt_names'
         assert cert['chain'][0]['issuer']['common_name'] == 'root', 'issuer'
 
+    def test_tls_certificate_empty_cn_san_ip(self):
+        self.certificate('root', False)
+
+        self.openssl_conf(
+            rewrite=True,
+            alt_names=['example.com', 'www.example.net', 'IP|10.0.0.1'],
+        )
+
+        self.req(subject='/')
+
+        self.generate_ca_conf()
+        self.ca()
+
+        self.set_certificate_req_context()
+
+        assert 'success' in self.certificate_load('localhost', 'localhost')
+
+        cert = self.conf_get('/certificates/localhost')
+        assert cert['chain'][0]['subject'] == {
+            'alt_names': ['example.com', 'www.example.net']
+        }, 'subject alt_names'
+        assert cert['chain'][0]['issuer']['common_name'] == 'root', 'issuer'
+
     @pytest.mark.skip('not yet')
     def test_tls_reconfigure(self):
         self.load('empty')
