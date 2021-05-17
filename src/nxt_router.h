@@ -205,6 +205,8 @@ typedef struct {
     nxt_event_engine_t     *engine;
     nxt_socket_conf_t      *socket_conf;
 
+    nxt_joint_job_t        *close_job;
+
     nxt_upstream_t         **upstreams;
 
     /* Modules configuraitons. */

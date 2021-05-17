@@ -3223,12 +3223,11 @@ nxt_router_listen_socket_update(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_router_listen_socket_delete(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_joint_job_t     *job;
-    nxt_socket_conf_t   *skcf;
-    nxt_listen_event_t  *lev;
-    nxt_event_engine_t  *engine;
+    nxt_socket_conf_t        *skcf;
+    nxt_listen_event_t       *lev;
+    nxt_event_engine_t       *engine;
+    nxt_socket_conf_joint_t  *joint;
 
-    job = obj;
     skcf = data;
 
     engine = task->thread->engine;
@@ -3240,15 +3239,13 @@ nxt_router_listen_socket_delete(nxt_task_t *task, void *obj, void *data)
     nxt_debug(task, "engine %p: listen socket delete: %d", engine,
               lev->socket.fd);
 
+    joint = lev->socket.data;
+    joint->close_job = obj;
+
     lev->timer.handler = nxt_router_listen_socket_close;
     lev->timer.work_queue = &engine->fast_work_queue;
 
     nxt_timer_add(engine, &lev->timer, 0);
-
-    job->work.next = NULL;
-    job->work.handler = nxt_router_conf_wait;
-
-    nxt_event_engine_post(job->tmcf->engine, &job->work);
 }
 
 
@@ -3273,6 +3270,7 @@ static void
 nxt_router_listen_socket_close(nxt_task_t *task, void *obj, void *data)
 {
     nxt_timer_t              *timer;
+    nxt_joint_job_t          *job;
     nxt_listen_event_t       *lev;
     nxt_socket_conf_joint_t  *joint;
 
@@ -3286,6 +3284,12 @@ nxt_router_listen_socket_close(nxt_task_t *task, void *obj, void *data)
 
     joint = lev->socket.data;
     lev->socket.data = NULL;
+
+    job = joint->close_job;
+    job->work.next = NULL;
+    job->work.handler = nxt_router_conf_wait;
+
+    nxt_event_engine_post(job->tmcf->engine, &job->work);
 
     /* 'task' refers to lev->task and we cannot use after nxt_free() */
     task = &task->thread->engine->task;
