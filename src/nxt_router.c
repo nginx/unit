@@ -773,7 +773,7 @@ fail:
                           msg->port_msg.stream, 0, NULL);
 
     if (tmcf != NULL) {
-        nxt_mp_destroy(tmcf->mem_pool);
+        nxt_mp_release(tmcf->mem_pool);
     }
 
 cleanup:
@@ -1061,7 +1061,7 @@ nxt_router_conf_ready(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
         nxt_mp_destroy(rtcf->mem_pool);
     }
 
-    nxt_mp_destroy(tmcf->mem_pool);
+    nxt_mp_release(tmcf->mem_pool);
 }
 
 
@@ -1120,7 +1120,7 @@ nxt_router_conf_error(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
 
     nxt_router_conf_send(task, tmcf, NXT_PORT_MSG_RPC_ERROR);
 
-    nxt_mp_destroy(tmcf->mem_pool);
+    nxt_mp_release(tmcf->mem_pool);
 }
 
 

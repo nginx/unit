@@ -48,6 +48,7 @@ static nxt_conf_value_t *nxt_cert_name_details(nxt_mp_t *mp, X509 *x509,
     nxt_bool_t issuer);
 static nxt_conf_value_t *nxt_cert_alt_names_details(nxt_mp_t *mp,
     STACK_OF(GENERAL_NAME) *alt_names);
+static void nxt_cert_buf_completion(nxt_task_t *task, void *obj, void *data);
 
 
 static nxt_lvlhsh_t  nxt_cert_info;
@@ -1073,6 +1074,9 @@ nxt_cert_store_get(nxt_task_t *task, nxt_str_t *name, nxt_mp_t *mp,
         goto fail;
     }
 
+    nxt_mp_retain(mp);
+    b->completion_handler = nxt_cert_buf_completion;
+
     nxt_buf_cpystr(b, name);
     *b->mem.free++ = '\0';
 
@@ -1099,6 +1103,21 @@ nxt_cert_store_get(nxt_task_t *task, nxt_str_t *name, nxt_mp_t *mp,
 fail:
 
     handler(task, NULL, ctx);
+}
+
+
+static void
+nxt_cert_buf_completion(nxt_task_t *task, void *obj, void *data)
+{
+    nxt_mp_t   *mp;
+    nxt_buf_t  *b;
+
+    b = obj;
+    mp = b->data;
+    nxt_assert(b->next == NULL);
+
+    nxt_mp_free(mp, b);
+    nxt_mp_release(mp);
 }
 
 
