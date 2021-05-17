@@ -355,7 +355,9 @@ def run(request):
             fds_diff = waitforfds(lambda: _count_fds(ps['pid']) - ps['fds'])
             ps['fds'] += fds_diff
 
-            assert ps['pid'] == ps_pid, 'same pid %s' % name
+            if not option.restart:
+                assert ps['pid'] == ps_pid, 'same pid %s' % name
+
             assert fds_diff <= option.fds_threshold, (
                 'descriptors leak %s' % name
             )
@@ -573,7 +575,7 @@ def _count_fds(pid):
         ).decode()
         return len(out.splitlines())
 
-    except (FileNotFoundError, subprocess.CalledProcessError):
+    except (FileNotFoundError, TypeError, subprocess.CalledProcessError):
         pass
 
     try:
@@ -582,7 +584,7 @@ def _count_fds(pid):
         ).decode()
         return len(out.splitlines())
 
-    except (FileNotFoundError, subprocess.CalledProcessError):
+    except (FileNotFoundError, TypeError, subprocess.CalledProcessError):
         pass
 
     return 0
@@ -675,6 +677,6 @@ def pytest_sessionfinish(session):
     public_dir(option.cache_dir)
     shutil.rmtree(option.cache_dir)
 
-    if not option.save_log:
+    if not option.save_log and os.path.isdir(option.temp_dir):
         public_dir(option.temp_dir)
         shutil.rmtree(option.temp_dir)
