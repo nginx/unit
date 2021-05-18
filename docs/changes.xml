@@ -50,6 +50,12 @@ points on a per-request basis during static file serving.
 </para>
 </change>
 
+<change type="feature">
+<para>
+compatibility with Ruby 3.0.
+</para>
+</change>
+
 <change type="bugfix">
 <para>
 a segmentation fault might have occurred in the PHP module if
