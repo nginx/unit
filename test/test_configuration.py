@@ -1,5 +1,6 @@
 import pytest
 
+import socket
 from unit.control import TestControl
 
 
@@ -260,6 +261,33 @@ class TestConfiguration(TestControl):
                 },
             }
         ), 'explicit ipv6'
+
+    def test_listeners_port_release(self):
+        for i in range(10):
+            fail = False
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+                self.conf(
+                    {
+                        "listeners": {"127.0.0.1:7080": {"pass": "routes"}},
+                        "routes": [],
+                    }
+                )
+
+                resp = self.conf({"listeners": {}, "applications": {}})
+
+                try:
+                    s.bind(('127.0.0.1', 7080))
+                    s.listen()
+
+                except OSError:
+                    fail = True
+
+                if fail:
+                    pytest.fail('cannot bind or listen to the address')
+
+                assert 'success' in resp, 'port release'
 
     @pytest.mark.skip('not yet, unsafe')
     def test_listeners_no_port(self):
