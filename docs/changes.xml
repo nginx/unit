@@ -33,6 +33,12 @@ NGINX Unit updated to 1.24.0.
 
 <change type="feature">
 <para>
+multiple "targets" in Python applications.
+</para>
+</change>
+
+<change type="feature">
+<para>
 a shim for automatic overriding "http" and "websocket" modules in Node.js.
 </para>
 </change>

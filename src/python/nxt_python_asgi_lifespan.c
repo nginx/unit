@@ -27,7 +27,10 @@ typedef struct  {
     PyObject                *receive_future;
 } nxt_py_asgi_lifespan_t;
 
-
+static PyObject *nxt_py_asgi_lifespan_target_startup(
+    nxt_py_asgi_ctx_data_t *ctx_data, nxt_python_target_t *target);
+static int nxt_py_asgi_lifespan_target_shutdown(
+    nxt_py_asgi_lifespan_t *lifespan);
 static PyObject *nxt_py_asgi_lifespan_receive(PyObject *self, PyObject *none);
 static PyObject *nxt_py_asgi_lifespan_send(PyObject *self, PyObject *dict);
 static PyObject *nxt_py_asgi_lifespan_send_startup(
@@ -69,24 +72,60 @@ static PyTypeObject nxt_py_asgi_lifespan_type = {
 int
 nxt_py_asgi_lifespan_startup(nxt_py_asgi_ctx_data_t *ctx_data)
 {
-    int                     rc;
+    size_t               size;
+    PyObject             *lifespan;
+    PyObject             **target_lifespans;
+    nxt_int_t            i;
+    nxt_python_target_t  *target;
+
+    size = nxt_py_targets->count * sizeof(PyObject*);
+
+    target_lifespans = nxt_unit_malloc(NULL, size);
+    if (nxt_slow_path(target_lifespans == NULL)) {
+        nxt_unit_alert(NULL, "Failed to allocate lifespan data");
+        return NXT_UNIT_ERROR;
+    }
+
+    memset(target_lifespans, 0, size);
+
+    for (i = 0; i < nxt_py_targets->count; i++) {
+        target = &nxt_py_targets->target[i];
+
+        lifespan = nxt_py_asgi_lifespan_target_startup(ctx_data, target);
+        if (nxt_slow_path(lifespan == NULL)) {
+            return NXT_UNIT_ERROR;
+        }
+
+        target_lifespans[i] = lifespan;
+    }
+
+    ctx_data->target_lifespans = target_lifespans;
+
+    return NXT_UNIT_OK;
+}
+
+
+static PyObject *
+nxt_py_asgi_lifespan_target_startup(nxt_py_asgi_ctx_data_t *ctx_data,
+    nxt_python_target_t *target)
+{
     PyObject                *scope, *res, *py_task, *receive, *send, *done;
     PyObject                *stage2;
-    nxt_py_asgi_lifespan_t  *lifespan;
+    nxt_py_asgi_lifespan_t  *lifespan, *ret;
 
     if (nxt_slow_path(PyType_Ready(&nxt_py_asgi_lifespan_type) != 0)) {
         nxt_unit_alert(NULL,
                  "Python failed to initialize the 'asgi_lifespan' type object");
-        return NXT_UNIT_ERROR;
+        return NULL;
     }
 
     lifespan = PyObject_New(nxt_py_asgi_lifespan_t, &nxt_py_asgi_lifespan_type);
     if (nxt_slow_path(lifespan == NULL)) {
         nxt_unit_alert(NULL, "Python failed to create lifespan object");
-        return NXT_UNIT_ERROR;
+        return NULL;
     }
 
-    rc = NXT_UNIT_ERROR;
+    ret = NULL;
 
     receive = PyObject_GetAttrString((PyObject *) lifespan, "receive");
     if (nxt_slow_path(receive == NULL)) {
@@ -130,23 +169,25 @@ nxt_py_asgi_lifespan_startup(nxt_py_asgi_ctx_data_t *ctx_data)
         goto release_future;
     }
 
-    if (!nxt_py_asgi_legacy) {
+    if (!target->asgi_legacy) {
         nxt_unit_req_debug(NULL, "Python call ASGI 3.0 application");
 
-        res = PyObject_CallFunctionObjArgs(nxt_py_application,
+        res = PyObject_CallFunctionObjArgs(target->application,
                                            scope, receive, send, NULL);
 
     } else {
         nxt_unit_req_debug(NULL, "Python call legacy application");
 
-        res = PyObject_CallFunctionObjArgs(nxt_py_application, scope, NULL);
+        res = PyObject_CallFunctionObjArgs(target->application, scope, NULL);
         if (nxt_slow_path(res == NULL)) {
             nxt_unit_log(NULL, NXT_UNIT_LOG_INFO,
                          "ASGI Lifespan processing exception");
             nxt_python_print_exception();
 
             lifespan->disabled = 1;
-            rc = NXT_UNIT_OK;
+
+            Py_INCREF(lifespan);
+            ret = lifespan;
 
             goto release_scope;
         }
@@ -211,10 +252,9 @@ nxt_py_asgi_lifespan_startup(nxt_py_asgi_ctx_data_t *ctx_data)
     Py_DECREF(res);
 
     if (lifespan->startup_sent == 1 || lifespan->disabled) {
-        ctx_data->lifespan = (PyObject *) lifespan;
-        Py_INCREF(ctx_data->lifespan);
+        Py_INCREF(lifespan);
 
-        rc = NXT_UNIT_OK;
+        ret = lifespan;
     }
 
 release_task:
@@ -232,20 +272,41 @@ release_receive:
 release_lifespan:
     Py_DECREF(lifespan);
 
-    return rc;
+    return (PyObject *) ret;
 }
 
 
 int
 nxt_py_asgi_lifespan_shutdown(nxt_unit_ctx_t *ctx)
 {
-    PyObject                *msg, *future, *res;
+    nxt_int_t               i, ret;
     nxt_py_asgi_lifespan_t  *lifespan;
     nxt_py_asgi_ctx_data_t  *ctx_data;
 
     ctx_data = ctx->data;
 
-    lifespan = (nxt_py_asgi_lifespan_t *) ctx_data->lifespan;
+    for (i = 0; i < nxt_py_targets->count; i++) {
+        lifespan = (nxt_py_asgi_lifespan_t *)ctx_data->target_lifespans[i];
+
+        ret = nxt_py_asgi_lifespan_target_shutdown(lifespan);
+        if (nxt_slow_path(ret != NXT_UNIT_OK)) {
+            return NXT_UNIT_ERROR;
+        }
+    }
+
+    nxt_unit_free(NULL, ctx_data->target_lifespans);
+
+    return NXT_UNIT_OK;
+}
+
+
+static int
+nxt_py_asgi_lifespan_target_shutdown(nxt_py_asgi_lifespan_t *lifespan)
+{
+    PyObject                *msg, *future, *res;
+    nxt_py_asgi_ctx_data_t  *ctx_data;
+
+    ctx_data = lifespan->ctx_data;
 
     if (nxt_slow_path(lifespan == NULL || lifespan->disabled)) {
         return NXT_UNIT_OK;

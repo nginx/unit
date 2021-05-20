@@ -302,7 +302,7 @@ nxt_python_request_handler(nxt_unit_request_info_t *req)
 {
     int               rc;
     PyObject          *environ, *args, *response, *iterator, *item;
-    PyObject          *close, *result;
+    PyObject          *close, *result, *application;
     nxt_bool_t        prepare_environ;
     nxt_python_ctx_t  *pctx;
 
@@ -348,7 +348,8 @@ nxt_python_request_handler(nxt_unit_request_info_t *req)
     Py_INCREF(pctx->start_resp);
     PyTuple_SET_ITEM(args, 1, pctx->start_resp);
 
-    response = PyObject_CallObject(nxt_py_application, args);
+    application = nxt_py_targets->target[req->request->app_target].application;
+    response = PyObject_CallObject(application, args);
 
     Py_DECREF(args);
 

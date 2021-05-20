@@ -37,12 +37,27 @@
 #define NXT_HAVE_ASGI  1
 #endif
 
-extern PyObject  *nxt_py_application;
+
+typedef struct {
+    PyObject    *application;
+    nxt_bool_t  asgi_legacy;
+} nxt_python_target_t;
+
+
+typedef struct {
+    nxt_int_t            count;
+    nxt_python_target_t  target[0];
+} nxt_python_targets_t;
+
+
+extern nxt_python_targets_t  *nxt_py_targets;
+
 
 typedef struct {
     nxt_str_t  string;
     PyObject   **object_p;
 } nxt_python_string_t;
+
 
 typedef struct {
     int   (*ctx_data_alloc)(void **pdata);

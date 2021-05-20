@@ -43,8 +43,6 @@ static void nxt_py_asgi_shm_ack_handler(nxt_unit_ctx_t *ctx);
 static PyObject *nxt_py_asgi_port_read(PyObject *self, PyObject *args);
 static void nxt_python_asgi_done(void);
 
-
-int                       nxt_py_asgi_legacy;
 static PyObject           *nxt_py_port_read;
 static nxt_unit_port_t    *nxt_py_shared_port;
 
@@ -137,6 +135,7 @@ int
 nxt_python_asgi_init(nxt_unit_init_t *init, nxt_python_proto_t *proto)
 {
     PyObject      *func;
+    nxt_int_t     i;
     PyCodeObject  *code;
 
     nxt_unit_debug(NULL, "asgi_init");
@@ -161,21 +160,23 @@ nxt_python_asgi_init(nxt_unit_init_t *init, nxt_python_proto_t *proto)
         return NXT_UNIT_ERROR;
     }
 
-    func = nxt_python_asgi_get_func(nxt_py_application);
-    if (nxt_slow_path(func == NULL)) {
-        nxt_unit_alert(NULL, "Python cannot find function for callable");
-        return NXT_UNIT_ERROR;
+    for (i = 0; i < nxt_py_targets->count; i++) {
+        func = nxt_python_asgi_get_func(nxt_py_targets->target[i].application);
+        if (nxt_slow_path(func == NULL)) {
+            nxt_unit_alert(NULL, "Python cannot find function for callable");
+            return NXT_UNIT_ERROR;
+        }
+
+        code = (PyCodeObject *) PyFunction_GET_CODE(func);
+
+        if ((code->co_flags & CO_COROUTINE) == 0) {
+            nxt_unit_debug(NULL, "asgi: callable is not a coroutine function "
+                                 "switching to legacy mode");
+            nxt_py_targets->target[i].asgi_legacy = 1;
+        }
+
+        Py_DECREF(func);
     }
-
-    code = (PyCodeObject *) PyFunction_GET_CODE(func);
-
-    if ((code->co_flags & CO_COROUTINE) == 0) {
-        nxt_unit_debug(NULL, "asgi: callable is not a coroutine function "
-                             "switching to legacy mode");
-        nxt_py_asgi_legacy = 1;
-    }
-
-    Py_DECREF(func);
 
     init->callbacks.request_handler = nxt_py_asgi_request_handler;
     init->callbacks.data_handler = nxt_py_asgi_http_data_handler;
@@ -408,6 +409,7 @@ nxt_py_asgi_request_handler(nxt_unit_request_info_t *req)
 {
     PyObject                *scope, *res, *task, *receive, *send, *done, *asgi;
     PyObject                *stage2;
+    nxt_python_target_t     *target;
     nxt_py_asgi_ctx_data_t  *ctx_data;
 
     if (req->request->websocket_handshake) {
@@ -456,17 +458,18 @@ nxt_py_asgi_request_handler(nxt_unit_request_info_t *req)
     }
 
     req->data = asgi;
+    target = &nxt_py_targets->target[req->request->app_target];
 
-    if (!nxt_py_asgi_legacy) {
+    if (!target->asgi_legacy) {
         nxt_unit_req_debug(req, "Python call ASGI 3.0 application");
 
-        res = PyObject_CallFunctionObjArgs(nxt_py_application,
+        res = PyObject_CallFunctionObjArgs(target->application,
                                            scope, receive, send, NULL);
 
     } else {
         nxt_unit_req_debug(req, "Python call legacy application");
 
-        res = PyObject_CallFunctionObjArgs(nxt_py_application, scope, NULL);
+        res = PyObject_CallFunctionObjArgs(target->application, scope, NULL);
 
         if (nxt_slow_path(res == NULL)) {
             nxt_unit_req_error(req, "Python failed to call legacy app stage1");

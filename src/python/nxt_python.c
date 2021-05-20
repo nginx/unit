@@ -24,6 +24,8 @@ typedef struct {
 
 static nxt_int_t nxt_python_start(nxt_task_t *task,
     nxt_process_data_t *data);
+static nxt_int_t nxt_python_set_target(nxt_task_t *task,
+    nxt_python_target_t *target, nxt_conf_value_t *conf);
 static nxt_int_t nxt_python_set_path(nxt_task_t *task, nxt_conf_value_t *value);
 static int nxt_python_init_threads(nxt_python_app_conf_t *c);
 static int nxt_python_ready_handler(nxt_unit_ctx_t *ctx);
@@ -49,7 +51,7 @@ NXT_EXPORT nxt_app_module_t  nxt_app_module = {
 };
 
 static PyObject           *nxt_py_stderr_flush;
-PyObject                  *nxt_py_application;
+nxt_python_targets_t      *nxt_py_targets;
 
 #if PY_MAJOR_VERSION == 3
 static wchar_t            *nxt_py_home;
@@ -66,18 +68,19 @@ static nxt_int_t
 nxt_python_start(nxt_task_t *task, nxt_process_data_t *data)
 {
     int                    rc;
-    char                   *nxt_py_module;
-    size_t                 len;
+    size_t                 len, size;
+    uint32_t               next;
     PyObject               *obj, *module;
-    nxt_str_t              proto;
-    const char             *callable;
+    nxt_str_t              proto, probe_proto, name;
+    nxt_int_t              ret, n, i;
     nxt_unit_ctx_t         *unit_ctx;
     nxt_unit_init_t        python_init;
+    nxt_conf_value_t       *cv;
+    nxt_python_targets_t   *targets;
     nxt_common_app_conf_t  *app_conf;
     nxt_python_app_conf_t  *c;
 #if PY_MAJOR_VERSION == 3
     char                   *path;
-    size_t                 size;
     nxt_int_t              pep405;
 
     static const char pyvenv[] = "/pyvenv.cfg";
@@ -190,38 +193,42 @@ nxt_python_start(nxt_task_t *task, nxt_process_data_t *data)
 
     Py_CLEAR(obj);
 
-    nxt_py_module = nxt_alloca(c->module.length + 1);
-    nxt_memcpy(nxt_py_module, c->module.start, c->module.length);
-    nxt_py_module[c->module.length] = '\0';
+    n = (c->targets != NULL ? nxt_conf_object_members_count(c->targets) : 1);
 
-    module = PyImport_ImportModule(nxt_py_module);
-    if (nxt_slow_path(module == NULL)) {
-        nxt_alert(task, "Python failed to import module \"%s\"", nxt_py_module);
-        nxt_python_print_exception();
+    size = sizeof(nxt_python_targets_t) + n * sizeof(nxt_python_target_t);
+
+    targets = nxt_unit_malloc(NULL, size);
+    if (nxt_slow_path(targets == NULL)) {
+        nxt_alert(task, "Could not allocate targets");
         goto fail;
     }
 
-    callable = (c->callable != NULL) ? c->callable : "application";
+    memset(targets, 0, size);
 
-    obj = PyDict_GetItemString(PyModule_GetDict(module), callable);
-    if (nxt_slow_path(obj == NULL)) {
-        nxt_alert(task, "Python failed to get \"%s\" "
-                  "from module \"%s\"", callable, nxt_py_module);
-        goto fail;
+    targets->count = n;
+    nxt_py_targets = targets;
+
+    if (c->targets != NULL) {
+        next = 0;
+
+        for (i = 0; /* void */; i++) {
+            cv = nxt_conf_next_object_member(c->targets, &name, &next);
+            if (cv == NULL) {
+                break;
+            }
+
+            ret = nxt_python_set_target(task, &targets->target[i], cv);
+            if (nxt_slow_path(ret != NXT_OK)) {
+                goto fail;
+            }
+        }
+
+    } else {
+        ret = nxt_python_set_target(task, &targets->target[0], app_conf->self);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            goto fail;
+        }
     }
-
-    if (nxt_slow_path(PyCallable_Check(obj) == 0)) {
-        nxt_alert(task, "\"%s\" in module \"%s\" "
-                  "is not a callable object", callable, nxt_py_module);
-        goto fail;
-    }
-
-    nxt_py_application = obj;
-    obj = NULL;
-
-    Py_INCREF(nxt_py_application);
-
-    Py_CLEAR(module);
 
     nxt_unit_default_init(task, &python_init);
 
@@ -232,7 +239,18 @@ nxt_python_start(nxt_task_t *task, nxt_process_data_t *data)
     proto = c->protocol;
 
     if (proto.length == 0) {
-        proto = nxt_python_asgi_check(nxt_py_application) ? asgi : wsgi;
+        proto = nxt_python_asgi_check(targets->target[0].application)
+                ? asgi : wsgi;
+
+        for (i = 1; i < targets->count; i++) {
+            probe_proto = nxt_python_asgi_check(targets->target[i].application)
+                          ? asgi : wsgi;
+            if (probe_proto.start != proto.start) {
+                nxt_alert(task, "A mix of ASGI & WSGI targets is forbidden, "
+                                "specify protocol in config if incorrect");
+                goto fail;
+            }
+        }
     }
 
     if (nxt_strstr_eq(&proto, &asgi)) {
@@ -293,6 +311,81 @@ fail:
     Py_XDECREF(module);
 
     nxt_python_atexit();
+
+    return NXT_ERROR;
+}
+
+
+static nxt_int_t
+nxt_python_set_target(nxt_task_t *task, nxt_python_target_t *target,
+    nxt_conf_value_t *conf)
+{
+    char              *callable, *module_name;
+    PyObject          *module, *obj;
+    nxt_str_t         str;
+    nxt_conf_value_t  *value;
+
+    static nxt_str_t  module_str = nxt_string("module");
+    static nxt_str_t  callable_str = nxt_string("callable");
+
+    module = obj = NULL;
+
+    value = nxt_conf_get_object_member(conf, &module_str, NULL);
+    if (nxt_slow_path(value == NULL)) {
+        goto fail;
+    }
+
+    nxt_conf_get_string(value, &str);
+
+    module_name = nxt_alloca(str.length + 1);
+    nxt_memcpy(module_name, str.start, str.length);
+    module_name[str.length] = '\0';
+
+    module = PyImport_ImportModule(module_name);
+    if (nxt_slow_path(module == NULL)) {
+        nxt_alert(task, "Python failed to import module \"%s\"", module_name);
+        nxt_python_print_exception();
+        goto fail;
+    }
+
+    value = nxt_conf_get_object_member(conf, &callable_str, NULL);
+    if (value == NULL) {
+        callable = nxt_alloca(12);
+        nxt_memcpy(callable, "application", 12);
+
+    } else {
+        nxt_conf_get_string(value, &str);
+
+        callable = nxt_alloca(str.length + 1);
+        nxt_memcpy(callable, str.start, str.length);
+        callable[str.length] = '\0';
+    }
+
+    obj = PyDict_GetItemString(PyModule_GetDict(module), callable);
+    if (nxt_slow_path(obj == NULL)) {
+        nxt_alert(task, "Python failed to get \"%s\" from module \"%s\"",
+                  callable, module);
+        goto fail;
+    }
+
+    if (nxt_slow_path(PyCallable_Check(obj) == 0)) {
+        nxt_alert(task, "\"%s\" in module \"%s\" is not a callable object",
+                  callable, module);
+        goto fail;
+    }
+
+    target->application = obj;
+    obj = NULL;
+
+    Py_INCREF(target->application);
+    Py_CLEAR(module);
+
+    return NXT_OK;
+
+fail:
+
+    Py_XDECREF(obj);
+    Py_XDECREF(module);
 
     return NXT_ERROR;
 }
@@ -596,12 +689,21 @@ nxt_python_done_strings(nxt_python_string_t *pstr)
 static void
 nxt_python_atexit(void)
 {
+    nxt_int_t  i;
+
     if (nxt_py_proto.done != NULL) {
         nxt_py_proto.done();
     }
 
     Py_XDECREF(nxt_py_stderr_flush);
-    Py_XDECREF(nxt_py_application);
+
+    if (nxt_py_targets != NULL) {
+        for (i = 0; i < nxt_py_targets->count; i++) {
+            Py_XDECREF(nxt_py_targets->target[i].application);
+        }
+
+        nxt_unit_free(NULL, nxt_py_targets);
+    }
 
     Py_Finalize();
 
