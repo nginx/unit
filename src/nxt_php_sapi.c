@@ -1101,9 +1101,19 @@ nxt_php_execute(nxt_php_run_ctx_t *ctx, nxt_unit_request_t *r)
     nxt_memzero(&file_handle, sizeof(file_handle));
 
     file_handle.type = ZEND_HANDLE_FILENAME;
+#if (PHP_VERSION_ID >= 80100)
+    file_handle.filename = zend_string_init((char *) ctx->script_filename.start,
+                                            ctx->script_filename.length, 0);
+    file_handle.primary_script = 1;
+#else
     file_handle.filename = (char *) ctx->script_filename.start;
+#endif
 
     php_execute_script(&file_handle TSRMLS_CC);
+
+#if (PHP_VERSION_ID >= 80100)
+    zend_destroy_file_handle(&file_handle);
+#endif
 
     /* Prevention of consuming possible unread request body. */
 #if (PHP_VERSION_ID < 50600)
