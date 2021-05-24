@@ -201,15 +201,29 @@ typedef struct nxt_http_route_s       nxt_http_route_t;
 typedef struct nxt_http_route_rule_s  nxt_http_route_rule_t;
 
 
+typedef struct {
+    nxt_conf_value_t                *pass;
+    nxt_conf_value_t                *ret;
+    nxt_str_t                       location;
+    nxt_conf_value_t                *proxy;
+    nxt_conf_value_t                *share;
+    nxt_str_t                       chroot;
+    nxt_conf_value_t                *follow_symlinks;
+    nxt_conf_value_t                *traverse_mounts;
+    nxt_conf_value_t                *types;
+    nxt_conf_value_t                *fallback;
+} nxt_http_action_conf_t;
+
+
 struct nxt_http_action_s {
     nxt_http_action_t               *(*handler)(nxt_task_t *task,
                                         nxt_http_request_t *r,
                                         nxt_http_action_t *action);
     union {
+        void                        *conf;
         nxt_http_route_t            *route;
         nxt_upstream_t              *upstream;
         uint32_t                    upstream_number;
-        nxt_http_status_t           return_code;
         nxt_var_t                   *var;
 
         struct {
@@ -319,8 +333,8 @@ nxt_int_t nxt_upstreams_joint_create(nxt_router_temp_conf_t *tmcf,
 void nxt_http_request_action(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_action_t *action);
 
-nxt_http_action_t *nxt_http_return_handler(nxt_task_t *task,
-    nxt_http_request_t *r, nxt_http_action_t *action);
+nxt_int_t nxt_http_return_init(nxt_mp_t *mp, nxt_http_action_t *action,
+    nxt_http_action_conf_t *acf);
 
 nxt_http_action_t *nxt_http_static_handler(nxt_task_t *task,
     nxt_http_request_t *r, nxt_http_action_t *action);
