@@ -70,8 +70,8 @@ class TestShareMount(TestApplicationProto):
         skip_alert(r'opening.*failed')
 
         resp = self.get(url='/mount/')
-        resp['status'] == 200
-        resp['body'] == 'mount'
+        assert resp['status'] == 200
+        assert resp['body'] == 'mount'
 
         assert 'success' in self.conf(
             {"share": temp_dir + "/assets/dir", "traverse_mounts": False},
@@ -86,8 +86,8 @@ class TestShareMount(TestApplicationProto):
         ), 'configure mount enable'
 
         resp = self.get(url='/mount/')
-        resp['status'] == 200
-        resp['body'] == 'mount'
+        assert resp['status'] == 200
+        assert resp['body'] == 'mount'
 
     def test_share_mount_two_blocks(self, temp_dir, skip_alert):
         skip_alert(r'opening.*failed')
@@ -128,7 +128,7 @@ class TestShareMount(TestApplicationProto):
             'routes/0/action',
         ), 'configure chroot mount default'
 
-        self.get(url='/mount/')['status'] == 200, 'chroot'
+        assert self.get(url='/mount/')['status'] == 200, 'chroot'
 
         assert 'success' in self.conf(
             {
@@ -139,4 +139,4 @@ class TestShareMount(TestApplicationProto):
             'routes/0/action',
         ), 'configure chroot mount disable'
 
-        self.get(url='/mount/')['status'] == 403, 'chroot mount'
+        assert self.get(url='/mount/')['status'] == 403, 'chroot mount'

@@ -1041,83 +1041,31 @@ class TestRouting(TestApplicationProto):
             }
         )
 
+        def check_headers(hds):
+            hds = dict({"Host": "localhost", "Connection": "close"}, **hds)
+            assert (
+                self.get(headers=hds)['status'] == 200
+            ), 'headers array match'
+
+        def check_headers_404(hds):
+            hds = dict({"Host": "localhost", "Connection": "close"}, **hds)
+            assert (
+                self.get(headers=hds)['status'] == 404
+            ), 'headers array no match'
+
         assert self.get()['status'] == 404, 'match headers array'
-        assert (
-            self.get(
-                headers={
-                    "Host": "localhost",
-                    "x-header1": "foo123",
-                    "Connection": "close",
-                }
-            )['status']
-            == 200
-        ), 'match headers array 2'
-        assert (
-            self.get(
-                headers={
-                    "Host": "localhost",
-                    "x-header2": "bar",
-                    "Connection": "close",
-                }
-            )['status']
-            == 200
-        ), 'match headers array 3'
-        assert (
-            self.get(
-                headers={
-                    "Host": "localhost",
-                    "x-header3": "bar",
-                    "Connection": "close",
-                }
-            )['status']
-            == 200
-        ), 'match headers array 4'
-        assert (
-            self.get(
-                headers={
-                    "Host": "localhost",
-                    "x-header1": "bar",
-                    "Connection": "close",
-                }
-            )['status']
-            == 404
-        ), 'match headers array 5'
-        assert (
-            self.get(
-                headers={
-                    "Host": "localhost",
-                    "x-header1": "bar",
-                    "x-header4": "foo",
-                    "Connection": "close",
-                }
-            )['status']
-            == 200
-        ), 'match headers array 6'
+        check_headers({"x-header1": "foo123"})
+        check_headers({"x-header2": "bar"})
+        check_headers({"x-header3": "bar"})
+        check_headers_404({"x-header1": "bar"})
+        check_headers({"x-header1": "bar", "x-header4": "foo"})
 
         assert 'success' in self.conf_delete(
             'routes/0/match/headers/1'
         ), 'match headers array configure 2'
 
-        assert (
-            self.get(
-                headers={
-                    "Host": "localhost",
-                    "x-header2": "bar",
-                    "Connection": "close",
-                }
-            )['status']
-            == 404
-        ), 'match headers array 7'
-        assert (
-            self.get(
-                headers={
-                    "Host": "localhost",
-                    "x-header3": "foo",
-                    "Connection": "close",
-                }
-            )['status']
-            == 200
-        ), 'match headers array 8'
+        check_headers_404({"x-header2": "bar"})
+        check_headers({"x-header3": "foo"})
 
     def test_routes_match_arguments(self):
         self.route_match({"arguments": {"foo": "bar"}})
