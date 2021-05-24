@@ -5,6 +5,7 @@ import time
 import pytest
 
 from unit.applications.lang.python import TestApplicationPython
+from unit.utils import sysctl
 
 
 class TestSettings(TestApplicationPython):
@@ -147,27 +148,35 @@ Connection: close
         assert resp['status'] == 200, 'status body read timeout update'
 
     def test_settings_send_timeout(self, temp_dir):
-        self.load('mirror')
+        self.load('body_generate')
 
-        data_len = 1048576
+        sysctl_out = sysctl()
+        values = re.findall(
+            r'net.core.[rw]mem_(?:max|default).*?(\d+)', sysctl_out
+        )
+        values = [int(v) for v in values]
+
+        data_len = 1048576 if len(values) == 0 else 10 * max(values)
 
         self.conf({'http': {'send_timeout': 1}}, 'settings')
 
         addr = temp_dir + '/sock'
 
-        self.conf({"unix:" + addr: {'application': 'mirror'}}, 'listeners')
+        self.conf(
+            {"unix:" + addr: {'application': 'body_generate'}}, 'listeners'
+        )
 
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         sock.connect(addr)
 
-        req = """POST / HTTP/1.1
+        req = (
+            """GET / HTTP/1.1
 Host: localhost
-Content-Type: text/html
-Content-Length: %d
+X-Length: %d
 Connection: close
 
-""" % data_len + (
-            'X' * data_len
+"""
+            % data_len
         )
 
         sock.sendall(req.encode())
