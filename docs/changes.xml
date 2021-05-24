@@ -39,7 +39,7 @@ multiple "targets" in Python applications.
 
 <change type="feature">
 <para>
-a shim for automatic overriding "http" and "websocket" modules in Node.js.
+a loader for automatic overriding "http" and "websocket" modules in Node.js.
 </para>
 </change>
 

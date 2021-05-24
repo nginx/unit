@@ -31,14 +31,14 @@ class TestApplicationNode(TestApplicationProto):
             arguments = [
                 "node",
                 "--loader",
-                "unit-http/require_shim.mjs",
+                "unit-http/loader.mjs",
                 "--require",
-                "unit-http/require_shim",
+                "unit-http/loader",
                 name,
             ]
 
         else:
-            arguments = ["node", "--require", "unit-http/require_shim", name]
+            arguments = ["node", "--require", "unit-http/loader", name]
 
         self._load_conf(
             {

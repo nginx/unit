@@ -20,18 +20,18 @@ class TestNodeESModules(TestApplicationNode):
         assert resp['headers']['Content-Type'] == 'text/plain', 'basic header'
         assert resp['body'] == 'Hello World\n', 'basic body'
 
-    def test_node_es_modules_require_shim_http(self):
-        self.load('require_shim/es_modules_http', name="app.mjs")
+    def test_node_es_modules_loader_http(self):
+        self.load('loader/es_modules_http', name="app.mjs")
 
         self.assert_basic_application()
 
-    def test_node_es_modules_require_shim_http_indirect(self):
-        self.load('require_shim/es_modules_http_indirect', name="app.js")
+    def test_node_es_modules_loader_http_indirect(self):
+        self.load('loader/es_modules_http_indirect', name="app.js")
 
         self.assert_basic_application()
 
-    def test_node_es_modules_require_shim_websockets(self):
-        self.load('require_shim/es_modules_websocket', name="app.mjs")
+    def test_node_es_modules_loader_websockets(self):
+        self.load('loader/es_modules_websocket', name="app.mjs")
 
         message = 'blah'
 

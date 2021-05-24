@@ -2,7 +2,7 @@
 if (module.parent && module.parent.id === "internal/preload") {
     const { Module } = require("module")
 
-    if (!Module.prototype.require.__unit_shim) {
+    if (!Module.prototype.require.__unit_loader) {
         const http = require("./http")
         const websocket = require("./websocket")
 
@@ -22,6 +22,6 @@ if (module.parent && module.parent.id === "internal/preload") {
             return original.apply(this, arguments);
         }
 
-        Module.prototype.require.__unit_shim = true;
+        Module.prototype.require.__unit_loader = true;
     }
 }

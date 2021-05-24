@@ -19,13 +19,13 @@ class TestNodeApplication(TestApplicationNode):
 
         self.assert_basic_application()
 
-    def test_node_application_require_shim_unit_http(self):
-        self.load('require_shim/unit_http')
+    def test_node_application_loader_unit_http(self):
+        self.load('loader/unit_http')
 
         self.assert_basic_application()
 
-    def test_node_application_require_shim_transitive_dependency(self):
-        self.load('require_shim/transitive_dependency')
+    def test_node_application_loader_transitive_dependency(self):
+        self.load('loader/transitive_dependency')
 
         self.assert_basic_application()
 
