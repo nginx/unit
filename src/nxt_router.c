@@ -3285,16 +3285,16 @@ nxt_router_listen_socket_close(nxt_task_t *task, void *obj, void *data)
     joint = lev->socket.data;
     lev->socket.data = NULL;
 
+    /* 'task' refers to lev->task and we cannot use after nxt_free() */
+    task = &task->thread->engine->task;
+
+    nxt_router_listen_socket_release(task, joint->socket_conf);
+
     job = joint->close_job;
     job->work.next = NULL;
     job->work.handler = nxt_router_conf_wait;
 
     nxt_event_engine_post(job->tmcf->engine, &job->work);
-
-    /* 'task' refers to lev->task and we cannot use after nxt_free() */
-    task = &task->thread->engine->task;
-
-    nxt_router_listen_socket_release(task, joint->socket_conf);
 
     nxt_router_listen_event_release(task, lev, joint);
 }
