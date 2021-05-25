@@ -102,12 +102,6 @@ static nxt_int_t nxt_conf_vldt_proxy(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_python(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
-static nxt_int_t nxt_conf_vldt_python_targets_exclusive(
-    nxt_conf_validation_t *vldt, nxt_conf_value_t *value, void *data);
-static nxt_int_t nxt_conf_vldt_python_targets(nxt_conf_validation_t *vldt,
-    nxt_conf_value_t *value, void *data);
-static nxt_int_t nxt_conf_vldt_python_target(nxt_conf_validation_t *vldt,
-    nxt_str_t *name, nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_python_path(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_python_path_element(nxt_conf_validation_t *vldt,
@@ -164,16 +158,16 @@ static nxt_int_t nxt_conf_vldt_array_iterator(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_environment(nxt_conf_validation_t *vldt,
     nxt_str_t *name, nxt_conf_value_t *value);
+static nxt_int_t nxt_conf_vldt_targets_exclusive(
+    nxt_conf_validation_t *vldt, nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_targets(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_target(nxt_conf_validation_t *vldt,
+    nxt_str_t *name, nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_argument(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_php(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
-static nxt_int_t nxt_conf_vldt_php_targets_exclusive(
-    nxt_conf_validation_t *vldt, nxt_conf_value_t *value, void *data);
-static nxt_int_t nxt_conf_vldt_php_targets(nxt_conf_validation_t *vldt,
-    nxt_conf_value_t *value, void *data);
-static nxt_int_t nxt_conf_vldt_php_target(nxt_conf_validation_t *vldt,
-    nxt_str_t *name, nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_php_option(nxt_conf_validation_t *vldt,
     nxt_str_t *name, nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_java_classpath(nxt_conf_validation_t *vldt,
@@ -210,8 +204,10 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_static_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_tls_members[];
 #endif
 static nxt_conf_vldt_object_t  nxt_conf_vldt_match_members[];
+static nxt_conf_vldt_object_t  nxt_conf_vldt_python_target_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_php_common_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_php_options_members[];
+static nxt_conf_vldt_object_t  nxt_conf_vldt_php_target_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_app_limits_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_app_processes_members[];
@@ -555,17 +551,18 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_python_members[] = {
     {
         .name       = nxt_string("module"),
         .type       = NXT_CONF_VLDT_STRING,
-        .validator  = nxt_conf_vldt_python_targets_exclusive,
+        .validator  = nxt_conf_vldt_targets_exclusive,
         .u.string   = "module",
     }, {
         .name       = nxt_string("callable"),
         .type       = NXT_CONF_VLDT_STRING,
-        .validator  = nxt_conf_vldt_python_targets_exclusive,
+        .validator  = nxt_conf_vldt_targets_exclusive,
         .u.string   = "callable",
     }, {
         .name       = nxt_string("targets"),
         .type       = NXT_CONF_VLDT_OBJECT,
-        .validator  = nxt_conf_vldt_python_targets,
+        .validator  = nxt_conf_vldt_targets,
+        .u.members  = nxt_conf_vldt_python_target_members
     },
 
     NXT_CONF_VLDT_NEXT(nxt_conf_vldt_python_common_members)
@@ -604,22 +601,23 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_php_members[] = {
     {
         .name       = nxt_string("root"),
         .type       = NXT_CONF_VLDT_ANY_TYPE,
-        .validator  = nxt_conf_vldt_php_targets_exclusive,
+        .validator  = nxt_conf_vldt_targets_exclusive,
         .u.string   = "root",
     }, {
         .name       = nxt_string("script"),
         .type       = NXT_CONF_VLDT_ANY_TYPE,
-        .validator  = nxt_conf_vldt_php_targets_exclusive,
+        .validator  = nxt_conf_vldt_targets_exclusive,
         .u.string   = "script",
     }, {
         .name       = nxt_string("index"),
         .type       = NXT_CONF_VLDT_ANY_TYPE,
-        .validator  = nxt_conf_vldt_php_targets_exclusive,
+        .validator  = nxt_conf_vldt_targets_exclusive,
         .u.string   = "index",
     }, {
         .name       = nxt_string("targets"),
         .type       = NXT_CONF_VLDT_OBJECT,
-        .validator  = nxt_conf_vldt_php_targets,
+        .validator  = nxt_conf_vldt_targets,
+        .u.members  = nxt_conf_vldt_php_target_members
     },
 
     NXT_CONF_VLDT_NEXT(nxt_conf_vldt_php_common_members)
@@ -1484,52 +1482,6 @@ nxt_conf_vldt_python(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 
     return nxt_conf_vldt_object(vldt, value,
                                 nxt_conf_vldt_python_notargets_members);
-}
-
-
-static nxt_int_t
-nxt_conf_vldt_python_targets_exclusive(nxt_conf_validation_t *vldt,
-    nxt_conf_value_t *value, void *data)
-{
-    return nxt_conf_vldt_error(vldt, "The \"%s\" option is mutually exclusive "
-                               "with the \"targets\" object.", data);
-}
-
-
-static nxt_int_t
-nxt_conf_vldt_python_targets(nxt_conf_validation_t *vldt,
-    nxt_conf_value_t *value, void *data)
-{
-    nxt_uint_t  n;
-
-    n = nxt_conf_object_members_count(value);
-
-    if (n > 254) {
-        return nxt_conf_vldt_error(vldt, "The \"targets\" object must not "
-                                   "contain more than 254 members.");
-    }
-
-    return nxt_conf_vldt_object_iterator(vldt, value,
-                                         &nxt_conf_vldt_python_target);
-}
-
-
-static nxt_int_t
-nxt_conf_vldt_python_target(nxt_conf_validation_t *vldt, nxt_str_t *name,
-    nxt_conf_value_t *value)
-{
-    if (name->length == 0) {
-        return nxt_conf_vldt_error(vldt,
-                                   "The Python target name must not be empty.");
-    }
-
-    if (nxt_conf_type(value) != NXT_CONF_OBJECT) {
-        return nxt_conf_vldt_error(vldt, "The \"%V\" Python target must be "
-                                   "an object.", name);
-    }
-
-    return nxt_conf_vldt_object(vldt, value,
-                                &nxt_conf_vldt_python_target_members);
 }
 
 
@@ -2400,6 +2352,57 @@ nxt_conf_vldt_environment(nxt_conf_validation_t *vldt, nxt_str_t *name,
 
 
 static nxt_int_t
+nxt_conf_vldt_targets_exclusive(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data)
+{
+    return nxt_conf_vldt_error(vldt, "The \"%s\" option is mutually exclusive "
+                               "with the \"targets\" object.", data);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_targets(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
+{
+    nxt_int_t   ret;
+    nxt_uint_t  n;
+
+    n = nxt_conf_object_members_count(value);
+
+    if (n > 254) {
+        return nxt_conf_vldt_error(vldt, "The \"targets\" object must not "
+                                   "contain more than 254 members.");
+    }
+
+    vldt->ctx = data;
+
+    ret = nxt_conf_vldt_object_iterator(vldt, value, &nxt_conf_vldt_target);
+
+    vldt->ctx = NULL;
+
+    return ret;
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_target(nxt_conf_validation_t *vldt, nxt_str_t *name,
+    nxt_conf_value_t *value)
+{
+    if (name->length == 0) {
+        return nxt_conf_vldt_error(vldt,
+                                   "The target name must not be empty.");
+    }
+
+    if (nxt_conf_type(value) != NXT_CONF_OBJECT) {
+        return nxt_conf_vldt_error(vldt, "The \"%V\" target must be "
+                                   "an object.", name);
+    }
+
+    return nxt_conf_vldt_object(vldt, value, vldt->ctx);
+}
+
+
+static nxt_int_t
 nxt_conf_vldt_clone_namespaces(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data)
 {
@@ -2563,51 +2566,6 @@ nxt_conf_vldt_php(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 
     return nxt_conf_vldt_object(vldt, value,
                                 nxt_conf_vldt_php_notargets_members);
-}
-
-
-static nxt_int_t
-nxt_conf_vldt_php_targets_exclusive(nxt_conf_validation_t *vldt,
-    nxt_conf_value_t *value, void *data)
-{
-    return nxt_conf_vldt_error(vldt, "The \"%s\" option is mutually exclusive "
-                               "with the \"targets\" object.", data);
-}
-
-
-static nxt_int_t
-nxt_conf_vldt_php_targets(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
-    void *data)
-{
-    nxt_uint_t  n;
-
-    n = nxt_conf_object_members_count(value);
-
-    if (n > 254) {
-        return nxt_conf_vldt_error(vldt, "The \"targets\" object must not "
-                                   "contain more than 254 members.");
-    }
-
-    return nxt_conf_vldt_object_iterator(vldt, value,
-                                         &nxt_conf_vldt_php_target);
-}
-
-
-static nxt_int_t
-nxt_conf_vldt_php_target(nxt_conf_validation_t *vldt, nxt_str_t *name,
-    nxt_conf_value_t *value)
-{
-    if (name->length == 0) {
-        return nxt_conf_vldt_error(vldt,
-                                   "The PHP target name must not be empty.");
-    }
-
-    if (nxt_conf_type(value) != NXT_CONF_OBJECT) {
-        return nxt_conf_vldt_error(vldt, "The \"%V\" PHP target must be "
-                                   "an object.", name);
-    }
-
-    return nxt_conf_vldt_object(vldt, value, &nxt_conf_vldt_php_target_members);
 }
 
 
