@@ -13,6 +13,7 @@ class TestApplicationGo(TestApplicationProto):
         env = os.environ.copy()
         env['GOPATH'] = option.current_dir + '/build/go'
         env['GOCACHE'] = option.cache_dir + '/go'
+        env['GO111MODULE'] = 'auto'
 
         if static:
             args = [

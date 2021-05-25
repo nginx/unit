@@ -111,7 +111,7 @@ install: ${NXT_GO}-install
 ${NXT_GO}:
 
 ${NXT_GO}-install: ${NXT_GO}-install-src ${NXT_GO}-install-env
-	GOPATH=\$(DESTDIR)\$(GOPATH) ${NXT_GO} build ${NXT_GO_PKG}
+	GOPATH=\$(DESTDIR)\$(GOPATH) GO111MODULE=auto ${NXT_GO} build ${NXT_GO_PKG}
 
 ${NXT_GO}-install-src:
 	install -d \$(DESTDIR)\$(NXT_GO_DST)/src/${NXT_GO_PKG}
