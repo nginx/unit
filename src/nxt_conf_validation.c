@@ -1220,7 +1220,7 @@ nxt_conf_vldt_mtypes_extension(nxt_conf_validation_t *vldt,
 
     dup_type = nxt_http_static_mtypes_hash_find(&ctx->hash, &ext);
 
-    if (dup_type != NULL) {
+    if (dup_type->length != 0) {
         return nxt_conf_vldt_error(vldt, "The \"%V\" file extension has been "
                                          "declared for \"%V\" and \"%V\" "
                                          "MIME types at the same time.",

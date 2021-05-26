@@ -84,27 +84,21 @@ nxt_http_static_handler(nxt_task_t *task, nxt_http_request_t *r,
         mtype = nxt_http_static_mtypes_hash_find(&rtcf->mtypes_hash,
                                                  &extension);
 
-        if (mtype != NULL) {
-            ret = nxt_http_route_test_rule(r, action->u.share.types,
-                                           mtype->start, mtype->length);
-            if (ret == 1) {
-                goto mime_ok;
-            }
-
-            if (nxt_slow_path(ret == NXT_ERROR)) {
-                goto fail;
-            }
+        ret = nxt_http_route_test_rule(r, action->u.share.types,
+                                       mtype->start, mtype->length);
+        if (nxt_slow_path(ret == NXT_ERROR)) {
+            goto fail;
         }
 
-        if (action->u.share.fallback != NULL) {
-            return action->u.share.fallback;
-        }
+        if (ret == 0) {
+            if (action->u.share.fallback != NULL) {
+                return action->u.share.fallback;
+            }
 
-        nxt_http_request_error(task, r, NXT_HTTP_FORBIDDEN);
-        return NULL;
+            nxt_http_request_error(task, r, NXT_HTTP_FORBIDDEN);
+            return NULL;
+        }
     }
-
-mime_ok:
 
     length = action->name.length + r->path->length + index.length;
 
@@ -298,7 +292,7 @@ mime_ok:
                                                      &extension);
         }
 
-        if (mtype != NULL) {
+        if (mtype->length != 0) {
             field = nxt_list_zero_add(r->resp.fields);
             if (nxt_slow_path(field == NULL)) {
                 goto fail;
@@ -711,6 +705,8 @@ nxt_http_static_mtypes_hash_find(nxt_lvlhsh_t *hash, nxt_str_t *extension)
     nxt_lvlhsh_query_t       lhq;
     nxt_http_static_mtype_t  *mtype;
 
+    static nxt_str_t  empty = nxt_string("");
+
     lhq.key = *extension;
     lhq.key_hash = nxt_djb_hash_lowcase(lhq.key.start, lhq.key.length);
     lhq.proto = &nxt_http_static_mtypes_hash_proto;
@@ -720,7 +716,7 @@ nxt_http_static_mtypes_hash_find(nxt_lvlhsh_t *hash, nxt_str_t *extension)
         return mtype->type;
     }
 
-    return NULL;
+    return &empty;
 }
 
 

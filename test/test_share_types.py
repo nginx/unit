@@ -128,7 +128,7 @@ class TestShareTypes(TestApplicationProto):
                 {
                     "action": {
                         "share": temp_dir + "/assets",
-                        "types": ["!application/php"],
+                        "types": ["!application/x-httpd-php"],
                         "fallback": {"proxy": "http://127.0.0.1:7081"},
                     }
                 },
