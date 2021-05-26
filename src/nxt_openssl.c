@@ -5,6 +5,7 @@
  */
 
 #include <nxt_main.h>
+#include <nxt_conf.h>
 #include <openssl/ssl.h>
 #include <openssl/conf.h>
 #include <openssl/err.h>
@@ -42,9 +43,14 @@ static unsigned long nxt_openssl_thread_id(void);
 static void nxt_openssl_locks_free(void);
 #endif
 static nxt_int_t nxt_openssl_server_init(nxt_task_t *task,
-    nxt_tls_conf_t *conf, nxt_mp_t *mp, nxt_bool_t last);
+    nxt_tls_conf_t *conf, nxt_mp_t *mp, nxt_conf_value_t *conf_cmds,
+    nxt_bool_t last);
 static nxt_int_t nxt_openssl_chain_file(nxt_task_t *task, SSL_CTX *ctx,
     nxt_tls_conf_t *conf, nxt_mp_t *mp, nxt_bool_t single);
+#if (NXT_HAVE_OPENSSL_CONF_CMD)
+static nxt_int_t nxt_ssl_conf_commands(nxt_task_t *task, SSL_CTX *ctx,
+    nxt_conf_value_t *value, nxt_mp_t *mp);
+#endif
 static nxt_uint_t nxt_openssl_cert_get_names(nxt_task_t *task, X509 *cert,
     nxt_tls_conf_t *conf, nxt_mp_t *mp);
 static nxt_int_t nxt_openssl_bundle_hash_test(nxt_lvlhsh_query_t *lhq,
@@ -260,7 +266,7 @@ nxt_openssl_locks_free(void)
 
 static nxt_int_t
 nxt_openssl_server_init(nxt_task_t *task, nxt_tls_conf_t *conf,
-    nxt_mp_t *mp, nxt_bool_t last)
+    nxt_mp_t *mp, nxt_conf_value_t *conf_cmds, nxt_bool_t last)
 {
     SSL_CTX                *ctx;
     const char             *ciphers, *ca_certificate;
@@ -320,6 +326,7 @@ nxt_openssl_server_init(nxt_task_t *task, nxt_tls_conf_t *conf,
         goto fail;
     }
 */
+
     ciphers = (conf->ciphers != NULL) ? conf->ciphers : "HIGH:!aNULL:!MD5";
 
     if (SSL_CTX_set_cipher_list(ctx, ciphers) == 0) {
@@ -328,6 +335,14 @@ nxt_openssl_server_init(nxt_task_t *task, nxt_tls_conf_t *conf,
                               ciphers);
         goto fail;
     }
+
+#if (NXT_HAVE_OPENSSL_CONF_CMD)
+    if (conf_cmds != NULL
+        && nxt_ssl_conf_commands(task, ctx, conf_cmds, mp) != NXT_OK)
+    {
+        goto fail;
+    }
+#endif
 
     SSL_CTX_set_options(ctx, SSL_OP_CIPHER_SERVER_PREFERENCE);
 
@@ -484,6 +499,89 @@ clean:
 }
 
 
+#if (NXT_HAVE_OPENSSL_CONF_CMD)
+
+static nxt_int_t
+nxt_ssl_conf_commands(nxt_task_t *task, SSL_CTX *ctx, nxt_conf_value_t *conf,
+    nxt_mp_t *mp)
+{
+    int               ret;
+    char              *zcmd, *zvalue;
+    uint32_t          index;
+    nxt_str_t         cmd, value;
+    SSL_CONF_CTX      *cctx;
+    nxt_conf_value_t  *member;
+
+    cctx = SSL_CONF_CTX_new();
+    if (nxt_slow_path(cctx == NULL)) {
+        nxt_openssl_log_error(task, NXT_LOG_ALERT,
+                              "SSL_CONF_CTX_new() failed");
+        return NXT_ERROR;
+    }
+
+    SSL_CONF_CTX_set_flags(cctx, SSL_CONF_FLAG_FILE
+                                 | SSL_CONF_FLAG_SERVER
+                                 | SSL_CONF_FLAG_CERTIFICATE
+                                 | SSL_CONF_FLAG_SHOW_ERRORS);
+
+    SSL_CONF_CTX_set_ssl_ctx(cctx, ctx);
+
+    index = 0;
+
+    for ( ;; ) {
+        member = nxt_conf_next_object_member(conf, &cmd, &index);
+        if (nxt_slow_path(member == NULL)) {
+            break;
+        }
+
+        nxt_conf_get_string(member, &value);
+
+        zcmd = nxt_str_cstrz(mp, &cmd);
+        zvalue = nxt_str_cstrz(mp, &value);
+
+        if (nxt_slow_path(zcmd == NULL || zvalue == NULL)) {
+            goto fail;
+        }
+
+        ret = SSL_CONF_cmd(cctx, zcmd, zvalue);
+        if (ret == -2) {
+            nxt_openssl_log_error(task, NXT_LOG_ERR,
+                                  "unknown command \"%s\" in "
+                                  "\"conf_commands\" option", zcmd);
+            goto fail;
+        }
+
+        if (ret <= 0) {
+            nxt_openssl_log_error(task, NXT_LOG_ERR,
+                                  "invalid value \"%s\" for command \"%s\" "
+                                  "in \"conf_commands\" option",
+                                  zvalue, zcmd);
+            goto fail;
+        }
+
+        nxt_debug(task, "SSL_CONF_cmd(\"%s\", \"%s\")", zcmd, zvalue);
+    }
+
+    if (SSL_CONF_CTX_finish(cctx) != 1) {
+        nxt_openssl_log_error(task, NXT_LOG_ALERT,
+                              "SSL_CONF_finish() failed");
+        goto fail;
+    }
+
+    SSL_CONF_CTX_free(cctx);
+
+    return NXT_OK;
+
+fail:
+
+    SSL_CONF_CTX_free(cctx);
+
+    return NXT_ERROR;
+}
+
+#endif
+
+
 static nxt_uint_t
 nxt_openssl_cert_get_names(nxt_task_t *task, X509 *cert, nxt_tls_conf_t *conf,
     nxt_mp_t *mp)
@@ -550,7 +648,7 @@ nxt_openssl_cert_get_names(nxt_task_t *task, X509 *cert, nxt_tls_conf_t *conf,
                                         NULL, 0);
         if (len <= 0) {
             nxt_log(task, NXT_LOG_WARN, "certificate \"%V\" has neither "
-                    "Subject Alternative Name nor Common Name", bundle->name);
+                    "Subject Alternative Name nor Common Name", &bundle->name);
             return NXT_OK;
         }
 
@@ -629,7 +727,7 @@ nxt_openssl_bundle_hash_insert(nxt_task_t *task, nxt_lvlhsh_t *lvlhsh,
         if (item->name.length == 0 || item->name.start[0] != '.') {
             nxt_log(task, NXT_LOG_WARN, "ignored invalid name \"%V\" "
                     "in certificate \"%V\": missing \".\" "
-                    "after wildcard symbol", &str, item->bundle->name);
+                    "after wildcard symbol", &str, &item->bundle->name);
             return NXT_OK;
         }
     }
@@ -644,7 +742,7 @@ nxt_openssl_bundle_hash_insert(nxt_task_t *task, nxt_lvlhsh_t *lvlhsh,
     ret = nxt_lvlhsh_insert(lvlhsh, &lhq);
     if (nxt_fast_path(ret == NXT_OK)) {
         nxt_debug(task, "name \"%V\" for certificate \"%V\" is inserted",
-                  &str, item->bundle->name);
+                  &str, &item->bundle->name);
         return NXT_OK;
     }
 
@@ -653,7 +751,7 @@ nxt_openssl_bundle_hash_insert(nxt_task_t *task, nxt_lvlhsh_t *lvlhsh,
         if (old->bundle != item->bundle) {
             nxt_log(task, NXT_LOG_WARN, "ignored duplicate name \"%V\" "
                     "in certificate \"%V\", identical name appears in \"%V\"",
-                    &str, old->bundle->name, item->bundle->name);
+                    &str, &old->bundle->name, &item->bundle->name);
 
             old->bundle = item->bundle;
         }
@@ -730,8 +828,8 @@ nxt_openssl_servername(SSL *s, int *ad, void *arg)
 
     if (bundle != NULL) {
         nxt_debug(c->socket.task, "new tls context found for \"%V\": \"%V\" "
-                                  "(old: \"%V\")", &str, bundle->name,
-                                  conf->bundle->name);
+                                  "(old: \"%V\")", &str, &bundle->name,
+                                  &conf->bundle->name);
 
         if (bundle != conf->bundle) {
             if (SSL_set_SSL_CTX(s, bundle->ctx) == NULL) {

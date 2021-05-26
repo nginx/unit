@@ -39,6 +39,12 @@ PHP added to the default MIME type list.
 
 <change type="feature">
 <para>
+arbitrary configuration of TLS connections via OpenSSL commands.
+</para>
+</change>
+
+<change type="feature">
+<para>
 multiple "targets" in Python applications.
 </para>
 </change>

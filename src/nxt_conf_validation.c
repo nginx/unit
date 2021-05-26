@@ -89,6 +89,10 @@ static nxt_int_t nxt_conf_vldt_listener(nxt_conf_validation_t *vldt,
 #if (NXT_TLS)
 static nxt_int_t nxt_conf_vldt_certificate(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
+#if (NXT_HAVE_OPENSSL_CONF_CMD)
+static nxt_int_t nxt_conf_vldt_object_conf_commands(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
+#endif
 static nxt_int_t nxt_conf_vldt_certificate_element(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value);
 #endif
@@ -363,7 +367,17 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_tls_members[] = {
     {
         .name       = nxt_string("certificate"),
         .type       = NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
+        .flags      = NXT_CONF_VLDT_REQUIRED,
         .validator  = nxt_conf_vldt_certificate,
+    }, {
+        .name       = nxt_string("conf_commands"),
+        .type       = NXT_CONF_VLDT_OBJECT,
+#if (NXT_HAVE_OPENSSL_CONF_CMD)
+        .validator  = nxt_conf_vldt_object_conf_commands,
+#else
+        .validator  = nxt_conf_vldt_unsupported,
+        .u.string   = "conf_commands",
+#endif
     },
 
     NXT_CONF_VLDT_END
@@ -1970,6 +1984,38 @@ nxt_conf_vldt_certificate_element(nxt_conf_validation_t *vldt,
 
     return NXT_OK;
 }
+
+
+#if (NXT_HAVE_OPENSSL_CONF_CMD)
+
+static nxt_int_t
+nxt_conf_vldt_object_conf_commands(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data)
+{
+    uint32_t          index;
+    nxt_int_t         ret;
+    nxt_str_t         name;
+    nxt_conf_value_t  *member;
+
+    index = 0;
+
+    for ( ;; ) {
+        member = nxt_conf_next_object_member(value, &name, &index);
+
+        if (member == NULL) {
+            break;
+        }
+
+        ret = nxt_conf_vldt_type(vldt, &name, member, NXT_CONF_VLDT_STRING);
+        if (ret != NXT_OK) {
+            return ret;
+        }
+    }
+
+    return NXT_OK;
+}
+
+#endif
 
 #endif
 

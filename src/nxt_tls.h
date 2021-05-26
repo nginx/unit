@@ -8,6 +8,9 @@
 #define _NXT_TLS_H_INCLUDED_
 
 
+#include <nxt_conf.h>
+
+
 /*
  * The SSL/TLS libraries lack vector I/O interface yet add noticeable
  * overhead to each SSL/TLS record so buffering allows to decrease the
@@ -32,6 +35,7 @@ typedef struct {
 
     nxt_int_t                     (*server_init)(nxt_task_t *task,
                                       nxt_tls_conf_t *conf, nxt_mp_t *mp,
+                                      nxt_conf_value_t *conf_cmds,
                                       nxt_bool_t last);
     void                          (*server_free)(nxt_task_t *task,
                                       nxt_tls_conf_t *conf);
@@ -49,7 +53,7 @@ struct nxt_tls_bundle_conf_s {
     void                          *ctx;
 
     nxt_fd_t                      chain_file;
-    nxt_str_t                     *name;
+    nxt_str_t                     name;
 
     nxt_tls_bundle_conf_t         *next;
 };
