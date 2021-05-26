@@ -2,6 +2,7 @@ import io
 import re
 import ssl
 import subprocess
+import time
 
 import pytest
 
@@ -500,6 +501,28 @@ basicConstraints = critical,CA:TRUE"""
         )
 
         assert resp['body'] == '0123456789', 'keepalive 2'
+
+    def test_tls_no_close_notify(self):
+        self.certificate()
+
+        assert 'success' in self.conf(
+            {
+                "listeners": {
+                    "*:7080": {
+                        "pass": "routes",
+                        "tls": {"certificate": "default"},
+                    }
+                },
+                "routes": [{"action": {"return": 200}}],
+                "applications": {},
+            }
+        ), 'load application configuration'
+
+        (resp, sock) = self.get_ssl(start=True)
+
+        time.sleep(5)
+
+        sock.close()
 
     @pytest.mark.skip('not yet')
     def test_tls_keepalive_certificate_remove(self):
