@@ -643,6 +643,8 @@ nxt_http_static_mtypes_init(nxt_mp_t *mp, nxt_lvlhsh_t *hash)
 
         { nxt_string("application/octet-stream"),  ".deb" },
         { nxt_string("application/octet-stream"),  ".rpm" },
+
+        { nxt_string("application/x-httpd-php"),   ".php" },
     };
 
     for (i = 0; i < nxt_nitems(default_types); i++) {
