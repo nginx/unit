@@ -66,6 +66,8 @@ static void nxt_openssl_conn_io_shutdown(nxt_task_t *task, void *obj,
     void *data);
 static nxt_int_t nxt_openssl_conn_test_error(nxt_task_t *task, nxt_conn_t *c,
     int ret, nxt_err_t sys_err, nxt_openssl_io_t io);
+static void nxt_openssl_conn_io_shutdown_timeout(nxt_task_t *task, void *obj,
+    void *data);
 static void nxt_cdecl nxt_openssl_conn_error(nxt_task_t *task,
     nxt_err_t err, const char *fmt, ...);
 static nxt_uint_t nxt_openssl_log_error_level(nxt_err_t err);
@@ -839,11 +841,7 @@ nxt_openssl_conn_init(nxt_task_t *task, nxt_tls_conf_t *conf, nxt_conn_t *c)
     c->sendfile = NXT_CONN_SENDFILE_OFF;
 
     nxt_openssl_conn_handshake(task, c, c->socket.data);
-    /*
-     * TLS configuration might be destroyed after the TLS connection
-     * is established.
-     */
-    tls->conf = NULL;
+
     return;
 
 fail:
@@ -1099,6 +1097,10 @@ nxt_openssl_conn_io_shutdown(nxt_task_t *task, void *obj, void *data)
 
     SSL_set_quiet_shutdown(s, quiet);
 
+    if (tls->conf->no_wait_shutdown) {
+        mode |= SSL_RECEIVED_SHUTDOWN;
+    }
+
     once = 1;
 
     for ( ;; ) {
@@ -1153,7 +1155,8 @@ nxt_openssl_conn_io_shutdown(nxt_task_t *task, void *obj, void *data)
         break;
 
     case NXT_AGAIN:
-        nxt_timer_add(task->thread->engine, &c->read_timer, 5000);
+        c->write_timer.handler = nxt_openssl_conn_io_shutdown_timeout;
+        nxt_timer_add(task->thread->engine, &c->write_timer, 5000);
         return;
 
     default:
@@ -1234,6 +1237,23 @@ nxt_openssl_conn_test_error(nxt_task_t *task, nxt_conn_t *c, int ret,
         c->socket.error = 1000;  /* Nonexistent errno code. */
         return NXT_ERROR;
     }
+}
+
+
+static void
+nxt_openssl_conn_io_shutdown_timeout(nxt_task_t *task, void *obj, void *data)
+{
+    nxt_conn_t   *c;
+    nxt_timer_t  *timer;
+
+    timer = obj;
+
+    nxt_debug(task, "openssl conn shutdown timeout");
+
+    c = nxt_write_timer_conn(timer);
+
+    c->socket.timedout = 1;
+    nxt_openssl_conn_io_shutdown(task, c, NULL);
 }
 
 

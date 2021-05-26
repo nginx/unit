@@ -69,6 +69,8 @@ struct nxt_tls_conf_s {
     char                          *ca_certificate;
 
     size_t                        buffer_size;
+
+    uint8_t                       no_wait_shutdown;  /* 1 bit */
 };
 
 

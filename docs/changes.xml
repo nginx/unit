@@ -70,6 +70,12 @@ compatibility with Ruby 3.0.
 
 <change type="bugfix">
 <para>
+the router process could crash while closing TLS connection.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
 a segmentation fault might have occurred in the PHP module if
 fastcgi_finish_request() was used with the "auto_globals_jit" option enabled.
 </para>

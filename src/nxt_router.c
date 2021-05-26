@@ -2477,6 +2477,7 @@ nxt_router_tls_rpc_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
             goto fail;
         }
 
+        tlscf->no_wait_shutdown = 1;
         rpc->socket_conf->tls = tlscf;
 
     } else {
