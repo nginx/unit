@@ -71,7 +71,14 @@ arbitrary configuration of TLS connections via OpenSSL commands.
 
 <change type="feature">
 <para>
-multiple "targets" in Python applications.
+the ability to limit static file serving by MIME types.
+</para>
+</change>
+
+<change type="feature">
+<para>
+support for chrooting, rejecting symlinks, and rejecting mount
+point traversal on a per-request basis when serving static files.
 </para>
 </change>
 
@@ -84,14 +91,7 @@ Node.js.
 
 <change type="feature">
 <para>
-the ability to limit static file serving by MIME types.
-</para>
-</change>
-
-<change type="feature">
-<para>
-support for chrooting, rejecting symlinks, and rejecting mount
-point traversal on a per-request basis when serving static files.
+multiple "targets" in Python applications.
 </para>
 </change>
 
