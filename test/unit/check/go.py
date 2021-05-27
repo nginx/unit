@@ -8,6 +8,7 @@ def check_go(current_dir, temp_dir, test_dir):
 
     env = os.environ.copy()
     env['GOPATH'] = current_dir + '/build/go'
+    env['GO111MODULE'] = 'auto'
 
     try:
         process = subprocess.Popen(

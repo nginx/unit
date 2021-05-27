@@ -1,4 +1,4 @@
-class Options():
+class Options:
     _options = {
         'skip_alerts': [],
         'skip_sanitizer': False,
@@ -12,5 +12,6 @@ class Options():
             return Options._options[name]
 
         raise AttributeError
+
 
 option = Options()

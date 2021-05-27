@@ -7,6 +7,7 @@ from unit.applications.lang.java import TestApplicationJava
 from unit.option import option
 from unit.utils import public_dir
 
+
 class TestJavaApplication(TestApplicationJava):
     prerequisites = {'modules': {'java': 'all'}}
 
@@ -712,9 +713,9 @@ class TestJavaApplication(TestApplicationJava):
         assert (
             'javax.servlet.include.request_uri:  /data/test' in body
         ) == True, 'include request uri'
-        #assert (
+        # assert (
         #    'javax.servlet.include.context_path: ' in body
-        #) == True, 'include request context path'
+        # ) == True, 'include request context path'
         assert (
             'javax.servlet.include.servlet_path: /data' in body
         ) == True, 'include request servlet path'
@@ -754,9 +755,9 @@ class TestJavaApplication(TestApplicationJava):
         assert (
             'javax.servlet.include.request_uri:  null' in body
         ) == True, 'include request uri'
-        #assert (
+        # assert (
         #    'javax.servlet.include.context_path: null' in body
-        #) == True, 'include request context path'
+        # ) == True, 'include request context path'
         assert (
             'javax.servlet.include.servlet_path: null' in body
         ) == True, 'include request servlet path'
@@ -1034,7 +1035,7 @@ class TestJavaApplication(TestApplicationJava):
 
             socks.append(sock)
 
-            time.sleep(0.25) # required to avoid greedy request reading
+            time.sleep(0.25)  # required to avoid greedy request reading
 
         threads = set()
 

@@ -2,6 +2,7 @@ import os
 import socket
 
 import pytest
+
 from unit.applications.proto import TestApplicationProto
 from unit.option import option
 from unit.utils import waitforfiles
@@ -85,8 +86,7 @@ class TestStatic(TestApplicationProto):
 
     def test_static_space_in_name(self, temp_dir):
         os.rename(
-            temp_dir + '/assets/dir/file',
-            temp_dir + '/assets/dir/fi le',
+            temp_dir + '/assets/dir/file', temp_dir + '/assets/dir/fi le',
         )
         assert waitforfiles(temp_dir + '/assets/dir/fi le')
         assert self.get(url='/dir/fi le')['body'] == 'blah', 'file name'
@@ -95,9 +95,7 @@ class TestStatic(TestApplicationProto):
         assert waitforfiles(temp_dir + '/assets/di r/fi le')
         assert self.get(url='/di r/fi le')['body'] == 'blah', 'dir name'
 
-        os.rename(
-            temp_dir + '/assets/di r', temp_dir + '/assets/ di r '
-        )
+        os.rename(temp_dir + '/assets/di r', temp_dir + '/assets/ di r ')
         assert waitforfiles(temp_dir + '/assets/ di r /fi le')
         assert (
             self.get(url='/ di r /fi le')['body'] == 'blah'
@@ -150,8 +148,7 @@ class TestStatic(TestApplicationProto):
             ), 'file name 2'
 
             os.rename(
-                temp_dir + '/assets/ di r ',
-                temp_dir + '/assets/ди ректория',
+                temp_dir + '/assets/ di r ', temp_dir + '/assets/ди ректория',
             )
             assert waitforfiles(temp_dir + '/assets/ди ректория/фа йл')
             assert (
@@ -170,14 +167,6 @@ class TestStatic(TestApplicationProto):
         os.mkfifo(temp_dir + '/assets/fifo')
 
         assert self.get(url='/fifo')['status'] == 404, 'fifo'
-
-    def test_static_symlink(self, temp_dir):
-        os.symlink(temp_dir + '/assets/dir', temp_dir + '/assets/link')
-
-        assert self.get(url='/dir')['status'] == 301, 'dir'
-        assert self.get(url='/dir/file')['status'] == 200, 'file'
-        assert self.get(url='/link')['status'] == 301, 'symlink dir'
-        assert self.get(url='/link/file')['status'] == 200, 'symlink file'
 
     def test_static_method(self):
         resp = self.head()

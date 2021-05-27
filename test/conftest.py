@@ -6,7 +6,6 @@ import platform
 import re
 import shutil
 import signal
-import socket
 import stat
 import subprocess
 import sys
@@ -15,13 +14,16 @@ import time
 from multiprocessing import Process
 
 import pytest
+
+from unit.check.chroot import check_chroot
 from unit.check.go import check_go
 from unit.check.isolation import check_isolation
 from unit.check.node import check_node
-from unit.check.tls import check_openssl
 from unit.check.regex import check_regex
+from unit.check.tls import check_openssl
 from unit.http import TestHTTP
 from unit.option import option
+from unit.log import Log
 from unit.utils import public_dir
 from unit.utils import waitforfiles
 
@@ -57,6 +59,12 @@ def pytest_addoption(parser):
         help="Default user for non-privileged processes of unitd",
     )
     parser.addoption(
+        "--fds-threshold",
+        type=int,
+        default=0,
+        help="File descriptors threshold",
+    )
+    parser.addoption(
         "--restart",
         default=False,
         action="store_true",
@@ -65,14 +73,25 @@ def pytest_addoption(parser):
 
 
 unit_instance = {}
-unit_log_copy = "unit.log.copy"
 _processes = []
+_fds_check = {
+    'main': {'fds': 0, 'skip': False},
+    'router': {'name': 'unit: router', 'pid': -1, 'fds': 0, 'skip': False},
+    'controller': {
+        'name': 'unit: controller',
+        'pid': -1,
+        'fds': 0,
+        'skip': False,
+    },
+}
 http = TestHTTP()
+
 
 def pytest_configure(config):
     option.config = config.option
 
     option.detailed = config.option.detailed
+    option.fds_threshold = config.option.fds_threshold
     option.print_log = config.option.print_log
     option.save_log = config.option.save_log
     option.unsafe = config.option.unsafe
@@ -98,9 +117,11 @@ def pytest_configure(config):
 
 def pytest_generate_tests(metafunc):
     cls = metafunc.cls
-    if (not hasattr(cls, 'application_type')
-            or cls.application_type == None
-            or cls.application_type == 'external'):
+    if (
+        not hasattr(cls, 'application_type')
+        or cls.application_type == None
+        or cls.application_type == 'external'
+    ):
         return
 
     type = cls.application_type
@@ -145,12 +166,11 @@ def pytest_sessionstart(session):
     option.available = {'modules': {}, 'features': {}}
 
     unit = unit_run()
-    option.temp_dir = unit['temp_dir']
 
     # read unit.log
 
     for i in range(50):
-        with open(unit['temp_dir'] + '/unit.log', 'r') as f:
+        with open(Log.get_path(), 'r') as f:
             log = f.read()
             m = re.search('controller started', log)
 
@@ -185,6 +205,7 @@ def pytest_sessionstart(session):
         k: v for k, v in option.available['modules'].items() if v is not None
     }
 
+    check_chroot()
     check_isolation()
 
     _clear_conf(unit['temp_dir'] + '/control.unit.sock')
@@ -196,8 +217,6 @@ def pytest_sessionstart(session):
     if option.restart:
         shutil.rmtree(unit_instance['temp_dir'])
 
-    elif option.save_log:
-        open(unit_instance['temp_dir'] + '/' + unit_log_copy, 'w').close()
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
@@ -248,7 +267,6 @@ def check_prerequisites(request):
 @pytest.fixture(autouse=True)
 def run(request):
     unit = unit_run()
-    option.temp_dir = unit['temp_dir']
 
     option.skip_alerts = [
         r'read signalfd\(4\) failed',
@@ -256,6 +274,10 @@ def run(request):
         r'recvmsg.+failed',
     ]
     option.skip_sanitizer = False
+
+    _fds_check['main']['skip'] = False
+    _fds_check['router']['skip'] = False
+    _fds_check['controller']['skip'] = False
 
     yield
 
@@ -266,26 +288,18 @@ def run(request):
 
     # prepare log
 
-    with open(
-        unit_instance['log'], 'r', encoding='utf-8', errors='ignore'
-    ) as f:
+    with Log.open(encoding='utf-8') as f:
         log = f.read()
-
-    if not option.restart and option.save_log:
-        with open(unit_instance['temp_dir'] + '/' + unit_log_copy, 'a') as f:
-            f.write(log)
-
-    # remove unit.log
+        Log.set_pos(f.tell())
 
     if not option.save_log and option.restart:
         shutil.rmtree(unit['temp_dir'])
+        Log.set_pos(0)
 
     # clean temp_dir before the next test
 
     if not option.restart:
         _clear_conf(unit['temp_dir'] + '/control.unit.sock', log)
-
-        open(unit['log'], 'w').close()
 
         for item in os.listdir(unit['temp_dir']):
             if item not in [
@@ -293,16 +307,63 @@ def run(request):
                 'state',
                 'unit.pid',
                 'unit.log',
-                unit_log_copy,
             ]:
                 path = os.path.join(unit['temp_dir'], item)
 
                 public_dir(path)
 
-                if os.path.isfile(path) or stat.S_ISSOCK(os.stat(path).st_mode):
+                if os.path.isfile(path) or stat.S_ISSOCK(
+                    os.stat(path).st_mode
+                ):
                     os.remove(path)
                 else:
                     shutil.rmtree(path)
+
+    # check descriptors (wait for some time before check)
+
+    def waitforfds(diff):
+        for i in range(600):
+            fds_diff = diff()
+
+            if fds_diff <= option.fds_threshold:
+                break
+
+            time.sleep(0.1)
+
+        return fds_diff
+
+    ps = _fds_check['main']
+    if not ps['skip']:
+        fds_diff = waitforfds(
+            lambda: _count_fds(unit_instance['pid']) - ps['fds']
+        )
+        ps['fds'] += fds_diff
+
+        assert (
+            fds_diff <= option.fds_threshold
+        ), 'descriptors leak main process'
+
+    else:
+        ps['fds'] = _count_fds(unit_instance['pid'])
+
+    for name in ['controller', 'router']:
+        ps = _fds_check[name]
+        ps_pid = ps['pid']
+        ps['pid'] = pid_by_name(ps['name'])
+
+        if not ps['skip']:
+            fds_diff = waitforfds(lambda: _count_fds(ps['pid']) - ps['fds'])
+            ps['fds'] += fds_diff
+
+            if not option.restart:
+                assert ps['pid'] == ps_pid, 'same pid %s' % name
+
+            assert fds_diff <= option.fds_threshold, (
+                'descriptors leak %s' % name
+            )
+
+        else:
+            ps['fds'] = _count_fds(ps['pid'])
 
     # print unit.log in case of error
 
@@ -318,6 +379,7 @@ def run(request):
     assert error_stop_processes is None, 'stop processes'
 
     _check_alerts(log=log)
+
 
 def unit_run():
     global unit_instance
@@ -367,9 +429,26 @@ def unit_run():
         exit('Could not start unit')
 
     unit_instance['temp_dir'] = temp_dir
-    unit_instance['log'] = temp_dir + '/unit.log'
     unit_instance['control_sock'] = temp_dir + '/control.unit.sock'
     unit_instance['unitd'] = unitd
+
+    option.temp_dir = temp_dir
+    Log.temp_dir = temp_dir
+
+    with open(temp_dir + '/unit.pid', 'r') as f:
+        unit_instance['pid'] = f.read().rstrip()
+
+    _clear_conf(unit_instance['temp_dir'] + '/control.unit.sock')
+
+    _fds_check['main']['fds'] = _count_fds(unit_instance['pid'])
+
+    router = _fds_check['router']
+    router['pid'] = pid_by_name(router['name'])
+    router['fds'] = _count_fds(router['pid'])
+
+    controller = _fds_check['controller']
+    controller['pid'] = pid_by_name(controller['name'])
+    controller['fds'] = _count_fds(controller['pid'])
 
     return unit_instance
 
@@ -402,13 +481,9 @@ def unit_stop():
         return 'Could not terminate unit'
 
 
-
-def _check_alerts(path=None, log=None):
-    if path is None:
-        path = unit_instance['log']
-
+def _check_alerts(log=None):
     if log is None:
-        with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+        with Log.open(encoding='utf-8') as f:
             log = f.read()
 
     found = False
@@ -440,7 +515,7 @@ def _check_alerts(path=None, log=None):
 
 
 def _print_log(data=None):
-    path = unit_instance['log']
+    path = Log.get_path()
 
     print('Path to unit.log:\n' + path + '\n')
 
@@ -474,23 +549,46 @@ def _clear_conf(sock, log=None):
         return
 
     try:
-        certs = json.loads(http.get(
-            url='/certificates',
-            sock_type='unix',
-            addr=sock,
-        )['body']).keys()
+        certs = json.loads(
+            http.get(url='/certificates', sock_type='unix', addr=sock,)['body']
+        ).keys()
 
     except json.JSONDecodeError:
         pytest.fail('Can\'t parse certificates list.')
 
     for cert in certs:
         resp = http.delete(
-            url='/certificates/' + cert,
-            sock_type='unix',
-            addr=sock,
+            url='/certificates/' + cert, sock_type='unix', addr=sock,
         )['body']
 
         check_success(resp)
+
+
+def _count_fds(pid):
+    procfile = '/proc/%s/fd' % pid
+    if os.path.isdir(procfile):
+        return len(os.listdir(procfile))
+
+    try:
+        out = subprocess.check_output(
+            ['procstat', '-f', pid], stderr=subprocess.STDOUT,
+        ).decode()
+        return len(out.splitlines())
+
+    except (FileNotFoundError, TypeError, subprocess.CalledProcessError):
+        pass
+
+    try:
+        out = subprocess.check_output(
+            ['lsof', '-n', '-p', pid], stderr=subprocess.STDOUT,
+        ).decode()
+        return len(out.splitlines())
+
+    except (FileNotFoundError, TypeError, subprocess.CalledProcessError):
+        pass
+
+    return 0
+
 
 def run_process(target, *args):
     global _processes
@@ -499,6 +597,7 @@ def run_process(target, *args):
     process.start()
 
     _processes.append(process)
+
 
 def stop_processes():
     if not _processes:
@@ -517,6 +616,18 @@ def stop_processes():
         return 'Fail to stop process(es)'
 
 
+def pid_by_name(name):
+    output = subprocess.check_output(['ps', 'ax', '-O', 'ppid']).decode()
+    m = re.search(
+        r'\s*(\d+)\s*' + str(unit_instance['pid']) + r'.*' + name, output
+    )
+    return None if m is None else m.group(1)
+
+
+def find_proc(name, ps_output):
+    return re.findall(str(unit_instance['pid']) + r'.*' + name, ps_output)
+
+
 @pytest.fixture()
 def skip_alert():
     def _skip(*alerts):
@@ -525,27 +636,47 @@ def skip_alert():
     return _skip
 
 
+@pytest.fixture()
+def skip_fds_check():
+    def _skip(main=False, router=False, controller=False):
+        _fds_check['main']['skip'] = main
+        _fds_check['router']['skip'] = router
+        _fds_check['controller']['skip'] = controller
+
+    return _skip
+
+
 @pytest.fixture
 def temp_dir(request):
     return unit_instance['temp_dir']
+
 
 @pytest.fixture
 def is_unsafe(request):
     return request.config.getoption("--unsafe")
 
+
 @pytest.fixture
 def is_su(request):
     return os.geteuid() == 0
+
 
 @pytest.fixture
 def unit_pid(request):
     return unit_instance['process'].pid
 
+
 def pytest_sessionfinish(session):
     if not option.restart and option.save_log:
-        print('Path to unit.log:\n' + unit_instance['log'] + '\n')
+        print('Path to unit.log:\n' + Log.get_path() + '\n')
 
     option.restart = True
 
     unit_stop()
+
+    public_dir(option.cache_dir)
     shutil.rmtree(option.cache_dir)
+
+    if not option.save_log and os.path.isdir(option.temp_dir):
+        public_dir(option.temp_dir)
+        shutil.rmtree(option.temp_dir)

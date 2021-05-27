@@ -8,6 +8,8 @@ DEFAULT_RELEASE := 1
 VERSION ?= $(DEFAULT_VERSION)
 RELEASE ?= $(DEFAULT_RELEASE)
 
+PACKAGE_VENDOR = NGINX Packaging <nginx-packaging@f5.com>
+
 ifeq ($(shell test `rpm --eval '0%{?rhel} -eq 6 -a 0%{?amzn} -eq 0'`; echo $$?), 0)
 OSVER = centos6
 else ifeq ($(shell test `rpm --eval '0%{?rhel} -eq 7 -a 0%{?amzn} -eq 0'`; echo $$?), 0)
@@ -41,7 +43,11 @@ endif
 ifneq (,$(findstring $(OSVER),opensuse-leap opensuse-tumbleweed sles))
 BUILD_DEPENDS_unit += libxml2-tools libxslt1 libopenssl-devel
 else
+ifneq (,$(findstring $(OSVER),amazonlinux2))
+BUILD_DEPENDS_unit += libxml2 libxslt openssl11-devel
+else
 BUILD_DEPENDS_unit += libxml2 libxslt openssl-devel
+endif
 endif
 
 BUILD_DEPENDS = $(BUILD_DEPENDS_unit)
@@ -201,6 +207,7 @@ rpmbuild/SPECS/unit.spec: unit.spec.in ../../docs/changes.xml | rpmbuild/SPECS
 		sed -e "s#%%VERSION%%#$(VERSION)#g" \
 		    -e "s#%%RELEASE%%#$(RELEASE)#g" \
 		    -e "s#%%CONFIGURE_ARGS%%#$(CONFIGURE_ARGS)#g" \
+		    -e "s#%%PACKAGE_VENDOR%%#$(PACKAGE_VENDOR)#g" \
 		> rpmbuild/SPECS/unit.spec
 	cd ../../docs && make ../build/unit.rpm-changelog
 ifneq ($(DEFAULT_VERSION)$(DEFAULT_RELEASE), $(VERSION)$(RELEASE))
@@ -248,6 +255,7 @@ rpmbuild/SPECS/unit-%.spec: unit.module.spec.in ../../docs/changes.xml | rpmbuil
 		-e "s#%%RELEASE%%#$(MODULE_RELEASE_$*)#g" \
 		-e "s#%%UNIT_VERSION%%#$(VERSION)#g" \
 		-e "s#%%UNIT_RELEASE%%#$(RELEASE)#g" \
+		-e "s#%%PACKAGE_VENDOR%%#$(PACKAGE_VENDOR)#g" \
 		-e "s#%%MODULE_SOURCES%%#$${sources}#g" \
 		-e "s#%%CONFIGURE_ARGS%%#$(CONFIGURE_ARGS)#g" \
 		-e "s#%%MODULE_CONFARGS%%#$(MODULE_CONFARGS_$*)#g" \

@@ -1,19 +1,19 @@
 import os
 
 
-async def application(scope, receive, send):
+async def handler(prefix, scope, receive, send):
     if scope['type'] == 'lifespan':
-        with open('version', 'w+') as f:
+        with open(prefix + 'version', 'w+') as f:
             f.write(
                 scope['asgi']['version'] + ' ' + scope['asgi']['spec_version']
             )
         while True:
             message = await receive()
             if message['type'] == 'lifespan.startup':
-                os.remove('startup')
+                os.remove(prefix + 'startup')
                 await send({'type': 'lifespan.startup.complete'})
             elif message['type'] == 'lifespan.shutdown':
-                os.remove('shutdown')
+                os.remove(prefix + 'shutdown')
                 await send({'type': 'lifespan.shutdown.complete'})
                 return
 
@@ -25,3 +25,11 @@ async def application(scope, receive, send):
                 'headers': [(b'content-length', b'0'),],
             }
         )
+
+
+async def application(scope, receive, send):
+    return await handler('', scope, receive, send)
+
+
+async def application2(scope, receive, send):
+    return await handler('app2_', scope, receive, send)

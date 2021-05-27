@@ -12,6 +12,7 @@ from unit.utils import getns
 allns = ['pid', 'mnt', 'ipc', 'uts', 'cgroup', 'net']
 http = TestHTTP()
 
+
 def check_isolation():
     test_conf = {"namespaces": {"credential": True}}
     available = option.available
@@ -117,8 +118,7 @@ def check_isolation():
                 "body_empty": {
                     "type": "perl",
                     "processes": {"spare": 0},
-                    "working_directory": option.test_dir
-                    + "/perl/body_empty",
+                    "working_directory": option.test_dir + "/perl/body_empty",
                     "script": option.test_dir + "/perl/body_empty/psgi.pl",
                     "isolation": {"namespaces": {"credential": True}},
                 }

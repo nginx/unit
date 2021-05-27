@@ -2,6 +2,7 @@ import asyncio
 import time
 import threading
 
+
 async def application(scope, receive, send):
     assert scope['type'] == 'http'
 
@@ -17,11 +18,13 @@ async def application(scope, receive, send):
 
     time.sleep(delay)
 
-    await send({
-        'type': 'http.response.start',
-        'status': 200,
-        'headers': [
-            (b'content-length', b'0'),
-            (b'x-thread', str(threading.currentThread().ident).encode()),
-        ]
-    })
+    await send(
+        {
+            'type': 'http.response.start',
+            'status': 200,
+            'headers': [
+                (b'content-length', b'0'),
+                (b'x-thread', str(threading.currentThread().ident).encode()),
+            ],
+        }
+    )

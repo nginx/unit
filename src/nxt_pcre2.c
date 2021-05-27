@@ -144,7 +144,7 @@ nxt_regex_match(nxt_regex_t *re, u_char *subject, size_t length,
         if (pcre2_get_error_message(ret, errptr, ERR_BUF_SIZE) < 0) {
             nxt_thread_log_error(NXT_LOG_ERR,
                                  "pcre2_match() failed: %d on \"%*s\" "
-                                 "using \"%V\"", ret, subject, length, subject,
+                                 "using \"%V\"", ret, length, subject,
                                  &re->pattern);
 
         } else {

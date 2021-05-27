@@ -444,16 +444,29 @@ Server.prototype.setTimeout = function setTimeout(msecs, callback) {
 Server.prototype.listen = function (...args) {
     this.unit.listen();
 
-    const cb = args.pop();
-
-    if (typeof cb === 'function') {
-        this.once('listening', cb);
+    if (typeof args[args.length - 1] === 'function') {
+        this.once('listening', args[args.length - 1]);
     }
 
-    this.emit('listening');
+    /*
+     * Some express.js apps use the returned server object inside the listening
+     * callback, so we timeout the listening event to occur after this function
+     * returns.
+     */
+    setImmediate(function() {
+        this.emit('listening')
+    }.bind(this))
 
     return this;
 };
+
+Server.prototype.address = function () {
+    return  {
+        family: "IPv4",
+        address: "127.0.0.1",
+        port: 80
+    }
+}
 
 Server.prototype.emit_request = function (req, res) {
     if (req._websocket_handshake && this._upgradeListenerCount > 0) {
@@ -530,7 +543,6 @@ function connectionListener(socket) {
 }
 
 module.exports = {
-    STATUS_CODES: http.STATUS_CODES,
     Server,
     ServerResponse,
     ServerRequest,

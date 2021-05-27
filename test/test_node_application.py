@@ -1,6 +1,7 @@
 import re
 
 import pytest
+
 from unit.applications.lang.node import TestApplicationNode
 from unit.utils import waitforfiles
 
@@ -8,12 +9,25 @@ from unit.utils import waitforfiles
 class TestNodeApplication(TestApplicationNode):
     prerequisites = {'modules': {'node': 'all'}}
 
-    def test_node_application_basic(self):
-        self.load('basic')
-
+    def assert_basic_application(self):
         resp = self.get()
         assert resp['headers']['Content-Type'] == 'text/plain', 'basic header'
         assert resp['body'] == 'Hello World\n', 'basic body'
+
+    def test_node_application_basic(self):
+        self.load('basic')
+
+        self.assert_basic_application()
+
+    def test_node_application_loader_unit_http(self):
+        self.load('loader/unit_http')
+
+        self.assert_basic_application()
+
+    def test_node_application_loader_transitive_dependency(self):
+        self.load('loader/transitive_dependency')
+
+        self.assert_basic_application()
 
     def test_node_application_seq(self):
         self.load('basic')
@@ -205,7 +219,9 @@ class TestNodeApplication(TestApplicationNode):
     def test_node_application_status_message(self):
         self.load('status_message')
 
-        assert re.search(r'200 blah', self.get(raw_resp=True)), 'status message'
+        assert re.search(
+            r'200 blah', self.get(raw_resp=True)
+        ), 'status message'
 
     def test_node_application_get_header_type(self):
         self.load('get_header_type')

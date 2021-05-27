@@ -58,7 +58,8 @@ class TestRespawn(TestApplicationPython):
         assert len(self.find_proc(self.PATTERN_CONTROLLER, unit_pid, out)) == 1
         assert len(self.find_proc(self.app_name, unit_pid, out)) == 1
 
-    def test_respawn_router(self, skip_alert, unit_pid):
+    def test_respawn_router(self, skip_alert, unit_pid, skip_fds_check):
+        skip_fds_check(router=True)
         pid = self.pid_by_name(self.PATTERN_ROUTER, unit_pid)
 
         self.kill_pids(pid)
@@ -68,15 +69,17 @@ class TestRespawn(TestApplicationPython):
 
         self.smoke_test(unit_pid)
 
-    def test_respawn_controller(self, skip_alert, unit_pid):
+    def test_respawn_controller(self, skip_alert, unit_pid, skip_fds_check):
+        skip_fds_check(controller=True)
         pid = self.pid_by_name(self.PATTERN_CONTROLLER, unit_pid)
 
         self.kill_pids(pid)
         skip_alert(r'process %s exited on signal 9' % pid)
 
-        assert self.wait_for_process(
-            self.PATTERN_CONTROLLER, unit_pid
-        ) is not None
+        assert (
+            self.wait_for_process(self.PATTERN_CONTROLLER, unit_pid)
+            is not None
+        )
 
         assert self.get()['status'] == 200
 

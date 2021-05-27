@@ -54,6 +54,7 @@ typedef struct {
     nxt_str_t                  protocol;
     uint32_t                   threads;
     uint32_t                   thread_stack_size;
+    nxt_conf_value_t           *targets;
 } nxt_python_app_conf_t;
 
 

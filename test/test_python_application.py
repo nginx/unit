@@ -5,16 +5,12 @@ import re
 import time
 
 import pytest
+
 from unit.applications.lang.python import TestApplicationPython
-from unit.option import option
 
 
 class TestPythonApplication(TestApplicationPython):
     prerequisites = {'modules': {'python': 'all'}}
-
-    def findall(self, pattern):
-        with open(option.temp_dir + '/unit.log', 'r', errors='ignore') as f:
-            return re.findall(pattern, f.read())
 
     def test_python_application_variables(self):
         self.load('variables')
@@ -31,7 +27,8 @@ Content-Type: text/html
 Connection: close
 custom-header: BLAH
 
-%s""" % (len(body), body.encode()),
+%s"""
+            % (len(body), body.encode()),
             raw=True,
         )
 
@@ -816,7 +813,11 @@ last line: 987654321
         assert ['/new', *sys_path] == get_path(), 'check path update'
 
         set_path('["/blah1", "/blah2"]')
-        assert ['/blah1', '/blah2', *sys_path] == get_path(), 'check path array'
+        assert [
+            '/blah1',
+            '/blah2',
+            *sys_path,
+        ] == get_path(), 'check path array'
 
     def test_python_application_path_invalid(self):
         self.load('path')

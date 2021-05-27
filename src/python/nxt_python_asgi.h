@@ -33,7 +33,7 @@ typedef struct {
     PyObject         *loop_remove_reader;
     PyObject         *quit_future;
     PyObject         *quit_future_set_result;
-    PyObject         *lifespan;
+    PyObject         **target_lifespans;
     nxt_unit_port_t  *port;
 } nxt_py_asgi_ctx_data_t;
 
@@ -68,7 +68,5 @@ void nxt_py_asgi_websocket_close_handler(nxt_unit_request_info_t *req);
 int nxt_py_asgi_lifespan_startup(nxt_py_asgi_ctx_data_t *ctx_data);
 int nxt_py_asgi_lifespan_shutdown(nxt_unit_ctx_t *ctx);
 
-
-extern int  nxt_py_asgi_legacy;
 
 #endif  /* _NXT_PYTHON_ASGI_H_INCLUDED_ */

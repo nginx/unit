@@ -21,10 +21,14 @@ class TestApplicationTLS(TestApplicationProto):
                 'req',
                 '-x509',
                 '-new',
-                '-subj',    '/CN=' + name + '/',
-                '-config',  option.temp_dir + '/openssl.conf',
-                '-out',     option.temp_dir + '/' + name + '.crt',
-                '-keyout',  option.temp_dir + '/' + name + '.key',
+                '-subj',
+                '/CN=' + name + '/',
+                '-config',
+                option.temp_dir + '/openssl.conf',
+                '-out',
+                option.temp_dir + '/' + name + '.crt',
+                '-keyout',
+                option.temp_dir + '/' + name + '.key',
             ],
             stderr=subprocess.STDOUT,
         )
@@ -63,11 +67,31 @@ class TestApplicationTLS(TestApplicationProto):
 
         return ssl.get_server_certificate(addr, ssl_version=ssl_version)
 
-    def openssl_conf(self):
+    def openssl_conf(self, rewrite=False, alt_names=[]):
         conf_path = option.temp_dir + '/openssl.conf'
 
-        if os.path.exists(conf_path):
+        if not rewrite and os.path.exists(conf_path):
             return
+
+        # Generates alt_names section with dns names
+        a_names = "[alt_names]\n"
+        for i, k in enumerate(alt_names, 1):
+            k = k.split('|')
+
+            if k[0] == 'IP':
+                a_names += "IP.%d = %s\n" % (i, k[1])
+            else:
+                a_names += "DNS.%d = %s\n" % (i, k[0])
+
+        # Generates section for sign request extension
+        a_sec = """req_extensions = myca_req_extensions
+
+[ myca_req_extensions ]
+subjectAltName = @alt_names
+
+{a_names}""".format(
+            a_names=a_names
+        )
 
         with open(conf_path, 'w') as f:
             f.write(
@@ -75,7 +99,11 @@ class TestApplicationTLS(TestApplicationProto):
 default_bits = 2048
 encrypt_key = no
 distinguished_name = req_distinguished_name
-[ req_distinguished_name ]"""
+
+{a_sec}
+[ req_distinguished_name ]""".format(
+                    a_sec=a_sec if alt_names else ""
+                )
             )
 
     def load(self, script, name=None):

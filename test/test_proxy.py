@@ -3,6 +3,7 @@ import socket
 import time
 
 import pytest
+
 from conftest import run_process
 from unit.applications.lang.python import TestApplicationPython
 from unit.option import option
@@ -464,9 +465,9 @@ Content-Length: 10
 
     def test_proxy_invalid(self):
         def check_proxy(proxy):
-            assert 'error' in \
-                self.conf([{"action": {"proxy": proxy}}], 'routes'), \
-                'proxy invalid'
+            assert 'error' in self.conf(
+                [{"action": {"proxy": proxy}}], 'routes'
+            ), 'proxy invalid'
 
         check_proxy('blah')
         check_proxy('/blah')
@@ -502,7 +503,8 @@ Content-Length: 10
                         "type": "python",
                         "processes": {"spare": 0},
                         "path": option.test_dir + "/python/mirror",
-                        "working_directory": option.test_dir + "/python/mirror",
+                        "working_directory": option.test_dir
+                        + "/python/mirror",
                         "module": "wsgi",
                     },
                 },

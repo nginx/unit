@@ -1,6 +1,5 @@
-#!/usr/bin/env node
 
-require('unit-http').createServer(function (req, res) {
+require('http').createServer(function (req, res) {
     res.writeHead(200, {});
     res.setHeader('@$', 'test');
     res.end();

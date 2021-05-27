@@ -5,6 +5,118 @@
 <change_log title="unit">
 
 
+<changes apply="unit-jsc17" ver="1.24.0" rev="1"
+         date="2021-05-27" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Java 17 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-jsc16" ver="1.24.0" rev="1"
+         date="2021-05-27" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+Initial release of Java 16 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8 unit-python3.9
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11 unit-jsc13
+                unit-jsc14 unit-jsc15"
+         ver="1.24.0" rev="1"
+         date="2021-05-27" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.24.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.24.0" rev="1"
+         date="2021-05-27" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="change">
+<para>
+PHP added to the default MIME type list.
+</para>
+</change>
+
+<change type="feature">
+<para>
+arbitrary configuration of TLS connections via OpenSSL commands.
+</para>
+</change>
+
+<change type="feature">
+<para>
+the ability to limit static file serving by MIME types.
+</para>
+</change>
+
+<change type="feature">
+<para>
+support for chrooting, rejecting symlinks, and rejecting mount
+point traversal on a per-request basis when serving static files.
+</para>
+</change>
+
+<change type="feature">
+<para>
+a loader for automatically overriding the "http" and "websocket" modules in
+Node.js.
+</para>
+</change>
+
+<change type="feature">
+<para>
+multiple "targets" in Python applications.
+</para>
+</change>
+
+<change type="feature">
+<para>
+compatibility with Ruby 3.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the router process could crash while closing a TLS connection.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a segmentation fault might have occurred in the PHP module if
+fastcgi_finish_request() was used with the "auto_globals_jit" option enabled.
+</para>
+</change>
+
+</changes>
+
+
 <changes apply="unit-php
                 unit-python unit-python2.7
                 unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7

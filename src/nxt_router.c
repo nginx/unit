@@ -41,8 +41,11 @@ typedef struct {
 #if (NXT_TLS)
 
 typedef struct {
-    nxt_str_t          name;
-    nxt_socket_conf_t  *conf;
+    nxt_str_t               name;
+    nxt_socket_conf_t       *socket_conf;
+    nxt_router_temp_conf_t  *temp_conf;
+    nxt_conf_value_t        *conf_cmds;
+    nxt_bool_t              last;
 
     nxt_queue_link_t   link;  /* for nxt_socket_conf_t.tls */
 } nxt_router_tlssock_t;
@@ -117,12 +120,11 @@ static void nxt_router_listen_socket_ready(nxt_task_t *task,
 static void nxt_router_listen_socket_error(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
 #if (NXT_TLS)
-static void nxt_router_tls_rpc_create(nxt_task_t *task,
-    nxt_router_temp_conf_t *tmcf, nxt_router_tlssock_t *tls, nxt_bool_t last);
 static void nxt_router_tls_rpc_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
 static nxt_int_t nxt_router_conf_tls_insert(nxt_router_temp_conf_t *tmcf,
-    nxt_conf_value_t *value, nxt_socket_conf_t *skcf);
+    nxt_conf_value_t *value, nxt_socket_conf_t *skcf,
+    nxt_conf_value_t * conf_cmds);
 #endif
 static void nxt_router_app_rpc_create(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_app_t *app);
@@ -773,7 +775,7 @@ fail:
                           msg->port_msg.stream, 0, NULL);
 
     if (tmcf != NULL) {
-        nxt_mp_destroy(tmcf->mem_pool);
+        nxt_mp_release(tmcf->mem_pool);
     }
 
 cleanup:
@@ -954,8 +956,10 @@ nxt_router_conf_apply(nxt_task_t *task, void *obj, void *data)
 
         tls = nxt_queue_link_data(qlk, nxt_router_tlssock_t, link);
 
-        nxt_router_tls_rpc_create(task, tmcf, tls,
-                                  nxt_queue_is_empty(&tmcf->tls));
+        tls->last = nxt_queue_is_empty(&tmcf->tls);
+
+        nxt_cert_store_get(task, &tls->name, tmcf->mem_pool,
+                           nxt_router_tls_rpc_handler, tls);
         return;
     }
 #endif
@@ -1061,7 +1065,7 @@ nxt_router_conf_ready(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
         nxt_mp_destroy(rtcf->mem_pool);
     }
 
-    nxt_mp_destroy(tmcf->mem_pool);
+    nxt_mp_release(tmcf->mem_pool);
 }
 
 
@@ -1120,7 +1124,7 @@ nxt_router_conf_error(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
 
     nxt_router_conf_send(task, tmcf, NXT_PORT_MSG_RPC_ERROR);
 
-    nxt_mp_destroy(tmcf->mem_pool);
+    nxt_mp_release(tmcf->mem_pool);
 }
 
 
@@ -1337,7 +1341,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_router_t                *router;
     nxt_app_joint_t             *app_joint;
 #if (NXT_TLS)
-    nxt_conf_value_t            *certificate;
+    nxt_conf_value_t            *certificate, *conf_cmds;
 #endif
     nxt_conf_value_t            *conf, *http, *value, *websocket;
     nxt_conf_value_t            *applications, *application;
@@ -1358,6 +1362,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     static nxt_str_t  access_log_path = nxt_string("/access_log");
 #if (NXT_TLS)
     static nxt_str_t  certificate_path = nxt_string("/tls/certificate");
+    static nxt_str_t  conf_commands_path = nxt_string("/tls/conf_commands");
 #endif
     static nxt_str_t  static_path = nxt_string("/settings/http/static");
     static nxt_str_t  websocket_path = nxt_string("/settings/http/websocket");
@@ -1736,6 +1741,8 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             certificate = nxt_conf_get_path(listener, &certificate_path);
 
             if (certificate != NULL) {
+                conf_cmds = nxt_conf_get_path(listener, &conf_commands_path);
+
                 if (nxt_conf_type(certificate) == NXT_CONF_ARRAY) {
                     n = nxt_conf_array_elements_count(certificate);
 
@@ -1744,7 +1751,8 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
                         nxt_assert(value != NULL);
 
-                        ret = nxt_router_conf_tls_insert(tmcf, value, skcf);
+                        ret = nxt_router_conf_tls_insert(tmcf, value, skcf,
+                                                         conf_cmds);
                         if (nxt_slow_path(ret != NXT_OK)) {
                             goto fail;
                         }
@@ -1752,7 +1760,8 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
                 } else {
                     /* NXT_CONF_STRING */
-                    ret = nxt_router_conf_tls_insert(tmcf, certificate, skcf);
+                    ret = nxt_router_conf_tls_insert(tmcf, certificate, skcf,
+                                                     conf_cmds);
                     if (nxt_slow_path(ret != NXT_OK)) {
                         goto fail;
                     }
@@ -1846,25 +1855,20 @@ fail:
 
 static nxt_int_t
 nxt_router_conf_tls_insert(nxt_router_temp_conf_t *tmcf,
-    nxt_conf_value_t *value, nxt_socket_conf_t *skcf)
+    nxt_conf_value_t *value, nxt_socket_conf_t *skcf,
+    nxt_conf_value_t *conf_cmds)
 {
-    nxt_mp_t              *mp;
-    nxt_str_t             str;
     nxt_router_tlssock_t  *tls;
 
-    mp = tmcf->router_conf->mem_pool;
-
-    tls = nxt_mp_get(mp, sizeof(nxt_router_tlssock_t));
+    tls = nxt_mp_get(tmcf->mem_pool, sizeof(nxt_router_tlssock_t));
     if (nxt_slow_path(tls == NULL)) {
         return NXT_ERROR;
     }
 
-    tls->conf = skcf;
-    nxt_conf_get_string(value, &str);
-
-    if (nxt_slow_path(nxt_str_dup(mp, &tls->name, &str) == NULL)) {
-        return NXT_ERROR;
-    }
+    tls->socket_conf = skcf;
+    tls->conf_cmds = conf_cmds;
+    tls->temp_conf = tmcf;
+    nxt_conf_get_string(value, &tls->name);
 
     nxt_queue_insert_tail(&tmcf->tls, &tls->link);
 
@@ -2144,7 +2148,7 @@ nxt_router_listener_application(nxt_router_conf_t *rtcf, nxt_str_t *name,
         return NXT_DECLINED;
     }
 
-    action->u.application = app;
+    action->u.app.application = app;
     action->handler = nxt_http_application_handler;
 
     return NXT_OK;
@@ -2428,42 +2432,20 @@ nxt_router_listen_socket_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 #if (NXT_TLS)
 
 static void
-nxt_router_tls_rpc_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
-    nxt_router_tlssock_t *tls, nxt_bool_t last)
-{
-    nxt_socket_rpc_t  *rpc;
-
-    rpc = nxt_mp_alloc(tmcf->mem_pool, sizeof(nxt_socket_rpc_t));
-    if (rpc == NULL) {
-        nxt_router_conf_error(task, tmcf);
-        return;
-    }
-
-    rpc->name = &tls->name;
-    rpc->socket_conf = tls->conf;
-    rpc->temp_conf = tmcf;
-    rpc->last = last;
-
-    nxt_cert_store_get(task, &tls->name, tmcf->mem_pool,
-                       nxt_router_tls_rpc_handler, rpc);
-}
-
-
-static void
 nxt_router_tls_rpc_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     void *data)
 {
     nxt_mp_t                *mp;
     nxt_int_t               ret;
     nxt_tls_conf_t          *tlscf;
-    nxt_socket_rpc_t        *rpc;
+    nxt_router_tlssock_t    *tls;
     nxt_tls_bundle_conf_t   *bundle;
     nxt_router_temp_conf_t  *tmcf;
 
     nxt_debug(task, "tls rpc handler");
 
-    rpc = data;
-    tmcf = rpc->temp_conf;
+    tls = data;
+    tmcf = tls->temp_conf;
 
     if (msg == NULL || msg->port_msg.type == _NXT_PORT_MSG_RPC_ERROR) {
         goto fail;
@@ -2471,16 +2453,17 @@ nxt_router_tls_rpc_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
     mp = tmcf->router_conf->mem_pool;
 
-    if (rpc->socket_conf->tls == NULL){
+    if (tls->socket_conf->tls == NULL){
         tlscf = nxt_mp_zget(mp, sizeof(nxt_tls_conf_t));
         if (nxt_slow_path(tlscf == NULL)) {
             goto fail;
         }
 
-        rpc->socket_conf->tls = tlscf;
+        tlscf->no_wait_shutdown = 1;
+        tls->socket_conf->tls = tlscf;
 
     } else {
-        tlscf = rpc->socket_conf->tls;
+        tlscf = tls->socket_conf->tls;
     }
 
     bundle = nxt_mp_get(mp, sizeof(nxt_tls_bundle_conf_t));
@@ -2488,12 +2471,16 @@ nxt_router_tls_rpc_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
         goto fail;
     }
 
-    bundle->name = rpc->name;
+    if (nxt_slow_path(nxt_str_dup(mp, &bundle->name, &tls->name) == NULL)) {
+        goto fail;
+    }
+
     bundle->chain_file = msg->fd[0];
     bundle->next = tlscf->bundle;
     tlscf->bundle = bundle;
 
-    ret = task->thread->runtime->tls->server_init(task, tlscf, mp, rpc->last);
+    ret = task->thread->runtime->tls->server_init(task, tlscf, mp,
+                                                  tls->conf_cmds, tls->last);
     if (nxt_slow_path(ret != NXT_OK)) {
         goto fail;
     }
@@ -3223,12 +3210,11 @@ nxt_router_listen_socket_update(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_router_listen_socket_delete(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_joint_job_t     *job;
-    nxt_socket_conf_t   *skcf;
-    nxt_listen_event_t  *lev;
-    nxt_event_engine_t  *engine;
+    nxt_socket_conf_t        *skcf;
+    nxt_listen_event_t       *lev;
+    nxt_event_engine_t       *engine;
+    nxt_socket_conf_joint_t  *joint;
 
-    job = obj;
     skcf = data;
 
     engine = task->thread->engine;
@@ -3240,15 +3226,13 @@ nxt_router_listen_socket_delete(nxt_task_t *task, void *obj, void *data)
     nxt_debug(task, "engine %p: listen socket delete: %d", engine,
               lev->socket.fd);
 
+    joint = lev->socket.data;
+    joint->close_job = obj;
+
     lev->timer.handler = nxt_router_listen_socket_close;
     lev->timer.work_queue = &engine->fast_work_queue;
 
     nxt_timer_add(engine, &lev->timer, 0);
-
-    job->work.next = NULL;
-    job->work.handler = nxt_router_conf_wait;
-
-    nxt_event_engine_post(job->tmcf->engine, &job->work);
 }
 
 
@@ -3273,6 +3257,7 @@ static void
 nxt_router_listen_socket_close(nxt_task_t *task, void *obj, void *data)
 {
     nxt_timer_t              *timer;
+    nxt_joint_job_t          *job;
     nxt_listen_event_t       *lev;
     nxt_socket_conf_joint_t  *joint;
 
@@ -3291,6 +3276,12 @@ nxt_router_listen_socket_close(nxt_task_t *task, void *obj, void *data)
     task = &task->thread->engine->task;
 
     nxt_router_listen_socket_release(task, joint->socket_conf);
+
+    job = joint->close_job;
+    job->work.next = NULL;
+    job->work.handler = nxt_router_conf_wait;
+
+    nxt_event_engine_post(job->tmcf->engine, &job->work);
 
     nxt_router_listen_event_release(task, lev, joint);
 }

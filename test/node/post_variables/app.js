@@ -1,6 +1,5 @@
-#!/usr/bin/env node
 
-require('unit-http').createServer(function (req, res) {
+require('http').createServer(function (req, res) {
     let body = '';
     req.on('data', chunk => {
         body += chunk.toString();

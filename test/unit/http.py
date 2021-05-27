@@ -10,15 +10,16 @@ import pytest
 from unit.option import option
 
 
-class TestHTTP():
+class TestHTTP:
     def http(self, start_str, **kwargs):
         sock_type = kwargs.get('sock_type', 'ipv4')
         port = kwargs.get('port', 7080)
         url = kwargs.get('url', '/')
         http = 'HTTP/1.0' if 'http_10' in kwargs else 'HTTP/1.1'
 
-        headers = kwargs.get('headers',
-                             {'Host': 'localhost', 'Connection': 'close'})
+        headers = kwargs.get(
+            'headers', {'Host': 'localhost', 'Connection': 'close'}
+        )
 
         body = kwargs.get('body', b'')
         crlf = '\r\n'
@@ -44,7 +45,8 @@ class TestHTTP():
                 sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
             if 'wrapper' in kwargs:
-                sock = kwargs['wrapper'](sock)
+                server_hostname = headers.get('Host', 'localhost')
+                sock = kwargs['wrapper'](sock, server_hostname=server_hostname)
 
             connect_args = addr if sock_type == 'unix' else (addr, port)
             try:
@@ -304,8 +306,9 @@ class TestHTTP():
         return body, content_type
 
     def form_url_encode(self, fields):
-        data = "&".join("%s=%s" % (name, value)
-                        for name, value in fields.items()).encode()
+        data = "&".join(
+            "%s=%s" % (name, value) for name, value in fields.items()
+        ).encode()
         return data, 'application/x-www-form-urlencoded'
 
     def multipart_encode(self, fields):
@@ -325,7 +328,9 @@ class TestHTTP():
                     datatype = value['type']
 
                 if not isinstance(value['data'], io.IOBase):
-                    pytest.fail('multipart encoding of file requires a stream.')
+                    pytest.fail(
+                        'multipart encoding of file requires a stream.'
+                    )
 
                 data = value['data'].read()
 
@@ -335,9 +340,10 @@ class TestHTTP():
             else:
                 pytest.fail('multipart requires a string or stream data')
 
-            body += (
-                "--%s\r\nContent-Disposition: form-data; name=\"%s\""
-            ) % (boundary, field)
+            body += ("--%s\r\nContent-Disposition: form-data; name=\"%s\"") % (
+                boundary,
+                field,
+            )
 
             if filename != '':
                 body += "; filename=\"%s\"" % filename

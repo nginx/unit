@@ -109,12 +109,44 @@ typedef struct {
 NXT_EXPORT nxt_int_t nxt_file_open(nxt_task_t *task, nxt_file_t *file,
     nxt_uint_t mode, nxt_uint_t create, nxt_file_access_t access);
 
+#if (NXT_HAVE_OPENAT2)
+NXT_EXPORT nxt_int_t nxt_file_openat2(nxt_task_t *task, nxt_file_t *file,
+    nxt_uint_t mode, nxt_uint_t create, nxt_file_access_t access, nxt_fd_t dfd,
+    nxt_uint_t resolve);
+#endif
+
 
 /* The file open access modes. */
 #define NXT_FILE_RDONLY             O_RDONLY
 #define NXT_FILE_WRONLY             O_WRONLY
 #define NXT_FILE_RDWR               O_RDWR
 #define NXT_FILE_APPEND             (O_WRONLY | O_APPEND)
+
+#if (NXT_HAVE_OPENAT2)
+
+#if defined(O_DIRECTORY)
+#define NXT_FILE_DIRECTORY          O_DIRECTORY
+#else
+#define NXT_FILE_DIRECTORY          0
+#endif
+
+#if defined(O_SEARCH)
+#define NXT_FILE_SEARCH             (O_SEARCH|NXT_FILE_DIRECTORY)
+
+#elif defined(O_EXEC)
+#define NXT_FILE_SEARCH             (O_EXEC|NXT_FILE_DIRECTORY)
+
+#else
+/*
+ * O_PATH is used in combination with O_RDONLY.  The last one is ignored
+ * if O_PATH is used, but it allows Unit to not fail when it was built on
+ * modern system (i.e. glibc 2.14+) and run with a kernel older than 2.6.39.
+ * Then O_PATH is unknown to the kernel and ignored, while O_RDONLY is used.
+ */
+#define NXT_FILE_SEARCH             (O_PATH|O_RDONLY|NXT_FILE_DIRECTORY)
+#endif
+
+#endif /* NXT_HAVE_OPENAT2 */
 
 /* The file creation modes. */
 #define NXT_FILE_CREATE_OR_OPEN     O_CREAT

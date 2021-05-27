@@ -33,10 +33,10 @@ async def application(scope, receive, send):
     Foo(Foo.num).start()
     Foo.num += 10
 
-    await send({
-        'type': 'http.response.start',
-        'status': 200,
-        'headers': [
-            (b'content-length', b'0'),
-        ]
-    })
+    await send(
+        {
+            'type': 'http.response.start',
+            'status': 200,
+            'headers': [(b'content-length', b'0')],
+        }
+    )

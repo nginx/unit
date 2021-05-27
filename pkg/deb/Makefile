@@ -8,6 +8,8 @@ DEFAULT_RELEASE := 1
 VERSION ?= $(DEFAULT_VERSION)
 RELEASE ?= $(DEFAULT_RELEASE)
 
+PACKAGE_VENDOR = NGINX Packaging <nginx-packaging@f5.com>
+
 SRCDIR=	unit-$(VERSION)
 
 CODENAME = $(shell lsb_release -cs)
@@ -16,6 +18,21 @@ BUILD_DEPENDS_unit = build-essential debhelper devscripts fakeroot libxml2-utils
 BUILD_DEPENDS = $(BUILD_DEPENDS_unit)
 
 MODULES=
+
+# Ubuntu 21.04
+ifeq ($(CODENAME),hirsute)
+include Makefile.php
+include Makefile.python27
+include Makefile.python39
+include Makefile.go
+include Makefile.perl
+include Makefile.ruby
+include Makefile.jsc-common
+include Makefile.jsc11
+include Makefile.jsc15
+include Makefile.jsc16
+include Makefile.jsc17
+endif
 
 # Ubuntu 20.10
 ifeq ($(CODENAME),groovy)
@@ -205,6 +222,9 @@ debuild/$(SRCDIR)/debian:
 	echo '9' > debuild/$(SRCDIR)/debian/compat ; \
 	mkdir -p debuild/$(SRCDIR)/debian/source ; \
 	echo '3.0 (quilt)' > debuild/$(SRCDIR)/debian/source/format ; \
+	cat debian/control.in | sed \
+		-e "s#%%PACKAGE_VENDOR%%#$(PACKAGE_VENDOR)#g" \
+	> debuild/$(SRCDIR)/debian/control ; \
         cat debian/rules.in | sed \
                 -e "s#%%CONFIGURE_ARGS%%#$(CONFIGURE_ARGS)#g" \
         > debuild/$(SRCDIR)/debian/rules ; \
@@ -280,6 +300,7 @@ endif
                 -e "s#%%UNIT_RELEASE%%#$(RELEASE)#g" \
                 -e "s#%%VERSION%%#$(MODULE_VERSION_$*)#g" \
                 -e "s#%%RELEASE%%#$(MODULE_RELEASE_$*)#g" \
+                -e "s#%%PACKAGE_VENDOR%%#$(PACKAGE_VENDOR)#g" \
                 -e "s#%%MODULE_BUILD_DEPENDS%%#$(MODULE_BUILD_DEPENDS_$*)#g" \
                 -e "s#%%MODULE_DEPENDS%%#$(MODULE_DEPENDS_$*)#g" \
         > $@/$(SRCDIR)/debian/control ; \

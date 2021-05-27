@@ -3,7 +3,9 @@ import socket
 import time
 
 import pytest
+
 from unit.applications.lang.python import TestApplicationPython
+from unit.utils import sysctl
 
 
 class TestSettings(TestApplicationPython):
@@ -12,33 +14,42 @@ class TestSettings(TestApplicationPython):
     def test_settings_header_read_timeout(self):
         self.load('empty')
 
-        self.conf({'http': {'header_read_timeout': 2}}, 'settings')
-
-        (resp, sock) = self.http(
-            b"""GET / HTTP/1.1
+        def req():
+            (resp, sock) = self.http(
+                b"""GET / HTTP/1.1
 """,
-            start=True,
-            read_timeout=1,
-            raw=True,
-        )
+                start=True,
+                read_timeout=1,
+                raw=True,
+            )
 
-        time.sleep(3)
+            time.sleep(3)
 
-        resp = self.http(
-            b"""Host: localhost
+            return self.http(
+                b"""Host: localhost
 Connection: close
 
-""",
-            sock=sock,
-            raw=True,
-        )
+    """,
+                sock=sock,
+                raw=True,
+            )
 
-        assert resp['status'] == 408, 'status header read timeout'
+        assert 'success' in self.conf(
+            {'http': {'header_read_timeout': 2}}, 'settings'
+        )
+        assert req()['status'] == 408, 'status header read timeout'
+
+        assert 'success' in self.conf(
+            {'http': {'header_read_timeout': 7}}, 'settings'
+        )
+        assert req()['status'] == 200, 'status header read timeout 2'
 
     def test_settings_header_read_timeout_update(self):
         self.load('empty')
 
-        self.conf({'http': {'header_read_timeout': 4}}, 'settings')
+        assert 'success' in self.conf(
+            {'http': {'header_read_timeout': 4}}, 'settings'
+        )
 
         (resp, sock) = self.http(
             b"""GET / HTTP/1.1
@@ -89,31 +100,40 @@ Connection: close
     def test_settings_body_read_timeout(self):
         self.load('empty')
 
-        self.conf({'http': {'body_read_timeout': 2}}, 'settings')
-
-        (resp, sock) = self.http(
-            b"""POST / HTTP/1.1
+        def req():
+            (resp, sock) = self.http(
+                b"""POST / HTTP/1.1
 Host: localhost
 Content-Length: 10
 Connection: close
 
 """,
-            start=True,
-            raw_resp=True,
-            read_timeout=1,
-            raw=True,
+                start=True,
+                raw_resp=True,
+                read_timeout=1,
+                raw=True,
+            )
+
+            time.sleep(3)
+
+            return self.http(b"""0123456789""", sock=sock, raw=True)
+
+        assert 'success' in self.conf(
+            {'http': {'body_read_timeout': 2}}, 'settings'
         )
+        assert req()['status'] == 408, 'status body read timeout'
 
-        time.sleep(3)
-
-        resp = self.http(b"""0123456789""", sock=sock, raw=True)
-
-        assert resp['status'] == 408, 'status body read timeout'
+        assert 'success' in self.conf(
+            {'http': {'body_read_timeout': 7}}, 'settings'
+        )
+        assert req()['status'] == 200, 'status body read timeout 2'
 
     def test_settings_body_read_timeout_update(self):
         self.load('empty')
 
-        self.conf({'http': {'body_read_timeout': 4}}, 'settings')
+        assert 'success' in self.conf(
+            {'http': {'body_read_timeout': 4}}, 'settings'
+        )
 
         (resp, sock) = self.http(
             b"""POST / HTTP/1.1
@@ -146,85 +166,116 @@ Connection: close
         assert resp['status'] == 200, 'status body read timeout update'
 
     def test_settings_send_timeout(self, temp_dir):
-        self.load('mirror')
+        self.load('body_generate')
 
-        data_len = 1048576
+        def req(addr, data_len):
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            sock.connect(addr)
 
-        self.conf({'http': {'send_timeout': 1}}, 'settings')
+            req = (
+                """GET / HTTP/1.1
+Host: localhost
+X-Length: %d
+Connection: close
+
+"""
+                % data_len
+            )
+
+            sock.sendall(req.encode())
+
+            data = sock.recv(16).decode()
+
+            time.sleep(3)
+
+            data += self.recvall(sock).decode()
+
+            sock.close()
+
+            return data
+
+        sysctl_out = sysctl()
+        values = re.findall(
+            r'net.core.[rw]mem_(?:max|default).*?(\d+)', sysctl_out
+        )
+        values = [int(v) for v in values]
+
+        data_len = 1048576 if len(values) == 0 else 10 * max(values)
 
         addr = temp_dir + '/sock'
 
-        self.conf({"unix:" + addr: {'application': 'mirror'}}, 'listeners')
-
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        sock.connect(addr)
-
-        req = """POST / HTTP/1.1
-Host: localhost
-Content-Type: text/html
-Content-Length: %d
-Connection: close
-
-""" % data_len + (
-            'X' * data_len
+        assert 'success' in self.conf(
+            {"unix:" + addr: {'application': 'body_generate'}}, 'listeners'
         )
 
-        sock.sendall(req.encode())
+        assert 'success' in self.conf(
+            {'http': {'send_timeout': 1}}, 'settings'
+        )
 
-        data = sock.recv(16).decode()
+        data = req(addr, data_len)
+        assert re.search(r'200 OK', data), 'send timeout status'
+        assert len(data) < data_len, 'send timeout data '
 
-        time.sleep(3)
+        self.conf({'http': {'send_timeout': 7}}, 'settings')
 
-        data += self.recvall(sock).decode()
-
-        sock.close()
-
-        assert re.search(r'200 OK', data), 'status send timeout'
-        assert len(data) < data_len, 'data send timeout'
+        data = req(addr, data_len)
+        assert re.search(r'200 OK', data), 'send timeout status  2'
+        assert len(data) > data_len, 'send timeout data 2'
 
     def test_settings_idle_timeout(self):
         self.load('empty')
 
+        def req():
+            (resp, sock) = self.get(
+                headers={'Host': 'localhost', 'Connection': 'keep-alive'},
+                start=True,
+                read_timeout=1,
+            )
+
+            time.sleep(3)
+
+            return self.get(sock=sock)
+
         assert self.get()['status'] == 200, 'init'
 
-        self.conf({'http': {'idle_timeout': 2}}, 'settings')
-
-        (resp, sock) = self.get(
-            headers={'Host': 'localhost', 'Connection': 'keep-alive'},
-            start=True,
-            read_timeout=1,
+        assert 'success' in self.conf(
+            {'http': {'idle_timeout': 2}}, 'settings'
         )
+        assert req()['status'] == 408, 'status idle timeout'
 
-        time.sleep(3)
-
-        resp = self.get(
-            headers={'Host': 'localhost', 'Connection': 'close'}, sock=sock
+        assert 'success' in self.conf(
+            {'http': {'idle_timeout': 7}}, 'settings'
         )
-
-        assert resp['status'] == 408, 'status idle timeout'
+        assert req()['status'] == 200, 'status idle timeout 2'
 
     def test_settings_idle_timeout_2(self):
         self.load('empty')
 
+        def req():
+            _, sock = self.http(b'', start=True, raw=True, no_recv=True)
+
+            time.sleep(3)
+
+            return self.get(sock=sock)
+
         assert self.get()['status'] == 200, 'init'
 
-        self.conf({'http': {'idle_timeout': 1}}, 'settings')
+        assert 'success' in self.conf(
+            {'http': {'idle_timeout': 1}}, 'settings'
+        )
+        assert req()['status'] == 408, 'status idle timeout'
 
-        _, sock = self.http(b'', start=True, raw=True, no_recv=True)
-
-        time.sleep(3)
-
-        assert (
-            self.get(
-                headers={'Host': 'localhost', 'Connection': 'close'}, sock=sock
-            )['status']
-            == 408
-        ), 'status idle timeout'
+        assert 'success' in self.conf(
+            {'http': {'idle_timeout': 7}}, 'settings'
+        )
+        assert req()['status'] == 200, 'status idle timeout 2'
 
     def test_settings_max_body_size(self):
         self.load('empty')
 
-        self.conf({'http': {'max_body_size': 5}}, 'settings')
+        assert 'success' in self.conf(
+            {'http': {'max_body_size': 5}}, 'settings'
+        )
 
         assert self.post(body='01234')['status'] == 200, 'status size'
         assert self.post(body='012345')['status'] == 413, 'status size max'
@@ -232,7 +283,9 @@ Connection: close
     def test_settings_max_body_size_large(self):
         self.load('mirror')
 
-        self.conf({'http': {'max_body_size': 32 * 1024 * 1024}}, 'settings')
+        assert 'success' in self.conf(
+            {'http': {'max_body_size': 32 * 1024 * 1024}}, 'settings'
+        )
 
         body = '0123456789abcdef' * 4 * 64 * 1024
         resp = self.post(body=body, read_buffer_size=1024 * 1024)

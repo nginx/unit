@@ -2,6 +2,7 @@ import os
 import shutil
 
 import pytest
+
 from unit.applications.lang.ruby import TestApplicationRuby
 from unit.option import option
 

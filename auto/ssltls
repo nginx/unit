@@ -52,6 +52,20 @@ if [ $NXT_OPENSSL = YES ]; then
         $echo
         exit 1;
     fi
+
+
+    nxt_feature="OpenSSL SSL_CONF_cmd()"
+    nxt_feature_name=NXT_HAVE_OPENSSL_CONF_CMD
+    nxt_feature_run=
+    nxt_feature_incs=
+    nxt_feature_libs="$NXT_OPENSSL_LIBS"
+    nxt_feature_test="#include <openssl/ssl.h>
+
+                      int main() {
+                          SSL_CONF_cmd(NULL, NULL, NULL);
+                          return 0;
+                      }"
+    . auto/feature
 fi
 
 

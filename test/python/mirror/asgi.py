@@ -8,15 +8,12 @@ async def application(scope, receive, send):
         if not m.get('more_body', False):
             break
 
-    await send({
-        'type': 'http.response.start',
-        'status': 200,
-        'headers': [
-            (b'content-length', str(len(body)).encode()),
-        ]
-    })
+    await send(
+        {
+            'type': 'http.response.start',
+            'status': 200,
+            'headers': [(b'content-length', str(len(body)).encode())],
+        }
+    )
 
-    await send({
-        'type': 'http.response.body',
-        'body': body,
-    })
+    await send({'type': 'http.response.body', 'body': body})

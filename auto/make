@@ -368,7 +368,7 @@ ${NXT_DAEMON}-install: $NXT_DAEMON install-check
 
 manpage-install: manpage install-check
 	install -d \$(DESTDIR)$NXT_MANDIR/man8
-	install -p $NXT_BUILD_DIR/unitd.8 \$(DESTDIR)$NXT_MANDIR/man8/
+	install -p -m644 $NXT_BUILD_DIR/unitd.8 \$(DESTDIR)$NXT_MANDIR/man8/
 
 .PHONY: uninstall ${NXT_DAEMON}-uninstall manpage-uninstall
 

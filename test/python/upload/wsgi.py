@@ -1,6 +1,7 @@
 from tempfile import TemporaryFile
 import os, cgi
 
+
 def read(environ):
     length = int(environ.get('CONTENT_LENGTH', 0))
 
@@ -11,6 +12,7 @@ def read(environ):
     environ['wsgi.input'] = body
     return body
 
+
 def application(environ, start_response):
     file = read(environ)
 
@@ -19,9 +21,9 @@ def application(environ, start_response):
     filename = form['file'].filename
     data = filename.encode() + form['file'].file.read()
 
-    start_response('200 OK', [
-        ('Content-Type', 'text/plain'),
-        ('Content-Length', str(len(data))),
-    ])
+    start_response(
+        '200 OK',
+        [('Content-Type', 'text/plain'), ('Content-Length', str(len(data)))],
+    )
 
     return data

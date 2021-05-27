@@ -1,6 +1,8 @@
 import re
+import subprocess
 
 import pytest
+
 from unit.applications.lang.ruby import TestApplicationRuby
 
 
@@ -207,7 +209,6 @@ class TestRubyApplication(TestApplicationRuby):
 
         self.get()
 
-
         assert (
             self.wait_for_record(r'\[error\].+1234567890') is not None
         ), 'errors write int'
@@ -222,6 +223,57 @@ class TestRubyApplication(TestApplicationRuby):
         assert (
             self.wait_for_record(r'\[error\].+At exit called\.') is not None
         ), 'at exit'
+
+    def test_ruby_application_encoding(self):
+        self.load('encoding')
+
+        try:
+            locales = (
+                subprocess.check_output(
+                    ['locale', '-a'], stderr=subprocess.STDOUT,
+                )
+                .decode()
+                .split('\n')
+            )
+
+        except (FileNotFoundError, subprocess.CalledProcessError):
+            pytest.skip('require locale')
+
+        def get_locale(pattern):
+            return next(
+                (
+                    l
+                    for l in locales
+                    if re.match(pattern, l.upper()) is not None
+                ),
+                None,
+            )
+
+        utf8 = get_locale(r'.*UTF[-_]?8')
+        iso88591 = get_locale(r'.*ISO[-_]?8859[-_]?1')
+
+        def check_locale(enc):
+            assert 'success' in self.conf(
+                {"LC_CTYPE": enc, "LC_ALL": ""},
+                '/config/applications/encoding/environment',
+            )
+
+            resp = self.get()
+            assert resp['status'] == 200, 'status'
+
+            enc_default = re.sub(r'[-_]', '', resp['headers']['X-Enc']).upper()
+            assert (
+                enc_default == re.sub(r'[-_]', '', enc.split('.')[-1]).upper()
+            )
+
+        if utf8:
+            check_locale(utf8)
+
+        if iso88591:
+            check_locale(iso88591)
+
+        if not utf8 and not iso88591:
+            pytest.skip('no available locales')
 
     def test_ruby_application_header_custom(self):
         self.load('header_custom')
