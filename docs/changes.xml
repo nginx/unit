@@ -77,20 +77,21 @@ multiple "targets" in Python applications.
 
 <change type="feature">
 <para>
-a loader for automatic overriding "http" and "websocket" modules in Node.js.
+a loader for automatically overriding the "http" and "websocket" modules in
+Node.js.
 </para>
 </change>
 
 <change type="feature">
 <para>
-ability to limit serving of static files by MIME types.
+the ability to limit static file serving by MIME types.
 </para>
 </change>
 
 <change type="feature">
 <para>
-support for chrooting, rejecting symlinks, and rejecting crossing mounting
-points on a per-request basis during static file serving.
+support for chrooting, rejecting symlinks, and rejecting mount
+point traversal on a per-request basis when serving static files.
 </para>
 </change>
 
@@ -102,7 +103,7 @@ compatibility with Ruby 3.0.
 
 <change type="bugfix">
 <para>
-the router process could crash while closing TLS connection.
+the router process could crash while closing a TLS connection.
 </para>
 </change>
 
