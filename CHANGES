@@ -1,4 +1,32 @@
 
+Changes with Unit 1.24.0                                         27 May 2021
+
+    *) Change: PHP added to the default MIME type list.
+
+    *) Feature: arbitrary configuration of TLS connections via OpenSSL
+       commands.
+
+    *) Feature: the ability to limit static file serving by MIME types.
+
+    *) Feature: support for chrooting, rejecting symlinks, and rejecting
+       mount point traversal on a per-request basis when serving static
+       files.
+
+    *) Feature: a loader for automatically overriding the "http" and
+       "websocket" modules in Node.js.
+
+    *) Feature: multiple "targets" in Python applications.
+
+    *) Feature: compatibility with Ruby 3.0.
+
+    *) Bugfix: the router process could crash while closing a TLS
+       connection.
+
+    *) Bugfix: a segmentation fault might have occurred in the PHP module if
+       fastcgi_finish_request() was used with the "auto_globals_jit" option
+       enabled.
+
+
 Changes with Unit 1.23.0                                         25 Mar 2021
 
     *) Feature: support for multiple certificate bundles on a listener via
