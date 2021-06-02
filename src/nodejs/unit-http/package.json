@@ -10,6 +10,8 @@
         "unit.cpp",
         "http.js",
         "http_server.js",
+        "loader.js",
+        "loader.mjs",
         "nxt_napi.h",
         "package.json",
         "socket.js",
