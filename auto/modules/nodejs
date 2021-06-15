@@ -157,6 +157,7 @@ ${NXT_NODE}-copy: ${NXT_NODE_VERSION_FILE} ${NXT_NODE_PACKAGE_FILE}
 	mkdir -p ${NXT_NODE_TMP}
 	cp -rp src/nodejs/unit-http/* ${NXT_NODE_TMP}/
 	cp -p ${NXT_NODE_VERSION_FILE} ${NXT_NODE_PACKAGE_FILE} ${NXT_NODE_TMP}/
+	rm -f ${NXT_NODE_TMP}/binding_pub.gyp
 
 ${NXT_NODE}-copy-g: ${NXT_NODE_VERSION_FILE} ${NXT_NODE_PACKAGE_FILE}
 	mkdir -p ${NXT_NODE_TMP_G}
@@ -174,10 +175,12 @@ ${NXT_NODE_PACKAGE_FILE}: ${NXT_VERSION_H} src/nodejs/unit-http/package.json
 		src/nodejs/unit-http/package.json > ${NXT_NODE_PACKAGE_FILE}
 
 ${NXT_NODE_TARBALL}: ${NXT_NODE}-copy
-	tar -zcvf ${NXT_NODE_TARBALL} -C ${NXT_NODE_TMP} .
+	cd ${NXT_NODE_TMP} && npm pack
+	mv ${NXT_NODE_TMP}/unit-http-\$(NXT_VERSION).tgz ${NXT_NODE_TARBALL}
 
 ${NXT_NODE_TARBALL_G}: ${NXT_NODE}-copy-g
-	tar -zcvf ${NXT_NODE_TARBALL_G} -C ${NXT_NODE_TMP_G} .
+	cd ${NXT_NODE_TMP_G} && npm pack
+	mv ${NXT_NODE_TMP_G}/unit-http-\$(NXT_VERSION).tgz ${NXT_NODE_TARBALL_G}
 
 
 install: ${NXT_NODE}-$NXT_NODE_INSTALL
