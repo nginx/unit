@@ -44,7 +44,10 @@ class TestShareChroot(TestApplicationProto):
         assert self.get(url='/index.html')['status'] == 403, 'chroot 403 2'
         assert self.get(url='/file')['status'] == 403, 'chroot 403'
 
-    def test_share_chroot_permission(self, temp_dir):
+    def test_share_chroot_permission(self, is_su, temp_dir):
+        if is_su:
+            pytest.skip('does\'t work under root')
+
         os.chmod(temp_dir + '/assets/dir', 0o100)
 
         assert 'success' in self.conf(
