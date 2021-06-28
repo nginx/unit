@@ -22,8 +22,8 @@ from unit.check.node import check_node
 from unit.check.regex import check_regex
 from unit.check.tls import check_openssl
 from unit.http import TestHTTP
-from unit.option import option
 from unit.log import Log
+from unit.option import option
 from unit.utils import public_dir
 from unit.utils import waitforfiles
 

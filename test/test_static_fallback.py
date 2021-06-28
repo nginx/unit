@@ -1,21 +1,21 @@
 import os
+from pathlib import Path
 
 import pytest
 
 from unit.applications.proto import TestApplicationProto
-from unit.option import option
 
 
-class TestStatic(TestApplicationProto):
+class TestStaticFallback(TestApplicationProto):
     prerequisites = {}
 
-    def setup_method(self):
-        os.makedirs(option.temp_dir + '/assets/dir')
-        with open(option.temp_dir + '/assets/index.html', 'w') as index:
-            index.write('0123456789')
+    @pytest.fixture(autouse=True)
+    def setup_method_fixture(self, temp_dir):
+        os.makedirs(temp_dir + '/assets/dir')
+        Path(temp_dir + '/assets/index.html').write_text('0123456789')
 
-        os.makedirs(option.temp_dir + '/assets/403')
-        os.chmod(option.temp_dir + '/assets/403', 0o000)
+        os.makedirs(temp_dir + '/assets/403')
+        os.chmod(temp_dir + '/assets/403', 0o000)
 
         self._load_conf(
             {
@@ -23,21 +23,22 @@ class TestStatic(TestApplicationProto):
                     "*:7080": {"pass": "routes"},
                     "*:7081": {"pass": "routes"},
                 },
-                "routes": [{"action": {"share": option.temp_dir + "/assets"}}],
+                "routes": [{"action": {"share": temp_dir + "/assets"}}],
                 "applications": {},
             }
         )
 
-    def teardown_method(self):
+        yield
+
         try:
-            os.chmod(option.temp_dir + '/assets/403', 0o777)
+            os.chmod(temp_dir + '/assets/403', 0o777)
         except FileNotFoundError:
             pass
 
     def action_update(self, conf):
         assert 'success' in self.conf(conf, 'routes/0/action')
 
-    def test_fallback(self):
+    def test_static_fallback(self):
         self.action_update({"share": "/blah"})
         assert self.get()['status'] == 404, 'bad path no fallback'
 
@@ -47,7 +48,7 @@ class TestStatic(TestApplicationProto):
         assert resp['status'] == 200, 'bad path fallback status'
         assert resp['body'] == '', 'bad path fallback'
 
-    def test_fallback_valid_path(self, temp_dir):
+    def test_static_fallback_valid_path(self, temp_dir):
         self.action_update(
             {"share": temp_dir + "/assets", "fallback": {"return": 200}}
         )
@@ -65,7 +66,7 @@ class TestStatic(TestApplicationProto):
 
         assert self.get(url='/dir')['status'] == 301, 'fallback status 301'
 
-    def test_fallback_nested(self):
+    def test_static_fallback_nested(self):
         self.action_update(
             {
                 "share": "/blah",
@@ -80,7 +81,7 @@ class TestStatic(TestApplicationProto):
         assert resp['status'] == 200, 'fallback nested status'
         assert resp['body'] == '', 'fallback nested'
 
-    def test_fallback_share(self, temp_dir):
+    def test_static_fallback_share(self, temp_dir):
         self.action_update(
             {"share": "/blah", "fallback": {"share": temp_dir + "/assets"},}
         )
@@ -97,7 +98,7 @@ class TestStatic(TestApplicationProto):
             self.get(url='/dir')['status'] == 301
         ), 'fallback share status 301'
 
-    def test_fallback_proxy(self):
+    def test_static_fallback_proxy(self):
         assert 'success' in self.conf(
             [
                 {
@@ -119,7 +120,7 @@ class TestStatic(TestApplicationProto):
         assert resp['body'] == '', 'fallback proxy'
 
     @pytest.mark.skip('not yet')
-    def test_fallback_proxy_loop(self, skip_alert):
+    def test_static_fallback_proxy_loop(self, skip_alert):
         skip_alert(
             r'open.*/blah/index.html.*failed',
             r'accept.*failed',
@@ -135,7 +136,7 @@ class TestStatic(TestApplicationProto):
         assert 'success' in self.conf_delete('listeners/*:7081')
         self.get(read_timeout=1)
 
-    def test_fallback_invalid(self):
+    def test_static_fallback_invalid(self):
         def check_error(conf):
             assert 'error' in self.conf(conf, 'routes/0/action')
 

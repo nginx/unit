@@ -1,6 +1,7 @@
+import socket
+
 import pytest
 
-import socket
 from unit.control import TestControl
 
 
