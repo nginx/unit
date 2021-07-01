@@ -1069,13 +1069,17 @@ nxt_ruby_exception_log(nxt_unit_request_info_t *req, uint32_t level,
         return;
     }
 
+    eclass = rb_class_name(rb_class_of(err));
+
+    msg = rb_funcall(err, rb_intern("message"), 0);
     ary = rb_funcall(err, rb_intern("backtrace"), 0);
-    if (nxt_slow_path(RARRAY_LEN(ary) == 0)) {
+
+    if (RARRAY_LEN(ary) == 0) {
+        nxt_unit_req_log(req, level, "Ruby: %s (%s)", RSTRING_PTR(msg),
+                         RSTRING_PTR(eclass));
+
         return;
     }
-
-    eclass = rb_class_name(rb_class_of(err));
-    msg = rb_funcall(err, rb_intern("message"), 0);
 
     nxt_unit_req_log(req, level, "Ruby: %s: %s (%s)",
                      RSTRING_PTR(RARRAY_PTR(ary)[0]),
