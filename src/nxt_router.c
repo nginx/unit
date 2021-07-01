@@ -124,7 +124,7 @@ static void nxt_router_tls_rpc_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
 static nxt_int_t nxt_router_conf_tls_insert(nxt_router_temp_conf_t *tmcf,
     nxt_conf_value_t *value, nxt_socket_conf_t *skcf,
-    nxt_conf_value_t * conf_cmds);
+    nxt_conf_value_t * conf_cmds, nxt_bool_t last);
 #endif
 static void nxt_router_app_rpc_create(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_app_t *app);
@@ -956,8 +956,6 @@ nxt_router_conf_apply(nxt_task_t *task, void *obj, void *data)
 
         tls = nxt_queue_link_data(qlk, nxt_router_tlssock_t, link);
 
-        tls->last = nxt_queue_is_empty(&tmcf->tls);
-
         nxt_cert_store_get(task, &tls->name, tmcf->mem_pool,
                            nxt_router_tls_rpc_handler, tls);
         return;
@@ -1752,7 +1750,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
                         nxt_assert(value != NULL);
 
                         ret = nxt_router_conf_tls_insert(tmcf, value, skcf,
-                                                         conf_cmds);
+                                                         conf_cmds, i == 0);
                         if (nxt_slow_path(ret != NXT_OK)) {
                             goto fail;
                         }
@@ -1761,7 +1759,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
                 } else {
                     /* NXT_CONF_STRING */
                     ret = nxt_router_conf_tls_insert(tmcf, certificate, skcf,
-                                                     conf_cmds);
+                                                     conf_cmds, 1);
                     if (nxt_slow_path(ret != NXT_OK)) {
                         goto fail;
                     }
@@ -1856,7 +1854,7 @@ fail:
 static nxt_int_t
 nxt_router_conf_tls_insert(nxt_router_temp_conf_t *tmcf,
     nxt_conf_value_t *value, nxt_socket_conf_t *skcf,
-    nxt_conf_value_t *conf_cmds)
+    nxt_conf_value_t *conf_cmds, nxt_bool_t last)
 {
     nxt_router_tlssock_t  *tls;
 
@@ -1868,6 +1866,7 @@ nxt_router_conf_tls_insert(nxt_router_temp_conf_t *tmcf,
     tls->socket_conf = skcf;
     tls->conf_cmds = conf_cmds;
     tls->temp_conf = tmcf;
+    tls->last = last;
     nxt_conf_get_string(value, &tls->name);
 
     nxt_queue_insert_tail(&tmcf->tls, &tls->link);

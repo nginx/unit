@@ -665,3 +665,16 @@ basicConstraints = critical,CA:TRUE"""
         )
         assert res['status'] == 200, 'status ok'
         assert res['body'] == filename + data
+
+    def test_tls_multi_listener(self):
+        self.load('empty')
+
+        self.certificate()
+
+        self.add_tls()
+        self.add_tls(port=7081)
+
+        assert self.get_ssl()['status'] == 200, 'listener #1'
+
+        assert self.get_ssl(port=7081)['status'] == 200, 'listener #2'
+
