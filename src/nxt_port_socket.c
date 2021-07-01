@@ -524,6 +524,24 @@ next_fragment:
 
         } else {
             if (nxt_slow_path(n == NXT_ERROR)) {
+                if (msg->link.next == NULL) {
+                    if (msg->close_fd) {
+                        if (msg->fd[0] != -1) {
+                            nxt_fd_close(msg->fd[0]);
+
+                            msg->fd[0] = -1;
+                        }
+
+                        if (msg->fd[1] != -1) {
+                            nxt_fd_close(msg->fd[1]);
+
+                            msg->fd[1] = -1;
+                        }
+                    }
+
+                    nxt_port_release_send_msg(msg);
+                }
+
                 goto fail;
             }
 
