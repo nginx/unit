@@ -44,11 +44,16 @@ class TestRespawn(TestApplicationPython):
         return re.findall(str(ppid) + r'.*' + name, ps_output)
 
     def smoke_test(self, unit_pid):
-        for _ in range(5):
-            assert 'success' in self.conf(
-                '1', 'applications/' + self.app_name + '/processes'
-            )
-            assert self.get()['status'] == 200
+        for _ in range(10):
+            r = self.conf('1', 'applications/' + self.app_name + '/processes')
+
+            if 'success' in r:
+                break
+
+            time.sleep(0.1)
+
+        assert 'success' in r
+        assert self.get()['status'] == 200
 
         # Check if the only one router, controller,
         # and application processes running.
