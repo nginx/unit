@@ -271,6 +271,11 @@ static nxt_conf_map_t  nxt_ruby_app_conf[] = {
         NXT_CONF_MAP_INT32,
         offsetof(nxt_common_app_conf_t, u.ruby.threads),
     },
+    {
+        nxt_string("hooks"),
+        NXT_CONF_MAP_STR,
+        offsetof(nxt_common_app_conf_t, u.ruby.hooks),
+    }
 };
 
 

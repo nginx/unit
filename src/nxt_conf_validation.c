@@ -732,6 +732,9 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_ruby_members[] = {
         .name       = nxt_string("threads"),
         .type       = NXT_CONF_VLDT_INTEGER,
         .validator  = nxt_conf_vldt_threads,
+    }, {
+        .name       = nxt_string("hooks"),
+        .type       = NXT_CONF_VLDT_STRING
     },
 
     NXT_CONF_VLDT_NEXT(nxt_conf_vldt_common_members)
