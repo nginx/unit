@@ -3,6 +3,7 @@ import os
 
 from unit.applications.lang.go import TestApplicationGo
 from unit.applications.lang.java import TestApplicationJava
+from unit.applications.lang.ruby import TestApplicationRuby
 from unit.applications.lang.node import TestApplicationNode
 from unit.applications.proto import TestApplicationProto
 from unit.http import TestHTTP
@@ -65,14 +66,16 @@ def check_isolation():
         }
 
     elif 'ruby' in available['modules']:
+        TestApplicationRuby().prepare_env('empty')
+
         conf = {
             "listeners": {"*:7080": {"pass": "applications/empty"}},
             "applications": {
                 "empty": {
                     "type": "ruby",
                     "processes": {"spare": 0},
-                    "working_directory": option.test_dir + "/ruby/empty",
-                    "script": option.test_dir + "/ruby/empty/config.ru",
+                    "working_directory": option.temp_dir + "/ruby/empty",
+                    "script": option.temp_dir + "/ruby/empty/config.ru",
                     "isolation": {"namespaces": {"credential": True}},
                 }
             },

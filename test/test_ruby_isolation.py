@@ -35,13 +35,6 @@ class TestRubyIsolation(TestApplicationRuby):
                 'pid': True,
             }
 
-        os.mkdir(option.temp_dir + '/ruby')
-
-        shutil.copytree(
-            option.test_dir + '/ruby/status_int',
-            option.temp_dir + '/ruby/status_int',
-        )
-
         self.load('status_int', isolation=isolation)
 
         assert 'success' in self.conf(
