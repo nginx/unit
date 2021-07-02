@@ -47,13 +47,15 @@ class TestApplicationProto(TestControl):
         if 'applications' in conf:
             for app in conf['applications'].keys():
                 app_conf = conf['applications'][app]
-                if 'user' in kwargs:
-                    app_conf['user'] = kwargs['user']
 
-                if 'group' in kwargs:
-                    app_conf['group'] = kwargs['group']
-
-                if 'isolation' in kwargs:
-                    app_conf['isolation'] = kwargs['isolation']
+                for key in [
+                    'user',
+                    'group',
+                    'isolation',
+                    'processes',
+                    'threads',
+                ]:
+                    if key in kwargs:
+                        app_conf[key] = kwargs[key]
 
         assert 'success' in self.conf(conf), 'load application configuration'

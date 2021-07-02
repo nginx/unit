@@ -12,7 +12,7 @@ class TestApplicationRuby(TestApplicationProto):
     def prepare_env(self, script):
         shutil.copytree(
             option.test_dir + '/ruby/' + script,
-            option.temp_dir + '/ruby/' + script
+            option.temp_dir + '/ruby/' + script,
         )
 
         public_dir(option.temp_dir + '/ruby/' + script)
@@ -22,17 +22,23 @@ class TestApplicationRuby(TestApplicationProto):
 
         script_path = option.temp_dir + '/ruby/' + script
 
+        app = {
+            "type": self.get_application_type(),
+            "processes": {"spare": 0},
+            "working_directory": script_path,
+            "script": script_path + '/' + name,
+        }
+
+        for key in [
+            'hooks',
+        ]:
+            if key in kwargs:
+                app[key] = kwargs[key]
+
         self._load_conf(
             {
                 "listeners": {"*:7080": {"pass": "applications/" + script}},
-                "applications": {
-                    script: {
-                        "type": self.get_application_type(),
-                        "processes": {"spare": 0},
-                        "working_directory": script_path,
-                        "script": script_path + '/' + name,
-                    }
-                },
+                "applications": {script: app},
             },
             **kwargs
         )

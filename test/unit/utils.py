@@ -1,3 +1,4 @@
+import glob
 import os
 import socket
 import subprocess
@@ -16,8 +17,8 @@ def public_dir(path):
             os.chmod(os.path.join(root, f), 0o777)
 
 
-def waitforfiles(*files):
-    for i in range(50):
+def waitforfiles(*files, timeout=50):
+    for i in range(timeout):
         wait = False
 
         for f in files:
@@ -26,6 +27,21 @@ def waitforfiles(*files):
                 break
 
         if not wait:
+            return True
+
+        time.sleep(0.1)
+
+    return False
+
+
+def waitforglob(pattern, count=1, timeout=50):
+    for i in range(timeout):
+        n = 0
+
+        for f in glob.glob(pattern):
+            n += 1
+
+        if n == count:
             return True
 
         time.sleep(0.1)
@@ -72,8 +88,8 @@ def sysctl():
     return out
 
 
-def waitformount(template, wait=50):
-    for i in range(wait):
+def waitformount(template, timeout=50):
+    for i in range(timeout):
         if findmnt().find(template) != -1:
             return True
 
@@ -82,8 +98,8 @@ def waitformount(template, wait=50):
     return False
 
 
-def waitforunmount(template, wait=50):
-    for i in range(wait):
+def waitforunmount(template, timeout=50):
+    for i in range(timeout):
         if findmnt().find(template) == -1:
             return True
 
