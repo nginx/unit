@@ -45,6 +45,13 @@ process stopped or crashed.
 </para>
 </change>
 
+<change type="bugfix">
+<para>
+the controller or router process could crash if the configuration contained
+a full-form IPv6 in a listener address.
+</para>
+</change>
+
 </changes>
 
 

@@ -525,9 +525,9 @@ nxt_inet6_ntop(u_char *addr, u_char *buf, u_char *end)
         return buf;
     }
 
-    zero_start = 8;
+    zero_start = 16;
     zero_groups = 0;
-    last_zero_start = 8;
+    last_zero_start = 16;
     last_zero_groups = 0;
 
     for (i = 0; i < 16; i += 2) {
