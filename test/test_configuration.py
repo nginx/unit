@@ -8,6 +8,15 @@ from unit.control import TestControl
 class TestConfiguration(TestControl):
     prerequisites = {'modules': {'python': 'any'}}
 
+    def try_addr(self, addr):
+        return self.conf(
+            {
+                "listeners": {addr: {"pass": "routes"}},
+                "routes": [{"action": {"return": 200}}],
+                "applications": {},
+            }
+        )
+
     def test_json_empty(self):
         assert 'error' in self.conf(''), 'empty'
 
@@ -218,50 +227,20 @@ class TestConfiguration(TestControl):
             {"*:7080": {"pass": "applications/app"}}, 'listeners'
         ), 'listeners no app'
 
-    def test_listeners_wildcard(self):
-        assert 'success' in self.conf(
-            {
-                "listeners": {"*:7080": {"pass": "applications/app"}},
-                "applications": {
-                    "app": {
-                        "type": "python",
-                        "processes": {"spare": 0},
-                        "path": "/app",
-                        "module": "wsgi",
-                    }
-                },
-            }
-        ), 'listeners wildcard'
+    def test_listeners_addr(self):
+        assert 'success' in self.try_addr("*:7080"), 'wildcard'
+        assert 'success' in self.try_addr("127.0.0.1:7081"), 'explicit'
+        assert 'success' in self.try_addr("[::1]:7082"), 'explicit ipv6'
 
-    def test_listeners_explicit(self):
-        assert 'success' in self.conf(
-            {
-                "listeners": {"127.0.0.1:7080": {"pass": "applications/app"}},
-                "applications": {
-                    "app": {
-                        "type": "python",
-                        "processes": {"spare": 0},
-                        "path": "/app",
-                        "module": "wsgi",
-                    }
-                },
-            }
-        ), 'explicit'
+    def test_listeners_addr_error(self):
+        assert 'error' in self.try_addr("127.0.0.1"), 'no port'
 
-    def test_listeners_explicit_ipv6(self):
-        assert 'success' in self.conf(
-            {
-                "listeners": {"[::1]:7080": {"pass": "applications/app"}},
-                "applications": {
-                    "app": {
-                        "type": "python",
-                        "processes": {"spare": 0},
-                        "path": "/app",
-                        "module": "wsgi",
-                    }
-                },
-            }
-        ), 'explicit ipv6'
+    def test_listeners_addr_error_2(self, skip_alert):
+        skip_alert(r'bind.*failed', r'failed to apply new conf')
+
+        assert 'error' in self.try_addr(
+            "[f607:7403:1e4b:6c66:33b2:843f:2517:da27]:7080"
+        )
 
     def test_listeners_port_release(self):
         for i in range(10):
@@ -289,22 +268,6 @@ class TestConfiguration(TestControl):
                     pytest.fail('cannot bind or listen to the address')
 
                 assert 'success' in resp, 'port release'
-
-    @pytest.mark.skip('not yet, unsafe')
-    def test_listeners_no_port(self):
-        assert 'error' in self.conf(
-            {
-                "listeners": {"127.0.0.1": {"pass": "applications/app"}},
-                "applications": {
-                    "app": {
-                        "type": "python",
-                        "processes": {"spare": 0},
-                        "path": "/app",
-                        "module": "wsgi",
-                    }
-                },
-            }
-        ), 'no port'
 
     def test_json_application_name_large(self):
         name = "X" * 1024 * 1024
