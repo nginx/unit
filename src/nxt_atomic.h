@@ -64,6 +64,11 @@ nxt_atomic_release(lock)                                                      \
 nxt_cpu_pause()                                                               \
     __asm__ ("pause")
 
+#elif __aarch64__
+#define                                                                       \
+nxt_cpu_pause()                                                               \
+   __asm__ ("yield")
+
 #else
 #define                                                                       \
 nxt_cpu_pause()
