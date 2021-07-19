@@ -680,18 +680,20 @@ nxt_router_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_assert(main_app_port != NULL);
 
     app = main_app_port->app;
-    nxt_assert(app != NULL);
 
-    nxt_thread_mutex_lock(&app->mutex);
+    if (nxt_fast_path(app != NULL)) {
+        nxt_thread_mutex_lock(&app->mutex);
 
-    /* TODO here should be find-and-add code because there can be
-       port waiters in port_hash */
-    nxt_port_hash_add(&app->port_hash, port);
-    app->port_hash_count++;
+        /* TODO here should be find-and-add code because there can be
+           port waiters in port_hash */
+        nxt_port_hash_add(&app->port_hash, port);
+        app->port_hash_count++;
 
-    nxt_thread_mutex_unlock(&app->mutex);
+        nxt_thread_mutex_unlock(&app->mutex);
 
-    port->app = app;
+        port->app = app;
+    }
+
     port->main_app_port = main_app_port;
 
     nxt_port_socket_write(task, port, NXT_PORT_MSG_PORT_ACK, -1, 0, 0, NULL);

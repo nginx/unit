@@ -46,6 +46,13 @@ with TLS certificate configured; the bug had appeared in 1.23.0.
 
 <change type="bugfix">
 <para>
+the router process could crash on rapid mutithreaded application
+reconfiguration.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
 a descriptor and memory leak occurred in the router process when an app
 process stopped or crashed.
 </para>
