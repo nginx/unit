@@ -65,6 +65,13 @@ a full-form IPv6 in a listener address.
 </para>
 </change>
 
+<change type="bugfix">
+<para>
+compatibility issues with some Python ASGI apps, notably based on Starlette
+framework.
+</para>
+</change>
+
 </changes>
 
 
