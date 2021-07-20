@@ -17,7 +17,7 @@
 
 
 static PyObject *nxt_python_asgi_get_func(PyObject *obj);
-static int nxt_python_asgi_ctx_data_alloc(void **pdata);
+static int nxt_python_asgi_ctx_data_alloc(void **pdata, int main);
 static void nxt_python_asgi_ctx_data_free(void *data);
 static int nxt_python_asgi_startup(void *data);
 static int nxt_python_asgi_run(nxt_unit_ctx_t *ctx);
@@ -194,10 +194,11 @@ nxt_python_asgi_init(nxt_unit_init_t *init, nxt_python_proto_t *proto)
 
 
 static int
-nxt_python_asgi_ctx_data_alloc(void **pdata)
+nxt_python_asgi_ctx_data_alloc(void **pdata, int main)
 {
     uint32_t                i;
-    PyObject                *asyncio, *loop, *new_event_loop, *obj;
+    PyObject                *asyncio, *loop, *event_loop, *obj;
+    const char              *event_loop_func;
     nxt_py_asgi_ctx_data_t  *ctx_data;
 
     ctx_data = nxt_unit_malloc(NULL, sizeof(nxt_py_asgi_ctx_data_t));
@@ -232,23 +233,28 @@ nxt_python_asgi_ctx_data_alloc(void **pdata)
         goto fail;
     }
 
-    new_event_loop = PyDict_GetItemString(PyModule_GetDict(asyncio),
-                                          "new_event_loop");
-    if (nxt_slow_path(new_event_loop == NULL)) {
+    event_loop_func = main ? "get_event_loop" : "new_event_loop";
+
+    event_loop = PyDict_GetItemString(PyModule_GetDict(asyncio),
+                                      event_loop_func);
+    if (nxt_slow_path(event_loop == NULL)) {
         nxt_unit_alert(NULL,
-                 "Python failed to get 'new_event_loop' from module 'asyncio'");
+                       "Python failed to get '%s' from module 'asyncio'",
+                       event_loop_func);
         goto fail;
     }
 
-    if (nxt_slow_path(PyCallable_Check(new_event_loop) == 0)) {
+    if (nxt_slow_path(PyCallable_Check(event_loop) == 0)) {
         nxt_unit_alert(NULL,
-                       "'asyncio.new_event_loop' is not a callable object");
+                       "'asyncio.%s' is not a callable object",
+                       event_loop_func);
         goto fail;
     }
 
-    loop = PyObject_CallObject(new_event_loop, NULL);
+    loop = PyObject_CallObject(event_loop, NULL);
     if (nxt_slow_path(loop == NULL)) {
-        nxt_unit_alert(NULL, "Python failed to call 'asyncio.new_event_loop'");
+        nxt_unit_alert(NULL, "Python failed to call 'asyncio.%s'",
+                       event_loop_func);
         goto fail;
     }
 
