@@ -1,5 +1,9 @@
 require 'securerandom'
 
+@mutex = Mutex.new
+
 on_thread_boot do
-    File.write("./cookie_thread_boot.#{SecureRandom.hex}", "booted")
+    @mutex.synchronize do
+        File.write("./cookie_thread_boot.#{SecureRandom.hex}", "booted")
+    end
 end
