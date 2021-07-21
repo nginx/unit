@@ -28,14 +28,14 @@
 
 typedef struct nxt_tls_conf_s         nxt_tls_conf_t;
 typedef struct nxt_tls_bundle_conf_s  nxt_tls_bundle_conf_t;
+typedef struct nxt_tls_init_s         nxt_tls_init_t;
 
 typedef struct {
     nxt_int_t                     (*library_init)(nxt_task_t *task);
     void                          (*library_free)(nxt_task_t *task);
 
-    nxt_int_t                     (*server_init)(nxt_task_t *task,
-                                      nxt_tls_conf_t *conf, nxt_mp_t *mp,
-                                      nxt_conf_value_t *conf_cmds,
+    nxt_int_t                     (*server_init)(nxt_task_t *task, nxt_mp_t *mp,
+                                      nxt_tls_init_t *tls_init,
                                       nxt_bool_t last);
     void                          (*server_free)(nxt_task_t *task,
                                       nxt_tls_conf_t *conf);
@@ -75,6 +75,15 @@ struct nxt_tls_conf_s {
     size_t                        buffer_size;
 
     uint8_t                       no_wait_shutdown;  /* 1 bit */
+};
+
+
+struct nxt_tls_init_s {
+    size_t                        cache_size;
+    nxt_time_t                    timeout;
+    nxt_conf_value_t              *conf_cmds;
+
+    nxt_tls_conf_t                *conf;
 };
 
 

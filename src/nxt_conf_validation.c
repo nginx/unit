@@ -95,6 +95,10 @@ static nxt_int_t nxt_conf_vldt_object_conf_commands(nxt_conf_validation_t *vldt,
 #endif
 static nxt_int_t nxt_conf_vldt_certificate_element(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value);
+static nxt_int_t nxt_conf_vldt_tls_cache_size(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_tls_timeout(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
 #endif
 static nxt_int_t nxt_conf_vldt_action(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
@@ -206,6 +210,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_websocket_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_static_members[];
 #if (NXT_TLS)
 static nxt_conf_vldt_object_t  nxt_conf_vldt_tls_members[];
+static nxt_conf_vldt_object_t  nxt_conf_vldt_session_members[];
 #endif
 static nxt_conf_vldt_object_t  nxt_conf_vldt_match_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_python_target_members[];
@@ -378,10 +383,64 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_tls_members[] = {
         .validator  = nxt_conf_vldt_unsupported,
         .u.string   = "conf_commands",
 #endif
+    }, {
+        .name       = nxt_string("session"),
+        .type       = NXT_CONF_VLDT_OBJECT,
+        .validator  = nxt_conf_vldt_object,
+        .u.members  = nxt_conf_vldt_session_members,
     },
 
     NXT_CONF_VLDT_END
 };
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_session_members[] = {
+    {
+        .name       = nxt_string("cache_size"),
+        .type       = NXT_CONF_VLDT_INTEGER,
+        .validator  = nxt_conf_vldt_tls_cache_size,
+    }, {
+        .name       = nxt_string("timeout"),
+        .type       = NXT_CONF_VLDT_INTEGER,
+        .validator  = nxt_conf_vldt_tls_timeout,
+    },
+
+    NXT_CONF_VLDT_END
+};
+
+
+static nxt_int_t
+nxt_conf_vldt_tls_cache_size(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data)
+{
+    int64_t  cache_size;
+
+    cache_size = nxt_conf_get_number(value);
+
+    if (cache_size < 0) {
+        return nxt_conf_vldt_error(vldt, "The \"cache_size\" number must not "
+                                         "be negative.");
+    }
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_tls_timeout(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
+{
+    int64_t  timeout;
+
+    timeout = nxt_conf_get_number(value);
+
+    if (timeout <= 0) {
+        return nxt_conf_vldt_error(vldt, "The \"timeout\" number must be "
+                                         "greater than zero.");
+    }
+
+    return NXT_OK;
+}
 
 #endif
 

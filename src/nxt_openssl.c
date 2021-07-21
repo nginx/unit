@@ -42,15 +42,16 @@ static void nxt_openssl_lock(int mode, int type, const char *file, int line);
 static unsigned long nxt_openssl_thread_id(void);
 static void nxt_openssl_locks_free(void);
 #endif
-static nxt_int_t nxt_openssl_server_init(nxt_task_t *task,
-    nxt_tls_conf_t *conf, nxt_mp_t *mp, nxt_conf_value_t *conf_cmds,
-    nxt_bool_t last);
+static nxt_int_t nxt_openssl_server_init(nxt_task_t *task, nxt_mp_t *mp,
+    nxt_tls_init_t *tls_init, nxt_bool_t last);
 static nxt_int_t nxt_openssl_chain_file(nxt_task_t *task, SSL_CTX *ctx,
     nxt_tls_conf_t *conf, nxt_mp_t *mp, nxt_bool_t single);
 #if (NXT_HAVE_OPENSSL_CONF_CMD)
 static nxt_int_t nxt_ssl_conf_commands(nxt_task_t *task, SSL_CTX *ctx,
     nxt_conf_value_t *value, nxt_mp_t *mp);
 #endif
+static void nxt_ssl_session_cache(SSL_CTX *ctx, size_t cache_size,
+    time_t timeout);
 static nxt_uint_t nxt_openssl_cert_get_names(nxt_task_t *task, X509 *cert,
     nxt_tls_conf_t *conf, nxt_mp_t *mp);
 static nxt_int_t nxt_openssl_bundle_hash_test(nxt_lvlhsh_query_t *lhq,
@@ -265,11 +266,12 @@ nxt_openssl_locks_free(void)
 
 
 static nxt_int_t
-nxt_openssl_server_init(nxt_task_t *task, nxt_tls_conf_t *conf,
-    nxt_mp_t *mp, nxt_conf_value_t *conf_cmds, nxt_bool_t last)
+nxt_openssl_server_init(nxt_task_t *task, nxt_mp_t *mp,
+    nxt_tls_init_t *tls_init, nxt_bool_t last)
 {
     SSL_CTX                *ctx;
     const char             *ciphers, *ca_certificate;
+    nxt_tls_conf_t         *conf;
     STACK_OF(X509_NAME)    *list;
     nxt_tls_bundle_conf_t  *bundle;
 
@@ -278,6 +280,8 @@ nxt_openssl_server_init(nxt_task_t *task, nxt_tls_conf_t *conf,
         nxt_openssl_log_error(task, NXT_LOG_ALERT, "SSL_CTX_new() failed");
         return NXT_ERROR;
     }
+
+    conf = tls_init->conf;
 
     bundle = conf->bundle;
     nxt_assert(bundle != NULL);
@@ -337,12 +341,14 @@ nxt_openssl_server_init(nxt_task_t *task, nxt_tls_conf_t *conf,
     }
 
 #if (NXT_HAVE_OPENSSL_CONF_CMD)
-    if (conf_cmds != NULL
-        && nxt_ssl_conf_commands(task, ctx, conf_cmds, mp) != NXT_OK)
+    if (tls_init->conf_cmds != NULL
+        && nxt_ssl_conf_commands(task, ctx, tls_init->conf_cmds, mp) != NXT_OK)
     {
         goto fail;
     }
 #endif
+
+    nxt_ssl_session_cache(ctx, tls_init->cache_size, tls_init->timeout);
 
     SSL_CTX_set_options(ctx, SSL_OP_CIPHER_SERVER_PREFERENCE);
 
@@ -580,6 +586,22 @@ fail:
 }
 
 #endif
+
+
+static void
+nxt_ssl_session_cache(SSL_CTX *ctx, size_t cache_size, time_t timeout)
+{
+    if (cache_size == 0) {
+        SSL_CTX_set_session_cache_mode(ctx, SSL_SESS_CACHE_OFF);
+        return;
+    }
+
+    SSL_CTX_set_session_cache_mode(ctx, SSL_SESS_CACHE_SERVER);
+
+    SSL_CTX_sess_set_cache_size(ctx, cache_size);
+
+    SSL_CTX_set_timeout(ctx, (long) timeout);
+}
 
 
 static nxt_uint_t
