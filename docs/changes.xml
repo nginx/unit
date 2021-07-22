@@ -45,6 +45,14 @@ process and thread lifecycle hooks in Ruby.
 
 <change type="bugfix">
 <para>
+TLS connection was rejected for configuration with more than one
+certificate bundle in a listener if a client did not use SNI.
+</para>
+</change>
+
+
+<change type="bugfix">
+<para>
 the router process could crash on TLS connection open when multiple listeners
 with TLS certificate configured; the bug had appeared in 1.23.0.
 </para>

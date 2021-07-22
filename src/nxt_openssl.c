@@ -804,15 +804,15 @@ nxt_openssl_servername(SSL *s, int *ad, void *arg)
     }
 
     servername = SSL_get_servername(s, TLSEXT_NAMETYPE_host_name);
-    if (nxt_slow_path(servername == NULL)) {
-        nxt_log(c->socket.task, NXT_LOG_ALERT, "SSL_get_servername() returned "
-                                               "NULL in server name callback");
-        return SSL_TLSEXT_ERR_ALERT_FATAL;
+
+    if (servername == NULL) {
+        nxt_debug(c->socket.task, "SSL_get_servername(): NULL");
+        goto done;
     }
 
     str.length = nxt_strlen(servername);
     if (str.length == 0) {
-        nxt_debug(c->socket.task, "client sent zero-length server name");
+        nxt_debug(c->socket.task, "SSL_get_servername(): \"\" is empty");
         goto done;
     }
 
