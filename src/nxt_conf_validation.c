@@ -1277,7 +1277,7 @@ static nxt_int_t
 nxt_conf_vldt_mtypes_extension(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value)
 {
-    nxt_str_t                   ext, *dup_type;
+    nxt_str_t                   exten, *dup_type;
     nxt_conf_vldt_mtypes_ctx_t  *ctx;
 
     ctx = vldt->ctx;
@@ -1287,24 +1287,24 @@ nxt_conf_vldt_mtypes_extension(nxt_conf_validation_t *vldt,
                                    "contain only strings.", ctx->type);
     }
 
-    nxt_conf_get_string(value, &ext);
+    nxt_conf_get_string(value, &exten);
 
-    if (ext.length == 0) {
+    if (exten.length == 0) {
         return nxt_conf_vldt_error(vldt, "An empty file extension for "
                                          "the \"%V\" MIME type.", ctx->type);
     }
 
-    dup_type = nxt_http_static_mtypes_hash_find(&ctx->hash, &ext);
+    dup_type = nxt_http_static_mtype_get(&ctx->hash, &exten);
 
     if (dup_type->length != 0) {
         return nxt_conf_vldt_error(vldt, "The \"%V\" file extension has been "
                                          "declared for \"%V\" and \"%V\" "
                                          "MIME types at the same time.",
-                                         &ext, dup_type, ctx->type);
+                                         &exten, dup_type, ctx->type);
     }
 
-    return nxt_http_static_mtypes_hash_add(ctx->pool, &ctx->hash,
-                                           &ext, ctx->type);
+    return nxt_http_static_mtypes_hash_add(ctx->pool, &ctx->hash, &exten,
+                                           ctx->type);
 }
 
 

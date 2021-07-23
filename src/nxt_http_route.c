@@ -185,9 +185,6 @@ static nxt_http_route_t *nxt_http_route_create(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_conf_value_t *cv);
 static nxt_http_route_match_t *nxt_http_route_match_create(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_conf_value_t *cv);
-static nxt_int_t nxt_http_action_init(nxt_task_t *task,
-    nxt_router_temp_conf_t *tmcf, nxt_conf_value_t *cv,
-    nxt_http_action_t *action);
 static nxt_http_route_table_t *nxt_http_route_table_create(nxt_task_t *task,
     nxt_mp_t *mp, nxt_conf_value_t *table_cv, nxt_http_route_object_t object,
     nxt_bool_t case_sensitive, nxt_http_route_encoding_t encoding);
@@ -653,20 +650,14 @@ static nxt_conf_map_t  nxt_http_route_action_conf[] = {
 };
 
 
-static nxt_int_t
+nxt_int_t
 nxt_http_action_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_conf_value_t *cv, nxt_http_action_t *action)
 {
-#if (NXT_HAVE_OPENAT2)
-    u_char                  *p;
-    uint8_t                 slash;
-    nxt_str_t               *chroot;
-#endif
     nxt_mp_t                *mp;
     nxt_int_t               ret;
     nxt_str_t               name, *string;
     nxt_conf_value_t        *conf;
-    nxt_http_route_rule_t   *rule;
     nxt_http_action_conf_t  acf;
 
     nxt_memzero(&acf, sizeof(acf));
@@ -686,9 +677,10 @@ nxt_http_action_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     }
 
     if (acf.share != NULL) {
-        conf = acf.share;
+        return nxt_http_static_init(task, tmcf, action, &acf);
+    }
 
-    } else if (acf.proxy != NULL) {
+    if (acf.proxy != NULL) {
         conf = acf.proxy;
 
     } else {
@@ -700,72 +692,6 @@ nxt_http_action_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     string = nxt_str_dup(mp, &action->name, &name);
     if (nxt_slow_path(string == NULL)) {
         return NXT_ERROR;
-    }
-
-    if (acf.share != NULL) {
-        action->handler = nxt_http_static_handler;
-
-#if (NXT_HAVE_OPENAT2)
-        string = &acf.chroot;
-        chroot = &action->u.share.chroot;
-
-        if (string->length > 0) {
-            action->u.share.resolve |= RESOLVE_IN_ROOT;
-
-            slash = (string->start[string->length - 1] != '/');
-
-            chroot->length = string->length + (slash ? 1 : 0);
-
-            chroot->start = nxt_mp_alloc(mp, chroot->length + 1);
-            if (nxt_slow_path(chroot->start == NULL)) {
-                return NXT_ERROR;
-            }
-
-            p = nxt_cpymem(chroot->start, string->start, string->length);
-
-            if (slash) {
-                *p++ = '/';
-            }
-
-            *p = '\0';
-        }
-
-        if (acf.follow_symlinks != NULL
-            && !nxt_conf_get_boolean(acf.follow_symlinks))
-        {
-            action->u.share.resolve |= RESOLVE_NO_SYMLINKS;
-        }
-
-        if (acf.traverse_mounts != NULL
-            && !nxt_conf_get_boolean(acf.traverse_mounts))
-        {
-            action->u.share.resolve |= RESOLVE_NO_XDEV;
-        }
-#endif
-
-        if (acf.types != NULL) {
-            rule = nxt_http_route_rule_create(task, mp, acf.types, 0,
-                                              NXT_HTTP_ROUTE_PATTERN_LOWCASE,
-                                              NXT_HTTP_ROUTE_ENCODING_NONE);
-            if (nxt_slow_path(rule == NULL)) {
-                return NXT_ERROR;
-            }
-
-            action->u.share.types = rule;
-        }
-
-        if (acf.fallback != NULL) {
-            action->u.share.fallback = nxt_mp_alloc(mp,
-                                                    sizeof(nxt_http_action_t));
-            if (nxt_slow_path(action->u.share.fallback == NULL)) {
-                return NXT_ERROR;
-            }
-
-            return nxt_http_action_init(task, tmcf, acf.fallback,
-                                        action->u.share.fallback);
-        }
-
-        return NXT_OK;
     }
 
     if (acf.proxy != NULL) {
@@ -1072,6 +998,16 @@ nxt_http_route_addr_rule_create(nxt_task_t *task, nxt_mp_t *mp,
     }
 
     return addr_rule;
+}
+
+
+nxt_http_route_rule_t *
+nxt_http_route_types_rule_create(nxt_task_t *task, nxt_mp_t *mp,
+    nxt_conf_value_t *types)
+{
+    return nxt_http_route_rule_create(task, mp, types, 0,
+                                      NXT_HTTP_ROUTE_PATTERN_LOWCASE,
+                                      NXT_HTTP_ROUTE_ENCODING_NONE);
 }
 
 
@@ -1447,15 +1383,12 @@ static nxt_int_t
 nxt_http_action_resolve(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_http_action_t *action)
 {
-    nxt_var_t  *var;
     nxt_int_t  ret;
+    nxt_var_t  *var;
 
     if (action->handler != NULL) {
-        if (action->handler == nxt_http_static_handler
-            && action->u.share.fallback != NULL)
-        {
-            return nxt_http_action_resolve(task, tmcf,
-                                           action->u.share.fallback);
+        if (action->fallback != NULL) {
+            return nxt_http_action_resolve(task, tmcf, action->fallback);
         }
 
         return NXT_OK;

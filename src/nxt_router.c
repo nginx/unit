@@ -1907,7 +1907,7 @@ nxt_router_conf_process_static(nxt_task_t *task, nxt_router_conf_t *rtcf,
 {
     uint32_t          next, i;
     nxt_mp_t          *mp;
-    nxt_str_t         *type, extension, str;
+    nxt_str_t         *type, exten, str;
     nxt_int_t         ret;
     nxt_uint_t        exts;
     nxt_conf_value_t  *mtypes_conf, *ext_conf, *value;
@@ -1945,12 +1945,12 @@ nxt_router_conf_process_static(nxt_task_t *task, nxt_router_conf_t *rtcf,
             if (nxt_conf_type(ext_conf) == NXT_CONF_STRING) {
                 nxt_conf_get_string(ext_conf, &str);
 
-                if (nxt_slow_path(nxt_str_dup(mp, &extension, &str) == NULL)) {
+                if (nxt_slow_path(nxt_str_dup(mp, &exten, &str) == NULL)) {
                     return NXT_ERROR;
                 }
 
                 ret = nxt_http_static_mtypes_hash_add(mp, &rtcf->mtypes_hash,
-                                                      &extension, type);
+                                                      &exten, type);
                 if (nxt_slow_path(ret != NXT_OK)) {
                     return NXT_ERROR;
                 }
@@ -1965,12 +1965,12 @@ nxt_router_conf_process_static(nxt_task_t *task, nxt_router_conf_t *rtcf,
 
                 nxt_conf_get_string(value, &str);
 
-                if (nxt_slow_path(nxt_str_dup(mp, &extension, &str) == NULL)) {
+                if (nxt_slow_path(nxt_str_dup(mp, &exten, &str) == NULL)) {
                     return NXT_ERROR;
                 }
 
                 ret = nxt_http_static_mtypes_hash_add(mp, &rtcf->mtypes_hash,
-                                                      &extension, type);
+                                                      &exten, type);
                 if (nxt_slow_path(ret != NXT_OK)) {
                     return NXT_ERROR;
                 }
