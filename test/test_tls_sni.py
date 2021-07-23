@@ -168,6 +168,26 @@ basicConstraints = critical,CA:TRUE"""
         self.check_cert('alt2.example.com', bundles['example.com']['subj'])
         self.check_cert('blah', bundles['default']['subj'])
 
+    def test_tls_sni_no_hostname(self):
+        bundles = {
+            "localhost.com": {"subj": "localhost.com", "alt_names": []},
+            "example.com": {
+                "subj": "example.com",
+                "alt_names": ["example.com"],
+            },
+        }
+        self.config_bundles(bundles)
+        self.add_tls(["localhost.com", "example.com"])
+
+        resp, sock = self.get_ssl(
+            headers={'Content-Length': '0', 'Connection': 'close'}, start=True,
+        )
+        assert resp['status'] == 200
+        assert (
+            sock.getpeercert()['subject'][0][0][1]
+            == bundles['localhost.com']['subj']
+        )
+
     def test_tls_sni_upper_case(self):
         bundles = {
             "localhost.com": {"subj": "LOCALHOST.COM", "alt_names": []},
