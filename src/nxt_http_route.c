@@ -1482,9 +1482,7 @@ static nxt_int_t
 nxt_http_pass_find(nxt_task_t *task, nxt_mp_t *mp, nxt_router_conf_t *rtcf,
     nxt_http_action_t *action)
 {
-    nxt_str_t   *targets;
     nxt_int_t   ret;
-    nxt_uint_t  i;
     nxt_str_t   segments[3];
 
     ret = nxt_http_pass_segments(mp, &action->name, segments, 3);
@@ -1493,24 +1491,8 @@ nxt_http_pass_find(nxt_task_t *task, nxt_mp_t *mp, nxt_router_conf_t *rtcf,
     }
 
     if (nxt_str_eq(&segments[0], "applications", 12)) {
-        ret = nxt_router_listener_application(rtcf, &segments[1], action);
-
-        if (ret != NXT_OK) {
-            return ret;
-        }
-
-        if (segments[2].length != 0) {
-            targets = action->u.app.application->targets;
-
-            for (i = 0; !nxt_strstr_eq(&segments[2], &targets[i]); i++);
-
-            action->u.app.target = i;
-
-        } else {
-            action->u.app.target = 0;
-        }
-
-        return NXT_OK;
+        return nxt_router_application_init(rtcf, &segments[1], &segments[2],
+                                           action);
     }
 
     if (segments[2].length == 0) {
@@ -1643,9 +1625,7 @@ nxt_http_pass_application(nxt_task_t *task, nxt_router_conf_t *rtcf,
 
     action->name = *name;
 
-    (void) nxt_router_listener_application(rtcf, name, action);
-
-    action->u.app.target = 0;
+    (void) nxt_router_application_init(rtcf, name, NULL, action);
 
     return action;
 }

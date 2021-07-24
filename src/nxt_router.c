@@ -2158,21 +2158,46 @@ nxt_router_apps_hash_use(nxt_task_t *task, nxt_router_conf_t *rtcf, int i)
 }
 
 
+typedef struct {
+    nxt_app_t  *app;
+    nxt_int_t  target;
+} nxt_http_app_conf_t;
+
 
 nxt_int_t
-nxt_router_listener_application(nxt_router_conf_t *rtcf, nxt_str_t *name,
-    nxt_http_action_t *action)
+nxt_router_application_init(nxt_router_conf_t *rtcf, nxt_str_t *name,
+    nxt_str_t *target, nxt_http_action_t *action)
 {
-    nxt_app_t  *app;
+    nxt_app_t            *app;
+    nxt_str_t            *targets;
+    nxt_uint_t           i;
+    nxt_http_app_conf_t  *conf;
 
     app = nxt_router_apps_hash_get(rtcf, name);
-
     if (app == NULL) {
         return NXT_DECLINED;
     }
 
-    action->u.app.application = app;
+    conf = nxt_mp_get(rtcf->mem_pool, sizeof(nxt_http_app_conf_t));
+    if (nxt_slow_path(conf == NULL)) {
+        return NXT_ERROR;
+    }
+
     action->handler = nxt_http_application_handler;
+    action->u.conf = conf;
+
+    conf->app = app;
+
+    if (target != NULL && target->length != 0) {
+        targets = app->targets;
+
+        for (i = 0; !nxt_strstr_eq(target, &targets[i]); i++);
+
+        conf->target = i;
+
+    } else {
+        conf->target = 0;
+    }
 
     return NXT_OK;
 }
@@ -4901,12 +4926,16 @@ nxt_router_app_port_get(nxt_task_t *task, nxt_app_t *app,
 
 void
 nxt_router_process_http_request(nxt_task_t *task, nxt_http_request_t *r,
-    nxt_app_t *app)
+    nxt_http_action_t *action)
 {
     nxt_event_engine_t      *engine;
+    nxt_http_app_conf_t     *conf;
     nxt_request_rpc_data_t  *req_rpc_data;
 
+    conf = action->u.conf;
     engine = task->thread->engine;
+
+    r->app_target = conf->target;
 
     req_rpc_data = nxt_port_rpc_register_handler_ex(task, engine->port,
                                           nxt_router_response_ready_handler,
@@ -4938,11 +4967,11 @@ nxt_router_process_http_request(nxt_task_t *task, nxt_http_request_t *r,
     r->err_work.obj = r;
 
     req_rpc_data->stream = nxt_port_rpc_ex_stream(req_rpc_data);
-    req_rpc_data->app = app;
+    req_rpc_data->app = conf->app;
     req_rpc_data->msg_info.body_fd = -1;
     req_rpc_data->rpc_cancel = 1;
 
-    nxt_router_app_use(task, app, 1);
+    nxt_router_app_use(task, conf->app, 1);
 
     req_rpc_data->request = r;
     r->req_rpc_data = req_rpc_data;
@@ -4951,7 +4980,7 @@ nxt_router_process_http_request(nxt_task_t *task, nxt_http_request_t *r,
         r->last->completion_handler = nxt_router_http_request_done;
     }
 
-    nxt_router_app_port_get(task, app, req_rpc_data);
+    nxt_router_app_port_get(task, conf->app, req_rpc_data);
     nxt_router_app_prepare_request(task, req_rpc_data);
 }
 

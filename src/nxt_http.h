@@ -225,11 +225,6 @@ struct nxt_http_action_s {
         nxt_upstream_t              *upstream;
         uint32_t                    upstream_number;
         nxt_var_t                   *var;
-
-        struct {
-            nxt_app_t               *application;
-            nxt_int_t               target;
-        } app;
     } u;
 
     nxt_str_t                       name;
