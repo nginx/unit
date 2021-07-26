@@ -657,7 +657,6 @@ nxt_http_action_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_mp_t                *mp;
     nxt_int_t               ret;
     nxt_str_t               name, *string;
-    nxt_conf_value_t        *conf;
     nxt_http_action_conf_t  acf;
 
     nxt_memzero(&acf, sizeof(acf));
@@ -681,21 +680,14 @@ nxt_http_action_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     }
 
     if (acf.proxy != NULL) {
-        conf = acf.proxy;
-
-    } else {
-        conf = acf.pass;
+        return nxt_http_proxy_init(mp, action, &acf);
     }
 
-    nxt_conf_get_string(conf, &name);
+    nxt_conf_get_string(acf.pass, &name);
 
     string = nxt_str_dup(mp, &action->name, &name);
     if (nxt_slow_path(string == NULL)) {
         return NXT_ERROR;
-    }
-
-    if (acf.proxy != NULL) {
-        return nxt_http_proxy_create(mp, action);
     }
 
     return NXT_OK;

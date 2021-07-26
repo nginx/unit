@@ -348,8 +348,8 @@ nxt_int_t nxt_upstream_find(nxt_upstreams_t *upstreams, nxt_str_t *name,
 nxt_http_action_t *nxt_upstream_proxy_handler(nxt_task_t *task,
     nxt_http_request_t *r, nxt_upstream_t *upstream);
 
-
-nxt_int_t nxt_http_proxy_create(nxt_mp_t *mp, nxt_http_action_t *action);
+nxt_int_t nxt_http_proxy_init(nxt_mp_t *mp, nxt_http_action_t *action,
+    nxt_http_action_conf_t *acf);
 nxt_int_t nxt_http_proxy_date(void *ctx, nxt_http_field_t *field,
     uintptr_t data);
 nxt_int_t nxt_http_proxy_content_length(void *ctx, nxt_http_field_t *field,
