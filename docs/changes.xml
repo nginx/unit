@@ -43,6 +43,12 @@ process and thread lifecycle hooks in Ruby.
 </para>
 </change>
 
+<change type="feature">
+<para>
+application restart control.
+</para>
+</change>
+
 <change type="bugfix">
 <para>
 TLS connection was rejected for configuration with more than one

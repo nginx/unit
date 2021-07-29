@@ -125,6 +125,8 @@ struct nxt_app_s {
     uint32_t               max_pending_processes;
     uint32_t               max_requests;
 
+    uint32_t               generation;
+
     nxt_msec_t             timeout;
     nxt_msec_t             idle_timeout;
 

@@ -92,6 +92,10 @@ static nxt_bool_t nxt_controller_cert_in_use(nxt_str_t *name);
 static void nxt_controller_cert_cleanup(nxt_task_t *task, void *obj,
     void *data);
 #endif
+static void nxt_controller_process_control(nxt_task_t *task,
+    nxt_controller_request_t *req, nxt_str_t *path);
+static void nxt_controller_app_restart_handler(nxt_task_t *task,
+    nxt_port_recv_msg_t *msg, void *data);
 static void nxt_controller_conf_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
 static void nxt_controller_conf_store(nxt_task_t *task,
@@ -1022,6 +1026,14 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
 
 #endif
 
+    if (nxt_str_start(&path, "/control/", 9)) {
+        path.length -= 9;
+        path.start += 9;
+
+        nxt_controller_process_control(task, req, &path);
+        return;
+    }
+
     nxt_memzero(&resp, sizeof(nxt_controller_response_t));
 
     if (path.length == 1 && path.start[0] == '/') {
@@ -1674,6 +1686,155 @@ nxt_controller_conf_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
         resp.status = 500;
         resp.title = (u_char *) "Failed to apply new configuration.";
+        resp.offset = -1;
+    }
+
+    nxt_controller_response(task, req, &resp);
+
+    nxt_controller_flush_requests(task);
+}
+
+
+static void
+nxt_controller_process_control(nxt_task_t *task,
+    nxt_controller_request_t *req, nxt_str_t *path)
+{
+    uint32_t                   stream;
+    nxt_buf_t                  *b;
+    nxt_int_t                  rc;
+    nxt_port_t                 *router_port, *controller_port;
+    nxt_runtime_t              *rt;
+    nxt_conf_value_t           *value;
+    nxt_controller_response_t  resp;
+
+    static nxt_str_t applications = nxt_string("applications");
+
+    nxt_memzero(&resp, sizeof(nxt_controller_response_t));
+
+    if (!nxt_str_eq(&req->parser.method, "GET", 3)) {
+        goto not_allowed;
+    }
+
+    if (!nxt_str_start(path, "applications/", 13)
+        || nxt_memcmp(path->start + path->length - 8, "/restart", 8) != 0)
+    {
+        goto not_found;
+    }
+
+    path->start += 13;
+    path->length -= 13 + 8;
+
+    if (nxt_controller_check_postpone_request(task)) {
+        nxt_queue_insert_tail(&nxt_controller_waiting_requests, &req->link);
+        return;
+    }
+
+    value = nxt_controller_conf.root;
+    if (value == NULL) {
+        goto not_found;
+    }
+
+    value = nxt_conf_get_object_member(value, &applications, NULL);
+    if (value == NULL) {
+        goto not_found;
+    }
+
+    value = nxt_conf_get_object_member(value, path, NULL);
+    if (value == NULL) {
+        goto not_found;
+    }
+
+    b = nxt_buf_mem_alloc(req->conn->mem_pool, path->length, 0);
+    if (nxt_slow_path(b == NULL)) {
+        goto alloc_fail;
+    }
+
+    b->mem.free = nxt_cpymem(b->mem.pos, path->start, path->length);
+
+    rt = task->thread->runtime;
+
+    controller_port = rt->port_by_type[NXT_PROCESS_CONTROLLER];
+    router_port = rt->port_by_type[NXT_PROCESS_ROUTER];
+
+    stream = nxt_port_rpc_register_handler(task, controller_port,
+                                           nxt_controller_app_restart_handler,
+                                           nxt_controller_app_restart_handler,
+                                           router_port->pid, req);
+    if (nxt_slow_path(stream == 0)) {
+        goto alloc_fail;
+    }
+
+    rc = nxt_port_socket_write(task, router_port, NXT_PORT_MSG_APP_RESTART,
+                               -1, stream, 0, b);
+    if (nxt_slow_path(rc != NXT_OK)) {
+        nxt_port_rpc_cancel(task, controller_port, stream);
+
+        goto fail;
+    }
+
+    nxt_queue_insert_head(&nxt_controller_waiting_requests, &req->link);
+
+    return;
+
+not_allowed:
+
+    resp.status = 405;
+    resp.title = (u_char *) "Method isn't allowed.";
+    resp.offset = -1;
+
+    nxt_controller_response(task, req, &resp);
+    return;
+
+not_found:
+
+    resp.status = 404;
+    resp.title = (u_char *) "Value doesn't exist.";
+    resp.offset = -1;
+
+    nxt_controller_response(task, req, &resp);
+    return;
+
+alloc_fail:
+
+    resp.status = 500;
+    resp.title = (u_char *) "Memory allocation failed.";
+    resp.offset = -1;
+
+    nxt_controller_response(task, req, &resp);
+    return;
+
+fail:
+
+    resp.status = 500;
+    resp.title = (u_char *) "Send restart failed.";
+    resp.offset = -1;
+
+    nxt_controller_response(task, req, &resp);
+}
+
+
+static void
+nxt_controller_app_restart_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
+    void *data)
+{
+    nxt_controller_request_t   *req;
+    nxt_controller_response_t  resp;
+
+    req = data;
+
+    nxt_debug(task, "controller app restart handler");
+
+    nxt_queue_remove(&req->link);
+
+    nxt_memzero(&resp, sizeof(nxt_controller_response_t));
+
+    if (msg->port_msg.type == NXT_PORT_MSG_RPC_READY) {
+        resp.status = 200;
+        resp.title = (u_char *) "Ok";
+
+    } else {
+        resp.status = 500;
+        resp.title = (u_char *) "Failed to restart app.";
         resp.offset = -1;
     }
 

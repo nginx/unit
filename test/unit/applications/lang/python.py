@@ -44,6 +44,7 @@ class TestApplicationPython(TestApplicationProto):
 
         for attr in (
             'callable',
+            'environment',
             'home',
             'limits',
             'path',

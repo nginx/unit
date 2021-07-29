@@ -1,4 +1,5 @@
 import re
+import shutil
 import subprocess
 import time
 
@@ -201,3 +202,81 @@ class TestPythonProcman(TestApplicationPython):
         assert 'success' in self.conf({"listeners": {}, "applications": {}})
 
         assert len(self.pids_for_process()) == 0, 'stop all'
+
+    def test_python_restart(self, temp_dir):
+        shutil.copyfile(
+            option.test_dir + '/python/restart/v1.py', temp_dir + '/wsgi.py'
+        )
+
+        self.load(
+            temp_dir,
+            name=self.app_name,
+            processes=1,
+            environment={'PYTHONDONTWRITEBYTECODE': '1'},
+        )
+
+        b = self.get()['body']
+        assert b == "v1", 'process started'
+
+        shutil.copyfile(
+            option.test_dir + '/python/restart/v2.py', temp_dir + '/wsgi.py'
+        )
+
+        b = self.get()['body']
+        assert b == "v1", 'still old process'
+
+        assert 'success' in self.conf_get(
+            '/control/applications/' + self.app_name + '/restart'
+        ), 'restart processes'
+
+        b = self.get()['body']
+        assert b == "v2", 'new process started'
+
+        assert 'error' in self.conf_get(
+            '/control/applications/blah/restart'
+        ), 'application incorrect'
+
+        assert 'error' in self.conf_delete(
+            '/control/applications/' + self.app_name + '/restart'
+        ), 'method incorrect'
+
+    def test_python_restart_multi(self):
+        self.conf_proc('2')
+
+        pids = self.pids_for_process()
+        assert len(pids) == 2, 'restart 2 started'
+
+        assert 'success' in self.conf_get(
+            '/control/applications/' + self.app_name + '/restart'
+        ), 'restart processes'
+
+        new_pids = self.pids_for_process()
+        assert len(new_pids) == 2, 'restart still 2'
+
+        assert len(new_pids.intersection(pids)) == 0, 'restart all new'
+
+    def test_python_restart_longstart(self):
+        self.load(
+            'restart',
+            name=self.app_name,
+            module="longstart",
+            processes={"spare": 1, "max": 2, "idle_timeout": 5},
+        )
+
+        assert len(self.pids_for_process()) == 1, 'longstarts == 1'
+
+        pid = self.get()['body']
+        pids = self.pids_for_process()
+        assert len(pids) == 2, 'longstarts == 2'
+
+        assert 'success' in self.conf_get(
+            '/control/applications/' + self.app_name + '/restart'
+        ), 'restart processes'
+
+        # wait for longstarted app
+        time.sleep(2)
+
+        new_pids = self.pids_for_process()
+        assert len(new_pids) == 1, 'restart 1'
+
+        assert len(new_pids.intersection(pids)) == 0, 'restart all new'
