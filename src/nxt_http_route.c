@@ -1567,6 +1567,10 @@ nxt_http_route_find(nxt_http_routes_t *routes, nxt_str_t *name,
 {
     nxt_http_route_t  **route, **end;
 
+    if (routes == NULL) {
+        return NXT_DECLINED;
+    }
+
     route = &routes->route[0];
     end = route + routes->items;
 
