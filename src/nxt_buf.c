@@ -201,7 +201,6 @@ nxt_buf_completion(nxt_task_t *task, void *obj, void *data)
     nxt_buf_t  *b, *next, *parent;
 
     b = obj;
-    parent = data;
 
     nxt_debug(task, "buf completion: %p %p", b, b->mem.start);
 
@@ -275,7 +274,6 @@ nxt_buf_ts_completion(nxt_task_t *task, void *obj, void *data)
     nxt_buf_t  *b, *next, *parent;
 
     b = obj;
-    parent = data;
 
     if (nxt_buf_ts_handle(task, obj, data)) {
         return;

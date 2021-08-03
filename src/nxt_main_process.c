@@ -347,8 +347,6 @@ nxt_port_main_start_process_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_process_init_t     *init;
     nxt_common_app_conf_t  *app_conf;
 
-    ret = NXT_ERROR;
-
     rt = task->thread->runtime;
 
     process = nxt_main_process_new(task, rt);

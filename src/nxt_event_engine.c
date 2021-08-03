@@ -720,11 +720,10 @@ nxt_event_engine_buf_mem_free(nxt_event_engine_t *engine, nxt_buf_t *b)
 void
 nxt_event_engine_buf_mem_completion(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_event_engine_t  *engine;
     nxt_buf_t           *b, *next, *parent;
+    nxt_event_engine_t  *engine;
 
     b = obj;
-    parent = data;
 
     nxt_debug(task, "buf completion: %p %p", b, b->mem.start);
 
