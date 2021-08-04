@@ -92,6 +92,13 @@ framework.
 </para>
 </change>
 
+<change type="bugfix">
+<para>
+the router process crashed when a request was passed to an empty "routes"
+or "upstreams" using a variable "pass" option.
+</para>
+</change>
+
 </changes>
 
 
