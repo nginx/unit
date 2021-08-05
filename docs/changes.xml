@@ -99,6 +99,13 @@ or "upstreams" using a variable "pass" option.
 </para>
 </change>
 
+<change type="bugfix">
+<para>
+the router process crashed while matching a request to an empty array of
+source or destination address patterns.
+</para>
+</change>
+
 </changes>
 
 

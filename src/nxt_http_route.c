@@ -1936,6 +1936,11 @@ nxt_http_route_addr_rule(nxt_http_request_t *r,
     nxt_http_route_addr_pattern_t  *p;
 
     n = addr_rule->items;
+
+    if (n == 0) {
+        return 0;
+    }
+
     p = &addr_rule->addr_pattern[0] - 1;
 
     do {
