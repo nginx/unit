@@ -364,13 +364,13 @@ nxt_python_set_target(nxt_task_t *task, nxt_python_target_t *target,
     obj = PyDict_GetItemString(PyModule_GetDict(module), callable);
     if (nxt_slow_path(obj == NULL)) {
         nxt_alert(task, "Python failed to get \"%s\" from module \"%s\"",
-                  callable, module);
+                  callable, module_name);
         goto fail;
     }
 
     if (nxt_slow_path(PyCallable_Check(obj) == 0)) {
         nxt_alert(task, "\"%s\" in module \"%s\" is not a callable object",
-                  callable, module);
+                  callable, module_name);
         goto fail;
     }
 
