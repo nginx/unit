@@ -400,6 +400,8 @@ def unit_run():
     with open(temp_dir + '/unit.log', 'w') as log:
         unit_instance['process'] = subprocess.Popen(unitd_args, stderr=log)
 
+    Log.temp_dir = temp_dir
+
     if not waitforfiles(temp_dir + '/control.unit.sock'):
         _print_log()
         exit('Could not start unit')
@@ -409,7 +411,6 @@ def unit_run():
     unit_instance['unitd'] = unitd
 
     option.temp_dir = temp_dir
-    Log.temp_dir = temp_dir
 
     with open(temp_dir + '/unit.pid', 'r') as f:
         unit_instance['pid'] = f.read().rstrip()
@@ -487,7 +488,7 @@ def _check_alerts(*, log=None):
         print('skipped.')
 
 
-def _print_log(log):
+def _print_log(log=None):
     path = Log.get_path()
 
     print('Path to unit.log:\n' + path + '\n')
