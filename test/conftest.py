@@ -328,7 +328,14 @@ def run(request):
                 ):
                     os.remove(path)
                 else:
-                    shutil.rmtree(path)
+                    for attempt in range(10):
+                        try:
+                            shutil.rmtree(path)
+                            break
+                        except OSError as err:
+                            if err.errno != 16:
+                                raise
+                            time.sleep(1)
 
     # check descriptors
 
