@@ -8,7 +8,6 @@
 #include <nxt_http_route_addr.h>
 
 
-static nxt_bool_t nxt_str_looks_like_ipv6(const nxt_str_t *str);
 #if (NXT_INET6)
 static nxt_bool_t nxt_valid_ipv6_blocks(u_char *c, size_t len);
 #endif
@@ -57,7 +56,7 @@ nxt_http_route_addr_pattern_parse(nxt_mp_t *mp,
         goto parse_port;
     }
 
-    if (nxt_str_looks_like_ipv6(&addr)) {
+    if (nxt_inet6_probe(&addr)) {
 #if (NXT_INET6)
         u_char                           *end;
         uint8_t                          i;
@@ -301,22 +300,6 @@ parse_port:
     }
 
     return NXT_OK;
-}
-
-
-static nxt_bool_t
-nxt_str_looks_like_ipv6(const nxt_str_t *str)
-{
-    u_char  *colon, *end;
-
-    colon = nxt_memchr(str->start, ':', str->length);
-
-    if (colon != NULL) {
-        end = str->start + str->length;
-        colon = nxt_memchr(colon + 1, ':', end - (colon + 1));
-    }
-
-    return (colon != NULL);
 }
 
 

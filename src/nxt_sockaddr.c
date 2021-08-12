@@ -605,10 +605,35 @@ nxt_sockaddr_parse(nxt_mp_t *mp, nxt_str_t *addr)
 {
     nxt_sockaddr_t  *sa;
 
+    sa = nxt_sockaddr_parse_optport(mp, addr);
+
+    if (sa != NULL
+        && sa->u.sockaddr.sa_family != AF_UNIX
+        && nxt_sockaddr_port_number(sa) == 0)
+    {
+        nxt_thread_log_error(NXT_LOG_ERR,
+                             "The address \"%V\" must specify a port.", addr);
+        return NULL;
+    }
+
+    return sa;
+}
+
+
+nxt_sockaddr_t *
+nxt_sockaddr_parse_optport(nxt_mp_t *mp, nxt_str_t *addr)
+{
+    nxt_sockaddr_t  *sa;
+
+    if (addr->length == 0) {
+        nxt_thread_log_error(NXT_LOG_ERR, "socket address cannot be empty");
+        return NULL;
+    }
+
     if (addr->length > 6 && nxt_memcmp(addr->start, "unix:", 5) == 0) {
         sa = nxt_sockaddr_unix_parse(mp, addr);
 
-    } else if (addr->length != 0 && addr->start[0] == '[') {
+    } else if (addr->start[0] == '[' || nxt_inet6_probe(addr)) {
         sa = nxt_sockaddr_inet6_parse(mp, addr);
 
     } else {
@@ -703,44 +728,60 @@ nxt_sockaddr_inet6_parse(nxt_mp_t *mp, nxt_str_t *addr)
     nxt_int_t       ret, port;
     nxt_sockaddr_t  *sa;
 
-    length = addr->length - 1;
-    start = addr->start + 1;
+    if (addr->start[0] == '[') {
+        length = addr->length - 1;
+        start = addr->start + 1;
 
-    end = nxt_memchr(start, ']', length);
-
-    if (end != NULL) {
-        sa = nxt_sockaddr_alloc(mp, sizeof(struct sockaddr_in6),
-                                NXT_INET6_ADDR_STR_LEN);
-        if (nxt_slow_path(sa == NULL)) {
+        end = nxt_memchr(start, ']', length);
+        if (nxt_slow_path(end == NULL)) {
             return NULL;
         }
 
-        ret = nxt_inet6_addr(&sa->u.sockaddr_in6.sin6_addr, start, end - start);
+        p = end + 1;
 
-        if (nxt_fast_path(ret == NXT_OK)) {
-            p = end + 1;
-            length = (start + length) - p;
+    } else {
+        length = addr->length;
+        start = addr->start;
+        end = addr->start + addr->length;
+        p = NULL;
+    }
 
-            if (length > 2 && *p == ':') {
-                port = nxt_int_parse(p + 1, length - 1);
+    port = 0;
 
-                if (port > 0 && port < 65536) {
-                    sa->u.sockaddr_in6.sin6_port = htons((in_port_t) port);
-                    sa->u.sockaddr_in6.sin6_family = AF_INET6;
+    if (p != NULL) {
+        length = (start + length) - p;
 
-                    return sa;
-                }
-            }
+        if (length < 2 || *p != ':') {
+            nxt_thread_log_error(NXT_LOG_ERR, "invalid IPv6 address in \"%V\"",
+                                 addr);
+            return NULL;
+        }
 
+        port = nxt_int_parse(p + 1, length - 1);
+
+        if (port < 1 || port > 65535) {
             nxt_thread_log_error(NXT_LOG_ERR, "invalid port in \"%V\"", addr);
-
             return NULL;
         }
     }
 
-    nxt_thread_log_error(NXT_LOG_ERR, "invalid IPv6 address in \"%V\"", addr);
+    sa = nxt_sockaddr_alloc(mp, sizeof(struct sockaddr_in6),
+                            NXT_INET6_ADDR_STR_LEN);
+    if (nxt_slow_path(sa == NULL)) {
+        return NULL;
+    }
 
-    return NULL;
+    ret = nxt_inet6_addr(&sa->u.sockaddr_in6.sin6_addr, start, end - start);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        nxt_thread_log_error(NXT_LOG_ERR, "invalid IPv6 address in \"%V\"",
+                             addr);
+        return NULL;
+    }
+
+    sa->u.sockaddr_in6.sin6_family = AF_INET6;
+    sa->u.sockaddr_in6.sin6_port = htons((in_port_t) port);
+
+    return sa;
 
 #else  /* !(NXT_INET6) */
 
@@ -763,41 +804,48 @@ nxt_sockaddr_inet_parse(nxt_mp_t *mp, nxt_str_t *addr)
 
     p = nxt_memchr(addr->start, ':', addr->length);
 
-    if (nxt_fast_path(p != NULL)) {
-        inaddr = INADDR_ANY;
+    if (p == NULL) {
+        length = addr->length;
+
+    } else {
         length = p - addr->start;
+    }
 
-        if (length != 1 || addr->start[0] != '*') {
-            inaddr = nxt_inet_addr(addr->start, length);
+    inaddr = INADDR_ANY;
 
-            if (nxt_slow_path(inaddr == INADDR_NONE)) {
-                nxt_thread_log_error(NXT_LOG_ERR, "invalid address \"%V\"",
-                                     addr);
-                return NULL;
-            }
-        }
-
-        p++;
-        length = (addr->start + addr->length) - p;
-        port = nxt_int_parse(p, length);
-
-        if (port > 0 && port < 65536) {
-            sa = nxt_sockaddr_alloc(mp, sizeof(struct sockaddr_in),
-                                    NXT_INET_ADDR_STR_LEN);
-
-            if (nxt_fast_path(sa != NULL)) {
-                sa->u.sockaddr_in.sin_family = AF_INET;
-                sa->u.sockaddr_in.sin_port = htons((in_port_t) port);
-                sa->u.sockaddr_in.sin_addr.s_addr = inaddr;
-            }
-
-            return sa;
+    if (length != 1 || addr->start[0] != '*') {
+        inaddr = nxt_inet_addr(addr->start, length);
+        if (nxt_slow_path(inaddr == INADDR_NONE)) {
+            nxt_thread_log_error(NXT_LOG_ERR, "invalid address \"%V\"", addr);
+            return NULL;
         }
     }
 
-    nxt_thread_log_error(NXT_LOG_ERR, "invalid port in \"%V\"", addr);
+    port = 0;
 
-    return NULL;
+    if (p != NULL) {
+        p++;
+        length = (addr->start + addr->length) - p;
+
+        port = nxt_int_parse(p, length);
+
+        if (port < 1 || port > 65535) {
+            nxt_thread_log_error(NXT_LOG_ERR, "invalid port in \"%V\"", addr);
+            return NULL;
+        }
+    }
+
+    sa = nxt_sockaddr_alloc(mp, sizeof(struct sockaddr_in),
+                            NXT_INET_ADDR_STR_LEN);
+    if (nxt_slow_path(sa == NULL)) {
+        return NULL;
+    }
+
+    sa->u.sockaddr_in.sin_family = AF_INET;
+    sa->u.sockaddr_in.sin_addr.s_addr = inaddr;
+    sa->u.sockaddr_in.sin_port = htons((in_port_t) port);
+
+    return sa;
 }
 
 
@@ -1320,3 +1368,19 @@ nxt_inet6_addr(struct in6_addr *in6_addr, u_char *buf, size_t length)
 }
 
 #endif
+
+
+nxt_bool_t
+nxt_inet6_probe(nxt_str_t *str)
+{
+    u_char  *colon, *end;
+
+    colon = nxt_memchr(str->start, ':', str->length);
+
+    if (colon != NULL) {
+        end = str->start + str->length;
+        colon = nxt_memchr(colon + 1, ':', end - (colon + 1));
+    }
+
+    return (colon != NULL);
+}
