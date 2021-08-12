@@ -135,12 +135,12 @@ typedef struct {
 } nxt_http_route_table_t;
 
 
-typedef struct {
+struct nxt_http_route_addr_rule_s {
     /* The object must be the first field. */
     nxt_http_route_object_t        object:8;
     uint32_t                       items;
     nxt_http_route_addr_pattern_t  addr_pattern[0];
-} nxt_http_route_addr_rule_t;
+};
 
 
 typedef union {
@@ -194,8 +194,6 @@ static nxt_http_route_ruleset_t *nxt_http_route_ruleset_create(nxt_task_t *task,
 static nxt_http_route_rule_t *nxt_http_route_rule_name_create(nxt_task_t *task,
     nxt_mp_t *mp, nxt_conf_value_t *rule_cv, nxt_str_t *name,
     nxt_bool_t case_sensitive, nxt_http_route_encoding_t encoding);
-static nxt_http_route_addr_rule_t *nxt_http_route_addr_rule_create(
-    nxt_task_t *task, nxt_mp_t *mp, nxt_conf_value_t *cv);
 static nxt_http_route_rule_t *nxt_http_route_rule_create(nxt_task_t *task,
     nxt_mp_t *mp, nxt_conf_value_t *cv, nxt_bool_t case_sensitive,
     nxt_http_route_pattern_case_t pattern_case,
@@ -237,8 +235,6 @@ static nxt_int_t nxt_http_route_table(nxt_http_request_t *r,
     nxt_http_route_table_t *table);
 static nxt_int_t nxt_http_route_ruleset(nxt_http_request_t *r,
     nxt_http_route_ruleset_t *ruleset);
-static nxt_int_t nxt_http_route_addr_rule(nxt_http_request_t *r,
-    nxt_http_route_addr_rule_t *addr_rule, nxt_sockaddr_t *sockaddr);
 static nxt_int_t nxt_http_route_rule(nxt_http_request_t *r,
     nxt_http_route_rule_t *rule);
 static nxt_int_t nxt_http_route_header(nxt_http_request_t *r,
@@ -940,7 +936,7 @@ nxt_http_route_rule_create(nxt_task_t *task, nxt_mp_t *mp,
 }
 
 
-static nxt_http_route_addr_rule_t *
+nxt_http_route_addr_rule_t *
 nxt_http_route_addr_rule_create(nxt_task_t *task, nxt_mp_t *mp,
      nxt_conf_value_t *cv)
 {
@@ -1927,7 +1923,7 @@ nxt_http_route_addr_pattern_match(nxt_http_route_addr_pattern_t *p,
 }
 
 
-static nxt_int_t
+nxt_int_t
 nxt_http_route_addr_rule(nxt_http_request_t *r,
     nxt_http_route_addr_rule_t *addr_rule, nxt_sockaddr_t *sa)
 {

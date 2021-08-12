@@ -49,6 +49,12 @@ application restart control.
 </para>
 </change>
 
+<change type="feature">
+<para>
+client IP address replacement from specified HTTP header field.
+</para>
+</change>
+
 <change type="bugfix">
 <para>
 TLS connection was rejected for configuration with more than one

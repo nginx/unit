@@ -197,8 +197,9 @@ struct nxt_http_request_s {
 };
 
 
-typedef struct nxt_http_route_s       nxt_http_route_t;
-typedef struct nxt_http_route_rule_s  nxt_http_route_rule_t;
+typedef struct nxt_http_route_s            nxt_http_route_t;
+typedef struct nxt_http_route_rule_s       nxt_http_route_rule_t;
+typedef struct nxt_http_route_addr_rule_s  nxt_http_route_addr_rule_t;
 
 
 typedef struct {
@@ -252,6 +253,14 @@ typedef struct {
     void (*ws_frame_start)(nxt_task_t *task, nxt_http_request_t *r,
         nxt_buf_t *ws_frame);
 } nxt_http_proto_table_t;
+
+
+struct nxt_http_client_ip_s {
+    nxt_http_route_addr_rule_t  *source;
+    nxt_str_t                   *header;
+    uint32_t                    header_hash;
+    uint8_t                     recursive;    /* 1 bit */
+};
 
 
 #define NXT_HTTP_DATE_LEN  nxt_length("Wed, 31 Dec 1986 16:40:00 GMT")
@@ -311,6 +320,10 @@ nxt_int_t nxt_http_pass_segments(nxt_mp_t *mp, nxt_str_t *pass,
     nxt_str_t *segments, nxt_uint_t n);
 nxt_http_action_t *nxt_http_pass_application(nxt_task_t *task,
     nxt_router_conf_t *rtcf, nxt_str_t *name);
+nxt_http_route_addr_rule_t *nxt_http_route_addr_rule_create(
+    nxt_task_t *task, nxt_mp_t *mp, nxt_conf_value_t *cv);
+nxt_int_t nxt_http_route_addr_rule(nxt_http_request_t *r,
+    nxt_http_route_addr_rule_t *addr_rule, nxt_sockaddr_t *sockaddr);
 nxt_http_route_rule_t *nxt_http_route_types_rule_create(nxt_task_t *task,
     nxt_mp_t *mp, nxt_conf_value_t *types);
 nxt_int_t nxt_http_route_test_rule(nxt_http_request_t *r,

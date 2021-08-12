@@ -208,6 +208,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_setting_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_websocket_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_static_members[];
+static nxt_conf_vldt_object_t  nxt_conf_vldt_client_ip_members[];
 #if (NXT_TLS)
 static nxt_conf_vldt_object_t  nxt_conf_vldt_tls_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_session_members[];
@@ -351,6 +352,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_listener_members[] = {
         .name       = nxt_string("application"),
         .type       = NXT_CONF_VLDT_STRING,
         .validator  = nxt_conf_vldt_app_name,
+    }, {
+        .name       = nxt_string("client_ip"),
+        .type       = NXT_CONF_VLDT_OBJECT,
+        .validator  = nxt_conf_vldt_object,
+        .u.members  = nxt_conf_vldt_client_ip_members
     },
 
 #if (NXT_TLS)
@@ -361,6 +367,25 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_listener_members[] = {
         .u.members  = nxt_conf_vldt_tls_members,
     },
 #endif
+
+    NXT_CONF_VLDT_END
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_client_ip_members[] = {
+    {
+        .name       = nxt_string("source"),
+        .type       = NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
+        .validator  = nxt_conf_vldt_match_addrs,
+        .flags      = NXT_CONF_VLDT_REQUIRED
+    }, {
+        .name       = nxt_string("header"),
+        .type       = NXT_CONF_VLDT_STRING,
+        .flags      = NXT_CONF_VLDT_REQUIRED
+    }, {
+        .name       = nxt_string("recursive"),
+        .type       = NXT_CONF_VLDT_BOOLEAN,
+    },
 
     NXT_CONF_VLDT_END
 };
