@@ -1470,6 +1470,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     static nxt_str_t  conf_commands_path = nxt_string("/tls/conf_commands");
     static nxt_str_t  conf_cache_path = nxt_string("/tls/session/cache_size");
     static nxt_str_t  conf_timeout_path = nxt_string("/tls/session/timeout");
+    static nxt_str_t  conf_tickets = nxt_string("/tls/session/tickets");
 #endif
     static nxt_str_t  static_path = nxt_string("/settings/http/static");
     static nxt_str_t  websocket_path = nxt_string("/settings/http/websocket");
@@ -1876,6 +1877,9 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
                 tls_init->conf_cmds = nxt_conf_get_path(listener,
                                                         &conf_commands_path);
+
+                tls_init->tickets_conf = nxt_conf_get_path(listener,
+                                                           &conf_tickets);
 
                 if (nxt_conf_type(certificate) == NXT_CONF_ARRAY) {
                     n = nxt_conf_array_elements_count(certificate);

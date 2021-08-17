@@ -99,6 +99,12 @@ static nxt_int_t nxt_conf_vldt_tls_cache_size(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_tls_timeout(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
+#if (NXT_HAVE_OPENSSL_TLSEXT)
+static nxt_int_t nxt_conf_vldt_ticket_key(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_ticket_key_element(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value);
+#endif
 #endif
 static nxt_int_t nxt_conf_vldt_action(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
@@ -428,6 +434,17 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_session_members[] = {
         .name       = nxt_string("timeout"),
         .type       = NXT_CONF_VLDT_INTEGER,
         .validator  = nxt_conf_vldt_tls_timeout,
+    }, {
+        .name       = nxt_string("tickets"),
+        .type       = NXT_CONF_VLDT_STRING
+                     | NXT_CONF_VLDT_ARRAY
+                     | NXT_CONF_VLDT_BOOLEAN,
+#if (NXT_HAVE_OPENSSL_TLSEXT)
+        .validator  = nxt_conf_vldt_ticket_key,
+#else
+        .validator  = nxt_conf_vldt_unsupported,
+        .u.string   = "tickets",
+#endif
     },
 
     NXT_CONF_VLDT_END
@@ -462,6 +479,62 @@ nxt_conf_vldt_tls_timeout(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     if (timeout <= 0) {
         return nxt_conf_vldt_error(vldt, "The \"timeout\" number must be "
                                          "greater than zero.");
+    }
+
+    return NXT_OK;
+}
+
+#endif
+
+#if (NXT_HAVE_OPENSSL_TLSEXT)
+
+static nxt_int_t
+nxt_conf_vldt_ticket_key(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
+{
+    if (nxt_conf_type(value) == NXT_CONF_BOOLEAN) {
+        return NXT_OK;
+    }
+
+    if (nxt_conf_type(value) == NXT_CONF_ARRAY) {
+        return nxt_conf_vldt_array_iterator(vldt, value,
+                                            &nxt_conf_vldt_ticket_key_element);
+    }
+
+    /* NXT_CONF_STRING */
+
+    return nxt_conf_vldt_ticket_key_element(vldt, value);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_ticket_key_element(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value)
+{
+    nxt_str_t  key;
+    nxt_int_t  ret;
+
+    if (nxt_conf_type(value) != NXT_CONF_STRING) {
+        return nxt_conf_vldt_error(vldt, "The \"key\" array must "
+                                   "contain only string values.");
+    }
+
+    nxt_conf_get_string(value, &key);
+
+    ret = nxt_openssl_base64_decode(NULL, 0, key.start, key.length);
+    if (nxt_slow_path(ret == NXT_ERROR)) {
+        return NXT_ERROR;
+    }
+
+    if (ret == NXT_DECLINED) {
+        return nxt_conf_vldt_error(vldt, "Invalid Base64 format for the ticket "
+                                   "key \"%V\".", &key);
+    }
+
+    if (ret != 48 && ret != 80) {
+        return nxt_conf_vldt_error(vldt, "Invalid length %d of the ticket "
+                                   "key \"%V\".  Must be 48 or 80 bytes.",
+                                   ret, &key);
     }
 
     return NXT_OK;

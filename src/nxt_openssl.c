@@ -11,6 +11,8 @@
 #include <openssl/err.h>
 #include <openssl/rand.h>
 #include <openssl/x509v3.h>
+#include <openssl/bio.h>
+#include <openssl/evp.h>
 
 
 typedef struct {
@@ -49,6 +51,12 @@ static nxt_int_t nxt_openssl_chain_file(nxt_task_t *task, SSL_CTX *ctx,
 #if (NXT_HAVE_OPENSSL_CONF_CMD)
 static nxt_int_t nxt_ssl_conf_commands(nxt_task_t *task, SSL_CTX *ctx,
     nxt_conf_value_t *value, nxt_mp_t *mp);
+#endif
+#if (NXT_HAVE_OPENSSL_TLSEXT)
+static nxt_int_t nxt_tls_ticket_keys(nxt_task_t *task, SSL_CTX *ctx,
+    nxt_tls_init_t *tls_init, nxt_mp_t *mp);
+static int nxt_tls_ticket_key_callback(SSL *s, unsigned char *name,
+    unsigned char *iv, EVP_CIPHER_CTX *ectx,HMAC_CTX *hctx, int enc);
 #endif
 static void nxt_ssl_session_cache(SSL_CTX *ctx, size_t cache_size,
     time_t timeout);
@@ -350,6 +358,12 @@ nxt_openssl_server_init(nxt_task_t *task, nxt_mp_t *mp,
 
     nxt_ssl_session_cache(ctx, tls_init->cache_size, tls_init->timeout);
 
+#if (NXT_HAVE_OPENSSL_TLSEXT)
+    if (nxt_tls_ticket_keys(task, ctx, tls_init, mp) != NXT_OK) {
+        goto fail;
+    }
+#endif
+
     SSL_CTX_set_options(ctx, SSL_OP_CIPHER_SERVER_PREFERENCE);
 
     if (conf->ca_certificate != NULL) {
@@ -586,6 +600,241 @@ fail:
 }
 
 #endif
+
+#if (NXT_HAVE_OPENSSL_TLSEXT)
+
+static nxt_int_t
+nxt_tls_ticket_keys(nxt_task_t *task, SSL_CTX *ctx, nxt_tls_init_t *tls_init,
+    nxt_mp_t *mp)
+{
+    uint32_t           i;
+    nxt_int_t          ret;
+    nxt_str_t          value;
+    nxt_uint_t         count;
+    nxt_conf_value_t   *member, *tickets_conf;
+    nxt_tls_ticket_t   *ticket;
+    nxt_tls_tickets_t  *tickets;
+    u_char             buf[80];
+
+    tickets_conf = tls_init->tickets_conf;
+
+    if (tickets_conf == NULL) {
+        goto no_ticket;
+    }
+
+    if (nxt_conf_type(tickets_conf) == NXT_CONF_BOOLEAN) {
+        if (nxt_conf_get_boolean(tickets_conf) == 0) {
+            goto no_ticket;
+        }
+
+        return NXT_OK;
+    }
+
+    if (nxt_conf_type(tickets_conf) == NXT_CONF_ARRAY) {
+        count = nxt_conf_array_elements_count(tickets_conf);
+
+        if (count == 0) {
+            goto no_ticket;
+        }
+
+    } else {
+        /* nxt_conf_type(tickets_conf) == NXT_CONF_STRING */
+        count = 1;
+    }
+
+#ifdef SSL_CTRL_SET_TLSEXT_TICKET_KEY_CB
+
+    tickets = nxt_mp_get(mp, sizeof(nxt_tls_tickets_t)
+                             + count * sizeof(nxt_tls_ticket_t));
+    if (nxt_slow_path(tickets == NULL)) {
+        return NXT_ERROR;
+    }
+
+    tickets->count = count;
+    tls_init->conf->tickets = tickets;
+    i = 0;
+
+    do {
+        ticket = &tickets->tickets[i];
+
+        i++;
+
+        if (nxt_conf_type(tickets_conf) == NXT_CONF_ARRAY) {
+            member = nxt_conf_get_array_element(tickets_conf, count - i);
+            if (member == NULL) {
+                break;
+            }
+
+        } else {
+            /* nxt_conf_type(tickets_conf) == NXT_CONF_STRING */
+            member = tickets_conf;
+        }
+
+        nxt_conf_get_string(member, &value);
+
+        ret = nxt_openssl_base64_decode(buf, 80, value.start, value.length);
+        if (nxt_slow_path(ret == NXT_ERROR)) {
+            return NXT_ERROR;
+        }
+
+        if (ret == 48) {
+            ticket->aes128 = 1;
+            nxt_memcpy(ticket->aes_key, buf + 16, 16);
+            nxt_memcpy(ticket->hmac_key, buf + 32, 16);
+
+        } else {
+            ticket->aes128 = 0;
+            nxt_memcpy(ticket->hmac_key, buf + 16, 32);
+            nxt_memcpy(ticket->aes_key, buf + 48, 32);
+        }
+
+        nxt_memcpy(ticket->name, buf, 16);
+    } while (i < count);
+
+    if (SSL_CTX_set_tlsext_ticket_key_cb(ctx, nxt_tls_ticket_key_callback)
+        == 0)
+    {
+        nxt_openssl_log_error(task, NXT_LOG_ALERT,
+                      "Unit was built with Session Tickets support, however, "
+                      "now it is linked dynamically to an OpenSSL library "
+                      "which has no tlsext support, therefore Session Tickets "
+                      "are not available");
+
+        return NXT_ERROR;
+    }
+
+    return NXT_OK;
+
+#else
+    nxt_alert(task, "Setting custom session ticket keys is not supported with "
+                    "this version of OpenSSL library");
+
+    return NXT_ERROR;
+
+#endif
+
+no_ticket:
+
+    SSL_CTX_set_options(ctx, SSL_OP_NO_TICKET);
+
+    return NXT_OK;
+}
+
+
+#ifdef SSL_CTRL_SET_TLSEXT_TICKET_KEY_CB
+
+static int
+nxt_tls_ticket_key_callback(SSL *s, unsigned char *name, unsigned char *iv,
+    EVP_CIPHER_CTX *ectx, HMAC_CTX *hctx, int enc)
+{
+    size_t              size;
+    nxt_uint_t          i;
+    nxt_conn_t          *c;
+    const EVP_MD        *digest;
+    const EVP_CIPHER    *cipher;
+    nxt_tls_ticket_t    *ticket;
+    nxt_openssl_conn_t  *tls;
+
+    c = SSL_get_ex_data(s, nxt_openssl_connection_index);
+
+    if (nxt_slow_path(c == NULL)) {
+        nxt_thread_log_alert("SSL_get_ex_data() failed");
+        return -1;
+    }
+
+    tls = c->u.tls;
+    ticket = tls->conf->tickets->tickets;
+
+#ifdef OPENSSL_NO_SHA256
+    digest = EVP_sha1();
+#else
+    digest = EVP_sha256();
+#endif
+
+    if (enc == 1) {
+        /* encrypt session ticket */
+
+        nxt_debug(c->socket.task, "TLS session ticket encrypt");
+
+        if (ticket[0].aes128 == 1) {
+            cipher = EVP_aes_128_cbc();
+            size = 16;
+
+        } else {
+            cipher = EVP_aes_256_cbc();
+            size = 32;
+        }
+
+        if (RAND_bytes(iv, EVP_CIPHER_iv_length(cipher)) != 1) {
+            nxt_openssl_log_error(c->socket.task, NXT_LOG_ALERT,
+                                  "RAND_bytes() failed");
+            return -1;
+        }
+
+        if (EVP_EncryptInit_ex(ectx, cipher, NULL, ticket[0].aes_key, iv)
+            != 1)
+        {
+            nxt_openssl_log_error(c->socket.task, NXT_LOG_ALERT,
+                                  "EVP_EncryptInit_ex() failed");
+            return -1;
+        }
+
+        if (HMAC_Init_ex(hctx, ticket[0].hmac_key, size, digest, NULL) != 1) {
+            nxt_openssl_log_error(c->socket.task, NXT_LOG_ALERT,
+                                  "HMAC_Init_ex() failed");
+            return -1;
+        }
+
+        nxt_memcpy(name, ticket[0].name, 16);
+
+        return 1;
+
+    } else {
+        /* decrypt session ticket */
+
+        for (i = 0; i < tls->conf->tickets->count; i++) {
+            if (nxt_memcmp(name, ticket[i].name, 16) == 0) {
+                goto found;
+            }
+        }
+
+        nxt_debug(c->socket.task, "TLS session ticket decrypt, key not found");
+
+        return 0;
+
+    found:
+
+        nxt_debug(c->socket.task,
+                  "TLS session ticket decrypt, key number: \"%d\"", i);
+
+        if (ticket[i].aes128 == 1) {
+            cipher = EVP_aes_128_cbc();
+            size = 16;
+
+        } else {
+            cipher = EVP_aes_256_cbc();
+            size = 32;
+        }
+
+        if (EVP_DecryptInit_ex(ectx, cipher, NULL, ticket[i].aes_key, iv) != 1) {
+            nxt_openssl_log_error(c->socket.task, NXT_LOG_ALERT,
+                                  "EVP_DecryptInit_ex() failed");
+            return -1;
+        }
+
+        if (HMAC_Init_ex(hctx, ticket[i].hmac_key, size, digest, NULL) != 1) {
+            nxt_openssl_log_error(c->socket.task, NXT_LOG_ALERT,
+                                  "HMAC_Init_ex() failed");
+            return -1;
+        }
+
+        return (i == 0) ? 1 : 2 /* renew */;
+    }
+}
+
+#endif /* SSL_CTRL_SET_TLSEXT_TICKET_KEY_CB */
+
+#endif /* NXT_HAVE_OPENSSL_TLSEXT */
 
 
 static void
@@ -903,6 +1152,11 @@ nxt_openssl_server_free(nxt_task_t *task, nxt_tls_conf_t *conf)
         SSL_CTX_free(bundle->ctx);
         bundle = bundle->next;
     } while (bundle != NULL);
+
+    if (conf->tickets) {
+        nxt_memzero(conf->tickets->tickets,
+                    conf->tickets->count * sizeof(nxt_tls_ticket_t));
+    }
 
 #if (OPENSSL_VERSION_NUMBER >= 0x1010100fL \
      && OPENSSL_VERSION_NUMBER < 0x1010101fL)
@@ -1564,4 +1818,71 @@ nxt_openssl_copy_error(u_char *p, u_char *end)
     }
 
     return p;
+}
+
+
+nxt_int_t
+nxt_openssl_base64_decode(u_char *d, size_t dlen, const u_char *s, size_t slen)
+{
+    BIO        *bio, *b64;
+    nxt_int_t  count, ret;
+    u_char     buf[128];
+
+    b64 = BIO_new(BIO_f_base64());
+    if (nxt_slow_path(b64 == NULL)) {
+        goto error;
+    }
+
+    bio = BIO_new_mem_buf(s, slen);
+    if (nxt_slow_path(bio == NULL)) {
+        goto error;
+    }
+
+    bio = BIO_push(b64, bio);
+
+    BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);
+
+    count = 0;
+
+    if (d == NULL) {
+
+        for ( ;; ) {
+            ret = BIO_read(bio, buf, 128);
+
+            if (ret < 0) {
+                goto invalid;
+            }
+
+            count += ret;
+
+            if (ret != 128) {
+                break;
+            }
+        }
+
+    } else {
+        count = BIO_read(bio, d, dlen);
+
+        if (count < 0) {
+            goto invalid;
+        }
+    }
+
+    BIO_free_all(bio);
+
+    return count;
+
+error:
+
+    BIO_vfree(b64);
+    ERR_clear_error();
+
+    return NXT_ERROR;
+
+invalid:
+
+    BIO_free_all(bio);
+    ERR_clear_error();
+
+    return NXT_DECLINED;
 }

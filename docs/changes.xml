@@ -33,6 +33,12 @@ NGINX Unit updated to 1.25.0.
 
 <change type="feature">
 <para>
+TLS session tickets.
+</para>
+</change>
+
+<change type="feature">
+<para>
 TLS sessions cache.
 </para>
 </change>
