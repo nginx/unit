@@ -135,6 +135,18 @@ include Makefile.python
 include Makefile.perl
 endif
 
+# Debian 11
+ifeq ($(CODENAME),bullseye)
+include Makefile.php
+include Makefile.python27
+include Makefile.python39
+include Makefile.go
+include Makefile.perl
+include Makefile.ruby
+include Makefile.jsc-common
+include Makefile.jsc11
+endif
+
 # Debian 10
 ifeq ($(CODENAME),buster)
 include Makefile.php
