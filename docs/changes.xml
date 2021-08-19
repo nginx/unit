@@ -57,14 +57,14 @@ application restart control.
 
 <change type="feature">
 <para>
-client IP address replacement from specified HTTP header field.
+client IP address replacement from a specified HTTP header field.
 </para>
 </change>
 
 <change type="bugfix">
 <para>
-TLS connection was rejected for configuration with more than one
-certificate bundle in a listener if a client did not use SNI.
+TLS connections were rejected for configurations with multiple
+certificate bundles in a listener if the client did not use SNI.
 </para>
 </change>
 
@@ -72,13 +72,13 @@ certificate bundle in a listener if a client did not use SNI.
 <change type="bugfix">
 <para>
 the router process could crash on TLS connection open when multiple listeners
-with TLS certificate configured; the bug had appeared in 1.23.0.
+with TLS certificates were configured; the bug had appeared in 1.23.0.
 </para>
 </change>
 
 <change type="bugfix">
 <para>
-the router process could crash on rapid mutithreaded application
+the router process could crash with frequent mutithreaded application
 reconfiguration.
 </para>
 </change>
@@ -99,7 +99,7 @@ a full-form IPv6 in a listener address.
 
 <change type="bugfix">
 <para>
-compatibility issues with some Python ASGI apps, notably based on Starlette
+compatibility issues with some Python ASGI apps, notably based on the Starlette
 framework.
 </para>
 </change>
