@@ -10,6 +10,10 @@
 
 static nxt_int_t nxt_http_validate_host(nxt_str_t *host, nxt_mp_t *mp);
 static void nxt_http_request_start(nxt_task_t *task, void *obj, void *data);
+static nxt_int_t nxt_http_request_client_ip(nxt_task_t *task,
+    nxt_http_request_t *r);
+static nxt_sockaddr_t *nxt_http_request_client_ip_sockaddr(
+    nxt_http_request_t *r, u_char *start, size_t len);
 static void nxt_http_request_ready(nxt_task_t *task, void *obj, void *data);
 static void nxt_http_request_proto_info(nxt_task_t *task,
     nxt_http_request_t *r);
@@ -272,13 +276,159 @@ static const nxt_http_request_state_t  nxt_http_request_init_state
 static void
 nxt_http_request_start(nxt_task_t *task, void *obj, void *data)
 {
+    nxt_int_t           ret;
     nxt_http_request_t  *r;
 
     r = obj;
 
     r->state = &nxt_http_request_body_state;
 
+    ret = nxt_http_request_client_ip(task, r);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        nxt_http_request_error(task, r, NXT_HTTP_INTERNAL_SERVER_ERROR);
+    }
+
     nxt_http_request_read_body(task, r);
+}
+
+
+static nxt_int_t
+nxt_http_request_client_ip(nxt_task_t *task, nxt_http_request_t *r)
+{
+    u_char                *start, *p;
+    nxt_int_t             ret, i, len;
+    nxt_str_t             *header;
+    nxt_array_t           *fields_arr;  /* of nxt_http_field_t * */
+    nxt_sockaddr_t        *sa, *prev_sa;
+    nxt_http_field_t      *f, **fields;
+    nxt_http_client_ip_t  *client_ip;
+
+    client_ip = r->conf->socket_conf->client_ip;
+
+    if (client_ip == NULL) {
+        return NXT_OK;
+    }
+
+    ret = nxt_http_route_addr_rule(r, client_ip->source, r->remote);
+    if (ret <= 0) {
+        return NXT_OK;
+    }
+
+    header = client_ip->header;
+
+    fields_arr = nxt_array_create(r->mem_pool, 2, sizeof(nxt_http_field_t *));
+    if (nxt_slow_path(fields_arr == NULL)) {
+        return NXT_ERROR;
+    }
+
+    nxt_list_each(f, r->fields) {
+        if (f->hash == client_ip->header_hash
+            && f->name_length == client_ip->header->length
+            && f->value_length > 0
+            && nxt_memcasecmp(f->name, header->start, header->length) == 0)
+        {
+            fields = nxt_array_add(fields_arr);
+            if (nxt_slow_path(fields == NULL)) {
+                return NXT_ERROR;
+            }
+
+            *fields = f;
+        }
+    } nxt_list_loop;
+
+    prev_sa = r->remote;
+    fields = (nxt_http_field_t **) fields_arr->elts;
+
+    i = fields_arr->nelts;
+
+    while (i-- > 0) {
+        f = fields[i];
+        start = f->value;
+        len = f->value_length;
+
+        do {
+            for (p = start + len - 1; p > start; p--, len--) {
+                if (*p != ' ' && *p != ',') {
+                    break;
+                }
+            }
+
+            for (/* void */; p > start; p--) {
+                if (*p == ' ' || *p == ',') {
+                    p++;
+                    break;
+                }
+            }
+
+            sa = nxt_http_request_client_ip_sockaddr(r, p, len - (p - start));
+            if (nxt_slow_path(sa == NULL)) {
+                if (prev_sa != NULL) {
+                    r->remote = prev_sa;
+                }
+
+                return NXT_OK;
+            }
+
+            if (!client_ip->recursive) {
+                r->remote = sa;
+
+                return NXT_OK;
+            }
+
+            ret = nxt_http_route_addr_rule(r, client_ip->source, sa);
+            if (ret <= 0 || (i == 0 && p == start)) {
+                r->remote = sa;
+
+                return NXT_OK;
+            }
+
+            prev_sa = sa;
+            len = p - 1 - start;
+
+        } while (len > 0);
+    }
+
+    return NXT_OK;
+}
+
+
+static nxt_sockaddr_t *
+nxt_http_request_client_ip_sockaddr(nxt_http_request_t *r, u_char *start,
+    size_t len)
+{
+    nxt_str_t       addr;
+    nxt_sockaddr_t  *sa;
+
+    addr.start = start;
+    addr.length = len;
+
+    sa = nxt_sockaddr_parse_optport(r->mem_pool, &addr);
+    if (nxt_slow_path(sa == NULL)) {
+        return NULL;
+    }
+
+    switch (sa->u.sockaddr.sa_family) {
+        case AF_INET:
+            if (sa->u.sockaddr_in.sin_addr.s_addr == INADDR_ANY) {
+                return NULL;
+            }
+
+            break;
+
+#if (NXT_INET6)
+        case AF_INET6:
+            if (IN6_IS_ADDR_UNSPECIFIED(&sa->u.sockaddr_in6.sin6_addr)) {
+                return NULL;
+            }
+
+            break;
+#endif /* NXT_INET6 */
+
+        default:
+            return NULL;
+    }
+
+    return sa;
 }
 
 
@@ -348,9 +498,7 @@ nxt_http_application_handler(nxt_task_t *task, nxt_http_request_t *r,
         nxt_str_set(&r->server_name, "localhost");
     }
 
-    r->app_target = action->u.app.target;
-
-    nxt_router_process_http_request(task, r, action->u.app.application);
+    nxt_router_process_http_request(task, r, action);
 
     return NULL;
 }

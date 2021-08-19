@@ -271,6 +271,11 @@ static nxt_conf_map_t  nxt_ruby_app_conf[] = {
         NXT_CONF_MAP_INT32,
         offsetof(nxt_common_app_conf_t, u.ruby.threads),
     },
+    {
+        nxt_string("hooks"),
+        NXT_CONF_MAP_STR,
+        offsetof(nxt_common_app_conf_t, u.ruby.hooks),
+    }
 };
 
 
@@ -341,8 +346,6 @@ nxt_port_main_start_process_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_conf_value_t       *conf;
     nxt_process_init_t     *init;
     nxt_common_app_conf_t  *app_conf;
-
-    ret = NXT_ERROR;
 
     rt = task->thread->runtime;
 

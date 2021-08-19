@@ -100,6 +100,25 @@ class TestVariables(TestApplicationProto):
         assert self.get(url='/1')['status'] == 200
         assert self.get(url='/2')['status'] == 404
 
+    def test_variables_empty(self):
+        def update_pass(prefix):
+            assert 'success' in self.conf(
+                {
+                    "listeners": {
+                        "*:7080": {"pass": prefix + "/$method"},
+                    },
+                },
+            ), 'variables empty'
+
+        update_pass("routes");
+        assert self.get(url='/1')['status'] == 404
+
+        update_pass("upstreams");
+        assert self.get(url='/2')['status'] == 404
+
+        update_pass("applications");
+        assert self.get(url='/3')['status'] == 404
+
     def test_variables_invalid(self):
         def check_variables(routes):
             assert 'error' in self.conf(

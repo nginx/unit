@@ -21,7 +21,7 @@ static void nxt_http_proxy_upstream_ready(nxt_task_t *task,
     nxt_upstream_server_t *us);
 static void nxt_http_proxy_upstream_error(nxt_task_t *task,
     nxt_upstream_server_t *us);
-static nxt_http_action_t *nxt_http_proxy_handler(nxt_task_t *task,
+static nxt_http_action_t *nxt_http_proxy(nxt_task_t *task,
     nxt_http_request_t *r, nxt_http_action_t *action);
 static void nxt_http_proxy_header_send(nxt_task_t *task, void *obj, void *data);
 static void nxt_http_proxy_header_sent(nxt_task_t *task, void *obj, void *data);
@@ -50,7 +50,8 @@ static const nxt_upstream_peer_state_t  nxt_upstream_proxy_state = {
 
 
 nxt_int_t
-nxt_http_proxy_create(nxt_mp_t *mp, nxt_http_action_t *action)
+nxt_http_proxy_init(nxt_mp_t *mp, nxt_http_action_t *action,
+    nxt_http_action_conf_t *acf)
 {
     nxt_str_t             name;
     nxt_sockaddr_t        *sa;
@@ -58,7 +59,7 @@ nxt_http_proxy_create(nxt_mp_t *mp, nxt_http_action_t *action)
     nxt_upstream_proxy_t  *proxy;
 
     sa = NULL;
-    name = action->name;
+    nxt_conf_get_string(acf->proxy, &name);
 
     if (nxt_str_start(&name, "http://", 7)) {
         name.length -= 7;
@@ -92,7 +93,7 @@ nxt_http_proxy_create(nxt_mp_t *mp, nxt_http_action_t *action)
         up->type.proxy = proxy;
 
         action->u.upstream = up;
-        action->handler = nxt_http_proxy_handler;
+        action->handler = nxt_http_proxy;
     }
 
     return NXT_OK;
@@ -100,10 +101,16 @@ nxt_http_proxy_create(nxt_mp_t *mp, nxt_http_action_t *action)
 
 
 static nxt_http_action_t *
-nxt_http_proxy_handler(nxt_task_t *task, nxt_http_request_t *r,
+nxt_http_proxy(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_action_t *action)
 {
-    return nxt_upstream_proxy_handler(task, r, action->u.upstream);
+    nxt_upstream_t  *u;
+
+    u = action->u.upstream;
+
+    nxt_debug(task, "http proxy: \"%V\"", &u->name);
+
+    return nxt_upstream_proxy_handler(task, r, u);
 }
 
 

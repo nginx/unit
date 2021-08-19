@@ -264,7 +264,7 @@ nxt_python_start(nxt_task_t *task, nxt_process_data_t *data)
         goto fail;
     }
 
-    rc = nxt_py_proto.ctx_data_alloc(&python_init.ctx_data);
+    rc = nxt_py_proto.ctx_data_alloc(&python_init.ctx_data, 1);
     if (nxt_slow_path(rc != NXT_UNIT_OK)) {
         goto fail;
     }
@@ -364,13 +364,13 @@ nxt_python_set_target(nxt_task_t *task, nxt_python_target_t *target,
     obj = PyDict_GetItemString(PyModule_GetDict(module), callable);
     if (nxt_slow_path(obj == NULL)) {
         nxt_alert(task, "Python failed to get \"%s\" from module \"%s\"",
-                  callable, module);
+                  callable, module_name);
         goto fail;
     }
 
     if (nxt_slow_path(PyCallable_Check(obj) == 0)) {
         nxt_alert(task, "\"%s\" in module \"%s\" is not a callable object",
-                  callable, module);
+                  callable, module_name);
         goto fail;
     }
 
@@ -504,7 +504,7 @@ nxt_python_init_threads(nxt_python_app_conf_t *c)
     for (i = 0; i < c->threads - 1; i++) {
         ti = &nxt_py_threads[i];
 
-        res = nxt_py_proto.ctx_data_alloc(&ti->ctx_data);
+        res = nxt_py_proto.ctx_data_alloc(&ti->ctx_data, 0);
         if (nxt_slow_path(res != NXT_UNIT_OK)) {
             return NXT_UNIT_ERROR;
         }

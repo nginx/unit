@@ -288,4 +288,10 @@ nxt_buf_cpystr(nxt_buf_t *b, const nxt_str_t *str)
 }
 
 
+nxt_inline void
+nxt_buf_dummy_completion(nxt_task_t *task, void *obj, void *data)
+{
+}
+
+
 #endif /* _NXT_BUF_H_INCLIDED_ */

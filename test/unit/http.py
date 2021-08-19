@@ -45,7 +45,7 @@ class TestHTTP:
                 sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
             if 'wrapper' in kwargs:
-                server_hostname = headers.get('Host', 'localhost')
+                server_hostname = headers.get('Host', None)
                 sock = kwargs['wrapper'](sock, server_hostname=server_hostname)
 
             connect_args = addr if sock_type == 'unix' else (addr, port)

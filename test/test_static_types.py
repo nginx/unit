@@ -1,12 +1,11 @@
-import os
 from pathlib import Path
 
 import pytest
+
 from unit.applications.proto import TestApplicationProto
-from unit.option import option
 
 
-class TestShareTypes(TestApplicationProto):
+class TestStaticTypes(TestApplicationProto):
     prerequisites = {}
 
     @pytest.fixture(autouse=True)
@@ -36,7 +35,7 @@ class TestShareTypes(TestApplicationProto):
         assert resp['status'] == 200, 'status'
         assert resp['body'] == body, 'body'
 
-    def test_share_types_basic(self, temp_dir):
+    def test_static_types_basic(self, temp_dir):
         self.action_update({"share": temp_dir + "/assets"})
         self.check_body('/index.html', 'index')
         self.check_body('/file.xml', '.xml')
@@ -54,7 +53,7 @@ class TestShareTypes(TestApplicationProto):
         self.action_update({"share": temp_dir + "/assets", "types": [""]})
         assert self.get(url='/file.xml')['status'] == 403, 'no mtype'
 
-    def test_share_types_wildcard(self, temp_dir):
+    def test_static_types_wildcard(self, temp_dir):
         self.action_update(
             {"share": temp_dir + "/assets", "types": ["application/*"]}
         )
@@ -67,7 +66,7 @@ class TestShareTypes(TestApplicationProto):
         assert self.get(url='/file.xml')['status'] == 403, 'video * mtype xml'
         self.check_body('/file.mp4', '.mp4')
 
-    def test_share_types_negation(self, temp_dir):
+    def test_static_types_negation(self, temp_dir):
         self.action_update(
             {"share": temp_dir + "/assets", "types": ["!application/xml"]}
         )
@@ -85,7 +84,7 @@ class TestShareTypes(TestApplicationProto):
         self.check_body('/file.png', '.png')
         assert self.get(url='/file.jpg')['status'] == 403, 'negation sort jpg'
 
-    def test_share_types_regex(self, temp_dir):
+    def test_static_types_regex(self, temp_dir):
         self.action_update(
             {"share": temp_dir + "/assets", "types": ["~text/(html|plain)"]}
         )
@@ -93,7 +92,7 @@ class TestShareTypes(TestApplicationProto):
         self.check_body('/file.html', '.html')
         self.check_body('/file.txt', '.txt')
 
-    def test_share_types_case(self, temp_dir):
+    def test_static_types_case(self, temp_dir):
         self.action_update(
             {"share": temp_dir + "/assets", "types": ["!APpliCaTiOn/xMl"]}
         )
@@ -118,7 +117,7 @@ class TestShareTypes(TestApplicationProto):
             self.get(url='/file.xml')['status'] == 403
         ), 'mixed case video * negation'
 
-    def test_share_types_fallback(self, temp_dir):
+    def test_static_types_fallback(self, temp_dir):
         assert 'success' in self.conf(
             [
                 {
@@ -139,7 +138,7 @@ class TestShareTypes(TestApplicationProto):
         self.check_body('/file.php', '')
         self.check_body('/file.mp4', '.mp4')
 
-    def test_share_types_index(self, temp_dir):
+    def test_static_types_index(self, temp_dir):
         self.action_update(
             {"share": temp_dir + "/assets", "types": "application/xml"}
         )
@@ -147,7 +146,7 @@ class TestShareTypes(TestApplicationProto):
         self.check_body('/file.xml', '.xml')
         assert self.get(url='/file.mp4')['status'] == 403, 'forbidden mtype'
 
-    def test_share_types_custom_mime(self, temp_dir):
+    def test_static_types_custom_mime(self, temp_dir):
         self._load_conf(
             {
                 "listeners": {"*:7080": {"pass": "routes"}},

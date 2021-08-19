@@ -29,6 +29,11 @@ typedef struct {
 static nxt_int_t nxt_ruby_start(nxt_task_t *task,
     nxt_process_data_t *data);
 static VALUE nxt_ruby_init_basic(VALUE arg);
+
+static VALUE nxt_ruby_hook_procs_load(VALUE path);
+static VALUE nxt_ruby_hook_register(VALUE arg);
+static VALUE nxt_ruby_hook_call(VALUE name);
+
 static VALUE nxt_ruby_rack_init(nxt_ruby_rack_init_t *rack_init);
 
 static VALUE nxt_ruby_require_rubygems(VALUE arg);
@@ -78,6 +83,7 @@ static uint32_t  compat[] = {
     NXT_VERNUM, NXT_DEBUG,
 };
 
+static VALUE  nxt_ruby_hook_procs;
 static VALUE  nxt_ruby_rackup;
 static VALUE  nxt_ruby_call;
 
@@ -115,6 +121,10 @@ static VALUE  nxt_rb_server_addr_str;
 static VALUE  nxt_rb_server_name_str;
 static VALUE  nxt_rb_server_port_str;
 static VALUE  nxt_rb_server_protocol_str;
+static VALUE  nxt_rb_on_worker_boot;
+static VALUE  nxt_rb_on_worker_shutdown;
+static VALUE  nxt_rb_on_thread_boot;
+static VALUE  nxt_rb_on_thread_shutdown;
 
 static nxt_ruby_string_t nxt_rb_strings[] = {
     { nxt_string("80"), &nxt_rb_80_str },
@@ -132,6 +142,10 @@ static nxt_ruby_string_t nxt_rb_strings[] = {
     { nxt_string("SERVER_NAME"), &nxt_rb_server_name_str },
     { nxt_string("SERVER_PORT"), &nxt_rb_server_port_str },
     { nxt_string("SERVER_PROTOCOL"), &nxt_rb_server_protocol_str },
+    { nxt_string("on_worker_boot"), &nxt_rb_on_worker_boot },
+    { nxt_string("on_worker_shutdown"), &nxt_rb_on_worker_shutdown },
+    { nxt_string("on_thread_boot"), &nxt_rb_on_thread_boot },
+    { nxt_string("on_thread_shutdown"), &nxt_rb_on_thread_shutdown },
     { nxt_null_string, NULL },
 };
 
@@ -183,11 +197,70 @@ nxt_ruby_done_strings(void)
 }
 
 
+static VALUE
+nxt_ruby_hook_procs_load(VALUE path)
+{
+    VALUE  module, file, file_obj;
+
+    module = rb_define_module("Unit");
+
+    nxt_ruby_hook_procs = rb_hash_new();
+
+    rb_gc_register_address(&nxt_ruby_hook_procs);
+
+    rb_define_module_function(module, "on_worker_boot",
+                              &nxt_ruby_hook_register, 0);
+    rb_define_module_function(module, "on_worker_shutdown",
+                              &nxt_ruby_hook_register, 0);
+    rb_define_module_function(module, "on_thread_boot",
+                              &nxt_ruby_hook_register, 0);
+    rb_define_module_function(module, "on_thread_shutdown",
+                              &nxt_ruby_hook_register, 0);
+
+    file = rb_const_get(rb_cObject, rb_intern("File"));
+    file_obj = rb_funcall(file, rb_intern("read"), 1, path);
+
+    return rb_funcall(module, rb_intern("module_eval"), 3, file_obj, path,
+                      INT2NUM(1));
+}
+
+
+static VALUE
+nxt_ruby_hook_register(VALUE arg)
+{
+    VALUE  kernel, callee, callee_str;
+
+    rb_need_block();
+
+    kernel = rb_const_get(rb_cObject, rb_intern("Kernel"));
+    callee = rb_funcall(kernel, rb_intern("__callee__"), 0);
+    callee_str = rb_funcall(callee, rb_intern("to_s"), 0);
+
+    rb_hash_aset(nxt_ruby_hook_procs, callee_str, rb_block_proc());
+
+    return Qnil;
+}
+
+
+static VALUE
+nxt_ruby_hook_call(VALUE name)
+{
+    VALUE  proc;
+
+    proc = rb_hash_lookup(nxt_ruby_hook_procs, name);
+    if (proc == Qnil) {
+        return Qnil;
+    }
+
+    return rb_funcall(proc, rb_intern("call"), 0);
+}
+
+
 static nxt_int_t
 nxt_ruby_start(nxt_task_t *task, nxt_process_data_t *data)
 {
     int                    state, rc;
-    VALUE                  res;
+    VALUE                  res, path;
     nxt_ruby_ctx_t         ruby_ctx;
     nxt_unit_ctx_t         *unit_ctx;
     nxt_unit_init_t        ruby_unit_init;
@@ -231,6 +304,29 @@ nxt_ruby_start(nxt_task_t *task, nxt_process_data_t *data)
     }
 
     nxt_ruby_call = Qnil;
+    nxt_ruby_hook_procs = Qnil;
+
+    if (c->hooks.start != NULL) {
+        path = rb_str_new((const char *) c->hooks.start,
+                          (long) c->hooks.length);
+
+        rb_protect(nxt_ruby_hook_procs_load, path, &state);
+        rb_str_free(path);
+        if (nxt_slow_path(state != 0)) {
+            nxt_ruby_exception_log(NULL, NXT_LOG_ALERT,
+                                   "Failed to setup hooks");
+            return NXT_ERROR;
+        }
+    }
+
+    if (nxt_ruby_hook_procs != Qnil) {
+        rb_protect(nxt_ruby_hook_call, nxt_rb_on_worker_boot, &state);
+        if (nxt_slow_path(state != 0)) {
+            nxt_ruby_exception_log(NULL, NXT_LOG_ERR,
+                                   "Failed to call on_worker_boot()");
+            return NXT_ERROR;
+        }
+    }
 
     nxt_ruby_rackup = nxt_ruby_rack_init(&rack_init);
     if (nxt_slow_path(nxt_ruby_rackup == Qnil)) {
@@ -274,10 +370,34 @@ nxt_ruby_start(nxt_task_t *task, nxt_process_data_t *data)
         goto fail;
     }
 
+    if (nxt_ruby_hook_procs != Qnil) {
+        rb_protect(nxt_ruby_hook_call, nxt_rb_on_thread_boot, &state);
+        if (nxt_slow_path(state != 0)) {
+            nxt_ruby_exception_log(NULL, NXT_LOG_ERR,
+                                   "Failed to call on_thread_boot()");
+        }
+    }
+
     rc = (intptr_t) rb_thread_call_without_gvl(nxt_ruby_unit_run, unit_ctx,
                                                nxt_ruby_ubf, unit_ctx);
 
+    if (nxt_ruby_hook_procs != Qnil) {
+        rb_protect(nxt_ruby_hook_call, nxt_rb_on_thread_shutdown, &state);
+        if (nxt_slow_path(state != 0)) {
+            nxt_ruby_exception_log(NULL, NXT_LOG_ERR,
+                                   "Failed to call on_thread_shutdown()");
+        }
+    }
+
     nxt_ruby_join_threads(unit_ctx, c);
+
+    if (nxt_ruby_hook_procs != Qnil) {
+        rb_protect(nxt_ruby_hook_call, nxt_rb_on_worker_shutdown, &state);
+        if (nxt_slow_path(state != 0)) {
+            nxt_ruby_exception_log(NULL, NXT_LOG_ERR,
+                                   "Failed to call on_worker_shutdown()");
+        }
+    }
 
     nxt_unit_done(unit_ctx);
 
@@ -1069,13 +1189,17 @@ nxt_ruby_exception_log(nxt_unit_request_info_t *req, uint32_t level,
         return;
     }
 
+    eclass = rb_class_name(rb_class_of(err));
+
+    msg = rb_funcall(err, rb_intern("message"), 0);
     ary = rb_funcall(err, rb_intern("backtrace"), 0);
-    if (nxt_slow_path(RARRAY_LEN(ary) == 0)) {
+
+    if (RARRAY_LEN(ary) == 0) {
+        nxt_unit_req_log(req, level, "Ruby: %s (%s)", RSTRING_PTR(msg),
+                         RSTRING_PTR(eclass));
+
         return;
     }
-
-    eclass = rb_class_name(rb_class_of(err));
-    msg = rb_funcall(err, rb_intern("message"), 0);
 
     nxt_unit_req_log(req, level, "Ruby: %s: %s (%s)",
                      RSTRING_PTR(RARRAY_PTR(ary)[0]),
@@ -1114,6 +1238,10 @@ nxt_ruby_atexit(void)
 
     if (nxt_ruby_call != Qnil) {
         rb_gc_unregister_address(&nxt_ruby_call);
+    }
+
+    if (nxt_ruby_hook_procs != Qnil) {
+        rb_gc_unregister_address(&nxt_ruby_hook_procs);
     }
 
     nxt_ruby_done_strings();
@@ -1178,6 +1306,7 @@ nxt_ruby_thread_create_gvl(void *rctx)
 static VALUE
 nxt_ruby_thread_func(VALUE arg)
 {
+    int             state;
     nxt_unit_ctx_t  *ctx;
     nxt_ruby_ctx_t  *rctx;
 
@@ -1190,8 +1319,24 @@ nxt_ruby_thread_func(VALUE arg)
         goto fail;
     }
 
+    if (nxt_ruby_hook_procs != Qnil) {
+        rb_protect(nxt_ruby_hook_call, nxt_rb_on_thread_boot, &state);
+        if (nxt_slow_path(state != 0)) {
+            nxt_ruby_exception_log(NULL, NXT_LOG_ERR,
+                                   "Failed to call on_thread_boot()");
+        }
+    }
+
     (void) rb_thread_call_without_gvl(nxt_ruby_unit_run, ctx,
                                       nxt_ruby_ubf, ctx);
+
+    if (nxt_ruby_hook_procs != Qnil) {
+        rb_protect(nxt_ruby_hook_call, nxt_rb_on_thread_shutdown, &state);
+        if (nxt_slow_path(state != 0)) {
+            nxt_ruby_exception_log(NULL, NXT_LOG_ERR,
+                                   "Failed to call on_thread_shutdown()");
+        }
+    }
 
     nxt_unit_done(ctx);
 

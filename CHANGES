@@ -1,4 +1,44 @@
 
+Changes with Unit 1.25.0                                         19 Aug 2021
+
+    *) Feature: client IP address replacement from a specified HTTP header
+       field.
+
+    *) Feature: TLS sessions cache.
+
+    *) Feature: TLS session tickets.
+
+    *) Feature: application restart control.
+
+    *) Feature: process and thread lifecycle hooks in Ruby.
+
+    *) Bugfix: the router process could crash on TLS connection open when
+       multiple listeners with TLS certificates were configured; the bug had
+       appeared in 1.23.0.
+
+    *) Bugfix: TLS connections were rejected for configurations with
+       multiple certificate bundles in a listener if the client did not use
+       SNI.
+
+    *) Bugfix: the router process could crash with frequent mutithreaded
+       application reconfiguration.
+
+    *) Bugfix: compatibility issues with some Python ASGI apps, notably
+       based on the Starlette framework.
+
+    *) Bugfix: a descriptor and memory leak occurred in the router process
+       when an app process stopped or crashed.
+
+    *) Bugfix: the controller or router process could crash if the
+       configuration contained a full-form IPv6 in a listener address.
+
+    *) Bugfix: the router process crashed when a request was passed to an
+       empty "routes" or "upstreams" using a variable "pass" option.
+
+    *) Bugfix: the router process crashed while matching a request to an
+       empty array of source or destination address patterns.
+
+
 Changes with Unit 1.24.0                                         27 May 2021
 
     *) Change: PHP added to the default MIME type list.

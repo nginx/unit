@@ -66,6 +66,23 @@ if [ $NXT_OPENSSL = YES ]; then
                           return 0;
                       }"
     . auto/feature
+
+
+    nxt_feature="OpenSSL tlsext support"
+    nxt_feature_name=NXT_HAVE_OPENSSL_TLSEXT
+    nxt_feature_run=
+    nxt_feature_incs=
+    nxt_feature_libs="$NXT_OPENSSL_LIBS"
+    nxt_feature_test="#include <openssl/ssl.h>
+
+                      int main() {
+                          #if (OPENSSL_NO_TLSEXT)
+                          #error OpenSSL: no tlsext support.
+                          #else
+                          return 0;
+                          #endif
+                      }"
+    . auto/feature
 fi
 
 

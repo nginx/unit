@@ -78,6 +78,10 @@ nxt_upstream_find(nxt_upstreams_t *upstreams, nxt_str_t *name,
     uint32_t        i, n;
     nxt_upstream_t  *upstream;
 
+    if (upstreams == NULL) {
+        return NXT_DECLINED;
+    }
+
     upstream = &upstreams->upstream[0];
     n = upstreams->items;
 

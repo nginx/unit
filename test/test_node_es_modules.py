@@ -1,6 +1,7 @@
+from distutils.version import LooseVersion
+
 import pytest
 
-from distutils.version import LooseVersion
 from unit.applications.lang.node import TestApplicationNode
 from unit.applications.websockets import TestApplicationWebsocket
 

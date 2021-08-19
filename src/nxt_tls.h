@@ -28,14 +28,16 @@
 
 typedef struct nxt_tls_conf_s         nxt_tls_conf_t;
 typedef struct nxt_tls_bundle_conf_s  nxt_tls_bundle_conf_t;
+typedef struct nxt_tls_init_s         nxt_tls_init_t;
+typedef struct nxt_tls_ticket_s       nxt_tls_ticket_t;
+typedef struct nxt_tls_tickets_s      nxt_tls_tickets_t;
 
 typedef struct {
     nxt_int_t                     (*library_init)(nxt_task_t *task);
     void                          (*library_free)(nxt_task_t *task);
 
-    nxt_int_t                     (*server_init)(nxt_task_t *task,
-                                      nxt_tls_conf_t *conf, nxt_mp_t *mp,
-                                      nxt_conf_value_t *conf_cmds,
+    nxt_int_t                     (*server_init)(nxt_task_t *task, nxt_mp_t *mp,
+                                      nxt_tls_init_t *tls_init,
                                       nxt_bool_t last);
     void                          (*server_free)(nxt_task_t *task,
                                       nxt_tls_conf_t *conf);
@@ -63,6 +65,8 @@ struct nxt_tls_conf_s {
     nxt_tls_bundle_conf_t         *bundle;
     nxt_lvlhsh_t                  bundle_hash;
 
+    nxt_tls_tickets_t             *tickets;
+
     void                          (*conn_init)(nxt_task_t *task,
                                       nxt_tls_conf_t *conf, nxt_conn_t *c);
 
@@ -78,12 +82,38 @@ struct nxt_tls_conf_s {
 };
 
 
+struct nxt_tls_init_s {
+    size_t                        cache_size;
+    nxt_time_t                    timeout;
+    nxt_conf_value_t              *conf_cmds;
+    nxt_conf_value_t              *tickets_conf;
+
+    nxt_tls_conf_t                *conf;
+};
+
+
+struct nxt_tls_ticket_s {
+    uint8_t                       aes128;
+    u_char                        name[16];
+    u_char                        hmac_key[32];
+    u_char                        aes_key[32];
+};
+
+
+struct nxt_tls_tickets_s {
+    nxt_uint_t                    count;
+    nxt_tls_ticket_t              tickets[];
+};
+
+
 #if (NXT_HAVE_OPENSSL)
 extern const nxt_tls_lib_t        nxt_openssl_lib;
 
 void nxt_cdecl nxt_openssl_log_error(nxt_task_t *task, nxt_uint_t level,
     const char *fmt, ...);
 u_char *nxt_openssl_copy_error(u_char *p, u_char *end);
+nxt_int_t nxt_openssl_base64_decode(u_char *d, size_t dlen, const u_char *s,
+    size_t slen);
 #endif
 
 #if (NXT_HAVE_GNUTLS)

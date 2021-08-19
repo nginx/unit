@@ -1,12 +1,13 @@
 import os
 import subprocess
+from pathlib import Path
 
 import pytest
 
 from unit.applications.proto import TestApplicationProto
 
 
-class TestShareMount(TestApplicationProto):
+class TestStaticMount(TestApplicationProto):
     prerequisites = {'features': ['chroot']}
 
     @pytest.fixture(autouse=True)
@@ -17,12 +18,9 @@ class TestShareMount(TestApplicationProto):
         os.makedirs(temp_dir + '/assets/dir/mount')
         os.makedirs(temp_dir + '/assets/dir/dir')
         os.makedirs(temp_dir + '/assets/mount')
-        with open(temp_dir + '/assets/index.html', 'w') as index, open(
-            temp_dir + '/assets/dir/dir/file', 'w'
-        ) as file, open(temp_dir + '/assets/mount/index.html', 'w') as mount:
-            index.write('index')
-            file.write('file')
-            mount.write('mount')
+        Path(temp_dir + '/assets/index.html').write_text('index')
+        Path(temp_dir + '/assets/dir/dir/file').write_text('file')
+        Path(temp_dir + '/assets/mount/index.html').write_text('mount')
 
         try:
             process = subprocess.Popen(
@@ -66,7 +64,7 @@ class TestShareMount(TestApplicationProto):
         except:
             pytest.fail('Can\'t run umount process.')
 
-    def test_share_mount(self, temp_dir, skip_alert):
+    def test_static_mount(self, temp_dir, skip_alert):
         skip_alert(r'opening.*failed')
 
         resp = self.get(url='/mount/')
@@ -89,7 +87,7 @@ class TestShareMount(TestApplicationProto):
         assert resp['status'] == 200
         assert resp['body'] == 'mount'
 
-    def test_share_mount_two_blocks(self, temp_dir, skip_alert):
+    def test_static_mount_two_blocks(self, temp_dir, skip_alert):
         skip_alert(r'opening.*failed')
 
         os.symlink(temp_dir + '/assets/dir', temp_dir + '/assets/link')
@@ -117,7 +115,7 @@ class TestShareMount(TestApplicationProto):
         assert self.get(url='/mount/')['status'] == 200, 'block enabled'
         assert self.head(url='/mount/')['status'] == 403, 'block disabled'
 
-    def test_share_mount_chroot(self, temp_dir, skip_alert):
+    def test_static_mount_chroot(self, temp_dir, skip_alert):
         skip_alert(r'opening.*failed')
 
         assert 'success' in self.conf(

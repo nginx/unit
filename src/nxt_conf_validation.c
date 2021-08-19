@@ -95,6 +95,16 @@ static nxt_int_t nxt_conf_vldt_object_conf_commands(nxt_conf_validation_t *vldt,
 #endif
 static nxt_int_t nxt_conf_vldt_certificate_element(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value);
+static nxt_int_t nxt_conf_vldt_tls_cache_size(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_tls_timeout(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
+#if (NXT_HAVE_OPENSSL_TLSEXT)
+static nxt_int_t nxt_conf_vldt_ticket_key(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_ticket_key_element(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value);
+#endif
 #endif
 static nxt_int_t nxt_conf_vldt_action(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
@@ -204,8 +214,10 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_setting_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_websocket_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_static_members[];
+static nxt_conf_vldt_object_t  nxt_conf_vldt_client_ip_members[];
 #if (NXT_TLS)
 static nxt_conf_vldt_object_t  nxt_conf_vldt_tls_members[];
+static nxt_conf_vldt_object_t  nxt_conf_vldt_session_members[];
 #endif
 static nxt_conf_vldt_object_t  nxt_conf_vldt_match_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_python_target_members[];
@@ -346,6 +358,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_listener_members[] = {
         .name       = nxt_string("application"),
         .type       = NXT_CONF_VLDT_STRING,
         .validator  = nxt_conf_vldt_app_name,
+    }, {
+        .name       = nxt_string("client_ip"),
+        .type       = NXT_CONF_VLDT_OBJECT,
+        .validator  = nxt_conf_vldt_object,
+        .u.members  = nxt_conf_vldt_client_ip_members
     },
 
 #if (NXT_TLS)
@@ -356,6 +373,25 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_listener_members[] = {
         .u.members  = nxt_conf_vldt_tls_members,
     },
 #endif
+
+    NXT_CONF_VLDT_END
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_client_ip_members[] = {
+    {
+        .name       = nxt_string("source"),
+        .type       = NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
+        .validator  = nxt_conf_vldt_match_addrs,
+        .flags      = NXT_CONF_VLDT_REQUIRED
+    }, {
+        .name       = nxt_string("header"),
+        .type       = NXT_CONF_VLDT_STRING,
+        .flags      = NXT_CONF_VLDT_REQUIRED
+    }, {
+        .name       = nxt_string("recursive"),
+        .type       = NXT_CONF_VLDT_BOOLEAN,
+    },
 
     NXT_CONF_VLDT_END
 };
@@ -378,10 +414,131 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_tls_members[] = {
         .validator  = nxt_conf_vldt_unsupported,
         .u.string   = "conf_commands",
 #endif
+    }, {
+        .name       = nxt_string("session"),
+        .type       = NXT_CONF_VLDT_OBJECT,
+        .validator  = nxt_conf_vldt_object,
+        .u.members  = nxt_conf_vldt_session_members,
     },
 
     NXT_CONF_VLDT_END
 };
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_session_members[] = {
+    {
+        .name       = nxt_string("cache_size"),
+        .type       = NXT_CONF_VLDT_INTEGER,
+        .validator  = nxt_conf_vldt_tls_cache_size,
+    }, {
+        .name       = nxt_string("timeout"),
+        .type       = NXT_CONF_VLDT_INTEGER,
+        .validator  = nxt_conf_vldt_tls_timeout,
+    }, {
+        .name       = nxt_string("tickets"),
+        .type       = NXT_CONF_VLDT_STRING
+                     | NXT_CONF_VLDT_ARRAY
+                     | NXT_CONF_VLDT_BOOLEAN,
+#if (NXT_HAVE_OPENSSL_TLSEXT)
+        .validator  = nxt_conf_vldt_ticket_key,
+#else
+        .validator  = nxt_conf_vldt_unsupported,
+        .u.string   = "tickets",
+#endif
+    },
+
+    NXT_CONF_VLDT_END
+};
+
+
+static nxt_int_t
+nxt_conf_vldt_tls_cache_size(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data)
+{
+    int64_t  cache_size;
+
+    cache_size = nxt_conf_get_number(value);
+
+    if (cache_size < 0) {
+        return nxt_conf_vldt_error(vldt, "The \"cache_size\" number must not "
+                                         "be negative.");
+    }
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_tls_timeout(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
+{
+    int64_t  timeout;
+
+    timeout = nxt_conf_get_number(value);
+
+    if (timeout <= 0) {
+        return nxt_conf_vldt_error(vldt, "The \"timeout\" number must be "
+                                         "greater than zero.");
+    }
+
+    return NXT_OK;
+}
+
+#endif
+
+#if (NXT_HAVE_OPENSSL_TLSEXT)
+
+static nxt_int_t
+nxt_conf_vldt_ticket_key(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
+{
+    if (nxt_conf_type(value) == NXT_CONF_BOOLEAN) {
+        return NXT_OK;
+    }
+
+    if (nxt_conf_type(value) == NXT_CONF_ARRAY) {
+        return nxt_conf_vldt_array_iterator(vldt, value,
+                                            &nxt_conf_vldt_ticket_key_element);
+    }
+
+    /* NXT_CONF_STRING */
+
+    return nxt_conf_vldt_ticket_key_element(vldt, value);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_ticket_key_element(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value)
+{
+    nxt_str_t  key;
+    nxt_int_t  ret;
+
+    if (nxt_conf_type(value) != NXT_CONF_STRING) {
+        return nxt_conf_vldt_error(vldt, "The \"key\" array must "
+                                   "contain only string values.");
+    }
+
+    nxt_conf_get_string(value, &key);
+
+    ret = nxt_openssl_base64_decode(NULL, 0, key.start, key.length);
+    if (nxt_slow_path(ret == NXT_ERROR)) {
+        return NXT_ERROR;
+    }
+
+    if (ret == NXT_DECLINED) {
+        return nxt_conf_vldt_error(vldt, "Invalid Base64 format for the ticket "
+                                   "key \"%V\".", &key);
+    }
+
+    if (ret != 48 && ret != 80) {
+        return nxt_conf_vldt_error(vldt, "Invalid length %d of the ticket "
+                                   "key \"%V\".  Must be 48 or 80 bytes.",
+                                   ret, &key);
+    }
+
+    return NXT_OK;
+}
 
 #endif
 
@@ -732,6 +889,9 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_ruby_members[] = {
         .name       = nxt_string("threads"),
         .type       = NXT_CONF_VLDT_INTEGER,
         .validator  = nxt_conf_vldt_threads,
+    }, {
+        .name       = nxt_string("hooks"),
+        .type       = NXT_CONF_VLDT_STRING
     },
 
     NXT_CONF_VLDT_NEXT(nxt_conf_vldt_common_members)
@@ -1215,7 +1375,7 @@ static nxt_int_t
 nxt_conf_vldt_mtypes_extension(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value)
 {
-    nxt_str_t                   ext, *dup_type;
+    nxt_str_t                   exten, *dup_type;
     nxt_conf_vldt_mtypes_ctx_t  *ctx;
 
     ctx = vldt->ctx;
@@ -1225,24 +1385,24 @@ nxt_conf_vldt_mtypes_extension(nxt_conf_validation_t *vldt,
                                    "contain only strings.", ctx->type);
     }
 
-    nxt_conf_get_string(value, &ext);
+    nxt_conf_get_string(value, &exten);
 
-    if (ext.length == 0) {
+    if (exten.length == 0) {
         return nxt_conf_vldt_error(vldt, "An empty file extension for "
                                          "the \"%V\" MIME type.", ctx->type);
     }
 
-    dup_type = nxt_http_static_mtypes_hash_find(&ctx->hash, &ext);
+    dup_type = nxt_http_static_mtype_get(&ctx->hash, &exten);
 
     if (dup_type->length != 0) {
         return nxt_conf_vldt_error(vldt, "The \"%V\" file extension has been "
                                          "declared for \"%V\" and \"%V\" "
                                          "MIME types at the same time.",
-                                         &ext, dup_type, ctx->type);
+                                         &exten, dup_type, ctx->type);
     }
 
-    return nxt_http_static_mtypes_hash_add(ctx->pool, &ctx->hash,
-                                           &ext, ctx->type);
+    return nxt_http_static_mtypes_hash_add(ctx->pool, &ctx->hash, &exten,
+                                           ctx->type);
 }
 
 

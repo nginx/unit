@@ -955,7 +955,6 @@ nxt_h1p_request_body_read(nxt_task_t *task, nxt_http_request_t *r)
         } else {
             size = nxt_min(body_buffer_size, size);
             b->mem.free = nxt_cpymem(b->mem.free, in->mem.pos, size);
-            body_buffer_size -= size;
         }
 
         in->mem.pos += size;

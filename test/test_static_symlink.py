@@ -1,21 +1,19 @@
 import os
+from pathlib import Path
 
 import pytest
 
 from unit.applications.proto import TestApplicationProto
 
 
-class TestShareSymlink(TestApplicationProto):
+class TestStaticSymlink(TestApplicationProto):
     prerequisites = {'features': ['chroot']}
 
     @pytest.fixture(autouse=True)
     def setup_method_fixture(self, temp_dir):
         os.makedirs(temp_dir + '/assets/dir/dir')
-        with open(temp_dir + '/assets/index.html', 'w') as index, open(
-            temp_dir + '/assets/dir/file', 'w'
-        ) as file:
-            index.write('0123456789')
-            file.write('blah')
+        Path(temp_dir + '/assets/index.html').write_text('0123456789')
+        Path(temp_dir + '/assets/dir/file').write_text('blah')
 
         self._load_conf(
             {
@@ -24,7 +22,7 @@ class TestShareSymlink(TestApplicationProto):
             }
         )
 
-    def test_share_symlink(self, temp_dir, skip_alert):
+    def test_static_symlink(self, temp_dir, skip_alert):
         skip_alert(r'opening.*failed')
 
         os.symlink(temp_dir + '/assets/dir', temp_dir + '/assets/link')
@@ -48,7 +46,7 @@ class TestShareSymlink(TestApplicationProto):
 
         assert self.get(url='/link/file')['status'] == 200, 'symlink enabled'
 
-    def test_share_symlink_two_blocks(self, temp_dir, skip_alert):
+    def test_static_symlink_two_blocks(self, temp_dir, skip_alert):
         skip_alert(r'opening.*failed')
 
         os.symlink(temp_dir + '/assets/dir', temp_dir + '/assets/link')
@@ -76,7 +74,7 @@ class TestShareSymlink(TestApplicationProto):
         assert self.get(url='/link/file')['status'] == 200, 'block enabled'
         assert self.head(url='/link/file')['status'] == 403, 'block disabled'
 
-    def test_share_symlink_chroot(self, temp_dir, skip_alert):
+    def test_static_symlink_chroot(self, temp_dir, skip_alert):
         skip_alert(r'opening.*failed')
 
         os.symlink(

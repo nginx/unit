@@ -1751,6 +1751,10 @@ class TestRouting(TestApplicationProto):
         self.route_match_invalid({"source": "*:1-a"})
         self.route_match_invalid({"source": "*:65536"})
 
+    def test_routes_match_source_none(self):
+        self.route_match({"source": []})
+        assert self.get()['status'] == 404, 'source none'
+
     def test_routes_match_destination(self):
         assert 'success' in self.conf(
             {"*:7080": {"pass": "routes"}, "*:7081": {"pass": "routes"}},

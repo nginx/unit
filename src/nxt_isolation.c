@@ -126,10 +126,10 @@ nxt_isolation_main_prefork(nxt_task_t *task, nxt_process_t *process,
             return ret;
         }
 
-        has_mnt = 0;
-
 #if (NXT_HAVE_CLONE_NEWNS)
         has_mnt = nxt_is_clone_flag_set(process->isolation.clone.flags, NEWNS);
+#else
+        has_mnt = 0;
 #endif
 
         if (process->user_cred->uid == 0 && !has_mnt) {

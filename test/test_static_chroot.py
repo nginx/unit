@@ -6,17 +6,14 @@ import pytest
 from unit.applications.proto import TestApplicationProto
 
 
-class TestShareChroot(TestApplicationProto):
+class TestStaticChroot(TestApplicationProto):
     prerequisites = {'features': ['chroot']}
 
     @pytest.fixture(autouse=True)
     def setup_method_fixture(self, temp_dir):
         os.makedirs(temp_dir + '/assets/dir')
-        with open(temp_dir + '/assets/index.html', 'w') as index, open(
-            temp_dir + '/assets/dir/file', 'w'
-        ) as file:
-            index.write('0123456789')
-            file.write('blah')
+        Path(temp_dir + '/assets/index.html').write_text('0123456789')
+        Path(temp_dir + '/assets/dir/file').write_text('blah')
 
         test = Path(__file__)
         self.test_path = '/' + test.parent.name + '/' + test.name
@@ -28,7 +25,7 @@ class TestShareChroot(TestApplicationProto):
             }
         )
 
-    def test_share_chroot(self, temp_dir):
+    def test_static_chroot(self, temp_dir):
         assert self.get(url='/dir/file')['status'] == 200, 'default chroot'
         assert self.get(url='/index.html')['status'] == 200, 'default chroot 2'
 
@@ -44,7 +41,10 @@ class TestShareChroot(TestApplicationProto):
         assert self.get(url='/index.html')['status'] == 403, 'chroot 403 2'
         assert self.get(url='/file')['status'] == 403, 'chroot 403'
 
-    def test_share_chroot_permission(self, temp_dir):
+    def test_static_chroot_permission(self, is_su, temp_dir):
+        if is_su:
+            pytest.skip('does\'t work under root')
+
         os.chmod(temp_dir + '/assets/dir', 0o100)
 
         assert 'success' in self.conf(
@@ -57,7 +57,7 @@ class TestShareChroot(TestApplicationProto):
 
         assert self.get(url='/dir/file')['status'] == 200, 'chroot'
 
-    def test_share_chroot_empty(self, temp_dir):
+    def test_static_chroot_empty(self, temp_dir):
         assert 'success' in self.conf(
             {"share": temp_dir + "/assets", "chroot": ""}, 'routes/0/action',
         ), 'configure chroot empty absolute'
@@ -74,7 +74,7 @@ class TestShareChroot(TestApplicationProto):
             self.get(url=self.test_path)['status'] == 200
         ), 'chroot empty relative'
 
-    def test_share_chroot_relative(self, is_su, temp_dir):
+    def test_static_chroot_relative(self, is_su, temp_dir):
         if is_su:
             pytest.skip('does\'t work under root')
 
@@ -96,7 +96,7 @@ class TestShareChroot(TestApplicationProto):
 
         assert self.get(url=self.test_path)['status'] == 200, 'relative'
 
-    def test_share_chroot_invalid(self, temp_dir):
+    def test_static_chroot_invalid(self, temp_dir):
         assert 'error' in self.conf(
             {"share": temp_dir, "chroot": True}, 'routes/0/action',
         ), 'configure chroot error'

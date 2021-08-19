@@ -21,6 +21,7 @@ static nxt_int_t nxt_port_msg_chk_insert(nxt_task_t *task, nxt_port_t *port,
 static nxt_port_send_msg_t *nxt_port_msg_alloc(nxt_port_send_msg_t *m);
 static void nxt_port_write_handler(nxt_task_t *task, void *obj, void *data);
 static nxt_port_send_msg_t *nxt_port_msg_first(nxt_port_t *port);
+nxt_inline void nxt_port_msg_close_fd(nxt_port_send_msg_t *msg);
 static nxt_buf_t *nxt_port_buf_completion(nxt_task_t *task,
     nxt_work_queue_t *wq, nxt_buf_t *b, size_t sent, nxt_bool_t mmap_mode);
 static nxt_port_send_msg_t *nxt_port_msg_insert_tail(nxt_port_t *port,
@@ -449,19 +450,7 @@ next_fragment:
                 goto fail;
             }
 
-            if (msg->close_fd) {
-                if (msg->fd[0] != -1) {
-                    nxt_fd_close(msg->fd[0]);
-
-                    msg->fd[0] = -1;
-                }
-
-                if (msg->fd[1] != -1) {
-                    nxt_fd_close(msg->fd[1]);
-
-                    msg->fd[1] = -1;
-                }
-            }
+            nxt_port_msg_close_fd(msg);
 
             msg->buf = nxt_port_buf_completion(task, wq, msg->buf, plain_size,
                                                m == NXT_PORT_METHOD_MMAP);
@@ -524,6 +513,12 @@ next_fragment:
 
         } else {
             if (nxt_slow_path(n == NXT_ERROR)) {
+                if (msg->link.next == NULL) {
+                    nxt_port_msg_close_fd(msg);
+
+                    nxt_port_release_send_msg(msg);
+                }
+
                 goto fail;
             }
 
@@ -588,6 +583,27 @@ nxt_port_msg_first(nxt_port_t *port)
     nxt_thread_mutex_unlock(&port->write_mutex);
 
     return msg;
+}
+
+
+nxt_inline void
+nxt_port_msg_close_fd(nxt_port_send_msg_t *msg)
+{
+    if (!msg->close_fd) {
+        return;
+    }
+
+    if (msg->fd[0] != -1) {
+        nxt_fd_close(msg->fd[0]);
+
+        msg->fd[0] = -1;
+    }
+
+    if (msg->fd[1] != -1) {
+        nxt_fd_close(msg->fd[1]);
+
+        msg->fd[1] = -1;
+    }
 }
 
 
@@ -1315,19 +1331,7 @@ nxt_port_error_handler(nxt_task_t *task, void *obj, void *data)
 
     nxt_queue_each(msg, &port->messages, nxt_port_send_msg_t, link) {
 
-        if (msg->close_fd) {
-            if (msg->fd[0] != -1) {
-                nxt_fd_close(msg->fd[0]);
-
-                msg->fd[0] = -1;
-            }
-
-            if (msg->fd[1] != -1) {
-                nxt_fd_close(msg->fd[1]);
-
-                msg->fd[1] = -1;
-            }
-        }
+        nxt_port_msg_close_fd(msg);
 
         for (b = msg->buf; b != NULL; b = next) {
             next = b->next;

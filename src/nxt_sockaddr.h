@@ -91,12 +91,15 @@ NXT_EXPORT nxt_bool_t nxt_sockaddr_cmp(nxt_sockaddr_t *sa1,
 NXT_EXPORT size_t nxt_sockaddr_ntop(nxt_sockaddr_t *sa, u_char *buf,
     u_char *end, nxt_bool_t port);
 NXT_EXPORT nxt_sockaddr_t *nxt_sockaddr_parse(nxt_mp_t *mp, nxt_str_t *addr);
+NXT_EXPORT nxt_sockaddr_t *nxt_sockaddr_parse_optport(nxt_mp_t *mp,
+    nxt_str_t *addr);
 NXT_EXPORT void nxt_job_sockaddr_parse(nxt_job_sockaddr_parse_t *jbs);
 NXT_EXPORT in_addr_t nxt_inet_addr(u_char *buf, size_t len);
 #if (NXT_INET6)
 NXT_EXPORT nxt_int_t nxt_inet6_addr(struct in6_addr *in6_addr, u_char *buf,
     size_t len);
 #endif
+NXT_EXPORT nxt_bool_t nxt_inet6_probe(nxt_str_t *addr);
 
 
 #define NXT_INET_ADDR_STR_LEN     nxt_length("255.255.255.255:65535")
