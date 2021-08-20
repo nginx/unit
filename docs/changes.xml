@@ -77,7 +77,7 @@ bundles in a listener if the client did not use SNI.
 
 <change type="bugfix">
 <para>
-the router process could crash with frequent mutithreaded application
+the router process could crash with frequent multithreaded application
 reconfiguration.
 </para>
 </change>
