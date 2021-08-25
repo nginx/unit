@@ -92,20 +92,6 @@ struct nxt_tls_init_s {
 };
 
 
-struct nxt_tls_ticket_s {
-    uint8_t                       aes128;
-    u_char                        name[16];
-    u_char                        hmac_key[32];
-    u_char                        aes_key[32];
-};
-
-
-struct nxt_tls_tickets_s {
-    nxt_uint_t                    count;
-    nxt_tls_ticket_t              tickets[];
-};
-
-
 #if (NXT_HAVE_OPENSSL)
 extern const nxt_tls_lib_t        nxt_openssl_lib;
 

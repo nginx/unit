@@ -16,16 +16,30 @@
 
 
 typedef struct {
-    SSL             *session;
-    nxt_conn_t      *conn;
+    SSL               *session;
+    nxt_conn_t        *conn;
 
-    int             ssl_error;
-    uint8_t         times;      /* 2 bits */
-    uint8_t         handshake;  /* 1 bit  */
+    int               ssl_error;
+    uint8_t           times;      /* 2 bits */
+    uint8_t           handshake;  /* 1 bit  */
 
-    nxt_tls_conf_t  *conf;
-    nxt_buf_mem_t   buffer;
+    nxt_tls_conf_t    *conf;
+    nxt_buf_mem_t     buffer;
 } nxt_openssl_conn_t;
+
+
+struct nxt_tls_ticket_s {
+    u_char            name[16];
+    u_char            hmac_key[32];
+    u_char            aes_key[32];
+    uint8_t           size;
+};
+
+
+struct nxt_tls_tickets_s {
+    nxt_uint_t        count;
+    nxt_tls_ticket_t  tickets[];
+};
 
 
 typedef enum {
@@ -677,18 +691,19 @@ nxt_tls_ticket_keys(nxt_task_t *task, SSL_CTX *ctx, nxt_tls_init_t *tls_init,
             return NXT_ERROR;
         }
 
+        nxt_memcpy(ticket->name, buf, 16);
+
         if (ret == 48) {
-            ticket->aes128 = 1;
             nxt_memcpy(ticket->aes_key, buf + 16, 16);
             nxt_memcpy(ticket->hmac_key, buf + 32, 16);
+            ticket->size = 16;
 
         } else {
-            ticket->aes128 = 0;
             nxt_memcpy(ticket->hmac_key, buf + 16, 32);
             nxt_memcpy(ticket->aes_key, buf + 48, 32);
+            ticket->size = 32;
         }
 
-        nxt_memcpy(ticket->name, buf, 16);
     } while (i < count);
 
     if (SSL_CTX_set_tlsext_ticket_key_cb(ctx, nxt_tls_ticket_key_callback)
@@ -727,7 +742,6 @@ static int
 nxt_tls_ticket_key_callback(SSL *s, unsigned char *name, unsigned char *iv,
     EVP_CIPHER_CTX *ectx, HMAC_CTX *hctx, int enc)
 {
-    size_t              size;
     nxt_uint_t          i;
     nxt_conn_t          *c;
     const EVP_MD        *digest;
@@ -745,25 +759,14 @@ nxt_tls_ticket_key_callback(SSL *s, unsigned char *name, unsigned char *iv,
     tls = c->u.tls;
     ticket = tls->conf->tickets->tickets;
 
-#ifdef OPENSSL_NO_SHA256
-    digest = EVP_sha1();
-#else
-    digest = EVP_sha256();
-#endif
+    i = 0;
 
     if (enc == 1) {
         /* encrypt session ticket */
 
         nxt_debug(c->socket.task, "TLS session ticket encrypt");
 
-        if (ticket[0].aes128 == 1) {
-            cipher = EVP_aes_128_cbc();
-            size = 16;
-
-        } else {
-            cipher = EVP_aes_256_cbc();
-            size = 32;
-        }
+        cipher = (ticket[0].size == 16) ? EVP_aes_128_cbc() : EVP_aes_256_cbc();
 
         if (RAND_bytes(iv, EVP_CIPHER_iv_length(cipher)) != 1) {
             nxt_openssl_log_error(c->socket.task, NXT_LOG_ALERT,
@@ -771,32 +774,17 @@ nxt_tls_ticket_key_callback(SSL *s, unsigned char *name, unsigned char *iv,
             return -1;
         }
 
-        if (EVP_EncryptInit_ex(ectx, cipher, NULL, ticket[0].aes_key, iv)
-            != 1)
-        {
-            nxt_openssl_log_error(c->socket.task, NXT_LOG_ALERT,
-                                  "EVP_EncryptInit_ex() failed");
-            return -1;
-        }
-
-        if (HMAC_Init_ex(hctx, ticket[0].hmac_key, size, digest, NULL) != 1) {
-            nxt_openssl_log_error(c->socket.task, NXT_LOG_ALERT,
-                                  "HMAC_Init_ex() failed");
-            return -1;
-        }
-
         nxt_memcpy(name, ticket[0].name, 16);
-
-        return 1;
 
     } else {
         /* decrypt session ticket */
 
-        for (i = 0; i < tls->conf->tickets->count; i++) {
+        do {
             if (nxt_memcmp(name, ticket[i].name, 16) == 0) {
                 goto found;
             }
-        }
+
+        } while (++i < tls->conf->tickets->count);
 
         nxt_debug(c->socket.task, "TLS session ticket decrypt, key not found");
 
@@ -807,29 +795,32 @@ nxt_tls_ticket_key_callback(SSL *s, unsigned char *name, unsigned char *iv,
         nxt_debug(c->socket.task,
                   "TLS session ticket decrypt, key number: \"%d\"", i);
 
-        if (ticket[i].aes128 == 1) {
-            cipher = EVP_aes_128_cbc();
-            size = 16;
+        enc = (i == 0) ? 1 : 2 /* renew */;
 
-        } else {
-            cipher = EVP_aes_256_cbc();
-            size = 32;
-        }
-
-        if (EVP_DecryptInit_ex(ectx, cipher, NULL, ticket[i].aes_key, iv) != 1) {
-            nxt_openssl_log_error(c->socket.task, NXT_LOG_ALERT,
-                                  "EVP_DecryptInit_ex() failed");
-            return -1;
-        }
-
-        if (HMAC_Init_ex(hctx, ticket[i].hmac_key, size, digest, NULL) != 1) {
-            nxt_openssl_log_error(c->socket.task, NXT_LOG_ALERT,
-                                  "HMAC_Init_ex() failed");
-            return -1;
-        }
-
-        return (i == 0) ? 1 : 2 /* renew */;
+        cipher = (ticket[i].size == 16) ? EVP_aes_128_cbc() : EVP_aes_256_cbc();
     }
+
+    if (EVP_DecryptInit_ex(ectx, cipher, NULL, ticket[i].aes_key, iv) != 1) {
+        nxt_openssl_log_error(c->socket.task, NXT_LOG_ALERT,
+                              "EVP_DecryptInit_ex() failed");
+        return -1;
+    }
+
+#ifdef OPENSSL_NO_SHA256
+    digest = EVP_sha1();
+#else
+    digest = EVP_sha256();
+#endif
+
+    if (HMAC_Init_ex(hctx, ticket[i].hmac_key, ticket[i].size, digest, NULL)
+        != 1)
+    {
+        nxt_openssl_log_error(c->socket.task, NXT_LOG_ALERT,
+                              "HMAC_Init_ex() failed");
+        return -1;
+    }
+
+    return enc;
 }
 
 #endif /* SSL_CTRL_SET_TLSEXT_TICKET_KEY_CB */
