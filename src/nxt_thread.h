@@ -142,7 +142,7 @@ nxt_thread_yield()                                                            \
 #endif
 
 
-#if (PTHREAD_STACK_MIN)
+#if defined(PTHREAD_STACK_MIN)
 #define NXT_THREAD_STACK_MIN  PTHREAD_STACK_MIN
 
 #else
