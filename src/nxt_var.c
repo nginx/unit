@@ -90,6 +90,21 @@ static uint32_t           nxt_var_count;
 static nxt_var_handler_t  *nxt_var_index;
 
 
+void
+nxt_var_raw(nxt_var_t *var, nxt_str_t *str)
+{
+    str->length = var->length;
+    str->start = nxt_var_raw_start(var);
+}
+
+
+nxt_bool_t
+nxt_var_is_const(nxt_var_t *var)
+{
+    return (var->vars == 0);
+}
+
+
 static nxt_int_t
 nxt_var_hash_test(nxt_lvlhsh_query_t *lhq, void *data)
 {
@@ -439,9 +454,8 @@ nxt_var_query(nxt_task_t *task, nxt_var_query_t *query, nxt_var_t *var,
     nxt_var_sub_t    *subs;
     nxt_var_value_t  *val;
 
-    if (var->vars == 0) {
-        str->length = var->length;
-        str->start = nxt_var_raw_start(var);
+    if (nxt_var_is_const(var)) {
+        nxt_var_raw(var, str);
         return;
     }
 
