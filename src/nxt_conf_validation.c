@@ -1733,14 +1733,15 @@ static nxt_int_t
 nxt_conf_vldt_thread_stack_size(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data)
 {
-    int64_t  size;
+    int64_t  size, min_size;
 
     size = nxt_conf_get_number(value);
+    min_size = sysconf(_SC_THREAD_STACK_MIN);
 
-    if (size < NXT_THREAD_STACK_MIN) {
+    if (size < min_size) {
         return nxt_conf_vldt_error(vldt, "The \"thread_stack_size\" number "
                                    "must be equal to or greater than %d.",
-                                   NXT_THREAD_STACK_MIN);
+                                   min_size);
     }
 
     if ((size % nxt_pagesize) != 0) {
