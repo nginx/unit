@@ -37,6 +37,13 @@ fixed building with glibc 2.34, notably Fedora 35.
 </para>
 </change>
 
+<change type="bugfix">
+<para>
+established WebSocket connections could stop reading frames from the client
+after the corresponding listener had been reconfigured.
+</para>
+</change>
+
 </changes>
 
 
