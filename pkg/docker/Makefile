@@ -12,13 +12,13 @@ EXPORT_DIR := $(VERSION)
 MODULES ?= go jsc node perl php python ruby minimal
 
 VERSION_minimal ?=
-CONTAINER_minimal ?= debian:buster-slim
+CONTAINER_minimal ?= debian:bullseye-slim
 CONFIGURE_minimal ?=
 INSTALL_minimal ?=	version
 define COPY_minimal
 endef
 
-VERSION_go ?=		1.15
+VERSION_go ?=		1.17
 CONTAINER_go ?=		golang:$(VERSION_go)
 CONFIGURE_go ?=		go --go-path=$$GOPATH
 INSTALL_go ?=		go-install-src libunit-install
@@ -34,7 +34,7 @@ CONFIGURE_jsc ?=	java --jars=/usr/share/unit-jsc-common/
 INSTALL_jsc ?=		java-shared-install java-install
 COPY_jsc =	 		COPY --from=BUILDER /usr/share/unit-jsc-common/ /usr/share/unit-jsc-common/
 
-VERSION_node ?=		15
+VERSION_node ?=		16
 CONTAINER_node ?=	node:$(VERSION_node)
 CONFIGURE_node ?=	nodejs --node-gyp=/usr/local/lib/node_modules/npm/bin/node-gyp-bin/node-gyp
 INSTALL_node ?=		node node-install libunit-install
@@ -44,7 +44,7 @@ COPY --from=BUILDER /usr/include/nxt_* /usr/include/\n\$
 COPY --from=BUILDER /usr/local/lib/node_modules/unit-http/ /usr/local/lib/node_modules/unit-http/
 endef
 
-VERSION_perl ?=		5.32
+VERSION_perl ?=		5.34
 CONTAINER_perl ?=	perl:$(VERSION_perl)
 CONFIGURE_perl ?=	perl
 INSTALL_perl ?=		perl-install
@@ -62,7 +62,7 @@ CONFIGURE_python ?=	python --config=/usr/local/bin/python3-config
 INSTALL_python ?=	python3-install
 COPY_python =
 
-VERSION_ruby ?=		2.7
+VERSION_ruby ?=		3.0
 CONTAINER_ruby ?=	ruby:$(VERSION_ruby)
 CONFIGURE_ruby ?=	ruby
 INSTALL_ruby ?=		ruby-install
