@@ -33,7 +33,8 @@ typedef enum {
 
 
 typedef enum {
-    NXT_CONF_VLDT_REQUIRED = 1,
+    NXT_CONF_VLDT_REQUIRED  = 1 << 0,
+    NXT_CONF_VLDT_VAR       = 1 << 1,
 } nxt_conf_vldt_flags_t;
 
 
@@ -73,8 +74,8 @@ static nxt_int_t nxt_conf_vldt_type(nxt_conf_validation_t *vldt,
     nxt_str_t *name, nxt_conf_value_t *value, nxt_conf_vldt_type_t type);
 static nxt_int_t nxt_conf_vldt_error(nxt_conf_validation_t *vldt,
     const char *fmt, ...);
-static nxt_int_t nxt_conf_vldt_var(nxt_conf_validation_t *vldt,
-    const char *option, nxt_str_t *value);
+static nxt_int_t nxt_conf_vldt_var(nxt_conf_validation_t *vldt, nxt_str_t *name,
+    nxt_str_t *value);
 nxt_inline nxt_int_t nxt_conf_vldt_unsupported(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 
@@ -354,6 +355,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_listener_members[] = {
         .name       = nxt_string("pass"),
         .type       = NXT_CONF_VLDT_STRING,
         .validator  = nxt_conf_vldt_pass,
+        .flags      = NXT_CONF_VLDT_VAR,
     }, {
         .name       = nxt_string("application"),
         .type       = NXT_CONF_VLDT_STRING,
@@ -607,6 +609,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_pass_action_members[] = {
         .name       = nxt_string("pass"),
         .type       = NXT_CONF_VLDT_STRING,
         .validator  = nxt_conf_vldt_pass,
+        .flags      = NXT_CONF_VLDT_VAR,
     },
 
     NXT_CONF_VLDT_END
@@ -646,6 +649,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_share_action_members[] = {
         .validator  = nxt_conf_vldt_unsupported,
         .u.string   = "chroot",
 #endif
+        .flags      = NXT_CONF_VLDT_VAR,
     }, {
         .name       = nxt_string("follow_symlinks"),
         .type       = NXT_CONF_VLDT_BOOLEAN,
@@ -1163,7 +1167,6 @@ nxt_conf_validate(nxt_conf_validation_t *vldt)
     nxt_int_t  ret;
 
     ret = nxt_conf_vldt_type(vldt, NULL, vldt->conf, NXT_CONF_VLDT_OBJECT);
-
     if (ret != NXT_OK) {
         return ret;
     }
@@ -1290,14 +1293,14 @@ nxt_conf_vldt_unsupported(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 
 
 static nxt_int_t
-nxt_conf_vldt_var(nxt_conf_validation_t *vldt, const char *option,
+nxt_conf_vldt_var(nxt_conf_validation_t *vldt, nxt_str_t *name,
     nxt_str_t *value)
 {
     u_char  error[NXT_MAX_ERROR_STR];
 
     if (nxt_var_test(value, error) != NXT_OK) {
-        return nxt_conf_vldt_error(vldt, "%s in the \"%s\" value.",
-                                   error, option);
+        return nxt_conf_vldt_error(vldt, "%s in the \"%V\" value.",
+                                   error, name);
     }
 
     return NXT_OK;
@@ -1487,10 +1490,6 @@ nxt_conf_vldt_pass(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     static nxt_str_t  targets_str = nxt_string("targets");
 
     nxt_conf_get_string(value, &pass);
-
-    if (nxt_is_var(&pass)) {
-        return nxt_conf_vldt_var(vldt, "pass", &pass);
-    }
 
     ret = nxt_http_pass_segments(vldt->pool, &pass, segments, 3);
 
@@ -2280,7 +2279,7 @@ nxt_conf_vldt_object(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 {
     uint32_t                index;
     nxt_int_t               ret;
-    nxt_str_t               name;
+    nxt_str_t               name, var;
     nxt_conf_value_t        *member;
     nxt_conf_vldt_object_t  *vals;
 
@@ -2337,8 +2336,22 @@ nxt_conf_vldt_object(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
                 continue;
             }
 
-            ret = nxt_conf_vldt_type(vldt, &name, member, vals->type);
+            if (vals->flags & NXT_CONF_VLDT_VAR
+                && nxt_conf_type(member) == NXT_CONF_STRING)
+            {
+                nxt_conf_get_string(member, &var);
 
+                if (nxt_is_var(&var)) {
+                    ret = nxt_conf_vldt_var(vldt, &name, &var);
+                    if (ret != NXT_OK) {
+                        return ret;
+                    }
+
+                    break;
+                }
+           }
+
+            ret = nxt_conf_vldt_type(vldt, &name, member, vals->type);
             if (ret != NXT_OK) {
                 return ret;
             }

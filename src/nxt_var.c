@@ -9,6 +9,7 @@
 struct nxt_var_s {
     size_t              length;
     nxt_uint_t          vars;
+    uint8_t             strz;  /* 1 bit */
     u_char              data[];
 
 /*
@@ -229,7 +230,7 @@ nxt_var_index_init(void)
 
 
 nxt_var_t *
-nxt_var_compile(nxt_str_t *str, nxt_mp_t *mp)
+nxt_var_compile(nxt_str_t *str, nxt_mp_t *mp, nxt_bool_t strz)
 {
     u_char          *p, *end, *next, *src;
     size_t          size;
@@ -258,18 +259,23 @@ nxt_var_compile(nxt_str_t *str, nxt_mp_t *mp)
 
     size = sizeof(nxt_var_t) + n * sizeof(nxt_var_sub_t) + str->length;
 
-    var = nxt_mp_get(mp, size);
+    var = nxt_mp_get(mp, size + strz);
     if (nxt_slow_path(var == NULL)) {
         return NULL;
     }
 
     var->length = str->length;
     var->vars = n;
+    var->strz = strz;
 
     subs = nxt_var_subs(var);
     src = nxt_var_raw_start(var);
 
     nxt_memcpy(src, str->start, str->length);
+
+    if (strz) {
+        src[str->length] = '\0';
+    }
 
     n = 0;
     p = str->start;
@@ -585,7 +591,7 @@ nxt_var_query_finish(nxt_task_t *task, nxt_var_query_t *query)
             length += str->length - subs[j].length;
         }
 
-        p = nxt_mp_nget(query->values.mem_pool, length);
+        p = nxt_mp_nget(query->values.mem_pool, length + var->strz);
         if (nxt_slow_path(p == NULL)) {
             query->failed = 1;
             goto done;
@@ -612,10 +618,16 @@ nxt_var_query_finish(nxt_task_t *task, nxt_var_query_t *query)
         }
 
         if (last != var->length) {
-            nxt_memcpy(p, &src[last], var->length - last);
+            p = nxt_cpymem(p, &src[last], var->length - last);
+        }
+
+        if (var->strz) {
+            *p = '\0';
         }
 
         nxt_array_reset(&query->parts);
+
+        nxt_debug(task, "var: \"%*s\" -> \"%V\"", length, src, val[i].value);
     }
 
 done:

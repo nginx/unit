@@ -679,7 +679,7 @@ nxt_http_action_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
     nxt_conf_get_string(acf.pass, &pass);
 
-    action->u.var = nxt_var_compile(&pass, mp);
+    action->u.var = nxt_var_compile(&pass, mp, 0);
     if (nxt_slow_path(action->u.var == NULL)) {
         return NXT_ERROR;
     }
@@ -1603,7 +1603,7 @@ nxt_http_action_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         return NULL;
     }
 
-    action->u.var = nxt_var_compile(pass, mp);
+    action->u.var = nxt_var_compile(pass, mp, 0);
     if (nxt_slow_path(action->u.var == NULL)) {
         return NULL;
     }
