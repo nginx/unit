@@ -8,10 +8,11 @@
 
 
 typedef struct {
-    nxt_str_t                   share;
+    nxt_var_t                   *share;
 #if (NXT_HAVE_OPENAT2)
     nxt_var_t                   *chroot;
     nxt_uint_t                  resolve;
+    u_char                      *fname;
 #endif
     nxt_http_route_rule_t       *types;
     uint8_t                     is_const;  /* 1 bit */
@@ -20,6 +21,7 @@ typedef struct {
 
 typedef struct {
     nxt_http_action_t           *action;
+    nxt_str_t                   share;
 #if (NXT_HAVE_OPENAT2)
     nxt_str_t                   chroot;
 #endif
@@ -59,7 +61,7 @@ nxt_http_static_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_http_action_t *action, nxt_http_action_conf_t *acf)
 {
     nxt_mp_t                *mp;
-    nxt_str_t               *str, value;
+    nxt_str_t               str;
     nxt_http_static_conf_t  *conf;
 
     mp = tmcf->router_conf->mem_pool;
@@ -72,17 +74,19 @@ nxt_http_static_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     action->handler = nxt_http_static;
     action->u.conf = conf;
 
-    nxt_conf_get_string(acf->share, &value);
+    nxt_conf_get_string(acf->share, &str);
 
-    str = nxt_str_dup(mp, &conf->share, &value);
-    if (nxt_slow_path(str == NULL)) {
+    conf->share = nxt_var_compile(&str, mp, 1);
+    if (nxt_slow_path(conf->share == NULL)) {
         return NXT_ERROR;
     }
 
-    conf->is_const = 1;
+    conf->is_const = nxt_var_is_const(conf->share);
 
 #if (NXT_HAVE_OPENAT2)
     if (acf->chroot.length > 0) {
+        nxt_str_t  chr, shr;
+
         if (nxt_is_var(&acf->chroot)) {
             conf->is_const = 0;
         }
@@ -90,6 +94,13 @@ nxt_http_static_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         conf->chroot = nxt_var_compile(&acf->chroot, mp, 1);
         if (nxt_slow_path(conf->chroot == NULL)) {
             return NXT_ERROR;
+        }
+
+        if (conf->is_const) {
+            nxt_var_raw(conf->chroot, &chr);
+            nxt_var_raw(conf->share, &shr);
+
+            conf->fname = nxt_http_static_chroot_match(chr.start, shr.start);
         }
     }
 
@@ -155,7 +166,12 @@ nxt_http_static(nxt_task_t *task, nxt_http_request_t *r,
 
     conf = action->u.conf;
 
-#if (NXT_DEBUG && NXT_HAVE_OPENAT2)
+#if (NXT_DEBUG)
+    nxt_str_t  shr;
+
+    nxt_var_raw(conf->share, &shr);
+
+#if (NXT_HAVE_OPENAT2)
     nxt_str_t  chr;
 
     if (conf->chroot != NULL) {
@@ -165,11 +181,11 @@ nxt_http_static(nxt_task_t *task, nxt_http_request_t *r,
         nxt_str_set(&chr, "");
     }
 
-    nxt_debug(task, "http static: \"%V\" (chroot: \"%V\")", &conf->share, &chr);
-
+    nxt_debug(task, "http static: \"%V\" (chroot: \"%V\")", &shr, &chr);
 #else
-    nxt_debug(task, "http static: \"%V\"", &conf->share);
+    nxt_debug(task, "http static: \"%V\"", &shr);
 #endif
+#endif /* NXT_DEBUG */
 
     ctx = nxt_mp_zget(r->mem_pool, sizeof(nxt_http_static_ctx_t));
     if (nxt_slow_path(ctx == NULL)) {
@@ -180,6 +196,8 @@ nxt_http_static(nxt_task_t *task, nxt_http_request_t *r,
     ctx->need_body = need_body;
 
     if (conf->is_const) {
+        nxt_var_raw(conf->share, &ctx->share);
+
 #if (NXT_HAVE_OPENAT2)
         if (conf->chroot != NULL) {
             nxt_var_raw(conf->chroot, &ctx->chroot);
@@ -194,8 +212,12 @@ nxt_http_static(nxt_task_t *task, nxt_http_request_t *r,
             goto fail;
         }
 
+        nxt_var_query(task, r->var_query, conf->share, &ctx->share);
+
 #if (NXT_HAVE_OPENAT2)
-        nxt_var_query(task, r->var_query, conf->chroot, &ctx->chroot);
+        if (conf->chroot != NULL) {
+            nxt_var_query(task, r->var_query, conf->chroot, &ctx->chroot);
+        }
 #endif
 
         nxt_var_query_resolve(task, r->var_query, ctx,
@@ -220,7 +242,7 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
     struct tm               tm;
     nxt_buf_t               *fb;
     nxt_int_t               ret;
-    nxt_str_t               index, exten, *mtype;
+    nxt_str_t               *shr, exten, *mtype;
     nxt_uint_t              level;
     nxt_file_t              *f, file;
     nxt_file_info_t         fi;
@@ -233,56 +255,58 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
     nxt_http_static_ctx_t   *ctx;
     nxt_http_static_conf_t  *conf;
 
+    static nxt_str_t  index = nxt_string("index.html");
+
     r = obj;
     ctx = data;
     action = ctx->action;
     conf = action->u.conf;
-
-    if (r->path->start[r->path->length - 1] == '/') {
-        /* TODO: dynamic index setting. */
-        nxt_str_set(&index, "index.html");
-        nxt_str_set(&exten, ".html");
-
-    } else {
-        nxt_str_set(&index, "");
-        nxt_str_null(&exten);
-    }
-
-    f = NULL;
-    status = NXT_HTTP_INTERNAL_SERVER_ERROR;
-
     rtcf = r->conf->socket_conf->router_conf;
 
+    f = NULL;
     mtype = NULL;
+    status = NXT_HTTP_INTERNAL_SERVER_ERROR;
 
-    if (conf->types != NULL && exten.start == NULL) {
-        nxt_http_static_extract_extension(r->path, &exten);
-        mtype = nxt_http_static_mtype_get(&rtcf->mtypes_hash, &exten);
+    shr = &ctx->share;
 
-        ret = nxt_http_route_test_rule(r, conf->types, mtype->start,
-                                       mtype->length);
-        if (nxt_slow_path(ret == NXT_ERROR)) {
+    if (shr->start[shr->length - 1] == '/') {
+        /* TODO: dynamic index setting. */
+        nxt_str_set(&exten, ".html");
+
+        length = shr->length + index.length;
+
+        fname = nxt_mp_nget(r->mem_pool, length + 1);
+        if (nxt_slow_path(fname == NULL)) {
             goto fail;
         }
 
-        if (ret == 0) {
-            status = NXT_HTTP_FORBIDDEN;
-            goto fail;
+        p = fname;
+        p = nxt_cpymem(p, shr->start, shr->length);
+        p = nxt_cpymem(p, index.start, index.length);
+        *p = '\0';
+
+    } else {
+        if (conf->types == NULL) {
+            nxt_str_null(&exten);
+
+        } else {
+            nxt_http_static_extract_extension(shr, &exten);
+            mtype = nxt_http_static_mtype_get(&rtcf->mtypes_hash, &exten);
+
+            ret = nxt_http_route_test_rule(r, conf->types, mtype->start,
+                                           mtype->length);
+            if (nxt_slow_path(ret == NXT_ERROR)) {
+                goto fail;
+            }
+
+            if (ret == 0) {
+                status = NXT_HTTP_FORBIDDEN;
+                goto fail;
+            }
         }
+
+        fname = ctx->share.start;
     }
-
-    length = conf->share.length + r->path->length + index.length;
-
-    fname = nxt_mp_nget(r->mem_pool, length + 1);
-    if (nxt_slow_path(fname == NULL)) {
-        goto fail;
-    }
-
-    p = fname;
-    p = nxt_cpymem(p, conf->share.start, conf->share.length);
-    p = nxt_cpymem(p, r->path->start, r->path->length);
-    p = nxt_cpymem(p, index.start, index.length);
-    *p = '\0';
 
     nxt_memzero(&file, sizeof(nxt_file_t));
 
@@ -299,7 +323,9 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
         if (chr->length > 0) {
             resolve |= RESOLVE_IN_ROOT;
 
-            fname = nxt_http_static_chroot_match(chr->start, file.name);
+            fname = conf->is_const
+                    ? conf->fname
+                    : nxt_http_static_chroot_match(chr->start, file.name);
 
             if (fname != NULL) {
                 file.name = chr->start;
@@ -460,7 +486,7 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
                               - p;
 
         if (exten.start == NULL) {
-            nxt_http_static_extract_extension(r->path, &exten);
+            nxt_http_static_extract_extension(shr, &exten);
         }
 
         if (mtype == NULL) {

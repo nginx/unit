@@ -634,6 +634,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_share_action_members[] = {
     {
         .name       = nxt_string("share"),
         .type       = NXT_CONF_VLDT_STRING,
+        .flags      = NXT_CONF_VLDT_VAR,
     }, {
         .name       = nxt_string("types"),
         .type       = NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,

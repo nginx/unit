@@ -28,7 +28,9 @@ class TestStatic(TestApplicationProto):
         self._load_conf(
             {
                 "listeners": {"*:7080": {"pass": "routes"}},
-                "routes": [{"action": {"share": option.temp_dir + "/assets"}}],
+                "routes": [
+                    {"action": {"share": option.temp_dir + "/assets$uri"}}
+                ],
                 "settings": {
                     "http": {
                         "static": {

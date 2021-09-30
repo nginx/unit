@@ -23,7 +23,7 @@ class TestStaticFallback(TestApplicationProto):
                     "*:7080": {"pass": "routes"},
                     "*:7081": {"pass": "routes"},
                 },
-                "routes": [{"action": {"share": temp_dir + "/assets"}}],
+                "routes": [{"action": {"share": temp_dir + "/assets$uri"}}],
                 "applications": {},
             }
         )
@@ -50,7 +50,7 @@ class TestStaticFallback(TestApplicationProto):
 
     def test_static_fallback_valid_path(self, temp_dir):
         self.action_update(
-            {"share": temp_dir + "/assets", "fallback": {"return": 200}}
+            {"share": temp_dir + "/assets$uri", "fallback": {"return": 200}}
         )
         resp = self.get()
         assert resp['status'] == 200, 'fallback status'
@@ -83,7 +83,7 @@ class TestStaticFallback(TestApplicationProto):
 
     def test_static_fallback_share(self, temp_dir):
         self.action_update(
-            {"share": "/blah", "fallback": {"share": temp_dir + "/assets"},}
+            {"share": "/blah", "fallback": {"share": temp_dir + "/assets$uri"},}
         )
 
         resp = self.get()
