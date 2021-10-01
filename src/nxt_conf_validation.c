@@ -113,6 +113,10 @@ static nxt_int_t nxt_conf_vldt_pass(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_return(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_share(nxt_conf_validation_t *vldt,
+     nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_share_element(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_proxy(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_python(nxt_conf_validation_t *vldt,
@@ -633,8 +637,8 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_return_action_members[] = {
 static nxt_conf_vldt_object_t  nxt_conf_vldt_share_action_members[] = {
     {
         .name       = nxt_string("share"),
-        .type       = NXT_CONF_VLDT_STRING,
-        .flags      = NXT_CONF_VLDT_VAR,
+        .type       = NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
+        .validator  = nxt_conf_vldt_share,
     }, {
         .name       = nxt_string("types"),
         .type       = NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
@@ -1610,6 +1614,49 @@ nxt_conf_vldt_return(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     if (status < NXT_HTTP_INVALID || status > NXT_HTTP_STATUS_MAX) {
         return nxt_conf_vldt_error(vldt, "The \"return\" value is out of "
                                    "allowed HTTP status code range 0-999.");
+    }
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_share(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
+{
+    if (nxt_conf_type(value) == NXT_CONF_ARRAY) {
+        if (nxt_conf_array_elements_count(value) == 0) {
+            return nxt_conf_vldt_error(vldt, "The \"share\" array "
+                                       "must contain at least one element.");
+        }
+
+        return nxt_conf_vldt_array_iterator(vldt, value,
+                                            &nxt_conf_vldt_share_element);
+    }
+
+    /* NXT_CONF_STRING */
+
+    return nxt_conf_vldt_share_element(vldt, value);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_share_element(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value)
+{
+    nxt_str_t  str;
+
+    static nxt_str_t  share = nxt_string("share");
+
+    if (nxt_conf_type(value) != NXT_CONF_STRING) {
+        return nxt_conf_vldt_error(vldt, "The \"share\" array must "
+                                   "contain only string values.");
+    }
+
+    nxt_conf_get_string(value, &str);
+
+    if (nxt_is_var(&str)) {
+        return nxt_conf_vldt_var(vldt, &share, &str);
     }
 
     return NXT_OK;

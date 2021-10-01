@@ -46,6 +46,12 @@ variables support in the "share" option.
 
 <change type="feature">
 <para>
+multiple paths in the "share" option.
+</para>
+</change>
+
+<change type="feature">
+<para>
 variables support in the "chroot" option.
 </para>
 </change>
