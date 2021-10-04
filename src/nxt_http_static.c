@@ -494,6 +494,7 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
 
     f = nxt_mp_get(r->mem_pool, sizeof(nxt_file_t));
     if (nxt_slow_path(f == NULL)) {
+        nxt_file_close(task, &file);
         goto fail;
     }
 
