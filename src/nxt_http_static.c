@@ -321,7 +321,6 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
 
     f = NULL;
     mtype = NULL;
-    status = NXT_HTTP_INTERNAL_SERVER_ERROR;
 
     shr = &ctx->share;
 
