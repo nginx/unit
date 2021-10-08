@@ -776,6 +776,13 @@ nxt_tls_ticket_key_callback(SSL *s, unsigned char *name, unsigned char *iv,
 
         nxt_memcpy(name, ticket[0].name, 16);
 
+        if (EVP_EncryptInit_ex(ectx, cipher, NULL, ticket[0].aes_key, iv) != 1)
+        {
+            nxt_openssl_log_error(c->socket.task, NXT_LOG_ALERT,
+                                  "EVP_EncryptInit_ex() failed");
+            return -1;
+        }
+
     } else {
         /* decrypt session ticket */
 
@@ -798,12 +805,13 @@ nxt_tls_ticket_key_callback(SSL *s, unsigned char *name, unsigned char *iv,
         enc = (i == 0) ? 1 : 2 /* renew */;
 
         cipher = (ticket[i].size == 16) ? EVP_aes_128_cbc() : EVP_aes_256_cbc();
-    }
 
-    if (EVP_DecryptInit_ex(ectx, cipher, NULL, ticket[i].aes_key, iv) != 1) {
-        nxt_openssl_log_error(c->socket.task, NXT_LOG_ALERT,
-                              "EVP_DecryptInit_ex() failed");
-        return -1;
+        if (EVP_DecryptInit_ex(ectx, cipher, NULL, ticket[i].aes_key, iv) != 1)
+        {
+            nxt_openssl_log_error(c->socket.task, NXT_LOG_ALERT,
+                                  "EVP_DecryptInit_ex() failed");
+            return -1;
+        }
     }
 
 #ifdef OPENSSL_NO_SHA256
