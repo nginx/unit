@@ -23,6 +23,7 @@ nxt_int_t nxt_main_process_start(nxt_thread_t *thr, nxt_task_t *task,
     nxt_runtime_t *runtime);
 
 
+NXT_EXPORT extern nxt_uint_t                nxt_conf_ver;
 NXT_EXPORT extern const nxt_process_init_t  nxt_discovery_process;
 NXT_EXPORT extern const nxt_process_init_t  nxt_controller_process;
 NXT_EXPORT extern const nxt_process_init_t  nxt_router_process;

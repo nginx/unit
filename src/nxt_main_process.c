@@ -63,6 +63,8 @@ static void nxt_main_port_modules_handler(nxt_task_t *task,
 static int nxt_cdecl nxt_app_lang_compare(const void *v1, const void *v2);
 static void nxt_main_port_conf_store_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
+static nxt_int_t nxt_main_file_store(nxt_task_t *task, const char *tmp_name,
+    const char *name, u_char *buf, size_t size);
 static void nxt_main_port_access_log_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
 
@@ -76,6 +78,8 @@ const nxt_sig_event_t  nxt_main_process_signals[] = {
     nxt_event_signal_end,
 };
 
+
+nxt_uint_t  nxt_conf_ver;
 
 static nxt_bool_t  nxt_exiting;
 
@@ -1419,11 +1423,10 @@ static void
 nxt_main_port_conf_store_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
     void           *p;
-    size_t         size;
-    ssize_t        n;
+    size_t         n, size;
     nxt_int_t      ret;
-    nxt_file_t     file;
     nxt_runtime_t  *rt;
+    u_char         ver[NXT_INT_T_LEN];
 
     p = MAP_FAILED;
 
@@ -1457,29 +1460,20 @@ nxt_main_port_conf_store_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     nxt_debug(task, "conf_store_handler(%uz): %*s", size, size, p);
 
-    nxt_memzero(&file, sizeof(nxt_file_t));
-
     rt = task->thread->runtime;
 
-    file.name = (nxt_file_name_t *) rt->conf_tmp;
+    if (nxt_conf_ver != NXT_VERNUM) {
+        n = nxt_sprintf(ver, ver + NXT_INT_T_LEN, "%d", NXT_VERNUM) - ver;
 
-    if (nxt_slow_path(nxt_file_open(task, &file, NXT_FILE_WRONLY,
-                                    NXT_FILE_TRUNCATE, NXT_FILE_OWNER_ACCESS)
-                      != NXT_OK))
-    {
-        goto error;
+        ret = nxt_main_file_store(task, rt->ver_tmp, rt->ver, ver, n);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            goto error;
+        }
+
+        nxt_conf_ver = NXT_VERNUM;
     }
 
-    n = nxt_file_write(&file, p, size, 0);
-
-    nxt_file_close(task, &file);
-
-    if (nxt_slow_path(n != (ssize_t) size)) {
-        (void) nxt_file_delete(file.name);
-        goto error;
-    }
-
-    ret = nxt_file_rename(file.name, (nxt_file_name_t *) rt->conf);
+    ret = nxt_main_file_store(task, rt->conf_tmp, rt->conf, p, size);
 
     if (nxt_fast_path(ret == NXT_OK)) {
         goto cleanup;
@@ -1499,6 +1493,37 @@ cleanup:
         nxt_fd_close(msg->fd[0]);
         msg->fd[0] = -1;
     }
+}
+
+
+static nxt_int_t
+nxt_main_file_store(nxt_task_t *task, const char *tmp_name, const char *name,
+    u_char *buf, size_t size)
+{
+    ssize_t     n;
+    nxt_int_t   ret;
+    nxt_file_t  file;
+
+    nxt_memzero(&file, sizeof(nxt_file_t));
+
+    file.name = (nxt_file_name_t *) name;
+
+    ret = nxt_file_open(task, &file, NXT_FILE_WRONLY, NXT_FILE_TRUNCATE,
+                        NXT_FILE_OWNER_ACCESS);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        return NXT_ERROR;
+    }
+
+    n = nxt_file_write(&file, buf, size, 0);
+
+    nxt_file_close(task, &file);
+
+    if (nxt_slow_path(n != (ssize_t) size)) {
+        (void) nxt_file_delete(file.name);
+        return NXT_ERROR;
+    }
+
+    return nxt_file_rename(file.name, (nxt_file_name_t *) name);
 }
 
 

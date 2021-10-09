@@ -56,6 +56,13 @@ variables support in the "chroot" option.
 </para>
 </change>
 
+<change type="feature">
+<para>
+automatic adjustment of existing configurations to the new "share" behavior
+when updating from previous versions.
+</para>
+</change>
+
 <change type="bugfix">
 <para>
 fixed building with glibc 2.34, notably Fedora 35.
