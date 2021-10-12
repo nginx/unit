@@ -31,10 +31,6 @@ typedef struct {
 } nxt_conf_app_map_t;
 
 
-extern nxt_port_handlers_t  nxt_controller_process_port_handlers;
-extern nxt_port_handlers_t  nxt_router_process_port_handlers;
-
-
 static nxt_int_t nxt_main_process_port_create(nxt_task_t *task,
     nxt_runtime_t *rt);
 static void nxt_main_process_title(nxt_task_t *task);
