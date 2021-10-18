@@ -3,7 +3,6 @@ import subprocess
 from pathlib import Path
 
 import pytest
-
 from unit.applications.proto import TestApplicationProto
 
 

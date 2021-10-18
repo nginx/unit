@@ -2,7 +2,6 @@ import re
 import subprocess
 
 import pytest
-
 from unit.applications.lang.ruby import TestApplicationRuby
 
 

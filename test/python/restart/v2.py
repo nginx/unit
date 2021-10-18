@@ -1,5 +1,3 @@
-import os
-
 def application(environ, start_response):
     body = "v2".encode()
 

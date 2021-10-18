@@ -5,7 +5,6 @@ import signal
 import time
 
 import pytest
-
 from unit.applications.lang.php import TestApplicationPHP
 from unit.option import option
 

@@ -14,7 +14,6 @@ import time
 from multiprocessing import Process
 
 import pytest
-
 from unit.check.chroot import check_chroot
 from unit.check.go import check_go
 from unit.check.isolation import check_isolation

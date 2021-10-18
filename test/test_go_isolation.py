@@ -3,7 +3,6 @@ import os
 import pwd
 
 import pytest
-
 from unit.applications.lang.go import TestApplicationGo
 from unit.option import option
 from unit.utils import getns

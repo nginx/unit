@@ -3,8 +3,8 @@ import re
 import time
 
 from unit.control import TestControl
-from unit.option import option
 from unit.log import Log
+from unit.option import option
 
 
 class TestApplicationProto(TestControl):

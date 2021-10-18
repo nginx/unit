@@ -4,7 +4,6 @@ import subprocess
 import time
 
 import pytest
-
 from unit.applications.lang.python import TestApplicationPython
 from unit.option import option
 
@@ -265,7 +264,8 @@ class TestPythonProcman(TestApplicationPython):
 
         assert len(self.pids_for_process()) == 1, 'longstarts == 1'
 
-        pid = self.get()['body']
+        self.get()
+
         pids = self.pids_for_process()
         assert len(pids) == 2, 'longstarts == 2'
 

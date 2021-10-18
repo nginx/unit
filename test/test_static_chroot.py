@@ -2,7 +2,6 @@ import os
 from pathlib import Path
 
 import pytest
-
 from unit.applications.proto import TestApplicationProto
 
 
@@ -132,7 +131,7 @@ class TestStaticChroot(TestApplicationProto):
 
         assert self.get(url=self.test_path)['status'] == 200, 'relative'
 
-    def test_static_chroot_varibales(self, temp_dir):
+    def test_static_chroot_variables(self, temp_dir):
         assert 'success' in self.update_action(
             temp_dir + '/assets$uri', temp_dir + '/assets/$host'
         )
@@ -143,21 +142,21 @@ class TestStaticChroot(TestApplicationProto):
         )
         assert self.get_custom('/dir/file', 'dir') == 200
 
-    def test_static_chroot_varibales_buildin_start(self, temp_dir):
+    def test_static_chroot_variables_buildin_start(self, temp_dir):
         assert 'success' in self.update_action(
             temp_dir + '/assets/dir/$host', '$uri/assets/dir'
         )
 
         assert self.get_custom(temp_dir, 'file') == 200
 
-    def test_static_chroot_varibales_buildin_mid(self, temp_dir):
+    def test_static_chroot_variables_buildin_mid(self, temp_dir):
         assert 'success' in self.update_action(
             temp_dir + '/assets$uri', temp_dir + '/$host/dir'
         )
 
         assert self.get_custom('/dir/file', 'assets') == 200
 
-    def test_static_chroot_varibales_buildin_end(self, temp_dir):
+    def test_static_chroot_variables_buildin_end(self, temp_dir):
         assert 'success' in self.update_action(
             temp_dir + '/assets$uri', temp_dir + '/assets/$host'
         )

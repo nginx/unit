@@ -2,7 +2,6 @@ import os
 from pathlib import Path
 
 import pytest
-
 from unit.applications.proto import TestApplicationProto
 
 
@@ -30,7 +29,7 @@ class TestStaticVariables(TestApplicationProto):
 
         return self.conf('"' + share + '"', 'routes/0/action/share')
 
-    def test_static_varibales(self, temp_dir):
+    def test_static_variables(self, temp_dir):
         assert self.get(url='/index.html')['status'] == 200
         assert self.get(url='/d$r/file')['status'] == 200
 
@@ -40,7 +39,7 @@ class TestStaticVariables(TestApplicationProto):
         assert 'success' in self.update_share(temp_dir + '/assets${uri}')
         assert self.get(url='/index.html')['status'] == 200
 
-    def test_static_varibales_array(self, temp_dir):
+    def test_static_variables_array(self, temp_dir):
         assert 'success' in self.update_share(
             [temp_dir + '/assets$uri', '$uri']
         )
@@ -61,18 +60,18 @@ class TestStaticVariables(TestApplicationProto):
         assert self.get(url=temp_dir + '/assets/index.html')['status'] == 200
         assert self.get(url='/dir/blah')['status'] == 201
 
-    def test_static_varibales_buildin_start(self, temp_dir):
+    def test_static_variables_buildin_start(self, temp_dir):
         assert 'success' in self.update_share('$uri/assets/index.html')
         assert self.get(url=temp_dir)['status'] == 200
 
-    def test_static_varibales_buildin_mid(self, temp_dir):
+    def test_static_variables_buildin_mid(self, temp_dir):
         assert 'success' in self.update_share(temp_dir + '$uri/index.html')
         assert self.get(url='/assets')['status'] == 200
 
-    def test_static_varibales_buildin_end(self):
+    def test_static_variables_buildin_end(self):
         assert self.get(url='/index.html')['status'] == 200
 
-    def test_static_varibales_invalid(self, temp_dir):
+    def test_static_variables_invalid(self, temp_dir):
         assert 'error' in self.update_share(temp_dir + '/assets/d$r$uri')
         assert 'error' in self.update_share(temp_dir + '/assets/$$uri')
         assert 'error' in self.update_share(

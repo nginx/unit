@@ -5,7 +5,6 @@ import subprocess
 import time
 
 import pytest
-
 from unit.applications.tls import TestApplicationTLS
 from unit.option import option
 
@@ -677,4 +676,3 @@ basicConstraints = critical,CA:TRUE"""
         assert self.get_ssl()['status'] == 200, 'listener #1'
 
         assert self.get_ssl(port=7081)['status'] == 200, 'listener #2'
-

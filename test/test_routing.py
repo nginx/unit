@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import pytest
-
 from unit.applications.proto import TestApplicationProto
 from unit.option import option
 

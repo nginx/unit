@@ -1,7 +1,6 @@
 import socket
 
 import pytest
-
 from unit.control import TestControl
 
 
