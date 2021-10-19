@@ -1,11 +1,11 @@
 # distribution specific definitions
 %define bdir %{_builddir}/%{name}-%{version}
 
-%%MODULE_DEFINITIONS%%
-
 %if (0%{?rhel} == 7 && 0%{?amzn} == 0)
 %define dist .el7
 %endif
+
+%%MODULE_DEFINITIONS%%
 
 %if 0%{?rhel}%{?fedora}
 BuildRequires: gcc
