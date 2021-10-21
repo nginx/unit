@@ -50,21 +50,6 @@ include Makefile.jsc16
 include Makefile.jsc17
 endif
 
-# Ubuntu 20.10
-ifeq ($(CODENAME),groovy)
-include Makefile.php
-include Makefile.python27
-include Makefile.python38
-include Makefile.go
-include Makefile.perl
-include Makefile.ruby
-include Makefile.jsc-common
-include Makefile.jsc11
-include Makefile.jsc13
-include Makefile.jsc14
-include Makefile.jsc15
-endif
-
 # Ubuntu 20.04
 ifeq ($(CODENAME),focal)
 include Makefile.php
@@ -74,46 +59,6 @@ include Makefile.go
 include Makefile.perl
 include Makefile.ruby
 include Makefile.jsc-common
-include Makefile.jsc11
-endif
-
-# Ubuntu 19.10
-ifeq ($(CODENAME),eoan)
-include Makefile.php
-include Makefile.python27
-include Makefile.python37
-include Makefile.python38
-include Makefile.go
-include Makefile.perl
-include Makefile.ruby
-include Makefile.jsc-common
-include Makefile.jsc11
-endif
-
-# Ubuntu 19.04
-ifeq ($(CODENAME),disco)
-include Makefile.php
-include Makefile.python27
-include Makefile.python37
-include Makefile.python38
-include Makefile.go
-include Makefile.perl
-include Makefile.ruby
-include Makefile.jsc-common
-include Makefile.jsc11
-endif
-
-# Ubuntu 18.10
-ifeq ($(CODENAME),cosmic)
-include Makefile.php
-include Makefile.python27
-include Makefile.python36
-include Makefile.python37
-include Makefile.go
-include Makefile.perl
-include Makefile.ruby
-include Makefile.jsc-common
-include Makefile.jsc8
 include Makefile.jsc11
 endif
 
@@ -130,25 +75,6 @@ include Makefile.ruby
 include Makefile.jsc-common
 include Makefile.jsc8
 include Makefile.jsc11
-endif
-
-# Ubuntu 16.04
-ifeq ($(CODENAME),xenial)
-include Makefile.php
-include Makefile.python27
-include Makefile.python35
-include Makefile.go
-include Makefile.perl
-include Makefile.ruby
-include Makefile.jsc-common
-include Makefile.jsc8
-endif
-
-# Ubuntu 14.04
-ifeq ($(CODENAME),trusty)
-include Makefile.php
-include Makefile.python
-include Makefile.perl
 endif
 
 # Debian 11
@@ -173,27 +99,6 @@ include Makefile.perl
 include Makefile.ruby
 include Makefile.jsc-common
 include Makefile.jsc11
-endif
-
-# Debian 9
-ifeq ($(CODENAME),stretch)
-include Makefile.php
-include Makefile.python27
-include Makefile.python35
-include Makefile.go
-include Makefile.perl
-include Makefile.ruby
-include Makefile.jsc-common
-include Makefile.jsc8
-endif
-
-# Debian 8
-ifeq ($(CODENAME),jessie)
-include Makefile.php
-include Makefile.python27
-include Makefile.python34
-include Makefile.perl
-include Makefile.ruby
 endif
 
 CONFIGURE_ARGS=\
@@ -247,7 +152,7 @@ debuild/$(SRCDIR)/debian:
 	set -e ; \
 	mkdir -p debuild/$(SRCDIR) ; \
 	cp -pr debian debuild/$(SRCDIR) ; \
-	echo '9' > debuild/$(SRCDIR)/debian/compat ; \
+	echo '11' > debuild/$(SRCDIR)/debian/compat ; \
 	mkdir -p debuild/$(SRCDIR)/debian/source ; \
 	echo '3.0 (quilt)' > debuild/$(SRCDIR)/debian/source/format ; \
 	cat debian/control.in | sed \
@@ -291,7 +196,7 @@ debuild-%: debuild/unit_$(VERSION).orig.tar.gz ../../docs/changes.xml
 	cp debuild/unit_$(VERSION).orig.tar.gz debuild-$*/unit-$(MODULE_SUFFIX_$*)_$(VERSION).orig.tar.gz
 	cd $@ && tar zxf unit-$(MODULE_SUFFIX_$*)_$(VERSION).orig.tar.gz
 	mkdir $@/$(SRCDIR)/debian
-	echo '9' > $@/$(SRCDIR)/debian/compat
+	echo '11' > $@/$(SRCDIR)/debian/compat
 	mkdir $@/$(SRCDIR)/debian/source
 	echo '3.0 (quilt)' > $@/$(SRCDIR)/debian/source/format
 	cd ../../docs && make ../build/unit-$(MODULE_SUFFIX_$*).deb-changelog

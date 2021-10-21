@@ -99,11 +99,7 @@ install: build do.tests
 	dh_testroot
 	dh_prep
 	dh_installdirs
-ifeq ($(CODENAME), xenial)
-	dh_installinit
-else
 	dh_installsystemd
-endif
 	dh_installlogrotate
 	cd $(BUILDDIR_unit) && DESTDIR=$(INSTALLDIR) make install
 	cd $(BUILDDIR_unit) && DESTDIR=$(INSTALLDIR_dev) make libunit-install
