@@ -6,10 +6,10 @@ MODULE_SUMMARY_jsc_common=	Java shared packages for NGINX Unit
 MODULE_VERSION_jsc_common=	$(VERSION)
 MODULE_RELEASE_jsc_common=	1
 
-ifneq (,$(findstring $(CODENAME),hirsute groovy focal eoan disco buster bullseye))
-JAVA_MINVERSION=	11
-else
+ifneq (,$(findstring $(CODENAME),stretch xenial bionic))
 JAVA_MINVERSION=	8
+else
+JAVA_MINVERSION=	11
 endif
 
 MODULE_CONFARGS_jsc_common=	java --home=/usr/lib/jvm/java-$(JAVA_MINVERSION)-openjdk-$$\(DEB_HOST_ARCH\) --jars=/usr/share/unit-jsc-common/
