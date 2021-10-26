@@ -621,8 +621,8 @@ static nxt_int_t
 nxt_tls_ticket_keys(nxt_task_t *task, SSL_CTX *ctx, nxt_tls_init_t *tls_init,
     nxt_mp_t *mp)
 {
+    size_t             len;
     uint32_t           i;
-    nxt_int_t          ret;
     nxt_str_t          value;
     nxt_uint_t         count;
     nxt_conf_value_t   *member, *tickets_conf;
@@ -686,14 +686,11 @@ nxt_tls_ticket_keys(nxt_task_t *task, SSL_CTX *ctx, nxt_tls_init_t *tls_init,
 
         nxt_conf_get_string(member, &value);
 
-        ret = nxt_openssl_base64_decode(buf, 80, value.start, value.length);
-        if (nxt_slow_path(ret == NXT_ERROR)) {
-            return NXT_ERROR;
-        }
+        len = nxt_base64_decode(buf, value.start, value.length);
 
         nxt_memcpy(ticket->name, buf, 16);
 
-        if (ret == 48) {
+        if (len == 48) {
             nxt_memcpy(ticket->aes_key, buf + 16, 16);
             nxt_memcpy(ticket->hmac_key, buf + 32, 16);
             ticket->size = 16;
@@ -1817,71 +1814,4 @@ nxt_openssl_copy_error(u_char *p, u_char *end)
     }
 
     return p;
-}
-
-
-nxt_int_t
-nxt_openssl_base64_decode(u_char *d, size_t dlen, const u_char *s, size_t slen)
-{
-    BIO        *bio, *b64;
-    nxt_int_t  count, ret;
-    u_char     buf[128];
-
-    b64 = BIO_new(BIO_f_base64());
-    if (nxt_slow_path(b64 == NULL)) {
-        goto error;
-    }
-
-    bio = BIO_new_mem_buf(s, slen);
-    if (nxt_slow_path(bio == NULL)) {
-        goto error;
-    }
-
-    bio = BIO_push(b64, bio);
-
-    BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);
-
-    count = 0;
-
-    if (d == NULL) {
-
-        for ( ;; ) {
-            ret = BIO_read(bio, buf, 128);
-
-            if (ret < 0) {
-                goto invalid;
-            }
-
-            count += ret;
-
-            if (ret != 128) {
-                break;
-            }
-        }
-
-    } else {
-        count = BIO_read(bio, d, dlen);
-
-        if (count < 0) {
-            goto invalid;
-        }
-    }
-
-    BIO_free_all(bio);
-
-    return count;
-
-error:
-
-    BIO_vfree(b64);
-    ERR_clear_error();
-
-    return NXT_ERROR;
-
-invalid:
-
-    BIO_free_all(bio);
-    ERR_clear_error();
-
-    return NXT_DECLINED;
 }

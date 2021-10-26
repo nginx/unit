@@ -190,6 +190,8 @@ NXT_EXPORT uintptr_t nxt_encode_complex_uri(u_char *dst, u_char *src,
     size_t length);
 NXT_EXPORT nxt_bool_t nxt_is_complex_uri_encoded(u_char *s, size_t length);
 
+NXT_EXPORT ssize_t nxt_base64_decode(u_char *dst, u_char *src, size_t length);
+
 extern const uint8_t  nxt_hex2int[256];
 
 

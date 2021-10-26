@@ -517,8 +517,8 @@ static nxt_int_t
 nxt_conf_vldt_ticket_key_element(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value)
 {
+    ssize_t    ret;
     nxt_str_t  key;
-    nxt_int_t  ret;
 
     if (nxt_conf_type(value) != NXT_CONF_STRING) {
         return nxt_conf_vldt_error(vldt, "The \"key\" array must "
@@ -527,12 +527,8 @@ nxt_conf_vldt_ticket_key_element(nxt_conf_validation_t *vldt,
 
     nxt_conf_get_string(value, &key);
 
-    ret = nxt_openssl_base64_decode(NULL, 0, key.start, key.length);
-    if (nxt_slow_path(ret == NXT_ERROR)) {
-        return NXT_ERROR;
-    }
-
-    if (ret == NXT_DECLINED) {
+    ret = nxt_base64_decode(NULL, key.start, key.length);
+    if (ret == NXT_ERROR) {
         return nxt_conf_vldt_error(vldt, "Invalid Base64 format for the ticket "
                                    "key \"%V\".", &key);
     }
