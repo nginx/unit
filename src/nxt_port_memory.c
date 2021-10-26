@@ -318,6 +318,7 @@ nxt_port_new_port_mmap(nxt_task_t *task, nxt_port_mmaps_t *mmaps,
                        MAP_SHARED, fd, 0);
 
     if (nxt_slow_path(mem == MAP_FAILED)) {
+        nxt_fd_close(fd);
         goto remove_fail;
     }
 
