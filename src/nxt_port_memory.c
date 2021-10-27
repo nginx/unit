@@ -232,6 +232,18 @@ nxt_port_incoming_port_mmap(nxt_task_t *task, nxt_process_t *process,
 
     hdr = mem;
 
+    if (nxt_slow_path(hdr->src_pid != process->pid
+                      || hdr->dst_pid != nxt_pid))
+    {
+        nxt_log(task, NXT_LOG_WARN, "unexpected pid in mmap header detected: "
+                "%PI != %PI or %PI != %PI", hdr->src_pid, process->pid,
+                hdr->dst_pid, nxt_pid);
+
+        nxt_mem_munmap(mem, PORT_MMAP_SIZE);
+
+        return NULL;
+    }
+
     mmap_handler = nxt_zalloc(sizeof(nxt_port_mmap_handler_t));
     if (nxt_slow_path(mmap_handler == NULL)) {
         nxt_log(task, NXT_LOG_WARN, "failed to allocate mmap_handler");
@@ -244,16 +256,6 @@ nxt_port_incoming_port_mmap(nxt_task_t *task, nxt_process_t *process,
     mmap_handler->hdr = hdr;
     mmap_handler->fd = -1;
 
-    if (nxt_slow_path(hdr->src_pid != process->pid
-                      || hdr->dst_pid != nxt_pid))
-    {
-        nxt_log(task, NXT_LOG_WARN, "unexpected pid in mmap header detected: "
-                "%PI != %PI or %PI != %PI", hdr->src_pid, process->pid,
-                hdr->dst_pid, nxt_pid);
-
-        return NULL;
-    }
-
     nxt_thread_mutex_lock(&process->incoming.mutex);
 
     port_mmap = nxt_port_mmap_at(&process->incoming, hdr->id);
@@ -261,7 +263,6 @@ nxt_port_incoming_port_mmap(nxt_task_t *task, nxt_process_t *process,
         nxt_log(task, NXT_LOG_WARN, "failed to add mmap to incoming array");
 
         nxt_mem_munmap(mem, PORT_MMAP_SIZE);
-        hdr = NULL;
 
         nxt_free(mmap_handler);
         mmap_handler = NULL;
