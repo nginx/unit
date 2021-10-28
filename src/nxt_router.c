@@ -27,7 +27,6 @@ typedef struct {
     uint32_t          spare_processes;
     nxt_msec_t        timeout;
     nxt_msec_t        idle_timeout;
-    uint32_t          requests;
     nxt_conf_value_t  *limits_value;
     nxt_conf_value_t  *processes_value;
     nxt_conf_value_t  *targets_value;
@@ -1293,12 +1292,6 @@ static nxt_conf_map_t  nxt_router_app_limits_conf[] = {
         NXT_CONF_MAP_MSEC,
         offsetof(nxt_router_app_conf_t, timeout),
     },
-
-    {
-        nxt_string("requests"),
-        NXT_CONF_MAP_INT32,
-        offsetof(nxt_router_app_conf_t, requests),
-    },
 };
 
 
@@ -1567,7 +1560,6 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             apcf.spare_processes = 0;
             apcf.timeout = 0;
             apcf.idle_timeout = 15000;
-            apcf.requests = 0;
             apcf.limits_value = NULL;
             apcf.processes_value = NULL;
             apcf.targets_value = NULL;
@@ -1647,7 +1639,6 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             nxt_debug(task, "application type: %V", &apcf.type);
             nxt_debug(task, "application processes: %D", apcf.processes);
             nxt_debug(task, "application request timeout: %M", apcf.timeout);
-            nxt_debug(task, "application requests: %D", apcf.requests);
 
             lang = nxt_app_lang_module(task->thread->runtime, &apcf.type);
 
@@ -1678,7 +1669,6 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
                                          ? apcf.spare_processes : 1;
             app->timeout = apcf.timeout;
             app->idle_timeout = apcf.idle_timeout;
-            app->max_requests = apcf.requests;
 
             app->targets = targets;
 
@@ -4676,7 +4666,7 @@ nxt_router_app_port_release(nxt_task_t *task, nxt_app_t *app, nxt_port_t *port,
 {
     int         inc_use;
     uint32_t    got_response, dec_requests;
-    nxt_bool_t  port_unchained, send_quit, adjust_idle_timer;
+    nxt_bool_t  adjust_idle_timer;
     nxt_port_t  *main_app_port;
 
     nxt_assert(port != NULL);
@@ -4722,40 +4712,18 @@ nxt_router_app_port_release(nxt_task_t *task, nxt_app_t *app, nxt_port_t *port,
 
     nxt_thread_mutex_lock(&app->mutex);
 
-    main_app_port->app_responses += got_response;
     main_app_port->active_requests -= got_response + dec_requests;
     app->active_requests -= got_response + dec_requests;
 
-    if (main_app_port->pair[1] != -1
-        && (app->max_requests == 0
-            || main_app_port->app_responses < app->max_requests))
-    {
-        if (main_app_port->app_link.next == NULL) {
-            nxt_queue_insert_tail(&app->ports, &main_app_port->app_link);
+    if (main_app_port->pair[1] != -1 && main_app_port->app_link.next == NULL) {
+        nxt_queue_insert_tail(&app->ports, &main_app_port->app_link);
 
-            nxt_port_inc_use(main_app_port);
-        }
-    }
-
-    send_quit = (app->max_requests > 0
-                 && main_app_port->app_responses >= app->max_requests);
-
-    if (send_quit) {
-        port_unchained = nxt_queue_chk_remove(&main_app_port->app_link);
-
-        nxt_port_hash_remove(&app->port_hash, main_app_port);
-        app->port_hash_count--;
-
-        main_app_port->app = NULL;
-        app->processes--;
-
-    } else {
-        port_unchained = 0;
+        nxt_port_inc_use(main_app_port);
     }
 
     adjust_idle_timer = 0;
 
-    if (main_app_port->pair[1] != -1 && !send_quit
+    if (main_app_port->pair[1] != -1
         && main_app_port->active_requests == 0
         && main_app_port->active_websockets == 0
         && main_app_port->idle_link.next == NULL)
@@ -4796,19 +4764,6 @@ nxt_router_app_port_release(nxt_task_t *task, nxt_app_t *app, nxt_port_t *port,
     if (main_app_port->pair[1] == -1) {
         nxt_debug(task, "app '%V' %p port %p already closed (pid %PI dead?)",
                   &app->name, app, main_app_port, main_app_port->pid);
-
-        goto adjust_use;
-    }
-
-    if (send_quit) {
-        nxt_debug(task, "app '%V' %p send QUIT to port", &app->name, app);
-
-        nxt_port_socket_write(task, main_app_port, NXT_PORT_MSG_QUIT, -1, 0, 0,
-                              NULL);
-
-        if (port_unchained) {
-            nxt_port_use(task, main_app_port, -1);
-        }
 
         goto adjust_use;
     }

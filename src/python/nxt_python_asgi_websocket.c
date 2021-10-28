@@ -980,6 +980,10 @@ nxt_py_asgi_websocket_close_handler(nxt_unit_request_info_t *req)
 
     nxt_unit_req_debug(req, "asgi_websocket_close_handler");
 
+    if (nxt_slow_path(ws == NULL)) {
+        return;
+    }
+
     if (ws->receive_future == NULL) {
         ws->state = NXT_WS_DISCONNECTED;
 

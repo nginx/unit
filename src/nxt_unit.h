@@ -136,7 +136,8 @@ struct nxt_unit_callbacks_s {
     int      (*add_port)(nxt_unit_ctx_t *, nxt_unit_port_t *port);
 
     /* Remove previously added port. Optional. */
-    void     (*remove_port)(nxt_unit_t *, nxt_unit_port_t *port);
+    void     (*remove_port)(nxt_unit_t *, nxt_unit_ctx_t *,
+                            nxt_unit_port_t *port);
 
     /* Remove all data associated with process pid including ports. Optional. */
     void     (*remove_pid)(nxt_unit_t *, pid_t pid);
@@ -167,6 +168,7 @@ struct nxt_unit_init_s {
 
     uint32_t              request_data_size;
     uint32_t              shm_limit;
+    uint32_t              request_limit;
 
     nxt_unit_callbacks_t  callbacks;
 
@@ -214,8 +216,6 @@ int nxt_unit_run_ctx(nxt_unit_ctx_t *ctx);
 int nxt_unit_run_shared(nxt_unit_ctx_t *ctx);
 
 nxt_unit_request_info_t *nxt_unit_dequeue_request(nxt_unit_ctx_t *ctx);
-
-int nxt_unit_is_main_ctx(nxt_unit_ctx_t *ctx);
 
 /*
  * Receive and process one message, invoke configured callbacks.

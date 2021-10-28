@@ -687,7 +687,8 @@ nxt_app_parse_type(u_char *p, size_t length)
 
 
 nxt_int_t
-nxt_unit_default_init(nxt_task_t *task, nxt_unit_init_t *init)
+nxt_unit_default_init(nxt_task_t *task, nxt_unit_init_t *init,
+    nxt_common_app_conf_t *conf)
 {
     nxt_port_t     *my_port, *main_port, *router_port;
     nxt_runtime_t  *rt;
@@ -729,6 +730,9 @@ nxt_unit_default_init(nxt_task_t *task, nxt_unit_init_t *init)
     init->read_port.out_fd = my_port->pair[1];
 
     init->log_fd = 2;
+
+    init->shm_limit = conf->shm_limit;
+    init->request_limit = conf->request_limit;
 
     return NXT_OK;
 }

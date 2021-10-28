@@ -230,10 +230,9 @@ nxt_python_start(nxt_task_t *task, nxt_process_data_t *data)
         }
     }
 
-    nxt_unit_default_init(task, &python_init);
+    nxt_unit_default_init(task, &python_init, data->app);
 
     python_init.data = c;
-    python_init.shm_limit = data->app->shm_limit;
     python_init.callbacks.ready_handler = nxt_python_ready_handler;
 
     proto = c->protocol;
@@ -521,18 +520,6 @@ nxt_python_ready_handler(nxt_unit_ctx_t *ctx)
     uint32_t               i;
     nxt_py_thread_info_t   *ti;
     nxt_python_app_conf_t  *c;
-
-    if (nxt_py_proto.ready != NULL) {
-        res = nxt_py_proto.ready(ctx);
-        if (nxt_slow_path(res != NXT_UNIT_OK)) {
-            return NXT_UNIT_ERROR;
-        }
-    }
-
-    /* Worker thread context. */
-    if (!nxt_unit_is_main_ctx(ctx)) {
-        return NXT_UNIT_OK;
-    }
 
     c = ctx->unit->data;
 

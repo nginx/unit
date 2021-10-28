@@ -120,7 +120,8 @@ func nxt_go_add_port(ctx *C.nxt_unit_ctx_t, p *C.nxt_unit_port_t) C.int {
 }
 
 //export nxt_go_remove_port
-func nxt_go_remove_port(unit *C.nxt_unit_t, p *C.nxt_unit_port_t) {
+func nxt_go_remove_port(unit *C.nxt_unit_t, ctx *C.nxt_unit_ctx_t,
+	p *C.nxt_unit_port_t) {
 
 	key := port_key{
 		pid: int(p.id.pid),

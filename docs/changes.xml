@@ -50,6 +50,13 @@ NGINX Unit updated to 1.26.0.
 </para>
 </change>
 
+<change type="bugfix">
+<para>
+the router and app processes could crash when reaching requests limit
+in asynchronous or multithreaded apps.
+</para>
+</change>
+
 </changes>
 
 

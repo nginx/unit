@@ -154,6 +154,12 @@ static nxt_conf_map_t  nxt_common_app_limits_conf[] = {
         offsetof(nxt_common_app_conf_t, shm_limit),
     },
 
+    {
+        nxt_string("requests"),
+        NXT_CONF_MAP_INT32,
+        offsetof(nxt_common_app_conf_t, request_limit),
+    },
+
 };
 
 
@@ -392,6 +398,7 @@ nxt_port_main_start_process_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     *p = '\0';
 
     app_conf->shm_limit = 100 * 1024 * 1024;
+    app_conf->request_limit = 0;
 
     start += app_conf->name.length + 1;
 

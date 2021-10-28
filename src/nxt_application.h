@@ -101,6 +101,7 @@ struct nxt_common_app_conf_s {
     nxt_conf_value_t           *limits;
 
     size_t                     shm_limit;
+    uint32_t                   request_limit;
 
     union {
         nxt_external_app_conf_t  external;
@@ -137,7 +138,7 @@ NXT_EXPORT extern nxt_str_t  nxt_server;
 extern nxt_app_module_t      nxt_external_module;
 
 NXT_EXPORT nxt_int_t nxt_unit_default_init(nxt_task_t *task,
-    nxt_unit_init_t *init);
+    nxt_unit_init_t *init, nxt_common_app_conf_t *conf);
 
 
 #endif /* _NXT_APPLICATION_H_INCLIDED_ */

@@ -485,14 +485,13 @@ nxt_php_start(nxt_task_t *task, nxt_process_data_t *data)
         }
     }
 
-    ret = nxt_unit_default_init(task, &php_init);
+    ret = nxt_unit_default_init(task, &php_init, conf);
     if (nxt_slow_path(ret != NXT_OK)) {
         nxt_alert(task, "nxt_unit_default_init() failed");
         return ret;
     }
 
     php_init.callbacks.request_handler = nxt_php_request_handler;
-    php_init.shm_limit = conf->shm_limit;
 
     unit_ctx = nxt_unit_init(&php_init);
     if (nxt_slow_path(unit_ctx == NULL)) {

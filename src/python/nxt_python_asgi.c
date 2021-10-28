@@ -33,11 +33,10 @@ static PyObject *nxt_py_asgi_create_address(nxt_unit_sptr_t *sptr, uint8_t len,
 static PyObject *nxt_py_asgi_create_header(nxt_unit_field_t *f);
 static PyObject *nxt_py_asgi_create_subprotocols(nxt_unit_field_t *f);
 
-static int nxt_python_asgi_ready(nxt_unit_ctx_t *ctx);
-
 static int nxt_py_asgi_add_port(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port);
 static int nxt_py_asgi_add_reader(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port);
-static void nxt_py_asgi_remove_port(nxt_unit_t *lib, nxt_unit_port_t *port);
+static void nxt_py_asgi_remove_port(nxt_unit_t *lib, nxt_unit_ctx_t *ctx,
+    nxt_unit_port_t *port);
 static void nxt_py_asgi_quit(nxt_unit_ctx_t *ctx);
 static void nxt_py_asgi_shm_ack_handler(nxt_unit_ctx_t *ctx);
 
@@ -45,7 +44,6 @@ static PyObject *nxt_py_asgi_port_read(PyObject *self, PyObject *args);
 static void nxt_python_asgi_done(void);
 
 static PyObject           *nxt_py_port_read;
-static nxt_unit_port_t    *nxt_py_shared_port;
 
 static PyMethodDef        nxt_py_port_read_method =
     {"unit_port_read", nxt_py_asgi_port_read, METH_VARARGS, ""};
@@ -55,7 +53,6 @@ static nxt_python_proto_t  nxt_py_asgi_proto = {
     .ctx_data_free  = nxt_python_asgi_ctx_data_free,
     .startup        = nxt_python_asgi_startup,
     .run            = nxt_python_asgi_run,
-    .ready          = nxt_python_asgi_ready,
     .done           = nxt_python_asgi_done,
 };
 
@@ -361,13 +358,6 @@ nxt_python_asgi_run(nxt_unit_ctx_t *ctx)
     }
 
     Py_DECREF(res);
-
-    nxt_py_asgi_remove_reader(ctx, nxt_py_shared_port);
-    nxt_py_asgi_remove_reader(ctx, ctx_data->port);
-
-    if (ctx_data->port != NULL) {
-        ctx_data->port = NULL;
-    }
 
     nxt_py_asgi_lifespan_shutdown(ctx);
 
@@ -892,27 +882,9 @@ fail:
 
 
 static int
-nxt_python_asgi_ready(nxt_unit_ctx_t *ctx)
-{
-    nxt_unit_port_t  *port;
-
-    if (nxt_slow_path(nxt_py_shared_port == NULL)) {
-        return NXT_UNIT_ERROR;
-    }
-
-    port = nxt_py_shared_port;
-
-    nxt_unit_debug(ctx, "asgi_ready %d %p %p", port->in_fd, ctx, port);
-
-    return nxt_py_asgi_add_reader(ctx, port);
-}
-
-
-static int
 nxt_py_asgi_add_port(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port)
 {
-    int                     nb;
-    nxt_py_asgi_ctx_data_t  *ctx_data;
+    int  nb;
 
     if (port->in_fd == -1) {
         return NXT_UNIT_OK;
@@ -928,16 +900,6 @@ nxt_py_asgi_add_port(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port)
     }
 
     nxt_unit_debug(ctx, "asgi_add_port %d %p %p", port->in_fd, ctx, port);
-
-    if (port->id.id == NXT_UNIT_SHARED_PORT_ID) {
-        nxt_py_shared_port = port;
-
-        return NXT_UNIT_OK;
-    }
-
-    ctx_data = ctx->data;
-
-    ctx_data->port = port;
 
     return nxt_py_asgi_add_reader(ctx, port);
 }
@@ -1008,17 +970,16 @@ clean_fd:
 
 
 static void
-nxt_py_asgi_remove_port(nxt_unit_t *lib, nxt_unit_port_t *port)
+nxt_py_asgi_remove_port(nxt_unit_t *lib, nxt_unit_ctx_t *ctx,
+    nxt_unit_port_t *port)
 {
-    if (port->in_fd == -1) {
+    if (port->in_fd == -1 || ctx == NULL) {
         return;
     }
 
     nxt_unit_debug(NULL, "asgi_remove_port %d %p", port->in_fd, port);
 
-    if (nxt_py_shared_port == port) {
-        nxt_py_shared_port = NULL;
-    }
+    nxt_py_asgi_remove_reader(ctx, port);
 }
 
 
@@ -1031,27 +992,6 @@ nxt_py_asgi_quit(nxt_unit_ctx_t *ctx)
     nxt_unit_debug(ctx, "asgi_quit %p", ctx);
 
     ctx_data = ctx->data;
-
-    if (nxt_py_shared_port != NULL) {
-        p = PyLong_FromLong(nxt_py_shared_port->in_fd);
-        if (nxt_slow_path(p == NULL)) {
-            nxt_unit_alert(NULL, "Python failed to create Long");
-            nxt_python_print_exception();
-
-        } else {
-            res = PyObject_CallFunctionObjArgs(ctx_data->loop_remove_reader,
-                                               p, NULL);
-            if (nxt_slow_path(res == NULL)) {
-                nxt_unit_alert(NULL, "Python failed to remove_reader");
-                nxt_python_print_exception();
-
-            } else {
-                Py_DECREF(res);
-            }
-
-            Py_DECREF(p);
-        }
-    }
 
     p = PyLong_FromLong(0);
     if (nxt_slow_path(p == NULL)) {

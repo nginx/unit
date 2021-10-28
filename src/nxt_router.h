@@ -124,7 +124,6 @@ struct nxt_app_s {
     uint32_t               max_processes;
     uint32_t               spare_processes;
     uint32_t               max_pending_processes;
-    uint32_t               max_requests;
 
     uint32_t               generation;
 

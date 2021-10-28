@@ -97,7 +97,7 @@ ready_handler(nxt_unit_ctx_t *ctx)
 
     nxt_unit_debug(ctx, "ready");
 
-    if (!nxt_unit_is_main_ctx(ctx) || thread_count <= 1) {
+    if (thread_count <= 1) {
         return NXT_UNIT_OK;
     }
 

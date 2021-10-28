@@ -357,11 +357,10 @@ nxt_ruby_start(nxt_task_t *task, nxt_process_data_t *data)
         goto fail;
     }
 
-    nxt_unit_default_init(task, &ruby_unit_init);
+    nxt_unit_default_init(task, &ruby_unit_init, conf);
 
     ruby_unit_init.callbacks.request_handler = nxt_ruby_request_handler;
     ruby_unit_init.callbacks.ready_handler = nxt_ruby_ready_handler;
-    ruby_unit_init.shm_limit = conf->shm_limit;
     ruby_unit_init.data = c;
     ruby_unit_init.ctx_data = &ruby_ctx;
 
@@ -1257,11 +1256,6 @@ nxt_ruby_ready_handler(nxt_unit_ctx_t *ctx)
     uint32_t             i;
     nxt_ruby_ctx_t       *rctx;
     nxt_ruby_app_conf_t  *c;
-
-    /* Worker thread context. */
-    if (!nxt_unit_is_main_ctx(ctx)) {
-        return NXT_UNIT_OK;
-    }
 
     c = ctx->unit->data;
 

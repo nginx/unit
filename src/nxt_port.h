@@ -224,8 +224,6 @@ struct nxt_port_s {
     /* Maximum interleave of message parts. */
     uint32_t            max_share;
 
-    uint32_t            app_responses;
-
     uint32_t            active_websockets;
     uint32_t            active_requests;
 
