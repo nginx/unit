@@ -228,8 +228,8 @@ static void nxt_router_app_port_error(nxt_task_t *task,
 static void nxt_router_app_use(nxt_task_t *task, nxt_app_t *app, int i);
 static void nxt_router_app_unlink(nxt_task_t *task, nxt_app_t *app);
 
-static void nxt_router_app_port_release(nxt_task_t *task, nxt_port_t *port,
-    nxt_apr_action_t action);
+static void nxt_router_app_port_release(nxt_task_t *task, nxt_app_t *app,
+    nxt_port_t *port, nxt_apr_action_t action);
 static void nxt_router_app_port_get(nxt_task_t *task, nxt_app_t *app,
     nxt_request_rpc_data_t *req_rpc_data);
 static void nxt_router_http_request_error(nxt_task_t *task, void *obj,
@@ -583,14 +583,15 @@ nxt_request_rpc_data_unlink(nxt_task_t *task,
 
     nxt_router_msg_cancel(task, req_rpc_data);
 
+    app = req_rpc_data->app;
+
     if (req_rpc_data->app_port != NULL) {
-        nxt_router_app_port_release(task, req_rpc_data->app_port,
+        nxt_router_app_port_release(task, app, req_rpc_data->app_port,
                                     req_rpc_data->apr_action);
 
         req_rpc_data->app_port = NULL;
     }
 
-    app = req_rpc_data->app;
     r = req_rpc_data->request;
 
     if (r != NULL) {
@@ -4211,7 +4212,7 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
             nxt_thread_mutex_unlock(&app->mutex);
 
-            nxt_router_app_port_release(task, app_port, NXT_APR_UPGRADE);
+            nxt_router_app_port_release(task, app, app_port, NXT_APR_UPGRADE);
             req_rpc_data->apr_action = NXT_APR_CLOSE;
 
             nxt_debug(task, "stream #%uD upgrade", req_rpc_data->stream);
@@ -4493,7 +4494,7 @@ nxt_router_app_port_ready(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
     nxt_router_app_shared_port_send(task, port);
 
-    nxt_router_app_port_release(task, port, NXT_APR_NEW_PORT);
+    nxt_router_app_port_release(task, app, port, NXT_APR_NEW_PORT);
 }
 
 
@@ -4670,19 +4671,15 @@ nxt_router_app_unlink(nxt_task_t *task, nxt_app_t *app)
 
 
 static void
-nxt_router_app_port_release(nxt_task_t *task, nxt_port_t *port,
+nxt_router_app_port_release(nxt_task_t *task, nxt_app_t *app, nxt_port_t *port,
     nxt_apr_action_t action)
 {
     int         inc_use;
     uint32_t    got_response, dec_requests;
-    nxt_app_t   *app;
     nxt_bool_t  port_unchained, send_quit, adjust_idle_timer;
     nxt_port_t  *main_app_port;
 
     nxt_assert(port != NULL);
-    nxt_assert(port->app != NULL);
-
-    app = port->app;
 
     inc_use = 0;
     got_response = 0;
