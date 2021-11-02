@@ -2,7 +2,6 @@ import os
 import shutil
 from urllib.parse import quote
 
-import pytest
 from unit.applications.proto import TestApplicationProto
 from unit.option import option
 

@@ -11,7 +11,6 @@ from OpenSSL.SSL import (
     _lib,
 )
 from unit.applications.tls import TestApplicationTLS
-from unit.option import option
 
 
 class TestTLSSession(TestApplicationTLS):

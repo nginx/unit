@@ -1,7 +1,6 @@
 import ssl
 import subprocess
 
-import pytest
 from unit.applications.tls import TestApplicationTLS
 from unit.option import option
 
