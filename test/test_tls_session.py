@@ -2,6 +2,8 @@ import socket
 import time
 
 import pytest
+
+pytest.importorskip('OpenSSL.SSL')
 from OpenSSL.SSL import (
     TLSv1_2_METHOD,
     SESS_CACHE_CLIENT,
