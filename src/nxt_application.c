@@ -527,17 +527,34 @@ nxt_app_setup(nxt_task_t *task, nxt_process_t *process)
 static nxt_app_module_t *
 nxt_app_module_load(nxt_task_t *task, const char *name)
 {
-    void  *dl;
+    char              *err;
+    void              *dl;
+    nxt_app_module_t  *app;
 
     dl = dlopen(name, RTLD_GLOBAL | RTLD_LAZY);
 
-    if (dl != NULL) {
-        return dlsym(dl, "nxt_app_module");
+    if (nxt_slow_path(dl == NULL)) {
+        err = dlerror();
+        nxt_alert(task, "dlopen(\"%s\") failed: \"%s\"",
+                  name, err != NULL ? err : "(null)");
+        return NULL;
     }
 
-    nxt_alert(task, "dlopen(\"%s\"), failed: \"%s\"", name, dlerror());
+    app = dlsym(dl, "nxt_app_module");
 
-    return NULL;
+    if (nxt_slow_path(app == NULL)) {
+        err = dlerror();
+        nxt_alert(task, "dlsym(\"%s\", \"nxt_app_module\") failed: \"%s\"",
+                  name, err != NULL ? err : "(null)");
+
+        if (dlclose(dl) != 0) {
+            err = dlerror();
+            nxt_alert(task, "dlclose(\"%s\") failed: \"%s\"",
+                      name, err != NULL ? err : "(null)");
+        }
+    }
+
+    return app;
 }
 
 
