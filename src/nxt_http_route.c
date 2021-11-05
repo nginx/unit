@@ -2008,10 +2008,6 @@ nxt_http_route_arguments(nxt_http_request_t *r, nxt_http_route_rule_t *rule)
 {
     nxt_array_t  *arguments;
 
-    if (r->args == NULL) {
-        return 0;
-    }
-
     arguments = nxt_http_route_arguments_parse(r);
     if (nxt_slow_path(arguments == NULL)) {
         return -1;

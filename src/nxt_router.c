@@ -5453,8 +5453,8 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_http_request_t *r,
         *p++ = '\0';
     }
 
-    req->query_length = r->args != NULL ? (uint32_t) r->args->length : 0;
-    if (r->args != NULL && r->args->start != NULL) {
+    req->query_length = (uint32_t) r->args->length;
+    if (r->args->start != NULL) {
         query_pos = nxt_pointer_to(target_pos,
                                    r->args->start - r->target.start);
 
