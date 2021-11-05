@@ -96,6 +96,12 @@ when updating from previous versions.
 </para>
 </change>
 
+<change type="feature">
+<para>
+request routing by the query string.
+</para>
+</change>
+
 <change type="bugfix">
 <para>
 fixed building with glibc 2.34, notably Fedora 35.

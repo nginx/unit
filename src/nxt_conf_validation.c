@@ -590,6 +590,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_match_members[] = {
         .validator  = nxt_conf_vldt_match_encoded_patterns,
         .u.string   = "uri"
     }, {
+        .name       = nxt_string("query"),
+        .type       = NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
+        .validator  = nxt_conf_vldt_match_encoded_patterns,
+        .u.string   = "query"
+    }, {
         .name       = nxt_string("arguments"),
         .type       = NXT_CONF_VLDT_OBJECT | NXT_CONF_VLDT_ARRAY,
         .validator  = nxt_conf_vldt_match_encoded_patterns_sets,

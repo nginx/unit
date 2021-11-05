@@ -19,6 +19,7 @@ typedef enum {
     NXT_HTTP_ROUTE_ARGUMENT,
     NXT_HTTP_ROUTE_COOKIE,
     NXT_HTTP_ROUTE_SCHEME,
+    NXT_HTTP_ROUTE_QUERY,
     NXT_HTTP_ROUTE_SOURCE,
     NXT_HTTP_ROUTE_DESTINATION,
 } nxt_http_route_object_t;
@@ -54,6 +55,7 @@ typedef struct {
     nxt_conf_value_t               *arguments;
     nxt_conf_value_t               *cookies;
     nxt_conf_value_t               *scheme;
+    nxt_conf_value_t               *query;
     nxt_conf_value_t               *source;
     nxt_conf_value_t               *destination;
 } nxt_http_route_match_conf_t;
@@ -247,6 +249,8 @@ static nxt_int_t nxt_http_route_test_argument(nxt_http_request_t *r,
     nxt_http_route_rule_t *rule, nxt_array_t *array);
 static nxt_int_t nxt_http_route_scheme(nxt_http_request_t *r,
     nxt_http_route_rule_t *rule);
+static nxt_int_t nxt_http_route_query(nxt_http_request_t *r,
+    nxt_http_route_rule_t *rule);
 static nxt_int_t nxt_http_route_cookies(nxt_http_request_t *r,
     nxt_http_route_rule_t *rule);
 static nxt_array_t *nxt_http_route_cookies_parse(nxt_http_request_t *r);
@@ -363,6 +367,12 @@ static nxt_conf_map_t  nxt_http_route_match_conf[] = {
         nxt_string("cookies"),
         NXT_CONF_MAP_PTR,
         offsetof(nxt_http_route_match_conf_t, cookies),
+    },
+
+    {
+        nxt_string("query"),
+        NXT_CONF_MAP_PTR,
+        offsetof(nxt_http_route_match_conf_t, query),
     },
 
     {
@@ -561,6 +571,19 @@ nxt_http_route_match_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         }
 
         test->table = table;
+        test++;
+    }
+
+    if (mtcf.query != NULL) {
+        rule = nxt_http_route_rule_create(task, mp, mtcf.query, 1,
+                                          NXT_HTTP_ROUTE_PATTERN_NOCASE,
+                                          NXT_HTTP_ROUTE_ENCODING_URI_PLUS);
+        if (rule == NULL) {
+            return NULL;
+        }
+
+        rule->object = NXT_HTTP_ROUTE_QUERY;
+        test->rule = rule;
         test++;
     }
 
@@ -1776,6 +1799,9 @@ nxt_http_route_rule(nxt_http_request_t *r, nxt_http_route_rule_t *rule)
     case NXT_HTTP_ROUTE_SCHEME:
         return nxt_http_route_scheme(r, rule);
 
+    case NXT_HTTP_ROUTE_QUERY:
+        return nxt_http_route_query(r, rule);
+
     default:
         break;
     }
@@ -2045,6 +2071,8 @@ nxt_http_route_arguments_parse(nxt_http_request_t *r)
         return NULL;
     }
 
+    r->args_decoded.start = dst_start;
+
     start = r->args->start;
     end = start + r->args->length;
 
@@ -2104,6 +2132,8 @@ nxt_http_route_arguments_parse(nxt_http_request_t *r)
             hash = nxt_http_field_hash_char(hash, *dst);
         }
     }
+
+    r->args_decoded.length = dst - r->args_decoded.start;
 
     if (name_length != 0 || dst != dst_start) {
         nv = nxt_http_route_argument(args, name, name_length, hash, dst_start,
@@ -2197,6 +2227,21 @@ nxt_http_route_scheme(nxt_http_request_t *r, nxt_http_route_rule_t *rule)
     tls = (r->tls != NULL);
 
     return (tls == https);
+}
+
+
+static nxt_int_t
+nxt_http_route_query(nxt_http_request_t *r, nxt_http_route_rule_t *rule)
+{
+    nxt_array_t  *arguments;
+
+    arguments = nxt_http_route_arguments_parse(r);
+    if (nxt_slow_path(arguments == NULL)) {
+        return -1;
+    }
+
+    return nxt_http_route_test_rule(r, rule, r->args_decoded.start,
+                                    r->args_decoded.length);
 }
 
 

@@ -1320,6 +1320,50 @@ class TestRouting(TestApplicationProto):
         self.route_match_invalid({"arguments": {"%%1F": ""}})
         self.route_match_invalid({"arguments": {"%7%F": ""}})
 
+    def test_routes_match_query(self):
+        self.route_match({"query": "!"})
+        assert self.get(url='/')['status'] == 404
+        assert self.get(url='/?')['status'] == 404
+        assert self.get(url='/?foo')['status'] == 200
+        assert self.get(url='/?foo=')['status'] == 200
+        assert self.get(url='/?foo=baz')['status'] == 200
+
+        self.route_match({"query": "foo=%26"})
+        assert self.get(url='/?foo=&')['status'] == 200
+
+        self.route_match({"query": "a=b&c=d"})
+        assert self.get(url='/?a=b&c=d')['status'] == 200
+
+        self.route_match({"query": "a=b%26c%3Dd"})
+        assert self.get(url='/?a=b%26c%3Dd')['status'] == 200
+        assert self.get(url='/?a=b&c=d')['status'] == 200
+
+        self.route_match({"query": "a=b%26c%3Dd+e"})
+        assert self.get(url='/?a=b&c=d e')['status'] == 200
+
+    def test_routes_match_query_array(self):
+        self.route_match({
+            "query": ["foo", "bar"]
+        })
+
+        assert self.get()['status'] == 404, 'arr'
+        assert self.get(url='/?foo')['status'] == 200, 'arr 1'
+        assert self.get(url='/?bar')['status'] == 200, 'arr 2'
+
+        assert 'success' in self.conf_delete(
+            'routes/0/match/query/1'
+        ), 'match query array configure 2'
+
+        assert self.get(url='/?bar')['status'] == 404, 'arr 2'
+
+    def test_routes_match_query_invalid(self):
+        self.route_match_invalid({"query": [1]})
+        self.route_match_invalid({"query": "%"})
+        self.route_match_invalid({"query": "%1G"})
+        self.route_match_invalid({"query": "%0"})
+        self.route_match_invalid({"query": "%%1F"})
+        self.route_match_invalid({"query": ["foo", "%3D", "%%1F"]})
+
     def test_routes_match_cookies(self):
         self.route_match({"cookies": {"foO": "bar"}})
 
