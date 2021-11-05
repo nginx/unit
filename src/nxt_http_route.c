@@ -2025,10 +2025,9 @@ static nxt_array_t *
 nxt_http_route_arguments_parse(nxt_http_request_t *r)
 {
     size_t                 name_length;
-    u_char                 c, *p, *dst, *dst_start, *start, *end, *name;
+    u_char                 *p, *dst, *dst_start, *start, *end, *name;
     uint8_t                d0, d1;
     uint32_t               hash;
-    nxt_bool_t             valid;
     nxt_array_t            *args;
     nxt_http_name_value_t  *nv;
 
@@ -2042,7 +2041,6 @@ nxt_http_route_arguments_parse(nxt_http_request_t *r)
     }
 
     hash = NXT_HTTP_FIELD_HASH_INIT;
-    valid = 1;
     name = NULL;
     name_length = 0;
 
@@ -2055,24 +2053,20 @@ nxt_http_route_arguments_parse(nxt_http_request_t *r)
     end = start + r->args->length;
 
     for (p = start, dst = dst_start; p < end; p++, dst++) {
-        c = *p;
-        *dst = c;
+        *dst = *p;
 
-        switch (c) {
+        switch (*p) {
         case '=':
-            if (name != NULL) {
-                break;
+            if (name == NULL) {
+                name_length = dst - dst_start;
+                name = dst_start;
+                dst_start = dst + 1;
             }
-
-            name_length = dst - dst_start;
-            valid = (name_length != 0);
-            name = dst_start;
-            dst_start = dst + 1;
 
             continue;
 
         case '&':
-            if (valid) {
+            if (name_length != 0 || dst != dst_start) {
                 nv = nxt_http_route_argument(args, name, name_length, hash,
                                              dst_start, dst);
                 if (nxt_slow_path(nv == NULL)) {
@@ -2082,14 +2076,12 @@ nxt_http_route_arguments_parse(nxt_http_request_t *r)
 
             hash = NXT_HTTP_FIELD_HASH_INIT;
             name_length = 0;
-            valid = 1;
             name = NULL;
             dst_start = dst + 1;
 
             continue;
 
         case '+':
-            c = ' ';
             *dst = ' ';
 
             break;
@@ -2107,18 +2099,17 @@ nxt_http_route_arguments_parse(nxt_http_request_t *r)
             }
 
             p += 2;
-            c = (d0 << 4) + d1;
-            *dst = c;
+            *dst = (d0 << 4) + d1;
 
             break;
         }
 
         if (name == NULL) {
-            hash = nxt_http_field_hash_char(hash, c);
+            hash = nxt_http_field_hash_char(hash, *dst);
         }
     }
 
-    if (valid) {
+    if (name_length != 0 || dst != dst_start) {
         nv = nxt_http_route_argument(args, name, name_length, hash, dst_start,
                                      dst);
         if (nxt_slow_path(nv == NULL)) {
