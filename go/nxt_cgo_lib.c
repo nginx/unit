@@ -30,6 +30,7 @@ nxt_cgo_run(uintptr_t handler)
     init.callbacks.port_send       = nxt_cgo_port_send;
     init.callbacks.port_recv       = nxt_cgo_port_recv;
     init.callbacks.shm_ack_handler = nxt_go_shm_ack_handler;
+    init.callbacks.ready_handler   = nxt_go_ready;
 
     init.data = (void *) handler;
 

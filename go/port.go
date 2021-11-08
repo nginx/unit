@@ -110,11 +110,14 @@ func nxt_go_add_port(ctx *C.nxt_unit_ctx_t, p *C.nxt_unit_port_t) C.int {
 	p.in_fd = -1
 	p.out_fd = -1
 
-	if new_port.key.id == 65535 {
-		go func(ctx *C.nxt_unit_ctx_t) {
-			C.nxt_unit_run_shared(ctx);
-		}(ctx)
-	}
+	return C.NXT_UNIT_OK
+}
+
+//export nxt_go_ready
+func nxt_go_ready(ctx *C.nxt_unit_ctx_t) C.int {
+	go func(ctx *C.nxt_unit_ctx_t) {
+		C.nxt_unit_run_shared(ctx)
+	}(ctx)
 
 	return C.NXT_UNIT_OK
 }
