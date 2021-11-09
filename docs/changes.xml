@@ -110,8 +110,8 @@ after the corresponding listener had been reconfigured.
 
 <change type="bugfix">
 <para>
-the router and app processes could crash when reaching requests limit
-in asynchronous or multithreaded apps.
+the router and app processes could crash when the requests limit was reached
+by asynchronous or multithreaded apps.
 </para>
 </change>
 
