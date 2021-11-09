@@ -591,7 +591,7 @@ basicConstraints = critical,CA:TRUE"""
 
         subprocess.call(['kill', '-9', app_id])
 
-        skip_alert(r'process %s exited on signal 9' % app_id)
+        skip_alert(r'process .* %s.* exited on signal 9' % app_id)
 
         self.wait_for_record(
             re.compile(

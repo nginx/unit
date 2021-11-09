@@ -7,6 +7,10 @@ from unit.applications.lang.go import TestApplicationGo
 class TestGoIsolationRootfs(TestApplicationGo):
     prerequisites = {'modules': {'go': 'all'}}
 
+    @pytest.fixture(autouse=True)
+    def setup_method_fixture(self, request, skip_alert):
+        skip_alert(r'\[unit\] close\(\d+\) failed: Bad file descriptor')
+
     def test_go_isolation_rootfs_chroot(self, is_su, temp_dir):
         if not is_su:
             pytest.skip('requires root')
