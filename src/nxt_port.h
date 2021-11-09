@@ -339,6 +339,7 @@ nxt_int_t nxt_port_send_port(nxt_task_t *task, nxt_port_t *port,
     nxt_port_t *new_port, uint32_t stream);
 void nxt_port_change_log_file(nxt_task_t *task, nxt_runtime_t *rt,
     nxt_uint_t slot, nxt_fd_t fd);
+void nxt_port_remove_notify_others(nxt_task_t *task, nxt_process_t *process);
 
 void nxt_port_quit_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 void nxt_port_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);

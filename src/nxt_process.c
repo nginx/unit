@@ -17,6 +17,7 @@
 #include <sys/prctl.h>
 #endif
 
+static nxt_pid_t nxt_process_create(nxt_task_t *task, nxt_process_t *process);
 static nxt_int_t nxt_process_setup(nxt_task_t *task, nxt_process_t *process);
 static nxt_int_t nxt_process_child_fixup(nxt_task_t *task,
     nxt_process_t *process);
@@ -57,6 +58,152 @@ nxt_bool_t  nxt_proc_remove_notify_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
     { 0, 0, 1, 0, 1 },
     { 0, 0, 0, 1, 0 },
 };
+
+
+nxt_process_t *
+nxt_process_new(nxt_runtime_t *rt)
+{
+    nxt_process_t  *process;
+
+    process = nxt_mp_zalloc(rt->mem_pool, sizeof(nxt_process_t)
+                            + sizeof(nxt_process_init_t));
+
+    if (nxt_slow_path(process == NULL)) {
+        return NULL;
+    }
+
+    nxt_queue_init(&process->ports);
+
+    nxt_thread_mutex_create(&process->incoming.mutex);
+
+    process->use_count = 1;
+
+    return process;
+}
+
+
+void
+nxt_process_use(nxt_task_t *task, nxt_process_t *process, int i)
+{
+    process->use_count += i;
+
+    if (process->use_count == 0) {
+        nxt_runtime_process_release(task->thread->runtime, process);
+    }
+}
+
+
+nxt_int_t
+nxt_process_init_start(nxt_task_t *task, nxt_process_init_t init)
+{
+    nxt_int_t           ret;
+    nxt_runtime_t       *rt;
+    nxt_process_t       *process;
+    nxt_process_init_t  *pinit;
+
+    rt = task->thread->runtime;
+
+    process = nxt_process_new(rt);
+    if (nxt_slow_path(process == NULL)) {
+        return NXT_ERROR;
+    }
+
+    process->name = init.name;
+    process->user_cred = &rt->user_cred;
+
+    pinit = nxt_process_init(process);
+    *pinit = init;
+
+    ret = nxt_process_start(task, process);
+    if (nxt_slow_path(ret == NXT_ERROR)) {
+        nxt_process_use(task, process, -1);
+    }
+
+    return ret;
+}
+
+
+nxt_int_t
+nxt_process_start(nxt_task_t *task, nxt_process_t *process)
+{
+    nxt_mp_t            *tmp_mp;
+    nxt_int_t           ret;
+    nxt_pid_t           pid;
+    nxt_port_t          *port;
+    nxt_process_init_t  *init;
+
+    init = nxt_process_init(process);
+
+    port = nxt_port_new(task, 0, 0, init->type);
+    if (nxt_slow_path(port == NULL)) {
+        return NXT_ERROR;
+    }
+
+    nxt_process_port_add(task, process, port);
+
+    ret = nxt_port_socket_init(task, port, 0);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        goto free_port;
+    }
+
+    tmp_mp = nxt_mp_create(1024, 128, 256, 32);
+    if (nxt_slow_path(tmp_mp == NULL)) {
+        ret = NXT_ERROR;
+
+        goto close_port;
+    }
+
+    if (init->prefork) {
+        ret = init->prefork(task, process, tmp_mp);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            goto free_mempool;
+        }
+    }
+
+    pid = nxt_process_create(task, process);
+
+    switch (pid) {
+
+    case -1:
+        ret = NXT_ERROR;
+        break;
+
+    case 0:
+        /* The child process: return to the event engine work queue loop. */
+
+        nxt_process_use(task, process, -1);
+
+        ret = NXT_AGAIN;
+        break;
+
+    default:
+        /* The main process created a new process. */
+
+        nxt_process_use(task, process, -1);
+
+        nxt_port_read_close(port);
+        nxt_port_write_enable(task, port);
+
+        ret = NXT_OK;
+        break;
+    }
+
+free_mempool:
+
+    nxt_mp_destroy(tmp_mp);
+
+close_port:
+
+    if (nxt_slow_path(ret == NXT_ERROR)) {
+        nxt_port_close(task, port);
+    }
+
+free_port:
+
+    nxt_port_use(task, port, -1);
+
+    return ret;
+}
 
 
 static nxt_int_t
@@ -139,7 +286,7 @@ nxt_process_child_fixup(nxt_task_t *task, nxt_process_t *process)
 }
 
 
-nxt_pid_t
+static nxt_pid_t
 nxt_process_create(nxt_task_t *task, nxt_process_t *process)
 {
     nxt_int_t           ret;
@@ -676,17 +823,6 @@ nxt_nanosleep(nxt_nsec_t ns)
     ts.tv_nsec = ns % 1000000000;
 
     (void) nanosleep(&ts, NULL);
-}
-
-
-void
-nxt_process_use(nxt_task_t *task, nxt_process_t *process, int i)
-{
-    process->use_count += i;
-
-    if (process->use_count == 0) {
-        nxt_runtime_process_release(task->thread->runtime, process);
-    }
 }
 
 

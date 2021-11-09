@@ -94,8 +94,6 @@ nxt_int_t nxt_runtime_thread_pool_create(nxt_thread_t *thr, nxt_runtime_t *rt,
     nxt_uint_t max_threads, nxt_nsec_t timeout);
 
 
-nxt_process_t *nxt_runtime_process_new(nxt_runtime_t *rt);
-
 void nxt_runtime_process_add(nxt_task_t *task, nxt_process_t *process);
 
 nxt_process_t *nxt_runtime_process_find(nxt_runtime_t *rt, nxt_pid_t pid);

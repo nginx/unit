@@ -448,6 +448,53 @@ nxt_port_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
 
 void
+nxt_port_remove_notify_others(nxt_task_t *task, nxt_process_t *process)
+{
+    nxt_pid_t           pid;
+    nxt_buf_t           *buf;
+    nxt_port_t          *port;
+    nxt_runtime_t       *rt;
+    nxt_process_t       *p;
+    nxt_process_type_t  ptype;
+
+    pid = process->pid;
+
+    ptype = nxt_process_type(process);
+
+    rt = task->thread->runtime;
+
+    nxt_runtime_process_each(rt, p) {
+
+        if (p->pid == nxt_pid
+            || p->pid == pid
+            || nxt_queue_is_empty(&p->ports))
+        {
+            continue;
+        }
+
+        port = nxt_process_port_first(p);
+
+        if (nxt_proc_remove_notify_matrix[ptype][port->type] == 0) {
+            continue;
+        }
+
+        buf = nxt_buf_mem_ts_alloc(task, task->thread->engine->mem_pool,
+                                   sizeof(pid));
+
+        if (nxt_slow_path(buf == NULL)) {
+            continue;
+        }
+
+        buf->mem.free = nxt_cpymem(buf->mem.free, &pid, sizeof(pid));
+
+        nxt_port_socket_write(task, port, NXT_PORT_MSG_REMOVE_PID, -1,
+                              process->stream, 0, buf);
+
+    } nxt_runtime_process_loop;
+}
+
+
+void
 nxt_port_remove_pid_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 {
     nxt_buf_t           *buf;

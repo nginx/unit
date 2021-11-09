@@ -148,8 +148,6 @@ extern nxt_bool_t  nxt_proc_conn_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX];
 extern nxt_bool_t
           nxt_proc_remove_notify_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX];
 
-NXT_EXPORT nxt_pid_t nxt_process_create(nxt_task_t *task,
-    nxt_process_t *process);
 NXT_EXPORT nxt_pid_t nxt_process_execute(nxt_task_t *task, char *name,
     char **argv, char **envp);
 NXT_EXPORT nxt_int_t nxt_process_daemon(nxt_task_t *task);
@@ -176,6 +174,10 @@ NXT_EXPORT void nxt_process_port_add(nxt_task_t *task, nxt_process_t *process,
 #define nxt_process_port_loop                                                 \
     nxt_queue_loop
 
+nxt_process_t *nxt_process_new(nxt_runtime_t *rt);
+void nxt_process_use(nxt_task_t *task, nxt_process_t *process, int i);
+nxt_int_t nxt_process_init_start(nxt_task_t *task, nxt_process_init_t init);
+nxt_int_t nxt_process_start(nxt_task_t *task, nxt_process_t *process);
 nxt_process_type_t nxt_process_type(nxt_process_t *process);
 
 void nxt_process_use(nxt_task_t *task, nxt_process_t *process, int i);

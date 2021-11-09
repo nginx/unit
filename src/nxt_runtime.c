@@ -580,6 +580,7 @@ nxt_runtime_exit(nxt_task_t *task, void *obj, void *data)
 
     nxt_runtime_process_each(rt, process) {
 
+        nxt_runtime_process_remove(rt, process);
         nxt_process_close_ports(task, process);
 
     } nxt_runtime_process_loop;
@@ -1385,30 +1386,6 @@ nxt_runtime_pid_file_create(nxt_task_t *task, nxt_file_name_t *pid_file)
 }
 
 
-nxt_process_t *
-nxt_runtime_process_new(nxt_runtime_t *rt)
-{
-    nxt_process_t  *process;
-
-    /* TODO: memory failures. */
-
-    process = nxt_mp_zalloc(rt->mem_pool,
-                            sizeof(nxt_process_t) + sizeof(nxt_process_init_t));
-
-    if (nxt_slow_path(process == NULL)) {
-        return NULL;
-    }
-
-    nxt_queue_init(&process->ports);
-
-    nxt_thread_mutex_create(&process->incoming.mutex);
-
-    process->use_count = 1;
-
-    return process;
-}
-
-
 void
 nxt_runtime_process_release(nxt_runtime_t *rt, nxt_process_t *process)
 {
@@ -1512,7 +1489,7 @@ nxt_runtime_process_get(nxt_runtime_t *rt, nxt_pid_t pid)
         return process;
     }
 
-    process = nxt_runtime_process_new(rt);
+    process = nxt_process_new(rt);
     if (nxt_slow_path(process == NULL)) {
 
         nxt_thread_mutex_unlock(&rt->processes_mutex);
@@ -1601,7 +1578,7 @@ nxt_runtime_process_add(nxt_task_t *task, nxt_process_t *process)
 }
 
 
-static void
+void
 nxt_runtime_process_remove(nxt_runtime_t *rt, nxt_process_t *process)
 {
     nxt_pid_t           pid;
