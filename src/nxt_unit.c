@@ -418,6 +418,9 @@ typedef struct {
 } nxt_unit_port_hash_id_t;
 
 
+static pid_t  nxt_unit_pid;
+
+
 nxt_unit_ctx_t *
 nxt_unit_init(nxt_unit_init_t *init)
 {
@@ -427,6 +430,8 @@ nxt_unit_init(nxt_unit_init_t *init)
     nxt_unit_ctx_t   *ctx;
     nxt_unit_impl_t  *lib;
     nxt_unit_port_t  ready_port, router_port, read_port;
+
+    nxt_unit_pid = getpid();
 
     lib = nxt_unit_create(init);
     if (nxt_slow_path(lib == NULL)) {
@@ -471,6 +476,7 @@ nxt_unit_init(nxt_unit_init_t *init)
     }
 
     lib->pid = read_port.id.pid;
+    nxt_unit_pid = lib->pid;
 
     ctx = &lib->main_ctx.ctx;
 
@@ -6571,7 +6577,7 @@ nxt_unit_log(nxt_unit_ctx_t *ctx, int level, const char *fmt, ...)
         log_fd = lib->log_fd;
 
     } else {
-        pid = getpid();
+        pid = nxt_unit_pid;
         log_fd = STDERR_FILENO;
     }
 
@@ -6615,7 +6621,7 @@ nxt_unit_req_log(nxt_unit_request_info_t *req, int level, const char *fmt, ...)
         log_fd = lib->log_fd;
 
     } else {
-        pid = getpid();
+        pid = nxt_unit_pid;
         log_fd = STDERR_FILENO;
     }
 

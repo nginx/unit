@@ -33,6 +33,7 @@ struct nxt_port_handlers_s {
     /* New process */
     nxt_port_handler_t  process_created;
     nxt_port_handler_t  process_ready;
+    nxt_port_handler_t  whoami;
 
     /* Process exit/crash notification. */
     nxt_port_handler_t  remove_pid;
@@ -92,6 +93,7 @@ typedef enum {
 
     _NXT_PORT_MSG_PROCESS_CREATED = nxt_port_handler_idx(process_created),
     _NXT_PORT_MSG_PROCESS_READY   = nxt_port_handler_idx(process_ready),
+    _NXT_PORT_MSG_WHOAMI          = nxt_port_handler_idx(whoami),
     _NXT_PORT_MSG_REMOVE_PID      = nxt_port_handler_idx(remove_pid),
     _NXT_PORT_MSG_QUIT            = nxt_port_handler_idx(quit),
 
@@ -131,6 +133,7 @@ typedef enum {
 
     NXT_PORT_MSG_PROCESS_CREATED  = nxt_msg_last(_NXT_PORT_MSG_PROCESS_CREATED),
     NXT_PORT_MSG_PROCESS_READY    = nxt_msg_last(_NXT_PORT_MSG_PROCESS_READY),
+    NXT_PORT_MSG_WHOAMI           = nxt_msg_last(_NXT_PORT_MSG_WHOAMI),
     NXT_PORT_MSG_QUIT             = nxt_msg_last(_NXT_PORT_MSG_QUIT),
     NXT_PORT_MSG_REMOVE_PID       = nxt_msg_last(_NXT_PORT_MSG_REMOVE_PID),
 

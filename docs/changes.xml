@@ -95,6 +95,12 @@ request routing by the query string.
 </para>
 </change>
 
+<change type="feature">
+<para>
+PHP opcache is shared between application processes.
+</para>
+</change>
+
 <change type="bugfix">
 <para>
 fixed building with glibc 2.34, notably Fedora 35.

@@ -99,18 +99,25 @@ typedef struct {
 
 struct nxt_process_s {
     nxt_pid_t                pid;
-    const char               *name;
-    nxt_queue_t              ports;      /* of nxt_port_t */
+    nxt_queue_t              ports;      /* of nxt_port_t.link */
     nxt_process_state_t      state;
     nxt_bool_t               registered;
     nxt_int_t                use_count;
 
     nxt_port_mmaps_t         incoming;
 
+
+    nxt_pid_t                isolated_pid;
+    const char               *name;
+    nxt_port_t               *parent_port;
+
     uint32_t                 stream;
 
     nxt_mp_t                 *mem_pool;
     nxt_credential_t         *user_cred;
+
+    nxt_queue_t              children;   /* of nxt_process_t.link */
+    nxt_queue_link_t         link;       /* for nxt_process_t.children */
 
     nxt_process_data_t       data;
 

@@ -40,8 +40,6 @@ static void nxt_runtime_thread_pool_init(void);
 static void nxt_runtime_thread_pool_exit(nxt_task_t *task, void *obj,
     void *data);
 static nxt_process_t *nxt_runtime_process_get(nxt_runtime_t *rt, nxt_pid_t pid);
-static void nxt_runtime_process_remove(nxt_runtime_t *rt,
-    nxt_process_t *process);
 static void nxt_runtime_port_add(nxt_task_t *task, nxt_port_t *port);
 
 
@@ -504,7 +502,9 @@ nxt_runtime_stop_app_processes(nxt_task_t *task, nxt_runtime_t *rt)
 
         init = nxt_process_init(process);
 
-        if (init->type == NXT_PROCESS_APP) {
+        if (init->type == NXT_PROCESS_APP
+            || init->type == NXT_PROCESS_PROTOTYPE)
+        {
 
             nxt_process_port_each(process, port) {
 
@@ -527,6 +527,8 @@ nxt_runtime_stop_all_processes(nxt_task_t *task, nxt_runtime_t *rt)
     nxt_runtime_process_each(rt, process) {
 
         nxt_process_port_each(process, port) {
+
+            nxt_debug(task, "%d sending quit to %PI", rt->type, port->pid);
 
             (void) nxt_port_socket_write(task, port, NXT_PORT_MSG_QUIT, -1, 0,
                                          0, NULL);
@@ -1389,9 +1391,20 @@ nxt_runtime_pid_file_create(nxt_task_t *task, nxt_file_name_t *pid_file)
 void
 nxt_runtime_process_release(nxt_runtime_t *rt, nxt_process_t *process)
 {
+    nxt_process_t  *child;
+
     if (process->registered == 1) {
         nxt_runtime_process_remove(rt, process);
     }
+
+    if (process->link.next != NULL) {
+        nxt_queue_remove(&process->link);
+    }
+
+    nxt_queue_each(child, &process->children, nxt_process_t, link) {
+        nxt_queue_remove(&child->link);
+        child->link.next = NULL;
+    } nxt_queue_loop;
 
     nxt_assert(process->use_count == 0);
     nxt_assert(process->registered == 0);

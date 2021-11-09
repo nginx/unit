@@ -5,7 +5,6 @@
  */
 
 #include <nxt_main.h>
-#include <nxt_main_process.h>
 
 #if (NXT_HAVE_CLONE)
 #include <nxt_clone.h>
@@ -17,10 +16,26 @@
 #include <sys/prctl.h>
 #endif
 
+
+#if (NXT_HAVE_CLONE) && (NXT_HAVE_CLONE_NEWPID)
+#define nxt_is_pid_isolated(process)                                          \
+    nxt_is_clone_flag_set(process->isolation.clone.flags, NEWPID)
+#else
+#define nxt_is_pid_isolated(process)                                          \
+    (0)
+#endif
+
+
 static nxt_pid_t nxt_process_create(nxt_task_t *task, nxt_process_t *process);
+static nxt_int_t nxt_process_do_start(nxt_task_t *task, nxt_process_t *process);
+static nxt_int_t nxt_process_whoami(nxt_task_t *task, nxt_process_t *process);
 static nxt_int_t nxt_process_setup(nxt_task_t *task, nxt_process_t *process);
 static nxt_int_t nxt_process_child_fixup(nxt_task_t *task,
     nxt_process_t *process);
+static void nxt_process_whoami_ok(nxt_task_t *task, nxt_port_recv_msg_t *msg,
+    void *data);
+static void nxt_process_whoami_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
+    void *data);
 static nxt_int_t nxt_process_send_created(nxt_task_t *task,
     nxt_process_t *process);
 static nxt_int_t nxt_process_send_ready(nxt_task_t *task,
@@ -44,19 +59,28 @@ nxt_uid_t  nxt_euid;
 nxt_gid_t  nxt_egid;
 
 nxt_bool_t  nxt_proc_conn_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
-    { 1, 1, 1, 1, 1 },
-    { 1, 0, 0, 0, 0 },
-    { 1, 0, 0, 1, 0 },
-    { 1, 0, 1, 0, 1 },
-    { 1, 0, 0, 1, 0 },
+    { 1, 1, 1, 1, 1, 1 },
+    { 1, 0, 0, 0, 0, 0 },
+    { 1, 0, 0, 1, 0, 0 },
+    { 1, 0, 1, 1, 1, 1 },
+    { 1, 0, 0, 1, 0, 0 },
+    { 1, 0, 0, 1, 0, 0 },
 };
 
 nxt_bool_t  nxt_proc_remove_notify_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
-    { 0, 0, 0, 0, 0 },
-    { 0, 0, 0, 0, 0 },
-    { 0, 0, 0, 1, 0 },
-    { 0, 0, 1, 0, 1 },
-    { 0, 0, 0, 1, 0 },
+    { 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 1, 0, 0 },
+    { 0, 0, 1, 0, 1, 1 },
+    { 0, 0, 0, 1, 0, 0 },
+    { 1, 0, 0, 1, 0, 0 },
+};
+
+
+static const nxt_port_handlers_t  nxt_process_whoami_port_handlers = {
+    .quit         = nxt_signal_quit_handler,
+    .rpc_ready    = nxt_port_rpc_handler,
+    .rpc_error    = nxt_port_rpc_handler,
 };
 
 
@@ -77,6 +101,8 @@ nxt_process_new(nxt_runtime_t *rt)
     nxt_thread_mutex_create(&process->incoming.mutex);
 
     process->use_count = 1;
+
+    nxt_queue_init(&process->children);
 
     return process;
 }
@@ -107,6 +133,8 @@ nxt_process_init_start(nxt_task_t *task, nxt_process_init_t init)
     if (nxt_slow_path(process == NULL)) {
         return NXT_ERROR;
     }
+
+    process->parent_port = rt->port_by_type[rt->type];
 
     process->name = init.name;
     process->user_cred = &rt->user_cred;
@@ -177,7 +205,7 @@ nxt_process_start(nxt_task_t *task, nxt_process_t *process)
         break;
 
     default:
-        /* The main process created a new process. */
+        /* The parent process created a new process. */
 
         nxt_process_use(task, process, -1);
 
@@ -216,40 +244,15 @@ nxt_process_child_fixup(nxt_task_t *task, nxt_process_t *process)
 
     init = nxt_process_init(process);
 
+    nxt_ppid = nxt_pid;
+
     nxt_pid = nxt_getpid();
 
     process->pid = nxt_pid;
+    process->isolated_pid = nxt_pid;
 
     /* Clean inherited cached thread tid. */
     task->thread->tid = 0;
-
-#if (NXT_HAVE_CLONE && NXT_HAVE_CLONE_NEWPID)
-    if (nxt_is_clone_flag_set(process->isolation.clone.flags, NEWPID)) {
-        ssize_t  pidsz;
-        char     procpid[10];
-
-        nxt_debug(task, "%s isolated pid is %d", process->name, nxt_pid);
-
-        pidsz = readlink("/proc/self", procpid, sizeof(procpid));
-
-        if (nxt_slow_path(pidsz < 0 || pidsz >= (ssize_t) sizeof(procpid))) {
-            nxt_alert(task, "failed to read real pid from /proc/self");
-            return NXT_ERROR;
-        }
-
-        procpid[pidsz] = '\0';
-
-        nxt_pid = (nxt_pid_t) strtol(procpid, NULL, 10);
-
-        nxt_assert(nxt_pid >  0 && nxt_errno != ERANGE);
-
-        process->pid = nxt_pid;
-        task->thread->tid = nxt_pid;
-
-        nxt_debug(task, "%s real pid is %d", process->name, nxt_pid);
-    }
-
-#endif
 
     ptype = init->type;
 
@@ -262,7 +265,9 @@ nxt_process_child_fixup(nxt_task_t *task, nxt_process_t *process)
     /* Remove not ready processes. */
     nxt_runtime_process_each(rt, p) {
 
-        if (nxt_proc_conn_matrix[ptype][nxt_process_type(p)] == 0) {
+        if (nxt_proc_conn_matrix[ptype][nxt_process_type(p)] == 0
+            && p->pid != nxt_ppid) /* Always keep parent's port. */
+        {
             nxt_debug(task, "remove not required process %PI", p->pid);
 
             nxt_process_close_ports(task, p);
@@ -315,9 +320,8 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
             return -1;
         }
 
-        nxt_runtime_process_add(task, process);
-
-        if (nxt_slow_path(nxt_process_setup(task, process) != NXT_OK)) {
+        ret = nxt_process_setup(task, process);
+        if (nxt_slow_path(ret != NXT_OK)) {
             nxt_process_quit(task, 1);
         }
 
@@ -337,6 +341,7 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
 #endif
 
     process->pid = pid;
+    process->isolated_pid = pid;
 
     nxt_runtime_process_add(task, process);
 
@@ -348,7 +353,6 @@ static nxt_int_t
 nxt_process_setup(nxt_task_t *task, nxt_process_t *process)
 {
     nxt_int_t                    ret;
-    nxt_port_t                   *port, *main_port;
     nxt_thread_t                 *thread;
     nxt_runtime_t                *rt;
     nxt_process_init_t           *init;
@@ -388,17 +392,45 @@ nxt_process_setup(nxt_task_t *task, nxt_process_t *process)
         return NXT_ERROR;
     }
 
-    main_port = rt->port_by_type[NXT_PROCESS_MAIN];
+    nxt_port_read_close(process->parent_port);
+    nxt_port_write_enable(task, process->parent_port);
 
-    nxt_port_read_close(main_port);
-    nxt_port_write_enable(task, main_port);
+    /*
+     * If the parent process is already isolated, rt->pid_isolation is already
+     * set to 1 at this point.
+     */
+    if (nxt_is_pid_isolated(process)) {
+        rt->is_pid_isolated = 1;
+    }
 
+    if (rt->is_pid_isolated
+        || process->parent_port != rt->port_by_type[NXT_PROCESS_MAIN])
+    {
+        ret = nxt_process_whoami(task, process);
+
+    } else {
+        ret = nxt_process_do_start(task, process);
+    }
+
+    return ret;
+}
+
+
+static nxt_int_t
+nxt_process_do_start(nxt_task_t *task, nxt_process_t *process)
+{
+    nxt_int_t           ret;
+    nxt_port_t          *port;
+    nxt_process_init_t  *init;
+
+    nxt_runtime_process_add(task, process);
+
+    init = nxt_process_init(process);
     port = nxt_process_port_first(process);
 
     nxt_port_enable(task, port, init->port_handlers);
 
     ret = init->setup(task, process);
-
     if (nxt_slow_path(ret != NXT_OK)) {
         return NXT_ERROR;
     }
@@ -431,6 +463,113 @@ nxt_process_setup(nxt_task_t *task, nxt_process_t *process)
     }
 
     return ret;
+}
+
+
+static nxt_int_t
+nxt_process_whoami(nxt_task_t *task, nxt_process_t *process)
+{
+    uint32_t       stream;
+    nxt_fd_t       fd;
+    nxt_buf_t      *buf;
+    nxt_int_t      ret;
+    nxt_port_t     *my_port, *main_port;
+    nxt_runtime_t  *rt;
+
+    rt = task->thread->runtime;
+
+    my_port = nxt_process_port_first(process);
+    main_port = rt->port_by_type[NXT_PROCESS_MAIN];
+
+    nxt_assert(my_port != NULL && main_port != NULL);
+
+    nxt_port_enable(task, my_port, &nxt_process_whoami_port_handlers);
+
+    buf = nxt_buf_mem_alloc(main_port->mem_pool, sizeof(nxt_pid_t), 0);
+    if (nxt_slow_path(buf == NULL)) {
+        return NXT_ERROR;
+    }
+
+    buf->mem.free = nxt_cpymem(buf->mem.free, &nxt_ppid, sizeof(nxt_pid_t));
+
+    stream = nxt_port_rpc_register_handler(task, my_port,
+                                           nxt_process_whoami_ok,
+                                           nxt_process_whoami_error,
+                                           main_port->pid, process);
+    if (nxt_slow_path(stream == 0)) {
+        nxt_mp_free(main_port->mem_pool, buf);
+
+        return NXT_ERROR;
+    }
+
+    fd = (process->parent_port != main_port) ? my_port->pair[1] : -1;
+
+    ret = nxt_port_socket_write(task, main_port, NXT_PORT_MSG_WHOAMI,
+                                fd, stream, my_port->id, buf);
+
+    if (nxt_slow_path(ret != NXT_OK)) {
+        nxt_alert(task, "%s failed to send WHOAMI message", process->name);
+        nxt_port_rpc_cancel(task, my_port, stream);
+        nxt_mp_free(main_port->mem_pool, buf);
+
+        return NXT_ERROR;
+    }
+
+    return NXT_OK;
+}
+
+
+static void
+nxt_process_whoami_ok(nxt_task_t *task, nxt_port_recv_msg_t *msg, void *data)
+{
+    nxt_pid_t      pid, isolated_pid;
+    nxt_buf_t      *buf;
+    nxt_port_t     *port;
+    nxt_process_t  *process;
+    nxt_runtime_t  *rt;
+
+    process = data;
+
+    buf = msg->buf;
+
+    nxt_assert(nxt_buf_used_size(buf) == sizeof(nxt_pid_t));
+
+    nxt_memcpy(&pid, buf->mem.pos, sizeof(nxt_pid_t));
+
+    isolated_pid = nxt_pid;
+
+    if (isolated_pid != pid) {
+        nxt_pid = pid;
+        process->pid = pid;
+
+        nxt_process_port_each(process, port) {
+            port->pid = pid;
+        } nxt_process_port_loop;
+    }
+
+    rt = task->thread->runtime;
+
+    if (process->parent_port != rt->port_by_type[NXT_PROCESS_MAIN]) {
+        port = process->parent_port;
+
+        (void) nxt_port_socket_write(task, port, NXT_PORT_MSG_PROCESS_CREATED,
+                                     -1, 0, 0, NULL);
+
+        nxt_log(task, NXT_LOG_INFO, "%s started", process->name);
+    }
+
+    if (nxt_slow_path(nxt_process_do_start(task, process) != NXT_OK)) {
+        nxt_process_quit(task, 1);
+    }
+}
+
+
+static void
+nxt_process_whoami_error(nxt_task_t *task, nxt_port_recv_msg_t *msg, void *data)
+{
+    nxt_alert(task, "WHOAMI error");
+
+    nxt_process_quit(task, 1);
 }
 
 
@@ -483,6 +622,9 @@ nxt_process_created_ok(nxt_task_t *task, nxt_port_recv_msg_t *msg, void *data)
     nxt_process_init_t  *init;
 
     process = data;
+
+    process->state = NXT_PROCESS_STATE_READY;
+
     init = nxt_process_init(process);
 
     ret = nxt_process_apply_creds(task, process);
@@ -492,11 +634,23 @@ nxt_process_created_ok(nxt_task_t *task, nxt_port_recv_msg_t *msg, void *data)
 
     nxt_log(task, NXT_LOG_INFO, "%s started", process->name);
 
+    ret = nxt_process_send_ready(task, process);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        goto fail;
+    }
+
     ret = init->start(task, &process->data);
 
-fail:
+    if (nxt_process_type(process) != NXT_PROCESS_PROTOTYPE) {
+        nxt_port_write_close(nxt_process_port_first(process));
+    }
 
-    nxt_process_quit(task, ret == NXT_OK ? 0 : 1);
+    if (nxt_fast_path(ret == NXT_OK)) {
+        return;
+    }
+
+fail:
+    nxt_process_quit(task, 1);
 }
 
 
@@ -584,7 +738,8 @@ nxt_process_apply_creds(nxt_task_t *task, nxt_process_t *process)
 
 #if (NXT_HAVE_CLONE && NXT_HAVE_CLONE_NEWUSER)
     if (!cap_setid
-        && nxt_is_clone_flag_set(process->isolation.clone.flags, NEWUSER)) {
+        && nxt_is_clone_flag_set(process->isolation.clone.flags, NEWUSER))
+    {
         cap_setid = 1;
     }
 #endif
@@ -617,17 +772,10 @@ nxt_process_apply_creds(nxt_task_t *task, nxt_process_t *process)
 static nxt_int_t
 nxt_process_send_ready(nxt_task_t *task, nxt_process_t *process)
 {
-    nxt_int_t           ret;
-    nxt_port_t          *main_port;
-    nxt_runtime_t       *rt;
+    nxt_int_t  ret;
 
-    rt = task->thread->runtime;
-
-    main_port = rt->port_by_type[NXT_PROCESS_MAIN];
-
-    nxt_assert(main_port != NULL);
-
-    ret = nxt_port_socket_write(task, main_port, NXT_PORT_MSG_PROCESS_READY,
+    ret = nxt_port_socket_write(task, process->parent_port,
+                                NXT_PORT_MSG_PROCESS_READY,
                                 -1, process->stream, 0, NULL);
 
     if (nxt_slow_path(ret != NXT_OK)) {
