@@ -5,6 +5,7 @@
  */
 
 #include <nxt_main.h>
+#include <nxt_socket_msg.h>
 #include <nxt_port_queue.h>
 #include <nxt_port_memory_int.h>
 
@@ -22,6 +23,7 @@ static nxt_port_send_msg_t *nxt_port_msg_alloc(nxt_port_send_msg_t *m);
 static void nxt_port_write_handler(nxt_task_t *task, void *obj, void *data);
 static nxt_port_send_msg_t *nxt_port_msg_first(nxt_port_t *port);
 nxt_inline void nxt_port_msg_close_fd(nxt_port_send_msg_t *msg);
+nxt_inline void nxt_port_close_fds(nxt_fd_t *fd);
 static nxt_buf_t *nxt_port_buf_completion(nxt_task_t *task,
     nxt_work_queue_t *wq, nxt_buf_t *b, size_t sent, nxt_bool_t mmap_mode);
 static nxt_port_send_msg_t *nxt_port_msg_insert_tail(nxt_port_t *port,
@@ -593,16 +595,21 @@ nxt_port_msg_close_fd(nxt_port_send_msg_t *msg)
         return;
     }
 
-    if (msg->fd[0] != -1) {
-        nxt_fd_close(msg->fd[0]);
+    nxt_port_close_fds(msg->fd);
+}
 
-        msg->fd[0] = -1;
+
+nxt_inline void
+nxt_port_close_fds(nxt_fd_t *fd)
+{
+    if (fd[0] != -1) {
+        nxt_fd_close(fd[0]);
+        fd[0] = -1;
     }
 
-    if (msg->fd[1] != -1) {
-        nxt_fd_close(msg->fd[1]);
-
-        msg->fd[1] = -1;
+    if (fd[1] != -1) {
+        nxt_fd_close(fd[1]);
+        fd[1] = -1;
     }
 }
 
@@ -725,16 +732,17 @@ nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
 {
     ssize_t              n;
     nxt_buf_t            *b;
+    nxt_int_t            ret;
     nxt_port_t           *port;
-    struct iovec         iov[2];
+    nxt_recv_oob_t       oob;
     nxt_port_recv_msg_t  msg;
+    struct iovec         iov[2];
 
     port = msg.port = nxt_container_of(obj, nxt_port_t, socket);
 
     nxt_assert(port->engine == task->thread->engine);
 
     for ( ;; ) {
-
         b = nxt_port_buf_alloc(port);
 
         if (nxt_slow_path(b == NULL)) {
@@ -747,9 +755,22 @@ nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
         iov[1].iov_base = b->mem.pos;
         iov[1].iov_len = port->max_size;
 
-        n = nxt_socketpair_recv(&port->socket, msg.fd, iov, 2);
+        n = nxt_socketpair_recv(&port->socket, iov, 2, &oob);
 
         if (n > 0) {
+            msg.fd[0] = -1;
+            msg.fd[1] = -1;
+
+            ret = nxt_socket_msg_oob_get(&oob, msg.fd,
+                                         nxt_recv_msg_cmsg_pid_ref(&msg));
+            if (nxt_slow_path(ret != NXT_OK)) {
+                nxt_alert(task, "failed to get oob data from %d",
+                          port->socket.fd);
+
+                nxt_port_close_fds(msg.fd);
+
+                goto fail;
+            }
 
             msg.buf = b;
             msg.size = n;
@@ -778,8 +799,8 @@ nxt_port_read_handler(nxt_task_t *task, void *obj, void *data)
             return;
         }
 
-        /* n == 0 || n == NXT_ERROR */
-
+fail:
+        /* n == 0 || error  */
         nxt_work_queue_add(&task->thread->engine->fast_work_queue,
                            nxt_port_error_handler, task, &port->socket, NULL);
         return;
@@ -792,8 +813,10 @@ nxt_port_queue_read_handler(nxt_task_t *task, void *obj, void *data)
 {
     ssize_t              n;
     nxt_buf_t            *b;
+    nxt_int_t            ret;
     nxt_port_t           *port;
     struct iovec         iov[2];
+    nxt_recv_oob_t       oob;
     nxt_port_queue_t     *queue;
     nxt_port_recv_msg_t  msg, *smsg;
     uint8_t              qmsg[NXT_PORT_QUEUE_MSG_SIZE];
@@ -884,7 +907,23 @@ nxt_port_queue_read_handler(nxt_task_t *task, void *obj, void *data)
             iov[1].iov_base = b->mem.pos;
             iov[1].iov_len = port->max_size;
 
-            n = nxt_socketpair_recv(&port->socket, msg.fd, iov, 2);
+            n = nxt_socketpair_recv(&port->socket, iov, 2, &oob);
+
+            if (n > 0) {
+                msg.fd[0] = -1;
+                msg.fd[1] = -1;
+
+                ret = nxt_socket_msg_oob_get(&oob, msg.fd,
+                                             nxt_recv_msg_cmsg_pid_ref(&msg));
+                if (nxt_slow_path(ret != NXT_OK)) {
+                    nxt_alert(task, "failed to get oob data from %d",
+                              port->socket.fd);
+
+                    nxt_port_close_fds(msg.fd);
+
+                    return;
+                }
+            }
 
             if (n == (ssize_t) sizeof(nxt_port_msg_t)
                 && msg.port_msg.type == _NXT_PORT_MSG_READ_QUEUE)
@@ -1139,13 +1178,7 @@ nxt_port_read_msg_process(nxt_task_t *task, nxt_port_t *port,
         nxt_alert(task, "port %d: too small message:%uz",
                   port->socket.fd, msg->size);
 
-        if (msg->fd[0] != -1) {
-            nxt_fd_close(msg->fd[0]);
-        }
-
-        if (msg->fd[1] != -1) {
-            nxt_fd_close(msg->fd[1]);
-        }
+        nxt_port_close_fds(msg->fd);
 
         return;
     }
@@ -1225,13 +1258,7 @@ nxt_port_read_msg_process(nxt_task_t *task, nxt_port_t *port,
                 b = NULL;
 
             } else {
-                if (msg->fd[0] != -1) {
-                    nxt_fd_close(msg->fd[0]);
-                }
-
-                if (msg->fd[1] != -1) {
-                    nxt_fd_close(msg->fd[1]);
-                }
+                nxt_port_close_fds(msg->fd);
             }
         } else {
             if (nxt_fast_path(msg->cancelled == 0)) {

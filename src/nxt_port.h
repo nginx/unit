@@ -153,7 +153,9 @@ typedef enum {
 /* Passed as a first iov chunk. */
 typedef struct {
     uint32_t             stream;
-    nxt_pid_t            pid;
+
+    nxt_pid_t            pid;       /* not used on Linux and FreeBSD */
+
     nxt_port_id_t        reply_port;
 
     uint8_t              type;
@@ -186,6 +188,9 @@ typedef struct {
     uint8_t             allocated;  /* 1 bit */
 } nxt_port_send_msg_t;
 
+#if (NXT_HAVE_UCRED) || (NXT_HAVE_MSGHDR_CMSGCRED)
+#define NXT_USE_CMSG_PID    1
+#endif
 
 struct nxt_port_recv_msg_s {
     nxt_fd_t            fd[2];
@@ -193,6 +198,9 @@ struct nxt_port_recv_msg_s {
     nxt_port_t          *port;
     nxt_port_msg_t      port_msg;
     size_t              size;
+#if (NXT_USE_CMSG_PID)
+    nxt_pid_t           cmsg_pid;
+#endif
     nxt_bool_t          cancelled;
     union {
         nxt_port_t      *new_port;
@@ -200,6 +208,15 @@ struct nxt_port_recv_msg_s {
         void            *data;
     } u;
 };
+
+
+#if (NXT_USE_CMSG_PID)
+#define nxt_recv_msg_cmsg_pid(msg)      ((msg)->cmsg_pid)
+#define nxt_recv_msg_cmsg_pid_ref(msg)  (&(msg)->cmsg_pid)
+#else
+#define nxt_recv_msg_cmsg_pid(msg)      ((msg)->port_msg.pid)
+#define nxt_recv_msg_cmsg_pid_ref(msg)  (NULL)
+#endif
 
 typedef struct nxt_app_s  nxt_app_t;
 

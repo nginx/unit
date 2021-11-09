@@ -355,6 +355,19 @@ nxt_port_main_start_process_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     rt = task->thread->runtime;
 
+    port = rt->port_by_type[NXT_PROCESS_ROUTER];
+    if (nxt_slow_path(port == NULL)) {
+        nxt_alert(task, "router port not found");
+        return;
+    }
+
+    if (nxt_slow_path(port->pid != nxt_recv_msg_cmsg_pid(msg))) {
+        nxt_alert(task, "process %PI cannot start processes",
+                  nxt_recv_msg_cmsg_pid(msg));
+
+        return;
+    }
+
     process = nxt_main_process_new(task, rt);
     if (nxt_slow_path(process == NULL)) {
         return;
@@ -1023,6 +1036,13 @@ nxt_main_port_socket_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         return;
     }
 
+    if (nxt_slow_path(port->type != NXT_PROCESS_ROUTER)) {
+        nxt_alert(task, "process %PI cannot create listener sockets",
+                  msg->port_msg.pid);
+
+        return;
+    }
+
     b = msg->buf;
     sa = (nxt_sockaddr_t *) b->mem.pos;
 
@@ -1266,6 +1286,7 @@ nxt_main_port_modules_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     rt = task->thread->runtime;
 
     if (msg->port_msg.pid != rt->port_by_type[NXT_PROCESS_DISCOVERY]->pid) {
+        nxt_alert(task, "process %PI cannot send modules", msg->port_msg.pid);
         return;
     }
 
@@ -1428,8 +1449,18 @@ nxt_main_port_conf_store_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     void           *p;
     size_t         n, size;
     nxt_int_t      ret;
+    nxt_port_t     *ctl_port;
     nxt_runtime_t  *rt;
     u_char         ver[NXT_INT_T_LEN];
+
+    rt = task->thread->runtime;
+
+    ctl_port = rt->port_by_type[NXT_PROCESS_CONTROLLER];
+
+    if (nxt_slow_path(msg->port_msg.pid != ctl_port->pid)) {
+        nxt_alert(task, "process %PI cannot store conf", msg->port_msg.pid);
+        return;
+    }
 
     p = MAP_FAILED;
 
@@ -1462,8 +1493,6 @@ nxt_main_port_conf_store_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     }
 
     nxt_debug(task, "conf_store_handler(%uz): %*s", size, size, p);
-
-    rt = task->thread->runtime;
 
     if (nxt_conf_ver != NXT_VERNUM) {
         n = nxt_sprintf(ver, ver + NXT_INT_T_LEN, "%d", NXT_VERNUM) - ver;
