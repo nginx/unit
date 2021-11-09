@@ -22,18 +22,27 @@ class TestApplicationPHP(TestApplicationProto):
 
             script_path = '/app/php/' + script
 
+        app = {
+            "type": self.get_application_type(),
+            "processes": kwargs.pop('processes', {"spare": 0}),
+            "root": script_path,
+            "working_directory": script_path,
+            "index": index,
+        }
+
+        for attr in (
+            'environment',
+            'limits',
+            'options',
+            'targets',
+        ):
+            if attr in kwargs:
+                app[attr] = kwargs.pop(attr)
+
         self._load_conf(
             {
                 "listeners": {"*:7080": {"pass": "applications/" + script}},
-                "applications": {
-                    script: {
-                        "type": self.get_application_type(),
-                        "processes": {"spare": 0},
-                        "root": script_path,
-                        "working_directory": script_path,
-                        "index": index,
-                    }
-                },
+                "applications": {script: app},
             },
             **kwargs
         )

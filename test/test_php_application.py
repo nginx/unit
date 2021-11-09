@@ -713,3 +713,20 @@ class TestPHPApplication(TestApplicationPHP):
         ), 'relative path w/ chdir'
 
         assert self.get()['body'] == 'test', 'relative path 2'
+
+    def test_php_application_shared_opcache(self):
+        self.load('opcache', limits={'requests': 1})
+
+        r = self.get()
+        cached = r['headers']['X-Cached']
+        if cached == '-1':
+            pytest.skip('opcache is not supported')
+
+        pid = r['headers']['X-Pid']
+
+        assert cached == '0', 'not cached'
+
+        r = self.get()
+
+        assert r['headers']['X-Pid'] != pid, 'new instance'
+        assert r['headers']['X-Cached'] == '1', 'cached'
