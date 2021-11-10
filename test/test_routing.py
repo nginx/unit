@@ -1342,19 +1342,27 @@ class TestRouting(TestApplicationProto):
         assert self.get(url='/?a=b&c=d e')['status'] == 200
 
     def test_routes_match_query_array(self):
-        self.route_match({
-            "query": ["foo", "bar"]
-        })
+        self.route_match({"query": ["foo", "bar"]})
 
-        assert self.get()['status'] == 404, 'arr'
-        assert self.get(url='/?foo')['status'] == 200, 'arr 1'
-        assert self.get(url='/?bar')['status'] == 200, 'arr 2'
+        assert self.get()['status'] == 404, 'no args'
+        assert self.get(url='/?foo')['status'] == 200, 'arg first'
+        assert self.get(url='/?bar')['status'] == 200, 'arg second'
 
         assert 'success' in self.conf_delete(
             'routes/0/match/query/1'
-        ), 'match query array configure 2'
+        ), 'query array remove second'
 
-        assert self.get(url='/?bar')['status'] == 404, 'arr 2'
+        assert self.get(url='/?foo')['status'] == 200, 'still arg first'
+        assert self.get(url='/?bar')['status'] == 404, 'no arg second'
+
+        self.route_match({"query": ["!f", "foo"]})
+
+        assert self.get(url='/?f')['status'] == 404, 'negative arg'
+        assert self.get(url='/?fo')['status'] == 404, 'negative arg 2'
+        assert self.get(url='/?foo')['status'] == 200, 'negative arg 3'
+
+        self.route_match({"query": []})
+        assert self.get()['status'] == 200, 'empty array'
 
     def test_routes_match_query_invalid(self):
         self.route_match_invalid({"query": [1]})
