@@ -60,7 +60,8 @@ static void nxt_python_request_handler(nxt_unit_request_info_t *req);
 
 static PyObject *nxt_python_create_environ(nxt_python_app_conf_t *c);
 static PyObject *nxt_python_copy_environ(nxt_unit_request_info_t *req);
-static PyObject *nxt_python_get_environ(nxt_python_ctx_t *pctx);
+static PyObject *nxt_python_get_environ(nxt_python_ctx_t *pctx,
+    nxt_python_target_t *app_target);
 static int nxt_python_add_sptr(nxt_python_ctx_t *pctx, PyObject *name,
     nxt_unit_sptr_t *sptr, uint32_t size);
 static int nxt_python_add_char(nxt_python_ctx_t *pctx, PyObject *name,
@@ -141,6 +142,7 @@ static PyObject  *nxt_py_query_string_str;
 static PyObject  *nxt_py_remote_addr_str;
 static PyObject  *nxt_py_request_method_str;
 static PyObject  *nxt_py_request_uri_str;
+static PyObject  *nxt_py_script_name_str;
 static PyObject  *nxt_py_server_addr_str;
 static PyObject  *nxt_py_server_name_str;
 static PyObject  *nxt_py_server_port_str;
@@ -160,6 +162,7 @@ static nxt_python_string_t nxt_python_strings[] = {
     { nxt_string("REMOTE_ADDR"), &nxt_py_remote_addr_str },
     { nxt_string("REQUEST_METHOD"), &nxt_py_request_method_str },
     { nxt_string("REQUEST_URI"), &nxt_py_request_uri_str },
+    { nxt_string("SCRIPT_NAME"), &nxt_py_script_name_str },
     { nxt_string("SERVER_ADDR"), &nxt_py_server_addr_str },
     { nxt_string("SERVER_NAME"), &nxt_py_server_name_str },
     { nxt_string("SERVER_PORT"), &nxt_py_server_port_str },
@@ -304,11 +307,12 @@ nxt_python_wsgi_done(void)
 static void
 nxt_python_request_handler(nxt_unit_request_info_t *req)
 {
-    int               rc;
-    PyObject          *environ, *args, *response, *iterator, *item;
-    PyObject          *close, *result, *application;
-    nxt_bool_t        prepare_environ;
-    nxt_python_ctx_t  *pctx;
+    int                  rc;
+    PyObject             *environ, *args, *response, *iterator, *item;
+    PyObject             *close, *result;
+    nxt_bool_t           prepare_environ;
+    nxt_python_ctx_t     *pctx;
+    nxt_python_target_t  *target;
 
     pctx = req->ctx->data;
 
@@ -331,7 +335,9 @@ nxt_python_request_handler(nxt_unit_request_info_t *req)
 
     prepare_environ = 1;
 
-    environ = nxt_python_get_environ(pctx);
+    target = &nxt_py_targets->target[req->request->app_target];
+
+    environ = nxt_python_get_environ(pctx, target);
     if (nxt_slow_path(environ == NULL)) {
         rc = NXT_UNIT_ERROR;
         goto done;
@@ -352,8 +358,7 @@ nxt_python_request_handler(nxt_unit_request_info_t *req)
     Py_INCREF(pctx->start_resp);
     PyTuple_SET_ITEM(args, 1, pctx->start_resp);
 
-    application = nxt_py_targets->target[req->request->app_target].application;
-    response = PyObject_CallObject(application, args);
+    response = PyObject_CallObject(target->application, args);
 
     Py_DECREF(args);
 
@@ -584,11 +589,14 @@ nxt_python_copy_environ(nxt_unit_request_info_t *req)
 
 
 static PyObject *
-nxt_python_get_environ(nxt_python_ctx_t *pctx)
+nxt_python_get_environ(nxt_python_ctx_t *pctx,
+    nxt_python_target_t *app_target)
 {
     int                 rc;
-    uint32_t            i, j, vl;
+    char                *path;
+    uint32_t            i, j, vl, path_length;
     PyObject            *environ;
+    nxt_str_t           prefix;
     nxt_unit_field_t    *f, *f2;
     nxt_unit_request_t  *r;
 
@@ -608,8 +616,23 @@ nxt_python_get_environ(nxt_python_ctx_t *pctx)
                            r->target_length));
     RC(nxt_python_add_sptr(pctx, nxt_py_query_string_str, &r->query,
                            r->query_length));
-    RC(nxt_python_add_sptr(pctx, nxt_py_path_info_str, &r->path,
-                           r->path_length));
+
+    prefix = app_target->prefix;
+    path_length = r->path_length;
+    path = nxt_unit_sptr_get(&r->path);
+    if (prefix.length > 0
+        && ((path_length > prefix.length && path[prefix.length] == '/')
+            || path_length == prefix.length)
+        && memcmp(prefix.start, path, prefix.length) == 0)
+    {
+        RC(nxt_python_add_py_string(pctx, nxt_py_script_name_str,
+                                    app_target->py_prefix));
+
+        path += prefix.length;
+        path_length -= prefix.length;
+    }
+
+    RC(nxt_python_add_char(pctx, nxt_py_path_info_str, path, path_length));
 
     RC(nxt_python_add_sptr(pctx, nxt_py_remote_addr_str, &r->remote,
                            r->remote_length));

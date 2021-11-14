@@ -128,6 +128,8 @@ static nxt_int_t nxt_conf_vldt_python_path_element(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_python_protocol(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_python_prefix(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_threads(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_thread_stack_size(nxt_conf_validation_t *vldt,
@@ -782,6 +784,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_python_members[] = {
         .validator  = nxt_conf_vldt_targets_exclusive,
         .u.string   = "callable",
     }, {
+        .name       = nxt_string("prefix"),
+        .type       = NXT_CONF_VLDT_STRING,
+        .validator  = nxt_conf_vldt_targets_exclusive,
+        .u.string   = "prefix",
+    }, {
         .name       = nxt_string("targets"),
         .type       = NXT_CONF_VLDT_OBJECT,
         .validator  = nxt_conf_vldt_targets,
@@ -800,6 +807,10 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_python_target_members[] = {
     }, {
         .name       = nxt_string("callable"),
         .type       = NXT_CONF_VLDT_STRING,
+    }, {
+        .name       = nxt_string("prefix"),
+        .type       = NXT_CONF_VLDT_STRING,
+        .validator  = nxt_conf_vldt_python_prefix,
     },
 
     NXT_CONF_VLDT_END
@@ -814,6 +825,10 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_python_notargets_members[] = {
     }, {
         .name       = nxt_string("callable"),
         .type       = NXT_CONF_VLDT_STRING,
+    }, {
+        .name       = nxt_string("prefix"),
+        .type       = NXT_CONF_VLDT_STRING,
+        .validator  = nxt_conf_vldt_python_prefix,
     },
 
     NXT_CONF_VLDT_NEXT(nxt_conf_vldt_python_common_members)
@@ -1817,6 +1832,28 @@ nxt_conf_vldt_python_protocol(nxt_conf_validation_t *vldt,
 
     return nxt_conf_vldt_error(vldt, "The \"protocol\" can either be "
                                      "\"wsgi\" or \"asgi\".");
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_python_prefix(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data)
+{
+    nxt_str_t  prefix;
+
+    if (nxt_conf_type(value) != NXT_CONF_STRING) {
+        return nxt_conf_vldt_error(vldt, "The \"prefix\" must be a string "
+                                   "beginning with \"/\".");
+    }
+
+    nxt_conf_get_string(value, &prefix);
+
+    if (!nxt_strchr_start(&prefix, '/')) {
+        return nxt_conf_vldt_error(vldt, "The \"prefix\" must be a string "
+                                   "beginning with \"/\".");
+    }
+
+    return NXT_OK;
 }
 
 

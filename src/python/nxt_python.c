@@ -26,6 +26,8 @@ static nxt_int_t nxt_python_start(nxt_task_t *task,
     nxt_process_data_t *data);
 static nxt_int_t nxt_python_set_target(nxt_task_t *task,
     nxt_python_target_t *target, nxt_conf_value_t *conf);
+nxt_inline nxt_int_t nxt_python_set_prefix(nxt_task_t *task,
+    nxt_python_target_t *target, nxt_conf_value_t *value);
 static nxt_int_t nxt_python_set_path(nxt_task_t *task, nxt_conf_value_t *value);
 static int nxt_python_init_threads(nxt_python_app_conf_t *c);
 static int nxt_python_ready_handler(nxt_unit_ctx_t *ctx);
@@ -324,6 +326,7 @@ nxt_python_set_target(nxt_task_t *task, nxt_python_target_t *target,
 
     static nxt_str_t  module_str = nxt_string("module");
     static nxt_str_t  callable_str = nxt_string("callable");
+    static nxt_str_t  prefix_str = nxt_string("prefix");
 
     module = obj = NULL;
 
@@ -371,6 +374,11 @@ nxt_python_set_target(nxt_task_t *task, nxt_python_target_t *target,
         goto fail;
     }
 
+    value = nxt_conf_get_object_member(conf, &prefix_str, NULL);
+    if (nxt_slow_path(nxt_python_set_prefix(task, target, value) != NXT_OK)) {
+        goto fail;
+    }
+
     target->application = obj;
     obj = NULL;
 
@@ -385,6 +393,48 @@ fail:
     Py_XDECREF(module);
 
     return NXT_ERROR;
+}
+
+
+nxt_inline nxt_int_t
+nxt_python_set_prefix(nxt_task_t *task, nxt_python_target_t *target,
+    nxt_conf_value_t *value)
+{
+    u_char            *prefix;
+    nxt_str_t         str;
+
+    if (value == NULL) {
+        return NXT_OK;
+    }
+
+    nxt_conf_get_string(value, &str);
+
+    if (str.length == 0) {
+        return NXT_OK;
+    }
+
+    if (str.start[str.length - 1] == '/') {
+        str.length--;
+    }
+    target->prefix.length = str.length;
+    prefix = nxt_malloc(str.length);
+    if (nxt_slow_path(prefix == NULL)) {
+        nxt_alert(task, "Failed to allocate target prefix string");
+        return NXT_ERROR;
+    }
+
+    target->py_prefix = PyString_FromStringAndSize((char *)str.start,
+                                                    str.length);
+    if (nxt_slow_path(target->py_prefix == NULL)) {
+        nxt_free(prefix);
+        nxt_alert(task, "Python failed to allocate target prefix "
+                        "string");
+        return NXT_ERROR;
+    }
+    nxt_memcpy(prefix, str.start, str.length);
+    target->prefix.start = prefix;
+
+    return NXT_OK;
 }
 
 
@@ -665,7 +715,8 @@ nxt_python_done_strings(nxt_python_string_t *pstr)
 static void
 nxt_python_atexit(void)
 {
-    nxt_int_t  i;
+    nxt_int_t            i;
+    nxt_python_target_t  *target;
 
     if (nxt_py_proto.done != NULL) {
         nxt_py_proto.done();
@@ -675,7 +726,12 @@ nxt_python_atexit(void)
 
     if (nxt_py_targets != NULL) {
         for (i = 0; i < nxt_py_targets->count; i++) {
-            Py_XDECREF(nxt_py_targets->target[i].application);
+            target = &nxt_py_targets->target[i];
+
+            Py_XDECREF(target->application);
+            Py_XDECREF(target->py_prefix);
+
+            nxt_free(target->prefix.start);
         }
 
         nxt_unit_free(NULL, nxt_py_targets);

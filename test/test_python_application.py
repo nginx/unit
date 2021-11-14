@@ -94,6 +94,44 @@ custom-header: BLAH
             resp['headers']['Query-String'] == ' var1= val1 & var2=val2'
         ), 'Query-String space 4'
 
+    def test_python_application_prefix(self):
+        self.load('prefix', prefix='/api/rest')
+
+        def set_prefix(prefix):
+            self.conf('"' + prefix + '"', 'applications/prefix/prefix')
+
+        def check_prefix(url, script_name, path_info):
+            resp = self.get(url=url)
+            assert resp['status'] == 200
+            assert resp['headers']['Script-Name'] == script_name
+            assert resp['headers']['Path-Info'] == path_info
+
+        check_prefix('/ap', 'NULL', '/ap')
+        check_prefix('/api', 'NULL', '/api')
+        check_prefix('/api/', 'NULL', '/api/')
+        check_prefix('/api/res', 'NULL', '/api/res')
+        check_prefix('/api/restful', 'NULL', '/api/restful')
+        check_prefix('/api/rest', '/api/rest', '')
+        check_prefix('/api/rest/', '/api/rest', '/')
+        check_prefix('/api/rest/get', '/api/rest', '/get')
+        check_prefix('/api/rest/get/blah', '/api/rest', '/get/blah')
+
+        set_prefix('/api/rest/')
+        check_prefix('/api/rest', '/api/rest', '')
+        check_prefix('/api/restful', 'NULL', '/api/restful')
+        check_prefix('/api/rest/', '/api/rest', '/')
+        check_prefix('/api/rest/blah', '/api/rest', '/blah')
+
+        set_prefix('/app')
+        check_prefix('/ap', 'NULL', '/ap')
+        check_prefix('/app', '/app', '')
+        check_prefix('/app/', '/app', '/')
+        check_prefix('/application/', 'NULL', '/application/')
+
+        set_prefix('/')
+        check_prefix('/', 'NULL', '/')
+        check_prefix('/app', 'NULL', '/app')
+
     def test_python_application_query_string_empty(self):
         self.load('query_string')
 

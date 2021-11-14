@@ -40,6 +40,8 @@
 
 typedef struct {
     PyObject    *application;
+    PyObject    *py_prefix;
+    nxt_str_t   prefix;
     nxt_bool_t  asgi_legacy;
 } nxt_python_target_t;
 

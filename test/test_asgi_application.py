@@ -79,6 +79,43 @@ custom-header: BLAH
             resp['headers']['query-string'] == 'var1=val1&var2=val2'
         ), 'query-string header'
 
+    def test_asgi_application_prefix(self):
+        self.load('prefix', prefix='/api/rest')
+
+        def set_prefix(prefix):
+            self.conf('"' + prefix + '"', 'applications/prefix/prefix')
+
+        def check_prefix(url, prefix):
+            resp = self.get(url=url)
+            assert resp['status'] == 200
+            assert resp['headers']['prefix'] == prefix
+
+        check_prefix('/ap', 'NULL')
+        check_prefix('/api', 'NULL')
+        check_prefix('/api/', 'NULL')
+        check_prefix('/api/res', 'NULL')
+        check_prefix('/api/restful', 'NULL')
+        check_prefix('/api/rest', '/api/rest')
+        check_prefix('/api/rest/', '/api/rest')
+        check_prefix('/api/rest/get', '/api/rest')
+        check_prefix('/api/rest/get/blah', '/api/rest')
+
+        set_prefix('/api/rest/')
+        check_prefix('/api/rest', '/api/rest')
+        check_prefix('/api/restful', 'NULL')
+        check_prefix('/api/rest/', '/api/rest')
+        check_prefix('/api/rest/blah', '/api/rest')
+
+        set_prefix('/app')
+        check_prefix('/ap', 'NULL')
+        check_prefix('/app', '/app')
+        check_prefix('/app/', '/app')
+        check_prefix('/application/', 'NULL')
+
+        set_prefix('/')
+        check_prefix('/', 'NULL')
+        check_prefix('/app', 'NULL')
+
     def test_asgi_application_query_string_space(self):
         self.load('query_string')
 
