@@ -127,6 +127,8 @@ static nxt_int_t nxt_conf_vldt_python_path_element(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_python_protocol(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_python_script_name(nxt_conf_validation_t * vldt,
+    nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_threads(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_thread_stack_size(nxt_conf_validation_t *vldt,
@@ -720,6 +722,10 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_python_common_members[] = {
         .name       = nxt_string("protocol"),
         .type       = NXT_CONF_VLDT_STRING,
         .validator  = nxt_conf_vldt_python_protocol,
+    }, {
+        .name       = nxt_string("script_name"),
+        .type       = NXT_CONF_VLDT_STRING,
+        .validator  = nxt_conf_vldt_python_script_name,
     }, {
         .name       = nxt_string("threads"),
         .type       = NXT_CONF_VLDT_INTEGER,
@@ -1778,6 +1784,23 @@ nxt_conf_vldt_python_protocol(nxt_conf_validation_t *vldt,
 
     return nxt_conf_vldt_error(vldt, "The \"protocol\" can either be "
                                      "\"wsgi\" or \"asgi\".");
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_python_script_name(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t * value, void *data)
+{
+    nxt_str_t script_name;
+
+    nxt_conf_get_string(value, &script_name);
+
+    if (script_name.length == 0 || script_name.start[0] == '/') {
+        return NXT_OK;
+    }
+
+    return nxt_conf_vldt_error(vldt, "The \"script_name\" must be a string "
+                                     "beginning with \"/\".");
 }
 
 

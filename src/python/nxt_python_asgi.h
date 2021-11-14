@@ -25,6 +25,7 @@ typedef struct {
 
 typedef struct {
     nxt_queue_t      drain_queue;
+    PyObject         *root_path;
     PyObject         *loop_run_until_complete;
     PyObject         *loop_create_future;
     PyObject         *loop_create_task;

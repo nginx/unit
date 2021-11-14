@@ -94,6 +94,41 @@ custom-header: BLAH
             resp['headers']['Query-String'] == ' var1= val1 & var2=val2'
         ), 'Query-String space 4'
 
+    def test_python_application_script_name_strip(self):
+        self.load('script_name', script_name='/test')
+
+        resp = self.get(url='/test/')
+
+        assert resp['status'] == 200, 'script name strip status'
+        assert (
+            resp['headers']['Script-Name'] == '/test'
+        ), 'script name strip script name'
+        assert resp['headers']['Path-Info'] == '/', 'script name strip path info'
+
+    def test_python_application_script_name_empty_path(self):
+        self.load('script_name', script_name='/test')
+
+        resp = self.get(url='/test')
+
+        assert resp['status'] == 200, 'script name strip status'
+        assert (
+            resp['headers']['Script-Name'] == '/test'
+        ), 'script name strip script name'
+        assert resp['headers']['Path-Info'] == '/', 'script name strip path info'
+
+    def test_python_applications_script_name_no_match(self):
+        self.load('script_name', script_name='/api/rest')
+
+        resp = self.get(url='/api/get')
+
+        assert resp['status'] == 200, 'script name strip status'
+        assert (
+            resp['headers']['Script-Name'] == '/api/rest'
+        ), 'script name strip script name'
+        assert (
+            resp['headers']['Path-Info'] == '/api/get'
+        ), 'script name strip path info'
+
     def test_python_application_query_string_empty(self):
         self.load('query_string')
 

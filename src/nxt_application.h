@@ -52,6 +52,7 @@ typedef struct {
     nxt_str_t                  module;
     char                       *callable;
     nxt_str_t                  protocol;
+    nxt_str_t                  script_name;
     uint32_t                   threads;
     uint32_t                   thread_stack_size;
     nxt_conf_value_t           *targets;

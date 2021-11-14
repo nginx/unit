@@ -17,7 +17,7 @@
 
 
 static PyObject *nxt_python_asgi_get_func(PyObject *obj);
-static int nxt_python_asgi_ctx_data_alloc(void **pdata, int main);
+static int nxt_python_asgi_ctx_data_alloc(void **pdata, int main, nxt_str_t script_name);
 static void nxt_python_asgi_ctx_data_free(void *data);
 static int nxt_python_asgi_startup(void *data);
 static int nxt_python_asgi_run(nxt_unit_ctx_t *ctx);
@@ -192,7 +192,7 @@ nxt_python_asgi_init(nxt_unit_init_t *init, nxt_python_proto_t *proto)
 
 
 static int
-nxt_python_asgi_ctx_data_alloc(void **pdata, int main)
+nxt_python_asgi_ctx_data_alloc(void **pdata, int main, nxt_str_t script_name)
 {
     uint32_t                i;
     PyObject                *asyncio, *loop, *event_loop, *obj;
@@ -223,6 +223,12 @@ nxt_python_asgi_ctx_data_alloc(void **pdata, int main)
     };
 
     loop = NULL;
+
+    if (script_name.length > 0) {
+        ctx_data->root_path = PyString_FromStringAndSize((char *)script_name.start, script_name.length);
+    } else {
+        ctx_data->root_path = Py_None;
+    }
 
     asyncio = PyImport_ImportModule("asyncio");
     if (nxt_slow_path(asyncio == NULL)) {
@@ -328,6 +334,7 @@ nxt_python_asgi_ctx_data_free(void *data)
     Py_XDECREF(ctx_data->loop_remove_reader);
     Py_XDECREF(ctx_data->quit_future);
     Py_XDECREF(ctx_data->quit_future_set_result);
+    Py_XDECREF(ctx_data->root_path);
 
     nxt_unit_free(NULL, ctx_data);
 }
@@ -602,6 +609,8 @@ nxt_py_asgi_create_http_scope(nxt_unit_request_info_t *req)
     if (nxt_slow_path(scope == NULL)) {
         return NULL;
     }
+
+    SET_ITEM(scope, root_path, ((nxt_py_asgi_ctx_data_t*)req->ctx->data)->root_path);
 
     p = nxt_unit_sptr_get(&r->version);
     SET_ITEM(scope, http_version, p[7] == '1' ? nxt_py_1_1_str

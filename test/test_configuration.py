@@ -308,6 +308,48 @@ class TestConfiguration(TestControl):
 
         assert 'success' in self.conf(conf)
 
+    def test_json_application_script_name(self):
+        conf = {
+            "applications": {
+                "sub-app": {
+                    "type": "python",
+                    "processes": {"spare": 0},
+                    "path": "/app",
+                    "module": "wsgi",
+                    "script_name": "/app",
+                }
+            },
+            "listeners": {"*:7080": {"pass": "routes"}},
+            "routes": [
+                {
+                    "match": {"uri": "/app/*"},
+                    "action": {"pass": "applications/sub-app"},
+                }
+            ]
+        }
+
+        assert 'success' in self.conf(conf)
+
+    def test_json_application_invalid_script_name(self):
+        conf = {
+            "applications": {
+                "sub-app": {
+                    "type": "python",
+                    "processes": {"spare": 0},
+                    "path": "/app",
+                    "module": "wsgi",
+                    "script_name": "app",
+                }
+            },
+            "listeners": {"*:7080": {"pass": "applications/sub-app"}},
+        }
+
+        resp = self.conf(conf)
+        assert 'error' in resp
+        assert resp['detail'] == (
+            'The "script_name" must be a string beginning with "/".'
+        )
+
     def test_json_application_many2(self):
         conf = {
             "applications": {

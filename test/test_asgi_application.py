@@ -67,6 +67,17 @@ custom-header: BLAH
             resp['headers']['query-string'] == 'var1=val1&var2=val2'
         ), 'query-string header'
 
+    def test_asgi_application_script_name(self):
+        self.load('script_name', script_name='/api/rest')
+
+        resp = self.get(url='/api/rest/get')
+        assert (
+            resp['headers']['script-name'] == '/api/rest'
+        ), 'script-name header'
+        assert (
+            resp['headers']['request-uri'] == '/api/rest/get'
+        ), 'path-info header'
+
     def test_asgi_application_query_string_space(self):
         self.load('query_string')
 

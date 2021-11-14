@@ -209,6 +209,12 @@ static nxt_conf_map_t  nxt_python_app_conf[] = {
     },
 
     {
+        nxt_string("script_name"),
+        NXT_CONF_MAP_STR,
+        offsetof(nxt_common_app_conf_t, u.python.script_name),
+    },
+
+    {
         nxt_string("threads"),
         NXT_CONF_MAP_INT32,
         offsetof(nxt_common_app_conf_t, u.python.threads),

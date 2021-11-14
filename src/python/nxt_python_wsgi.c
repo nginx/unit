@@ -51,7 +51,7 @@ typedef struct {
 }  nxt_python_ctx_t;
 
 
-static int nxt_python_wsgi_ctx_data_alloc(void **pdata, int main);
+static int nxt_python_wsgi_ctx_data_alloc(void **pdata, int main, nxt_str_t script_name);
 static void nxt_python_wsgi_ctx_data_free(void *data);
 static int nxt_python_wsgi_run(nxt_unit_ctx_t *ctx);
 static void nxt_python_wsgi_done(void);
@@ -63,6 +63,8 @@ static PyObject *nxt_python_copy_environ(nxt_unit_request_info_t *req);
 static PyObject *nxt_python_get_environ(nxt_python_ctx_t *pctx);
 static int nxt_python_add_sptr(nxt_python_ctx_t *pctx, PyObject *name,
     nxt_unit_sptr_t *sptr, uint32_t size);
+static int nxt_python_add_char(nxt_python_ctx_t *pctx, PyObject *name,
+    char *src, uint32_t size);
 static int nxt_python_add_field(nxt_python_ctx_t *pctx,
     nxt_unit_field_t *field, int n, uint32_t vl);
 static PyObject *nxt_python_field_name(const char *name, uint8_t len);
@@ -124,6 +126,9 @@ static PyTypeObject nxt_py_input_type = {
 };
 
 
+static nxt_str_t nxt_py_script_name = {
+    .length = 0, .start = NULL
+};
 static PyObject  *nxt_py_environ_ptyp;
 
 static PyObject  *nxt_py_80_str;
@@ -177,6 +182,7 @@ int
 nxt_python_wsgi_init(nxt_unit_init_t *init, nxt_python_proto_t *proto)
 {
     PyObject  *obj;
+    nxt_str_t script_name;
 
     obj = NULL;
 
@@ -192,6 +198,12 @@ nxt_python_wsgi_init(nxt_unit_init_t *init, nxt_python_proto_t *proto)
         goto fail;
     }
 
+    script_name = ((nxt_python_app_conf_t*)init->data)->script_name;
+    if (script_name.length > 0) {
+        nxt_py_script_name.length = script_name.length;
+        nxt_py_script_name.start = nxt_malloc(sizeof(u_char) * script_name.length);
+        nxt_memcpy(nxt_py_script_name.start, script_name.start, script_name.length);
+    }
     nxt_py_environ_ptyp = obj;
     obj = NULL;
 
@@ -210,7 +222,7 @@ fail:
 
 
 static int
-nxt_python_wsgi_ctx_data_alloc(void **pdata, int main)
+nxt_python_wsgi_ctx_data_alloc(void **pdata, int main, nxt_str_t script_name)
 {
     nxt_python_ctx_t  *pctx;
 
@@ -293,6 +305,11 @@ nxt_python_wsgi_done(void)
 {
     nxt_python_done_strings(nxt_python_strings);
 
+    if (nxt_py_script_name.length > 0) {
+        nxt_free(nxt_py_script_name.start);
+        nxt_py_script_name.start = NULL;
+        nxt_py_script_name.length = 0;
+    }
     Py_XDECREF(nxt_py_environ_ptyp);
 }
 
@@ -456,6 +473,7 @@ static PyObject *
 nxt_python_create_environ(nxt_python_app_conf_t *c)
 {
     PyObject  *obj, *err, *environ;
+    nxt_str_t script_name;
 
     environ = PyDict_New();
 
@@ -463,6 +481,26 @@ nxt_python_create_environ(nxt_python_app_conf_t *c)
         nxt_unit_alert(NULL,
                        "Python failed to create the \"environ\" dictionary");
         return NULL;
+    }
+
+    script_name = c->script_name;
+    if (script_name.length > 0) {
+        obj = PyString_FromStringAndSize((char *) script_name.start,
+                                        script_name.length);
+        if (nxt_slow_path(obj == NULL)) {
+            nxt_unit_alert(NULL,
+                  "Python failed to create the \"SCRIPT_NAME\" environ value");
+            goto fail;
+        }
+
+        if (nxt_slow_path(PyDict_SetItemString(environ, "SCRIPT_NAME", obj) != 0))
+        {
+            nxt_unit_alert(NULL,
+                     "Python failed to set the \"SCRIPT_NAME\" environ value");
+            goto fail;
+        }
+
+        Py_DECREF(obj);
     }
 
     obj = PyString_FromStringAndSize((char *) nxt_server.start,
@@ -584,6 +622,7 @@ nxt_python_get_environ(nxt_python_ctx_t *pctx)
 {
     int                 rc;
     uint32_t            i, j, vl;
+    char                *path, default_path;
     PyObject            *environ;
     nxt_unit_field_t    *f, *f2;
     nxt_unit_request_t  *r;
@@ -604,8 +643,29 @@ nxt_python_get_environ(nxt_python_ctx_t *pctx)
                            r->target_length));
     RC(nxt_python_add_sptr(pctx, nxt_py_query_string_str, &r->query,
                            r->query_length));
-    RC(nxt_python_add_sptr(pctx, nxt_py_path_info_str, &r->path,
-                           r->path_length));
+    i = (uint32_t) nxt_py_script_name.length;
+    j = r->path_length;
+    if (i > 0 && j >= i) {
+        path = nxt_unit_sptr_get(&r->path);
+        if (nxt_strncmp(nxt_py_script_name.start, path, i) == 0) {
+            if (j == i) {
+                // Script name and path match
+                // (ex. script name = /api and path = /api),
+                // send root path (/) to WSGI app
+                default_path = '/';
+                RC(nxt_python_add_char(pctx, nxt_py_path_info_str,
+                            &default_path, 1));
+            } else {
+                RC(nxt_python_add_char(pctx, nxt_py_path_info_str, path + i,
+                            j - i));
+            }
+        } else {
+            RC(nxt_python_add_char(pctx, nxt_py_path_info_str, path, j));
+        }
+    } else {
+        RC(nxt_python_add_sptr(pctx, nxt_py_path_info_str, &r->path,
+                           j));
+    }
 
     RC(nxt_python_add_sptr(pctx, nxt_py_remote_addr_str, &r->remote,
                            r->remote_length));
@@ -692,10 +752,18 @@ static int
 nxt_python_add_sptr(nxt_python_ctx_t *pctx, PyObject *name,
     nxt_unit_sptr_t *sptr, uint32_t size)
 {
-    char      *src;
-    PyObject  *value;
+    char *src;
 
     src = nxt_unit_sptr_get(sptr);
+    return nxt_python_add_char(pctx, name, src, size);
+}
+
+
+static int
+nxt_python_add_char(nxt_python_ctx_t *pctx, PyObject *name,
+    char *src, uint32_t size)
+{
+    PyObject *value;
 
     value = PyString_FromStringAndSize(src, size);
     if (nxt_slow_path(value == NULL)) {
