@@ -90,3 +90,48 @@ class TestASGITargets(TestApplicationPython):
         )
 
         assert self.get(url='/1')['status'] != 200
+
+    def test_asgi_targets_prefix(self):
+        self.conf_targets(
+            {
+                "1": {
+                    "module": "asgi",
+                    "callable": "application_prefix",
+                    "prefix": "/1/",
+                },
+                "2": {
+                    "module": "asgi",
+                    "callable": "application_prefix",
+                    "prefix": "/api",
+                },
+            }
+        )
+        self.conf(
+            [
+                {
+                    "match": {"uri": "/1*"},
+                    "action": {"pass": "applications/targets/1"},
+                },
+                {
+                    "match": {"uri": "*"},
+                    "action": {"pass": "applications/targets/2"},
+                },
+            ],
+            "routes",
+        )
+
+        def check_prefix(url, prefix):
+            resp = self.get(url=url)
+            assert resp['status'] == 200
+            assert resp['headers']['prefix'] == prefix
+
+        check_prefix('/1', '/1')
+        check_prefix('/11', 'NULL')
+        check_prefix('/1/', '/1')
+        check_prefix('/', 'NULL')
+        check_prefix('/ap', 'NULL')
+        check_prefix('/api', '/api')
+        check_prefix('/api/', '/api')
+        check_prefix('/api/test/', '/api')
+        check_prefix('/apis', 'NULL')
+        check_prefix('/apis/', 'NULL')

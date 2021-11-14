@@ -27,7 +27,8 @@ static void nxt_py_asgi_remove_reader(nxt_unit_ctx_t *ctx,
 static void nxt_py_asgi_request_handler(nxt_unit_request_info_t *req);
 static void nxt_py_asgi_close_handler(nxt_unit_request_info_t *req);
 
-static PyObject *nxt_py_asgi_create_http_scope(nxt_unit_request_info_t *req);
+static PyObject *nxt_py_asgi_create_http_scope(nxt_unit_request_info_t *req,
+    nxt_python_target_t *app_target);
 static PyObject *nxt_py_asgi_create_address(nxt_unit_sptr_t *sptr, uint8_t len,
     uint16_t port);
 static PyObject *nxt_py_asgi_create_ip_address(nxt_unit_sptr_t *sptr,
@@ -455,15 +456,15 @@ nxt_py_asgi_request_handler(nxt_unit_request_info_t *req)
         goto release_send;
     }
 
-    scope = nxt_py_asgi_create_http_scope(req);
+    req->data = asgi;
+    target = &nxt_py_targets->target[req->request->app_target];
+
+    scope = nxt_py_asgi_create_http_scope(req, target);
     if (nxt_slow_path(scope == NULL)) {
         nxt_unit_request_done(req, NXT_UNIT_ERROR);
 
         goto release_done;
     }
-
-    req->data = asgi;
-    target = &nxt_py_targets->target[req->request->app_target];
 
     if (!target->asgi_legacy) {
         nxt_unit_req_debug(req, "Python call ASGI 3.0 application");
@@ -573,12 +574,14 @@ nxt_py_asgi_close_handler(nxt_unit_request_info_t *req)
 
 
 static PyObject *
-nxt_py_asgi_create_http_scope(nxt_unit_request_info_t *req)
+nxt_py_asgi_create_http_scope(nxt_unit_request_info_t *req,
+    nxt_python_target_t *app_target)
 {
     char                *p, *target, *query;
-    uint32_t            target_length, i;
+    uint32_t            target_length, i, path_length;
     PyObject            *scope, *v, *type, *scheme;
     PyObject            *headers, *header;
+    nxt_str_t           prefix;
     nxt_unit_field_t    *f;
     nxt_unit_request_t  *r;
 
@@ -610,6 +613,17 @@ nxt_py_asgi_create_http_scope(nxt_unit_request_info_t *req)
     scope = nxt_py_asgi_new_scope(req, type, nxt_py_2_1_str);
     if (nxt_slow_path(scope == NULL)) {
         return NULL;
+    }
+
+    prefix = app_target->prefix;
+    path_length = r->path_length;
+    p = nxt_unit_sptr_get(&r->path);
+    if (prefix.length > 0
+        && ((path_length > prefix.length && p[prefix.length] == '/')
+            || path_length == prefix.length)
+        && memcmp(prefix.start, p, prefix.length) == 0)
+    {
+        SET_ITEM(scope, root_path, app_target->py_prefix);
     }
 
     p = nxt_unit_sptr_get(&r->version);

@@ -50,6 +50,7 @@ class TestApplicationPython(TestApplicationProto):
             'protocol',
             'targets',
             'threads',
+            'prefix',
         ):
             if attr in kwargs:
                 app[attr] = kwargs.pop(attr)

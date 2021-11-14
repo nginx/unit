@@ -99,7 +99,7 @@ static nxt_python_string_t nxt_py_asgi_strings[] = {
     { nxt_string("query_string"), &nxt_py_query_string_str },
     { nxt_string("raw_path"), &nxt_py_raw_path_str },
     { nxt_string("result"), &nxt_py_result_str },
-    { nxt_string("root_path"), &nxt_py_root_path_str }, // not used
+    { nxt_string("root_path"), &nxt_py_root_path_str },
     { nxt_string("scheme"), &nxt_py_scheme_str },
     { nxt_string("server"), &nxt_py_server_str },
     { nxt_string("set_exception"), &nxt_py_set_exception_str },

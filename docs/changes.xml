@@ -111,6 +111,13 @@ report the regex status in configure summary.
 </para>
 </change>
 
+<change type="feature">
+<para>
+new "prefix" attribute in Python configurations to set WSGI SCRIPT_NAME
+and ASGI root-path variables.
+</para>
+</change>
+
 <change type="bugfix">
 <para>
 fix HTTP cookie parsing when the value contains an equals sign.

@@ -318,6 +318,92 @@ class TestConfiguration(TestControl):
 
         assert 'success' in self.conf(conf)
 
+    def test_json_application_python_prefix(self):
+        conf = {
+            "applications": {
+                "sub-app": {
+                    "type": "python",
+                    "processes": {"spare": 0},
+                    "path": "/app",
+                    "module": "wsgi",
+                    "prefix": "/app",
+                }
+            },
+            "listeners": {"*:7080": {"pass": "routes"}},
+            "routes": [
+                {
+                    "match": {"uri": "/app/*"},
+                    "action": {"pass": "applications/sub-app"},
+                }
+            ],
+        }
+
+        assert 'success' in self.conf(conf)
+
+    def test_json_application_prefix_target(self):
+        conf = {
+            "applications": {
+                "sub-app": {
+                    "type": "python",
+                    "processes": {"spare": 0},
+                    "path": "/app",
+                    "targets": {
+                        "foo": {"module": "foo.wsgi", "prefix": "/app"},
+                        "bar": {
+                            "module": "bar.wsgi",
+                            "callable": "bar",
+                            "prefix": "/api",
+                        },
+                    },
+                }
+            },
+            "listeners": {"*:7080": {"pass": "routes"}},
+            "routes": [
+                {
+                    "match": {"uri": "/app/*"},
+                    "action": {"pass": "applications/sub-app/foo"},
+                },
+                {
+                    "match": {"uri": "/api/*"},
+                    "action": {"pass": "applications/sub-app/bar"},
+                },
+            ],
+        }
+
+        assert 'success' in self.conf(conf)
+
+    def test_json_application_invalid_python_prefix(self):
+        conf = {
+            "applications": {
+                "sub-app": {
+                    "type": "python",
+                    "processes": {"spare": 0},
+                    "path": "/app",
+                    "module": "wsgi",
+                    "prefix": "app",
+                }
+            },
+            "listeners": {"*:7080": {"pass": "applications/sub-app"}},
+        }
+
+        assert 'error' in self.conf(conf)
+
+    def test_json_application_empty_python_prefix(self):
+        conf = {
+            "applications": {
+                "sub-app": {
+                    "type": "python",
+                    "processes": {"spare": 0},
+                    "path": "/app",
+                    "module": "wsgi",
+                    "prefix": "",
+                }
+            },
+            "listeners": {"*:7080": {"pass": "applications/sub-app"}},
+        }
+
+        assert 'error' in self.conf(conf)
+
     def test_json_application_many2(self):
         conf = {
             "applications": {
