@@ -22,7 +22,7 @@ class TestStaticMount(TestApplicationProto):
         Path(temp_dir + '/assets/mount/index.html').write_text('mount')
 
         try:
-            process = subprocess.Popen(
+            subprocess.check_output(
                 [
                     "mount",
                     "--bind",
@@ -32,35 +32,33 @@ class TestStaticMount(TestApplicationProto):
                 stderr=subprocess.STDOUT,
             )
 
-            process.communicate()
-
         except KeyboardInterrupt:
             raise
 
-        except:
+        except subprocess.CalledProcessError:
             pytest.fail('Can\'t run mount process.')
 
         self._load_conf(
             {
                 "listeners": {"*:7080": {"pass": "routes"}},
-                "routes": [{"action": {"share": temp_dir + "/assets/dir$uri"}}],
+                "routes": [
+                    {"action": {"share": temp_dir + "/assets/dir$uri"}}
+                ],
             }
         )
 
         yield
 
         try:
-            process = subprocess.Popen(
+            subprocess.check_output(
                 ["umount", "--lazy", temp_dir + "/assets/dir/mount"],
                 stderr=subprocess.STDOUT,
             )
 
-            process.communicate()
-
         except KeyboardInterrupt:
             raise
 
-        except:
+        except subprocess.CalledProcessError:
             pytest.fail('Can\'t run umount process.')
 
     def test_static_mount(self, temp_dir, skip_alert):

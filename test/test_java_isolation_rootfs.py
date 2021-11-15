@@ -18,7 +18,7 @@ class TestJavaIsolationRootfs(TestApplicationJava):
         os.chmod(option.temp_dir + '/tmp', 0o777)
 
         try:
-            process = subprocess.Popen(
+            subprocess.run(
                 [
                     "mount",
                     "--bind",
@@ -28,12 +28,10 @@ class TestJavaIsolationRootfs(TestApplicationJava):
                 stderr=subprocess.STDOUT,
             )
 
-            process.communicate()
-
         except KeyboardInterrupt:
             raise
 
-        except:
+        except subprocess.CalledProcessError:
             pytest.fail('Can\'t run mount process.')
 
     def teardown_method(self, is_su):
@@ -41,18 +39,16 @@ class TestJavaIsolationRootfs(TestApplicationJava):
             return
 
         try:
-            process = subprocess.Popen(
+            subprocess.run(
                 ["umount", "--lazy", option.temp_dir + "/jars"],
                 stderr=subprocess.STDOUT,
             )
 
-            process.communicate()
-
         except KeyboardInterrupt:
             raise
 
-        except:
-            pytest.fail('Can\'t run mount process.')
+        except subprocess.CalledProcessError:
+            pytest.fail('Can\'t run umount process.')
 
     def test_java_isolation_rootfs_chroot_war(self, is_su, temp_dir):
         if not is_su:

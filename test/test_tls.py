@@ -32,7 +32,7 @@ class TestTLS(TestApplicationTLS):
     def req(self, name='localhost', subject=None, x509=False):
         subj = subject if subject is not None else '/CN=' + name + '/'
 
-        subprocess.call(
+        subprocess.check_output(
             [
                 'openssl',
                 'req',
@@ -87,7 +87,7 @@ basicConstraints = critical,CA:TRUE"""
             f.write('')
 
     def ca(self, cert='root', out='localhost'):
-        subprocess.call(
+        subprocess.check_output(
             [
                 'openssl',
                 'ca',
@@ -220,7 +220,7 @@ basicConstraints = critical,CA:TRUE"""
 
         self.openssl_conf()
 
-        subprocess.call(
+        subprocess.check_output(
             [
                 'openssl',
                 'ecparam',
@@ -234,7 +234,7 @@ basicConstraints = critical,CA:TRUE"""
             stderr=subprocess.STDOUT,
         )
 
-        subprocess.call(
+        subprocess.check_output(
             [
                 'openssl',
                 'req',
@@ -589,7 +589,7 @@ basicConstraints = critical,CA:TRUE"""
 
         app_id = self.findall(r'(\d+)#\d+ "mirror" application started')[0]
 
-        subprocess.call(['kill', '-9', app_id])
+        subprocess.check_output(['kill', '-9', app_id])
 
         skip_alert(r'process .* %s.* exited on signal 9' % app_id)
 

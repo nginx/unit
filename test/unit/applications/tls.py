@@ -15,7 +15,7 @@ class TestApplicationTLS(TestApplicationProto):
     def certificate(self, name='default', load=True):
         self.openssl_conf()
 
-        subprocess.call(
+        subprocess.check_output(
             [
                 'openssl',
                 'req',

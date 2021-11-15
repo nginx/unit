@@ -74,7 +74,7 @@ basicConstraints = critical,CA:TRUE"""
                 else '/'
             )
 
-            subprocess.call(
+            subprocess.check_output(
                 [
                     'openssl',
                     'req',
@@ -100,7 +100,7 @@ basicConstraints = critical,CA:TRUE"""
                 else '/'
             )
 
-            subprocess.call(
+            subprocess.check_output(
                 [
                     'openssl',
                     'ca',

@@ -40,13 +40,12 @@ class TestApplicationGo(TestApplicationProto):
             print("\n$ GOPATH=" + env['GOPATH'] + " " + " ".join(args))
 
         try:
-            process = subprocess.Popen(args, env=env)
-            process.communicate()
+            process = subprocess.run(args, env=env)
 
         except KeyboardInterrupt:
             raise
 
-        except:
+        except subprocess.CalledProcessError:
             return None
 
         return process
