@@ -76,7 +76,7 @@ class TestTLSSession(TestApplicationTLS):
         client, _, _, reused = self.connect(ctx, sess)
         assert not reused, 'no cache'
 
-        assert 'success' in self.add_session(cache_size=1)
+        assert 'success' in self.add_session(cache_size=2)
 
         client, sess, ctx, reused = self.connect()
         assert not reused, 'new connection cache'
@@ -87,30 +87,26 @@ class TestTLSSession(TestApplicationTLS):
         client, _, _, reused = self.connect(ctx, sess)
         assert reused, 'cache 2'
 
-        # check that at least one session of two is not reused
+        # check that at least one session of four is not reused
 
-        client, sess, ctx, reused = self.connect()
-        client2, sess2, ctx2, reused2 = self.connect()
-        assert True not in [reused, reused2], 'new connection cache small'
+        clients = [self.connect() for _ in range(4)]
+        assert True not in [c[-1] for c in clients], 'cache small all new'
 
-        client, _, _, reused = self.connect(ctx, sess)
-        client2, _, _, reused2 = self.connect(ctx2, sess2)
-        assert False in [reused, reused2], 'cache small'
+        clients_again = [self.connect(c[2], c[1]) for c in clients]
+        assert False in [c[-1] for c in clients_again], 'cache small no reuse'
 
-        # both sessions are reused
+        # all four sessions are reused
 
-        assert 'success' in self.add_session(cache_size=2)
+        assert 'success' in self.add_session(cache_size=8)
 
-        client, sess, ctx, reused = self.connect()
-        client2, sess2, ctx2, reused2 = self.connect()
-        assert True not in [reused, reused2], 'new connection cache big'
+        clients = [self.connect() for _ in range(4)]
+        assert True not in [c[-1] for c in clients], 'cache big all new'
 
-        client, _, _, reused = self.connect(ctx, sess)
-        client2, _, _, reused2 = self.connect(ctx2, sess2)
-        assert False not in [reused, reused2], 'cache big'
+        clients_again = [self.connect(c[2], c[1]) for c in clients]
+        assert False not in [c[-1] for c in clients_again], 'cache big reuse'
 
     def test_tls_session_timeout(self):
-        assert 'success' in self.add_session(cache_size=1, timeout=1)
+        assert 'success' in self.add_session(cache_size=5, timeout=1)
 
         client, sess, ctx, reused = self.connect()
         assert not reused, 'new connection'
