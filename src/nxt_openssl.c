@@ -1777,7 +1777,11 @@ nxt_openssl_copy_error(u_char *p, u_char *end)
     clear = 0;
 
     for ( ;; ) {
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+        err = ERR_get_error_all(NULL, NULL, NULL, &data, &flags);
+#else
         err = ERR_get_error_line_data(NULL, NULL, &data, &flags);
+#endif
         if (err == 0) {
             break;
         }

@@ -45,6 +45,12 @@ prefer system crypto policy, instead of hardcoding a default.
 
 <change type="feature">
 <para>
+compatibility with OpenSSL 3.
+</para>
+</change>
+
+<change type="feature">
+<para>
 compatibility with PHP 8.2.
 </para>
 </change>
