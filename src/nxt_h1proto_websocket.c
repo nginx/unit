@@ -73,10 +73,10 @@ void
 nxt_h1p_websocket_first_frame_start(nxt_task_t *task, nxt_http_request_t *r,
     nxt_buf_t *ws_frame)
 {
-    nxt_conn_t               *c;
-    nxt_timer_t              *timer;
-    nxt_h1proto_t            *h1p;
-    nxt_socket_conf_joint_t  *joint;
+    nxt_conn_t            *c;
+    nxt_timer_t           *timer;
+    nxt_h1proto_t         *h1p;
+    nxt_websocket_conf_t  *websocket_conf;
 
     nxt_debug(task, "h1p ws first frame start");
 
@@ -87,11 +87,9 @@ nxt_h1p_websocket_first_frame_start(nxt_task_t *task, nxt_http_request_t *r,
         nxt_conn_tcp_nodelay_on(task, c);
     }
 
-    joint = c->listen->socket.data;
+    websocket_conf = &r->conf->socket_conf->websocket_conf;
 
-    if (nxt_slow_path(joint != NULL
-        && joint->socket_conf->websocket_conf.keepalive_interval != 0))
-    {
+    if (nxt_slow_path(websocket_conf->keepalive_interval != 0)) {
         h1p->websocket_timer = nxt_mp_zget(c->mem_pool,
                                            sizeof(nxt_h1p_websocket_timer_t));
         if (nxt_slow_path(h1p->websocket_timer == NULL)) {
@@ -100,7 +98,7 @@ nxt_h1p_websocket_first_frame_start(nxt_task_t *task, nxt_http_request_t *r,
         }
 
         h1p->websocket_timer->keepalive_interval =
-            joint->socket_conf->websocket_conf.keepalive_interval;
+            websocket_conf->keepalive_interval;
         h1p->websocket_timer->h1p = h1p;
 
         timer = &h1p->websocket_timer->timer;
@@ -218,14 +216,13 @@ static const nxt_conn_state_t  nxt_h1p_read_ws_frame_header_state
 static void
 nxt_h1p_conn_ws_frame_header_read(nxt_task_t *task, void *obj, void *data)
 {
-    size_t                   size, hsize, frame_size, max_frame_size;
-    uint64_t                 payload_len;
-    nxt_conn_t               *c;
-    nxt_h1proto_t            *h1p;
-    nxt_http_request_t       *r;
-    nxt_event_engine_t       *engine;
-    nxt_websocket_header_t   *wsh;
-    nxt_socket_conf_joint_t  *joint;
+    size_t                  size, hsize, frame_size, max_frame_size;
+    uint64_t                payload_len;
+    nxt_conn_t              *c;
+    nxt_h1proto_t           *h1p;
+    nxt_http_request_t      *r;
+    nxt_event_engine_t      *engine;
+    nxt_websocket_header_t  *wsh;
 
     c = obj;
     h1p = data;
@@ -264,17 +261,6 @@ nxt_h1p_conn_ws_frame_header_read(nxt_task_t *task, void *obj, void *data)
     }
 
     r->ws_frame = c->read;
-
-    joint = c->listen->socket.data;
-
-    if (nxt_slow_path(joint == NULL)) {
-        /*
-         * Listening socket had been closed while
-         * connection was in keep-alive state.
-         */
-        c->read_state = &nxt_h1p_idle_close_state;
-        return;
-    }
 
     if (nxt_slow_path(wsh->mask == 0)) {
         hxt_h1p_send_ws_error(task, r, &nxt_ws_err_not_masked);
@@ -330,7 +316,7 @@ nxt_h1p_conn_ws_frame_header_read(nxt_task_t *task, void *obj, void *data)
         h1p->websocket_cont_expected = !wsh->fin;
     }
 
-    max_frame_size = joint->socket_conf->websocket_conf.max_frame_size;
+    max_frame_size = r->conf->socket_conf->websocket_conf.max_frame_size;
 
     payload_len = nxt_websocket_frame_payload_len(wsh);
 

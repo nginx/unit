@@ -40,8 +40,6 @@ static void nxt_runtime_thread_pool_init(void);
 static void nxt_runtime_thread_pool_exit(nxt_task_t *task, void *obj,
     void *data);
 static nxt_process_t *nxt_runtime_process_get(nxt_runtime_t *rt, nxt_pid_t pid);
-static void nxt_runtime_process_remove(nxt_runtime_t *rt,
-    nxt_process_t *process);
 static void nxt_runtime_port_add(nxt_task_t *task, nxt_port_t *port);
 
 
@@ -504,7 +502,9 @@ nxt_runtime_stop_app_processes(nxt_task_t *task, nxt_runtime_t *rt)
 
         init = nxt_process_init(process);
 
-        if (init->type == NXT_PROCESS_APP) {
+        if (init->type == NXT_PROCESS_APP
+            || init->type == NXT_PROCESS_PROTOTYPE)
+        {
 
             nxt_process_port_each(process, port) {
 
@@ -527,6 +527,8 @@ nxt_runtime_stop_all_processes(nxt_task_t *task, nxt_runtime_t *rt)
     nxt_runtime_process_each(rt, process) {
 
         nxt_process_port_each(process, port) {
+
+            nxt_debug(task, "%d sending quit to %PI", rt->type, port->pid);
 
             (void) nxt_port_socket_write(task, port, NXT_PORT_MSG_QUIT, -1, 0,
                                          0, NULL);
@@ -580,6 +582,7 @@ nxt_runtime_exit(nxt_task_t *task, void *obj, void *data)
 
     nxt_runtime_process_each(rt, process) {
 
+        nxt_runtime_process_remove(rt, process);
         nxt_process_close_ports(task, process);
 
     } nxt_runtime_process_loop;
@@ -838,6 +841,21 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
     if (n > 1 && rt->state[n - 1] != '/') {
         slash = "/";
     }
+
+    ret = nxt_file_name_create(rt->mem_pool, &file_name, "%s%sversion%Z",
+                               rt->state, slash);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        return NXT_ERROR;
+    }
+
+    rt->ver = (char *) file_name.start;
+
+    ret = nxt_file_name_create(rt->mem_pool, &file_name, "%s.tmp%Z", rt->ver);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        return NXT_ERROR;
+    }
+
+    rt->ver_tmp = (char *) file_name.start;
 
     ret = nxt_file_name_create(rt->mem_pool, &file_name, "%s%sconf.json%Z",
                                rt->state, slash);
@@ -1370,36 +1388,23 @@ nxt_runtime_pid_file_create(nxt_task_t *task, nxt_file_name_t *pid_file)
 }
 
 
-nxt_process_t *
-nxt_runtime_process_new(nxt_runtime_t *rt)
-{
-    nxt_process_t  *process;
-
-    /* TODO: memory failures. */
-
-    process = nxt_mp_zalloc(rt->mem_pool,
-                            sizeof(nxt_process_t) + sizeof(nxt_process_init_t));
-
-    if (nxt_slow_path(process == NULL)) {
-        return NULL;
-    }
-
-    nxt_queue_init(&process->ports);
-
-    nxt_thread_mutex_create(&process->incoming.mutex);
-
-    process->use_count = 1;
-
-    return process;
-}
-
-
 void
 nxt_runtime_process_release(nxt_runtime_t *rt, nxt_process_t *process)
 {
+    nxt_process_t  *child;
+
     if (process->registered == 1) {
         nxt_runtime_process_remove(rt, process);
     }
+
+    if (process->link.next != NULL) {
+        nxt_queue_remove(&process->link);
+    }
+
+    nxt_queue_each(child, &process->children, nxt_process_t, link) {
+        nxt_queue_remove(&child->link);
+        child->link.next = NULL;
+    } nxt_queue_loop;
 
     nxt_assert(process->use_count == 0);
     nxt_assert(process->registered == 0);
@@ -1497,7 +1502,7 @@ nxt_runtime_process_get(nxt_runtime_t *rt, nxt_pid_t pid)
         return process;
     }
 
-    process = nxt_runtime_process_new(rt);
+    process = nxt_process_new(rt);
     if (nxt_slow_path(process == NULL)) {
 
         nxt_thread_mutex_unlock(&rt->processes_mutex);
@@ -1586,7 +1591,7 @@ nxt_runtime_process_add(nxt_task_t *task, nxt_process_t *process)
 }
 
 
-static void
+void
 nxt_runtime_process_remove(nxt_runtime_t *rt, nxt_process_t *process)
 {
     nxt_pid_t           pid;

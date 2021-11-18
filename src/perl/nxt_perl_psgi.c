@@ -1184,13 +1184,12 @@ nxt_perl_psgi_start(nxt_task_t *task, nxt_process_data_t *data)
         goto fail;
     }
 
-    nxt_unit_default_init(task, &perl_init);
+    nxt_unit_default_init(task, &perl_init, common_conf);
 
     perl_init.callbacks.request_handler = nxt_perl_psgi_request_handler;
     perl_init.callbacks.ready_handler = nxt_perl_psgi_ready_handler;
     perl_init.data = c;
     perl_init.ctx_data = &pctx;
-    perl_init.shm_limit = common_conf->shm_limit;
 
     unit_ctx = nxt_unit_init(&perl_init);
     if (nxt_slow_path(unit_ctx == NULL)) {
@@ -1291,11 +1290,6 @@ nxt_perl_psgi_ready_handler(nxt_unit_ctx_t *ctx)
     uint32_t             i;
     nxt_perl_app_conf_t  *c;
     nxt_perl_psgi_ctx_t  *pctx;
-
-    /* Worker thread context. */
-    if (!nxt_unit_is_main_ctx(ctx)) {
-        return NXT_UNIT_OK;
-    }
 
     c = ctx->unit->data;
 

@@ -33,6 +33,7 @@ struct nxt_port_handlers_s {
     /* New process */
     nxt_port_handler_t  process_created;
     nxt_port_handler_t  process_ready;
+    nxt_port_handler_t  whoami;
 
     /* Process exit/crash notification. */
     nxt_port_handler_t  remove_pid;
@@ -92,6 +93,7 @@ typedef enum {
 
     _NXT_PORT_MSG_PROCESS_CREATED = nxt_port_handler_idx(process_created),
     _NXT_PORT_MSG_PROCESS_READY   = nxt_port_handler_idx(process_ready),
+    _NXT_PORT_MSG_WHOAMI          = nxt_port_handler_idx(whoami),
     _NXT_PORT_MSG_REMOVE_PID      = nxt_port_handler_idx(remove_pid),
     _NXT_PORT_MSG_QUIT            = nxt_port_handler_idx(quit),
 
@@ -131,6 +133,7 @@ typedef enum {
 
     NXT_PORT_MSG_PROCESS_CREATED  = nxt_msg_last(_NXT_PORT_MSG_PROCESS_CREATED),
     NXT_PORT_MSG_PROCESS_READY    = nxt_msg_last(_NXT_PORT_MSG_PROCESS_READY),
+    NXT_PORT_MSG_WHOAMI           = nxt_msg_last(_NXT_PORT_MSG_WHOAMI),
     NXT_PORT_MSG_QUIT             = nxt_msg_last(_NXT_PORT_MSG_QUIT),
     NXT_PORT_MSG_REMOVE_PID       = nxt_msg_last(_NXT_PORT_MSG_REMOVE_PID),
 
@@ -153,7 +156,9 @@ typedef enum {
 /* Passed as a first iov chunk. */
 typedef struct {
     uint32_t             stream;
-    nxt_pid_t            pid;
+
+    nxt_pid_t            pid;       /* not used on Linux and FreeBSD */
+
     nxt_port_id_t        reply_port;
 
     uint8_t              type;
@@ -186,6 +191,9 @@ typedef struct {
     uint8_t             allocated;  /* 1 bit */
 } nxt_port_send_msg_t;
 
+#if (NXT_HAVE_UCRED) || (NXT_HAVE_MSGHDR_CMSGCRED)
+#define NXT_USE_CMSG_PID    1
+#endif
 
 struct nxt_port_recv_msg_s {
     nxt_fd_t            fd[2];
@@ -193,6 +201,9 @@ struct nxt_port_recv_msg_s {
     nxt_port_t          *port;
     nxt_port_msg_t      port_msg;
     size_t              size;
+#if (NXT_USE_CMSG_PID)
+    nxt_pid_t           cmsg_pid;
+#endif
     nxt_bool_t          cancelled;
     union {
         nxt_port_t      *new_port;
@@ -200,6 +211,15 @@ struct nxt_port_recv_msg_s {
         void            *data;
     } u;
 };
+
+
+#if (NXT_USE_CMSG_PID)
+#define nxt_recv_msg_cmsg_pid(msg)      ((msg)->cmsg_pid)
+#define nxt_recv_msg_cmsg_pid_ref(msg)  (&(msg)->cmsg_pid)
+#else
+#define nxt_recv_msg_cmsg_pid(msg)      ((msg)->port_msg.pid)
+#define nxt_recv_msg_cmsg_pid_ref(msg)  (NULL)
+#endif
 
 typedef struct nxt_app_s  nxt_app_t;
 
@@ -223,8 +243,6 @@ struct nxt_port_s {
     uint32_t            max_size;
     /* Maximum interleave of message parts. */
     uint32_t            max_share;
-
-    uint32_t            app_responses;
 
     uint32_t            active_websockets;
     uint32_t            active_requests;
@@ -324,6 +342,7 @@ nxt_int_t nxt_port_send_port(nxt_task_t *task, nxt_port_t *port,
     nxt_port_t *new_port, uint32_t stream);
 void nxt_port_change_log_file(nxt_task_t *task, nxt_runtime_t *rt,
     nxt_uint_t slot, nxt_fd_t fd);
+void nxt_port_remove_notify_others(nxt_task_t *task, nxt_process_t *process);
 
 void nxt_port_quit_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
 void nxt_port_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);

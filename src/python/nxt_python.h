@@ -64,7 +64,6 @@ typedef struct {
     void  (*ctx_data_free)(void *data);
     int   (*startup)(void *data);
     int   (*run)(nxt_unit_ctx_t *ctx);
-    int   (*ready)(nxt_unit_ctx_t *ctx);
     void  (*done)(void);
 } nxt_python_proto_t;
 

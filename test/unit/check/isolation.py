@@ -3,9 +3,8 @@ import os
 
 from unit.applications.lang.go import TestApplicationGo
 from unit.applications.lang.java import TestApplicationJava
-from unit.applications.lang.ruby import TestApplicationRuby
 from unit.applications.lang.node import TestApplicationNode
-from unit.applications.proto import TestApplicationProto
+from unit.applications.lang.ruby import TestApplicationRuby
 from unit.http import TestHTTP
 from unit.option import option
 from unit.utils import getns

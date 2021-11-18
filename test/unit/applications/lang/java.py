@@ -64,10 +64,17 @@ class TestApplicationJava(TestApplicationProto):
 
             javac = [
                 'javac',
-                '-target', '8', '-source', '8', '-nowarn',
-                '-encoding',   'utf-8',
-                '-d',          classes_path,
-                '-classpath',  classpath + ':' + ws_jars[0],
+                '-target',
+                '8',
+                '-source',
+                '8',
+                '-nowarn',
+                '-encoding',
+                'utf-8',
+                '-d',
+                classes_path,
+                '-classpath',
+                classpath + ':' + ws_jars[0],
             ]
             javac.extend(src)
 
@@ -75,13 +82,12 @@ class TestApplicationJava(TestApplicationProto):
                 print("\n$ " + " ".join(javac))
 
             try:
-                process = subprocess.Popen(javac, stderr=subprocess.STDOUT)
-                process.communicate()
+                subprocess.check_output(javac, stderr=subprocess.STDOUT)
 
             except KeyboardInterrupt:
                 raise
 
-            except:
+            except subprocess.CalledProcessError:
                 pytest.fail('Can\'t run javac process.')
 
     def load(self, script, **kwargs):

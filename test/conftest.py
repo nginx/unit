@@ -14,7 +14,6 @@ import time
 from multiprocessing import Process
 
 import pytest
-
 from unit.check.chroot import check_chroot
 from unit.check.go import check_go
 from unit.check.isolation import check_isolation
@@ -357,7 +356,7 @@ def run(request):
     _check_alerts(log=log)
 
 
-def unit_run():
+def unit_run(state_dir=None):
     global unit_instance
 
     if not option.restart and 'unitd' in unit_instance:
@@ -375,7 +374,9 @@ def unit_run():
     if oct(stat.S_IMODE(os.stat(build_dir).st_mode)) != '0o777':
         public_dir(build_dir)
 
-    os.mkdir(temp_dir + '/state')
+    state = temp_dir + '/state' if state_dir is None else state_dir
+    if not os.path.isdir(state):
+        os.mkdir(state)
 
     unitd_args = [
         unitd,
@@ -383,7 +384,7 @@ def unit_run():
         '--modules',
         build_dir,
         '--state',
-        temp_dir + '/state',
+        state,
         '--pid',
         temp_dir + '/unit.pid',
         '--log',
@@ -415,7 +416,8 @@ def unit_run():
     with open(temp_dir + '/unit.pid', 'r') as f:
         unit_instance['pid'] = f.read().rstrip()
 
-    _clear_conf(unit_instance['temp_dir'] + '/control.unit.sock')
+    if state_dir is None:
+        _clear_conf(unit_instance['temp_dir'] + '/control.unit.sock')
 
     _fds_info['main']['fds'] = _count_fds(unit_instance['pid'])
 

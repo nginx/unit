@@ -1,6 +1,5 @@
-import asyncio
-import time
 import threading
+import time
 
 
 async def application(scope, receive, send):

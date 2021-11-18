@@ -11,7 +11,7 @@ def check_go(current_dir, temp_dir, test_dir):
     env['GO111MODULE'] = 'auto'
 
     try:
-        process = subprocess.Popen(
+        process = subprocess.run(
             [
                 'go',
                 'build',
@@ -20,8 +20,9 @@ def check_go(current_dir, temp_dir, test_dir):
                 test_dir + '/go/empty/app.go',
             ],
             env=env,
+            stderr=subprocess.STDOUT,
+            stdout=subprocess.PIPE,
         )
-        process.communicate()
 
         if process.returncode == 0:
             return True
@@ -29,5 +30,5 @@ def check_go(current_dir, temp_dir, test_dir):
     except KeyboardInterrupt:
         raise
 
-    except:
+    except subprocess.CalledProcessError:
         return None

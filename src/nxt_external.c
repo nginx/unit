@@ -67,7 +67,7 @@ nxt_external_start(nxt_task_t *task, nxt_process_data_t *data)
     nxt_str_t                str;
     nxt_int_t                rc;
     nxt_uint_t               i, argc;
-    nxt_port_t               *my_port, *main_port, *router_port;
+    nxt_port_t               *my_port, *proto_port, *router_port;
     nxt_runtime_t            *rt;
     nxt_conf_value_t         *value;
     nxt_common_app_conf_t    *conf;
@@ -76,17 +76,17 @@ nxt_external_start(nxt_task_t *task, nxt_process_data_t *data)
     rt = task->thread->runtime;
     conf = data->app;
 
-    main_port = rt->port_by_type[NXT_PROCESS_MAIN];
+    proto_port = rt->port_by_type[NXT_PROCESS_PROTOTYPE];
     router_port = rt->port_by_type[NXT_PROCESS_ROUTER];
     my_port = nxt_runtime_port_find(rt, nxt_pid, 0);
 
-    if (nxt_slow_path(main_port == NULL || my_port == NULL
+    if (nxt_slow_path(proto_port == NULL || my_port == NULL
                       || router_port == NULL))
     {
         return NXT_ERROR;
     }
 
-    rc = nxt_external_fd_no_cloexec(task, main_port->pair[1]);
+    rc = nxt_external_fd_no_cloexec(task, proto_port->pair[1]);
     if (nxt_slow_path(rc != NXT_OK)) {
         return NXT_ERROR;
     }
@@ -113,13 +113,13 @@ nxt_external_start(nxt_task_t *task, nxt_process_data_t *data)
                     "%PI,%ud,%d;"
                     "%PI,%ud,%d;"
                     "%PI,%ud,%d,%d;"
-                    "%d,%z,%Z",
+                    "%d,%z,%uD,%Z",
                     NXT_VERSION, my_port->process->stream,
-                    main_port->pid, main_port->id, main_port->pair[1],
+                    proto_port->pid, proto_port->id, proto_port->pair[1],
                     router_port->pid, router_port->id, router_port->pair[1],
                     my_port->pid, my_port->id, my_port->pair[0],
                                                my_port->pair[1],
-                    2, conf->shm_limit);
+                    2, conf->shm_limit, conf->request_limit);
 
     if (nxt_slow_path(p == end)) {
         nxt_alert(task, "internal error: buffer too small for NXT_UNIT_INIT");

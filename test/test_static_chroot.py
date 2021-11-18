@@ -2,7 +2,6 @@ import os
 from pathlib import Path
 
 import pytest
-
 from unit.applications.proto import TestApplicationProto
 
 
@@ -21,9 +20,19 @@ class TestStaticChroot(TestApplicationProto):
         self._load_conf(
             {
                 "listeners": {"*:7080": {"pass": "routes"}},
-                "routes": [{"action": {"share": temp_dir + "/assets"}}],
+                "routes": [{"action": {"share": temp_dir + "/assets$uri"}}],
             }
         )
+
+    def update_action(self, share, chroot):
+        return self.conf(
+            {"share": share, "chroot": chroot}, 'routes/0/action',
+        )
+
+    def get_custom(self, uri, host):
+        return self.get(
+            url=uri, headers={'Host': host, 'Connection': 'close'}
+        )['status']
 
     def test_static_chroot(self, temp_dir):
         assert self.get(url='/dir/file')['status'] == 200, 'default chroot'
@@ -31,7 +40,7 @@ class TestStaticChroot(TestApplicationProto):
 
         assert 'success' in self.conf(
             {
-                "share": temp_dir + "/assets",
+                "share": temp_dir + "/assets$uri",
                 "chroot": temp_dir + "/assets/dir",
             },
             'routes/0/action',
@@ -41,6 +50,30 @@ class TestStaticChroot(TestApplicationProto):
         assert self.get(url='/index.html')['status'] == 403, 'chroot 403 2'
         assert self.get(url='/file')['status'] == 403, 'chroot 403'
 
+    def test_share_chroot_array(self, temp_dir):
+        assert 'success' in self.conf(
+            {
+                "share": ["/blah", temp_dir + "/assets$uri"],
+                "chroot": temp_dir + "/assets/dir",
+            },
+            'routes/0/action',
+        ), 'configure share array'
+        assert self.get(url='/dir/file')['status'] == 200, 'share array'
+
+        assert 'success' in self.update_action(
+            ["/blah", temp_dir + '/assets$uri'], temp_dir + '/assets/$host'
+        )
+        assert self.get_custom('/dir/file', 'dir') == 200, 'array variable'
+
+        assert 'success' in self.conf(
+            {
+                "share": ["/blah", "/blah2"],
+                "chroot": temp_dir + "/assets/dir",
+            },
+            'routes/0/action',
+        ), 'configure share array bad'
+        assert self.get()['status'] != 200, 'share array bad'
+
     def test_static_chroot_permission(self, is_su, temp_dir):
         if is_su:
             pytest.skip('does\'t work under root')
@@ -49,7 +82,7 @@ class TestStaticChroot(TestApplicationProto):
 
         assert 'success' in self.conf(
             {
-                "share": temp_dir + "/assets",
+                "share": temp_dir + "/assets$uri",
                 "chroot": temp_dir + "/assets/dir",
             },
             'routes/0/action',
@@ -59,7 +92,8 @@ class TestStaticChroot(TestApplicationProto):
 
     def test_static_chroot_empty(self, temp_dir):
         assert 'success' in self.conf(
-            {"share": temp_dir + "/assets", "chroot": ""}, 'routes/0/action',
+            {"share": temp_dir + "/assets$uri", "chroot": ""},
+            'routes/0/action',
         ), 'configure chroot empty absolute'
 
         assert (
@@ -67,7 +101,7 @@ class TestStaticChroot(TestApplicationProto):
         ), 'chroot empty absolute'
 
         assert 'success' in self.conf(
-            {"share": ".", "chroot": ""}, 'routes/0/action',
+            {"share": ".$uri", "chroot": ""}, 'routes/0/action',
         ), 'configure chroot empty relative'
 
         assert (
@@ -79,22 +113,98 @@ class TestStaticChroot(TestApplicationProto):
             pytest.skip('does\'t work under root')
 
         assert 'success' in self.conf(
-            {"share": temp_dir + "/assets", "chroot": "."}, 'routes/0/action',
+            {"share": temp_dir + "/assets$uri", "chroot": "."},
+            'routes/0/action',
         ), 'configure relative chroot'
 
         assert self.get(url='/dir/file')['status'] == 403, 'relative chroot'
 
         assert 'success' in self.conf(
-            {"share": "."}, 'routes/0/action',
+            {"share": ".$uri"}, 'routes/0/action',
         ), 'configure relative share'
 
         assert self.get(url=self.test_path)['status'] == 200, 'relative share'
 
         assert 'success' in self.conf(
-            {"share": ".", "chroot": "."}, 'routes/0/action',
+            {"share": ".$uri", "chroot": "."}, 'routes/0/action',
         ), 'configure relative'
 
         assert self.get(url=self.test_path)['status'] == 200, 'relative'
+
+    def test_static_chroot_variables(self, temp_dir):
+        assert 'success' in self.update_action(
+            temp_dir + '/assets$uri', temp_dir + '/assets/$host'
+        )
+        assert self.get_custom('/dir/file', 'dir') == 200
+
+        assert 'success' in self.update_action(
+            temp_dir + '/assets$uri', temp_dir + '/assets/${host}'
+        )
+        assert self.get_custom('/dir/file', 'dir') == 200
+
+    def test_static_chroot_variables_buildin_start(self, temp_dir):
+        assert 'success' in self.update_action(
+            temp_dir + '/assets/dir/$host', '$uri/assets/dir'
+        )
+
+        assert self.get_custom(temp_dir, 'file') == 200
+
+    def test_static_chroot_variables_buildin_mid(self, temp_dir):
+        assert 'success' in self.update_action(
+            temp_dir + '/assets$uri', temp_dir + '/$host/dir'
+        )
+
+        assert self.get_custom('/dir/file', 'assets') == 200
+
+    def test_static_chroot_variables_buildin_end(self, temp_dir):
+        assert 'success' in self.update_action(
+            temp_dir + '/assets$uri', temp_dir + '/assets/$host'
+        )
+
+        assert self.get_custom('/dir/file', 'dir') == 200
+
+    def test_static_chroot_slash(self, temp_dir):
+        assert 'success' in self.conf(
+            {
+                "share": temp_dir + "/assets$uri",
+                "chroot": temp_dir + "/assets/dir/",
+            },
+            'routes/0/action',
+        ), 'configure chroot slash end'
+
+        assert self.get(url='/dir/file')['status'] == 200, 'slash end'
+        assert self.get(url='/dirxfile')['status'] == 403, 'slash end bad'
+
+        assert 'success' in self.conf(
+            {
+                "share": temp_dir + "/assets$uri",
+                "chroot": temp_dir + "/assets/dir",
+            },
+            'routes/0/action',
+        ), 'configure chroot no slash end'
+
+        assert self.get(url='/dir/file')['status'] == 200, 'no slash end'
+
+        assert 'success' in self.conf(
+            {
+                "share": temp_dir + "/assets$uri",
+                "chroot": temp_dir + "/assets/dir/",
+            },
+            'routes/0/action',
+        ), 'configure chroot slash end 2'
+
+        assert self.get(url='/dir/file')['status'] == 200, 'slash end 2'
+        assert self.get(url='/dirxfile')['status'] == 403, 'slash end 2 bad'
+
+        assert 'success' in self.conf(
+            {
+                "share": temp_dir + "///assets/////$uri",
+                "chroot": temp_dir + "//assets////dir///",
+            },
+            'routes/0/action',
+        ), 'configure chroot multiple slashes'
+
+        assert self.get(url='/dir/file')['status'] == 200, 'multiple slashes'
 
     def test_static_chroot_invalid(self, temp_dir):
         assert 'error' in self.conf(
@@ -106,3 +216,10 @@ class TestStaticChroot(TestApplicationProto):
         assert 'error' in self.conf(
             {"share": temp_dir, "mount": "True"}, 'routes/0/action',
         ), 'configure mount error'
+
+        assert 'error' in self.update_action(
+            temp_dir + '/assets$uri', temp_dir + '/assets/d$r$uri'
+        )
+        assert 'error' in self.update_action(
+            temp_dir + '/assets$uri', temp_dir + '/assets/$$uri'
+        )

@@ -1,7 +1,6 @@
 import ssl
 
 import pytest
-
 from unit.applications.tls import TestApplicationTLS
 
 

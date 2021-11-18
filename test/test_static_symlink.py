@@ -2,7 +2,6 @@ import os
 from pathlib import Path
 
 import pytest
-
 from unit.applications.proto import TestApplicationProto
 
 
@@ -18,7 +17,7 @@ class TestStaticSymlink(TestApplicationProto):
         self._load_conf(
             {
                 "listeners": {"*:7080": {"pass": "routes"}},
-                "routes": [{"action": {"share": temp_dir + "/assets"}}],
+                "routes": [{"action": {"share": temp_dir + "/assets$uri"}}],
             }
         )
 
@@ -33,14 +32,14 @@ class TestStaticSymlink(TestApplicationProto):
         assert self.get(url='/link/file')['status'] == 200, 'symlink file'
 
         assert 'success' in self.conf(
-            {"share": temp_dir + "/assets", "follow_symlinks": False},
+            {"share": temp_dir + "/assets$uri", "follow_symlinks": False},
             'routes/0/action',
         ), 'configure symlink disable'
 
         assert self.get(url='/link/file')['status'] == 403, 'symlink disabled'
 
         assert 'success' in self.conf(
-            {"share": temp_dir + "/assets", "follow_symlinks": True},
+            {"share": temp_dir + "/assets$uri", "follow_symlinks": True},
             'routes/0/action',
         ), 'configure symlink enable'
 
@@ -56,14 +55,14 @@ class TestStaticSymlink(TestApplicationProto):
                 {
                     "match": {"method": "HEAD"},
                     "action": {
-                        "share": temp_dir + "/assets",
+                        "share": temp_dir + "/assets$uri",
                         "follow_symlinks": False,
                     },
                 },
                 {
                     "match": {"method": "GET"},
                     "action": {
-                        "share": temp_dir + "/assets",
+                        "share": temp_dir + "/assets$uri",
                         "follow_symlinks": True,
                     },
                 },
@@ -85,7 +84,7 @@ class TestStaticSymlink(TestApplicationProto):
 
         assert 'success' in self.conf(
             {
-                "share": temp_dir + "/assets",
+                "share": temp_dir + "/assets$uri",
                 "chroot": temp_dir + "/assets/dir/dir",
             },
             'routes/0/action',

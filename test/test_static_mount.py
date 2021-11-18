@@ -3,7 +3,6 @@ import subprocess
 from pathlib import Path
 
 import pytest
-
 from unit.applications.proto import TestApplicationProto
 
 
@@ -23,7 +22,7 @@ class TestStaticMount(TestApplicationProto):
         Path(temp_dir + '/assets/mount/index.html').write_text('mount')
 
         try:
-            process = subprocess.Popen(
+            subprocess.check_output(
                 [
                     "mount",
                     "--bind",
@@ -33,35 +32,33 @@ class TestStaticMount(TestApplicationProto):
                 stderr=subprocess.STDOUT,
             )
 
-            process.communicate()
-
         except KeyboardInterrupt:
             raise
 
-        except:
+        except subprocess.CalledProcessError:
             pytest.fail('Can\'t run mount process.')
 
         self._load_conf(
             {
                 "listeners": {"*:7080": {"pass": "routes"}},
-                "routes": [{"action": {"share": temp_dir + "/assets/dir"}}],
+                "routes": [
+                    {"action": {"share": temp_dir + "/assets/dir$uri"}}
+                ],
             }
         )
 
         yield
 
         try:
-            process = subprocess.Popen(
+            subprocess.check_output(
                 ["umount", "--lazy", temp_dir + "/assets/dir/mount"],
                 stderr=subprocess.STDOUT,
             )
 
-            process.communicate()
-
         except KeyboardInterrupt:
             raise
 
-        except:
+        except subprocess.CalledProcessError:
             pytest.fail('Can\'t run umount process.')
 
     def test_static_mount(self, temp_dir, skip_alert):
@@ -72,14 +69,14 @@ class TestStaticMount(TestApplicationProto):
         assert resp['body'] == 'mount'
 
         assert 'success' in self.conf(
-            {"share": temp_dir + "/assets/dir", "traverse_mounts": False},
+            {"share": temp_dir + "/assets/dir$uri", "traverse_mounts": False},
             'routes/0/action',
         ), 'configure mount disable'
 
         assert self.get(url='/mount/')['status'] == 403
 
         assert 'success' in self.conf(
-            {"share": temp_dir + "/assets/dir", "traverse_mounts": True},
+            {"share": temp_dir + "/assets/dir$uri", "traverse_mounts": True},
             'routes/0/action',
         ), 'configure mount enable'
 
@@ -97,14 +94,14 @@ class TestStaticMount(TestApplicationProto):
                 {
                     "match": {"method": "HEAD"},
                     "action": {
-                        "share": temp_dir + "/assets/dir",
+                        "share": temp_dir + "/assets/dir$uri",
                         "traverse_mounts": False,
                     },
                 },
                 {
                     "match": {"method": "GET"},
                     "action": {
-                        "share": temp_dir + "/assets/dir",
+                        "share": temp_dir + "/assets/dir$uri",
                         "traverse_mounts": True,
                     },
                 },
@@ -120,7 +117,7 @@ class TestStaticMount(TestApplicationProto):
 
         assert 'success' in self.conf(
             {
-                "share": temp_dir + "/assets/dir",
+                "share": temp_dir + "/assets/dir$uri",
                 "chroot": temp_dir + "/assets",
             },
             'routes/0/action',
@@ -130,7 +127,7 @@ class TestStaticMount(TestApplicationProto):
 
         assert 'success' in self.conf(
             {
-                "share": temp_dir + "/assets/dir",
+                "share": temp_dir + "/assets/dir$uri",
                 "chroot": temp_dir + "/assets",
                 "traverse_mounts": False,
             },

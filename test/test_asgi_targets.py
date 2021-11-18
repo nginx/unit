@@ -1,7 +1,6 @@
 from distutils.version import LooseVersion
 
 import pytest
-
 from unit.applications.lang.python import TestApplicationPython
 from unit.option import option
 

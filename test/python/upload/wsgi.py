@@ -1,5 +1,5 @@
+import cgi
 from tempfile import TemporaryFile
-import os, cgi
 
 
 def read(environ):

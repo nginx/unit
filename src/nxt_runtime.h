@@ -54,6 +54,7 @@ struct nxt_runtime_s {
     uint8_t                daemon;
     uint8_t                batch;
     uint8_t                status;
+    uint8_t                is_pid_isolated;
 
     const char             *engine;
     uint32_t               engine_connections;
@@ -65,6 +66,8 @@ struct nxt_runtime_s {
     const char             *log;
     const char             *modules;
     const char             *state;
+    const char             *ver;
+    const char             *ver_tmp;
     const char             *conf;
     const char             *conf_tmp;
     const char             *control;
@@ -92,9 +95,8 @@ nxt_int_t nxt_runtime_thread_pool_create(nxt_thread_t *thr, nxt_runtime_t *rt,
     nxt_uint_t max_threads, nxt_nsec_t timeout);
 
 
-nxt_process_t *nxt_runtime_process_new(nxt_runtime_t *rt);
-
 void nxt_runtime_process_add(nxt_task_t *task, nxt_process_t *process);
+void nxt_runtime_process_remove(nxt_runtime_t *rt, nxt_process_t *process);
 
 nxt_process_t *nxt_runtime_process_find(nxt_runtime_t *rt, nxt_pid_t pid);
 

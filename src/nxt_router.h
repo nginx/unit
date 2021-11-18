@@ -124,9 +124,9 @@ struct nxt_app_s {
     uint32_t               max_processes;
     uint32_t               spare_processes;
     uint32_t               max_pending_processes;
-    uint32_t               max_requests;
 
     uint32_t               generation;
+    uint32_t               proto_port_requests;
 
     nxt_msec_t             timeout;
     nxt_msec_t             idle_timeout;
@@ -145,6 +145,7 @@ struct nxt_app_s {
 
     nxt_app_joint_t        *joint;
     nxt_port_t             *shared_port;
+    nxt_port_t             *proto_port;
 
     nxt_port_mmaps_t       outgoing;
 };

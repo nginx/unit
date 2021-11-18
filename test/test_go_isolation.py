@@ -3,7 +3,6 @@ import os
 import pwd
 
 import pytest
-
 from unit.applications.lang.go import TestApplicationGo
 from unit.option import option
 from unit.utils import getns
@@ -11,6 +10,10 @@ from unit.utils import getns
 
 class TestGoIsolation(TestApplicationGo):
     prerequisites = {'modules': {'go': 'any'}, 'features': ['isolation']}
+
+    @pytest.fixture(autouse=True)
+    def setup_method_fixture(self, request, skip_alert):
+        skip_alert(r'\[unit\] close\(\d+\) failed: Bad file descriptor')
 
     def unpriv_creds(self):
         nobody_uid = pwd.getpwnam('nobody').pw_uid
@@ -228,7 +231,7 @@ class TestGoIsolation(TestApplicationGo):
 
         obj = self.getjson()['body']
 
-        assert obj['PID'] == 1, 'pid of container is 1'
+        assert obj['PID'] == 2, 'pid of container is 2'
 
     def test_isolation_namespace_false(self):
         self.load('ns_inspect')

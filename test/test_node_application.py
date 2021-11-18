@@ -1,7 +1,6 @@
 import re
 
 import pytest
-
 from unit.applications.lang.node import TestApplicationNode
 from unit.utils import waitforfiles
 

@@ -636,9 +636,11 @@ nxt_py_asgi_http_close_handler(nxt_unit_request_info_t *req)
 
     nxt_unit_req_debug(req, "asgi_http_close_handler");
 
-    http->closed = 1;
+    if (nxt_fast_path(http != NULL)) {
+        http->closed = 1;
 
-    nxt_py_asgi_http_emit_disconnect(http);
+        nxt_py_asgi_http_emit_disconnect(http);
+    }
 }
 
 

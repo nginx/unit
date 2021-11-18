@@ -1,10 +1,3 @@
-import os
-import time
-from pathlib import Path
-
-import pytest
-
-from conftest import unit_stop
 from unit.applications.lang.ruby import TestApplicationRuby
 from unit.option import option
 from unit.utils import waitforglob

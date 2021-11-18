@@ -1,6 +1,6 @@
 import sys
-import time
 import threading
+import time
 
 
 class Foo(threading.Thread):

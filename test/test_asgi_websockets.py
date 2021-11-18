@@ -3,7 +3,6 @@ import time
 from distutils.version import LooseVersion
 
 import pytest
-
 from unit.applications.lang.python import TestApplicationPython
 from unit.applications.websockets import TestApplicationWebsocket
 from unit.option import option
@@ -1479,5 +1478,22 @@ class TestASGIWebsockets(TestApplicationPython):
 
         frame = self.ws.frame_read(sock)
         self.check_frame(frame, True, self.ws.OP_PING, '')  # PING frame
+
+        sock.close()
+
+    def test_asgi_websockets_client_locks_app(self):
+        self.load('websockets/mirror')
+
+        message = 'blah'
+
+        _, sock, _ = self.ws.upgrade()
+
+        assert 'success' in self.conf({}), 'remove app'
+
+        self.ws.frame_write(sock, self.ws.OP_TEXT, message)
+
+        frame = self.ws.frame_read(sock)
+
+        assert message == frame['data'].decode('utf-8'), 'client'
 
         sock.close()

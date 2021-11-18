@@ -19,6 +19,7 @@ typedef enum {
     NXT_HTTP_ROUTE_ARGUMENT,
     NXT_HTTP_ROUTE_COOKIE,
     NXT_HTTP_ROUTE_SCHEME,
+    NXT_HTTP_ROUTE_QUERY,
     NXT_HTTP_ROUTE_SOURCE,
     NXT_HTTP_ROUTE_DESTINATION,
 } nxt_http_route_object_t;
@@ -54,6 +55,7 @@ typedef struct {
     nxt_conf_value_t               *arguments;
     nxt_conf_value_t               *cookies;
     nxt_conf_value_t               *scheme;
+    nxt_conf_value_t               *query;
     nxt_conf_value_t               *source;
     nxt_conf_value_t               *destination;
 } nxt_http_route_match_conf_t;
@@ -216,14 +218,12 @@ static nxt_int_t nxt_http_route_resolve(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_http_route_t *route);
 static nxt_int_t nxt_http_action_resolve(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_http_action_t *action);
-static nxt_http_action_t *nxt_http_action_pass_var(nxt_task_t *task,
+static nxt_http_action_t *nxt_http_pass_var(nxt_task_t *task,
     nxt_http_request_t *r, nxt_http_action_t *action);
-static void nxt_http_action_pass_var_ready(nxt_task_t *task, void *obj,
-    void *data);
-static void nxt_http_action_pass_var_error(nxt_task_t *task, void *obj,
-    void *data);
-static nxt_int_t nxt_http_pass_find(nxt_task_t *task, nxt_mp_t *mp,
-    nxt_router_conf_t *rtcf, nxt_http_action_t *action);
+static void nxt_http_pass_var_ready(nxt_task_t *task, void *obj, void *data);
+static void nxt_http_pass_var_error(nxt_task_t *task, void *obj, void *data);
+static nxt_int_t nxt_http_pass_find(nxt_mp_t *mp, nxt_router_conf_t *rtcf,
+    nxt_str_t *pass, nxt_http_action_t *action);
 static nxt_int_t nxt_http_route_find(nxt_http_routes_t *routes, nxt_str_t *name,
     nxt_http_action_t *action);
 
@@ -248,6 +248,8 @@ static nxt_http_name_value_t *nxt_http_route_argument(nxt_array_t *array,
 static nxt_int_t nxt_http_route_test_argument(nxt_http_request_t *r,
     nxt_http_route_rule_t *rule, nxt_array_t *array);
 static nxt_int_t nxt_http_route_scheme(nxt_http_request_t *r,
+    nxt_http_route_rule_t *rule);
+static nxt_int_t nxt_http_route_query(nxt_http_request_t *r,
     nxt_http_route_rule_t *rule);
 static nxt_int_t nxt_http_route_cookies(nxt_http_request_t *r,
     nxt_http_route_rule_t *rule);
@@ -365,6 +367,12 @@ static nxt_conf_map_t  nxt_http_route_match_conf[] = {
         nxt_string("cookies"),
         NXT_CONF_MAP_PTR,
         offsetof(nxt_http_route_match_conf_t, cookies),
+    },
+
+    {
+        nxt_string("query"),
+        NXT_CONF_MAP_PTR,
+        offsetof(nxt_http_route_match_conf_t, query),
     },
 
     {
@@ -566,6 +574,19 @@ nxt_http_route_match_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         test++;
     }
 
+    if (mtcf.query != NULL) {
+        rule = nxt_http_route_rule_create(task, mp, mtcf.query, 1,
+                                          NXT_HTTP_ROUTE_PATTERN_NOCASE,
+                                          NXT_HTTP_ROUTE_ENCODING_URI_PLUS);
+        if (rule == NULL) {
+            return NULL;
+        }
+
+        rule->object = NXT_HTTP_ROUTE_QUERY;
+        test->rule = rule;
+        test++;
+    }
+
     if (mtcf.source != NULL) {
         addr_rule = nxt_http_route_addr_rule_create(task, mp, mtcf.source);
         if (addr_rule == NULL) {
@@ -652,7 +673,7 @@ nxt_http_action_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 {
     nxt_mp_t                *mp;
     nxt_int_t               ret;
-    nxt_str_t               name, *string;
+    nxt_str_t               pass;
     nxt_http_action_conf_t  acf;
 
     nxt_memzero(&acf, sizeof(acf));
@@ -679,10 +700,10 @@ nxt_http_action_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         return nxt_http_proxy_init(mp, action, &acf);
     }
 
-    nxt_conf_get_string(acf.pass, &name);
+    nxt_conf_get_string(acf.pass, &pass);
 
-    string = nxt_str_dup(mp, &action->name, &name);
-    if (nxt_slow_path(string == NULL)) {
+    action->u.var = nxt_var_compile(&pass, mp, 0);
+    if (nxt_slow_path(action->u.var == NULL)) {
         return NXT_ERROR;
     }
 
@@ -1372,7 +1393,7 @@ nxt_http_action_resolve(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_http_action_t *action)
 {
     nxt_int_t  ret;
-    nxt_var_t  *var;
+    nxt_str_t  pass;
 
     if (action->handler != NULL) {
         if (action->fallback != NULL) {
@@ -1382,20 +1403,17 @@ nxt_http_action_resolve(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         return NXT_OK;
     }
 
-    if (nxt_is_var(&action->name)) {
-        var = nxt_var_compile(&action->name, tmcf->router_conf->mem_pool);
-        if (nxt_slow_path(var == NULL)) {
+    if (nxt_var_is_const(action->u.var)) {
+        nxt_var_raw(action->u.var, &pass);
+
+        ret = nxt_http_pass_find(tmcf->mem_pool, tmcf->router_conf, &pass,
+                                 action);
+        if (nxt_slow_path(ret != NXT_OK)) {
             return NXT_ERROR;
         }
 
-        action->u.var = var;
-        action->handler = nxt_http_action_pass_var;
-        return NXT_OK;
-    }
-
-    ret = nxt_http_pass_find(task, tmcf->mem_pool, tmcf->router_conf, action);
-    if (nxt_slow_path(ret != NXT_OK)) {
-        return NXT_ERROR;
+    } else {
+        action->handler = nxt_http_pass_var;
     }
 
     return NXT_OK;
@@ -1403,28 +1421,36 @@ nxt_http_action_resolve(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
 
 static nxt_http_action_t *
-nxt_http_action_pass_var(nxt_task_t *task, nxt_http_request_t *r,
+nxt_http_pass_var(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_action_t *action)
 {
-    nxt_var_t  *var;
     nxt_int_t  ret;
+    nxt_str_t  str;
+    nxt_var_t  *var;
+
+    var = action->u.var;
+
+    nxt_var_raw(var, &str);
+
+    nxt_debug(task, "http pass: \"%V\"", &str);
 
     ret = nxt_var_query_init(&r->var_query, r, r->mem_pool);
     if (nxt_slow_path(ret != NXT_OK)) {
         goto fail;
     }
 
-    var = action->u.var;
-
-    action = nxt_mp_get(r->mem_pool, sizeof(nxt_http_action_t));
+    action = nxt_mp_get(r->mem_pool,
+                        sizeof(nxt_http_action_t) + sizeof(nxt_str_t));
     if (nxt_slow_path(action == NULL)) {
         goto fail;
     }
 
-    nxt_var_query(task, r->var_query, var, &action->name);
+    action->u.pass = nxt_pointer_to(action, sizeof(nxt_http_action_t));
+
+    nxt_var_query(task, r->var_query, var, action->u.pass);
     nxt_var_query_resolve(task, r->var_query, action,
-                          nxt_http_action_pass_var_ready,
-                          nxt_http_action_pass_var_error);
+                          nxt_http_pass_var_ready,
+                          nxt_http_pass_var_error);
     return NULL;
 
 fail:
@@ -1435,7 +1461,7 @@ fail:
 
 
 static void
-nxt_http_action_pass_var_ready(nxt_task_t *task, void *obj, void *data)
+nxt_http_pass_var_ready(nxt_task_t *task, void *obj, void *data)
 {
     nxt_int_t           ret;
     nxt_router_conf_t   *rtcf;
@@ -1447,9 +1473,9 @@ nxt_http_action_pass_var_ready(nxt_task_t *task, void *obj, void *data)
     action = data;
     rtcf = r->conf->socket_conf->router_conf;
 
-    nxt_debug(task, "http pass lookup: %V", &action->name);
+    nxt_debug(task, "http pass lookup: %V", action->u.pass);
 
-    ret = nxt_http_pass_find(task, r->mem_pool, rtcf, action);
+    ret = nxt_http_pass_find(r->mem_pool, rtcf, action->u.pass, action);
 
     if (ret != NXT_OK) {
         status = (ret == NXT_DECLINED) ? NXT_HTTP_NOT_FOUND
@@ -1464,7 +1490,7 @@ nxt_http_action_pass_var_ready(nxt_task_t *task, void *obj, void *data)
 
 
 static void
-nxt_http_action_pass_var_error(nxt_task_t *task, void *obj, void *data)
+nxt_http_pass_var_error(nxt_task_t *task, void *obj, void *data)
 {
     nxt_http_request_t  *r;
 
@@ -1475,13 +1501,13 @@ nxt_http_action_pass_var_error(nxt_task_t *task, void *obj, void *data)
 
 
 static nxt_int_t
-nxt_http_pass_find(nxt_task_t *task, nxt_mp_t *mp, nxt_router_conf_t *rtcf,
+nxt_http_pass_find(nxt_mp_t *mp, nxt_router_conf_t *rtcf, nxt_str_t *pass,
     nxt_http_action_t *action)
 {
-    nxt_int_t   ret;
-    nxt_str_t   segments[3];
+    nxt_int_t  ret;
+    nxt_str_t  segments[3];
 
-    ret = nxt_http_pass_segments(mp, &action->name, segments, 3);
+    ret = nxt_http_pass_segments(mp, pass, segments, 3);
     if (nxt_slow_path(ret != NXT_OK)) {
         return ret;
     }
@@ -1587,18 +1613,24 @@ nxt_http_route_find(nxt_http_routes_t *routes, nxt_str_t *name,
 
 nxt_http_action_t *
 nxt_http_action_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
-    nxt_str_t *name)
+    nxt_str_t *pass)
 {
+    nxt_mp_t           *mp;
     nxt_int_t          ret;
     nxt_http_action_t  *action;
 
-    action = nxt_mp_alloc(tmcf->router_conf->mem_pool,
-                          sizeof(nxt_http_action_t));
+    mp = tmcf->router_conf->mem_pool;
+
+    action = nxt_mp_alloc(mp, sizeof(nxt_http_action_t));
     if (nxt_slow_path(action == NULL)) {
         return NULL;
     }
 
-    action->name = *name;
+    action->u.var = nxt_var_compile(pass, mp, 0);
+    if (nxt_slow_path(action->u.var == NULL)) {
+        return NULL;
+    }
+
     action->handler = NULL;
 
     ret = nxt_http_action_resolve(task, tmcf, action);
@@ -1622,8 +1654,6 @@ nxt_http_pass_application(nxt_task_t *task, nxt_router_conf_t *rtcf,
     if (nxt_slow_path(action == NULL)) {
         return NULL;
     }
-
-    action->name = *name;
 
     (void) nxt_router_application_init(rtcf, name, NULL, action);
 
@@ -1768,6 +1798,9 @@ nxt_http_route_rule(nxt_http_request_t *r, nxt_http_route_rule_t *rule)
 
     case NXT_HTTP_ROUTE_SCHEME:
         return nxt_http_route_scheme(r, rule);
+
+    case NXT_HTTP_ROUTE_QUERY:
+        return nxt_http_route_query(r, rule);
 
     default:
         break;
@@ -2001,10 +2034,6 @@ nxt_http_route_arguments(nxt_http_request_t *r, nxt_http_route_rule_t *rule)
 {
     nxt_array_t  *arguments;
 
-    if (r->args == NULL) {
-        return 0;
-    }
-
     arguments = nxt_http_route_arguments_parse(r);
     if (nxt_slow_path(arguments == NULL)) {
         return -1;
@@ -2018,10 +2047,9 @@ static nxt_array_t *
 nxt_http_route_arguments_parse(nxt_http_request_t *r)
 {
     size_t                 name_length;
-    u_char                 c, *p, *dst, *dst_start, *start, *end, *name;
+    u_char                 *p, *dst, *dst_start, *start, *end, *name;
     uint8_t                d0, d1;
     uint32_t               hash;
-    nxt_bool_t             valid;
     nxt_array_t            *args;
     nxt_http_name_value_t  *nv;
 
@@ -2035,7 +2063,6 @@ nxt_http_route_arguments_parse(nxt_http_request_t *r)
     }
 
     hash = NXT_HTTP_FIELD_HASH_INIT;
-    valid = 1;
     name = NULL;
     name_length = 0;
 
@@ -2044,28 +2071,26 @@ nxt_http_route_arguments_parse(nxt_http_request_t *r)
         return NULL;
     }
 
+    r->args_decoded.start = dst_start;
+
     start = r->args->start;
     end = start + r->args->length;
 
     for (p = start, dst = dst_start; p < end; p++, dst++) {
-        c = *p;
-        *dst = c;
+        *dst = *p;
 
-        switch (c) {
+        switch (*p) {
         case '=':
-            if (name != NULL) {
-                break;
+            if (name == NULL) {
+                name_length = dst - dst_start;
+                name = dst_start;
+                dst_start = dst + 1;
             }
-
-            name_length = dst - dst_start;
-            valid = (name_length != 0);
-            name = dst_start;
-            dst_start = dst + 1;
 
             continue;
 
         case '&':
-            if (valid) {
+            if (name_length != 0 || dst != dst_start) {
                 nv = nxt_http_route_argument(args, name, name_length, hash,
                                              dst_start, dst);
                 if (nxt_slow_path(nv == NULL)) {
@@ -2075,14 +2100,12 @@ nxt_http_route_arguments_parse(nxt_http_request_t *r)
 
             hash = NXT_HTTP_FIELD_HASH_INIT;
             name_length = 0;
-            valid = 1;
             name = NULL;
             dst_start = dst + 1;
 
             continue;
 
         case '+':
-            c = ' ';
             *dst = ' ';
 
             break;
@@ -2100,18 +2123,19 @@ nxt_http_route_arguments_parse(nxt_http_request_t *r)
             }
 
             p += 2;
-            c = (d0 << 4) + d1;
-            *dst = c;
+            *dst = (d0 << 4) + d1;
 
             break;
         }
 
         if (name == NULL) {
-            hash = nxt_http_field_hash_char(hash, c);
+            hash = nxt_http_field_hash_char(hash, *dst);
         }
     }
 
-    if (valid) {
+    r->args_decoded.length = dst - r->args_decoded.start;
+
+    if (name_length != 0 || dst != dst_start) {
         nv = nxt_http_route_argument(args, name, name_length, hash, dst_start,
                                      dst);
         if (nxt_slow_path(nv == NULL)) {
@@ -2203,6 +2227,21 @@ nxt_http_route_scheme(nxt_http_request_t *r, nxt_http_route_rule_t *rule)
     tls = (r->tls != NULL);
 
     return (tls == https);
+}
+
+
+static nxt_int_t
+nxt_http_route_query(nxt_http_request_t *r, nxt_http_route_rule_t *rule)
+{
+    nxt_array_t  *arguments;
+
+    arguments = nxt_http_route_arguments_parse(r);
+    if (nxt_slow_path(arguments == NULL)) {
+        return -1;
+    }
+
+    return nxt_http_route_test_rule(r, rule, r->args_decoded.start,
+                                    r->args_decoded.length);
 }
 
 

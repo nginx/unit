@@ -141,6 +141,11 @@ static nxt_http_action_t *
 nxt_upstream_handler(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_action_t *action)
 {
-    return nxt_upstream_proxy_handler(task, r,
-                              r->conf->upstreams[action->u.upstream_number]);
+    nxt_upstream_t  *u;
+
+    u = r->conf->upstreams[action->u.upstream_number];
+
+    nxt_debug(task, "upstream handler: \"%V\"", &u->name);
+
+    return nxt_upstream_proxy_handler(task, r, u);
 }

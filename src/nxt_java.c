@@ -428,7 +428,7 @@ nxt_java_start(nxt_task_t *task, nxt_process_data_t *data)
         return NXT_ERROR;
     }
 
-    nxt_unit_default_init(task, &java_init);
+    nxt_unit_default_init(task, &java_init, app_conf);
 
     java_init.callbacks.request_handler = nxt_java_request_handler;
     java_init.callbacks.websocket_handler = nxt_java_websocket_handler;
@@ -437,7 +437,6 @@ nxt_java_start(nxt_task_t *task, nxt_process_data_t *data)
     java_init.request_data_size = sizeof(nxt_java_request_data_t);
     java_init.data = &java_data;
     java_init.ctx_data = env;
-    java_init.shm_limit = app_conf->shm_limit;
 
     ctx = nxt_unit_init(&java_init);
     if (nxt_slow_path(ctx == NULL)) {
@@ -615,11 +614,6 @@ nxt_java_ready_handler(nxt_unit_ctx_t *ctx)
     uint32_t             i;
     nxt_java_data_t      *java_data;
     nxt_java_app_conf_t  *c;
-
-    /* Worker thread context. */
-    if (!nxt_unit_is_main_ctx(ctx)) {
-        return NXT_UNIT_OK;
-    }
 
     java_data = ctx->unit->data;
     c = java_data->conf;

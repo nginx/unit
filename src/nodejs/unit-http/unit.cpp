@@ -519,11 +519,11 @@ Unit::add_port(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port)
 
 
 void
-Unit::remove_port(nxt_unit_t *unit, nxt_unit_port_t *port)
+Unit::remove_port(nxt_unit_t *unit, nxt_unit_ctx_t *ctx, nxt_unit_port_t *port)
 {
     port_data_t  *data;
 
-    if (port->data != NULL) {
+    if (port->data != NULL && ctx != NULL) {
         data = (port_data_t *) port->data;
 
         data->stop();

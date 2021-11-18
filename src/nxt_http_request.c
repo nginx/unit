@@ -460,8 +460,6 @@ nxt_http_request_action(nxt_task_t *task, nxt_http_request_t *r,
     if (nxt_fast_path(action != NULL)) {
 
         do {
-            nxt_debug(task, "http request route: %V", &action->name);
-
             action = action->handler(task, r, action);
 
             if (action == NULL) {

@@ -1,8 +1,6 @@
 import ssl
 import subprocess
 
-import pytest
-
 from unit.applications.tls import TestApplicationTLS
 from unit.option import option
 
@@ -76,7 +74,7 @@ basicConstraints = critical,CA:TRUE"""
                 else '/'
             )
 
-            subprocess.call(
+            subprocess.check_output(
                 [
                     'openssl',
                     'req',
@@ -102,7 +100,7 @@ basicConstraints = critical,CA:TRUE"""
                 else '/'
             )
 
-            subprocess.call(
+            subprocess.check_output(
                 [
                     'openssl',
                     'ca',

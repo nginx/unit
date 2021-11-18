@@ -1,8 +1,9 @@
 import os
+import shutil
 import socket
 
 import pytest
-
+from conftest import unit_run, unit_stop
 from unit.applications.proto import TestApplicationProto
 from unit.option import option
 from unit.utils import waitforfiles
@@ -28,7 +29,9 @@ class TestStatic(TestApplicationProto):
         self._load_conf(
             {
                 "listeners": {"*:7080": {"pass": "routes"}},
-                "routes": [{"action": {"share": option.temp_dir + "/assets"}}],
+                "routes": [
+                    {"action": {"share": option.temp_dir + "/assets$uri"}}
+                ],
                 "settings": {
                     "http": {
                         "static": {
@@ -38,6 +41,49 @@ class TestStatic(TestApplicationProto):
                 },
             }
         )
+
+    def test_static_migration(self, skip_fds_check, temp_dir):
+        skip_fds_check(True, True, True)
+
+        def set_conf_version(path, version):
+            with open(path, 'w+') as f:
+                f.write(str(version))
+
+        with open(temp_dir + '/state/version', 'r') as f:
+            assert int(f.read().rstrip()) > 12500, 'current version'
+
+        assert 'success' in self.conf(
+            {"share": temp_dir + "/assets"}, 'routes/0/action'
+        ), 'configure migration 12500'
+
+        shutil.copytree(temp_dir + '/state', temp_dir + '/state_copy_12500')
+        set_conf_version(temp_dir + '/state_copy_12500/version', 12500)
+
+        assert 'success' in self.conf(
+            {"share": temp_dir + "/assets$uri"}, 'routes/0/action'
+        ), 'configure migration 12600'
+        shutil.copytree(temp_dir + '/state', temp_dir + '/state_copy_12600')
+        set_conf_version(temp_dir + '/state_copy_12600/version', 12600)
+
+        assert 'success' in self.conf(
+            {"share": temp_dir + "/assets"}, 'routes/0/action'
+        ), 'configure migration no version'
+        shutil.copytree(
+            temp_dir + '/state', temp_dir + '/state_copy_no_version'
+        )
+        os.remove(temp_dir + '/state_copy_no_version/version')
+
+        unit_stop()
+        unit_run(temp_dir + '/state_copy_12500')
+        assert self.get(url='/')['body'] == '0123456789', 'before 1.26.0'
+
+        unit_stop()
+        unit_run(temp_dir + '/state_copy_12600')
+        assert self.get(url='/')['body'] == '0123456789', 'after 1.26.0'
+
+        unit_stop()
+        unit_run(temp_dir + '/state_copy_no_version')
+        assert self.get(url='/')['body'] == '0123456789', 'before 1.26.0 2'
 
     def test_static_index(self):
         assert self.get(url='/index.html')['body'] == '0123456789', 'index'

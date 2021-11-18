@@ -41,6 +41,8 @@ typedef struct {
 
 static nxt_int_t nxt_controller_prefork(nxt_task_t *task,
     nxt_process_t *process, nxt_mp_t *mp);
+static nxt_int_t nxt_controller_file_read(nxt_task_t *task, const char *name,
+    nxt_str_t *str, nxt_mp_t *mp);
 static nxt_int_t nxt_controller_start(nxt_task_t *task,
     nxt_process_data_t *data);
 static void nxt_controller_process_new_port_handler(nxt_task_t *task,
@@ -154,12 +156,9 @@ const nxt_process_init_t  nxt_controller_process = {
 static nxt_int_t
 nxt_controller_prefork(nxt_task_t *task, nxt_process_t *process, nxt_mp_t *mp)
 {
-    ssize_t                n;
-    nxt_int_t              ret;
-    nxt_str_t              *conf;
-    nxt_file_t             file;
+    nxt_str_t              ver;
+    nxt_int_t              ret, num;
     nxt_runtime_t          *rt;
-    nxt_file_info_t        fi;
     nxt_controller_init_t  ctrl_init;
 
     nxt_log(task, NXT_LOG_INFO, "controller started");
@@ -168,37 +167,36 @@ nxt_controller_prefork(nxt_task_t *task, nxt_process_t *process, nxt_mp_t *mp)
 
     nxt_memzero(&ctrl_init, sizeof(nxt_controller_init_t));
 
-    conf = &ctrl_init.conf;
+    /*
+     * Since configuration version has only been introduced in 1.26,
+     * set the default version to 1.25.
+    */
+    nxt_conf_ver = 12500;
 
-    nxt_memzero(&file, sizeof(nxt_file_t));
-
-    file.name = (nxt_file_name_t *) rt->conf;
-
-    ret = nxt_file_open(task, &file, NXT_FILE_RDONLY, NXT_FILE_OPEN, 0);
+    ret = nxt_controller_file_read(task, rt->conf, &ctrl_init.conf, mp);
+    if (nxt_slow_path(ret == NXT_ERROR)) {
+        return NXT_ERROR;
+    }
 
     if (ret == NXT_OK) {
-        ret = nxt_file_info(&file, &fi);
-
-        if (nxt_fast_path(ret == NXT_OK && nxt_is_file(&fi))) {
-            conf->length = nxt_file_size(&fi);
-            conf->start = nxt_mp_alloc(mp, conf->length);
-            if (nxt_slow_path(conf->start == NULL)) {
-                nxt_file_close(task, &file);
-                return NXT_ERROR;
-            }
-
-            n = nxt_file_read(&file, conf->start, conf->length, 0);
-
-            if (nxt_slow_path(n != (ssize_t) conf->length)) {
-                conf->start = NULL;
-                conf->length = 0;
-
-                nxt_alert(task, "failed to restore previous configuration: "
-                          "cannot read the file");
-            }
+        ret = nxt_controller_file_read(task, rt->ver, &ver, mp);
+        if (nxt_slow_path(ret == NXT_ERROR)) {
+            return NXT_ERROR;
         }
 
-        nxt_file_close(task, &file);
+        if (ret == NXT_OK) {
+            num = nxt_int_parse(ver.start, ver.length);
+
+            if (nxt_slow_path(num < 0)) {
+                nxt_alert(task, "failed to restore previous configuration: "
+                          "invalid version string \"%V\"", &ver);
+
+                nxt_str_null(&ctrl_init.conf);
+
+            } else {
+                nxt_conf_ver = num;
+            }
+        }
     }
 
 #if (NXT_TLS)
@@ -210,6 +208,57 @@ nxt_controller_prefork(nxt_task_t *task, nxt_process_t *process, nxt_mp_t *mp)
     process->data.controller = ctrl_init;
 
     return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_controller_file_read(nxt_task_t *task, const char *name, nxt_str_t *str,
+    nxt_mp_t *mp)
+{
+    ssize_t          n;
+    nxt_int_t        ret;
+    nxt_file_t       file;
+    nxt_file_info_t  fi;
+
+    nxt_memzero(&file, sizeof(nxt_file_t));
+
+    file.name = (nxt_file_name_t *) name;
+
+    ret = nxt_file_open(task, &file, NXT_FILE_RDONLY, NXT_FILE_OPEN, 0);
+
+    if (ret == NXT_OK) {
+        ret = nxt_file_info(&file, &fi);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            goto fail;
+        }
+
+        if (nxt_fast_path(nxt_is_file(&fi))) {
+            str->length = nxt_file_size(&fi);
+            str->start = nxt_mp_nget(mp, str->length);
+            if (nxt_slow_path(str->start == NULL)) {
+                goto fail;
+            }
+
+            n = nxt_file_read(&file, str->start, str->length, 0);
+            if (nxt_slow_path(n != (ssize_t) str->length)) {
+                goto fail;
+            }
+
+            nxt_file_close(task, &file);
+
+            return NXT_OK;
+        }
+
+        nxt_file_close(task, &file);
+    }
+
+    return NXT_DECLINED;
+
+fail:
+
+    nxt_file_close(task, &file);
+
+    return NXT_ERROR;
 }
 
 
@@ -293,6 +342,8 @@ nxt_controller_start(nxt_task_t *task, nxt_process_data_t *data)
     }
 
     vldt.conf = conf;
+    vldt.conf_pool = mp;
+    vldt.ver = nxt_conf_ver;
 
     ret = nxt_conf_validate(&vldt);
 
@@ -1224,6 +1275,8 @@ nxt_controller_process_config(nxt_task_t *task, nxt_controller_request_t *req,
 
         vldt.conf = value;
         vldt.pool = c->mem_pool;
+        vldt.conf_pool = mp;
+        vldt.ver = NXT_VERNUM;
 
         rc = nxt_conf_validate(&vldt);
 
@@ -1305,6 +1358,8 @@ nxt_controller_process_config(nxt_task_t *task, nxt_controller_request_t *req,
 
         vldt.conf = value;
         vldt.pool = c->mem_pool;
+        vldt.conf_pool = mp;
+        vldt.ver = NXT_VERNUM;
 
         rc = nxt_conf_validate(&vldt);
 

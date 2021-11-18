@@ -4,7 +4,6 @@ import subprocess
 import time
 
 import pytest
-
 from unit.applications.lang.python import TestApplicationPython
 from unit.option import option
 
@@ -23,7 +22,9 @@ class TestPythonProcman(TestApplicationPython):
         output = subprocess.check_output(['ps', 'ax'])
 
         pids = set()
-        for m in re.findall('.*' + self.app_name, output.decode()):
+        for m in re.findall(
+            '.*unit: "' + self.app_name + '" application', output.decode()
+        ):
             pids.add(re.search(r'^\s*(\d+)', m).group(1))
 
         return pids
@@ -265,7 +266,8 @@ class TestPythonProcman(TestApplicationPython):
 
         assert len(self.pids_for_process()) == 1, 'longstarts == 1'
 
-        pid = self.get()['body']
+        self.get()
+
         pids = self.pids_for_process()
         assert len(pids) == 2, 'longstarts == 2'
 

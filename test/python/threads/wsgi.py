@@ -1,5 +1,5 @@
-import time
 import threading
+import time
 
 
 def application(environ, start_response):
