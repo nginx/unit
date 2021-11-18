@@ -1,4 +1,33 @@
 
+Changes with Unit 1.26.0                                         18 Nov 2021
+
+    *) Change: the "share" option now specifies the entire path to the files
+       it serves, rather than a document root directory to be prepended to
+       the request URI.
+
+    *) Feature: automatic adjustment of existing configurations to the new
+       "share" behavior when updating from previous versions.
+
+    *) Feature: variables support in the "share" option.
+
+    *) Feature: multiple paths in the "share" option.
+
+    *) Feature: variables support in the "chroot" option.
+
+    *) Feature: PHP opcache is shared between application processes.
+
+    *) Feature: request routing by the query string.
+
+    *) Bugfix: the router and app processes could crash when the requests
+       limit was reached by asynchronous or multithreaded apps.
+
+    *) Bugfix: established WebSocket connections could stop reading frames
+       from the client after the corresponding listener had been
+       reconfigured.
+
+    *) Bugfix: fixed building with glibc 2.34, notably Fedora 35.
+
+
 Changes with Unit 1.25.0                                         19 Aug 2021
 
     *) Feature: client IP address replacement from a specified HTTP header
@@ -20,7 +49,7 @@ Changes with Unit 1.25.0                                         19 Aug 2021
        multiple certificate bundles in a listener if the client did not use
        SNI.
 
-    *) Bugfix: the router process could crash with frequent mutithreaded
+    *) Bugfix: the router process could crash with frequent multithreaded
        application reconfiguration.
 
     *) Bugfix: compatibility issues with some Python ASGI apps, notably
