@@ -106,6 +106,16 @@ nxt_external_start(nxt_task_t *task, nxt_process_data_t *data)
         return NXT_ERROR;
     }
 
+    rc = nxt_external_fd_no_cloexec(task, conf->shared_port_fd);
+    if (nxt_slow_path(rc != NXT_OK)) {
+        return NXT_ERROR;
+    }
+
+    rc = nxt_external_fd_no_cloexec(task, conf->shared_queue_fd);
+    if (nxt_slow_path(rc != NXT_OK)) {
+        return NXT_ERROR;
+    }
+
     end = buf + sizeof(buf);
 
     p = nxt_sprintf(buf, end,
@@ -113,12 +123,14 @@ nxt_external_start(nxt_task_t *task, nxt_process_data_t *data)
                     "%PI,%ud,%d;"
                     "%PI,%ud,%d;"
                     "%PI,%ud,%d,%d;"
+                    "%d,%d;"
                     "%d,%z,%uD,%Z",
                     NXT_VERSION, my_port->process->stream,
                     proto_port->pid, proto_port->id, proto_port->pair[1],
                     router_port->pid, router_port->id, router_port->pair[1],
                     my_port->pid, my_port->id, my_port->pair[0],
                                                my_port->pair[1],
+                    conf->shared_port_fd, conf->shared_queue_fd,
                     2, conf->shm_limit, conf->request_limit);
 
     if (nxt_slow_path(p == end)) {

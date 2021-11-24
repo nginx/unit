@@ -176,6 +176,8 @@ struct nxt_unit_init_s {
     uint32_t              ready_stream;
     nxt_unit_port_t       router_port;
     nxt_unit_port_t       read_port;
+    int                   shared_port_fd;
+    int                   shared_queue_fd;
     int                   log_fd;
 };
 

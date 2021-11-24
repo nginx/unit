@@ -103,6 +103,9 @@ struct nxt_common_app_conf_s {
     size_t                     shm_limit;
     uint32_t                   request_limit;
 
+    nxt_fd_t                   shared_port_fd;
+    nxt_fd_t                   shared_queue_fd;
+
     union {
         nxt_external_app_conf_t  external;
         nxt_python_app_conf_t    python;
