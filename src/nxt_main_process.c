@@ -950,9 +950,11 @@ nxt_main_process_sigchld_handler(nxt_task_t *task, void *obj, void *data)
 
                 if (rt->nprocesses <= 1) {
                     nxt_runtime_quit(task, 0);
+
+                    return;
                 }
 
-                return;
+                continue;
             }
 
             nxt_port_remove_notify_others(task, process);
