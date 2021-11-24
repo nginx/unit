@@ -151,9 +151,9 @@ typedef struct {
 } nxt_process_init_t;
 
 
-extern nxt_bool_t  nxt_proc_conn_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX];
-extern nxt_bool_t
-          nxt_proc_remove_notify_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX];
+extern uint8_t  nxt_proc_keep_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX];
+extern uint8_t  nxt_proc_send_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX];
+extern uint8_t  nxt_proc_remove_notify_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX];
 
 NXT_EXPORT nxt_pid_t nxt_process_execute(nxt_task_t *task, char *name,
     char **argv, char **envp);

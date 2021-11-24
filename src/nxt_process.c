@@ -58,7 +58,7 @@ nxt_uid_t  nxt_euid;
 /* A cached process effective gid */
 nxt_gid_t  nxt_egid;
 
-nxt_bool_t  nxt_proc_conn_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
+uint8_t  nxt_proc_keep_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
     { 1, 1, 1, 1, 1, 1 },
     { 1, 0, 0, 0, 0, 0 },
     { 1, 0, 0, 1, 0, 0 },
@@ -67,7 +67,16 @@ nxt_bool_t  nxt_proc_conn_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
     { 1, 0, 0, 1, 0, 0 },
 };
 
-nxt_bool_t  nxt_proc_remove_notify_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
+uint8_t  nxt_proc_send_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
+    { 1, 1, 1, 1, 1, 1 },
+    { 1, 0, 0, 0, 0, 0 },
+    { 1, 0, 0, 1, 0, 0 },
+    { 1, 0, 1, 1, 1, 1 },
+    { 1, 0, 0, 0, 0, 0 },
+    { 1, 0, 0, 0, 0, 0 },
+};
+
+uint8_t  nxt_proc_remove_notify_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
     { 0, 0, 0, 0, 0, 0 },
     { 0, 0, 0, 0, 0, 0 },
     { 0, 0, 0, 1, 0, 0 },
@@ -265,7 +274,7 @@ nxt_process_child_fixup(nxt_task_t *task, nxt_process_t *process)
     /* Remove not ready processes. */
     nxt_runtime_process_each(rt, p) {
 
-        if (nxt_proc_conn_matrix[ptype][nxt_process_type(p)] == 0
+        if (nxt_proc_keep_matrix[ptype][nxt_process_type(p)] == 0
             && p->pid != nxt_ppid) /* Always keep parent's port. */
         {
             nxt_debug(task, "remove not required process %PI", p->pid);
