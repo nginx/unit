@@ -45,6 +45,13 @@ appeared in 1.26.0.
 </para>
 </change>
 
+<change type="bugfix">
+<para>
+a segmentation fault occurred in the PHP module if chdir() or
+fastcgi_finish_request() was called in the OPcache preloading script.
+</para>
+</change>
+
 </changes>
 
 
