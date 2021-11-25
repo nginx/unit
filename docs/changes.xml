@@ -38,6 +38,13 @@ without listeners.
 </para>
 </change>
 
+<change type="bugfix">
+<para>
+occasionally, the Unit daemon was unable to fully terminate; the bug had
+appeared in 1.26.0.
+</para>
+</change>
+
 </changes>
 
 
