@@ -31,6 +31,13 @@ NGINX Unit updated to 1.26.1.
          date="" time=""
          packager="Andrei Belov &lt;defan@nginx.com&gt;">
 
+<change type="bugfix">
+<para>
+the router process crash on reconfiguration if "access_log" was configured
+without listeners.
+</para>
+</change>
+
 </changes>
 
 

@@ -210,6 +210,8 @@ static void nxt_router_access_log_ready(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
 static void nxt_router_access_log_error(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
+static void nxt_router_access_log_use(nxt_thread_spinlock_t *lock,
+    nxt_router_access_log_t *access_log);
 static void nxt_router_access_log_release(nxt_task_t *task,
     nxt_thread_spinlock_t *lock, nxt_router_access_log_t *access_log);
 static void nxt_router_access_log_reopen_completion(nxt_task_t *task, void *obj,
@@ -1149,7 +1151,13 @@ nxt_router_conf_apply(nxt_task_t *task, void *obj, void *data)
     nxt_queue_add(&router->sockets, &updating_sockets);
     nxt_queue_add(&router->sockets, &creating_sockets);
 
-    router->access_log = rtcf->access_log;
+    if (router->access_log != rtcf->access_log) {
+        nxt_router_access_log_use(&router->lock, rtcf->access_log);
+
+        nxt_router_access_log_release(task, &router->lock, router->access_log);
+
+        router->access_log = rtcf->access_log;
+    }
 
     nxt_router_conf_ready(task, tmcf);
 
@@ -1971,9 +1979,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         access_log = router->access_log;
 
         if (access_log != NULL && nxt_strstr_eq(&path, &access_log->path)) {
-            nxt_thread_spin_lock(&router->lock);
-            access_log->count++;
-            nxt_thread_spin_unlock(&router->lock);
+            nxt_router_access_log_use(&router->lock, access_log);
 
         } else {
             access_log = nxt_malloc(sizeof(nxt_router_access_log_t)
@@ -3919,6 +3925,22 @@ nxt_router_access_log_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     tmcf = data;
 
     nxt_router_conf_error(task, tmcf);
+}
+
+
+static void
+nxt_router_access_log_use(nxt_thread_spinlock_t *lock,
+    nxt_router_access_log_t *access_log)
+{
+    if (access_log == NULL) {
+        return;
+    }
+
+    nxt_thread_spin_lock(lock);
+
+    access_log->count++;
+
+    nxt_thread_spin_unlock(lock);
 }
 
 
