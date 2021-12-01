@@ -23,7 +23,7 @@ CONTAINER_go ?=		golang:$(VERSION_go)
 CONFIGURE_go ?=		go --go-path=$$GOPATH
 INSTALL_go ?=		go-install-src libunit-install
 define COPY_go
-COPY --from=BUILDER /usr/lib/x86_64-linux-gnu/libunit.a /usr/lib/x86_64-linux-gnu/\n\$
+COPY --from=BUILDER /usr/lib/\*-linux-gnu/libunit.a /tmp/\n\$
 COPY --from=BUILDER /usr/include/nxt_* /usr/include/\n\$
 COPY --from=BUILDER /go/src/ /go/src/
 endef
@@ -39,7 +39,7 @@ CONTAINER_node ?=	node:$(VERSION_node)
 CONFIGURE_node ?=	nodejs --node-gyp=/usr/local/lib/node_modules/npm/bin/node-gyp-bin/node-gyp
 INSTALL_node ?=		node node-install libunit-install
 define COPY_node
-COPY --from=BUILDER /usr/lib/x86_64-linux-gnu/libunit.a /usr/lib/x86_64-linux-gnu/\n\$
+COPY --from=BUILDER /usr/lib/\*-linux-gnu/libunit.a /tmp/\n\$
 COPY --from=BUILDER /usr/include/nxt_* /usr/include/\n\$
 COPY --from=BUILDER /usr/local/lib/node_modules/unit-http/ /usr/local/lib/node_modules/unit-http/
 endef

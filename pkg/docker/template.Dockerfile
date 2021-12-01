@@ -48,6 +48,10 @@ COPY --from=BUILDER /usr/lib/unit/ /usr/lib/unit/
 COPY --from=BUILDER /requirements.apt /requirements.apt
 @@COPY@@
 RUN set -x \
+    && if [ -f "/tmp/libunit.a" ]; then \
+        mv /tmp/libunit.a /usr/lib/$(dpkg-architecture -q DEB_HOST_MULTIARCH)/libunit.a; \
+        rm -f /tmp/libunit.a; \
+    fi \
     && mkdir -p /var/lib/unit/ \
     && mkdir /docker-entrypoint.d/ \
     && addgroup --system unit \
