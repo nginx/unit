@@ -1150,6 +1150,8 @@ nxt_proto_process_remove(nxt_task_t *task, nxt_pid_t pid)
         process = lhq.value;
 
         nxt_queue_remove(&process->link);
+        process->link.next = NULL;
+
         break;
 
     default:
