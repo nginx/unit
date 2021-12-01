@@ -2,11 +2,11 @@ Source: unit
 Section: admin
 Priority: extra
 Maintainer: %%PACKAGE_VENDOR%%
-Build-Depends: debhelper (>= 9),
+Build-Depends: debhelper (>= 11),
                linux-libc-dev,
                libssl-dev,
                libpcre2-dev
-Standards-Version: 3.9.5
+Standards-Version: 4.1.4
 Homepage: https://unit.nginx.org
 
 Package: unit
