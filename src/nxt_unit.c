@@ -442,6 +442,7 @@ nxt_unit_init(nxt_unit_init_t *init)
     queue_fd = -1;
     mem = MAP_FAILED;
     shared_port.out_fd = -1;
+    shared_port.data = NULL;
 
     if (init->ready_port.id.pid != 0
         && init->ready_stream != 0
