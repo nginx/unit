@@ -166,49 +166,51 @@ if [ $nxt_found = no ]; then
 fi
 
 
-nxt_feature="sockopt SO_PASSCRED"
-nxt_feature_name=NXT_HAVE_SOCKOPT_SO_PASSCRED
-nxt_feature_run=
-nxt_feature_incs=
-nxt_feature_libs=
-nxt_feature_test="#define _GNU_SOURCE
-                  #include <sys/socket.h>
-
-                  int main() {
-                      return SO_PASSCRED == 0;
-                  }"
-. auto/feature
-
-
-if [ $nxt_found = yes ]; then
-    nxt_feature="struct ucred"
-    nxt_feature_name=NXT_HAVE_UCRED
+if [ $NXT_SYSTEM != DragonFly ]; then
+    nxt_feature="sockopt SO_PASSCRED"
+    nxt_feature_name=NXT_HAVE_SOCKOPT_SO_PASSCRED
     nxt_feature_run=
     nxt_feature_incs=
     nxt_feature_libs=
     nxt_feature_test="#define _GNU_SOURCE
                       #include <sys/socket.h>
-                      #include <sys/un.h>
 
                       int main() {
-                          return sizeof(struct ucred);
+                          return SO_PASSCRED == 0;
+                      }"
+    . auto/feature
+
+
+    if [ $nxt_found = yes ]; then
+        nxt_feature="struct ucred"
+        nxt_feature_name=NXT_HAVE_UCRED
+        nxt_feature_run=
+        nxt_feature_incs=
+        nxt_feature_libs=
+        nxt_feature_test="#define _GNU_SOURCE
+                          #include <sys/socket.h>
+                          #include <sys/un.h>
+
+                          int main() {
+                              return sizeof(struct ucred);
+                          }"
+        . auto/feature
+    fi
+
+
+    nxt_feature="struct cmsgcred"
+    nxt_feature_name=NXT_HAVE_MSGHDR_CMSGCRED
+    nxt_feature_run=
+    nxt_feature_incs=
+    nxt_feature_libs=
+    nxt_feature_test="#define _GNU_SOURCE
+                      #include <sys/socket.h>
+
+                      int main() {
+                          return sizeof(struct cmsgcred);
                       }"
     . auto/feature
 fi
-
-
-nxt_feature="struct cmsgcred"
-nxt_feature_name=NXT_HAVE_MSGHDR_CMSGCRED
-nxt_feature_run=
-nxt_feature_incs=
-nxt_feature_libs=
-nxt_feature_test="#define _GNU_SOURCE
-                  #include <sys/socket.h>
-
-                  int main() {
-                      return sizeof(struct cmsgcred);
-                  }"
-. auto/feature
 
 
 nxt_feature="sys/filio.h"
