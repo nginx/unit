@@ -30,7 +30,7 @@ main(int argc, char **argv)
         return 1;
     }
 
-    nxt_log(&nxt_main_task, NXT_LOG_INFO, "unit started");
+    nxt_log(&nxt_main_task, NXT_LOG_INFO, "unit " NXT_VERSION " started");
 
     nxt_event_engine_start(nxt_main_task.thread->engine);
 
