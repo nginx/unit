@@ -59,6 +59,12 @@ appeared in 1.26.0.
 </para>
 </change>
 
+<change type="bugfix">
+<para>
+fatal errors on DragonFly BSD; the bug had appeared in 1.26.0.
+</para>
+</change>
+
 </changes>
 
 
