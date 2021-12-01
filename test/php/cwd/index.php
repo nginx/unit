@@ -11,7 +11,7 @@ $opcache = -1;
 
 if (function_exists('opcache_get_status')) {
     $status = opcache_get_status();
-    $opcache = $status['opcache_enabled'];
+    $opcache = $status['opcache_enabled'] ? '1' : '0';
 }
 
 header('X-OPcache: ' . $opcache);
