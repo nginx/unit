@@ -33,7 +33,7 @@ NGINX Unit updated to 1.26.1.
 
 <change type="bugfix">
 <para>
-the router process crash on reconfiguration if "access_log" was configured
+the router process crashed on reconfiguration if "access_log" was configured
 without listeners.
 </para>
 </change>
