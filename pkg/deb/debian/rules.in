@@ -99,7 +99,8 @@ install: build do.tests
 	dh_testroot
 	dh_prep
 	dh_installdirs
-	dh_installsystemd
+	dh_installsystemd -punit --name=unit unit.service
+	dh_installsystemd -punit --name=unit-debug --no-start --no-enable unit-debug.service
 	dh_installlogrotate
 	cd $(BUILDDIR_unit) && DESTDIR=$(INSTALLDIR) make install
 	cd $(BUILDDIR_unit) && DESTDIR=$(INSTALLDIR_dev) make libunit-install
