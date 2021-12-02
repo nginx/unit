@@ -33,13 +33,6 @@ NGINX Unit updated to 1.26.1.
 
 <change type="bugfix">
 <para>
-the router process crashed on reconfiguration if "access_log" was configured
-without listeners.
-</para>
-</change>
-
-<change type="bugfix">
-<para>
 occasionally, the Unit daemon was unable to fully terminate; the bug had
 appeared in 1.26.0.
 </para>
@@ -47,15 +40,22 @@ appeared in 1.26.0.
 
 <change type="bugfix">
 <para>
-a segmentation fault occurred in the PHP module if chdir() or
-fastcgi_finish_request() was called in the OPcache preloading script.
+a prototype process could crash on an application process exit; the bug had
+appeared in 1.26.0.
 </para>
 </change>
 
 <change type="bugfix">
 <para>
-a prototype process could crash on an application process exit; the bug had
-appeared in 1.26.0.
+the router process crashed on reconfiguration if "access_log" was configured
+without listeners.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a segmentation fault occurred in the PHP module if chdir() or
+fastcgi_finish_request() was called in the OPcache preloading script.
 </para>
 </change>
 
