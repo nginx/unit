@@ -39,8 +39,9 @@ Group: System Environment/Daemons
 
 Source0: unit-%{version}.tar.gz
 Source1: unit.service
-Source2: unit.example.config
-Source3: unit.logrotate
+Source2: unit-debug.service
+Source3: unit.example.config
+Source4: unit.logrotate
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildRequires: systemd
@@ -112,11 +113,11 @@ DESTDIR=%{buildroot} make unitd-install libunit-install manpage-install
 %{__mkdir} -p %{buildroot}%{_localstatedir}/log/unit
 %{__mkdir} -p %{buildroot}%{_localstatedir}/run/unit
 %{__mkdir} -p %{buildroot}%{_sysconfdir}/logrotate.d
-%{__install} -m 644 -p %{SOURCE3} \
+%{__install} -m 644 -p %{SOURCE4} \
     %{buildroot}%{_sysconfdir}/logrotate.d/unit
 %{__mkdir} -p %{buildroot}%{_sysconfdir}/unit
 %{__mkdir} -p %{buildroot}%{_datadir}/doc/unit/examples
-%{__install} -m 644 -p %{SOURCE2} \
+%{__install} -m 644 -p %{SOURCE3} \
     %{buildroot}%{_datadir}/doc/unit/examples/example.config
 %{__install} -m 644 -p CHANGES \
     %{buildroot}%{_datadir}/doc/unit/
@@ -127,6 +128,7 @@ DESTDIR=%{buildroot} make unitd-install libunit-install manpage-install
 
 %{__rm} -rf %{buildroot}%{_initrddir}/
 %{__install} -p -D -m 0644 %{SOURCE1} %{buildroot}%{_unitdir}/unit.service
+%{__install} -p -D -m 0644 %{SOURCE2} %{buildroot}%{_unitdir}/unit-debug.service
 
 QA_SKIP_BUILD_ROOT=1
 export QA_SKIP_BUILD_ROOT
@@ -153,6 +155,7 @@ getent passwd unit >/dev/null || \
     -d /nonexistent -c "unit user" unit
 if [ $1 -eq 1 ]; then
     /usr/bin/systemctl preset unit.service >/dev/null 2>&1 ||:
+    /usr/bin/systemctl preset unit-debug.service >/dev/null 2>&1 ||:
     cat <<BANNER
 ----------------------------------------------------------------------
 
@@ -200,6 +203,7 @@ BANNER
 %attr(0755,root,root) %{_sbindir}/unitd-debug
 %dir %{_sysconfdir}/unit
 %{_unitdir}/unit.service
+%{_unitdir}/unit-debug.service
 %dir %attr(0755,root,root) %ghost %{_localstatedir}/run/unit
 %dir %{_datadir}/doc/unit
 %{_datadir}/doc/unit/*
