@@ -937,9 +937,9 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_read_buf_t *rbuf,
 
     lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
 
+    recv_msg.incoming_buf = NULL;
     recv_msg.fd[0] = -1;
     recv_msg.fd[1] = -1;
-    port_msg = (nxt_port_msg_t *) rbuf->buf;
 
     rc = nxt_socket_msg_oob_get_fds(&rbuf->oob, recv_msg.fd);
     if (nxt_slow_path(rc != NXT_OK)) {
@@ -947,8 +947,6 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_read_buf_t *rbuf,
         rc = NXT_UNIT_ERROR;
         goto done;
     }
-
-    recv_msg.incoming_buf = NULL;
 
     if (nxt_slow_path(rbuf->size < (ssize_t) sizeof(nxt_port_msg_t))) {
         if (nxt_slow_path(rbuf->size == 0)) {
@@ -964,6 +962,8 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_read_buf_t *rbuf,
         rc = NXT_UNIT_ERROR;
         goto done;
     }
+
+    port_msg = (nxt_port_msg_t *) rbuf->buf;
 
     nxt_unit_debug(ctx, "#%"PRIu32": process message %d fd[0] %d fd[1] %d",
                    port_msg->stream, (int) port_msg->type,

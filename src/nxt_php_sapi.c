@@ -204,7 +204,10 @@ ZEND_NAMED_FUNCTION(nxt_php_chdir)
     nxt_php_run_ctx_t  *ctx;
 
     ctx = SG(server_context);
-    ctx->chdir = 1;
+
+    if (nxt_fast_path(ctx != NULL)) {
+        ctx->chdir = 1;
+    }
 
     nxt_php_chdir_handler(INTERNAL_FUNCTION_PARAM_PASSTHRU);
 }
@@ -225,7 +228,7 @@ PHP_FUNCTION(fastcgi_finish_request)
 
     ctx = SG(server_context);
 
-    if (nxt_slow_path(ctx->req == NULL)) {
+    if (nxt_slow_path(ctx == NULL || ctx->req == NULL)) {
         RETURN_FALSE;
     }
 

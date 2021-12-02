@@ -5,6 +5,69 @@
 <change_log title="unit">
 
 
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8 unit-python3.9 unit-python3.10
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11 unit-jsc13
+                unit-jsc14 unit-jsc15 unit-jsc16 unit-jsc17 unit-jsc18"
+         ver="1.26.1" rev="1"
+         date="2021-12-02" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.26.1.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.26.1" rev="1"
+         date="2021-12-02" time="18:00:00 +0300"
+         packager="Andrei Belov &lt;defan@nginx.com&gt;">
+
+<change type="bugfix">
+<para>
+occasionally, the Unit daemon was unable to fully terminate; the bug had
+appeared in 1.26.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a prototype process could crash on an application process exit; the bug had
+appeared in 1.26.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+the router process crashed on reconfiguration if "access_log" was configured
+without listeners.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+a segmentation fault occurred in the PHP module if chdir() or
+fastcgi_finish_request() was called in the OPcache preloading script.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+fatal errors on DragonFly BSD; the bug had appeared in 1.26.0.
+</para>
+</change>
+
+</changes>
+
+
 <changes apply="unit-jsc18" ver="1.26.0" rev="1"
          date="2021-11-18" time="18:00:00 +0300"
          packager="Andrei Belov &lt;defan@nginx.com&gt;">

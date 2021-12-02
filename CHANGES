@@ -1,4 +1,22 @@
 
+Changes with Unit 1.26.1                                         02 Dec 2021
+
+    *) Bugfix: occasionally, the Unit daemon was unable to fully terminate;
+       the bug had appeared in 1.26.0.
+
+    *) Bugfix: a prototype process could crash on an application process
+       exit; the bug had appeared in 1.26.0.
+
+    *) Bugfix: the router process crashed on reconfiguration if "access_log"
+       was configured without listeners.
+
+    *) Bugfix: a segmentation fault occurred in the PHP module if chdir() or
+       fastcgi_finish_request() was called in the OPcache preloading script.
+
+    *) Bugfix: fatal errors on DragonFly BSD; the bug had appeared in
+       1.26.0.
+
+
 Changes with Unit 1.26.0                                         18 Nov 2021
 
     *) Change: the "share" option now specifies the entire path to the files
