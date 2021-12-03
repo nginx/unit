@@ -97,4 +97,5 @@ case "$NXT_SYSTEM" in
 
 esac
 
-$echo configuring for $NXT_SYSTEM $NXT_SYSTEM_VERSION $NXT_SYSTEM_PLATFORM
+$echo "configuring Unit $NXT_VERSION"                                         \
+      "for $NXT_SYSTEM $NXT_SYSTEM_VERSION $NXT_SYSTEM_PLATFORM"
