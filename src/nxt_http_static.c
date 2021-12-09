@@ -33,7 +33,7 @@ typedef struct {
 #if (NXT_HAVE_OPENAT2)
     nxt_str_t                   chroot;
 #endif
-    uint32_t                    index;
+    uint32_t                    share_idx;
     uint8_t                     need_body;  /* 1 bit */
 } nxt_http_static_ctx_t;
 
@@ -218,7 +218,7 @@ nxt_http_static_iterate(nxt_task_t *task, nxt_http_request_t *r,
 
     conf = ctx->action->u.conf;
 
-    share = &conf->shares[ctx->index];
+    share = &conf->shares[ctx->share_idx];
 
 #if (NXT_DEBUG)
     nxt_str_t  shr;
@@ -245,7 +245,7 @@ nxt_http_static_iterate(nxt_task_t *task, nxt_http_request_t *r,
         nxt_var_raw(share->var, &ctx->share);
 
 #if (NXT_HAVE_OPENAT2)
-        if (conf->chroot != NULL && ctx->index == 0) {
+        if (conf->chroot != NULL && ctx->share_idx == 0) {
             nxt_var_raw(conf->chroot, &ctx->chroot);
         }
 #endif
@@ -262,7 +262,7 @@ nxt_http_static_iterate(nxt_task_t *task, nxt_http_request_t *r,
         nxt_var_query(task, r->var_query, share->var, &ctx->share);
 
 #if (NXT_HAVE_OPENAT2)
-        if (conf->chroot != NULL && ctx->index == 0) {
+        if (conf->chroot != NULL && ctx->share_idx == 0) {
             nxt_var_query(task, r->var_query, conf->chroot, &ctx->chroot);
         }
 #endif
@@ -357,7 +357,7 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
         nxt_uint_t               resolve;
         nxt_http_static_share_t  *share;
 
-        share = &conf->shares[ctx->index];
+        share = &conf->shares[ctx->share_idx];
 
         resolve = conf->resolve;
         chr = &ctx->chroot;
@@ -659,9 +659,9 @@ nxt_http_static_next(nxt_task_t *task, nxt_http_request_t *r,
     action = ctx->action;
     conf = action->u.conf;
 
-    ctx->index++;
+    ctx->share_idx++;
 
-    if (ctx->index < conf->nshares) {
+    if (ctx->share_idx < conf->nshares) {
         nxt_http_static_iterate(task, r, ctx);
         return;
     }
