@@ -611,6 +611,11 @@ static nxt_conf_map_t  nxt_http_route_action_conf[] = {
         offsetof(nxt_http_action_conf_t, share)
     },
     {
+        nxt_string("index"),
+        NXT_CONF_MAP_PTR,
+        offsetof(nxt_http_action_conf_t, index)
+    },
+    {
         nxt_string("chroot"),
         NXT_CONF_MAP_STR,
         offsetof(nxt_http_action_conf_t, chroot)

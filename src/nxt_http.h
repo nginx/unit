@@ -218,6 +218,7 @@ typedef struct {
     nxt_conf_value_t                *location;
     nxt_conf_value_t                *proxy;
     nxt_conf_value_t                *share;
+    nxt_conf_value_t                *index;
     nxt_str_t                       chroot;
     nxt_conf_value_t                *follow_symlinks;
     nxt_conf_value_t                *traverse_mounts;

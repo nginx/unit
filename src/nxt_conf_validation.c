@@ -648,6 +648,9 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_share_action_members[] = {
         .type       = NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
         .validator  = nxt_conf_vldt_share,
     }, {
+        .name       = nxt_string("index"),
+        .type       = NXT_CONF_VLDT_STRING,
+    }, {
         .name       = nxt_string("types"),
         .type       = NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
         .validator  = nxt_conf_vldt_match_patterns,
