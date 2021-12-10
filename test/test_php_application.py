@@ -294,20 +294,28 @@ class TestPHPApplication(TestApplicationPHP):
         self.load('ini_precision')
 
         assert 'success' in self.conf(
-            {"file": "php.ini", "admin": {"precision": "5"}},
+            {"file": "ini/php.ini", "admin": {"precision": "5"}},
             'applications/ini_precision/options',
         )
 
+        assert (
+            self.get()['headers']['X-File']
+            == option.test_dir + '/php/ini_precision/ini/php.ini'
+        ), 'ini file'
         assert self.get()['headers']['X-Precision'] == '5', 'ini value admin'
 
     def test_php_application_ini_user(self):
         self.load('ini_precision')
 
         assert 'success' in self.conf(
-            {"file": "php.ini", "user": {"precision": "5"}},
+            {"file": "ini/php.ini", "user": {"precision": "5"}},
             'applications/ini_precision/options',
         )
 
+        assert (
+            self.get()['headers']['X-File']
+            == option.test_dir + '/php/ini_precision/ini/php.ini'
+        ), 'ini file'
         assert self.get()['headers']['X-Precision'] == '5', 'ini value user'
 
     def test_php_application_ini_user_2(self):
