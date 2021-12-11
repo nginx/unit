@@ -12,7 +12,7 @@ if (function_exists('opcache_is_script_cached')) {
         opcache_compile_file(__DIR__ . '/test.php');
     }
 } else {
-    header('X-Cached: -1');
+    header('X-OPcache: -1');
 }
 
 ?>

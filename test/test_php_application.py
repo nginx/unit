@@ -1,3 +1,4 @@
+import getpass
 import os
 import re
 import shutil
@@ -18,18 +19,43 @@ class TestPHPApplication(TestApplicationPHP):
         assert re.search(r'time: \d+', body), 'disable_functions before time'
         assert re.search(r'exec: \/\w+', body), 'disable_functions before exec'
 
+    def check_opcache(self):
+        resp = self.get()
+        assert resp['status'] == 200, 'status'
+
+        headers = resp['headers']
+        if 'X-OPcache' in headers and headers['X-OPcache'] == '-1':
+            pytest.skip('opcache is not supported')
+
+        return resp
+
     def set_opcache(self, app, val):
         assert 'success' in self.conf(
             {"admin": {"opcache.enable": val, "opcache.enable_cli": val}},
             'applications/' + app + '/options',
         )
 
-        opcache = self.get()['headers']['X-OPcache']
+        r = self.check_opcache()
+        assert r['headers']['X-OPcache'] == val, 'opcache value'
 
-        if not opcache or opcache == '-1':
-            pytest.skip('opcache is not supported')
+    def set_preload(self, preload):
+        with open(option.temp_dir + '/php.ini', 'w') as f:
+            f.write(
+                """opcache.preload = %(test_dir)s/php/opcache/preload\
+/%(preload)s
+opcache.preload_user = %(user)s
+"""
+                % {
+                    'test_dir': option.test_dir,
+                    'preload': preload,
+                    'user': option.user or getpass.getuser(),
+                }
+            )
 
-        assert opcache == val, 'opcache value'
+        assert 'success' in self.conf(
+            {"file": option.temp_dir + "/php.ini"},
+            'applications/opcache/options',
+        )
 
     def test_php_application_variables(self):
         self.load('variables')
@@ -725,16 +751,31 @@ class TestPHPApplication(TestApplicationPHP):
     def test_php_application_shared_opcache(self):
         self.load('opcache', limits={'requests': 1})
 
-        r = self.get()
-        cached = r['headers']['X-Cached']
-        if cached == '-1':
-            pytest.skip('opcache is not supported')
-
+        r = self.check_opcache()
         pid = r['headers']['X-Pid']
-
-        assert cached == '0', 'not cached'
+        assert r['headers']['X-Cached'] == '0', 'not cached'
 
         r = self.get()
 
         assert r['headers']['X-Pid'] != pid, 'new instance'
         assert r['headers']['X-Cached'] == '1', 'cached'
+
+    def test_php_application_opcache_preload_chdir(self, temp_dir):
+        self.load('opcache')
+
+        self.check_opcache()
+
+        self.set_preload('chdir.php')
+
+        assert self.get()['headers']['X-Cached'] == '0', 'not cached'
+        assert self.get()['headers']['X-Cached'] == '1', 'cached'
+
+    def test_php_application_opcache_preload_ffr(self, temp_dir):
+        self.load('opcache')
+
+        self.check_opcache()
+
+        self.set_preload('fastcgi_finish_request.php')
+
+        assert self.get()['headers']['X-Cached'] == '0', 'not cached'
+        assert self.get()['headers']['X-Cached'] == '1', 'cached'
