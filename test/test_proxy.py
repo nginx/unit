@@ -72,7 +72,7 @@ Content-Length: 10
                 "routes": [{"action": {"proxy": "http://127.0.0.1:7081"}}],
                 "applications": {
                     "mirror": {
-                        "type": "python",
+                        "type": self.get_application_type(),
                         "processes": {"spare": 0},
                         "path": option.test_dir + "/python/mirror",
                         "working_directory": option.test_dir
@@ -80,7 +80,7 @@ Content-Length: 10
                         "module": "wsgi",
                     },
                     "custom_header": {
-                        "type": "python",
+                        "type": self.get_application_type(),
                         "processes": {"spare": 0},
                         "path": option.test_dir + "/python/custom_header",
                         "working_directory": option.test_dir
@@ -88,7 +88,7 @@ Content-Length: 10
                         "module": "wsgi",
                     },
                     "delayed": {
-                        "type": "python",
+                        "type": self.get_application_type(),
                         "processes": {"spare": 0},
                         "path": option.test_dir + "/python/delayed",
                         "working_directory": option.test_dir
@@ -123,7 +123,7 @@ Content-Length: 10
                 },
                 "applications": {
                     "mirror": {
-                        "type": "python",
+                        "type": self.get_application_type(),
                         "processes": {"spare": 0},
                         "path": option.test_dir + "/python/mirror",
                         "working_directory": option.test_dir
@@ -499,7 +499,7 @@ Content-Length: 10
                 "routes": [{"action": {"proxy": "http://127.0.0.1:7082"}}],
                 "applications": {
                     "mirror": {
-                        "type": "python",
+                        "type": self.get_application_type(),
                         "processes": {"spare": 0},
                         "path": option.test_dir + "/python/mirror",
                         "working_directory": option.test_dir

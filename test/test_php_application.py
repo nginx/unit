@@ -600,7 +600,7 @@ opcache.preload_user = %(user)s
                 "listeners": {"*:7080": {"pass": "applications/script"}},
                 "applications": {
                     "script": {
-                        "type": "php",
+                        "type": self.get_application_type(),
                         "processes": {"spare": 0},
                         "root": option.test_dir + "/php/script",
                         "script": "phpinfo.php",
@@ -620,7 +620,7 @@ opcache.preload_user = %(user)s
                 "listeners": {"*:7080": {"pass": "applications/phpinfo"}},
                 "applications": {
                     "phpinfo": {
-                        "type": "php",
+                        "type": self.get_application_type(),
                         "processes": {"spare": 0},
                         "root": option.test_dir + "/php/phpinfo",
                     }
@@ -647,7 +647,7 @@ opcache.preload_user = %(user)s
                 "listeners": {"*:7080": {"pass": "applications/phpinfo"}},
                 "applications": {
                     "phpinfo": {
-                        "type": "php",
+                        "type": self.get_application_type(),
                         "processes": {"spare": 0},
                         "root": new_root,
                         "working_directory": new_root,

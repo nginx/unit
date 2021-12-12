@@ -22,7 +22,7 @@ class TestPHPTargets(TestApplicationPHP):
                 ],
                 "applications": {
                     "targets": {
-                        "type": "php",
+                        "type": self.get_application_type(),
                         "processes": {"spare": 0},
                         "targets": {
                             "1": {
@@ -66,7 +66,7 @@ class TestPHPTargets(TestApplicationPHP):
                 },
                 "applications": {
                     "targets": {
-                        "type": "php",
+                        "type": self.get_application_type(),
                         "processes": {"spare": 0},
                         "targets": {
                             "default": {

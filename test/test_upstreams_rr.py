@@ -274,7 +274,7 @@ Connection: close
                 ],
                 "applications": {
                     "delayed": {
-                        "type": "python",
+                        "type": self.get_application_type(),
                         "processes": {"spare": 0},
                         "path": option.test_dir + "/python/delayed",
                         "working_directory": option.test_dir

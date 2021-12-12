@@ -22,7 +22,7 @@ class TestJavaApplication(TestApplicationJava):
                 "listeners": {"*:7080": {"pass": "applications/app"}},
                 "applications": {
                     "app": {
-                        "type": "java",
+                        "type": self.get_application_type(),
                         "processes": 1,
                         "working_directory": option.test_dir + "/java/empty",
                         "webapp": temp_dir + "/java",

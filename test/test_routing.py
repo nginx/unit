@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import pytest
-from unit.applications.proto import TestApplicationProto
+from unit.applications.lang.python import TestApplicationPython
 from unit.option import option
 
 
-class TestRouting(TestApplicationProto):
+class TestRouting(TestApplicationPython):
     prerequisites = {'modules': {'python': 'any'}}
 
     def setup_method(self):
@@ -289,7 +289,7 @@ class TestRouting(TestApplicationProto):
                     "listeners": {"*:7080": {"pass": "applications/" + path}},
                     "applications": {
                         name: {
-                            "type": "python",
+                            "type": self.get_application_type(),
                             "processes": {"spare": 0},
                             "path": option.test_dir + '/python/empty',
                             "working_directory": option.test_dir
@@ -313,7 +313,7 @@ class TestRouting(TestApplicationProto):
                     "listeners": {"*:7080": {"pass": "applications/" + path}},
                     "applications": {
                         name: {
-                            "type": "python",
+                            "type": self.get_application_type(),
                             "processes": {"spare": 0},
                             "path": option.test_dir + '/python/empty',
                             "working_directory": option.test_dir
@@ -333,7 +333,7 @@ class TestRouting(TestApplicationProto):
                 "listeners": {"*:7081": {"pass": "applications/empty"}},
                 "applications": {
                     "empty": {
-                        "type": "python",
+                        "type": self.get_application_type(),
                         "processes": {"spare": 0},
                         "path": option.test_dir + '/python/empty',
                         "working_directory": option.test_dir + '/python/empty',
@@ -387,7 +387,7 @@ class TestRouting(TestApplicationProto):
             {
                 "applications": {
                     "app": {
-                        "type": "python",
+                        "type": self.get_application_type(),
                         "processes": {"spare": 0},
                         "path": "/app",
                         "module": "wsgi",
@@ -430,7 +430,7 @@ class TestRouting(TestApplicationProto):
             {
                 "applications": {
                     "app": {
-                        "type": "python",
+                        "type": self.get_application_type(),
                         "processes": {"spare": 0},
                         "path": "/app",
                         "module": "wsgi",
@@ -476,7 +476,7 @@ class TestRouting(TestApplicationProto):
                 "routes": [{"action": {"proxy": "http://127.0.0.1:7081"}}],
                 "applications": {
                     "app": {
-                        "type": "python",
+                        "type": self.get_application_type(),
                         "processes": {"spare": 0},
                         "path": "/app",
                         "module": "wsgi",

@@ -67,7 +67,7 @@ class TestASGILifespan(TestApplicationPython):
                 ],
                 "applications": {
                     "targets": {
-                        "type": "python",
+                        "type": self.get_application_type(),
                         "processes": {"spare": 0},
                         "working_directory": option.test_dir
                         + "/python/lifespan/empty",
