@@ -225,6 +225,7 @@ nxt_http_static_iterate(nxt_task_t *task, nxt_http_request_t *r,
     nxt_int_t                ret;
     nxt_http_static_conf_t   *conf;
     nxt_http_static_share_t  *share;
+    nxt_bool_t               shr_is_const;
 
     conf = ctx->action->u.conf;
 
@@ -254,9 +255,19 @@ nxt_http_static_iterate(nxt_task_t *task, nxt_http_request_t *r,
 #endif
 #endif /* NXT_DEBUG */
 
+    shr_is_const = share->is_const;
+
+    if (!shr_is_const) {
+        ret = nxt_var_query_init(&r->var_query, r, r->mem_pool);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            nxt_http_request_error(task, r, NXT_HTTP_INTERNAL_SERVER_ERROR);
+            return;
+        }
+    }
+
     ctx->index = conf->index;
 
-    if (share->is_const) {
+    if (shr_is_const) {
         nxt_var_raw(share->var, &ctx->share);
 
 #if (NXT_HAVE_OPENAT2)
@@ -265,15 +276,7 @@ nxt_http_static_iterate(nxt_task_t *task, nxt_http_request_t *r,
         }
 #endif
 
-        nxt_http_static_send_ready(task, r, ctx);
-
     } else {
-        ret = nxt_var_query_init(&r->var_query, r, r->mem_pool);
-        if (nxt_slow_path(ret != NXT_OK)) {
-            nxt_http_request_error(task, r, NXT_HTTP_INTERNAL_SERVER_ERROR);
-            return;
-        }
-
         nxt_var_query(task, r->var_query, share->var, &ctx->share);
 
 #if (NXT_HAVE_OPENAT2)
@@ -281,11 +284,16 @@ nxt_http_static_iterate(nxt_task_t *task, nxt_http_request_t *r,
             nxt_var_query(task, r->var_query, conf->chroot, &ctx->chroot);
         }
 #endif
+    }
 
+    if (shr_is_const) {
+        nxt_http_static_send_ready(task, r, ctx);
+
+    } else {
         nxt_var_query_resolve(task, r->var_query, ctx,
                               nxt_http_static_send_ready,
                               nxt_http_static_var_error);
-     }
+    }
 }
 
 
