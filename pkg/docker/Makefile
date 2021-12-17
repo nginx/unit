@@ -50,7 +50,7 @@ CONFIGURE_perl ?=	perl
 INSTALL_perl ?=		perl-install
 COPY_perl =
 
-VERSION_php ?=		8.0
+VERSION_php ?=		8.1
 CONTAINER_php ?=	php:$(VERSION_php)-cli
 CONFIGURE_php ?=	php
 INSTALL_php ?=		php-install
