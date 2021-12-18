@@ -5114,9 +5114,9 @@ nxt_unit_ctx_alloc(nxt_unit_ctx_t *ctx, void *data)
 
     rc = nxt_unit_ctx_init(lib, new_ctx, data);
     if (nxt_slow_path(rc != NXT_UNIT_OK)) {
-         nxt_unit_free(ctx, new_ctx);
+        nxt_unit_free(ctx, new_ctx);
 
-         return NULL;
+        return NULL;
     }
 
     queue_fd = -1;

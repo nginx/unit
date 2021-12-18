@@ -932,7 +932,7 @@ nxt_http_route_rule_create(nxt_task_t *task, nxt_mp_t *mp,
 
 nxt_http_route_addr_rule_t *
 nxt_http_route_addr_rule_create(nxt_task_t *task, nxt_mp_t *mp,
-     nxt_conf_value_t *cv)
+    nxt_conf_value_t *cv)
 {
     size_t                         size;
     uint32_t                       i, n;
@@ -2294,7 +2294,7 @@ nxt_http_route_cookie_parse(nxt_array_t *cookies, u_char *start, u_char *end)
 
             name = NULL;
             start = p + 1;
-         }
+        }
     }
 
     if (name != NULL) {

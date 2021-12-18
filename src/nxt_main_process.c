@@ -579,7 +579,7 @@ nxt_main_process_created_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
                                          -1, msg->port_msg.stream, 0, NULL);
             return;
         }
-     }
+    }
 
 #endif
 

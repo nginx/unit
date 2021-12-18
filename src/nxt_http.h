@@ -90,17 +90,17 @@ typedef union {
 
 #define nxt_http_field_name_set(_field, _name)                                \
     do {                                                                      \
-         (_field)->name_length = nxt_length(_name);                           \
-         (_field)->name = (u_char *) _name;                                   \
+        (_field)->name_length = nxt_length(_name);                            \
+        (_field)->name = (u_char *) _name;                                    \
     } while (0)
 
 
 #define nxt_http_field_set(_field, _name, _value)                             \
     do {                                                                      \
-         (_field)->name_length = nxt_length(_name);                           \
-         (_field)->value_length = nxt_length(_value);                         \
-         (_field)->name = (u_char *) _name;                                   \
-         (_field)->value = (u_char *) _value;                                 \
+        (_field)->name_length = nxt_length(_name);                            \
+        (_field)->value_length = nxt_length(_value);                          \
+        (_field)->name = (u_char *) _name;                                    \
+        (_field)->value = (u_char *) _value;                                  \
     } while (0)
 
 
@@ -238,7 +238,7 @@ typedef struct {
     void (*body_read)(nxt_task_t *task, nxt_http_request_t *r);
     void (*local_addr)(nxt_task_t *task, nxt_http_request_t *r);
     void (*header_send)(nxt_task_t *task, nxt_http_request_t *r,
-         nxt_work_handler_t body_handler, void *data);
+        nxt_work_handler_t body_handler, void *data);
     void (*send)(nxt_task_t *task, nxt_http_request_t *r, nxt_buf_t *out);
     nxt_off_t (*body_bytes_sent)(nxt_task_t *task, nxt_http_proto_t proto);
     void (*discard)(nxt_task_t *task, nxt_http_request_t *r, nxt_buf_t *last);

@@ -612,7 +612,7 @@ nxt_perl_psgi_env_create(PerlInterpreter *my_perl,
     do {                                                                      \
         if (nxt_slow_path((FNS) != NXT_UNIT_OK))                              \
             goto fail;                                                        \
-     } while (0)
+    } while (0)
 
 #define NL(S) (S), sizeof(S)-1
 

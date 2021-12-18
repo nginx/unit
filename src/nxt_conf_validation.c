@@ -114,7 +114,7 @@ static nxt_int_t nxt_conf_vldt_pass(nxt_conf_validation_t *vldt,
 static nxt_int_t nxt_conf_vldt_return(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_share(nxt_conf_validation_t *vldt,
-     nxt_conf_value_t *value, void *data);
+    nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_share_element(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_proxy(nxt_conf_validation_t *vldt,
@@ -194,7 +194,7 @@ static nxt_int_t nxt_conf_vldt_java_classpath(nxt_conf_validation_t *vldt,
 static nxt_int_t nxt_conf_vldt_java_option(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_upstream(nxt_conf_validation_t *vldt,
-     nxt_str_t *name, nxt_conf_value_t *value);
+    nxt_str_t *name, nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_server(nxt_conf_validation_t *vldt,
     nxt_str_t *name, nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_server_weight(nxt_conf_validation_t *vldt,
@@ -2448,7 +2448,7 @@ nxt_conf_vldt_object(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 
                     break;
                 }
-           }
+            }
 
             ret = nxt_conf_vldt_type(vldt, &name, member, vals->type);
             if (ret != NXT_OK) {

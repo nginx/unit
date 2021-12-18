@@ -1881,11 +1881,11 @@ nxt_h1p_idle_timeout(nxt_task_t *task, void *obj, void *data)
 
 
 #define NXT_H1P_IDLE_TIMEOUT                                                  \
-     "HTTP/1.1 408 Request Timeout\r\n"                                       \
-     "Server: " NXT_SERVER "\r\n"                                             \
-     "Connection: close\r\n"                                                  \
-     "Content-Length: 0\r\n"                                                  \
-     "Date: "
+    "HTTP/1.1 408 Request Timeout\r\n"                                        \
+    "Server: " NXT_SERVER "\r\n"                                              \
+    "Connection: close\r\n"                                                   \
+    "Content-Length: 0\r\n"                                                   \
+    "Date: "
 
 
 static void
