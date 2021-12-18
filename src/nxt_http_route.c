@@ -718,13 +718,11 @@ nxt_http_route_table_create(nxt_task_t *task, nxt_mp_t *mp,
 {
     size_t                    size;
     uint32_t                  i, n;
-    nxt_bool_t                array;
     nxt_conf_value_t          *ruleset_cv;
     nxt_http_route_table_t    *table;
     nxt_http_route_ruleset_t  *ruleset;
 
-    array = (nxt_conf_type(table_cv) == NXT_CONF_ARRAY);
-    n = array ? nxt_conf_array_elements_count(table_cv) : 1;
+    n = nxt_conf_array_elements_count_or_1(table_cv);
     size = sizeof(nxt_http_route_table_t)
            + n * sizeof(nxt_http_route_ruleset_t *);
 
@@ -736,20 +734,8 @@ nxt_http_route_table_create(nxt_task_t *task, nxt_mp_t *mp,
     table->items = n;
     table->object = NXT_HTTP_ROUTE_TABLE;
 
-    if (!array) {
-        ruleset = nxt_http_route_ruleset_create(task, mp, table_cv, object,
-                                                case_sensitive, encoding);
-        if (nxt_slow_path(ruleset == NULL)) {
-            return NULL;
-        }
-
-        table->ruleset[0] = ruleset;
-
-        return table;
-    }
-
     for (i = 0; i < n; i++) {
-        ruleset_cv = nxt_conf_get_array_element(table_cv, i);
+        ruleset_cv = nxt_conf_get_array_element_or_itself(table_cv, i);
 
         ruleset = nxt_http_route_ruleset_create(task, mp, ruleset_cv, object,
                                                 case_sensitive, encoding);
@@ -911,13 +897,11 @@ nxt_http_route_rule_create(nxt_task_t *task, nxt_mp_t *mp,
     size_t                    size;
     uint32_t                  i, n;
     nxt_int_t                 ret;
-    nxt_bool_t                string;
     nxt_conf_value_t          *value;
     nxt_http_route_rule_t     *rule;
     nxt_http_route_pattern_t  *pattern;
 
-    string = (nxt_conf_type(cv) != NXT_CONF_ARRAY);
-    n = string ? 1 : nxt_conf_array_elements_count(cv);
+    n = nxt_conf_array_elements_count_or_1(cv);
     size = sizeof(nxt_http_route_rule_t) + n * sizeof(nxt_http_route_pattern_t);
 
     rule = nxt_mp_alloc(mp, size);
@@ -929,22 +913,11 @@ nxt_http_route_rule_create(nxt_task_t *task, nxt_mp_t *mp,
 
     pattern = &rule->pattern[0];
 
-    if (string) {
-        pattern[0].case_sensitive = case_sensitive;
-        ret = nxt_http_route_pattern_create(task, mp, cv, &pattern[0],
-                                            pattern_case, encoding);
-        if (nxt_slow_path(ret != NXT_OK)) {
-            return NULL;
-        }
-
-        return rule;
-    }
-
     nxt_conf_array_qsort(cv, nxt_http_pattern_compare);
 
     for (i = 0; i < n; i++) {
         pattern[i].case_sensitive = case_sensitive;
-        value = nxt_conf_get_array_element(cv, i);
+        value = nxt_conf_get_array_element_or_itself(cv, i);
 
         ret = nxt_http_route_pattern_create(task, mp, value, &pattern[i],
                                             pattern_case, encoding);
@@ -963,13 +936,11 @@ nxt_http_route_addr_rule_create(nxt_task_t *task, nxt_mp_t *mp,
 {
     size_t                         size;
     uint32_t                       i, n;
-    nxt_bool_t                     array;
     nxt_conf_value_t               *value;
     nxt_http_route_addr_rule_t     *addr_rule;
     nxt_http_route_addr_pattern_t  *pattern;
 
-    array = (nxt_conf_type(cv) == NXT_CONF_ARRAY);
-    n = array ? nxt_conf_array_elements_count(cv) : 1;
+    n = nxt_conf_array_elements_count_or_1(cv);
 
     size = sizeof(nxt_http_route_addr_rule_t)
            + n * sizeof(nxt_http_route_addr_pattern_t);
@@ -981,19 +952,9 @@ nxt_http_route_addr_rule_create(nxt_task_t *task, nxt_mp_t *mp,
 
     addr_rule->items = n;
 
-    if (!array) {
-        pattern = &addr_rule->addr_pattern[0];
-
-        if (nxt_http_route_addr_pattern_parse(mp, pattern, cv) != NXT_OK) {
-            return NULL;
-        }
-
-        return addr_rule;
-    }
-
     for (i = 0; i < n; i++) {
         pattern = &addr_rule->addr_pattern[i];
-        value = nxt_conf_get_array_element(cv, i);
+        value = nxt_conf_get_array_element_or_itself(cv, i);
 
         if (nxt_http_route_addr_pattern_parse(mp, pattern, value) != NXT_OK) {
             return NULL;

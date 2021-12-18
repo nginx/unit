@@ -77,7 +77,6 @@ nxt_http_static_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_mp_t                *mp;
     nxt_str_t               str;
     nxt_var_t               *var;
-    nxt_bool_t              array;
     nxt_conf_value_t        *cv;
     nxt_http_static_conf_t  *conf;
 
@@ -91,39 +90,24 @@ nxt_http_static_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     action->handler = nxt_http_static;
     action->u.conf = conf;
 
-    array = (nxt_conf_type(acf->share) == NXT_CONF_ARRAY);
-    conf->nshares = array ? nxt_conf_array_elements_count(acf->share) : 1;
-
+    conf->nshares = nxt_conf_array_elements_count_or_1(acf->share);
     conf->shares = nxt_mp_zget(mp, sizeof(nxt_http_static_share_t)
                                    * conf->nshares);
     if (nxt_slow_path(conf->shares == NULL)) {
         return NXT_ERROR;
     }
 
-    if (array) {
-        for (i = 0; i < conf->nshares; i++) {
-            cv = nxt_conf_get_array_element(acf->share, i);
-            nxt_conf_get_string(cv, &str);
-
-            var = nxt_var_compile(&str, mp, 1);
-            if (nxt_slow_path(var == NULL)) {
-                return NXT_ERROR;
-            }
-
-            conf->shares[i].var = var;
-            conf->shares[i].is_const = nxt_var_is_const(var);
-        }
-
-    } else {
-        nxt_conf_get_string(acf->share, &str);
+    for (i = 0; i < conf->nshares; i++) {
+        cv = nxt_conf_get_array_element_or_itself(acf->share, i);
+        nxt_conf_get_string(cv, &str);
 
         var = nxt_var_compile(&str, mp, 1);
         if (nxt_slow_path(var == NULL)) {
             return NXT_ERROR;
         }
 
-        conf->shares[0].var = var;
-        conf->shares[0].is_const = nxt_var_is_const(var);
+        conf->shares[i].var = var;
+        conf->shares[i].is_const = nxt_var_is_const(var);
     }
 
 #if (NXT_HAVE_OPENAT2)

@@ -1924,25 +1924,15 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
                 tls_init->tickets_conf = nxt_conf_get_path(listener,
                                                            &conf_tickets);
 
-                if (nxt_conf_type(certificate) == NXT_CONF_ARRAY) {
-                    n = nxt_conf_array_elements_count(certificate);
+                n = nxt_conf_array_elements_count_or_1(certificate);
 
-                    for (i = 0; i < n; i++) {
-                        value = nxt_conf_get_array_element(certificate, i);
+                for (i = 0; i < n; i++) {
+                    value = nxt_conf_get_array_element_or_itself(certificate,
+                                                                 i);
+                    nxt_assert(value != NULL);
 
-                        nxt_assert(value != NULL);
-
-                        ret = nxt_router_conf_tls_insert(tmcf, value, skcf,
-                                                         tls_init, i == 0);
-                        if (nxt_slow_path(ret != NXT_OK)) {
-                            goto fail;
-                        }
-                    }
-
-                } else {
-                    /* NXT_CONF_STRING */
-                    ret = nxt_router_conf_tls_insert(tmcf, certificate, skcf,
-                                                     tls_init, 1);
+                    ret = nxt_router_conf_tls_insert(tmcf, value, skcf,
+                                                     tls_init, i == 0);
                     if (nxt_slow_path(ret != NXT_OK)) {
                         goto fail;
                     }

@@ -411,15 +411,8 @@ nxt_python_set_path(nxt_task_t *task, nxt_conf_value_t *value)
 
     /* sys is a Borrowed reference. */
 
-    if (nxt_conf_type(value) == NXT_CONF_STRING) {
-        n = 0;
-        goto value_is_string;
-    }
-
-    /* NXT_CONF_ARRAY */
     array = value;
-
-    n = nxt_conf_array_elements_count(array);
+    n = nxt_conf_array_elements_count_or_1(array);
 
     while (n != 0) {
         n--;
@@ -430,9 +423,7 @@ nxt_python_set_path(nxt_task_t *task, nxt_conf_value_t *value)
          * specified in the "path" option.
          */
 
-        value = nxt_conf_get_array_element(array, n);
-
-    value_is_string:
+        value = nxt_conf_get_array_element_or_itself(array, n);
 
         nxt_conf_get_string(value, &str);
 
