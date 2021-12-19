@@ -192,7 +192,8 @@ nxt_conf_set_string(nxt_conf_value_t *value, nxt_str_t *str)
 
 
 nxt_int_t
-nxt_conf_set_string_dup(nxt_conf_value_t *value, nxt_mp_t *mp, nxt_str_t *str)
+nxt_conf_set_string_dup(nxt_conf_value_t *value, nxt_mp_t *mp,
+    const nxt_str_t *str)
 {
     nxt_str_t  tmp, *ptr;
 
