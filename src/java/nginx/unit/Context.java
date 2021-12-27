@@ -422,7 +422,7 @@ public class Context implements ServletContext, InitParams
 
         processWebXml(root);
 
-        loader_ = new AppClassLoader(urls,
+        loader_ = new UnitClassLoader(urls,
             Context.class.getClassLoader().getParent());
 
         Class wsSession_class = WsSession.class;
@@ -531,7 +531,7 @@ public class Context implements ServletContext, InitParams
         }
     }
 
-    private static class AppClassLoader extends URLClassLoader
+    private static class UnitClassLoader extends URLClassLoader
     {
         static {
             ClassLoader.registerAsParallelCapable();
@@ -547,7 +547,7 @@ public class Context implements ServletContext, InitParams
 
         private ClassLoader system_loader;
 
-        public AppClassLoader(URL[] urls, ClassLoader parent)
+        public UnitClassLoader(URL[] urls, ClassLoader parent)
         {
             super(urls, parent);
 
@@ -1514,6 +1514,18 @@ public class Context implements ServletContext, InitParams
     {
         trace("loadInitializer: initializer: " + sci.getClass().getName());
 
+        /*
+            Unit WebSocket container is a copy of Tomcat WsSci with own
+            transport implementation.  Tomcat implementation will not work in
+            Unit and should be ignored here.
+         */
+        if (sci.getClass().getName()
+              .equals("org.apache.tomcat.websocket.server.WsSci"))
+        {
+            trace("loadInitializer: ignore");
+            return;
+        }
+
         HandlesTypes ann = sci.getClass().getAnnotation(HandlesTypes.class);
         if (ann == null) {
             trace("loadInitializer: no HandlesTypes annotation");
@@ -1558,7 +1570,6 @@ public class Context implements ServletContext, InitParams
 
         try {
             sci.onStartup(handles_classes, this);
-            metadata_complete_ = true;
         } catch(Exception e) {
             System.err.println("loadInitializer: exception caught: " + e.toString());
         }

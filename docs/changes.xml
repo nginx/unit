@@ -37,6 +37,12 @@ some Perl applications failed to process the request body, notably with Plack.
 </para>
 </change>
 
+<change type="bugfix">
+<para>
+some Spring Boot applications failed to start, notably with Grails.
+</para>
+</change>
+
 </changes>
 
 
