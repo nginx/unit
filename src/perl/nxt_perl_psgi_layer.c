@@ -93,10 +93,8 @@ nxt_perl_psgi_layer_stream_pushed(pTHX_ PerlIO *f, const char *mode, SV *arg,
     unit_stream = PerlIOSelf(f, nxt_perl_psgi_layer_stream_t);
 
     if (arg != NULL && SvOK(arg)) {
-        unit_stream->var = arg;
+        unit_stream->var = SvREFCNT_inc(arg);
     }
-
-    SvSETMAGIC(unit_stream->var);
 
     return PerlIOBase_pushed(aTHX_ f, mode, Nullsv, tab);
 }
@@ -105,11 +103,17 @@ nxt_perl_psgi_layer_stream_pushed(pTHX_ PerlIO *f, const char *mode, SV *arg,
 static IV
 nxt_perl_psgi_layer_stream_popped(pTHX_ PerlIO *f)
 {
+    nxt_perl_psgi_io_arg_t        *arg;
     nxt_perl_psgi_layer_stream_t  *unit_stream;
 
     unit_stream = PerlIOSelf(f, nxt_perl_psgi_layer_stream_t);
 
     if (unit_stream->var != NULL) {
+        arg = (void *) (intptr_t) SvIV(SvRV(unit_stream->var));
+
+        arg->io = NULL;
+        arg->fp = NULL;
+
         SvREFCNT_dec(unit_stream->var);
         unit_stream->var = Nullsv;
     }
@@ -181,9 +185,6 @@ nxt_perl_psgi_layer_stream_read(pTHX_ PerlIO *f, void *vbuf, Size_t count)
         return 0;
     }
 
-    unit_stream = PerlIOSelf(f, nxt_perl_psgi_layer_stream_t);
-    arg = (nxt_perl_psgi_io_arg_t *) (intptr_t) SvIV(SvRV(unit_stream->var));
-
     if ((PerlIOBase(f)->flags & PERLIO_F_CANREAD) == 0) {
         PerlIOBase(f)->flags |= PERLIO_F_ERROR;
 
@@ -192,7 +193,10 @@ nxt_perl_psgi_layer_stream_read(pTHX_ PerlIO *f, void *vbuf, Size_t count)
         return 0;
     }
 
-    return (SSize_t) arg->read(PERL_GET_CONTEXT, arg, vbuf, count);
+    unit_stream = PerlIOSelf(f, nxt_perl_psgi_layer_stream_t);
+    arg = (void *) (intptr_t) SvIV(SvRV(unit_stream->var));
+
+    return arg->io_tab->read(PERL_GET_CONTEXT, arg, vbuf, count);
 }
 
 
@@ -204,13 +208,10 @@ nxt_perl_psgi_layer_stream_write(pTHX_ PerlIO *f,
     nxt_perl_psgi_layer_stream_t  *unit_stream;
 
     if (PerlIOBase(f)->flags & PERLIO_F_CANWRITE) {
-
         unit_stream = PerlIOSelf(f, nxt_perl_psgi_layer_stream_t);
+        arg = (void *) (intptr_t) SvIV(SvRV(unit_stream->var));
 
-        arg = (nxt_perl_psgi_io_arg_t *)
-            (intptr_t) SvIV(SvRV(unit_stream->var));
-
-        return (SSize_t) arg->write(PERL_GET_CONTEXT, arg, vbuf, count);
+        return arg->io_tab->write(PERL_GET_CONTEXT, arg, vbuf, count);
     }
 
     return 0;
@@ -244,13 +245,7 @@ nxt_perl_psgi_layer_stream_fill(pTHX_ PerlIO *f)
 static IV
 nxt_perl_psgi_layer_stream_flush(pTHX_ PerlIO *f)
 {
-    nxt_perl_psgi_io_arg_t        *arg;
-    nxt_perl_psgi_layer_stream_t  *unit_stream;
-
-    unit_stream = PerlIOSelf(f, nxt_perl_psgi_layer_stream_t);
-    arg = (nxt_perl_psgi_io_arg_t *) (intptr_t) SvIV(SvRV(unit_stream->var));
-
-    return (IV) arg->flush(PERL_GET_CONTEXT, arg);
+    return 0;
 }
 
 
@@ -346,29 +341,11 @@ nxt_perl_psgi_layer_stream_init(pTHX)
 
 
 PerlIO *
-nxt_perl_psgi_layer_stream_fp_create(pTHX_ nxt_perl_psgi_io_arg_t *arg,
+nxt_perl_psgi_layer_stream_fp_create(pTHX_ SV *arg_rv,
     const char *mode)
 {
-    SV      *arg_rv;
-    PerlIO  *fp;
-
-    arg_rv = newSV_type(SVt_RV);
-
-    if (arg_rv == NULL) {
-        return NULL;
-    }
-
-    sv_setptrref(arg_rv, arg);
-
-    fp = PerlIO_openn(aTHX_ "NGINX_Unit_PSGI_Layer_Stream",
-                      mode, 0, 0, 0, NULL, 1, &arg_rv);
-
-    if (fp == NULL) {
-        SvREFCNT_dec(arg_rv);
-        return NULL;
-    }
-
-    return fp;
+    return PerlIO_openn(aTHX_ "NGINX_Unit_PSGI_Layer_Stream",
+                        mode, 0, 0, 0, NULL, 1, &arg_rv);
 }
 
 
@@ -402,11 +379,4 @@ nxt_perl_psgi_layer_stream_io_create(pTHX_ PerlIO *fp)
     }
 
     return rvio;
-}
-
-
-void
-nxt_perl_psgi_layer_stream_io_destroy(pTHX_ SV *rvio)
-{
-    SvREFCNT_dec(rvio);
 }

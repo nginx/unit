@@ -31,6 +31,12 @@ NGINX Unit updated to 1.27.0.
          date="" time=""
          packager="Andrei Belov &lt;defan@nginx.com&gt;">
 
+<change type="bugfix">
+<para>
+some Perl applications failed to process the request body, notably with Plack.
+</para>
+</change>
+
 </changes>
 
 
