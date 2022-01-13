@@ -56,7 +56,7 @@ CONFIGURE_php ?=	php
 INSTALL_php ?=		php-install
 COPY_php =			RUN ldconfig
 
-VERSION_python ?=	3.9
+VERSION_python ?=	3.10
 CONTAINER_python ?=	python:$(VERSION_python)
 CONFIGURE_python ?=	python --config=/usr/local/bin/python3-config
 INSTALL_python ?=	python3-install
