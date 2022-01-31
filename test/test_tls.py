@@ -175,11 +175,13 @@ basicConstraints = critical,CA:TRUE"""
 
         self.add_tls()
 
-        cert_old = self.get_server_certificate()
+        cert_old = ssl.get_server_certificate(('127.0.0.1', 7080))
 
         self.certificate()
 
-        assert cert_old != self.get_server_certificate(), 'update certificate'
+        assert cert_old != ssl.get_server_certificate(
+            ('127.0.0.1', 7080)
+        ), 'update certificate'
 
     @pytest.mark.skip('not yet')
     def test_tls_certificate_key_incorrect(self):
@@ -200,11 +202,13 @@ basicConstraints = critical,CA:TRUE"""
 
         self.add_tls()
 
-        cert_old = self.get_server_certificate()
+        cert_old = ssl.get_server_certificate(('127.0.0.1', 7080))
 
         self.add_tls(cert='new')
 
-        assert cert_old != self.get_server_certificate(), 'change certificate'
+        assert cert_old != ssl.get_server_certificate(
+            ('127.0.0.1', 7080)
+        ), 'change certificate'
 
     def test_tls_certificate_key_rsa(self):
         self.load('empty')

@@ -3,7 +3,8 @@ import shutil
 import socket
 
 import pytest
-from conftest import unit_run, unit_stop
+from conftest import unit_run
+from conftest import unit_stop
 from unit.applications.proto import TestApplicationProto
 from unit.option import option
 from unit.utils import waitforfiles

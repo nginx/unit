@@ -103,10 +103,7 @@ class TestPerlApplication(TestApplicationPerl):
     def test_perl_application_input_buffered_read(self):
         self.load('input_buffered_read')
 
-        assert (
-            self.post(body='012345')['body'] == '012345'
-        ), 'buffered read #1'
-
+        assert self.post(body='012345')['body'] == '012345', 'buffered read #1'
         assert (
             self.post(body='9876543210')['body'] == '9876543210'
         ), 'buffered read #2'
@@ -114,10 +111,7 @@ class TestPerlApplication(TestApplicationPerl):
     def test_perl_application_input_close(self):
         self.load('input_close')
 
-        assert (
-            self.post(body='012345')['body'] == '012345'
-        ), 'input close #1'
-
+        assert self.post(body='012345')['body'] == '012345', 'input close #1'
         assert (
             self.post(body='9876543210')['body'] == '9876543210'
         ), 'input close #2'
