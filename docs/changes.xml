@@ -43,6 +43,13 @@ some Spring Boot applications failed to start, notably with Grails.
 </para>
 </change>
 
+<change type="bugfix">
+<para>
+incorrect Python protocol auto detection (ASGI or WSGI) for native callable
+object, notably with Falcon.
+</para>
+</change>
+
 </changes>
 
 

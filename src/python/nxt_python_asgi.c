@@ -117,15 +117,20 @@ nxt_python_asgi_get_func(PyObject *obj)
     if (PyMethod_Check(call)) {
         obj = PyMethod_GET_FUNCTION(call);
 
-        Py_INCREF(obj);
-        Py_DECREF(call);
+        if (PyFunction_Check(obj)) {
+            Py_INCREF(obj);
 
-        return obj;
+        } else {
+            obj = NULL;
+        }
+
+    } else {
+        obj = NULL;
     }
 
     Py_DECREF(call);
 
-    return NULL;
+    return obj;
 }
 
 
@@ -161,8 +166,9 @@ nxt_python_asgi_init(nxt_unit_init_t *init, nxt_python_proto_t *proto)
     for (i = 0; i < nxt_py_targets->count; i++) {
         func = nxt_python_asgi_get_func(nxt_py_targets->target[i].application);
         if (nxt_slow_path(func == NULL)) {
-            nxt_unit_alert(NULL, "Python cannot find function for callable");
-            return NXT_UNIT_ERROR;
+            nxt_unit_debug(NULL, "asgi: cannot find function for callable, "
+                                 "unable to check for legacy mode (#%d)", i);
+            continue;
         }
 
         code = (PyCodeObject *) PyFunction_GET_CODE(func);
