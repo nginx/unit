@@ -167,7 +167,8 @@ nxt_python_asgi_init(nxt_unit_init_t *init, nxt_python_proto_t *proto)
         func = nxt_python_asgi_get_func(nxt_py_targets->target[i].application);
         if (nxt_slow_path(func == NULL)) {
             nxt_unit_debug(NULL, "asgi: cannot find function for callable, "
-                                 "unable to check for legacy mode (#%d)", i);
+                                 "unable to check for legacy mode (#%d)",
+                                 (int) i);
             continue;
         }
 
