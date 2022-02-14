@@ -241,7 +241,6 @@ nxt_cert_bio(nxt_task_t *task, BIO *bio)
                     goto fail;
                 }
 
-                nxt_free(cert);
                 cert = new_cert;
             }
 

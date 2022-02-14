@@ -33,6 +33,13 @@ NGINX Unit updated to 1.27.0.
 
 <change type="bugfix">
 <para>
+the controller process could crash when a chain with more than 4
+certificates was uploaded.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
 some Perl applications failed to process the request body, notably with Plack.
 </para>
 </change>
