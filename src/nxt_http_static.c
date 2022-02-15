@@ -571,7 +571,9 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
         /* Not a file. */
         nxt_file_close(task, f);
 
-        if (nxt_slow_path(!nxt_is_dir(&fi))) {
+        if (nxt_slow_path(!nxt_is_dir(&fi)
+                          || shr->start[shr->length - 1] == '/'))
+        {
             nxt_log(task, NXT_LOG_ERR, "\"%FN\" is not a regular file",
                     f->name);
 
