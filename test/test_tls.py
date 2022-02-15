@@ -389,6 +389,51 @@ basicConstraints = critical,CA:TRUE"""
             self.get_ssl()['status'] == 200
         ), 'certificate chain intermediate server'
 
+    def test_tls_certificate_chain_long(self, temp_dir):
+        self.load('empty')
+
+        self.generate_ca_conf()
+
+        # Minimum chain length is 3.
+        chain_length = 10
+
+        for i in range(chain_length):
+            if i == 0:
+                self.certificate('root', False)
+            elif i == chain_length - 1:
+                self.req('end')
+            else:
+                self.req('int{}'.format(i))
+
+        for i in range(chain_length - 1):
+            if i == 0:
+                self.ca(cert='root', out='int1')
+            elif i == chain_length - 2:
+                self.ca(cert='int{}'.format(chain_length - 2), out='end')
+            else:
+                self.ca(cert='int{}'.format(i), out='int{}'.format(i + 1))
+
+        for i in range(chain_length - 1, 0, -1):
+            path = temp_dir + (
+                '/end.crt' if i == chain_length - 1 else '/int{}.crt'.format(i)
+            )
+
+            with open(temp_dir + '/all.crt', 'a') as chain, open(path) as cert:
+                chain.write(cert.read())
+
+        self.set_certificate_req_context()
+
+        assert 'success' in self.certificate_load(
+            'all', 'end'
+        ), 'certificate chain upload'
+
+        chain = self.conf_get('/certificates/all/chain')
+        assert len(chain) == chain_length - 1, 'certificate chain length'
+
+        self.add_tls(cert='all')
+
+        assert self.get_ssl()['status'] == 200, 'certificate chain long'
+
     def test_tls_certificate_empty_cn(self, temp_dir):
         self.certificate('root', False)
 
