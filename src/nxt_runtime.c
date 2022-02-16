@@ -2,6 +2,7 @@
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) Valentin V. Bartenev
+ * Copyright (C) Evgenii Sokolov
  * Copyright (C) NGINX, Inc.
  */
 
@@ -771,6 +772,7 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
     rt->modules = NXT_MODULES;
     rt->state = NXT_STATE;
     rt->control = NXT_CONTROL_SOCK;
+    rt->unix_sock_mod = NXT_UNIX_DOMAIN_MODE;
     rt->tmp = NXT_TMP;
 
     nxt_memzero(&rt->capabilities, sizeof(nxt_capabilities_t));
@@ -922,6 +924,10 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
 
     static const char  no_control[] =
                        "option \"--control\" requires socket address\n";
+    static const char  no_unix_sock_mod[] =
+                       "option \"--unix-sock-mod\" requires socket mode\n";
+    static const char  invalid_unix_sock_mod[] =
+                        "option \"--unix-sock-mod\" invalid value specified\n";
     static const char  no_user[] = "option \"--user\" requires username\n";
     static const char  no_group[] = "option \"--group\" requires group name\n";
     static const char  no_pid[] = "option \"--pid\" requires filename\n";
@@ -941,6 +947,9 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
         "\n"
         "  --control ADDRESS    set address of control API socket\n"
         "                       default: \"" NXT_CONTROL_SOCK "\"\n"
+        "\n"
+        "  --unix-sock-mod MODE set mode to unix socket as a listener\n"
+        "                       default: \"" NXT_UNIX_DOMAIN_MODE "\"\n"
         "\n"
         "  --pid FILE           set pid filename\n"
         "                       default: \"" NXT_PID "\"\n"
@@ -982,6 +991,32 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
             p = *argv++;
 
             rt->control = p;
+
+            continue;
+        }
+
+        if (nxt_strcmp(p, "--unix-sock-mod") == 0) {
+            if (*argv == NULL) {
+                write(STDERR_FILENO, no_unix_sock_mod, nxt_length(no_unix_sock_mod));
+                return NXT_ERROR;
+            }
+
+            p = *argv++;
+            nxt_uint_t p_len = nxt_strlen(p);
+
+            if (p_len == 0 || p_len > 3) {
+                write(STDERR_FILENO, invalid_unix_sock_mod, nxt_length(invalid_unix_sock_mod));
+                return NXT_ERROR;
+            }
+            for (nxt_uint_t i = 0; i < p_len; i++) {
+                u_char digit = (u_char) p[i] - '0';
+                if (digit > 7) {
+                    write(STDERR_FILENO, invalid_unix_sock_mod, nxt_length(invalid_unix_sock_mod));
+                    return NXT_ERROR;
+                }
+            }
+
+            rt->unix_sock_mod = p;
 
             continue;
         }

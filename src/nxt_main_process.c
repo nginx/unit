@@ -1,6 +1,7 @@
 
 /*
  * Copyright (C) Igor Sysoev
+ * Copyright (C) Evgenii Sokolov
  * Copyright (C) NGINX, Inc.
  */
 
@@ -49,7 +50,7 @@ static void nxt_main_process_cleanup(nxt_task_t *task, nxt_process_t *process);
 static void nxt_main_port_socket_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
 static nxt_int_t nxt_main_listening_socket(nxt_sockaddr_t *sa,
-    nxt_listening_socket_t *ls);
+    nxt_listening_socket_t *ls, nxt_runtime_t *rt);
 static void nxt_main_port_modules_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
 static int nxt_cdecl nxt_app_lang_compare(const void *v1, const void *v2);
@@ -1032,7 +1033,10 @@ nxt_main_port_socket_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_sockaddr_t          *sa;
     nxt_port_msg_type_t     type;
     nxt_listening_socket_t  ls;
+    nxt_runtime_t           *rt;
     u_char                  message[2048];
+
+    rt = task->thread->runtime;
 
     port = nxt_runtime_port_find(task->thread->runtime, msg->port_msg.pid,
                                  msg->port_msg.reply_port);
@@ -1060,7 +1064,7 @@ nxt_main_port_socket_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_debug(task, "listening socket \"%*s\"",
               (size_t) sa->length, nxt_sockaddr_start(sa));
 
-    ret = nxt_main_listening_socket(sa, &ls);
+    ret = nxt_main_listening_socket(sa, &ls, rt);
 
     if (ret == NXT_OK) {
         nxt_debug(task, "socket(\"%*s\"): %d",
@@ -1092,7 +1096,7 @@ nxt_main_port_socket_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
 
 static nxt_int_t
-nxt_main_listening_socket(nxt_sockaddr_t *sa, nxt_listening_socket_t *ls)
+nxt_main_listening_socket(nxt_sockaddr_t *sa, nxt_listening_socket_t *ls, nxt_runtime_t *rt)
 {
     nxt_err_t         err;
     nxt_socket_t      s;
@@ -1188,15 +1192,36 @@ nxt_main_listening_socket(nxt_sockaddr_t *sa, nxt_listening_socket_t *ls)
 #if (NXT_HAVE_UNIX_DOMAIN)
 
     if (sa->u.sockaddr.sa_family == AF_UNIX) {
-        char     *filename;
-        mode_t   access;
+        nxt_uint_t      m_len;
+        nxt_uid_t       uid;
+        nxt_gid_t       gid;
+        mode_t          access;
+        char            *filename;
 
         filename = sa->u.sockaddr_un.sun_path;
-        access = (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+        m_len = nxt_strlen(rt->unix_sock_mod);
+        access = 0;
+
+        for (nxt_uint_t i = 0; i < m_len; i++) {
+            nxt_uint_t oct = (nxt_uint_t) rt->unix_sock_mod[i] - '0';
+            if (m_len == 3 && i == 0) oct *= 64;
+            if ((m_len == 3 && i == 1) || (m_len == 2 && i == 0)) oct *= 8;
+            access += oct;
+        }
 
         if (chmod(filename, access) != 0) {
             ls->end = nxt_sprintf(ls->start, ls->end,
                                   "chmod(\\\"%s\\\") failed %E",
+                                  filename, nxt_errno);
+            goto fail;
+        }
+
+        uid = rt->user_cred.uid;
+        gid = rt->user_cred.base_gid;
+
+        if (chown(filename, uid, gid) != 0) {
+            ls->end = nxt_sprintf(ls->start, ls->end,
+                                  "chown(\\\"%s\\\") failed %E",
                                   filename, nxt_errno);
             goto fail;
         }

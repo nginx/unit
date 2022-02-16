@@ -1,6 +1,7 @@
 
 # Copyright (C) Igor Sysoev
 # Copyright (C) Valentin V. Bartenev
+# Copyright (C) Evgenii Sokolov
 # Copyright (C) NGINX, Inc.
 
 
@@ -68,6 +69,8 @@ do
         --log=*)                         NXT_LOG="$value"                    ;;
 
         --control=*)                     NXT_CONTROL="$value"                ;;
+
+        --unix-sock-mod=*)               NXT_UNIX_DOMAIN_MODE="$value"       ;;
 
         --user=*)                        NXT_USER="$value"                   ;;
         --group=*)                       NXT_GROUP="$value"                  ;;
@@ -179,4 +182,9 @@ case "$NXT_CONTROL" in
     unix:/*)  ;;
     unix:*)   NXT_CONTROL="unix:$NXT_PREFIX${NXT_CONTROL##unix:}" ;;
     *)        ;;
+esac
+
+case "$NXT_UNIX_DOMAIN_MODE" in
+     [0-7][0-7][0-7])  ;;
+     *) NXT_UNIX_DOMAIN_MODE=$NXT_UNIX_DOMAIN_MODE ;;
 esac

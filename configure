@@ -1,6 +1,7 @@
 #!/bin/sh
 
 # Copyright (C) Igor Sysoev
+# Copyright (C) Evgenii Sokolov
 # Copyright (C) NGINX, Inc.
 
 
@@ -42,6 +43,7 @@ NXT_TMP="tmp"
 NXT_PID="unit.pid"
 NXT_LOG="unit.log"
 NXT_CONTROL="unix:control.unit.sock"
+NXT_UNIX_DOMAIN_MODE="666"
 NXT_USER="nobody"
 NXT_GROUP=
 
@@ -92,6 +94,8 @@ cat << END >> $NXT_AUTO_CONFIG_H
 #define NXT_TMP                "$NXT_TMP"
 
 #define NXT_CONTROL_SOCK       "$NXT_CONTROL"
+
+#define NXT_UNIX_DOMAIN_MODE   "$NXT_UNIX_DOMAIN_MODE"
 
 #define NXT_USER               "$NXT_USER"
 #define NXT_GROUP              "$NXT_GROUP"

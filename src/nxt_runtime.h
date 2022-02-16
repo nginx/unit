@@ -71,6 +71,7 @@ struct nxt_runtime_s {
     const char             *conf;
     const char             *conf_tmp;
     const char             *control;
+    const char             *unix_sock_mod;
     const char             *tmp;
 
     nxt_str_t              certs;

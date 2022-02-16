@@ -1,5 +1,6 @@
 
 # Copyright (C) Igor Sysoev
+# Copyright (C) Evgenii Sokolov
 # Copyright (C) NGINX, Inc.
 
 
@@ -28,6 +29,9 @@ cat << END
 
   --control=ADDRESS    set address of control API socket
                        default: "$NXT_CONTROL"
+
+  --unix-sock-mod=MODE set mode to unix socket as a listener
+                       default: "$NXT_UNIX_DOMAIN_MODE"
 
   --user=USER          set non-privileged processes to run as specified user
                        default: "$NXT_USER"

@@ -1,5 +1,6 @@
 
 # Copyright (C) Igor Sysoev
+# Copyright (C) Evgenii Sokolov
 # Copyright (C) NGINX, Inc.
 
 
@@ -26,6 +27,7 @@ Unit configuration summary:
 
   IPv6 support: .............. $NXT_INET6
   Unix domain sockets support: $NXT_UNIX_DOMAIN
+  Unix domain sockets mode: .. $NXT_UNIX_DOMAIN_MODE
   TLS support: ............... $NXT_OPENSSL
 
   process isolation: ......... $NXT_ISOLATION
