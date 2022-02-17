@@ -1408,6 +1408,7 @@ nxt_runtime_process_release(nxt_runtime_t *rt, nxt_process_t *process)
 
     nxt_assert(process->use_count == 0);
     nxt_assert(process->registered == 0);
+    nxt_assert(nxt_queue_is_empty(&process->ports));
 
     nxt_port_mmaps_destroy(&process->incoming, 1);
 
@@ -1579,11 +1580,11 @@ nxt_runtime_process_add(nxt_task_t *task, nxt_process_t *process)
 
         process->registered = 1;
 
-        nxt_thread_log_debug("process %PI added", process->pid);
+        nxt_debug(task, "process %PI added", process->pid);
         break;
 
     default:
-        nxt_thread_log_debug("process %PI failed to add", process->pid);
+        nxt_alert(task, "process %PI failed to add", process->pid);
         break;
     }
 
@@ -1597,6 +1598,8 @@ nxt_runtime_process_remove(nxt_runtime_t *rt, nxt_process_t *process)
     nxt_pid_t           pid;
     nxt_lvlhsh_query_t  lhq;
 
+    nxt_assert(process->registered != 0);
+
     pid = process->pid;
 
     nxt_runtime_process_lhq_pid(&lhq, &pid);
@@ -1608,9 +1611,9 @@ nxt_runtime_process_remove(nxt_runtime_t *rt, nxt_process_t *process)
     switch (nxt_lvlhsh_delete(&rt->processes, &lhq)) {
 
     case NXT_OK:
-        rt->nprocesses--;
+        nxt_assert(lhq.value == process);
 
-        process = lhq.value;
+        rt->nprocesses--;
 
         process->registered = 0;
 
@@ -1618,7 +1621,7 @@ nxt_runtime_process_remove(nxt_runtime_t *rt, nxt_process_t *process)
         break;
 
     default:
-        nxt_thread_log_debug("process %PI remove failed", pid);
+        nxt_thread_log_alert("process %PI remove failed", pid);
         break;
     }
 

@@ -296,6 +296,16 @@ nxt_process_child_fixup(nxt_task_t *task, nxt_process_t *process)
 
     } nxt_runtime_process_loop;
 
+    if (init->siblings != NULL) {
+        nxt_queue_each(p, init->siblings, nxt_process_t, link) {
+
+            nxt_debug(task, "remove sibling process %PI", p->pid);
+
+            nxt_process_close_ports(task, p);
+
+        } nxt_queue_loop;
+    }
+
     return NXT_OK;
 }
 
@@ -303,8 +313,9 @@ nxt_process_child_fixup(nxt_task_t *task, nxt_process_t *process)
 static nxt_pid_t
 nxt_process_create(nxt_task_t *task, nxt_process_t *process)
 {
-    nxt_int_t           ret;
-    nxt_pid_t           pid;
+    nxt_int_t      ret;
+    nxt_pid_t      pid;
+    nxt_runtime_t  *rt;
 
 #if (NXT_HAVE_CLONE)
     pid = nxt_clone(SIGCHLD | process->isolation.clone.flags);
@@ -352,7 +363,20 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
     process->pid = pid;
     process->isolated_pid = pid;
 
-    nxt_runtime_process_add(task, process);
+    rt = task->thread->runtime;
+
+    if (rt->is_pid_isolated) {
+        /*
+         * Do not register process in runtime with isolated pid.
+         * Only global pid can be the key to avoid clash.
+         */
+        nxt_assert(!nxt_queue_is_empty(&process->ports));
+
+        nxt_port_use(task, nxt_process_port_first(process), 1);
+
+    } else {
+        nxt_runtime_process_add(task, process);
+    }
 
     return pid;
 }
@@ -960,6 +984,8 @@ nxt_process_close_ports(nxt_task_t *task, nxt_process_t *process)
 {
     nxt_port_t  *port;
 
+    nxt_process_use(task, process, 1);
+
     nxt_process_port_each(process, port) {
 
         nxt_port_close(task, port);
@@ -967,6 +993,8 @@ nxt_process_close_ports(nxt_task_t *task, nxt_process_t *process)
         nxt_runtime_port_remove(task, port);
 
     } nxt_process_port_loop;
+
+    nxt_process_use(task, process, -1);
 }
 
 

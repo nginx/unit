@@ -148,6 +148,8 @@ typedef struct {
 
     const nxt_port_handlers_t  *port_handlers;
     const nxt_sig_event_t      *signals;
+
+    nxt_queue_t                *siblings;
 } nxt_process_init_t;
 
 
