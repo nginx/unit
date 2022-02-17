@@ -1,5 +1,6 @@
 
 /*
+ * Copyright (C) Evgenii Sokolov
  * Copyright (C) Igor Sysoev
  * Copyright (C) NGINX, Inc.
  */
@@ -1096,18 +1097,20 @@ nxt_main_listening_socket(nxt_sockaddr_t *sa, nxt_listening_socket_t *ls)
 {
     nxt_err_t         err;
     nxt_socket_t      s;
+    sa_family_t       family;
 
     const socklen_t   length = sizeof(int);
     static const int  enable = 1;
 
-    s = socket(sa->u.sockaddr.sa_family, sa->type, 0);
+    family = sa->u.sockaddr.sa_family;
+    s = socket(family, sa->type, 0);
 
     if (nxt_slow_path(s == -1)) {
         err = nxt_errno;
 
 #if (NXT_INET6)
 
-        if (err == EAFNOSUPPORT && sa->u.sockaddr.sa_family == AF_INET6) {
+        if (err == EAFNOSUPPORT && family == AF_INET6) {
             ls->error = NXT_SOCKET_ERROR_NOINET6;
         }
 
@@ -1125,20 +1128,37 @@ nxt_main_listening_socket(nxt_sockaddr_t *sa, nxt_listening_socket_t *ls)
                               "setsockopt(\\\"%*s\\\", SO_REUSEADDR) failed %E",
                               (size_t) sa->length, nxt_sockaddr_start(sa),
                               nxt_errno);
-        goto fail;
+        goto fail_before_bind;
     }
 
 #if (NXT_INET6)
 
-    if (sa->u.sockaddr.sa_family == AF_INET6) {
+    if (family == AF_INET6) {
 
         if (setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &enable, length) != 0) {
             ls->end = nxt_sprintf(ls->start, ls->end,
                                "setsockopt(\\\"%*s\\\", IPV6_V6ONLY) failed %E",
                                (size_t) sa->length, nxt_sockaddr_start(sa),
                                nxt_errno);
-            goto fail;
+            goto fail_before_bind;
         }
+
+    }
+
+#endif
+
+#if (NXT_HAVE_UNIX_DOMAIN)
+
+    if (family == AF_UNIX && sa->u.sockaddr_un.sun_path[0] != '\0') {
+        const char *filename = sa->u.sockaddr_un.sun_path;
+
+        if (unlink(filename) != 0 && nxt_errno != ENOENT) {
+            ls->end = nxt_sprintf(ls->start, ls->end,
+                                  "unlink(\\\"%s\\\") failed %E",
+                                  filename, nxt_errno);
+            goto fail_before_bind;
+        }
+
     }
 
 #endif
@@ -1148,7 +1168,7 @@ nxt_main_listening_socket(nxt_sockaddr_t *sa, nxt_listening_socket_t *ls)
 
 #if (NXT_HAVE_UNIX_DOMAIN)
 
-        if (sa->u.sockaddr.sa_family == AF_UNIX) {
+        if (family == AF_UNIX) {
             switch (err) {
 
             case EACCES:
@@ -1166,30 +1186,34 @@ nxt_main_listening_socket(nxt_sockaddr_t *sa, nxt_listening_socket_t *ls)
         {
             switch (err) {
 
-            case EACCES:
-                ls->error = NXT_SOCKET_ERROR_PORT;
-                break;
+                case EACCES:
+                    ls->error = NXT_SOCKET_ERROR_PORT;
+                    break;
 
-            case EADDRINUSE:
-                ls->error = NXT_SOCKET_ERROR_INUSE;
-                break;
+                case EADDRINUSE:
+                    ls->error = NXT_SOCKET_ERROR_INUSE;
+                    break;
 
-            case EADDRNOTAVAIL:
-                ls->error = NXT_SOCKET_ERROR_NOADDR;
-                break;
+                case EADDRNOTAVAIL:
+                    ls->error = NXT_SOCKET_ERROR_NOADDR;
+                    break;
+
+                default:
+                    break;
+
             }
         }
 
         ls->end = nxt_sprintf(ls->start, ls->end, "bind(\\\"%*s\\\") failed %E",
                               (size_t) sa->length, nxt_sockaddr_start(sa), err);
-        goto fail;
+        goto fail_after_bind;
     }
 
 #if (NXT_HAVE_UNIX_DOMAIN)
 
-    if (sa->u.sockaddr.sa_family == AF_UNIX) {
-        char     *filename;
-        mode_t   access;
+    if (family == AF_UNIX) {
+        const char  *filename;
+        mode_t      access;
 
         filename = sa->u.sockaddr_un.sun_path;
         access = (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
@@ -1198,7 +1222,7 @@ nxt_main_listening_socket(nxt_sockaddr_t *sa, nxt_listening_socket_t *ls)
             ls->end = nxt_sprintf(ls->start, ls->end,
                                   "chmod(\\\"%s\\\") failed %E",
                                   filename, nxt_errno);
-            goto fail;
+            goto fail_after_bind;
         }
     }
 
@@ -1208,11 +1232,26 @@ nxt_main_listening_socket(nxt_sockaddr_t *sa, nxt_listening_socket_t *ls)
 
     return NXT_OK;
 
-fail:
+fail_before_bind:
 
     (void) close(s);
 
     return NXT_ERROR;
+
+fail_after_bind:
+
+    (void) close(s);
+
+#if (NXT_HAVE_UNIX_DOMAIN)
+
+    if (family == AF_UNIX && sa->u.sockaddr_un.sun_path[0] != '\0') {
+        (void) unlink(sa->u.sockaddr_un.sun_path);
+    }
+
+#endif
+
+    return NXT_ERROR;
+
 }
 
 
