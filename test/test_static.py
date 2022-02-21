@@ -102,6 +102,16 @@ class TestStatic(TestApplicationProto):
         set_index('')
         assert self.get()['status'] == 404, 'index empty'
 
+        set_index('${host}.html')
+        assert (
+            self.get(headers={"Host": "index", "Connection": "close"})['body']
+            == '0123456789'
+        ), 'index var'
+        assert (
+            self.get(headers={"Connection": "close"})['status']
+            == 404
+        ), 'index var empty'
+
     def test_static_index_default(self):
         assert self.get(url='/index.html')['body'] == '0123456789', 'index'
         assert self.get(url='/')['body'] == '0123456789', 'index 2'
