@@ -87,6 +87,22 @@ class TestStatic(TestApplicationProto):
         assert self.get(url='/')['body'] == '0123456789', 'before 1.26.0 2'
 
     def test_static_index(self):
+        def set_index(index):
+            assert 'success' in self.conf(
+                {"share": option.temp_dir + "/assets$uri", "index": index},
+                'routes/0/action',
+            ), 'configure index'
+
+        set_index('README')
+        assert self.get()['body'] == 'readme', 'index'
+
+        self.conf_delete('routes/0/action/index')
+        assert self.get()['body'] == '0123456789', 'delete index'
+
+        set_index('')
+        assert self.get()['status'] == 404, 'index empty'
+
+    def test_static_index_default(self):
         assert self.get(url='/index.html')['body'] == '0123456789', 'index'
         assert self.get(url='/')['body'] == '0123456789', 'index 2'
         assert self.get(url='//')['body'] == '0123456789', 'index 3'
@@ -101,6 +117,18 @@ class TestStatic(TestApplicationProto):
         assert (
             resp['headers']['Content-Type'] == 'text/html'
         ), 'index not found 2 Content-Type'
+
+    def test_static_index_invalid(self, skip_alert):
+        skip_alert(r'failed to apply new conf')
+
+        def check_index(index):
+            assert 'error' in self.conf(
+                {"share": option.temp_dir + "/assets$uri", "index": index},
+                'routes/0/action',
+            )
+
+        check_index({})
+        check_index(['index.html', '$blah'])
 
     def test_static_large_file(self, temp_dir):
         file_size = 32 * 1024 * 1024
