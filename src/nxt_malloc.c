@@ -64,17 +64,24 @@ nxt_zalloc(size_t size)
 void *
 nxt_realloc(void *p, size_t size)
 {
-    void  *n;
+    void       *n;
+    uintptr_t  ptr;
+
+    /*
+     * Workaround for a warning on GCC 12 about using "p" pointer in debug log
+     * after realloc().
+     */
+    ptr = (uintptr_t) p;
 
     n = realloc(p, size);
 
     if (nxt_fast_path(n != NULL)) {
-        nxt_log_debug(nxt_malloc_log(), "realloc(%p, %uz): %p", p, size, n);
+        nxt_log_debug(nxt_malloc_log(), "realloc(%p, %uz): %p", ptr, size, n);
 
     } else {
         nxt_log_alert_moderate(&nxt_malloc_log_moderation, nxt_malloc_log(),
                                "realloc(%p, %uz) failed %E",
-                               p, size, nxt_errno);
+                               ptr, size, nxt_errno);
     }
 
     return n;
