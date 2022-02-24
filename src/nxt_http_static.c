@@ -19,7 +19,7 @@ typedef struct {
 typedef struct {
     nxt_uint_t                  nshares;
     nxt_http_static_share_t     *shares;
-    nxt_str_t                   index;
+    nxt_var_t                   *index;
 #if (NXT_HAVE_OPENAT2)
     nxt_var_t                   *chroot;
     nxt_uint_t                  resolve;
@@ -82,6 +82,8 @@ nxt_http_static_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_conf_value_t        *cv;
     nxt_http_static_conf_t  *conf;
 
+    static const nxt_str_t  default_index = nxt_string("index.html");
+
     mp = tmcf->router_conf->mem_pool;
 
     conf = nxt_mp_zget(mp, sizeof(nxt_http_static_conf_t));
@@ -113,12 +115,18 @@ nxt_http_static_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     }
 
     if (acf->index == NULL) {
-        nxt_str_set(&conf->index, "index.html");
+        str = default_index;
 
     } else {
         nxt_conf_get_string(acf->index, &str);
-        nxt_str_dup(mp, &conf->index, &str);
     }
+
+    var = nxt_var_compile(&str, mp, 1);
+    if (nxt_slow_path(var == NULL)) {
+        return NXT_ERROR;
+    }
+
+    conf->index = var;
 
 #if (NXT_HAVE_OPENAT2)
     if (acf->chroot.length > 0) {
@@ -223,9 +231,9 @@ nxt_http_static_iterate(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_static_ctx_t *ctx)
 {
     nxt_int_t                ret;
+    nxt_bool_t               shr_is_const, idx_is_const;
     nxt_http_static_conf_t   *conf;
     nxt_http_static_share_t  *share;
-    nxt_bool_t               shr_is_const;
 
     conf = ctx->action->u.conf;
 
@@ -236,7 +244,7 @@ nxt_http_static_iterate(nxt_task_t *task, nxt_http_request_t *r,
     nxt_str_t  idx;
 
     nxt_var_raw(share->var, &shr);
-    idx = conf->index;
+    nxt_var_raw(conf->index, &idx);
 
 #if (NXT_HAVE_OPENAT2)
     nxt_str_t  chr;
@@ -256,8 +264,9 @@ nxt_http_static_iterate(nxt_task_t *task, nxt_http_request_t *r,
 #endif /* NXT_DEBUG */
 
     shr_is_const = share->is_const;
+    idx_is_const = nxt_var_is_const(conf->index);
 
-    if (!shr_is_const) {
+    if (!shr_is_const || !idx_is_const) {
         ret = nxt_var_query_init(&r->var_query, r, r->mem_pool);
         if (nxt_slow_path(ret != NXT_OK)) {
             nxt_http_request_error(task, r, NXT_HTTP_INTERNAL_SERVER_ERROR);
@@ -265,7 +274,12 @@ nxt_http_static_iterate(nxt_task_t *task, nxt_http_request_t *r,
         }
     }
 
-    ctx->index = conf->index;
+    if (idx_is_const) {
+        nxt_var_raw(conf->index, &ctx->index);
+
+    } else {
+        nxt_var_query(task, r->var_query, conf->index, &ctx->index);
+    }
 
     if (shr_is_const) {
         nxt_var_raw(share->var, &ctx->share);
@@ -286,7 +300,7 @@ nxt_http_static_iterate(nxt_task_t *task, nxt_http_request_t *r,
 #endif
     }
 
-    if (shr_is_const) {
+    if (shr_is_const && idx_is_const) {
         nxt_http_static_send_ready(task, r, ctx);
 
     } else {
