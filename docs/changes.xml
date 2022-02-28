@@ -50,6 +50,12 @@ increased the applications' startup timeout.
 </para>
 </change>
 
+<change type="feature">
+<para>
+supporting UNIX sockets in address matching.
+</para>
+</change>
+
 </changes>
 
 
