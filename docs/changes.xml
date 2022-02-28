@@ -33,6 +33,12 @@ NGINX Unit updated to 1.28.0.
 
 <change type="feature">
 <para>
+supporting UNIX sockets in address matching.
+</para>
+</change>
+
+<change type="feature">
+<para>
 forwarded header to replace client address and protocol.
 </para>
 </change>
@@ -49,6 +55,12 @@ more http variables support.
 </para>
 </change>
 
+<change type="feature">
+<para>
+added a new variable, $dollar, that translates to a literal "$" during
+</para>
+</change>
+
 <change type="bugfix">
 <para>
 an index file that didn't contain a file extension was incorrectly
@@ -59,13 +71,6 @@ handled, and caused a use-after-free bug.
 <change type="change">
 <para>
 increased the applications' startup timeout.
-</para>
-</change>
-
-<change type="feature">
-<para>
-added a new variable, $dollar, that translates to a literal "$" during
-variable substitution.
 </para>
 </change>
 
