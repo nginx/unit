@@ -132,6 +132,17 @@ nxt_prefetch(a)
 #endif
 
 
+#if (NXT_HAVE_GCC_ATTRIBUTE_UNUSED)
+
+#define NXT_MAYBE_UNUSED         __attribute__((__unused__))
+
+#else
+
+#define NXT_MAYBE_UNUSED
+
+#endif
+
+
 #if (NXT_HAVE_BUILTIN_POPCOUNT)
 
 #define nxt_popcount       __builtin_popcount
