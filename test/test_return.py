@@ -83,7 +83,7 @@ Connection: close
         assert resp['body'] == ''
 
     def test_return_location(self):
-        reserved = ":/?#[]@!$&'()*+,;="
+        reserved = ":/?#[]@!&'()*+,;="
         unreserved = (
             "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
             "0123456789-._~"
@@ -107,15 +107,15 @@ Connection: close
         check_location(reserved)
 
         # After first "?" all other "?" encoded.
-        check_location("/?" + reserved, "/?:/%3F#[]@!$&'()*+,;=")
+        check_location("/?" + reserved, "/?:/%3F#[]@!&'()*+,;=")
         check_location("???", "?%3F%3F")
 
         # After first "#" all other "?" or "#" encoded.
-        check_location("/#" + reserved, "/#:/%3F%23[]@!$&'()*+,;=")
+        check_location("/#" + reserved, "/#:/%3F%23[]@!&'()*+,;=")
         check_location("##?#?", "#%23%3F%23%3F")
 
         # After first "?" next "#" not encoded.
-        check_location("/?#" + reserved, "/?#:/%3F%23[]@!$&'()*+,;=")
+        check_location("/?#" + reserved, "/?#:/%3F%23[]@!&'()*+,;=")
         check_location("??##", "?%3F#%23")
         check_location("/?##?", "/?#%23%3F")
 
