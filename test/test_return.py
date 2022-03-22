@@ -178,6 +178,21 @@ Connection: close
             == "/#%23foo%3Fbar"
         ), 'location with a variable with encoding'
 
+        assert 'success' in self.conf(
+            '""', 'routes/0/action/location'
+        ), 'location empty'
+        assert self.get()['headers']['Location'] == ''
+
+        assert 'success' in self.conf(
+            '"${host}"', 'routes/0/action/location'
+        ), 'location empty with variable'
+        assert (
+            self.get(headers={"Host": "", "Connection": "close"})['headers'][
+                'Location'
+            ]
+            == ""
+        ), 'location with empty variable'
+
     def test_return_invalid(self):
         def check_error(conf):
             assert 'error' in self.conf(conf, 'routes/0/action')
