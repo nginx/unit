@@ -161,6 +161,23 @@ Connection: close
         ), 'location method not allowed'
         assert self.get()['headers']['Location'] == 'blah'
 
+        assert 'success' in self.conf(
+            '"https://${host}${uri}"', 'routes/0/action/location'
+        ), 'location with variables'
+        assert self.get()['headers']['Location'] == 'https://localhost/'
+
+        assert 'success' in self.conf(
+            '"/#$host"', 'routes/0/action/location'
+        ), 'location with encoding and a variable'
+        assert self.get()['headers']['Location'] == '/#localhost'
+
+        assert (
+            self.get(headers={"Host": "#foo?bar", "Connection": "close"})[
+                'headers'
+            ]['Location']
+            == "/#%23foo%3Fbar"
+        ), 'location with a variable with encoding'
+
     def test_return_invalid(self):
         def check_error(conf):
             assert 'error' in self.conf(conf, 'routes/0/action')
@@ -171,6 +188,8 @@ Connection: close
         check_error({"return": 1000})
         check_error({"return": -1})
         check_error({"return": 200, "share": "/blah"})
+        check_error({"return": 200, "location": "$hos"})
+        check_error({"return": 200, "location": "$hostblah"})
 
         assert 'error' in self.conf(
             '001', 'routes/0/action/return'
