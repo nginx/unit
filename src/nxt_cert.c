@@ -894,7 +894,7 @@ nxt_cert_store_load(nxt_task_t *task, nxt_mp_t *mp)
 
 
         if (nxt_slow_path(ret != NXT_OK)) {
-            nxt_array_remove_last(certs);
+            nxt_array_del_last(certs);
             continue;
         }
 

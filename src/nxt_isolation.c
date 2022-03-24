@@ -565,7 +565,7 @@ nxt_isolation_set_lang_mounts(nxt_task_t *task, nxt_process_t *process,
     mp = process->mem_pool;
 
     /* copy to init mem pool */
-    mounts = nxt_array_copy(mp, NULL, lang_mounts);
+    mounts = nxt_array_copy(mp, lang_mounts);
     if (mounts == NULL) {
         return NXT_ERROR;
     }
