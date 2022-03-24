@@ -33,8 +33,8 @@ typedef struct {
 
 
 struct nxt_var_query_s {
-    nxt_array_t         values;   /* of nxt_var_value_t */
-    nxt_array_t         parts;    /* of nxt_str_t * */
+    nxt_array_t         *values;   /* of nxt_var_value_t */
+    nxt_array_t         *parts;    /* of nxt_str_t * */
 
     nxt_lvlhsh_t        cache;
 
@@ -433,11 +433,18 @@ nxt_var_query_init(nxt_var_query_t **query_p, void *ctx, nxt_mp_t *mp)
             return NXT_ERROR;
         }
 
-        nxt_array_init(&query->values, mp, sizeof(nxt_var_value_t));
-        nxt_array_init(&query->parts, mp, sizeof(nxt_str_t *));
+        query->values = nxt_array_create(mp, 1, sizeof(nxt_var_value_t));
+        if (nxt_slow_path(query->values == NULL)) {
+            return NXT_ERROR;
+        }
+
+        query->parts = nxt_array_create(mp, 1, sizeof(nxt_str_t *));
+        if (nxt_slow_path(query->parts == NULL)) {
+            return NXT_ERROR;
+        }
 
     } else {
-        nxt_array_reset(&query->values);
+        nxt_array_reset(query->values);
     }
 
     query->ctx = ctx;
@@ -469,7 +476,7 @@ nxt_var_query(nxt_task_t *task, nxt_var_query_t *query, nxt_var_t *var,
         return;
     }
 
-    mp = query->values.mem_pool;
+    mp = query->values->mem_pool;
     subs = nxt_var_subs(var);
     value = query->spare;
 
@@ -509,7 +516,7 @@ nxt_var_query(nxt_task_t *task, nxt_var_query_t *query, nxt_var_t *var,
 
     query->spare = value;
 
-    val = nxt_array_add(&query->values);
+    val = nxt_array_add(query->values);
     if (nxt_slow_path(val == NULL)) {
         goto fail;
     }
@@ -566,9 +573,9 @@ nxt_var_query_finish(nxt_task_t *task, nxt_var_query_t *query)
         goto done;
     }
 
-    val = query->values.elts;
+    val = query->values->elts;
 
-    for (i = 0; i < query->values.nelts; i++) {
+    for (i = 0; i < query->values->nelts; i++) {
         var = val[i].var;
 
         subs = nxt_var_subs(var);
@@ -579,7 +586,7 @@ nxt_var_query_finish(nxt_task_t *task, nxt_var_query_t *query)
 
             nxt_assert(str != NULL);
 
-            part = nxt_array_add(&query->parts);
+            part = nxt_array_add(query->parts);
 
             if (nxt_slow_path(part == NULL)) {
                 query->failed = 1;
@@ -591,7 +598,7 @@ nxt_var_query_finish(nxt_task_t *task, nxt_var_query_t *query)
             length += str->length - subs[j].length;
         }
 
-        p = nxt_mp_nget(query->values.mem_pool, length + var->strz);
+        p = nxt_mp_nget(query->values->mem_pool, length + var->strz);
         if (nxt_slow_path(p == NULL)) {
             query->failed = 1;
             goto done;
@@ -600,7 +607,7 @@ nxt_var_query_finish(nxt_task_t *task, nxt_var_query_t *query)
         val[i].value->length = length;
         val[i].value->start = p;
 
-        part = query->parts.elts;
+        part = query->parts->elts;
         src = nxt_var_raw_start(var);
 
         last = 0;
@@ -625,7 +632,7 @@ nxt_var_query_finish(nxt_task_t *task, nxt_var_query_t *query)
             *p = '\0';
         }
 
-        nxt_array_reset(&query->parts);
+        nxt_array_reset(query->parts);
 
         nxt_debug(task, "var: \"%*s\" -> \"%V\"", var->length, src,
                   val[i].value);

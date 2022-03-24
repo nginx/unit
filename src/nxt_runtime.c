@@ -734,7 +734,7 @@ nxt_runtime_thread_pool_exit(nxt_task_t *task, void *obj, void *data)
     for (i = 0; i < n; i++) {
 
         if (tp == thread_pools[i]) {
-            nxt_array_remove(rt->thread_pools, &thread_pools[i]);
+            nxt_array_del(rt->thread_pools, &thread_pools[i]);
 
             nxt_free(tp);
 
