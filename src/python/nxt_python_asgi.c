@@ -30,6 +30,8 @@ static void nxt_py_asgi_close_handler(nxt_unit_request_info_t *req);
 static PyObject *nxt_py_asgi_create_http_scope(nxt_unit_request_info_t *req);
 static PyObject *nxt_py_asgi_create_address(nxt_unit_sptr_t *sptr, uint8_t len,
     uint16_t port);
+static PyObject *nxt_py_asgi_create_ip_address(nxt_unit_sptr_t *sptr,
+    uint8_t len, uint16_t port);
 static PyObject *nxt_py_asgi_create_header(nxt_unit_field_t *f);
 static PyObject *nxt_py_asgi_create_subprotocols(nxt_unit_field_t *f);
 
@@ -663,7 +665,7 @@ nxt_py_asgi_create_http_scope(nxt_unit_request_info_t *req)
     SET_ITEM(scope, query_string, v)
     Py_DECREF(v);
 
-    v = nxt_py_asgi_create_address(&r->remote, r->remote_length, 0);
+    v = nxt_py_asgi_create_ip_address(&r->remote, r->remote_length, 0);
     if (nxt_slow_path(v == NULL)) {
         nxt_unit_req_alert(req, "Python failed to create 'client' pair");
         goto fail;
@@ -735,6 +737,48 @@ fail:
 
 static PyObject *
 nxt_py_asgi_create_address(nxt_unit_sptr_t *sptr, uint8_t len, uint16_t port)
+{
+    size_t     prefix_len;
+    nxt_str_t  addr;
+    PyObject   *pair, *v;
+
+    addr.length = len;
+    addr.start = nxt_unit_sptr_get(sptr);
+
+    prefix_len = nxt_length("unix:");
+    if (!nxt_str_start(&addr, "unix:", prefix_len)) {
+        return nxt_py_asgi_create_ip_address(sptr, len, port);
+    }
+
+#if NXT_HAVE_UNIX_DOMAIN
+    pair = PyTuple_New(2);
+    if (nxt_slow_path(pair == NULL)) {
+        return NULL;
+    }
+
+    addr.start += prefix_len;
+    addr.length -= prefix_len;
+
+    v = PyString_FromStringAndSize((const char *) addr.start, addr.length);
+    if (nxt_slow_path(v == NULL)) {
+        Py_DECREF(pair);
+
+        return NULL;
+    }
+
+    PyTuple_SET_ITEM(pair, 0, v);
+    PyTuple_SET_ITEM(pair, 1, Py_None);
+
+    return pair;
+
+#else
+    return NULL;
+#endif
+}
+
+
+static PyObject *
+nxt_py_asgi_create_ip_address(nxt_unit_sptr_t *sptr, uint8_t len, uint16_t port)
 {
     char      *p, *s;
     PyObject  *pair, *v;
