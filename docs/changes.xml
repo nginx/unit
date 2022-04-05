@@ -33,6 +33,12 @@ NGINX Unit updated to 1.27.0.
 
 <change type="feature">
 <para>
+variables support in the "location" option of the "return" action.
+</para>
+</change>
+
+<change type="feature">
+<para>
 compatibility with GCC 12.
 </para>
 </change>

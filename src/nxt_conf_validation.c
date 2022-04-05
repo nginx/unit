@@ -635,6 +635,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_return_action_members[] = {
     }, {
         .name       = nxt_string("location"),
         .type       = NXT_CONF_VLDT_STRING,
+        .flags      = NXT_CONF_VLDT_VAR,
     },
 
     NXT_CONF_VLDT_END
