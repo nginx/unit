@@ -626,7 +626,7 @@ static nxt_conf_map_t  nxt_http_route_action_conf[] = {
     },
     {
         nxt_string("location"),
-        NXT_CONF_MAP_STR,
+        NXT_CONF_MAP_PTR,
         offsetof(nxt_http_action_conf_t, location)
     },
     {

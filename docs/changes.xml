@@ -37,6 +37,12 @@ Ruby Rack environment parameter "SCRIPT_NAME" support.
 </para>
 </change>
 
+<change type="change">
+<para>
+supporting empty strings in the "location" option of the "return" action.
+</para>
+</change>
+
 <change type="feature">
 <para>
 variables support in the "location" option of the "return" action.

@@ -206,7 +206,7 @@ typedef struct nxt_http_route_addr_rule_s  nxt_http_route_addr_rule_t;
 typedef struct {
     nxt_conf_value_t                *pass;
     nxt_conf_value_t                *ret;
-    nxt_str_t                       location;
+    nxt_conf_value_t                *location;
     nxt_conf_value_t                *proxy;
     nxt_conf_value_t                *share;
     nxt_str_t                       chroot;

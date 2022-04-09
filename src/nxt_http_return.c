@@ -11,12 +11,10 @@ typedef struct {
     nxt_http_status_t  status;
     nxt_var_t          *location;
     nxt_str_t          encoded;
-    uint8_t            loc_is_const;
 } nxt_http_return_conf_t;
 
 
 typedef struct {
-    nxt_http_action_t  *action;
     nxt_str_t          location;
     nxt_str_t          encoded;
 } nxt_http_return_ctx_t;
@@ -38,7 +36,6 @@ nxt_http_return_init(nxt_mp_t *mp, nxt_http_action_t *action,
     nxt_http_action_conf_t *acf)
 {
     nxt_str_t               str;
-    nxt_var_t               *var;
     nxt_http_return_conf_t  *conf;
 
     conf = nxt_mp_zget(mp, sizeof(nxt_http_return_conf_t));
@@ -51,20 +48,18 @@ nxt_http_return_init(nxt_mp_t *mp, nxt_http_action_t *action,
 
     conf->status = nxt_conf_get_number(acf->ret);
 
-    if (acf->location.length == 0) {
-        conf->loc_is_const = 1;
+    if (acf->location == NULL) {
         return NXT_OK;
     }
 
-    var = nxt_var_compile(&acf->location, mp, 0);
-    if (nxt_slow_path(var == NULL)) {
+    nxt_conf_get_string(acf->location, &str);
+
+    conf->location = nxt_var_compile(&str, mp, 0);
+    if (nxt_slow_path(conf->location == NULL)) {
         return NXT_ERROR;
     }
 
-    conf->location = var;
-    conf->loc_is_const = nxt_var_is_const(var);
-
-    if (conf->loc_is_const) {
+    if (nxt_var_is_const(conf->location)) {
         nxt_var_raw(conf->location, &str);
         return nxt_http_return_encode(mp, &conf->encoded, &str);
     }
@@ -100,17 +95,23 @@ nxt_http_return(nxt_task_t *task, nxt_http_request_t *r,
         return NULL;
     }
 
-    ctx = nxt_mp_zget(r->mem_pool, sizeof(nxt_http_return_ctx_t));
-    if (nxt_slow_path(ctx == NULL)) {
-        goto fail;
+    if (conf->location == NULL) {
+        ctx = NULL;
+
+    } else {
+        ctx = nxt_mp_zget(r->mem_pool, sizeof(nxt_http_return_ctx_t));
+        if (nxt_slow_path(ctx == NULL)) {
+            goto fail;
+        }
     }
 
-    ctx->action = action;
     r->status = conf->status;
     r->resp.content_length_n = 0;
 
-    if (conf->loc_is_const) {
-        ctx->encoded = conf->encoded;
+    if (ctx == NULL || nxt_var_is_const(conf->location)) {
+        if (ctx != NULL) {
+            ctx->encoded = conf->encoded;
+        }
 
         nxt_http_return_send_ready(task, r, ctx);
 
@@ -167,25 +168,21 @@ nxt_http_return_send_ready(nxt_task_t *task, void *obj, void *data)
 {
     nxt_int_t               ret;
     nxt_http_field_t        *field;
-    nxt_http_action_t       *action;
     nxt_http_request_t      *r;
     nxt_http_return_ctx_t   *ctx;
-    nxt_http_return_conf_t  *conf;
 
     r = obj;
     ctx = data;
-    action = ctx->action;
-    conf = action->u.conf;
 
-    if (!conf->loc_is_const) {
-        ret = nxt_http_return_encode(r->mem_pool, &ctx->encoded,
-                                     &ctx->location);
-        if (nxt_slow_path(ret == NXT_ERROR)) {
-            goto fail;
+    if (ctx != NULL) {
+        if (ctx->location.length > 0) {
+            ret = nxt_http_return_encode(r->mem_pool, &ctx->encoded,
+                                         &ctx->location);
+            if (nxt_slow_path(ret == NXT_ERROR)) {
+                goto fail;
+            }
         }
-    }
 
-    if (ctx->encoded.length > 0) {
         field = nxt_list_zero_add(r->resp.fields);
         if (nxt_slow_path(field == NULL)) {
             goto fail;
