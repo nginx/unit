@@ -75,8 +75,7 @@ Content-Length: 10
                         "type": self.get_application_type(),
                         "processes": {"spare": 0},
                         "path": option.test_dir + "/python/mirror",
-                        "working_directory": option.test_dir
-                        + "/python/mirror",
+                        "working_directory": option.test_dir + "/python/mirror",
                         "module": "wsgi",
                     },
                     "custom_header": {
@@ -126,8 +125,7 @@ Content-Length: 10
                         "type": self.get_application_type(),
                         "processes": {"spare": 0},
                         "path": option.test_dir + "/python/mirror",
-                        "working_directory": option.test_dir
-                        + "/python/mirror",
+                        "working_directory": option.test_dir + "/python/mirror",
                         "module": "wsgi",
                     }
                 },
@@ -502,8 +500,7 @@ Content-Length: 10
                         "type": self.get_application_type(),
                         "processes": {"spare": 0},
                         "path": option.test_dir + "/python/mirror",
-                        "working_directory": option.test_dir
-                        + "/python/mirror",
+                        "working_directory": option.test_dir + "/python/mirror",
                         "module": "wsgi",
                     },
                 },

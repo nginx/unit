@@ -12,7 +12,10 @@ class TestRouting(TestApplicationPython):
             {
                 "listeners": {"*:7080": {"pass": "routes"}},
                 "routes": [
-                    {"match": {"method": "GET"}, "action": {"return": 200},}
+                    {
+                        "match": {"method": "GET"},
+                        "action": {"return": 200},
+                    }
                 ],
                 "applications": {},
             }
@@ -490,11 +493,15 @@ class TestRouting(TestApplicationPython):
             'routes/0/action',
         ), 'proxy share'
         assert 'error' in self.conf(
-            {"proxy": "http://127.0.0.1:7081", "pass": "applications/app",},
+            {
+                "proxy": "http://127.0.0.1:7081",
+                "pass": "applications/app",
+            },
             'routes/0/action',
         ), 'proxy pass'
         assert 'error' in self.conf(
-            {"share": temp_dir, "pass": "applications/app"}, 'routes/0/action',
+            {"share": temp_dir, "pass": "applications/app"},
+            'routes/0/action',
         ), 'share pass'
 
     def test_routes_rules_two(self):
@@ -693,7 +700,8 @@ class TestRouting(TestApplicationPython):
         assert self.post()['status'] == 404, 'routes edit POST'
 
         assert 'success' in self.conf_post(
-            {"match": {"method": "POST"}, "action": {"return": 200}}, 'routes',
+            {"match": {"method": "POST"}, "action": {"return": 200}},
+            'routes',
         ), 'routes edit configure 2'
         assert 'GET' == self.conf_get(
             'routes/0/match/method'
@@ -733,7 +741,8 @@ class TestRouting(TestApplicationPython):
         assert self.post()['status'] == 404, 'routes edit POST 5'
 
         assert 'success' in self.conf_post(
-            {"match": {"method": "POST"}, "action": {"return": 200}}, 'routes',
+            {"match": {"method": "POST"}, "action": {"return": 200}},
+            'routes',
         ), 'routes edit configure 6'
 
         assert self.get()['status'] == 404, 'routes edit GET 6'
@@ -1042,9 +1051,7 @@ class TestRouting(TestApplicationPython):
 
         def check_headers(hds):
             hds = dict({"Host": "localhost", "Connection": "close"}, **hds)
-            assert (
-                self.get(headers=hds)['status'] == 200
-            ), 'headers array match'
+            assert self.get(headers=hds)['status'] == 200, 'headers array match'
 
         def check_headers_404(hds):
             hds = dict({"Host": "localhost", "Connection": "close"}, **hds)
@@ -1262,9 +1269,7 @@ class TestRouting(TestApplicationPython):
             self.get(url='/?foo=bar&blah=test')['status'] == 200
         ), 'multiple 2'
         assert self.get(url='/?foo=bar&blah')['status'] == 404, 'multiple 3'
-        assert (
-            self.get(url='/?foo=bar&blah=tes')['status'] == 404
-        ), 'multiple 4'
+        assert self.get(url='/?foo=bar&blah=tes')['status'] == 404, 'multiple 4'
         assert (
             self.get(url='/?foo=b%61r&bl%61h=t%65st')['status'] == 200
         ), 'multiple 5'
@@ -1494,9 +1499,7 @@ class TestRouting(TestApplicationPython):
         sock, port = sock_port()
         sock2, port2 = sock_port()
 
-        self.route_match(
-            {"source": "127.0.0.1:" + str(port) + "-" + str(port)}
-        )
+        self.route_match({"source": "127.0.0.1:" + str(port) + "-" + str(port)})
         assert self.get(sock=sock)['status'] == 200, 'range single'
         assert self.get(sock=sock2)['status'] == 404, 'range single 2'
 
@@ -1544,7 +1547,10 @@ class TestRouting(TestApplicationPython):
 
     def test_routes_source_addr(self):
         assert 'success' in self.conf(
-            {"*:7080": {"pass": "routes"}, "[::1]:7081": {"pass": "routes"},},
+            {
+                "*:7080": {"pass": "routes"},
+                "[::1]:7081": {"pass": "routes"},
+            },
             'listeners',
         ), 'source listeners configure'
 
@@ -1650,7 +1656,10 @@ class TestRouting(TestApplicationPython):
 
     def test_routes_source_cidr(self):
         assert 'success' in self.conf(
-            {"*:7080": {"pass": "routes"}, "[::1]:7081": {"pass": "routes"},},
+            {
+                "*:7080": {"pass": "routes"},
+                "[::1]:7081": {"pass": "routes"},
+            },
             'listeners',
         ), 'source listeners configure'
 

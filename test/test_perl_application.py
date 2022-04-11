@@ -134,8 +134,7 @@ class TestPerlApplication(TestApplicationPerl):
         assert self.get()['body'] == '1', 'errors result'
 
         assert (
-            self.wait_for_record(r'\[error\].+Error in application')
-            is not None
+            self.wait_for_record(r'\[error\].+Error in application') is not None
         ), 'errors print'
 
     def test_perl_application_header_equal_names(self):

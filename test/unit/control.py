@@ -30,10 +30,6 @@ def args_handler(conf_func):
 
 
 class TestControl(TestHTTP):
-
-    # TODO socket reuse
-    # TODO http client
-
     @args_handler
     def conf(self, conf, url):
         return self.put(**self._get_args(url, conf))['body']

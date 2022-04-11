@@ -56,9 +56,7 @@ class TestPythonIsolation(TestApplicationPython):
 
         ret = self.getjson(url='/?path=/app/python/ns_inspect')
 
-        assert (
-            ret['body']['FileExists'] == True
-        ), 'application exists in rootfs'
+        assert ret['body']['FileExists'] == True, 'application exists in rootfs'
 
     def test_python_isolation_rootfs_no_language_deps(self, is_su, temp_dir):
         if not is_su:
@@ -93,8 +91,7 @@ class TestPythonIsolation(TestApplicationPython):
         self.load('ns_inspect', isolation=isolation)
 
         assert (
-            self.getjson(url='/?path=/proc/self')['body']['FileExists']
-            == False
+            self.getjson(url='/?path=/proc/self')['body']['FileExists'] == False
         ), 'no /proc/self'
 
         isolation['automount']['procfs'] = True

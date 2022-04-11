@@ -34,11 +34,13 @@ class TestRubyIsolation(TestApplicationRuby):
         self.load('status_int', isolation=isolation)
 
         assert 'success' in self.conf(
-            '"/ruby/status_int/config.ru"', 'applications/status_int/script',
+            '"/ruby/status_int/config.ru"',
+            'applications/status_int/script',
         )
 
         assert 'success' in self.conf(
-            '"/ruby/status_int"', 'applications/status_int/working_directory',
+            '"/ruby/status_int"',
+            'applications/status_int/working_directory',
         )
 
         assert self.get()['status'] == 200, 'status int'

@@ -175,8 +175,7 @@ class TestRubyApplication(TestApplicationRuby):
         self.get()
 
         assert (
-            self.wait_for_record(r'\[error\].+Error in application')
-            is not None
+            self.wait_for_record(r'\[error\].+Error in application') is not None
         ), 'errors puts'
 
     def test_ruby_application_errors_puts_int(self):
@@ -194,8 +193,7 @@ class TestRubyApplication(TestApplicationRuby):
         self.get()
 
         assert (
-            self.wait_for_record(r'\[error\].+Error in application')
-            is not None
+            self.wait_for_record(r'\[error\].+Error in application') is not None
         ), 'errors write'
 
     def test_ruby_application_errors_write_to_s_custom(self):
@@ -229,7 +227,8 @@ class TestRubyApplication(TestApplicationRuby):
         try:
             locales = (
                 subprocess.check_output(
-                    ['locale', '-a'], stderr=subprocess.STDOUT,
+                    ['locale', '-a'],
+                    stderr=subprocess.STDOUT,
                 )
                 .decode()
                 .split('\n')

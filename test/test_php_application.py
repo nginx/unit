@@ -419,9 +419,7 @@ opcache.preload_user = %(user)s
 
         body = self.get()['body']
 
-        assert not re.search(
-            r'time: \d+', body
-        ), 'disable_functions comma time'
+        assert not re.search(r'time: \d+', body), 'disable_functions comma time'
         assert not re.search(
             r'exec: \/\w+', body
         ), 'disable_functions comma exec'
@@ -498,9 +496,7 @@ opcache.preload_user = %(user)s
 
         body = self.get()['body']
 
-        assert not re.search(
-            r'time: \d+', body
-        ), 'disable_functions space time'
+        assert not re.search(r'time: \d+', body), 'disable_functions space time'
         assert not re.search(
             r'exec: \/\w+', body
         ), 'disable_functions space exec'
@@ -671,7 +667,8 @@ opcache.preload_user = %(user)s
         assert resp['body'] == script_cwd, 'default cwd'
 
         assert 'success' in self.conf(
-            '"' + option.test_dir + '"', 'applications/cwd/working_directory',
+            '"' + option.test_dir + '"',
+            'applications/cwd/working_directory',
         )
 
         resp = self.get()

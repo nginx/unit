@@ -173,9 +173,7 @@ class TestJavaApplication(TestApplicationJava):
             }
         )
 
-        assert (
-            resp['headers']['X-Session-Id'] == session_id
-        ), 'session active 2'
+        assert resp['headers']['X-Session-Id'] == session_id, 'session active 2'
 
         time.sleep(2)
 
@@ -187,9 +185,7 @@ class TestJavaApplication(TestApplicationJava):
             }
         )
 
-        assert (
-            resp['headers']['X-Session-Id'] == session_id
-        ), 'session active 3'
+        assert resp['headers']['X-Session-Id'] == session_id, 'session active 3'
 
     def test_java_application_session_inactive(self):
         self.load('session_inactive')
@@ -213,9 +209,7 @@ class TestJavaApplication(TestApplicationJava):
             }
         )
 
-        assert (
-            resp['headers']['X-Session-Id'] != session_id
-        ), 'session inactive'
+        assert resp['headers']['X-Session-Id'] != session_id, 'session inactive'
 
     def test_java_application_session_invalidate(self):
         self.load('session_invalidate')
@@ -391,9 +385,7 @@ class TestJavaApplication(TestApplicationJava):
         assert (
             headers['X-Content-Type'] == 'text/plain;charset=utf-8'
         ), '#1 response Content-Type'
-        assert (
-            headers['X-Character-Encoding'] == 'utf-8'
-        ), '#1 response charset'
+        assert headers['X-Character-Encoding'] == 'utf-8', '#1 response charset'
 
         headers = self.get(url='/2')['headers']
 
@@ -445,15 +437,11 @@ class TestJavaApplication(TestApplicationJava):
 
         headers = self.get(url='/6')['headers']
 
-        assert (
-            'Content-Type' in headers
-        ) == False, '#6 no Content-Type header'
+        assert ('Content-Type' in headers) == False, '#6 no Content-Type header'
         assert (
             'X-Content-Type' in headers
         ) == False, '#6 no response Content-Type'
-        assert (
-            headers['X-Character-Encoding'] == 'utf-8'
-        ), '#6 response charset'
+        assert headers['X-Character-Encoding'] == 'utf-8', '#6 response charset'
 
         headers = self.get(url='/7')['headers']
 
@@ -463,9 +451,7 @@ class TestJavaApplication(TestApplicationJava):
         assert (
             headers['X-Content-Type'] == 'text/plain;charset=utf-8'
         ), '#7 response Content-Type'
-        assert (
-            headers['X-Character-Encoding'] == 'utf-8'
-        ), '#7 response charset'
+        assert headers['X-Character-Encoding'] == 'utf-8', '#7 response charset'
 
         headers = self.get(url='/8')['headers']
 
@@ -475,9 +461,7 @@ class TestJavaApplication(TestApplicationJava):
         assert (
             headers['X-Content-Type'] == 'text/html;charset=utf-8'
         ), '#8 response Content-Type'
-        assert (
-            headers['X-Character-Encoding'] == 'utf-8'
-        ), '#8 response charset'
+        assert headers['X-Character-Encoding'] == 'utf-8', '#8 response charset'
 
     def test_java_application_welcome_files(self):
         self.load('welcome_files')
@@ -490,9 +474,7 @@ class TestJavaApplication(TestApplicationJava):
 
         resp = self.get(url='/dir1/')
 
-        assert (
-            'This is index.txt.' in resp['body']
-        ) == True, 'dir1 index body'
+        assert ('This is index.txt.' in resp['body']) == True, 'dir1 index body'
         assert resp['headers']['X-TXT-Filter'] == '1', 'TXT Filter header'
 
         headers = self.get(url='/dir2/')['headers']
@@ -655,9 +637,7 @@ class TestJavaApplication(TestApplicationJava):
         assert (
             headers['X-FORWARD-Id'] == 'data'
         ), 'forward request servlet mapping'
-        assert (
-            headers['X-FORWARD-Request-URI'] == '/fwd'
-        ), 'forward request uri'
+        assert headers['X-FORWARD-Request-URI'] == '/fwd', 'forward request uri'
         assert (
             headers['X-FORWARD-Servlet-Path'] == '/fwd'
         ), 'forward request servlet path'
@@ -1003,9 +983,7 @@ class TestJavaApplication(TestApplicationJava):
         )
 
         assert resp['status'] == 200, 'multipart status'
-        assert re.search(
-            r'sample\.txt created', resp['body']
-        ), 'multipart body'
+        assert re.search(r'sample\.txt created', resp['body']), 'multipart body'
         assert (
             self.search_in_log(
                 r'^Data from sample file$', name=reldst + '/sample.txt'

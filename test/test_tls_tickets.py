@@ -17,9 +17,7 @@ class TestTLSTicket(TestApplicationTLS):
     prerequisites = {'modules': {'openssl': 'any'}}
 
     ticket = 'U1oDTh11mMxODuw12gS0EXX1E/PkZG13cJNQ6m5+6BGlfPTjNlIEw7PSVU3X1gTE'
-    ticket2 = (
-        '5AV0DSYIYbZWZQB7fCnTHZmMxtotb/aXjam+n2XS79lTvX3Tq9xGqpC8XKNEF2lt'
-    )
+    ticket2 = '5AV0DSYIYbZWZQB7fCnTHZmMxtotb/aXjam+n2XS79lTvX3Tq9xGqpC8XKNEF2lt'
     ticket80 = '6Pfil8lv/k8zf8MndPpfXaO5EAV6dhME6zs6CfUyq2yziynQwSywtKQMqHGnJ2HR\
 49TZXi/Y4/8RSIO7QPsU51/HLR1gWIMhVM2m9yh93Bw='
 
@@ -182,7 +180,8 @@ class TestTLSTicket(TestApplicationTLS):
     def test_tls_ticket_invalid(self):
         def check_tickets(tickets):
             assert 'error' in self.conf(
-                {"tickets": tickets}, 'listeners/*:7080/tls/session',
+                {"tickets": tickets},
+                'listeners/*:7080/tls/session',
             )
 
         check_tickets({})

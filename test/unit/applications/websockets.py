@@ -43,7 +43,11 @@ class TestApplicationWebsocket(TestApplicationProto):
                 'Sec-WebSocket-Version': 13,
             }
 
-        _, sock = self.get(headers=headers, no_recv=True, start=True,)
+        _, sock = self.get(
+            headers=headers,
+            no_recv=True,
+            start=True,
+        )
 
         resp = ''
         while True:
@@ -218,9 +222,7 @@ class TestApplicationWebsocket(TestApplicationProto):
         while pos < message_len:
             end = min(pos + fragmention_size, message_len)
             fin = end == message_len
-            self.frame_write(
-                sock, op_code, message[pos:end], fin=fin, **kwargs
-            )
+            self.frame_write(sock, op_code, message[pos:end], fin=fin, **kwargs)
             op_code = self.OP_CONT
             pos = end
 

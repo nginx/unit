@@ -342,7 +342,8 @@ Connection: close
         assert self.get()['body'] == ''
 
         assert 'success' in self.conf(
-            {"127.0.0.1:7083": {"weight": 2}}, 'upstreams/one/servers',
+            {"127.0.0.1:7083": {"weight": 2}},
+            'upstreams/one/servers',
         ), 'active req new server'
         assert 'success' in self.conf_delete(
             'upstreams/one/servers/127.0.0.1:7083'

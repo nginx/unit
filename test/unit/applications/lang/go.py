@@ -24,8 +24,8 @@ class TestApplicationGo(TestApplicationProto):
         env['GOCACHE'] = cache_dir
 
         shutil.copy2(
-            option.test_dir + '/go/' + script + '/' + name + '.go',
-            temp_dir)
+            option.test_dir + '/go/' + script + '/' + name + '.go', temp_dir
+        )
 
         if static:
             args = [
@@ -55,7 +55,8 @@ class TestApplicationGo(TestApplicationProto):
                 f"""module test/app
 require unit.nginx.org/go v0.0.0
 replace unit.nginx.org/go => {replace_path}
-""")
+"""
+            )
 
         if option.detailed:
             print("\n$ GOPATH=" + env['GOPATH'] + " " + " ".join(args))

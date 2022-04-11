@@ -159,9 +159,7 @@ def pytest_generate_tests(metafunc):
                     type + ' ' + available_versions[0]
                 )
             elif callable(prereq_version):
-                generate_tests(
-                    list(filter(prereq_version, available_versions))
-                )
+                generate_tests(list(filter(prereq_version, available_versions)))
 
             else:
                 raise ValueError(
@@ -320,9 +318,7 @@ def run(request):
 
                 public_dir(path)
 
-                if os.path.isfile(path) or stat.S_ISSOCK(
-                    os.stat(path).st_mode
-                ):
+                if os.path.isfile(path) or stat.S_ISSOCK(os.stat(path).st_mode):
                     os.remove(path)
                 else:
                     for attempt in range(10):
@@ -520,7 +516,7 @@ def _clear_conf(sock, *, log=None):
 
     try:
         certs = json.loads(
-            http.get(url='/certificates', sock_type='unix', addr=sock,)['body']
+            http.get(url='/certificates', sock_type='unix', addr=sock)['body']
         ).keys()
 
     except json.JSONDecodeError:
@@ -528,7 +524,9 @@ def _clear_conf(sock, *, log=None):
 
     for cert in certs:
         resp = http.delete(
-            url='/certificates/' + cert, sock_type='unix', addr=sock,
+            url='/certificates/' + cert,
+            sock_type='unix',
+            addr=sock,
         )['body']
 
         assert 'success' in resp, 'remove certificate'
@@ -554,9 +552,7 @@ def _check_fds(*, log=None):
         )
         ps['fds'] += fds_diff
 
-        assert (
-            fds_diff <= option.fds_threshold
-        ), 'descriptors leak main process'
+        assert fds_diff <= option.fds_threshold, 'descriptors leak main process'
 
     else:
         ps['fds'] = _count_fds(unit_instance['pid'])
@@ -588,7 +584,8 @@ def _count_fds(pid):
 
     try:
         out = subprocess.check_output(
-            ['procstat', '-f', pid], stderr=subprocess.STDOUT,
+            ['procstat', '-f', pid],
+            stderr=subprocess.STDOUT,
         ).decode()
         return len(out.splitlines())
 
@@ -597,7 +594,8 @@ def _count_fds(pid):
 
     try:
         out = subprocess.check_output(
-            ['lsof', '-n', '-p', pid], stderr=subprocess.STDOUT,
+            ['lsof', '-n', '-p', pid],
+            stderr=subprocess.STDOUT,
         ).decode()
         return len(out.splitlines())
 

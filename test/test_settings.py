@@ -207,9 +207,7 @@ Connection: close
             {"unix:" + addr: {'application': 'body_generate'}}, 'listeners'
         )
 
-        assert 'success' in self.conf(
-            {'http': {'send_timeout': 1}}, 'settings'
-        )
+        assert 'success' in self.conf({'http': {'send_timeout': 1}}, 'settings')
 
         data = req(addr, data_len)
         assert re.search(r'200 OK', data), 'send timeout status'
@@ -237,14 +235,10 @@ Connection: close
 
         assert self.get()['status'] == 200, 'init'
 
-        assert 'success' in self.conf(
-            {'http': {'idle_timeout': 2}}, 'settings'
-        )
+        assert 'success' in self.conf({'http': {'idle_timeout': 2}}, 'settings')
         assert req()['status'] == 408, 'status idle timeout'
 
-        assert 'success' in self.conf(
-            {'http': {'idle_timeout': 7}}, 'settings'
-        )
+        assert 'success' in self.conf({'http': {'idle_timeout': 7}}, 'settings')
         assert req()['status'] == 200, 'status idle timeout 2'
 
     def test_settings_idle_timeout_2(self):
@@ -259,14 +253,10 @@ Connection: close
 
         assert self.get()['status'] == 200, 'init'
 
-        assert 'success' in self.conf(
-            {'http': {'idle_timeout': 1}}, 'settings'
-        )
+        assert 'success' in self.conf({'http': {'idle_timeout': 1}}, 'settings')
         assert req()['status'] == 408, 'status idle timeout'
 
-        assert 'success' in self.conf(
-            {'http': {'idle_timeout': 7}}, 'settings'
-        )
+        assert 'success' in self.conf({'http': {'idle_timeout': 7}}, 'settings')
         assert req()['status'] == 200, 'status idle timeout 2'
 
     def test_settings_max_body_size(self):

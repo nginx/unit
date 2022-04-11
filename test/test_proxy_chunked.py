@@ -90,12 +90,13 @@ class TestProxyChunked(TestApplicationPython):
 
         assert 'success' in self.conf(
             {
-                "listeners": {"*:7080": {"pass": "routes"},},
+                "listeners": {
+                    "*:7080": {"pass": "routes"},
+                },
                 "routes": [
                     {
                         "action": {
-                            "proxy": "http://127.0.0.1:"
-                            + str(self.SERVER_PORT)
+                            "proxy": "http://127.0.0.1:" + str(self.SERVER_PORT)
                         }
                     }
                 ],
@@ -166,9 +167,7 @@ class TestProxyChunked(TestApplicationPython):
 
         assert (
             self.get_http10(
-                body=self.chunks(
-                    [('1', hex(i % 16)[2:]) for i in range(4096)]
-                ),
+                body=self.chunks([('1', hex(i % 16)[2:]) for i in range(4096)]),
             )['body']
             == part * 256
         )
@@ -210,8 +209,7 @@ class TestProxyChunked(TestApplicationPython):
         assert resp['body'][-5:] != '0\r\n\r\n', 'no zero chunk'
 
         assert (
-            self.get_http10(body='\r\n\r\n80000000\r\nA X 100')['status']
-            == 200
+            self.get_http10(body='\r\n\r\n80000000\r\nA X 100')['status'] == 200
         )
         assert (
             self.get_http10(body='\r\n\r\n10000000000000000\r\nA X 100')[

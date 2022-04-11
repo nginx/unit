@@ -358,9 +358,7 @@ basicConstraints = critical,CA:TRUE"""
 
         self.add_tls(cert='int')
 
-        assert (
-            self.get_ssl()['status'] == 200
-        ), 'certificate chain intermediate'
+        assert self.get_ssl()['status'] == 200, 'certificate chain intermediate'
 
         # intermediate server
 

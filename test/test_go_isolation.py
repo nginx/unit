@@ -167,9 +167,7 @@ class TestGoIsolation(TestApplicationGo):
             user='nobody',
             isolation={
                 'namespaces': {'credential': True},
-                'uidmap': [
-                    {'container': 0, 'host': 0, 'size': nobody_uid + 1}
-                ],
+                'uidmap': [{'container': 0, 'host': 0, 'size': nobody_uid + 1}],
             },
         )
 

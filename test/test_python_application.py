@@ -735,9 +735,7 @@ last line: 987654321
             'nobody uid user=nobody group=%s' % group
         )
 
-        assert obj['GID'] == group_id, (
-            'nobody gid user=nobody group=%s' % group
-        )
+        assert obj['GID'] == group_id, 'nobody gid user=nobody group=%s' % group
 
         self.load('user_group', group=group)
 

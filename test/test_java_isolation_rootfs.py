@@ -11,7 +11,7 @@ class TestJavaIsolationRootfs(TestApplicationJava):
 
     def setup_method(self, is_su):
         if not is_su:
-            return
+            pytest.skip('require root')
 
         os.makedirs(option.temp_dir + '/jars')
         os.makedirs(option.temp_dir + '/tmp')
@@ -61,7 +61,8 @@ class TestJavaIsolationRootfs(TestApplicationJava):
         self.load('empty_war', isolation=isolation)
 
         assert 'success' in self.conf(
-            '"/"', '/config/applications/empty_war/working_directory',
+            '"/"',
+            '/config/applications/empty_war/working_directory',
         )
 
         assert 'success' in self.conf(

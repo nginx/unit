@@ -41,9 +41,7 @@ class TestStaticMount(TestApplicationProto):
         self._load_conf(
             {
                 "listeners": {"*:7080": {"pass": "routes"}},
-                "routes": [
-                    {"action": {"share": temp_dir + "/assets/dir$uri"}}
-                ],
+                "routes": [{"action": {"share": temp_dir + "/assets/dir$uri"}}],
             }
         )
 
