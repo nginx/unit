@@ -334,6 +334,10 @@ def run(request):
 
     _check_fds(log=log)
 
+    # check processes id's and amount
+
+    _check_processes()
+
     # print unit.log in case of error
 
     if hasattr(request.node, 'rep_call') and request.node.rep_call.failed:
@@ -433,6 +437,16 @@ def unit_stop():
 
         return
 
+    # check zombies
+
+    out = subprocess.check_output(
+        ['ps', 'ax', '-o', 'state', '-o', 'ppid']
+    ).decode()
+    z_ppids = re.findall(r'Z\s*(\d+)', out)
+    assert unit_instance['pid'] not in z_ppids, 'no zombies'
+
+    # terminate unit
+
     p = unit_instance['process']
 
     if p.poll() is not None:
@@ -530,6 +544,50 @@ def _clear_conf(sock, *, log=None):
         )['body']
 
         assert 'success' in resp, 'remove certificate'
+
+
+def _check_processes():
+    router_pid = _fds_info['router']['pid']
+    controller_pid = _fds_info['controller']['pid']
+    unit_pid = unit_instance['pid']
+
+    for i in range(600):
+        out = (
+            subprocess.check_output(
+                ['ps', '-ax', '-o', 'pid', '-o', 'ppid', '-o', 'command']
+            )
+            .decode()
+            .splitlines()
+        )
+        out = [l for l in out if unit_pid in l]
+
+        if len(out) <= 3:
+            break
+
+        time.sleep(0.1)
+
+    assert len(out) == 3, 'main, router, and controller expected'
+
+    out = [l for l in out if 'unit: main' not in l]
+    assert len(out) == 2, 'one main'
+
+    out = [
+        l
+        for l in out
+        if re.search(router_pid + r'\s+' + unit_pid + r'.*unit: router', l)
+        is None
+    ]
+    assert len(out) == 1, 'one router'
+
+    out = [
+        l
+        for l in out
+        if re.search(
+            controller_pid + r'\s+' + unit_pid + r'.*unit: controller', l
+        )
+        is None
+    ]
+    assert len(out) == 0, 'one controller'
 
 
 @print_log_on_assert
