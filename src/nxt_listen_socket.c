@@ -8,7 +8,7 @@
 
 
 static u_char *nxt_listen_socket_log_handler(void *ctx, u_char *pos,
-    u_char *last);
+    u_char *end);
 
 
 nxt_int_t
