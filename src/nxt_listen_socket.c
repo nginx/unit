@@ -129,7 +129,7 @@ nxt_listen_socket_create(nxt_task_t *task, nxt_mp_t *mp,
     if (family == AF_UNIX) {
         name = (nxt_file_name_t *) sa->u.sockaddr_un.sun_path;
 
-        access = (S_IRUSR | S_IWUSR);
+        access = (ls->access) ? ls->access : (S_IRUSR | S_IWUSR);
 
         if (nxt_file_set_access(name, access) != NXT_OK) {
             goto listen_fail;

@@ -29,6 +29,9 @@ typedef struct {
 #if (NXT_INET6 && defined IPV6_V6ONLY)
     uint8_t                   ipv6only;            /* 2 bits */
 #endif
+#if (NXT_HAVE_UNIX_DOMAIN)
+    nxt_file_access_t         access;
+#endif
 
     uint8_t                   socklen;
     uint8_t                   address_length;
