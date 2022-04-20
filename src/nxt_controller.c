@@ -631,7 +631,7 @@ nxt_runtime_controller_socket(nxt_task_t *task, nxt_runtime_t *rt)
 {
     nxt_listen_socket_t  *ls;
 
-    ls = nxt_mp_alloc(rt->mem_pool, sizeof(nxt_listen_socket_t));
+    ls = nxt_mp_zalloc(rt->mem_pool, sizeof(nxt_listen_socket_t));
     if (ls == NULL) {
         return NXT_ERROR;
     }
