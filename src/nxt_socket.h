@@ -116,6 +116,7 @@ NXT_EXPORT ssize_t nxt_socketpair_send(nxt_fd_event_t *ev, nxt_fd_t *fd,
     nxt_iobuf_t *iob, nxt_uint_t niob);
 NXT_EXPORT ssize_t nxt_socketpair_recv(nxt_fd_event_t *ev,
     nxt_iobuf_t *iob, nxt_uint_t niob, void *oob);
+NXT_EXPORT nxt_int_t nxt_socket_release_by_path(nxt_file_name_t *name);
 
 
 #define                                                                       \

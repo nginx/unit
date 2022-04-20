@@ -177,6 +177,10 @@ nxt_is_file(fi)                                                               \
     (S_ISREG((fi)->st_mode))
 
 #define                                                                       \
+nxt_is_sock(fi)                                                               \
+    (S_ISSOCK((fi)->st_mode))
+
+#define                                                                       \
 nxt_file_size(fi)                                                             \
     (fi)->st_size
 

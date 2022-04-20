@@ -112,7 +112,11 @@ nxt_listen_socket_create(nxt_task_t *task, nxt_mp_t *mp,
 
         nxt_sockaddr_text(sa);
 
-        (void) unlink(sa->u.sockaddr_un.sun_path);
+        name = (nxt_file_name_t *) sa->u.sockaddr_un.sun_path;
+
+        if (nxt_socket_release_by_path(name) != NXT_OK) {
+            goto fail;
+        }
 
     } else {
         orig_sa = NULL;
