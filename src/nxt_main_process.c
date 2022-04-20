@@ -48,8 +48,8 @@ static void nxt_main_process_signal_handler(nxt_task_t *task, void *obj,
 static void nxt_main_process_cleanup(nxt_task_t *task, nxt_process_t *process);
 static void nxt_main_port_socket_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
-static nxt_int_t nxt_main_listening_socket(nxt_sockaddr_t *sa,
-    nxt_listening_socket_t *ls);
+static void nxt_main_port_socket_rename_handler(nxt_task_t *task,
+    nxt_port_recv_msg_t *msg);
 static void nxt_main_port_modules_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
 static int nxt_cdecl nxt_app_lang_compare(const void *v1, const void *v2);
@@ -599,6 +599,7 @@ static nxt_port_handlers_t  nxt_main_process_port_handlers = {
     .remove_pid       = nxt_port_remove_pid_handler,
     .start_process    = nxt_main_start_process_handler,
     .socket           = nxt_main_port_socket_handler,
+    .socket_rename    = nxt_main_port_socket_rename_handler,
     .modules          = nxt_main_port_modules_handler,
     .conf_store       = nxt_main_port_conf_store_handler,
 #if (NXT_TLS)
@@ -1213,6 +1214,43 @@ fail:
     (void) close(s);
 
     return NXT_ERROR;
+}
+
+
+static void
+nxt_main_port_socket_rename_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
+{
+    nxt_buf_t               *b;
+    nxt_port_t              *port;
+    nxt_sockaddr_t          *sa;
+    nxt_port_msg_type_t     type;
+
+    port = nxt_runtime_port_find(task->thread->runtime, msg->port_msg.pid,
+                                 msg->port_msg.reply_port);
+    if (nxt_slow_path(port == NULL)) {
+        return;
+    }
+
+    if (nxt_slow_path(port->type != NXT_PROCESS_ROUTER)) {
+        nxt_alert(task, "process %PI cannot rename listener sockets",
+                  msg->port_msg.pid);
+        return;
+    }
+
+    b = nxt_buf_chk_make_plain(task->thread->runtime->mem_pool,
+                               msg->buf, msg->size);
+    sa = (nxt_sockaddr_t *) b->mem.pos;
+
+    if (nxt_listen_socket_saddr_check(task, sa) != NXT_OK
+        || nxt_listen_socket_tmp_rename(task, sa) != NXT_OK)
+    {
+        type = NXT_PORT_MSG_RPC_ERROR;
+    } else {
+        type = NXT_PORT_MSG_RPC_READY_LAST;
+    }
+
+    nxt_port_socket_write(task, port, type, -1, msg->port_msg.stream,
+                          0, NULL);
 }
 
 

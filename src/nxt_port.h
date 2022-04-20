@@ -16,6 +16,7 @@ struct nxt_port_handlers_s {
     /* Main process RPC requests. */
     nxt_port_handler_t  start_process;
     nxt_port_handler_t  socket;
+    nxt_port_handler_t  socket_rename;
     nxt_port_handler_t  modules;
     nxt_port_handler_t  conf_store;
     nxt_port_handler_t  cert_get;
@@ -78,6 +79,7 @@ typedef enum {
 
     _NXT_PORT_MSG_START_PROCESS   = nxt_port_handler_idx(start_process),
     _NXT_PORT_MSG_SOCKET          = nxt_port_handler_idx(socket),
+    _NXT_PORT_MSG_SOCKET_RENAME   = nxt_port_handler_idx(socket_rename),
     _NXT_PORT_MSG_MODULES         = nxt_port_handler_idx(modules),
     _NXT_PORT_MSG_CONF_STORE      = nxt_port_handler_idx(conf_store),
     _NXT_PORT_MSG_CERT_GET        = nxt_port_handler_idx(cert_get),
@@ -118,6 +120,7 @@ typedef enum {
     NXT_PORT_MSG_RPC_ERROR        = nxt_msg_last(_NXT_PORT_MSG_RPC_ERROR),
     NXT_PORT_MSG_START_PROCESS    = nxt_msg_last(_NXT_PORT_MSG_START_PROCESS),
     NXT_PORT_MSG_SOCKET           = nxt_msg_last(_NXT_PORT_MSG_SOCKET),
+    NXT_PORT_MSG_SOCKET_RENAME    = nxt_msg_last(_NXT_PORT_MSG_SOCKET_RENAME),
     NXT_PORT_MSG_MODULES          = nxt_msg_last(_NXT_PORT_MSG_MODULES),
     NXT_PORT_MSG_CONF_STORE       = nxt_msg_last(_NXT_PORT_MSG_CONF_STORE),
     NXT_PORT_MSG_CERT_GET         = nxt_msg_last(_NXT_PORT_MSG_CERT_GET),
