@@ -10,6 +10,17 @@
 
 typedef int  nxt_socket_t;
 
+typedef enum {
+    NXT_SOCKET_ERROR_SYSTEM = 0,
+    NXT_SOCKET_ERROR_NOINET6,
+    NXT_SOCKET_ERROR_PORT,
+    NXT_SOCKET_ERROR_INUSE,
+    NXT_SOCKET_ERROR_NOADDR,
+    NXT_SOCKET_ERROR_ACCESS,
+    NXT_SOCKET_ERROR_PATH,
+} nxt_socket_error_t;
+
+
 #define NXT_NONBLOCK  1
 
 
