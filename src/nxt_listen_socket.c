@@ -220,6 +220,67 @@ fail:
 
 
 nxt_int_t
+nxt_listen_socket_saddr_check(nxt_task_t *task, nxt_sockaddr_t *sa)
+{
+    nxt_socket_t    ts;
+    nxt_int_t       ret;
+    nxt_err_t       err;
+
+    ts = nxt_socket_create(task, AF_UNIX, SOCK_STREAM, 0, 0, NULL);
+    if (ts == -1) {
+        return NXT_ERROR;
+    }
+
+    ret = connect(ts, &sa->u.sockaddr, sa->socklen);
+    err = nxt_socket_errno;
+
+    nxt_socket_close(task, ts);
+
+    if (ret == 0) {
+        nxt_alert(task, "connect(%d, %*s) succeed, address already in use",
+                  ts, (size_t) sa->length,
+                  nxt_sockaddr_start(sa));
+        return NXT_ERROR;
+    }
+
+    if (err != NXT_ENOENT && err != NXT_ECONNREFUSED) {
+        nxt_alert(task, "connect(%d, %*s) failed %E",
+                  ts, (size_t) sa->length,
+                  nxt_sockaddr_start(sa), err);
+        return NXT_ERROR;
+    }
+
+    return NXT_OK;
+}
+
+
+nxt_int_t
+nxt_listen_socket_tmp_rename(nxt_task_t *task, nxt_sockaddr_t *sa)
+{
+    size_t           TMP_EXT_SIZE = sizeof(NXT_TMP_EXT),
+                     TMP_SIZE = sa->socklen + TMP_EXT_SIZE,
+                     name_size;
+    nxt_file_name_t  tmp[TMP_SIZE], *name;
+
+    nxt_memzero(&tmp, TMP_SIZE);
+
+    name = (nxt_file_name_t *) sa->u.sockaddr_un.sun_path;
+    name_size = nxt_strlen(name);
+
+    nxt_memcpy(tmp, name, name_size);
+    nxt_memcpy(tmp + name_size, NXT_TMP_EXT, TMP_EXT_SIZE);
+
+    if (nxt_file_rename(tmp, name) != NXT_OK) {
+        nxt_alert(task, "nxt_file_rename(%FN, %FN) failed",
+                  tmp, name);
+        return NXT_ERROR;
+    }
+
+    return NXT_OK;
+}
+
+
+nxt_int_t
 nxt_listen_socket_update(nxt_task_t *task, nxt_listen_socket_t *ls,
     nxt_listen_socket_t *prev)
 {
