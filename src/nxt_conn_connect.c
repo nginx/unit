@@ -84,7 +84,7 @@ nxt_conn_socket(nxt_task_t *task, nxt_conn_t *c)
 
     family = c->remote->u.sockaddr.sa_family;
 
-    s = nxt_socket_create(task, family, c->remote->type, 0, NXT_NONBLOCK);
+    s = nxt_socket_create(task, family, c->remote->type, 0, NXT_NONBLOCK, NULL);
 
     if (nxt_slow_path(s == -1)) {
         return NXT_ERROR;
@@ -108,7 +108,7 @@ nxt_conn_socket(nxt_task_t *task, nxt_conn_t *c)
     c->write_timer.task = task;
 
     if (c->local != NULL) {
-        if (nxt_slow_path(nxt_socket_bind(task, s, c->local) != NXT_OK)) {
+        if (nxt_slow_path(nxt_socket_bind(task, s, c->local, NULL) != NXT_OK)) {
             nxt_socket_close(task, s);
             return NXT_ERROR;
         }

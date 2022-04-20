@@ -13,9 +13,10 @@ static const char *nxt_socket_sockopt_name(nxt_uint_t level,
 
 nxt_socket_t
 nxt_socket_create(nxt_task_t *task, nxt_uint_t domain, nxt_uint_t type,
-    nxt_uint_t protocol, nxt_uint_t flags)
+    nxt_uint_t protocol, nxt_uint_t flags, nxt_err_t *errnum)
 {
     nxt_socket_t  s;
+    nxt_err_t     err;
 
 #if (NXT_HAVE_SOCK_NONBLOCK)
 
@@ -28,8 +29,12 @@ nxt_socket_create(nxt_task_t *task, nxt_uint_t domain, nxt_uint_t type,
     s = socket(domain, type, protocol);
 
     if (nxt_slow_path(s == -1)) {
+        err = nxt_socket_errno;
+        if (errnum != NULL) {
+            *errnum = err;
+        }
         nxt_alert(task, "socket(%ui, 0x%uXi, %ui) failed %E",
-                  domain, type, protocol, nxt_socket_errno);
+                  domain, type, protocol, err);
         return s;
     }
 
@@ -172,8 +177,9 @@ nxt_socket_sockopt_name(nxt_uint_t level, nxt_uint_t sockopt)
 
 
 nxt_int_t
-nxt_socket_bind(nxt_task_t *task, nxt_socket_t s, nxt_sockaddr_t *sa)
+nxt_socket_bind(nxt_task_t *task, nxt_socket_t s, nxt_sockaddr_t *sa, nxt_err_t *errnum)
 {
+    nxt_err_t err;
     nxt_debug(task, "bind(%d, %*s)", s, (size_t) sa->length,
               nxt_sockaddr_start(sa));
 
@@ -181,8 +187,14 @@ nxt_socket_bind(nxt_task_t *task, nxt_socket_t s, nxt_sockaddr_t *sa)
         return NXT_OK;
     }
 
+    err = nxt_socket_errno;
+
+    if (errnum != NULL) {
+        *errnum = err;
+    }
+
     nxt_alert(task, "bind(%d, %*s) failed %E",
-              s, (size_t) sa->length, nxt_sockaddr_start(sa), nxt_socket_errno);
+              s, (size_t) sa->length, nxt_sockaddr_start(sa), err);
 
     return NXT_ERROR;
 }

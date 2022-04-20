@@ -35,10 +35,10 @@ nxt_listen_socket_create(nxt_task_t *task, nxt_mp_t *mp,
     nxt_socket_t       s;
     nxt_thread_t       *thr;
     nxt_sockaddr_t     *sa;
+    nxt_err_t          err;
 #if (NXT_HAVE_UNIX_DOMAIN)
     int                ret;
     u_char             *p;
-    nxt_err_t          err;
     nxt_socket_t       ts;
     nxt_sockaddr_t     *orig_sa;
     nxt_file_name_t    *name, *tmp;
@@ -56,7 +56,7 @@ nxt_listen_socket_create(nxt_task_t *task, nxt_mp_t *mp,
 
     family = sa->u.sockaddr.sa_family;
 
-    s = nxt_socket_create(task, family, sa->type, 0, ls->flags);
+    s = nxt_socket_create(task, family, sa->type, 0, ls->flags, &err);
     if (s == -1) {
         goto fail;
     }
@@ -124,7 +124,7 @@ nxt_listen_socket_create(nxt_task_t *task, nxt_mp_t *mp,
 
 #endif
 
-    if (nxt_socket_bind(task, s, sa) != NXT_OK) {
+    if (nxt_socket_bind(task, s, sa, &err) != NXT_OK) {
         goto fail;
     }
 
@@ -153,7 +153,7 @@ nxt_listen_socket_create(nxt_task_t *task, nxt_mp_t *mp,
 #if (NXT_HAVE_UNIX_DOMAIN)
 
     if (orig_sa != NULL) {
-        ts = nxt_socket_create(task, AF_UNIX, SOCK_STREAM, 0, 0);
+        ts = nxt_socket_create(task, AF_UNIX, SOCK_STREAM, 0, 0, NULL);
         if (ts == -1) {
             goto listen_fail;
         }
