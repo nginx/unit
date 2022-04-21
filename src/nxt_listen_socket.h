@@ -38,6 +38,10 @@ typedef struct {
 
     uint8_t                   socklen;
     uint8_t                   address_length;
+
+    nxt_socket_error_t        error;
+    u_char                    *start;
+    u_char                    *end;
 } nxt_listen_socket_t;
 
 

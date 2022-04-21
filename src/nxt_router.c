@@ -103,6 +103,8 @@ static void nxt_router_conf_error(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf);
 static void nxt_router_conf_send(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_port_msg_type_t type);
+static void nxt_router_conf_flush_sockets(nxt_task_t *task,
+    nxt_queue_t *queue);
 
 static nxt_int_t nxt_router_conf_create(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, u_char *start, u_char *end);
@@ -133,6 +135,14 @@ static void nxt_router_listen_socket_ready(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
 static void nxt_router_listen_socket_error(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
+#if (NXT_HAVE_UNIX_DOMAIN)
+static void nxt_router_listen_socket_rpc_rename(nxt_task_t *task,
+    nxt_router_temp_conf_t *tmcf, nxt_socket_conf_t *skcf);
+static void nxt_router_listen_socket_rename_ready(nxt_task_t *task,
+    nxt_port_recv_msg_t *msg, void *data);
+static void nxt_router_listen_socket_rename_error(nxt_task_t *task,
+    nxt_port_recv_msg_t *msg, void *data);
+#endif
 #if (NXT_TLS)
 static void nxt_router_tls_rpc_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
@@ -315,6 +325,9 @@ const nxt_process_init_t  nxt_router_process = {
 
 
 /* Queues of nxt_socket_conf_t */
+#if (NXT_HAVE_UNIX_DOMAIN)
+nxt_queue_t  renaming_sockets;
+#endif
 nxt_queue_t  creating_sockets;
 nxt_queue_t  pending_sockets;
 nxt_queue_t  updating_sockets;
@@ -1024,6 +1037,9 @@ nxt_router_temp_conf(nxt_task_t *task)
         goto temp_fail;
     }
 
+#if (NXT_HAVE_UNIX_DOMAIN)
+    nxt_queue_init(&renaming_sockets);
+#endif
     nxt_queue_init(&creating_sockets);
     nxt_queue_init(&pending_sockets);
     nxt_queue_init(&updating_sockets);
@@ -1081,6 +1097,9 @@ nxt_router_conf_apply(nxt_task_t *task, void *obj, void *data)
     nxt_router_conf_t            *rtcf;
     nxt_router_temp_conf_t       *tmcf;
     const nxt_event_interface_t  *interface;
+#if (NXT_HAVE_UNIX_DOMAIN)
+    nxt_sockaddr_t               *sa;
+#endif
 #if (NXT_TLS)
     nxt_router_tlssock_t         *tls;
 #endif
@@ -1091,14 +1110,43 @@ nxt_router_conf_apply(nxt_task_t *task, void *obj, void *data)
 
     if (qlk != nxt_queue_tail(&pending_sockets)) {
         nxt_queue_remove(qlk);
-        nxt_queue_insert_tail(&creating_sockets, qlk);
 
         skcf = nxt_queue_link_data(qlk, nxt_socket_conf_t, link);
+
+#if (NXT_HAVE_UNIX_DOMAIN)
+        sa = skcf->listen->sockaddr;
+        if (sa->u.sockaddr.sa_family == AF_UNIX
+            && sa->type == SOCK_STREAM
+            && sa->u.sockaddr_un.sun_path[0] != '\0')
+        {
+            nxt_queue_insert_tail(&renaming_sockets, qlk);
+        } else
+#endif
+        {
+            nxt_queue_insert_tail(&creating_sockets, qlk);
+        }
 
         nxt_router_listen_socket_rpc_create(task, tmcf, skcf);
 
         return;
     }
+
+#if (NXT_HAVE_UNIX_DOMAIN)
+
+    qlk = nxt_queue_first(&renaming_sockets);
+
+    if (qlk != nxt_queue_tail(&renaming_sockets)) {
+        nxt_queue_remove(qlk);
+        nxt_queue_insert_tail(&creating_sockets, qlk);
+
+        skcf = nxt_queue_link_data(qlk, nxt_socket_conf_t, link);
+
+        nxt_router_listen_socket_rpc_rename(task, tmcf, skcf);
+
+        return;
+    }
+
+#endif
 
 #if (NXT_TLS)
     qlk = nxt_queue_last(&tmcf->tls);
@@ -1230,31 +1278,22 @@ nxt_router_conf_error(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
 {
     nxt_app_t          *app;
     nxt_queue_t        new_socket_confs;
-    nxt_socket_t       s;
     nxt_router_t       *router;
-    nxt_queue_link_t   *qlk;
-    nxt_socket_conf_t  *skcf;
     nxt_router_conf_t  *rtcf;
 
     nxt_alert(task, "failed to apply new conf");
 
-    for (qlk = nxt_queue_first(&creating_sockets);
-         qlk != nxt_queue_tail(&creating_sockets);
-         qlk = nxt_queue_next(qlk))
-    {
-        skcf = nxt_queue_link_data(qlk, nxt_socket_conf_t, link);
-        s = skcf->listen->socket;
-
-        if (s != -1) {
-            nxt_socket_close(task, s);
-        }
-
-        nxt_free(skcf->listen);
-    }
+#if (NXT_HAVE_UNIX_DOMAIN)
+    nxt_router_conf_flush_sockets(task, &renaming_sockets);
+#endif
+    nxt_router_conf_flush_sockets(task, &creating_sockets);
 
     nxt_queue_init(&new_socket_confs);
     nxt_queue_add(&new_socket_confs, &updating_sockets);
     nxt_queue_add(&new_socket_confs, &pending_sockets);
+#if (NXT_HAVE_UNIX_DOMAIN)
+    nxt_queue_add(&new_socket_confs, &renaming_sockets);
+#endif
     nxt_queue_add(&new_socket_confs, &creating_sockets);
 
     rtcf = tmcf->router_conf;
@@ -1293,6 +1332,29 @@ nxt_router_conf_send(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_port_use(task, tmcf->port, -1);
 
     tmcf->port = NULL;
+}
+
+
+static void
+nxt_router_conf_flush_sockets(nxt_task_t *task, nxt_queue_t *queue)
+{
+    nxt_socket_t       s;
+    nxt_socket_conf_t  *skcf;
+    nxt_queue_link_t   *qlk;
+
+    for (qlk = nxt_queue_first(queue);
+         qlk != nxt_queue_tail(queue);
+         qlk = nxt_queue_next(qlk))
+    {
+        skcf = nxt_queue_link_data(qlk, nxt_socket_conf_t, link);
+        s = skcf->listen->socket;
+
+        if (s != -1) {
+            nxt_socket_close(task, s);
+        }
+
+        nxt_free(skcf->listen);
+    }
 }
 
 
@@ -2706,6 +2768,93 @@ nxt_router_listen_socket_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
     nxt_router_conf_error(task, tmcf);
 }
 
+
+#if (NXT_HAVE_UNIX_DOMAIN)
+
+static void
+nxt_router_listen_socket_rpc_rename(nxt_task_t *task,
+     nxt_router_temp_conf_t *tmcf, nxt_socket_conf_t *skcf)
+{
+    size_t            size;
+    uint32_t          stream;
+    nxt_int_t         ret;
+    nxt_buf_t         *b;
+    nxt_port_t        *main_port, *router_port;
+    nxt_runtime_t     *rt;
+    nxt_socket_rpc_t  *rpc;
+
+    rpc = nxt_mp_alloc(tmcf->mem_pool, sizeof(nxt_socket_rpc_t));
+    if (rpc == NULL) {
+        goto fail;
+    }
+
+    rpc->socket_conf = skcf;
+    rpc->temp_conf = tmcf;
+
+    size = nxt_sockaddr_size(skcf->listen->sockaddr);
+
+    b = nxt_buf_mem_alloc(tmcf->mem_pool, size, 0);
+    if (b == NULL) {
+        goto fail;
+    }
+
+    b->completion_handler = nxt_buf_dummy_completion;
+
+    b->mem.free = nxt_cpymem(b->mem.free, skcf->listen->sockaddr, size);
+
+    rt = task->thread->runtime;
+    main_port = rt->port_by_type[NXT_PROCESS_MAIN];
+    router_port = rt->port_by_type[NXT_PROCESS_ROUTER];
+
+    stream = nxt_port_rpc_register_handler(task, router_port,
+                                           nxt_router_listen_socket_rename_ready,
+                                           nxt_router_listen_socket_rename_error,
+                                           main_port->pid, rpc);
+    if (nxt_slow_path(stream == 0)) {
+        goto fail;
+    }
+
+    ret = nxt_port_socket_write(task, main_port, NXT_PORT_MSG_SOCKET_RENAME, -1,
+                                stream, router_port->id, b);
+
+    if (nxt_slow_path(ret != NXT_OK)) {
+        nxt_port_rpc_cancel(task, router_port, stream);
+        goto fail;
+    }
+
+    return;
+
+fail:
+
+    nxt_router_conf_error(task, tmcf);
+}
+
+
+static void
+nxt_router_listen_socket_rename_ready(nxt_task_t *task, nxt_port_recv_msg_t *msg,
+    void *data)
+{
+    nxt_socket_rpc_t  *rpc;
+
+    rpc = data;
+
+    nxt_work_queue_add(&task->thread->engine->fast_work_queue,
+                       nxt_router_conf_apply, task, rpc->temp_conf, NULL);
+}
+
+
+static void
+nxt_router_listen_socket_rename_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
+    void *data)
+{
+    nxt_socket_rpc_t        *rpc;
+
+    rpc = data;
+
+    nxt_router_conf_error(task, rpc->temp_conf);
+}
+
+#endif
 
 #if (NXT_TLS)
 

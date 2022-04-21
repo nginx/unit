@@ -19,14 +19,6 @@
 
 
 typedef struct {
-    nxt_socket_t        socket;
-    nxt_socket_error_t  error;
-    u_char              *start;
-    u_char              *end;
-} nxt_listening_socket_t;
-
-
-typedef struct {
     nxt_uint_t          size;
     nxt_conf_map_t      *map;
 } nxt_conf_app_map_t;
@@ -1032,7 +1024,7 @@ nxt_main_port_socket_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_port_t              *port;
     nxt_sockaddr_t          *sa;
     nxt_port_msg_type_t     type;
-    nxt_listening_socket_t  ls;
+    nxt_listen_socket_t     ls;
     u_char                  message[2048];
 
     port = nxt_runtime_port_find(task->thread->runtime, msg->port_msg.pid,
@@ -1053,15 +1045,23 @@ nxt_main_port_socket_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     /* TODO check b size and make plain */
 
+    ls.sockaddr = sa;
+
+    nxt_listen_socket_remote_size(&ls);
+
     ls.socket = -1;
     ls.error = NXT_SOCKET_ERROR_SYSTEM;
     ls.start = message;
     ls.end = message + sizeof(message);
 
+#if (NXT_HAVE_UNIX_DOMAIN)
+    ls.access = (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+#endif
+
     nxt_debug(task, "listening socket \"%*s\"",
               (size_t) sa->length, nxt_sockaddr_start(sa));
 
-    ret = nxt_main_listening_socket(sa, &ls);
+    ret = nxt_listen_socket_create(task, task->thread->runtime->mem_pool, &ls);
 
     if (ret == NXT_OK) {
         nxt_debug(task, "socket(\"%*s\"): %d",
@@ -1089,131 +1089,6 @@ nxt_main_port_socket_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     nxt_port_socket_write(task, port, type, ls.socket, msg->port_msg.stream,
                           0, out);
-}
-
-
-static nxt_int_t
-nxt_main_listening_socket(nxt_sockaddr_t *sa, nxt_listening_socket_t *ls)
-{
-    nxt_err_t         err;
-    nxt_socket_t      s;
-
-    const socklen_t   length = sizeof(int);
-    static const int  enable = 1;
-
-    s = socket(sa->u.sockaddr.sa_family, sa->type, 0);
-
-    if (nxt_slow_path(s == -1)) {
-        err = nxt_errno;
-
-#if (NXT_INET6)
-
-        if (err == EAFNOSUPPORT && sa->u.sockaddr.sa_family == AF_INET6) {
-            ls->error = NXT_SOCKET_ERROR_NOINET6;
-        }
-
-#endif
-
-        ls->end = nxt_sprintf(ls->start, ls->end,
-                              "socket(\\\"%*s\\\") failed %E",
-                              (size_t) sa->length, nxt_sockaddr_start(sa), err);
-
-        return NXT_ERROR;
-    }
-
-    if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &enable, length) != 0) {
-        ls->end = nxt_sprintf(ls->start, ls->end,
-                              "setsockopt(\\\"%*s\\\", SO_REUSEADDR) failed %E",
-                              (size_t) sa->length, nxt_sockaddr_start(sa),
-                              nxt_errno);
-        goto fail;
-    }
-
-#if (NXT_INET6)
-
-    if (sa->u.sockaddr.sa_family == AF_INET6) {
-
-        if (setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &enable, length) != 0) {
-            ls->end = nxt_sprintf(ls->start, ls->end,
-                               "setsockopt(\\\"%*s\\\", IPV6_V6ONLY) failed %E",
-                               (size_t) sa->length, nxt_sockaddr_start(sa),
-                               nxt_errno);
-            goto fail;
-        }
-    }
-
-#endif
-
-    if (bind(s, &sa->u.sockaddr, sa->socklen) != 0) {
-        err = nxt_errno;
-
-#if (NXT_HAVE_UNIX_DOMAIN)
-
-        if (sa->u.sockaddr.sa_family == AF_UNIX) {
-            switch (err) {
-
-            case EACCES:
-                ls->error = NXT_SOCKET_ERROR_ACCESS;
-                break;
-
-            case ENOENT:
-            case ENOTDIR:
-                ls->error = NXT_SOCKET_ERROR_PATH;
-                break;
-            }
-
-        } else
-#endif
-        {
-            switch (err) {
-
-            case EACCES:
-                ls->error = NXT_SOCKET_ERROR_PORT;
-                break;
-
-            case EADDRINUSE:
-                ls->error = NXT_SOCKET_ERROR_INUSE;
-                break;
-
-            case EADDRNOTAVAIL:
-                ls->error = NXT_SOCKET_ERROR_NOADDR;
-                break;
-            }
-        }
-
-        ls->end = nxt_sprintf(ls->start, ls->end, "bind(\\\"%*s\\\") failed %E",
-                              (size_t) sa->length, nxt_sockaddr_start(sa), err);
-        goto fail;
-    }
-
-#if (NXT_HAVE_UNIX_DOMAIN)
-
-    if (sa->u.sockaddr.sa_family == AF_UNIX) {
-        char     *filename;
-        mode_t   access;
-
-        filename = sa->u.sockaddr_un.sun_path;
-        access = (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-
-        if (chmod(filename, access) != 0) {
-            ls->end = nxt_sprintf(ls->start, ls->end,
-                                  "chmod(\\\"%s\\\") failed %E",
-                                  filename, nxt_errno);
-            goto fail;
-        }
-    }
-
-#endif
-
-    ls->socket = s;
-
-    return NXT_OK;
-
-fail:
-
-    (void) close(s);
-
-    return NXT_ERROR;
 }
 
 
