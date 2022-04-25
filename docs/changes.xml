@@ -44,6 +44,12 @@ handled, and caused a use-after-free bug.
 </para>
 </change>
 
+<change type="change">
+<para>
+increased the applications' startup timeout.
+</para>
+</change>
+
 </changes>
 
 
