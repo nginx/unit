@@ -725,7 +725,7 @@ static const nxt_event_conn_state_t  nxt_controller_conn_read_state
 
     .timer_handler = nxt_controller_conn_read_timeout,
     .timer_value = nxt_controller_conn_timeout_value,
-    .timer_data = 60 * 1000,
+    .timer_data = 300 * 1000,
 };
 
 
