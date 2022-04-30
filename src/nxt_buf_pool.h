@@ -42,8 +42,7 @@ NXT_EXPORT void nxt_buf_pool_destroy(nxt_buf_pool_t *bp);
 
 /* There is ready free buffer. */
 
-#define                                                                       \
-nxt_buf_pool_ready(bp)                                                        \
+#define nxt_buf_pool_ready(bp)                                                \
     ((bp)->free != NULL                                                       \
      || ((bp)->current != NULL                                                \
          && (bp)->current->mem.free < (bp)->current->mem.end))
@@ -51,29 +50,25 @@ nxt_buf_pool_ready(bp)                                                        \
 
 /* A free buffer is allowed to be allocated. */
 
-#define                                                                       \
-nxt_buf_pool_obtainable(bp)                                                   \
+#define nxt_buf_pool_obtainable(bp)                                           \
     ((bp)->num < (bp)->max)
 
 
 /* There is ready free buffer or it is allowed to be allocated. */
 
-#define                                                                       \
-nxt_buf_pool_available(bp)                                                    \
+#define nxt_buf_pool_available(bp)                                            \
     (nxt_buf_pool_obtainable(bp) || nxt_buf_pool_ready(bp))
 
 
 /* Reserve allocation of "n" free buffers as they were allocated. */
 
-#define                                                                       \
-nxt_buf_pool_reserve(bp, n)                                                   \
+#define nxt_buf_pool_reserve(bp, n)                                           \
     (bp)->num += (n)
 
 
 /* Release a reservation. */
 
-#define                                                                       \
-nxt_buf_pool_release(bp, n)                                                   \
+#define nxt_buf_pool_release(bp, n)                                           \
     (bp)->num -= (n)
 
 

@@ -18,8 +18,7 @@ typedef struct {
 } nxt_fastcgi_param_t;
 
 
-#define                                                                       \
-nxt_fastcgi_set_record_length(p, length)                                      \
+#define nxt_fastcgi_set_record_length(p, length)                              \
     do {                                                                      \
         uint32_t  len = length;                                               \
                                                                               \

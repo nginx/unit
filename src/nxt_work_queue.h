@@ -109,8 +109,7 @@ NXT_EXPORT void nxt_work_queue_thread_adopt(nxt_work_queue_t *wq);
 
 #else
 
-#define                                                                       \
-nxt_work_queue_name(_wq, _name)
+#define nxt_work_queue_name(_wq, _name)
 
 #define nxt_work_queue_thread_adopt(_wq)
 

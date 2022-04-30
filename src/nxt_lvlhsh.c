@@ -43,121 +43,98 @@
  * several levels.
  */
 
-#define                                                                       \
-nxt_lvlhsh_is_bucket(p)                                                       \
+#define nxt_lvlhsh_is_bucket(p)                                               \
     ((uintptr_t) (p) & 1)
 
 
-#define                                                                       \
-nxt_lvlhsh_count_inc(n)                                                       \
+#define nxt_lvlhsh_count_inc(n)                                               \
     n = (void *) ((uintptr_t) (n) + 2)
 
 
-#define                                                                       \
-nxt_lvlhsh_count_dec(n)                                                       \
+#define nxt_lvlhsh_count_dec(n)                                               \
     n = (void *) ((uintptr_t) (n) - 2)
 
 
-#define                                                                       \
-nxt_lvlhsh_level_size(proto, nlvl)                                            \
+#define nxt_lvlhsh_level_size(proto, nlvl)                                    \
     ((uintptr_t) 1 << proto->shift[nlvl])
 
 
-#define                                                                       \
-nxt_lvlhsh_level(lvl, mask)                                                   \
+#define nxt_lvlhsh_level(lvl, mask)                                           \
     (void **) ((uintptr_t) lvl & (~mask << 2))
 
 
-#define                                                                       \
-nxt_lvlhsh_level_entries(lvl, mask)                                           \
+#define nxt_lvlhsh_level_entries(lvl, mask)                                   \
     ((uintptr_t) lvl & (mask << 1))
 
 
-#define                                                                       \
-nxt_lvlhsh_store_bucket(slot, bkt)                                            \
+#define nxt_lvlhsh_store_bucket(slot, bkt)                                    \
     slot = (void **) ((uintptr_t) bkt | 2 | 1)
 
 
-#define                                                                       \
-nxt_lvlhsh_bucket_size(proto)                                                 \
+#define nxt_lvlhsh_bucket_size(proto)                                         \
     proto->bucket_size
 
 
-#define                                                                       \
-nxt_lvlhsh_bucket(proto, bkt)                                                 \
+#define nxt_lvlhsh_bucket(proto, bkt)                                         \
     (uint32_t *) ((uintptr_t) bkt & ~(uintptr_t) proto->bucket_mask)
 
 
-#define                                                                       \
-nxt_lvlhsh_bucket_entries(proto, bkt)                                         \
+#define nxt_lvlhsh_bucket_entries(proto, bkt)                                 \
     (((uintptr_t) bkt & (uintptr_t) proto->bucket_mask) >> 1)
 
 
-#define                                                                       \
-nxt_lvlhsh_bucket_end(proto, bkt)                                             \
+#define nxt_lvlhsh_bucket_end(proto, bkt)                                     \
     &bkt[proto->bucket_end]
 
 
-#define                                                                       \
-nxt_lvlhsh_free_entry(e)                                                      \
+#define nxt_lvlhsh_free_entry(e)                                              \
     (!(nxt_lvlhsh_valid_entry(e)))
 
 
-#define                                                                       \
-nxt_lvlhsh_next_bucket(proto, bkt)                                            \
+#define nxt_lvlhsh_next_bucket(proto, bkt)                                    \
     ((void **) &bkt[proto->bucket_end])
 
 #if (NXT_64BIT)
 
-#define                                                                       \
-nxt_lvlhsh_valid_entry(e)                                                     \
+#define nxt_lvlhsh_valid_entry(e)                                             \
     (((e)[0] | (e)[1]) != 0)
 
 
-#define                                                                       \
-nxt_lvlhsh_entry_value(e)                                                     \
+#define nxt_lvlhsh_entry_value(e)                                             \
     (void *) (((uintptr_t) (e)[1] << 32) + (e)[0])
 
 
-#define                                                                       \
-nxt_lvlhsh_set_entry_value(e, n)                                              \
+#define nxt_lvlhsh_set_entry_value(e, n)                                      \
     (e)[0] = (uint32_t)  (uintptr_t) n;                                       \
     (e)[1] = (uint32_t) ((uintptr_t) n >> 32)
 
 
-#define                                                                       \
-nxt_lvlhsh_entry_key(e)                                                       \
+#define nxt_lvlhsh_entry_key(e)                                               \
     (e)[2]
 
 
-#define                                                                       \
-nxt_lvlhsh_set_entry_key(e, n)                                                \
+#define nxt_lvlhsh_set_entry_key(e, n)                                        \
     (e)[2] = n
 
 #else
 
-#define                                                                       \
-nxt_lvlhsh_valid_entry(e)                                                     \
+#define nxt_lvlhsh_valid_entry(e)                                             \
     ((e)[0] != 0)
 
 
-#define                                                                       \
-nxt_lvlhsh_entry_value(e)                                                     \
+#define nxt_lvlhsh_entry_value(e)                                             \
     (void *) (e)[0]
 
 
-#define                                                                       \
-nxt_lvlhsh_set_entry_value(e, n)                                              \
+#define nxt_lvlhsh_set_entry_value(e, n)                                      \
     (e)[0] = (uint32_t) n
 
 
-#define                                                                       \
-nxt_lvlhsh_entry_key(e)                                                       \
+#define nxt_lvlhsh_entry_key(e)                                               \
     (e)[1]
 
 
-#define                                                                       \
-nxt_lvlhsh_set_entry_key(e, n)                                                \
+#define nxt_lvlhsh_set_entry_key(e, n)                                        \
     (e)[1] = n
 
 #endif

@@ -17,8 +17,7 @@ typedef struct {
 #define NXT_DYLD_ANY  RTLD_DEFAULT
 
 
-#define                                                                       \
-nxt_dyld_is_valid(dyld)                                                       \
+#define nxt_dyld_is_valid(dyld)                                               \
     ((dyld)->handle != NULL)
 
 

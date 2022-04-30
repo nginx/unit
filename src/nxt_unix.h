@@ -275,23 +275,19 @@
 
 typedef struct iovec   nxt_iobuf_t;
 
-#define                                                                       \
-nxt_iobuf_data(iob)                                                           \
+#define nxt_iobuf_data(iob)                                                   \
     (iob)->iov_base
 
-#define                                                                       \
-nxt_iobuf_size(iob)                                                           \
+#define nxt_iobuf_size(iob)                                                   \
     (iob)->iov_len
 
-#define                                                                       \
-nxt_iobuf_set(iob, p, size)                                                   \
+#define nxt_iobuf_set(iob, p, size)                                           \
     do {                                                                      \
         (iob)->iov_base = (void *) p;                                         \
         (iob)->iov_len = size;                                                \
     } while (0)
 
-#define                                                                       \
-nxt_iobuf_add(iob, size)                                                      \
+#define nxt_iobuf_add(iob, size)                                              \
     (iob)->iov_len += size
 
 

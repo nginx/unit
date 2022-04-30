@@ -30,19 +30,15 @@
 
 #if (NXT_HAVE_THREAD_STORAGE_CLASS)
 
-#define                                                                       \
-nxt_thread_extern_data(type, tsd)                                             \
+#define nxt_thread_extern_data(type, tsd)                                     \
     NXT_EXPORT extern __thread type  tsd
 
-#define                                                                       \
-nxt_thread_declare_data(type, tsd)                                            \
+#define nxt_thread_declare_data(type, tsd)                                    \
     __thread type  tsd
 
-#define                                                                       \
-nxt_thread_init_data(tsd)
+#define nxt_thread_init_data(tsd)
 
-#define                                                                       \
-nxt_thread_get_data(tsd)                                                      \
+#define nxt_thread_get_data(tsd)                                              \
     &tsd
 
 
@@ -67,18 +63,15 @@ typedef struct {
 } nxt_thread_specific_data_t[1];
 
 
-#define                                                                       \
-nxt_thread_extern_data(type, tsd)                                             \
+#define nxt_thread_extern_data(type, tsd)                                     \
     NXT_EXPORT extern nxt_thread_specific_data_t  tsd
 
-#define                                                                       \
-nxt_thread_declare_data(type, tsd)                                            \
+#define nxt_thread_declare_data(type, tsd)                                    \
     nxt_thread_specific_data_t tsd = { { (nxt_atomic_int_t) -1, sizeof(type) } }
 
 NXT_EXPORT void nxt_thread_init_data(nxt_thread_specific_data_t tsd);
 
-#define                                                                       \
-nxt_thread_get_data(tsd)                                                      \
+#define nxt_thread_get_data(tsd)                                              \
     pthread_getspecific((pthread_key_t) tsd->key)
 
 #endif
@@ -101,8 +94,7 @@ NXT_EXPORT void nxt_thread_cancel(nxt_thread_handle_t handle);
 NXT_EXPORT void nxt_thread_wait(nxt_thread_handle_t handle);
 
 
-#define                                                                       \
-nxt_thread_handle()                                                           \
+#define nxt_thread_handle()                                                   \
     pthread_self()
 
 
@@ -125,18 +117,15 @@ NXT_EXPORT nxt_err_t nxt_thread_cond_wait(nxt_thread_cond_t *cond,
 
 
 #if (NXT_HAVE_PTHREAD_YIELD)
-#define                                                                       \
-nxt_thread_yield()                                                            \
+#define nxt_thread_yield()                                                    \
     pthread_yield()
 
 #elif (NXT_HAVE_PTHREAD_YIELD_NP)
-#define                                                                       \
-nxt_thread_yield()                                                            \
+#define nxt_thread_yield()                                                    \
     pthread_yield_np()
 
 #else
-#define                                                                       \
-nxt_thread_yield()                                                            \
+#define nxt_thread_yield()                                                    \
     nxt_sched_yield()
 
 #endif

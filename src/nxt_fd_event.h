@@ -44,13 +44,11 @@ typedef enum {
 } nxt_fd_event_state_t;
 
 
-#define                                                                       \
-nxt_fd_event_is_disabled(state)                                               \
+#define nxt_fd_event_is_disabled(state)                                       \
     ((state) < NXT_EVENT_ONESHOT)
 
 
-#define                                                                       \
-nxt_fd_event_is_active(state)                                                 \
+#define nxt_fd_event_is_active(state)                                         \
     ((state) >= NXT_EVENT_ONESHOT)
 
 

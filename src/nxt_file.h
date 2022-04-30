@@ -27,23 +27,19 @@ typedef struct {
 } nxt_file_name_str_t;
 
 
-#define                                                                       \
-nxt_file_name_str_set(file_name, mem_pool, name)                              \
+#define nxt_file_name_str_set(file_name, mem_pool, name)                      \
     ((file_name) = (nxt_file_name_t *) (name), NXT_OK)
 
 
-#define                                                                       \
-nxt_file_name_alloc(mem_pool, len)                                            \
+#define nxt_file_name_alloc(mem_pool, len)                                    \
     nxt_mp_nget(mem_pool, len)
 
 
-#define                                                                       \
-nxt_file_name_copy(dst, src, len)                                             \
+#define nxt_file_name_copy(dst, src, len)                                     \
     nxt_cpymem(dst, src, len)
 
 
-#define                                                                       \
-nxt_file_name_add(dst, src, len)                                              \
+#define nxt_file_name_add(dst, src, len)                                      \
     nxt_cpymem(dst, src, len)
 
 
@@ -51,21 +47,18 @@ nxt_file_name_add(dst, src, len)                                              \
 
 /* MacOSX, Cygwin. */
 
-#define                                                                       \
-nxt_file_name_eq(fn1, fn2)                                                    \
+#define nxt_file_name_eq(fn1, fn2)                                            \
     (nxt_strcasecmp(fn1, fn2) == 0)
 
 #else
 
-#define                                                                       \
-nxt_file_name_eq(fn1, fn2)                                                    \
+#define nxt_file_name_eq(fn1, fn2)                                            \
     (nxt_strcmp(fn1, fn2) == 0)
 
 #endif
 
 
-#define                                                                       \
-nxt_file_name_is_absolute(name)                                               \
+#define nxt_file_name_is_absolute(name)                                       \
     (name[0] == '/')
 
 
@@ -168,20 +161,16 @@ NXT_EXPORT void nxt_file_read_ahead(nxt_file_t *file, nxt_off_t offset,
 NXT_EXPORT nxt_int_t nxt_file_info(nxt_file_t *file, nxt_file_info_t *fi);
 
 
-#define                                                                       \
-nxt_is_dir(fi)                                                                \
+#define nxt_is_dir(fi)                                                        \
     (S_ISDIR((fi)->st_mode))
 
-#define                                                                       \
-nxt_is_file(fi)                                                               \
+#define nxt_is_file(fi)                                                       \
     (S_ISREG((fi)->st_mode))
 
-#define                                                                       \
-nxt_file_size(fi)                                                             \
+#define nxt_file_size(fi)                                                     \
     (fi)->st_size
 
-#define                                                                       \
-nxt_file_mtime(fi)                                                            \
+#define nxt_file_mtime(fi)                                                    \
     (fi)->st_mtime
 
 
@@ -206,12 +195,10 @@ NXT_EXPORT nxt_int_t nxt_stderr_start(void);
 #define nxt_stderr  STDERR_FILENO
 
 
-#define                                                                       \
-nxt_write_console(fd, buf, size)                                              \
+#define nxt_write_console(fd, buf, size)                                      \
     write(fd, buf, size)
 
-#define                                                                       \
-nxt_write_syslog(priority, message)                                           \
+#define nxt_write_syslog(priority, message)                                   \
     syslog(priority, "%s", message)
 
 

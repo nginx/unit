@@ -87,48 +87,39 @@ struct nxt_mem_zone_s {
 };
 
 
-#define                                                                       \
-nxt_mem_zone_page_addr(zone, page)                                            \
+#define nxt_mem_zone_page_addr(zone, page)                                    \
     (void *) (zone->start + ((page - zone->pages) << zone->page_size_shift))
 
 
-#define                                                                       \
-nxt_mem_zone_addr_page(zone, addr)                                            \
+#define nxt_mem_zone_addr_page(zone, addr)                                    \
     &zone->pages[((u_char *) addr - zone->start) >> zone->page_size_shift]
 
 
-#define                                                                       \
-nxt_mem_zone_page_is_free(page)                                               \
+#define nxt_mem_zone_page_is_free(page)                                       \
     (page->size < NXT_MEM_ZONE_PAGE_USED)
 
 
-#define                                                                       \
-nxt_mem_zone_page_is_chunked(page)                                            \
+#define nxt_mem_zone_page_is_chunked(page)                                    \
     (page->size >= 16)
 
 
-#define                                                                       \
-nxt_mem_zone_page_bitmap(zone, slot)                                          \
+#define nxt_mem_zone_page_bitmap(zone, slot)                                  \
     (slot->size < zone->small_bitmap_min_size)
 
 
-#define                                                                       \
-nxt_mem_zone_set_chunk_free(map, chunk)                                       \
+#define nxt_mem_zone_set_chunk_free(map, chunk)                               \
     map[chunk / 8] &= ~(0x80 >> (chunk & 7))
 
 
-#define                                                                       \
-nxt_mem_zone_chunk_is_free(map, chunk)                                        \
+#define nxt_mem_zone_chunk_is_free(map, chunk)                                \
     ((map[chunk / 8] & (0x80 >> (chunk & 7))) == 0)
 
 
-#define                                                                       \
-nxt_mem_zone_fresh_junk(p, size)                                              \
+#define nxt_mem_zone_fresh_junk(p, size)                                      \
     nxt_memset((p), 0xA5, size)
 
 
-#define                                                                       \
-nxt_mem_zone_free_junk(p, size)                                               \
+#define nxt_mem_zone_free_junk(p, size)                                       \
     nxt_memset((p), 0x5A, size)
 
 

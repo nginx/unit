@@ -90,8 +90,7 @@ static u_char *nxt_number(nxt_sprintf_t *spf, u_char *buf, double n);
 
 
 /* A right way of "f == 0.0". */
-#define                                                                       \
-nxt_double_is_zero(f)                                                         \
+#define nxt_double_is_zero(f)                                                 \
     (fabs(f) <= FLT_EPSILON)
 
 

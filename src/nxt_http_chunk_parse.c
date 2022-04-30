@@ -12,8 +12,7 @@
 #define NXT_HTTP_CHUNK_END            2
 
 
-#define                                                                       \
-nxt_size_is_sufficient(cs)                                                    \
+#define nxt_size_is_sufficient(cs)                                            \
     (cs < ((__typeof__(cs)) 1 << (sizeof(cs) * 8 - 4)))
 
 

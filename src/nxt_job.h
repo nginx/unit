@@ -67,21 +67,18 @@ NXT_EXPORT void nxt_job_return(nxt_task_t *task, nxt_job_t *job,
     nxt_work_handler_t handler);
 
 
-#define                                                                       \
-nxt_job_cancel(job)                                                           \
+#define nxt_job_cancel(job)                                                   \
     (job)->cancel = 1
 
 
 #if (NXT_DEBUG)
 
-#define                                                                       \
-nxt_job_set_name(job, text)                                                   \
+#define nxt_job_set_name(job, text)                                           \
     (job)->name = text
 
 #else
 
-#define                                                                       \
-nxt_job_set_name(job, text)
+#define nxt_job_set_name(job, text)
 
 #endif
 

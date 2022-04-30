@@ -35,18 +35,15 @@ NXT_EXPORT void nxt_array_remove(nxt_array_t *array, void *elt);
 NXT_EXPORT nxt_array_t *nxt_array_copy(nxt_mp_t *mp, nxt_array_t *dst,
     nxt_array_t *src);
 
-#define                                                                       \
-nxt_array_last(array)                                                         \
+#define nxt_array_last(array)                                                 \
     nxt_pointer_to((array)->elts, (array)->size * ((array)->nelts - 1))
 
 
-#define                                                                       \
-nxt_array_reset(array)                                                        \
+#define nxt_array_reset(array)                                                \
     (array)->nelts = 0;
 
 
-#define                                                                       \
-nxt_array_is_empty(array)                                                     \
+#define nxt_array_is_empty(array)                                             \
     ((array)->nelts == 0)
 
 

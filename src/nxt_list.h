@@ -37,18 +37,15 @@ typedef struct {
 } nxt_list_next_t;
 
 
-#define                                                                       \
-nxt_list_part(list)                                                           \
+#define nxt_list_part(list)                                                   \
     (&(list)->part)
 
 
-#define                                                                       \
-nxt_list_data(part)                                                           \
+#define nxt_list_data(part)                                                   \
     ((void *) part->data)
 
 
-#define                                                                       \
-nxt_list_first(list)                                                          \
+#define nxt_list_first(list)                                                  \
     nxt_list_data(nxt_list_part(list))
 
 
@@ -102,8 +99,7 @@ NXT_EXPORT void *nxt_list_zero_add(nxt_list_t *list);
 NXT_EXPORT void *nxt_list_next(nxt_list_t *list, nxt_list_next_t *next);
 
 
-#define                                                                       \
-nxt_list_next_value(list, next)                                               \
+#define nxt_list_next_value(list, next)                                       \
     (nxt_pointer_to(nxt_list_data((next)->part), (next)->elt * (list)->size))
 
 
