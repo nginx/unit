@@ -1449,6 +1449,36 @@ static nxt_conf_map_t  nxt_router_http_conf[] = {
         NXT_CONF_MAP_INT8,
         offsetof(nxt_socket_conf_t, discard_unsafe_fields),
     },
+
+    {
+        nxt_string("proxy_buffer_size"),
+        NXT_CONF_MAP_SIZE,
+        offsetof(nxt_socket_conf_t, proxy_buffer_size),
+    },
+
+    {
+        nxt_string("proxy_header_buffer_size"),
+        NXT_CONF_MAP_SIZE,
+        offsetof(nxt_socket_conf_t, proxy_header_buffer_size),
+    },
+
+    {
+        nxt_string("proxy_timeout"),
+        NXT_CONF_MAP_MSEC,
+        offsetof(nxt_socket_conf_t, proxy_timeout),
+    },
+
+    {
+        nxt_string("proxy_send_timeout"),
+        NXT_CONF_MAP_MSEC,
+        offsetof(nxt_socket_conf_t, proxy_send_timeout),
+    },
+
+    {
+        nxt_string("proxy_read_timeout"),
+        NXT_CONF_MAP_MSEC,
+        offsetof(nxt_socket_conf_t, proxy_read_timeout),
+    },
 };
 
 

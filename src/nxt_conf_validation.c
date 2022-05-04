@@ -321,6 +321,21 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[] = {
         .name       = nxt_string("discard_unsafe_fields"),
         .type       = NXT_CONF_VLDT_BOOLEAN,
     }, {
+        .name       = nxt_string("proxy_buffer_size"),
+        .type       = NXT_CONF_VLDT_INTEGER,
+    }, {
+        .name       = nxt_string("proxy_header_buffer_size"),
+        .type       = NXT_CONF_VLDT_INTEGER,
+    }, {
+        .name       = nxt_string("proxy_timeout"),
+        .type       = NXT_CONF_VLDT_INTEGER,
+    }, {
+        .name       = nxt_string("proxy_send_timeout"),
+        .type       = NXT_CONF_VLDT_INTEGER,
+    }, {
+        .name       = nxt_string("proxy_read_timeout"),
+        .type       = NXT_CONF_VLDT_INTEGER,
+    }, {
         .name       = nxt_string("websocket"),
         .type       = NXT_CONF_VLDT_OBJECT,
         .validator  = nxt_conf_vldt_object,
