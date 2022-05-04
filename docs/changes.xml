@@ -51,6 +51,15 @@ ability to specify a custom index file name when serving static files.
 
 <change type="feature">
 <para>
+added new "header_buffer_size", "large_header_buffer_size",
+"large_header_buffers", "proxy_buffer_size", "proxy_header_buffer_size",
+"proxy_timeout", "proxy_send_timeout" and "proxy_read_timeout" options for
+"settings.http".
+</para>
+</change>
+
+<change type="feature">
+<para>
 variables support in the "location" option of the "return" action.
 </para>
 </change>
