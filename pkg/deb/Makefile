@@ -19,6 +19,20 @@ BUILD_DEPENDS = $(BUILD_DEPENDS_unit)
 
 MODULES=
 
+# Ubuntu 22.04
+ifeq ($(CODENAME),jammy)
+include Makefile.php
+include Makefile.python27
+include Makefile.python310
+include Makefile.go
+include Makefile.perl
+include Makefile.ruby
+include Makefile.jsc-common
+include Makefile.jsc11
+include Makefile.jsc17
+include Makefile.jsc18
+endif
+
 # Ubuntu 21.10
 ifeq ($(CODENAME),impish)
 include Makefile.php
