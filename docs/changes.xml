@@ -62,6 +62,13 @@ increased the applications' startup timeout.
 </para>
 </change>
 
+<change type="feature">
+<para>
+added a new variable, $dollar, that translates to a literal "$" during
+variable substitution.
+</para>
+</change>
+
 </changes>
 
 

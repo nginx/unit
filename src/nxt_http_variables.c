@@ -7,6 +7,8 @@
 #include <nxt_http.h>
 
 
+static nxt_int_t nxt_http_var_dollar(nxt_task_t *task, nxt_str_t *str,
+    void *ctx, uint16_t field);
 static nxt_int_t nxt_http_var_method(nxt_task_t *task, nxt_str_t *str,
     void *ctx, uint16_t field);
 static nxt_int_t nxt_http_var_request_uri(nxt_task_t *task, nxt_str_t *str,
@@ -41,6 +43,9 @@ static nxt_int_t nxt_http_var_cookie(nxt_task_t *task, nxt_str_t *str,
 
 static nxt_var_decl_t  nxt_http_vars[] = {
     {
+        .name = nxt_string("dollar"),
+        .handler = nxt_http_var_dollar,
+    }, {
         .name = nxt_string("method"),
         .handler = nxt_http_var_method,
     }, {
@@ -93,6 +98,15 @@ nxt_int_t
 nxt_http_register_variables(void)
 {
     return nxt_var_register(nxt_http_vars, nxt_nitems(nxt_http_vars));
+}
+
+
+static nxt_int_t
+nxt_http_var_dollar(nxt_task_t *task, nxt_str_t *str, void *ctx, uint16_t field)
+{
+    nxt_str_set(str, "$");
+
+    return NXT_OK;
 }
 
 
