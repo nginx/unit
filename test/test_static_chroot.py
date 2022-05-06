@@ -227,6 +227,3 @@ class TestStaticChroot(TestApplicationProto):
         assert 'error' in self.update_action(
             temp_dir + '/assets$uri', temp_dir + '/assets/d$r$uri'
         )
-        assert 'error' in self.update_action(
-            temp_dir + '/assets$uri', temp_dir + '/assets/$$uri'
-        )

@@ -45,6 +45,12 @@ supporting empty strings in the "location" option of the "return" action.
 
 <change type="feature">
 <para>
+translate '$$' to a literal '$' during variable substitution.
+</para>
+</change>
+
+<change type="feature">
+<para>
 variables support in the "location" option of the "return" action.
 </para>
 </change>

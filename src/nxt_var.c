@@ -362,6 +362,14 @@ nxt_var_next_part(u_char *start, size_t length, nxt_str_t *part,
             return NULL;
         }
 
+        /* Allow $$ to represent a literal '$' */
+        if (*p == '$') {
+            part->start = p;
+            part->length = 1;
+
+            return p + 1;
+        }
+
         if (*p == '{') {
             bracket = 1;
 

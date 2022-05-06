@@ -13,6 +13,8 @@ static nxt_int_t nxt_http_var_uri(nxt_task_t *task, nxt_var_query_t *query,
     nxt_str_t *str, void *ctx);
 static nxt_int_t nxt_http_var_host(nxt_task_t *task, nxt_var_query_t *query,
     nxt_str_t *str, void *ctx);
+static nxt_int_t nxt_http_var_dollar(nxt_task_t *task, nxt_var_query_t *query,
+    nxt_str_t *str, void *ctx);
 
 
 static nxt_var_decl_t  nxt_http_vars[] = {
@@ -26,6 +28,10 @@ static nxt_var_decl_t  nxt_http_vars[] = {
 
     { nxt_string("host"),
       &nxt_http_var_host,
+      0 },
+
+    { nxt_string("$"),
+      &nxt_http_var_dollar,
       0 },
 };
 
@@ -74,6 +80,16 @@ nxt_http_var_host(nxt_task_t *task, nxt_var_query_t *query, nxt_str_t *str,
     r = ctx;
 
     *str = r->host;
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_http_var_dollar(nxt_task_t *task, nxt_var_query_t *query, nxt_str_t *str,
+    void *ctx)
+{
+    nxt_str_set(str, "$");
 
     return NXT_OK;
 }
