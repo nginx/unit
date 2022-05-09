@@ -493,27 +493,6 @@ basicConstraints = critical,CA:TRUE"""
         }, 'subject alt_names'
         assert cert['chain'][0]['issuer']['common_name'] == 'root', 'issuer'
 
-    @pytest.mark.skip('not yet')
-    def test_tls_reconfigure(self):
-        self.load('empty')
-
-        assert self.get()['status'] == 200, 'init'
-
-        self.certificate()
-
-        (resp, sock) = self.get(
-            headers={'Host': 'localhost', 'Connection': 'keep-alive'},
-            start=True,
-            read_timeout=1,
-        )
-
-        assert resp['status'] == 200, 'initial status'
-
-        self.add_tls()
-
-        assert self.get(sock=sock)['status'] == 200, 'reconfigure status'
-        assert self.get_ssl()['status'] == 200, 'reconfigure tls status'
-
     def test_tls_keepalive(self):
         self.load('mirror')
 
