@@ -115,12 +115,58 @@ class TestVariables(TestApplicationProto):
         update_pass("applications")
         assert self.get(url='/3')['status'] == 404
 
+    def test_variables_dollar(self):
+        assert 'success' in self.conf(
+            {
+                "listeners": {"*:7080": {"pass": "routes"}},
+                "routes": [{"action": {"return": 301}}],
+            }
+        )
+
+        assert 'success' in self.conf(
+            '"https://${host}${uri}path$$sub"', 'routes/0/action/location'
+        ), 'location with $'
+        assert self.get()['headers']['Location'] == 'https://localhost/path$sub'
+
+        assert 'success' in self.conf(
+            '"https://$host$uri/$$sub1$$sub2"', 'routes/0/action/location'
+        ), 'location with 2 $s'
+        assert (
+            self.get()['headers']['Location'] == 'https://localhost//$sub1$sub2'
+        )
+
+        assert 'success' in self.conf(
+            '"https://$host/routes$uri$method$$sub"', 'routes/0/action/location'
+        ), 'location with variables followed by a $'
+        assert (
+            self.get()['headers']['Location']
+            == 'https://localhost/routes/GET$sub'
+        )
+
+        assert 'success' in self.conf(
+            '"https://$host$uri$$$host"', 'routes/0/action/location'
+        ), 'location with $ immediately followed by a variable'
+        assert (
+            self.get()['headers']['Location'] == 'https://localhost/$localhost'
+        )
+
+        assert 'success' in self.conf('"$${}"', 'routes/0/action/location')
+        assert (self.get()['headers']['Location'] == '$%7B%7D')
+
+        assert 'success' in self.conf('"$${host}"', 'routes/0/action/location')
+        assert (self.get()['headers']['Location'] == '$%7Bhost%7D')
+
+        assert 'success' in self.conf('"$$$$"', 'routes/0/action/location')
+        assert (self.get()['headers']['Location'] == '$$')
+
     def test_variables_invalid(self):
         def check_variables(routes):
             assert 'error' in self.conf(
                 routes, 'listeners/*:7080/pass'
             ), 'invalid variables'
 
+        check_variables("\"${$}\"")
+        check_variables("\"${$uri}\"")
         check_variables("\"routes$\"")
         check_variables("\"routes${\"")
         check_variables("\"routes${}\"")
