@@ -1,4 +1,4 @@
-FROM python:3.9 as BUILDER
+FROM python:3.10 as BUILDER
 
 LABEL maintainer="NGINX Docker Maintainers <docker-maint@nginx.com>"
 
@@ -40,7 +40,7 @@ RUN set -ex \
     && make -j $NCPU python3-install \
     && ldd /usr/sbin/unitd | awk '/=>/{print $(NF-1)}' | while read n; do dpkg-query -S $n; done | sed 's/^\([^:]\+\):.*$/\1/' | sort | uniq > /requirements.apt
 
-FROM python:3.9
+FROM python:3.10
 COPY docker-entrypoint.sh /usr/local/bin/
 COPY --from=BUILDER /usr/sbin/unitd /usr/sbin/unitd
 COPY --from=BUILDER /usr/sbin/unitd-debug /usr/sbin/unitd-debug
@@ -48,6 +48,10 @@ COPY --from=BUILDER /usr/lib/unit/ /usr/lib/unit/
 COPY --from=BUILDER /requirements.apt /requirements.apt
 
 RUN set -x \
+    && if [ -f "/tmp/libunit.a" ]; then \
+        mv /tmp/libunit.a /usr/lib/$(dpkg-architecture -q DEB_HOST_MULTIARCH)/libunit.a; \
+        rm -f /tmp/libunit.a; \
+    fi \
     && mkdir -p /var/lib/unit/ \
     && mkdir /docker-entrypoint.d/ \
     && addgroup --system unit \
