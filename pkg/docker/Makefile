@@ -18,7 +18,7 @@ INSTALL_minimal ?=	version
 define COPY_minimal
 endef
 
-VERSION_go ?=		1.17
+VERSION_go ?=		1.18
 CONTAINER_go ?=		golang:$(VERSION_go)
 CONFIGURE_go ?=		go --go-path=$$GOPATH
 INSTALL_go ?=		go-install-src libunit-install
@@ -62,7 +62,7 @@ CONFIGURE_python ?=	python --config=/usr/local/bin/python3-config
 INSTALL_python ?=	python3-install
 COPY_python =
 
-VERSION_ruby ?=		3.0
+VERSION_ruby ?=		3.1
 CONTAINER_ruby ?=	ruby:$(VERSION_ruby)
 CONFIGURE_ruby ?=	ruby
 INSTALL_ruby ?=		ruby-install
