@@ -6,6 +6,9 @@
 
 #include <nxt_main.h>
 #include <nxt_conf.h>
+
+#define OPENSSL_SUPPRESS_DEPRECATED
+
 #include <openssl/ssl.h>
 #include <openssl/conf.h>
 #include <openssl/err.h>
