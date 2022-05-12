@@ -326,6 +326,11 @@ nxt_openssl_server_init(nxt_task_t *task, nxt_mp_t *mp,
     SSL_CTX_set_options(ctx, SSL_OP_NO_COMPRESSION);
 #endif
 
+#ifdef SSL_OP_IGNORE_UNEXPECTED_EOF
+    /* Request SSL_ERROR_ZERO_RETURN on EOF. */
+    SSL_CTX_set_options(ctx, SSL_OP_IGNORE_UNEXPECTED_EOF);
+#endif
+
 #ifdef SSL_MODE_RELEASE_BUFFERS
 
     if (nxt_openssl_version >= 10001078) {
