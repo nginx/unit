@@ -51,6 +51,12 @@ compatibility with GCC 12.
 
 <change type="bugfix">
 <para>
+Ruby Sinatra applications don't work without custom logging.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
 the controller process could crash when a chain with more than 4
 certificates was uploaded.
 </para>
