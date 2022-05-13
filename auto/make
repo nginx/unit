@@ -430,6 +430,12 @@ cat << END > Makefile
 
 include $NXT_MAKEFILE
 
+PYTEST := $NXT_PYTEST_NAME
+
+.PHONY: check
+check: unitd
+	\$(PYTEST)
+
 .PHONY: clean
 clean:
 		rm -rf $NXT_BUILD_DIR *.dSYM Makefile

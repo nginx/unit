@@ -1,0 +1,58 @@
+
+# Copyright (C) Andrew Clayton
+
+
+$echo -n "checking for pytest ... "
+cat << END >> $NXT_AUTOCONF_ERR
+----------------------------------------
+checking for pytest
+END
+
+
+# Allow error exit status.
+set +e
+
+NXT_PYTEST_NAME=
+
+PYTEST_DEFAULT_NAME=pytest
+PYTEST_FOUND_STR="not found"
+PYTEST_GO=
+
+PYTEST_CMDS="
+    pytest
+    pytest-3
+"
+
+for pyt_cmd in $PYTEST_CMDS
+do
+    if `/bin/sh -c "($pyt_cmd --version)" 2>&1 >> $NXT_AUTOCONF_ERR 2>&1`
+    then
+        NXT_PYTEST_NAME=$pyt_cmd
+        break
+    fi
+done
+
+if `/bin/sh -c "(go version)" 2>&1 >> $NXT_AUTOCONF_ERR 2>&1`
+then
+    PYTEST_GO=go
+fi
+
+if [ ! -z $NXT_PYTEST_NAME ]
+then
+    PYTEST_FOUND_STR="found"
+fi
+
+if [ ! -z $NXT_PYTEST_NAME ] && [ -z $PYTEST_GO ]
+then
+    PYTEST_FOUND_STR=${PYTEST_FOUND_STR}" but is missing golang"
+fi
+
+$echo $PYTEST_FOUND_STR
+
+if [ -z $NXT_PYTEST_NAME ]
+then
+    NXT_PYTEST_NAME=$PYTEST_DEFAULT_NAME
+fi
+
+# Stop on error exit status again.
+set -e

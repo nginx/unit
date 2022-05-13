@@ -163,6 +163,7 @@ cat << END >> $NXT_AUTO_CONFIG_H
 END
 
 . auto/test_build
+. auto/pytest
 . auto/sources
 . auto/save
 
