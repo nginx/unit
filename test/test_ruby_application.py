@@ -173,7 +173,7 @@ class TestRubyApplication(TestApplicationRuby):
     def test_ruby_application_errors_puts(self):
         self.load('errors_puts')
 
-        self.get()
+        assert self.get()['status'] == 200
 
         assert (
             self.wait_for_record(r'\[error\].+Error in application') is not None
@@ -182,7 +182,7 @@ class TestRubyApplication(TestApplicationRuby):
     def test_ruby_application_errors_puts_int(self):
         self.load('errors_puts_int')
 
-        self.get()
+        assert self.get()['status'] == 200
 
         assert (
             self.wait_for_record(r'\[error\].+1234567890') is not None
@@ -191,8 +191,7 @@ class TestRubyApplication(TestApplicationRuby):
     def test_ruby_application_errors_write(self):
         self.load('errors_write')
 
-        self.get()
-
+        assert self.get()['status'] == 200
         assert (
             self.wait_for_record(r'\[error\].+Error in application') is not None
         ), 'errors write'
@@ -205,8 +204,7 @@ class TestRubyApplication(TestApplicationRuby):
     def test_ruby_application_errors_write_int(self):
         self.load('errors_write_int')
 
-        self.get()
-
+        assert self.get()['status'] == 200
         assert (
             self.wait_for_record(r'\[error\].+1234567890') is not None
         ), 'errors write int'
@@ -214,7 +212,7 @@ class TestRubyApplication(TestApplicationRuby):
     def test_ruby_application_at_exit(self):
         self.load('at_exit')
 
-        self.get()
+        assert self.get()['status'] == 200
 
         assert 'success' in self.conf({"listeners": {}, "applications": {}})
 
