@@ -62,7 +62,6 @@ For details and available language packages, see the
 
 ``` console
 $ curl -sL 'https://unit.nginx.org/_downloads/setup-unit.sh' | sudo -E bash
-
 # apt install unit
 ```
 
