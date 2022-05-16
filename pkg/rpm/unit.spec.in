@@ -123,7 +123,9 @@ DESTDIR=%{buildroot} make unitd-install libunit-install manpage-install
     %{buildroot}%{_datadir}/doc/unit/
 %{__install} -m 644 -p NOTICE \
     %{buildroot}%{_datadir}/doc/unit/COPYRIGHT
-%{__install} -m 644 -p README \
+%{__install} -m 644 -p README.md \
+    %{buildroot}%{_datadir}/doc/unit/
+%{__install} -m 644 -p CONTRIBUTING.md \
     %{buildroot}%{_datadir}/doc/unit/
 
 %{__rm} -rf %{buildroot}%{_initrddir}/
