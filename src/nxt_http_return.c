@@ -80,7 +80,7 @@ nxt_http_return(nxt_task_t *task, nxt_http_request_t *r,
     conf = action->u.conf;
 
     if (conf->location == NULL) {
-        nxt_str_null(&loc);
+        nxt_str_set(&loc, "");
 
     } else {
         nxt_var_raw(conf->location, &loc);
