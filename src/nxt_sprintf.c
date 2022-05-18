@@ -97,7 +97,6 @@ static u_char *nxt_number(nxt_sprintf_t *spf, u_char *buf, double n);
 u_char *
 nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
 {
-    u_char               *p;
     int                  d;
     double               f, i;
     size_t               length;
@@ -109,6 +108,7 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
     nxt_msec_t           ms;
     nxt_nsec_t           ns;
     nxt_bool_t           sign;
+    const u_char         *p;
     nxt_sprintf_t        spf;
     nxt_file_name_t      *fn;
 
@@ -150,7 +150,7 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
             continue;
 
         case 's':
-            p = va_arg(args, u_char *);
+            p = va_arg(args, const u_char *);
 
             if (nxt_fast_path(p != NULL)) {
                 while (*p != '\0' && buf < end) {
@@ -168,7 +168,7 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
 
             if (*fmt == 's') {
                 fmt++;
-                p = va_arg(args, u_char *);
+                p = va_arg(args, const u_char *);
 
                 if (nxt_fast_path(p != NULL)) {
                     goto copy;
@@ -378,13 +378,13 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
             }
 
             if (nxt_slow_path(isnan(f))) {
-                p = (u_char *) nan;
+                p = nan;
                 length = nxt_length(nan);
 
                 goto copy;
 
             } else if (nxt_slow_path(isinf(f))) {
-                p = (u_char *) infinity;
+                p = infinity;
                 length = nxt_length(infinity);
 
                 goto copy;
