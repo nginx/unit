@@ -24,6 +24,25 @@ static void nxt_http_request_done(nxt_task_t *task, void *obj, void *data);
 static u_char *nxt_http_date_cache_handler(u_char *buf, nxt_realtime_t *now,
     struct tm *tm, size_t size, const char *format);
 
+static nxt_http_name_value_t *nxt_http_argument(nxt_array_t *array,
+    u_char *name, size_t name_length, uint32_t hash, u_char *start,
+    u_char *end);
+static nxt_int_t nxt_http_cookie_parse(nxt_array_t *cookies, u_char *start,
+    u_char *end);
+static nxt_http_name_value_t *nxt_http_cookie(nxt_array_t *array, u_char *name,
+    size_t name_length, u_char *start, u_char *end);
+
+
+#define NXT_HTTP_COOKIE_HASH                                                  \
+    (nxt_http_field_hash_end(                                                 \
+     nxt_http_field_hash_char(                                                \
+     nxt_http_field_hash_char(                                                \
+     nxt_http_field_hash_char(                                                \
+     nxt_http_field_hash_char(                                                \
+     nxt_http_field_hash_char(                                                \
+     nxt_http_field_hash_char(NXT_HTTP_FIELD_HASH_INIT,                       \
+        'c'), 'o'), 'o'), 'k'), 'i'), 'e')) & 0xFFFF)
+
 
 static const nxt_http_request_state_t  nxt_http_request_init_state;
 static const nxt_http_request_state_t  nxt_http_request_body_state;
@@ -747,4 +766,261 @@ nxt_http_date_cache_handler(u_char *buf, nxt_realtime_t *now, struct tm *tm,
     size_t size, const char *format)
 {
     return nxt_http_date(buf, tm);
+}
+
+
+nxt_array_t *
+nxt_http_arguments_parse(nxt_http_request_t *r)
+{
+    size_t                 name_length;
+    u_char                 *p, *dst, *dst_start, *start, *end, *name;
+    uint8_t                d0, d1;
+    uint32_t               hash;
+    nxt_array_t            *args;
+    nxt_http_name_value_t  *nv;
+
+    if (r->arguments != NULL) {
+        return r->arguments;
+    }
+
+    args = nxt_array_create(r->mem_pool, 2, sizeof(nxt_http_name_value_t));
+    if (nxt_slow_path(args == NULL)) {
+        return NULL;
+    }
+
+    hash = NXT_HTTP_FIELD_HASH_INIT;
+    name = NULL;
+    name_length = 0;
+
+    dst_start = nxt_mp_nget(r->mem_pool, r->args->length);
+    if (nxt_slow_path(dst_start == NULL)) {
+        return NULL;
+    }
+
+    r->args_decoded.start = dst_start;
+
+    start = r->args->start;
+    end = start + r->args->length;
+
+    for (p = start, dst = dst_start; p < end; p++, dst++) {
+        *dst = *p;
+
+        switch (*p) {
+        case '=':
+            if (name == NULL) {
+                name_length = dst - dst_start;
+                name = dst_start;
+                dst_start = dst + 1;
+            }
+
+            continue;
+
+        case '&':
+            if (name_length != 0 || dst != dst_start) {
+                nv = nxt_http_argument(args, name, name_length, hash, dst_start,
+                                       dst);
+                if (nxt_slow_path(nv == NULL)) {
+                    return NULL;
+                }
+            }
+
+            hash = NXT_HTTP_FIELD_HASH_INIT;
+            name_length = 0;
+            name = NULL;
+            dst_start = dst + 1;
+
+            continue;
+
+        case '+':
+            *dst = ' ';
+
+            break;
+
+        case '%':
+            if (nxt_slow_path(end - p <= 2)) {
+                break;
+            }
+
+            d0 = nxt_hex2int[p[1]];
+            d1 = nxt_hex2int[p[2]];
+
+            if (nxt_slow_path((d0 | d1) >= 16)) {
+                break;
+            }
+
+            p += 2;
+            *dst = (d0 << 4) + d1;
+
+            break;
+        }
+
+        if (name == NULL) {
+            hash = nxt_http_field_hash_char(hash, *dst);
+        }
+    }
+
+    r->args_decoded.length = dst - r->args_decoded.start;
+
+    if (name_length != 0 || dst != dst_start) {
+        nv = nxt_http_argument(args, name, name_length, hash, dst_start, dst);
+        if (nxt_slow_path(nv == NULL)) {
+            return NULL;
+        }
+    }
+
+    r->arguments = args;
+
+    return args;
+}
+
+
+static nxt_http_name_value_t *
+nxt_http_argument(nxt_array_t *array, u_char *name, size_t name_length,
+    uint32_t hash, u_char *start, u_char *end)
+{
+    size_t                 length;
+    nxt_http_name_value_t  *nv;
+
+    nv = nxt_array_add(array);
+    if (nxt_slow_path(nv == NULL)) {
+        return NULL;
+    }
+
+    nv->hash = nxt_http_field_hash_end(hash) & 0xFFFF;
+
+    length = end - start;
+
+    if (name == NULL) {
+        name_length = length;
+        name = start;
+        length = 0;
+    }
+
+    nv->name_length = name_length;
+    nv->value_length = length;
+    nv->name = name;
+    nv->value = start;
+
+    return nv;
+}
+
+
+nxt_array_t *
+nxt_http_cookies_parse(nxt_http_request_t *r)
+{
+    nxt_int_t         ret;
+    nxt_array_t       *cookies;
+    nxt_http_field_t  *f;
+
+    if (r->cookies != NULL) {
+        return r->cookies;
+    }
+
+    cookies = nxt_array_create(r->mem_pool, 2, sizeof(nxt_http_name_value_t));
+    if (nxt_slow_path(cookies == NULL)) {
+        return NULL;
+    }
+
+    nxt_list_each(f, r->fields) {
+
+        if (f->hash != NXT_HTTP_COOKIE_HASH
+            || f->name_length != 6
+            || nxt_strncasecmp(f->name, (u_char *) "Cookie", 6) != 0)
+        {
+            continue;
+        }
+
+        ret = nxt_http_cookie_parse(cookies, f->value,
+                                    f->value + f->value_length);
+        if (ret != NXT_OK) {
+            return NULL;
+        }
+
+    } nxt_list_loop;
+
+    r->cookies = cookies;
+
+    return cookies;
+}
+
+
+static nxt_int_t
+nxt_http_cookie_parse(nxt_array_t *cookies, u_char *start, u_char *end)
+{
+    size_t                 name_length;
+    u_char                 c, *p, *name;
+    nxt_http_name_value_t  *nv;
+
+    name = NULL;
+    name_length = 0;
+
+    for (p = start; p < end; p++) {
+        c = *p;
+
+        if (c == '=') {
+            while (start[0] == ' ') { start++; }
+
+            name_length = p - start;
+
+            if (name_length != 0) {
+                name = start;
+            }
+
+            start = p + 1;
+
+        } else if (c == ';') {
+            if (name != NULL) {
+                nv = nxt_http_cookie(cookies, name, name_length, start, p);
+                if (nxt_slow_path(nv == NULL)) {
+                    return NXT_ERROR;
+                }
+            }
+
+            name = NULL;
+            start = p + 1;
+         }
+    }
+
+    if (name != NULL) {
+        nv = nxt_http_cookie(cookies, name, name_length, start, p);
+        if (nxt_slow_path(nv == NULL)) {
+            return NXT_ERROR;
+        }
+    }
+
+    return NXT_OK;
+}
+
+
+static nxt_http_name_value_t *
+nxt_http_cookie(nxt_array_t *array, u_char *name, size_t name_length,
+    u_char *start, u_char *end)
+{
+    u_char                 c, *p;
+    uint32_t               hash;
+    nxt_http_name_value_t  *nv;
+
+    nv = nxt_array_add(array);
+    if (nxt_slow_path(nv == NULL)) {
+        return NULL;
+    }
+
+    nv->name_length = name_length;
+    nv->name = name;
+
+    hash = NXT_HTTP_FIELD_HASH_INIT;
+
+    for (p = name; p < name + name_length; p++) {
+        c = *p;
+        hash = nxt_http_field_hash_char(hash, c);
+    }
+
+    nv->hash = nxt_http_field_hash_end(hash) & 0xFFFF;
+
+    while (start < end && end[-1] == ' ') { end--; }
+
+    nv->value_length = end - start;
+    nv->value = start;
+
+    return nv;
 }

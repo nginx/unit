@@ -198,6 +198,15 @@ struct nxt_http_request_s {
 };
 
 
+typedef struct {
+    uint16_t                        hash;
+    uint16_t                        name_length;
+    uint32_t                        value_length;
+    u_char                          *name;
+    u_char                          *value;
+} nxt_http_name_value_t;
+
+
 typedef struct nxt_http_route_s            nxt_http_route_t;
 typedef struct nxt_http_route_rule_s       nxt_http_route_rule_t;
 typedef struct nxt_http_route_addr_rule_s  nxt_http_route_addr_rule_t;
@@ -310,6 +319,9 @@ nxt_int_t nxt_http_request_field(void *ctx, nxt_http_field_t *field,
     uintptr_t offset);
 nxt_int_t nxt_http_request_content_length(void *ctx, nxt_http_field_t *field,
     uintptr_t data);
+
+nxt_array_t *nxt_http_arguments_parse(nxt_http_request_t *r);
+nxt_array_t *nxt_http_cookies_parse(nxt_http_request_t *r);
 
 nxt_http_routes_t *nxt_http_routes_create(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_conf_value_t *routes_conf);
