@@ -207,6 +207,13 @@ typedef struct {
 } nxt_http_name_value_t;
 
 
+typedef enum {
+    NXT_HTTP_URI_ENCODING_NONE = 0,
+    NXT_HTTP_URI_ENCODING,
+    NXT_HTTP_URI_ENCODING_PLUS
+} nxt_http_uri_encoding_t;
+
+
 typedef struct nxt_http_route_s            nxt_http_route_t;
 typedef struct nxt_http_route_rule_s       nxt_http_route_rule_t;
 typedef struct nxt_http_route_addr_rule_s  nxt_http_route_addr_rule_t;
@@ -323,6 +330,9 @@ nxt_int_t nxt_http_request_content_length(void *ctx, nxt_http_field_t *field,
 
 nxt_array_t *nxt_http_arguments_parse(nxt_http_request_t *r);
 nxt_array_t *nxt_http_cookies_parse(nxt_http_request_t *r);
+
+int64_t nxt_http_field_hash(nxt_mp_t *mp, nxt_str_t *name,
+    nxt_bool_t case_sensitive, uint8_t encoding);
 
 nxt_http_routes_t *nxt_http_routes_create(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_conf_value_t *routes_conf);

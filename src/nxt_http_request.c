@@ -1024,3 +1024,86 @@ nxt_http_cookie(nxt_array_t *array, u_char *name, size_t name_length,
 
     return nv;
 }
+
+
+int64_t
+nxt_http_field_hash(nxt_mp_t *mp, nxt_str_t *name, nxt_bool_t case_sensitive,
+    uint8_t encoding)
+{
+    u_char      c, *p, *src, *start, *end, plus;
+    uint8_t     d0, d1;
+    uint32_t    hash;
+    nxt_str_t   str;
+    nxt_uint_t  i;
+
+    str.length = name->length;
+
+    str.start = nxt_mp_nget(mp, str.length);
+    if (nxt_slow_path(str.start == NULL)) {
+        return -1;
+    }
+
+    p = str.start;
+
+    hash = NXT_HTTP_FIELD_HASH_INIT;
+
+    if (encoding == NXT_HTTP_URI_ENCODING_NONE) {
+        for (i = 0; i < name->length; i++) {
+            c = name->start[i];
+            *p++ = c;
+
+            c = case_sensitive ? c : nxt_lowcase(c);
+            hash = nxt_http_field_hash_char(hash, c);
+        }
+
+        goto end;
+    }
+
+    plus = (encoding == NXT_HTTP_URI_ENCODING_PLUS) ? ' ' : '+';
+
+    start = name->start;
+    end = start + name->length;
+
+    for (src = start; src < end; src++) {
+        c = *src;
+
+        switch (c) {
+        case '%':
+            if (nxt_slow_path(end - src <= 2)) {
+                return -1;
+            }
+
+            d0 = nxt_hex2int[src[1]];
+            d1 = nxt_hex2int[src[2]];
+            src += 2;
+
+            if (nxt_slow_path((d0 | d1) >= 16)) {
+                return -1;
+            }
+
+            c = (d0 << 4) + d1;
+            *p++ = c;
+            break;
+
+        case '+':
+            c = plus;
+            *p++ = c;
+            break;
+
+        default:
+            *p++ = c;
+            break;
+        }
+
+        c = case_sensitive ? c : nxt_lowcase(c);
+        hash = nxt_http_field_hash_char(hash, c);
+    }
+
+    str.length = p - str.start;
+
+end:
+
+    *name = str;
+
+    return nxt_http_field_hash_end(hash) & 0xFFFF;
+}
