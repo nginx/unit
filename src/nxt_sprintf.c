@@ -151,6 +151,8 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
             continue;
 
         case 's':
+            fmt++;
+
             p = va_arg(args, u_char *);
 
             if (nxt_slow_path(p == NULL)) {
@@ -161,7 +163,6 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
                 *buf++ = *p++;
             }
 
-            fmt++;
             continue;
 
         case '*':
@@ -558,9 +559,12 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
         if (nxt_slow_path(p == NULL)) {
             p = (u_char *) null;
             length = nxt_length(null);
+
+        } else {
+            length = nxt_min((size_t) (end - buf), length);
         }
 
-        buf = nxt_cpymem(buf, p, nxt_min((size_t) (end - buf), length));
+        buf = nxt_cpymem(buf, p, length);
         continue;
     }
 
