@@ -57,6 +57,12 @@ variables support in the "location" option of the "return" action.
 
 <change type="feature">
 <para>
+added new variable $request_uri with the same meaning as in NGINX.
+</para>
+</change>
+
+<change type="feature">
+<para>
 compatibility with GCC 12.
 </para>
 </change>
