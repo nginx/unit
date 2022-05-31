@@ -11,6 +11,9 @@ class TestReconfigureTLS(TestApplicationTLS):
 
     @pytest.fixture(autouse=True)
     def setup_method_fixture(self):
+        if 'HAS_TLSv1_2' not in dir(ssl) or not ssl.HAS_TLSv1_2:
+            pytest.skip('OpenSSL too old')
+
         self.certificate()
 
         assert 'success' in self.conf(
@@ -27,9 +30,9 @@ class TestReconfigureTLS(TestApplicationTLS):
         ), 'load application configuration'
 
     def create_socket(self):
-        ctx = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
-        ctx.verify_mode = ssl.CERT_NONE
+        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
 
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         ssl_sock = ctx.wrap_socket(
