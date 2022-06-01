@@ -17,7 +17,7 @@ class TestVariables(TestApplicationProto):
                     "5GET": [{"action": {"return": 206}}],
                     "GETGET": [{"action": {"return": 207}}],
                     "localhost": [{"action": {"return": 208}}],
-                    "9*?q": [{"action": {"return": 209}}],
+                    "9?q#a": [{"action": {"return": 209}}],
                 },
             },
         ), 'configure routes'
@@ -35,7 +35,7 @@ class TestVariables(TestApplicationProto):
         assert self.get(url='/3')['status'] == 203, 'request_uri'
         assert self.get(url='/4*')['status'] == 204, 'request_uri 2'
         assert self.get(url='/4%2A')['status'] == 204, 'request_uri 3'
-        assert self.get(url='/9%2A?q')['status'] == 209, 'request_uri & query'
+        assert self.get(url='/9?q#a')['status'] == 209, 'request_uri query'
 
     def test_variables_uri(self):
         self.conf_routes("\"routes$uri\"")
