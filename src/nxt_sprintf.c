@@ -115,6 +115,7 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
     static const u_char  hexadecimal[16] = "0123456789abcdef";
     static const u_char  HEXADECIMAL[16] = "0123456789ABCDEF";
     static const u_char  nan[] = "[nan]";
+    static const u_char  null[] = "[null]";
     static const u_char  infinity[] = "[infinity]";
 
     spf.end = end;
@@ -150,15 +151,18 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
             continue;
 
         case 's':
+            fmt++;
+
             p = va_arg(args, const u_char *);
 
-            if (nxt_fast_path(p != NULL)) {
-                while (*p != '\0' && buf < end) {
-                    *buf++ = *p++;
-                }
+            if (nxt_slow_path(p == NULL)) {
+                goto copy;
             }
 
-            fmt++;
+            while (*p != '\0' && buf < end) {
+                *buf++ = *p++;
+            }
+
             continue;
 
         case '*':
@@ -170,9 +174,7 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
                 fmt++;
                 p = va_arg(args, const u_char *);
 
-                if (nxt_fast_path(p != NULL)) {
-                    goto copy;
-                }
+                goto copy;
             }
 
             continue;
@@ -554,7 +556,15 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
 
     copy:
 
-        buf = nxt_cpymem(buf, p, nxt_min((size_t) (end - buf), length));
+        if (nxt_slow_path(p == NULL)) {
+            p = null;
+            length = nxt_length(null);
+
+        } else {
+            length = nxt_min((size_t) (end - buf), length);
+        }
+
+        buf = nxt_cpymem(buf, p, length);
         continue;
     }
 
