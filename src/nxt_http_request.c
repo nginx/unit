@@ -29,8 +29,8 @@ static nxt_http_name_value_t *nxt_http_argument(nxt_array_t *array,
     u_char *end);
 static nxt_int_t nxt_http_cookie_parse(nxt_array_t *cookies, u_char *start,
     u_char *end);
-static nxt_http_name_value_t *nxt_http_cookie(nxt_array_t *array, u_char *name,
-    size_t name_length, u_char *start, u_char *end);
+static nxt_http_name_value_t *nxt_http_cookie(nxt_array_t *array,
+    nxt_str_t *name, nxt_str_t *value);
 
 
 #define NXT_HTTP_COOKIE_HASH                                                  \
@@ -947,44 +947,70 @@ nxt_http_cookies_parse(nxt_http_request_t *r)
 static nxt_int_t
 nxt_http_cookie_parse(nxt_array_t *cookies, u_char *start, u_char *end)
 {
-    size_t                 name_length;
-    u_char                 c, *p, *name;
+    u_char                 *p, *last;
+    nxt_str_t              name, value, *pnv;
     nxt_http_name_value_t  *nv;
 
-    name = NULL;
-    name_length = 0;
+    nxt_str_null(&name);
+    nxt_str_null(&value);
 
     for (p = start; p < end; p++) {
-        c = *p;
+        switch (*p) {
+        case '=':
+            if (name.start != NULL) { break; }
 
-        if (c == '=') {
             while (start[0] == ' ') { start++; }
+            name.start = start;
 
-            name_length = p - start;
-
-            if (name_length != 0) {
-                name = start;
-            }
+            last = p;
+            while (last[-1] == ' ' && last > start) { last--; }
+            name.length = last - start;
 
             start = p + 1;
+            break;
 
-        } else if (c == ';') {
-            if (name != NULL) {
-                nv = nxt_http_cookie(cookies, name, name_length, start, p);
+        case ';':
+            pnv = name.start == NULL ? &name : &value;
+
+            while (start[0] == ' ') { start++; }
+            pnv->start = start;
+
+            last = p;
+            while (last[-1] == ' ' && last > start) { last--; }
+            pnv->length = last - start;
+
+            if (name.length > 0) {
+                nv = nxt_http_cookie(cookies, &name, &value);
                 if (nxt_slow_path(nv == NULL)) {
                     return NXT_ERROR;
                 }
             }
 
-            name = NULL;
+            nxt_str_null(&name);
+            nxt_str_null(&value);
+
             start = p + 1;
-         }
+            break;
+
+        default:
+            break;
+        }
     }
 
-    if (name != NULL) {
-        nv = nxt_http_cookie(cookies, name, name_length, start, p);
-        if (nxt_slow_path(nv == NULL)) {
-            return NXT_ERROR;
+    if (start < end) {
+        pnv = name.start == NULL ? &name : &value;
+
+        while (start[0] == ' ' && start < end) { start++; }
+        pnv->start = start;
+
+        while (end[-1] == ' ' && end > start) { end--; }
+        pnv->length = end - start;
+
+        if (name.length > 0) {
+            nv = nxt_http_cookie(cookies, &name, &value);
+            if (nxt_slow_path(nv == NULL)) {
+                return NXT_ERROR;
+            }
         }
     }
 
@@ -993,8 +1019,7 @@ nxt_http_cookie_parse(nxt_array_t *cookies, u_char *start, u_char *end)
 
 
 static nxt_http_name_value_t *
-nxt_http_cookie(nxt_array_t *array, u_char *name, size_t name_length,
-    u_char *start, u_char *end)
+nxt_http_cookie(nxt_array_t *array, nxt_str_t *name, nxt_str_t *value)
 {
     u_char                 c, *p;
     uint32_t               hash;
@@ -1005,22 +1030,20 @@ nxt_http_cookie(nxt_array_t *array, u_char *name, size_t name_length,
         return NULL;
     }
 
-    nv->name_length = name_length;
-    nv->name = name;
+    nv->name_length = name->length;
+    nv->name = name->start;
 
     hash = NXT_HTTP_FIELD_HASH_INIT;
 
-    for (p = name; p < name + name_length; p++) {
+    for (p = name->start; p < name->start + name->length; p++) {
         c = *p;
         hash = nxt_http_field_hash_char(hash, c);
     }
 
     nv->hash = nxt_http_field_hash_end(hash) & 0xFFFF;
 
-    while (start < end && end[-1] == ' ') { end--; }
-
-    nv->value_length = end - start;
-    nv->value = start;
+    nv->value_length = value->length;
+    nv->value = value->start;
 
     return nv;
 }
