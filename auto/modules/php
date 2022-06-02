@@ -149,7 +149,11 @@ nxt_feature_test="
     #include <php_main.h>
 
     int main() {
+    #if (PHP_VERSION_ID < 80200)
         php_module_startup(NULL, NULL, 0);
+    #else
+        php_module_startup(NULL, NULL);
+    #endif
         return 0;
     }"
 
