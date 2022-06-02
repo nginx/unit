@@ -43,6 +43,7 @@ typedef struct {
     uint32_t                 threads;
 
     nxt_mp_t                 *mem_pool;
+    nxt_array_t              *var_fields;  /* of nxt_var_field_t */
 
     nxt_router_t             *router;
     nxt_http_routes_t        *routes;
@@ -52,6 +53,7 @@ typedef struct {
     nxt_lvlhsh_t             apps_hash;
 
     nxt_router_access_log_t  *access_log;
+    nxt_var_t                *log_format;
 } nxt_router_conf_t;
 
 
@@ -221,7 +223,8 @@ typedef struct {
 
 struct nxt_router_access_log_s {
     void                   (*handler)(nxt_task_t *task, nxt_http_request_t *r,
-                                      nxt_router_access_log_t *access_log);
+                                      nxt_router_access_log_t *access_log,
+                                      nxt_var_t *format);
     nxt_fd_t               fd;
     nxt_str_t              path;
     uint32_t               count;
@@ -235,7 +238,23 @@ nxt_int_t nxt_router_application_init(nxt_router_conf_t *rtcf, nxt_str_t *name,
     nxt_str_t *target, nxt_http_action_t *action);
 void nxt_router_listen_event_release(nxt_task_t *task, nxt_listen_event_t *lev,
     nxt_socket_conf_joint_t *joint);
+
+void nxt_router_conf_apply(nxt_task_t *task, void *obj, void *data);
+void nxt_router_conf_error(nxt_task_t *task, nxt_router_temp_conf_t *tmcf);
 void nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint);
+
+nxt_int_t nxt_router_access_log_create(nxt_task_t *task,
+    nxt_router_conf_t *rtcf, nxt_conf_value_t *value);
+void nxt_router_access_log_open(nxt_task_t *task, nxt_router_temp_conf_t *tmcf);
+void nxt_router_access_log_use(nxt_thread_spinlock_t *lock,
+    nxt_router_access_log_t *access_log);
+void nxt_router_access_log_release(nxt_task_t *task,
+    nxt_thread_spinlock_t *lock, nxt_router_access_log_t *access_log);
+void nxt_router_access_log_reopen_handler(nxt_task_t *task,
+    nxt_port_recv_msg_t *msg);
+
+
+extern nxt_router_t  *nxt_router;
 
 
 #endif  /* _NXT_ROUTER_H_INCLUDED_ */

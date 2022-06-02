@@ -200,6 +200,8 @@ static nxt_int_t nxt_conf_vldt_server(nxt_conf_validation_t *vldt,
     nxt_str_t *name, nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_server_weight(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_access_log(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
 
 static nxt_int_t nxt_conf_vldt_isolation(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
@@ -238,6 +240,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_namespaces_members[];
 #if (NXT_HAVE_ISOLATION_ROOTFS)
 static nxt_conf_vldt_object_t  nxt_conf_vldt_app_automount_members[];
 #endif
+static nxt_conf_vldt_object_t  nxt_conf_vldt_access_log_members[];
 
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_root_members[] = {
@@ -267,7 +270,8 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_root_members[] = {
         .u.object   = nxt_conf_vldt_upstream,
     }, {
         .name       = nxt_string("access_log"),
-        .type       = NXT_CONF_VLDT_STRING,
+        .type       = NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_OBJECT,
+        .validator  = nxt_conf_vldt_access_log,
     },
 
     NXT_CONF_VLDT_END
@@ -1177,10 +1181,28 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_upstream_server_members[] = {
 };
 
 
+static nxt_conf_vldt_object_t  nxt_conf_vldt_access_log_members[] = {
+    {
+        .name       = nxt_string("path"),
+        .type       = NXT_CONF_VLDT_STRING,
+    }, {
+        .name       = nxt_string("format"),
+        .type       = NXT_CONF_VLDT_STRING,
+    },
+
+    NXT_CONF_VLDT_END
+};
+
+
 nxt_int_t
 nxt_conf_validate(nxt_conf_validation_t *vldt)
 {
     nxt_int_t  ret;
+
+    vldt->var_fields = nxt_array_create(vldt->pool, 4, sizeof(nxt_var_field_t));
+    if (nxt_slow_path(vldt->var_fields == NULL)) {
+        return NXT_ERROR;
+    }
 
     ret = nxt_conf_vldt_type(vldt, NULL, vldt->conf, NXT_CONF_VLDT_OBJECT);
     if (ret != NXT_OK) {
@@ -1314,7 +1336,7 @@ nxt_conf_vldt_var(nxt_conf_validation_t *vldt, nxt_str_t *name,
 {
     u_char  error[NXT_MAX_ERROR_STR];
 
-    if (nxt_var_test(value, error) != NXT_OK) {
+    if (nxt_var_test(value, vldt->var_fields, error) != NXT_OK) {
         return nxt_conf_vldt_error(vldt, "%s in the \"%V\" value.",
                                    error, name);
     }
@@ -3026,6 +3048,68 @@ nxt_conf_vldt_server_weight(nxt_conf_validation_t *vldt,
     if (num_value > 1000000) {
         return nxt_conf_vldt_error(vldt, "The \"weight\" number must "
                                    "not exceed 1,000,000");
+    }
+
+    return NXT_OK;
+}
+
+
+typedef struct {
+    nxt_str_t  path;
+    nxt_str_t  format;
+} nxt_conf_vldt_access_log_conf_t;
+
+
+static nxt_conf_map_t  nxt_conf_vldt_access_log_map[] = {
+    {
+        nxt_string("path"),
+        NXT_CONF_MAP_STR,
+        offsetof(nxt_conf_vldt_access_log_conf_t, path),
+    },
+
+    {
+        nxt_string("format"),
+        NXT_CONF_MAP_STR,
+        offsetof(nxt_conf_vldt_access_log_conf_t, format),
+    },
+};
+
+
+static nxt_int_t
+nxt_conf_vldt_access_log(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
+{
+    nxt_int_t                        ret;
+    nxt_conf_vldt_access_log_conf_t  conf;
+
+    static nxt_str_t  format_str = nxt_string("format");
+
+    if (nxt_conf_type(value) == NXT_CONF_STRING) {
+        return NXT_OK;
+    }
+
+    ret = nxt_conf_vldt_object(vldt, value, nxt_conf_vldt_access_log_members);
+    if (ret != NXT_OK) {
+        return ret;
+    }
+
+    nxt_memzero(&conf, sizeof(nxt_conf_vldt_access_log_conf_t));
+
+    ret = nxt_conf_map_object(vldt->pool, value,
+                              nxt_conf_vldt_access_log_map,
+                              nxt_nitems(nxt_conf_vldt_access_log_map),
+                              &conf);
+    if (ret != NXT_OK) {
+        return ret;
+    }
+
+    if (conf.path.length == 0) {
+        return nxt_conf_vldt_error(vldt,
+                                   "The \"path\" string must not be empty.");
+    }
+
+    if (nxt_is_var(&conf.format)) {
+        return nxt_conf_vldt_var(vldt, &format_str, &conf.format);
     }
 
     return NXT_OK;

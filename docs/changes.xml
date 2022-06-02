@@ -24,6 +24,12 @@ NGINX Unit updated to 1.27.0.
 </para>
 </change>
 
+<change type="feature">
+<para>
+customizable access log format.
+</para>
+</change>
+
 </changes>
 
 
@@ -65,6 +71,18 @@ Ruby Rack environment parameter "SCRIPT_NAME" support.
 <change type="feature">
 <para>
 compatibility with GCC 12.
+</para>
+</change>
+
+<change type="feature">
+<para>
+ability to get dynamic variables.
+</para>
+</change>
+
+<change type="feature">
+<para>
+more http variables support.
 </para>
 </change>
 
