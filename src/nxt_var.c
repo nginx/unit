@@ -494,17 +494,12 @@ nxt_var_query(nxt_task_t *task, nxt_var_query_t *query, nxt_var_t *var,
             continue;  /* NXT_DECLINED */
         }
 
-        ret = nxt_var_index[index](task, query, value, query->ctx);
+        ret = nxt_var_index[index](task, value, query->ctx);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            goto fail;
+        }
 
         value = NULL;
-
-        if (ret != NXT_OK) {
-            if (nxt_slow_path(ret != NXT_AGAIN)) {
-                goto fail;
-            }
-
-            query->waiting++;
-        }
     }
 
     query->spare = value;
