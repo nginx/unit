@@ -179,12 +179,10 @@ NXT_EXPORT nxt_tid_t nxt_thread_tid(nxt_thread_t *thr);
 typedef pthread_t  nxt_thread_handle_t;
 
 
-#define                                                                       \
-nxt_thread_handle_clear(th)                                                   \
+#define nxt_thread_handle_clear(th)                                           \
     th = (pthread_t) 0
 
-#define                                                                       \
-nxt_thread_handle_equal(th0, th1)                                             \
+#define nxt_thread_handle_equal(th0, th1)                                     \
     pthread_equal(th0, th1)
 
 

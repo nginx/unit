@@ -90,17 +90,17 @@ typedef union {
 
 #define nxt_http_field_name_set(_field, _name)                                \
     do {                                                                      \
-         (_field)->name_length = nxt_length(_name);                           \
-         (_field)->name = (u_char *) _name;                                   \
+        (_field)->name_length = nxt_length(_name);                            \
+        (_field)->name = (u_char *) _name;                                    \
     } while (0)
 
 
 #define nxt_http_field_set(_field, _name, _value)                             \
     do {                                                                      \
-         (_field)->name_length = nxt_length(_name);                           \
-         (_field)->value_length = nxt_length(_value);                         \
-         (_field)->name = (u_char *) _name;                                   \
-         (_field)->value = (u_char *) _value;                                 \
+        (_field)->name_length = nxt_length(_name);                            \
+        (_field)->value_length = nxt_length(_value);                          \
+        (_field)->name = (u_char *) _name;                                    \
+        (_field)->value = (u_char *) _value;                                  \
     } while (0)
 
 
@@ -198,6 +198,15 @@ struct nxt_http_request_s {
 };
 
 
+typedef struct {
+    uint16_t                        hash;
+    uint16_t                        name_length;
+    uint32_t                        value_length;
+    u_char                          *name;
+    u_char                          *value;
+} nxt_http_name_value_t;
+
+
 typedef struct nxt_http_route_s            nxt_http_route_t;
 typedef struct nxt_http_route_rule_s       nxt_http_route_rule_t;
 typedef struct nxt_http_route_addr_rule_s  nxt_http_route_addr_rule_t;
@@ -206,9 +215,10 @@ typedef struct nxt_http_route_addr_rule_s  nxt_http_route_addr_rule_t;
 typedef struct {
     nxt_conf_value_t                *pass;
     nxt_conf_value_t                *ret;
-    nxt_str_t                       location;
+    nxt_conf_value_t                *location;
     nxt_conf_value_t                *proxy;
     nxt_conf_value_t                *share;
+    nxt_conf_value_t                *index;
     nxt_str_t                       chroot;
     nxt_conf_value_t                *follow_symlinks;
     nxt_conf_value_t                *traverse_mounts;
@@ -238,7 +248,7 @@ typedef struct {
     void (*body_read)(nxt_task_t *task, nxt_http_request_t *r);
     void (*local_addr)(nxt_task_t *task, nxt_http_request_t *r);
     void (*header_send)(nxt_task_t *task, nxt_http_request_t *r,
-         nxt_work_handler_t body_handler, void *data);
+        nxt_work_handler_t body_handler, void *data);
     void (*send)(nxt_task_t *task, nxt_http_request_t *r, nxt_buf_t *out);
     nxt_off_t (*body_bytes_sent)(nxt_task_t *task, nxt_http_proto_t proto);
     void (*discard)(nxt_task_t *task, nxt_http_request_t *r, nxt_buf_t *last);
@@ -310,6 +320,9 @@ nxt_int_t nxt_http_request_field(void *ctx, nxt_http_field_t *field,
     uintptr_t offset);
 nxt_int_t nxt_http_request_content_length(void *ctx, nxt_http_field_t *field,
     uintptr_t data);
+
+nxt_array_t *nxt_http_arguments_parse(nxt_http_request_t *r);
+nxt_array_t *nxt_http_cookies_parse(nxt_http_request_t *r);
 
 nxt_http_routes_t *nxt_http_routes_create(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_conf_value_t *routes_conf);

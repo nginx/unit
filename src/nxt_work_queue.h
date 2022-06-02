@@ -16,12 +16,12 @@ struct nxt_task_s {
     uint32_t      ident;
     nxt_work_t    *next_work;
 
-     /* TODO: exception_handler, prev/next task, subtasks. */
+    /* TODO: exception_handler, prev/next task, subtasks. */
 };
 
 
 #define nxt_task_next_ident()                                                 \
-     ((uint32_t) nxt_atomic_fetch_add(&nxt_task_ident, 1) & 0x3FFFFFFF)
+    ((uint32_t) nxt_atomic_fetch_add(&nxt_task_ident, 1) & 0x3FFFFFFF)
 
 
 /*
@@ -109,8 +109,7 @@ NXT_EXPORT void nxt_work_queue_thread_adopt(nxt_work_queue_t *wq);
 
 #else
 
-#define                                                                       \
-nxt_work_queue_name(_wq, _name)
+#define nxt_work_queue_name(_wq, _name)
 
 #define nxt_work_queue_thread_adopt(_wq)
 

@@ -4,13 +4,13 @@ export async function resolve(specifier, context, defaultResolver) {
         case "websocket":
             return {
                 url: new URL("./websocket.js", import.meta.url).href,
-                format: "cjs"
+                format: "commonjs"
             }
 
         case "http":
             return {
                 url: new URL("./http.js", import.meta.url).href,
-                format: "cjs"
+                format: "commonjs"
             }
     }
 

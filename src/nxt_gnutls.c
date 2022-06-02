@@ -708,11 +708,11 @@ nxt_gnutls_log_error_level(nxt_event_conn_t *c, ssize_t err)
 
     case GNUTLS_E_UNKNOWN_CIPHER_SUITE:                      /*  -21 */
 
-         /* Disable gnutls_bye(), because it returns GNUTLS_E_INTERNAL_ERROR. */
+        /* Disable gnutls_bye(), because it returns GNUTLS_E_INTERNAL_ERROR. */
         ssltls = c->u.ssltls;
         ssltls->no_shutdown = 1;
 
-         /* Fall through. */
+        /* Fall through. */
 
     case GNUTLS_E_UNEXPECTED_PACKET_LENGTH:                  /*   -9 */
         c->socket.error = 1000;  /* Nonexistent errno code. */

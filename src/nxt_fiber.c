@@ -14,8 +14,7 @@ static void nxt_fiber_switch(nxt_task_t *task, nxt_fiber_t *fib);
 static void nxt_fiber_timer_handler(nxt_task_t *task, void *obj, void *data);
 
 
-#define                                                                       \
-nxt_fiber_enqueue(thr, task, fib)                                             \
+#define nxt_fiber_enqueue(thr, task, fib)                                     \
     nxt_work_queue_add(&(thr)->engine->fast_work_queue,                       \
                               nxt_fiber_switch_handler, task, fib, NULL)
 

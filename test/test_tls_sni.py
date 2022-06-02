@@ -178,7 +178,8 @@ basicConstraints = critical,CA:TRUE"""
         self.add_tls(["localhost.com", "example.com"])
 
         resp, sock = self.get_ssl(
-            headers={'Content-Length': '0', 'Connection': 'close'}, start=True,
+            headers={'Content-Length': '0', 'Connection': 'close'},
+            start=True,
         )
         assert resp['status'] == 200
         assert (
@@ -272,9 +273,7 @@ basicConstraints = critical,CA:TRUE"""
         )
 
         assert resp['status'] == 200
-        assert (
-            sock.getpeercert()['subjectAltName'][0][1] == 'alt.localhost.com'
-        )
+        assert sock.getpeercert()['subjectAltName'][0][1] == 'alt.localhost.com'
 
     def test_tls_sni_invalid(self):
         self.config_bundles({"localhost": {"subj": "subj1", "alt_names": ''}})

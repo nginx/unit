@@ -67,6 +67,7 @@ case $nxt_module in
 esac
 
 
+. ./version
 . auto/os/test
 . auto/options
 

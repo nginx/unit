@@ -100,6 +100,22 @@ class TestPerlApplication(TestApplicationPerl):
             self.post(body='0123456789')['body'] == '0123456789'
         ), 'input read parts'
 
+    def test_perl_application_input_buffered_read(self):
+        self.load('input_buffered_read')
+
+        assert self.post(body='012345')['body'] == '012345', 'buffered read #1'
+        assert (
+            self.post(body='9876543210')['body'] == '9876543210'
+        ), 'buffered read #2'
+
+    def test_perl_application_input_close(self):
+        self.load('input_close')
+
+        assert self.post(body='012345')['body'] == '012345', 'input close #1'
+        assert (
+            self.post(body='9876543210')['body'] == '9876543210'
+        ), 'input close #2'
+
     @pytest.mark.skip('not yet')
     def test_perl_application_input_read_offset(self):
         self.load('input_read_offset')
@@ -118,8 +134,7 @@ class TestPerlApplication(TestApplicationPerl):
         assert self.get()['body'] == '1', 'errors result'
 
         assert (
-            self.wait_for_record(r'\[error\].+Error in application')
-            is not None
+            self.wait_for_record(r'\[error\].+Error in application') is not None
         ), 'errors print'
 
     def test_perl_application_header_equal_names(self):

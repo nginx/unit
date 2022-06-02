@@ -384,7 +384,7 @@ nxt_clone_vldt_credential_gidmap(nxt_task_t *task,
         }
 
         return NXT_OK;
-   }
+    }
 
     base_ok = 0;
     gids_ok = 0;

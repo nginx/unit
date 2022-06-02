@@ -43,17 +43,14 @@
 #define NXT_MEM_MAP_FILE      (MAP_SHARED | NXT_MEM_MAP_PREFAULT)
 
 
-#define                                                                       \
-    nxt_mem_map_file_ctx_t(ctx)
+#define     nxt_mem_map_file_ctx_t(ctx)
 
 
-#define                                                                       \
-nxt_mem_map(addr, ctx, len, protection, flags, fd, offset)                    \
+#define nxt_mem_map(addr, ctx, len, protection, flags, fd, offset)            \
     nxt_mem_mmap(addr, len, protection, flags, fd, offset)
 
 
-#define                                                                       \
-nxt_mem_unmap(addr, ctx, len)                                                 \
+#define nxt_mem_unmap(addr, ctx, len)                                         \
     nxt_mem_munmap(addr, len)
 
 

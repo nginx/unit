@@ -90,15 +90,13 @@ static u_char *nxt_number(nxt_sprintf_t *spf, u_char *buf, double n);
 
 
 /* A right way of "f == 0.0". */
-#define                                                                       \
-nxt_double_is_zero(f)                                                         \
+#define nxt_double_is_zero(f)                                                 \
     (fabs(f) <= FLT_EPSILON)
 
 
 u_char *
 nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
 {
-    u_char               *p;
     int                  d;
     double               f, i;
     size_t               length;
@@ -110,12 +108,14 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
     nxt_msec_t           ms;
     nxt_nsec_t           ns;
     nxt_bool_t           sign;
+    const u_char         *p;
     nxt_sprintf_t        spf;
     nxt_file_name_t      *fn;
 
     static const u_char  hexadecimal[16] = "0123456789abcdef";
     static const u_char  HEXADECIMAL[16] = "0123456789ABCDEF";
     static const u_char  nan[] = "[nan]";
+    static const u_char  null[] = "[null]";
     static const u_char  infinity[] = "[infinity]";
 
     spf.end = end;
@@ -151,15 +151,18 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
             continue;
 
         case 's':
-            p = va_arg(args, u_char *);
+            fmt++;
 
-            if (nxt_fast_path(p != NULL)) {
-                while (*p != '\0' && buf < end) {
-                    *buf++ = *p++;
-                }
+            p = va_arg(args, const u_char *);
+
+            if (nxt_slow_path(p == NULL)) {
+                goto copy;
             }
 
-            fmt++;
+            while (*p != '\0' && buf < end) {
+                *buf++ = *p++;
+            }
+
             continue;
 
         case '*':
@@ -169,11 +172,9 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
 
             if (*fmt == 's') {
                 fmt++;
-                p = va_arg(args, u_char *);
+                p = va_arg(args, const u_char *);
 
-                if (nxt_fast_path(p != NULL)) {
-                    goto copy;
-                }
+                goto copy;
             }
 
             continue;
@@ -379,13 +380,13 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
             }
 
             if (nxt_slow_path(isnan(f))) {
-                p = (u_char *) nan;
+                p = nan;
                 length = nxt_length(nan);
 
                 goto copy;
 
             } else if (nxt_slow_path(isinf(f))) {
-                p = (u_char *) infinity;
+                p = infinity;
                 length = nxt_length(infinity);
 
                 goto copy;
@@ -555,7 +556,15 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
 
     copy:
 
-        buf = nxt_cpymem(buf, p, nxt_min((size_t) (end - buf), length));
+        if (nxt_slow_path(p == NULL)) {
+            p = null;
+            length = nxt_length(null);
+
+        } else {
+            length = nxt_min((size_t) (end - buf), length);
+        }
+
+        buf = nxt_cpymem(buf, p, length);
         continue;
     }
 

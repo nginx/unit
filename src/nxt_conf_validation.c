@@ -77,7 +77,8 @@ static nxt_int_t nxt_conf_vldt_error(nxt_conf_validation_t *vldt,
 static nxt_int_t nxt_conf_vldt_var(nxt_conf_validation_t *vldt, nxt_str_t *name,
     nxt_str_t *value);
 nxt_inline nxt_int_t nxt_conf_vldt_unsupported(nxt_conf_validation_t *vldt,
-    nxt_conf_value_t *value, void *data);
+    nxt_conf_value_t *value, void *data)
+    NXT_MAYBE_UNUSED;
 
 static nxt_int_t nxt_conf_vldt_mtypes(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
@@ -114,7 +115,7 @@ static nxt_int_t nxt_conf_vldt_pass(nxt_conf_validation_t *vldt,
 static nxt_int_t nxt_conf_vldt_return(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_share(nxt_conf_validation_t *vldt,
-     nxt_conf_value_t *value, void *data);
+    nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_share_element(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_proxy(nxt_conf_validation_t *vldt,
@@ -194,7 +195,7 @@ static nxt_int_t nxt_conf_vldt_java_classpath(nxt_conf_validation_t *vldt,
 static nxt_int_t nxt_conf_vldt_java_option(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_upstream(nxt_conf_validation_t *vldt,
-     nxt_str_t *name, nxt_conf_value_t *value);
+    nxt_str_t *name, nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_server(nxt_conf_validation_t *vldt,
     nxt_str_t *name, nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_server_weight(nxt_conf_validation_t *vldt,
@@ -634,6 +635,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_return_action_members[] = {
     }, {
         .name       = nxt_string("location"),
         .type       = NXT_CONF_VLDT_STRING,
+        .flags      = NXT_CONF_VLDT_VAR,
     },
 
     NXT_CONF_VLDT_END
@@ -645,6 +647,9 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_share_action_members[] = {
         .name       = nxt_string("share"),
         .type       = NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
         .validator  = nxt_conf_vldt_share,
+    }, {
+        .name       = nxt_string("index"),
+        .type       = NXT_CONF_VLDT_STRING,
     }, {
         .name       = nxt_string("types"),
         .type       = NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
@@ -2448,7 +2453,7 @@ nxt_conf_vldt_object(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 
                     break;
                 }
-           }
+            }
 
             ret = nxt_conf_vldt_type(vldt, &name, member, vals->type);
             if (ret != NXT_OK) {

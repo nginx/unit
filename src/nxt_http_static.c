@@ -19,6 +19,7 @@ typedef struct {
 typedef struct {
     nxt_uint_t                  nshares;
     nxt_http_static_share_t     *shares;
+    nxt_str_t                   index;
 #if (NXT_HAVE_OPENAT2)
     nxt_var_t                   *chroot;
     nxt_uint_t                  resolve;
@@ -33,7 +34,7 @@ typedef struct {
 #if (NXT_HAVE_OPENAT2)
     nxt_str_t                   chroot;
 #endif
-    uint32_t                    index;
+    uint32_t                    share_idx;
     uint8_t                     need_body;  /* 1 bit */
 } nxt_http_static_ctx_t;
 
@@ -75,9 +76,8 @@ nxt_http_static_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 {
     uint32_t                i;
     nxt_mp_t                *mp;
-    nxt_str_t               str;
+    nxt_str_t               str, *ret;
     nxt_var_t               *var;
-    nxt_bool_t              array;
     nxt_conf_value_t        *cv;
     nxt_http_static_conf_t  *conf;
 
@@ -91,39 +91,36 @@ nxt_http_static_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     action->handler = nxt_http_static;
     action->u.conf = conf;
 
-    array = (nxt_conf_type(acf->share) == NXT_CONF_ARRAY);
-    conf->nshares = array ? nxt_conf_array_elements_count(acf->share) : 1;
-
+    conf->nshares = nxt_conf_array_elements_count_or_1(acf->share);
     conf->shares = nxt_mp_zget(mp, sizeof(nxt_http_static_share_t)
                                    * conf->nshares);
     if (nxt_slow_path(conf->shares == NULL)) {
         return NXT_ERROR;
     }
 
-    if (array) {
-        for (i = 0; i < conf->nshares; i++) {
-            cv = nxt_conf_get_array_element(acf->share, i);
-            nxt_conf_get_string(cv, &str);
-
-            var = nxt_var_compile(&str, mp, 1);
-            if (nxt_slow_path(var == NULL)) {
-                return NXT_ERROR;
-            }
-
-            conf->shares[i].var = var;
-            conf->shares[i].is_const = nxt_var_is_const(var);
-        }
-
-    } else {
-        nxt_conf_get_string(acf->share, &str);
+    for (i = 0; i < conf->nshares; i++) {
+        cv = nxt_conf_get_array_element_or_itself(acf->share, i);
+        nxt_conf_get_string(cv, &str);
 
         var = nxt_var_compile(&str, mp, 1);
         if (nxt_slow_path(var == NULL)) {
             return NXT_ERROR;
         }
 
-        conf->shares[0].var = var;
-        conf->shares[0].is_const = nxt_var_is_const(var);
+        conf->shares[i].var = var;
+        conf->shares[i].is_const = nxt_var_is_const(var);
+    }
+
+    if (acf->index == NULL) {
+        nxt_str_set(&conf->index, "index.html");
+
+    } else {
+        nxt_conf_get_string(acf->index, &str);
+
+        ret = nxt_str_dup(mp, &conf->index, &str);
+        if (nxt_slow_path(ret == NULL)) {
+            return NXT_ERROR;
+        }
     }
 
 #if (NXT_HAVE_OPENAT2)
@@ -234,12 +231,14 @@ nxt_http_static_iterate(nxt_task_t *task, nxt_http_request_t *r,
 
     conf = ctx->action->u.conf;
 
-    share = &conf->shares[ctx->index];
+    share = &conf->shares[ctx->share_idx];
 
 #if (NXT_DEBUG)
     nxt_str_t  shr;
+    nxt_str_t  idx;
 
     nxt_var_raw(share->var, &shr);
+    idx = conf->index;
 
 #if (NXT_HAVE_OPENAT2)
     nxt_str_t  chr;
@@ -251,9 +250,10 @@ nxt_http_static_iterate(nxt_task_t *task, nxt_http_request_t *r,
         nxt_str_set(&chr, "");
     }
 
-    nxt_debug(task, "http static: \"%V\" (chroot: \"%V\")", &shr, &chr);
+    nxt_debug(task, "http static: \"%V\", index: \"%V\" (chroot: \"%V\")",
+              &shr, &idx, &chr);
 #else
-    nxt_debug(task, "http static: \"%V\"", &shr);
+    nxt_debug(task, "http static: \"%V\", index: \"%V\"", &shr, &idx);
 #endif
 #endif /* NXT_DEBUG */
 
@@ -261,7 +261,7 @@ nxt_http_static_iterate(nxt_task_t *task, nxt_http_request_t *r,
         nxt_var_raw(share->var, &ctx->share);
 
 #if (NXT_HAVE_OPENAT2)
-        if (conf->chroot != NULL && ctx->index == 0) {
+        if (conf->chroot != NULL && ctx->share_idx == 0) {
             nxt_var_raw(conf->chroot, &ctx->chroot);
         }
 #endif
@@ -278,7 +278,7 @@ nxt_http_static_iterate(nxt_task_t *task, nxt_http_request_t *r,
         nxt_var_query(task, r->var_query, share->var, &ctx->share);
 
 #if (NXT_HAVE_OPENAT2)
-        if (conf->chroot != NULL && ctx->index == 0) {
+        if (conf->chroot != NULL && ctx->share_idx == 0) {
             nxt_var_query(task, r->var_query, conf->chroot, &ctx->chroot);
         }
 #endif
@@ -298,7 +298,7 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
     struct tm               tm;
     nxt_buf_t               *fb;
     nxt_int_t               ret;
-    nxt_str_t               *shr, exten, *mtype;
+    nxt_str_t               *shr, *index, exten, *mtype;
     nxt_uint_t              level;
     nxt_file_t              *f, file;
     nxt_file_info_t         fi;
@@ -311,8 +311,6 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
     nxt_http_static_ctx_t   *ctx;
     nxt_http_static_conf_t  *conf;
 
-    static const nxt_str_t  index = nxt_string("index.html");
-
     r = obj;
     ctx = data;
     action = ctx->action;
@@ -323,12 +321,12 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
     mtype = NULL;
 
     shr = &ctx->share;
+    index = &conf->index;
 
     if (shr->start[shr->length - 1] == '/') {
-        /* TODO: dynamic index setting. */
-        nxt_str_set(&exten, ".html");
+        nxt_http_static_extract_extension(index, &exten);
 
-        length = shr->length + index.length;
+        length = shr->length + index->length;
 
         fname = nxt_mp_nget(r->mem_pool, length + 1);
         if (nxt_slow_path(fname == NULL)) {
@@ -337,7 +335,7 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
 
         p = fname;
         p = nxt_cpymem(p, shr->start, shr->length);
-        p = nxt_cpymem(p, index.start, index.length);
+        p = nxt_cpymem(p, index->start, index->length);
         *p = '\0';
 
     } else {
@@ -373,7 +371,7 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
         nxt_uint_t               resolve;
         nxt_http_static_share_t  *share;
 
-        share = &conf->shares[ctx->index];
+        share = &conf->shares[ctx->share_idx];
 
         resolve = conf->resolve;
         chr = &ctx->chroot;
@@ -587,7 +585,9 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
         /* Not a file. */
         nxt_file_close(task, f);
 
-        if (nxt_slow_path(!nxt_is_dir(&fi))) {
+        if (nxt_slow_path(!nxt_is_dir(&fi)
+                          || shr->start[shr->length - 1] == '/'))
+        {
             nxt_log(task, NXT_LOG_ERR, "\"%FN\" is not a regular file",
                     f->name);
 
@@ -675,9 +675,9 @@ nxt_http_static_next(nxt_task_t *task, nxt_http_request_t *r,
     action = ctx->action;
     conf = action->u.conf;
 
-    ctx->index++;
+    ctx->share_idx++;
 
-    if (ctx->index < conf->nshares) {
+    if (ctx->share_idx < conf->nshares) {
         nxt_http_static_iterate(task, r, ctx);
         return;
     }

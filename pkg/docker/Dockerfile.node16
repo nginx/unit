@@ -8,7 +8,7 @@ RUN set -ex \
     && mkdir -p /usr/lib/unit/modules /usr/lib/unit/debug-modules \
     && hg clone https://hg.nginx.org/unit \
     && cd unit \
-    && hg up 1.26.1 \
+    && hg up 1.27.0 \
     && NCPU="$(getconf _NPROCESSORS_ONLN)" \
     && DEB_HOST_MULTIARCH="$(dpkg-architecture -q DEB_HOST_MULTIARCH)" \
     && CC_OPT="$(DEB_BUILD_MAINT_OPTIONS="hardening=+all,-pie" DEB_CFLAGS_MAINT_APPEND="-Wp,-D_FORTIFY_SOURCE=2 -fPIC" dpkg-buildflags --get CFLAGS)" \
@@ -46,10 +46,14 @@ COPY --from=BUILDER /usr/sbin/unitd /usr/sbin/unitd
 COPY --from=BUILDER /usr/sbin/unitd-debug /usr/sbin/unitd-debug
 COPY --from=BUILDER /usr/lib/unit/ /usr/lib/unit/
 COPY --from=BUILDER /requirements.apt /requirements.apt
-COPY --from=BUILDER /usr/lib/x86_64-linux-gnu/libunit.a /usr/lib/x86_64-linux-gnu/
+COPY --from=BUILDER /usr/lib/*-linux-gnu/libunit.a /tmp/
 COPY --from=BUILDER /usr/include/nxt_* /usr/include/
 COPY --from=BUILDER /usr/local/lib/node_modules/unit-http/ /usr/local/lib/node_modules/unit-http/
 RUN set -x \
+    && if [ -f "/tmp/libunit.a" ]; then \
+        mv /tmp/libunit.a /usr/lib/$(dpkg-architecture -q DEB_HOST_MULTIARCH)/libunit.a; \
+        rm -f /tmp/libunit.a; \
+    fi \
     && mkdir -p /var/lib/unit/ \
     && mkdir /docker-entrypoint.d/ \
     && addgroup --system unit \

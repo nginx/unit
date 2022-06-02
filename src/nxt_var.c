@@ -627,7 +627,8 @@ nxt_var_query_finish(nxt_task_t *task, nxt_var_query_t *query)
 
         nxt_array_reset(&query->parts);
 
-        nxt_debug(task, "var: \"%*s\" -> \"%V\"", length, src, val[i].value);
+        nxt_debug(task, "var: \"%*s\" -> \"%V\"", var->length, src,
+                  val[i].value);
     }
 
 done:

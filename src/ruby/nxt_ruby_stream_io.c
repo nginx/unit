@@ -18,6 +18,7 @@ static VALUE nxt_ruby_stream_io_puts(VALUE obj, VALUE args);
 static VALUE nxt_ruby_stream_io_write(VALUE obj, VALUE args);
 nxt_inline long nxt_ruby_stream_io_s_write(nxt_ruby_ctx_t *rctx, VALUE val);
 static VALUE nxt_ruby_stream_io_flush(VALUE obj);
+static VALUE nxt_ruby_stream_io_close(VALUE obj);
 
 
 VALUE
@@ -38,6 +39,7 @@ nxt_ruby_stream_io_input_init(void)
     rb_define_method(stream_io, "each", nxt_ruby_stream_io_each, 0);
     rb_define_method(stream_io, "read", nxt_ruby_stream_io_read, -2);
     rb_define_method(stream_io, "rewind", nxt_ruby_stream_io_rewind, 0);
+    rb_define_method(stream_io, "close", nxt_ruby_stream_io_close, 0);
 
     return stream_io;
 }
@@ -60,6 +62,7 @@ nxt_ruby_stream_io_error_init(void)
     rb_define_method(stream_io, "puts", nxt_ruby_stream_io_puts, -2);
     rb_define_method(stream_io, "write", nxt_ruby_stream_io_write, -2);
     rb_define_method(stream_io, "flush", nxt_ruby_stream_io_flush, 0);
+    rb_define_method(stream_io, "close", nxt_ruby_stream_io_close, 0);
 
     return stream_io;
 }
@@ -254,6 +257,13 @@ nxt_ruby_stream_io_s_write(nxt_ruby_ctx_t *rctx, VALUE val)
 
 static VALUE
 nxt_ruby_stream_io_flush(VALUE obj)
+{
+    return Qnil;
+}
+
+
+static VALUE
+nxt_ruby_stream_io_close(VALUE obj)
 {
     return Qnil;
 }

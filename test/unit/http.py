@@ -328,9 +328,7 @@ class TestHTTP:
                     datatype = value['type']
 
                 if not isinstance(value['data'], io.IOBase):
-                    pytest.fail(
-                        'multipart encoding of file requires a stream.'
-                    )
+                    pytest.fail('multipart encoding of file requires a stream.')
 
                 data = value['data'].read()
 

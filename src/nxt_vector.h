@@ -41,19 +41,16 @@ NXT_EXPORT void *nxt_vector_zero_add(nxt_vector_t *vector,
 NXT_EXPORT void nxt_vector_remove(nxt_vector_t *vector, void *item);
 
 
-#define                                                                       \
-nxt_vector_last(vector)                                                       \
+#define nxt_vector_last(vector)                                               \
     nxt_pointer_to((vector)->start,                                           \
                    (vector)->item_size * ((vector)->items - 1))
 
 
-#define                                                                       \
-nxt_vector_reset(vector)                                                      \
+#define nxt_vector_reset(vector)                                              \
     (vector)->items = 0;
 
 
-#define                                                                       \
-nxt_vector_is_empty(vector)                                                   \
+#define nxt_vector_is_empty(vector)                                           \
     ((vector)->items == 0)
 
 

@@ -351,43 +351,35 @@ void nxt_fd_event_hash_delete(nxt_task_t *task, nxt_lvlhsh_t *lvlhsh,
 void nxt_fd_event_hash_destroy(nxt_lvlhsh_t *lvlhsh);
 
 
-#define                                                                       \
-nxt_fd_event_disable(engine, ev)                                              \
+#define nxt_fd_event_disable(engine, ev)                                      \
     (engine)->event.disable(engine, ev)
 
 
-#define                                                                       \
-nxt_fd_event_delete(engine, ev)                                               \
+#define nxt_fd_event_delete(engine, ev)                                       \
     (engine)->event.delete(engine, ev)
 
 
-#define                                                                       \
-nxt_fd_event_close(engine, ev)                                                \
+#define nxt_fd_event_close(engine, ev)                                        \
     (engine)->event.close(engine, ev)
 
 
-#define                                                                       \
-nxt_fd_event_enable_read(engine, ev)                                          \
+#define nxt_fd_event_enable_read(engine, ev)                                  \
     (engine)->event.enable_read(engine, ev)
 
 
-#define                                                                       \
-nxt_fd_event_enable_write(engine, ev)                                         \
+#define nxt_fd_event_enable_write(engine, ev)                                 \
     (engine)->event.enable_write(engine, ev)
 
 
-#define                                                                       \
-nxt_fd_event_disable_read(engine, ev)                                         \
+#define nxt_fd_event_disable_read(engine, ev)                                 \
     (engine)->event.disable_read(engine, ev)
 
 
-#define                                                                       \
-nxt_fd_event_disable_write(engine, ev)                                        \
+#define nxt_fd_event_disable_write(engine, ev)                                \
     (engine)->event.disable_write(engine, ev)
 
 
-#define                                                                       \
-nxt_fd_event_block_read(engine, ev)                                           \
+#define nxt_fd_event_block_read(engine, ev)                                   \
     do {                                                                      \
         if (nxt_fd_event_is_active((ev)->read)) {                             \
             (engine)->event.block_read(engine, ev);                           \
@@ -395,8 +387,7 @@ nxt_fd_event_block_read(engine, ev)                                           \
     } while (0)
 
 
-#define                                                                       \
-nxt_fd_event_block_write(engine, ev)                                          \
+#define nxt_fd_event_block_write(engine, ev)                                  \
     do {                                                                      \
         if (nxt_fd_event_is_active((ev)->write)) {                            \
             (engine)->event.block_write(engine, ev);                          \
@@ -404,18 +395,15 @@ nxt_fd_event_block_write(engine, ev)                                          \
     } while (0)
 
 
-#define                                                                       \
-nxt_fd_event_oneshot_read(engine, ev)                                         \
+#define nxt_fd_event_oneshot_read(engine, ev)                                 \
     (engine)->event.oneshot_read(engine, ev)
 
 
-#define                                                                       \
-nxt_fd_event_oneshot_write(engine, ev)                                        \
+#define nxt_fd_event_oneshot_write(engine, ev)                                \
     (engine)->event.oneshot_write(engine, ev)
 
 
-#define                                                                       \
-nxt_fd_event_enable_accept(engine, ev)                                        \
+#define nxt_fd_event_enable_accept(engine, ev)                                \
     (engine)->event.enable_accept(engine, ev)
 
 

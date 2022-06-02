@@ -21,16 +21,14 @@ typedef struct {
 } nxt_queue_t;
 
 
-#define                                                                       \
-nxt_queue_init(queue)                                                         \
+#define nxt_queue_init(queue)                                                 \
     do {                                                                      \
         (queue)->head.prev = &(queue)->head;                                  \
         (queue)->head.next = &(queue)->head;                                  \
     } while (0)
 
 
-#define                                                                       \
-nxt_queue_sentinel(link)                                                      \
+#define nxt_queue_sentinel(link)                                              \
     do {                                                                      \
         (link)->prev = (link);                                                \
         (link)->next = (link);                                                \
@@ -42,13 +40,11 @@ nxt_queue_sentinel(link)                                                      \
  * using nxt_queue_remove().
  */
 
-#define                                                                       \
-nxt_queue_self(link)                                                          \
+#define nxt_queue_self(link)                                                  \
     nxt_queue_sentinel(link)
 
 
-#define                                                                       \
-nxt_queue_is_empty(queue)                                                     \
+#define nxt_queue_is_empty(queue)                                             \
     (&(queue)->head == (queue)->head.prev)
 
 /*
@@ -73,38 +69,31 @@ nxt_queue_is_empty(queue)                                                     \
  *      tp = nxt_queue_link_data(lnk, nxt_type_t, link);
  */
 
-#define                                                                       \
-nxt_queue_first(queue)                                                        \
+#define nxt_queue_first(queue)                                                \
     (queue)->head.next
 
 
-#define                                                                       \
-nxt_queue_last(queue)                                                         \
+#define nxt_queue_last(queue)                                                 \
     (queue)->head.prev
 
 
-#define                                                                       \
-nxt_queue_head(queue)                                                         \
+#define nxt_queue_head(queue)                                                 \
     (&(queue)->head)
 
 
-#define                                                                       \
-nxt_queue_tail(queue)                                                         \
+#define nxt_queue_tail(queue)                                                 \
     (&(queue)->head)
 
 
-#define                                                                       \
-nxt_queue_next(link)                                                          \
+#define nxt_queue_next(link)                                                  \
     (link)->next
 
 
-#define                                                                       \
-nxt_queue_prev(link)                                                          \
+#define nxt_queue_prev(link)                                                  \
     (link)->prev
 
 
-#define                                                                       \
-nxt_queue_insert_head(queue, link)                                            \
+#define nxt_queue_insert_head(queue, link)                                    \
     do {                                                                      \
         (link)->next = (queue)->head.next;                                    \
         (link)->next->prev = (link);                                          \
@@ -113,8 +102,7 @@ nxt_queue_insert_head(queue, link)                                            \
     } while (0)
 
 
-#define                                                                       \
-nxt_queue_insert_tail(queue, link)                                            \
+#define nxt_queue_insert_tail(queue, link)                                    \
     do {                                                                      \
         (link)->prev = (queue)->head.prev;                                    \
         (link)->prev->next = (link);                                          \
@@ -123,8 +111,7 @@ nxt_queue_insert_tail(queue, link)                                            \
     } while (0)
 
 
-#define                                                                       \
-nxt_queue_insert_after(target, link)                                          \
+#define nxt_queue_insert_after(target, link)                                  \
     do {                                                                      \
         (link)->next = (target)->next;                                        \
         (link)->next->prev = (link);                                          \
@@ -133,8 +120,7 @@ nxt_queue_insert_after(target, link)                                          \
     } while (0)
 
 
-#define                                                                       \
-nxt_queue_insert_before(target, link)                                         \
+#define nxt_queue_insert_before(target, link)                                 \
     do {                                                                      \
         (link)->next = (target);                                              \
         (link)->prev = (target)->prev;                                        \
@@ -145,8 +131,7 @@ nxt_queue_insert_before(target, link)                                         \
 
 #if (NXT_DEBUG)
 
-#define                                                                       \
-nxt_queue_remove(link)                                                        \
+#define nxt_queue_remove(link)                                                \
     do {                                                                      \
         (link)->next->prev = (link)->prev;                                    \
         (link)->prev->next = (link)->next;                                    \
@@ -156,8 +141,7 @@ nxt_queue_remove(link)                                                        \
 
 #else
 
-#define                                                                       \
-nxt_queue_remove(link)                                                        \
+#define nxt_queue_remove(link)                                                \
     do {                                                                      \
         (link)->next->prev = (link)->prev;                                    \
         (link)->prev->next = (link)->next;                                    \
@@ -171,8 +155,7 @@ nxt_queue_remove(link)                                                        \
  * the "tail" is the new tail queue.
  */
 
-#define                                                                       \
-nxt_queue_split(queue, link, tail)                                            \
+#define nxt_queue_split(queue, link, tail)                                    \
     do {                                                                      \
         (tail)->head.prev = (queue)->head.prev;                               \
         (tail)->head.prev->next = &(tail)->head;                              \
@@ -185,8 +168,7 @@ nxt_queue_split(queue, link, tail)                                            \
 
 /* Truncate the queue "queue" starting at element "link". */
 
-#define                                                                       \
-nxt_queue_truncate(queue, link)                                               \
+#define nxt_queue_truncate(queue, link)                                       \
     do {                                                                      \
         (queue)->head.prev = (link)->prev;                                    \
         (queue)->head.prev->next = &(queue)->head;                            \
@@ -199,8 +181,7 @@ nxt_queue_truncate(queue, link)                                               \
  * it must be initiated with nxt_queue_init(tail).
  */
 
-#define                                                                       \
-nxt_queue_add(queue, tail)                                                    \
+#define nxt_queue_add(queue, tail)                                            \
     do {                                                                      \
         (queue)->head.prev->next = (tail)->head.next;                         \
         (tail)->head.next->prev = (queue)->head.prev;                         \
@@ -209,8 +190,7 @@ nxt_queue_add(queue, tail)                                                    \
     } while (0)
 
 
-#define                                                                       \
-nxt_queue_link_data(lnk, type, link)                                          \
+#define nxt_queue_link_data(lnk, type, link)                                  \
     nxt_container_of(lnk, type, link)
 
 

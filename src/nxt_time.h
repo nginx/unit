@@ -74,20 +74,17 @@ NXT_EXPORT void nxt_timezone_update(void);
 
 #if (NXT_HAVE_TM_GMTOFF)
 
-#define                                                                       \
-nxt_timezone(tm)                                                              \
+#define nxt_timezone(tm)                                                      \
     ((tm)->tm_gmtoff)
 
 #elif (NXT_HAVE_ALTZONE)
 
-#define                                                                       \
-nxt_timezone(tm)                                                              \
+#define nxt_timezone(tm)                                                      \
     (-(((tm)->tm_isdst > 0) ? altzone : timezone))
 
 #else
 
-#define                                                                       \
-nxt_timezone(tm)                                                              \
+#define nxt_timezone(tm)                                                      \
     (-(((tm)->tm_isdst > 0) ? timezone + 3600 : timezone))
 
 #endif
@@ -103,8 +100,7 @@ typedef int32_t            nxt_msec_int_t;
  * every 49 days.  This signed subtraction takes into account that overflow.
  * "nxt_msec_diff(m1, m2) < 0" means that m1 is lesser than m2.
  */
-#define                                                                       \
-nxt_msec_diff(m1, m2)                                                         \
+#define nxt_msec_diff(m1, m2)                                                 \
     ((int32_t) ((m1) - (m2)))
 
 

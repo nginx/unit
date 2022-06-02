@@ -176,3 +176,21 @@ nxt_feature_test="struct s {
                       return 1;
                   }"
 . auto/feature
+
+
+nxt_feature="GCC __attribute__ unused"
+nxt_feature_name=NXT_HAVE_GCC_ATTRIBUTE_UNUSED
+nxt_feature_run=
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="static void f(void) __attribute__ ((__unused__));
+
+                  static void f(void)
+                  {
+                      return;
+                  }
+
+                  int main(void) {
+                      return 0;
+                  }"
+. auto/feature

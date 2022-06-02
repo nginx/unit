@@ -827,8 +827,7 @@ nxt_http_parse_field_end(nxt_http_request_parse_t *rp, u_char **pos,
 }
 
 
-#define                                                                       \
-nxt_http_is_normal(c)                                                         \
+#define nxt_http_is_normal(c)                                                 \
     (nxt_fast_path((nxt_http_normal[c / 8] & (1 << (c & 7))) != 0))
 
 

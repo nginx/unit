@@ -192,7 +192,8 @@ nxt_conf_set_string(nxt_conf_value_t *value, nxt_str_t *str)
 
 
 nxt_int_t
-nxt_conf_set_string_dup(nxt_conf_value_t *value, nxt_mp_t *mp, nxt_str_t *str)
+nxt_conf_set_string_dup(nxt_conf_value_t *value, nxt_mp_t *mp,
+    const nxt_str_t *str)
 {
     nxt_str_t  tmp, *ptr;
 
@@ -388,6 +389,13 @@ nxt_uint_t
 nxt_conf_array_elements_count(nxt_conf_value_t *value)
 {
     return value->u.array->count;
+}
+
+
+nxt_uint_t
+nxt_conf_array_elements_count_or_1(nxt_conf_value_t *value)
+{
+    return (value->type == NXT_CONF_VALUE_ARRAY) ? value->u.array->count : 1;
 }
 
 
@@ -737,6 +745,25 @@ nxt_conf_get_array_element(nxt_conf_value_t *value, uint32_t index)
 
     if (value->type != NXT_CONF_VALUE_ARRAY) {
         return NULL;
+    }
+
+    array = value->u.array;
+
+    if (index >= array->count) {
+        return NULL;
+    }
+
+    return &array->elements[index];
+}
+
+
+nxt_conf_value_t *
+nxt_conf_get_array_element_or_itself(nxt_conf_value_t *value, uint32_t index)
+{
+    nxt_conf_array_t  *array;
+
+    if (value->type != NXT_CONF_VALUE_ARRAY) {
+        return (index == 0) ? value : NULL;
     }
 
     array = value->u.array;

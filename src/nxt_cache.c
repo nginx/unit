@@ -8,8 +8,7 @@
 
 
 /* A cache time resolution is 10ms. */
-#define                                                                       \
-nxt_cache_time(thr)                                                           \
+#define nxt_cache_time(thr)                                                   \
     (uint64_t) (nxt_thread_time(thr) * 100)
 
 

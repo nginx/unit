@@ -83,7 +83,7 @@ Connection: close
         assert resp['body'] == ''
 
     def test_return_location(self):
-        reserved = ":/?#[]@!$&'()*+,;="
+        reserved = ":/?#[]@!&'()*+,;="
         unreserved = (
             "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
             "0123456789-._~"
@@ -107,15 +107,15 @@ Connection: close
         check_location(reserved)
 
         # After first "?" all other "?" encoded.
-        check_location("/?" + reserved, "/?:/%3F#[]@!$&'()*+,;=")
+        check_location("/?" + reserved, "/?:/%3F#[]@!&'()*+,;=")
         check_location("???", "?%3F%3F")
 
         # After first "#" all other "?" or "#" encoded.
-        check_location("/#" + reserved, "/#:/%3F%23[]@!$&'()*+,;=")
+        check_location("/#" + reserved, "/#:/%3F%23[]@!&'()*+,;=")
         check_location("##?#?", "#%23%3F%23%3F")
 
         # After first "?" next "#" not encoded.
-        check_location("/?#" + reserved, "/?#:/%3F%23[]@!$&'()*+,;=")
+        check_location("/?#" + reserved, "/?#:/%3F%23[]@!&'()*+,;=")
         check_location("??##", "?%3F#%23")
         check_location("/?##?", "/?#%23%3F")
 
@@ -161,6 +161,38 @@ Connection: close
         ), 'location method not allowed'
         assert self.get()['headers']['Location'] == 'blah'
 
+        assert 'success' in self.conf(
+            '"https://${host}${uri}"', 'routes/0/action/location'
+        ), 'location with variables'
+        assert self.get()['headers']['Location'] == 'https://localhost/'
+
+        assert 'success' in self.conf(
+            '"/#$host"', 'routes/0/action/location'
+        ), 'location with encoding and a variable'
+        assert self.get()['headers']['Location'] == '/#localhost'
+
+        assert (
+            self.get(headers={"Host": "#foo?bar", "Connection": "close"})[
+                'headers'
+            ]['Location']
+            == "/#%23foo%3Fbar"
+        ), 'location with a variable with encoding'
+
+        assert 'success' in self.conf(
+            '""', 'routes/0/action/location'
+        ), 'location empty'
+        assert self.get()['headers']['Location'] == ''
+
+        assert 'success' in self.conf(
+            '"${host}"', 'routes/0/action/location'
+        ), 'location empty with variable'
+        assert (
+            self.get(headers={"Host": "", "Connection": "close"})['headers'][
+                'Location'
+            ]
+            == ""
+        ), 'location with empty variable'
+
     def test_return_invalid(self):
         def check_error(conf):
             assert 'error' in self.conf(conf, 'routes/0/action')
@@ -171,6 +203,8 @@ Connection: close
         check_error({"return": 1000})
         check_error({"return": -1})
         check_error({"return": 200, "share": "/blah"})
+        check_error({"return": 200, "location": "$hos"})
+        check_error({"return": 200, "location": "$hostblah"})
 
         assert 'error' in self.conf(
             '001', 'routes/0/action/return'

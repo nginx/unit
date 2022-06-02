@@ -175,11 +175,13 @@ basicConstraints = critical,CA:TRUE"""
 
         self.add_tls()
 
-        cert_old = self.get_server_certificate()
+        cert_old = ssl.get_server_certificate(('127.0.0.1', 7080))
 
         self.certificate()
 
-        assert cert_old != self.get_server_certificate(), 'update certificate'
+        assert cert_old != ssl.get_server_certificate(
+            ('127.0.0.1', 7080)
+        ), 'update certificate'
 
     @pytest.mark.skip('not yet')
     def test_tls_certificate_key_incorrect(self):
@@ -200,11 +202,13 @@ basicConstraints = critical,CA:TRUE"""
 
         self.add_tls()
 
-        cert_old = self.get_server_certificate()
+        cert_old = ssl.get_server_certificate(('127.0.0.1', 7080))
 
         self.add_tls(cert='new')
 
-        assert cert_old != self.get_server_certificate(), 'change certificate'
+        assert cert_old != ssl.get_server_certificate(
+            ('127.0.0.1', 7080)
+        ), 'change certificate'
 
     def test_tls_certificate_key_rsa(self):
         self.load('empty')
@@ -354,9 +358,7 @@ basicConstraints = critical,CA:TRUE"""
 
         self.add_tls(cert='int')
 
-        assert (
-            self.get_ssl()['status'] == 200
-        ), 'certificate chain intermediate'
+        assert self.get_ssl()['status'] == 200, 'certificate chain intermediate'
 
         # intermediate server
 
@@ -384,6 +386,51 @@ basicConstraints = critical,CA:TRUE"""
         assert (
             self.get_ssl()['status'] == 200
         ), 'certificate chain intermediate server'
+
+    def test_tls_certificate_chain_long(self, temp_dir):
+        self.load('empty')
+
+        self.generate_ca_conf()
+
+        # Minimum chain length is 3.
+        chain_length = 10
+
+        for i in range(chain_length):
+            if i == 0:
+                self.certificate('root', False)
+            elif i == chain_length - 1:
+                self.req('end')
+            else:
+                self.req('int{}'.format(i))
+
+        for i in range(chain_length - 1):
+            if i == 0:
+                self.ca(cert='root', out='int1')
+            elif i == chain_length - 2:
+                self.ca(cert='int{}'.format(chain_length - 2), out='end')
+            else:
+                self.ca(cert='int{}'.format(i), out='int{}'.format(i + 1))
+
+        for i in range(chain_length - 1, 0, -1):
+            path = temp_dir + (
+                '/end.crt' if i == chain_length - 1 else '/int{}.crt'.format(i)
+            )
+
+            with open(temp_dir + '/all.crt', 'a') as chain, open(path) as cert:
+                chain.write(cert.read())
+
+        self.set_certificate_req_context()
+
+        assert 'success' in self.certificate_load(
+            'all', 'end'
+        ), 'certificate chain upload'
+
+        chain = self.conf_get('/certificates/all/chain')
+        assert len(chain) == chain_length - 1, 'certificate chain length'
+
+        self.add_tls(cert='all')
+
+        assert self.get_ssl()['status'] == 200, 'certificate chain long'
 
     def test_tls_certificate_empty_cn(self, temp_dir):
         self.certificate('root', False)
@@ -445,27 +492,6 @@ basicConstraints = critical,CA:TRUE"""
             'alt_names': ['example.com', 'www.example.net']
         }, 'subject alt_names'
         assert cert['chain'][0]['issuer']['common_name'] == 'root', 'issuer'
-
-    @pytest.mark.skip('not yet')
-    def test_tls_reconfigure(self):
-        self.load('empty')
-
-        assert self.get()['status'] == 200, 'init'
-
-        self.certificate()
-
-        (resp, sock) = self.get(
-            headers={'Host': 'localhost', 'Connection': 'keep-alive'},
-            start=True,
-            read_timeout=1,
-        )
-
-        assert resp['status'] == 200, 'initial status'
-
-        self.add_tls()
-
-        assert self.get(sock=sock)['status'] == 200, 'reconfigure status'
-        assert self.get_ssl()['status'] == 200, 'reconfigure tls status'
 
     def test_tls_keepalive(self):
         self.load('mirror')

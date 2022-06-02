@@ -26,13 +26,14 @@ class TestStaticChroot(TestApplicationProto):
 
     def update_action(self, share, chroot):
         return self.conf(
-            {"share": share, "chroot": chroot}, 'routes/0/action',
+            {"share": share, "chroot": chroot},
+            'routes/0/action',
         )
 
     def get_custom(self, uri, host):
-        return self.get(
-            url=uri, headers={'Host': host, 'Connection': 'close'}
-        )['status']
+        return self.get(url=uri, headers={'Host': host, 'Connection': 'close'})[
+            'status'
+        ]
 
     def test_static_chroot(self, temp_dir):
         assert self.get(url='/dir/file')['status'] == 200, 'default chroot'
@@ -101,7 +102,8 @@ class TestStaticChroot(TestApplicationProto):
         ), 'chroot empty absolute'
 
         assert 'success' in self.conf(
-            {"share": ".$uri", "chroot": ""}, 'routes/0/action',
+            {"share": ".$uri", "chroot": ""},
+            'routes/0/action',
         ), 'configure chroot empty relative'
 
         assert (
@@ -120,13 +122,15 @@ class TestStaticChroot(TestApplicationProto):
         assert self.get(url='/dir/file')['status'] == 403, 'relative chroot'
 
         assert 'success' in self.conf(
-            {"share": ".$uri"}, 'routes/0/action',
+            {"share": ".$uri"},
+            'routes/0/action',
         ), 'configure relative share'
 
         assert self.get(url=self.test_path)['status'] == 200, 'relative share'
 
         assert 'success' in self.conf(
-            {"share": ".$uri", "chroot": "."}, 'routes/0/action',
+            {"share": ".$uri", "chroot": "."},
+            'routes/0/action',
         ), 'configure relative'
 
         assert self.get(url=self.test_path)['status'] == 200, 'relative'
@@ -208,13 +212,16 @@ class TestStaticChroot(TestApplicationProto):
 
     def test_static_chroot_invalid(self, temp_dir):
         assert 'error' in self.conf(
-            {"share": temp_dir, "chroot": True}, 'routes/0/action',
+            {"share": temp_dir, "chroot": True},
+            'routes/0/action',
         ), 'configure chroot error'
         assert 'error' in self.conf(
-            {"share": temp_dir, "symlinks": "True"}, 'routes/0/action',
+            {"share": temp_dir, "symlinks": "True"},
+            'routes/0/action',
         ), 'configure symlink error'
         assert 'error' in self.conf(
-            {"share": temp_dir, "mount": "True"}, 'routes/0/action',
+            {"share": temp_dir, "mount": "True"},
+            'routes/0/action',
         ), 'configure mount error'
 
         assert 'error' in self.update_action(

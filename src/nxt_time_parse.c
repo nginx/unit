@@ -282,9 +282,9 @@ nxt_time_parse(const u_char *p, size_t len)
     days = days - 719527 + 31 + 28;
 
     s = (uint64_t) days * 86400
-         + (nxt_uint_t) hour * 3600
-         + (nxt_uint_t) min * 60
-         + (nxt_uint_t) sec;
+        + (nxt_uint_t) hour * 3600
+        + (nxt_uint_t) min * 60
+        + (nxt_uint_t) sec;
 
 #if (NXT_TIME_T_SIZE <= 4)
 

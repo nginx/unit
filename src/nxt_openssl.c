@@ -6,6 +6,9 @@
 
 #include <nxt_main.h>
 #include <nxt_conf.h>
+
+#define OPENSSL_SUPPRESS_DEPRECATED
+
 #include <openssl/ssl.h>
 #include <openssl/conf.h>
 #include <openssl/err.h>
@@ -321,6 +324,11 @@ nxt_openssl_server_init(nxt_task_t *task, nxt_mp_t *mp,
      * this saves about 522K per connection.
      */
     SSL_CTX_set_options(ctx, SSL_OP_NO_COMPRESSION);
+#endif
+
+#ifdef SSL_OP_IGNORE_UNEXPECTED_EOF
+    /* Request SSL_ERROR_ZERO_RETURN on EOF. */
+    SSL_CTX_set_options(ctx, SSL_OP_IGNORE_UNEXPECTED_EOF);
 #endif
 
 #ifdef SSL_MODE_RELEASE_BUFFERS
@@ -644,16 +652,10 @@ nxt_tls_ticket_keys(nxt_task_t *task, SSL_CTX *ctx, nxt_tls_init_t *tls_init,
         return NXT_OK;
     }
 
-    if (nxt_conf_type(tickets_conf) == NXT_CONF_ARRAY) {
-        count = nxt_conf_array_elements_count(tickets_conf);
+    count = nxt_conf_array_elements_count_or_1(tickets_conf);
 
-        if (count == 0) {
-            goto no_ticket;
-        }
-
-    } else {
-        /* nxt_conf_type(tickets_conf) == NXT_CONF_STRING */
-        count = 1;
+    if (count == 0) {
+        goto no_ticket;
     }
 
 #ifdef SSL_CTRL_SET_TLSEXT_TICKET_KEY_CB
@@ -673,15 +675,9 @@ nxt_tls_ticket_keys(nxt_task_t *task, SSL_CTX *ctx, nxt_tls_init_t *tls_init,
 
         i++;
 
-        if (nxt_conf_type(tickets_conf) == NXT_CONF_ARRAY) {
-            member = nxt_conf_get_array_element(tickets_conf, count - i);
-            if (member == NULL) {
-                break;
-            }
-
-        } else {
-            /* nxt_conf_type(tickets_conf) == NXT_CONF_STRING */
-            member = tickets_conf;
+        member = nxt_conf_get_array_element_or_itself(tickets_conf, count - i);
+        if (member == NULL) {
+            break;
         }
 
         nxt_conf_get_string(member, &value);

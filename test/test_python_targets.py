@@ -21,7 +21,7 @@ class TestPythonTargets(TestApplicationPython):
                 ],
                 "applications": {
                     "targets": {
-                        "type": "python",
+                        "type": self.get_application_type(),
                         "working_directory": option.test_dir
                         + "/python/targets/",
                         "path": option.test_dir + '/python/targets/',

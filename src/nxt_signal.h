@@ -36,12 +36,10 @@ typedef struct {
 
 nxt_event_signals_t *nxt_event_engine_signals(const nxt_sig_event_t *sigev);
 
-#define                                                                       \
-nxt_event_engine_signals_start(engine)                                        \
+#define nxt_event_engine_signals_start(engine)                                \
     nxt_signal_thread_start(engine)
 
-#define                                                                       \
-nxt_event_engine_signals_stop(engine)                                         \
+#define nxt_event_engine_signals_stop(engine)                                 \
     nxt_signal_thread_stop(engine)
 
 

@@ -159,9 +159,7 @@ def pytest_generate_tests(metafunc):
                     type + ' ' + available_versions[0]
                 )
             elif callable(prereq_version):
-                generate_tests(
-                    list(filter(prereq_version, available_versions))
-                )
+                generate_tests(list(filter(prereq_version, available_versions)))
 
             else:
                 raise ValueError(
@@ -203,9 +201,7 @@ def pytest_sessionstart(session):
     # discover modules from check
 
     option.available['modules']['openssl'] = check_openssl(unit['unitd'])
-    option.available['modules']['go'] = check_go(
-        option.current_dir, unit['temp_dir'], option.test_dir
-    )
+    option.available['modules']['go'] = check_go()
     option.available['modules']['node'] = check_node(option.current_dir)
     option.available['modules']['regex'] = check_regex(unit['unitd'])
 
@@ -322,9 +318,7 @@ def run(request):
 
                 public_dir(path)
 
-                if os.path.isfile(path) or stat.S_ISSOCK(
-                    os.stat(path).st_mode
-                ):
+                if os.path.isfile(path) or stat.S_ISSOCK(os.stat(path).st_mode):
                     os.remove(path)
                 else:
                     for attempt in range(10):
@@ -339,6 +333,10 @@ def run(request):
     # check descriptors
 
     _check_fds(log=log)
+
+    # check processes id's and amount
+
+    _check_processes()
 
     # print unit.log in case of error
 
@@ -439,6 +437,16 @@ def unit_stop():
 
         return
 
+    # check zombies
+
+    out = subprocess.check_output(
+        ['ps', 'ax', '-o', 'state', '-o', 'ppid']
+    ).decode()
+    z_ppids = re.findall(r'Z\s*(\d+)', out)
+    assert unit_instance['pid'] not in z_ppids, 'no zombies'
+
+    # terminate unit
+
     p = unit_instance['process']
 
     if p.poll() is not None:
@@ -522,7 +530,7 @@ def _clear_conf(sock, *, log=None):
 
     try:
         certs = json.loads(
-            http.get(url='/certificates', sock_type='unix', addr=sock,)['body']
+            http.get(url='/certificates', sock_type='unix', addr=sock)['body']
         ).keys()
 
     except json.JSONDecodeError:
@@ -530,10 +538,56 @@ def _clear_conf(sock, *, log=None):
 
     for cert in certs:
         resp = http.delete(
-            url='/certificates/' + cert, sock_type='unix', addr=sock,
+            url='/certificates/' + cert,
+            sock_type='unix',
+            addr=sock,
         )['body']
 
         assert 'success' in resp, 'remove certificate'
+
+
+def _check_processes():
+    router_pid = _fds_info['router']['pid']
+    controller_pid = _fds_info['controller']['pid']
+    unit_pid = unit_instance['pid']
+
+    for i in range(600):
+        out = (
+            subprocess.check_output(
+                ['ps', '-ax', '-o', 'pid', '-o', 'ppid', '-o', 'command']
+            )
+            .decode()
+            .splitlines()
+        )
+        out = [l for l in out if unit_pid in l]
+
+        if len(out) <= 3:
+            break
+
+        time.sleep(0.1)
+
+    assert len(out) == 3, 'main, router, and controller expected'
+
+    out = [l for l in out if 'unit: main' not in l]
+    assert len(out) == 2, 'one main'
+
+    out = [
+        l
+        for l in out
+        if re.search(router_pid + r'\s+' + unit_pid + r'.*unit: router', l)
+        is None
+    ]
+    assert len(out) == 1, 'one router'
+
+    out = [
+        l
+        for l in out
+        if re.search(
+            controller_pid + r'\s+' + unit_pid + r'.*unit: controller', l
+        )
+        is None
+    ]
+    assert len(out) == 0, 'one controller'
 
 
 @print_log_on_assert
@@ -556,9 +610,7 @@ def _check_fds(*, log=None):
         )
         ps['fds'] += fds_diff
 
-        assert (
-            fds_diff <= option.fds_threshold
-        ), 'descriptors leak main process'
+        assert fds_diff <= option.fds_threshold, 'descriptors leak main process'
 
     else:
         ps['fds'] = _count_fds(unit_instance['pid'])
@@ -590,7 +642,8 @@ def _count_fds(pid):
 
     try:
         out = subprocess.check_output(
-            ['procstat', '-f', pid], stderr=subprocess.STDOUT,
+            ['procstat', '-f', pid],
+            stderr=subprocess.STDOUT,
         ).decode()
         return len(out.splitlines())
 
@@ -599,7 +652,8 @@ def _count_fds(pid):
 
     try:
         out = subprocess.check_output(
-            ['lsof', '-n', '-p', pid], stderr=subprocess.STDOUT,
+            ['lsof', '-n', '-p', pid],
+            stderr=subprocess.STDOUT,
         ).decode()
         return len(out.splitlines())
 

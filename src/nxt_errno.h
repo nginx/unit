@@ -65,20 +65,16 @@ typedef int                        nxt_err_t;
 #define NXT_DONE                   (-4)
 
 
-#define                                                                       \
-nxt_errno                                                                     \
+#define nxt_errno                                                             \
     errno
 
-#define                                                                       \
-nxt_socket_errno                                                              \
+#define nxt_socket_errno                                                      \
     errno
 
-#define                                                                       \
-nxt_set_errno(err)                                                            \
+#define nxt_set_errno(err)                                                    \
     errno = err
 
-#define                                                                       \
-nxt_set_socket_errno(err)                                                     \
+#define nxt_set_socket_errno(err)                                             \
     errno = err
 
 

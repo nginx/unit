@@ -82,7 +82,10 @@ class TestStaticFallback(TestApplicationProto):
 
     def test_static_fallback_share(self, temp_dir):
         self.action_update(
-            {"share": "/blah", "fallback": {"share": temp_dir + "/assets$uri"},}
+            {
+                "share": "/blah",
+                "fallback": {"share": temp_dir + "/assets$uri"},
+            }
         )
 
         resp = self.get()

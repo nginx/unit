@@ -59,9 +59,7 @@ class TestUSR1(TestApplicationPython):
             body = 'body_for_a_log_new\n'
             assert self.post(body=body)['status'] == 200
 
-            assert (
-                self.wait_for_record(body, log_new) is not None
-            ), 'rename new'
+            assert self.wait_for_record(body, log_new) is not None, 'rename new'
             assert not os.path.isfile(log_path), 'rename old'
 
             os.kill(unit_pid, signal.SIGUSR1)

@@ -1175,7 +1175,7 @@ public abstract class WsRemoteEndpointImplBase implements RemoteEndpoint {
                 } else if (state == State.WRITER_WRITING) {
                     // NO-OP. Leave state as is.
                 } else if (state == State.STREAM_WRITING) {
-                 // NO-OP. Leave state as is.
+                    // NO-OP. Leave state as is.
                 } else {
                     // Should never happen
                     // The if ... else ... blocks above should cover all states

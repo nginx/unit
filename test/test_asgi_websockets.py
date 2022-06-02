@@ -1,8 +1,8 @@
 import struct
 import time
-from distutils.version import LooseVersion
 
 import pytest
+from packaging import version
 from unit.applications.lang.python import TestApplicationPython
 from unit.applications.websockets import TestApplicationWebsocket
 from unit.option import option
@@ -10,7 +10,9 @@ from unit.option import option
 
 class TestASGIWebsockets(TestApplicationPython):
     prerequisites = {
-        'modules': {'python': lambda v: LooseVersion(v) >= LooseVersion('3.5')}
+        'modules': {
+            'python': lambda v: version.parse(v) >= version.parse('3.5')
+        }
     }
     load_module = 'asgi'
 
@@ -162,7 +164,7 @@ class TestASGIWebsockets(TestApplicationPython):
 
         self.ws.frame_write(sock, self.ws.OP_TEXT, 'fragment1', fin=False)
         self.ws.frame_write(
-            sock, self.ws.OP_CONT, 'fragment2', length=2 ** 64 - 1
+            sock, self.ws.OP_CONT, 'fragment2', length=2**64 - 1
         )
 
         self.check_close(sock, 1009)  # 1009 - CLOSE_TOO_LARGE
@@ -940,9 +942,7 @@ class TestASGIWebsockets(TestApplicationPython):
         frame = self.ws.frame_read(sock)
 
         if frame['opcode'] == self.ws.OP_TEXT:
-            self.check_frame(
-                frame, True, self.ws.OP_TEXT, 'fragment1fragment2'
-            )
+            self.check_frame(frame, True, self.ws.OP_TEXT, 'fragment1fragment2')
             frame = None
 
         self.check_close(sock, 1002, frame=frame)
@@ -1187,7 +1187,7 @@ class TestASGIWebsockets(TestApplicationPython):
 
         _, sock, _ = self.ws.upgrade()
 
-        self.ws.frame_write(sock, self.ws.OP_TEXT, 'BAsd7&jh23' * 26 * 2 ** 10)
+        self.ws.frame_write(sock, self.ws.OP_TEXT, 'BAsd7&jh23' * 26 * 2**10)
         self.ws.frame_write(sock, self.ws.OP_TEXT, payload)
         self.ws.frame_write(sock, self.ws.OP_CLOSE, self.ws.serialize_close())
 
@@ -1349,62 +1349,62 @@ class TestASGIWebsockets(TestApplicationPython):
 
         def check_message(opcode, f_size):
             if opcode == self.ws.OP_TEXT:
-                payload = '*' * 4 * 2 ** 20
+                payload = '*' * 4 * 2**20
             else:
-                payload = b'*' * 4 * 2 ** 20
+                payload = b'*' * 4 * 2**20
 
             self.ws.message(sock, opcode, payload, fragmention_size=f_size)
             frame = self.ws.frame_read(sock, read_timeout=5)
             self.check_frame(frame, True, opcode, payload)
 
-        check_payload(op_text, 64 * 2 ** 10)  # 9_1_1
-        check_payload(op_text, 256 * 2 ** 10)  # 9_1_2
-        check_payload(op_text, 2 ** 20)  # 9_1_3
-        check_payload(op_text, 4 * 2 ** 20)  # 9_1_4
-        check_payload(op_text, 8 * 2 ** 20)  # 9_1_5
-        check_payload(op_text, 16 * 2 ** 20)  # 9_1_6
+        check_payload(op_text, 64 * 2**10)  # 9_1_1
+        check_payload(op_text, 256 * 2**10)  # 9_1_2
+        check_payload(op_text, 2**20)  # 9_1_3
+        check_payload(op_text, 4 * 2**20)  # 9_1_4
+        check_payload(op_text, 8 * 2**20)  # 9_1_5
+        check_payload(op_text, 16 * 2**20)  # 9_1_6
 
-        check_payload(op_binary, 64 * 2 ** 10)  # 9_2_1
-        check_payload(op_binary, 256 * 2 ** 10)  # 9_2_2
-        check_payload(op_binary, 2 ** 20)  # 9_2_3
-        check_payload(op_binary, 4 * 2 ** 20)  # 9_2_4
-        check_payload(op_binary, 8 * 2 ** 20)  # 9_2_5
-        check_payload(op_binary, 16 * 2 ** 20)  # 9_2_6
+        check_payload(op_binary, 64 * 2**10)  # 9_2_1
+        check_payload(op_binary, 256 * 2**10)  # 9_2_2
+        check_payload(op_binary, 2**20)  # 9_2_3
+        check_payload(op_binary, 4 * 2**20)  # 9_2_4
+        check_payload(op_binary, 8 * 2**20)  # 9_2_5
+        check_payload(op_binary, 16 * 2**20)  # 9_2_6
 
         if option.system != 'Darwin' and option.system != 'FreeBSD':
             check_message(op_text, 64)  # 9_3_1
             check_message(op_text, 256)  # 9_3_2
-            check_message(op_text, 2 ** 10)  # 9_3_3
-            check_message(op_text, 4 * 2 ** 10)  # 9_3_4
-            check_message(op_text, 16 * 2 ** 10)  # 9_3_5
-            check_message(op_text, 64 * 2 ** 10)  # 9_3_6
-            check_message(op_text, 256 * 2 ** 10)  # 9_3_7
-            check_message(op_text, 2 ** 20)  # 9_3_8
-            check_message(op_text, 4 * 2 ** 20)  # 9_3_9
+            check_message(op_text, 2**10)  # 9_3_3
+            check_message(op_text, 4 * 2**10)  # 9_3_4
+            check_message(op_text, 16 * 2**10)  # 9_3_5
+            check_message(op_text, 64 * 2**10)  # 9_3_6
+            check_message(op_text, 256 * 2**10)  # 9_3_7
+            check_message(op_text, 2**20)  # 9_3_8
+            check_message(op_text, 4 * 2**20)  # 9_3_9
 
             check_message(op_binary, 64)  # 9_4_1
             check_message(op_binary, 256)  # 9_4_2
-            check_message(op_binary, 2 ** 10)  # 9_4_3
-            check_message(op_binary, 4 * 2 ** 10)  # 9_4_4
-            check_message(op_binary, 16 * 2 ** 10)  # 9_4_5
-            check_message(op_binary, 64 * 2 ** 10)  # 9_4_6
-            check_message(op_binary, 256 * 2 ** 10)  # 9_4_7
-            check_message(op_binary, 2 ** 20)  # 9_4_8
-            check_message(op_binary, 4 * 2 ** 20)  # 9_4_9
+            check_message(op_binary, 2**10)  # 9_4_3
+            check_message(op_binary, 4 * 2**10)  # 9_4_4
+            check_message(op_binary, 16 * 2**10)  # 9_4_5
+            check_message(op_binary, 64 * 2**10)  # 9_4_6
+            check_message(op_binary, 256 * 2**10)  # 9_4_7
+            check_message(op_binary, 2**20)  # 9_4_8
+            check_message(op_binary, 4 * 2**20)  # 9_4_9
 
-        check_payload(op_text, 2 ** 20, chopsize=64)  # 9_5_1
-        check_payload(op_text, 2 ** 20, chopsize=128)  # 9_5_2
-        check_payload(op_text, 2 ** 20, chopsize=256)  # 9_5_3
-        check_payload(op_text, 2 ** 20, chopsize=512)  # 9_5_4
-        check_payload(op_text, 2 ** 20, chopsize=1024)  # 9_5_5
-        check_payload(op_text, 2 ** 20, chopsize=2048)  # 9_5_6
+        check_payload(op_text, 2**20, chopsize=64)  # 9_5_1
+        check_payload(op_text, 2**20, chopsize=128)  # 9_5_2
+        check_payload(op_text, 2**20, chopsize=256)  # 9_5_3
+        check_payload(op_text, 2**20, chopsize=512)  # 9_5_4
+        check_payload(op_text, 2**20, chopsize=1024)  # 9_5_5
+        check_payload(op_text, 2**20, chopsize=2048)  # 9_5_6
 
-        check_payload(op_binary, 2 ** 20, chopsize=64)  # 9_6_1
-        check_payload(op_binary, 2 ** 20, chopsize=128)  # 9_6_2
-        check_payload(op_binary, 2 ** 20, chopsize=256)  # 9_6_3
-        check_payload(op_binary, 2 ** 20, chopsize=512)  # 9_6_4
-        check_payload(op_binary, 2 ** 20, chopsize=1024)  # 9_6_5
-        check_payload(op_binary, 2 ** 20, chopsize=2048)  # 9_6_6
+        check_payload(op_binary, 2**20, chopsize=64)  # 9_6_1
+        check_payload(op_binary, 2**20, chopsize=128)  # 9_6_2
+        check_payload(op_binary, 2**20, chopsize=256)  # 9_6_3
+        check_payload(op_binary, 2**20, chopsize=512)  # 9_6_4
+        check_payload(op_binary, 2**20, chopsize=1024)  # 9_6_5
+        check_payload(op_binary, 2**20, chopsize=2048)  # 9_6_6
 
         self.close_connection(sock)
 

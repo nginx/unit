@@ -31,7 +31,8 @@ config.env.%:
 	cp -Pa $(CURDIR)/CHANGES $(BUILDDIR_$*)/
 	cp -Pa $(CURDIR)/LICENSE $(BUILDDIR_$*)/
 	cp -Pa $(CURDIR)/NOTICE $(BUILDDIR_$*)/
-	cp -Pa $(CURDIR)/README $(BUILDDIR_$*)/
+	cp -Pa $(CURDIR)/README.md $(BUILDDIR_$*)/
+	cp -Pa $(CURDIR)/CONTRIBUTING.md $(BUILDDIR_$*)/
 	cp -Pa $(CURDIR)/go $(BUILDDIR_$*)/
 	mkdir -p $(BUILDDIR_$*)/docs/man
 	cp -Pa $(CURDIR)/docs/man/unitd.8.in $(BUILDDIR_$*)/docs/man/
@@ -109,7 +110,8 @@ install: build do.tests
 	mkdir -p $(INSTALLDIR)/usr/share/doc/unit/examples
 	install -m 644 debian/unit.example.config $(INSTALLDIR)/usr/share/doc/unit/examples/example.config
 	install -m 644 CHANGES $(INSTALLDIR)/usr/share/doc/unit/changelog
-	install -m 644 README $(INSTALLDIR)/usr/share/doc/unit/
+	install -m 644 README.md $(INSTALLDIR)/usr/share/doc/unit/
+	install -m 644 CONTRIBUTING.md $(INSTALLDIR)/usr/share/doc/unit/
 	install -m 644 NOTICE $(INSTALLDIR)/usr/share/doc/unit/
 
 binary-indep: build install

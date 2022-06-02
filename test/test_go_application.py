@@ -1,7 +1,6 @@
 import re
 
 import pytest
-
 from unit.applications.lang.go import TestApplicationGo
 
 
@@ -158,9 +157,7 @@ class TestGoApplication(TestApplicationGo):
             'applications/command_line_arguments/arguments',
         )
 
-        assert (
-            self.get()['body'] == arg1 + ',' + arg2 + ',' + arg3
-        ), 'arguments'
+        assert self.get()['body'] == arg1 + ',' + arg2 + ',' + arg3, 'arguments'
 
     def test_go_application_command_line_arguments_change(self):
         self.load('command_line_arguments')
@@ -177,6 +174,4 @@ class TestGoApplication(TestApplicationGo):
 
         assert 'success' in self.conf('[]', args_path)
 
-        assert (
-            self.get()['headers']['Content-Length'] == '0'
-        ), 'arguments empty'
+        assert self.get()['headers']['Content-Length'] == '0', 'arguments empty'

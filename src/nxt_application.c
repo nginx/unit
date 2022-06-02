@@ -1052,6 +1052,9 @@ nxt_unit_default_init(nxt_task_t *task, nxt_unit_init_t *init,
     init->read_port.in_fd = my_port->pair[0];
     init->read_port.out_fd = my_port->pair[1];
 
+    init->shared_port_fd = conf->shared_port_fd;
+    init->shared_queue_fd = conf->shared_queue_fd;
+
     init->log_fd = 2;
 
     init->shm_limit = conf->shm_limit;

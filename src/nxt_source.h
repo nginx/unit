@@ -22,8 +22,7 @@ typedef void (*nxt_source_handler_t)(void *source_context,
     nxt_source_hook_t *query);
 
 
-#define                                                                       \
-nxt_source_filter(thr, wq, task, next, out)                                   \
+#define nxt_source_filter(thr, wq, task, next, out)                           \
     do {                                                                      \
         if (thr->engine->batch != 0) {                                        \
             nxt_thread_work_queue_add(thr, wq, nxt_source_filter_handler,     \

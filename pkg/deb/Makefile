@@ -19,6 +19,20 @@ BUILD_DEPENDS = $(BUILD_DEPENDS_unit)
 
 MODULES=
 
+# Ubuntu 22.04
+ifeq ($(CODENAME),jammy)
+include Makefile.php
+include Makefile.python27
+include Makefile.python310
+include Makefile.go
+include Makefile.perl
+include Makefile.ruby
+include Makefile.jsc-common
+include Makefile.jsc11
+include Makefile.jsc17
+include Makefile.jsc18
+endif
+
 # Ubuntu 21.10
 ifeq ($(CODENAME),impish)
 include Makefile.php
@@ -180,7 +194,7 @@ endif
 debuild/unit_$(VERSION).orig.tar.gz: | debuild/$(SRCDIR)/debian
 	cd ../.. && tar -czf pkg/deb/debuild/$(SRCDIR).tar.gz \
 		--transform "s#^#$(SRCDIR)/#" \
-		LICENSE NOTICE CHANGES README configure auto src test version go docs/man/unitd.8.in
+		LICENSE NOTICE CHANGES README.md CONTRIBUTING.md configure auto src test version go docs/man/unitd.8.in
 	mv debuild/$(SRCDIR).tar.gz debuild/unit_$(VERSION).orig.tar.gz
 	cd debuild && tar zxf unit_$(VERSION).orig.tar.gz
 

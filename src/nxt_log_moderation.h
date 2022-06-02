@@ -23,8 +23,7 @@ typedef struct {
 #define NXT_LOG_MODERATION  0, -1, 0, 0, NXT_TIMER
 
 
-#define                                                                       \
-nxt_log_alert_moderate(_mod, _log, ...)                                       \
+#define nxt_log_alert_moderate(_mod, _log, ...)                               \
     do {                                                                      \
         nxt_log_t  *_log_ = _log;                                             \
                                                                               \
@@ -34,8 +33,7 @@ nxt_log_alert_moderate(_mod, _log, ...)                                       \
     } while (0)
 
 
-#define                                                                       \
-nxt_log_moderate(_mod, _level, _log, ...)                                     \
+#define nxt_log_moderate(_mod, _level, _log, ...)                             \
     do {                                                                      \
         nxt_log_t  *_log_ = _log;                                             \
                                                                               \

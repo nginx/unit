@@ -81,7 +81,10 @@ class TestRubyHooks(TestApplicationRuby):
         threads = 1
 
         self.load(
-            'hooks', processes=processes, threads=threads, hooks='multiple.rb',
+            'hooks',
+            processes=processes,
+            threads=threads,
+            hooks='multiple.rb',
         )
 
         hooked = self._wait_cookie('worker_boot.*', processes)

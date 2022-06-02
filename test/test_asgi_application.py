@@ -1,14 +1,16 @@
 import re
 import time
-from distutils.version import LooseVersion
 
 import pytest
+from packaging import version
 from unit.applications.lang.python import TestApplicationPython
 
 
 class TestASGIApplication(TestApplicationPython):
     prerequisites = {
-        'modules': {'python': lambda v: LooseVersion(v) >= LooseVersion('3.5')}
+        'modules': {
+            'python': lambda v: version.parse(v) >= version.parse('3.5')
+        }
     }
     load_module = 'asgi'
 

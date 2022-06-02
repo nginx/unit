@@ -113,127 +113,100 @@ struct nxt_buf_s {
 #define NXT_BUF_SYNC_LAST   4
 
 
-#define                                                                       \
-nxt_buf_is_mem(b)                                                             \
+#define nxt_buf_is_mem(b)                                                     \
     ((b)->mem.pos != NULL)
 
 
-#define                                                                       \
-nxt_buf_is_file(b)                                                            \
+#define nxt_buf_is_file(b)                                                    \
     ((b)->is_file)
 
-#define                                                                       \
-nxt_buf_set_file(b)                                                           \
+#define nxt_buf_set_file(b)                                                   \
     (b)->is_file = 1
 
-#define                                                                       \
-nxt_buf_clear_file(b)                                                         \
+#define nxt_buf_clear_file(b)                                                 \
     (b)->is_file = 0
 
 
-#define                                                                       \
-nxt_buf_is_mmap(b)                                                            \
+#define nxt_buf_is_mmap(b)                                                    \
     ((b)->is_mmap)
 
-#define                                                                       \
-nxt_buf_set_mmap(b)                                                           \
+#define nxt_buf_set_mmap(b)                                                   \
     (b)->is_mmap = 1
 
-#define                                                                       \
-nxt_buf_clear_mmap(b)                                                         \
+#define nxt_buf_clear_mmap(b)                                                 \
     (b)->is_mmap = 0
 
 
-#define                                                                       \
-nxt_buf_is_port_mmap(b)                                                       \
+#define nxt_buf_is_port_mmap(b)                                               \
     ((b)->is_port_mmap)
 
-#define                                                                       \
-nxt_buf_set_port_mmap(b)                                                      \
+#define nxt_buf_set_port_mmap(b)                                              \
     (b)->is_port_mmap = 1
 
-#define                                                                       \
-nxt_buf_clear_port_mmap(b)                                                    \
+#define nxt_buf_clear_port_mmap(b)                                            \
     (b)->is_port_mmap = 0
 
 
-#define                                                                       \
-nxt_buf_is_sync(b)                                                            \
+#define nxt_buf_is_sync(b)                                                    \
     ((b)->is_sync)
 
-#define                                                                       \
-nxt_buf_set_sync(b)                                                           \
+#define nxt_buf_set_sync(b)                                                   \
     (b)->is_sync = 1
 
-#define                                                                       \
-nxt_buf_clear_sync(b)                                                         \
+#define nxt_buf_clear_sync(b)                                                 \
     (b)->is_sync = 0
 
 
-#define                                                                       \
-nxt_buf_is_nobuf(b)                                                           \
+#define nxt_buf_is_nobuf(b)                                                   \
     ((b)->is_nobuf)
 
-#define                                                                       \
-nxt_buf_set_nobuf(b)                                                          \
+#define nxt_buf_set_nobuf(b)                                                  \
     (b)->is_nobuf = 1
 
-#define                                                                       \
-nxt_buf_clear_nobuf(b)                                                        \
+#define nxt_buf_clear_nobuf(b)                                                \
     (b)->is_nobuf = 0
 
 
-#define                                                                       \
-nxt_buf_is_flush(b)                                                           \
+#define nxt_buf_is_flush(b)                                                   \
     ((b)->is_flush)
 
-#define                                                                       \
-nxt_buf_set_flush(b)                                                          \
+#define nxt_buf_set_flush(b)                                                  \
     (b)->is_flush = 1
 
-#define                                                                       \
-nxt_buf_clear_flush(b)                                                        \
+#define nxt_buf_clear_flush(b)                                                \
     (b)->is_flush = 0
 
 
-#define                                                                       \
-nxt_buf_is_last(b)                                                            \
+#define nxt_buf_is_last(b)                                                    \
     ((b)->is_last)
 
-#define                                                                       \
-nxt_buf_set_last(b)                                                           \
+#define nxt_buf_set_last(b)                                                   \
     (b)->is_last = 1
 
-#define                                                                       \
-nxt_buf_clear_last(b)                                                         \
+#define nxt_buf_clear_last(b)                                                 \
     (b)->is_last = 0
 
 
-#define                                                                       \
-nxt_buf_mem_set_size(bm, size)                                                \
+#define nxt_buf_mem_set_size(bm, size)                                        \
     do {                                                                      \
         (bm)->start = 0;                                                      \
         (bm)->end = (void *) size;                                            \
     } while (0)
 
 
-#define                                                                       \
-nxt_buf_mem_size(bm)                                                          \
+#define nxt_buf_mem_size(bm)                                                  \
     ((bm)->end - (bm)->start)
 
 
-#define                                                                       \
-nxt_buf_mem_used_size(bm)                                                     \
+#define nxt_buf_mem_used_size(bm)                                             \
     ((bm)->free - (bm)->pos)
 
 
-#define                                                                       \
-nxt_buf_mem_free_size(bm)                                                     \
+#define nxt_buf_mem_free_size(bm)                                             \
     ((bm)->end - (bm)->free)
 
 
-#define                                                                       \
-nxt_buf_used_size(b)                                                          \
+#define nxt_buf_used_size(b)                                                  \
     (nxt_buf_is_file(b) ? (b)->file_end - (b)->file_pos:                      \
                           nxt_buf_mem_used_size(&(b)->mem))
 
@@ -264,8 +237,7 @@ nxt_buf_chk_make_plain(nxt_mp_t *mp, nxt_buf_t *src, size_t size)
     return src;
 }
 
-#define                                                                       \
-nxt_buf_free(mp, b)                                                           \
+#define nxt_buf_free(mp, b)                                                   \
     nxt_mp_free((mp), (b))
 
 

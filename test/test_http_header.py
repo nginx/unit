@@ -213,7 +213,7 @@ Connection: close
             self.post(
                 headers={
                     'Host': 'localhost',
-                    'Content-Length': str(2 ** 64),
+                    'Content-Length': str(2**64),
                     'Connection': 'close',
                 },
                 body='X' * 1000,
@@ -325,9 +325,7 @@ Connection: close
     def test_http_header_host_port_empty(self):
         self.load('host')
 
-        resp = self.get(
-            headers={'Host': 'exmaple.com:', 'Connection': 'close'}
-        )
+        resp = self.get(headers={'Host': 'exmaple.com:', 'Connection': 'close'})
 
         assert resp['status'] == 200, 'Host port empty status'
         assert (
@@ -376,9 +374,7 @@ Connection: close
     def test_http_header_host_trailing_period_2(self):
         self.load('host')
 
-        resp = self.get(
-            headers={'Host': 'EXAMPLE.COM.', 'Connection': 'close'}
-        )
+        resp = self.get(headers={'Host': 'EXAMPLE.COM.', 'Connection': 'close'})
 
         assert resp['status'] == 200, 'Host trailing period 2 status'
         assert (
@@ -453,14 +449,16 @@ Connection: close
         assert 'CUSTOM' not in resp['headers']['All-Headers']
 
         assert 'success' in self.conf(
-            {'http': {'discard_unsafe_fields': False}}, 'settings',
+            {'http': {'discard_unsafe_fields': False}},
+            'settings',
         )
 
         resp = check_status("!#$%&'*+.^`|~Custom_Header")
         assert 'CUSTOM' in resp['headers']['All-Headers']
 
         assert 'success' in self.conf(
-            {'http': {'discard_unsafe_fields': True}}, 'settings',
+            {'http': {'discard_unsafe_fields': True}},
+            'settings',
         )
 
         resp = check_status("!Custom-Header")

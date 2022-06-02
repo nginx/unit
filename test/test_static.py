@@ -3,7 +3,8 @@ import shutil
 import socket
 
 import pytest
-from conftest import unit_run, unit_stop
+from conftest import unit_run
+from conftest import unit_stop
 from unit.applications.proto import TestApplicationProto
 from unit.option import option
 from unit.utils import waitforfiles
@@ -86,6 +87,22 @@ class TestStatic(TestApplicationProto):
         assert self.get(url='/')['body'] == '0123456789', 'before 1.26.0 2'
 
     def test_static_index(self):
+        def set_index(index):
+            assert 'success' in self.conf(
+                {"share": option.temp_dir + "/assets$uri", "index": index},
+                'routes/0/action',
+            ), 'configure index'
+
+        set_index('README')
+        assert self.get()['body'] == 'readme', 'index'
+
+        self.conf_delete('routes/0/action/index')
+        assert self.get()['body'] == '0123456789', 'delete index'
+
+        set_index('')
+        assert self.get()['status'] == 404, 'index empty'
+
+    def test_static_index_default(self):
         assert self.get(url='/index.html')['body'] == '0123456789', 'index'
         assert self.get(url='/')['body'] == '0123456789', 'index 2'
         assert self.get(url='//')['body'] == '0123456789', 'index 3'
@@ -100,6 +117,18 @@ class TestStatic(TestApplicationProto):
         assert (
             resp['headers']['Content-Type'] == 'text/html'
         ), 'index not found 2 Content-Type'
+
+    def test_static_index_invalid(self, skip_alert):
+        skip_alert(r'failed to apply new conf')
+
+        def check_index(index):
+            assert 'error' in self.conf(
+                {"share": option.temp_dir + "/assets$uri", "index": index},
+                'routes/0/action',
+            )
+
+        check_index({})
+        check_index(['index.html', '$blah'])
 
     def test_static_large_file(self, temp_dir):
         file_size = 32 * 1024 * 1024
@@ -132,7 +161,8 @@ class TestStatic(TestApplicationProto):
 
     def test_static_space_in_name(self, temp_dir):
         os.rename(
-            temp_dir + '/assets/dir/file', temp_dir + '/assets/dir/fi le',
+            temp_dir + '/assets/dir/file',
+            temp_dir + '/assets/dir/fi le',
         )
         assert waitforfiles(temp_dir + '/assets/dir/fi le')
         assert self.get(url='/dir/fi le')['body'] == 'blah', 'file name'
@@ -153,9 +183,7 @@ class TestStatic(TestApplicationProto):
         assert (
             self.get(url='/ di r %2Ffi le')['body'] == 'blah'
         ), 'slash encoded'
-        assert (
-            self.get(url='/ di r /fi%20le')['body'] == 'blah'
-        ), 'file encoded'
+        assert self.get(url='/ di r /fi%20le')['body'] == 'blah', 'file encoded'
         assert (
             self.get(url='/%20di%20r%20%2Ffi%20le')['body'] == 'blah'
         ), 'encoded'
@@ -194,7 +222,8 @@ class TestStatic(TestApplicationProto):
             ), 'file name 2'
 
             os.rename(
-                temp_dir + '/assets/ di r ', temp_dir + '/assets/ди ректория',
+                temp_dir + '/assets/ di r ',
+                temp_dir + '/assets/ди ректория',
             )
             assert waitforfiles(temp_dir + '/assets/ди ректория/фа йл')
             assert (
@@ -265,13 +294,14 @@ class TestStatic(TestApplicationProto):
             self.get(url='/')['headers']['Content-Type'] == 'text/plain'
         ), 'mime_types index default'
         assert (
-            self.get(url='/dir/file')['headers']['Content-Type']
-            == 'text/plain'
+            self.get(url='/dir/file')['headers']['Content-Type'] == 'text/plain'
         ), 'mime_types file in dir'
 
     def test_static_mime_types_partial_match(self):
         assert 'success' in self.conf(
-            {"text/x-blah": ["ile", "fil", "f", "e", ".file"],},
+            {
+                "text/x-blah": ["ile", "fil", "f", "e", ".file"],
+            },
             'settings/http/static/mime_types',
         ), 'configure mime_types'
         assert 'Content-Type' not in self.get(url='/dir/file'), 'partial match'
@@ -312,16 +342,14 @@ class TestStatic(TestApplicationProto):
             '"file"', 'settings/http/static/mime_types/text%2Fplain'
         ), 'mime_types add array element'
         assert (
-            self.get(url='/dir/file')['headers']['Content-Type']
-            == 'text/plain'
+            self.get(url='/dir/file')['headers']['Content-Type'] == 'text/plain'
         ), 'mime_types reverted'
 
         assert 'success' in self.conf(
             '"file"', 'settings/http/static/mime_types/text%2Fplain'
         ), 'configure mime_types update'
         assert (
-            self.get(url='/dir/file')['headers']['Content-Type']
-            == 'text/plain'
+            self.get(url='/dir/file')['headers']['Content-Type'] == 'text/plain'
         ), 'mime_types updated'
         assert (
             'Content-Type' not in self.get(url='/log.log')['headers']
@@ -345,7 +373,10 @@ class TestStatic(TestApplicationProto):
             'settings/http/static/mime_types',
         ), 'mime_types same extensions array'
         assert 'error' in self.conf(
-            {"text/x-code": [".h", ".c", "readme"], "text/plain": "README",},
+            {
+                "text/x-code": [".h", ".c", "readme"],
+                "text/plain": "README",
+            },
             'settings/http/static/mime_types',
         ), 'mime_types same extensions case insensitive'
 

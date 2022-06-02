@@ -939,12 +939,12 @@ nxt_mp_chunk_free(nxt_mp_t *mp, nxt_mp_block_t *cluster, u_char *p)
     page = cluster->pages;
 
     do {
-         if (page->size != 0) {
-             return NULL;
-         }
+        if (page->size != 0) {
+            return NULL;
+        }
 
-         page++;
-         n--;
+        page++;
+        n--;
     } while (n != 0);
 
     /* Free cluster. */
@@ -953,9 +953,9 @@ nxt_mp_chunk_free(nxt_mp_t *mp, nxt_mp_block_t *cluster, u_char *p)
     page = cluster->pages;
 
     do {
-         nxt_queue_remove(&page->link);
-         page++;
-         n--;
+        nxt_queue_remove(&page->link);
+        page++;
+        n--;
     } while (n != 0);
 
     nxt_rbtree_delete(&mp->blocks, &cluster->node);

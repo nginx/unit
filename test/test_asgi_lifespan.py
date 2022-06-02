@@ -1,14 +1,16 @@
 import os
-from distutils.version import LooseVersion
 
 from conftest import unit_stop
+from packaging import version
 from unit.applications.lang.python import TestApplicationPython
 from unit.option import option
 
 
 class TestASGILifespan(TestApplicationPython):
     prerequisites = {
-        'modules': {'python': lambda v: LooseVersion(v) >= LooseVersion('3.5')}
+        'modules': {
+            'python': lambda v: version.parse(v) >= version.parse('3.5')
+        }
     }
     load_module = 'asgi'
 
@@ -67,7 +69,7 @@ class TestASGILifespan(TestApplicationPython):
                 ],
                 "applications": {
                     "targets": {
-                        "type": "python",
+                        "type": self.get_application_type(),
                         "processes": {"spare": 0},
                         "working_directory": option.test_dir
                         + "/python/lifespan/empty",

@@ -274,7 +274,7 @@ Connection: close
                 ],
                 "applications": {
                     "delayed": {
-                        "type": "python",
+                        "type": self.get_application_type(),
                         "processes": {"spare": 0},
                         "path": option.test_dir + "/python/delayed",
                         "working_directory": option.test_dir
@@ -342,7 +342,8 @@ Connection: close
         assert self.get()['body'] == ''
 
         assert 'success' in self.conf(
-            {"127.0.0.1:7083": {"weight": 2}}, 'upstreams/one/servers',
+            {"127.0.0.1:7083": {"weight": 2}},
+            'upstreams/one/servers',
         ), 'active req new server'
         assert 'success' in self.conf_delete(
             'upstreams/one/servers/127.0.0.1:7083'

@@ -28,19 +28,15 @@ typedef struct {
 } nxt_perl_psgi_ctx_t;
 
 
-static long nxt_perl_psgi_io_input_read(PerlInterpreter *my_perl,
+static SSize_t nxt_perl_psgi_io_input_read(PerlInterpreter *my_perl,
     nxt_perl_psgi_io_arg_t *arg, void *vbuf, size_t length);
-static long nxt_perl_psgi_io_input_write(PerlInterpreter *my_perl,
+static SSize_t nxt_perl_psgi_io_input_write(PerlInterpreter *my_perl,
     nxt_perl_psgi_io_arg_t *arg, const void *vbuf, size_t length);
-static long nxt_perl_psgi_io_input_flush(PerlInterpreter *my_perl,
-    nxt_perl_psgi_io_arg_t *arg);
 
-static long nxt_perl_psgi_io_error_read(PerlInterpreter *my_perl,
+static SSize_t nxt_perl_psgi_io_error_read(PerlInterpreter *my_perl,
     nxt_perl_psgi_io_arg_t *arg, void *vbuf, size_t length);
-static long nxt_perl_psgi_io_error_write(PerlInterpreter *my_perl,
+static SSize_t nxt_perl_psgi_io_error_write(PerlInterpreter *my_perl,
     nxt_perl_psgi_io_arg_t *arg, const void *vbuf, size_t length);
-static long nxt_perl_psgi_io_error_flush(PerlInterpreter *my_perl,
-    nxt_perl_psgi_io_arg_t *arg);
 
 /*
 static void nxt_perl_psgi_xs_core_global_changes(PerlInterpreter *my_perl,
@@ -57,10 +53,8 @@ static SV *nxt_perl_psgi_call_method(PerlInterpreter *my_perl, SV *obj,
 /* For currect load XS modules */
 EXTERN_C void boot_DynaLoader(pTHX_ CV *cv);
 
-static nxt_int_t nxt_perl_psgi_io_input_init(PerlInterpreter *my_perl,
-    nxt_perl_psgi_io_arg_t *arg);
-static nxt_int_t nxt_perl_psgi_io_error_init(PerlInterpreter *my_perl,
-    nxt_perl_psgi_io_arg_t *arg);
+static int nxt_perl_psgi_io_init(PerlInterpreter *my_perl,
+    nxt_perl_psgi_io_arg_t *arg, const char *mode, void *req);
 
 static int nxt_perl_psgi_ctx_init(const char *script,
     nxt_perl_psgi_ctx_t *pctx);
@@ -125,20 +119,26 @@ NXT_EXPORT nxt_app_module_t  nxt_app_module = {
     nxt_perl_psgi_start,
 };
 
+const nxt_perl_psgi_io_tab_t nxt_perl_psgi_io_tab_input = {
+    .read = nxt_perl_psgi_io_input_read,
+    .write = nxt_perl_psgi_io_input_write,
+};
 
-static long
+const nxt_perl_psgi_io_tab_t nxt_perl_psgi_io_tab_error = {
+    .read = nxt_perl_psgi_io_error_read,
+    .write = nxt_perl_psgi_io_error_write,
+};
+
+
+static SSize_t
 nxt_perl_psgi_io_input_read(PerlInterpreter *my_perl,
     nxt_perl_psgi_io_arg_t *arg, void *vbuf, size_t length)
 {
-    nxt_perl_psgi_ctx_t  *pctx;
-
-    pctx = arg->pctx;
-
-    return nxt_unit_request_read(pctx->req, vbuf, length);
+    return nxt_unit_request_read(arg->req, vbuf, length);
 }
 
 
-static long
+static SSize_t
 nxt_perl_psgi_io_input_write(PerlInterpreter *my_perl,
     nxt_perl_psgi_io_arg_t *arg, const void *vbuf, size_t length)
 {
@@ -146,15 +146,7 @@ nxt_perl_psgi_io_input_write(PerlInterpreter *my_perl,
 }
 
 
-static long
-nxt_perl_psgi_io_input_flush(PerlInterpreter *my_perl,
-    nxt_perl_psgi_io_arg_t *arg)
-{
-    return 0;
-}
-
-
-static long
+static SSize_t
 nxt_perl_psgi_io_error_read(PerlInterpreter *my_perl,
     nxt_perl_psgi_io_arg_t *arg, void *vbuf, size_t length)
 {
@@ -162,25 +154,13 @@ nxt_perl_psgi_io_error_read(PerlInterpreter *my_perl,
 }
 
 
-static long
+static SSize_t
 nxt_perl_psgi_io_error_write(PerlInterpreter *my_perl,
     nxt_perl_psgi_io_arg_t *arg, const void *vbuf, size_t length)
 {
-    nxt_perl_psgi_ctx_t  *pctx;
+    nxt_unit_req_error(arg->req, "Perl: %s", (const char*) vbuf);
 
-    pctx = arg->pctx;
-
-    nxt_unit_req_error(pctx->req, "Perl: %s", (const char*) vbuf);
-
-    return (long) length;
-}
-
-
-static long
-nxt_perl_psgi_io_error_flush(PerlInterpreter *my_perl,
-    nxt_perl_psgi_io_arg_t *arg)
-{
-    return 0;
+    return (SSize_t) length;
 }
 
 
@@ -461,70 +441,49 @@ nxt_perl_psgi_module_create(const char *script)
 }
 
 
-static nxt_int_t
-nxt_perl_psgi_io_input_init(PerlInterpreter *my_perl,
-    nxt_perl_psgi_io_arg_t *arg)
+static int
+nxt_perl_psgi_io_init(PerlInterpreter *my_perl,
+    nxt_perl_psgi_io_arg_t *arg, const char *mode, void *req)
 {
     SV      *io;
     PerlIO  *fp;
 
-    fp = nxt_perl_psgi_layer_stream_fp_create(aTHX_ arg, "r");
+    if (arg->io == NULL) {
+        fp = nxt_perl_psgi_layer_stream_fp_create(aTHX_ arg->rv, mode);
+        if (nxt_slow_path(fp == NULL)) {
+            return NXT_UNIT_ERROR;
+        }
 
-    if (nxt_slow_path(fp == NULL)) {
-        return NXT_ERROR;
+        io = nxt_perl_psgi_layer_stream_io_create(aTHX_ fp);
+        if (nxt_slow_path(io == NULL)) {
+            nxt_perl_psgi_layer_stream_fp_destroy(aTHX_ fp);
+            return NXT_UNIT_ERROR;
+        }
+
+        arg->io = io;
+        arg->fp = fp;
     }
 
-    io = nxt_perl_psgi_layer_stream_io_create(aTHX_ fp);
+    arg->req = req;
 
-    if (nxt_slow_path(io == NULL)) {
-        nxt_perl_psgi_layer_stream_fp_destroy(aTHX_ fp);
-        return NXT_ERROR;
-    }
-
-    arg->io = io;
-    arg->fp = fp;
-    arg->flush = nxt_perl_psgi_io_input_flush;
-    arg->read = nxt_perl_psgi_io_input_read;
-    arg->write = nxt_perl_psgi_io_input_write;
-
-    return NXT_OK;
+    return NXT_UNIT_OK;
 }
 
 
-static nxt_int_t
-nxt_perl_psgi_io_error_init(PerlInterpreter *my_perl,
-    nxt_perl_psgi_io_arg_t *arg)
+static void
+nxt_perl_psgi_io_release(PerlInterpreter *my_perl, nxt_perl_psgi_io_arg_t *arg)
 {
-    SV      *io;
-    PerlIO  *fp;
-
-    fp = nxt_perl_psgi_layer_stream_fp_create(aTHX_ arg, "w");
-
-    if (nxt_slow_path(fp == NULL)) {
-        return NXT_ERROR;
+    if (arg->io != NULL) {
+        SvREFCNT_dec(arg->io);
+        arg->io = NULL;
     }
-
-    io = nxt_perl_psgi_layer_stream_io_create(aTHX_ fp);
-
-    if (nxt_slow_path(io == NULL)) {
-        nxt_perl_psgi_layer_stream_fp_destroy(aTHX_ fp);
-        return NXT_ERROR;
-    }
-
-    arg->io = io;
-    arg->fp = fp;
-    arg->flush = nxt_perl_psgi_io_error_flush;
-    arg->read = nxt_perl_psgi_io_error_read;
-    arg->write = nxt_perl_psgi_io_error_write;
-
-    return NXT_OK;
 }
 
 
 static int
 nxt_perl_psgi_ctx_init(const char *script, nxt_perl_psgi_ctx_t *pctx)
 {
-    int              status;
+    int              status, res;
     char             *run_module;
     PerlInterpreter  *my_perl;
 
@@ -577,19 +536,27 @@ nxt_perl_psgi_ctx_init(const char *script, nxt_perl_psgi_ctx_t *pctx)
         goto fail;
     }
 
-    pctx->arg_input.pctx = pctx;
+    pctx->arg_input.rv = newSV_type(SVt_RV);
+    sv_setptrref(pctx->arg_input.rv, &pctx->arg_input);
+    SvSETMAGIC(pctx->arg_input.rv);
 
-    status = nxt_perl_psgi_io_input_init(my_perl, &pctx->arg_input);
-    if (nxt_slow_path(status != NXT_OK)) {
+    pctx->arg_input.io_tab = &nxt_perl_psgi_io_tab_input;
+
+    res = nxt_perl_psgi_io_init(my_perl, &pctx->arg_input, "r", NULL);
+    if (nxt_slow_path(res != NXT_UNIT_OK)) {
         nxt_unit_alert(NULL, "PSGI: Failed to init io.psgi.input");
         goto fail;
     }
 
-    pctx->arg_error.pctx = pctx;
+    pctx->arg_error.rv = newSV_type(SVt_RV);
+    sv_setptrref(pctx->arg_error.rv, &pctx->arg_error);
+    SvSETMAGIC(pctx->arg_error.rv);
 
-    status = nxt_perl_psgi_io_error_init(my_perl, &pctx->arg_error);
-    if (nxt_slow_path(status != NXT_OK)) {
-        nxt_unit_alert(NULL, "PSGI: Failed to init io.psgi.errors");
+    pctx->arg_error.io_tab = &nxt_perl_psgi_io_tab_error;
+
+    res = nxt_perl_psgi_io_init(my_perl, &pctx->arg_error, "w", NULL);
+    if (nxt_slow_path(res != NXT_UNIT_OK)) {
+        nxt_unit_alert(NULL, "PSGI: Failed to init io.psgi.error");
         goto fail;
     }
 
@@ -607,12 +574,17 @@ nxt_perl_psgi_ctx_init(const char *script, nxt_perl_psgi_ctx_t *pctx)
 
 fail:
 
+    nxt_perl_psgi_io_release(my_perl, &pctx->arg_input);
+    nxt_perl_psgi_io_release(my_perl, &pctx->arg_error);
+
     if (run_module != NULL) {
         nxt_unit_free(NULL, run_module);
     }
 
     perl_destruct(my_perl);
     perl_free(my_perl);
+
+    pctx->my_perl = NULL;
 
     return NXT_UNIT_ERROR;
 }
@@ -640,7 +612,7 @@ nxt_perl_psgi_env_create(PerlInterpreter *my_perl,
     do {                                                                      \
         if (nxt_slow_path((FNS) != NXT_UNIT_OK))                              \
             goto fail;                                                        \
-     } while (0)
+    } while (0)
 
 #define NL(S) (S), sizeof(S)-1
 
@@ -672,21 +644,25 @@ nxt_perl_psgi_env_create(PerlInterpreter *my_perl,
                                r->tls ? newSVpv("https", 5)
                                     : newSVpv("http", 4)));
 
+    RC(nxt_perl_psgi_io_init(my_perl, &pctx->arg_input, "r", req));
     RC(nxt_perl_psgi_add_value(my_perl, hash_env, NL("psgi.input"),
-                                SvREFCNT_inc(pctx->arg_input.io)));
+                               SvREFCNT_inc(pctx->arg_input.io)));
+
+    RC(nxt_perl_psgi_io_init(my_perl, &pctx->arg_error, "w", req));
     RC(nxt_perl_psgi_add_value(my_perl, hash_env, NL("psgi.errors"),
-                                SvREFCNT_inc(pctx->arg_error.io)));
+                               SvREFCNT_inc(pctx->arg_error.io)));
+
     RC(nxt_perl_psgi_add_value(my_perl, hash_env, NL("psgi.multithread"),
-                                nxt_perl_psgi_ctxs != NULL
-                                    ? &PL_sv_yes : &PL_sv_no));
+                               nxt_perl_psgi_ctxs != NULL
+                                   ? &PL_sv_yes : &PL_sv_no));
     RC(nxt_perl_psgi_add_value(my_perl, hash_env, NL("psgi.multiprocess"),
-                                &PL_sv_yes));
+                               &PL_sv_yes));
     RC(nxt_perl_psgi_add_value(my_perl, hash_env, NL("psgi.run_once"),
-                                &PL_sv_no));
+                               &PL_sv_no));
     RC(nxt_perl_psgi_add_value(my_perl, hash_env, NL("psgi.nonblocking"),
-                                &PL_sv_no));
+                               &PL_sv_no));
     RC(nxt_perl_psgi_add_value(my_perl, hash_env, NL("psgi.streaming"),
-                                &PL_sv_yes));
+                               &PL_sv_yes));
 
     RC(nxt_perl_psgi_add_sptr(my_perl, hash_env, NL("QUERY_STRING"),
                               &r->query, r->query_length));
@@ -1447,11 +1423,11 @@ nxt_perl_psgi_ctx_free(nxt_perl_psgi_ctx_t *pctx)
 
     PERL_SET_CONTEXT(my_perl);
 
-    nxt_perl_psgi_layer_stream_io_destroy(aTHX_ pctx->arg_input.io);
-    nxt_perl_psgi_layer_stream_fp_destroy(aTHX_ pctx->arg_input.fp);
+    SvREFCNT_dec(pctx->arg_input.rv);
+    SvREFCNT_dec(pctx->arg_error.rv);
 
-    nxt_perl_psgi_layer_stream_io_destroy(aTHX_ pctx->arg_error.io);
-    nxt_perl_psgi_layer_stream_fp_destroy(aTHX_ pctx->arg_error.fp);
+    nxt_perl_psgi_io_release(my_perl, &pctx->arg_input);
+    nxt_perl_psgi_io_release(my_perl, &pctx->arg_error);
 
     perl_destruct(my_perl);
     perl_free(my_perl);

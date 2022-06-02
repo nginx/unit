@@ -35,6 +35,4 @@ class TestPythonIsolation(TestApplicationPython):
 
         ret = self.getjson(url='/?path=/app/python/ns_inspect')
 
-        assert (
-            ret['body']['FileExists'] == True
-        ), 'application exists in rootfs'
+        assert ret['body']['FileExists'] == True, 'application exists in rootfs'

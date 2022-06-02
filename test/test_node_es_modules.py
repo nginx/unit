@@ -1,5 +1,4 @@
-from distutils.version import LooseVersion
-
+from packaging import version
 from unit.applications.lang.node import TestApplicationNode
 from unit.applications.websockets import TestApplicationWebsocket
 
@@ -7,7 +6,7 @@ from unit.applications.websockets import TestApplicationWebsocket
 class TestNodeESModules(TestApplicationNode):
     prerequisites = {
         'modules': {
-            'node': lambda v:  LooseVersion(v) >= LooseVersion("14.16.0")
+            'node': lambda v: version.parse(v) >= version.parse('14.16.0')
         }
     }
 

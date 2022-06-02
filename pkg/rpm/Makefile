@@ -16,6 +16,8 @@ else ifeq ($(shell test `rpm --eval '0%{?rhel} -eq 7 -a 0%{?amzn} -eq 0'`; echo 
 OSVER = centos7
 else ifeq ($(shell rpm --eval "%{?rhel}"), 8)
 OSVER = centos8
+else ifeq ($(shell rpm --eval "%{?rhel}"), 9)
+OSVER = centos9
 else ifeq ($(shell rpm --eval "%{?amzn}"), 1)
 OSVER = amazonlinux1
 else ifeq ($(shell rpm --eval "%{?amzn}"), 2)
@@ -77,6 +79,16 @@ ifeq ($(OSVER), centos8)
 include Makefile.php
 include Makefile.python27
 include Makefile.python36
+include Makefile.go
+include Makefile.perl
+include Makefile.jsc-common
+include Makefile.jsc8
+include Makefile.jsc11
+endif
+
+ifeq ($(OSVER), centos9)
+include Makefile.php
+include Makefile.python39
 include Makefile.go
 include Makefile.perl
 include Makefile.jsc-common
@@ -223,7 +235,7 @@ endif
 rpmbuild/SOURCES/unit-$(VERSION).tar.gz:
 	cd ../.. && tar -czf pkg/rpm/rpmbuild/SOURCES/unit-$(VERSION).tar.gz \
 		--transform "s#^#unit-$(VERSION)/#" \
-		LICENSE NOTICE CHANGES README configure auto src test version go docs/man/unitd.8.in
+		LICENSE NOTICE CHANGES README.md CONTRIBUTING.md configure auto src test version go docs/man/unitd.8.in
 
 unit: check-build-depends-unit rpmbuild/SPECS/unit.spec rpmbuild/SOURCES/unit-$(VERSION).tar.gz
 	@echo "===> Building $@ package" ; \

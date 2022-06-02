@@ -22,6 +22,7 @@
 
 typedef struct {
     VALUE                    env;
+    VALUE                    script;
     VALUE                    io_input;
     VALUE                    io_error;
     VALUE                    thread;

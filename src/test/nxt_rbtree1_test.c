@@ -9,13 +9,11 @@
 #include "nxt_rbtree1.h"
 
 
-#define                                                                       \
-nxt_rbtree1_is_empty(tree)                                                    \
+#define nxt_rbtree1_is_empty(tree)                                            \
     (((tree)->root) == (tree)->sentinel)
 
 
-#define                                                                       \
-nxt_rbtree1_is_there_successor(tree, node)                                    \
+#define nxt_rbtree1_is_there_successor(tree, node)                            \
     ((node) != (tree)->sentinel)
 
 

@@ -176,8 +176,9 @@ nxt_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     if (nxt_fast_path(msg->port_msg.type < NXT_PORT_MSG_MAX)) {
 
-        nxt_debug(task, "port %d: message type:%uD",
-                  msg->port->socket.fd, msg->port_msg.type);
+        nxt_debug(task, "port %d: message type:%uD fds:%d,%d",
+                  msg->port->socket.fd, msg->port_msg.type,
+                  msg->fd[0], msg->fd[1]);
 
         handlers = msg->port->data;
         handlers[msg->port_msg.type](task, msg);

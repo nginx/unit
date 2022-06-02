@@ -293,36 +293,6 @@ custom-header: BLAH
 
         assert resp == {}, 'reconfigure 2 keep-alive 3'
 
-    def test_python_keepalive_reconfigure_3(self):
-        self.load('empty')
-
-        assert self.get()['status'] == 200, 'init'
-
-        (_, sock) = self.http(
-            b"""GET / HTTP/1.1
-""",
-            start=True,
-            raw=True,
-            no_recv=True,
-        )
-
-        assert self.get()['status'] == 200
-
-        assert 'success' in self.conf(
-            {"listeners": {}, "applications": {}}
-        ), 'reconfigure 3 clear configuration'
-
-        resp = self.http(
-            b"""Host: localhost
-Connection: close
-
-""",
-            sock=sock,
-            raw=True,
-        )
-
-        assert resp['status'] == 200, 'reconfigure 3'
-
     def test_python_atexit(self):
         self.load('atexit')
 
@@ -735,9 +705,7 @@ last line: 987654321
             'nobody uid user=nobody group=%s' % group
         )
 
-        assert obj['GID'] == group_id, (
-            'nobody gid user=nobody group=%s' % group
-        )
+        assert obj['GID'] == group_id, 'nobody gid user=nobody group=%s' % group
 
         self.load('user_group', group=group)
 

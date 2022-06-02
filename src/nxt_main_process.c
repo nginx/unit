@@ -382,25 +382,25 @@ nxt_main_start_process_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     port = rt->port_by_type[NXT_PROCESS_ROUTER];
     if (nxt_slow_path(port == NULL)) {
         nxt_alert(task, "router port not found");
-        return;
+        goto close_fds;
     }
 
     if (nxt_slow_path(port->pid != nxt_recv_msg_cmsg_pid(msg))) {
         nxt_alert(task, "process %PI cannot start processes",
                   nxt_recv_msg_cmsg_pid(msg));
 
-        return;
+        goto close_fds;
     }
 
     process = nxt_process_new(rt);
     if (nxt_slow_path(process == NULL)) {
-        return;
+        goto close_fds;
     }
 
     process->mem_pool = nxt_mp_create(1024, 128, 256, 32);
     if (process->mem_pool == NULL) {
         nxt_process_use(task, process, -1);
-        return;
+        goto close_fds;
     }
 
     process->parent_port = rt->port_by_type[NXT_PROCESS_MAIN];
@@ -421,6 +421,9 @@ nxt_main_start_process_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     if (nxt_slow_path(app_conf == NULL)) {
         goto failed;
     }
+
+    app_conf->shared_port_fd = msg->fd[0];
+    app_conf->shared_queue_fd = msg->fd[1];
 
     start = b->mem.pos;
 
@@ -509,6 +512,17 @@ nxt_main_start_process_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
 
     ret = nxt_process_start(task, process);
     if (nxt_fast_path(ret == NXT_OK || ret == NXT_AGAIN)) {
+
+        /* Close shared port fds only in main process. */
+        if (ret == NXT_OK) {
+            nxt_fd_close(app_conf->shared_port_fd);
+            nxt_fd_close(app_conf->shared_queue_fd);
+        }
+
+        /* Avoid fds close in caller. */
+        msg->fd[0] = -1;
+        msg->fd[1] = -1;
+
         return;
     }
 
@@ -523,6 +537,14 @@ failed:
         nxt_port_socket_write(task, port, NXT_PORT_MSG_RPC_ERROR,
                               -1, msg->port_msg.stream, 0, NULL);
     }
+
+close_fds:
+
+    nxt_fd_close(msg->fd[0]);
+    msg->fd[0] = -1;
+
+    nxt_fd_close(msg->fd[1]);
+    msg->fd[1] = -1;
 }
 
 
@@ -557,7 +579,7 @@ nxt_main_process_created_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
                                          -1, msg->port_msg.stream, 0, NULL);
             return;
         }
-     }
+    }
 
 #endif
 

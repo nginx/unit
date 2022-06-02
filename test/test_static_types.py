@@ -85,7 +85,10 @@ class TestStaticTypes(TestApplicationProto):
 
     def test_static_types_regex(self, temp_dir):
         self.action_update(
-            {"share": temp_dir + "/assets$uri", "types": ["~text/(html|plain)"]}
+            {
+                "share": temp_dir + "/assets$uri",
+                "types": ["~text/(html|plain)"],
+            }
         )
         assert self.get(url='/file.php')['status'] == 403, 'regex fail'
         self.check_body('/file.html', '.html')

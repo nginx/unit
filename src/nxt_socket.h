@@ -118,12 +118,10 @@ NXT_EXPORT ssize_t nxt_socketpair_recv(nxt_fd_event_t *ev,
     nxt_iobuf_t *iob, nxt_uint_t niob, void *oob);
 
 
-#define                                                                       \
-nxt_socket_nonblocking(task, fd)                                              \
+#define nxt_socket_nonblocking(task, fd)                                      \
     nxt_fd_nonblocking(task, fd)
 
-#define                                                                       \
-nxt_socket_blocking(task, fd)                                                 \
+#define nxt_socket_blocking(task, fd)                                         \
     nxt_fd_blocking(task, fd)
 
 

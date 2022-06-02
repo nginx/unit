@@ -15,8 +15,7 @@ typedef struct {
 } nxt_service_t;
 
 
-#define                                                                       \
-nxt_service_is_module(s)                                                      \
+#define nxt_service_is_module(s)                                              \
     ((s)->type == NULL)
 
 

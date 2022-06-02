@@ -17,6 +17,7 @@ class TestVariables(TestApplicationProto):
                     "5GET": [{"action": {"return": 206}}],
                     "GETGET": [{"action": {"return": 207}}],
                     "localhost": [{"action": {"return": 208}}],
+                    "9?q#a": [{"action": {"return": 209}}],
                 },
             },
         ), 'configure routes'
@@ -27,6 +28,14 @@ class TestVariables(TestApplicationProto):
     def test_variables_method(self):
         assert self.get()['status'] == 201, 'method GET'
         assert self.post()['status'] == 202, 'method POST'
+
+    def test_variables_request_uri(self):
+        self.conf_routes("\"routes$request_uri\"")
+
+        assert self.get(url='/3')['status'] == 203, 'request_uri'
+        assert self.get(url='/4*')['status'] == 204, 'request_uri 2'
+        assert self.get(url='/4%2A')['status'] == 204, 'request_uri 3'
+        assert self.get(url='/9?q#a')['status'] == 209, 'request_uri query'
 
     def test_variables_uri(self):
         self.conf_routes("\"routes$uri\"")
@@ -103,20 +112,16 @@ class TestVariables(TestApplicationProto):
     def test_variables_empty(self):
         def update_pass(prefix):
             assert 'success' in self.conf(
-                {
-                    "listeners": {
-                        "*:7080": {"pass": prefix + "/$method"},
-                    },
-                },
+                {"listeners": {"*:7080": {"pass": prefix + "/$method"}}},
             ), 'variables empty'
 
-        update_pass("routes");
+        update_pass("routes")
         assert self.get(url='/1')['status'] == 404
 
-        update_pass("upstreams");
+        update_pass("upstreams")
         assert self.get(url='/2')['status'] == 404
 
-        update_pass("applications");
+        update_pass("applications")
         assert self.get(url='/3')['status'] == 404
 
     def test_variables_invalid(self):

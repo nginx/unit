@@ -8,6 +8,7 @@ app = Proc.new do |env|
         'Request-Method' => env['REQUEST_METHOD'],
         'Request-Uri' => env['REQUEST_URI'],
         'Http-Host' => env['HTTP_HOST'],
+        'Script-Name' => env['SCRIPT_NAME'],
         'Server-Protocol' => env['SERVER_PROTOCOL'],
         'Server-Software' => env['SERVER_SOFTWARE'],
         'Custom-Header' => env['HTTP_CUSTOM_HEADER'],

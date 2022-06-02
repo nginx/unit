@@ -26,7 +26,8 @@ config.env.%:
 	cp -Pa $(CURDIR)/CHANGES $(BUILDDIR_$*)/
 	cp -Pa $(CURDIR)/LICENSE $(BUILDDIR_$*)/
 	cp -Pa $(CURDIR)/NOTICE $(BUILDDIR_$*)/
-	cp -Pa $(CURDIR)/README $(BUILDDIR_$*)/
+	cp -Pa $(CURDIR)/README.md $(BUILDDIR_$*)/
+	cp -Pa $(CURDIR)/CONTRIBUTING.md $(BUILDDIR_$*)/
 	cp -Pa $(CURDIR)/go $(BUILDDIR_$*)/
 	touch $@
 

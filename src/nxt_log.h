@@ -41,8 +41,7 @@ NXT_EXPORT void nxt_cdecl nxt_log_handler(nxt_uint_t level, nxt_log_t *log,
     const char *fmt, ...);
 
 
-#define                                                                       \
-nxt_log_level_enough(log, level)                                              \
+#define nxt_log_level_enough(log, level)                                      \
     ((log)->level >= (level))
 
 
@@ -83,8 +82,7 @@ nxt_log_level_enough(log, level)                                              \
     } while (0)
 
 
-#define                                                                       \
-nxt_log_error(_level, _log, ...)                                              \
+#define nxt_log_error(_level, _log, ...)                                      \
     do {                                                                      \
         nxt_log_t   *_log_ = (_log);                                          \
         nxt_uint_t  _level_ = (_level);                                       \
@@ -107,8 +105,7 @@ nxt_log_error(_level, _log, ...)                                              \
     } while (0)
 
 
-#define                                                                       \
-nxt_log_debug(_log, ...)                                                      \
+#define nxt_log_debug(_log, ...)                                              \
     do {                                                                      \
         nxt_log_t  *_log_ = (_log);                                           \
                                                                               \
@@ -131,8 +128,7 @@ nxt_log_debug(_log, ...)                                                      \
 
 #define nxt_debug(...)
 
-#define                                                                       \
-nxt_log_debug(...)
+#define nxt_log_debug(...)
 
 #define nxt_assert(c)
 
@@ -151,18 +147,15 @@ nxt_log_debug(...)
 #endif
 
 
-#define                                                                       \
-nxt_main_log_alert(...)                                                       \
+#define nxt_main_log_alert(...)                                               \
     nxt_log_alert(&nxt_main_log, __VA_ARGS__)
 
 
-#define                                                                       \
-nxt_main_log_error(level, ...)                                                \
+#define nxt_main_log_error(level, ...)                                        \
     nxt_log_error(level, &nxt_main_log, __VA_ARGS__)
 
 
-#define                                                                       \
-nxt_main_log_debug(...)                                                       \
+#define nxt_main_log_debug(...)                                               \
     nxt_log_debug(&nxt_main_log, __VA_ARGS__)
 
 

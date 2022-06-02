@@ -16,45 +16,37 @@
 #if (NXT_CLANG)
 
 /* Any __asm__ directive disables loop vectorization in GCC and Clang. */
-#define                                                                       \
-nxt_pragma_loop_disable_vectorization                                         \
+#define nxt_pragma_loop_disable_vectorization                                 \
     __asm__("")
 
 #else
 
-#define                                                                       \
-nxt_pragma_loop_disable_vectorization
+#define nxt_pragma_loop_disable_vectorization
 
 #endif
 
 
 #if (NXT_HAVE_BUILTIN_EXPECT)
 
-#define                                                                       \
-nxt_expect(c, x)                                                              \
+#define nxt_expect(c, x)                                                      \
     __builtin_expect((long) (x), (c))
 
-#define                                                                       \
-nxt_fast_path(x)                                                              \
+#define nxt_fast_path(x)                                                      \
     nxt_expect(1, x)
 
-#define                                                                       \
-nxt_slow_path(x)                                                              \
+#define nxt_slow_path(x)                                                      \
     nxt_expect(0, x)
 
 
 #else
 
-#define                                                                       \
-nxt_expect(c, x)                                                              \
+#define nxt_expect(c, x)                                                      \
     (x)
 
-#define                                                                       \
-nxt_fast_path(x)                                                              \
+#define nxt_fast_path(x)                                                      \
     (x)
 
-#define                                                                       \
-nxt_slow_path(x)                                                              \
+#define nxt_slow_path(x)                                                      \
     (x)
 
 #endif
@@ -62,28 +54,24 @@ nxt_slow_path(x)                                                              \
 
 #if (NXT_HAVE_BUILTIN_UNREACHABLE)
 
-#define                                                                       \
-nxt_unreachable()                                                             \
+#define nxt_unreachable()                                                     \
     __builtin_unreachable()
 
 #else
 
-#define                                                                       \
-nxt_unreachable()
+#define nxt_unreachable()
 
 #endif
 
 
 #if (NXT_HAVE_BUILTIN_PREFETCH)
 
-#define                                                                       \
-nxt_prefetch(a)                                                               \
+#define nxt_prefetch(a)                                                       \
     __builtin_prefetch(a)
 
 #else
 
-#define                                                                       \
-nxt_prefetch(a)
+#define nxt_prefetch(a)
 
 #endif
 
@@ -128,6 +116,17 @@ nxt_prefetch(a)
 #else
 
 #define nxt_packed
+
+#endif
+
+
+#if (NXT_HAVE_GCC_ATTRIBUTE_UNUSED)
+
+#define NXT_MAYBE_UNUSED         __attribute__((__unused__))
+
+#else
+
+#define NXT_MAYBE_UNUSED
 
 #endif
 
@@ -195,13 +194,11 @@ nxt_popcount(unsigned int x)
 #endif
 
 
-#define                                                                       \
-nxt_alloca(size)                                                              \
+#define nxt_alloca(size)                                                      \
     alloca(size)
 
 
-#define                                                                       \
-nxt_container_of(p, type, field)                                              \
+#define nxt_container_of(p, type, field)                                      \
     (type *) ((u_char *) (p) - offsetof(type, field))
 
 
@@ -213,30 +210,25 @@ nxt_container_of(p, type, field)                                              \
     *(type *) ((u_char *) p + offset)
 
 
-#define                                                                       \
-nxt_nitems(x)                                                                 \
+#define nxt_nitems(x)                                                         \
     (sizeof(x) / sizeof((x)[0]))
 
 
 /* GCC and Clang use __builtin_abs() instead of libc abs(). */
 
-#define                                                                       \
-nxt_abs(val)                                                                  \
+#define nxt_abs(val)                                                          \
     abs(val)
 
 
-#define                                                                       \
-nxt_max(val1, val2)                                                           \
+#define nxt_max(val1, val2)                                                   \
     ((val1 < val2) ? (val2) : (val1))
 
 
-#define                                                                       \
-nxt_min(val1, val2)                                                           \
+#define nxt_min(val1, val2)                                                   \
     ((val1 > val2) ? (val2) : (val1))
 
 
-#define                                                                       \
-nxt_bswap32(val)                                                              \
+#define nxt_bswap32(val)                                                      \
     (   ((val)               >> 24)                                           \
      | (((val) & 0x00FF0000) >>  8)                                           \
      | (((val) & 0x0000FF00) <<  8)                                           \
@@ -247,18 +239,15 @@ nxt_bswap32(val)                                                              \
     ((((value) - 1) & (value)) == 0)
 
 
-#define                                                                       \
-nxt_align_size(d, a)                                                          \
+#define nxt_align_size(d, a)                                                  \
     (((d) + ((size_t) (a) - 1)) & ~((size_t) (a) - 1))
 
 
-#define                                                                       \
-nxt_align_ptr(p, a)                                                           \
+#define nxt_align_ptr(p, a)                                                   \
     (u_char *) (((uintptr_t) (p) + ((uintptr_t) (a) - 1))                     \
                   & ~((uintptr_t) (a) - 1))
 
-#define                                                                       \
-nxt_trunc_ptr(p, a)                                                           \
+#define nxt_trunc_ptr(p, a)                                                   \
     (u_char *) ((uintptr_t) (p) & ~((uintptr_t) (a) - 1))
 
 

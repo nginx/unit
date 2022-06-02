@@ -70,21 +70,18 @@ NXT_EXPORT u_char *nxt_thread_time_string(nxt_thread_t *thr,
 void nxt_time_thread_start(nxt_msec_t interval);
 
 
-#define                                                                       \
-nxt_thread_monotonic_time(thr)                                                \
+#define nxt_thread_monotonic_time(thr)                                        \
     (thr)->time.now.monotonic
 
 
 #if (NXT_DEBUG)
 
-#define                                                                       \
-nxt_thread_time_debug_update(thr)                                             \
+#define nxt_thread_time_debug_update(thr)                                     \
     nxt_thread_time_update(thr)
 
 #else
 
-#define                                                                       \
-nxt_thread_time_debug_update(thr)
+#define nxt_thread_time_debug_update(thr)
 
 #endif
 
