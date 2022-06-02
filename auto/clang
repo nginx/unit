@@ -147,7 +147,7 @@ nxt_feature_incs=
 nxt_feature_libs=
 nxt_feature_test="#include <stdlib.h>
 
-                  void *f(void) __attribute__ ((__malloc__));
+                  __attribute__ ((__malloc__)) void *f(void);
 
                   void *f(void) {
                       return malloc(1);
@@ -183,7 +183,7 @@ nxt_feature_name=NXT_HAVE_GCC_ATTRIBUTE_UNUSED
 nxt_feature_run=
 nxt_feature_incs=
 nxt_feature_libs=
-nxt_feature_test="static void f(void) __attribute__ ((__unused__));
+nxt_feature_test="__attribute__ ((__unused__)) static void f(void);
 
                   static void f(void)
                   {

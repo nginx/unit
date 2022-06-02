@@ -76,9 +76,8 @@ static nxt_int_t nxt_conf_vldt_error(nxt_conf_validation_t *vldt,
     const char *fmt, ...);
 static nxt_int_t nxt_conf_vldt_var(nxt_conf_validation_t *vldt, nxt_str_t *name,
     nxt_str_t *value);
-nxt_inline nxt_int_t nxt_conf_vldt_unsupported(nxt_conf_validation_t *vldt,
-    nxt_conf_value_t *value, void *data)
-    NXT_MAYBE_UNUSED;
+NXT_MAYBE_UNUSED nxt_inline nxt_int_t nxt_conf_vldt_unsupported(
+    nxt_conf_validation_t *vldt, nxt_conf_value_t *value, void *data);
 
 static nxt_int_t nxt_conf_vldt_mtypes(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);

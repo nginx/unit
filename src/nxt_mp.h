@@ -31,9 +31,8 @@ typedef struct nxt_mp_s  nxt_mp_t;
  * nxt_mp_create() creates a memory pool and sets the pool's retention
  * counter to 1.
  */
-NXT_EXPORT nxt_mp_t *nxt_mp_create(size_t cluster_size, size_t page_alignment,
-    size_t page_size, size_t min_chunk_size)
-    NXT_MALLOC_LIKE;
+NXT_EXPORT NXT_MALLOC_LIKE nxt_mp_t *nxt_mp_create(size_t cluster_size,
+    size_t page_alignment, size_t page_size, size_t min_chunk_size);
 
 /*
  * nxt_mp_destroy() destroys memory pool in spite of the pool's retention
@@ -64,46 +63,41 @@ NXT_EXPORT nxt_bool_t nxt_mp_is_empty(nxt_mp_t *mp);
  * nxt_mp_alloc() returns aligned freeable memory.
  * The alignment is sutiable to allocate structures.
  */
-NXT_EXPORT void *nxt_mp_alloc(nxt_mp_t *mp, size_t size)
-    NXT_MALLOC_LIKE;
+NXT_EXPORT NXT_MALLOC_LIKE void *nxt_mp_alloc(nxt_mp_t *mp, size_t size);
 
 
 /*
  * nxt_mp_zalloc() returns zeroed aligned freeable memory.
  * The alignment is sutiable to allocate structures.
  */
-NXT_EXPORT void *nxt_mp_zalloc(nxt_mp_t *mp, size_t size)
-    NXT_MALLOC_LIKE;
+NXT_EXPORT NXT_MALLOC_LIKE void *nxt_mp_zalloc(nxt_mp_t *mp, size_t size);
 
 /* nxt_mp_align() returns aligned freeable memory. */
-NXT_EXPORT void *nxt_mp_align(nxt_mp_t *mp, size_t alignment, size_t size)
-    NXT_MALLOC_LIKE;
+NXT_EXPORT NXT_MALLOC_LIKE void *nxt_mp_align(nxt_mp_t *mp, size_t alignment,
+    size_t size);
 
 /* nxt_mp_zalign() returns zeroed aligned freeable memory. */
-NXT_EXPORT void *nxt_mp_zalign(nxt_mp_t *mp, size_t alignment, size_t size)
-    NXT_MALLOC_LIKE;
+NXT_EXPORT NXT_MALLOC_LIKE void *nxt_mp_zalign(nxt_mp_t *mp, size_t alignment,
+    size_t size);
 
 /* nxt_mp_free() frees freeable memory. */
 NXT_EXPORT void nxt_mp_free(nxt_mp_t *mp, void *p);
 
 
 /* nxt_mp_nget() returns non-aligned non-freeable memory. */
-NXT_EXPORT void *nxt_mp_nget(nxt_mp_t *mp, size_t size)
-    NXT_MALLOC_LIKE;
+NXT_EXPORT NXT_MALLOC_LIKE void *nxt_mp_nget(nxt_mp_t *mp, size_t size);
 
 /*
  * nxt_mp_get() returns aligned non-freeable memory.
  * The alignment is sutiable to allocate structures.
  */
-NXT_EXPORT void *nxt_mp_get(nxt_mp_t *mp, size_t size)
-    NXT_MALLOC_LIKE;
+NXT_EXPORT NXT_MALLOC_LIKE void *nxt_mp_get(nxt_mp_t *mp, size_t size);
 
 /*
  * nxt_mp_zget() returns zeroed aligned non-freeable memory.
  * The alignment is sutiable to allocate structures.
  */
-NXT_EXPORT void *nxt_mp_zget(nxt_mp_t *mp, size_t size)
-    NXT_MALLOC_LIKE;
+NXT_EXPORT NXT_MALLOC_LIKE void *nxt_mp_zget(nxt_mp_t *mp, size_t size);
 
 
 NXT_EXPORT nxt_int_t nxt_mp_cleanup(nxt_mp_t *mp, nxt_work_handler_t handler,

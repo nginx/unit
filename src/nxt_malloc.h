@@ -8,14 +8,10 @@
 #define _NXT_UNIX_MALLOC_H_INCLUDED_
 
 
-NXT_EXPORT void *nxt_malloc(size_t size)
-    NXT_MALLOC_LIKE;
-NXT_EXPORT void *nxt_zalloc(size_t size)
-    NXT_MALLOC_LIKE;
-NXT_EXPORT void *nxt_realloc(void *p, size_t size)
-    NXT_MALLOC_LIKE;
-NXT_EXPORT void *nxt_memalign(size_t alignment, size_t size)
-    NXT_MALLOC_LIKE;
+NXT_EXPORT NXT_MALLOC_LIKE void *nxt_malloc(size_t size);
+NXT_EXPORT NXT_MALLOC_LIKE void *nxt_zalloc(size_t size);
+NXT_EXPORT NXT_MALLOC_LIKE void *nxt_realloc(void *p, size_t size);
+NXT_EXPORT NXT_MALLOC_LIKE void *nxt_memalign(size_t alignment, size_t size);
 
 
 #if (NXT_DEBUG)

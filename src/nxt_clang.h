@@ -8,7 +8,7 @@
 #define _NXT_CLANG_H_INCLUDED_
 
 
-#define nxt_inline     static inline __attribute__((always_inline))
+#define nxt_inline     __attribute__((always_inline)) static inline
 #define nxt_noinline   __attribute__((noinline))
 #define nxt_cdecl
 

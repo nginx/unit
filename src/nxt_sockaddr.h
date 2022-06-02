@@ -71,17 +71,14 @@ nxt_sockaddr_t *nxt_sockaddr_cache_alloc(nxt_event_engine_t *engine,
     nxt_listen_socket_t *ls);
 void nxt_sockaddr_cache_free(nxt_event_engine_t *engine, nxt_conn_t *c);
 
-NXT_EXPORT nxt_sockaddr_t *nxt_sockaddr_alloc(nxt_mp_t *mp, socklen_t socklen,
-    size_t address_length)
-    NXT_MALLOC_LIKE;
-NXT_EXPORT nxt_sockaddr_t *nxt_sockaddr_create(nxt_mp_t *mp,
-    struct sockaddr *sockaddr, socklen_t socklen, size_t address_length)
-    NXT_MALLOC_LIKE;
-NXT_EXPORT nxt_sockaddr_t *nxt_sockaddr_copy(nxt_mp_t *mp, nxt_sockaddr_t *src)
-    NXT_MALLOC_LIKE;
-NXT_EXPORT nxt_sockaddr_t *nxt_getsockname(nxt_task_t *task, nxt_mp_t *mp,
-    nxt_socket_t s)
-    NXT_MALLOC_LIKE;
+NXT_EXPORT NXT_MALLOC_LIKE nxt_sockaddr_t *nxt_sockaddr_alloc(nxt_mp_t *mp,
+    socklen_t socklen, size_t address_length);
+NXT_EXPORT NXT_MALLOC_LIKE nxt_sockaddr_t *nxt_sockaddr_create(nxt_mp_t *mp,
+    struct sockaddr *sockaddr, socklen_t socklen, size_t address_length);
+NXT_EXPORT NXT_MALLOC_LIKE nxt_sockaddr_t *nxt_sockaddr_copy(nxt_mp_t *mp,
+    nxt_sockaddr_t *src);
+NXT_EXPORT NXT_MALLOC_LIKE nxt_sockaddr_t *nxt_getsockname(nxt_task_t *task,
+    nxt_mp_t *mp, nxt_socket_t s);
 NXT_EXPORT void nxt_sockaddr_text(nxt_sockaddr_t *sa);
 
 

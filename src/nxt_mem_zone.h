@@ -17,11 +17,10 @@ NXT_EXPORT nxt_mem_zone_t *nxt_mem_zone_init(u_char *start, size_t zone_size,
 #define nxt_mem_zone_alloc(zone, size)                                        \
     nxt_mem_zone_align((zone), 1, (size))
 
-NXT_EXPORT void *nxt_mem_zone_align(nxt_mem_zone_t *zone, size_t alignment,
-    size_t size)
-    NXT_MALLOC_LIKE;
-NXT_EXPORT void *nxt_mem_zone_zalloc(nxt_mem_zone_t *zone, size_t size)
-    NXT_MALLOC_LIKE;
+NXT_EXPORT NXT_MALLOC_LIKE void *nxt_mem_zone_align(nxt_mem_zone_t *zone,
+    size_t alignment, size_t size);
+NXT_EXPORT NXT_MALLOC_LIKE void *nxt_mem_zone_zalloc(nxt_mem_zone_t *zone,
+    size_t size);
 NXT_EXPORT void nxt_mem_zone_free(nxt_mem_zone_t *zone, void *p);
 
 

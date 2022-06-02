@@ -355,11 +355,11 @@ void nxt_unit_free(nxt_unit_ctx_t *ctx, void *p);
 #endif
 
 
-void nxt_unit_log(nxt_unit_ctx_t *ctx, int level, const char* fmt, ...)
-    NXT_ATTR_FORMAT;
+NXT_ATTR_FORMAT void nxt_unit_log(nxt_unit_ctx_t *ctx, int level,
+    const char* fmt, ...);
 
-void nxt_unit_req_log(nxt_unit_request_info_t *req, int level,
-    const char* fmt, ...) NXT_ATTR_FORMAT;
+NXT_ATTR_FORMAT void nxt_unit_req_log(nxt_unit_request_info_t *req, int level,
+    const char* fmt, ...);
 
 #if (NXT_DEBUG)
 
