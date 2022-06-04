@@ -118,6 +118,12 @@ object, notably with Falcon.
 </para>
 </change>
 
+<change type="bugfix">
+<para>
+ECMAScript modules did not work with the recent Node.js versions.
+</para>
+</change>
+
 </changes>
 
 
