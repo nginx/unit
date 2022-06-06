@@ -756,9 +756,7 @@ nxt_http_static_extract_extension(nxt_str_t *path, nxt_str_t *exten)
     end = path->start + path->length;
     p = end;
 
-    for ( ;; ) {
-        /* There's always '/' in the beginning of the request path. */
-
+    while (p > path->start) {
         p--;
         ch = *p;
 
@@ -767,11 +765,14 @@ nxt_http_static_extract_extension(nxt_str_t *path, nxt_str_t *exten)
             p++;
             /* Fall through. */
         case '.':
-            exten->length = end - p;
-            exten->start = p;
-            return;
+            goto extension;
         }
     }
+
+extension:
+
+    exten->length = end - p;
+    exten->start = p;
 }
 
 
