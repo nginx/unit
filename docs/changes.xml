@@ -31,6 +31,13 @@ NGINX Unit updated to 1.28.0.
          date="" time=""
          packager="Konstantin Pavlov &lt;thresh@nginx.com&gt;">
 
+<change type="bugfix">
+<para>
+an index file that didn't contain a file extension was incorrectly
+handled, and caused a use-after-free bug.
+</para>
+</change>
+
 </changes>
 
 
