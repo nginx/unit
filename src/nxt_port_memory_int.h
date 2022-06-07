@@ -84,13 +84,6 @@ struct nxt_port_mmap_msg_s {
 };
 
 
-typedef struct nxt_port_mmap_tracking_msg_s nxt_port_mmap_tracking_msg_t;
-
-struct nxt_port_mmap_tracking_msg_s {
-    uint32_t            mmap_id;    /* Mmap index in nxt_process_t.outgoing. */
-    nxt_chunk_id_t      tracking_id;   /* Tracking index. */
-};
-
 nxt_inline nxt_bool_t
 nxt_port_mmap_get_free_chunk(nxt_free_map_t *m, nxt_chunk_id_t *c);
 

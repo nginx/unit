@@ -5384,7 +5384,6 @@ nxt_router_app_prepare_request(nxt_task_t *task,
     msg.pm.mmap = 1;
     msg.pm.nf = 0;
     msg.pm.mf = 0;
-    msg.pm.tracking = 0;
 
     nxt_port_mmap_handler_t *mmap_handler = buf->parent;
     nxt_port_mmap_header_t *hdr = mmap_handler->hdr;

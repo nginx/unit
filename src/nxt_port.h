@@ -174,9 +174,6 @@ typedef struct {
 
     /* More Fragments followed. */
     uint8_t              mf;        /* 1 bit */
-
-    /* Message delivery tracking enabled, next chunk is tracking msg. */
-    uint8_t              tracking;  /* 1 bit */
 } nxt_port_msg_t;
 
 
@@ -186,7 +183,6 @@ typedef struct {
     size_t              share;
     nxt_fd_t            fd[2];
     nxt_port_msg_t      port_msg;
-    uint32_t            tracking_msg[2];
     uint8_t             close_fd;   /* 1 bit */
     uint8_t             allocated;  /* 1 bit */
 } nxt_port_send_msg_t;
