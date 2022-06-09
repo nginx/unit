@@ -75,6 +75,12 @@ increased the applications' startup timeout.
 </para>
 </change>
 
+<change type="bugfix">
+<para>
+force SCRIPT_NAME in Ruby to always be an empty string.
+</para>
+</change>
+
 </changes>
 
 

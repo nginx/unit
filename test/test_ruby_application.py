@@ -44,7 +44,7 @@ class TestRubyApplication(TestApplicationRuby):
             'Request-Method': 'POST',
             'Request-Uri': '/',
             'Http-Host': 'localhost',
-            'Script-Name': 'config.ru',
+            'Script-Name': '',
             'Server-Protocol': 'HTTP/1.1',
             'Custom-Header': 'blah',
             'Rack-Version': '13',
