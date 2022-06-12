@@ -250,7 +250,7 @@ nxt_time_parse(const u_char *p, size_t len)
             return -1;
         }
 
-    } else if (nxt_slow_path(day > mday[(nxt_uint_t) month])) {
+    } else if (nxt_slow_path(day > mday[month])) {
         return -1;
     }
 
