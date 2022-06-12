@@ -28,6 +28,7 @@ typedef struct nxt_thread_pool_s     nxt_thread_pool_t;
 
 typedef void (*nxt_work_handler_t)(nxt_task_t *task, void *obj, void *data);
 
+#include <nxt_calendar.h>
 #include <nxt_unix.h>
 #include <nxt_clang.h>
 #include <nxt_types.h>

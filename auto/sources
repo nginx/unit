@@ -5,6 +5,7 @@
 
 NXT_LIB_SRCS=" \
     src/nxt_lib.c \
+    src/nxt_calendar.c \
     src/nxt_gmtime.c \
     src/nxt_errno.c \
     src/nxt_time.c \
