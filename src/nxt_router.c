@@ -3821,9 +3821,9 @@ nxt_router_access_log_date(u_char *buf, nxt_realtime_t *now, struct tm *tm,
     u_char  sign;
     time_t  gmtoff;
 
-    static const char *const  month[] = { "Jan", "Feb", "Mar", "Apr",
-                                          "May", "Jun", "Jul", "Aug",
-                                          "Sep", "Oct", "Nov", "Dec" };
+    static const char  month[][4] = { "Jan", "Feb", "Mar", "Apr",
+                                      "May", "Jun", "Jul", "Aug",
+                                      "Sep", "Oct", "Nov", "Dec" };
 
     gmtoff = nxt_timezone(tm) / 60;
 
