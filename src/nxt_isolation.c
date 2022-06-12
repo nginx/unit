@@ -849,7 +849,7 @@ nxt_isolation_make_private_mount(nxt_task_t *task, const char *rootfs)
     nxt_int_t      ret, index, nmounts;
     struct mntent  *ent;
 
-    static const char  *mount_path = "/proc/self/mounts";
+    static const char *const  mount_path = "/proc/self/mounts";
 
     ret = NXT_ERROR;
     ent = NULL;
