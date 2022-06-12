@@ -2130,7 +2130,7 @@ nxt_controller_date(u_char *buf, nxt_realtime_t *now, struct tm *tm,
     size_t size, const char *format)
 {
     return nxt_sprintf(buf, buf + size, format,
-                       nxt_wday[tm->tm_wday], tm->tm_mday,
-                       nxt_month[tm->tm_mon], tm->tm_year + 1900,
+                       nxt_calendar.wday[tm->tm_wday], tm->tm_mday,
+                       nxt_calendar.month[tm->tm_mon], tm->tm_year + 1900,
                        tm->tm_hour, tm->tm_min, tm->tm_sec);
 }

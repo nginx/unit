@@ -3832,7 +3832,8 @@ nxt_router_access_log_date(u_char *buf, nxt_realtime_t *now, struct tm *tm,
     }
 
     return nxt_sprintf(buf, buf + size, format,
-                       tm->tm_mday, nxt_month[tm->tm_mon], tm->tm_year + 1900,
+                       tm->tm_mday, nxt_calendar.month[tm->tm_mon],
+                       tm->tm_year + 1900,
                        tm->tm_hour, tm->tm_min, tm->tm_sec,
                        sign, gmtoff / 60, gmtoff % 60);
 }

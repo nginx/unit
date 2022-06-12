@@ -288,8 +288,8 @@ nxt_http_date(u_char *buf, struct tm *tm)
 {
     return nxt_sprintf(buf, buf + NXT_HTTP_DATE_LEN,
                        "%s, %02d %s %4d %02d:%02d:%02d GMT",
-                       nxt_wday[tm->tm_wday], tm->tm_mday,
-                       nxt_month[tm->tm_mon], tm->tm_year + 1900,
+                       nxt_calendar.wday[tm->tm_wday], tm->tm_mday,
+                       nxt_calendar.month[tm->tm_mon], tm->tm_year + 1900,
                        tm->tm_hour, tm->tm_min, tm->tm_sec);
 }
 
