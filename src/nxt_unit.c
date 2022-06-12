@@ -6655,7 +6655,7 @@ nxt_unit_req_log(nxt_unit_request_info_t *req, int level, const char *fmt, ...)
 }
 
 
-static const char  nxt_unit_log_levels[][7] = {
+static const char  nxt_unit_log_levels[][8] = {
     "alert",
     "error",
     "warn",
