@@ -29,13 +29,13 @@ nxt_is_var(nxt_str_t *str)
 }
 
 
-void nxt_var_raw(nxt_var_t *var, nxt_str_t *str);
-nxt_bool_t nxt_var_is_const(nxt_var_t *var);
-
 nxt_int_t nxt_var_register(nxt_var_decl_t *decl, size_t n);
 nxt_int_t nxt_var_index_init(void);
 nxt_var_t *nxt_var_compile(nxt_str_t *str, nxt_mp_t *mp, nxt_bool_t strz);
 nxt_int_t nxt_var_test(nxt_str_t *str, u_char *error);
+
+void nxt_var_raw(nxt_var_t *var, nxt_str_t *str);
+nxt_bool_t nxt_var_is_const(nxt_var_t *var);
 
 nxt_int_t nxt_var_query_init(nxt_var_query_t **query_p, void *ctx,
     nxt_mp_t *mp);
