@@ -233,7 +233,7 @@ nxt_http_route_addr_pattern_parse(nxt_mp_t *mp,
         }
 
         addr.length = delim - addr.start;
-        inet->end = htonl(0xFFFFFFFF & (0xFFFFFFFF << (32 - cidr_prefix)));
+        inet->end = htonl(0xFFFFFFFF & (0xFFFFFFFFULL << (32 - cidr_prefix)));
 
         inet->start = nxt_inet_addr(addr.start, addr.length) & inet->end;
         if (nxt_slow_path(inet->start == INADDR_NONE)) {
