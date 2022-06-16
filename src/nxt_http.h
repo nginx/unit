@@ -376,8 +376,9 @@ nxt_int_t nxt_http_static_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_http_action_t *action, nxt_http_action_conf_t *acf);
 nxt_int_t nxt_http_static_mtypes_init(nxt_mp_t *mp, nxt_lvlhsh_t *hash);
 nxt_int_t nxt_http_static_mtypes_hash_add(nxt_mp_t *mp, nxt_lvlhsh_t *hash,
-    nxt_str_t *exten, nxt_str_t *type);
-nxt_str_t *nxt_http_static_mtype_get(nxt_lvlhsh_t *hash, nxt_str_t *exten);
+    const nxt_str_t *exten, nxt_str_t *type);
+nxt_str_t *nxt_http_static_mtype_get(nxt_lvlhsh_t *hash,
+    const nxt_str_t *exten);
 
 nxt_http_action_t *nxt_http_application_handler(nxt_task_t *task,
     nxt_http_request_t *r, nxt_http_action_t *action);

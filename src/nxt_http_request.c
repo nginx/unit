@@ -30,11 +30,11 @@ static u_char *nxt_http_date_cache_handler(u_char *buf, nxt_realtime_t *now,
 
 static nxt_http_name_value_t *nxt_http_argument(nxt_array_t *array,
     u_char *name, size_t name_length, uint32_t hash, u_char *start,
-    u_char *end);
+    const u_char *end);
 static nxt_int_t nxt_http_cookie_parse(nxt_array_t *cookies, u_char *start,
-    u_char *end);
+    const u_char *end);
 static nxt_http_name_value_t *nxt_http_cookie(nxt_array_t *array, u_char *name,
-    size_t name_length, u_char *start, u_char *end);
+    size_t name_length, u_char *start, const u_char *end);
 
 
 #define NXT_HTTP_COOKIE_HASH                                                  \
@@ -949,7 +949,7 @@ nxt_http_arguments_parse(nxt_http_request_t *r)
 
 static nxt_http_name_value_t *
 nxt_http_argument(nxt_array_t *array, u_char *name, size_t name_length,
-    uint32_t hash, u_char *start, u_char *end)
+    uint32_t hash, u_char *start, const u_char *end)
 {
     size_t                 length;
     nxt_http_name_value_t  *nv;
@@ -1018,7 +1018,7 @@ nxt_http_cookies_parse(nxt_http_request_t *r)
 
 
 static nxt_int_t
-nxt_http_cookie_parse(nxt_array_t *cookies, u_char *start, u_char *end)
+nxt_http_cookie_parse(nxt_array_t *cookies, u_char *start, const u_char *end)
 {
     size_t                 name_length;
     u_char                 c, *p, *name;
@@ -1067,7 +1067,7 @@ nxt_http_cookie_parse(nxt_array_t *cookies, u_char *start, u_char *end)
 
 static nxt_http_name_value_t *
 nxt_http_cookie(nxt_array_t *array, u_char *name, size_t name_length,
-    u_char *start, u_char *end)
+    u_char *start, const u_char *end)
 {
     u_char                 c, *p;
     uint32_t               hash;

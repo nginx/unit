@@ -109,7 +109,7 @@ size_t nxt_conf_json_length(nxt_conf_value_t *value,
     nxt_conf_json_pretty_t *pretty);
 u_char *nxt_conf_json_print(u_char *p, nxt_conf_value_t *value,
     nxt_conf_json_pretty_t *pretty);
-void nxt_conf_json_position(u_char *start, u_char *pos, nxt_uint_t *line,
+void nxt_conf_json_position(u_char *start, const u_char *pos, nxt_uint_t *line,
     nxt_uint_t *column);
 
 nxt_int_t nxt_conf_validate(nxt_conf_validation_t *vldt);
@@ -125,7 +125,7 @@ NXT_EXPORT uint8_t nxt_conf_get_boolean(nxt_conf_value_t *value);
 NXT_EXPORT nxt_uint_t nxt_conf_object_members_count(nxt_conf_value_t *value);
 nxt_conf_value_t *nxt_conf_create_object(nxt_mp_t *mp, nxt_uint_t count);
 void nxt_conf_set_member(nxt_conf_value_t *object, nxt_str_t *name,
-    nxt_conf_value_t *value, uint32_t index);
+    const nxt_conf_value_t *value, uint32_t index);
 void nxt_conf_set_member_string(nxt_conf_value_t *object, nxt_str_t *name,
     nxt_str_t *value, uint32_t index);
 nxt_int_t nxt_conf_set_member_string_dup(nxt_conf_value_t *object, nxt_mp_t *mp,
@@ -137,7 +137,7 @@ void nxt_conf_set_member_null(nxt_conf_value_t *object, nxt_str_t *name,
 
 nxt_conf_value_t *nxt_conf_create_array(nxt_mp_t *mp, nxt_uint_t count);
 void nxt_conf_set_element(nxt_conf_value_t *array, nxt_uint_t index,
-    nxt_conf_value_t *value);
+    const nxt_conf_value_t *value);
 nxt_int_t nxt_conf_set_element_string_dup(nxt_conf_value_t *array, nxt_mp_t *mp,
     nxt_uint_t index, nxt_str_t *value);
 NXT_EXPORT nxt_uint_t nxt_conf_array_elements_count(nxt_conf_value_t *value);

@@ -155,7 +155,7 @@ static void *nxt_mp_alloc_large(nxt_mp_t *mp, size_t alignment, size_t size,
     nxt_bool_t freeable);
 static intptr_t nxt_mp_rbtree_compare(nxt_rbtree_node_t *node1,
     nxt_rbtree_node_t *node2);
-static nxt_mp_block_t *nxt_mp_find_block(nxt_rbtree_t *tree, u_char *p);
+static nxt_mp_block_t *nxt_mp_find_block(nxt_rbtree_t *tree, const u_char *p);
 static const char *nxt_mp_chunk_free(nxt_mp_t *mp, nxt_mp_block_t *cluster,
     u_char *p);
 
@@ -830,7 +830,7 @@ nxt_mp_free(nxt_mp_t *mp, void *p)
 
 
 static nxt_mp_block_t *
-nxt_mp_find_block(nxt_rbtree_t *tree, u_char *p)
+nxt_mp_find_block(nxt_rbtree_t *tree, const u_char *p)
 {
     nxt_mp_block_t     *block;
     nxt_rbtree_node_t  *node, *sentinel;

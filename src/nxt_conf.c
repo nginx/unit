@@ -102,7 +102,7 @@ typedef struct {
 static nxt_int_t nxt_conf_path_next_token(nxt_conf_path_parse_t *parse,
     nxt_str_t *token);
 
-static u_char *nxt_conf_json_skip_space(u_char *start, u_char *end);
+static u_char *nxt_conf_json_skip_space(u_char *start, const u_char *end);
 static u_char *nxt_conf_json_parse_value(nxt_mp_t *mp, nxt_conf_value_t *value,
     u_char *start, u_char *end, nxt_conf_json_error_t *error);
 static u_char *nxt_conf_json_parse_object(nxt_mp_t *mp, nxt_conf_value_t *value,
@@ -266,7 +266,7 @@ nxt_conf_create_object(nxt_mp_t *mp, nxt_uint_t count)
 
 void
 nxt_conf_set_member(nxt_conf_value_t *object, nxt_str_t *name,
-    nxt_conf_value_t *value, uint32_t index)
+    const nxt_conf_value_t *value, uint32_t index)
 {
     nxt_conf_object_member_t  *member;
 
@@ -367,7 +367,7 @@ nxt_conf_create_array(nxt_mp_t *mp, nxt_uint_t count)
 
 void
 nxt_conf_set_element(nxt_conf_value_t *array, nxt_uint_t index,
-    nxt_conf_value_t *value)
+    const nxt_conf_value_t *value)
 {
     array->u.array->elements[index] = *value;
 }
@@ -1271,7 +1271,7 @@ nxt_conf_json_parse(nxt_mp_t *mp, u_char *start, u_char *end,
 
 
 static u_char *
-nxt_conf_json_skip_space(u_char *start, u_char *end)
+nxt_conf_json_skip_space(u_char *start, const u_char *end)
 {
     u_char  *p, ch;
 
@@ -2605,7 +2605,7 @@ nxt_conf_json_escape(u_char *dst, u_char *src, size_t size)
 
 
 void
-nxt_conf_json_position(u_char *start, u_char *pos, nxt_uint_t *line,
+nxt_conf_json_position(u_char *start, const u_char *pos, nxt_uint_t *line,
     nxt_uint_t *column)
 {
     u_char      *p;

@@ -1024,7 +1024,7 @@ typedef struct {
 
 nxt_int_t
 nxt_http_static_mtypes_hash_add(nxt_mp_t *mp, nxt_lvlhsh_t *hash,
-    nxt_str_t *exten, nxt_str_t *type)
+    const nxt_str_t *exten, nxt_str_t *type)
 {
     nxt_lvlhsh_query_t       lhq;
     nxt_http_static_mtype_t  *mtype;
@@ -1049,7 +1049,7 @@ nxt_http_static_mtypes_hash_add(nxt_mp_t *mp, nxt_lvlhsh_t *hash,
 
 
 nxt_str_t *
-nxt_http_static_mtype_get(nxt_lvlhsh_t *hash, nxt_str_t *exten)
+nxt_http_static_mtype_get(nxt_lvlhsh_t *hash, const nxt_str_t *exten)
 {
     nxt_lvlhsh_query_t       lhq;
     nxt_http_static_mtype_t  *mtype;
