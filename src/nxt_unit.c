@@ -3076,7 +3076,6 @@ nxt_unit_request_read(nxt_unit_request_info_t *req, void *dst, size_t size)
         }
 
         req->content_length -= res;
-        size -= res;
 
         dst = nxt_pointer_to(dst, res);
 
