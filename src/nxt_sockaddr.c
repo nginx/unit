@@ -1090,7 +1090,7 @@ nxt_job_sockaddr_inet_parse(nxt_job_sockaddr_parse_t *jbs)
         port = nxt_int_parse(host, length);
 
         if (port > 0) {
-            if (port < 1 || port > 65535) {
+            if (port > 65535) {
                 goto invalid_port;
             }
 
