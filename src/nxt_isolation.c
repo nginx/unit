@@ -1003,7 +1003,7 @@ fail:
 nxt_inline int
 nxt_pivot_root(const char *new_root, const char *old_root)
 {
-    return syscall(__NR_pivot_root, new_root, old_root);
+    return syscall(SYS_pivot_root, new_root, old_root);
 }
 
 

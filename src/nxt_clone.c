@@ -14,9 +14,9 @@ pid_t
 nxt_clone(nxt_int_t flags)
 {
 #if defined(__s390x__) || defined(__s390__) || defined(__CRIS__)
-    return syscall(__NR_clone, NULL, flags);
+    return syscall(SYS_clone, NULL, flags);
 #else
-    return syscall(__NR_clone, flags, NULL);
+    return syscall(SYS_clone, flags, NULL);
 #endif
 }
 

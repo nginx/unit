@@ -19,7 +19,7 @@
  * fork(2) calls.  As we use clone(2) for container, it returns the wrong pid.
  */
 #define nxt_getpid()                                                          \
-    syscall(__NR_getpid)
+    syscall(SYS_getpid)
 #else
 #define nxt_getpid()                                                          \
     getpid()
