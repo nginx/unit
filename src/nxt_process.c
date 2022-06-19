@@ -798,8 +798,6 @@ nxt_process_send_ready(nxt_task_t *task, nxt_process_t *process)
 }
 
 
-#if (NXT_HAVE_POSIX_SPAWN)
-
 /*
  * Linux glibc 2.2 posix_spawn() is implemented via fork()/execve().
  * Linux glibc 2.4 posix_spawn() without file actions and spawn
@@ -833,52 +831,6 @@ nxt_process_execute(nxt_task_t *task, char *name, char **argv, char **envp)
 
     return pid;
 }
-
-#else
-
-nxt_pid_t
-nxt_process_execute(nxt_task_t *task, char *name, char **argv, char **envp)
-{
-    nxt_pid_t  pid;
-
-    /*
-     * vfork() is better than fork() because:
-     *   it is faster several times;
-     *   its execution time does not depend on private memory mapping size;
-     *   it has lesser chances to fail due to the ENOMEM error.
-     */
-
-    pid = vfork();
-
-    switch (pid) {
-
-    case -1:
-        nxt_alert(task, "vfork() failed while executing \"%s\" %E",
-                  name, nxt_errno);
-        break;
-
-    case 0:
-        /* A child. */
-        nxt_debug(task, "execve(\"%s\")", name);
-
-        (void) execve(name, argv, envp);
-
-        nxt_alert(task, "execve(\"%s\") failed %E", name, nxt_errno);
-
-        exit(1);
-        nxt_unreachable();
-        break;
-
-    default:
-        /* A parent. */
-        nxt_debug(task, "vfork(): %PI", pid);
-        break;
-    }
-
-    return pid;
-}
-
-#endif
 
 
 nxt_int_t
