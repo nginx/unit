@@ -7,7 +7,7 @@
 #include <nxt_process.h>
 #include <nxt_isolation.h>
 
-#if (NXT_HAVE_PIVOT_ROOT)
+#if (NXT_HAVE_MNTENT_H)
 #include <mntent.h>
 #endif
 

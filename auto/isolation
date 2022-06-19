@@ -73,6 +73,19 @@ nxt_feature_test="#include <sys/syscall.h>
 . auto/feature
 
 
+nxt_feature="<mntent.h>"
+nxt_feature_name=NXT_HAVE_MNTENT_H
+nxt_feature_run=no
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <mntent.h>
+
+                  int main(void) {
+                      return 0;
+                  }"
+. auto/feature
+
+
 nxt_feature="prctl(PR_SET_NO_NEW_PRIVS)"
 nxt_feature_name=NXT_HAVE_PR_SET_NO_NEW_PRIVS0
 nxt_feature_run=no
