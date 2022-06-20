@@ -1488,11 +1488,11 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_tls_init_t              *tls_init;
     nxt_conf_value_t            *certificate;
 #endif
-    nxt_conf_value_t            *conf, *http, *value, *websocket;
+    nxt_conf_value_t            *root, *conf, *http, *value, *websocket;
     nxt_conf_value_t            *applications, *application;
     nxt_conf_value_t            *listeners, *listener;
-    nxt_conf_value_t            *routes_conf, *static_conf, *client_ip_conf;
     nxt_socket_conf_t           *skcf;
+    nxt_router_conf_t           *rtcf;
     nxt_http_routes_t           *routes;
     nxt_event_engine_t          *engine;
     nxt_app_lang_module_t       *lang;
@@ -1516,35 +1516,36 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     static nxt_str_t  websocket_path = nxt_string("/settings/http/websocket");
     static nxt_str_t  client_ip_path = nxt_string("/client_ip");
 
-    conf = nxt_conf_json_parse(tmcf->mem_pool, start, end, NULL);
-    if (conf == NULL) {
+    root = nxt_conf_json_parse(tmcf->mem_pool, start, end, NULL);
+    if (root == NULL) {
         nxt_alert(task, "configuration parsing error");
         return NXT_ERROR;
     }
 
-    mp = tmcf->router_conf->mem_pool;
+    rtcf = tmcf->router_conf;
+    mp = rtcf->mem_pool;
 
-    ret = nxt_conf_map_object(mp, conf, nxt_router_conf,
-                              nxt_nitems(nxt_router_conf), tmcf->router_conf);
+    ret = nxt_conf_map_object(mp, root, nxt_router_conf,
+                              nxt_nitems(nxt_router_conf), rtcf);
     if (ret != NXT_OK) {
         nxt_alert(task, "root map error");
         return NXT_ERROR;
     }
 
-    if (tmcf->router_conf->threads == 0) {
-        tmcf->router_conf->threads = nxt_ncpu;
+    if (rtcf->threads == 0) {
+        rtcf->threads = nxt_ncpu;
     }
 
-    static_conf = nxt_conf_get_path(conf, &static_path);
+    conf = nxt_conf_get_path(root, &static_path);
 
-    ret = nxt_router_conf_process_static(task, tmcf->router_conf, static_conf);
+    ret = nxt_router_conf_process_static(task, rtcf, conf);
     if (nxt_slow_path(ret != NXT_OK)) {
         return NXT_ERROR;
     }
 
-    router = tmcf->router_conf->router;
+    router = rtcf->router;
 
-    applications = nxt_conf_get_path(conf, &applications_path);
+    applications = nxt_conf_get_path(root, &applications_path);
 
     if (applications != NULL) {
         next = 0;
@@ -1593,7 +1594,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
                 nxt_queue_remove(&prev->link);
                 nxt_queue_insert_tail(&tmcf->previous, &prev->link);
 
-                ret = nxt_router_apps_hash_add(tmcf->router_conf, prev);
+                ret = nxt_router_apps_hash_add(rtcf, prev);
                 if (nxt_slow_path(ret != NXT_OK)) {
                     goto fail;
                 }
@@ -1728,7 +1729,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
             nxt_queue_insert_tail(&tmcf->apps, &app->link);
 
-            ret = nxt_router_apps_hash_add(tmcf->router_conf, app);
+            ret = nxt_router_apps_hash_add(rtcf, app);
             if (nxt_slow_path(ret != NXT_OK)) {
                 goto app_fail;
             }
@@ -1779,21 +1780,21 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         }
     }
 
-    routes_conf = nxt_conf_get_path(conf, &routes_path);
-    if (nxt_fast_path(routes_conf != NULL)) {
-        routes = nxt_http_routes_create(task, tmcf, routes_conf);
+    conf = nxt_conf_get_path(root, &routes_path);
+    if (nxt_fast_path(conf != NULL)) {
+        routes = nxt_http_routes_create(task, tmcf, conf);
         if (nxt_slow_path(routes == NULL)) {
             return NXT_ERROR;
         }
-        tmcf->router_conf->routes = routes;
+        rtcf->routes = routes;
     }
 
-    ret = nxt_upstreams_create(task, tmcf, conf);
+    ret = nxt_upstreams_create(task, tmcf, root);
     if (nxt_slow_path(ret != NXT_OK)) {
         return ret;
     }
 
-    http = nxt_conf_get_path(conf, &http_path);
+    http = nxt_conf_get_path(root, &http_path);
 #if 0
     if (http == NULL) {
         nxt_alert(task, "no \"http\" block");
@@ -1801,9 +1802,9 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     }
 #endif
 
-    websocket = nxt_conf_get_path(conf, &websocket_path);
+    websocket = nxt_conf_get_path(root, &websocket_path);
 
-    listeners = nxt_conf_get_path(conf, &listeners_path);
+    listeners = nxt_conf_get_path(root, &listeners_path);
 
     if (listeners != NULL) {
         next = 0;
@@ -1883,9 +1884,9 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
                 t->length = nxt_strlen(t->start);
             }
 
-            client_ip_conf = nxt_conf_get_path(listener, &client_ip_path);
+            conf = nxt_conf_get_path(listener, &client_ip_path);
             ret = nxt_router_conf_process_client_ip(task, tmcf, skcf,
-                                                    client_ip_conf);
+                                                    conf);
             if (nxt_slow_path(ret != NXT_OK)) {
                 return NXT_ERROR;
             }
@@ -1935,7 +1936,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 #endif
 
             skcf->listen->handler = nxt_http_conn_init;
-            skcf->router_conf = tmcf->router_conf;
+            skcf->router_conf = rtcf;
             skcf->router_conf->count++;
 
             if (lscf.pass.length != 0) {
@@ -1943,8 +1944,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
             /* COMPATIBILITY: listener application. */
             } else if (lscf.application.length > 0) {
-                skcf->action = nxt_http_pass_application(task,
-                                                         tmcf->router_conf,
+                skcf->action = nxt_http_pass_application(task, rtcf,
                                                          &lscf.application);
             }
 
@@ -1959,7 +1959,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         goto fail;
     }
 
-    value = nxt_conf_get_path(conf, &access_log_path);
+    value = nxt_conf_get_path(root, &access_log_path);
 
     if (value != NULL) {
         nxt_conf_get_string(value, &path);
@@ -1988,7 +1988,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             nxt_memcpy(access_log->path.start, path.start, path.length);
         }
 
-        tmcf->router_conf->access_log = access_log;
+        rtcf->access_log = access_log;
     }
 
     nxt_queue_add(&deleting_sockets, &router->sockets);
