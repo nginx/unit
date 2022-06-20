@@ -10,16 +10,12 @@ RELEASE ?= $(DEFAULT_RELEASE)
 
 PACKAGE_VENDOR = NGINX Packaging <nginx-packaging@f5.com>
 
-ifeq ($(shell test `rpm --eval '0%{?rhel} -eq 6 -a 0%{?amzn} -eq 0'`; echo $$?), 0)
-OSVER = centos6
-else ifeq ($(shell test `rpm --eval '0%{?rhel} -eq 7 -a 0%{?amzn} -eq 0'`; echo $$?), 0)
+ifeq ($(shell test `rpm --eval '0%{?rhel} -eq 7 -a 0%{?amzn} -eq 0'`; echo $$?), 0)
 OSVER = centos7
 else ifeq ($(shell rpm --eval "%{?rhel}"), 8)
 OSVER = centos8
 else ifeq ($(shell rpm --eval "%{?rhel}"), 9)
 OSVER = centos9
-else ifeq ($(shell rpm --eval "%{?amzn}"), 1)
-OSVER = amazonlinux1
 else ifeq ($(shell rpm --eval "%{?amzn}"), 2)
 OSVER = amazonlinux2
 else ifeq ($(shell test `rpm --eval '0%{?suse_version} -ge 1315 -a 0%{?suse_version} -lt 1330 -a 0%{?is_opensuse} -eq 1'`; echo $$?), 0)
@@ -28,7 +24,7 @@ else ifeq ($(shell test `rpm --eval '0%{?suse_version} -ge 1330 -a 0%{?is_opensu
 OSVER = opensuse-tumbleweed
 else ifeq ($(shell test `rpm --eval '0%{?suse_version} -ge 1315 -a 0%{?is_opensuse} -eq 0'`; echo $$?), 0)
 OSVER = sles
-else ifeq ($(shell test `rpm --eval '0%{?fedora} -ge 26'`; echo $$?),0)
+else ifeq ($(shell test `rpm --eval '0%{?fedora} -ge 35'`; echo $$?),0)
 OSVER = fedora
 endif
 
@@ -36,10 +32,6 @@ BUILD_DEPENDS_unit = gcc rpm-build rpmlint
 
 ifeq ($(OSVER), centos7)
 BUILD_DEPENDS_unit += which
-endif
-
-ifeq ($(OSVER), amazonlinux1)
-BUILD_DEPENDS_unit += system-rpm-config
 endif
 
 ifneq (,$(findstring $(OSVER),opensuse-leap opensuse-tumbleweed sles))
@@ -55,14 +47,6 @@ endif
 BUILD_DEPENDS = $(BUILD_DEPENDS_unit)
 
 MODULES=
-
-ifeq ($(OSVER), centos6)
-include Makefile.php
-include Makefile.python
-include Makefile.go
-include Makefile.jsc-common
-include Makefile.jsc8
-endif
 
 ifeq ($(OSVER), centos7)
 include Makefile.php
@@ -94,18 +78,6 @@ include Makefile.perl
 include Makefile.jsc-common
 include Makefile.jsc8
 include Makefile.jsc11
-endif
-
-ifeq ($(OSVER), amazonlinux1)
-include Makefile.php
-include Makefile.python27
-include Makefile.python34
-include Makefile.python35
-include Makefile.python36
-include Makefile.go
-include Makefile.perl
-include Makefile.jsc-common
-include Makefile.jsc8
 endif
 
 ifeq ($(OSVER), amazonlinux2)
@@ -143,20 +115,7 @@ endif
 
 ifeq ($(OSVER), fedora)
 include Makefile.php
-ifeq ($(shell test `rpm --eval '0%{?fedora} -lt 32'`; echo $$?),0)
-include Makefile.python27
-endif
-ifeq ($(shell test `rpm --eval '0%{?fedora} -ge 35'`; echo $$?),0)
 include Makefile.python310
-else ifeq ($(shell test `rpm --eval '0%{?fedora} -ge 33'`; echo $$?),0)
-include Makefile.python39
-else ifeq ($(shell test `rpm --eval '0%{?fedora} -ge 32'`; echo $$?),0)
-include Makefile.python38
-else ifeq ($(shell test `rpm --eval '0%{?fedora} -ge 29'`; echo $$?),0)
-include Makefile.python37
-else
-include Makefile.python36
-endif
 include Makefile.go
 include Makefile.perl
 include Makefile.ruby
