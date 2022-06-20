@@ -115,7 +115,6 @@ DESTDIR=%{buildroot} make unitd-install libunit-install manpage-install
 %{__mkdir} -p %{buildroot}%{_sysconfdir}/logrotate.d
 %{__install} -m 644 -p %{SOURCE4} \
     %{buildroot}%{_sysconfdir}/logrotate.d/unit
-%{__mkdir} -p %{buildroot}%{_sysconfdir}/unit
 %{__mkdir} -p %{buildroot}%{_datadir}/doc/unit/examples
 %{__install} -m 644 -p %{SOURCE3} \
     %{buildroot}%{_datadir}/doc/unit/examples/example.config
@@ -203,7 +202,6 @@ BANNER
 %defattr(-,root,root,-)
 %attr(0755,root,root) %{_sbindir}/unitd
 %attr(0755,root,root) %{_sbindir}/unitd-debug
-%dir %{_sysconfdir}/unit
 %{_unitdir}/unit.service
 %{_unitdir}/unit-debug.service
 %dir %attr(0755,root,root) %ghost %{_localstatedir}/run/unit
