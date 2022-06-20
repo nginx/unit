@@ -31,7 +31,7 @@ class TestClientIP(TestApplicationPython):
     def setup_method(self):
         self.load('client_ip')
 
-    def test_settings_client_ip_single_ip(self):
+    def test_client_ip_single_ip(self):
         self.client_ip(
             {'header': 'X-Forwarded-For', 'source': '123.123.123.123'}
         )
@@ -59,7 +59,7 @@ class TestClientIP(TestApplicationPython):
         assert self.get_xff('1.1.1.1') == '127.0.0.1', 'bad source 3'
         assert self.get_xff('1.1.1.1', 'ipv6') == '1.1.1.1', 'replace 2'
 
-    def test_settings_client_ip_ipv4(self):
+    def test_client_ip_ipv4(self):
         self.client_ip({'header': 'X-Forwarded-For', 'source': '127.0.0.1'})
 
         assert (
@@ -72,7 +72,7 @@ class TestClientIP(TestApplicationPython):
             self.get_xff(['8.8.8.8', '127.0.0.1, 10.0.1.1']) == '10.0.1.1'
         ), 'xff replace multi'
 
-    def test_settings_client_ip_ipv6(self):
+    def test_client_ip_ipv6(self):
         self.client_ip({'header': 'X-Forwarded-For', 'source': '::1'})
 
         assert self.get_xff('1.1.1.1') == '127.0.0.1', 'bad source ipv4'
@@ -85,7 +85,7 @@ class TestClientIP(TestApplicationPython):
         ]:
             assert self.get_xff(ip, 'ipv6') == ip, 'replace'
 
-    def test_settings_client_ip_recursive(self):
+    def test_client_ip_recursive(self):
         self.client_ip(
             {
                 'header': 'X-Forwarded-For',
@@ -118,20 +118,41 @@ class TestClientIP(TestApplicationPython):
             == '2001:db8:3c4d:15::1a2f:1a2b'
         ), 'xff chain ipv6'
 
-    def test_settings_client_ip_invalid(self):
+    def test_client_ip_case_insensitive(self):
+        self.client_ip({'header': 'x-forwarded-for', 'source': '127.0.0.1'})
+
+        assert self.get_xff('1.1.1.1') == '1.1.1.1', 'case insensitive'
+
+    def test_client_ip_empty_source(self):
+        self.client_ip({'header': 'X-Forwarded-For', 'source': []})
+
+        assert self.get_xff('1.1.1.1') == '127.0.0.1', 'empty source'
+
+    def test_client_ip_invalid(self):
         assert 'error' in self.conf(
             {
-                "http": {
-                    "client_ip": {'header': 'X-Forwarded-For', 'source': []}
+                "127.0.0.1:7081": {
+                    "client_ip": {"source": '127.0.0.1'},
+                    "pass": "applications/client_ip",
                 }
             },
-            'settings',
-        ), 'empty array source'
-        assert 'error' in self.conf(
-            {
-                "http": {
-                    "client_ip": {'header': 'X-Forwarded-For', 'source': 'a'}
-                }
-            },
-            'settings',
-        ), 'empty source invalid'
+            'listeners',
+        ), 'invalid header'
+
+        def check_invalid_source(source):
+            assert 'error' in self.conf(
+                {
+                    "127.0.0.1:7081": {
+                        "client_ip": {
+                            "header": "X-Forwarded-For",
+                            "source": source,
+                        },
+                        "pass": "applications/client_ip",
+                    }
+                },
+                'listeners',
+            ), 'invalid source'
+
+        check_invalid_source(None)
+        check_invalid_source('a')
+        check_invalid_source(['a'])
