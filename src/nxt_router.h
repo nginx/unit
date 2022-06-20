@@ -197,6 +197,7 @@ typedef struct {
 
     uint8_t                discard_unsafe_fields;  /* 1 bit */
 
+    nxt_http_forward_t     *forwarded;
     nxt_http_forward_t     *client_ip;
 
 #if (NXT_TLS)

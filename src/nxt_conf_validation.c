@@ -166,6 +166,8 @@ static nxt_int_t nxt_conf_vldt_match_addr(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_app_name(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_forwarded(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_app(nxt_conf_validation_t *vldt,
     nxt_str_t *name, nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_object(nxt_conf_validation_t *vldt,
@@ -220,6 +222,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_setting_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_websocket_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_static_members[];
+static nxt_conf_vldt_object_t  nxt_conf_vldt_forwarded_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_client_ip_members[];
 #if (NXT_TLS)
 static nxt_conf_vldt_object_t  nxt_conf_vldt_tls_members[];
@@ -366,6 +369,10 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_listener_members[] = {
         .type       = NXT_CONF_VLDT_STRING,
         .validator  = nxt_conf_vldt_app_name,
     }, {
+        .name       = nxt_string("forwarded"),
+        .type       = NXT_CONF_VLDT_OBJECT,
+        .validator  = nxt_conf_vldt_forwarded,
+    }, {
         .name       = nxt_string("client_ip"),
         .type       = NXT_CONF_VLDT_OBJECT,
         .validator  = nxt_conf_vldt_object,
@@ -380,6 +387,27 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_listener_members[] = {
         .u.members  = nxt_conf_vldt_tls_members,
     },
 #endif
+
+    NXT_CONF_VLDT_END
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_forwarded_members[] = {
+    {
+        .name       = nxt_string("client_ip"),
+        .type       = NXT_CONF_VLDT_STRING,
+    }, {
+        .name       = nxt_string("protocol"),
+        .type       = NXT_CONF_VLDT_STRING,
+    }, {
+        .name       = nxt_string("source"),
+        .type       = NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
+        .validator  = nxt_conf_vldt_match_addrs,
+        .flags      = NXT_CONF_VLDT_REQUIRED
+    }, {
+        .name       = nxt_string("recursive"),
+        .type       = NXT_CONF_VLDT_BOOLEAN,
+    },
 
     NXT_CONF_VLDT_END
 };
@@ -2314,6 +2342,28 @@ error:
     return nxt_conf_vldt_error(vldt, "Listening socket is assigned for "
                                      "a non existing application \"%V\".",
                                      &name);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_forwarded(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
+{
+    nxt_conf_value_t  *client_ip, *protocol;
+
+    static nxt_str_t  client_ip_str = nxt_string("client_ip");
+    static nxt_str_t  protocol_str = nxt_string("protocol");
+
+    client_ip = nxt_conf_get_object_member(value, &client_ip_str, NULL);
+    protocol = nxt_conf_get_object_member(value, &protocol_str, NULL);
+
+    if (client_ip == NULL && protocol == NULL) {
+        return nxt_conf_vldt_error(vldt, "The \"forwarded\" object must have "
+                                   "either \"client_ip\" or \"protocol\" "
+                                   "option set.");
+    }
+
+    return nxt_conf_vldt_object(vldt, value, nxt_conf_vldt_forwarded_members);
 }
 
 

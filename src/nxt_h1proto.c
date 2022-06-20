@@ -490,7 +490,7 @@ nxt_h1p_conn_request_init(nxt_task_t *task, void *obj, void *data)
         r->remote = c->remote;
 
 #if (NXT_TLS)
-        r->tls = c->u.tls;
+        r->tls = (c->u.tls != NULL);
 #endif
 
         r->task = c->task;

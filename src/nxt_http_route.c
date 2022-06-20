@@ -1949,14 +1949,13 @@ nxt_http_route_test_argument(nxt_http_request_t *r,
 static nxt_int_t
 nxt_http_route_scheme(nxt_http_request_t *r, nxt_http_route_rule_t *rule)
 {
-    nxt_bool_t                      tls, https;
+    nxt_bool_t                      https;
     nxt_http_route_pattern_slice_t  *pattern_slice;
 
     pattern_slice = rule->pattern[0].u.pattern_slices->elts;
     https = (pattern_slice->length == nxt_length("https"));
-    tls = (r->tls != NULL);
 
-    return (tls == https);
+    return (r->tls == https);
 }
 
 

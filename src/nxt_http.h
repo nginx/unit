@@ -162,7 +162,6 @@ struct nxt_http_request_s {
 
     nxt_sockaddr_t                  *remote;
     nxt_sockaddr_t                  *local;
-    void                            *tls;
     nxt_task_t                      task;
 
     nxt_timer_t                     timer;
@@ -190,6 +189,7 @@ struct nxt_http_request_s {
     uint8_t                         pass_count;   /* 8 bits */
     uint8_t                         app_target;
     nxt_http_protocol_t             protocol:8;   /* 2 bits */
+    uint8_t                         tls;          /* 1 bit  */
     uint8_t                         logged;       /* 1 bit  */
     uint8_t                         header_sent;  /* 1 bit  */
     uint8_t                         inconsistent; /* 1 bit  */
@@ -281,6 +281,7 @@ typedef struct {
 
 struct nxt_http_forward_s {
     nxt_http_forward_header_t   client_ip;
+    nxt_http_forward_header_t   protocol;
     nxt_http_route_addr_rule_t  *source;
     uint8_t                     recursive;    /* 1 bit */
 };
