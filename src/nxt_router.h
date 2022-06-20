@@ -18,7 +18,7 @@ typedef struct nxt_http_request_s  nxt_http_request_t;
 
 typedef struct nxt_http_action_s        nxt_http_action_t;
 typedef struct nxt_http_routes_s        nxt_http_routes_t;
-typedef struct nxt_http_client_ip_s     nxt_http_client_ip_t;
+typedef struct nxt_http_forward_s       nxt_http_forward_t;
 typedef struct nxt_upstream_s           nxt_upstream_t;
 typedef struct nxt_upstreams_s          nxt_upstreams_t;
 typedef struct nxt_router_access_log_s  nxt_router_access_log_t;
@@ -197,7 +197,7 @@ typedef struct {
 
     uint8_t                discard_unsafe_fields;  /* 1 bit */
 
-    nxt_http_client_ip_t   *client_ip;
+    nxt_http_forward_t     *client_ip;
 
 #if (NXT_TLS)
     nxt_tls_conf_t         *tls;

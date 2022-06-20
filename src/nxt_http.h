@@ -273,10 +273,15 @@ typedef struct {
 } nxt_http_proto_table_t;
 
 
-struct nxt_http_client_ip_s {
-    nxt_http_route_addr_rule_t  *source;
+typedef struct {
     nxt_str_t                   *header;
     uint32_t                    header_hash;
+} nxt_http_forward_header_t;
+
+
+struct nxt_http_forward_s {
+    nxt_http_forward_header_t   client_ip;
+    nxt_http_route_addr_rule_t  *source;
     uint8_t                     recursive;    /* 1 bit */
 };
 

@@ -109,8 +109,7 @@ static nxt_int_t nxt_router_conf_create(nxt_task_t *task,
 static nxt_int_t nxt_router_conf_process_static(nxt_task_t *task,
     nxt_router_conf_t *rtcf, nxt_conf_value_t *conf);
 static nxt_int_t nxt_router_conf_process_client_ip(nxt_task_t *task,
-    nxt_router_temp_conf_t *tmcf, nxt_socket_conf_t *skcf,
-    nxt_conf_value_t *conf);
+    nxt_mp_t *mp, nxt_socket_conf_t *skcf, nxt_conf_value_t *conf);
 
 static nxt_app_t *nxt_router_app_find(nxt_queue_t *queue, nxt_str_t *name);
 static nxt_int_t nxt_router_apps_hash_test(nxt_lvlhsh_query_t *lhq, void *data);
@@ -1885,10 +1884,12 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             }
 
             conf = nxt_conf_get_path(listener, &client_ip_path);
-            ret = nxt_router_conf_process_client_ip(task, tmcf, skcf,
-                                                    conf);
-            if (nxt_slow_path(ret != NXT_OK)) {
-                return NXT_ERROR;
+
+            if (conf != NULL) {
+                ret = nxt_router_conf_process_client_ip(task, mp, skcf, conf);
+                if (nxt_slow_path(ret != NXT_OK)) {
+                    return NXT_ERROR;
+                }
             }
 
 #if (NXT_TLS)
@@ -2124,29 +2125,21 @@ nxt_router_conf_process_static(nxt_task_t *task, nxt_router_conf_t *rtcf,
 
 
 static nxt_int_t
-nxt_router_conf_process_client_ip(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
+nxt_router_conf_process_client_ip(nxt_task_t *task, nxt_mp_t *mp,
     nxt_socket_conf_t *skcf, nxt_conf_value_t *conf)
 {
     char                        c;
     size_t                      i;
-    nxt_mp_t                    *mp;
     uint32_t                    hash;
     nxt_str_t                   header;
     nxt_conf_value_t            *source_conf, *header_conf, *recursive_conf;
-    nxt_http_client_ip_t        *client_ip;
+    nxt_http_forward_t          *forward;
+    nxt_http_forward_header_t   *client_ip;
     nxt_http_route_addr_rule_t  *source;
 
     static nxt_str_t  header_path = nxt_string("/header");
     static nxt_str_t  source_path = nxt_string("/source");
     static nxt_str_t  recursive_path = nxt_string("/recursive");
-
-    if (conf == NULL) {
-        skcf->client_ip = NULL;
-
-        return NXT_OK;
-    }
-
-    mp = tmcf->router_conf->mem_pool;
 
     source_conf = nxt_conf_get_path(conf, &source_path);
     header_conf = nxt_conf_get_path(conf, &header_path);
@@ -2156,8 +2149,8 @@ nxt_router_conf_process_client_ip(nxt_task_t *task, nxt_router_temp_conf_t *tmcf
         return NXT_ERROR;
     }
 
-    client_ip = nxt_mp_zget(mp, sizeof(nxt_http_client_ip_t));
-    if (nxt_slow_path(client_ip == NULL)) {
+    forward = nxt_mp_zget(mp, sizeof(nxt_http_forward_t));
+    if (nxt_slow_path(forward == NULL)) {
         return NXT_ERROR;
     }
 
@@ -2166,12 +2159,14 @@ nxt_router_conf_process_client_ip(nxt_task_t *task, nxt_router_temp_conf_t *tmcf
         return NXT_ERROR;
     }
 
-    client_ip->source = source;
+    forward->source = source;
+
+    client_ip = &forward->client_ip;
 
     nxt_conf_get_string(header_conf, &header);
 
     if (recursive_conf != NULL) {
-        client_ip->recursive = nxt_conf_get_boolean(recursive_conf);
+        forward->recursive = nxt_conf_get_boolean(recursive_conf);
     }
 
     client_ip->header = nxt_str_dup(mp, NULL, &header);
@@ -2190,7 +2185,7 @@ nxt_router_conf_process_client_ip(nxt_task_t *task, nxt_router_temp_conf_t *tmcf
 
     client_ip->header_hash = hash;
 
-    skcf->client_ip = client_ip;
+    skcf->client_ip = forward;
 
     return NXT_OK;
 }

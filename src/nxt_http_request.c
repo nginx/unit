@@ -314,25 +314,27 @@ nxt_http_request_start(nxt_task_t *task, void *obj, void *data)
 static nxt_int_t
 nxt_http_request_client_ip(nxt_task_t *task, nxt_http_request_t *r)
 {
-    u_char                *start, *p;
-    nxt_int_t             ret, i, len;
-    nxt_str_t             *header;
-    nxt_array_t           *fields_arr;  /* of nxt_http_field_t * */
-    nxt_sockaddr_t        *sa, *prev_sa;
-    nxt_http_field_t      *f, **fields;
-    nxt_http_client_ip_t  *client_ip;
+    u_char                     *start, *p;
+    nxt_int_t                  ret, i, len;
+    nxt_str_t                  *header;
+    nxt_array_t                *fields_arr;  /* of nxt_http_field_t * */
+    nxt_sockaddr_t             *sa, *prev_sa;
+    nxt_http_field_t           *f, **fields;
+    nxt_http_forward_t         *forward;
+    nxt_http_forward_header_t  *client_ip;
 
-    client_ip = r->conf->socket_conf->client_ip;
+    forward = r->conf->socket_conf->client_ip;
 
-    if (client_ip == NULL) {
+    if (forward == NULL) {
         return NXT_OK;
     }
 
-    ret = nxt_http_route_addr_rule(r, client_ip->source, r->remote);
+    ret = nxt_http_route_addr_rule(r, forward->source, r->remote);
     if (ret <= 0) {
         return NXT_OK;
     }
 
+    client_ip = &forward->client_ip;
     header = client_ip->header;
 
     fields_arr = nxt_array_create(r->mem_pool, 2, sizeof(nxt_http_field_t *));
@@ -388,13 +390,13 @@ nxt_http_request_client_ip(nxt_task_t *task, nxt_http_request_t *r)
                 return NXT_OK;
             }
 
-            if (!client_ip->recursive) {
+            if (!forward->recursive) {
                 r->remote = sa;
 
                 return NXT_OK;
             }
 
-            ret = nxt_http_route_addr_rule(r, client_ip->source, sa);
+            ret = nxt_http_route_addr_rule(r, forward->source, sa);
             if (ret <= 0 || (i == 0 && p == start)) {
                 r->remote = sa;
 
