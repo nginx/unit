@@ -16,7 +16,7 @@
                 unit-jsc14 unit-jsc15 unit-jsc16 unit-jsc17 unit-jsc18"
          ver="1.28.0" rev="1"
          date="" time=""
-         packager="Konstantin Pavlov &lt;thresh@nginx.com&gt;">
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
 
 <change>
 <para>
@@ -29,7 +29,7 @@ NGINX Unit updated to 1.28.0.
 
 <changes apply="unit" ver="1.28.0" rev="1"
          date="" time=""
-         packager="Konstantin Pavlov &lt;thresh@nginx.com&gt;">
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
 
 <change type="feature">
 <para>
