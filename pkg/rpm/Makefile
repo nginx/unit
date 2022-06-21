@@ -18,12 +18,6 @@ else ifeq ($(shell rpm --eval "%{?rhel}"), 9)
 OSVER = centos9
 else ifeq ($(shell rpm --eval "%{?amzn}"), 2)
 OSVER = amazonlinux2
-else ifeq ($(shell test `rpm --eval '0%{?suse_version} -ge 1315 -a 0%{?suse_version} -lt 1330 -a 0%{?is_opensuse} -eq 1'`; echo $$?), 0)
-OSVER = opensuse-leap
-else ifeq ($(shell test `rpm --eval '0%{?suse_version} -ge 1330 -a 0%{?is_opensuse} -eq 1'`; echo $$?), 0)
-OSVER = opensuse-tumbleweed
-else ifeq ($(shell test `rpm --eval '0%{?suse_version} -ge 1315 -a 0%{?is_opensuse} -eq 0'`; echo $$?), 0)
-OSVER = sles
 else ifeq ($(shell test `rpm --eval '0%{?fedora} -ge 35'`; echo $$?),0)
 OSVER = fedora
 endif
@@ -34,14 +28,10 @@ ifeq ($(OSVER), centos7)
 BUILD_DEPENDS_unit += which
 endif
 
-ifneq (,$(findstring $(OSVER),opensuse-leap opensuse-tumbleweed sles))
-BUILD_DEPENDS_unit += libxml2-tools libxslt1 libopenssl-devel
-else
 ifneq (,$(findstring $(OSVER),amazonlinux2))
 BUILD_DEPENDS_unit += libxml2 libxslt openssl11-devel
 else
 BUILD_DEPENDS_unit += libxml2 libxslt openssl-devel
-endif
 endif
 
 BUILD_DEPENDS = $(BUILD_DEPENDS_unit)
@@ -88,29 +78,6 @@ include Makefile.go
 include Makefile.perl
 include Makefile.jsc-common
 include Makefile.jsc8
-endif
-
-ifeq ($(OSVER), opensuse-leap)
-include Makefile.python27
-include Makefile.python34
-include Makefile.go
-include Makefile.perl
-include Makefile.ruby
-endif
-
-ifeq ($(OSVER), opensuse-tumbleweed)
-include Makefile.php
-include Makefile.python27
-include Makefile.python36
-include Makefile.go
-include Makefile.perl
-include Makefile.ruby
-endif
-
-ifeq ($(OSVER), sles)
-include Makefile.python27
-include Makefile.python34
-include Makefile.perl
 endif
 
 ifeq ($(OSVER), fedora)

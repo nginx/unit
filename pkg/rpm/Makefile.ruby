@@ -13,13 +13,7 @@ MODULE_INSTARGS_ruby=	ruby-install
 MODULE_SOURCES_ruby=	unit.example-ruby-app \
 			unit.example-ruby-config
 
-ifeq ($(OSVER), opensuse-leap)
-RACK_PACKAGE=	ruby2.1-rubygem-rack
-else ifeq ($(OSVER), opensuse-tumbleweed)
-RACK_PACKAGE=	ruby2.5-rubygem-rack
-else
 RACK_PACKAGE=	rubygem-rack
-endif
 
 BUILD_DEPENDS_ruby=	ruby-devel $(RACK_PACKAGE)
 BUILD_DEPENDS+=		$(BUILD_DEPENDS_ruby)

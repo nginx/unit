@@ -16,10 +16,6 @@ BuildRequires: openssl-devel
 %endif
 %endif
 
-%if 0%{?suse_version} >= 1315
-BuildRequires: libopenssl-devel
-%endif
-
 %define unit_version %%UNIT_VERSION%%
 %define unit_release %%UNIT_RELEASE%%%{?dist}.ngx
 
@@ -53,10 +49,6 @@ in and out of the application. Take this application server and proxy
 directly in the cloud / container environments and fully control your app
 dynamically via an API.
 This package contains %%SUMMARY%%.
-
-%if 0%{?suse_version}
-%debug_package
-%endif
 
 %if (0%{?fedora}) || (0%{?rhel} >= 8)
 %define _debugsource_template %{nil}
@@ -106,9 +98,6 @@ DESTDIR=%{buildroot} make %%MODULE_INSTARGS%%
 cd %{bdir}
 grep -v 'usr/src' debugfiles.list > debugfiles.list.new && mv debugfiles.list.new debugfiles.list
 cat /dev/null > debugsources.list
-%if 0%{?suse_version} >= 1500
-cat /dev/null > debugsourcefiles.list
-%endif
 
 %clean
 %{__rm} -rf %{buildroot}

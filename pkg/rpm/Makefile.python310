@@ -13,7 +13,7 @@ MODULE_INSTARGS_python310=	python3.10-install
 MODULE_SOURCES_python310=	unit.example-python-app \
 			unit.example-python310-config
 
-ifneq (,$(findstring $(OSVER),opensuse-tumbleweed sles fedora amazonlinux2))
+ifneq (,$(findstring $(OSVER),fedora amazonlinux2))
 BUILD_DEPENDS_python310=	python3-devel
 else
 BUILD_DEPENDS_python310=	python310-devel
