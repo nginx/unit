@@ -208,8 +208,8 @@ nxt_getsockname(nxt_task_t *task, nxt_mp_t *mp, nxt_socket_t s)
 #if (NXT_HAVE_UNIX_DOMAIN)
         case AF_UNIX:
             length = nxt_length("unix:") + socklen;
-#endif
             break;
+#endif
 
         case AF_INET:
             length = NXT_INET_ADDR_STR_LEN;
