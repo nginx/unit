@@ -13,7 +13,7 @@ class TestApplicationProto(TestControl):
     def sec_epoch(self):
         return time.mktime(time.gmtime())
 
-    def date_to_sec_epoch(self, date, template='%a, %d %b %Y %H:%M:%S %Z'):
+    def date_to_sec_epoch(self, date, template='%a, %d %b %Y %X %Z'):
         return time.mktime(time.strptime(date, template))
 
     def findall(self, pattern, name='unit.log'):

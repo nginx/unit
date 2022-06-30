@@ -13,7 +13,7 @@ class TestTLS(TestApplicationTLS):
     prerequisites = {'modules': {'python': 'any', 'openssl': 'any'}}
 
     def openssl_date_to_sec_epoch(self, date):
-        return self.date_to_sec_epoch(date, '%b %d %H:%M:%S %Y %Z')
+        return self.date_to_sec_epoch(date, '%b %d %X %Y %Z')
 
     def add_tls(self, application='empty', cert='default', port=7080):
         assert 'success' in self.conf(
