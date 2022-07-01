@@ -64,7 +64,7 @@ nxt_nvbcq_empty(nxt_nvbcq_t const volatile *q)
 }
 
 
-static void
+static inline void
 nxt_nvbcq_init(nxt_nvbcq_t volatile *q)
 {
     nxt_nvbcq_atomic_t  i;
@@ -79,7 +79,7 @@ nxt_nvbcq_init(nxt_nvbcq_t volatile *q)
 }
 
 
-static void
+static inline void
 nxt_nvbcq_enqueue(nxt_nvbcq_t volatile *q, nxt_nvbcq_atomic_t val)
 {
     nxt_nvbcq_atomic_t  t, h, i;
@@ -110,7 +110,7 @@ nxt_nvbcq_enqueue(nxt_nvbcq_t volatile *q, nxt_nvbcq_atomic_t val)
 }
 
 
-static nxt_nvbcq_atomic_t
+static inline nxt_nvbcq_atomic_t
 nxt_nvbcq_dequeue(nxt_nvbcq_t volatile *q)
 {
     nxt_nvbcq_atomic_t  h, t, i, e;
