@@ -52,6 +52,11 @@ struct nxt_var_query_s {
 static nxt_int_t nxt_var_hash_test(nxt_lvlhsh_query_t *lhq, void *data);
 static nxt_var_decl_t *nxt_var_hash_find(nxt_str_t *name);
 
+static nxt_var_decl_t *nxt_var_decl_get(nxt_str_t *name, nxt_array_t *fields,
+    uint32_t *index);
+static nxt_var_field_t *nxt_var_field_add(nxt_array_t *fields, nxt_str_t *name,
+    uint32_t hash);
+
 static nxt_int_t nxt_var_cache_test(nxt_lvlhsh_query_t *lhq, void *data);
 static nxt_str_t *nxt_var_cache_value(nxt_task_t *task, nxt_var_query_t *query,
     uint32_t index);
@@ -109,6 +114,117 @@ nxt_var_hash_find(nxt_str_t *name)
 }
 
 
+static nxt_var_decl_t *
+nxt_var_decl_get(nxt_str_t *name, nxt_array_t *fields, uint32_t *index)
+{
+    u_char           *p, *end;
+    int64_t          hash;
+    uint16_t         field;
+    nxt_str_t        str;
+    nxt_var_decl_t   *decl;
+    nxt_var_field_t  *f;
+
+    f = NULL;
+    field = 0;
+    decl = nxt_var_hash_find(name);
+
+    if (decl == NULL) {
+        p = name->start;
+        end = p + name->length;
+
+        while (p < end) {
+            if (*p++ == '_') {
+                break;
+            }
+        }
+
+        if (p == end) {
+            return NULL;
+        }
+
+        str.start = name->start;
+        str.length = p - 1 - name->start;
+
+        decl = nxt_var_hash_find(&str);
+
+        if (decl != NULL) {
+            str.start = p;
+            str.length = end - p;
+
+            hash = decl->field_hash(fields->mem_pool, &str);
+            if (nxt_slow_path(hash == -1)) {
+                return NULL;
+            }
+
+            f = nxt_var_field_add(fields, &str, (uint32_t) hash);
+            if (nxt_slow_path(f == NULL)) {
+                return NULL;
+            }
+
+            field = f->index;
+        }
+    }
+
+    if (decl != NULL) {
+        if (decl->field_hash != NULL && f == NULL) {
+            return NULL;
+        }
+
+        if (index != NULL) {
+            *index = (decl->index << 16) | field;
+        }
+    }
+
+    return decl;
+}
+
+
+static nxt_var_field_t *
+nxt_var_field_add(nxt_array_t *fields, nxt_str_t *name, uint32_t hash)
+{
+    nxt_uint_t       i;
+    nxt_var_field_t  *field;
+
+    field = fields->elts;
+
+    for (i = 0; i < fields->nelts; i++) {
+        if (field[i].hash == hash
+            && nxt_strstr_eq(&field[i].name, name))
+        {
+            return field;
+        }
+    }
+
+    field = nxt_array_add(fields);
+    if (nxt_slow_path(field == NULL)) {
+        return NULL;
+    }
+
+    field->name = *name;
+    field->hash = hash;
+    field->index = fields->nelts - 1;
+
+    return field;
+}
+
+
+nxt_var_field_t *
+nxt_var_field_get(nxt_array_t *fields, uint16_t index)
+{
+    nxt_uint_t       nfields;
+    nxt_var_field_t  *field;
+
+    field = fields->elts;
+    nfields = fields->nelts;
+
+    if (nfields > 0 && index <= nfields) {
+        return &field[index];
+    }
+
+    return NULL;
+}
+
+
 static nxt_int_t
 nxt_var_cache_test(nxt_lvlhsh_query_t *lhq, void *data)
 {
@@ -148,7 +264,8 @@ nxt_var_cache_value(nxt_task_t *task, nxt_var_query_t *query, uint32_t index)
     }
 
     if (ret == NXT_OK) {
-        ret = nxt_var_index[index](task, value, query->ctx);
+        ret = nxt_var_index[index >> 16](task, value, query->ctx,
+                                         index & 0xffff);
         if (nxt_slow_path(ret != NXT_OK)) {
             return NULL;
         }
@@ -213,10 +330,12 @@ nxt_var_index_init(void)
 
 
 nxt_var_t *
-nxt_var_compile(nxt_str_t *str, nxt_mp_t *mp, nxt_bool_t strz)
+nxt_var_compile(nxt_str_t *str, nxt_mp_t *mp, nxt_array_t *fields,
+    nxt_bool_t strz)
 {
     u_char          *p, *end, *next, *src;
     size_t          size;
+    uint32_t        index;
     nxt_var_t       *var;
     nxt_str_t       part;
     nxt_uint_t      n;
@@ -267,12 +386,12 @@ nxt_var_compile(nxt_str_t *str, nxt_mp_t *mp, nxt_bool_t strz)
         next = nxt_var_next_part(p, end - p, &part, &is_var);
 
         if (is_var) {
-            decl = nxt_var_hash_find(&part);
+            decl = nxt_var_decl_get(&part, fields, &index);
             if (nxt_slow_path(decl == NULL)) {
                 return NULL;
             }
 
-            subs[n].index = decl->index;
+            subs[n].index = index;
             subs[n].length = next - p;
             subs[n].position = p - str->start;
 
@@ -287,7 +406,7 @@ nxt_var_compile(nxt_str_t *str, nxt_mp_t *mp, nxt_bool_t strz)
 
 
 nxt_int_t
-nxt_var_test(nxt_str_t *str, u_char *error)
+nxt_var_test(nxt_str_t *str, nxt_array_t *fields, u_char *error)
 {
     u_char          *p, *end, *next;
     nxt_str_t       part;
@@ -308,7 +427,7 @@ nxt_var_test(nxt_str_t *str, u_char *error)
         }
 
         if (is_var) {
-            decl = nxt_var_hash_find(&part);
+            decl = nxt_var_decl_get(&part, fields, NULL);
 
             if (decl == NULL) {
                 nxt_sprintf(error, error + NXT_MAX_ERROR_STR,

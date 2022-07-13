@@ -43,6 +43,7 @@ typedef struct {
     uint32_t                 threads;
 
     nxt_mp_t                 *mem_pool;
+    nxt_array_t              *var_fields;  /* of nxt_var_field_t */
 
     nxt_router_t             *router;
     nxt_http_routes_t        *routes;

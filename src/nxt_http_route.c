@@ -643,6 +643,7 @@ nxt_http_action_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_mp_t                *mp;
     nxt_int_t               ret;
     nxt_str_t               pass;
+    nxt_router_conf_t       *rtcf;
     nxt_http_action_conf_t  acf;
 
     nxt_memzero(&acf, sizeof(acf));
@@ -655,10 +656,11 @@ nxt_http_action_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
     nxt_memzero(action, sizeof(nxt_http_action_t));
 
-    mp = tmcf->router_conf->mem_pool;
+    rtcf = tmcf->router_conf;
+    mp = rtcf->mem_pool;
 
     if (acf.ret != NULL) {
-        return nxt_http_return_init(mp, action, &acf);
+        return nxt_http_return_init(rtcf, action, &acf);
     }
 
     if (acf.share != NULL) {
@@ -671,7 +673,7 @@ nxt_http_action_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
     nxt_conf_get_string(acf.pass, &pass);
 
-    action->u.var = nxt_var_compile(&pass, mp, 0);
+    action->u.var = nxt_var_compile(&pass, mp, rtcf->var_fields, 0);
     if (nxt_slow_path(action->u.var == NULL)) {
         return NXT_ERROR;
     }
@@ -1484,16 +1486,18 @@ nxt_http_action_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 {
     nxt_mp_t           *mp;
     nxt_int_t          ret;
+    nxt_router_conf_t  *rtcf;
     nxt_http_action_t  *action;
 
-    mp = tmcf->router_conf->mem_pool;
+    rtcf = tmcf->router_conf;
+    mp = rtcf->mem_pool;
 
     action = nxt_mp_alloc(mp, sizeof(nxt_http_action_t));
     if (nxt_slow_path(action == NULL)) {
         return NULL;
     }
 
-    action->u.var = nxt_var_compile(pass, mp, 0);
+    action->u.var = nxt_var_compile(pass, mp, rtcf->var_fields, 0);
     if (nxt_slow_path(action->u.var == NULL)) {
         return NULL;
     }

@@ -1180,3 +1180,57 @@ end:
 
     return nxt_http_field_hash_end(hash) & 0xFFFF;
 }
+
+
+int64_t
+nxt_http_argument_hash(nxt_mp_t *mp, nxt_str_t *name)
+{
+    return nxt_http_field_hash(mp, name, 1, NXT_HTTP_URI_ENCODING_PLUS);
+}
+
+
+int64_t
+nxt_http_header_hash(nxt_mp_t *mp, nxt_str_t *name)
+{
+    u_char     c, *p;
+    uint32_t   i, hash;
+    nxt_str_t  str;
+
+    str.length = name->length;
+
+    str.start = nxt_mp_nget(mp, str.length);
+    if (nxt_slow_path(str.start == NULL)) {
+        return -1;
+    }
+
+    p = str.start;
+    hash = NXT_HTTP_FIELD_HASH_INIT;
+
+    for (i = 0; i < name->length; i++) {
+        c = name->start[i];
+
+        if (c >= 'A' && c <= 'Z') {
+            *p = c | 0x20;
+
+        } else if (c == '_') {
+            *p = '-';
+
+        } else {
+            *p = c;
+        }
+
+        hash = nxt_http_field_hash_char(hash, *p);
+        p++;
+    }
+
+    *name = str;
+
+    return nxt_http_field_hash_end(hash) & 0xFFFF;
+}
+
+
+int64_t
+nxt_http_cookie_hash(nxt_mp_t *mp, nxt_str_t *name)
+{
+    return nxt_http_field_hash(mp, name, 1, NXT_HTTP_URI_ENCODING_NONE);
+}

@@ -1210,6 +1210,11 @@ nxt_conf_validate(nxt_conf_validation_t *vldt)
 {
     nxt_int_t  ret;
 
+    vldt->var_fields = nxt_array_create(vldt->pool, 4, sizeof(nxt_var_field_t));
+    if (nxt_slow_path(vldt->var_fields == NULL)) {
+        return NXT_ERROR;
+    }
+
     ret = nxt_conf_vldt_type(vldt, NULL, vldt->conf, NXT_CONF_VLDT_OBJECT);
     if (ret != NXT_OK) {
         return ret;
@@ -1342,7 +1347,7 @@ nxt_conf_vldt_var(nxt_conf_validation_t *vldt, nxt_str_t *name,
 {
     u_char  error[NXT_MAX_ERROR_STR];
 
-    if (nxt_var_test(value, error) != NXT_OK) {
+    if (nxt_var_test(value, vldt->var_fields, error) != NXT_OK) {
         return nxt_conf_vldt_error(vldt, "%s in the \"%V\" value.",
                                    error, name);
     }

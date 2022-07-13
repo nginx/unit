@@ -79,9 +79,11 @@ nxt_http_static_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_str_t               str, *ret;
     nxt_var_t               *var;
     nxt_conf_value_t        *cv;
+    nxt_router_conf_t       *rtcf;
     nxt_http_static_conf_t  *conf;
 
-    mp = tmcf->router_conf->mem_pool;
+    rtcf = tmcf->router_conf;
+    mp = rtcf->mem_pool;
 
     conf = nxt_mp_zget(mp, sizeof(nxt_http_static_conf_t));
     if (nxt_slow_path(conf == NULL)) {
@@ -102,7 +104,7 @@ nxt_http_static_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         cv = nxt_conf_get_array_element_or_itself(acf->share, i);
         nxt_conf_get_string(cv, &str);
 
-        var = nxt_var_compile(&str, mp, 1);
+        var = nxt_var_compile(&str, mp, rtcf->var_fields, 1);
         if (nxt_slow_path(var == NULL)) {
             return NXT_ERROR;
         }
@@ -128,7 +130,7 @@ nxt_http_static_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         nxt_str_t   chr, shr;
         nxt_bool_t  is_const;
 
-        conf->chroot = nxt_var_compile(&acf->chroot, mp, 1);
+        conf->chroot = nxt_var_compile(&acf->chroot, mp, rtcf->var_fields, 1);
         if (nxt_slow_path(conf->chroot == NULL)) {
             return NXT_ERROR;
         }
