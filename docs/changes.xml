@@ -43,6 +43,12 @@ ability to get dynamic variables.
 </para>
 </change>
 
+<change type="feature">
+<para>
+more http variables support.
+</para>
+</change>
+
 <change type="bugfix">
 <para>
 an index file that didn't contain a file extension was incorrectly
