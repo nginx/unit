@@ -180,6 +180,13 @@ the $dollar variable translates to a literal "$" during variable substitution.
 </para>
 </change>
 
+<change type="feature">
+<para>
+added default values for 'make install' pathnames such as prefix;
+this allows to do './configure && make && sudo make install'.
+</para>
+</change>
+
 <change type="bugfix">
 <para>
 router process could crash if index file didn't contain an extension.

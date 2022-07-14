@@ -9,8 +9,6 @@ NXT_CFLAGS=
 NXT_CC_OPT=
 NXT_LD_OPT=
 
-NXT_PREFIX=
-
 NXT_DEBUG=NO
 
 NXT_INET6=YES
@@ -41,6 +39,8 @@ NXT_TEST_BUILD_AIX_SEND_FILE=NO
 NXT_TEST_BUILD_HPUX_SENDFILE=NO
 
 NXT_TESTS=NO
+
+NXT_HELP=NO
 
 for nxt_option
 do
@@ -98,10 +98,7 @@ do
 
         --tests)                         NXT_TESTS=YES                       ;;
 
-        --help)
-            . auto/help
-            exit 0
-        ;;
+        --help)                          NXT_HELP=YES                        ;;
 
         *)
             $echo
@@ -119,58 +116,33 @@ do
 done
 
 
-case "$NXT_PREFIX" in
-    ""|*/)  ;;
-     *)  NXT_PREFIX="$NXT_PREFIX/"  ;;
-esac
+NXT_PREFIX="${NXT_PREFIX-"/usr/local"}"
 
-case "$NXT_BINDIR" in
-    /*)  ;;
-     *)  NXT_BINDIR="$NXT_PREFIX$NXT_BINDIR"  ;;
-esac
+NXT_EXEC_PREFIX="${NXT_EXEC_PREFIX-"$NXT_PREFIX"}"
+NXT_BINDIR="${NXT_BINDIR-"$NXT_EXEC_PREFIX/bin"}"
+NXT_SBINDIR="${NXT_SBINDIR-"$NXT_EXEC_PREFIX/sbin"}"
 
-case "$NXT_SBINDIR" in
-    /*)  ;;
-     *)  NXT_SBINDIR="$NXT_PREFIX$NXT_SBINDIR"  ;;
-esac
+NXT_INCDIR="${NXT_INCDIR-"$NXT_PREFIX/include"}"
 
-case "$NXT_LIBDIR" in
-    /*)  ;;
-     *)  NXT_LIBDIR="$NXT_PREFIX$NXT_LIBDIR"  ;;
-esac
+NXT_LIBDIR="${NXT_LIBDIR-"$NXT_PREFIX/lib"}"
+NXT_MODULES="${NXT_MODULES-"$NXT_LIBDIR/unit/modules"}"
 
-case "$NXT_INCDIR" in
-    /*)  ;;
-     *)  NXT_INCDIR="$NXT_PREFIX$NXT_INCDIR"  ;;
-esac
+NXT_DATAROOTDIR="${NXT_DATAROOTDIR-"$NXT_PREFIX/share"}"
+NXT_MANDIR="${NXT_MANDIR-"$NXT_DATAROOTDIR/man"}"
 
-case "$NXT_MANDIR" in
-    /*)  ;;
-     *)  NXT_MANDIR="$NXT_PREFIX$NXT_MANDIR"  ;;
-esac
+NXT_LOCALSTATEDIR="${NXT_LOCALSTATEDIR-"$NXT_PREFIX/var"}"
+NXT_LIBSTATEDIR="${NXT_LIBSTATEDIR-"$NXT_LOCALSTATEDIR/lib/unit"}"
+NXT_STATE="${NXT_STATE-"$NXT_LIBSTATEDIR"}"
+NXT_LOGDIR="${NXT_LOGDIR-"$NXT_LOCALSTATEDIR/log/unit"}"
+NXT_LOG="${NXT_LOG-"$NXT_LOGDIR/unit.log"}"
+NXT_RUNSTATEDIR="${NXT_RUNSTATEDIR-"$NXT_LOCALSTATEDIR/run/unit"}"
+NXT_CONTROL="${NXT_CONTROL-"unix:$NXT_RUNSTATEDIR/control.unit.sock"}"
+NXT_PID="${NXT_PID-"$NXT_RUNSTATEDIR/unit.pid"}"
 
-case "$NXT_MODULES" in
-    /*)  ;;
-     *)  NXT_MODULES="$NXT_PREFIX$NXT_MODULES"  ;;
-esac
+NXT_TMP="${NXT_TMP-"$NXT_PREFIX/tmp"}"
 
-case "$NXT_STATE" in
-    /*)  ;;
-     *)  NXT_STATE="$NXT_PREFIX$NXT_STATE"  ;;
-esac
 
-case "$NXT_PID" in
-    /*)  ;;
-     *)  NXT_PID="$NXT_PREFIX$NXT_PID"  ;;
-esac
-
-case "$NXT_LOG" in
-    /*)  ;;
-     *)  NXT_LOG="$NXT_PREFIX$NXT_LOG"  ;;
-esac
-
-case "$NXT_CONTROL" in
-    unix:/*)  ;;
-    unix:*)   NXT_CONTROL="unix:$NXT_PREFIX${NXT_CONTROL##unix:}" ;;
-    *)        ;;
-esac
+if [ $NXT_HELP = YES ]; then
+    . auto/help
+    exit 0
+fi
