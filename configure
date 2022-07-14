@@ -31,17 +31,6 @@ NXT_MAKEFILE=$NXT_BUILD_DIR/Makefile
 CC=${CC:-cc}
 
 NXT_DAEMON=unitd
-NXT_BINDIR="bin"
-NXT_SBINDIR="sbin"
-NXT_LIBDIR="lib"
-NXT_INCDIR="include"
-NXT_MANDIR="share/man"
-NXT_MODULES="modules"
-NXT_STATE="state"
-NXT_TMP="tmp"
-NXT_PID="unit.pid"
-NXT_LOG="unit.log"
-NXT_CONTROL="unix:control.unit.sock"
 NXT_USER="nobody"
 NXT_GROUP=
 
@@ -82,9 +71,9 @@ cat << END >> $NXT_AUTO_CONFIG_H
 
 #define NXT_PID                "$NXT_PID"
 #define NXT_LOG                "$NXT_LOG"
-#define NXT_MODULES            "$NXT_MODULES"
-#define NXT_STATE              "$NXT_STATE"
-#define NXT_TMP                "$NXT_TMP"
+#define NXT_MODULESDIR         "$NXT_MODULESDIR"
+#define NXT_LIBSTATEDIR        "$NXT_LIBSTATEDIR"
+#define NXT_TMPDIR             "$NXT_TMPDIR"
 
 #define NXT_CONTROL_SOCK       "$NXT_CONTROL"
 

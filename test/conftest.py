@@ -393,9 +393,9 @@ def unit_run(state_dir=None):
     unitd_args = [
         unitd,
         '--no-daemon',
-        '--modules',
+        '--modulesdir',
         build_dir,
-        '--state',
+        '--libstatedir',
         state,
         '--pid',
         temp_dir + '/unit.pid',
@@ -403,7 +403,7 @@ def unit_run(state_dir=None):
         temp_dir + '/unit.log',
         '--control',
         'unix:' + temp_dir + '/control.unit.sock',
-        '--tmp',
+        '--tmpdir',
         temp_dir,
     ]
 

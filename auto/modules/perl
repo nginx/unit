@@ -195,15 +195,15 @@ $NXT_BUILD_DIR/${NXT_PERL_MODULE}.unit.so:	$nxt_objs
 install: ${NXT_PERL_MODULE}-install
 
 ${NXT_PERL_MODULE}-install: ${NXT_PERL_MODULE} install-check
-	install -d \$(DESTDIR)$NXT_MODULES
+	install -d \$(DESTDIR)$NXT_MODULESDIR
 	install -p $NXT_BUILD_DIR/${NXT_PERL_MODULE}.unit.so \\
-		\$(DESTDIR)$NXT_MODULES/
+		\$(DESTDIR)$NXT_MODULESDIR/
 
 
 uninstall: ${NXT_PERL_MODULE}-uninstall
 
 ${NXT_PERL_MODULE}-uninstall:
-	rm -f \$(DESTDIR)$NXT_MODULES/${NXT_PERL_MODULE}.unit.so
-	@rmdir -p \$(DESTDIR)$NXT_MODULES 2>/dev/null || true
+	rm -f \$(DESTDIR)$NXT_MODULESDIR/${NXT_PERL_MODULE}.unit.so
+	@rmdir -p \$(DESTDIR)$NXT_MODULESDIR 2>/dev/null || true
 
 END

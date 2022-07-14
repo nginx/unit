@@ -11,23 +11,31 @@ cat << END
   --cc-opt=OPTIONS     set additional C compiler options
   --ld-opt=OPTIONS     set additional linker options
 
-  --prefix=DIRECTORY   set prefix for relative pathnames, default: none
-  --bindir=DIRECTORY   set user executables directory name
-                       default: "$NXT_BINDIR"
-  --sbindir=DIRECTORY  set system admin executables directory name
-                       default: "$NXT_SBINDIR"
-  --libdir=DIRECTORY   set library directory name, default: "$NXT_LIBDIR"
-  --incdir=DIRECTORY   set includes directory name, default: "$NXT_INCDIR"
-  --mandir=DIRECTORY   set man pages directory name, default: "$NXT_MANDIR"
-  --modules=DIRECTORY  set modules directory name, default: "$NXT_MODULES"
-  --state=DIRECTORY    set state directory name, default: "$NXT_STATE"
-  --tmp=DIRECTORY      set tmp directory name, default: "$NXT_TMP"
+  --prefix=DIR         default: "/usr/local"
+  --exec-prefix=DIR    default: "\$prefix"
+  --bindir=DIR         default: "\$exec_prefix/bin"
+  --sbindir=DIR        default: "\$exec_prefix/sbin"
+  --includedir=DIR     default: "\$prefix/include"
+  --libdir=DIR         default: "\$exec_prefix/lib"
+  --modulesdir=DIR     default: "\$libdir/unit/modules"
+  --datarootdir=DIR    default: "\$prefix/share"
+  --mandir=DIR         default: "\$datarootdir/man"
+  --localstatedir=DIR  default: "\$prefix/var"
+  --libstatedir=DIR    default: "\$localstatedir/lib/unit"
+  --runstatedir=DIR    default: "\$localstatedir/run/unit"
+  --logdir=DIR         default: "\$localstatedir/log/unit"
+  --tmpdir=DIR         default: "/tmp"
 
-  --pid=FILE           set pid filename, default: "$NXT_PID"
-  --log=FILE           set log filename, default: "$NXT_LOG"
+  --incdir=DIR         [deprecated] synonym for --includedir
+  --modules=DIR        [deprecated] synonym for --modulesdir
+  --state=DIR          [deprecated] synonym for --libstatedir
+  --tmp=DIR            [deprecated] synonym for --tmpdir
+
+  --pid=FILE           set pid filename, default: "\$runstatedir/unit.pid"
+  --log=FILE           set log filename, default: "\$logdir/unit.log"
 
   --control=ADDRESS    set address of control API socket
-                       default: "$NXT_CONTROL"
+                       default: "unix:\$runstatedir/control.unit.sock"
 
   --user=USER          set non-privileged processes to run as specified user
                        default: "$NXT_USER"

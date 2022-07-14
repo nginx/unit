@@ -38,6 +38,13 @@ support the keys API on the request objects in NJS.
 </para>
 </change>
 
+<change type="feature">
+<para>
+added default values for 'make install' pathnames such as prefix;
+this allows to do './configure &amp;&amp; make &amp;&amp; sudo make install'.
+</para>
+</change>
+
 </changes>
 
 <changes apply="unit-php

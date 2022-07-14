@@ -768,10 +768,10 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
     rt->group = NXT_GROUP;
     rt->pid = NXT_PID;
     rt->log = NXT_LOG;
-    rt->modules = NXT_MODULES;
-    rt->state = NXT_STATE;
+    rt->modules = NXT_MODULESDIR;
+    rt->state = NXT_LIBSTATEDIR;
     rt->control = NXT_CONTROL_SOCK;
-    rt->tmp = NXT_TMP;
+    rt->tmp = NXT_TMPDIR;
 
     nxt_memzero(&rt->capabilities, sizeof(nxt_capabilities_t));
 
@@ -927,9 +927,10 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
     static const char  no_pid[] = "option \"--pid\" requires filename\n";
     static const char  no_log[] = "option \"--log\" requires filename\n";
     static const char  no_modules[] =
-                       "option \"--modules\" requires directory\n";
-    static const char  no_state[] = "option \"--state\" requires directory\n";
-    static const char  no_tmp[] = "option \"--tmp\" requires directory\n";
+                       "option \"--modulesdir\" requires directory\n";
+    static const char  no_state[] =
+                       "option \"--libstatedir\" requires directory\n";
+    static const char  no_tmp[] = "option \"--tmpdir\" requires directory\n";
 
     static const char  help[] =
         "\n"
@@ -948,14 +949,14 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
         "  --log FILE           set log filename\n"
         "                       default: \"" NXT_LOG "\"\n"
         "\n"
-        "  --modules DIRECTORY  set modules directory name\n"
-        "                       default: \"" NXT_MODULES "\"\n"
+        "  --modulesdir DIR     set modules directory name\n"
+        "                       default: \"" NXT_MODULESDIR "\"\n"
         "\n"
-        "  --state DIRECTORY    set state directory name\n"
-        "                       default: \"" NXT_STATE "\"\n"
+        "  --libstatedir DIR    set state directory name\n"
+        "                       default: \"" NXT_LIBSTATEDIR "\"\n"
         "\n"
-        "  --tmp DIRECTORY      set tmp directory name\n"
-        "                       default: \"" NXT_TMP "\"\n"
+        "  --tmpdir DIR         set tmp directory name\n"
+        "                       default: \"" NXT_TMPDIR "\"\n"
         "\n"
         "  --user USER          set non-privileged processes to run"
                                 " as specified user\n"
@@ -1038,7 +1039,7 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
             continue;
         }
 
-        if (nxt_strcmp(p, "--modules") == 0) {
+        if (nxt_strcmp(p, "--modulesdir") == 0) {
             if (*argv == NULL) {
                 write(STDERR_FILENO, no_modules, nxt_length(no_modules));
                 return NXT_ERROR;
@@ -1051,7 +1052,7 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
             continue;
         }
 
-        if (nxt_strcmp(p, "--state") == 0) {
+        if (nxt_strcmp(p, "--libstatedir") == 0) {
             if (*argv == NULL) {
                 write(STDERR_FILENO, no_state, nxt_length(no_state));
                 return NXT_ERROR;
@@ -1064,7 +1065,7 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
             continue;
         }
 
-        if (nxt_strcmp(p, "--tmp") == 0) {
+        if (nxt_strcmp(p, "--tmpdir") == 0) {
             if (*argv == NULL) {
                 write(STDERR_FILENO, no_tmp, nxt_length(no_tmp));
                 return NXT_ERROR;

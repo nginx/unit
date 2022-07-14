@@ -598,14 +598,14 @@ unit_ctl_welcome()
 
         # Check unitd is not configured already.
         echo "$cmd" \
-        | if grep '\--state' >/dev/null; then
+        | if grep '\--libstatedir' >/dev/null; then
             echo "$cmd" \
             | sed 's/ --/\n--/g' \
-            | grep '\--state' \
+            | grep '\--libstatedir' \
             | cut -d' ' -f2;
         else
             $cmd --help \
-            | sed -n '/\--state/,+1p' \
+            | sed -n '/\--libstatedir/,+1p' \
             | grep 'default:' \
             | sed 's/ *default: "\(.*\)"/\1/';
         fi \
