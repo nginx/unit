@@ -1125,7 +1125,7 @@ nxt_main_listening_socket(nxt_sockaddr_t *sa, nxt_listening_socket_t *ls)
                               "setsockopt(\\\"%*s\\\", SO_REUSEADDR) failed %E",
                               (size_t) sa->length, nxt_sockaddr_start(sa),
                               nxt_errno);
-        goto fail;
+        goto fail_unbound;
     }
 
 #if (NXT_INET6)
@@ -1137,7 +1137,7 @@ nxt_main_listening_socket(nxt_sockaddr_t *sa, nxt_listening_socket_t *ls)
                                "setsockopt(\\\"%*s\\\", IPV6_V6ONLY) failed %E",
                                (size_t) sa->length, nxt_sockaddr_start(sa),
                                nxt_errno);
-            goto fail;
+            goto fail_unbound;
         }
     }
 
@@ -1182,7 +1182,7 @@ nxt_main_listening_socket(nxt_sockaddr_t *sa, nxt_listening_socket_t *ls)
 
         ls->end = nxt_sprintf(ls->start, ls->end, "bind(\\\"%*s\\\") failed %E",
                               (size_t) sa->length, nxt_sockaddr_start(sa), err);
-        goto fail;
+        goto fail_unbound;
     }
 
 #if (NXT_HAVE_UNIX_DOMAIN)
@@ -1198,7 +1198,7 @@ nxt_main_listening_socket(nxt_sockaddr_t *sa, nxt_listening_socket_t *ls)
             ls->end = nxt_sprintf(ls->start, ls->end,
                                   "chmod(\\\"%s\\\") failed %E",
                                   filename, nxt_errno);
-            goto fail;
+            goto fail_bound;
         }
     }
 
@@ -1208,7 +1208,15 @@ nxt_main_listening_socket(nxt_sockaddr_t *sa, nxt_listening_socket_t *ls)
 
     return NXT_OK;
 
-fail:
+#if (NXT_HAVE_UNIX_DOMAIN)
+
+fail_bound:
+
+    (void) unlink(sa->u.sockaddr_un.sun_path);
+
+#endif
+
+fail_unbound:
 
     (void) close(s);
 

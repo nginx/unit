@@ -285,6 +285,20 @@ nxt_socket_close(nxt_task_t *task, nxt_socket_t s)
     nxt_err_t   err;
     nxt_uint_t  level;
 
+#if (NXT_HAVE_UNIX_DOMAIN)
+    socklen_t           len;
+    struct sockaddr_un  sa = {0};
+
+    len = sizeof(struct sockaddr_un) - 1;
+    if ((getsockname(s, (struct sockaddr *)&sa, &len) == 0)
+        && (sa.sun_family == AF_UNIX))
+    {
+        ((char *) &sa)[len] = '\0';
+        nxt_debug(task, "socket unlink(%s)", sa.sun_path);
+        (void) unlink(sa.sun_path);
+    }
+#endif
+
     if (nxt_fast_path(close(s) == 0)) {
         nxt_debug(task, "socket close(%d)", s);
         return;
