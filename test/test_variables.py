@@ -19,6 +19,10 @@ class TestVariables(TestApplicationProto):
                     "localhost": [{"action": {"return": 208}}],
                     "9?q#a": [{"action": {"return": 209}}],
                     "blah": [{"action": {"return": 210}}],
+                    "127.0.0.1": [{"action": {"return": 211}}],
+                    "::1": [{"action": {"return": 212}}],
+                    "referer-value": [{"action": {"return": 213}}],
+                    "MSIE": [{"action": {"return": 214}}],
                 },
             },
         ), 'configure routes'
@@ -62,6 +66,53 @@ class TestVariables(TestApplicationProto):
         check_host('.localhost', 404)
         check_host('www.localhost', 404)
         check_host('localhost1', 404)
+
+    def test_variables_remote_addr(self):
+        self.conf_routes("\"routes/$remote_addr\"")
+        assert self.get()['status'] == 211
+
+        assert 'success' in self.conf(
+            {"[::1]:7080": {"pass": "routes/$remote_addr"}}, 'listeners'
+        )
+        assert self.get(sock_type='ipv6')['status'] == 212
+
+    def test_variables_header_referer(self):
+        self.conf_routes("\"routes/$header_referer\"")
+
+        def check_referer(referer, status=213):
+            assert (
+                self.get(
+                    headers={
+                        'Host': 'localhost',
+                        'Connection': 'close',
+                        'Referer': referer,
+                    }
+                )['status']
+                == status
+            )
+
+        check_referer('referer-value')
+        check_referer('', 404)
+        check_referer('no', 404)
+
+    def test_variables_header_user_agent(self):
+        self.conf_routes("\"routes/$header_user_agent\"")
+
+        def check_user_agent(user_agent, status=214):
+            assert (
+                self.get(
+                    headers={
+                        'Host': 'localhost',
+                        'Connection': 'close',
+                        'User-Agent': user_agent,
+                    }
+                )['status']
+                == status
+            )
+
+        check_user_agent('MSIE')
+        check_user_agent('', 404)
+        check_user_agent('no', 404)
 
     def test_variables_many(self):
         self.conf_routes("\"routes$uri$method\"")
