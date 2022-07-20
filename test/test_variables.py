@@ -114,6 +114,27 @@ class TestVariables(TestApplicationProto):
         check_user_agent('', 404)
         check_user_agent('no', 404)
 
+    def test_variables_dollar(self):
+        assert 'success' in self.conf(
+            {
+                "listeners": {"*:7080": {"pass": "routes"}},
+                "routes": [{"action": {"return": 301}}],
+            }
+        )
+
+        def check_dollar(location, expect):
+            assert 'success' in self.conf(
+                '"' + location + '"',
+                'routes/0/action/location',
+            )
+            assert self.get()['headers']['Location'] == expect
+
+        check_dollar(
+            'https://${host}${uri}path${dollar}dollar',
+            'https://localhost/path$dollar',
+        )
+        check_dollar('path$dollar${dollar}', 'path$$')
+
     def test_variables_many(self):
         self.conf_routes("\"routes$uri$method\"")
         assert self.get(url='/5')['status'] == 206, 'many'
