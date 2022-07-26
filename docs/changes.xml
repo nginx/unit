@@ -58,6 +58,7 @@ more http variables support.
 <change type="feature">
 <para>
 added a new variable, $dollar, that translates to a literal "$" during
+variable substitution.
 </para>
 </change>
 
