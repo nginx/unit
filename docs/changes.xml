@@ -37,6 +37,12 @@ increased the applications' startup timeout.
 </para>
 </change>
 
+<change type="change">
+<para>
+disallowed abstract Unix domain socket syntax in non-Linux systems.
+</para>
+</change>
+
 <change type="feature">
 <para>
 supporting abstract UNIX sockets.

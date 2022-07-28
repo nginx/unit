@@ -601,8 +601,6 @@ nxt_sockaddr_unix_parse(nxt_mp_t *mp, nxt_str_t *addr)
 
     socklen = offsetof(struct sockaddr_un, sun_path) + length + 1;
 
-#if (NXT_LINUX)
-
     /*
      * Linux unix(7):
      *
@@ -615,9 +613,12 @@ nxt_sockaddr_unix_parse(nxt_mp_t *mp, nxt_str_t *addr)
     if (path[0] == '@') {
         path[0] = '\0';
         socklen--;
-    }
-
+#if !(NXT_LINUX)
+        nxt_thread_log_error(NXT_LOG_ERR,
+                             "abstract unix domain sockets are not supported");
+        return NULL;
 #endif
+    }
 
     sa = nxt_sockaddr_alloc(mp, socklen, addr->length);
 
