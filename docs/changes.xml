@@ -39,6 +39,12 @@ increased the applications' startup timeout.
 
 <change type="feature">
 <para>
+supporting abstract UNIX sockets.
+</para>
+</change>
+
+<change type="feature">
+<para>
 supporting UNIX sockets in address matching.
 </para>
 </change>
