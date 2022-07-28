@@ -377,8 +377,8 @@ nxt_ruby_start(nxt_task_t *task, nxt_process_data_t *data)
         }
     }
 
-    rc = (intptr_t) rb_thread_call_without_gvl(nxt_ruby_unit_run, unit_ctx,
-                                               nxt_ruby_ubf, unit_ctx);
+    rc = (intptr_t) rb_thread_call_without_gvl2(nxt_ruby_unit_run, unit_ctx,
+                                                nxt_ruby_ubf, unit_ctx);
 
     if (nxt_ruby_hook_procs != Qnil) {
         rb_protect(nxt_ruby_hook_call, nxt_rb_on_thread_shutdown, &state);
