@@ -610,8 +610,11 @@ nxt_sockaddr_unix_parse(nxt_mp_t *mp, nxt_str_t *addr)
      *   are covered by the specified length of the address structure.
      *   (Null bytes in the name have no special significance.)
      */
-    if (path[0] == '@') {
+    switch (path[0]) {
+    case '@':
         path[0] = '\0';
+        /* fall through */
+    case '\0':
         socklen--;
 #if !(NXT_LINUX)
         nxt_thread_log_error(NXT_LOG_ERR,
