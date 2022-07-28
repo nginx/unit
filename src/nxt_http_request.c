@@ -791,6 +791,7 @@ nxt_http_request_error_handler(nxt_task_t *task, void *obj, void *data)
 void
 nxt_http_request_close_handler(nxt_task_t *task, void *obj, void *data)
 {
+    nxt_var_t                *log_format;
     nxt_http_proto_t         proto;
     nxt_http_request_t       *r;
     nxt_http_protocol_t      protocol;
@@ -800,19 +801,21 @@ nxt_http_request_close_handler(nxt_task_t *task, void *obj, void *data)
     r = obj;
     proto.any = data;
 
-    nxt_debug(task, "http request close handler");
-
     conf = r->conf;
 
     if (!r->logged) {
         r->logged = 1;
 
         access_log = conf->socket_conf->router_conf->access_log;
+        log_format = conf->socket_conf->router_conf->log_format;
 
         if (access_log != NULL) {
-            access_log->handler(task, r, access_log);
+            access_log->handler(task, r, access_log, log_format);
+            return;
         }
     }
+
+    nxt_debug(task, "http request close handler");
 
     r->proto.any = NULL;
 

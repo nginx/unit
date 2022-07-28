@@ -32,6 +32,12 @@ typedef struct {
 } nxt_var_field_t;
 
 
+typedef enum {
+    NXT_VAR_STRZ       = 1 << 0,
+    NXT_VAR_LOGGING    = 1 << 1,
+} nxt_var_flags_t;
+
+
 nxt_inline nxt_bool_t
 nxt_is_var(nxt_str_t *str)
 {
@@ -45,7 +51,7 @@ nxt_int_t nxt_var_index_init(void);
 nxt_var_field_t *nxt_var_field_get(nxt_array_t *fields, uint16_t index);
 
 nxt_var_t *nxt_var_compile(nxt_str_t *str, nxt_mp_t *mp, nxt_array_t *fields,
-    nxt_bool_t strz);
+    nxt_var_flags_t flags);
 nxt_int_t nxt_var_test(nxt_str_t *str, nxt_array_t *fields, u_char *error);
 
 nxt_bool_t nxt_var_is_const(nxt_var_t *var);

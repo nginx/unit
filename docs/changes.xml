@@ -62,6 +62,12 @@ variable substitution.
 </para>
 </change>
 
+<change type="feature">
+<para>
+customizable access log format.
+</para>
+</change>
+
 <change type="bugfix">
 <para>
 an index file that didn't contain a file extension was incorrectly

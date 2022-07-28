@@ -9,7 +9,7 @@
 struct nxt_var_s {
     size_t              length;
     nxt_uint_t          vars;
-    uint8_t             strz;  /* 1 bit */
+    nxt_var_flags_t     flags;
     u_char              data[];
 
 /*
@@ -331,17 +331,20 @@ nxt_var_index_init(void)
 
 nxt_var_t *
 nxt_var_compile(nxt_str_t *str, nxt_mp_t *mp, nxt_array_t *fields,
-    nxt_bool_t strz)
+    nxt_var_flags_t flags)
 {
     u_char          *p, *end, *next, *src;
     size_t          size;
     uint32_t        index;
+    nxt_bool_t      strz;
     nxt_var_t       *var;
     nxt_str_t       part;
     nxt_uint_t      n;
     nxt_bool_t      is_var;
     nxt_var_sub_t   *subs;
     nxt_var_decl_t  *decl;
+
+    strz = (flags & NXT_VAR_STRZ) != 0;
 
     n = 0;
 
@@ -368,7 +371,7 @@ nxt_var_compile(nxt_str_t *str, nxt_mp_t *mp, nxt_array_t *fields,
 
     var->length = str->length;
     var->vars = n;
-    var->strz = strz;
+    var->flags = flags;
 
     subs = nxt_var_subs(var);
     src = nxt_var_raw_start(var);
@@ -568,6 +571,7 @@ nxt_var_query(nxt_task_t *task, nxt_var_query_t *query, nxt_var_t *var,
     size_t         length, last, next;
     nxt_str_t      *value, **part;
     nxt_uint_t     i;
+    nxt_bool_t     strz, logging;
     nxt_array_t    parts;
     nxt_var_sub_t  *subs;
 
@@ -582,6 +586,9 @@ nxt_var_query(nxt_task_t *task, nxt_var_query_t *query, nxt_var_t *var,
 
     nxt_memzero(&parts, sizeof(nxt_array_t));
     nxt_array_init(&parts, query->pool, sizeof(nxt_str_t *));
+
+    strz = (var->flags & NXT_VAR_STRZ) != 0;
+    logging = (var->flags & NXT_VAR_LOGGING) != 0;
 
     subs = nxt_var_subs(var);
 
@@ -601,9 +608,13 @@ nxt_var_query(nxt_task_t *task, nxt_var_query_t *query, nxt_var_t *var,
         *part = value;
 
         length += value->length - subs[i].length;
+
+        if (logging && value->start == NULL) {
+            length += 1;
+        }
     }
 
-    p = nxt_mp_nget(query->pool, length + var->strz);
+    p = nxt_mp_nget(query->pool, length + strz);
     if (nxt_slow_path(p == NULL)) {
         goto fail;
     }
@@ -625,6 +636,10 @@ nxt_var_query(nxt_task_t *task, nxt_var_query_t *query, nxt_var_t *var,
 
         p = nxt_cpymem(p, part[i]->start, part[i]->length);
 
+        if (logging && part[i]->start == NULL) {
+            *p++ = '-';
+        }
+
         last = next + subs[i].length;
     }
 
@@ -632,7 +647,7 @@ nxt_var_query(nxt_task_t *task, nxt_var_query_t *query, nxt_var_t *var,
         p = nxt_cpymem(p, &src[last], var->length - last);
     }
 
-    if (var->strz) {
+    if (strz) {
         *p = '\0';
     }
 

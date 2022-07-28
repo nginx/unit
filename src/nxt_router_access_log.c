@@ -10,10 +10,25 @@
 #include <nxt_http.h>
 
 
+typedef struct {
+    nxt_str_t                 path;
+    nxt_str_t                 format;
+} nxt_router_access_log_conf_t;
+
+
+typedef struct {
+    nxt_str_t                 text;
+    nxt_router_access_log_t   *access_log;
+} nxt_router_access_log_ctx_t;
+
+
 static void nxt_router_access_log_writer(nxt_task_t *task,
-    nxt_http_request_t *r, nxt_router_access_log_t *access_log);
-static u_char *nxt_router_access_log_date(u_char *buf, nxt_realtime_t *now,
-    struct tm *tm, size_t size, const char *format);
+    nxt_http_request_t *r, nxt_router_access_log_t *access_log,
+    nxt_var_t *format);
+static void nxt_router_access_log_write_ready(nxt_task_t *task, void *obj,
+    void *data);
+static void nxt_router_access_log_write_error(nxt_task_t *task, void *obj,
+    void *data);
 static void nxt_router_access_log_ready(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
 static void nxt_router_access_log_error(nxt_task_t *task,
@@ -26,26 +41,63 @@ static void nxt_router_access_log_reopen_error(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
 
 
+static nxt_conf_map_t  nxt_router_access_log_conf[] = {
+    {
+        nxt_string("path"),
+        NXT_CONF_MAP_STR,
+        offsetof(nxt_router_access_log_conf_t, path),
+    },
+
+    {
+        nxt_string("format"),
+        NXT_CONF_MAP_STR,
+        offsetof(nxt_router_access_log_conf_t, format),
+    },
+};
+
+
 nxt_int_t
 nxt_router_access_log_create(nxt_task_t *task, nxt_router_conf_t *rtcf,
     nxt_conf_value_t *value)
 {
-    nxt_str_t                path;
-    nxt_router_t             *router;
-    nxt_router_access_log_t  *access_log;
+    u_char                        *p;
+    nxt_int_t                     ret;
+    nxt_str_t                     str;
+    nxt_var_t                     *format;
+    nxt_router_t                  *router;
+    nxt_router_access_log_t       *access_log;
+    nxt_router_access_log_conf_t  alcf;
+
+    static nxt_str_t  log_format_str = nxt_string("$remote_addr - - "
+        "[$time_local] \"$request_line\" $status $body_bytes_sent "
+        "\"$header_referer\" \"$header_user_agent\"");
+
+    alcf.format = log_format_str;
+
+    if (nxt_conf_type(value) == NXT_CONF_STRING) {
+        nxt_conf_get_string(value, &alcf.path);
+
+    } else {
+        ret = nxt_conf_map_object(rtcf->mem_pool, value,
+                                  nxt_router_access_log_conf,
+                                  nxt_nitems(nxt_router_access_log_conf),
+                                  &alcf);
+        if (ret != NXT_OK) {
+            nxt_alert(task, "access log map error");
+            return NXT_ERROR;
+        }
+    }
 
     router = nxt_router;
 
-    nxt_conf_get_string(value, &path);
-
     access_log = router->access_log;
 
-    if (access_log != NULL && nxt_strstr_eq(&path, &access_log->path)) {
+    if (access_log != NULL && nxt_strstr_eq(&alcf.path, &access_log->path)) {
         nxt_router_access_log_use(&router->lock, access_log);
 
     } else {
         access_log = nxt_malloc(sizeof(nxt_router_access_log_t)
-                                + path.length);
+                                + alcf.path.length);
         if (access_log == NULL) {
             nxt_alert(task, "failed to allocate access log structure");
             return NXT_ERROR;
@@ -55,14 +107,32 @@ nxt_router_access_log_create(nxt_task_t *task, nxt_router_conf_t *rtcf,
         access_log->handler = &nxt_router_access_log_writer;
         access_log->count = 1;
 
-        access_log->path.length = path.length;
+        access_log->path.length = alcf.path.length;
         access_log->path.start = (u_char *) access_log
                                  + sizeof(nxt_router_access_log_t);
 
-        nxt_memcpy(access_log->path.start, path.start, path.length);
+        nxt_memcpy(access_log->path.start, alcf.path.start, alcf.path.length);
+    }
+
+    str.length = alcf.format.length + 1;
+
+    str.start = nxt_malloc(str.length);
+    if (str.start == NULL) {
+        nxt_alert(task, "failed to allocate log format structure");
+        return NXT_ERROR;
+    }
+
+    p = nxt_cpymem(str.start, alcf.format.start, alcf.format.length);
+    *p = '\n';
+
+    format = nxt_var_compile(&str, rtcf->mem_pool, rtcf->var_fields,
+                             NXT_VAR_LOGGING);
+    if (nxt_slow_path(format == NULL)) {
+        return NXT_ERROR;
     }
 
     rtcf->access_log = access_log;
+    rtcf->log_format = format;
 
     return NXT_OK;
 }
@@ -70,130 +140,56 @@ nxt_router_access_log_create(nxt_task_t *task, nxt_router_conf_t *rtcf,
 
 static void
 nxt_router_access_log_writer(nxt_task_t *task, nxt_http_request_t *r,
-    nxt_router_access_log_t *access_log)
+    nxt_router_access_log_t *access_log, nxt_var_t *format)
 {
-    size_t     size;
-    u_char     *buf, *p;
-    nxt_off_t  bytes;
+    nxt_int_t                    ret;
+    nxt_router_access_log_ctx_t  *ctx;
 
-    static nxt_time_string_t  date_cache = {
-        (nxt_atomic_uint_t) -1,
-        nxt_router_access_log_date,
-        "%02d/%s/%4d:%02d:%02d:%02d %c%02d%02d",
-        nxt_length("31/Dec/1986:19:40:00 +0300"),
-        NXT_THREAD_TIME_LOCAL,
-        NXT_THREAD_TIME_SEC,
-    };
-
-    size = r->remote->address_length
-           + 6                  /* ' - - [' */
-           + date_cache.size
-           + 3                  /* '] "' */
-           + r->method->length
-           + 1                  /* space */
-           + r->target.length
-           + 1                  /* space */
-           + r->version.length
-           + 2                  /* '" ' */
-           + 3                  /* status */
-           + 1                  /* space */
-           + NXT_OFF_T_LEN
-           + 2                  /* ' "' */
-           + (r->referer != NULL ? r->referer->value_length : 1)
-           + 3                  /* '" "' */
-           + (r->user_agent != NULL ? r->user_agent->value_length : 1)
-           + 2                  /* '"\n' */
-    ;
-
-    buf = nxt_mp_nget(r->mem_pool, size);
-    if (nxt_slow_path(buf == NULL)) {
+    ctx = nxt_mp_get(r->mem_pool, sizeof(nxt_router_access_log_ctx_t));
+    if (nxt_slow_path(ctx == NULL)) {
         return;
     }
 
-    p = nxt_cpymem(buf, nxt_sockaddr_address(r->remote),
-                   r->remote->address_length);
+    ctx->access_log = access_log;
 
-    p = nxt_cpymem(p, " - - [", 6);
+    if (nxt_var_is_const(format)) {
+        nxt_var_raw(format, &ctx->text);
 
-    p = nxt_thread_time_string(task->thread, &date_cache, p);
+        nxt_router_access_log_write_ready(task, r, ctx);
 
-    p = nxt_cpymem(p, "] \"", 3);
-
-    if (r->method->length != 0) {
-        p = nxt_cpymem(p, r->method->start, r->method->length);
-
-        if (r->target.length != 0) {
-            *p++ = ' ';
-            p = nxt_cpymem(p, r->target.start, r->target.length);
-
-            if (r->version.length != 0) {
-                *p++ = ' ';
-                p = nxt_cpymem(p, r->version.start, r->version.length);
-            }
+    } else {
+        ret = nxt_var_query_init(&r->var_query, r, r->mem_pool);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            return;
         }
 
-    } else {
-        *p++ = '-';
-    }
-
-    p = nxt_cpymem(p, "\" ", 2);
-
-    p = nxt_sprintf(p, p + 3, "%03d", r->status);
-
-    *p++ = ' ';
-
-    bytes = nxt_http_proto[r->protocol].body_bytes_sent(task, r->proto);
-
-    p = nxt_sprintf(p, p + NXT_OFF_T_LEN, "%O", bytes);
-
-    p = nxt_cpymem(p, " \"", 2);
-
-    if (r->referer != NULL) {
-        p = nxt_cpymem(p, r->referer->value, r->referer->value_length);
-
-    } else {
-        *p++ = '-';
-    }
-
-    p = nxt_cpymem(p, "\" \"", 3);
-
-    if (r->user_agent != NULL) {
-        p = nxt_cpymem(p, r->user_agent->value, r->user_agent->value_length);
-
-    } else {
-        *p++ = '-';
-    }
-
-    p = nxt_cpymem(p, "\"\n", 2);
-
-    nxt_fd_write(access_log->fd, buf, p - buf);
+        nxt_var_query(task, r->var_query, format, &ctx->text);
+        nxt_var_query_resolve(task, r->var_query, ctx,
+                              nxt_router_access_log_write_ready,
+                              nxt_router_access_log_write_error);
+     }
 }
 
 
-static u_char *
-nxt_router_access_log_date(u_char *buf, nxt_realtime_t *now, struct tm *tm,
-    size_t size, const char *format)
+static void
+nxt_router_access_log_write_ready(nxt_task_t *task, void *obj, void *data)
 {
-    u_char  sign;
-    time_t  gmtoff;
+    nxt_http_request_t           *r;
+    nxt_router_access_log_ctx_t  *ctx;
 
-    static const char  *month[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+    r = obj;
+    ctx = data;
 
-    gmtoff = nxt_timezone(tm) / 60;
+    nxt_fd_write(ctx->access_log->fd, ctx->text.start, ctx->text.length);
 
-    if (gmtoff < 0) {
-        gmtoff = -gmtoff;
-        sign = '-';
+    nxt_http_request_close_handler(task, r, r->proto.any);
+}
 
-    } else {
-        sign = '+';
-    }
 
-    return nxt_sprintf(buf, buf + size, format,
-                       tm->tm_mday, month[tm->tm_mon], tm->tm_year + 1900,
-                       tm->tm_hour, tm->tm_min, tm->tm_sec,
-                       sign, gmtoff / 60, gmtoff % 60);
+static void
+nxt_router_access_log_write_error(nxt_task_t *task, void *obj, void *data)
+{
+
 }
 
 

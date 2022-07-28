@@ -53,6 +53,7 @@ typedef struct {
     nxt_lvlhsh_t             apps_hash;
 
     nxt_router_access_log_t  *access_log;
+    nxt_var_t                *log_format;
 } nxt_router_conf_t;
 
 
@@ -223,7 +224,8 @@ typedef struct {
 
 struct nxt_router_access_log_s {
     void                   (*handler)(nxt_task_t *task, nxt_http_request_t *r,
-                                      nxt_router_access_log_t *access_log);
+                                      nxt_router_access_log_t *access_log,
+                                      nxt_var_t *format);
     nxt_fd_t               fd;
     nxt_str_t              path;
     uint32_t               count;
