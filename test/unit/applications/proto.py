@@ -16,18 +16,18 @@ class TestApplicationProto(TestControl):
     def date_to_sec_epoch(self, date, template='%a, %d %b %Y %X %Z'):
         return time.mktime(time.strptime(date, template))
 
-    def findall(self, pattern, name='unit.log'):
+    def findall(self, pattern, name='unit.log', flags=re.M):
         with Log.open(name) as f:
-            return re.findall(pattern, f.read())
+            return re.findall(pattern, f.read(), flags)
 
-    def search_in_log(self, pattern, name='unit.log'):
+    def search_in_log(self, pattern, name='unit.log', flags=re.M):
         with Log.open(name) as f:
-            return re.search(pattern, f.read())
+            return re.search(pattern, f.read(), flags)
 
-    def wait_for_record(self, pattern, name='unit.log', wait=150):
+    def wait_for_record(self, pattern, name='unit.log', wait=150, flags=re.M):
         with Log.open(name) as f:
             for i in range(wait):
-                found = re.search(pattern, f.read())
+                found = re.search(pattern, f.read(), flags)
 
                 if found is not None:
                     break

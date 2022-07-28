@@ -1,5 +1,4 @@
 import io
-import re
 import ssl
 import subprocess
 import time
@@ -620,9 +619,7 @@ basicConstraints = critical,CA:TRUE"""
         skip_alert(r'process .* %s.* exited on signal 9' % app_id)
 
         self.wait_for_record(
-            re.compile(
-                r' (?!' + app_id + r'#)(\d+)#\d+ "mirror" application started'
-            )
+            r' (?!' + app_id + r'#)(\d+)#\d+ "mirror" application started'
         )
 
         resp = self.post_ssl(

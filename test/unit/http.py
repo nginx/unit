@@ -209,9 +209,7 @@ class TestHTTP:
             return {}
 
         headers_text, body = m.group(1), m.group(2)
-
-        p = re.compile('(.*?)\x0d\x0a?', re.M | re.S)
-        headers_lines = p.findall(headers_text)
+        headers_lines = re.findall('(.*?)\x0d\x0a?', headers_text, re.M | re.S)
 
         status = re.search(
             r'^HTTP\/\d\.\d\s(\d+)|$', headers_lines.pop(0)
