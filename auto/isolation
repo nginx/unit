@@ -61,11 +61,14 @@ fi
 
 
 nxt_feature="Linux pivot_root()"
-nxt_feature_name=NXT_HAVE_PIVOT_ROOT
+nxt_feature_name=NXT_HAVE_LINUX_PIVOT_ROOT
 nxt_feature_run=no
 nxt_feature_incs=
 nxt_feature_libs=
 nxt_feature_test="#include <sys/syscall.h>
+                  #if !defined(__linux__)
+                  # error
+                  #endif
 
                   int main() {
                       return SYS_pivot_root;
