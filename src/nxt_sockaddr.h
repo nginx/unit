@@ -58,15 +58,6 @@ struct nxt_sockaddr_s {
 };
 
 
-typedef struct {
-    nxt_job_resolve_t             resolve;
-    nxt_str_t                     addr;
-
-    uint8_t                       wildcard;   /* 1 bit */
-    uint8_t                       no_port;    /* 1 bit */
-} nxt_job_sockaddr_parse_t;
-
-
 nxt_sockaddr_t *nxt_sockaddr_cache_alloc(nxt_event_engine_t *engine,
     nxt_listen_socket_t *ls);
 void nxt_sockaddr_cache_free(nxt_event_engine_t *engine, nxt_conn_t *c);
@@ -88,12 +79,9 @@ NXT_EXPORT void nxt_sockaddr_text(nxt_sockaddr_t *sa);
 NXT_EXPORT uint32_t nxt_sockaddr_port_number(nxt_sockaddr_t *sa);
 NXT_EXPORT nxt_bool_t nxt_sockaddr_cmp(nxt_sockaddr_t *sa1,
     nxt_sockaddr_t *sa2);
-NXT_EXPORT size_t nxt_sockaddr_ntop(nxt_sockaddr_t *sa, u_char *buf,
-    u_char *end, nxt_bool_t port);
 NXT_EXPORT nxt_sockaddr_t *nxt_sockaddr_parse(nxt_mp_t *mp, nxt_str_t *addr);
 NXT_EXPORT nxt_sockaddr_t *nxt_sockaddr_parse_optport(nxt_mp_t *mp,
     nxt_str_t *addr);
-NXT_EXPORT void nxt_job_sockaddr_parse(nxt_job_sockaddr_parse_t *jbs);
 NXT_EXPORT in_addr_t nxt_inet_addr(u_char *buf, size_t len);
 #if (NXT_INET6)
 NXT_EXPORT nxt_int_t nxt_inet6_addr(struct in6_addr *in6_addr, u_char *buf,
