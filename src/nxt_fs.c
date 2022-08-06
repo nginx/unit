@@ -273,6 +273,31 @@ nxt_fs_mkdir_all(const u_char *dir, mode_t mode)
 }
 
 
+nxt_int_t
+nxt_fs_mkdir_parent(const u_char *path, mode_t mode)
+{
+    char       *ptr, *dir;
+    nxt_int_t  ret;
+
+    dir = nxt_strdup(path);
+    if (nxt_slow_path(dir == NULL)) {
+        return NXT_ERROR;
+    }
+
+    ret = NXT_OK;
+
+    ptr = strrchr(dir, '/');
+    if (nxt_fast_path(ptr != NULL)) {
+        *ptr = '\0';
+        ret = nxt_fs_mkdir((const u_char *) dir, mode);
+    }
+
+    nxt_free(dir);
+
+    return ret;
+}
+
+
 static nxt_int_t
 nxt_fs_mkdir(const u_char *dir, mode_t mode)
 {
