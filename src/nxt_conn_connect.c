@@ -92,7 +92,7 @@ nxt_conn_socket(nxt_task_t *task, nxt_conn_t *c)
 
     c->sendfile = 1;
 
-#if (NXT_HAVE_UNIX_DOMAIN && NXT_SOLARIS)
+#if (NXT_SOLARIS)
 
     if (family == AF_UNIX) {
         /* Solaris AF_UNIX does not support sendfilev(). */

@@ -97,8 +97,6 @@ nxt_sockaddr_create(nxt_mp_t *mp, struct sockaddr *sockaddr, socklen_t length,
     size = length;
     copy = length;
 
-#if (NXT_HAVE_UNIX_DOMAIN)
-
     /*
      * Unspecified Unix domain sockaddr_un form and length are very
      * platform depended (see comment in nxt_socket.h).  Here they are
@@ -142,14 +140,12 @@ nxt_sockaddr_create(nxt_mp_t *mp, struct sockaddr *sockaddr, socklen_t length,
 #endif
     }
 
-#endif  /* NXT_HAVE_UNIX_DOMAIN */
-
     sa = nxt_sockaddr_alloc(mp, size, address_length);
 
     if (nxt_fast_path(sa != NULL)) {
         nxt_memcpy(&sa->u.sockaddr, sockaddr, copy);
 
-#if (NXT_HAVE_UNIX_DOMAIN && NXT_OPENBSD)
+#if (NXT_OPENBSD)
 
         if (length == 0) {
             sa->u.sockaddr.sa_family = AF_UNIX;
@@ -201,11 +197,9 @@ nxt_getsockname(nxt_task_t *task, nxt_mp_t *mp, nxt_socket_t s)
             break;
 #endif
 
-#if (NXT_HAVE_UNIX_DOMAIN)
         case AF_UNIX:
             length = nxt_length("unix:") + socklen;
             break;
-#endif
 
         case AF_INET:
             length = NXT_INET_ADDR_STR_LEN;
@@ -277,8 +271,6 @@ nxt_sockaddr_text(nxt_sockaddr_t *sa)
 
 #endif
 
-#if (NXT_HAVE_UNIX_DOMAIN)
-
     case AF_UNIX:
         sa->address_start = offset;
 
@@ -310,8 +302,6 @@ nxt_sockaddr_text(nxt_sockaddr_t *sa)
 
         return;
 
-#endif  /* NXT_HAVE_UNIX_DOMAIN */
-
     default:
         return;
     }
@@ -337,12 +327,8 @@ nxt_sockaddr_port_number(nxt_sockaddr_t *sa)
 
 #endif
 
-#if (NXT_HAVE_UNIX_DOMAIN)
-
     case AF_UNIX:
         return 0;
-
-#endif
 
     default:
         port = sa->u.sockaddr_in.sin_port;
@@ -393,8 +379,6 @@ nxt_sockaddr_cmp(nxt_sockaddr_t *sa1, nxt_sockaddr_t *sa2)
 
 #endif
 
-#if (NXT_HAVE_UNIX_DOMAIN)
-
     case AF_UNIX:
         {
             size_t  length;
@@ -410,8 +394,6 @@ nxt_sockaddr_cmp(nxt_sockaddr_t *sa1, nxt_sockaddr_t *sa2)
 
             return 1;
         }
-
-#endif
 
     default: /* AF_INET */
         if (sa1->u.sockaddr_in.sin_port != sa2->u.sockaddr_in.sin_port) {
@@ -571,7 +553,6 @@ nxt_sockaddr_parse_optport(nxt_mp_t *mp, nxt_str_t *addr)
 static nxt_sockaddr_t *
 nxt_sockaddr_unix_parse(nxt_mp_t *mp, nxt_str_t *addr)
 {
-#if (NXT_HAVE_UNIX_DOMAIN)
     size_t          length, socklen;
     u_char          *path;
     nxt_sockaddr_t  *sa;
@@ -630,15 +611,6 @@ nxt_sockaddr_unix_parse(nxt_mp_t *mp, nxt_str_t *addr)
     }
 
     return sa;
-
-#else  /* !(NXT_HAVE_UNIX_DOMAIN) */
-
-    nxt_thread_log_error(NXT_LOG_ERR,
-                         "unix domain socket \"%V\" is not supported", addr);
-
-    return NULL;
-
-#endif
 }
 
 

@@ -1146,8 +1146,6 @@ nxt_main_listening_socket(nxt_sockaddr_t *sa, nxt_listening_socket_t *ls)
     if (bind(s, &sa->u.sockaddr, sa->socklen) != 0) {
         err = nxt_errno;
 
-#if (NXT_HAVE_UNIX_DOMAIN)
-
         if (sa->u.sockaddr.sa_family == AF_UNIX) {
             switch (err) {
 
@@ -1161,9 +1159,7 @@ nxt_main_listening_socket(nxt_sockaddr_t *sa, nxt_listening_socket_t *ls)
                 break;
             }
 
-        } else
-#endif
-        {
+        } else {
             switch (err) {
 
             case EACCES:
@@ -1185,8 +1181,6 @@ nxt_main_listening_socket(nxt_sockaddr_t *sa, nxt_listening_socket_t *ls)
         goto fail;
     }
 
-#if (NXT_HAVE_UNIX_DOMAIN)
-
     if (sa->u.sockaddr.sa_family == AF_UNIX
         && sa->u.sockaddr_un.sun_path[0] != '\0')
     {
@@ -1203,8 +1197,6 @@ nxt_main_listening_socket(nxt_sockaddr_t *sa, nxt_listening_socket_t *ls)
             goto fail;
         }
     }
-
-#endif
 
     ls->socket = s;
 

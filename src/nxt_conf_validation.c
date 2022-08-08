@@ -2176,11 +2176,6 @@ nxt_conf_vldt_match_addr(nxt_conf_validation_t *vldt,
         return nxt_conf_vldt_error(vldt, "The \"address\" does not support "
                                          "IPv6 with your configuration.");
 
-    case NXT_ADDR_PATTERN_NO_UNIX_ERROR:
-        return nxt_conf_vldt_error(vldt, "The \"address\" does not support "
-                                         "UNIX domain sockets with your "
-                                         "configuration.");
-
     default:
         return nxt_conf_vldt_error(vldt, "The \"address\" has an unknown "
                                          "format.");

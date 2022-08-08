@@ -51,9 +51,7 @@ struct nxt_sockaddr_s {
 #if (NXT_INET6)
         struct sockaddr_in6       sockaddr_in6;
 #endif
-#if (NXT_HAVE_UNIX_DOMAIN)
         struct sockaddr_un        sockaddr_un;
-#endif
     } u;
 };
 

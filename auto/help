@@ -35,7 +35,6 @@ cat << END
                        default: user's primary group
 
   --no-ipv6            disable IPv6 support
-  --no-unix-sockets    disable Unix domain sockets support
   --no-regex           disable regular expression support
   --no-pcre2           force using PCRE library
 

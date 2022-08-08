@@ -30,20 +30,16 @@ nxt_int_t
 nxt_listen_socket_create(nxt_task_t *task, nxt_mp_t *mp,
     nxt_listen_socket_t *ls)
 {
-    nxt_log_t          log, *old;
-    nxt_uint_t         family;
-    nxt_socket_t       s;
-    nxt_thread_t       *thr;
-    nxt_sockaddr_t     *sa;
-#if (NXT_HAVE_UNIX_DOMAIN)
     int                ret;
     u_char             *p;
     nxt_err_t          err;
-    nxt_socket_t       ts;
-    nxt_sockaddr_t     *orig_sa;
+    nxt_log_t          log, *old;
+    nxt_uint_t         family;
+    nxt_socket_t       s, ts;
+    nxt_thread_t       *thr;
+    nxt_sockaddr_t     *sa, *orig_sa;
     nxt_file_name_t    *name, *tmp;
     nxt_file_access_t  access;
-#endif
 
     sa = ls->sockaddr;
 
@@ -90,8 +86,6 @@ nxt_listen_socket_create(nxt_task_t *task, nxt_mp_t *mp,
         nxt_socket_defer_accept(task, s, sa);
     }
 
-#if (NXT_HAVE_UNIX_DOMAIN)
-
     if (family == AF_UNIX
         && sa->type == SOCK_STREAM
         && sa->u.sockaddr_un.sun_path[0] != '\0')
@@ -118,13 +112,9 @@ nxt_listen_socket_create(nxt_task_t *task, nxt_mp_t *mp,
         orig_sa = NULL;
     }
 
-#endif
-
     if (nxt_socket_bind(task, s, sa) != NXT_OK) {
         goto fail;
     }
-
-#if (NXT_HAVE_UNIX_DOMAIN)
 
     if (family == AF_UNIX) {
         name = (nxt_file_name_t *) sa->u.sockaddr_un.sun_path;
@@ -136,8 +126,6 @@ nxt_listen_socket_create(nxt_task_t *task, nxt_mp_t *mp,
         }
     }
 
-#endif
-
     nxt_debug(task, "listen(%d, %d)", s, ls->backlog);
 
     if (listen(s, ls->backlog) != 0) {
@@ -145,8 +133,6 @@ nxt_listen_socket_create(nxt_task_t *task, nxt_mp_t *mp,
                   s, ls->backlog, nxt_socket_errno);
         goto listen_fail;
     }
-
-#if (NXT_HAVE_UNIX_DOMAIN)
 
     if (orig_sa != NULL) {
         ts = nxt_socket_create(task, AF_UNIX, SOCK_STREAM, 0, 0);
@@ -184,8 +170,6 @@ nxt_listen_socket_create(nxt_task_t *task, nxt_mp_t *mp,
         }
     }
 
-#endif
-
     ls->socket = s;
     thr->log = old;
 
@@ -193,15 +177,11 @@ nxt_listen_socket_create(nxt_task_t *task, nxt_mp_t *mp,
 
 listen_fail:
 
-#if (NXT_HAVE_UNIX_DOMAIN)
-
     if (family == AF_UNIX) {
         name = (nxt_file_name_t *) sa->u.sockaddr_un.sun_path;
 
         (void) nxt_file_delete(name);
     }
-
-#endif
 
 fail:
 
@@ -266,8 +246,6 @@ nxt_listen_socket_remote_size(nxt_listen_socket_t *ls)
 
 #endif
 
-#if (NXT_HAVE_UNIX_DOMAIN)
-
     case AF_UNIX:
         /*
          * A remote socket is usually unbound and thus has unspecified Unix
@@ -279,8 +257,6 @@ nxt_listen_socket_remote_size(nxt_listen_socket_t *ls)
         ls->address_length = nxt_length("unix:");
 
         break;
-
-#endif
 
     default:
     case AF_INET:
@@ -325,8 +301,6 @@ nxt_listen_socket_pool_min_size(nxt_listen_socket_t *ls)
 
 #endif
 
-#if (NXT_HAVE_UNIX_DOMAIN)
-
     case AF_UNIX:
         /*
          * A remote socket is usually unbound and thus has unspecified Unix
@@ -339,8 +313,6 @@ nxt_listen_socket_pool_min_size(nxt_listen_socket_t *ls)
         ls->address_length = nxt_length("unix:");
 
         break;
-
-#endif
 
     default:
         ls->socklen = sizeof(struct sockaddr_in);

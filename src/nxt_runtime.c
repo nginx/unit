@@ -545,6 +545,8 @@ nxt_runtime_exit(nxt_task_t *task, void *obj, void *data)
     int                 status, engine_count;
     nxt_runtime_t       *rt;
     nxt_process_t       *process;
+    nxt_sockaddr_t      *sa;
+    nxt_file_name_t     *name;
     nxt_event_engine_t  *engine;
 
     rt = obj;
@@ -561,19 +563,12 @@ nxt_runtime_exit(nxt_task_t *task, void *obj, void *data)
             nxt_file_delete(rt->pid_file);
         }
 
-#if (NXT_HAVE_UNIX_DOMAIN)
-        {
-            nxt_sockaddr_t   *sa;
-            nxt_file_name_t  *name;
+        sa = rt->controller_listen;
 
-            sa = rt->controller_listen;
-
-            if (sa->u.sockaddr.sa_family == AF_UNIX) {
-                name = (nxt_file_name_t *) sa->u.sockaddr_un.sun_path;
-                (void) nxt_file_delete(name);
-            }
+        if (sa->u.sockaddr.sa_family == AF_UNIX) {
+            name = (nxt_file_name_t *) sa->u.sockaddr_un.sun_path;
+            (void) nxt_file_delete(name);
         }
-#endif
     }
 
     if (!engine->event.signal_support) {

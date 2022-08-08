@@ -571,12 +571,9 @@ nxt_event_engine_mem_alloc(nxt_event_engine_t *engine, uint8_t *hint,
     if (n == NXT_EVENT_ENGINE_NO_MEM_HINT) {
 
         if (mem_cache == NULL) {
-            /* IPv4 nxt_sockaddr_t and HTTP/1 and HTTP/2 buffers. */
-            items = 3;
+            /* IPv4 and UNIX nxt_sockaddr_t, and HTTP/1 and HTTP/2 buffers. */
+            items = 4;
 #if (NXT_INET6)
-            items++;
-#endif
-#if (NXT_HAVE_UNIX_DOMAIN)
             items++;
 #endif
 

@@ -750,7 +750,6 @@ nxt_py_asgi_create_address(nxt_unit_sptr_t *sptr, uint8_t len, uint16_t port)
         return nxt_py_asgi_create_ip_address(sptr, len, port);
     }
 
-#if NXT_HAVE_UNIX_DOMAIN
     pair = PyTuple_New(2);
     if (nxt_slow_path(pair == NULL)) {
         return NULL;
@@ -770,10 +769,6 @@ nxt_py_asgi_create_address(nxt_unit_sptr_t *sptr, uint8_t len, uint16_t port)
     PyTuple_SET_ITEM(pair, 1, Py_None);
 
     return pair;
-
-#else
-    return NULL;
-#endif
 }
 
 

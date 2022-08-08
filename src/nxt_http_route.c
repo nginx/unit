@@ -1818,12 +1818,9 @@ nxt_http_route_addr_pattern_match(nxt_http_route_addr_pattern_t *p,
         break;
 #endif
 
-#if (NXT_HAVE_UNIX_DOMAIN)
     case AF_UNIX:
-
         match = (base->addr_family == AF_UNIX);
         break;
-#endif
 
     default:
         match = 0;

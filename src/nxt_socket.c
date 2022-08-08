@@ -53,14 +53,10 @@ nxt_socket_create(nxt_task_t *task, nxt_uint_t domain, nxt_uint_t type,
 void
 nxt_socket_defer_accept(nxt_task_t *task, nxt_socket_t s, nxt_sockaddr_t *sa)
 {
-#if (NXT_HAVE_UNIX_DOMAIN)
-
     if (sa->u.sockaddr.sa_family == AF_UNIX) {
         /* Deferred accept() is not supported on AF_UNIX sockets. */
         return;
     }
-
-#endif
 
 #ifdef TCP_DEFER_ACCEPT
 

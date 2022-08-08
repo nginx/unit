@@ -176,9 +176,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/uio.h>
-#if (NXT_HAVE_UNIX_DOMAIN)
 #include <sys/un.h>
-#endif
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>

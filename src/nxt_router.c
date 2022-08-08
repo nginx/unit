@@ -2467,11 +2467,9 @@ nxt_router_socket_conf(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     }
 
     switch (sa->u.sockaddr.sa_family) {
-#if (NXT_HAVE_UNIX_DOMAIN)
     case AF_UNIX:
         wildcard = 0;
         break;
-#endif
 #if (NXT_INET6)
     case AF_INET6:
         wildcard = IN6_IS_ADDR_UNSPECIFIED(&sa->u.sockaddr_in6.sin6_addr);

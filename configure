@@ -103,10 +103,6 @@ fi
 
 nxt_have=NXT_UNIX . auto/have
 
-if [ $NXT_UNIX_DOMAIN = YES ]; then
-    nxt_have=NXT_HAVE_UNIX_DOMAIN . auto/have
-fi
-
 NXT_LIBRT=
 
 . auto/types

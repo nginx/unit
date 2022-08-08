@@ -188,8 +188,6 @@ struct nxt_conn_s {
     nxt_timer_data(ev, nxt_conn_t, write_timer)
 
 
-#if (NXT_HAVE_UNIX_DOMAIN)
-
 #define nxt_conn_tcp_nodelay_on(task, c)                                      \
     do {                                                                      \
         nxt_int_t  ret;                                                       \
@@ -201,21 +199,6 @@ struct nxt_conn_s {
             (c)->tcp_nodelay = (ret == NXT_OK);                               \
         }                                                                     \
     } while (0)
-
-
-#else
-
-#define nxt_conn_tcp_nodelay_on(task, c)                                      \
-    do {                                                                      \
-        nxt_int_t  ret;                                                       \
-                                                                              \
-        ret = nxt_socket_setsockopt(task, (c)->socket.fd, IPPROTO_TCP,        \
-                                    TCP_NODELAY, 1);                          \
-                                                                              \
-        (c)->tcp_nodelay = (ret == NXT_OK);                                   \
-    } while (0)
-
-#endif
 
 
 NXT_EXPORT nxt_conn_t *nxt_conn_create(nxt_mp_t *mp, nxt_task_t *task);

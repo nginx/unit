@@ -25,7 +25,6 @@ Unit configuration summary:
   non-privileged group: ...... "$NXT_GROUP"
 
   IPv6 support: .............. $NXT_INET6
-  Unix domain sockets support: $NXT_UNIX_DOMAIN
   TLS support: ............... $NXT_OPENSSL
 
   process isolation: ......... $NXT_ISOLATION

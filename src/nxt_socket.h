@@ -65,15 +65,7 @@ typedef int  nxt_socket_t;
  * or less than real maximum struct sockaddr_un length.
  */
 
-#if (NXT_HAVE_UNIX_DOMAIN)
 #define NXT_SOCKADDR_LEN     sizeof(struct sockaddr_un)
-
-#elif (NXT_HAVE_SOCKADDR_IN6)
-#define NXT_SOCKADDR_LEN     sizeof(struct sockaddr_in6)
-
-#else
-#define NXT_SOCKADDR_LEN     sizeof(struct sockaddr_in)
-#endif
 
 
 typedef union {
