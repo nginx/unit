@@ -1,4 +1,5 @@
 from unit.applications.lang.python import TestApplicationPython
+from unit.option import option
 
 
 class TestClientIP(TestApplicationPython):
@@ -15,15 +16,27 @@ class TestClientIP(TestApplicationPython):
                     "client_ip": options,
                     "pass": "applications/client_ip",
                 },
+                "unix:"
+                + option.temp_dir
+                + "/sock": {
+                    "client_ip": options,
+                    "pass": "applications/client_ip",
+                },
             },
             'listeners',
         ), 'listeners configure'
 
     def get_xff(self, xff, sock_type='ipv4'):
-        port = 7081 if sock_type == 'ipv4' else 7082
+        address = {
+            'ipv4': ('127.0.0.1', 7081),
+            'ipv6': ('::1', 7082),
+            'unix': (option.temp_dir + '/sock', None),
+        }
+        (addr, port) = address[sock_type]
 
         return self.get(
             sock_type=sock_type,
+            addr=addr,
             port=port,
             headers={'Connection': 'close', 'X-Forwarded-For': xff},
         )['body']
@@ -84,6 +97,18 @@ class TestClientIP(TestApplicationPython):
             '::11.22.33.44',
         ]:
             assert self.get_xff(ip, 'ipv6') == ip, 'replace'
+
+    def test_client_ip_unix(self, temp_dir):
+        self.client_ip({'header': 'X-Forwarded-For', 'source': 'unix'})
+
+        assert self.get_xff('1.1.1.1') == '127.0.0.1', 'bad source ipv4'
+        assert self.get_xff('1.1.1.1', 'ipv6') == '::1', 'bad source ipv6'
+
+        for ip in [
+            '1.1.1.1',
+            '::11.22.33.44',
+        ]:
+            assert self.get_xff(ip, 'unix') == ip, 'replace'
 
     def test_client_ip_recursive(self):
         self.client_ip(
