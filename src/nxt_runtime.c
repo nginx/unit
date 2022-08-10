@@ -865,6 +865,13 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
 
     rt->conf = (char *) file_name.start;
 
+    ret = nxt_file_name_create(rt->mem_pool, &file_name, "%s%Z", NXT_CONF);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        return NXT_ERROR;
+    }
+
+    rt->conf_init = (char *) file_name.start;
+
     ret = nxt_file_name_create(rt->mem_pool, &file_name, "%s.tmp%Z", rt->conf);
     if (nxt_slow_path(ret != NXT_OK)) {
         return NXT_ERROR;

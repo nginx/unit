@@ -69,6 +69,7 @@ struct nxt_runtime_s {
     const char             *ver;
     const char             *ver_tmp;
     const char             *conf;
+    const char             *conf_init;
     const char             *conf_tmp;
     const char             *control;
     const char             *tmp;

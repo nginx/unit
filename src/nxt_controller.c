@@ -174,6 +174,12 @@ nxt_controller_prefork(nxt_task_t *task, nxt_process_t *process, nxt_mp_t *mp)
     nxt_conf_ver = 12500;
 
     ret = nxt_controller_file_read(task, rt->conf, &ctrl_init.conf, mp);
+
+    if (nxt_slow_path(ret == NXT_DECLINED)) {
+        ret = nxt_controller_file_read(task, rt->conf_init, &ctrl_init.conf,
+                                       mp);
+    }
+
     if (nxt_slow_path(ret == NXT_ERROR)) {
         return NXT_ERROR;
     }
