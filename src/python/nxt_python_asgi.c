@@ -665,7 +665,7 @@ nxt_py_asgi_create_http_scope(nxt_unit_request_info_t *req)
     SET_ITEM(scope, query_string, v)
     Py_DECREF(v);
 
-    v = nxt_py_asgi_create_ip_address(&r->remote, r->remote_length, 0);
+    v = nxt_py_asgi_create_address(&r->remote, r->remote_length, 0);
     if (nxt_slow_path(v == NULL)) {
         nxt_unit_req_alert(req, "Python failed to create 'client' pair");
         goto fail;
