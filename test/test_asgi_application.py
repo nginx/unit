@@ -60,6 +60,16 @@ custom-header: BLAH
         }, 'headers'
         assert resp['body'] == body, 'body'
 
+    def test_asgi_application_unix(self, temp_dir):
+        self.load('empty')
+
+        addr = temp_dir + '/sock'
+        assert 'success' in self.conf(
+            {"unix:" + addr: {"pass": "applications/empty"}}, 'listeners'
+        )
+
+        assert self.get(sock_type='unix', addr=addr)['status'] == 200
+
     def test_asgi_application_query_string(self):
         self.load('query_string')
 
