@@ -20,6 +20,7 @@ from unit.check.isolation import check_isolation
 from unit.check.node import check_node
 from unit.check.regex import check_regex
 from unit.check.tls import check_openssl
+from unit.check.unix_abstract import check_unix_abstract
 from unit.http import TestHTTP
 from unit.log import Log
 from unit.option import option
@@ -213,6 +214,7 @@ def pytest_sessionstart(session):
 
     check_chroot()
     check_isolation()
+    check_unix_abstract()
 
     _clear_conf(unit['temp_dir'] + '/control.unit.sock')
 

@@ -51,7 +51,7 @@ class TestHTTP:
             connect_args = addr if sock_type == 'unix' else (addr, port)
             try:
                 sock.connect(connect_args)
-            except ConnectionRefusedError:
+            except (ConnectionRefusedError, FileNotFoundError):
                 sock.close()
                 pytest.fail('Client can\'t connect to the server.')
 
