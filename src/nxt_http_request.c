@@ -278,6 +278,8 @@ nxt_http_request_create(nxt_task_t *task)
     r->resp.content_length_n = -1;
     r->state = &nxt_http_request_init_state;
 
+    task->thread->engine->requests_cnt++;
+
     return r;
 
 fail:

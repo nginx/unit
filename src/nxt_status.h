@@ -20,6 +20,7 @@ typedef struct {
     uint64_t          accepted_conns;
     uint64_t          idle_conns;
     uint64_t          closed_conns;
+    uint64_t          requests;
 
     size_t            apps_count;
     nxt_status_app_t  apps[];

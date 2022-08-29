@@ -23,6 +23,7 @@ nxt_status_get(nxt_status_report_t *report, nxt_mp_t *mp)
     static nxt_str_t idle_str = nxt_string("idle");
     static nxt_str_t closed_str = nxt_string("closed");
     static nxt_str_t reqs_str = nxt_string("requests");
+    static nxt_str_t total_str = nxt_string("total");
     static nxt_str_t apps_str = nxt_string("applications");
     static nxt_str_t procs_str = nxt_string("processes");
     static nxt_str_t run_str = nxt_string("running");
@@ -47,12 +48,14 @@ nxt_status_get(nxt_status_report_t *report, nxt_mp_t *mp)
     nxt_conf_set_member_integer(obj, &idle_str, report->idle_conns, 2);
     nxt_conf_set_member_integer(obj, &closed_str, report->closed_conns, 3);
 
-    obj = nxt_conf_create_object(mp, 0);
+    obj = nxt_conf_create_object(mp, 1);
     if (nxt_slow_path(obj == NULL)) {
         return NULL;
     }
 
     nxt_conf_set_member(status, &reqs_str, obj, 1);
+
+    nxt_conf_set_member_integer(obj, &total_str, report->requests, 0);
 
     apps = nxt_conf_create_object(mp, report->apps_count);
     if (nxt_slow_path(obj == NULL)) {
