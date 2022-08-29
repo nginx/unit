@@ -160,6 +160,7 @@ struct nxt_conn_s {
     uint8_t                       block_read;   /* 1 bit */
     uint8_t                       block_write;  /* 1 bit */
     uint8_t                       delayed;      /* 1 bit */
+    uint8_t                       idle;         /* 1 bit */
 
 #define NXT_CONN_SENDFILE_OFF     0
 #define NXT_CONN_SENDFILE_ON      1
@@ -291,6 +292,28 @@ NXT_EXPORT void nxt_event_conn_job_sendfile(nxt_task_t *task,
                                                                               \
         nxt_work_queue_add(&e->write_work_queue, c->io->write,                \
                            c->socket.task, c, c->socket.data);                \
+    } while (0)
+
+
+#define nxt_conn_idle(engine, c)                                              \
+    do {                                                                      \
+        nxt_event_engine_t  *e = engine;                                      \
+                                                                              \
+        nxt_queue_insert_head(&e->idle_connections, &c->link);                \
+                                                                              \
+        c->idle = 1;                                                          \
+        e->idle_conns_cnt++;                                                  \
+    } while (0)
+
+
+#define nxt_conn_active(engine, c)                                            \
+    do {                                                                      \
+        nxt_event_engine_t  *e = engine;                                      \
+                                                                              \
+        nxt_queue_remove(&c->link);                                           \
+                                                                              \
+        c->idle = 0;                                                          \
+        e->idle_conns_cnt--;                                                  \
     } while (0)
 
 

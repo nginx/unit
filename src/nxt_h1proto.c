@@ -478,7 +478,7 @@ nxt_h1p_conn_request_init(nxt_task_t *task, void *obj, void *data)
 
     nxt_debug(task, "h1p conn request init");
 
-    nxt_queue_remove(&c->link);
+    nxt_conn_active(task->thread->engine, c);
 
     r = nxt_http_request_create(task);
 
@@ -1739,7 +1739,7 @@ nxt_h1p_conn_close(nxt_task_t *task, void *obj, void *data)
 
     nxt_debug(task, "h1p conn close");
 
-    nxt_queue_remove(&c->link);
+    nxt_conn_active(task->thread->engine, c);
 
     nxt_h1p_shutdown(task, c);
 }
@@ -1754,7 +1754,7 @@ nxt_h1p_conn_error(nxt_task_t *task, void *obj, void *data)
 
     nxt_debug(task, "h1p conn error");
 
-    nxt_queue_remove(&c->link);
+    nxt_conn_active(task->thread->engine, c);
 
     nxt_h1p_shutdown(task, c);
 }
@@ -1801,7 +1801,8 @@ nxt_h1p_keepalive(nxt_task_t *task, nxt_h1proto_t *h1p, nxt_conn_t *c)
     c->sent = 0;
 
     engine = task->thread->engine;
-    nxt_queue_insert_head(&engine->idle_connections, &c->link);
+
+    nxt_conn_idle(engine, c);
 
     if (in == NULL) {
         c->read_state = &nxt_h1p_keepalive_state;
@@ -1855,7 +1856,7 @@ nxt_h1p_idle_close(nxt_task_t *task, void *obj, void *data)
 
     nxt_debug(task, "h1p idle close");
 
-    nxt_queue_remove(&c->link);
+    nxt_conn_active(task->thread->engine, c);
 
     nxt_h1p_idle_response(task, c);
 }
@@ -1874,7 +1875,7 @@ nxt_h1p_idle_timeout(nxt_task_t *task, void *obj, void *data)
     c = nxt_read_timer_conn(timer);
     c->block_read = 1;
 
-    nxt_queue_remove(&c->link);
+    nxt_conn_active(task->thread->engine, c);
 
     nxt_h1p_idle_response(task, c);
 }

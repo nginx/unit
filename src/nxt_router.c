@@ -7,6 +7,7 @@
 
 #include <nxt_router.h>
 #include <nxt_conf.h>
+#include <nxt_status.h>
 #if (NXT_TLS)
 #include <nxt_cert.h>
 #endif
@@ -89,6 +90,8 @@ static void nxt_router_new_port_handler(nxt_task_t *task,
 static void nxt_router_conf_data_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
 static void nxt_router_app_restart_handler(nxt_task_t *task,
+    nxt_port_recv_msg_t *msg);
+static void nxt_router_status_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
 static void nxt_router_remove_pid_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
@@ -269,6 +272,7 @@ static const nxt_port_handlers_t  nxt_router_process_port_handlers = {
     .get_mmap     = nxt_router_get_mmap_handler,
     .data         = nxt_router_conf_data_handler,
     .app_restart  = nxt_router_app_restart_handler,
+    .status       = nxt_router_status_handler,
     .remove_pid   = nxt_router_remove_pid_handler,
     .access_log   = nxt_router_access_log_reopen_handler,
     .rpc_ready    = nxt_port_rpc_handler,
@@ -915,6 +919,83 @@ fail:
 
     nxt_port_socket_write(task, reply_port, reply, -1, msg->port_msg.stream,
                           0, NULL);
+}
+
+
+static void
+nxt_router_status_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
+{
+    u_char               *p;
+    size_t               alloc;
+    nxt_app_t            *app;
+    nxt_buf_t            *b;
+    nxt_uint_t           type;
+    nxt_port_t           *port;
+    nxt_status_app_t     *app_stat;
+    nxt_event_engine_t   *engine;
+    nxt_status_report_t  *report;
+
+    port = nxt_runtime_port_find(task->thread->runtime,
+                                 msg->port_msg.pid,
+                                 msg->port_msg.reply_port);
+    if (nxt_slow_path(port == NULL)) {
+        nxt_alert(task, "nxt_router_status_handler(): reply port not found");
+        return;
+    }
+
+    alloc = sizeof(nxt_status_report_t);
+
+    nxt_queue_each(app, &nxt_router->apps, nxt_app_t, link) {
+
+        alloc += sizeof(nxt_status_app_t) + app->name.length;
+
+    } nxt_queue_loop;
+
+    b = nxt_buf_mem_alloc(port->mem_pool, alloc, 0);
+    if (nxt_slow_path(b == NULL)) {
+        type = NXT_PORT_MSG_RPC_ERROR;
+        goto fail;
+    }
+
+    report = (nxt_status_report_t *) b->mem.free;
+    b->mem.free = b->mem.end;
+
+    nxt_memzero(report, sizeof(nxt_status_report_t));
+
+    nxt_queue_each(engine, &nxt_router->engines, nxt_event_engine_t, link0) {
+
+        report->accepted_conns += engine->accepted_conns_cnt;
+        report->idle_conns += engine->idle_conns_cnt;
+        report->closed_conns += engine->closed_conns_cnt;
+
+    } nxt_queue_loop;
+
+    report->apps_count = 0;
+    app_stat = report->apps;
+    p = b->mem.end;
+
+    nxt_queue_each(app, &nxt_router->apps, nxt_app_t, link) {
+        p -= app->name.length;
+
+        nxt_memcpy(p, app->name.start, app->name.length);
+
+        app_stat->name.length = app->name.length;
+        app_stat->name.start = (u_char *) (p - b->mem.pos);
+
+        app_stat->active_requests = app->active_requests;
+        app_stat->pending_processes = app->pending_processes;
+        app_stat->processes = app->processes;
+        app_stat->idle_processes = app->idle_processes;
+
+        report->apps_count++;
+        app_stat++;
+    } nxt_queue_loop;
+
+    type = NXT_PORT_MSG_RPC_READY_LAST;
+
+fail:
+
+    nxt_port_socket_write(task, port, type, -1, msg->port_msg.stream, 0, b);
 }
 
 

@@ -278,6 +278,20 @@ nxt_conf_set_member(nxt_conf_value_t *object, nxt_str_t *name,
 }
 
 
+nxt_int_t
+nxt_conf_set_member_dup(nxt_conf_value_t *object, nxt_mp_t *mp, nxt_str_t *name,
+    nxt_conf_value_t *value, uint32_t index)
+{
+    nxt_conf_object_member_t  *member;
+
+    member = &object->u.object->members[index];
+
+    member->value = *value;
+
+    return nxt_conf_set_string_dup(&member->name, mp, name);
+}
+
+
 void
 nxt_conf_set_member_string(nxt_conf_value_t *object, nxt_str_t *name,
     nxt_str_t *value, uint32_t index)

@@ -9,6 +9,7 @@
 #include <nxt_runtime.h>
 #include <nxt_main_process.h>
 #include <nxt_conf.h>
+#include <nxt_status.h>
 #include <nxt_cert.h>
 
 
@@ -85,6 +86,12 @@ static void nxt_controller_process_request(nxt_task_t *task,
 static void nxt_controller_process_config(nxt_task_t *task,
     nxt_controller_request_t *req, nxt_str_t *path);
 static nxt_bool_t nxt_controller_check_postpone_request(nxt_task_t *task);
+static void nxt_controller_process_status(nxt_task_t *task,
+    nxt_controller_request_t *req);
+static void nxt_controller_status_handler(nxt_task_t *task,
+    nxt_port_recv_msg_t *msg, void *data);
+static void nxt_controller_status_response(nxt_task_t *task,
+    nxt_controller_request_t *req, nxt_str_t *path);
 #if (NXT_TLS)
 static void nxt_controller_process_cert(nxt_task_t *task,
     nxt_controller_request_t *req, nxt_str_t *path);
@@ -120,6 +127,7 @@ static nxt_uint_t              nxt_controller_router_ready;
 static nxt_controller_conf_t   nxt_controller_conf;
 static nxt_queue_t             nxt_controller_waiting_requests;
 static nxt_bool_t              nxt_controller_waiting_init_conf;
+static nxt_conf_value_t        *nxt_controller_status;
 
 
 static const nxt_event_conn_state_t  nxt_controller_conn_read_state;
@@ -1035,6 +1043,7 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
     static nxt_str_t certificates = nxt_string("certificates");
 #endif
     static nxt_str_t config = nxt_string("config");
+    static nxt_str_t status = nxt_string("status");
 
     c = req->conn;
     path = req->parser.path;
@@ -1055,6 +1064,32 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
         }
 
         nxt_controller_process_config(task, req, &path);
+        return;
+    }
+
+    nxt_memzero(&resp, sizeof(nxt_controller_response_t));
+
+    if (nxt_str_start(&path, "/status", 7)
+        && (path.length == 7 || path.start[7] == '/'))
+    {
+        if (!nxt_str_eq(&req->parser.method, "GET", 3)) {
+            goto invalid_method;
+        }
+
+        if (nxt_controller_status == NULL) {
+            nxt_controller_process_status(task, req);
+            return;
+        }
+
+        if (path.length == 7) {
+            path.length = 1;
+
+        } else {
+            path.length -= 7;
+            path.start += 7;
+        }
+
+        nxt_controller_status_response(task, req, &path);
         return;
     }
 
@@ -1085,15 +1120,18 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
         return;
     }
 
-    nxt_memzero(&resp, sizeof(nxt_controller_response_t));
-
     if (path.length == 1 && path.start[0] == '/') {
 
         if (!nxt_str_eq(&req->parser.method, "GET", 3)) {
             goto invalid_method;
         }
 
-        count = 1;
+        if (nxt_controller_status == NULL) {
+            nxt_controller_process_status(task, req);
+            return;
+        }
+
+        count = 2;
 #if (NXT_TLS)
         count++;
 #endif
@@ -1114,7 +1152,8 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
         nxt_conf_set_member(value, &certificates, certs, i++);
 #endif
 
-        nxt_conf_set_member(value, &config, nxt_controller_conf.root, i);
+        nxt_conf_set_member(value, &config, nxt_controller_conf.root, i++);
+        nxt_conf_set_member(value, &status, nxt_controller_status, i);
 
         resp.status = 200;
         resp.conf = value;
@@ -1448,6 +1487,128 @@ nxt_controller_check_postpone_request(nxt_task_t *task)
     router_port = rt->port_by_type[NXT_PROCESS_ROUTER];
 
     return (router_port == NULL);
+}
+
+
+static void
+nxt_controller_process_status(nxt_task_t *task, nxt_controller_request_t *req)
+{
+    uint32_t                   stream;
+    nxt_int_t                  rc;
+    nxt_port_t                 *router_port, *controller_port;
+    nxt_runtime_t              *rt;
+    nxt_controller_response_t  resp;
+
+    if (nxt_controller_check_postpone_request(task)) {
+        nxt_queue_insert_tail(&nxt_controller_waiting_requests, &req->link);
+        return;
+    }
+
+    rt = task->thread->runtime;
+
+    router_port = rt->port_by_type[NXT_PROCESS_ROUTER];
+
+    nxt_assert(router_port != NULL);
+    nxt_assert(nxt_controller_router_ready);
+
+    controller_port = rt->port_by_type[NXT_PROCESS_CONTROLLER];
+
+    stream = nxt_port_rpc_register_handler(task, controller_port,
+                                           nxt_controller_status_handler,
+                                           nxt_controller_status_handler,
+                                           router_port->pid, req);
+    if (nxt_slow_path(stream == 0)) {
+        goto fail;
+    }
+
+    rc = nxt_port_socket_write(task, router_port, NXT_PORT_MSG_STATUS,
+                               -1, stream, controller_port->id, NULL);
+
+    if (nxt_slow_path(rc != NXT_OK)) {
+        nxt_port_rpc_cancel(task, controller_port, stream);
+
+        goto fail;
+    }
+
+    nxt_queue_insert_head(&nxt_controller_waiting_requests, &req->link);
+    return;
+
+fail:
+
+    nxt_memzero(&resp, sizeof(nxt_controller_response_t));
+
+    resp.status = 500;
+    resp.title = (u_char *) "Failed to get status.";
+    resp.offset = -1;
+
+    nxt_controller_response(task, req, &resp);
+    return;
+}
+
+
+static void
+nxt_controller_status_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
+    void *data)
+{
+    nxt_conf_value_t           *status;
+    nxt_controller_request_t   *req;
+    nxt_controller_response_t  resp;
+
+    nxt_debug(task, "controller status handler");
+
+    req = data;
+
+    if (msg->port_msg.type == NXT_PORT_MSG_RPC_READY) {
+        status = nxt_status_get((nxt_status_report_t *) msg->buf->mem.pos,
+                                req->conn->mem_pool);
+    } else {
+        status = NULL;
+    }
+
+    if (status == NULL) {
+        nxt_queue_remove(&req->link);
+
+        nxt_memzero(&resp, sizeof(nxt_controller_response_t));
+
+        resp.status = 500;
+        resp.title = (u_char *) "Failed to get status.";
+        resp.offset = -1;
+
+        nxt_controller_response(task, req, &resp);
+    }
+
+    nxt_controller_status = status;
+
+    nxt_controller_flush_requests(task);
+
+    nxt_controller_status = NULL;
+}
+
+
+static void
+nxt_controller_status_response(nxt_task_t *task, nxt_controller_request_t *req,
+    nxt_str_t *path)
+{
+    nxt_conf_value_t           *status;
+    nxt_controller_response_t  resp;
+
+    status = nxt_conf_get_path(nxt_controller_status, path);
+
+    nxt_memzero(&resp, sizeof(nxt_controller_response_t));
+
+    if (status == NULL) {
+        resp.status = 404;
+        resp.title = (u_char *) "Invalid path.";
+        resp.offset = -1;
+
+        nxt_controller_response(task, req, &resp);
+        return;
+    }
+
+    resp.status = 200;
+    resp.conf = status;
+
+    nxt_controller_response(task, req, &resp);
 }
 
 

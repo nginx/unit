@@ -127,6 +127,8 @@ NXT_EXPORT nxt_uint_t nxt_conf_object_members_count(nxt_conf_value_t *value);
 nxt_conf_value_t *nxt_conf_create_object(nxt_mp_t *mp, nxt_uint_t count);
 void nxt_conf_set_member(nxt_conf_value_t *object, nxt_str_t *name,
     const nxt_conf_value_t *value, uint32_t index);
+nxt_int_t nxt_conf_set_member_dup(nxt_conf_value_t *object, nxt_mp_t *mp,
+    nxt_str_t *name, nxt_conf_value_t *value, uint32_t index);
 void nxt_conf_set_member_string(nxt_conf_value_t *object, nxt_str_t *name,
     nxt_str_t *value, uint32_t index);
 nxt_int_t nxt_conf_set_member_string_dup(nxt_conf_value_t *object, nxt_mp_t *mp,

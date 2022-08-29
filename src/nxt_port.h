@@ -53,6 +53,9 @@ struct nxt_port_handlers_s {
     nxt_port_handler_t  data;
     nxt_port_handler_t  app_restart;
 
+    /* Status report. */
+    nxt_port_handler_t  status;
+
     nxt_port_handler_t  oosm;
     nxt_port_handler_t  shm_ack;
     nxt_port_handler_t  read_queue;
@@ -104,6 +107,7 @@ typedef enum {
 
     _NXT_PORT_MSG_DATA            = nxt_port_handler_idx(data),
     _NXT_PORT_MSG_APP_RESTART     = nxt_port_handler_idx(app_restart),
+    _NXT_PORT_MSG_STATUS          = nxt_port_handler_idx(status),
 
     _NXT_PORT_MSG_OOSM            = nxt_port_handler_idx(oosm),
     _NXT_PORT_MSG_SHM_ACK         = nxt_port_handler_idx(shm_ack),
@@ -145,6 +149,7 @@ typedef enum {
     NXT_PORT_MSG_DATA             = _NXT_PORT_MSG_DATA,
     NXT_PORT_MSG_DATA_LAST        = nxt_msg_last(_NXT_PORT_MSG_DATA),
     NXT_PORT_MSG_APP_RESTART      = nxt_msg_last(_NXT_PORT_MSG_APP_RESTART),
+    NXT_PORT_MSG_STATUS           = nxt_msg_last(_NXT_PORT_MSG_STATUS),
 
     NXT_PORT_MSG_OOSM             = nxt_msg_last(_NXT_PORT_MSG_OOSM),
     NXT_PORT_MSG_SHM_ACK          = nxt_msg_last(_NXT_PORT_MSG_SHM_ACK),
