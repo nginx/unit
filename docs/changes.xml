@@ -107,6 +107,12 @@ the ruby application process could crash if it's interrupted by SIGTERM signal.
 
 <change type="bugfix">
 <para>
+prevent the ruby application processes from crashing on SIGINT (^C).
+</para>
+</change>
+
+<change type="bugfix">
+<para>
 when isolated PID numbers reach the prototype process host PID,
 the prototype crashed.
 </para>

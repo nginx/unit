@@ -270,6 +270,8 @@ nxt_ruby_start(nxt_task_t *task, nxt_process_data_t *data)
 
     static char  *argv[2] = { (char *) "NGINX_Unit", (char *) "-e0" };
 
+    signal(SIGINT, SIG_IGN);
+
     conf = data->app;
     c = &conf->u.ruby;
 
