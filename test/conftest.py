@@ -24,6 +24,7 @@ from unit.check.unix_abstract import check_unix_abstract
 from unit.http import TestHTTP
 from unit.log import Log
 from unit.option import option
+from unit.status import Status
 from unit.utils import public_dir
 from unit.utils import waitforfiles
 
@@ -428,6 +429,8 @@ def unit_run(state_dir=None):
     controller = _fds_info['controller']
     controller['pid'] = pid_by_name(controller['name'])
     controller['fds'] = _count_fds(controller['pid'])
+
+    Status._check_zeros()
 
     return unit_instance
 
