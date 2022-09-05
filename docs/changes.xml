@@ -45,13 +45,13 @@ disallowed abstract Unix domain socket syntax in non-Linux systems.
 
 <change type="feature">
 <para>
-supporting abstract UNIX sockets.
+support for abstract Unix sockets.
 </para>
 </change>
 
 <change type="feature">
 <para>
-supporting UNIX sockets in address matching.
+support for Unix sockets in address matching.
 </para>
 </change>
 
@@ -75,8 +75,7 @@ more http variables support.
 
 <change type="feature">
 <para>
-added a new variable, $dollar, that translates to a literal "$" during
-variable substitution.
+the $dollar variable translates to a literal "$" during variable substitution.
 </para>
 </change>
 
@@ -94,8 +93,7 @@ basic statistics API.
 
 <change type="bugfix">
 <para>
-an index file that didn't contain a file extension was incorrectly
-handled, and caused a use-after-free bug.
+router process could crash if index file didn't contain an extension.
 </para>
 </change>
 
@@ -107,13 +105,13 @@ force SCRIPT_NAME in Ruby to always be an empty string.
 
 <change type="bugfix">
 <para>
-the ruby application process could crash if it's interrupted by SIGTERM signal.
+the Ruby application process could crash on SIGTERM.
 </para>
 </change>
 
 <change type="bugfix">
 <para>
-prevent the ruby application processes from crashing on SIGINT (^C).
+the Ruby application process could crash on SIGINT.
 </para>
 </change>
 
