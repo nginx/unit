@@ -58,7 +58,7 @@ nxt_status_get(nxt_status_report_t *report, nxt_mp_t *mp)
     nxt_conf_set_member_integer(obj, &total_str, report->requests, 0);
 
     apps = nxt_conf_create_object(mp, report->apps_count);
-    if (nxt_slow_path(obj == NULL)) {
+    if (nxt_slow_path(apps == NULL)) {
         return NULL;
     }
 
@@ -81,7 +81,7 @@ nxt_status_get(nxt_status_report_t *report, nxt_mp_t *mp)
         }
 
         obj = nxt_conf_create_object(mp, 3);
-        if (nxt_slow_path(app_obj == NULL)) {
+        if (nxt_slow_path(obj == NULL)) {
             return NULL;
         }
 
@@ -92,7 +92,7 @@ nxt_status_get(nxt_status_report_t *report, nxt_mp_t *mp)
         nxt_conf_set_member_integer(obj, &idle_str, app->idle_processes, 2);
 
         obj = nxt_conf_create_object(mp, 1);
-        if (nxt_slow_path(app_obj == NULL)) {
+        if (nxt_slow_path(obj == NULL)) {
             return NULL;
         }
 
