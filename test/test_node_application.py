@@ -124,7 +124,6 @@ class TestNodeApplication(TestApplicationNode):
             headers={
                 'Host': 'localhost',
                 'Connection': 'keep-alive',
-                'Content-Type': 'text/html',
             },
             start=True,
             body=body,
@@ -134,15 +133,7 @@ class TestNodeApplication(TestApplicationNode):
         assert resp['body'] == '0123456789' * 500, 'keep-alive 1'
 
         body = '0123456789'
-        resp = self.post(
-            headers={
-                'Host': 'localhost',
-                'Connection': 'close',
-                'Content-Type': 'text/html',
-            },
-            sock=sock,
-            body=body,
-        )
+        resp = self.post(sock=sock, body=body)
 
         assert resp['body'] == body, 'keep-alive 2'
 

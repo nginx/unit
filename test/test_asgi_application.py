@@ -160,15 +160,7 @@ custom-header: BLAH
         assert self.get()['status'] == 200, 'init'
 
         body = '0123456789AB' * 1024 * 1024  # 12 Mb
-        resp = self.post(
-            headers={
-                'Host': 'localhost',
-                'Connection': 'close',
-                'Content-Type': 'text/html',
-            },
-            body=body,
-            read_buffer_size=1024 * 1024,
-        )
+        resp = self.post(body=body, read_buffer_size=1024 * 1024)
 
         assert resp['body'] == body, 'keep-alive 1'
 
@@ -182,7 +174,6 @@ custom-header: BLAH
             headers={
                 'Host': 'localhost',
                 'Connection': 'keep-alive',
-                'Content-Type': 'text/html',
             },
             start=True,
             body=body,
@@ -192,15 +183,7 @@ custom-header: BLAH
         assert resp['body'] == body, 'keep-alive 1'
 
         body = '0123456789'
-        resp = self.post(
-            headers={
-                'Host': 'localhost',
-                'Connection': 'close',
-                'Content-Type': 'text/html',
-            },
-            sock=sock,
-            body=body,
-        )
+        resp = self.post(sock=sock, body=body)
 
         assert resp['body'] == body, 'keep-alive 2'
 
@@ -218,7 +201,6 @@ custom-header: BLAH
                 headers={
                     'Host': 'localhost',
                     'Connection': 'keep-alive',
-                    'Content-Type': 'text/html',
                 },
                 start=True,
                 body=body,
@@ -236,7 +218,6 @@ custom-header: BLAH
                 headers={
                     'Host': 'localhost',
                     'Connection': 'keep-alive',
-                    'Content-Type': 'text/html',
                 },
                 start=True,
                 sock=socks[i],
@@ -249,15 +230,7 @@ custom-header: BLAH
             self.load('mirror', processes=i + 1)
 
         for i in range(conns):
-            resp = self.post(
-                headers={
-                    'Host': 'localhost',
-                    'Connection': 'close',
-                    'Content-Type': 'text/html',
-                },
-                sock=socks[i],
-                body=body,
-            )
+            resp = self.post(sock=socks[i], body=body)
 
             assert resp['body'] == body, 'keep-alive close'
 
@@ -274,7 +247,6 @@ custom-header: BLAH
             headers={
                 'Host': 'localhost',
                 'Connection': 'keep-alive',
-                'Content-Type': 'text/html',
             },
             start=True,
             body=body,
@@ -287,16 +259,7 @@ custom-header: BLAH
 
         assert self.get()['status'] == 200, 'init'
 
-        (resp, sock) = self.post(
-            headers={
-                'Host': 'localhost',
-                'Connection': 'close',
-                'Content-Type': 'text/html',
-            },
-            start=True,
-            sock=sock,
-            body=body,
-        )
+        (resp, sock) = self.post(start=True, sock=sock, body=body)
 
         assert resp['status'] == 200, 'reconfigure 2 keep-alive 2'
         assert resp['body'] == '', 'reconfigure 2 keep-alive 2 body'

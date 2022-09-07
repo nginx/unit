@@ -229,18 +229,12 @@ class TestConfiguration(TestControl):
 
     def test_listeners_unix_abstract(self):
         if option.system != 'Linux':
-            assert 'error' in self.conf(
-                {"unix:@sock": {"pass": "routes"}}, 'listeners'
-            ), 'unix abstract at'
+            assert 'error' in self.try_addr("unix:@sock"), 'abstract at'
 
         pytest.skip('not yet')
 
-        assert 'error' in self.conf(
-            {"unix:\0sock": {"pass": "routes"}}, 'listeners'
-        ), 'unix abstract zero'
-        assert 'error' in self.conf(
-            {"unix:\u0000sock": {"pass": "routes"}}, 'listeners'
-        ), 'unix abstract zero unicode'
+        assert 'error' in self.try_addr("unix:\0soc"), 'abstract \0'
+        assert 'error' in self.try_addr("unix:\u0000soc"), 'abstract \0 unicode'
 
     def test_listeners_addr(self):
         assert 'success' in self.try_addr("*:7080"), 'wildcard'

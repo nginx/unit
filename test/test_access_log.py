@@ -36,7 +36,6 @@ class TestAccessLog(TestApplicationPython):
             headers={
                 'Host': 'localhost',
                 'Connection': 'keep-alive',
-                'Content-Type': 'text/html',
             },
             start=True,
             body='01234',
@@ -47,15 +46,7 @@ class TestAccessLog(TestApplicationPython):
             self.wait_for_record(r'"POST / HTTP/1.1" 200 5') is not None
         ), 'keepalive 1'
 
-        resp = self.post(
-            headers={
-                'Host': 'localhost',
-                'Connection': 'close',
-                'Content-Type': 'text/html',
-            },
-            sock=sock,
-            body='0123456789',
-        )
+        resp = self.post(sock=sock, body='0123456789')
 
         assert (
             self.wait_for_record(r'"POST / HTTP/1.1" 200 10') is not None
@@ -315,16 +306,7 @@ Connection: close
 
         self.set_format('$uri $body_bytes_sent')
         body = '0123456789' * 50
-        self.post(
-            url='/bbs',
-            headers={
-                'Host': 'localhost',
-                'Connection': 'close',
-                'Content-Type': 'text/html',
-            },
-            body=body,
-            read_timeout=1,
-        )
+        self.post(url='/bbs', body=body, read_timeout=1)
         assert (
             self.wait_for_record(r'^\/bbs ' + str(len(body)) + r'$') is not None
         ), '$body_bytes_sent'

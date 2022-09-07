@@ -505,7 +505,6 @@ basicConstraints = critical,CA:TRUE"""
             headers={
                 'Host': 'localhost',
                 'Connection': 'keep-alive',
-                'Content-Type': 'text/html',
             },
             start=True,
             body='0123456789',
@@ -518,7 +517,6 @@ basicConstraints = critical,CA:TRUE"""
             headers={
                 'Host': 'localhost',
                 'Connection': 'close',
-                'Content-Type': 'text/html',
             },
             sock=sock,
             body='0123456789',
@@ -570,9 +568,7 @@ basicConstraints = critical,CA:TRUE"""
         assert 'success' in self.conf_delete('/certificates/default')
 
         try:
-            resp = self.get_ssl(
-                headers={'Host': 'localhost', 'Connection': 'close'}, sock=sock
-            )
+            resp = self.get_ssl(sock=sock)
 
         except KeyboardInterrupt:
             raise
@@ -605,7 +601,6 @@ basicConstraints = critical,CA:TRUE"""
             headers={
                 'Host': 'localhost',
                 'Connection': 'keep-alive',
-                'Content-Type': 'text/html',
             },
             start=True,
             body='0123456789',
@@ -622,15 +617,7 @@ basicConstraints = critical,CA:TRUE"""
             r' (?!' + app_id + r'#)(\d+)#\d+ "mirror" application started'
         )
 
-        resp = self.post_ssl(
-            headers={
-                'Host': 'localhost',
-                'Connection': 'close',
-                'Content-Type': 'text/html',
-            },
-            sock=sock,
-            body='0123456789',
-        )
+        resp = self.post_ssl(sock=sock, body='0123456789')
 
         assert resp['status'] == 200, 'application respawn status'
         assert resp['body'] == '0123456789', 'application respawn body'
