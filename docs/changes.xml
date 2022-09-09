@@ -122,6 +122,12 @@ the prototype crashed.
 </para>
 </change>
 
+<change type="bugfix">
+<para>
+mutex leak in the C API.
+</para>
+</change>
+
 </changes>
 
 

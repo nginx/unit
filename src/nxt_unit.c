@@ -585,9 +585,14 @@ fail:
 static nxt_unit_impl_t *
 nxt_unit_create(nxt_unit_init_t *init)
 {
-    int                   rc;
-    nxt_unit_impl_t       *lib;
-    nxt_unit_callbacks_t  *cb;
+    int              rc;
+    nxt_unit_impl_t  *lib;
+
+    if (nxt_slow_path(init->callbacks.request_handler == NULL)) {
+        nxt_unit_alert(NULL, "request_handler is NULL");
+
+        return NULL;
+    }
 
     lib = nxt_unit_malloc(NULL,
                           sizeof(nxt_unit_impl_t) + init->request_data_size);
@@ -626,15 +631,6 @@ nxt_unit_create(nxt_unit_init_t *init)
 
     rc = nxt_unit_ctx_init(lib, &lib->main_ctx, init->ctx_data);
     if (nxt_slow_path(rc != NXT_UNIT_OK)) {
-        pthread_mutex_destroy(&lib->mutex);
-        goto fail;
-    }
-
-    cb = &lib->callbacks;
-
-    if (cb->request_handler == NULL) {
-        nxt_unit_alert(NULL, "request_handler is NULL");
-
         pthread_mutex_destroy(&lib->mutex);
         goto fail;
     }
