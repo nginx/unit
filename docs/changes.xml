@@ -177,7 +177,7 @@ the Ruby application process could crash on SIGINT.
 
 <change type="bugfix">
 <para>
-mutex leak in the C API.
+mutex leaks in the C API.
 </para>
 </change>
 

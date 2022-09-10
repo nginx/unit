@@ -116,7 +116,7 @@ static int nxt_unit_incoming_mmap(nxt_unit_ctx_t *ctx, pid_t pid, int fd);
 
 static void nxt_unit_awake_ctx(nxt_unit_ctx_t *ctx,
     nxt_unit_ctx_impl_t *ctx_impl);
-static void nxt_unit_mmaps_init(nxt_unit_mmaps_t *mmaps);
+static int nxt_unit_mmaps_init(nxt_unit_mmaps_t *mmaps);
 nxt_inline void nxt_unit_process_use(nxt_unit_process_t *process);
 nxt_inline void nxt_unit_process_release(nxt_unit_process_t *process);
 static void nxt_unit_mmaps_destroy(nxt_unit_mmaps_t *mmaps);
@@ -606,7 +606,7 @@ nxt_unit_create(nxt_unit_init_t *init)
     if (nxt_slow_path(rc != 0)) {
         nxt_unit_alert(NULL, "failed to initialize mutex (%d)", rc);
 
-        goto fail;
+        goto out_unit_free;
     }
 
     lib->unit.data = init->data;
@@ -631,17 +631,35 @@ nxt_unit_create(nxt_unit_init_t *init)
 
     rc = nxt_unit_ctx_init(lib, &lib->main_ctx, init->ctx_data);
     if (nxt_slow_path(rc != NXT_UNIT_OK)) {
-        pthread_mutex_destroy(&lib->mutex);
-        goto fail;
+        goto out_mutex_destroy;
     }
 
-    nxt_unit_mmaps_init(&lib->incoming);
-    nxt_unit_mmaps_init(&lib->outgoing);
+    rc = nxt_unit_mmaps_init(&lib->incoming);
+    if (nxt_slow_path(rc != 0)) {
+        nxt_unit_alert(NULL, "failed to initialize mutex (%d)", rc);
+
+        goto out_ctx_free;
+    }
+
+    rc = nxt_unit_mmaps_init(&lib->outgoing);
+    if (nxt_slow_path(rc != 0)) {
+        nxt_unit_alert(NULL, "failed to initialize mutex (%d)", rc);
+
+        goto out_mmaps_destroy;
+    }
 
     return lib;
 
-fail:
+out_mmaps_destroy:
+    nxt_unit_mmaps_destroy(&lib->incoming);
 
+out_ctx_free:
+    nxt_unit_ctx_free(&lib->main_ctx);
+
+out_mutex_destroy:
+    pthread_mutex_destroy(&lib->mutex);
+
+out_unit_free:
     nxt_unit_free(NULL, lib);
 
     return NULL;
@@ -4093,15 +4111,15 @@ nxt_unit_awake_ctx(nxt_unit_ctx_t *ctx, nxt_unit_ctx_impl_t *ctx_impl)
 }
 
 
-static void
+static int
 nxt_unit_mmaps_init(nxt_unit_mmaps_t *mmaps)
 {
-    pthread_mutex_init(&mmaps->mutex, NULL);
-
     mmaps->size = 0;
     mmaps->cap = 0;
     mmaps->elts = NULL;
     mmaps->allocated_chunks = 0;
+
+    return pthread_mutex_init(&mmaps->mutex, NULL);
 }
 
 
