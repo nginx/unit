@@ -37,16 +37,16 @@ if [ "$1" = "unitd" -o "$1" = "unitd-debug" ]; then
                 curl_put $f "certificates/$(basename $f .pem)"
             done
 
-            echo "$0: Looking for configuration snippets in /docker-entrypoint.d/..."
-            for f in $(/usr/bin/find /docker-entrypoint.d/ -type f -name "*.json"); do
-                echo "$0: Applying configuration $f";
-                curl_put $f "config"
-            done
-
             echo "$0: Looking for shell scripts in /docker-entrypoint.d/..."
             for f in $(/usr/bin/find /docker-entrypoint.d/ -type f -name "*.sh"); do
                 echo "$0: Launching $f";
                 "$f"
+            done
+
+            echo "$0: Looking for configuration snippets in /docker-entrypoint.d/..."
+            for f in $(/usr/bin/find /docker-entrypoint.d/ -type f -name "*.json"); do
+                echo "$0: Applying configuration $f";
+                curl_put $f "config"
             done
 
             # warn on filetypes we don't know what to do with
