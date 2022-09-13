@@ -70,7 +70,7 @@ nxt_python_start(nxt_task_t *task, nxt_process_data_t *data)
     int                    rc;
     size_t                 len, size;
     uint32_t               next;
-    PyObject               *obj, *module;
+    PyObject               *obj;
     nxt_str_t              proto, probe_proto, name;
     nxt_int_t              ret, n, i;
     nxt_unit_ctx_t         *unit_ctx;
@@ -154,7 +154,6 @@ nxt_python_start(nxt_task_t *task, nxt_process_data_t *data)
     }
 #endif
 
-    module = NULL;
     obj = NULL;
 
     python_init.ctx_data = NULL;
@@ -307,7 +306,6 @@ fail:
     }
 
     Py_XDECREF(obj);
-    Py_XDECREF(module);
 
     nxt_python_atexit();
 
