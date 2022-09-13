@@ -338,7 +338,7 @@ nxt_rmemstrn(const u_char *s, const u_char *end, const char *ss, size_t length)
 
 
 size_t
-nxt_str_strip(u_char *start, u_char *end)
+nxt_str_strip(const u_char *start, u_char *end)
 {
     u_char  *p;
 

@@ -2,7 +2,7 @@
 
 ## Universal Web App Server
 
-![NGINX Unit Logo](docs/unitlogo.png)
+![NGINX Unit Logo](docs/unitlogo.svg)
 
 NGINX Unit is a lightweight and versatile open-source server that has
 three core capabilities:

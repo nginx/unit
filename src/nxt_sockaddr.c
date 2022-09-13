@@ -15,10 +15,6 @@ static nxt_sockaddr_t *nxt_sockaddr_unix_parse(nxt_mp_t *mp, nxt_str_t *addr);
 static nxt_sockaddr_t *nxt_sockaddr_inet6_parse(nxt_mp_t *mp, nxt_str_t *addr);
 static nxt_sockaddr_t *nxt_sockaddr_inet_parse(nxt_mp_t *mp, nxt_str_t *addr);
 
-static nxt_int_t nxt_job_sockaddr_unix_parse(nxt_job_sockaddr_parse_t *jbs);
-static nxt_int_t nxt_job_sockaddr_inet6_parse(nxt_job_sockaddr_parse_t *jbs);
-static nxt_int_t nxt_job_sockaddr_inet_parse(nxt_job_sockaddr_parse_t *jbs);
-
 
 nxt_sockaddr_t *
 nxt_sockaddr_cache_alloc(nxt_event_engine_t *engine, nxt_listen_socket_t *ls)
@@ -208,8 +204,8 @@ nxt_getsockname(nxt_task_t *task, nxt_mp_t *mp, nxt_socket_t s)
 #if (NXT_HAVE_UNIX_DOMAIN)
         case AF_UNIX:
             length = nxt_length("unix:") + socklen;
-#endif
             break;
+#endif
 
         case AF_INET:
             length = NXT_INET_ADDR_STR_LEN;
@@ -433,82 +429,6 @@ nxt_sockaddr_cmp(nxt_sockaddr_t *sa1, nxt_sockaddr_t *sa2)
 }
 
 
-size_t
-nxt_sockaddr_ntop(nxt_sockaddr_t *sa, u_char *buf, u_char *end, nxt_bool_t port)
-{
-    u_char  *p;
-
-    switch (sa->u.sockaddr.sa_family) {
-
-    case AF_INET:
-        p = (u_char *) &sa->u.sockaddr_in.sin_addr;
-
-        if (port) {
-            p = nxt_sprintf(buf, end, "%ud.%ud.%ud.%ud:%d",
-                            p[0], p[1], p[2], p[3],
-                            ntohs(sa->u.sockaddr_in.sin_port));
-        } else {
-            p = nxt_sprintf(buf, end, "%ud.%ud.%ud.%ud",
-                            p[0], p[1], p[2], p[3]);
-        }
-
-        return p - buf;
-
-#if (NXT_INET6)
-
-    case AF_INET6:
-        p = buf;
-
-        if (port) {
-            *p++ = '[';
-        }
-
-        p = nxt_inet6_ntop(sa->u.sockaddr_in6.sin6_addr.s6_addr, p, end);
-
-        if (port) {
-            p = nxt_sprintf(p, end, "]:%d",
-                            ntohs(sa->u.sockaddr_in6.sin6_port));
-        }
-
-        return p - buf;
-#endif
-
-#if (NXT_HAVE_UNIX_DOMAIN)
-
-    case AF_UNIX:
-
-#if (NXT_LINUX)
-
-        p = (u_char *) sa->u.sockaddr_un.sun_path;
-
-        if (p[0] == '\0') {
-            size_t  length;
-
-            /* Linux abstract socket address has no trailing zero. */
-
-            length = sa->socklen - offsetof(struct sockaddr_un, sun_path) - 1;
-            p = nxt_sprintf(buf, end, "unix:\\0%*s", length, p + 1);
-
-        } else {
-            p = nxt_sprintf(buf, end, "unix:%s", p);
-        }
-
-#else  /* !(NXT_LINUX) */
-
-        p = nxt_sprintf(buf, end, "unix:%s", sa->u.sockaddr_un.sun_path);
-
-#endif
-
-        return p - buf;
-
-#endif  /* NXT_HAVE_UNIX_DOMAIN */
-
-    default:
-        return 0;
-    }
-}
-
-
 #if (NXT_INET6)
 
 static u_char *
@@ -681,8 +601,6 @@ nxt_sockaddr_unix_parse(nxt_mp_t *mp, nxt_str_t *addr)
 
     socklen = offsetof(struct sockaddr_un, sun_path) + length + 1;
 
-#if (NXT_LINUX)
-
     /*
      * Linux unix(7):
      *
@@ -695,9 +613,12 @@ nxt_sockaddr_unix_parse(nxt_mp_t *mp, nxt_str_t *addr)
     if (path[0] == '@') {
         path[0] = '\0';
         socklen--;
-    }
-
+#if !(NXT_LINUX)
+        nxt_thread_log_error(NXT_LOG_ERR,
+                             "abstract unix domain sockets are not supported");
+        return NULL;
 #endif
+    }
 
     sa = nxt_sockaddr_alloc(mp, socklen, addr->length);
 
@@ -846,338 +767,6 @@ nxt_sockaddr_inet_parse(nxt_mp_t *mp, nxt_str_t *addr)
     sa->u.sockaddr_in.sin_port = htons((in_port_t) port);
 
     return sa;
-}
-
-
-void
-nxt_job_sockaddr_parse(nxt_job_sockaddr_parse_t *jbs)
-{
-    u_char              *p;
-    size_t              length;
-    nxt_int_t           ret;
-    nxt_work_handler_t  handler;
-
-    nxt_job_set_name(&jbs->resolve.job, "job sockaddr parse");
-
-    length = jbs->addr.length;
-    p = jbs->addr.start;
-
-    if (length > 6 && nxt_memcmp(p, "unix:", 5) == 0) {
-        ret = nxt_job_sockaddr_unix_parse(jbs);
-
-    } else if (length != 0 && *p == '[') {
-        ret = nxt_job_sockaddr_inet6_parse(jbs);
-
-    } else {
-        ret = nxt_job_sockaddr_inet_parse(jbs);
-    }
-
-    switch (ret) {
-
-    case NXT_OK:
-        handler = jbs->resolve.ready_handler;
-        break;
-
-    case NXT_ERROR:
-        handler = jbs->resolve.error_handler;
-        break;
-
-    default: /* NXT_AGAIN */
-        return;
-    }
-
-    nxt_job_return(jbs->resolve.job.task, &jbs->resolve.job, handler);
-}
-
-
-static nxt_int_t
-nxt_job_sockaddr_unix_parse(nxt_job_sockaddr_parse_t *jbs)
-{
-#if (NXT_HAVE_UNIX_DOMAIN)
-    size_t          length, socklen;
-    u_char          *path;
-    nxt_mp_t        *mp;
-    nxt_sockaddr_t  *sa;
-
-    /*
-     * Actual sockaddr_un length can be lesser or even larger than defined
-     * struct sockaddr_un length (see comment in nxt_socket.h).  So
-     * limit maximum Unix domain socket address length by defined sun_path[]
-     * length because some OSes accept addresses twice larger than defined
-     * struct sockaddr_un.  Also reserve space for a trailing zero to avoid
-     * ambiguity, since many OSes accept Unix domain socket addresses
-     * without a trailing zero.
-     */
-    const size_t max_len = sizeof(struct sockaddr_un)
-                           - offsetof(struct sockaddr_un, sun_path) - 1;
-
-    /* cutting "unix:" */
-    length = jbs->addr.length - 5;
-    path = jbs->addr.start + 5;
-
-    if (length > max_len) {
-        nxt_thread_log_error(jbs->resolve.log_level,
-                             "unix domain socket \"%V\" name is too long",
-                             &jbs->addr);
-        return NXT_ERROR;
-    }
-
-    socklen = offsetof(struct sockaddr_un, sun_path) + length + 1;
-
-#if (NXT_LINUX)
-
-    /*
-     * Linux unix(7):
-     *
-     *   abstract: an abstract socket address is distinguished by the fact
-     *   that sun_path[0] is a null byte ('\0').  The socket's address in
-     *   this namespace is given by the additional bytes in sun_path that
-     *   are covered by the specified length of the address structure.
-     *   (Null bytes in the name have no special significance.)
-     */
-    if (path[0] == '\0') {
-        socklen--;
-    }
-
-#endif
-
-    mp = jbs->resolve.job.mem_pool;
-
-    jbs->resolve.sockaddrs = nxt_mp_alloc(mp, sizeof(void *));
-
-    if (nxt_fast_path(jbs->resolve.sockaddrs != NULL)) {
-        sa = nxt_sockaddr_alloc(mp, socklen, jbs->addr.length);
-
-        if (nxt_fast_path(sa != NULL)) {
-            jbs->resolve.count = 1;
-            jbs->resolve.sockaddrs[0] = sa;
-
-            sa->u.sockaddr_un.sun_family = AF_UNIX;
-            nxt_memcpy(sa->u.sockaddr_un.sun_path, path, length);
-
-            return NXT_OK;
-        }
-    }
-
-    return NXT_ERROR;
-
-#else  /* !(NXT_HAVE_UNIX_DOMAIN) */
-
-    nxt_thread_log_error(jbs->resolve.log_level,
-                         "unix domain socket \"%V\" is not supported",
-                         &jbs->addr);
-    return NXT_ERROR;
-
-#endif
-}
-
-
-static nxt_int_t
-nxt_job_sockaddr_inet6_parse(nxt_job_sockaddr_parse_t *jbs)
-{
-#if (NXT_INET6)
-    u_char           *p, *addr, *addr_end;
-    size_t           length;
-    nxt_mp_t         *mp;
-    nxt_int_t        port;
-    nxt_sockaddr_t   *sa;
-    struct in6_addr  *in6_addr;
-
-    length = jbs->addr.length - 1;
-    addr = jbs->addr.start + 1;
-
-    addr_end = nxt_memchr(addr, ']', length);
-
-    if (addr_end == NULL) {
-        goto invalid_address;
-    }
-
-    mp = jbs->resolve.job.mem_pool;
-
-    jbs->resolve.sockaddrs = nxt_mp_alloc(mp, sizeof(void *));
-
-    if (nxt_slow_path(jbs->resolve.sockaddrs == NULL)) {
-        return NXT_ERROR;
-    }
-
-    sa = nxt_sockaddr_alloc(mp, sizeof(struct sockaddr_in6),
-                            NXT_INET6_ADDR_STR_LEN);
-
-    if (nxt_slow_path(sa == NULL)) {
-        return NXT_ERROR;
-    }
-
-    jbs->resolve.count = 1;
-    jbs->resolve.sockaddrs[0] = sa;
-
-    in6_addr = &sa->u.sockaddr_in6.sin6_addr;
-
-    if (nxt_inet6_addr(in6_addr, addr, addr_end - addr) != NXT_OK) {
-        goto invalid_address;
-    }
-
-    p = addr_end + 1;
-    length = (addr + length) - p;
-
-    if (length == 0) {
-        jbs->no_port = 1;
-        port = jbs->resolve.port;
-        goto found;
-    }
-
-    if (*p == ':') {
-        port = nxt_int_parse(p + 1, length - 1);
-
-        if (port >= 1 && port <= 65535) {
-            port = htons((in_port_t) port);
-            goto found;
-        }
-    }
-
-    nxt_thread_log_error(jbs->resolve.log_level,
-                         "invalid port in \"%V\"", &jbs->addr);
-
-    return NXT_ERROR;
-
-found:
-
-    sa->u.sockaddr_in6.sin6_family = AF_INET6;
-    sa->u.sockaddr_in6.sin6_port = (in_port_t) port;
-
-    if (IN6_IS_ADDR_UNSPECIFIED(in6_addr)) {
-        jbs->wildcard = 1;
-    }
-
-    return NXT_OK;
-
-invalid_address:
-
-    nxt_thread_log_error(jbs->resolve.log_level,
-                         "invalid IPv6 address in \"%V\"", &jbs->addr);
-    return NXT_ERROR;
-
-#else
-
-    nxt_thread_log_error(jbs->resolve.log_level,
-                         "IPv6 socket \"%V\" is not supported", &jbs->addr);
-    return NXT_ERROR;
-
-#endif
-}
-
-
-static nxt_int_t
-nxt_job_sockaddr_inet_parse(nxt_job_sockaddr_parse_t *jbs)
-{
-    u_char          *p, *host;
-    size_t          length;
-    nxt_mp_t        *mp;
-    nxt_int_t       port;
-    in_addr_t       addr;
-    nxt_sockaddr_t  *sa;
-
-    addr = INADDR_ANY;
-
-    length = jbs->addr.length;
-    host = jbs->addr.start;
-
-    p = nxt_memchr(host, ':', length);
-
-    if (p == NULL) {
-
-        /* single value port, address, or host name */
-
-        port = nxt_int_parse(host, length);
-
-        if (port > 0) {
-            if (port < 1 || port > 65535) {
-                goto invalid_port;
-            }
-
-            /* "*:XX" */
-            port = htons((in_port_t) port);
-            jbs->resolve.port = (in_port_t) port;
-
-        } else {
-            jbs->no_port = 1;
-
-            addr = nxt_inet_addr(host, length);
-
-            if (addr == INADDR_NONE) {
-                jbs->resolve.name.length = length;
-                jbs->resolve.name.start = host;
-
-                nxt_job_resolve(&jbs->resolve);
-                return NXT_AGAIN;
-            }
-
-            /* "x.x.x.x" */
-            port = jbs->resolve.port;
-        }
-
-    } else {
-
-        /* x.x.x.x:XX or host:XX */
-
-        p++;
-        length = (host + length) - p;
-        port = nxt_int_parse(p, length);
-
-        if (port < 1 || port > 65535) {
-            goto invalid_port;
-        }
-
-        port = htons((in_port_t) port);
-
-        length = (p - 1) - host;
-
-        if (length != 1 || host[0] != '*') {
-            addr = nxt_inet_addr(host, length);
-
-            if (addr == INADDR_NONE) {
-                jbs->resolve.name.length = length;
-                jbs->resolve.name.start = host;
-                jbs->resolve.port = (in_port_t) port;
-
-                nxt_job_resolve(&jbs->resolve);
-                return NXT_AGAIN;
-            }
-
-            /* "x.x.x.x:XX" */
-        }
-    }
-
-    mp = jbs->resolve.job.mem_pool;
-
-    jbs->resolve.sockaddrs = nxt_mp_alloc(mp, sizeof(void *));
-    if (nxt_slow_path(jbs->resolve.sockaddrs == NULL)) {
-        return NXT_ERROR;
-    }
-
-    sa = nxt_sockaddr_alloc(mp, sizeof(struct sockaddr_in),
-                            NXT_INET_ADDR_STR_LEN);
-
-    if (nxt_fast_path(sa != NULL)) {
-        jbs->resolve.count = 1;
-        jbs->resolve.sockaddrs[0] = sa;
-
-        jbs->wildcard = (addr == INADDR_ANY);
-
-        sa->u.sockaddr_in.sin_family = AF_INET;
-        sa->u.sockaddr_in.sin_port = (in_port_t) port;
-        sa->u.sockaddr_in.sin_addr.s_addr = addr;
-
-        return NXT_OK;
-    }
-
-    return NXT_ERROR;
-
-invalid_port:
-
-    nxt_thread_log_error(jbs->resolve.log_level,
-                         "invalid port in \"%V\"", &jbs->addr);
-
-    return NXT_ERROR;
 }
 
 

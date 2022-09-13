@@ -19,7 +19,7 @@
  * fork(2) calls.  As we use clone(2) for container, it returns the wrong pid.
  */
 #define nxt_getpid()                                                          \
-    syscall(__NR_getpid)
+    syscall(SYS_getpid)
 #else
 #define nxt_getpid()                                                          \
     getpid()
@@ -148,6 +148,8 @@ typedef struct {
 
     const nxt_port_handlers_t  *port_handlers;
     const nxt_sig_event_t      *signals;
+
+    nxt_queue_t                *siblings;
 } nxt_process_init_t;
 
 

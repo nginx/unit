@@ -18,6 +18,11 @@ class TestVariables(TestApplicationProto):
                     "GETGET": [{"action": {"return": 207}}],
                     "localhost": [{"action": {"return": 208}}],
                     "9?q#a": [{"action": {"return": 209}}],
+                    "blah": [{"action": {"return": 210}}],
+                    "127.0.0.1": [{"action": {"return": 211}}],
+                    "::1": [{"action": {"return": 212}}],
+                    "referer-value": [{"action": {"return": 213}}],
+                    "MSIE": [{"action": {"return": 214}}],
                 },
             },
         ), 'configure routes'
@@ -61,6 +66,74 @@ class TestVariables(TestApplicationProto):
         check_host('.localhost', 404)
         check_host('www.localhost', 404)
         check_host('localhost1', 404)
+
+    def test_variables_remote_addr(self):
+        self.conf_routes("\"routes/$remote_addr\"")
+        assert self.get()['status'] == 211
+
+        assert 'success' in self.conf(
+            {"[::1]:7080": {"pass": "routes/$remote_addr"}}, 'listeners'
+        )
+        assert self.get(sock_type='ipv6')['status'] == 212
+
+    def test_variables_header_referer(self):
+        self.conf_routes("\"routes/$header_referer\"")
+
+        def check_referer(referer, status=213):
+            assert (
+                self.get(
+                    headers={
+                        'Host': 'localhost',
+                        'Connection': 'close',
+                        'Referer': referer,
+                    }
+                )['status']
+                == status
+            )
+
+        check_referer('referer-value')
+        check_referer('', 404)
+        check_referer('no', 404)
+
+    def test_variables_header_user_agent(self):
+        self.conf_routes("\"routes/$header_user_agent\"")
+
+        def check_user_agent(user_agent, status=214):
+            assert (
+                self.get(
+                    headers={
+                        'Host': 'localhost',
+                        'Connection': 'close',
+                        'User-Agent': user_agent,
+                    }
+                )['status']
+                == status
+            )
+
+        check_user_agent('MSIE')
+        check_user_agent('', 404)
+        check_user_agent('no', 404)
+
+    def test_variables_dollar(self):
+        assert 'success' in self.conf(
+            {
+                "listeners": {"*:7080": {"pass": "routes"}},
+                "routes": [{"action": {"return": 301}}],
+            }
+        )
+
+        def check_dollar(location, expect):
+            assert 'success' in self.conf(
+                '"' + location + '"',
+                'routes/0/action/location',
+            )
+            assert self.get()['headers']['Location'] == expect
+
+        check_dollar(
+            'https://${host}${uri}path${dollar}dollar',
+            'https://localhost/path$dollar',
+        )
+        check_dollar('path$dollar${dollar}', 'path$$')
 
     def test_variables_many(self):
         self.conf_routes("\"routes$uri$method\"")
@@ -124,6 +197,80 @@ class TestVariables(TestApplicationProto):
         update_pass("applications")
         assert self.get(url='/3')['status'] == 404
 
+    def test_variables_dynamic(self):
+        self.conf_routes("\"routes/$header_foo$arg_foo$cookie_foo\"")
+
+        self.get(
+            url='/?foo=h',
+            headers={'Foo': 'b', 'Cookie': 'foo=la', 'Connection': 'close'},
+        )['status'] = 210
+
+    def test_variables_dynamic_headers(self):
+        def check_header(header, status=210):
+            assert (
+                self.get(headers={header: "blah", 'Connection': 'close'})[
+                    'status'
+                ]
+                == status
+            )
+
+        self.conf_routes("\"routes/$header_foo_bar\"")
+        check_header('foo-bar')
+        check_header('Foo-Bar')
+        check_header('foo_bar', 404)
+        check_header('Foo', 404)
+        check_header('Bar', 404)
+        check_header('foobar', 404)
+
+        self.conf_routes("\"routes/$header_Foo_Bar\"")
+        check_header('Foo-Bar')
+        check_header('foo-bar')
+        check_header('foo_bar', 404)
+        check_header('foobar', 404)
+
+        self.conf_routes("\"routes/$header_foo-bar\"")
+        check_header('foo_bar', 404)
+
+    def test_variables_dynamic_arguments(self):
+        self.conf_routes("\"routes/$arg_foo_bar\"")
+        assert self.get(url='/?foo_bar=blah')['status'] == 210
+        assert self.get(url='/?foo_b%61r=blah')['status'] == 210
+        assert self.get(url='/?bar&foo_bar=blah&foo')['status'] == 210
+        assert self.get(url='/?Foo_bar=blah')['status'] == 404
+        assert self.get(url='/?foo-bar=blah')['status'] == 404
+        assert self.get()['status'] == 404
+        assert self.get(url='/?foo_bar=')['status'] == 404
+        assert self.get(url='/?foo_bar=l&foo_bar=blah')['status'] == 210
+        assert self.get(url='/?foo_bar=blah&foo_bar=l')['status'] == 404
+
+        self.conf_routes("\"routes/$arg_foo_b%61r\"")
+        assert self.get(url='/?foo_b=blah')['status'] == 404
+        assert self.get(url='/?foo_bar=blah')['status'] == 404
+
+        self.conf_routes("\"routes/$arg_f!~\"")
+        assert self.get(url='/?f=blah')['status'] == 404
+        assert self.get(url='/?f!~=blah')['status'] == 404
+
+    def test_variables_dynamic_cookies(self):
+        def check_cookie(cookie, status=210):
+            assert (
+                self.get(
+                    headers={
+                        'Host': 'localhost',
+                        'Cookie': cookie,
+                        'Connection': 'close',
+                    },
+                )['status']
+                == status
+            ), 'match cookie'
+
+        self.conf_routes("\"routes/$cookie_foo_bar\"")
+        check_cookie('foo_bar=blah', 210)
+        check_cookie('fOo_bar=blah', 404)
+        assert self.get()['status'] == 404
+        check_cookie('foo_bar', 404)
+        check_cookie('foo_bar=', 404)
+
     def test_variables_invalid(self):
         def check_variables(routes):
             assert 'error' in self.conf(
@@ -137,3 +284,10 @@ class TestVariables(TestApplicationProto):
         check_variables("\"routes$uriblah\"")
         check_variables("\"routes${uri\"")
         check_variables("\"routes${{uri}\"")
+        check_variables("\"routes$ar\"")
+        check_variables("\"routes$arg\"")
+        check_variables("\"routes$arg_\"")
+        check_variables("\"routes$cookie\"")
+        check_variables("\"routes$cookie_\"")
+        check_variables("\"routes$header\"")
+        check_variables("\"routes$header_\"")

@@ -21,7 +21,7 @@ nxt_feature_test="#include <sys/wait.h>
                   #include <sys/syscall.h>
 
                   int main() {
-                      return __NR_clone | SIGCHLD;
+                      return SYS_clone | SIGCHLD;
                   }"
 . auto/feature
 
@@ -61,14 +61,30 @@ fi
 
 
 nxt_feature="Linux pivot_root()"
-nxt_feature_name=NXT_HAVE_PIVOT_ROOT
+nxt_feature_name=NXT_HAVE_LINUX_PIVOT_ROOT
 nxt_feature_run=no
 nxt_feature_incs=
 nxt_feature_libs=
 nxt_feature_test="#include <sys/syscall.h>
+                  #if !defined(__linux__)
+                  # error
+                  #endif
 
                   int main() {
-                      return __NR_pivot_root;
+                      return SYS_pivot_root;
+                  }"
+. auto/feature
+
+
+nxt_feature="<mntent.h>"
+nxt_feature_name=NXT_HAVE_MNTENT_H
+nxt_feature_run=no
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <mntent.h>
+
+                  int main(void) {
+                      return 0;
                   }"
 . auto/feature
 

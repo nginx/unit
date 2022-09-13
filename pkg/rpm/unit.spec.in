@@ -17,10 +17,6 @@ BuildRequires: openssl-devel
 %endif
 %endif
 
-%if 0%{?suse_version} >= 1315
-BuildRequires: libopenssl-devel
-%endif
-
 %define CC_OPT %{optflags} -fPIC
 %define LD_OPT -Wl,-z,relro -Wl,-z,now -pie
 
@@ -58,10 +54,6 @@ applications. It runs the application code in multiple languages
 in and out of the application. Take this application server and proxy
 directly in the cloud / container environments and fully control your app
 dynamically via an API.
-
-%if 0%{?suse_version}
-%debug_package
-%endif
 
 %if (0%{?fedora}) || (0%{?rhel} >= 8)
 %define _debugsource_template %{nil}
@@ -115,7 +107,6 @@ DESTDIR=%{buildroot} make unitd-install libunit-install manpage-install
 %{__mkdir} -p %{buildroot}%{_sysconfdir}/logrotate.d
 %{__install} -m 644 -p %{SOURCE4} \
     %{buildroot}%{_sysconfdir}/logrotate.d/unit
-%{__mkdir} -p %{buildroot}%{_sysconfdir}/unit
 %{__mkdir} -p %{buildroot}%{_datadir}/doc/unit/examples
 %{__install} -m 644 -p %{SOURCE3} \
     %{buildroot}%{_datadir}/doc/unit/examples/example.config
@@ -143,9 +134,6 @@ cd %{bdir} && make tests && ./build/tests
 cd %{bdir}
 grep -v 'usr/src' debugfiles.list > debugfiles.list.new && mv debugfiles.list.new debugfiles.list
 cat /dev/null > debugsources.list
-%if 0%{?suse_version} >= 1500
-cat /dev/null > debugsourcefiles.list
-%endif
 
 %clean
 %{__rm} -rf %{buildroot}
@@ -203,7 +191,6 @@ BANNER
 %defattr(-,root,root,-)
 %attr(0755,root,root) %{_sbindir}/unitd
 %attr(0755,root,root) %{_sbindir}/unitd-debug
-%dir %{_sysconfdir}/unit
 %{_unitdir}/unit.service
 %{_unitdir}/unit-debug.service
 %dir %attr(0755,root,root) %ghost %{_localstatedir}/run/unit

@@ -69,7 +69,6 @@ NXT_LIB_SRCS=" \
     src/nxt_event_conn_job_sendfile.c \
     src/nxt_conn_proxy.c \
     src/nxt_job.c \
-    src/nxt_job_resolve.c \
     src/nxt_sockaddr.c \
     src/nxt_listen_socket.c \
     src/nxt_upstream.c \
@@ -84,7 +83,9 @@ NXT_LIB_SRCS=" \
     src/nxt_signal_handlers.c \
     src/nxt_controller.c \
     src/nxt_router.c \
+    src/nxt_router_access_log.c \
     src/nxt_h1proto.c \
+    src/nxt_status.c \
     src/nxt_http_request.c \
     src/nxt_http_response.c \
     src/nxt_http_error.c \

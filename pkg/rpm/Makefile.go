@@ -15,28 +15,17 @@ MODULE_SOURCES_go=	unit.example-go-app \
 
 ifeq ($(OSVER), centos6)
 BUILD_DEPENDS_go=	epel-release golang
-else ifneq (,$(findstring $(OSVER),opensuse-leap opensuse-tumbleweed))
-BUILD_DEPENDS_go=	go1.9
 else
 BUILD_DEPENDS_go=	golang
 endif
 
 BUILD_DEPENDS+=		$(BUILD_DEPENDS_go)
 
-ifneq (,$(findstring $(OSVER),opensuse-leap opensuse-tumbleweed))
-define MODULE_DEFINITIONS_go
-BuildArch: noarch
-Requires: unit-devel == $(VERSION)-$(RELEASE)%{?dist}.ngx
-BuildRequires: $(BUILD_DEPENDS_go)
-%define gopath /usr/share/go/contrib
-endef
-else
 define MODULE_DEFINITIONS_go
 BuildArch: noarch
 Requires: unit-devel == $(VERSION)-$(RELEASE)%{?dist}.ngx
 BuildRequires: $(BUILD_DEPENDS_go)
 endef
-endif
 export MODULE_DEFINITIONS_go
 
 define MODULE_PREINSTALL_go

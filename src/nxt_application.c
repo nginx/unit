@@ -23,6 +23,13 @@
 #endif
 
 
+#ifdef WCOREDUMP
+#define NXT_WCOREDUMP(s) WCOREDUMP(s)
+#else
+#define NXT_WCOREDUMP(s) 0
+#endif
+
+
 typedef struct {
     nxt_app_type_t  type;
     nxt_str_t       version;
@@ -636,6 +643,8 @@ nxt_proto_start_process_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     process->data.app = nxt_app_conf;
     process->stream = msg->port_msg.stream;
 
+    init->siblings = &nxt_proto_children;
+
     ret = nxt_process_start(task, process);
     if (nxt_slow_path(ret == NXT_ERROR)) {
         nxt_process_use(task, process, -1);
@@ -711,14 +720,18 @@ nxt_proto_process_created_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         nxt_debug(task, "app process %PI (aka %PI) is created", isolated_pid,
                   pid);
 
-        nxt_runtime_process_remove(task->thread->runtime, process);
-
         process->pid = pid;
-
-        nxt_runtime_process_add(task, process);
 
     } else {
         nxt_debug(task, "app process %PI is created", isolated_pid);
+    }
+
+    if (!process->registered) {
+        nxt_assert(!nxt_queue_is_empty(&process->ports));
+
+        nxt_runtime_process_add(task, process);
+
+        nxt_port_use(task, nxt_process_port_first(process), -1);
     }
 }
 
@@ -753,7 +766,11 @@ nxt_proto_sigchld_handler(nxt_task_t *task, void *obj, void *data)
     int            status;
     nxt_err_t      err;
     nxt_pid_t      pid;
+    nxt_port_t     *port;
     nxt_process_t  *process;
+    nxt_runtime_t  *rt;
+
+    rt = task->thread->runtime;
 
     nxt_debug(task, "proto sigchld handler signo:%d (%s)",
               (int) (uintptr_t) obj, data);
@@ -783,24 +800,46 @@ nxt_proto_sigchld_handler(nxt_task_t *task, void *obj, void *data)
             return;
         }
 
+        process = nxt_proto_process_remove(task, pid);
+
         if (WTERMSIG(status)) {
-#ifdef WCOREDUMP
-            nxt_alert(task, "app process (isolated %PI) exited on signal %d%s",
-                      pid, WTERMSIG(status),
-                      WCOREDUMP(status) ? " (core dumped)" : "");
-#else
-            nxt_alert(task, "app process (isolated %PI) exited on signal %d",
-                      pid, WTERMSIG(status));
-#endif
+            if (rt->is_pid_isolated) {
+                nxt_alert(task, "app process %PI (isolated %PI) "
+                                "exited on signal %d%s",
+                          process != NULL ? process->pid : 0,
+                          pid, WTERMSIG(status),
+                          NXT_WCOREDUMP(status) ? " (core dumped)" : "");
+
+            } else {
+                nxt_alert(task, "app process %PI exited on signal %d%s",
+                          pid, WTERMSIG(status),
+                          NXT_WCOREDUMP(status) ? " (core dumped)" : "");
+            }
 
         } else {
-            nxt_trace(task, "app process (isolated %PI) exited with code %d",
-                      pid, WEXITSTATUS(status));
+            if (rt->is_pid_isolated) {
+                nxt_trace(task, "app process %PI (isolated %PI) "
+                                "exited with code %d",
+                          process != NULL ? process->pid : 0,
+                          pid, WEXITSTATUS(status));
+
+            } else {
+                nxt_trace(task, "app process %PI exited with code %d",
+                          pid, WEXITSTATUS(status));
+            }
         }
 
-        process = nxt_proto_process_remove(task, pid);
         if (process == NULL) {
             continue;
+        }
+
+        if (process->registered) {
+            port = NULL;
+
+        } else {
+            nxt_assert(!nxt_queue_is_empty(&process->ports));
+
+            port = nxt_process_port_first(process);
         }
 
         if (process->state != NXT_PROCESS_STATE_CREATING) {
@@ -808,6 +847,10 @@ nxt_proto_sigchld_handler(nxt_task_t *task, void *obj, void *data)
         }
 
         nxt_process_close_ports(task, process);
+
+        if (port != NULL) {
+            nxt_port_use(task, port, -1);
+        }
 
         if (nxt_proto_exiting && nxt_queue_is_empty(&nxt_proto_children)) {
             nxt_process_quit(task, 0);
@@ -1122,7 +1165,7 @@ nxt_proto_process_add(nxt_task_t *task, nxt_process_t *process)
         break;
 
     default:
-        nxt_debug(task, "process (isolated %PI) failed to add",
+        nxt_alert(task, "process (isolated %PI) failed to add",
                   process->isolated_pid);
         break;
     }

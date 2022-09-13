@@ -8,16 +8,16 @@
 
 
 static nxt_int_t nxt_http_parse_unusual_target(nxt_http_request_parse_t *rp,
-    u_char **pos, u_char *end);
+    u_char **pos, const u_char *end);
 static nxt_int_t nxt_http_parse_request_line(nxt_http_request_parse_t *rp,
-    u_char **pos, u_char *end);
+    u_char **pos, const u_char *end);
 static nxt_int_t nxt_http_parse_field_name(nxt_http_request_parse_t *rp,
-    u_char **pos, u_char *end);
+    u_char **pos, const u_char *end);
 static nxt_int_t nxt_http_parse_field_value(nxt_http_request_parse_t *rp,
-    u_char **pos, u_char *end);
-static u_char *nxt_http_lookup_field_end(u_char *p, u_char *end);
+    u_char **pos, const u_char *end);
+static u_char *nxt_http_lookup_field_end(u_char *p, const u_char *end);
 static nxt_int_t nxt_http_parse_field_end(nxt_http_request_parse_t *rp,
-    u_char **pos, u_char *end);
+    u_char **pos, const u_char *end);
 
 static nxt_int_t nxt_http_parse_complex_target(nxt_http_request_parse_t *rp);
 
@@ -62,7 +62,7 @@ static const uint8_t  nxt_http_target_chars[256] nxt_aligned(64) = {
 
 
 nxt_inline nxt_http_target_traps_e
-nxt_http_parse_target(u_char **pos, u_char *end)
+nxt_http_parse_target(u_char **pos, const u_char *end)
 {
     u_char      *p;
     nxt_uint_t  trap;
@@ -158,7 +158,7 @@ nxt_http_parse_fields(nxt_http_request_parse_t *rp, nxt_buf_mem_t *b)
 
 static nxt_int_t
 nxt_http_parse_request_line(nxt_http_request_parse_t *rp, u_char **pos,
-    u_char *end)
+    const u_char *end)
 {
     u_char                   *p, ch, *after_slash, *args;
     nxt_int_t                rc;
@@ -479,7 +479,7 @@ space_after_target:
 
 static nxt_int_t
 nxt_http_parse_unusual_target(nxt_http_request_parse_t *rp, u_char **pos,
-    u_char *end)
+    const u_char *end)
 {
     u_char  *p, ch;
 
@@ -517,7 +517,7 @@ nxt_http_parse_unusual_target(nxt_http_request_parse_t *rp, u_char **pos,
 
 static nxt_int_t
 nxt_http_parse_field_name(nxt_http_request_parse_t *rp, u_char **pos,
-    u_char *end)
+    const u_char *end)
 {
     u_char    *p, c;
     size_t    len;
@@ -624,7 +624,7 @@ name_end:
 
 static nxt_int_t
 nxt_http_parse_field_value(nxt_http_request_parse_t *rp, u_char **pos,
-    u_char *end)
+    const u_char *end)
 {
     u_char  *p, *start, ch;
     size_t  len;
@@ -704,7 +704,7 @@ nxt_http_parse_field_value(nxt_http_request_parse_t *rp, u_char **pos,
 
 
 static u_char *
-nxt_http_lookup_field_end(u_char *p, u_char *end)
+nxt_http_lookup_field_end(u_char *p, const u_char *end)
 {
     while (nxt_fast_path(end - p >= 16)) {
 
@@ -771,7 +771,7 @@ nxt_http_lookup_field_end(u_char *p, u_char *end)
 
 static nxt_int_t
 nxt_http_parse_field_end(nxt_http_request_parse_t *rp, u_char **pos,
-    u_char *end)
+    const u_char *end)
 {
     u_char            *p;
     nxt_http_field_t  *field;

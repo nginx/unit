@@ -7,7 +7,7 @@
 #include <nxt_process.h>
 #include <nxt_isolation.h>
 
-#if (NXT_HAVE_PIVOT_ROOT)
+#if (NXT_HAVE_MNTENT_H)
 #include <mntent.h>
 #endif
 
@@ -45,7 +45,7 @@ static int nxt_cdecl nxt_isolation_mount_compare(const void *v1,
     const void *v2);
 static void nxt_isolation_unmount_all(nxt_task_t *task, nxt_process_t *process);
 
-#if (NXT_HAVE_PIVOT_ROOT) && (NXT_HAVE_CLONE_NEWNS)
+#if (NXT_HAVE_LINUX_PIVOT_ROOT) && (NXT_HAVE_CLONE_NEWNS)
 static nxt_int_t nxt_isolation_pivot_root(nxt_task_t *task, const char *rootfs);
 static nxt_int_t nxt_isolation_make_private_mount(nxt_task_t *task,
     const char *rootfs);
@@ -752,7 +752,7 @@ undo:
 }
 
 
-#if (NXT_HAVE_PIVOT_ROOT) && (NXT_HAVE_CLONE_NEWNS)
+#if (NXT_HAVE_LINUX_PIVOT_ROOT) && (NXT_HAVE_CLONE_NEWNS)
 
 nxt_int_t
 nxt_isolation_change_root(nxt_task_t *task, nxt_process_t *process)
@@ -1003,11 +1003,11 @@ fail:
 nxt_inline int
 nxt_pivot_root(const char *new_root, const char *old_root)
 {
-    return syscall(__NR_pivot_root, new_root, old_root);
+    return syscall(SYS_pivot_root, new_root, old_root);
 }
 
 
-#else /* !(NXT_HAVE_PIVOT_ROOT) || !(NXT_HAVE_CLONE_NEWNS) */
+#else /* !(NXT_HAVE_LINUX_PIVOT_ROOT) || !(NXT_HAVE_CLONE_NEWNS) */
 
 
 nxt_int_t

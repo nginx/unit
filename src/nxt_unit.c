@@ -196,7 +196,8 @@ static int nxt_unit_request_hash_add(nxt_unit_ctx_t *ctx,
 static nxt_unit_request_info_t *nxt_unit_request_hash_find(
     nxt_unit_ctx_t *ctx, uint32_t stream, int remove);
 
-static char * nxt_unit_snprint_prefix(char *p, char *end, pid_t pid, int level);
+static char * nxt_unit_snprint_prefix(char *p, const char *end, pid_t pid,
+    int level);
 static void *nxt_unit_lvlhsh_alloc(void *data, size_t size);
 static void nxt_unit_lvlhsh_free(void *data, void *p);
 static int nxt_unit_memcasecmp(const void *p1, const void *p2, size_t length);
@@ -584,9 +585,14 @@ fail:
 static nxt_unit_impl_t *
 nxt_unit_create(nxt_unit_init_t *init)
 {
-    int                   rc;
-    nxt_unit_impl_t       *lib;
-    nxt_unit_callbacks_t  *cb;
+    int              rc;
+    nxt_unit_impl_t  *lib;
+
+    if (nxt_slow_path(init->callbacks.request_handler == NULL)) {
+        nxt_unit_alert(NULL, "request_handler is NULL");
+
+        return NULL;
+    }
 
     lib = nxt_unit_malloc(NULL,
                           sizeof(nxt_unit_impl_t) + init->request_data_size);
@@ -625,15 +631,6 @@ nxt_unit_create(nxt_unit_init_t *init)
 
     rc = nxt_unit_ctx_init(lib, &lib->main_ctx, init->ctx_data);
     if (nxt_slow_path(rc != NXT_UNIT_OK)) {
-        pthread_mutex_destroy(&lib->mutex);
-        goto fail;
-    }
-
-    cb = &lib->callbacks;
-
-    if (cb->request_handler == NULL) {
-        nxt_unit_alert(NULL, "request_handler is NULL");
-
         pthread_mutex_destroy(&lib->mutex);
         goto fail;
     }
@@ -942,7 +939,6 @@ nxt_unit_ready(nxt_unit_ctx_t *ctx, int ready_fd, uint32_t stream, int queue_fd)
     msg.mmap = 0;
     msg.nf = 0;
     msg.mf = 0;
-    msg.tracking = 0;
 
     nxt_socket_msg_oob_init(&oob, fds);
 
@@ -2644,7 +2640,6 @@ nxt_unit_mmap_buf_send(nxt_unit_request_info_t *req,
     m.msg.mmap = hdr != NULL && m.mmap_msg.size > 0;
     m.msg.nf = 0;
     m.msg.mf = 0;
-    m.msg.tracking = 0;
 
     rc = NXT_UNIT_ERROR;
 
@@ -3077,7 +3072,6 @@ nxt_unit_request_read(nxt_unit_request_info_t *req, void *dst, size_t size)
         }
 
         req->content_length -= res;
-        size -= res;
 
         dst = nxt_pointer_to(dst, res);
 
@@ -3296,7 +3290,6 @@ skip_response_send:
     msg.mmap = 0;
     msg.nf = 0;
     msg.mf = 0;
-    msg.tracking = 0;
 
     (void) nxt_unit_port_send(req->ctx, req->response_port,
                               &msg, sizeof(msg), NULL);
@@ -3619,7 +3612,6 @@ nxt_unit_send_oosm(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port)
     msg.mmap = 0;
     msg.nf = 0;
     msg.mf = 0;
-    msg.tracking = 0;
 
     res = nxt_unit_port_send(ctx, lib->router_port, &msg, sizeof(msg), NULL);
     if (nxt_slow_path(res != sizeof(msg))) {
@@ -3816,13 +3808,12 @@ static int
 nxt_unit_shm_open(nxt_unit_ctx_t *ctx, size_t size)
 {
     int              fd;
-    nxt_unit_impl_t  *lib;
-
-    lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
 
 #if (NXT_HAVE_MEMFD_CREATE || NXT_HAVE_SHM_OPEN)
     char             name[64];
+    nxt_unit_impl_t  *lib;
 
+    lib = nxt_container_of(ctx->unit, nxt_unit_impl_t, unit);
     snprintf(name, sizeof(name), NXT_SHM_PREFIX "unit.%d.%p",
              lib->pid, (void *) (uintptr_t) pthread_self());
 #endif
@@ -3905,7 +3896,6 @@ nxt_unit_send_mmap(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port, int fd)
     msg.mmap = 0;
     msg.nf = 0;
     msg.mf = 0;
-    msg.tracking = 0;
 
     nxt_socket_msg_oob_init(&oob, fds);
 
@@ -4390,7 +4380,6 @@ nxt_unit_send_shm_ack(nxt_unit_ctx_t *ctx, pid_t pid)
     msg.mmap = 0;
     msg.nf = 0;
     msg.mf = 0;
-    msg.tracking = 0;
 
     res = nxt_unit_port_send(ctx, lib->router_port, &msg, sizeof(msg), NULL);
     if (nxt_slow_path(res != sizeof(msg))) {
@@ -5356,7 +5345,6 @@ nxt_unit_send_port(nxt_unit_ctx_t *ctx, nxt_unit_port_t *dst,
     m.msg.mmap = 0;
     m.msg.nf = 0;
     m.msg.mf = 0;
-    m.msg.tracking = 0;
 
     m.new_port.id = port->id.id;
     m.new_port.pid = port->id.pid;
@@ -6673,7 +6661,7 @@ static const char * nxt_unit_log_levels[] = {
 
 
 static char *
-nxt_unit_snprint_prefix(char *p, char *end, pid_t pid, int level)
+nxt_unit_snprint_prefix(char *p, const char *end, pid_t pid, int level)
 {
     struct tm        tm;
     struct timespec  ts;

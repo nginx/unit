@@ -53,6 +53,9 @@ struct nxt_port_handlers_s {
     nxt_port_handler_t  data;
     nxt_port_handler_t  app_restart;
 
+    /* Status report. */
+    nxt_port_handler_t  status;
+
     nxt_port_handler_t  oosm;
     nxt_port_handler_t  shm_ack;
     nxt_port_handler_t  read_queue;
@@ -104,6 +107,7 @@ typedef enum {
 
     _NXT_PORT_MSG_DATA            = nxt_port_handler_idx(data),
     _NXT_PORT_MSG_APP_RESTART     = nxt_port_handler_idx(app_restart),
+    _NXT_PORT_MSG_STATUS          = nxt_port_handler_idx(status),
 
     _NXT_PORT_MSG_OOSM            = nxt_port_handler_idx(oosm),
     _NXT_PORT_MSG_SHM_ACK         = nxt_port_handler_idx(shm_ack),
@@ -145,6 +149,7 @@ typedef enum {
     NXT_PORT_MSG_DATA             = _NXT_PORT_MSG_DATA,
     NXT_PORT_MSG_DATA_LAST        = nxt_msg_last(_NXT_PORT_MSG_DATA),
     NXT_PORT_MSG_APP_RESTART      = nxt_msg_last(_NXT_PORT_MSG_APP_RESTART),
+    NXT_PORT_MSG_STATUS           = nxt_msg_last(_NXT_PORT_MSG_STATUS),
 
     NXT_PORT_MSG_OOSM             = nxt_msg_last(_NXT_PORT_MSG_OOSM),
     NXT_PORT_MSG_SHM_ACK          = nxt_msg_last(_NXT_PORT_MSG_SHM_ACK),
@@ -174,9 +179,6 @@ typedef struct {
 
     /* More Fragments followed. */
     uint8_t              mf;        /* 1 bit */
-
-    /* Message delivery tracking enabled, next chunk is tracking msg. */
-    uint8_t              tracking;  /* 1 bit */
 } nxt_port_msg_t;
 
 
@@ -186,7 +188,6 @@ typedef struct {
     size_t              share;
     nxt_fd_t            fd[2];
     nxt_port_msg_t      port_msg;
-    uint32_t            tracking_msg[2];
     uint8_t             close_fd;   /* 1 bit */
     uint8_t             allocated;  /* 1 bit */
 } nxt_port_send_msg_t;

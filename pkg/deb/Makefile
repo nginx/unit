@@ -49,21 +49,6 @@ include Makefile.jsc17
 include Makefile.jsc18
 endif
 
-# Ubuntu 21.04
-ifeq ($(CODENAME),hirsute)
-include Makefile.php
-include Makefile.python27
-include Makefile.python39
-include Makefile.go
-include Makefile.perl
-include Makefile.ruby
-include Makefile.jsc-common
-include Makefile.jsc11
-include Makefile.jsc15
-include Makefile.jsc16
-include Makefile.jsc17
-endif
-
 # Ubuntu 20.04
 ifeq ($(CODENAME),focal)
 include Makefile.php

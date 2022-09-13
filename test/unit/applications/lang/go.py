@@ -9,6 +9,11 @@ from unit.option import option
 class TestApplicationGo(TestApplicationProto):
     @staticmethod
     def prepare_env(script, name='app', static=False):
+        try:
+            subprocess.check_output(['which', 'go'])
+        except subprocess.CalledProcessError:
+            return None
+
         temp_dir = option.temp_dir + '/go/'
 
         if not os.path.exists(temp_dir):

@@ -15,7 +15,6 @@ class application:
         self.start(
             '200',
             [
-                ('Content-Type', self.environ.get('CONTENT_TYPE')),
                 ('Content-Length', str(len(body))),
             ],
         )

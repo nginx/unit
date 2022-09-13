@@ -156,9 +156,7 @@
 #include <setjmp.h>
 #include <sched.h>
 #include <signal.h>
-#if (NXT_HAVE_POSIX_SPAWN)
 #include <spawn.h>
-#endif
 #include <stdarg.h>
 #include <stddef.h>                 /* offsetof() */
 #include <stdio.h>

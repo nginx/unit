@@ -22,7 +22,7 @@ nxt_time_parse(const u_char *p, size_t len)
     nxt_uint_t        year, days;
     const u_char      *end;
 
-    static nxt_int_t  mday[12] = {
+    static const nxt_int_t  mday[12] = {
         31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
     };
 

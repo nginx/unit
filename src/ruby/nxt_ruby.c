@@ -29,7 +29,6 @@ typedef struct {
 static nxt_int_t nxt_ruby_start(nxt_task_t *task,
     nxt_process_data_t *data);
 static VALUE nxt_ruby_init_basic(VALUE arg);
-static VALUE nxt_ruby_script_basename(nxt_str_t *script);
 
 static VALUE nxt_ruby_hook_procs_load(VALUE path);
 static VALUE nxt_ruby_hook_register(VALUE arg);
@@ -50,7 +49,7 @@ static void *nxt_ruby_thread_create_gvl(void *rctx);
 static VALUE nxt_ruby_thread_func(VALUE arg);
 static void *nxt_ruby_unit_run(void *ctx);
 static void nxt_ruby_ubf(void *ctx);
-static int nxt_ruby_init_threads(VALUE script, nxt_ruby_app_conf_t *c);
+static int nxt_ruby_init_threads(nxt_ruby_app_conf_t *c);
 static void nxt_ruby_join_threads(nxt_unit_ctx_t *ctx,
     nxt_ruby_app_conf_t *c);
 
@@ -261,7 +260,7 @@ static nxt_int_t
 nxt_ruby_start(nxt_task_t *task, nxt_process_data_t *data)
 {
     int                    state, rc;
-    VALUE                  res, path, script;
+    VALUE                  res, path;
     nxt_ruby_ctx_t         ruby_ctx;
     nxt_unit_ctx_t         *unit_ctx;
     nxt_unit_init_t        ruby_unit_init;
@@ -270,6 +269,8 @@ nxt_ruby_start(nxt_task_t *task, nxt_process_data_t *data)
     nxt_common_app_conf_t  *conf;
 
     static char  *argv[2] = { (char *) "NGINX_Unit", (char *) "-e0" };
+
+    signal(SIGINT, SIG_IGN);
 
     conf = data->app;
     c = &conf->u.ruby;
@@ -283,10 +284,7 @@ nxt_ruby_start(nxt_task_t *task, nxt_process_data_t *data)
     ruby_options(2, argv);
     ruby_script("NGINX_Unit");
 
-    script = nxt_ruby_script_basename(&c->script);
-
     ruby_ctx.env = Qnil;
-    ruby_ctx.script = script;
     ruby_ctx.io_input = Qnil;
     ruby_ctx.io_error = Qnil;
     ruby_ctx.thread = Qnil;
@@ -356,7 +354,7 @@ nxt_ruby_start(nxt_task_t *task, nxt_process_data_t *data)
         goto fail;
     }
 
-    rc = nxt_ruby_init_threads(script, c);
+    rc = nxt_ruby_init_threads(c);
     if (nxt_slow_path(rc == NXT_UNIT_ERROR)) {
         goto fail;
     }
@@ -381,8 +379,8 @@ nxt_ruby_start(nxt_task_t *task, nxt_process_data_t *data)
         }
     }
 
-    rc = (intptr_t) rb_thread_call_without_gvl(nxt_ruby_unit_run, unit_ctx,
-                                               nxt_ruby_ubf, unit_ctx);
+    rc = (intptr_t) rb_thread_call_without_gvl2(nxt_ruby_unit_run, unit_ctx,
+                                                nxt_ruby_ubf, unit_ctx);
 
     if (nxt_ruby_hook_procs != Qnil) {
         rb_protect(nxt_ruby_hook_call, nxt_rb_on_thread_shutdown, &state);
@@ -421,37 +419,6 @@ fail:
     nxt_ruby_atexit();
 
     return NXT_ERROR;
-}
-
-
-static VALUE
-nxt_ruby_script_basename(nxt_str_t *script)
-{
-    size_t  len;
-    u_char  *p, *last;
-
-    last = NULL;
-    p = script->start + script->length;
-
-    while (p > script->start) {
-
-        if (p[-1] == '/') {
-            last = p;
-            break;
-        }
-
-        p--;
-    }
-
-    if (last != NULL) {
-        len = script->length - (last - script->start);
-
-    } else {
-        last = script->start;
-        len = script->length;
-    }
-
-    return rb_str_new((const char *) last, len);
 }
 
 
@@ -598,7 +565,7 @@ nxt_ruby_rack_env_create(VALUE arg)
     rb_ary_push(version, UINT2NUM(NXT_RUBY_RACK_API_VERSION_MAJOR));
     rb_ary_push(version, UINT2NUM(NXT_RUBY_RACK_API_VERSION_MINOR));
 
-    rb_hash_aset(hash_env, rb_str_new2("SCRIPT_NAME"), rctx->script);
+    rb_hash_aset(hash_env, rb_str_new2("SCRIPT_NAME"), rb_str_new("", 0));
     rb_hash_aset(hash_env, rb_str_new2("rack.version"), version);
     rb_hash_aset(hash_env, rb_str_new2("rack.input"), rctx->io_input);
     rb_hash_aset(hash_env, rb_str_new2("rack.errors"), rctx->io_error);
@@ -1393,7 +1360,7 @@ nxt_ruby_ubf(void *ctx)
 
 
 static int
-nxt_ruby_init_threads(VALUE script, nxt_ruby_app_conf_t *c)
+nxt_ruby_init_threads(nxt_ruby_app_conf_t *c)
 {
     int             state;
     uint32_t        i;
@@ -1415,7 +1382,6 @@ nxt_ruby_init_threads(VALUE script, nxt_ruby_app_conf_t *c)
         rctx = &nxt_ruby_ctxs[i];
 
         rctx->env = Qnil;
-        rctx->script = script;
         rctx->io_input = Qnil;
         rctx->io_error = Qnil;
         rctx->thread = Qnil;

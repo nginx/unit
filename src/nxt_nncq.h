@@ -85,7 +85,7 @@ nxt_nncq_empty(nxt_nncq_t const volatile *q)
 }
 
 
-static void
+static inline void
 nxt_nncq_init(nxt_nncq_t volatile *q)
 {
     q->head = NXT_NNCQ_SIZE;
@@ -94,7 +94,7 @@ nxt_nncq_init(nxt_nncq_t volatile *q)
 }
 
 
-static void
+static inline void
 nxt_nncq_enqueue(nxt_nncq_t volatile *q, nxt_nncq_atomic_t val)
 {
     nxt_nncq_cycle_t   e_cycle, t_cycle;
@@ -128,7 +128,7 @@ nxt_nncq_enqueue(nxt_nncq_t volatile *q, nxt_nncq_atomic_t val)
 }
 
 
-static nxt_nncq_atomic_t
+static inline nxt_nncq_atomic_t
 nxt_nncq_dequeue(nxt_nncq_t volatile *q)
 {
     nxt_nncq_cycle_t   e_cycle, h_cycle;

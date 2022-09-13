@@ -1187,7 +1187,9 @@ nxt_main_listening_socket(nxt_sockaddr_t *sa, nxt_listening_socket_t *ls)
 
 #if (NXT_HAVE_UNIX_DOMAIN)
 
-    if (sa->u.sockaddr.sa_family == AF_UNIX) {
+    if (sa->u.sockaddr.sa_family == AF_UNIX
+        && sa->u.sockaddr_un.sun_path[0] != '\0')
+    {
         char     *filename;
         mode_t   access;
 

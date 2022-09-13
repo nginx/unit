@@ -296,6 +296,16 @@ nxt_process_child_fixup(nxt_task_t *task, nxt_process_t *process)
 
     } nxt_runtime_process_loop;
 
+    if (init->siblings != NULL) {
+        nxt_queue_each(p, init->siblings, nxt_process_t, link) {
+
+            nxt_debug(task, "remove sibling process %PI", p->pid);
+
+            nxt_process_close_ports(task, p);
+
+        } nxt_queue_loop;
+    }
+
     return NXT_OK;
 }
 
@@ -303,8 +313,9 @@ nxt_process_child_fixup(nxt_task_t *task, nxt_process_t *process)
 static nxt_pid_t
 nxt_process_create(nxt_task_t *task, nxt_process_t *process)
 {
-    nxt_int_t           ret;
-    nxt_pid_t           pid;
+    nxt_int_t      ret;
+    nxt_pid_t      pid;
+    nxt_runtime_t  *rt;
 
 #if (NXT_HAVE_CLONE)
     pid = nxt_clone(SIGCHLD | process->isolation.clone.flags);
@@ -352,7 +363,20 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
     process->pid = pid;
     process->isolated_pid = pid;
 
-    nxt_runtime_process_add(task, process);
+    rt = task->thread->runtime;
+
+    if (rt->is_pid_isolated) {
+        /*
+         * Do not register process in runtime with isolated pid.
+         * Only global pid can be the key to avoid clash.
+         */
+        nxt_assert(!nxt_queue_is_empty(&process->ports));
+
+        nxt_port_use(task, nxt_process_port_first(process), 1);
+
+    } else {
+        nxt_runtime_process_add(task, process);
+    }
 
     return pid;
 }
@@ -798,8 +822,6 @@ nxt_process_send_ready(nxt_task_t *task, nxt_process_t *process)
 }
 
 
-#if (NXT_HAVE_POSIX_SPAWN)
-
 /*
  * Linux glibc 2.2 posix_spawn() is implemented via fork()/execve().
  * Linux glibc 2.4 posix_spawn() without file actions and spawn
@@ -833,52 +855,6 @@ nxt_process_execute(nxt_task_t *task, char *name, char **argv, char **envp)
 
     return pid;
 }
-
-#else
-
-nxt_pid_t
-nxt_process_execute(nxt_task_t *task, char *name, char **argv, char **envp)
-{
-    nxt_pid_t  pid;
-
-    /*
-     * vfork() is better than fork() because:
-     *   it is faster several times;
-     *   its execution time does not depend on private memory mapping size;
-     *   it has lesser chances to fail due to the ENOMEM error.
-     */
-
-    pid = vfork();
-
-    switch (pid) {
-
-    case -1:
-        nxt_alert(task, "vfork() failed while executing \"%s\" %E",
-                  name, nxt_errno);
-        break;
-
-    case 0:
-        /* A child. */
-        nxt_debug(task, "execve(\"%s\")", name);
-
-        (void) execve(name, argv, envp);
-
-        nxt_alert(task, "execve(\"%s\") failed %E", name, nxt_errno);
-
-        exit(1);
-        nxt_unreachable();
-        break;
-
-    default:
-        /* A parent. */
-        nxt_debug(task, "vfork(): %PI", pid);
-        break;
-    }
-
-    return pid;
-}
-
-#endif
 
 
 nxt_int_t
@@ -1008,6 +984,8 @@ nxt_process_close_ports(nxt_task_t *task, nxt_process_t *process)
 {
     nxt_port_t  *port;
 
+    nxt_process_use(task, process, 1);
+
     nxt_process_port_each(process, port) {
 
         nxt_port_close(task, port);
@@ -1015,6 +993,8 @@ nxt_process_close_ports(nxt_task_t *task, nxt_process_t *process)
         nxt_runtime_port_remove(task, port);
 
     } nxt_process_port_loop;
+
+    nxt_process_use(task, process, -1);
 }
 
 

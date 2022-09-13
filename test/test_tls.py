@@ -1,5 +1,4 @@
 import io
-import re
 import ssl
 import subprocess
 import time
@@ -13,7 +12,7 @@ class TestTLS(TestApplicationTLS):
     prerequisites = {'modules': {'python': 'any', 'openssl': 'any'}}
 
     def openssl_date_to_sec_epoch(self, date):
-        return self.date_to_sec_epoch(date, '%b %d %H:%M:%S %Y %Z')
+        return self.date_to_sec_epoch(date, '%b %d %X %Y %Z')
 
     def add_tls(self, application='empty', cert='default', port=7080):
         assert 'success' in self.conf(
@@ -506,7 +505,6 @@ basicConstraints = critical,CA:TRUE"""
             headers={
                 'Host': 'localhost',
                 'Connection': 'keep-alive',
-                'Content-Type': 'text/html',
             },
             start=True,
             body='0123456789',
@@ -519,7 +517,6 @@ basicConstraints = critical,CA:TRUE"""
             headers={
                 'Host': 'localhost',
                 'Connection': 'close',
-                'Content-Type': 'text/html',
             },
             sock=sock,
             body='0123456789',
@@ -571,9 +568,7 @@ basicConstraints = critical,CA:TRUE"""
         assert 'success' in self.conf_delete('/certificates/default')
 
         try:
-            resp = self.get_ssl(
-                headers={'Host': 'localhost', 'Connection': 'close'}, sock=sock
-            )
+            resp = self.get_ssl(sock=sock)
 
         except KeyboardInterrupt:
             raise
@@ -606,7 +601,6 @@ basicConstraints = critical,CA:TRUE"""
             headers={
                 'Host': 'localhost',
                 'Connection': 'keep-alive',
-                'Content-Type': 'text/html',
             },
             start=True,
             body='0123456789',
@@ -617,23 +611,13 @@ basicConstraints = critical,CA:TRUE"""
 
         subprocess.check_output(['kill', '-9', app_id])
 
-        skip_alert(r'process .* %s.* exited on signal 9' % app_id)
+        skip_alert(r'process %s exited on signal 9' % app_id)
 
         self.wait_for_record(
-            re.compile(
-                r' (?!' + app_id + r'#)(\d+)#\d+ "mirror" application started'
-            )
+            r' (?!' + app_id + r'#)(\d+)#\d+ "mirror" application started'
         )
 
-        resp = self.post_ssl(
-            headers={
-                'Host': 'localhost',
-                'Connection': 'close',
-                'Content-Type': 'text/html',
-            },
-            sock=sock,
-            body='0123456789',
-        )
+        resp = self.post_ssl(sock=sock, body='0123456789')
 
         assert resp['status'] == 200, 'application respawn status'
         assert resp['body'] == '0123456789', 'application respawn body'

@@ -20,9 +20,11 @@ from unit.check.isolation import check_isolation
 from unit.check.node import check_node
 from unit.check.regex import check_regex
 from unit.check.tls import check_openssl
+from unit.check.unix_abstract import check_unix_abstract
 from unit.http import TestHTTP
 from unit.log import Log
 from unit.option import option
+from unit.status import Status
 from unit.utils import public_dir
 from unit.utils import waitforfiles
 
@@ -213,6 +215,7 @@ def pytest_sessionstart(session):
 
     check_chroot()
     check_isolation()
+    check_unix_abstract()
 
     _clear_conf(unit['temp_dir'] + '/control.unit.sock')
 
@@ -426,6 +429,8 @@ def unit_run(state_dir=None):
     controller = _fds_info['controller']
     controller['pid'] = pid_by_name(controller['name'])
     controller['fds'] = _count_fds(controller['pid'])
+
+    Status._check_zeros()
 
     return unit_instance
 
