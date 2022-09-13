@@ -45,13 +45,19 @@ disallowed abstract Unix domain socket syntax in non-Linux systems.
 
 <change type="feature">
 <para>
-support for abstract Unix sockets.
+basic statistics API.
 </para>
 </change>
 
 <change type="feature">
 <para>
-support for Unix sockets in address matching.
+customizable access log format.
+</para>
+</change>
+
+<change type="feature">
+<para>
+more HTTP variables support.
 </para>
 </change>
 
@@ -69,25 +75,19 @@ ability to get dynamic variables.
 
 <change type="feature">
 <para>
-more HTTP variables support.
+support for abstract Unix sockets.
+</para>
+</change>
+
+<change type="feature">
+<para>
+support for Unix sockets in address matching.
 </para>
 </change>
 
 <change type="feature">
 <para>
 the $dollar variable translates to a literal "$" during variable substitution.
-</para>
-</change>
-
-<change type="feature">
-<para>
-customizable access log format.
-</para>
-</change>
-
-<change type="feature">
-<para>
-basic statistics API.
 </para>
 </change>
 
@@ -105,6 +105,13 @@ force SCRIPT_NAME in Ruby to always be an empty string.
 
 <change type="bugfix">
 <para>
+when isolated PID numbers reach the prototype process host PID,
+the prototype crashed.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
 the Ruby application process could crash on SIGTERM.
 </para>
 </change>
@@ -112,13 +119,6 @@ the Ruby application process could crash on SIGTERM.
 <change type="bugfix">
 <para>
 the Ruby application process could crash on SIGINT.
-</para>
-</change>
-
-<change type="bugfix">
-<para>
-when isolated PID numbers reach the prototype process host PID,
-the prototype crashed.
 </para>
 </change>
 
