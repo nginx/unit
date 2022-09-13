@@ -15,7 +15,7 @@
                 unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11 unit-jsc13
                 unit-jsc14 unit-jsc15 unit-jsc16 unit-jsc17 unit-jsc18"
          ver="1.28.0" rev="1"
-         date="" time=""
+         date="2022-09-13" time="18:00:00 +0300"
          packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
 
 <change>
@@ -28,7 +28,7 @@ NGINX Unit updated to 1.28.0.
 
 
 <changes apply="unit" ver="1.28.0" rev="1"
-         date="" time=""
+         date="2022-09-13" time="18:00:00 +0300"
          packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
 
 <change type="change">
