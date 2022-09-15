@@ -1035,7 +1035,7 @@ nxt_http_cookie_parse(nxt_array_t *cookies, u_char *start, const u_char *end)
             last = end;
         }
 
-        while (name < end && name[0] == ' ') { name++; }
+        while (name < last && name[0] == ' ') { name++; }
 
         value = nxt_memchr(name, '=', last - name);
         if (value == NULL) {
