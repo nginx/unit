@@ -1080,20 +1080,20 @@ nxt_http_cookie(nxt_array_t *array, u_char *name, size_t name_length,
         return NULL;
     }
 
-    nv->name_length = name->length;
-    nv->name = name->start;
+    nv->name_length = name_length;
+    nv->name = name;
 
     hash = NXT_HTTP_FIELD_HASH_INIT;
 
-    for (p = name->start; p < name->start + name->length; p++) {
+    for (p = name; p < name + name_length; p++) {
         c = *p;
         hash = nxt_http_field_hash_char(hash, c);
     }
 
     nv->hash = nxt_http_field_hash_end(hash) & 0xFFFF;
 
-    nv->value_length = value->length;
-    nv->value = value->start;
+    nv->value_length = end - start;
+    nv->value = start;
 
     return nv;
 }
