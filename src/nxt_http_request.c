@@ -1030,13 +1030,12 @@ nxt_http_cookie_parse(nxt_array_t *cookies, u_char *start, const u_char *end)
     nxt_http_name_value_t  *nv;
 
     for (name = start; name < end; name = last + 1) {
-
-        while (name < end && name[0] == ' ') { name++; }
-
         last = nxt_memchr(name, ';', end - name);
         if (last == NULL) {
             last = end;
         }
+
+        while (name < end && name[0] == ' ') { name++; }
 
         value = nxt_memchr(name, '=', last - name);
         if (value == NULL) {
