@@ -19,7 +19,7 @@ static uint8_t nxt_port_enqueue_buf(nxt_task_t *task, nxt_port_msg_t *pm,
     void *qbuf, nxt_buf_t *b);
 static nxt_int_t nxt_port_msg_chk_insert(nxt_task_t *task, nxt_port_t *port,
     nxt_port_send_msg_t *msg);
-static nxt_port_send_msg_t *nxt_port_msg_alloc(nxt_port_send_msg_t *m);
+static nxt_port_send_msg_t *nxt_port_msg_alloc(const nxt_port_send_msg_t *m);
 static void nxt_port_write_handler(nxt_task_t *task, void *obj, void *data);
 static nxt_port_send_msg_t *nxt_port_msg_first(nxt_port_t *port);
 nxt_inline void nxt_port_msg_close_fd(nxt_port_send_msg_t *msg);
@@ -332,7 +332,7 @@ nxt_port_msg_chk_insert(nxt_task_t *task, nxt_port_t *port,
 
 
 static nxt_port_send_msg_t *
-nxt_port_msg_alloc(nxt_port_send_msg_t *m)
+nxt_port_msg_alloc(const nxt_port_send_msg_t *m)
 {
     nxt_port_send_msg_t  *msg;
 

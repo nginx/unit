@@ -370,7 +370,6 @@ Content-Length: 10
         resp = self.post_http10(
             headers={
                 'Host': 'localhost',
-                'Content-Type': 'text/html',
                 'Content-Length': str(len(body)),
                 'X-Parts': '2',
                 'X-Delay': '1',
@@ -384,7 +383,6 @@ Content-Length: 10
         resp = self.post_http10(
             headers={
                 'Host': 'localhost',
-                'Content-Type': 'text/html',
                 'Content-Length': str(len(body)),
                 'X-Parts': '2',
                 'X-Delay': '1',
@@ -403,7 +401,6 @@ Content-Length: 10
         _, sock = self.post_http10(
             headers={
                 'Host': 'localhost',
-                'Content-Type': 'text/html',
                 'Content-Length': '10000',
                 'X-Parts': '3',
                 'X-Delay': '1',
@@ -419,7 +416,6 @@ Content-Length: 10
         _, sock = self.post_http10(
             headers={
                 'Host': 'localhost',
-                'Content-Type': 'text/html',
                 'Content-Length': '10000',
                 'X-Parts': '3',
                 'X-Delay': '1',

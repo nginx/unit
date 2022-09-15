@@ -225,12 +225,6 @@ nxt_feature_test="#include <sys/filio.h>
                   }"
 . auto/feature
 
-if [ $nxt_found = yes ]; then
-    NXT_SYS_FILIO_H="#include <sys/filio.h>"
-else
-    NXT_SYS_FILIO_H=
-fi
-
 
 nxt_feature="ioctl(FIONBIO)"
 nxt_feature_name=NXT_HAVE_FIONBIO
@@ -239,7 +233,6 @@ nxt_feature_incs=
 nxt_feature_libs=
 nxt_feature_test="#include <unistd.h>
                   #include <sys/socket.h>
-                  $NXT_SYS_FILIO_H
                   #include <sys/ioctl.h>
 
                   int main() {

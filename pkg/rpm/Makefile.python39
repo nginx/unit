@@ -13,7 +13,7 @@ MODULE_INSTARGS_python39=	python3.9-install
 MODULE_SOURCES_python39=	unit.example-python-app \
 			unit.example-python39-config
 
-ifneq (,$(findstring $(OSVER),opensuse-tumbleweed sles fedora amazonlinux2 centos9))
+ifneq (,$(findstring $(OSVER),fedora amazonlinux2 centos9))
 BUILD_DEPENDS_python39=	python3-devel
 else
 BUILD_DEPENDS_python39=	python39-devel

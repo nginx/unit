@@ -483,6 +483,11 @@ struct nxt_event_engine_s {
     nxt_queue_t                idle_connections;
     nxt_array_t                *mem_cache;
 
+    nxt_atomic_uint_t          accepted_conns_cnt;
+    nxt_atomic_uint_t          idle_conns_cnt;
+    nxt_atomic_uint_t          closed_conns_cnt;
+    nxt_atomic_uint_t          requests_cnt;
+
     nxt_queue_link_t           link;
     // STUB: router link
     nxt_queue_link_t           link0;

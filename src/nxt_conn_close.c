@@ -119,6 +119,8 @@ nxt_conn_close_handler(nxt_task_t *task, void *obj, void *data)
         nxt_socket_close(task, c->socket.fd);
         c->socket.fd = -1;
 
+        engine->closed_conns_cnt++;
+
         if (timers_pending == 0) {
             nxt_work_queue_add(&engine->fast_work_queue,
                                c->write_state->ready_handler,
@@ -137,8 +139,9 @@ nxt_conn_close_handler(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_conn_close_timer_handler(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_conn_t   *c;
-    nxt_timer_t  *timer;
+    nxt_conn_t          *c;
+    nxt_timer_t         *timer;
+    nxt_event_engine_t  *engine;
 
     timer = obj;
 
@@ -146,13 +149,16 @@ nxt_conn_close_timer_handler(nxt_task_t *task, void *obj, void *data)
 
     nxt_debug(task, "conn close timer handler fd:%d", c->socket.fd);
 
+    engine = task->thread->engine;
+
     if (c->socket.fd != -1) {
         nxt_socket_close(task, c->socket.fd);
         c->socket.fd = -1;
+
+        engine->closed_conns_cnt++;
     }
 
-    nxt_work_queue_add(&task->thread->engine->fast_work_queue,
-                       c->write_state->ready_handler,
+    nxt_work_queue_add(&engine->fast_work_queue, c->write_state->ready_handler,
                        task, c, c->socket.data);
 }
 

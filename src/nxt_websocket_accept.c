@@ -11,8 +11,8 @@
 static void
 nxt_websocket_base64_encode(u_char *d, const uint8_t *s, size_t len)
 {
-    u_char         c0, c1, c2;
-    static u_char  basis[] =
+    u_char               c0, c1, c2;
+    static const u_char  basis[] =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
     while (len > 2) {

@@ -48,11 +48,6 @@ NXT_GROUP=
 nxt_module=${1:-""}
 
 case $nxt_module in
-    --help)
-        . auto/help
-        exit 0
-    ;;
-
     ""|--*)
     ;;
 

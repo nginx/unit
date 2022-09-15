@@ -166,6 +166,8 @@ static nxt_int_t nxt_conf_vldt_match_addr(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_app_name(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_forwarded(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
 static nxt_int_t nxt_conf_vldt_app(nxt_conf_validation_t *vldt,
     nxt_str_t *name, nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_object(nxt_conf_validation_t *vldt,
@@ -200,6 +202,8 @@ static nxt_int_t nxt_conf_vldt_server(nxt_conf_validation_t *vldt,
     nxt_str_t *name, nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_server_weight(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_access_log(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
 
 static nxt_int_t nxt_conf_vldt_isolation(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
@@ -220,6 +224,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_setting_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_websocket_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_static_members[];
+static nxt_conf_vldt_object_t  nxt_conf_vldt_forwarded_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_client_ip_members[];
 #if (NXT_TLS)
 static nxt_conf_vldt_object_t  nxt_conf_vldt_tls_members[];
@@ -238,6 +243,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_namespaces_members[];
 #if (NXT_HAVE_ISOLATION_ROOTFS)
 static nxt_conf_vldt_object_t  nxt_conf_vldt_app_automount_members[];
 #endif
+static nxt_conf_vldt_object_t  nxt_conf_vldt_access_log_members[];
 
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_root_members[] = {
@@ -267,7 +273,8 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_root_members[] = {
         .u.object   = nxt_conf_vldt_upstream,
     }, {
         .name       = nxt_string("access_log"),
-        .type       = NXT_CONF_VLDT_STRING,
+        .type       = NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_OBJECT,
+        .validator  = nxt_conf_vldt_access_log,
     },
 
     NXT_CONF_VLDT_END
@@ -366,6 +373,10 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_listener_members[] = {
         .type       = NXT_CONF_VLDT_STRING,
         .validator  = nxt_conf_vldt_app_name,
     }, {
+        .name       = nxt_string("forwarded"),
+        .type       = NXT_CONF_VLDT_OBJECT,
+        .validator  = nxt_conf_vldt_forwarded,
+    }, {
         .name       = nxt_string("client_ip"),
         .type       = NXT_CONF_VLDT_OBJECT,
         .validator  = nxt_conf_vldt_object,
@@ -380,6 +391,27 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_listener_members[] = {
         .u.members  = nxt_conf_vldt_tls_members,
     },
 #endif
+
+    NXT_CONF_VLDT_END
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_forwarded_members[] = {
+    {
+        .name       = nxt_string("client_ip"),
+        .type       = NXT_CONF_VLDT_STRING,
+    }, {
+        .name       = nxt_string("protocol"),
+        .type       = NXT_CONF_VLDT_STRING,
+    }, {
+        .name       = nxt_string("source"),
+        .type       = NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
+        .validator  = nxt_conf_vldt_match_addrs,
+        .flags      = NXT_CONF_VLDT_REQUIRED
+    }, {
+        .name       = nxt_string("recursive"),
+        .type       = NXT_CONF_VLDT_BOOLEAN,
+    },
 
     NXT_CONF_VLDT_END
 };
@@ -1177,10 +1209,28 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_upstream_server_members[] = {
 };
 
 
+static nxt_conf_vldt_object_t  nxt_conf_vldt_access_log_members[] = {
+    {
+        .name       = nxt_string("path"),
+        .type       = NXT_CONF_VLDT_STRING,
+    }, {
+        .name       = nxt_string("format"),
+        .type       = NXT_CONF_VLDT_STRING,
+    },
+
+    NXT_CONF_VLDT_END
+};
+
+
 nxt_int_t
 nxt_conf_validate(nxt_conf_validation_t *vldt)
 {
     nxt_int_t  ret;
+
+    vldt->var_fields = nxt_array_create(vldt->pool, 4, sizeof(nxt_var_field_t));
+    if (nxt_slow_path(vldt->var_fields == NULL)) {
+        return NXT_ERROR;
+    }
 
     ret = nxt_conf_vldt_type(vldt, NULL, vldt->conf, NXT_CONF_VLDT_OBJECT);
     if (ret != NXT_OK) {
@@ -1314,7 +1364,7 @@ nxt_conf_vldt_var(nxt_conf_validation_t *vldt, nxt_str_t *name,
 {
     u_char  error[NXT_MAX_ERROR_STR];
 
-    if (nxt_var_test(value, error) != NXT_OK) {
+    if (nxt_var_test(value, vldt->var_fields, error) != NXT_OK) {
         return nxt_conf_vldt_error(vldt, "%s in the \"%V\" value.",
                                    error, name);
     }
@@ -1430,9 +1480,14 @@ nxt_conf_vldt_listener(nxt_conf_validation_t *vldt, nxt_str_t *name,
     nxt_conf_value_t *value)
 {
     nxt_int_t       ret;
+    nxt_str_t       str;
     nxt_sockaddr_t  *sa;
 
-    sa = nxt_sockaddr_parse(vldt->pool, name);
+    if (nxt_slow_path(nxt_str_dup(vldt->pool, &str, name) == NULL)) {
+        return NXT_ERROR;
+    }
+
+    sa = nxt_sockaddr_parse(vldt->pool, &str);
     if (nxt_slow_path(sa == NULL)) {
         return nxt_conf_vldt_error(vldt,
                                    "The listener address \"%V\" is invalid.",
@@ -2124,6 +2179,11 @@ nxt_conf_vldt_match_addr(nxt_conf_validation_t *vldt,
         return nxt_conf_vldt_error(vldt, "The \"address\" does not support "
                                          "IPv6 with your configuration.");
 
+    case NXT_ADDR_PATTERN_NO_UNIX_ERROR:
+        return nxt_conf_vldt_error(vldt, "The \"address\" does not support "
+                                         "UNIX domain sockets with your "
+                                         "configuration.");
+
     default:
         return nxt_conf_vldt_error(vldt, "The \"address\" has an unknown "
                                          "format.");
@@ -2314,6 +2374,28 @@ error:
     return nxt_conf_vldt_error(vldt, "Listening socket is assigned for "
                                      "a non existing application \"%V\".",
                                      &name);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_forwarded(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
+{
+    nxt_conf_value_t  *client_ip, *protocol;
+
+    static nxt_str_t  client_ip_str = nxt_string("client_ip");
+    static nxt_str_t  protocol_str = nxt_string("protocol");
+
+    client_ip = nxt_conf_get_object_member(value, &client_ip_str, NULL);
+    protocol = nxt_conf_get_object_member(value, &protocol_str, NULL);
+
+    if (client_ip == NULL && protocol == NULL) {
+        return nxt_conf_vldt_error(vldt, "The \"forwarded\" object must have "
+                                   "either \"client_ip\" or \"protocol\" "
+                                   "option set.");
+    }
+
+    return nxt_conf_vldt_object(vldt, value, nxt_conf_vldt_forwarded_members);
 }
 
 
@@ -3026,6 +3108,68 @@ nxt_conf_vldt_server_weight(nxt_conf_validation_t *vldt,
     if (num_value > 1000000) {
         return nxt_conf_vldt_error(vldt, "The \"weight\" number must "
                                    "not exceed 1,000,000");
+    }
+
+    return NXT_OK;
+}
+
+
+typedef struct {
+    nxt_str_t  path;
+    nxt_str_t  format;
+} nxt_conf_vldt_access_log_conf_t;
+
+
+static nxt_conf_map_t  nxt_conf_vldt_access_log_map[] = {
+    {
+        nxt_string("path"),
+        NXT_CONF_MAP_STR,
+        offsetof(nxt_conf_vldt_access_log_conf_t, path),
+    },
+
+    {
+        nxt_string("format"),
+        NXT_CONF_MAP_STR,
+        offsetof(nxt_conf_vldt_access_log_conf_t, format),
+    },
+};
+
+
+static nxt_int_t
+nxt_conf_vldt_access_log(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
+{
+    nxt_int_t                        ret;
+    nxt_conf_vldt_access_log_conf_t  conf;
+
+    static nxt_str_t  format_str = nxt_string("format");
+
+    if (nxt_conf_type(value) == NXT_CONF_STRING) {
+        return NXT_OK;
+    }
+
+    ret = nxt_conf_vldt_object(vldt, value, nxt_conf_vldt_access_log_members);
+    if (ret != NXT_OK) {
+        return ret;
+    }
+
+    nxt_memzero(&conf, sizeof(nxt_conf_vldt_access_log_conf_t));
+
+    ret = nxt_conf_map_object(vldt->pool, value,
+                              nxt_conf_vldt_access_log_map,
+                              nxt_nitems(nxt_conf_vldt_access_log_map),
+                              &conf);
+    if (ret != NXT_OK) {
+        return ret;
+    }
+
+    if (conf.path.length == 0) {
+        return nxt_conf_vldt_error(vldt,
+                                   "The \"path\" string must not be empty.");
+    }
+
+    if (nxt_is_var(&conf.format)) {
+        return nxt_conf_vldt_var(vldt, &format_str, &conf.format);
     }
 
     return NXT_OK;

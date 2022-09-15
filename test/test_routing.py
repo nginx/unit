@@ -1723,18 +1723,26 @@ class TestRouting(TestApplicationPython):
         addr = temp_dir + '/sock'
 
         assert 'success' in self.conf(
-            {"unix:" + addr: {"pass": "routes"}}, 'listeners'
+            {
+                "127.0.0.1:7081": {"pass": "routes"},
+                "unix:" + addr: {"pass": "routes"},
+            },
+            'listeners',
         ), 'source listeners configure'
 
         self.route_match({"source": "!0.0.0.0/0"})
         assert (
             self.get(sock_type='unix', addr=addr)['status'] == 200
-        ), 'unix ipv4'
+        ), 'unix ipv4 neg'
 
         self.route_match({"source": "!::/0"})
         assert (
             self.get(sock_type='unix', addr=addr)['status'] == 200
-        ), 'unix ipv6'
+        ), 'unix ipv6 neg'
+
+        self.route_match({"source": "unix"})
+        assert self.get(port=7081)['status'] == 404, 'unix ipv4'
+        assert self.get(sock_type='unix', addr=addr)['status'] == 200, 'unix'
 
     def test_routes_match_source(self):
         self.route_match({"source": "::"})

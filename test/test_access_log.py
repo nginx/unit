@@ -15,6 +15,15 @@ class TestAccessLog(TestApplicationPython):
             '"' + option.temp_dir + '/access.log"', 'access_log'
         ), 'access_log configure'
 
+    def set_format(self, format):
+        assert 'success' in self.conf(
+            {
+                'path': option.temp_dir + '/access.log',
+                'format': format,
+            },
+            'access_log',
+        ), 'access_log format'
+
     def wait_for_record(self, pattern, name='access.log'):
         return super().wait_for_record(pattern, name)
 
@@ -27,7 +36,6 @@ class TestAccessLog(TestApplicationPython):
             headers={
                 'Host': 'localhost',
                 'Connection': 'keep-alive',
-                'Content-Type': 'text/html',
             },
             start=True,
             body='01234',
@@ -38,15 +46,7 @@ class TestAccessLog(TestApplicationPython):
             self.wait_for_record(r'"POST / HTTP/1.1" 200 5') is not None
         ), 'keepalive 1'
 
-        resp = self.post(
-            headers={
-                'Host': 'localhost',
-                'Connection': 'close',
-                'Content-Type': 'text/html',
-            },
-            sock=sock,
-            body='0123456789',
-        )
+        resp = self.post(sock=sock, body='0123456789')
 
         assert (
             self.wait_for_record(r'"POST / HTTP/1.1" 200 10') is not None
@@ -263,3 +263,65 @@ Connection: close
             self.wait_for_record(r'"GET / HTTP/1.1" 200 0 "-" "-"', 'new.log')
             is not None
         ), 'change'
+
+    def test_access_log_format(self):
+        self.load('empty')
+
+        def check_format(format, expect, url='/'):
+            self.set_format(format)
+
+            assert self.get(url=url)['status'] == 200
+            assert self.wait_for_record(expect) is not None, 'found'
+
+        format = 'BLAH\t0123456789'
+        check_format(format, format)
+        check_format('$uri $status $uri $status', '/ 200 / 200')
+
+    def test_access_log_variables(self):
+        self.load('mirror')
+
+        # $time_local
+
+        self.set_format('$uri $time_local $uri')
+        assert self.get(url='/time_local')['status'] == 200
+        assert self.wait_for_record('/time_local') is not None, 'time log'
+        date = self.search_in_log(
+            r'^\/time_local (.*) \/time_local$', 'access.log'
+        )[1]
+        assert (
+            abs(
+                self.date_to_sec_epoch(date, '%d/%b/%Y:%X %z')
+                - time.mktime(time.localtime())
+            )
+            < 5
+        ), '$time_local'
+
+        # $request_line
+
+        self.set_format('$request_line')
+        assert self.get(url='/r_line')['status'] == 200
+        assert self.wait_for_record(r'^GET \/r_line HTTP\/1\.1$') is not None
+
+        # $body_bytes_sent
+
+        self.set_format('$uri $body_bytes_sent')
+        body = '0123456789' * 50
+        self.post(url='/bbs', body=body, read_timeout=1)
+        assert (
+            self.wait_for_record(r'^\/bbs ' + str(len(body)) + r'$') is not None
+        ), '$body_bytes_sent'
+
+    def test_access_log_incorrect(self, skip_alert):
+        skip_alert(r'failed to apply new conf')
+
+        assert 'error' in self.conf(
+            option.temp_dir + '/blah/access.log' 'access_log/path',
+        ), 'access_log path incorrect'
+
+        assert 'error' in self.conf(
+            {
+                'path': option.temp_dir + '/access.log',
+                'format': '$remote_add',
+            },
+            'access_log',
+        ), 'access_log format incorrect'

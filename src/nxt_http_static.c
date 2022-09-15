@@ -79,9 +79,11 @@ nxt_http_static_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_str_t               str, *ret;
     nxt_var_t               *var;
     nxt_conf_value_t        *cv;
+    nxt_router_conf_t       *rtcf;
     nxt_http_static_conf_t  *conf;
 
-    mp = tmcf->router_conf->mem_pool;
+    rtcf = tmcf->router_conf;
+    mp = rtcf->mem_pool;
 
     conf = nxt_mp_zget(mp, sizeof(nxt_http_static_conf_t));
     if (nxt_slow_path(conf == NULL)) {
@@ -102,7 +104,7 @@ nxt_http_static_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         cv = nxt_conf_get_array_element_or_itself(acf->share, i);
         nxt_conf_get_string(cv, &str);
 
-        var = nxt_var_compile(&str, mp, 1);
+        var = nxt_var_compile(&str, mp, rtcf->var_fields, NXT_VAR_STRZ);
         if (nxt_slow_path(var == NULL)) {
             return NXT_ERROR;
         }
@@ -128,7 +130,8 @@ nxt_http_static_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         nxt_str_t   chr, shr;
         nxt_bool_t  is_const;
 
-        conf->chroot = nxt_var_compile(&acf->chroot, mp, 1);
+        conf->chroot = nxt_var_compile(&acf->chroot, mp, rtcf->var_fields,
+                                       NXT_VAR_STRZ);
         if (nxt_slow_path(conf->chroot == NULL)) {
             return NXT_ERROR;
         }
@@ -756,9 +759,7 @@ nxt_http_static_extract_extension(nxt_str_t *path, nxt_str_t *exten)
     end = path->start + path->length;
     p = end;
 
-    for ( ;; ) {
-        /* There's always '/' in the beginning of the request path. */
-
+    while (p > path->start) {
         p--;
         ch = *p;
 
@@ -767,11 +768,14 @@ nxt_http_static_extract_extension(nxt_str_t *path, nxt_str_t *exten)
             p++;
             /* Fall through. */
         case '.':
-            exten->length = end - p;
-            exten->start = p;
-            return;
+            goto extension;
         }
     }
+
+extension:
+
+    exten->length = end - p;
+    exten->start = p;
 }
 
 
@@ -1023,7 +1027,7 @@ typedef struct {
 
 nxt_int_t
 nxt_http_static_mtypes_hash_add(nxt_mp_t *mp, nxt_lvlhsh_t *hash,
-    nxt_str_t *exten, nxt_str_t *type)
+    const nxt_str_t *exten, nxt_str_t *type)
 {
     nxt_lvlhsh_query_t       lhq;
     nxt_http_static_mtype_t  *mtype;
@@ -1048,7 +1052,7 @@ nxt_http_static_mtypes_hash_add(nxt_mp_t *mp, nxt_lvlhsh_t *hash,
 
 
 nxt_str_t *
-nxt_http_static_mtype_get(nxt_lvlhsh_t *hash, nxt_str_t *exten)
+nxt_http_static_mtype_get(nxt_lvlhsh_t *hash, const nxt_str_t *exten)
 {
     nxt_lvlhsh_query_t       lhq;
     nxt_http_static_mtype_t  *mtype;

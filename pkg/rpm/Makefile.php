@@ -13,11 +13,7 @@ MODULE_INSTARGS_php=	php-install
 MODULE_SOURCES_php=	unit.example-php-app \
 			unit.example-php-config
 
-ifeq ($(OSVER), opensuse-tumbleweed)
-BUILD_DEPENDS_php=	php7-devel php7-embed
-else
 BUILD_DEPENDS_php=	php-devel php-embedded
-endif
 
 BUILD_DEPENDS+=		$(BUILD_DEPENDS_php)
 

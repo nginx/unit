@@ -18,7 +18,7 @@ INSTALL_minimal ?=	version
 define COPY_minimal
 endef
 
-VERSION_go ?=		1.18
+VERSION_go ?=		1.19
 CONTAINER_go ?=		golang:$(VERSION_go)
 CONFIGURE_go ?=		go --go-path=$$GOPATH
 INSTALL_go ?=		go-install-src libunit-install
@@ -29,7 +29,7 @@ COPY --from=BUILDER /go/src/ /go/src/
 endef
 
 VERSION_jsc ?=		11
-CONTAINER_jsc ?=	openjdk:$(VERSION_jsc)-jdk
+CONTAINER_jsc ?=	eclipse-temurin:$(VERSION_jsc)-jdk
 CONFIGURE_jsc ?=	java --jars=/usr/share/unit-jsc-common/
 INSTALL_jsc ?=		java-shared-install java-install
 COPY_jsc =	 		COPY --from=BUILDER /usr/share/unit-jsc-common/ /usr/share/unit-jsc-common/
@@ -44,7 +44,7 @@ COPY --from=BUILDER /usr/include/nxt_* /usr/include/\n\$
 COPY --from=BUILDER /usr/local/lib/node_modules/unit-http/ /usr/local/lib/node_modules/unit-http/
 endef
 
-VERSION_perl ?=		5.34
+VERSION_perl ?=		5.36
 CONTAINER_perl ?=	perl:$(VERSION_perl)
 CONFIGURE_perl ?=	perl
 INSTALL_perl ?=		perl-install

@@ -41,6 +41,16 @@ nxt_http_route_addr_pattern_parse(nxt_mp_t *mp,
         base->negative = 0;
     }
 
+    if (nxt_str_eq(&addr, "unix", 4)) {
+#if (NXT_HAVE_UNIX_DOMAIN)
+        base->addr_family = AF_UNIX;
+
+        return NXT_OK;
+#else
+        return NXT_ADDR_PATTERN_NO_UNIX_ERROR;
+#endif
+    }
+
     if (nxt_slow_path(addr.length < 2)) {
         return NXT_ADDR_PATTERN_LENGTH_ERROR;
     }
@@ -233,7 +243,7 @@ nxt_http_route_addr_pattern_parse(nxt_mp_t *mp,
         }
 
         addr.length = delim - addr.start;
-        inet->end = htonl(0xFFFFFFFF & (0xFFFFFFFF << (32 - cidr_prefix)));
+        inet->end = htonl(0xFFFFFFFF & (0xFFFFFFFFULL << (32 - cidr_prefix)));
 
         inet->start = nxt_inet_addr(addr.start, addr.length) & inet->end;
         if (nxt_slow_path(inet->start == INADDR_NONE)) {

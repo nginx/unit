@@ -32,11 +32,14 @@ static const nxt_http_request_state_t  nxt_http_return_send_state;
 
 
 nxt_int_t
-nxt_http_return_init(nxt_mp_t *mp, nxt_http_action_t *action,
+nxt_http_return_init(nxt_router_conf_t *rtcf, nxt_http_action_t *action,
     nxt_http_action_conf_t *acf)
 {
+    nxt_mp_t                *mp;
     nxt_str_t               str;
     nxt_http_return_conf_t  *conf;
+
+    mp = rtcf->mem_pool;
 
     conf = nxt_mp_zget(mp, sizeof(nxt_http_return_conf_t));
     if (nxt_slow_path(conf == NULL)) {
@@ -54,7 +57,7 @@ nxt_http_return_init(nxt_mp_t *mp, nxt_http_action_t *action,
 
     nxt_conf_get_string(acf->location, &str);
 
-    conf->location = nxt_var_compile(&str, mp, 0);
+    conf->location = nxt_var_compile(&str, mp, rtcf->var_fields, 0);
     if (nxt_slow_path(conf->location == NULL)) {
         return NXT_ERROR;
     }

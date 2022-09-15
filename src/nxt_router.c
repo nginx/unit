@@ -7,6 +7,7 @@
 
 #include <nxt_router.h>
 #include <nxt_conf.h>
+#include <nxt_status.h>
 #if (NXT_TLS)
 #include <nxt_cert.h>
 #endif
@@ -90,16 +91,13 @@ static void nxt_router_conf_data_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
 static void nxt_router_app_restart_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
-static void nxt_router_remove_pid_handler(nxt_task_t *task,
+static void nxt_router_status_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
-static void nxt_router_access_log_reopen_handler(nxt_task_t *task,
+static void nxt_router_remove_pid_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
 
 static nxt_router_temp_conf_t *nxt_router_temp_conf(nxt_task_t *task);
-static void nxt_router_conf_apply(nxt_task_t *task, void *obj, void *data);
 static void nxt_router_conf_ready(nxt_task_t *task,
-    nxt_router_temp_conf_t *tmcf);
-static void nxt_router_conf_error(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf);
 static void nxt_router_conf_send(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_port_msg_type_t type);
@@ -108,9 +106,10 @@ static nxt_int_t nxt_router_conf_create(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, u_char *start, u_char *end);
 static nxt_int_t nxt_router_conf_process_static(nxt_task_t *task,
     nxt_router_conf_t *rtcf, nxt_conf_value_t *conf);
-static nxt_int_t nxt_router_conf_process_client_ip(nxt_task_t *task,
-    nxt_router_temp_conf_t *tmcf, nxt_socket_conf_t *skcf,
-    nxt_conf_value_t *conf);
+static nxt_http_forward_t *nxt_router_conf_forward(nxt_task_t *task,
+    nxt_mp_t *mp, nxt_conf_value_t *conf);
+static nxt_int_t nxt_router_conf_forward_header(nxt_mp_t *mp,
+    nxt_conf_value_t *conf, nxt_http_forward_header_t *fh);
 
 static nxt_app_t *nxt_router_app_find(nxt_queue_t *queue, nxt_str_t *name);
 static nxt_int_t nxt_router_apps_hash_test(nxt_lvlhsh_query_t *lhq, void *data);
@@ -200,27 +199,6 @@ static void nxt_router_req_headers_ack_handler(nxt_task_t *task,
 static void nxt_router_listen_socket_release(nxt_task_t *task,
     nxt_socket_conf_t *skcf);
 
-static void nxt_router_access_log_writer(nxt_task_t *task,
-    nxt_http_request_t *r, nxt_router_access_log_t *access_log);
-static u_char *nxt_router_access_log_date(u_char *buf, nxt_realtime_t *now,
-    struct tm *tm, size_t size, const char *format);
-static void nxt_router_access_log_open(nxt_task_t *task,
-    nxt_router_temp_conf_t *tmcf);
-static void nxt_router_access_log_ready(nxt_task_t *task,
-    nxt_port_recv_msg_t *msg, void *data);
-static void nxt_router_access_log_error(nxt_task_t *task,
-    nxt_port_recv_msg_t *msg, void *data);
-static void nxt_router_access_log_use(nxt_thread_spinlock_t *lock,
-    nxt_router_access_log_t *access_log);
-static void nxt_router_access_log_release(nxt_task_t *task,
-    nxt_thread_spinlock_t *lock, nxt_router_access_log_t *access_log);
-static void nxt_router_access_log_reopen_completion(nxt_task_t *task, void *obj,
-    void *data);
-static void nxt_router_access_log_reopen_ready(nxt_task_t *task,
-    nxt_port_recv_msg_t *msg, void *data);
-static void nxt_router_access_log_reopen_error(nxt_task_t *task,
-    nxt_port_recv_msg_t *msg, void *data);
-
 static void nxt_router_app_port_ready(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
 static void nxt_router_app_port_error(nxt_task_t *task,
@@ -270,7 +248,7 @@ static void nxt_router_get_mmap_handler(nxt_task_t *task,
 
 extern const nxt_http_request_state_t  nxt_http_websocket;
 
-static nxt_router_t  *nxt_router;
+nxt_router_t  *nxt_router;
 
 static const nxt_str_t http_prefix = nxt_string("HTTP_");
 static const nxt_str_t empty_prefix = nxt_string("");
@@ -294,6 +272,7 @@ static const nxt_port_handlers_t  nxt_router_process_port_handlers = {
     .get_mmap     = nxt_router_get_mmap_handler,
     .data         = nxt_router_conf_data_handler,
     .app_restart  = nxt_router_app_restart_handler,
+    .status       = nxt_router_status_handler,
     .remove_pid   = nxt_router_remove_pid_handler,
     .access_log   = nxt_router_access_log_reopen_handler,
     .rpc_ready    = nxt_port_rpc_handler,
@@ -944,6 +923,84 @@ fail:
 
 
 static void
+nxt_router_status_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
+{
+    u_char               *p;
+    size_t               alloc;
+    nxt_app_t            *app;
+    nxt_buf_t            *b;
+    nxt_uint_t           type;
+    nxt_port_t           *port;
+    nxt_status_app_t     *app_stat;
+    nxt_event_engine_t   *engine;
+    nxt_status_report_t  *report;
+
+    port = nxt_runtime_port_find(task->thread->runtime,
+                                 msg->port_msg.pid,
+                                 msg->port_msg.reply_port);
+    if (nxt_slow_path(port == NULL)) {
+        nxt_alert(task, "nxt_router_status_handler(): reply port not found");
+        return;
+    }
+
+    alloc = sizeof(nxt_status_report_t);
+
+    nxt_queue_each(app, &nxt_router->apps, nxt_app_t, link) {
+
+        alloc += sizeof(nxt_status_app_t) + app->name.length;
+
+    } nxt_queue_loop;
+
+    b = nxt_buf_mem_alloc(port->mem_pool, alloc, 0);
+    if (nxt_slow_path(b == NULL)) {
+        type = NXT_PORT_MSG_RPC_ERROR;
+        goto fail;
+    }
+
+    report = (nxt_status_report_t *) b->mem.free;
+    b->mem.free = b->mem.end;
+
+    nxt_memzero(report, sizeof(nxt_status_report_t));
+
+    nxt_queue_each(engine, &nxt_router->engines, nxt_event_engine_t, link0) {
+
+        report->accepted_conns += engine->accepted_conns_cnt;
+        report->idle_conns += engine->idle_conns_cnt;
+        report->closed_conns += engine->closed_conns_cnt;
+        report->requests += engine->requests_cnt;
+
+    } nxt_queue_loop;
+
+    report->apps_count = 0;
+    app_stat = report->apps;
+    p = b->mem.end;
+
+    nxt_queue_each(app, &nxt_router->apps, nxt_app_t, link) {
+        p -= app->name.length;
+
+        nxt_memcpy(p, app->name.start, app->name.length);
+
+        app_stat->name.length = app->name.length;
+        app_stat->name.start = (u_char *) (p - b->mem.pos);
+
+        app_stat->active_requests = app->active_requests;
+        app_stat->pending_processes = app->pending_processes;
+        app_stat->processes = app->processes;
+        app_stat->idle_processes = app->idle_processes;
+
+        report->apps_count++;
+        app_stat++;
+    } nxt_queue_loop;
+
+    type = NXT_PORT_MSG_RPC_READY_LAST;
+
+fail:
+
+    nxt_port_socket_write(task, port, type, -1, msg->port_msg.stream, 0, b);
+}
+
+
+static void
 nxt_router_app_process_remove_pid(nxt_task_t *task, nxt_port_t *port,
     void *data)
 {
@@ -1002,6 +1059,11 @@ nxt_router_temp_conf(nxt_task_t *task)
     }
 
     rtcf->mem_pool = mp;
+
+    rtcf->var_fields = nxt_array_create(mp, 4, sizeof(nxt_var_field_t));
+    if (nxt_slow_path(rtcf->var_fields == NULL)) {
+        goto fail;
+    }
 
     tmp = nxt_mp_create(1024, 128, 256, 32);
     if (nxt_slow_path(tmp == NULL)) {
@@ -1069,7 +1131,7 @@ nxt_router_app_need_start(nxt_app_t *app)
 }
 
 
-static void
+void
 nxt_router_conf_apply(nxt_task_t *task, void *obj, void *data)
 {
     nxt_int_t                    ret;
@@ -1225,11 +1287,10 @@ nxt_router_conf_ready(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
 }
 
 
-static void
+void
 nxt_router_conf_error(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
 {
     nxt_app_t          *app;
-    nxt_queue_t        new_socket_confs;
     nxt_socket_t       s;
     nxt_router_t       *router;
     nxt_queue_link_t   *qlk;
@@ -1251,11 +1312,6 @@ nxt_router_conf_error(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
 
         nxt_free(skcf->listen);
     }
-
-    nxt_queue_init(&new_socket_confs);
-    nxt_queue_add(&new_socket_confs, &updating_sockets);
-    nxt_queue_add(&new_socket_confs, &pending_sockets);
-    nxt_queue_add(&new_socket_confs, &creating_sockets);
 
     rtcf = tmcf->router_conf;
 
@@ -1483,7 +1539,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_mp_t                    *mp, *app_mp;
     uint32_t                    next, next_target;
     nxt_int_t                   ret;
-    nxt_str_t                   name, path, target;
+    nxt_str_t                   name, target;
     nxt_app_t                   *app, *prev;
     nxt_str_t                   *t, *s, *targets;
     nxt_uint_t                  n, i;
@@ -1494,16 +1550,15 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_tls_init_t              *tls_init;
     nxt_conf_value_t            *certificate;
 #endif
-    nxt_conf_value_t            *conf, *http, *value, *websocket;
+    nxt_conf_value_t            *root, *conf, *http, *value, *websocket;
     nxt_conf_value_t            *applications, *application;
     nxt_conf_value_t            *listeners, *listener;
-    nxt_conf_value_t            *routes_conf, *static_conf, *client_ip_conf;
     nxt_socket_conf_t           *skcf;
+    nxt_router_conf_t           *rtcf;
     nxt_http_routes_t           *routes;
     nxt_event_engine_t          *engine;
     nxt_app_lang_module_t       *lang;
     nxt_router_app_conf_t       apcf;
-    nxt_router_access_log_t     *access_log;
     nxt_router_listener_conf_t  lscf;
 
     static nxt_str_t  http_path = nxt_string("/settings/http");
@@ -1520,37 +1575,39 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 #endif
     static nxt_str_t  static_path = nxt_string("/settings/http/static");
     static nxt_str_t  websocket_path = nxt_string("/settings/http/websocket");
+    static nxt_str_t  forwarded_path = nxt_string("/forwarded");
     static nxt_str_t  client_ip_path = nxt_string("/client_ip");
 
-    conf = nxt_conf_json_parse(tmcf->mem_pool, start, end, NULL);
-    if (conf == NULL) {
+    root = nxt_conf_json_parse(tmcf->mem_pool, start, end, NULL);
+    if (root == NULL) {
         nxt_alert(task, "configuration parsing error");
         return NXT_ERROR;
     }
 
-    mp = tmcf->router_conf->mem_pool;
+    rtcf = tmcf->router_conf;
+    mp = rtcf->mem_pool;
 
-    ret = nxt_conf_map_object(mp, conf, nxt_router_conf,
-                              nxt_nitems(nxt_router_conf), tmcf->router_conf);
+    ret = nxt_conf_map_object(mp, root, nxt_router_conf,
+                              nxt_nitems(nxt_router_conf), rtcf);
     if (ret != NXT_OK) {
         nxt_alert(task, "root map error");
         return NXT_ERROR;
     }
 
-    if (tmcf->router_conf->threads == 0) {
-        tmcf->router_conf->threads = nxt_ncpu;
+    if (rtcf->threads == 0) {
+        rtcf->threads = nxt_ncpu;
     }
 
-    static_conf = nxt_conf_get_path(conf, &static_path);
+    conf = nxt_conf_get_path(root, &static_path);
 
-    ret = nxt_router_conf_process_static(task, tmcf->router_conf, static_conf);
+    ret = nxt_router_conf_process_static(task, rtcf, conf);
     if (nxt_slow_path(ret != NXT_OK)) {
         return NXT_ERROR;
     }
 
-    router = tmcf->router_conf->router;
+    router = rtcf->router;
 
-    applications = nxt_conf_get_path(conf, &applications_path);
+    applications = nxt_conf_get_path(root, &applications_path);
 
     if (applications != NULL) {
         next = 0;
@@ -1599,7 +1656,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
                 nxt_queue_remove(&prev->link);
                 nxt_queue_insert_tail(&tmcf->previous, &prev->link);
 
-                ret = nxt_router_apps_hash_add(tmcf->router_conf, prev);
+                ret = nxt_router_apps_hash_add(rtcf, prev);
                 if (nxt_slow_path(ret != NXT_OK)) {
                     goto fail;
                 }
@@ -1734,7 +1791,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
             nxt_queue_insert_tail(&tmcf->apps, &app->link);
 
-            ret = nxt_router_apps_hash_add(tmcf->router_conf, app);
+            ret = nxt_router_apps_hash_add(rtcf, app);
             if (nxt_slow_path(ret != NXT_OK)) {
                 goto app_fail;
             }
@@ -1785,21 +1842,22 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         }
     }
 
-    routes_conf = nxt_conf_get_path(conf, &routes_path);
-    if (nxt_fast_path(routes_conf != NULL)) {
-        routes = nxt_http_routes_create(task, tmcf, routes_conf);
+    conf = nxt_conf_get_path(root, &routes_path);
+    if (nxt_fast_path(conf != NULL)) {
+        routes = nxt_http_routes_create(task, tmcf, conf);
         if (nxt_slow_path(routes == NULL)) {
             return NXT_ERROR;
         }
-        tmcf->router_conf->routes = routes;
+
+        rtcf->routes = routes;
     }
 
-    ret = nxt_upstreams_create(task, tmcf, conf);
+    ret = nxt_upstreams_create(task, tmcf, root);
     if (nxt_slow_path(ret != NXT_OK)) {
         return ret;
     }
 
-    http = nxt_conf_get_path(conf, &http_path);
+    http = nxt_conf_get_path(root, &http_path);
 #if 0
     if (http == NULL) {
         nxt_alert(task, "no \"http\" block");
@@ -1807,9 +1865,9 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     }
 #endif
 
-    websocket = nxt_conf_get_path(conf, &websocket_path);
+    websocket = nxt_conf_get_path(root, &websocket_path);
 
-    listeners = nxt_conf_get_path(conf, &listeners_path);
+    listeners = nxt_conf_get_path(root, &listeners_path);
 
     if (listeners != NULL) {
         next = 0;
@@ -1889,11 +1947,22 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
                 t->length = nxt_strlen(t->start);
             }
 
-            client_ip_conf = nxt_conf_get_path(listener, &client_ip_path);
-            ret = nxt_router_conf_process_client_ip(task, tmcf, skcf,
-                                                    client_ip_conf);
-            if (nxt_slow_path(ret != NXT_OK)) {
-                return NXT_ERROR;
+            conf = nxt_conf_get_path(listener, &forwarded_path);
+
+            if (conf != NULL) {
+                skcf->forwarded = nxt_router_conf_forward(task, mp, conf);
+                if (nxt_slow_path(skcf->forwarded == NULL)) {
+                    return NXT_ERROR;
+                }
+            }
+
+            conf = nxt_conf_get_path(listener, &client_ip_path);
+
+            if (conf != NULL) {
+                skcf->client_ip = nxt_router_conf_forward(task, mp, conf);
+                if (nxt_slow_path(skcf->client_ip == NULL)) {
+                    return NXT_ERROR;
+                }
             }
 
 #if (NXT_TLS)
@@ -1941,7 +2010,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 #endif
 
             skcf->listen->handler = nxt_http_conn_init;
-            skcf->router_conf = tmcf->router_conf;
+            skcf->router_conf = rtcf;
             skcf->router_conf->count++;
 
             if (lscf.pass.length != 0) {
@@ -1949,8 +2018,7 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
             /* COMPATIBILITY: listener application. */
             } else if (lscf.application.length > 0) {
-                skcf->action = nxt_http_pass_application(task,
-                                                         tmcf->router_conf,
+                skcf->action = nxt_http_pass_application(task, rtcf,
                                                          &lscf.application);
             }
 
@@ -1965,36 +2033,13 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         goto fail;
     }
 
-    value = nxt_conf_get_path(conf, &access_log_path);
+    value = nxt_conf_get_path(root, &access_log_path);
 
     if (value != NULL) {
-        nxt_conf_get_string(value, &path);
-
-        access_log = router->access_log;
-
-        if (access_log != NULL && nxt_strstr_eq(&path, &access_log->path)) {
-            nxt_router_access_log_use(&router->lock, access_log);
-
-        } else {
-            access_log = nxt_malloc(sizeof(nxt_router_access_log_t)
-                                    + path.length);
-            if (access_log == NULL) {
-                nxt_alert(task, "failed to allocate access log structure");
-                goto fail;
-            }
-
-            access_log->fd = -1;
-            access_log->handler = &nxt_router_access_log_writer;
-            access_log->count = 1;
-
-            access_log->path.length = path.length;
-            access_log->path.start = (u_char *) access_log
-                                     + sizeof(nxt_router_access_log_t);
-
-            nxt_memcpy(access_log->path.start, path.start, path.length);
+        ret = nxt_router_access_log_create(task, rtcf, value);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            goto fail;
         }
-
-        tmcf->router_conf->access_log = access_log;
     }
 
     nxt_queue_add(&deleting_sockets, &router->sockets);
@@ -2129,74 +2174,103 @@ nxt_router_conf_process_static(nxt_task_t *task, nxt_router_conf_t *rtcf,
 }
 
 
-static nxt_int_t
-nxt_router_conf_process_client_ip(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
-    nxt_socket_conf_t *skcf, nxt_conf_value_t *conf)
+static nxt_http_forward_t *
+nxt_router_conf_forward(nxt_task_t *task, nxt_mp_t *mp, nxt_conf_value_t *conf)
 {
-    char                        c;
-    size_t                      i;
-    nxt_mp_t                    *mp;
-    uint32_t                    hash;
-    nxt_str_t                   header;
-    nxt_conf_value_t            *source_conf, *header_conf, *recursive_conf;
-    nxt_http_client_ip_t        *client_ip;
+    nxt_int_t                   ret;
+    nxt_conf_value_t            *header_conf, *client_ip_conf, *protocol_conf;
+    nxt_conf_value_t            *source_conf, *recursive_conf;
+    nxt_http_forward_t          *forward;
     nxt_http_route_addr_rule_t  *source;
 
     static nxt_str_t  header_path = nxt_string("/header");
+    static nxt_str_t  client_ip_path = nxt_string("/client_ip");
+    static nxt_str_t  protocol_path = nxt_string("/protocol");
     static nxt_str_t  source_path = nxt_string("/source");
     static nxt_str_t  recursive_path = nxt_string("/recursive");
 
-    if (conf == NULL) {
-        skcf->client_ip = NULL;
+    header_conf = nxt_conf_get_path(conf, &header_path);
 
-        return NXT_OK;
+    if (header_conf != NULL) {
+        client_ip_conf = nxt_conf_get_path(conf, &header_path);
+        protocol_conf = NULL;
+
+    } else {
+        client_ip_conf = nxt_conf_get_path(conf, &client_ip_path);
+        protocol_conf = nxt_conf_get_path(conf, &protocol_path);
     }
-
-    mp = tmcf->router_conf->mem_pool;
 
     source_conf = nxt_conf_get_path(conf, &source_path);
-    header_conf = nxt_conf_get_path(conf, &header_path);
     recursive_conf = nxt_conf_get_path(conf, &recursive_path);
 
-    if (source_conf == NULL || header_conf == NULL) {
-        return NXT_ERROR;
+    if (source_conf == NULL
+        || (protocol_conf == NULL && client_ip_conf == NULL))
+    {
+        return NULL;
     }
 
-    client_ip = nxt_mp_zget(mp, sizeof(nxt_http_client_ip_t));
-    if (nxt_slow_path(client_ip == NULL)) {
-        return NXT_ERROR;
+    forward = nxt_mp_zget(mp, sizeof(nxt_http_forward_t));
+    if (nxt_slow_path(forward == NULL)) {
+        return NULL;
     }
 
     source = nxt_http_route_addr_rule_create(task, mp, source_conf);
     if (nxt_slow_path(source == NULL)) {
-        return NXT_ERROR;
+        return NULL;
     }
 
-    client_ip->source = source;
-
-    nxt_conf_get_string(header_conf, &header);
+    forward->source = source;
 
     if (recursive_conf != NULL) {
-        client_ip->recursive = nxt_conf_get_boolean(recursive_conf);
+        forward->recursive = nxt_conf_get_boolean(recursive_conf);
     }
 
-    client_ip->header = nxt_str_dup(mp, NULL, &header);
-    if (nxt_slow_path(client_ip->header == NULL)) {
+    if (client_ip_conf != NULL) {
+        ret = nxt_router_conf_forward_header(mp, client_ip_conf,
+                                             &forward->client_ip);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            return NULL;
+        }
+    }
+
+    if (protocol_conf != NULL) {
+        ret = nxt_router_conf_forward_header(mp, protocol_conf,
+                                             &forward->protocol);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            return NULL;
+        }
+    }
+
+    return forward;
+}
+
+
+static nxt_int_t
+nxt_router_conf_forward_header(nxt_mp_t *mp, nxt_conf_value_t *conf,
+    nxt_http_forward_header_t *fh)
+{
+    char       c;
+    size_t     i;
+    uint32_t   hash;
+    nxt_str_t  header;
+
+    nxt_conf_get_string(conf, &header);
+
+    fh->header = nxt_str_dup(mp, NULL, &header);
+    if (nxt_slow_path(fh->header == NULL)) {
         return NXT_ERROR;
     }
 
     hash = NXT_HTTP_FIELD_HASH_INIT;
 
-    for (i = 0; i < client_ip->header->length; i++) {
-        c = client_ip->header->start[i];
+    for (i = 0; i < fh->header->length; i++) {
+        c = fh->header->start[i];
         hash = nxt_http_field_hash_char(hash, nxt_lowcase(c));
     }
 
     hash = nxt_http_field_hash_end(hash) & 0xFFFF;
 
-    client_ip->header_hash = hash;
-
-    skcf->client_ip = client_ip;
+    fh->header_hash = hash;
 
     return NXT_OK;
 }
@@ -3719,384 +3793,6 @@ nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
 
 
 static void
-nxt_router_access_log_writer(nxt_task_t *task, nxt_http_request_t *r,
-    nxt_router_access_log_t *access_log)
-{
-    size_t     size;
-    u_char     *buf, *p;
-    nxt_off_t  bytes;
-
-    static nxt_time_string_t  date_cache = {
-        (nxt_atomic_uint_t) -1,
-        nxt_router_access_log_date,
-        "%02d/%s/%4d:%02d:%02d:%02d %c%02d%02d",
-        nxt_length("31/Dec/1986:19:40:00 +0300"),
-        NXT_THREAD_TIME_LOCAL,
-        NXT_THREAD_TIME_SEC,
-    };
-
-    size = r->remote->address_length
-           + 6                  /* ' - - [' */
-           + date_cache.size
-           + 3                  /* '] "' */
-           + r->method->length
-           + 1                  /* space */
-           + r->target.length
-           + 1                  /* space */
-           + r->version.length
-           + 2                  /* '" ' */
-           + 3                  /* status */
-           + 1                  /* space */
-           + NXT_OFF_T_LEN
-           + 2                  /* ' "' */
-           + (r->referer != NULL ? r->referer->value_length : 1)
-           + 3                  /* '" "' */
-           + (r->user_agent != NULL ? r->user_agent->value_length : 1)
-           + 2                  /* '"\n' */
-    ;
-
-    buf = nxt_mp_nget(r->mem_pool, size);
-    if (nxt_slow_path(buf == NULL)) {
-        return;
-    }
-
-    p = nxt_cpymem(buf, nxt_sockaddr_address(r->remote),
-                   r->remote->address_length);
-
-    p = nxt_cpymem(p, " - - [", 6);
-
-    p = nxt_thread_time_string(task->thread, &date_cache, p);
-
-    p = nxt_cpymem(p, "] \"", 3);
-
-    if (r->method->length != 0) {
-        p = nxt_cpymem(p, r->method->start, r->method->length);
-
-        if (r->target.length != 0) {
-            *p++ = ' ';
-            p = nxt_cpymem(p, r->target.start, r->target.length);
-
-            if (r->version.length != 0) {
-                *p++ = ' ';
-                p = nxt_cpymem(p, r->version.start, r->version.length);
-            }
-        }
-
-    } else {
-        *p++ = '-';
-    }
-
-    p = nxt_cpymem(p, "\" ", 2);
-
-    p = nxt_sprintf(p, p + 3, "%03d", r->status);
-
-    *p++ = ' ';
-
-    bytes = nxt_http_proto[r->protocol].body_bytes_sent(task, r->proto);
-
-    p = nxt_sprintf(p, p + NXT_OFF_T_LEN, "%O", bytes);
-
-    p = nxt_cpymem(p, " \"", 2);
-
-    if (r->referer != NULL) {
-        p = nxt_cpymem(p, r->referer->value, r->referer->value_length);
-
-    } else {
-        *p++ = '-';
-    }
-
-    p = nxt_cpymem(p, "\" \"", 3);
-
-    if (r->user_agent != NULL) {
-        p = nxt_cpymem(p, r->user_agent->value, r->user_agent->value_length);
-
-    } else {
-        *p++ = '-';
-    }
-
-    p = nxt_cpymem(p, "\"\n", 2);
-
-    nxt_fd_write(access_log->fd, buf, p - buf);
-}
-
-
-static u_char *
-nxt_router_access_log_date(u_char *buf, nxt_realtime_t *now, struct tm *tm,
-    size_t size, const char *format)
-{
-    u_char  sign;
-    time_t  gmtoff;
-
-    static const char  *month[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
-
-    gmtoff = nxt_timezone(tm) / 60;
-
-    if (gmtoff < 0) {
-        gmtoff = -gmtoff;
-        sign = '-';
-
-    } else {
-        sign = '+';
-    }
-
-    return nxt_sprintf(buf, buf + size, format,
-                       tm->tm_mday, month[tm->tm_mon], tm->tm_year + 1900,
-                       tm->tm_hour, tm->tm_min, tm->tm_sec,
-                       sign, gmtoff / 60, gmtoff % 60);
-}
-
-
-static void
-nxt_router_access_log_open(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
-{
-    uint32_t                 stream;
-    nxt_int_t                ret;
-    nxt_buf_t                *b;
-    nxt_port_t               *main_port, *router_port;
-    nxt_runtime_t            *rt;
-    nxt_router_access_log_t  *access_log;
-
-    access_log = tmcf->router_conf->access_log;
-
-    b = nxt_buf_mem_alloc(tmcf->mem_pool, access_log->path.length + 1, 0);
-    if (nxt_slow_path(b == NULL)) {
-        goto fail;
-    }
-
-    b->completion_handler = nxt_buf_dummy_completion;
-
-    nxt_buf_cpystr(b, &access_log->path);
-    *b->mem.free++ = '\0';
-
-    rt = task->thread->runtime;
-    main_port = rt->port_by_type[NXT_PROCESS_MAIN];
-    router_port = rt->port_by_type[NXT_PROCESS_ROUTER];
-
-    stream = nxt_port_rpc_register_handler(task, router_port,
-                                           nxt_router_access_log_ready,
-                                           nxt_router_access_log_error,
-                                           -1, tmcf);
-    if (nxt_slow_path(stream == 0)) {
-        goto fail;
-    }
-
-    ret = nxt_port_socket_write(task, main_port, NXT_PORT_MSG_ACCESS_LOG, -1,
-                                stream, router_port->id, b);
-
-    if (nxt_slow_path(ret != NXT_OK)) {
-        nxt_port_rpc_cancel(task, router_port, stream);
-        goto fail;
-    }
-
-    return;
-
-fail:
-
-    nxt_router_conf_error(task, tmcf);
-}
-
-
-static void
-nxt_router_access_log_ready(nxt_task_t *task, nxt_port_recv_msg_t *msg,
-    void *data)
-{
-    nxt_router_temp_conf_t   *tmcf;
-    nxt_router_access_log_t  *access_log;
-
-    tmcf = data;
-
-    access_log = tmcf->router_conf->access_log;
-
-    access_log->fd = msg->fd[0];
-
-    nxt_work_queue_add(&task->thread->engine->fast_work_queue,
-                       nxt_router_conf_apply, task, tmcf, NULL);
-}
-
-
-static void
-nxt_router_access_log_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
-    void *data)
-{
-    nxt_router_temp_conf_t  *tmcf;
-
-    tmcf = data;
-
-    nxt_router_conf_error(task, tmcf);
-}
-
-
-static void
-nxt_router_access_log_use(nxt_thread_spinlock_t *lock,
-    nxt_router_access_log_t *access_log)
-{
-    if (access_log == NULL) {
-        return;
-    }
-
-    nxt_thread_spin_lock(lock);
-
-    access_log->count++;
-
-    nxt_thread_spin_unlock(lock);
-}
-
-
-static void
-nxt_router_access_log_release(nxt_task_t *task, nxt_thread_spinlock_t *lock,
-    nxt_router_access_log_t *access_log)
-{
-    if (access_log == NULL) {
-        return;
-    }
-
-    nxt_thread_spin_lock(lock);
-
-    if (--access_log->count != 0) {
-        access_log = NULL;
-    }
-
-    nxt_thread_spin_unlock(lock);
-
-    if (access_log != NULL) {
-
-        if (access_log->fd != -1) {
-            nxt_fd_close(access_log->fd);
-        }
-
-        nxt_free(access_log);
-    }
-}
-
-
-typedef struct {
-    nxt_mp_t                 *mem_pool;
-    nxt_router_access_log_t  *access_log;
-} nxt_router_access_log_reopen_t;
-
-
-static void
-nxt_router_access_log_reopen_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
-{
-    nxt_mp_t                        *mp;
-    uint32_t                        stream;
-    nxt_int_t                       ret;
-    nxt_buf_t                       *b;
-    nxt_port_t                      *main_port, *router_port;
-    nxt_runtime_t                   *rt;
-    nxt_router_access_log_t         *access_log;
-    nxt_router_access_log_reopen_t  *reopen;
-
-    access_log = nxt_router->access_log;
-
-    if (access_log == NULL) {
-        return;
-    }
-
-    mp = nxt_mp_create(1024, 128, 256, 32);
-    if (nxt_slow_path(mp == NULL)) {
-        return;
-    }
-
-    reopen = nxt_mp_get(mp, sizeof(nxt_router_access_log_reopen_t));
-    if (nxt_slow_path(reopen == NULL)) {
-        goto fail;
-    }
-
-    reopen->mem_pool = mp;
-    reopen->access_log = access_log;
-
-    b = nxt_buf_mem_alloc(mp, access_log->path.length + 1, 0);
-    if (nxt_slow_path(b == NULL)) {
-        goto fail;
-    }
-
-    b->completion_handler = nxt_router_access_log_reopen_completion;
-
-    nxt_buf_cpystr(b, &access_log->path);
-    *b->mem.free++ = '\0';
-
-    rt = task->thread->runtime;
-    main_port = rt->port_by_type[NXT_PROCESS_MAIN];
-    router_port = rt->port_by_type[NXT_PROCESS_ROUTER];
-
-    stream = nxt_port_rpc_register_handler(task, router_port,
-                                           nxt_router_access_log_reopen_ready,
-                                           nxt_router_access_log_reopen_error,
-                                           -1, reopen);
-    if (nxt_slow_path(stream == 0)) {
-        goto fail;
-    }
-
-    ret = nxt_port_socket_write(task, main_port, NXT_PORT_MSG_ACCESS_LOG, -1,
-                                stream, router_port->id, b);
-
-    if (nxt_slow_path(ret != NXT_OK)) {
-        nxt_port_rpc_cancel(task, router_port, stream);
-        goto fail;
-    }
-
-    nxt_mp_retain(mp);
-
-    return;
-
-fail:
-
-    nxt_mp_destroy(mp);
-}
-
-
-static void
-nxt_router_access_log_reopen_completion(nxt_task_t *task, void *obj, void *data)
-{
-    nxt_mp_t   *mp;
-    nxt_buf_t  *b;
-
-    b = obj;
-    mp = b->data;
-
-    nxt_mp_release(mp);
-}
-
-
-static void
-nxt_router_access_log_reopen_ready(nxt_task_t *task, nxt_port_recv_msg_t *msg,
-    void *data)
-{
-    nxt_router_access_log_t         *access_log;
-    nxt_router_access_log_reopen_t  *reopen;
-
-    reopen = data;
-
-    access_log = reopen->access_log;
-
-    if (access_log == nxt_router->access_log) {
-
-        if (nxt_slow_path(dup2(msg->fd[0], access_log->fd) == -1)) {
-            nxt_alert(task, "dup2(%FD, %FD) failed %E",
-                      msg->fd[0], access_log->fd, nxt_errno);
-        }
-    }
-
-    nxt_fd_close(msg->fd[0]);
-    nxt_mp_release(reopen->mem_pool);
-}
-
-
-static void
-nxt_router_access_log_reopen_error(nxt_task_t *task, nxt_port_recv_msg_t *msg,
-    void *data)
-{
-    nxt_router_access_log_reopen_t  *reopen;
-
-    reopen = data;
-
-    nxt_mp_release(reopen->mem_pool);
-}
-
-
-static void
 nxt_router_thread_exit_handler(nxt_task_t *task, void *obj, void *data)
 {
     nxt_port_t           *port;
@@ -5390,7 +5086,6 @@ nxt_router_app_prepare_request(nxt_task_t *task,
     msg.pm.mmap = 1;
     msg.pm.nf = 0;
     msg.pm.mf = 0;
-    msg.pm.tracking = 0;
 
     nxt_port_mmap_handler_t *mmap_handler = buf->parent;
     nxt_port_mmap_header_t *hdr = mmap_handler->hdr;
@@ -5559,7 +5254,7 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_http_request_t *r,
     p = nxt_cpymem(p, nxt_sockaddr_address(r->local), r->local->address_length);
     *p++ = '\0';
 
-    req->tls = (r->tls != NULL);
+    req->tls = r->tls;
     req->websocket_handshake = r->websocket_handshake;
 
     req->server_name_length = r->server_name.length;

@@ -512,7 +512,6 @@ nxt_port_rpc_close(nxt_task_t *task, nxt_port_t *port)
         msg.port_msg.mmap = 0;
         msg.port_msg.nf = 0;
         msg.port_msg.mf = 0;
-        msg.port_msg.tracking = 0;
         msg.size = 0;
         msg.cancelled = 0;
         msg.u.data = NULL;
