@@ -14,6 +14,7 @@
 #include <nxt_router.h>
 #include <nxt_unit.h>
 #include <nxt_unit_request.h>
+#include <nxt_http.h>
 
 
 #if (PHP_VERSION_ID >= 50400)
@@ -99,6 +100,8 @@ static nxt_int_t nxt_php_dirname(const nxt_str_t *file, nxt_str_t *dir);
 static void nxt_php_str_trim_trail(nxt_str_t *str, u_char t);
 static void nxt_php_str_trim_lead(nxt_str_t *str, u_char t);
 nxt_inline u_char *nxt_realpath(const void *c);
+
+static nxt_int_t nxt_php_do_301(nxt_unit_request_info_t *req);
 
 static void nxt_php_request_handler(nxt_unit_request_info_t *req);
 static void nxt_php_dynamic_request(nxt_php_run_ctx_t *ctx,
@@ -920,6 +923,63 @@ nxt_realpath(const void *c)
 }
 
 
+static nxt_int_t
+nxt_php_do_301(nxt_unit_request_info_t *req)
+{
+    char                *p, *url, *port;
+    uint32_t            size;
+    const char          *proto;
+    nxt_unit_request_t  *r;
+
+    r = req->request;
+
+    url = nxt_malloc(sizeof("https://") - 1
+                     + r->server_name_length
+                     + r->local_port_length + 1
+                     + r->path_length + 1
+                     + r->query_length + 1
+                     + 1);
+    if (nxt_slow_path(url == NULL)) {
+        return NXT_UNIT_ERROR;
+    }
+
+    proto = r->tls ? "https://" : "http://";
+    p = nxt_cpymem(url, proto, strlen(proto));
+    p = nxt_cpymem(p, nxt_unit_sptr_get(&r->server_name),
+                   r->server_name_length);
+
+    port = nxt_unit_sptr_get(&r->local_port);
+    if (r->local_port_length > 0
+        && !(r->tls && strcmp(port, "443") == 0)
+        && !(!r->tls && strcmp(port, "80") == 0))
+    {
+        *p++ = ':';
+        p = nxt_cpymem(p, port, r->local_port_length);
+    }
+
+    p = nxt_cpymem(p, nxt_unit_sptr_get(&r->path), r->path_length);
+    *p++ = '/';
+
+    if (r->query_length > 0) {
+        *p++ = '?';
+        p = nxt_cpymem(p, nxt_unit_sptr_get(&r->query), r->query_length);
+    }
+
+    *p = '\0';
+
+    size = p - url;
+
+    nxt_unit_response_init(req, NXT_HTTP_MOVED_PERMANENTLY, 1,
+                           nxt_length("Location") + size);
+    nxt_unit_response_add_field(req, "Location", nxt_length("Location"),
+                                url, size);
+
+    nxt_free(url);
+
+    return NXT_UNIT_OK;
+}
+
+
 static void
 nxt_php_request_handler(nxt_unit_request_info_t *req)
 {
@@ -975,15 +1035,33 @@ nxt_php_dynamic_request(nxt_php_run_ctx_t *ctx, nxt_unit_request_t *r)
     } else if (path.start[path.length - 1] == '/') {
         script_name = *ctx->index;
 
-    } else {
-        if (nxt_slow_path(path.length < 4
-                          || nxt_memcmp(path.start + (path.length - 4),
-                                        ".php", 4)))
-        {
-            nxt_unit_request_done(ctx->req, NXT_UNIT_ERROR);
+    } else if (path.length < 4
+               || nxt_memcmp(path.start + (path.length - 4), ".php", 4) != 0)
+    {
+        char         tpath[PATH_MAX];
+        nxt_int_t    ec;
+        struct stat  sb;
+
+        ec = NXT_UNIT_ERROR;
+
+        if (ctx->root->length + path.length + 1 > PATH_MAX) {
+            nxt_unit_request_done(ctx->req, ec);
 
             return;
         }
+
+        p = nxt_cpymem(tpath, ctx->root->start, ctx->root->length);
+        p = nxt_cpymem(p, path.start, path.length);
+        *p = '\0';
+
+        ret = stat(tpath, &sb);
+        if (ret == 0 && S_ISDIR(sb.st_mode)) {
+            ec = nxt_php_do_301(ctx->req);
+        }
+
+        nxt_unit_request_done(ctx->req, ec);
+
+        return;
     }
 
     ctx->script_filename.length = ctx->root->length

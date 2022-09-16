@@ -85,6 +85,13 @@ fix error in connection statistics when using proxy.
 </para>
 </change>
 
+<change type="bugfix">
+<para>
+PHP directory URLs without a trailing '/' would give a 503 error (fixed with
+a 301 re-direct).
+</para>
+</change>
+
 </changes>
 
 

@@ -5254,6 +5254,12 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_http_request_t *r,
     p = nxt_cpymem(p, nxt_sockaddr_address(r->local), r->local->address_length);
     *p++ = '\0';
 
+    req->local_port_length = nxt_sockaddr_port_length(r->local);
+    nxt_unit_sptr_set(&req->local_port, p);
+    p = nxt_cpymem(p, nxt_sockaddr_port(r->local),
+                   nxt_sockaddr_port_length(r->local));
+    *p++ = '\0';
+
     req->tls = r->tls;
     req->websocket_handshake = r->websocket_handshake;
 
