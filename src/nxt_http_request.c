@@ -1045,20 +1045,21 @@ nxt_http_cookie_parse(nxt_array_t *cookies, u_char *start, const u_char *end)
         for (p = value; p > name && p[-1] == ' '; p--) { /* void */ }
 
         name_length = p - name;
+        if (name_length == 0) {
+            return NXT_ERROR;
+        }
 
-        if (name_length > 0) {
-            p = last;
+        p = last;
 
-            if (value < last) {
-                value++;
-                while (value < last && value[0] == ' ') { value++; }
-                while (p > value && p[-1] == ' ') { p--; }
-            }
+        if (value < last) {
+            value++;
+            while (value < last && value[0] == ' ') { value++; }
+            while (p > value && p[-1] == ' ') { p--; }
+        }
 
-            nv = nxt_http_cookie(cookies, name, name_length, value, p);
-            if (nxt_slow_path(nv == NULL)) {
-                return NXT_ERROR;
-            }
+        nv = nxt_http_cookie(cookies, name, name_length, value, p);
+        if (nxt_slow_path(nv == NULL)) {
+            return NXT_ERROR;
         }
     }
 
