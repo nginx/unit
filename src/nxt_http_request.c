@@ -1026,43 +1026,39 @@ static nxt_int_t
 nxt_http_cookie_parse(nxt_array_t *cookies, u_char *start, const u_char *end)
 {
     size_t                 name_length;
-    u_char                 c, *p, *name;
+    u_char                 *p, *last, *name, *value;
     nxt_http_name_value_t  *nv;
 
-    name = NULL;
-    name_length = 0;
+    for (name = start; name < end; name = last + 1) {
+        last = nxt_memchr(name, ';', end - name);
+        if (last == NULL) {
+            last = end;
+        }
 
-    for (p = start; p < end; p++) {
-        c = *p;
+        while (name < last && name[0] == ' ') { name++; }
 
-        if (c == '=') {
-            while (start[0] == ' ') { start++; }
+        value = nxt_memchr(name, '=', last - name);
+        if (value == NULL) {
+            value = last;
+        }
 
-            name_length = p - start;
+        for (p = value; p > name && p[-1] == ' '; p--) { /* void */ }
 
-            if (name_length != 0) {
-                name = start;
+        name_length = p - name;
+
+        if (name_length > 0) {
+            p = last;
+
+            if (value < last) {
+                value++;
+                while (value < last && value[0] == ' ') { value++; }
+                while (p > value && p[-1] == ' ') { p--; }
             }
 
-            start = p + 1;
-
-        } else if (c == ';') {
-            if (name != NULL) {
-                nv = nxt_http_cookie(cookies, name, name_length, start, p);
-                if (nxt_slow_path(nv == NULL)) {
-                    return NXT_ERROR;
-                }
+            nv = nxt_http_cookie(cookies, name, name_length, value, p);
+            if (nxt_slow_path(nv == NULL)) {
+                return NXT_ERROR;
             }
-
-            name = NULL;
-            start = p + 1;
-         }
-    }
-
-    if (name != NULL) {
-        nv = nxt_http_cookie(cookies, name, name_length, start, p);
-        if (nxt_slow_path(nv == NULL)) {
-            return NXT_ERROR;
         }
     }
 
@@ -1094,8 +1090,6 @@ nxt_http_cookie(nxt_array_t *array, u_char *name, size_t name_length,
     }
 
     nv->hash = nxt_http_field_hash_end(hash) & 0xFFFF;
-
-    while (start < end && end[-1] == ' ') { end--; }
 
     nv->value_length = end - start;
     nv->value = start;
