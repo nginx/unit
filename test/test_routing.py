@@ -1401,6 +1401,20 @@ class TestRouting(TestApplicationPython):
         self.route_match_invalid({"cookies": ["var"]})
         self.route_match_invalid({"cookies": [{"foo": {}}]})
 
+    def test_routes_match_cookies_complex(self):
+        self.route_match({"cookies": {"foo": "bar=baz"}})
+        self.cookie('foo=bar=baz', 200)
+        self.cookie('   foo=bar=baz   ', 200)
+        self.cookie('=foo=bar=baz', 404)
+
+        self.route_match({"cookies": {"foo": ""}})
+        self.cookie('foo=', 200)
+        self.cookie('foo=;', 200)
+        self.cookie('  foo=;', 200)
+        self.cookie('foo', 404)
+        self.cookie('', 404)
+        self.cookie('=', 404)
+
     def test_routes_match_cookies_multiple(self):
         self.route_match({"cookies": {"foo": "bar", "blah": "blah"}})
 

@@ -1035,14 +1035,11 @@ nxt_http_cookie_parse(nxt_array_t *cookies, u_char *start, const u_char *end)
     for (p = start; p < end; p++) {
         c = *p;
 
-        if (c == '=') {
+        if (c == '=' && name == NULL) {
             while (start[0] == ' ') { start++; }
 
             name_length = p - start;
-
-            if (name_length != 0) {
-                name = start;
-            }
+            name = start;
 
             start = p + 1;
 
