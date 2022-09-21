@@ -312,8 +312,7 @@ NXT_EXPORT void nxt_event_conn_job_sendfile(nxt_task_t *task,
                                                                               \
         nxt_queue_remove(&c->link);                                           \
                                                                               \
-        c->idle = 0;                                                          \
-        e->idle_conns_cnt--;                                                  \
+        e->idle_conns_cnt -= c->idle;                               \
     } while (0)
 
 

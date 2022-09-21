@@ -37,6 +37,12 @@ fix HTTP cookie parsing when the value contains an equals sign.
 </para>
 </change>
 
+<change type="bugfix">
+<para>
+fix error in connection statistics when using proxy.
+</para>
+</change>
+
 </changes>
 
 
