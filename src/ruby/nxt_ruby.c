@@ -480,10 +480,15 @@ nxt_ruby_rack_init(nxt_ruby_rack_init_t *rack_init)
 
     rackup = rb_protect(nxt_ruby_rack_parse_script,
                         (VALUE) (uintptr_t) rack_init, &state);
-    if (nxt_slow_path(TYPE(rackup) != T_ARRAY || state != 0)) {
+
+    if (nxt_slow_path(state != 0)) {
         nxt_ruby_exception_log(NULL, NXT_LOG_ALERT,
                                "Failed to parse rack script");
         return Qnil;
+    }
+
+    if (TYPE(rackup) != T_ARRAY) {
+        return rackup;
     }
 
     if (nxt_slow_path(RARRAY_LEN(rackup) < 1)) {
