@@ -747,8 +747,8 @@ nxt_ruby_read_request(nxt_unit_request_info_t *req, VALUE hash_env)
                       r->version_length);
     nxt_ruby_add_sptr(hash_env, nxt_rb_remote_addr_str, &r->remote,
                       r->remote_length);
-    nxt_ruby_add_sptr(hash_env, nxt_rb_server_addr_str, &r->local,
-                      r->local_length);
+    nxt_ruby_add_sptr(hash_env, nxt_rb_server_addr_str, &r->local_addr,
+                      r->local_addr_length);
     nxt_ruby_add_sptr(hash_env, nxt_rb_server_name_str, &r->server_name,
                       r->server_name_length);
 

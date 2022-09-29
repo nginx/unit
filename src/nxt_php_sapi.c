@@ -1365,7 +1365,7 @@ nxt_php_register_variables(zval *track_vars_array TSRMLS_DC)
 
     nxt_php_set_sptr(req, "REMOTE_ADDR", &r->remote, r->remote_length,
                      track_vars_array TSRMLS_CC);
-    nxt_php_set_sptr(req, "SERVER_ADDR", &r->local, r->local_length,
+    nxt_php_set_sptr(req, "SERVER_ADDR", &r->local_addr, r->local_addr_length,
                      track_vars_array TSRMLS_CC);
 
     nxt_php_set_sptr(req, "SERVER_NAME", &r->server_name, r->server_name_length,

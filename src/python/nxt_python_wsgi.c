@@ -609,8 +609,8 @@ nxt_python_get_environ(nxt_python_ctx_t *pctx)
 
     RC(nxt_python_add_sptr(pctx, nxt_py_remote_addr_str, &r->remote,
                            r->remote_length));
-    RC(nxt_python_add_sptr(pctx, nxt_py_server_addr_str, &r->local,
-                           r->local_length));
+    RC(nxt_python_add_sptr(pctx, nxt_py_server_addr_str, &r->local_addr,
+                           r->local_addr_length));
 
     if (r->tls) {
         RC(nxt_python_add_obj(pctx, nxt_py_wsgi_uri_scheme_str,

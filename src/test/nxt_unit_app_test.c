@@ -225,7 +225,7 @@ greeting_app_request_handler(nxt_unit_request_info_t *req)
     *p++ = '\n';
 
     p = copy(p, LOCAL_ADDR, nxt_length(LOCAL_ADDR));
-    p = copy(p, nxt_unit_sptr_get(&r->local), r->local_length);
+    p = copy(p, nxt_unit_sptr_get(&r->local_addr), r->local_addr_length);
     *p++ = '\n';
 
     p = copy(p, TARGET, nxt_length(TARGET));

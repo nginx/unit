@@ -5249,8 +5249,8 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_http_request_t *r,
                    r->remote->address_length);
     *p++ = '\0';
 
-    req->local_length = r->local->address_length;
-    nxt_unit_sptr_set(&req->local, p);
+    req->local_addr_length = r->local->address_length;
+    nxt_unit_sptr_set(&req->local_addr, p);
     p = nxt_cpymem(p, nxt_sockaddr_address(r->local), r->local->address_length);
     *p++ = '\0';
 

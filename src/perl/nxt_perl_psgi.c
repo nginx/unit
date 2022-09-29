@@ -671,7 +671,7 @@ nxt_perl_psgi_env_create(PerlInterpreter *my_perl,
     RC(nxt_perl_psgi_add_sptr(my_perl, hash_env, NL("REMOTE_ADDR"),
                               &r->remote, r->remote_length));
     RC(nxt_perl_psgi_add_sptr(my_perl, hash_env, NL("SERVER_ADDR"),
-                              &r->local, r->local_length));
+                              &r->local_addr, r->local_addr_length));
 
     RC(nxt_perl_psgi_add_sptr(my_perl, hash_env, NL("SERVER_NAME"),
                               &r->server_name, r->server_name_length));

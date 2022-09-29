@@ -18,7 +18,7 @@ struct nxt_unit_request_s {
     uint8_t               method_length;
     uint8_t               version_length;
     uint8_t               remote_length;
-    uint8_t               local_length;
+    uint8_t               local_addr_length;
     uint8_t               tls;
     uint8_t               websocket_handshake;
     uint8_t               app_target;
@@ -38,7 +38,7 @@ struct nxt_unit_request_s {
     nxt_unit_sptr_t       method;
     nxt_unit_sptr_t       version;
     nxt_unit_sptr_t       remote;
-    nxt_unit_sptr_t       local;
+    nxt_unit_sptr_t       local_addr;
     nxt_unit_sptr_t       server_name;
     nxt_unit_sptr_t       target;
     nxt_unit_sptr_t       path;

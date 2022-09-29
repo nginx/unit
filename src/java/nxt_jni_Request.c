@@ -461,8 +461,8 @@ nxt_java_Request_getLocalAddr(JNIEnv *env, jclass cls, jlong req_ptr)
 
     r = nxt_jlong2ptr(req_ptr);
 
-    return nxt_java_newString(env, nxt_unit_sptr_get(&r->local),
-                              r->local_length);
+    return nxt_java_newString(env, nxt_unit_sptr_get(&r->local_addr),
+                              r->local_addr_length);
 }
 
 
@@ -474,11 +474,11 @@ nxt_java_Request_getLocalName(JNIEnv *env, jclass cls, jlong req_ptr)
 
     r = nxt_jlong2ptr(req_ptr);
 
-    local = nxt_unit_sptr_get(&r->local);
-    colon = memchr(local, ':', r->local_length);
+    local = nxt_unit_sptr_get(&r->local_addr);
+    colon = memchr(local, ':', r->local_addr_length);
 
     if (colon == NULL) {
-        colon = local + r->local_length;
+        colon = local + r->local_addr_length;
     }
 
     return nxt_java_newString(env, local, colon - local);
@@ -494,20 +494,20 @@ nxt_java_Request_getLocalPort(JNIEnv *env, jclass cls, jlong req_ptr)
 
     r = nxt_jlong2ptr(req_ptr);
 
-    local = nxt_unit_sptr_get(&r->local);
-    colon = memchr(local, ':', r->local_length);
+    local = nxt_unit_sptr_get(&r->local_addr);
+    colon = memchr(local, ':', r->local_addr_length);
 
     if (colon == NULL) {
         return 80;
     }
 
-    tmp = local[r->local_length];
+    tmp = local[r->local_addr_length];
 
-    local[r->local_length] = '\0';
+    local[r->local_addr_length] = '\0';
 
     res = strtol(colon + 1, NULL, 10);
 
-    local[r->local_length] = tmp;
+    local[r->local_addr_length] = tmp;
 
     return res;
 }
