@@ -492,7 +492,7 @@ nxt_ruby_rack_init(nxt_ruby_rack_init_t *rack_init)
     }
 
     if (nxt_slow_path(RARRAY_LEN(rackup) < 1)) {
-        nxt_alert(rack_init->task, "Ruby: Invalid rack config file");
+        nxt_ruby_exception_log(NULL, NXT_LOG_ALERT, "Invalid rack config file");
         return Qnil;
     }
 
