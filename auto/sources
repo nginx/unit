@@ -104,6 +104,7 @@ NXT_LIB_SRCS=" \
     src/nxt_websocket_accept.c \
     src/nxt_http_websocket.c \
     src/nxt_h1proto_websocket.c \
+    src/nxt_fs.c \
 "
 
 NXT_LIB_SRC0=" \
@@ -187,7 +188,7 @@ NXT_LIB_UTF8_FILE_NAME_TEST_SRCS=" \
 
 
 if [ $NXT_HAVE_ROOTFS = YES ]; then
-    NXT_LIB_SRCS="$NXT_LIB_SRCS src/nxt_fs.c"
+    NXT_LIB_SRCS="$NXT_LIB_SRCS src/nxt_fs_mount.c"
 fi
 
 
