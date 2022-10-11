@@ -104,6 +104,9 @@ class TestHTTP:
 
             resp = self.recvall(sock, **recvall_kwargs).decode(encoding)
 
+        else:
+            return sock
+
         self.log_in(resp)
 
         if 'raw_resp' not in kwargs:

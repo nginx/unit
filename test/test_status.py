@@ -81,7 +81,7 @@ Connection: close
         )
         assert Status.get('/requests/total') == 6, 'pipeline'
 
-        (_, sock) = self.get(port=7081, no_recv=True, start=True)
+        sock = self.get(port=7081, no_recv=True)
 
         time.sleep(1)
 
@@ -112,7 +112,7 @@ Connection: close
 
         # idle
 
-        _, sock = self.http(b'', start=True, raw=True, no_recv=True)
+        sock = self.http(b'', raw=True, no_recv=True)
         self.check_connections(2, 0, 1, 1)
 
         self.get(sock=sock)

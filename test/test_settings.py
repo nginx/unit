@@ -50,20 +50,18 @@ Connection: close
             {'http': {'header_read_timeout': 4}}, 'settings'
         )
 
-        (resp, sock) = self.http(
+        sock = self.http(
             b"""GET / HTTP/1.1
 """,
-            start=True,
             raw=True,
             no_recv=True,
         )
 
         time.sleep(2)
 
-        (resp, sock) = self.http(
+        sock = self.http(
             b"""Host: localhost
 """,
-            start=True,
             sock=sock,
             raw=True,
             no_recv=True,
@@ -245,7 +243,7 @@ Connection: close
         self.load('empty')
 
         def req():
-            _, sock = self.http(b'', start=True, raw=True, no_recv=True)
+            sock = self.http(b'', raw=True, no_recv=True)
 
             time.sleep(3)
 

@@ -277,10 +277,9 @@ custom-header: BLAH
 
         assert self.get()['status'] == 200, 'init'
 
-        (_, sock) = self.http(
+        sock = self.http(
             b"""GET / HTTP/1.1
 """,
-            start=True,
             raw=True,
             no_recv=True,
         )
@@ -358,14 +357,13 @@ Connection: close
         socks = []
 
         for i in range(2):
-            (_, sock) = self.get(
+            sock = self.get(
                 headers={
                     'Host': 'localhost',
                     'X-Delay': '3',
                     'Connection': 'close',
                 },
                 no_recv=True,
-                start=True,
             )
 
             socks.append(sock)

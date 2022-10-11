@@ -262,8 +262,8 @@ class TestStatic(TestApplicationProto):
         assert self.get(url='/../assets/')['status'] == 400, 'path invalid 5'
 
     def test_static_two_clients(self):
-        _, sock = self.get(url='/', start=True, no_recv=True)
-        _, sock2 = self.get(url='/', start=True, no_recv=True)
+        sock = self.get(no_recv=True)
+        sock2 = self.get(no_recv=True)
 
         assert sock.recv(1) == b'H', 'client 1'
         assert sock2.recv(1) == b'H', 'client 2'
