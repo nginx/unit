@@ -140,6 +140,8 @@ struct nxt_http_request_s {
     nxt_buf_t                       *out;
     const nxt_http_request_state_t  *state;
 
+    nxt_nsec_t                      start_time;
+
     nxt_str_t                       host;
     nxt_str_t                       server_name;
     nxt_str_t                       target;
