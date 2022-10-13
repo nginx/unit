@@ -47,6 +47,35 @@ class TestVariables(TestApplicationProto):
         )
         check_dollar('path$dollar${dollar}', 'path$$')
 
+    def test_variables_request_time(self):
+        self.set_format('$uri $request_time')
+
+        sock = self.http(b'', raw=True, no_recv=True)
+
+        time.sleep(1)
+
+        assert self.get(url='/r_time_1', sock=sock)['status'] == 200
+        assert self.wait_for_record(r'\/r_time_1 0\.\d{3}') is not None
+
+        sock = self.http(
+            b"""G""",
+            no_recv=True,
+            raw=True,
+        )
+
+        time.sleep(2)
+
+        self.http(
+            b"""ET /r_time_2 HTTP/1.1
+Host: localhost
+Connection: close
+
+""",
+            sock=sock,
+            raw=True,
+        )
+        assert self.wait_for_record(r'\/r_time_2 [1-9]\.\d{3}') is not None
+
     def test_variables_method(self):
         self.set_format('$method')
 
