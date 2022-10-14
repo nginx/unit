@@ -1150,7 +1150,7 @@ nxt_php_vcwd_chdir(nxt_unit_request_info_t *req, u_char *dir)
 static int
 nxt_php_startup(sapi_module_struct *sapi_module)
 {
-#if PHP_VERSION_ID < 80200
+#if (PHP_VERSION_ID < 80200)
     return php_module_startup(sapi_module, &nxt_php_unit_module, 1);
 #else
     return php_module_startup(sapi_module, &nxt_php_unit_module);
