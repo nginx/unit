@@ -31,6 +31,12 @@ NGINX Unit updated to 1.29.0.
          date="" time=""
          packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
 
+<change type="change">
+<para>
+removed $uri auto-append for "share" when loading configuration.
+</para>
+</change>
+
 <change type="feature">
 <para>
 compatibility with PHP 8.2.

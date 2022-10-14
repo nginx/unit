@@ -1690,11 +1690,6 @@ static nxt_int_t
 nxt_conf_vldt_share(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     void *data)
 {
-    u_char     *p;
-    nxt_str_t  name, temp;
-
-    static nxt_str_t  uri = nxt_string("$uri");
-
     if (nxt_conf_type(value) == NXT_CONF_ARRAY) {
         if (nxt_conf_array_elements_count(value) == 0) {
             return nxt_conf_vldt_error(vldt, "The \"share\" array "
@@ -1706,22 +1701,6 @@ nxt_conf_vldt_share(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     }
 
     /* NXT_CONF_STRING */
-
-    if (vldt->ver < 12600) {
-        nxt_conf_get_string(value, &name);
-
-        temp.length = name.length + uri.length;
-
-        temp.start = nxt_mp_get(vldt->conf_pool, temp.length);
-        if (nxt_slow_path(temp.start == NULL)) {
-            return NXT_ERROR;
-        }
-
-        p = nxt_cpymem(temp.start, name.start, name.length);
-        nxt_memcpy(p, uri.start, uri.length);
-
-        nxt_conf_set_string(value, &temp);
-    }
 
     return nxt_conf_vldt_share_element(vldt, value);
 }
