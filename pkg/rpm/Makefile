@@ -97,7 +97,6 @@ CONFIGURE_ARGS=\
 	--control="unix:/var/run/unit/control.sock" \
 	--pid=/var/run/unit/unit.pid \
 	--log=/var/log/unit/unit.log \
-	--tmp=/var/tmp \
 	--user=unit \
 	--group=unit \
 	--tests \

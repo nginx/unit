@@ -392,8 +392,6 @@ def unit_run(state_dir=None):
         temp_dir + '/unit.log',
         '--control',
         'unix:' + temp_dir + '/control.unit.sock',
-        '--tmp',
-        temp_dir,
     ]
 
     if option.user:

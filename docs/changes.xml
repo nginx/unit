@@ -43,6 +43,12 @@ prefer system crypto policy, instead of hardcoding a default.
 </para>
 </change>
 
+<change type="change">
+<para>
+use the POSIX standard $TMPDIR environment variable instead of --tmp=xxx.
+</para>
+</change>
+
 <change type="feature">
 <para>
 compatibility with OpenSSL 3.

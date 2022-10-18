@@ -62,7 +62,6 @@ do
         --mandir=*)                      NXT_MANDIR="$value"                 ;;
         --modules=*)                     NXT_MODULES="$value"                ;;
         --state=*)                       NXT_STATE="$value"                  ;;
-        --tmp=*)                         NXT_TMP="$value"                    ;;
 
         --pid=*)                         NXT_PID="$value"                    ;;
         --log=*)                         NXT_LOG="$value"                    ;;
@@ -158,11 +157,6 @@ esac
 case "$NXT_STATE" in
     /*)  ;;
      *)  NXT_STATE="$NXT_PREFIX$NXT_STATE"  ;;
-esac
-
-case "$NXT_TMP" in
-    /*)  ;;
-     *)  NXT_TMP="$NXT_PREFIX$NXT_TMP"  ;;
 esac
 
 case "$NXT_PID" in

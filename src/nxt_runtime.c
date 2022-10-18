@@ -771,7 +771,6 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
     rt->modules = NXT_MODULES;
     rt->state = NXT_STATE;
     rt->control = NXT_CONTROL_SOCK;
-    rt->tmp = NXT_TMP;
 
     nxt_memzero(&rt->capabilities, sizeof(nxt_capabilities_t));
 
@@ -912,9 +911,10 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
 static nxt_int_t
 nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
 {
-    char    *p, **argv;
-    u_char  *end;
-    u_char  buf[1024];
+    char         *p, **argv;
+    u_char       *end;
+    u_char       buf[1024];
+    struct stat  statbuf;
 
     static const char  version[] =
         "unit version: " NXT_VERSION "\n"
@@ -929,9 +929,15 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
     static const char  no_modules[] =
                        "option \"--modules\" requires directory\n";
     static const char  no_state[] = "option \"--state\" requires directory\n";
-    static const char  no_tmp[] = "option \"--tmp\" requires directory\n";
 
     static const char  help[] =
+        "\n"
+        "unit environment variables:\n"
+        "\n"
+        "  TMPDIR               set tmp directory name\n"
+        "                       [replaces the obsolete --tmp option]\n"
+        "                       default: \"/var/tmp\"\n"
+        "                       fallback: \"/tmp\"\n"
         "\n"
         "unit options:\n"
         "\n"
@@ -954,9 +960,6 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
         "  --state DIRECTORY    set state directory name\n"
         "                       default: \"" NXT_STATE "\"\n"
         "\n"
-        "  --tmp DIRECTORY      set tmp directory name\n"
-        "                       default: \"" NXT_TMP "\"\n"
-        "\n"
         "  --user USER          set non-privileged processes to run"
                                 " as specified user\n"
         "                       default: \"" NXT_USER "\"\n"
@@ -967,6 +970,11 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
 
     static const char  group[] = "\"" NXT_GROUP "\"\n\n";
     static const char  primary[] = "user's primary group\n\n";
+
+    rt->tmp = getenv("TMPDIR");
+    if (rt->tmp == NULL) {
+        rt->tmp = stat("/var/tmp", &statbuf) == 0 ? "/var/tmp" : "/tmp";
+    }
 
     argv = &nxt_process_argv[1];
 
@@ -1060,19 +1068,6 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
             p = *argv++;
 
             rt->state = p;
-
-            continue;
-        }
-
-        if (nxt_strcmp(p, "--tmp") == 0) {
-            if (*argv == NULL) {
-                write(STDERR_FILENO, no_tmp, nxt_length(no_tmp));
-                return NXT_ERROR;
-            }
-
-            p = *argv++;
-
-            rt->tmp = p;
 
             continue;
         }
