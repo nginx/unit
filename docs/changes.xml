@@ -55,6 +55,12 @@ the $request_time variable contains the request processing time.
 </para>
 </change>
 
+<change type="feature">
+<para>
+report the regex status in configure summary.
+</para>
+</change>
+
 <change type="bugfix">
 <para>
 fix HTTP cookie parsing when the value contains an equals sign.
