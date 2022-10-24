@@ -59,6 +59,12 @@ prefer system crypto policy, instead of hardcoding a default.
 
 <change type="feature">
 <para>
+support per-application cgroups on Linux.
+</para>
+</change>
+
+<change type="feature">
+<para>
 compatibility with Python 3.11.
 </para>
 </change>

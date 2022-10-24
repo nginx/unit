@@ -219,6 +219,11 @@ static nxt_int_t nxt_conf_vldt_clone_gidmap(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value);
 #endif
 
+#if (NXT_HAVE_CGROUP)
+static nxt_int_t nxt_conf_vldt_cgroup_path(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
+#endif
+
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_setting_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[];
@@ -240,6 +245,9 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_limits_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_app_processes_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_app_isolation_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_app_namespaces_members[];
+#if (NXT_HAVE_CGROUP)
+static nxt_conf_vldt_object_t  nxt_conf_vldt_app_cgroup_members[];
+#endif
 #if (NXT_HAVE_ISOLATION_ROOTFS)
 static nxt_conf_vldt_object_t  nxt_conf_vldt_app_automount_members[];
 #endif
@@ -1094,6 +1102,15 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_isolation_members[] = {
     },
 #endif
 
+#if (NXT_HAVE_CGROUP)
+    {
+        .name       = nxt_string("cgroup"),
+        .type       = NXT_CONF_VLDT_OBJECT,
+        .validator  = nxt_conf_vldt_object,
+        .u.members  = nxt_conf_vldt_app_cgroup_members,
+    },
+#endif
+
     NXT_CONF_VLDT_END
 };
 
@@ -1158,6 +1175,22 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_app_automount_members[] = {
     }, {
         .name       = nxt_string("procfs"),
         .type       = NXT_CONF_VLDT_BOOLEAN,
+    },
+
+    NXT_CONF_VLDT_END
+};
+
+#endif
+
+
+#if (NXT_HAVE_CGROUP)
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_app_cgroup_members[] = {
+    {
+        .name       = nxt_string("path"),
+        .type       = NXT_CONF_VLDT_STRING,
+        .flags      = NXT_CONF_VLDT_REQUIRED,
+        .validator  = nxt_conf_vldt_cgroup_path,
     },
 
     NXT_CONF_VLDT_END
@@ -2796,6 +2829,35 @@ nxt_conf_vldt_target(nxt_conf_validation_t *vldt, nxt_str_t *name,
 
     return nxt_conf_vldt_object(vldt, value, vldt->ctx);
 }
+
+
+#if (NXT_HAVE_CGROUP)
+
+static nxt_int_t
+nxt_conf_vldt_cgroup_path(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
+{
+    char       path[NXT_MAX_PATH_LEN];
+    nxt_str_t  cgpath;
+
+    nxt_conf_get_string(value, &cgpath);
+    if (cgpath.length >= NXT_MAX_PATH_LEN - strlen(NXT_CGROUP_ROOT) - 1) {
+        return nxt_conf_vldt_error(vldt, "The cgroup path \"%V\" is too long.",
+                                   &cgpath);
+    }
+
+    sprintf(path, "/%*s/", (int) cgpath.length, cgpath.start);
+
+    if (cgpath.length == 0 || strstr(path, "/../") != NULL) {
+        return nxt_conf_vldt_error(vldt,
+                                   "The cgroup path \"%V\" is invalid.",
+                                   &cgpath);
+    }
+
+    return NXT_OK;
+}
+
+#endif
 
 
 static nxt_int_t
