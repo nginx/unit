@@ -129,6 +129,7 @@ if [ $NXT_REGEX = YES ]; then
     . auto/pcre
 fi
 
+. auto/cgroup
 . auto/isolation
 . auto/capability
 

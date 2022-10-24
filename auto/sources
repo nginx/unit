@@ -304,6 +304,11 @@ if [ "$NXT_HAVE_CLONE" = "YES" ]; then
 fi
 
 
+if [ "$NXT_HAVE_CGROUP" = "YES" ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS src/nxt_cgroup.c"
+fi
+
+
 if [ "$NXT_TEST_BUILD" = "YES" ]; then
     NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_TEST_BUILD_SRCS"
 fi
