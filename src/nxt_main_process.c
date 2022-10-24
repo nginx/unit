@@ -1007,6 +1007,10 @@ nxt_main_process_cleanup(nxt_task_t *task, nxt_process_t *process)
     if (process->isolation.cleanup != NULL) {
         process->isolation.cleanup(task, process);
     }
+
+    if (process->isolation.cgroup_cleanup != NULL) {
+        process->isolation.cgroup_cleanup(task, process);
+    }
 }
 
 
