@@ -1,11 +1,11 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
 set -e
 
 curl_put()
 {
-    RET=`/usr/bin/curl -s -w '%{http_code}' -X PUT --data-binary @$1 --unix-socket /var/run/control.unit.sock http://localhost/$2`
-    RET_BODY=${RET::-3}
+    RET=$(/usr/bin/curl -s -w '%{http_code}' -X PUT --data-binary @$1 --unix-socket /var/run/control.unit.sock http://localhost/$2)
+    RET_BODY=$(echo $RET | /usr/bin/sed '$ s/...$//')
     RET_STATUS=$(echo $RET | /usr/bin/tail -c 4)
     if [ "$RET_STATUS" -ne "200" ]; then
         echo "$0: Error: HTTP response status code is '$RET_STATUS'"
@@ -18,7 +18,7 @@ curl_put()
     return 0
 }
 
-if [ "$1" = "unitd" -o "$1" = "unitd-debug" ]; then
+if [ "$1" = "unitd" ] || [ "$1" = "unitd-debug" ]; then
     if /usr/bin/find "/var/lib/unit/" -mindepth 1 -print -quit 2>/dev/null | /bin/grep -q .; then
         echo "$0: /var/lib/unit/ is not empty, skipping initial configuration..."
     else
@@ -55,7 +55,7 @@ if [ "$1" = "unitd" -o "$1" = "unitd-debug" ]; then
             done
 
             echo "$0: Stopping Unit daemon after initial configuration..."
-            kill -TERM `/bin/cat /var/run/unit.pid`
+            kill -TERM $(/bin/cat /var/run/unit.pid)
 
             while [ -S /var/run/control.unit.sock ]; do echo "$0: Waiting for control socket to be removed..."; /bin/sleep 0.1; done
 
