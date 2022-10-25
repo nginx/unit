@@ -5,8 +5,8 @@ set -e
 curl_put()
 {
     RET=$(/usr/bin/curl -s -w '%{http_code}' -X PUT --data-binary @$1 --unix-socket /var/run/control.unit.sock http://localhost/$2)
-    RET_BODY=$(printf '%s' "$RET" | cut -c 1)
-    RET_STATUS=$(echo $RET | /usr/bin/tail -c 4)
+    RET_BODY=$(echo "$RET" | sed 's/.\{3\}$//')
+    RET_STATUS=$(echo "$RET" | tail -1 | grep -ohe '...$')
     if [ "$RET_STATUS" -ne "200" ]; then
         echo "$0: Error: HTTP response status code is '$RET_STATUS'"
         echo "$RET_BODY"
