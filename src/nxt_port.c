@@ -144,14 +144,14 @@ nxt_port_release(nxt_task_t *task, nxt_port_t *port)
 
 
 nxt_port_id_t
-nxt_port_get_next_id()
+nxt_port_get_next_id(void)
 {
     return nxt_atomic_fetch_add(&nxt_port_last_id, 1);
 }
 
 
 void
-nxt_port_reset_next_id()
+nxt_port_reset_next_id(void)
 {
     nxt_port_last_id = 1;
 }

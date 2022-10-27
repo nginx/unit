@@ -50,7 +50,7 @@ nxt_capability_set(nxt_task_t *task, nxt_capabilities_t *cap)
 #if (NXT_HAVE_LINUX_CAPABILITY)
 
 static uint32_t
-nxt_capability_linux_get_version()
+nxt_capability_linux_get_version(void)
 {
     struct __user_cap_header_struct hdr;
 
