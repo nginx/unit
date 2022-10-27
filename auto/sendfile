@@ -17,7 +17,7 @@ nxt_feature="Linux sendfile()"
 nxt_feature_name=NXT_HAVE_LINUX_SENDFILE
 nxt_feature_test="#include <sys/sendfile.h>
 
-                  int main() {
+                  int main(void) {
                       off_t  offset;
 
                       sendfile(-1, -1, &offset, 0);
@@ -43,7 +43,7 @@ if [ $nxt_found = no ]; then
                       #include <sys/uio.h>
                       #include <stdlib.h>
 
-                      int main() {
+                      int main(void) {
                           off_t  sent;
 
                           sendfile(-1, -1, 0, 0, NULL, &sent, 0);
@@ -69,7 +69,7 @@ if [ $nxt_found = no ]; then
                       #include <sys/uio.h>
                       #include <stdlib.h>
 
-                      int main() {
+                      int main(void) {
                           off_t  sent;
 
                           sendfile(-1, -1, 0, &sent, NULL, 0);
@@ -100,7 +100,7 @@ if [ $nxt_found = no ]; then
     nxt_feature_libs="-lsendfile"
     nxt_feature_test="#include <sys/sendfile.h>
 
-                      int main() {
+                      int main(void) {
                           size_t              sent;
                           struct sendfilevec  vec;
 
@@ -124,7 +124,7 @@ if [ $nxt_found = no ]; then
     nxt_feature_name=NXT_HAVE_AIX_SEND_FILE
     nxt_feature_test="#include <sys/socket.h>
 
-                      int main() {
+                      int main(void) {
                           int              s;
                           struct sf_parms  sf_iobuf;
 
@@ -152,7 +152,7 @@ if [ $nxt_found = no ]; then
                       sbsize_t sendfile(int s, int fd, off_t offset,
                           bsize_t nbytes, const struct iovec *hdtrl, int flags);
 
-                      int main() {
+                      int main(void) {
                           sendfile(-1, -1, 0, 0, NULL, 0);
                           return 0;
                       }"

@@ -18,7 +18,7 @@ nxt_feature_test="#include <sys/mman.h>
                   #include <sys/stat.h>
                   #include <sys/types.h>
 
-                  int main() {
+                  int main(void) {
                       int         ret;
                       static char name[] = \"/unit.configure\";
 
@@ -62,7 +62,7 @@ if [ $nxt_found = no ]; then
                       #include <sys/stat.h>
                       #include <sys/types.h>
 
-                      int main() {
+                      int main(void) {
                           static char name[] = \"/tmp/unit.configure\";
 
                           shm_unlink(name);
@@ -94,7 +94,7 @@ nxt_feature_test="#include <sys/mman.h>
                   #include <fcntl.h>
                   #include <sys/stat.h>
 
-                  int main() {
+                  int main(void) {
                       int fd = shm_open(SHM_ANON, O_RDWR, S_IRUSR | S_IWUSR);
                       if (fd == -1)
                           return 1;
@@ -119,7 +119,7 @@ nxt_feature_test="#include <linux/memfd.h>
                   #include <unistd.h>
                   #include <sys/syscall.h>
 
-                  int main() {
+                  int main(void) {
                       static char name[] = \"/unit.configure\";
 
                       int fd = syscall(SYS_memfd_create, name, MFD_CLOEXEC);

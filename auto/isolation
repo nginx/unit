@@ -20,7 +20,7 @@ nxt_feature_libs=
 nxt_feature_test="#include <sys/wait.h>
                   #include <sys/syscall.h>
 
-                  int main() {
+                  int main(void) {
                       return SYS_clone | SIGCHLD;
                   }"
 . auto/feature
@@ -40,7 +40,7 @@ if [ $nxt_found = yes ]; then
                           #include <sys/syscall.h>
                           #include <sched.h>
 
-                          int main() {
+                          int main(void) {
                               return CLONE_NEW$flag;
                          }"
         . auto/feature
@@ -70,7 +70,7 @@ nxt_feature_test="#include <sys/syscall.h>
                   # error
                   #endif
 
-                  int main() {
+                  int main(void) {
                       return SYS_pivot_root;
                   }"
 . auto/feature
@@ -96,7 +96,7 @@ nxt_feature_incs=
 nxt_feature_libs=
 nxt_feature_test="#include <sys/prctl.h>
 
-                  int main() {
+                  int main(void) {
                       return PR_SET_NO_NEW_PRIVS;
                   }"
 . auto/feature
@@ -109,7 +109,7 @@ nxt_feature_incs=
 nxt_feature_libs=
 nxt_feature_test="#include <sys/mount.h>
 
-                  int main() {
+                  int main(void) {
                       return mount(\"/\", \"/\", \"bind\",
                                    MS_BIND | MS_REC, \"\");
                   }"
@@ -128,7 +128,7 @@ if [ $nxt_found = no ]; then
     nxt_feature_libs=
     nxt_feature_test="#include <sys/mount.h>
 
-                    int main() {
+                    int main(void) {
                         return nmount((void *)0, 0, 0);
                     }"
     . auto/feature
@@ -146,7 +146,7 @@ nxt_feature_incs=
 nxt_feature_libs=
 nxt_feature_test="#include <sys/mount.h>
 
-                  int main() {
+                  int main(void) {
                       return umount2((void *)0, 0);
                   }"
 . auto/feature
@@ -163,7 +163,7 @@ if [ $nxt_found = no ]; then
     nxt_feature_libs=
     nxt_feature_test="#include <sys/mount.h>
 
-                    int main() {
+                    int main(void) {
                         return unmount((void *)0, 0);
                     }"
     . auto/feature

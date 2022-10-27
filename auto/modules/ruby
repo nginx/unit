@@ -106,7 +106,7 @@ if /bin/sh -c "$NXT_RUBY -v" >> $NXT_AUTOCONF_ERR 2>&1; then
     nxt_feature_test="
         #include <ruby.h>
 
-        int main() {
+        int main(void) {
             static const char *argv[3] = {
                 \"NGINX_Unit\", \"-rrbconfig\",
                 \"-eprint RbConfig::CONFIG['libdir']\"
@@ -130,7 +130,7 @@ if /bin/sh -c "$NXT_RUBY -v" >> $NXT_AUTOCONF_ERR 2>&1; then
         nxt_feature_test="
             #include <ruby.h>
 
-            int main() {
+            int main(void) {
                 ruby_init();
                 return ruby_cleanup(0);
             }"
@@ -159,7 +159,7 @@ nxt_feature_test="
     #include <ruby.h>
     #include <ruby/version.h>
 
-    int main() {
+    int main(void) {
         printf(\"%s\", ruby_version);
         return 0;
     }"

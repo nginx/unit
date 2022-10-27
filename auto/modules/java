@@ -191,7 +191,7 @@ nxt_feature_libs="${NXT_JAVA_LDFLAGS}"
 nxt_feature_test="
     #include <jni.h>
 
-    int main() {
+    int main(void) {
         JNI_CreateJavaVM(NULL, NULL, NULL);
         return 0;
     }"

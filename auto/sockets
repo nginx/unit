@@ -15,7 +15,7 @@ if [ $NXT_INET6 = YES ]; then
                       #include <sys/types.h>
                       #include <netinet/in.h>
 
-                      int main() {
+                      int main(void) {
                           struct sockaddr_in6  sin6;
 
                           sin6.sin6_family = AF_INET6;
@@ -36,7 +36,7 @@ nxt_feature_libs=
 nxt_feature_test="#include <stdio.h>
                   #include <sys/socket.h>
 
-                  int main() {
+                  int main(void) {
                       struct sockaddr  sa;
 
                       sa.sa_len = 0;
@@ -54,7 +54,7 @@ nxt_feature_libs=
 nxt_feature_test="#include <stdio.h>
                   #include <sys/socket.h>
 
-                  int main() {
+                  int main(void) {
                       printf(\"%d\", (int) sizeof(struct sockaddr));
                       return 0;
                   }"
@@ -70,7 +70,7 @@ nxt_feature_test="#include <stdio.h>
                   #include <sys/types.h>
                   #include <netinet/in.h>
 
-                  int main() {
+                  int main(void) {
                       printf(\"%d\", (int) sizeof(struct sockaddr_in));
                       return 0;
                   }"
@@ -86,7 +86,7 @@ nxt_feature_test="#include <stdio.h>
                   #include <sys/types.h>
                   #include <netinet/in.h>
 
-                  int main() {
+                  int main(void) {
                       printf(\"%d\", (int) sizeof(struct sockaddr_in6));
                       return 0;
                   }"
@@ -102,7 +102,7 @@ nxt_feature_test="#include <stdio.h>
                   #include <sys/types.h>
                   #include <sys/un.h>
 
-                  int main() {
+                  int main(void) {
                       printf(\"%d\", (int) sizeof(struct sockaddr_un));
                       return 0;
                   }"
@@ -117,7 +117,7 @@ nxt_feature_libs=
 nxt_feature_test="#include <stdio.h>
                   #include <sys/socket.h>
 
-                  int main() {
+                  int main(void) {
                       printf(\"%d\", (int) sizeof(struct sockaddr_storage));
                       return 0;
                   }"
@@ -132,7 +132,7 @@ nxt_feature_libs=
 nxt_feature_test="#include <stdio.h>
                   #include <sys/socket.h>
 
-                  int main() {
+                  int main(void) {
                       int  pair[2];
 
                       if (socketpair(AF_UNIX, SOCK_SEQPACKET, 0, pair) != 0)
@@ -150,7 +150,7 @@ nxt_feature_libs=
 nxt_feature_test="#include <stdio.h>
                   #include <sys/socket.h>
 
-                  int main() {
+                  int main(void) {
                       struct  msghdr  msg;
 
                       printf(\"%d\", (int) sizeof(msg.msg_control));
@@ -175,7 +175,7 @@ if [ $NXT_SYSTEM != DragonFly ]; then
     nxt_feature_test="#define _GNU_SOURCE
                       #include <sys/socket.h>
 
-                      int main() {
+                      int main(void) {
                           return SO_PASSCRED == 0;
                       }"
     . auto/feature
@@ -191,7 +191,7 @@ if [ $NXT_SYSTEM != DragonFly ]; then
                           #include <sys/socket.h>
                           #include <sys/un.h>
 
-                          int main() {
+                          int main(void) {
                               return sizeof(struct ucred);
                           }"
         . auto/feature
@@ -206,7 +206,7 @@ if [ $NXT_SYSTEM != DragonFly ]; then
     nxt_feature_test="#define _GNU_SOURCE
                       #include <sys/socket.h>
 
-                      int main() {
+                      int main(void) {
                           return sizeof(struct cmsgcred);
                       }"
     . auto/feature
@@ -220,7 +220,7 @@ nxt_feature_incs=
 nxt_feature_libs=
 nxt_feature_test="#include <sys/filio.h>
 
-                  int main() {
+                  int main(void) {
                       return 0;
                   }"
 . auto/feature
@@ -235,7 +235,7 @@ nxt_feature_test="#include <unistd.h>
                   #include <sys/socket.h>
                   #include <sys/ioctl.h>
 
-                  int main() {
+                  int main(void) {
                       int  nb;
 
                       nb = 0;
@@ -255,7 +255,7 @@ nxt_feature_libs=
 nxt_feature_test="#define _GNU_SOURCE
                   #include <sys/socket.h>
 
-                  int main() {
+                  int main(void) {
                       socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
                       return 0;
                   }"
@@ -273,7 +273,7 @@ nxt_feature_test="#define _GNU_SOURCE
                   #include <stdlib.h>
                   #include <sys/socket.h>
 
-                  int main() {
+                  int main(void) {
                       accept4(0, NULL, NULL, SOCK_NONBLOCK);
                       return 0;
                   }"

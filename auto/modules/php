@@ -131,7 +131,7 @@ nxt_feature_libs="${NXT_PHP_LIB} ${NXT_PHP_LDFLAGS}"
 nxt_feature_test="
     #include <php.h>
 
-    int main() {
+    int main(void) {
         printf(\"%s\", PHP_VERSION);
         return 0;
     }"
@@ -148,7 +148,7 @@ nxt_feature_test="
     #include <php.h>
     #include <php_main.h>
 
-    int main() {
+    int main(void) {
     #if (PHP_VERSION_ID < 80200)
         php_module_startup(NULL, NULL, 0);
     #else
@@ -176,7 +176,7 @@ nxt_feature_test="
     #include <php.h>
     #include <php_main.h>
 
-    int main() {
+    int main(void) {
         #ifndef ZTS
         #error ZTS is not defined.
         #endif
@@ -197,7 +197,7 @@ nxt_feature_test="
     #include <php.h>
     #include <php_main.h>
 
-    int main() {
+    int main(void) {
         zend_signal_startup();
         return 0;
     }"
