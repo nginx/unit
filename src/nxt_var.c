@@ -456,7 +456,7 @@ nxt_var_next_part(u_char *start, size_t length, nxt_str_t *part,
 
     end = start + length;
 
-    p = nxt_memchr(start, '$', length);
+    p = memchr(start, '$', length);
 
     if (p == start) {
         *is_var = 1;

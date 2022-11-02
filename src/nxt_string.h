@@ -66,10 +66,6 @@ nxt_cpymem(void *dst, const void *src, size_t length)
     (void) memmove(dst, src, length)
 
 
-#define nxt_memchr(s, c, length)                                              \
-    memchr((char *) s, c, length)
-
-
 #define nxt_strcmp(s1, s2)                                                    \
     strcmp((char *) s1, (char *) s2)
 

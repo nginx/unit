@@ -2609,7 +2609,7 @@ nxt_h1p_peer_header_parse(nxt_http_peer_t *peer, nxt_buf_mem_t *bm)
         p += 12;
         length -= 12;
 
-        p = nxt_memchr(p, '\n', length);
+        p = memchr(p, '\n', length);
 
         if (nxt_slow_path(p == NULL)) {
             return NXT_AGAIN;

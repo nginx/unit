@@ -1637,7 +1637,7 @@ nxt_controller_process_cert(nxt_task_t *task,
     name.length = path->length - 1;
     name.start = path->start + 1;
 
-    p = nxt_memchr(name.start, '/', name.length);
+    p = memchr(name.start, '/', name.length);
 
     if (p != NULL) {
         name.length = p - name.start;

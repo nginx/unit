@@ -653,7 +653,7 @@ nxt_sockaddr_inet6_parse(nxt_mp_t *mp, nxt_str_t *addr)
         length = addr->length - 1;
         start = addr->start + 1;
 
-        end = nxt_memchr(start, ']', length);
+        end = memchr(start, ']', length);
         if (nxt_slow_path(end == NULL)) {
             return NULL;
         }
@@ -723,7 +723,7 @@ nxt_sockaddr_inet_parse(nxt_mp_t *mp, nxt_str_t *addr)
     in_addr_t       inaddr;
     nxt_sockaddr_t  *sa;
 
-    p = nxt_memchr(addr->start, ':', addr->length);
+    p = memchr(addr->start, ':', addr->length);
 
     if (p == NULL) {
         length = addr->length;
@@ -964,11 +964,11 @@ nxt_inet6_probe(nxt_str_t *str)
 {
     u_char  *colon, *end;
 
-    colon = nxt_memchr(str->start, ':', str->length);
+    colon = memchr(str->start, ':', str->length);
 
     if (colon != NULL) {
         end = str->start + str->length;
-        colon = nxt_memchr(colon + 1, ':', end - (colon + 1));
+        colon = memchr(colon + 1, ':', end - (colon + 1));
     }
 
     return (colon != NULL);

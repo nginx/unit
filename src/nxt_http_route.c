@@ -1016,7 +1016,7 @@ nxt_http_route_pattern_create(nxt_task_t *task, nxt_mp_t *mp,
     if (type == NXT_HTTP_ROUTE_PATTERN_EXACT) {
         tmp.start = test.start;
 
-        p = nxt_memchr(test.start, '*', test.length);
+        p = memchr(test.start, '*', test.length);
 
         if (p == NULL) {
             /* No '*' found - EXACT pattern. */
@@ -1414,7 +1414,7 @@ nxt_http_pass_segments(nxt_mp_t *mp, nxt_str_t *pass, nxt_str_t *segments,
     nxt_memzero(segments, n * sizeof(nxt_str_t));
 
     do {
-        p = nxt_memchr(rest.start, '/', rest.length);
+        p = memchr(rest.start, '/', rest.length);
 
         if (p != NULL) {
             n--;

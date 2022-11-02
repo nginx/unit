@@ -93,7 +93,7 @@ nxt_http_route_addr_pattern_parse(nxt_mp_t *mp,
 
         inet6 = &pattern->addr.v6;
 
-        delim = nxt_memchr(addr.start, '-', addr.length);
+        delim = memchr(addr.start, '-', addr.length);
         if (delim != NULL) {
             len = delim - addr.start;
             if (nxt_slow_path(!nxt_valid_ipv6_blocks(addr.start, len))) {
@@ -126,7 +126,7 @@ nxt_http_route_addr_pattern_parse(nxt_mp_t *mp,
             goto parse_port;
         }
 
-        delim = nxt_memchr(addr.start, '/', addr.length);
+        delim = memchr(addr.start, '/', addr.length);
         if (delim != NULL) {
             cidr_prefix = nxt_int_parse(delim + 1,
                                         addr.start + addr.length - (delim + 1));
@@ -201,7 +201,7 @@ nxt_http_route_addr_pattern_parse(nxt_mp_t *mp,
 
     base->addr_family = AF_INET;
 
-    delim = nxt_memchr(addr.start, ':', addr.length);
+    delim = memchr(addr.start, ':', addr.length);
     if (delim != NULL) {
         port.start = delim + 1;
         port.length = addr.start + addr.length - port.start;
@@ -210,7 +210,7 @@ nxt_http_route_addr_pattern_parse(nxt_mp_t *mp,
 
     inet = &pattern->addr.v4;
 
-    delim = nxt_memchr(addr.start, '-', addr.length);
+    delim = memchr(addr.start, '-', addr.length);
     if (delim != NULL) {
         inet->start = nxt_inet_addr(addr.start, delim - addr.start);
         if (nxt_slow_path(inet->start == INADDR_NONE)) {
@@ -234,7 +234,7 @@ nxt_http_route_addr_pattern_parse(nxt_mp_t *mp,
         goto parse_port;
     }
 
-    delim = nxt_memchr(addr.start, '/', addr.length);
+    delim = memchr(addr.start, '/', addr.length);
     if (delim != NULL) {
         cidr_prefix = nxt_int_parse(delim + 1,
                                     addr.start + addr.length - (delim + 1));
@@ -283,7 +283,7 @@ parse_port:
         return NXT_OK;
     }
 
-    delim = nxt_memchr(port.start, '-', port.length - 1);
+    delim = memchr(port.start, '-', port.length - 1);
     if (delim != NULL) {
         ret = nxt_int_parse(port.start, delim - port.start);
         if (nxt_slow_path(ret < 0 || ret > 65535)) {

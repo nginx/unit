@@ -41,7 +41,7 @@ typedef enum {
 nxt_inline nxt_bool_t
 nxt_is_var(nxt_str_t *str)
 {
-    return (nxt_memchr(str->start, '$', str->length) != NULL);
+    return (memchr(str->start, '$', str->length) != NULL);
 }
 
 

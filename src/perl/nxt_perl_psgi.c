@@ -765,7 +765,7 @@ nxt_perl_psgi_result_status(PerlInterpreter *my_perl, SV *result)
 
     status.start = (u_char *) SvPV(*sv_status, status.length);
 
-    space = nxt_memchr(status.start, ' ', status.length);
+    space = memchr(status.start, ' ', status.length);
     if (space != NULL) {
         status.length = space - status.start;
     }

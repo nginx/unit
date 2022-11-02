@@ -2710,12 +2710,12 @@ nxt_conf_vldt_environment(nxt_conf_validation_t *vldt, nxt_str_t *name,
                                    "The environment name must not be empty.");
     }
 
-    if (nxt_memchr(name->start, '\0', name->length) != NULL) {
+    if (memchr(name->start, '\0', name->length) != NULL) {
         return nxt_conf_vldt_error(vldt, "The environment name must not "
                                    "contain null character.");
     }
 
-    if (nxt_memchr(name->start, '=', name->length) != NULL) {
+    if (memchr(name->start, '=', name->length) != NULL) {
         return nxt_conf_vldt_error(vldt, "The environment name must not "
                                    "contain '=' character.");
     }
@@ -2727,7 +2727,7 @@ nxt_conf_vldt_environment(nxt_conf_validation_t *vldt, nxt_str_t *name,
 
     nxt_conf_get_string(value, &str);
 
-    if (nxt_memchr(str.start, '\0', str.length) != NULL) {
+    if (memchr(str.start, '\0', str.length) != NULL) {
         return nxt_conf_vldt_error(vldt, "The \"%V\" environment value must "
                                    "not contain null character.", name);
     }
@@ -2926,7 +2926,7 @@ nxt_conf_vldt_argument(nxt_conf_validation_t *vldt, nxt_conf_value_t *value)
 
     nxt_conf_get_string(value, &str);
 
-    if (nxt_memchr(str.start, '\0', str.length) != NULL) {
+    if (memchr(str.start, '\0', str.length) != NULL) {
         return nxt_conf_vldt_error(vldt, "The \"arguments\" array must not "
                                    "contain strings with null character.");
     }
@@ -2985,7 +2985,7 @@ nxt_conf_vldt_java_classpath(nxt_conf_validation_t *vldt,
 
     nxt_conf_get_string(value, &str);
 
-    if (nxt_memchr(str.start, '\0', str.length) != NULL) {
+    if (memchr(str.start, '\0', str.length) != NULL) {
         return nxt_conf_vldt_error(vldt, "The \"classpath\" array must not "
                                    "contain strings with null character.");
     }
@@ -3006,7 +3006,7 @@ nxt_conf_vldt_java_option(nxt_conf_validation_t *vldt, nxt_conf_value_t *value)
 
     nxt_conf_get_string(value, &str);
 
-    if (nxt_memchr(str.start, '\0', str.length) != NULL) {
+    if (memchr(str.start, '\0', str.length) != NULL) {
         return nxt_conf_vldt_error(vldt, "The \"options\" array must not "
                                    "contain strings with null character.");
     }
