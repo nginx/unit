@@ -421,7 +421,7 @@ nxt_http_var_arg(nxt_task_t *task, nxt_str_t *str, void *ctx, uint16_t field)
 
         if (vf->hash == nv->hash
             && vf->name.length == nv->name_length
-            && nxt_memcmp(vf->name.start, nv->name, nv->name_length) == 0)
+            && memcmp(vf->name.start, nv->name, nv->name_length) == 0)
         {
             str->start = nv->value;
             str->length = nv->value_length;
@@ -499,7 +499,7 @@ nxt_http_var_cookie(nxt_task_t *task, nxt_str_t *str, void *ctx, uint16_t field)
 
         if (vf->hash == nv->hash
             && vf->name.length == nv->name_length
-            && nxt_memcmp(vf->name.start, nv->name, nv->name_length) == 0)
+            && memcmp(vf->name.start, nv->name, nv->name_length) == 0)
         {
             str->start = nv->value;
             str->length = nv->value_length;

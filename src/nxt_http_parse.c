@@ -357,7 +357,7 @@ space_after_target:
 
         } while (*p == ' ');
 
-        if (nxt_memcmp(p, "HTTP/", nxt_min(end - p, 5)) == 0) {
+        if (memcmp(p, "HTTP/", nxt_min(end - p, 5)) == 0) {
 
             switch (end - p) {
             case 8:
@@ -412,7 +412,7 @@ space_after_target:
 
     if (nxt_fast_path(ver.ui64 == http11.ui64
                       || ver.ui64 == http10.ui64
-                      || (nxt_memcmp(ver.str, "HTTP/1.", 7) == 0
+                      || (memcmp(ver.str, "HTTP/1.", 7) == 0
                           && ver.s.minor >= '0' && ver.s.minor <= '9')))
     {
         rp->version.ui64 = ver.ui64;
@@ -464,7 +464,7 @@ space_after_target:
         return nxt_http_parse_field_name(rp, pos, end);
     }
 
-    if (nxt_memcmp(ver.s.prefix, "HTTP/", 5) == 0
+    if (memcmp(ver.s.prefix, "HTTP/", 5) == 0
         && ver.s.major >= '0' && ver.s.major <= '9'
         && ver.s.point == '.'
         && ver.s.minor >= '0' && ver.s.minor <= '9')

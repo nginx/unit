@@ -753,7 +753,7 @@ nxt_http_parse_test_request_line(nxt_http_request_parse_t *rp,
         return NXT_ERROR;
     }
 
-    if (nxt_memcmp(rp->version.str, test->version, 8) != 0) {
+    if (memcmp(rp->version.str, test->version, 8) != 0) {
         nxt_log_alert(log, "http parse test case failed:\n"
                            " - request:\n\"%V\"\n"
                            " - version: \"%*s\" (expected: \"%*s\")", request,

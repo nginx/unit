@@ -41,7 +41,7 @@ main(int argc, char **argv)
 #if (NXT_TEST_RTDTSC)
 
     if (nxt_process_argv[1] != NULL
-        && nxt_memcmp(nxt_process_argv[1], "rbm", 3) == 0)
+        && memcmp(nxt_process_argv[1], "rbm", 3) == 0)
     {
         if (nxt_rbtree1_mb_start(thr) != NXT_OK) {
             return 1;

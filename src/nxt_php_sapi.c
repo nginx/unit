@@ -1036,7 +1036,7 @@ nxt_php_dynamic_request(nxt_php_run_ctx_t *ctx, nxt_unit_request_t *r)
         script_name = *ctx->index;
 
     } else if (path.length < 4
-               || nxt_memcmp(path.start + (path.length - 4), ".php", 4) != 0)
+               || memcmp(path.start + (path.length - 4), ".php", 4) != 0)
     {
         char         tpath[PATH_MAX];
         nxt_int_t    ec;

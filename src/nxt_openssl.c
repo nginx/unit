@@ -780,7 +780,7 @@ nxt_tls_ticket_key_callback(SSL *s, unsigned char *name, unsigned char *iv,
         /* decrypt session ticket */
 
         do {
-            if (nxt_memcmp(name, ticket[i].name, 16) == 0) {
+            if (memcmp(name, ticket[i].name, 16) == 0) {
                 goto found;
             }
 

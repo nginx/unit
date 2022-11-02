@@ -1740,15 +1740,15 @@ nxt_http_route_addr_pattern_match(nxt_http_route_addr_pattern_t *p,
             break;
 
         case NXT_HTTP_ROUTE_ADDR_EXACT:
-            match = (nxt_memcmp(&sin->sin_addr, &p->addr.v4.start,
+            match = (memcmp(&sin->sin_addr, &p->addr.v4.start,
                                 sizeof(struct in_addr))
                      == 0);
             break;
 
         case NXT_HTTP_ROUTE_ADDR_RANGE:
-            match = (nxt_memcmp(&sin->sin_addr, &p->addr.v4.start,
+            match = (memcmp(&sin->sin_addr, &p->addr.v4.start,
                                 sizeof(struct in_addr)) >= 0
-                     && nxt_memcmp(&sin->sin_addr, &p->addr.v4.end,
+                     && memcmp(&sin->sin_addr, &p->addr.v4.end,
                                    sizeof(struct in_addr)) <= 0);
             break;
 
@@ -1786,15 +1786,15 @@ nxt_http_route_addr_pattern_match(nxt_http_route_addr_pattern_t *p,
             break;
 
         case NXT_HTTP_ROUTE_ADDR_EXACT:
-            match = (nxt_memcmp(&sin6->sin6_addr, &p->addr.v6.start,
+            match = (memcmp(&sin6->sin6_addr, &p->addr.v6.start,
                                 sizeof(struct in6_addr))
                      == 0);
             break;
 
         case NXT_HTTP_ROUTE_ADDR_RANGE:
-            match = (nxt_memcmp(&sin6->sin6_addr, &p->addr.v6.start,
+            match = (memcmp(&sin6->sin6_addr, &p->addr.v6.start,
                                 sizeof(struct in6_addr)) >= 0
-                     && nxt_memcmp(&sin6->sin6_addr, &p->addr.v6.end,
+                     && memcmp(&sin6->sin6_addr, &p->addr.v6.end,
                                    sizeof(struct in6_addr)) <= 0);
             break;
 
@@ -1937,7 +1937,7 @@ nxt_http_route_test_argument(nxt_http_request_t *r,
 
         if (rule->u.name.hash == nv->hash
             && rule->u.name.length == nv->name_length
-            && nxt_memcmp(rule->u.name.start, nv->name, nv->name_length) == 0)
+            && memcmp(rule->u.name.start, nv->name, nv->name_length) == 0)
         {
             ret = nxt_http_route_test_rule(r, rule, nv->value,
                                            nv->value_length);
@@ -2015,7 +2015,7 @@ nxt_http_route_test_cookie(nxt_http_request_t *r,
 
         if (rule->u.name.hash == nv->hash
             && rule->u.name.length == nv->name_length
-            && nxt_memcmp(rule->u.name.start, nv->name, nv->name_length) == 0)
+            && memcmp(rule->u.name.start, nv->name, nv->name_length) == 0)
         {
             ret = nxt_http_route_test_rule(r, rule, nv->value,
                                            nv->value_length);
@@ -2158,7 +2158,7 @@ nxt_http_route_memcmp(u_char *start, u_char *test, size_t test_length,
     nxt_int_t  n;
 
     if (case_sensitive) {
-        n = nxt_memcmp(start, test, test_length);
+        n = memcmp(start, test, test_length);
 
     } else {
         n = nxt_memcasecmp(start, test, test_length);

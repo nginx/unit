@@ -823,7 +823,7 @@ nxt_h1p_transfer_encoding(void *ctx, nxt_http_field_t *field, uintptr_t data)
     field->hopbyhop = 1;
 
     if (field->value_length == 7
-        && nxt_memcmp(field->value, "chunked", 7) == 0)
+        && memcmp(field->value, "chunked", 7) == 0)
     {
         te = NXT_HTTP_TE_CHUNKED;
 
@@ -2594,7 +2594,7 @@ nxt_h1p_peer_header_parse(nxt_http_peer_t *peer, nxt_buf_mem_t *bm)
 
         p = bm->pos;
 
-        if (nxt_slow_path(nxt_memcmp(p, "HTTP/1.", 7) != 0
+        if (nxt_slow_path(memcmp(p, "HTTP/1.", 7) != 0
                           || (p[7] != '0' && p[7] != '1')))
         {
             return NXT_ERROR;
@@ -2868,7 +2868,7 @@ nxt_h1p_peer_transfer_encoding(void *ctx, nxt_http_field_t *field,
     field->skip = 1;
 
     if (field->value_length == 7
-        && nxt_memcmp(field->value, "chunked", 7) == 0)
+        && memcmp(field->value, "chunked", 7) == 0)
     {
         r->peer->proto.h1->chunked = 1;
     }

@@ -66,10 +66,6 @@ nxt_cpymem(void *dst, const void *src, size_t length)
     (void) memmove(dst, src, length)
 
 
-#define nxt_memcmp(s1, s2, length)                                            \
-    memcmp((char *) s1, (char *) s2, length)
-
-
 #define nxt_memchr(s, c, length)                                              \
     memchr((char *) s, c, length)
 
@@ -132,7 +128,7 @@ NXT_EXPORT char *nxt_str_cstrz(nxt_mp_t *mp, const nxt_str_t *src);
 
 #define nxt_strstr_eq(s1, s2)                                                 \
     (((s1)->length == (s2)->length)                                           \
-      && (nxt_memcmp((s1)->start, (s2)->start, (s1)->length) == 0))
+      && (memcmp((s1)->start, (s2)->start, (s1)->length) == 0))
 
 
 #define nxt_strcasestr_eq(s1, s2)                                             \
@@ -141,11 +137,11 @@ NXT_EXPORT char *nxt_str_cstrz(nxt_mp_t *mp, const nxt_str_t *src);
 
 
 #define nxt_str_eq(s, p, _length)                                             \
-    (((s)->length == _length) && (nxt_memcmp((s)->start, p, _length) == 0))
+    (((s)->length == _length) && (memcmp((s)->start, p, _length) == 0))
 
 
 #define nxt_str_start(s, p, _length)                                          \
-    (((s)->length >= _length) && (nxt_memcmp((s)->start, p, _length) == 0))
+    (((s)->length >= _length) && (memcmp((s)->start, p, _length) == 0))
 
 
 #define nxt_strchr_eq(s, c)                                                   \

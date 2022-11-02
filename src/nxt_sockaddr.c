@@ -382,7 +382,7 @@ nxt_sockaddr_cmp(nxt_sockaddr_t *sa1, nxt_sockaddr_t *sa2)
             return 0;
         }
 
-        if (nxt_memcmp(&sa1->u.sockaddr_in6.sin6_addr,
+        if (memcmp(&sa1->u.sockaddr_in6.sin6_addr,
                        &sa2->u.sockaddr_in6.sin6_addr, 16)
             != 0)
         {
@@ -401,7 +401,7 @@ nxt_sockaddr_cmp(nxt_sockaddr_t *sa1, nxt_sockaddr_t *sa2)
 
             length = sa1->socklen - offsetof(struct sockaddr_un, sun_path);
 
-            if (nxt_memcmp(&sa1->u.sockaddr_un.sun_path,
+            if (memcmp(&sa1->u.sockaddr_un.sun_path,
                            &sa2->u.sockaddr_un.sun_path, length)
                 != 0)
             {
@@ -550,7 +550,7 @@ nxt_sockaddr_parse_optport(nxt_mp_t *mp, nxt_str_t *addr)
         return NULL;
     }
 
-    if (addr->length > 6 && nxt_memcmp(addr->start, "unix:", 5) == 0) {
+    if (addr->length > 6 && memcmp(addr->start, "unix:", 5) == 0) {
         sa = nxt_sockaddr_unix_parse(mp, addr);
 
     } else if (addr->start[0] == '[' || nxt_inet6_probe(addr)) {

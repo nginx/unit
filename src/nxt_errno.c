@@ -78,7 +78,7 @@ nxt_strerror_start(void)
 
         if (length == 0  /* HP-UX empty strings. */
             || nxt_errno == NXT_EINVAL
-            || nxt_memcmp(msg, "Unknown error", 13) == 0)
+            || memcmp(msg, "Unknown error", 13) == 0)
         {
             invalid++;
             continue;
@@ -86,8 +86,8 @@ nxt_strerror_start(void)
 
 #if (NXT_AIX)
 
-        if (nxt_memcmp(msg, "Error ", 6) == 0
-            && nxt_memcmp(msg + length - 10, " occurred.", 9) == 0)
+        if (memcmp(msg, "Error ", 6) == 0
+            && memcmp(msg + length - 10, " occurred.", 9) == 0)
         {
             invalid++;
             continue;

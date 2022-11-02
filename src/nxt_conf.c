@@ -1389,7 +1389,7 @@ nxt_conf_json_parse_value(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
 
     case 't':
         if (nxt_fast_path(end - start >= 4
-                          && nxt_memcmp(start, "true", 4) == 0))
+                          && memcmp(start, "true", 4) == 0))
         {
             value->u.boolean = 1;
             value->type = NXT_CONF_VALUE_BOOLEAN;
@@ -1401,7 +1401,7 @@ nxt_conf_json_parse_value(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
 
     case 'f':
         if (nxt_fast_path(end - start >= 5
-                          && nxt_memcmp(start, "false", 5) == 0))
+                          && memcmp(start, "false", 5) == 0))
         {
             value->u.boolean = 0;
             value->type = NXT_CONF_VALUE_BOOLEAN;
@@ -1413,7 +1413,7 @@ nxt_conf_json_parse_value(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
 
     case 'n':
         if (nxt_fast_path(end - start >= 4
-                          && nxt_memcmp(start, "null", 4) == 0))
+                          && memcmp(start, "null", 4) == 0))
         {
             value->type = NXT_CONF_VALUE_NULL;
             return start + 4;

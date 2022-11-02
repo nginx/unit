@@ -1263,7 +1263,7 @@ nxt_controller_process_config(nxt_task_t *task, nxt_controller_request_t *req,
 
         /* Skip UTF-8 BOM. */
         if (nxt_buf_mem_used_size(mbuf) >= 3
-            && nxt_memcmp(mbuf->pos, "\xEF\xBB\xBF", 3) == 0)
+            && memcmp(mbuf->pos, "\xEF\xBB\xBF", 3) == 0)
         {
             mbuf->pos += 3;
         }
@@ -1940,7 +1940,7 @@ nxt_controller_process_control(nxt_task_t *task,
     }
 
     if (!nxt_str_start(path, "applications/", 13)
-        || nxt_memcmp(path->start + path->length - 8, "/restart", 8) != 0)
+        || memcmp(path->start + path->length - 8, "/restart", 8) != 0)
     {
         goto not_found;
     }
