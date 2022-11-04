@@ -156,6 +156,7 @@ debuild/$(SRCDIR)/debian:
 	echo '3.0 (quilt)' > debuild/$(SRCDIR)/debian/source/format ; \
 	cat debian/control.in | sed \
 		-e "s#%%PACKAGE_VENDOR%%#$(PACKAGE_VENDOR)#g" \
+		-e "s#%%UNIT_VERSION%%#$(VERSION)#g" \
 	> debuild/$(SRCDIR)/debian/control ; \
         cat debian/rules.in | sed \
                 -e "s#%%CONFIGURE_ARGS%%#$(CONFIGURE_ARGS)#g" \

@@ -39,7 +39,7 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires: pcre2-devel
 
-Requires: unit == %%UNIT_VERSION%%-%%UNIT_RELEASE%%%{?dist}.ngx
+Requires: unit-r%%UNIT_VERSION%%
 
 %description
 NGINX Unit is a runtime and delivery environment for modern distributed

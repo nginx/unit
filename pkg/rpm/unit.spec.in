@@ -47,6 +47,8 @@ Requires(postun):  systemd
 
 BuildRequires: pcre2-devel
 
+Provides: unit-r%{version}
+
 %description
 NGINX Unit is a runtime and delivery environment for modern distributed
 applications. It runs the application code in multiple languages
