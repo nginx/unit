@@ -63,6 +63,10 @@ static PyObject *nxt_python_copy_environ(nxt_unit_request_info_t *req);
 static PyObject *nxt_python_get_environ(nxt_python_ctx_t *pctx);
 static int nxt_python_add_sptr(nxt_python_ctx_t *pctx, PyObject *name,
     nxt_unit_sptr_t *sptr, uint32_t size);
+static int nxt_python_add_char(nxt_python_ctx_t *pctx, PyObject *name,
+    char *src, uint32_t size);
+static int nxt_python_add_py_string(nxt_python_ctx_t *pctx, PyObject *name,
+    PyObject *value);
 static int nxt_python_add_field(nxt_python_ctx_t *pctx,
     nxt_unit_field_t *field, int n, uint32_t vl);
 static PyObject *nxt_python_field_name(const char *name, uint8_t len);
@@ -692,10 +696,16 @@ static int
 nxt_python_add_sptr(nxt_python_ctx_t *pctx, PyObject *name,
     nxt_unit_sptr_t *sptr, uint32_t size)
 {
-    char      *src;
-    PyObject  *value;
+    return nxt_python_add_char(pctx, name, nxt_unit_sptr_get(sptr), size);
+}
 
-    src = nxt_unit_sptr_get(sptr);
+
+static int
+nxt_python_add_char(nxt_python_ctx_t *pctx, PyObject *name,
+    char *src, uint32_t size)
+{
+    int       res;
+    PyObject  *value;
 
     value = PyString_FromStringAndSize(src, size);
     if (nxt_slow_path(value == NULL)) {
@@ -707,16 +717,24 @@ nxt_python_add_sptr(nxt_python_ctx_t *pctx, PyObject *name,
         return NXT_UNIT_ERROR;
     }
 
+    res = nxt_python_add_py_string(pctx, name, value);
+
+    Py_DECREF(value);
+
+    return res;
+}
+
+
+static int nxt_python_add_py_string(nxt_python_ctx_t *pctx, PyObject *name,
+    PyObject *value)
+{
     if (nxt_slow_path(PyDict_SetItem(pctx->environ, name, value) != 0)) {
         nxt_unit_req_error(pctx->req,
                            "Python failed to set the \"%s\" environ value",
                            PyUnicode_AsUTF8(name));
-        Py_DECREF(value);
 
         return NXT_UNIT_ERROR;
     }
-
-    Py_DECREF(value);
 
     return NXT_UNIT_OK;
 }
