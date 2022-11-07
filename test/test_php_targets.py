@@ -47,6 +47,7 @@ class TestPHPTargets(TestApplicationPHP):
         assert self.get(url='/2')['body'] == '2'
         assert self.get(url='/blah')['status'] == 503  # TODO 404
         assert self.get(url='/')['body'] == 'index'
+        assert self.get(url='/1.php?test=test.php/')['body'] == '1'
 
         assert 'success' in self.conf(
             "\"1.php\"", 'applications/targets/targets/default/index'

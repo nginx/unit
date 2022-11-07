@@ -1025,7 +1025,8 @@ nxt_php_dynamic_request(nxt_php_run_ctx_t *ctx, nxt_unit_request_t *r)
 
     nxt_str_null(&script_name);
 
-    ctx->path_info.start = (u_char *) strstr((char *) path.start, ".php/");
+    ctx->path_info.start = memmem(path.start, path.length, ".php/",
+                                  strlen(".php/"));
     if (ctx->path_info.start != NULL) {
         ctx->path_info.start += 4;
         path.length = ctx->path_info.start - path.start;
