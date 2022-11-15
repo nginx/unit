@@ -574,6 +574,10 @@ def _check_processes():
 
         time.sleep(0.1)
 
+    if option.restart:
+        assert len(out) == 0, 'all termimated'
+        return
+
     assert len(out) == 3, 'main, router, and controller expected'
 
     out = [l for l in out if 'unit: main' not in l]
