@@ -2,12 +2,11 @@ import re
 import subprocess
 
 
-def check_openssl(unitd):
-    subprocess.check_output(['which', 'openssl'])
+def check_openssl(output_version):
+    try:
+        subprocess.check_output(['which', 'openssl'])
+    except subprocess.CalledProcessError:
+        return None
 
-    output = subprocess.check_output(
-        [unitd, '--version'], stderr=subprocess.STDOUT
-    )
-
-    if re.search('--openssl', output.decode()):
+    if re.search('--openssl', output_version):
         return True
