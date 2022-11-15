@@ -261,10 +261,13 @@ Connection: close
     def test_variables_dynamic(self):
         self.set_format('$header_foo$cookie_foo$arg_foo')
 
-        self.get(
-            url='/?foo=h',
-            headers={'Foo': 'b', 'Cookie': 'foo=la', 'Connection': 'close'},
-        )['status'] = 200
+        assert (
+            self.get(
+                url='/?foo=h',
+                headers={'Foo': 'b', 'Cookie': 'foo=la', 'Connection': 'close'},
+            )['status']
+            == 200
+        )
         assert self.wait_for_record(r'^blah$') is not None
 
     def test_variables_dynamic_arguments(self):
