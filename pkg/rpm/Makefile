@@ -18,8 +18,10 @@ else ifeq ($(shell rpm --eval "%{?rhel}"), 9)
 OSVER = centos9
 else ifeq ($(shell rpm --eval "%{?amzn}"), 2)
 OSVER = amazonlinux2
-else ifeq ($(shell test `rpm --eval '0%{?fedora} -ge 35'`; echo $$?),0)
+else ifeq ($(shell test `rpm --eval '0%{?fedora} -ge 35 -a 0%{?fedora} -le 36'`; echo $$?),0)
 OSVER = fedora
+else ifeq ($(shell test `rpm --eval '0%{?fedora} -ge 37'`; echo $$?),0)
+OSVER = fedora37
 endif
 
 BUILD_DEPENDS_unit = gcc rpm-build rpmlint
@@ -85,6 +87,17 @@ endif
 ifeq ($(OSVER), fedora)
 include Makefile.php
 include Makefile.python310
+include Makefile.go
+include Makefile.perl
+include Makefile.ruby
+include Makefile.jsc-common
+include Makefile.jsc8
+include Makefile.jsc11
+endif
+
+ifeq ($(OSVER), fedora37)
+include Makefile.php
+include Makefile.python311
 include Makefile.go
 include Makefile.perl
 include Makefile.ruby
