@@ -13,7 +13,8 @@
                 unit-perl
                 unit-ruby
                 unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11 unit-jsc13
-                unit-jsc14 unit-jsc15 unit-jsc16 unit-jsc17 unit-jsc18"
+                unit-jsc14 unit-jsc15 unit-jsc16 unit-jsc17 unit-jsc18
+                unit-jsc19"
          ver="1.29.0" rev="1"
          date="" time=""
          packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
@@ -21,6 +22,19 @@
 <change>
 <para>
 NGINX Unit updated to 1.29.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-jsc19" ver="1.29.0" rev="1"
+         date="2022-11-18" time="15:00:00 +0400"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change>
+<para>
+Initial release of Java 19 module for NGINX Unit.
 </para>
 </change>
 
