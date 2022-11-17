@@ -45,6 +45,12 @@ prefer system crypto policy, instead of hardcoding a default.
 
 <change type="feature">
 <para>
+compatibility with Python 3.11.
+</para>
+</change>
+
+<change type="feature">
+<para>
 njs support with the basic syntax of JS template literals.
 </para>
 </change>
