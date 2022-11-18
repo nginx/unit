@@ -286,7 +286,7 @@ nxt_credential_setuid(nxt_task_t *task, nxt_credential_t *uc)
 
     if (setuid(uc->uid) != 0) {
 
-#if (NXT_HAVE_CLONE)
+#if (NXT_HAVE_LINUX_NS)
         if (nxt_errno == EINVAL) {
             nxt_log(task, NXT_LOG_ERR, "The uid %d (user \"%s\") isn't "
                     "valid in the application namespace.", uc->uid, uc->user);
@@ -314,7 +314,7 @@ nxt_credential_setgids(nxt_task_t *task, nxt_credential_t *uc)
 
     if (setgid(uc->base_gid) != 0) {
 
-#if (NXT_HAVE_CLONE)
+#if (NXT_HAVE_LINUX_NS)
         if (nxt_errno == EINVAL) {
             nxt_log(task, NXT_LOG_ERR, "The gid %d isn't valid in the "
                     "application namespace.", uc->base_gid);
@@ -333,7 +333,7 @@ nxt_credential_setgids(nxt_task_t *task, nxt_credential_t *uc)
     if (nxt_slow_path(uc->ngroups > 0
                       && setgroups(uc->ngroups, uc->gids) != 0)) {
 
-#if (NXT_HAVE_CLONE)
+#if (NXT_HAVE_LINUX_NS)
         if (nxt_errno == EINVAL) {
             nxt_log(task, NXT_LOG_ERR, "The user \"%s\" (uid: %d) has "
                     "supplementary group ids not valid in the application "

@@ -4,7 +4,7 @@
 # Linux clone syscall.
 
 NXT_ISOLATION=NO
-NXT_HAVE_CLONE=NO
+NXT_HAVE_LINUX_NS=NO
 NXT_HAVE_CLONE_NEWUSER=NO
 NXT_HAVE_MOUNT=NO
 NXT_HAVE_UNMOUNT=NO
@@ -12,21 +12,21 @@ NXT_HAVE_ROOTFS=NO
 
 nsflags="USER NS PID NET UTS CGROUP"
 
-nxt_feature="clone(2)"
-nxt_feature_name=NXT_HAVE_CLONE
+nxt_feature="Linux unshare()"
+nxt_feature_name=NXT_HAVE_LINUX_NS
 nxt_feature_run=no
 nxt_feature_incs=
 nxt_feature_libs=
-nxt_feature_test="#include <sys/wait.h>
-                  #include <sys/syscall.h>
+nxt_feature_test="#define _GNU_SOURCE
+                  #include <sched.h>
 
                   int main(void) {
-                      return SYS_clone | SIGCHLD;
+                      return unshare(0);
                   }"
 . auto/feature
 
 if [ $nxt_found = yes ]; then
-    NXT_HAVE_CLONE=YES
+    NXT_HAVE_LINUX_NS=YES
 
     # Test all isolation flags
     for flag in $nsflags; do
