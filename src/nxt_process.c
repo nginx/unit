@@ -7,7 +7,7 @@
 #include <nxt_main.h>
 #include <nxt_cgroup.h>
 
-#if (NXT_HAVE_CLONE)
+#if (NXT_HAVE_LINUX_NS)
 #include <nxt_clone.h>
 #endif
 
@@ -18,7 +18,7 @@
 #endif
 
 
-#if (NXT_HAVE_CLONE) && (NXT_HAVE_CLONE_NEWPID)
+#if (NXT_HAVE_LINUX_NS) && (NXT_HAVE_CLONE_NEWPID)
 #define nxt_is_pid_isolated(process)                                          \
     nxt_is_clone_flag_set(process->isolation.clone.flags, NEWPID)
 #else
@@ -318,7 +318,7 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
     nxt_pid_t      pid;
     nxt_runtime_t  *rt;
 
-#if (NXT_HAVE_CLONE)
+#if (NXT_HAVE_LINUX_NS)
     pid = nxt_clone(SIGCHLD | process->isolation.clone.flags);
     if (nxt_slow_path(pid < 0)) {
         nxt_alert(task, "clone() failed for %s %E", process->name, nxt_errno);
@@ -355,7 +355,7 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
 
     /* Parent. */
 
-#if (NXT_HAVE_CLONE)
+#if (NXT_HAVE_LINUX_NS)
     nxt_debug(task, "clone(%s): %PI", process->name, pid);
 #else
     nxt_debug(task, "fork(%s): %PI", process->name, pid);
@@ -781,7 +781,7 @@ nxt_process_apply_creds(nxt_task_t *task, nxt_process_t *process)
 
     cap_setid = rt->capabilities.setid;
 
-#if (NXT_HAVE_CLONE && NXT_HAVE_CLONE_NEWUSER)
+#if (NXT_HAVE_LINUX_NS && NXT_HAVE_CLONE_NEWUSER)
     if (!cap_setid
         && nxt_is_clone_flag_set(process->isolation.clone.flags, NEWUSER))
     {

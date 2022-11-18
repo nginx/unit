@@ -7,13 +7,13 @@
 #ifndef _NXT_PROCESS_H_INCLUDED_
 #define _NXT_PROCESS_H_INCLUDED_
 
-#if (NXT_HAVE_CLONE)
+#if (NXT_HAVE_LINUX_NS)
 #include <unistd.h>
 #include <nxt_clone.h>
 #endif
 
 
-#if (NXT_HAVE_CLONE)
+#if (NXT_HAVE_LINUX_NS)
 /*
  * Old glibc wrapper for getpid(2) returns a cached pid invalidated only by
  * fork(2) calls.  As we use clone(2) for container, it returns the wrong pid.
@@ -100,7 +100,7 @@ typedef struct {
     nxt_cgroup_t             cgroup;
 #endif
 
-#if (NXT_HAVE_CLONE)
+#if (NXT_HAVE_LINUX_NS)
     nxt_clone_t              clone;
 #endif
 

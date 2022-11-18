@@ -556,7 +556,7 @@ nxt_main_process_created_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_assert(process != NULL);
     nxt_assert(process->state == NXT_PROCESS_STATE_CREATING);
 
-#if (NXT_HAVE_CLONE && NXT_HAVE_CLONE_NEWUSER)
+#if (NXT_HAVE_LINUX_NS && NXT_HAVE_CLONE_NEWUSER)
     if (nxt_is_clone_flag_set(process->isolation.clone.flags, NEWUSER)) {
         if (nxt_slow_path(nxt_clone_credential_map(task, process->pid,
                                                    process->user_cred,

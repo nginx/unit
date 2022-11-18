@@ -8,7 +8,7 @@
 #include <nxt_conf.h>
 #include <nxt_clone.h>
 
-#if (NXT_HAVE_CLONE)
+#if (NXT_HAVE_LINUX_NS)
 
 pid_t
 nxt_clone(nxt_int_t flags)
