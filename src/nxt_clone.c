@@ -8,20 +8,6 @@
 #include <nxt_conf.h>
 #include <nxt_clone.h>
 
-#if (NXT_HAVE_LINUX_NS)
-
-pid_t
-nxt_clone(nxt_int_t flags)
-{
-#if defined(__s390x__) || defined(__s390__) || defined(__CRIS__)
-    return syscall(SYS_clone, NULL, flags);
-#else
-    return syscall(SYS_clone, flags, NULL);
-#endif
-}
-
-#endif
-
 
 #if (NXT_HAVE_CLONE_NEWUSER)
 

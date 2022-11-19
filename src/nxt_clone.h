@@ -33,9 +33,6 @@ typedef struct {
 } nxt_clone_t;
 
 
-pid_t nxt_clone(nxt_int_t flags);
-
-
 #define nxt_is_clone_flag_set(flags, test)                                    \
     ((flags & CLONE_##test) == CLONE_##test)
 
