@@ -13,17 +13,8 @@
 #endif
 
 
-#if (NXT_HAVE_LINUX_NS)
-/*
- * Old glibc wrapper for getpid(2) returns a cached pid invalidated only by
- * fork(2) calls.  As we use clone(2) for container, it returns the wrong pid.
- */
-#define nxt_getpid()                                                          \
-    syscall(SYS_getpid)
-#else
 #define nxt_getpid()                                                          \
     getpid()
-#endif
 
 typedef pid_t            nxt_pid_t;
 
