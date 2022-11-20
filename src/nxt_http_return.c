@@ -126,7 +126,7 @@ nxt_http_return(nxt_task_t *task, nxt_http_request_t *r,
         rtcf = r->conf->socket_conf->router_conf;
 
         ret = nxt_tstr_query_init(&r->tstr_query, rtcf->tstr_state,
-                                  &r->var_cache, r, r->mem_pool);
+                                  &r->tstr_cache, r, r->mem_pool);
         if (nxt_slow_path(ret != NXT_OK)) {
             goto fail;
         }

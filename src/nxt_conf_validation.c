@@ -34,7 +34,7 @@ typedef enum {
 
 typedef enum {
     NXT_CONF_VLDT_REQUIRED  = 1 << 0,
-    NXT_CONF_VLDT_VAR       = 1 << 1,
+    NXT_CONF_VLDT_TSTR      = 1 << 1,
 } nxt_conf_vldt_flags_t;
 
 
@@ -367,7 +367,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_listener_members[] = {
         .name       = nxt_string("pass"),
         .type       = NXT_CONF_VLDT_STRING,
         .validator  = nxt_conf_vldt_pass,
-        .flags      = NXT_CONF_VLDT_VAR,
+        .flags      = NXT_CONF_VLDT_TSTR,
     }, {
         .name       = nxt_string("application"),
         .type       = NXT_CONF_VLDT_STRING,
@@ -652,7 +652,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_pass_action_members[] = {
         .name       = nxt_string("pass"),
         .type       = NXT_CONF_VLDT_STRING,
         .validator  = nxt_conf_vldt_pass,
-        .flags      = NXT_CONF_VLDT_VAR,
+        .flags      = NXT_CONF_VLDT_TSTR,
     },
 
     NXT_CONF_VLDT_END
@@ -667,7 +667,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_return_action_members[] = {
     }, {
         .name       = nxt_string("location"),
         .type       = NXT_CONF_VLDT_STRING,
-        .flags      = NXT_CONF_VLDT_VAR,
+        .flags      = NXT_CONF_VLDT_TSTR,
     },
 
     NXT_CONF_VLDT_END
@@ -697,7 +697,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_share_action_members[] = {
         .validator  = nxt_conf_vldt_unsupported,
         .u.string   = "chroot",
 #endif
-        .flags      = NXT_CONF_VLDT_VAR,
+        .flags      = NXT_CONF_VLDT_TSTR,
     }, {
         .name       = nxt_string("follow_symlinks"),
         .type       = NXT_CONF_VLDT_BOOLEAN,
@@ -1226,8 +1226,9 @@ nxt_int_t
 nxt_conf_validate(nxt_conf_validation_t *vldt)
 {
     nxt_int_t  ret;
+    u_char     error[NXT_MAX_ERROR_STR];
 
-    vldt->tstr_state = nxt_tstr_state_new(vldt->pool);
+    vldt->tstr_state = nxt_tstr_state_new(vldt->pool, 1);
     if (nxt_slow_path(vldt->tstr_state == NULL)) {
         return NXT_ERROR;
     }
@@ -1237,7 +1238,17 @@ nxt_conf_validate(nxt_conf_validation_t *vldt)
         return ret;
     }
 
-    return nxt_conf_vldt_object(vldt, vldt->conf, nxt_conf_vldt_root_members);
+    ret = nxt_conf_vldt_object(vldt, vldt->conf, nxt_conf_vldt_root_members);
+    if (ret != NXT_OK) {
+        return ret;
+    }
+
+    ret = nxt_tstr_state_done(vldt->tstr_state, error);
+    if (ret != NXT_OK) {
+        return nxt_conf_vldt_error(vldt, "%s", error);
+    }
+
+    return NXT_OK;
 }
 
 
@@ -1721,7 +1732,7 @@ nxt_conf_vldt_share_element(nxt_conf_validation_t *vldt,
 
     nxt_conf_get_string(value, &str);
 
-    if (nxt_is_var(&str)) {
+    if (nxt_is_tstr(&str)) {
         return nxt_conf_vldt_var(vldt, &share, &str);
     }
 
@@ -2501,12 +2512,12 @@ nxt_conf_vldt_object(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
                 continue;
             }
 
-            if (vals->flags & NXT_CONF_VLDT_VAR
+            if (vals->flags & NXT_CONF_VLDT_TSTR
                 && nxt_conf_type(member) == NXT_CONF_STRING)
             {
                 nxt_conf_get_string(member, &var);
 
-                if (nxt_is_var(&var)) {
+                if (nxt_is_tstr(&var)) {
                     ret = nxt_conf_vldt_var(vldt, &name, &var);
                     if (ret != NXT_OK) {
                         return ret;
@@ -3147,7 +3158,7 @@ nxt_conf_vldt_access_log(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
                                    "The \"path\" string must not be empty.");
     }
 
-    if (nxt_is_var(&conf.format)) {
+    if (nxt_is_tstr(&conf.format)) {
         return nxt_conf_vldt_var(vldt, &format_str, &conf.format);
     }
 

@@ -1060,7 +1060,7 @@ nxt_router_temp_conf(nxt_task_t *task)
 
     rtcf->mem_pool = mp;
 
-    rtcf->tstr_state = nxt_tstr_state_new(mp);
+    rtcf->tstr_state = nxt_tstr_state_new(mp, 0);
     if (nxt_slow_path(rtcf->tstr_state == NULL)) {
         goto fail;
     }
@@ -2040,6 +2040,11 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         if (nxt_slow_path(ret != NXT_OK)) {
             goto fail;
         }
+    }
+
+    ret = nxt_tstr_state_done(rtcf->tstr_state, NULL);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        goto fail;
     }
 
     nxt_queue_add(&deleting_sockets, &router->sockets);

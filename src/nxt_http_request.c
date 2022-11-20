@@ -282,7 +282,7 @@ nxt_http_request_create(nxt_task_t *task)
 
     task->thread->engine->requests_cnt++;
 
-    r->var_cache.pool = mp;
+    r->tstr_cache.var.pool = mp;
 
     return r;
 

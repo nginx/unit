@@ -135,6 +135,10 @@ NXT_LIB_POLARSSL_SRCS="src/nxt_polarssl.c"
 NXT_LIB_PCRE_SRCS="src/nxt_pcre.c"
 NXT_LIB_PCRE2_SRCS="src/nxt_pcre2.c"
 
+if [ "$NXT_NJS" != "NO" ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS src/nxt_js.c"
+fi
+
 NXT_LIB_EPOLL_SRCS="src/nxt_epoll_engine.c"
 NXT_LIB_KQUEUE_SRCS="src/nxt_kqueue_engine.c"
 NXT_LIB_EVENTPORT_SRCS="src/nxt_eventport_engine.c"

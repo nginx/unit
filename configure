@@ -171,5 +171,9 @@ NXT_LIB_AUX_LIBS="$NXT_OPENSSL_LIBS $NXT_GNUTLS_LIBS \\
                     $NXT_CYASSL_LIBS $NXT_POLARSSL_LIBS \\
                     $NXT_PCRE_LIB"
 
+if [ $NXT_NJS != NO ]; then
+    . auto/njs
+fi
+
 . auto/make
 . auto/summary

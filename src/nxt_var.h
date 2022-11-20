@@ -39,13 +39,6 @@ typedef struct {
 } nxt_var_cache_t;
 
 
-nxt_inline nxt_bool_t
-nxt_is_var(nxt_str_t *str)
-{
-    return (memchr(str->start, '$', str->length) != NULL);
-}
-
-
 nxt_int_t nxt_var_register(nxt_var_decl_t *decl, size_t n);
 nxt_int_t nxt_var_index_init(void);
 

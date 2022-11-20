@@ -41,6 +41,8 @@ cat << END
 
   --openssl            enable OpenSSL library usage
 
+  --njs                enable NJS library usage
+
   --debug              enable debug logging
 
 

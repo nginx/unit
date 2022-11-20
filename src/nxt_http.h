@@ -170,7 +170,7 @@ struct nxt_http_request_s {
     void                            *timer_data;
 
     nxt_tstr_query_t                *tstr_query;
-    nxt_var_cache_t                 var_cache;
+    nxt_tstr_cache_t                tstr_cache;
 
     void                            *req_rpc_data;
 
