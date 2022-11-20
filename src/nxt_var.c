@@ -9,7 +9,6 @@
 struct nxt_var_s {
     size_t              length;
     nxt_uint_t          vars;
-    nxt_var_flags_t     flags;
     u_char              data[];
 
 /*
@@ -29,8 +28,7 @@ typedef struct {
 struct nxt_var_query_s {
     nxt_mp_t            *pool;
 
-    nxt_lvlhsh_t        cache;
-    nxt_str_t           *spare;
+    nxt_var_cache_t     cache;
 
     nxt_uint_t          waiting;
     nxt_uint_t          failed;   /* 1 bit */
@@ -58,8 +56,8 @@ static nxt_var_field_t *nxt_var_field_add(nxt_array_t *fields, nxt_str_t *name,
     uint32_t hash);
 
 static nxt_int_t nxt_var_cache_test(nxt_lvlhsh_query_t *lhq, void *data);
-static nxt_str_t *nxt_var_cache_value(nxt_task_t *task, nxt_var_query_t *query,
-    uint32_t index);
+static nxt_str_t *nxt_var_cache_value(nxt_task_t *task, nxt_var_cache_t *cache,
+    uint32_t index, void *ctx);
 
 static u_char *nxt_var_next_part(u_char *start, u_char *end, nxt_str_t *part);
 
@@ -232,21 +230,22 @@ nxt_var_cache_test(nxt_lvlhsh_query_t *lhq, void *data)
 
 
 static nxt_str_t *
-nxt_var_cache_value(nxt_task_t *task, nxt_var_query_t *query, uint32_t index)
+nxt_var_cache_value(nxt_task_t *task, nxt_var_cache_t *cache, uint32_t index,
+    void *ctx)
 {
     nxt_int_t           ret;
     nxt_str_t           *value;
     nxt_lvlhsh_query_t  lhq;
 
-    value = query->spare;
+    value = cache->spare;
 
     if (value == NULL) {
-        value = nxt_mp_zget(query->pool, sizeof(nxt_str_t));
+        value = nxt_mp_zget(cache->pool, sizeof(nxt_str_t));
         if (nxt_slow_path(value == NULL)) {
             return NULL;
         }
 
-        query->spare = value;
+        cache->spare = value;
     }
 
     lhq.key_hash = nxt_murmur_hash2_uint32(&index);
@@ -255,21 +254,20 @@ nxt_var_cache_value(nxt_task_t *task, nxt_var_query_t *query, uint32_t index)
     lhq.key.start = (u_char *) &index;
     lhq.value = value;
     lhq.proto = &nxt_var_cache_proto;
-    lhq.pool = query->pool;
+    lhq.pool = cache->pool;
 
-    ret = nxt_lvlhsh_insert(&query->cache, &lhq);
+    ret = nxt_lvlhsh_insert(&cache->hash, &lhq);
     if (nxt_slow_path(ret == NXT_ERROR)) {
         return NULL;
     }
 
     if (ret == NXT_OK) {
-        ret = nxt_var_index[index >> 16](task, value, query->ctx,
-                                         index & 0xffff);
+        ret = nxt_var_index[index >> 16](task, value, ctx, index & 0xffff);
         if (nxt_slow_path(ret != NXT_OK)) {
             return NULL;
         }
 
-        query->spare = NULL;
+        cache->spare = NULL;
     }
 
     return lhq.value;
@@ -329,20 +327,16 @@ nxt_var_index_init(void)
 
 
 nxt_var_t *
-nxt_var_compile(nxt_str_t *str, nxt_mp_t *mp, nxt_array_t *fields,
-    nxt_var_flags_t flags)
+nxt_var_compile(nxt_str_t *str, nxt_mp_t *mp, nxt_array_t *fields)
 {
     u_char          *p, *end, *next, *src;
     size_t          size;
     uint32_t        index;
-    nxt_bool_t      strz;
     nxt_var_t       *var;
     nxt_str_t       part;
     nxt_uint_t      n;
     nxt_var_sub_t   *subs;
     nxt_var_decl_t  *decl;
-
-    strz = (flags & NXT_VAR_STRZ) != 0;
 
     n = 0;
 
@@ -362,23 +356,18 @@ nxt_var_compile(nxt_str_t *str, nxt_mp_t *mp, nxt_array_t *fields,
 
     size = sizeof(nxt_var_t) + n * sizeof(nxt_var_sub_t) + str->length;
 
-    var = nxt_mp_get(mp, size + strz);
+    var = nxt_mp_get(mp, size);
     if (nxt_slow_path(var == NULL)) {
         return NULL;
     }
 
     var->length = str->length;
     var->vars = n;
-    var->flags = flags;
 
     subs = nxt_var_subs(var);
     src = nxt_var_raw_start(var);
 
     nxt_memcpy(src, str->start, str->length);
-
-    if (strz) {
-        src[str->length] = '\0';
-    }
 
     n = 0;
     p = str->start;
@@ -514,84 +503,33 @@ nxt_var_next_part(u_char *start, u_char *end, nxt_str_t *part)
 }
 
 
-inline void
-nxt_var_raw(nxt_var_t *var, nxt_str_t *str)
-{
-    str->length = var->length;
-    str->start = nxt_var_raw_start(var);
-}
-
-
-inline nxt_bool_t
-nxt_var_is_const(nxt_var_t *var)
-{
-    return (var->vars == 0);
-}
-
-
 nxt_int_t
-nxt_var_query_init(nxt_var_query_t **query_p, void *ctx, nxt_mp_t *mp)
-{
-    nxt_var_query_t  *query;
-
-    query = *query_p;
-
-    if (*query_p == NULL) {
-        query = nxt_mp_zget(mp, sizeof(nxt_var_query_t));
-        if (nxt_slow_path(query == NULL)) {
-            return NXT_ERROR;
-        }
-    }
-
-    query->pool = mp;
-    query->ctx = ctx;
-
-    *query_p = query;
-
-    return NXT_OK;
-}
-
-
-void
-nxt_var_query(nxt_task_t *task, nxt_var_query_t *query, nxt_var_t *var,
-    nxt_str_t *str)
+nxt_var_interpreter(nxt_task_t *task, nxt_var_cache_t *cache, nxt_var_t *var,
+    nxt_str_t *str, void *ctx, nxt_bool_t logging)
 {
     u_char         *p, *src;
     size_t         length, last, next;
     nxt_str_t      *value, **part;
     nxt_uint_t     i;
-    nxt_bool_t     strz, logging;
     nxt_array_t    parts;
     nxt_var_sub_t  *subs;
 
-    if (nxt_var_is_const(var)) {
-        nxt_var_raw(var, str);
-        return;
-    }
-
-    if (nxt_slow_path(query->failed)) {
-        return;
-    }
-
     nxt_memzero(&parts, sizeof(nxt_array_t));
-    nxt_array_init(&parts, query->pool, sizeof(nxt_str_t *));
-
-    strz = (var->flags & NXT_VAR_STRZ) != 0;
-    logging = (var->flags & NXT_VAR_LOGGING) != 0;
+    nxt_array_init(&parts, cache->pool, sizeof(nxt_str_t *));
 
     subs = nxt_var_subs(var);
 
     length = var->length;
 
     for (i = 0; i < var->vars; i++) {
-        value = nxt_var_cache_value(task, query, subs[i].index);
+        value = nxt_var_cache_value(task, cache, subs[i].index, ctx);
         if (nxt_slow_path(value == NULL)) {
-            goto fail;
+            return NXT_ERROR;
         }
 
         part = nxt_array_add(&parts);
         if (nxt_slow_path(part == NULL)) {
-            goto fail;
+            return NXT_ERROR;
         }
 
         *part = value;
@@ -603,9 +541,9 @@ nxt_var_query(nxt_task_t *task, nxt_var_query_t *query, nxt_var_t *var,
         }
     }
 
-    p = nxt_mp_nget(query->pool, length + strz);
+    p = nxt_mp_nget(cache->pool, length);
     if (nxt_slow_path(p == NULL)) {
-        goto fail;
+        return NXT_ERROR;
     }
 
     str->length = length;
@@ -636,45 +574,5 @@ nxt_var_query(nxt_task_t *task, nxt_var_query_t *query, nxt_var_t *var,
         p = nxt_cpymem(p, &src[last], var->length - last);
     }
 
-    if (strz) {
-        *p = '\0';
-    }
-
-    nxt_debug(task, "var: \"%*s\" -> \"%V\"", length, src, str);
-
-    return;
-
-fail:
-
-    query->failed = 1;
-}
-
-
-void
-nxt_var_query_resolve(nxt_task_t *task, nxt_var_query_t *query, void *data,
-    nxt_work_handler_t ready, nxt_work_handler_t error)
-{
-    query->data = data;
-    query->ready = ready;
-    query->error = error;
-
-    if (query->waiting == 0) {
-        nxt_work_queue_add(&task->thread->engine->fast_work_queue,
-                           query->failed ? query->error : query->ready,
-                           task, query->ctx, query->data);
-    }
-}
-
-
-void
-nxt_var_query_handle(nxt_task_t *task, nxt_var_query_t *query,
-    nxt_bool_t failed)
-{
-    query->failed |= failed;
-
-    if (--query->waiting == 0) {
-        nxt_work_queue_add(&task->thread->engine->fast_work_queue,
-                           query->failed ? query->error : query->ready,
-                           task, query->ctx, query->data);
-    }
+    return NXT_OK;
 }

@@ -43,7 +43,7 @@ typedef struct {
     uint32_t                 threads;
 
     nxt_mp_t                 *mem_pool;
-    nxt_array_t              *var_fields;  /* of nxt_var_field_t */
+    nxt_tstr_state_t         *tstr_state;
 
     nxt_router_t             *router;
     nxt_http_routes_t        *routes;
@@ -53,7 +53,7 @@ typedef struct {
     nxt_lvlhsh_t             apps_hash;
 
     nxt_router_access_log_t  *access_log;
-    nxt_var_t                *log_format;
+    nxt_tstr_t               *log_format;
 } nxt_router_conf_t;
 
 
@@ -225,7 +225,7 @@ typedef struct {
 struct nxt_router_access_log_s {
     void                   (*handler)(nxt_task_t *task, nxt_http_request_t *r,
                                       nxt_router_access_log_t *access_log,
-                                      nxt_var_t *format);
+                                      nxt_tstr_t *format);
     nxt_fd_t               fd;
     nxt_str_t              path;
     uint32_t               count;

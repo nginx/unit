@@ -282,6 +282,8 @@ nxt_http_request_create(nxt_task_t *task)
 
     task->thread->engine->requests_cnt++;
 
+    r->var_cache.pool = mp;
+
     return r;
 
 fail:
@@ -795,7 +797,7 @@ nxt_http_request_error_handler(nxt_task_t *task, void *obj, void *data)
 void
 nxt_http_request_close_handler(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_var_t                *log_format;
+    nxt_tstr_t               *log_format;
     nxt_http_proto_t         proto;
     nxt_http_request_t       *r;
     nxt_http_protocol_t      protocol;

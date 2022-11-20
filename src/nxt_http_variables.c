@@ -407,7 +407,7 @@ nxt_http_var_arg(nxt_task_t *task, nxt_str_t *str, void *ctx, uint16_t field)
 
     rtcf = r->conf->socket_conf->router_conf;
 
-    vf = nxt_var_field_get(rtcf->var_fields, field);
+    vf = nxt_var_field_get(rtcf->tstr_state->var_fields, field);
 
     args = nxt_http_arguments_parse(r);
     if (nxt_slow_path(args == NULL)) {
@@ -450,7 +450,7 @@ nxt_http_var_header(nxt_task_t *task, nxt_str_t *str, void *ctx, uint16_t field)
 
     rtcf = r->conf->socket_conf->router_conf;
 
-    vf = nxt_var_field_get(rtcf->var_fields, field);
+    vf = nxt_var_field_get(rtcf->tstr_state->var_fields, field);
 
     nxt_list_each(f, r->fields) {
 
@@ -485,7 +485,7 @@ nxt_http_var_cookie(nxt_task_t *task, nxt_str_t *str, void *ctx, uint16_t field)
 
     rtcf = r->conf->socket_conf->router_conf;
 
-    vf = nxt_var_field_get(rtcf->var_fields, field);
+    vf = nxt_var_field_get(rtcf->tstr_state->var_fields, field);
 
     cookies = nxt_http_cookies_parse(r);
     if (nxt_slow_path(cookies == NULL)) {

@@ -34,6 +34,7 @@ NXT_LIB_SRCS=" \
     src/nxt_parse.c \
     src/nxt_sprintf.c \
     src/nxt_var.c \
+    src/nxt_tstr.c \
     src/nxt_file_name.c \
     src/nxt_log.c \
     src/nxt_djb_hash.c \

@@ -1060,8 +1060,8 @@ nxt_router_temp_conf(nxt_task_t *task)
 
     rtcf->mem_pool = mp;
 
-    rtcf->var_fields = nxt_array_create(mp, 4, sizeof(nxt_var_field_t));
-    if (nxt_slow_path(rtcf->var_fields == NULL)) {
+    rtcf->tstr_state = nxt_tstr_state_new(mp);
+    if (nxt_slow_path(rtcf->tstr_state == NULL)) {
         goto fail;
     }
 
