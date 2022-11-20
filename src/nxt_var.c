@@ -61,8 +61,7 @@ static nxt_int_t nxt_var_cache_test(nxt_lvlhsh_query_t *lhq, void *data);
 static nxt_str_t *nxt_var_cache_value(nxt_task_t *task, nxt_var_query_t *query,
     uint32_t index);
 
-static u_char *nxt_var_next_part(u_char *start, size_t length, nxt_str_t *part,
-    nxt_bool_t *is_var);
+static u_char *nxt_var_next_part(u_char *start, u_char *end, nxt_str_t *part);
 
 
 static const nxt_lvlhsh_proto_t  nxt_var_hash_proto  nxt_aligned(64) = {
@@ -340,7 +339,6 @@ nxt_var_compile(nxt_str_t *str, nxt_mp_t *mp, nxt_array_t *fields,
     nxt_var_t       *var;
     nxt_str_t       part;
     nxt_uint_t      n;
-    nxt_bool_t      is_var;
     nxt_var_sub_t   *subs;
     nxt_var_decl_t  *decl;
 
@@ -352,12 +350,12 @@ nxt_var_compile(nxt_str_t *str, nxt_mp_t *mp, nxt_array_t *fields,
     end = p + str->length;
 
     while (p < end) {
-        p = nxt_var_next_part(p, end - p, &part, &is_var);
+        p = nxt_var_next_part(p, end, &part);
         if (nxt_slow_path(p == NULL)) {
             return NULL;
         }
 
-        if (is_var) {
+        if (part.start != NULL) {
             n++;
         }
     }
@@ -386,9 +384,9 @@ nxt_var_compile(nxt_str_t *str, nxt_mp_t *mp, nxt_array_t *fields,
     p = str->start;
 
     while (p < end) {
-        next = nxt_var_next_part(p, end - p, &part, &is_var);
+        next = nxt_var_next_part(p, end, &part);
 
-        if (is_var) {
+        if (part.start != NULL) {
             decl = nxt_var_decl_get(&part, fields, &index);
             if (nxt_slow_path(decl == NULL)) {
                 return NULL;
@@ -413,14 +411,13 @@ nxt_var_test(nxt_str_t *str, nxt_array_t *fields, u_char *error)
 {
     u_char          *p, *end, *next;
     nxt_str_t       part;
-    nxt_bool_t      is_var;
     nxt_var_decl_t  *decl;
 
     p = str->start;
     end = p + str->length;
 
     while (p < end) {
-        next = nxt_var_next_part(p, end - p, &part, &is_var);
+        next = nxt_var_next_part(p, end, &part);
 
         if (next == NULL) {
             nxt_sprintf(error, error + NXT_MAX_ERROR_STR,
@@ -429,7 +426,7 @@ nxt_var_test(nxt_str_t *str, nxt_array_t *fields, u_char *error)
             return NXT_ERROR;
         }
 
-        if (is_var) {
+        if (part.start != NULL) {
             decl = nxt_var_decl_get(&part, fields, NULL);
 
             if (decl == NULL) {
@@ -448,19 +445,15 @@ nxt_var_test(nxt_str_t *str, nxt_array_t *fields, u_char *error)
 
 
 static u_char *
-nxt_var_next_part(u_char *start, size_t length, nxt_str_t *part,
-    nxt_bool_t *is_var)
+nxt_var_next_part(u_char *start, u_char *end, nxt_str_t *part)
 {
-    u_char      *p, *end, ch, c;
+    size_t      length;
+    u_char      *p, ch, c;
     nxt_bool_t  bracket;
 
-    end = start + length;
-
-    p = memchr(start, '$', length);
+    p = memchr(start, '$', end - start);
 
     if (p == start) {
-        *is_var = 1;
-
         p++;
 
         if (p == end) {
@@ -480,48 +473,44 @@ nxt_var_next_part(u_char *start, size_t length, nxt_str_t *part,
             bracket = 0;
         }
 
+        length = 0;
         start = p;
 
-        for ( ;; ) {
+        while (p < end) {
             ch = *p;
 
             c = (u_char) (ch | 0x20);
-            if ((c < 'a' || c > 'z') && ch != '_') {
 
-                if (bracket && ch != '}') {
-                    return NULL;
-                }
-
-                break;
+            if ((c >= 'a' && c <= 'z') || ch == '_') {
+                p++;
+                length++;
+                continue;
             }
 
-            p++;
-
-            if (p == end) {
-                if (bracket) {
-                    return NULL;
-                }
-
-                break;
+            if (bracket && ch == '}') {
+                p++;
+                bracket = 0;
             }
+
+            break;
         }
 
-        length = p - start;
-        end = p + bracket;
+        if (bracket || length == 0) {
+            return NULL;
+        }
+
+        part->length = length;
+        part->start = start;
 
     } else {
-        *is_var = 0;
-
-        if (p != NULL) {
-            length = p - start;
-            end = p;
+        if (p == NULL) {
+            p = end;
         }
+
+        nxt_str_null(part);
     }
 
-    part->length = length;
-    part->start = start;
-
-    return end;
+    return p;
 }
 
 

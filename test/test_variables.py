@@ -378,6 +378,7 @@ Connection: close
         check_variables("${")
         check_variables("${}")
         check_variables("$ur")
+        check_variables("$uri$$host")
         check_variables("$uriblah")
         check_variables("${uri")
         check_variables("${{uri}")
