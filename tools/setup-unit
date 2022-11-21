@@ -1,311 +1,1500 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 #####################################################################
 #
 # Copyright (C) NGINX, Inc.
-#
 # Author:  NGINX Unit Team, F5 Inc.
-# Version: 0.0.1
-# Date:    2022-05-05
-#
-# This script will configure the repositories for NGINX Unit on Ubuntu,
-# Debian, RedHat, CentOS, Oracle Linux, Amazon Linux, Fedora.
-# It must be run as root.
-#
-# Note: curl and awk are required by this script, so the script checks to make
-# sure they are installed.
 #
 #####################################################################
+
+
+if test -n ${BASH_VERSION} && test "${BASH_VERSINFO[0]}" -eq 3; then
+    >&2 echo 'Your version of bash(1) is not supported by this script.';
+    >&2 echo "You're probably running on MacOS.  We recommend that you either";
+    >&2 echo 'install a newer version of bash(1), or you run this script with';
+    >&2 echo 'another shell, like for example zsh(1):';
+    >&2 echo "    $ zsh ${SUDO_USER:+sudo }$0 ...";
+    exit 1;
+fi;
+
+
+set -Eefuo pipefail;
+
+test -v BASH_VERSION \
+&& shopt -s lastpipe;
 
 export LC_ALL=C
 
-checkOSPrereqs () {
+program_name="$0";
+prog_name="$(basename $program_name)";
 
-    if ! command -v curl > /dev/null 2>&1
-    then
-        echo "Error: curl not found in PATH.  It must be installed to run this script."
-        exit 1
-    fi
+dry_run='no';
 
-    if ! command -v awk > /dev/null 2>&1
-    then
-        echo "Error: awk not found in PATH.  It must be installed to run this script."
-        exit 1
-    fi
+help_unit()
+{
+    cat <<__EOF__ ;
+SYNOPSIS
+        $program_name [-h] COMMAND [ARGS]
 
-    return 0
+    Subcommands
+        +-- repo-config  [-hn] [PKG-MANAGER OS-NAME OS-VERSION]
+        +-- welcome      [-hn]
+
+DESCRIPTION
+        This script simplifies installing and configuring an NGINX Unit server
+        for first-time users.
+
+        Run '$program_name COMMAND -h' for more information on a command.
+
+COMMANDS
+        repo-config
+                Configure your package manager with the NGINX Unit repository
+                for later installation.
+
+        welcome
+                Creates an initial configuration to serve a welcome web page
+                for NGINX Unit.
+
+OPTIONS
+        -h, --help
+                Print this help.
+
+        --help-more
+                Print help for more commands.  They are experimental.  This is
+                not recommended unless you know what you're doing.
+
+__EOF__
 }
 
-#####################################################################
-# Function getOS
-#
-# Getting the OS is not the same on all distributions.  First, we use
-# uname to find out if we are running on Linux or FreeBSD. For all the
-# supported versions of Debian and Ubuntu, we expect to find the
-# /etc/os-release file which has multiple lines with name-value pairs
-# from which we can get the OS name and version. For RedHat and its
-# variants, the os-release file may or may not exist, depending on the
-# version.  If it doesn't, then we look for the release package and
-# get the OS and version from the package name. For FreeBSD, we use the
-# "uname -rs" command.
-#
-# A string is written to stdout with three values separated by ":":
-#    OS
-#    OS Name
-#    OS Version
-#
-# If none of these files was found, an empty string is written.
-#
-# Return: 0 for success, 1 for error
-#####################################################################
-getOS () {
+help_more_unit()
+{
+    cat <<__EOF__ ;
+SYNOPSIS
+        $program_name [-h] COMMAND [ARGS]
 
-    os=""
-    osName=""
-    osVersion=""
+    Subcommands
+        +-- cmd          [-h]
+        +-- ctl          [-h] [-s SOCK] SUBCOMMAND [ARGS]
+        |   +-- http     [-h] [-c CURLOPT] METHOD PATH
+        |   +-- insert   [-h] PATH INDEX
+        +-- freeport     [-h]
+        +-- json-ins     [-hn] JSON INDEX
+        +-- os-probe     [-h]
+        +-- ps           [-h] [-t TYPE]
+        +-- repo-config  [-hn] [PKG-MANAGER OS-NAME OS-VERSION]
+        +-- sock         [-h] SUBCOMMAND [ARGS]
+        |   +-- filter   [-chs]
+        |   +-- find     [-h]
+        +-- welcome      [-hn]
 
-    LC_ALL=C
+DESCRIPTION
+        This script simplifies installing and configuring
+        an NGINX Unit server for first-time users.
 
-    os=$(uname | tr '[:upper:]' '[:lower:]')
+        Run '$program_name COMMAND -h' for more information on a command.
 
-    if [ "$os" != "linux" ] && [ "$os" != "freebsd" ]; then
-        echoErr "Error: Operating system is not Linux or FreeBSD, can't proceed"
-        echo "On macOS, try 'brew install nginx/unit/unit'"
-        echo
-        return 1
-    fi
+COMMANDS
+        cmd     Print the invocation line of unitd(8).
 
-    if [ "$os" = "linux" ]; then
-        if [ -f "$osRelease" ]; then
-            # The value for the ID and VERSION_ID may or may not be in quotes
-            osName=$( grep "^ID=" "$osRelease" | sed s/\"//g | awk -F= '{ print $2 }')
-            osVersion=$(grep "^VERSION_ID=" "$osRelease" | sed s/\"//g | awk -F= '{ print $2 }')
-        else
-            # rhel or centos 6.*
-            if rpm -q redhat-release-server >/dev/null 2>&1; then
-                osName=rhel
-                osVersion=$(rpm -q redhat-release-server |sed 's/.*-//' | awk -F. '{print $1"."$2;}')
-            elif rpm -q centos-release >/dev/null 2>&1; then
-                osName=centos
-                osVersion=$(rpm -q centos-release | sed 's/centos-release-//' | sed 's/\..*//' | awk -F- '{print $1"."$2;}')
-            else
-                echoErr "Error: Unable to determine the operating system and version, or the OS is not supported"
-                echo
-                return 1
-            fi
-        fi
+        ctl     Control a running unitd(8) instance through its control socket.
+
+        freeport
+                Print an available TCP port.
+
+        json-ins
+                Insert a JSON element read from standard input into a JSON
+                array read from a file at a given INDEX.
+
+        os-probe
+                This script probes the OS, and prints details about the
+                version.
+
+        ps      List unitd(8) processes.
+
+        repo-config
+                Configure your package manager with the NGINX Unit
+                repository for later installation
+
+        sock    Print the address of the API control socket.
+
+        welcome
+                Creates an initial configuration to serve a welcome web page
+                for NGINX Unit.
+
+OPTIONS
+        -h, --help
+                Print the basic help (some commands are hidden).
+
+        --help-more
+                Print the hidden help with more commands.
+
+__EOF__
+}
+
+warn()
+{
+    >&2 echo "$prog_name: error: $*";
+}
+
+err()
+{
+    >&2 echo "$prog_name: error: $*";
+    exit 1;
+}
+
+dry_run_echo()
+{
+    if test "$dry_run" = "yes"; then
+        echo "$*";
+    fi;
+}
+
+dry_run_eval()
+{
+    if test "$dry_run" = "yes"; then
+        echo "    $*";
     else
-        osName=$os
-        osVersion=$(uname -rs | awk -F '[ -]' '{print $2}')
-        if [ -z "$osVersion" ]; then
-            echoErr "Unable to get the FreeBSD version"
-            echo
-            return 1
-        fi
-    fi
-
-    # Force osName to lowercase
-    osName=$(echo "$osName" | tr '[:upper:]' '[:lower:]')
-    echoDebug "getOS: os=$os osName=$osName osVersion=$osVersion"
-    echo "$os:$osName:$osVersion"
-
-    return 0
+        eval "$*";
+    fi;
 }
 
 
-installDebian () {
+help_unit_cmd()
+{
+    cat <<__EOF__ ;
+SYNOPSIS
+        $program_name cmd [-h]
 
-    echoDebug "Install on Debian"
+DESCRIPTION
+        Print the invocation line of running instances of unitd(8).
 
-    curl --output /usr/share/keyrings/nginx-keyring.gpg https://unit.nginx.org/keys/nginx-keyring.gpg
+OPTIONS
+        -h, --help
+                Print this help.
 
-    apt install -y apt-transport-https lsb-release ca-certificates
-
-    printf "deb [signed-by=/usr/share/keyrings/nginx-keyring.gpg] https://packages.nginx.org/unit/debian/ %s unit\n" "$(lsb_release -cs)" | tee /etc/apt/sources.list.d/unit.list
-    printf "deb-src [signed-by=/usr/share/keyrings/nginx-keyring.gpg] https://packages.nginx.org/unit/debian/ %s unit\n" "$(lsb_release -cs)" | tee -a /etc/apt/sources.list.d/unit.list
-
-    apt update
-
-    return 0
-}
-
-installUbuntu () {
-
-    echoDebug "Install on Ubuntu"
-
-    curl --output /usr/share/keyrings/nginx-keyring.gpg https://unit.nginx.org/keys/nginx-keyring.gpg
-
-    apt install -y apt-transport-https lsb-release ca-certificates
-
-    printf "deb [signed-by=/usr/share/keyrings/nginx-keyring.gpg] https://packages.nginx.org/unit/ubuntu/ %s unit\n" "$(lsb_release -cs)" | tee /etc/apt/sources.list.d/unit.list
-    printf "deb-src [signed-by=/usr/share/keyrings/nginx-keyring.gpg] https://packages.nginx.org/unit/ubuntu/ %s unit\n" "$(lsb_release -cs)" | tee -a /etc/apt/sources.list.d/unit.list
-
-    apt update
-
-    return 0
-}
-
-installRedHat () {
-
-    echoDebug "Install on RedHat/CentOS/Oracle"
-
-    case "$osVersion" in
-        6|6.*|7|7.*|8|8.*)
-            cat << __EOF__ > /etc/yum.repos.d/unit.repo
-[unit]
-name=unit repo
-baseurl=https://packages.nginx.org/unit/rhel/\$releasever/\$basearch/
-gpgcheck=0
-enabled=1
 __EOF__
+}
+
+
+unit_cmd()
+{
+    while test $# -ge 1; do
+        case "$1" in
+        -h | --help)
+            help_unit_cmd;
+            exit 0;
+            ;;
+        -*)
+            err "cmd: $1: Unknown option.";
             ;;
         *)
-            echo "Unsupported $osName version: $osVersion"
-            exit 1
+            err "cmd: $1: Unknown argument.";
             ;;
-    esac
+        esac;
+        shift;
+    done;
 
-    yum makecache
-
-    return 0
+    unit_ps -t m \
+    | sed 's/.*\[\(.*\)].*/\1/';
 }
 
-installAmazon () {
 
-    echoDebug "Install on Amazon"
+help_unit_ctl()
+{
+    cat <<__EOF__ ;
+SYNOPSIS
+        $program_name ctl [-h] [-s SOCK] SUBCOMMAND [ARGS]
 
-    case "$osVersion" in
-        2)
-            cat << __EOF__ > /etc/yum.repos.d/unit.repo
-[unit]
-name=unit repo
-baseurl=https://packages.nginx.org/unit/amzn2/\$releasever/\$basearch/
-gpgcheck=0
-enabled=1
+    Subcommands
+        +-- http    [-h] [-c CURLOPT] METHOD PATH
+        +-- insert  [-h] PATH INDEX
+
+DESCRIPTION
+        Control a running unitd(8) instance through its control socket.
+
+        Run '$program_name ctl SUBCOMMAND -h' for more information on a
+        subcommand.
+
+SUBCOMMANDS
+        http    Send an HTTP request to the control socket.
+
+        insert  Insert an element into a specified index in an array in the
+                JSON configuration.
+
+OPTIONS
+        -h, --help
+                Print this help.
+
+        -s, --sock SOCK
+                Use SOCK as the API control socket address.  If not specified,
+                the script will try to find it.  This will be used by
+                subcommands.
+
+                The socket can be a tcp(7) socket or a unix(7) socket, and in
+                the case of a unix(7) socket, it can be local, or it can be in
+                a remote machine, accessed through ssh(1).  Accepted syntax
+                for SOCK:
+
+                    unix:/path/to/control.sock
+                    ssh://[user@]host[:port]/path/to/control.sock
+                    [http[s]://]host[:port]
+
+                The last form is less secure than the first two; you should
+                have a look at:
+                <https://unit.nginx.org/howto/security/#secure-socket-and-stat>
+
+ENVIRONMENT
+        Options take precedence over their equivalent environment variables,
+        so if both are specified, the option will be used.
+
+        UNIT_CTL_SOCK
+                Equivalent to the option -s (--sock).
+
 __EOF__
-         ;;
+}
+
+
+unit_ctl()
+{
+
+    if test -v UNIT_CTL_SOCK; then
+        local sock="$UNIT_CTL_SOCK";
+    fi;
+
+    while test $# -ge 1; do
+        case "$1" in
+        -h | --help)
+            help_unit_ctl;
+            exit 0;
+            ;;
+        -s | --sock)
+            if ! test $# -ge 2; then
+                err "ctl: $1: Missing argument.";
+            fi;
+            local sock="$2";
+            shift;
+            ;;
+        -*)
+            err "ctl: $1: Unknown option.";
+            ;;
         *)
-            cat << __EOF__ > /etc/yum.repos.d/unit.repo
-[unit]
-name=unit repo
-baseurl=https://packages.nginx.org/unit/amzn/\$releasever/\$basearch/
-gpgcheck=0
-enabled=1
-__EOF__
-         ;;
-    esac
+            break;
+            ;;
+        esac;
+        shift;
+    done;
 
-    yum makecache
+    if test ! $# -ge 1; then
+        err 'ctl: Missing subcommand.';
+    fi;
 
-    return 0
-}
+    if test -v sock && echo $sock | grep '^ssh://' >/dev/null; then
+        local remote="$(echo $sock | sed 's,\(ssh://[^/]*\).*,\1,')";
+        local sock="$(echo $sock | sed 's,ssh://[^/]*\(.*\),unix:\1,')";
+    fi;
 
-installFedora () {
-
-    echoDebug "Install on Fedora"
-
-    cat << __EOF__ > /etc/yum.repos.d/unit.repo
-[unit]
-name=unit repo
-baseurl=https://packages.nginx.org/unit/fedora/\$releasever/\$basearch/
-gpgcheck=0
-enabled=1
-__EOF__
-
-    dnf makecache
-
-    return 0
-}
-
-
-am_i_root() {
-
-    USERID=$(id -u)
-    if [ 0 -ne "$USERID" ]; then
-        echoErr "This script requires root privileges to run; now exiting."
-        exit 1
-    fi
-
-    return 0
-}
-
-echoErr () {
-
-    echo "$*" 1>&2;
-}
-
-echoDebug () {
-
-    if [ "$debug" -eq 1 ]; then
-        echo "$@" 1>&2;
-    fi
-}
-
-main() {
-debug=0 # If set to 1, debug message will be displayed
-
-checkOSPrereqs
-
-# The name and location of the files that will be used to get Linux
-# release info
-osRelease="/etc/os-release"
-
-os="" # Will be "linux" or "freebsd"
-osName="" # Will be "ubuntu", "debian", "rhel",
-          # "centos", "suse", "amzn", or "freebsd"
-osVersion=""
-
-am_i_root
-
-echo "This script will setup repositories for NGINX Unit"
-
-# Check the OS
-osNameVersion=$(getOS)
-if [ -z "$osNameVersion" ]; then
-    echoErr "Error getting the operating system information"
-    exit 1
-fi
-
-# Break out the OS, name, and version
-os=$(echo "$osNameVersion" | awk -F: '{print $1}')
-osName=$(echo "$osNameVersion" | awk -F: '{print $2}')
-osVersion=$(echo "$osNameVersion" | awk -F: '{print $3}')
-
-# Call the appropriate installation function
-case "$osName" in
-    debian)
-        installDebian
+    case $1 in
+    http)
+        shift;
+        unit_ctl_http ${remote:+ ---r $remote} ${sock:+ ---s $sock} $@;
         ;;
-    ubuntu)
-        installUbuntu
-        ;;
-    rhel)
-        installRedHat
-        ;;
-    centos)
-        installRedHat
-        ;;
-    ol)
-        installRedHat
-        ;;
-    amzn)
-        installAmazon
-        ;;
-    fedora)
-        installFedora
+    insert)
+        shift;
+        unit_ctl_insert ${remote:+ ---r $remote} ${sock:+ ---s $sock} $@;
         ;;
     *)
-        echo "$osName is not supported"
-        exit 1
+        err "ctl: $1: Unknown argument.";
         ;;
-esac
-
-echo
-echo "All done - NGINX Unit repositories for "$osName" "$osVersion" are set up"
-echo "Further steps: https://unit.nginx.org/installation/#official-packages"
-
+    esac;
 }
 
-main
 
-exit 0
+help_unit_ctl_http()
+{
+    cat <<__EOF__ ;
+SYNOPSIS
+        $program_name ctl [CTL-OPTS] http [-h] [-c CURLOPT] METHOD PATH
+
+DESCRIPTION
+        Send an HTTP request to the unitd(8) control API socket.
+
+        The payload is read from standard input.
+
+OPTIONS
+        -c, --curl CURLOPT
+                Pass CURLOPT as an option to curl.  This script is implemented
+                in terms of curl(1), so it's useful to be able to tweak its
+                behavior.  It can be used multiple times, which will be
+                appended (and also appended to the contents of
+                UNIT_CTL_HTTP_CURLOPTS).
+
+        -h, --help
+                Print this help.
+
+ENVIRONMENT
+        UNIT_CTL_HTTP_CURLOPTS
+                Equivalent to the option -c (--curl).
+
+EXAMPLES
+        $program_name ctl http -c --no-progress-meter GET /config >tmp;
+
+SEE ALSO
+        <https://unit.nginx.org/controlapi/#api-manipulation>
+
+__EOF__
+}
+
+
+unit_ctl_http()
+{
+    local curl_options="${UNIT_CTL_HTTP_CURLOPTS:-}";
+
+    while test $# -ge 1; do
+        case "$1" in
+        -c | --curl)
+            if ! test $# -ge 2; then
+                err "ctl: http: $1: Missing argument.";
+            fi;
+            curl_options="$curl_options $2";
+            shift;
+            ;;
+        -h | --help)
+            help_unit_ctl_http;
+            exit 0;
+            ;;
+        ---r | ----remote)
+            local remote="$2";
+            shift;
+            ;;
+        ---s | ----sock)
+            local sock="$2";
+            shift;
+            ;;
+        -*)
+            err "ctl: http: $1: Unknown option.";
+            ;;
+        *)
+            break;
+            ;;
+        esac;
+        shift;
+    done;
+
+    if ! test $# -ge 1; then
+        err 'ctl: http: METHOD: Missing argument.';
+    fi;
+    local method="$1";
+
+    if ! test $# -ge 2; then
+        err 'ctl: http: PATH: Missing argument.';
+    fi;
+    local req_path="$2";
+
+    if test -v remote; then
+        local remote_sock="$(echo "$sock" | unit_sock_filter -s)";
+        local local_sock="$(mktemp -u -p /var/run/unit/)";
+        local ssh_ctrl="$(mktemp -u -p /var/run/unit/)";
+
+        mkdir -p /var/run/unit/;
+
+        ssh -fMNnT -S "$ssh_ctrl" \
+                   -o 'ExitOnForwardFailure yes' \
+                   -L "$local_sock:$remote_sock" "$remote";
+
+        sock="unix:$local_sock";
+
+    elif ! test -v sock; then
+        local sock="$(unit_sock_find)";
+    fi;
+
+    curl $curl_options -X $method -d@- \
+            $(echo "$sock" | unit_sock_filter -c)${req_path} \
+    ||:;
+
+    if test -v remote; then
+        ssh -S "$ssh_ctrl" -O exit "$remote" 2>/dev/null;
+        unlink "$local_sock";
+    fi;
+}
+
+
+help_unit_ctl_insert()
+{
+    cat <<__EOF__ ;
+SYNOPSIS
+        $program_name ctl [CTL-OPTS] insert [-h] PATH INDEX
+
+DESCRIPTION
+        Insert an element into a specified position (INDEX) in the JSON array
+        in the unitd(8) configuration API at PATH.
+
+        The new element is read from standard input.
+
+OPTIONS
+        -h, --help
+                Print this help.
+
+SEE ALSO
+        $program_name ctl http -h;
+
+__EOF__
+}
+
+
+unit_ctl_insert()
+{
+    while test $# -ge 1; do
+        case "$1" in
+        -h | --help)
+            help_unit_ctl_insert;
+            exit 0;
+            ;;
+        ---r | ----remote)
+            local remote="$2";
+            shift;
+            ;;
+        ---s | ----sock)
+            local sock="$2";
+            shift;
+            ;;
+        -*)
+            err "ctl: insert: $1: Unknown option.";
+            ;;
+        *)
+            break;
+            ;;
+        esac;
+        shift;
+    done;
+
+    if ! test $# -ge 1; then
+        err 'ctl: insert: PATH: Missing argument.';
+    fi;
+    local req_path="$1";
+
+    if ! test $# -ge 2; then
+        err 'ctl: insert: INDEX: Missing argument.';
+    fi;
+    local idx="$2";
+
+    if test -v remote; then
+        local remote_sock="$(echo "$sock" | unit_sock_filter -s)";
+        local local_sock="$(mktemp -u -p /var/run/unit/)";
+        local ssh_ctrl="$(mktemp -u -p /var/run/unit/)";
+
+        mkdir -p /var/run/unit/;
+
+        ssh -fMNnT -S "$ssh_ctrl" \
+                   -o 'ExitOnForwardFailure yes' \
+                   -L "$local_sock:$remote_sock" "$remote";
+
+        sock="unix:$local_sock";
+
+    elif ! test -v sock; then
+        local sock="$(unit_sock_find)";
+    fi;
+
+    local old="$(mktemp ||:)";
+
+    unit_ctl_http ---s "$sock" -c --no-progress-meter GET "$req_path" \
+            </dev/null >"$old" \
+    ||:;
+
+    unit_json_ins "$old" "$idx" \
+    | unit_ctl_http ---s "$sock" PUT "$req_path" \
+    ||:;
+
+    if test -v remote; then
+        ssh -S "$ssh_ctrl" -O exit "$remote" 2>/dev/null;
+        unlink "$local_sock";
+    fi;
+}
+
+
+help_unit_ctl_welcome()
+{
+    cat <<__EOF__ ;
+SYNOPSIS
+        $program_name welcome [-hn]
+
+DESCRIPTION
+        This script tests an NGINX Unit instalation by creating an initial
+        configuration and serving a welcome web page.  Recommended for
+        first-time users.
+
+OPTIONS
+        -h, --help
+                Print this help.
+
+        -n, --dry-run
+                Dry run.  Print the commands to be run instea of actually
+                running them.  Each command is preceded by a line explaining
+                what it does.
+
+__EOF__
+}
+
+
+unit_ctl_welcome()
+{
+    while test $# -ge 1; do
+        case "$1" in
+        -f | --force)
+            local force='yes';
+            ;;
+        -h | --help)
+            help_unit_ctl_welcome;
+            exit 0;
+            ;;
+        -n | --dry-run)
+            dry_run='yes';
+            ;;
+        -*)
+            err "welcome: $1: Unknown option.";
+            ;;
+        *)
+            err "welcome: $1: Unknown argument.";
+            ;;
+        esac;
+        shift;
+    done;
+
+    id -u \
+    | xargs test 0 -ne \
+    && err 'welcome: This script requires root privileges to run.';
+
+    command -v curl >/dev/null \
+    || err 'welcome: curl(1) not found in PATH.  It must be installed to run this script.';
+
+    www='/srv/www/unit/index.html';
+    if test -e "$www" && ! test -v force || ! test -w /srv; then
+        www="$(mktemp)";
+        mv "$www" "$www.html";
+        www="$www.html"
+    fi;
+
+    unit_ps -t m \
+    | wc -l \
+    | read -r nprocs \
+    ||:
+
+    if test 0 -eq "$nprocs"; then
+        warn "welcome: NGINX Unit isn't running.";
+        warn 'For help starting NGINX Unit, see:';
+        err  "  <https://unit.nginx.org/installation/#startup-and-shutdown>";
+    elif test 1 -ne "$nprocs"; then
+        err 'welcome: Only one NGINX Unit instance should be running.';
+    fi;
+
+    local sock="$(unit_sock_find)";
+    local curl_opt="$(unit_sock_find | unit_sock_filter -c)";
+
+    curl $curl_opt/ >/dev/null 2>&1 \
+    || err "welcome: Can't reach the control socket.";
+
+    if ! test -v force; then
+        unit_cmd \
+        | read -r cmd;
+
+        # Check unitd is not configured already.
+        echo "$cmd" \
+        | if grep '\--state' >/dev/null; then
+            echo "$cmd" \
+            | sed 's/ --/\n--/g' \
+            | grep '\--state' \
+            | cut -d' ' -f2;
+        else
+            $cmd --help \
+            | sed -n '/\--state/,+1p' \
+            | grep 'default:' \
+            | sed 's/ *default: "\(.*\)"/\1/';
+        fi \
+        | sed 's,$,/conf.json,' \
+        | read -r conffile \
+        ||:;
+
+        if test -e $conffile; then
+            if ! unit_ctl_http ---s "$sock" 'GET' '/config' </dev/null 2>/dev/null | grep -q '^{}.\?$';  # The '.\?' is for the possible carriage return.
+            then
+                warn 'welcome: NGINX Unit is already configured.  If you are sure you want';
+                err  'to overwrite its current configuration, run again with --force.';
+            fi;
+        fi;
+    fi;
+
+    (
+        unit_freeport \
+        || err "welcome: Can't find an available port.";
+    ) \
+    | read -r port;
+
+    dry_run_echo 'Create a file to serve:';
+    dry_run_eval "mkdir -p $(dirname $www);";
+    dry_run_eval "cat >'$www'"' <<__EOF__;
+        <!DOCTYPE html>
+        <html>
+            <head>
+                <title>Welcome to NGINX Unit</title>
+                <style type="text/css">
+                    body { background: white; color: black; font-family: sans-serif; margin: 2em; line-height: 1.5; }
+                    h1,h2 { color: #00974d; }
+                    li { margin-bottom: 0.5em; }
+                    pre { background-color: beige; padding: 0.4em; }
+                    hr { margin-top: 2em; border: 1px solid #00974d; }
+                    .indent { margin-left: 1.5em; }
+                </style>
+            </head>
+            <body>
+                <h1>Welcome to NGINX Unit</h1>
+                <p>Congratulations! NGINX Unit is installed and running.</p>
+                <h3>Useful Links</h3>
+                <ul>
+                    <li><b><a href="https://unit.nginx.org/configuration/?referer=welcome">https://unit.nginx.org/configuration/</a></b><br>
+                        To get started with Unit, see the <em>Configuration</em> docs, starting with
+                        the <em>Quick Start</em> guide.</li>
+                    <li><b><a href="https://github.com/nginx/unit">https://github.com/nginx/unit</a></b><br>
+                        See our GitHub repo to browse the code, contribute, or seek help from the
+                        <a href="https://github.com/nginx/unit#community">community</a>.</li>
+                </ul>
+
+                <h2>Next steps</h2>
+
+                <h3>Check Current Configuration</h3>
+                <div class="indent">
+                <p>Unit'"'"'s control API is currently listening for configuration changes
+                   on the '"$(unit_sock_find | grep -q '^unix:' && echo '<a href="https://en.wikipedia.org/wiki/Unix_domain_socket">Unix socket</a>' || echo 'socket')"' at
+                   <b>'"$(unit_sock_find)"'</b><br>
+                   To see the current configuration:</p>
+                <pre>'"${SUDO_USER:+sudo }"'curl '"$curl_opt"'/config</pre>
+                </div>
+
+                <h3>Change Listener Port</h3>
+                <div class="indent">
+                <p>This page is served over a random TCP high port.  To choose the default HTTP port (80),
+                   replace the <b>"listeners"</b> object:</p>
+                <pre>echo '"'"'{"*:80": {"pass": "routes"}}'"'"' | '"${SUDO_USER:+sudo }"'curl -X PUT -d@- '"$curl_opt"'/config/listeners</pre>
+                Then remove the port number from the address bar and reload the page.
+                </div>
+
+                <hr>
+                <p><a href="https://unit.nginx.org/?referer=welcome">NGINX Unit &mdash; the universal web app server</a><br>
+                NGINX, Inc. &copy; 2022</p>
+            </body>
+        </html>
+__EOF__';
+    dry_run_echo;
+    dry_run_echo 'Give it appropriate permissions:';
+    dry_run_eval "chmod 644 '$www';";
+    dry_run_echo;
+
+    dry_run_echo 'Configure unitd:'
+    dry_run_eval "cat <<__EOF__ \\
+        | sed 's/8080/$port/' \\
+        | curl -X PUT -d@- $curl_opt/config;
+        {
+            \"listeners\": {
+                \"*:8080\": {
+                    \"pass\": \"routes\"
+                }
+            },
+            \"routes\": [{
+                \"action\": {
+                    \"share\": \"$www\"
+                }
+            }]
+        }
+__EOF__";
+
+    dry_run_echo;
+
+    echo;
+    echo 'You may want to try the following commands now:';
+    echo;
+    echo 'Check out current unitd configuration:';
+    echo "    ${SUDO_USER:+sudo} curl $curl_opt/config";
+    echo;
+    echo 'Browse the welcome page:';
+    echo "    curl http://localhost:$port/";
+}
+
+
+help_unit_freeport()
+{
+    cat <<__EOF__ ;
+SYNOPSIS
+        $program_name freeport [-h]
+
+DESCRIPTION
+        Print an available TCP port.
+
+OPTIONS
+        -h, --help
+                Print this help.
+
+__EOF__
+}
+
+
+unit_freeport()
+{
+    while test $# -ge 1; do
+        case "$1" in
+        -h | --help)
+            help_unit_freeport;
+            exit 0;
+            ;;
+        -*)
+            err "freeport: $1: Unknown option.";
+            ;;
+        *)
+            err "freeport: $1: Unknown argument.";
+            ;;
+        esac;
+        shift;
+    done;
+
+    freeport="$(mktemp -t freeport-XXXXXX)";
+
+    cat <<__EOF__ \
+    | cc -x c -o $freeport -;
+        #include <netinet/in.h>
+        #include <stdio.h>
+        #include <stdlib.h>
+        #include <strings.h>
+        #include <sys/socket.h>
+        #include <unistd.h>
+
+
+        int32_t get_free_port(void);
+
+
+        int
+        main(void)
+        {
+            int32_t  port;
+
+            port = get_free_port();
+            if (port == -1)
+                exit(EXIT_FAILURE);
+
+            printf("%d\n", port);
+            exit(EXIT_SUCCESS);
+        }
+
+
+        int32_t
+        get_free_port(void)
+        {
+            int                 sfd;
+            int32_t             port;
+            socklen_t           len;
+            struct sockaddr_in  addr;
+
+            port = -1;
+
+            sfd = socket(PF_INET, SOCK_STREAM, 0);
+            if (sfd == -1) {
+                perror("socket()");
+                return -1;
+            }
+
+            bzero(&addr, sizeof(addr));
+            addr.sin_family = AF_INET;
+            addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+            addr.sin_port = htons(0);  // random port
+
+            len = sizeof(addr);
+            if (bind(sfd, (struct sockaddr *) &addr, len)) {
+                perror("bind()");
+                goto fail;
+            }
+
+            if (getsockname(sfd, (struct sockaddr *) &addr, &len)) {
+                perror("getsockname()");
+                goto fail;
+            }
+
+            port = ntohs(addr.sin_port);
+
+        fail:
+            close(sfd);
+            return port;
+        }
+__EOF__
+
+    $freeport;
+}
+
+
+help_unit_json_ins()
+{
+cat <<__EOF__ ;
+SYNOPSIS
+        $program_name json-ins [-hn] JSON INDEX
+
+ARGUMENTS
+        JSON    Path to a JSON file containing a top-level array.
+
+        INDEX   Position in the array where to insert the element.
+
+DESCRIPTION
+        Insert a JSON element read from standard input into a JSON array read
+        from a file at a given INDEX.
+
+        The resulting array is printed to standard output.
+
+OPTIONS
+        -h, --help
+                Print this help.
+
+        -n, --dry-run
+                Dry run.  Print the command to be run instead of actually
+                running it.
+
+__EOF__
+}
+
+
+unit_json_ins()
+{
+    while test $# -ge 1; do
+        case "$1" in
+        -h | --help)
+            help_unit_json_ins;
+            exit 0;
+            ;;
+        -n | --dry-run)
+            dry_run='yes';
+            ;;
+        -*)
+            err "json-ins: $1: Unknown option.";
+            ;;
+        *)
+            break;
+            ;;
+        esac;
+        shift;
+    done;
+
+    if ! test $# -ge 1; then
+        err 'json-ins: JSON: Missing argument.';
+    fi;
+    local arr=$1;
+
+    if ! test $# -ge 2; then
+        err 'json-ins: INDEX: Missing argument.';
+    fi;
+    local idx=$2;
+
+    dry_run_eval "(
+        jq '.[0:$idx]' <'$arr';
+        echo '[';
+        jq .;
+        echo ']';
+        jq '.[$idx:]' <'$arr';
+    ) \\
+    | sed '/^\[]$/d' \\
+    | sed '/^]$/{N;s/^]\n\[$/,/}' \\
+    | jq .;"
+}
+
+
+help_unit_os_probe()
+{
+    cat <<__EOF__ ;
+SYNOPSIS
+        $program_name os-probe [-h]
+
+DESCRIPTION
+        This script probes the OS, and prints details about the version.  It
+        prints three fields, delimited by ':'; the first is the package manager,
+        the second is the OS name, and the third is the OS version.
+
+OPTIONS
+        -h, --help
+                Print this help.
+
+__EOF__
+}
+
+
+unit_os_probe()
+{
+    while test $# -ge 1; do
+        case "$1" in
+        -h | --help)
+            help_unit_os_probe;
+            exit 0;
+            ;;
+        -*)
+            err "os-probe: $1: Unknown option.";
+            ;;
+        *)
+            err "os-probe: $1: Unknown argument.";
+            ;;
+        esac;
+        shift;
+    done;
+
+    local os=$(uname | tr '[:upper:]' '[:lower:]')
+
+    if [ "$os" != 'linux' ] && [ "$os" != 'freebsd' ]; then
+        err "os-probe: The OS isn't Linux or FreeBSD, can't proceed."
+    fi
+
+    if [ "$os" = 'linux' ]; then
+        if command -v apt-get >/dev/null; then
+            local pkgMngr='apt';
+        elif command -v dnf >/dev/null; then
+            local pkgMngr='dnf';
+        elif command -v yum >/dev/null; then
+            local pkgMngr='yum';
+        else
+            local pkgMngr='';
+        fi;
+
+        local osRelease='/etc/os-release';
+
+        if [ -f "$osRelease" ]; then
+            # The value for the ID and VERSION_ID may or may not be in quotes
+            local osName=$(grep "^ID=" "$osRelease" | sed s/\"//g | awk -F= '{ print $2 }' ||:)
+            local osVersion=$(grep '^VERSION_ID=' "$osRelease" | sed s/\"//g | awk -F= '{ print $2 }' || lsb_release -cs)
+        else
+            err "os-probe: Unable to determine OS and version, or the OS isn't supported"
+        fi
+    else
+        local pkgMngr='pkg';
+        local osName=$os
+        local osVersion=$(uname -rs | awk -F '[ -]' '{print $2}' ||:)
+        if [ -z "$osVersion" ]; then
+            err 'os-probe: Unable to get the FreeBSD version'
+        fi
+    fi
+
+    osName=$(echo "$osName" | tr '[:upper:]' '[:lower:]')
+    echo "$pkgMngr:$osName:$osVersion"
+}
+
+
+help_unit_ps()
+{
+    cat <<__EOF__ ;
+SYNOPSIS
+        $program_name ps [-h] [-t TYPE]
+
+DESCRIPTION
+        List unitd(8) processes.
+
+OPTIONS
+        -h, --help
+                Print this help.
+
+        -t, --type TYPE
+                List only processes of type TYPE.  The available types are:
+
+                -  controller (c)
+                -  main (m)
+                -  router (r)
+
+__EOF__
+}
+
+
+unit_ps()
+{
+    while test $# -ge 1; do
+        case "$1" in
+        -h | --help)
+            help_unit_ps;
+            exit 0;
+            ;;
+        -t | --type)
+            if ! test $# -ge 2; then
+                err "ps: $1: Missing argument.";
+            fi;
+            local type=;
+            case "$2" in
+            c | controller)
+                local type_c='c';
+                ;;
+            m | main)
+                local type_m='m';
+                ;;
+            r | router)
+                local type_r='r';
+                ;;
+            esac;
+            shift;
+            ;;
+        -*)
+            err "ps: $1: Unknown option.";
+            ;;
+        *)
+            err "ps: $1: Unknown argument.";
+            ;;
+        esac;
+        shift;
+    done;
+
+    ps ax \
+    | if test -v type; then
+        grep ${type_c:+-e 'unit: controller'} \
+             ${type_m:+-e 'unit: main'} \
+             ${type_r:+-e 'unit: router'};
+    else
+        grep 'unit: ';
+    fi \
+    | grep -v grep \
+    ||:
+}
+
+
+help_unit_repo_config()
+{
+    cat <<__EOF__ ;
+SYNOPSIS
+        $program_name repo-config [-hn] [PKG-MANAGER OS-NAME OS-VERSION]
+
+DESCRIPTION
+        This script configures the NGINX Unit repository for the system
+        package manager.
+
+        The script automatically detects your OS, and works accordingly.
+        However, in case the automatic selection fails, you may specify the
+        package manager and the OS name and version.
+
+ARGUMENTS
+        PKG-MANAGER
+                Supported: 'apt', 'dnf', and 'yum'.
+
+        OS-NAME
+                Supported: 'debian', 'ubuntu', 'fedora', 'rhel', and 'amzn2'.
+
+        OS-VERSION
+                For most distributions this should be a numeric value, but for
+                debian derivatives, the codename should be used.
+
+OPTIONS
+        -h, --help
+                Print this help.
+
+        -n, --dry-run
+                Dry run.  Print the commands to be run instea of actually
+                running them.  Each command is preceded by a line explaining
+                what it does.
+
+EXAMPLES
+        $ $prog_name repo-config apt debian bullseye;
+        $ $prog_name repo-config apt ubuntu jammy;
+        $ $prog_name repo-config dnf fedora 36;
+        $ $prog_name repo-config dnf rhel 9;
+        $ $prog_name repo-config yum amzn2 2;
+
+__EOF__
+}
+
+
+unit_repo_config()
+{
+    installAPT ()
+    {
+        local os_name="$2";
+
+        dry_run_echo "Install on $os_name";
+        dry_run_echo;
+        dry_run_eval 'curl --output /usr/share/keyrings/nginx-keyring.gpg https://unit.nginx.org/keys/nginx-keyring.gpg;';
+        dry_run_echo;
+        dry_run_eval 'apt-get install -y apt-transport-https lsb-release ca-certificates;';
+
+        if test $# -ge 3; then
+            local os_version="$3";
+        else
+            local os_version='$(lsb_release -cs)';
+        fi;
+
+        dry_run_echo;
+        dry_run_eval "printf 'deb [signed-by=/usr/share/keyrings/nginx-keyring.gpg] https://packages.nginx.org/unit/$os_name/ %s unit\n' \"$os_version\" | tee /etc/apt/sources.list.d/unit.list;";
+        dry_run_eval "printf 'deb-src [signed-by=/usr/share/keyrings/nginx-keyring.gpg] https://packages.nginx.org/unit/$os_name/ %s unit\n' \"$os_version\" | tee -a /etc/apt/sources.list.d/unit.list;";
+        dry_run_echo;
+        dry_run_eval 'apt-get update;';
+    }
+
+    installYumDnf ()
+    {
+        local pkg_mngr="$1";
+        local os_name="$2";
+
+        if test $# -ge 3; then
+            local os_version="$3";
+        else
+            local os_version='\$releasever';
+        fi;
+
+        dry_run_echo "Install on $os_name";
+        dry_run_echo;
+
+        dry_run_eval "cat >/etc/yum.repos.d/unit.repo <<__EOF__
+[unit]
+name=unit repo
+baseurl=https://packages.nginx.org/unit/$os_name/$os_version/\\\$basearch/
+gpgcheck=0
+enabled=1
+__EOF__";
+
+        dry_run_echo;
+        dry_run_eval "$pkg_mngr makecache;";
+    }
+
+    while test $# -ge 1; do
+        case "$1" in
+        -h | --help)
+            help_unit_repo_config;
+            exit 0;
+            ;;
+        -n | --dry-run)
+            dry_run='yes';
+            ;;
+        -*)
+            err "repo-config: $1: Unknown option.";
+            ;;
+        *)
+            break;
+            ;;
+        esac;
+        shift;
+    done;
+
+    if test $# -ge 1; then
+        local pkg_mngr="$1";
+
+        if ! test $# -ge 2; then
+            err "repo-config: OS-NAME: Missing argument.";
+        fi;
+        local os_name="$2";
+
+        if ! test $# -ge 3; then
+            err "repo-config: OS-VERSION: Missing argument.";
+        fi;
+        local os_version="$3";
+    fi;
+
+    command -v curl >/dev/null \
+    || err 'repo-config: curl(1) not found in PATH.  It must be installed to run this script.';
+
+    id -u \
+    | xargs test 0 -ne \
+    && err 'repo-config: This script requires root privileges to run.';
+
+    echo 'This script sets up the NGINX Unit repository';
+
+    if ! test $# -ge 3; then
+        local os_pkg_name_version=$(unit_os_probe || warn "On macOS, try 'brew install nginx/unit/unit'.")
+        local pkg_mngr=$(echo "$os_pkg_name_version" | awk -F: '{print $1}')
+        local os_name=$(echo "$os_pkg_name_version" | awk -F: '{print $2}')
+        local os_version=$(echo "$os_pkg_name_version" | awk -F: '{print $3}')
+    fi;
+
+    # Call the appropriate installation function
+    case "$pkg_mngr" in
+    apt)
+        case "$os_name" in
+        debian | ubuntu)
+            installAPT "$pkg_mngr" "$os_name" ${3:+$os_version};
+            ;;
+        *)
+            err "repo-config: $os_name: The OS isn't supported";
+            ;;
+        esac
+        ;;
+    yum | dnf)
+        case "$os_name" in
+        rhel | amzn | fedora)
+            installYumDnf "$pkg_mngr" "$os_name" "$os_version" ${3:+ovr};
+            ;;
+        *)
+            err "repo-config: $os_name: The OS isn't supported";
+            ;;
+        esac;
+        ;;
+    *)
+        err "repo-config: $pkg_mngr: The package manager isn't supported";
+        ;;
+    esac;
+
+    echo
+    echo 'All done; the NGINX Unit repository is set up.';
+    echo "Configured with '$pkg_mngr' on '$os_name' '$os_version'.";
+    echo 'Further steps: <https://unit.nginx.org/installation/#official-packages>'
+}
+
+
+help_unit_sock()
+{
+    cat <<__EOF__ ;
+SYNOPSIS
+        $program_name sock [-h] SUBCOMMAND [ARGS]
+
+    Subcommands
+        +-- filter  [-ch]
+        +-- find    [-h]
+
+DESCRIPTION
+        Print the address of the control API socket of running instances of
+        unitd(8).
+
+        Run '$program_name sock SUBCOMMAND -h' for more information on a
+        subcommand.
+
+SUBCOMMANDS
+        filter  Filter the output of the 'find' subcommand, and transform it
+                to something suitable to run other commands, such as curl(1)
+                or ssh(1).
+
+        find    Find and print the address of the control API socket of
+                running instances of unitd(8).
+
+OPTIONS
+        -h, --help
+                Print this help.
+
+__EOF__
+}
+
+
+unit_sock()
+{
+    while test $# -ge 1; do
+        case "$1" in
+        -h | --help)
+            help_unit_sock;
+            exit 0;
+            ;;
+        -*)
+            err "sock: $1: Unknown option.";
+            ;;
+        *)
+            break;
+            ;;
+        esac;
+        shift;
+    done;
+
+    if ! test $# -ge 1; then
+        err 'sock: Missing subcommand.';
+    fi;
+
+    case $1 in
+    filter)
+        shift;
+        unit_sock_filter $@;
+        ;;
+    find)
+        shift;
+        unit_sock_find $@;
+        ;;
+    *)
+        err "sock: $1: Unknown subcommand.";
+        ;;
+    esac;
+}
+
+
+help_unit_sock_filter()
+{
+    cat <<__EOF__ ;
+SYNOPSIS
+        $program_name sock filter [-chs]
+
+DESCRIPTION
+        Filter the output of the 'sock find' command, and transform it to
+        something suitable to run other commands, such as curl(1) or ssh(1).
+
+OPTIONS
+        -c, --curl
+                Print an argument suitable for curl(1).
+
+        -h, --help
+                Print this help.
+
+        -s, --ssh
+                Print a socket address suitable for use in an ssh(1) tunnel.
+
+__EOF__
+}
+
+
+unit_sock_filter()
+{
+    while test $# -ge 1; do
+        case "$1" in
+        -c | --curl)
+            if test -v ssh_flag; then
+                err "sock: filter: $1: Missing argument.";
+            fi;
+            local curl_flag='yes';
+            ;;
+        -h | --help)
+            help_unit_sock_filter;
+            exit 0;
+            ;;
+        -s | --ssh)
+            if test -v curl_flag; then
+                err "sock: filter: $1: Missing argument.";
+            fi;
+            local ssh_flag='yes';
+            ;;
+        -*)
+            err "sock: filter: $1: Unknown option.";
+            ;;
+        *)
+            err "sock: filter: $1: Unknown argument.";
+            ;;
+        esac;
+        shift;
+    done;
+
+    while read -r control; do
+
+        if test -v curl_flag; then
+            if echo "$control" | grep '^unix:' >/dev/null; then
+                unix_socket="$(echo "$control" | sed 's/unix:/--unix-socket /')";
+                host='http://localhost';
+            else
+                unix_socket='';
+                host="$control";
+            fi;
+
+            echo "$unix_socket $host";
+
+        elif test -v ssh_flag; then
+            echo "$control" \
+            | sed -E 's,^(unix:|http://|https://),,';
+
+        else
+            echo "$control";
+        fi;
+    done;
+}
+
+
+help_unit_sock_find()
+{
+    cat <<__EOF__ ;
+SYNOPSIS
+        $program_name sock find [-h]
+
+DESCRIPTION
+        Find and print the address of the control API socket of running
+        instances of unitd(8).
+
+OPTIONS
+        -h, --help
+                Print this help.
+
+__EOF__
+}
+
+
+unit_sock_find()
+{
+    while test $# -ge 1; do
+        case "$1" in
+        -h | --help)
+            help_unit_sock_find;
+            exit 0;
+            ;;
+        -*)
+            err "sock: find: $1: Unknown option.";
+            ;;
+        *)
+            err "sock: find: $1: Unknown argument.";
+            ;;
+        esac;
+        shift;
+    done;
+
+    unit_cmd \
+    | while read -r cmd; do
+        if echo "$cmd" | grep '\--control' >/dev/null; then
+            echo "$cmd" \
+            | sed 's/ --/\n--/g' \
+            | grep '\--control' \
+            | cut -d' ' -f2;
+        else
+            if ! command -v $cmd >/dev/null; then
+                local cmd='unitd';
+            fi;
+            $cmd --help \
+            | sed -n '/\--control/,+1p' \
+            | grep 'default:' \
+            | sed 's/ *default: "\(.*\)"/\1/';
+        fi;
+    done;
+}
+
+
+while test $# -ge 1; do
+    case "$1" in
+    -h | --help)
+        help_unit;
+        exit 0;
+        ;;
+    --help-more)
+        help_more_unit;
+        exit 0;
+        ;;
+    -*)
+        err "$1: Unknown option.";
+        ;;
+    *)
+        break;
+        ;;
+    esac;
+    shift;
+done;
+
+if ! test $# -ge 1; then
+    err "Missing command.";
+fi;
+
+case $1 in
+cmd)
+    shift;
+    unit_cmd $@;
+    ;;
+ctl)
+    shift;
+    unit_ctl $@;
+    ;;
+freeport)
+    shift;
+    unit_freeport $@;
+    ;;
+json-ins)
+    shift;
+    unit_json_ins $@;
+    ;;
+os-probe)
+    shift;
+    unit_os_probe $@;
+    ;;
+ps)
+    shift;
+    unit_ps $@;
+    ;;
+repo-config)
+    shift;
+    unit_repo_config $@;
+    ;;
+sock)
+    shift;
+    unit_sock $@;
+    ;;
+welcome)
+    shift;
+    unit_ctl_welcome $@;
+    ;;
+*)
+    err "$1: Unknown command.";
+    ;;
+esac;
