@@ -49,7 +49,6 @@ typedef struct {
 typedef struct {
     char                       *home;
     nxt_conf_value_t           *path;
-    char                       *callable;
     nxt_str_t                  protocol;
     uint32_t                   threads;
     uint32_t                   thread_stack_size;
