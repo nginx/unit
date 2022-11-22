@@ -15,8 +15,13 @@ struct nxt_js_s {
 struct nxt_js_conf_s {
     nxt_mp_t            *pool;
     njs_vm_t            *vm;
+    njs_uint_t          protos;
+    njs_external_t      *proto;
     nxt_array_t         *funcs;
 };
+
+
+njs_int_t  nxt_js_proto_id;
 
 
 nxt_js_conf_t *
@@ -48,6 +53,14 @@ nxt_js_conf_new(nxt_mp_t *mp)
 }
 
 
+void
+nxt_js_set_proto(nxt_js_conf_t *jcf, njs_external_t *proto, njs_uint_t n)
+{
+    jcf->protos = n;
+    jcf->proto = proto;
+}
+
+
 nxt_js_t *
 nxt_js_add_tpl(nxt_js_conf_t *jcf, nxt_str_t *str, nxt_bool_t strz)
 {
@@ -56,7 +69,8 @@ nxt_js_add_tpl(nxt_js_conf_t *jcf, nxt_str_t *str, nxt_bool_t strz)
     nxt_js_t   *js;
     nxt_str_t  *func;
 
-    static nxt_str_t  func_str = nxt_string("function() {"
+    static nxt_str_t  func_str = nxt_string("function(uri, host, remoteAddr, "
+                                            "args, headers, cookies) {"
                                             "    return ");
 
     /*
@@ -140,6 +154,12 @@ nxt_js_compile(nxt_js_conf_t *jcf)
 
     *p++ = ']';
 
+    nxt_js_proto_id = njs_vm_external_prototype(jcf->vm, jcf->proto,
+                                                jcf->protos);
+    if (nxt_slow_path(nxt_js_proto_id < 0)) {
+        return NXT_ERROR;
+    }
+
     ret = njs_vm_compile(jcf->vm, &start, p);
 
     return (ret == NJS_OK) ? NXT_OK : NXT_ERROR;
@@ -187,7 +207,14 @@ nxt_js_call(nxt_task_t *task, nxt_js_cache_t *cache, nxt_js_t *js,
     njs_str_t           res;
     njs_value_t         *array, *value;
     njs_function_t      *func;
-    njs_opaque_value_t  opaque_value;
+    njs_opaque_value_t  opaque_value, arguments[6];
+
+    static const njs_str_t  uri_str = njs_str("uri");
+    static const njs_str_t  host_str = njs_str("host");
+    static const njs_str_t  remote_addr_str = njs_str("remoteAddr");
+    static const njs_str_t  args_str = njs_str("args");
+    static const njs_str_t  headers_str = njs_str("headers");
+    static const njs_str_t  cookies_str = njs_str("cookies");
 
     vm = cache->vm;
 
@@ -211,7 +238,49 @@ nxt_js_call(nxt_task_t *task, nxt_js_cache_t *cache, nxt_js_t *js,
     value = njs_vm_array_prop(vm, &cache->array, js->index, &opaque_value);
     func = njs_value_function(value);
 
-    ret = njs_vm_call(vm, func, NULL, 0);
+    ret = njs_vm_external_create(vm, njs_value_arg(&opaque_value),
+                                 nxt_js_proto_id, ctx, 0);
+    if (nxt_slow_path(ret != NJS_OK)) {
+        return NXT_ERROR;
+    }
+
+    value = njs_vm_object_prop(vm, njs_value_arg(&opaque_value), &uri_str,
+                               &arguments[0]);
+    if (nxt_slow_path(value == NULL)) {
+        return NXT_ERROR;
+    }
+
+    value = njs_vm_object_prop(vm, njs_value_arg(&opaque_value), &host_str,
+                               &arguments[1]);
+    if (nxt_slow_path(value == NULL)) {
+        return NXT_ERROR;
+    }
+
+    value = njs_vm_object_prop(vm, njs_value_arg(&opaque_value),
+                               &remote_addr_str, &arguments[2]);
+    if (nxt_slow_path(value == NULL)) {
+        return NXT_ERROR;
+    }
+
+    value = njs_vm_object_prop(vm, njs_value_arg(&opaque_value), &args_str,
+                               &arguments[3]);
+    if (nxt_slow_path(value == NULL)) {
+        return NXT_ERROR;
+    }
+
+    value = njs_vm_object_prop(vm, njs_value_arg(&opaque_value), &headers_str,
+                               &arguments[4]);
+    if (nxt_slow_path(value == NULL)) {
+        return NXT_ERROR;
+    }
+
+    value = njs_vm_object_prop(vm, njs_value_arg(&opaque_value), &cookies_str,
+                               &arguments[5]);
+    if (nxt_slow_path(value == NULL)) {
+        return NXT_ERROR;
+    }
+
+    ret = njs_vm_call(vm, func, njs_value_arg(&arguments), 6);
 
     rc = njs_vm_retval_string(vm, &res);
     if (rc != NJS_OK) {

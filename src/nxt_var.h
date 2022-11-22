@@ -49,6 +49,8 @@ nxt_int_t nxt_var_test(nxt_str_t *str, nxt_array_t *fields, u_char *error);
 
 nxt_int_t nxt_var_interpreter(nxt_task_t *task, nxt_var_cache_t *cache,
     nxt_var_t *var, nxt_str_t *str, void *ctx, nxt_bool_t logging);
+nxt_str_t *nxt_var_get(nxt_task_t *task, nxt_var_cache_t *cache,
+    nxt_str_t *name, void *ctx);
 
 
 #endif /* _NXT_VAR_H_INCLUDED_ */
