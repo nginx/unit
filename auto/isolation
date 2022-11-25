@@ -90,7 +90,7 @@ nxt_feature_test="#include <mntent.h>
 
 
 nxt_feature="prctl(PR_SET_NO_NEW_PRIVS)"
-nxt_feature_name=NXT_HAVE_PR_SET_NO_NEW_PRIVS0
+nxt_feature_name=NXT_HAVE_PR_SET_NO_NEW_PRIVS
 nxt_feature_run=no
 nxt_feature_incs=
 nxt_feature_libs=
