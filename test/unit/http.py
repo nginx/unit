@@ -102,7 +102,9 @@ class TestHTTP:
             if 'read_buffer_size' in kwargs:
                 recvall_kwargs['buff_size'] = kwargs['read_buffer_size']
 
-            resp = self.recvall(sock, **recvall_kwargs).decode(encoding)
+            resp = self.recvall(sock, **recvall_kwargs).decode(
+                encoding, errors='ignore'
+            )
 
         else:
             return sock
