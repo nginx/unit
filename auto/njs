@@ -5,10 +5,18 @@
 nxt_found=no
 NXT_HAVE_NJS=NO
 
-NXT_NJS_CFLAGS=
-NXT_NJS_AUX_CFLAGS=
-NXT_NJS_LIBS="-lnjs"
-NXT_NJS_AUX_LIBS="$NXT_LIBM $NXT_LIB_AUX_LIBS"
+if /bin/sh -c "(pkg-config njs --exists)" >> $NXT_AUTOCONF_ERR 2>&1;
+then
+    NXT_NJS_AUX_CFLAGS=
+    NXT_NJS_AUX_LIBS=
+    NXT_NJS_CFLAGS=`pkg-config njs --cflags`
+    NXT_NJS_LIBS=`pkg-config njs --libs`
+else
+    NXT_NJS_AUX_CFLAGS=
+    NXT_NJS_AUX_LIBS="$NXT_LIBM $NXT_LIB_AUX_LIBS"
+    NXT_NJS_CFLAGS=
+    NXT_NJS_LIBS="-lnjs"
+fi
 
 nxt_feature="NJS"
 nxt_feature_name=NXT_HAVE_NJS
