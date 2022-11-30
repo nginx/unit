@@ -102,6 +102,19 @@ nxt_feature_test="#include <sys/prctl.h>
 . auto/feature
 
 
+nxt_feature="prctl(PR_SET_CHILD_SUBREAPER)"
+nxt_feature_name=NXT_HAVE_PR_SET_CHILD_SUBREAPER
+nxt_feature_run=no
+nxt_feature_incs=
+nxt_feature_libs=
+nxt_feature_test="#include <sys/prctl.h>
+
+                  int main(void) {
+                      return PR_SET_CHILD_SUBREAPER;
+                  }"
+. auto/feature
+
+
 nxt_feature="Linux mount()"
 nxt_feature_name=NXT_HAVE_LINUX_MOUNT
 nxt_feature_run=no
