@@ -269,7 +269,7 @@ nxt_process_child_fixup(nxt_task_t *task, nxt_process_t *process)
 
     nxt_ppid = nxt_pid;
 
-    nxt_pid = nxt_getpid();
+    nxt_pid = getpid();
 
     process->pid = nxt_pid;
     process->isolated_pid = nxt_pid;
