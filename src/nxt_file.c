@@ -500,6 +500,43 @@ nxt_fd_close(nxt_fd_t fd)
 }
 
 
+FILE *
+nxt_file_fopen(nxt_task_t *task, const char *pathname, const char *mode)
+{
+    int   err;
+    FILE  *fp;
+
+#if (NXT_DEBUG)
+    nxt_thread_time_update(task->thread);
+#endif
+
+    fp = fopen(pathname, mode);
+    err = (fp == NULL) ? nxt_errno : 0;
+
+    nxt_debug(task, "fopen(\"%s\", \"%s\"): fp:%p err:%d", pathname, mode, fp,
+              err);
+
+    if (nxt_fast_path(fp != NULL)) {
+        return fp;
+    }
+
+    nxt_alert(task, "fopen(\"%s\") failed %E", pathname, err);
+
+    return NULL;
+}
+
+
+void
+nxt_file_fclose(nxt_task_t *task, FILE *fp)
+{
+    nxt_debug(task, "fclose(%p)", fp);
+
+    if (nxt_slow_path(fclose(fp) == -1)) {
+        nxt_alert(task, "fclose() failed %E", nxt_errno);
+    }
+}
+
+
 /*
  * nxt_file_redirect() redirects the file to the fd descriptor.
  * Then the fd descriptor is closed.
