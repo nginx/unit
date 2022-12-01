@@ -13,9 +13,6 @@
 #endif
 
 
-#define nxt_getpid()                                                          \
-    getpid()
-
 typedef pid_t            nxt_pid_t;
 
 
