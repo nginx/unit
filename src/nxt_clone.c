@@ -44,12 +44,12 @@ nxt_clone_credential_setgroups(nxt_task_t *task, pid_t child_pid,
 
     end = path + PATH_MAX;
     p = nxt_sprintf(path, end, "/proc/%d/setgroups", child_pid);
-    *p = '\0';
-
     if (nxt_slow_path(p == end)) {
-        nxt_alert(task, "error write past the buffer: %s", path);
+        nxt_alert(task, "buffer truncation: %s", path);
         return NXT_ERROR;
     }
+
+    *p = '\0';
 
     fd = open((char *)path, O_RDWR);
 
@@ -183,13 +183,13 @@ nxt_clone_credential_map_set(nxt_task_t *task, const char* mapfile, pid_t pid,
         end = mapinfo + len;
         p = nxt_sprintf(mapinfo, end, "%d %d 1",
                         default_container, default_host);
-        *p = '\0';
-
         if (nxt_slow_path(p == end)) {
-            nxt_alert(task, "write past mapinfo buffer");
+            nxt_alert(task, "truncation in mapinfo buffer");
             nxt_free(mapinfo);
             return NXT_ERROR;
         }
+
+        *p = '\0';
     }
 
     ret = nxt_clone_credential_map_write(task, mapfile, pid, mapinfo);

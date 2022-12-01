@@ -309,17 +309,22 @@ nxt_discovery_modules(nxt_task_t *task, const char *path)
                             mnt[j].data == NULL ? (u_char *) "" : mnt[j].data);
         }
 
+        if (nxt_slow_path(p > end - 3)) {
+            nxt_alert(task, "discovery buffer truncation");
+            goto fail;
+        }
+
         *p++ = ']';
         *p++ = '}';
         *p++ = ',';
     }
 
-    *p++ = ']';
-
-    if (nxt_slow_path(p > end)) {
-        nxt_alert(task, "discovery write past the buffer");
+    if (nxt_slow_path(p > end - 1)) {
+        nxt_alert(task, "discovery buffer truncation");
         goto fail;
     }
+
+    *p++ = ']';
 
     b->mem.free = p;
 
