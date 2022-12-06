@@ -196,7 +196,7 @@ static int nxt_unit_request_hash_add(nxt_unit_ctx_t *ctx,
 static nxt_unit_request_info_t *nxt_unit_request_hash_find(
     nxt_unit_ctx_t *ctx, uint32_t stream, int remove);
 
-static char * nxt_unit_snprint_prefix(char *p, const char *end, pid_t pid,
+static char * nxt_unit_snprint_prefix(char *p, char *end, pid_t pid,
     int level);
 static void *nxt_unit_lvlhsh_alloc(void *data, size_t size);
 static void nxt_unit_lvlhsh_free(void *data, void *p);
@@ -6679,7 +6679,7 @@ static const char * nxt_unit_log_levels[] = {
 
 
 static char *
-nxt_unit_snprint_prefix(char *p, const char *end, pid_t pid, int level)
+nxt_unit_snprint_prefix(char *p, char *end, pid_t pid, int level)
 {
     struct tm        tm;
     struct timespec  ts;
