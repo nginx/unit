@@ -69,6 +69,12 @@ compatibility with PHP 8.2.
 
 <change type="feature">
 <para>
+compatibility with Node.js 19.0.
+</para>
+</change>
+
+<change type="feature">
+<para>
 support rack v3 in ruby applications.
 </para>
 </change>
