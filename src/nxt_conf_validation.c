@@ -318,6 +318,9 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[] = {
         .name       = nxt_string("large_header_buffer_size"),
         .type       = NXT_CONF_VLDT_INTEGER,
     }, {
+        .name       = nxt_string("large_header_buffers"),
+        .type       = NXT_CONF_VLDT_INTEGER,
+    }, {
         .name       = nxt_string("body_buffer_size"),
         .type       = NXT_CONF_VLDT_INTEGER,
     }, {
