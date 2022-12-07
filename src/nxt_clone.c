@@ -381,12 +381,6 @@ nxt_clone_vldt_credential_gidmap(nxt_task_t *task,
         for (j = 0; j < map->size; j++) {
             m = map->map[j];
 
-            if (!base_ok && creds->base_gid >= (nxt_gid_t) m.container
-                && creds->base_gid < (nxt_gid_t) (m.container+m.size))
-            {
-                base_ok = 1;
-            }
-
             if (creds->gids[i] >= (nxt_gid_t) m.container
                 && creds->gids[i] < (nxt_gid_t) (m.container+m.size))
             {
@@ -400,16 +394,14 @@ nxt_clone_vldt_credential_gidmap(nxt_task_t *task,
         }
     }
 
-    if (!base_ok) {
-        for (i = 0; i < map->size; i++) {
-            m = map->map[i];
+    for (i = 0; i < map->size; i++) {
+        m = map->map[i];
 
-            if (creds->base_gid >= (nxt_gid_t) m.container
-                && creds->base_gid < (nxt_gid_t) (m.container+m.size))
-            {
-                base_ok = 1;
-                break;
-            }
+        if (creds->base_gid >= (nxt_gid_t) m.container
+            && creds->base_gid < (nxt_gid_t) (m.container+m.size))
+        {
+            base_ok = 1;
+            break;
         }
     }
 
