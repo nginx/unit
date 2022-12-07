@@ -373,8 +373,25 @@ nxt_clone_vldt_credential_gidmap(nxt_task_t *task,
     }
 
     base_ok = 0;
-    gids_ok = 0;
+    for (i = 0; i < map->size; i++) {
+        m = map->map[i];
 
+        if (creds->base_gid >= (nxt_gid_t) m.container
+            && creds->base_gid < (nxt_gid_t) (m.container+m.size))
+        {
+            base_ok = 1;
+            break;
+        }
+    }
+
+    if (nxt_slow_path(!base_ok)) {
+        nxt_log(task, NXT_LOG_ERR, "\"gidmap\" field has no \"container\" "
+                "entry for gid %d.", creds->base_gid);
+
+        return NXT_ERROR;
+    }
+
+    gids_ok = 0;
     for (i = 0; i < creds->ngroups; i++) {
         gid_ok = 0;
 
@@ -392,24 +409,6 @@ nxt_clone_vldt_credential_gidmap(nxt_task_t *task,
         if (nxt_fast_path(gid_ok)) {
             gids_ok++;
         }
-    }
-
-    for (i = 0; i < map->size; i++) {
-        m = map->map[i];
-
-        if (creds->base_gid >= (nxt_gid_t) m.container
-            && creds->base_gid < (nxt_gid_t) (m.container+m.size))
-        {
-            base_ok = 1;
-            break;
-        }
-    }
-
-    if (nxt_slow_path(!base_ok)) {
-        nxt_log(task, NXT_LOG_ERR, "\"gidmap\" field has no \"container\" "
-                "entry for gid %d.", creds->base_gid);
-
-        return NXT_ERROR;
     }
 
     if (nxt_slow_path(gids_ok < creds->ngroups)) {
