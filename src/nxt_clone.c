@@ -248,10 +248,10 @@ nxt_int_t
 nxt_clone_vldt_credential_uidmap(nxt_task_t *task,
     nxt_clone_credential_map_t *map, nxt_credential_t *creds)
 {
-    nxt_int_t              id;
-    nxt_uint_t             i;
-    nxt_runtime_t          *rt;
-    nxt_clone_map_entry_t  m;
+    nxt_int_t                    id;
+    nxt_uint_t                   i;
+    nxt_runtime_t                *rt;
+    const nxt_clone_map_entry_t  *m;
 
     if (map->size == 0) {
         return NXT_OK;
@@ -282,10 +282,10 @@ nxt_clone_vldt_credential_uidmap(nxt_task_t *task,
     }
 
     for (i = 0; i < map->size; i++) {
-        m = map->map[i];
+        m = &map->map[i];
 
-        if (nxt_idmap_includes_host_id(creds->uid, &m)) {
-            creds->uid = nxt_id_map_host2container(creds->uid, &m);
+        if (nxt_idmap_includes_host_id(creds->uid, m)) {
+            creds->uid = nxt_id_map_host2container(creds->uid, m);
             return NXT_OK;
         }
     }
@@ -302,10 +302,10 @@ nxt_int_t
 nxt_clone_vldt_credential_gidmap(nxt_task_t *task,
     nxt_clone_credential_map_t *map, nxt_credential_t *creds)
 {
-    nxt_uint_t             base_ok, gid_ok, gids_ok;
-    nxt_uint_t             i, j;
-    nxt_runtime_t          *rt;
-    nxt_clone_map_entry_t  m;
+    nxt_uint_t                   base_ok, gid_ok, gids_ok;
+    nxt_uint_t                   i, j;
+    nxt_runtime_t                *rt;
+    const nxt_clone_map_entry_t  *m;
 
     rt = task->thread->runtime;
 
@@ -333,25 +333,25 @@ nxt_clone_vldt_credential_gidmap(nxt_task_t *task,
             return NXT_ERROR;
         }
 
-        m = map->map[0];
+        m = &map->map[0];
 
-        if (nxt_slow_path((nxt_gid_t) m.host != nxt_egid)) {
+        if (nxt_slow_path((nxt_gid_t) m->host != nxt_egid)) {
             nxt_log(task, NXT_LOG_ERR, "\"gidmap\" field has an entry for "
                     "host gid %d but unprivileged unit can only map itself "
-                    "(gid %d) into child namespaces.", m.host, nxt_egid);
+                    "(gid %d) into child namespaces.", m->host, nxt_egid);
 
             return NXT_ERROR;
         }
 
-        if (nxt_slow_path(m.size > 1)) {
+        if (nxt_slow_path(m->size > 1)) {
             nxt_log(task, NXT_LOG_ERR, "\"gidmap\" field has an entry with "
                     "\"size\": %d, but for unprivileged unit it must be 1.",
-                    m.size);
+                    m->size);
 
             return NXT_ERROR;
         }
 
-        if (nxt_slow_path((nxt_gid_t) m.host != creds->base_gid)) {
+        if (nxt_slow_path((nxt_gid_t) m->host != creds->base_gid)) {
             nxt_log(task, NXT_LOG_ERR,
                     "\"gidmap\" field has no \"host\" entry for gid %d.",
                     creds->base_gid);
@@ -359,7 +359,7 @@ nxt_clone_vldt_credential_gidmap(nxt_task_t *task,
             return NXT_ERROR;
         }
 
-        creds->base_gid = nxt_id_map_host2container(creds->base_gid, &m);
+        creds->base_gid = nxt_id_map_host2container(creds->base_gid, m);
 
         return NXT_OK;
     }
@@ -381,10 +381,10 @@ nxt_clone_vldt_credential_gidmap(nxt_task_t *task,
 
     base_ok = 0;
     for (i = 0; i < map->size; i++) {
-        m = map->map[i];
+        m = &map->map[i];
 
-        if (nxt_idmap_includes_host_id(creds->base_gid, &m)) {
-            creds->base_gid = nxt_id_map_host2container(creds->base_gid, &m);
+        if (nxt_idmap_includes_host_id(creds->base_gid, m)) {
+            creds->base_gid = nxt_id_map_host2container(creds->base_gid, m);
             base_ok = 1;
             break;
         }
@@ -403,10 +403,10 @@ nxt_clone_vldt_credential_gidmap(nxt_task_t *task,
         gid_ok = 0;
 
         for (j = 0; j < map->size; j++) {
-            m = map->map[j];
+            m = &map->map[j];
 
-            if (nxt_idmap_includes_host_id(creds->gids[i], &m)) {
-                creds->gids[i] = nxt_id_map_host2container(creds->gids[i], &m);
+            if (nxt_idmap_includes_host_id(creds->gids[i], m)) {
+                creds->gids[i] = nxt_id_map_host2container(creds->gids[i], m);
                 gid_ok = 1;
                 break;
             }
