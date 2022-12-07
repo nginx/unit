@@ -13,6 +13,8 @@
 
 static inline id_t nxt_id_map_host2container(id_t host_id,
     const nxt_clone_map_entry_t *map);
+static inline nxt_bool_t nxt_idmap_includes_host_id(id_t host_id,
+    const nxt_clone_map_entry_t *map);
 
 nxt_int_t nxt_clone_credential_setgroups(nxt_task_t *task, pid_t child_pid,
     const char *str);
@@ -282,9 +284,7 @@ nxt_clone_vldt_credential_uidmap(nxt_task_t *task,
     for (i = 0; i < map->size; i++) {
         m = map->map[i];
 
-        if (creds->uid >= (nxt_uid_t) m.host
-            && creds->uid < (nxt_uid_t) (m.host + m.size))
-        {
+        if (nxt_idmap_includes_host_id(creds->uid, &m)) {
             creds->uid = nxt_id_map_host2container(creds->uid, &m);
             return NXT_OK;
         }
@@ -383,9 +383,7 @@ nxt_clone_vldt_credential_gidmap(nxt_task_t *task,
     for (i = 0; i < map->size; i++) {
         m = map->map[i];
 
-        if (creds->base_gid >= (nxt_gid_t) m.host
-            && creds->base_gid < (nxt_gid_t) (m.host + m.size))
-        {
+        if (nxt_idmap_includes_host_id(creds->base_gid, &m)) {
             creds->base_gid = nxt_id_map_host2container(creds->base_gid, &m);
             base_ok = 1;
             break;
@@ -407,9 +405,7 @@ nxt_clone_vldt_credential_gidmap(nxt_task_t *task,
         for (j = 0; j < map->size; j++) {
             m = map->map[j];
 
-            if (creds->gids[i] >= (nxt_gid_t) m.host
-                && creds->gids[i] < (nxt_gid_t) (m.host + m.size))
-            {
+            if (nxt_idmap_includes_host_id(creds->gids[i], &m)) {
                 creds->gids[i] = nxt_id_map_host2container(creds->gids[i], &m);
                 gid_ok = 1;
                 break;
@@ -442,6 +438,18 @@ nxt_id_map_host2container(id_t host_id, const nxt_clone_map_entry_t *map)
     container_start = map->container;
 
     return host_id - host_start + container_start;
+}
+
+
+static inline nxt_bool_t
+nxt_idmap_includes_host_id(id_t host_id, const nxt_clone_map_entry_t *map)
+{
+    id_t  host_start, map_size;
+
+    host_start = map->host;
+    map_size = map->size;
+
+    return (host_id >= host_start && host_id < host_start + map_size);
 }
 
 #endif
