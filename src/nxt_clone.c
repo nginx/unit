@@ -11,6 +11,9 @@
 
 #if (NXT_HAVE_CLONE_NEWUSER)
 
+static inline id_t nxt_id_map_host2container(id_t host_id,
+    const nxt_clone_map_entry_t *map);
+
 nxt_int_t nxt_clone_credential_setgroups(nxt_task_t *task, pid_t child_pid,
     const char *str);
 nxt_int_t nxt_clone_credential_map_set(nxt_task_t *task, const char* mapfile,
@@ -279,15 +282,17 @@ nxt_clone_vldt_credential_uidmap(nxt_task_t *task,
     for (i = 0; i < map->size; i++) {
         m = map->map[i];
 
-        if (creds->uid >= (nxt_uid_t) m.container
-            && creds->uid < (nxt_uid_t) (m.container + m.size))
+        if (creds->uid >= (nxt_uid_t) m.host
+            && creds->uid < (nxt_uid_t) (m.host + m.size))
         {
+            creds->uid = nxt_id_map_host2container(creds->uid, &m);
             return NXT_OK;
         }
     }
 
-    nxt_log(task, NXT_LOG_NOTICE, "\"uidmap\" field has no \"container\" "
-            "entry for user \"%s\" (uid %d)", creds->user, creds->uid);
+    nxt_log(task, NXT_LOG_NOTICE,
+            "\"uidmap\" field has no \"host\" entry for user \"%s\" (uid %d)",
+            creds->user, creds->uid);
 
     return NXT_ERROR;
 }
@@ -346,13 +351,15 @@ nxt_clone_vldt_credential_gidmap(nxt_task_t *task,
             return NXT_ERROR;
         }
 
-        if (nxt_slow_path((nxt_gid_t) m.container != creds->base_gid)) {
+        if (nxt_slow_path((nxt_gid_t) m.host != creds->base_gid)) {
             nxt_log(task, NXT_LOG_ERR,
-                    "\"gidmap\" field has no \"container\" entry for gid %d.",
+                    "\"gidmap\" field has no \"host\" entry for gid %d.",
                     creds->base_gid);
 
             return NXT_ERROR;
         }
+
+        creds->base_gid = nxt_id_map_host2container(creds->base_gid, &m);
 
         return NXT_OK;
     }
@@ -376,17 +383,19 @@ nxt_clone_vldt_credential_gidmap(nxt_task_t *task,
     for (i = 0; i < map->size; i++) {
         m = map->map[i];
 
-        if (creds->base_gid >= (nxt_gid_t) m.container
-            && creds->base_gid < (nxt_gid_t) (m.container+m.size))
+        if (creds->base_gid >= (nxt_gid_t) m.host
+            && creds->base_gid < (nxt_gid_t) (m.host + m.size))
         {
+            creds->base_gid = nxt_id_map_host2container(creds->base_gid, &m);
             base_ok = 1;
             break;
         }
     }
 
     if (nxt_slow_path(!base_ok)) {
-        nxt_log(task, NXT_LOG_ERR, "\"gidmap\" field has no \"container\" "
-                "entry for gid %d.", creds->base_gid);
+        nxt_log(task, NXT_LOG_ERR,
+                "\"gidmap\" field has no \"host\" entry for gid %d.",
+                creds->base_gid);
 
         return NXT_ERROR;
     }
@@ -398,9 +407,10 @@ nxt_clone_vldt_credential_gidmap(nxt_task_t *task,
         for (j = 0; j < map->size; j++) {
             m = map->map[j];
 
-            if (creds->gids[i] >= (nxt_gid_t) m.container
-                && creds->gids[i] < (nxt_gid_t) (m.container+m.size))
+            if (creds->gids[i] >= (nxt_gid_t) m.host
+                && creds->gids[i] < (nxt_gid_t) (m.host + m.size))
             {
+                creds->gids[i] = nxt_id_map_host2container(creds->gids[i], &m);
                 gid_ok = 1;
                 break;
             }
@@ -412,14 +422,26 @@ nxt_clone_vldt_credential_gidmap(nxt_task_t *task,
     }
 
     if (nxt_slow_path(gids_ok < creds->ngroups)) {
-        nxt_log(task, NXT_LOG_ERR, "\"gidmap\" field has missing "
-                "suplementary gid mappings (found %d out of %d).", gids_ok,
-                creds->ngroups);
+        nxt_log(task, NXT_LOG_ERR,
+                "\"gidmap\" field has missing suplementary gid mappings (found"
+                " %d out of %d).", gids_ok, creds->ngroups);
 
         return NXT_ERROR;
     }
 
     return NXT_OK;
+}
+
+
+static inline id_t
+nxt_id_map_host2container(id_t host_id, const nxt_clone_map_entry_t *map)
+{
+    id_t  host_start, container_start;
+
+    host_start = map->host;
+    container_start = map->container;
+
+    return host_id - host_start + container_start;
 }
 
 #endif
