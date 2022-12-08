@@ -106,7 +106,7 @@ include Makefile.jsc8
 include Makefile.jsc11
 endif
 
-CONFIGURE_ARGS=\
+CONFIGURE_ARGS_COMMON=\
 	--prefix=/usr \
 	--state=%{_sharedstatedir}/unit \
 	--control="unix:/var/run/unit/control.sock" \
@@ -117,6 +117,10 @@ CONFIGURE_ARGS=\
 	--group=unit \
 	--tests \
 	--openssl
+
+CONFIGURE_ARGS=\
+	$(CONFIGURE_ARGS_COMMON) \
+	--njs
 
 export CR=\\n
 
@@ -176,7 +180,7 @@ endif
 rpmbuild/SOURCES/unit-$(VERSION).tar.gz:
 	cd ../.. && tar -czf pkg/rpm/rpmbuild/SOURCES/unit-$(VERSION).tar.gz \
 		--transform "s#^#unit-$(VERSION)/#" \
-		LICENSE NOTICE CHANGES README.md CONTRIBUTING.md configure auto src test version go docs/man/unitd.8.in
+		LICENSE NOTICE CHANGES README.md CONTRIBUTING.md configure auto src test version go pkg/contrib docs/man/unitd.8.in
 
 unit: check-build-depends-unit rpmbuild/SPECS/unit.spec rpmbuild/SOURCES/unit-$(VERSION).tar.gz
 	@echo "===> Building $@ package" ; \
@@ -212,7 +216,7 @@ rpmbuild/SPECS/unit-%.spec: unit.module.spec.in ../../docs/changes.xml | rpmbuil
 		-e "s#%%UNIT_RELEASE%%#$(RELEASE)#g" \
 		-e "s#%%PACKAGE_VENDOR%%#$(PACKAGE_VENDOR)#g" \
 		-e "s#%%MODULE_SOURCES%%#$${sources}#g" \
-		-e "s#%%CONFIGURE_ARGS%%#$(CONFIGURE_ARGS)#g" \
+		-e "s#%%CONFIGURE_ARGS%%#$(CONFIGURE_ARGS_COMMON)#g" \
 		-e "s#%%MODULE_CONFARGS%%#$(MODULE_CONFARGS_$*)#g" \
 		-e "s#%%MODULE_MAKEARGS%%#$(MODULE_MAKEARGS_$*)#g" \
 		-e "s#%%MODULE_INSTARGS%%#$(MODULE_INSTARGS_$*)#g" \

@@ -115,7 +115,7 @@ include Makefile.jsc-common
 include Makefile.jsc11
 endif
 
-CONFIGURE_ARGS=\
+CONFIGURE_ARGS_COMMON=\
 	--prefix=/usr \
 	--state=/var/lib/unit \
 	--control="unix:/var/run/control.unit.sock" \
@@ -126,6 +126,10 @@ CONFIGURE_ARGS=\
 	--group=unit \
 	--tests \
 	--openssl
+
+CONFIGURE_ARGS=\
+	$(CONFIGURE_ARGS_COMMON) \
+	--njs
 
 export CR=\\n
 
@@ -195,7 +199,7 @@ endif
 debuild/unit_$(VERSION).orig.tar.gz: | debuild/$(SRCDIR)/debian
 	cd ../.. && tar -czf pkg/deb/debuild/$(SRCDIR).tar.gz \
 		--transform "s#^#$(SRCDIR)/#" \
-		LICENSE NOTICE CHANGES README.md CONTRIBUTING.md configure auto src test version go docs/man/unitd.8.in
+		LICENSE NOTICE CHANGES README.md CONTRIBUTING.md configure auto src test version go pkg/contrib docs/man/unitd.8.in
 	mv debuild/$(SRCDIR).tar.gz debuild/unit_$(VERSION).orig.tar.gz
 	cd debuild && tar zxf unit_$(VERSION).orig.tar.gz
 
@@ -257,7 +261,7 @@ endif
                 -e "s#%%CODENAME%%#$(CODENAME)#g" \
                 -e "s#%%UNIT_VERSION%%#$(VERSION)#g" \
                 -e "s#%%UNIT_RELEASE%%#$(RELEASE)#g" \
-                -e "s#%%CONFIGURE_ARGS%%#$(CONFIGURE_ARGS)#g" \
+                -e "s#%%CONFIGURE_ARGS%%#$(CONFIGURE_ARGS_COMMON)#g" \
                 -e "s#%%MODULE_CONFARGS%%#$(MODULE_CONFARGS_$*)#g" \
                 -e "s#%%MODULE_MAKEARGS%%#$(MODULE_MAKEARGS_$*)#g" \
                 -e "s#%%MODULE_INSTARGS%%#$(MODULE_INSTARGS_$*)#g" \

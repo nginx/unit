@@ -5,7 +5,8 @@ Maintainer: %%PACKAGE_VENDOR%%
 Build-Depends: debhelper (>= 11),
                linux-libc-dev,
                libssl-dev,
-               libpcre2-dev
+               libpcre2-dev,
+               pkg-config
 Standards-Version: 4.1.4
 Homepage: https://unit.nginx.org
 
