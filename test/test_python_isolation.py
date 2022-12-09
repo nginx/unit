@@ -63,24 +63,25 @@ class TestPythonIsolation(TestApplicationPython):
             pytest.skip('requires root')
 
         isolation = {'rootfs': temp_dir, 'automount': {'language_deps': False}}
-
         self.load('empty', isolation=isolation)
 
-        assert findmnt().find(temp_dir) == -1
+        python_path = temp_dir + '/usr'
+
+        assert findmnt().find(python_path) == -1
         assert self.get()['status'] != 200, 'disabled language_deps'
-        assert findmnt().find(temp_dir) == -1
+        assert findmnt().find(python_path) == -1
 
         isolation['automount']['language_deps'] = True
 
         self.load('empty', isolation=isolation)
 
-        assert findmnt().find(temp_dir) == -1
+        assert findmnt().find(python_path) == -1
         assert self.get()['status'] == 200, 'enabled language_deps'
-        assert waitformount(temp_dir), 'language_deps mount'
+        assert waitformount(python_path), 'language_deps mount'
 
         self.conf({"listeners": {}, "applications": {}})
 
-        assert waitforunmount(temp_dir), 'language_deps unmount'
+        assert waitforunmount(python_path), 'language_deps unmount'
 
     def test_python_isolation_procfs(self, is_su, temp_dir):
         if not is_su:
