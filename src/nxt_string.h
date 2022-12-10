@@ -76,6 +76,8 @@ nxt_cpymem(void *dst, const void *src, size_t length)
 
 NXT_EXPORT u_char *nxt_cpystr(u_char *dst, const u_char *src);
 NXT_EXPORT u_char *nxt_cpystrn(u_char *dst, const u_char *src, size_t length);
+NXT_EXPORT char *nxt_stpecpy(char *dst, char *past_end,
+    const char *restrict src);
 NXT_EXPORT nxt_int_t nxt_strcasecmp(const u_char *s1, const u_char *s2);
 NXT_EXPORT nxt_int_t nxt_strncasecmp(const u_char *s1, const u_char *s2,
     size_t length);

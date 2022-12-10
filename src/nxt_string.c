@@ -151,6 +151,26 @@ nxt_cpystrn(u_char *dst, const u_char *src, size_t length)
 }
 
 
+char *
+nxt_stpecpy(char *dst, char past_end[0], const char *restrict src)
+{
+    char *p;
+
+    if (dst == past_end) {
+        return past_end;
+    }
+
+    p = memccpy(dst, src, '\0', past_end - dst);
+    if (p != NULL) {
+        return p - 1;
+    }
+
+    /* truncation detected */
+    past_end[-1] = '\0';
+    return past_end;
+}
+
+
 nxt_int_t
 nxt_strcasecmp(const u_char *s1, const u_char *s2)
 {
