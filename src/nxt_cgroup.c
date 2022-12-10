@@ -8,9 +8,9 @@
 #include <nxt_cgroup.h>
 
 
-static int nxt_mk_cgpath_relative(nxt_task_t *task, const char *dir,
+static char *nxt_mk_cgpath_relative(nxt_task_t *task, const char *dir,
     char *cgpath);
-static nxt_int_t nxt_mk_cgpath(nxt_task_t *task, const char *dir,
+static char *nxt_mk_cgpath(nxt_task_t *task, const char *dir,
     char *cgpath);
 
 
@@ -18,6 +18,7 @@ nxt_int_t
 nxt_cgroup_proc_add(nxt_task_t *task, nxt_process_t *process)
 {
     int        len;
+    char       *p, *past_end;
     char       cgprocs[NXT_MAX_PATH_LEN];
     FILE       *fp;
     nxt_int_t  ret;
@@ -29,8 +30,8 @@ nxt_cgroup_proc_add(nxt_task_t *task, nxt_process_t *process)
         return NXT_OK;
     }
 
-    ret = nxt_mk_cgpath(task, process->isolation.cgroup.path, cgprocs);
-    if (nxt_slow_path(ret == NXT_ERROR)) {
+    p = nxt_mk_cgpath(task, process->isolation.cgroup.path, cgprocs);
+    if (nxt_slow_path(p == NULL)) {
         return NXT_ERROR;
     }
 
@@ -39,10 +40,9 @@ nxt_cgroup_proc_add(nxt_task_t *task, nxt_process_t *process)
         return NXT_ERROR;
     }
 
-    len = strlen(cgprocs);
-
-    len = snprintf(cgprocs + len, NXT_MAX_PATH_LEN - len, "/cgroup.procs");
-    if (nxt_slow_path(len >= NXT_MAX_PATH_LEN - len)) {
+    past_end = cgprocs + NXT_MAX_PATH_LEN;
+    p = nxt_stpecpy(p, past_end, "/cgroup.procs");
+    if (nxt_slow_path(p == past_end)) {
         nxt_errno = ENAMETOOLONG;
         return NXT_ERROR;
     }
@@ -67,17 +67,16 @@ nxt_cgroup_proc_add(nxt_task_t *task, nxt_process_t *process)
 void
 nxt_cgroup_cleanup(nxt_task_t *task, const nxt_process_t *process)
 {
-    char       *ptr;
-    char       cgroot[NXT_MAX_PATH_LEN], cgpath[NXT_MAX_PATH_LEN];
-    nxt_int_t  ret;
+    char  *ptr, *ret;
+    char  cgroot[NXT_MAX_PATH_LEN], cgpath[NXT_MAX_PATH_LEN];
 
     ret = nxt_mk_cgpath(task, "", cgroot);
-    if (nxt_slow_path(ret == NXT_ERROR)) {
+    if (nxt_slow_path(ret == NULL)) {
         return;
     }
 
     ret = nxt_mk_cgpath(task, process->isolation.cgroup.path, cgpath);
-    if (nxt_slow_path(ret == NXT_ERROR)) {
+    if (nxt_slow_path(ret == NULL)) {
         return;
     }
 
@@ -89,11 +88,11 @@ nxt_cgroup_cleanup(nxt_task_t *task, const nxt_process_t *process)
 }
 
 
-static int
+static char *
 nxt_mk_cgpath_relative(nxt_task_t *task, const char *dir, char *cgpath)
 {
-    int         i, len;
-    char        *buf, *ptr;
+    int         i;
+    char        *buf, *ptr, *p, *past_end;
     FILE        *fp;
     size_t      size;
     ssize_t     nread;
@@ -101,10 +100,10 @@ nxt_mk_cgpath_relative(nxt_task_t *task, const char *dir, char *cgpath)
 
     fp = nxt_file_fopen(task, "/proc/self/cgroup", "re");
     if (nxt_slow_path(fp == NULL)) {
-        return -1;
+        return NULL;
     }
 
-    len = -1;
+    p = NULL;
     buf = NULL;
     found = 0;
     while ((nread = getline(&buf, &size, fp)) != -1) {
@@ -133,21 +132,27 @@ nxt_mk_cgpath_relative(nxt_task_t *task, const char *dir, char *cgpath)
         ptr++;
     }
 
-    len = snprintf(cgpath, NXT_MAX_PATH_LEN, NXT_CGROUP_ROOT "%s/%s",
-                   ptr, dir);
+    past_end = cgpath + NXT_MAX_PATH_LEN;
+    p = cgpath;
+    p = nxt_stpecpy(p, past_end, NXT_CGROUP_ROOT);
+    p = nxt_stpecpy(p, past_end, ptr);
+    p = nxt_stpecpy(p, past_end, "/");
+    p = nxt_stpecpy(p, past_end, dir);
 
 out_free_buf:
 
     nxt_free(buf);
 
-    return len;
+    return p;
 }
 
 
-static nxt_int_t
+static char *
 nxt_mk_cgpath(nxt_task_t *task, const char *dir, char *cgpath)
 {
-    int  len;
+    char  *p, *past_end;
+
+    past_end = cgpath + NXT_MAX_PATH_LEN;
 
     /*
      * If the path from the config is relative, we need to make
@@ -156,19 +161,17 @@ nxt_mk_cgpath(nxt_task_t *task, const char *dir, char *cgpath)
      *   NXT_CGROUP_ROOT/<main process cgroup>/<cgroup path>
      */
     if (dir[0] != '/') {
-        len = nxt_mk_cgpath_relative(task, dir, cgpath);
+        p = nxt_mk_cgpath_relative(task, dir, cgpath);
     } else {
-        len = snprintf(cgpath, NXT_MAX_PATH_LEN, NXT_CGROUP_ROOT "%s", dir);
+        p = cgpath;
+        p = nxt_stpecpy(p, past_end, NXT_CGROUP_ROOT);
+        p = nxt_stpecpy(p, past_end, dir);
     }
 
-    if (len == -1) {
-        return NXT_ERROR;
-    }
-
-    if (len >= NXT_MAX_PATH_LEN) {
+    if (nxt_slow_path(p == past_end)) {
         nxt_errno = ENAMETOOLONG;
-        return NXT_ERROR;
+        return NULL;
     }
 
-    return NXT_OK;
+    return p;
 }
