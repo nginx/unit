@@ -485,13 +485,14 @@ def _check_alerts(*, log=None):
             log = f.read()
 
     found = False
-
     alerts = re.findall(r'.+\[alert\].+', log)
 
     if alerts:
-        print('\nAll alerts/sanitizer errors found in log:')
-        [print(alert) for alert in alerts]
         found = True
+
+        if option.detailed:
+            print('\nAll alerts/sanitizer errors found in log:')
+            [print(alert) for alert in alerts]
 
     if option.skip_alerts:
         for skip in option.skip_alerts:
@@ -504,7 +505,7 @@ def _check_alerts(*, log=None):
 
         assert not sanitizer_errors, 'sanitizer error(s)'
 
-    if found:
+    if found and option.detailed:
         print('skipped.')
 
 
