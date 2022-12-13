@@ -2,6 +2,9 @@
 
 set -e
 
+WAITLOOPS=5
+SLEEPSEC=1
+
 curl_put()
 {
     RET=$(/usr/bin/curl -s -w '%{http_code}' -X PUT --data-binary @$1 --unix-socket /var/run/control.unit.sock http://localhost/$2)
@@ -57,7 +60,18 @@ if [ "$1" = "unitd" ] || [ "$1" = "unitd-debug" ]; then
             echo "$0: Stopping Unit daemon after initial configuration..."
             kill -TERM $(/bin/cat /var/run/unit.pid)
 
-            while [ -S /var/run/control.unit.sock ]; do echo "$0: Waiting for control socket to be removed..."; /bin/sleep 0.1; done
+            for i in $(/usr/bin/seq $WAITLOOPS); do
+                if [ -S /var/run/control.unit.sock ]; then
+                    echo "$0 Waiting for control socket to be removed..."
+                    /bin/sleep $SLEEPSEC
+                else
+                    break
+                fi
+            done
+            if [ -S /var/run/control.unit.sock ]; then
+                kill -KILL $(/bin/cat /var/run/unit.pid)
+                rm -f /var/run/control.unit.sock
+            fi
 
             echo
             echo "$0: Unit initial configuration complete; ready for start up..."
