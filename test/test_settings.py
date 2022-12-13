@@ -10,6 +10,66 @@ from unit.utils import sysctl
 class TestSettings(TestApplicationPython):
     prerequisites = {'modules': {'python': 'any'}}
 
+    def test_settings_large_header_buffer_size(self):
+        self.load('empty')
+
+        def set_buffer_size(size):
+            assert 'success' in self.conf(
+                {'http': {'large_header_buffer_size': size}},
+                'settings',
+            )
+
+        def header_value(size, expect=200):
+            headers = {'Host': 'a' * (size - 1), 'Connection': 'close'}
+            assert self.get(headers=headers)['status'] == expect
+
+        set_buffer_size(4096)
+        header_value(4096)
+        header_value(4097, 431)
+
+        set_buffer_size(16384)
+        header_value(16384)
+        header_value(16385, 431)
+
+    def test_settings_large_header_buffers(self):
+        self.load('empty')
+
+        def set_buffers(buffers):
+            assert 'success' in self.conf(
+                {'http': {'large_header_buffers': buffers}},
+                'settings',
+            )
+
+        def big_headers(headers_num, expect=200):
+            headers = {'Host': 'localhost', 'Connection': 'close'}
+
+            for i in range(headers_num):
+                headers['Custom-header-' + str(i)] = 'a' * 8000
+
+            assert self.get(headers=headers)['status'] == expect
+
+        set_buffers(1)
+        big_headers(1)
+        big_headers(2, 431)
+
+        set_buffers(2)
+        big_headers(2)
+        big_headers(3, 431)
+
+        set_buffers(8)
+        big_headers(8)
+        big_headers(9, 431)
+
+    @pytest.mark.skip('not yet')
+    def test_settings_large_header_buffer_invalid(self):
+        def check_error(conf):
+            assert 'error' in self.conf({'http': conf}, 'settings')
+
+        check_error({'large_header_buffer_size': -1})
+        check_error({'large_header_buffer_size': 0})
+        check_error({'large_header_buffers': -1})
+        check_error({'large_header_buffers': 0})
+
     def test_settings_header_read_timeout(self):
         self.load('empty')
 
