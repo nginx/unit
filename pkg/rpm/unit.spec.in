@@ -46,7 +46,7 @@ Requires(preun):   systemd
 Requires(postun):  systemd
 
 BuildRequires: pcre2-devel
-BuildRequires: pkg-config
+BuildRequires: pkgconfig
 
 Provides: unit-r%{version}
 
