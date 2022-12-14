@@ -71,6 +71,11 @@ class TestJavaApplication(TestApplicationJava):
     def test_java_application_get_variables(self):
         self.load('get_params')
 
+        def check_header(header, expect):
+            values = header.split(' ')[:-1]
+            assert len(values) == len(expect)
+            assert set(values) == set(expect)
+
         headers = self.get(url='/?var1=val1&var2=&var4=val4&var4=foo')[
             'headers'
         ]
@@ -79,13 +84,11 @@ class TestJavaApplication(TestApplicationJava):
         assert headers['X-Var-2'] == 'true', 'GET variables 2'
         assert headers['X-Var-3'] == 'false', 'GET variables 3'
 
-        assert (
-            headers['X-Param-Names'] == 'var4 var2 var1 '
-        ), 'getParameterNames'
-        assert headers['X-Param-Values'] == 'val4 foo ', 'getParameterValues'
-        assert (
-            headers['X-Param-Map'] == 'var2= var1=val1 var4=val4,foo '
-        ), 'getParameterMap'
+        check_header(headers['X-Param-Names'], ['var4', 'var2', 'var1'])
+        check_header(headers['X-Param-Values'], ['val4', 'foo'])
+        check_header(
+            headers['X-Param-Map'], ['var2=', 'var1=val1', 'var4=val4,foo']
+        )
 
     def test_java_application_post_variables(self):
         self.load('post_params')
