@@ -9,10 +9,10 @@
 
 
 if test -n ${BASH_VERSION} && test "${BASH_VERSINFO[0]}" -eq 3; then
-    >&2 echo 'Your version of bash(1) is not supported by this script.';
-    >&2 echo "You're probably running on MacOS.  We recommend that you either";
-    >&2 echo 'install a newer version of bash(1), or you run this script with';
-    >&2 echo 'another shell, like for example zsh(1):';
+    >&2 echo 'Your version of bash(1) isn't supported by this script.';
+    >&2 echo "You're probably running on macOS.  We recommend that you either";
+    >&2 echo 'install a newer version of bash(1) or run this script with';
+    >&2 echo 'another shell, such as zsh(1):';
     >&2 echo "    $ zsh ${SUDO_USER:+sudo }$0 ...";
     exit 1;
 fi;
@@ -52,16 +52,16 @@ COMMANDS
                 for later installation.
 
         welcome
-                Creates an initial configuration to serve a welcome web page
-                for NGINX Unit.
+                Create an initial configuration to serve a welcome web page
+                with NGINX Unit.
 
 OPTIONS
         -h, --help
                 Print this help.
 
         --help-more
-                Print help for more commands.  They are experimental.  This is
-                not recommended unless you know what you're doing.
+                Print help for more commands.  They are experimental.  Using
+                these isn't recommended, unless you know what you're doing.
 
 __EOF__
 }
@@ -96,7 +96,7 @@ DESCRIPTION
 COMMANDS
         cmd     Print the invocation line of unitd(8).
 
-        ctl     Control a running unitd(8) instance through its control socket.
+        ctl     Control a running unitd(8) instance via its control API socket.
 
         freeport
                 Print an available TCP port.
@@ -106,24 +106,23 @@ COMMANDS
                 array read from a file at a given INDEX.
 
         os-probe
-                This script probes the OS, and prints details about the
-                version.
+                Probe the OS and print details about its version.
 
         ps      List unitd(8) processes.
 
         repo-config
                 Configure your package manager with the NGINX Unit
-                repository for later installation
+                repository for later installation.
 
-        sock    Print the address of the API control socket.
+        sock    Print the control API socket address.
 
         welcome
-                Creates an initial configuration to serve a welcome web page
-                for NGINX Unit.
+                Create an initial configuration to serve a welcome web page
+                with NGINX Unit.
 
 OPTIONS
         -h, --help
-                Print the basic help (some commands are hidden).
+                Print basic help (some commands are hidden).
 
         --help-more
                 Print the hidden help with more commands.
@@ -166,7 +165,7 @@ SYNOPSIS
         $program_name cmd [-h]
 
 DESCRIPTION
-        Print the invocation line of running instances of unitd(8).
+        Print the invocation line of running unitd(8) instances.
 
 OPTIONS
         -h, --help
@@ -210,15 +209,15 @@ SYNOPSIS
         +-- insert  [-h] PATH INDEX
 
 DESCRIPTION
-        Control a running unitd(8) instance through its control socket.
+        Control a running unitd(8) instance through its control API socket.
 
         Run '$program_name ctl SUBCOMMAND -h' for more information on a
         subcommand.
 
 SUBCOMMANDS
-        http    Send an HTTP request to the control socket.
+        http    Send an HTTP request to the control API socket.
 
-        insert  Insert an element into a specified index in an array in the
+        insert  Insert an element at the specified index into an array in the
                 JSON configuration.
 
 OPTIONS
@@ -226,12 +225,11 @@ OPTIONS
                 Print this help.
 
         -s, --sock SOCK
-                Use SOCK as the API control socket address.  If not specified,
-                the script will try to find it.  This will be used by
-                subcommands.
+                Use SOCK as the control API socket address.  If not specified,
+                the script tries to find it.  This value is used by subcommands.
 
-                The socket can be a tcp(7) socket or a unix(7) socket, and in
-                the case of a unix(7) socket, it can be local, or it can be in
+                The socket can be a tcp(7) socket or a unix(7) socket; in
+                the case of a unix(7) socket, it can exist locally or on
                 a remote machine, accessed through ssh(1).  Accepted syntax
                 for SOCK:
 
@@ -239,13 +237,12 @@ OPTIONS
                     ssh://[user@]host[:port]/path/to/control.sock
                     [http[s]://]host[:port]
 
-                The last form is less secure than the first two; you should
-                have a look at:
+                The last form is less secure than the first two; have a look:
                 <https://unit.nginx.org/howto/security/#secure-socket-and-stat>
 
 ENVIRONMENT
-        Options take precedence over their equivalent environment variables,
-        so if both are specified, the option will be used.
+        Options take precedence over their equivalent environment variables;
+        if both are specified, the command-line option is used.
 
         UNIT_CTL_SOCK
                 Equivalent to the option -s (--sock).
@@ -324,9 +321,8 @@ OPTIONS
         -c, --curl CURLOPT
                 Pass CURLOPT as an option to curl.  This script is implemented
                 in terms of curl(1), so it's useful to be able to tweak its
-                behavior.  It can be used multiple times, which will be
-                appended (and also appended to the contents of
-                UNIT_CTL_HTTP_CURLOPTS).
+                behavior.  The option can be cumulatively used multiple times
+                (the result is also appended to UNIT_CTL_HTTP_CURLOPTS).
 
         -h, --help
                 Print this help.
@@ -425,8 +421,8 @@ SYNOPSIS
         $program_name ctl [CTL-OPTS] insert [-h] PATH INDEX
 
 DESCRIPTION
-        Insert an element into a specified position (INDEX) in the JSON array
-        in the unitd(8) configuration API at PATH.
+        Insert an element at the specified position (INDEX) into the JSON array
+        located at PATH in unitd(8) control API.
 
         The new element is read from standard input.
 
@@ -518,7 +514,7 @@ SYNOPSIS
         $program_name welcome [-hn]
 
 DESCRIPTION
-        This script tests an NGINX Unit instalation by creating an initial
+        This script tests an NGINX Unit installation by creating an initial
         configuration and serving a welcome web page.  Recommended for
         first-time users.
 
@@ -527,7 +523,7 @@ OPTIONS
                 Print this help.
 
         -n, --dry-run
-                Dry run.  Print the commands to be run instea of actually
+                Dry run.  Print the commands to be run instead of actually
                 running them.  Each command is preceded by a line explaining
                 what it does.
 
@@ -580,7 +576,7 @@ unit_ctl_welcome()
 
     if test 0 -eq "$nprocs"; then
         warn "welcome: NGINX Unit isn't running.";
-        warn 'For help starting NGINX Unit, see:';
+        warn 'For help with starting NGINX Unit, see:';
         err  "  <https://unit.nginx.org/installation/#startup-and-shutdown>";
     elif test 1 -ne "$nprocs"; then
         err 'welcome: Only one NGINX Unit instance should be running.';
@@ -590,7 +586,7 @@ unit_ctl_welcome()
     local curl_opt="$(unit_sock_find | unit_sock_filter -c)";
 
     curl $curl_opt/ >/dev/null 2>&1 \
-    || err "welcome: Can't reach the control socket.";
+    || err "welcome: Can't reach the control API socket.";
 
     if ! test -v force; then
         unit_cmd \
@@ -616,8 +612,8 @@ unit_ctl_welcome()
         if test -e $conffile; then
             if ! unit_ctl_http ---s "$sock" 'GET' '/config' </dev/null 2>/dev/null | grep -q '^{}.\?$';  # The '.\?' is for the possible carriage return.
             then
-                warn 'welcome: NGINX Unit is already configured.  If you are sure you want';
-                err  'to overwrite its current configuration, run again with --force.';
+                warn 'welcome: NGINX Unit is already configured.  To overwrite';
+                err  'its current configuration, run the script again with --force.';
             fi;
         fi;
     fi;
@@ -835,7 +831,7 @@ SYNOPSIS
 ARGUMENTS
         JSON    Path to a JSON file containing a top-level array.
 
-        INDEX   Position in the array where to insert the element.
+        INDEX   Position in the array to insert the element at.
 
 DESCRIPTION
         Insert a JSON element read from standard input into a JSON array read
@@ -906,9 +902,9 @@ SYNOPSIS
         $program_name os-probe [-h]
 
 DESCRIPTION
-        This script probes the OS, and prints details about the version.  It
-        prints three fields, delimited by ':'; the first is the package manager,
-        the second is the OS name, and the third is the OS version.
+        This script probes the OS and prints three fields, delimited by ':';
+        the first is the package manager, the second is the OS name, the third
+        is the OS version.
 
 OPTIONS
         -h, --help
@@ -939,7 +935,7 @@ unit_os_probe()
     local os=$(uname | tr '[:upper:]' '[:lower:]')
 
     if [ "$os" != 'linux' ] && [ "$os" != 'freebsd' ]; then
-        err "os-probe: The OS isn't Linux or FreeBSD, can't proceed."
+        err "os-probe: The OS isn't Linux or FreeBSD; can't proceed."
     fi
 
     if [ "$os" = 'linux' ]; then
@@ -960,14 +956,14 @@ unit_os_probe()
             local osName=$(grep "^ID=" "$osRelease" | sed s/\"//g | awk -F= '{ print $2 }' ||:)
             local osVersion=$(grep '^VERSION_ID=' "$osRelease" | sed s/\"//g | awk -F= '{ print $2 }' || lsb_release -cs)
         else
-            err "os-probe: Unable to determine OS and version, or the OS isn't supported"
+            err "os-probe: Unable to determine OS and version, or the OS isn't supported."
         fi
     else
         local pkgMngr='pkg';
         local osName=$os
         local osVersion=$(uname -rs | awk -F '[ -]' '{print $2}' ||:)
         if [ -z "$osVersion" ]; then
-            err 'os-probe: Unable to get the FreeBSD version'
+            err 'os-probe: Unable to get the FreeBSD version.'
         fi
     fi
 
@@ -1059,8 +1055,8 @@ DESCRIPTION
         This script configures the NGINX Unit repository for the system
         package manager.
 
-        The script automatically detects your OS, and works accordingly.
-        However, in case the automatic selection fails, you may specify the
+        The script automatically detects the OS and proceeds accordingly.
+        However, if this automatic selection fails, you may specify the
         package manager and the OS name and version.
 
 ARGUMENTS
@@ -1071,15 +1067,15 @@ ARGUMENTS
                 Supported: 'debian', 'ubuntu', 'fedora', 'rhel', and 'amzn2'.
 
         OS-VERSION
-                For most distributions this should be a numeric value, but for
-                debian derivatives, the codename should be used.
+                For most distributions, this should be a numeric value; for
+                Debian derivatives, use the codename instead.
 
 OPTIONS
         -h, --help
                 Print this help.
 
         -n, --dry-run
-                Dry run.  Print the commands to be run instea of actually
+                Dry run.  Print the commands to be run instead of actually
                 running them.  Each command is preceded by a line explaining
                 what it does.
 
@@ -1202,7 +1198,7 @@ __EOF__";
             installAPT "$pkg_mngr" "$os_name" ${3:+$os_version};
             ;;
         *)
-            err "repo-config: $os_name: The OS isn't supported";
+            err "repo-config: $os_name: The OS isn't supported.";
             ;;
         esac
         ;;
@@ -1212,12 +1208,12 @@ __EOF__";
             installYumDnf "$pkg_mngr" "$os_name" "$os_version" ${3:+ovr};
             ;;
         *)
-            err "repo-config: $os_name: The OS isn't supported";
+            err "repo-config: $os_name: The OS isn't supported.";
             ;;
         esac;
         ;;
     *)
-        err "repo-config: $pkg_mngr: The package manager isn't supported";
+        err "repo-config: $pkg_mngr: The package manager isn't supported.";
         ;;
     esac;
 
@@ -1239,19 +1235,19 @@ SYNOPSIS
         +-- find    [-h]
 
 DESCRIPTION
-        Print the address of the control API socket of running instances of
-        unitd(8).
+        Print the control API socket address of running unitd(8)
+        instances.
 
         Run '$program_name sock SUBCOMMAND -h' for more information on a
         subcommand.
 
 SUBCOMMANDS
-        filter  Filter the output of the 'find' subcommand, and transform it
-                to something suitable to run other commands, such as curl(1)
-                or ssh(1).
+        filter  Filter the output of the 'find' subcommand and transform it
+                to something suitable for running other commands, such as
+                curl(1) or ssh(1).
 
-        find    Find and print the address of the control API socket of
-                running instances of unitd(8).
+        find    Find and print the control API socket address of running
+                unitd(8) instances.
 
 OPTIONS
         -h, --help
@@ -1306,8 +1302,9 @@ SYNOPSIS
         $program_name sock filter [-chs]
 
 DESCRIPTION
-        Filter the output of the 'sock find' command, and transform it to
-        something suitable to run other commands, such as curl(1) or ssh(1).
+        Filter the output of the 'sock find' command and transform it to
+        something suitable for running other commands, such as
+        curl(1) or ssh(1).
 
 OPTIONS
         -c, --curl
@@ -1384,8 +1381,8 @@ SYNOPSIS
         $program_name sock find [-h]
 
 DESCRIPTION
-        Find and print the address of the control API socket of running
-        instances of unitd(8).
+        Find and print the control API socket address of running
+        unitd(8) instances.
 
 OPTIONS
         -h, --help
