@@ -53,7 +53,13 @@ removed $uri auto-append for "share" when loading configuration.
 
 <change type="change">
 <para>
-prefer system crypto policy, instead of hardcoding a default.
+prefer system crypto policy instead of hardcoding a default.
+</para>
+</change>
+
+<change type="feature">
+<para>
+njs support with the basic syntax of JS template literals.
 </para>
 </change>
 
@@ -65,13 +71,20 @@ support per-application cgroups on Linux.
 
 <change type="feature">
 <para>
-compatibility with Python 3.11.
+the $request_time variable contains the request processing time.
 </para>
 </change>
 
 <change type="feature">
 <para>
-njs support with the basic syntax of JS template literals.
+"prefix" option in Python applications to set WSGI "SCRIPT_NAME"
+and ASGI root-path variables.
+</para>
+</change>
+
+<change type="feature">
+<para>
+compatibility with Python 3.11.
 </para>
 </change>
 
@@ -95,32 +108,7 @@ compatibility with Node.js 19.0.
 
 <change type="feature">
 <para>
-support rack v3 in ruby applications.
-</para>
-</change>
-
-<change type="feature">
-<para>
-the $request_time variable contains the request processing time.
-</para>
-</change>
-
-<change type="feature">
-<para>
-report the regex status in configure summary.
-</para>
-</change>
-
-<change type="feature">
-<para>
-new "prefix" attribute in Python configurations to set WSGI SCRIPT_NAME
-and ASGI root-path variables.
-</para>
-</change>
-
-<change type="bugfix">
-<para>
-fix HTTP cookie parsing when the value contains an equals sign.
+Ruby Rack v3 support.
 </para>
 </change>
 
@@ -132,8 +120,26 @@ fix error in connection statistics when using proxy.
 
 <change type="bugfix">
 <para>
+fix HTTP cookie parsing when the value contains an equals sign.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
 PHP directory URLs without a trailing '/' would give a 503 error (fixed with
 a 301 re-direct).
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+missing error checks in the C API.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+report the regex status in configure summary.
 </para>
 </change>
 
@@ -259,7 +265,7 @@ the Ruby application process could crash on SIGINT.
 
 <change type="bugfix">
 <para>
-mutex leaks in the C API.
+mutex leak in the C API.
 </para>
 </change>
 
