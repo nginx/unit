@@ -8,7 +8,7 @@
 <changes apply="unit-php
                 unit-python unit-python2.7
                 unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
-                unit-python3.8 unit-python3.9 unit-python3.10
+                unit-python3.8 unit-python3.9 unit-python3.10 unit-python3.11
                 unit-go
                 unit-perl
                 unit-ruby
@@ -35,6 +35,19 @@ NGINX Unit updated to 1.29.0.
 <change>
 <para>
 Initial release of Java 19 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python3.11" ver="1.29.0" rev="1"
+         date="2022-12-15" time="08:00:00 -0800"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change>
+<para>
+Initial release of Python 3.11 module for NGINX Unit.
 </para>
 </change>
 
