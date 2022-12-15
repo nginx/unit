@@ -1,4 +1,44 @@
 
+Changes with Unit 1.29.0                                         15 Dec 2022
+
+    *) Change: removed $uri auto-append for "share" when loading
+       configuration.
+
+    *) Change: prefer system crypto policy instead of hardcoding a default.
+
+    *) Feature: njs support with the basic syntax of JS template literals.
+
+    *) Feature: support per-application cgroups on Linux.
+
+    *) Feature: the $request_time variable contains the request processing
+       time.
+
+    *) Feature: "prefix" option in Python applications to set WSGI
+       "SCRIPT_NAME" and ASGI root-path variables.
+
+    *) Feature: compatibility with Python 3.11.
+
+    *) Feature: compatibility with OpenSSL 3.
+
+    *) Feature: compatibility with PHP 8.2.
+
+    *) Feature: compatibility with Node.js 19.0.
+
+    *) Feature: Ruby Rack v3 support.
+
+    *) Bugfix: fix error in connection statistics when using proxy.
+
+    *) Bugfix: fix HTTP cookie parsing when the value contains an equals
+       sign.
+
+    *) Bugfix: PHP directory URLs without a trailing '/' would give a 503
+       error (fixed with a 301 re-direct).
+
+    *) Bugfix: missing error checks in the C API.
+
+    *) Bugfix: report the regex status in configure summary.
+
+
 Changes with Unit 1.28.0                                         13 Sep 2022
 
     *) Change: increased the applications' startup timeout.

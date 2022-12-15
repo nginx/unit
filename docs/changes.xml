@@ -16,7 +16,7 @@
                 unit-jsc14 unit-jsc15 unit-jsc16 unit-jsc17 unit-jsc18
                 unit-jsc19"
          ver="1.29.0" rev="1"
-         date="" time=""
+         date="2022-12-15" time="18:00:00 +0300"
          packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
 
 <change>
@@ -42,7 +42,7 @@ Initial release of Java 19 module for NGINX Unit.
 
 
 <changes apply="unit" ver="1.29.0" rev="1"
-         date="" time=""
+         date="2022-12-15" time="18:00:00 +0300"
          packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
 
 <change type="change">
