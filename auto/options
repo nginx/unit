@@ -28,6 +28,8 @@ NXT_GNUTLS=NO
 NXT_CYASSL=NO
 NXT_POLARSSL=NO
 
+NXT_NJS=NO
+
 NXT_TEST_BUILD_EPOLL=NO
 NXT_TEST_BUILD_EVENTPORT=NO
 NXT_TEST_BUILD_DEVPOLL=NO
@@ -84,6 +86,8 @@ do
         --gnutls)                        NXT_GNUTLS=YES                      ;;
         --cyassl)                        NXT_CYASSL=YES                      ;;
         --polarssl)                      NXT_POLARSSL=YES                    ;;
+
+        --njs)                           NXT_NJS=YES                         ;;
 
         --test-build-epoll)              NXT_TEST_BUILD_EPOLL=YES            ;;
         --test-build-eventport)          NXT_TEST_BUILD_EVENTPORT=YES        ;;

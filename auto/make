@@ -363,12 +363,15 @@ install-check:
 	    exit 1)
 
 ${NXT_DAEMON}-install: $NXT_DAEMON install-check
-	install -d \$(DESTDIR)$NXT_SBINDIR
+	test -d \$(DESTDIR)$NXT_SBINDIR \
+		|| install -d \$(DESTDIR)$NXT_SBINDIR
 	install -p $NXT_BUILD_DIR/$NXT_DAEMON \$(DESTDIR)$NXT_SBINDIR/
-	install -d \$(DESTDIR)$NXT_STATE
+	test -d \$(DESTDIR)$NXT_STATE \
+		|| install -d \$(DESTDIR)$NXT_STATE
 
 manpage-install: manpage install-check
-	install -d \$(DESTDIR)$NXT_MANDIR/man8
+	test -d \$(DESTDIR)$NXT_MANDIR/man8 \
+		|| install -d \$(DESTDIR)$NXT_MANDIR/man8
 	install -p -m644 $NXT_BUILD_DIR/unitd.8 \$(DESTDIR)$NXT_MANDIR/man8/
 
 .PHONY: uninstall ${NXT_DAEMON}-uninstall manpage-uninstall
@@ -390,10 +393,12 @@ cat << END >> $NXT_MAKEFILE
 .PHONY: libunit-install libunit-uninstall
 
 libunit-install: $NXT_BUILD_DIR/$NXT_LIB_UNIT_STATIC
-	install -d \$(DESTDIR)$NXT_LIBDIR
+	test -d \$(DESTDIR)$NXT_LIBDIR \
+		|| install -d \$(DESTDIR)$NXT_LIBDIR
 	install -p -m u=rw,go=r $NXT_BUILD_DIR/$NXT_LIB_UNIT_STATIC \
 		\$(DESTDIR)$NXT_LIBDIR/
-	install -d \$(DESTDIR)$NXT_INCDIR
+	test -d \$(DESTDIR)$NXT_INCDIR \
+		|| install -d \$(DESTDIR)$NXT_INCDIR
 	install -p -m u=rw,go=r src/nxt_unit.h \
 		src/nxt_unit_field.h \
 		src/nxt_unit_request.h \

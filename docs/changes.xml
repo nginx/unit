@@ -13,6 +13,147 @@
                 unit-perl
                 unit-ruby
                 unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11 unit-jsc13
+                unit-jsc14 unit-jsc15 unit-jsc16 unit-jsc17 unit-jsc18
+                unit-jsc19"
+         ver="1.29.0" rev="1"
+         date="2022-12-15" time="18:00:00 +0300"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.29.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-jsc19" ver="1.29.0" rev="1"
+         date="2022-11-18" time="15:00:00 +0400"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change>
+<para>
+Initial release of Java 19 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.29.0" rev="1"
+         date="2022-12-15" time="18:00:00 +0300"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change type="change">
+<para>
+removed $uri auto-append for "share" when loading configuration.
+</para>
+</change>
+
+<change type="change">
+<para>
+prefer system crypto policy instead of hardcoding a default.
+</para>
+</change>
+
+<change type="feature">
+<para>
+njs support with the basic syntax of JS template literals.
+</para>
+</change>
+
+<change type="feature">
+<para>
+support per-application cgroups on Linux.
+</para>
+</change>
+
+<change type="feature">
+<para>
+the $request_time variable contains the request processing time.
+</para>
+</change>
+
+<change type="feature">
+<para>
+"prefix" option in Python applications to set WSGI "SCRIPT_NAME"
+and ASGI root-path variables.
+</para>
+</change>
+
+<change type="feature">
+<para>
+compatibility with Python 3.11.
+</para>
+</change>
+
+<change type="feature">
+<para>
+compatibility with OpenSSL 3.
+</para>
+</change>
+
+<change type="feature">
+<para>
+compatibility with PHP 8.2.
+</para>
+</change>
+
+<change type="feature">
+<para>
+compatibility with Node.js 19.0.
+</para>
+</change>
+
+<change type="feature">
+<para>
+Ruby Rack v3 support.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+fix error in connection statistics when using proxy.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+fix HTTP cookie parsing when the value contains an equals sign.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+PHP directory URLs without a trailing '/' would give a 503 error (fixed with
+a 301 re-direct).
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+missing error checks in the C API.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+report the regex status in configure summary.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8 unit-python3.9 unit-python3.10
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11 unit-jsc13
                 unit-jsc14 unit-jsc15 unit-jsc16 unit-jsc17 unit-jsc18"
          ver="1.28.0" rev="1"
          date="2022-09-13" time="18:00:00 +0300"

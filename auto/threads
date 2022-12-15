@@ -47,7 +47,7 @@ nxt_feature_libs=$NXT_PTHREAD
 nxt_feature_test="#define _GNU_SOURCE
               #include <pthread.h>
 
-              int main() {
+              int main(void) {
                   pthread_yield();
                   return 0;
               }"
@@ -65,7 +65,7 @@ if [ $nxt_found = no ]; then
     nxt_feature_libs=$NXT_PTHREAD
     nxt_feature_test="#include <pthread.h>
 
-                  int main() {
+                  int main(void) {
                       pthread_yield_np();
                       return 0;
                   }"
@@ -82,7 +82,7 @@ nxt_feature_incs=
 nxt_feature_libs=$NXT_PTHREAD
 nxt_feature_test="#include <pthread.h>
 
-              int main() {
+              int main(void) {
                   pthread_spinlock_t  lock;
 
                   if (pthread_spin_init(&lock, PTHREAD_PROCESS_PRIVATE) != 0)
@@ -112,7 +112,7 @@ if [ $nxt_found = yes ]; then
 
                       pthread_spinlock_t  lock = 0;
 
-                      int main() {
+                      int main(void) {
                           if (pthread_spin_trylock(&lock) != 0)
                               return 1;
                           if (pthread_spin_unlock(&lock) != 0)
@@ -130,7 +130,7 @@ nxt_feature_incs=
 nxt_feature_libs=
 nxt_feature_test="#include <semaphore.h>
 
-                  int main() {
+                  int main(void) {
                       sem_t            sem;
                       struct timespec  ts;
 
@@ -199,7 +199,7 @@ nxt_feature_test="#include <pthread.h>
                       return NULL;
                   }
 
-                  int main() {
+                  int main(void) {
                       void       *n;
                       pthread_t  pt;
 
@@ -227,7 +227,7 @@ if [ $nxt_found = no ]; then
     nxt_feature_libs=$NXT_PTHREAD
     nxt_feature_test="#include <pthread.h>
 
-                      int main() {
+                      int main(void) {
                           pthread_key_t  key = -1;
 
                           if (pthread_key_create(&key, NULL))
@@ -250,7 +250,7 @@ if [ $nxt_found = no ]; then
                       #include <pthread.h>
                       #include <stdio.h>
 
-                      int main() {
+                      int main(void) {
                           printf(\"%d\", PTHREAD_KEYS_MAX);
                           return 0;
                       }"

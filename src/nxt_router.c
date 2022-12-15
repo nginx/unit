@@ -1060,10 +1060,14 @@ nxt_router_temp_conf(nxt_task_t *task)
 
     rtcf->mem_pool = mp;
 
-    rtcf->var_fields = nxt_array_create(mp, 4, sizeof(nxt_var_field_t));
-    if (nxt_slow_path(rtcf->var_fields == NULL)) {
+    rtcf->tstr_state = nxt_tstr_state_new(mp, 0);
+    if (nxt_slow_path(rtcf->tstr_state == NULL)) {
         goto fail;
     }
+
+#if (NXT_HAVE_NJS)
+    nxt_http_register_js_proto(rtcf->tstr_state->jcf);
+#endif
 
     tmp = nxt_mp_create(1024, 128, 256, 32);
     if (nxt_slow_path(tmp == NULL)) {
@@ -2040,6 +2044,11 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         if (nxt_slow_path(ret != NXT_OK)) {
             goto fail;
         }
+    }
+
+    ret = nxt_tstr_state_done(rtcf->tstr_state, NULL);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        goto fail;
     }
 
     nxt_queue_add(&deleting_sockets, &router->sockets);
@@ -5249,9 +5258,15 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_http_request_t *r,
                    r->remote->address_length);
     *p++ = '\0';
 
-    req->local_length = r->local->address_length;
-    nxt_unit_sptr_set(&req->local, p);
+    req->local_addr_length = r->local->address_length;
+    nxt_unit_sptr_set(&req->local_addr, p);
     p = nxt_cpymem(p, nxt_sockaddr_address(r->local), r->local->address_length);
+    *p++ = '\0';
+
+    req->local_port_length = nxt_sockaddr_port_length(r->local);
+    nxt_unit_sptr_set(&req->local_port, p);
+    p = nxt_cpymem(p, nxt_sockaddr_port(r->local),
+                   nxt_sockaddr_port_length(r->local));
     *p++ = '\0';
 
     req->tls = r->tls;

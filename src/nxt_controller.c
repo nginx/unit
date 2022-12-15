@@ -666,6 +666,14 @@ nxt_runtime_controller_socket(nxt_task_t *task, nxt_runtime_t *rt)
 #endif
     ls->handler = nxt_controller_conn_init;
 
+#if (NXT_HAVE_UNIX_DOMAIN)
+    if (ls->sockaddr->u.sockaddr.sa_family == AF_UNIX) {
+        const char *path = ls->sockaddr->u.sockaddr_un.sun_path;
+
+        nxt_fs_mkdir_parent((const u_char *) path, 0755);
+    }
+#endif
+
     if (nxt_listen_socket_create(task, rt->mem_pool, ls) != NXT_OK) {
         return NXT_ERROR;
     }
@@ -1255,7 +1263,7 @@ nxt_controller_process_config(nxt_task_t *task, nxt_controller_request_t *req,
 
         /* Skip UTF-8 BOM. */
         if (nxt_buf_mem_used_size(mbuf) >= 3
-            && nxt_memcmp(mbuf->pos, "\xEF\xBB\xBF", 3) == 0)
+            && memcmp(mbuf->pos, "\xEF\xBB\xBF", 3) == 0)
         {
             mbuf->pos += 3;
         }
@@ -1629,7 +1637,7 @@ nxt_controller_process_cert(nxt_task_t *task,
     name.length = path->length - 1;
     name.start = path->start + 1;
 
-    p = nxt_memchr(name.start, '/', name.length);
+    p = memchr(name.start, '/', name.length);
 
     if (p != NULL) {
         name.length = p - name.start;
@@ -1932,7 +1940,7 @@ nxt_controller_process_control(nxt_task_t *task,
     }
 
     if (!nxt_str_start(path, "applications/", 13)
-        || nxt_memcmp(path->start + path->length - 8, "/restart", 8) != 0)
+        || memcmp(path->start + path->length - 8, "/restart", 8) != 0)
     {
         goto not_found;
     }

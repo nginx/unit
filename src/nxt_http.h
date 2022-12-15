@@ -140,6 +140,8 @@ struct nxt_http_request_s {
     nxt_buf_t                       *out;
     const nxt_http_request_state_t  *state;
 
+    nxt_nsec_t                      start_time;
+
     nxt_str_t                       host;
     nxt_str_t                       server_name;
     nxt_str_t                       target;
@@ -167,7 +169,8 @@ struct nxt_http_request_s {
     nxt_timer_t                     timer;
     void                            *timer_data;
 
-    nxt_var_query_t                 *var_query;
+    nxt_tstr_query_t                *tstr_query;
+    nxt_tstr_cache_t                tstr_cache;
 
     void                            *req_rpc_data;
 
@@ -243,7 +246,7 @@ struct nxt_http_action_s {
         nxt_http_route_t            *route;
         nxt_upstream_t              *upstream;
         uint32_t                    upstream_number;
-        nxt_var_t                   *var;
+        nxt_tstr_t                  *tstr;
         nxt_str_t                   *pass;
     } u;
 

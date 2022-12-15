@@ -17,6 +17,7 @@ import pytest
 from unit.check.chroot import check_chroot
 from unit.check.go import check_go
 from unit.check.isolation import check_isolation
+from unit.check.njs import check_njs
 from unit.check.node import check_node
 from unit.check.regex import check_regex
 from unit.check.tls import check_openssl
@@ -25,8 +26,10 @@ from unit.http import TestHTTP
 from unit.log import Log
 from unit.option import option
 from unit.status import Status
+from unit.utils import check_findmnt
 from unit.utils import public_dir
 from unit.utils import waitforfiles
+from unit.utils import waitforunmount
 
 
 def pytest_addoption(parser):
@@ -86,6 +89,7 @@ _fds_info = {
     },
 }
 http = TestHTTP()
+is_findmnt = check_findmnt()
 
 
 def pytest_configure(config):
@@ -176,6 +180,9 @@ def pytest_sessionstart(session):
     option.available = {'modules': {}, 'features': {}}
 
     unit = unit_run()
+    output_version = subprocess.check_output(
+        [unit['unitd'], '--version'], stderr=subprocess.STDOUT
+    ).decode()
 
     # read unit.log
 
@@ -202,10 +209,11 @@ def pytest_sessionstart(session):
 
     # discover modules from check
 
-    option.available['modules']['openssl'] = check_openssl(unit['unitd'])
     option.available['modules']['go'] = check_go()
+    option.available['modules']['njs'] = check_njs(output_version)
     option.available['modules']['node'] = check_node(option.current_dir)
-    option.available['modules']['regex'] = check_regex(unit['unitd'])
+    option.available['modules']['openssl'] = check_openssl(output_version)
+    option.available['modules']['regex'] = check_regex(output_version)
 
     # remove None values
 
@@ -309,6 +317,9 @@ def run(request):
 
     if not option.restart:
         _clear_conf(unit['temp_dir'] + '/control.unit.sock', log=log)
+
+        if is_findmnt and not waitforunmount(unit['temp_dir'], timeout=600):
+            exit('Could not unmount some filesystems in tmp dir.')
 
         for item in os.listdir(unit['temp_dir']):
             if item not in [
@@ -480,13 +491,14 @@ def _check_alerts(*, log=None):
             log = f.read()
 
     found = False
-
     alerts = re.findall(r'.+\[alert\].+', log)
 
     if alerts:
-        print('\nAll alerts/sanitizer errors found in log:')
-        [print(alert) for alert in alerts]
         found = True
+
+        if option.detailed:
+            print('\nAll alerts/sanitizer errors found in log:')
+            [print(alert) for alert in alerts]
 
     if option.skip_alerts:
         for skip in option.skip_alerts:
@@ -499,7 +511,7 @@ def _check_alerts(*, log=None):
 
         assert not sanitizer_errors, 'sanitizer error(s)'
 
-    if found:
+    if found and option.detailed:
         print('skipped.')
 
 
@@ -570,6 +582,10 @@ def _check_processes():
             break
 
         time.sleep(0.1)
+
+    if option.restart:
+        assert len(out) == 0, 'all termimated'
+        return
 
     assert len(out) == 3, 'main, router, and controller expected'
 

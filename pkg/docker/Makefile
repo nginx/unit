@@ -34,7 +34,7 @@ CONFIGURE_jsc ?=	java --jars=/usr/share/unit-jsc-common/
 INSTALL_jsc ?=		java-shared-install java-install
 COPY_jsc =	 		COPY --from=BUILDER /usr/share/unit-jsc-common/ /usr/share/unit-jsc-common/
 
-VERSION_node ?=		16
+VERSION_node ?=		18
 CONTAINER_node ?=	node:$(VERSION_node)
 CONFIGURE_node ?=	nodejs --node-gyp=/usr/local/lib/node_modules/npm/bin/node-gyp-bin/node-gyp
 INSTALL_node ?=		node node-install libunit-install
@@ -56,7 +56,7 @@ CONFIGURE_php ?=	php
 INSTALL_php ?=		php-install
 COPY_php =			RUN ldconfig
 
-VERSION_python ?=	3.10
+VERSION_python ?=	3.11
 CONTAINER_python ?=	python:$(VERSION_python)
 CONFIGURE_python ?=	python --config=/usr/local/bin/python3-config
 INSTALL_python ?=	python3-install

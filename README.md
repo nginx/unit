@@ -50,8 +50,9 @@ For a description of image tags, see the
 ### Amazon Linux, Fedora, RedHat
 
 ``` console
-$ curl -sL 'https://unit.nginx.org/_downloads/setup-unit.sh' | sudo -E bash
-# yum install unit
+$ wget https://raw.githubusercontent.com/nginx/unit/master/tools/setup-unit && chmod +x setup-unit
+# ./setup-unit repo-config && yum install unit
+# ./setup-unit welcome
 ```
 
 For details and available language packages, see the
@@ -61,8 +62,9 @@ For details and available language packages, see the
 ### Debian, Ubuntu
 
 ``` console
-$ curl -sL 'https://unit.nginx.org/_downloads/setup-unit.sh' | sudo -E bash
-# apt install unit
+$ wget https://raw.githubusercontent.com/nginx/unit/master/tools/setup-unit && chmod +x setup-unit
+# ./setup-unit repo-config && apt install unit
+# ./setup-unit welcome
 ```
 
 For details and available language packages, see the
@@ -91,7 +93,7 @@ application object. Let's store our first config snippet in a file called
 
 Saving it as a file isn't necessary, but can come in handy with larger objects.
 
-Now, `PUT` it into the `config/applications` section of Unit's control API,
+Now, `PUT` it into the `/config/applications` section of Unit's control API,
 usually available by default via a Unix domain socket:
 
 ``` console
@@ -105,7 +107,7 @@ usually available by default via a Unix domain socket:
 }
 ```
 
-Next, reference the app from a listener object in the `config/listeners`
+Next, reference the app from a listener object in the `/config/listeners`
 section of the API.  This time, we pass the config snippet straight from the
 command line:
 

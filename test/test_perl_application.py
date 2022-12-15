@@ -259,14 +259,13 @@ class TestPerlApplication(TestApplicationPerl):
         socks = []
 
         for i in range(4):
-            (_, sock) = self.get(
+            sock = self.get(
                 headers={
                     'Host': 'localhost',
                     'X-Delay': '2',
                     'Connection': 'close',
                 },
                 no_recv=True,
-                start=True,
             )
 
             socks.append(sock)

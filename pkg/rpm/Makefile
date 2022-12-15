@@ -18,8 +18,10 @@ else ifeq ($(shell rpm --eval "%{?rhel}"), 9)
 OSVER = centos9
 else ifeq ($(shell rpm --eval "%{?amzn}"), 2)
 OSVER = amazonlinux2
-else ifeq ($(shell test `rpm --eval '0%{?fedora} -ge 35'`; echo $$?),0)
+else ifeq ($(shell test `rpm --eval '0%{?fedora} -ge 35 -a 0%{?fedora} -le 36'`; echo $$?),0)
 OSVER = fedora
+else ifeq ($(shell test `rpm --eval '0%{?fedora} -ge 37'`; echo $$?),0)
+OSVER = fedora37
 endif
 
 BUILD_DEPENDS_unit = gcc rpm-build rpmlint
@@ -53,6 +55,8 @@ ifeq ($(OSVER), centos8)
 include Makefile.php
 include Makefile.python27
 include Makefile.python36
+include Makefile.python38
+include Makefile.python39
 include Makefile.go
 include Makefile.perl
 include Makefile.jsc-common
@@ -91,7 +95,18 @@ include Makefile.jsc8
 include Makefile.jsc11
 endif
 
-CONFIGURE_ARGS=\
+ifeq ($(OSVER), fedora37)
+include Makefile.php
+include Makefile.python311
+include Makefile.go
+include Makefile.perl
+include Makefile.ruby
+include Makefile.jsc-common
+include Makefile.jsc8
+include Makefile.jsc11
+endif
+
+CONFIGURE_ARGS_COMMON=\
 	--prefix=/usr \
 	--state=%{_sharedstatedir}/unit \
 	--control="unix:/var/run/unit/control.sock" \
@@ -102,6 +117,10 @@ CONFIGURE_ARGS=\
 	--group=unit \
 	--tests \
 	--openssl
+
+CONFIGURE_ARGS=\
+	$(CONFIGURE_ARGS_COMMON) \
+	--njs
 
 export CR=\\n
 
@@ -161,7 +180,7 @@ endif
 rpmbuild/SOURCES/unit-$(VERSION).tar.gz:
 	cd ../.. && tar -czf pkg/rpm/rpmbuild/SOURCES/unit-$(VERSION).tar.gz \
 		--transform "s#^#unit-$(VERSION)/#" \
-		LICENSE NOTICE CHANGES README.md CONTRIBUTING.md configure auto src test version go docs/man/unitd.8.in
+		LICENSE NOTICE CHANGES README.md CONTRIBUTING.md configure auto src test version go pkg/contrib docs/man/unitd.8.in
 
 unit: check-build-depends-unit rpmbuild/SPECS/unit.spec rpmbuild/SOURCES/unit-$(VERSION).tar.gz
 	@echo "===> Building $@ package" ; \
@@ -197,7 +216,7 @@ rpmbuild/SPECS/unit-%.spec: unit.module.spec.in ../../docs/changes.xml | rpmbuil
 		-e "s#%%UNIT_RELEASE%%#$(RELEASE)#g" \
 		-e "s#%%PACKAGE_VENDOR%%#$(PACKAGE_VENDOR)#g" \
 		-e "s#%%MODULE_SOURCES%%#$${sources}#g" \
-		-e "s#%%CONFIGURE_ARGS%%#$(CONFIGURE_ARGS)#g" \
+		-e "s#%%CONFIGURE_ARGS%%#$(CONFIGURE_ARGS_COMMON)#g" \
 		-e "s#%%MODULE_CONFARGS%%#$(MODULE_CONFARGS_$*)#g" \
 		-e "s#%%MODULE_MAKEARGS%%#$(MODULE_MAKEARGS_$*)#g" \
 		-e "s#%%MODULE_INSTARGS%%#$(MODULE_INSTARGS_$*)#g" \

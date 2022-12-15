@@ -67,7 +67,9 @@ replace unit.nginx.org/go => {replace_path}
             print("\n$ GOPATH=" + env['GOPATH'] + " " + " ".join(args))
 
         try:
-            process = subprocess.run(args, env=env, cwd=temp_dir)
+            output = subprocess.check_output(
+                args, env=env, cwd=temp_dir, stderr=subprocess.STDOUT
+            )
 
         except KeyboardInterrupt:
             raise
@@ -75,7 +77,7 @@ replace unit.nginx.org/go => {replace_path}
         except subprocess.CalledProcessError:
             return None
 
-        return process
+        return output
 
     def load(self, script, name='app', **kwargs):
         static_build = False

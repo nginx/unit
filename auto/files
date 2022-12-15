@@ -12,7 +12,7 @@ nxt_feature_incs=
 nxt_feature_libs=
 nxt_feature_test="#include <fcntl.h>
 
-                  int main() {
+                  int main(void) {
                       (void) posix_fadvise(0, 0, 0, POSIX_FADV_WILLNEED);
                       return 0;
                   }"
@@ -28,7 +28,7 @@ nxt_feature_incs=
 nxt_feature_libs=
 nxt_feature_test="#include <fcntl.h>
 
-                  int main() {
+                  int main(void) {
                       (void) fcntl(0, F_READAHEAD, 1024);
                       return 0;
                   }"
@@ -44,7 +44,7 @@ nxt_feature_incs=
 nxt_feature_libs=
 nxt_feature_test="#include <fcntl.h>
 
-                  int main() {
+                  int main(void) {
                       (void) fcntl(0, F_RDAHEAD, 1);
                       return 0;
                   }"
@@ -62,7 +62,7 @@ nxt_feature_test="#include <fcntl.h>
                   #include <linux/openat2.h>
                   #include <string.h>
 
-                  int main() {
+                  int main(void) {
                       struct open_how  how;
 
                       memset(&how, 0, sizeof(how));

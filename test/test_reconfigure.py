@@ -21,10 +21,9 @@ class TestReconfigure(TestApplicationProto):
         assert 'success' in self.conf({"listeners": {}, "applications": {}})
 
     def test_reconfigure(self):
-        (_, sock) = self.http(
+        sock = self.http(
             b"""GET / HTTP/1.1
 """,
-            start=True,
             raw=True,
             no_recv=True,
         )
@@ -42,7 +41,7 @@ Connection: close
         assert resp['status'] == 200, 'finish request'
 
     def test_reconfigure_2(self):
-        (_, sock) = self.http(b'', raw=True, start=True, no_recv=True)
+        sock = self.http(b'', raw=True, no_recv=True)
 
         # Waiting for connection completion.
         # Delay should be more than TCP_DEFER_ACCEPT.

@@ -79,7 +79,7 @@ if /bin/sh -c "$NXT_PERL -MConfig -e 'print \"Perl version: \",
 
         static PerlInterpreter *my_perl;
 
-        int main() {
+        int main(void) {
             char argv[] = \"\\0-e\\00\";
             char *embedding[] = { &argv[0], &argv[1], &argv[4] };
 
@@ -124,7 +124,7 @@ nxt_feature_test="
     #include <EXTERN.h>
     #include <perl.h>
 
-    int main() {
+    int main(void) {
         printf(\"%s\", PERL_VERSION_STRING);
         return 0;
     }"

@@ -8,7 +8,7 @@
 
 
 typedef struct {
-    nxt_var_t                   *var;
+    nxt_tstr_t                  *tstr;
 #if (NXT_HAVE_OPENAT2)
     u_char                      *fname;
 #endif
@@ -21,7 +21,7 @@ typedef struct {
     nxt_http_static_share_t     *shares;
     nxt_str_t                   index;
 #if (NXT_HAVE_OPENAT2)
-    nxt_var_t                   *chroot;
+    nxt_tstr_t                  *chroot;
     nxt_uint_t                  resolve;
 #endif
     nxt_http_route_rule_t       *types;
@@ -48,7 +48,7 @@ static nxt_http_action_t *nxt_http_static(nxt_task_t *task,
 static void nxt_http_static_iterate(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_static_ctx_t *ctx);
 static void nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data);
-static void nxt_http_static_var_error(nxt_task_t *task, void *obj, void *data);
+static void nxt_http_static_send_error(nxt_task_t *task, void *obj, void *data);
 static void nxt_http_static_next(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_static_ctx_t *ctx, nxt_http_status_t status);
 #if (NXT_HAVE_OPENAT2)
@@ -77,7 +77,7 @@ nxt_http_static_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     uint32_t                i;
     nxt_mp_t                *mp;
     nxt_str_t               str, *ret;
-    nxt_var_t               *var;
+    nxt_tstr_t              *tstr;
     nxt_conf_value_t        *cv;
     nxt_router_conf_t       *rtcf;
     nxt_http_static_conf_t  *conf;
@@ -104,13 +104,13 @@ nxt_http_static_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         cv = nxt_conf_get_array_element_or_itself(acf->share, i);
         nxt_conf_get_string(cv, &str);
 
-        var = nxt_var_compile(&str, mp, rtcf->var_fields, NXT_VAR_STRZ);
-        if (nxt_slow_path(var == NULL)) {
+        tstr = nxt_tstr_compile(rtcf->tstr_state, &str, NXT_TSTR_STRZ);
+        if (nxt_slow_path(tstr == NULL)) {
             return NXT_ERROR;
         }
 
-        conf->shares[i].var = var;
-        conf->shares[i].is_const = nxt_var_is_const(var);
+        conf->shares[i].tstr = tstr;
+        conf->shares[i].is_const = nxt_tstr_is_const(tstr);
     }
 
     if (acf->index == NULL) {
@@ -130,20 +130,20 @@ nxt_http_static_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         nxt_str_t   chr, shr;
         nxt_bool_t  is_const;
 
-        conf->chroot = nxt_var_compile(&acf->chroot, mp, rtcf->var_fields,
-                                       NXT_VAR_STRZ);
+        conf->chroot = nxt_tstr_compile(rtcf->tstr_state, &acf->chroot,
+                                        NXT_TSTR_STRZ);
         if (nxt_slow_path(conf->chroot == NULL)) {
             return NXT_ERROR;
         }
 
-        is_const = nxt_var_is_const(conf->chroot);
+        is_const = nxt_tstr_is_const(conf->chroot);
 
         for (i = 0; i < conf->nshares; i++) {
             conf->shares[i].is_const &= is_const;
 
             if (conf->shares[i].is_const) {
-                nxt_var_raw(conf->chroot, &chr);
-                nxt_var_raw(conf->shares[i].var, &shr);
+                nxt_tstr_str(conf->chroot, &chr);
+                nxt_tstr_str(conf->shares[i].tstr, &shr);
 
                 conf->shares[i].fname = nxt_http_static_chroot_match(chr.start,
                                                                      shr.start);
@@ -229,6 +229,7 @@ nxt_http_static_iterate(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_static_ctx_t *ctx)
 {
     nxt_int_t                ret;
+    nxt_router_conf_t        *rtcf;
     nxt_http_static_conf_t   *conf;
     nxt_http_static_share_t  *share;
 
@@ -240,14 +241,14 @@ nxt_http_static_iterate(nxt_task_t *task, nxt_http_request_t *r,
     nxt_str_t  shr;
     nxt_str_t  idx;
 
-    nxt_var_raw(share->var, &shr);
+    nxt_tstr_str(share->tstr, &shr);
     idx = conf->index;
 
 #if (NXT_HAVE_OPENAT2)
     nxt_str_t  chr;
 
     if (conf->chroot != NULL) {
-        nxt_var_raw(conf->chroot, &chr);
+        nxt_tstr_str(conf->chroot, &chr);
 
     } else {
         nxt_str_set(&chr, "");
@@ -261,34 +262,37 @@ nxt_http_static_iterate(nxt_task_t *task, nxt_http_request_t *r,
 #endif /* NXT_DEBUG */
 
     if (share->is_const) {
-        nxt_var_raw(share->var, &ctx->share);
+        nxt_tstr_str(share->tstr, &ctx->share);
 
 #if (NXT_HAVE_OPENAT2)
         if (conf->chroot != NULL && ctx->share_idx == 0) {
-            nxt_var_raw(conf->chroot, &ctx->chroot);
+            nxt_tstr_str(conf->chroot, &ctx->chroot);
         }
 #endif
 
         nxt_http_static_send_ready(task, r, ctx);
 
     } else {
-        ret = nxt_var_query_init(&r->var_query, r, r->mem_pool);
+        rtcf = r->conf->socket_conf->router_conf;
+
+        ret = nxt_tstr_query_init(&r->tstr_query, rtcf->tstr_state,
+                                  &r->tstr_cache, r, r->mem_pool);
         if (nxt_slow_path(ret != NXT_OK)) {
             nxt_http_request_error(task, r, NXT_HTTP_INTERNAL_SERVER_ERROR);
             return;
         }
 
-        nxt_var_query(task, r->var_query, share->var, &ctx->share);
+        nxt_tstr_query(task, r->tstr_query, share->tstr, &ctx->share);
 
 #if (NXT_HAVE_OPENAT2)
         if (conf->chroot != NULL && ctx->share_idx == 0) {
-            nxt_var_query(task, r->var_query, conf->chroot, &ctx->chroot);
+            nxt_tstr_query(task, r->tstr_query, conf->chroot, &ctx->chroot);
         }
 #endif
 
-        nxt_var_query_resolve(task, r->var_query, ctx,
-                              nxt_http_static_send_ready,
-                              nxt_http_static_var_error);
+        nxt_tstr_query_resolve(task, r->tstr_query, ctx,
+                               nxt_http_static_send_ready,
+                               nxt_http_static_send_error);
      }
 }
 
@@ -658,7 +662,7 @@ fail:
 
 
 static void
-nxt_http_static_var_error(nxt_task_t *task, void *obj, void *data)
+nxt_http_static_send_error(nxt_task_t *task, void *obj, void *data)
 {
     nxt_http_request_t  *r;
 

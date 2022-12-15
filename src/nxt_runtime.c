@@ -1369,6 +1369,8 @@ nxt_runtime_pid_file_create(nxt_task_t *task, nxt_file_name_t *pid_file)
 
     file.name = pid_file;
 
+    nxt_fs_mkdir_parent(pid_file, 0755);
+
     n = nxt_file_open(task, &file, O_WRONLY, O_CREAT | O_TRUNC,
                       NXT_FILE_DEFAULT_ACCESS);
 

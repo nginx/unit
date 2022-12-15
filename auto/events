@@ -13,7 +13,7 @@ nxt_feature_libs=
 nxt_feature_test="#include <sys/epoll.h>
                   #include <unistd.h>
 
-                  int main() {
+                  int main(void) {
                       int  n;
 
                       n = epoll_create(1);
@@ -34,7 +34,7 @@ if [ $nxt_found = yes ]; then
                       #include <sys/signalfd.h>
                       #include <unistd.h>
 
-                      int main() {
+                      int main(void) {
                           int       n;
                           sigset_t  mask;
 
@@ -54,7 +54,7 @@ if [ $nxt_found = yes ]; then
     nxt_feature_test="#include <sys/eventfd.h>
                       #include <unistd.h>
 
-                      int main() {
+                      int main(void) {
                           int  n;
 
                           n = eventfd(0, 0);
@@ -79,7 +79,7 @@ nxt_feature_test="#include <sys/types.h>
                   #include <sys/event.h>
                   #include <unistd.h>
 
-                  int main() {
+                  int main(void) {
                       int  n;
 
                       n = kqueue();
@@ -100,7 +100,7 @@ if [ $nxt_found = yes ]; then
                       #include <sys/types.h>
                       #include <sys/event.h>
 
-                      int main() {
+                      int main(void) {
                           struct kevent  kev;
 
                           kev.filter = EVFILT_USER;
@@ -124,7 +124,7 @@ nxt_feature_libs=
 nxt_feature_test="#include <port.h>
                   #include <unistd.h>
 
-                  int main() {
+                  int main(void) {
                       int  n;
 
                       n = port_create();
@@ -152,7 +152,7 @@ nxt_feature_test="#include <fcntl.h>
                   #include <sys/devpoll.h>
                   #include <unistd.h>
 
-                  int main() {
+                  int main(void) {
                       int  n;
 
                       n = open(\"/dev/poll\", O_RDWR);
@@ -180,7 +180,7 @@ nxt_feature_test="#include <fcntl.h>
                   #include <sys/pollset.h>
                   #include <unistd.h>
 
-                  int main() {
+                  int main(void) {
                       pollset_t  n;
 
                       n = pollset_create(-1);

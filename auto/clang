@@ -14,7 +14,7 @@ nxt_feature_libs=
 nxt_feature_test="#include <stdio.h>
                   #define set(dummy, ...)  sprintf(__VA_ARGS__)
 
-                  int main() {
+                  int main(void) {
                       char  buf[4];
 
                       buf[0] = '0';
@@ -37,7 +37,7 @@ if [ $nxt_found = no ]; then
     nxt_feature_test="#include <stdio.h>
                       #define set(dummy, args...)  sprintf(args)
 
-                      int main() {
+                      int main(void) {
                           char  buf[4];
 
                           buf[0] = '0';
@@ -70,7 +70,7 @@ nxt_feature_name=NXT_HAVE_BUILTIN_UNREACHABLE
 nxt_feature_run=no
 nxt_feature_incs=
 nxt_feature_libs=
-nxt_feature_test="int main() {
+nxt_feature_test="int main(void) {
                       __builtin_unreachable();
                   }"
 . auto/feature
@@ -81,7 +81,7 @@ nxt_feature_name=NXT_HAVE_BUILTIN_PREFETCH
 nxt_feature_run=no
 nxt_feature_incs=
 nxt_feature_libs=
-nxt_feature_test="int main() {
+nxt_feature_test="int main(void) {
                       __builtin_prefetch(0);
                       return 0;
                   }"
@@ -93,7 +93,7 @@ nxt_feature_name=NXT_HAVE_BUILTIN_CLZ
 nxt_feature_run=
 nxt_feature_incs=
 nxt_feature_libs=
-nxt_feature_test="int main() {
+nxt_feature_test="int main(void) {
                       if (__builtin_clz(1) == 31)
                           return 0;
                       return 1;
@@ -106,7 +106,7 @@ nxt_feature_name=NXT_HAVE_BUILTIN_POPCOUNT
 nxt_feature_run=
 nxt_feature_incs=
 nxt_feature_libs=
-nxt_feature_test="int main() {
+nxt_feature_test="int main(void) {
                       if (__builtin_popcount(5) == 2)
                           return 0;
                       return 1;
@@ -121,7 +121,7 @@ nxt_feature_incs=
 nxt_feature_libs=
 nxt_feature_test="int n __attribute__ ((visibility(\"default\")));
 
-                  int main() {
+                  int main(void) {
                       return 1;
                   }"
 . auto/feature
@@ -134,7 +134,7 @@ nxt_feature_incs=
 nxt_feature_libs=
 nxt_feature_test="int n __attribute__ ((aligned(64)));
 
-                  int main() {
+                  int main(void) {
                       return 1;
                   }"
 . auto/feature
@@ -153,7 +153,7 @@ nxt_feature_test="#include <stdlib.h>
                       return malloc(1);
                   }
 
-                  int main() {
+                  int main(void) {
                       if (f() != NULL) {
                           return 1;
                       }
@@ -172,7 +172,7 @@ nxt_feature_test="struct s {
                       int i;
                   } __attribute__ ((__packed__));
 
-                  int main() {
+                  int main(void) {
                       return 1;
                   }"
 . auto/feature

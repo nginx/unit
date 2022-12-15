@@ -366,7 +366,7 @@ nxt_discovery_module(nxt_task_t *task, nxt_mp_t *mp, nxt_array_t *modules,
                 &app->type, app->version, name);
 
         if (app->compat_length != sizeof(compat)
-            || nxt_memcmp(app->compat, compat, sizeof(compat)) != 0)
+            || memcmp(app->compat, compat, sizeof(compat)) != 0)
         {
             nxt_log(task, NXT_LOG_NOTICE, "incompatible module %s", name);
 

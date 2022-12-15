@@ -278,7 +278,11 @@ nxt_http_request_create(nxt_task_t *task)
     r->resp.content_length_n = -1;
     r->state = &nxt_http_request_init_state;
 
+    r->start_time = nxt_thread_monotonic_time(task->thread);
+
     task->thread->engine->requests_cnt++;
+
+    r->tstr_cache.var.pool = mp;
 
     return r;
 
@@ -793,7 +797,7 @@ nxt_http_request_error_handler(nxt_task_t *task, void *obj, void *data)
 void
 nxt_http_request_close_handler(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_var_t                *log_format;
+    nxt_tstr_t               *log_format;
     nxt_http_proto_t         proto;
     nxt_http_request_t       *r;
     nxt_http_protocol_t      protocol;
@@ -1035,14 +1039,11 @@ nxt_http_cookie_parse(nxt_array_t *cookies, u_char *start, const u_char *end)
     for (p = start; p < end; p++) {
         c = *p;
 
-        if (c == '=') {
+        if (c == '=' && name == NULL) {
             while (start[0] == ' ') { start++; }
 
             name_length = p - start;
-
-            if (name_length != 0) {
-                name = start;
-            }
+            name = start;
 
             start = p + 1;
 

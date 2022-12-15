@@ -61,8 +61,11 @@ typedef enum {
 
 typedef struct nxt_port_mmap_s  nxt_port_mmap_t;
 typedef struct nxt_process_s    nxt_process_t;
+typedef struct nxt_cgroup_s     nxt_cgroup_t;
 typedef void (*nxt_isolation_cleanup_t)(nxt_task_t *task,
     nxt_process_t *process);
+typedef void (*nxt_cgroup_cleanup_t)(nxt_task_t *task,
+    const nxt_process_t *process);
 
 
 typedef struct {
@@ -80,12 +83,22 @@ typedef struct {
 } nxt_process_automount_t;
 
 
+struct nxt_cgroup_s {
+    char  *path;
+};
+
+
 typedef struct {
     u_char                   *rootfs;
     nxt_process_automount_t  automount;
     nxt_array_t              *mounts;     /* of nxt_mount_t */
 
     nxt_isolation_cleanup_t  cleanup;
+
+    nxt_cgroup_cleanup_t     cgroup_cleanup;
+#if (NXT_HAVE_CGROUP)
+    nxt_cgroup_t             cgroup;
+#endif
 
 #if (NXT_HAVE_CLONE)
     nxt_clone_t              clone;

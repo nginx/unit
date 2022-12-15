@@ -671,7 +671,7 @@ nxt_perl_psgi_env_create(PerlInterpreter *my_perl,
     RC(nxt_perl_psgi_add_sptr(my_perl, hash_env, NL("REMOTE_ADDR"),
                               &r->remote, r->remote_length));
     RC(nxt_perl_psgi_add_sptr(my_perl, hash_env, NL("SERVER_ADDR"),
-                              &r->local, r->local_length));
+                              &r->local_addr, r->local_addr_length));
 
     RC(nxt_perl_psgi_add_sptr(my_perl, hash_env, NL("SERVER_NAME"),
                               &r->server_name, r->server_name_length));
@@ -765,7 +765,7 @@ nxt_perl_psgi_result_status(PerlInterpreter *my_perl, SV *result)
 
     status.start = (u_char *) SvPV(*sv_status, status.length);
 
-    space = nxt_memchr(status.start, ' ', status.length);
+    space = memchr(status.start, ' ', status.length);
     if (space != NULL) {
         status.length = space - status.start;
     }

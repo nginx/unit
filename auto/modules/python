@@ -86,7 +86,7 @@ if /bin/sh -c "$NXT_PYTHON_CONFIG --prefix" >> $NXT_AUTOCONF_ERR 2>&1; then
     nxt_feature_test="
         #include <Python.h>
 
-        int main() {
+        int main(void) {
             Py_Initialize();
             return 0;
         }"
@@ -114,7 +114,7 @@ nxt_feature_test="
     #include <Python.h>
     #include <stdio.h>
 
-    int main() {
+    int main(void) {
         printf(\"%s\", PY_VERSION);
         return 0;
     }"

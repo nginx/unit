@@ -201,7 +201,7 @@ ws_chat_close_handler(nxt_unit_request_info_t *req)
 
 
 int
-main()
+main(void)
 {
     nxt_unit_ctx_t   *ctx;
     nxt_unit_init_t  init;

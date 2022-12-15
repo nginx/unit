@@ -27,8 +27,11 @@ Unit configuration summary:
   IPv6 support: .............. $NXT_INET6
   Unix domain sockets support: $NXT_UNIX_DOMAIN
   TLS support: ............... $NXT_OPENSSL
+  Regex support: ............. $NXT_REGEX
+  NJS support: ............... $NXT_NJS
 
   process isolation: ......... $NXT_ISOLATION
+  cgroupv2: .................. $NXT_HAVE_CGROUP
 
   debug logging: ............. $NXT_DEBUG
 

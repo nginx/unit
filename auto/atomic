@@ -10,7 +10,7 @@ nxt_feature_name=NXT_HAVE_GCC_ATOMIC
 nxt_feature_run=yes
 nxt_feature_incs=
 nxt_feature_libs=
-nxt_feature_test="int main() {
+nxt_feature_test="int main(void) {
                       long  n = 0;
 
                       if (!__sync_bool_compare_and_swap(&n, 0, 3))
@@ -44,7 +44,7 @@ if [ $nxt_found = no ]; then
     nxt_feature_libs=
     nxt_feature_test="#include <atomic.h>
 
-                      int main() {
+                      int main(void) {
                           ulong_t  n = 0;
 
                           if (atomic_cas_ulong(&n, 0, 3) != 0)
@@ -70,7 +70,7 @@ fi
 if [ $nxt_found = no ]; then
 
     if [ $NXT_64BIT = 1 ]; then
-        nxt_feature_test="int main() {
+        nxt_feature_test="int main(void) {
                               long  n = 0;
                               long  o = 0;
 
@@ -87,7 +87,7 @@ if [ $nxt_found = no ]; then
                               return 0;
                           }"
     else
-        nxt_feature_test="int main() {
+        nxt_feature_test="int main(void) {
                               int  n = 0;
                               int  o = 0;
 

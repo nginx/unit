@@ -14,7 +14,7 @@ Section: admin
 Architecture: any
 Depends: lsb-base,
          ${misc:Depends}, ${shlibs:Depends},
-         unit (= %%UNIT_VERSION%%-%%UNIT_RELEASE%%~%%CODENAME%%)%%MODULE_DEPENDS%%
+         unit-r%%UNIT_VERSION%%%%MODULE_DEPENDS%%
 Description: %%SUMMARY%%
  NGINX Unit is a runtime and delivery environment for modern distributed
  applications. It runs the application code in multiple languages

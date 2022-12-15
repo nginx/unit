@@ -382,7 +382,7 @@ nxt_sockaddr_cmp(nxt_sockaddr_t *sa1, nxt_sockaddr_t *sa2)
             return 0;
         }
 
-        if (nxt_memcmp(&sa1->u.sockaddr_in6.sin6_addr,
+        if (memcmp(&sa1->u.sockaddr_in6.sin6_addr,
                        &sa2->u.sockaddr_in6.sin6_addr, 16)
             != 0)
         {
@@ -401,7 +401,7 @@ nxt_sockaddr_cmp(nxt_sockaddr_t *sa1, nxt_sockaddr_t *sa2)
 
             length = sa1->socklen - offsetof(struct sockaddr_un, sun_path);
 
-            if (nxt_memcmp(&sa1->u.sockaddr_un.sun_path,
+            if (memcmp(&sa1->u.sockaddr_un.sun_path,
                            &sa2->u.sockaddr_un.sun_path, length)
                 != 0)
             {
@@ -550,7 +550,7 @@ nxt_sockaddr_parse_optport(nxt_mp_t *mp, nxt_str_t *addr)
         return NULL;
     }
 
-    if (addr->length > 6 && nxt_memcmp(addr->start, "unix:", 5) == 0) {
+    if (addr->length > 6 && memcmp(addr->start, "unix:", 5) == 0) {
         sa = nxt_sockaddr_unix_parse(mp, addr);
 
     } else if (addr->start[0] == '[' || nxt_inet6_probe(addr)) {
@@ -653,7 +653,7 @@ nxt_sockaddr_inet6_parse(nxt_mp_t *mp, nxt_str_t *addr)
         length = addr->length - 1;
         start = addr->start + 1;
 
-        end = nxt_memchr(start, ']', length);
+        end = memchr(start, ']', length);
         if (nxt_slow_path(end == NULL)) {
             return NULL;
         }
@@ -723,7 +723,7 @@ nxt_sockaddr_inet_parse(nxt_mp_t *mp, nxt_str_t *addr)
     in_addr_t       inaddr;
     nxt_sockaddr_t  *sa;
 
-    p = nxt_memchr(addr->start, ':', addr->length);
+    p = memchr(addr->start, ':', addr->length);
 
     if (p == NULL) {
         length = addr->length;
@@ -964,11 +964,11 @@ nxt_inet6_probe(nxt_str_t *str)
 {
     u_char  *colon, *end;
 
-    colon = nxt_memchr(str->start, ':', str->length);
+    colon = memchr(str->start, ':', str->length);
 
     if (colon != NULL) {
         end = str->start + str->length;
-        colon = nxt_memchr(colon + 1, ':', end - (colon + 1));
+        colon = memchr(colon + 1, ':', end - (colon + 1));
     }
 
     return (colon != NULL);

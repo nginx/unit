@@ -138,6 +138,9 @@ void nxt_cdecl nxt_log_time_handler(nxt_uint_t level, nxt_log_t *log,
 void nxt_stream_connection_init(nxt_task_t *task, void *obj, void *data);
 
 nxt_int_t nxt_http_register_variables(void);
+#if (NXT_HAVE_NJS)
+void nxt_http_register_js_proto(nxt_js_conf_t *jcf);
+#endif
 
 
 #define nxt_runtime_process_each(rt, process)                                 \

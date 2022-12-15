@@ -24,7 +24,7 @@ typedef struct {
 
 static void nxt_router_access_log_writer(nxt_task_t *task,
     nxt_http_request_t *r, nxt_router_access_log_t *access_log,
-    nxt_var_t *format);
+    nxt_tstr_t *format);
 static void nxt_router_access_log_write_ready(nxt_task_t *task, void *obj,
     void *data);
 static void nxt_router_access_log_write_error(nxt_task_t *task, void *obj,
@@ -63,7 +63,7 @@ nxt_router_access_log_create(nxt_task_t *task, nxt_router_conf_t *rtcf,
     u_char                        *p;
     nxt_int_t                     ret;
     nxt_str_t                     str;
-    nxt_var_t                     *format;
+    nxt_tstr_t                    *format;
     nxt_router_t                  *router;
     nxt_router_access_log_t       *access_log;
     nxt_router_access_log_conf_t  alcf;
@@ -125,8 +125,7 @@ nxt_router_access_log_create(nxt_task_t *task, nxt_router_conf_t *rtcf,
     p = nxt_cpymem(str.start, alcf.format.start, alcf.format.length);
     *p = '\n';
 
-    format = nxt_var_compile(&str, rtcf->mem_pool, rtcf->var_fields,
-                             NXT_VAR_LOGGING);
+    format = nxt_tstr_compile(rtcf->tstr_state, &str, NXT_TSTR_LOGGING);
     if (nxt_slow_path(format == NULL)) {
         return NXT_ERROR;
     }
@@ -140,9 +139,10 @@ nxt_router_access_log_create(nxt_task_t *task, nxt_router_conf_t *rtcf,
 
 static void
 nxt_router_access_log_writer(nxt_task_t *task, nxt_http_request_t *r,
-    nxt_router_access_log_t *access_log, nxt_var_t *format)
+    nxt_router_access_log_t *access_log, nxt_tstr_t *format)
 {
     nxt_int_t                    ret;
+    nxt_router_conf_t            *rtcf;
     nxt_router_access_log_ctx_t  *ctx;
 
     ctx = nxt_mp_get(r->mem_pool, sizeof(nxt_router_access_log_ctx_t));
@@ -152,21 +152,24 @@ nxt_router_access_log_writer(nxt_task_t *task, nxt_http_request_t *r,
 
     ctx->access_log = access_log;
 
-    if (nxt_var_is_const(format)) {
-        nxt_var_raw(format, &ctx->text);
+    if (nxt_tstr_is_const(format)) {
+        nxt_tstr_str(format, &ctx->text);
 
         nxt_router_access_log_write_ready(task, r, ctx);
 
     } else {
-        ret = nxt_var_query_init(&r->var_query, r, r->mem_pool);
+        rtcf = r->conf->socket_conf->router_conf;
+
+        ret = nxt_tstr_query_init(&r->tstr_query, rtcf->tstr_state,
+                                  &r->tstr_cache, r, r->mem_pool);
         if (nxt_slow_path(ret != NXT_OK)) {
             return;
         }
 
-        nxt_var_query(task, r->var_query, format, &ctx->text);
-        nxt_var_query_resolve(task, r->var_query, ctx,
-                              nxt_router_access_log_write_ready,
-                              nxt_router_access_log_write_error);
+        nxt_tstr_query(task, r->tstr_query, format, &ctx->text);
+        nxt_tstr_query_resolve(task, r->tstr_query, ctx,
+                               nxt_router_access_log_write_ready,
+                               nxt_router_access_log_write_error);
      }
 }
 
