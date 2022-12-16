@@ -557,10 +557,6 @@ unit_ctl_welcome()
         shift;
     done;
 
-    id -u \
-    | xargs test 0 -ne \
-    && err 'welcome: This script requires root privileges to run.';
-
     command -v curl >/dev/null \
     || err 'welcome: curl(1) not found in PATH.  It must be installed to run this script.';
 
@@ -1178,10 +1174,6 @@ __EOF__";
 
     command -v curl >/dev/null \
     || err 'repo-config: curl(1) not found in PATH.  It must be installed to run this script.';
-
-    id -u \
-    | xargs test 0 -ne \
-    && err 'repo-config: This script requires root privileges to run.';
 
     echo 'This script sets up the NGINX Unit repository';
 
