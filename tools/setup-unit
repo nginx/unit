@@ -9,7 +9,7 @@
 
 
 if test -n ${BASH_VERSION} && test "${BASH_VERSINFO[0]}" -eq 3; then
-    >&2 echo 'Your version of bash(1) isn't supported by this script.';
+    >&2 echo "Your version of bash(1) isn't supported by this script.";
     >&2 echo "You're probably running on macOS.  We recommend that you either";
     >&2 echo 'install a newer version of bash(1) or run this script with';
     >&2 echo 'another shell, such as zsh(1):';
