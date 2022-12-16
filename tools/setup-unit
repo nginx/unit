@@ -14,7 +14,7 @@ Your version of bash(1) isn't supported by this script.  You're probably
 running on macOS.  We recommend that you either install a newer version
 of bash(1) or run this script with another shell, such as zsh(1):
 
-    $ zsh ${SUDO_USER:+sudo }$0 ...
+    $ ${SUDO_USER:+sudo }zsh $0 ...
 __EOF__
     exit 1;
 fi;
