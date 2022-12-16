@@ -562,6 +562,9 @@ unit_ctl_welcome()
 
     www='/srv/www/unit/index.html';
     if test -e "$www" && ! test -v force || ! test -w /srv; then
+        www="$HOME/srv/www/unit/index.html";
+    fi;
+    if test -e "$www" && ! test -v force; then
         www="$(mktemp)";
         mv "$www" "$www.html";
         www="$www.html"
@@ -624,7 +627,7 @@ unit_ctl_welcome()
 
     dry_run_echo 'Create a file to serve:';
     dry_run_eval "mkdir -p $(dirname $www);";
-    dry_run_eval "cat >'$www'"' <<__EOF__;
+    dry_run_eval "tee '$www' >/dev/null"' <<__EOF__;
         <!DOCTYPE html>
         <html>
             <head>
