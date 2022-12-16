@@ -9,11 +9,13 @@
 
 
 if test -n ${BASH_VERSION} && test "${BASH_VERSINFO[0]}" -eq 3; then
-    >&2 echo "Your version of bash(1) isn't supported by this script.";
-    >&2 echo "You're probably running on macOS.  We recommend that you either";
-    >&2 echo 'install a newer version of bash(1) or run this script with';
-    >&2 echo 'another shell, such as zsh(1):';
-    >&2 echo "    $ zsh ${SUDO_USER:+sudo }$0 ...";
+    >&2 cat <<__EOF__ ;
+Your version of bash(1) isn't supported by this script.  You're probably
+running on macOS.  We recommend that you either install a newer version
+of bash(1) or run this script with another shell, such as zsh(1):
+
+    $ zsh ${SUDO_USER:+sudo }$0 ...
+__EOF__
     exit 1;
 fi;
 
