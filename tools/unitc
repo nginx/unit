@@ -161,7 +161,7 @@ if [ $REMOTE -eq 0 ]; then
 
 		# Cache the discovery for this unit PID (and cleanup any old files)
 		#
-		rm /tmp/${0##*/}.* 2> /dev/null
+		rm -f /tmp/${0##*/}.* 2> /dev/null
 		echo UNIT_CTRL=\"${UNIT_CTRL}\" > /tmp/${0##*/}.$PID.env
 		echo ERROR_LOG=${ERROR_LOG} >> /tmp/${0##*/}.$PID.env
 	fi
@@ -221,11 +221,11 @@ if [ $CURL_STATUS -ne 0 ]; then
 		echo "${0##*/}: Check that you have permission to access the Unit control socket, or try again with sudo(8)"
 	else
 		echo "${0##*/}: Trying to access $UNIT_CTRL$URI"
-		cat /tmp/${0##*/}.$$ && rm /tmp/${0##*/}.$$
+		cat /tmp/${0##*/}.$$ && rm -f /tmp/${0##*/}.$$
 	fi
 	exit 4
 fi
-rm /tmp/${0##*/}.$$ 2> /dev/null
+rm -f /tmp/${0##*/}.$$ 2> /dev/null
 
 if [ $SHOW_LOG -gt 0 ] && [ $NOLOG -eq 0 ] && [ $QUIET -eq 0 ]; then
 	echo -n "${0##*/}: Waiting for log..."
