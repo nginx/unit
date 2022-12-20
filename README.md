@@ -93,6 +93,15 @@ application object. Let's store our first config snippet in a file called
 
 Saving it as a file isn't necessary, but can come in handy with larger objects.
 
+But, before proceeding, make sure that you take note of the unix socket that the 
+controller listens on, by executing:
+``` console
+# unitd --version
+```
+
+You want to replace `/path/to/control.unit.sock` in the following scripts by the value
+returned in ```--control=unix:``` .
+
 Now, `PUT` it into the `/config/applications` section of Unit's control API,
 usually available by default via a Unix domain socket:
 
