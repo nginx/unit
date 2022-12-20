@@ -121,7 +121,7 @@ section of the API.  This time, we pass the config snippet straight from the
 command line:
 
 ``` console
-# curl -X PUT -d '{"127.0.0.1:8000": {"pass": "applications/helloworld"}}'  \
+# curl -X PUT -d '{"127.0.0.1:8080": {"pass": "applications/helloworld"}}'  \
        --unix-socket /path/to/control.unit.sock http://localhost/config/listeners
 ```
 ``` json
