@@ -25,6 +25,9 @@ set -Eefuo pipefail;
 test -v BASH_VERSION \
 && shopt -s lastpipe;
 
+test -v ZSH_VERSION \
+&& setopt sh_word_split;
+
 export LC_ALL=C
 
 program_name="$0";
