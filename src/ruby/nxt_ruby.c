@@ -480,14 +480,19 @@ nxt_ruby_rack_init(nxt_ruby_rack_init_t *rack_init)
 
     rackup = rb_protect(nxt_ruby_rack_parse_script,
                         (VALUE) (uintptr_t) rack_init, &state);
-    if (nxt_slow_path(TYPE(rackup) != T_ARRAY || state != 0)) {
+
+    if (nxt_slow_path(state != 0)) {
         nxt_ruby_exception_log(NULL, NXT_LOG_ALERT,
                                "Failed to parse rack script");
         return Qnil;
     }
 
+    if (TYPE(rackup) != T_ARRAY) {
+        return rackup;
+    }
+
     if (nxt_slow_path(RARRAY_LEN(rackup) < 1)) {
-        nxt_alert(rack_init->task, "Ruby: Invalid rack config file");
+        nxt_ruby_exception_log(NULL, NXT_LOG_ALERT, "Invalid rack config file");
         return Qnil;
     }
 
@@ -747,8 +752,8 @@ nxt_ruby_read_request(nxt_unit_request_info_t *req, VALUE hash_env)
                       r->version_length);
     nxt_ruby_add_sptr(hash_env, nxt_rb_remote_addr_str, &r->remote,
                       r->remote_length);
-    nxt_ruby_add_sptr(hash_env, nxt_rb_server_addr_str, &r->local,
-                      r->local_length);
+    nxt_ruby_add_sptr(hash_env, nxt_rb_server_addr_str, &r->local_addr,
+                      r->local_addr_length);
     nxt_ruby_add_sptr(hash_env, nxt_rb_server_name_str, &r->server_name,
                       r->server_name_length);
 

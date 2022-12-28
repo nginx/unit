@@ -1,0 +1,22 @@
+# Copyright (C) Andrew Clayton
+# Copyright (C) F5, Inc.
+
+NXT_HAVE_CGROUP=NO
+
+if [ -f "/proc/mounts" ]; then
+    CGROUP=$(grep cgroup2 /proc/mounts | head -n 1 | cut -d " " -f 2)
+
+    if [ "$CGROUP" ]; then
+        NXT_HAVE_CGROUP=YES
+
+        cat << END >> $NXT_AUTO_CONFIG_H
+
+#ifndef NXT_HAVE_CGROUP
+#define NXT_HAVE_CGROUP  1
+#define NXT_CGROUP_ROOT  "$CGROUP"
+#endif
+
+END
+
+    fi
+fi

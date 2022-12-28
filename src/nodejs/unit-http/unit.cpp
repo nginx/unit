@@ -657,7 +657,8 @@ Unit::create_socket(napi_value server_obj, nxt_unit_request_info_t *req)
     req_data->sock_ref = wrap(res, req, sock_destroy);
 
     set_named_property(res, "remoteAddress", r->remote, r->remote_length);
-    set_named_property(res, "localAddress", r->local, r->local_length);
+    set_named_property(res, "localAddress", r->local_addr,
+                       r->local_addr_length);
 
     return res;
 }

@@ -10,7 +10,7 @@ nxt_feature_test="#include <linux/capability.h>
                   #include <unistd.h>
                   #include <sys/syscall.h>
 
-                  int main() {
+                  int main(void) {
                       struct __user_cap_header_struct hdr;
                       hdr.version = _LINUX_CAPABILITY_VERSION;
                       syscall(SYS_capget, &hdr, 0);

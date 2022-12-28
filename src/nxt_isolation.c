@@ -6,6 +6,7 @@
 #include <nxt_application.h>
 #include <nxt_process.h>
 #include <nxt_isolation.h>
+#include <nxt_cgroup.h>
 
 #if (NXT_HAVE_MNTENT_H)
 #include <mntent.h>
@@ -14,6 +15,11 @@
 
 static nxt_int_t nxt_isolation_set(nxt_task_t *task,
     nxt_conf_value_t *isolation, nxt_process_t *process);
+
+#if (NXT_HAVE_CGROUP)
+static nxt_int_t nxt_isolation_set_cgroup(nxt_task_t *task,
+    nxt_conf_value_t *isolation, nxt_process_t *process);
+#endif
 
 #if (NXT_HAVE_CLONE)
 static nxt_int_t nxt_isolation_set_namespaces(nxt_task_t *task,
@@ -155,6 +161,14 @@ static nxt_int_t
 nxt_isolation_set(nxt_task_t *task, nxt_conf_value_t *isolation,
     nxt_process_t *process)
 {
+#if (NXT_HAVE_CGROUP)
+    if (nxt_slow_path(nxt_isolation_set_cgroup(task, isolation, process)
+                      != NXT_OK))
+    {
+        return NXT_ERROR;
+    }
+#endif
+
 #if (NXT_HAVE_CLONE)
     if (nxt_slow_path(nxt_isolation_set_namespaces(task, isolation, process)
                       != NXT_OK))
@@ -195,6 +209,42 @@ nxt_isolation_set(nxt_task_t *task, nxt_conf_value_t *isolation,
 
     return NXT_OK;
 }
+
+
+#if (NXT_HAVE_CGROUP)
+
+static nxt_int_t
+nxt_isolation_set_cgroup(nxt_task_t *task, nxt_conf_value_t *isolation,
+    nxt_process_t *process)
+{
+    nxt_str_t         str;
+    nxt_conf_value_t  *obj;
+
+    static nxt_str_t  cgname = nxt_string("cgroup");
+    static nxt_str_t  path = nxt_string("path");
+
+    obj = nxt_conf_get_object_member(isolation, &cgname, NULL);
+    if (obj == NULL) {
+        return NXT_OK;
+    }
+
+    obj = nxt_conf_get_object_member(obj, &path, NULL);
+    if (obj == NULL) {
+        return NXT_ERROR;
+    }
+
+    nxt_conf_get_string(obj, &str);
+    process->isolation.cgroup.path = nxt_mp_alloc(process->mem_pool,
+                                                  str.length + 1);
+    nxt_memcpy(process->isolation.cgroup.path, str.start, str.length);
+    process->isolation.cgroup.path[str.length] = '\0';
+
+    process->isolation.cgroup_cleanup = nxt_cgroup_cleanup;
+
+    return NXT_OK;
+}
+
+#endif
 
 
 #if (NXT_HAVE_CLONE)

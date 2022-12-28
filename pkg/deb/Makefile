@@ -19,6 +19,21 @@ BUILD_DEPENDS = $(BUILD_DEPENDS_unit)
 
 MODULES=
 
+# Ubuntu 22.10
+ifeq ($(CODENAME),kinetic)
+include Makefile.php
+include Makefile.python27
+include Makefile.python310
+include Makefile.go
+include Makefile.perl
+include Makefile.ruby
+include Makefile.jsc-common
+include Makefile.jsc11
+include Makefile.jsc17
+include Makefile.jsc18
+include Makefile.jsc19
+endif
+
 # Ubuntu 22.04
 ifeq ($(CODENAME),jammy)
 include Makefile.php
@@ -100,7 +115,7 @@ include Makefile.jsc-common
 include Makefile.jsc11
 endif
 
-CONFIGURE_ARGS=\
+CONFIGURE_ARGS_COMMON=\
 	--prefix=/usr \
 	--state=/var/lib/unit \
 	--control="unix:/var/run/control.unit.sock" \
@@ -111,6 +126,10 @@ CONFIGURE_ARGS=\
 	--group=unit \
 	--tests \
 	--openssl
+
+CONFIGURE_ARGS=\
+	$(CONFIGURE_ARGS_COMMON) \
+	--njs
 
 export CR=\\n
 
@@ -156,6 +175,7 @@ debuild/$(SRCDIR)/debian:
 	echo '3.0 (quilt)' > debuild/$(SRCDIR)/debian/source/format ; \
 	cat debian/control.in | sed \
 		-e "s#%%PACKAGE_VENDOR%%#$(PACKAGE_VENDOR)#g" \
+		-e "s#%%UNIT_VERSION%%#$(VERSION)#g" \
 	> debuild/$(SRCDIR)/debian/control ; \
         cat debian/rules.in | sed \
                 -e "s#%%CONFIGURE_ARGS%%#$(CONFIGURE_ARGS)#g" \
@@ -179,7 +199,7 @@ endif
 debuild/unit_$(VERSION).orig.tar.gz: | debuild/$(SRCDIR)/debian
 	cd ../.. && tar -czf pkg/deb/debuild/$(SRCDIR).tar.gz \
 		--transform "s#^#$(SRCDIR)/#" \
-		LICENSE NOTICE CHANGES README.md CONTRIBUTING.md configure auto src test version go docs/man/unitd.8.in
+		LICENSE NOTICE CHANGES README.md CONTRIBUTING.md configure auto src test version go pkg/contrib docs/man/unitd.8.in
 	mv debuild/$(SRCDIR).tar.gz debuild/unit_$(VERSION).orig.tar.gz
 	cd debuild && tar zxf unit_$(VERSION).orig.tar.gz
 
@@ -241,7 +261,7 @@ endif
                 -e "s#%%CODENAME%%#$(CODENAME)#g" \
                 -e "s#%%UNIT_VERSION%%#$(VERSION)#g" \
                 -e "s#%%UNIT_RELEASE%%#$(RELEASE)#g" \
-                -e "s#%%CONFIGURE_ARGS%%#$(CONFIGURE_ARGS)#g" \
+                -e "s#%%CONFIGURE_ARGS%%#$(CONFIGURE_ARGS_COMMON)#g" \
                 -e "s#%%MODULE_CONFARGS%%#$(MODULE_CONFARGS_$*)#g" \
                 -e "s#%%MODULE_MAKEARGS%%#$(MODULE_MAKEARGS_$*)#g" \
                 -e "s#%%MODULE_INSTARGS%%#$(MODULE_INSTARGS_$*)#g" \

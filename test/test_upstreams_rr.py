@@ -290,14 +290,13 @@ Connection: close
         socks = []
         for i in range(req):
             delay = 1 if i % 5 == 0 else 0
-            _, sock = self.get(
+            sock = self.get(
                 headers={
                     'Host': 'localhost',
                     'Content-Length': '0',
                     'X-Delay': str(delay),
                     'Connection': 'close',
                 },
-                start=True,
                 no_recv=True,
             )
             socks.append(sock)
@@ -320,17 +319,16 @@ Connection: close
         socks2 = []
 
         for _ in range(conns):
-            _, sock = self.get(start=True, no_recv=True)
+            sock = self.get(no_recv=True)
             socks.append(sock)
 
-            _, sock2 = self.http(
+            sock2 = self.http(
                 b"""POST / HTTP/1.1
 Host: localhost
 Content-Length: 10
 Connection: close
 
 """,
-                start=True,
                 no_recv=True,
                 raw=True,
             )

@@ -6,3 +6,12 @@ def wsgi_target_a(env, start_response):
 def wsgi_target_b(env, start_response):
     start_response('200', [('Content-Length', '1')])
     return [b'2']
+
+
+def wsgi_target_prefix(env, start_response):
+    data = u'%s %s' % (
+        env.get('SCRIPT_NAME', 'No Script Name'),
+        env['PATH_INFO'],
+    )
+    start_response('200', [('Content-Length', '%d' % len(data))])
+    return [data.encode('utf-8')]

@@ -257,7 +257,7 @@ nxt_memstrn(const u_char *s, const u_char *end, const char *ss, size_t length)
                 return NULL;
             }
 
-            if (nxt_memcmp(s, s2, length) == 0) {
+            if (memcmp(s, s2, length) == 0) {
                 return (u_char *) s - 1;
             }
         }
@@ -325,7 +325,7 @@ nxt_rmemstrn(const u_char *s, const u_char *end, const char *ss, size_t length)
         c1 = *s1;
 
         if (c1 == c2) {
-            if (nxt_memcmp(s1 + 1, s2, length) == 0) {
+            if (memcmp(s1 + 1, s2, length) == 0) {
                 return (u_char *) s1;
             }
         }

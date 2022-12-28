@@ -280,28 +280,6 @@ Connection: close
     def test_access_log_variables(self):
         self.load('mirror')
 
-        # $time_local
-
-        self.set_format('$uri $time_local $uri')
-        assert self.get(url='/time_local')['status'] == 200
-        assert self.wait_for_record('/time_local') is not None, 'time log'
-        date = self.search_in_log(
-            r'^\/time_local (.*) \/time_local$', 'access.log'
-        )[1]
-        assert (
-            abs(
-                self.date_to_sec_epoch(date, '%d/%b/%Y:%X %z')
-                - time.mktime(time.localtime())
-            )
-            < 5
-        ), '$time_local'
-
-        # $request_line
-
-        self.set_format('$request_line')
-        assert self.get(url='/r_line')['status'] == 200
-        assert self.wait_for_record(r'^GET \/r_line HTTP\/1\.1$') is not None
-
         # $body_bytes_sent
 
         self.set_format('$uri $body_bytes_sent')

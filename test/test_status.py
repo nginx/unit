@@ -9,6 +9,23 @@ from unit.status import Status
 class TestStatus(TestApplicationPython):
     prerequisites = {'modules': {'python': 'any'}}
 
+    def check_connections(self, accepted, active, idle, closed):
+        Status.get('/connections') == {
+            'accepted': accepted,
+            'active': active,
+            'idle': idle,
+            'closed': closed,
+        }
+
+    def app_default(self, name="empty", module="wsgi"):
+        return {
+            "type": self.get_application_type(),
+            "processes": {"spare": 0},
+            "path": option.test_dir + "/python/" + name,
+            "working_directory": option.test_dir + "/python/" + name,
+            "module": module,
+        }
+
     def test_status(self):
         assert 'error' in self.conf_delete('/status'), 'DELETE method'
 
@@ -24,13 +41,7 @@ class TestStatus(TestApplicationPython):
                 },
                 "routes": [{"action": {"return": 200}}],
                 "applications": {
-                    "empty": {
-                        "type": self.get_application_type(),
-                        "processes": {"spare": 0},
-                        "path": option.test_dir + '/python/empty',
-                        "working_directory": option.test_dir + '/python/empty',
-                        "module": "wsgi",
-                    },
+                    "empty": self.app_default(),
                     "blah": {
                         "type": self.get_application_type(),
                         "processes": {"spare": 0},
@@ -70,7 +81,7 @@ Connection: close
         )
         assert Status.get('/requests/total') == 6, 'pipeline'
 
-        (_, sock) = self.get(port=7081, no_recv=True, start=True)
+        sock = self.get(port=7081, no_recv=True)
 
         time.sleep(1)
 
@@ -79,14 +90,6 @@ Connection: close
         sock.close()
 
     def test_status_connections(self):
-        def check_connections(accepted, active, idle, closed):
-            Status.get('/connections') == {
-                'accepted': accepted,
-                'active': active,
-                'idle': idle,
-                'closed': closed,
-            }
-
         assert 'success' in self.conf(
             {
                 "listeners": {
@@ -95,14 +98,7 @@ Connection: close
                 },
                 "routes": [{"action": {"return": 200}}],
                 "applications": {
-                    "delayed": {
-                        "type": self.get_application_type(),
-                        "processes": {"spare": 0},
-                        "path": option.test_dir + "/python/delayed",
-                        "working_directory": option.test_dir
-                        + "/python/delayed",
-                        "module": "wsgi",
-                    },
+                    "delayed": self.app_default("delayed"),
                 },
             },
         )
@@ -112,15 +108,15 @@ Connection: close
         # accepted, closed
 
         assert self.get()['status'] == 200
-        check_connections(1, 0, 0, 1)
+        self.check_connections(1, 0, 0, 1)
 
         # idle
 
-        _, sock = self.http(b'', start=True, raw=True, no_recv=True)
-        check_connections(2, 0, 1, 1)
+        sock = self.http(b'', raw=True, no_recv=True)
+        self.check_connections(2, 0, 1, 1)
 
         self.get(sock=sock)
-        check_connections(2, 0, 0, 2)
+        self.check_connections(2, 0, 0, 2)
 
         # active
 
@@ -134,10 +130,10 @@ Connection: close
             start=True,
             read_timeout=1,
         )
-        check_connections(3, 1, 0, 2)
+        self.check_connections(3, 1, 0, 2)
 
         self.get(sock=sock)
-        check_connections(3, 0, 0, 3)
+        self.check_connections(3, 0, 0, 3)
 
     def test_status_applications(self):
         def check_applications(expert):
@@ -192,22 +188,8 @@ Connection: close
                 },
                 "routes": [],
                 "applications": {
-                    "restart": {
-                        "type": self.get_application_type(),
-                        "processes": {"spare": 0},
-                        "path": option.test_dir + "/python/restart",
-                        "working_directory": option.test_dir
-                        + "/python/restart",
-                        "module": "longstart",
-                    },
-                    "delayed": {
-                        "type": self.get_application_type(),
-                        "processes": {"spare": 0},
-                        "path": option.test_dir + "/python/delayed",
-                        "working_directory": option.test_dir
-                        + "/python/delayed",
-                        "module": "wsgi",
-                    },
+                    "restart": self.app_default("restart", "longstart"),
+                    "delayed": self.app_default("delayed"),
                 },
             },
         )
@@ -221,3 +203,28 @@ Connection: close
 
         check_application('restart', 0, 1, 0, 1)
         check_application('delayed', 0, 0, 0, 0)
+
+    def test_status_proxy(self):
+        assert 'success' in self.conf(
+            {
+                "listeners": {
+                    "*:7080": {"pass": "routes"},
+                    "*:7081": {"pass": "applications/empty"},
+                },
+                "routes": [
+                    {
+                        "match": {"uri": "/"},
+                        "action": {"proxy": "http://127.0.0.1:7081"},
+                    }
+                ],
+                "applications": {
+                    "empty": self.app_default(),
+                },
+            },
+        )
+
+        Status.init()
+
+        assert self.get()['status'] == 200
+        self.check_connections(2, 0, 0, 2)
+        assert Status.get('/requests/total') == 2, 'proxy'

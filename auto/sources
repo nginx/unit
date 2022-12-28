@@ -34,6 +34,7 @@ NXT_LIB_SRCS=" \
     src/nxt_parse.c \
     src/nxt_sprintf.c \
     src/nxt_var.c \
+    src/nxt_tstr.c \
     src/nxt_file_name.c \
     src/nxt_log.c \
     src/nxt_djb_hash.c \
@@ -104,6 +105,7 @@ NXT_LIB_SRCS=" \
     src/nxt_websocket_accept.c \
     src/nxt_http_websocket.c \
     src/nxt_h1proto_websocket.c \
+    src/nxt_fs.c \
 "
 
 NXT_LIB_SRC0=" \
@@ -132,6 +134,10 @@ NXT_LIB_POLARSSL_SRCS="src/nxt_polarssl.c"
 
 NXT_LIB_PCRE_SRCS="src/nxt_pcre.c"
 NXT_LIB_PCRE2_SRCS="src/nxt_pcre2.c"
+
+if [ "$NXT_NJS" != "NO" ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS src/nxt_js.c src/nxt_http_js.c"
+fi
 
 NXT_LIB_EPOLL_SRCS="src/nxt_epoll_engine.c"
 NXT_LIB_KQUEUE_SRCS="src/nxt_kqueue_engine.c"
@@ -187,7 +193,7 @@ NXT_LIB_UTF8_FILE_NAME_TEST_SRCS=" \
 
 
 if [ $NXT_HAVE_ROOTFS = YES ]; then
-    NXT_LIB_SRCS="$NXT_LIB_SRCS src/nxt_fs.c"
+    NXT_LIB_SRCS="$NXT_LIB_SRCS src/nxt_fs_mount.c"
 fi
 
 
@@ -295,6 +301,11 @@ fi
 
 if [ "$NXT_HAVE_CLONE" = "YES" ]; then
     NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_CLONE_SRCS"
+fi
+
+
+if [ "$NXT_HAVE_CGROUP" = "YES" ]; then
+    NXT_LIB_SRCS="$NXT_LIB_SRCS src/nxt_cgroup.c"
 fi
 
 

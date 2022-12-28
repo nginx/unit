@@ -129,7 +129,7 @@ nxt_utf8_file_name_test(nxt_thread_t *thr)
 
             nxt_file_close(&task, &lc_file);
 
-            if (n != 4 || nxt_memcmp(utf8, test, 4) != 0) {
+            if (n != 4 || memcmp(utf8, test, 4) != 0) {
                 nxt_log_alert(thr->log, "nxt_file_read() mismatch");
 
                 nxt_file_delete(lc_file.name);

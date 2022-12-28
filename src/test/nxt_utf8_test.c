@@ -59,7 +59,7 @@ nxt_utf8_overlong(nxt_thread_t *thr, u_char *overlong, size_t len)
 
         size = (p != NULL) ? p - utf8 : 0;
 
-        if (len != size || nxt_memcmp(overlong, utf8, size) != 0) {
+        if (len != size || memcmp(overlong, utf8, size) != 0) {
 
             u = 0;
             for (i = 0; i < len; i++) {

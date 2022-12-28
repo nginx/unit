@@ -13,7 +13,7 @@ nxt_feature_libs=
 nxt_feature_test="#include <unistd.h>
                   #include <sys/random.h>
 
-                  int main() {
+                  int main(void) {
                       char  buf[4];
 
                       if (getrandom(buf, 4, 0) < 0) {
@@ -35,7 +35,7 @@ if [ $nxt_found = no ]; then
                       #include <sys/syscall.h>
                       #include <linux/random.h>
 
-                      int main() {
+                      int main(void) {
                           char  buf[4];
 
                           if (syscall(SYS_getrandom, buf, 4, 0) < 0) {
@@ -56,7 +56,7 @@ if [ $nxt_found = no ]; then
     nxt_feature_name=NXT_HAVE_GETENTROPY
     nxt_feature_test="#include <unistd.h>
 
-                      int main() {
+                      int main(void) {
                           char  buf[4];
 
                           if (getentropy(buf, 4) == -1) {
@@ -78,7 +78,7 @@ if [ $nxt_found = no ]; then
     nxt_feature_test="#include <unistd.h>
                       #include <sys/random.h>
 
-                      int main() {
+                      int main(void) {
                           char  buf[4];
 
                           if (getentropy(buf, 4) == -1) {
@@ -99,7 +99,7 @@ nxt_feature_libs=
 nxt_feature_test="#include <stdlib.h>
                   #include <ucontext.h>
 
-                  int main() {
+                  int main(void) {
                       ucontext_t  uc;
 
                       if (getcontext(&uc) == 0) {
@@ -126,7 +126,7 @@ if [ $nxt_found = no ]; then
                       #include <stdlib.h>
                       #include <ucontext.h>
 
-                      int main() {
+                      int main(void) {
                           ucontext_t  uc;
 
                           if (getcontext(&uc) == 0) {
@@ -155,7 +155,7 @@ nxt_feature_libs=
 nxt_feature_test="#include <stdlib.h>
                   #include <dlfcn.h>
 
-                  int main() {
+                  int main(void) {
                       void *h = dlopen(NULL, RTLD_NOW | RTLD_GLOBAL);
                       dlsym(h, \"\");
                       dlclose(h);
@@ -188,7 +188,7 @@ nxt_feature_libs=
 nxt_feature_test="#include <stdlib.h>
                   #include <unistd.h>
 
-                  int main() {
+                  int main(void) {
                       setproctitle(\"%s\", \"title\");
                       return 0;
                   }"
@@ -204,7 +204,7 @@ nxt_feature_libs=
 nxt_feature_test="#include <unistd.h>
                   #include <grp.h>
 
-                  int main() {
+                  int main(void) {
                       getgrouplist(\"root\", 0, NULL, NULL);
                       return 0;
                   }"

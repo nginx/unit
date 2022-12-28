@@ -5,6 +5,7 @@
  */
 
 #include <nxt_main.h>
+#include <nxt_cgroup.h>
 
 #if (NXT_HAVE_CLONE)
 #include <nxt_clone.h>
@@ -377,6 +378,17 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
     } else {
         nxt_runtime_process_add(task, process);
     }
+
+#if (NXT_HAVE_CGROUP)
+    ret = nxt_cgroup_proc_add(task, process);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        nxt_alert(task, "cgroup: failed to add process %s to %s %E",
+                  process->name, process->isolation.cgroup.path, nxt_errno);
+        nxt_cgroup_cleanup(task, process);
+        kill(pid, SIGTERM);
+        return -1;
+    }
+#endif
 
     return pid;
 }

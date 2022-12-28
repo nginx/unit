@@ -12,9 +12,15 @@ def public_dir(path):
 
     for root, dirs, files in os.walk(path):
         for d in dirs:
-            os.chmod(os.path.join(root, d), 0o777)
+            try:
+                os.chmod(os.path.join(root, d), 0o777)
+            except FileNotFoundError:
+                pass
         for f in files:
-            os.chmod(os.path.join(root, f), 0o777)
+            try:
+                os.chmod(os.path.join(root, f), 0o777)
+            except FileNotFoundError:
+                pass
 
 
 def waitforfiles(*files, timeout=50):
@@ -66,12 +72,19 @@ def waitforsocket(port):
     pytest.fail('Can\'t connect to the 127.0.0.1:' + str(port))
 
 
-def findmnt():
+def check_findmnt():
     try:
-        out = subprocess.check_output(
+        return subprocess.check_output(
             ['findmnt', '--raw'], stderr=subprocess.STDOUT
         ).decode()
     except FileNotFoundError:
+        return False
+
+
+def findmnt():
+    out = check_findmnt()
+
+    if not out:
         pytest.skip('requires findmnt')
 
     return out

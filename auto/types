@@ -18,7 +18,7 @@ nxt_feature_incs=
 nxt_feature_libs=
 nxt_feature_test="#include <stdio.h>
 
-                  int main() {
+                  int main(void) {
                       printf(\"%d\", (int) sizeof(int));
                       return 0;
                   }"
@@ -32,7 +32,7 @@ nxt_feature_incs=
 nxt_feature_libs=
 nxt_feature_test="#include <stdio.h>
 
-                  int main() {
+                  int main(void) {
                       printf(\"%d\", (int) sizeof(long));
                       return 0;
                   }"
@@ -46,7 +46,7 @@ nxt_feature_incs=
 nxt_feature_libs=
 nxt_feature_test="#include <stdio.h>
 
-                  int main() {
+                  int main(void) {
                       printf(\"%d\", (int) sizeof(long long));
                       return 0;
                   }"
@@ -60,7 +60,7 @@ nxt_feature_incs=
 nxt_feature_libs=
 nxt_feature_test="#include <stdio.h>
 
-                  int main() {
+                  int main(void) {
                       printf(\"%d\", (int) sizeof(void *));
                       return 0;
                   }"
@@ -80,7 +80,7 @@ nxt_feature_incs=
 nxt_feature_libs=
 nxt_feature_test="#include <stdio.h>
 
-                  int main() {
+                  int main(void) {
                       printf(\"%d\", (int) sizeof(size_t));
                       return 0;
                   }"
@@ -96,7 +96,7 @@ nxt_feature_test="#define _FILE_OFFSET_BITS  64
                   #include <unistd.h>
                   #include <stdio.h>
 
-                  int main() {
+                  int main(void) {
                       printf(\"%d\", (int) sizeof(off_t));
                       return 0;
                   }"
@@ -111,7 +111,7 @@ nxt_feature_libs=
 nxt_feature_test="#include <time.h>
                   #include <stdio.h>
 
-                  int main() {
+                  int main(void) {
                       printf(\"%d\", (int) sizeof(time_t));
                       return 0;
                   }"

@@ -5,7 +5,8 @@ Maintainer: %%PACKAGE_VENDOR%%
 Build-Depends: debhelper (>= 11),
                linux-libc-dev,
                libssl-dev,
-               libpcre2-dev
+               libpcre2-dev,
+               pkg-config
 Standards-Version: 4.1.4
 Homepage: https://unit.nginx.org
 
@@ -14,6 +15,7 @@ Section: admin
 Architecture: any
 Depends: lsb-base,
          ${misc:Depends}, ${shlibs:Depends}
+Provides: unit-r%%UNIT_VERSION%%
 Description: NGINX Unit
  NGINX Unit is a runtime and delivery environment for modern distributed
  applications. It runs the application code in multiple languages

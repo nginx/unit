@@ -1,0 +1,235 @@
+#!/bin/bash
+# unitc - a curl wrapper for configuring NGINX Unit
+# https://github.com/nginx/unit/tree/master/tools
+# NGINX, Inc. (c) 2022
+
+# Defaults
+#
+ERROR_LOG=/dev/null
+REMOTE=0
+SHOW_LOG=1
+NOLOG=0
+QUIET=0
+URI=""
+SSH_CMD=""
+METHOD=PUT
+CONF_FILES=()
+
+while [ $# -gt 0 ]; do
+	OPTION=$(echo $1 | tr '[a-z]' '[A-Z]')
+	case $OPTION in
+		"-H" | "--HELP")
+			shift
+			;;
+
+		"-L" | "--NOLOG" | "--NO-LOG")
+			NOLOG=1
+			shift
+			;;
+
+		"-Q" | "--QUIET")
+			QUIET=1
+			shift
+			;;
+
+		"GET" | "PUT" | "POST" | "DELETE" | "INSERT")
+			METHOD=$OPTION
+			shift
+			;;
+
+		"HEAD" | "PATCH" | "PURGE" | "OPTIONS")
+			echo "${0##*/}: ERROR: Invalid HTTP method ($OPTION)"
+			exit 1
+			;;
+
+		*)
+			if [ -r $1 ]; then
+				CONF_FILES+=($1)
+			elif [ "${1:0:1}" = "/" ] || [ "${1:0:4}" = "http" ] && [ "$URI" = "" ]; then
+				URI=$1
+			elif [ "${1:0:6}" = "ssh://" ]; then
+				UNIT_CTRL=$1
+			else
+				echo "${0##*/}: ERROR: Invalid option ($1)"
+				exit 1
+			fi
+			shift
+			;;
+	esac
+done
+
+if [ "$URI" = "" ]; then
+	cat << __EOF__
+${0##*/} - a curl wrapper for managing NGINX Unit configuration
+
+USAGE: ${0##*/} [options] URI
+
+• URI is for Unit's control API target, e.g. /config
+• A local Unit control socket is detected unless a remote one is specified.
+• Configuration data is read from stdin.
+
+General options
+  filename …    # Read configuration data from files instead of stdin
+  HTTP method   # Default=GET, or PUT with config data (case-insensitive)
+  INSERT        # Virtual HTTP method to prepend data to an existing array
+  -q | --quiet  # No output to stdout
+
+Local options
+  -l | --nolog  # Do not monitor the error log after applying config changes
+
+Remote options
+  ssh://[user@]remote_host[:port]/path/to/control.socket  # Remote Unix socket
+  http://remote_host:port/URI                             # Remote TCP socket
+
+ A remote Unit control socket may also be defined with the \$UNIT_CTRL
+ environment variable as http://remote_host:port  -OR-  ssh://… (as above)
+
+__EOF__
+	exit 1
+fi
+
+# Figure out if we're running on the Unit host, or remotely
+#
+if [ "$UNIT_CTRL" = "" ]; then
+	if [ "${URI:0:4}" = "http" ]; then
+		REMOTE=1
+		UNIT_CTRL=$(echo "$URI" | cut -f1-3 -d/)
+		URI=/$(echo "$URI" | cut -f4- -d/)
+	fi
+elif [ "${UNIT_CTRL:0:6}" = "ssh://" ]; then
+	REMOTE=1
+	SSH_CMD="ssh $(echo $UNIT_CTRL | cut -f1-3 -d/)"
+	UNIT_CTRL="--unix-socket /$(echo $UNIT_CTRL | cut -f4- -d/) _"
+elif [ "${URI:0:1}" = "/" ]; then
+	REMOTE=1
+fi
+
+if [ $REMOTE -eq 0 ]; then
+	# Check if Unit is running, find the main process
+	#
+	PID=($(ps ax | grep unit:\ main | grep -v \ grep | awk '{print $1}'))
+	if [ ${#PID[@]} -eq 0 ]; then
+		echo "${0##*/}: ERROR: unitd not running (set \$UNIT_CTRL to configure a remote instance)"
+		exit 1
+	elif [ ${#PID[@]} -gt 1 ]; then
+		echo "${0##*/}: ERROR: multiple unitd processes detected (${PID[@]})"
+		exit 1
+	fi
+
+	# Read the significant unitd conifuration from cache file (or create it)
+	#
+	if [ -r /tmp/${0##*/}.$PID.env ]; then
+		source /tmp/${0##*/}.$PID.env
+	else
+		# Check we have unitd in $PATH (and all the other tools we will need)
+		#
+		MISSING=$(hash unitd curl ps grep tr cut sed tail sleep 2>&1 | cut -f4 -d: | tr -d '\n')
+		if [ "$MISSING" != "" ]; then
+			echo "${0##*/}: ERROR: cannot find$MISSING: please install or add to \$PATH"
+			exit 1
+		fi
+
+		# Get control address
+		#
+		PARAMS=$(ps $PID | grep unitd | cut -f2- -dv | tr '[]' ' ' | cut -f4- -d ' ' | sed -e 's/ --/\n--/g')
+		CTRL_ADDR=$(echo "$PARAMS" | grep '\--control' | cut -f2 -d' ')
+		if [ "$CTRL_ADDR" = "" ]; then
+			CTRL_ADDR=$(unitd --help | grep -A1 '\--control' | tail -1 |  cut -f2 -d\")
+		fi
+
+		# Prepare for network or Unix socket addressing
+		#
+		if [ $(echo $CTRL_ADDR | grep -c ^unix:) -eq 1 ]; then
+			SOCK_FILE=$(echo $CTRL_ADDR | cut -f2- -d:)
+			if [ -r $SOCK_FILE ]; then
+				UNIT_CTRL="--unix-socket $SOCK_FILE _"
+			else
+				echo "${0##*/}: ERROR: cannot read unitd control socket: $SOCK_FILE"
+				ls -l $SOCK_FILE
+				exit 2
+			fi
+		else
+			UNIT_CTRL="http://$CTRL_ADDR"
+		fi
+
+		# Get error log filename
+		#
+		ERROR_LOG=$(echo "$PARAMS" | grep '\--log' | cut -f2 -d' ')
+		if [ "$ERROR_LOG" = "" ]; then
+			ERROR_LOG=$(unitd --help | grep -A1 '\--log' | tail -1 | cut -f2 -d\")
+		fi
+
+		# Cache the discovery for this unit PID (and cleanup any old files)
+		#
+		rm -f /tmp/${0##*/}.* 2> /dev/null
+		echo UNIT_CTRL=\"${UNIT_CTRL}\" > /tmp/${0##*/}.$PID.env
+		echo ERROR_LOG=${ERROR_LOG} >> /tmp/${0##*/}.$PID.env
+	fi
+fi
+
+# Choose presentation style
+#
+if [ $QUIET -eq 1 ]; then
+	OUTPUT="head -c 0" # Equivalent to >/dev/null
+elif hash jq 2> /dev/null; then
+	OUTPUT="jq"
+else
+	OUTPUT="cat"
+fi
+
+# Get current length of error log before we make any changes
+#
+if [ -f $ERROR_LOG ] && [ -r $ERROR_LOG ]; then
+	LOG_LEN=$(wc -l < $ERROR_LOG)
+else
+	NOLOG=1
+fi
+
+# Adjust HTTP method and curl params based on presence of stdin payload
+#
+if [ -t 0 ] && [ ${#CONF_FILES[@]} -eq 0 ]; then
+	if [ "$METHOD" = "DELETE" ]; then
+		$SSH_CMD curl -X $METHOD $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ | $OUTPUT
+	else
+		SHOW_LOG=$(echo $URI | grep -c ^/control/)
+		$SSH_CMD curl $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ | $OUTPUT
+	fi
+else
+	if [ "$METHOD" = "INSERT" ]; then
+		if ! hash jq 2> /dev/null; then
+			echo "${0##*/}: ERROR: jq(1) is required to use the INSERT method; install at <https://stedolan.github.io/jq/>"
+			exit 1
+		fi
+		NEW_ELEMENT=$(cat ${CONF_FILES[@]})
+		echo $NEW_ELEMENT | jq > /dev/null || exit $? # Test the input is valid JSON before proceeding
+		OLD_ARRAY=$($SSH_CMD curl -s $UNIT_CTRL$URI)
+		if [ "$(echo $OLD_ARRAY | jq -r type)" = "array" ]; then
+			echo $OLD_ARRAY | jq ". |= [$NEW_ELEMENT] + ." | $SSH_CMD curl -X PUT --data-binary @- $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ | $OUTPUT
+		else
+			echo "${0##*/}: ERROR: the INSERT method expects an array"
+			exit 3
+		fi
+	else
+		cat ${CONF_FILES[@]} | $SSH_CMD curl -X $METHOD --data-binary @- $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ | $OUTPUT
+	fi
+fi
+
+CURL_STATUS=${PIPESTATUS[0]}
+if [ $CURL_STATUS -ne 0 ]; then
+	echo "${0##*/}: ERROR: curl(1) exited with an error ($CURL_STATUS)"
+	if [ $CURL_STATUS -eq 7 ] && [ $REMOTE -eq 0 ]; then
+		echo "${0##*/}: Check that you have permission to access the Unit control socket, or try again with sudo(8)"
+	else
+		echo "${0##*/}: Trying to access $UNIT_CTRL$URI"
+		cat /tmp/${0##*/}.$$ && rm -f /tmp/${0##*/}.$$
+	fi
+	exit 4
+fi
+rm -f /tmp/${0##*/}.$$ 2> /dev/null
+
+if [ $SHOW_LOG -gt 0 ] && [ $NOLOG -eq 0 ] && [ $QUIET -eq 0 ]; then
+	echo -n "${0##*/}: Waiting for log..."
+	sleep $SHOW_LOG
+	echo ""
+	sed -n $((LOG_LEN+1)),\$p $ERROR_LOG
+fi

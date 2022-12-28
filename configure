@@ -129,6 +129,7 @@ if [ $NXT_REGEX = YES ]; then
     . auto/pcre
 fi
 
+. auto/cgroup
 . auto/isolation
 . auto/capability
 
@@ -170,6 +171,10 @@ NXT_LIB_AUX_CFLAGS="$NXT_OPENSSL_CFLAGS $NXT_GNUTLS_CFLAGS \\
 NXT_LIB_AUX_LIBS="$NXT_OPENSSL_LIBS $NXT_GNUTLS_LIBS \\
                     $NXT_CYASSL_LIBS $NXT_POLARSSL_LIBS \\
                     $NXT_PCRE_LIB"
+
+if [ $NXT_NJS != NO ]; then
+    . auto/njs
+fi
 
 . auto/make
 . auto/summary

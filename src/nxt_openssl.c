@@ -295,7 +295,7 @@ nxt_openssl_server_init(nxt_task_t *task, nxt_mp_t *mp,
     nxt_tls_init_t *tls_init, nxt_bool_t last)
 {
     SSL_CTX                *ctx;
-    const char             *ciphers, *ca_certificate;
+    const char             *ca_certificate;
     nxt_tls_conf_t         *conf;
     STACK_OF(X509_NAME)    *list;
     nxt_tls_bundle_conf_t  *bundle;
@@ -361,13 +361,13 @@ nxt_openssl_server_init(nxt_task_t *task, nxt_mp_t *mp,
     }
 */
 
-    ciphers = (conf->ciphers != NULL) ? conf->ciphers : "HIGH:!aNULL:!MD5";
-
-    if (SSL_CTX_set_cipher_list(ctx, ciphers) == 0) {
-        nxt_openssl_log_error(task, NXT_LOG_ALERT,
+    if (conf->ciphers) {  /* else use system crypto policy */
+        if (SSL_CTX_set_cipher_list(ctx, conf->ciphers) == 0) {
+            nxt_openssl_log_error(task, NXT_LOG_ALERT,
                               "SSL_CTX_set_cipher_list(\"%s\") failed",
-                              ciphers);
-        goto fail;
+                              conf->ciphers);
+            goto fail;
+        }
     }
 
 #if (NXT_HAVE_OPENSSL_CONF_CMD)
@@ -780,7 +780,7 @@ nxt_tls_ticket_key_callback(SSL *s, unsigned char *name, unsigned char *iv,
         /* decrypt session ticket */
 
         do {
-            if (nxt_memcmp(name, ticket[i].name, 16) == 0) {
+            if (memcmp(name, ticket[i].name, 16) == 0) {
                 goto found;
             }
 
@@ -1777,7 +1777,11 @@ nxt_openssl_copy_error(u_char *p, u_char *end)
     clear = 0;
 
     for ( ;; ) {
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+        err = ERR_get_error_all(NULL, NULL, NULL, &data, &flags);
+#else
         err = ERR_get_error_line_data(NULL, NULL, &data, &flags);
+#endif
         if (err == 0) {
             break;
         }

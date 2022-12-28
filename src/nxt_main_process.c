@@ -191,18 +191,6 @@ static nxt_conf_map_t  nxt_python_app_conf[] = {
     },
 
     {
-        nxt_string("module"),
-        NXT_CONF_MAP_STR,
-        offsetof(nxt_common_app_conf_t, u.python.module),
-    },
-
-    {
-        nxt_string("callable"),
-        NXT_CONF_MAP_CSTRZ,
-        offsetof(nxt_common_app_conf_t, u.python.callable),
-    },
-
-    {
         nxt_string("protocol"),
         NXT_CONF_MAP_STR,
         offsetof(nxt_common_app_conf_t, u.python.protocol),
@@ -1018,6 +1006,10 @@ nxt_main_process_cleanup(nxt_task_t *task, nxt_process_t *process)
 {
     if (process->isolation.cleanup != NULL) {
         process->isolation.cleanup(task, process);
+    }
+
+    if (process->isolation.cgroup_cleanup != NULL) {
+        process->isolation.cgroup_cleanup(task, process);
     }
 }
 
