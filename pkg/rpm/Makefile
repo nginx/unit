@@ -184,7 +184,7 @@ rpmbuild/SOURCES/unit-$(VERSION).tar.gz:
 
 unit: check-build-depends-unit rpmbuild/SPECS/unit.spec rpmbuild/SOURCES/unit-$(VERSION).tar.gz
 	@echo "===> Building $@ package" ; \
-	rpmbuild -D "_topdir `pwd`/rpmbuild" -ba rpmbuild/SPECS/unit.spec && \
+	rpmbuild -D "_topdir `pwd`/rpmbuild" -ba --noclean rpmbuild/SPECS/unit.spec && \
 	ln -s rpmbuild/BUILD/$@-$(VERSION)/build $@
 
 rpmlint:
@@ -235,7 +235,7 @@ rpmbuild/SPECS/unit-%.spec: unit.module.spec.in ../../docs/changes.xml | rpmbuil
 
 unit-%: check-build-depends-% rpmbuild/SPECS/unit-%.spec rpmbuild/SOURCES/unit-$(VERSION).tar.gz
 	@echo "===> Building $(subst _,-,$@) package" ; \
-	rpmbuild -D "_topdir `pwd`/rpmbuild" -ba rpmbuild/SPECS/$@.spec && \
+	rpmbuild -D "_topdir `pwd`/rpmbuild" -ba --noclean rpmbuild/SPECS/$@.spec && \
 	ln -s rpmbuild/BUILD/$(subst _,-,$@)-$(VERSION)/build $@
 
 test: unit modules
