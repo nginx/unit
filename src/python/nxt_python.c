@@ -75,8 +75,11 @@ static nxt_python_proto_t    nxt_py_proto;
 static nxt_int_t
 nxt_python3_init_config(nxt_int_t pep405)
 {
-    PyStatus  status;
-    PyConfig  config;
+    PyConfig     config;
+    PyStatus     status;
+    nxt_int_t    ret;
+
+    ret = NXT_ERROR;
 
     PyConfig_InitIsolatedConfig(&config);
 
@@ -84,29 +87,28 @@ nxt_python3_init_config(nxt_int_t pep405)
         status = PyConfig_SetString(&config, &config.program_name,
                                     nxt_py_home);
         if (PyStatus_Exception(status)) {
-            goto pyinit_exception;
+            goto out_config_clear;
         }
 
     } else {
-        status =PyConfig_SetString(&config, &config.home, nxt_py_home);
+        status = PyConfig_SetString(&config, &config.home, nxt_py_home);
         if (PyStatus_Exception(status)) {
-            goto pyinit_exception;
+            goto out_config_clear;
         }
     }
 
     status = Py_InitializeFromConfig(&config);
     if (PyStatus_Exception(status)) {
-        goto pyinit_exception;
+        goto out_config_clear;
     }
+
+    ret = NXT_OK;
+
+out_config_clear:
+
     PyConfig_Clear(&config);
 
-    return NXT_OK;
-
-pyinit_exception:
-
-    PyConfig_Clear(&config);
-
-    return NXT_ERROR;
+    return ret;
 }
 
 #elif PY_MAJOR_VERSION == 3
