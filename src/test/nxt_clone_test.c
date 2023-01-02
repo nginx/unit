@@ -506,22 +506,17 @@ nxt_clone_test_mappings(nxt_task_t *task, nxt_mp_t *mp,
 
     ctx->tc = tc;
 
-    if (nxt_clone_test_map_assert(task, tc, &map) != NXT_OK) {
-        return NXT_ERROR;
-    }
-
     if (tc->setid && nxt_euid != 0) {
         /*
          * Running as root should have the same behavior as
          * passing Linux capabilities.
          */
-
         nxt_euid = 0;
         nxt_egid = 0;
+    }
 
-        if (nxt_clone_test_map_assert(task, tc, &map) != NXT_OK) {
-            return NXT_ERROR;
-        }
+    if (nxt_clone_test_map_assert(task, tc, &map) != NXT_OK) {
+        return NXT_ERROR;
     }
 
     return NXT_OK;
