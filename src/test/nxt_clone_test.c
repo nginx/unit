@@ -40,7 +40,7 @@ static nxt_int_t nxt_clone_test_parse_map(nxt_task_t *task,
 
 nxt_log_t *test_log;
 
-static nxt_gid_t gids[] = {1000, 10000, 60000};
+static nxt_gid_t gids[] = {1001, 10000, 60000};
 
 static nxt_clone_creds_testcase_t testcases[] = {
     {
@@ -82,10 +82,20 @@ static nxt_clone_creds_testcase_t testcases[] = {
         UIDMAP,
         nxt_string("[{\"container\": 0, \"host\": 1000, \"size\": 1}]"),
         0,
-        {"root", 0, 0, 0, NULL},
+        {"johndoe", 1000, 1000, 0, NULL},
         1000, 1000,
         NXT_OK,
         nxt_string("")
+    },
+    {
+        UIDMAP,
+        nxt_string("[{\"container\": 0, \"host\": 1000, \"size\": 1}]"),
+        0,
+        {"root", 0, 0, 0, NULL},
+        1000, 1000,
+        NXT_ERROR,
+        nxt_string("\"uidmap\" field has no \"host\" entry for user "
+                   "\"root\" (uid 0)")
     },
     {
         UIDMAP,
@@ -93,8 +103,9 @@ static nxt_clone_creds_testcase_t testcases[] = {
         0,
         {"nobody", 65534, 0, 0, NULL},
         1000, 1000,
-        NXT_OK,
-        nxt_string("")
+        NXT_ERROR,
+        nxt_string("\"uidmap\" field has no \"host\" entry for user "
+                   "\"nobody\" (uid 65534)")
     },
     {
         UIDMAP,
@@ -114,8 +125,9 @@ static nxt_clone_creds_testcase_t testcases[] = {
         1, /* privileged */
         {"root", 0, 0, 0, NULL},
         1000, 1000,
-        NXT_OK,
-        nxt_string("")
+        NXT_ERROR,
+        nxt_string("\"uidmap\" field has no \"host\" entry for user "
+                   "\"root\" (uid 0)")
     },
     {
         UIDMAP,
@@ -124,18 +136,20 @@ static nxt_clone_creds_testcase_t testcases[] = {
         1, /* privileged */
         {"johndoe", 500, 0, 0, NULL},
         1000, 1000,
-        NXT_OK,
-        nxt_string("")
+        NXT_ERROR,
+        nxt_string("\"uidmap\" field has no \"host\" entry for user "
+                   "\"johndoe\" (uid 500)")
     },
     {
         UIDMAP,
-        nxt_string("[{\"container\": 0, \"host\": 1000, \"size\": 1000},"
+        nxt_string("[{\"container\": 0, \"host\": 1000, \"size\": 1},"
                    " {\"container\": 1000, \"host\": 2000, \"size\": 1000}]"),
         1, /* privileged */
-        {"johndoe", 1000, 0, 0, NULL},
+        {"johndoe", 1005, 7, 0, NULL},
         1000, 1000,
-        NXT_OK,
-        nxt_string("")
+        NXT_ERROR,
+        nxt_string("\"uidmap\" field has no \"host\" entry for user "
+                   "\"johndoe\" (uid 1005)")
     },
     {
         UIDMAP,
@@ -164,9 +178,8 @@ static nxt_clone_creds_testcase_t testcases[] = {
         1, /* privileged */
         {"johndoe", 2000, 0, 0, NULL},
         1000, 1000,
-        NXT_ERROR,
-        nxt_string("\"uidmap\" field has no \"container\" entry for user "
-                   "\"johndoe\" (uid 2000)")
+        NXT_OK,
+        nxt_string("")
     },
     {
         /*
@@ -186,20 +199,13 @@ static nxt_clone_creds_testcase_t testcases[] = {
         nxt_string("")
     },
     {
-        /*
-         * Unprivileged unit
-         *
-         * Inside the new namespace, we can have any gid but it
-         * should map to parent gid (in this case 1000) in parent
-         * namespace.
-         */
         GIDMAP,
         nxt_string("[{\"container\": 0, \"host\": 1000, \"size\": 1}]"),
         0,
         {"root", 0, 0, 0, NULL},
         1000, 1000,
-        NXT_OK,
-        nxt_string("")
+        NXT_ERROR,
+        nxt_string("\"gidmap\" field has no \"host\" entry for gid 0.")
     },
     {
         GIDMAP,
@@ -207,23 +213,17 @@ static nxt_clone_creds_testcase_t testcases[] = {
         0,
         {"nobody", 65534, 65534, 0, NULL},
         1000, 1000,
-        NXT_OK,
-        nxt_string("")
+        NXT_ERROR,
+        nxt_string("\"gidmap\" field has no \"host\" entry for gid 65534.")
     },
     {
-        /*
-         * Unprivileged unit
-         *
-         * There's no mapping for "johndoe" (gid 1000) inside the namespace.
-         */
         GIDMAP,
         nxt_string("[{\"container\": 65535, \"host\": 1000, \"size\": 1}]"),
         0,
         {"johndoe", 1000, 1000, 0, NULL},
         1000, 1000,
-        NXT_ERROR,
-        nxt_string("\"gidmap\" field has no \"container\" entry for "
-                    "gid 1000.")
+        NXT_OK,
+        nxt_string("")
     },
     {
         GIDMAP,
@@ -286,8 +286,7 @@ static nxt_clone_creds_testcase_t testcases[] = {
         {"nobody", 65534, 65534, 0, NULL},
         1000, 1000,
         NXT_ERROR,
-        nxt_string("\"gidmap\" field has no \"container\" entry for "
-                    "gid 65534.")
+        nxt_string("\"gidmap\" field has no \"host\" entry for gid 65534.")
     },
     {
         /* solves the previous by mapping 65534 gids */
@@ -303,7 +302,7 @@ static nxt_clone_creds_testcase_t testcases[] = {
         /* solves by adding a separate mapping */
         GIDMAP,
         nxt_string("[{\"container\": 0, \"host\": 1000, \"size\": 1},"
-                   " {\"container\": 65534, \"host\": 1000, \"size\": 1}]"),
+                   " {\"container\": 1, \"host\": 65534, \"size\": 1}]"),
         1,
         {"nobody", 65534, 65534, 0, NULL},
         1000, 1000,
@@ -342,12 +341,23 @@ static nxt_clone_creds_testcase_t testcases[] = {
         {"johndoe", 1000, 1000, 3, gids},
         1000, 1000,
         NXT_ERROR,
-        nxt_string("\"gidmap\" field has no \"container\" entry for "
+        nxt_string("\"gidmap\" field has no \"host\" entry for "
                    "gid 1000."),
     },
     {
         GIDMAP,
-        nxt_string("[{\"container\": 1000, \"host\": 0, \"size\": 1}]"),
+        nxt_string("[{\"container\": 0, \"host\": 1000, \"size\": 1}]"),
+        1,
+        {"johndoe", 1000, 1000, 3, gids},
+        1000, 1000,
+        NXT_ERROR,
+        nxt_string("\"gidmap\" field has missing suplementary gid mappings "
+                   "(found 0 out of 3)."),
+    },
+    {
+        GIDMAP,
+        nxt_string("[{\"container\": 0, \"host\": 1000, \"size\": 1},"
+                   " {\"container\": 1001, \"host\": 1001, \"size\": 1}]"),
         1,
         {"johndoe", 1000, 1000, 3, gids},
         1000, 1000,
@@ -356,22 +366,12 @@ static nxt_clone_creds_testcase_t testcases[] = {
                    "(found 1 out of 3)."),
     },
     {
-        GIDMAP,
-        nxt_string("[{\"container\": 1000, \"host\": 0, \"size\": 1},"
-                   " {\"container\": 10000, \"host\": 10000, \"size\": 1}]"),
-        1,
-        {"johndoe", 1000, 1000, 3, gids},
-        1000, 1000,
-        NXT_ERROR,
-        nxt_string("\"gidmap\" field has missing suplementary gid mappings "
-                   "(found 2 out of 3)."),
-    },
-    {
         /*
          * Fix all mappings
          */
         GIDMAP,
-        nxt_string("[{\"container\": 1000, \"host\": 0, \"size\": 1},"
+        nxt_string("[{\"container\": 0, \"host\": 1000, \"size\": 1},"
+                   "{\"container\": 1001, \"host\": 1001, \"size\": 1},"
                    "{\"container\": 10000, \"host\": 10000, \"size\": 1},"
                    " {\"container\": 60000, \"host\": 60000, \"size\": 1}]"),
         1,
