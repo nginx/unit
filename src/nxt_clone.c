@@ -11,7 +11,7 @@
 
 #if (NXT_HAVE_CLONE_NEWUSER)
 
-static inline id_t nxt_id_map_host2container(id_t host_id,
+static inline id_t nxt_id_map_host2container(nxt_task_t *task, id_t host_id,
     const nxt_clone_map_entry_t *map);
 static inline nxt_bool_t nxt_idmap_includes_host_id(id_t host_id,
     const nxt_clone_map_entry_t *map);
@@ -285,7 +285,7 @@ nxt_clone_vldt_credential_uidmap(nxt_task_t *task,
         m = &map->map[i];
 
         if (nxt_idmap_includes_host_id(creds->uid, m)) {
-            creds->uid = nxt_id_map_host2container(creds->uid, m);
+            creds->uid = nxt_id_map_host2container(task, creds->uid, m);
             return NXT_OK;
         }
     }
@@ -359,7 +359,7 @@ nxt_clone_vldt_credential_gidmap(nxt_task_t *task,
             return NXT_ERROR;
         }
 
-        creds->base_gid = nxt_id_map_host2container(creds->base_gid, m);
+        creds->base_gid = nxt_id_map_host2container(task, creds->base_gid, m);
 
         return NXT_OK;
     }
@@ -384,7 +384,8 @@ nxt_clone_vldt_credential_gidmap(nxt_task_t *task,
         m = &map->map[i];
 
         if (nxt_idmap_includes_host_id(creds->base_gid, m)) {
-            creds->base_gid = nxt_id_map_host2container(creds->base_gid, m);
+            creds->base_gid = nxt_id_map_host2container(task, creds->base_gid,
+                                                        m);
             base_ok = 1;
             break;
         }
@@ -406,7 +407,8 @@ nxt_clone_vldt_credential_gidmap(nxt_task_t *task,
             m = &map->map[j];
 
             if (nxt_idmap_includes_host_id(creds->gids[i], m)) {
-                creds->gids[i] = nxt_id_map_host2container(creds->gids[i], m);
+                creds->gids[i] = nxt_id_map_host2container(task, creds->gids[i],
+                                                           m);
                 gid_ok = 1;
                 break;
             }
@@ -430,14 +432,20 @@ nxt_clone_vldt_credential_gidmap(nxt_task_t *task,
 
 
 static inline id_t
-nxt_id_map_host2container(id_t host_id, const nxt_clone_map_entry_t *map)
+nxt_id_map_host2container(nxt_task_t *task, id_t host_id,
+    const nxt_clone_map_entry_t *map)
 {
-    id_t  host_start, container_start;
+    id_t  host_start, container_start, container_id;
 
     host_start = map->host;
     container_start = map->container;
 
-    return host_id - host_start + container_start;
+    container_id = host_id - host_start + container_start;
+
+    nxt_log(task, NXT_LOG_DEBUG, "mapped host id %d to container id %d.",
+            (int) host_id, (int) container_id);
+
+    return container_id;
 }
 
 
