@@ -248,35 +248,11 @@ nxt_int_t
 nxt_clone_vldt_credential_uidmap(nxt_task_t *task,
     nxt_clone_credential_map_t *map, nxt_credential_t *creds)
 {
-    nxt_int_t                    id;
     nxt_uint_t                   i;
-    nxt_runtime_t                *rt;
     const nxt_clone_map_entry_t  *m;
 
     if (map->size == 0) {
         return NXT_OK;
-    }
-
-    rt = task->thread->runtime;
-
-    if (!rt->capabilities.setid) {
-        if (nxt_slow_path(map->size > 1)) {
-            nxt_log(task, NXT_LOG_NOTICE, "\"uidmap\" field has %d entries "
-                    "but unprivileged unit has a maximum of 1 map.",
-                    map->size);
-
-            return NXT_ERROR;
-        }
-
-        id = map->map[0].host;
-
-        if (nxt_slow_path((nxt_uid_t) id != nxt_euid)) {
-            nxt_log(task, NXT_LOG_NOTICE, "\"uidmap\" field has an entry for "
-                    "host uid %d but unprivileged unit can only map itself "
-                    "(uid %d) into child namespaces.", id, nxt_euid);
-
-            return NXT_ERROR;
-        }
     }
 
     for (i = 0; i < map->size; i++) {
@@ -307,39 +283,11 @@ nxt_clone_vldt_credential_gidmap(nxt_task_t *task,
 
     rt = task->thread->runtime;
 
-    if (!rt->capabilities.setid) {
-        if (map->size == 0) {
+    if (map->size == 0) {
+        if (!rt->capabilities.setid) {
             return NXT_OK;
         }
 
-        if (nxt_slow_path(map->size > 1)) {
-            nxt_log(task, NXT_LOG_NOTICE, "\"gidmap\" field has %d entries "
-                    "but unprivileged unit has a maximum of 1 map.",
-                    map->size);
-
-            return NXT_ERROR;
-        }
-
-        m = &map->map[0];
-
-        if (nxt_slow_path((nxt_gid_t) m->host != nxt_egid)) {
-            nxt_log(task, NXT_LOG_ERR, "\"gidmap\" field has an entry for "
-                    "host gid %d but unprivileged unit can only map itself "
-                    "(gid %d) into child namespaces.", m->host, nxt_egid);
-
-            return NXT_ERROR;
-        }
-
-        if (nxt_slow_path(m->size > 1)) {
-            nxt_log(task, NXT_LOG_ERR, "\"gidmap\" field has an entry with "
-                    "\"size\": %d, but for unprivileged unit it must be 1.",
-                    m->size);
-
-            return NXT_ERROR;
-        }
-    }
-
-    if (map->size == 0) {
         if (creds->ngroups > 0
             && !(creds->ngroups == 1 && creds->gids[0] == creds->base_gid))
         {
@@ -372,6 +320,10 @@ nxt_clone_vldt_credential_gidmap(nxt_task_t *task,
                 creds->base_gid);
 
         return NXT_ERROR;
+    }
+
+    if (!rt->capabilities.setid) {
+        return NXT_OK;
     }
 
     gids_ok = 0;
