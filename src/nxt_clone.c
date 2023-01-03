@@ -348,18 +348,6 @@ nxt_clone_vldt_credential_gidmap(nxt_task_t *task,
 
             return NXT_ERROR;
         }
-
-        if (nxt_slow_path((nxt_gid_t) m->host != creds->base_gid)) {
-            nxt_log(task, NXT_LOG_ERR,
-                    "\"gidmap\" field has no \"host\" entry for gid %d.",
-                    creds->base_gid);
-
-            return NXT_ERROR;
-        }
-
-        creds->base_gid = nxt_id_map_host2container(task, creds->base_gid, m);
-
-        return NXT_OK;
     }
 
     if (map->size == 0) {
