@@ -277,8 +277,6 @@ nxt_clone_vldt_credential_uidmap(nxt_task_t *task,
 
             return NXT_ERROR;
         }
-
-        return NXT_OK;
     }
 
     for (i = 0; i < map->size; i++) {
