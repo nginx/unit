@@ -308,17 +308,6 @@ nxt_clone_vldt_credential_gidmap(nxt_task_t *task,
     rt = task->thread->runtime;
 
     if (!rt->capabilities.setid) {
-        if (creds->ngroups > 0
-            && !(creds->ngroups == 1 && creds->gids[0] == creds->base_gid)) {
-            nxt_log(task, NXT_LOG_NOTICE,
-                    "unprivileged unit disallow supplementary groups for "
-                    "new namespace (user \"%s\" has %d group%s).",
-                    creds->user, creds->ngroups,
-                    creds->ngroups > 1 ? "s" : "");
-
-            return NXT_ERROR;
-        }
-
         if (map->size == 0) {
             return NXT_OK;
         }
