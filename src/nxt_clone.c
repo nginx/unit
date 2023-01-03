@@ -288,18 +288,17 @@ nxt_clone_vldt_credential_gidmap(nxt_task_t *task,
             return NXT_OK;
         }
 
-        if (creds->ngroups > 0
-            && !(creds->ngroups == 1 && creds->gids[0] == creds->base_gid))
+        if (creds->ngroups == 0
+            || (creds->ngroups == 1 && creds->gids[0] == creds->base_gid))
         {
-            nxt_log(task, NXT_LOG_ERR, "\"gidmap\" field has no entries "
-                    "but user \"%s\" has %d suplementary group%s.",
-                    creds->user, creds->ngroups,
-                    creds->ngroups > 1 ? "s" : "");
-
-            return NXT_ERROR;
+            return NXT_OK;
         }
 
-        return NXT_OK;
+        nxt_log(task, NXT_LOG_ERR, "\"gidmap\" field has no entries but user "
+                "\"%s\" has %d suplementary group%s.",
+                creds->user, creds->ngroups, creds->ngroups > 1 ? "s" : "");
+
+        return NXT_ERROR;
     }
 
     base_ok = 0;
