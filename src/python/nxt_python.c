@@ -78,8 +78,22 @@ nxt_python3_init_config(nxt_int_t pep405)
     PyConfig     config;
     PyStatus     status;
     nxt_int_t    ret;
+    PyPreConfig  preconfig;
 
     ret = NXT_ERROR;
+
+    PyPreConfig_InitIsolatedConfig(&preconfig);
+    /*
+     * Determine whether to use UTF-8 mode or not, UTF-8
+     * will be enabled if LC_CTYPE is C, POSIX or some
+     * specific UTF-8 locale.
+     */
+    preconfig.utf8_mode = -1;
+
+    status = Py_PreInitialize(&preconfig);
+    if (PyStatus_Exception(status)) {
+        return ret;
+    }
 
     PyConfig_InitIsolatedConfig(&config);
 
