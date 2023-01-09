@@ -2099,11 +2099,17 @@ nxt_http_route_pattern(nxt_task_t *task, nxt_http_request_t *r,
 
         match = nxt_regex_match(pattern->u.regex, start, length,
                                 r->regex_match);
+        nxt_debug(task,
+                  "match try (string) regex: \"%V\", string: \"%*s\", match: %i",
+                  &pattern->u.regex->pattern, length, start, match);
+
         return match;
     }
 #endif
 
     if (length < pattern->min_length) {
+        nxt_debug(task, "match try (string): \"%*s\", string is short",
+                  length, start);
         return 0;
     }
 
@@ -2116,17 +2122,25 @@ nxt_http_route_pattern(nxt_task_t *task, nxt_http_request_t *r,
     for (i = 0; i < pattern_slices->nelts; i++, pattern_slice++) {
         test = pattern_slice->start;
         test_length = pattern_slice->length;
+        length = end - start;
 
         switch (pattern_slice->type) {
         case NXT_HTTP_ROUTE_PATTERN_EXACT:
             match = ((length == pattern->min_length) &&
                      nxt_http_route_memcmp(start, test, test_length,
                                            pattern->case_sensitive));
+            nxt_debug(task,
+                      "match try (string) exact: \"%*s\", string: \"%*s\", match: %b",
+                      test_length, test, length, start, match);
+
             return match;
 
         case NXT_HTTP_ROUTE_PATTERN_BEGIN:
             match = nxt_http_route_memcmp(start, test, test_length,
                                           pattern->case_sensitive);
+            nxt_debug(task,
+                      "match try (string) begin: \"%*s\", string: \"%*s\", match: %b",
+                      test_length, test, length, start, match);
 
             if (match) {
                 start += test_length;
@@ -2140,6 +2154,10 @@ nxt_http_route_pattern(nxt_task_t *task, nxt_http_request_t *r,
 
             match = nxt_http_route_memcmp(p, test, test_length,
                                           pattern->case_sensitive);
+            nxt_debug(task,
+                      "match try (string) end: \"%*s\", string: \"%*s\", match: %b",
+                      test_length, test, length, start, match);
+
             if (match) {
                 end = p;
                 break;
@@ -2156,6 +2174,10 @@ nxt_http_route_pattern(nxt_task_t *task, nxt_http_request_t *r,
             }
 
             match = (p != NULL);
+
+            nxt_debug(task,
+                      "match try (string) substring: \"%*s\", string: \"%*s\", match: %b",
+                      test_length, test, length, start, match);
 
             if (match) {
                 start = p + test_length;
