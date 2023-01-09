@@ -353,7 +353,7 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
             nxt_http_static_extract_extension(shr, &exten);
             mtype = nxt_http_static_mtype_get(&rtcf->mtypes_hash, &exten);
 
-            ret = nxt_http_route_test_rule(r, conf->types, mtype->start,
+            ret = nxt_http_route_test_rule(task, r, conf->types, mtype->start,
                                            mtype->length);
             if (nxt_slow_path(ret == NXT_ERROR)) {
                 goto fail;
