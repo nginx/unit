@@ -365,7 +365,7 @@ nxt_int_t nxt_http_route_addr_rule(nxt_http_request_t *r,
     nxt_http_route_addr_rule_t *addr_rule, nxt_sockaddr_t *sockaddr);
 nxt_http_route_rule_t *nxt_http_route_types_rule_create(nxt_task_t *task,
     nxt_mp_t *mp, nxt_conf_value_t *types);
-nxt_int_t nxt_http_route_test_rule(nxt_http_request_t *r,
+nxt_int_t nxt_http_route_test_rule(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_route_rule_t *rule, u_char *start, size_t length);
 
 nxt_int_t nxt_http_action_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
