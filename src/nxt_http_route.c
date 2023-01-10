@@ -1549,6 +1549,17 @@ nxt_http_route_handler(nxt_task_t *task, nxt_http_request_t *r,
     for (i = 0; i < route->items; i++) {
         action = nxt_http_route_match(task, r, route->match[i]);
         if (action != NULL) {
+            if (start->u.pass->start == NULL) {
+                nxt_log_http(task, r, NXT_LOG_NOTICE,
+                             NXT_LOG_HTTP_ROUTE_SELECTION,
+                             "selected: \"routes/%z/action\"", i);
+            } else {
+                nxt_log_http(task, r, NXT_LOG_NOTICE,
+                             NXT_LOG_HTTP_ROUTE_SELECTION,
+                             "selected: \"routes/%V/%z/action\"",
+                             start->u.pass, i);
+            }
+
             return action;
         }
     }
