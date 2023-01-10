@@ -1540,21 +1540,17 @@ static nxt_http_action_t *
 nxt_http_route_handler(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_action_t *start)
 {
+    size_t                  i;
     nxt_http_route_t        *route;
     nxt_http_action_t       *action;
-    nxt_http_route_match_t  **match, **end;
 
     route = start->u.route;
-    match = &route->match[0];
-    end = match + route->items;
 
-    while (match < end) {
-        action = nxt_http_route_match(task, r, *match);
+    for (i = 0; i < route->items; i++) {
+        action = nxt_http_route_match(task, r, route->match[i]);
         if (action != NULL) {
             return action;
         }
-
-        match++;
     }
 
     nxt_http_request_error(task, r, NXT_HTTP_NOT_FOUND);
