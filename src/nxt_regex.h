@@ -7,11 +7,20 @@
 #ifndef _NXT_REGEX_H_INCLUDED_
 #define _NXT_REGEX_H_INCLUDED_
 
+
 #if (NXT_HAVE_REGEX)
+
+#if (NXT_HAVE_PCRE2)
+#define PCRE2_CODE_UNIT_WIDTH 8
+#include <pcre2.h>
+#else
+#include <pcre.h>
+#endif
+
 
 typedef struct nxt_regex_s        nxt_regex_t;
 
- #if (NXT_HAVE_PCRE2)
+#if (NXT_HAVE_PCRE2)
 typedef void                      nxt_regex_match_t;
 #else
 typedef struct nxt_regex_match_s  nxt_regex_match_t;
@@ -27,6 +36,17 @@ typedef struct {
     const char  *msg;
 #endif
 } nxt_regex_err_t;
+
+
+struct nxt_regex_s {
+#if (NXT_HAVE_PCRE2)
+    pcre2_code  *code;
+#else
+    pcre        *code;
+    pcre_extra  *extra;
+#endif
+    nxt_str_t   pattern;
+};
 
 
 NXT_EXPORT void nxt_regex_init(void);

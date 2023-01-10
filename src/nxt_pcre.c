@@ -8,12 +8,6 @@
 #include <pcre.h>
 
 
-struct nxt_regex_s {
-    pcre        *code;
-    pcre_extra  *extra;
-    nxt_str_t   pattern;
-};
-
 struct nxt_regex_match_s {
     int  ovecsize;
     int  ovec[];
