@@ -14,12 +14,6 @@ static void *nxt_pcre2_malloc(PCRE2_SIZE size, void *memory_data);
 static void nxt_pcre2_free(void *p, void *memory_data);
 
 
-struct nxt_regex_s {
-    pcre2_code  *code;
-    nxt_str_t   pattern;
-};
-
-
 nxt_regex_t *
 nxt_regex_compile(nxt_mp_t *mp, nxt_str_t *source, nxt_regex_err_t *err)
 {
