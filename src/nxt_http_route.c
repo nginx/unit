@@ -1544,6 +1544,12 @@ nxt_http_route_handler(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_route_t        *route;
     nxt_http_action_t       *action;
 
+    if (start->u.pass->start == NULL) {
+        nxt_debug(task, "http route handler: \"routes\"");
+    } else {
+        nxt_debug(task, "http route handler: \"routes/%V\"", start->u.pass);
+    }
+
     route = start->u.route;
 
     for (i = 0; i < route->items; i++) {
