@@ -1555,6 +1555,14 @@ nxt_http_route_handler(nxt_task_t *task, nxt_http_request_t *r,
     route = start->u.route;
 
     for (i = 0; i < route->items; i++) {
+        if (start->u.pass->start == NULL) {
+            nxt_log_http(task, r, NXT_LOG_INFO, NXT_LOG_HTTP_ROUTE_SELECTION,
+                         "evaluating: \"routes/%z\"", i);
+        } else {
+            nxt_log_http(task, r, NXT_LOG_INFO, NXT_LOG_HTTP_ROUTE_SELECTION,
+                         "evaluating: \"routes/%V/%z\"", start->u.pass, i);
+        }
+
         action = nxt_http_route_match(task, r, route->match[i]);
         if (action != NULL) {
             if (start->u.pass->start == NULL) {
