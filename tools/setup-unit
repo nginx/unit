@@ -42,8 +42,8 @@ SYNOPSIS
         $program_name [-h] COMMAND [ARGS]
 
     Subcommands
-        +-- repo-config  [-hn] [PKG-MANAGER OS-NAME OS-VERSION]
-        +-- welcome      [-hn]
+        ├── repo-config  [-hn] [PKG-MANAGER OS-NAME OS-VERSION]
+        └── welcome      [-hn]
 
 DESCRIPTION
         This script simplifies installing and configuring an NGINX Unit server
@@ -78,19 +78,19 @@ SYNOPSIS
         $program_name [-h] COMMAND [ARGS]
 
     Subcommands
-        +-- cmd          [-h]
-        +-- ctl          [-h] [-s SOCK] SUBCOMMAND [ARGS]
-        |   +-- http     [-h] [-c CURLOPT] METHOD PATH
-        |   +-- insert   [-h] PATH INDEX
-        +-- freeport     [-h]
-        +-- json-ins     [-hn] JSON INDEX
-        +-- os-probe     [-h]
-        +-- ps           [-h] [-t TYPE]
-        +-- repo-config  [-hn] [PKG-MANAGER OS-NAME OS-VERSION]
-        +-- sock         [-h] SUBCOMMAND [ARGS]
-        |   +-- filter   [-chs]
-        |   +-- find     [-h]
-        +-- welcome      [-hn]
+        ├── cmd          [-h]
+        ├── ctl          [-h] [-s SOCK] SUBCOMMAND [ARGS]
+        │   ├── http     [-h] [-c CURLOPT] METHOD PATH
+        │   └── insert   [-h] PATH INDEX
+        ├── freeport     [-h]
+        ├── json-ins     [-hn] JSON INDEX
+        ├── os-probe     [-h]
+        ├── ps           [-h] [-t TYPE]
+        ├── repo-config  [-hn] [PKG-MANAGER OS-NAME OS-VERSION]
+        ├── sock         [-h] SUBCOMMAND [ARGS]
+        │   ├── filter   [-chs]
+        │   └── find     [-h]
+        └── welcome      [-hn]
 
 DESCRIPTION
         This script simplifies installing and configuring
@@ -210,8 +210,8 @@ SYNOPSIS
         $program_name ctl [-h] [-s SOCK] SUBCOMMAND [ARGS]
 
     Subcommands
-        +-- http    [-h] [-c CURLOPT] METHOD PATH
-        +-- insert  [-h] PATH INDEX
+        ├── http    [-h] [-c CURLOPT] METHOD PATH
+        └── insert  [-h] PATH INDEX
 
 DESCRIPTION
         Control a running unitd(8) instance through its control API socket.
@@ -1231,8 +1231,8 @@ SYNOPSIS
         $program_name sock [-h] SUBCOMMAND [ARGS]
 
     Subcommands
-        +-- filter  [-ch]
-        +-- find    [-h]
+        ├── filter  [-ch]
+        └── find    [-h]
 
 DESCRIPTION
         Print the control API socket address of running unitd(8)
