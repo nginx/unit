@@ -162,7 +162,7 @@ For full details of configuration management, see the
 ## Community
 
 - The go-to place to start asking questions and share your thoughts is
-  our [Slack channel](https://nginxcommunity.slack.com/).
+  our [Slack channel](https://community.nginx.org/joinslack).
 
 - Our [GitHub issues page](https://github.com/nginx/unit/issues) offers
   space for a more technical discussion at your own pace.
