@@ -192,6 +192,8 @@ nxt_http_static(nxt_task_t *task, nxt_http_request_t *r,
     nxt_bool_t             need_body;
     nxt_http_static_ctx_t  *ctx;
 
+    nxt_debug(task, "http static handler");
+
     if (nxt_slow_path(!nxt_str_eq(r->method, "GET", 3))) {
 
         if (!nxt_str_eq(r->method, "HEAD", 4)) {
