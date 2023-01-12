@@ -1957,27 +1957,24 @@ nxt_http_route_test_argument(nxt_task_t *task, nxt_http_request_t *r,
 
     ret = 0;
 
-    nv = array->elts;
-    end = nv + array->nelts;
+    for (nv = array->elts, end = nv + array->nelts; nv < end; nv++) {
 
-    while (nv < end) {
-
-        if (rule->u.name.hash == nv->hash
-            && rule->u.name.length == nv->name_length
-            && memcmp(rule->u.name.start, nv->name, nv->name_length) == 0)
+        if (rule->u.name.hash != nv->hash
+            || rule->u.name.length != nv->name_length
+            || memcmp(rule->u.name.start, nv->name, nv->name_length) != 0)
         {
-            ret = nxt_http_route_test_rule(task, r, rule, nv->value,
-                                           nv->value_length);
-            if (nxt_slow_path(ret == NXT_ERROR)) {
-                return NXT_ERROR;
-            }
-
-            if (ret == 0) {
-                break;
-            }
+            continue;
         }
 
-        nv++;
+        ret = nxt_http_route_test_rule(task, r, rule, nv->value,
+                                       nv->value_length);
+        if (nxt_slow_path(ret == NXT_ERROR)) {
+            return NXT_ERROR;
+        }
+
+        if (ret == 0) {
+            return 0;
+        }
     }
 
     return ret;
@@ -2040,27 +2037,24 @@ nxt_http_route_test_cookie(nxt_task_t *task, nxt_http_request_t *r,
 
     ret = 0;
 
-    nv = array->elts;
-    end = nv + array->nelts;
+    for (nv = array->elts, end = nv + array->nelts; nv < end; nv++) {
 
-    while (nv < end) {
-
-        if (rule->u.name.hash == nv->hash
-            && rule->u.name.length == nv->name_length
-            && memcmp(rule->u.name.start, nv->name, nv->name_length) == 0)
+        if (rule->u.name.hash != nv->hash
+            || rule->u.name.length != nv->name_length
+            || memcmp(rule->u.name.start, nv->name, nv->name_length) != 0)
         {
-            ret = nxt_http_route_test_rule(task, r, rule, nv->value,
-                                           nv->value_length);
-            if (nxt_slow_path(ret == NXT_ERROR)) {
-                return NXT_ERROR;
-            }
-
-            if (ret == 0) {
-                break;
-            }
+            continue;
         }
 
-        nv++;
+        ret = nxt_http_route_test_rule(task, r, rule, nv->value,
+                                       nv->value_length);
+        if (nxt_slow_path(ret == NXT_ERROR)) {
+            return NXT_ERROR;
+        }
+
+        if (ret == 0) {
+            return 0;
+        }
     }
 
     return ret;
@@ -2078,7 +2072,7 @@ nxt_http_route_test_rule(nxt_task_t *task, nxt_http_request_t *r,
     pattern = &rule->pattern[0];
     end = pattern + rule->items;
 
-    while (pattern < end) {
+    for (; pattern < end; pattern++) {
         ret = nxt_http_route_pattern(task, r, pattern, start, length);
         if (nxt_slow_path(ret == NXT_ERROR)) {
             return NXT_ERROR;
@@ -2090,8 +2084,6 @@ nxt_http_route_test_rule(nxt_task_t *task, nxt_http_request_t *r,
         if (pattern->any == ret) {
             return ret;
         }
-
-        pattern++;
     }
 
     return ret;
