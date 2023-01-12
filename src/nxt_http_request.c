@@ -579,7 +579,8 @@ nxt_http_action_t *
 nxt_http_application_handler(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_action_t *action)
 {
-    nxt_debug(task, "http application handler");
+    nxt_debug(task, "http application handler: \"applications/%V\"",
+              action->u.pass);
 
     /*
      * TODO: need an application flag to get local address
