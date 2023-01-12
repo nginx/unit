@@ -198,6 +198,7 @@ nxt_http_static(nxt_task_t *task, nxt_http_request_t *r,
 
         if (!nxt_str_eq(r->method, "HEAD", 4)) {
             if (action->fallback != NULL) {
+                nxt_debug(task, "http static handler: fallback");
                 return action->fallback;
             }
 
@@ -692,6 +693,7 @@ nxt_http_static_next(nxt_task_t *task, nxt_http_request_t *r,
     }
 
     if (action->fallback != NULL) {
+        nxt_debug(task, "http static handler: fallback");
         nxt_http_request_action(task, r, action->fallback);
         return;
     }
