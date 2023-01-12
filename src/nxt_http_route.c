@@ -1601,16 +1601,25 @@ nxt_http_route_match(nxt_task_t *task, nxt_http_request_t *r,
         case NXT_HTTP_ROUTE_TABLE:
             ret = nxt_http_route_table(task, r, test->table);
             break;
+
         case NXT_HTTP_ROUTE_SOURCE:
+            nxt_debug_http(task, r, NXT_LOG_HTTP_ROUTE_SELECTION,
+                           "match try: \"source\"");
+
             ret = nxt_http_route_addr_rule(r, test->addr_rule, r->remote);
             break;
+
         case NXT_HTTP_ROUTE_DESTINATION:
+            nxt_debug_http(task, r, NXT_LOG_HTTP_ROUTE_SELECTION,
+                           "match try: \"destination\"");
+
             if (r->local == NULL && nxt_fast_path(r->proto.any != NULL)) {
                 nxt_http_proto[r->protocol].local_addr(task, r);
             }
 
             ret = nxt_http_route_addr_rule(r, test->addr_rule, r->local);
             break;
+
         default:
             ret = nxt_http_route_rule(task, r, test->rule);
             break;
@@ -1684,17 +1693,26 @@ nxt_http_route_rule(nxt_task_t *task, nxt_http_request_t *r,
     void       *p, **pp;
     u_char     *start;
     size_t     length;
-    nxt_str_t  *s;
+    nxt_str_t  *s, rule_name;
 
     switch (rule->object) {
 
     case NXT_HTTP_ROUTE_HEADER:
+        nxt_debug_http(task, r, NXT_LOG_HTTP_ROUTE_SELECTION,
+                       "match try: \"headers/%*s\"",
+                       rule->u.name.length, rule->u.name.start);
         return nxt_http_route_header(task, r, rule);
 
     case NXT_HTTP_ROUTE_ARGUMENT:
+        nxt_debug_http(task, r, NXT_LOG_HTTP_ROUTE_SELECTION,
+                       "match try: \"arguments/%*s\"",
+                       rule->u.name.length, rule->u.name.start);
         return nxt_http_route_arguments(task, r, rule);
 
     case NXT_HTTP_ROUTE_COOKIE:
+        nxt_debug_http(task, r, NXT_LOG_HTTP_ROUTE_SELECTION,
+                       "match try: \"cookies/%*s\"",
+                       rule->u.name.length, rule->u.name.start);
         return nxt_http_route_cookies(task, r, rule);
 
     case NXT_HTTP_ROUTE_SCHEME:
@@ -1724,6 +1742,24 @@ nxt_http_route_rule(nxt_task_t *task, nxt_http_request_t *r,
 
     length = s->length;
     start = s->start;
+
+    switch (rule->u.offset) {
+
+    case offsetof(nxt_http_request_t, host):
+        nxt_str_set(&rule_name, "host");
+        break;
+
+    case offsetof(nxt_http_request_t, path):
+        nxt_str_set(&rule_name, "uri");
+        break;
+
+    case offsetof(nxt_http_request_t, method):
+        nxt_str_set(&rule_name, "method");
+        break;
+    }
+
+    nxt_debug_http(task, r, NXT_LOG_HTTP_ROUTE_SELECTION,
+                   "match try: \"%V\"", &rule_name);
 
     return nxt_http_route_test_rule(task, r, rule, start, length);
 }
@@ -2001,6 +2037,9 @@ nxt_http_route_scheme(nxt_task_t *task, nxt_http_request_t *r,
     https = (pattern_slice->length == nxt_length("https"));
 
     match = (r->tls == https);
+    nxt_debug_http(task, r, NXT_LOG_HTTP_ROUTE_SELECTION,
+                   "match try: \"scheme\": \"%*s\"; match: %b",
+                   pattern_slice->length, pattern_slice->start, match);
 
     return match;
 }
