@@ -92,7 +92,7 @@ nxt_http_return(nxt_task_t *task, nxt_http_request_t *r,
         nxt_tstr_str(conf->location, &loc);
     }
 
-    nxt_debug(task, "http return: %d (loc: \"%V\")", conf->status, &loc);
+    nxt_debug(task, "http return: %d (location: \"%V\")", conf->status, &loc);
 #endif
 
     if (conf->status >= NXT_HTTP_BAD_REQUEST
