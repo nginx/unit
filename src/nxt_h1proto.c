@@ -654,6 +654,10 @@ nxt_h1p_header_process(nxt_task_t *task, nxt_h1proto_t *h1p,
     r->path = &h1p->parser.path;
     r->args = &h1p->parser.args;
 
+    nxt_log_http(task, r, NXT_LOG_NOTICE, NXT_LOG_HTTP_ROUTE_SELECTION,
+                 "http request line: \"%V %V %V\"",
+                 r->method, &r->target, &r->version);
+
     r->fields = h1p->parser.fields;
 
     ret = nxt_http_fields_process(r->fields, &nxt_h1p_fields_hash, r);
