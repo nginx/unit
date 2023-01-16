@@ -34,6 +34,7 @@ typedef struct {
     PyObject         *quit_future;
     PyObject         *quit_future_set_result;
     PyObject         **target_lifespans;
+    PyObject         *runner;
 } nxt_py_asgi_ctx_data_t;
 
 PyObject *nxt_py_asgi_enum_headers(PyObject *headers,
