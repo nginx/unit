@@ -199,8 +199,7 @@ nxt_python_asgi_init(nxt_unit_init_t *init, nxt_python_proto_t *proto)
 
     return NXT_UNIT_OK;
 }
-
-
+#if NXT_HAVE_ASYNCIO_RUNNER
 static int
 nxt_python_asgi_ctx_data_alloc(void **pdata, int main)
 {
@@ -346,6 +345,150 @@ nxt_python_asgi_ctx_data_free(void *data)
 
     nxt_unit_free(NULL, ctx_data);
 }
+#else
+
+static int
+nxt_python_asgi_ctx_data_alloc(void **pdata, int main)
+{
+    uint32_t                i;
+    PyObject                *asyncio, *loop, *event_loop, *obj;
+    const char              *event_loop_func;
+    nxt_py_asgi_ctx_data_t  *ctx_data;
+
+    ctx_data = nxt_unit_malloc(NULL, sizeof(nxt_py_asgi_ctx_data_t));
+    if (nxt_slow_path(ctx_data == NULL)) {
+        nxt_unit_alert(NULL, "Failed to allocate context data");
+        return NXT_UNIT_ERROR;
+    }
+
+    memset(ctx_data, 0, sizeof(nxt_py_asgi_ctx_data_t));
+
+    nxt_queue_init(&ctx_data->drain_queue);
+
+    struct {
+        const char  *key;
+        PyObject    **handler;
+
+    } handlers[] = {
+        { "create_task",        &ctx_data->loop_create_task },
+        { "add_reader",         &ctx_data->loop_add_reader },
+        { "remove_reader",      &ctx_data->loop_remove_reader },
+        { "call_soon",          &ctx_data->loop_call_soon },
+        { "run_until_complete", &ctx_data->loop_run_until_complete },
+        { "create_future",      &ctx_data->loop_create_future },
+    };
+
+    loop = NULL;
+
+    asyncio = PyImport_ImportModule("asyncio");
+    if (nxt_slow_path(asyncio == NULL)) {
+        nxt_unit_alert(NULL, "Python failed to import module 'asyncio'");
+        nxt_python_print_exception();
+        goto fail;
+    }
+
+    event_loop_func = main ? "get_event_loop" : "new_event_loop";
+
+    event_loop = PyDict_GetItemString(PyModule_GetDict(asyncio),
+                                      event_loop_func);
+    if (nxt_slow_path(event_loop == NULL)) {
+        nxt_unit_alert(NULL,
+                       "Python failed to get '%s' from module 'asyncio'",
+                       event_loop_func);
+        goto fail;
+    }
+
+    if (nxt_slow_path(PyCallable_Check(event_loop) == 0)) {
+        nxt_unit_alert(NULL,
+                       "'asyncio.%s' is not a callable object",
+                       event_loop_func);
+        goto fail;
+    }
+
+    loop = PyObject_CallObject(event_loop, NULL);
+    if (nxt_slow_path(loop == NULL)) {
+        nxt_unit_alert(NULL, "Python failed to call 'asyncio.%s'",
+                       event_loop_func);
+        goto fail;
+    }
+
+    for (i = 0; i < nxt_nitems(handlers); i++) {
+        obj = PyObject_GetAttrString(loop, handlers[i].key);
+        if (nxt_slow_path(obj == NULL)) {
+            nxt_unit_alert(NULL, "Python failed to get 'loop.%s'",
+                                 handlers[i].key);
+            goto fail;
+        }
+
+        *handlers[i].handler = obj;
+
+        if (nxt_slow_path(PyCallable_Check(obj) == 0)) {
+            nxt_unit_alert(NULL, "'loop.%s' is not a callable object",
+                                 handlers[i].key);
+            goto fail;
+        }
+    }
+
+    obj = PyObject_CallObject(ctx_data->loop_create_future, NULL);
+    if (nxt_slow_path(obj == NULL)) {
+        nxt_unit_alert(NULL, "Python failed to create Future ");
+        nxt_python_print_exception();
+        goto fail;
+    }
+
+    ctx_data->quit_future = obj;
+
+    obj = PyObject_GetAttrString(ctx_data->quit_future, "set_result");
+    if (nxt_slow_path(obj == NULL)) {
+        nxt_unit_alert(NULL, "Python failed to get 'future.set_result'");
+        goto fail;
+    }
+
+    ctx_data->quit_future_set_result = obj;
+
+    if (nxt_slow_path(PyCallable_Check(obj) == 0)) {
+        nxt_unit_alert(NULL, "'future.set_result' is not a callable object");
+        goto fail;
+    }
+
+    Py_DECREF(loop);
+    Py_DECREF(asyncio);
+
+    *pdata = ctx_data;
+
+    return NXT_UNIT_OK;
+
+fail:
+
+    nxt_python_asgi_ctx_data_free(ctx_data);
+
+    Py_XDECREF(loop);
+    Py_XDECREF(asyncio);
+
+    return NXT_UNIT_ERROR;
+}
+
+
+static void
+nxt_python_asgi_ctx_data_free(void *data)
+{
+    nxt_py_asgi_ctx_data_t  *ctx_data;
+
+    ctx_data = data;
+
+    Py_XDECREF(ctx_data->loop_run_until_complete);
+    Py_XDECREF(ctx_data->loop_create_future);
+    Py_XDECREF(ctx_data->loop_create_task);
+    Py_XDECREF(ctx_data->loop_call_soon);
+    Py_XDECREF(ctx_data->loop_add_reader);
+    Py_XDECREF(ctx_data->loop_remove_reader);
+    Py_XDECREF(ctx_data->quit_future);
+    Py_XDECREF(ctx_data->quit_future_set_result);
+
+    nxt_unit_free(NULL, ctx_data);
+}
+#endif
+
 
 
 static int
