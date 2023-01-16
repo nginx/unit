@@ -205,8 +205,9 @@ static int
 nxt_python_asgi_ctx_data_alloc(void **pdata, int main)
 {
     uint32_t                i;
-    PyObject                *asyncio, *loop, *event_loop, *obj;
+    PyObject                *asyncio, *loop, *obj, *runner_ref, *runner, *loop_ref;
     const char              *event_loop_func;
+    const char              *runner_class;
     nxt_py_asgi_ctx_data_t  *ctx_data;
 
     ctx_data = nxt_unit_malloc(NULL, sizeof(nxt_py_asgi_ctx_data_t));
@@ -241,31 +242,31 @@ nxt_python_asgi_ctx_data_alloc(void **pdata, int main)
         goto fail;
     }
 
-    event_loop_func = main ? "get_event_loop" : "new_event_loop";
-
-    event_loop = PyDict_GetItemString(PyModule_GetDict(asyncio),
-                                      event_loop_func);
-    if (nxt_slow_path(event_loop == NULL)) {
+    event_loop_func = "get_loop";
+    runner_class = "Runner";
+    runner_ref = PyDict_GetItemString(PyModule_GetDict(asyncio),
+                                      runner_class);
+    if (nxt_slow_path(runner_ref == NULL)) {
         nxt_unit_alert(NULL,
                        "Python failed to get '%s' from module 'asyncio'",
-                       event_loop_func);
+                       runner_class);
         goto fail;
     }
 
-    if (nxt_slow_path(PyCallable_Check(event_loop) == 0)) {
-        nxt_unit_alert(NULL,
-                       "'asyncio.%s' is not a callable object",
-                       event_loop_func);
-        goto fail;
-    }
-
-    loop = PyObject_CallObject(event_loop, NULL);
-    if (nxt_slow_path(loop == NULL)) {
+    runner = PyObject_CallObject(runner_ref, NULL);
+    if (nxt_slow_path(runner == NULL)) {
         nxt_unit_alert(NULL, "Python failed to call 'asyncio.%s'",
+                       runner_class);
+        goto fail;
+    }
+    ctx_data->runner = runner;
+    loop_ref = PyObject_GetAttrString(runner, event_loop_func);
+    loop = PyObject_CallObject(loop_ref, NULL);
+        if (nxt_slow_path(runner == NULL)) {
+        nxt_unit_alert(NULL, "Python failed to call 'Runner.%s'",
                        event_loop_func);
         goto fail;
     }
-
     for (i = 0; i < nxt_nitems(handlers); i++) {
         obj = PyObject_GetAttrString(loop, handlers[i].key);
         if (nxt_slow_path(obj == NULL)) {
@@ -327,6 +328,7 @@ static void
 nxt_python_asgi_ctx_data_free(void *data)
 {
     nxt_py_asgi_ctx_data_t  *ctx_data;
+    PyObject *close_loop_func;
 
     ctx_data = data;
 
@@ -338,6 +340,9 @@ nxt_python_asgi_ctx_data_free(void *data)
     Py_XDECREF(ctx_data->loop_remove_reader);
     Py_XDECREF(ctx_data->quit_future);
     Py_XDECREF(ctx_data->quit_future_set_result);
+    close_loop_func = PyObject_GetAttrString(ctx_data->runner, "close");
+    PyObject_CallObject(close_loop_func, NULL);
+    Py_XDECREF(ctx_data->runner);
 
     nxt_unit_free(NULL, ctx_data);
 }
