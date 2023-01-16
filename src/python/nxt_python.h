@@ -37,6 +37,10 @@
 #define NXT_HAVE_ASGI  1
 #endif
 
+#if PY_VERSION_HEX >= NXT_PYTHON_VER(3, 11)
+#define NXT_HAVE_ASYNCIO_RUNNER  1
+#endif
+
 
 typedef struct {
     PyObject    *application;
