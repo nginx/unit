@@ -66,7 +66,7 @@ typedef struct {
 
 
 typedef struct {
-    int   (*ctx_data_alloc)(void **pdata, int main);
+    int   (*ctx_data_alloc)(void **pdata);
     void  (*ctx_data_free)(void *data);
     int   (*startup)(void *data);
     int   (*run)(nxt_unit_ctx_t *ctx);

@@ -22,7 +22,7 @@ typedef struct {
     nxt_unit_request_info_t  *req;
     uint64_t                 content_length;
 } nxt_py_asgi_add_field_ctx_t;
-#ifdef NXT_HAVE_ASYNCIO_RUNNER
+
 typedef struct {
     nxt_queue_t      drain_queue;
     PyObject         *loop_run_until_complete;
@@ -34,22 +34,11 @@ typedef struct {
     PyObject         *quit_future;
     PyObject         *quit_future_set_result;
     PyObject         **target_lifespans;
+    #if (NXT_HAVE_ASYNCIO_RUNNER)
     PyObject         *runner;
+    #endif
 } nxt_py_asgi_ctx_data_t;
-#else
-typedef struct {
-    nxt_queue_t      drain_queue;
-    PyObject         *loop_run_until_complete;
-    PyObject         *loop_create_future;
-    PyObject         *loop_create_task;
-    PyObject         *loop_call_soon;
-    PyObject         *loop_add_reader;
-    PyObject         *loop_remove_reader;
-    PyObject         *quit_future;
-    PyObject         *quit_future_set_result;
-    PyObject         **target_lifespans;
-} nxt_py_asgi_ctx_data_t;
-#endif
+
 
 PyObject *nxt_py_asgi_enum_headers(PyObject *headers,
     nxt_py_asgi_enum_header_cb cb, void *data);

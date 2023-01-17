@@ -51,7 +51,7 @@ typedef struct {
 }  nxt_python_ctx_t;
 
 
-static int nxt_python_wsgi_ctx_data_alloc(void **pdata, int main);
+static int nxt_python_wsgi_ctx_data_alloc(void **pdata);
 static void nxt_python_wsgi_ctx_data_free(void *data);
 static int nxt_python_wsgi_run(nxt_unit_ctx_t *ctx);
 static void nxt_python_wsgi_done(void);
@@ -217,7 +217,7 @@ fail:
 
 
 static int
-nxt_python_wsgi_ctx_data_alloc(void **pdata, int main)
+nxt_python_wsgi_ctx_data_alloc(void **pdata)
 {
     nxt_python_ctx_t  *pctx;
 

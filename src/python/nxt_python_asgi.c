@@ -17,7 +17,7 @@
 
 
 static PyObject *nxt_python_asgi_get_func(PyObject *obj);
-static int nxt_python_asgi_ctx_data_alloc(void **pdata, int main);
+static int nxt_python_asgi_ctx_data_alloc(void **pdata);
 static void nxt_python_asgi_ctx_data_free(void *data);
 static int nxt_python_asgi_startup(void *data);
 static int nxt_python_asgi_run(nxt_unit_ctx_t *ctx);
@@ -199,9 +199,9 @@ nxt_python_asgi_init(nxt_unit_init_t *init, nxt_python_proto_t *proto)
 
     return NXT_UNIT_OK;
 }
-#if NXT_HAVE_ASYNCIO_RUNNER
+#if (NXT_HAVE_ASYNCIO_RUNNER)
 static int
-nxt_python_asgi_ctx_data_alloc(void **pdata, int main)
+nxt_python_asgi_ctx_data_alloc(void **pdata)
 {
     uint32_t                i;
     PyObject                *asyncio, *loop, *obj, *runner_ref, *runner, *loop_ref;
@@ -322,33 +322,10 @@ fail:
     return NXT_UNIT_ERROR;
 }
 
-
-static void
-nxt_python_asgi_ctx_data_free(void *data)
-{
-    nxt_py_asgi_ctx_data_t  *ctx_data;
-    PyObject *close_loop_func;
-
-    ctx_data = data;
-
-    Py_XDECREF(ctx_data->loop_run_until_complete);
-    Py_XDECREF(ctx_data->loop_create_future);
-    Py_XDECREF(ctx_data->loop_create_task);
-    Py_XDECREF(ctx_data->loop_call_soon);
-    Py_XDECREF(ctx_data->loop_add_reader);
-    Py_XDECREF(ctx_data->loop_remove_reader);
-    Py_XDECREF(ctx_data->quit_future);
-    Py_XDECREF(ctx_data->quit_future_set_result);
-    close_loop_func = PyObject_GetAttrString(ctx_data->runner, "close");
-    PyObject_CallObject(close_loop_func, NULL);
-    Py_XDECREF(ctx_data->runner);
-
-    nxt_unit_free(NULL, ctx_data);
-}
 #else
 
 static int
-nxt_python_asgi_ctx_data_alloc(void **pdata, int main)
+nxt_python_asgi_ctx_data_alloc(void **pdata)
 {
     uint32_t                i;
     PyObject                *asyncio, *loop, *event_loop, *obj;
@@ -387,7 +364,7 @@ nxt_python_asgi_ctx_data_alloc(void **pdata, int main)
         goto fail;
     }
 
-    event_loop_func = main ? "get_event_loop" : "new_event_loop";
+    event_loop_func =  "new_event_loop";
 
     event_loop = PyDict_GetItemString(PyModule_GetDict(asyncio),
                                       event_loop_func);
@@ -467,7 +444,7 @@ fail:
 
     return NXT_UNIT_ERROR;
 }
-
+#endif
 
 static void
 nxt_python_asgi_ctx_data_free(void *data)
@@ -484,11 +461,14 @@ nxt_python_asgi_ctx_data_free(void *data)
     Py_XDECREF(ctx_data->loop_remove_reader);
     Py_XDECREF(ctx_data->quit_future);
     Py_XDECREF(ctx_data->quit_future_set_result);
-
+    #if (NXT_HAVE_ASYNCIO_RUNNER)
+    PyObject *close_loop_func;
+    close_loop_func = PyObject_GetAttrString(ctx_data->runner, "close");
+    PyObject_CallObject(close_loop_func, NULL);
+    Py_XDECREF(ctx_data->runner);
+    #endif
     nxt_unit_free(NULL, ctx_data);
 }
-#endif
-
 
 
 static int
