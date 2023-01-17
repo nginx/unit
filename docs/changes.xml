@@ -32,6 +32,12 @@ NGINX Unit updated to 1.30.0.
          date="" time=""
          packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
 
+<change type="feature">
+<para>
+support the keys API on the request objects in NJS.
+</para>
+</change>
+
 </changes>
 
 <changes apply="unit-php
