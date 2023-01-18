@@ -11,7 +11,7 @@ three core capabilities:
 - a web server for static media assets,
 - and an application server that runs code in seven languages.
 
-We are building a universal tool that compresses several layers of the modern
+Unit is a universal web app server that compresses several layers of the modern
 application stack into a potent, coherent solution with a focus on performance,
 low latency, and scalability. It is intended as a building block for any web
 architecture regardless of its complexity, from enterprise-scale deployments to
@@ -27,7 +27,7 @@ platforms.
 
 ## Quick Installation
 
-### macOS
+### MacOS
 
 ``` console
 $ brew install nginx/unit/unit
