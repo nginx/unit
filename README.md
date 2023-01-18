@@ -7,17 +7,16 @@
 NGINX Unit is a lightweight and versatile open-source server that has
 three core capabilities:
 
-- it is an HTTP reverse proxy,
-- a web server for static media assets,
-- and an application server that runs code in seven languages.
+- acts as an HTTP reverse proxy,
+- serves static media assets,
+- runs application code in seven languages.
 
-Unit is a universal web app server that compresses several layers of the modern
-application stack into a potent, coherent solution with a focus on performance,
-low latency, and scalability. It is intended as a building block for any web
-architecture regardless of its complexity, from enterprise-scale deployments to
-your pet's homepage.
+Unit compresses several layers of the modern application stack into a potent,
+coherent solution with a focus on performance, low latency, and scalability. It
+is intended as a universal building block for any web architecture regardless
+of its complexity, from enterprise-scale deployments to your pet's homepage.
 
-Unit's native RESTful JSON API enables dynamic updates with zero interruptions
+Its native RESTful JSON API enables dynamic updates with zero interruptions
 and flexible configuration, while its out-of-the-box productivity reliably
 scales to production-grade workloads. We achieve that with a complex,
 asynchronous, multithreading architecture comprising multiple processes to
@@ -27,7 +26,7 @@ platforms.
 
 ## Quick Installation
 
-### MacOS
+### macOS
 
 ``` console
 $ brew install nginx/unit/unit
