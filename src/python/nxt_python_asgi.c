@@ -241,6 +241,12 @@ nxt_python_asgi_ctx_data_alloc(void **pdata, int main)
     const char              *event_loop_func;
     nxt_py_asgi_ctx_data_t  *ctx_data;
 
+#if PY_VERSION_HEX < NXT_PYTHON_VER(3, 7)
+    static const char       *main_event_loop_func = "get_event_loop";
+#else
+    static const char       *main_event_loop_func = "get_running_loop";
+#endif
+
     ctx_data = nxt_unit_malloc(NULL, sizeof(nxt_py_asgi_ctx_data_t));
     if (nxt_slow_path(ctx_data == NULL)) {
         nxt_unit_alert(NULL, "Failed to allocate context data");
@@ -273,11 +279,24 @@ nxt_python_asgi_ctx_data_alloc(void **pdata, int main)
         goto fail;
     }
 
-    event_loop_func = main ? "get_event_loop" : "new_event_loop";
+    event_loop_func = main ? main_event_loop_func : "new_event_loop";
 
     loop = nxt_python_asgi_get_event_loop(asyncio, event_loop_func);
     if (loop == NULL) {
+#if PY_VERSION_HEX < NXT_PYTHON_VER(3, 7)
         goto fail;
+#else
+        if (!main) {
+            goto fail;
+        }
+
+        PyErr_Clear();
+
+        loop = nxt_python_asgi_get_event_loop(asyncio, "new_event_loop");
+        if (nxt_slow_path(loop == NULL)) {
+            goto fail;
+        }
+#endif
     }
 
     for (i = 0; i < nxt_nitems(handlers); i++) {
