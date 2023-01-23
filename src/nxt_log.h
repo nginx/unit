@@ -13,7 +13,8 @@
 #define NXT_LOG_WARN       2
 #define NXT_LOG_NOTICE     3
 #define NXT_LOG_INFO       4
-#define NXT_LOG_DEBUG      5
+#define NXT_LOG_DIAG       5
+#define NXT_LOG_DEBUG      6
 
 
 #define NXT_MAX_ERROR_STR  2048

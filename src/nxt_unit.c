@@ -6674,6 +6674,7 @@ static const char * nxt_unit_log_levels[] = {
     "warn",
     "notice",
     "info",
+    "diag",
     "debug",
 };
 
