@@ -50,6 +50,12 @@ class TestNJS(TestApplicationProto):
         self.check_expression('${uri + host}')
         self.check_expression('${uri + `${host}`}')
 
+    def test_njs_iteration(self, temp_dir):
+        self.create_files('Connection,Host', 'close,localhost')
+
+        self.check_expression('/${Object.keys(headers).sort().join()}')
+        self.check_expression('/${Object.values(headers).sort().join()}')
+
     def test_njs_variables(self, temp_dir):
         self.create_files('str', 'localhost', '127.0.0.1')
 
