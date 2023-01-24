@@ -104,6 +104,8 @@ static void nxt_router_conf_send(nxt_task_t *task,
 
 static nxt_int_t nxt_router_conf_create(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, u_char *start, u_char *end);
+static nxt_int_t nxt_router_conf_create_applications(nxt_task_t *task,
+    nxt_router_temp_conf_t *tmcf, nxt_conf_value_t *applications);
 static nxt_int_t nxt_router_conf_process_static(nxt_task_t *task,
     nxt_router_conf_t *rtcf, nxt_conf_value_t *conf);
 static nxt_http_forward_t *nxt_router_conf_forward(nxt_task_t *task,
@@ -1538,31 +1540,24 @@ static nxt_int_t
 nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     u_char *start, u_char *end)
 {
-    u_char                      *p;
-    size_t                      size;
-    nxt_mp_t                    *mp, *app_mp;
-    uint32_t                    next, next_target;
+    nxt_mp_t                    *mp;
+    uint32_t                    next;
     nxt_int_t                   ret;
-    nxt_str_t                   name, target;
-    nxt_app_t                   *app, *prev;
-    nxt_str_t                   *t, *s, *targets;
-    nxt_uint_t                  n, i;
-    nxt_port_t                  *port;
+    nxt_str_t                   name;
+    nxt_app_t                   *app;
+    nxt_str_t                   *t;
     nxt_router_t                *router;
-    nxt_app_joint_t             *app_joint;
 #if (NXT_TLS)
+    nxt_uint_t                  n, i;
     nxt_tls_init_t              *tls_init;
     nxt_conf_value_t            *certificate;
 #endif
     nxt_conf_value_t            *root, *conf, *http, *value, *websocket;
-    nxt_conf_value_t            *applications, *application;
+    nxt_conf_value_t            *applications;
     nxt_conf_value_t            *listeners, *listener;
     nxt_socket_conf_t           *skcf;
     nxt_router_conf_t           *rtcf;
     nxt_http_routes_t           *routes;
-    nxt_event_engine_t          *engine;
-    nxt_app_lang_module_t       *lang;
-    nxt_router_app_conf_t       apcf;
     nxt_router_listener_conf_t  lscf;
 
     static nxt_str_t  http_path = nxt_string("/settings/http");
@@ -1614,235 +1609,9 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     applications = nxt_conf_get_path(root, &applications_path);
 
     if (applications != NULL) {
-        next = 0;
-
-        for ( ;; ) {
-            application = nxt_conf_next_object_member(applications,
-                                                      &name, &next);
-            if (application == NULL) {
-                break;
-            }
-
-            nxt_debug(task, "application \"%V\"", &name);
-
-            size = nxt_conf_json_length(application, NULL);
-
-            app_mp = nxt_mp_create(4096, 128, 1024, 64);
-            if (nxt_slow_path(app_mp == NULL)) {
-                goto fail;
-            }
-
-            app = nxt_mp_get(app_mp, sizeof(nxt_app_t) + name.length + size);
-            if (app == NULL) {
-                goto app_fail;
-            }
-
-            nxt_memzero(app, sizeof(nxt_app_t));
-
-            app->mem_pool = app_mp;
-
-            app->name.start = nxt_pointer_to(app, sizeof(nxt_app_t));
-            app->conf.start = nxt_pointer_to(app, sizeof(nxt_app_t)
-                                                  + name.length);
-
-            p = nxt_conf_json_print(app->conf.start, application, NULL);
-            app->conf.length = p - app->conf.start;
-
-            nxt_assert(app->conf.length <= size);
-
-            nxt_debug(task, "application conf \"%V\"", &app->conf);
-
-            prev = nxt_router_app_find(&router->apps, &name);
-
-            if (prev != NULL && nxt_strstr_eq(&app->conf, &prev->conf)) {
-                nxt_mp_destroy(app_mp);
-
-                nxt_queue_remove(&prev->link);
-                nxt_queue_insert_tail(&tmcf->previous, &prev->link);
-
-                ret = nxt_router_apps_hash_add(rtcf, prev);
-                if (nxt_slow_path(ret != NXT_OK)) {
-                    goto fail;
-                }
-
-                continue;
-            }
-
-            apcf.processes = 1;
-            apcf.max_processes = 1;
-            apcf.spare_processes = 0;
-            apcf.timeout = 0;
-            apcf.idle_timeout = 15000;
-            apcf.limits_value = NULL;
-            apcf.processes_value = NULL;
-            apcf.targets_value = NULL;
-
-            app_joint = nxt_malloc(sizeof(nxt_app_joint_t));
-            if (nxt_slow_path(app_joint == NULL)) {
-                goto app_fail;
-            }
-
-            nxt_memzero(app_joint, sizeof(nxt_app_joint_t));
-
-            ret = nxt_conf_map_object(mp, application, nxt_router_app_conf,
-                                      nxt_nitems(nxt_router_app_conf), &apcf);
-            if (ret != NXT_OK) {
-                nxt_alert(task, "application map error");
-                goto app_fail;
-            }
-
-            if (apcf.limits_value != NULL) {
-
-                if (nxt_conf_type(apcf.limits_value) != NXT_CONF_OBJECT) {
-                    nxt_alert(task, "application limits is not object");
-                    goto app_fail;
-                }
-
-                ret = nxt_conf_map_object(mp, apcf.limits_value,
-                                        nxt_router_app_limits_conf,
-                                        nxt_nitems(nxt_router_app_limits_conf),
-                                        &apcf);
-                if (ret != NXT_OK) {
-                    nxt_alert(task, "application limits map error");
-                    goto app_fail;
-                }
-            }
-
-            if (apcf.processes_value != NULL
-                && nxt_conf_type(apcf.processes_value) == NXT_CONF_OBJECT)
-            {
-                ret = nxt_conf_map_object(mp, apcf.processes_value,
-                                     nxt_router_app_processes_conf,
-                                     nxt_nitems(nxt_router_app_processes_conf),
-                                     &apcf);
-                if (ret != NXT_OK) {
-                    nxt_alert(task, "application processes map error");
-                    goto app_fail;
-                }
-
-            } else {
-                apcf.max_processes = apcf.processes;
-                apcf.spare_processes = apcf.processes;
-            }
-
-            if (apcf.targets_value != NULL) {
-                n = nxt_conf_object_members_count(apcf.targets_value);
-
-                targets = nxt_mp_get(app_mp, sizeof(nxt_str_t) * n);
-                if (nxt_slow_path(targets == NULL)) {
-                    goto app_fail;
-                }
-
-                next_target = 0;
-
-                for (i = 0; i < n; i++) {
-                    (void) nxt_conf_next_object_member(apcf.targets_value,
-                                                       &target, &next_target);
-
-                    s = nxt_str_dup(app_mp, &targets[i], &target);
-                    if (nxt_slow_path(s == NULL)) {
-                        goto app_fail;
-                    }
-                }
-
-            } else {
-                targets = NULL;
-            }
-
-            nxt_debug(task, "application type: %V", &apcf.type);
-            nxt_debug(task, "application processes: %D", apcf.processes);
-            nxt_debug(task, "application request timeout: %M", apcf.timeout);
-
-            lang = nxt_app_lang_module(task->thread->runtime, &apcf.type);
-
-            if (lang == NULL) {
-                nxt_alert(task, "unknown application type: \"%V\"", &apcf.type);
-                goto app_fail;
-            }
-
-            nxt_debug(task, "application language module: \"%s\"", lang->file);
-
-            ret = nxt_thread_mutex_create(&app->mutex);
-            if (ret != NXT_OK) {
-                goto app_fail;
-            }
-
-            nxt_queue_init(&app->ports);
-            nxt_queue_init(&app->spare_ports);
-            nxt_queue_init(&app->idle_ports);
-            nxt_queue_init(&app->ack_waiting_req);
-
-            app->name.length = name.length;
-            nxt_memcpy(app->name.start, name.start, name.length);
-
-            app->type = lang->type;
-            app->max_processes = apcf.max_processes;
-            app->spare_processes = apcf.spare_processes;
-            app->max_pending_processes = apcf.spare_processes
-                                         ? apcf.spare_processes : 1;
-            app->timeout = apcf.timeout;
-            app->idle_timeout = apcf.idle_timeout;
-
-            app->targets = targets;
-
-            engine = task->thread->engine;
-
-            app->engine = engine;
-
-            app->adjust_idle_work.handler = nxt_router_adjust_idle_timer;
-            app->adjust_idle_work.task = &engine->task;
-            app->adjust_idle_work.obj = app;
-
-            nxt_queue_insert_tail(&tmcf->apps, &app->link);
-
-            ret = nxt_router_apps_hash_add(rtcf, app);
-            if (nxt_slow_path(ret != NXT_OK)) {
-                goto app_fail;
-            }
-
-            nxt_router_app_use(task, app, 1);
-
-            app->joint = app_joint;
-
-            app_joint->use_count = 1;
-            app_joint->app = app;
-
-            app_joint->idle_timer.bias = NXT_TIMER_DEFAULT_BIAS;
-            app_joint->idle_timer.work_queue = &engine->fast_work_queue;
-            app_joint->idle_timer.handler = nxt_router_app_idle_timeout;
-            app_joint->idle_timer.task = &engine->task;
-            app_joint->idle_timer.log = app_joint->idle_timer.task->log;
-
-            app_joint->free_app_work.handler = nxt_router_free_app;
-            app_joint->free_app_work.task = &engine->task;
-            app_joint->free_app_work.obj = app_joint;
-
-            port = nxt_port_new(task, NXT_SHARED_PORT_ID, nxt_pid,
-                                NXT_PROCESS_APP);
-            if (nxt_slow_path(port == NULL)) {
-                return NXT_ERROR;
-            }
-
-            ret = nxt_port_socket_init(task, port, 0);
-            if (nxt_slow_path(ret != NXT_OK)) {
-                nxt_port_use(task, port, -1);
-                return NXT_ERROR;
-            }
-
-            ret = nxt_router_app_queue_init(task, port);
-            if (nxt_slow_path(ret != NXT_OK)) {
-                nxt_port_write_close(port);
-                nxt_port_read_close(port);
-                nxt_port_use(task, port, -1);
-                return NXT_ERROR;
-            }
-
-            nxt_port_write_enable(task, port);
-            port->app = app;
-
-            app->shared_port = port;
-
-            nxt_thread_mutex_create(&app->outgoing.mutex);
+        ret = nxt_router_conf_create_applications(task, tmcf, applications);
+        if (nxt_slow_path(ret == NXT_ERROR)) {
+            return NXT_ERROR;
         }
     }
 
@@ -2055,6 +1824,277 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_queue_init(&router->sockets);
 
     return NXT_OK;
+
+fail:
+
+    nxt_queue_each(app, &tmcf->apps, nxt_app_t, link) {
+
+        nxt_queue_remove(&app->link);
+        nxt_thread_mutex_destroy(&app->mutex);
+        nxt_mp_destroy(app->mem_pool);
+
+    } nxt_queue_loop;
+
+    return NXT_ERROR;
+}
+
+
+static nxt_int_t
+nxt_router_conf_create_applications(nxt_task_t *task,
+    nxt_router_temp_conf_t *tmcf, nxt_conf_value_t *applications)
+{
+    u_char                      *p;
+    size_t                      size;
+    nxt_mp_t                    *mp, *app_mp;
+    uint32_t                    next, next_target;
+    nxt_int_t                   ret;
+    nxt_str_t                   name, target;
+    nxt_app_t                   *app, *prev;
+    nxt_str_t                   *s, *targets;
+    nxt_uint_t                  n, i;
+    nxt_port_t                  *port;
+    nxt_router_t                *router;
+    nxt_app_joint_t             *app_joint;
+    nxt_conf_value_t            *application;
+    nxt_router_conf_t           *rtcf;
+    nxt_event_engine_t          *engine;
+    nxt_app_lang_module_t       *lang;
+    nxt_router_app_conf_t       apcf;
+
+    rtcf = tmcf->router_conf;
+    mp = rtcf->mem_pool;
+    router = rtcf->router;
+
+    next = 0;
+
+    for ( ;; ) {
+        application = nxt_conf_next_object_member(applications, &name, &next);
+        if (application == NULL) {
+            return NXT_OK;
+        }
+
+        nxt_debug(task, "application \"%V\"", &name);
+
+        size = nxt_conf_json_length(application, NULL);
+
+        app_mp = nxt_mp_create(4096, 128, 1024, 64);
+        if (nxt_slow_path(app_mp == NULL)) {
+            goto fail;
+        }
+
+        app = nxt_mp_get(app_mp, sizeof(nxt_app_t) + name.length + size);
+        if (app == NULL) {
+            goto app_fail;
+        }
+
+        nxt_memzero(app, sizeof(nxt_app_t));
+
+        app->mem_pool = app_mp;
+
+        app->name.start = nxt_pointer_to(app, sizeof(nxt_app_t));
+        app->conf.start = nxt_pointer_to(app, sizeof(nxt_app_t) + name.length);
+
+        p = nxt_conf_json_print(app->conf.start, application, NULL);
+        app->conf.length = p - app->conf.start;
+
+        nxt_assert(app->conf.length <= size);
+
+        nxt_debug(task, "application conf \"%V\"", &app->conf);
+
+        prev = nxt_router_app_find(&router->apps, &name);
+
+        if (prev != NULL && nxt_strstr_eq(&app->conf, &prev->conf)) {
+            nxt_mp_destroy(app_mp);
+
+            nxt_queue_remove(&prev->link);
+            nxt_queue_insert_tail(&tmcf->previous, &prev->link);
+
+            ret = nxt_router_apps_hash_add(rtcf, prev);
+            if (nxt_slow_path(ret != NXT_OK)) {
+                goto fail;
+            }
+
+            continue;
+        }
+
+        apcf.processes = 1;
+        apcf.max_processes = 1;
+        apcf.spare_processes = 0;
+        apcf.timeout = 0;
+        apcf.idle_timeout = 15000;
+        apcf.limits_value = NULL;
+        apcf.processes_value = NULL;
+        apcf.targets_value = NULL;
+
+        app_joint = nxt_malloc(sizeof(nxt_app_joint_t));
+        if (nxt_slow_path(app_joint == NULL)) {
+            goto app_fail;
+        }
+
+        nxt_memzero(app_joint, sizeof(nxt_app_joint_t));
+
+        ret = nxt_conf_map_object(mp, application, nxt_router_app_conf,
+                                  nxt_nitems(nxt_router_app_conf), &apcf);
+        if (ret != NXT_OK) {
+            nxt_alert(task, "application map error");
+            goto app_fail;
+        }
+
+        if (apcf.limits_value != NULL) {
+
+            if (nxt_conf_type(apcf.limits_value) != NXT_CONF_OBJECT) {
+                nxt_alert(task, "application limits is not object");
+                goto app_fail;
+            }
+
+            ret = nxt_conf_map_object(mp, apcf.limits_value,
+                                      nxt_router_app_limits_conf,
+                                      nxt_nitems(nxt_router_app_limits_conf),
+                                      &apcf);
+            if (ret != NXT_OK) {
+                nxt_alert(task, "application limits map error");
+                goto app_fail;
+            }
+        }
+
+        if (apcf.processes_value != NULL
+            && nxt_conf_type(apcf.processes_value) == NXT_CONF_OBJECT)
+        {
+            ret = nxt_conf_map_object(mp, apcf.processes_value,
+                                      nxt_router_app_processes_conf,
+                                      nxt_nitems(nxt_router_app_processes_conf),
+                                      &apcf);
+            if (ret != NXT_OK) {
+                nxt_alert(task, "application processes map error");
+                goto app_fail;
+            }
+
+        } else {
+            apcf.max_processes = apcf.processes;
+            apcf.spare_processes = apcf.processes;
+        }
+
+        if (apcf.targets_value != NULL) {
+            n = nxt_conf_object_members_count(apcf.targets_value);
+
+            targets = nxt_mp_get(app_mp, sizeof(nxt_str_t) * n);
+            if (nxt_slow_path(targets == NULL)) {
+                goto app_fail;
+            }
+
+            next_target = 0;
+
+            for (i = 0; i < n; i++) {
+                (void) nxt_conf_next_object_member(apcf.targets_value,
+                                                   &target, &next_target);
+
+                s = nxt_str_dup(app_mp, &targets[i], &target);
+                if (nxt_slow_path(s == NULL)) {
+                    goto app_fail;
+                }
+            }
+
+        } else {
+            targets = NULL;
+        }
+
+        nxt_debug(task, "application type: %V", &apcf.type);
+        nxt_debug(task, "application processes: %D", apcf.processes);
+        nxt_debug(task, "application request timeout: %M", apcf.timeout);
+
+        lang = nxt_app_lang_module(task->thread->runtime, &apcf.type);
+
+        if (lang == NULL) {
+            nxt_alert(task, "unknown application type: \"%V\"", &apcf.type);
+            goto app_fail;
+        }
+
+        nxt_debug(task, "application language module: \"%s\"", lang->file);
+
+        ret = nxt_thread_mutex_create(&app->mutex);
+        if (ret != NXT_OK) {
+            goto app_fail;
+        }
+
+        nxt_queue_init(&app->ports);
+        nxt_queue_init(&app->spare_ports);
+        nxt_queue_init(&app->idle_ports);
+        nxt_queue_init(&app->ack_waiting_req);
+
+        app->name.length = name.length;
+        nxt_memcpy(app->name.start, name.start, name.length);
+
+        app->type = lang->type;
+        app->max_processes = apcf.max_processes;
+        app->spare_processes = apcf.spare_processes;
+        app->max_pending_processes = apcf.spare_processes
+                                     ? apcf.spare_processes : 1;
+        app->timeout = apcf.timeout;
+        app->idle_timeout = apcf.idle_timeout;
+
+        app->targets = targets;
+
+        engine = task->thread->engine;
+
+        app->engine = engine;
+
+        app->adjust_idle_work.handler = nxt_router_adjust_idle_timer;
+        app->adjust_idle_work.task = &engine->task;
+        app->adjust_idle_work.obj = app;
+
+        nxt_queue_insert_tail(&tmcf->apps, &app->link);
+
+        ret = nxt_router_apps_hash_add(rtcf, app);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            goto app_fail;
+        }
+
+        nxt_router_app_use(task, app, 1);
+
+        app->joint = app_joint;
+
+        app_joint->use_count = 1;
+        app_joint->app = app;
+
+        app_joint->idle_timer.bias = NXT_TIMER_DEFAULT_BIAS;
+        app_joint->idle_timer.work_queue = &engine->fast_work_queue;
+        app_joint->idle_timer.handler = nxt_router_app_idle_timeout;
+        app_joint->idle_timer.task = &engine->task;
+        app_joint->idle_timer.log = app_joint->idle_timer.task->log;
+
+        app_joint->free_app_work.handler = nxt_router_free_app;
+        app_joint->free_app_work.task = &engine->task;
+        app_joint->free_app_work.obj = app_joint;
+
+        port = nxt_port_new(task, NXT_SHARED_PORT_ID, nxt_pid,
+                            NXT_PROCESS_APP);
+        if (nxt_slow_path(port == NULL)) {
+            return NXT_ERROR;
+        }
+
+        ret = nxt_port_socket_init(task, port, 0);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            nxt_port_use(task, port, -1);
+            return NXT_ERROR;
+        }
+
+        ret = nxt_router_app_queue_init(task, port);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            nxt_port_write_close(port);
+            nxt_port_read_close(port);
+            nxt_port_use(task, port, -1);
+            return NXT_ERROR;
+        }
+
+        nxt_port_write_enable(task, port);
+        port->app = app;
+
+        app->shared_port = port;
+
+        nxt_thread_mutex_create(&app->outgoing.mutex);
+    }
+
+    nxt_unreachable();
 
 app_fail:
 
