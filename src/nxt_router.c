@@ -106,6 +106,9 @@ static nxt_int_t nxt_router_conf_create(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, u_char *start, u_char *end);
 static nxt_int_t nxt_router_conf_create_applications(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_conf_value_t *applications);
+static nxt_int_t nxt_router_conf_create_listeners(nxt_task_t *task,
+    nxt_router_temp_conf_t *tmcf, nxt_conf_value_t *root,
+    nxt_conf_value_t *listeners);
 static nxt_int_t nxt_router_conf_process_static(nxt_task_t *task,
     nxt_router_conf_t *rtcf, nxt_conf_value_t *conf);
 static nxt_http_forward_t *nxt_router_conf_forward(nxt_task_t *task,
@@ -1545,41 +1548,20 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     u_char *start, u_char *end)
 {
     nxt_mp_t                    *mp;
-    uint32_t                    next;
     nxt_int_t                   ret;
-    nxt_str_t                   name;
     nxt_app_t                   *app;
-    nxt_str_t                   *t;
     nxt_router_t                *router;
-#if (NXT_TLS)
-    nxt_uint_t                  n, i;
-    nxt_tls_init_t              *tls_init;
-    nxt_conf_value_t            *certificate;
-#endif
-    nxt_conf_value_t            *root, *conf, *http, *value, *websocket;
+    nxt_conf_value_t            *root, *conf, *value;
     nxt_conf_value_t            *applications;
-    nxt_conf_value_t            *listeners, *listener;
-    nxt_socket_conf_t           *skcf;
+    nxt_conf_value_t            *listeners;
     nxt_router_conf_t           *rtcf;
     nxt_http_routes_t           *routes;
-    nxt_router_listener_conf_t  lscf;
 
-    static nxt_str_t  http_path = nxt_string("/settings/http");
     static nxt_str_t  applications_path = nxt_string("/applications");
     static nxt_str_t  listeners_path = nxt_string("/listeners");
     static nxt_str_t  routes_path = nxt_string("/routes");
     static nxt_str_t  access_log_path = nxt_string("/access_log");
-#if (NXT_TLS)
-    static nxt_str_t  certificate_path = nxt_string("/tls/certificate");
-    static nxt_str_t  conf_commands_path = nxt_string("/tls/conf_commands");
-    static nxt_str_t  conf_cache_path = nxt_string("/tls/session/cache_size");
-    static nxt_str_t  conf_timeout_path = nxt_string("/tls/session/timeout");
-    static nxt_str_t  conf_tickets = nxt_string("/tls/session/tickets");
-#endif
     static nxt_str_t  static_path = nxt_string("/settings/http/static");
-    static nxt_str_t  websocket_path = nxt_string("/settings/http/websocket");
-    static nxt_str_t  forwarded_path = nxt_string("/forwarded");
-    static nxt_str_t  client_ip_path = nxt_string("/client_ip");
 
     root = nxt_conf_json_parse(tmcf->mem_pool, start, end, NULL);
     if (root == NULL) {
@@ -1634,174 +1616,12 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         return ret;
     }
 
-    http = nxt_conf_get_path(root, &http_path);
-#if 0
-    if (http == NULL) {
-        nxt_alert(task, "no \"http\" block");
-        return NXT_ERROR;
-    }
-#endif
-
-    websocket = nxt_conf_get_path(root, &websocket_path);
-
     listeners = nxt_conf_get_path(root, &listeners_path);
 
     if (listeners != NULL) {
-        next = 0;
-
-        for ( ;; ) {
-            listener = nxt_conf_next_object_member(listeners, &name, &next);
-            if (listener == NULL) {
-                break;
-            }
-
-            skcf = nxt_router_socket_conf(task, tmcf, &name);
-            if (skcf == NULL) {
-                goto fail;
-            }
-
-            nxt_memzero(&lscf, sizeof(lscf));
-
-            ret = nxt_conf_map_object(mp, listener, nxt_router_listener_conf,
-                                      nxt_nitems(nxt_router_listener_conf),
-                                      &lscf);
-            if (ret != NXT_OK) {
-                nxt_alert(task, "listener map error");
-                goto fail;
-            }
-
-            nxt_debug(task, "application: %V", &lscf.application);
-
-            // STUB, default values if http block is not defined.
-            skcf->header_buffer_size = 2048;
-            skcf->large_header_buffer_size = 8192;
-            skcf->large_header_buffers = 4;
-            skcf->discard_unsafe_fields = 1;
-            skcf->body_buffer_size = 16 * 1024;
-            skcf->max_body_size = 8 * 1024 * 1024;
-            skcf->proxy_header_buffer_size = 64 * 1024;
-            skcf->proxy_buffer_size = 4096;
-            skcf->proxy_buffers = 256;
-            skcf->idle_timeout = 180 * 1000;
-            skcf->header_read_timeout = 30 * 1000;
-            skcf->body_read_timeout = 30 * 1000;
-            skcf->send_timeout = 30 * 1000;
-            skcf->proxy_timeout = 60 * 1000;
-            skcf->proxy_send_timeout = 30 * 1000;
-            skcf->proxy_read_timeout = 30 * 1000;
-
-            skcf->websocket_conf.max_frame_size = 1024 * 1024;
-            skcf->websocket_conf.read_timeout = 60 * 1000;
-            skcf->websocket_conf.keepalive_interval = 30 * 1000;
-
-            nxt_str_null(&skcf->body_temp_path);
-
-            if (http != NULL) {
-                ret = nxt_conf_map_object(mp, http, nxt_router_http_conf,
-                                          nxt_nitems(nxt_router_http_conf),
-                                          skcf);
-                if (ret != NXT_OK) {
-                    nxt_alert(task, "http map error");
-                    goto fail;
-                }
-            }
-
-            if (websocket != NULL) {
-                ret = nxt_conf_map_object(mp, websocket,
-                                          nxt_router_websocket_conf,
-                                          nxt_nitems(nxt_router_websocket_conf),
-                                          &skcf->websocket_conf);
-                if (ret != NXT_OK) {
-                    nxt_alert(task, "websocket map error");
-                    goto fail;
-                }
-            }
-
-            t = &skcf->body_temp_path;
-
-            if (t->length == 0) {
-                t->start = (u_char *) task->thread->runtime->tmp;
-                t->length = nxt_strlen(t->start);
-            }
-
-            conf = nxt_conf_get_path(listener, &forwarded_path);
-
-            if (conf != NULL) {
-                skcf->forwarded = nxt_router_conf_forward(task, mp, conf);
-                if (nxt_slow_path(skcf->forwarded == NULL)) {
-                    return NXT_ERROR;
-                }
-            }
-
-            conf = nxt_conf_get_path(listener, &client_ip_path);
-
-            if (conf != NULL) {
-                skcf->client_ip = nxt_router_conf_forward(task, mp, conf);
-                if (nxt_slow_path(skcf->client_ip == NULL)) {
-                    return NXT_ERROR;
-                }
-            }
-
-#if (NXT_TLS)
-            certificate = nxt_conf_get_path(listener, &certificate_path);
-
-            if (certificate != NULL) {
-                tls_init = nxt_mp_get(tmcf->mem_pool, sizeof(nxt_tls_init_t));
-                if (nxt_slow_path(tls_init == NULL)) {
-                    return NXT_ERROR;
-                }
-
-                tls_init->cache_size = 0;
-                tls_init->timeout = 300;
-
-                value = nxt_conf_get_path(listener, &conf_cache_path);
-                if (value != NULL) {
-                    tls_init->cache_size = nxt_conf_get_number(value);
-                }
-
-                value = nxt_conf_get_path(listener, &conf_timeout_path);
-                if (value != NULL) {
-                    tls_init->timeout = nxt_conf_get_number(value);
-                }
-
-                tls_init->conf_cmds = nxt_conf_get_path(listener,
-                                                        &conf_commands_path);
-
-                tls_init->tickets_conf = nxt_conf_get_path(listener,
-                                                           &conf_tickets);
-
-                n = nxt_conf_array_elements_count_or_1(certificate);
-
-                for (i = 0; i < n; i++) {
-                    value = nxt_conf_get_array_element_or_itself(certificate,
-                                                                 i);
-                    nxt_assert(value != NULL);
-
-                    ret = nxt_router_conf_tls_insert(tmcf, value, skcf,
-                                                     tls_init, i == 0);
-                    if (nxt_slow_path(ret != NXT_OK)) {
-                        goto fail;
-                    }
-                }
-            }
-#endif
-
-            skcf->listen->handler = nxt_http_conn_init;
-            skcf->router_conf = rtcf;
-            skcf->router_conf->count++;
-
-            if (lscf.pass.length != 0) {
-                skcf->action = nxt_http_action_create(task, tmcf, &lscf.pass);
-
-            /* COMPATIBILITY: listener application. */
-            } else if (lscf.application.length > 0) {
-                skcf->action = nxt_http_pass_application(task, rtcf,
-                                                         &lscf.application);
-            }
-
-            if (nxt_slow_path(skcf->action == NULL)) {
-                goto fail;
-            }
+        ret = nxt_router_conf_create_listeners(task, tmcf, root, listeners);
+        if (nxt_slow_path(ret == NXT_ERROR)) {
+            return NXT_ERROR;
         }
     }
 
@@ -2103,6 +1923,225 @@ nxt_router_conf_create_applications(nxt_task_t *task,
 app_fail:
 
     nxt_mp_destroy(app_mp);
+
+fail:
+
+    nxt_queue_each(app, &tmcf->apps, nxt_app_t, link) {
+
+        nxt_queue_remove(&app->link);
+        nxt_thread_mutex_destroy(&app->mutex);
+        nxt_mp_destroy(app->mem_pool);
+
+    } nxt_queue_loop;
+
+    return NXT_ERROR;
+}
+
+
+static nxt_int_t
+nxt_router_conf_create_listeners(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
+    nxt_conf_value_t *root, nxt_conf_value_t *listeners)
+{
+    nxt_mp_t                    *mp;
+    uint32_t                    next;
+    nxt_int_t                   ret;
+    nxt_str_t                   name;
+    nxt_app_t                   *app;
+    nxt_str_t                   *t;
+#if (NXT_TLS)
+    nxt_uint_t                  n, i;
+    nxt_tls_init_t              *tls_init;
+    nxt_conf_value_t            *certificate, *value;
+#endif
+    nxt_conf_value_t            *conf, *http, *websocket;
+    nxt_conf_value_t            *listener;
+    nxt_socket_conf_t           *skcf;
+    nxt_router_conf_t           *rtcf;
+    nxt_router_listener_conf_t  lscf;
+
+    static nxt_str_t  http_path = nxt_string("/settings/http");
+#if (NXT_TLS)
+    static nxt_str_t  certificate_path = nxt_string("/tls/certificate");
+    static nxt_str_t  conf_commands_path = nxt_string("/tls/conf_commands");
+    static nxt_str_t  conf_cache_path = nxt_string("/tls/session/cache_size");
+    static nxt_str_t  conf_timeout_path = nxt_string("/tls/session/timeout");
+    static nxt_str_t  conf_tickets = nxt_string("/tls/session/tickets");
+#endif
+    static nxt_str_t  websocket_path = nxt_string("/settings/http/websocket");
+    static nxt_str_t  forwarded_path = nxt_string("/forwarded");
+    static nxt_str_t  client_ip_path = nxt_string("/client_ip");
+
+    rtcf = tmcf->router_conf;
+    mp = rtcf->mem_pool;
+
+    http = nxt_conf_get_path(root, &http_path);
+#if 0
+    if (http == NULL) {
+        nxt_alert(task, "no \"http\" block");
+        return NXT_ERROR;
+    }
+#endif
+
+    websocket = nxt_conf_get_path(root, &websocket_path);
+
+    next = 0;
+
+    for ( ;; ) {
+        listener = nxt_conf_next_object_member(listeners, &name, &next);
+        if (listener == NULL) {
+            return NXT_OK;
+        }
+
+        skcf = nxt_router_socket_conf(task, tmcf, &name);
+        if (skcf == NULL) {
+            goto fail;
+        }
+
+        nxt_memzero(&lscf, sizeof(lscf));
+
+        ret = nxt_conf_map_object(mp, listener, nxt_router_listener_conf,
+                                  nxt_nitems(nxt_router_listener_conf),
+                                  &lscf);
+        if (ret != NXT_OK) {
+            nxt_alert(task, "listener map error");
+            goto fail;
+        }
+
+        nxt_debug(task, "application: %V", &lscf.application);
+
+        // STUB, default values if http block is not defined.
+        skcf->header_buffer_size = 2048;
+        skcf->large_header_buffer_size = 8192;
+        skcf->large_header_buffers = 4;
+        skcf->discard_unsafe_fields = 1;
+        skcf->body_buffer_size = 16 * 1024;
+        skcf->max_body_size = 8 * 1024 * 1024;
+        skcf->proxy_header_buffer_size = 64 * 1024;
+        skcf->proxy_buffer_size = 4096;
+        skcf->proxy_buffers = 256;
+        skcf->idle_timeout = 180 * 1000;
+        skcf->header_read_timeout = 30 * 1000;
+        skcf->body_read_timeout = 30 * 1000;
+        skcf->send_timeout = 30 * 1000;
+        skcf->proxy_timeout = 60 * 1000;
+        skcf->proxy_send_timeout = 30 * 1000;
+        skcf->proxy_read_timeout = 30 * 1000;
+
+        skcf->websocket_conf.max_frame_size = 1024 * 1024;
+        skcf->websocket_conf.read_timeout = 60 * 1000;
+        skcf->websocket_conf.keepalive_interval = 30 * 1000;
+
+        nxt_str_null(&skcf->body_temp_path);
+
+        if (http != NULL) {
+            ret = nxt_conf_map_object(mp, http, nxt_router_http_conf,
+                                      nxt_nitems(nxt_router_http_conf),
+                                      skcf);
+            if (ret != NXT_OK) {
+                nxt_alert(task, "http map error");
+                goto fail;
+            }
+        }
+
+        if (websocket != NULL) {
+            ret = nxt_conf_map_object(mp, websocket,
+                                      nxt_router_websocket_conf,
+                                      nxt_nitems(nxt_router_websocket_conf),
+                                      &skcf->websocket_conf);
+            if (ret != NXT_OK) {
+                nxt_alert(task, "websocket map error");
+                goto fail;
+            }
+        }
+
+        t = &skcf->body_temp_path;
+
+        if (t->length == 0) {
+            t->start = (u_char *) task->thread->runtime->tmp;
+            t->length = nxt_strlen(t->start);
+        }
+
+        conf = nxt_conf_get_path(listener, &forwarded_path);
+
+        if (conf != NULL) {
+            skcf->forwarded = nxt_router_conf_forward(task, mp, conf);
+            if (nxt_slow_path(skcf->forwarded == NULL)) {
+                return NXT_ERROR;
+            }
+        }
+
+        conf = nxt_conf_get_path(listener, &client_ip_path);
+
+        if (conf != NULL) {
+            skcf->client_ip = nxt_router_conf_forward(task, mp, conf);
+            if (nxt_slow_path(skcf->client_ip == NULL)) {
+                return NXT_ERROR;
+            }
+        }
+
+#if (NXT_TLS)
+        certificate = nxt_conf_get_path(listener, &certificate_path);
+
+        if (certificate != NULL) {
+            tls_init = nxt_mp_get(tmcf->mem_pool, sizeof(nxt_tls_init_t));
+            if (nxt_slow_path(tls_init == NULL)) {
+                return NXT_ERROR;
+            }
+
+            tls_init->cache_size = 0;
+            tls_init->timeout = 300;
+
+            value = nxt_conf_get_path(listener, &conf_cache_path);
+            if (value != NULL) {
+                tls_init->cache_size = nxt_conf_get_number(value);
+            }
+
+            value = nxt_conf_get_path(listener, &conf_timeout_path);
+            if (value != NULL) {
+                tls_init->timeout = nxt_conf_get_number(value);
+            }
+
+            tls_init->conf_cmds = nxt_conf_get_path(listener,
+                                                    &conf_commands_path);
+
+            tls_init->tickets_conf = nxt_conf_get_path(listener,
+                                                       &conf_tickets);
+
+            n = nxt_conf_array_elements_count_or_1(certificate);
+
+            for (i = 0; i < n; i++) {
+                value = nxt_conf_get_array_element_or_itself(certificate,
+                                                             i);
+                nxt_assert(value != NULL);
+
+                ret = nxt_router_conf_tls_insert(tmcf, value, skcf,
+                                                 tls_init, i == 0);
+                if (nxt_slow_path(ret != NXT_OK)) {
+                    goto fail;
+                }
+            }
+        }
+#endif
+
+        skcf->listen->handler = nxt_http_conn_init;
+        skcf->router_conf = rtcf;
+        skcf->router_conf->count++;
+
+        if (lscf.pass.length != 0) {
+            skcf->action = nxt_http_action_create(task, tmcf, &lscf.pass);
+
+        /* COMPATIBILITY: listener application. */
+        } else if (lscf.application.length > 0) {
+            skcf->action = nxt_http_pass_application(task, rtcf,
+                                                     &lscf.application);
+        }
+
+        if (nxt_slow_path(skcf->action == NULL)) {
+            goto fail;
+        }
+    }
+
+    nxt_unreachable();
 
 fail:
 
