@@ -1132,11 +1132,13 @@ nxt_php_execute(nxt_php_run_ctx_t *ctx, nxt_unit_request_t *r)
 #if (PHP_VERSION_ID < 50600)
     void              *read_post;
 #endif
+    const char        *filename;
     nxt_unit_field_t  *f;
     zend_file_handle  file_handle;
 
-    nxt_unit_req_debug(ctx->req, "PHP execute script %s",
-                       ctx->script_filename.start);
+    filename = (const char *) ctx->script_filename.start;
+
+    nxt_unit_req_debug(ctx->req, "PHP execute script %s", filename);
 
     SG(server_context) = ctx;
     SG(options) |= SAPI_OPTION_NO_CHDIR;
@@ -1196,8 +1198,7 @@ nxt_php_execute(nxt_php_run_ctx_t *ctx, nxt_unit_request_t *r)
         nxt_php_vcwd_chdir(ctx->req, ctx->script_dirname.start);
     }
 
-    nxt_zend_stream_init_filename(&file_handle,
-                                  (const char *) ctx->script_filename.start);
+    nxt_zend_stream_init_filename(&file_handle, filename);
 
     php_execute_script(&file_handle TSRMLS_CC);
 
