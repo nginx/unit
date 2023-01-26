@@ -7,6 +7,8 @@
 #ifndef _NXT_HTTP_H_INCLUDED_
 #define _NXT_HTTP_H_INCLUDED_
 
+
+#include <nxt_log_http.h>
 #include <nxt_regex.h>
 
 
@@ -165,6 +167,7 @@ struct nxt_http_request_s {
     nxt_sockaddr_t                  *remote;
     nxt_sockaddr_t                  *local;
     nxt_task_t                      task;
+    nxt_log_http_features_t         log_ft;
 
     nxt_timer_t                     timer;
     void                            *timer_data;

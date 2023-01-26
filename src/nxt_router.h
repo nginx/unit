@@ -12,6 +12,8 @@
 #include <nxt_runtime.h>
 #include <nxt_main_process.h>
 
+#include <nxt_log_http.h>
+
 typedef struct nxt_http_request_s  nxt_http_request_t;
 #include <nxt_application.h>
 
@@ -208,6 +210,8 @@ typedef struct {
 
     nxt_http_forward_t       *forwarded;
     nxt_http_forward_t       *client_ip;
+
+    nxt_log_http_features_t  log_ft;
 
 #if (NXT_TLS)
     nxt_tls_conf_t           *tls;

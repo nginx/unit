@@ -507,6 +507,7 @@ nxt_h1p_conn_request_init(nxt_task_t *task, void *obj, void *data)
 
             r->conf = joint;
             skcf = joint->socket_conf;
+            r->log_ft = skcf->log_ft;
 
             if (c->local == NULL) {
                 c->local = skcf->sockaddr;

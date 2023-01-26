@@ -12,6 +12,7 @@
 #include <nxt_cert.h>
 #endif
 #include <nxt_http.h>
+#include <nxt_log_http.h>
 #include <nxt_port_memory_int.h>
 #include <nxt_unit_request.h>
 #include <nxt_unit_response.h>
@@ -1957,9 +1958,11 @@ nxt_router_conf_create_listeners(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_conf_value_t            *listener;
     nxt_socket_conf_t           *skcf;
     nxt_router_conf_t           *rtcf;
+    nxt_log_http_features_t     log_ft;
     nxt_router_listener_conf_t  lscf;
 
     static nxt_str_t  http_path = nxt_string("/settings/http");
+    static nxt_str_t  log_route_path = nxt_string("/settings/http/log_route_selection");
 #if (NXT_TLS)
     static nxt_str_t  certificate_path = nxt_string("/tls/certificate");
     static nxt_str_t  conf_commands_path = nxt_string("/tls/conf_commands");
@@ -1983,6 +1986,13 @@ nxt_router_conf_create_listeners(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 #endif
 
     websocket = nxt_conf_get_path(root, &websocket_path);
+
+    log_ft = 0;
+
+    conf = nxt_conf_get_path(root, &log_route_path);
+    if (conf != NULL) {
+        log_ft |= nxt_conf_get_boolean(conf) * NXT_LOG_HTTP_ROUTE_SELECTION;
+    }
 
     next = 0;
 
@@ -2042,6 +2052,8 @@ nxt_router_conf_create_listeners(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
                 goto fail;
             }
         }
+
+        skcf->log_ft = log_ft;
 
         if (websocket != NULL) {
             ret = nxt_conf_map_object(mp, websocket,
