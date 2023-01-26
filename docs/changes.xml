@@ -34,6 +34,12 @@ NGINX Unit updated to 1.30.0.
 
 <change type="feature">
 <para>
+added conditional logging of route selection for HTTP requests.
+</para>
+</change>
+
+<change type="feature">
+<para>
 support the keys API on the request objects in NJS.
 </para>
 </change>
