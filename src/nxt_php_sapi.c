@@ -102,12 +102,13 @@ static void nxt_php_str_trim_lead(nxt_str_t *str, u_char t);
 nxt_inline u_char *nxt_realpath(const void *c);
 
 static nxt_int_t nxt_php_do_301(nxt_unit_request_info_t *req);
+static nxt_int_t nxt_php_handle_fs_err(nxt_unit_request_info_t *req);
 
 static void nxt_php_request_handler(nxt_unit_request_info_t *req);
 static void nxt_php_dynamic_request(nxt_php_run_ctx_t *ctx,
     nxt_unit_request_t *r);
 #if (PHP_VERSION_ID < 70400)
-static void nxt_zend_stream_init_filename(zend_file_handle *handle,
+static void nxt_zend_stream_init_fp(zend_file_handle *handle, FILE *fp,
     const char *filename);
 #endif
 static void nxt_php_execute(nxt_php_run_ctx_t *ctx, nxt_unit_request_t *r);
@@ -984,6 +985,24 @@ nxt_php_do_301(nxt_unit_request_info_t *req)
 }
 
 
+static nxt_int_t
+nxt_php_handle_fs_err(nxt_unit_request_info_t *req)
+{
+    switch (nxt_errno) {
+    case ELOOP:
+    case EACCES:
+    case ENFILE:
+        return nxt_unit_response_init(req, NXT_HTTP_FORBIDDEN, 0, 0);
+    case ENOENT:
+    case ENOTDIR:
+    case ENAMETOOLONG:
+        return nxt_unit_response_init(req, NXT_HTTP_NOT_FOUND, 0, 0);
+    }
+
+    return NXT_UNIT_ERROR;
+}
+
+
 static void
 nxt_php_request_handler(nxt_unit_request_info_t *req)
 {
@@ -1062,6 +1081,8 @@ nxt_php_dynamic_request(nxt_php_run_ctx_t *ctx, nxt_unit_request_t *r)
         ret = stat(tpath, &sb);
         if (ret == 0 && S_ISDIR(sb.st_mode)) {
             ec = nxt_php_do_301(ctx->req);
+        } else if (ret == -1) {
+            ec = nxt_php_handle_fs_err(ctx->req);
         }
 
         nxt_unit_request_done(ctx->req, ec);
@@ -1115,20 +1136,23 @@ nxt_php_dynamic_request(nxt_php_run_ctx_t *ctx, nxt_unit_request_t *r)
 
 #if (PHP_VERSION_ID < 70400)
 static void
-nxt_zend_stream_init_filename(zend_file_handle *handle, const char *filename)
+nxt_zend_stream_init_fp(zend_file_handle *handle, FILE *fp,
+                        const char *filename)
 {
     nxt_memzero(handle, sizeof(zend_file_handle));
-    handle->type = ZEND_HANDLE_FILENAME;
+    handle->type = ZEND_HANDLE_FP;
+    handle->handle.fp = fp;
     handle->filename = filename;
 }
 #else
-#define nxt_zend_stream_init_filename  zend_stream_init_filename
+#define nxt_zend_stream_init_fp  zend_stream_init_fp
 #endif
 
 
 static void
 nxt_php_execute(nxt_php_run_ctx_t *ctx, nxt_unit_request_t *r)
 {
+    FILE              *fp;
 #if (PHP_VERSION_ID < 50600)
     void              *read_post;
 #endif
@@ -1139,6 +1163,17 @@ nxt_php_execute(nxt_php_run_ctx_t *ctx, nxt_unit_request_t *r)
     filename = (const char *) ctx->script_filename.start;
 
     nxt_unit_req_debug(ctx->req, "PHP execute script %s", filename);
+
+    fp = fopen(filename, "re");
+    if (fp == NULL) {
+        nxt_int_t  ec;
+
+        nxt_unit_req_debug(ctx->req, "PHP fopen(\"%s\") failed", filename);
+
+        ec = nxt_php_handle_fs_err(ctx->req);
+        nxt_unit_request_done(ctx->req, ec);
+        return;
+    }
 
     SG(server_context) = ctx;
     SG(options) |= SAPI_OPTION_NO_CHDIR;
@@ -1198,7 +1233,7 @@ nxt_php_execute(nxt_php_run_ctx_t *ctx, nxt_unit_request_t *r)
         nxt_php_vcwd_chdir(ctx->req, ctx->script_dirname.start);
     }
 
-    nxt_zend_stream_init_filename(&file_handle, filename);
+    nxt_zend_stream_init_fp(&file_handle, fp, filename);
 
     php_execute_script(&file_handle TSRMLS_CC);
 
