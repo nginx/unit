@@ -664,6 +664,26 @@ opcache.preload_user = %(user)s
             resp['headers']['Location'] == 'http://foo/path/'
         ), 'Location with custom Host over UDS'
 
+    def test_php_application_forbidden(self, temp_dir):
+        new_root = temp_dir + "/php-root"
+        os.makedirs(new_root + '/path')
+        os.chmod(new_root + '/path', 0o000)
+
+        assert 'success' in self.conf(
+            {
+                "listeners": {"*:7080": {"pass": "applications/php-path"}},
+                "applications": {
+                    "php-path": {
+                        "type": self.get_application_type(),
+                        "processes": {"spare": 0},
+                        "root": new_root,
+                    }
+                },
+            }
+        ), 'forbidden directory'
+
+        assert self.get(url='/path/')['status'] == 403, 'access forbidden'
+
     def test_php_application_extension_check(self, temp_dir):
         self.load('phpinfo')
 

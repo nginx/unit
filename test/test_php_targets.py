@@ -45,7 +45,7 @@ class TestPHPTargets(TestApplicationPHP):
 
         assert self.get(url='/1')['body'] == '1'
         assert self.get(url='/2')['body'] == '2'
-        assert self.get(url='/blah')['status'] == 503  # TODO 404
+        assert self.get(url='/blah')['status'] == 404
         assert self.get(url='/')['body'] == 'index'
         assert self.get(url='/1.php?test=test.php/')['body'] == '1'
 
