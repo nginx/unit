@@ -229,6 +229,7 @@ static nxt_int_t nxt_conf_vldt_cgroup_path(nxt_conf_validation_t *vldt,
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_setting_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[];
+static nxt_conf_vldt_object_t  nxt_conf_vldt_log_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_websocket_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_static_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_forwarded_members[];
@@ -298,6 +299,12 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_setting_members[] = {
         .validator  = nxt_conf_vldt_object,
         .u.members  = nxt_conf_vldt_http_members,
     },
+    {
+        .name       = nxt_string("log"),
+        .type       = NXT_CONF_VLDT_OBJECT,
+        .validator  = nxt_conf_vldt_object,
+        .u.members  = nxt_conf_vldt_log_members,
+    },
 
     NXT_CONF_VLDT_END
 };
@@ -344,6 +351,16 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[] = {
         .type       = NXT_CONF_VLDT_OBJECT,
         .validator  = nxt_conf_vldt_object,
         .u.members  = nxt_conf_vldt_static_members,
+    },
+
+    NXT_CONF_VLDT_END
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_log_members[] = {
+    {
+        .name       = nxt_string("level"),
+        .type       = NXT_CONF_VLDT_INTEGER,
     },
 
     NXT_CONF_VLDT_END

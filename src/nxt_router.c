@@ -21,6 +21,10 @@
 
 #define NXT_SHARED_PORT_ID  0xFFFFu
 
+
+typedef struct nxt_router_log_conf_s  nxt_router_log_conf_t;
+
+
 typedef struct {
     nxt_str_t         type;
     uint32_t          processes;
@@ -38,6 +42,11 @@ typedef struct {
     nxt_str_t         pass;
     nxt_str_t         application;
 } nxt_router_listener_conf_t;
+
+
+struct nxt_router_log_conf_s {
+    nxt_int_t         level;
+};
 
 
 #if (NXT_TLS)
@@ -104,6 +113,8 @@ static void nxt_router_conf_send(nxt_task_t *task,
 
 static nxt_int_t nxt_router_conf_create(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, u_char *start, u_char *end);
+static nxt_int_t nxt_router_conf_update_log(nxt_task_t *task, nxt_mp_t *mp,
+    nxt_conf_value_t *log);
 static nxt_int_t nxt_router_conf_create_applications(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_conf_value_t *applications);
 static nxt_int_t nxt_router_conf_create_listeners(nxt_task_t *task,
@@ -1448,6 +1459,15 @@ static nxt_conf_map_t  nxt_router_listener_conf[] = {
 };
 
 
+static nxt_conf_map_t  nxt_router_log_conf[] = {
+    {
+        nxt_string("level"),
+        NXT_CONF_MAP_INT,
+        offsetof(nxt_router_log_conf_t, level),
+    },
+};
+
+
 static nxt_conf_map_t  nxt_router_http_conf[] = {
     {
         nxt_string("header_buffer_size"),
@@ -1547,12 +1567,13 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_int_t                   ret;
     nxt_app_t                   *app;
     nxt_router_t                *router;
-    nxt_conf_value_t            *root, *conf, *value;
+    nxt_conf_value_t            *root, *conf, *log, *value;
     nxt_conf_value_t            *applications;
     nxt_conf_value_t            *listeners;
     nxt_router_conf_t           *rtcf;
     nxt_http_routes_t           *routes;
 
+    static nxt_str_t  log_path = nxt_string("/settings/log");
     static nxt_str_t  applications_path = nxt_string("/applications");
     static nxt_str_t  listeners_path = nxt_string("/listeners");
     static nxt_str_t  routes_path = nxt_string("/routes");
@@ -1577,6 +1598,14 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
     if (rtcf->threads == 0) {
         rtcf->threads = nxt_ncpu;
+    }
+
+    log = nxt_conf_get_path(root, &log_path);
+    if (log != NULL) {
+        ret = nxt_router_conf_update_log(task, mp, log);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            return NXT_ERROR;
+        }
     }
 
     conf = nxt_conf_get_path(root, &static_path);
@@ -1656,6 +1685,30 @@ fail:
     } nxt_queue_loop;
 
     return NXT_ERROR;
+}
+
+
+static nxt_int_t
+nxt_router_conf_update_log(nxt_task_t *task, nxt_mp_t *mp,
+    nxt_conf_value_t *log)
+{
+    nxt_int_t              ret;
+    nxt_router_log_conf_t  lgcf;
+
+    nxt_memzero(&lgcf, sizeof(lgcf));
+    lgcf.level = NXT_LOG_INFO;
+
+    ret = nxt_conf_map_object(mp, log,
+                              nxt_router_log_conf,
+                              nxt_nitems(nxt_router_log_conf),
+                              &lgcf);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        nxt_alert(task, "log map error");
+        return NXT_ERROR;
+    }
+
+    task->log->level = lgcf.level;
+    return NXT_OK;
 }
 
 
@@ -1949,7 +2002,7 @@ nxt_router_conf_create_listeners(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_tls_init_t              *tls_init;
     nxt_conf_value_t            *certificate;
 #endif
-    nxt_conf_value_t            *conf, *http, *value, *websocket;
+    nxt_conf_value_t            *conf, *http, *websocket;
     nxt_conf_value_t            *listener;
     nxt_socket_conf_t           *skcf;
     nxt_router_conf_t           *rtcf;
