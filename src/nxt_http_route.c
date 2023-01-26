@@ -1548,6 +1548,18 @@ nxt_http_route_handler(nxt_task_t *task, nxt_http_request_t *r,
 
     for (i = 0; i < route->items; i++) {
         action = nxt_http_route_match(task, r, route->match[i]);
+
+        if (nxt_slow_path(r->log_route)) {
+            const char  *sel = (action == NULL) ? "discarded" : "selected";
+
+            if (route->name.length == 0) {
+                nxt_log(task, NXT_LOG_INFO, "\"routes/%z\" %s", i, sel);
+            } else {
+                nxt_log(task, NXT_LOG_INFO, "\"routes/%V/%z\" %s",
+                        &route->name, i, sel);
+            }
+        }
+
         if (action != NULL) {
             return action;
         }
