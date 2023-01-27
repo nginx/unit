@@ -106,8 +106,10 @@ static nxt_int_t nxt_php_do_301(nxt_unit_request_info_t *req);
 static void nxt_php_request_handler(nxt_unit_request_info_t *req);
 static void nxt_php_dynamic_request(nxt_php_run_ctx_t *ctx,
     nxt_unit_request_t *r);
+#if (PHP_VERSION_ID < 70400)
 static void nxt_zend_stream_init_filename(zend_file_handle *handle,
     const char *filename);
+#endif
 static void nxt_php_execute(nxt_php_run_ctx_t *ctx, nxt_unit_request_t *r);
 nxt_inline void nxt_php_vcwd_chdir(nxt_unit_request_info_t *req, u_char *dir);
 
@@ -1111,19 +1113,17 @@ nxt_php_dynamic_request(nxt_php_run_ctx_t *ctx, nxt_unit_request_t *r)
 }
 
 
+#if (PHP_VERSION_ID < 70400)
 static void
 nxt_zend_stream_init_filename(zend_file_handle *handle, const char *filename)
 {
     nxt_memzero(handle, sizeof(zend_file_handle));
-
     handle->type = ZEND_HANDLE_FILENAME;
-#if (PHP_VERSION_ID >= 80100)
-    handle->filename = zend_string_init(filename, strlen(filename), 0);
-    handle->primary_script = 1;
-#else
     handle->filename = filename;
-#endif
 }
+#else
+#define nxt_zend_stream_init_filename  zend_stream_init_filename
+#endif
 
 
 static void
