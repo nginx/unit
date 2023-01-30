@@ -45,6 +45,12 @@ this allows to do './configure &amp;&amp; make &amp;&amp; sudo make install'.
 </para>
 </change>
 
+<change type="bugfix">
+<para>
+fix the memory leak related to njs.
+</para>
+</change>
+
 </changes>
 
 <changes apply="unit-php

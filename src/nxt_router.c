@@ -1111,6 +1111,10 @@ temp_fail:
 
 fail:
 
+    if (rtcf->tstr_state != NULL) {
+        nxt_tstr_state_release(rtcf->tstr_state);
+    }
+
     nxt_mp_destroy(mp);
 
     return NULL;
@@ -3793,6 +3797,8 @@ nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
         nxt_router_apps_hash_use(task, rtcf, -1);
 
         nxt_router_access_log_release(task, lock, rtcf->access_log);
+
+        nxt_tstr_state_release(rtcf->tstr_state);
 
         nxt_mp_thread_adopt(rtcf->mem_pool);
 
