@@ -46,10 +46,18 @@ nxt_js_conf_new(nxt_mp_t *mp)
 
     jcf->funcs = nxt_array_create(mp, 4, sizeof(nxt_str_t));
     if (nxt_slow_path(jcf->funcs == NULL)) {
+        njs_vm_destroy(jcf->vm);
         return NULL;
     }
 
     return jcf;
+}
+
+
+void
+nxt_js_conf_release(nxt_js_conf_t *jcf)
+{
+    njs_vm_destroy(jcf->vm);
 }
 
 
@@ -296,4 +304,13 @@ nxt_js_call(nxt_task_t *task, nxt_js_cache_t *cache, nxt_js_t *js,
     str->start = res.start;
 
     return NXT_OK;
+}
+
+
+void
+nxt_js_release(nxt_js_cache_t *cache)
+{
+    if (cache->vm != NULL) {
+        njs_vm_destroy(cache->vm);
+    }
 }

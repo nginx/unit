@@ -833,6 +833,10 @@ nxt_http_request_close_handler(nxt_task_t *task, void *obj, void *data)
         r->body->file->fd = -1;
     }
 
+    if (r->tstr_query != NULL) {
+        nxt_tstr_query_release(r->tstr_query);
+    }
+
     if (nxt_fast_path(proto.any != NULL)) {
         protocol = r->protocol;
 

@@ -25,6 +25,12 @@ NGINX Unit updated to 1.29.1.
 </para>
 </change>
 
+<change type="bugfix">
+<para>
+memory leak related to NJS.
+</para>
+</change>
+
 </changes>
 
 
