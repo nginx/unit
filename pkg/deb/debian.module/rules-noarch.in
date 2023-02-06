@@ -35,7 +35,7 @@ configure.unit: config.env.unit
 	cd $(BUILDDIR_unit) && \
 	CFLAGS= ./configure \
 		%%CONFIGURE_ARGS%% \
-		--modules=/usr/lib/unit/modules \
+		--modulesdir=/usr/lib/unit/modules \
 		--cc-opt="$(CFLAGS)" && \
 	./configure %%MODULE_CONFARGS%%
 	touch $@
@@ -44,7 +44,7 @@ configure.unit_debug: config.env.unit_debug
 	cd $(BUILDDIR_unit_debug) && \
 	CFLAGS= ./configure \
 		%%CONFIGURE_ARGS%% \
-		--modules=/usr/lib/unit/debug-modules \
+		--modulesdir=/usr/lib/unit/debug-modules \
 		--cc-opt="$(CFLAGS)" \
 		--debug && \
 	./configure %%MODULE_CONFARGS%%

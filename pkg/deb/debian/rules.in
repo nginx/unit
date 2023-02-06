@@ -48,7 +48,7 @@ configure.unit: config.env.unit
 	PKG_CONFIG_PATH=$(CURDIR)/pkg/contrib/njs/build \
 	CFLAGS= ./configure \
 		%%CONFIGURE_ARGS%% \
-		--modules=/usr/lib/unit/modules \
+		--modulesdir=/usr/lib/unit/modules \
 		--libdir=/usr/lib/$(DEB_HOST_MULTIARCH) \
 		--cc-opt="$(CFLAGS)" \
 		--ld-opt="$(LDFLAGS)"
@@ -59,7 +59,7 @@ configure.unit_debug: config.env.unit_debug
 	PKG_CONFIG_PATH=$(CURDIR)/pkg/contrib/njs/build \
 	CFLAGS= ./configure \
 		%%CONFIGURE_ARGS%% \
-		--modules=/usr/lib/unit/debug-modules \
+		--modulesdir=/usr/lib/unit/debug-modules \
 		--libdir=/usr/lib/$(DEB_HOST_MULTIARCH) \
 		--cc-opt="$(CFLAGS)" \
 		--ld-opt="$(LDFLAGS)" \

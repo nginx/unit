@@ -117,11 +117,11 @@ endif
 
 CONFIGURE_ARGS_COMMON=\
 	--prefix=/usr \
-	--state=/var/lib/unit \
+	--libstatedir=/var/lib/unit \
 	--control="unix:/var/run/control.unit.sock" \
 	--pid=/var/run/unit.pid \
 	--log=/var/log/unit.log \
-	--tmp=/var/tmp \
+	--tmpdir=/var/tmp \
 	--user=unit \
 	--group=unit \
 	--tests \
