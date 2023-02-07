@@ -224,8 +224,11 @@ nxt_python_asgi_get_event_loop(PyObject *asyncio, const char *event_loop_func)
 
     loop = PyObject_CallObject(event_loop, NULL);
     if (nxt_slow_path(loop == NULL)) {
-        nxt_unit_alert(NULL, "Python failed to call 'asyncio.%s'",
-                       event_loop_func);
+        if (strcmp(event_loop_func, "get_running_loop") != 0) {
+            nxt_unit_alert(NULL, "Python failed to call 'asyncio.%s'",
+                           event_loop_func);
+        }
+
         return NULL;
     }
 
