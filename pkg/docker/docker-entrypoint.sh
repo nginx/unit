@@ -29,7 +29,14 @@ if [ "$1" = "unitd" ] || [ "$1" = "unitd-debug" ]; then
             echo "$0: /docker-entrypoint.d/ is not empty, launching Unit daemon to perform initial configuration..."
             /usr/sbin/$1 --control unix:/var/run/control.unit.sock
 
-            while [ ! -S /var/run/control.unit.sock ]; do echo "$0: Waiting for control socket to be created..."; /bin/sleep 0.1; done
+            for i in $(/usr/bin/seq $WAITLOOPS); do
+                if [ ! -S /var/run/control.unit.sock ]; then
+                    echo "$0: Waiting for control socket to be created..."
+                    /bin/sleep $SLEEPSEC
+                else
+                    break
+                fi
+            done
             # even when the control socket exists, it does not mean unit has finished initialisation
             # this curl call will get a reply once unit is fully launched
             /usr/bin/curl -s -X GET --unix-socket /var/run/control.unit.sock http://localhost/
@@ -62,7 +69,7 @@ if [ "$1" = "unitd" ] || [ "$1" = "unitd-debug" ]; then
 
             for i in $(/usr/bin/seq $WAITLOOPS); do
                 if [ -S /var/run/control.unit.sock ]; then
-                    echo "$0 Waiting for control socket to be removed..."
+                    echo "$0: Waiting for control socket to be removed..."
                     /bin/sleep $SLEEPSEC
                 else
                     break
