@@ -163,7 +163,7 @@ NXT_EXPORT void nxt_cdecl nxt_log_handler(nxt_uint_t level, nxt_log_t *log,
 NXT_EXPORT extern nxt_uint_t  nxt_debug;
 NXT_EXPORT extern nxt_uint_t  nxt_trace;
 NXT_EXPORT extern nxt_log_t   nxt_main_log;
-NXT_EXPORT extern nxt_str_t   nxt_log_levels[];
+NXT_EXPORT extern nxt_str_t   nxt_log_levels[7];
 
 
 #endif /* _NXT_LOG_H_INCLUDED_ */

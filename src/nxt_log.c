@@ -20,7 +20,7 @@ nxt_log_t   nxt_main_log = {
 };
 
 
-nxt_str_t  nxt_log_levels[] = {
+nxt_str_t  nxt_log_levels[7] = {
     nxt_string("alert"),
     nxt_string("error"),
     nxt_string("warn"),
