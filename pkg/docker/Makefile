@@ -69,7 +69,7 @@ INSTALL_ruby ?=		ruby-install
 COPY_ruby =			RUN gem install rack
 
 default:
-	@echo "valid targets: all build dockerfiles push tag export clean"
+	@echo "valid targets: all build dockerfiles clean"
 
 MODVERSIONS = $(foreach module,$(MODULES),$(module)$(VERSION_$(module)))
 
@@ -77,9 +77,6 @@ modname = $(shell echo $1 | /usr/bin/tr -d '.01234567890-')
 
 dockerfiles: $(addprefix Dockerfile., $(MODVERSIONS))
 build: $(addprefix build-,$(MODVERSIONS))
-tag: $(addprefix tag-,$(MODVERSIONS))
-push: $(addprefix push-,$(MODVERSIONS))
-export: $(addsuffix .tar.gz,$(addprefix $(EXPORT_DIR)/nginx-unit-$(VERSION)-,$(MODVERSIONS))) $(addsuffix .tar.gz.sha512, $(addprefix $(EXPORT_DIR)/nginx-unit-$(VERSION)-,$(MODVERSIONS)))
 
 Dockerfile.%: ../../version
 	@echo "===> Building $@"
@@ -95,25 +92,10 @@ build-%: Dockerfile.%
 	docker pull $(CONTAINER_$(call modname, $*))
 	docker build --no-cache -t unit:$(VERSION)-$* -f Dockerfile.$* .
 
-tag-%: build-%
-	docker tag unit:$(VERSION)-$* nginx/unit:$(VERSION)-$*
-
-push-%: tag-%
-	docker push nginx/unit:$(VERSION)-$*
-
-$(EXPORT_DIR):
-	mkdir -p $@
-
-$(EXPORT_DIR)/nginx-unit-$(VERSION)-%.tar.gz: $(EXPORT_DIR) tag-%
-	docker save nginx/unit:$(VERSION)-$* | gzip > $@
-
-$(EXPORT_DIR)/nginx-unit-$(VERSION)-%.tar.gz.sha512: $(EXPORT_DIR)/nginx-unit-$(VERSION)-%.tar.gz
-	$(SHA512SUM) $< | sed 's,$(EXPORT_DIR)/,,' > $@
-
 all: $(addprefix Dockerfile., $(MODVERSIONS))
 
 clean:
 	rm -f $(addprefix Dockerfile., $(MODVERSIONS))
 	rm -rf $(EXPORT_DIR)
 
-.PHONY: default build dockerfiles push tag export clean
+.PHONY: default build dockerfiles clean
