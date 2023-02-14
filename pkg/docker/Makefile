@@ -17,7 +17,7 @@ CONFIGURE_minimal ?=
 INSTALL_minimal ?=	version
 RUN_minimal ?=		/bin/true
 
-VERSION_go ?=		1.19
+VERSION_go ?=		1.20
 CONTAINER_go ?=		golang:$(VERSION_go)
 CONFIGURE_go ?=		go --go-path=$$GOPATH
 INSTALL_go ?=		go-install-src libunit-install
@@ -41,7 +41,7 @@ CONFIGURE_perl ?=	perl
 INSTALL_perl ?=		perl-install
 RUN_perl ?=			/bin/true
 
-VERSION_php ?=		8.1
+VERSION_php ?=		8.2
 CONTAINER_php ?=	php:$(VERSION_php)-cli
 CONFIGURE_php ?=	php
 INSTALL_php ?=		php-install
@@ -53,7 +53,7 @@ CONFIGURE_python ?=	python --config=/usr/local/bin/python3-config
 INSTALL_python ?=	python3-install
 RUN_python ?=		/bin/true
 
-VERSION_ruby ?=		3.1
+VERSION_ruby ?=		3.2
 CONTAINER_ruby ?=	ruby:$(VERSION_ruby)
 CONFIGURE_ruby ?=	ruby
 INSTALL_ruby ?=		ruby-install
