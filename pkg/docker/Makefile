@@ -92,10 +92,27 @@ build-%: Dockerfile.%
 	docker pull $(CONTAINER_$(call modname, $*))
 	docker build --no-cache -t unit:$(VERSION)-$* -f Dockerfile.$* .
 
+library:
+	@echo "# this file is generated via https://github.com/nginx/unit/$(shell git describe --always --abbrev=0 HEAD)/pkg/docker/Makefile"
+	@echo ""
+	@echo "Maintainers: Unit Docker Maintainers <docker-maint@nginx.com> (@nginx)"
+	@echo "GitRepo: https://github.com/nginx/unit.git"
+	@for mod in $(MODVERSIONS); do \
+		echo ""; \
+		TAGS="$$mod $${mod%%.*} $$( echo $$mod | tr -d '.0123456789-' )"; \
+		TAGS="$$(echo $$TAGS | tr " " "\n" | sort -u -r | tr "\n" "," | sed "s/,/, /g")"; \
+		echo "Tags: $(VERSION)-$$mod, $${TAGS%, }"; \
+		echo "Architectures: amd64, arm64v8"; \
+		echo "GitFetch: refs/heads/packaging"; \
+		echo "GitCommit: $(shell git describe --always --abbrev=0 HEAD)"; \
+		echo "Directory: pkg/docker"; \
+		echo "File: Dockerfile.$$mod"; \
+	done
+
 all: $(addprefix Dockerfile., $(MODVERSIONS))
 
 clean:
 	rm -f $(addprefix Dockerfile., $(MODVERSIONS))
 	rm -rf $(EXPORT_DIR)
 
-.PHONY: default build dockerfiles clean
+.PHONY: default build dockerfiles clean library
