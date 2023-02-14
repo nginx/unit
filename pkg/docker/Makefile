@@ -15,58 +15,49 @@ VERSION_minimal ?=
 CONTAINER_minimal ?= debian:bullseye-slim
 CONFIGURE_minimal ?=
 INSTALL_minimal ?=	version
-define COPY_minimal
-endef
+RUN_minimal ?=		/bin/true
 
 VERSION_go ?=		1.19
 CONTAINER_go ?=		golang:$(VERSION_go)
 CONFIGURE_go ?=		go --go-path=$$GOPATH
 INSTALL_go ?=		go-install-src libunit-install
-define COPY_go
-COPY --from=BUILDER /usr/lib/\*-linux-gnu/libunit.a /tmp/\n\$
-COPY --from=BUILDER /usr/include/nxt_* /usr/include/\n\$
-COPY --from=BUILDER /go/src/ /go/src/
-endef
+RUN_go ?=			/bin/true
 
 VERSION_jsc ?=		11
 CONTAINER_jsc ?=	eclipse-temurin:$(VERSION_jsc)-jdk
 CONFIGURE_jsc ?=	java --jars=/usr/share/unit-jsc-common/
 INSTALL_jsc ?=		java-shared-install java-install
-COPY_jsc =	 		COPY --from=BUILDER /usr/share/unit-jsc-common/ /usr/share/unit-jsc-common/
+RUN_jsc ?=	 		/bin/true
 
 VERSION_node ?=		18
 CONTAINER_node ?=	node:$(VERSION_node)
 CONFIGURE_node ?=	nodejs --node-gyp=/usr/local/lib/node_modules/npm/bin/node-gyp-bin/node-gyp
 INSTALL_node ?=		node node-install libunit-install
-define COPY_node
-COPY --from=BUILDER /usr/lib/\*-linux-gnu/libunit.a /tmp/\n\$
-COPY --from=BUILDER /usr/include/nxt_* /usr/include/\n\$
-COPY --from=BUILDER /usr/local/lib/node_modules/unit-http/ /usr/local/lib/node_modules/unit-http/
-endef
+RUN_node ?=			/bin/true
 
 VERSION_perl ?=		5.36
 CONTAINER_perl ?=	perl:$(VERSION_perl)
 CONFIGURE_perl ?=	perl
 INSTALL_perl ?=		perl-install
-COPY_perl =
+RUN_perl ?=			/bin/true
 
 VERSION_php ?=		8.1
 CONTAINER_php ?=	php:$(VERSION_php)-cli
 CONFIGURE_php ?=	php
 INSTALL_php ?=		php-install
-COPY_php =			RUN ldconfig
+RUN_php ?=			ldconfig
 
 VERSION_python ?=	3.11
 CONTAINER_python ?=	python:$(VERSION_python)
 CONFIGURE_python ?=	python --config=/usr/local/bin/python3-config
 INSTALL_python ?=	python3-install
-COPY_python =
+RUN_python ?=		/bin/true
 
 VERSION_ruby ?=		3.1
 CONTAINER_ruby ?=	ruby:$(VERSION_ruby)
 CONFIGURE_ruby ?=	ruby
 INSTALL_ruby ?=		ruby-install
-COPY_ruby =			RUN gem install rack
+RUN_ruby ?=			gem install rack
 
 default:
 	@echo "valid targets: all build dockerfiles clean"
@@ -78,14 +69,14 @@ modname = $(shell echo $1 | /usr/bin/tr -d '.01234567890-')
 dockerfiles: $(addprefix Dockerfile., $(MODVERSIONS))
 build: $(addprefix build-,$(MODVERSIONS))
 
-Dockerfile.%: ../../version
+Dockerfile.%: ../../version template.Dockerfile
 	@echo "===> Building $@"
 	cat template.Dockerfile | sed \
 			-e 's,@@VERSION@@,$(VERSION),g' \
 			-e 's,@@CONTAINER@@,$(CONTAINER_$(call modname, $*)),g' \
 			-e 's,@@CONFIGURE@@,$(CONFIGURE_$(call modname, $*)),g' \
 			-e 's,@@INSTALL@@,$(INSTALL_$(call modname, $*)),g' \
-			-e 's,@@COPY@@,$(COPY_$(call modname, $*)),g' \
+			-e 's,@@RUN@@,$(RUN_$(call modname, $*)),g' \
 			> $@
 
 build-%: Dockerfile.%
