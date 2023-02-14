@@ -45,7 +45,7 @@ typedef struct {
 
 
 struct nxt_router_log_conf_s {
-    nxt_int_t         level;
+    nxt_conf_value_t  *level;
 };
 
 
@@ -1462,7 +1462,7 @@ static nxt_conf_map_t  nxt_router_listener_conf[] = {
 static nxt_conf_map_t  nxt_router_log_conf[] = {
     {
         nxt_string("level"),
-        NXT_CONF_MAP_INT,
+        NXT_CONF_MAP_PTR,
         offsetof(nxt_router_log_conf_t, level),
     },
 };
@@ -1696,7 +1696,6 @@ nxt_router_conf_update_log(nxt_task_t *task, nxt_mp_t *mp,
     nxt_router_log_conf_t  lgcf;
 
     nxt_memzero(&lgcf, sizeof(lgcf));
-    lgcf.level = NXT_LOG_INFO;
 
     ret = nxt_conf_map_object(mp, log,
                               nxt_router_log_conf,
@@ -1707,8 +1706,33 @@ nxt_router_conf_update_log(nxt_task_t *task, nxt_mp_t *mp,
         return NXT_ERROR;
     }
 
-    task->log->level = lgcf.level;
-    return NXT_OK;
+    if (lgcf.level == NULL) {
+        task->log->level = NXT_LOG_INFO;
+        return NXT_OK;
+
+    } else {
+        switch (nxt_conf_type(lgcf.level)) {
+        case NXT_CONF_INTEGER:
+            task->log->level = nxt_conf_get_number(lgcf.level);
+            return NXT_OK;
+
+        case NXT_CONF_STRING:
+            size_t     i;
+            nxt_str_t  str;
+
+            nxt_conf_get_string(lgcf.level, &str);
+            for (i = 0; i < nxt_nitems(nxt_log_levels); i++) {
+                if (nxt_strstr_eq(&str, &nxt_log_levels[i])) {
+                    task->log->level = i;
+                    return NXT_OK;
+                }
+            }
+            return NXT_ERROR;
+
+        default:
+            nxt_unreachable();
+        }
+    }
 }
 
 
