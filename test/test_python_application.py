@@ -2,9 +2,12 @@ import grp
 import os
 import pwd
 import re
+import subprocess
 import time
+import venv
 
 import pytest
+from packaging import version
 from unit.applications.lang.python import TestApplicationPython
 
 
@@ -525,6 +528,81 @@ last line: 987654321
         self.load('write')
 
         assert self.get()['body'] == '0123456789', 'write'
+
+    def test_python_application_encoding(self):
+        self.load('encoding')
+
+        try:
+            locales = (
+                subprocess.check_output(
+                    ['locale', '-a'],
+                    stderr=subprocess.STDOUT,
+                )
+                .decode()
+                .splitlines()
+            )
+        except (
+            FileNotFoundError,
+            UnicodeDecodeError,
+            subprocess.CalledProcessError,
+        ):
+            pytest.skip('require locale')
+
+        to_check = [
+            re.compile(r'.*UTF[-_]?8'),
+            re.compile(r'.*ISO[-_]?8859[-_]?1'),
+        ]
+        matches = [
+            loc
+            for loc in locales
+            if any(pattern.match(loc.upper()) for pattern in to_check)
+        ]
+
+        if not matches:
+            pytest.skip('no available locales')
+
+        def unify(str):
+            str.upper().replace('-', '').replace('_', '')
+
+        for loc in matches:
+            assert 'success' in self.conf(
+                {"LC_CTYPE": loc, "LC_ALL": ""},
+                '/config/applications/encoding/environment',
+            )
+            resp = self.get()
+            assert resp['status'] == 200, 'status'
+            assert unify(resp['headers']['X-Encoding']) == unify(
+                loc.split('.')[-1]
+            )
+
+    def test_python_application_unicode(self, temp_dir):
+        try:
+            app_type = self.get_application_type()
+            v = version.Version(app_type.split()[-1])
+            if v.major != 3:
+                raise version.InvalidVersion
+
+        except version.InvalidVersion:
+            pytest.skip('require python module version 3')
+
+        venv_path = temp_dir + '/venv'
+        venv.create(venv_path)
+
+        self.load('unicode')
+        assert 'success' in self.conf(
+            '"' + venv_path + '"',
+            '/config/applications/unicode/home',
+        )
+        assert (
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Temp-dir': temp_dir,
+                    'Connection': 'close',
+                }
+            )['status']
+            == 200
+        )
 
     def test_python_application_threading(self):
         """wait_for_record() timeouts after 5s while every thread works at
