@@ -52,7 +52,9 @@ class TestApplicationTLS(TestApplicationProto):
     def post_ssl(self, **kwargs):
         return self.post(wrapper=self.context.wrap_socket, **kwargs)
 
-    def openssl_conf(self, rewrite=False, alt_names=[]):
+    def openssl_conf(self, rewrite=False, alt_names=None):
+        alt_names = alt_names or []
+
         conf_path = option.temp_dir + '/openssl.conf'
 
         if not rewrite and os.path.exists(conf_path):
