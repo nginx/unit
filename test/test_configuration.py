@@ -283,7 +283,7 @@ class TestConfiguration(TestControl):
 
         assert 'success' in self.conf(
             {
-                "listeners": {"*:7080": {"pass": "applications/" + name}},
+                "listeners": {"*:7080": {"pass": f"applications/{name}"}},
                 "applications": {
                     name: {
                         "type": "python",
@@ -301,8 +301,7 @@ class TestConfiguration(TestControl):
 
         conf = {
             "applications": {
-                "app-"
-                + str(a): {
+                f"app-{a}": {
                     "type": "python",
                     "processes": {"spare": 0},
                     "path": "/app",
@@ -311,7 +310,7 @@ class TestConfiguration(TestControl):
                 for a in range(apps)
             },
             "listeners": {
-                "*:" + str(7000 + a): {"pass": "applications/app-" + str(a)}
+                f"*:{(7000 + a)}": {"pass": f"applications/app-{a}"}
                 for a in range(apps)
             },
         }
@@ -407,8 +406,7 @@ class TestConfiguration(TestControl):
     def test_json_application_many2(self):
         conf = {
             "applications": {
-                "app-"
-                + str(a): {
+                f"app-{a}": {
                     "type": "python",
                     "processes": {"spare": 0},
                     "path": "/app",

@@ -53,13 +53,13 @@ class TestHTTP:
                 sock.connect(connect_args)
             except (ConnectionRefusedError, FileNotFoundError):
                 sock.close()
-                pytest.fail('Client can\'t connect to the server.')
+                pytest.fail("Client can't connect to the server.")
 
         else:
             sock = kwargs['sock']
 
         if 'raw' not in kwargs:
-            req = ' '.join([start_str, url, http]) + crlf
+            req = f'{start_str} {url} {http}{crlf}'
 
             if body != b'':
                 if isinstance(body, str):
@@ -75,10 +75,10 @@ class TestHTTP:
             for header, value in headers.items():
                 if isinstance(value, list):
                     for v in value:
-                        req += header + ': ' + str(v) + crlf
+                        req += f'{header}: {v}{crlf}'
 
                 else:
-                    req += header + ': ' + str(value) + crlf
+                    req += f'{header}: {value}{crlf}'
 
             req = (req + crlf).encode() + body
 
@@ -151,12 +151,12 @@ class TestHTTP:
         len_log = len(log)
         if len_log > limit:
             log = log[:limit]
-            appendix = '(...logged %s of %s bytes)' % (limit, len_log)
+            appendix = f'(...logged {limit} of {len_log} bytes)'
 
             if isinstance(log, bytes):
                 appendix = appendix.encode()
 
-            log = log + appendix
+            log = f'{log}{appendix}'
 
         return log
 
@@ -188,7 +188,7 @@ class TestHTTP:
                 # For all current cases if the "read_timeout" was changed
                 # than test do not expect to get a response from server.
                 if timeout == timeout_default:
-                    pytest.fail('Can\'t read response from server.')
+                    pytest.fail("Can't read response from server.")
                 break
 
             try:
@@ -263,7 +263,7 @@ class TestHTTP:
                 size = int(chunks.pop(0), 16)
 
             except ValueError:
-                pytest.fail('Invalid chunk size %s' % str(size))
+                pytest.fail(f'Invalid chunk size {size}')
 
             if size == 0:
                 assert len(chunks) == 1, 'last zero size'
@@ -310,7 +310,7 @@ class TestHTTP:
 
     def form_url_encode(self, fields):
         data = "&".join(
-            "%s=%s" % (name, value) for name, value in fields.items()
+            f'{name}={value}' for name, value in fields.items()
         ).encode()
         return data, 'application/x-www-form-urlencoded'
 
@@ -341,21 +341,21 @@ class TestHTTP:
             else:
                 pytest.fail('multipart requires a string or stream data')
 
-            body += ("--%s\r\nContent-Disposition: form-data; name=\"%s\"") % (
-                boundary,
-                field,
+            body += (
+                f'--{boundary}\r\nContent-Disposition: form-data;'
+                f'name="{field}"'
             )
 
             if filename != '':
-                body += "; filename=\"%s\"" % filename
+                body += f'; filename="{filename}"'
 
-            body += "\r\n"
+            body += '\r\n'
 
             if datatype != '':
-                body += "Content-Type: %s\r\n" % datatype
+                body += f'Content-Type: {datatype}\r\n'
 
-            body += "\r\n%s\r\n" % data
+            body += f'\r\n{data}\r\n'
 
-        body += "--%s--\r\n" % boundary
+        body += f'--{boundary}--\r\n'
 
-        return body.encode(), "multipart/form-data; boundary=%s" % boundary
+        return body.encode(), f'multipart/form-data; boundary={boundary}'

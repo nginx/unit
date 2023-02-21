@@ -8,7 +8,7 @@ class TestRubyHooks(TestApplicationRuby):
 
     def _wait_cookie(self, pattern, count):
         return waitforglob(
-            option.temp_dir + '/ruby/hooks/cookie_' + pattern, count
+            f'{option.temp_dir}/ruby/hooks/cookie_{pattern}', count
         )
 
     def test_ruby_hooks_eval(self):

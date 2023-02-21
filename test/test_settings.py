@@ -44,7 +44,7 @@ class TestSettings(TestApplicationPython):
             headers = {'Host': 'localhost', 'Connection': 'close'}
 
             for i in range(headers_num):
-                headers['Custom-header-' + str(i)] = 'a' * 8000
+                headers[f'Custom-header-{i}'] = 'a' * 8000
 
             assert self.get(headers=headers)['status'] == expect
 
@@ -229,15 +229,12 @@ Connection: close
             sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             sock.connect(addr)
 
-            req = (
-                """GET / HTTP/1.1
+            req = f"""GET / HTTP/1.1
 Host: localhost
-X-Length: %d
+X-Length: {data_len}
 Connection: close
 
 """
-                % data_len
-            )
 
             sock.sendall(req.encode())
 
@@ -259,10 +256,10 @@ Connection: close
 
         data_len = 1048576 if len(values) == 0 else 10 * max(values)
 
-        addr = temp_dir + '/sock'
+        addr = f'{temp_dir}/sock'
 
         assert 'success' in self.conf(
-            {"unix:" + addr: {'application': 'body_generate'}}, 'listeners'
+            {f'unix:{addr}': {'application': 'body_generate'}}, 'listeners'
         )
 
         assert 'success' in self.conf({'http': {'send_timeout': 1}}, 'settings')

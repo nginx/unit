@@ -14,15 +14,15 @@ class TestUSR1(TestApplicationPython):
 
         log = 'access.log'
         log_new = 'new.log'
-        log_path = temp_dir + '/' + log
+        log_path = f'{temp_dir}/{log}'
 
         assert 'success' in self.conf(
-            '"' + log_path + '"', 'access_log'
+            f'"{log_path}"', 'access_log'
         ), 'access log configure'
 
         assert waitforfiles(log_path), 'open'
 
-        os.rename(log_path, temp_dir + '/' + log_new)
+        os.rename(log_path, f'{temp_dir}/{log_new}')
 
         assert self.get()['status'] == 200
 
@@ -48,8 +48,8 @@ class TestUSR1(TestApplicationPython):
         self.load('log_body')
 
         log_new = 'new.log'
-        log_path = temp_dir + '/unit.log'
-        log_path_new = temp_dir + '/' + log_new
+        log_path = f'{temp_dir}/unit.log'
+        log_path_new = f'{temp_dir}/{log_new}'
 
         os.rename(log_path, log_path_new)
 

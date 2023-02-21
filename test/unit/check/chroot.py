@@ -12,7 +12,7 @@ def check_chroot():
     resp = http.put(
         url='/config',
         sock_type='unix',
-        addr=option.temp_dir + '/control.unit.sock',
+        addr=f'{option.temp_dir}/control.unit.sock',
         body=json.dumps(
             {
                 "listeners": {"*:7080": {"pass": "routes"}},

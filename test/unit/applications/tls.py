@@ -22,13 +22,13 @@ class TestApplicationTLS(TestApplicationProto):
                 '-x509',
                 '-new',
                 '-subj',
-                '/CN=' + name + '/',
+                f'/CN={name}/',
                 '-config',
-                option.temp_dir + '/openssl.conf',
+                f'{option.temp_dir}/openssl.conf',
                 '-out',
-                option.temp_dir + '/' + name + '.crt',
+                f'{option.temp_dir}/{name}.crt',
                 '-keyout',
-                option.temp_dir + '/' + name + '.key',
+                f'{option.temp_dir}/{name}.key',
             ],
             stderr=subprocess.STDOUT,
         )
@@ -40,11 +40,11 @@ class TestApplicationTLS(TestApplicationProto):
         if key is None:
             key = crt
 
-        key_path = option.temp_dir + '/' + key + '.key'
-        crt_path = option.temp_dir + '/' + crt + '.crt'
+        key_path = f'{option.temp_dir}/{key}.key'
+        crt_path = f'{option.temp_dir}/{crt}.crt'
 
         with open(key_path, 'rb') as k, open(crt_path, 'rb') as c:
-            return self.conf(k.read() + c.read(), '/certificates/' + crt)
+            return self.conf(k.read() + c.read(), f'/certificates/{crt}')
 
     def get_ssl(self, **kwargs):
         return self.get(wrapper=self.context.wrap_socket, **kwargs)
@@ -54,54 +54,48 @@ class TestApplicationTLS(TestApplicationProto):
 
     def openssl_conf(self, rewrite=False, alt_names=None):
         alt_names = alt_names or []
-
-        conf_path = option.temp_dir + '/openssl.conf'
+        conf_path = f'{option.temp_dir}/openssl.conf'
 
         if not rewrite and os.path.exists(conf_path):
             return
 
         # Generates alt_names section with dns names
-        a_names = "[alt_names]\n"
+        a_names = '[alt_names]\n'
         for i, k in enumerate(alt_names, 1):
             k = k.split('|')
 
             if k[0] == 'IP':
-                a_names += "IP.%d = %s\n" % (i, k[1])
+                a_names += f'IP.{i} = {k[1]}\n'
             else:
-                a_names += "DNS.%d = %s\n" % (i, k[0])
+                a_names += f'DNS.{i} = {k[0]}\n'
 
         # Generates section for sign request extension
-        a_sec = """req_extensions = myca_req_extensions
+        a_sec = f'''req_extensions = myca_req_extensions
 
 [ myca_req_extensions ]
 subjectAltName = @alt_names
 
-{a_names}""".format(
-            a_names=a_names
-        )
+{a_names}'''
 
         with open(conf_path, 'w') as f:
             f.write(
-                """[ req ]
+                f'''[ req ]
 default_bits = 2048
 encrypt_key = no
 distinguished_name = req_distinguished_name
 
-{a_sec}
-[ req_distinguished_name ]""".format(
-                    a_sec=a_sec if alt_names else ""
-                )
+{a_sec if alt_names else ""}
+[ req_distinguished_name ]'''
             )
 
     def load(self, script, name=None):
         if name is None:
             name = script
 
-        script_path = option.test_dir + '/python/' + script
-
+        script_path = f'{option.test_dir}/python/{script}'
         self._load_conf(
             {
-                "listeners": {"*:7080": {"pass": "applications/" + name}},
+                "listeners": {"*:7080": {"pass": f"applications/{name}"}},
                 "applications": {
                     name: {
                         "type": "python",

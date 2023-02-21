@@ -286,17 +286,18 @@ class TestRouting(TestApplicationPython):
         assert self.get(url='/BLAH')['status'] == 200, '/BLAH'
 
     def test_routes_pass_encode(self):
+        python_dir = f'{option.test_dir}/python'
+
         def check_pass(path, name):
             assert 'success' in self.conf(
                 {
-                    "listeners": {"*:7080": {"pass": "applications/" + path}},
+                    "listeners": {"*:7080": {"pass": f'applications/{path}'}},
                     "applications": {
                         name: {
                             "type": self.get_application_type(),
                             "processes": {"spare": 0},
-                            "path": option.test_dir + '/python/empty',
-                            "working_directory": option.test_dir
-                            + '/python/empty',
+                            "path": f'{python_dir}/empty',
+                            "working_directory": f'{python_dir}/empty',
                             "module": "wsgi",
                         }
                     },
@@ -313,14 +314,13 @@ class TestRouting(TestApplicationPython):
         def check_pass_error(path, name):
             assert 'error' in self.conf(
                 {
-                    "listeners": {"*:7080": {"pass": "applications/" + path}},
+                    "listeners": {"*:7080": {"pass": f'applications/{path}'}},
                     "applications": {
                         name: {
                             "type": self.get_application_type(),
                             "processes": {"spare": 0},
-                            "path": option.test_dir + '/python/empty',
-                            "working_directory": option.test_dir
-                            + '/python/empty',
+                            "path": f'{python_dir}/empty',
+                            "working_directory": f'{python_dir}/empty',
                             "module": "wsgi",
                         }
                     },
@@ -338,8 +338,8 @@ class TestRouting(TestApplicationPython):
                     "empty": {
                         "type": self.get_application_type(),
                         "processes": {"spare": 0},
-                        "path": option.test_dir + '/python/empty',
-                        "working_directory": option.test_dir + '/python/empty',
+                        "path": f'{option.test_dir}/python/empty',
+                        "working_directory": f'{option.test_dir}/python/empty',
                         "module": "wsgi",
                     }
                 },
@@ -1109,21 +1109,21 @@ class TestRouting(TestApplicationPython):
                 "E",
                 "F",
             ]:
-                chars_enc += "%" + h1 + h2
+                chars_enc += f'%{h1}{h2}'
         chars_enc = chars_enc[:-3]
 
         def check_args(args, query):
             self.route_match({"arguments": args})
-            assert self.get(url='/?' + query)['status'] == 200
+            assert self.get(url=f'/?{query}')['status'] == 200
 
-        check_args({chars: chars}, chars + '=' + chars)
-        check_args({chars: chars}, chars + '=' + chars_enc)
-        check_args({chars: chars}, chars_enc + '=' + chars)
-        check_args({chars: chars}, chars_enc + '=' + chars_enc)
-        check_args({chars_enc: chars_enc}, chars + '=' + chars)
-        check_args({chars_enc: chars_enc}, chars + '=' + chars_enc)
-        check_args({chars_enc: chars_enc}, chars_enc + '=' + chars)
-        check_args({chars_enc: chars_enc}, chars_enc + '=' + chars_enc)
+        check_args({chars: chars}, f'{chars}={chars}')
+        check_args({chars: chars}, f'{chars}={chars_enc}')
+        check_args({chars: chars}, f'{chars_enc}={chars}')
+        check_args({chars: chars}, f'{chars_enc}={chars_enc}')
+        check_args({chars_enc: chars_enc}, f'{chars}={chars}')
+        check_args({chars_enc: chars_enc}, f'{chars}={chars_enc}')
+        check_args({chars_enc: chars_enc}, f'{chars_enc}={chars}')
+        check_args({chars_enc: chars_enc}, f'{chars_enc}={chars_enc}')
 
     def test_routes_match_arguments_empty(self):
         self.route_match({"arguments": {}})
@@ -1492,28 +1492,28 @@ class TestRouting(TestApplicationPython):
         sock, port = sock_port()
         sock2, port2 = sock_port()
 
-        self.route_match({"source": "127.0.0.1:" + str(port)})
+        self.route_match({"source": f'127.0.0.1:{port}'})
         assert self.get(sock=sock)['status'] == 200, 'exact'
         assert self.get(sock=sock2)['status'] == 404, 'exact 2'
 
         sock, port = sock_port()
         sock2, port2 = sock_port()
 
-        self.route_match({"source": "!127.0.0.1:" + str(port)})
+        self.route_match({"source": f'!127.0.0.1:{port}'})
         assert self.get(sock=sock)['status'] == 404, 'negative'
         assert self.get(sock=sock2)['status'] == 200, 'negative 2'
 
         sock, port = sock_port()
         sock2, port2 = sock_port()
 
-        self.route_match({"source": ["*:" + str(port), "!127.0.0.1"]})
+        self.route_match({"source": [f'*:{port}', "!127.0.0.1"]})
         assert self.get(sock=sock)['status'] == 404, 'negative 3'
         assert self.get(sock=sock2)['status'] == 404, 'negative 4'
 
         sock, port = sock_port()
         sock2, port2 = sock_port()
 
-        self.route_match({"source": "127.0.0.1:" + str(port) + "-" + str(port)})
+        self.route_match({"source": f'127.0.0.1:{port}-{port}'})
         assert self.get(sock=sock)['status'] == 200, 'range single'
         assert self.get(sock=sock2)['status'] == 404, 'range single 2'
 
@@ -1526,14 +1526,7 @@ class TestRouting(TestApplicationPython):
         ]
         socks.sort(key=lambda sock: sock[1])
 
-        self.route_match(
-            {
-                "source": "127.0.0.1:"
-                + str(socks[1][1])  # second port number
-                + "-"
-                + str(socks[3][1])  # fourth port number
-            }
-        )
+        self.route_match({"source": f'127.0.0.1:{socks[1][1]}-{socks[3][1]}'})
         assert self.get(sock=socks[0][0])['status'] == 404, 'range'
         assert self.get(sock=socks[1][0])['status'] == 200, 'range 2'
         assert self.get(sock=socks[2][0])['status'] == 200, 'range 3'
@@ -1550,8 +1543,8 @@ class TestRouting(TestApplicationPython):
         self.route_match(
             {
                 "source": [
-                    "127.0.0.1:" + str(socks[0][1]),
-                    "127.0.0.1:" + str(socks[2][1]),
+                    f'127.0.0.1:{socks[0][1]}',
+                    f'127.0.0.1:{socks[2][1]}',
                 ]
             }
         )
@@ -1734,12 +1727,12 @@ class TestRouting(TestApplicationPython):
         assert self.get(port=7081)['status'] == 404, '0 ipv4'
 
     def test_routes_source_unix(self, temp_dir):
-        addr = temp_dir + '/sock'
+        addr = f'{temp_dir}/sock'
 
         assert 'success' in self.conf(
             {
                 "127.0.0.1:7081": {"pass": "routes"},
-                "unix:" + addr: {"pass": "routes"},
+                f'unix:{addr}': {"pass": "routes"},
             },
             'listeners',
         ), 'source listeners configure'

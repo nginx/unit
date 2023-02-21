@@ -107,7 +107,7 @@ class TestHTTPHeader(TestApplicationPython):
         resp = self.get(
             headers={
                 'Host': 'localhost',
-                'Custom-Header': r'(),/:;<=>?@[\]{}\t !#$%&\'*+-.^_`|~',
+                'Custom-Header': r"(),/:;<=>?@[\]{}\t !#$%&'*+-.^_`|~",
                 'Connection': 'close',
             }
         )
@@ -115,7 +115,7 @@ class TestHTTPHeader(TestApplicationPython):
         assert resp['status'] == 200, 'value chars status'
         assert (
             resp['headers']['Custom-Header']
-            == r'(),/:;<=>?@[\]{}\t !#$%&\'*+-.^_`|~'
+            == r"(),/:;<=>?@[\]{}\t !#$%&'*+-.^_`|~"
         ), 'value chars custom header'
 
     def test_http_header_value_chars_edge(self):

@@ -27,8 +27,8 @@ def check_isolation():
                 "empty": {
                     "type": "external",
                     "processes": {"spare": 0},
-                    "working_directory": option.test_dir + "/go/empty",
-                    "executable": option.temp_dir + "/go/app",
+                    "working_directory": f"{option.test_dir}/go/empty",
+                    "executable": f"{option.test_dir}/go/app",
                     "isolation": {"namespaces": {"credential": True}},
                 },
             },
@@ -41,8 +41,8 @@ def check_isolation():
                 "empty": {
                     "type": "python",
                     "processes": {"spare": 0},
-                    "path": option.test_dir + "/python/empty",
-                    "working_directory": option.test_dir + "/python/empty",
+                    "path": f"{option.test_dir}/python/empty",
+                    "working_directory": f"{option.test_dir}/python/empty",
                     "module": "wsgi",
                     "isolation": {"namespaces": {"credential": True}},
                 }
@@ -56,8 +56,8 @@ def check_isolation():
                 "phpinfo": {
                     "type": "php",
                     "processes": {"spare": 0},
-                    "root": option.test_dir + "/php/phpinfo",
-                    "working_directory": option.test_dir + "/php/phpinfo",
+                    "root": f"{option.test_dir}/php/phpinfo",
+                    "working_directory": f"{option.test_dir}/php/phpinfo",
                     "index": "index.php",
                     "isolation": {"namespaces": {"credential": True}},
                 }
@@ -73,8 +73,8 @@ def check_isolation():
                 "empty": {
                     "type": "ruby",
                     "processes": {"spare": 0},
-                    "working_directory": option.temp_dir + "/ruby/empty",
-                    "script": option.temp_dir + "/ruby/empty/config.ru",
+                    "working_directory": f"{option.temp_dir}/ruby/empty",
+                    "script": f"{option.temp_dir}/ruby/empty/config.ru",
                     "isolation": {"namespaces": {"credential": True}},
                 }
             },
@@ -87,11 +87,11 @@ def check_isolation():
             "listeners": {"*:7080": {"pass": "applications/empty"}},
             "applications": {
                 "empty": {
-                    "unit_jars": option.current_dir + "/build",
+                    "unit_jars": f"{option.current_dir}/build",
                     "type": "java",
                     "processes": {"spare": 0},
-                    "working_directory": option.test_dir + "/java/empty/",
-                    "webapp": option.temp_dir + "/java",
+                    "working_directory": f"{option.temp_dir}/java/empty/",
+                    "webapp": f"{option.temp_dir}/java",
                     "isolation": {"namespaces": {"credential": True}},
                 }
             },
@@ -106,7 +106,7 @@ def check_isolation():
                 "basic": {
                     "type": "external",
                     "processes": {"spare": 0},
-                    "working_directory": option.temp_dir + "/node",
+                    "working_directory": f"{option.temp_dir}/node",
                     "executable": "app.js",
                     "isolation": {"namespaces": {"credential": True}},
                 }
@@ -120,8 +120,8 @@ def check_isolation():
                 "body_empty": {
                     "type": "perl",
                     "processes": {"spare": 0},
-                    "working_directory": option.test_dir + "/perl/body_empty",
-                    "script": option.test_dir + "/perl/body_empty/psgi.pl",
+                    "working_directory": f"{option.test_dir}/perl/body_empty",
+                    "script": f"{option.test_dir}/perl/body_empty/psgi.pl",
                     "isolation": {"namespaces": {"credential": True}},
                 }
             },
@@ -133,7 +133,7 @@ def check_isolation():
     resp = http.put(
         url='/config',
         sock_type='unix',
-        addr=option.temp_dir + '/control.unit.sock',
+        addr=f'{option.temp_dir}/control.unit.sock',
         body=json.dumps(conf),
     )
 

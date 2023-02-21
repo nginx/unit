@@ -14,6 +14,8 @@ class TestASGITargets(TestApplicationPython):
 
     @pytest.fixture(autouse=True)
     def setup_method_fixture(self):
+        path = f'{option.test_dir}/python/targets/'
+
         assert 'success' in self.conf(
             {
                 "listeners": {"*:7080": {"pass": "routes"}},
@@ -31,9 +33,8 @@ class TestASGITargets(TestApplicationPython):
                     "targets": {
                         "type": self.get_application_type(),
                         "processes": {"spare": 0},
-                        "working_directory": option.test_dir
-                        + "/python/targets/",
-                        "path": option.test_dir + '/python/targets/',
+                        "working_directory": path,
+                        "path": path,
                         "protocol": "asgi",
                         "targets": {
                             "1": {

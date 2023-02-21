@@ -3,17 +3,17 @@ import os
 
 async def handler(prefix, scope, receive, send):
     if scope['type'] == 'lifespan':
-        with open(prefix + 'version', 'w+') as f:
+        with open(f'{prefix}version', 'w+') as f:
             f.write(
-                scope['asgi']['version'] + ' ' + scope['asgi']['spec_version']
+                f"{scope['asgi']['version']} {scope['asgi']['spec_version']}"
             )
         while True:
             message = await receive()
             if message['type'] == 'lifespan.startup':
-                os.remove(prefix + 'startup')
+                os.remove(f'{prefix}startup')
                 await send({'type': 'lifespan.startup.complete'})
             elif message['type'] == 'lifespan.shutdown':
-                os.remove(prefix + 'shutdown')
+                os.remove(f'{prefix}shutdown')
                 await send({'type': 'lifespan.shutdown.complete'})
                 return
 
@@ -22,7 +22,9 @@ async def handler(prefix, scope, receive, send):
             {
                 'type': 'http.response.start',
                 'status': 204,
-                'headers': [(b'content-length', b'0'),],
+                'headers': [
+                    (b'content-length', b'0'),
+                ],
             }
         )
 

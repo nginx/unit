@@ -9,11 +9,11 @@ class TestStaticTypes(TestApplicationProto):
 
     @pytest.fixture(autouse=True)
     def setup_method_fixture(self, temp_dir):
-        Path(temp_dir + '/assets').mkdir()
+        Path(f'{temp_dir}/assets').mkdir()
         for ext in ['.xml', '.mp4', '.php', '', '.txt', '.html', '.png']:
-            Path(temp_dir + '/assets/file' + ext).write_text(ext)
+            Path(f'{temp_dir}/assets/file{ext}').write_text(ext)
 
-        Path(temp_dir + '/assets/index.html').write_text('index')
+        Path(f'{temp_dir}/assets/index.html').write_text('index')
 
         self._load_conf(
             {
@@ -21,7 +21,7 @@ class TestStaticTypes(TestApplicationProto):
                     "*:7080": {"pass": "routes"},
                     "*:7081": {"pass": "routes"},
                 },
-                "routes": [{"action": {"share": temp_dir + "/assets$uri"}}],
+                "routes": [{"action": {"share": f'{temp_dir}/assets$uri'}}],
                 "applications": {},
             }
         )
@@ -35,39 +35,39 @@ class TestStaticTypes(TestApplicationProto):
         assert resp['body'] == body, 'body'
 
     def test_static_types_basic(self, temp_dir):
-        self.action_update({"share": temp_dir + "/assets$uri"})
+        self.action_update({"share": f'{temp_dir}/assets$uri'})
         self.check_body('/index.html', 'index')
         self.check_body('/file.xml', '.xml')
 
         self.action_update(
-            {"share": temp_dir + "/assets$uri", "types": "application/xml"}
+            {"share": f'{temp_dir}/assets$uri', "types": "application/xml"}
         )
         self.check_body('/file.xml', '.xml')
 
         self.action_update(
-            {"share": temp_dir + "/assets$uri", "types": ["application/xml"]}
+            {"share": f'{temp_dir}/assets$uri', "types": ["application/xml"]}
         )
         self.check_body('/file.xml', '.xml')
 
-        self.action_update({"share": temp_dir + "/assets$uri", "types": [""]})
+        self.action_update({"share": f'{temp_dir}/assets$uri', "types": [""]})
         assert self.get(url='/file.xml')['status'] == 403, 'no mtype'
 
     def test_static_types_wildcard(self, temp_dir):
         self.action_update(
-            {"share": temp_dir + "/assets$uri", "types": ["application/*"]}
+            {"share": f'{temp_dir}/assets$uri', "types": ["application/*"]}
         )
         self.check_body('/file.xml', '.xml')
         assert self.get(url='/file.mp4')['status'] == 403, 'app * mtype mp4'
 
         self.action_update(
-            {"share": temp_dir + "/assets$uri", "types": ["video/*"]}
+            {"share": f'{temp_dir}/assets$uri', "types": ["video/*"]}
         )
         assert self.get(url='/file.xml')['status'] == 403, 'video * mtype xml'
         self.check_body('/file.mp4', '.mp4')
 
     def test_static_types_negation(self, temp_dir):
         self.action_update(
-            {"share": temp_dir + "/assets$uri", "types": ["!application/xml"]}
+            {"share": f'{temp_dir}/assets$uri', "types": ["!application/xml"]}
         )
         assert self.get(url='/file.xml')['status'] == 403, 'forbidden negation'
         self.check_body('/file.mp4', '.mp4')
@@ -75,7 +75,7 @@ class TestStaticTypes(TestApplicationProto):
         # sorting negation
         self.action_update(
             {
-                "share": temp_dir + "/assets$uri",
+                "share": f'{temp_dir}/assets$uri',
                 "types": ["!video/*", "image/png", "!image/jpg"],
             }
         )
@@ -86,7 +86,7 @@ class TestStaticTypes(TestApplicationProto):
     def test_static_types_regex(self, temp_dir):
         self.action_update(
             {
-                "share": temp_dir + "/assets$uri",
+                "share": f'{temp_dir}/assets$uri',
                 "types": ["~text/(html|plain)"],
             }
         )
@@ -96,7 +96,7 @@ class TestStaticTypes(TestApplicationProto):
 
     def test_static_types_case(self, temp_dir):
         self.action_update(
-            {"share": temp_dir + "/assets$uri", "types": ["!APpliCaTiOn/xMl"]}
+            {"share": f'{temp_dir}/assets$uri', "types": ["!APpliCaTiOn/xMl"]}
         )
         self.check_body('/file.mp4', '.mp4')
         assert (
@@ -104,7 +104,7 @@ class TestStaticTypes(TestApplicationProto):
         ), 'mixed case xml negation'
 
         self.action_update(
-            {"share": temp_dir + "/assets$uri", "types": ["vIdEo/mp4"]}
+            {"share": f'{temp_dir}/assets$uri', "types": ["vIdEo/mp4"]}
         )
         assert self.get(url='/file.mp4')['status'] == 200, 'mixed case'
         assert (
@@ -112,7 +112,7 @@ class TestStaticTypes(TestApplicationProto):
         ), 'mixed case video negation'
 
         self.action_update(
-            {"share": temp_dir + "/assets$uri", "types": ["vIdEo/*"]}
+            {"share": f'{temp_dir}/assets$uri', "types": ["vIdEo/*"]}
         )
         self.check_body('/file.mp4', '.mp4')
         assert (
@@ -128,7 +128,7 @@ class TestStaticTypes(TestApplicationProto):
                 },
                 {
                     "action": {
-                        "share": temp_dir + "/assets$uri",
+                        "share": f'{temp_dir}/assets$uri',
                         "types": ["!application/x-httpd-php"],
                         "fallback": {"proxy": "http://127.0.0.1:7081"},
                     }
@@ -142,7 +142,7 @@ class TestStaticTypes(TestApplicationProto):
 
     def test_static_types_index(self, temp_dir):
         self.action_update(
-            {"share": temp_dir + "/assets$uri", "types": "application/xml"}
+            {"share": f'{temp_dir}/assets$uri', "types": "application/xml"}
         )
         self.check_body('/', 'index')
         self.check_body('/file.xml', '.xml')
@@ -153,7 +153,7 @@ class TestStaticTypes(TestApplicationProto):
         self._load_conf(
             {
                 "listeners": {"*:7080": {"pass": "routes"}},
-                "routes": [{"action": {"share": temp_dir + "/assets$uri"}}],
+                "routes": [{"action": {"share": f'{temp_dir}/assets$uri'}}],
                 "applications": {},
                 "settings": {
                     "http": {
@@ -163,10 +163,10 @@ class TestStaticTypes(TestApplicationProto):
             }
         )
 
-        self.action_update({"share": temp_dir + "/assets$uri", "types": [""]})
+        self.action_update({"share": f'{temp_dir}/assets$uri', "types": [""]})
         assert self.get(url='/file')['status'] == 403, 'forbidden custom mime'
 
         self.action_update(
-            {"share": temp_dir + "/assets$uri", "types": ["test/mime-type"]}
+            {"share": f'{temp_dir}/assets$uri', "types": ["test/mime-type"]}
         )
         self.check_body('/file', '')

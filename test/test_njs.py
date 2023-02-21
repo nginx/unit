@@ -13,13 +13,13 @@ class TestNJS(TestApplicationProto):
             {
                 "listeners": {"*:7080": {"pass": "routes"}},
                 "routes": [
-                    {"action": {"share": option.temp_dir + "/assets$uri"}}
+                    {"action": {"share": f"{option.temp_dir}/assets$uri"}}
                 ],
             }
         )
 
     def create_files(self, *files):
-        assets_dir = option.temp_dir + '/assets/'
+        assets_dir = f'{option.temp_dir}/assets/'
         os.makedirs(assets_dir)
 
         [open(assets_dir + f, 'a') for f in files]
@@ -29,7 +29,7 @@ class TestNJS(TestApplicationProto):
         assert 'success' in self.conf(share, 'routes/0/action/share')
 
     def check_expression(self, expression, url='/'):
-        self.set_share('"`' + option.temp_dir + '/assets' + expression + '`"')
+        self.set_share(f'"`{option.temp_dir}/assets{expression}`"')
         assert self.get(url=url)['status'] == 200
 
     def test_njs_template_string(self, temp_dir):
@@ -39,7 +39,7 @@ class TestNJS(TestApplicationProto):
         self.check_expression('/\\\\`backtick')
         self.check_expression('/l1\\nl2')
 
-        self.set_share('"' + temp_dir + '/assets/`string`"')
+        self.set_share(f'"{temp_dir}/assets/`string`"')
         assert self.get()['status'] == 200
 
     def test_njs_template_expression(self, temp_dir):
@@ -63,7 +63,7 @@ class TestNJS(TestApplicationProto):
         self.check_expression('/${remoteAddr}')
         self.check_expression('/${headers.Host}')
 
-        self.set_share('"`' + temp_dir + '/assets/${cookies.foo}`"')
+        self.set_share(f'"`{temp_dir}/assets/${{cookies.foo}}`"')
         assert (
             self.get(headers={'Cookie': 'foo=str', 'Connection': 'close'})[
                 'status'
@@ -71,7 +71,7 @@ class TestNJS(TestApplicationProto):
             == 200
         ), 'cookies'
 
-        self.set_share('"`' + temp_dir + '/assets/${args.foo}`"')
+        self.set_share(f'"`{temp_dir}/assets/${{args.foo}}`"')
         assert self.get(url='/?foo=str')['status'] == 200, 'args'
 
     def test_njs_invalid(self, temp_dir, skip_alert):

@@ -20,18 +20,18 @@ class TestApplicationPython(TestApplicationProto):
         if script[0] == '/':
             script_path = script
         else:
-            script_path = option.test_dir + '/python/' + script
+            script_path = f'{option.test_dir}/python/{script}'
 
         if kwargs.get('isolation') and kwargs['isolation'].get('rootfs'):
             rootfs = kwargs['isolation']['rootfs']
 
-            if not os.path.exists(rootfs + '/app/python/'):
-                os.makedirs(rootfs + '/app/python/')
+            if not os.path.exists(f'{rootfs}/app/python/'):
+                os.makedirs(f'{rootfs}/app/python/')
 
-            if not os.path.exists(rootfs + '/app/python/' + name):
-                shutil.copytree(script_path, rootfs + '/app/python/' + name)
+            if not os.path.exists(f'{rootfs}/app/python/{name}'):
+                shutil.copytree(script_path, f'{rootfs}/app/python/{name}')
 
-            script_path = '/app/python/' + name
+            script_path = f'/app/python/{name}'
 
         app = {
             "type": self.get_application_type(),
@@ -58,9 +58,9 @@ class TestApplicationPython(TestApplicationProto):
         self._load_conf(
             {
                 "listeners": {
-                    "*:7080": {"pass": "applications/" + quote(name, '')}
+                    "*:7080": {"pass": f"applications/{quote(name, '')}"}
                 },
                 "applications": {name: app},
             },
-            **kwargs
+            **kwargs,
         )

@@ -11,13 +11,13 @@ class TestStatic(TestApplicationProto):
     prerequisites = {}
 
     def setup_method(self):
-        os.makedirs(option.temp_dir + '/assets/dir')
-        with open(option.temp_dir + '/assets/index.html', 'w') as index, open(
-            option.temp_dir + '/assets/README', 'w'
+        os.makedirs(f'{option.temp_dir}/assets/dir')
+        with open(f'{option.temp_dir}/assets/index.html', 'w') as index, open(
+            f'{option.temp_dir}/assets/README', 'w'
         ) as readme, open(
-            option.temp_dir + '/assets/log.log', 'w'
+            f'{option.temp_dir}/assets/log.log', 'w'
         ) as log, open(
-            option.temp_dir + '/assets/dir/file', 'w'
+            f'{option.temp_dir}/assets/dir/file', 'w'
         ) as file:
             index.write('0123456789')
             readme.write('readme')
@@ -28,7 +28,7 @@ class TestStatic(TestApplicationProto):
             {
                 "listeners": {"*:7080": {"pass": "routes"}},
                 "routes": [
-                    {"action": {"share": option.temp_dir + "/assets$uri"}}
+                    {"action": {"share": f'{option.temp_dir}/assets$uri'}}
                 ],
                 "settings": {
                     "http": {
@@ -40,10 +40,10 @@ class TestStatic(TestApplicationProto):
             }
         )
 
-    def test_static_index(self):
+    def test_static_index(self, temp_dir):
         def set_index(index):
             assert 'success' in self.conf(
-                {"share": option.temp_dir + "/assets$uri", "index": index},
+                {"share": f'{temp_dir}/assets$uri', "index": index},
                 'routes/0/action',
             ), 'configure index'
 
@@ -72,12 +72,12 @@ class TestStatic(TestApplicationProto):
             resp['headers']['Content-Type'] == 'text/html'
         ), 'index not found 2 Content-Type'
 
-    def test_static_index_invalid(self, skip_alert):
+    def test_static_index_invalid(self, skip_alert, temp_dir):
         skip_alert(r'failed to apply new conf')
 
         def check_index(index):
             assert 'error' in self.conf(
-                {"share": option.temp_dir + "/assets$uri", "index": index},
+                {"share": f'{temp_dir}/assets$uri', "index": index},
                 'routes/0/action',
             )
 
@@ -86,7 +86,7 @@ class TestStatic(TestApplicationProto):
 
     def test_static_large_file(self, temp_dir):
         file_size = 32 * 1024 * 1024
-        with open(temp_dir + '/assets/large', 'wb') as f:
+        with open(f'{temp_dir}/assets/large', 'wb') as f:
             f.seek(file_size - 1)
             f.write(b'\0')
 
@@ -102,7 +102,7 @@ class TestStatic(TestApplicationProto):
         assert etag != etag_2, 'different ETag'
         assert etag == self.get(url='/')['headers']['ETag'], 'same ETag'
 
-        with open(temp_dir + '/assets/index.html', 'w') as f:
+        with open(f'{temp_dir}/assets/index.html', 'w') as f:
             f.write('blah')
 
         assert etag != self.get(url='/')['headers']['ETag'], 'new ETag'
@@ -114,19 +114,21 @@ class TestStatic(TestApplicationProto):
         assert 'Content-Type' not in resp['headers'], 'redirect Content-Type'
 
     def test_static_space_in_name(self, temp_dir):
+        assets_dir = f'{temp_dir}/assets'
+
         os.rename(
-            temp_dir + '/assets/dir/file',
-            temp_dir + '/assets/dir/fi le',
+            f'{assets_dir}/dir/file',
+            f'{assets_dir}/dir/fi le',
         )
-        assert waitforfiles(temp_dir + '/assets/dir/fi le')
+        assert waitforfiles(f'{assets_dir}/dir/fi le')
         assert self.get(url='/dir/fi le')['body'] == 'blah', 'file name'
 
-        os.rename(temp_dir + '/assets/dir', temp_dir + '/assets/di r')
-        assert waitforfiles(temp_dir + '/assets/di r/fi le')
+        os.rename(f'{assets_dir}/dir', f'{assets_dir}/di r')
+        assert waitforfiles(f'{assets_dir}/di r/fi le')
         assert self.get(url='/di r/fi le')['body'] == 'blah', 'dir name'
 
-        os.rename(temp_dir + '/assets/di r', temp_dir + '/assets/ di r ')
-        assert waitforfiles(temp_dir + '/assets/ di r /fi le')
+        os.rename(f'{assets_dir}/di r', f'{assets_dir}/ di r ')
+        assert waitforfiles(f'{assets_dir}/ di r /fi le')
         assert (
             self.get(url='/ di r /fi le')['body'] == 'blah'
         ), 'dir name enclosing'
@@ -147,16 +149,16 @@ class TestStatic(TestApplicationProto):
         ), 'encoded 2'
 
         os.rename(
-            temp_dir + '/assets/ di r /fi le',
-            temp_dir + '/assets/ di r / fi le ',
+            f'{assets_dir}/ di r /fi le',
+            f'{assets_dir}/ di r / fi le ',
         )
-        assert waitforfiles(temp_dir + '/assets/ di r / fi le ')
+        assert waitforfiles(f'{assets_dir}/ di r / fi le ')
         assert (
             self.get(url='/%20di%20r%20/%20fi%20le%20')['body'] == 'blah'
         ), 'file name enclosing'
 
         try:
-            open(temp_dir + '/ф а', 'a').close()
+            open(f'{temp_dir}/ф а', 'a').close()
             utf8 = True
 
         except KeyboardInterrupt:
@@ -167,33 +169,33 @@ class TestStatic(TestApplicationProto):
 
         if utf8:
             os.rename(
-                temp_dir + '/assets/ di r / fi le ',
-                temp_dir + '/assets/ di r /фа йл',
+                f'{assets_dir}/ di r / fi le ',
+                f'{assets_dir}/ di r /фа йл',
             )
-            assert waitforfiles(temp_dir + '/assets/ di r /фа йл')
+            assert waitforfiles(f'{assets_dir}/ di r /фа йл')
             assert (
                 self.get(url='/ di r /фа йл')['body'] == 'blah'
             ), 'file name 2'
 
             os.rename(
-                temp_dir + '/assets/ di r ',
-                temp_dir + '/assets/ди ректория',
+                f'{assets_dir}/ di r ',
+                f'{assets_dir}/ди ректория',
             )
-            assert waitforfiles(temp_dir + '/assets/ди ректория/фа йл')
+            assert waitforfiles(f'{assets_dir}/ди ректория/фа йл')
             assert (
                 self.get(url='/ди ректория/фа йл')['body'] == 'blah'
             ), 'dir name 2'
 
     def test_static_unix_socket(self, temp_dir):
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        sock.bind(temp_dir + '/assets/unix_socket')
+        sock.bind(f'{temp_dir}/assets/unix_socket')
 
         assert self.get(url='/unix_socket')['status'] == 404, 'socket'
 
         sock.close()
 
     def test_static_unix_fifo(self, temp_dir):
-        os.mkfifo(temp_dir + '/assets/fifo')
+        os.mkfifo(f'{temp_dir}/assets/fifo')
 
         assert self.get(url='/fifo')['status'] == 404, 'fifo'
 
@@ -346,5 +348,5 @@ Content-Length: 6\r
             raw_resp=True,
             raw=True,
             sock_type='unix',
-            addr=temp_dir + '/control.unit.sock',
+            addr=f'{temp_dir}/control.unit.sock',
         ), 'mime_types invalid'

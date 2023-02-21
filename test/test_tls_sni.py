@@ -30,17 +30,17 @@ class TestTLSSNI(TestApplicationTLS):
         assert 'success' in self.conf({"pass": "routes"}, 'listeners/*:7080')
 
     def generate_ca_conf(self):
-        with open(option.temp_dir + '/ca.conf', 'w') as f:
+        with open(f'{option.temp_dir}/ca.conf', 'w') as f:
             f.write(
-                """[ ca ]
+                f"""[ ca ]
 default_ca = myca
 
 [ myca ]
-new_certs_dir = %(dir)s
-database = %(database)s
+new_certs_dir = {option.temp_dir}
+database = {option.temp_dir}/certindex
 default_md = sha256
 policy = myca_policy
-serial = %(certserial)s
+serial = {option.temp_dir}/certserial
 default_days = 1
 x509_extensions = myca_extensions
 copy_extensions = copy
@@ -50,17 +50,12 @@ commonName = optional
 
 [ myca_extensions ]
 basicConstraints = critical,CA:TRUE"""
-                % {
-                    'dir': option.temp_dir,
-                    'database': option.temp_dir + '/certindex',
-                    'certserial': option.temp_dir + '/certserial',
-                }
             )
 
-        with open(option.temp_dir + '/certserial', 'w') as f:
+        with open(f'{option.temp_dir}/certserial', 'w') as f:
             f.write('1000')
 
-        with open(option.temp_dir + '/certindex', 'w') as f:
+        with open(f'{option.temp_dir}/certindex', 'w') as f:
             f.write('')
 
     def config_bundles(self, bundles):
@@ -68,11 +63,7 @@ basicConstraints = critical,CA:TRUE"""
 
         for b in bundles:
             self.openssl_conf(rewrite=True, alt_names=bundles[b]['alt_names'])
-            subj = (
-                '/CN={}/'.format(bundles[b]['subj'])
-                if 'subj' in bundles[b]
-                else '/'
-            )
+            subj = f'/CN={bundles[b]["subj"]}/' if 'subj' in bundles[b] else '/'
 
             subprocess.check_output(
                 [
@@ -82,11 +73,11 @@ basicConstraints = critical,CA:TRUE"""
                     '-subj',
                     subj,
                     '-config',
-                    option.temp_dir + '/openssl.conf',
+                    f'{option.temp_dir}/openssl.conf',
                     '-out',
-                    option.temp_dir + '/{}.csr'.format(b),
+                    f'{option.temp_dir}/{b}.csr',
                     '-keyout',
-                    option.temp_dir + '/{}.key'.format(b),
+                    f'{option.temp_dir}/{b}.key',
                 ],
                 stderr=subprocess.STDOUT,
             )
@@ -94,11 +85,7 @@ basicConstraints = critical,CA:TRUE"""
         self.generate_ca_conf()
 
         for b in bundles:
-            subj = (
-                '/CN={}/'.format(bundles[b]['subj'])
-                if 'subj' in bundles[b]
-                else '/'
-            )
+            subj = f'/CN={bundles[b]["subj"]}/' if 'subj' in bundles[b] else '/'
 
             subprocess.check_output(
                 [
@@ -108,15 +95,15 @@ basicConstraints = critical,CA:TRUE"""
                     '-subj',
                     subj,
                     '-config',
-                    option.temp_dir + '/ca.conf',
+                    f'{option.temp_dir}/ca.conf',
                     '-keyfile',
-                    option.temp_dir + '/root.key',
+                    f'{option.temp_dir}/root.key',
                     '-cert',
-                    option.temp_dir + '/root.crt',
+                    f'{option.temp_dir}/root.crt',
                     '-in',
-                    option.temp_dir + '/{}.csr'.format(b),
+                    f'{option.temp_dir}/{b}.csr',
                     '-out',
-                    option.temp_dir + '/{}.crt'.format(b),
+                    f'{option.temp_dir}/{b}.crt',
                 ],
                 stderr=subprocess.STDOUT,
             )
@@ -124,7 +111,7 @@ basicConstraints = critical,CA:TRUE"""
         self.context = ssl.create_default_context()
         self.context.check_hostname = False
         self.context.verify_mode = ssl.CERT_REQUIRED
-        self.context.load_verify_locations(option.temp_dir + '/root.crt')
+        self.context.load_verify_locations(f'{option.temp_dir}/root.crt')
 
         self.load_certs(bundles)
 
@@ -132,7 +119,7 @@ basicConstraints = critical,CA:TRUE"""
         for bname, bvalue in bundles.items():
             assert 'success' in self.certificate_load(
                 bname, bname
-            ), 'certificate {} upload'.format(bvalue['subj'])
+            ), f'certificate {bvalue["subj"]} upload'
 
     def check_cert(self, host, expect):
         resp, sock = self.get_ssl(

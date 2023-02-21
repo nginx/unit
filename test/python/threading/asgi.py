@@ -11,9 +11,7 @@ class Foo(threading.Thread):
         threading.Thread.__init__(self)
 
     def log_index(self, index):
-        sys.stderr.write(
-            "(" + str(index) + ") Thread: " + str(self.__x) + "\n"
-        )
+        sys.stderr.write(f'({index}) Thread: {self.__x}\n')
         sys.stderr.flush()
 
     def run(self):

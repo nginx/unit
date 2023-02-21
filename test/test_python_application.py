@@ -20,17 +20,16 @@ class TestPythonApplication(TestApplicationPython):
         body = 'Test body string.'
 
         resp = self.http(
-            b"""POST / HTTP/1.1
+            f"""POST / HTTP/1.1
 Host: localhost
-Content-Length: %d
+Content-Length: {len(body)}
 Custom-Header: blah
 Custom-hEader: Blah
 Content-Type: text/html
 Connection: close
 custom-header: BLAH
 
-%s"""
-            % (len(body), body.encode()),
+{body}""".encode(),
             raw=True,
         )
 
@@ -101,7 +100,7 @@ custom-header: BLAH
         self.load('prefix', prefix='/api/rest')
 
         def set_prefix(prefix):
-            self.conf('"' + prefix + '"', 'applications/prefix/prefix')
+            self.conf(f'"{prefix}"', 'applications/prefix/prefix')
 
         def check_prefix(url, script_name, path_info):
             resp = self.get(url=url)
@@ -585,12 +584,12 @@ last line: 987654321
         except version.InvalidVersion:
             pytest.skip('require python module version 3')
 
-        venv_path = temp_dir + '/venv'
+        venv_path = f'{temp_dir}/venv'
         venv.create(venv_path)
 
         self.load('unicode')
         assert 'success' in self.conf(
-            '"' + venv_path + '"',
+            f'"{venv_path}"',
             '/config/applications/unicode/home',
         )
         assert (
@@ -640,7 +639,7 @@ last line: 987654321
 
         assert self.wait_for_record(r'Traceback') is not None, 'traceback'
         assert (
-            self.wait_for_record(r'raise Exception\(\'first exception\'\)')
+            self.wait_for_record(r"raise Exception\('first exception'\)")
             is not None
         ), 'first exception raise'
         assert len(self.findall(r'Traceback')) == 1, 'traceback count 1'
@@ -659,7 +658,7 @@ last line: 987654321
         ), 'error 2'
 
         assert (
-            self.wait_for_record(r'raise Exception\(\'second exception\'\)')
+            self.wait_for_record(r"raise Exception\('second exception'\)")
             is not None
         ), 'exception raise second'
         assert len(self.findall(r'Traceback')) == 2, 'traceback count 2'
@@ -676,7 +675,7 @@ last line: 987654321
         )
 
         assert (
-            self.wait_for_record(r'raise Exception\(\'third exception\'\)')
+            self.wait_for_record(r"raise Exception\('third exception'\)")
             is not None
         ), 'exception raise third'
         assert len(self.findall(r'Traceback')) == 3, 'traceback count 3'
@@ -711,7 +710,7 @@ last line: 987654321
         )
 
         assert (
-            self.wait_for_record(r'raise Exception\(\'next exception\'\)')
+            self.wait_for_record(r"raise Exception\('next exception'\)")
             is not None
         ), 'exception raise next'
         assert len(self.findall(r'Traceback')) == 5, 'traceback count 5'
@@ -747,7 +746,7 @@ last line: 987654321
         ), 'error'
 
         assert (
-            self.wait_for_record(r'raise Exception\(\'close exception\'\)')
+            self.wait_for_record(r"raise Exception\('close exception'\)")
             is not None
         ), 'exception raise close'
         assert len(self.findall(r'Traceback')) == 8, 'traceback count 8'
@@ -781,18 +780,14 @@ last line: 987654321
         self.load('user_group', user='nobody', group=group)
 
         obj = self.getjson()['body']
-        assert obj['UID'] == nobody_uid, (
-            'nobody uid user=nobody group=%s' % group
-        )
-
-        assert obj['GID'] == group_id, 'nobody gid user=nobody group=%s' % group
+        assert obj['UID'] == nobody_uid, f'nobody uid user=nobody group={group}'
+        assert obj['GID'] == group_id, f'nobody gid user=nobody group={group}'
 
         self.load('user_group', group=group)
 
         obj = self.getjson()['body']
-        assert obj['UID'] == nobody_uid, 'nobody uid group=%s' % group
-
-        assert obj['GID'] == group_id, 'nobody gid group=%s' % group
+        assert obj['UID'] == nobody_uid, f'nobody uid group={group}'
+        assert obj['GID'] == group_id, f'nobody gid group={group}'
 
         self.load('user_group', user='root')
 

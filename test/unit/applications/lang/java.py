@@ -12,10 +12,10 @@ class TestApplicationJava(TestApplicationProto):
     application_type = "java"
 
     def prepare_env(self, script):
-        app_path = option.temp_dir + '/java'
-        web_inf_path = app_path + '/WEB-INF/'
-        classes_path = web_inf_path + 'classes/'
-        script_path = option.test_dir + '/java/' + script + '/'
+        app_path = f'{option.temp_dir}/java'
+        web_inf_path = f'{app_path}/WEB-INF/'
+        classes_path = f'{web_inf_path}classes/'
+        script_path = f'{option.test_dir}/java/{script}/'
 
         if not os.path.isdir(app_path):
             os.makedirs(app_path)
@@ -23,7 +23,7 @@ class TestApplicationJava(TestApplicationProto):
         src = []
 
         for f in os.listdir(script_path):
-            file_path = script_path + f
+            file_path = f'{script_path}{f}'
 
             if f.endswith('.java'):
                 src.append(file_path)
@@ -36,7 +36,7 @@ class TestApplicationJava(TestApplicationProto):
                 if f == 'WEB-INF':
                     continue
 
-                shutil.copytree(file_path, app_path + '/' + f)
+                shutil.copytree(file_path, f'{app_path}/{f}')
                 continue
 
             if f == 'web.xml':
@@ -52,11 +52,11 @@ class TestApplicationJava(TestApplicationProto):
                 os.makedirs(classes_path)
 
             classpath = (
-                option.current_dir + '/build/tomcat-servlet-api-9.0.70.jar'
+                f'{option.current_dir}/build/tomcat-servlet-api-9.0.70.jar'
             )
 
             ws_jars = glob.glob(
-                option.current_dir + '/build/websocket-api-java-*.jar'
+                f'{option.current_dir}/build/websocket-api-java-*.jar'
             )
 
             if not ws_jars:
@@ -74,12 +74,12 @@ class TestApplicationJava(TestApplicationProto):
                 '-d',
                 classes_path,
                 '-classpath',
-                classpath + ':' + ws_jars[0],
+                f'{classpath}:{ws_jars[0]}',
             ]
             javac.extend(src)
 
             if option.detailed:
-                print("\n$ " + " ".join(javac))
+                print(f'\n$ {" ".join(javac)}')
 
             try:
                 subprocess.check_output(javac, stderr=subprocess.STDOUT)
@@ -88,26 +88,24 @@ class TestApplicationJava(TestApplicationProto):
                 raise
 
             except subprocess.CalledProcessError:
-                pytest.fail('Can\'t run javac process.')
+                pytest.fail("Can't run javac process.")
 
     def load(self, script, **kwargs):
         self.prepare_env(script)
 
+        script_path = f'{option.test_dir}/java/{script}/'
         self._load_conf(
             {
-                "listeners": {"*:7080": {"pass": "applications/" + script}},
+                "listeners": {"*:7080": {"pass": f"applications/{script}"}},
                 "applications": {
                     script: {
-                        "unit_jars": option.current_dir + '/build',
+                        "unit_jars": f'{option.current_dir}/build',
                         "type": self.get_application_type(),
                         "processes": {"spare": 0},
-                        "working_directory": option.test_dir
-                        + '/java/'
-                        + script
-                        + '/',
-                        "webapp": option.temp_dir + '/java',
+                        "working_directory": script_path,
+                        "webapp": f'{option.temp_dir}/java',
                     }
                 },
             },
-            **kwargs
+            **kwargs,
         )

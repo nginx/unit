@@ -12,8 +12,8 @@ class TestPythonProcman(TestApplicationPython):
     prerequisites = {'modules': {'python': 'any'}}
 
     def setup_method(self):
-        self.app_name = "app-" + option.temp_dir.split('/')[-1]
-        self.app_proc = 'applications/' + self.app_name + '/processes'
+        self.app_name = f'app-{option.temp_dir.split("/")[-1]}'
+        self.app_proc = f'applications/{self.app_name}/processes'
         self.load('empty', self.app_name)
 
     def pids_for_process(self):
@@ -23,7 +23,7 @@ class TestPythonProcman(TestApplicationPython):
 
         pids = set()
         for m in re.findall(
-            '.*unit: "' + self.app_name + '" application', output.decode()
+            fr'.*unit: "{self.app_name}" application', output.decode()
         ):
             pids.add(re.search(r'^\s*(\d+)', m).group(1))
 
@@ -126,7 +126,7 @@ class TestPythonProcman(TestApplicationPython):
         assert len(pids_new) == 3, 'reconf 3'
         assert pids.issubset(pids_new), 'reconf 3 only 1 new'
 
-        self.conf_proc('6', self.app_proc + '/spare')
+        self.conf_proc('6', f'{self.app_proc}/spare')
 
         pids = self.pids_for_process()
         assert len(pids) == 6, 'reconf 6'
@@ -176,10 +176,10 @@ class TestPythonProcman(TestApplicationPython):
     def test_python_processes_access(self):
         self.conf_proc('1')
 
-        path = '/' + self.app_proc
-        assert 'error' in self.conf_get(path + '/max')
-        assert 'error' in self.conf_get(path + '/spare')
-        assert 'error' in self.conf_get(path + '/idle_timeout')
+        path = f'/{self.app_proc}'
+        assert 'error' in self.conf_get(f'{path}/max')
+        assert 'error' in self.conf_get(f'{path}/spare')
+        assert 'error' in self.conf_get(f'{path}/idle_timeout')
 
     def test_python_processes_invalid(self):
         assert 'error' in self.conf(
@@ -206,7 +206,7 @@ class TestPythonProcman(TestApplicationPython):
 
     def test_python_restart(self, temp_dir):
         shutil.copyfile(
-            option.test_dir + '/python/restart/v1.py', temp_dir + '/wsgi.py'
+            f'{option.test_dir}/python/restart/v1.py', f'{temp_dir}/wsgi.py'
         )
 
         self.load(
@@ -220,14 +220,14 @@ class TestPythonProcman(TestApplicationPython):
         assert b == "v1", 'process started'
 
         shutil.copyfile(
-            option.test_dir + '/python/restart/v2.py', temp_dir + '/wsgi.py'
+            f'{option.test_dir}/python/restart/v2.py', f'{temp_dir}/wsgi.py'
         )
 
         b = self.get()['body']
         assert b == "v1", 'still old process'
 
         assert 'success' in self.conf_get(
-            '/control/applications/' + self.app_name + '/restart'
+            f'/control/applications/{self.app_name}/restart'
         ), 'restart processes'
 
         b = self.get()['body']
@@ -238,7 +238,7 @@ class TestPythonProcman(TestApplicationPython):
         ), 'application incorrect'
 
         assert 'error' in self.conf_delete(
-            '/control/applications/' + self.app_name + '/restart'
+            f'/control/applications/{self.app_name}/restart'
         ), 'method incorrect'
 
     def test_python_restart_multi(self):
@@ -248,7 +248,7 @@ class TestPythonProcman(TestApplicationPython):
         assert len(pids) == 2, 'restart 2 started'
 
         assert 'success' in self.conf_get(
-            '/control/applications/' + self.app_name + '/restart'
+            f'/control/applications/{self.app_name}/restart'
         ), 'restart processes'
 
         new_pids = self.pids_for_process()
@@ -272,7 +272,7 @@ class TestPythonProcman(TestApplicationPython):
         assert len(pids) == 2, 'longstarts == 2'
 
         assert 'success' in self.conf_get(
-            '/control/applications/' + self.app_name + '/restart'
+            f'/control/applications/{self.app_name}/restart'
         ), 'restart processes'
 
         # wait for longstarted app

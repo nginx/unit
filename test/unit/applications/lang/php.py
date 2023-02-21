@@ -9,18 +9,18 @@ class TestApplicationPHP(TestApplicationProto):
     application_type = "php"
 
     def load(self, script, index='index.php', **kwargs):
-        script_path = option.test_dir + '/php/' + script
+        script_path = f'{option.test_dir}/php/{script}'
 
         if kwargs.get('isolation') and kwargs['isolation'].get('rootfs'):
             rootfs = kwargs['isolation']['rootfs']
 
-            if not os.path.exists(rootfs + '/app/php/'):
-                os.makedirs(rootfs + '/app/php/')
+            if not os.path.exists(f'{rootfs}/app/php/'):
+                os.makedirs(f'{rootfs}/app/php/')
 
-            if not os.path.exists(rootfs + '/app/php/' + script):
-                shutil.copytree(script_path, rootfs + '/app/php/' + script)
+            if not os.path.exists(f'{rootfs}/app/php/{script}'):
+                shutil.copytree(script_path, f'{rootfs}/app/php/{script}')
 
-            script_path = '/app/php/' + script
+            script_path = f'/app/php/{script}'
 
         app = {
             "type": self.get_application_type(),
@@ -41,8 +41,8 @@ class TestApplicationPHP(TestApplicationProto):
 
         self._load_conf(
             {
-                "listeners": {"*:7080": {"pass": "applications/" + script}},
+                "listeners": {"*:7080": {"pass": f"applications/{script}"}},
                 "applications": {script: app},
             },
-            **kwargs
+            **kwargs,
         )

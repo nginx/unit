@@ -16,7 +16,7 @@ class TestASGIApplicationUnixAbstract(TestApplicationPython):
 
         addr = '\0sock'
         assert 'success' in self.conf(
-            {"unix:@" + addr[1:]: {"pass": "applications/empty"}},
+            {f"unix:@{addr[1:]}": {"pass": "applications/empty"}},
             'listeners',
         )
 

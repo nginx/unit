@@ -18,11 +18,12 @@ class TestStatus(TestApplicationPython):
         }
 
     def app_default(self, name="empty", module="wsgi"):
+        name_dir = f'{option.test_dir}/python/{name}'
         return {
             "type": self.get_application_type(),
             "processes": {"spare": 0},
-            "path": option.test_dir + "/python/" + name,
-            "working_directory": option.test_dir + "/python/" + name,
+            "path": name_dir,
+            "working_directory": name_dir,
             "module": module,
         }
 
@@ -141,7 +142,7 @@ Connection: close
             assert apps == expert.sort()
 
         def check_application(name, running, starting, idle, active):
-            Status.get('/applications/' + name) == {
+            Status.get(f'/applications/{name}') == {
                 'processes': {
                     'running': running,
                     'starting': starting,

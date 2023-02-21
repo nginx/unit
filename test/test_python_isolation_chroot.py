@@ -16,7 +16,7 @@ class TestPythonIsolation(TestApplicationPython):
         self.load('ns_inspect', isolation=isolation)
 
         assert (
-            self.getjson(url='/?path=' + temp_dir)['body']['FileExists']
+            self.getjson(url=f'/?path={temp_dir}')['body']['FileExists']
             == False
         ), 'temp_dir does not exists in rootfs'
 

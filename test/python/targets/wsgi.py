@@ -9,9 +9,6 @@ def wsgi_target_b(env, start_response):
 
 
 def wsgi_target_prefix(env, start_response):
-    data = u'%s %s' % (
-        env.get('SCRIPT_NAME', 'No Script Name'),
-        env['PATH_INFO'],
-    )
-    start_response('200', [('Content-Length', '%d' % len(data))])
+    data = f"{env.get('SCRIPT_NAME', 'No Script Name')} {env['PATH_INFO']}"
+    start_response('200', [('Content-Length', f'{data}')])
     return [data.encode('utf-8')]

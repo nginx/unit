@@ -21,7 +21,7 @@ def args_handler(conf_func):
 
             url = args[1] if len(args) == 2 else url_default
 
-        url = url if url.startswith('/') else url_default + '/' + url
+        url = url if url.startswith('/') else f'{url_default}/{url}'
         arguments = (self, url) if conf is None else (self, conf, url)
 
         return json.loads(conf_func(*arguments))
@@ -50,7 +50,7 @@ class TestControl(TestHTTP):
         args = {
             'url': url,
             'sock_type': 'unix',
-            'addr': option.temp_dir + '/control.unit.sock',
+            'addr': f'{option.temp_dir}/control.unit.sock',
         }
 
         if conf is not None:
