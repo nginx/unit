@@ -652,7 +652,7 @@ nxt_isolation_set_lang_mounts(nxt_task_t *task, nxt_process_t *process,
         mnt->flags = (NXT_FS_FLAGS_NOSUID
                       | NXT_FS_FLAGS_NODEV
                       | NXT_FS_FLAGS_NOEXEC);
-        mnt->data = (u_char *) "size=1m,mode=777";
+        mnt->data = (u_char *) "size=1m,mode=1777";
         mnt->builtin = 1;
         mnt->deps = 0;
 
