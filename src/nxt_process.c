@@ -1156,10 +1156,10 @@ nxt_process_daemon(nxt_task_t *task)
     }
 
     /*
-     * Reset file mode creation mask: any access
-     * rights can be set on file creation.
+     * Set a sefe umask to give at most 755/644 permissions on
+     * directories/files.
      */
-    umask(0);
+    umask(0022);
 
     /* Redirect STDIN and STDOUT to the "/dev/null". */
 
