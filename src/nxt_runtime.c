@@ -563,12 +563,29 @@ nxt_runtime_exit(nxt_task_t *task, void *obj, void *data)
 
 #if (NXT_HAVE_UNIX_DOMAIN)
         {
+            size_t           i;
             nxt_sockaddr_t   *sa;
             nxt_file_name_t  *name;
 
             sa = rt->controller_listen;
 
             if (sa->u.sockaddr.sa_family == AF_UNIX) {
+                name = (nxt_file_name_t *) sa->u.sockaddr_un.sun_path;
+                (void) nxt_file_delete(name);
+            }
+
+            for (i = 0; i < rt->listen_sockets->nelts; i++) {
+                nxt_listen_socket_t  *ls;
+
+                ls = (nxt_listen_socket_t *) rt->listen_sockets->elts + i;
+                sa = ls->sockaddr;
+
+                if (sa->u.sockaddr.sa_family != AF_UNIX
+                    || sa->u.sockaddr_un.sun_path[0] == '\0')
+                {
+                    continue;
+                }
+
                 name = (nxt_file_name_t *) sa->u.sockaddr_un.sun_path;
                 (void) nxt_file_delete(name);
             }
