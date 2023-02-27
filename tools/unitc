@@ -43,7 +43,7 @@ while [ $# -gt 0 ]; do
 			;;
 
 		*)
-			if [ -r $1 ]; then
+			if [ -f $1 ] && [ -r $1 ]; then
 				CONF_FILES+=($1)
 			elif [ "${1:0:1}" = "/" ] || [ "${1:0:4}" = "http" ] && [ "$URI" = "" ]; then
 				URI=$1
@@ -121,9 +121,9 @@ if [ $REMOTE -eq 0 ]; then
 	if [ -r /tmp/${0##*/}.$PID.env ]; then
 		source /tmp/${0##*/}.$PID.env
 	else
-		# Check we have unitd in $PATH (and all the other tools we will need)
+		# Check we have all the tools we will need (that we didn't already use)
 		#
-		MISSING=$(hash unitd curl ps grep tr cut sed tail sleep 2>&1 | cut -f4 -d: | tr -d '\n')
+		MISSING=$(hash curl tr cut sed tail sleep 2>&1 | cut -f4 -d: | tr -d '\n')
 		if [ "$MISSING" != "" ]; then
 			echo "${0##*/}: ERROR: cannot find$MISSING: please install or add to \$PATH"
 			exit 1
@@ -131,10 +131,10 @@ if [ $REMOTE -eq 0 ]; then
 
 		# Get control address
 		#
-		PARAMS=$(ps $PID | grep unitd | cut -f2- -dv | tr '[]' ' ' | cut -f4- -d ' ' | sed -e 's/ --/\n--/g')
+		PARAMS=$(ps $PID | grep unitd | cut -f2- -dv | tr '[]' ' ' | cut -f3- -d ' ' | sed -e 's/ --/\n--/g')
 		CTRL_ADDR=$(echo "$PARAMS" | grep '\--control' | cut -f2 -d' ')
 		if [ "$CTRL_ADDR" = "" ]; then
-			CTRL_ADDR=$(unitd --help | grep -A1 '\--control' | tail -1 |  cut -f2 -d\")
+			CTRL_ADDR=$(`echo "$PARAMS" | grep unitd` --help | grep -A1 '\--control' | tail -1 |  cut -f2 -d\")
 		fi
 
 		# Prepare for network or Unix socket addressing
