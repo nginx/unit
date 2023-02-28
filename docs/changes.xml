@@ -16,7 +16,7 @@
                 unit-jsc14 unit-jsc15 unit-jsc16 unit-jsc17 unit-jsc18
                 unit-jsc19"
          ver="1.29.1" rev="1"
-         date="" time=""
+         date="2023-02-28" time="18:00:00 +0300"
          packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
 
 <change>
@@ -29,7 +29,7 @@ NGINX Unit updated to 1.29.1.
 
 
 <changes apply="unit" ver="1.29.1" rev="1"
-         date="" time=""
+         date="2023-02-28" time="18:00:00 +0300"
          packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
 
 <change type="bugfix">
