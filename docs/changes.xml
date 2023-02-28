@@ -25,6 +25,13 @@ NGINX Unit updated to 1.29.1.
 </para>
 </change>
 
+</changes>
+
+
+<changes apply="unit" ver="1.29.1" rev="1"
+         date="" time=""
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
 <change type="bugfix">
 <para>
 stop creating world-writeable directories.
@@ -69,13 +76,6 @@ fail to work correctly.
 websocket endianness detection for obscure operating systems.
 </para>
 </change>
-
-</changes>
-
-
-<changes apply="unit" ver="1.29.1" rev="1"
-         date="" time=""
-         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
 
 </changes>
 
