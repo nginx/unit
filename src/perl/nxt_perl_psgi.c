@@ -267,8 +267,11 @@ XS(XS_NGINX__Unit__Sandbox_cb)
         XSRETURN_EMPTY;
     }
 
+    pctx = CvXSUBANY(cv).any_ptr;
+
     if (nxt_slow_path(SvOK(ST(0)) == 0 || SvROK(ST(0)) == 0
-                      || SvTYPE(SvRV(ST(0))) != SVt_PVAV))
+                      || SvTYPE(SvRV(ST(0))) != SVt_PVAV
+                      || pctx->req == NULL))
     {
         nxt_perl_psgi_cb_request_done(CvXSUBANY(cv).any_ptr, NXT_UNIT_ERROR);
 
@@ -277,8 +280,6 @@ XS(XS_NGINX__Unit__Sandbox_cb)
 
         XSRETURN_EMPTY;
     }
-
-    pctx = CvXSUBANY(cv).any_ptr;
 
     rc = nxt_perl_psgi_result_array(PERL_GET_CONTEXT, ST(0), pctx->req);
     if (nxt_slow_path(rc != NXT_UNIT_OK)) {
