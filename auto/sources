@@ -299,7 +299,7 @@ if [ "$NXT_HAVE_HPUX_SENDFILE" = "YES" \
 fi
 
 
-if [ "$NXT_HAVE_CLONE" = "YES" ]; then
+if [ "$NXT_HAVE_LINUX_NS" = "YES" ]; then
     NXT_LIB_SRCS="$NXT_LIB_SRCS $NXT_LIB_CLONE_SRCS"
 fi
 

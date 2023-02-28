@@ -15,6 +15,81 @@
                 unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11 unit-jsc13
                 unit-jsc14 unit-jsc15 unit-jsc16 unit-jsc17 unit-jsc18
                 unit-jsc19"
+         ver="1.29.1" rev="1"
+         date="2023-02-28" time="18:00:00 +0300"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.29.1.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.29.1" rev="1"
+         date="2023-02-28" time="18:00:00 +0300"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change type="bugfix">
+<para>
+stop creating world-writeable directories.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+memory leak related to NJS.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+path parsing in PHP applications.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+enabled UTF-8 for Python config by default to avoid applications failing
+in some cases.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+using asyncio.get_running_loop() instead of asyncio.get_event_loop()
+when it's available to prevent errors in some Python ASGI applications.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+applications that make use of various low level APIs such as pthreads could
+fail to work correctly.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+websocket endianness detection for obscure operating systems.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8 unit-python3.9 unit-python3.10 unit-python3.11
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11 unit-jsc13
+                unit-jsc14 unit-jsc15 unit-jsc16 unit-jsc17 unit-jsc18
+                unit-jsc19"
          ver="1.29.0" rev="1"
          date="2022-12-15" time="18:00:00 +0300"
          packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">

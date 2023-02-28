@@ -109,6 +109,7 @@ fi
 
 NXT_LIBRT=
 
+. auto/endian
 . auto/types
 . auto/clang
 . auto/atomic
@@ -136,7 +137,6 @@ fi
 
 case "$NXT_SYSTEM_PLATFORM" in
     i386 | amd64 | x86_64)
-        nxt_have=NXT_HAVE_LITTLE_ENDIAN . auto/have
         nxt_have=NXT_HAVE_NONALIGNED . auto/have
     ;;
 esac

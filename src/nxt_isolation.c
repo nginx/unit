@@ -21,7 +21,7 @@ static nxt_int_t nxt_isolation_set_cgroup(nxt_task_t *task,
     nxt_conf_value_t *isolation, nxt_process_t *process);
 #endif
 
-#if (NXT_HAVE_CLONE)
+#if (NXT_HAVE_LINUX_NS)
 static nxt_int_t nxt_isolation_set_namespaces(nxt_task_t *task,
     nxt_conf_value_t *isolation, nxt_process_t *process);
 static nxt_int_t nxt_isolation_clone_flags(nxt_task_t *task,
@@ -169,7 +169,7 @@ nxt_isolation_set(nxt_task_t *task, nxt_conf_value_t *isolation,
     }
 #endif
 
-#if (NXT_HAVE_CLONE)
+#if (NXT_HAVE_LINUX_NS)
     if (nxt_slow_path(nxt_isolation_set_namespaces(task, isolation, process)
                       != NXT_OK))
     {
@@ -247,7 +247,7 @@ nxt_isolation_set_cgroup(nxt_task_t *task, nxt_conf_value_t *isolation,
 #endif
 
 
-#if (NXT_HAVE_CLONE)
+#if (NXT_HAVE_LINUX_NS)
 
 static nxt_int_t
 nxt_isolation_set_namespaces(nxt_task_t *task, nxt_conf_value_t *isolation,
@@ -409,7 +409,7 @@ nxt_isolation_vldt_creds(nxt_task_t *task, nxt_process_t *process)
 #endif
 
 
-#if (NXT_HAVE_CLONE)
+#if (NXT_HAVE_LINUX_NS)
 
 static nxt_int_t
 nxt_isolation_clone_flags(nxt_task_t *task, nxt_conf_value_t *namespaces,
@@ -652,7 +652,7 @@ nxt_isolation_set_lang_mounts(nxt_task_t *task, nxt_process_t *process,
         mnt->flags = (NXT_FS_FLAGS_NOSUID
                       | NXT_FS_FLAGS_NODEV
                       | NXT_FS_FLAGS_NOEXEC);
-        mnt->data = (u_char *) "size=1m,mode=777";
+        mnt->data = (u_char *) "size=1m,mode=1777";
         mnt->builtin = 1;
         mnt->deps = 0;
 

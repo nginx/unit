@@ -1,4 +1,25 @@
 
+Changes with Unit 1.29.1                                         28 Feb 2023
+
+    *) Bugfix: stop creating world-writeable directories.
+
+    *) Bugfix: memory leak related to NJS.
+
+    *) Bugfix: path parsing in PHP applications.
+
+    *) Bugfix: enabled UTF-8 for Python config by default to avoid
+       applications failing in some cases.
+
+    *) Bugfix: using asyncio.get_running_loop() instead of
+       asyncio.get_event_loop() when it's available to prevent errors in
+       some Python ASGI applications.
+
+    *) Bugfix: applications that make use of various low level APIs such as
+       pthreads could fail to work correctly.
+
+    *) Bugfix: websocket endianness detection for obscure operating systems.
+
+
 Changes with Unit 1.29.0                                         15 Dec 2022
 
     *) Change: removed $uri auto-append for "share" when loading
