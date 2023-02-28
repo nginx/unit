@@ -15,5 +15,5 @@ njs: njs-$(NJS_VERSION).tar.gz .sum-njs
 	$(MOVE)
 
 .njs: njs
-       cd $< && ./configure --no-libxml2 && $(MAKE) libnjs
+	cd $< && ./configure --no-libxml2 && $(MAKE) libnjs
 	touch $@
