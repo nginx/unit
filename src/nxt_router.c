@@ -3686,6 +3686,13 @@ nxt_router_listen_socket_close(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_router_listen_socket_release(nxt_task_t *task, nxt_socket_conf_t *skcf)
 {
+#if (NXT_HAVE_UNIX_DOMAIN)
+    size_t                 size;
+    nxt_buf_t              *b;
+    nxt_port_t             *main_port;
+    nxt_runtime_t          *rt;
+    nxt_sockaddr_t         *sa;
+#endif
     nxt_listen_socket_t    *ls;
     nxt_thread_spinlock_t  *lock;
 
@@ -3703,10 +3710,38 @@ nxt_router_listen_socket_release(nxt_task_t *task, nxt_socket_conf_t *skcf)
 
     nxt_thread_spin_unlock(lock);
 
-    if (ls != NULL) {
-        nxt_socket_close(task, ls->socket);
-        nxt_free(ls);
+    if (ls == NULL) {
+        return;
     }
+
+    nxt_socket_close(task, ls->socket);
+
+#if (NXT_HAVE_UNIX_DOMAIN)
+    sa = ls->sockaddr;
+    if (sa->u.sockaddr.sa_family != AF_UNIX
+        || sa->u.sockaddr_un.sun_path[0] == '\0')
+    {
+        goto out_free_ls;
+    }
+
+    size = nxt_sockaddr_size(ls->sockaddr);
+
+    b = nxt_buf_mem_alloc(task->thread->engine->mem_pool, size, 0);
+    if (b == NULL) {
+        goto out_free_ls;
+    }
+
+    b->mem.free = nxt_cpymem(b->mem.free, ls->sockaddr, size);
+
+    rt = task->thread->runtime;
+    main_port = rt->port_by_type[NXT_PROCESS_MAIN];
+
+    (void) nxt_port_socket_write(task, main_port, NXT_PORT_MSG_SOCKET_UNLINK,
+                                 -1, 0, 0, b);
+
+out_free_ls:
+#endif
+    nxt_free(ls);
 }
 
 
