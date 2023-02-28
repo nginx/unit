@@ -27,7 +27,46 @@ NGINX Unit updated to 1.29.1.
 
 <change type="bugfix">
 <para>
+stop creating world-writeable directories.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
 memory leak related to NJS.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+path parsing in PHP applications.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+enabled UTF-8 for Python config by default to avoid applications failing
+in some cases.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+using asyncio.get_running_loop() instead of asyncio.get_event_loop()
+when it's available to prevent errors in some Python ASGI applications.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+applications that make use of various low level APIs such as pthreads could
+fail to work correctly.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+websocket endianness detection for obscure operating systems.
 </para>
 </change>
 
