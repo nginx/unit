@@ -2465,12 +2465,6 @@ nxt_router_apps_hash_use(nxt_task_t *task, nxt_router_conf_t *rtcf, int i)
 }
 
 
-typedef struct {
-    nxt_app_t  *app;
-    nxt_int_t  target;
-} nxt_http_app_conf_t;
-
-
 nxt_int_t
 nxt_router_application_init(nxt_router_conf_t *rtcf, nxt_str_t *name,
     nxt_str_t *target, nxt_http_action_t *action)

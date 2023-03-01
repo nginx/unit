@@ -16,6 +16,7 @@ typedef struct nxt_http_request_s  nxt_http_request_t;
 #include <nxt_application.h>
 
 
+typedef struct nxt_http_app_conf_s      nxt_http_app_conf_t;
 typedef struct nxt_http_action_s        nxt_http_action_t;
 typedef struct nxt_http_routes_s        nxt_http_routes_t;
 typedef struct nxt_http_forward_s       nxt_http_forward_t;
@@ -150,6 +151,12 @@ struct nxt_app_s {
     nxt_port_t             *proto_port;
 
     nxt_port_mmaps_t       outgoing;
+};
+
+
+struct nxt_http_app_conf_s {
+    nxt_app_t  *app;
+    nxt_int_t  target;
 };
 
 
