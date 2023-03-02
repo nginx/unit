@@ -59,98 +59,98 @@ typedef struct {
 
 
 typedef struct {
-    nxt_event_engine_t     *engine;
-    nxt_work_t             *jobs;
+    nxt_event_engine_t       *engine;
+    nxt_work_t               *jobs;
 
     enum {
         NXT_ROUTER_ENGINE_KEEP = 0,
         NXT_ROUTER_ENGINE_ADD,
         NXT_ROUTER_ENGINE_DELETE,
-    }                      action;
+    }                        action;
 } nxt_router_engine_conf_t;
 
 
 typedef struct {
 #if (NXT_TLS)
-    nxt_queue_t            tls;        /* of nxt_router_tlssock_t */
+    nxt_queue_t              tls;        /* of nxt_router_tlssock_t */
 #endif
 
-    nxt_queue_t            apps;       /* of nxt_app_t */
-    nxt_queue_t            previous;   /* of nxt_app_t */
+    nxt_queue_t              apps;       /* of nxt_app_t */
+    nxt_queue_t              previous;   /* of nxt_app_t */
 
-    uint32_t               new_threads;
-    uint32_t               stream;
-    uint32_t               count;
+    uint32_t                 new_threads;
+    uint32_t                 stream;
+    uint32_t                 count;
 
-    nxt_event_engine_t     *engine;
-    nxt_port_t             *port;
-    nxt_array_t            *engines;
-    nxt_router_conf_t      *router_conf;
-    nxt_mp_t               *mem_pool;
+    nxt_event_engine_t       *engine;
+    nxt_port_t               *port;
+    nxt_array_t              *engines;
+    nxt_router_conf_t        *router_conf;
+    nxt_mp_t                 *mem_pool;
 } nxt_router_temp_conf_t;
 
 
 typedef struct {
-    nxt_task_t              task;
-    nxt_work_t              work;
-    nxt_router_temp_conf_t  *tmcf;
+    nxt_task_t               task;
+    nxt_work_t               work;
+    nxt_router_temp_conf_t   *tmcf;
 } nxt_joint_job_t;
 
 
 typedef struct {
-    uint32_t               use_count;
-    nxt_app_t              *app;
-    nxt_timer_t            idle_timer;
-    nxt_work_t             free_app_work;
+    uint32_t                 use_count;
+    nxt_app_t                *app;
+    nxt_timer_t              idle_timer;
+    nxt_work_t               free_app_work;
 } nxt_app_joint_t;
 
 
 struct nxt_app_s {
-    nxt_thread_mutex_t     mutex;       /* Protects ports queue. */
-    nxt_queue_t            ports;       /* of nxt_port_t.app_link */
-    nxt_lvlhsh_t           port_hash;   /* of nxt_port_t */
+    nxt_thread_mutex_t       mutex;       /* Protects ports queue. */
+    nxt_queue_t              ports;       /* of nxt_port_t.app_link */
+    nxt_lvlhsh_t             port_hash;   /* of nxt_port_t */
 
-    nxt_queue_t            spare_ports; /* of nxt_port_t.idle_link */
-    nxt_queue_t            idle_ports;  /* of nxt_port_t.idle_link */
-    nxt_work_t             adjust_idle_work;
-    nxt_event_engine_t     *engine;
+    nxt_queue_t              spare_ports; /* of nxt_port_t.idle_link */
+    nxt_queue_t              idle_ports;  /* of nxt_port_t.idle_link */
+    nxt_work_t               adjust_idle_work;
+    nxt_event_engine_t       *engine;
 
-    nxt_str_t              name;
+    nxt_str_t                name;
 
-    uint32_t               port_hash_count;
+    uint32_t                 port_hash_count;
 
-    uint32_t               active_requests;
-    uint32_t               pending_processes;
-    uint32_t               processes;
-    uint32_t               idle_processes;
+    uint32_t                 active_requests;
+    uint32_t                 pending_processes;
+    uint32_t                 processes;
+    uint32_t                 idle_processes;
 
-    uint32_t               max_processes;
-    uint32_t               spare_processes;
-    uint32_t               max_pending_processes;
+    uint32_t                 max_processes;
+    uint32_t                 spare_processes;
+    uint32_t                 max_pending_processes;
 
-    uint32_t               generation;
-    uint32_t               proto_port_requests;
+    uint32_t                 generation;
+    uint32_t                 proto_port_requests;
 
-    nxt_msec_t             timeout;
-    nxt_msec_t             idle_timeout;
+    nxt_msec_t               timeout;
+    nxt_msec_t               idle_timeout;
 
-    nxt_str_t              *targets;
+    nxt_str_t                *targets;
 
-    nxt_app_type_t         type:8;
+    nxt_app_type_t           type:8;
 
-    nxt_mp_t               *mem_pool;
-    nxt_queue_link_t       link;
+    nxt_mp_t                 *mem_pool;
+    nxt_queue_link_t         link;
 
-    nxt_str_t              conf;
+    nxt_str_t                conf;
 
-    nxt_atomic_t           use_count;
-    nxt_queue_t            ack_waiting_req; /* of nxt_http_request_t.app_link */
+    nxt_atomic_t             use_count;
+    nxt_queue_t              ack_waiting_req; /* of nxt_http_request_t.app_link */
 
-    nxt_app_joint_t        *joint;
-    nxt_port_t             *shared_port;
-    nxt_port_t             *proto_port;
+    nxt_app_joint_t          *joint;
+    nxt_port_t               *shared_port;
+    nxt_port_t               *proto_port;
 
-    nxt_port_mmaps_t       outgoing;
+    nxt_port_mmaps_t         outgoing;
 };
 
 
@@ -168,74 +168,74 @@ typedef struct {
 
 
 typedef struct {
-    uint32_t               count;
-    nxt_queue_link_t       link;
-    nxt_router_conf_t      *router_conf;
+    uint32_t                 count;
+    nxt_queue_link_t         link;
+    nxt_router_conf_t        *router_conf;
 
-    nxt_http_action_t      *action;
+    nxt_http_action_t        *action;
 
     /*
      * A listen socket time can be shorter than socket configuration life
      * time, so a copy of the non-wildcard socket sockaddr is stored here
      * to be used as a local sockaddr in connections.
      */
-    nxt_sockaddr_t         *sockaddr;
+    nxt_sockaddr_t           *sockaddr;
 
-    nxt_listen_socket_t    *listen;
+    nxt_listen_socket_t      *listen;
 
-    size_t                 header_buffer_size;
-    size_t                 large_header_buffer_size;
-    size_t                 large_header_buffers;
-    size_t                 body_buffer_size;
-    size_t                 max_body_size;
-    size_t                 proxy_header_buffer_size;
-    size_t                 proxy_buffer_size;
-    size_t                 proxy_buffers;
+    size_t                   header_buffer_size;
+    size_t                   large_header_buffer_size;
+    size_t                   large_header_buffers;
+    size_t                   body_buffer_size;
+    size_t                   max_body_size;
+    size_t                   proxy_header_buffer_size;
+    size_t                   proxy_buffer_size;
+    size_t                   proxy_buffers;
 
-    nxt_msec_t             idle_timeout;
-    nxt_msec_t             header_read_timeout;
-    nxt_msec_t             body_read_timeout;
-    nxt_msec_t             send_timeout;
-    nxt_msec_t             proxy_timeout;
-    nxt_msec_t             proxy_send_timeout;
-    nxt_msec_t             proxy_read_timeout;
+    nxt_msec_t               idle_timeout;
+    nxt_msec_t               header_read_timeout;
+    nxt_msec_t               body_read_timeout;
+    nxt_msec_t               send_timeout;
+    nxt_msec_t               proxy_timeout;
+    nxt_msec_t               proxy_send_timeout;
+    nxt_msec_t               proxy_read_timeout;
 
-    nxt_websocket_conf_t   websocket_conf;
+    nxt_websocket_conf_t     websocket_conf;
 
-    nxt_str_t              body_temp_path;
+    nxt_str_t                body_temp_path;
 
-    uint8_t                discard_unsafe_fields;  /* 1 bit */
+    uint8_t                  discard_unsafe_fields;  /* 1 bit */
 
-    nxt_http_forward_t     *forwarded;
-    nxt_http_forward_t     *client_ip;
+    nxt_http_forward_t       *forwarded;
+    nxt_http_forward_t       *client_ip;
 
 #if (NXT_TLS)
-    nxt_tls_conf_t         *tls;
+    nxt_tls_conf_t           *tls;
 #endif
 } nxt_socket_conf_t;
 
 
 typedef struct {
-    uint32_t               count;
-    nxt_queue_link_t       link;
-    nxt_event_engine_t     *engine;
-    nxt_socket_conf_t      *socket_conf;
+    uint32_t                 count;
+    nxt_queue_link_t         link;
+    nxt_event_engine_t       *engine;
+    nxt_socket_conf_t        *socket_conf;
 
-    nxt_joint_job_t        *close_job;
+    nxt_joint_job_t          *close_job;
 
-    nxt_upstream_t         **upstreams;
+    nxt_upstream_t           **upstreams;
 
     /* Modules configuraitons. */
 } nxt_socket_conf_joint_t;
 
 
 struct nxt_router_access_log_s {
-    void                   (*handler)(nxt_task_t *task, nxt_http_request_t *r,
-                                      nxt_router_access_log_t *access_log,
-                                      nxt_tstr_t *format);
-    nxt_fd_t               fd;
-    nxt_str_t              path;
-    uint32_t               count;
+    void                     (*handler)(nxt_task_t *task, nxt_http_request_t *r,
+                                        nxt_router_access_log_t *access_log,
+                                        nxt_tstr_t *format);
+    nxt_fd_t                 fd;
+    nxt_str_t                path;
+    uint32_t                 count;
 };
 
 
