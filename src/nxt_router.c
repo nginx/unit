@@ -5208,6 +5208,7 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_http_request_t *r,
                + r->version.length + 1
                + r->remote->length + 1
                + r->local->length + 1
+               + nxt_sockaddr_port_length(r->local) + 1
                + r->server_name.length + 1
                + r->target.length + 1
                + (r->path->start != r->target.start ? r->path->length + 1 : 0);
