@@ -232,6 +232,8 @@ def pytest_sessionstart(session):
 
     if option.restart:
         shutil.rmtree(unit_instance['temp_dir'])
+    else:
+        _clear_temp_dir()
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
@@ -316,32 +318,7 @@ def run(request):
 
     if not option.restart:
         _clear_conf(f'{unit["temp_dir"]}/control.unit.sock', log=log)
-
-        if is_findmnt and not waitforunmount(unit['temp_dir'], timeout=600):
-            exit('Could not unmount some filesystems in tmp dir.')
-
-        for item in os.listdir(unit['temp_dir']):
-            if item not in [
-                'control.unit.sock',
-                'state',
-                'unit.pid',
-                'unit.log',
-            ]:
-                path = os.path.join(unit['temp_dir'], item)
-
-                public_dir(path)
-
-                if os.path.isfile(path) or stat.S_ISSOCK(os.stat(path).st_mode):
-                    os.remove(path)
-                else:
-                    for attempt in range(10):
-                        try:
-                            shutil.rmtree(path)
-                            break
-                        except OSError as err:
-                            if err.errno != 16:
-                                raise
-                            time.sleep(1)
+        _clear_temp_dir()
 
     # check descriptors
 
@@ -562,6 +539,34 @@ def _clear_conf(sock, *, log=None):
         )['body']
 
         assert 'success' in resp, 'remove certificate'
+
+
+def _clear_temp_dir():
+    temp_dir = unit_instance['temp_dir']
+
+    if is_findmnt and not waitforunmount(temp_dir, timeout=600):
+        exit('Could not unmount some filesystems in tmpdir ({temp_dir}).')
+
+    for item in os.listdir(temp_dir):
+        if item not in [
+            'control.unit.sock',
+            'state',
+            'unit.pid',
+            'unit.log',
+        ]:
+            path = os.path.join(temp_dir, item)
+            public_dir(path)
+            if os.path.isfile(path) or stat.S_ISSOCK(os.stat(path).st_mode):
+                os.remove(path)
+            else:
+                for attempt in range(10):
+                    try:
+                        shutil.rmtree(path)
+                        break
+                    except OSError as err:
+                        if err.errno != 16:
+                            raise
+                        time.sleep(1)
 
 
 def _check_processes():
