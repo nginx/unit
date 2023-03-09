@@ -1251,14 +1251,9 @@ nxt_process_close_ports(nxt_task_t *task, nxt_process_t *process)
 void
 nxt_process_quit(nxt_task_t *task, nxt_uint_t exit_status)
 {
-    nxt_uint_t           n;
     nxt_queue_t          *listen;
-    nxt_runtime_t        *rt;
     nxt_queue_link_t     *link, *next;
     nxt_listen_event_t   *lev;
-    nxt_listen_socket_t  *ls;
-
-    rt = task->thread->runtime;
 
     nxt_debug(task, "close listen connections");
 
@@ -1273,22 +1268,6 @@ nxt_process_quit(nxt_task_t *task, nxt_uint_t exit_status)
         nxt_queue_remove(link);
 
         nxt_fd_event_close(task->thread->engine, &lev->socket);
-    }
-
-    if (rt->listen_sockets != NULL) {
-
-        ls = rt->listen_sockets->elts;
-        n = rt->listen_sockets->nelts;
-
-        while (n != 0) {
-            nxt_socket_close(task, ls->socket);
-            ls->socket = -1;
-
-            ls++;
-            n--;
-        }
-
-        rt->listen_sockets->nelts = 0;
     }
 
     nxt_runtime_quit(task, exit_status);
