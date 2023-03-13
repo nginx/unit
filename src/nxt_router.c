@@ -5206,8 +5206,8 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_http_request_t *r,
     req_size = sizeof(nxt_unit_request_t)
                + r->method->length + 1
                + r->version.length + 1
-               + r->remote->length + 1
-               + r->local->length + 1
+               + r->remote->address_length + 1
+               + r->local->address_length + 1
                + nxt_sockaddr_port_length(r->local) + 1
                + r->server_name.length + 1
                + r->target.length + 1
