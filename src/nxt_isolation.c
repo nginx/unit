@@ -80,6 +80,10 @@ nxt_isolation_main_prefork(nxt_task_t *task, nxt_process_t *process,
     app_conf = process->data.app;
     cap_setid = rt->capabilities.setid;
 
+#if (NXT_HAVE_PR_SET_NO_NEW_PRIVS)
+    process->isolation.new_privs = 1;
+#endif
+
     if (app_conf->isolation != NULL) {
         ret = nxt_isolation_set(task, app_conf->isolation, process);
         if (nxt_slow_path(ret != NXT_OK)) {
