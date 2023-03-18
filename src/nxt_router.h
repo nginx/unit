@@ -201,6 +201,8 @@ typedef struct {
 
     uint8_t                discard_unsafe_fields;  /* 1 bit */
 
+    uint8_t                server_version;         /* 1 bit */
+
     nxt_http_forward_t     *forwarded;
     nxt_http_forward_t     *client_ip;
 

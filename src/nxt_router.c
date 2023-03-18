@@ -1519,6 +1519,12 @@ static nxt_conf_map_t  nxt_router_http_conf[] = {
         NXT_CONF_MAP_INT8,
         offsetof(nxt_socket_conf_t, log_route),
     },
+
+    {
+        nxt_string("server_version"),
+        NXT_CONF_MAP_INT8,
+        offsetof(nxt_socket_conf_t, server_version),
+    },
 };
 
 
@@ -1926,6 +1932,8 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             skcf->proxy_timeout = 60 * 1000;
             skcf->proxy_send_timeout = 30 * 1000;
             skcf->proxy_read_timeout = 30 * 1000;
+
+            skcf->server_version = 1;
 
             skcf->websocket_conf.max_frame_size = 1024 * 1024;
             skcf->websocket_conf.read_timeout = 60 * 1000;
