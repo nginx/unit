@@ -393,3 +393,157 @@ Connection: close
         assert bool(resp), 'response from application 4'
         assert resp['status'] == 200, 'status 4'
         assert resp['body'] == body, 'body 4'
+
+    def test_settings_log_route(self):
+        def count_fallbacks():
+            return len(self.findall(r'"fallback" taken'))
+
+        def check_record(template):
+            assert self.search_in_log(template) is not None
+
+        def check_no_record(template):
+            assert self.search_in_log(template) is None
+
+        def template_req_line(url):
+            return rf'\[notice\].*http request line "GET {url} HTTP/1\.1"'
+
+        def template_selected(route):
+            return rf'\[notice\].*"{route}" selected'
+
+        def template_discarded(route):
+            return rf'\[info\].*"{route}" discarded'
+
+        def wait_for_request_log(status, uri, route):
+            assert self.get(url=uri)['status'] == status
+            assert self.wait_for_record(template_req_line(uri)) is not None
+            assert self.wait_for_record(template_selected(route)) is not None
+
+        # routes array
+
+        assert 'success' in self.conf(
+            {
+                "listeners": {"*:7080": {"pass": "routes"}},
+                "routes": [
+                    {
+                        "match": {
+                            "uri": "/zero",
+                        },
+                        "action": {"return": 200},
+                    },
+                    {
+                        "action": {"return": 201},
+                    },
+                ],
+                "applications": {},
+                "settings": {"http": {"log_route": True}},
+            }
+        )
+
+        wait_for_request_log(200, '/zero', 'routes/0')
+        check_no_record(r'discarded')
+
+        wait_for_request_log(201, '/one', 'routes/1')
+        check_record(template_discarded('routes/0'))
+
+        # routes object
+
+        assert 'success' in self.conf(
+            {
+                "listeners": {"*:7080": {"pass": "routes/main"}},
+                "routes": {
+                    "main": [
+                        {
+                            "match": {
+                                "uri": "/named_route",
+                            },
+                            "action": {"return": 200},
+                        },
+                        {
+                            "action": {"return": 201},
+                        },
+                    ]
+                },
+                "applications": {},
+                "settings": {"http": {"log_route": True}},
+            }
+        )
+
+        wait_for_request_log(200, '/named_route', 'routes/main/0')
+        check_no_record(template_discarded('routes/main'))
+
+        wait_for_request_log(201, '/unnamed_route', 'routes/main/1')
+        check_record(template_discarded('routes/main/0'))
+
+        # routes sequence
+
+        assert 'success' in self.conf(
+            {
+                "listeners": {"*:7080": {"pass": "routes/first"}},
+                "routes": {
+                    "first": [
+                        {
+                            "action": {"pass": "routes/second"},
+                        },
+                    ],
+                    "second": [
+                        {
+                            "action": {"return": 200},
+                        },
+                    ],
+                },
+                "applications": {},
+                "settings": {"http": {"log_route": True}},
+            }
+        )
+
+        wait_for_request_log(200, '/sequence', 'routes/second/0')
+        check_record(template_selected('routes/first/0'))
+
+        # fallback
+
+        assert 'success' in self.conf(
+            {
+                "listeners": {"*:7080": {"pass": "routes/fall"}},
+                "routes": {
+                    "fall": [
+                        {
+                            "action": {
+                                "share": "/blah",
+                                "fallback": {"pass": "routes/fall2"},
+                            },
+                        },
+                    ],
+                    "fall2": [
+                        {
+                            "action": {"return": 200},
+                        },
+                    ],
+                },
+                "applications": {},
+                "settings": {"http": {"log_route": True}},
+            }
+        )
+
+        wait_for_request_log(200, '/', 'routes/fall2/0')
+        assert count_fallbacks() == 1
+        check_record(template_selected('routes/fall/0'))
+
+        assert self.head()['status'] == 200
+        assert count_fallbacks() == 2
+
+        # disable log
+
+        assert 'success' in self.conf({"log_route": False}, 'settings/http')
+
+        url = '/disable_logging'
+        assert self.get(url=url)['status'] == 200
+
+        time.sleep(1)
+
+        check_no_record(template_req_line(url))
+
+        # total
+
+        assert len(self.findall(r'\[notice\].*http request line')) == 7
+        assert len(self.findall(r'\[notice\].*selected')) == 10
+        assert len(self.findall(r'\[info\].*discarded')) == 2
