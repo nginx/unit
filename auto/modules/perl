@@ -185,18 +185,17 @@ cat << END >> $NXT_MAKEFILE
 
 all: ${NXT_PERL_MODULE}
 
-${NXT_PERL_MODULE}:	$NXT_BUILD_DIR/${NXT_PERL_MODULE}.unit.so
+${NXT_PERL_MODULE}:	$NXT_BUILD_DIR/lib/unit/modules/${NXT_PERL_MODULE}.unit.so
 
-$NXT_BUILD_DIR/${NXT_PERL_MODULE}.unit.so:	$nxt_objs
-	\$(NXT_MODULE_LINK) -o $NXT_BUILD_DIR/${NXT_PERL_MODULE}.unit.so \\
-	$nxt_objs $NXT_PERL_LDOPTS $NXT_LD_OPT
+$NXT_BUILD_DIR/lib/unit/modules/${NXT_PERL_MODULE}.unit.so:	$nxt_objs
+	\$(NXT_MODULE_LINK) -o \$@ $nxt_objs $NXT_PERL_LDOPTS $NXT_LD_OPT
 
 
 install: ${NXT_PERL_MODULE}-install
 
 ${NXT_PERL_MODULE}-install: ${NXT_PERL_MODULE} install-check
 	install -d \$(DESTDIR)$NXT_MODULESDIR
-	install -p $NXT_BUILD_DIR/${NXT_PERL_MODULE}.unit.so \\
+	install -p $NXT_BUILD_DIR/lib/unit/modules/${NXT_PERL_MODULE}.unit.so \\
 		\$(DESTDIR)$NXT_MODULESDIR/
 
 

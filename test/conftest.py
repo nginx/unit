@@ -350,8 +350,11 @@ def unit_run(state_dir=None):
     if not option.restart and 'unitd' in unit_instance:
         return unit_instance
 
-    build_dir = f'{option.current_dir}/build'
-    unitd = f'{build_dir}/unitd'
+    builddir   = f'{option.current_dir}/build'
+    libdir     = f'{builddir}/lib'
+    modulesdir = f'{libdir}/unit/modules'
+    sbindir    = f'{builddir}/sbin'
+    unitd      = f'{sbindir}/unitd'
 
     if not os.path.isfile(unitd):
         exit('Could not find unit')
@@ -359,12 +362,12 @@ def unit_run(state_dir=None):
     temp_dir = tempfile.mkdtemp(prefix='unit-test-')
     public_dir(temp_dir)
 
-    if oct(stat.S_IMODE(os.stat(build_dir).st_mode)) != '0o777':
-        public_dir(build_dir)
+    if oct(stat.S_IMODE(os.stat(builddir).st_mode)) != '0o777':
+        public_dir(builddir)
 
-    state = f'{temp_dir}/state' if state_dir is None else state_dir
-    if not os.path.isdir(state):
-        os.mkdir(state)
+    statedir = f'{temp_dir}/state' if state_dir is None else state_dir
+    if not os.path.isdir(statedir):
+        os.mkdir(statedir)
 
     control_sock = f'{temp_dir}/control.unit.sock'
 
@@ -372,9 +375,9 @@ def unit_run(state_dir=None):
         unitd,
         '--no-daemon',
         '--modulesdir',
-        build_dir,
+        modulesdir,
         '--statedir',
-        state,
+        statedir,
         '--pid',
         f'{temp_dir}/unit.pid',
         '--log',

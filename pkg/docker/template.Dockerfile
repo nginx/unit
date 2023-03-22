@@ -26,11 +26,11 @@ RUN set -ex \
                 --libdir=/usr/lib/$DEB_HOST_MULTIARCH" \
     && ./configure $CONFIGURE_ARGS --cc-opt="$CC_OPT" --ld-opt="$LD_OPT" --modulesdir=/usr/lib/unit/debug-modules --debug \
     && make -j $NCPU unitd \
-    && install -pm755 build/unitd /usr/sbin/unitd-debug \
+    && install -pm755 build/sbin/unitd /usr/sbin/unitd-debug \
     && make clean \
     && ./configure $CONFIGURE_ARGS --cc-opt="$CC_OPT" --ld-opt="$LD_OPT" --modulesdir=/usr/lib/unit/modules \
     && make -j $NCPU unitd \
-    && install -pm755 build/unitd /usr/sbin/unitd \
+    && install -pm755 build/sbin/unitd /usr/sbin/unitd \
     && make clean \
     && ./configure $CONFIGURE_ARGS --cc-opt="$CC_OPT" --modulesdir=/usr/lib/unit/debug-modules --debug \
     && ./configure @@CONFIGURE@@ \

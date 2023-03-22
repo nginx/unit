@@ -288,8 +288,8 @@ test: unit modules
 	for so in `find debuild-*/unit-$(VERSION)/debian/build-unit/ -type f \( -name "*.so" -o -name "*.jar" \)`; do \
 		soname=`basename $${so}` ; \
 		test "$${soname}" = "java.unit.so" && continue ; \
-		test -h debuild/unit-$(VERSION)/debian/build-unit/build/$${soname} || \
-		ln -fs `pwd`/$${so} debuild/unit-$(VERSION)/debian/build-unit/build/$${soname} ; \
+		test -h debuild/unit-$(VERSION)/debian/build-unit/build/lib/$${soname} || \
+		ln -fs `pwd`/$${so} debuild/unit-$(VERSION)/debian/build-unit/build/lib/$${soname} ; \
 	done ; \
 	( cd debuild/unit-$(VERSION)/debian/build-unit && env python3 -m pytest --user=nobody $(PYTEST_ARGS) ) ; \
 	}
@@ -299,8 +299,8 @@ test-debug: unit modules
 	for so in `find debuild-*/unit-$(VERSION)/debian/build-unit-debug/ -type f \( -name "*.so" -o -name "*.jar" \)`; do \
 		soname=`basename $${so}` ; \
 		test "$${soname}" = "java.unit.so" && continue ; \
-		test -h debuild/unit-$(VERSION)/debian/build-unit-debug/build/$${soname} || \
-		ln -fs `pwd`/$${so} debuild/unit-$(VERSION)/debian/build-unit-debug/build/$${soname} ; \
+		test -h debuild/unit-$(VERSION)/debian/build-unit-debug/build/lib/$${soname} || \
+		ln -fs `pwd`/$${so} debuild/unit-$(VERSION)/debian/build-unit-debug/build/lib/$${soname} ; \
 	done ; \
 	( cd debuild/unit-$(VERSION)/debian/build-unit-debug && env python3 -m pytest --user=nobody $(PYTEST_ARGS) ) ; \
 	}
