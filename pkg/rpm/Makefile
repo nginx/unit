@@ -142,7 +142,7 @@ check-build-depends-%:
 	esac ; \
 	not_installed= ; \
 	for pkg in $${pkgs}; do \
-		rpm -qi $${pkg} >/dev/null 2>&1 ; \
+		rpm -qi --whatprovides $${pkg} >/dev/null 2>&1 ; \
 		if [ $$? -ne 0 ]; then \
 			not_installed="$${not_installed} $${pkg}" ; \
 		fi ; \
