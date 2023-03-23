@@ -365,7 +365,7 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
             goto number;
 
         case 'b':
-            ui64 = (uint64_t) va_arg(args, nxt_bool_t);
+            ui64 = (uint64_t) va_arg(args, unsigned int);
             sign = 0;
             goto number;
 
