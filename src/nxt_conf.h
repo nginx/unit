@@ -39,6 +39,7 @@ typedef struct {
 
 
 typedef enum {
+    NXT_CONF_MAP_BOOL,
     NXT_CONF_MAP_INT8,
     NXT_CONF_MAP_INT32,
     NXT_CONF_MAP_INT64,
