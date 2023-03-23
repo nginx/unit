@@ -46,7 +46,7 @@ typedef struct nxt_conf_object_s  nxt_conf_object_t;
 struct nxt_conf_value_s {
     union {
         uint8_t               boolean;  /* 1 bit. */
-        u_char                number[NXT_CONF_MAX_NUMBER_LEN + 1];;
+        u_char                number[NXT_CONF_MAX_NUMBER_LEN + 1];
 
         struct {
             u_char            start[NXT_CONF_MAX_SHORT_STRING];
