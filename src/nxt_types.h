@@ -31,7 +31,7 @@ typedef uintptr_t            nxt_uint_t;
 #endif
 
 
-typedef nxt_uint_t           nxt_bool_t;
+typedef uint8_t              nxt_bool_t;
 
 
 /*
