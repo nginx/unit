@@ -45,7 +45,7 @@ typedef struct nxt_conf_object_s  nxt_conf_object_t;
 
 struct nxt_conf_value_s {
     union {
-        uint8_t               boolean;  /* 1 bit. */
+        nxt_bool_t            boolean;
         u_char                number[NXT_CONF_MAX_NUMBER_LEN + 1];
 
         struct {
@@ -582,7 +582,7 @@ nxt_conf_map_object(nxt_mp_t *mp, nxt_conf_value_t *value, nxt_conf_map_t *map,
     nxt_conf_value_t  *v;
 
     union {
-        uint8_t     ui8;
+        nxt_bool_t  b;
         int32_t     i32;
         int64_t     i64;
         int         i;
@@ -610,7 +610,7 @@ nxt_conf_map_object(nxt_mp_t *mp, nxt_conf_value_t *value, nxt_conf_map_t *map,
         case NXT_CONF_MAP_BOOL:
 
             if (v->type == NXT_CONF_VALUE_BOOLEAN) {
-                ptr->ui8 = v->u.boolean;
+                ptr->b = v->u.boolean;
             }
 
             break;
