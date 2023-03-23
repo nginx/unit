@@ -44,10 +44,10 @@ typedef struct {
     size_t        size;
     size_t        limit;
 
-    uint8_t       ready;   /* 1 bit */
-    uint8_t       once;    /* 1 bit */
-    uint8_t       sync;    /* 1 bit */
-    uint8_t       last;    /* 1 bit */
+    nxt_bool_t    ready;
+    nxt_bool_t    once;
+    nxt_bool_t    sync;
+    nxt_bool_t    last;
 } nxt_sendbuf_t;
 
 
@@ -57,8 +57,8 @@ typedef struct {
     nxt_uint_t   niov;
 
     uint32_t     nmax;
-    uint8_t      sync;   /* 1 bit */
-    uint8_t      last;   /* 1 bit */
+    nxt_bool_t   sync;
+    nxt_bool_t   last;
     uint8_t      limit_reached;
     uint8_t      nmax_reached;
 

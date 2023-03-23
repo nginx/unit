@@ -38,7 +38,7 @@ typedef struct {
     nxt_work_handler_t  abort_handler;
 
     uint16_t            cache_size;
-    uint8_t             cancel;          /* 1 bit */
+    nxt_bool_t          cancel;
 
     nxt_mp_t            *mem_pool;
     nxt_queue_link_t    link;

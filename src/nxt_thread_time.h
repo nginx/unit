@@ -23,8 +23,8 @@ typedef struct {
     const char                 *format;
     size_t                     size;
 
-    uint8_t                    timezone;  /* 1 bit */
-    uint8_t                    msec;      /* 1 bit */
+    nxt_bool_t                 timezone;
+    nxt_bool_t                 msec;
 } nxt_time_string_t;
 
 

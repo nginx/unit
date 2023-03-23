@@ -172,16 +172,16 @@ typedef struct {
     uint8_t              type;
 
     /* Last message for this stream. */
-    uint8_t              last;      /* 1 bit */
+    nxt_bool_t           last;
 
     /* Message data send using mmap, next chunk is a nxt_port_mmap_msg_t. */
-    uint8_t              mmap;      /* 1 bit */
+    nxt_bool_t           mmap;
 
     /* Non-First fragment in fragmented message sequence. */
-    uint8_t              nf;        /* 1 bit */
+    nxt_bool_t           nf;
 
     /* More Fragments followed. */
-    uint8_t              mf;        /* 1 bit */
+    nxt_bool_t           mf;
 } nxt_port_msg_t;
 
 
@@ -191,8 +191,8 @@ typedef struct {
     size_t              share;
     nxt_fd_t            fd[2];
     nxt_port_msg_t      port_msg;
-    uint8_t             close_fd;   /* 1 bit */
-    uint8_t             allocated;  /* 1 bit */
+    nxt_bool_t          close_fd;
+    nxt_bool_t          allocated;
 } nxt_port_send_msg_t;
 
 #if (NXT_HAVE_UCRED) || (NXT_HAVE_MSGHDR_CMSGCRED)

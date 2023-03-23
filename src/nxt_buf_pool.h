@@ -28,8 +28,8 @@ typedef struct {
     uint32_t        size;
 
     uint8_t         flags;     /* 2 bits */
-    uint8_t         destroy;   /* 1 bit */
-    uint8_t         mmap;      /* 1 bit */
+    nxt_bool_t      destroy;
+    nxt_bool_t      mmap;
 } nxt_buf_pool_t;
 
 

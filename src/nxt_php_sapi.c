@@ -62,7 +62,7 @@ typedef struct {
     nxt_str_t                script_dirname;
     nxt_unit_request_info_t  *req;
 
-    uint8_t                  chdir;  /* 1 bit */
+    nxt_bool_t               chdir;
 } nxt_php_run_ctx_t;
 
 

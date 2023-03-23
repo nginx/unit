@@ -78,7 +78,7 @@ struct nxt_tls_conf_s {
 
     size_t                        buffer_size;
 
-    uint8_t                       no_wait_shutdown;  /* 1 bit */
+    nxt_bool_t                    no_wait_shutdown;
 };
 
 

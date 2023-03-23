@@ -222,8 +222,8 @@ struct nxt_unit_recv_msg_s {
     nxt_pid_t                pid;
     nxt_port_id_t            reply_port;
 
-    uint8_t                  last;      /* 1 bit */
-    uint8_t                  mmap;      /* 1 bit */
+    nxt_bool_t               last;
+    nxt_bool_t               mmap;
 
     void                     *start;
     uint32_t                 size;
@@ -319,8 +319,8 @@ struct nxt_unit_ctx_impl_s {
     /*  of nxt_unit_read_buf_t */
     nxt_queue_t                   free_rbuf;
 
-    uint8_t                       online;       /* 1 bit */
-    uint8_t                       ready;        /* 1 bit */
+    nxt_bool_t                    online;
+    nxt_bool_t                    ready;
     uint8_t                       quit_param;
 
     nxt_unit_mmap_buf_t           ctx_buf[2];

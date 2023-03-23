@@ -157,17 +157,17 @@ struct nxt_conn_s {
     nxt_sockaddr_t                *local;
     const char                    *action;
 
-    uint8_t                       block_read;   /* 1 bit */
-    uint8_t                       block_write;  /* 1 bit */
-    uint8_t                       delayed;      /* 1 bit */
-    uint8_t                       idle;         /* 1 bit */
+    nxt_bool_t                    block_read;
+    nxt_bool_t                    block_write;
+    nxt_bool_t                    delayed;
+    nxt_bool_t                    idle;
 
 #define NXT_CONN_SENDFILE_OFF     0
 #define NXT_CONN_SENDFILE_ON      1
 #define NXT_CONN_SENDFILE_UNSET   3
 
     uint8_t                       sendfile;     /* 2 bits */
-    uint8_t                       tcp_nodelay;  /* 1 bit */
+    nxt_bool_t                    tcp_nodelay;
 
     nxt_queue_link_t              link;
 };
@@ -339,8 +339,8 @@ typedef struct {
     nxt_msec_t                   client_write_timeout;
     nxt_msec_t                   peer_write_timeout;
 
-    uint8_t                      connected;  /* 1 bit */
-    uint8_t                      delayed;    /* 1 bit */
+    nxt_bool_t                   connected;
+    nxt_bool_t                   delayed;
     uint8_t                      retries;    /* 8 bits */
     uint8_t                      retain;     /* 2 bits */
 

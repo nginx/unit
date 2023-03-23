@@ -55,19 +55,19 @@ struct nxt_http_request_parse_s {
 
     uint32_t                  field_hash;
 
-    uint8_t                   skip_field;             /* 1 bit */
-    uint8_t                   discard_unsafe_fields;  /* 1 bit */
+    nxt_bool_t                skip_field;
+    nxt_bool_t                discard_unsafe_fields;
 
     /* target with "/." */
-    uint8_t                   complex_target;         /* 1 bit */
+    nxt_bool_t                complex_target;
 #if 0
     /* target with "%" */
-    uint8_t                   quoted_target;          /* 1 bit */
+    nxt_bool_t                quoted_target;
     /* target with " " */
-    uint8_t                   space_in_target;        /* 1 bit */
+    nxt_bool_t                space_in_target;
 #endif
     /* Preserve encoded '/' (%2F) and '%' (%25). */
-    uint8_t                   encoded_slashes;        /* 1 bit */
+    nxt_bool_t                encoded_slashes;
 };
 
 
@@ -101,9 +101,9 @@ typedef struct {
     uint64_t                  chunk_size;
 
     uint8_t                   state;
-    uint8_t                   last;         /* 1 bit */
-    uint8_t                   chunk_error;  /* 1 bit */
-    uint8_t                   error;        /* 1 bit */
+    nxt_bool_t                last;
+    nxt_bool_t                chunk_error;
+    nxt_bool_t                error;
 } nxt_http_chunk_parse_t;
 
 

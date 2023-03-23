@@ -160,10 +160,10 @@ typedef struct {
     nxt_conn_io_t                 *io;
 
     /* True if an event facility supports file change event notifications. */
-    uint8_t                       file_support;   /* 1 bit */
+    nxt_bool_t                    file_support;
 
     /* True if an event facility supports signal event notifications. */
-    uint8_t                       signal_support;  /* 1 bit */
+    nxt_bool_t                    signal_support;
 } nxt_event_interface_t;
 
 
@@ -202,7 +202,7 @@ typedef struct {
     nxt_uint_t                    mchanges;
     int                           mevents;
 
-    uint8_t                       error;  /* 1 bit */
+    nxt_bool_t                    error;
 
     nxt_epoll_change_t            *changes;
     struct epoll_event            *events;
@@ -470,7 +470,7 @@ struct nxt_event_engine_s {
     /* The engine ID, the main engine has ID 0. */
     uint32_t                   id;
 
-    uint8_t                    shutdown;  /* 1 bit */
+    nxt_bool_t                 shutdown;
 
     uint32_t                   batch;
     uint32_t                   connections;

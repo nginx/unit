@@ -12,7 +12,7 @@ typedef struct {
     gnutls_session_t                  session;
 
     uint8_t                           times;        /* 2 bits */
-    uint8_t                           no_shutdown;  /* 1 bit */
+    nxt_bool_t                        no_shutdown;
 
     nxt_buf_mem_t                     buffer;
 } nxt_gnutls_conn_t;

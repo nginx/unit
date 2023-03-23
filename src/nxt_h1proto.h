@@ -24,16 +24,16 @@ struct nxt_h1proto_s {
     uint8_t                   nbuffers;
     uint8_t                   header_buffer_slot;
     uint8_t                   large_buffer_slot;
-    uint8_t                   keepalive;            /* 1 bit  */
-    uint8_t                   chunked;              /* 1 bit  */
-    uint8_t                   websocket;            /* 1 bit  */
-    uint8_t                   connection_upgrade;   /* 1 bit  */
-    uint8_t                   upgrade_websocket;    /* 1 bit  */
-    uint8_t                   websocket_version_ok; /* 1 bit  */
+    nxt_bool_t                keepalive;
+    nxt_bool_t                chunked;
+    nxt_bool_t                websocket;
+    nxt_bool_t                connection_upgrade;
+    nxt_bool_t                upgrade_websocket;
+    nxt_bool_t                websocket_version_ok;
     nxt_http_te_t             transfer_encoding:8;  /* 2 bits */
 
-    uint8_t                   websocket_cont_expected;  /* 1 bit */
-    uint8_t                   websocket_closed;         /* 1 bit */
+    nxt_bool_t                websocket_cont_expected;
+    nxt_bool_t                websocket_closed;
 
     uint32_t                  header_size;
 

@@ -93,7 +93,7 @@ typedef struct {
 #endif
 
 #if (NXT_HAVE_PR_SET_NO_NEW_PRIVS)
-    uint8_t                  new_privs;   /* 1 bit */
+    nxt_bool_t               new_privs;
 #endif
 } nxt_process_isolation_t;
 

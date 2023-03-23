@@ -21,10 +21,10 @@ typedef struct {
     uint32_t                  count;
 
     uint8_t                   flags;
-    uint8_t                   read_after_accept;   /* 1 bit */
+    nxt_bool_t                read_after_accept;
 
 #if (NXT_TLS)
-    uint8_t                   tls;                 /* 1 bit */
+    nxt_bool_t                tls;
 #endif
 #if (NXT_INET6 && defined IPV6_V6ONLY)
     uint8_t                   ipv6only;            /* 2 bits */

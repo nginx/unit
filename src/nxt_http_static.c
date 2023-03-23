@@ -12,7 +12,7 @@ typedef struct {
 #if (NXT_HAVE_OPENAT2)
     u_char                      *fname;
 #endif
-    uint8_t                     is_const;  /* 1 bit */
+    nxt_bool_t                  is_const;
 } nxt_http_static_share_t;
 
 
@@ -35,7 +35,7 @@ typedef struct {
     nxt_str_t                   chroot;
 #endif
     uint32_t                    share_idx;
-    uint8_t                     need_body;  /* 1 bit */
+    nxt_bool_t                  need_body;
 } nxt_http_static_ctx_t;
 
 

@@ -19,7 +19,7 @@ typedef struct {
 #if (NXT_HAVE_NJS)
     nxt_js_conf_t       *jcf;
 #endif
-    uint8_t             test;  /* 1 bit */
+    nxt_bool_t          test;
 } nxt_tstr_state_t;
 
 

@@ -63,7 +63,7 @@ typedef struct {
 
 typedef struct {
     uint32_t             level;
-    uint8_t              more_space;  /* 1 bit. */
+    nxt_bool_t           more_space;
 } nxt_conf_json_pretty_t;
 
 

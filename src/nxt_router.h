@@ -197,9 +197,9 @@ typedef struct {
 
     nxt_str_t              body_temp_path;
 
-    uint8_t                log_route;  /* 1 bit */
+    nxt_bool_t             log_route;
 
-    uint8_t                discard_unsafe_fields;  /* 1 bit */
+    nxt_bool_t             discard_unsafe_fields;
 
     nxt_http_forward_t     *forwarded;
     nxt_http_forward_t     *client_ip;

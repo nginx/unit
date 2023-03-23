@@ -66,14 +66,14 @@ typedef struct {
 typedef struct {
     nxt_app_t               *app;
     nxt_router_temp_conf_t  *temp_conf;
-    uint8_t                 proto;  /* 1 bit */
+    nxt_bool_t              proto;
 } nxt_app_rpc_t;
 
 
 typedef struct {
     nxt_app_joint_t         *app_joint;
     uint32_t                generation;
-    uint8_t                 proto;  /* 1 bit */
+    nxt_bool_t              proto;
 } nxt_app_joint_rpc_t;
 
 

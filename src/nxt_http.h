@@ -124,8 +124,8 @@ typedef struct {
 
     nxt_http_status_t               status:16;
     nxt_http_protocol_t             protocol:8;       /* 2 bits */
-    uint8_t                         header_received;  /* 1 bit  */
-    uint8_t                         closed;           /* 1 bit  */
+    nxt_bool_t                      header_received;
+    nxt_bool_t                      closed;
 } nxt_http_peer_t;
 
 
@@ -189,17 +189,17 @@ struct nxt_http_request_s {
 
     nxt_http_status_t               status:16;
 
-    uint8_t                         log_route;    /* 1 bit */
+    nxt_bool_t                      log_route;
 
     uint8_t                         pass_count;   /* 8 bits */
     uint8_t                         app_target;
     nxt_http_protocol_t             protocol:8;   /* 2 bits */
-    uint8_t                         tls;          /* 1 bit  */
-    uint8_t                         logged;       /* 1 bit  */
-    uint8_t                         header_sent;  /* 1 bit  */
-    uint8_t                         inconsistent; /* 1 bit  */
-    uint8_t                         error;        /* 1 bit  */
-    uint8_t                         websocket_handshake;  /* 1 bit */
+    nxt_bool_t                      tls;
+    nxt_bool_t                      logged;
+    nxt_bool_t                      header_sent;
+    nxt_bool_t                      inconsistent;
+    nxt_bool_t                      error;
+    nxt_bool_t                      websocket_handshake;
 };
 
 
@@ -288,7 +288,7 @@ struct nxt_http_forward_s {
     nxt_http_forward_header_t   client_ip;
     nxt_http_forward_header_t   protocol;
     nxt_http_route_addr_rule_t  *source;
-    uint8_t                     recursive;    /* 1 bit */
+    nxt_bool_t                  recursive;
 };
 
 

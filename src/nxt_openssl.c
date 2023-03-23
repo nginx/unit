@@ -24,7 +24,7 @@ typedef struct {
 
     int               ssl_error;
     uint8_t           times;      /* 2 bits */
-    uint8_t           handshake;  /* 1 bit  */
+    nxt_bool_t        handshake;
 
     nxt_tls_conf_t    *conf;
     nxt_buf_mem_t     buffer;

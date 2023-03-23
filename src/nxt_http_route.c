@@ -70,11 +70,11 @@ typedef struct {
     } u;
     uint32_t                       min_length;
 
-    uint8_t                        case_sensitive;  /* 1 bit */
-    uint8_t                        negative;        /* 1 bit */
-    uint8_t                        any;             /* 1 bit */
+    nxt_bool_t                     case_sensitive;
+    nxt_bool_t                     negative;
+    nxt_bool_t                     any;
 #if (NXT_HAVE_REGEX)
-    uint8_t                        regex;           /* 1 bit */
+    nxt_bool_t                     regex;
 #endif
 } nxt_http_route_pattern_t;
 
