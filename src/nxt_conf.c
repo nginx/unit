@@ -608,7 +608,6 @@ nxt_conf_map_object(nxt_mp_t *mp, nxt_conf_value_t *value, nxt_conf_map_t *map,
         switch (map[i].type) {
 
         case NXT_CONF_MAP_BOOL:
-        case NXT_CONF_MAP_INT8:
 
             if (v->type == NXT_CONF_VALUE_BOOLEAN) {
                 ptr->ui8 = v->u.boolean;
