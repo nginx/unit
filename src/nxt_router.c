@@ -1510,13 +1510,13 @@ static nxt_conf_map_t  nxt_router_http_conf[] = {
 
     {
         nxt_string("discard_unsafe_fields"),
-        NXT_CONF_MAP_INT8,
+        NXT_CONF_MAP_BOOL,
         offsetof(nxt_socket_conf_t, discard_unsafe_fields),
     },
 
     {
         nxt_string("log_route"),
-        NXT_CONF_MAP_INT8,
+        NXT_CONF_MAP_BOOL,
         offsetof(nxt_socket_conf_t, log_route),
     },
 };
