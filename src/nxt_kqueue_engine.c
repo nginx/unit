@@ -716,6 +716,8 @@ nxt_kqueue_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
 
     for (i = 0; i < nevents; i++) {
 
+        error = 0;
+
         kev = &engine->u.kqueue.events[i];
 
         nxt_debug(&engine->task,
@@ -725,12 +727,11 @@ nxt_kqueue_poll(nxt_event_engine_t *engine, nxt_msec_t timeout)
                   kev->ident, kev->filter, kev->flags, kev->fflags,
                   kev->data, kev->udata);
 
-        error = (kev->flags & EV_ERROR);
-
-        if (nxt_slow_path(error)) {
+        if (nxt_slow_path(kev->flags & EV_ERROR)) {
             nxt_alert(&engine->task,
                       "kevent(%d) error %E on ident:%d filter:%d",
                       engine->u.kqueue.fd, kev->data, kev->ident, kev->filter);
+            error = 1;
         }
 
         task = &engine->task;
