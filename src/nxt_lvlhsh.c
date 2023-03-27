@@ -146,7 +146,7 @@
 typedef struct {
     const nxt_lvlhsh_proto_t  *proto;
     void                      *pool;
-    uint32_t                  retrieve;  /* 1 bit */
+    nxt_bool_t                retrieve;
 } nxt_lvlhsh_peek_t;
 
 

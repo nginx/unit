@@ -37,7 +37,7 @@ struct nxt_tstr_query_s {
     nxt_tstr_cache_t    *cache;
 
     nxt_uint_t          waiting;
-    nxt_uint_t          failed;   /* 1 bit */
+    nxt_bool_t          failed;
 
     void                *ctx;
     void                *data;

@@ -329,7 +329,7 @@ extern const nxt_event_interface_t  nxt_poll_engine;
 
 typedef struct {
     int                           nfds;
-    uint32_t                      update_nfds;  /* 1 bit */
+    nxt_bool_t                    update_nfds;
 
     nxt_fd_event_t                **events;
 

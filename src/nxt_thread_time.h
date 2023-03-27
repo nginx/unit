@@ -45,7 +45,7 @@ typedef struct {
     struct tm                  gmtime;
     struct tm                  localtime;
 
-    uint32_t                   no_cache;  /* 1 bit */
+    nxt_bool_t                 no_cache;
 
     /*
      * The flag indicating a signal state of a thread.

@@ -87,7 +87,7 @@ typedef struct {
 
 struct nxt_lvlhsh_query_s {
     uint32_t                  key_hash;
-    uint32_t                  replace;   /* 1 bit */
+    nxt_bool_t                replace;
     nxt_str_t                 key;
     void                      *value;
 
