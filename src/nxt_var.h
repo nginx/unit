@@ -8,7 +8,6 @@
 
 
 typedef struct nxt_var_s        nxt_var_t;
-typedef struct nxt_var_query_s  nxt_var_query_t;
 
 
 typedef nxt_int_t (*nxt_var_handler_t)(nxt_task_t *task,
