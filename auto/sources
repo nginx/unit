@@ -108,19 +108,6 @@ NXT_LIB_SRCS=" \
     src/nxt_fs.c \
 "
 
-NXT_LIB_SRC0=" \
-    src/nxt_buf_filter.c \
-    src/nxt_job_file.c \
-    src/nxt_stream_module.c \
-    src/nxt_stream_source.c \
-    src/nxt_upstream_source.c \
-    src/nxt_http_source.c \
-    src/nxt_fastcgi_source.c \
-    src/nxt_fastcgi_record_parse.c \
-\
-    src/nxt_mem_pool_cleanup.h \
-    src/nxt_mem_pool_cleanup.c \
-"
 
 NXT_LIB_UNIT_SRCS="src/nxt_unit.c"
 
