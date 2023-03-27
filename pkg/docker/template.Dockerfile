@@ -15,7 +15,7 @@ RUN set -ex \
     && CC_OPT="$(DEB_BUILD_MAINT_OPTIONS="hardening=+all,-pie" DEB_CFLAGS_MAINT_APPEND="-Wp,-D_FORTIFY_SOURCE=2 -fPIC" dpkg-buildflags --get CFLAGS)" \
     && LD_OPT="$(DEB_BUILD_MAINT_OPTIONS="hardening=+all,-pie" DEB_LDFLAGS_MAINT_APPEND="-Wl,--as-needed -pie" dpkg-buildflags --get LDFLAGS)" \
     && CONFIGURE_ARGS="--prefix=/usr \
-                --libstatedir=/var/lib/unit \
+                --statedir=/var/lib/unit \
                 --control=unix:/var/run/control.unit.sock \
                 --pid=/var/run/unit.pid \
                 --log=/var/log/unit.log \

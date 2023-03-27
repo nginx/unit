@@ -72,7 +72,7 @@ cat << END >> $NXT_AUTO_CONFIG_H
 #define NXT_PID                "$NXT_PID"
 #define NXT_LOG                "$NXT_LOG"
 #define NXT_MODULESDIR         "$NXT_MODULESDIR"
-#define NXT_LIBSTATEDIR        "$NXT_LIBSTATEDIR"
+#define NXT_STATEDIR           "$NXT_STATEDIR"
 #define NXT_TMPDIR             "$NXT_TMPDIR"
 
 #define NXT_CONTROL_SOCK       "$NXT_CONTROL"

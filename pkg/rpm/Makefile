@@ -108,7 +108,7 @@ endif
 
 CONFIGURE_ARGS_COMMON=\
 	--prefix=/usr \
-	--libstatedir=%{_sharedstatedir}/unit \
+	--statedir=%{_sharedstatedir}/unit \
 	--control="unix:/var/run/unit/control.sock" \
 	--pid=/var/run/unit/unit.pid \
 	--log=/var/log/unit/unit.log \

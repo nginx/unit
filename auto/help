@@ -21,14 +21,14 @@ cat << END
   --datarootdir=DIR    default: "\$prefix/share"
   --mandir=DIR         default: "\$datarootdir/man"
   --localstatedir=DIR  default: "\$prefix/var"
-  --libstatedir=DIR    default: "\$localstatedir/lib/unit"
+  --statedir=DIR       default: "\$localstatedir/lib/unit"
   --runstatedir=DIR    default: "\$localstatedir/run/unit"
   --logdir=DIR         default: "\$localstatedir/log/unit"
   --tmpdir=DIR         default: "/tmp"
 
   --incdir=DIR         [deprecated] synonym for --includedir
   --modules=DIR        [deprecated] synonym for --modulesdir
-  --state=DIR          [deprecated] synonym for --libstatedir
+  --state=DIR          [deprecated] synonym for --statedir
   --tmp=DIR            [deprecated] synonym for --tmpdir
 
   --pid=FILE           set pid filename, default: "\$runstatedir/unit.pid"

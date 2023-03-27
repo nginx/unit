@@ -74,10 +74,10 @@ do
         --datarootdir=*)                 NXT_DATAROOTDIR="$value"            ;;
         --mandir=*)                      NXT_MANDIR="$value"                 ;;
         --localstatedir=*)               NXT_LOCALSTATEDIR="$value"          ;;
-        --libstatedir=*)                 NXT_LIBSTATEDIR="$value"            ;;
+        --statedir=*)                    NXT_STATEDIR="$value"               ;;
         --state=*)
-            >&2 echo "[warn] option --state is deprecated; use --libstatedir"
-            NXT_LIBSTATEDIR="$value"
+            >&2 echo "[warn] option --state is deprecated; use --statedir"
+            NXT_STATEDIR="$value"
         ;;
         --logdir=*)                      NXT_LOGDIR="$value"                 ;;
         --runstatedir=*)                 NXT_RUNSTATEDIR="$value"            ;;
@@ -160,7 +160,7 @@ NXT_DATAROOTDIR="${NXT_DATAROOTDIR-"$NXT_PREFIX/share"}"
 NXT_MANDIR="${NXT_MANDIR-"$NXT_DATAROOTDIR/man"}"
 
 NXT_LOCALSTATEDIR="${NXT_LOCALSTATEDIR-"$NXT_PREFIX/var"}"
-NXT_LIBSTATEDIR="${NXT_LIBSTATEDIR-"$NXT_LOCALSTATEDIR/lib/unit"}"
+NXT_STATEDIR="${NXT_STATEDIR-"$NXT_LOCALSTATEDIR/lib/unit"}"
 NXT_LOGDIR="${NXT_LOGDIR-"$NXT_LOCALSTATEDIR/log/unit"}"
 NXT_LOG="${NXT_LOG-"$NXT_LOGDIR/unit.log"}"
 NXT_RUNSTATEDIR="${NXT_RUNSTATEDIR-"$NXT_LOCALSTATEDIR/run/unit"}"

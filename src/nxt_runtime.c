@@ -786,7 +786,7 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
     rt->pid = NXT_PID;
     rt->log = NXT_LOG;
     rt->modules = NXT_MODULESDIR;
-    rt->state = NXT_LIBSTATEDIR;
+    rt->state = NXT_STATEDIR;
     rt->control = NXT_CONTROL_SOCK;
     rt->tmp = NXT_TMPDIR;
 
@@ -946,7 +946,7 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
     static const char  no_modules[] =
                        "option \"--modulesdir\" requires directory\n";
     static const char  no_state[] =
-                       "option \"--libstatedir\" requires directory\n";
+                       "option \"--statedir\" requires directory\n";
     static const char  no_tmp[] = "option \"--tmpdir\" requires directory\n";
 
     static const char  help[] =
@@ -969,8 +969,8 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
         "  --modulesdir DIR     set modules directory name\n"
         "                       default: \"" NXT_MODULESDIR "\"\n"
         "\n"
-        "  --libstatedir DIR    set state directory name\n"
-        "                       default: \"" NXT_LIBSTATEDIR "\"\n"
+        "  --statedir DIR       set state directory name\n"
+        "                       default: \"" NXT_STATEDIR "\"\n"
         "\n"
         "  --tmpdir DIR         set tmp directory name\n"
         "                       default: \"" NXT_TMPDIR "\"\n"
@@ -1069,7 +1069,7 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
             continue;
         }
 
-        if (nxt_strcmp(p, "--libstatedir") == 0) {
+        if (nxt_strcmp(p, "--statedir") == 0) {
             if (*argv == NULL) {
                 write(STDERR_FILENO, no_state, nxt_length(no_state));
                 return NXT_ERROR;

@@ -373,7 +373,7 @@ def unit_run(state_dir=None):
         '--no-daemon',
         '--modulesdir',
         build_dir,
-        '--libstatedir',
+        '--statedir',
         state,
         '--pid',
         f'{temp_dir}/unit.pid',
