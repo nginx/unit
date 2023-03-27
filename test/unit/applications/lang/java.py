@@ -56,7 +56,7 @@ class TestApplicationJava(TestApplicationProto):
             )
 
             ws_jars = glob.glob(
-                f'{option.current_dir}/build/websocket-api-java-*.jar'
+                f'{option.current_dir}/build/websocket-api-java*.jar'
             )
 
             if not ws_jars:
