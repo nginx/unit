@@ -3,6 +3,7 @@ FROM perl:5.36 as BUILDER
 LABEL maintainer="NGINX Docker Maintainers <docker-maint@nginx.com>"
 
 RUN set -ex \
+    && savedAptMark="$(apt-mark showmanual)" \
     && apt-get update \
     && apt-get install --no-install-recommends --no-install-suggests -y ca-certificates mercurial build-essential libssl-dev libpcre2-dev \
     && mkdir -p /usr/lib/unit/modules /usr/lib/unit/debug-modules \
@@ -38,20 +39,12 @@ RUN set -ex \
     && ./configure $CONFIGURE_ARGS --cc-opt="$CC_OPT" --modules=/usr/lib/unit/modules \
     && ./configure perl \
     && make -j $NCPU perl-install \
-    && ldd /usr/sbin/unitd | awk '/=>/{print $(NF-1)}' | while read n; do dpkg-query -S $n; done | sed 's/^\([^:]\+\):.*$/\1/' | sort | uniq > /requirements.apt
-
-FROM perl:5.36
-COPY docker-entrypoint.sh /usr/local/bin/
-COPY --from=BUILDER /usr/sbin/unitd /usr/sbin/unitd
-COPY --from=BUILDER /usr/sbin/unitd-debug /usr/sbin/unitd-debug
-COPY --from=BUILDER /usr/lib/unit/ /usr/lib/unit/
-COPY --from=BUILDER /requirements.apt /requirements.apt
-
-RUN set -x \
-    && if [ -f "/tmp/libunit.a" ]; then \
-        mv /tmp/libunit.a /usr/lib/$(dpkg-architecture -q DEB_HOST_MULTIARCH)/libunit.a; \
-        rm -f /tmp/libunit.a; \
-    fi \
+    && for f in /usr/sbin/unitd /usr/lib/unit/modules/*.unit.so; do \
+        ldd $f | awk '/=>/{print $(NF-1)}' | while read n; do dpkg-query -S $n; done | sed 's/^\([^:]\+\):.*$/\1/' | sort | uniq >> /requirements.apt; \
+       done \
+    && apt-mark showmanual | xargs apt-mark auto > /dev/null \
+    && { [ -z "$savedAptMark" ] || apt-mark manual $savedAptMark; } \
+    && /bin/true \
     && mkdir -p /var/lib/unit/ \
     && mkdir /docker-entrypoint.d/ \
     && addgroup --system unit \
@@ -64,11 +57,14 @@ RUN set -x \
          --gecos "unit user" \
          --shell /bin/false \
          unit \
-    && apt update \
-    && apt --no-install-recommends --no-install-suggests -y install curl $(cat /requirements.apt) \
+    && apt-get update \
+    && apt-get --no-install-recommends --no-install-suggests -y install curl $(cat /requirements.apt) \
+    && apt-get purge -y --auto-remove \
     && apt-get clean && rm -rf /var/lib/apt/lists/* \
     && rm -f /requirements.apt \
     && ln -sf /dev/stdout /var/log/unit.log
+
+COPY docker-entrypoint.sh /usr/local/bin/
 
 STOPSIGNAL SIGTERM
 
