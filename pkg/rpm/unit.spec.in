@@ -86,7 +86,7 @@ PKG_CONFIG_PATH=%{bdir}/pkg/contrib/njs/build \
 	--ld-opt="%{LD_OPT}" \
 	--debug
 %{__make} %{?_smp_mflags}
-%{__make} %{?_smp_mflags} build/libunit.a
+%{__make} %{?_smp_mflags} build/lib/libunit.a
 %{__mv} build build-debug
 
 PKG_CONFIG_PATH=%{bdir}/pkg/contrib/njs/build \
@@ -103,9 +103,9 @@ PKG_CONFIG_PATH=%{bdir}/pkg/contrib/njs/build \
 %{__rm} -rf %{buildroot}
 %{__ln_s} build-nodebug build
 DESTDIR=%{buildroot} make unitd-install libunit-install manpage-install
-%{__install} -m755 %{bdir}/build-debug/unitd \
+%{__install} -m755 %{bdir}/build-debug/sbin/unitd \
     %{buildroot}%{_sbindir}/unitd-debug
-%{__install} -m644 %{bdir}/build-debug/libunit.a \
+%{__install} -m644 %{bdir}/build-debug/lib/libunit.a \
     %{buildroot}%{_libdir}/libunit-debug.a
 %{__mkdir} -p %{buildroot}%{_libdir}/unit/modules
 %{__mkdir} -p %{buildroot}%{_libdir}/unit/debug-modules
