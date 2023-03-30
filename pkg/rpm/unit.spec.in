@@ -103,6 +103,11 @@ PKG_CONFIG_PATH=%{bdir}/pkg/contrib/njs/build \
 %{__rm} -rf %{buildroot}
 %{__ln_s} build-nodebug build
 DESTDIR=%{buildroot} make unitd-install libunit-install manpage-install
+%{__mkdir} -p %{buildroot}%{_bindir}
+%{__install} -m755 %{bdir}/tools/unitc \
+    %{buildroot}%{_bindir}/unitc
+%{__install} -m755 %{bdir}/tools/setup-unit \
+    %{buildroot}%{_bindir}/setup-unit
 %{__install} -m755 %{bdir}/build-debug/sbin/unitd \
     %{buildroot}%{_sbindir}/unitd-debug
 %{__install} -m644 %{bdir}/build-debug/lib/libunit.a \
@@ -197,6 +202,8 @@ BANNER
 
 %files
 %defattr(-,root,root,-)
+%attr(0755,root,root) %{_bindir}/unitc
+%attr(0755,root,root) %{_bindir}/setup-unit
 %attr(0755,root,root) %{_sbindir}/unitd
 %attr(0755,root,root) %{_sbindir}/unitd-debug
 %{_unitdir}/unit.service

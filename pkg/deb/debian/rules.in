@@ -32,6 +32,7 @@ config.env.%: njs
 	cp -Pa $(CURDIR)/configure $(BUILDDIR_$*)/
 	cp -Pa $(CURDIR)/src $(BUILDDIR_$*)/
 	cp -Pa $(CURDIR)/test $(BUILDDIR_$*)/
+	cp -Pa $(CURDIR)/tools $(BUILDDIR_$*)/
 	cp -Pa $(CURDIR)/version $(BUILDDIR_$*)/
 	cp -Pa $(CURDIR)/CHANGES $(BUILDDIR_$*)/
 	cp -Pa $(CURDIR)/LICENSE $(BUILDDIR_$*)/
@@ -112,6 +113,8 @@ install: build do.tests
 	dh_installlogrotate
 	cd $(BUILDDIR_unit) && DESTDIR=$(INSTALLDIR) make install
 	cd $(BUILDDIR_unit) && DESTDIR=$(INSTALLDIR_dev) make libunit-install
+	install -m 755 $(BUILDDIR_unit)/tools/unitc $(INSTALLDIR)/usr/bin/unitc
+	install -m 755 $(BUILDDIR_unit)/tools/setup-unit $(INSTALLDIR)/usr/bin/setup-unit
 	install -m 755 $(BUILDDIR_unit_debug)/build/sbin/unitd $(INSTALLDIR)/usr/sbin/unitd-debug
 	install -m 644 $(BUILDDIR_unit_debug)/build/lib/libunit.a $(INSTALLDIR_dev)/usr/lib/$(DEB_HOST_MULTIARCH)/libunit-debug.a
 	mkdir -p $(INSTALLDIR)/usr/share/doc/unit/examples
