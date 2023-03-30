@@ -121,6 +121,18 @@ static nxt_conf_map_t  nxt_common_app_conf[] = {
     },
 
     {
+        nxt_string("stdout"),
+        NXT_CONF_MAP_CSTRZ,
+        offsetof(nxt_common_app_conf_t, stdout_log),
+    },
+
+    {
+        nxt_string("stderr"),
+        NXT_CONF_MAP_CSTRZ,
+        offsetof(nxt_common_app_conf_t, stderr_log),
+    },
+
+    {
         nxt_string("working_directory"),
         NXT_CONF_MAP_CSTRZ,
         offsetof(nxt_common_app_conf_t, working_directory),

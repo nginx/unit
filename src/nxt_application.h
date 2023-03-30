@@ -92,6 +92,9 @@ struct nxt_common_app_conf_s {
     nxt_str_t                  user;
     nxt_str_t                  group;
 
+    char                       *stdout_log;
+    char                       *stderr_log;
+
     char                       *working_directory;
     nxt_conf_value_t           *environment;
 
@@ -141,5 +144,6 @@ extern nxt_app_module_t      nxt_external_module;
 NXT_EXPORT nxt_int_t nxt_unit_default_init(nxt_task_t *task,
     nxt_unit_init_t *init, nxt_common_app_conf_t *conf);
 
+NXT_EXPORT nxt_int_t nxt_app_set_logs(void);
 
 #endif /* _NXT_APPLICATION_H_INCLIDED_ */

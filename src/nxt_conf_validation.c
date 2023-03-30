@@ -1047,6 +1047,12 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[] = {
         .type       = NXT_CONF_VLDT_OBJECT,
         .validator  = nxt_conf_vldt_isolation,
         .u.members  = nxt_conf_vldt_app_isolation_members,
+    }, {
+        .name       = nxt_string("stdout"),
+        .type       = NXT_CONF_VLDT_STRING,
+    }, {
+        .name       = nxt_string("stderr"),
+        .type       = NXT_CONF_VLDT_STRING,
     },
 
     NXT_CONF_VLDT_END

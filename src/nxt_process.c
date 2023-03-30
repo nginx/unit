@@ -5,6 +5,8 @@
  */
 
 #include <nxt_main.h>
+
+#include <nxt_application.h>
 #include <nxt_cgroup.h>
 
 #if (NXT_HAVE_LINUX_NS)
@@ -650,6 +652,10 @@ nxt_process_setup(nxt_task_t *task, nxt_process_t *process)
 
     thread = task->thread;
     rt     = thread->runtime;
+
+    if (process->parent_port == rt->port_by_type[NXT_PROCESS_PROTOTYPE]) {
+        nxt_app_set_logs();
+    }
 
     nxt_random_init(&thread->random);
 
