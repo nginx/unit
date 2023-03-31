@@ -417,22 +417,24 @@ space_after_target:
     {
         rp->version.ui64 = ver.ui64;
 
-        if (nxt_fast_path(p[9] == '\r')) {
-            p += 10;
+        p += 9;
+        if (nxt_fast_path(*p == '\r')) {
 
-            if (nxt_slow_path(p == end)) {
+            if (nxt_slow_path(p + 1 == end)) {
                 return NXT_AGAIN;
             }
 
-            if (nxt_slow_path(*p != '\n')) {
+            if (nxt_slow_path(p[1] != '\n')) {
                 return NXT_HTTP_PARSE_INVALID;
             }
 
-            *pos = p + 1;
+            *pos = p + 2;
 
         } else {
-            *pos = p + 10;
+            *pos = p + 1;
         }
+
+        rp->request_line_end = p;
 
         if (rp->complex_target != 0
 #if 0

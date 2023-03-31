@@ -273,40 +273,11 @@ static nxt_int_t
 nxt_http_var_request_line(nxt_task_t *task, nxt_str_t *str, void *ctx,
     uint16_t field)
 {
-    size_t              length;
-    u_char              *p, *start;
     nxt_http_request_t  *r;
 
     r = ctx;
 
-    length = r->method->length + 1 + r->target.length + 1 + r->version.length;
-
-    start = nxt_mp_nget(r->mem_pool, length);
-    if (nxt_slow_path(start == NULL)) {
-        return NXT_ERROR;
-    }
-
-    p = start;
-
-    if (r->method->length != 0) {
-        p = nxt_cpymem(p, r->method->start, r->method->length);
-
-        if (r->target.length != 0) {
-            *p++ = ' ';
-            p = nxt_cpymem(p, r->target.start, r->target.length);
-
-            if (r->version.length != 0) {
-                *p++ = ' ';
-                p = nxt_cpymem(p, r->version.start, r->version.length);
-            }
-        }
-
-    } else {
-        *p++ = '-';
-    }
-
-    str->start = start;
-    str->length = p - start;
+    *str = r->request_line;
 
     return NXT_OK;
 }

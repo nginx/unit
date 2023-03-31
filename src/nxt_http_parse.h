@@ -41,6 +41,7 @@ struct nxt_http_request_parse_s {
 
     u_char                    *target_start;
     u_char                    *target_end;
+    u_char                    *request_line_end;
 
     nxt_str_t                 path;
     nxt_str_t                 args;

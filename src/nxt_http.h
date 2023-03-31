@@ -144,6 +144,7 @@ struct nxt_http_request_s {
 
     nxt_str_t                       host;
     nxt_str_t                       server_name;
+    nxt_str_t                       request_line;
     nxt_str_t                       target;
     nxt_str_t                       version;
     nxt_str_t                       *method;

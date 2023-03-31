@@ -577,6 +577,15 @@ nxt_h1p_conn_request_header_parse(nxt_task_t *task, void *obj, void *data)
          */
         h1p->keepalive = (h1p->parser.version.s.minor != '0');
 
+        r->request_line.start = h1p->parser.method.start;
+        r->request_line.length = h1p->parser.request_line_end
+                                 - r->request_line.start;
+
+        if (nxt_slow_path(r->log_route)) {
+            nxt_log(task, NXT_LOG_NOTICE, "http request line \"%V\"",
+                    &r->request_line);
+        }
+
         ret = nxt_h1p_header_process(task, h1p, r);
 
         if (nxt_fast_path(ret == NXT_OK)) {
@@ -653,11 +662,6 @@ nxt_h1p_header_process(nxt_task_t *task, nxt_h1proto_t *h1p,
     r->method = &h1p->parser.method;
     r->path = &h1p->parser.path;
     r->args = &h1p->parser.args;
-
-    if (nxt_slow_path(r->log_route)) {
-        nxt_log(task, NXT_LOG_NOTICE, "http request line \"%V %V %V\"",
-                r->method, &r->target, &r->version);
-    }
 
     r->fields = h1p->parser.fields;
 

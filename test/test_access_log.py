@@ -174,7 +174,7 @@ Connection: close
         time.sleep(1)
 
         assert (
-            self.wait_for_record(r'"GE" 400 0 "-" "-"') is not None
+            self.wait_for_record(r'"-" 400 0 "-" "-"') is not None
         ), 'partial'
 
     def test_access_log_partial_2(self):
@@ -185,7 +185,7 @@ Connection: close
         self.http(b"""GET /\n""", raw=True)
 
         assert (
-            self.wait_for_record(r'"GET /" 400 \d+ "-" "-"') is not None
+            self.wait_for_record(r'"-" 400 \d+ "-" "-"') is not None
         ), 'partial 2'
 
     def test_access_log_partial_3(self):
@@ -198,7 +198,7 @@ Connection: close
         time.sleep(1)
 
         assert (
-            self.wait_for_record(r'"GET /" 400 0 "-" "-"') is not None
+            self.wait_for_record(r'"-" 400 0 "-" "-"') is not None
         ), 'partial 3'
 
     def test_access_log_partial_4(self):
@@ -211,7 +211,7 @@ Connection: close
         time.sleep(1)
 
         assert (
-            self.wait_for_record(r'"GET / HTTP/1.1" 400 0 "-" "-"') is not None
+            self.wait_for_record(r'"-" 400 0 "-" "-"') is not None
         ), 'partial 4'
 
     @pytest.mark.skip('not yet')
