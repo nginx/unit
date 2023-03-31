@@ -1532,14 +1532,23 @@ static void
 nxt_php_set_sptr(nxt_unit_request_info_t *req, const char *name,
     nxt_unit_sptr_t *v, uint32_t len, zval *track_vars_array TSRMLS_DC)
 {
-    char  *str;
+    char          *str;
+#if NXT_PHP7
+    size_t        new_len;
+#else
+    unsigned int  new_len;
+#endif
 
     str = nxt_unit_sptr_get(v);
 
     nxt_unit_req_debug(req, "php: register %s='%.*s'", name, (int) len, str);
 
-    php_register_variable_safe((char *) name, str, len,
-                               track_vars_array TSRMLS_CC);
+    if (sapi_module.input_filter(PARSE_SERVER, (char *) name, &str, len,
+                                 &new_len TSRMLS_CC))
+    {
+        php_register_variable_safe((char *) name, str, new_len,
+                                   track_vars_array TSRMLS_CC);
+    }
 }
 
 
