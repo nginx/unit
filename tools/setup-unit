@@ -290,7 +290,11 @@ unit_ctl()
         err 'ctl: Missing subcommand.';
     fi;
 
-    if test -v sock && echo $sock | grep '^ssh://' >/dev/null; then
+    if ! test -v sock; then
+        local sock="$(unit_sock_find)";
+    fi;
+
+    if echo $sock | grep '^ssh://' >/dev/null; then
         local remote="$(echo $sock | sed 's,\(ssh://[^/]*\).*,\1,')";
         local sock="$(echo $sock | sed 's,ssh://[^/]*\(.*\),unix:\1,')";
     fi;
@@ -298,11 +302,11 @@ unit_ctl()
     case $1 in
     http)
         shift;
-        unit_ctl_http ${remote:+ ---r $remote} ${sock:+ ---s $sock} $@;
+        unit_ctl_http ${remote:+ ---r $remote} ---s "$sock" $@;
         ;;
     insert)
         shift;
-        unit_ctl_insert ${remote:+ ---r $remote} ${sock:+ ---s $sock} $@;
+        unit_ctl_insert ${remote:+ ---r $remote} ---s "$sock" $@;
         ;;
     *)
         err "ctl: $1: Unknown argument.";
@@ -403,9 +407,6 @@ unit_ctl_http()
                    -L "$local_sock:$remote_sock" "$remote";
 
         sock="unix:$local_sock";
-
-    elif ! test -v sock; then
-        local sock="$(unit_sock_find)";
     fi;
 
     curl $curl_options -X $method -d@- \
@@ -490,9 +491,6 @@ unit_ctl_insert()
                    -L "$local_sock:$remote_sock" "$remote";
 
         sock="unix:$local_sock";
-
-    elif ! test -v sock; then
-        local sock="$(unit_sock_find)";
     fi;
 
     local old="$(mktemp ||:)";
