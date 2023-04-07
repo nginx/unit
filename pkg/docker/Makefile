@@ -12,50 +12,59 @@ EXPORT_DIR := $(VERSION)
 
 MODULES ?= go jsc node perl php python ruby minimal
 
+VARIANT ?= bullseye
+
 VERSION_minimal ?=
-CONTAINER_minimal ?= debian:bullseye-slim
+CONTAINER_minimal ?= debian:$(VARIANT)-slim
 CONFIGURE_minimal ?=
 INSTALL_minimal ?=	version
 RUN_minimal ?=		/bin/true
 
 VERSION_go ?=		1.20
-CONTAINER_go ?=		golang:$(VERSION_go)
+VARIANT_go ?=		$(VARIANT)
+CONTAINER_go ?=		golang:$(VERSION_go)-$(VARIANT_go)
 CONFIGURE_go ?=		go --go-path=$$GOPATH
 INSTALL_go ?=		go-install-src libunit-install
 RUN_go ?=			/bin/true
 
 VERSION_jsc ?=		11
-CONTAINER_jsc ?=	eclipse-temurin:$(VERSION_jsc)-jdk
+VARIANT_jsc ?=		jammy
+CONTAINER_jsc ?=	eclipse-temurin:$(VERSION_jsc)-jdk-$(VARIANT_jsc)
 CONFIGURE_jsc ?=	java --jars=/usr/share/unit-jsc-common/
 INSTALL_jsc ?=		java-shared-install java-install
 RUN_jsc ?=	 		/bin/true
 
 VERSION_node ?=		18
-CONTAINER_node ?=	node:$(VERSION_node)
+VARIANT_node ?=		$(VARIANT)
+CONTAINER_node ?=	node:$(VERSION_node)-$(VARIANT_node)
 CONFIGURE_node ?=	nodejs --node-gyp=/usr/local/lib/node_modules/npm/bin/node-gyp-bin/node-gyp
 INSTALL_node ?=		node node-install libunit-install
 RUN_node ?=			/bin/true
 
 VERSION_perl ?=		5.36
-CONTAINER_perl ?=	perl:$(VERSION_perl)
+VARIANT_perl ?=		$(VARIANT)
+CONTAINER_perl ?=	perl:$(VERSION_perl)-$(VARIANT_perl)
 CONFIGURE_perl ?=	perl
 INSTALL_perl ?=		perl-install
 RUN_perl ?=			/bin/true
 
 VERSION_php ?=		8.2
-CONTAINER_php ?=	php:$(VERSION_php)-cli
+VARIANT_php ?=		cli-$(VARIANT)
+CONTAINER_php ?=	php:$(VERSION_php)-$(VARIANT_php)
 CONFIGURE_php ?=	php
 INSTALL_php ?=		php-install
 RUN_php ?=			ldconfig
 
 VERSION_python ?=	3.11
-CONTAINER_python ?=	python:$(VERSION_python)
+VARIANT_python ?=	$(VARIANT)
+CONTAINER_python ?=	python:$(VERSION_python)-$(VARIANT_python)
 CONFIGURE_python ?=	python --config=/usr/local/bin/python3-config
 INSTALL_python ?=	python3-install
 RUN_python ?=		/bin/true
 
 VERSION_ruby ?=		3.2
-CONTAINER_ruby ?=	ruby:$(VERSION_ruby)
+VARIANT_ruby ?=		$(VARIANT)
+CONTAINER_ruby ?=	ruby:$(VERSION_ruby)-$(VARIANT_ruby)
 CONFIGURE_ruby ?=	ruby
 INSTALL_ruby ?=		ruby-install
 RUN_ruby ?=			gem install rack
