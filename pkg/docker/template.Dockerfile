@@ -58,14 +58,13 @@ RUN set -ex \
     && @@RUN@@ \
     && mkdir -p /var/lib/unit/ \
     && mkdir /docker-entrypoint.d/ \
-    && addgroup --system unit \
-    && adduser \
+    && groupadd --system unit \
+    && useradd \
          --system \
-         --disabled-login \
-         --ingroup unit \
+         --gid unit \
          --no-create-home \
          --home /nonexistent \
-         --gecos "unit user" \
+         --comment "unit user" \
          --shell /bin/false \
          unit \
     && apt-get update \

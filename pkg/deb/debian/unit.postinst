@@ -25,17 +25,16 @@ BANNER
 fi
 
 if ! getent group unit >/dev/null; then
-    addgroup --system unit >/dev/null
+    groupadd --system unit >/dev/null
 fi
 
 if ! getent passwd unit >/dev/null; then
-    adduser \
+    useradd \
       --system \
-      --disabled-login \
-      --ingroup unit \
+      --gid unit \
       --no-create-home \
       --home /nonexistent \
-      --gecos "unit user" \
+      --comment "unit user" \
       --shell /bin/false \
       unit >/dev/null
 fi
