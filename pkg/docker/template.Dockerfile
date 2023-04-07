@@ -1,4 +1,4 @@
-FROM @@CONTAINER@@ as BUILDER
+FROM @@CONTAINER@@
 
 LABEL maintainer="NGINX Docker Maintainers <docker-maint@nginx.com>"
 
