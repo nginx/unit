@@ -58,9 +58,9 @@ RUN set -ex \
     && @@RUN@@ \
     && mkdir -p /var/lib/unit/ \
     && mkdir /docker-entrypoint.d/ \
-    && groupadd --system unit \
+    && groupadd --gid 999 unit \
     && useradd \
-         --system \
+         --uid 999 \
          --gid unit \
          --no-create-home \
          --home /nonexistent \
