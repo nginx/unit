@@ -6,6 +6,7 @@ include ../shasum.mak
 DEFAULT_VERSION := $(NXT_VERSION)
 
 VERSION ?= $(DEFAULT_VERSION)
+PATCHLEVEL ?= 1
 
 EXPORT_DIR := $(VERSION)
 
@@ -73,6 +74,7 @@ Dockerfile.%: ../../version template.Dockerfile
 	@echo "===> Building $@"
 	cat template.Dockerfile | sed \
 			-e 's,@@VERSION@@,$(VERSION),g' \
+			-e 's,@@PATCHLEVEL@@,$(PATCHLEVEL),g' \
 			-e 's,@@CONTAINER@@,$(CONTAINER_$(call modname, $*)),g' \
 			-e 's,@@CONFIGURE@@,$(CONFIGURE_$(call modname, $*)),g' \
 			-e 's,@@INSTALL@@,$(INSTALL_$(call modname, $*)),g' \
