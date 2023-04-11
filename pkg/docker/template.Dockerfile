@@ -6,7 +6,7 @@ LABEL org.opencontainers.image.url="https://unit.nginx.org"
 LABEL org.opencontainers.image.source="https://github.com/nginx/unit"
 LABEL org.opencontainers.image.documentation="https://unit.nginx.org/installation/#docker-images"
 LABEL org.opencontainers.image.vendor="NGINX Docker Maintainers <docker-maint@nginx.com>"
-LABEL org.opencontainers.image.version="%%VERSION%%"
+LABEL org.opencontainers.image.version="@@VERSION@@"
 
 RUN set -ex \
     && savedAptMark="$(apt-mark showmanual)" \
