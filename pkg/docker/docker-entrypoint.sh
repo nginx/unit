@@ -39,7 +39,7 @@ if [ "$1" = "unitd" ] || [ "$1" = "unitd-debug" ]; then
             done
             # even when the control socket exists, it does not mean unit has finished initialisation
             # this curl call will get a reply once unit is fully launched
-            /usr/bin/curl -s -X GET --unix-socket /var/run/control.unit.sock http://localhost/
+            /usr/bin/curl -f -s -X GET --unix-socket /var/run/control.unit.sock http://localhost/
 
             echo "$0: Looking for certificate bundles in /docker-entrypoint.d/..."
             for f in $(/usr/bin/find /docker-entrypoint.d/ -type f -name "*.pem"); do
