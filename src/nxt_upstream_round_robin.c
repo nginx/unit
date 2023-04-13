@@ -23,7 +23,7 @@ struct nxt_upstream_round_robin_server_s {
 
 struct nxt_upstream_round_robin_s {
     uint32_t                           items;
-    nxt_upstream_round_robin_server_t  server[0];
+    nxt_upstream_round_robin_server_t  server[];
 };
 
 

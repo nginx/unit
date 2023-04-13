@@ -103,13 +103,13 @@ struct nxt_http_route_rule_s {
         } name;
     } u;
 
-    nxt_http_route_pattern_t       pattern[0];
+    nxt_http_route_pattern_t       pattern[];
 };
 
 
 typedef struct {
     uint32_t                       items;
-    nxt_http_route_rule_t          *rule[0];
+    nxt_http_route_rule_t          *rule[];
 } nxt_http_route_ruleset_t;
 
 
@@ -117,7 +117,7 @@ typedef struct {
     /* The object must be the first field. */
     nxt_http_route_object_t        object:8;
     uint32_t                       items;
-    nxt_http_route_ruleset_t       *ruleset[0];
+    nxt_http_route_ruleset_t       *ruleset[];
 } nxt_http_route_table_t;
 
 
@@ -125,7 +125,7 @@ struct nxt_http_route_addr_rule_s {
     /* The object must be the first field. */
     nxt_http_route_object_t        object:8;
     uint32_t                       items;
-    nxt_http_route_addr_pattern_t  addr_pattern[0];
+    nxt_http_route_addr_pattern_t  addr_pattern[];
 };
 
 
@@ -139,20 +139,20 @@ typedef union {
 typedef struct {
     uint32_t                       items;
     nxt_http_action_t              action;
-    nxt_http_route_test_t          test[0];
+    nxt_http_route_test_t          test[];
 } nxt_http_route_match_t;
 
 
 struct nxt_http_route_s {
     nxt_str_t                      name;
     uint32_t                       items;
-    nxt_http_route_match_t         *match[0];
+    nxt_http_route_match_t         *match[];
 };
 
 
 struct nxt_http_routes_s {
     uint32_t                       items;
-    nxt_http_route_t               *route[0];
+    nxt_http_route_t               *route[];
 };
 
 
