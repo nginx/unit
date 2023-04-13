@@ -194,6 +194,15 @@ nxt_tstr_state_done(nxt_tstr_state_t *state, u_char *error)
 }
 
 
+void
+nxt_tstr_state_release(nxt_tstr_state_t *state)
+{
+#if (NXT_HAVE_NJS)
+    nxt_js_conf_release(state->jcf);
+#endif
+}
+
+
 nxt_bool_t
 nxt_tstr_is_const(nxt_tstr_t *tstr)
 {
@@ -314,4 +323,13 @@ nxt_tstr_query_handle(nxt_task_t *task, nxt_tstr_query_t *query,
                            query->failed ? query->error : query->ready,
                            task, query->ctx, query->data);
     }
+}
+
+
+void
+nxt_tstr_query_release(nxt_tstr_query_t *query)
+{
+#if (NXT_HAVE_NJS)
+    nxt_js_release(&query->cache->js);
+#endif
 }

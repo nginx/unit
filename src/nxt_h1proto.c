@@ -507,6 +507,7 @@ nxt_h1p_conn_request_init(nxt_task_t *task, void *obj, void *data)
 
             r->conf = joint;
             skcf = joint->socket_conf;
+            r->log_route = skcf->log_route;
 
             if (c->local == NULL) {
                 c->local = skcf->sockaddr;
@@ -575,6 +576,15 @@ nxt_h1p_conn_request_header_parse(nxt_task_t *task, void *obj, void *data)
          * the "Connection" field processed in nxt_h1p_connection().
          */
         h1p->keepalive = (h1p->parser.version.s.minor != '0');
+
+        r->request_line.start = h1p->parser.method.start;
+        r->request_line.length = h1p->parser.request_line_end
+                                 - r->request_line.start;
+
+        if (nxt_slow_path(r->log_route)) {
+            nxt_log(task, NXT_LOG_NOTICE, "http request line \"%V\"",
+                    &r->request_line);
+        }
 
         ret = nxt_h1p_header_process(task, h1p, r);
 

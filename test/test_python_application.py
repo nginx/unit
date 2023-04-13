@@ -2,9 +2,12 @@ import grp
 import os
 import pwd
 import re
+import subprocess
 import time
+import venv
 
 import pytest
+from packaging import version
 from unit.applications.lang.python import TestApplicationPython
 
 
@@ -17,17 +20,16 @@ class TestPythonApplication(TestApplicationPython):
         body = 'Test body string.'
 
         resp = self.http(
-            b"""POST / HTTP/1.1
+            f"""POST / HTTP/1.1
 Host: localhost
-Content-Length: %d
+Content-Length: {len(body)}
 Custom-Header: blah
 Custom-hEader: Blah
 Content-Type: text/html
 Connection: close
 custom-header: BLAH
 
-%s"""
-            % (len(body), body.encode()),
+{body}""".encode(),
             raw=True,
         )
 
@@ -98,7 +100,7 @@ custom-header: BLAH
         self.load('prefix', prefix='/api/rest')
 
         def set_prefix(prefix):
-            self.conf('"' + prefix + '"', 'applications/prefix/prefix')
+            self.conf(f'"{prefix}"', 'applications/prefix/prefix')
 
         def check_prefix(url, script_name, path_info):
             resp = self.get(url=url)
@@ -526,6 +528,81 @@ last line: 987654321
 
         assert self.get()['body'] == '0123456789', 'write'
 
+    def test_python_application_encoding(self):
+        self.load('encoding')
+
+        try:
+            locales = (
+                subprocess.check_output(
+                    ['locale', '-a'],
+                    stderr=subprocess.STDOUT,
+                )
+                .decode()
+                .splitlines()
+            )
+        except (
+            FileNotFoundError,
+            UnicodeDecodeError,
+            subprocess.CalledProcessError,
+        ):
+            pytest.skip('require locale')
+
+        to_check = [
+            re.compile(r'.*UTF[-_]?8'),
+            re.compile(r'.*ISO[-_]?8859[-_]?1'),
+        ]
+        matches = [
+            loc
+            for loc in locales
+            if any(pattern.match(loc.upper()) for pattern in to_check)
+        ]
+
+        if not matches:
+            pytest.skip('no available locales')
+
+        def unify(str):
+            str.upper().replace('-', '').replace('_', '')
+
+        for loc in matches:
+            assert 'success' in self.conf(
+                {"LC_CTYPE": loc, "LC_ALL": ""},
+                '/config/applications/encoding/environment',
+            )
+            resp = self.get()
+            assert resp['status'] == 200, 'status'
+            assert unify(resp['headers']['X-Encoding']) == unify(
+                loc.split('.')[-1]
+            )
+
+    def test_python_application_unicode(self, temp_dir):
+        try:
+            app_type = self.get_application_type()
+            v = version.Version(app_type.split()[-1])
+            if v.major != 3:
+                raise version.InvalidVersion
+
+        except version.InvalidVersion:
+            pytest.skip('require python module version 3')
+
+        venv_path = f'{temp_dir}/venv'
+        venv.create(venv_path)
+
+        self.load('unicode')
+        assert 'success' in self.conf(
+            f'"{venv_path}"',
+            '/config/applications/unicode/home',
+        )
+        assert (
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Temp-dir': temp_dir,
+                    'Connection': 'close',
+                }
+            )['status']
+            == 200
+        )
+
     def test_python_application_threading(self):
         """wait_for_record() timeouts after 5s while every thread works at
         least 3s.  So without releasing GIL test should fail.
@@ -562,7 +639,7 @@ last line: 987654321
 
         assert self.wait_for_record(r'Traceback') is not None, 'traceback'
         assert (
-            self.wait_for_record(r'raise Exception\(\'first exception\'\)')
+            self.wait_for_record(r"raise Exception\('first exception'\)")
             is not None
         ), 'first exception raise'
         assert len(self.findall(r'Traceback')) == 1, 'traceback count 1'
@@ -581,7 +658,7 @@ last line: 987654321
         ), 'error 2'
 
         assert (
-            self.wait_for_record(r'raise Exception\(\'second exception\'\)')
+            self.wait_for_record(r"raise Exception\('second exception'\)")
             is not None
         ), 'exception raise second'
         assert len(self.findall(r'Traceback')) == 2, 'traceback count 2'
@@ -598,7 +675,7 @@ last line: 987654321
         )
 
         assert (
-            self.wait_for_record(r'raise Exception\(\'third exception\'\)')
+            self.wait_for_record(r"raise Exception\('third exception'\)")
             is not None
         ), 'exception raise third'
         assert len(self.findall(r'Traceback')) == 3, 'traceback count 3'
@@ -633,7 +710,7 @@ last line: 987654321
         )
 
         assert (
-            self.wait_for_record(r'raise Exception\(\'next exception\'\)')
+            self.wait_for_record(r"raise Exception\('next exception'\)")
             is not None
         ), 'exception raise next'
         assert len(self.findall(r'Traceback')) == 5, 'traceback count 5'
@@ -669,7 +746,7 @@ last line: 987654321
         ), 'error'
 
         assert (
-            self.wait_for_record(r'raise Exception\(\'close exception\'\)')
+            self.wait_for_record(r"raise Exception\('close exception'\)")
             is not None
         ), 'exception raise close'
         assert len(self.findall(r'Traceback')) == 8, 'traceback count 8'
@@ -703,18 +780,14 @@ last line: 987654321
         self.load('user_group', user='nobody', group=group)
 
         obj = self.getjson()['body']
-        assert obj['UID'] == nobody_uid, (
-            'nobody uid user=nobody group=%s' % group
-        )
-
-        assert obj['GID'] == group_id, 'nobody gid user=nobody group=%s' % group
+        assert obj['UID'] == nobody_uid, f'nobody uid user=nobody group={group}'
+        assert obj['GID'] == group_id, f'nobody gid user=nobody group={group}'
 
         self.load('user_group', group=group)
 
         obj = self.getjson()['body']
-        assert obj['UID'] == nobody_uid, 'nobody uid group=%s' % group
-
-        assert obj['GID'] == group_id, 'nobody gid group=%s' % group
+        assert obj['UID'] == nobody_uid, f'nobody uid group={group}'
+        assert obj['GID'] == group_id, f'nobody gid group={group}'
 
         self.load('user_group', user='root')
 

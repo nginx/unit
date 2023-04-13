@@ -48,7 +48,7 @@ class TestTLSTicket(TestApplicationTLS):
     def set_tickets(self, tickets=True, port=7080):
         assert 'success' in self.conf(
             {"cache_size": 0, "tickets": tickets},
-            'listeners/*:' + str(port) + '/tls/session',
+            f'listeners/*:{port}/tls/session',
         )
 
     def connect(self, ctx=None, session=None, port=7080):
@@ -168,7 +168,7 @@ class TestTLSTicket(TestApplicationTLS):
             'listeners/*:7080/tls/session/tickets/0'
         ), 'removed first ticket'
         assert 'success' in self.conf_post(
-            '"' + self.ticket + '"', 'listeners/*:7080/tls/session/tickets'
+            f'"{self.ticket}"', 'listeners/*:7080/tls/session/tickets'
         ), 'add new ticket to the end of array'
 
         sess, ctx, _ = self.connect()
@@ -186,10 +186,10 @@ class TestTLSTicket(TestApplicationTLS):
 
         check_tickets({})
         check_tickets('!?&^' * 16)
-        check_tickets(self.ticket[:-2] + '!' + self.ticket[3:])
+        check_tickets(f'{self.ticket[:-2]}!{self.ticket[3:]}')
         check_tickets(self.ticket[:-1])
-        check_tickets(self.ticket + 'b')
-        check_tickets(self.ticket + 'blah')
+        check_tickets(f'{self.ticket}b')
+        check_tickets(f'{self.ticket}blah')
         check_tickets([True, self.ticket, self.ticket2])
         check_tickets([self.ticket, 'blah', self.ticket2])
         check_tickets([self.ticket, self.ticket2, []])

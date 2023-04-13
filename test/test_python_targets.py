@@ -6,6 +6,8 @@ class TestPythonTargets(TestApplicationPython):
     prerequisites = {'modules': {'python': 'all'}}
 
     def test_python_targets(self):
+        python_dir = f'{option.test_dir}/python'
+
         assert 'success' in self.conf(
             {
                 "listeners": {"*:7080": {"pass": "routes"}},
@@ -22,9 +24,8 @@ class TestPythonTargets(TestApplicationPython):
                 "applications": {
                     "targets": {
                         "type": self.get_application_type(),
-                        "working_directory": option.test_dir
-                        + "/python/targets/",
-                        "path": option.test_dir + '/python/targets/',
+                        "working_directory": f'{python_dir}/targets/',
+                        "path": f'{python_dir}/targets/',
                         "targets": {
                             "1": {
                                 "module": "wsgi",
@@ -49,6 +50,8 @@ class TestPythonTargets(TestApplicationPython):
         assert resp['body'] == '2'
 
     def test_python_targets_prefix(self):
+        python_dir = f'{option.test_dir}/python'
+
         assert 'success' in self.conf(
             {
                 "listeners": {"*:7080": {"pass": "routes"}},
@@ -65,9 +68,8 @@ class TestPythonTargets(TestApplicationPython):
                 "applications": {
                     "targets": {
                         "type": "python",
-                        "working_directory": option.test_dir
-                        + "/python/targets/",
-                        "path": option.test_dir + '/python/targets/',
+                        "working_directory": f'{python_dir}/targets/',
+                        "path": f'{python_dir}/targets/',
                         "protocol": "wsgi",
                         "targets": {
                             "app": {

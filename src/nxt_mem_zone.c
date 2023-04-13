@@ -672,7 +672,7 @@ nxt_mem_zone_alloc_pages(nxt_mem_zone_t *zone, size_t alignment, uint32_t pages)
     prev_size = p - (u_char *) block;
 
     if (prev_size != 0) {
-        prev_pages = prev_size >>= zone->page_size_shift;
+        prev_pages = prev_size >> zone->page_size_shift;
         node_pages -= prev_pages;
 
         block->size = prev_pages;

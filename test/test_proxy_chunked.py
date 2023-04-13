@@ -61,7 +61,7 @@ class TestProxyChunked(TestApplicationPython):
                     else:
                         add = line
 
-                    req = req + add + '\r\n'
+                    req = f'{req}{add}\r\n'
 
             for chunk in re.split(r'([@#])', req):
                 if chunk == '@' or chunk == '#':
@@ -77,9 +77,9 @@ class TestProxyChunked(TestApplicationPython):
         body = '\r\n\r\n'
 
         for l, c in chunks:
-            body = body + l + '\r\n' + c + '\r\n'
+            body = f'{body}{l}\r\n{c}\r\n'
 
-        return body + '0\r\n\r\n'
+        return f'{body}0\r\n\r\n'
 
     def get_http10(self, *args, **kwargs):
         return self.get(*args, http_10=True, **kwargs)
@@ -96,7 +96,7 @@ class TestProxyChunked(TestApplicationPython):
                 "routes": [
                     {
                         "action": {
-                            "proxy": "http://127.0.0.1:" + str(self.SERVER_PORT)
+                            "proxy": f'http://127.0.0.1:{self.SERVER_PORT}'
                         }
                     }
                 ],
@@ -111,20 +111,20 @@ class TestProxyChunked(TestApplicationPython):
         part = '0123456789abcdef'
 
         assert (
-            self.get_http10(body=self.chunks([('1000', part + ' X 256')]))[
+            self.get_http10(body=self.chunks([('1000', f'{part} X 256')]))[
                 'body'
             ]
             == part * 256
         )
         assert (
-            self.get_http10(body=self.chunks([('100000', part + ' X 65536')]))[
+            self.get_http10(body=self.chunks([('100000', f'{part} X 65536')]))[
                 'body'
             ]
             == part * 65536
         )
         assert (
             self.get_http10(
-                body=self.chunks([('1000000', part + ' X 1048576')]),
+                body=self.chunks([('1000000', f'{part} X 1048576')]),
                 read_buffer_size=4096 * 4096,
             )['body']
             == part * 1048576
@@ -133,7 +133,7 @@ class TestProxyChunked(TestApplicationPython):
         assert (
             self.get_http10(
                 body=self.chunks(
-                    [('1000', part + ' X 256'), ('1000', part + ' X 256')]
+                    [('1000', f'{part} X 256'), ('1000', f'{part} X 256')]
                 )
             )['body']
             == part * 256 * 2
@@ -142,8 +142,8 @@ class TestProxyChunked(TestApplicationPython):
             self.get_http10(
                 body=self.chunks(
                     [
-                        ('100000', part + ' X 65536'),
-                        ('100000', part + ' X 65536'),
+                        ('100000', f'{part} X 65536'),
+                        ('100000', f'{part} X 65536'),
                     ]
                 )
             )['body']
@@ -153,8 +153,8 @@ class TestProxyChunked(TestApplicationPython):
             self.get_http10(
                 body=self.chunks(
                     [
-                        ('1000000', part + ' X 1048576'),
-                        ('1000000', part + ' X 1048576'),
+                        ('1000000', f'{part} X 1048576'),
+                        ('1000000', f'{part} X 1048576'),
                     ]
                 ),
                 read_buffer_size=4096 * 4096,

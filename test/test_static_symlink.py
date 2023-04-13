@@ -10,21 +10,21 @@ class TestStaticSymlink(TestApplicationProto):
 
     @pytest.fixture(autouse=True)
     def setup_method_fixture(self, temp_dir):
-        os.makedirs(temp_dir + '/assets/dir/dir')
-        Path(temp_dir + '/assets/index.html').write_text('0123456789')
-        Path(temp_dir + '/assets/dir/file').write_text('blah')
+        os.makedirs(f'{temp_dir}/assets/dir/dir')
+        Path(f'{temp_dir}/assets/index.html').write_text('0123456789')
+        Path(f'{temp_dir}/assets/dir/file').write_text('blah')
 
         self._load_conf(
             {
                 "listeners": {"*:7080": {"pass": "routes"}},
-                "routes": [{"action": {"share": temp_dir + "/assets$uri"}}],
+                "routes": [{"action": {"share": f'{temp_dir}/assets$uri'}}],
             }
         )
 
     def test_static_symlink(self, temp_dir, skip_alert):
         skip_alert(r'opening.*failed')
 
-        os.symlink(temp_dir + '/assets/dir', temp_dir + '/assets/link')
+        os.symlink(f'{temp_dir}/assets/dir', f'{temp_dir}/assets/link')
 
         assert self.get(url='/dir')['status'] == 301, 'dir'
         assert self.get(url='/dir/file')['status'] == 200, 'file'
@@ -32,14 +32,14 @@ class TestStaticSymlink(TestApplicationProto):
         assert self.get(url='/link/file')['status'] == 200, 'symlink file'
 
         assert 'success' in self.conf(
-            {"share": temp_dir + "/assets$uri", "follow_symlinks": False},
+            {"share": f'{temp_dir}/assets$uri', "follow_symlinks": False},
             'routes/0/action',
         ), 'configure symlink disable'
 
         assert self.get(url='/link/file')['status'] == 403, 'symlink disabled'
 
         assert 'success' in self.conf(
-            {"share": temp_dir + "/assets$uri", "follow_symlinks": True},
+            {"share": f'{temp_dir}/assets$uri', "follow_symlinks": True},
             'routes/0/action',
         ), 'configure symlink enable'
 
@@ -48,21 +48,21 @@ class TestStaticSymlink(TestApplicationProto):
     def test_static_symlink_two_blocks(self, temp_dir, skip_alert):
         skip_alert(r'opening.*failed')
 
-        os.symlink(temp_dir + '/assets/dir', temp_dir + '/assets/link')
+        os.symlink(f'{temp_dir}/assets/dir', f'{temp_dir}/assets/link')
 
         assert 'success' in self.conf(
             [
                 {
                     "match": {"method": "HEAD"},
                     "action": {
-                        "share": temp_dir + "/assets$uri",
+                        "share": f'{temp_dir}/assets$uri',
                         "follow_symlinks": False,
                     },
                 },
                 {
                     "match": {"method": "GET"},
                     "action": {
-                        "share": temp_dir + "/assets$uri",
+                        "share": f'{temp_dir}/assets$uri',
                         "follow_symlinks": True,
                     },
                 },
@@ -77,15 +77,15 @@ class TestStaticSymlink(TestApplicationProto):
         skip_alert(r'opening.*failed')
 
         os.symlink(
-            temp_dir + '/assets/dir/file', temp_dir + '/assets/dir/dir/link'
+            f'{temp_dir}/assets/dir/file', f'{temp_dir}/assets/dir/dir/link'
         )
 
         assert self.get(url='/dir/dir/link')['status'] == 200, 'default chroot'
 
         assert 'success' in self.conf(
             {
-                "share": temp_dir + "/assets$uri",
-                "chroot": temp_dir + "/assets/dir/dir",
+                "share": f'{temp_dir}/assets$uri',
+                "chroot": f'{temp_dir}/assets/dir/dir',
             },
             'routes/0/action',
         ), 'configure chroot'

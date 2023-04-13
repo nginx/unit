@@ -563,6 +563,25 @@ nxt_file_redirect(nxt_file_t *file, nxt_fd_t fd)
 }
 
 
+/* nxt_file_stdout() redirects the stdout descriptor to the file. */
+
+nxt_int_t
+nxt_file_stdout(nxt_file_t *file)
+{
+    nxt_thread_log_debug("dup2(%FD, %FD, \"%FN\")",
+                         file->fd, STDOUT_FILENO, file->name);
+
+    if (dup2(file->fd, STDOUT_FILENO) != -1) {
+        return NXT_OK;
+    }
+
+    nxt_thread_log_alert("dup2(%FD, %FD, \"%FN\") failed %E",
+                         file->fd, STDOUT_FILENO, file->name, nxt_errno);
+
+    return NXT_ERROR;
+}
+
+
 /* nxt_file_stderr() redirects the stderr descriptor to the file. */
 
 nxt_int_t

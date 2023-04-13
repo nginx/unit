@@ -69,7 +69,7 @@ def waitforsocket(port):
             except KeyboardInterrupt:
                 raise
 
-    pytest.fail('Can\'t connect to the 127.0.0.1:' + str(port))
+    pytest.fail(f"Can't connect to the 127.0.0.1:{port}")
 
 
 def check_findmnt():
@@ -125,7 +125,7 @@ def getns(nstype):
     # read namespace id from symlink file:
     # it points to: '<nstype>:[<ns id>]'
     # # eg.: 'pid:[4026531836]'
-    nspath = '/proc/self/ns/' + nstype
+    nspath = f'/proc/self/ns/{nstype}'
     data = None
 
     if os.path.exists(nspath):

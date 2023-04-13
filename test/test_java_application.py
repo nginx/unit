@@ -24,9 +24,9 @@ class TestJavaApplication(TestApplicationJava):
                     "app": {
                         "type": self.get_application_type(),
                         "processes": 1,
-                        "working_directory": option.test_dir + "/java/empty",
-                        "webapp": temp_dir + "/java",
-                        "unit_jars": temp_dir + "/no_such_dir",
+                        "working_directory": f"{option.test_dir}/java/empty",
+                        "webapp": f"{temp_dir}/java",
+                        "unit_jars": f"{temp_dir}/no_such_dir",
                     }
                 },
             }
@@ -36,7 +36,7 @@ class TestJavaApplication(TestApplicationJava):
         self.load('empty_war')
 
         assert 'success' in self.conf(
-            '"' + temp_dir + '/java/empty.war"',
+            f'"{temp_dir}/java/empty.war"',
             '/config/applications/empty_war/webapp',
         ), 'configure war'
 
@@ -118,7 +118,7 @@ class TestJavaApplication(TestApplicationJava):
         headers = self.get(
             headers={
                 'Host': 'localhost',
-                'Cookie': 'JSESSIONID=' + session_id,
+                'Cookie': f'JSESSIONID={session_id}',
                 'Connection': 'close',
             },
             url='/?var1=val2',
@@ -157,7 +157,7 @@ class TestJavaApplication(TestApplicationJava):
         resp = self.get(
             headers={
                 'Host': 'localhost',
-                'Cookie': 'JSESSIONID=' + session_id,
+                'Cookie': f'JSESSIONID={session_id}',
                 'Connection': 'close',
             }
         )
@@ -171,7 +171,7 @@ class TestJavaApplication(TestApplicationJava):
         resp = self.get(
             headers={
                 'Host': 'localhost',
-                'Cookie': 'JSESSIONID=' + session_id,
+                'Cookie': f'JSESSIONID={session_id}',
                 'Connection': 'close',
             }
         )
@@ -183,7 +183,7 @@ class TestJavaApplication(TestApplicationJava):
         resp = self.get(
             headers={
                 'Host': 'localhost',
-                'Cookie': 'JSESSIONID=' + session_id,
+                'Cookie': f'JSESSIONID={session_id}',
                 'Connection': 'close',
             }
         )
@@ -207,7 +207,7 @@ class TestJavaApplication(TestApplicationJava):
         resp = self.get(
             headers={
                 'Host': 'localhost',
-                'Cookie': 'JSESSIONID=' + session_id,
+                'Cookie': f'JSESSIONID={session_id}',
                 'Connection': 'close',
             }
         )
@@ -223,7 +223,7 @@ class TestJavaApplication(TestApplicationJava):
         resp = self.get(
             headers={
                 'Host': 'localhost',
-                'Cookie': 'JSESSIONID=' + session_id,
+                'Cookie': f'JSESSIONID={session_id}',
                 'Connection': 'close',
             }
         )
@@ -244,7 +244,7 @@ class TestJavaApplication(TestApplicationJava):
         headers = self.get(
             headers={
                 'Host': 'localhost',
-                'Cookie': 'JSESSIONID=' + session_id,
+                'Cookie': f'JSESSIONID={session_id}',
                 'Connection': 'close',
             },
             url='/?var1=val2',
@@ -256,7 +256,7 @@ class TestJavaApplication(TestApplicationJava):
         headers = self.get(
             headers={
                 'Host': 'localhost',
-                'Cookie': 'JSESSIONID=' + session_id,
+                'Cookie': f'JSESSIONID={session_id}',
                 'Connection': 'close',
             },
             url='/',
@@ -770,7 +770,7 @@ class TestJavaApplication(TestApplicationJava):
         assert headers['X-Path-Info'] == '/test', 'the rest of the path'
         assert (
             headers['X-Path-Translated']
-            == headers['X-Real-Path'] + headers['X-Path-Info']
+            == f"{headers['X-Real-Path']}{headers['X-Path-Info']}"
         ), 'translated path is the app root + path info'
         assert (
             headers['X-Resource-Paths'].endswith('/WEB-INF/, /index.html]')
@@ -956,7 +956,7 @@ class TestJavaApplication(TestApplicationJava):
         self.load('multipart')
 
         reldst = '/uploads'
-        fulldst = temp_dir + reldst
+        fulldst = f'{temp_dir}{reldst}'
         os.mkdir(fulldst)
         public_dir(fulldst)
 
@@ -989,7 +989,7 @@ class TestJavaApplication(TestApplicationJava):
         assert re.search(r'sample\.txt created', resp['body']), 'multipart body'
         assert (
             self.search_in_log(
-                r'^Data from sample file$', name=reldst + '/sample.txt'
+                r'^Data from sample file$', name=f'{reldst}/sample.txt'
             )
             is not None
         ), 'file created'

@@ -6,70 +6,71 @@ include ../shasum.mak
 DEFAULT_VERSION := $(NXT_VERSION)
 
 VERSION ?= $(DEFAULT_VERSION)
+PATCHLEVEL ?= 1
 
 EXPORT_DIR := $(VERSION)
 
 MODULES ?= go jsc node perl php python ruby minimal
 
+VARIANT ?= bullseye
+
 VERSION_minimal ?=
-CONTAINER_minimal ?= debian:bullseye-slim
+CONTAINER_minimal ?= debian:$(VARIANT)-slim
 CONFIGURE_minimal ?=
 INSTALL_minimal ?=	version
-define COPY_minimal
-endef
+RUN_minimal ?=		/bin/true
 
-VERSION_go ?=		1.19
-CONTAINER_go ?=		golang:$(VERSION_go)
+VERSION_go ?=		1.20
+VARIANT_go ?=		$(VARIANT)
+CONTAINER_go ?=		golang:$(VERSION_go)-$(VARIANT_go)
 CONFIGURE_go ?=		go --go-path=$$GOPATH
 INSTALL_go ?=		go-install-src libunit-install
-define COPY_go
-COPY --from=BUILDER /usr/lib/\*-linux-gnu/libunit.a /tmp/\n\$
-COPY --from=BUILDER /usr/include/nxt_* /usr/include/\n\$
-COPY --from=BUILDER /go/src/ /go/src/
-endef
+RUN_go ?=			/bin/true
 
 VERSION_jsc ?=		11
-CONTAINER_jsc ?=	eclipse-temurin:$(VERSION_jsc)-jdk
+VARIANT_jsc ?=		jammy
+CONTAINER_jsc ?=	eclipse-temurin:$(VERSION_jsc)-jdk-$(VARIANT_jsc)
 CONFIGURE_jsc ?=	java --jars=/usr/share/unit-jsc-common/
 INSTALL_jsc ?=		java-shared-install java-install
-COPY_jsc =	 		COPY --from=BUILDER /usr/share/unit-jsc-common/ /usr/share/unit-jsc-common/
+RUN_jsc ?=	 		/bin/true
 
 VERSION_node ?=		18
-CONTAINER_node ?=	node:$(VERSION_node)
+VARIANT_node ?=		$(VARIANT)
+CONTAINER_node ?=	node:$(VERSION_node)-$(VARIANT_node)
 CONFIGURE_node ?=	nodejs --node-gyp=/usr/local/lib/node_modules/npm/bin/node-gyp-bin/node-gyp
 INSTALL_node ?=		node node-install libunit-install
-define COPY_node
-COPY --from=BUILDER /usr/lib/\*-linux-gnu/libunit.a /tmp/\n\$
-COPY --from=BUILDER /usr/include/nxt_* /usr/include/\n\$
-COPY --from=BUILDER /usr/local/lib/node_modules/unit-http/ /usr/local/lib/node_modules/unit-http/
-endef
+RUN_node ?=			/bin/true
 
 VERSION_perl ?=		5.36
-CONTAINER_perl ?=	perl:$(VERSION_perl)
+VARIANT_perl ?=		$(VARIANT)
+CONTAINER_perl ?=	perl:$(VERSION_perl)-$(VARIANT_perl)
 CONFIGURE_perl ?=	perl
 INSTALL_perl ?=		perl-install
-COPY_perl =
+RUN_perl ?=			/bin/true
 
-VERSION_php ?=		8.1
-CONTAINER_php ?=	php:$(VERSION_php)-cli
+VERSION_php ?=		8.2
+VARIANT_php ?=		cli-$(VARIANT)
+CONTAINER_php ?=	php:$(VERSION_php)-$(VARIANT_php)
 CONFIGURE_php ?=	php
 INSTALL_php ?=		php-install
-COPY_php =			RUN ldconfig
+RUN_php ?=			ldconfig
 
 VERSION_python ?=	3.11
-CONTAINER_python ?=	python:$(VERSION_python)
+VARIANT_python ?=	$(VARIANT)
+CONTAINER_python ?=	python:$(VERSION_python)-$(VARIANT_python)
 CONFIGURE_python ?=	python --config=/usr/local/bin/python3-config
 INSTALL_python ?=	python3-install
-COPY_python =
+RUN_python ?=		/bin/true
 
-VERSION_ruby ?=		3.1
-CONTAINER_ruby ?=	ruby:$(VERSION_ruby)
+VERSION_ruby ?=		3.2
+VARIANT_ruby ?=		$(VARIANT)
+CONTAINER_ruby ?=	ruby:$(VERSION_ruby)-$(VARIANT_ruby)
 CONFIGURE_ruby ?=	ruby
 INSTALL_ruby ?=		ruby-install
-COPY_ruby =			RUN gem install rack
+RUN_ruby ?=			gem install rack
 
 default:
-	@echo "valid targets: all build dockerfiles push tag export clean"
+	@echo "valid targets: all build dockerfiles clean"
 
 MODVERSIONS = $(foreach module,$(MODULES),$(module)$(VERSION_$(module)))
 
@@ -77,38 +78,38 @@ modname = $(shell echo $1 | /usr/bin/tr -d '.01234567890-')
 
 dockerfiles: $(addprefix Dockerfile., $(MODVERSIONS))
 build: $(addprefix build-,$(MODVERSIONS))
-tag: $(addprefix tag-,$(MODVERSIONS))
-push: $(addprefix push-,$(MODVERSIONS))
-export: $(addsuffix .tar.gz,$(addprefix $(EXPORT_DIR)/nginx-unit-$(VERSION)-,$(MODVERSIONS))) $(addsuffix .tar.gz.sha512, $(addprefix $(EXPORT_DIR)/nginx-unit-$(VERSION)-,$(MODVERSIONS)))
 
-Dockerfile.%: ../../version
+Dockerfile.%: ../../version template.Dockerfile
 	@echo "===> Building $@"
 	cat template.Dockerfile | sed \
 			-e 's,@@VERSION@@,$(VERSION),g' \
+			-e 's,@@PATCHLEVEL@@,$(PATCHLEVEL),g' \
 			-e 's,@@CONTAINER@@,$(CONTAINER_$(call modname, $*)),g' \
 			-e 's,@@CONFIGURE@@,$(CONFIGURE_$(call modname, $*)),g' \
 			-e 's,@@INSTALL@@,$(INSTALL_$(call modname, $*)),g' \
-			-e 's,@@COPY@@,$(COPY_$(call modname, $*)),g' \
+			-e 's,@@RUN@@,$(RUN_$(call modname, $*)),g' \
 			> $@
 
 build-%: Dockerfile.%
 	docker pull $(CONTAINER_$(call modname, $*))
 	docker build --no-cache -t unit:$(VERSION)-$* -f Dockerfile.$* .
 
-tag-%: build-%
-	docker tag unit:$(VERSION)-$* nginx/unit:$(VERSION)-$*
-
-push-%: tag-%
-	docker push nginx/unit:$(VERSION)-$*
-
-$(EXPORT_DIR):
-	mkdir -p $@
-
-$(EXPORT_DIR)/nginx-unit-$(VERSION)-%.tar.gz: $(EXPORT_DIR) tag-%
-	docker save nginx/unit:$(VERSION)-$* | gzip > $@
-
-$(EXPORT_DIR)/nginx-unit-$(VERSION)-%.tar.gz.sha512: $(EXPORT_DIR)/nginx-unit-$(VERSION)-%.tar.gz
-	$(SHA512SUM) $< | sed 's,$(EXPORT_DIR)/,,' > $@
+library:
+	@echo "# this file is generated via https://github.com/nginx/unit/blob/$(shell git describe --always --abbrev=0 HEAD)/pkg/docker/Makefile"
+	@echo ""
+	@echo "Maintainers: Unit Docker Maintainers <docker-maint@nginx.com> (@nginx)"
+	@echo "GitRepo: https://github.com/nginx/unit.git"
+	@for mod in $(MODVERSIONS); do \
+		echo ""; \
+		TAGS="$$mod $${mod%%.*} $$( echo $$mod | tr -d '.0123456789-' )"; \
+		TAGS="$$(echo $$TAGS | tr " " "\n" | sort -u -r | tr "\n" "," | sed "s/,/, /g")"; \
+		echo "Tags: $(VERSION)-$$mod, $${TAGS%, }"; \
+		echo "Architectures: amd64, arm64v8"; \
+		echo "GitFetch: refs/heads/branches/packaging"; \
+		echo "GitCommit: $(shell git describe --always --abbrev=0 HEAD)"; \
+		echo "Directory: pkg/docker"; \
+		echo "File: Dockerfile.$$mod"; \
+	done
 
 all: $(addprefix Dockerfile., $(MODVERSIONS))
 
@@ -116,4 +117,4 @@ clean:
 	rm -f $(addprefix Dockerfile., $(MODVERSIONS))
 	rm -rf $(EXPORT_DIR)
 
-.PHONY: default build dockerfiles push tag export clean
+.PHONY: default build dockerfiles clean library

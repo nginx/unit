@@ -6,6 +6,7 @@ class TestPHPTargets(TestApplicationPHP):
     prerequisites = {'modules': {'php': 'any'}}
 
     def test_php_application_targets(self):
+        targets_dir = f"{option.test_dir}/php/targets"
         assert 'success' in self.conf(
             {
                 "listeners": {"*:7080": {"pass": "routes"}},
@@ -27,15 +28,15 @@ class TestPHPTargets(TestApplicationPHP):
                         "targets": {
                             "1": {
                                 "script": "1.php",
-                                "root": option.test_dir + "/php/targets",
+                                "root": targets_dir,
                             },
                             "2": {
                                 "script": "2.php",
-                                "root": option.test_dir + "/php/targets/2",
+                                "root": f'{targets_dir}/2',
                             },
                             "default": {
                                 "index": "index.php",
-                                "root": option.test_dir + "/php/targets",
+                                "root": targets_dir,
                             },
                         },
                     }
@@ -45,8 +46,9 @@ class TestPHPTargets(TestApplicationPHP):
 
         assert self.get(url='/1')['body'] == '1'
         assert self.get(url='/2')['body'] == '2'
-        assert self.get(url='/blah')['status'] == 503  # TODO 404
+        assert self.get(url='/blah')['status'] == 404
         assert self.get(url='/')['body'] == 'index'
+        assert self.get(url='/1.php?test=test.php/')['body'] == '1'
 
         assert 'success' in self.conf(
             "\"1.php\"", 'applications/targets/targets/default/index'
@@ -71,7 +73,7 @@ class TestPHPTargets(TestApplicationPHP):
                         "targets": {
                             "default": {
                                 "index": "index.php",
-                                "root": option.test_dir + "/php/targets",
+                                "root": f"{option.test_dir}/php/targets",
                             },
                         },
                     }
@@ -84,7 +86,7 @@ class TestPHPTargets(TestApplicationPHP):
             {"pass": "applications/targets/blah"}, 'listeners/*:7080'
         ), 'invalid targets pass'
         assert 'error' in self.conf(
-            '"' + option.test_dir + '/php/targets\"',
+            f'"{option.test_dir}/php/targets"',
             'applications/targets/root',
         ), 'invalid root'
         assert 'error' in self.conf(

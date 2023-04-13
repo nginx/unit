@@ -139,15 +139,15 @@ class TestGoApplication(TestApplicationGo):
         self.load('command_line_arguments')
 
         arg1 = '--cc=gcc-7.2.0'
-        arg2 = '--cc-opt=\'-O0 -DNXT_DEBUG_MEMORY=1 -fsanitize=address\''
+        arg2 = "--cc-opt='-O0 -DNXT_DEBUG_MEMORY=1 -fsanitize=address'"
         arg3 = '--debug'
 
         assert 'success' in self.conf(
-            '["' + arg1 + '", "' + arg2 + '", "' + arg3 + '"]',
+            f'["{arg1}", "{arg2}", "{arg3}"]',
             'applications/command_line_arguments/arguments',
         )
 
-        assert self.get()['body'] == arg1 + ',' + arg2 + ',' + arg3, 'arguments'
+        assert self.get()['body'] == f'{arg1},{arg2},{arg3}', 'arguments'
 
     def test_go_application_command_line_arguments_change(self):
         self.load('command_line_arguments')

@@ -20,4 +20,4 @@ class Log:
         Log.pos[name] = pos
 
     def get_path(name=UNIT_LOG):
-        return Log.temp_dir + '/' + name
+        return f'{Log.temp_dir}/{name}'

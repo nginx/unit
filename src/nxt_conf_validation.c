@@ -344,6 +344,9 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[] = {
         .type       = NXT_CONF_VLDT_OBJECT,
         .validator  = nxt_conf_vldt_object,
         .u.members  = nxt_conf_vldt_static_members,
+    }, {
+        .name       = nxt_string("log_route"),
+        .type       = NXT_CONF_VLDT_BOOLEAN,
     },
 
     NXT_CONF_VLDT_END
@@ -1044,6 +1047,12 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[] = {
         .type       = NXT_CONF_VLDT_OBJECT,
         .validator  = nxt_conf_vldt_isolation,
         .u.members  = nxt_conf_vldt_app_isolation_members,
+    }, {
+        .name       = nxt_string("stdout"),
+        .type       = NXT_CONF_VLDT_STRING,
+    }, {
+        .name       = nxt_string("stderr"),
+        .type       = NXT_CONF_VLDT_STRING,
     },
 
     NXT_CONF_VLDT_END
@@ -1284,25 +1293,35 @@ nxt_conf_validate(nxt_conf_validation_t *vldt)
 
     vldt->tstr_state = nxt_tstr_state_new(vldt->pool, 1);
     if (nxt_slow_path(vldt->tstr_state == NULL)) {
-        return NXT_ERROR;
+        ret = NXT_ERROR;
+        goto fail;
     }
 
     ret = nxt_conf_vldt_type(vldt, NULL, vldt->conf, NXT_CONF_VLDT_OBJECT);
     if (ret != NXT_OK) {
-        return ret;
+        goto fail;
     }
 
     ret = nxt_conf_vldt_object(vldt, vldt->conf, nxt_conf_vldt_root_members);
     if (ret != NXT_OK) {
-        return ret;
+        goto fail;
     }
 
     ret = nxt_tstr_state_done(vldt->tstr_state, error);
     if (ret != NXT_OK) {
-        return nxt_conf_vldt_error(vldt, "%s", error);
+        ret = nxt_conf_vldt_error(vldt, "%s", error);
+        goto fail;
     }
 
+    nxt_tstr_state_release(vldt->tstr_state);
+
     return NXT_OK;
+
+fail:
+
+    nxt_tstr_state_release(vldt->tstr_state);
+
+    return ret;
 }
 
 

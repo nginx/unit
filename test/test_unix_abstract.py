@@ -13,14 +13,14 @@ class TestUnixAbstract(TestApplicationPython):
 
         def source(source):
             assert 'success' in self.conf(
-                '"' + source + '"', 'routes/0/match/source'
+                f'"{source}"', 'routes/0/match/source'
             )
 
         assert 'success' in self.conf(
             {
                 "listeners": {
                     "127.0.0.1:7080": {"pass": "routes"},
-                    "unix:@" + addr[1:]: {"pass": "routes"},
+                    f"unix:@{addr[1:]}": {"pass": "routes"},
                 },
                 "routes": [
                     {
@@ -61,6 +61,7 @@ class TestUnixAbstract(TestApplicationPython):
                 headers={'Connection': 'close', 'X-Forwarded-For': xff},
             )['body']
 
+        client_ip_dir = f"{option.test_dir}/python/client_ip"
         assert 'success' in self.conf(
             {
                 "listeners": {
@@ -90,9 +91,8 @@ class TestUnixAbstract(TestApplicationPython):
                     "client_ip": {
                         "type": self.get_application_type(),
                         "processes": {"spare": 0},
-                        "path": option.test_dir + "/python/client_ip",
-                        "working_directory": option.test_dir
-                        + "/python/client_ip",
+                        "path": client_ip_dir,
+                        "working_directory": client_ip_dir,
                         "module": "wsgi",
                     }
                 },

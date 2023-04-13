@@ -16,9 +16,7 @@ class TestClientIP(TestApplicationPython):
                     "client_ip": options,
                     "pass": "applications/client_ip",
                 },
-                "unix:"
-                + option.temp_dir
-                + "/sock": {
+                f"unix:{option.temp_dir}/sock": {
                     "client_ip": options,
                     "pass": "applications/client_ip",
                 },
@@ -30,7 +28,7 @@ class TestClientIP(TestApplicationPython):
         address = {
             'ipv4': ('127.0.0.1', 7081),
             'ipv6': ('::1', 7082),
-            'unix': (option.temp_dir + '/sock', None),
+            'unix': (f'{option.temp_dir}/sock', None),
         }
         (addr, port) = address[sock_type]
 

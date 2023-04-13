@@ -1,74 +1,80 @@
-FROM @@CONTAINER@@ as BUILDER
+FROM @@CONTAINER@@
 
-LABEL maintainer="NGINX Docker Maintainers <docker-maint@nginx.com>"
+LABEL org.opencontainers.image.title="Unit"
+LABEL org.opencontainers.image.description="Official build of Unit for Docker."
+LABEL org.opencontainers.image.url="https://unit.nginx.org"
+LABEL org.opencontainers.image.source="https://github.com/nginx/unit"
+LABEL org.opencontainers.image.documentation="https://unit.nginx.org/installation/#docker-images"
+LABEL org.opencontainers.image.vendor="NGINX Docker Maintainers <docker-maint@nginx.com>"
+LABEL org.opencontainers.image.version="@@VERSION@@"
 
 RUN set -ex \
+    && savedAptMark="$(apt-mark showmanual)" \
     && apt-get update \
-    && apt-get install --no-install-recommends --no-install-suggests -y ca-certificates mercurial build-essential libssl-dev libpcre2-dev \
+    && apt-get install --no-install-recommends --no-install-suggests -y ca-certificates mercurial build-essential libssl-dev libpcre2-dev curl pkg-config \
     && mkdir -p /usr/lib/unit/modules /usr/lib/unit/debug-modules \
-    && hg clone https://hg.nginx.org/unit \
+    && hg clone -u @@VERSION@@-@@PATCHLEVEL@@ https://hg.nginx.org/unit \
     && cd unit \
-    && hg up @@VERSION@@ \
     && NCPU="$(getconf _NPROCESSORS_ONLN)" \
     && DEB_HOST_MULTIARCH="$(dpkg-architecture -q DEB_HOST_MULTIARCH)" \
     && CC_OPT="$(DEB_BUILD_MAINT_OPTIONS="hardening=+all,-pie" DEB_CFLAGS_MAINT_APPEND="-Wp,-D_FORTIFY_SOURCE=2 -fPIC" dpkg-buildflags --get CFLAGS)" \
     && LD_OPT="$(DEB_BUILD_MAINT_OPTIONS="hardening=+all,-pie" DEB_LDFLAGS_MAINT_APPEND="-Wl,--as-needed -pie" dpkg-buildflags --get LDFLAGS)" \
-    && CONFIGURE_ARGS="--prefix=/usr \
-                --state=/var/lib/unit \
+    && CONFIGURE_ARGS_MODULES="--prefix=/usr \
+                --statedir=/var/lib/unit \
                 --control=unix:/var/run/control.unit.sock \
                 --pid=/var/run/unit.pid \
                 --log=/var/log/unit.log \
-                --tmp=/var/tmp \
+                --tmpdir=/var/tmp \
                 --user=unit \
                 --group=unit \
                 --openssl \
                 --libdir=/usr/lib/$DEB_HOST_MULTIARCH" \
-    && ./configure $CONFIGURE_ARGS --cc-opt="$CC_OPT" --ld-opt="$LD_OPT" --modules=/usr/lib/unit/debug-modules --debug \
+    && CONFIGURE_ARGS="$CONFIGURE_ARGS_MODULES \
+                --njs" \
+    && make -j $NCPU -C pkg/contrib .njs \
+    && export PKG_CONFIG_PATH=$(pwd)/pkg/contrib/njs/build \
+    && ./configure $CONFIGURE_ARGS --cc-opt="$CC_OPT" --ld-opt="$LD_OPT" --modulesdir=/usr/lib/unit/debug-modules --debug \
     && make -j $NCPU unitd \
-    && install -pm755 build/unitd /usr/sbin/unitd-debug \
+    && install -pm755 build/sbin/unitd /usr/sbin/unitd-debug \
     && make clean \
-    && ./configure $CONFIGURE_ARGS --cc-opt="$CC_OPT" --ld-opt="$LD_OPT" --modules=/usr/lib/unit/modules \
+    && ./configure $CONFIGURE_ARGS --cc-opt="$CC_OPT" --ld-opt="$LD_OPT" --modulesdir=/usr/lib/unit/modules \
     && make -j $NCPU unitd \
-    && install -pm755 build/unitd /usr/sbin/unitd \
+    && install -pm755 build/sbin/unitd /usr/sbin/unitd \
     && make clean \
-    && ./configure $CONFIGURE_ARGS --cc-opt="$CC_OPT" --modules=/usr/lib/unit/debug-modules --debug \
+    && ./configure $CONFIGURE_ARGS_MODULES --cc-opt="$CC_OPT" --modulesdir=/usr/lib/unit/debug-modules --debug \
     && ./configure @@CONFIGURE@@ \
     && make -j $NCPU @@INSTALL@@ \
     && make clean \
-    && ./configure $CONFIGURE_ARGS --cc-opt="$CC_OPT" --modules=/usr/lib/unit/modules \
+    && ./configure $CONFIGURE_ARGS_MODULES --cc-opt="$CC_OPT" --modulesdir=/usr/lib/unit/modules \
     && ./configure @@CONFIGURE@@ \
     && make -j $NCPU @@INSTALL@@ \
-    && ldd /usr/sbin/unitd | awk '/=>/{print $(NF-1)}' | while read n; do dpkg-query -S $n; done | sed 's/^\([^:]\+\):.*$/\1/' | sort | uniq > /requirements.apt
-
-FROM @@CONTAINER@@
-COPY docker-entrypoint.sh /usr/local/bin/
-COPY --from=BUILDER /usr/sbin/unitd /usr/sbin/unitd
-COPY --from=BUILDER /usr/sbin/unitd-debug /usr/sbin/unitd-debug
-COPY --from=BUILDER /usr/lib/unit/ /usr/lib/unit/
-COPY --from=BUILDER /requirements.apt /requirements.apt
-@@COPY@@
-RUN set -x \
-    && if [ -f "/tmp/libunit.a" ]; then \
-        mv /tmp/libunit.a /usr/lib/$(dpkg-architecture -q DEB_HOST_MULTIARCH)/libunit.a; \
-        rm -f /tmp/libunit.a; \
-    fi \
+    && cd \
+    && rm -rf unit \
+    && for f in /usr/sbin/unitd /usr/lib/unit/modules/*.unit.so; do \
+        ldd $f | awk '/=>/{print $(NF-1)}' | while read n; do dpkg-query -S $n; done | sed 's/^\([^:]\+\):.*$/\1/' | sort | uniq >> /requirements.apt; \
+       done \
+    && apt-mark showmanual | xargs apt-mark auto > /dev/null \
+    && { [ -z "$savedAptMark" ] || apt-mark manual $savedAptMark; } \
+    && @@RUN@@ \
     && mkdir -p /var/lib/unit/ \
     && mkdir /docker-entrypoint.d/ \
-    && addgroup --system unit \
-    && adduser \
-         --system \
-         --disabled-login \
-         --ingroup unit \
+    && groupadd --gid 999 unit \
+    && useradd \
+         --uid 999 \
+         --gid unit \
          --no-create-home \
          --home /nonexistent \
-         --gecos "unit user" \
+         --comment "unit user" \
          --shell /bin/false \
          unit \
-    && apt update \
-    && apt --no-install-recommends --no-install-suggests -y install curl $(cat /requirements.apt) \
-    && apt-get clean && rm -rf /var/lib/apt/lists/* \
+    && apt-get update \
+    && apt-get --no-install-recommends --no-install-suggests -y install curl $(cat /requirements.apt) \
+    && apt-get purge -y --auto-remove \
+    && rm -rf /var/lib/apt/lists/* \
     && rm -f /requirements.apt \
     && ln -sf /dev/stdout /var/log/unit.log
+
+COPY docker-entrypoint.sh /usr/local/bin/
 
 STOPSIGNAL SIGTERM
 

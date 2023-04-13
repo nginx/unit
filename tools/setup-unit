@@ -25,6 +25,9 @@ set -Eefuo pipefail;
 test -v BASH_VERSION \
 && shopt -s lastpipe;
 
+test -v ZSH_VERSION \
+&& setopt sh_word_split;
+
 export LC_ALL=C
 
 program_name="$0";
@@ -39,8 +42,8 @@ SYNOPSIS
         $program_name [-h] COMMAND [ARGS]
 
     Subcommands
-        +-- repo-config  [-hn] [PKG-MANAGER OS-NAME OS-VERSION]
-        +-- welcome      [-hn]
+        ├── repo-config  [-hn] [PKG-MANAGER OS-NAME OS-VERSION]
+        └── welcome      [-hn]
 
 DESCRIPTION
         This script simplifies installing and configuring an NGINX Unit server
@@ -75,19 +78,19 @@ SYNOPSIS
         $program_name [-h] COMMAND [ARGS]
 
     Subcommands
-        +-- cmd          [-h]
-        +-- ctl          [-h] [-s SOCK] SUBCOMMAND [ARGS]
-        |   +-- http     [-h] [-c CURLOPT] METHOD PATH
-        |   +-- insert   [-h] PATH INDEX
-        +-- freeport     [-h]
-        +-- json-ins     [-hn] JSON INDEX
-        +-- os-probe     [-h]
-        +-- ps           [-h] [-t TYPE]
-        +-- repo-config  [-hn] [PKG-MANAGER OS-NAME OS-VERSION]
-        +-- sock         [-h] SUBCOMMAND [ARGS]
-        |   +-- filter   [-chs]
-        |   +-- find     [-h]
-        +-- welcome      [-hn]
+        ├── cmd          [-h]
+        ├── ctl          [-h] [-s SOCK] SUBCOMMAND [ARGS]
+        │   ├── http     [-h] [-c CURLOPT] METHOD PATH
+        │   └── insert   [-h] PATH INDEX
+        ├── freeport     [-h]
+        ├── json-ins     [-hn] JSON INDEX
+        ├── os-probe     [-h]
+        ├── ps           [-h] [-t TYPE]
+        ├── repo-config  [-hn] [PKG-MANAGER OS-NAME OS-VERSION]
+        ├── sock         [-h] SUBCOMMAND [ARGS]
+        │   ├── filter   [-chs]
+        │   └── find     [-h]
+        └── welcome      [-hn]
 
 DESCRIPTION
         This script simplifies installing and configuring
@@ -207,8 +210,8 @@ SYNOPSIS
         $program_name ctl [-h] [-s SOCK] SUBCOMMAND [ARGS]
 
     Subcommands
-        +-- http    [-h] [-c CURLOPT] METHOD PATH
-        +-- insert  [-h] PATH INDEX
+        ├── http    [-h] [-c CURLOPT] METHOD PATH
+        └── insert  [-h] PATH INDEX
 
 DESCRIPTION
         Control a running unitd(8) instance through its control API socket.
@@ -557,15 +560,14 @@ unit_ctl_welcome()
         shift;
     done;
 
-    id -u \
-    | xargs test 0 -ne \
-    && err 'welcome: This script requires root privileges to run.';
-
     command -v curl >/dev/null \
     || err 'welcome: curl(1) not found in PATH.  It must be installed to run this script.';
 
     www='/srv/www/unit/index.html';
     if test -e "$www" && ! test -v force || ! test -w /srv; then
+        www="$HOME/srv/www/unit/index.html";
+    fi;
+    if test -e "$www" && ! test -v force; then
         www="$(mktemp)";
         mv "$www" "$www.html";
         www="$www.html"
@@ -596,14 +598,14 @@ unit_ctl_welcome()
 
         # Check unitd is not configured already.
         echo "$cmd" \
-        | if grep '\--state' >/dev/null; then
+        | if grep '\--statedir' >/dev/null; then
             echo "$cmd" \
             | sed 's/ --/\n--/g' \
-            | grep '\--state' \
+            | grep '\--statedir' \
             | cut -d' ' -f2;
         else
             $cmd --help \
-            | sed -n '/\--state/,+1p' \
+            | sed -n '/\--statedir/,+1p' \
             | grep 'default:' \
             | sed 's/ *default: "\(.*\)"/\1/';
         fi \
@@ -628,7 +630,7 @@ unit_ctl_welcome()
 
     dry_run_echo 'Create a file to serve:';
     dry_run_eval "mkdir -p $(dirname $www);";
-    dry_run_eval "cat >'$www'"' <<__EOF__;
+    dry_run_eval "tee '$www' >/dev/null"' <<__EOF__;
         <!DOCTYPE html>
         <html>
             <head>
@@ -1179,10 +1181,6 @@ __EOF__";
     command -v curl >/dev/null \
     || err 'repo-config: curl(1) not found in PATH.  It must be installed to run this script.';
 
-    id -u \
-    | xargs test 0 -ne \
-    && err 'repo-config: This script requires root privileges to run.';
-
     echo 'This script sets up the NGINX Unit repository';
 
     if ! test $# -ge 3; then
@@ -1233,8 +1231,8 @@ SYNOPSIS
         $program_name sock [-h] SUBCOMMAND [ARGS]
 
     Subcommands
-        +-- filter  [-ch]
-        +-- find    [-h]
+        ├── filter  [-ch]
+        └── find    [-h]
 
 DESCRIPTION
         Print the control API socket address of running unitd(8)

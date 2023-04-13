@@ -144,6 +144,7 @@ struct nxt_http_request_s {
 
     nxt_str_t                       host;
     nxt_str_t                       server_name;
+    nxt_str_t                       request_line;
     nxt_str_t                       target;
     nxt_str_t                       version;
     nxt_str_t                       *method;
@@ -188,6 +189,8 @@ struct nxt_http_request_s {
     nxt_http_response_t             resp;
 
     nxt_http_status_t               status:16;
+
+    uint8_t                         log_route;    /* 1 bit */
 
     uint8_t                         pass_count;   /* 8 bits */
     uint8_t                         app_target;

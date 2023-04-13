@@ -37,7 +37,7 @@ class TestGoIsolation(TestApplicationGo):
 
         for ns, ns_value in option.available['features']['isolation'].items():
             if ns.upper() in obj['NS']:
-                assert obj['NS'][ns.upper()] == ns_value, '%s match' % ns
+                assert obj['NS'][ns.upper()] == ns_value, f'{ns} match'
 
     def test_isolation_unpriv_user(self, is_su):
         if not self.isolation_key('unprivileged_userns_clone'):
@@ -60,7 +60,7 @@ class TestGoIsolation(TestApplicationGo):
 
         # unprivileged unit map itself to nobody in the container by default
         assert obj['UID'] == nobody_uid, 'uid of nobody'
-        assert obj['GID'] == nogroup_gid, 'gid of %s' % nogroup
+        assert obj['GID'] == nogroup_gid, f'gid of {nogroup}'
 
         self.load(
             'ns_inspect',
@@ -200,7 +200,7 @@ class TestGoIsolation(TestApplicationGo):
                 assert (
                     obj['NS'][ns.upper()]
                     == option.available['features']['isolation'][ns]
-                ), ('%s match' % ns)
+                ), f'{ns} match'
 
         assert obj['NS']['MNT'] != getns('mnt'), 'mnt set'
         assert obj['NS']['USER'] != getns('user'), 'user set'
@@ -260,7 +260,7 @@ class TestGoIsolation(TestApplicationGo):
                 assert (
                     obj['NS'][ns.upper()]
                     == option.available['features']['isolation'][ns]
-                ), ('%s match' % ns)
+                ), f'{ns} match'
 
     def test_go_isolation_rootfs_container(self, is_su, temp_dir):
         if not is_su:

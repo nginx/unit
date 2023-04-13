@@ -933,6 +933,59 @@ nxt_app_set_environment(nxt_conf_value_t *environment)
 }
 
 
+nxt_int_t
+nxt_app_set_logs(void)
+{
+    nxt_int_t              ret;
+    nxt_file_t             file;
+    nxt_task_t             *task;
+    nxt_thread_t           *thr;
+    nxt_process_t          *process;
+    nxt_runtime_t          *rt;
+    nxt_common_app_conf_t  *app_conf;
+
+    thr = nxt_thread();
+
+    task = thr->task;
+
+    rt = task->thread->runtime;
+    if (!rt->daemon) {
+        return NXT_OK;
+    }
+
+    process = rt->port_by_type[NXT_PROCESS_PROTOTYPE]->process;
+    app_conf = process->data.app;
+
+    if (app_conf->stdout_log != NULL) {
+        nxt_memzero(&file, sizeof(nxt_file_t));
+        file.log_level = 1;
+        file.name = (u_char *) app_conf->stdout_log;
+        ret = nxt_file_open(task, &file, O_WRONLY | O_APPEND, O_CREAT, 0666);
+        if (ret == NXT_ERROR) {
+            return NXT_ERROR;
+        }
+
+        nxt_file_stdout(&file);
+        nxt_file_close(task, &file);
+    }
+
+    if (app_conf->stderr_log != NULL) {
+        nxt_memzero(&file, sizeof(nxt_file_t));
+        file.log_level = 1;
+        file.name = (u_char *) app_conf->stderr_log;
+        ret = nxt_file_open(task, &file, O_WRONLY | O_APPEND, O_CREAT, 0666);
+        if (ret == NXT_ERROR) {
+            return NXT_ERROR;
+        }
+
+        nxt_file_stderr(&file);
+        nxt_file_close(task, &file);
+    }
+
+    return NXT_OK;
+}
+
+
 static u_char *
 nxt_cstr_dup(nxt_mp_t *mp, u_char *dst, u_char *src)
 {

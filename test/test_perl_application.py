@@ -179,6 +179,11 @@ class TestPerlApplication(TestApplicationPerl):
 
         assert self.get()['body'] == 'body\n', 'body io file'
 
+    def test_perl_streaming_body_multiple_responses(self):
+        self.load('streaming_body_multiple_responses')
+
+        assert self.get()['status'] == 200
+
     @pytest.mark.skip('not yet')
     def test_perl_application_syntax_error(self, skip_alert):
         skip_alert(r'PSGI: Failed to parse script')

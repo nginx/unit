@@ -119,15 +119,15 @@ ${NXT_GO}-install-src:
 	install -p -m644 ./go/* \$(DESTDIR)\$(NXT_GO_DST)/src/${NXT_GO_PKG}/
 
 ${NXT_GO}-install-env: \$(DESTDIR)\$(NXT_GO_DST)/src/${NXT_GO_PKG}/env.go \
-    ${NXT_VERSION_H} ${NXT_BUILD_DIR}/${NXT_LIB_UNIT_STATIC}
+    ${NXT_VERSION_H} ${NXT_BUILD_DIR}/lib/${NXT_LIB_UNIT_STATIC}
 
 \$(DESTDIR)\$(NXT_GO_DST)/src/${NXT_GO_PKG}/env.go:
 	install -d \$(DESTDIR)\$(NXT_GO_DST)/src/${NXT_GO_PKG}
 	$echo "package unit" > \$@
 	$echo "/*" >> \$@
 	$echo "#cgo CFLAGS: ${CFLAGS} ${NXT_CC_OPT}" >> \$@
-	$echo "#cgo CPPFLAGS: -I${PWD}/src -I${PWD}/${NXT_BUILD_DIR}" >> \$@
-	$echo "#cgo LDFLAGS: -L${PWD}/${NXT_BUILD_DIR} ${NXT_GO_LDFLAGS} ${NXT_LD_OPT}" >> \$@
+	$echo "#cgo CPPFLAGS: -I${PWD}/src -I${PWD}/${NXT_BUILD_DIR}/include" >> \$@
+	$echo "#cgo LDFLAGS: -L${PWD}/${NXT_BUILD_DIR}/lib ${NXT_GO_LDFLAGS} ${NXT_LD_OPT}" >> \$@
 	$echo "*/" >> \$@
 	$echo 'import "C"' >> \$@
 

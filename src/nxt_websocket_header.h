@@ -10,7 +10,7 @@
 
 
 typedef struct {
-#if (BYTE_ORDER == BIG_ENDIAN)
+#if (NXT_HAVE_BIG_ENDIAN)
     uint8_t fin:1;
     uint8_t rsv1:1;
     uint8_t rsv2:1;
@@ -21,7 +21,7 @@ typedef struct {
     uint8_t payload_len:7;
 #endif
 
-#if (BYTE_ORDER == LITTLE_ENDIAN)
+#if (NXT_HAVE_LITTLE_ENDIAN)
     uint8_t opcode:4;
     uint8_t rsv3:1;
     uint8_t rsv2:1;

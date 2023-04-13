@@ -146,7 +146,7 @@ class TestNodeApplication(TestApplicationNode):
         self.load('write_callback')
 
         assert self.get()['body'] == 'helloworld', 'write callback order'
-        assert waitforfiles(temp_dir + '/node/callback'), 'write callback'
+        assert waitforfiles(f'{temp_dir}/node/callback'), 'write callback'
 
     def test_node_application_write_before_write_head(self):
         self.load('write_before_write_head')
@@ -255,7 +255,7 @@ class TestNodeApplication(TestApplicationNode):
             )['status']
             == 200
         ), 'promise end request'
-        assert waitforfiles(temp_dir + '/node/callback'), 'promise end'
+        assert waitforfiles(f'{temp_dir}/node/callback'), 'promise end'
 
     @pytest.mark.skip('not yet')
     def test_node_application_header_name_valid(self):

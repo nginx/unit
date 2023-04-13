@@ -1111,6 +1111,10 @@ temp_fail:
 
 fail:
 
+    if (rtcf->tstr_state != NULL) {
+        nxt_tstr_state_release(rtcf->tstr_state);
+    }
+
     nxt_mp_destroy(mp);
 
     return NULL;
@@ -1508,6 +1512,12 @@ static nxt_conf_map_t  nxt_router_http_conf[] = {
         nxt_string("discard_unsafe_fields"),
         NXT_CONF_MAP_INT8,
         offsetof(nxt_socket_conf_t, discard_unsafe_fields),
+    },
+
+    {
+        nxt_string("log_route"),
+        NXT_CONF_MAP_INT8,
+        offsetof(nxt_socket_conf_t, log_route),
     },
 };
 
@@ -3682,6 +3692,13 @@ nxt_router_listen_socket_close(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_router_listen_socket_release(nxt_task_t *task, nxt_socket_conf_t *skcf)
 {
+#if (NXT_HAVE_UNIX_DOMAIN)
+    size_t                 size;
+    nxt_buf_t              *b;
+    nxt_port_t             *main_port;
+    nxt_runtime_t          *rt;
+    nxt_sockaddr_t         *sa;
+#endif
     nxt_listen_socket_t    *ls;
     nxt_thread_spinlock_t  *lock;
 
@@ -3699,10 +3716,38 @@ nxt_router_listen_socket_release(nxt_task_t *task, nxt_socket_conf_t *skcf)
 
     nxt_thread_spin_unlock(lock);
 
-    if (ls != NULL) {
-        nxt_socket_close(task, ls->socket);
-        nxt_free(ls);
+    if (ls == NULL) {
+        return;
     }
+
+    nxt_socket_close(task, ls->socket);
+
+#if (NXT_HAVE_UNIX_DOMAIN)
+    sa = ls->sockaddr;
+    if (sa->u.sockaddr.sa_family != AF_UNIX
+        || sa->u.sockaddr_un.sun_path[0] == '\0')
+    {
+        goto out_free_ls;
+    }
+
+    size = nxt_sockaddr_size(ls->sockaddr);
+
+    b = nxt_buf_mem_alloc(task->thread->engine->mem_pool, size, 0);
+    if (b == NULL) {
+        goto out_free_ls;
+    }
+
+    b->mem.free = nxt_cpymem(b->mem.free, ls->sockaddr, size);
+
+    rt = task->thread->runtime;
+    main_port = rt->port_by_type[NXT_PROCESS_MAIN];
+
+    (void) nxt_port_socket_write(task, main_port, NXT_PORT_MSG_SOCKET_UNLINK,
+                                 -1, 0, 0, b);
+
+out_free_ls:
+#endif
+    nxt_free(ls);
 }
 
 
@@ -3793,6 +3838,8 @@ nxt_router_conf_release(nxt_task_t *task, nxt_socket_conf_joint_t *joint)
         nxt_router_apps_hash_use(task, rtcf, -1);
 
         nxt_router_access_log_release(task, lock, rtcf->access_log);
+
+        nxt_tstr_state_release(rtcf->tstr_state);
 
         nxt_mp_thread_adopt(rtcf->mem_pool);
 
@@ -5200,8 +5247,9 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_http_request_t *r,
     req_size = sizeof(nxt_unit_request_t)
                + r->method->length + 1
                + r->version.length + 1
-               + r->remote->length + 1
-               + r->local->length + 1
+               + r->remote->address_length + 1
+               + r->local->address_length + 1
+               + nxt_sockaddr_port_length(r->local) + 1
                + r->server_name.length + 1
                + r->target.length + 1
                + (r->path->start != r->target.start ? r->path->length + 1 : 0);

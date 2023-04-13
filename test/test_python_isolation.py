@@ -20,13 +20,13 @@ class TestPythonIsolation(TestApplicationPython):
         ).decode()
 
         pid = re.search(
-            r'(\d+)\s*unit: "' + app_name + '" application', output
+            fr'(\d+)\s*unit: "{app_name}" application', output
         ).group(1)
 
-        cgroup = '/proc/' + pid + '/cgroup'
+        cgroup = f'/proc/{pid}/cgroup'
 
         if not os.path.isfile(cgroup):
-            pytest.skip('no cgroup at ' + cgroup)
+            pytest.skip(f'no cgroup at {cgroup}')
 
         with open(cgroup, 'r') as f:
             return f.read().rstrip()
@@ -59,7 +59,7 @@ class TestPythonIsolation(TestApplicationPython):
         self.load('ns_inspect', isolation=isolation)
 
         assert (
-            self.getjson(url='/?path=' + temp_dir)['body']['FileExists']
+            self.getjson(url=f'/?path={temp_dir}')['body']['FileExists']
             == False
         ), 'temp_dir does not exists in rootfs'
 
@@ -87,7 +87,7 @@ class TestPythonIsolation(TestApplicationPython):
         isolation = {'rootfs': temp_dir, 'automount': {'language_deps': False}}
         self.load('empty', isolation=isolation)
 
-        python_path = temp_dir + '/usr'
+        python_path = f'{temp_dir}/usr'
 
         assert findmnt().find(python_path) == -1
         assert self.get()['status'] != 200, 'disabled language_deps'
@@ -156,7 +156,7 @@ class TestPythonIsolation(TestApplicationPython):
             pytest.skip('cgroup is not supported')
 
         def set_two_cgroup_path(path, path2):
-            script_path = option.test_dir + '/python/empty'
+            script_path = f'{option.test_dir}/python/empty'
 
             assert 'success' in self.conf(
                 {
@@ -203,7 +203,7 @@ class TestPythonIsolation(TestApplicationPython):
             pytest.skip('cgroup is not supported')
 
         def check_invalid(path):
-            script_path = option.test_dir + '/python/empty'
+            script_path = f'{option.test_dir}/python/empty'
             assert 'error' in self.conf(
                 {
                     "listeners": {"*:7080": {"pass": "applications/empty"}},

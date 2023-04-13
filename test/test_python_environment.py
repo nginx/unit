@@ -38,7 +38,7 @@ class TestPythonEnvironment(TestApplicationPython):
                     'Connection': 'close',
                 }
             )['body']
-            == 'val1,'
+            == 'val1'
         ), 'set'
 
         self.conf({"var": "val2"}, 'applications/environment/environment')
@@ -51,7 +51,7 @@ class TestPythonEnvironment(TestApplicationPython):
                     'Connection': 'close',
                 }
             )['body']
-            == 'val2,'
+            == 'val2'
         ), 'update'
 
     def test_python_environment_replace(self):
@@ -67,7 +67,7 @@ class TestPythonEnvironment(TestApplicationPython):
                     'Connection': 'close',
                 }
             )['body']
-            == 'val1,'
+            == 'val1'
         ), 'set'
 
         self.conf({"var2": "val2"}, 'applications/environment/environment')
@@ -80,7 +80,7 @@ class TestPythonEnvironment(TestApplicationPython):
                     'Connection': 'close',
                 }
             )['body']
-            == 'val2,'
+            == 'val2'
         ), 'replace'
 
     def test_python_environment_clear(self):
@@ -99,7 +99,7 @@ class TestPythonEnvironment(TestApplicationPython):
                     'Connection': 'close',
                 }
             )['body']
-            == 'val1,val2,'
+            == 'val1,val2'
         ), 'set'
 
         self.conf({}, 'applications/environment/environment')
@@ -138,7 +138,7 @@ class TestPythonEnvironment(TestApplicationPython):
                     'Connection': 'close',
                 }
             )['body']
-            == '/,'
+            == '/'
         ), 'replace default'
 
         self.conf({}, 'applications/environment/environment')

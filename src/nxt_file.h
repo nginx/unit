@@ -191,6 +191,7 @@ NXT_EXPORT FILE *nxt_file_fopen(nxt_task_t *task, const char *pathname,
 NXT_EXPORT void nxt_file_fclose(nxt_task_t *task, FILE *fp);
 
 NXT_EXPORT nxt_int_t nxt_file_redirect(nxt_file_t *file, nxt_fd_t fd);
+NXT_EXPORT nxt_int_t nxt_file_stdout(nxt_file_t *file);
 NXT_EXPORT nxt_int_t nxt_file_stderr(nxt_file_t *file);
 NXT_EXPORT nxt_int_t nxt_stderr_start(void);
 

@@ -63,7 +63,7 @@ fi
 . $NXT_AUTOCONF_DATA
 
 
-NXT_JARS=${NXT_JARS=$NXT_MODULES}
+NXT_JARS=${NXT_JARS=$NXT_MODULESDIR}
 NXT_JAVA_MODULE=${NXT_JAVA_MODULE=java}
 NXT_JAVA_LIB_PATH=${NXT_JAVA_LIB_PATH=}
 
@@ -320,7 +320,7 @@ fi
 
 NXT_JAVA_MOUNTS_HEADER=nxt_${NXT_JAVA_MODULE}_mounts.h
 
-cat << END > $NXT_BUILD_DIR/$NXT_JAVA_MOUNTS_HEADER
+cat << END > $NXT_BUILD_DIR/include/$NXT_JAVA_MOUNTS_HEADER
 #ifndef _NXT_JAVA_MOUNTS_H_INCLUDED_
 #define _NXT_JAVA_MOUNTS_H_INCLUDED_
 
@@ -520,24 +520,24 @@ cat << END >> $NXT_MAKEFILE
 
 all: ${NXT_JAVA_MODULE}
 
-${NXT_JAVA_MODULE}: $NXT_BUILD_DIR/${NXT_JAVA_MODULE}.unit.so \
+${NXT_JAVA_MODULE}: $NXT_BUILD_DIR/lib/unit/modules/${NXT_JAVA_MODULE}.unit.so \
     $NXT_BUILD_DIR/$NXT_UNIT_JAR \
     $NXT_BUILD_DIR/$NXT_WS_API_JAR
 
-$NXT_BUILD_DIR/${NXT_JAVA_MODULE}.unit.so: $nxt_objs
-	\$(NXT_MODULE_LINK) -o $NXT_BUILD_DIR/${NXT_JAVA_MODULE}.unit.so \\
-	$nxt_objs $NXT_JAVA_LDFLAGS $NXT_LD_OPT
+$NXT_BUILD_DIR/lib/unit/modules/${NXT_JAVA_MODULE}.unit.so: $nxt_objs
+	\$(NXT_MODULE_LINK) -o \$@ $nxt_objs $NXT_JAVA_LDFLAGS $NXT_LD_OPT
 
 
 install: ${NXT_JAVA_MODULE}-install
 
-${NXT_JAVA_MODULE}-install: $NXT_BUILD_DIR/${NXT_JAVA_MODULE}.unit.so \\
+${NXT_JAVA_MODULE}-install: \\
+    $NXT_BUILD_DIR/lib/unit/modules/${NXT_JAVA_MODULE}.unit.so \\
     $NXT_BUILD_DIR/$NXT_UNIT_JAR \\
     $NXT_BUILD_DIR/$NXT_WS_API_JAR \\
     java-shared-install
-	install -d \$(DESTDIR)$NXT_MODULES
-	install -p $NXT_BUILD_DIR/${NXT_JAVA_MODULE}.unit.so \\
-		\$(DESTDIR)$NXT_MODULES/
+	install -d \$(DESTDIR)$NXT_MODULESDIR
+	install -p $NXT_BUILD_DIR/lib/unit/modules/${NXT_JAVA_MODULE}.unit.so \\
+		\$(DESTDIR)$NXT_MODULESDIR/
 	install -d \$(DESTDIR)$NXT_JARS
 	install -p -m 0644 $NXT_BUILD_DIR/$NXT_UNIT_JAR \$(DESTDIR)$NXT_JARS/
 	install -p -m 0644 $NXT_BUILD_DIR/$NXT_WS_API_JAR \$(DESTDIR)$NXT_JARS/
@@ -546,8 +546,8 @@ ${NXT_JAVA_MODULE}-install: $NXT_BUILD_DIR/${NXT_JAVA_MODULE}.unit.so \\
 uninstall: ${NXT_JAVA_MODULE}-uninstall
 
 ${NXT_JAVA_MODULE}-uninstall: java-shared-uninstall
-	rm -f \$(DESTDIR)$NXT_MODULES/${NXT_JAVA_MODULE}.unit.so
-	@rmdir -p \$(DESTDIR)$NXT_MODULES 2>/dev/null || true
+	rm -f \$(DESTDIR)$NXT_MODULESDIR/${NXT_JAVA_MODULE}.unit.so
+	@rmdir -p \$(DESTDIR)$NXT_MODULESDIR 2>/dev/null || true
 	rm -f \$(DESTDIR)$NXT_JARS/$NXT_UNIT_JAR
 	rm -f \$(DESTDIR)$NXT_JARS/$NXT_WS_API_JAR
 	@rmdir -p \$(DESTDIR)$NXT_JARS 2>/dev/null || true

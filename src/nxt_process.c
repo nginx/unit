@@ -5,9 +5,11 @@
  */
 
 #include <nxt_main.h>
+
+#include <nxt_application.h>
 #include <nxt_cgroup.h>
 
-#if (NXT_HAVE_CLONE)
+#if (NXT_HAVE_LINUX_NS)
 #include <nxt_clone.h>
 #endif
 
@@ -18,7 +20,7 @@
 #endif
 
 
-#if (NXT_HAVE_CLONE) && (NXT_HAVE_CLONE_NEWPID)
+#if (NXT_HAVE_LINUX_NS) && (NXT_HAVE_CLONE_NEWPID)
 #define nxt_is_pid_isolated(process)                                          \
     nxt_is_clone_flag_set(process->isolation.clone.flags, NEWPID)
 #else
@@ -26,6 +28,19 @@
     (0)
 #endif
 
+
+#if (NXT_HAVE_LINUX_NS)
+static nxt_int_t nxt_process_pipe_timer(nxt_fd_t fd, short event);
+static nxt_int_t nxt_process_check_pid_status(const nxt_fd_t *gc_pipe);
+static nxt_pid_t nxt_process_recv_pid(const nxt_fd_t *pid_pipe,
+    const nxt_fd_t *gc_pipe);
+static void nxt_process_send_pid(const nxt_fd_t *pid_pipe, nxt_pid_t pid);
+static nxt_int_t nxt_process_unshare(nxt_task_t *task, nxt_process_t *process,
+    nxt_fd_t *pid_pipe, nxt_fd_t *gc_pipe, nxt_bool_t use_pidns);
+static nxt_int_t nxt_process_init_pidns(nxt_task_t *task,
+    const nxt_process_t *process, nxt_fd_t *pid_pipe, nxt_fd_t *gc_pipe,
+    nxt_bool_t *use_pidns);
+#endif
 
 static nxt_pid_t nxt_process_create(nxt_task_t *task, nxt_process_t *process);
 static nxt_int_t nxt_process_do_start(nxt_task_t *task, nxt_process_t *process);
@@ -256,7 +271,7 @@ nxt_process_child_fixup(nxt_task_t *task, nxt_process_t *process)
 
     nxt_ppid = nxt_pid;
 
-    nxt_pid = nxt_getpid();
+    nxt_pid = getpid();
 
     process->pid = nxt_pid;
     process->isolated_pid = nxt_pid;
@@ -311,6 +326,217 @@ nxt_process_child_fixup(nxt_task_t *task, nxt_process_t *process)
 }
 
 
+#if (NXT_HAVE_LINUX_NS)
+
+static nxt_int_t
+nxt_process_pipe_timer(nxt_fd_t fd, short event)
+{
+    int                           ret;
+    sigset_t                      mask;
+    struct pollfd                 pfd;
+
+    static const struct timespec  ts = { .tv_sec = 5 };
+
+    /*
+     * Temporarily block the signals we are handling, (except
+     * for SIGINT & SIGTERM) so that ppoll(2) doesn't get
+     * interrupted. After ppoll(2) returns, our old sigmask
+     * will be back in effect and any pending signals will be
+     * delivered.
+     *
+     * This is because while the kernel ppoll syscall updates
+     * the struct timespec with the time remaining if it got
+     * interrupted with EINTR, the glibc wrapper hides this
+     * from us so we have no way of knowing how long to retry
+     * the ppoll(2) for and if we just retry with the same
+     * timeout we could find ourselves in an infinite loop.
+     */
+    pthread_sigmask(SIG_SETMASK, NULL, &mask);
+    sigdelset(&mask, SIGINT);
+    sigdelset(&mask, SIGTERM);
+
+    pfd.fd = fd;
+    pfd.events = event;
+
+    ret = ppoll(&pfd, 1, &ts, &mask);
+    if (ret <= 0 || (ret == 1 && pfd.revents & POLLERR)) {
+        return NXT_ERROR;
+    }
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_process_check_pid_status(const nxt_fd_t *gc_pipe)
+{
+    int8_t   status;
+    ssize_t  ret;
+
+    close(gc_pipe[1]);
+
+    ret = nxt_process_pipe_timer(gc_pipe[0], POLLIN);
+    if (ret == NXT_OK) {
+        ret = read(gc_pipe[0], &status, sizeof(int8_t));
+    }
+
+    if (ret <= 0) {
+        status = -1;
+    }
+
+    close(gc_pipe[0]);
+
+    return status;
+}
+
+
+static nxt_pid_t
+nxt_process_recv_pid(const nxt_fd_t *pid_pipe, const nxt_fd_t *gc_pipe)
+{
+    int8_t     status;
+    ssize_t    ret;
+    nxt_pid_t  pid;
+
+    close(pid_pipe[1]);
+    close(gc_pipe[0]);
+
+    status = 0;
+
+    ret = nxt_process_pipe_timer(pid_pipe[0], POLLIN);
+    if (ret == NXT_OK) {
+        ret = read(pid_pipe[0], &pid, sizeof(nxt_pid_t));
+    }
+
+    if (ret <= 0) {
+        status = -1;
+        pid = -1;
+    }
+
+    write(gc_pipe[1], &status, sizeof(int8_t));
+
+    close(pid_pipe[0]);
+    close(gc_pipe[1]);
+
+    return pid;
+}
+
+
+static void
+nxt_process_send_pid(const nxt_fd_t *pid_pipe, nxt_pid_t pid)
+{
+    nxt_int_t  ret;
+
+    close(pid_pipe[0]);
+
+    ret = nxt_process_pipe_timer(pid_pipe[1], POLLOUT);
+    if (ret == NXT_OK) {
+        write(pid_pipe[1], &pid, sizeof(nxt_pid_t));
+    }
+
+    close(pid_pipe[1]);
+}
+
+
+static nxt_int_t
+nxt_process_unshare(nxt_task_t *task, nxt_process_t *process,
+                    nxt_fd_t *pid_pipe, nxt_fd_t *gc_pipe,
+                    nxt_bool_t use_pidns)
+{
+    int        ret;
+    nxt_pid_t  pid;
+
+    if (process->isolation.clone.flags == 0) {
+        return NXT_OK;
+    }
+
+    ret = unshare(process->isolation.clone.flags);
+    if (nxt_slow_path(ret == -1)) {
+        nxt_alert(task, "unshare() failed for %s %E", process->name,
+                  nxt_errno);
+
+        if (use_pidns) {
+            nxt_pipe_close(task, gc_pipe);
+            nxt_pipe_close(task, pid_pipe);
+        }
+
+        return NXT_ERROR;
+    }
+
+    if (!use_pidns) {
+        return NXT_OK;
+    }
+
+    /*
+     * PID namespace requested. Employ a double fork(2) technique
+     * so that the prototype process will be placed into the new
+     * namespace and end up with PID 1 (as before with clone).
+     */
+    pid = fork();
+    if (nxt_slow_path(pid < 0)) {
+        nxt_alert(task, "fork() failed for %s %E", process->name, nxt_errno);
+        nxt_pipe_close(task, gc_pipe);
+        nxt_pipe_close(task, pid_pipe);
+
+        return NXT_ERROR;
+
+    } else if (pid > 0) {
+        nxt_pipe_close(task, gc_pipe);
+        nxt_process_send_pid(pid_pipe, pid);
+
+        _exit(EXIT_SUCCESS);
+    }
+
+    nxt_pipe_close(task, pid_pipe);
+    ret = nxt_process_check_pid_status(gc_pipe);
+    if (ret == -1) {
+        return NXT_ERROR;
+    }
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_process_init_pidns(nxt_task_t *task, const nxt_process_t *process,
+                       nxt_fd_t *pid_pipe, nxt_fd_t *gc_pipe,
+                       nxt_bool_t *use_pidns)
+{
+    int ret;
+
+    *use_pidns = 0;
+
+#if (NXT_HAVE_CLONE_NEWPID)
+    *use_pidns = nxt_is_pid_isolated(process);
+#endif
+
+    if (!*use_pidns) {
+        return NXT_OK;
+    }
+
+    ret = nxt_pipe_create(task, pid_pipe, 0, 0);
+    if (nxt_slow_path(ret == NXT_ERROR)) {
+        return NXT_ERROR;
+    }
+
+    ret = nxt_pipe_create(task, gc_pipe, 0, 0);
+    if (nxt_slow_path(ret == NXT_ERROR)) {
+        return NXT_ERROR;
+    }
+
+#if (NXT_HAVE_PR_SET_CHILD_SUBREAPER)
+    ret = prctl(PR_SET_CHILD_SUBREAPER, 1, 0, 0, 0);
+    if (nxt_slow_path(ret == -1)) {
+        nxt_alert(task, "prctl(PR_SET_CHILD_SUBREAPER) failed for %s %E",
+                  process->name, nxt_errno);
+    }
+#endif
+
+    return NXT_OK;
+}
+
+#endif /* NXT_HAVE_LINUX_NS */
+
+
 static nxt_pid_t
 nxt_process_create(nxt_task_t *task, nxt_process_t *process)
 {
@@ -318,22 +544,31 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
     nxt_pid_t      pid;
     nxt_runtime_t  *rt;
 
-#if (NXT_HAVE_CLONE)
-    pid = nxt_clone(SIGCHLD | process->isolation.clone.flags);
-    if (nxt_slow_path(pid < 0)) {
-        nxt_alert(task, "clone() failed for %s %E", process->name, nxt_errno);
-        return pid;
+#if (NXT_HAVE_LINUX_NS)
+    nxt_fd_t       pid_pipe[2], gc_pipe[2];
+    nxt_bool_t     use_pidns;
+
+    ret = nxt_process_init_pidns(task, process, pid_pipe, gc_pipe, &use_pidns);
+    if (ret == NXT_ERROR) {
+        return -1;
     }
-#else
+#endif
+
     pid = fork();
     if (nxt_slow_path(pid < 0)) {
         nxt_alert(task, "fork() failed for %s %E", process->name, nxt_errno);
         return pid;
     }
-#endif
 
     if (pid == 0) {
         /* Child. */
+
+#if (NXT_HAVE_LINUX_NS)
+        ret = nxt_process_unshare(task, process, pid_pipe, gc_pipe, use_pidns);
+        if (ret == NXT_ERROR) {
+            _exit(EXIT_FAILURE);
+        }
+#endif
 
         ret = nxt_process_child_fixup(task, process);
         if (nxt_slow_path(ret != NXT_OK)) {
@@ -355,10 +590,15 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
 
     /* Parent. */
 
-#if (NXT_HAVE_CLONE)
-    nxt_debug(task, "clone(%s): %PI", process->name, pid);
-#else
     nxt_debug(task, "fork(%s): %PI", process->name, pid);
+
+#if (NXT_HAVE_LINUX_NS)
+    if (use_pidns) {
+        pid = nxt_process_recv_pid(pid_pipe, gc_pipe);
+        if (pid == -1) {
+            return pid;
+        }
+    }
 #endif
 
     process->pid = pid;
@@ -412,6 +652,10 @@ nxt_process_setup(nxt_task_t *task, nxt_process_t *process)
 
     thread = task->thread;
     rt     = thread->runtime;
+
+    if (process->parent_port == rt->port_by_type[NXT_PROCESS_PROTOTYPE]) {
+        nxt_app_set_logs();
+    }
 
     nxt_random_init(&thread->random);
 
@@ -781,7 +1025,7 @@ nxt_process_apply_creds(nxt_task_t *task, nxt_process_t *process)
 
     cap_setid = rt->capabilities.setid;
 
-#if (NXT_HAVE_CLONE && NXT_HAVE_CLONE_NEWUSER)
+#if (NXT_HAVE_LINUX_NS && NXT_HAVE_CLONE_NEWUSER)
     if (!cap_setid
         && nxt_is_clone_flag_set(process->isolation.clone.flags, NEWUSER))
     {
@@ -918,10 +1162,10 @@ nxt_process_daemon(nxt_task_t *task)
     }
 
     /*
-     * Reset file mode creation mask: any access
-     * rights can be set on file creation.
+     * Set a sefe umask to give at most 755/644 permissions on
+     * directories/files.
      */
-    umask(0);
+    umask(0022);
 
     /* Redirect STDIN and STDOUT to the "/dev/null". */
 
@@ -1013,14 +1257,9 @@ nxt_process_close_ports(nxt_task_t *task, nxt_process_t *process)
 void
 nxt_process_quit(nxt_task_t *task, nxt_uint_t exit_status)
 {
-    nxt_uint_t           n;
     nxt_queue_t          *listen;
-    nxt_runtime_t        *rt;
     nxt_queue_link_t     *link, *next;
     nxt_listen_event_t   *lev;
-    nxt_listen_socket_t  *ls;
-
-    rt = task->thread->runtime;
 
     nxt_debug(task, "close listen connections");
 
@@ -1035,22 +1274,6 @@ nxt_process_quit(nxt_task_t *task, nxt_uint_t exit_status)
         nxt_queue_remove(link);
 
         nxt_fd_event_close(task->thread->engine, &lev->socket);
-    }
-
-    if (rt->listen_sockets != NULL) {
-
-        ls = rt->listen_sockets->elts;
-        n = rt->listen_sockets->nelts;
-
-        while (n != 0) {
-            nxt_socket_close(task, ls->socket);
-            ls->socket = -1;
-
-            ls++;
-            n--;
-        }
-
-        rt->listen_sockets->nelts = 0;
     }
 
     nxt_runtime_quit(task, exit_status);

@@ -10,16 +10,16 @@ class TestStaticShare(TestApplicationProto):
 
     @pytest.fixture(autouse=True)
     def setup_method_fixture(self, temp_dir):
-        os.makedirs(temp_dir + '/assets/dir')
-        os.makedirs(temp_dir + '/assets/dir2')
+        os.makedirs(f'{temp_dir}/assets/dir')
+        os.makedirs(f'{temp_dir}/assets/dir2')
 
-        Path(temp_dir + '/assets/dir/file').write_text('1')
-        Path(temp_dir + '/assets/dir2/file2').write_text('2')
+        Path(f'{temp_dir}/assets/dir/file').write_text('1')
+        Path(f'{temp_dir}/assets/dir2/file2').write_text('2')
 
         assert 'success' in self.conf(
             {
                 "listeners": {"*:7080": {"pass": "routes"}},
-                "routes": [{"action": {"share": temp_dir + "/assets$uri"}}],
+                "routes": [{"action": {"share": f'{temp_dir}/assets$uri'}}],
                 "applications": {},
             }
         )
@@ -31,7 +31,7 @@ class TestStaticShare(TestApplicationProto):
         assert self.get(url='/dir/file')['body'] == '1'
         assert self.get(url='/dir2/file2')['body'] == '2'
 
-        self.action_update({"share": [temp_dir + "/assets/dir$uri"]})
+        self.action_update({"share": [f'{temp_dir}/assets/dir$uri']})
 
         assert self.get(url='/file')['body'] == '1'
         assert self.get(url='/file2')['status'] == 404
@@ -39,8 +39,8 @@ class TestStaticShare(TestApplicationProto):
         self.action_update(
             {
                 "share": [
-                    temp_dir + "/assets/dir$uri",
-                    temp_dir + "/assets/dir2$uri",
+                    f'{temp_dir}/assets/dir$uri',
+                    f'{temp_dir}/assets/dir2$uri',
                 ]
             }
         )
@@ -51,8 +51,8 @@ class TestStaticShare(TestApplicationProto):
         self.action_update(
             {
                 "share": [
-                    temp_dir + "/assets/dir2$uri",
-                    temp_dir + "/assets/dir3$uri",
+                    f'{temp_dir}/assets/dir2$uri',
+                    f'{temp_dir}/assets/dir3$uri',
                 ]
             }
         )
