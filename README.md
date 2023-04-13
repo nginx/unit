@@ -45,7 +45,7 @@ For a description of image tags, see the
 [docs](https://unit.nginx.org/installation/#docker-images).
 
 
-### Amazon Linux, Fedora, RedHat
+### Amazon Linux, Fedora, Red Hat
 
 ``` console
 $ wget https://raw.githubusercontent.com/nginx/unit/master/tools/setup-unit && chmod +x setup-unit
