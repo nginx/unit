@@ -555,9 +555,18 @@ void
 nxt_http_request_action(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_action_t *action)
 {
+    nxt_int_t  ret;
+
     if (nxt_fast_path(action != NULL)) {
 
         do {
+            if (action->rewrite != NULL) {
+                ret = nxt_http_rewrite(task, r, action);
+                if (nxt_slow_path(ret != NXT_OK)) {
+                    break;
+                }
+            }
+
             action = action->handler(task, r, action);
 
             if (action == NULL) {

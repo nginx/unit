@@ -579,6 +579,11 @@ nxt_http_route_match_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
 static nxt_conf_map_t  nxt_http_route_action_conf[] = {
     {
+        nxt_string("rewrite"),
+        NXT_CONF_MAP_PTR,
+        offsetof(nxt_http_action_conf_t, rewrite)
+    },
+    {
         nxt_string("pass"),
         NXT_CONF_MAP_PTR,
         offsetof(nxt_http_action_conf_t, pass)
@@ -658,6 +663,13 @@ nxt_http_action_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
     rtcf = tmcf->router_conf;
     mp = rtcf->mem_pool;
+
+    if (acf.rewrite != NULL) {
+        ret = nxt_http_rewrite_init(rtcf, action, &acf);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            return ret;
+        }
+    }
 
     if (acf.ret != NULL) {
         return nxt_http_return_init(rtcf, action, &acf);
@@ -1312,8 +1324,8 @@ nxt_http_pass_var(nxt_task_t *task, nxt_http_request_t *r,
         goto fail;
     }
 
-    action = nxt_mp_get(r->mem_pool,
-                        sizeof(nxt_http_action_t) + sizeof(nxt_str_t));
+    action = nxt_mp_zget(r->mem_pool,
+                         sizeof(nxt_http_action_t) + sizeof(nxt_str_t));
     if (nxt_slow_path(action == NULL)) {
         goto fail;
     }
@@ -1496,7 +1508,7 @@ nxt_http_action_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     rtcf = tmcf->router_conf;
     mp = rtcf->mem_pool;
 
-    action = nxt_mp_alloc(mp, sizeof(nxt_http_action_t));
+    action = nxt_mp_zalloc(mp, sizeof(nxt_http_action_t));
     if (nxt_slow_path(action == NULL)) {
         return NULL;
     }
@@ -1525,7 +1537,7 @@ nxt_http_pass_application(nxt_task_t *task, nxt_router_conf_t *rtcf,
 {
     nxt_http_action_t  *action;
 
-    action = nxt_mp_alloc(rtcf->mem_pool, sizeof(nxt_http_action_t));
+    action = nxt_mp_zalloc(rtcf->mem_pool, sizeof(nxt_http_action_t));
     if (nxt_slow_path(action == NULL)) {
         return NULL;
     }

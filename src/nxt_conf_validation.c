@@ -669,6 +669,16 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_match_members[] = {
 };
 
 
+static nxt_conf_vldt_object_t  nxt_conf_vldt_action_common_members[] = {
+    {
+        .name       = nxt_string("rewrite"),
+        .type       = NXT_CONF_VLDT_STRING,
+    },
+
+    NXT_CONF_VLDT_END
+};
+
+
 static nxt_conf_vldt_object_t  nxt_conf_vldt_pass_action_members[] = {
     {
         .name       = nxt_string("pass"),
@@ -677,7 +687,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_pass_action_members[] = {
         .flags      = NXT_CONF_VLDT_TSTR,
     },
 
-    NXT_CONF_VLDT_END
+    NXT_CONF_VLDT_NEXT(nxt_conf_vldt_action_common_members)
 };
 
 
@@ -692,7 +702,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_return_action_members[] = {
         .flags      = NXT_CONF_VLDT_TSTR,
     },
 
-    NXT_CONF_VLDT_END
+    NXT_CONF_VLDT_NEXT(nxt_conf_vldt_action_common_members)
 };
 
 
@@ -736,7 +746,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_share_action_members[] = {
 #endif
     },
 
-    NXT_CONF_VLDT_END
+    NXT_CONF_VLDT_NEXT(nxt_conf_vldt_action_common_members)
 };
 
 
@@ -747,7 +757,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_proxy_action_members[] = {
         .validator  = nxt_conf_vldt_proxy,
     },
 
-    NXT_CONF_VLDT_END
+    NXT_CONF_VLDT_NEXT(nxt_conf_vldt_action_common_members)
 };
 
 

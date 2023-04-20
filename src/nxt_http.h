@@ -226,6 +226,7 @@ typedef struct nxt_http_route_addr_rule_s  nxt_http_route_addr_rule_t;
 
 
 typedef struct {
+    nxt_conf_value_t                *rewrite;
     nxt_conf_value_t                *pass;
     nxt_conf_value_t                *ret;
     nxt_conf_value_t                *location;
@@ -253,6 +254,7 @@ struct nxt_http_action_s {
         nxt_str_t                   *pass;
     } u;
 
+    nxt_tstr_t                      *rewrite;
     nxt_http_action_t               *fallback;
 };
 
@@ -377,6 +379,11 @@ nxt_int_t nxt_upstreams_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_conf_value_t *conf);
 nxt_int_t nxt_upstreams_joint_create(nxt_router_temp_conf_t *tmcf,
     nxt_upstream_t ***upstream_joint);
+
+nxt_int_t nxt_http_rewrite_init(nxt_router_conf_t *rtcf,
+    nxt_http_action_t *action, nxt_http_action_conf_t *acf);
+nxt_int_t nxt_http_rewrite(nxt_task_t *task, nxt_http_request_t *r,
+    nxt_http_action_t *action);
 
 nxt_int_t nxt_http_return_init(nxt_router_conf_t *rtcf,
     nxt_http_action_t *action, nxt_http_action_conf_t *acf);
