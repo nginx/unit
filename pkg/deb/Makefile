@@ -200,7 +200,7 @@ debuild/unit_$(VERSION).orig.tar.gz: | debuild/$(SRCDIR)/debian
 	cd ../.. && tar -czf pkg/deb/debuild/$(SRCDIR).tar.gz \
 		--transform "s#^#$(SRCDIR)/#" \
 		LICENSE NOTICE CHANGES README.md CONTRIBUTING.md configure auto src \
-		test tools version go pkg/contrib docs/man/unitd.8.in
+		test tools version go pkg/contrib docs/man/man8/unitd.8.in
 	mv debuild/$(SRCDIR).tar.gz debuild/unit_$(VERSION).orig.tar.gz
 	cd debuild && tar zxf unit_$(VERSION).orig.tar.gz
 

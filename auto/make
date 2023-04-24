@@ -305,12 +305,12 @@ END
 
 cat << END >> $NXT_MAKEFILE
 
-$NXT_BUILD_DIR/share/man/man8/unitd.8: docs/man/unitd.8.in \\
+$NXT_BUILD_DIR/share/man/man8/unitd.8: docs/man/man8/unitd.8.in \\
 				$NXT_BUILD_DIR/include/nxt_auto_config.h
 	sed -e "s|%%ERROR_LOG_PATH%%|$NXT_LOG|" \\
 		-e "s|%%PID_PATH%%|$NXT_PID|" \\
 		-e "s|%%SOCKET_PATH%%|$NXT_CONTROL|" \\
-		< docs/man/unitd.8.in > \$@
+		< docs/man/man8/unitd.8.in > \$@
 
 END
 
