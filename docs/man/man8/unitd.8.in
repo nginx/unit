@@ -17,7 +17,7 @@
 .Op Fl Fl pid Ar file
 .Op Fl Fl state Ar directory
 .Nm
-.Op Fl h | Fl Fl help | v | Fl Fl version
+.Op Fl h | Fl Fl help | Fl Fl version
 .Sh DESCRIPTION
 NGINX Unit is a polyglot app server, a reverse proxy, and a static file server
 for UNIX-like systems.
@@ -30,7 +30,7 @@ scratch to be highly efficient and fully configurable at runtime.
 .It Fl h , Fl Fl help
 Displays a summary of Unit's command-line options and their
 compile-time defaults.
-.It Fl v , Fl Fl version
+.It Fl Fl version
 Displays Unit's version and the
 .Pa ./configure
 settings it was built with.
