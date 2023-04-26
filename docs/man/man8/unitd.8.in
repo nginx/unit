@@ -13,9 +13,9 @@
 .Op Fl Fl group Ar name
 .Op Fl Fl user Ar name
 .Op Fl Fl log Ar file
-.Op Fl Fl modules Ar directory
+.Op Fl Fl modulesdir Ar directory
 .Op Fl Fl pid Ar file
-.Op Fl Fl state Ar directory
+.Op Fl Fl statedir Ar directory
 .Nm
 .Op Fl h | Fl Fl help | Fl Fl version
 .Sh Description
@@ -43,13 +43,13 @@ or UNIX-domain format.
 Override group name and user name used to run Unit's non-privileged processes.
 .It Fl Fl log Ar file
 Overrides the pathname for Unit's log.
-.It Fl Fl modules Ar directory
+.It Fl Fl modulesdir Ar directory
 Overrides the directory path for Unit's language modules
 .Po Pa *.unit.so
 .Pc files .
 .It Fl Fl pid Ar file
 Overrides the pathname for the PID file of Unit's main process.
-.It Fl Fl state Ar directory
+.It Fl Fl statedir Ar directory
 Overrides the directory path for Unit's state storage.
 .El
 .Sh Exit status
