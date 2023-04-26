@@ -1,6 +1,6 @@
 .\" (C) 2017-2021, NGINX, Inc.
 .\"
-.Dd March 16, 2021
+.Dd 2023-04-26
 .Dt unitd 8
 .Os NGINX Unit
 .Sh Name
