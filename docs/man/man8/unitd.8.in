@@ -66,8 +66,10 @@ A general-purpose log for diagnostics and troubleshooting.
 .It Pa %%SOCKET_PATH%%
 The socket address of Unit's control API.
 .El
-.Sh Authors
-(C) 2017-2021, NGINX, Inc.
+.Sh Copyright
+(C) 2017-2023, NGINX, Inc.
+.Pp
+SPDX-License-Identifier: Apache-2.0
 .Sh See also
 .Pp
 Website:
