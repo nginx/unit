@@ -1,12 +1,12 @@
 .\" (C) 2017-2021, NGINX, Inc.
 .\"
 .Dd March 16, 2021
-.Dt UNITD 8
+.Dt unitd 8
 .Os
-.Sh NAME
+.Sh Name
 .Nm unitd
 .Nd "runs the NGINX Unit daemon"
-.Sh SYNOPSIS
+.Sh Synopsis
 .Nm
 .Op Fl Fl no-daemon
 .Op Fl Fl control Ar socket
@@ -18,14 +18,14 @@
 .Op Fl Fl state Ar directory
 .Nm
 .Op Fl h | Fl Fl help | Fl Fl version
-.Sh DESCRIPTION
+.Sh Description
 NGINX Unit is a polyglot app server, a reverse proxy, and a static file server
 for UNIX-like systems.
 It was built by
 .Xr nginx 8
 team members from
 scratch to be highly efficient and fully configurable at runtime.
-.Sh OPTIONS
+.Sh Options
 .Bl -tag -width indent
 .It Fl h , Fl Fl help
 Displays a summary of Unit's command-line options and their
@@ -52,23 +52,23 @@ Overrides the pathname for the PID file of Unit's main process.
 .It Fl Fl state Ar directory
 Overrides the directory path for Unit's state storage.
 .El
-.Sh EXIT STATUS
+.Sh Exit status
 Exit status is 0 on success, or 1 if the daemon encounters an error.
-.Sh FILES
+.Sh Files
 .Bl -tag -width indent
 .It Pa %%PID_PATH%%
 The PID file of Unit's main process.
 .It Pa %%ERROR_LOG_PATH%%
 A general-purpose log for diagnostics and troubleshooting.
 .El
-.Sh SOCKETS
+.Sh Sockets
 .Bl -tag -width indent
 .It Pa %%SOCKET_PATH%%
 The socket address of Unit's control API.
 .El
-.Sh AUTHORS
+.Sh Authors
 (C) 2017-2021, NGINX, Inc.
-.Sh SEE ALSO
+.Sh See also
 .Pp
 Website:
 .Pa https://unit.nginx.org
