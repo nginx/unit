@@ -2,7 +2,7 @@
 .\"
 .Dd March 16, 2021
 .Dt unitd 8
-.Os
+.Os NGINX Unit
 .Sh Name
 .Nm unitd
 .Nd "runs the NGINX Unit daemon"
