@@ -72,11 +72,8 @@ The socket address of Unit's control API.
 SPDX-License-Identifier: Apache-2.0
 .Sh See also
 .Pp
-Website:
-.Pa https://unit.nginx.org
+.Lk https://unit.nginx.org Website
 .Pp
-User mailing list:
-.Pa https://mailman.nginx.org/mailman/listinfo/unit
+.Lk https://mailman.nginx.org/mailman/listinfo/unit "User mailing list"
 .Pp
-GitHub:
-.Pa https://github.com/nginx/unit
+.Lk https://github.com/nginx/unit GitHub
