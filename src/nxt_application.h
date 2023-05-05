@@ -21,6 +21,7 @@ typedef enum {
     NXT_APP_PERL,
     NXT_APP_RUBY,
     NXT_APP_JAVA,
+    NXT_APP_WASM,
 
     NXT_APP_UNKNOWN,
 } nxt_app_type_t;
@@ -86,6 +87,23 @@ typedef struct {
 } nxt_java_app_conf_t;
 
 
+typedef struct {
+    const char        *module;
+
+    const char        *request_handler;
+    const char        *malloc_handler;
+    const char        *free_handler;
+
+    const char        *module_init_handler;
+    const char        *module_end_handler;
+    const char        *request_init_handler;
+    const char        *request_end_handler;
+    const char        *response_end_handler;
+
+    nxt_conf_value_t  *access;
+} nxt_wasm_app_conf_t;
+
+
 struct nxt_common_app_conf_s {
     nxt_str_t                  name;
     nxt_str_t                  type;
@@ -114,6 +132,7 @@ struct nxt_common_app_conf_s {
         nxt_perl_app_conf_t      perl;
         nxt_ruby_app_conf_t      ruby;
         nxt_java_app_conf_t      java;
+        nxt_wasm_app_conf_t      wasm;
     } u;
 
     nxt_conf_value_t           *self;

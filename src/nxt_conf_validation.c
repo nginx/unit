@@ -250,6 +250,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_python_target_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_php_common_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_php_options_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_php_target_members[];
+static nxt_conf_vldt_object_t  nxt_conf_vldt_wasm_access_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_app_limits_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_app_processes_members[];
@@ -1035,6 +1036,58 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_java_members[] = {
         .name       = nxt_string("thread_stack_size"),
         .type       = NXT_CONF_VLDT_INTEGER,
         .validator  = nxt_conf_vldt_thread_stack_size,
+    },
+
+    NXT_CONF_VLDT_NEXT(nxt_conf_vldt_common_members)
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_wasm_access_members[] = {
+    {
+        .name       = nxt_string("filesystem"),
+        .type       = NXT_CONF_VLDT_ARRAY,
+    },
+
+    NXT_CONF_VLDT_END
+};
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_wasm_members[] = {
+    {
+        .name       = nxt_string("module"),
+        .type       = NXT_CONF_VLDT_STRING,
+        .flags      = NXT_CONF_VLDT_REQUIRED,
+    }, {
+        .name       = nxt_string("request_handler"),
+        .type       = NXT_CONF_VLDT_STRING,
+        .flags      = NXT_CONF_VLDT_REQUIRED,
+    },{
+        .name       = nxt_string("malloc_handler"),
+        .type       = NXT_CONF_VLDT_STRING,
+        .flags      = NXT_CONF_VLDT_REQUIRED,
+    }, {
+        .name       = nxt_string("free_handler"),
+        .type       = NXT_CONF_VLDT_STRING,
+        .flags      = NXT_CONF_VLDT_REQUIRED,
+    }, {
+        .name       = nxt_string("module_init_handler"),
+        .type       = NXT_CONF_VLDT_STRING,
+    }, {
+        .name       = nxt_string("module_end_handler"),
+        .type       = NXT_CONF_VLDT_STRING,
+    }, {
+        .name       = nxt_string("request_init_handler"),
+        .type       = NXT_CONF_VLDT_STRING,
+    }, {
+        .name       = nxt_string("request_end_handler"),
+        .type       = NXT_CONF_VLDT_STRING,
+    }, {
+        .name       = nxt_string("response_end_handler"),
+        .type       = NXT_CONF_VLDT_STRING,
+    }, {
+        .name       = nxt_string("access"),
+        .type       = NXT_CONF_VLDT_OBJECT,
+        .validator  = nxt_conf_vldt_object,
+        .u.members  = nxt_conf_vldt_wasm_access_members,
     },
 
     NXT_CONF_VLDT_NEXT(nxt_conf_vldt_common_members)
@@ -2525,6 +2578,7 @@ nxt_conf_vldt_app(nxt_conf_validation_t *vldt, nxt_str_t *name,
         { nxt_conf_vldt_object, nxt_conf_vldt_perl_members },
         { nxt_conf_vldt_object, nxt_conf_vldt_ruby_members },
         { nxt_conf_vldt_object, nxt_conf_vldt_java_members },
+        { nxt_conf_vldt_object, nxt_conf_vldt_wasm_members },
     };
 
     ret = nxt_conf_vldt_type(vldt, name, value, NXT_CONF_VLDT_OBJECT);

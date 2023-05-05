@@ -1,0 +1,9 @@
+[package]
+name = "rust-unit-wasm"
+version = "0.0.1"
+build = "build.rs"
+links = "unit-wasm"
+
+[lib]
+crate-type = ["rlib"]
+path = "src/lib.rs"

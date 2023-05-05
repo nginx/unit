@@ -323,6 +323,70 @@ static nxt_conf_map_t  nxt_java_app_conf[] = {
 };
 
 
+static nxt_conf_map_t  nxt_wasm_app_conf[] = {
+    {
+        nxt_string("module"),
+        NXT_CONF_MAP_CSTRZ,
+        offsetof(nxt_common_app_conf_t, u.wasm.module),
+    },
+
+    {
+        nxt_string("request_handler"),
+        NXT_CONF_MAP_CSTRZ,
+        offsetof(nxt_common_app_conf_t, u.wasm.request_handler),
+    },
+
+    {
+        nxt_string("malloc_handler"),
+        NXT_CONF_MAP_CSTRZ,
+        offsetof(nxt_common_app_conf_t, u.wasm.malloc_handler),
+    },
+
+    {
+        nxt_string("free_handler"),
+        NXT_CONF_MAP_CSTRZ,
+        offsetof(nxt_common_app_conf_t, u.wasm.free_handler),
+    },
+
+    {
+        nxt_string("module_init_handler"),
+        NXT_CONF_MAP_CSTRZ,
+        offsetof(nxt_common_app_conf_t, u.wasm.module_init_handler),
+    },
+
+    {
+        nxt_string("module_end_handler"),
+        NXT_CONF_MAP_CSTRZ,
+        offsetof(nxt_common_app_conf_t, u.wasm.module_end_handler),
+    },
+
+    {
+        nxt_string("request_init_handler"),
+        NXT_CONF_MAP_CSTRZ,
+        offsetof(nxt_common_app_conf_t, u.wasm.request_init_handler),
+    },
+
+    {
+        nxt_string("request_end_handler"),
+        NXT_CONF_MAP_CSTRZ,
+        offsetof(nxt_common_app_conf_t, u.wasm.request_end_handler),
+    },
+
+    {
+        nxt_string("response_end_handler"),
+        NXT_CONF_MAP_CSTRZ,
+        offsetof(nxt_common_app_conf_t, u.wasm.response_end_handler),
+    },
+
+    {
+        nxt_string("access"),
+        NXT_CONF_MAP_PTR,
+        offsetof(nxt_common_app_conf_t, u.wasm.access),
+    },
+
+};
+
+
 static nxt_conf_app_map_t  nxt_app_maps[] = {
     { nxt_nitems(nxt_external_app_conf),  nxt_external_app_conf },
     { nxt_nitems(nxt_python_app_conf),    nxt_python_app_conf },
@@ -330,6 +394,7 @@ static nxt_conf_app_map_t  nxt_app_maps[] = {
     { nxt_nitems(nxt_perl_app_conf),      nxt_perl_app_conf },
     { nxt_nitems(nxt_ruby_app_conf),      nxt_ruby_app_conf },
     { nxt_nitems(nxt_java_app_conf),      nxt_java_app_conf },
+    { nxt_nitems(nxt_wasm_app_conf),      nxt_wasm_app_conf },
 };
 
 

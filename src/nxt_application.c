@@ -1099,6 +1099,9 @@ nxt_app_parse_type(u_char *p, size_t length)
 
     } else if (nxt_str_eq(&str, "java", 4)) {
         return NXT_APP_JAVA;
+
+    } else if (nxt_str_eq(&str, "wasm", 4)) {
+        return NXT_APP_WASM;
     }
 
     return NXT_APP_UNKNOWN;

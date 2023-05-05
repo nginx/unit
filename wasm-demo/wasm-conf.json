@@ -1,0 +1,76 @@
+{
+    "access_log": "/dev/stdout",
+    "settings": {
+        "http": {
+            "log_route": true,
+            "max_body_size": 1073741824
+        }
+    },
+
+    "listeners": {
+        "*:80": {
+            "pass": "routes"
+        }
+    },
+
+    "routes": [
+        {
+            "match": {
+                "uri": "/echo*"
+            },
+            "action": {
+                "pass": "applications/luw-echo-request"
+            }
+        },
+        {
+            "match": {
+                "uri": "/upload*"
+            },
+            "action": {
+                "pass": "applications/luw-upload-reflector"
+            }
+        },
+        {
+            "match": {
+                "headers": {
+                    "accept": "*text/html*"
+                }
+            },
+            "action": {
+                "share": "/usr/share/unit/welcome/welcome.html"
+            }
+        },
+        {
+            "action": {
+                "share": "/usr/share/unit/welcome/welcome.md"
+            }
+        }
+    ],
+
+    "applications": {
+        "luw-echo-request": {
+            "type": "wasm",
+            "module": "/demo/luw-echo-request.wasm",
+            "request_handler": "luw_request_handler",
+            "malloc_handler": "luw_malloc_handler",
+            "free_handler": "luw_free_handler",
+            "module_init_handler": "luw_module_init_handler",
+            "module_end_handler": "luw_module_end_handler",
+            "access": {
+                "filesystem": [
+                    "/tmp",
+                    "/var/tmp"
+                ]
+            }
+        },
+        "luw-upload-reflector": {
+            "type": "wasm",
+            "module": "/demo/luw-upload-reflector.wasm",
+            "request_handler": "luw_request_handler",
+            "malloc_handler": "luw_malloc_handler",
+            "free_handler": "luw_free_handler",
+            "request_end_handler": "luw_request_end_handler",
+            "response_end_handler": "luw_response_end_handler"
+        }
+    }
+}
