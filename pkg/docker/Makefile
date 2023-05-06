@@ -106,7 +106,11 @@ library:
 		if [ "$$previous" == "$$modname" ]; then \
 			echo "Tags: $(VERSION)-$$mod, $$mod"; \
 		else \
-			echo "Tags: $(VERSION)-$$mod, $${TAGS%, }"; \
+			if [ "$$mod" == "minimal" ]; then \
+				echo "Tags: $(VERSION)-$$mod, $${TAGS%, }, latest"; \
+			else \
+				echo "Tags: $(VERSION)-$$mod, $${TAGS%, }"; \
+			fi; \
 		fi; \
 		echo "Architectures: amd64, arm64v8"; \
 		echo "GitFetch: refs/heads/branches/packaging"; \
