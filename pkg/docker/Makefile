@@ -8,8 +8,6 @@ DEFAULT_VERSION := $(NXT_VERSION)
 VERSION ?= $(DEFAULT_VERSION)
 PATCHLEVEL ?= 1
 
-EXPORT_DIR := $(VERSION)
-
 MODULES ?= go jsc node perl php python ruby
 
 VARIANT ?= bullseye
@@ -70,7 +68,7 @@ INSTALL_ruby ?=		ruby-install
 RUN_ruby ?=			gem install rack
 
 default:
-	@echo "valid targets: all build dockerfiles clean"
+	@echo "valid targets: all build dockerfiles library clean"
 
 MODVERSIONS = $(foreach module, $(MODULES), $(foreach modversion, $(shell for v in $(VERSIONS_$(module)); do echo $$v; done | sort -r), $(module)$(modversion))) minimal
 
@@ -121,7 +119,6 @@ library:
 all: $(addprefix Dockerfile., $(MODVERSIONS))
 
 clean:
-	rm -f $(addprefix Dockerfile., $(MODVERSIONS))
-	rm -rf $(EXPORT_DIR)
+	rm -f Dockerfile.*
 
 .PHONY: default build dockerfiles clean library
