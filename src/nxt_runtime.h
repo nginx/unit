@@ -74,6 +74,7 @@ struct nxt_runtime_s {
     const char             *tmp;
 
     nxt_str_t              certs;
+    nxt_str_t              scripts;
 
     nxt_queue_t            engines;            /* of nxt_event_engine_t */
 

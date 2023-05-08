@@ -124,7 +124,7 @@ NXT_LIB_PCRE_SRCS="src/nxt_pcre.c"
 NXT_LIB_PCRE2_SRCS="src/nxt_pcre2.c"
 
 if [ "$NXT_NJS" != "NO" ]; then
-    NXT_LIB_SRCS="$NXT_LIB_SRCS src/nxt_js.c src/nxt_http_js.c"
+    NXT_LIB_SRCS="$NXT_LIB_SRCS src/nxt_js.c src/nxt_http_js.c src/nxt_script.c"
 fi
 
 NXT_LIB_EPOLL_SRCS="src/nxt_epoll_engine.c"

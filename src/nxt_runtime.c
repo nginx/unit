@@ -906,6 +906,23 @@ nxt_runtime_conf_init(nxt_task_t *task, nxt_runtime_t *rt)
                   "mkdir(%s) failed %E", file_name.start, nxt_errno);
     }
 
+    ret = nxt_file_name_create(rt->mem_pool, &file_name, "%s%sscripts/%Z",
+                               rt->state, slash);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        return NXT_ERROR;
+    }
+
+    ret = mkdir((char *) file_name.start, S_IRWXU);
+
+    if (nxt_fast_path(ret == 0 || nxt_errno == EEXIST)) {
+        rt->scripts.length = file_name.len;
+        rt->scripts.start = file_name.start;
+
+    } else {
+        nxt_alert(task, "Unable to create scripts storage directory: "
+                  "mkdir(%s) failed %E", file_name.start, nxt_errno);
+    }
+
     control.length = nxt_strlen(rt->control);
     control.start = (u_char *) rt->control;
 

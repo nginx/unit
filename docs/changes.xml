@@ -40,6 +40,12 @@ basic URI rewrite support.
 
 <change type="feature">
 <para>
+njs loadable modules support.
+</para>
+</change>
+
+<change type="feature">
+<para>
 added conditional logging of route selection for HTTP requests.
 </para>
 </change>

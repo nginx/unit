@@ -74,6 +74,10 @@ typedef struct {
     nxt_queue_t            tls;        /* of nxt_router_tlssock_t */
 #endif
 
+#if (NXT_HAVE_NJS)
+    nxt_queue_t            js_modules;
+#endif
+
     nxt_queue_t            apps;       /* of nxt_app_t */
     nxt_queue_t            previous;   /* of nxt_app_t */
 

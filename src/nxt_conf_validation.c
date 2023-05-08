@@ -7,6 +7,7 @@
 #include <nxt_main.h>
 #include <nxt_conf.h>
 #include <nxt_cert.h>
+#include <nxt_script.h>
 #include <nxt_router.h>
 #include <nxt_http.h>
 #include <nxt_sockaddr.h>
@@ -226,6 +227,13 @@ static nxt_int_t nxt_conf_vldt_cgroup_path(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 #endif
 
+#if (NXT_HAVE_NJS)
+static nxt_int_t nxt_conf_vldt_js_module(nxt_conf_validation_t *vldt,
+     nxt_conf_value_t *value, void *data);
+static nxt_int_t nxt_conf_vldt_js_module_element(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value);
+#endif
+
 
 static nxt_conf_vldt_object_t  nxt_conf_vldt_setting_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_http_members[];
@@ -297,6 +305,12 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_setting_members[] = {
         .type       = NXT_CONF_VLDT_OBJECT,
         .validator  = nxt_conf_vldt_object,
         .u.members  = nxt_conf_vldt_http_members,
+#if (NXT_HAVE_NJS)
+    }, {
+        .name       = nxt_string("js_module"),
+        .type       = NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
+        .validator  = nxt_conf_vldt_js_module,
+#endif
     },
 
     NXT_CONF_VLDT_END
@@ -1306,35 +1320,26 @@ nxt_conf_validate(nxt_conf_validation_t *vldt)
 
     vldt->tstr_state = nxt_tstr_state_new(vldt->pool, 1);
     if (nxt_slow_path(vldt->tstr_state == NULL)) {
-        ret = NXT_ERROR;
-        goto fail;
+        return NXT_ERROR;
     }
 
     ret = nxt_conf_vldt_type(vldt, NULL, vldt->conf, NXT_CONF_VLDT_OBJECT);
     if (ret != NXT_OK) {
-        goto fail;
+        return ret;
     }
 
     ret = nxt_conf_vldt_object(vldt, vldt->conf, nxt_conf_vldt_root_members);
     if (ret != NXT_OK) {
-        goto fail;
+        return ret;
     }
 
     ret = nxt_tstr_state_done(vldt->tstr_state, error);
     if (ret != NXT_OK) {
         ret = nxt_conf_vldt_error(vldt, "%s", error);
-        goto fail;
+        return ret;
     }
 
-    nxt_tstr_state_release(vldt->tstr_state);
-
     return NXT_OK;
-
-fail:
-
-    nxt_tstr_state_release(vldt->tstr_state);
-
-    return ret;
 }
 
 
@@ -3239,6 +3244,49 @@ nxt_conf_vldt_server_weight(nxt_conf_validation_t *vldt,
 
     return NXT_OK;
 }
+
+
+#if (NXT_HAVE_NJS)
+
+static nxt_int_t
+nxt_conf_vldt_js_module(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
+{
+    if (nxt_conf_type(value) == NXT_CONF_ARRAY) {
+        return nxt_conf_vldt_array_iterator(vldt, value,
+                                            &nxt_conf_vldt_js_module_element);
+    }
+
+    /* NXT_CONF_STRING */
+
+    return nxt_conf_vldt_js_module_element(vldt, value);
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_js_module_element(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value)
+{
+    nxt_str_t         name;
+    nxt_conf_value_t  *module;
+
+    if (nxt_conf_type(value) != NXT_CONF_STRING) {
+        return nxt_conf_vldt_error(vldt, "The \"js_module\" array must "
+                                   "contain only string values.");
+    }
+
+    nxt_conf_get_string(value, &name);
+
+    module = nxt_script_info_get(&name);
+    if (module == NULL) {
+        return nxt_conf_vldt_error(vldt, "JS module \"%V\" is not found.",
+                                   &name);
+    }
+
+    return NXT_OK;
+}
+
+#endif
 
 
 typedef struct {
