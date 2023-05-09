@@ -75,9 +75,10 @@ RUN set -ex \
     && ln -sf /dev/stdout /var/log/unit.log
 
 COPY docker-entrypoint.sh /usr/local/bin/
+COPY welcome.* /usr/share/unit/welcome/
 
 STOPSIGNAL SIGTERM
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
-
+EXPOSE 80
 CMD ["unitd", "--no-daemon", "--control", "unix:/var/run/control.unit.sock"]

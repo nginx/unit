@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Welcome to NGINX Unit</title>
+        <style type="text/css">
+            body { background: white; color: black; font-family: sans-serif; margin: 2em; line-height: 1.5; }
+            h1,h2 { color: #00974d; }
+            li { margin-bottom: 0.5em; }
+            pre { background-color: beige; padding: 0.4em; }
+            hr { margin-top: 2em; border: 1px solid #00974d; }
+            .indent { margin-left: 1.5em; }
+        </style>
+    </head>
+    <body>
+        <h1>Welcome to NGINX Unit</h1>
+        <p>Congratulations! NGINX Unit is installed and running.</p>
+        <h3>Useful Links</h3>
+        <ul>
+            <li><b><a href="https://unit.nginx.org/configuration/?referer=welcome&platform=docker">https://unit.nginx.org/configuration/</a></b><br>
+                To get started with Unit, see the <em>Configuration</em> docs, starting with
+                the <em>Quick Start</em> guide.</li>
+            <li><b><a href="https://unit.nginx.org/howto/docker/?referer=welcome&platform=docker">https://unit.nginx.org/howto/docker/</a></b><br>
+                For guidance about running <em>Unit in Docker</em> and tips for containerized
+                applications.
+            <li><b><a href="https://github.com/nginx/unit">https://github.com/nginx/unit</a></b><br>
+                See our GitHub repo to browse the code, contribute, or seek help from the
+                <a href="https://github.com/nginx/unit#community">community</a>.</li>
+        </ul>
+
+        <h2>Next steps</h2>
+
+        <h3>Check Current Configuration</h3>
+        <div class="indent">
+        <p>Unit's control API is currently listening for configuration changes
+           on the <a href="https://en.wikipedia.org/wiki/Unix_domain_socket">Unix socket</a> at
+           <b>/var/run/control.unit.sock</b> inside the container.<br>
+           To see the current configuration run:</p>
+        <pre>docker exec -ti <containerID> curl --unix-socket /var/run/control.unit.sock http://localhost/config</pre>
+        </div>
+
+        <hr>
+        <p><a href="https://unit.nginx.org/?referer=welcome&platform=docker">NGINX Unit &mdash; the universal web app server</a><br>
+        NGINX, Inc. &copy; 2023</p>
+    </body>
+</html>
