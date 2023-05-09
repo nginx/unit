@@ -1,0 +1,91 @@
+.\" (C) 2023, NGINX, Inc.
+.\"
+.TH nxt_unit_response_add_content 3 (date) "NGINX Unit (unreleased)"
+.SH Name
+nxt_unit_response_add_content \- add content to HTTP response in Unit app
+.SH Library
+NGINX Unit library
+.RI ( libunit ", " -lunit )
+.SH Synopsis
+.nf
+.B #include <nxt_unit.h>
+.PP
+.BI "int nxt_unit_response_add_content(nxt_unit_request_info_t *" req ,
+.BI "                                  const void " content [. size ],
+.BI "                                  uint32_t " size );
+.fi
+.SH Arguments
+.TP
+.I req
+Request object.
+.TP
+.I content
+Content of the response.
+It's a buffer of
+.I size
+bytes.
+.SH Description
+.MR nxt_unit_response_add_content 3
+adds content to an HTTP response.
+.PP
+The response should have been initialized previously with
+.MR nxt_unit_response_init 3 .
+.PP
+The response should have enough remaining buffer size available.
+If there's not enough,
+more buffer can be allocated with
+.MR nxt_unit_response_buff_alloc 3 .
+.PP
+This function can be called several times,
+and all contents will be merged into the (chunked) response.
+After content is added to the response,
+it should be sent with
+.MR nxt_unit_response_send 3 .
+.SH Return value
+0 on success,
+or a non-zero error code on error.
+.SH Errors
+Errors will be reported in the Unit debug log.
+.TP
+.B NXT_UNIT_ERROR
+.RS
+.PD 0
+.IP \[bu] 3
+Response not initialized.
+.IP \[bu]
+Response already sent.
+.IP \[bu]
+Content is longer than the response buffer.
+.PD
+.RE
+.SH Examples
+See
+.MR nxt_unit_response_add_field 3 .
+.SH Copyright
+(C) 2017-2023, NGINX, Inc.
+.PP
+SPDX-License-Identifier: Apache-2.0
+.SH See also
+.MR nxt_unit_init 3 ,
+.MR nxt_unit_response_init 3 ,
+.MR nxt_unit_response_add_field 3 ,
+.MR nxt_unit_response_buf_alloc 3 ,
+.MR nxt_unit_response_send 3 ,
+.MR nxt_unit_request_done 3 ,
+.MR unitd 8
+.PP
+.UR https://www.rfc-editor.org/\:rfc/\:rfc9112\:#section-5
+RFC 9112, section 5: Field Syntax
+.UE
+.PP
+Website
+.UR https://unit.nginx.org
+.UE
+.PP
+Mailing list
+.UR https://mailman.nginx.org/\:mailman/\:listinfo/\:unit
+.UE
+.PP
+GitHub
+.UR https://github.com/\:nginx/\:unit
+.UE

@@ -1,0 +1,132 @@
+.\" (C) 2023, NGINX, Inc.
+.\"
+.TH nxt_unit_ctx_alloc 3 (date) "NGINX Unit (unreleased)"
+.SH Name
+nxt_unit_ctx_alloc \- create context object for Unit app thread
+.SH Library
+NGINX Unit library
+.RI ( libunit ", " -lunit )
+.SH Synopsis
+.nf
+.B #include <nxt_unit.h>
+.PP
+.B [[gnu::malloc(nxt_unit_done)]]
+.BI "nxt_unit_ctx_t *_Nullable nxt_unit_ctx_alloc(nxt_unit_ctx_t *" ctx ,
+.BI "                                             void *_Nullable " data );
+.fi
+.SH Arguments
+.TP
+.I ctx
+Main context object for the application.
+It should have been created with
+.MR nxt_unit_init 3 .
+.TP
+.I data
+XXX
+.SH Description
+.MR nxt_unit_ctx_alloc 3
+creates a context object that will be used for a worker thread.
+.PP
+The next step after creating a thread context object
+is running the application thread;
+for that, see
+.MR nxt_unit_run 3 .
+.PP
+The context object created by this function should be
+destroyed by passing it to
+.MR nxt_unit_done 3 .
+.SH Return value
+A pointer to a context object on success,
+or NULL on error.
+.SH Errors
+Errors will be reported in the Unit debug log.
+.IP \[bu] 3
+.MR pthread_mutex_init 3
+failed.
+.PD 0
+.IP \[bu]
+.MR socketpair 2
+failed.
+.IP \[bu]
+.MR setsockopt 2
+failed.
+.IP \[bu]
+.MR memfd_create 2
+failed.
+.IP \[bu]
+.MR shm_open 2
+failed.
+.IP \[bu]
+.MR ftruncate 2
+failed.
+.IP \[bu]
+.MR mmap 2
+failed.
+.IP \[bu]
+.MR sendmsg 2
+failed.
+.IP \[bu]
+.MR nxt_unit_malloc 3
+failed.
+.IP \[bu]
+.I nxt_unit_init_t::callbacks.port_send
+failed.
+.IP \[bu]
+Internal hash table failure.
+.PD
+.SH Examples
+See
+.MR nxt_unit_init 3
+for an example where this
+.IR worker ()
+function is used.
+.PP
+.EX
+#include <pthread.h>
+#include <stddef.h>
+#include <stdint.h>
+\&
+#include <nxt_unit.h>
+\&
+void *
+worker(void *main_ctx)
+{
+    int             rc;
+    nxt_unit_ctx_t  *ctx;
+\&
+    ctx = nxt_unit_ctx_alloc(main_ctx, NULL);
+    if (ctx == NULL) {
+        pthread_exit(NULL);
+    }
+\&
+    nxt_unit_debug(ctx, "start worker");
+    rc = nxt_unit_run(ctx);
+    nxt_unit_debug(ctx, "worker finished with %d code", rc);
+\&
+    nxt_unit_done(ctx);
+\&
+    pthread_exit((void *) (intptr_t) rc);
+}
+.EE
+.SH Copyright
+(C) 2017-2023, NGINX, Inc.
+.PP
+SPDX-License-Identifier: Apache-2.0
+.SH See also
+.MR nxt_unit_done 3 ,
+.MR nxt_unit_run 3 ,
+.MR pthread_create 3 ,
+.MR pthread_exit 3 ,
+.MR unitd 8
+.PP
+Website
+.UR https://unit.nginx.org
+.UE
+.PP
+Mailing list
+.UR https://mailman.nginx.org/mailman/listinfo/unit
+.UE
+.PP
+GitHub
+.UR https://github.com/nginx/unit
+.UE

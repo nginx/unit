@@ -1,0 +1,88 @@
+.\" (C) 2023, NGINX, Inc.
+.\"
+.TH nxt_unit_response_send 3 (date) "NGINX Unit (unreleased)"
+.SH Name
+nxt_unit_response_send \- send response in Unit app
+.SH Library
+NGINX Unit library
+.RI ( libunit ", " -lunit )
+.SH Synopsis
+.nf
+.B #include <nxt_unit.h>
+.PP
+.BI "int nxt_unit_response_send(nxt_unit_request_info_t *" req );
+.fi
+.SH Arguments
+.TP
+.I req
+Request object.
+.SH Description
+.MR nxt_unit_response_send 3
+sends a response to a request.
+The response should have been previously crafted with
+.MR nxt_unit_response_add_field 3
+and
+.MR nxt_unit_response_add_content 3 .
+.PP
+If the
+.B Content-length
+header field is not present in the response,
+Unit will automatically add a
+.B Transfer-Encoding: chunked
+header.
+In that case,
+it is possible to call this function several times,
+and Unit will use chunks as appropriate for the contents.
+.PP
+This function tells
+.MR unitd 8
+that the response is ready to be sent,
+and puts it in the send queue.
+It doesn't really send it,
+and it may merge several response chunks into a single one
+if they accumulate in the buffer.
+.PP
+When the response has been completely sent,
+.MR nxt_unit_response_done 3
+should be called.
+.SH Return value
+0 on success,
+or a non-zero error code on error.
+.SH Errors
+Errors will be reported in the Unit debug log.
+.TP
+.B NXT_UNIT_ERROR
+.RS
+.PD 0
+.IP \[bu] 3
+Response not initialized yet.
+.IP \[bu]
+Response already sent.
+.PD
+.RE
+.SH Examples
+See
+.MR nxt_unit_response_add_field 3 .
+.SH Copyright
+(C) 2017-2023, NGINX, Inc.
+.PP
+SPDX-License-Identifier: Apache-2.0
+.SH See also
+.MR nxt_unit_init 3 ,
+.MR nxt_unit_response_init 3 ,
+.MR nxt_unit_response_add_field 3 ,
+.MR nxt_unit_response_add_content 3 ,
+.MR nxt_unit_response_buf_alloc 3 ,
+.MR unitd 8
+.PP
+.UR https://unit.nginx.org
+Website
+.UE
+.PP
+.UR https://mailman.nginx.org/mailman/listinfo/unit
+Mailing list
+.UE
+.PP
+.UR https://github.com/nginx/unit
+GitHub
+.UE

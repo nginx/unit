@@ -1,0 +1,91 @@
+.\" (C) 2023, NGINX, Inc.
+.\"
+.TH nxt_unit_sptr_get 3 (date) "NGINX Unit (unreleased)"
+.SH Name
+nxt_unit_sptr_set, nxt_unit_sptr_get \-
+serialized pointer; offset to self
+.SH Library
+NGINX Unit library
+.RI ( libunit ", " -lunit )
+.SH Synopsis
+.nf
+.B #include <nxt_unit.h>
+.PP
+.BI "void nxt_unit_sptr_set(nxt_unit_sptr_t *" sptr ", void *" ptr );
+.BI "void *nxt_unit_sptr_get(nxt_unit_sptr_t *" sptr );
+.PP
+.B "typedef union nxt_unit_sptr_u  nxt_unit_sptr_t;"
+.fi
+.PP
+.EX
+.B union nxt_unit_sptr_u {
+.B "    uint8_t   base[1];"
+.B "    uint32_t  offset;"
+.B }
+.EE
+.SH Arguments
+.TP
+.I sptr
+Serialized pointer.
+It represents a memory address as
+an offset to the address of the offset itself.
+.TP
+.I ptr
+Pointer to be serialized.
+.SH Description
+This type and helper functions are useful for
+having dynamically structured data
+in a single buffer.
+.TP
+.I nxt_unit_sptr_t
+The
+.I base
+array is used for representing the base to which the offset applies.
+It's not really used for reinterpreting the data in the union.
+The base is the address of the first element in the array,
+which is the same as the address of the union,
+and thus is also the same as the address of the offset.
+.IP
+The
+.I offset
+is really the only field actually accessed in this union.
+It points to the start of the data.
+.\".IP
+.\"This type could have been defined as a single offset integer,
+.\"without using unions or arrays,
+.\"but then it wouldn't be so clear that the offset points to
+.\"some data later in the same container structure.
+.TP
+.MR nxt_unit_sptr_set 3
+Set the offset in the serialized pointer
+to point to the data pointed to by
+.IR ptr .
+.TP
+.MR nxt_unit_sptr_get 3
+Get a pointer to the data referenced by the serialized pointer
+.IR sptr .
+.PP
+It is necessary to store pointers as offsets
+when sharing a buffer via inter-process communication.
+.SH Return value
+.MR nxt_unit_sptr_get 3
+returns a pointer to the data previously set by
+.MR nxt_unit_sptr_set 3 .
+.SH Errors
+None.
+.SH Copyright
+(C) 2017-2023, NGINX, Inc.
+.PP
+SPDX-License-Identifier: Apache-2.0
+.SH See also
+Website
+.UR https://unit.nginx.org
+.UE
+.PP
+Mailing list
+.UR https://mailman.nginx.org/mailman/listinfo/unit
+.UE
+.PP
+GitHub
+.UR https://github.com/nginx/unit
+.UE

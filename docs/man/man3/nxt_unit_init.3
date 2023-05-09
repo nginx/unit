@@ -1,0 +1,166 @@
+.\" (C) 2023, NGINX, Inc.
+.\"
+.TH nxt_unit_init 3 (date) "NGINX Unit (unreleased)"
+.SH Name
+nxt_unit_init \- initialize Unit app
+.SH Library
+NGINX Unit library
+.RI ( libunit ", " -lunit )
+.SH Synopsis
+.nf
+.B #include <nxt_unit.h>
+.PP
+.B [[gnu::malloc(nxt_unit_done)]]
+.BI "nxt_unit_ctx_t *_Nullable nxt_unit_init(nxt_unit_init_t *" init );
+.fi
+.SH Arguments
+.TP
+.I init
+Object that specifies how the application should work.
+.SH Description
+.MR nxt_unit_init 3
+initializes a Unit application.
+.PP
+It creates a main context object that
+is necessary for most other libunit functions.
+.PP
+The next step after initializing the application is running it;
+for that, see
+.MR nxt_unit_run 3 .
+.PP
+The context object created by this function should be
+destroyed by passing it to
+.MR nxt_unit_done 3 .
+.SH Return value
+A pointer to a context object on success,
+or NULL on error.
+.SH Errors
+Errors will be reported in the Unit debug log.
+.IP \[bu] 3
+.MR pthread_mutex_init 3
+failed.
+.PD 0
+.IP \[bu]
+.MR nxt_unit_malloc 3
+failed.
+.IP \[bu]
+.I init->callbacks.request_handler
+is NULL.
+.PD
+.SH Examples
+.EX
+#include <pthread.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
+#include <sys/types.h>
+\&
+#include <nxt_unit.h>
+\&
+// See \c
+.MR nxt_unit_response_add_field 3 .
+void request_handler(nxt_unit_request_info_t *req);
+\&
+// See \c
+.MR nxt_unit_ctx_alloc 3 .
+void *worker(void *main_ctx);
+\&
+static int ready_handler(nxt_unit_ctx_t *main_ctx);
+\&
+static ssize_t  nthreads;
+static pthread_t  *threads;
+\&
+int
+main(int argc, char **argv)
+{
+    int              err;
+    void             *ret;
+    nxt_unit_ctx_t   *ctx;
+    nxt_unit_init_t  init;
+\&
+    if (argc == 3 && strcmp(argv[1], "\-t") == 0) {
+        nthreads = atoi(argv[2]);
+    }
+\&
+    bzero(&init, sizeof(nxt_unit_init_t));
+    init.callbacks.request_handler = &request_handler;
+    init.callbacks.ready_handler = &ready_handler;
+\&
+    ctx = nxt_unit_init(&init);
+    if (ctx == NULL) {
+        exit(EXIT_FAILURE);
+    }
+\&
+    err = nxt_unit_run(ctx);
+    nxt_unit_debug(ctx, "main worker finished with %d code", err);
+\&
+    for (ssize_t i = 0; i < nthreads; i++) {
+        err = pthread_join(threads[i], &ret);
+\&
+        if (err != 0) {
+            nxt_unit_alert(ctx, "pthread_join(#%zd) failed: %s (%d)",
+                                i, strerror(err), err);
+        } else {
+            nxt_unit_debug(ctx, "pthread_join(#%zd) retval: %"PRIdPTR,
+                                i, (intptr_t) ret);
+        }
+    }
+\&
+    nxt_unit_free(ctx, threads);
+\&
+    nxt_unit_done(ctx);
+    nxt_unit_debug(NULL, "main worker done");
+\&
+    exit(EXIT_SUCCESS);
+}
+\&
+static int
+ready_handler(nxt_unit_ctx_t *ctx)
+{
+    int  err;
+\&
+    nxt_unit_debug(ctx, "ready");
+\&
+    if (nthreads <= 1) {
+        return NXT_UNIT_OK;
+    }
+\&
+    threads = nxt_unit_malloc(ctx, sizeof(pthread_t) * (nthreads \- 1));
+    if (threads == NULL) {
+        return NXT_UNIT_ERROR;
+    }
+\&
+    // See \c
+.MR nxt_unit_ctx_alloc 3 .
+    for (ssize_t i = 0; i < nthreads \- 1; i++) {
+        err = pthread_create(&threads[i], NULL, &worker, ctx);
+        if (err != 0) {
+            return NXT_UNIT_ERROR;
+        }
+    }
+\&
+    return NXT_UNIT_OK;
+}
+.EE
+.SH Copyright
+(C) 2017-2023, NGINX, Inc.
+.PP
+SPDX-License-Identifier: Apache-2.0
+.SH See also
+.MR nxt_unit_ctx_alloc 3 ,
+.MR nxt_unit_run 3 ,
+.MR nxt_unit_done 3 ,
+.MR unitd 8
+.PP
+Website
+.UR https://unit.nginx.org
+.UE
+.PP
+Mailing list
+.UR https://mailman.nginx.org/mailman/listinfo/unit
+.UE
+.PP
+GitHub
+.UR https://github.com/nginx/unit
+.UE

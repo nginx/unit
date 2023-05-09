@@ -1,0 +1,85 @@
+.\" (C) 2023, NGINX, Inc.
+.\"
+.TH nxt_unit_response_init 3 (date) "NGINX Unit (unreleased)"
+.SH Name
+nxt_unit_response_init \- initialize response in Unit app
+.SH Library
+NGINX Unit library
+.RI ( libunit ", " -lunit )
+.SH Synopsis
+.nf
+.B #include <nxt_unit.h>
+.PP
+.BI "int nxt_unit_response_init(nxt_unit_request_info_t *" req ", uint16_t " status ,
+.BI "                           uint32_t " max_fields ,
+.BI "                           uint32_t " max_fields_size );
+.fi
+.SH Arguments
+.TP
+.I req
+Request object.
+.TP
+.I status
+HTTP status code.
+.TP
+.I max_fields
+Maximum number of HTTP header fields that will be added to the response.
+.TP
+.I max_fields_size
+Size of the buffer that will be used for the HTTP header fields.
+See
+.MR nxt_unit_response_add_field 3 .
+.SH Description
+.MR nxt_unit_response_init 3
+initializes a response to a request.
+.PP
+It sets the response status,
+and allocates the buffer necessary for the header fields.
+Any fields will need to fit in that buffer.
+The response content can also be fitted in that buffer,
+but extra buffers can be allocated for it later with
+.MR nxt_unit_response_buf_alloc 3 .
+.SH Return value
+0 on success,
+or a non-zero error code on error.
+.SH Errors
+Errors will be reported in the Unit debug log.
+.TP
+.B NXT_UNIT_ERROR
+.RS
+.PD 0
+.IP \[bu] 3
+Response already initialized.
+.IP \[bu]
+Response already sent.
+.IP \[bu]
+.MR nxt_unit_malloc 3
+failed.
+.PD
+.RE
+.SH Examples
+See
+.MR nxt_unit_response_add_field 3 .
+.SH Copyright
+(C) 2017-2023, NGINX, Inc.
+.PP
+SPDX-License-Identifier: Apache-2.0
+.SH See also
+.MR nxt_unit_init 3 ,
+.MR nxt_unit_response_add_field 3 ,
+.MR nxt_unit_response_add_content 3 ,
+.MR nxt_unit_response_send 3 ,
+.MR nxt_unit_response_buf_alloc 3 ,
+.MR unitd 8
+.PP
+.UR https://unit.nginx.org
+Website
+.UE
+.PP
+.UR https://mailman.nginx.org/mailman/listinfo/unit
+Mailing list
+.UE
+.PP
+.UR https://github.com/nginx/unit
+GitHub
+.UE
