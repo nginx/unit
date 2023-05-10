@@ -5,9 +5,8 @@
 ![NGINX Unit Logo](docs/unitlogo.svg)
 
 NGINX Unit is a lightweight and versatile open-source server that has
-three core capabilities:
+two primary capabilities:
 
-- acts as an HTTP reverse proxy,
 - serves static media assets,
 - runs application code in seven languages.
 
