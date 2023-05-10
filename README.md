@@ -15,7 +15,7 @@ coherent solution with a focus on performance, low latency, and scalability. It
 is intended as a universal building block for any web architecture regardless
 of its complexity, from enterprise-scale deployments to your pet's homepage.
 
-Its native [RESTful JSON API][#openapi-specification] enables dynamic
+Its native [RESTful JSON API](#openapi-specification) enables dynamic
 updates with zero interruptions and flexible configuration, while its
 out-of-the-box productivity reliably scales to production-grade workloads. We
 achieve that with a complex, asynchronous, multithreading architecture
@@ -158,9 +158,9 @@ For full details of configuration management, see the
 
 ## OpenAPI Specification
 
-Our [OpenAPI specification](docs/openapi.yaml) aims to simplify configuring and
-integrating NGINX Unit deployments and provide an authoritative source of
-knowledge about the control API.
+Our [OpenAPI specification](docs/unit-openapi.yaml) aims to simplify
+configuring and integrating NGINX Unit deployments and provide an authoritative
+source of knowledge about the control API.
 
 Although the specification is still in the early beta stage, it is a promising
 step forward for the NGINX Unit community. While working on it, we kindly ask
