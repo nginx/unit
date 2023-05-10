@@ -45,6 +45,12 @@ Initial release of Java 20 module for NGINX Unit.
          date="" time=""
          packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
 
+<change type="change">
+<para>
+remove Unix domain listen sockets upon reconfiguration.
+</para>
+</change>
+
 <change type="feature">
 <para>
 basic URI rewrite support.
@@ -53,13 +59,19 @@ basic URI rewrite support.
 
 <change type="feature">
 <para>
-njs loadable modules support.
+NJS loadable modules support.
 </para>
 </change>
 
 <change type="feature">
 <para>
-added conditional logging of route selection for HTTP requests.
+per-application logging.
+</para>
+</change>
+
+<change type="feature">
+<para>
+conditional logging of route selection.
 </para>
 </change>
 
@@ -71,14 +83,33 @@ support the keys API on the request objects in NJS.
 
 <change type="feature">
 <para>
-added default values for 'make install' pathnames such as prefix;
-this allows to do './configure &amp;&amp; make &amp;&amp; sudo make install'.
+default values for 'make install' pathnames such as prefix;
+this allows to './configure &amp;&amp; make &amp;&amp; sudo make install'.
+</para>
+</change>
+
+<change type="feature">
+<para>
+"server_version" setting to omit the version token from "Server" header field.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+request header field values could be corrupted in some cases; the bug had
+appeared in 1.29.0.
 </para>
 </change>
 
 <change type="bugfix">
 <para>
 PHP error handling (added missing 403 and 404 errors).
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Perl applications crash on second responder call.
 </para>
 </change>
 
