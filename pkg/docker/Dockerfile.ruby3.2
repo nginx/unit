@@ -1,4 +1,4 @@
-FROM debian:bullseye-slim
+FROM ruby:3.2-bullseye
 
 LABEL org.opencontainers.image.title="Unit"
 LABEL org.opencontainers.image.description="Official build of Unit for Docker."
@@ -42,12 +42,12 @@ RUN set -ex \
     && install -pm755 build/sbin/unitd /usr/sbin/unitd \
     && make clean \
     && ./configure $CONFIGURE_ARGS_MODULES --cc-opt="$CC_OPT" --modulesdir=/usr/lib/unit/debug-modules --debug \
-    && ./configure  \
-    && make -j $NCPU version \
+    && ./configure ruby \
+    && make -j $NCPU ruby-install \
     && make clean \
     && ./configure $CONFIGURE_ARGS_MODULES --cc-opt="$CC_OPT" --modulesdir=/usr/lib/unit/modules \
-    && ./configure  \
-    && make -j $NCPU version \
+    && ./configure ruby \
+    && make -j $NCPU ruby-install \
     && cd \
     && rm -rf unit \
     && for f in /usr/sbin/unitd /usr/lib/unit/modules/*.unit.so; do \
@@ -55,7 +55,7 @@ RUN set -ex \
        done \
     && apt-mark showmanual | xargs apt-mark auto > /dev/null \
     && { [ -z "$savedAptMark" ] || apt-mark manual $savedAptMark; } \
-    && /bin/true \
+    && gem install rack \
     && mkdir -p /var/lib/unit/ \
     && mkdir /docker-entrypoint.d/ \
     && groupadd --gid 999 unit \

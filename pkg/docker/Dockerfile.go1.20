@@ -1,4 +1,4 @@
-FROM debian:bullseye-slim
+FROM golang:1.20-bullseye
 
 LABEL org.opencontainers.image.title="Unit"
 LABEL org.opencontainers.image.description="Official build of Unit for Docker."
@@ -42,12 +42,12 @@ RUN set -ex \
     && install -pm755 build/sbin/unitd /usr/sbin/unitd \
     && make clean \
     && ./configure $CONFIGURE_ARGS_MODULES --cc-opt="$CC_OPT" --modulesdir=/usr/lib/unit/debug-modules --debug \
-    && ./configure  \
-    && make -j $NCPU version \
+    && ./configure go --go-path=$GOPATH \
+    && make -j $NCPU go-install-src libunit-install \
     && make clean \
     && ./configure $CONFIGURE_ARGS_MODULES --cc-opt="$CC_OPT" --modulesdir=/usr/lib/unit/modules \
-    && ./configure  \
-    && make -j $NCPU version \
+    && ./configure go --go-path=$GOPATH \
+    && make -j $NCPU go-install-src libunit-install \
     && cd \
     && rm -rf unit \
     && for f in /usr/sbin/unitd /usr/lib/unit/modules/*.unit.so; do \
