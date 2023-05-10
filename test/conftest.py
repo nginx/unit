@@ -523,26 +523,31 @@ def _clear_conf(sock, *, log=None):
 
     assert 'success' in resp, 'clear conf'
 
-    if 'openssl' not in option.available['modules']:
-        return
+    def get(url):
+        return http.get(url=url, sock_type='unix', addr=sock)['body']
 
-    try:
-        certs = json.loads(
-            http.get(url='/certificates', sock_type='unix', addr=sock)['body']
-        ).keys()
+    def delete(url):
+        return http.delete(url=url, sock_type='unix', addr=sock)['body']
 
-    except json.JSONDecodeError:
-        pytest.fail("Can't parse certificates list.")
+    if 'openssl' in option.available['modules']:
+        try:
+            certs = json.loads(get('/certificates')).keys()
 
-    for cert in certs:
-        resp = http.delete(
-            url=f'/certificates/{cert}',
-            sock_type='unix',
-            addr=sock,
-        )['body']
+        except json.JSONDecodeError:
+            pytest.fail("Can't parse certificates list.")
 
-        assert 'success' in resp, 'remove certificate'
+        for cert in certs:
+            assert 'success' in delete(f'/certificates/{cert}'), 'delete cert'
 
+    if 'njs' in option.available['modules']:
+        try:
+            scripts = json.loads(get('/js_modules')).keys()
+
+        except json.JSONDecodeError:
+            pytest.fail("Can't parse njs modules list.")
+
+        for script in scripts:
+            assert 'success' in delete(f'/js_modules/{script}'), 'delete script'
 
 def _clear_temp_dir():
     temp_dir = unit_instance['temp_dir']
