@@ -107,26 +107,26 @@ Connection: close
         check_location(reserved)
 
         # After first "?" all other "?" encoded.
-        check_location("/?" + reserved, "/?:/%3F#[]@!&'()*+,;=")
+        check_location(f'/?{reserved}', "/?:/%3F#[]@!&'()*+,;=")
         check_location("???", "?%3F%3F")
 
         # After first "#" all other "?" or "#" encoded.
-        check_location("/#" + reserved, "/#:/%3F%23[]@!&'()*+,;=")
+        check_location(f'/#{reserved}', "/#:/%3F%23[]@!&'()*+,;=")
         check_location("##?#?", "#%23%3F%23%3F")
 
         # After first "?" next "#" not encoded.
-        check_location("/?#" + reserved, "/?#:/%3F%23[]@!&'()*+,;=")
+        check_location(f'/?#{reserved}', "/?#:/%3F%23[]@!&'()*+,;=")
         check_location("??##", "?%3F#%23")
         check_location("/?##?", "/?#%23%3F")
 
         # Unreserved never encoded.
         check_location(unreserved)
-        check_location("/" + unreserved + "?" + unreserved + "#" + unreserved)
+        check_location(f'/{unreserved}?{unreserved}#{unreserved}')
 
         # Unsafe always encoded.
         check_location(unsafe, unsafe_enc)
-        check_location("?" + unsafe, "?" + unsafe_enc)
-        check_location("#" + unsafe, "#" + unsafe_enc)
+        check_location(f'?{unsafe}', f'?{unsafe_enc}')
+        check_location(f'#{unsafe}', f'#{unsafe_enc}')
 
         # %00-%20 and %7F-%FF always encoded.
         check_location(u"\u0000\u0018\u001F\u0020\u0021", "%00%18%1F%20!")

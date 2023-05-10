@@ -18,6 +18,8 @@ else ifeq ($(shell rpm --eval "%{?rhel}"), 9)
 OSVER = centos9
 else ifeq ($(shell rpm --eval "%{?amzn}"), 2)
 OSVER = amazonlinux2
+else ifeq ($(shell rpm --eval "%{?amzn}"), 2023)
+OSVER = amazonlinux2023
 else ifeq ($(shell test `rpm --eval '0%{?fedora} -ge 35 -a 0%{?fedora} -le 36'`; echo $$?),0)
 OSVER = fedora
 else ifeq ($(shell test `rpm --eval '0%{?fedora} -ge 37'`; echo $$?),0)
@@ -84,6 +86,16 @@ include Makefile.jsc-common
 include Makefile.jsc8
 endif
 
+ifeq ($(OSVER), amazonlinux2023)
+include Makefile.php
+include Makefile.python39
+include Makefile.python311
+include Makefile.go
+include Makefile.perl
+include Makefile.jsc-common
+include Makefile.jsc17
+endif
+
 ifeq ($(OSVER), fedora)
 include Makefile.php
 include Makefile.python310
@@ -108,11 +120,11 @@ endif
 
 CONFIGURE_ARGS_COMMON=\
 	--prefix=/usr \
-	--state=%{_sharedstatedir}/unit \
+	--statedir=%{_sharedstatedir}/unit \
 	--control="unix:/var/run/unit/control.sock" \
 	--pid=/var/run/unit/unit.pid \
 	--log=/var/log/unit/unit.log \
-	--tmp=/var/tmp \
+	--tmpdir=/var/tmp \
 	--user=unit \
 	--group=unit \
 	--tests \
@@ -142,7 +154,7 @@ check-build-depends-%:
 	esac ; \
 	not_installed= ; \
 	for pkg in $${pkgs}; do \
-		rpm -qi $${pkg} >/dev/null 2>&1 ; \
+		rpm -qi --whatprovides $${pkg} >/dev/null 2>&1 ; \
 		if [ $$? -ne 0 ]; then \
 			not_installed="$${not_installed} $${pkg}" ; \
 		fi ; \
@@ -180,7 +192,8 @@ endif
 rpmbuild/SOURCES/unit-$(VERSION).tar.gz:
 	cd ../.. && tar -czf pkg/rpm/rpmbuild/SOURCES/unit-$(VERSION).tar.gz \
 		--transform "s#^#unit-$(VERSION)/#" \
-		LICENSE NOTICE CHANGES README.md CONTRIBUTING.md configure auto src test version go pkg/contrib docs/man/unitd.8.in
+		LICENSE NOTICE CHANGES README.md CONTRIBUTING.md configure auto src \
+		test tools version go pkg/contrib docs/man/man8/unitd.8.in
 
 unit: check-build-depends-unit rpmbuild/SPECS/unit.spec rpmbuild/SOURCES/unit-$(VERSION).tar.gz
 	@echo "===> Building $@ package" ; \

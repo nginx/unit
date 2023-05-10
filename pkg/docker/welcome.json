@@ -1,0 +1,25 @@
+{
+    "listeners": {
+        "*:80": {
+            "pass": "routes"
+        }
+    },
+
+    "routes": [
+        {
+            "match": {
+                "headers": {
+                    "accept": "*text/html*"
+                }
+            },
+            "action": {
+                "share": "/usr/share/unit/welcome/welcome.html"
+            }
+        },
+        {
+            "action": {
+                "share": "/usr/share/unit/welcome/welcome.md"
+            }
+        }
+    ]
+}

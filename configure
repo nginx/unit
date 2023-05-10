@@ -24,24 +24,13 @@ NXT_BUILD_DIR=${NXT_BUILD_DIR:-build}
 NXT_AUTOTEST=$NXT_BUILD_DIR/autotest
 NXT_AUTOCONF_ERR=$NXT_BUILD_DIR/autoconf.err
 NXT_AUTOCONF_DATA=$NXT_BUILD_DIR/autoconf.data
-NXT_AUTO_CONFIG_H=$NXT_BUILD_DIR/nxt_auto_config.h
-NXT_VERSION_H=$NXT_BUILD_DIR/nxt_version.h
+NXT_AUTO_CONFIG_H=$NXT_BUILD_DIR/include/nxt_auto_config.h
+NXT_VERSION_H=$NXT_BUILD_DIR/include/nxt_version.h
 NXT_MAKEFILE=$NXT_BUILD_DIR/Makefile
 
 CC=${CC:-cc}
 
 NXT_DAEMON=unitd
-NXT_BINDIR="bin"
-NXT_SBINDIR="sbin"
-NXT_LIBDIR="lib"
-NXT_INCDIR="include"
-NXT_MANDIR="share/man"
-NXT_MODULES="modules"
-NXT_STATE="state"
-NXT_TMP="tmp"
-NXT_PID="unit.pid"
-NXT_LOG="unit.log"
-NXT_CONTROL="unix:control.unit.sock"
 NXT_USER="nobody"
 NXT_GROUP=
 
@@ -66,7 +55,19 @@ esac
 . auto/os/test
 . auto/options
 
-test -d $NXT_BUILD_DIR || mkdir $NXT_BUILD_DIR
+mkdir -p $NXT_BUILD_DIR
+mkdir -p $NXT_BUILD_DIR/bin
+mkdir -p $NXT_BUILD_DIR/include
+mkdir -p $NXT_BUILD_DIR/lib
+mkdir -p $NXT_BUILD_DIR/lib/unit/modules
+mkdir -p $NXT_BUILD_DIR/sbin
+mkdir -p $NXT_BUILD_DIR/share/man/man8
+mkdir -p $NXT_BUILD_DIR/src
+mkdir -p $NXT_BUILD_DIR/src/test
+mkdir -p $NXT_BUILD_DIR/var/lib/unit
+mkdir -p $NXT_BUILD_DIR/var/log/unit
+mkdir -p $NXT_BUILD_DIR/var/run/unit
+
 
 > $NXT_AUTOCONF_ERR
 > $NXT_AUTO_CONFIG_H
@@ -82,9 +83,9 @@ cat << END >> $NXT_AUTO_CONFIG_H
 
 #define NXT_PID                "$NXT_PID"
 #define NXT_LOG                "$NXT_LOG"
-#define NXT_MODULES            "$NXT_MODULES"
-#define NXT_STATE              "$NXT_STATE"
-#define NXT_TMP                "$NXT_TMP"
+#define NXT_MODULESDIR         "$NXT_MODULESDIR"
+#define NXT_STATEDIR           "$NXT_STATEDIR"
+#define NXT_TMPDIR             "$NXT_TMPDIR"
 
 #define NXT_CONTROL_SOCK       "$NXT_CONTROL"
 

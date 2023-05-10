@@ -8,8 +8,13 @@
 
 struct nxt_js_s {
     uint32_t            index;
-    njs_vm_t            *vm;
 };
+
+
+typedef struct {
+    nxt_str_t           name;
+    nxt_str_t           text;
+} nxt_js_module_t;
 
 
 struct nxt_js_conf_s {
@@ -17,7 +22,58 @@ struct nxt_js_conf_s {
     njs_vm_t            *vm;
     njs_uint_t          protos;
     njs_external_t      *proto;
+    nxt_str_t           init;
+    nxt_array_t         *modules;  /* of nxt_js_module_t */
     nxt_array_t         *funcs;
+    uint8_t             test;  /* 1 bit */
+};
+
+
+njs_mod_t *
+nxt_js_module_loader(njs_vm_t *vm, njs_external_ptr_t external, njs_str_t *name)
+{
+    nxt_str_t        text;
+    nxt_uint_t       i, n;
+    nxt_js_conf_t    *jcf;
+    nxt_js_module_t  *modules, *module;
+
+    jcf = external;
+
+    module = NULL;
+
+    n = jcf->modules->nelts;
+    modules = jcf->modules->elts;
+
+    for (i = 0; i < n; i++) {
+        if (nxt_strstr_eq(name, &modules[i].name)) {
+            module = &modules[i];
+            break;
+        }
+    }
+
+    if (module == NULL) {
+        return NULL;
+    }
+
+    text.length = module->text.length;
+
+    text.start = njs_mp_alloc(vm->mem_pool, text.length);
+    if (nxt_slow_path(text.start == NULL)) {
+        return NULL;
+    }
+
+    nxt_memcpy(text.start, module->text.start, text.length);
+
+    return njs_vm_compile_module(vm, name, &text.start,
+                                 &text.start[text.length]);
+}
+
+
+static njs_vm_ops_t  nxt_js_ops = {
+    NULL,
+    NULL,
+    nxt_js_module_loader,
+    NULL,
 };
 
 
@@ -25,9 +81,8 @@ njs_int_t  nxt_js_proto_id;
 
 
 nxt_js_conf_t *
-nxt_js_conf_new(nxt_mp_t *mp)
+nxt_js_conf_new(nxt_mp_t *mp, nxt_bool_t test)
 {
-    njs_vm_opt_t   opts;
     nxt_js_conf_t  *jcf;
 
     jcf = nxt_mp_zget(mp, sizeof(nxt_js_conf_t));
@@ -36,17 +91,15 @@ nxt_js_conf_new(nxt_mp_t *mp)
     }
 
     jcf->pool = mp;
+    jcf->test = test;
 
-    njs_vm_opt_init(&opts);
-
-    jcf->vm = njs_vm_create(&opts);
-    if (nxt_slow_path(jcf->vm == NULL)) {
+    jcf->modules = nxt_array_create(mp, 4, sizeof(nxt_js_module_t));
+    if (nxt_slow_path(jcf->modules == NULL)) {
         return NULL;
     }
 
     jcf->funcs = nxt_array_create(mp, 4, sizeof(nxt_str_t));
     if (nxt_slow_path(jcf->funcs == NULL)) {
-        njs_vm_destroy(jcf->vm);
         return NULL;
     }
 
@@ -66,6 +119,115 @@ nxt_js_set_proto(nxt_js_conf_t *jcf, njs_external_t *proto, njs_uint_t n)
 {
     jcf->protos = n;
     jcf->proto = proto;
+}
+
+
+static njs_vm_t *
+nxt_js_vm_create(nxt_js_conf_t *jcf)
+{
+    u_char           *p;
+    size_t           size;
+    nxt_uint_t       i;
+    njs_vm_opt_t     opts;
+    nxt_js_module_t  *module, *mod;
+
+    static nxt_str_t  import_str = nxt_string("import");
+    static nxt_str_t  from_str = nxt_string("from");
+    static nxt_str_t  global_str = nxt_string("globalThis");
+
+    njs_vm_opt_init(&opts);
+
+    opts.backtrace = 1;
+
+    opts.file.start = (u_char *) "default";
+    opts.file.length = 7;
+
+    if (jcf->test || jcf->modules->nelts == 0) {
+        goto done;
+    }
+
+    opts.ops = &nxt_js_ops;
+    opts.external = jcf;
+
+    size = 0;
+    module = jcf->modules->elts;
+
+    for (i = 0; i < jcf->modules->nelts; i++) {
+        mod = &module[i];
+
+        size += import_str.length + 1 + mod->name.length + 1
+                + from_str.length + 2 + mod->name.length + 3;
+
+        size += global_str.length + 1 + mod->name.length + 3
+                + mod->name.length + 2;
+    }
+
+    p = nxt_mp_nget(jcf->pool, size);
+    if (nxt_slow_path(p == NULL)) {
+        return NULL;
+    }
+
+    jcf->init.length = size;
+    jcf->init.start = p;
+
+    for (i = 0; i < jcf->modules->nelts; i++) {
+        mod = &module[i];
+
+        p = nxt_cpymem(p, import_str.start, import_str.length);
+        *p++ = ' ';
+
+        p = nxt_cpymem(p, mod->name.start, mod->name.length);
+        *p++ = ' ';
+
+        p = nxt_cpymem(p, from_str.start, from_str.length);
+        *p++ = ' ';
+
+        *p++ = '\"';
+        p = nxt_cpymem(p, mod->name.start, mod->name.length);
+        *p++ = '\"';
+        *p++ = ';';
+        *p++ = '\n';
+
+        p = nxt_cpymem(p, global_str.start, global_str.length);
+        *p++ = '.';
+
+        p = nxt_cpymem(p, mod->name.start, mod->name.length);
+        *p++ = ' ';
+        *p++ = '=';
+        *p++ = ' ';
+
+        p = nxt_cpymem(p, mod->name.start, mod->name.length);
+        *p++ = ';';
+        *p++ = '\n';
+    }
+
+done:
+
+    return njs_vm_create(&opts);
+}
+
+
+nxt_int_t
+nxt_js_add_module(nxt_js_conf_t *jcf, nxt_str_t *name, nxt_str_t *text)
+{
+    nxt_js_module_t  *module;
+
+    module = nxt_array_add(jcf->modules);
+    if (nxt_slow_path(module == NULL)) {
+        return NXT_ERROR;
+    }
+
+    module->name = *name;
+
+    module->text.length = text->length;
+    module->text.start = nxt_mp_nget(jcf->pool, text->length);
+    if (nxt_slow_path(module->text.start == NULL)) {
+        return NXT_ERROR;
+    }
+
+    nxt_memcpy(module->text.start, text->start, text->length);
+
+    return NXT_OK;
 }
 
 
@@ -113,8 +275,6 @@ nxt_js_add_tpl(nxt_js_conf_t *jcf, nxt_str_t *str, nxt_bool_t strz)
         return NULL;
     }
 
-    js->vm = jcf->vm;
-
     func = nxt_array_add(jcf->funcs);
     if (nxt_slow_path(func == NULL)) {
         return NULL;
@@ -138,7 +298,16 @@ nxt_js_compile(nxt_js_conf_t *jcf)
     nxt_str_t   *func;
     nxt_uint_t  i;
 
-    size = 2;
+    if (jcf->test) {
+        return NXT_OK;
+    }
+
+    jcf->vm = nxt_js_vm_create(jcf);
+    if (nxt_slow_path(jcf->vm == NULL)) {
+        return NXT_ERROR;
+    }
+
+    size = jcf->init.length + 2;
     func = jcf->funcs->elts;
 
     for (i = 0; i < jcf->funcs->nelts; i++) {
@@ -150,7 +319,7 @@ nxt_js_compile(nxt_js_conf_t *jcf)
         return NXT_ERROR;
     }
 
-    p = start;
+    p = nxt_cpymem(start, jcf->init.start, jcf->init.length);
     *p++ = '[';
 
     func = jcf->funcs->elts;
@@ -178,37 +347,43 @@ nxt_int_t
 nxt_js_test(nxt_js_conf_t *jcf, nxt_str_t *str, u_char *error)
 {
     u_char     *start;
-    nxt_str_t  err;
+    njs_vm_t   *vm;
     njs_int_t  ret;
-    njs_str_t  res;
+
+    vm = nxt_js_vm_create(jcf);
+    if (nxt_slow_path(vm == NULL)) {
+        return NXT_ERROR;
+    }
 
     start = nxt_mp_nget(jcf->pool, str->length);
     if (nxt_slow_path(start == NULL)) {
-        return NXT_ERROR;
+        goto fail;
     }
 
     nxt_memcpy(start, str->start, str->length);
 
-    ret = njs_vm_compile(jcf->vm, &start, start + str->length);
+    ret = njs_vm_compile(vm, &start, start + str->length);
 
     if (nxt_slow_path(ret != NJS_OK)) {
-        (void) njs_vm_retval_string(jcf->vm, &res);
-
-        err.start = res.start;
-        err.length = res.length;
-
-        nxt_sprintf(error, error + NXT_MAX_ERROR_STR, "\"%V\"%Z", &err);
-
-        return NXT_ERROR;
+        (void) nxt_js_error(vm, error);
+        goto fail;
     }
 
+    njs_vm_destroy(vm);
+
     return NXT_OK;
+
+fail:
+
+    njs_vm_destroy(vm);
+
+    return NXT_ERROR;
 }
 
 
 nxt_int_t
-nxt_js_call(nxt_task_t *task, nxt_js_cache_t *cache, nxt_js_t *js,
-    nxt_str_t *str, void *ctx)
+nxt_js_call(nxt_task_t *task, nxt_js_conf_t *jcf, nxt_js_cache_t *cache,
+    nxt_js_t *js, nxt_str_t *str, void *ctx)
 {
     njs_vm_t            *vm;
     njs_int_t           rc, ret;
@@ -227,7 +402,7 @@ nxt_js_call(nxt_task_t *task, nxt_js_cache_t *cache, nxt_js_t *js,
     vm = cache->vm;
 
     if (vm == NULL) {
-        vm = njs_vm_clone(js->vm, ctx);
+        vm = njs_vm_clone(jcf->vm, ctx);
         if (nxt_slow_path(vm == NULL)) {
             return NXT_ERROR;
         }
@@ -313,4 +488,25 @@ nxt_js_release(nxt_js_cache_t *cache)
     if (cache->vm != NULL) {
         njs_vm_destroy(cache->vm);
     }
+}
+
+
+nxt_int_t
+nxt_js_error(njs_vm_t *vm, u_char *error)
+{
+    njs_int_t  ret;
+    njs_str_t  res;
+    nxt_str_t  err;
+
+    ret = njs_vm_retval_string(vm, &res);
+    if (nxt_slow_path(ret != NJS_OK)) {
+        return NXT_ERROR;
+    }
+
+    err.start = res.start;
+    err.length = res.length;
+
+    nxt_sprintf(error, error + NXT_MAX_ERROR_STR, "\"%V\"%Z", &err);
+
+    return NXT_OK;
 }

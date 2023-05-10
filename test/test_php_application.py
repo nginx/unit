@@ -33,28 +33,23 @@ class TestPHPApplication(TestApplicationPHP):
     def set_opcache(self, app, val):
         assert 'success' in self.conf(
             {"admin": {"opcache.enable": val, "opcache.enable_cli": val}},
-            'applications/' + app + '/options',
+            f'applications/{app}/options',
         )
 
         r = self.check_opcache()
         assert r['headers']['X-OPcache'] == val, 'opcache value'
 
     def set_preload(self, preload):
-        with open(option.temp_dir + '/php.ini', 'w') as f:
+        with open(f'{option.temp_dir}/php.ini', 'w') as f:
             f.write(
-                """opcache.preload = %(test_dir)s/php/opcache/preload\
-/%(preload)s
-opcache.preload_user = %(user)s
+                f"""opcache.preload = {option.test_dir}/php/opcache/preload\
+/{preload}
+opcache.preload_user = {option.user or getpass.getuser()}
 """
-                % {
-                    'test_dir': option.test_dir,
-                    'preload': preload,
-                    'user': option.user or getpass.getuser(),
-                }
             )
 
         assert 'success' in self.conf(
-            {"file": option.temp_dir + "/php.ini"},
+            {"file": f"{option.temp_dir}/php.ini"},
             'applications/opcache/options',
         )
 
@@ -295,7 +290,7 @@ opcache.preload_user = %(user)s
 
         assert (
             self.get()['headers']['X-File']
-            == option.test_dir + '/php/ini_precision/ini/php.ini'
+            == f'{option.test_dir}/php/ini_precision/ini/php.ini'
         ), 'ini file'
         assert self.get()['headers']['X-Precision'] == '4', 'ini value'
 
@@ -318,7 +313,7 @@ opcache.preload_user = %(user)s
 
         assert (
             self.get()['headers']['X-File']
-            == option.test_dir + '/php/ini_precision/ini/php.ini'
+            == f'{option.test_dir}/php/ini_precision/ini/php.ini'
         ), 'ini file'
         assert self.get()['headers']['X-Precision'] == '5', 'ini value admin'
 
@@ -332,7 +327,7 @@ opcache.preload_user = %(user)s
 
         assert (
             self.get()['headers']['X-File']
-            == option.test_dir + '/php/ini_precision/ini/php.ini'
+            == f'{option.test_dir}/php/ini_precision/ini/php.ini'
         ), 'ini file'
         assert self.get()['headers']['X-Precision'] == '5', 'ini value user'
 
@@ -590,7 +585,7 @@ opcache.preload_user = %(user)s
                     "script": {
                         "type": self.get_application_type(),
                         "processes": {"spare": 0},
-                        "root": option.test_dir + "/php/script",
+                        "root": f"{option.test_dir}/php/script",
                         "script": "phpinfo.php",
                     }
                 },
@@ -610,7 +605,7 @@ opcache.preload_user = %(user)s
                     "phpinfo": {
                         "type": self.get_application_type(),
                         "processes": {"spare": 0},
-                        "root": option.test_dir + "/php/phpinfo",
+                        "root": f"{option.test_dir}/php/phpinfo",
                     }
                 },
             }
@@ -622,18 +617,18 @@ opcache.preload_user = %(user)s
         assert resp['body'] != '', 'body not empty'
 
     def test_php_application_trailing_slash(self, temp_dir):
-        new_root = temp_dir + "/php-root"
-        os.makedirs(new_root + '/path')
+        new_root = f'{temp_dir}/php-root'
+        os.makedirs(f'{new_root}/path')
 
-        Path(new_root + '/path/index.php').write_text('<?php echo "OK\n"; ?>')
+        Path(f'{new_root}/path/index.php').write_text('<?php echo "OK\n"; ?>')
 
-        addr = temp_dir + '/sock'
+        addr = f'{temp_dir}/sock'
 
         assert 'success' in self.conf(
             {
                 "listeners": {
                     "*:7080": {"pass": "applications/php-path"},
-                    "unix:" + addr: {"pass": "applications/php-path"},
+                    f'unix:{addr}': {"pass": "applications/php-path"},
                 },
                 "applications": {
                     "php-path": {
@@ -664,14 +659,34 @@ opcache.preload_user = %(user)s
             resp['headers']['Location'] == 'http://foo/path/'
         ), 'Location with custom Host over UDS'
 
+    def test_php_application_forbidden(self, temp_dir):
+        new_root = f'{temp_dir}/php-root/path'
+        os.makedirs(new_root)
+        os.chmod(new_root, 0o000)
+
+        assert 'success' in self.conf(
+            {
+                "listeners": {"*:7080": {"pass": "applications/php-path"}},
+                "applications": {
+                    "php-path": {
+                        "type": self.get_application_type(),
+                        "processes": {"spare": 0},
+                        "root": f'{temp_dir}/php-root',
+                    }
+                },
+            }
+        ), 'forbidden directory'
+
+        assert self.get(url='/path/')['status'] == 403, 'access forbidden'
+
     def test_php_application_extension_check(self, temp_dir):
         self.load('phpinfo')
 
         assert self.get(url='/index.wrong')['status'] != 200, 'status'
 
-        new_root = temp_dir + "/php"
+        new_root = f'{temp_dir}/php'
         os.mkdir(new_root)
-        shutil.copy(option.test_dir + '/php/phpinfo/index.wrong', new_root)
+        shutil.copy(f'{option.test_dir}/php/phpinfo/index.wrong', new_root)
 
         assert 'success' in self.conf(
             {
@@ -688,21 +703,21 @@ opcache.preload_user = %(user)s
         ), 'configure new root'
 
         resp = self.get()
-        assert str(resp['status']) + resp['body'] != '200', 'status new root'
+        assert f'{resp["status"]}{resp["body"]}' != '200', 'status new root'
 
     def run_php_application_cwd_root_tests(self):
         assert 'success' in self.conf_delete(
             'applications/cwd/working_directory'
         )
 
-        script_cwd = option.test_dir + '/php/cwd'
+        script_cwd = f'{option.test_dir}/php/cwd'
 
         resp = self.get()
         assert resp['status'] == 200, 'status ok'
         assert resp['body'] == script_cwd, 'default cwd'
 
         assert 'success' in self.conf(
-            '"' + option.test_dir + '"',
+            f'"{option.test_dir}"',
             'applications/cwd/working_directory',
         )
 
@@ -721,7 +736,7 @@ opcache.preload_user = %(user)s
         assert resp['body'] == script_cwd, 'cwd restored'
 
         resp = self.get(url='/subdir/')
-        assert resp['body'] == script_cwd + '/subdir', 'cwd subdir'
+        assert resp['body'] == f'{script_cwd}/subdir', 'cwd subdir'
 
     def test_php_application_cwd_root(self):
         self.load('cwd')
@@ -740,7 +755,7 @@ opcache.preload_user = %(user)s
     def run_php_application_cwd_script_tests(self):
         self.load('cwd')
 
-        script_cwd = option.test_dir + '/php/cwd'
+        script_cwd = f'{option.test_dir}/php/cwd'
 
         assert 'success' in self.conf_delete(
             'applications/cwd/working_directory'

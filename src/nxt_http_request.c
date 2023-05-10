@@ -555,9 +555,18 @@ void
 nxt_http_request_action(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_action_t *action)
 {
+    nxt_int_t  ret;
+
     if (nxt_fast_path(action != NULL)) {
 
         do {
+            if (action->rewrite != NULL) {
+                ret = nxt_http_rewrite(task, r, action);
+                if (nxt_slow_path(ret != NXT_OK)) {
+                    break;
+                }
+            }
+
             action = action->handler(task, r, action);
 
             if (action == NULL) {
@@ -622,8 +631,9 @@ void
 nxt_http_request_header_send(nxt_task_t *task, nxt_http_request_t *r,
     nxt_work_handler_t body_handler, void *data)
 {
-    u_char            *p, *end;
-    nxt_http_field_t  *server, *date, *content_length;
+    u_char             *p, *end, *server_string;
+    nxt_http_field_t   *server, *date, *content_length;
+    nxt_socket_conf_t  *skcf;
 
     /*
      * TODO: "Server", "Date", and "Content-Length" processing should be moved
@@ -635,7 +645,12 @@ nxt_http_request_header_send(nxt_task_t *task, nxt_http_request_t *r,
         goto fail;
     }
 
-    nxt_http_field_set(server, "Server", NXT_SERVER);
+    skcf = r->conf->socket_conf;
+    server_string = (u_char *) (skcf->server_version ? NXT_SERVER : NXT_NAME);
+
+    nxt_http_field_name_set(server, "Server");
+    server->value = server_string;
+    server->value_length = nxt_strlen(server_string);
 
     if (r->resp.date == NULL) {
         date = nxt_list_zero_add(r->resp.fields);

@@ -92,6 +92,7 @@ NXT_LIB_SRCS=" \
     src/nxt_http_error.c \
     src/nxt_http_route.c \
     src/nxt_http_route_addr.c \
+    src/nxt_http_rewrite.c \
     src/nxt_http_return.c \
     src/nxt_http_static.c \
     src/nxt_http_proxy.c \
@@ -108,19 +109,6 @@ NXT_LIB_SRCS=" \
     src/nxt_fs.c \
 "
 
-NXT_LIB_SRC0=" \
-    src/nxt_buf_filter.c \
-    src/nxt_job_file.c \
-    src/nxt_stream_module.c \
-    src/nxt_stream_source.c \
-    src/nxt_upstream_source.c \
-    src/nxt_http_source.c \
-    src/nxt_fastcgi_source.c \
-    src/nxt_fastcgi_record_parse.c \
-\
-    src/nxt_mem_pool_cleanup.h \
-    src/nxt_mem_pool_cleanup.c \
-"
 
 NXT_LIB_UNIT_SRCS="src/nxt_unit.c"
 
@@ -136,7 +124,7 @@ NXT_LIB_PCRE_SRCS="src/nxt_pcre.c"
 NXT_LIB_PCRE2_SRCS="src/nxt_pcre2.c"
 
 if [ "$NXT_NJS" != "NO" ]; then
-    NXT_LIB_SRCS="$NXT_LIB_SRCS src/nxt_js.c src/nxt_http_js.c"
+    NXT_LIB_SRCS="$NXT_LIB_SRCS src/nxt_js.c src/nxt_http_js.c src/nxt_script.c"
 fi
 
 NXT_LIB_EPOLL_SRCS="src/nxt_epoll_engine.c"

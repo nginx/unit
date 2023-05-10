@@ -29,6 +29,9 @@ typedef struct {
 #if (NXT_TLS)
     nxt_array_t                *certs;
 #endif
+#if (NXT_HAVE_NJS)
+    nxt_array_t                *scripts;
+#endif
 } nxt_controller_init_t;
 
 

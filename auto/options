@@ -9,8 +9,6 @@ NXT_CFLAGS=
 NXT_CC_OPT=
 NXT_LD_OPT=
 
-NXT_PREFIX=
-
 NXT_DEBUG=NO
 
 NXT_INET6=YES
@@ -44,6 +42,8 @@ NXT_TEST_BUILD_HPUX_SENDFILE=NO
 
 NXT_TESTS=NO
 
+NXT_HELP=NO
+
 for nxt_option
 do
     case "$nxt_option" in
@@ -57,14 +57,35 @@ do
         --ld-opt=*)                      NXT_LD_OPT="$value"                 ;;
 
         --prefix=*)                      NXT_PREFIX="$value"                 ;;
+        --exec-prefix=*)                 NXT_EXEC_PREFIX="$value"            ;;
         --bindir=*)                      NXT_BINDIR="$value"                 ;;
         --sbindir=*)                     NXT_SBINDIR="$value"                ;;
+        --includedir=*)                  NXT_INCLUDEDIR="$value"             ;;
+        --incdir=*)
+            >&2 echo "[warn] option --incdir is deprecated; use --includedir"
+            NXT_INCLUDEDIR="$value"
+        ;;
         --libdir=*)                      NXT_LIBDIR="$value"                 ;;
-        --incdir=*)                      NXT_INCDIR="$value"                 ;;
+        --modulesdir=*)                  NXT_MODULESDIR="$value"             ;;
+        --modules=*)
+            >&2 echo "[warn] option --modules is deprecated; use --modulesdir"
+            NXT_MODULESDIR="$value"
+        ;;
+        --datarootdir=*)                 NXT_DATAROOTDIR="$value"            ;;
         --mandir=*)                      NXT_MANDIR="$value"                 ;;
-        --modules=*)                     NXT_MODULES="$value"                ;;
-        --state=*)                       NXT_STATE="$value"                  ;;
-        --tmp=*)                         NXT_TMP="$value"                    ;;
+        --localstatedir=*)               NXT_LOCALSTATEDIR="$value"          ;;
+        --statedir=*)                    NXT_STATEDIR="$value"               ;;
+        --state=*)
+            >&2 echo "[warn] option --state is deprecated; use --statedir"
+            NXT_STATEDIR="$value"
+        ;;
+        --logdir=*)                      NXT_LOGDIR="$value"                 ;;
+        --runstatedir=*)                 NXT_RUNSTATEDIR="$value"            ;;
+        --tmpdir=*)                      NXT_TMPDIR="$value"                 ;;
+        --tmp=*)
+            >&2 echo "[warn] option --tmp is deprecated; use --tmpdir"
+            NXT_TMPDIR="$value"
+        ;;
 
         --pid=*)                         NXT_PID="$value"                    ;;
         --log=*)                         NXT_LOG="$value"                    ;;
@@ -124,63 +145,26 @@ do
 done
 
 
-case "$NXT_PREFIX" in
-    ""|*/)  ;;
-     *)  NXT_PREFIX="$NXT_PREFIX/"  ;;
-esac
+NXT_PREFIX="${NXT_PREFIX-"/usr/local"}"
 
-case "$NXT_BINDIR" in
-    /*)  ;;
-     *)  NXT_BINDIR="$NXT_PREFIX$NXT_BINDIR"  ;;
-esac
+NXT_EXEC_PREFIX="${NXT_EXEC_PREFIX-"$NXT_PREFIX"}"
+NXT_BINDIR="${NXT_BINDIR-"$NXT_EXEC_PREFIX/bin"}"
+NXT_SBINDIR="${NXT_SBINDIR-"$NXT_EXEC_PREFIX/sbin"}"
 
-case "$NXT_SBINDIR" in
-    /*)  ;;
-     *)  NXT_SBINDIR="$NXT_PREFIX$NXT_SBINDIR"  ;;
-esac
+NXT_INCLUDEDIR="${NXT_INCLUDEDIR-"$NXT_PREFIX/include"}"
 
-case "$NXT_LIBDIR" in
-    /*)  ;;
-     *)  NXT_LIBDIR="$NXT_PREFIX$NXT_LIBDIR"  ;;
-esac
+NXT_LIBDIR="${NXT_LIBDIR-"$NXT_PREFIX/lib"}"
+NXT_MODULESDIR="${NXT_MODULESDIR-"$NXT_LIBDIR/unit/modules"}"
 
-case "$NXT_INCDIR" in
-    /*)  ;;
-     *)  NXT_INCDIR="$NXT_PREFIX$NXT_INCDIR"  ;;
-esac
+NXT_DATAROOTDIR="${NXT_DATAROOTDIR-"$NXT_PREFIX/share"}"
+NXT_MANDIR="${NXT_MANDIR-"$NXT_DATAROOTDIR/man"}"
 
-case "$NXT_MANDIR" in
-    /*)  ;;
-     *)  NXT_MANDIR="$NXT_PREFIX$NXT_MANDIR"  ;;
-esac
+NXT_LOCALSTATEDIR="${NXT_LOCALSTATEDIR-"$NXT_PREFIX/var"}"
+NXT_STATEDIR="${NXT_STATEDIR-"$NXT_LOCALSTATEDIR/lib/unit"}"
+NXT_LOGDIR="${NXT_LOGDIR-"$NXT_LOCALSTATEDIR/log/unit"}"
+NXT_LOG="${NXT_LOG-"$NXT_LOGDIR/unit.log"}"
+NXT_RUNSTATEDIR="${NXT_RUNSTATEDIR-"$NXT_LOCALSTATEDIR/run/unit"}"
+NXT_CONTROL="${NXT_CONTROL-"unix:$NXT_RUNSTATEDIR/control.unit.sock"}"
+NXT_PID="${NXT_PID-"$NXT_RUNSTATEDIR/unit.pid"}"
 
-case "$NXT_MODULES" in
-    /*)  ;;
-     *)  NXT_MODULES="$NXT_PREFIX$NXT_MODULES"  ;;
-esac
-
-case "$NXT_STATE" in
-    /*)  ;;
-     *)  NXT_STATE="$NXT_PREFIX$NXT_STATE"  ;;
-esac
-
-case "$NXT_TMP" in
-    /*)  ;;
-     *)  NXT_TMP="$NXT_PREFIX$NXT_TMP"  ;;
-esac
-
-case "$NXT_PID" in
-    /*)  ;;
-     *)  NXT_PID="$NXT_PREFIX$NXT_PID"  ;;
-esac
-
-case "$NXT_LOG" in
-    /*)  ;;
-     *)  NXT_LOG="$NXT_PREFIX$NXT_LOG"  ;;
-esac
-
-case "$NXT_CONTROL" in
-    unix:/*)  ;;
-    unix:*)   NXT_CONTROL="unix:$NXT_PREFIX${NXT_CONTROL##unix:}" ;;
-    *)        ;;
-esac
+NXT_TMPDIR="${NXT_TMPDIR-"/tmp"}"

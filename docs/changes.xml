@@ -14,6 +14,117 @@
                 unit-ruby
                 unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11 unit-jsc13
                 unit-jsc14 unit-jsc15 unit-jsc16 unit-jsc17 unit-jsc18
+                unit-jsc19 unit-jsc20"
+         ver="1.30.0" rev="1"
+         date="2023-05-10" time="18:00:00 +0300"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.30.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-jsc20" ver="1.30.0" rev="1"
+         date="2023-05-03" time="15:00:00 -0700"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change>
+<para>
+Initial release of Java 20 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.30.0" rev="1"
+         date="2023-05-10" time="18:00:00 +0300"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change type="change">
+<para>
+remove Unix domain listen sockets upon reconfiguration.
+</para>
+</change>
+
+<change type="feature">
+<para>
+basic URI rewrite support.
+</para>
+</change>
+
+<change type="feature">
+<para>
+NJS loadable modules support.
+</para>
+</change>
+
+<change type="feature">
+<para>
+per-application logging.
+</para>
+</change>
+
+<change type="feature">
+<para>
+conditional logging of route selection.
+</para>
+</change>
+
+<change type="feature">
+<para>
+support the keys API on the request objects in NJS.
+</para>
+</change>
+
+<change type="feature">
+<para>
+default values for 'make install' pathnames such as prefix;
+this allows to './configure &amp;&amp; make &amp;&amp; sudo make install'.
+</para>
+</change>
+
+<change type="feature">
+<para>
+"server_version" setting to omit the version token from "Server" header field.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+request header field values could be corrupted in some cases; the bug had
+appeared in 1.29.0.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+PHP error handling (added missing 403 and 404 errors).
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Perl applications crash on second responder call.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8 unit-python3.9 unit-python3.10 unit-python3.11
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11 unit-jsc13
+                unit-jsc14 unit-jsc15 unit-jsc16 unit-jsc17 unit-jsc18
                 unit-jsc19"
          ver="1.29.1" rev="1"
          date="2023-02-28" time="18:00:00 +0300"

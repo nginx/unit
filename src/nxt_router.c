@@ -11,6 +11,9 @@
 #if (NXT_TLS)
 #include <nxt_cert.h>
 #endif
+#if (NXT_HAVE_NJS)
+#include <nxt_script.h>
+#endif
 #include <nxt_http.h>
 #include <nxt_port_memory_int.h>
 #include <nxt_unit_request.h>
@@ -51,6 +54,17 @@ typedef struct {
 
     nxt_queue_link_t        link;  /* for nxt_socket_conf_t.tls */
 } nxt_router_tlssock_t;
+
+#endif
+
+
+#if (NXT_HAVE_NJS)
+
+typedef struct {
+    nxt_str_t               name;
+    nxt_router_temp_conf_t  *temp_conf;
+    nxt_queue_link_t        link;
+} nxt_router_js_module_t;
 
 #endif
 
@@ -138,6 +152,12 @@ static void nxt_router_tls_rpc_handler(nxt_task_t *task,
 static nxt_int_t nxt_router_conf_tls_insert(nxt_router_temp_conf_t *tmcf,
     nxt_conf_value_t *value, nxt_socket_conf_t *skcf, nxt_tls_init_t *tls_init,
     nxt_bool_t last);
+#endif
+#if (NXT_HAVE_NJS)
+static void nxt_router_js_module_rpc_handler(nxt_task_t *task,
+    nxt_port_recv_msg_t *msg, void *data);
+static nxt_int_t nxt_router_js_module_insert(nxt_router_temp_conf_t *tmcf,
+    nxt_conf_value_t *value);
 #endif
 static void nxt_router_app_rpc_create(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_app_t *app);
@@ -1100,6 +1120,10 @@ nxt_router_temp_conf(nxt_task_t *task)
     nxt_queue_init(&tmcf->tls);
 #endif
 
+#if (NXT_HAVE_NJS)
+    nxt_queue_init(&tmcf->js_modules);
+#endif
+
     nxt_queue_init(&tmcf->apps);
     nxt_queue_init(&tmcf->previous);
 
@@ -1154,6 +1178,9 @@ nxt_router_conf_apply(nxt_task_t *task, void *obj, void *data)
 #if (NXT_TLS)
     nxt_router_tlssock_t         *tls;
 #endif
+#if (NXT_HAVE_NJS)
+    nxt_router_js_module_t       *js_module;
+#endif
 
     tmcf = obj;
 
@@ -1184,6 +1211,27 @@ nxt_router_conf_apply(nxt_task_t *task, void *obj, void *data)
     }
 #endif
 
+#if (NXT_HAVE_NJS)
+    qlk = nxt_queue_last(&tmcf->js_modules);
+
+    if (qlk != nxt_queue_head(&tmcf->js_modules)) {
+        nxt_queue_remove(qlk);
+
+        js_module = nxt_queue_link_data(qlk, nxt_router_js_module_t, link);
+
+        nxt_script_store_get(task, &js_module->name, tmcf->mem_pool,
+                             nxt_router_js_module_rpc_handler, js_module);
+        return;
+    }
+#endif
+
+    rtcf = tmcf->router_conf;
+
+    ret = nxt_tstr_state_done(rtcf->tstr_state, NULL);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        goto fail;
+    }
+
     nxt_queue_each(app, &tmcf->apps, nxt_app_t, link) {
 
         if (nxt_router_app_need_start(app)) {
@@ -1192,8 +1240,6 @@ nxt_router_conf_apply(nxt_task_t *task, void *obj, void *data)
         }
 
     } nxt_queue_loop;
-
-    rtcf = tmcf->router_conf;
 
     if (rtcf->access_log != NULL && rtcf->access_log->fd == -1) {
         nxt_router_access_log_open(task, tmcf);
@@ -1513,6 +1559,18 @@ static nxt_conf_map_t  nxt_router_http_conf[] = {
         NXT_CONF_MAP_INT8,
         offsetof(nxt_socket_conf_t, discard_unsafe_fields),
     },
+
+    {
+        nxt_string("log_route"),
+        NXT_CONF_MAP_INT8,
+        offsetof(nxt_socket_conf_t, log_route),
+    },
+
+    {
+        nxt_string("server_version"),
+        NXT_CONF_MAP_INT8,
+        offsetof(nxt_socket_conf_t, server_version),
+    },
 };
 
 
@@ -1558,6 +1616,9 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_tls_init_t              *tls_init;
     nxt_conf_value_t            *certificate;
 #endif
+#if (NXT_HAVE_NJS)
+    nxt_conf_value_t            *js_module;
+#endif
     nxt_conf_value_t            *root, *conf, *http, *value, *websocket;
     nxt_conf_value_t            *applications, *application;
     nxt_conf_value_t            *listeners, *listener;
@@ -1580,6 +1641,9 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     static nxt_str_t  conf_cache_path = nxt_string("/tls/session/cache_size");
     static nxt_str_t  conf_timeout_path = nxt_string("/tls/session/timeout");
     static nxt_str_t  conf_tickets = nxt_string("/tls/session/tickets");
+#endif
+#if (NXT_HAVE_NJS)
+    static nxt_str_t  js_module_path = nxt_string("/settings/js_module");
 #endif
     static nxt_str_t  static_path = nxt_string("/settings/http/static");
     static nxt_str_t  websocket_path = nxt_string("/settings/http/websocket");
@@ -1921,6 +1985,8 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
             skcf->proxy_send_timeout = 30 * 1000;
             skcf->proxy_read_timeout = 30 * 1000;
 
+            skcf->server_version = 1;
+
             skcf->websocket_conf.max_frame_size = 1024 * 1024;
             skcf->websocket_conf.read_timeout = 60 * 1000;
             skcf->websocket_conf.keepalive_interval = 30 * 1000;
@@ -2050,10 +2116,33 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         }
     }
 
-    ret = nxt_tstr_state_done(rtcf->tstr_state, NULL);
-    if (nxt_slow_path(ret != NXT_OK)) {
-        goto fail;
+#if (NXT_HAVE_NJS)
+    js_module = nxt_conf_get_path(root, &js_module_path);
+
+    if (js_module != NULL) {
+        if (nxt_conf_type(js_module) == NXT_CONF_ARRAY) {
+            n = nxt_conf_array_elements_count(js_module);
+
+            for (i = 0; i < n; i++) {
+                value = nxt_conf_get_array_element(js_module, i);
+
+                ret = nxt_router_js_module_insert(tmcf, value);
+                if (nxt_slow_path(ret != NXT_OK)) {
+                    goto fail;
+                }
+            }
+
+        } else {
+            /* NXT_CONF_STRING */
+
+            ret = nxt_router_js_module_insert(tmcf, js_module);
+            if (nxt_slow_path(ret != NXT_OK)) {
+                goto fail;
+            }
+        }
     }
+
+#endif
 
     nxt_queue_add(&deleting_sockets, &router->sockets);
     nxt_queue_init(&router->sockets);
@@ -2099,6 +2188,79 @@ nxt_router_conf_tls_insert(nxt_router_temp_conf_t *tmcf,
     nxt_conf_get_string(value, &tls->name);
 
     nxt_queue_insert_tail(&tmcf->tls, &tls->link);
+
+    return NXT_OK;
+}
+
+#endif
+
+
+#if (NXT_HAVE_NJS)
+
+static void
+nxt_router_js_module_rpc_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
+    void *data)
+{
+    nxt_int_t               ret;
+    nxt_str_t               text;
+    nxt_router_conf_t       *rtcf;
+    nxt_router_temp_conf_t  *tmcf;
+    nxt_router_js_module_t  *js_module;
+
+    nxt_debug(task, "auto module rpc handler");
+
+    js_module = data;
+    tmcf = js_module->temp_conf;
+
+    if (msg == NULL || msg->port_msg.type == _NXT_PORT_MSG_RPC_ERROR) {
+        goto fail;
+    }
+
+    rtcf = tmcf->router_conf;
+
+    ret = nxt_script_file_read(msg->fd[0], &text);
+
+    nxt_fd_close(msg->fd[0]);
+
+    if (nxt_slow_path(ret == NXT_ERROR)) {
+        goto fail;
+    }
+
+    if (text.length > 0) {
+        ret = nxt_js_add_module(rtcf->tstr_state->jcf, &js_module->name, &text);
+
+        nxt_free(text.start);
+
+        if (nxt_slow_path(ret == NXT_ERROR)) {
+            goto fail;
+        }
+    }
+
+    nxt_work_queue_add(&task->thread->engine->fast_work_queue,
+                       nxt_router_conf_apply, task, tmcf, NULL);
+    return;
+
+fail:
+
+    nxt_router_conf_error(task, tmcf);
+}
+
+
+static nxt_int_t
+nxt_router_js_module_insert(nxt_router_temp_conf_t *tmcf,
+    nxt_conf_value_t *value)
+{
+    nxt_router_js_module_t  *js_module;
+
+    js_module = nxt_mp_get(tmcf->mem_pool, sizeof(nxt_router_js_module_t));
+    if (nxt_slow_path(js_module == NULL)) {
+        return NXT_ERROR;
+    }
+
+    js_module->temp_conf = tmcf;
+    nxt_conf_get_string(value, &js_module->name);
+
+    nxt_queue_insert_tail(&tmcf->js_modules, &js_module->link);
 
     return NXT_OK;
 }
@@ -3686,6 +3848,13 @@ nxt_router_listen_socket_close(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_router_listen_socket_release(nxt_task_t *task, nxt_socket_conf_t *skcf)
 {
+#if (NXT_HAVE_UNIX_DOMAIN)
+    size_t                 size;
+    nxt_buf_t              *b;
+    nxt_port_t             *main_port;
+    nxt_runtime_t          *rt;
+    nxt_sockaddr_t         *sa;
+#endif
     nxt_listen_socket_t    *ls;
     nxt_thread_spinlock_t  *lock;
 
@@ -3703,10 +3872,38 @@ nxt_router_listen_socket_release(nxt_task_t *task, nxt_socket_conf_t *skcf)
 
     nxt_thread_spin_unlock(lock);
 
-    if (ls != NULL) {
-        nxt_socket_close(task, ls->socket);
-        nxt_free(ls);
+    if (ls == NULL) {
+        return;
     }
+
+    nxt_socket_close(task, ls->socket);
+
+#if (NXT_HAVE_UNIX_DOMAIN)
+    sa = ls->sockaddr;
+    if (sa->u.sockaddr.sa_family != AF_UNIX
+        || sa->u.sockaddr_un.sun_path[0] == '\0')
+    {
+        goto out_free_ls;
+    }
+
+    size = nxt_sockaddr_size(ls->sockaddr);
+
+    b = nxt_buf_mem_alloc(task->thread->engine->mem_pool, size, 0);
+    if (b == NULL) {
+        goto out_free_ls;
+    }
+
+    b->mem.free = nxt_cpymem(b->mem.free, ls->sockaddr, size);
+
+    rt = task->thread->runtime;
+    main_port = rt->port_by_type[NXT_PROCESS_MAIN];
+
+    (void) nxt_port_socket_write(task, main_port, NXT_PORT_MSG_SOCKET_UNLINK,
+                                 -1, 0, 0, b);
+
+out_free_ls:
+#endif
+    nxt_free(ls);
 }
 
 
@@ -5206,8 +5403,9 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_http_request_t *r,
     req_size = sizeof(nxt_unit_request_t)
                + r->method->length + 1
                + r->version.length + 1
-               + r->remote->length + 1
-               + r->local->length + 1
+               + r->remote->address_length + 1
+               + r->local->address_length + 1
+               + nxt_sockaddr_port_length(r->local) + 1
                + r->server_name.length + 1
                + r->target.length + 1
                + (r->path->start != r->target.start ? r->path->length + 1 : 0);

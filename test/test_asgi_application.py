@@ -20,17 +20,16 @@ class TestASGIApplication(TestApplicationPython):
         body = 'Test body string.'
 
         resp = self.http(
-            b"""POST / HTTP/1.1
+            f"""POST / HTTP/1.1
 Host: localhost
-Content-Length: %d
+Content-Length: {len(body)}
 Custom-Header: blah
 Custom-hEader: Blah
 Content-Type: text/html
 Connection: close
 custom-header: BLAH
 
-%s"""
-            % (len(body), body.encode()),
+{body}""".encode(),
             raw=True,
         )
 
@@ -63,9 +62,9 @@ custom-header: BLAH
     def test_asgi_application_unix(self, temp_dir):
         self.load('empty')
 
-        addr = temp_dir + '/sock'
+        addr = f'{temp_dir}/sock'
         assert 'success' in self.conf(
-            {"unix:" + addr: {"pass": "applications/empty"}}, 'listeners'
+            {f"unix:{addr}": {"pass": "applications/empty"}}, 'listeners'
         )
 
         assert self.get(sock_type='unix', addr=addr)['status'] == 200
@@ -83,7 +82,7 @@ custom-header: BLAH
         self.load('prefix', prefix='/api/rest')
 
         def set_prefix(prefix):
-            self.conf('"' + prefix + '"', 'applications/prefix/prefix')
+            self.conf(f'"{prefix}"', 'applications/prefix/prefix')
 
         def check_prefix(url, prefix):
             resp = self.get(url=url)
@@ -190,7 +189,7 @@ custom-header: BLAH
         max_body_size = 12 * 1024 * 1024
 
         assert 'success' in self.conf(
-            '{"http":{"max_body_size": ' + str(max_body_size) + ' }}',
+            f'{{"http":{{"max_body_size": {max_body_size} }}}}',
             'settings',
         )
 

@@ -19,8 +19,6 @@ static u_char *nxt_http_lookup_field_end(u_char *p, const u_char *end);
 static nxt_int_t nxt_http_parse_field_end(nxt_http_request_parse_t *rp,
     u_char **pos, const u_char *end);
 
-static nxt_int_t nxt_http_parse_complex_target(nxt_http_request_parse_t *rp);
-
 static nxt_int_t nxt_http_field_hash_test(nxt_lvlhsh_query_t *lhq, void *data);
 
 static nxt_int_t nxt_http_field_hash_collision(nxt_lvlhsh_query_t *lhq,
@@ -417,22 +415,24 @@ space_after_target:
     {
         rp->version.ui64 = ver.ui64;
 
-        if (nxt_fast_path(p[9] == '\r')) {
-            p += 10;
+        p += 9;
+        if (nxt_fast_path(*p == '\r')) {
 
-            if (nxt_slow_path(p == end)) {
+            if (nxt_slow_path(p + 1 == end)) {
                 return NXT_AGAIN;
             }
 
-            if (nxt_slow_path(*p != '\n')) {
+            if (nxt_slow_path(p[1] != '\n')) {
                 return NXT_HTTP_PARSE_INVALID;
             }
 
-            *pos = p + 1;
+            *pos = p + 2;
 
         } else {
-            *pos = p + 10;
+            *pos = p + 1;
         }
+
+        rp->request_line_end = p;
 
         if (rp->complex_target != 0
 #if 0
@@ -852,7 +852,7 @@ static const uint8_t  nxt_http_normal[32]  nxt_aligned(32) = {
 };
 
 
-static nxt_int_t
+nxt_int_t
 nxt_http_parse_complex_target(nxt_http_request_parse_t *rp)
 {
     u_char  *p, *u, c, ch, high, *args;

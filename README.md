@@ -5,19 +5,17 @@
 ![NGINX Unit Logo](docs/unitlogo.svg)
 
 NGINX Unit is a lightweight and versatile open-source server that has
-three core capabilities:
+two primary capabilities:
 
-- it is an HTTP reverse proxy,
-- a web server for static media assets,
-- and an application server that runs code in seven languages.
+- serves static media assets,
+- runs application code in seven languages.
 
-We are building a universal tool that compresses several layers of the modern
-application stack into a potent, coherent solution with a focus on performance,
-low latency, and scalability. It is intended as a building block for any web
-architecture regardless of its complexity, from enterprise-scale deployments to
-your pet's homepage.
+Unit compresses several layers of the modern application stack into a potent,
+coherent solution with a focus on performance, low latency, and scalability. It
+is intended as a universal building block for any web architecture regardless
+of its complexity, from enterprise-scale deployments to your pet's homepage.
 
-Unit's native RESTful JSON API enables dynamic updates with zero interruptions
+Its native RESTful JSON API enables dynamic updates with zero interruptions
 and flexible configuration, while its out-of-the-box productivity reliably
 scales to production-grade workloads. We achieve that with a complex,
 asynchronous, multithreading architecture comprising multiple processes to
@@ -162,7 +160,7 @@ For full details of configuration management, see the
 ## Community
 
 - The go-to place to start asking questions and share your thoughts is
-  our [Slack channel](https://nginxcommunity.slack.com/).
+  our [Slack channel](https://community.nginx.org/joinslack).
 
 - Our [GitHub issues page](https://github.com/nginx/unit/issues) offers
   space for a more technical discussion at your own pace.

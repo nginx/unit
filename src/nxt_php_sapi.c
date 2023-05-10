@@ -102,10 +102,15 @@ static void nxt_php_str_trim_lead(nxt_str_t *str, u_char t);
 nxt_inline u_char *nxt_realpath(const void *c);
 
 static nxt_int_t nxt_php_do_301(nxt_unit_request_info_t *req);
+static nxt_int_t nxt_php_handle_fs_err(nxt_unit_request_info_t *req);
 
 static void nxt_php_request_handler(nxt_unit_request_info_t *req);
 static void nxt_php_dynamic_request(nxt_php_run_ctx_t *ctx,
     nxt_unit_request_t *r);
+#if (PHP_VERSION_ID < 70400)
+static void nxt_zend_stream_init_fp(zend_file_handle *handle, FILE *fp,
+    const char *filename);
+#endif
 static void nxt_php_execute(nxt_php_run_ctx_t *ctx, nxt_unit_request_t *r);
 nxt_inline void nxt_php_vcwd_chdir(nxt_unit_request_info_t *req, u_char *dir);
 
@@ -980,6 +985,24 @@ nxt_php_do_301(nxt_unit_request_info_t *req)
 }
 
 
+static nxt_int_t
+nxt_php_handle_fs_err(nxt_unit_request_info_t *req)
+{
+    switch (nxt_errno) {
+    case ELOOP:
+    case EACCES:
+    case ENFILE:
+        return nxt_unit_response_init(req, NXT_HTTP_FORBIDDEN, 0, 0);
+    case ENOENT:
+    case ENOTDIR:
+    case ENAMETOOLONG:
+        return nxt_unit_response_init(req, NXT_HTTP_NOT_FOUND, 0, 0);
+    }
+
+    return NXT_UNIT_ERROR;
+}
+
+
 static void
 nxt_php_request_handler(nxt_unit_request_info_t *req)
 {
@@ -1058,6 +1081,8 @@ nxt_php_dynamic_request(nxt_php_run_ctx_t *ctx, nxt_unit_request_t *r)
         ret = stat(tpath, &sb);
         if (ret == 0 && S_ISDIR(sb.st_mode)) {
             ec = nxt_php_do_301(ctx->req);
+        } else if (ret == -1) {
+            ec = nxt_php_handle_fs_err(ctx->req);
         }
 
         nxt_unit_request_done(ctx->req, ec);
@@ -1109,17 +1134,46 @@ nxt_php_dynamic_request(nxt_php_run_ctx_t *ctx, nxt_unit_request_t *r)
 }
 
 
+#if (PHP_VERSION_ID < 70400)
+static void
+nxt_zend_stream_init_fp(zend_file_handle *handle, FILE *fp,
+                        const char *filename)
+{
+    nxt_memzero(handle, sizeof(zend_file_handle));
+    handle->type = ZEND_HANDLE_FP;
+    handle->handle.fp = fp;
+    handle->filename = filename;
+}
+#else
+#define nxt_zend_stream_init_fp  zend_stream_init_fp
+#endif
+
+
 static void
 nxt_php_execute(nxt_php_run_ctx_t *ctx, nxt_unit_request_t *r)
 {
+    FILE              *fp;
 #if (PHP_VERSION_ID < 50600)
     void              *read_post;
 #endif
+    const char        *filename;
     nxt_unit_field_t  *f;
     zend_file_handle  file_handle;
 
-    nxt_unit_req_debug(ctx->req, "PHP execute script %s",
-                       ctx->script_filename.start);
+    filename = (const char *) ctx->script_filename.start;
+
+    nxt_unit_req_debug(ctx->req, "PHP execute script %s", filename);
+
+    fp = fopen(filename, "re");
+    if (fp == NULL) {
+        nxt_int_t  ec;
+
+        nxt_unit_req_debug(ctx->req, "PHP fopen(\"%s\") failed", filename);
+
+        ec = nxt_php_handle_fs_err(ctx->req);
+        nxt_unit_request_done(ctx->req, ec);
+        return;
+    }
 
     SG(server_context) = ctx;
     SG(options) |= SAPI_OPTION_NO_CHDIR;
@@ -1179,16 +1233,7 @@ nxt_php_execute(nxt_php_run_ctx_t *ctx, nxt_unit_request_t *r)
         nxt_php_vcwd_chdir(ctx->req, ctx->script_dirname.start);
     }
 
-    nxt_memzero(&file_handle, sizeof(file_handle));
-
-    file_handle.type = ZEND_HANDLE_FILENAME;
-#if (PHP_VERSION_ID >= 80100)
-    file_handle.filename = zend_string_init((char *) ctx->script_filename.start,
-                                            ctx->script_filename.length, 0);
-    file_handle.primary_script = 1;
-#else
-    file_handle.filename = (char *) ctx->script_filename.start;
-#endif
+    nxt_zend_stream_init_fp(&file_handle, fp, filename);
 
     php_execute_script(&file_handle TSRMLS_CC);
 
@@ -1487,14 +1532,23 @@ static void
 nxt_php_set_sptr(nxt_unit_request_info_t *req, const char *name,
     nxt_unit_sptr_t *v, uint32_t len, zval *track_vars_array TSRMLS_DC)
 {
-    char  *str;
+    char          *str;
+#if NXT_PHP7
+    size_t        new_len;
+#else
+    unsigned int  new_len;
+#endif
 
     str = nxt_unit_sptr_get(v);
 
     nxt_unit_req_debug(req, "php: register %s='%.*s'", name, (int) len, str);
 
-    php_register_variable_safe((char *) name, str, len,
-                               track_vars_array TSRMLS_CC);
+    if (sapi_module.input_filter(PARSE_SERVER, (char *) name, &str, len,
+                                 &new_len TSRMLS_CC))
+    {
+        php_register_variable_safe((char *) name, str, new_len,
+                                   track_vars_array TSRMLS_CC);
+    }
 }
 
 

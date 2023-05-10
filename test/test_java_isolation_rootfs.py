@@ -13,17 +13,17 @@ class TestJavaIsolationRootfs(TestApplicationJava):
         if not is_su:
             pytest.skip('require root')
 
-        os.makedirs(option.temp_dir + '/jars')
-        os.makedirs(option.temp_dir + '/tmp')
-        os.chmod(option.temp_dir + '/tmp', 0o777)
+        os.makedirs(f'{option.temp_dir}/jars')
+        os.makedirs(f'{option.temp_dir}/tmp')
+        os.chmod(f'{option.temp_dir}/tmp', 0o777)
 
         try:
             subprocess.run(
                 [
                     "mount",
                     "--bind",
-                    option.current_dir + "/build",
-                    option.temp_dir + "/jars",
+                    f'{option.current_dir}/build',
+                    f'{option.temp_dir}/jars',
                 ],
                 stderr=subprocess.STDOUT,
             )
@@ -32,7 +32,7 @@ class TestJavaIsolationRootfs(TestApplicationJava):
             raise
 
         except subprocess.CalledProcessError:
-            pytest.fail('Can\'t run mount process.')
+            pytest.fail("Can't run mount process.")
 
     def teardown_method(self, is_su):
         if not is_su:
@@ -40,7 +40,7 @@ class TestJavaIsolationRootfs(TestApplicationJava):
 
         try:
             subprocess.run(
-                ["umount", "--lazy", option.temp_dir + "/jars"],
+                ["umount", "--lazy", f"{option.temp_dir}/jars"],
                 stderr=subprocess.STDOUT,
             )
 
@@ -48,7 +48,7 @@ class TestJavaIsolationRootfs(TestApplicationJava):
             raise
 
         except subprocess.CalledProcessError:
-            pytest.fail('Can\'t run umount process.')
+            pytest.fail("Can't run umount process.")
 
     def test_java_isolation_rootfs_chroot_war(self, is_su, temp_dir):
         if not is_su:

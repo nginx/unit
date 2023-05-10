@@ -161,7 +161,7 @@ nxt_listen_socket_create(nxt_task_t *task, nxt_mp_t *mp,
         nxt_socket_close(task, ts);
 
         if (ret == 0) {
-            nxt_alert(task, "connect(%d, %*s) succeed, address already in use",
+            nxt_alert(task, "connect(%d, %*s) socket already in use",
                       ts, (size_t) orig_sa->length,
                       nxt_sockaddr_start(orig_sa));
 

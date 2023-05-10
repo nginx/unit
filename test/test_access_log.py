@@ -12,13 +12,13 @@ class TestAccessLog(TestApplicationPython):
         super().load(script)
 
         assert 'success' in self.conf(
-            '"' + option.temp_dir + '/access.log"', 'access_log'
+            f'"{option.temp_dir}/access.log"', 'access_log'
         ), 'access_log configure'
 
     def set_format(self, format):
         assert 'success' in self.conf(
             {
-                'path': option.temp_dir + '/access.log',
+                'path': f'{option.temp_dir}/access.log',
                 'format': format,
             },
             'access_log',
@@ -103,13 +103,13 @@ Connection: close
             is not None
         ), 'ipv6'
 
-    def test_access_log_unix(self):
+    def test_access_log_unix(self, temp_dir):
         self.load('empty')
 
-        addr = option.temp_dir + '/sock'
+        addr = f'{temp_dir}/sock'
 
         assert 'success' in self.conf(
-            {"unix:" + addr: {"pass": "applications/empty"}}, 'listeners'
+            {f'unix:{addr}': {"pass": "applications/empty"}}, 'listeners'
         )
 
         self.get(sock_type='unix', addr=addr)
@@ -174,7 +174,7 @@ Connection: close
         time.sleep(1)
 
         assert (
-            self.wait_for_record(r'"GE" 400 0 "-" "-"') is not None
+            self.wait_for_record(r'"-" 400 0 "-" "-"') is not None
         ), 'partial'
 
     def test_access_log_partial_2(self):
@@ -185,7 +185,7 @@ Connection: close
         self.http(b"""GET /\n""", raw=True)
 
         assert (
-            self.wait_for_record(r'"GET /" 400 \d+ "-" "-"') is not None
+            self.wait_for_record(r'"-" 400 \d+ "-" "-"') is not None
         ), 'partial 2'
 
     def test_access_log_partial_3(self):
@@ -198,7 +198,7 @@ Connection: close
         time.sleep(1)
 
         assert (
-            self.wait_for_record(r'"GET /" 400 0 "-" "-"') is not None
+            self.wait_for_record(r'"-" 400 0 "-" "-"') is not None
         ), 'partial 3'
 
     def test_access_log_partial_4(self):
@@ -211,7 +211,7 @@ Connection: close
         time.sleep(1)
 
         assert (
-            self.wait_for_record(r'"GET / HTTP/1.1" 400 0 "-" "-"') is not None
+            self.wait_for_record(r'"-" 400 0 "-" "-"') is not None
         ), 'partial 4'
 
     @pytest.mark.skip('not yet')
@@ -248,14 +248,12 @@ Connection: close
 
         assert self.search_in_log(r'/delete', 'access.log') is None, 'delete'
 
-    def test_access_log_change(self):
+    def test_access_log_change(self, temp_dir):
         self.load('empty')
 
         self.get()
 
-        assert 'success' in self.conf(
-            '"' + option.temp_dir + '/new.log"', 'access_log'
-        )
+        assert 'success' in self.conf(f'"{temp_dir}/new.log"', 'access_log')
 
         self.get()
 
@@ -286,19 +284,20 @@ Connection: close
         body = '0123456789' * 50
         self.post(url='/bbs', body=body, read_timeout=1)
         assert (
-            self.wait_for_record(r'^\/bbs ' + str(len(body)) + r'$') is not None
+            self.wait_for_record(fr'^\/bbs {len(body)}$') is not None
         ), '$body_bytes_sent'
 
-    def test_access_log_incorrect(self, skip_alert):
+    def test_access_log_incorrect(self, temp_dir, skip_alert):
         skip_alert(r'failed to apply new conf')
 
         assert 'error' in self.conf(
-            option.temp_dir + '/blah/access.log' 'access_log/path',
+            f'{option.temp_dir}/blah/access.log',
+            'access_log/path',
         ), 'access_log path incorrect'
 
         assert 'error' in self.conf(
             {
-                'path': option.temp_dir + '/access.log',
+                'path': f'{temp_dir}/access.log',
                 'format': '$remote_add',
             },
             'access_log',

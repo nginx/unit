@@ -9,7 +9,7 @@ def application(environ, start_response):
         body.append(l)
 
         if len(l) > 9:
-            body.append(b'len(l) > 9: ' + l)
+            body.append(f'len(l) > 9: {l}'.encode())
             break
 
     start_response('200', [('X-Lines-Count', str(len(body)))])

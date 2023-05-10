@@ -15,25 +15,25 @@ class TestASGILifespan(TestApplicationPython):
     load_module = 'asgi'
 
     def setup_cookies(self, prefix):
-        base_dir = option.test_dir + '/python/lifespan/empty'
+        base_dir = f'{option.test_dir}/python/lifespan/empty'
 
         os.chmod(base_dir, 0o777)
 
         for name in ['startup', 'shutdown', 'version']:
-            path = option.test_dir + '/python/lifespan/empty/' + prefix + name
+            path = f'{option.test_dir}/python/lifespan/empty/{prefix}{name}'
             open(path, 'a').close()
             os.chmod(path, 0o777)
 
     def assert_cookies(self, prefix):
         for name in ['startup', 'shutdown']:
-            path = option.test_dir + '/python/lifespan/empty/' + prefix + name
+            path = f'{option.test_dir}/python/lifespan/empty/{prefix}{name}'
             exists = os.path.isfile(path)
             if exists:
                 os.remove(path)
 
             assert not exists, name
 
-        path = option.test_dir + '/python/lifespan/empty/' + prefix + 'version'
+        path = f'{option.test_dir}/python/lifespan/empty/{prefix}version'
 
         with open(path, 'r') as f:
             version = f.read()
@@ -54,6 +54,8 @@ class TestASGILifespan(TestApplicationPython):
         self.assert_cookies('')
 
     def test_asgi_lifespan_targets(self):
+        path = f'{option.test_dir}/python/lifespan/empty'
+
         assert 'success' in self.conf(
             {
                 "listeners": {"*:7080": {"pass": "routes"}},
@@ -71,9 +73,8 @@ class TestASGILifespan(TestApplicationPython):
                     "targets": {
                         "type": self.get_application_type(),
                         "processes": {"spare": 0},
-                        "working_directory": option.test_dir
-                        + "/python/lifespan/empty",
-                        "path": option.test_dir + '/python/lifespan/empty',
+                        "working_directory": path,
+                        "path": path,
                         "targets": {
                             "1": {"module": "asgi", "callable": "application"},
                             "2": {

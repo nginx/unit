@@ -41,6 +41,7 @@ struct nxt_http_request_parse_s {
 
     u_char                    *target_start;
     u_char                    *target_end;
+    u_char                    *request_line_end;
 
     nxt_str_t                 path;
     nxt_str_t                 args;
@@ -126,6 +127,7 @@ nxt_uint_t nxt_http_fields_hash_collisions(nxt_lvlhsh_t *hash,
 nxt_int_t nxt_http_fields_process(nxt_list_t *fields, nxt_lvlhsh_t *hash,
     void *ctx);
 
+nxt_int_t nxt_http_parse_complex_target(nxt_http_request_parse_t *rp);
 nxt_buf_t *nxt_http_chunk_parse(nxt_task_t *task, nxt_http_chunk_parse_t *hcp,
     nxt_buf_t *in);
 

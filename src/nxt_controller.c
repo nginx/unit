@@ -11,6 +11,7 @@
 #include <nxt_conf.h>
 #include <nxt_status.h>
 #include <nxt_cert.h>
+#include <nxt_script.h>
 
 
 typedef struct {
@@ -99,6 +100,15 @@ static void nxt_controller_process_cert_save(nxt_task_t *task,
     nxt_port_recv_msg_t *msg, void *data);
 static nxt_bool_t nxt_controller_cert_in_use(nxt_str_t *name);
 static void nxt_controller_cert_cleanup(nxt_task_t *task, void *obj,
+    void *data);
+#endif
+#if (NXT_HAVE_NJS)
+static void nxt_controller_process_script(nxt_task_t *task,
+    nxt_controller_request_t *req, nxt_str_t *path);
+static void nxt_controller_process_script_save(nxt_task_t *task,
+    nxt_port_recv_msg_t *msg, void *data);
+static nxt_bool_t nxt_controller_script_in_use(nxt_str_t *name);
+static void nxt_controller_script_cleanup(nxt_task_t *task, void *obj,
     void *data);
 #endif
 static void nxt_controller_process_control(nxt_task_t *task,
@@ -213,6 +223,13 @@ nxt_controller_prefork(nxt_task_t *task, nxt_process_t *process, nxt_mp_t *mp)
     nxt_mp_cleanup(mp, nxt_controller_cert_cleanup, task, ctrl_init.certs, rt);
 #endif
 
+#if (NXT_HAVE_NJS)
+    ctrl_init.scripts = nxt_script_store_load(task, mp);
+
+    nxt_mp_cleanup(mp, nxt_controller_script_cleanup, task, ctrl_init.scripts,
+                   rt);
+#endif
+
     process->data.controller = ctrl_init;
 
     return NXT_OK;
@@ -318,6 +335,13 @@ nxt_controller_start(nxt_task_t *task, nxt_process_data_t *data)
     if (init->certs != NULL) {
         nxt_cert_info_init(task, init->certs);
         nxt_cert_store_release(init->certs);
+    }
+#endif
+
+#if (NXT_HAVE_NJS)
+    if (init->scripts != NULL) {
+        nxt_script_info_init(task, init->scripts);
+        nxt_script_store_release(init->scripts);
     }
 #endif
 
@@ -1047,9 +1071,19 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
     nxt_controller_response_t  resp;
 #if (NXT_TLS)
     nxt_conf_value_t           *certs;
+#endif
+#if (NXT_HAVE_NJS)
+    nxt_conf_value_t           *scripts;
+#endif
 
+#if (NXT_TLS)
     static nxt_str_t certificates = nxt_string("certificates");
 #endif
+
+#if (NXT_HAVE_NJS)
+    static nxt_str_t scripts_str = nxt_string("js_modules");
+#endif
+
     static nxt_str_t config = nxt_string("config");
     static nxt_str_t status = nxt_string("status");
 
@@ -1120,6 +1154,25 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
 
 #endif
 
+#if (NXT_HAVE_NJS)
+
+    if (nxt_str_start(&path, "/js_modules", 11)
+        && (path.length == 11 || path.start[11] == '/'))
+    {
+        if (path.length == 11) {
+            path.length = 1;
+
+        } else {
+            path.length -= 11;
+            path.start += 11;
+        }
+
+        nxt_controller_process_script(task, req, &path);
+        return;
+    }
+
+#endif
+
     if (nxt_str_start(&path, "/control/", 9)) {
         path.length -= 9;
         path.start += 9;
@@ -1143,6 +1196,9 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
 #if (NXT_TLS)
         count++;
 #endif
+#if (NXT_HAVE_NJS)
+        count++;
+#endif
 
         value = nxt_conf_create_object(c->mem_pool, count);
         if (nxt_slow_path(value == NULL)) {
@@ -1158,6 +1214,15 @@ nxt_controller_process_request(nxt_task_t *task, nxt_controller_request_t *req)
         }
 
         nxt_conf_set_member(value, &certificates, certs, i++);
+#endif
+
+#if (NXT_HAVE_NJS)
+        scripts = nxt_script_info_get_all(c->mem_pool);
+        if (nxt_slow_path(scripts == NULL)) {
+            goto alloc_fail;
+        }
+
+        nxt_conf_set_member(value, &scripts_str, scripts, i++);
 #endif
 
         nxt_conf_set_member(value, &config, nxt_controller_conf.root, i++);
@@ -1874,6 +1939,294 @@ nxt_controller_cert_in_use(nxt_str_t *name)
     }
 
     return 0;
+}
+
+#endif
+
+
+#if (NXT_HAVE_NJS)
+
+static void
+nxt_controller_process_script(nxt_task_t *task,
+    nxt_controller_request_t *req, nxt_str_t *path)
+{
+    u_char                     *p;
+    nxt_int_t                  ret;
+    nxt_str_t                  name;
+    nxt_conn_t                 *c;
+    nxt_script_t               *script;
+    nxt_buf_mem_t              *bm;
+    nxt_conf_value_t           *value;
+    nxt_controller_response_t  resp;
+    u_char                     error[NXT_MAX_ERROR_STR];
+
+    name.length = path->length - 1;
+    name.start = path->start + 1;
+
+    p = memchr(name.start, '/', name.length);
+
+    if (p != NULL) {
+        name.length = p - name.start;
+
+        path->length -= p - path->start;
+        path->start = p;
+
+    } else {
+        path = NULL;
+    }
+
+    nxt_memzero(&resp, sizeof(nxt_controller_response_t));
+
+    c = req->conn;
+
+    if (nxt_str_eq(&req->parser.method, "GET", 3)) {
+
+        if (name.length != 0) {
+            value = nxt_script_info_get(&name);
+            if (value == NULL) {
+                goto script_not_found;
+            }
+
+            if (path != NULL) {
+                value = nxt_conf_get_path(value, path);
+                if (value == NULL) {
+                    goto not_found;
+                }
+            }
+
+        } else {
+            value = nxt_script_info_get_all(c->mem_pool);
+            if (value == NULL) {
+                goto alloc_fail;
+            }
+        }
+
+        resp.status = 200;
+        resp.conf = value;
+
+        nxt_controller_response(task, req, &resp);
+        return;
+    }
+
+    if (name.length == 0 || path != NULL) {
+        goto invalid_name;
+    }
+
+    if (nxt_str_eq(&req->parser.method, "PUT", 3)) {
+        value = nxt_script_info_get(&name);
+        if (value != NULL) {
+            goto exists_script;
+        }
+
+        bm = &c->read->mem;
+
+        script = nxt_script_new(task, &name, bm->pos,
+                                nxt_buf_mem_used_size(bm), error);
+        if (script == NULL) {
+            goto invalid_script;
+        }
+
+        ret = nxt_script_info_save(&name, script);
+
+        nxt_script_destroy(script);
+
+        if (nxt_slow_path(ret != NXT_OK)) {
+            goto alloc_fail;
+        }
+
+        nxt_script_store_get(task, &name, c->mem_pool,
+                             nxt_controller_process_script_save, req);
+        return;
+    }
+
+    if (nxt_str_eq(&req->parser.method, "DELETE", 6)) {
+
+        if (nxt_controller_script_in_use(&name)) {
+            goto script_in_use;
+        }
+
+        if (nxt_script_info_delete(&name) != NXT_OK) {
+            goto script_not_found;
+        }
+
+        nxt_script_store_delete(task, &name, c->mem_pool);
+
+        resp.status = 200;
+        resp.title = (u_char *) "JS module deleted.";
+
+        nxt_controller_response(task, req, &resp);
+        return;
+    }
+
+    resp.status = 405;
+    resp.title = (u_char *) "Invalid method.";
+    resp.offset = -1;
+
+    nxt_controller_response(task, req, &resp);
+    return;
+
+invalid_name:
+
+    resp.status = 400;
+    resp.title = (u_char *) "Invalid JS module name.";
+    resp.offset = -1;
+
+    nxt_controller_response(task, req, &resp);
+    return;
+
+invalid_script:
+
+    resp.status = 400;
+    resp.title = (u_char *) "Invalid JS module.";
+    resp.offset = -1;
+
+    resp.detail.start = error;
+    resp.detail.length = nxt_strlen(error);
+
+    nxt_controller_response(task, req, &resp);
+    return;
+
+exists_script:
+
+    resp.status = 400;
+    resp.title = (u_char *) "JS module already exists.";
+    resp.offset = -1;
+
+    nxt_controller_response(task, req, &resp);
+    return;
+
+script_in_use:
+
+    resp.status = 400;
+    resp.title = (u_char *) "JS module is used in the configuration.";
+    resp.offset = -1;
+
+    nxt_controller_response(task, req, &resp);
+    return;
+
+script_not_found:
+
+    resp.status = 404;
+    resp.title = (u_char *) "JS module doesn't exist.";
+    resp.offset = -1;
+
+    nxt_controller_response(task, req, &resp);
+    return;
+
+not_found:
+
+    resp.status = 404;
+    resp.title = (u_char *) "Invalid path.";
+    resp.offset = -1;
+
+    nxt_controller_response(task, req, &resp);
+    return;
+
+alloc_fail:
+
+    resp.status = 500;
+    resp.title = (u_char *) "Memory allocation failed.";
+    resp.offset = -1;
+
+    nxt_controller_response(task, req, &resp);
+}
+
+
+static void
+nxt_controller_process_script_save(nxt_task_t *task, nxt_port_recv_msg_t *msg,
+    void *data)
+{
+    nxt_conn_t                 *c;
+    nxt_buf_mem_t              *mbuf;
+    nxt_controller_request_t   *req;
+    nxt_controller_response_t  resp;
+
+    req = data;
+
+    nxt_memzero(&resp, sizeof(nxt_controller_response_t));
+
+    if (msg == NULL || msg->port_msg.type == _NXT_PORT_MSG_RPC_ERROR) {
+        resp.status = 500;
+        resp.title = (u_char *) "Failed to store script.";
+
+        nxt_controller_response(task, req, &resp);
+        return;
+    }
+
+    c = req->conn;
+
+    mbuf = &c->read->mem;
+
+    nxt_fd_write(msg->fd[0], mbuf->pos, nxt_buf_mem_used_size(mbuf));
+
+    nxt_fd_close(msg->fd[0]);
+
+    nxt_memzero(&resp, sizeof(nxt_controller_response_t));
+
+    resp.status = 200;
+    resp.title = (u_char *) "JS module uploaded.";
+
+    nxt_controller_response(task, req, &resp);
+}
+
+
+static nxt_bool_t
+nxt_controller_script_in_use(nxt_str_t *name)
+{
+    uint32_t          i, n;
+    nxt_str_t         str;
+    nxt_conf_value_t  *js_module, *element;
+
+    static nxt_str_t  js_module_path = nxt_string("/settings/js_module");
+
+    js_module = nxt_conf_get_path(nxt_controller_conf.root,
+                                    &js_module_path);
+
+    if (js_module != NULL) {
+
+        if (nxt_conf_type(js_module) == NXT_CONF_ARRAY) {
+            n = nxt_conf_array_elements_count(js_module);
+
+            for (i = 0; i < n; i++) {
+                element = nxt_conf_get_array_element(js_module, i);
+
+                nxt_conf_get_string(element, &str);
+
+                if (nxt_strstr_eq(&str, name)) {
+                    return 1;
+                }
+            }
+
+        } else {
+            /* NXT_CONF_STRING */
+
+            nxt_conf_get_string(js_module, &str);
+
+            if (nxt_strstr_eq(&str, name)) {
+                return 1;
+            }
+        }
+    }
+
+    return 0;
+}
+
+
+static void
+nxt_controller_script_cleanup(nxt_task_t *task, void *obj, void *data)
+{
+    pid_t          main_pid;
+    nxt_array_t    *scripts;
+    nxt_runtime_t  *rt;
+
+    scripts = obj;
+    rt = data;
+
+    main_pid = rt->port_by_type[NXT_PROCESS_MAIN]->pid;
+
+    if (nxt_pid == main_pid && scripts != NULL) {
+        nxt_script_store_release(scripts);
+    }
 }
 
 #endif

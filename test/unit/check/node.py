@@ -3,7 +3,7 @@ import subprocess
 
 
 def check_node(current_dir):
-    if not os.path.exists(current_dir + '/node/node_modules'):
+    if not os.path.exists(f'{current_dir}/node/node_modules'):
         return None
 
     try:

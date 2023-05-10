@@ -12,7 +12,7 @@ def check_unix_abstract():
     resp = http.put(
         url='/config',
         sock_type='unix',
-        addr=option.temp_dir + '/control.unit.sock',
+        addr=f'{option.temp_dir}/control.unit.sock',
         body=json.dumps(
             {
                 "listeners": {"unix:@sock": {"pass": "routes"}},

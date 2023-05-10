@@ -14,6 +14,9 @@
 #if (NXT_TLS)
 #include <nxt_cert.h>
 #endif
+#if (NXT_HAVE_NJS)
+#include <nxt_script.h>
+#endif
 
 #include <sys/mount.h>
 
@@ -47,6 +50,8 @@ static void nxt_main_process_signal_handler(nxt_task_t *task, void *obj,
     void *data);
 static void nxt_main_process_cleanup(nxt_task_t *task, nxt_process_t *process);
 static void nxt_main_port_socket_handler(nxt_task_t *task,
+    nxt_port_recv_msg_t *msg);
+static void nxt_main_port_socket_unlink_handler(nxt_task_t *task,
     nxt_port_recv_msg_t *msg);
 static nxt_int_t nxt_main_listening_socket(nxt_sockaddr_t *sa,
     nxt_listening_socket_t *ls);
@@ -116,6 +121,18 @@ static nxt_conf_map_t  nxt_common_app_conf[] = {
         nxt_string("group"),
         NXT_CONF_MAP_STR,
         offsetof(nxt_common_app_conf_t, group),
+    },
+
+    {
+        nxt_string("stdout"),
+        NXT_CONF_MAP_CSTRZ,
+        offsetof(nxt_common_app_conf_t, stdout_log),
+    },
+
+    {
+        nxt_string("stderr"),
+        NXT_CONF_MAP_CSTRZ,
+        offsetof(nxt_common_app_conf_t, stderr_log),
     },
 
     {
@@ -587,11 +604,16 @@ static nxt_port_handlers_t  nxt_main_process_port_handlers = {
     .remove_pid       = nxt_port_remove_pid_handler,
     .start_process    = nxt_main_start_process_handler,
     .socket           = nxt_main_port_socket_handler,
+    .socket_unlink    = nxt_main_port_socket_unlink_handler,
     .modules          = nxt_main_port_modules_handler,
     .conf_store       = nxt_main_port_conf_store_handler,
 #if (NXT_TLS)
     .cert_get         = nxt_cert_store_get_handler,
     .cert_delete      = nxt_cert_store_delete_handler,
+#endif
+#if (NXT_HAVE_NJS)
+    .script_get       = nxt_script_store_get_handler,
+    .script_delete    = nxt_script_store_delete_handler,
 #endif
     .access_log       = nxt_main_port_access_log_handler,
     .rpc_ready        = nxt_port_rpc_handler,
@@ -1182,8 +1204,9 @@ nxt_main_listening_socket(nxt_sockaddr_t *sa, nxt_listening_socket_t *ls)
     if (sa->u.sockaddr.sa_family == AF_UNIX
         && sa->u.sockaddr_un.sun_path[0] != '\0')
     {
-        char     *filename;
-        mode_t   access;
+        char          *filename;
+        mode_t        access;
+        nxt_thread_t  *thr;
 
         filename = sa->u.sockaddr_un.sun_path;
         access = (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
@@ -1194,6 +1217,9 @@ nxt_main_listening_socket(nxt_sockaddr_t *sa, nxt_listening_socket_t *ls)
                                   filename, nxt_errno);
             goto fail;
         }
+
+        thr = nxt_thread();
+        nxt_runtime_listen_socket_add(thr->runtime, sa);
     }
 
 #endif
@@ -1207,6 +1233,49 @@ fail:
     (void) close(s);
 
     return NXT_ERROR;
+}
+
+
+static void
+nxt_main_port_socket_unlink_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
+{
+#if (NXT_HAVE_UNIX_DOMAIN)
+    size_t               i;
+    nxt_buf_t            *b;
+    const char           *filename;
+    nxt_runtime_t        *rt;
+    nxt_sockaddr_t       *sa;
+    nxt_listen_socket_t  *ls;
+
+    b = msg->buf;
+    sa = (nxt_sockaddr_t *) b->mem.pos;
+
+    filename = sa->u.sockaddr_un.sun_path;
+    unlink(filename);
+
+    rt = task->thread->runtime;
+
+    for (i = 0; i < rt->listen_sockets->nelts; i++) {
+        const char  *name;
+
+        ls = (nxt_listen_socket_t *) rt->listen_sockets->elts + i;
+        sa = ls->sockaddr;
+
+        if (sa->u.sockaddr.sa_family != AF_UNIX
+            || sa->u.sockaddr_un.sun_path[0] == '\0')
+        {
+            continue;
+        }
+
+        name = sa->u.sockaddr_un.sun_path;
+        if (strcmp(name, filename) != 0) {
+            continue;
+        }
+
+        nxt_array_remove(rt->listen_sockets, ls);
+        break;
+    }
+#endif
 }
 
 

@@ -151,7 +151,7 @@ class TestASGIWebsockets(TestApplicationPython):
 
         frame = self.ws.frame_read(sock)
 
-        assert message + ' ' + message == frame['data'].decode(
+        assert f'{message} {message}' == frame['data'].decode(
             'utf-8'
         ), 'mirror framing'
 
@@ -527,21 +527,21 @@ class TestASGIWebsockets(TestApplicationPython):
         _, sock, _ = self.ws.upgrade()
 
         for i in range(0, 10):
-            self.ws.frame_write(sock, self.ws.OP_PING, 'payload-%d' % i)
+            self.ws.frame_write(sock, self.ws.OP_PING, f'payload-{i}')
 
         for i in range(0, 10):
             frame = self.ws.frame_read(sock)
-            self.check_frame(frame, True, self.ws.OP_PONG, 'payload-%d' % i)
+            self.check_frame(frame, True, self.ws.OP_PONG, f'payload-{i}')
 
         # 2_11
 
         for i in range(0, 10):
             opcode = self.ws.OP_PING
-            self.ws.frame_write(sock, opcode, 'payload-%d' % i, chopsize=1)
+            self.ws.frame_write(sock, opcode, f'payload-{i}', chopsize=1)
 
         for i in range(0, 10):
             frame = self.ws.frame_read(sock)
-            self.check_frame(frame, True, self.ws.OP_PONG, 'payload-%d' % i)
+            self.check_frame(frame, True, self.ws.OP_PONG, f'payload-{i}')
 
         self.close_connection(sock)
 

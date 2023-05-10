@@ -47,7 +47,7 @@ class TestTLSConfCommand(TestApplicationTLS):
         assert 'success' in self.conf(
             {
                 "certificate": "default",
-                "conf_commands": {"protocol": '-' + protocol},
+                "conf_commands": {"protocol": f'-{protocol}'},
             },
             'listeners/*:7080/tls',
         ), 'protocol disabled'
@@ -74,8 +74,8 @@ class TestTLSConfCommand(TestApplicationTLS):
             {
                 "certificate": "default",
                 "conf_commands": {
-                    "protocol": '-' + protocol,
-                    "cipherstring": cipher[1] + ":!" + cipher[0],
+                    "protocol": f'-{protocol}',
+                    "cipherstring": f"{cipher[1]}:!{cipher[0]}",
                 },
             },
             'listeners/*:7080/tls',

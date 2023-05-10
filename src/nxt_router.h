@@ -74,6 +74,10 @@ typedef struct {
     nxt_queue_t            tls;        /* of nxt_router_tlssock_t */
 #endif
 
+#if (NXT_HAVE_NJS)
+    nxt_queue_t            js_modules;
+#endif
+
     nxt_queue_t            apps;       /* of nxt_app_t */
     nxt_queue_t            previous;   /* of nxt_app_t */
 
@@ -197,7 +201,11 @@ typedef struct {
 
     nxt_str_t              body_temp_path;
 
+    uint8_t                log_route;  /* 1 bit */
+
     uint8_t                discard_unsafe_fields;  /* 1 bit */
+
+    uint8_t                server_version;         /* 1 bit */
 
     nxt_http_forward_t     *forwarded;
     nxt_http_forward_t     *client_ip;

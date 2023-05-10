@@ -14,23 +14,21 @@ class TestApplicationGo(TestApplicationProto):
         except subprocess.CalledProcessError:
             return None
 
-        temp_dir = option.temp_dir + '/go/'
+        temp_dir = f'{option.temp_dir}/go/'
 
         if not os.path.exists(temp_dir):
             os.mkdir(temp_dir)
 
-        cache_dir = option.cache_dir + '/go-build'
+        cache_dir = f'{option.cache_dir}/go-build'
 
         if not os.path.exists(cache_dir):
             os.mkdir(cache_dir)
 
         env = os.environ.copy()
-        env['GOPATH'] = option.current_dir + '/build/go'
+        env['GOPATH'] = f'{option.current_dir}/build/go'
         env['GOCACHE'] = cache_dir
 
-        shutil.copy2(
-            option.test_dir + '/go/' + script + '/' + name + '.go', temp_dir
-        )
+        shutil.copy2(f'{option.test_dir}/go/{script}/{name}.go', temp_dir)
 
         if static:
             args = [
@@ -41,21 +39,21 @@ class TestApplicationGo(TestApplicationProto):
                 '-ldflags',
                 '-extldflags "-static"',
                 '-o',
-                temp_dir + name,
-                temp_dir + name + '.go',
+                f'{temp_dir}{name}',
+                f'{temp_dir}{name}.go',
             ]
         else:
             args = [
                 'go',
                 'build',
                 '-o',
-                temp_dir + name,
-                temp_dir + name + '.go',
+                f'{temp_dir}{name}',
+                f'{temp_dir}{name}.go',
             ]
 
-        replace_path = option.current_dir + '/build/go/src/unit.nginx.org/go'
+        replace_path = f'{option.current_dir}/build/go/src/unit.nginx.org/go'
 
-        with open(temp_dir + 'go.mod', 'w') as f:
+        with open(f'{temp_dir}go.mod', 'w') as f:
             f.write(
                 f"""module test/app
 require unit.nginx.org/go v0.0.0
@@ -64,7 +62,7 @@ replace unit.nginx.org/go => {replace_path}
             )
 
         if option.detailed:
-            print("\n$ GOPATH=" + env['GOPATH'] + " " + " ".join(args))
+            print(f'\n$ GOPATH={env["GOPATH"]} {" ".join(args)}')
 
         try:
             output = subprocess.check_output(
@@ -82,18 +80,18 @@ replace unit.nginx.org/go => {replace_path}
     def load(self, script, name='app', **kwargs):
         static_build = False
 
-        wdir = option.test_dir + "/go/" + script
-        executable = option.temp_dir + "/go/" + name
+        wdir = f'{option.test_dir}/go/{script}'
+        executable = f'{option.temp_dir}/go/{name}'
 
         if 'isolation' in kwargs and 'rootfs' in kwargs['isolation']:
             wdir = "/go/"
-            executable = "/go/" + name
+            executable = f"/go/{name}"
             static_build = True
 
         TestApplicationGo.prepare_env(script, name, static=static_build)
 
         conf = {
-            "listeners": {"*:7080": {"pass": "applications/" + script}},
+            "listeners": {"*:7080": {"pass": f"applications/{script}"}},
             "applications": {
                 script: {
                     "type": "external",

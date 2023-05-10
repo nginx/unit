@@ -63,6 +63,7 @@ Content-Length: 10
         run_process(self.run_server, self.SERVER_PORT)
         waitforsocket(self.SERVER_PORT)
 
+        python_dir = f'{option.test_dir}/python'
         assert 'success' in self.conf(
             {
                 "listeners": {
@@ -74,24 +75,22 @@ Content-Length: 10
                     "mirror": {
                         "type": self.get_application_type(),
                         "processes": {"spare": 0},
-                        "path": option.test_dir + "/python/mirror",
-                        "working_directory": option.test_dir + "/python/mirror",
+                        "path": f'{python_dir}/mirror',
+                        "working_directory": f'{python_dir}/mirror',
                         "module": "wsgi",
                     },
                     "custom_header": {
                         "type": self.get_application_type(),
                         "processes": {"spare": 0},
-                        "path": option.test_dir + "/python/custom_header",
-                        "working_directory": option.test_dir
-                        + "/python/custom_header",
+                        "path": f'{python_dir}/custom_header',
+                        "working_directory": f'{python_dir}/custom_header',
                         "module": "wsgi",
                     },
                     "delayed": {
                         "type": self.get_application_type(),
                         "processes": {"spare": 0},
-                        "path": option.test_dir + "/python/delayed",
-                        "working_directory": option.test_dir
-                        + "/python/delayed",
+                        "path": f'{python_dir}/delayed',
+                        "working_directory": f'{python_dir}/delayed',
                         "module": "wsgi",
                     },
                 },
@@ -124,8 +123,8 @@ Content-Length: 10
                     "mirror": {
                         "type": self.get_application_type(),
                         "processes": {"spare": 0},
-                        "path": option.test_dir + "/python/mirror",
-                        "working_directory": option.test_dir + "/python/mirror",
+                        "path": f'{option.test_dir}/python/mirror',
+                        "working_directory": f'{option.test_dir}/python/mirror',
                         "module": "wsgi",
                     }
                 },
@@ -186,7 +185,7 @@ Content-Length: 10
         socks = []
         for i in range(10):
             sock = self.post_http10(
-                body=payload + str(i),
+                body=f'{payload}{i}',
                 no_recv=True,
                 read_buffer_size=buff_size,
             )
@@ -199,7 +198,7 @@ Content-Length: 10
             resp = self._resp_to_dict(resp)
 
             assert resp['status'] == 200, 'status'
-            assert resp['body'] == payload + str(i), 'body'
+            assert resp['body'] == f'{payload}{i}', 'body'
 
     def test_proxy_header(self):
         assert 'success' in self.conf(
@@ -214,7 +213,7 @@ Content-Length: 10
             == header_value
         ), 'custom header'
 
-        header_value = r'(),/:;<=>?@[\]{}\t !#$%&\'*+-.^_`|~'
+        header_value = r"(),/:;<=>?@[\]{}\t !#$%&'*+-.^_`|~"
         assert (
             self.get_http10(
                 headers={'Host': 'localhost', 'Custom-Header': header_value}
@@ -336,18 +335,18 @@ Content-Length: 10
         assert self.get_http10()['status'] == 200, 'status'
 
     def test_proxy_unix(self, temp_dir):
-        addr = temp_dir + '/sock'
+        addr = f'{temp_dir}/sock'
 
         assert 'success' in self.conf(
             {
                 "*:7080": {"pass": "routes"},
-                "unix:" + addr: {'application': 'mirror'},
+                f'unix:{addr}': {'application': 'mirror'},
             },
             'listeners',
         ), 'add unix listener configure'
 
         assert 'success' in self.conf(
-            [{"action": {"proxy": 'http://unix:' + addr}}], 'routes'
+            [{"action": {"proxy": f'http://unix:{addr}'}}], 'routes'
         ), 'proxy unix configure'
 
         assert self.get_http10()['status'] == 200, 'status'
@@ -420,13 +419,7 @@ Content-Length: 10
     @pytest.mark.skip('not yet')
     def test_proxy_content_length(self):
         assert 'success' in self.conf(
-            [
-                {
-                    "action": {
-                        "proxy": "http://127.0.0.1:" + str(self.SERVER_PORT)
-                    }
-                }
-            ],
+            [{"action": {"proxy": f'http://127.0.0.1:{self.SERVER_PORT}'}}],
             'routes',
         ), 'proxy backend configure'
 
@@ -484,8 +477,8 @@ Content-Length: 10
                     "mirror": {
                         "type": self.get_application_type(),
                         "processes": {"spare": 0},
-                        "path": option.test_dir + "/python/mirror",
-                        "working_directory": option.test_dir + "/python/mirror",
+                        "path": f'{option.test_dir}/python/mirror',
+                        "working_directory": f'{option.test_dir}/python/mirror',
                         "module": "wsgi",
                     },
                 },

@@ -9,11 +9,13 @@
 
 
 if test -n ${BASH_VERSION} && test "${BASH_VERSINFO[0]}" -eq 3; then
-    >&2 echo 'Your version of bash(1) isn't supported by this script.';
-    >&2 echo "You're probably running on macOS.  We recommend that you either";
-    >&2 echo 'install a newer version of bash(1) or run this script with';
-    >&2 echo 'another shell, such as zsh(1):';
-    >&2 echo "    $ zsh ${SUDO_USER:+sudo }$0 ...";
+    >&2 cat <<__EOF__ ;
+Your version of bash(1) isn't supported by this script.  You're probably
+running on macOS.  We recommend that you either install a newer version
+of bash(1) or run this script with another shell, such as zsh(1):
+
+    $ ${SUDO_USER:+sudo }zsh $0 ...
+__EOF__
     exit 1;
 fi;
 
@@ -22,6 +24,9 @@ set -Eefuo pipefail;
 
 test -v BASH_VERSION \
 && shopt -s lastpipe;
+
+test -v ZSH_VERSION \
+&& setopt sh_word_split;
 
 export LC_ALL=C
 
@@ -37,8 +42,8 @@ SYNOPSIS
         $program_name [-h] COMMAND [ARGS]
 
     Subcommands
-        +-- repo-config  [-hn] [PKG-MANAGER OS-NAME OS-VERSION]
-        +-- welcome      [-hn]
+        ├── repo-config  [-hn] [PKG-MANAGER OS-NAME OS-VERSION]
+        └── welcome      [-hn]
 
 DESCRIPTION
         This script simplifies installing and configuring an NGINX Unit server
@@ -73,19 +78,19 @@ SYNOPSIS
         $program_name [-h] COMMAND [ARGS]
 
     Subcommands
-        +-- cmd          [-h]
-        +-- ctl          [-h] [-s SOCK] SUBCOMMAND [ARGS]
-        |   +-- http     [-h] [-c CURLOPT] METHOD PATH
-        |   +-- insert   [-h] PATH INDEX
-        +-- freeport     [-h]
-        +-- json-ins     [-hn] JSON INDEX
-        +-- os-probe     [-h]
-        +-- ps           [-h] [-t TYPE]
-        +-- repo-config  [-hn] [PKG-MANAGER OS-NAME OS-VERSION]
-        +-- sock         [-h] SUBCOMMAND [ARGS]
-        |   +-- filter   [-chs]
-        |   +-- find     [-h]
-        +-- welcome      [-hn]
+        ├── cmd          [-h]
+        ├── ctl          [-h] [-s SOCK] SUBCOMMAND [ARGS]
+        │   ├── http     [-h] [-c CURLOPT] METHOD PATH
+        │   └── insert   [-h] PATH INDEX
+        ├── freeport     [-h]
+        ├── json-ins     [-hn] JSON INDEX
+        ├── os-probe     [-h]
+        ├── ps           [-h] [-t TYPE]
+        ├── repo-config  [-hn] [PKG-MANAGER OS-NAME OS-VERSION]
+        ├── sock         [-h] SUBCOMMAND [ARGS]
+        │   ├── filter   [-chs]
+        │   └── find     [-h]
+        └── welcome      [-hn]
 
 DESCRIPTION
         This script simplifies installing and configuring
@@ -205,8 +210,8 @@ SYNOPSIS
         $program_name ctl [-h] [-s SOCK] SUBCOMMAND [ARGS]
 
     Subcommands
-        +-- http    [-h] [-c CURLOPT] METHOD PATH
-        +-- insert  [-h] PATH INDEX
+        ├── http    [-h] [-c CURLOPT] METHOD PATH
+        └── insert  [-h] PATH INDEX
 
 DESCRIPTION
         Control a running unitd(8) instance through its control API socket.
@@ -285,7 +290,11 @@ unit_ctl()
         err 'ctl: Missing subcommand.';
     fi;
 
-    if test -v sock && echo $sock | grep '^ssh://' >/dev/null; then
+    if ! test -v sock; then
+        local sock="$(unit_sock_find)";
+    fi;
+
+    if echo $sock | grep '^ssh://' >/dev/null; then
         local remote="$(echo $sock | sed 's,\(ssh://[^/]*\).*,\1,')";
         local sock="$(echo $sock | sed 's,ssh://[^/]*\(.*\),unix:\1,')";
     fi;
@@ -293,11 +302,11 @@ unit_ctl()
     case $1 in
     http)
         shift;
-        unit_ctl_http ${remote:+ ---r $remote} ${sock:+ ---s $sock} $@;
+        unit_ctl_http ${remote:+ ---r $remote} ---s "$sock" $@;
         ;;
     insert)
         shift;
-        unit_ctl_insert ${remote:+ ---r $remote} ${sock:+ ---s $sock} $@;
+        unit_ctl_insert ${remote:+ ---r $remote} ---s "$sock" $@;
         ;;
     *)
         err "ctl: $1: Unknown argument.";
@@ -398,9 +407,6 @@ unit_ctl_http()
                    -L "$local_sock:$remote_sock" "$remote";
 
         sock="unix:$local_sock";
-
-    elif ! test -v sock; then
-        local sock="$(unit_sock_find)";
     fi;
 
     curl $curl_options -X $method -d@- \
@@ -485,9 +491,6 @@ unit_ctl_insert()
                    -L "$local_sock:$remote_sock" "$remote";
 
         sock="unix:$local_sock";
-
-    elif ! test -v sock; then
-        local sock="$(unit_sock_find)";
     fi;
 
     local old="$(mktemp ||:)";
@@ -555,15 +558,14 @@ unit_ctl_welcome()
         shift;
     done;
 
-    id -u \
-    | xargs test 0 -ne \
-    && err 'welcome: This script requires root privileges to run.';
-
     command -v curl >/dev/null \
     || err 'welcome: curl(1) not found in PATH.  It must be installed to run this script.';
 
     www='/srv/www/unit/index.html';
     if test -e "$www" && ! test -v force || ! test -w /srv; then
+        www="$HOME/srv/www/unit/index.html";
+    fi;
+    if test -e "$www" && ! test -v force; then
         www="$(mktemp)";
         mv "$www" "$www.html";
         www="$www.html"
@@ -594,14 +596,14 @@ unit_ctl_welcome()
 
         # Check unitd is not configured already.
         echo "$cmd" \
-        | if grep '\--state' >/dev/null; then
+        | if grep '\--statedir' >/dev/null; then
             echo "$cmd" \
             | sed 's/ --/\n--/g' \
-            | grep '\--state' \
+            | grep '\--statedir' \
             | cut -d' ' -f2;
         else
             $cmd --help \
-            | sed -n '/\--state/,+1p' \
+            | sed -n '/\--statedir/,+1p' \
             | grep 'default:' \
             | sed 's/ *default: "\(.*\)"/\1/';
         fi \
@@ -626,7 +628,7 @@ unit_ctl_welcome()
 
     dry_run_echo 'Create a file to serve:';
     dry_run_eval "mkdir -p $(dirname $www);";
-    dry_run_eval "cat >'$www'"' <<__EOF__;
+    dry_run_eval "tee '$www' >/dev/null"' <<__EOF__;
         <!DOCTYPE html>
         <html>
             <head>
@@ -1177,10 +1179,6 @@ __EOF__";
     command -v curl >/dev/null \
     || err 'repo-config: curl(1) not found in PATH.  It must be installed to run this script.';
 
-    id -u \
-    | xargs test 0 -ne \
-    && err 'repo-config: This script requires root privileges to run.';
-
     echo 'This script sets up the NGINX Unit repository';
 
     if ! test $# -ge 3; then
@@ -1231,8 +1229,8 @@ SYNOPSIS
         $program_name sock [-h] SUBCOMMAND [ARGS]
 
     Subcommands
-        +-- filter  [-ch]
-        +-- find    [-h]
+        ├── filter  [-ch]
+        └── find    [-h]
 
 DESCRIPTION
         Print the control API socket address of running unitd(8)

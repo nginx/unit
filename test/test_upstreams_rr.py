@@ -247,6 +247,7 @@ Connection: close
         assert abs(r_two[0] - r_two[1]) <= self.cpu_count, 'dep two mix'
 
     def test_upstreams_rr_delay(self):
+        delayed_dir = f'{option.test_dir}/python/delayed'
         assert 'success' in self.conf(
             {
                 "listeners": {
@@ -276,9 +277,8 @@ Connection: close
                     "delayed": {
                         "type": self.get_application_type(),
                         "processes": {"spare": 0},
-                        "path": option.test_dir + "/python/delayed",
-                        "working_directory": option.test_dir
-                        + "/python/delayed",
+                        "path": delayed_dir,
+                        "working_directory": delayed_dir,
                         "module": "wsgi",
                     }
                 },
@@ -389,20 +389,20 @@ Connection: close
         assert abs(resps[0] - resps[1]) <= self.cpu_count, 'post'
 
     def test_upstreams_rr_unix(self, temp_dir):
-        addr_0 = temp_dir + '/sock_0'
-        addr_1 = temp_dir + '/sock_1'
+        addr_0 = f'{temp_dir}/sock_0'
+        addr_1 = f'{temp_dir}/sock_1'
 
         assert 'success' in self.conf(
             {
                 "*:7080": {"pass": "upstreams/one"},
-                "unix:" + addr_0: {"pass": "routes/one"},
-                "unix:" + addr_1: {"pass": "routes/two"},
+                f"unix:{addr_0}": {"pass": "routes/one"},
+                f"unix:{addr_1}": {"pass": "routes/two"},
             },
             'listeners',
         ), 'configure listeners unix'
 
         assert 'success' in self.conf(
-            {"unix:" + addr_0: {}, "unix:" + addr_1: {}},
+            {f"unix:{addr_0}": {}, f"unix:{addr_1}": {}},
             'upstreams/one/servers',
         ), 'configure servers unix'
 

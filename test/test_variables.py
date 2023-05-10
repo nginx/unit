@@ -19,7 +19,7 @@ class TestVariables(TestApplicationProto):
     def set_format(self, format):
         assert 'success' in self.conf(
             {
-                'path': option.temp_dir + '/access.log',
+                'path': f'{option.temp_dir}/access.log',
                 'format': format,
             },
             'access_log',
@@ -36,7 +36,7 @@ class TestVariables(TestApplicationProto):
 
         def check_dollar(location, expect):
             assert 'success' in self.conf(
-                '"' + location + '"',
+                f'"{location}"',
                 'routes/0/action/location',
             )
             assert self.get()['headers']['Location'] == expect
@@ -93,7 +93,7 @@ Connection: close
         self.set_format('$request_uri')
 
         def check_request_uri(req_uri):
-            reg = r'^' + re.escape(req_uri) + r'$'
+            reg = fr'^{re.escape(req_uri)}$'
 
             assert self.search_in_log(reg) is None
             assert self.get(url=req_uri)['status'] == 200
@@ -109,7 +109,7 @@ Connection: close
 
         def check_uri(uri, expect=None):
             expect = uri if expect is None else expect
-            reg = r'^' + re.escape(expect) + r'$'
+            reg = fr'^{re.escape(expect)}$'
 
             assert self.search_in_log(reg) is None
             assert self.get(url=uri)['status'] == 200
@@ -125,7 +125,7 @@ Connection: close
 
         def check_host(host, expect=None):
             expect = host if expect is None else expect
-            reg = r'^' + re.escape(expect) + r'$'
+            reg = fr'^{re.escape(expect)}$'
 
             assert self.search_in_log(reg) is None
             assert (
@@ -196,7 +196,7 @@ Connection: close
         self.set_format('$method $header_referer')
 
         def check_referer(referer):
-            reg = r'^GET ' + re.escape(referer) + r'$'
+            reg = fr'^GET {re.escape(referer)}$'
 
             assert self.search_in_log(reg) is None
             assert (
@@ -219,7 +219,7 @@ Connection: close
         self.set_format('$method $header_user_agent')
 
         def check_user_agent(user_agent):
-            reg = r'^GET ' + re.escape(user_agent) + r'$'
+            reg = fr'^GET {re.escape(user_agent)}$'
 
             assert self.search_in_log(reg) is None
             assert (
@@ -240,7 +240,7 @@ Connection: close
 
     def test_variables_many(self):
         def check_vars(uri, expect):
-            reg = r'^' + re.escape(expect) + r'$'
+            reg = fr'^{re.escape(expect)}$'
 
             assert self.search_in_log(reg) is None
             assert self.get(url=uri)['status'] == 200
@@ -273,7 +273,7 @@ Connection: close
     def test_variables_dynamic_arguments(self):
         def check_arg(url, expect=None):
             expect = url if expect is None else expect
-            reg = r'^' + re.escape(expect) + r'$'
+            reg = fr'^{re.escape(expect)}$'
 
             assert self.search_in_log(reg) is None
             assert self.get(url=url)['status'] == 200
@@ -304,7 +304,7 @@ Connection: close
 
     def test_variables_dynamic_headers(self):
         def check_header(header, value):
-            reg = r'^' + value + r'$'
+            reg = fr'^{value}$'
 
             assert self.search_in_log(reg) is None
             assert (
@@ -368,7 +368,7 @@ Connection: close
         def check_variables(format):
             assert 'error' in self.conf(
                 {
-                    'path': option.temp_dir + '/access.log',
+                    'path': f'{option.temp_dir}/access.log',
                     'format': format,
                 },
                 'access_log',

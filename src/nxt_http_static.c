@@ -196,6 +196,9 @@ nxt_http_static(nxt_task_t *task, nxt_http_request_t *r,
 
         if (!nxt_str_eq(r->method, "HEAD", 4)) {
             if (action->fallback != NULL) {
+                if (nxt_slow_path(r->log_route)) {
+                    nxt_log(task, NXT_LOG_NOTICE, "\"fallback\" taken");
+                }
                 return action->fallback;
             }
 
@@ -690,6 +693,9 @@ nxt_http_static_next(nxt_task_t *task, nxt_http_request_t *r,
     }
 
     if (action->fallback != NULL) {
+        if (nxt_slow_path(r->log_route)) {
+            nxt_log(task, NXT_LOG_NOTICE, "\"fallback\" taken");
+        }
         nxt_http_request_action(task, r, action->fallback);
         return;
     }

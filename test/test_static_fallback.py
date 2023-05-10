@@ -10,11 +10,12 @@ class TestStaticFallback(TestApplicationProto):
 
     @pytest.fixture(autouse=True)
     def setup_method_fixture(self, temp_dir):
-        os.makedirs(temp_dir + '/assets/dir')
-        Path(temp_dir + '/assets/index.html').write_text('0123456789')
+        assets_dir = f'{temp_dir}/assets'
+        os.makedirs(f'{assets_dir}/dir')
+        Path(f'{assets_dir}/index.html').write_text('0123456789')
 
-        os.makedirs(temp_dir + '/assets/403')
-        os.chmod(temp_dir + '/assets/403', 0o000)
+        os.makedirs(f'{assets_dir}/403')
+        os.chmod(f'{assets_dir}/403', 0o000)
 
         self._load_conf(
             {
@@ -22,7 +23,7 @@ class TestStaticFallback(TestApplicationProto):
                     "*:7080": {"pass": "routes"},
                     "*:7081": {"pass": "routes"},
                 },
-                "routes": [{"action": {"share": temp_dir + "/assets$uri"}}],
+                "routes": [{"action": {"share": f'{assets_dir}$uri'}}],
                 "applications": {},
             }
         )
@@ -30,7 +31,7 @@ class TestStaticFallback(TestApplicationProto):
         yield
 
         try:
-            os.chmod(temp_dir + '/assets/403', 0o777)
+            os.chmod(f'{assets_dir}/403', 0o777)
         except FileNotFoundError:
             pass
 
@@ -49,7 +50,7 @@ class TestStaticFallback(TestApplicationProto):
 
     def test_static_fallback_valid_path(self, temp_dir):
         self.action_update(
-            {"share": temp_dir + "/assets$uri", "fallback": {"return": 200}}
+            {"share": f"{temp_dir}/assets$uri", "fallback": {"return": 200}}
         )
         resp = self.get()
         assert resp['status'] == 200, 'fallback status'
@@ -84,7 +85,7 @@ class TestStaticFallback(TestApplicationProto):
         self.action_update(
             {
                 "share": "/blah",
-                "fallback": {"share": temp_dir + "/assets$uri"},
+                "fallback": {"share": f"{temp_dir}/assets$uri"},
             }
         )
 

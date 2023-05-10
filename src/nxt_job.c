@@ -32,11 +32,13 @@ nxt_job_create(nxt_mp_t *mp, size_t size)
         cache_size = size;
     }
 
-    if (nxt_fast_path(job != NULL)) {
-        job->cache_size = (uint16_t) cache_size;
-        job->mem_pool = mp;
-        nxt_job_set_name(job, "job");
+    if (nxt_slow_path(job == NULL)) {
+        return NULL;
     }
+
+    job->cache_size = (uint16_t) cache_size;
+    job->mem_pool = mp;
+    nxt_job_set_name(job, "job");
 
     /* Allow safe nxt_queue_remove() in nxt_job_destroy(). */
     nxt_queue_self(&job->link);

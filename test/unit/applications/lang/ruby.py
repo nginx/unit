@@ -10,22 +10,22 @@ class TestApplicationRuby(TestApplicationProto):
 
     def prepare_env(self, script):
         shutil.copytree(
-            option.test_dir + '/ruby/' + script,
-            option.temp_dir + '/ruby/' + script,
+            f'{option.test_dir}/ruby/{script}',
+            f'{option.temp_dir}/ruby/{script}',
         )
 
-        public_dir(option.temp_dir + '/ruby/' + script)
+        public_dir(f'{option.temp_dir}/ruby/{script}')
 
     def load(self, script, name='config.ru', **kwargs):
         self.prepare_env(script)
 
-        script_path = option.temp_dir + '/ruby/' + script
+        script_path = f'{option.temp_dir}/ruby/{script}'
 
         app = {
             "type": self.get_application_type(),
             "processes": {"spare": 0},
             "working_directory": script_path,
-            "script": script_path + '/' + name,
+            "script": f'{script_path}/{name}',
         }
 
         for key in [
@@ -36,8 +36,8 @@ class TestApplicationRuby(TestApplicationProto):
 
         self._load_conf(
             {
-                "listeners": {"*:7080": {"pass": "applications/" + script}},
+                "listeners": {"*:7080": {"pass": f"applications/{script}"}},
                 "applications": {script: app},
             },
-            **kwargs
+            **kwargs,
         )

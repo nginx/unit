@@ -13,21 +13,21 @@ class TestRespawn(TestApplicationPython):
     PATTERN_CONTROLLER = 'unit: controller'
 
     def setup_method(self):
-        self.app_name = "app-" + option.temp_dir.split('/')[-1]
+        self.app_name = f'app-{option.temp_dir.split("/")[-1]}'
 
         self.load('empty', self.app_name)
 
         assert 'success' in self.conf(
-            '1', 'applications/' + self.app_name + '/processes'
+            '1', f'applications/{self.app_name}/processes'
         )
 
     def pid_by_name(self, name, ppid):
         output = subprocess.check_output(['ps', 'ax', '-O', 'ppid']).decode()
-        m = re.search(r'\s*(\d+)\s*' + str(ppid) + r'.*' + name, output)
+        m = re.search(fr'\s*(\d+)\s*{ppid}.*{name}', output)
         return None if m is None else m.group(1)
 
     def kill_pids(self, *pids):
-        subprocess.call(['kill', '-9'] + list(pids))
+        subprocess.call(['kill', '-9', *pids])
 
     def wait_for_process(self, process, unit_pid):
         for i in range(50):
@@ -41,11 +41,11 @@ class TestRespawn(TestApplicationPython):
         return found
 
     def find_proc(self, name, ppid, ps_output):
-        return re.findall(str(ppid) + r'.*' + name, ps_output)
+        return re.findall(fr'{ppid}.*{name}', ps_output)
 
     def smoke_test(self, unit_pid):
         for _ in range(10):
-            r = self.conf('1', 'applications/' + self.app_name + '/processes')
+            r = self.conf('1', f'applications/{self.app_name}/processes')
 
             if 'success' in r:
                 break
@@ -68,7 +68,7 @@ class TestRespawn(TestApplicationPython):
         pid = self.pid_by_name(self.PATTERN_ROUTER, unit_pid)
 
         self.kill_pids(pid)
-        skip_alert(r'process %s exited on signal 9' % pid)
+        skip_alert(fr'process {pid} exited on signal 9')
 
         assert self.wait_for_process(self.PATTERN_ROUTER, unit_pid) is not None
 
@@ -79,7 +79,7 @@ class TestRespawn(TestApplicationPython):
         pid = self.pid_by_name(self.PATTERN_CONTROLLER, unit_pid)
 
         self.kill_pids(pid)
-        skip_alert(r'process %s exited on signal 9' % pid)
+        skip_alert(fr'process {pid} exited on signal 9')
 
         assert (
             self.wait_for_process(self.PATTERN_CONTROLLER, unit_pid) is not None
@@ -93,7 +93,7 @@ class TestRespawn(TestApplicationPython):
         pid = self.pid_by_name(self.app_name, unit_pid)
 
         self.kill_pids(pid)
-        skip_alert(r'process %s exited on signal 9' % pid)
+        skip_alert(fr'process {pid} exited on signal 9')
 
         assert self.wait_for_process(self.app_name, unit_pid) is not None
 

@@ -19,6 +19,21 @@ BUILD_DEPENDS = $(BUILD_DEPENDS_unit)
 
 MODULES=
 
+# Ubuntu 23.04
+ifeq ($(CODENAME),lunar)
+include Makefile.php
+include Makefile.python311
+include Makefile.go
+include Makefile.perl
+include Makefile.ruby
+include Makefile.jsc-common
+include Makefile.jsc11
+include Makefile.jsc17
+include Makefile.jsc18
+include Makefile.jsc19
+include Makefile.jsc20
+endif
+
 # Ubuntu 22.10
 ifeq ($(CODENAME),kinetic)
 include Makefile.php
@@ -117,11 +132,11 @@ endif
 
 CONFIGURE_ARGS_COMMON=\
 	--prefix=/usr \
-	--state=/var/lib/unit \
+	--statedir=/var/lib/unit \
 	--control="unix:/var/run/control.unit.sock" \
 	--pid=/var/run/unit.pid \
 	--log=/var/log/unit.log \
-	--tmp=/var/tmp \
+	--tmpdir=/var/tmp \
 	--user=unit \
 	--group=unit \
 	--tests \
@@ -199,7 +214,8 @@ endif
 debuild/unit_$(VERSION).orig.tar.gz: | debuild/$(SRCDIR)/debian
 	cd ../.. && tar -czf pkg/deb/debuild/$(SRCDIR).tar.gz \
 		--transform "s#^#$(SRCDIR)/#" \
-		LICENSE NOTICE CHANGES README.md CONTRIBUTING.md configure auto src test version go pkg/contrib docs/man/unitd.8.in
+		LICENSE NOTICE CHANGES README.md CONTRIBUTING.md configure auto src \
+		test tools version go pkg/contrib docs/man/man8/unitd.8.in
 	mv debuild/$(SRCDIR).tar.gz debuild/unit_$(VERSION).orig.tar.gz
 	cd debuild && tar zxf unit_$(VERSION).orig.tar.gz
 
@@ -288,8 +304,8 @@ test: unit modules
 	for so in `find debuild-*/unit-$(VERSION)/debian/build-unit/ -type f \( -name "*.so" -o -name "*.jar" \)`; do \
 		soname=`basename $${so}` ; \
 		test "$${soname}" = "java.unit.so" && continue ; \
-		test -h debuild/unit-$(VERSION)/debian/build-unit/build/$${soname} || \
-		ln -fs `pwd`/$${so} debuild/unit-$(VERSION)/debian/build-unit/build/$${soname} ; \
+		test -h debuild/unit-$(VERSION)/debian/build-unit/build/lib/$${soname} || \
+		ln -fs `pwd`/$${so} debuild/unit-$(VERSION)/debian/build-unit/build/lib/$${soname} ; \
 	done ; \
 	( cd debuild/unit-$(VERSION)/debian/build-unit && env python3 -m pytest --user=nobody $(PYTEST_ARGS) ) ; \
 	}
@@ -299,8 +315,8 @@ test-debug: unit modules
 	for so in `find debuild-*/unit-$(VERSION)/debian/build-unit-debug/ -type f \( -name "*.so" -o -name "*.jar" \)`; do \
 		soname=`basename $${so}` ; \
 		test "$${soname}" = "java.unit.so" && continue ; \
-		test -h debuild/unit-$(VERSION)/debian/build-unit-debug/build/$${soname} || \
-		ln -fs `pwd`/$${so} debuild/unit-$(VERSION)/debian/build-unit-debug/build/$${soname} ; \
+		test -h debuild/unit-$(VERSION)/debian/build-unit-debug/build/lib/$${soname} || \
+		ln -fs `pwd`/$${so} debuild/unit-$(VERSION)/debian/build-unit-debug/build/lib/$${soname} ; \
 	done ; \
 	( cd debuild/unit-$(VERSION)/debian/build-unit-debug && env python3 -m pytest --user=nobody $(PYTEST_ARGS) ) ; \
 	}

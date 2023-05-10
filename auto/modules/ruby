@@ -176,7 +176,7 @@ fi
 
 
 NXT_RUBY_MOUNTS_HEADER=nxt_${NXT_RUBY_MODULE}_mounts.h
-NXT_RUBY_MOUNTS_PATH=$NXT_BUILD_DIR/$NXT_RUBY_MOUNTS_HEADER
+NXT_RUBY_MOUNTS_PATH=$NXT_BUILD_DIR/include/$NXT_RUBY_MOUNTS_HEADER
 
 cat << END > $NXT_RUBY_MOUNTS_PATH
 
@@ -234,7 +234,7 @@ $NXT_BUILD_DIR/$nxt_obj:	$nxt_src $NXT_VERSION_H
 	\$(CC) -c \$(CFLAGS) $NXT_RUBY_CFLAGS -DNXT_RUBY_MOUNTS_H=\"$NXT_RUBY_MOUNTS_HEADER\" \\
            \$(NXT_INCS) $NXT_RUBY_INCPATH \\
 	$nxt_dep_flags \\
-	-o $NXT_BUILD_DIR/$nxt_obj $nxt_src
+	-o \$@ $nxt_src
 	$nxt_dep_post
 
 -include $NXT_BUILD_DIR/$nxt_dep
@@ -251,25 +251,24 @@ cat << END >> $NXT_MAKEFILE
 
 all: ${NXT_RUBY_MODULE}
 
-${NXT_RUBY_MODULE}:	$NXT_BUILD_DIR/${NXT_RUBY_MODULE}.unit.so
+${NXT_RUBY_MODULE}:	$NXT_BUILD_DIR/lib/unit/modules/${NXT_RUBY_MODULE}.unit.so
 
-$NXT_BUILD_DIR/${NXT_RUBY_MODULE}.unit.so:	$nxt_objs
-	\$(NXT_MODULE_LINK) -o $NXT_BUILD_DIR/${NXT_RUBY_MODULE}.unit.so \\
-	$nxt_objs $NXT_RUBY_LIBS $NXT_LD_OPT
+$NXT_BUILD_DIR/lib/unit/modules/${NXT_RUBY_MODULE}.unit.so:	$nxt_objs
+	\$(NXT_MODULE_LINK) -o \$@ $nxt_objs $NXT_RUBY_LIBS $NXT_LD_OPT
 
 
 install: ${NXT_RUBY_MODULE}-install
 
 ${NXT_RUBY_MODULE}-install: ${NXT_RUBY_MODULE} install-check
-	install -d \$(DESTDIR)$NXT_MODULES
-	install -p $NXT_BUILD_DIR/${NXT_RUBY_MODULE}.unit.so \\
-		\$(DESTDIR)$NXT_MODULES/
+	install -d \$(DESTDIR)$NXT_MODULESDIR
+	install -p $NXT_BUILD_DIR/lib/unit/modules/${NXT_RUBY_MODULE}.unit.so \\
+		\$(DESTDIR)$NXT_MODULESDIR/
 
 
 uninstall: ${NXT_RUBY_MODULE}-uninstall
 
 ${NXT_RUBY_MODULE}-uninstall:
-	rm -f \$(DESTDIR)$NXT_MODULES/${NXT_RUBY_MODULE}.unit.so
-	@rmdir -p \$(DESTDIR)$NXT_MODULES 2>/dev/null || true
+	rm -f \$(DESTDIR)$NXT_MODULESDIR/${NXT_RUBY_MODULE}.unit.so
+	@rmdir -p \$(DESTDIR)$NXT_MODULESDIR 2>/dev/null || true
 
 END

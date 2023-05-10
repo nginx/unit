@@ -20,7 +20,7 @@ nxt_fs_mkdir_all(const u_char *dir, mode_t mode)
     nxt_assert(dirlen < PATH_MAX && dirlen > 1 && dir[0] == '/');
 
     dst = path;
-    start = end = (char *) dir;
+    start = (char *) dir;
 
     while (*start != '\0') {
         if (*start == '/') {

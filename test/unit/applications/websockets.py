@@ -52,7 +52,7 @@ class TestApplicationWebsocket(TestApplicationProto):
         while True:
             rlist = select.select([sock], [], [], 60)[0]
             if not rlist:
-                pytest.fail('Can\'t read response from server.')
+                pytest.fail("Can't read response from server.")
 
             resp += sock.recv(4096).decode()
 
@@ -77,7 +77,7 @@ class TestApplicationWebsocket(TestApplicationProto):
                     # For all current cases if the "read_timeout" was changed
                     # than test do not expect to get a response from server.
                     if read_timeout == 60:
-                        pytest.fail('Can\'t read response from server.')
+                        pytest.fail("Can't read response from server.")
                     break
 
                 data += sock.recv(bytes - len(data))

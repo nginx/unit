@@ -70,7 +70,7 @@ nxt_tstr_state_new(nxt_mp_t *mp, nxt_bool_t test)
     }
 
 #if (NXT_HAVE_NJS)
-    state->jcf = nxt_js_conf_new(mp);
+    state->jcf = nxt_js_conf_new(mp, test);
     if (nxt_slow_path(state->jcf == NULL)) {
         return NULL;
     }
@@ -273,7 +273,8 @@ nxt_tstr_query(nxt_task_t *task, nxt_tstr_query_t *query, nxt_tstr_t *tstr,
 
     } else {
 #if (NXT_HAVE_NJS)
-        ret = nxt_js_call(task, &query->cache->js, tstr->u.js, val, query->ctx);
+        ret = nxt_js_call(task, query->state->jcf, &query->cache->js,
+                          tstr->u.js, val, query->ctx);
 
         if (nxt_slow_path(ret != NXT_OK)) {
             query->failed = 1;
@@ -293,6 +294,13 @@ nxt_tstr_query(nxt_task_t *task, nxt_tstr_query_t *query, nxt_tstr_t *tstr,
 
     nxt_debug(task, "tstr query: \"%V\", result: \"%V\"", &str, val);
 #endif
+}
+
+
+nxt_bool_t
+nxt_tstr_query_failed(nxt_tstr_query_t *query)
+{
+    return query->failed;
 }
 
 
