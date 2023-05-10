@@ -15,12 +15,12 @@ coherent solution with a focus on performance, low latency, and scalability. It
 is intended as a universal building block for any web architecture regardless
 of its complexity, from enterprise-scale deployments to your pet's homepage.
 
-Its native RESTful JSON API enables dynamic updates with zero interruptions
-and flexible configuration, while its out-of-the-box productivity reliably
-scales to production-grade workloads. We achieve that with a complex,
-asynchronous, multithreading architecture comprising multiple processes to
-ensure security and robustness while getting the most out of today's computing
-platforms.
+Its native [RESTful JSON API][#openapi-specification] enables dynamic
+updates with zero interruptions and flexible configuration, while its
+out-of-the-box productivity reliably scales to production-grade workloads. We
+achieve that with a complex, asynchronous, multithreading architecture
+comprising multiple processes to ensure security and robustness while getting
+the most out of today's computing platforms.
 
 
 ## Quick Installation
@@ -156,6 +156,16 @@ Unit's output should contain both snippets, neatly organized:
 For full details of configuration management, see the
 [docs](https://unit.nginx.org/configuration/#configuration-management).
 
+## OpenAPI Specification
+
+Our [OpenAPI specification](docs/openapi.yaml) aims to simplify configuring and
+integrating NGINX Unit deployments and provide an authoritative source of
+knowledge about the control API.
+
+Although the specification is still in the early beta stage, it is a promising
+step forward for the NGINX Unit community. While working on it, we kindly ask
+you to experiment and provide feedback to help improve its functionality and
+usability.
 
 ## Community
 
