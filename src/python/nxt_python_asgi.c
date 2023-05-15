@@ -828,7 +828,7 @@ nxt_py_asgi_create_address(nxt_unit_sptr_t *sptr, uint8_t len, uint16_t port)
 static PyObject *
 nxt_py_asgi_create_ip_address(nxt_unit_sptr_t *sptr, uint8_t len, uint16_t port)
 {
-    char      *p, *s;
+    char      *p;
     PyObject  *pair, *v;
 
     pair = PyTuple_New(2);
@@ -837,9 +837,8 @@ nxt_py_asgi_create_ip_address(nxt_unit_sptr_t *sptr, uint8_t len, uint16_t port)
     }
 
     p = nxt_unit_sptr_get(sptr);
-    s = memchr(p, ':', len);
 
-    v = PyString_FromStringAndSize(p, s == NULL ? len : s - p);
+    v = PyString_FromStringAndSize(p, len);
     if (nxt_slow_path(v == NULL)) {
         Py_DECREF(pair);
 
@@ -848,14 +847,7 @@ nxt_py_asgi_create_ip_address(nxt_unit_sptr_t *sptr, uint8_t len, uint16_t port)
 
     PyTuple_SET_ITEM(pair, 0, v);
 
-    if (s != NULL) {
-        p += len;
-        v = PyLong_FromString(s + 1, &p, 10);
-
-    } else {
-        v = PyLong_FromLong(port);
-    }
-
+    v = PyLong_FromLong(port);
     if (nxt_slow_path(v == NULL)) {
         Py_DECREF(pair);
 
