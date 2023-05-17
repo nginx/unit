@@ -30,16 +30,13 @@ test -v ZSH_VERSION \
 
 export LC_ALL=C
 
-program_name="$0";
-prog_name="$(basename $program_name)";
-
 dry_run='no';
 
 help_unit()
 {
     cat <<__EOF__ ;
 SYNOPSIS
-        $program_name [-h] COMMAND [ARGS]
+        $0 [-h] COMMAND [ARGS]
 
     Subcommands
         ├── repo-config  [-hn] [PKG-MANAGER OS-NAME OS-VERSION]
@@ -49,7 +46,7 @@ DESCRIPTION
         This script simplifies installing and configuring an NGINX Unit server
         for first-time users.
 
-        Run '$program_name COMMAND -h' for more information on a command.
+        Run '$0 COMMAND -h' for more information on a command.
 
 COMMANDS
         repo-config
@@ -75,7 +72,7 @@ help_more_unit()
 {
     cat <<__EOF__ ;
 SYNOPSIS
-        $program_name [-h] COMMAND [ARGS]
+        $0 [-h] COMMAND [ARGS]
 
     Subcommands
         ├── cmd          [-h]
@@ -96,7 +93,7 @@ DESCRIPTION
         This script simplifies installing and configuring
         an NGINX Unit server for first-time users.
 
-        Run '$program_name COMMAND -h' for more information on a command.
+        Run '$0 COMMAND -h' for more information on a command.
 
 COMMANDS
         cmd     Print the invocation line of unitd(8).
@@ -137,12 +134,12 @@ __EOF__
 
 warn()
 {
-    >&2 echo "$prog_name: error: $*";
+    >&2 echo "$(basename "$0"): error: $*";
 }
 
 err()
 {
-    >&2 echo "$prog_name: error: $*";
+    >&2 echo "$(basename "$0"): error: $*";
     exit 1;
 }
 
@@ -167,7 +164,7 @@ help_unit_cmd()
 {
     cat <<__EOF__ ;
 SYNOPSIS
-        $program_name cmd [-h]
+        $0 cmd [-h]
 
 DESCRIPTION
         Print the invocation line of running unitd(8) instances.
@@ -207,7 +204,7 @@ help_unit_ctl()
 {
     cat <<__EOF__ ;
 SYNOPSIS
-        $program_name ctl [-h] [-s SOCK] SUBCOMMAND [ARGS]
+        $0 ctl [-h] [-s SOCK] SUBCOMMAND [ARGS]
 
     Subcommands
         ├── http    [-h] [-c CURLOPT] METHOD PATH
@@ -216,7 +213,7 @@ SYNOPSIS
 DESCRIPTION
         Control a running unitd(8) instance through its control API socket.
 
-        Run '$program_name ctl SUBCOMMAND -h' for more information on a
+        Run '$0 ctl SUBCOMMAND -h' for more information on a
         subcommand.
 
 SUBCOMMANDS
@@ -319,7 +316,7 @@ help_unit_ctl_http()
 {
     cat <<__EOF__ ;
 SYNOPSIS
-        $program_name ctl [CTL-OPTS] http [-h] [-c CURLOPT] METHOD PATH
+        $0 ctl [CTL-OPTS] http [-h] [-c CURLOPT] METHOD PATH
 
 DESCRIPTION
         Send an HTTP request to the unitd(8) control API socket.
@@ -341,7 +338,7 @@ ENVIRONMENT
                 Equivalent to the option -c (--curl).
 
 EXAMPLES
-        $program_name ctl http -c --no-progress-meter GET /config >tmp;
+        $0 ctl http -c --no-progress-meter GET /config >tmp;
 
 SEE ALSO
         <https://unit.nginx.org/controlapi/#api-manipulation>
@@ -424,7 +421,7 @@ help_unit_ctl_insert()
 {
     cat <<__EOF__ ;
 SYNOPSIS
-        $program_name ctl [CTL-OPTS] insert [-h] PATH INDEX
+        $0 ctl [CTL-OPTS] insert [-h] PATH INDEX
 
 DESCRIPTION
         Insert an element at the specified position (INDEX) into the JSON array
@@ -437,7 +434,7 @@ OPTIONS
                 Print this help.
 
 SEE ALSO
-        $program_name ctl http -h;
+        $0 ctl http -h;
 
 __EOF__
 }
@@ -514,7 +511,7 @@ help_unit_ctl_welcome()
 {
     cat <<__EOF__ ;
 SYNOPSIS
-        $program_name welcome [-hn]
+        $0 welcome [-hn]
 
 DESCRIPTION
         This script tests an NGINX Unit installation by creating an initial
@@ -720,7 +717,7 @@ help_unit_freeport()
 {
     cat <<__EOF__ ;
 SYNOPSIS
-        $program_name freeport [-h]
+        $0 freeport [-h]
 
 DESCRIPTION
         Print an available TCP port.
@@ -828,7 +825,7 @@ help_unit_json_ins()
 {
 cat <<__EOF__ ;
 SYNOPSIS
-        $program_name json-ins [-hn] JSON INDEX
+        $0 json-ins [-hn] JSON INDEX
 
 ARGUMENTS
         JSON    Path to a JSON file containing a top-level array.
@@ -901,7 +898,7 @@ help_unit_os_probe()
 {
     cat <<__EOF__ ;
 SYNOPSIS
-        $program_name os-probe [-h]
+        $0 os-probe [-h]
 
 DESCRIPTION
         This script probes the OS and prints three fields, delimited by ':';
@@ -978,7 +975,7 @@ help_unit_ps()
 {
     cat <<__EOF__ ;
 SYNOPSIS
-        $program_name ps [-h] [-t TYPE]
+        $0 ps [-h] [-t TYPE]
 
 DESCRIPTION
         List unitd(8) processes.
@@ -1051,7 +1048,7 @@ help_unit_repo_config()
 {
     cat <<__EOF__ ;
 SYNOPSIS
-        $program_name repo-config [-hn] [PKG-MANAGER OS-NAME OS-VERSION]
+        $0 repo-config [-hn] [PKG-MANAGER OS-NAME OS-VERSION]
 
 DESCRIPTION
         This script configures the NGINX Unit repository for the system
@@ -1082,11 +1079,11 @@ OPTIONS
                 what it does.
 
 EXAMPLES
-        $ $prog_name repo-config apt debian bullseye;
-        $ $prog_name repo-config apt ubuntu jammy;
-        $ $prog_name repo-config dnf fedora 36;
-        $ $prog_name repo-config dnf rhel 9;
-        $ $prog_name repo-config yum amzn2 2;
+        $ $(basename "$0") repo-config apt debian bullseye;
+        $ $(basename "$0") repo-config apt ubuntu jammy;
+        $ $(basename "$0") repo-config dnf fedora 36;
+        $ $(basename "$0") repo-config dnf rhel 9;
+        $ $(basename "$0") repo-config yum amzn2 2;
 
 __EOF__
 }
@@ -1226,7 +1223,7 @@ help_unit_sock()
 {
     cat <<__EOF__ ;
 SYNOPSIS
-        $program_name sock [-h] SUBCOMMAND [ARGS]
+        $0 sock [-h] SUBCOMMAND [ARGS]
 
     Subcommands
         ├── filter  [-ch]
@@ -1236,7 +1233,7 @@ DESCRIPTION
         Print the control API socket address of running unitd(8)
         instances.
 
-        Run '$program_name sock SUBCOMMAND -h' for more information on a
+        Run '$0 sock SUBCOMMAND -h' for more information on a
         subcommand.
 
 SUBCOMMANDS
@@ -1297,7 +1294,7 @@ help_unit_sock_filter()
 {
     cat <<__EOF__ ;
 SYNOPSIS
-        $program_name sock filter [-chs]
+        $0 sock filter [-chs]
 
 DESCRIPTION
         Filter the output of the 'sock find' command and transform it to
@@ -1376,7 +1373,7 @@ help_unit_sock_find()
 {
     cat <<__EOF__ ;
 SYNOPSIS
-        $program_name sock find [-h]
+        $0 sock find [-h]
 
 DESCRIPTION
         Find and print the control API socket address of running
