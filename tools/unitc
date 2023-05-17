@@ -131,7 +131,7 @@ if [ $REMOTE -eq 0 ]; then
 
 		# Get control address
 		#
-		PARAMS=$(ps $PID | grep unitd | cut -f2- -dv | tr '[]' ' ' | cut -f3- -d ' ' | sed -e 's/ --/\n--/g')
+		PARAMS=$(ps ww $PID | grep 'unit[:d] ' | perl -p -e 's/.*?([^ ]*unit[:d])/\1/' | sed 's/ (.*//' | sed 's/.*\[//' | sed 's/].*//' | sed -e 's/ --/\n--/g')
 		CTRL_ADDR=$(echo "$PARAMS" | grep '\--control' | cut -f2 -d' ')
 		if [ "$CTRL_ADDR" = "" ]; then
 			CTRL_ADDR=$($(echo "$PARAMS" | grep unitd) --help | grep -A1 '\--control' | tail -1 | cut -f2 -d\")
