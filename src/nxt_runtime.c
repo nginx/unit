@@ -966,6 +966,13 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
                        "option \"--statedir\" requires directory\n";
     static const char  no_tmp[] = "option \"--tmpdir\" requires directory\n";
 
+    static const char  modules_deprecated[] =
+           "option \"--modules\" is deprecated; use \"--modulesdir\" instead\n";
+    static const char  state_deprecated[] =
+           "option \"--state\" is deprecated; use \"--statedir\" instead\n";
+    static const char  tmp_deprecated[] =
+           "option \"--tmp\" is deprecated; use \"--tmpdir\" instead\n";
+
     static const char  help[] =
         "\n"
         "unit options:\n"
@@ -991,6 +998,10 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
         "\n"
         "  --tmpdir DIR         set tmp directory name\n"
         "                       default: \"" NXT_TMPDIR "\"\n"
+        "\n"
+        "  --modules DIR        [deprecated] synonym for --modulesdir\n"
+        "  --state DIR          [deprecated] synonym for --statedir\n"
+        "  --tmp DIR            [deprecated] synonym for --tmpdir\n"
         "\n"
         "  --user USER          set non-privileged processes to run"
                                 " as specified user\n"
@@ -1073,7 +1084,14 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
             continue;
         }
 
+        if (nxt_strcmp(p, "--modules") == 0) {
+            write(STDERR_FILENO, modules_deprecated,
+                  nxt_length(modules_deprecated));
+            goto modulesdir;
+        }
+
         if (nxt_strcmp(p, "--modulesdir") == 0) {
+modulesdir:
             if (*argv == NULL) {
                 write(STDERR_FILENO, no_modules, nxt_length(no_modules));
                 return NXT_ERROR;
@@ -1086,7 +1104,14 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
             continue;
         }
 
+        if (nxt_strcmp(p, "--state") == 0) {
+            write(STDERR_FILENO, state_deprecated,
+                  nxt_length(state_deprecated));
+            goto statedir;
+        }
+
         if (nxt_strcmp(p, "--statedir") == 0) {
+statedir:
             if (*argv == NULL) {
                 write(STDERR_FILENO, no_state, nxt_length(no_state));
                 return NXT_ERROR;
@@ -1099,7 +1124,13 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
             continue;
         }
 
+        if (nxt_strcmp(p, "--tmp") == 0) {
+            write(STDERR_FILENO, tmp_deprecated, nxt_length(tmp_deprecated));
+            goto tmpdir;
+        }
+
         if (nxt_strcmp(p, "--tmpdir") == 0) {
+tmpdir:
             if (*argv == NULL) {
                 write(STDERR_FILENO, no_tmp, nxt_length(no_tmp));
                 return NXT_ERROR;
