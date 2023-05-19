@@ -70,6 +70,21 @@ class TestSettings(TestApplicationPython):
         check_error({'large_header_buffers': -1})
         check_error({'large_header_buffers': 0})
 
+    def test_settings_server_version(self):
+        self.load('empty')
+
+        assert self.get()['headers']['Server'].startswith('Unit/')
+
+        assert 'success' in self.conf(
+            {"http": {"server_version": False}}, 'settings'
+        ), 'remove version'
+        assert self.get()['headers']['Server'] == 'Unit'
+
+        assert 'success' in self.conf(
+            {"http": {"server_version": True}}, 'settings'
+        ), 'add version'
+        assert self.get()['headers']['Server'].startswith('Unit/')
+
     def test_settings_header_read_timeout(self):
         self.load('empty')
 
