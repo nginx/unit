@@ -40,7 +40,7 @@ enum {
 /*
  * Mostly opaque structure with library state.
  *
- * Only user defined 'data' pointer exposed here.  The rest is unit
+ * Only the user defined 'data' pointer is exposed here.  The rest is unit
  * implementation specific and hidden.
  */
 struct nxt_unit_s {
@@ -51,8 +51,8 @@ struct nxt_unit_s {
  * Thread context.
  *
  * First (main) context is provided 'for free'.  To receive and process
- * requests in other thread, one need to allocate context and use it
- * further in this thread.
+ * requests in other threads, one needs to allocate a new context and use it
+ * further in that thread.
  */
 struct nxt_unit_ctx_s {
     void                  *data;  /* User context-specific data. */
@@ -72,7 +72,7 @@ struct nxt_unit_port_id_s {
 };
 
 /*
- * unit provides port storage which is able to store and find the following
+ * Unit provides port storage which is able to store and find the following
  * data structures.
  */
 struct nxt_unit_port_s {
@@ -114,13 +114,13 @@ struct nxt_unit_request_info_s {
 
 
 /*
- * Set of application-specific callbacks. Application may leave all optional
- * callbacks as NULL.
+ * Set of application-specific callbacks.  The application may leave all
+ * optional callbacks as NULL.
  */
 struct nxt_unit_callbacks_s {
     /*
-     * Process request. Unlike all other callback, this callback
-     * need to be defined by application.
+     * Process request. Unlike all other callbacks, this callback is required
+     * and needs to be defined by the application.
      */
     void     (*request_handler)(nxt_unit_request_info_t *req);
 
@@ -201,15 +201,15 @@ struct nxt_unit_read_info_s {
 nxt_unit_ctx_t *nxt_unit_init(nxt_unit_init_t *);
 
 /*
- * Main function useful in case when application does not have it's own
- * event loop. nxt_unit_run() starts infinite message wait and process loop.
+ * Main function, useful in case the application does not have its own event
+ * loop. nxt_unit_run() starts an infinite message wait and process loop.
  *
  *  for (;;) {
  *      app_lib->port_recv(...);
  *      nxt_unit_process_msg(...);
  *  }
  *
- * The normally function returns when QUIT message received from Unit.
+ * The function returns normally when a QUIT message is received from Unit.
  */
 int nxt_unit_run(nxt_unit_ctx_t *);
 
@@ -220,10 +220,10 @@ int nxt_unit_run_shared(nxt_unit_ctx_t *ctx);
 nxt_unit_request_info_t *nxt_unit_dequeue_request(nxt_unit_ctx_t *ctx);
 
 /*
- * Receive and process one message, invoke configured callbacks.
+ * Receive and process one message, and invoke configured callbacks.
  *
- * If application implements it's own event loop, each datagram received
- * from port socket should be initially processed by unit.  This function
+ * If the application implements its own event loop, each datagram received
+ * from the port socket should be initially processed by unit.  This function
  * may invoke other application-defined callback for message processing.
  */
 int nxt_unit_run_once(nxt_unit_ctx_t *ctx);
@@ -234,8 +234,8 @@ int nxt_unit_process_port_msg(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port);
 void nxt_unit_done(nxt_unit_ctx_t *);
 
 /*
- * Allocate and initialize new execution context with new listen port to
- * process requests in other thread.
+ * Allocate and initialize a new execution context with a new listen port to
+ * process requests in another thread.
  */
 nxt_unit_ctx_t *nxt_unit_ctx_alloc(nxt_unit_ctx_t *, void *);
 
@@ -253,7 +253,7 @@ void nxt_unit_split_host(char *host_start, uint32_t host_length,
 void nxt_unit_request_group_dup_fields(nxt_unit_request_info_t *req);
 
 /*
- * Allocate response structure capable to store limited numer of fields.
+ * Allocate response structure capable of storing a limited number of fields.
  * The structure may be accessed directly via req->response pointer or
  * filled step-by-step using functions add_field and add_content.
  */
@@ -273,8 +273,8 @@ int nxt_unit_response_add_content(nxt_unit_request_info_t *req,
     const void* src, uint32_t size);
 
 /*
- * Send prepared response to Unit server.  Response structure destroyed during
- * this call.
+ * Send the prepared response to the Unit server.  The Response structure is
+ * destroyed during this call.
  */
 int nxt_unit_response_send(nxt_unit_request_info_t *req);
 
