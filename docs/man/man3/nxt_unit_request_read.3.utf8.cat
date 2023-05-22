@@ -1,0 +1,120 @@
+[4mnxt_unit_request_read[24m(3)   Library Functions Manual   [4mnxt_unit_request_read[24m(3)
+
+[1mName[0m
+       nxt_unit_request_read - read  content of a response in Unit app
+
+[1mLibrary[0m
+       NGINX Unit library ([4mlibunit[24m, [4m‐lunit[24m)
+
+[1mSynopsis[0m
+       [1m#include <nxt_unit.h>[0m
+
+       [1mssize_t nxt_unit_request_read(nxt_unit_request_info_t *[4m[22mreq[24m[1m,[0m
+                                     [1mvoid [4m[22mdst[24m[1m[.[4m[22msize[24m[1m], size_t [4m[22msize[24m[1m);[0m
+
+[1mArguments[0m
+       [4mreq[24m    Request object.
+
+       [4mdst[24m    Buffer  where  the request message body will be written.  It’s a
+              buffer of [4msize[24m bytes.
+
+[1mDescription[0m
+       [4mnxt_unit_request_read[24m(3) copies the client request message body into  a
+       buffer.
+
+       This  function  does  not  read the header fields nor the request line,
+       which are available in [4mreq->request[24m.
+
+[1mReturn value[0m
+       The number of bytes read on success, or -1 on error.
+
+[1mErrors[0m
+       Errors will be reported in the Unit debug log.
+
+       [1mNXT_UNIT_ERROR[0m
+              •  Failed to read content.
+
+[1mExamples[0m
+       Below is a request and response pair, and the source  code  to  produce
+       it.  It implements an echo web application.
+
+       See  [4mnxt_unit_init[24m(3)  for an example where the [4mrequest_handler[24m() func‐
+       tion defined below is used.
+
+   [1mRequest[0m
+       $ [1mecho -e 'foo\nbar' | curl --data-binary @- localhost;[0m
+       foo
+       bar
+
+   [1mC code[0m
+       #define _GNU_SOURCE
+       #include <string.h>
+
+       #include <nxt_unit.h>
+
+       void
+       request_handler(nxt_unit_request_info_t *req)
+       {
+           int             rc;
+           ssize_t         res;
+           nxt_unit_buf_t  *buf;
+
+           rc = nxt_unit_response_init(req, 200, 1, strlen("Content-Type")
+                                                    + strlen("text/plain"));
+           if (rc != 0) {
+               goto fail;
+           }
+
+           rc = nxt_unit_response_add_field(req, "Content-Type",
+                                                 strlen("Content-Type"),
+                                                 "text/plain",
+                                                 strlen("text/plain"));
+           if (rc != 0) {
+               goto fail;
+           }
+
+           rc = nxt_unit_response_send(req);
+           if (rc != 0) {
+               goto fail;
+           }
+
+           while (req->content_length) {
+               buf = nxt_unit_response_buf_alloc(req, req->content_length);
+               if (buf == NULL) {
+                   rc = NXT_UNIT_ERROR;
+                   goto fail;
+               }
+
+               res = nxt_unit_request_read(req, buf->free,
+                                           buf->end - buf->free);
+               if (res == -1) {
+                   goto fail;
+               }
+
+               buf->free += res;
+
+               rc = nxt_unit_buf_send(buf);
+               if (rc != 0) {
+                   goto fail;
+               }
+           }
+
+       fail:
+           nxt_unit_request_done(req, rc);
+       }
+
+[1mCopyright[0m
+       (C) 2017‐2023, NGINX, Inc.
+
+       SPDX‐License‐Identifier: Apache‐2.0
+
+[1mSee also[0m
+       [4mnxt_unit_init[24m(3), [4mnxt_unit_response_init[24m(3), [4munitd[24m(8)
+
+       Website ⟨https://unit.nginx.org⟩
+
+       Mailing list ⟨https://mailman.nginx.org/mailman/listinfo/unit⟩
+
+       GitHub ⟨https://github.com/nginx/unit⟩
+
+NGINX Unit (unreleased)             (date)            [4mnxt_unit_request_read[24m(3)

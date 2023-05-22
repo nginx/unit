@@ -1,0 +1,44 @@
+[4mnxt_unit_done[24m(3)           Library Functions Manual           [4mnxt_unit_done[24m(3)
+
+[1mName[0m
+       nxt_unit_done - destroy context object in Unit app
+
+[1mLibrary[0m
+       NGINX Unit library ([4mlibunit[24m, [4m‐lunit[24m)
+
+[1mSynopsis[0m
+       [1m#include <nxt_unit.h>[0m
+
+       [1mvoid nxt_unit_done(nxt_unit_ctx_t *[4m[22mctx[24m[1m);[0m
+
+[1mArguments[0m
+       [4mctx[24m    Context  object  to  be  destroyed.  It should have been created
+              with [4mnxt_unit_init[24m(3) or [4mnxt_unit_ctx_alloc[24m(3).
+
+[1mDescription[0m
+       [4mnxt_unit_done[24m(3) destroys a context object in a Unit application.
+
+[1mReturn value[0m
+       None.
+
+[1mErrors[0m
+       None.
+
+[1mExamples[0m
+       See [4mnxt_unit_init[24m(3) and [4mnxt_unit_ctx_alloc[24m(3).
+
+[1mCopyright[0m
+       (C) 2017‐2023, NGINX, Inc.
+
+       SPDX‐License‐Identifier: Apache‐2.0
+
+[1mSee also[0m
+       [4mnxt_unit_ctx_alloc[24m(3), [4mnxt_unit_init[24m(3), [4munitd[24m(8)
+
+       Website ⟨https://unit.nginx.org⟩
+
+       Mailing list ⟨https://mailman.nginx.org/mailman/listinfo/unit⟩
+
+       GitHub ⟨https://github.com/nginx/unit⟩
+
+NGINX Unit (unreleased)             (date)                    [4mnxt_unit_done[24m(3)

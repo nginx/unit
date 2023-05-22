@@ -1,0 +1,67 @@
+[4mnxt_unit_response_init[24m(3)  Library Functions Manual  [4mnxt_unit_response_init[24m(3)
+
+[1mName[0m
+       nxt_unit_response_init - initialize response in Unit app
+
+[1mLibrary[0m
+       NGINX Unit library ([4mlibunit[24m, [4m‐lunit[24m)
+
+[1mSynopsis[0m
+       [1m#include <nxt_unit.h>[0m
+
+       [1mint nxt_unit_response_init(nxt_unit_request_info_t *[4m[22mreq[24m[1m, uint16_t [4m[22mstatus[24m[1m,[0m
+                                  [1muint32_t [4m[22mmax_fields[24m[1m,[0m
+                                  [1muint32_t [4m[22mmax_fields_size[24m[1m);[0m
+
+[1mArguments[0m
+       [4mreq[24m    Request object.
+
+       [4mstatus[24m HTTP status code.
+
+       [4mmax_fields[0m
+              Maximum  number  of HTTP header fields that will be added to the
+              response.
+
+       [4mmax_fields_size[0m
+              Size of the buffer that will be used for the HTTP header fields.
+              See [4mnxt_unit_response_add_field[24m(3).
+
+[1mDescription[0m
+       [4mnxt_unit_response_init[24m(3) initializes a response to a request.
+
+       It sets the response status, and allocates the buffer necessary for the
+       header fields.  Any fields will need to fit in that  buffer.   The  re‐
+       sponse content can also be fitted in that buffer, but extra buffers can
+       be allocated for it later with [4mnxt_unit_response_buf_alloc[24m(3).
+
+[1mReturn value[0m
+       0 on success, or a non‐zero error code on error.
+
+[1mErrors[0m
+       Errors will be reported in the Unit debug log.
+
+       [1mNXT_UNIT_ERROR[0m
+              •  Response already initialized.
+              •  Response already sent.
+              •  [4mnxt_unit_malloc[24m(3) failed.
+
+[1mExamples[0m
+       See [4mnxt_unit_response_add_field[24m(3).
+
+[1mCopyright[0m
+       (C) 2017‐2023, NGINX, Inc.
+
+       SPDX‐License‐Identifier: Apache‐2.0
+
+[1mSee also[0m
+       [4mnxt_unit_init[24m(3),                       [4mnxt_unit_response_add_field[24m(3),
+       [4mnxt_unit_response_add_content[24m(3),            [4mnxt_unit_response_send[24m(3),
+       [4mnxt_unit_response_buf_alloc[24m(3), [4munitd[24m(8)
+
+       Website ⟨https://unit.nginx.org⟩
+
+       Mailing list ⟨https://mailman.nginx.org/mailman/listinfo/unit⟩
+
+       GitHub ⟨https://github.com/nginx/unit⟩
+
+NGINX Unit (unreleased)             (date)           [4mnxt_unit_response_init[24m(3)
