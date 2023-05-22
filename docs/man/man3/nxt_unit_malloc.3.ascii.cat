@@ -1,0 +1,53 @@
+nxt_unit_malloc(3)         Library Functions Manual         nxt_unit_malloc(3)
+
+Name
+       nxt_unit_malloc - malloc(3) wrapper with logging
+
+Library
+       NGINX Unit library (libunit, ‐lunit)
+
+Synopsis
+       #include <nxt_unit.h>
+
+       [[gnu::malloc(nxt_unit_free)]]
+       void *_Nullable nxt_unit_malloc(nxt_unit_ctx_t *_Nullable ctx,
+                                       size_t size);
+       void nxt_unit_free(nxt_unit_ctx_t *_Nullable ctx, void *_Nullable ptr);
+
+Arguments
+       ctx    See nxt_unit_log(3).
+
+       size   See malloc(3).
+
+       ptr    See free(3).
+
+Description
+       nxt_unit_malloc(3) and nxt_unit_free(3) are equivalent to malloc(3) and
+       free(3), but log in the Unit debug log.
+
+Return value
+       See malloc(3).
+
+Errors
+       Errors will be reported in the Unit debug log.
+
+       •  malloc(3) failed.
+
+Examples
+       See nxt_unit_init(3).
+
+Copyright
+       (C) 2017‐2023, NGINX, Inc.
+
+       SPDX‐License‐Identifier: Apache‐2.0
+
+See also
+       malloc(3).
+
+       Website ⟨https://unit.nginx.org⟩
+
+       Mailing list ⟨https://mailman.nginx.org/mailman/listinfo/unit⟩
+
+       GitHub ⟨https://github.com/nginx/unit⟩
+
+NGINX Unit (unreleased)             (date)                  nxt_unit_malloc(3)

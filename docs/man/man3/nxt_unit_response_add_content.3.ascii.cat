@@ -1,0 +1,70 @@
+nxt_unit_...dd_content(3)  Library Functions Manual  nxt_unit_...dd_content(3)
+
+Name
+       nxt_unit_response_add_content  -  add  content to HTTP response in Unit
+       app
+
+Library
+       NGINX Unit library (libunit, ‐lunit)
+
+Synopsis
+       #include <nxt_unit.h>
+
+       int nxt_unit_response_add_content(nxt_unit_request_info_t *req,
+                                         const void content[.size],
+                                         uint32_t size);
+
+Arguments
+       req    Request object.
+
+       content
+              Content of the response.  It’s a buffer of size bytes.
+
+Description
+       nxt_unit_response_add_content(3) adds content to an HTTP response.
+
+       The   response   should   have   been   initialized   previously   with
+       nxt_unit_response_init(3).
+
+       The  response  should  have enough remaining buffer size available.  If
+       there’s   not   enough,   more   buffer   can   be    allocated    with
+       nxt_unit_response_buff_alloc(3).
+
+       This  function  can  be  called several times, and all contents will be
+       merged into the (chunked) response.  After content is added to the  re‐
+       sponse, it should be sent with nxt_unit_response_send(3).
+
+Return value
+       0 on success, or a non‐zero error code on error.
+
+Errors
+       Errors will be reported in the Unit debug log.
+
+       NXT_UNIT_ERROR
+              •  Response not initialized.
+              •  Response already sent.
+              •  Content is longer than the response buffer.
+
+Examples
+       See nxt_unit_response_add_field(3).
+
+Copyright
+       (C) 2017‐2023, NGINX, Inc.
+
+       SPDX‐License‐Identifier: Apache‐2.0
+
+See also
+       nxt_unit_init(3),                            nxt_unit_response_init(3),
+       nxt_unit_response_add_field(3),         nxt_unit_response_buf_alloc(3),
+       nxt_unit_response_send(3), nxt_unit_request_done(3), unitd(8)
+
+       RFC  9112,  section  5:  Field  Syntax ⟨https://www.rfc‐editor.org/rfc/
+       rfc9112#section‐5⟩
+
+       Website ⟨https://unit.nginx.org⟩
+
+       Mailing list ⟨https://mailman.nginx.org/mailman/listinfo/unit⟩
+
+       GitHub ⟨https://github.com/nginx/unit⟩
+
+NGINX Unit (unreleased)             (date)           nxt_unit_...dd_content(3)

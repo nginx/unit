@@ -1,0 +1,44 @@
+nxt_unit_done(3)           Library Functions Manual           nxt_unit_done(3)
+
+Name
+       nxt_unit_done - destroy context object in Unit app
+
+Library
+       NGINX Unit library (libunit, ‐lunit)
+
+Synopsis
+       #include <nxt_unit.h>
+
+       void nxt_unit_done(nxt_unit_ctx_t *ctx);
+
+Arguments
+       ctx    Context  object  to  be  destroyed.  It should have been created
+              with nxt_unit_init(3) or nxt_unit_ctx_alloc(3).
+
+Description
+       nxt_unit_done(3) destroys a context object in a Unit application.
+
+Return value
+       None.
+
+Errors
+       None.
+
+Examples
+       See nxt_unit_init(3) and nxt_unit_ctx_alloc(3).
+
+Copyright
+       (C) 2017‐2023, NGINX, Inc.
+
+       SPDX‐License‐Identifier: Apache‐2.0
+
+See also
+       nxt_unit_ctx_alloc(3), nxt_unit_init(3), unitd(8)
+
+       Website ⟨https://unit.nginx.org⟩
+
+       Mailing list ⟨https://mailman.nginx.org/mailman/listinfo/unit⟩
+
+       GitHub ⟨https://github.com/nginx/unit⟩
+
+NGINX Unit (unreleased)             (date)                    nxt_unit_done(3)
