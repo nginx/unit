@@ -34,6 +34,12 @@ NGINX Unit updated to 1.31.0.
 
 <change type="bugfix">
 <para>
+ensure that $uri variable is not cached.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
 deprecated options were unavailable.
 </para>
 </change>

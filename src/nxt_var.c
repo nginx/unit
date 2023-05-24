@@ -80,7 +80,7 @@ static const nxt_lvlhsh_proto_t  nxt_var_cache_proto  nxt_aligned(64) = {
 static nxt_lvlhsh_t       nxt_var_hash;
 static uint32_t           nxt_var_count;
 
-static nxt_var_handler_t  *nxt_var_index;
+static nxt_var_decl_t     **nxt_vars;
 
 
 static nxt_int_t
@@ -235,7 +235,10 @@ nxt_var_cache_value(nxt_task_t *task, nxt_var_cache_t *cache, uint32_t index,
 {
     nxt_int_t           ret;
     nxt_str_t           *value;
+    nxt_var_decl_t      *var;
     nxt_lvlhsh_query_t  lhq;
+
+    var = nxt_vars[index >> 16];
 
     value = cache->spare;
 
@@ -246,6 +249,10 @@ nxt_var_cache_value(nxt_task_t *task, nxt_var_cache_t *cache, uint32_t index,
         }
 
         cache->spare = value;
+    }
+
+    if (!var->cacheable) {
+        goto not_cached;
     }
 
     lhq.key_hash = nxt_murmur_hash2_uint32(&index);
@@ -261,16 +268,20 @@ nxt_var_cache_value(nxt_task_t *task, nxt_var_cache_t *cache, uint32_t index,
         return NULL;
     }
 
-    if (ret == NXT_OK) {
-        ret = nxt_var_index[index >> 16](task, value, ctx, index & 0xffff);
-        if (nxt_slow_path(ret != NXT_OK)) {
-            return NULL;
-        }
-
-        cache->spare = NULL;
+    if (ret == NXT_DECLINED) {
+        return lhq.value;
     }
 
-    return lhq.value;
+not_cached:
+
+    ret = var->handler(task, value, ctx, index & 0xffff);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        return NULL;
+    }
+
+    cache->spare = NULL;
+
+    return value;
 }
 
 
@@ -303,12 +314,11 @@ nxt_int_t
 nxt_var_index_init(void)
 {
     nxt_uint_t         i;
-    nxt_var_decl_t     *decl;
-    nxt_var_handler_t  *index;
+    nxt_var_decl_t     *decl, **vars;
     nxt_lvlhsh_each_t  lhe;
 
-    index = nxt_memalign(64, nxt_var_count * sizeof(nxt_var_handler_t));
-    if (index == NULL) {
+    vars = nxt_memalign(64, nxt_var_count * sizeof(nxt_var_decl_t *));
+    if (vars == NULL) {
         return NXT_ERROR;
     }
 
@@ -317,10 +327,10 @@ nxt_var_index_init(void)
     for (i = 0; i < nxt_var_count; i++) {
         decl = nxt_lvlhsh_each(&nxt_var_hash, &lhe);
         decl->index = i;
-        index[i] = decl->handler;
+        vars[i] = decl;
     }
 
-    nxt_var_index = index;
+    nxt_vars = vars;
 
     return NXT_OK;
 }

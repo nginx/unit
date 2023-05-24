@@ -47,54 +47,70 @@ static nxt_var_decl_t  nxt_http_vars[] = {
     {
         .name = nxt_string("dollar"),
         .handler = nxt_http_var_dollar,
+        .cacheable = 1,
     }, {
         .name = nxt_string("request_time"),
         .handler = nxt_http_var_request_time,
+        .cacheable = 1,
     }, {
         .name = nxt_string("method"),
         .handler = nxt_http_var_method,
+        .cacheable = 1,
     }, {
         .name = nxt_string("request_uri"),
         .handler = nxt_http_var_request_uri,
+        .cacheable = 1,
     }, {
         .name = nxt_string("uri"),
         .handler = nxt_http_var_uri,
+        .cacheable = 0,
     }, {
         .name = nxt_string("host"),
         .handler = nxt_http_var_host,
+        .cacheable = 1,
     }, {
         .name = nxt_string("remote_addr"),
         .handler = nxt_http_var_remote_addr,
+        .cacheable = 1,
     }, {
         .name = nxt_string("time_local"),
         .handler = nxt_http_var_time_local,
+        .cacheable = 1,
     }, {
         .name = nxt_string("request_line"),
         .handler = nxt_http_var_request_line,
+        .cacheable = 1,
     }, {
         .name = nxt_string("status"),
         .handler = nxt_http_var_status,
+        .cacheable = 1,
     }, {
         .name = nxt_string("body_bytes_sent"),
         .handler = nxt_http_var_body_bytes_sent,
+        .cacheable = 1,
     }, {
         .name = nxt_string("header_referer"),
         .handler = nxt_http_var_referer,
+        .cacheable = 1,
     }, {
         .name = nxt_string("header_user_agent"),
         .handler = nxt_http_var_user_agent,
+        .cacheable = 1,
     }, {
         .name = nxt_string("arg"),
         .handler = nxt_http_var_arg,
         .field_hash = nxt_http_argument_hash,
+        .cacheable = 1,
     }, {
         .name = nxt_string("header"),
         .handler = nxt_http_var_header,
         .field_hash = nxt_http_header_hash,
+        .cacheable = 1,
     }, {
         .name = nxt_string("cookie"),
         .handler = nxt_http_var_cookie,
         .field_hash = nxt_http_cookie_hash,
+        .cacheable = 1,
     },
 };
 

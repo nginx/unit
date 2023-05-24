@@ -22,6 +22,7 @@ typedef struct {
     nxt_var_handler_t       handler;
     nxt_var_field_hash_t    field_hash;
     uint32_t                index;
+    uint8_t                 cacheable;  /* 1 bit */
 } nxt_var_decl_t;
 
 
