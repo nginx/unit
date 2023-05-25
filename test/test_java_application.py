@@ -374,7 +374,7 @@ class TestJavaApplication(TestApplicationJava):
         assert headers['X-Add-Utf8-Value'] == '????', 'add Utf8 header value'
         assert headers['X-Add-Utf8-Name-???'] == 'y', 'add Utf8 header name'
         assert headers['X-Add-Test'] == 'v1', 'add null header'
-        assert ('X-Set-Test1' in headers) == False, 'set null header'
+        assert 'X-Set-Test1' not in headers, 'set null header'
         assert headers['X-Set-Test2'] == '', 'set empty header'
 
     def test_java_application_content_type(self):
@@ -440,10 +440,8 @@ class TestJavaApplication(TestApplicationJava):
 
         headers = self.get(url='/6')['headers']
 
-        assert ('Content-Type' in headers) == False, '#6 no Content-Type header'
-        assert (
-            'X-Content-Type' in headers
-        ) == False, '#6 no response Content-Type'
+        assert 'Content-Type' not in headers, '#6 no Content-Type header'
+        assert 'X-Content-Type' not in headers, '#6 no response Content-Type'
         assert headers['X-Character-Encoding'] == 'utf-8', '#6 response charset'
 
         headers = self.get(url='/7')['headers']
@@ -477,7 +475,7 @@ class TestJavaApplication(TestApplicationJava):
 
         resp = self.get(url='/dir1/')
 
-        assert ('This is index.txt.' in resp['body']) == True, 'dir1 index body'
+        assert 'This is index.txt.' in resp['body'], 'dir1 index body'
         assert resp['headers']['X-TXT-Filter'] == '1', 'TXT Filter header'
 
         headers = self.get(url='/dir2/')['headers']
@@ -494,8 +492,8 @@ class TestJavaApplication(TestApplicationJava):
         headers = self.get(url='/dir4/')['headers']
 
         assert (
-            'X-App-Servlet' in headers
-        ) == False, 'Static welcome file served first'
+            'X-App-Servlet' not in headers
+        ), 'Static welcome file served first'
 
         headers = self.get(url='/dir5/')['headers']
 
@@ -617,14 +615,14 @@ class TestJavaApplication(TestApplicationJava):
         ), 'original request query'
 
         assert (
-            'Before forwarding' in resp['body']
-        ) == False, 'discarded data added before forward() call'
+            'Before forwarding' not in resp['body']
+        ), 'discarded data added before forward() call'
         assert (
-            'X-After-Forwarding' in headers
-        ) == False, 'cannot add headers after forward() call'
+            'X-After-Forwarding' not in headers
+        ), 'cannot add headers after forward() call'
         assert (
-            'After forwarding' in resp['body']
-        ) == False, 'cannot add data after forward() call'
+            'After forwarding' not in resp['body']
+        ), 'cannot add data after forward() call'
 
     def test_java_application_named_dispatcher_forward(self):
         self.load('forward')
@@ -668,14 +666,14 @@ class TestJavaApplication(TestApplicationJava):
         ), 'original request query'
 
         assert (
-            'Before forwarding' in resp['body']
-        ) == False, 'discarded data added before forward() call'
+            'Before forwarding' not in resp['body']
+        ), 'discarded data added before forward() call'
         assert (
-            'X-After-Forwarding' in headers
-        ) == False, 'cannot add headers after forward() call'
+            'X-After-Forwarding' not in headers
+        ), 'cannot add headers after forward() call'
         assert (
-            'After forwarding' in resp['body']
-        ) == False, 'cannot add data after forward() call'
+            'After forwarding' not in resp['body']
+        ), 'cannot add data after forward() call'
 
     def test_java_application_request_uri_include(self):
         self.load('include')
@@ -690,34 +688,32 @@ class TestJavaApplication(TestApplicationJava):
         assert headers['X-Include'] == '/data/test', 'including triggered'
 
         assert (
-            'X-INCLUDE-Id' in headers
-        ) == False, 'unable to add headers in include request'
+            'X-INCLUDE-Id' not in headers
+        ), 'unable to add headers in include request'
 
         assert (
             'javax.servlet.include.request_uri:  /data/test' in body
-        ) == True, 'include request uri'
+        ), 'include request uri'
         # assert (
         #    'javax.servlet.include.context_path: ' in body
         # ) == True, 'include request context path'
         assert (
             'javax.servlet.include.servlet_path: /data' in body
-        ) == True, 'include request servlet path'
+        ), 'include request servlet path'
         assert (
             'javax.servlet.include.path_info:    /test' in body
-        ) == True, 'include request path info'
+        ), 'include request path info'
         assert (
             'javax.servlet.include.query_string: null' in body
-        ) == True, 'include request query'
+        ), 'include request query'
 
         assert (
             'Before include' in body
-        ) == True, 'preserve data added before include() call'
+        ), 'preserve data added before include() call'
         assert (
             headers['X-After-Include'] == 'you-should-see-this'
         ), 'add headers after include() call'
-        assert (
-            'After include' in body
-        ) == True, 'add data after include() call'
+        assert 'After include' in body, 'add data after include() call'
 
     def test_java_application_named_dispatcher_include(self):
         self.load('include')
@@ -732,34 +728,32 @@ class TestJavaApplication(TestApplicationJava):
         assert headers['X-Include'] == 'data', 'including triggered'
 
         assert (
-            'X-INCLUDE-Id' in headers
-        ) == False, 'unable to add headers in include request'
+            'X-INCLUDE-Id' not in headers
+        ), 'unable to add headers in include request'
 
         assert (
             'javax.servlet.include.request_uri:  null' in body
-        ) == True, 'include request uri'
+        ), 'include request uri'
         # assert (
         #    'javax.servlet.include.context_path: null' in body
         # ) == True, 'include request context path'
         assert (
             'javax.servlet.include.servlet_path: null' in body
-        ) == True, 'include request servlet path'
+        ), 'include request servlet path'
         assert (
             'javax.servlet.include.path_info:    null' in body
-        ) == True, 'include request path info'
+        ), 'include request path info'
         assert (
             'javax.servlet.include.query_string: null' in body
-        ) == True, 'include request query'
+        ), 'include request query'
 
         assert (
             'Before include' in body
-        ) == True, 'preserve data added before include() call'
+        ), 'preserve data added before include() call'
         assert (
             headers['X-After-Include'] == 'you-should-see-this'
         ), 'add headers after include() call'
-        assert (
-            'After include' in body
-        ) == True, 'add data after include() call'
+        assert 'After include' in body, 'add data after include() call'
 
     def test_java_application_path_translation(self):
         self.load('path_translation')
@@ -772,9 +766,8 @@ class TestJavaApplication(TestApplicationJava):
             headers['X-Path-Translated']
             == f"{headers['X-Real-Path']}{headers['X-Path-Info']}"
         ), 'translated path is the app root + path info'
-        assert (
-            headers['X-Resource-Paths'].endswith('/WEB-INF/, /index.html]')
-            == True
+        assert headers['X-Resource-Paths'].endswith(
+            '/WEB-INF/, /index.html]'
         ), 'app root directory content'
         assert (
             headers['X-Resource-As-Stream'] == 'null'
@@ -789,9 +782,7 @@ class TestJavaApplication(TestApplicationJava):
         assert (
             headers['X-Path-Translated'] == 'null'
         ), 'translated path is null because path info is null'
-        assert (
-            headers['X-Real-Path'].endswith('/none') == True
-        ), 'read path is not null'
+        assert headers['X-Real-Path'].endswith('/none'), 'read path is not null'
         assert headers['X-Resource-Paths'] == 'null', 'no resource found'
         assert headers['X-Resource-As-Stream'] == 'null', 'no resource stream'
 

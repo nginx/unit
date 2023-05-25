@@ -9,7 +9,7 @@ class TestStatus(TestApplicationPython):
     prerequisites = {'modules': {'python': 'any'}}
 
     def check_connections(self, accepted, active, idle, closed):
-        Status.get('/connections') == {
+        assert Status.get('/connections') == {
             'accepted': accepted,
             'active': active,
             'idle': idle,
@@ -112,7 +112,12 @@ Connection: close
 
         # idle
 
-        sock = self.http(b'', raw=True, no_recv=True)
+        (_, sock) = self.get(
+            headers={'Host': 'localhost', 'Connection': 'keep-alive'},
+            start=True,
+            read_timeout=1,
+        )
+
         self.check_connections(2, 0, 1, 1)
 
         self.get(sock=sock)
@@ -141,7 +146,7 @@ Connection: close
             assert apps == expert.sort()
 
         def check_application(name, running, starting, idle, active):
-            Status.get(f'/applications/{name}') == {
+            assert Status.get(f'/applications/{name}') == {
                 'processes': {
                     'running': running,
                     'starting': starting,

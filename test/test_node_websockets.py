@@ -28,10 +28,10 @@ class TestNodeWebsockets(TestApplicationNode):
         self.check_close(sock)
 
     def check_close(self, sock, code=1000, no_close=False, frame=None):
-        if frame == None:
+        if frame is None:
             frame = self.ws.frame_read(sock)
 
-        assert frame['fin'] == True, 'close fin'
+        assert frame['fin'], 'close fin'
         assert frame['opcode'] == self.ws.OP_CLOSE, 'close opcode'
         assert frame['code'] == code, 'close code'
 

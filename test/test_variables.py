@@ -354,13 +354,16 @@ Connection: close
 
         reg = r'^1$'
         assert self.search_in_log(reg) is None
-        self.get(
-            headers={
-                'Host': 'localhost',
-                'Cookie': 'foo_bar=1',
-                'Connection': 'close',
-            },
-        )['status'] == 200
+        assert (
+            self.get(
+                headers={
+                    'Host': 'localhost',
+                    'Cookie': 'foo_bar=1',
+                    'Connection': 'close',
+                },
+            )['status']
+            == 200
+        )
         assert self.wait_for_record(reg) is not None
 
         check_no_cookie('fOo_bar=0')

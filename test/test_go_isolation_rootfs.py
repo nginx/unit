@@ -26,7 +26,7 @@ class TestGoIsolationRootfs(TestApplicationGo):
 
         obj = self.getjson(url='/?file=/go/app')['body']
 
-        assert obj['FileExists'] == True, 'app relative to rootfs'
+        assert obj['FileExists'], 'app relative to rootfs'
 
         obj = self.getjson(url='/?file=/bin/sh')['body']
-        assert obj['FileExists'] == False, 'file should not exists'
+        assert not obj['FileExists'], 'file should not exists'
