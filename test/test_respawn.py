@@ -2,8 +2,8 @@ import re
 import subprocess
 import time
 
+import pytest
 from unit.applications.lang.python import TestApplicationPython
-from unit.option import option
 
 
 class TestRespawn(TestApplicationPython):
@@ -12,8 +12,9 @@ class TestRespawn(TestApplicationPython):
     PATTERN_ROUTER = 'unit: router'
     PATTERN_CONTROLLER = 'unit: controller'
 
-    def setup_method(self):
-        self.app_name = f'app-{option.temp_dir.split("/")[-1]}'
+    @pytest.fixture(autouse=True)
+    def setup_method_fixture(self, temp_dir):
+        self.app_name = f'app-{temp_dir.split("/")[-1]}'
 
         self.load('empty', self.app_name)
 

@@ -3,21 +3,21 @@ import socket
 
 import pytest
 from unit.applications.proto import TestApplicationProto
-from unit.option import option
 from unit.utils import waitforfiles
 
 
 class TestStatic(TestApplicationProto):
     prerequisites = {}
 
-    def setup_method(self):
-        os.makedirs(f'{option.temp_dir}/assets/dir')
-        with open(f'{option.temp_dir}/assets/index.html', 'w') as index, open(
-            f'{option.temp_dir}/assets/README', 'w'
-        ) as readme, open(
-            f'{option.temp_dir}/assets/log.log', 'w'
-        ) as log, open(
-            f'{option.temp_dir}/assets/dir/file', 'w'
+    @pytest.fixture(autouse=True)
+    def setup_method_fixture(self, temp_dir):
+        os.makedirs(f'{temp_dir}/assets/dir')
+        assets_dir = f'{temp_dir}/assets'
+
+        with open(f'{assets_dir}/index.html', 'w') as index, open(
+            f'{assets_dir}/README', 'w'
+        ) as readme, open(f'{assets_dir}/log.log', 'w') as log, open(
+            f'{assets_dir}/dir/file', 'w'
         ) as file:
             index.write('0123456789')
             readme.write('readme')
@@ -27,9 +27,7 @@ class TestStatic(TestApplicationProto):
         self._load_conf(
             {
                 "listeners": {"*:7080": {"pass": "routes"}},
-                "routes": [
-                    {"action": {"share": f'{option.temp_dir}/assets$uri'}}
-                ],
+                "routes": [{"action": {"share": f'{assets_dir}$uri'}}],
                 "settings": {
                     "http": {
                         "static": {

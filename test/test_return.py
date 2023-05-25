@@ -1,12 +1,14 @@
 import re
 
+import pytest
 from unit.applications.proto import TestApplicationProto
 
 
 class TestReturn(TestApplicationProto):
     prerequisites = {}
 
-    def setup_method(self):
+    @pytest.fixture(autouse=True)
+    def setup_method_fixture(self):
         self._load_conf(
             {
                 "listeners": {"*:7080": {"pass": "routes"}},

@@ -1,8 +1,13 @@
+import pytest
 from unit.applications.lang.python import TestApplicationPython
 
 
 class TestForwardedHeader(TestApplicationPython):
     prerequisites = {'modules': {'python': 'any'}}
+
+    @pytest.fixture(autouse=True)
+    def setup_method_fixture(self):
+        self.load('forwarded_header')
 
     def forwarded_header(self, forwarded):
         assert 'success' in self.conf(
@@ -39,9 +44,6 @@ class TestForwardedHeader(TestApplicationPython):
 
     def get_scheme(self, *args, **kwargs):
         return self.get_fwd(*args, **kwargs)['Url-Scheme']
-
-    def setup_method(self):
-        self.load('forwarded_header')
 
     def test_forwarded_header_single_ip(self):
         self.forwarded_header(

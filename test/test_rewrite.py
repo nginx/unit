@@ -8,7 +8,8 @@ from unit.option import option
 class TestRewrite(TestApplicationProto):
     prerequisites = {}
 
-    def setup_method(self):
+    @pytest.fixture(autouse=True)
+    def setup_method_fixture(self):
         assert 'success' in self.conf(
             {
                 "listeners": {"*:7080": {"pass": "routes"}},

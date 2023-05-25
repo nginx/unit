@@ -1,6 +1,7 @@
 import ssl
 import subprocess
 
+import pytest
 from unit.applications.tls import TestApplicationTLS
 from unit.option import option
 
@@ -8,7 +9,8 @@ from unit.option import option
 class TestTLSSNI(TestApplicationTLS):
     prerequisites = {'modules': {'openssl': 'any'}}
 
-    def setup_method(self):
+    @pytest.fixture(autouse=True)
+    def setup_method_fixture(self):
         self._load_conf(
             {
                 "listeners": {"*:7080": {"pass": "routes"}},

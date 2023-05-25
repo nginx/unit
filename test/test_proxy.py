@@ -14,6 +14,45 @@ class TestProxy(TestApplicationPython):
 
     SERVER_PORT = 7999
 
+    @pytest.fixture(autouse=True)
+    def setup_method_fixture(self):
+        run_process(self.run_server, self.SERVER_PORT)
+        waitforsocket(self.SERVER_PORT)
+
+        python_dir = f'{option.test_dir}/python'
+        assert 'success' in self.conf(
+            {
+                "listeners": {
+                    "*:7080": {"pass": "routes"},
+                    "*:7081": {"pass": "applications/mirror"},
+                },
+                "routes": [{"action": {"proxy": "http://127.0.0.1:7081"}}],
+                "applications": {
+                    "mirror": {
+                        "type": self.get_application_type(),
+                        "processes": {"spare": 0},
+                        "path": f'{python_dir}/mirror',
+                        "working_directory": f'{python_dir}/mirror',
+                        "module": "wsgi",
+                    },
+                    "custom_header": {
+                        "type": self.get_application_type(),
+                        "processes": {"spare": 0},
+                        "path": f'{python_dir}/custom_header',
+                        "working_directory": f'{python_dir}/custom_header',
+                        "module": "wsgi",
+                    },
+                    "delayed": {
+                        "type": self.get_application_type(),
+                        "processes": {"spare": 0},
+                        "path": f'{python_dir}/delayed',
+                        "working_directory": f'{python_dir}/delayed',
+                        "module": "wsgi",
+                    },
+                },
+            }
+        ), 'proxy initial configuration'
+
     @staticmethod
     def run_server(server_port):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -58,44 +97,6 @@ Content-Length: 10
 
     def post_http10(self, *args, **kwargs):
         return self.post(*args, http_10=True, **kwargs)
-
-    def setup_method(self):
-        run_process(self.run_server, self.SERVER_PORT)
-        waitforsocket(self.SERVER_PORT)
-
-        python_dir = f'{option.test_dir}/python'
-        assert 'success' in self.conf(
-            {
-                "listeners": {
-                    "*:7080": {"pass": "routes"},
-                    "*:7081": {"pass": "applications/mirror"},
-                },
-                "routes": [{"action": {"proxy": "http://127.0.0.1:7081"}}],
-                "applications": {
-                    "mirror": {
-                        "type": self.get_application_type(),
-                        "processes": {"spare": 0},
-                        "path": f'{python_dir}/mirror',
-                        "working_directory": f'{python_dir}/mirror',
-                        "module": "wsgi",
-                    },
-                    "custom_header": {
-                        "type": self.get_application_type(),
-                        "processes": {"spare": 0},
-                        "path": f'{python_dir}/custom_header',
-                        "working_directory": f'{python_dir}/custom_header',
-                        "module": "wsgi",
-                    },
-                    "delayed": {
-                        "type": self.get_application_type(),
-                        "processes": {"spare": 0},
-                        "path": f'{python_dir}/delayed',
-                        "working_directory": f'{python_dir}/delayed',
-                        "module": "wsgi",
-                    },
-                },
-            }
-        ), 'proxy initial configuration'
 
     def test_proxy_http10(self):
         for _ in range(10):

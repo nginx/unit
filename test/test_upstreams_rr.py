@@ -1,6 +1,7 @@
 import os
 import re
 
+import pytest
 from unit.applications.lang.python import TestApplicationPython
 from unit.option import option
 
@@ -8,7 +9,8 @@ from unit.option import option
 class TestUpstreamsRR(TestApplicationPython):
     prerequisites = {'modules': {'python': 'any'}}
 
-    def setup_method(self):
+    @pytest.fixture(autouse=True)
+    def setup_method_fixture(self):
         assert 'success' in self.conf(
             {
                 "listeners": {

@@ -3,6 +3,7 @@ import select
 import socket
 import time
 
+import pytest
 from conftest import run_process
 from unit.applications.lang.python import TestApplicationPython
 from unit.utils import waitforsocket
@@ -12,6 +13,26 @@ class TestProxyChunked(TestApplicationPython):
     prerequisites = {'modules': {'python': 'any'}}
 
     SERVER_PORT = 7999
+
+    @pytest.fixture(autouse=True)
+    def setup_method_fixture(self):
+        run_process(self.run_server, self.SERVER_PORT)
+        waitforsocket(self.SERVER_PORT)
+
+        assert 'success' in self.conf(
+            {
+                "listeners": {
+                    "*:7080": {"pass": "routes"},
+                },
+                "routes": [
+                    {
+                        "action": {
+                            "proxy": f'http://127.0.0.1:{self.SERVER_PORT}'
+                        }
+                    }
+                ],
+            }
+        ), 'proxy initial configuration'
 
     @staticmethod
     def run_server(server_port):
@@ -82,25 +103,6 @@ class TestProxyChunked(TestApplicationPython):
 
     def get_http10(self, *args, **kwargs):
         return self.get(*args, http_10=True, **kwargs)
-
-    def setup_method(self):
-        run_process(self.run_server, self.SERVER_PORT)
-        waitforsocket(self.SERVER_PORT)
-
-        assert 'success' in self.conf(
-            {
-                "listeners": {
-                    "*:7080": {"pass": "routes"},
-                },
-                "routes": [
-                    {
-                        "action": {
-                            "proxy": f'http://127.0.0.1:{self.SERVER_PORT}'
-                        }
-                    }
-                ],
-            }
-        ), 'proxy initial configuration'
 
     def test_proxy_chunked(self):
         for _ in range(10):

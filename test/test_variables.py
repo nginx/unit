@@ -1,6 +1,7 @@
 import re
 import time
 
+import pytest
 from unit.applications.proto import TestApplicationProto
 from unit.option import option
 
@@ -8,7 +9,8 @@ from unit.option import option
 class TestVariables(TestApplicationProto):
     prerequisites = {}
 
-    def setup_method(self):
+    @pytest.fixture(autouse=True)
+    def setup_method_fixture(self):
         assert 'success' in self.conf(
             {
                 "listeners": {"*:7080": {"pass": "routes"}},
