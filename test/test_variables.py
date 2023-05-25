@@ -366,11 +366,11 @@ Connection: close
         check_no_cookie('fOo_bar=0')
         check_no_cookie('foo_bar=')
 
-    def test_variables_invalid(self):
+    def test_variables_invalid(self, temp_dir):
         def check_variables(format):
             assert 'error' in self.conf(
                 {
-                    'path': f'{option.temp_dir}/access.log',
+                    'path': f'{temp_dir}/access.log',
                     'format': format,
                 },
                 'access_log',

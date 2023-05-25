@@ -291,7 +291,7 @@ Connection: close
         skip_alert(r'failed to apply new conf')
 
         assert 'error' in self.conf(
-            f'{option.temp_dir}/blah/access.log',
+            f'{temp_dir}/blah/access.log',
             'access_log/path',
         ), 'access_log path incorrect'
 

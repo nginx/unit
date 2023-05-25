@@ -6,7 +6,7 @@ from unit.option import option
 class TestRubyIsolation(TestApplicationRuby):
     prerequisites = {'modules': {'ruby': 'any'}, 'features': ['isolation']}
 
-    def test_ruby_isolation_rootfs(self, is_su):
+    def test_ruby_isolation_rootfs(self, is_su, temp_dir):
         isolation_features = option.available['features']['isolation'].keys()
 
         if not is_su:
@@ -22,7 +22,7 @@ class TestRubyIsolation(TestApplicationRuby):
             if 'pid' not in isolation_features:
                 pytest.skip('pid namespace is not supported')
 
-        isolation = {'rootfs': option.temp_dir}
+        isolation = {'rootfs': temp_dir}
 
         if not is_su:
             isolation['namespaces'] = {
