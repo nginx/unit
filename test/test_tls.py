@@ -28,7 +28,7 @@ class TestTLS(TestApplicationTLS):
             {"pass": f"applications/{application}"}, f'listeners/*:{port}'
         )
 
-    def req(self, name='localhost', subject=None, x509=False):
+    def req(self, name='localhost', subject=None):
         subj = subject if subject is not None else f'/CN={name}/'
 
         subprocess.check_output(
@@ -426,7 +426,7 @@ basicConstraints = critical,CA:TRUE"""
 
         assert self.get_ssl()['status'] == 200, 'certificate chain long'
 
-    def test_tls_certificate_empty_cn(self, temp_dir):
+    def test_tls_certificate_empty_cn(self):
         self.certificate('root', False)
 
         self.req(subject='/')
@@ -442,7 +442,7 @@ basicConstraints = critical,CA:TRUE"""
         assert cert['chain'][0]['subject'] == {}, 'empty subject'
         assert cert['chain'][0]['issuer']['common_name'] == 'root', 'issuer'
 
-    def test_tls_certificate_empty_cn_san(self, temp_dir):
+    def test_tls_certificate_empty_cn_san(self):
         self.certificate('root', False)
 
         self.openssl_conf(
@@ -535,7 +535,7 @@ basicConstraints = critical,CA:TRUE"""
             }
         ), 'load application configuration'
 
-        (resp, sock) = self.get_ssl(start=True)
+        (_, sock) = self.get_ssl(start=True)
 
         time.sleep(5)
 

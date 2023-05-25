@@ -5,7 +5,6 @@ import time
 
 from conftest import run_process
 from unit.applications.lang.python import TestApplicationPython
-from unit.option import option
 from unit.utils import waitforsocket
 
 
@@ -15,7 +14,7 @@ class TestProxyChunked(TestApplicationPython):
     SERVER_PORT = 7999
 
     @staticmethod
-    def run_server(server_port, temp_dir):
+    def run_server(server_port):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
@@ -42,7 +41,7 @@ class TestProxyChunked(TestApplicationPython):
             return data
 
         while True:
-            connection, client_address = sock.accept()
+            connection, _ = sock.accept()
 
             req = """HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked"""
 
@@ -85,7 +84,7 @@ class TestProxyChunked(TestApplicationPython):
         return self.get(*args, http_10=True, **kwargs)
 
     def setup_method(self):
-        run_process(self.run_server, self.SERVER_PORT, option.temp_dir)
+        run_process(self.run_server, self.SERVER_PORT)
         waitforsocket(self.SERVER_PORT)
 
         assert 'success' in self.conf(

@@ -13,7 +13,7 @@ class TestJavaWebsockets(TestApplicationJava):
     ws = TestApplicationWebsocket()
 
     @pytest.fixture(autouse=True)
-    def setup_method_fixture(self, request, skip_alert):
+    def setup_method_fixture(self, skip_alert):
         assert 'success' in self.conf(
             {'http': {'websocket': {'keepalive_interval': 0}}}, 'settings'
         ), 'clear keepalive_interval'
@@ -878,7 +878,7 @@ class TestJavaWebsockets(TestApplicationJava):
 
         _, sock, _ = self.ws.upgrade()
 
-        for i in range(0, 2):
+        for _ in range(0, 2):
             self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment1', fin=False)
             self.ws.frame_write(sock, self.ws.OP_TEXT, 'fragment2', fin=False)
             self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment3', fin=True)
@@ -888,7 +888,7 @@ class TestJavaWebsockets(TestApplicationJava):
 
         _, sock, _ = self.ws.upgrade()
 
-        for i in range(0, 2):
+        for _ in range(0, 2):
             self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment1', fin=True)
             self.ws.frame_write(sock, self.ws.OP_TEXT, 'fragment2', fin=False)
             self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment3', fin=True)

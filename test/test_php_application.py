@@ -807,7 +807,7 @@ opcache.preload_user = {option.user or getpass.getuser()}
         assert r['headers']['X-Pid'] != pid, 'new instance'
         assert r['headers']['X-Cached'] == '1', 'cached'
 
-    def test_php_application_opcache_preload_chdir(self, temp_dir):
+    def test_php_application_opcache_preload_chdir(self):
         self.load('opcache')
 
         self.check_opcache()
@@ -817,7 +817,7 @@ opcache.preload_user = {option.user or getpass.getuser()}
         assert self.get()['headers']['X-Cached'] == '0', 'not cached'
         assert self.get()['headers']['X-Cached'] == '1', 'cached'
 
-    def test_php_application_opcache_preload_ffr(self, temp_dir):
+    def test_php_application_opcache_preload_ffr(self):
         self.load('opcache')
 
         self.check_opcache()

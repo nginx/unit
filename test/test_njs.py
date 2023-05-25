@@ -42,7 +42,7 @@ class TestNJS(TestApplicationProto):
         self.set_share(f'"{temp_dir}/assets/`string`"')
         assert self.get()['status'] == 200
 
-    def test_njs_template_expression(self, temp_dir):
+    def test_njs_template_expression(self):
         self.create_files('str', 'localhost')
 
         self.check_expression('${uri}', '/str')
@@ -50,7 +50,7 @@ class TestNJS(TestApplicationProto):
         self.check_expression('${uri + host}')
         self.check_expression('${uri + `${host}`}')
 
-    def test_njs_iteration(self, temp_dir):
+    def test_njs_iteration(self):
         self.create_files('Connection,Host', 'close,localhost')
 
         self.check_expression('/${Object.keys(headers).sort().join()}')
@@ -74,7 +74,7 @@ class TestNJS(TestApplicationProto):
         self.set_share(f'"`{temp_dir}/assets/${{args.foo}}`"')
         assert self.get(url='/?foo=str')['status'] == 200, 'args'
 
-    def test_njs_invalid(self, temp_dir, skip_alert):
+    def test_njs_invalid(self, skip_alert):
         skip_alert(r'js exception:')
 
         def check_invalid(template):

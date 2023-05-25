@@ -7,7 +7,6 @@ from OpenSSL.SSL import (
     TLSv1_2_METHOD,
     Context,
     Connection,
-    Session,
     _lib,
 )
 from unit.applications.tls import TestApplicationTLS
@@ -22,7 +21,7 @@ class TestTLSTicket(TestApplicationTLS):
 49TZXi/Y4/8RSIO7QPsU51/HLR1gWIMhVM2m9yh93Bw='
 
     @pytest.fixture(autouse=True)
-    def setup_method_fixture(self, request):
+    def setup_method_fixture(self):
         self.certificate()
 
         listener_conf = {

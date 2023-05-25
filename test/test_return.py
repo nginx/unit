@@ -129,8 +129,8 @@ Connection: close
         check_location(f'#{unsafe}', f'#{unsafe_enc}')
 
         # %00-%20 and %7F-%FF always encoded.
-        check_location(u"\u0000\u0018\u001F\u0020\u0021", "%00%18%1F%20!")
-        check_location(u"\u007F\u0080н\u20BD", "%7F%C2%80%D0%BD%E2%82%BD")
+        check_location("\u0000\u0018\u001F\u0020\u0021", "%00%18%1F%20!")
+        check_location("\u007F\u0080н\u20BD", "%7F%C2%80%D0%BD%E2%82%BD")
 
         # Encoded string detection.  If at least one char need to be encoded
         # then whole string will be encoded.

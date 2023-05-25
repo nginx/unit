@@ -74,14 +74,14 @@ class TestStaticChroot(TestApplicationProto):
 
         assert self.get(url='/dir/file')['status'] == 200, 'chroot'
 
-    def test_static_chroot_empty(self, temp_dir):
+    def test_static_chroot_empty(self):
         assert 'success' in self.update_action('')
         assert self.get(url='/dir/file')['status'] == 200, 'empty absolute'
 
         assert 'success' in self.update_action("", ".$uri")
         assert self.get(url=self.test_path)['status'] == 200, 'empty relative'
 
-    def test_static_chroot_relative(self, is_su, temp_dir):
+    def test_static_chroot_relative(self, is_su):
         if is_su:
             pytest.skip("Does't work under root.")
 

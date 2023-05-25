@@ -19,7 +19,7 @@ class TestASGIWebsockets(TestApplicationPython):
     ws = TestApplicationWebsocket()
 
     @pytest.fixture(autouse=True)
-    def setup_method_fixture(self, request, skip_alert):
+    def setup_method_fixture(self, skip_alert):
         assert 'success' in self.conf(
             {'http': {'websocket': {'keepalive_interval': 0}}}, 'settings'
         ), 'clear keepalive_interval'
@@ -73,7 +73,7 @@ class TestASGIWebsockets(TestApplicationPython):
     def test_asgi_websockets_subprotocol(self):
         self.load('websockets/subprotocol')
 
-        resp, sock, key = self.ws.upgrade()
+        resp, sock, _ = self.ws.upgrade()
         sock.close()
 
         assert resp['status'] == 101, 'status'
@@ -951,7 +951,7 @@ class TestASGIWebsockets(TestApplicationPython):
 
         _, sock, _ = self.ws.upgrade()
 
-        for i in range(0, 2):
+        for _ in range(0, 2):
             self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment1', fin=False)
             self.ws.frame_write(sock, self.ws.OP_TEXT, 'fragment2', fin=False)
             self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment3', fin=True)
@@ -961,7 +961,7 @@ class TestASGIWebsockets(TestApplicationPython):
 
         _, sock, _ = self.ws.upgrade()
 
-        for i in range(0, 2):
+        for _ in range(0, 2):
             self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment1', fin=True)
             self.ws.frame_write(sock, self.ws.OP_TEXT, 'fragment2', fin=False)
             self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment3', fin=True)

@@ -125,7 +125,7 @@ class TestPythonIsolation(TestApplicationPython):
             self.getjson(url='/?path=/proc/self')['body']['FileExists'] == True
         ), '/proc/self'
 
-    def test_python_isolation_cgroup(self, is_su, temp_dir):
+    def test_python_isolation_cgroup(self, is_su):
         if not is_su:
             pytest.skip('requires root')
 
@@ -148,7 +148,7 @@ class TestPythonIsolation(TestApplicationPython):
 
         assert len(cgroup_rel.parts) >= len(cgroup_abs.parts)
 
-    def test_python_isolation_cgroup_two(self, is_su, temp_dir):
+    def test_python_isolation_cgroup_two(self, is_su):
         if not is_su:
             pytest.skip('requires root')
 

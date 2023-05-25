@@ -14,7 +14,6 @@ http = TestHTTP()
 
 
 def check_isolation():
-    test_conf = {"namespaces": {"credential": True}}
     available = option.available
 
     conf = ''

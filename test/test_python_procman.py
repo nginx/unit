@@ -160,7 +160,7 @@ class TestPythonProcman(TestApplicationPython):
     def test_python_processes_connection_keepalive(self):
         self.conf_proc({"spare": 0, "max": 6, "idle_timeout": 2})
 
-        (resp, sock) = self.get(
+        (_, sock) = self.get(
             headers={'Host': 'localhost', 'Connection': 'keep-alive'},
             start=True,
             read_timeout=1,

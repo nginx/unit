@@ -12,7 +12,7 @@ class TestGoIsolation(TestApplicationGo):
     prerequisites = {'modules': {'go': 'any'}, 'features': ['isolation']}
 
     @pytest.fixture(autouse=True)
-    def setup_method_fixture(self, request, skip_alert):
+    def setup_method_fixture(self, skip_alert):
         skip_alert(r'\[unit\] close\(\d+\) failed: Bad file descriptor')
 
     def unpriv_creds(self):

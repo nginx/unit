@@ -30,7 +30,7 @@ class TestRespawn(TestApplicationPython):
         subprocess.call(['kill', '-9', *pids])
 
     def wait_for_process(self, process, unit_pid):
-        for i in range(50):
+        for _ in range(50):
             found = self.pid_by_name(process, unit_pid)
 
             if found is not None:

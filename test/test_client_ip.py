@@ -96,7 +96,7 @@ class TestClientIP(TestApplicationPython):
         ]:
             assert self.get_xff(ip, 'ipv6') == ip, 'replace'
 
-    def test_client_ip_unix(self, temp_dir):
+    def test_client_ip_unix(self):
         self.client_ip({'header': 'X-Forwarded-For', 'source': 'unix'})
 
         assert self.get_xff('1.1.1.1') == '127.0.0.1', 'bad source ipv4'

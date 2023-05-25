@@ -387,7 +387,7 @@ class TestRubyApplication(TestApplicationRuby):
 
         socks = []
 
-        for i in range(4):
+        for _ in range(4):
             sock = self.get(
                 headers={
                     'Host': 'localhost',

@@ -26,7 +26,7 @@ class TestApplicationProto(TestControl):
 
     def wait_for_record(self, pattern, name='unit.log', wait=150, flags=re.M):
         with Log.open(name) as f:
-            for i in range(wait):
+            for _ in range(wait):
                 found = re.search(pattern, f.read(), flags)
 
                 if found is not None:

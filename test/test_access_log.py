@@ -32,7 +32,7 @@ class TestAccessLog(TestApplicationPython):
 
         assert self.get()['status'] == 200, 'init'
 
-        (resp, sock) = self.post(
+        (_, sock) = self.post(
             headers={
                 'Host': 'localhost',
                 'Connection': 'keep-alive',
@@ -46,7 +46,7 @@ class TestAccessLog(TestApplicationPython):
             self.wait_for_record(r'"POST / HTTP/1.1" 200 5') is not None
         ), 'keepalive 1'
 
-        resp = self.post(sock=sock, body='0123456789')
+        _ = self.post(sock=sock, body='0123456789')
 
         assert (
             self.wait_for_record(r'"POST / HTTP/1.1" 200 10') is not None
@@ -169,7 +169,7 @@ Connection: close
 
         assert self.post()['status'] == 200, 'init'
 
-        resp = self.http(b"""GE""", raw=True, read_timeout=1)
+        _ = self.http(b"""GE""", raw=True, read_timeout=1)
 
         time.sleep(1)
 
@@ -193,7 +193,7 @@ Connection: close
 
         assert self.post()['status'] == 200, 'init'
 
-        resp = self.http(b"""GET / HTTP/1.1""", raw=True, read_timeout=1)
+        _ = self.http(b"""GET / HTTP/1.1""", raw=True, read_timeout=1)
 
         time.sleep(1)
 
@@ -206,7 +206,7 @@ Connection: close
 
         assert self.post()['status'] == 200, 'init'
 
-        resp = self.http(b"""GET / HTTP/1.1\n""", raw=True, read_timeout=1)
+        _ = self.http(b"""GET / HTTP/1.1\n""", raw=True, read_timeout=1)
 
         time.sleep(1)
 

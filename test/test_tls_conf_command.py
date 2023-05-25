@@ -8,7 +8,7 @@ class TestTLSConfCommand(TestApplicationTLS):
     prerequisites = {'modules': {'openssl': 'any'}}
 
     @pytest.fixture(autouse=True)
-    def setup_method_fixture(self, request):
+    def setup_method_fixture(self):
         self.certificate()
 
         assert 'success' in self.conf(
@@ -35,7 +35,7 @@ class TestTLSConfCommand(TestApplicationTLS):
 
         # Set one conf_commands (disable protocol).
 
-        (resp, sock) = self.get_ssl(start=True)
+        (_, sock) = self.get_ssl(start=True)
 
         shared_ciphers = sock.shared_ciphers()
         protocols = list(set(c[1] for c in shared_ciphers))
@@ -55,7 +55,7 @@ class TestTLSConfCommand(TestApplicationTLS):
         sock.close()
 
         if len(protocols) > 1:
-            (resp, sock) = self.get_ssl(start=True)
+            (_, sock) = self.get_ssl(start=True)
 
             cipher = sock.cipher()
             assert cipher[1] != protocol, 'new protocol used'
@@ -82,7 +82,7 @@ class TestTLSConfCommand(TestApplicationTLS):
         ), 'cipher disabled'
 
         if len(ciphers) > 1:
-            (resp, sock) = self.get_ssl(start=True)
+            (_, sock) = self.get_ssl(start=True)
 
             cipher_new = sock.cipher()
             assert cipher_new[1] == cipher[1], 'previous protocol used'

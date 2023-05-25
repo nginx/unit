@@ -39,7 +39,7 @@ Content-Length: 10
 """
 
         while True:
-            connection, client_address = sock.accept()
+            connection, _ = sock.accept()
 
             data = recvall(connection).decode()
 

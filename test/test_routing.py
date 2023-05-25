@@ -1490,28 +1490,28 @@ class TestRouting(TestApplicationPython):
             return (sock, port)
 
         sock, port = sock_port()
-        sock2, port2 = sock_port()
+        sock2, _ = sock_port()
 
         self.route_match({"source": f'127.0.0.1:{port}'})
         assert self.get(sock=sock)['status'] == 200, 'exact'
         assert self.get(sock=sock2)['status'] == 404, 'exact 2'
 
         sock, port = sock_port()
-        sock2, port2 = sock_port()
+        sock2, _ = sock_port()
 
         self.route_match({"source": f'!127.0.0.1:{port}'})
         assert self.get(sock=sock)['status'] == 404, 'negative'
         assert self.get(sock=sock2)['status'] == 200, 'negative 2'
 
         sock, port = sock_port()
-        sock2, port2 = sock_port()
+        sock2, _ = sock_port()
 
         self.route_match({"source": [f'*:{port}', "!127.0.0.1"]})
         assert self.get(sock=sock)['status'] == 404, 'negative 3'
         assert self.get(sock=sock2)['status'] == 404, 'negative 4'
 
         sock, port = sock_port()
-        sock2, port2 = sock_port()
+        sock2, _ = sock_port()
 
         self.route_match({"source": f'127.0.0.1:{port}-{port}'})
         assert self.get(sock=sock)['status'] == 200, 'range single'

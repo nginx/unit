@@ -59,7 +59,7 @@ custom-header: BLAH
         }, 'headers'
         assert resp['body'] == body, 'body'
 
-    def test_asgi_application_ipv6(self, temp_dir):
+    def test_asgi_application_ipv6(self):
         self.load('empty')
 
         assert 'success' in self.conf(
@@ -401,7 +401,7 @@ Connection: close
 
         socks = []
 
-        for i in range(2):
+        for _ in range(2):
             sock = self.get(
                 headers={
                     'Host': 'localhost',

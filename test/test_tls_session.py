@@ -19,7 +19,7 @@ class TestTLSSession(TestApplicationTLS):
     prerequisites = {'modules': {'openssl': 'any'}}
 
     @pytest.fixture(autouse=True)
-    def setup_method_fixture(self, request):
+    def setup_method_fixture(self):
         self.certificate()
 
         assert 'success' in self.conf(
@@ -70,21 +70,21 @@ class TestTLSSession(TestApplicationTLS):
         )
 
     def test_tls_session(self):
-        client, sess, ctx, reused = self.connect()
+        _, sess, ctx, reused = self.connect()
         assert not reused, 'new connection'
 
-        client, _, _, reused = self.connect(ctx, sess)
+        _, _, _, reused = self.connect(ctx, sess)
         assert not reused, 'no cache'
 
         assert 'success' in self.add_session(cache_size=2)
 
-        client, sess, ctx, reused = self.connect()
+        _, sess, ctx, reused = self.connect()
         assert not reused, 'new connection cache'
 
-        client, _, _, reused = self.connect(ctx, sess)
+        _, _, _, reused = self.connect(ctx, sess)
         assert reused, 'cache'
 
-        client, _, _, reused = self.connect(ctx, sess)
+        _, _, _, reused = self.connect(ctx, sess)
         assert reused, 'cache 2'
 
         # check that at least one session of four is not reused
@@ -108,15 +108,15 @@ class TestTLSSession(TestApplicationTLS):
     def test_tls_session_timeout(self):
         assert 'success' in self.add_session(cache_size=5, timeout=1)
 
-        client, sess, ctx, reused = self.connect()
+        _, sess, ctx, reused = self.connect()
         assert not reused, 'new connection'
 
-        client, _, _, reused = self.connect(ctx, sess)
+        _, _, _, reused = self.connect(ctx, sess)
         assert reused, 'no timeout'
 
         time.sleep(3)
 
-        client, _, _, reused = self.connect(ctx, sess)
+        _, _, _, reused = self.connect(ctx, sess)
         assert not reused, 'timeout'
 
     def test_tls_session_invalid(self):
