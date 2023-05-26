@@ -863,6 +863,8 @@ nxt_python_field_value(nxt_unit_field_t *f, int n, uint32_t vl)
     char      *p, *src;
     PyObject  *res;
 
+    src = nxt_unit_sptr_get(&f->value);
+
 #if PY_MAJOR_VERSION == 3
     res = PyUnicode_New(vl, 255);
 #else
@@ -875,7 +877,6 @@ nxt_python_field_value(nxt_unit_field_t *f, int n, uint32_t vl)
 
     p = PyString_AS_STRING(res);
 
-    src = nxt_unit_sptr_get(&f->value);
     p = nxt_cpymem(p, src, f->value_length);
 
     for (i = 1; i < n; i++) {
