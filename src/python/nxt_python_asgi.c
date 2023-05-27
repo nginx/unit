@@ -477,7 +477,7 @@ nxt_py_asgi_request_handler(nxt_unit_request_info_t *req)
     }
 
     send = PyObject_GetAttrString(asgi, "send");
-    if (nxt_slow_path(receive == NULL)) {
+    if (nxt_slow_path(send == NULL)) {
         nxt_unit_req_alert(req, "Python failed to get 'send' method");
         nxt_unit_request_done(req, NXT_UNIT_ERROR);
 
@@ -485,7 +485,7 @@ nxt_py_asgi_request_handler(nxt_unit_request_info_t *req)
     }
 
     done = PyObject_GetAttrString(asgi, "_done");
-    if (nxt_slow_path(receive == NULL)) {
+    if (nxt_slow_path(done == NULL)) {
         nxt_unit_req_alert(req, "Python failed to get '_done' method");
         nxt_unit_request_done(req, NXT_UNIT_ERROR);
 
