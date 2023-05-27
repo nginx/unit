@@ -50,6 +50,7 @@ extern PyObject  *nxt_py_subprotocol_str;
 extern PyObject  *nxt_py_subprotocols_str;
 extern PyObject  *nxt_py_text_str;
 extern PyObject  *nxt_py_type_str;
+extern PyObject  *nxt_py_state_str;
 extern PyObject  *nxt_py_version_str;
 extern PyObject  *nxt_py_websocket_str;
 extern PyObject  *nxt_py_websocket_accept_str;

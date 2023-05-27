@@ -449,7 +449,8 @@ nxt_py_asgi_remove_reader(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port)
 static void
 nxt_py_asgi_request_handler(nxt_unit_request_info_t *req)
 {
-    PyObject                *scope, *res, *task, *receive, *send, *done, *asgi;
+    PyObject                *scope, *res, *task, *receive, *send, *done, *asgi, *state, *newstate;
+    PyObject                *lifespan;
     PyObject                *stage2;
     nxt_python_target_t     *target;
     nxt_py_asgi_ctx_data_t  *ctx_data;
@@ -493,14 +494,38 @@ nxt_py_asgi_request_handler(nxt_unit_request_info_t *req)
     }
 
     req->data = asgi;
+    ctx_data = req->ctx->data;
     target = &nxt_py_targets->target[req->request->app_target];
-
-    scope = nxt_py_asgi_create_http_scope(req, target);
-    if (nxt_slow_path(scope == NULL)) {
+    lifespan = ctx_data->target_lifespans[req->request->app_target];
+    state = PyObject_GetAttr(lifespan, nxt_py_state_str);
+    if (nxt_slow_path(state == NULL)) {
+        nxt_unit_req_alert(req, "Python failed to get 'state' attribute");
         nxt_unit_request_done(req, NXT_UNIT_ERROR);
 
         goto release_done;
     }
+
+    newstate = PyDict_Copy(state);
+    if (nxt_slow_path(newstate == NULL)) {
+        nxt_unit_req_alert(req, "Python failed to call state.copy()");
+        nxt_unit_request_done(req, NXT_UNIT_ERROR);
+        Py_DECREF(state);
+        goto release_done;
+    }
+    Py_DECREF(state);
+
+    scope = nxt_py_asgi_create_http_scope(req, target);
+    if (nxt_slow_path(scope == NULL)) {
+        nxt_unit_request_done(req, NXT_UNIT_ERROR);
+        Py_DECREF(newstate);
+        goto release_done;
+    }
+
+    if (nxt_slow_path(PyDict_SetItem(scope, nxt_py_state_str, newstate) == -1)) {
+        Py_DECREF(newstate);
+        goto release_scope;
+    }
+    Py_DECREF(newstate);
 
     if (!target->asgi_legacy) {
         nxt_unit_req_debug(req, "Python call ASGI 3.0 application");
@@ -555,7 +580,6 @@ nxt_py_asgi_request_handler(nxt_unit_request_info_t *req)
         goto release_scope;
     }
 
-    ctx_data = req->ctx->data;
 
     task = PyObject_CallFunctionObjArgs(ctx_data->loop_create_task, res, NULL);
     if (nxt_slow_path(task == NULL)) {

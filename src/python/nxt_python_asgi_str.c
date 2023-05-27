@@ -55,6 +55,7 @@ PyObject  *nxt_py_subprotocol_str;
 PyObject  *nxt_py_subprotocols_str;
 PyObject  *nxt_py_text_str;
 PyObject  *nxt_py_type_str;
+PyObject  *nxt_py_state_str;
 PyObject  *nxt_py_version_str;
 PyObject  *nxt_py_websocket_str;
 PyObject  *nxt_py_websocket_accept_str;
@@ -110,6 +111,7 @@ static nxt_python_string_t nxt_py_asgi_strings[] = {
     { nxt_string("subprotocols"), &nxt_py_subprotocols_str },
     { nxt_string("text"), &nxt_py_text_str },
     { nxt_string("type"), &nxt_py_type_str },
+    { nxt_string("state"), &nxt_py_state_str },
     { nxt_string("version"), &nxt_py_version_str },
     { nxt_string("websocket"), &nxt_py_websocket_str },
     { nxt_string("websocket.accept"), &nxt_py_websocket_accept_str },
