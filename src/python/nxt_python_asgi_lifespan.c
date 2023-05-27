@@ -12,6 +12,8 @@
 #include <python/nxt_python_asgi.h>
 #include <python/nxt_python_asgi_str.h>
 
+#include <structmember.h>
+
 
 typedef struct  {
     PyObject_HEAD
@@ -25,6 +27,7 @@ typedef struct  {
     PyObject                *startup_future;
     PyObject                *shutdown_future;
     PyObject                *receive_future;
+    PyObject                *state;
 } nxt_py_asgi_lifespan_t;
 
 static PyObject *nxt_py_asgi_lifespan_target_startup(
@@ -41,6 +44,7 @@ static PyObject *nxt_py_asgi_lifespan_send_shutdown(
     nxt_py_asgi_lifespan_t *lifespan, int v, PyObject *dict);
 static PyObject *nxt_py_asgi_lifespan_disable(nxt_py_asgi_lifespan_t *lifespan);
 static PyObject *nxt_py_asgi_lifespan_done(PyObject *self, PyObject *future);
+static void nxt_py_asgi_lifespan_dealloc(PyObject *self);
 
 
 static PyMethodDef nxt_py_asgi_lifespan_methods[] = {
@@ -48,6 +52,26 @@ static PyMethodDef nxt_py_asgi_lifespan_methods[] = {
     { "send",      nxt_py_asgi_lifespan_send,    METH_O,      0 },
     { "_done",     nxt_py_asgi_lifespan_done,    METH_O,      0 },
     { NULL, NULL, 0, 0 }
+};
+
+static PyMemberDef nxt_py_asgi_lifespan_members[] = {
+    {
+#if PY_VERSION_HEX >= NXT_PYTHON_VER(3, 7)
+        .name   = "state",
+#else
+        .name   = (char *)"state",
+#endif
+        .type   = T_OBJECT_EX,
+        .offset = offsetof(nxt_py_asgi_lifespan_t, state),
+        .flags  = READONLY,
+#if PY_VERSION_HEX >= NXT_PYTHON_VER(3, 7)
+        .doc    = PyDoc_STR("lifespan.state")
+#else
+        .doc    = (char *)PyDoc_STR("lifespan.state")
+#endif
+    },
+
+    { NULL, 0, 0, 0, NULL }
 };
 
 static PyAsyncMethods nxt_py_asgi_async_methods = {
@@ -59,13 +83,14 @@ static PyTypeObject nxt_py_asgi_lifespan_type = {
 
     .tp_name      = "unit._asgi_lifespan",
     .tp_basicsize = sizeof(nxt_py_asgi_lifespan_t),
-    .tp_dealloc   = nxt_py_asgi_dealloc,
+    .tp_dealloc   = nxt_py_asgi_lifespan_dealloc,
     .tp_as_async  = &nxt_py_asgi_async_methods,
     .tp_flags     = Py_TPFLAGS_DEFAULT,
     .tp_doc       = "unit ASGI Lifespan object",
     .tp_iter      = nxt_py_asgi_iter,
     .tp_iternext  = nxt_py_asgi_next,
     .tp_methods   = nxt_py_asgi_lifespan_methods,
+    .tp_members   = nxt_py_asgi_lifespan_members,
 };
 
 
@@ -163,9 +188,26 @@ nxt_py_asgi_lifespan_target_startup(nxt_py_asgi_ctx_data_t *ctx_data,
     lifespan->shutdown_called = 0;
     lifespan->shutdown_future = NULL;
     lifespan->receive_future = NULL;
+    lifespan->state = NULL;
 
     scope = nxt_py_asgi_new_scope(NULL, nxt_py_lifespan_str, nxt_py_2_0_str);
     if (nxt_slow_path(scope == NULL)) {
+        goto release_future;
+    }
+
+    lifespan->state = PyDict_New();
+    if (nxt_slow_path(lifespan->state == NULL)) {
+        nxt_unit_req_error(NULL,
+                           "Python failed to create 'state' dict");
+        goto release_future;
+    }
+
+    if (nxt_slow_path(PyDict_SetItem(scope, nxt_py_state_str,
+                                     lifespan->state) == -1))
+    {
+        nxt_unit_req_error(NULL,
+                           "Python failed to set 'scope.state' item");
+        Py_CLEAR(lifespan->state);
         goto release_future;
     }
 
@@ -601,6 +643,16 @@ nxt_py_asgi_lifespan_done(PyObject *self, PyObject *future)
     }
 
     Py_RETURN_NONE;
+}
+
+
+static void
+nxt_py_asgi_lifespan_dealloc(PyObject *self)
+{
+    nxt_py_asgi_lifespan_t *lifespan = (nxt_py_asgi_lifespan_t *)self;
+
+    Py_CLEAR(lifespan->state);
+    PyObject_Del(self);
 }
 
 
