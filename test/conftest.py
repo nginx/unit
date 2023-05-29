@@ -24,6 +24,7 @@ from unit.check.tls import check_openssl
 from unit.check.unix_abstract import check_unix_abstract
 from unit.http import TestHTTP
 from unit.log import Log
+from unit.log import print_log_on_assert
 from unit.option import option
 from unit.status import Status
 from unit.utils import check_findmnt
@@ -120,17 +121,6 @@ def pytest_configure(config):
         fcntl.fcntl(sys.stdout.fileno(), fcntl.F_SETFL, 0)
 
 
-def print_log_on_assert(func):
-    def inner_function(*args, **kwargs):
-        try:
-            func(*args, **kwargs)
-        except AssertionError as e:
-            _print_log(kwargs.get('log', None))
-            raise e
-
-    return inner_function
-
-
 def pytest_generate_tests(metafunc):
     cls = metafunc.cls
     if (
@@ -196,7 +186,7 @@ def pytest_sessionstart():
                 break
 
     if m is None:
-        _print_log(log)
+        Log.print_log(log)
         exit("Unit is writing log too long")
 
     # discover available modules from unit.log
@@ -228,7 +218,7 @@ def pytest_sessionstart():
 
     unit_stop()
 
-    _check_alerts()
+    Log.check_alerts()
 
     if option.restart:
         shutil.rmtree(unit_instance['temp_dir'])
@@ -331,17 +321,17 @@ def run(request):
     # print unit.log in case of error
 
     if hasattr(request.node, 'rep_call') and request.node.rep_call.failed:
-        _print_log(log)
+        Log.print_log(log)
 
     if error_stop_unit or error_stop_processes:
-        _print_log(log)
+        Log.print_log(log)
 
     # check unit.log for errors
 
     assert error_stop_unit is None, 'stop unit'
     assert error_stop_processes is None, 'stop processes'
 
-    _check_alerts(log=log)
+    Log.check_alerts(log=log)
 
 
 def unit_run(state_dir=None):
@@ -360,6 +350,7 @@ def unit_run(state_dir=None):
         exit('Could not find unit')
 
     temp_dir = tempfile.mkdtemp(prefix='unit-test-')
+    option.temp_dir = temp_dir
     public_dir(temp_dir)
 
     if oct(stat.S_IMODE(os.stat(builddir).st_mode)) != '0o777':
@@ -394,17 +385,13 @@ def unit_run(state_dir=None):
     with open(f'{temp_dir}/unit.log', 'w') as log:
         unit_instance['process'] = subprocess.Popen(unitd_args, stderr=log)
 
-    Log.temp_dir = temp_dir
-
     if not waitforfiles(control_sock):
-        _print_log()
+        Log.print_log()
         exit('Could not start unit')
 
     unit_instance['temp_dir'] = temp_dir
     unit_instance['control_sock'] = control_sock
     unit_instance['unitd'] = unitd
-
-    option.temp_dir = temp_dir
 
     with open(f'{temp_dir}/unit.pid', 'r') as f:
         unit_instance['pid'] = f.read().rstrip()
@@ -463,53 +450,6 @@ def unit_stop():
     except:
         p.kill()
         return 'Could not terminate unit'
-
-
-@print_log_on_assert
-def _check_alerts(*, log=None):
-    if log is None:
-        with Log.open(encoding='utf-8') as f:
-            log = f.read()
-
-    found = False
-    alerts = re.findall(r'.+\[alert\].+', log)
-
-    if alerts:
-        found = True
-
-        if option.detailed:
-            print('\nAll alerts/sanitizer errors found in log:')
-            [print(alert) for alert in alerts]
-
-    if option.skip_alerts:
-        for skip in option.skip_alerts:
-            alerts = [al for al in alerts if re.search(skip, al) is None]
-
-    assert not alerts, 'alert(s)'
-
-    if not option.skip_sanitizer:
-        sanitizer_errors = re.findall('.+Sanitizer.+', log)
-
-        assert not sanitizer_errors, 'sanitizer error(s)'
-
-    if found and option.detailed:
-        print('skipped.')
-
-
-def _print_log(log=None):
-    path = Log.get_path()
-
-    print(f'Path to unit.log:\n{path}\n')
-
-    if option.print_log:
-        os.set_blocking(sys.stdout.fileno(), True)
-        sys.stdout.flush()
-
-        if log is None:
-            with open(path, 'r', encoding='utf-8', errors='ignore') as f:
-                shutil.copyfileobj(f, sys.stdout)
-        else:
-            sys.stdout.write(log)
 
 
 @print_log_on_assert
@@ -769,7 +709,7 @@ def unit_pid():
 
 def pytest_sessionfinish():
     if not option.restart and option.save_log:
-        print(f'Path to unit.log:\n{Log.get_path()}\n')
+        Log.print_path()
 
     option.restart = True
 

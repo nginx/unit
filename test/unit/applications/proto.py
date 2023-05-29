@@ -17,12 +17,10 @@ class TestApplicationProto(TestControl):
         return time.mktime(time.strptime(date, template))
 
     def findall(self, pattern, name='unit.log', flags=re.M):
-        with Log.open(name) as f:
-            return re.findall(pattern, f.read(), flags)
+        return re.findall(pattern, Log.read(name), flags)
 
     def search_in_log(self, pattern, name='unit.log', flags=re.M):
-        with Log.open(name) as f:
-            return re.search(pattern, f.read(), flags)
+        return re.search(pattern, Log.read(name), flags)
 
     def wait_for_record(self, pattern, name='unit.log', wait=150, flags=re.M):
         with Log.open(name) as f:
