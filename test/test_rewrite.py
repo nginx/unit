@@ -37,14 +37,11 @@ class TestRewrite(TestApplicationProto):
             'routes',
         )
 
-    def test_rewrite(self):
+    def test_rewrite(self, findall, wait_for_record):
         assert self.get()['status'] == 200
-        assert (
-            self.wait_for_record(rf'\[notice\].*"routes/1" selected')
-            is not None
-        )
-        assert len(self.findall(rf'\[notice\].*URI rewritten to "/new"')) == 1
-        assert len(self.findall(rf'\[notice\].*URI rewritten')) == 1
+        assert wait_for_record(rf'\[notice\].*"routes/1" selected') is not None
+        assert len(findall(rf'\[notice\].*URI rewritten to "/new"')) == 1
+        assert len(findall(rf'\[notice\].*URI rewritten')) == 1
 
         self.set_rewrite("", "")
         assert self.get()['status'] == 200

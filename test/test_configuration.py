@@ -2,7 +2,6 @@ import socket
 
 import pytest
 from unit.control import TestControl
-from unit.option import option
 
 
 class TestConfiguration(TestControl):
@@ -227,8 +226,8 @@ class TestConfiguration(TestControl):
             {"*:7080": {"pass": "applications/app"}}, 'listeners'
         ), 'listeners no app'
 
-    def test_listeners_unix_abstract(self):
-        if option.system != 'Linux':
+    def test_listeners_unix_abstract(self, system):
+        if system != 'Linux':
             assert 'error' in self.try_addr("unix:@sock"), 'abstract at'
 
         pytest.skip('not yet')

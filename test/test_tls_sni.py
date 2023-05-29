@@ -19,9 +19,6 @@ class TestTLSSNI(TestApplicationTLS):
             }
         )
 
-    def openssl_date_to_sec_epoch(self, date):
-        return self.date_to_sec_epoch(date, '%b %d %X %Y %Z')
-
     def add_tls(self, cert='default'):
         assert 'success' in self.conf(
             {"pass": "routes", "tls": {"certificate": cert}},

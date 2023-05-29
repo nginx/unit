@@ -90,17 +90,6 @@ def findmnt():
     return out
 
 
-def sysctl():
-    try:
-        out = subprocess.check_output(
-            ['sysctl', '-a'], stderr=subprocess.STDOUT
-        ).decode()
-    except FileNotFoundError:
-        pytest.skip('requires sysctl')
-
-    return out
-
-
 def waitformount(template, timeout=50):
     for _ in range(timeout):
         if findmnt().find(template) != -1:

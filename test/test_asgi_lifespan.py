@@ -98,27 +98,27 @@ class TestASGILifespan(TestApplicationPython):
         self.assert_cookies('')
         self.assert_cookies('app2_')
 
-    def test_asgi_lifespan_failed(self):
+    def test_asgi_lifespan_failed(self, wait_for_record):
         self.load('lifespan/failed')
 
         assert self.get()['status'] == 503
 
         assert (
-            self.wait_for_record(r'\[error\].*Application startup failed')
+            wait_for_record(r'\[error\].*Application startup failed')
             is not None
         ), 'error message'
-        assert self.wait_for_record(r'Exception blah') is not None, 'exception'
+        assert wait_for_record(r'Exception blah') is not None, 'exception'
 
-    def test_asgi_lifespan_error(self):
+    def test_asgi_lifespan_error(self, wait_for_record):
         self.load('lifespan/error')
 
         self.get()
 
-        assert self.wait_for_record(r'Exception blah') is not None, 'exception'
+        assert wait_for_record(r'Exception blah') is not None, 'exception'
 
-    def test_asgi_lifespan_error_auto(self):
+    def test_asgi_lifespan_error_auto(self, wait_for_record):
         self.load('lifespan/error_auto')
 
         self.get()
 
-        assert self.wait_for_record(r'AssertionError') is not None, 'assertion'
+        assert wait_for_record(r'AssertionError') is not None, 'assertion'

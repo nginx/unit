@@ -24,10 +24,7 @@ class TestAccessLog(TestApplicationPython):
             'access_log',
         ), 'access_log format'
 
-    def wait_for_record(self, pattern, name='access.log'):
-        return super().wait_for_record(pattern, name)
-
-    def test_access_log_keepalive(self):
+    def test_access_log_keepalive(self, wait_for_record):
         self.load('mirror')
 
         assert self.get()['status'] == 200, 'init'
@@ -43,16 +40,18 @@ class TestAccessLog(TestApplicationPython):
         )
 
         assert (
-            self.wait_for_record(r'"POST / HTTP/1.1" 200 5') is not None
+            wait_for_record(r'"POST / HTTP/1.1" 200 5', 'access.log')
+            is not None
         ), 'keepalive 1'
 
         _ = self.post(sock=sock, body='0123456789')
 
         assert (
-            self.wait_for_record(r'"POST / HTTP/1.1" 200 10') is not None
+            wait_for_record(r'"POST / HTTP/1.1" 200 10', 'access.log')
+            is not None
         ), 'keepalive 2'
 
-    def test_access_log_pipeline(self):
+    def test_access_log_pipeline(self, wait_for_record):
         self.load('empty')
 
         self.http(
@@ -75,19 +74,25 @@ Connection: close
         )
 
         assert (
-            self.wait_for_record(r'"GET / HTTP/1.1" 200 0 "Referer-1" "-"')
+            wait_for_record(
+                r'"GET / HTTP/1.1" 200 0 "Referer-1" "-"', 'access.log'
+            )
             is not None
         ), 'pipeline 1'
         assert (
-            self.wait_for_record(r'"GET / HTTP/1.1" 200 0 "Referer-2" "-"')
+            wait_for_record(
+                r'"GET / HTTP/1.1" 200 0 "Referer-2" "-"', 'access.log'
+            )
             is not None
         ), 'pipeline 2'
         assert (
-            self.wait_for_record(r'"GET / HTTP/1.1" 200 0 "Referer-3" "-"')
+            wait_for_record(
+                r'"GET / HTTP/1.1" 200 0 "Referer-3" "-"', 'access.log'
+            )
             is not None
         ), 'pipeline 3'
 
-    def test_access_log_ipv6(self):
+    def test_access_log_ipv6(self, wait_for_record):
         self.load('empty')
 
         assert 'success' in self.conf(
@@ -97,13 +102,13 @@ Connection: close
         self.get(sock_type='ipv6')
 
         assert (
-            self.wait_for_record(
-                r'::1 - - \[.+\] "GET / HTTP/1.1" 200 0 "-" "-"'
+            wait_for_record(
+                r'::1 - - \[.+\] "GET / HTTP/1.1" 200 0 "-" "-"', 'access.log'
             )
             is not None
         ), 'ipv6'
 
-    def test_access_log_unix(self, temp_dir):
+    def test_access_log_unix(self, temp_dir, wait_for_record):
         self.load('empty')
 
         addr = f'{temp_dir}/sock'
@@ -115,13 +120,13 @@ Connection: close
         self.get(sock_type='unix', addr=addr)
 
         assert (
-            self.wait_for_record(
-                r'unix: - - \[.+\] "GET / HTTP/1.1" 200 0 "-" "-"'
+            wait_for_record(
+                r'unix: - - \[.+\] "GET / HTTP/1.1" 200 0 "-" "-"', 'access.log'
             )
             is not None
         ), 'unix'
 
-    def test_access_log_referer(self):
+    def test_access_log_referer(self, wait_for_record):
         self.load('empty')
 
         self.get(
@@ -133,11 +138,13 @@ Connection: close
         )
 
         assert (
-            self.wait_for_record(r'"GET / HTTP/1.1" 200 0 "referer-value" "-"')
+            wait_for_record(
+                r'"GET / HTTP/1.1" 200 0 "referer-value" "-"', 'access.log'
+            )
             is not None
         ), 'referer'
 
-    def test_access_log_user_agent(self):
+    def test_access_log_user_agent(self, wait_for_record):
         self.load('empty')
 
         self.get(
@@ -149,22 +156,23 @@ Connection: close
         )
 
         assert (
-            self.wait_for_record(
-                r'"GET / HTTP/1.1" 200 0 "-" "user-agent-value"'
+            wait_for_record(
+                r'"GET / HTTP/1.1" 200 0 "-" "user-agent-value"', 'access.log'
             )
             is not None
         ), 'user agent'
 
-    def test_access_log_http10(self):
+    def test_access_log_http10(self, wait_for_record):
         self.load('empty')
 
         self.get(http_10=True)
 
         assert (
-            self.wait_for_record(r'"GET / HTTP/1.0" 200 0 "-" "-"') is not None
+            wait_for_record(r'"GET / HTTP/1.0" 200 0 "-" "-"', 'access.log')
+            is not None
         ), 'http 1.0'
 
-    def test_access_log_partial(self):
+    def test_access_log_partial(self, wait_for_record):
         self.load('empty')
 
         assert self.post()['status'] == 200, 'init'
@@ -174,10 +182,10 @@ Connection: close
         time.sleep(1)
 
         assert (
-            self.wait_for_record(r'"-" 400 0 "-" "-"') is not None
+            wait_for_record(r'"-" 400 0 "-" "-"', 'access.log') is not None
         ), 'partial'
 
-    def test_access_log_partial_2(self):
+    def test_access_log_partial_2(self, wait_for_record):
         self.load('empty')
 
         assert self.post()['status'] == 200, 'init'
@@ -185,10 +193,10 @@ Connection: close
         self.http(b"""GET /\n""", raw=True)
 
         assert (
-            self.wait_for_record(r'"-" 400 \d+ "-" "-"') is not None
+            wait_for_record(r'"-" 400 \d+ "-" "-"', 'access.log') is not None
         ), 'partial 2'
 
-    def test_access_log_partial_3(self):
+    def test_access_log_partial_3(self, wait_for_record):
         self.load('empty')
 
         assert self.post()['status'] == 200, 'init'
@@ -198,10 +206,10 @@ Connection: close
         time.sleep(1)
 
         assert (
-            self.wait_for_record(r'"-" 400 0 "-" "-"') is not None
+            wait_for_record(r'"-" 400 0 "-" "-"', 'access.log') is not None
         ), 'partial 3'
 
-    def test_access_log_partial_4(self):
+    def test_access_log_partial_4(self, wait_for_record):
         self.load('empty')
 
         assert self.post()['status'] == 200, 'init'
@@ -211,11 +219,11 @@ Connection: close
         time.sleep(1)
 
         assert (
-            self.wait_for_record(r'"-" 400 0 "-" "-"') is not None
+            wait_for_record(r'"-" 400 0 "-" "-"', 'access.log') is not None
         ), 'partial 4'
 
     @pytest.mark.skip('not yet')
-    def test_access_log_partial_5(self):
+    def test_access_log_partial_5(self, wait_for_record):
         self.load('empty')
 
         assert self.post()['status'] == 200, 'init'
@@ -223,32 +231,32 @@ Connection: close
         self.get(headers={'Connection': 'close'})
 
         assert (
-            self.wait_for_record(r'"GET / HTTP/1.1" 400 \d+ "-" "-"')
+            wait_for_record(r'"GET / HTTP/1.1" 400 \d+ "-" "-"', 'access.log')
             is not None
         ), 'partial 5'
 
-    def test_access_log_get_parameters(self):
+    def test_access_log_get_parameters(self, wait_for_record):
         self.load('empty')
 
         self.get(url='/?blah&var=val')
 
         assert (
-            self.wait_for_record(
-                r'"GET /\?blah&var=val HTTP/1.1" 200 0 "-" "-"'
+            wait_for_record(
+                r'"GET /\?blah&var=val HTTP/1.1" 200 0 "-" "-"', 'access.log'
             )
             is not None
         ), 'get parameters'
 
-    def test_access_log_delete(self):
+    def test_access_log_delete(self, search_in_file):
         self.load('empty')
 
         assert 'success' in self.conf_delete('access_log')
 
         self.get(url='/delete')
 
-        assert self.search_in_log(r'/delete', 'access.log') is None, 'delete'
+        assert search_in_file(r'/delete', 'access.log') is None, 'delete'
 
-    def test_access_log_change(self, temp_dir):
+    def test_access_log_change(self, temp_dir, wait_for_record):
         self.load('empty')
 
         self.get()
@@ -258,24 +266,24 @@ Connection: close
         self.get()
 
         assert (
-            self.wait_for_record(r'"GET / HTTP/1.1" 200 0 "-" "-"', 'new.log')
+            wait_for_record(r'"GET / HTTP/1.1" 200 0 "-" "-"', 'new.log')
             is not None
         ), 'change'
 
-    def test_access_log_format(self):
+    def test_access_log_format(self, wait_for_record):
         self.load('empty')
 
         def check_format(format, expect, url='/'):
             self.set_format(format)
 
             assert self.get(url=url)['status'] == 200
-            assert self.wait_for_record(expect) is not None, 'found'
+            assert wait_for_record(expect, 'access.log') is not None, 'found'
 
         format = 'BLAH\t0123456789'
         check_format(format, format)
         check_format('$uri $status $uri $status', '/ 200 / 200')
 
-    def test_access_log_variables(self):
+    def test_access_log_variables(self, wait_for_record):
         self.load('mirror')
 
         # $body_bytes_sent
@@ -284,7 +292,7 @@ Connection: close
         body = '0123456789' * 50
         self.post(url='/bbs', body=body, read_timeout=1)
         assert (
-            self.wait_for_record(fr'^\/bbs {len(body)}$') is not None
+            wait_for_record(fr'^\/bbs {len(body)}$', 'access.log') is not None
         ), '$body_bytes_sent'
 
     def test_access_log_incorrect(self, temp_dir, skip_alert):

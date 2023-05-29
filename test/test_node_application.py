@@ -34,7 +34,7 @@ class TestNodeApplication(TestApplicationNode):
         assert self.get()['status'] == 200, 'seq'
         assert self.get()['status'] == 200, 'seq 2'
 
-    def test_node_application_variables(self):
+    def test_node_application_variables(self, date_to_sec_epoch, sec_epoch):
         self.load('variables')
 
         body = 'Test body string.'
@@ -56,9 +56,7 @@ class TestNodeApplication(TestApplicationNode):
 
         date = headers.pop('Date')
         assert date[-4:] == ' GMT', 'date header timezone'
-        assert (
-            abs(self.date_to_sec_epoch(date) - self.sec_epoch()) < 5
-        ), 'date header'
+        assert abs(date_to_sec_epoch(date) - sec_epoch) < 5, 'date header'
 
         raw_headers = headers.pop('Request-Raw-Headers')
         assert re.search(

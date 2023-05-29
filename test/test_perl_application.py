@@ -7,7 +7,7 @@ from unit.applications.lang.perl import TestApplicationPerl
 class TestPerlApplication(TestApplicationPerl):
     prerequisites = {'modules': {'perl': 'all'}}
 
-    def test_perl_application(self):
+    def test_perl_application(self, date_to_sec_epoch, sec_epoch):
         self.load('variables')
 
         body = 'Test body string.'
@@ -32,9 +32,7 @@ class TestPerlApplication(TestApplicationPerl):
 
         date = headers.pop('Date')
         assert date[-4:] == ' GMT', 'date header timezone'
-        assert (
-            abs(self.date_to_sec_epoch(date) - self.sec_epoch()) < 5
-        ), 'date header'
+        assert abs(date_to_sec_epoch(date) - sec_epoch) < 5, 'date header'
 
         assert headers == {
             'Connection': 'close',
@@ -128,13 +126,13 @@ class TestPerlApplication(TestApplicationPerl):
         body = '0123456789'
         assert self.post(body=body)['body'] == body, 'input copy'
 
-    def test_perl_application_errors_print(self):
+    def test_perl_application_errors_print(self, wait_for_record):
         self.load('errors_print')
 
         assert self.get()['body'] == '1', 'errors result'
 
         assert (
-            self.wait_for_record(r'\[error\].+Error in application') is not None
+            wait_for_record(r'\[error\].+Error in application') is not None
         ), 'errors print'
 
     def test_perl_application_header_equal_names(self):
@@ -223,19 +221,18 @@ class TestPerlApplication(TestApplicationPerl):
 
         assert resp['body'] == body, 'keep-alive 2'
 
-    def test_perl_body_io_fake(self):
+    def test_perl_body_io_fake(self, wait_for_record):
         self.load('body_io_fake')
 
         assert self.get()['body'] == '21', 'body io fake'
 
         assert (
-            self.wait_for_record(r'\[error\].+IOFake getline\(\) \$\/ is \d+')
+            wait_for_record(r'\[error\].+IOFake getline\(\) \$\/ is \d+')
             is not None
         ), 'body io fake $/ value'
 
         assert (
-            self.wait_for_record(r'\[error\].+IOFake close\(\) called')
-            is not None
+            wait_for_record(r'\[error\].+IOFake close\(\) called') is not None
         ), 'body io fake close'
 
     def test_perl_delayed_response(self):

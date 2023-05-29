@@ -14,7 +14,7 @@ class TestASGIApplication(TestApplicationPython):
     }
     load_module = 'asgi'
 
-    def test_asgi_application_variables(self):
+    def test_asgi_application_variables(self, date_to_sec_epoch, sec_epoch):
         self.load('variables')
 
         body = 'Test body string.'
@@ -40,9 +40,7 @@ custom-header: BLAH
 
         date = headers.pop('Date')
         assert date[-4:] == ' GMT', 'date header timezone'
-        assert (
-            abs(self.date_to_sec_epoch(date) - self.sec_epoch()) < 5
-        ), 'date header'
+        assert abs(date_to_sec_epoch(date) - sec_epoch) < 5, 'date header'
 
         assert headers == {
             'Connection': 'close',
@@ -382,7 +380,7 @@ Connection: close
 
         assert self.get()['status'] == 503, 'loading error'
 
-    def test_asgi_application_threading(self):
+    def test_asgi_application_threading(self, wait_for_record):
         """wait_for_record() timeouts after 5s while every thread works at
         least 3s.  So without releasing GIL test should fail.
         """
@@ -393,7 +391,7 @@ Connection: close
             self.get(no_recv=True)
 
         assert (
-            self.wait_for_record(r'\(5\) Thread: 100', wait=50) is not None
+            wait_for_record(r'\(5\) Thread: 100', wait=50) is not None
         ), 'last thread finished'
 
     def test_asgi_application_threads(self):

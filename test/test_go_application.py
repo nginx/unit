@@ -11,7 +11,7 @@ class TestGoApplication(TestApplicationGo):
     def setup_method_fixture(self, skip_alert):
         skip_alert(r'\[unit\] close\(\d+\) failed: Bad file descriptor')
 
-    def test_go_application_variables(self):
+    def test_go_application_variables(self, date_to_sec_epoch, sec_epoch):
         self.load('variables')
 
         body = 'Test body string.'
@@ -33,9 +33,7 @@ class TestGoApplication(TestApplicationGo):
 
         date = headers.pop('Date')
         assert date[-4:] == ' GMT', 'date header timezone'
-        assert (
-            abs(self.date_to_sec_epoch(date) - self.sec_epoch()) < 5
-        ), 'date header'
+        assert abs(date_to_sec_epoch(date) - sec_epoch) < 5, 'date header'
 
         assert headers == {
             'Content-Length': str(len(body)),

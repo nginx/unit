@@ -11,9 +11,6 @@ from unit.option import option
 class TestTLS(TestApplicationTLS):
     prerequisites = {'modules': {'python': 'any', 'openssl': 'any'}}
 
-    def openssl_date_to_sec_epoch(self, date):
-        return self.date_to_sec_epoch(date, '%b %d %X %Y %Z')
-
     def add_tls(self, application='empty', cert='default', port=7080):
         assert 'success' in self.conf(
             {
@@ -254,8 +251,9 @@ basicConstraints = critical,CA:TRUE"""
             self.conf_get('/certificates/ec/key') == 'ECDH'
         ), 'certificate key ec'
 
-    def test_tls_certificate_chain_options(self):
+    def test_tls_certificate_chain_options(self, date_to_sec_epoch, sec_epoch):
         self.load('empty')
+        date_format = '%b %d %X %Y %Z'
 
         self.certificate()
 
@@ -274,14 +272,14 @@ basicConstraints = critical,CA:TRUE"""
 
         assert (
             abs(
-                self.sec_epoch()
-                - self.openssl_date_to_sec_epoch(cert['validity']['since'])
+                sec_epoch
+                - date_to_sec_epoch(cert['validity']['since'], date_format)
             )
             < 60
         ), 'certificate validity since'
         assert (
-            self.openssl_date_to_sec_epoch(cert['validity']['until'])
-            - self.openssl_date_to_sec_epoch(cert['validity']['since'])
+            date_to_sec_epoch(cert['validity']['until'], date_format)
+            - date_to_sec_epoch(cert['validity']['since'], date_format)
             == 2592000
         ), 'certificate validity until'
 
@@ -583,7 +581,9 @@ basicConstraints = critical,CA:TRUE"""
             '/certificates'
         ), 'remove all certificates'
 
-    def test_tls_application_respawn(self, skip_alert):
+    def test_tls_application_respawn(
+        self, findall, skip_alert, wait_for_record
+    ):
         self.load('mirror')
 
         self.certificate()
@@ -602,13 +602,13 @@ basicConstraints = critical,CA:TRUE"""
             read_timeout=1,
         )
 
-        app_id = self.findall(r'(\d+)#\d+ "mirror" application started')[0]
+        app_id = findall(r'(\d+)#\d+ "mirror" application started')[0]
 
         subprocess.check_output(['kill', '-9', app_id])
 
         skip_alert(fr'process {app_id} exited on signal 9')
 
-        self.wait_for_record(
+        wait_for_record(
             fr' (?!{app_id}#)(\d+)#\d+ "mirror" application started'
         )
 

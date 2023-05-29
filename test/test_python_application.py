@@ -14,7 +14,7 @@ from unit.applications.lang.python import TestApplicationPython
 class TestPythonApplication(TestApplicationPython):
     prerequisites = {'modules': {'python': 'all'}}
 
-    def test_python_application_variables(self):
+    def test_python_application_variables(self, date_to_sec_epoch, sec_epoch):
         self.load('variables')
 
         body = 'Test body string.'
@@ -43,9 +43,7 @@ custom-header: BLAH
 
         date = headers.pop('Date')
         assert date[-4:] == ' GMT', 'date header timezone'
-        assert (
-            abs(self.date_to_sec_epoch(date) - self.sec_epoch()) < 5
-        ), 'date header'
+        assert abs(date_to_sec_epoch(date) - sec_epoch) < 5, 'date header'
 
         assert headers == {
             'Connection': 'close',
@@ -175,7 +173,7 @@ custom-header: BLAH
             'Transfer-Encoding' not in self.get()['headers']
         ), '204 header transfer encoding'
 
-    def test_python_application_ctx_iter_atexit(self):
+    def test_python_application_ctx_iter_atexit(self, wait_for_record):
         self.load('ctx_iter_atexit')
 
         resp = self.post(body='0123456789')
@@ -185,9 +183,7 @@ custom-header: BLAH
 
         assert 'success' in self.conf({"listeners": {}, "applications": {}})
 
-        assert (
-            self.wait_for_record(r'RuntimeError') is not None
-        ), 'ctx iter atexit'
+        assert wait_for_record(r'RuntimeError') is not None, 'ctx iter atexit'
 
     def test_python_keepalive_body(self):
         self.load('mirror')
@@ -297,14 +293,14 @@ custom-header: BLAH
 
         assert resp == {}, 'reconfigure 2 keep-alive 3'
 
-    def test_python_atexit(self):
+    def test_python_atexit(self, wait_for_record):
         self.load('atexit')
 
         self.get()
 
         assert 'success' in self.conf({"listeners": {}, "applications": {}})
 
-        assert self.wait_for_record(r'At exit called\.') is not None, 'atexit'
+        assert wait_for_record(r'At exit called\.') is not None, 'atexit'
 
     def test_python_process_switch(self):
         self.load('delayed', processes=2)
@@ -456,14 +452,13 @@ last line: 987654321
         assert resp['body'] == body, 'input read length negative'
 
     @pytest.mark.skip('not yet')
-    def test_python_application_errors_write(self):
+    def test_python_application_errors_write(self, wait_for_record):
         self.load('errors_write')
 
         self.get()
 
         assert (
-            self.wait_for_record(r'\[error\].+Error in application\.')
-            is not None
+            wait_for_record(r'\[error\].+Error in application\.') is not None
         ), 'errors write'
 
     def test_python_application_body_array(self):
@@ -495,29 +490,27 @@ last line: 987654321
 
         assert self.get()['status'] == 503, 'loading error'
 
-    def test_python_application_close(self):
+    def test_python_application_close(self, wait_for_record):
         self.load('close')
 
         self.get()
 
-        assert self.wait_for_record(r'Close called\.') is not None, 'close'
+        assert wait_for_record(r'Close called\.') is not None, 'close'
 
-    def test_python_application_close_error(self):
+    def test_python_application_close_error(self, wait_for_record):
         self.load('close_error')
 
         self.get()
 
-        assert (
-            self.wait_for_record(r'Close called\.') is not None
-        ), 'close error'
+        assert wait_for_record(r'Close called\.') is not None, 'close error'
 
-    def test_python_application_not_iterable(self):
+    def test_python_application_not_iterable(self, wait_for_record):
         self.load('not_iterable')
 
         self.get()
 
         assert (
-            self.wait_for_record(
+            wait_for_record(
                 r'\[error\].+the application returned not an iterable object'
             )
             is not None
@@ -603,7 +596,7 @@ last line: 987654321
             == 200
         )
 
-    def test_python_application_threading(self):
+    def test_python_application_threading(self, wait_for_record):
         """wait_for_record() timeouts after 5s while every thread works at
         least 3s.  So without releasing GIL test should fail.
         """
@@ -614,10 +607,10 @@ last line: 987654321
             self.get(no_recv=True)
 
         assert (
-            self.wait_for_record(r'\(5\) Thread: 100', wait=50) is not None
+            wait_for_record(r'\(5\) Thread: 100', wait=50) is not None
         ), 'last thread finished'
 
-    def test_python_application_iter_exception(self):
+    def test_python_application_iter_exception(self, findall, wait_for_record):
         self.load('iter_exception')
 
         # Default request doesn't lead to the exception.
@@ -637,12 +630,11 @@ last line: 987654321
 
         assert self.get()['status'] == 503, 'error'
 
-        assert self.wait_for_record(r'Traceback') is not None, 'traceback'
+        assert wait_for_record(r'Traceback') is not None, 'traceback'
         assert (
-            self.wait_for_record(r"raise Exception\('first exception'\)")
-            is not None
+            wait_for_record(r"raise Exception\('first exception'\)") is not None
         ), 'first exception raise'
-        assert len(self.findall(r'Traceback')) == 1, 'traceback count 1'
+        assert len(findall(r'Traceback')) == 1, 'traceback count 1'
 
         # Exception after start_response(), before first write().
 
@@ -658,10 +650,10 @@ last line: 987654321
         ), 'error 2'
 
         assert (
-            self.wait_for_record(r"raise Exception\('second exception'\)")
+            wait_for_record(r"raise Exception\('second exception'\)")
             is not None
         ), 'exception raise second'
-        assert len(self.findall(r'Traceback')) == 2, 'traceback count 2'
+        assert len(findall(r'Traceback')) == 2, 'traceback count 2'
 
         # Exception after first write(), before first __next__().
 
@@ -675,10 +667,9 @@ last line: 987654321
         )
 
         assert (
-            self.wait_for_record(r"raise Exception\('third exception'\)")
-            is not None
+            wait_for_record(r"raise Exception\('third exception'\)") is not None
         ), 'exception raise third'
-        assert len(self.findall(r'Traceback')) == 3, 'traceback count 3'
+        assert len(findall(r'Traceback')) == 3, 'traceback count 3'
 
         assert self.get(sock=sock) == {}, 'closed connection'
 
@@ -696,7 +687,7 @@ last line: 987654321
         )
         if resp:
             assert resp[-5:] != '0\r\n\r\n', 'incomplete body'
-        assert len(self.findall(r'Traceback')) == 4, 'traceback count 4'
+        assert len(findall(r'Traceback')) == 4, 'traceback count 4'
 
         # Exception in __next__().
 
@@ -710,10 +701,9 @@ last line: 987654321
         )
 
         assert (
-            self.wait_for_record(r"raise Exception\('next exception'\)")
-            is not None
+            wait_for_record(r"raise Exception\('next exception'\)") is not None
         ), 'exception raise next'
-        assert len(self.findall(r'Traceback')) == 5, 'traceback count 5'
+        assert len(findall(r'Traceback')) == 5, 'traceback count 5'
 
         assert self.get(sock=sock) == {}, 'closed connection 2'
 
@@ -730,7 +720,7 @@ last line: 987654321
         )
         if resp:
             assert resp[-5:] != '0\r\n\r\n', 'incomplete body 2'
-        assert len(self.findall(r'Traceback')) == 6, 'traceback count 6'
+        assert len(findall(r'Traceback')) == 6, 'traceback count 6'
 
         # Exception before start_response() and in close().
 
@@ -746,10 +736,9 @@ last line: 987654321
         ), 'error'
 
         assert (
-            self.wait_for_record(r"raise Exception\('close exception'\)")
-            is not None
+            wait_for_record(r"raise Exception\('close exception'\)") is not None
         ), 'exception raise close'
-        assert len(self.findall(r'Traceback')) == 8, 'traceback count 8'
+        assert len(findall(r'Traceback')) == 8, 'traceback count 8'
 
     def test_python_user_group(self, is_su):
         if not is_su:

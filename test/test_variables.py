@@ -27,12 +27,6 @@ class TestVariables(TestApplicationProto):
             'access_log',
         ), 'access_log format'
 
-    def wait_for_record(self, pattern, name='access.log'):
-        return super().wait_for_record(pattern, name)
-
-    def search_in_log(self, pattern, name='access.log'):
-        return super().search_in_log(pattern, name)
-
     def test_variables_dollar(self):
         assert 'success' in self.conf("301", 'routes/0/action/return')
 
@@ -49,7 +43,7 @@ class TestVariables(TestApplicationProto):
         )
         check_dollar('path$dollar${dollar}', 'path$$')
 
-    def test_variables_request_time(self):
+    def test_variables_request_time(self, wait_for_record):
         self.set_format('$uri $request_time')
 
         sock = self.http(b'', raw=True, no_recv=True)
@@ -57,7 +51,7 @@ class TestVariables(TestApplicationProto):
         time.sleep(1)
 
         assert self.get(url='/r_time_1', sock=sock)['status'] == 200
-        assert self.wait_for_record(r'\/r_time_1 0\.\d{3}') is not None
+        assert wait_for_record(r'\/r_time_1 0\.\d{3}', 'access.log') is not None
 
         sock = self.http(
             b"""G""",
@@ -76,67 +70,70 @@ Connection: close
             sock=sock,
             raw=True,
         )
-        assert self.wait_for_record(r'\/r_time_2 [1-9]\.\d{3}') is not None
+        assert (
+            wait_for_record(r'\/r_time_2 [1-9]\.\d{3}', 'access.log')
+            is not None
+        )
 
-    def test_variables_method(self):
+    def test_variables_method(self, search_in_file, wait_for_record):
         self.set_format('$method')
 
         reg = r'^GET$'
-        assert self.search_in_log(reg) is None
+        assert search_in_file(reg, 'access.log') is None
         assert self.get()['status'] == 200
-        assert self.wait_for_record(reg) is not None, 'method GET'
+        assert wait_for_record(reg, 'access.log') is not None, 'method GET'
 
         reg = r'^POST$'
-        assert self.search_in_log(reg) is None
+        assert search_in_file(reg, 'access.log') is None
         assert self.post()['status'] == 200
-        assert self.wait_for_record(reg) is not None, 'method POST'
+        assert wait_for_record(reg, 'access.log') is not None, 'method POST'
 
-    def test_variables_request_uri(self):
+    def test_variables_request_uri(self, search_in_file, wait_for_record):
         self.set_format('$request_uri')
 
         def check_request_uri(req_uri):
             reg = fr'^{re.escape(req_uri)}$'
 
-            assert self.search_in_log(reg) is None
+            assert search_in_file(reg, 'access.log') is None
             assert self.get(url=req_uri)['status'] == 200
-            assert self.wait_for_record(reg) is not None
+            assert wait_for_record(reg, 'access.log') is not None
 
         check_request_uri('/3')
         check_request_uri('/4*')
         check_request_uri('/4%2A')
         check_request_uri('/9?q#a')
 
-    def test_variables_uri(self):
+    def test_variables_uri(self, search_in_file, wait_for_record):
         self.set_format('$uri')
 
         def check_uri(uri, expect=None):
             expect = uri if expect is None else expect
             reg = fr'^{re.escape(expect)}$'
 
-            assert self.search_in_log(reg) is None
+            assert search_in_file(reg, 'access.log') is None
             assert self.get(url=uri)['status'] == 200
-            assert self.wait_for_record(reg) is not None
+            assert wait_for_record(reg, 'access.log') is not None
 
         check_uri('/3')
         check_uri('/4*')
         check_uri('/5%2A', '/5*')
         check_uri('/9?q#a', '/9')
 
-    def test_variables_host(self):
+    def test_variables_host(self, search_in_file, wait_for_record):
         self.set_format('$host')
 
         def check_host(host, expect=None):
             expect = host if expect is None else expect
             reg = fr'^{re.escape(expect)}$'
 
-            assert self.search_in_log(reg) is None
+            assert search_in_file(reg, 'access.log') is None
             assert (
                 self.get(headers={'Host': host, 'Connection': 'close'})[
                     'status'
                 ]
                 == 200
             )
-            assert self.wait_for_record(reg) is not None
+            assert wait_for_record(reg, 'access.log') is not None
 
         check_host('localhost')
         check_host('localhost1.', 'localhost1')
@@ -144,63 +141,67 @@ Connection: close
         check_host('.localhost')
         check_host('www.localhost')
 
-    def test_variables_remote_addr(self):
+    def test_variables_remote_addr(self, search_in_file, wait_for_record):
         self.set_format('$remote_addr')
 
         assert self.get()['status'] == 200
-        assert self.wait_for_record(r'^127\.0\.0\.1$') is not None
+        assert wait_for_record(r'^127\.0\.0\.1$', 'access.log') is not None
 
         assert 'success' in self.conf(
             {"[::1]:7080": {"pass": "routes"}}, 'listeners'
         )
 
         reg = r'^::1$'
-        assert self.search_in_log(reg) is None
+        assert search_in_file(reg, 'access.log') is None
         assert self.get(sock_type='ipv6')['status'] == 200
-        assert self.wait_for_record(reg) is not None
+        assert wait_for_record(reg, 'access.log') is not None
 
-    def test_variables_time_local(self):
+    def test_variables_time_local(
+        self, date_to_sec_epoch, search_in_file, wait_for_record
+    ):
         self.set_format('$uri $time_local $uri')
 
-        assert self.search_in_log(r'/time_local') is None
+        assert search_in_file(r'/time_local', 'access.log') is None
         assert self.get(url='/time_local')['status'] == 200
-        assert self.wait_for_record(r'/time_local') is not None, 'time log'
-        date = self.search_in_log(
+        assert (
+            wait_for_record(r'/time_local', 'access.log') is not None
+        ), 'time log'
+        date = search_in_file(
             r'^\/time_local (.*) \/time_local$', 'access.log'
         )[1]
         assert (
             abs(
-                self.date_to_sec_epoch(date, '%d/%b/%Y:%X %z')
+                date_to_sec_epoch(date, '%d/%b/%Y:%X %z')
                 - time.mktime(time.localtime())
             )
             < 5
         ), '$time_local'
 
-    def test_variables_request_line(self):
+    def test_variables_request_line(self, search_in_file, wait_for_record):
         self.set_format('$request_line')
 
         reg = r'^GET \/r_line HTTP\/1\.1$'
-        assert self.search_in_log(reg) is None
+        assert search_in_file(reg, 'access.log') is None
         assert self.get(url='/r_line')['status'] == 200
-        assert self.wait_for_record(reg) is not None
+        assert wait_for_record(reg, 'access.log') is not None
 
-    def test_variables_status(self):
+    def test_variables_status(self, search_in_file, wait_for_record):
         self.set_format('$status')
 
         assert 'success' in self.conf("418", 'routes/0/action/return')
 
         reg = r'^418$'
-        assert self.search_in_log(reg) is None
+        assert search_in_file(reg, 'access.log') is None
         assert self.get()['status'] == 418
-        assert self.wait_for_record(reg) is not None
+        assert wait_for_record(reg, 'access.log') is not None
 
-    def test_variables_header_referer(self):
+    def test_variables_header_referer(self, search_in_file, wait_for_record):
         self.set_format('$method $header_referer')
 
         def check_referer(referer):
             reg = fr'^GET {re.escape(referer)}$'
 
-            assert self.search_in_log(reg) is None
+            assert search_in_file(reg, 'access.log') is None
             assert (
                 self.get(
                     headers={
@@ -211,19 +212,19 @@ Connection: close
                 )['status']
                 == 200
             )
-            assert self.wait_for_record(reg) is not None
+            assert wait_for_record(reg, 'access.log') is not None
 
         check_referer('referer-value')
         check_referer('')
         check_referer('no')
 
-    def test_variables_header_user_agent(self):
+    def test_variables_header_user_agent(self, search_in_file, wait_for_record):
         self.set_format('$method $header_user_agent')
 
         def check_user_agent(user_agent):
             reg = fr'^GET {re.escape(user_agent)}$'
 
-            assert self.search_in_log(reg) is None
+            assert search_in_file(reg, 'access.log') is None
             assert (
                 self.get(
                     headers={
@@ -234,19 +235,19 @@ Connection: close
                 )['status']
                 == 200
             )
-            assert self.wait_for_record(reg) is not None
+            assert wait_for_record(reg, 'access.log') is not None
 
         check_user_agent('MSIE')
         check_user_agent('')
         check_user_agent('no')
 
-    def test_variables_many(self):
+    def test_variables_many(self, search_in_file, wait_for_record):
         def check_vars(uri, expect):
             reg = fr'^{re.escape(expect)}$'
 
-            assert self.search_in_log(reg) is None
+            assert search_in_file(reg, 'access.log') is None
             assert self.get(url=uri)['status'] == 200
-            assert self.wait_for_record(reg) is not None
+            assert wait_for_record(reg, 'access.log') is not None
 
         self.set_format('$uri$method')
         check_vars('/1', '/1GET')
@@ -260,7 +261,7 @@ Connection: close
         self.set_format('$method$method')
         check_vars('/', 'GETGET')
 
-    def test_variables_dynamic(self):
+    def test_variables_dynamic(self, wait_for_record):
         self.set_format('$header_foo$cookie_foo$arg_foo')
 
         assert (
@@ -270,20 +271,20 @@ Connection: close
             )['status']
             == 200
         )
-        assert self.wait_for_record(r'^blah$') is not None
+        assert wait_for_record(r'^blah$', 'access.log') is not None
 
-    def test_variables_dynamic_arguments(self):
+    def test_variables_dynamic_arguments(self, search_in_file, wait_for_record):
         def check_arg(url, expect=None):
             expect = url if expect is None else expect
             reg = fr'^{re.escape(expect)}$'
 
-            assert self.search_in_log(reg) is None
+            assert search_in_file(reg, 'access.log') is None
             assert self.get(url=url)['status'] == 200
-            assert self.wait_for_record(reg) is not None
+            assert wait_for_record(reg, 'access.log') is not None
 
         def check_no_arg(url):
             assert self.get(url=url)['status'] == 200
-            assert self.search_in_log(r'^0$') is None
+            assert search_in_file(r'^0$', 'access.log') is None
 
         self.set_format('$arg_foo_bar')
         check_arg('/?foo_bar=1', '1')
@@ -304,25 +305,25 @@ Connection: close
         check_no_arg('/?f=0')
         check_no_arg('/?f!~=0')
 
-    def test_variables_dynamic_headers(self):
+    def test_variables_dynamic_headers(self, search_in_file, wait_for_record):
         def check_header(header, value):
             reg = fr'^{value}$'
 
-            assert self.search_in_log(reg) is None
+            assert search_in_file(reg, 'access.log') is None
             assert (
                 self.get(headers={header: value, 'Connection': 'close'})[
                     'status'
                 ]
                 == 200
             )
-            assert self.wait_for_record(reg) is not None
+            assert wait_for_record(reg, 'access.log') is not None
 
         def check_no_header(header):
             assert (
                 self.get(headers={header: '0', 'Connection': 'close'})['status']
                 == 200
             )
-            assert self.search_in_log(r'^0$') is None
+            assert search_in_file(r'^0$', 'access.log') is None
 
         self.set_format('$header_foo_bar')
         check_header('foo-bar', '1')
@@ -336,7 +337,7 @@ Connection: close
         check_no_header('foo_bar')
         check_no_header('foobar')
 
-    def test_variables_dynamic_cookies(self):
+    def test_variables_dynamic_cookies(self, search_in_file, wait_for_record):
         def check_no_cookie(cookie):
             assert (
                 self.get(
@@ -348,12 +349,12 @@ Connection: close
                 )['status']
                 == 200
             )
-            assert self.search_in_log(r'^0$') is None
+            assert search_in_file(r'^0$', 'access.log') is None
 
         self.set_format('$cookie_foo_bar')
 
         reg = r'^1$'
-        assert self.search_in_log(reg) is None
+        assert search_in_file(reg, 'access.log') is None
         assert (
             self.get(
                 headers={
@@ -364,7 +365,7 @@ Connection: close
             )['status']
             == 200
         )
-        assert self.wait_for_record(reg) is not None
+        assert wait_for_record(reg, 'access.log') is not None
 
         check_no_cookie('fOo_bar=0')
         check_no_cookie('foo_bar=')

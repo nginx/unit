@@ -1,14 +1,24 @@
 import re
 import socket
+import subprocess
 import time
 
 import pytest
 from unit.applications.lang.python import TestApplicationPython
-from unit.utils import sysctl
 
 
 class TestSettings(TestApplicationPython):
     prerequisites = {'modules': {'python': 'any'}}
+
+    def sysctl(self):
+        try:
+            out = subprocess.check_output(
+                ['sysctl', '-a'], stderr=subprocess.STDOUT
+            ).decode()
+        except FileNotFoundError:
+            pytest.skip('requires sysctl')
+
+        return out
 
     def test_settings_large_header_buffer_size(self):
         self.load('empty')
@@ -263,7 +273,7 @@ Connection: close
 
             return data
 
-        sysctl_out = sysctl()
+        sysctl_out = self.sysctl()
         values = re.findall(
             r'net.core.[rw]mem_(?:max|default).*?(\d+)', sysctl_out
         )
@@ -409,15 +419,15 @@ Connection: close
         assert resp['status'] == 200, 'status 4'
         assert resp['body'] == body, 'body 4'
 
-    def test_settings_log_route(self):
+    def test_settings_log_route(self, findall, search_in_file, wait_for_record):
         def count_fallbacks():
-            return len(self.findall(r'"fallback" taken'))
+            return len(findall(r'"fallback" taken'))
 
         def check_record(template):
-            assert self.search_in_log(template) is not None
+            assert search_in_file(template) is not None
 
         def check_no_record(template):
-            assert self.search_in_log(template) is None
+            assert search_in_file(template) is None
 
         def template_req_line(url):
             return rf'\[notice\].*http request line "GET {url} HTTP/1\.1"'
@@ -430,8 +440,8 @@ Connection: close
 
         def wait_for_request_log(status, uri, route):
             assert self.get(url=uri)['status'] == status
-            assert self.wait_for_record(template_req_line(uri)) is not None
-            assert self.wait_for_record(template_selected(route)) is not None
+            assert wait_for_record(template_req_line(uri)) is not None
+            assert wait_for_record(template_selected(route)) is not None
 
         # routes array
 
@@ -559,6 +569,6 @@ Connection: close
 
         # total
 
-        assert len(self.findall(r'\[notice\].*http request line')) == 7
-        assert len(self.findall(r'\[notice\].*selected')) == 10
-        assert len(self.findall(r'\[info\].*discarded')) == 2
+        assert len(findall(r'\[notice\].*http request line')) == 7
+        assert len(findall(r'\[notice\].*selected')) == 10
+        assert len(findall(r'\[info\].*discarded')) == 2

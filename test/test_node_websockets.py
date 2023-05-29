@@ -4,7 +4,6 @@ import time
 import pytest
 from unit.applications.lang.node import TestApplicationNode
 from unit.applications.websockets import TestApplicationWebsocket
-from unit.option import option
 
 
 class TestNodeWebsockets(TestApplicationNode):
@@ -1260,7 +1259,7 @@ class TestNodeWebsockets(TestApplicationNode):
         self.ws.frame_write(sock, self.ws.OP_CLOSE, payload)
         self.check_close(sock, 1002)
 
-    def test_node_websockets_9_1_1__9_6_6(self, is_unsafe):
+    def test_node_websockets_9_1_1__9_6_6(self, is_unsafe, system):
         if not is_unsafe:
             pytest.skip('unsafe, long run')
 
@@ -1317,7 +1316,7 @@ class TestNodeWebsockets(TestApplicationNode):
         check_payload(op_binary, 8 * 2**20)  # 9_2_5
         check_payload(op_binary, 16 * 2**20)  # 9_2_6
 
-        if option.system != 'Darwin' and option.system != 'FreeBSD':
+        if system not in ['Darwin', 'FreeBSD']:
             check_message(op_text, 64)  # 9_3_1
             check_message(op_text, 256)  # 9_3_2
             check_message(op_text, 2**10)  # 9_3_3

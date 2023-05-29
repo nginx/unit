@@ -9,7 +9,9 @@ from unit.utils import waitforfiles
 class TestUSR1(TestApplicationPython):
     prerequisites = {'modules': {'python': 'any'}}
 
-    def test_usr1_access_log(self, temp_dir, unit_pid):
+    def test_usr1_access_log(
+        self, search_in_file, temp_dir, unit_pid, wait_for_record
+    ):
         self.load('empty')
 
         log = 'access.log'
@@ -27,7 +29,7 @@ class TestUSR1(TestApplicationPython):
         assert self.get()['status'] == 200
 
         assert (
-            self.wait_for_record(r'"GET / HTTP/1.1" 200 0 "-" "-"', log_new)
+            wait_for_record(r'"GET / HTTP/1.1" 200 0 "-" "-"', log_new)
             is not None
         ), 'rename new'
         assert not os.path.isfile(log_path), 'rename old'
@@ -39,12 +41,14 @@ class TestUSR1(TestApplicationPython):
         assert self.get(url='/usr1')['status'] == 200
 
         assert (
-            self.wait_for_record(r'"GET /usr1 HTTP/1.1" 200 0 "-" "-"', log)
+            wait_for_record(r'"GET /usr1 HTTP/1.1" 200 0 "-" "-"', log)
             is not None
         ), 'reopen 2'
-        assert self.search_in_log(r'/usr1', log_new) is None, 'rename new 2'
+        assert search_in_file(r'/usr1', log_new) is None, 'rename new 2'
 
-    def test_usr1_unit_log(self, temp_dir, unit_pid):
+    def test_usr1_unit_log(
+        self, search_in_file, temp_dir, unit_pid, wait_for_record
+    ):
         self.load('log_body')
 
         log_new = 'new.log'
@@ -59,7 +63,7 @@ class TestUSR1(TestApplicationPython):
             body = 'body_for_a_log_new\n'
             assert self.post(body=body)['status'] == 200
 
-            assert self.wait_for_record(body, log_new) is not None, 'rename new'
+            assert wait_for_record(body, log_new) is not None, 'rename new'
             assert not os.path.isfile(log_path), 'rename old'
 
             os.kill(unit_pid, signal.SIGUSR1)
@@ -69,8 +73,8 @@ class TestUSR1(TestApplicationPython):
             body = 'body_for_a_log_unit\n'
             assert self.post(body=body)['status'] == 200
 
-            assert self.wait_for_record(body) is not None, 'rename new'
-            assert self.search_in_log(body, log_new) is None, 'rename new 2'
+            assert wait_for_record(body) is not None, 'rename new'
+            assert search_in_file(body, log_new) is None, 'rename new 2'
 
         finally:
             # merge two log files into unit.log to check alerts

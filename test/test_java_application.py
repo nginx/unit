@@ -128,7 +128,9 @@ class TestJavaApplication(TestApplicationJava):
         assert headers['X-Session-New'] == 'false', 'session resume'
         assert session_id == headers['X-Session-Id'], 'session same id'
 
-    def test_java_application_session_active(self):
+    def test_java_application_session_active(
+        self, date_to_sec_epoch, sec_epoch
+    ):
         self.load('session_inactive')
 
         resp = self.get(
@@ -144,10 +146,8 @@ class TestJavaApplication(TestApplicationJava):
         assert resp['headers']['X-Session-Interval'] == '4', 'session interval'
         assert (
             abs(
-                self.date_to_sec_epoch(
-                    resp['headers']['X-Session-Last-Access-Time']
-                )
-                - self.sec_epoch()
+                date_to_sec_epoch(resp['headers']['X-Session-Last-Access-Time'])
+                - sec_epoch
             )
             < 5
         ), 'session last access time'
@@ -943,7 +943,7 @@ class TestJavaApplication(TestApplicationJava):
         ), 'set date header'
         assert headers['X-Get-Date'] == date, 'get date header'
 
-    def test_java_application_multipart(self, temp_dir):
+    def test_java_application_multipart(self, search_in_file, temp_dir):
         self.load('multipart')
 
         reldst = '/uploads'
@@ -979,7 +979,7 @@ class TestJavaApplication(TestApplicationJava):
         assert resp['status'] == 200, 'multipart status'
         assert re.search(r'sample\.txt created', resp['body']), 'multipart body'
         assert (
-            self.search_in_log(
+            search_in_file(
                 r'^Data from sample file$', name=f'{reldst}/sample.txt'
             )
             is not None
