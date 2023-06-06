@@ -84,6 +84,7 @@ SYNOPSIS
         ├── os-probe     [-h]
         ├── ps           [-h] [-t TYPE]
         ├── repo-config  [-hn] [PKG-MANAGER OS-NAME OS-VERSION]
+        ├── restart      [-h]
         ├── sock         [-h] SUBCOMMAND [ARGS]
         │   ├── filter   [-chs]
         │   └── find     [-h]
@@ -1219,6 +1220,52 @@ __EOF__";
 }
 
 
+help_unit_restart()
+{
+    cat <<__EOF__ ;
+SYNOPSIS
+        $0 restart [-h]
+
+DESCRIPTION
+        Restart all running unitd(8) instances.
+
+OPTIONS
+        -h, --help
+                Print this help.
+
+__EOF__
+}
+
+
+unit_restart()
+{
+    while test $# -ge 1; do
+        case "$1" in
+        -h | --help)
+            help_unit_restart;
+            exit 0;
+            ;;
+        -*)
+            err "restart: $1: Unknown option.";
+            ;;
+        *)
+            err "restart: $1: Unknown argument.";
+            ;;
+        esac;
+        shift;
+    done;
+
+    local cmds="$(unit_cmd)";
+
+    pkill -e unitd;
+
+    printf '%s\n' "$cmds" \
+    | while read -r cmd; do
+        eval $cmd;
+    done;
+}
+
+
 help_unit_sock()
 {
     cat <<__EOF__ ;
@@ -1477,6 +1524,10 @@ ps)
 repo-config)
     shift;
     unit_repo_config $@;
+    ;;
+restart)
+    shift;
+    unit_restart $@;
     ;;
 sock)
     shift;
