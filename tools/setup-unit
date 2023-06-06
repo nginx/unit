@@ -84,7 +84,7 @@ SYNOPSIS
         ├── os-probe     [-h]
         ├── ps           [-h] [-t TYPE]
         ├── repo-config  [-hn] [PKG-MANAGER OS-NAME OS-VERSION]
-        ├── restart      [-h]
+        ├── restart      [-hls]
         ├── sock         [-h] SUBCOMMAND [ARGS]
         │   ├── filter   [-chs]
         │   └── find     [-h]
@@ -1224,7 +1224,7 @@ help_unit_restart()
 {
     cat <<__EOF__ ;
 SYNOPSIS
-        $0 restart [-h]
+        $0 restart [-hls]
 
 DESCRIPTION
         Restart all running unitd(8) instances.
@@ -1232,6 +1232,17 @@ DESCRIPTION
 OPTIONS
         -h, --help
                 Print this help.
+
+        -l, --log
+                Reset log file.
+
+        -s, --statedir
+                Reset \$statedir.
+
+CAVEATS
+        This command will ask for confirmation before removing
+        directories; please review those prompts with care, as unknown
+        bugs in the command may attempt to wipe your file system.
 
 __EOF__
 }
@@ -1244,6 +1255,12 @@ unit_restart()
         -h | --help)
             help_unit_restart;
             exit 0;
+            ;;
+        -l | --log)
+            local log_flag='yes';
+            ;;
+        -s | --statedir)
+            local state_flag='yes';
             ;;
         -*)
             err "restart: $1: Unknown option.";
@@ -1261,6 +1278,33 @@ unit_restart()
 
     printf '%s\n' "$cmds" \
     | while read -r cmd; do
+        if test -v log_flag; then
+            (
+                echo "$cmd" \
+                | grep '\--log' \
+                | sed 's/.*--log \+\([^ ]\+\).*/\1/' \
+                || eval $cmd --help \
+                | grep -A1 '\--log FILE' \
+                | grep 'default:' \
+                | sed 's/.*"\(.*\)".*/\1/';
+            ) \
+            | xargs rm -f;
+        fi;
+
+        if test -v state_flag; then
+            (
+                echo "$cmd" \
+                | grep '\--statedir' \
+                | sed 's/.*--statedir \+\([^ ]\+\).*/\1/' \
+                || eval $cmd --help \
+                | grep -A1 '\--statedir DIR' \
+                | grep 'default:' \
+                | sed 's/.*"\(.*\)".*/\1/';
+            ) \
+            | xargs -I {} find {} -mindepth 1 -maxdepth 1 \
+            | xargs rm -rfi;
+        fi;
+
         eval $cmd;
     done;
 }
