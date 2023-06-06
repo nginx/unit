@@ -1031,7 +1031,7 @@ unit_ps()
         shift;
     done;
 
-    ps ax \
+    ps awwx \
     | if test -v type; then
         grep ${type_c:+-e 'unit: controller'} \
              ${type_m:+-e 'unit: main'} \
