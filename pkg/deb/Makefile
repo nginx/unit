@@ -106,6 +106,17 @@ include Makefile.jsc8
 include Makefile.jsc11
 endif
 
+# Debian 12
+ifeq ($(CODENAME),bookworm)
+include Makefile.php
+include Makefile.python311
+include Makefile.go
+include Makefile.perl
+include Makefile.ruby
+include Makefile.jsc-common
+include Makefile.jsc17
+endif
+
 # Debian 11
 ifeq ($(CODENAME),bullseye)
 include Makefile.php
