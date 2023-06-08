@@ -6,8 +6,10 @@ MODULE_SUMMARY_jsc_common=	Java shared packages for NGINX Unit
 MODULE_VERSION_jsc_common=	$(VERSION)
 MODULE_RELEASE_jsc_common=	1
 
-ifneq (,$(findstring $(CODENAME),bionic))
+ifeq ($(CODENAME),bionic)
 JAVA_MINVERSION=	8
+else ifeq ($(CODENAME),bookworm)
+JAVA_MINVERSION=	17
 else
 JAVA_MINVERSION=	11
 endif
