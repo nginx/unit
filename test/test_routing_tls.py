@@ -1,9 +1,9 @@
 from unit.applications.tls import TestApplicationTLS
 
+prerequisites = {'modules': {'openssl': 'any'}}
+
 
 class TestRoutingTLS(TestApplicationTLS):
-    prerequisites = {'modules': {'openssl': 'any'}}
-
     def test_routes_match_scheme_tls(self):
         self.certificate()
 

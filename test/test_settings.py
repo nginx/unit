@@ -6,10 +6,10 @@ import time
 import pytest
 from unit.applications.lang.python import TestApplicationPython
 
+prerequisites = {'modules': {'python': 'any'}}
+
 
 class TestSettings(TestApplicationPython):
-    prerequisites = {'modules': {'python': 'any'}}
-
     def sysctl(self):
         try:
             out = subprocess.check_output(

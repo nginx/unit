@@ -5,18 +5,16 @@ from unit.applications.proto import TestApplicationProto
 from unit.option import option
 from unit.utils import waitforfiles
 
+prerequisites = {'modules': {'njs': 'any'}}
+
 
 class TestNJS(TestApplicationProto):
-    prerequisites = {'modules': {'njs': 'any'}}
-
     @pytest.fixture(autouse=True)
     def setup_method_fixture(self, temp_dir):
         assert 'success' in self.conf(
             {
                 "listeners": {"*:7080": {"pass": "routes"}},
-                "routes": [
-                    {"action": {"share": f"{temp_dir}/assets$uri"}}
-                ],
+                "routes": [{"action": {"share": f"{temp_dir}/assets$uri"}}],
             }
         )
 

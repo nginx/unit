@@ -5,10 +5,10 @@ import time
 import pytest
 from unit.applications.lang.python import TestApplicationPython
 
+prerequisites = {'modules': {'python': 'any'}}
+
 
 class TestRespawn(TestApplicationPython):
-    prerequisites = {'modules': {'python': 'any'}}
-
     PATTERN_ROUTER = 'unit: router'
     PATTERN_CONTROLLER = 'unit: controller'
 

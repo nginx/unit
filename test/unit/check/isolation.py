@@ -127,7 +127,7 @@ def check_isolation():
         }
 
     else:
-        return
+        return False
 
     resp = http.put(
         url='/config',
@@ -137,23 +137,23 @@ def check_isolation():
     )
 
     if 'success' not in resp['body']:
-        return
+        return False
 
     userns = getns('user')
     if not userns:
-        return
+        return False
 
-    available['features']['isolation'] = {'user': userns}
+    isolation = {'user': userns}
 
     unp_clone_path = '/proc/sys/kernel/unprivileged_userns_clone'
     if os.path.exists(unp_clone_path):
         with open(unp_clone_path, 'r') as f:
             if str(f.read()).rstrip() == '1':
-                available['features']['isolation'][
-                    'unprivileged_userns_clone'
-                ] = True
+                isolation['unprivileged_userns_clone'] = True
 
     for ns in allns:
         ns_value = getns(ns)
         if ns_value:
-            available['features']['isolation'][ns] = ns_value
+            isolation[ns] = ns_value
+
+    return isolation

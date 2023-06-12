@@ -10,10 +10,10 @@ import pytest
 from packaging import version
 from unit.applications.lang.python import TestApplicationPython
 
+prerequisites = {'modules': {'python': 'all'}}
+
 
 class TestPythonApplication(TestApplicationPython):
-    prerequisites = {'modules': {'python': 'all'}}
-
     def test_python_application_variables(self, date_to_sec_epoch, sec_epoch):
         self.load('variables')
 
@@ -740,9 +740,8 @@ last line: 987654321
         ), 'exception raise close'
         assert len(findall(r'Traceback')) == 8, 'traceback count 8'
 
-    def test_python_user_group(self, is_su):
-        if not is_su:
-            pytest.skip('requires root')
+    def test_python_user_group(self, require):
+        require({'privileged_user': True})
 
         nobody_uid = pwd.getpwnam('nobody').pw_uid
 

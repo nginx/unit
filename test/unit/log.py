@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import time
 
 from unit.option import option
 
@@ -25,7 +26,7 @@ class Log:
     @print_log_on_assert
     def check_alerts(log=None):
         if log is None:
-            log = Log.read(encoding='utf-8')
+            log = Log.read()
 
         found = False
         alerts = re.findall(r'.+\[alert\].+', log)
@@ -52,11 +53,15 @@ class Log:
             print('skipped.')
 
     @staticmethod
+    def findall(pattern, name=UNIT_LOG, flags=re.M):
+        return re.findall(pattern, Log.read(name), flags)
+
+    @staticmethod
     def get_path(name=UNIT_LOG):
         return f'{option.temp_dir}/{name}'
 
     @staticmethod
-    def open(name=UNIT_LOG, encoding=None):
+    def open(name=UNIT_LOG, encoding='utf-8'):
         file = open(Log.get_path(name), 'r', encoding=encoding, errors='ignore')
         file.seek(Log.pos.get(name, 0))
 
@@ -71,7 +76,7 @@ class Log:
             sys.stdout.flush()
 
             if log is None:
-                log = Log.read(encoding='utf-8')
+                log = Log.read()
 
             sys.stdout.write(log)
 
@@ -93,3 +98,16 @@ class Log:
         pos = Log.pos.get(UNIT_LOG, 0)
         Log.pos[UNIT_LOG] = Log.pos.get(name, 0)
         Log.pos[name] = pos
+
+    @staticmethod
+    def wait_for_record(pattern, name=UNIT_LOG, wait=150, flags=re.M):
+        with Log.open(name) as file:
+            for _ in range(wait):
+                found = re.search(pattern, file.read(), flags)
+
+                if found is not None:
+                    break
+
+                time.sleep(0.1)
+
+        return found

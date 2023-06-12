@@ -5,8 +5,6 @@ from unit.applications.proto import TestApplicationProto
 
 
 class TestReturn(TestApplicationProto):
-    prerequisites = {}
-
     @pytest.fixture(autouse=True)
     def setup_method_fixture(self):
         self._load_conf(

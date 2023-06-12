@@ -1,10 +1,10 @@
 from unit.applications.proto import TestApplicationProto
 from unit.option import option
 
+prerequisites = {'modules': {'njs': 'any'}}
+
 
 class TestNJSModules(TestApplicationProto):
-    prerequisites = {'modules': {'njs': 'any'}}
-
     def njs_script_load(self, module, name=None, expect='success'):
         if name is None:
             name = module

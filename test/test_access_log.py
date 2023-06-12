@@ -4,10 +4,10 @@ import pytest
 from unit.applications.lang.python import TestApplicationPython
 from unit.option import option
 
+prerequisites = {'modules': {'python': 'any'}}
+
 
 class TestAccessLog(TestApplicationPython):
-    prerequisites = {'modules': {'python': 'any'}}
-
     def load(self, script):
         super().load(script)
 

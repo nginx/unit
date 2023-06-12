@@ -2,14 +2,12 @@ from packaging import version
 from unit.applications.lang.node import TestApplicationNode
 from unit.applications.websockets import TestApplicationWebsocket
 
+prerequisites = {
+    'modules': {'node': lambda v: version.parse(v) >= version.parse('14.16.0')}
+}
+
 
 class TestNodeESModules(TestApplicationNode):
-    prerequisites = {
-        'modules': {
-            'node': lambda v: version.parse(v) >= version.parse('14.16.0')
-        }
-    }
-
     es_modules = True
     ws = TestApplicationWebsocket()
 

@@ -1,10 +1,10 @@
 from unit.applications.lang.python import TestApplicationPython
 from unit.option import option
 
+prerequisites = {'modules': {'python': 'all'}}
+
 
 class TestPythonTargets(TestApplicationPython):
-    prerequisites = {'modules': {'python': 'all'}}
-
     def test_python_targets(self):
         python_dir = f'{option.test_dir}/python'
 

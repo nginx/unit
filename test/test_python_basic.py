@@ -1,8 +1,9 @@
 from unit.control import TestControl
 
+prerequisites = {'modules': {'python': 'any'}}
+
 
 class TestPythonBasic(TestControl):
-    prerequisites = {'modules': {'python': 'any'}}
 
     conf_app = {
         "app": {

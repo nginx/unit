@@ -3,10 +3,10 @@ import socket
 import pytest
 from unit.control import TestControl
 
+prerequisites = {'modules': {'python': 'any'}}
+
 
 class TestConfiguration(TestControl):
-    prerequisites = {'modules': {'python': 'any'}}
-
     def try_addr(self, addr):
         return self.conf(
             {
@@ -420,10 +420,10 @@ class TestConfiguration(TestControl):
 
         assert 'success' in self.conf(conf)
 
-    def test_unprivileged_user_error(self, is_su, skip_alert):
+    def test_unprivileged_user_error(self, require, skip_alert):
+        require({'privileged_user': False})
+
         skip_alert(r'cannot set user "root"', r'failed to apply new conf')
-        if is_su:
-            pytest.skip('unprivileged tests')
 
         assert 'error' in self.conf(
             {

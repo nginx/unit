@@ -3,10 +3,10 @@ import pytest
 from unit.applications.lang.python import TestApplicationPython
 from unit.option import option
 
+prerequisites = {'modules': {'python': 'any'}}
+
 
 class TestRouting(TestApplicationPython):
-    prerequisites = {'modules': {'python': 'any'}}
-
     @pytest.fixture(autouse=True)
     def setup_method_fixture(self):
         assert 'success' in self.conf(
@@ -232,9 +232,8 @@ class TestRouting(TestApplicationPython):
         assert self.get(url='/aBCaBbc')['status'] == 200
         assert self.get(url='/ABc')['status'] == 404
 
-    def test_routes_empty_regex(self):
-        if not option.available['modules']['regex']:
-            pytest.skip('requires regex')
+    def test_routes_empty_regex(self, require):
+        require({'modules': {'regex': True}})
 
         self.route_match({"uri": "~"})
         assert self.get(url='/')['status'] == 200, 'empty regexp'
@@ -244,9 +243,8 @@ class TestRouting(TestApplicationPython):
         assert self.get(url='/')['status'] == 404, 'empty regexp 2'
         assert self.get(url='/nothing')['status'] == 404, '/nothing'
 
-    def test_routes_bad_regex(self):
-        if not option.available['modules']['regex']:
-            pytest.skip('requires regex')
+    def test_routes_bad_regex(self, require):
+        require({'modules': {'regex': True}})
 
         assert 'error' in self.route(
             {"match": {"uri": "~/bl[ah"}, "action": {"return": 200}}
@@ -264,9 +262,8 @@ class TestRouting(TestApplicationPython):
         if 'error' not in status:
             assert self.get(url='/nothing_z')['status'] == 500, '/nothing_z'
 
-    def test_routes_match_regex_case_sensitive(self):
-        if not option.available['modules']['regex']:
-            pytest.skip('requires regex')
+    def test_routes_match_regex_case_sensitive(self, require):
+        require({'modules': {'regex': True}})
 
         self.route_match({"uri": "~/bl[ah]"})
 
@@ -275,9 +272,8 @@ class TestRouting(TestApplicationPython):
         assert self.get(url='/blh')['status'] == 200, '/blh'
         assert self.get(url='/BLAH')['status'] == 404, '/BLAH'
 
-    def test_routes_match_regex_negative_case_sensitive(self):
-        if not option.available['modules']['regex']:
-            pytest.skip('requires regex')
+    def test_routes_match_regex_negative_case_sensitive(self, require):
+        require({'modules': {'regex': True}})
 
         self.route_match({"uri": "!~/bl[ah]"})
 

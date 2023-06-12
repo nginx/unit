@@ -8,10 +8,10 @@ from unit.applications.lang.python import TestApplicationPython
 from unit.option import option
 from unit.utils import waitforsocket
 
+prerequisites = {'modules': {'python': 'any'}}
+
 
 class TestProxy(TestApplicationPython):
-    prerequisites = {'modules': {'python': 'any'}}
-
     SERVER_PORT = 7999
 
     @pytest.fixture(autouse=True)

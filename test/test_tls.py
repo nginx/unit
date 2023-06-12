@@ -7,10 +7,10 @@ import pytest
 from unit.applications.tls import TestApplicationTLS
 from unit.option import option
 
+prerequisites = {'modules': {'python': 'any', 'openssl': 'any'}}
+
 
 class TestTLS(TestApplicationTLS):
-    prerequisites = {'modules': {'python': 'any', 'openssl': 'any'}}
-
     def add_tls(self, application='empty', cert='default', port=7080):
         assert 'success' in self.conf(
             {

@@ -1,10 +1,10 @@
 import pytest
 from unit.applications.lang.python import TestApplicationPython
 
+prerequisites = {'modules': {'python': 'any'}}
+
 
 class TestHTTPHeader(TestApplicationPython):
-    prerequisites = {'modules': {'python': 'any'}}
-
     def test_http_header_value_leading_sp(self):
         self.load('custom_header')
 

@@ -5,8 +5,6 @@ from unit.applications.proto import TestApplicationProto
 
 
 class TestStaticTypes(TestApplicationProto):
-    prerequisites = {}
-
     @pytest.fixture(autouse=True)
     def setup_method_fixture(self, temp_dir):
         Path(f'{temp_dir}/assets').mkdir()

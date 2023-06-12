@@ -5,10 +5,10 @@ import pytest
 from unit.applications.lang.node import TestApplicationNode
 from unit.applications.websockets import TestApplicationWebsocket
 
+prerequisites = {'modules': {'node': 'any'}}
+
 
 class TestNodeWebsockets(TestApplicationNode):
-    prerequisites = {'modules': {'node': 'any'}}
-
     ws = TestApplicationWebsocket()
 
     @pytest.fixture(autouse=True)

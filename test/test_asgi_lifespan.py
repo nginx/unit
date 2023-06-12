@@ -5,13 +5,12 @@ from packaging import version
 from unit.applications.lang.python import TestApplicationPython
 from unit.option import option
 
+prerequisites = {
+    'modules': {'python': lambda v: version.parse(v) >= version.parse('3.5')}
+}
+
 
 class TestASGILifespan(TestApplicationPython):
-    prerequisites = {
-        'modules': {
-            'python': lambda v: version.parse(v) >= version.parse('3.5')
-        }
-    }
     load_module = 'asgi'
 
     def setup_cookies(self, prefix):

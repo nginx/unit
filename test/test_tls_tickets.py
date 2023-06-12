@@ -11,10 +11,10 @@ from OpenSSL.SSL import (
 )
 from unit.applications.tls import TestApplicationTLS
 
+prerequisites = {'modules': {'openssl': 'any'}}
+
 
 class TestTLSTicket(TestApplicationTLS):
-    prerequisites = {'modules': {'openssl': 'any'}}
-
     ticket = 'U1oDTh11mMxODuw12gS0EXX1E/PkZG13cJNQ6m5+6BGlfPTjNlIEw7PSVU3X1gTE'
     ticket2 = '5AV0DSYIYbZWZQB7fCnTHZmMxtotb/aXjam+n2XS79lTvX3Tq9xGqpC8XKNEF2lt'
     ticket80 = '6Pfil8lv/k8zf8MndPpfXaO5EAV6dhME6zs6CfUyq2yziynQwSywtKQMqHGnJ2HR\

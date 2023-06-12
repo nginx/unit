@@ -7,8 +7,6 @@ from unit.option import option
 
 
 class TestVariables(TestApplicationProto):
-    prerequisites = {}
-
     @pytest.fixture(autouse=True)
     def setup_method_fixture(self):
         assert 'success' in self.conf(

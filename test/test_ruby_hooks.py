@@ -2,10 +2,10 @@ from unit.applications.lang.ruby import TestApplicationRuby
 from unit.option import option
 from unit.utils import waitforglob
 
+prerequisites = {'modules': {'ruby': 'all'}}
+
 
 class TestRubyHooks(TestApplicationRuby):
-    prerequisites = {'modules': {'ruby': 'all'}}
-
     def _wait_cookie(self, pattern, count):
         return waitforglob(
             f'{option.temp_dir}/ruby/hooks/cookie_{pattern}', count

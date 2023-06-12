@@ -3,10 +3,10 @@ import re
 import pytest
 from unit.applications.lang.perl import TestApplicationPerl
 
+prerequisites = {'modules': {'perl': 'all'}}
+
 
 class TestPerlApplication(TestApplicationPerl):
-    prerequisites = {'modules': {'perl': 'all'}}
-
     def test_perl_application(self, date_to_sec_epoch, sec_epoch):
         self.load('variables')
 

@@ -6,13 +6,12 @@ from packaging import version
 from unit.applications.lang.python import TestApplicationPython
 from unit.applications.websockets import TestApplicationWebsocket
 
+prerequisites = {
+    'modules': {'python': lambda v: version.parse(v) >= version.parse('3.5')}
+}
+
 
 class TestASGIWebsockets(TestApplicationPython):
-    prerequisites = {
-        'modules': {
-            'python': lambda v: version.parse(v) >= version.parse('3.5')
-        }
-    }
     load_module = 'asgi'
 
     ws = TestApplicationWebsocket()

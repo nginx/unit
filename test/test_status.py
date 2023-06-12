@@ -4,10 +4,10 @@ from unit.applications.lang.python import TestApplicationPython
 from unit.option import option
 from unit.status import Status
 
+prerequisites = {'modules': {'python': 'any'}}
+
 
 class TestStatus(TestApplicationPython):
-    prerequisites = {'modules': {'python': 'any'}}
-
     def check_connections(self, accepted, active, idle, closed):
         assert Status.get('/connections') == {
             'accepted': accepted,

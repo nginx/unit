@@ -4,10 +4,10 @@ import pytest
 from unit.applications.lang.node import TestApplicationNode
 from unit.utils import waitforfiles
 
+prerequisites = {'modules': {'node': 'all'}}
+
 
 class TestNodeApplication(TestApplicationNode):
-    prerequisites = {'modules': {'node': 'all'}}
-
     def assert_basic_application(self):
         resp = self.get()
         assert resp['headers']['Content-Type'] == 'text/plain', 'basic header'

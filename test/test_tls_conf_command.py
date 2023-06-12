@@ -3,10 +3,10 @@ import ssl
 import pytest
 from unit.applications.tls import TestApplicationTLS
 
+prerequisites = {'modules': {'openssl': 'any'}}
+
 
 class TestTLSConfCommand(TestApplicationTLS):
-    prerequisites = {'modules': {'openssl': 'any'}}
-
     @pytest.fixture(autouse=True)
     def setup_method_fixture(self):
         self.certificate()

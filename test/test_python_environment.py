@@ -1,9 +1,9 @@
 from unit.applications.lang.python import TestApplicationPython
 
+prerequisites = {'modules': {'python': 'any'}}
+
 
 class TestPythonEnvironment(TestApplicationPython):
-    prerequisites = {'modules': {'python': 'any'}}
-
     def test_python_environment_name_null(self):
         self.load('environment')
 

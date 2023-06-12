@@ -13,14 +13,8 @@ import time
 from multiprocessing import Process
 
 import pytest
-from unit.check.chroot import check_chroot
-from unit.check.go import check_go
-from unit.check.isolation import check_isolation
-from unit.check.njs import check_njs
-from unit.check.node import check_node
-from unit.check.regex import check_regex
-from unit.check.tls import check_openssl
-from unit.check.unix_abstract import check_unix_abstract
+from unit.check.discover_available import discover_available
+from unit.check.check_prerequisites import check_prerequisites
 from unit.http import TestHTTP
 from unit.log import Log
 from unit.log import print_log_on_assert
@@ -130,6 +124,9 @@ def pytest_generate_tests(metafunc):
     type = cls.application_type
 
     def generate_tests(versions):
+        if not versions:
+            pytest.skip('no available module versions')
+
         metafunc.fixturenames.append('tmp_ct')
         metafunc.parametrize('tmp_ct', versions)
 
@@ -140,75 +137,43 @@ def pytest_generate_tests(metafunc):
 
     # take available module from option and generate tests for each version
 
-    for module, prereq_version in cls.prerequisites['modules'].items():
-        if module in option.available['modules']:
-            available_versions = option.available['modules'][module]
+    available_modules = option.available['modules']
 
-            if prereq_version == 'all':
+    for module, version in metafunc.module.prerequisites['modules'].items():
+        if module in available_modules and available_modules[module]:
+            available_versions = available_modules[module]
+
+            if version == 'all':
                 generate_tests(available_versions)
 
-            elif prereq_version == 'any':
+            elif version == 'any':
                 option.generated_tests[
                     metafunc.function.__name__
                 ] = f'{type} {available_versions[0]}'
-            elif callable(prereq_version):
-                generate_tests(list(filter(prereq_version, available_versions)))
+            elif callable(version):
+                generate_tests(list(filter(version, available_versions)))
 
             else:
                 raise ValueError(
                     f'''
-Unexpected prerequisite version "{prereq_version}" for module "{module}" in
-{cls}. 'all', 'any' or callable expected.'''
+Unexpected prerequisite version "{version}" for module "{module}".
+'all', 'any' or callable expected.'''
                 )
 
 
 def pytest_sessionstart():
-    option.available = {'modules': {}, 'features': {}}
-
     unit = unit_run()
-    output_version = subprocess.check_output(
-        [unit['unitd'], '--version'], stderr=subprocess.STDOUT
-    ).decode()
 
-    if not _wait_for_record(r'controller started'):
-        Log.print_log()
-        exit("Unit is writing log too long")
+    discover_available(unit)
 
-    # discover available modules from unit.log
-
-    for module in re.findall(
-        r'module: ([a-zA-Z]+) (.*) ".*"$', Log.read(), re.M
-    ):
-        versions = option.available['modules'].setdefault(module[0], [])
-        if module[1] not in versions:
-            versions.append(module[1])
-
-    # discover modules from check
-
-    option.available['modules']['go'] = check_go()
-    option.available['modules']['njs'] = check_njs(output_version)
-    option.available['modules']['node'] = check_node(option.current_dir)
-    option.available['modules']['openssl'] = check_openssl(output_version)
-    option.available['modules']['regex'] = check_regex(output_version)
-
-    # remove None values
-
-    option.available['modules'] = {
-        k: v for k, v in option.available['modules'].items() if v is not None
-    }
-
-    check_chroot()
-    check_isolation()
-    check_unix_abstract()
-
-    _clear_conf(f'{unit["temp_dir"]}/control.unit.sock')
+    _clear_conf()
 
     unit_stop()
 
     Log.check_alerts()
 
     if option.restart:
-        shutil.rmtree(unit_instance['temp_dir'])
+        shutil.rmtree(unit['temp_dir'])
     else:
         _clear_temp_dir()
 
@@ -225,38 +190,10 @@ def pytest_runtest_makereport(item):
     setattr(item, f'rep_{rep.when}', rep)
 
 
-@pytest.fixture(scope='class', autouse=True)
-def check_prerequisites(request):
-    cls = request.cls
-    missed = []
-
-    # check modules
-
-    if 'modules' in cls.prerequisites:
-        available_modules = list(option.available['modules'].keys())
-
-        for module in cls.prerequisites['modules']:
-            if module in available_modules:
-                continue
-
-            missed.append(module)
-
-    if missed:
-        pytest.skip(f'Unit has no {", ".join(missed)} module(s)')
-
-    # check features
-
-    if 'features' in cls.prerequisites:
-        available_features = list(option.available['features'].keys())
-
-        for feature in cls.prerequisites['features']:
-            if feature in available_features:
-                continue
-
-            missed.append(feature)
-
-    if missed:
-        pytest.skip(f'{", ".join(missed)} feature(s) not supported')
+@pytest.fixture(scope='module', autouse=True)
+def check_prerequisites_module(request):
+    if hasattr(request.module, 'prerequisites'):
+        check_prerequisites(request.module.prerequisites)
 
 
 @pytest.fixture(autouse=True)
@@ -283,7 +220,7 @@ def run(request):
 
     # prepare log
 
-    with Log.open(encoding='utf-8') as f:
+    with Log.open() as f:
         log = f.read()
         Log.set_pos(f.tell())
 
@@ -294,7 +231,7 @@ def run(request):
     # clean temp_dir before the next test
 
     if not option.restart:
-        _clear_conf(f'{unit["temp_dir"]}/control.unit.sock', log=log)
+        _clear_conf(log=log)
         _clear_temp_dir()
 
     # check descriptors
@@ -384,7 +321,7 @@ def unit_run(state_dir=None):
         unit_instance['pid'] = f.read().rstrip()
 
     if state_dir is None:
-        _clear_conf(control_sock)
+        _clear_conf()
 
     _fds_info['main']['fds'] = _count_fds(unit_instance['pid'])
 
@@ -440,7 +377,9 @@ def unit_stop():
 
 
 @print_log_on_assert
-def _clear_conf(sock, *, log=None):
+def _clear_conf(*, log=None):
+    sock = unit_instance['control_sock']
+
     resp = http.put(
         url='/config',
         sock_type='unix',
@@ -456,7 +395,10 @@ def _clear_conf(sock, *, log=None):
     def delete(url):
         return http.delete(url=url, sock_type='unix', addr=sock)['body']
 
-    if 'openssl' in option.available['modules']:
+    if (
+        'openssl' in option.available['modules']
+        and option.available['modules']['openssl']
+    ):
         try:
             certs = json.loads(get('/certificates')).keys()
 
@@ -466,7 +408,10 @@ def _clear_conf(sock, *, log=None):
         for cert in certs:
             assert 'success' in delete(f'/certificates/{cert}'), 'delete cert'
 
-    if 'njs' in option.available['modules']:
+    if (
+        'njs' in option.available['modules']
+        and option.available['modules']['njs']
+    ):
         try:
             scripts = json.loads(get('/js_modules')).keys()
 
@@ -621,19 +566,6 @@ def _count_fds(pid):
     return 0
 
 
-def _wait_for_record(pattern, name='unit.log', wait=150, flags=re.M):
-    with Log.open(name) as file:
-        for _ in range(wait):
-            found = re.search(pattern, file.read(), flags)
-
-            if found is not None:
-                break
-
-            time.sleep(0.1)
-
-    return found
-
-
 def run_process(target, *args):
     global _processes
 
@@ -696,8 +628,8 @@ def date_to_sec_epoch():
 
 @pytest.fixture
 def findall():
-    def _findall(pattern, name='unit.log', flags=re.M):
-        return re.findall(pattern, Log.read(name), flags)
+    def _findall(*args, **kwargs):
+        return Log.findall(*args, **kwargs)
 
     return _findall
 
@@ -710,6 +642,11 @@ def is_su():
 @pytest.fixture
 def is_unsafe(request):
     return request.config.getoption("--unsafe")
+
+
+@pytest.fixture
+def require():
+    return check_prerequisites
 
 
 @pytest.fixture
@@ -760,4 +697,7 @@ def unit_pid():
 
 @pytest.fixture
 def wait_for_record():
+    def _wait_for_record(*args, **kwargs):
+        return Log.wait_for_record(*args, **kwargs)
+
     return _wait_for_record

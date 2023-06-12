@@ -7,8 +7,6 @@ from unit.utils import waitforfiles
 
 
 class TestStatic(TestApplicationProto):
-    prerequisites = {}
-
     @pytest.fixture(autouse=True)
     def setup_method_fixture(self, temp_dir):
         os.makedirs(f'{temp_dir}/assets/dir')

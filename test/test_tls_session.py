@@ -14,10 +14,10 @@ from OpenSSL.SSL import (
 )
 from unit.applications.tls import TestApplicationTLS
 
+prerequisites = {'modules': {'openssl': 'any'}}
+
 
 class TestTLSSession(TestApplicationTLS):
-    prerequisites = {'modules': {'openssl': 'any'}}
-
     @pytest.fixture(autouse=True)
     def setup_method_fixture(self):
         self.certificate()

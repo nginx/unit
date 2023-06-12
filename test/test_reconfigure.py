@@ -5,8 +5,6 @@ from unit.applications.proto import TestApplicationProto
 
 
 class TestReconfigure(TestApplicationProto):
-    prerequisites = {}
-
     @pytest.fixture(autouse=True)
     def setup_method_fixture(self):
         assert 'success' in self.conf(

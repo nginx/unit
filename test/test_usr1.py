@@ -5,10 +5,10 @@ from unit.applications.lang.python import TestApplicationPython
 from unit.log import Log
 from unit.utils import waitforfiles
 
+prerequisites = {'modules': {'python': 'any'}}
+
 
 class TestUSR1(TestApplicationPython):
-    prerequisites = {'modules': {'python': 'any'}}
-
     def test_usr1_access_log(
         self, search_in_file, temp_dir, unit_pid, wait_for_record
     ):

@@ -1,17 +1,11 @@
-import pytest
 from unit.applications.lang.python import TestApplicationPython
+
+prerequisites = {'modules': {'python': 'any'}, 'privileged_user': True}
 
 
 class TestPythonIsolation(TestApplicationPython):
-    prerequisites = {'modules': {'python': 'any'}}
-
-    def test_python_isolation_chroot(self, is_su, temp_dir):
-        if not is_su:
-            pytest.skip('requires root')
-
-        isolation = {
-            'rootfs': temp_dir,
-        }
+    def test_python_isolation_chroot(self, temp_dir):
+        isolation = {'rootfs': temp_dir}
 
         self.load('ns_inspect', isolation=isolation)
 

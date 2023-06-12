@@ -1,10 +1,10 @@
 from unit.applications.tls import TestApplicationTLS
 from unit.status import Status
 
+prerequisites = {'modules': {'openssl': 'any'}}
+
 
 class TestStatusTLS(TestApplicationTLS):
-    prerequisites = {'modules': {'openssl': 'any'}}
-
     def test_status_tls_requests(self):
         self.certificate()
 

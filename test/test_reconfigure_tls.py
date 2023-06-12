@@ -5,10 +5,10 @@ import time
 import pytest
 from unit.applications.tls import TestApplicationTLS
 
+prerequisites = {'modules': {'openssl': 'any'}}
+
 
 class TestReconfigureTLS(TestApplicationTLS):
-    prerequisites = {'modules': {'openssl': 'any'}}
-
     @pytest.fixture(autouse=True)
     def setup_method_fixture(self):
         if 'HAS_TLSv1_2' not in dir(ssl) or not ssl.HAS_TLSv1_2:

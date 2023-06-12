@@ -4,6 +4,7 @@ import platform
 class Options:
     _options = {
         'architecture': platform.architecture()[0],
+        'available': {'modules': {}, 'features': {}},
         'is_privileged': os.geteuid() == 0,
         'skip_alerts': [],
         'skip_sanitizer': False,

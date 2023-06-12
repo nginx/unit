@@ -7,10 +7,10 @@ from unit.applications.lang.java import TestApplicationJava
 from unit.option import option
 from unit.utils import public_dir
 
+prerequisites = {'modules': {'java': 'all'}}
+
 
 class TestJavaApplication(TestApplicationJava):
-    prerequisites = {'modules': {'java': 'all'}}
-
     def test_java_conf_error(self, temp_dir, skip_alert):
         skip_alert(
             r'realpath.*failed',

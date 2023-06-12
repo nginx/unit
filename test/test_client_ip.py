@@ -2,10 +2,10 @@ import pytest
 from unit.applications.lang.python import TestApplicationPython
 from unit.option import option
 
+prerequisites = {'modules': {'python': 'any'}}
+
 
 class TestClientIP(TestApplicationPython):
-    prerequisites = {'modules': {'python': 'any'}}
-
     @pytest.fixture(autouse=True)
     def setup_method_fixture(self):
         self.load('client_ip')

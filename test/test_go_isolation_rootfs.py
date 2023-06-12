@@ -1,26 +1,20 @@
-import os
-
 import pytest
 from unit.applications.lang.go import TestApplicationGo
 
+prerequisites = {
+    'modules': {'go': 'all'},
+    'features': {'isolation': True},
+    'privileged_user': True,
+}
+
 
 class TestGoIsolationRootfs(TestApplicationGo):
-    prerequisites = {'modules': {'go': 'all'}}
-
     @pytest.fixture(autouse=True)
     def setup_method_fixture(self, skip_alert):
         skip_alert(r'\[unit\] close\(\d+\) failed: Bad file descriptor')
 
-    def test_go_isolation_rootfs_chroot(self, is_su, temp_dir):
-        if not is_su:
-            pytest.skip('requires root')
-
-        if os.uname().sysname == 'Darwin':
-            pytest.skip('chroot tests not supported on OSX')
-
-        isolation = {
-            'rootfs': temp_dir,
-        }
+    def test_go_isolation_rootfs_chroot(self, temp_dir):
+        isolation = {'rootfs': temp_dir}
 
         self.load('ns_inspect', isolation=isolation)
 

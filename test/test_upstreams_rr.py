@@ -5,10 +5,10 @@ import pytest
 from unit.applications.lang.python import TestApplicationPython
 from unit.option import option
 
+prerequisites = {'modules': {'python': 'any'}}
+
 
 class TestUpstreamsRR(TestApplicationPython):
-    prerequisites = {'modules': {'python': 'any'}}
-
     @pytest.fixture(autouse=True)
     def setup_method_fixture(self):
         assert 'success' in self.conf(

@@ -1,10 +1,10 @@
 import pytest
 from unit.applications.lang.python import TestApplicationPython
 
+prerequisites = {'modules': {'python': 'any'}}
+
 
 class TestForwardedHeader(TestApplicationPython):
-    prerequisites = {'modules': {'python': 'any'}}
-
     @pytest.fixture(autouse=True)
     def setup_method_fixture(self):
         self.load('forwarded_header')
@@ -190,9 +190,7 @@ class TestForwardedHeader(TestApplicationPython):
             == '1.1.1.1'
         ), 'xff replace multi 3'
         assert (
-            self.get_addr(
-                xff='8.8.8.8, 2001:db8:3c4d:15::1a2f:1a2b, 127.0.0.1'
-            )
+            self.get_addr(xff='8.8.8.8, 2001:db8:3c4d:15::1a2f:1a2b, 127.0.0.1')
             == '2001:db8:3c4d:15::1a2f:1a2b'
         ), 'xff chain ipv6'
 

@@ -4,10 +4,10 @@ import subprocess
 import pytest
 from unit.applications.lang.ruby import TestApplicationRuby
 
+prerequisites = {'modules': {'ruby': 'all'}}
+
 
 class TestRubyApplication(TestApplicationRuby):
-    prerequisites = {'modules': {'ruby': 'all'}}
-
     def test_ruby_application(self, date_to_sec_epoch, sec_epoch):
         self.load('variables')
 

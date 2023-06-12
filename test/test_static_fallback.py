@@ -6,8 +6,6 @@ from unit.applications.proto import TestApplicationProto
 
 
 class TestStaticFallback(TestApplicationProto):
-    prerequisites = {}
-
     @pytest.fixture(autouse=True)
     def setup_method_fixture(self, temp_dir):
         assets_dir = f'{temp_dir}/assets'

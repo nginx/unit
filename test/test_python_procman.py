@@ -7,10 +7,10 @@ import pytest
 from unit.applications.lang.python import TestApplicationPython
 from unit.option import option
 
+prerequisites = {'modules': {'python': 'any'}}
+
 
 class TestPythonProcman(TestApplicationPython):
-    prerequisites = {'modules': {'python': 'any'}}
-
     @pytest.fixture(autouse=True)
     def setup_method_fixture(self, temp_dir):
         self.app_name = f'app-{temp_dir.split("/")[-1]}'

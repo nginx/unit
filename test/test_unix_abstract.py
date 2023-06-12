@@ -1,13 +1,13 @@
 from unit.applications.lang.python import TestApplicationPython
 from unit.option import option
 
+prerequisites = {
+    'modules': {'python': 'any'},
+    'features': {'unix_abstract': True},
+}
+
 
 class TestUnixAbstract(TestApplicationPython):
-    prerequisites = {
-        'modules': {'python': 'any'},
-        'features': ['unix_abstract'],
-    }
-
     def test_unix_abstract_source(self):
         addr = '\0sock'
 

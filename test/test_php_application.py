@@ -10,10 +10,10 @@ import pytest
 from unit.applications.lang.php import TestApplicationPHP
 from unit.option import option
 
+prerequisites = {'modules': {'php': 'all'}}
+
 
 class TestPHPApplication(TestApplicationPHP):
-    prerequisites = {'modules': {'php': 'all'}}
-
     def before_disable_functions(self):
         body = self.get()['body']
 

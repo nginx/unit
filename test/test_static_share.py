@@ -6,8 +6,6 @@ from unit.applications.proto import TestApplicationProto
 
 
 class TestStaticShare(TestApplicationProto):
-    prerequisites = {}
-
     @pytest.fixture(autouse=True)
     def setup_method_fixture(self, temp_dir):
         os.makedirs(f'{temp_dir}/assets/dir')

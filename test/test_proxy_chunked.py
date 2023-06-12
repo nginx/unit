@@ -8,10 +8,10 @@ from conftest import run_process
 from unit.applications.lang.python import TestApplicationPython
 from unit.utils import waitforsocket
 
+prerequisites = {'modules': {'python': 'any'}}
+
 
 class TestProxyChunked(TestApplicationPython):
-    prerequisites = {'modules': {'python': 'any'}}
-
     SERVER_PORT = 7999
 
     @pytest.fixture(autouse=True)

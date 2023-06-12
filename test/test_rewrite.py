@@ -2,12 +2,9 @@ import os
 
 import pytest
 from unit.applications.proto import TestApplicationProto
-from unit.option import option
 
 
 class TestRewrite(TestApplicationProto):
-    prerequisites = {}
-
     @pytest.fixture(autouse=True)
     def setup_method_fixture(self):
         assert 'success' in self.conf(
@@ -97,9 +94,8 @@ class TestRewrite(TestApplicationProto):
         )
         assert self.get(url='/foo?arg=val')['status'] == 200
 
-    def test_rewrite_njs(self):
-        if 'njs' not in option.available['modules'].keys():
-            pytest.skip('NJS is not available')
+    def test_rewrite_njs(self, require):
+        require({'modules': {'njs': 'any'}})
 
         self.set_rewrite("`/${host}`", "/localhost")
         assert self.get()['status'] == 200

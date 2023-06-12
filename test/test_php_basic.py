@@ -1,9 +1,9 @@
 from unit.control import TestControl
 
+prerequisites = {'modules': {'php': 'any'}}
+
 
 class TestPHPBasic(TestControl):
-    prerequisites = {'modules': {'php': 'any'}}
-
     conf_app = {
         "app": {
             "type": "php",

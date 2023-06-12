@@ -5,13 +5,12 @@ import pytest
 from packaging import version
 from unit.applications.lang.python import TestApplicationPython
 
+prerequisites = {
+    'modules': {'python': lambda v: version.parse(v) >= version.parse('3.5')}
+}
+
 
 class TestASGIApplication(TestApplicationPython):
-    prerequisites = {
-        'modules': {
-            'python': lambda v: version.parse(v) >= version.parse('3.5')
-        }
-    }
     load_module = 'asgi'
 
     def test_asgi_application_variables(self, date_to_sec_epoch, sec_epoch):

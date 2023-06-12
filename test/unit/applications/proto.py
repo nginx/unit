@@ -1,9 +1,6 @@
 import os
-import re
-import time
 
 from unit.control import TestControl
-from unit.log import Log
 from unit.option import option
 
 

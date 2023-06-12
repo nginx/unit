@@ -4,10 +4,10 @@ from pathlib import Path
 import pytest
 from unit.applications.proto import TestApplicationProto
 
+prerequisites = {'features': {'chroot': True}}
+
 
 class TestStaticSymlink(TestApplicationProto):
-    prerequisites = {'features': ['chroot']}
-
     @pytest.fixture(autouse=True)
     def setup_method_fixture(self, temp_dir):
         os.makedirs(f'{temp_dir}/assets/dir/dir')
