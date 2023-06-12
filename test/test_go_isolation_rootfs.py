@@ -9,10 +9,6 @@ prerequisites = {
 
 
 class TestGoIsolationRootfs(TestApplicationGo):
-    @pytest.fixture(autouse=True)
-    def setup_method_fixture(self, skip_alert):
-        skip_alert(r'\[unit\] close\(\d+\) failed: Bad file descriptor')
-
     def test_go_isolation_rootfs_chroot(self, temp_dir):
         isolation = {'rootfs': temp_dir}
 

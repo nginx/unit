@@ -7,10 +7,6 @@ prerequisites = {'modules': {'go': 'all'}}
 
 
 class TestGoApplication(TestApplicationGo):
-    @pytest.fixture(autouse=True)
-    def setup_method_fixture(self, skip_alert):
-        skip_alert(r'\[unit\] close\(\d+\) failed: Bad file descriptor')
-
     def test_go_application_variables(self, date_to_sec_epoch, sec_epoch):
         self.load('variables')
 

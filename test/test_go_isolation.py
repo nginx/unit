@@ -11,10 +11,6 @@ prerequisites = {'modules': {'go': 'any'}, 'features': {'isolation': True}}
 
 
 class TestGoIsolation(TestApplicationGo):
-    @pytest.fixture(autouse=True)
-    def setup_method_fixture(self, skip_alert):
-        skip_alert(r'\[unit\] close\(\d+\) failed: Bad file descriptor')
-
     def unpriv_creds(self):
         nobody_uid = pwd.getpwnam('nobody').pw_uid
 
