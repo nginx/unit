@@ -2,13 +2,14 @@ import os
 import shutil
 from urllib.parse import quote
 
-from unit.applications.proto import TestApplicationProto
+from unit.applications.proto import ApplicationProto
 from unit.option import option
 
 
-class TestApplicationPython(TestApplicationProto):
-    application_type = "python"
-    load_module = "wsgi"
+class ApplicationPython(ApplicationProto):
+    def __init__(self, application_type='python', load_module='wsgi'):
+        self.application_type = application_type
+        self.load_module = load_module
 
     def load(self, script, name=None, module=None, **kwargs):
         if name is None:

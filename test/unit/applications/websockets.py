@@ -6,12 +6,12 @@ import select
 import struct
 
 import pytest
-from unit.applications.proto import TestApplicationProto
+from unit.applications.proto import ApplicationProto
 
 GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
 
-class TestApplicationWebsocket(TestApplicationProto):
+class ApplicationWebsocket(ApplicationProto):
 
     OP_CONT = 0x00
     OP_TEXT = 0x01

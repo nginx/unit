@@ -1,9 +1,9 @@
 import json
 
-from unit.http import TestHTTP
+from unit.http import HTTP1
 from unit.option import option
 
-http = TestHTTP()
+http = HTTP1()
 
 
 def check_unix_abstract():

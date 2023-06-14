@@ -10,7 +10,7 @@ import pytest
 from unit.option import option
 
 
-class TestHTTP:
+class HTTP1:
     def http(self, start_str, **kwargs):
         sock_type = kwargs.get('sock_type', 'ipv4')
         port = kwargs.get('port', 7080)

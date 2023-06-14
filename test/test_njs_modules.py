@@ -1,99 +1,104 @@
-from unit.applications.proto import TestApplicationProto
+from unit.applications.proto import ApplicationProto
 from unit.option import option
 
 prerequisites = {'modules': {'njs': 'any'}}
 
+client = ApplicationProto()
 
-class TestNJSModules(TestApplicationProto):
-    def njs_script_load(self, module, name=None, expect='success'):
-        if name is None:
-            name = module
 
-        with open(f'{option.test_dir}/njs/{module}/script.js', 'rb') as s:
-            assert expect in self.conf(s.read(), f'/js_modules/{name}')
+def njs_script_load(module, name=None, expect='success'):
+    if name is None:
+        name = module
 
-    def test_njs_modules(self):
-        self.njs_script_load('next')
+    with open(f'{option.test_dir}/njs/{module}/script.js', 'rb') as script:
+        assert expect in client.conf(script.read(), f'/js_modules/{name}')
 
-        assert 'export' in self.conf_get('/js_modules/next')
-        assert 'error' in self.conf_post('"blah"', '/js_modules/next')
 
-        assert 'success' in self.conf(
-            {
-                "settings": {"js_module": "next"},
-                "listeners": {"*:7080": {"pass": "routes/first"}},
-                "routes": {
-                    "first": [{"action": {"pass": "`routes/${next.route()}`"}}],
-                    "next": [{"action": {"return": 200}}],
-                },
-            }
-        )
-        assert self.get()['status'] == 200, 'string'
+def test_njs_modules():
+    njs_script_load('next')
 
-        assert 'success' in self.conf({"js_module": ["next"]}, 'settings')
-        assert self.get()['status'] == 200, 'array'
+    assert 'export' in client.conf_get('/js_modules/next')
+    assert 'error' in client.conf_post('"blah"', '/js_modules/next')
 
-        # add one more value to array
+    assert 'success' in client.conf(
+        {
+            "settings": {"js_module": "next"},
+            "listeners": {"*:7080": {"pass": "routes/first"}},
+            "routes": {
+                "first": [{"action": {"pass": "`routes/${next.route()}`"}}],
+                "next": [{"action": {"return": 200}}],
+            },
+        }
+    )
+    assert client.get()['status'] == 200, 'string'
 
-        assert len(self.conf_get('/js_modules').keys()) == 1
+    assert 'success' in client.conf({"js_module": ["next"]}, 'settings')
+    assert client.get()['status'] == 200, 'array'
 
-        self.njs_script_load('next', 'next_2')
+    # add one more value to array
 
-        assert len(self.conf_get('/js_modules').keys()) == 2
+    assert len(client.conf_get('/js_modules').keys()) == 1
 
-        assert 'success' in self.conf_post('"next_2"', 'settings/js_module')
-        assert self.get()['status'] == 200, 'array len 2'
+    njs_script_load('next', 'next_2')
 
-        assert 'success' in self.conf(
-            '"`routes/${next_2.route()}`"', 'routes/first/0/action/pass'
-        )
-        assert self.get()['status'] == 200, 'array new'
+    assert len(client.conf_get('/js_modules').keys()) == 2
 
-        # can't update exsisting script
+    assert 'success' in client.conf_post('"next_2"', 'settings/js_module')
+    assert client.get()['status'] == 200, 'array len 2'
 
-        self.njs_script_load('global_this', 'next', expect='error')
+    assert 'success' in client.conf(
+        '"`routes/${next_2.route()}`"', 'routes/first/0/action/pass'
+    )
+    assert client.get()['status'] == 200, 'array new'
 
-        # delete modules
+    # can't update exsisting script
 
-        assert 'error' in self.conf_delete('/js_modules/next_2')
-        assert 'success' in self.conf_delete('settings/js_module')
-        assert 'success' in self.conf_delete('/js_modules/next_2')
+    njs_script_load('global_this', 'next', expect='error')
 
-    def test_njs_modules_import(self):
-        self.njs_script_load('import_from')
+    # delete modules
 
-        assert 'success' in self.conf(
-            {
-                "settings": {"js_module": "import_from"},
-                "listeners": {"*:7080": {"pass": "routes/first"}},
-                "routes": {
-                    "first": [
-                        {"action": {"pass": "`routes/${import_from.num()}`"}}
-                    ],
-                    "number": [{"action": {"return": 200}}],
-                },
-            }
-        )
-        assert self.get()['status'] == 200
+    assert 'error' in client.conf_delete('/js_modules/next_2')
+    assert 'success' in client.conf_delete('settings/js_module')
+    assert 'success' in client.conf_delete('/js_modules/next_2')
 
-    def test_njs_modules_this(self):
-        self.njs_script_load('global_this')
 
-        assert 'success' in self.conf(
-            {
-                "settings": {"js_module": "global_this"},
-                "listeners": {"*:7080": {"pass": "routes/first"}},
-                "routes": {
-                    "first": [
-                        {"action": {"pass": "`routes/${global_this.str()}`"}}
-                    ],
-                    "string": [{"action": {"return": 200}}],
-                },
-            }
-        )
-        assert self.get()['status'] == 200
+def test_njs_modules_import():
+    njs_script_load('import_from')
 
-    def test_njs_modules_invalid(self, skip_alert):
-        skip_alert(r'.*JS compile module.*failed.*')
+    assert 'success' in client.conf(
+        {
+            "settings": {"js_module": "import_from"},
+            "listeners": {"*:7080": {"pass": "routes/first"}},
+            "routes": {
+                "first": [
+                    {"action": {"pass": "`routes/${import_from.num()}`"}}
+                ],
+                "number": [{"action": {"return": 200}}],
+            },
+        }
+    )
+    assert client.get()['status'] == 200
 
-        self.njs_script_load('invalid', expect='error')
+
+def test_njs_modules_this():
+    njs_script_load('global_this')
+
+    assert 'success' in client.conf(
+        {
+            "settings": {"js_module": "global_this"},
+            "listeners": {"*:7080": {"pass": "routes/first"}},
+            "routes": {
+                "first": [
+                    {"action": {"pass": "`routes/${global_this.str()}`"}}
+                ],
+                "string": [{"action": {"return": 200}}],
+            },
+        }
+    )
+    assert client.get()['status'] == 200
+
+
+def test_njs_modules_invalid(skip_alert):
+    skip_alert(r'.*JS compile module.*failed.*')
+
+    njs_script_load('invalid', expect='error')

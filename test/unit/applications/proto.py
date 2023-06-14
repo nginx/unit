@@ -1,10 +1,10 @@
 import os
 
-from unit.control import TestControl
+from unit.control import Control
 from unit.option import option
 
 
-class TestApplicationProto(TestControl):
+class ApplicationProto(Control):
     application_type = None
 
     def get_application_type(self):

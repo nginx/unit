@@ -1,16 +1,16 @@
 import json
 import os
 
-from unit.applications.lang.go import TestApplicationGo
-from unit.applications.lang.java import TestApplicationJava
-from unit.applications.lang.node import TestApplicationNode
-from unit.applications.lang.ruby import TestApplicationRuby
-from unit.http import TestHTTP
+from unit.applications.lang.go import ApplicationGo
+from unit.applications.lang.java import ApplicationJava
+from unit.applications.lang.node import ApplicationNode
+from unit.applications.lang.ruby import ApplicationRuby
+from unit.http import HTTP1
 from unit.option import option
 from unit.utils import getns
 
 allns = ['pid', 'mnt', 'ipc', 'uts', 'cgroup', 'net']
-http = TestHTTP()
+http = HTTP1()
 
 
 def check_isolation():
@@ -18,7 +18,7 @@ def check_isolation():
 
     conf = ''
     if 'go' in available['modules']:
-        TestApplicationGo().prepare_env('empty', 'app')
+        ApplicationGo().prepare_env('empty', 'app')
 
         conf = {
             "listeners": {"*:7080": {"pass": "applications/empty"}},
@@ -64,7 +64,7 @@ def check_isolation():
         }
 
     elif 'ruby' in available['modules']:
-        TestApplicationRuby().prepare_env('empty')
+        ApplicationRuby().prepare_env('empty')
 
         conf = {
             "listeners": {"*:7080": {"pass": "applications/empty"}},
@@ -80,7 +80,7 @@ def check_isolation():
         }
 
     elif 'java' in available['modules']:
-        TestApplicationJava().prepare_env('empty')
+        ApplicationJava().prepare_env('empty')
 
         conf = {
             "listeners": {"*:7080": {"pass": "applications/empty"}},
@@ -97,7 +97,7 @@ def check_isolation():
         }
 
     elif 'node' in available['modules']:
-        TestApplicationNode().prepare_env('basic')
+        ApplicationNode().prepare_env('basic')
 
         conf = {
             "listeners": {"*:7080": {"pass": "applications/basic"}},

@@ -1,4 +1,4 @@
-from unit.applications.lang.python import TestApplicationPython
+from unit.applications.lang.python import ApplicationPython
 from unit.option import option
 
 prerequisites = {
@@ -6,104 +6,100 @@ prerequisites = {
     'features': {'unix_abstract': True},
 }
 
+client = ApplicationPython()
 
-class TestUnixAbstract(TestApplicationPython):
-    def test_unix_abstract_source(self):
-        addr = '\0sock'
 
-        def source(source):
-            assert 'success' in self.conf(
-                f'"{source}"', 'routes/0/match/source'
-            )
+def test_unix_abstract_source():
+    addr = '\0sock'
 
-        assert 'success' in self.conf(
-            {
-                "listeners": {
-                    "127.0.0.1:7080": {"pass": "routes"},
-                    f"unix:@{addr[1:]}": {"pass": "routes"},
-                },
-                "routes": [
-                    {
-                        "match": {"source": "!0.0.0.0/0"},
-                        "action": {"return": 200},
-                    }
-                ],
-                "applications": {},
-            }
-        )
+    def source(source):
+        assert 'success' in client.conf(f'"{source}"', 'routes/0/match/source')
 
-        assert (
-            self.get(sock_type='unix', addr=addr)['status'] == 200
-        ), 'neg ipv4'
+    assert 'success' in client.conf(
+        {
+            "listeners": {
+                "127.0.0.1:7080": {"pass": "routes"},
+                f"unix:@{addr[1:]}": {"pass": "routes"},
+            },
+            "routes": [
+                {
+                    "match": {"source": "!0.0.0.0/0"},
+                    "action": {"return": 200},
+                }
+            ],
+            "applications": {},
+        }
+    )
 
-        source("!::/0")
-        assert (
-            self.get(sock_type='unix', addr=addr)['status'] == 200
-        ), 'neg ipv6'
+    assert client.get(sock_type='unix', addr=addr)['status'] == 200, 'neg ipv4'
 
-        source("unix")
-        assert self.get()['status'] == 404, 'ipv4'
-        assert self.get(sock_type='unix', addr=addr)['status'] == 200, 'unix'
+    source("!::/0")
+    assert client.get(sock_type='unix', addr=addr)['status'] == 200, 'neg ipv6'
 
-    def test_unix_abstract_client_ip(self):
-        def get_xff(xff, sock_type='ipv4'):
-            address = {
-                'ipv4': ('127.0.0.1', 7080),
-                'ipv6': ('::1', 7081),
-                'unix': ('\0sock', None),
-            }
-            (addr, port) = address[sock_type]
+    source("unix")
+    assert client.get()['status'] == 404, 'ipv4'
+    assert client.get(sock_type='unix', addr=addr)['status'] == 200, 'unix'
 
-            return self.get(
-                sock_type=sock_type,
-                addr=addr,
-                port=port,
-                headers={'Connection': 'close', 'X-Forwarded-For': xff},
-            )['body']
 
-        client_ip_dir = f"{option.test_dir}/python/client_ip"
-        assert 'success' in self.conf(
-            {
-                "listeners": {
-                    "127.0.0.1:7080": {
-                        "client_ip": {
-                            "header": "X-Forwarded-For",
-                            "source": "unix",
-                        },
-                        "pass": "applications/client_ip",
-                    },
-                    "[::1]:7081": {
-                        "client_ip": {
-                            "header": "X-Forwarded-For",
-                            "source": "unix",
-                        },
-                        "pass": "applications/client_ip",
-                    },
-                    "unix:@sock": {
-                        "client_ip": {
-                            "header": "X-Forwarded-For",
-                            "source": "unix",
-                        },
-                        "pass": "applications/client_ip",
-                    },
-                },
-                "applications": {
+def test_unix_abstract_client_ip():
+    def get_xff(xff, sock_type='ipv4'):
+        address = {
+            'ipv4': ('127.0.0.1', 7080),
+            'ipv6': ('::1', 7081),
+            'unix': ('\0sock', None),
+        }
+        (addr, port) = address[sock_type]
+
+        return client.get(
+            sock_type=sock_type,
+            addr=addr,
+            port=port,
+            headers={'Connection': 'close', 'X-Forwarded-For': xff},
+        )['body']
+
+    client_ip_dir = f"{option.test_dir}/python/client_ip"
+    assert 'success' in client.conf(
+        {
+            "listeners": {
+                "127.0.0.1:7080": {
                     "client_ip": {
-                        "type": self.get_application_type(),
-                        "processes": {"spare": 0},
-                        "path": client_ip_dir,
-                        "working_directory": client_ip_dir,
-                        "module": "wsgi",
-                    }
+                        "header": "X-Forwarded-For",
+                        "source": "unix",
+                    },
+                    "pass": "applications/client_ip",
                 },
-            }
-        )
+                "[::1]:7081": {
+                    "client_ip": {
+                        "header": "X-Forwarded-For",
+                        "source": "unix",
+                    },
+                    "pass": "applications/client_ip",
+                },
+                "unix:@sock": {
+                    "client_ip": {
+                        "header": "X-Forwarded-For",
+                        "source": "unix",
+                    },
+                    "pass": "applications/client_ip",
+                },
+            },
+            "applications": {
+                "client_ip": {
+                    "type": client.get_application_type(),
+                    "processes": {"spare": 0},
+                    "path": client_ip_dir,
+                    "working_directory": client_ip_dir,
+                    "module": "wsgi",
+                }
+            },
+        }
+    )
 
-        assert get_xff('1.1.1.1') == '127.0.0.1', 'bad source ipv4'
-        assert get_xff('1.1.1.1', 'ipv6') == '::1', 'bad source ipv6'
+    assert get_xff('1.1.1.1') == '127.0.0.1', 'bad source ipv4'
+    assert get_xff('1.1.1.1', 'ipv6') == '::1', 'bad source ipv6'
 
-        for ip in [
-            '1.1.1.1',
-            '::11.22.33.44',
-        ]:
-            assert get_xff(ip, 'unix') == ip, 'replace'
+    for ip in [
+        '1.1.1.1',
+        '::11.22.33.44',
+    ]:
+        assert get_xff(ip, 'unix') == ip, 'replace'

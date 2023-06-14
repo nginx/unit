@@ -1,12 +1,13 @@
 import shutil
 
-from unit.applications.proto import TestApplicationProto
+from unit.applications.proto import ApplicationProto
 from unit.option import option
 from unit.utils import public_dir
 
 
-class TestApplicationRuby(TestApplicationProto):
-    application_type = "ruby"
+class ApplicationRuby(ApplicationProto):
+    def __init__(self, application_type='ruby'):
+        self.application_type = application_type
 
     def prepare_env(self, script):
         shutil.copytree(

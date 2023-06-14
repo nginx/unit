@@ -1,6 +1,7 @@
 import os
 import platform
 
+
 class Options:
     _options = {
         'architecture': platform.architecture()[0],
@@ -8,7 +9,7 @@ class Options:
         'is_privileged': os.geteuid() == 0,
         'skip_alerts': [],
         'skip_sanitizer': False,
-        'system': platform.system()
+        'system': platform.system(),
     }
 
     def __setattr__(self, name, value):

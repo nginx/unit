@@ -12,115 +12,121 @@ from OpenSSL.SSL import (
     Connection,
     _lib,
 )
-from unit.applications.tls import TestApplicationTLS
+from unit.applications.tls import ApplicationTLS
 
 prerequisites = {'modules': {'openssl': 'any'}}
 
+client = ApplicationTLS()
 
-class TestTLSSession(TestApplicationTLS):
-    @pytest.fixture(autouse=True)
-    def setup_method_fixture(self):
-        self.certificate()
 
-        assert 'success' in self.conf(
-            {
-                "listeners": {
-                    "*:7080": {
-                        "pass": "routes",
-                        "tls": {"certificate": "default", "session": {}},
-                    }
-                },
-                "routes": [{"action": {"return": 200}}],
-                "applications": {},
-            }
-        ), 'load application configuration'
+@pytest.fixture(autouse=True)
+def setup_method_fixture():
+    client.certificate()
 
-    def add_session(self, cache_size=None, timeout=None):
-        session = {}
+    assert 'success' in client.conf(
+        {
+            "listeners": {
+                "*:7080": {
+                    "pass": "routes",
+                    "tls": {"certificate": "default", "session": {}},
+                }
+            },
+            "routes": [{"action": {"return": 200}}],
+            "applications": {},
+        }
+    ), 'load application configuration'
 
-        if cache_size is not None:
-            session['cache_size'] = cache_size
-        if timeout is not None:
-            session['timeout'] = timeout
 
-        return self.conf(session, 'listeners/*:7080/tls/session')
+def add_session(cache_size=None, timeout=None):
+    session = {}
 
-    def connect(self, ctx=None, session=None):
-        sock = socket.create_connection(('127.0.0.1', 7080))
+    if cache_size is not None:
+        session['cache_size'] = cache_size
+    if timeout is not None:
+        session['timeout'] = timeout
 
-        if ctx is None:
-            ctx = Context(TLSv1_2_METHOD)
-            ctx.set_session_cache_mode(SESS_CACHE_CLIENT)
-            ctx.set_options(OP_NO_TICKET)
+    return client.conf(session, 'listeners/*:7080/tls/session')
 
-        client = Connection(ctx, sock)
-        client.set_connect_state()
 
-        if session is not None:
-            client.set_session(session)
+def connect(ctx=None, session=None):
+    sock = socket.create_connection(('127.0.0.1', 7080))
 
-        client.do_handshake()
-        client.shutdown()
+    if ctx is None:
+        ctx = Context(TLSv1_2_METHOD)
+        ctx.set_session_cache_mode(SESS_CACHE_CLIENT)
+        ctx.set_options(OP_NO_TICKET)
 
-        return (
-            client,
-            client.get_session(),
-            ctx,
-            _lib.SSL_session_reused(client._ssl),
-        )
+    conn = Connection(ctx, sock)
+    conn.set_connect_state()
 
-    def test_tls_session(self):
-        _, sess, ctx, reused = self.connect()
-        assert not reused, 'new connection'
+    if session is not None:
+        conn.set_session(session)
 
-        _, _, _, reused = self.connect(ctx, sess)
-        assert not reused, 'no cache'
+    conn.do_handshake()
+    conn.shutdown()
 
-        assert 'success' in self.add_session(cache_size=2)
+    return (
+        conn,
+        conn.get_session(),
+        ctx,
+        _lib.SSL_session_reused(conn._ssl),
+    )
 
-        _, sess, ctx, reused = self.connect()
-        assert not reused, 'new connection cache'
 
-        _, _, _, reused = self.connect(ctx, sess)
-        assert reused, 'cache'
+def test_tls_session():
+    _, sess, ctx, reused = connect()
+    assert not reused, 'new connection'
 
-        _, _, _, reused = self.connect(ctx, sess)
-        assert reused, 'cache 2'
+    _, _, _, reused = connect(ctx, sess)
+    assert not reused, 'no cache'
 
-        # check that at least one session of four is not reused
+    assert 'success' in add_session(cache_size=2)
 
-        clients = [self.connect() for _ in range(4)]
-        assert True not in [c[-1] for c in clients], 'cache small all new'
+    _, sess, ctx, reused = connect()
+    assert not reused, 'new connection cache'
 
-        clients_again = [self.connect(c[2], c[1]) for c in clients]
-        assert False in [c[-1] for c in clients_again], 'cache small no reuse'
+    _, _, _, reused = connect(ctx, sess)
+    assert reused, 'cache'
 
-        # all four sessions are reused
+    _, _, _, reused = connect(ctx, sess)
+    assert reused, 'cache 2'
 
-        assert 'success' in self.add_session(cache_size=8)
+    # check that at least one session of four is not reused
 
-        clients = [self.connect() for _ in range(4)]
-        assert True not in [c[-1] for c in clients], 'cache big all new'
+    conns = [connect() for _ in range(4)]
+    assert True not in [c[-1] for c in conns], 'cache small all new'
 
-        clients_again = [self.connect(c[2], c[1]) for c in clients]
-        assert False not in [c[-1] for c in clients_again], 'cache big reuse'
+    conns_again = [connect(c[2], c[1]) for c in conns]
+    assert False in [c[-1] for c in conns_again], 'cache small no reuse'
 
-    def test_tls_session_timeout(self):
-        assert 'success' in self.add_session(cache_size=5, timeout=1)
+    # all four sessions are reused
 
-        _, sess, ctx, reused = self.connect()
-        assert not reused, 'new connection'
+    assert 'success' in add_session(cache_size=8)
 
-        _, _, _, reused = self.connect(ctx, sess)
-        assert reused, 'no timeout'
+    conns = [connect() for _ in range(4)]
+    assert True not in [c[-1] for c in conns], 'cache big all new'
 
-        time.sleep(3)
+    conns_again = [connect(c[2], c[1]) for c in conns]
+    assert False not in [c[-1] for c in conns_again], 'cache big reuse'
 
-        _, _, _, reused = self.connect(ctx, sess)
-        assert not reused, 'timeout'
 
-    def test_tls_session_invalid(self):
-        assert 'error' in self.add_session(cache_size=-1)
-        assert 'error' in self.add_session(cache_size={})
-        assert 'error' in self.add_session(timeout=-1)
-        assert 'error' in self.add_session(timeout={})
+def test_tls_session_timeout():
+    assert 'success' in add_session(cache_size=5, timeout=1)
+
+    _, sess, ctx, reused = connect()
+    assert not reused, 'new connection'
+
+    _, _, _, reused = connect(ctx, sess)
+    assert reused, 'no timeout'
+
+    time.sleep(3)
+
+    _, _, _, reused = connect(ctx, sess)
+    assert not reused, 'timeout'
+
+
+def test_tls_session_invalid():
+    assert 'error' in add_session(cache_size=-1)
+    assert 'error' in add_session(cache_size={})
+    assert 'error' in add_session(timeout=-1)
+    assert 'error' in add_session(timeout={})

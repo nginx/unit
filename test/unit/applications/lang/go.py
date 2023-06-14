@@ -2,11 +2,11 @@ import os
 import shutil
 import subprocess
 
-from unit.applications.proto import TestApplicationProto
+from unit.applications.proto import ApplicationProto
 from unit.option import option
 
 
-class TestApplicationGo(TestApplicationProto):
+class ApplicationGo(ApplicationProto):
     @staticmethod
     def prepare_env(script, name='app', static=False):
         try:
@@ -88,7 +88,7 @@ replace unit.nginx.org/go => {replace_path}
             executable = f"/go/{name}"
             static_build = True
 
-        TestApplicationGo.prepare_env(script, name, static=static_build)
+        ApplicationGo.prepare_env(script, name, static=static_build)
 
         conf = {
             "listeners": {"*:7080": {"pass": f"applications/{script}"}},

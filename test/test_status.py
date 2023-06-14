@@ -1,75 +1,79 @@
 import time
 
-from unit.applications.lang.python import TestApplicationPython
+from unit.applications.lang.python import ApplicationPython
 from unit.option import option
 from unit.status import Status
 
 prerequisites = {'modules': {'python': 'any'}}
 
+client = ApplicationPython()
 
-class TestStatus(TestApplicationPython):
-    def check_connections(self, accepted, active, idle, closed):
-        assert Status.get('/connections') == {
-            'accepted': accepted,
-            'active': active,
-            'idle': idle,
-            'closed': closed,
-        }
 
-    def app_default(self, name="empty", module="wsgi"):
-        name_dir = f'{option.test_dir}/python/{name}'
-        return {
-            "type": self.get_application_type(),
-            "processes": {"spare": 0},
-            "path": name_dir,
-            "working_directory": name_dir,
-            "module": module,
-        }
+def check_connections(accepted, active, idle, closed):
+    assert Status.get('/connections') == {
+        'accepted': accepted,
+        'active': active,
+        'idle': idle,
+        'closed': closed,
+    }
 
-    def test_status(self):
-        assert 'error' in self.conf_delete('/status'), 'DELETE method'
 
-    def test_status_requests(self, skip_alert):
-        skip_alert(r'Python failed to import module "blah"')
+def app_default(name="empty", module="wsgi"):
+    name_dir = f'{option.test_dir}/python/{name}'
+    return {
+        "type": client.get_application_type(),
+        "processes": {"spare": 0},
+        "path": name_dir,
+        "working_directory": name_dir,
+        "module": module,
+    }
 
-        assert 'success' in self.conf(
-            {
-                "listeners": {
-                    "*:7080": {"pass": "routes"},
-                    "*:7081": {"pass": "applications/empty"},
-                    "*:7082": {"pass": "applications/blah"},
-                },
-                "routes": [{"action": {"return": 200}}],
-                "applications": {
-                    "empty": self.app_default(),
-                    "blah": {
-                        "type": self.get_application_type(),
-                        "processes": {"spare": 0},
-                        "module": "blah",
-                    },
+
+def test_status():
+    assert 'error' in client.conf_delete('/status'), 'DELETE method'
+
+
+def test_status_requests(skip_alert):
+    skip_alert(r'Python failed to import module "blah"')
+
+    assert 'success' in client.conf(
+        {
+            "listeners": {
+                "*:7080": {"pass": "routes"},
+                "*:7081": {"pass": "applications/empty"},
+                "*:7082": {"pass": "applications/blah"},
+            },
+            "routes": [{"action": {"return": 200}}],
+            "applications": {
+                "empty": app_default(),
+                "blah": {
+                    "type": client.get_application_type(),
+                    "processes": {"spare": 0},
+                    "module": "blah",
                 },
             },
-        )
+        },
+    )
 
-        Status.init()
+    Status.init()
 
-        assert self.get()['status'] == 200
-        assert Status.get('/requests/total') == 1, '2xx'
+    assert client.get()['status'] == 200
+    assert Status.get('/requests/total') == 1, '2xx'
 
-        assert self.get(port=7081)['status'] == 200
-        assert Status.get('/requests/total') == 2, '2xx app'
+    assert client.get(port=7081)['status'] == 200
+    assert Status.get('/requests/total') == 2, '2xx app'
 
-        assert (
-            self.get(headers={'Host': '/', 'Connection': 'close'})['status']
-            == 400
-        )
-        assert Status.get('/requests/total') == 3, '4xx'
+    assert (
+        client.get(headers={'Host': '/', 'Connection': 'close'})['status']
+        == 400
+    )
+    assert Status.get('/requests/total') == 3, '4xx'
 
-        assert self.get(port=7082)['status'] == 503
-        assert Status.get('/requests/total') == 4, '5xx'
+    assert client.get(port=7082)['status'] == 503
+    assert Status.get('/requests/total') == 4, '5xx'
 
-        self.http(
-            b"""GET / HTTP/1.1
+    client.http(
+        b"""GET / HTTP/1.1
 Host: localhost
 
 GET / HTTP/1.1
@@ -77,159 +81,162 @@ Host: localhost
 Connection: close
 
 """,
-            raw=True,
-        )
-        assert Status.get('/requests/total') == 6, 'pipeline'
+        raw=True,
+    )
+    assert Status.get('/requests/total') == 6, 'pipeline'
 
-        sock = self.get(port=7081, no_recv=True)
+    sock = client.get(port=7081, no_recv=True)
 
-        time.sleep(1)
+    time.sleep(1)
 
-        assert Status.get('/requests/total') == 7, 'no receive'
+    assert Status.get('/requests/total') == 7, 'no receive'
 
-        sock.close()
+    sock.close()
 
-    def test_status_connections(self):
-        assert 'success' in self.conf(
-            {
-                "listeners": {
-                    "*:7080": {"pass": "routes"},
-                    "*:7081": {"pass": "applications/delayed"},
-                },
-                "routes": [{"action": {"return": 200}}],
-                "applications": {
-                    "delayed": self.app_default("delayed"),
-                },
+
+def test_status_connections():
+    assert 'success' in client.conf(
+        {
+            "listeners": {
+                "*:7080": {"pass": "routes"},
+                "*:7081": {"pass": "applications/delayed"},
             },
-        )
-
-        Status.init()
-
-        # accepted, closed
-
-        assert self.get()['status'] == 200
-        self.check_connections(1, 0, 0, 1)
-
-        # idle
-
-        (_, sock) = self.get(
-            headers={'Host': 'localhost', 'Connection': 'keep-alive'},
-            start=True,
-            read_timeout=1,
-        )
-
-        self.check_connections(2, 0, 1, 1)
-
-        self.get(sock=sock)
-        self.check_connections(2, 0, 0, 2)
-
-        # active
-
-        (_, sock) = self.get(
-            headers={
-                'Host': 'localhost',
-                'X-Delay': '2',
-                'Connection': 'close',
+            "routes": [{"action": {"return": 200}}],
+            "applications": {
+                "delayed": app_default("delayed"),
             },
-            port=7081,
-            start=True,
-            read_timeout=1,
-        )
-        self.check_connections(3, 1, 0, 2)
+        },
+    )
 
-        self.get(sock=sock)
-        self.check_connections(3, 0, 0, 3)
+    Status.init()
 
-    def test_status_applications(self):
-        def check_applications(expert):
-            apps = list(self.conf_get('/status/applications').keys()).sort()
-            assert apps == expert.sort()
+    # accepted, closed
 
-        def check_application(name, running, starting, idle, active):
-            assert Status.get(f'/applications/{name}') == {
-                'processes': {
-                    'running': running,
-                    'starting': starting,
-                    'idle': idle,
-                },
-                'requests': {'active': active},
-            }
+    assert client.get()['status'] == 200
+    check_connections(1, 0, 0, 1)
 
-        self.load('delayed')
-        Status.init()
+    # idle
 
-        check_applications(['delayed'])
-        check_application('delayed', 0, 0, 0, 0)
+    (_, sock) = client.get(
+        headers={'Host': 'localhost', 'Connection': 'keep-alive'},
+        start=True,
+        read_timeout=1,
+    )
 
-        # idle
+    check_connections(2, 0, 1, 1)
 
-        assert self.get()['status'] == 200
-        check_application('delayed', 1, 0, 1, 0)
+    client.get(sock=sock)
+    check_connections(2, 0, 0, 2)
 
-        assert 'success' in self.conf('4', 'applications/delayed/processes')
-        check_application('delayed', 4, 0, 4, 0)
+    # active
 
-        # active
+    (_, sock) = client.get(
+        headers={
+            'Host': 'localhost',
+            'X-Delay': '2',
+            'Connection': 'close',
+        },
+        port=7081,
+        start=True,
+        read_timeout=1,
+    )
+    check_connections(3, 1, 0, 2)
 
-        (_, sock) = self.get(
-            headers={
-                'Host': 'localhost',
-                'X-Delay': '2',
-                'Connection': 'close',
+    client.get(sock=sock)
+    check_connections(3, 0, 0, 3)
+
+
+def test_status_applications():
+    def check_applications(expert):
+        apps = list(client.conf_get('/status/applications').keys()).sort()
+        assert apps == expert.sort()
+
+    def check_application(name, running, starting, idle, active):
+        assert Status.get(f'/applications/{name}') == {
+            'processes': {
+                'running': running,
+                'starting': starting,
+                'idle': idle,
             },
-            start=True,
-            read_timeout=1,
-        )
-        check_application('delayed', 4, 0, 3, 1)
-        sock.close()
+            'requests': {'active': active},
+        }
 
-        # starting
+    client.load('delayed')
+    Status.init()
 
-        assert 'success' in self.conf(
-            {
-                "listeners": {
-                    "*:7080": {"pass": "applications/restart"},
-                    "*:7081": {"pass": "applications/delayed"},
-                },
-                "routes": [],
-                "applications": {
-                    "restart": self.app_default("restart", "longstart"),
-                    "delayed": self.app_default("delayed"),
-                },
+    check_applications(['delayed'])
+    check_application('delayed', 0, 0, 0, 0)
+
+    # idle
+
+    assert client.get()['status'] == 200
+    check_application('delayed', 1, 0, 1, 0)
+
+    assert 'success' in client.conf('4', 'applications/delayed/processes')
+    check_application('delayed', 4, 0, 4, 0)
+
+    # active
+
+    (_, sock) = client.get(
+        headers={
+            'Host': 'localhost',
+            'X-Delay': '2',
+            'Connection': 'close',
+        },
+        start=True,
+        read_timeout=1,
+    )
+    check_application('delayed', 4, 0, 3, 1)
+    sock.close()
+
+    # starting
+
+    assert 'success' in client.conf(
+        {
+            "listeners": {
+                "*:7080": {"pass": "applications/restart"},
+                "*:7081": {"pass": "applications/delayed"},
             },
-        )
-        Status.init()
-
-        check_applications(['delayed', 'restart'])
-        check_application('restart', 0, 0, 0, 0)
-        check_application('delayed', 0, 0, 0, 0)
-
-        self.get(read_timeout=1)
-
-        check_application('restart', 0, 1, 0, 1)
-        check_application('delayed', 0, 0, 0, 0)
-
-    def test_status_proxy(self):
-        assert 'success' in self.conf(
-            {
-                "listeners": {
-                    "*:7080": {"pass": "routes"},
-                    "*:7081": {"pass": "applications/empty"},
-                },
-                "routes": [
-                    {
-                        "match": {"uri": "/"},
-                        "action": {"proxy": "http://127.0.0.1:7081"},
-                    }
-                ],
-                "applications": {
-                    "empty": self.app_default(),
-                },
+            "routes": [],
+            "applications": {
+                "restart": app_default("restart", "longstart"),
+                "delayed": app_default("delayed"),
             },
-        )
+        },
+    )
+    Status.init()
 
-        Status.init()
+    check_applications(['delayed', 'restart'])
+    check_application('restart', 0, 0, 0, 0)
+    check_application('delayed', 0, 0, 0, 0)
 
-        assert self.get()['status'] == 200
-        self.check_connections(2, 0, 0, 2)
-        assert Status.get('/requests/total') == 2, 'proxy'
+    client.get(read_timeout=1)
+
+    check_application('restart', 0, 1, 0, 1)
+    check_application('delayed', 0, 0, 0, 0)
+
+
+def test_status_proxy():
+    assert 'success' in client.conf(
+        {
+            "listeners": {
+                "*:7080": {"pass": "routes"},
+                "*:7081": {"pass": "applications/empty"},
+            },
+            "routes": [
+                {
+                    "match": {"uri": "/"},
+                    "action": {"proxy": "http://127.0.0.1:7081"},
+                }
+            ],
+            "applications": {
+                "empty": app_default(),
+            },
+        },
+    )
+
+    Status.init()
+
+    assert client.get()['status'] == 200
+    check_connections(2, 0, 0, 2)
+    assert Status.get('/requests/total') == 2, 'proxy'

@@ -1,92 +1,101 @@
 import os
 
 import pytest
-from unit.applications.proto import TestApplicationProto
+from unit.applications.proto import ApplicationProto
 from unit.option import option
 from unit.utils import waitforfiles
 
 prerequisites = {'modules': {'njs': 'any'}}
 
+client = ApplicationProto()
 
-class TestNJS(TestApplicationProto):
-    @pytest.fixture(autouse=True)
-    def setup_method_fixture(self, temp_dir):
-        assert 'success' in self.conf(
-            {
-                "listeners": {"*:7080": {"pass": "routes"}},
-                "routes": [{"action": {"share": f"{temp_dir}/assets$uri"}}],
-            }
-        )
 
-    def create_files(self, *files):
-        assets_dir = f'{option.temp_dir}/assets/'
-        os.makedirs(assets_dir)
+@pytest.fixture(autouse=True)
+def setup_method_fixture(temp_dir):
+    assert 'success' in client.conf(
+        {
+            "listeners": {"*:7080": {"pass": "routes"}},
+            "routes": [{"action": {"share": f"{temp_dir}/assets$uri"}}],
+        }
+    )
 
-        [open(assets_dir + f, 'a') for f in files]
-        waitforfiles(*[assets_dir + f for f in files])
 
-    def set_share(self, share):
-        assert 'success' in self.conf(share, 'routes/0/action/share')
+def create_files(*files):
+    assets_dir = f'{option.temp_dir}/assets/'
+    os.makedirs(assets_dir)
 
-    def check_expression(self, expression, url='/'):
-        self.set_share(f'"`{option.temp_dir}/assets{expression}`"')
-        assert self.get(url=url)['status'] == 200
+    [open(assets_dir + f, 'a') for f in files]
+    waitforfiles(*[assets_dir + f for f in files])
 
-    def test_njs_template_string(self, temp_dir):
-        self.create_files('str', '`string`', '`backtick', 'l1\nl2')
 
-        self.check_expression('/str')
-        self.check_expression('/\\\\`backtick')
-        self.check_expression('/l1\\nl2')
+def set_share(share):
+    assert 'success' in client.conf(share, 'routes/0/action/share')
 
-        self.set_share(f'"{temp_dir}/assets/`string`"')
-        assert self.get()['status'] == 200
 
-    def test_njs_template_expression(self):
-        self.create_files('str', 'localhost')
+def check_expression(expression, url='/'):
+    set_share(f'"`{option.temp_dir}/assets{expression}`"')
+    assert client.get(url=url)['status'] == 200
 
-        self.check_expression('${uri}', '/str')
-        self.check_expression('${uri}${host}')
-        self.check_expression('${uri + host}')
-        self.check_expression('${uri + `${host}`}')
 
-    def test_njs_iteration(self):
-        self.create_files('Connection,Host', 'close,localhost')
+def test_njs_template_string(temp_dir):
+    create_files('str', '`string`', '`backtick', 'l1\nl2')
 
-        self.check_expression('/${Object.keys(headers).sort().join()}')
-        self.check_expression('/${Object.values(headers).sort().join()}')
+    check_expression('/str')
+    check_expression('/\\\\`backtick')
+    check_expression('/l1\\nl2')
 
-    def test_njs_variables(self, temp_dir):
-        self.create_files('str', 'localhost', '127.0.0.1')
+    set_share(f'"{temp_dir}/assets/`string`"')
+    assert client.get()['status'] == 200
 
-        self.check_expression('/${host}')
-        self.check_expression('/${remoteAddr}')
-        self.check_expression('/${headers.Host}')
 
-        self.set_share(f'"`{temp_dir}/assets/${{cookies.foo}}`"')
-        assert (
-            self.get(headers={'Cookie': 'foo=str', 'Connection': 'close'})[
-                'status'
-            ]
-            == 200
-        ), 'cookies'
+def test_njs_template_expression():
+    create_files('str', 'localhost')
 
-        self.set_share(f'"`{temp_dir}/assets/${{args.foo}}`"')
-        assert self.get(url='/?foo=str')['status'] == 200, 'args'
+    check_expression('${uri}', '/str')
+    check_expression('${uri}${host}')
+    check_expression('${uri + host}')
+    check_expression('${uri + `${host}`}')
 
-    def test_njs_invalid(self, skip_alert):
-        skip_alert(r'js exception:')
 
-        def check_invalid(template):
-            assert 'error' in self.conf(template, 'routes/0/action/share')
+def test_njs_iteration():
+    create_files('Connection,Host', 'close,localhost')
 
-        check_invalid('"`a"')
-        check_invalid('"`a``"')
-        check_invalid('"`a`/"')
+    check_expression('/${Object.keys(headers).sort().join()}')
+    check_expression('/${Object.values(headers).sort().join()}')
 
-        def check_invalid_resolve(template):
-            assert 'success' in self.conf(template, 'routes/0/action/share')
-            assert self.get()['status'] == 500
 
-        check_invalid_resolve('"`${a}`"')
-        check_invalid_resolve('"`${uri.a.a}`"')
+def test_njs_variables(temp_dir):
+    create_files('str', 'localhost', '127.0.0.1')
+
+    check_expression('/${host}')
+    check_expression('/${remoteAddr}')
+    check_expression('/${headers.Host}')
+
+    set_share(f'"`{temp_dir}/assets/${{cookies.foo}}`"')
+    assert (
+        client.get(headers={'Cookie': 'foo=str', 'Connection': 'close'})[
+            'status'
+        ]
+        == 200
+    ), 'cookies'
+
+    set_share(f'"`{temp_dir}/assets/${{args.foo}}`"')
+    assert client.get(url='/?foo=str')['status'] == 200, 'args'
+
+
+def test_njs_invalid(skip_alert):
+    skip_alert(r'js exception:')
+
+    def check_invalid(template):
+        assert 'error' in client.conf(template, 'routes/0/action/share')
+
+    check_invalid('"`a"')
+    check_invalid('"`a``"')
+    check_invalid('"`a`/"')
+
+    def check_invalid_resolve(template):
+        assert 'success' in client.conf(template, 'routes/0/action/share')
+        assert client.get()['status'] == 500
+
+    check_invalid_resolve('"`${a}`"')
+    check_invalid_resolve('"`${uri.a.a}`"')

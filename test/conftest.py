@@ -15,7 +15,7 @@ from multiprocessing import Process
 import pytest
 from unit.check.discover_available import discover_available
 from unit.check.check_prerequisites import check_prerequisites
-from unit.http import TestHTTP
+from unit.http import HTTP1
 from unit.log import Log
 from unit.log import print_log_on_assert
 from unit.option import option
@@ -82,7 +82,7 @@ _fds_info = {
         'skip': False,
     },
 }
-http = TestHTTP()
+http = HTTP1()
 is_findmnt = check_findmnt()
 
 
@@ -113,15 +113,16 @@ def pytest_configure(config):
 
 
 def pytest_generate_tests(metafunc):
-    cls = metafunc.cls
+    module = metafunc.module
     if (
-        not hasattr(cls, 'application_type')
-        or cls.application_type == None
-        or cls.application_type == 'external'
+        not hasattr(module, 'client')
+        or not hasattr(module.client, 'application_type')
+        or module.client.application_type is None
+        or module.client.application_type == 'external'
     ):
         return
 
-    type = cls.application_type
+    app_type = module.client.application_type
 
     def generate_tests(versions):
         if not versions:
@@ -133,7 +134,7 @@ def pytest_generate_tests(metafunc):
         for version in versions:
             option.generated_tests[
                 f'{metafunc.function.__name__} [{version}]'
-            ] = f'{type} {version}'
+            ] = f'{app_type} {version}'
 
     # take available module from option and generate tests for each version
 
@@ -149,7 +150,7 @@ def pytest_generate_tests(metafunc):
             elif version == 'any':
                 option.generated_tests[
                     metafunc.function.__name__
-                ] = f'{type} {available_versions[0]}'
+                ] = f'{app_type} {available_versions[0]}'
             elif callable(version):
                 generate_tests(list(filter(version, available_versions)))
 

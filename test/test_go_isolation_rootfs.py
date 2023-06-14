@@ -1,5 +1,4 @@
-import pytest
-from unit.applications.lang.go import TestApplicationGo
+from unit.applications.lang.go import ApplicationGo
 
 prerequisites = {
     'modules': {'go': 'all'},
@@ -7,16 +6,14 @@ prerequisites = {
     'privileged_user': True,
 }
 
+client = ApplicationGo()
 
-class TestGoIsolationRootfs(TestApplicationGo):
-    def test_go_isolation_rootfs_chroot(self, temp_dir):
-        isolation = {'rootfs': temp_dir}
 
-        self.load('ns_inspect', isolation=isolation)
+def test_go_isolation_rootfs_chroot(temp_dir):
+    client.load('ns_inspect', isolation={'rootfs': temp_dir})
 
-        obj = self.getjson(url='/?file=/go/app')['body']
+    obj = client.getjson(url='/?file=/go/app')['body']
+    assert obj['FileExists'], 'app relative to rootfs'
 
-        assert obj['FileExists'], 'app relative to rootfs'
-
-        obj = self.getjson(url='/?file=/bin/sh')['body']
-        assert not obj['FileExists'], 'file should not exists'
+    obj = client.getjson(url='/?file=/bin/sh')['body']
+    assert not obj['FileExists'], 'file should not exists'

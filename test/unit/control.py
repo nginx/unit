@@ -1,6 +1,6 @@
 import json
 
-from unit.http import TestHTTP
+from unit.http import HTTP1
 from unit.option import option
 
 
@@ -29,7 +29,7 @@ def args_handler(conf_func):
     return args_wrapper
 
 
-class TestControl(TestHTTP):
+class Control(HTTP1):
     @args_handler
     def conf(self, conf, url):
         return self.put(**self._get_args(url, conf))['body']

@@ -2,15 +2,15 @@ import os
 import ssl
 import subprocess
 
-from unit.applications.proto import TestApplicationProto
+from unit.applications.proto import ApplicationProto
 from unit.option import option
 
 
-class TestApplicationTLS(TestApplicationProto):
-    def setup_method(self):
-        self.context = ssl.create_default_context()
-        self.context.check_hostname = False
-        self.context.verify_mode = ssl.CERT_NONE
+class ApplicationTLS(ApplicationProto):
+    def __init__(self):
+        self._default_context = ssl.create_default_context()
+        self._default_context.check_hostname = False
+        self._default_context.verify_mode = ssl.CERT_NONE
 
     def certificate(self, name='default', load=True):
         self.openssl_conf()
@@ -47,10 +47,12 @@ class TestApplicationTLS(TestApplicationProto):
             return self.conf(k.read() + c.read(), f'/certificates/{crt}')
 
     def get_ssl(self, **kwargs):
-        return self.get(wrapper=self.context.wrap_socket, **kwargs)
+        context = kwargs.get('context', self._default_context)
+        return self.get(wrapper=context.wrap_socket, **kwargs)
 
     def post_ssl(self, **kwargs):
-        return self.post(wrapper=self.context.wrap_socket, **kwargs)
+        context = kwargs.get('context', self._default_context)
+        return self.post(wrapper=context.wrap_socket, **kwargs)
 
     def openssl_conf(self, rewrite=False, alt_names=None):
         alt_names = alt_names or []
