@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 import re
 import time
 
@@ -120,6 +122,27 @@ def test_variables_uri(search_in_file, wait_for_record):
     check_uri('/4*')
     check_uri('/5%2A', '/5*')
     check_uri('/9?q#a', '/9')
+
+
+def test_variables_uri_no_cache(temp_dir):
+    os.makedirs(f'{temp_dir}/foo/bar')
+    Path(f'{temp_dir}/foo/bar/index.html').write_text('index')
+
+    assert 'success' in client.conf(
+        {
+            "listeners": {"*:7080": {"pass": "routes"}},
+            "routes": [
+                {
+                    "action": {
+                        "rewrite": "/foo${uri}/",
+                        "share": f'{temp_dir}$uri',
+                    }
+                }
+            ],
+        }
+    )
+
+    assert client.get(url='/bar')['status'] == 200
 
 
 def test_variables_host(search_in_file, wait_for_record):
