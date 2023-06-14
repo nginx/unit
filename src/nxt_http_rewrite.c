@@ -10,8 +10,8 @@
 
 nxt_int_t
 nxt_http_rewrite_init(nxt_router_conf_t *rtcf, nxt_http_action_t *action,
-     nxt_http_action_conf_t *acf)
- {
+    nxt_http_action_conf_t *acf)
+{
     nxt_str_t  str;
 
     nxt_conf_get_string(acf->rewrite, &str);

@@ -42,8 +42,8 @@ struct nxt_tstr_query_s {
     void                *ctx;
     void                *data;
 
-   nxt_work_handler_t  ready;
-   nxt_work_handler_t  error;
+    nxt_work_handler_t  ready;
+    nxt_work_handler_t  error;
 };
 
 
