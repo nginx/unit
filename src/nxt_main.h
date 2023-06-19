@@ -68,6 +68,8 @@ typedef uint16_t                     nxt_port_id_t;
 
 #include <nxt_sprintf.h>
 #include <nxt_parse.h>
+
+typedef struct nxt_tstr_state_s  nxt_tstr_state_t;
 #include <nxt_var.h>
 #include <nxt_tstr.h>
 

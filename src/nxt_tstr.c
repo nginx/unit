@@ -64,8 +64,8 @@ nxt_tstr_state_new(nxt_mp_t *mp, nxt_bool_t test)
     state->pool = mp;
     state->test = test;
 
-    state->var_fields = nxt_array_create(mp, 4, sizeof(nxt_var_field_t));
-    if (nxt_slow_path(state->var_fields == NULL)) {
+    state->var_refs = nxt_array_create(mp, 4, sizeof(nxt_var_ref_t));
+    if (nxt_slow_path(state->var_refs == NULL)) {
         return NULL;
     }
 
@@ -133,8 +133,7 @@ nxt_tstr_compile(nxt_tstr_state_t *state, nxt_str_t *str,
         if (p != NULL) {
             tstr->type = NXT_TSTR_VAR;
 
-            tstr->u.var = nxt_var_compile(&tstr->str, state->pool,
-                                          state->var_fields);
+            tstr->u.var = nxt_var_compile(state, &tstr->str);
             if (nxt_slow_path(tstr->u.var == NULL)) {
                 return NULL;
             }
@@ -168,7 +167,7 @@ nxt_tstr_test(nxt_tstr_state_t *state, nxt_str_t *str, u_char *error)
         p = memchr(str->start, '$', str->length);
 
         if (p != NULL) {
-            return nxt_var_test(str, state->var_fields, error);
+            return nxt_var_test(state, str, error);
         }
     }
 
@@ -263,8 +262,9 @@ nxt_tstr_query(nxt_task_t *task, nxt_tstr_query_t *query, nxt_tstr_t *tstr,
     }
 
     if (tstr->type == NXT_TSTR_VAR) {
-        ret = nxt_var_interpreter(task, &query->cache->var, tstr->u.var, val,
-                                  query->ctx, tstr->flags & NXT_TSTR_LOGGING);
+        ret = nxt_var_interpreter(task, query->state, &query->cache->var,
+                                  tstr->u.var, val, query->ctx,
+                                  tstr->flags & NXT_TSTR_LOGGING);
 
         if (nxt_slow_path(ret != NXT_OK)) {
             query->failed = 1;

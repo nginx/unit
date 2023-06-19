@@ -8,39 +8,39 @@
 
 
 static nxt_int_t nxt_http_var_dollar(nxt_task_t *task, nxt_str_t *str,
-    void *ctx, uint16_t field);
+    void *ctx, void *data);
 static nxt_int_t nxt_http_var_request_time(nxt_task_t *task, nxt_str_t *str,
-    void *ctx, uint16_t field);
+    void *ctx, void *data);
 static nxt_int_t nxt_http_var_method(nxt_task_t *task, nxt_str_t *str,
-    void *ctx, uint16_t field);
+    void *ctx, void *data);
 static nxt_int_t nxt_http_var_request_uri(nxt_task_t *task, nxt_str_t *str,
-    void *ctx, uint16_t field);
+    void *ctx, void *data);
 static nxt_int_t nxt_http_var_uri(nxt_task_t *task, nxt_str_t *str, void *ctx,
-    uint16_t field);
+    void *data);
 static nxt_int_t nxt_http_var_host(nxt_task_t *task, nxt_str_t *str, void *ctx,
-    uint16_t field);
+    void *data);
 static nxt_int_t nxt_http_var_remote_addr(nxt_task_t *task, nxt_str_t *str,
-    void *ctx, uint16_t field);
+    void *ctx, void *data);
 static nxt_int_t nxt_http_var_time_local(nxt_task_t *task, nxt_str_t *str,
-    void *ctx, uint16_t field);
+    void *ctx, void *data);
 static u_char *nxt_http_log_date(u_char *buf, nxt_realtime_t *now,
     struct tm *tm, size_t size, const char *format);
 static nxt_int_t nxt_http_var_request_line(nxt_task_t *task, nxt_str_t *str,
-    void *ctx, uint16_t field);
+    void *ctx, void *data);
 static nxt_int_t nxt_http_var_status(nxt_task_t *task, nxt_str_t *str,
-    void *ctx, uint16_t field);
+    void *ctx, void *data);
 static nxt_int_t nxt_http_var_body_bytes_sent(nxt_task_t *task, nxt_str_t *str,
-    void *ctx, uint16_t field);
+    void *ctx, void *data);
 static nxt_int_t nxt_http_var_referer(nxt_task_t *task, nxt_str_t *str,
-    void *ctx, uint16_t field);
+    void *ctx, void *data);
 static nxt_int_t nxt_http_var_user_agent(nxt_task_t *task, nxt_str_t *str,
-    void *ctx, uint16_t field);
+    void *ctx, void *data);
 static nxt_int_t nxt_http_var_arg(nxt_task_t *task, nxt_str_t *str, void *ctx,
-    uint16_t field);
+    void *data);
 static nxt_int_t nxt_http_var_header(nxt_task_t *task, nxt_str_t *str,
-    void *ctx, uint16_t field);
+    void *ctx, void *data);
 static nxt_int_t nxt_http_var_cookie(nxt_task_t *task, nxt_str_t *str,
-    void *ctx, uint16_t field);
+    void *ctx, void *data);
 
 
 static nxt_var_decl_t  nxt_http_vars[] = {
@@ -96,21 +96,6 @@ static nxt_var_decl_t  nxt_http_vars[] = {
         .name = nxt_string("header_user_agent"),
         .handler = nxt_http_var_user_agent,
         .cacheable = 1,
-    }, {
-        .name = nxt_string("arg"),
-        .handler = nxt_http_var_arg,
-        .field_hash = nxt_http_argument_hash,
-        .cacheable = 1,
-    }, {
-        .name = nxt_string("header"),
-        .handler = nxt_http_var_header,
-        .field_hash = nxt_http_header_hash,
-        .cacheable = 1,
-    }, {
-        .name = nxt_string("cookie"),
-        .handler = nxt_http_var_cookie,
-        .field_hash = nxt_http_cookie_hash,
-        .cacheable = 1,
     },
 };
 
@@ -122,8 +107,76 @@ nxt_http_register_variables(void)
 }
 
 
+nxt_int_t
+nxt_http_unknown_var_ref(nxt_tstr_state_t *state, nxt_var_ref_t *ref,
+    nxt_str_t *name)
+{
+    int64_t    hash;
+    nxt_str_t  str;
+
+    if (nxt_str_start(name, "header_", 7)) {
+        ref->handler = nxt_http_var_header;
+        ref->cacheable = 1;
+
+        str.start = name->start + 7;
+        str.length = name->length - 7;
+
+        if (str.length == 0) {
+            return NXT_ERROR;
+        }
+
+        hash = nxt_http_header_hash(state->pool, &str);
+        if (nxt_slow_path(hash == -1)) {
+            return NXT_ERROR;
+        }
+
+    } else if (nxt_str_start(name, "arg_", 4)) {
+        ref->handler = nxt_http_var_arg;
+        ref->cacheable = 1;
+
+        str.start = name->start + 4;
+        str.length = name->length - 4;
+
+        if (str.length == 0) {
+            return NXT_ERROR;
+        }
+
+        hash = nxt_http_argument_hash(state->pool, &str);
+        if (nxt_slow_path(hash == -1)) {
+            return NXT_ERROR;
+        }
+
+    } else if (nxt_str_start(name, "cookie_", 7)) {
+        ref->handler = nxt_http_var_cookie;
+        ref->cacheable = 1;
+
+        str.start = name->start + 7;
+        str.length = name->length - 7;
+
+        if (str.length == 0) {
+            return NXT_ERROR;
+        }
+
+        hash = nxt_http_cookie_hash(state->pool, &str);
+        if (nxt_slow_path(hash == -1)) {
+            return NXT_ERROR;
+        }
+
+    } else {
+        return NXT_ERROR;
+    }
+
+    ref->data = nxt_var_field_new(state->pool, &str, (uint32_t) hash);
+    if (nxt_slow_path(ref->data == NULL)) {
+        return NXT_ERROR;
+    }
+
+    return NXT_OK;
+}
+
+
 static nxt_int_t
-nxt_http_var_dollar(nxt_task_t *task, nxt_str_t *str, void *ctx, uint16_t field)
+nxt_http_var_dollar(nxt_task_t *task, nxt_str_t *str, void *ctx, void *data)
 {
     nxt_str_set(str, "$");
 
@@ -133,7 +186,7 @@ nxt_http_var_dollar(nxt_task_t *task, nxt_str_t *str, void *ctx, uint16_t field)
 
 static nxt_int_t
 nxt_http_var_request_time(nxt_task_t *task, nxt_str_t *str, void *ctx,
-    uint16_t field)
+    void *data)
 {
     u_char              *p;
     nxt_msec_t          ms;
@@ -160,7 +213,7 @@ nxt_http_var_request_time(nxt_task_t *task, nxt_str_t *str, void *ctx,
 
 
 static nxt_int_t
-nxt_http_var_method(nxt_task_t *task, nxt_str_t *str, void *ctx, uint16_t field)
+nxt_http_var_method(nxt_task_t *task, nxt_str_t *str, void *ctx, void *data)
 {
     nxt_http_request_t  *r;
 
@@ -174,7 +227,7 @@ nxt_http_var_method(nxt_task_t *task, nxt_str_t *str, void *ctx, uint16_t field)
 
 static nxt_int_t
 nxt_http_var_request_uri(nxt_task_t *task, nxt_str_t *str, void *ctx,
-    uint16_t field)
+    void *data)
 {
     nxt_http_request_t  *r;
 
@@ -187,7 +240,7 @@ nxt_http_var_request_uri(nxt_task_t *task, nxt_str_t *str, void *ctx,
 
 
 static nxt_int_t
-nxt_http_var_uri(nxt_task_t *task, nxt_str_t *str, void *ctx, uint16_t field)
+nxt_http_var_uri(nxt_task_t *task, nxt_str_t *str, void *ctx, void *data)
 {
     nxt_http_request_t  *r;
 
@@ -200,7 +253,7 @@ nxt_http_var_uri(nxt_task_t *task, nxt_str_t *str, void *ctx, uint16_t field)
 
 
 static nxt_int_t
-nxt_http_var_host(nxt_task_t *task, nxt_str_t *str, void *ctx, uint16_t field)
+nxt_http_var_host(nxt_task_t *task, nxt_str_t *str, void *ctx, void *data)
 {
     nxt_http_request_t  *r;
 
@@ -214,7 +267,7 @@ nxt_http_var_host(nxt_task_t *task, nxt_str_t *str, void *ctx, uint16_t field)
 
 static nxt_int_t
 nxt_http_var_remote_addr(nxt_task_t *task, nxt_str_t *str, void *ctx,
-    uint16_t field)
+    void *data)
 {
     nxt_http_request_t  *r;
 
@@ -228,8 +281,7 @@ nxt_http_var_remote_addr(nxt_task_t *task, nxt_str_t *str, void *ctx,
 
 
 static nxt_int_t
-nxt_http_var_time_local(nxt_task_t *task, nxt_str_t *str, void *ctx,
-    uint16_t field)
+nxt_http_var_time_local(nxt_task_t *task, nxt_str_t *str, void *ctx, void *data)
 {
     nxt_http_request_t  *r;
 
@@ -287,7 +339,7 @@ nxt_http_log_date(u_char *buf, nxt_realtime_t *now, struct tm *tm,
 
 static nxt_int_t
 nxt_http_var_request_line(nxt_task_t *task, nxt_str_t *str, void *ctx,
-    uint16_t field)
+    void *data)
 {
     nxt_http_request_t  *r;
 
@@ -301,7 +353,7 @@ nxt_http_var_request_line(nxt_task_t *task, nxt_str_t *str, void *ctx,
 
 static nxt_int_t
 nxt_http_var_body_bytes_sent(nxt_task_t *task, nxt_str_t *str, void *ctx,
-    uint16_t field)
+    void *data)
 {
     nxt_off_t           bytes;
     nxt_http_request_t  *r;
@@ -323,7 +375,7 @@ nxt_http_var_body_bytes_sent(nxt_task_t *task, nxt_str_t *str, void *ctx,
 
 
 static nxt_int_t
-nxt_http_var_status(nxt_task_t *task, nxt_str_t *str, void *ctx, uint16_t field)
+nxt_http_var_status(nxt_task_t *task, nxt_str_t *str, void *ctx, void *data)
 {
     nxt_http_request_t  *r;
 
@@ -342,8 +394,7 @@ nxt_http_var_status(nxt_task_t *task, nxt_str_t *str, void *ctx, uint16_t field)
 
 
 static nxt_int_t
-nxt_http_var_referer(nxt_task_t *task, nxt_str_t *str, void *ctx,
-    uint16_t field)
+nxt_http_var_referer(nxt_task_t *task, nxt_str_t *str, void *ctx, void *data)
 {
     nxt_http_request_t  *r;
 
@@ -362,8 +413,7 @@ nxt_http_var_referer(nxt_task_t *task, nxt_str_t *str, void *ctx,
 
 
 static nxt_int_t
-nxt_http_var_user_agent(nxt_task_t *task, nxt_str_t *str, void *ctx,
-    uint16_t field)
+nxt_http_var_user_agent(nxt_task_t *task, nxt_str_t *str, void *ctx, void *data)
 {
     nxt_http_request_t  *r;
 
@@ -382,19 +432,15 @@ nxt_http_var_user_agent(nxt_task_t *task, nxt_str_t *str, void *ctx,
 
 
 static nxt_int_t
-nxt_http_var_arg(nxt_task_t *task, nxt_str_t *str, void *ctx, uint16_t field)
+nxt_http_var_arg(nxt_task_t *task, nxt_str_t *str, void *ctx, void *data)
 {
     nxt_array_t            *args;
     nxt_var_field_t        *vf;
-    nxt_router_conf_t      *rtcf;
     nxt_http_request_t     *r;
     nxt_http_name_value_t  *nv, *start;
 
     r = ctx;
-
-    rtcf = r->conf->socket_conf->router_conf;
-
-    vf = nxt_var_field_get(rtcf->tstr_state->var_fields, field);
+    vf = data;
 
     args = nxt_http_arguments_parse(r);
     if (nxt_slow_path(args == NULL)) {
@@ -426,18 +472,14 @@ nxt_http_var_arg(nxt_task_t *task, nxt_str_t *str, void *ctx, uint16_t field)
 
 
 static nxt_int_t
-nxt_http_var_header(nxt_task_t *task, nxt_str_t *str, void *ctx, uint16_t field)
+nxt_http_var_header(nxt_task_t *task, nxt_str_t *str, void *ctx, void *data)
 {
     nxt_var_field_t     *vf;
     nxt_http_field_t    *f;
-    nxt_router_conf_t   *rtcf;
     nxt_http_request_t  *r;
 
     r = ctx;
-
-    rtcf = r->conf->socket_conf->router_conf;
-
-    vf = nxt_var_field_get(rtcf->tstr_state->var_fields, field);
+    vf = data;
 
     nxt_list_each(f, r->fields) {
 
@@ -460,19 +502,15 @@ nxt_http_var_header(nxt_task_t *task, nxt_str_t *str, void *ctx, uint16_t field)
 
 
 static nxt_int_t
-nxt_http_var_cookie(nxt_task_t *task, nxt_str_t *str, void *ctx, uint16_t field)
+nxt_http_var_cookie(nxt_task_t *task, nxt_str_t *str, void *ctx, void *data)
 {
     nxt_array_t            *cookies;
     nxt_var_field_t        *vf;
-    nxt_router_conf_t      *rtcf;
     nxt_http_request_t     *r;
     nxt_http_name_value_t  *nv, *end;
 
     r = ctx;
-
-    rtcf = r->conf->socket_conf->router_conf;
-
-    vf = nxt_var_field_get(rtcf->tstr_state->var_fields, field);
+    vf = data;
 
     cookies = nxt_http_cookies_parse(r);
     if (nxt_slow_path(cookies == NULL)) {
