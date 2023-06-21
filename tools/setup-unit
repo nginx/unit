@@ -77,6 +77,7 @@ SYNOPSIS
     Subcommands
         ├── cmd          [-h]
         ├── ctl          [-h] [-s SOCK] SUBCOMMAND [ARGS]
+        │   ├── edit     [-h] PATH
         │   ├── http     [-h] [-c CURLOPT] METHOD PATH
         │   └── insert   [-h] PATH INDEX
         ├── freeport     [-h]
@@ -208,6 +209,7 @@ SYNOPSIS
         $0 ctl [-h] [-s SOCK] SUBCOMMAND [ARGS]
 
     Subcommands
+        ├── edit    [-h] PATH
         ├── http    [-h] [-c CURLOPT] METHOD PATH
         └── insert  [-h] PATH INDEX
 
@@ -218,6 +220,8 @@ DESCRIPTION
         subcommand.
 
 SUBCOMMANDS
+        edit    Edit the unitd(8) configuration with an editor.
+
         http    Send an HTTP request to the control API socket.
 
         insert  Insert an element at the specified index into an array in the
@@ -298,6 +302,10 @@ unit_ctl()
     fi;
 
     case $1 in
+    edit)
+        shift;
+        unit_ctl_edit ${remote:+ ---r $remote} ---s "$sock" $@;
+        ;;
     http)
         shift;
         unit_ctl_http ${remote:+ ---r $remote} ---s "$sock" $@;
@@ -310,6 +318,110 @@ unit_ctl()
         err "ctl: $1: Unknown argument.";
         ;;
     esac;
+}
+
+
+help_unit_ctl_edit()
+{
+    cat <<__EOF__ ;
+SYNOPSIS
+        $0 ctl [CTL-OPTS] edit [-h] PATH
+
+DESCRIPTION
+        Edit the JSON configuration with an editor.  The current configuration
+        is downloaded into a temporary file, open with the editor, and then
+        sent back to the control API socket.
+
+        The following editors are tried in this order of preference: \$VISUAL,
+        \$EDITOR, editor(1), vi(1), vim(1), ed(1).
+
+
+OPTIONS
+        -h, --help
+                Print this help.
+
+ENVIRONMENT
+        VISUAL
+        EDITOR
+                See environ(7).
+
+SEE ALSO
+        $0 ctl http -h;
+
+        update-alternatives(1)
+
+__EOF__
+}
+
+
+unit_ctl_edit()
+{
+    while test $# -ge 1; do
+        case "$1" in
+        -h | --help)
+            help_unit_ctl_edit;
+            exit 0;
+            ;;
+        ---r | ----remote)
+            local remote="$2";
+            shift;
+            ;;
+        ---s | ----sock)
+            local sock="$2";
+            shift;
+            ;;
+        -*)
+            err "ctl: edit: $1: Unknown option.";
+            ;;
+        *)
+            break;
+            ;;
+        esac;
+        shift;
+    done;
+
+    if ! test $# -ge 1; then
+        err 'ctl: insert: PATH: Missing argument.';
+    fi;
+    local req_path="$1";
+
+    if test -v remote; then
+        local remote_sock="$(echo "$sock" | unit_sock_filter -s)";
+        local local_sock="$(mktemp -u -p /var/run/unit/)";
+        local ssh_ctrl="$(mktemp -u -p /var/run/unit/)";
+
+        mkdir -p /var/run/unit/;
+
+        ssh -fMNnT -S "$ssh_ctrl" \
+                   -o 'ExitOnForwardFailure yes' \
+                   -L "$local_sock:$remote_sock" "$remote";
+
+        sock="unix:$local_sock";
+    fi;
+
+    local tmp="$(mktemp ||:)";
+
+    unit_ctl_http ---s "$sock" -c --no-progress-meter GET "$req_path" \
+            </dev/null >"$tmp" \
+    ||:;
+
+    $(
+        ((test -v VISUAL && test -n "$VISUAL") && printf '%s\n' "$VISUAL") \
+        || ((test -v EDITOR && test -n "$EDITOR") && printf '%s\n' "$EDITOR") \
+        || command -v editor \
+        || command -v vi \
+        || command -v vim \
+        || echo ed;
+    ) "$tmp" \
+    ||:;
+
+    unit_ctl_http ---s "$sock" PUT "$req_path" <"$tmp" \
+    ||:;
+
+    if test -v remote; then
+        ssh -S "$ssh_ctrl" -O exit "$remote" 2>/dev/null;
+        unlink "$local_sock";
+    fi;
 }
 
 
