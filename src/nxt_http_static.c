@@ -317,7 +317,6 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
     nxt_router_conf_t       *rtcf;
     nxt_http_action_t       *action;
     nxt_http_request_t      *r;
-    nxt_work_handler_t      body_handler;
     nxt_http_static_ctx_t   *ctx;
     nxt_http_static_conf_t  *conf;
 
@@ -584,11 +583,11 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
 
             r->out = fb;
 
-            body_handler = &nxt_http_static_body_handler;
+            r->body_handler = &nxt_http_static_body_handler;
 
         } else {
             nxt_file_close(task, f);
-            body_handler = NULL;
+            r->body_handler = NULL;
         }
 
     } else {
@@ -646,10 +645,10 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
             nxt_memcpy(p, r->args->start, r->args->length);
         }
 
-        body_handler = NULL;
+        r->body_handler = NULL;
     }
 
-    nxt_http_request_header_send(task, r, body_handler, NULL);
+    nxt_http_request_header_send(task, r);
 
     r->state = &nxt_http_static_send_state;
     return;

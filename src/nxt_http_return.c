@@ -206,7 +206,7 @@ nxt_http_return_send_ready(nxt_task_t *task, void *obj, void *data)
 
     r->state = &nxt_http_return_send_state;
 
-    nxt_http_request_header_send(task, r, NULL, NULL);
+    nxt_http_request_header_send(task, r);
 
     return;
 

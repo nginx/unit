@@ -45,8 +45,7 @@ static void nxt_h1p_request_body_read(nxt_task_t *task, nxt_http_request_t *r);
 static void nxt_h1p_conn_request_body_read(nxt_task_t *task, void *obj,
     void *data);
 static void nxt_h1p_request_local_addr(nxt_task_t *task, nxt_http_request_t *r);
-static void nxt_h1p_request_header_send(nxt_task_t *task,
-    nxt_http_request_t *r, nxt_work_handler_t body_handler, void *data);
+static void nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r);
 static void nxt_h1p_request_send(nxt_task_t *task, nxt_http_request_t *r,
     nxt_buf_t *out);
 static nxt_buf_t *nxt_h1p_chunk_create(nxt_task_t *task, nxt_http_request_t *r,
@@ -1204,8 +1203,7 @@ static const nxt_str_t  nxt_http_server_error[] = {
 #define UNKNOWN_STATUS_LENGTH  nxt_length("HTTP/1.1 999 \r\n")
 
 static void
-nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r,
-    nxt_work_handler_t body_handler, void *data)
+nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r)
 {
     u_char              *p;
     size_t              size;
@@ -1291,7 +1289,7 @@ nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r,
             if (http11) {
                 if (n != NXT_HTTP_NOT_MODIFIED
                     && n != NXT_HTTP_NO_CONTENT
-                    && body_handler != NULL
+                    && r->body_handler != NULL
                     && !h1p->websocket)
                 {
                     h1p->chunked = 1;
@@ -1379,14 +1377,14 @@ nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r,
     h1p->conn_write_tail = &header->next;
     c->write_state = &nxt_h1p_request_send_state;
 
-    if (body_handler != NULL) {
+    if (r->body_handler != NULL) {
         /*
          * The body handler will run before c->io->write() handler,
          * because the latter was inqueued by nxt_conn_write()
          * in engine->write_work_queue.
          */
         nxt_work_queue_add(&task->thread->engine->fast_work_queue,
-                           body_handler, task, r, data);
+                           r->body_handler, task, r, r->body_handler_data);
 
     } else {
         header->next = nxt_http_buf_last(r);

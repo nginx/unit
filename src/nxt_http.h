@@ -140,6 +140,9 @@ struct nxt_http_request_s {
     nxt_buf_t                       *out;
     const nxt_http_request_state_t  *state;
 
+    nxt_work_handler_t              body_handler;
+    void                            *body_handler_data;
+
     nxt_nsec_t                      start_time;
 
     nxt_str_t                       host;
@@ -265,8 +268,7 @@ struct nxt_http_action_s {
 typedef struct {
     void (*body_read)(nxt_task_t *task, nxt_http_request_t *r);
     void (*local_addr)(nxt_task_t *task, nxt_http_request_t *r);
-    void (*header_send)(nxt_task_t *task, nxt_http_request_t *r,
-        nxt_work_handler_t body_handler, void *data);
+    void (*header_send)(nxt_task_t *task, nxt_http_request_t *r);
     void (*send)(nxt_task_t *task, nxt_http_request_t *r, nxt_buf_t *out);
     nxt_off_t (*body_bytes_sent)(nxt_task_t *task, nxt_http_proto_t proto);
     void (*discard)(nxt_task_t *task, nxt_http_request_t *r, nxt_buf_t *last);
@@ -326,8 +328,7 @@ nxt_http_request_t *nxt_http_request_create(nxt_task_t *task);
 void nxt_http_request_error(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_status_t status);
 void nxt_http_request_read_body(nxt_task_t *task, nxt_http_request_t *r);
-void nxt_http_request_header_send(nxt_task_t *task, nxt_http_request_t *r,
-    nxt_work_handler_t body_handler, void *data);
+void nxt_http_request_header_send(nxt_task_t *task, nxt_http_request_t *r);
 void nxt_http_request_ws_frame_start(nxt_task_t *task, nxt_http_request_t *r,
     nxt_buf_t *ws_frame);
 void nxt_http_request_send(nxt_task_t *task, nxt_http_request_t *r,
