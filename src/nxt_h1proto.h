@@ -51,4 +51,7 @@ struct nxt_h1proto_s {
     nxt_conn_t                *conn;
 };
 
+#define nxt_h1p_is_http11(h1p)                                              \
+    ((h1p)->parser.version.s.minor != '0')
+
 #endif  /* _NXT_H1PROTO_H_INCLUDED_ */

@@ -38,6 +38,12 @@ njs updated to 0.8.0.
 </para>
 </change>
 
+<change type="feature">
+<para>
+ability to get the HTTP response header variables.
+</para>
+</change>
+
 <change type="bugfix">
 <para>
 ensure that $uri variable is not cached.

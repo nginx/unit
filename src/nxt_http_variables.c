@@ -5,6 +5,7 @@
 
 #include <nxt_router.h>
 #include <nxt_http.h>
+#include <nxt_h1proto.h>
 
 
 static nxt_int_t nxt_http_var_dollar(nxt_task_t *task, nxt_str_t *str,
@@ -35,11 +36,19 @@ static nxt_int_t nxt_http_var_referer(nxt_task_t *task, nxt_str_t *str,
     void *ctx, void *data);
 static nxt_int_t nxt_http_var_user_agent(nxt_task_t *task, nxt_str_t *str,
     void *ctx, void *data);
+static nxt_int_t nxt_http_var_response_connection(nxt_task_t *task,
+    nxt_str_t *str, void *ctx, void *data);
+static nxt_int_t nxt_http_var_response_content_length(nxt_task_t *task,
+    nxt_str_t *str, void *ctx, void *data);
+static nxt_int_t nxt_http_var_response_transfer_encoding(nxt_task_t *task,
+    nxt_str_t *str, void *ctx, void *data);
 static nxt_int_t nxt_http_var_arg(nxt_task_t *task, nxt_str_t *str, void *ctx,
     void *data);
 static nxt_int_t nxt_http_var_header(nxt_task_t *task, nxt_str_t *str,
     void *ctx, void *data);
 static nxt_int_t nxt_http_var_cookie(nxt_task_t *task, nxt_str_t *str,
+    void *ctx, void *data);
+static nxt_int_t nxt_http_var_response_header(nxt_task_t *task, nxt_str_t *str,
     void *ctx, void *data);
 
 
@@ -93,6 +102,18 @@ static nxt_var_decl_t  nxt_http_vars[] = {
         .handler = nxt_http_var_referer,
         .cacheable = 1,
     }, {
+        .name = nxt_string("response_header_connection"),
+        .handler = nxt_http_var_response_connection,
+        .cacheable = 1,
+    }, {
+        .name = nxt_string("response_header_content_length"),
+        .handler = nxt_http_var_response_content_length,
+        .cacheable = 1,
+    }, {
+        .name = nxt_string("response_header_transfer_encoding"),
+        .handler = nxt_http_var_response_transfer_encoding,
+        .cacheable = 1,
+    }, {
         .name = nxt_string("header_user_agent"),
         .handler = nxt_http_var_user_agent,
         .cacheable = 1,
@@ -112,7 +133,30 @@ nxt_http_unknown_var_ref(nxt_tstr_state_t *state, nxt_var_ref_t *ref,
     nxt_str_t *name)
 {
     int64_t    hash;
-    nxt_str_t  str;
+    nxt_str_t  str, *lower;
+
+    if (nxt_str_start(name, "response_header_", 16)) {
+        ref->handler = nxt_http_var_response_header;
+        ref->cacheable = 1;
+
+        str.start = name->start + 16;
+        str.length = name->length - 16;
+
+        if (str.length == 0) {
+            return NXT_ERROR;
+        }
+
+        lower = nxt_str_alloc(state->pool, str.length);
+        if (nxt_slow_path(lower == NULL)) {
+            return NXT_ERROR;
+        }
+
+        nxt_memcpy_lowcase(lower->start, str.start, str.length);
+
+        ref->data = lower;
+
+        return NXT_OK;
+    }
 
     if (nxt_str_start(name, "header_", 7)) {
         ref->handler = nxt_http_var_header;
@@ -355,6 +399,7 @@ static nxt_int_t
 nxt_http_var_body_bytes_sent(nxt_task_t *task, nxt_str_t *str, void *ctx,
     void *data)
 {
+    u_char              *p;
     nxt_off_t           bytes;
     nxt_http_request_t  *r;
 
@@ -367,8 +412,9 @@ nxt_http_var_body_bytes_sent(nxt_task_t *task, nxt_str_t *str, void *ctx,
 
     bytes = nxt_http_proto[r->protocol].body_bytes_sent(task, r->proto);
 
-    str->length = nxt_sprintf(str->start, str->start + NXT_OFF_T_LEN, "%O",
-                              bytes) - str->start;
+    p = nxt_sprintf(str->start, str->start + NXT_OFF_T_LEN, "%O", bytes);
+
+    str->length = p - str->start;
 
     return NXT_OK;
 }
@@ -377,6 +423,7 @@ nxt_http_var_body_bytes_sent(nxt_task_t *task, nxt_str_t *str, void *ctx,
 static nxt_int_t
 nxt_http_var_status(nxt_task_t *task, nxt_str_t *str, void *ctx, void *data)
 {
+    u_char              *p;
     nxt_http_request_t  *r;
 
     r = ctx;
@@ -386,8 +433,9 @@ nxt_http_var_status(nxt_task_t *task, nxt_str_t *str, void *ctx, void *data)
         return NXT_ERROR;
     }
 
-    str->length = nxt_sprintf(str->start, str->start + 3, "%03d", r->status)
-                  - str->start;
+    p = nxt_sprintf(str->start, str->start + 3, "%03d", r->status);
+
+    str->length = p - str->start;
 
     return NXT_OK;
 }
@@ -422,6 +470,103 @@ nxt_http_var_user_agent(nxt_task_t *task, nxt_str_t *str, void *ctx, void *data)
     if (r->user_agent != NULL) {
         str->start = r->user_agent->value;
         str->length = r->user_agent->value_length;
+
+    } else {
+        nxt_str_null(str);
+    }
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_http_var_response_connection(nxt_task_t *task, nxt_str_t *str, void *ctx,
+    void *data)
+{
+    nxt_int_t           conn;
+    nxt_bool_t          http11;
+    nxt_h1proto_t       *h1p;
+    nxt_http_request_t  *r;
+
+    static const nxt_str_t  connection[3] = {
+        nxt_string("close"),
+        nxt_string("keep-alive"),
+        nxt_string("Upgrade"),
+    };
+
+    r = ctx;
+    h1p = r->proto.h1;
+
+    conn = -1;
+
+    if (r->websocket_handshake && r->status == NXT_HTTP_SWITCHING_PROTOCOLS) {
+        conn = 2;
+
+    } else {
+        http11 = nxt_h1p_is_http11(h1p);
+
+        if (http11 ^ h1p->keepalive) {
+            conn = h1p->keepalive;
+        }
+    }
+
+    if (conn >= 0) {
+        *str = connection[conn];
+
+    } else {
+        nxt_str_null(str);
+    }
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_http_var_response_content_length(nxt_task_t *task, nxt_str_t *str,
+    void *ctx, void *data)
+{
+    u_char              *p;
+    nxt_http_request_t  *r;
+
+    r = ctx;
+
+    if (r->resp.content_length != NULL) {
+        str->length = r->resp.content_length->value_length;
+        str->start = r->resp.content_length->value;
+
+        return NXT_OK;
+    }
+
+    if (r->resp.content_length_n >= 0) {
+        str->start = nxt_mp_nget(r->mem_pool, NXT_OFF_T_LEN);
+        if (str->start == NULL) {
+            return NXT_ERROR;
+        }
+
+        p = nxt_sprintf(str->start, str->start + NXT_OFF_T_LEN,
+                        "%O", r->resp.content_length_n);
+
+        str->length = p - str->start;
+
+        return NXT_OK;
+    }
+
+    nxt_str_null(str);
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_http_var_response_transfer_encoding(nxt_task_t *task, nxt_str_t *str,
+    void *ctx, void *data)
+{
+    nxt_http_request_t  *r;
+
+    r = ctx;
+
+    if (r->proto.h1->chunked) {
+        nxt_str_set(str, "chunked");
 
     } else {
         nxt_str_null(str);
@@ -534,6 +679,68 @@ nxt_http_var_cookie(nxt_task_t *task, nxt_str_t *str, void *ctx, void *data)
 
         nv++;
     }
+
+    nxt_str_null(str);
+
+    return NXT_OK;
+}
+
+
+static int
+nxt_http_field_name_cmp(nxt_str_t *name, nxt_http_field_t *field)
+{
+    size_t  i;
+    u_char  c1, c2;
+
+    if (name->length != field->name_length) {
+        return 1;
+    }
+
+    for (i = 0; i < name->length; i++) {
+        c1 = name->start[i];
+        c2 = field->name[i];
+
+        if (c2 >= 'A' && c2 <= 'Z') {
+            c2 |= 0x20;
+
+        } else if (c2 == '-') {
+            c2 = '_';
+        }
+
+        if (c1 != c2) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+
+static nxt_int_t
+nxt_http_var_response_header(nxt_task_t *task, nxt_str_t *str, void *ctx,
+    void *data)
+{
+    nxt_str_t           *name;
+    nxt_http_field_t    *f;
+    nxt_http_request_t  *r;
+
+    r = ctx;
+    name = data;
+
+    nxt_list_each(f, r->resp.fields) {
+
+        if (f->skip) {
+            continue;
+        }
+
+        if (nxt_http_field_name_cmp(name, f) == 0) {
+            str->start = f->value;
+            str->length = f->value_length;
+
+            return NXT_OK;
+        }
+
+    } nxt_list_loop;
 
     nxt_str_null(str);
 
