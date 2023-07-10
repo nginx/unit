@@ -73,6 +73,10 @@ def connect(ctx=None, session=None):
     )
 
 
+@pytest.mark.skipif(
+    not hasattr(_lib, 'SSL_session_reused'),
+    reason='session reuse is not supported',
+)
 def test_tls_session():
     _, sess, ctx, reused = connect()
     assert not reused, 'new connection'
@@ -110,6 +114,10 @@ def test_tls_session():
     assert False not in [c[-1] for c in conns_again], 'cache big reuse'
 
 
+@pytest.mark.skipif(
+    not hasattr(_lib, 'SSL_session_reused'),
+    reason='session reuse is not supported',
+)
 def test_tls_session_timeout():
     assert 'success' in add_session(cache_size=5, timeout=1)
 
