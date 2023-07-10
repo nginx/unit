@@ -446,7 +446,9 @@ def _clear_temp_dir():
                         shutil.rmtree(path)
                         break
                     except OSError as err:
-                        if err.errno != 16:
+                        # OSError: [Errno 16] Device or resource busy
+                        # OSError: [Errno 39] Directory not empty
+                        if err.errno not in [16, 39]:
                             raise
                         time.sleep(1)
 
