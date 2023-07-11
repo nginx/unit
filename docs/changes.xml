@@ -32,6 +32,12 @@ NGINX Unit updated to 1.31.0.
          date="" time=""
          packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
 
+<change type="change">
+<para>
+njs updated to 0.8.0.
+</para>
+</change>
+
 <change type="bugfix">
 <para>
 ensure that $uri variable is not cached.
