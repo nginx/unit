@@ -25,6 +25,10 @@ nxt_feature_incs="$NXT_NJS_CFLAGS $NXT_NJS_AUX_CFLAGS"
 nxt_feature_libs="$NXT_NJS_LIBS $NXT_NJS_AUX_LIBS"
 nxt_feature_test="#include <njs.h>
 
+                  #if NJS_VERSION_NUMBER < 0x000800
+                  # error NJS < 0.8.0 is not supported.
+                  #endif
+
                   int main(void) {
                       njs_vm_t      *vm;
                       njs_vm_opt_t  opts;
@@ -40,7 +44,7 @@ nxt_feature_test="#include <njs.h>
 
 if [ $nxt_found = no ]; then
     $echo
-    $echo $0: error: no NJS library found.
+    $echo $0: error: no NJS library \>= 0.8.0 found.
     $echo
     exit 1;
 fi
