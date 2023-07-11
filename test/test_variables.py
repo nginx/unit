@@ -5,9 +5,11 @@ import time
 
 import pytest
 from unit.applications.proto import ApplicationProto
+from unit.applications.lang.python import ApplicationPython
 from unit.option import option
 
 client = ApplicationProto()
+client_python = ApplicationPython()
 
 
 @pytest.fixture(autouse=True)
@@ -398,6 +400,97 @@ def test_variables_dynamic_cookies(search_in_file, wait_for_record):
 
     check_no_cookie('fOo_bar=0')
     check_no_cookie('foo_bar=')
+
+
+def test_variables_response_header(temp_dir, wait_for_record):
+    # If response has two headers with the same name then first value
+    # will be stored in variable.
+    # $response_header_transfer_encoding value can be 'chunked' or null only.
+
+    # return
+
+    set_format(
+        'return@$response_header_server@$response_header_date@'
+        '$response_header_content_length@$response_header_connection'
+    )
+
+    assert client.get()['status'] == 200
+    assert (
+        wait_for_record(r'return@Unit/.*@.*GMT@0@close', 'access.log')
+        is not None
+    )
+
+    # share
+
+    Path(f'{temp_dir}/foo').mkdir()
+    Path(f'{temp_dir}/foo/index.html').write_text('index')
+
+    assert 'success' in client.conf(
+        {
+            "listeners": {"*:7080": {"pass": "routes"}},
+            "routes": [
+                {
+                    "action": {
+                        "share": f'{temp_dir}$uri',
+                    }
+                }
+            ],
+        }
+    )
+
+    set_format(
+        'share@$response_header_last_modified@$response_header_etag@'
+        '$response_header_content_type@$response_header_server@'
+        '$response_header_date@$response_header_content_length@'
+        '$response_header_connection'
+    )
+
+    assert client.get(url='/foo/index.html')['status'] == 200
+    assert (
+        wait_for_record(
+            r'share@.*GMT@".*"@text/html@Unit/.*@.*GMT@5@close', 'access.log'
+        )
+        is not None
+    )
+
+    # redirect
+
+    set_format(
+        'redirect@$response_header_location@$response_header_server@'
+        '$response_header_date@$response_header_content_length@'
+        '$response_header_connection'
+    )
+
+    assert client.get(url='/foo')['status'] == 301
+    assert (
+        wait_for_record(r'redirect@/foo/@Unit/.*@.*GMT@0@close', 'access.log')
+        is not None
+    )
+
+    # error
+
+    set_format(
+        'error@$response_header_content_type@$response_header_server@'
+        '$response_header_date@$response_header_content_length@'
+        '$response_header_connection'
+    )
+
+    assert client.get(url='/blah')['status'] == 404
+    assert (
+        wait_for_record(r'error@text/html@Unit/.*@.*GMT@54@close', 'access.log')
+        is not None
+    )
+
+
+def test_variables_response_header_application(require, wait_for_record):
+    require({'modules': {'python': 'any'}})
+
+    client_python.load('chunked')
+
+    set_format('$uri@$response_header_transfer_encoding')
+
+    assert client_python.get(url='/1')['status'] == 200
+    assert wait_for_record(r'/1@chunked', 'access.log') is not None
 
 
 def test_variables_invalid(temp_dir):
