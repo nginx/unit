@@ -407,13 +407,12 @@ nxt_js_call(nxt_task_t *task, nxt_js_conf_t *jcf, nxt_js_cache_t *cache,
             return NXT_ERROR;
         }
 
-        ret = njs_vm_start(vm, njs_value_arg(&retval));
+        cache->vm = vm;
+
+        ret = njs_vm_start(vm, &cache->array);
         if (ret != NJS_OK) {
             return NXT_ERROR;
         }
-
-        cache->vm = vm;
-        cache->array = *njs_value_arg(&retval);
     }
 
     value = njs_vm_array_prop(vm, &cache->array, js->index, &opaque_value);
