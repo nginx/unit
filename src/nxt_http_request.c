@@ -7,6 +7,8 @@
 #include <nxt_router.h>
 #include <nxt_http.h>
 
+#include "nxt_http_filter.h"
+
 
 static nxt_int_t nxt_http_validate_host(nxt_str_t *host, nxt_mp_t *mp);
 static void nxt_http_request_start(nxt_task_t *task, void *obj, void *data);
@@ -259,6 +261,11 @@ nxt_http_request_create(nxt_task_t *task)
 
     r->resp.fields = nxt_list_create(mp, 8, sizeof(nxt_http_field_t));
     if (nxt_slow_path(r->resp.fields == NULL)) {
+        goto fail;
+    }
+
+    r->response_filters = nxt_list_create(mp, 1, sizeof(nxt_http_filter_handler_t));
+    if (nxt_slow_path(r->response_filters == NULL)) {
         goto fail;
     }
 
@@ -723,6 +730,12 @@ nxt_http_request_ws_frame_start(nxt_task_t *task, nxt_http_request_t *r,
 void
 nxt_http_request_send(nxt_task_t *task, nxt_http_request_t *r, nxt_buf_t *out)
 {
+    nxt_http_filter_handler_t  *filter;
+
+    nxt_list_each(filter, r->response_filters) {
+        filter->filter_handler(task, &out, filter->data);
+    } nxt_list_loop;
+
     if (nxt_fast_path(r->proto.any != NULL)) {
         nxt_http_proto[r->protocol].send(task, r, out);
     }

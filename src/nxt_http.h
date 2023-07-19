@@ -142,6 +142,7 @@ struct nxt_http_request_s {
 
     nxt_work_handler_t              body_handler;
     void                            *body_handler_data;
+    nxt_list_t                      *response_filters;
 
     nxt_nsec_t                      start_time;
 
@@ -438,5 +439,6 @@ void nxt_h1p_complete_buffers(nxt_task_t *task, nxt_h1proto_t *h1p,
 nxt_msec_t nxt_h1p_conn_request_timer_value(nxt_conn_t *c, uintptr_t data);
 
 extern const nxt_conn_state_t  nxt_h1p_idle_close_state;
+
 
 #endif  /* _NXT_HTTP_H_INCLUDED_ */
