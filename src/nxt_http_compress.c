@@ -14,6 +14,7 @@
 #include "nxt_conf.h"
 #include "nxt_errno.h"
 #include "nxt_http.h"
+#include "nxt_http_compress_gzip.h"
 #include "nxt_list.h"
 #include "nxt_main.h"
 #include "nxt_mp.h"
@@ -52,7 +53,8 @@ nxt_http_compress_init(nxt_router_conf_t *rtcf, nxt_http_action_t *action,
         return NXT_ERROR;
     }
 
-    if (0) {
+    if (nxt_str_eq(&conf->encoding, "gzip", strlen("gzip"))) {
+        conf->handler = nxt_http_compress_gzip;
 
     } else {
         return NXT_ERROR;
