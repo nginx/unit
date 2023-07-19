@@ -10,6 +10,9 @@
 #include <nxt_regex.h>
 
 
+typedef struct nxt_http_compress_conf_s   nxt_http_compress_conf_t;
+
+
 typedef enum {
     NXT_HTTP_UNSET = -1,
     NXT_HTTP_INVALID = 0,
@@ -233,6 +236,7 @@ typedef struct nxt_http_route_addr_rule_s  nxt_http_route_addr_rule_t;
 typedef struct {
     nxt_conf_value_t                *rewrite;
     nxt_conf_value_t                *set_headers;
+    nxt_conf_value_t                *compress;
     nxt_conf_value_t                *pass;
     nxt_conf_value_t                *ret;
     nxt_conf_value_t                *location;
@@ -262,6 +266,7 @@ struct nxt_http_action_s {
 
     nxt_tstr_t                      *rewrite;
     nxt_array_t                     *set_headers;  /* of nxt_http_field_t */
+    nxt_http_compress_conf_t        *compress;
     nxt_http_action_t               *fallback;
 };
 

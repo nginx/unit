@@ -254,6 +254,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_php_options_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_php_target_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_wasm_access_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[];
+static nxt_conf_vldt_object_t  nxt_conf_vldt_compress_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_app_limits_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_app_processes_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_app_isolation_members[];
@@ -696,6 +697,11 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_action_common_members[] = {
         .type       = NXT_CONF_VLDT_OBJECT,
         .validator  = nxt_conf_vldt_object_iterator,
         .u.object   = nxt_conf_vldt_response_header,
+    },
+    {
+        .name       = nxt_string("compress"),
+        .type       = NXT_CONF_VLDT_OBJECT,
+        .u.members  = nxt_conf_vldt_compress_members,
     },
 
     NXT_CONF_VLDT_END
@@ -1141,6 +1147,16 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[] = {
         .type       = NXT_CONF_VLDT_STRING,
     }, {
         .name       = nxt_string("stderr"),
+        .type       = NXT_CONF_VLDT_STRING,
+    },
+
+    NXT_CONF_VLDT_END
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_compress_members[] = {
+    {
+        .name       = nxt_string("encoding"),
         .type       = NXT_CONF_VLDT_STRING,
     },
 

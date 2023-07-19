@@ -7,6 +7,7 @@
 #include <nxt_router.h>
 #include <nxt_http.h>
 
+#include "nxt_http_compress.h"
 #include "nxt_http_filter.h"
 
 
@@ -635,10 +636,19 @@ nxt_http_request_read_body(nxt_task_t *task, nxt_http_request_t *r)
 void
 nxt_http_request_header_send(nxt_task_t *task, nxt_http_request_t *r)
 {
-    u_char             *p, *end, *server_string;
-    nxt_int_t          ret;
-    nxt_http_field_t   *server, *date, *content_length;
-    nxt_socket_conf_t  *skcf;
+    u_char                    *p, *end, *server_string;
+    nxt_int_t                 ret;
+    nxt_http_field_t          *server, *date, *content_length;
+    nxt_socket_conf_t         *skcf;
+    nxt_http_compress_conf_t  *compress;
+
+    compress = r->action->compress;
+    if (compress != NULL) {
+        ret = compress->handler(task, r, compress);
+        if (nxt_slow_path(ret == NXT_ERROR)) {
+            goto fail;
+        }
+    }
 
     ret = nxt_http_set_headers(r);
     if (nxt_slow_path(ret != NXT_OK)) {

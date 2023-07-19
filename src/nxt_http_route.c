@@ -9,6 +9,7 @@
 #include <nxt_sockaddr.h>
 #include <nxt_http_route_addr.h>
 #include <nxt_regex.h>
+#include "nxt_http_compress.h"
 
 
 typedef enum {
@@ -589,6 +590,11 @@ static nxt_conf_map_t  nxt_http_route_action_conf[] = {
         offsetof(nxt_http_action_conf_t, set_headers)
     },
     {
+        nxt_string("compress"),
+        NXT_CONF_MAP_PTR,
+        offsetof(nxt_http_action_conf_t, compress)
+    },
+    {
         nxt_string("pass"),
         NXT_CONF_MAP_PTR,
         offsetof(nxt_http_action_conf_t, pass)
@@ -678,6 +684,13 @@ nxt_http_action_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
     if (acf.set_headers != NULL) {
         ret = nxt_http_set_headers_init(rtcf, action, &acf);
+        if (nxt_slow_path(ret != NXT_OK)) {
+            return ret;
+        }
+    }
+
+    if (acf.compress != NULL) {
+        ret = nxt_http_compress_init(rtcf, action, &acf);
         if (nxt_slow_path(ret != NXT_OK)) {
             return ret;
         }

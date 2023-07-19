@@ -87,6 +87,7 @@ NXT_LIB_SRCS=" \
     src/nxt_router_access_log.c \
     src/nxt_h1proto.c \
     src/nxt_status.c \
+    src/nxt_http_compress.c \
     src/nxt_http_request.c \
     src/nxt_http_response.c \
     src/nxt_http_error.c \
