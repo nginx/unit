@@ -127,6 +127,7 @@ NXT_LIBRT=
 . auto/unix
 . auto/os/conf
 . auto/ssltls
+. auto/zlib
 
 if [ $NXT_REGEX = YES ]; then
     . auto/pcre
@@ -168,11 +169,11 @@ END
 
 NXT_LIB_AUX_CFLAGS="$NXT_OPENSSL_CFLAGS $NXT_GNUTLS_CFLAGS \\
                     $NXT_CYASSL_CFLAGS $NXT_POLARSSL_CFLAGS \\
-                    $NXT_PCRE_CFLAGS"
+                    $NXT_PCRE_CFLAGS $NXT_ZLIB_CFLAGS"
 
 NXT_LIB_AUX_LIBS="$NXT_OPENSSL_LIBS $NXT_GNUTLS_LIBS \\
                     $NXT_CYASSL_LIBS $NXT_POLARSSL_LIBS \\
-                    $NXT_PCRE_LIB"
+                    $NXT_PCRE_LIB $NXT_ZLIB_LIBS"
 
 if [ $NXT_NJS != NO ]; then
     . auto/njs

@@ -1,0 +1,23 @@
+
+# Copyright (C) Alejandro Colomar
+# Copyright (C) NGINX, Inc.
+
+
+NXT_ZLIB_CFLAGS="$(pkgconf --cflags-only-I zlib 2>/dev/null || echo "")"
+NXT_ZLIB_LIBS="$(pkgconf --libs zlib 2>/dev/null || echo "-lz")"
+
+
+nxt_feature="zlib"
+nxt_feature_name=NXT_HAVE_ZLIB
+nxt_feature_run=no
+nxt_feature_incs=$NXT_ZLIB_CFLAGS
+nxt_feature_libs=$NXT_ZLIB_LIBS
+nxt_feature_test="#include <stdio.h>
+
+                  #include <zlib.h>
+
+                  int main(void) {
+                      puts(zlibVersion());
+                      return 0;
+                  }"
+. auto/feature
