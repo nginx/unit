@@ -29,6 +29,7 @@ Unit configuration summary:
   Unix domain sockets support: $NXT_UNIX_DOMAIN
   TLS support: ............... $NXT_OPENSSL
   Regex support: ............. $NXT_REGEX
+  zlib support: .............. $NXT_ZLIB
   NJS support: ............... $NXT_NJS
 
   process isolation: ......... $NXT_ISOLATION

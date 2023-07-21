@@ -9,8 +9,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <zlib.h>
-
 #include <nxt_unit_cdefs.h>
 
 #include "nxt_buf.h"
@@ -25,6 +23,10 @@
 #include "nxt_string.h"
 #include "nxt_types.h"
 
+#if (NXT_WITH_ZLIB || __has_include(<zlib.h>))
+#include <zlib.h>
+#endif
+
 
 typedef struct nxt_http_compress_gzip_ctx_s  nxt_http_compress_gzip_ctx_t;
 
@@ -35,7 +37,9 @@ struct nxt_http_compress_gzip_ctx_s {
 
     int8_t              level;
 
+#if (NXT_WITH_ZLIB)
     z_stream            z;
+#endif
 };
 
 
@@ -91,6 +95,9 @@ static nxt_http_compress_gzip_ctx_t *
 nxt_http_compress_gzip_ctx(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_compress_conf_t *conf)
 {
+#if (!NXT_WITH_ZLIB)
+    return NULL;
+#else
     int                           ret;
     z_stream                      *z;
     nxt_http_compress_gzip_ctx_t  *ctx;
@@ -114,12 +121,14 @@ nxt_http_compress_gzip_ctx(nxt_task_t *task, nxt_http_request_t *r,
     }
 
     return ctx;
+#endif
 }
 
 
 static void
 nxt_http_compress_gzip_filter(nxt_task_t *task, void *obj, void *data)
 {
+#if (NXT_WITH_ZLIB)
     int                           ret;
     ssize_t                       size;
     z_stream                      *z;
@@ -180,4 +189,5 @@ fail:
     }
 
     return;
+#endif
 }

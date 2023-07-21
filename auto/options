@@ -20,6 +20,8 @@ NXT_PCRE_LIB=
 NXT_REGEX=YES
 NXT_TRY_PCRE2=YES
 
+NXT_ZLIB=YES
+
 NXT_TLS=NO
 NXT_OPENSSL=NO
 NXT_GNUTLS=NO
@@ -103,6 +105,8 @@ do
 
         --no-regex)                      NXT_REGEX=NO                        ;;
         --no-pcre2)                      NXT_TRY_PCRE2=NO                    ;;
+
+        --no-zlib)                       NXT_ZLIB=NO                         ;;
 
         --openssl)                       NXT_OPENSSL=YES                     ;;
         --gnutls)                        NXT_GNUTLS=YES                      ;;

@@ -63,7 +63,7 @@ nxt_http_compress_init(nxt_router_conf_t *rtcf, nxt_http_action_t *action,
         return NXT_ERROR;
     }
 
-    if (nxt_str_eq(&conf->encoding, "gzip", strlen("gzip"))) {
+    if (NXT_WITH_ZLIB && nxt_str_eq(&conf->encoding, "gzip", strlen("gzip"))) {
         conf->handler = nxt_http_compress_gzip;
 
     } else {
