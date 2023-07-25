@@ -38,7 +38,7 @@ For details and available language packages, see the
 ### Docker
 
 ``` console
-$ docker pull docker.io/nginx/unit
+$ docker pull unit
 ```
 
 For a description of image tags, see the
@@ -70,6 +70,11 @@ For details and available language packages, see the
 
 
 ## Running a Hello World App
+
+Unit runs apps in a
+[variety of languages](https://unit.nginx.org/howto/samples/).
+Let's consider a basic example,
+choosing PHP for no particular reason.
 
 Suppose you saved a PHP script as `/www/helloworld/index.php`:
 ``` php
