@@ -62,6 +62,7 @@ mkdir -p $NXT_BUILD_DIR/lib
 mkdir -p $NXT_BUILD_DIR/lib/unit/modules
 mkdir -p $NXT_BUILD_DIR/sbin
 mkdir -p $NXT_BUILD_DIR/share/man/man8
+mkdir -p $NXT_BUILD_DIR/share/pkgconfig
 mkdir -p $NXT_BUILD_DIR/src
 mkdir -p $NXT_BUILD_DIR/src/test
 mkdir -p $NXT_BUILD_DIR/var/lib/unit

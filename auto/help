@@ -20,6 +20,7 @@ cat << END
   --modulesdir=DIR     default: "\$libdir/unit/modules"
   --datarootdir=DIR    default: "\$prefix/share"
   --mandir=DIR         default: "\$datarootdir/man"
+  --pkgconfigdir=DIR   default: "\$datarootdir/pkgconfig"
   --localstatedir=DIR  default: "\$prefix/var"
   --statedir=DIR       default: "\$localstatedir/lib/unit"
   --runstatedir=DIR    default: "\$localstatedir/run/unit"
