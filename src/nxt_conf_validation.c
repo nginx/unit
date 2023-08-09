@@ -1049,6 +1049,44 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_java_members[] = {
 };
 
 
+static nxt_conf_vldt_object_t  nxt_conf_vldt_wasm_members[] = {
+    {
+        .name       = nxt_string("module"),
+        .type       = NXT_CONF_VLDT_STRING,
+        .flags      = NXT_CONF_VLDT_REQUIRED,
+    }, {
+        .name       = nxt_string("request_handler"),
+        .type       = NXT_CONF_VLDT_STRING,
+        .flags      = NXT_CONF_VLDT_REQUIRED,
+    },{
+        .name       = nxt_string("malloc_handler"),
+        .type       = NXT_CONF_VLDT_STRING,
+        .flags      = NXT_CONF_VLDT_REQUIRED,
+    }, {
+        .name       = nxt_string("free_handler"),
+        .type       = NXT_CONF_VLDT_STRING,
+        .flags      = NXT_CONF_VLDT_REQUIRED,
+    }, {
+        .name       = nxt_string("module_init_handler"),
+        .type       = NXT_CONF_VLDT_STRING,
+    }, {
+        .name       = nxt_string("module_end_handler"),
+        .type       = NXT_CONF_VLDT_STRING,
+    }, {
+        .name       = nxt_string("request_init_handler"),
+        .type       = NXT_CONF_VLDT_STRING,
+    }, {
+        .name       = nxt_string("request_end_handler"),
+        .type       = NXT_CONF_VLDT_STRING,
+    }, {
+        .name       = nxt_string("response_end_handler"),
+        .type       = NXT_CONF_VLDT_STRING,
+    },
+
+    NXT_CONF_VLDT_NEXT(nxt_conf_vldt_common_members)
+};
+
+
 static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[] = {
     {
         .name       = nxt_string("type"),
@@ -2562,6 +2600,7 @@ nxt_conf_vldt_app(nxt_conf_validation_t *vldt, nxt_str_t *name,
         { nxt_conf_vldt_object, nxt_conf_vldt_perl_members },
         { nxt_conf_vldt_object, nxt_conf_vldt_ruby_members },
         { nxt_conf_vldt_object, nxt_conf_vldt_java_members },
+        { nxt_conf_vldt_object, nxt_conf_vldt_wasm_members },
     };
 
     ret = nxt_conf_vldt_type(vldt, name, value, NXT_CONF_VLDT_OBJECT);
