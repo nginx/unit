@@ -137,7 +137,7 @@ nxt_http_unknown_var_ref(nxt_tstr_state_t *state, nxt_var_ref_t *ref,
 
     if (nxt_str_start(name, "response_header_", 16)) {
         ref->handler = nxt_http_var_response_header;
-        ref->cacheable = 1;
+        ref->cacheable = 0;
 
         str.start = name->start + 16;
         str.length = name->length - 16;
