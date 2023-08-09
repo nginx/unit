@@ -26,14 +26,20 @@ nxt_http_rewrite_init(nxt_router_conf_t *rtcf, nxt_http_action_t *action,
 
 
 nxt_int_t
-nxt_http_rewrite(nxt_task_t *task, nxt_http_request_t *r,
-    nxt_http_action_t *action)
+nxt_http_rewrite(nxt_task_t *task, nxt_http_request_t *r)
 {
     u_char                    *p;
     nxt_int_t                 ret;
     nxt_str_t                 str, encoded_path, target;
     nxt_router_conf_t         *rtcf;
+    nxt_http_action_t         *action;
     nxt_http_request_parse_t  rp;
+
+    action = r->action;
+
+    if (action == NULL || action->rewrite == NULL) {
+        return NXT_OK;
+    }
 
     if (nxt_tstr_is_const(action->rewrite)) {
         nxt_tstr_str(action->rewrite, &str);

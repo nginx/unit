@@ -173,6 +173,7 @@ struct nxt_http_request_s {
     nxt_tstr_query_t                *tstr_query;
     nxt_tstr_cache_t                tstr_cache;
 
+    nxt_http_action_t               *action;
     void                            *req_rpc_data;
 
 #if (NXT_HAVE_REGEX)
@@ -382,8 +383,7 @@ nxt_int_t nxt_upstreams_joint_create(nxt_router_temp_conf_t *tmcf,
 
 nxt_int_t nxt_http_rewrite_init(nxt_router_conf_t *rtcf,
     nxt_http_action_t *action, nxt_http_action_conf_t *acf);
-nxt_int_t nxt_http_rewrite(nxt_task_t *task, nxt_http_request_t *r,
-    nxt_http_action_t *action);
+nxt_int_t nxt_http_rewrite(nxt_task_t *task, nxt_http_request_t *r);
 
 nxt_int_t nxt_http_return_init(nxt_router_conf_t *rtcf,
     nxt_http_action_t *action, nxt_http_action_conf_t *acf);

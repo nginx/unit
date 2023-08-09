@@ -560,11 +560,9 @@ nxt_http_request_action(nxt_task_t *task, nxt_http_request_t *r,
     if (nxt_fast_path(action != NULL)) {
 
         do {
-            if (action->rewrite != NULL) {
-                ret = nxt_http_rewrite(task, r, action);
-                if (nxt_slow_path(ret != NXT_OK)) {
-                    break;
-                }
+            ret = nxt_http_rewrite(task, r);
+            if (nxt_slow_path(ret != NXT_OK)) {
+                break;
             }
 
             action = action->handler(task, r, action);

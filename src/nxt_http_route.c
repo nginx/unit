@@ -1573,6 +1573,11 @@ nxt_http_route_handler(nxt_task_t *task, nxt_http_request_t *r,
         }
 
         if (action != NULL) {
+
+            if (action != NXT_HTTP_ACTION_ERROR) {
+                r->action = action;
+            }
+
             return action;
         }
     }
