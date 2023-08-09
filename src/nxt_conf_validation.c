@@ -252,6 +252,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_python_target_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_php_common_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_php_options_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_php_target_members[];
+static nxt_conf_vldt_object_t  nxt_conf_vldt_wasm_access_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_common_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_app_limits_members[];
 static nxt_conf_vldt_object_t  nxt_conf_vldt_app_processes_members[];
@@ -1081,9 +1082,24 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_wasm_members[] = {
     }, {
         .name       = nxt_string("response_end_handler"),
         .type       = NXT_CONF_VLDT_STRING,
+    }, {
+        .name       = nxt_string("access"),
+        .type       = NXT_CONF_VLDT_OBJECT,
+        .validator  = nxt_conf_vldt_object,
+        .u.members  = nxt_conf_vldt_wasm_access_members,
     },
 
     NXT_CONF_VLDT_NEXT(nxt_conf_vldt_common_members)
+};
+
+
+static nxt_conf_vldt_object_t  nxt_conf_vldt_wasm_access_members[] = {
+    {
+        .name       = nxt_string("filesystem"),
+        .type       = NXT_CONF_VLDT_ARRAY,
+    },
+
+    NXT_CONF_VLDT_END
 };
 
 

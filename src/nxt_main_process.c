@@ -369,6 +369,11 @@ static nxt_conf_map_t  nxt_wasm_app_conf[] = {
         NXT_CONF_MAP_CSTRZ,
         offsetof(nxt_common_app_conf_t, u.wasm.response_end_handler),
     },
+    {
+        nxt_string("access"),
+        NXT_CONF_MAP_PTR,
+        offsetof(nxt_common_app_conf_t, u.wasm.access),
+    },
 };
 
 

@@ -204,6 +204,15 @@ nxt_wasm_start(nxt_task_t *task, nxt_process_data_t *data)
     nxt_unit_done(unit_ctx);
     NXT_WASM_DO_HOOK(NXT_WASM_FH_MODULE_END);
 
+    if (nxt_wasm_ctx.dirs != NULL) {
+        char  **p;
+
+        for (p = nxt_wasm_ctx.dirs; *p != NULL; p++) {
+            nxt_free(*p);
+        }
+        nxt_free(nxt_wasm_ctx.dirs);
+    }
+
     nxt_wops->destroy(&nxt_wasm_ctx);
 
     exit(EXIT_SUCCESS);
@@ -214,9 +223,11 @@ static nxt_int_t
 nxt_wasm_setup(nxt_task_t *task, nxt_process_t *process,
                nxt_common_app_conf_t *conf)
 {
-    int                      err;
+    int                      n, i, err;
+    nxt_conf_value_t         *dirs = NULL;
     nxt_wasm_app_conf_t      *c;
     nxt_wasm_func_handler_t  *fh;
+    static nxt_str_t         filesystem_str = nxt_string("filesystem");
 
     c = &conf->u.wasm;
 
@@ -237,6 +248,33 @@ nxt_wasm_setup(nxt_task_t *task, nxt_process_t *process,
     fh[NXT_WASM_FH_REQUEST_END].func_name = c->request_end_handler;
     fh[NXT_WASM_FH_RESPONSE_END].func_name = c->response_end_handler;
 
+    /* Get any directories to pass through to the WASM module */
+    if (c->access != NULL) {
+        dirs = nxt_conf_get_object_member(c->access, &filesystem_str, NULL);
+    }
+
+    n = (dirs != NULL) ? nxt_conf_object_members_count(dirs) : 0;
+    if (n == 0) {
+        goto out_init;
+    }
+
+    nxt_wasm_ctx.dirs = nxt_zalloc((n + 1) * sizeof(char *));
+    if (nxt_slow_path(nxt_wasm_ctx.dirs == NULL)) {
+        return NXT_ERROR;
+    }
+
+    for (i = 0; i < n; i++) {
+        nxt_str_t         str;
+        nxt_conf_value_t  *value;
+
+        value = nxt_conf_get_array_element(dirs, i);
+        nxt_conf_get_string(value, &str);
+
+        nxt_wasm_ctx.dirs[i] = nxt_zalloc(str.length + 1);
+        memcpy(nxt_wasm_ctx.dirs[i], str.start, str.length);
+    }
+
+out_init:
     err = nxt_wops->init(&nxt_wasm_ctx);
     if (err) {
         exit(EXIT_FAILURE);

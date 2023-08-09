@@ -247,6 +247,7 @@ nxt_wasmtime_get_function_exports(nxt_wasm_ctx_t *ctx)
 static int
 nxt_wasmtime_wasi_init(const nxt_wasm_ctx_t *ctx)
 {
+    char                **dir;
     wasi_config_t       *wasi_config;
     wasmtime_error_t    *error;
     nxt_wasmtime_ctx_t  *rt_ctx = &nxt_wasmtime_ctx;
@@ -257,6 +258,10 @@ nxt_wasmtime_wasi_init(const nxt_wasm_ctx_t *ctx)
     wasi_config_inherit_stdin(wasi_config);
     wasi_config_inherit_stdout(wasi_config);
     wasi_config_inherit_stderr(wasi_config);
+
+    for (dir = ctx->dirs; dir != NULL && *dir != NULL; dir++) {
+        wasi_config_preopen_dir(wasi_config, *dir, *dir);
+    }
 
     error = wasmtime_context_set_wasi(rt_ctx->ctx, wasi_config);
     if (error != NULL) {

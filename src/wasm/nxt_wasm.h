@@ -110,6 +110,8 @@ struct nxt_wasm_ctx_s {
 
     nxt_wasm_func_handler_t  fh[NXT_WASM_FH_NR];
 
+    char                     **dirs;
+
     nxt_unit_request_info_t  *req;
 
     uint8_t                  *baddr;

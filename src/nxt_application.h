@@ -99,6 +99,8 @@ typedef struct {
     const char        *request_init_handler;
     const char        *request_end_handler;
     const char        *response_end_handler;
+
+    nxt_conf_value_t  *access;
 } nxt_wasm_app_conf_t;
 
 
