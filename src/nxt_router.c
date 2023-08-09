@@ -280,6 +280,7 @@ static const nxt_str_t  *nxt_app_msg_prefix[] = {
     [NXT_APP_PERL]      = &http_prefix,
     [NXT_APP_RUBY]      = &http_prefix,
     [NXT_APP_JAVA]      = &empty_prefix,
+    [NXT_APP_WASM]      = &empty_prefix,
 };
 
 
