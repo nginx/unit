@@ -57,6 +57,10 @@ nxt_wasm_do_send_headers(nxt_wasm_ctx_t *ctx, uint32_t offset)
         name = (const char *)rh + rh->fields[i].name_off;
         val = (const char *)rh + rh->fields[i].value_off;
 
+        printf("# Got header field [%.*s: %.*s]\n",
+               rh->fields[i].name_len, name,
+               rh->fields[i].value_len, val);
+
         nxt_unit_response_add_field(ctx->req, name, rh->fields[i].name_len,
                                     val, rh->fields[i].value_len);
     }
@@ -78,6 +82,7 @@ nxt_wasm_do_send_response(nxt_wasm_ctx_t *ctx, uint32_t offset)
     resp = (nxt_wasm_response_t *)(nxt_wasm_ctx.baddr + offset);
 
     nxt_unit_response_write(req, (const char *)resp->data, resp->size);
+    printf("== Sending %u bytes to unit\n", resp->size);
 }
 
 
@@ -144,15 +149,24 @@ nxt_wasm_request_handler(nxt_unit_request_info_t *req)
 
     read_bytes = nxt_min(wr->content_len, NXT_WASM_MEM_SIZE - offset);
 
+    printf("%s: Got request for (%.*s)\n", __func__, wr->path_len,
+           (uint8_t *)wr + wr->path_off);
+
+    printf("**** Reading %lu bytes from nxt_unit_request_read()\n", read_bytes);
     bytes_read = nxt_unit_request_read(req, (uint8_t *)wr + offset, read_bytes);
+    printf("**** Got %ld from nxt_unit_request_read()\n", bytes_read);
     wr->content_sent = wr->total_content_sent = content_sent = bytes_read;
 
     wr->request_size = offset + bytes_read;
+    printf("**** wr->request_size : %u\n", wr->request_size);
 
     nxt_wasm_ctx.req = req;
     nxt_wops->exec_request(&nxt_wasm_ctx);
 
+    printf("**** content_len : %lu, content_sent : %lu\n",
+           content_len, content_sent);
     if (content_len == content_sent) {
+        printf("**** Going to request_done:\n");
         goto request_done;
     }
 
@@ -161,17 +175,25 @@ nxt_wasm_request_handler(nxt_unit_request_info_t *req)
     do {
         read_bytes = nxt_min(content_len - content_sent,
                              NXT_WASM_MEM_SIZE - offset);
+        printf("**** Reading %lu bytes from nxt_unit_request_read()\n",
+               read_bytes);
         bytes_read = nxt_unit_request_read(req, (uint8_t *)wr + offset,
                                            read_bytes);
+        printf("**** Got %ld from nxt_unit_request_read()\n", bytes_read);
 
         content_sent += bytes_read;
         wr->request_size = wr->content_sent = bytes_read;
         wr->total_content_sent = content_sent;
 
+        printf("**** content_length : %lu, content_sent : %lu\n",
+               content_len, content_sent);
+
         nxt_wops->exec_request(&nxt_wasm_ctx);
     } while (content_sent < content_len);
 
 request_done:
+    nxt_wops->meminfo(&nxt_wasm_ctx);
+
     NXT_WASM_DO_HOOK(NXT_WASM_FH_REQUEST_END);
 }
 
@@ -183,6 +205,8 @@ nxt_wasm_start(nxt_task_t *task, nxt_process_data_t *data)
     nxt_unit_ctx_t         *unit_ctx;
     nxt_unit_init_t        wasm_init;
     nxt_common_app_conf_t  *conf;
+
+    printf("%s: \n", __func__);
 
     conf = data->app;
 
@@ -230,6 +254,8 @@ nxt_wasm_setup(nxt_task_t *task, nxt_process_t *process,
     static nxt_str_t         filesystem_str = nxt_string("filesystem");
 
     c = &conf->u.wasm;
+
+    printf("%s: loading wasm module %s\n", __func__, c->module);
 
     nxt_wops = &nxt_wasm_ops;
 

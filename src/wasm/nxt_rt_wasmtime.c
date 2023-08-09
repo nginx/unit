@@ -58,6 +58,19 @@ nxt_wasmtime_err_msg(wasmtime_error_t *error, wasm_trap_t *trap,
 }
 
 
+static void
+nxt_wasmtime_meminfo(const nxt_wasm_ctx_t *ctx)
+{
+    nxt_wasmtime_ctx_t  *rt_ctx = &nxt_wasmtime_ctx;
+
+    printf("==[MEMINFO] Linear memory @ %p is %" PRIu64 " pages totalling "
+           "%lu bytes\n",
+           ctx->baddr - ctx->baddr_off,
+           wasmtime_memory_size(rt_ctx->ctx, &rt_ctx->memory),
+           wasmtime_memory_data_size(rt_ctx->ctx, &rt_ctx->memory));
+}
+
+
 static wasm_trap_t *
 nxt_wasm_get_init_mem_size(void *env, wasmtime_caller_t *caller,
                            const wasmtime_val_t *args, size_t nargs,
@@ -85,6 +98,7 @@ nxt_wasm_send_response(void *env, wasmtime_caller_t *caller,
                        const wasmtime_val_t *args, size_t nargs,
                        wasmtime_val_t *results, size_t nresults)
 {
+    printf("\n# Got response @ [%u]\n", args[0].of.i32);
     nxt_wasm_do_send_response(env, args[0].of.i32);
 
     return NULL;
@@ -96,7 +110,9 @@ nxt_wasm_send_headers(void *env, wasmtime_caller_t *caller,
                       const wasmtime_val_t *args, size_t nargs,
                       wasmtime_val_t *results, size_t nresults)
 {
+    printf("\n# Got response headers @ [%u]\n", args[0].of.i32);
     nxt_wasm_do_send_headers(env, args[0].of.i32);
+    printf("\n");
 
     return NULL;
 }
@@ -137,6 +153,26 @@ nxt_wasmtime_execute_request(const nxt_wasm_ctx_t *ctx)
     args[i].kind = WASMTIME_I32;
     args[i++].of.i32 = ctx->baddr_off;
 
+    { /* DEBUG */
+        nxt_wasm_request_t *wr;
+        nxt_wasm_http_field_t *f, *f_end;
+
+        wr = (nxt_wasm_request_t *)ctx->baddr;
+
+        printf("== Header data starts @ %lu bytes\n",
+               sizeof(nxt_wasm_request_t) +
+               (sizeof(nxt_wasm_http_field_t) * wr->nfields));
+
+        printf("-- Got [%u] headers\n", wr->nfields);
+
+        f_end = wr->fields + wr->nfields;
+        for (f = wr->fields; f < f_end; f++)
+            printf("== [%u/%.*s] = [%u/%u/%.*s]\n",
+                   f->name_off, f->name_len,
+                   (unsigned char *)wr + f->name_off,
+                   f->value_len, f->value_off, f->value_len,
+                   (unsigned char *)wr + f->value_off);
+    }
     error = wasmtime_func_call(rt_ctx->ctx, func, args, i, results, 1, &trap);
     if (error != NULL || trap != NULL) {
         nxt_wasmtime_err_msg(error, trap,
@@ -260,6 +296,7 @@ nxt_wasmtime_wasi_init(const nxt_wasm_ctx_t *ctx)
     wasi_config_inherit_stderr(wasi_config);
 
     for (dir = ctx->dirs; dir != NULL && *dir != NULL; dir++) {
+        printf("### wasmtime allowing guest access to (%s)\n", *dir);
         wasi_config_preopen_dir(wasi_config, *dir, *dir);
     }
 
@@ -308,7 +345,11 @@ nxt_wasmtime_init_memory(nxt_wasm_ctx_t *ctx)
     ctx->baddr_off = results[0].of.i32;
     ctx->baddr = wasmtime_memory_data(rt_ctx->ctx, &rt_ctx->memory);
 
+    printf("==[MEMINFO] Linear memory base addr : %p\n", ctx->baddr);
     ctx->baddr += ctx->baddr_off;
+    printf("==[MEMINFO] Linear memory WASM memory addr : %p\n", ctx->baddr);
+
+    nxt_wasmtime_meminfo(ctx);
 
     return 0;
 }
@@ -364,6 +405,7 @@ nxt_wasmtime_init(nxt_wasm_ctx_t *ctx)
 
     nxt_wasmtime_wasi_init(ctx);
 
+    printf("Instantiating module...\n");
     error = wasmtime_linker_module(rt_ctx->linker, rt_ctx->ctx, "", 0,
                                    rt_ctx->module);
     if (error != NULL) {
@@ -409,4 +451,5 @@ const nxt_wasm_operations_t  nxt_wasm_ops = {
     .destroy            = nxt_wasmtime_destroy,
     .exec_request       = nxt_wasmtime_execute_request,
     .exec_hook          = nxt_wasmtime_execute_hook,
+    .meminfo            = nxt_wasmtime_meminfo,
 };

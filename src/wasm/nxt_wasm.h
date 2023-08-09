@@ -125,6 +125,7 @@ struct nxt_wasm_operations_s {
     void  (*destroy)(const nxt_wasm_ctx_t *ctx);
     void  (*exec_request)(const nxt_wasm_ctx_t *ctx);
     void  (*exec_hook)(const nxt_wasm_ctx_t *ctx, nxt_wasm_fh_t hook);
+    void  (*meminfo)(const nxt_wasm_ctx_t *ctx);
 };
 
 extern const nxt_wasm_operations_t  nxt_wasm_ops;
