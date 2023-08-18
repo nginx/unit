@@ -247,8 +247,7 @@ nxt_conf_create_object(nxt_mp_t *mp, nxt_uint_t count)
     nxt_conf_value_t  *value;
 
     size = sizeof(nxt_conf_value_t)
-           + sizeof(nxt_conf_object_t)
-           + count * sizeof(nxt_conf_object_member_t);
+           + nxt_sizeof_struct(nxt_conf_object_t, members, count);
 
     value = nxt_mp_get(mp, size);
     if (nxt_slow_path(value == NULL)) {
@@ -362,8 +361,7 @@ nxt_conf_create_array(nxt_mp_t *mp, nxt_uint_t count)
     nxt_conf_value_t  *value;
 
     size = sizeof(nxt_conf_value_t)
-           + sizeof(nxt_conf_array_t)
-           + count * sizeof(nxt_conf_value_t);
+           + nxt_sizeof_struct(nxt_conf_array_t, elements, count);
 
     value = nxt_mp_get(mp, size);
     if (nxt_slow_path(value == NULL)) {
@@ -1029,7 +1027,7 @@ nxt_conf_copy_array(nxt_mp_t *mp, nxt_conf_op_t *op, nxt_conf_value_t *dst,
         }
     }
 
-    size = sizeof(nxt_conf_array_t) + count * sizeof(nxt_conf_value_t);
+    size = nxt_sizeof_struct(nxt_conf_array_t, elements, count);
 
     dst->u.array = nxt_mp_get(mp, size);
     if (nxt_slow_path(dst->u.array == NULL)) {
@@ -1130,8 +1128,7 @@ nxt_conf_copy_object(nxt_mp_t *mp, nxt_conf_op_t *op, nxt_conf_value_t *dst,
         }
     }
 
-    size = sizeof(nxt_conf_object_t)
-           + count * sizeof(nxt_conf_object_member_t);
+    size = nxt_sizeof_struct(nxt_conf_object_t, members, count);
 
     dst->u.object = nxt_mp_get(mp, size);
     if (nxt_slow_path(dst->u.object == NULL)) {
@@ -1483,6 +1480,7 @@ static u_char *
 nxt_conf_json_parse_object(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
     u_char *end, nxt_conf_json_error_t *error)
 {
+    size_t                    size;
     u_char                    *p, *name;
     nxt_mp_t                  *mp_temp;
     nxt_int_t                 rc;
@@ -1625,8 +1623,8 @@ nxt_conf_json_parse_object(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
         }
     }
 
-    object = nxt_mp_get(mp, sizeof(nxt_conf_object_t)
-                            + count * sizeof(nxt_conf_object_member_t));
+    size = nxt_sizeof_struct(nxt_conf_object_t, members, count);
+    object = nxt_mp_get(mp, size);
     if (nxt_slow_path(object == NULL)) {
         goto error;
     }
@@ -1710,6 +1708,7 @@ static u_char *
 nxt_conf_json_parse_array(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
     u_char *end, nxt_conf_json_error_t *error)
 {
+    size_t            size;
     u_char            *p;
     nxt_mp_t          *mp_temp;
     nxt_uint_t        count;
@@ -1787,8 +1786,8 @@ nxt_conf_json_parse_array(nxt_mp_t *mp, nxt_conf_value_t *value, u_char *start,
         }
     }
 
-    array = nxt_mp_get(mp, sizeof(nxt_conf_array_t)
-                           + count * sizeof(nxt_conf_value_t));
+    size = nxt_sizeof_struct(nxt_conf_array_t, elements, count);
+    array = nxt_mp_get(mp, size);
     if (nxt_slow_path(array == NULL)) {
         goto error;
     }

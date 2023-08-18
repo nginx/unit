@@ -105,8 +105,7 @@ nxt_wasm_request_handler(nxt_unit_request_info_t *req)
     } while (0)
 
     r = req->request;
-    offset = sizeof(nxt_wasm_request_t)
-             + (r->fields_count * sizeof(nxt_wasm_http_field_t));
+    offset = nxt_sizeof_struct(nxt_wasm_request_t, fields, r->fields_count);
 
     SET_REQ_MEMBER(path, path);
     SET_REQ_MEMBER(method, method);
@@ -157,7 +156,7 @@ nxt_wasm_request_handler(nxt_unit_request_info_t *req)
     }
 
     wr->nfields = 0;
-    wr->content_off = offset = sizeof(nxt_wasm_request_t);
+    wr->content_off = offset = nxt_offsetof_fam(nxt_wasm_request_t, fields, 0);
     do {
         read_bytes = nxt_min(content_len - content_sent,
                              NXT_WASM_MEM_SIZE - offset);

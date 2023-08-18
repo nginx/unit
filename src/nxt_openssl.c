@@ -629,7 +629,7 @@ static nxt_int_t
 nxt_tls_ticket_keys(nxt_task_t *task, SSL_CTX *ctx, nxt_tls_init_t *tls_init,
     nxt_mp_t *mp)
 {
-    size_t             len;
+    size_t             len, size;
     uint32_t           i;
     nxt_str_t          value;
     nxt_uint_t         count;
@@ -660,8 +660,8 @@ nxt_tls_ticket_keys(nxt_task_t *task, SSL_CTX *ctx, nxt_tls_init_t *tls_init,
 
 #ifdef SSL_CTRL_SET_TLSEXT_TICKET_KEY_CB
 
-    tickets = nxt_mp_get(mp, sizeof(nxt_tls_tickets_t)
-                             + count * sizeof(nxt_tls_ticket_t));
+    size = nxt_sizeof_struct(nxt_tls_tickets_t, tickets, count);
+    tickets = nxt_mp_get(mp, size);
     if (nxt_slow_path(tickets == NULL)) {
         return NXT_ERROR;
     }
@@ -1135,6 +1135,7 @@ nxt_openssl_find_ctx(nxt_tls_conf_t *conf, nxt_str_t *sn)
 static void
 nxt_openssl_server_free(nxt_task_t *task, nxt_tls_conf_t *conf)
 {
+    size_t                 size;
     nxt_tls_bundle_conf_t  *bundle;
 
     bundle = conf->bundle;
@@ -1146,8 +1147,8 @@ nxt_openssl_server_free(nxt_task_t *task, nxt_tls_conf_t *conf)
     } while (bundle != NULL);
 
     if (conf->tickets) {
-        nxt_memzero(conf->tickets->tickets,
-                    conf->tickets->count * sizeof(nxt_tls_ticket_t));
+        size = nxt_sizeof_fam(nxt_tls_tickets_t, tickets, conf->tickets->count);
+        nxt_memzero(conf->tickets->tickets, size);
     }
 
 #if (OPENSSL_VERSION_NUMBER >= 0x1010100fL \

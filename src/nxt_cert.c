@@ -101,6 +101,7 @@ nxt_cert_bio(nxt_task_t *task, BIO *bio)
     long                        length, reason;
     char                        *type, *header;
     X509                        *x509;
+    size_t                      size;
     EVP_PKEY                    *key;
     nxt_uint_t                  nalloc;
     nxt_cert_t                  *cert, *new_cert;
@@ -111,7 +112,7 @@ nxt_cert_bio(nxt_task_t *task, BIO *bio)
 
     nalloc = 4;
 
-    cert = nxt_zalloc(sizeof(nxt_cert_t) + nalloc * sizeof(X509 *));
+    cert = nxt_zalloc(nxt_sizeof_struct(nxt_cert_t, chain, nalloc));
     if (cert == NULL) {
         return NULL;
     }
@@ -234,8 +235,8 @@ nxt_cert_bio(nxt_task_t *task, BIO *bio)
             if (cert->count == nalloc) {
                 nalloc += 4;
 
-                new_cert = nxt_realloc(cert, sizeof(nxt_cert_t)
-                                             + nalloc * sizeof(X509 *));
+                size = nxt_sizeof_struct(nxt_cert_t, chain, nalloc);
+                new_cert = nxt_realloc(cert, size);
                 if (new_cert == NULL) {
                     X509_free(x509);
                     goto fail;

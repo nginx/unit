@@ -238,7 +238,7 @@ nxt_mem_zone_pages(u_char *start, size_t zone_size, nxt_uint_t page_size)
      * Find number of usable zone pages except zone bookkeeping data,
      * slots, and pages entries.
      */
-    reserved = sizeof(nxt_mem_zone_t) + (n * sizeof(nxt_mem_zone_slot_t));
+    reserved = nxt_sizeof_struct(nxt_mem_zone_t, slots, n);
 
     end = nxt_trunc_ptr(start + zone_size, page_size);
     zone_size = end - start;

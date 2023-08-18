@@ -251,7 +251,7 @@ nxt_mp_create(size_t cluster_size, size_t page_alignment, size_t page_size,
 
     pages = page_size_shift - chunk_size_shift;
 
-    mp = nxt_zalloc(sizeof(nxt_mp_t) + pages * sizeof(nxt_queue_t));
+    mp = nxt_zalloc(nxt_sizeof_struct(nxt_mp_t, chunk_pages, pages));
 
     if (nxt_fast_path(mp != NULL)) {
         mp->retain = 1;
@@ -507,8 +507,7 @@ nxt_mp_page_addr(nxt_mp_t *mp, nxt_mp_page_t *page)
     size_t          page_offset;
     nxt_mp_block_t  *block;
 
-    page_offset = page->number * sizeof(nxt_mp_page_t)
-                  + offsetof(nxt_mp_block_t, pages);
+    page_offset = nxt_offsetof_fam(nxt_mp_block_t, pages, page->number);
 
     block = (nxt_mp_block_t *) ((u_char *) page - page_offset);
 
@@ -672,7 +671,7 @@ nxt_mp_alloc_cluster(nxt_mp_t *mp)
 
     n = mp->cluster_size >> mp->page_size_shift;
 
-    cluster = nxt_zalloc(sizeof(nxt_mp_block_t) + n * sizeof(nxt_mp_page_t));
+    cluster = nxt_zalloc(nxt_sizeof_struct(nxt_mp_block_t, pages, n));
 
     if (nxt_slow_path(cluster == NULL)) {
         return NULL;

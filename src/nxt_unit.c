@@ -1743,6 +1743,7 @@ nxt_unit_process_shm_ack(nxt_unit_ctx_t *ctx)
 static nxt_unit_request_info_impl_t *
 nxt_unit_request_info_get(nxt_unit_ctx_t *ctx)
 {
+    size_t                        size;
     nxt_unit_impl_t               *lib;
     nxt_queue_link_t              *lnk;
     nxt_unit_ctx_impl_t           *ctx_impl;
@@ -1757,8 +1758,9 @@ nxt_unit_request_info_get(nxt_unit_ctx_t *ctx)
     if (nxt_queue_is_empty(&ctx_impl->free_req)) {
         pthread_mutex_unlock(&ctx_impl->mutex);
 
-        req_impl = nxt_unit_malloc(ctx, sizeof(nxt_unit_request_info_impl_t)
-                                        + lib->request_data_size);
+        size = nxt_sizeof_struct(nxt_unit_request_info_impl_t, extra_data,
+                                 lib->request_data_size);
+        req_impl = nxt_unit_malloc(ctx, size);
         if (nxt_slow_path(req_impl == NULL)) {
             return NULL;
         }
@@ -2050,9 +2052,9 @@ nxt_unit_response_init(nxt_unit_request_info_t *req,
      * Each field name and value 0-terminated by libunit,
      * this is the reason of '+ 2' below.
      */
-    buf_size = sizeof(nxt_unit_response_t)
-               + max_fields_count * (sizeof(nxt_unit_field_t) + 2)
-               + max_fields_size;
+    buf_size = nxt_sizeof_struct(nxt_unit_response_t, fields, max_fields_count)
+               + max_fields_size
+               + 2 * max_fields_count;
 
     if (nxt_slow_path(req->response_buf != NULL)) {
         buf = req->response_buf;
@@ -2077,15 +2079,15 @@ nxt_unit_response_init(nxt_unit_request_info_t *req,
 
 init_response:
 
-    memset(buf->start, 0, sizeof(nxt_unit_response_t));
+    memset(buf->start, 0, nxt_offsetof_fam(nxt_unit_response_t, fields, 0));
 
     req->response_buf = buf;
 
     req->response = (nxt_unit_response_t *) buf->start;
     req->response->status = status;
 
-    buf->free = buf->start + sizeof(nxt_unit_response_t)
-                + max_fields_count * sizeof(nxt_unit_field_t);
+    buf->free = buf->start + nxt_sizeof_struct(nxt_unit_response_t, fields,
+                                               max_fields_count);
 
     req->response_max_fields = max_fields_count;
     req_impl->state = NXT_UNIT_RS_RESPONSE_INIT;
@@ -2129,9 +2131,9 @@ nxt_unit_response_realloc(nxt_unit_request_info_t *req,
      * Each field name and value 0-terminated by libunit,
      * this is the reason of '+ 2' below.
      */
-    buf_size = sizeof(nxt_unit_response_t)
-               + max_fields_count * (sizeof(nxt_unit_field_t) + 2)
-               + max_fields_size;
+    buf_size = nxt_sizeof_struct(nxt_unit_response_t, fields, max_fields_count)
+               + max_fields_size
+               + 2 * max_fields_count;
 
     nxt_unit_req_debug(req, "realloc %"PRIu32"", buf_size);
 
@@ -2143,7 +2145,7 @@ nxt_unit_response_realloc(nxt_unit_request_info_t *req,
 
     resp = (nxt_unit_response_t *) buf->start;
 
-    memset(resp, 0, sizeof(nxt_unit_response_t));
+    memset(resp, 0, nxt_offsetof_fam(nxt_unit_response_t, fields, 0));
 
     resp->status = req->response->status;
     resp->content_length = req->response->content_length;

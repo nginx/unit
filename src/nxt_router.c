@@ -4120,8 +4120,8 @@ nxt_router_response_ready_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
         }
 
         resp = (void *) b->mem.pos;
-        count = (b_size - sizeof(nxt_unit_response_t))
-                    / sizeof(nxt_unit_field_t);
+        count = (b_size - nxt_offsetof_fam(nxt_unit_response_t, fields, 0))
+                    / nxt_sizeof_fam0(nxt_unit_response_t, fields);
 
         if (nxt_slow_path(count < resp->fields_count)) {
             nxt_alert(task, "response buffer too small for fields count: %D",
@@ -5421,7 +5421,7 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_http_request_t *r,
                     + field->value_length + 1;
     } nxt_list_loop;
 
-    req_size += fields_count * sizeof(nxt_unit_field_t);
+    req_size += nxt_sizeof_fam(nxt_unit_request_t, fields, fields_count);
 
     if (nxt_slow_path(req_size > PORT_MMAP_DATA_SIZE)) {
         nxt_alert(task, "headers to big to fit in shared memory (%d)",

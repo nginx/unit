@@ -31,6 +31,7 @@ void *
 nxt_list_add(nxt_list_t *list)
 {
     void             *elt;
+    size_t           size;
     nxt_list_part_t  *last;
 
     last = list->last;
@@ -39,8 +40,9 @@ nxt_list_add(nxt_list_t *list)
 
         /* The last list part is filled up, allocating a new list part. */
 
-        last = nxt_mp_get(list->mem_pool,
-                          sizeof(nxt_list_part_t) + list->nalloc * list->size);
+        size = nxt_sizeof_struct(nxt_list_part_t, data,
+                                 list->nalloc * list->size);
+        last = nxt_mp_get(list->mem_pool, size);
 
         if (nxt_slow_path(last == NULL)) {
             return NULL;

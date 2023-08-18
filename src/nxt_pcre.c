@@ -106,7 +106,7 @@ nxt_regex_match_create(nxt_mp_t *mp, size_t size)
 {
     nxt_regex_match_t  *match;
 
-    match = nxt_mp_get(mp, sizeof(nxt_regex_match_t) + sizeof(int) * size);
+    match = nxt_mp_get(mp, nxt_sizeof_struct(nxt_regex_match_t, ovec, size));
     if (nxt_fast_path(match != NULL)) {
         match->ovecsize = size;
     }

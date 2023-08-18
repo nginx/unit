@@ -15,7 +15,7 @@
 #include <nxt_unit_request.h>
 
 enum {
-    NXT_FIELDS_OFFSET = offsetof(nxt_unit_request_t, fields)
+    NXT_FIELDS_OFFSET = nxt_offsetof_fam(nxt_unit_request_t, fields, 0)
 };
 
 int nxt_cgo_run(uintptr_t handler);
