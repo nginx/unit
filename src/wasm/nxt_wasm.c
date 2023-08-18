@@ -156,7 +156,7 @@ nxt_wasm_request_handler(nxt_unit_request_info_t *req)
     }
 
     wr->nfields = 0;
-    wr->content_off = offset = sizeof(nxt_wasm_request_t);
+    wr->content_off = offset = offsetof(nxt_wasm_request_t, fields);
     do {
         read_bytes = nxt_min(content_len - content_sent,
                              NXT_WASM_MEM_SIZE - offset);
