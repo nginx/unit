@@ -260,7 +260,8 @@ $NXT_BUILD_DIR/lib/unit/modules/${NXT_RUBY_MODULE}.unit.so:	$nxt_objs
 install: ${NXT_RUBY_MODULE}-install
 
 ${NXT_RUBY_MODULE}-install: ${NXT_RUBY_MODULE} install-check
-	install -d \$(DESTDIR)$NXT_MODULESDIR
+	test -d \$(DESTDIR)$NXT_MODULESDIR \
+		|| install -d \$(DESTDIR)$NXT_MODULESDIR
 	install -p $NXT_BUILD_DIR/lib/unit/modules/${NXT_RUBY_MODULE}.unit.so \\
 		\$(DESTDIR)$NXT_MODULESDIR/
 

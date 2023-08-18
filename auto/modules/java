@@ -535,10 +535,12 @@ ${NXT_JAVA_MODULE}-install: \\
     $NXT_BUILD_DIR/$NXT_UNIT_JAR \\
     $NXT_BUILD_DIR/$NXT_WS_API_JAR \\
     java-shared-install
-	install -d \$(DESTDIR)$NXT_MODULESDIR
+	test -d \$(DESTDIR)$NXT_MODULESDIR \
+		|| install -d \$(DESTDIR)$NXT_MODULESDIR
 	install -p $NXT_BUILD_DIR/lib/unit/modules/${NXT_JAVA_MODULE}.unit.so \\
 		\$(DESTDIR)$NXT_MODULESDIR/
-	install -d \$(DESTDIR)$NXT_JARS
+	test -d \$(DESTDIR)$NXT_JARS \
+		|| install -d \$(DESTDIR)$NXT_JARS
 	install -p -m 0644 $NXT_BUILD_DIR/$NXT_UNIT_JAR \$(DESTDIR)$NXT_JARS/
 	install -p -m 0644 $NXT_BUILD_DIR/$NXT_WS_API_JAR \$(DESTDIR)$NXT_JARS/
 
@@ -629,7 +631,8 @@ if ! grep ^java-shared-install: $NXT_MAKEFILE 2>&1 > /dev/null; then
 .PHONY: java-shared-uninstall
 
 java-shared-install: $NXT_JAVA_INSTALL_JARS
-	install -d \$(DESTDIR)$NXT_JARS
+	test -d \$(DESTDIR)$NXT_JARS \
+		|| install -d \$(DESTDIR)$NXT_JARS
 	install -p -m 0644 $NXT_JAVA_INSTALL_JARS \$(DESTDIR)$NXT_JARS/
 
 java-shared-uninstall:

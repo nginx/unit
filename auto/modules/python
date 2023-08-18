@@ -223,7 +223,8 @@ $NXT_BUILD_DIR/lib/unit/modules/${NXT_PYTHON_MODULE}.unit.so:	$nxt_objs
 install: ${NXT_PYTHON_MODULE}-install
 
 ${NXT_PYTHON_MODULE}-install: ${NXT_PYTHON_MODULE} install-check
-	install -d \$(DESTDIR)$NXT_MODULESDIR
+	test -d \$(DESTDIR)$NXT_MODULESDIR \
+		|| install -d \$(DESTDIR)$NXT_MODULESDIR
 	install -p $NXT_BUILD_DIR/lib/unit/modules/${NXT_PYTHON_MODULE}.unit.so \\
 		\$(DESTDIR)$NXT_MODULESDIR/
 
