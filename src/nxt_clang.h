@@ -255,4 +255,12 @@ nxt_popcount(unsigned int x)
     (sizeof(s) - 1)
 
 
+#define nxt_sizeof_flex_array(s, flex, n)                                     \
+    (n * sizeof((s){0}.flex[0]))
+
+
+#define nxt_sizeof_struct(s, flex, n)                                         \
+    (sizeof(s) + nxt_sizeof_flex_array(s, flex, n))
+
+
 #endif /* _NXT_CLANG_H_INCLUDED_ */
