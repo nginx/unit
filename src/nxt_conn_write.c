@@ -97,7 +97,7 @@ nxt_conn_io_write(nxt_task_t *task, void *obj, void *data)
         if (sb.limit == 0) {
             /*
              * Postpone writing until next event poll to allow to
-             * process other recevied events and to get new events.
+             * process other received events and to get new events.
              */
             c->write_timer.handler = nxt_conn_write_timer_handler;
             nxt_timer_add(engine, &c->write_timer, 0);
