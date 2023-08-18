@@ -3,12 +3,12 @@
  * Copyright (C) F5, Inc.
  */
 
-#include <stdio.h>
-#include <stdbool.h>
 #include <stdarg.h>
+#include <stdbool.h>
+#include <stdio.h>
 
-#include <wasm.h>
 #include <wasi.h>
+#include <wasm.h>
 #include <wasmtime.h>
 
 #include "nxt_wasm.h"
