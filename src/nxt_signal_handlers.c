@@ -31,7 +31,7 @@ const nxt_sig_event_t  nxt_process_signals[] = {
 static void
 nxt_signal_handler(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_trace(task, "signal signo:%d (%s) recevied, ignored",
+    nxt_trace(task, "signal signo:%d (%s) received, ignored",
               (int) (uintptr_t) obj, data);
 }
 
