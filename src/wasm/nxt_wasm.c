@@ -105,8 +105,7 @@ nxt_wasm_request_handler(nxt_unit_request_info_t *req)
     } while (0)
 
     r = req->request;
-    offset = sizeof(nxt_wasm_request_t)
-             + (r->fields_count * sizeof(nxt_wasm_http_field_t));
+    offset = nxt_sizeof_struct(nxt_wasm_request_t, fields, r->fields_count);
 
     SET_REQ_MEMBER(path, path);
     SET_REQ_MEMBER(method, method);
