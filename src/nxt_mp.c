@@ -738,7 +738,7 @@ nxt_mp_alloc_large(nxt_mp_t *mp, size_t alignment, size_t size,
         type = NXT_MP_DISCRETE_BLOCK;
 
     } else {
-        aligned_size = nxt_align_size(size, sizeof(uintptr_t));
+        aligned_size = nxt_align_size(size, _Alignof(max_align_t));
 
         p = nxt_memalign(alignment, aligned_size + sizeof(nxt_mp_block_t));
         if (nxt_slow_path(p == NULL)) {
