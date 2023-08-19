@@ -8,6 +8,9 @@
 #define _NXT_CLANG_H_INCLUDED_
 
 
+#include <nxt_unit_cdefs.h>
+
+
 #define nxt_inline     static inline __attribute__((always_inline))
 #define nxt_noinline   __attribute__((noinline))
 #define nxt_cdecl
@@ -210,22 +213,10 @@ nxt_popcount(unsigned int x)
     *(type *) ((u_char *) p + offset)
 
 
-#define nxt_nitems(x)                                                         \
-    (sizeof(x) / sizeof((x)[0]))
-
-
 /* GCC and Clang use __builtin_abs() instead of libc abs(). */
 
 #define nxt_abs(val)                                                          \
     abs(val)
-
-
-#define nxt_max(val1, val2)                                                   \
-    ((val1 < val2) ? (val2) : (val1))
-
-
-#define nxt_min(val1, val2)                                                   \
-    ((val1 > val2) ? (val2) : (val1))
 
 
 #define nxt_bswap32(val)                                                      \
@@ -252,7 +243,7 @@ nxt_popcount(unsigned int x)
 
 
 #define nxt_length(s)                                                         \
-    (sizeof(s) - 1)
+    (sizeof(s) - 1 + nxt_must_be_array(s))
 
 
 #endif /* _NXT_CLANG_H_INCLUDED_ */
