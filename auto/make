@@ -406,6 +406,7 @@ libunit-install: $NXT_BUILD_DIR/lib/$NXT_LIB_UNIT_STATIC
 	test -d \$(DESTDIR)$NXT_INCLUDEDIR \
 		|| install -d \$(DESTDIR)$NXT_INCLUDEDIR
 	install -p -m u=rw,go=r src/nxt_unit.h \
+		src/nxt_unit_cdefs.h \
 		src/nxt_unit_field.h \
 		src/nxt_unit_request.h \
 		src/nxt_unit_response.h \
@@ -423,6 +424,7 @@ libunit-uninstall:
 	rm -f \$(DESTDIR)$NXT_PKGCONFIGDIR/unit.pc
 	@rmdir -p \$(DESTDIR)$NXT_PKGCONFIGDIR 2>/dev/null || true
 	rm -f \$(DESTDIR)$NXT_INCLUDEDIR/nxt_unit.h \
+		\$(DESTDIR)$NXT_INCLUDEDIR/nxt_unit_cdefs.h \
 		\$(DESTDIR)$NXT_INCLUDEDIR/nxt_unit_field.h \
 		\$(DESTDIR)$NXT_INCLUDEDIR/nxt_unit_request.h \
 		\$(DESTDIR)$NXT_INCLUDEDIR/nxt_unit_response.h \
