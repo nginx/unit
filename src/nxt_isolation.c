@@ -913,7 +913,7 @@ nxt_isolation_make_private_mount(nxt_task_t *task, const char *rootfs)
 
     nmounts = 256;
 
-    mounts = nxt_malloc(nmounts * sizeof(uintptr_t));
+    mounts = nxt_malloc(nmounts * sizeof(u_char *));
     if (nxt_slow_path(mounts == NULL)) {
         goto fail;
     }
