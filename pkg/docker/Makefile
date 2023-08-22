@@ -40,7 +40,7 @@ VARIANT_node ?=		$(VARIANT)
 $(foreach nodeversion, $(VERSIONS_node), $(eval CONTAINER_node$(nodeversion) = node:$(nodeversion)-$(VARIANT_node)))
 CONFIGURE_node ?=	nodejs --node-gyp=/usr/local/bin/node-gyp
 INSTALL_node ?=		node node-install libunit-install
-RUN_node ?=			/bin/true
+RUN_node ?=			rm -rf /root/.cache/ \&\& rm -rf /root/.npm
 MODULE_PREBUILD_node ?=	npm -g install node-gyp
 
 VERSIONS_perl ?=	5.36 5.38
