@@ -17,6 +17,7 @@ CONTAINER_minimal ?= debian:$(VARIANT)-slim
 CONFIGURE_minimal ?=
 INSTALL_minimal ?=	version
 RUN_minimal ?=		/bin/true
+MODULE_PREBUILD_minimal ?= /bin/true
 
 VERSIONS_go ?=		1.20
 VARIANT_go ?=		$(VARIANT)
@@ -24,6 +25,7 @@ $(foreach goversion, $(VERSIONS_go), $(eval CONTAINER_go$(goversion) = golang:$(
 CONFIGURE_go ?=		go --go-path=$$GOPATH
 INSTALL_go ?=		go-install-src libunit-install
 RUN_go ?=			/bin/true
+MODULE_PREBUILD_go ?= /bin/true
 
 VERSIONS_jsc ?=		11
 VARIANT_jsc ?=		jammy
@@ -31,13 +33,15 @@ $(foreach jscversion, $(VERSIONS_jsc), $(eval CONTAINER_jsc$(jscversion) = eclip
 CONFIGURE_jsc ?=	java --jars=/usr/share/unit-jsc-common/
 INSTALL_jsc ?=		java-shared-install java-install
 RUN_jsc ?=	 		/bin/true
+MODULE_PREBUILD_jsc ?= /bin/true
 
 VERSIONS_node ?=	18
 VARIANT_node ?=		$(VARIANT)
 $(foreach nodeversion, $(VERSIONS_node), $(eval CONTAINER_node$(nodeversion) = node:$(nodeversion)-$(VARIANT_node)))
-CONFIGURE_node ?=	nodejs --node-gyp=/usr/local/lib/node_modules/npm/bin/node-gyp-bin/node-gyp
+CONFIGURE_node ?=	nodejs --node-gyp=/usr/local/bin/node-gyp
 INSTALL_node ?=		node node-install libunit-install
 RUN_node ?=			/bin/true
+MODULE_PREBUILD_node ?=	npm -g install node-gyp
 
 VERSIONS_perl ?=	5.36
 VARIANT_perl ?=		$(VARIANT)
@@ -45,6 +49,7 @@ $(foreach perlversion, $(VERSIONS_perl), $(eval CONTAINER_perl$(perlversion) = p
 CONFIGURE_perl ?=	perl
 INSTALL_perl ?=		perl-install
 RUN_perl ?=			/bin/true
+MODULE_PREBUILD_perl ?=	/bin/true
 
 VERSIONS_php ?=		8.2
 VARIANT_php ?=		cli-$(VARIANT)
@@ -52,6 +57,7 @@ $(foreach phpversion, $(VERSIONS_php), $(eval CONTAINER_php$(phpversion) = php:$
 CONFIGURE_php ?=	php
 INSTALL_php ?=		php-install
 RUN_php ?=			ldconfig
+MODULE_PREBUILD_php ?= /bin/true
 
 VERSIONS_python ?=  3.11
 VARIANT_python ?=	$(VARIANT)
@@ -59,6 +65,7 @@ $(foreach pythonversion, $(VERSIONS_python), $(eval CONTAINER_python$(pythonvers
 CONFIGURE_python ?=	python --config=/usr/local/bin/python3-config
 INSTALL_python ?=	python3-install
 RUN_python ?=		/bin/true
+MODULE_PREBUILD_python ?= /bin/true
 
 VERSIONS_ruby ?=	3.2
 VARIANT_ruby ?=		$(VARIANT)
@@ -66,6 +73,7 @@ $(foreach rubyversion, $(VERSIONS_ruby), $(eval CONTAINER_ruby$(rubyversion) = r
 CONFIGURE_ruby ?=	ruby
 INSTALL_ruby ?=		ruby-install
 RUN_ruby ?=			gem install rack
+MODULE_PREBUILD_ruby ?=	/bin/true
 
 default:
 	@echo "valid targets: all build dockerfiles library clean"
@@ -86,6 +94,7 @@ Dockerfile.%: ../../version template.Dockerfile
 			-e 's,@@CONFIGURE@@,$(CONFIGURE_$(call modname, $*)),g' \
 			-e 's,@@INSTALL@@,$(INSTALL_$(call modname, $*)),g' \
 			-e 's,@@RUN@@,$(RUN_$(call modname, $*)),g' \
+			-e 's,@@MODULE_PREBUILD@@,$(MODULE_PREBUILD_$(call modname, $*)),g' \
 			> $@
 
 build-%: Dockerfile.%

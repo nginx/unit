@@ -43,6 +43,7 @@ RUN set -ex \
     && make -j $NCPU unitd \
     && install -pm755 build/sbin/unitd /usr/sbin/unitd \
     && make clean \
+    && @@MODULE_PREBUILD@@ \
     && ./configure $CONFIGURE_ARGS_MODULES --cc-opt="$CC_OPT" --modulesdir=/usr/lib/unit/debug-modules --debug \
     && ./configure @@CONFIGURE@@ \
     && make -j $NCPU @@INSTALL@@ \
