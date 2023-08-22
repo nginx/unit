@@ -1,6 +1,6 @@
 FROM @@CONTAINER@@
 
-LABEL org.opencontainers.image.title="Unit"
+LABEL org.opencontainers.image.title="Unit (@@MODULE@@)"
 LABEL org.opencontainers.image.description="Official build of Unit for Docker."
 LABEL org.opencontainers.image.url="https://unit.nginx.org"
 LABEL org.opencontainers.image.source="https://github.com/nginx/unit"

@@ -124,6 +124,7 @@ Dockerfile.%: ../../version template.Dockerfile
 			-e 's,@@INSTALL@@,$(INSTALL_$(call modname, $*)),g' \
 			-e 's,@@RUN@@,$(RUN_$(call modname, $*)),g' \
 			-e 's,@@MODULE_PREBUILD@@,$(MODULE_PREBUILD_$(call modname, $*)),g' \
+			-e 's,@@MODULE@@,$*,g' \
 			> $@
 
 build-%: Dockerfile.%
