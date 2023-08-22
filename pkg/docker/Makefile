@@ -8,7 +8,7 @@ DEFAULT_VERSION := $(NXT_VERSION)
 VERSION ?= $(DEFAULT_VERSION)
 PATCHLEVEL ?= 1
 
-MODULES ?= go jsc node perl php python ruby
+MODULES ?= go jsc node perl php python ruby wasm
 
 VARIANT ?= bullseye
 
@@ -75,10 +75,39 @@ INSTALL_ruby ?=		ruby-install
 RUN_ruby ?=			gem install rack
 MODULE_PREBUILD_ruby ?=	/bin/true
 
+VERSIONS_wasm ?=
+CONTAINER_wasm ?= debian:$(VARIANT)-slim
+CONFIGURE_wasm ?= wasm --include-path=\`pwd\`/pkg/contrib/wasmtime/crates/c-api/include --lib-path=/usr/lib/\$$(dpkg-architecture -q DEB_HOST_MULTIARCH)/
+INSTALL_wasm ?=	wasm-install
+RUN_wasm ?=		/bin/true
+define MODULE_PREBUILD_wasm
+export RUST_VERSION=1.71.0 \\\n \
+\ \ \ \&\& export RUSTUP_HOME=/usr/src/unit/rustup \\\n \
+\ \ \ \&\& export CARGO_HOME=/usr/src/unit/cargo \\\n    \
+\ \ \ \&\& export PATH=/usr/src/unit/cargo/bin:\$$PATH \\\n \
+\ \ \ \&\& dpkgArch="\$$\(dpkg --print-architecture\)" \\\n \
+\ \ \ \&\& case "\$${dpkgArch##*-}" in \\\n \
+\ \ \ \ \ \ amd64\) rustArch="x86_64-unknown-linux-gnu"; rustupSha256="0b2f6c8f85a3d02fde2efc0ced4657869d73fccfce59defb4e8d29233116e6db" ;; \\\n \
+\ \ \ \ \ \ arm64\) rustArch="aarch64-unknown-linux-gnu"; rustupSha256="673e336c81c65e6b16dcdede33f4cc9ed0f08bde1dbe7a935f113605292dc800" ;; \\\n \
+\ \ \ \ \ \ *\) echo \>\&2 "unsupported architecture: \$${dpkgArch}"; exit 1 ;; \\\n \
+\ \ \ \esac \\\n \
+\ \ \ \&\& url="https://static.rust-lang.org/rustup/archive/1.26.0/\$${rustArch}/rustup-init" \\\n \
+\ \ \ \&\& curl -L -O "\$$url" \\\n \
+\ \ \ \&\& echo "\$${rustupSha256} *rustup-init" | sha256sum -c - \\\n \
+\ \ \ \&\& chmod +x rustup-init \\\n \
+\ \ \ \&\& ./rustup-init -y --no-modify-path --profile minimal --default-toolchain \$$RUST_VERSION --default-host \$${rustArch} \\\n \
+\ \ \ \&\& rm rustup-init \\\n \
+\ \ \ \&\& rustup --version \\\n \
+\ \ \ \&\& cargo --version \\\n \
+\ \ \ \&\& rustc --version \\\n \
+\ \ \ \&\& make -C pkg/contrib .wasmtime \\\n \
+\ \ \ \&\& install -pm 755 pkg/contrib/wasmtime/target/release/libwasmtime.so /usr/lib/\$$\(dpkg-architecture -q DEB_HOST_MULTIARCH\)/
+endef
+
 default:
 	@echo "valid targets: all build dockerfiles library clean"
 
-MODVERSIONS = $(foreach module, $(MODULES), $(foreach modversion, $(shell for v in $(VERSIONS_$(module)); do echo $$v; done | sort -r), $(module)$(modversion))) minimal
+MODVERSIONS = $(foreach module, $(MODULES), $(foreach modversion, $(shell for v in $(VERSIONS_$(module)); do echo $$v; done | sort -r), $(module)$(modversion))) wasm minimal
 
 modname = $(shell echo $1 | /usr/bin/tr -d '.01234567890-')
 
