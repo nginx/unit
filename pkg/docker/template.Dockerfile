@@ -62,7 +62,7 @@ RUN set -ex \
     && { [ -z "$savedAptMark" ] || apt-mark manual $savedAptMark; } \
     && @@RUN@@ \
     && mkdir -p /var/lib/unit/ \
-    && mkdir /docker-entrypoint.d/ \
+    && mkdir -p /docker-entrypoint.d/ \
     && groupadd --gid 999 unit \
     && useradd \
          --uid 999 \
