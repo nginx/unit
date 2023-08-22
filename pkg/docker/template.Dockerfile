@@ -22,7 +22,9 @@ RUN set -ex \
     && CONFIGURE_ARGS_MODULES="--prefix=/usr \
                 --statedir=/var/lib/unit \
                 --control=unix:/var/run/control.unit.sock \
+                --runstatedir=/var/run \
                 --pid=/var/run/unit.pid \
+                --logdir=/var/log \
                 --log=/var/log/unit.log \
                 --tmpdir=/var/tmp \
                 --user=unit \
