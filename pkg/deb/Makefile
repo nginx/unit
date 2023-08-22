@@ -241,7 +241,7 @@ debuild/unit_$(VERSION).orig.tar.gz: | debuild/$(SRCDIR)/debian
 
 unit: check-build-depends-unit debuild/unit_$(VERSION).orig.tar.gz debuild/$(SRCDIR)/debian/changelog
 	@echo "===> Building $@ package"
-	cd debuild/$(SRCDIR) && debuild -us -uc
+	cd debuild/$(SRCDIR) && debuild --preserve-envvar PATH --preserve-envvar RUSTUP_HOME -us -uc
 	mkdir -p debs
 	find debuild/ -maxdepth 1 -type f -exec cp {} debs/ \;
 	ln -s debuild/$(SRCDIR)/build $@
@@ -314,7 +314,7 @@ endif
 
 unit-%: check-build-depends-% | debuild-%
 	@echo "===> Building $@ package"
-	cd debuild-$*/$(SRCDIR) && debuild -us -uc
+	cd debuild-$*/$(SRCDIR) && debuild --preserve-envvar PATH --preserve-envvar RUSTUP_HOME -us -uc
 	mkdir -p debs
 	find debuild-$*/ -maxdepth 1 -type f -exec cp {} debs/ \;
 	ln -s debuild-$*/$(SRCDIR)/build $@

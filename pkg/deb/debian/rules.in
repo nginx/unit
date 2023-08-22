@@ -25,6 +25,11 @@ njs:
 	cd pkg/contrib && make .njs
 	touch $@
 
+libunit-wasm:
+	dh_testdir
+	cd pkg/contrib && make .libunit-wasm
+	touch $@
+
 config.env.%: njs
 	dh_testdir
 	mkdir -p $(BUILDDIR_$*)
@@ -92,7 +97,7 @@ build-arch: build-arch.unit build-arch.unit_debug
 	dh_testdir
 	touch $@
 
-build: build-arch build-indep
+build: build-arch build-indep libunit-wasm
 	dh_testdir
 	touch $@
 
@@ -123,6 +128,9 @@ install: build do.tests
 	install -m 644 README.md $(INSTALLDIR)/usr/share/doc/unit/
 	install -m 644 CONTRIBUTING.md $(INSTALLDIR)/usr/share/doc/unit/
 	install -m 644 NOTICE $(INSTALLDIR)/usr/share/doc/unit/
+	mkdir -p $(INSTALLDIR_dev)/usr/include/unit
+	install -m644 $(CURDIR)/pkg/contrib/libunit-wasm/src/c/libunit-wasm.a $(INSTALLDIR_dev)/usr/lib/$(DEB_HOST_MULTIARCH)/libunit-wasm.a
+	install -m644 $(CURDIR)/pkg/contrib/libunit-wasm/src/c/include/unit/unit-wasm.h $(INSTALLDIR_dev)/usr/include/unit/
 
 binary-indep: build install
 	dh_testdir
