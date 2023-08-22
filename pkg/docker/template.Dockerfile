@@ -74,7 +74,7 @@ RUN set -ex \
          unit \
     && apt-get update \
     && apt-get --no-install-recommends --no-install-suggests -y install curl $(cat /requirements.apt) \
-    && apt-get purge -y --auto-remove \
+    && apt-get purge -y --auto-remove build-essential \
     && rm -rf /var/lib/apt/lists/* \
     && rm -f /requirements.apt \
     && ln -sf /dev/stdout /var/log/unit.log
