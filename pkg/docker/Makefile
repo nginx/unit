@@ -142,10 +142,10 @@ library:
 		modname="$$( echo $$mod | tr -d '.0123456789-' )"; \
 		TAGS="$$mod $${mod%%.*} $$modname" ; \
 		TAGS="$$(echo $$TAGS | tr " " "\n" | sort -u -r | tr "\n" "," | sed "s/,/, /g")"; \
-		if [ "$$previous" == "$$modname" ]; then \
+		if [ "$$previous" = "$$modname" ]; then \
 			echo "Tags: $(VERSION)-$$mod, $$mod"; \
 		else \
-			if [ "$$mod" == "minimal" ]; then \
+			if [ "$$mod" = "minimal" ]; then \
 				echo "Tags: $(VERSION)-$$mod, $${TAGS%, }, latest"; \
 			else \
 				echo "Tags: $(VERSION)-$$mod, $${TAGS%, }"; \
