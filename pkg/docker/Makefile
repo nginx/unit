@@ -159,6 +159,11 @@ library:
 		previous=$$(echo $$mod | tr -d '.0123456789-'); \
 	done
 
+diff: $(addprefix diff-, $(MODVERSIONS))
+
+diff-%:
+	@echo container-diff diff --type file daemon://$(CONTAINER_$*) daemon://unit:$(VERSION)-$*
+
 all: $(addprefix Dockerfile., $(MODVERSIONS))
 
 clean:
