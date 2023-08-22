@@ -35,19 +35,20 @@ NGINX Unit updated to 1.31.0.
 
 <change type="change">
 <para>
-njs updated to 0.8.0.
+if building with njs, version 0.8.0 or later is now required.
 </para>
 </change>
 
 <change type="feature">
 <para>
-ability to control HTTP response headers.
+response headers are manageable during the action and fallback using
+$response_header_NAME variables.
 </para>
 </change>
 
 <change type="feature">
 <para>
-ability to get the HTTP response header variables.
+ASGI lifespan state support. Thanks to synodriver.
 </para>
 </change>
 
