@@ -47,6 +47,8 @@ Requires(postun):  systemd
 
 BuildRequires: pcre2-devel
 BuildRequires: pkgconfig
+BuildRequires: clang
+BuildRequires: llvm
 
 Provides: unit-r%{version}
 
@@ -99,6 +101,10 @@ PKG_CONFIG_PATH=%{bdir}/pkg/contrib/njs/build \
 %{__make} %{?_smp_mflags}
 %{__mv} build build-nodebug
 
+%if (0%{?fedora}) || (0%{?rhel} >= 8) || (0%{?amzn2})
+%{__make} %{?_smp_mflags} -C pkg/contrib .libunit-wasm
+%endif
+
 %install
 %{__rm} -rf %{buildroot}
 %{__ln_s} build-nodebug build
@@ -135,6 +141,12 @@ DESTDIR=%{buildroot} make unitd-install libunit-install manpage-install
 %{__rm} -rf %{buildroot}%{_initrddir}/
 %{__install} -p -D -m 0644 %{SOURCE1} %{buildroot}%{_unitdir}/unit.service
 %{__install} -p -D -m 0644 %{SOURCE2} %{buildroot}%{_unitdir}/unit-debug.service
+
+%if (0%{?fedora}) || (0%{?rhel} >= 8) || (0%{?amzn2})
+%{__mkdir} -p %{buildroot}%{_includedir}/unit/
+%{__install} -m 644 pkg/contrib/libunit-wasm/src/c/libunit-wasm.a %{buildroot}%{_libdir}/
+%{__install} -m 644 pkg/contrib/libunit-wasm/src/c/include/unit/unit-wasm.h %{buildroot}%{_includedir}/unit/
+%endif
 
 QA_SKIP_BUILD_ROOT=1
 export QA_SKIP_BUILD_ROOT
@@ -221,6 +233,11 @@ BANNER
 %files devel
 %{_libdir}/libunit.a
 %{_libdir}/libunit-debug.a
+%if (0%{?fedora}) || (0%{?rhel} >= 8) || (0%{?amzn2})
+%{_libdir}/libunit-wasm.a
+%dir %{_includedir}/unit
+%{_includedir}/unit/*.h
+%endif
 %{_includedir}/nxt_*.h
 %{_datadir}/pkgconfig/unit.pc
 
