@@ -32,7 +32,7 @@ VARIANT_jsc ?=		jammy
 $(foreach jscversion, $(VERSIONS_jsc), $(eval CONTAINER_jsc$(jscversion) = eclipse-temurin:$(jscversion)-jdk-$(VARIANT_jsc)))
 CONFIGURE_jsc ?=	java --jars=/usr/share/unit-jsc-common/
 INSTALL_jsc ?=		java-shared-install java-install
-RUN_jsc ?=	 		/bin/true
+RUN_jsc ?=	 		rm -rf /root/.m2
 MODULE_PREBUILD_jsc ?= /bin/true
 
 VERSIONS_node ?=	18 20
