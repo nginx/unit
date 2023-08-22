@@ -32,6 +32,7 @@ include Makefile.jsc17
 include Makefile.jsc18
 include Makefile.jsc19
 include Makefile.jsc20
+include Makefile.wasm
 endif
 
 # Ubuntu 22.10
@@ -47,6 +48,7 @@ include Makefile.jsc11
 include Makefile.jsc17
 include Makefile.jsc18
 include Makefile.jsc19
+include Makefile.wasm
 endif
 
 # Ubuntu 22.04
@@ -61,6 +63,7 @@ include Makefile.jsc-common
 include Makefile.jsc11
 include Makefile.jsc17
 include Makefile.jsc18
+include Makefile.wasm
 endif
 
 # Ubuntu 21.10
@@ -77,6 +80,7 @@ include Makefile.jsc11
 include Makefile.jsc16
 include Makefile.jsc17
 include Makefile.jsc18
+include Makefile.wasm
 endif
 
 # Ubuntu 20.04
@@ -89,6 +93,7 @@ include Makefile.perl
 include Makefile.ruby
 include Makefile.jsc-common
 include Makefile.jsc11
+include Makefile.wasm
 endif
 
 # Ubuntu 18.04
@@ -104,6 +109,7 @@ include Makefile.ruby
 include Makefile.jsc-common
 include Makefile.jsc8
 include Makefile.jsc11
+include Makefile.wasm
 endif
 
 # Debian 12
@@ -115,6 +121,7 @@ include Makefile.perl
 include Makefile.ruby
 include Makefile.jsc-common
 include Makefile.jsc17
+include Makefile.wasm
 endif
 
 # Debian 11
@@ -127,6 +134,7 @@ include Makefile.perl
 include Makefile.ruby
 include Makefile.jsc-common
 include Makefile.jsc11
+include Makefile.wasm
 endif
 
 # Debian 10
@@ -139,6 +147,7 @@ include Makefile.perl
 include Makefile.ruby
 include Makefile.jsc-common
 include Makefile.jsc11
+include Makefile.wasm
 endif
 
 CONFIGURE_ARGS_COMMON=\

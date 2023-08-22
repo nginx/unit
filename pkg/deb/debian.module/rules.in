@@ -17,6 +17,7 @@ BASEDIR = $(CURDIR)
 
 config.env.%:
 	dh_testdir
+%%MODULE_PREBUILD%%
 	mkdir -p $(BUILDDIR_$*)
 	cp -Pa $(CURDIR)/auto $(BUILDDIR_$*)/
 	cp -Pa $(CURDIR)/configure $(BUILDDIR_$*)/
