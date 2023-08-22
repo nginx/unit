@@ -72,7 +72,7 @@ VARIANT_ruby ?=		$(VARIANT)
 $(foreach rubyversion, $(VERSIONS_ruby), $(eval CONTAINER_ruby$(rubyversion) = ruby:$(rubyversion)-$(VARIANT_ruby)))
 CONFIGURE_ruby ?=	ruby
 INSTALL_ruby ?=		ruby-install
-RUN_ruby ?=			gem install rack
+RUN_ruby ?=			gem install rack \&\& rm -rf /root/.local
 MODULE_PREBUILD_ruby ?=	/bin/true
 
 VERSIONS_wasm ?=
