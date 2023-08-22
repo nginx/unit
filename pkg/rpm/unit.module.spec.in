@@ -59,6 +59,7 @@ This package contains %%SUMMARY%%.
 tar --strip-components=1 -zxf %{SOURCE0}
 
 %build
+%%MODULE_PREBUILD%%
 ./configure \
 	%{CONFIGURE_ARGS} \
 	--modulesdir=%{_libdir}/unit/debug-modules \
