@@ -222,5 +222,6 @@ BANNER
 %{_libdir}/libunit.a
 %{_libdir}/libunit-debug.a
 %{_includedir}/nxt_*.h
+%{_datadir}/pkgconfig/unit.pc
 
 %changelog
