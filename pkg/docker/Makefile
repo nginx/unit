@@ -19,7 +19,7 @@ INSTALL_minimal ?=	version
 RUN_minimal ?=		/bin/true
 MODULE_PREBUILD_minimal ?= /bin/true
 
-VERSIONS_go ?=		1.20
+VERSIONS_go ?=		1.20 1.21
 VARIANT_go ?=		$(VARIANT)
 $(foreach goversion, $(VERSIONS_go), $(eval CONTAINER_go$(goversion) = golang:$(goversion)-$(VARIANT_go)))
 CONFIGURE_go ?=		go --go-path=$$GOPATH
@@ -35,7 +35,7 @@ INSTALL_jsc ?=		java-shared-install java-install
 RUN_jsc ?=	 		/bin/true
 MODULE_PREBUILD_jsc ?= /bin/true
 
-VERSIONS_node ?=	18
+VERSIONS_node ?=	18 20
 VARIANT_node ?=		$(VARIANT)
 $(foreach nodeversion, $(VERSIONS_node), $(eval CONTAINER_node$(nodeversion) = node:$(nodeversion)-$(VARIANT_node)))
 CONFIGURE_node ?=	nodejs --node-gyp=/usr/local/bin/node-gyp
@@ -43,7 +43,7 @@ INSTALL_node ?=		node node-install libunit-install
 RUN_node ?=			/bin/true
 MODULE_PREBUILD_node ?=	npm -g install node-gyp
 
-VERSIONS_perl ?=	5.36
+VERSIONS_perl ?=	5.36 5.38
 VARIANT_perl ?=		$(VARIANT)
 $(foreach perlversion, $(VERSIONS_perl), $(eval CONTAINER_perl$(perlversion) = perl:$(perlversion)-$(VARIANT_perl)))
 CONFIGURE_perl ?=	perl
