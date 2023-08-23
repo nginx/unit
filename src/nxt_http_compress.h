@@ -9,6 +9,8 @@
 
 #include "nxt_router.h"
 
+#include <stdint.h>
+
 #include "nxt_http.h"
 #include "nxt_main.h"
 #include "nxt_router.h"
@@ -22,6 +24,8 @@ struct nxt_http_compress_conf_s {
     nxt_int_t  (*handler)(nxt_task_t *task,
                           nxt_http_request_t *r,
                           nxt_http_compress_conf_t *conf);
+
+    int8_t     level;
 };
 
 

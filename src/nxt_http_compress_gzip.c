@@ -7,6 +7,7 @@
 #include "nxt_http_compress_gzip.h"
 
 #include <stddef.h>
+#include <stdint.h>
 
 #include <zlib.h>
 
@@ -31,6 +32,8 @@ typedef struct nxt_http_compress_gzip_ctx_s  nxt_http_compress_gzip_ctx_t;
 struct nxt_http_compress_gzip_ctx_s {
     nxt_http_request_t  *r;
     nxt_buf_t           *b;
+
+    int8_t              level;
 
     z_stream            z;
 };
@@ -97,14 +100,15 @@ nxt_http_compress_gzip_ctx(nxt_task_t *task, nxt_http_request_t *r,
         return NULL;
     }
 
+    ctx->level = conf->level;
     ctx->r = r;
 
     z = &ctx->z;
     z->zalloc = NULL;
     z->zfree = NULL;
     z->opaque = NULL;
-    ret = deflateInit2(z, Z_DEFAULT_COMPRESSION, Z_DEFLATED, MAX_WBITS + 16,
-                       MAX_MEM_LEVEL, Z_DEFAULT_STRATEGY);
+    ret = deflateInit2(z, ctx->level, Z_DEFLATED, MAX_WBITS + 16, MAX_MEM_LEVEL,
+                       Z_DEFAULT_STRATEGY);
     if (nxt_slow_path(ret != 0)) {
         return NULL;
     }

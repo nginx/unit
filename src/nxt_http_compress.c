@@ -23,11 +23,19 @@
 #include "nxt_types.h"
 
 
+#define NXT_DEFAULT_COMPRESSION  (-1)
+
+
 static nxt_conf_map_t  nxt_http_compress_conf[] = {
     {
         nxt_string("encoding"),
         NXT_CONF_MAP_STR,
         offsetof(nxt_http_compress_conf_t, encoding),
+    },
+    {
+        nxt_string("level"),
+        NXT_CONF_MAP_INT8,
+        offsetof(nxt_http_compress_conf_t, level),
     },
 };
 
@@ -46,6 +54,8 @@ nxt_http_compress_init(nxt_router_conf_t *rtcf, nxt_http_action_t *action,
     if (nxt_slow_path(conf == NULL)) {
         return NXT_ERROR;
     }
+
+    conf->level = NXT_DEFAULT_COMPRESSION;
 
     ret = nxt_conf_map_object(mp, acf->compress, nxt_http_compress_conf,
                               nxt_nitems(nxt_http_compress_conf), conf);

@@ -1158,6 +1158,9 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_compress_members[] = {
     {
         .name       = nxt_string("encoding"),
         .type       = NXT_CONF_VLDT_STRING,
+    }, {
+        .name       = nxt_string("level"),
+        .type       = NXT_CONF_VLDT_INTEGER,
     },
 
     NXT_CONF_VLDT_END
