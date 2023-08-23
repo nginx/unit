@@ -161,7 +161,18 @@ NXT_EXPORT nxt_bool_t nxt_is_complex_uri_encoded(u_char *s, size_t length);
 
 NXT_EXPORT ssize_t nxt_base64_decode(u_char *dst, u_char *src, size_t length);
 
+NXT_EXPORT long nxt_ustrtol(const nxt_str_t *s, int *err);
+nxt_inline unsigned long nxt_ustrtoul(const nxt_str_t *s, int *err);
+
+
 extern const uint8_t  nxt_hex2int[256];
+
+
+nxt_inline unsigned long
+nxt_ustrtoul(const nxt_str_t *s, int *err)
+{
+    return nxt_ustrtol(s, err);
+}
 
 
 #endif /* _NXT_STRING_H_INCLUDED_ */
