@@ -54,18 +54,15 @@ nxt_int_t
 nxt_http_compress_gzip(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_compress_conf_t *conf)
 {
+    size_t                        clen;
     nxt_int_t                     ret;
     nxt_http_compress_gzip_ctx_t  *ctx;
 
     static nxt_str_t  ce = nxt_string("Content-Encoding");
     static nxt_str_t  gzip = nxt_string("gzip");
 
-    if (r->body_handler == NULL
-        || r->resp.content_length_n == 0
-        || (r->resp.content_length != NULL
-            && r->resp.content_length->value_length == 1
-            && r->resp.content_length->value[0] == '0'))
-    {
+    clen = nxt_http_compress_resp_content_length(&r->resp);
+    if (clen < nxt_max(1u, conf->min_len) || r->body_handler == NULL) {
         return NXT_OK;
     }
 

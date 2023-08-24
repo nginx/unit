@@ -37,6 +37,11 @@ static nxt_conf_map_t  nxt_http_compress_conf[] = {
         NXT_CONF_MAP_INT8,
         offsetof(nxt_http_compress_conf_t, level),
     },
+    {
+        nxt_string("min_length"),
+        NXT_CONF_MAP_SIZE,
+        offsetof(nxt_http_compress_conf_t, min_len),
+    },
 };
 
 
@@ -56,6 +61,7 @@ nxt_http_compress_init(nxt_router_conf_t *rtcf, nxt_http_action_t *action,
     }
 
     conf->level = NXT_DEFAULT_COMPRESSION;
+    conf->min_len = 20;
 
     ret = nxt_conf_map_object(mp, acf->compress, nxt_http_compress_conf,
                               nxt_nitems(nxt_http_compress_conf), conf);
@@ -97,4 +103,31 @@ nxt_http_compress_append_field(nxt_task_t *task, nxt_http_request_t *r,
     f->value = value->start;
 
     return NXT_OK;
+}
+
+
+ssize_t
+nxt_http_compress_resp_content_length(nxt_http_response_t *resp)
+{
+    size_t     cl;
+    nxt_int_t  err;
+    nxt_str_t  str;
+
+    if (resp->content_length_n != -1) {
+        return resp->content_length_n;
+    }
+
+    if (resp->content_length == NULL) {
+        return -1;
+    }
+
+    str.length = resp->content_length->value_length;
+    str.start = resp->content_length->value;
+
+    cl = nxt_ustrtoul(&str, &err);
+    if (err == NXT_ERROR) {
+        return -1;
+    }
+
+    return cl;
 }

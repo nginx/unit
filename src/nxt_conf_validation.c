@@ -1161,6 +1161,9 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_compress_members[] = {
     }, {
         .name       = nxt_string("level"),
         .type       = NXT_CONF_VLDT_INTEGER,
+    }, {
+        .name       = nxt_string("min_length"),
+        .type       = NXT_CONF_VLDT_INTEGER,
     },
 
     NXT_CONF_VLDT_END
