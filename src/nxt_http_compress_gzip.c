@@ -66,6 +66,16 @@ nxt_http_compress_gzip(nxt_task_t *task, nxt_http_request_t *r,
         return NXT_OK;
     }
 
+    ret = nxt_http_compressible_mtype(task, r, conf->mtrule);
+    switch (ret) {
+    case NXT_ERROR:
+        return NXT_ERROR;
+    case 0:
+        return NXT_OK;
+    case 1:
+        break;
+    }
+
     r->resp.content_length = NULL;
     r->resp.content_length_n = -1;
 

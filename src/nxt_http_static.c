@@ -648,6 +648,7 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
         r->body_handler = NULL;
     }
 
+    r->resp.mtype = mtype;
     nxt_http_request_header_send(task, r);
 
     r->state = &nxt_http_static_send_state;

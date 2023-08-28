@@ -1164,6 +1164,10 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_compress_members[] = {
     }, {
         .name       = nxt_string("min_length"),
         .type       = NXT_CONF_VLDT_INTEGER,
+    }, {
+        .name       = nxt_string("mime_types"),
+        .type       = NXT_CONF_VLDT_STRING | NXT_CONF_VLDT_ARRAY,
+        .validator  = nxt_conf_vldt_match_patterns,
     },
 
     NXT_CONF_VLDT_END

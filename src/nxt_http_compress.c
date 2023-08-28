@@ -42,12 +42,17 @@ static nxt_conf_map_t  nxt_http_compress_conf[] = {
         NXT_CONF_MAP_SIZE,
         offsetof(nxt_http_compress_conf_t, min_len),
     },
+    {
+        nxt_string("mime_types"),
+        NXT_CONF_MAP_PTR,
+        offsetof(nxt_http_compress_conf_t, mtypes),
+    },
 };
 
 
 nxt_int_t
-nxt_http_compress_init(nxt_router_conf_t *rtcf, nxt_http_action_t *action,
-    nxt_http_action_conf_t *acf)
+nxt_http_compress_init(nxt_task_t *task, nxt_router_conf_t *rtcf,
+    nxt_http_action_t *action, nxt_http_action_conf_t *acf)
 {
     nxt_mp_t                  *mp;
     nxt_int_t                 ret;
@@ -67,6 +72,13 @@ nxt_http_compress_init(nxt_router_conf_t *rtcf, nxt_http_action_t *action,
                               nxt_nitems(nxt_http_compress_conf), conf);
     if (nxt_slow_path(ret == NXT_ERROR)) {
         return NXT_ERROR;
+    }
+
+    if (conf->mtypes != NULL) {
+        conf->mtrule = nxt_http_route_types_rule_create(task, mp, conf->mtypes);
+        if (nxt_slow_path(conf->mtrule == NULL)) {
+            return NXT_ERROR;
+        }
     }
 
     if (NXT_WITH_ZLIB && nxt_str_eq(&conf->encoding, "gzip", strlen("gzip"))) {
@@ -130,4 +142,25 @@ nxt_http_compress_resp_content_length(nxt_http_response_t *resp)
     }
 
     return cl;
+}
+
+
+nxt_int_t
+nxt_http_compressible_mtype(nxt_task_t *task, nxt_http_request_t *r,
+    nxt_http_route_rule_t *mtrule)
+{
+    const nxt_str_t   *type;
+
+    static nxt_str_t  unknown_mtype = nxt_string("");
+
+    if (mtrule == NULL) {
+        return 1;
+    }
+
+    type = r->resp.mtype;
+    if (type == NULL) {
+        type = &unknown_mtype;
+    }
+
+    return nxt_http_route_test_rule(r, mtrule, type->start, type->length);
 }

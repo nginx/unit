@@ -690,7 +690,7 @@ nxt_http_action_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     }
 
     if (acf.compress != NULL) {
-        ret = nxt_http_compress_init(rtcf, action, &acf);
+        ret = nxt_http_compress_init(task, rtcf, action, &acf);
         if (nxt_slow_path(ret != NXT_OK)) {
             return ret;
         }
