@@ -41,8 +41,19 @@ if building with njs, version 0.8.0 or later is now required.
 
 <change type="feature">
 <para>
-response headers are manageable during the action and fallback using
-$response_header_NAME variables.
+technology preview of WebAssembly application module.
+</para>
+</change>
+
+<change type="feature">
+<para>
+"response_headers" option to manage headers in the action and fallback.
+</para>
+</change>
+
+<change type="feature">
+<para>
+HTTP response header variables.
 </para>
 </change>
 
