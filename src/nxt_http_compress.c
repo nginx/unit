@@ -20,6 +20,7 @@
 #include "nxt_mp.h"
 #include "nxt_router.h"
 #include "nxt_string.h"
+#include "nxt_tstr.h"
 #include "nxt_types.h"
 
 
@@ -58,6 +59,8 @@ nxt_http_compress_init(nxt_task_t *task, nxt_router_conf_t *rtcf,
     nxt_int_t                 ret;
     nxt_http_compress_conf_t  *conf;
 
+    static nxt_str_t          hdr_a_e = nxt_string("$header_accept_encoding");
+
     mp = rtcf->mem_pool;
 
     conf = nxt_mp_zget(mp, sizeof(nxt_http_compress_conf_t));
@@ -79,6 +82,11 @@ nxt_http_compress_init(nxt_task_t *task, nxt_router_conf_t *rtcf,
         if (nxt_slow_path(conf->mtrule == NULL)) {
             return NXT_ERROR;
         }
+    }
+
+    conf->accept_encoding = nxt_tstr_compile(rtcf->tstr_state, &hdr_a_e, 0);
+    if (nxt_slow_path(conf->accept_encoding == NULL)) {
+        return NXT_ERROR;
     }
 
     if (NXT_WITH_ZLIB && nxt_str_eq(&conf->encoding, "gzip", strlen("gzip"))) {
@@ -142,6 +150,31 @@ nxt_http_compress_resp_content_length(nxt_http_response_t *resp)
     }
 
     return cl;
+}
+
+
+nxt_int_t
+nxt_http_compress_accept_encoding(nxt_task_t *task, nxt_http_request_t *r,
+    nxt_tstr_t *accept_encoding, nxt_str_t *encoding)
+{
+    nxt_int_t          ret;
+    nxt_str_t          str;
+    nxt_router_conf_t  *rtcf;
+
+    rtcf = r->conf->socket_conf->router_conf;
+
+    ret = nxt_tstr_query_init(&r->tstr_query, rtcf->tstr_state, &r->tstr_cache,
+                              r, r->mem_pool);
+    if (nxt_slow_path(ret == NXT_ERROR)) {
+        return NXT_ERROR;
+    }
+
+    nxt_tstr_query(task, r->tstr_query, accept_encoding, &str);
+    if (nxt_slow_path(nxt_tstr_query_failed(r->tstr_query))) {
+        return NXT_ERROR;
+    }
+
+    return nxt_strstr_eq(&str, encoding);
 }
 
 
