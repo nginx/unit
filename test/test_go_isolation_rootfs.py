@@ -1,32 +1,19 @@
-import os
+from unit.applications.lang.go import ApplicationGo
 
-import pytest
-from unit.applications.lang.go import TestApplicationGo
+prerequisites = {
+    'modules': {'go': 'all'},
+    'features': {'isolation': True},
+    'privileged_user': True,
+}
+
+client = ApplicationGo()
 
 
-class TestGoIsolationRootfs(TestApplicationGo):
-    prerequisites = {'modules': {'go': 'all'}}
+def test_go_isolation_rootfs_chroot(temp_dir):
+    client.load('ns_inspect', isolation={'rootfs': temp_dir})
 
-    @pytest.fixture(autouse=True)
-    def setup_method_fixture(self, request, skip_alert):
-        skip_alert(r'\[unit\] close\(\d+\) failed: Bad file descriptor')
+    obj = client.getjson(url='/?file=/go/app')['body']
+    assert obj['FileExists'], 'app relative to rootfs'
 
-    def test_go_isolation_rootfs_chroot(self, is_su, temp_dir):
-        if not is_su:
-            pytest.skip('requires root')
-
-        if os.uname().sysname == 'Darwin':
-            pytest.skip('chroot tests not supported on OSX')
-
-        isolation = {
-            'rootfs': temp_dir,
-        }
-
-        self.load('ns_inspect', isolation=isolation)
-
-        obj = self.getjson(url='/?file=/go/app')['body']
-
-        assert obj['FileExists'] == True, 'app relative to rootfs'
-
-        obj = self.getjson(url='/?file=/bin/sh')['body']
-        assert obj['FileExists'] == False, 'file should not exists'
+    obj = client.getjson(url='/?file=/bin/sh')['body']
+    assert not obj['FileExists'], 'file should not exists'

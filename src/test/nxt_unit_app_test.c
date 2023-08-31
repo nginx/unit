@@ -257,8 +257,8 @@ greeting_app_request_handler(nxt_unit_request_info_t *req)
     if (r->content_length > 0) {
         p = copy(p, BODY, nxt_length(BODY));
 
-        res = nxt_unit_request_read(req, buf->free, buf->end - buf->free);
-        buf->free += res;
+        res = nxt_unit_request_read(req, p, buf->end - p);
+        p += res;
 
     }
 

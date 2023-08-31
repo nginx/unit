@@ -15,12 +15,12 @@ coherent solution with a focus on performance, low latency, and scalability. It
 is intended as a universal building block for any web architecture regardless
 of its complexity, from enterprise-scale deployments to your pet's homepage.
 
-Its native RESTful JSON API enables dynamic updates with zero interruptions
-and flexible configuration, while its out-of-the-box productivity reliably
-scales to production-grade workloads. We achieve that with a complex,
-asynchronous, multithreading architecture comprising multiple processes to
-ensure security and robustness while getting the most out of today's computing
-platforms.
+Its native [RESTful JSON API](#openapi-specification) enables dynamic
+updates with zero interruptions and flexible configuration, while its
+out-of-the-box productivity reliably scales to production-grade workloads. We
+achieve that with a complex, asynchronous, multithreading architecture
+comprising multiple processes to ensure security and robustness while getting
+the most out of today's computing platforms.
 
 
 ## Quick Installation
@@ -38,7 +38,7 @@ For details and available language packages, see the
 ### Docker
 
 ``` console
-$ docker pull docker.io/nginx/unit
+$ docker pull unit
 ```
 
 For a description of image tags, see the
@@ -70,6 +70,11 @@ For details and available language packages, see the
 
 
 ## Running a Hello World App
+
+Unit runs apps in a
+[variety of languages](https://unit.nginx.org/howto/samples/).
+Let's consider a basic example,
+choosing PHP for no particular reason.
 
 Suppose you saved a PHP script as `/www/helloworld/index.php`:
 ``` php
@@ -156,6 +161,16 @@ Unit's output should contain both snippets, neatly organized:
 For full details of configuration management, see the
 [docs](https://unit.nginx.org/configuration/#configuration-management).
 
+## OpenAPI Specification
+
+Our [OpenAPI specification](docs/unit-openapi.yaml) aims to simplify
+configuring and integrating NGINX Unit deployments and provide an authoritative
+source of knowledge about the control API.
+
+Although the specification is still in the early beta stage, it is a promising
+step forward for the NGINX Unit community. While working on it, we kindly ask
+you to experiment and provide feedback to help improve its functionality and
+usability.
 
 ## Community
 

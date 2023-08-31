@@ -1,40 +1,11 @@
 import os
-import re
-import time
 
-from unit.control import TestControl
-from unit.log import Log
+from unit.control import Control
 from unit.option import option
 
 
-class TestApplicationProto(TestControl):
+class ApplicationProto(Control):
     application_type = None
-
-    def sec_epoch(self):
-        return time.mktime(time.gmtime())
-
-    def date_to_sec_epoch(self, date, template='%a, %d %b %Y %X %Z'):
-        return time.mktime(time.strptime(date, template))
-
-    def findall(self, pattern, name='unit.log', flags=re.M):
-        with Log.open(name) as f:
-            return re.findall(pattern, f.read(), flags)
-
-    def search_in_log(self, pattern, name='unit.log', flags=re.M):
-        with Log.open(name) as f:
-            return re.search(pattern, f.read(), flags)
-
-    def wait_for_record(self, pattern, name='unit.log', wait=150, flags=re.M):
-        with Log.open(name) as f:
-            for i in range(wait):
-                found = re.search(pattern, f.read(), flags)
-
-                if found is not None:
-                    break
-
-                time.sleep(0.1)
-
-        return found
 
     def get_application_type(self):
         current_test = (

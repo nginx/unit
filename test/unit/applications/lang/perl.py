@@ -1,9 +1,10 @@
-from unit.applications.proto import TestApplicationProto
+from unit.applications.proto import ApplicationProto
 from unit.option import option
 
 
-class TestApplicationPerl(TestApplicationProto):
-    application_type = "perl"
+class ApplicationPerl(ApplicationProto):
+    def __init__(self, application_type='perl'):
+        self.application_type = application_type
 
     def load(self, script, name='psgi.pl', **kwargs):
         script_path = f'{option.test_dir}/perl/{script}'

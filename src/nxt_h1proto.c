@@ -1284,7 +1284,7 @@ nxt_h1p_request_header_send(nxt_task_t *task, nxt_http_request_t *r,
         size += NXT_WEBSOCKET_ACCEPT_SIZE + 2;
 
     } else {
-        http11 = (h1p->parser.version.s.minor != '0');
+        http11 = nxt_h1p_is_http11(h1p);
 
         if (r->resp.content_length == NULL || r->resp.content_length->skip) {
 

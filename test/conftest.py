@@ -2,7 +2,6 @@ import fcntl
 import inspect
 import json
 import os
-import platform
 import re
 import shutil
 import signal
@@ -14,16 +13,11 @@ import time
 from multiprocessing import Process
 
 import pytest
-from unit.check.chroot import check_chroot
-from unit.check.go import check_go
-from unit.check.isolation import check_isolation
-from unit.check.njs import check_njs
-from unit.check.node import check_node
-from unit.check.regex import check_regex
-from unit.check.tls import check_openssl
-from unit.check.unix_abstract import check_unix_abstract
-from unit.http import TestHTTP
+from unit.check.discover_available import discover_available
+from unit.check.check_prerequisites import check_prerequisites
+from unit.http import HTTP1
 from unit.log import Log
+from unit.log import print_log_on_assert
 from unit.option import option
 from unit.status import Status
 from unit.utils import check_findmnt
@@ -88,7 +82,7 @@ _fds_info = {
         'skip': False,
     },
 }
-http = TestHTTP()
+http = HTTP1()
 is_findmnt = check_findmnt()
 
 
@@ -108,8 +102,6 @@ def pytest_configure(config):
         os.path.join(os.path.dirname(__file__), os.pardir)
     )
     option.test_dir = f'{option.current_dir}/test'
-    option.architecture = platform.architecture()[0]
-    option.system = platform.system()
 
     option.cache_dir = tempfile.mkdtemp(prefix='unit-test-cache-')
     public_dir(option.cache_dir)
@@ -120,124 +112,75 @@ def pytest_configure(config):
         fcntl.fcntl(sys.stdout.fileno(), fcntl.F_SETFL, 0)
 
 
-def print_log_on_assert(func):
-    def inner_function(*args, **kwargs):
-        try:
-            func(*args, **kwargs)
-        except AssertionError as e:
-            _print_log(kwargs.get('log', None))
-            raise e
-
-    return inner_function
-
-
 def pytest_generate_tests(metafunc):
-    cls = metafunc.cls
+    module = metafunc.module
     if (
-        not hasattr(cls, 'application_type')
-        or cls.application_type == None
-        or cls.application_type == 'external'
+        not hasattr(module, 'client')
+        or not hasattr(module.client, 'application_type')
+        or module.client.application_type is None
+        or module.client.application_type == 'external'
     ):
         return
 
-    type = cls.application_type
+    app_type = module.client.application_type
 
     def generate_tests(versions):
+        if not versions:
+            pytest.skip('no available module versions')
+
         metafunc.fixturenames.append('tmp_ct')
         metafunc.parametrize('tmp_ct', versions)
 
         for version in versions:
             option.generated_tests[
                 f'{metafunc.function.__name__} [{version}]'
-            ] = f'{type} {version}'
+            ] = f'{app_type} {version}'
 
     # take available module from option and generate tests for each version
 
-    for module, prereq_version in cls.prerequisites['modules'].items():
-        if module in option.available['modules']:
-            available_versions = option.available['modules'][module]
+    available_modules = option.available['modules']
 
-            if prereq_version == 'all':
+    for module, version in metafunc.module.prerequisites['modules'].items():
+        if module in available_modules and available_modules[module]:
+            available_versions = available_modules[module]
+
+            if version == 'all':
                 generate_tests(available_versions)
 
-            elif prereq_version == 'any':
+            elif version == 'any':
                 option.generated_tests[
                     metafunc.function.__name__
-                ] = f'{type} {available_versions[0]}'
-            elif callable(prereq_version):
-                generate_tests(list(filter(prereq_version, available_versions)))
+                ] = f'{app_type} {available_versions[0]}'
+            elif callable(version):
+                generate_tests(list(filter(version, available_versions)))
 
             else:
                 raise ValueError(
                     f'''
-Unexpected prerequisite version "{prereq_version}" for module "{module}" in
-{cls}. 'all', 'any' or callable expected.'''
+Unexpected prerequisite version "{version}" for module "{module}".
+'all', 'any' or callable expected.'''
                 )
 
 
-def pytest_sessionstart(session):
-    option.available = {'modules': {}, 'features': {}}
-
+def pytest_sessionstart():
     unit = unit_run()
-    output_version = subprocess.check_output(
-        [unit['unitd'], '--version'], stderr=subprocess.STDOUT
-    ).decode()
 
-    # read unit.log
+    discover_available(unit)
 
-    for i in range(50):
-        with open(Log.get_path(), 'r') as f:
-            log = f.read()
-            m = re.search('controller started', log)
-
-            if m is None:
-                time.sleep(0.1)
-            else:
-                break
-
-    if m is None:
-        _print_log(log)
-        exit("Unit is writing log too long")
-
-    # discover available modules from unit.log
-
-    for module in re.findall(r'module: ([a-zA-Z]+) (.*) ".*"$', log, re.M):
-        versions = option.available['modules'].setdefault(module[0], [])
-        if module[1] not in versions:
-            versions.append(module[1])
-
-    # discover modules from check
-
-    option.available['modules']['go'] = check_go()
-    option.available['modules']['njs'] = check_njs(output_version)
-    option.available['modules']['node'] = check_node(option.current_dir)
-    option.available['modules']['openssl'] = check_openssl(output_version)
-    option.available['modules']['regex'] = check_regex(output_version)
-
-    # remove None values
-
-    option.available['modules'] = {
-        k: v for k, v in option.available['modules'].items() if v is not None
-    }
-
-    check_chroot()
-    check_isolation()
-    check_unix_abstract()
-
-    _clear_conf(f'{unit["temp_dir"]}/control.unit.sock')
+    _clear_conf()
 
     unit_stop()
 
-    _check_alerts()
+    Log.check_alerts()
 
     if option.restart:
-        shutil.rmtree(unit_instance['temp_dir'])
+        shutil.rmtree(unit['temp_dir'])
     else:
         _clear_temp_dir()
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_runtest_makereport(item, call):
+def pytest_runtest_makereport(item):
     # execute all other hooks to obtain the report object
     outcome = yield
     rep = outcome.get_result()
@@ -248,38 +191,10 @@ def pytest_runtest_makereport(item, call):
     setattr(item, f'rep_{rep.when}', rep)
 
 
-@pytest.fixture(scope='class', autouse=True)
-def check_prerequisites(request):
-    cls = request.cls
-    missed = []
-
-    # check modules
-
-    if 'modules' in cls.prerequisites:
-        available_modules = list(option.available['modules'].keys())
-
-        for module in cls.prerequisites['modules']:
-            if module in available_modules:
-                continue
-
-            missed.append(module)
-
-    if missed:
-        pytest.skip(f'Unit has no {", ".join(missed)} module(s)')
-
-    # check features
-
-    if 'features' in cls.prerequisites:
-        available_features = list(option.available['features'].keys())
-
-        for feature in cls.prerequisites['features']:
-            if feature in available_features:
-                continue
-
-            missed.append(feature)
-
-    if missed:
-        pytest.skip(f'{", ".join(missed)} feature(s) not supported')
+@pytest.fixture(scope='module', autouse=True)
+def check_prerequisites_module(request):
+    if hasattr(request.module, 'prerequisites'):
+        check_prerequisites(request.module.prerequisites)
 
 
 @pytest.fixture(autouse=True)
@@ -306,7 +221,7 @@ def run(request):
 
     # prepare log
 
-    with Log.open(encoding='utf-8') as f:
+    with Log.open() as f:
         log = f.read()
         Log.set_pos(f.tell())
 
@@ -317,7 +232,7 @@ def run(request):
     # clean temp_dir before the next test
 
     if not option.restart:
-        _clear_conf(f'{unit["temp_dir"]}/control.unit.sock', log=log)
+        _clear_conf(log=log)
         _clear_temp_dir()
 
     # check descriptors
@@ -331,17 +246,17 @@ def run(request):
     # print unit.log in case of error
 
     if hasattr(request.node, 'rep_call') and request.node.rep_call.failed:
-        _print_log(log)
+        Log.print_log(log)
 
     if error_stop_unit or error_stop_processes:
-        _print_log(log)
+        Log.print_log(log)
 
     # check unit.log for errors
 
     assert error_stop_unit is None, 'stop unit'
     assert error_stop_processes is None, 'stop processes'
 
-    _check_alerts(log=log)
+    Log.check_alerts(log=log)
 
 
 def unit_run(state_dir=None):
@@ -360,6 +275,7 @@ def unit_run(state_dir=None):
         exit('Could not find unit')
 
     temp_dir = tempfile.mkdtemp(prefix='unit-test-')
+    option.temp_dir = temp_dir
     public_dir(temp_dir)
 
     if oct(stat.S_IMODE(os.stat(builddir).st_mode)) != '0o777':
@@ -394,23 +310,19 @@ def unit_run(state_dir=None):
     with open(f'{temp_dir}/unit.log', 'w') as log:
         unit_instance['process'] = subprocess.Popen(unitd_args, stderr=log)
 
-    Log.temp_dir = temp_dir
-
     if not waitforfiles(control_sock):
-        _print_log()
+        Log.print_log()
         exit('Could not start unit')
 
     unit_instance['temp_dir'] = temp_dir
     unit_instance['control_sock'] = control_sock
     unit_instance['unitd'] = unitd
 
-    option.temp_dir = temp_dir
-
     with open(f'{temp_dir}/unit.pid', 'r') as f:
         unit_instance['pid'] = f.read().rstrip()
 
     if state_dir is None:
-        _clear_conf(control_sock)
+        _clear_conf()
 
     _fds_info['main']['fds'] = _count_fds(unit_instance['pid'])
 
@@ -466,54 +378,9 @@ def unit_stop():
 
 
 @print_log_on_assert
-def _check_alerts(*, log=None):
-    if log is None:
-        with Log.open(encoding='utf-8') as f:
-            log = f.read()
+def _clear_conf(*, log=None):
+    sock = unit_instance['control_sock']
 
-    found = False
-    alerts = re.findall(r'.+\[alert\].+', log)
-
-    if alerts:
-        found = True
-
-        if option.detailed:
-            print('\nAll alerts/sanitizer errors found in log:')
-            [print(alert) for alert in alerts]
-
-    if option.skip_alerts:
-        for skip in option.skip_alerts:
-            alerts = [al for al in alerts if re.search(skip, al) is None]
-
-    assert not alerts, 'alert(s)'
-
-    if not option.skip_sanitizer:
-        sanitizer_errors = re.findall('.+Sanitizer.+', log)
-
-        assert not sanitizer_errors, 'sanitizer error(s)'
-
-    if found and option.detailed:
-        print('skipped.')
-
-
-def _print_log(log=None):
-    path = Log.get_path()
-
-    print(f'Path to unit.log:\n{path}\n')
-
-    if option.print_log:
-        os.set_blocking(sys.stdout.fileno(), True)
-        sys.stdout.flush()
-
-        if log is None:
-            with open(path, 'r', encoding='utf-8', errors='ignore') as f:
-                shutil.copyfileobj(f, sys.stdout)
-        else:
-            sys.stdout.write(log)
-
-
-@print_log_on_assert
-def _clear_conf(sock, *, log=None):
     resp = http.put(
         url='/config',
         sock_type='unix',
@@ -529,7 +396,10 @@ def _clear_conf(sock, *, log=None):
     def delete(url):
         return http.delete(url=url, sock_type='unix', addr=sock)['body']
 
-    if 'openssl' in option.available['modules']:
+    if (
+        'openssl' in option.available['modules']
+        and option.available['modules']['openssl']
+    ):
         try:
             certs = json.loads(get('/certificates')).keys()
 
@@ -539,7 +409,10 @@ def _clear_conf(sock, *, log=None):
         for cert in certs:
             assert 'success' in delete(f'/certificates/{cert}'), 'delete cert'
 
-    if 'njs' in option.available['modules']:
+    if (
+        'njs' in option.available['modules']
+        and option.available['modules']['njs']
+    ):
         try:
             scripts = json.loads(get('/js_modules')).keys()
 
@@ -548,6 +421,7 @@ def _clear_conf(sock, *, log=None):
 
         for script in scripts:
             assert 'success' in delete(f'/js_modules/{script}'), 'delete script'
+
 
 def _clear_temp_dir():
     temp_dir = unit_instance['temp_dir']
@@ -567,12 +441,14 @@ def _clear_temp_dir():
             if os.path.isfile(path) or stat.S_ISSOCK(os.stat(path).st_mode):
                 os.remove(path)
             else:
-                for attempt in range(10):
+                for _ in range(10):
                     try:
                         shutil.rmtree(path)
                         break
                     except OSError as err:
-                        if err.errno != 16:
+                        # OSError: [Errno 16] Device or resource busy
+                        # OSError: [Errno 39] Directory not empty
+                        if err.errno not in [16, 39]:
                             raise
                         time.sleep(1)
 
@@ -582,7 +458,7 @@ def _check_processes():
     controller_pid = _fds_info['controller']['pid']
     unit_pid = unit_instance['pid']
 
-    for i in range(600):
+    for _ in range(600):
         out = (
             subprocess.check_output(
                 ['ps', '-ax', '-o', 'pid', '-o', 'ppid', '-o', 'command']
@@ -625,7 +501,7 @@ def _check_processes():
 @print_log_on_assert
 def _check_fds(*, log=None):
     def waitforfds(diff):
-        for i in range(600):
+        for _ in range(600):
             fds_diff = diff()
 
             if fds_diff <= option.fds_threshold:
@@ -729,6 +605,66 @@ def find_proc(name, ps_output):
     return re.findall(f'{unit_instance["pid"]}.*{name}', ps_output)
 
 
+def pytest_sessionfinish():
+    if not option.restart and option.save_log:
+        Log.print_path()
+
+    option.restart = True
+
+    unit_stop()
+
+    public_dir(option.cache_dir)
+    shutil.rmtree(option.cache_dir)
+
+    if not option.save_log and os.path.isdir(option.temp_dir):
+        public_dir(option.temp_dir)
+        shutil.rmtree(option.temp_dir)
+
+
+@pytest.fixture
+def date_to_sec_epoch():
+    def _date_to_sec_epoch(date, template='%a, %d %b %Y %X %Z'):
+        return time.mktime(time.strptime(date, template))
+
+    return _date_to_sec_epoch
+
+
+@pytest.fixture
+def findall():
+    def _findall(*args, **kwargs):
+        return Log.findall(*args, **kwargs)
+
+    return _findall
+
+
+@pytest.fixture
+def is_su():
+    return option.is_privileged
+
+
+@pytest.fixture
+def is_unsafe(request):
+    return request.config.getoption("--unsafe")
+
+
+@pytest.fixture
+def require():
+    return check_prerequisites
+
+
+@pytest.fixture
+def search_in_file():
+    def _search_in_file(pattern, name='unit.log', flags=re.M):
+        return re.search(pattern, Log.read(name), flags)
+
+    return _search_in_file
+
+
+@pytest.fixture
+def sec_epoch():
+    return time.mktime(time.gmtime())
+
+
 @pytest.fixture()
 def skip_alert():
     def _skip(*alerts):
@@ -747,37 +683,24 @@ def skip_fds_check():
     return _skip
 
 
+@pytest.fixture()
+def system():
+    return option.system
+
+
 @pytest.fixture
-def temp_dir(request):
+def temp_dir():
     return unit_instance['temp_dir']
 
 
 @pytest.fixture
-def is_unsafe(request):
-    return request.config.getoption("--unsafe")
-
-
-@pytest.fixture
-def is_su(request):
-    return os.geteuid() == 0
-
-
-@pytest.fixture
-def unit_pid(request):
+def unit_pid():
     return unit_instance['process'].pid
 
 
-def pytest_sessionfinish(session):
-    if not option.restart and option.save_log:
-        print(f'Path to unit.log:\n{Log.get_path()}\n')
+@pytest.fixture
+def wait_for_record():
+    def _wait_for_record(*args, **kwargs):
+        return Log.wait_for_record(*args, **kwargs)
 
-    option.restart = True
-
-    unit_stop()
-
-    public_dir(option.cache_dir)
-    shutil.rmtree(option.cache_dir)
-
-    if not option.save_log and os.path.isdir(option.temp_dir):
-        public_dir(option.temp_dir)
-        shutil.rmtree(option.temp_dir)
+    return _wait_for_record

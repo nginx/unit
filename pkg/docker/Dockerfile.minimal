@@ -1,19 +1,21 @@
 FROM debian:bullseye-slim
 
-LABEL org.opencontainers.image.title="Unit"
+LABEL org.opencontainers.image.title="Unit (minimal)"
 LABEL org.opencontainers.image.description="Official build of Unit for Docker."
 LABEL org.opencontainers.image.url="https://unit.nginx.org"
 LABEL org.opencontainers.image.source="https://github.com/nginx/unit"
 LABEL org.opencontainers.image.documentation="https://unit.nginx.org/installation/#docker-images"
 LABEL org.opencontainers.image.vendor="NGINX Docker Maintainers <docker-maint@nginx.com>"
-LABEL org.opencontainers.image.version="1.30.0"
+LABEL org.opencontainers.image.version="1.31.0"
 
 RUN set -ex \
     && savedAptMark="$(apt-mark showmanual)" \
     && apt-get update \
     && apt-get install --no-install-recommends --no-install-suggests -y ca-certificates mercurial build-essential libssl-dev libpcre2-dev curl pkg-config \
     && mkdir -p /usr/lib/unit/modules /usr/lib/unit/debug-modules \
-    && hg clone -u 1.30.0-1 https://hg.nginx.org/unit \
+    && mkdir -p /usr/src/unit \
+    && cd /usr/src/unit \
+    && hg clone -u 1.31.0-1 https://hg.nginx.org/unit \
     && cd unit \
     && NCPU="$(getconf _NPROCESSORS_ONLN)" \
     && DEB_HOST_MULTIARCH="$(dpkg-architecture -q DEB_HOST_MULTIARCH)" \
@@ -22,7 +24,9 @@ RUN set -ex \
     && CONFIGURE_ARGS_MODULES="--prefix=/usr \
                 --statedir=/var/lib/unit \
                 --control=unix:/var/run/control.unit.sock \
+                --runstatedir=/var/run \
                 --pid=/var/run/unit.pid \
+                --logdir=/var/log \
                 --log=/var/log/unit.log \
                 --tmpdir=/var/tmp \
                 --user=unit \
@@ -41,6 +45,7 @@ RUN set -ex \
     && make -j $NCPU unitd \
     && install -pm755 build/sbin/unitd /usr/sbin/unitd \
     && make clean \
+    && /bin/true \
     && ./configure $CONFIGURE_ARGS_MODULES --cc-opt="$CC_OPT" --modulesdir=/usr/lib/unit/debug-modules --debug \
     && ./configure  \
     && make -j $NCPU version \
@@ -49,7 +54,7 @@ RUN set -ex \
     && ./configure  \
     && make -j $NCPU version \
     && cd \
-    && rm -rf unit \
+    && rm -rf /usr/src/unit \
     && for f in /usr/sbin/unitd /usr/lib/unit/modules/*.unit.so; do \
         ldd $f | awk '/=>/{print $(NF-1)}' | while read n; do dpkg-query -S $n; done | sed 's/^\([^:]\+\):.*$/\1/' | sort | uniq >> /requirements.apt; \
        done \
@@ -57,7 +62,7 @@ RUN set -ex \
     && { [ -z "$savedAptMark" ] || apt-mark manual $savedAptMark; } \
     && /bin/true \
     && mkdir -p /var/lib/unit/ \
-    && mkdir /docker-entrypoint.d/ \
+    && mkdir -p /docker-entrypoint.d/ \
     && groupadd --gid 999 unit \
     && useradd \
          --uid 999 \
@@ -69,7 +74,7 @@ RUN set -ex \
          unit \
     && apt-get update \
     && apt-get --no-install-recommends --no-install-suggests -y install curl $(cat /requirements.apt) \
-    && apt-get purge -y --auto-remove \
+    && apt-get purge -y --auto-remove build-essential \
     && rm -rf /var/lib/apt/lists/* \
     && rm -f /requirements.apt \
     && ln -sf /dev/stdout /var/log/unit.log

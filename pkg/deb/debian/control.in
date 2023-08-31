@@ -6,7 +6,9 @@ Build-Depends: debhelper (>= 11),
                linux-libc-dev,
                libssl-dev,
                libpcre2-dev,
-               pkg-config
+               pkg-config,
+               clang,
+               llvm
 Standards-Version: 4.1.4
 Homepage: https://unit.nginx.org
 

@@ -1,0 +1,207 @@
+# Copyright (C) Andrew Clayton
+# Copyright (C) F5, Inc.
+
+
+NXT_WASM_RUNTIME=wasmtime
+
+shift
+
+for nxt_option; do
+
+    case "$nxt_option" in
+        -*=*) value=`echo "$nxt_option" | sed -e 's/[-_a-zA-Z0-9]*=//'`     ;;
+           *) value="" ;;
+    esac
+
+    case "$nxt_option" in
+
+        --runtime=*)		NXT_WASM_RUNTIME="$value"		    ;;
+        --module=*)		NXT_WASM_MODULE="$value"                    ;;
+        --include-path=*)	NXT_WASM_INCLUDE_PATH="$value"		    ;;
+        --lib-path=*)		NXT_WASM_LIB_PATH="$value"		    ;;
+        --rpath*)		NXT_WASM_RPATH="$value"			    ;;
+
+        --help)
+            cat << END
+
+    --runtime=RUNTIME		set the WASM runtime to use (default: wasmtime)
+    --module=NAME		set Unit WASM module name (default: wasm)
+    --include-path=DIRECTORY	set directory path to wasmtime includes
+    --lib-path=DIRECTORY	set directory path to libwasmtime.so library
+    --rpath[=DIRECTORY]		set the rpath (default: --lib-path)
+
+END
+            exit 0
+        ;;
+
+        *)
+            echo
+            echo $0: error: invalid wasm option \"$nxt_option\"
+            echo
+            exit 1
+        ;;
+    esac
+
+done
+
+
+if [ ! -f $NXT_AUTOCONF_DATA ]; then
+   echo
+   echo Please run common $0 before configuring module \"$nxt_module\".
+   echo
+   exit 1
+fi
+
+. $NXT_AUTOCONF_DATA
+
+NXT_WASM=wasm
+NXT_WASM_MODULE=${NXT_WASM_MODULE=${NXT_WASM##*/}}
+
+NXT_WASM_INCLUDE_PATH=${NXT_WASM_INCLUDE_PATH=}
+NXT_WASM_LIB_PATH=${NXT_WASM_LIB_PATH=}
+NXT_WASM_LDFLAGS=
+if [ "$NXT_WASM_RUNTIME" = "wasmtime" ]; then
+    NXT_WASM_LDFLAGS=-lwasmtime
+fi
+NXT_WASM_ADDITIONAL_FLAGS="-fno-strict-aliasing \
+ -Wno-missing-field-initializers \
+ -DNXT_HAVE_WASM_$(echo ${NXT_WASM_RUNTIME} | tr 'a-z' 'A-Z') \
+"
+
+# Set the RPATH/RUNPATH.
+#
+# We temporarily disable warning on unbound variables here as
+# NXT_WASM_RPATH may be legitimately unset, in which case we
+# don't set a RPATH.
+#
+# If NXT_WASM_RPATH is set but null then we set a RPATH of the
+# value of $NXT_WASM_LIB (--lib-path) otherwise use the value
+# provided.
+set +u
+if [ "${NXT_WASM_RPATH+set}" = set ]; then
+    if [ "$NXT_WASM_RPATH" = "" ]; then
+        NXT_WASM_RPATH=$NXT_WASM_LIB_PATH
+    fi
+
+    NXT_WASM_LDFLAGS="-Wl,-rpath,$NXT_WASM_RPATH $NXT_WASM_LDFLAGS"
+fi
+set -u
+
+$echo "configuring WASM module"
+$echo "configuring WASM module ..." >> $NXT_AUTOCONF_ERR
+
+nxt_found=no
+
+if [ "$NXT_WASM_RUNTIME" = "wasmtime" ]; then
+    nxt_feature="wasmtime"
+    nxt_feature_name=""
+    nxt_feature_run=no
+    nxt_feature_incs="-I${NXT_WASM_INCLUDE_PATH}"
+    nxt_feature_libs="-L${NXT_WASM_LIB_PATH} $NXT_WASM_LDFLAGS"
+    nxt_feature_test="
+        #include <wasm.h>
+        #include <wasi.h>
+        #include <wasmtime.h>
+
+        int main(void) {
+            wasm_config_t *c;
+
+            c = wasm_config_new();
+            wasm_config_delete(c);
+
+            return 0;
+        }"
+
+    . auto/feature
+fi
+
+if [ $nxt_found = no ]; then
+    $echo
+    $echo $0: error: no $NXT_WASM_RUNTIME found.
+    $echo
+    exit 1;
+fi
+
+
+if grep ^$NXT_WASM_MODULE: $NXT_MAKEFILE 2>&1 > /dev/null; then
+    $echo
+    $echo $0: error: duplicate \"$NXT_WASM_MODULE\" module configured.
+    $echo
+    exit 1;
+fi
+
+
+$echo " + WASM module: ${NXT_WASM_MODULE}.unit.so"
+
+. auto/cc/deps
+
+$echo >> $NXT_MAKEFILE
+
+NXT_WASM_MODULE_SRCS=" \
+    src/wasm/nxt_wasm.c \
+"
+
+if [ "$NXT_WASM_RUNTIME" = "wasmtime" ]; then
+    NXT_WASM_MODULE_SRCS="$NXT_WASM_MODULE_SRCS src/wasm/nxt_rt_wasmtime.c"
+fi
+
+
+# The wasm module object files.
+
+nxt_objs=$NXT_BUILD_DIR/src/nxt_unit.o
+
+for nxt_src in $NXT_WASM_MODULE_SRCS; do
+
+    nxt_obj=${nxt_src%.c}-$NXT_WASM_MODULE.o
+    nxt_dep=${nxt_src%.c}-$NXT_WASM_MODULE.dep
+    nxt_dep_flags=`nxt_gen_dep_flags`
+    nxt_dep_post=`nxt_gen_dep_post`
+    nxt_objs="$nxt_objs $NXT_BUILD_DIR/$nxt_obj"
+
+    cat << END >> $NXT_MAKEFILE
+
+$NXT_BUILD_DIR/$nxt_obj:	$nxt_src $NXT_VERSION_H
+	mkdir -p $NXT_BUILD_DIR/src/wasm
+	\$(CC) -c \$(CFLAGS) $NXT_WASM_ADDITIONAL_FLAGS \$(NXT_INCS) \\
+	    -I$NXT_WASM_INCLUDE_PATH \\
+	    $nxt_dep_flags \\
+	    -o $NXT_BUILD_DIR/$nxt_obj $nxt_src
+	$nxt_dep_post
+
+-include $NXT_BUILD_DIR/$nxt_dep
+
+END
+
+done
+
+
+cat << END >> $NXT_MAKEFILE
+
+.PHONY: ${NXT_WASM_MODULE}
+.PHONY: ${NXT_WASM_MODULE}-install
+.PHONY: ${NXT_WASM_MODULE}-uninstall
+
+all: ${NXT_WASM_MODULE}
+
+${NXT_WASM_MODULE}:	$NXT_BUILD_DIR/lib/unit/modules/${NXT_WASM_MODULE}.unit.so
+
+$NXT_BUILD_DIR/lib/unit/modules/${NXT_WASM_MODULE}.unit.so:	$nxt_objs
+	\$(NXT_MODULE_LINK) -o \$@ \\
+	    $nxt_objs -L${NXT_WASM_LIB_PATH} ${NXT_WASM_LDFLAGS} $NXT_LD_OPT
+
+
+install: ${NXT_WASM_MODULE}-install
+
+${NXT_WASM_MODULE}-install: ${NXT_WASM_MODULE} install-check
+	install -d \$(DESTDIR)$NXT_MODULESDIR
+	install -p $NXT_BUILD_DIR/lib/unit/modules/${NXT_WASM_MODULE}.unit.so \\
+		\$(DESTDIR)$NXT_MODULESDIR/
+
+
+uninstall: ${NXT_WASM_MODULE}-uninstall
+
+${NXT_WASM_MODULE}-uninstall:
+	rm -f \$(DESTDIR)$NXT_MODULESDIR/${NXT_WASM_MODULE}.unit.so
+	@rmdir -p \$(DESTDIR)$NXT_MODULESDIR 2>/dev/null || true
+
+END

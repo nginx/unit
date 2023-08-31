@@ -33,6 +33,10 @@ case "$nxt_module" in
        . auto/modules/java
    ;;
 
+   wasm)
+       . auto/modules/wasm
+   ;;
+
    *)
        echo
        echo $0: error: invalid module \"$nxt_module\".

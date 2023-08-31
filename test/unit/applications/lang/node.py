@@ -1,14 +1,15 @@
 import shutil
 from urllib.parse import quote
 
-from unit.applications.proto import TestApplicationProto
+from unit.applications.proto import ApplicationProto
 from unit.option import option
 from unit.utils import public_dir
 
 
-class TestApplicationNode(TestApplicationProto):
-    application_type = "node"
-    es_modules = False
+class ApplicationNode(ApplicationProto):
+    def __init__(self, application_type='node', es_modules=False):
+        self.application_type = application_type
+        self.es_modules = es_modules
 
     def prepare_env(self, script):
         # copy application

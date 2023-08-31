@@ -1,10 +1,12 @@
 import os
 import subprocess
 
+from unit.option import option
 
-def check_node(current_dir):
-    if not os.path.exists(f'{current_dir}/node/node_modules'):
-        return None
+
+def check_node():
+    if not os.path.exists(f'{option.current_dir}/node/node_modules'):
+        return False
 
     try:
         v_bytes = subprocess.check_output(['/usr/bin/env', 'node', '-v'])
@@ -12,4 +14,4 @@ def check_node(current_dir):
         return [str(v_bytes, 'utf-8').lstrip('v').rstrip()]
 
     except subprocess.CalledProcessError:
-        return None
+        return False

@@ -1,9 +1,9 @@
-from unit.control import TestControl
+from unit.control import Control
 
 
 class Status:
     _status = None
-    control = TestControl()
+    control = Control()
 
     def _check_zeros():
         assert Status.control.conf_get('/status') == {

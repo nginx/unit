@@ -64,6 +64,7 @@ include Makefile.perl
 include Makefile.jsc-common
 include Makefile.jsc8
 include Makefile.jsc11
+include Makefile.wasm
 endif
 
 ifeq ($(OSVER), centos9)
@@ -74,6 +75,7 @@ include Makefile.perl
 include Makefile.jsc-common
 include Makefile.jsc8
 include Makefile.jsc11
+include Makefile.wasm
 endif
 
 ifeq ($(OSVER), amazonlinux2)
@@ -84,6 +86,7 @@ include Makefile.go
 include Makefile.perl
 include Makefile.jsc-common
 include Makefile.jsc8
+include Makefile.wasm
 endif
 
 ifeq ($(OSVER), amazonlinux2023)
@@ -94,6 +97,7 @@ include Makefile.go
 include Makefile.perl
 include Makefile.jsc-common
 include Makefile.jsc17
+include Makefile.wasm
 endif
 
 ifeq ($(OSVER), fedora)
@@ -105,6 +109,7 @@ include Makefile.ruby
 include Makefile.jsc-common
 include Makefile.jsc8
 include Makefile.jsc11
+include Makefile.wasm
 endif
 
 ifeq ($(OSVER), fedora37)
@@ -116,13 +121,16 @@ include Makefile.ruby
 include Makefile.jsc-common
 include Makefile.jsc8
 include Makefile.jsc11
+include Makefile.wasm
 endif
 
 CONFIGURE_ARGS_COMMON=\
 	--prefix=/usr \
 	--statedir=%{_sharedstatedir}/unit \
 	--control="unix:/var/run/unit/control.sock" \
+	--runstatedir=/var/run \
 	--pid=/var/run/unit/unit.pid \
+	--logdir=/var/log \
 	--log=/var/log/unit/unit.log \
 	--tmpdir=/var/tmp \
 	--user=unit \
@@ -216,6 +224,7 @@ rpmbuild/SPECS/unit-%.spec: unit.module.spec.in ../../docs/changes.xml | rpmbuil
 	done ; \
 	pkgname=$(shell echo $@ | cut -d '/' -f 3 | tr '_' '-' | cut -d '.' -f 1) ; \
 	definitions=`echo "$$MODULE_DEFINITIONS_$*" | sed -e ':a' -e 'N' -e '$$!ba' -e "s/\n/\$$CR/g"` ; \
+	prebuild=`echo "$$MODULE_PREBUILD_$*" | sed -e ':a' -e 'N' -e '$$!ba' -e "s/\n/\$$CR/g"` ; \
 	preinstall=`echo "$$MODULE_PREINSTALL_$*" | sed -e ':a' -e 'N' -e '$$!ba' -e "s/\n/\$$CR/g"` ; \
 	postinstall=`echo "$$MODULE_POSTINSTALL_$*" | sed -e ':a' -e 'N' -e '$$!ba' -e "s/\n/\$$CR/g"` ; \
 	files=`echo "$$MODULE_FILES_$*" | sed -e ':a' -e 'N' -e '$$!ba' -e "s/\n/\$$CR/g"` ; \
@@ -234,6 +243,7 @@ rpmbuild/SPECS/unit-%.spec: unit.module.spec.in ../../docs/changes.xml | rpmbuil
 		-e "s#%%MODULE_MAKEARGS%%#$(MODULE_MAKEARGS_$*)#g" \
 		-e "s#%%MODULE_INSTARGS%%#$(MODULE_INSTARGS_$*)#g" \
 		-e "s#%%MODULE_DEFINITIONS%%#$${definitions}#g" \
+		-e "s#%%MODULE_PREBUILD%%#$${prebuild}#g" \
 		-e "s#%%MODULE_PREINSTALL%%#$${preinstall}#g" \
 		-e "s#%%MODULE_POSTINSTALL%%#$${postinstall}#g" \
 		-e "s#%%MODULE_FILES%%#$${files}#g" \

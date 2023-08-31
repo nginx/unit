@@ -2,1408 +2,1413 @@ import struct
 import time
 
 import pytest
-from unit.applications.lang.java import TestApplicationJava
-from unit.applications.websockets import TestApplicationWebsocket
-from unit.option import option
+from unit.applications.lang.java import ApplicationJava
+from unit.applications.websockets import ApplicationWebsocket
+
+prerequisites = {'modules': {'java': 'any'}}
+
+client = ApplicationJava()
+ws = ApplicationWebsocket()
 
 
-class TestJavaWebsockets(TestApplicationJava):
-    prerequisites = {'modules': {'java': 'any'}}
+@pytest.fixture(autouse=True)
+def setup_method_fixture(skip_alert):
+    assert 'success' in client.conf(
+        {'http': {'websocket': {'keepalive_interval': 0}}}, 'settings'
+    ), 'clear keepalive_interval'
 
-    ws = TestApplicationWebsocket()
+    skip_alert(r'socket close\(\d+\) failed')
 
-    @pytest.fixture(autouse=True)
-    def setup_method_fixture(self, request, skip_alert):
-        assert 'success' in self.conf(
-            {'http': {'websocket': {'keepalive_interval': 0}}}, 'settings'
-        ), 'clear keepalive_interval'
 
-        skip_alert(r'socket close\(\d+\) failed')
+def close_connection(sock):
+    assert client.recvall(sock, read_timeout=0.1) == b'', 'empty soc'
 
-    def close_connection(self, sock):
-        assert self.recvall(sock, read_timeout=0.1) == b'', 'empty soc'
+    ws.frame_write(sock, ws.OP_CLOSE, ws.serialize_close())
 
-        self.ws.frame_write(sock, self.ws.OP_CLOSE, self.ws.serialize_close())
+    check_close(sock)
 
-        self.check_close(sock)
 
-    def check_close(self, sock, code=1000, no_close=False, frame=None):
-        if frame == None:
-            frame = self.ws.frame_read(sock)
+def check_close(sock, code=1000, no_close=False, frame=None):
+    if frame is None:
+        frame = ws.frame_read(sock)
 
-        assert frame['fin'] == True, 'close fin'
-        assert frame['opcode'] == self.ws.OP_CLOSE, 'close opcode'
-        assert frame['code'] == code, 'close code'
+    assert frame['fin'], 'close fin'
+    assert frame['opcode'] == ws.OP_CLOSE, 'close opcode'
+    assert frame['code'] == code, 'close code'
 
-        if not no_close:
-            sock.close()
-
-    def check_frame(self, frame, fin, opcode, payload, decode=True):
-        if opcode == self.ws.OP_BINARY or not decode:
-            data = frame['data']
-        else:
-            data = frame['data'].decode('utf-8')
-
-        assert frame['fin'] == fin, 'fin'
-        assert frame['opcode'] == opcode, 'opcode'
-        assert data == payload, 'payload'
-
-    def test_java_websockets_handshake(self):
-        self.load('websockets_mirror')
-
-        resp, sock, key = self.ws.upgrade()
+    if not no_close:
         sock.close()
 
-        assert resp['status'] == 101, 'status'
-        assert resp['headers']['Upgrade'] == 'websocket', 'upgrade'
-        assert resp['headers']['Connection'] == 'Upgrade', 'connection'
-        assert resp['headers']['Sec-WebSocket-Accept'] == self.ws.accept(
-            key
-        ), 'key'
 
-    def test_java_websockets_mirror(self):
-        self.load('websockets_mirror')
+def check_frame(frame, fin, opcode, payload, decode=True):
+    if opcode == ws.OP_BINARY or not decode:
+        data = frame['data']
+    else:
+        data = frame['data'].decode('utf-8')
 
-        message = 'blah'
+    assert frame['fin'] == fin, 'fin'
+    assert frame['opcode'] == opcode, 'opcode'
+    assert data == payload, 'payload'
 
-        _, sock, _ = self.ws.upgrade()
 
-        self.ws.frame_write(sock, self.ws.OP_TEXT, message)
-        frame = self.ws.frame_read(sock)
+def test_java_websockets_handshake():
+    client.load('websockets_mirror')
 
-        assert message == frame['data'].decode('utf-8'), 'mirror'
+    resp, sock, key = ws.upgrade()
+    sock.close()
 
-        self.ws.frame_write(sock, self.ws.OP_TEXT, message)
-        frame = self.ws.frame_read(sock)
+    assert resp['status'] == 101, 'status'
+    assert resp['headers']['Upgrade'] == 'websocket', 'upgrade'
+    assert resp['headers']['Connection'] == 'Upgrade', 'connection'
+    assert resp['headers']['Sec-WebSocket-Accept'] == ws.accept(key), 'key'
 
-        assert message == frame['data'].decode('utf-8'), 'mirror 2'
 
-        sock.close()
+def test_java_websockets_mirror():
+    client.load('websockets_mirror')
 
-    def test_java_websockets_no_mask(self):
-        self.load('websockets_mirror')
+    message = 'blah'
 
-        message = 'blah'
+    _, sock, _ = ws.upgrade()
 
-        _, sock, _ = self.ws.upgrade()
+    ws.frame_write(sock, ws.OP_TEXT, message)
+    frame = ws.frame_read(sock)
 
-        self.ws.frame_write(sock, self.ws.OP_TEXT, message, mask=False)
+    assert message == frame['data'].decode('utf-8'), 'mirror'
 
-        frame = self.ws.frame_read(sock)
+    ws.frame_write(sock, ws.OP_TEXT, message)
+    frame = ws.frame_read(sock)
 
-        assert frame['opcode'] == self.ws.OP_CLOSE, 'no mask opcode'
-        assert frame['code'] == 1002, 'no mask close code'
+    assert message == frame['data'].decode('utf-8'), 'mirror 2'
 
-        sock.close()
+    sock.close()
 
-    def test_java_websockets_fragmentation(self):
-        self.load('websockets_mirror')
 
-        message = 'blah'
+def test_java_websockets_no_mask():
+    client.load('websockets_mirror')
 
-        _, sock, _ = self.ws.upgrade()
+    message = 'blah'
 
-        self.ws.frame_write(sock, self.ws.OP_TEXT, message, fin=False)
-        self.ws.frame_write(sock, self.ws.OP_CONT, ' ', fin=False)
-        self.ws.frame_write(sock, self.ws.OP_CONT, message)
+    _, sock, _ = ws.upgrade()
 
-        frame = self.ws.frame_read(sock)
+    ws.frame_write(sock, ws.OP_TEXT, message, mask=False)
 
-        assert f'{message} {message}' == frame['data'].decode(
-            'utf-8'
-        ), 'mirror framing'
+    frame = ws.frame_read(sock)
 
-        sock.close()
+    assert frame['opcode'] == ws.OP_CLOSE, 'no mask opcode'
+    assert frame['code'] == 1002, 'no mask close code'
 
-    def test_java_websockets_frame_fragmentation_invalid(self):
-        self.load('websockets_mirror')
+    sock.close()
 
-        message = 'blah'
 
-        _, sock, _ = self.ws.upgrade()
+def test_java_websockets_fragmentation():
+    client.load('websockets_mirror')
 
-        self.ws.frame_write(sock, self.ws.OP_PING, message, fin=False)
+    message = 'blah'
 
-        frame = self.ws.frame_read(sock)
+    _, sock, _ = ws.upgrade()
 
-        frame.pop('data')
-        assert frame == {
-            'fin': True,
-            'rsv1': False,
-            'rsv2': False,
-            'rsv3': False,
-            'opcode': self.ws.OP_CLOSE,
-            'mask': 0,
-            'code': 1002,
-            'reason': 'Fragmented control frame',
-        }, 'close frame'
+    ws.frame_write(sock, ws.OP_TEXT, message, fin=False)
+    ws.frame_write(sock, ws.OP_CONT, ' ', fin=False)
+    ws.frame_write(sock, ws.OP_CONT, message)
 
-        sock.close()
+    frame = ws.frame_read(sock)
 
-    def test_java_websockets_two_clients(self):
-        self.load('websockets_mirror')
+    assert f'{message} {message}' == frame['data'].decode(
+        'utf-8'
+    ), 'mirror framing'
 
-        message1 = 'blah1'
-        message2 = 'blah2'
+    sock.close()
 
-        _, sock1, _ = self.ws.upgrade()
-        _, sock2, _ = self.ws.upgrade()
 
-        self.ws.frame_write(sock1, self.ws.OP_TEXT, message1)
-        self.ws.frame_write(sock2, self.ws.OP_TEXT, message2)
+def test_java_websockets_frame_fragmentation_invalid():
+    client.load('websockets_mirror')
 
-        frame1 = self.ws.frame_read(sock1)
-        frame2 = self.ws.frame_read(sock2)
+    message = 'blah'
 
-        assert message1 == frame1['data'].decode('utf-8'), 'client 1'
-        assert message2 == frame2['data'].decode('utf-8'), 'client 2'
-
-        sock1.close()
-        sock2.close()
-
-    @pytest.mark.skip('not yet')
-    def test_java_websockets_handshake_upgrade_absent(
-        self,
-    ):  # FAIL https://tools.ietf.org/html/rfc6455#section-4.2.1
-        self.load('websockets_mirror')
-
-        resp = self.get(
-            headers={
-                'Host': 'localhost',
-                'Connection': 'Upgrade',
-                'Sec-WebSocket-Key': self.ws.key(),
-                'Sec-WebSocket-Protocol': 'chat',
-                'Sec-WebSocket-Version': 13,
-            },
-        )
-
-        assert resp['status'] == 400, 'upgrade absent'
-
-    def test_java_websockets_handshake_case_insensitive(self):
-        self.load('websockets_mirror')
-
-        resp, sock, _ = self.ws.upgrade(
-            headers={
-                'Host': 'localhost',
-                'Upgrade': 'WEBSOCKET',
-                'Connection': 'UPGRADE',
-                'Sec-WebSocket-Key': self.ws.key(),
-                'Sec-WebSocket-Protocol': 'chat',
-                'Sec-WebSocket-Version': 13,
-            }
-        )
-        sock.close()
-
-        assert resp['status'] == 101, 'status'
-
-    @pytest.mark.skip('not yet')
-    def test_java_websockets_handshake_connection_absent(self):  # FAIL
-        self.load('websockets_mirror')
-
-        resp = self.get(
-            headers={
-                'Host': 'localhost',
-                'Upgrade': 'websocket',
-                'Sec-WebSocket-Key': self.ws.key(),
-                'Sec-WebSocket-Protocol': 'chat',
-                'Sec-WebSocket-Version': 13,
-            },
-        )
-
-        assert resp['status'] == 400, 'status'
-
-    def test_java_websockets_handshake_version_absent(self):
-        self.load('websockets_mirror')
-
-        resp = self.get(
-            headers={
-                'Host': 'localhost',
-                'Upgrade': 'websocket',
-                'Connection': 'Upgrade',
-                'Sec-WebSocket-Key': self.ws.key(),
-                'Sec-WebSocket-Protocol': 'chat',
-            },
-        )
-
-        assert resp['status'] == 426, 'status'
-
-    @pytest.mark.skip('not yet')
-    def test_java_websockets_handshake_key_invalid(self):
-        self.load('websockets_mirror')
-
-        resp = self.get(
-            headers={
-                'Host': 'localhost',
-                'Upgrade': 'websocket',
-                'Connection': 'Upgrade',
-                'Sec-WebSocket-Key': '!',
-                'Sec-WebSocket-Protocol': 'chat',
-                'Sec-WebSocket-Version': 13,
-            },
-        )
-
-        assert resp['status'] == 400, 'key length'
-
-        key = self.ws.key()
-        resp = self.get(
-            headers={
-                'Host': 'localhost',
-                'Upgrade': 'websocket',
-                'Connection': 'Upgrade',
-                'Sec-WebSocket-Key': [key, key],
-                'Sec-WebSocket-Protocol': 'chat',
-                'Sec-WebSocket-Version': 13,
-            },
-        )
-
-        assert (
-            resp['status'] == 400
-        ), 'key double'  # FAIL https://tools.ietf.org/html/rfc6455#section-11.3.1
-
-    def test_java_websockets_handshake_method_invalid(self):
-        self.load('websockets_mirror')
-
-        resp = self.post(
-            headers={
-                'Host': 'localhost',
-                'Upgrade': 'websocket',
-                'Connection': 'Upgrade',
-                'Sec-WebSocket-Key': self.ws.key(),
-                'Sec-WebSocket-Protocol': 'chat',
-                'Sec-WebSocket-Version': 13,
-            },
-        )
-
-        assert resp['status'] == 400, 'status'
-
-    def test_java_websockets_handshake_http_10(self):
-        self.load('websockets_mirror')
-
-        resp = self.get(
-            headers={
-                'Host': 'localhost',
-                'Upgrade': 'websocket',
-                'Connection': 'Upgrade',
-                'Sec-WebSocket-Key': self.ws.key(),
-                'Sec-WebSocket-Protocol': 'chat',
-                'Sec-WebSocket-Version': 13,
-            },
-            http_10=True,
-        )
-
-        assert resp['status'] == 400, 'status'
-
-    def test_java_websockets_handshake_uri_invalid(self):
-        self.load('websockets_mirror')
-
-        resp = self.get(
-            headers={
-                'Host': 'localhost',
-                'Upgrade': 'websocket',
-                'Connection': 'Upgrade',
-                'Sec-WebSocket-Key': self.ws.key(),
-                'Sec-WebSocket-Protocol': 'chat',
-                'Sec-WebSocket-Version': 13,
-            },
-            url='!',
-        )
-
-        assert resp['status'] == 400, 'status'
-
-    def test_java_websockets_protocol_absent(self):
-        self.load('websockets_mirror')
-
-        key = self.ws.key()
-        resp, sock, _ = self.ws.upgrade(
-            headers={
-                'Host': 'localhost',
-                'Upgrade': 'websocket',
-                'Connection': 'Upgrade',
-                'Sec-WebSocket-Key': key,
-                'Sec-WebSocket-Version': 13,
-            }
-        )
-        sock.close()
-
-        assert resp['status'] == 101, 'status'
-        assert resp['headers']['Upgrade'] == 'websocket', 'upgrade'
-        assert resp['headers']['Connection'] == 'Upgrade', 'connection'
-        assert resp['headers']['Sec-WebSocket-Accept'] == self.ws.accept(
-            key
-        ), 'key'
-
-    # autobahn-testsuite
-    #
-    # Some following tests fail because of Unit does not support UTF-8
-    # validation for websocket frames.  It should be implemented
-    # by application, if necessary.
-
-    def test_java_websockets_1_1_1__1_1_8(self):
-        self.load('websockets_mirror')
-
-        opcode = self.ws.OP_TEXT
-
-        _, sock, _ = self.ws.upgrade()
-
-        def check_length(length, chopsize=None):
-            payload = '*' * length
-
-            self.ws.frame_write(sock, opcode, payload, chopsize=chopsize)
-
-            frame = self.ws.message_read(sock)
-            self.check_frame(frame, True, opcode, payload)
-
-        check_length(0)  # 1_1_1
-        check_length(125)  # 1_1_2
-        check_length(126)  # 1_1_3
-        check_length(127)  # 1_1_4
-        check_length(128)  # 1_1_5
-        check_length(65535)  # 1_1_6
-        check_length(65536)  # 1_1_7
-        check_length(65536, chopsize=997)  # 1_1_8
-
-        self.close_connection(sock)
-
-    def test_java_websockets_1_2_1__1_2_8(self):
-        self.load('websockets_mirror')
-
-        opcode = self.ws.OP_BINARY
-
-        _, sock, _ = self.ws.upgrade()
-
-        def check_length(length, chopsize=None):
-            payload = b'\xfe' * length
-
-            self.ws.frame_write(sock, opcode, payload, chopsize=chopsize)
-
-            frame = self.ws.message_read(sock)
-            self.check_frame(frame, True, opcode, payload)
+    _, sock, _ = ws.upgrade()
 
-        check_length(0)  # 1_2_1
-        check_length(125)  # 1_2_2
-        check_length(126)  # 1_2_3
-        check_length(127)  # 1_2_4
-        check_length(128)  # 1_2_5
-        check_length(65535)  # 1_2_6
-        check_length(65536)  # 1_2_7
-        check_length(65536, chopsize=997)  # 1_2_8
+    ws.frame_write(sock, ws.OP_PING, message, fin=False)
 
-        self.close_connection(sock)
+    frame = ws.frame_read(sock)
 
-    def test_java_websockets_2_1__2_6(self):
-        self.load('websockets_mirror')
+    frame.pop('data')
+    assert frame == {
+        'fin': True,
+        'rsv1': False,
+        'rsv2': False,
+        'rsv3': False,
+        'opcode': ws.OP_CLOSE,
+        'mask': 0,
+        'code': 1002,
+        'reason': 'Fragmented control frame',
+    }, 'close frame'
 
-        op_ping = self.ws.OP_PING
-        op_pong = self.ws.OP_PONG
+    sock.close()
 
-        _, sock, _ = self.ws.upgrade()
 
-        def check_ping(payload, chopsize=None, decode=True):
-            self.ws.frame_write(sock, op_ping, payload, chopsize=chopsize)
-            frame = self.ws.frame_read(sock)
+def test_java_websockets_two_clients():
+    client.load('websockets_mirror')
 
-            self.check_frame(frame, True, op_pong, payload, decode=decode)
+    message1 = 'blah1'
+    message2 = 'blah2'
 
-        check_ping('')  # 2_1
-        check_ping('Hello, world!')  # 2_2
-        check_ping(b'\x00\xff\xfe\xfd\xfc\xfb\x00\xff', decode=False)  # 2_3
-        check_ping(b'\xfe' * 125, decode=False)  # 2_4
-        check_ping(b'\xfe' * 125, chopsize=1, decode=False)  # 2_6
+    _, sock1, _ = ws.upgrade()
+    _, sock2, _ = ws.upgrade()
 
-        self.close_connection(sock)
+    ws.frame_write(sock1, ws.OP_TEXT, message1)
+    ws.frame_write(sock2, ws.OP_TEXT, message2)
 
-        # 2_5
+    frame1 = ws.frame_read(sock1)
+    frame2 = ws.frame_read(sock2)
+
+    assert message1 == frame1['data'].decode('utf-8'), 'client 1'
+    assert message2 == frame2['data'].decode('utf-8'), 'client 2'
+
+    sock1.close()
+    sock2.close()
+
+
+# FAIL https://tools.ietf.org/html/rfc6455#section-4.2.1
+@pytest.mark.skip('not yet')
+def test_java_websockets_handshake_upgrade_absent():
+    client.load('websockets_mirror')
+
+    resp = client.get(
+        headers={
+            'Host': 'localhost',
+            'Connection': 'Upgrade',
+            'Sec-WebSocket-Key': ws.key(),
+            'Sec-WebSocket-Protocol': 'chat',
+            'Sec-WebSocket-Version': 13,
+        },
+    )
+
+    assert resp['status'] == 400, 'upgrade absent'
+
+
+def test_java_websockets_handshake_case_insensitive():
+    client.load('websockets_mirror')
+
+    resp, sock, _ = ws.upgrade(
+        headers={
+            'Host': 'localhost',
+            'Upgrade': 'WEBSOCKET',
+            'Connection': 'UPGRADE',
+            'Sec-WebSocket-Key': ws.key(),
+            'Sec-WebSocket-Protocol': 'chat',
+            'Sec-WebSocket-Version': 13,
+        }
+    )
+    sock.close()
+
+    assert resp['status'] == 101, 'status'
+
+
+@pytest.mark.skip('not yet')
+def test_java_websockets_handshake_connection_absent():  # FAIL
+    client.load('websockets_mirror')
+
+    resp = client.get(
+        headers={
+            'Host': 'localhost',
+            'Upgrade': 'websocket',
+            'Sec-WebSocket-Key': ws.key(),
+            'Sec-WebSocket-Protocol': 'chat',
+            'Sec-WebSocket-Version': 13,
+        },
+    )
+
+    assert resp['status'] == 400, 'status'
+
+
+def test_java_websockets_handshake_version_absent():
+    client.load('websockets_mirror')
+
+    resp = client.get(
+        headers={
+            'Host': 'localhost',
+            'Upgrade': 'websocket',
+            'Connection': 'Upgrade',
+            'Sec-WebSocket-Key': ws.key(),
+            'Sec-WebSocket-Protocol': 'chat',
+        },
+    )
+
+    assert resp['status'] == 426, 'status'
+
+
+@pytest.mark.skip('not yet')
+def test_java_websockets_handshake_key_invalid():
+    client.load('websockets_mirror')
+
+    resp = client.get(
+        headers={
+            'Host': 'localhost',
+            'Upgrade': 'websocket',
+            'Connection': 'Upgrade',
+            'Sec-WebSocket-Key': '!',
+            'Sec-WebSocket-Protocol': 'chat',
+            'Sec-WebSocket-Version': 13,
+        },
+    )
+
+    assert resp['status'] == 400, 'key length'
+
+    key = ws.key()
+    resp = client.get(
+        headers={
+            'Host': 'localhost',
+            'Upgrade': 'websocket',
+            'Connection': 'Upgrade',
+            'Sec-WebSocket-Key': [key, key],
+            'Sec-WebSocket-Protocol': 'chat',
+            'Sec-WebSocket-Version': 13,
+        },
+    )
+
+    assert (
+        resp['status'] == 400
+    ), 'key double'  # FAIL https://tools.ietf.org/html/rfc6455#section-11.3.1
+
+
+def test_java_websockets_handshake_method_invalid():
+    client.load('websockets_mirror')
+
+    resp = client.post(
+        headers={
+            'Host': 'localhost',
+            'Upgrade': 'websocket',
+            'Connection': 'Upgrade',
+            'Sec-WebSocket-Key': ws.key(),
+            'Sec-WebSocket-Protocol': 'chat',
+            'Sec-WebSocket-Version': 13,
+        },
+    )
 
-        _, sock, _ = self.ws.upgrade()
+    assert resp['status'] == 400, 'status'
 
-        self.ws.frame_write(sock, self.ws.OP_PING, b'\xfe' * 126)
-        self.check_close(sock, 1002)
 
-    def test_java_websockets_2_7__2_9(self):
-        self.load('websockets_mirror')
+def test_java_websockets_handshake_http_10():
+    client.load('websockets_mirror')
 
-        # 2_7
+    resp = client.get(
+        headers={
+            'Host': 'localhost',
+            'Upgrade': 'websocket',
+            'Connection': 'Upgrade',
+            'Sec-WebSocket-Key': ws.key(),
+            'Sec-WebSocket-Protocol': 'chat',
+            'Sec-WebSocket-Version': 13,
+        },
+        http_10=True,
+    )
 
-        _, sock, _ = self.ws.upgrade()
+    assert resp['status'] == 400, 'status'
 
-        self.ws.frame_write(sock, self.ws.OP_PONG, '')
-        assert self.recvall(sock, read_timeout=0.1) == b'', '2_7'
 
-        # 2_8
+def test_java_websockets_handshake_uri_invalid():
+    client.load('websockets_mirror')
 
-        self.ws.frame_write(sock, self.ws.OP_PONG, 'unsolicited pong payload')
-        assert self.recvall(sock, read_timeout=0.1) == b'', '2_8'
+    resp = client.get(
+        headers={
+            'Host': 'localhost',
+            'Upgrade': 'websocket',
+            'Connection': 'Upgrade',
+            'Sec-WebSocket-Key': ws.key(),
+            'Sec-WebSocket-Protocol': 'chat',
+            'Sec-WebSocket-Version': 13,
+        },
+        url='!',
+    )
 
-        # 2_9
+    assert resp['status'] == 400, 'status'
 
-        payload = 'ping payload'
 
-        self.ws.frame_write(sock, self.ws.OP_PONG, 'unsolicited pong payload')
-        self.ws.frame_write(sock, self.ws.OP_PING, payload)
+def test_java_websockets_protocol_absent():
+    client.load('websockets_mirror')
 
-        frame = self.ws.frame_read(sock)
-        self.check_frame(frame, True, self.ws.OP_PONG, payload)
+    key = ws.key()
+    resp, sock, _ = ws.upgrade(
+        headers={
+            'Host': 'localhost',
+            'Upgrade': 'websocket',
+            'Connection': 'Upgrade',
+            'Sec-WebSocket-Key': key,
+            'Sec-WebSocket-Version': 13,
+        }
+    )
+    sock.close()
 
-        self.close_connection(sock)
+    assert resp['status'] == 101, 'status'
+    assert resp['headers']['Upgrade'] == 'websocket', 'upgrade'
+    assert resp['headers']['Connection'] == 'Upgrade', 'connection'
+    assert resp['headers']['Sec-WebSocket-Accept'] == ws.accept(key), 'key'
 
-    def test_java_websockets_2_10__2_11(self):
-        self.load('websockets_mirror')
 
-        # 2_10
+# autobahn-testsuite
+#
+# Some following tests fail because of Unit does not support UTF-8
+# validation for websocket frames.  It should be implemented
+# by application, if necessary.
 
-        _, sock, _ = self.ws.upgrade()
 
-        for i in range(0, 10):
-            self.ws.frame_write(sock, self.ws.OP_PING, f'payload-{i}')
+def test_java_websockets_1_1_1__1_1_8():
+    client.load('websockets_mirror')
 
-        for i in range(0, 10):
-            frame = self.ws.frame_read(sock)
-            self.check_frame(frame, True, self.ws.OP_PONG, f'payload-{i}')
+    opcode = ws.OP_TEXT
 
-        # 2_11
+    _, sock, _ = ws.upgrade()
 
-        for i in range(0, 10):
-            opcode = self.ws.OP_PING
-            self.ws.frame_write(sock, opcode, f'payload-{i}', chopsize=1)
+    def check_length(length, chopsize=None):
+        payload = '*' * length
 
-        for i in range(0, 10):
-            frame = self.ws.frame_read(sock)
-            self.check_frame(frame, True, self.ws.OP_PONG, f'payload-{i}')
+        ws.frame_write(sock, opcode, payload, chopsize=chopsize)
 
-        self.close_connection(sock)
+        frame = ws.message_read(sock)
+        check_frame(frame, True, opcode, payload)
 
-    @pytest.mark.skip('not yet')
-    def test_java_websockets_3_1__3_7(self):
-        self.load('websockets_mirror')
+    check_length(0)  # 1_1_1
+    check_length(125)  # 1_1_2
+    check_length(126)  # 1_1_3
+    check_length(127)  # 1_1_4
+    check_length(128)  # 1_1_5
+    check_length(65535)  # 1_1_6
+    check_length(65536)  # 1_1_7
+    check_length(65536, chopsize=997)  # 1_1_8
 
-        payload = 'Hello, world!'
+    close_connection(sock)
 
-        # 3_1
 
-        _, sock, _ = self.ws.upgrade()
+def test_java_websockets_1_2_1__1_2_8():
+    client.load('websockets_mirror')
 
-        self.ws.frame_write(sock, self.ws.OP_TEXT, payload, rsv1=True)
-        self.check_close(sock, 1002)
+    opcode = ws.OP_BINARY
 
-        # 3_2
+    _, sock, _ = ws.upgrade()
 
-        _, sock, _ = self.ws.upgrade()
+    def check_length(length, chopsize=None):
+        payload = b'\xfe' * length
 
-        self.ws.frame_write(sock, self.ws.OP_TEXT, payload)
-        self.ws.frame_write(sock, self.ws.OP_TEXT, payload, rsv2=True)
-        self.ws.frame_write(sock, self.ws.OP_PING, '')
+        ws.frame_write(sock, opcode, payload, chopsize=chopsize)
 
-        frame = self.ws.frame_read(sock)
-        self.check_frame(frame, True, self.ws.OP_TEXT, payload)
+        frame = ws.message_read(sock)
+        check_frame(frame, True, opcode, payload)
 
-        self.check_close(sock, 1002, no_close=True)
+    check_length(0)  # 1_2_1
+    check_length(125)  # 1_2_2
+    check_length(126)  # 1_2_3
+    check_length(127)  # 1_2_4
+    check_length(128)  # 1_2_5
+    check_length(65535)  # 1_2_6
+    check_length(65536)  # 1_2_7
+    check_length(65536, chopsize=997)  # 1_2_8
 
-        assert self.recvall(sock, read_timeout=0.1) == b'', 'empty 3_2'
-        sock.close()
+    close_connection(sock)
 
-        # 3_3
 
-        _, sock, _ = self.ws.upgrade()
+def test_java_websockets_2_1__2_6():
+    client.load('websockets_mirror')
 
-        self.ws.frame_write(sock, self.ws.OP_TEXT, payload)
+    op_ping = ws.OP_PING
+    op_pong = ws.OP_PONG
 
-        frame = self.ws.frame_read(sock)
-        self.check_frame(frame, True, self.ws.OP_TEXT, payload)
+    _, sock, _ = ws.upgrade()
 
-        self.ws.frame_write(
-            sock, self.ws.OP_TEXT, payload, rsv1=True, rsv2=True
-        )
+    def check_ping(payload, chopsize=None, decode=True):
+        ws.frame_write(sock, op_ping, payload, chopsize=chopsize)
+        frame = ws.frame_read(sock)
 
-        self.check_close(sock, 1002, no_close=True)
+        check_frame(frame, True, op_pong, payload, decode=decode)
 
-        assert self.recvall(sock, read_timeout=0.1) == b'', 'empty 3_3'
-        sock.close()
+    check_ping('')  # 2_1
+    check_ping('Hello, world!')  # 2_2
+    check_ping(b'\x00\xff\xfe\xfd\xfc\xfb\x00\xff', decode=False)  # 2_3
+    check_ping(b'\xfe' * 125, decode=False)  # 2_4
+    check_ping(b'\xfe' * 125, chopsize=1, decode=False)  # 2_6
 
-        # 3_4
+    close_connection(sock)
 
-        _, sock, _ = self.ws.upgrade()
+    # 2_5
 
-        self.ws.frame_write(sock, self.ws.OP_TEXT, payload, chopsize=1)
-        self.ws.frame_write(
-            sock, self.ws.OP_TEXT, payload, rsv3=True, chopsize=1
-        )
-        self.ws.frame_write(sock, self.ws.OP_PING, '')
+    _, sock, _ = ws.upgrade()
 
-        frame = self.ws.frame_read(sock)
-        self.check_frame(frame, True, self.ws.OP_TEXT, payload)
+    ws.frame_write(sock, ws.OP_PING, b'\xfe' * 126)
+    check_close(sock, 1002)
 
-        self.check_close(sock, 1002, no_close=True)
 
-        assert self.recvall(sock, read_timeout=0.1) == b'', 'empty 3_4'
-        sock.close()
+def test_java_websockets_2_7__2_9():
+    client.load('websockets_mirror')
 
-        # 3_5
+    # 2_7
 
-        _, sock, _ = self.ws.upgrade()
+    _, sock, _ = ws.upgrade()
 
-        self.ws.frame_write(
-            sock,
-            self.ws.OP_BINARY,
-            b'\x00\xff\xfe\xfd\xfc\xfb\x00\xff',
-            rsv1=True,
-            rsv3=True,
-        )
+    ws.frame_write(sock, ws.OP_PONG, '')
+    assert client.recvall(sock, read_timeout=0.1) == b'', '2_7'
 
-        self.check_close(sock, 1002)
+    # 2_8
 
-        # 3_6
+    ws.frame_write(sock, ws.OP_PONG, 'unsolicited pong payload')
+    assert client.recvall(sock, read_timeout=0.1) == b'', '2_8'
 
-        _, sock, _ = self.ws.upgrade()
+    # 2_9
 
-        self.ws.frame_write(
-            sock, self.ws.OP_PING, payload, rsv2=True, rsv3=True
-        )
+    payload = 'ping payload'
 
-        self.check_close(sock, 1002)
+    ws.frame_write(sock, ws.OP_PONG, 'unsolicited pong payload')
+    ws.frame_write(sock, ws.OP_PING, payload)
 
-        # 3_7
+    frame = ws.frame_read(sock)
+    check_frame(frame, True, ws.OP_PONG, payload)
 
-        _, sock, _ = self.ws.upgrade()
+    close_connection(sock)
 
-        self.ws.frame_write(
-            sock, self.ws.OP_CLOSE, payload, rsv1=True, rsv2=True, rsv3=True
-        )
 
-        self.check_close(sock, 1002)
+def test_java_websockets_2_10__2_11():
+    client.load('websockets_mirror')
 
-    def test_java_websockets_4_1_1__4_2_5(self):
-        self.load('websockets_mirror')
+    # 2_10
 
-        payload = 'Hello, world!'
+    _, sock, _ = ws.upgrade()
 
-        # 4_1_1
+    for i in range(0, 10):
+        ws.frame_write(sock, ws.OP_PING, f'payload-{i}')
 
-        _, sock, _ = self.ws.upgrade()
+    for i in range(0, 10):
+        frame = ws.frame_read(sock)
+        check_frame(frame, True, ws.OP_PONG, f'payload-{i}')
 
-        self.ws.frame_write(sock, 0x03, '')
-        self.check_close(sock, 1002)
+    # 2_11
 
-        # 4_1_2
+    for i in range(0, 10):
+        opcode = ws.OP_PING
+        ws.frame_write(sock, opcode, f'payload-{i}', chopsize=1)
 
-        _, sock, _ = self.ws.upgrade()
+    for i in range(0, 10):
+        frame = ws.frame_read(sock)
+        check_frame(frame, True, ws.OP_PONG, f'payload-{i}')
 
-        self.ws.frame_write(sock, 0x04, 'reserved opcode payload')
-        self.check_close(sock, 1002)
+    close_connection(sock)
 
-        # 4_1_3
 
-        _, sock, _ = self.ws.upgrade()
+@pytest.mark.skip('not yet')
+def test_java_websockets_3_1__3_7():
+    client.load('websockets_mirror')
 
-        self.ws.frame_write(sock, self.ws.OP_TEXT, payload)
+    payload = 'Hello, world!'
 
-        frame = self.ws.frame_read(sock)
-        self.check_frame(frame, True, self.ws.OP_TEXT, payload)
+    # 3_1
 
-        self.ws.frame_write(sock, 0x05, '')
-        self.ws.frame_write(sock, self.ws.OP_PING, '')
+    _, sock, _ = ws.upgrade()
 
-        self.check_close(sock, 1002)
+    ws.frame_write(sock, ws.OP_TEXT, payload, rsv1=True)
+    check_close(sock, 1002)
 
-        # 4_1_4
+    # 3_2
 
-        _, sock, _ = self.ws.upgrade()
+    _, sock, _ = ws.upgrade()
 
-        self.ws.frame_write(sock, self.ws.OP_TEXT, payload)
+    ws.frame_write(sock, ws.OP_TEXT, payload)
+    ws.frame_write(sock, ws.OP_TEXT, payload, rsv2=True)
+    ws.frame_write(sock, ws.OP_PING, '')
 
-        frame = self.ws.frame_read(sock)
-        self.check_frame(frame, True, self.ws.OP_TEXT, payload)
+    frame = ws.frame_read(sock)
+    check_frame(frame, True, ws.OP_TEXT, payload)
 
-        self.ws.frame_write(sock, 0x06, payload)
-        self.ws.frame_write(sock, self.ws.OP_PING, '')
+    check_close(sock, 1002, no_close=True)
 
-        self.check_close(sock, 1002)
+    assert client.recvall(sock, read_timeout=0.1) == b'', 'empty 3_2'
+    sock.close()
 
-        # 4_1_5
+    # 3_3
 
-        _, sock, _ = self.ws.upgrade()
+    _, sock, _ = ws.upgrade()
 
-        self.ws.frame_write(sock, self.ws.OP_TEXT, payload, chopsize=1)
+    ws.frame_write(sock, ws.OP_TEXT, payload)
 
-        frame = self.ws.frame_read(sock)
-        self.check_frame(frame, True, self.ws.OP_TEXT, payload)
+    frame = ws.frame_read(sock)
+    check_frame(frame, True, ws.OP_TEXT, payload)
 
-        self.ws.frame_write(sock, 0x07, payload, chopsize=1)
-        self.ws.frame_write(sock, self.ws.OP_PING, '')
+    ws.frame_write(sock, ws.OP_TEXT, payload, rsv1=True, rsv2=True)
 
-        self.check_close(sock, 1002)
+    check_close(sock, 1002, no_close=True)
 
-        # 4_2_1
+    assert client.recvall(sock, read_timeout=0.1) == b'', 'empty 3_3'
+    sock.close()
 
-        _, sock, _ = self.ws.upgrade()
+    # 3_4
 
-        self.ws.frame_write(sock, 0x0B, '')
-        self.check_close(sock, 1002)
+    _, sock, _ = ws.upgrade()
 
-        # 4_2_2
+    ws.frame_write(sock, ws.OP_TEXT, payload, chopsize=1)
+    ws.frame_write(sock, ws.OP_TEXT, payload, rsv3=True, chopsize=1)
+    ws.frame_write(sock, ws.OP_PING, '')
 
-        _, sock, _ = self.ws.upgrade()
+    frame = ws.frame_read(sock)
+    check_frame(frame, True, ws.OP_TEXT, payload)
 
-        self.ws.frame_write(sock, 0x0C, 'reserved opcode payload')
-        self.check_close(sock, 1002)
+    check_close(sock, 1002, no_close=True)
 
-        # 4_2_3
+    assert client.recvall(sock, read_timeout=0.1) == b'', 'empty 3_4'
+    sock.close()
 
-        _, sock, _ = self.ws.upgrade()
+    # 3_5
 
-        self.ws.frame_write(sock, self.ws.OP_TEXT, payload)
+    _, sock, _ = ws.upgrade()
 
-        frame = self.ws.frame_read(sock)
-        self.check_frame(frame, True, self.ws.OP_TEXT, payload)
+    ws.frame_write(
+        sock,
+        ws.OP_BINARY,
+        b'\x00\xff\xfe\xfd\xfc\xfb\x00\xff',
+        rsv1=True,
+        rsv3=True,
+    )
 
-        self.ws.frame_write(sock, 0x0D, '')
-        self.ws.frame_write(sock, self.ws.OP_PING, '')
+    check_close(sock, 1002)
 
-        self.check_close(sock, 1002)
+    # 3_6
 
-        # 4_2_4
+    _, sock, _ = ws.upgrade()
 
-        _, sock, _ = self.ws.upgrade()
+    ws.frame_write(sock, ws.OP_PING, payload, rsv2=True, rsv3=True)
 
-        self.ws.frame_write(sock, self.ws.OP_TEXT, payload)
+    check_close(sock, 1002)
 
-        frame = self.ws.frame_read(sock)
-        self.check_frame(frame, True, self.ws.OP_TEXT, payload)
+    # 3_7
 
-        self.ws.frame_write(sock, 0x0E, payload)
-        self.ws.frame_write(sock, self.ws.OP_PING, '')
+    _, sock, _ = ws.upgrade()
 
-        self.check_close(sock, 1002)
+    ws.frame_write(sock, ws.OP_CLOSE, payload, rsv1=True, rsv2=True, rsv3=True)
 
-        # 4_2_5
+    check_close(sock, 1002)
 
-        _, sock, _ = self.ws.upgrade()
 
-        self.ws.frame_write(sock, self.ws.OP_TEXT, payload, chopsize=1)
+def test_java_websockets_4_1_1__4_2_5():
+    client.load('websockets_mirror')
 
-        frame = self.ws.frame_read(sock)
-        self.check_frame(frame, True, self.ws.OP_TEXT, payload)
+    payload = 'Hello, world!'
 
-        self.ws.frame_write(sock, 0x0F, payload, chopsize=1)
-        self.ws.frame_write(sock, self.ws.OP_PING, '')
+    # 4_1_1
 
-        self.check_close(sock, 1002)
+    _, sock, _ = ws.upgrade()
 
-    def test_java_websockets_5_1__5_20(self):
-        self.load('websockets_mirror')
+    ws.frame_write(sock, 0x03, '')
+    check_close(sock, 1002)
 
-        # 5_1
+    # 4_1_2
 
-        _, sock, _ = self.ws.upgrade()
+    _, sock, _ = ws.upgrade()
 
-        self.ws.frame_write(sock, self.ws.OP_PING, 'fragment1', fin=False)
-        self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment2', fin=True)
-        self.check_close(sock, 1002)
+    ws.frame_write(sock, 0x04, 'reserved opcode payload')
+    check_close(sock, 1002)
 
-        # 5_2
+    # 4_1_3
 
-        _, sock, _ = self.ws.upgrade()
+    _, sock, _ = ws.upgrade()
 
-        self.ws.frame_write(sock, self.ws.OP_PONG, 'fragment1', fin=False)
-        self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment2', fin=True)
-        self.check_close(sock, 1002)
+    ws.frame_write(sock, ws.OP_TEXT, payload)
 
-        # 5_3
+    frame = ws.frame_read(sock)
+    check_frame(frame, True, ws.OP_TEXT, payload)
 
-        _, sock, _ = self.ws.upgrade()
+    ws.frame_write(sock, 0x05, '')
+    ws.frame_write(sock, ws.OP_PING, '')
 
-        self.ws.frame_write(sock, self.ws.OP_TEXT, 'fragment1', fin=False)
-        self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment2', fin=True)
+    check_close(sock, 1002)
 
-        frame = self.ws.frame_read(sock)
-        self.check_frame(frame, True, self.ws.OP_TEXT, 'fragment1fragment2')
+    # 4_1_4
 
-        # 5_4
+    _, sock, _ = ws.upgrade()
 
-        self.ws.frame_write(sock, self.ws.OP_TEXT, 'fragment1', fin=False)
-        assert self.recvall(sock, read_timeout=0.1) == b'', '5_4'
-        self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment2', fin=True)
+    ws.frame_write(sock, ws.OP_TEXT, payload)
 
-        frame = self.ws.frame_read(sock)
-        self.check_frame(frame, True, self.ws.OP_TEXT, 'fragment1fragment2')
+    frame = ws.frame_read(sock)
+    check_frame(frame, True, ws.OP_TEXT, payload)
 
-        # 5_5
+    ws.frame_write(sock, 0x06, payload)
+    ws.frame_write(sock, ws.OP_PING, '')
 
-        self.ws.frame_write(
-            sock, self.ws.OP_TEXT, 'fragment1', fin=False, chopsize=1
-        )
-        self.ws.frame_write(
-            sock, self.ws.OP_CONT, 'fragment2', fin=True, chopsize=1
-        )
+    check_close(sock, 1002)
 
-        frame = self.ws.frame_read(sock)
-        self.check_frame(frame, True, self.ws.OP_TEXT, 'fragment1fragment2')
+    # 4_1_5
 
-        # 5_6
+    _, sock, _ = ws.upgrade()
 
-        ping_payload = 'ping payload'
+    ws.frame_write(sock, ws.OP_TEXT, payload, chopsize=1)
 
-        self.ws.frame_write(sock, self.ws.OP_TEXT, 'fragment1', fin=False)
-        self.ws.frame_write(sock, self.ws.OP_PING, ping_payload)
-        self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment2', fin=True)
+    frame = ws.frame_read(sock)
+    check_frame(frame, True, ws.OP_TEXT, payload)
 
-        frame = self.ws.frame_read(sock)
-        self.check_frame(frame, True, self.ws.OP_PONG, ping_payload)
+    ws.frame_write(sock, 0x07, payload, chopsize=1)
+    ws.frame_write(sock, ws.OP_PING, '')
 
-        frame = self.ws.frame_read(sock)
-        self.check_frame(frame, True, self.ws.OP_TEXT, 'fragment1fragment2')
+    check_close(sock, 1002)
 
-        # 5_7
+    # 4_2_1
 
-        ping_payload = 'ping payload'
+    _, sock, _ = ws.upgrade()
 
-        self.ws.frame_write(sock, self.ws.OP_TEXT, 'fragment1', fin=False)
-        assert self.recvall(sock, read_timeout=0.1) == b'', '5_7'
+    ws.frame_write(sock, 0x0B, '')
+    check_close(sock, 1002)
 
-        self.ws.frame_write(sock, self.ws.OP_PING, ping_payload)
+    # 4_2_2
 
-        frame = self.ws.frame_read(sock)
-        self.check_frame(frame, True, self.ws.OP_PONG, ping_payload)
+    _, sock, _ = ws.upgrade()
 
-        self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment2', fin=True)
+    ws.frame_write(sock, 0x0C, 'reserved opcode payload')
+    check_close(sock, 1002)
 
-        frame = self.ws.frame_read(sock)
-        self.check_frame(frame, True, self.ws.OP_TEXT, 'fragment1fragment2')
+    # 4_2_3
 
-        # 5_8
+    _, sock, _ = ws.upgrade()
 
-        ping_payload = 'ping payload'
+    ws.frame_write(sock, ws.OP_TEXT, payload)
 
-        self.ws.frame_write(
-            sock, self.ws.OP_TEXT, 'fragment1', fin=False, chopsize=1
-        )
-        self.ws.frame_write(sock, self.ws.OP_PING, ping_payload, chopsize=1)
-        self.ws.frame_write(
-            sock, self.ws.OP_CONT, 'fragment2', fin=True, chopsize=1
-        )
+    frame = ws.frame_read(sock)
+    check_frame(frame, True, ws.OP_TEXT, payload)
 
-        frame = self.ws.frame_read(sock)
-        self.check_frame(frame, True, self.ws.OP_PONG, ping_payload)
+    ws.frame_write(sock, 0x0D, '')
+    ws.frame_write(sock, ws.OP_PING, '')
 
-        frame = self.ws.frame_read(sock)
-        self.check_frame(frame, True, self.ws.OP_TEXT, 'fragment1fragment2')
+    check_close(sock, 1002)
 
-        # 5_9
+    # 4_2_4
 
-        self.ws.frame_write(
-            sock, self.ws.OP_CONT, 'non-continuation payload', fin=True
-        )
-        self.ws.frame_write(sock, self.ws.OP_TEXT, 'Hello, world!', fin=True)
-        self.check_close(sock, 1002)
+    _, sock, _ = ws.upgrade()
 
-        # 5_10
+    ws.frame_write(sock, ws.OP_TEXT, payload)
 
-        _, sock, _ = self.ws.upgrade()
+    frame = ws.frame_read(sock)
+    check_frame(frame, True, ws.OP_TEXT, payload)
 
-        self.ws.frame_write(
-            sock, self.ws.OP_CONT, 'non-continuation payload', fin=True
-        )
-        self.ws.frame_write(sock, self.ws.OP_TEXT, 'Hello, world!', fin=True)
-        self.check_close(sock, 1002)
+    ws.frame_write(sock, 0x0E, payload)
+    ws.frame_write(sock, ws.OP_PING, '')
 
-        # 5_11
+    check_close(sock, 1002)
 
-        _, sock, _ = self.ws.upgrade()
+    # 4_2_5
 
-        self.ws.frame_write(
-            sock,
-            self.ws.OP_CONT,
-            'non-continuation payload',
-            fin=True,
-            chopsize=1,
-        )
-        self.ws.frame_write(
-            sock, self.ws.OP_TEXT, 'Hello, world!', fin=True, chopsize=1
-        )
-        self.check_close(sock, 1002)
+    _, sock, _ = ws.upgrade()
 
-        # 5_12
+    ws.frame_write(sock, ws.OP_TEXT, payload, chopsize=1)
 
-        _, sock, _ = self.ws.upgrade()
+    frame = ws.frame_read(sock)
+    check_frame(frame, True, ws.OP_TEXT, payload)
 
-        self.ws.frame_write(
-            sock, self.ws.OP_CONT, 'non-continuation payload', fin=False
-        )
-        self.ws.frame_write(sock, self.ws.OP_TEXT, 'Hello, world!', fin=True)
-        self.check_close(sock, 1002)
+    ws.frame_write(sock, 0x0F, payload, chopsize=1)
+    ws.frame_write(sock, ws.OP_PING, '')
 
-        # 5_13
+    check_close(sock, 1002)
 
-        _, sock, _ = self.ws.upgrade()
 
-        self.ws.frame_write(
-            sock, self.ws.OP_CONT, 'non-continuation payload', fin=False
-        )
-        self.ws.frame_write(sock, self.ws.OP_TEXT, 'Hello, world!', fin=True)
-        self.check_close(sock, 1002)
+def test_java_websockets_5_1__5_20():
+    client.load('websockets_mirror')
 
-        # 5_14
+    # 5_1
 
-        _, sock, _ = self.ws.upgrade()
+    _, sock, _ = ws.upgrade()
 
-        self.ws.frame_write(
-            sock,
-            self.ws.OP_CONT,
-            'non-continuation payload',
-            fin=False,
-            chopsize=1,
-        )
-        self.ws.frame_write(
-            sock, self.ws.OP_TEXT, 'Hello, world!', fin=True, chopsize=1
-        )
-        self.check_close(sock, 1002)
+    ws.frame_write(sock, ws.OP_PING, 'fragment1', fin=False)
+    ws.frame_write(sock, ws.OP_CONT, 'fragment2', fin=True)
+    check_close(sock, 1002)
 
-        # 5_15
+    # 5_2
 
-        _, sock, _ = self.ws.upgrade()
+    _, sock, _ = ws.upgrade()
 
-        self.ws.frame_write(sock, self.ws.OP_TEXT, 'fragment1', fin=False)
-        self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment2', fin=True)
-        self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment3', fin=False)
-        self.ws.frame_write(sock, self.ws.OP_TEXT, 'fragment4', fin=True)
+    ws.frame_write(sock, ws.OP_PONG, 'fragment1', fin=False)
+    ws.frame_write(sock, ws.OP_CONT, 'fragment2', fin=True)
+    check_close(sock, 1002)
 
-        frame = self.ws.frame_read(sock)
+    # 5_3
 
-        if frame['opcode'] == self.ws.OP_TEXT:
-            self.check_frame(frame, True, self.ws.OP_TEXT, 'fragment1fragment2')
-            frame = None
+    _, sock, _ = ws.upgrade()
 
-        self.check_close(sock, 1002, frame=frame)
+    ws.frame_write(sock, ws.OP_TEXT, 'fragment1', fin=False)
+    ws.frame_write(sock, ws.OP_CONT, 'fragment2', fin=True)
 
-        # 5_16
+    frame = ws.frame_read(sock)
+    check_frame(frame, True, ws.OP_TEXT, 'fragment1fragment2')
 
-        _, sock, _ = self.ws.upgrade()
+    # 5_4
 
-        for i in range(0, 2):
-            self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment1', fin=False)
-            self.ws.frame_write(sock, self.ws.OP_TEXT, 'fragment2', fin=False)
-            self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment3', fin=True)
-        self.check_close(sock, 1002)
+    ws.frame_write(sock, ws.OP_TEXT, 'fragment1', fin=False)
+    assert client.recvall(sock, read_timeout=0.1) == b'', '5_4'
+    ws.frame_write(sock, ws.OP_CONT, 'fragment2', fin=True)
 
-        # 5_17
+    frame = ws.frame_read(sock)
+    check_frame(frame, True, ws.OP_TEXT, 'fragment1fragment2')
 
-        _, sock, _ = self.ws.upgrade()
+    # 5_5
 
-        for i in range(0, 2):
-            self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment1', fin=True)
-            self.ws.frame_write(sock, self.ws.OP_TEXT, 'fragment2', fin=False)
-            self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment3', fin=True)
-        self.check_close(sock, 1002)
+    ws.frame_write(sock, ws.OP_TEXT, 'fragment1', fin=False, chopsize=1)
+    ws.frame_write(sock, ws.OP_CONT, 'fragment2', fin=True, chopsize=1)
 
-        # 5_18
+    frame = ws.frame_read(sock)
+    check_frame(frame, True, ws.OP_TEXT, 'fragment1fragment2')
 
-        _, sock, _ = self.ws.upgrade()
+    # 5_6
 
-        self.ws.frame_write(sock, self.ws.OP_TEXT, 'fragment1', fin=False)
-        self.ws.frame_write(sock, self.ws.OP_TEXT, 'fragment2')
-        self.check_close(sock, 1002)
+    ping_payload = 'ping payload'
 
-        # 5_19
+    ws.frame_write(sock, ws.OP_TEXT, 'fragment1', fin=False)
+    ws.frame_write(sock, ws.OP_PING, ping_payload)
+    ws.frame_write(sock, ws.OP_CONT, 'fragment2', fin=True)
 
-        _, sock, _ = self.ws.upgrade()
+    frame = ws.frame_read(sock)
+    check_frame(frame, True, ws.OP_PONG, ping_payload)
 
-        self.ws.frame_write(sock, self.ws.OP_TEXT, 'fragment1', fin=False)
-        self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment2', fin=False)
-        self.ws.frame_write(sock, self.ws.OP_PING, 'pongme 1!')
+    frame = ws.frame_read(sock)
+    check_frame(frame, True, ws.OP_TEXT, 'fragment1fragment2')
 
-        time.sleep(1)
+    # 5_7
 
-        self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment3', fin=False)
-        self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment4', fin=False)
-        self.ws.frame_write(sock, self.ws.OP_PING, 'pongme 2!')
-        self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment5')
+    ping_payload = 'ping payload'
 
-        frame = self.ws.frame_read(sock)
-        self.check_frame(frame, True, self.ws.OP_PONG, 'pongme 1!')
+    ws.frame_write(sock, ws.OP_TEXT, 'fragment1', fin=False)
+    assert client.recvall(sock, read_timeout=0.1) == b'', '5_7'
 
-        frame = self.ws.frame_read(sock)
-        self.check_frame(frame, True, self.ws.OP_PONG, 'pongme 2!')
+    ws.frame_write(sock, ws.OP_PING, ping_payload)
 
-        self.check_frame(
-            self.ws.frame_read(sock),
-            True,
-            self.ws.OP_TEXT,
-            'fragment1fragment2fragment3fragment4fragment5',
-        )
+    frame = ws.frame_read(sock)
+    check_frame(frame, True, ws.OP_PONG, ping_payload)
 
-        # 5_20
+    ws.frame_write(sock, ws.OP_CONT, 'fragment2', fin=True)
 
-        self.ws.frame_write(sock, self.ws.OP_TEXT, 'fragment1', fin=False)
-        self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment2', fin=False)
-        self.ws.frame_write(sock, self.ws.OP_PING, 'pongme 1!')
+    frame = ws.frame_read(sock)
+    check_frame(frame, True, ws.OP_TEXT, 'fragment1fragment2')
 
-        frame = self.ws.frame_read(sock)
-        self.check_frame(frame, True, self.ws.OP_PONG, 'pongme 1!')
+    # 5_8
 
-        time.sleep(1)
+    ping_payload = 'ping payload'
 
-        self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment3', fin=False)
-        self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment4', fin=False)
-        self.ws.frame_write(sock, self.ws.OP_PING, 'pongme 2!')
+    ws.frame_write(sock, ws.OP_TEXT, 'fragment1', fin=False, chopsize=1)
+    ws.frame_write(sock, ws.OP_PING, ping_payload, chopsize=1)
+    ws.frame_write(sock, ws.OP_CONT, 'fragment2', fin=True, chopsize=1)
 
-        frame = self.ws.frame_read(sock)
-        self.check_frame(frame, True, self.ws.OP_PONG, 'pongme 2!')
+    frame = ws.frame_read(sock)
+    check_frame(frame, True, ws.OP_PONG, ping_payload)
 
-        assert self.recvall(sock, read_timeout=0.1) == b'', '5_20'
-        self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment5')
+    frame = ws.frame_read(sock)
+    check_frame(frame, True, ws.OP_TEXT, 'fragment1fragment2')
 
-        self.check_frame(
-            self.ws.frame_read(sock),
-            True,
-            self.ws.OP_TEXT,
-            'fragment1fragment2fragment3fragment4fragment5',
-        )
+    # 5_9
 
-        self.close_connection(sock)
+    ws.frame_write(sock, ws.OP_CONT, 'non-continuation payload', fin=True)
+    ws.frame_write(sock, ws.OP_TEXT, 'Hello, world!', fin=True)
+    check_close(sock, 1002)
 
-    def test_java_websockets_6_1_1__6_4_4(self):
-        self.load('websockets_mirror')
+    # 5_10
 
-        # 6_1_1
+    _, sock, _ = ws.upgrade()
 
-        _, sock, _ = self.ws.upgrade()
+    ws.frame_write(sock, ws.OP_CONT, 'non-continuation payload', fin=True)
+    ws.frame_write(sock, ws.OP_TEXT, 'Hello, world!', fin=True)
+    check_close(sock, 1002)
 
-        self.ws.frame_write(sock, self.ws.OP_TEXT, '')
-        frame = self.ws.frame_read(sock, read_timeout=3)
-        self.check_frame(frame, True, self.ws.OP_TEXT, '')
+    # 5_11
 
-        # 6_1_2
+    _, sock, _ = ws.upgrade()
 
-        self.ws.frame_write(sock, self.ws.OP_TEXT, '', fin=False)
-        self.ws.frame_write(sock, self.ws.OP_CONT, '', fin=False)
-        self.ws.frame_write(sock, self.ws.OP_CONT, '')
+    ws.frame_write(
+        sock,
+        ws.OP_CONT,
+        'non-continuation payload',
+        fin=True,
+        chopsize=1,
+    )
+    ws.frame_write(sock, ws.OP_TEXT, 'Hello, world!', fin=True, chopsize=1)
+    check_close(sock, 1002)
 
-        frame = self.ws.frame_read(sock, read_timeout=3)
-        self.check_frame(frame, True, self.ws.OP_TEXT, '')
+    # 5_12
 
-        # 6_1_3
+    _, sock, _ = ws.upgrade()
 
-        payload = 'middle frame payload'
+    ws.frame_write(sock, ws.OP_CONT, 'non-continuation payload', fin=False)
+    ws.frame_write(sock, ws.OP_TEXT, 'Hello, world!', fin=True)
+    check_close(sock, 1002)
 
-        self.ws.frame_write(sock, self.ws.OP_TEXT, '', fin=False)
-        self.ws.frame_write(sock, self.ws.OP_CONT, payload, fin=False)
-        self.ws.frame_write(sock, self.ws.OP_CONT, '')
+    # 5_13
 
-        frame = self.ws.frame_read(sock)
-        self.check_frame(frame, True, self.ws.OP_TEXT, payload)
+    _, sock, _ = ws.upgrade()
 
-        # 6_2_1
+    ws.frame_write(sock, ws.OP_CONT, 'non-continuation payload', fin=False)
+    ws.frame_write(sock, ws.OP_TEXT, 'Hello, world!', fin=True)
+    check_close(sock, 1002)
 
-        payload = 'Hello-µ@ßöäüàá-UTF-8!!'
+    # 5_14
 
-        self.ws.frame_write(sock, self.ws.OP_TEXT, payload)
+    _, sock, _ = ws.upgrade()
 
-        frame = self.ws.frame_read(sock)
-        self.check_frame(frame, True, self.ws.OP_TEXT, payload)
+    ws.frame_write(
+        sock,
+        ws.OP_CONT,
+        'non-continuation payload',
+        fin=False,
+        chopsize=1,
+    )
+    ws.frame_write(sock, ws.OP_TEXT, 'Hello, world!', fin=True, chopsize=1)
+    check_close(sock, 1002)
 
-        # 6_2_2
+    # 5_15
 
-        self.ws.frame_write(sock, self.ws.OP_TEXT, payload[:12], fin=False)
-        self.ws.frame_write(sock, self.ws.OP_CONT, payload[12:])
+    _, sock, _ = ws.upgrade()
 
-        frame = self.ws.frame_read(sock)
-        self.check_frame(frame, True, self.ws.OP_TEXT, payload)
+    ws.frame_write(sock, ws.OP_TEXT, 'fragment1', fin=False)
+    ws.frame_write(sock, ws.OP_CONT, 'fragment2', fin=True)
+    ws.frame_write(sock, ws.OP_CONT, 'fragment3', fin=False)
+    ws.frame_write(sock, ws.OP_TEXT, 'fragment4', fin=True)
 
-        # 6_2_3
+    frame = ws.frame_read(sock)
 
-        self.ws.message(sock, self.ws.OP_TEXT, payload, fragmention_size=1)
+    if frame['opcode'] == ws.OP_TEXT:
+        check_frame(frame, True, ws.OP_TEXT, 'fragment1fragment2')
+        frame = None
 
-        frame = self.ws.frame_read(sock)
-        self.check_frame(frame, True, self.ws.OP_TEXT, payload)
+    check_close(sock, 1002, frame=frame)
 
-        # 6_2_4
+    # 5_16
 
-        payload = '\xce\xba\xe1\xbd\xb9\xcf\x83\xce\xbc\xce\xb5'
+    _, sock, _ = ws.upgrade()
 
-        self.ws.message(sock, self.ws.OP_TEXT, payload, fragmention_size=1)
+    for _ in range(0, 2):
+        ws.frame_write(sock, ws.OP_CONT, 'fragment1', fin=False)
+        ws.frame_write(sock, ws.OP_TEXT, 'fragment2', fin=False)
+        ws.frame_write(sock, ws.OP_CONT, 'fragment3', fin=True)
+    check_close(sock, 1002)
 
-        frame = self.ws.frame_read(sock)
-        self.check_frame(frame, True, self.ws.OP_TEXT, payload)
+    # 5_17
 
-        self.close_connection(sock)
+    _, sock, _ = ws.upgrade()
 
-    #        Unit does not support UTF-8 validation
-    #
-    #        # 6_3_1 FAIL
-    #
-    #        payload_1 = '\xce\xba\xe1\xbd\xb9\xcf\x83\xce\xbc\xce\xb5'
-    #        payload_2 = '\xed\xa0\x80'
-    #        payload_3 = '\x65\x64\x69\x74\x65\x64'
-    #
-    #        payload = payload_1 + payload_2 + payload_3
-    #
-    #        self.ws.message(sock, self.ws.OP_TEXT, payload)
-    #        self.check_close(sock, 1007)
-    #
-    #        # 6_3_2 FAIL
-    #
-    #        _, sock, _ = self.ws.upgrade()
-    #
-    #        self.ws.message(sock, self.ws.OP_TEXT, payload, fragmention_size=1)
-    #        self.check_close(sock, 1007)
-    #
-    #        # 6_4_1 ... 6_4_4 FAIL
+    for _ in range(0, 2):
+        ws.frame_write(sock, ws.OP_CONT, 'fragment1', fin=True)
+        ws.frame_write(sock, ws.OP_TEXT, 'fragment2', fin=False)
+        ws.frame_write(sock, ws.OP_CONT, 'fragment3', fin=True)
+    check_close(sock, 1002)
 
-    def test_java_websockets_7_1_1__7_5_1(self):
-        self.load('websockets_mirror')
+    # 5_18
 
-        # 7_1_1
+    _, sock, _ = ws.upgrade()
 
-        _, sock, _ = self.ws.upgrade()
+    ws.frame_write(sock, ws.OP_TEXT, 'fragment1', fin=False)
+    ws.frame_write(sock, ws.OP_TEXT, 'fragment2')
+    check_close(sock, 1002)
 
-        payload = "Hello World!"
+    # 5_19
 
-        self.ws.frame_write(sock, self.ws.OP_TEXT, payload)
+    _, sock, _ = ws.upgrade()
 
-        frame = self.ws.frame_read(sock)
-        self.check_frame(frame, True, self.ws.OP_TEXT, payload)
+    ws.frame_write(sock, ws.OP_TEXT, 'fragment1', fin=False)
+    ws.frame_write(sock, ws.OP_CONT, 'fragment2', fin=False)
+    ws.frame_write(sock, ws.OP_PING, 'pongme 1!')
 
-        self.close_connection(sock)
+    time.sleep(1)
 
-        # 7_1_2
+    ws.frame_write(sock, ws.OP_CONT, 'fragment3', fin=False)
+    ws.frame_write(sock, ws.OP_CONT, 'fragment4', fin=False)
+    ws.frame_write(sock, ws.OP_PING, 'pongme 2!')
+    ws.frame_write(sock, ws.OP_CONT, 'fragment5')
 
-        _, sock, _ = self.ws.upgrade()
+    frame = ws.frame_read(sock)
+    check_frame(frame, True, ws.OP_PONG, 'pongme 1!')
 
-        self.ws.frame_write(sock, self.ws.OP_CLOSE, self.ws.serialize_close())
-        self.ws.frame_write(sock, self.ws.OP_CLOSE, self.ws.serialize_close())
+    frame = ws.frame_read(sock)
+    check_frame(frame, True, ws.OP_PONG, 'pongme 2!')
 
-        self.check_close(sock)
+    check_frame(
+        ws.frame_read(sock),
+        True,
+        ws.OP_TEXT,
+        'fragment1fragment2fragment3fragment4fragment5',
+    )
 
-        # 7_1_3
+    # 5_20
 
-        _, sock, _ = self.ws.upgrade()
+    ws.frame_write(sock, ws.OP_TEXT, 'fragment1', fin=False)
+    ws.frame_write(sock, ws.OP_CONT, 'fragment2', fin=False)
+    ws.frame_write(sock, ws.OP_PING, 'pongme 1!')
 
-        self.ws.frame_write(sock, self.ws.OP_CLOSE, self.ws.serialize_close())
-        self.check_close(sock, no_close=True)
+    frame = ws.frame_read(sock)
+    check_frame(frame, True, ws.OP_PONG, 'pongme 1!')
 
-        self.ws.frame_write(sock, self.ws.OP_PING, '')
-        assert self.recvall(sock, read_timeout=0.1) == b'', 'empty soc'
+    time.sleep(1)
 
-        sock.close()
+    ws.frame_write(sock, ws.OP_CONT, 'fragment3', fin=False)
+    ws.frame_write(sock, ws.OP_CONT, 'fragment4', fin=False)
+    ws.frame_write(sock, ws.OP_PING, 'pongme 2!')
 
-        # 7_1_4
+    frame = ws.frame_read(sock)
+    check_frame(frame, True, ws.OP_PONG, 'pongme 2!')
 
-        _, sock, _ = self.ws.upgrade()
+    assert client.recvall(sock, read_timeout=0.1) == b'', '5_20'
+    ws.frame_write(sock, ws.OP_CONT, 'fragment5')
 
-        self.ws.frame_write(sock, self.ws.OP_CLOSE, self.ws.serialize_close())
-        self.check_close(sock, no_close=True)
+    check_frame(
+        ws.frame_read(sock),
+        True,
+        ws.OP_TEXT,
+        'fragment1fragment2fragment3fragment4fragment5',
+    )
 
-        self.ws.frame_write(sock, self.ws.OP_TEXT, payload)
-        assert self.recvall(sock, read_timeout=0.1) == b'', 'empty soc'
+    close_connection(sock)
 
-        sock.close()
 
-        # 7_1_5
+def test_java_websockets_6_1_1__6_4_4():
+    client.load('websockets_mirror')
 
-        _, sock, _ = self.ws.upgrade()
+    # 6_1_1
 
-        self.ws.frame_write(sock, self.ws.OP_TEXT, 'fragment1', fin=False)
-        self.ws.frame_write(sock, self.ws.OP_CLOSE, self.ws.serialize_close())
-        self.check_close(sock, no_close=True)
+    _, sock, _ = ws.upgrade()
 
-        self.ws.frame_write(sock, self.ws.OP_CONT, 'fragment2')
-        assert self.recvall(sock, read_timeout=0.1) == b'', 'empty soc'
+    ws.frame_write(sock, ws.OP_TEXT, '')
+    frame = ws.frame_read(sock, read_timeout=3)
+    check_frame(frame, True, ws.OP_TEXT, '')
 
-        sock.close()
+    # 6_1_2
 
-        # 7_1_6
+    ws.frame_write(sock, ws.OP_TEXT, '', fin=False)
+    ws.frame_write(sock, ws.OP_CONT, '', fin=False)
+    ws.frame_write(sock, ws.OP_CONT, '')
 
-        _, sock, _ = self.ws.upgrade()
+    frame = ws.frame_read(sock, read_timeout=3)
+    check_frame(frame, True, ws.OP_TEXT, '')
 
-        self.ws.frame_write(sock, self.ws.OP_TEXT, 'BAsd7&jh23' * 26 * 2**10)
-        self.ws.frame_write(sock, self.ws.OP_TEXT, payload)
-        self.ws.frame_write(sock, self.ws.OP_CLOSE, self.ws.serialize_close())
+    # 6_1_3
 
-        self.recvall(sock, read_timeout=1)
+    payload = 'middle frame payload'
 
-        self.ws.frame_write(sock, self.ws.OP_PING, '')
-        assert self.recvall(sock, read_timeout=0.1) == b'', 'empty soc'
+    ws.frame_write(sock, ws.OP_TEXT, '', fin=False)
+    ws.frame_write(sock, ws.OP_CONT, payload, fin=False)
+    ws.frame_write(sock, ws.OP_CONT, '')
 
-        sock.close()
+    frame = ws.frame_read(sock)
+    check_frame(frame, True, ws.OP_TEXT, payload)
 
-        # 7_3_1
+    # 6_2_1
 
-        _, sock, _ = self.ws.upgrade()
+    payload = 'Hello-µ@ßöäüàá-UTF-8!!'
 
-        self.ws.frame_write(sock, self.ws.OP_CLOSE, '')
-        self.check_close(sock)
+    ws.frame_write(sock, ws.OP_TEXT, payload)
 
-        # 7_3_2
+    frame = ws.frame_read(sock)
+    check_frame(frame, True, ws.OP_TEXT, payload)
 
-        _, sock, _ = self.ws.upgrade()
+    # 6_2_2
 
-        self.ws.frame_write(sock, self.ws.OP_CLOSE, 'a')
-        self.check_close(sock, 1002)
+    ws.frame_write(sock, ws.OP_TEXT, payload[:12], fin=False)
+    ws.frame_write(sock, ws.OP_CONT, payload[12:])
 
-        # 7_3_3
+    frame = ws.frame_read(sock)
+    check_frame(frame, True, ws.OP_TEXT, payload)
 
-        _, sock, _ = self.ws.upgrade()
+    # 6_2_3
 
-        self.ws.frame_write(sock, self.ws.OP_CLOSE, self.ws.serialize_close())
-        self.check_close(sock)
+    ws.message(sock, ws.OP_TEXT, payload, fragmention_size=1)
 
-        # 7_3_4
+    frame = ws.frame_read(sock)
+    check_frame(frame, True, ws.OP_TEXT, payload)
 
-        _, sock, _ = self.ws.upgrade()
+    # 6_2_4
 
-        payload = self.ws.serialize_close(reason='Hello World!')
+    payload = '\xce\xba\xe1\xbd\xb9\xcf\x83\xce\xbc\xce\xb5'
 
-        self.ws.frame_write(sock, self.ws.OP_CLOSE, payload)
-        self.check_close(sock)
+    ws.message(sock, ws.OP_TEXT, payload, fragmention_size=1)
 
-        # 7_3_5
+    frame = ws.frame_read(sock)
+    check_frame(frame, True, ws.OP_TEXT, payload)
 
-        _, sock, _ = self.ws.upgrade()
+    close_connection(sock)
 
-        payload = self.ws.serialize_close(reason='*' * 123)
 
-        self.ws.frame_write(sock, self.ws.OP_CLOSE, payload)
-        self.check_close(sock)
+#        Unit does not support UTF-8 validation
+#
+#        # 6_3_1 FAIL
+#
+#        payload_1 = '\xce\xba\xe1\xbd\xb9\xcf\x83\xce\xbc\xce\xb5'
+#        payload_2 = '\xed\xa0\x80'
+#        payload_3 = '\x65\x64\x69\x74\x65\x64'
+#
+#        payload = payload_1 + payload_2 + payload_3
+#
+#        ws.message(sock, ws.OP_TEXT, payload)
+#        check_close(sock, 1007)
+#
+#        # 6_3_2 FAIL
+#
+#        _, sock, _ = ws.upgrade()
+#
+#        ws.message(sock, ws.OP_TEXT, payload, fragmention_size=1)
+#        check_close(sock, 1007)
+#
+#        # 6_4_1 ... 6_4_4 FAIL
 
-        # 7_3_6
 
-        _, sock, _ = self.ws.upgrade()
+def test_java_websockets_7_1_1__7_5_1():
+    client.load('websockets_mirror')
 
-        payload = self.ws.serialize_close(reason='*' * 124)
+    # 7_1_1
 
-        self.ws.frame_write(sock, self.ws.OP_CLOSE, payload)
-        self.check_close(sock, 1002)
+    _, sock, _ = ws.upgrade()
 
-    #        # 7_5_1 FAIL Unit does not support UTF-8 validation
-    #
-    #        _, sock, _ = self.ws.upgrade()
-    #
-    #        payload = self.ws.serialize_close(reason = '\xce\xba\xe1\xbd\xb9\xcf' \
-    #            '\x83\xce\xbc\xce\xb5\xed\xa0\x80\x65\x64\x69\x74\x65\x64')
-    #
-    #        self.ws.frame_write(sock, self.ws.OP_CLOSE, payload)
-    #        self.check_close(sock, 1007)
+    payload = "Hello World!"
 
-    def test_java_websockets_7_7_X__7_9_X(self):
-        self.load('websockets_mirror')
+    ws.frame_write(sock, ws.OP_TEXT, payload)
 
-        valid_codes = [
-            1000,
-            1001,
-            1002,
-            1003,
-            1007,
-            1008,
-            1009,
-            1010,
-            1011,
-            3000,
-            3999,
-            4000,
-            4999,
-        ]
+    frame = ws.frame_read(sock)
+    check_frame(frame, True, ws.OP_TEXT, payload)
 
-        invalid_codes = [0, 999, 1004, 1005, 1006, 1016, 1100, 2000, 2999]
+    close_connection(sock)
 
-        for code in valid_codes:
-            _, sock, _ = self.ws.upgrade()
+    # 7_1_2
 
-            payload = self.ws.serialize_close(code=code)
+    _, sock, _ = ws.upgrade()
 
-            self.ws.frame_write(sock, self.ws.OP_CLOSE, payload)
-            self.check_close(sock, code=code)
+    ws.frame_write(sock, ws.OP_CLOSE, ws.serialize_close())
+    ws.frame_write(sock, ws.OP_CLOSE, ws.serialize_close())
 
-        for code in invalid_codes:
-            _, sock, _ = self.ws.upgrade()
+    check_close(sock)
 
-            payload = self.ws.serialize_close(code=code)
+    # 7_1_3
 
-            self.ws.frame_write(sock, self.ws.OP_CLOSE, payload)
-            self.check_close(sock, 1002)
+    _, sock, _ = ws.upgrade()
 
-    def test_java_websockets_7_13_1__7_13_2(self):
-        self.load('websockets_mirror')
+    ws.frame_write(sock, ws.OP_CLOSE, ws.serialize_close())
+    check_close(sock, no_close=True)
 
-        # 7_13_1
+    ws.frame_write(sock, ws.OP_PING, '')
+    assert client.recvall(sock, read_timeout=0.1) == b'', 'empty soc'
 
-        _, sock, _ = self.ws.upgrade()
+    sock.close()
 
-        payload = self.ws.serialize_close(code=5000)
+    # 7_1_4
 
-        self.ws.frame_write(sock, self.ws.OP_CLOSE, payload)
-        self.check_close(sock, 1002)
+    _, sock, _ = ws.upgrade()
 
-        # 7_13_2
+    ws.frame_write(sock, ws.OP_CLOSE, ws.serialize_close())
+    check_close(sock, no_close=True)
 
-        _, sock, _ = self.ws.upgrade()
+    ws.frame_write(sock, ws.OP_TEXT, payload)
+    assert client.recvall(sock, read_timeout=0.1) == b'', 'empty soc'
 
-        payload = struct.pack('!I', 65536) + ''.encode('utf-8')
+    sock.close()
 
-        self.ws.frame_write(sock, self.ws.OP_CLOSE, payload)
-        self.check_close(sock, 1002)
+    # 7_1_5
 
-    def test_java_websockets_9_1_1__9_6_6(self, is_unsafe):
-        if not is_unsafe:
-            pytest.skip('unsafe, long run')
+    _, sock, _ = ws.upgrade()
 
-        self.load('websockets_mirror')
+    ws.frame_write(sock, ws.OP_TEXT, 'fragment1', fin=False)
+    ws.frame_write(sock, ws.OP_CLOSE, ws.serialize_close())
+    check_close(sock, no_close=True)
 
-        assert 'success' in self.conf(
-            {
-                'http': {
-                    'websocket': {
-                        'max_frame_size': 33554432,
-                        'keepalive_interval': 0,
-                    }
+    ws.frame_write(sock, ws.OP_CONT, 'fragment2')
+    assert client.recvall(sock, read_timeout=0.1) == b'', 'empty soc'
+
+    sock.close()
+
+    # 7_1_6
+
+    _, sock, _ = ws.upgrade()
+
+    ws.frame_write(sock, ws.OP_TEXT, 'BAsd7&jh23' * 26 * 2**10)
+    ws.frame_write(sock, ws.OP_TEXT, payload)
+    ws.frame_write(sock, ws.OP_CLOSE, ws.serialize_close())
+
+    client.recvall(sock, read_timeout=1)
+
+    ws.frame_write(sock, ws.OP_PING, '')
+    assert client.recvall(sock, read_timeout=0.1) == b'', 'empty soc'
+
+    sock.close()
+
+    # 7_3_1
+
+    _, sock, _ = ws.upgrade()
+
+    ws.frame_write(sock, ws.OP_CLOSE, '')
+    check_close(sock)
+
+    # 7_3_2
+
+    _, sock, _ = ws.upgrade()
+
+    ws.frame_write(sock, ws.OP_CLOSE, 'a')
+    check_close(sock, 1002)
+
+    # 7_3_3
+
+    _, sock, _ = ws.upgrade()
+
+    ws.frame_write(sock, ws.OP_CLOSE, ws.serialize_close())
+    check_close(sock)
+
+    # 7_3_4
+
+    _, sock, _ = ws.upgrade()
+
+    payload = ws.serialize_close(reason='Hello World!')
+
+    ws.frame_write(sock, ws.OP_CLOSE, payload)
+    check_close(sock)
+
+    # 7_3_5
+
+    _, sock, _ = ws.upgrade()
+
+    payload = ws.serialize_close(reason='*' * 123)
+
+    ws.frame_write(sock, ws.OP_CLOSE, payload)
+    check_close(sock)
+
+    # 7_3_6
+
+    _, sock, _ = ws.upgrade()
+
+    payload = ws.serialize_close(reason='*' * 124)
+
+    ws.frame_write(sock, ws.OP_CLOSE, payload)
+    check_close(sock, 1002)
+
+
+#        # 7_5_1 FAIL Unit does not support UTF-8 validation
+#
+#        _, sock, _ = ws.upgrade()
+#
+#        payload = ws.serialize_close(reason = '\xce\xba\xe1\xbd\xb9\xcf' \
+#            '\x83\xce\xbc\xce\xb5\xed\xa0\x80\x65\x64\x69\x74\x65\x64')
+#
+#        ws.frame_write(sock, ws.OP_CLOSE, payload)
+#        check_close(sock, 1007)
+
+
+def test_java_websockets_7_7_X__7_9_X():
+    client.load('websockets_mirror')
+
+    valid_codes = [
+        1000,
+        1001,
+        1002,
+        1003,
+        1007,
+        1008,
+        1009,
+        1010,
+        1011,
+        3000,
+        3999,
+        4000,
+        4999,
+    ]
+
+    invalid_codes = [0, 999, 1004, 1005, 1006, 1016, 1100, 2000, 2999]
+
+    for code in valid_codes:
+        _, sock, _ = ws.upgrade()
+
+        payload = ws.serialize_close(code=code)
+
+        ws.frame_write(sock, ws.OP_CLOSE, payload)
+        check_close(sock, code=code)
+
+    for code in invalid_codes:
+        _, sock, _ = ws.upgrade()
+
+        payload = ws.serialize_close(code=code)
+
+        ws.frame_write(sock, ws.OP_CLOSE, payload)
+        check_close(sock, 1002)
+
+
+def test_java_websockets_7_13_1__7_13_2():
+    client.load('websockets_mirror')
+
+    # 7_13_1
+
+    _, sock, _ = ws.upgrade()
+
+    payload = ws.serialize_close(code=5000)
+
+    ws.frame_write(sock, ws.OP_CLOSE, payload)
+    check_close(sock, 1002)
+
+    # 7_13_2
+
+    _, sock, _ = ws.upgrade()
+
+    payload = struct.pack('!I', 65536) + ''.encode('utf-8')
+
+    ws.frame_write(sock, ws.OP_CLOSE, payload)
+    check_close(sock, 1002)
+
+
+def test_java_websockets_9_1_1__9_6_6(is_unsafe, system):
+    if not is_unsafe:
+        pytest.skip('unsafe, long run')
+
+    client.load('websockets_mirror')
+
+    assert 'success' in client.conf(
+        {
+            'http': {
+                'websocket': {
+                    'max_frame_size': 33554432,
+                    'keepalive_interval': 0,
                 }
-            },
-            'settings',
-        ), 'increase max_frame_size and keepalive_interval'
+            }
+        },
+        'settings',
+    ), 'increase max_frame_size and keepalive_interval'
 
-        _, sock, _ = self.ws.upgrade()
+    _, sock, _ = ws.upgrade()
 
-        op_text = self.ws.OP_TEXT
-        op_binary = self.ws.OP_BINARY
+    op_text = ws.OP_TEXT
+    op_binary = ws.OP_BINARY
 
-        def check_payload(opcode, length, chopsize=None):
-            if opcode == self.ws.OP_TEXT:
-                payload = '*' * length
-            else:
-                payload = b'*' * length
+    def check_payload(opcode, length, chopsize=None):
+        if opcode == ws.OP_TEXT:
+            payload = '*' * length
+        else:
+            payload = b'*' * length
 
-            self.ws.frame_write(sock, opcode, payload, chopsize=chopsize)
-            frame = self.ws.frame_read(sock)
-            self.check_frame(frame, True, opcode, payload)
+        ws.frame_write(sock, opcode, payload, chopsize=chopsize)
+        frame = ws.frame_read(sock)
+        check_frame(frame, True, opcode, payload)
 
-        def check_message(opcode, f_size):
-            if opcode == self.ws.OP_TEXT:
-                payload = '*' * 4 * 2**20
-            else:
-                payload = b'*' * 4 * 2**20
+    def check_message(opcode, f_size):
+        if opcode == ws.OP_TEXT:
+            payload = '*' * 4 * 2**20
+        else:
+            payload = b'*' * 4 * 2**20
 
-            self.ws.message(sock, opcode, payload, fragmention_size=f_size)
-            frame = self.ws.frame_read(sock, read_timeout=5)
-            self.check_frame(frame, True, opcode, payload)
+        ws.message(sock, opcode, payload, fragmention_size=f_size)
+        frame = ws.frame_read(sock, read_timeout=5)
+        check_frame(frame, True, opcode, payload)
 
-        check_payload(op_text, 64 * 2**10)  # 9_1_1
-        check_payload(op_text, 256 * 2**10)  # 9_1_2
-        check_payload(op_text, 2**20)  # 9_1_3
-        check_payload(op_text, 4 * 2**20)  # 9_1_4
-        check_payload(op_text, 8 * 2**20)  # 9_1_5
-        check_payload(op_text, 16 * 2**20)  # 9_1_6
+    check_payload(op_text, 64 * 2**10)  # 9_1_1
+    check_payload(op_text, 256 * 2**10)  # 9_1_2
+    check_payload(op_text, 2**20)  # 9_1_3
+    check_payload(op_text, 4 * 2**20)  # 9_1_4
+    check_payload(op_text, 8 * 2**20)  # 9_1_5
+    check_payload(op_text, 16 * 2**20)  # 9_1_6
 
-        check_payload(op_binary, 64 * 2**10)  # 9_2_1
-        check_payload(op_binary, 256 * 2**10)  # 9_2_2
-        check_payload(op_binary, 2**20)  # 9_2_3
-        check_payload(op_binary, 4 * 2**20)  # 9_2_4
-        check_payload(op_binary, 8 * 2**20)  # 9_2_5
-        check_payload(op_binary, 16 * 2**20)  # 9_2_6
+    check_payload(op_binary, 64 * 2**10)  # 9_2_1
+    check_payload(op_binary, 256 * 2**10)  # 9_2_2
+    check_payload(op_binary, 2**20)  # 9_2_3
+    check_payload(op_binary, 4 * 2**20)  # 9_2_4
+    check_payload(op_binary, 8 * 2**20)  # 9_2_5
+    check_payload(op_binary, 16 * 2**20)  # 9_2_6
 
-        if option.system != 'Darwin' and option.system != 'FreeBSD':
-            check_message(op_text, 64)  # 9_3_1
-            check_message(op_text, 256)  # 9_3_2
-            check_message(op_text, 2**10)  # 9_3_3
-            check_message(op_text, 4 * 2**10)  # 9_3_4
-            check_message(op_text, 16 * 2**10)  # 9_3_5
-            check_message(op_text, 64 * 2**10)  # 9_3_6
-            check_message(op_text, 256 * 2**10)  # 9_3_7
-            check_message(op_text, 2**20)  # 9_3_8
-            check_message(op_text, 4 * 2**20)  # 9_3_9
+    if system not in ['Darwin', 'FreeBSD']:
+        check_message(op_text, 64)  # 9_3_1
+        check_message(op_text, 256)  # 9_3_2
+        check_message(op_text, 2**10)  # 9_3_3
+        check_message(op_text, 4 * 2**10)  # 9_3_4
+        check_message(op_text, 16 * 2**10)  # 9_3_5
+        check_message(op_text, 64 * 2**10)  # 9_3_6
+        check_message(op_text, 256 * 2**10)  # 9_3_7
+        check_message(op_text, 2**20)  # 9_3_8
+        check_message(op_text, 4 * 2**20)  # 9_3_9
 
-            check_message(op_binary, 64)  # 9_4_1
-            check_message(op_binary, 256)  # 9_4_2
-            check_message(op_binary, 2**10)  # 9_4_3
-            check_message(op_binary, 4 * 2**10)  # 9_4_4
-            check_message(op_binary, 16 * 2**10)  # 9_4_5
-            check_message(op_binary, 64 * 2**10)  # 9_4_6
-            check_message(op_binary, 256 * 2**10)  # 9_4_7
-            check_message(op_binary, 2**20)  # 9_4_8
-            check_message(op_binary, 4 * 2**20)  # 9_4_9
+        check_message(op_binary, 64)  # 9_4_1
+        check_message(op_binary, 256)  # 9_4_2
+        check_message(op_binary, 2**10)  # 9_4_3
+        check_message(op_binary, 4 * 2**10)  # 9_4_4
+        check_message(op_binary, 16 * 2**10)  # 9_4_5
+        check_message(op_binary, 64 * 2**10)  # 9_4_6
+        check_message(op_binary, 256 * 2**10)  # 9_4_7
+        check_message(op_binary, 2**20)  # 9_4_8
+        check_message(op_binary, 4 * 2**20)  # 9_4_9
 
-        check_payload(op_text, 2**20, chopsize=64)  # 9_5_1
-        check_payload(op_text, 2**20, chopsize=128)  # 9_5_2
-        check_payload(op_text, 2**20, chopsize=256)  # 9_5_3
-        check_payload(op_text, 2**20, chopsize=512)  # 9_5_4
-        check_payload(op_text, 2**20, chopsize=1024)  # 9_5_5
-        check_payload(op_text, 2**20, chopsize=2048)  # 9_5_6
+    check_payload(op_text, 2**20, chopsize=64)  # 9_5_1
+    check_payload(op_text, 2**20, chopsize=128)  # 9_5_2
+    check_payload(op_text, 2**20, chopsize=256)  # 9_5_3
+    check_payload(op_text, 2**20, chopsize=512)  # 9_5_4
+    check_payload(op_text, 2**20, chopsize=1024)  # 9_5_5
+    check_payload(op_text, 2**20, chopsize=2048)  # 9_5_6
 
-        check_payload(op_binary, 2**20, chopsize=64)  # 9_6_1
-        check_payload(op_binary, 2**20, chopsize=128)  # 9_6_2
-        check_payload(op_binary, 2**20, chopsize=256)  # 9_6_3
-        check_payload(op_binary, 2**20, chopsize=512)  # 9_6_4
-        check_payload(op_binary, 2**20, chopsize=1024)  # 9_6_5
-        check_payload(op_binary, 2**20, chopsize=2048)  # 9_6_6
+    check_payload(op_binary, 2**20, chopsize=64)  # 9_6_1
+    check_payload(op_binary, 2**20, chopsize=128)  # 9_6_2
+    check_payload(op_binary, 2**20, chopsize=256)  # 9_6_3
+    check_payload(op_binary, 2**20, chopsize=512)  # 9_6_4
+    check_payload(op_binary, 2**20, chopsize=1024)  # 9_6_5
+    check_payload(op_binary, 2**20, chopsize=2048)  # 9_6_6
 
-        self.close_connection(sock)
+    close_connection(sock)
 
-    def test_java_websockets_10_1_1(self):
-        self.load('websockets_mirror')
 
-        _, sock, _ = self.ws.upgrade()
+def test_java_websockets_10_1_1():
+    client.load('websockets_mirror')
 
-        payload = '*' * 65536
+    _, sock, _ = ws.upgrade()
 
-        self.ws.message(sock, self.ws.OP_TEXT, payload, fragmention_size=1300)
+    payload = '*' * 65536
 
-        frame = self.ws.message_read(sock)
-        self.check_frame(frame, True, self.ws.OP_TEXT, payload)
+    ws.message(sock, ws.OP_TEXT, payload, fragmention_size=1300)
 
-        self.close_connection(sock)
+    frame = ws.message_read(sock)
+    check_frame(frame, True, ws.OP_TEXT, payload)
 
-    # settings
+    close_connection(sock)
 
-    def test_java_websockets_max_frame_size(self):
-        self.load('websockets_mirror')
 
-        assert 'success' in self.conf(
-            {'http': {'websocket': {'max_frame_size': 100}}}, 'settings'
-        ), 'configure max_frame_size'
+# settings
 
-        _, sock, _ = self.ws.upgrade()
 
-        payload = '*' * 94
-        opcode = self.ws.OP_TEXT
+def test_java_websockets_max_frame_size():
+    client.load('websockets_mirror')
 
-        self.ws.frame_write(sock, opcode, payload)  # frame length is 100
+    assert 'success' in client.conf(
+        {'http': {'websocket': {'max_frame_size': 100}}}, 'settings'
+    ), 'configure max_frame_size'
 
-        frame = self.ws.frame_read(sock)
-        self.check_frame(frame, True, opcode, payload)
+    _, sock, _ = ws.upgrade()
 
-        payload = '*' * 95
+    payload = '*' * 94
+    opcode = ws.OP_TEXT
 
-        self.ws.frame_write(sock, opcode, payload)  # frame length is 101
-        self.check_close(sock, 1009)  # 1009 - CLOSE_TOO_LARGE
+    ws.frame_write(sock, opcode, payload)  # frame length is 100
 
-    def test_java_websockets_read_timeout(self):
-        self.load('websockets_mirror')
+    frame = ws.frame_read(sock)
+    check_frame(frame, True, opcode, payload)
 
-        assert 'success' in self.conf(
-            {'http': {'websocket': {'read_timeout': 5}}}, 'settings'
-        ), 'configure read_timeout'
+    payload = '*' * 95
 
-        _, sock, _ = self.ws.upgrade()
+    ws.frame_write(sock, opcode, payload)  # frame length is 101
+    check_close(sock, 1009)  # 1009 - CLOSE_TOO_LARGE
 
-        frame = self.ws.frame_to_send(self.ws.OP_TEXT, 'blah')
-        sock.sendall(frame[:2])
 
-        time.sleep(2)
+def test_java_websockets_read_timeout():
+    client.load('websockets_mirror')
 
-        self.check_close(sock, 1001)  # 1001 - CLOSE_GOING_AWAY
+    assert 'success' in client.conf(
+        {'http': {'websocket': {'read_timeout': 5}}}, 'settings'
+    ), 'configure read_timeout'
 
-    def test_java_websockets_keepalive_interval(self):
-        self.load('websockets_mirror')
+    _, sock, _ = ws.upgrade()
 
-        assert 'success' in self.conf(
-            {'http': {'websocket': {'keepalive_interval': 5}}}, 'settings'
-        ), 'configure keepalive_interval'
+    frame = ws.frame_to_send(ws.OP_TEXT, 'blah')
+    sock.sendall(frame[:2])
 
-        _, sock, _ = self.ws.upgrade()
+    time.sleep(2)
 
-        frame = self.ws.frame_to_send(self.ws.OP_TEXT, 'blah')
-        sock.sendall(frame[:2])
+    check_close(sock, 1001)  # 1001 - CLOSE_GOING_AWAY
 
-        time.sleep(2)
 
-        frame = self.ws.frame_read(sock)
-        self.check_frame(frame, True, self.ws.OP_PING, '')  # PING frame
+def test_java_websockets_keepalive_interval():
+    client.load('websockets_mirror')
 
-        sock.close()
+    assert 'success' in client.conf(
+        {'http': {'websocket': {'keepalive_interval': 5}}}, 'settings'
+    ), 'configure keepalive_interval'
+
+    _, sock, _ = ws.upgrade()
+
+    frame = ws.frame_to_send(ws.OP_TEXT, 'blah')
+    sock.sendall(frame[:2])
+
+    time.sleep(2)
+
+    frame = ws.frame_read(sock)
+    check_frame(frame, True, ws.OP_PING, '')  # PING frame
+
+    sock.close()

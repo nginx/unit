@@ -14,6 +14,98 @@
                 unit-ruby
                 unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11 unit-jsc13
                 unit-jsc14 unit-jsc15 unit-jsc16 unit-jsc17 unit-jsc18
+                unit-jsc19 unit-jsc20
+                unit-wasm"
+         ver="1.31.0" rev="1"
+         date="2023-08-31" time="18:00:00 +0300"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.31.0.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.31.0" rev="1"
+         date="2023-08-31" time="18:00:00 +0300"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change type="change">
+<para>
+if building with njs, version 0.8.0 or later is now required.
+</para>
+</change>
+
+<change type="feature">
+<para>
+technology preview of WebAssembly application module.
+</para>
+</change>
+
+<change type="feature">
+<para>
+"response_headers" option to manage headers in the action and fallback.
+</para>
+</change>
+
+<change type="feature">
+<para>
+HTTP response header variables.
+</para>
+</change>
+
+<change type="feature">
+<para>
+ASGI lifespan state support. Thanks to synodriver.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+ensure that $uri variable is not cached.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+deprecated options were unavailable.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+ASGI applications inaccessible over IPv6.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-wasm" ver="1.31.0" rev="1"
+         date="2023-08-14" time="15:00:00 -0700"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change>
+<para>
+Initial release of WASM module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8 unit-python3.9 unit-python3.10 unit-python3.11
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11 unit-jsc13
+                unit-jsc14 unit-jsc15 unit-jsc16 unit-jsc17 unit-jsc18
                 unit-jsc19 unit-jsc20"
          ver="1.30.0" rev="1"
          date="2023-05-10" time="18:00:00 +0300"

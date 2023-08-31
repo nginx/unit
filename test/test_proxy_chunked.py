@@ -3,235 +3,226 @@ import select
 import socket
 import time
 
+import pytest
 from conftest import run_process
-from unit.applications.lang.python import TestApplicationPython
-from unit.option import option
+from unit.applications.lang.python import ApplicationPython
 from unit.utils import waitforsocket
 
+prerequisites = {'modules': {'python': 'any'}}
 
-class TestProxyChunked(TestApplicationPython):
-    prerequisites = {'modules': {'python': 'any'}}
+client = ApplicationPython()
+SERVER_PORT = 7999
 
-    SERVER_PORT = 7999
 
-    @staticmethod
-    def run_server(server_port, temp_dir):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+@pytest.fixture(autouse=True)
+def setup_method_fixture():
+    run_process(run_server, SERVER_PORT)
+    waitforsocket(SERVER_PORT)
 
-        server_address = ('127.0.0.1', server_port)
-        sock.bind(server_address)
-        sock.listen(10)
+    assert 'success' in client.conf(
+        {
+            "listeners": {
+                "*:7080": {"pass": "routes"},
+            },
+            "routes": [
+                {"action": {"proxy": f'http://127.0.0.1:{SERVER_PORT}'}}
+            ],
+        }
+    ), 'proxy initial configuration'
 
-        def recvall(sock):
-            buff_size = 4096 * 4096
-            data = b''
-            while True:
-                rlist = select.select([sock], [], [], 0.1)
 
-                if not rlist[0]:
-                    break
+def run_server(server_port):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
-                part = sock.recv(buff_size)
-                data += part
+    server_address = ('127.0.0.1', server_port)
+    sock.bind(server_address)
+    sock.listen(10)
 
-                if not len(part):
-                    break
-
-            return data
-
+    def recvall(sock):
+        buff_size = 4096 * 4096
+        data = b''
         while True:
-            connection, client_address = sock.accept()
+            rlist = select.select([sock], [], [], 0.1)
 
-            req = """HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked"""
+            if not rlist[0]:
+                break
 
-            data = recvall(connection).decode()
+            part = sock.recv(buff_size)
+            data += part
 
-            m = re.search('\x0d\x0a\x0d\x0a(.*)', data, re.M | re.S)
-            if m is not None:
-                body = m.group(1)
+            if not len(part):
+                break
 
-                for line in re.split('\r\n', body):
-                    add = ''
-                    m1 = re.search(r'(.*)\sX\s(\d+)', line)
+        return data
 
-                    if m1 is not None:
-                        add = m1.group(1) * int(m1.group(2))
-                    else:
-                        add = line
+    while True:
+        connection, _ = sock.accept()
 
-                    req = f'{req}{add}\r\n'
+        req = """HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked"""
 
-            for chunk in re.split(r'([@#])', req):
-                if chunk == '@' or chunk == '#':
-                    if chunk == '#':
-                        time.sleep(0.1)
-                    continue
+        data = recvall(connection).decode()
 
-                connection.sendall(chunk.encode())
+        m = re.search('\x0d\x0a\x0d\x0a(.*)', data, re.M | re.S)
+        if m is not None:
+            body = m.group(1)
 
-            connection.close()
+            for line in re.split('\r\n', body):
+                add = ''
+                m1 = re.search(r'(.*)\sX\s(\d+)', line)
 
-    def chunks(self, chunks):
-        body = '\r\n\r\n'
+                if m1 is not None:
+                    add = m1.group(1) * int(m1.group(2))
+                else:
+                    add = line
 
-        for l, c in chunks:
-            body = f'{body}{l}\r\n{c}\r\n'
+                req = f'{req}{add}\r\n'
 
-        return f'{body}0\r\n\r\n'
+        for chunk in re.split(r'([@#])', req):
+            if chunk == '@' or chunk == '#':
+                if chunk == '#':
+                    time.sleep(0.1)
+                continue
 
-    def get_http10(self, *args, **kwargs):
-        return self.get(*args, http_10=True, **kwargs)
+            connection.sendall(chunk.encode())
 
-    def setup_method(self):
-        run_process(self.run_server, self.SERVER_PORT, option.temp_dir)
-        waitforsocket(self.SERVER_PORT)
+        connection.close()
 
-        assert 'success' in self.conf(
-            {
-                "listeners": {
-                    "*:7080": {"pass": "routes"},
-                },
-                "routes": [
-                    {
-                        "action": {
-                            "proxy": f'http://127.0.0.1:{self.SERVER_PORT}'
-                        }
-                    }
-                ],
-            }
-        ), 'proxy initial configuration'
 
-    def test_proxy_chunked(self):
-        for _ in range(10):
-            assert self.get_http10(body='\r\n\r\n0\r\n\r\n')['status'] == 200
+def chunks(chunks):
+    body = '\r\n\r\n'
 
-    def test_proxy_chunked_body(self):
-        part = '0123456789abcdef'
+    for l, c in chunks:
+        body = f'{body}{l}\r\n{c}\r\n'
 
-        assert (
-            self.get_http10(body=self.chunks([('1000', f'{part} X 256')]))[
-                'body'
-            ]
-            == part * 256
-        )
-        assert (
-            self.get_http10(body=self.chunks([('100000', f'{part} X 65536')]))[
-                'body'
-            ]
-            == part * 65536
-        )
-        assert (
-            self.get_http10(
-                body=self.chunks([('1000000', f'{part} X 1048576')]),
+    return f'{body}0\r\n\r\n'
+
+
+def get_http10(*args, **kwargs):
+    return client.get(*args, http_10=True, **kwargs)
+
+
+def test_proxy_chunked():
+    for _ in range(10):
+        assert get_http10(body='\r\n\r\n0\r\n\r\n')['status'] == 200
+
+
+def test_proxy_chunked_body():
+    part = '0123456789abcdef'
+
+    assert (
+        get_http10(body=chunks([('1000', f'{part} X 256')]))['body']
+        == part * 256
+    )
+    assert (
+        get_http10(body=chunks([('100000', f'{part} X 65536')]))['body']
+        == part * 65536
+    )
+    assert (
+        get_http10(
+            body=chunks([('1000000', f'{part} X 1048576')]),
+            read_buffer_size=4096 * 4096,
+        )['body']
+        == part * 1048576
+    )
+
+    assert (
+        get_http10(
+            body=chunks([('1000', f'{part} X 256'), ('1000', f'{part} X 256')])
+        )['body']
+        == part * 256 * 2
+    )
+    assert (
+        get_http10(
+            body=chunks(
+                [
+                    ('100000', f'{part} X 65536'),
+                    ('100000', f'{part} X 65536'),
+                ]
+            )
+        )['body']
+        == part * 65536 * 2
+    )
+    assert (
+        get_http10(
+            body=chunks(
+                [
+                    ('1000000', f'{part} X 1048576'),
+                    ('1000000', f'{part} X 1048576'),
+                ]
+            ),
+            read_buffer_size=4096 * 4096,
+        )['body']
+        == part * 1048576 * 2
+    )
+
+
+def test_proxy_chunked_fragmented():
+    part = '0123456789abcdef'
+
+    assert (
+        get_http10(
+            body=chunks([('1', hex(i % 16)[2:]) for i in range(4096)]),
+        )['body']
+        == part * 256
+    )
+
+
+def test_proxy_chunked_send():
+    assert get_http10(body='\r\n\r\n@0@\r\n\r\n')['status'] == 200
+    assert (
+        get_http10(body='\r@\n\r\n2\r@\na@b\r\n2\r\ncd@\r\n0\r@\n\r\n')['body']
+        == 'abcd'
+    )
+    assert (
+        get_http10(body='\r\n\r\n2\r#\na#b\r\n##2\r\n#cd\r\n0\r\n#\r#\n')[
+            'body'
+        ]
+        == 'abcd'
+    )
+
+
+def test_proxy_chunked_invalid():
+    def check_invalid(body):
+        assert get_http10(body=body)['status'] != 200
+
+    check_invalid('\r\n\r0')
+    check_invalid('\r\n\r\n\r0')
+    check_invalid('\r\n\r\n\r\n0')
+    check_invalid('\r\nContent-Length: 5\r\n\r\n0\r\n\r\n')
+    check_invalid('\r\n\r\n1\r\nXX\r\n0\r\n\r\n')
+    check_invalid('\r\n\r\n2\r\nX\r\n0\r\n\r\n')
+    check_invalid('\r\n\r\nH\r\nXX\r\n0\r\n\r\n')
+    check_invalid('\r\n\r\n0\r\nX')
+
+    resp = get_http10(body='\r\n\r\n65#\r\nA X 100')
+    assert resp['status'] == 200, 'incomplete chunk status'
+    assert resp['body'][-5:] != '0\r\n\r\n', 'incomplete chunk'
+
+    resp = get_http10(body='\r\n\r\n64#\r\nA X 100')
+    assert resp['status'] == 200, 'no zero chunk status'
+    assert resp['body'][-5:] != '0\r\n\r\n', 'no zero chunk'
+
+    assert get_http10(body='\r\n\r\n80000000\r\nA X 100')['status'] == 200
+    assert (
+        get_http10(body='\r\n\r\n10000000000000000\r\nA X 100')['status'] == 502
+    )
+    assert (
+        len(
+            get_http10(
+                body='\r\n\r\n1000000\r\nA X 1048576\r\n1000000\r\nA X 100',
                 read_buffer_size=4096 * 4096,
             )['body']
-            == part * 1048576
         )
-
-        assert (
-            self.get_http10(
-                body=self.chunks(
-                    [('1000', f'{part} X 256'), ('1000', f'{part} X 256')]
-                )
-            )['body']
-            == part * 256 * 2
-        )
-        assert (
-            self.get_http10(
-                body=self.chunks(
-                    [
-                        ('100000', f'{part} X 65536'),
-                        ('100000', f'{part} X 65536'),
-                    ]
-                )
-            )['body']
-            == part * 65536 * 2
-        )
-        assert (
-            self.get_http10(
-                body=self.chunks(
-                    [
-                        ('1000000', f'{part} X 1048576'),
-                        ('1000000', f'{part} X 1048576'),
-                    ]
-                ),
+        >= 1048576
+    )
+    assert (
+        len(
+            get_http10(
+                body='\r\n\r\n1000000\r\nA X 1048576\r\nXXX\r\nA X 100',
                 read_buffer_size=4096 * 4096,
             )['body']
-            == part * 1048576 * 2
         )
-
-    def test_proxy_chunked_fragmented(self):
-        part = '0123456789abcdef'
-
-        assert (
-            self.get_http10(
-                body=self.chunks([('1', hex(i % 16)[2:]) for i in range(4096)]),
-            )['body']
-            == part * 256
-        )
-
-    def test_proxy_chunked_send(self):
-        assert self.get_http10(body='\r\n\r\n@0@\r\n\r\n')['status'] == 200
-        assert (
-            self.get_http10(
-                body='\r@\n\r\n2\r@\na@b\r\n2\r\ncd@\r\n0\r@\n\r\n'
-            )['body']
-            == 'abcd'
-        )
-        assert (
-            self.get_http10(
-                body='\r\n\r\n2\r#\na#b\r\n##2\r\n#cd\r\n0\r\n#\r#\n'
-            )['body']
-            == 'abcd'
-        )
-
-    def test_proxy_chunked_invalid(self):
-        def check_invalid(body):
-            assert self.get_http10(body=body)['status'] != 200
-
-        check_invalid('\r\n\r0')
-        check_invalid('\r\n\r\n\r0')
-        check_invalid('\r\n\r\n\r\n0')
-        check_invalid('\r\nContent-Length: 5\r\n\r\n0\r\n\r\n')
-        check_invalid('\r\n\r\n1\r\nXX\r\n0\r\n\r\n')
-        check_invalid('\r\n\r\n2\r\nX\r\n0\r\n\r\n')
-        check_invalid('\r\n\r\nH\r\nXX\r\n0\r\n\r\n')
-        check_invalid('\r\n\r\n0\r\nX')
-
-        resp = self.get_http10(body='\r\n\r\n65#\r\nA X 100')
-        assert resp['status'] == 200, 'incomplete chunk status'
-        assert resp['body'][-5:] != '0\r\n\r\n', 'incomplete chunk'
-
-        resp = self.get_http10(body='\r\n\r\n64#\r\nA X 100')
-        assert resp['status'] == 200, 'no zero chunk status'
-        assert resp['body'][-5:] != '0\r\n\r\n', 'no zero chunk'
-
-        assert (
-            self.get_http10(body='\r\n\r\n80000000\r\nA X 100')['status'] == 200
-        )
-        assert (
-            self.get_http10(body='\r\n\r\n10000000000000000\r\nA X 100')[
-                'status'
-            ]
-            == 502
-        )
-        assert (
-            len(
-                self.get_http10(
-                    body='\r\n\r\n1000000\r\nA X 1048576\r\n1000000\r\nA X 100',
-                    read_buffer_size=4096 * 4096,
-                )['body']
-            )
-            >= 1048576
-        )
-        assert (
-            len(
-                self.get_http10(
-                    body='\r\n\r\n1000000\r\nA X 1048576\r\nXXX\r\nA X 100',
-                    read_buffer_size=4096 * 4096,
-                )['body']
-            )
-            >= 1048576
-        )
+        >= 1048576
+    )

@@ -1,295 +1,318 @@
 import re
 
 import pytest
-from unit.applications.lang.perl import TestApplicationPerl
+from unit.applications.lang.perl import ApplicationPerl
+
+prerequisites = {'modules': {'perl': 'all'}}
+
+client = ApplicationPerl()
 
 
-class TestPerlApplication(TestApplicationPerl):
-    prerequisites = {'modules': {'perl': 'all'}}
+def test_perl_application(date_to_sec_epoch, sec_epoch):
+    client.load('variables')
 
-    def test_perl_application(self):
-        self.load('variables')
+    body = 'Test body string.'
 
-        body = 'Test body string.'
-
-        resp = self.post(
-            headers={
-                'Host': 'localhost',
-                'Content-Type': 'text/html',
-                'Custom-Header': 'blah',
-                'Connection': 'close',
-            },
-            body=body,
-        )
-
-        assert resp['status'] == 200, 'status'
-        headers = resp['headers']
-        header_server = headers.pop('Server')
-        assert re.search(r'Unit/[\d\.]+', header_server), 'server header'
-        assert (
-            headers.pop('Server-Software') == header_server
-        ), 'server software header'
-
-        date = headers.pop('Date')
-        assert date[-4:] == ' GMT', 'date header timezone'
-        assert (
-            abs(self.date_to_sec_epoch(date) - self.sec_epoch()) < 5
-        ), 'date header'
-
-        assert headers == {
-            'Connection': 'close',
-            'Content-Length': str(len(body)),
+    resp = client.post(
+        headers={
+            'Host': 'localhost',
             'Content-Type': 'text/html',
-            'Request-Method': 'POST',
-            'Request-Uri': '/',
-            'Http-Host': 'localhost',
-            'Server-Protocol': 'HTTP/1.1',
             'Custom-Header': 'blah',
-            'Psgi-Version': '11',
-            'Psgi-Url-Scheme': 'http',
-            'Psgi-Multithread': '',
-            'Psgi-Multiprocess': '1',
-            'Psgi-Run-Once': '',
-            'Psgi-Nonblocking': '',
-            'Psgi-Streaming': '1',
-        }, 'headers'
-        assert resp['body'] == body, 'body'
+            'Connection': 'close',
+        },
+        body=body,
+    )
 
-    def test_perl_application_query_string(self):
-        self.load('query_string')
+    assert resp['status'] == 200, 'status'
+    headers = resp['headers']
+    header_server = headers.pop('Server')
+    assert re.search(r'Unit/[\d\.]+', header_server), 'server header'
+    assert (
+        headers.pop('Server-Software') == header_server
+    ), 'server software header'
 
-        resp = self.get(url='/?var1=val1&var2=val2')
+    date = headers.pop('Date')
+    assert date[-4:] == ' GMT', 'date header timezone'
+    assert abs(date_to_sec_epoch(date) - sec_epoch) < 5, 'date header'
 
-        assert (
-            resp['headers']['Query-String'] == 'var1=val1&var2=val2'
-        ), 'Query-String header'
+    assert headers == {
+        'Connection': 'close',
+        'Content-Length': str(len(body)),
+        'Content-Type': 'text/html',
+        'Request-Method': 'POST',
+        'Request-Uri': '/',
+        'Http-Host': 'localhost',
+        'Server-Protocol': 'HTTP/1.1',
+        'Custom-Header': 'blah',
+        'Psgi-Version': '11',
+        'Psgi-Url-Scheme': 'http',
+        'Psgi-Multithread': '',
+        'Psgi-Multiprocess': '1',
+        'Psgi-Run-Once': '',
+        'Psgi-Nonblocking': '',
+        'Psgi-Streaming': '1',
+    }, 'headers'
+    assert resp['body'] == body, 'body'
 
-    def test_perl_application_query_string_empty(self):
-        self.load('query_string')
 
-        resp = self.get(url='/?')
+def test_perl_application_query_string():
+    client.load('query_string')
 
-        assert resp['status'] == 200, 'query string empty status'
-        assert resp['headers']['Query-String'] == '', 'query string empty'
+    resp = client.get(url='/?var1=val1&var2=val2')
 
-    def test_perl_application_query_string_absent(self):
-        self.load('query_string')
+    assert (
+        resp['headers']['Query-String'] == 'var1=val1&var2=val2'
+    ), 'Query-String header'
 
-        resp = self.get()
 
-        assert resp['status'] == 200, 'query string absent status'
-        assert resp['headers']['Query-String'] == '', 'query string absent'
+def test_perl_application_query_string_empty():
+    client.load('query_string')
 
-    @pytest.mark.skip('not yet')
-    def test_perl_application_server_port(self):
-        self.load('server_port')
+    resp = client.get(url='/?')
 
-        assert (
-            self.get()['headers']['Server-Port'] == '7080'
-        ), 'Server-Port header'
+    assert resp['status'] == 200, 'query string empty status'
+    assert resp['headers']['Query-String'] == '', 'query string empty'
 
-    def test_perl_application_input_read_empty(self):
-        self.load('input_read_empty')
 
-        assert self.get()['body'] == '', 'read empty'
+def test_perl_application_query_string_absent():
+    client.load('query_string')
 
-    def test_perl_application_input_read_parts(self):
-        self.load('input_read_parts')
+    resp = client.get()
 
-        assert (
-            self.post(body='0123456789')['body'] == '0123456789'
-        ), 'input read parts'
+    assert resp['status'] == 200, 'query string absent status'
+    assert resp['headers']['Query-String'] == '', 'query string absent'
 
-    def test_perl_application_input_buffered_read(self):
-        self.load('input_buffered_read')
 
-        assert self.post(body='012345')['body'] == '012345', 'buffered read #1'
-        assert (
-            self.post(body='9876543210')['body'] == '9876543210'
-        ), 'buffered read #2'
+@pytest.mark.skip('not yet')
+def test_perl_application_server_port():
+    client.load('server_port')
 
-    def test_perl_application_input_close(self):
-        self.load('input_close')
+    assert (
+        client.get()['headers']['Server-Port'] == '7080'
+    ), 'Server-Port header'
 
-        assert self.post(body='012345')['body'] == '012345', 'input close #1'
-        assert (
-            self.post(body='9876543210')['body'] == '9876543210'
-        ), 'input close #2'
 
-    @pytest.mark.skip('not yet')
-    def test_perl_application_input_read_offset(self):
-        self.load('input_read_offset')
+def test_perl_application_input_read_empty():
+    client.load('input_read_empty')
 
-        assert self.post(body='0123456789')['body'] == '4567', 'read offset'
+    assert client.get()['body'] == '', 'read empty'
 
-    def test_perl_application_input_copy(self):
-        self.load('input_copy')
 
-        body = '0123456789'
-        assert self.post(body=body)['body'] == body, 'input copy'
+def test_perl_application_input_read_parts():
+    client.load('input_read_parts')
 
-    def test_perl_application_errors_print(self):
-        self.load('errors_print')
+    assert (
+        client.post(body='0123456789')['body'] == '0123456789'
+    ), 'input read parts'
 
-        assert self.get()['body'] == '1', 'errors result'
 
-        assert (
-            self.wait_for_record(r'\[error\].+Error in application') is not None
-        ), 'errors print'
+def test_perl_application_input_buffered_read():
+    client.load('input_buffered_read')
 
-    def test_perl_application_header_equal_names(self):
-        self.load('header_equal_names')
+    assert client.post(body='012345')['body'] == '012345', 'buffered read #1'
+    assert (
+        client.post(body='9876543210')['body'] == '9876543210'
+    ), 'buffered read #2'
 
-        assert self.get()['headers']['Set-Cookie'] == [
-            'tc=one,two,three',
-            'tc=four,five,six',
-        ], 'header equal names'
 
-    def test_perl_application_header_pairs(self):
-        self.load('header_pairs')
+def test_perl_application_input_close():
+    client.load('input_close')
 
-        assert self.get()['headers']['blah'] == 'blah', 'header pairs'
+    assert client.post(body='012345')['body'] == '012345', 'input close #1'
+    assert (
+        client.post(body='9876543210')['body'] == '9876543210'
+    ), 'input close #2'
 
-    def test_perl_application_body_empty(self):
-        self.load('body_empty')
 
-        assert self.get()['body'] == '', 'body empty'
+@pytest.mark.skip('not yet')
+def test_perl_application_input_read_offset():
+    client.load('input_read_offset')
 
-    def test_perl_application_body_array(self):
-        self.load('body_array')
+    assert client.post(body='0123456789')['body'] == '4567', 'read offset'
 
-        assert self.get()['body'] == '0123456789', 'body array'
 
-    def test_perl_application_body_large(self):
-        self.load('variables')
+def test_perl_application_input_copy():
+    client.load('input_copy')
 
-        body = '0123456789' * 1000
+    body = '0123456789'
+    assert client.post(body=body)['body'] == body, 'input copy'
 
-        resp = self.post(body=body)['body']
 
-        assert resp == body, 'body large'
+def test_perl_application_errors_print(wait_for_record):
+    client.load('errors_print')
 
-    def test_perl_application_body_io_empty(self):
-        self.load('body_io_empty')
+    assert client.get()['body'] == '1', 'errors result'
 
-        assert self.get()['status'] == 200, 'body io empty'
+    assert (
+        wait_for_record(r'\[error\].+Error in application') is not None
+    ), 'errors print'
 
-    def test_perl_application_body_io_file(self):
-        self.load('body_io_file')
 
-        assert self.get()['body'] == 'body\n', 'body io file'
+def test_perl_application_header_equal_names():
+    client.load('header_equal_names')
 
-    def test_perl_streaming_body_multiple_responses(self):
-        self.load('streaming_body_multiple_responses')
+    assert client.get()['headers']['Set-Cookie'] == [
+        'tc=one,two,three',
+        'tc=four,five,six',
+    ], 'header equal names'
 
-        assert self.get()['status'] == 200
 
-    @pytest.mark.skip('not yet')
-    def test_perl_application_syntax_error(self, skip_alert):
-        skip_alert(r'PSGI: Failed to parse script')
-        self.load('syntax_error')
+def test_perl_application_header_pairs():
+    client.load('header_pairs')
 
-        assert self.get()['status'] == 500, 'syntax error'
+    assert client.get()['headers']['blah'] == 'blah', 'header pairs'
 
-    def test_perl_keepalive_body(self):
-        self.load('variables')
 
-        assert self.get()['status'] == 200, 'init'
+def test_perl_application_body_empty():
+    client.load('body_empty')
 
-        body = '0123456789' * 500
-        (resp, sock) = self.post(
+    assert client.get()['body'] == '', 'body empty'
+
+
+def test_perl_application_body_array():
+    client.load('body_array')
+
+    assert client.get()['body'] == '0123456789', 'body array'
+
+
+def test_perl_application_body_large():
+    client.load('variables')
+
+    body = '0123456789' * 1000
+
+    resp = client.post(body=body)['body']
+
+    assert resp == body, 'body large'
+
+
+def test_perl_application_body_io_empty():
+    client.load('body_io_empty')
+
+    assert client.get()['status'] == 200, 'body io empty'
+
+
+def test_perl_application_body_io_file():
+    client.load('body_io_file')
+
+    assert client.get()['body'] == 'body\n', 'body io file'
+
+
+def test_perl_streaming_body_multiple_responses():
+    client.load('streaming_body_multiple_responses')
+
+    assert client.get()['status'] == 200
+
+
+@pytest.mark.skip('not yet')
+def test_perl_application_syntax_error(skip_alert):
+    skip_alert(r'PSGI: Failed to parse script')
+    client.load('syntax_error')
+
+    assert client.get()['status'] == 500, 'syntax error'
+
+
+def test_perl_keepalive_body():
+    client.load('variables')
+
+    assert client.get()['status'] == 200, 'init'
+
+    body = '0123456789' * 500
+    (resp, sock) = client.post(
+        headers={
+            'Host': 'localhost',
+            'Connection': 'keep-alive',
+            'Content-Type': 'text/html',
+        },
+        start=True,
+        body=body,
+        read_timeout=1,
+    )
+
+    assert resp['body'] == body, 'keep-alive 1'
+
+    body = '0123456789'
+    resp = client.post(
+        headers={
+            'Host': 'localhost',
+            'Connection': 'close',
+            'Content-Type': 'text/html',
+        },
+        sock=sock,
+        body=body,
+    )
+
+    assert resp['body'] == body, 'keep-alive 2'
+
+
+def test_perl_body_io_fake(wait_for_record):
+    client.load('body_io_fake')
+
+    assert client.get()['body'] == '21', 'body io fake'
+
+    assert (
+        wait_for_record(r'\[error\].+IOFake getline\(\) \$\/ is \d+')
+        is not None
+    ), 'body io fake $/ value'
+
+    assert (
+        wait_for_record(r'\[error\].+IOFake close\(\) called') is not None
+    ), 'body io fake close'
+
+
+def test_perl_delayed_response():
+    client.load('delayed_response')
+
+    resp = client.get()
+
+    assert resp['status'] == 200, 'status'
+    assert resp['body'] == 'Hello World!', 'body'
+
+
+def test_perl_streaming_body():
+    client.load('streaming_body')
+
+    resp = client.get()
+
+    assert resp['status'] == 200, 'status'
+    assert resp['body'] == 'Hello World!', 'body'
+
+
+def test_perl_application_threads():
+    client.load('threads')
+
+    assert 'success' in client.conf(
+        '4', 'applications/threads/threads'
+    ), 'configure 4 threads'
+
+    socks = []
+
+    for _ in range(4):
+        sock = client.get(
             headers={
                 'Host': 'localhost',
-                'Connection': 'keep-alive',
-                'Content-Type': 'text/html',
-            },
-            start=True,
-            body=body,
-            read_timeout=1,
-        )
-
-        assert resp['body'] == body, 'keep-alive 1'
-
-        body = '0123456789'
-        resp = self.post(
-            headers={
-                'Host': 'localhost',
+                'X-Delay': '2',
                 'Connection': 'close',
-                'Content-Type': 'text/html',
             },
-            sock=sock,
-            body=body,
+            no_recv=True,
         )
 
-        assert resp['body'] == body, 'keep-alive 2'
+        socks.append(sock)
 
-    def test_perl_body_io_fake(self):
-        self.load('body_io_fake')
+    threads = set()
 
-        assert self.get()['body'] == '21', 'body io fake'
+    for sock in socks:
+        resp = client.recvall(sock).decode('utf-8')
 
-        assert (
-            self.wait_for_record(r'\[error\].+IOFake getline\(\) \$\/ is \d+')
-            is not None
-        ), 'body io fake $/ value'
+        client.log_in(resp)
 
-        assert (
-            self.wait_for_record(r'\[error\].+IOFake close\(\) called')
-            is not None
-        ), 'body io fake close'
-
-    def test_perl_delayed_response(self):
-        self.load('delayed_response')
-
-        resp = self.get()
+        resp = client._resp_to_dict(resp)
 
         assert resp['status'] == 200, 'status'
-        assert resp['body'] == 'Hello World!', 'body'
 
-    def test_perl_streaming_body(self):
-        self.load('streaming_body')
+        threads.add(resp['headers']['X-Thread'])
 
-        resp = self.get()
+        assert resp['headers']['Psgi-Multithread'] == '1', 'multithread'
 
-        assert resp['status'] == 200, 'status'
-        assert resp['body'] == 'Hello World!', 'body'
+        sock.close()
 
-    def test_perl_application_threads(self):
-        self.load('threads')
-
-        assert 'success' in self.conf(
-            '4', 'applications/threads/threads'
-        ), 'configure 4 threads'
-
-        socks = []
-
-        for i in range(4):
-            sock = self.get(
-                headers={
-                    'Host': 'localhost',
-                    'X-Delay': '2',
-                    'Connection': 'close',
-                },
-                no_recv=True,
-            )
-
-            socks.append(sock)
-
-        threads = set()
-
-        for sock in socks:
-            resp = self.recvall(sock).decode('utf-8')
-
-            self.log_in(resp)
-
-            resp = self._resp_to_dict(resp)
-
-            assert resp['status'] == 200, 'status'
-
-            threads.add(resp['headers']['X-Thread'])
-
-            assert resp['headers']['Psgi-Multithread'] == '1', 'multithread'
-
-            sock.close()
-
-        assert len(socks) == len(threads), 'threads differs'
+    assert len(socks) == len(threads), 'threads differs'

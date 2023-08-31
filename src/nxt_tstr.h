@@ -13,14 +13,14 @@ typedef struct nxt_tstr_s        nxt_tstr_t;
 typedef struct nxt_tstr_query_s  nxt_tstr_query_t;
 
 
-typedef struct {
+struct nxt_tstr_state_s {
     nxt_mp_t            *pool;
-    nxt_array_t         *var_fields;
+    nxt_array_t         *var_refs;
 #if (NXT_HAVE_NJS)
     nxt_js_conf_t       *jcf;
 #endif
     uint8_t             test;  /* 1 bit */
-} nxt_tstr_state_t;
+};
 
 
 typedef struct {

@@ -1,23 +1,21 @@
 from packaging import version
-from unit.applications.lang.python import TestApplicationPython
+from unit.applications.lang.python import ApplicationPython
+
+prerequisites = {
+    'modules': {'python': lambda v: version.parse(v) >= version.parse('3.5')},
+    'features': {'unix_abstract': True},
+}
+
+client = ApplicationPython(load_module='asgi')
 
 
-class TestASGIApplicationUnixAbstract(TestApplicationPython):
-    prerequisites = {
-        'modules': {
-            'python': lambda v: version.parse(v) >= version.parse('3.5')
-        },
-        'features': ['unix_abstract'],
-    }
-    load_module = 'asgi'
+def test_asgi_application_unix_abstract():
+    client.load('empty')
 
-    def test_asgi_application_unix_abstract(self):
-        self.load('empty')
+    addr = '\0sock'
+    assert 'success' in client.conf(
+        {f"unix:@{addr[1:]}": {"pass": "applications/empty"}},
+        'listeners',
+    )
 
-        addr = '\0sock'
-        assert 'success' in self.conf(
-            {f"unix:@{addr[1:]}": {"pass": "applications/empty"}},
-            'listeners',
-        )
-
-        assert self.get(sock_type='unix', addr=addr)['status'] == 200
+    assert client.get(sock_type='unix', addr=addr)['status'] == 200

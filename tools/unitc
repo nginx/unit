@@ -1,7 +1,7 @@
 #!/bin/bash
 # unitc - a curl wrapper for configuring NGINX Unit
 # https://github.com/nginx/unit/tree/master/tools
-# NGINX, Inc. (c) 2022
+# NGINX, Inc. (c) 2023
 
 # Defaults
 #
@@ -32,7 +32,7 @@ while [ $# -gt 0 ]; do
 			shift
 			;;
 
-		"GET" | "PUT" | "POST" | "DELETE" | "INSERT")
+		"GET" | "PUT" | "POST" | "DELETE" | "INSERT" | "EDIT")
 			METHOD=$OPTION
 			shift
 			;;
@@ -71,6 +71,7 @@ USAGE: ${0##*/} [options] URI
 General options
   filename …    # Read configuration data from files instead of stdin
   HTTP method   # Default=GET, or PUT with config data (case-insensitive)
+  EDIT          # Opens the URI contents in \$EDITOR
   INSERT        # Virtual HTTP method to prepend data to an existing array
   -q | --quiet  # No output to stdout
 
@@ -129,12 +130,23 @@ if [ $REMOTE -eq 0 ]; then
 			exit 1
 		fi
 
-		# Get control address
+		# Obtain any optional startup parameters from the 'unitd: main' process
+		# so we can get the actual control address and error log location.
+		# Command line options and output of ps(1) is notoriously variable across
+		# different *nix/BSD platforms so multiple attempts might be needed.
 		#
-		PARAMS=$(ps $PID | grep unitd | cut -f2- -dv | tr '[]' ' ' | cut -f3- -d ' ' | sed -e 's/ --/\n--/g')
+		PARAMS=$((ps -wwo args=COMMAND -p $PID || ps $PID) 2> /dev/null | grep unit | tr '[]' ^ | cut -f2 -d^ | sed -e 's/ --/\n--/g')
+		if [ "$PARAMS" = "" ]; then
+			echo "${0##*/}: WARNING: unable to identify unitd command line parameters for PID $PID, assuming unitd defaults from \$PATH"
+			PARAMS=unitd
+		fi
 		CTRL_ADDR=$(echo "$PARAMS" | grep '\--control' | cut -f2 -d' ')
 		if [ "$CTRL_ADDR" = "" ]; then
-			CTRL_ADDR=$($(echo "$PARAMS" | grep unitd) --help | grep -A1 '\--control' | tail -1 | cut -f2 -d\")
+			CTRL_ADDR=$($(echo "$PARAMS") --help | grep -A1 '\--control' | tail -1 | cut -f2 -d\")
+		fi
+		if [ "$CTRL_ADDR" = "" ]; then
+			echo "${0##*/}: ERROR: cannot detect control socket. Did you start unitd with a relative path? Try starting unitd with --control option."
+			exit 2
 		fi
 
 		# Prepare for network or Unix socket addressing
@@ -156,7 +168,11 @@ if [ $REMOTE -eq 0 ]; then
 		#
 		ERROR_LOG=$(echo "$PARAMS" | grep '\--log' | cut -f2 -d' ')
 		if [ "$ERROR_LOG" = "" ]; then
-			ERROR_LOG=$($(echo "$PARAMS" | grep unitd) --help | grep -A1 '\--log' | tail -1 | cut -f2 -d\")
+			ERROR_LOG=$($(echo "$PARAMS") --help | grep -A1 '\--log' | tail -1 | cut -f2 -d\")
+		fi
+		if [ "$ERROR_LOG" = "" ]; then
+			echo "${0##*/}: WARNING: cannot detect unit log file (will not be monitored). If you started unitd from a relative path then try using the --log option."
+			ERROR_LOG=/dev/null
 		fi
 
 		# Cache the discovery for this unit PID (and cleanup any old files)
@@ -190,6 +206,29 @@ fi
 if [ -t 0 ] && [ ${#CONF_FILES[@]} -eq 0 ]; then
 	if [ "$METHOD" = "DELETE" ]; then
 		$SSH_CMD curl -X $METHOD $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ | $OUTPUT
+	elif [ "$METHOD" = "EDIT" ]; then
+		EDITOR=$(test "$EDITOR" && printf '%s' "$EDITOR" || command -v editor || command -v vim || echo vi)
+		EDIT_FILENAME=/tmp/${0##*/}.$$${URI//\//_}
+		$SSH_CMD curl -fsS $UNIT_CTRL$URI > $EDIT_FILENAME || exit 2
+		if [ "${URI:0:12}" = "/js_modules/" ]; then
+			if ! hash jq 2> /dev/null; then
+				echo "${0##*/}: ERROR: jq(1) is required to edit JavaScript modules; install at <https://stedolan.github.io/jq/>"
+				exit 1
+			fi
+			jq -r < $EDIT_FILENAME > $EDIT_FILENAME.js # Unescape linebreaks for a better editing experience
+			EDIT_FILE=$EDIT_FILENAME.js
+			$EDITOR $EDIT_FILENAME.js || exit 2
+			# Remove the references, delete old config, push new config+reference
+			$SSH_CMD curl -fsS $UNIT_CTRL/config/settings/js_module > /tmp/${0##*/}.$$_js_module && \
+			$SSH_CMD curl -X DELETE $UNIT_CTRL/config/settings/js_module && \
+			$SSH_CMD curl -fsSX DELETE $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ && \
+			printf "%s" "$(< $EDIT_FILENAME.js)" | $SSH_CMD curl -fX PUT --data-binary @- $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ && \
+			$SSH_CMD curl -X PUT --data-binary @/tmp/${0##*/}.$$_js_module $UNIT_CTRL/config/settings/js_module 2> /tmp/${0##*/}.$$
+		else
+			tr -d '\r' < $EDIT_FILENAME > $EDIT_FILENAME.json # Remove carriage-return from newlines
+			$EDITOR $EDIT_FILENAME.json || exit 2
+			$SSH_CMD curl -X PUT --data-binary @$EDIT_FILENAME.json $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ | $OUTPUT
+		fi
 	else
 		SHOW_LOG=$(echo $URI | grep -c ^/control/)
 		$SSH_CMD curl $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ | $OUTPUT
@@ -225,7 +264,7 @@ if [ $CURL_STATUS -ne 0 ]; then
 	fi
 	exit 4
 fi
-rm -f /tmp/${0##*/}.$$ 2> /dev/null
+rm -f /tmp/${0##*/}.$$* 2> /dev/null
 
 if [ $SHOW_LOG -gt 0 ] && [ $NOLOG -eq 0 ] && [ $QUIET -eq 0 ]; then
 	echo -n "${0##*/}: Waiting for log..."

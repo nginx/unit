@@ -1,4 +1,18 @@
-.\" (C) 2017-2021, NGINX, Inc.
+.\" (C) 2017-2023, NGINX, Inc.
+.\" (C) 2017-2023 Andrei Zeliankou
+.\" (C) 2018-2023 Konstantin Pavlov
+.\" (C) 2021-2023 Zhidao Hong
+.\" (C) 2021-2023 Alejandro Colomar
+.\" (C) 2022-2023 Andrew Clayton
+.\" (C) 2022-2023 Liam Crilly
+.\" (C) 2017-2022 Valentin V. Bartenev
+.\" (C) 2017-2022 Max Romanov
+.\" (C) 2021-2022 Oisín Canty
+.\" (C) 2017-2021 Igor Sysoev
+.\" (C) 2017-2021 Andrei Belov
+.\" (C) 2019-2021 Tiago Natel de Moura
+.\" (C) 2019-2020 Axel Duch
+.\" (C) 2018-2019 Alexander Borisov
 .\"
 .Dd 2023-04-26
 .Dt unitd 8
@@ -67,7 +81,23 @@ A general-purpose log for diagnostics and troubleshooting.
 The socket address of Unit's control API.
 .El
 .Sh Copyright
+.nf
 (C) 2017-2023, NGINX, Inc.
+(C) 2017-2023 Andrei Zeliankou
+(C) 2018-2023 Konstantin Pavlov
+(C) 2021-2023 Zhidao Hong
+(C) 2021-2023 Alejandro Colomar
+(C) 2022-2023 Andrew Clayton
+(C) 2022-2023 Liam Crilly
+(C) 2017-2022 Valentin V. Bartenev
+(C) 2017-2022 Max Romanov
+(C) 2021-2022 Oisín Canty
+(C) 2017-2021 Igor Sysoev
+(C) 2017-2021 Andrei Belov
+(C) 2019-2021 Tiago Natel de Moura
+(C) 2019-2020 Axel Duch
+(C) 2018-2019 Alexander Borisov
+.fi
 .Pp
 SPDX-License-Identifier: Apache-2.0
 .Sh See also

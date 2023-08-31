@@ -1,12 +1,13 @@
 import os
 import shutil
 
-from unit.applications.proto import TestApplicationProto
+from unit.applications.proto import ApplicationProto
 from unit.option import option
 
 
-class TestApplicationPHP(TestApplicationProto):
-    application_type = "php"
+class ApplicationPHP(ApplicationProto):
+    def __init__(self, application_type='php'):
+        self.application_type = application_type
 
     def load(self, script, index='index.php', **kwargs):
         script_path = f'{option.test_dir}/php/{script}'

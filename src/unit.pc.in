@@ -1,0 +1,11 @@
+prefix=@PREFIX@
+libdir=@LIBDIR@
+confargs=@CONFARGS@
+modulesdir=@MODULESDIR@
+
+Name: unit
+Description: library to embed Unit
+Version: @VERSION@
+URL: https://unit.nginx.org
+Cflags: @CFLAGS@
+Libs: -L${libdir} -lunit @EXTRA_LIBS@

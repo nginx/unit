@@ -1,89 +1,85 @@
-import pytest
-from unit.applications.lang.php import TestApplicationPHP
-from unit.option import option
+from unit.applications.lang.php import ApplicationPHP
+
+prerequisites = {'modules': {'php': 'any'}, 'features': {'isolation': True}}
+
+client = ApplicationPHP()
 
 
-class TestPHPIsolation(TestApplicationPHP):
-    prerequisites = {'modules': {'php': 'any'}, 'features': ['isolation']}
+def test_php_isolation_rootfs(is_su, require, temp_dir):
+    isolation = {'rootfs': temp_dir}
 
-    def test_php_isolation_rootfs(self, is_su, temp_dir):
-        isolation_features = option.available['features']['isolation'].keys()
-
-        if not is_su:
-            if not 'unprivileged_userns_clone' in isolation_features:
-                pytest.skip('requires unprivileged userns or root')
-
-            if 'user' not in isolation_features:
-                pytest.skip('user namespace is not supported')
-
-            if 'mnt' not in isolation_features:
-                pytest.skip('mnt namespace is not supported')
-
-            if 'pid' not in isolation_features:
-                pytest.skip('pid namespace is not supported')
-
-        isolation = {'rootfs': temp_dir}
-
-        if not is_su:
-            isolation['namespaces'] = {
-                'mount': True,
-                'credential': True,
-                'pid': True,
+    if not is_su:
+        require(
+            {
+                'features': {
+                    'isolation': [
+                        'unprivileged_userns_clone',
+                        'user',
+                        'mnt',
+                        'pid',
+                    ]
+                }
             }
-
-        self.load('phpinfo', isolation=isolation)
-
-        assert 'success' in self.conf(
-            '"/app/php/phpinfo"', 'applications/phpinfo/root'
-        )
-        assert 'success' in self.conf(
-            '"/app/php/phpinfo"', 'applications/phpinfo/working_directory'
         )
 
-        assert self.get()['status'] == 200, 'empty rootfs'
+        isolation['namespaces'] = {
+            'mount': True,
+            'credential': True,
+            'pid': True,
+        }
 
-    def test_php_isolation_rootfs_extensions(self, is_su, temp_dir):
-        isolation_features = option.available['features']['isolation'].keys()
+    client.load('phpinfo', isolation=isolation)
 
-        if not is_su:
-            if not 'unprivileged_userns_clone' in isolation_features:
-                pytest.skip('requires unprivileged userns or root')
+    assert 'success' in client.conf(
+        '"/app/php/phpinfo"', 'applications/phpinfo/root'
+    )
+    assert 'success' in client.conf(
+        '"/app/php/phpinfo"', 'applications/phpinfo/working_directory'
+    )
 
-            if 'user' not in isolation_features:
-                pytest.skip('user namespace is not supported')
+    assert client.get()['status'] == 200, 'empty rootfs'
 
-            if 'mnt' not in isolation_features:
-                pytest.skip('mnt namespace is not supported')
 
-            if 'pid' not in isolation_features:
-                pytest.skip('pid namespace is not supported')
+def test_php_isolation_rootfs_extensions(is_su, require, temp_dir):
+    isolation = {'rootfs': temp_dir}
 
-        isolation = {'rootfs': temp_dir}
-
-        if not is_su:
-            isolation['namespaces'] = {
-                'mount': True,
-                'credential': True,
-                'pid': True,
+    if not is_su:
+        require(
+            {
+                'features': {
+                    'isolation': [
+                        'unprivileged_userns_clone',
+                        'user',
+                        'mnt',
+                        'pid',
+                    ]
+                }
             }
-
-        self.load('list-extensions', isolation=isolation)
-
-        assert 'success' in self.conf(
-            '"/app/php/list-extensions"', 'applications/list-extensions/root'
         )
 
-        assert 'success' in self.conf(
-            {'file': '/php/list-extensions/php.ini'},
-            'applications/list-extensions/options',
-        )
+        isolation['namespaces'] = {
+            'mount': True,
+            'credential': True,
+            'pid': True,
+        }
 
-        assert 'success' in self.conf(
-            '"/app/php/list-extensions"',
-            'applications/list-extensions/working_directory',
-        )
+    client.load('list-extensions', isolation=isolation)
 
-        extensions = self.getjson()['body']
+    assert 'success' in client.conf(
+        '"/app/php/list-extensions"', 'applications/list-extensions/root'
+    )
 
-        assert 'json' in extensions, 'json in extensions list'
-        assert 'unit' in extensions, 'unit in extensions list'
+    assert 'success' in client.conf(
+        {'file': '/php/list-extensions/php.ini'},
+        'applications/list-extensions/options',
+    )
+
+    assert 'success' in client.conf(
+        '"/app/php/list-extensions"',
+        'applications/list-extensions/working_directory',
+    )
+
+    extensions = client.getjson()['body']
+
+    assert 'json' in extensions, 'json in extensions list'
+    assert 'unit' in extensions, 'unit in extensions list'

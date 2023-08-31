@@ -4,12 +4,13 @@ import shutil
 import subprocess
 
 import pytest
-from unit.applications.proto import TestApplicationProto
+from unit.applications.proto import ApplicationProto
 from unit.option import option
 
 
-class TestApplicationJava(TestApplicationProto):
-    application_type = "java"
+class ApplicationJava(ApplicationProto):
+    def __init__(self, application_type='java'):
+        self.application_type = application_type
 
     def prepare_env(self, script):
         app_path = f'{option.temp_dir}/java'
@@ -52,7 +53,7 @@ class TestApplicationJava(TestApplicationProto):
                 os.makedirs(classes_path)
 
             classpath = (
-                f'{option.current_dir}/build/tomcat-servlet-api-9.0.70.jar'
+                f'{option.current_dir}/build/tomcat-servlet-api-9.0.75.jar'
             )
 
             ws_jars = glob.glob(

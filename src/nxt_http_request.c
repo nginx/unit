@@ -560,11 +560,9 @@ nxt_http_request_action(nxt_task_t *task, nxt_http_request_t *r,
     if (nxt_fast_path(action != NULL)) {
 
         do {
-            if (action->rewrite != NULL) {
-                ret = nxt_http_rewrite(task, r, action);
-                if (nxt_slow_path(ret != NXT_OK)) {
-                    break;
-                }
+            ret = nxt_http_rewrite(task, r);
+            if (nxt_slow_path(ret != NXT_OK)) {
+                break;
             }
 
             action = action->handler(task, r, action);
@@ -632,8 +630,14 @@ nxt_http_request_header_send(nxt_task_t *task, nxt_http_request_t *r,
     nxt_work_handler_t body_handler, void *data)
 {
     u_char             *p, *end, *server_string;
+    nxt_int_t          ret;
     nxt_http_field_t   *server, *date, *content_length;
     nxt_socket_conf_t  *skcf;
+
+    ret = nxt_http_set_headers(r);
+    if (nxt_slow_path(ret != NXT_OK)) {
+        goto fail;
+    }
 
     /*
      * TODO: "Server", "Date", and "Content-Length" processing should be moved

@@ -1,4 +1,24 @@
 
+Changes with Unit 1.31.0                                         31 Aug 2023
+
+    *) Change: if building with njs, version 0.8.0 or later is now required.
+
+    *) Feature: technology preview of WebAssembly application module.
+
+    *) Feature: "response_headers" option to manage headers in the action
+       and fallback.
+
+    *) Feature: HTTP response header variables.
+
+    *) Feature: ASGI lifespan state support. Thanks to synodriver.
+
+    *) Bugfix: ensure that $uri variable is not cached.
+
+    *) Bugfix: deprecated options were unavailable.
+
+    *) Bugfix: ASGI applications inaccessible over IPv6.
+
+
 Changes with Unit 1.30.0                                         10 May 2023
 
     *) Change: remove Unix domain listen sockets upon reconfiguration.

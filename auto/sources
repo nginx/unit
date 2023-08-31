@@ -93,6 +93,7 @@ NXT_LIB_SRCS=" \
     src/nxt_http_route.c \
     src/nxt_http_route_addr.c \
     src/nxt_http_rewrite.c \
+    src/nxt_http_set_headers.c \
     src/nxt_http_return.c \
     src/nxt_http_static.c \
     src/nxt_http_proxy.c \

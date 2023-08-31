@@ -24,7 +24,7 @@ def public_dir(path):
 
 
 def waitforfiles(*files, timeout=50):
-    for i in range(timeout):
+    for _ in range(timeout):
         wait = False
 
         for f in files:
@@ -41,10 +41,10 @@ def waitforfiles(*files, timeout=50):
 
 
 def waitforglob(pattern, count=1, timeout=50):
-    for i in range(timeout):
+    for _ in range(timeout):
         n = 0
 
-        for f in glob.glob(pattern):
+        for _ in glob.glob(pattern):
             n += 1
 
         if n == count:
@@ -56,7 +56,7 @@ def waitforglob(pattern, count=1, timeout=50):
 
 
 def waitforsocket(port):
-    for i in range(50):
+    for _ in range(50):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             try:
                 sock.settimeout(5)
@@ -90,19 +90,8 @@ def findmnt():
     return out
 
 
-def sysctl():
-    try:
-        out = subprocess.check_output(
-            ['sysctl', '-a'], stderr=subprocess.STDOUT
-        ).decode()
-    except FileNotFoundError:
-        pytest.skip('requires sysctl')
-
-    return out
-
-
 def waitformount(template, timeout=50):
-    for i in range(timeout):
+    for _ in range(timeout):
         if findmnt().find(template) != -1:
             return True
 
@@ -112,7 +101,7 @@ def waitformount(template, timeout=50):
 
 
 def waitforunmount(template, timeout=50):
-    for i in range(timeout):
+    for _ in range(timeout):
         if findmnt().find(template) == -1:
             return True
 

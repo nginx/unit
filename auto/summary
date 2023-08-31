@@ -11,6 +11,7 @@ Unit configuration summary:
   sbin directory: ............ "$NXT_SBINDIR"
   lib directory: ............. "$NXT_LIBDIR"
   include directory: ......... "$NXT_INCLUDEDIR"
+  pkgconfig directory: ....... "$NXT_PKGCONFIGDIR"
   man pages directory: ....... "$NXT_MANDIR"
   modules directory: ......... "$NXT_MODULESDIR"
   state directory: ........... "$NXT_STATEDIR"

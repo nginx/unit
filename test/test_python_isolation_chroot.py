@@ -1,38 +1,29 @@
-import pytest
-from unit.applications.lang.python import TestApplicationPython
+from unit.applications.lang.python import ApplicationPython
+
+prerequisites = {'modules': {'python': 'any'}, 'privileged_user': True}
+
+client = ApplicationPython()
 
 
-class TestPythonIsolation(TestApplicationPython):
-    prerequisites = {'modules': {'python': 'any'}}
+def test_python_isolation_chroot(temp_dir):
+    client.load('ns_inspect', isolation={'rootfs': temp_dir})
 
-    def test_python_isolation_chroot(self, is_su, temp_dir):
-        if not is_su:
-            pytest.skip('requires root')
+    assert not (
+        client.getjson(url=f'/?path={temp_dir}')['body']['FileExists']
+    ), 'temp_dir does not exists in rootfs'
 
-        isolation = {
-            'rootfs': temp_dir,
-        }
+    assert client.getjson(url='/?path=/proc/self')['body'][
+        'FileExists'
+    ], 'no /proc/self'
 
-        self.load('ns_inspect', isolation=isolation)
+    assert not (
+        client.getjson(url='/?path=/dev/pts')['body']['FileExists']
+    ), 'no /dev/pts'
 
-        assert (
-            self.getjson(url=f'/?path={temp_dir}')['body']['FileExists']
-            == False
-        ), 'temp_dir does not exists in rootfs'
+    assert not (
+        client.getjson(url='/?path=/sys/kernel')['body']['FileExists']
+    ), 'no /sys/kernel'
 
-        assert (
-            self.getjson(url='/?path=/proc/self')['body']['FileExists'] == True
-        ), 'no /proc/self'
+    ret = client.getjson(url='/?path=/app/python/ns_inspect')
 
-        assert (
-            self.getjson(url='/?path=/dev/pts')['body']['FileExists'] == False
-        ), 'no /dev/pts'
-
-        assert (
-            self.getjson(url='/?path=/sys/kernel')['body']['FileExists']
-            == False
-        ), 'no /sys/kernel'
-
-        ret = self.getjson(url='/?path=/app/python/ns_inspect')
-
-        assert ret['body']['FileExists'] == True, 'application exists in rootfs'
+    assert ret['body']['FileExists'], 'application exists in rootfs'

@@ -2,78 +2,82 @@ import os
 from pathlib import Path
 
 import pytest
-from unit.applications.proto import TestApplicationProto
+from unit.applications.proto import ApplicationProto
+
+client = ApplicationProto()
 
 
-class TestStaticVariables(TestApplicationProto):
-    prerequisites = {}
+@pytest.fixture(autouse=True)
+def setup_method_fixture(temp_dir):
+    os.makedirs(f'{temp_dir}/assets/dir')
+    os.makedirs(f'{temp_dir}/assets/d$r')
+    Path(f'{temp_dir}/assets/index.html').write_text('0123456789')
+    Path(f'{temp_dir}/assets/dir/file').write_text('file')
+    Path(f'{temp_dir}/assets/d$r/file').write_text('d$r')
 
-    @pytest.fixture(autouse=True)
-    def setup_method_fixture(self, temp_dir):
-        os.makedirs(f'{temp_dir}/assets/dir')
-        os.makedirs(f'{temp_dir}/assets/d$r')
-        Path(f'{temp_dir}/assets/index.html').write_text('0123456789')
-        Path(f'{temp_dir}/assets/dir/file').write_text('file')
-        Path(f'{temp_dir}/assets/d$r/file').write_text('d$r')
+    assert 'success' in client.conf(
+        {
+            "listeners": {"*:7080": {"pass": "routes"}},
+            "routes": [{"action": {"share": f'{temp_dir}/assets$uri'}}],
+        }
+    )
 
-        self._load_conf(
-            {
-                "listeners": {"*:7080": {"pass": "routes"}},
-                "routes": [{"action": {"share": f'{temp_dir}/assets$uri'}}],
-            }
-        )
 
-    def update_share(self, share):
-        if isinstance(share, list):
-            return self.conf(share, 'routes/0/action/share')
+def update_share(share):
+    if isinstance(share, list):
+        return client.conf(share, 'routes/0/action/share')
 
-        return self.conf(f'"{share}"', 'routes/0/action/share')
+    return client.conf(f'"{share}"', 'routes/0/action/share')
 
-    def test_static_variables(self, temp_dir):
-        assert self.get(url='/index.html')['status'] == 200
-        assert self.get(url='/d$r/file')['status'] == 200
 
-        assert 'success' in self.update_share('$uri')
-        assert self.get(url=f'{temp_dir}/assets/index.html')['status'] == 200
+def test_static_variables(temp_dir):
+    assert client.get(url='/index.html')['status'] == 200
+    assert client.get(url='/d$r/file')['status'] == 200
 
-        assert 'success' in self.update_share(f'{temp_dir}/assets${{uri}}')
-        assert self.get(url='/index.html')['status'] == 200
+    assert 'success' in update_share('$uri')
+    assert client.get(url=f'{temp_dir}/assets/index.html')['status'] == 200
 
-    def test_static_variables_array(self, temp_dir):
-        assert 'success' in self.update_share(
-            [f'{temp_dir}/assets$uri', '$uri']
-        )
+    assert 'success' in update_share(f'{temp_dir}/assets${{uri}}')
+    assert client.get(url='/index.html')['status'] == 200
 
-        assert self.get(url='/dir/file')['status'] == 200
-        assert self.get(url=f'{temp_dir}/assets/index.html')['status'] == 200
-        assert self.get(url='/blah')['status'] == 404
 
-        assert 'success' in self.conf(
-            {
-                "share": [f'{temp_dir}/assets$uri', '$uri'],
-                "fallback": {"return": 201},
-            },
-            'routes/0/action',
-        )
+def test_static_variables_array(temp_dir):
+    assert 'success' in update_share([f'{temp_dir}/assets$uri', '$uri'])
 
-        assert self.get(url='/dir/file')['status'] == 200
-        assert self.get(url=f'{temp_dir}/assets/index.html')['status'] == 200
-        assert self.get(url='/dir/blah')['status'] == 201
+    assert client.get(url='/dir/file')['status'] == 200
+    assert client.get(url=f'{temp_dir}/assets/index.html')['status'] == 200
+    assert client.get(url='/blah')['status'] == 404
 
-    def test_static_variables_buildin_start(self, temp_dir):
-        assert 'success' in self.update_share('$uri/assets/index.html')
-        assert self.get(url=temp_dir)['status'] == 200
+    assert 'success' in client.conf(
+        {
+            "share": [f'{temp_dir}/assets$uri', '$uri'],
+            "fallback": {"return": 201},
+        },
+        'routes/0/action',
+    )
 
-    def test_static_variables_buildin_mid(self, temp_dir):
-        assert 'success' in self.update_share(f'{temp_dir}$uri/index.html')
-        assert self.get(url='/assets')['status'] == 200
+    assert client.get(url='/dir/file')['status'] == 200
+    assert client.get(url=f'{temp_dir}/assets/index.html')['status'] == 200
+    assert client.get(url='/dir/blah')['status'] == 201
 
-    def test_static_variables_buildin_end(self):
-        assert self.get(url='/index.html')['status'] == 200
 
-    def test_static_variables_invalid(self, temp_dir):
-        assert 'error' in self.update_share(f'{temp_dir}/assets/d$r$uri')
-        assert 'error' in self.update_share(f'{temp_dir}/assets/$$uri')
-        assert 'error' in self.update_share(
-            [f'{temp_dir}/assets$uri', f'{temp_dir}/assets/dir', '$$uri']
-        )
+def test_static_variables_buildin_start(temp_dir):
+    assert 'success' in update_share('$uri/assets/index.html')
+    assert client.get(url=temp_dir)['status'] == 200
+
+
+def test_static_variables_buildin_mid(temp_dir):
+    assert 'success' in update_share(f'{temp_dir}$uri/index.html')
+    assert client.get(url='/assets')['status'] == 200
+
+
+def test_static_variables_buildin_end():
+    assert client.get(url='/index.html')['status'] == 200
+
+
+def test_static_variables_invalid(temp_dir):
+    assert 'error' in update_share(f'{temp_dir}/assets/d$r$uri')
+    assert 'error' in update_share(f'{temp_dir}/assets/$$uri')
+    assert 'error' in update_share(
+        [f'{temp_dir}/assets$uri', f'{temp_dir}/assets/dir', '$$uri']
+    )

@@ -1,6 +1,5 @@
-from unit.applications.lang.go import TestApplicationGo
+from unit.applications.lang.go import ApplicationGo
 
 
 def check_go():
-    if TestApplicationGo.prepare_env('empty') is not None:
-        return True
+    return ApplicationGo.prepare_env('empty') is not None

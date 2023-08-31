@@ -73,6 +73,7 @@ do
         ;;
         --datarootdir=*)                 NXT_DATAROOTDIR="$value"            ;;
         --mandir=*)                      NXT_MANDIR="$value"                 ;;
+        --pkgconfigdir=*)                NXT_PKGCONFIGDIR="$value"           ;;
         --localstatedir=*)               NXT_LOCALSTATEDIR="$value"          ;;
         --statedir=*)                    NXT_STATEDIR="$value"               ;;
         --state=*)
@@ -158,6 +159,7 @@ NXT_MODULESDIR="${NXT_MODULESDIR-"$NXT_LIBDIR/unit/modules"}"
 
 NXT_DATAROOTDIR="${NXT_DATAROOTDIR-"$NXT_PREFIX/share"}"
 NXT_MANDIR="${NXT_MANDIR-"$NXT_DATAROOTDIR/man"}"
+NXT_PKGCONFIGDIR="${NXT_PKGCONFIGDIR-"$NXT_DATAROOTDIR/pkgconfig"}"
 
 NXT_LOCALSTATEDIR="${NXT_LOCALSTATEDIR-"$NXT_PREFIX/var"}"
 NXT_STATEDIR="${NXT_STATEDIR-"$NXT_LOCALSTATEDIR/lib/unit"}"
