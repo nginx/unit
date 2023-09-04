@@ -11,6 +11,11 @@
 
 #if (NXT_HAVE_CLONE_NEWUSER)
 
+static inline id_t nxt_id_map_host2container(nxt_task_t *task, id_t host_id,
+    const nxt_clone_map_entry_t *map);
+static inline nxt_bool_t nxt_idmap_includes_host_id(id_t host_id,
+    const nxt_clone_map_entry_t *map);
+
 nxt_int_t nxt_clone_credential_setgroups(nxt_task_t *task, pid_t child_pid,
     const char *str);
 nxt_int_t nxt_clone_credential_map_set(nxt_task_t *task, const char* mapfile,
@@ -243,51 +248,25 @@ nxt_int_t
 nxt_clone_vldt_credential_uidmap(nxt_task_t *task,
     nxt_clone_credential_map_t *map, nxt_credential_t *creds)
 {
-    nxt_int_t              id;
-    nxt_uint_t             i;
-    nxt_runtime_t          *rt;
-    nxt_clone_map_entry_t  m;
+    nxt_uint_t                   i;
+    const nxt_clone_map_entry_t  *m;
 
     if (map->size == 0) {
         return NXT_OK;
     }
 
-    rt = task->thread->runtime;
-
-    if (!rt->capabilities.setid) {
-        if (nxt_slow_path(map->size > 1)) {
-            nxt_log(task, NXT_LOG_NOTICE, "\"uidmap\" field has %d entries "
-                    "but unprivileged unit has a maximum of 1 map.",
-                    map->size);
-
-            return NXT_ERROR;
-        }
-
-        id = map->map[0].host;
-
-        if (nxt_slow_path((nxt_uid_t) id != nxt_euid)) {
-            nxt_log(task, NXT_LOG_NOTICE, "\"uidmap\" field has an entry for "
-                    "host uid %d but unprivileged unit can only map itself "
-                    "(uid %d) into child namespaces.", id, nxt_euid);
-
-            return NXT_ERROR;
-        }
-
-        return NXT_OK;
-    }
-
     for (i = 0; i < map->size; i++) {
-        m = map->map[i];
+        m = &map->map[i];
 
-        if (creds->uid >= (nxt_uid_t) m.container
-            && creds->uid < (nxt_uid_t) (m.container + m.size))
-        {
+        if (nxt_idmap_includes_host_id(creds->uid, m)) {
+            creds->uid = nxt_id_map_host2container(task, creds->uid, m);
             return NXT_OK;
         }
     }
 
-    nxt_log(task, NXT_LOG_NOTICE, "\"uidmap\" field has no \"container\" "
-            "entry for user \"%s\" (uid %d)", creds->user, creds->uid);
+    nxt_log(task, NXT_LOG_NOTICE,
+            "\"uidmap\" field has no \"host\" entry for user \"%s\" (uid %d)",
+            creds->user, creds->uid);
 
     return NXT_ERROR;
 }
@@ -297,99 +276,65 @@ nxt_int_t
 nxt_clone_vldt_credential_gidmap(nxt_task_t *task,
     nxt_clone_credential_map_t *map, nxt_credential_t *creds)
 {
-    nxt_uint_t             base_ok, gid_ok, gids_ok;
-    nxt_uint_t             i, j;
-    nxt_runtime_t          *rt;
-    nxt_clone_map_entry_t  m;
+    nxt_uint_t                   base_ok, gid_ok, gids_ok;
+    nxt_uint_t                   i, j;
+    nxt_runtime_t                *rt;
+    const nxt_clone_map_entry_t  *m;
 
     rt = task->thread->runtime;
 
-    if (!rt->capabilities.setid) {
-        if (creds->ngroups > 0
-            && !(creds->ngroups == 1 && creds->gids[0] == creds->base_gid)) {
-            nxt_log(task, NXT_LOG_NOTICE,
-                    "unprivileged unit disallow supplementary groups for "
-                    "new namespace (user \"%s\" has %d group%s).",
-                    creds->user, creds->ngroups,
-                    creds->ngroups > 1 ? "s" : "");
-
-            return NXT_ERROR;
-        }
-
-        if (map->size == 0) {
+    if (map->size == 0) {
+        if (!rt->capabilities.setid) {
             return NXT_OK;
         }
 
-        if (nxt_slow_path(map->size > 1)) {
-            nxt_log(task, NXT_LOG_NOTICE, "\"gidmap\" field has %d entries "
-                    "but unprivileged unit has a maximum of 1 map.",
-                    map->size);
-
-            return NXT_ERROR;
-        }
-
-        m = map->map[0];
-
-        if (nxt_slow_path((nxt_gid_t) m.host != nxt_egid)) {
-            nxt_log(task, NXT_LOG_ERR, "\"gidmap\" field has an entry for "
-                    "host gid %d but unprivileged unit can only map itself "
-                    "(gid %d) into child namespaces.", m.host, nxt_egid);
-
-            return NXT_ERROR;
-        }
-
-        if (nxt_slow_path(m.size > 1)) {
-            nxt_log(task, NXT_LOG_ERR, "\"gidmap\" field has an entry with "
-                    "\"size\": %d, but for unprivileged unit it must be 1.",
-                    m.size);
-
-            return NXT_ERROR;
-        }
-
-        if (nxt_slow_path((nxt_gid_t) m.container != creds->base_gid)) {
-            nxt_log(task, NXT_LOG_ERR,
-                    "\"gidmap\" field has no \"container\" entry for gid %d.",
-                    creds->base_gid);
-
-            return NXT_ERROR;
-        }
-
-        return NXT_OK;
-    }
-
-    if (map->size == 0) {
-        if (creds->ngroups > 0
-            && !(creds->ngroups == 1 && creds->gids[0] == creds->base_gid))
+        if (creds->ngroups == 0
+            || (creds->ngroups == 1 && creds->gids[0] == creds->base_gid))
         {
-            nxt_log(task, NXT_LOG_ERR, "\"gidmap\" field has no entries "
-                    "but user \"%s\" has %d suplementary group%s.",
-                    creds->user, creds->ngroups,
-                    creds->ngroups > 1 ? "s" : "");
-
-            return NXT_ERROR;
+            return NXT_OK;
         }
 
-        return NXT_OK;
+        nxt_log(task, NXT_LOG_ERR, "\"gidmap\" field has no entries but user "
+                "\"%s\" has %d suplementary group%s.",
+                creds->user, creds->ngroups, creds->ngroups > 1 ? "s" : "");
+
+        return NXT_ERROR;
     }
 
     base_ok = 0;
-    gids_ok = 0;
+    for (i = 0; i < map->size; i++) {
+        m = &map->map[i];
 
+        if (nxt_idmap_includes_host_id(creds->base_gid, m)) {
+            creds->base_gid = nxt_id_map_host2container(task, creds->base_gid,
+                                                        m);
+            base_ok = 1;
+            break;
+        }
+    }
+
+    if (nxt_slow_path(!base_ok)) {
+        nxt_log(task, NXT_LOG_ERR,
+                "\"gidmap\" field has no \"host\" entry for gid %d.",
+                creds->base_gid);
+
+        return NXT_ERROR;
+    }
+
+    if (!rt->capabilities.setid) {
+        return NXT_OK;
+    }
+
+    gids_ok = 0;
     for (i = 0; i < creds->ngroups; i++) {
         gid_ok = 0;
 
         for (j = 0; j < map->size; j++) {
-            m = map->map[j];
+            m = &map->map[j];
 
-            if (!base_ok && creds->base_gid >= (nxt_gid_t) m.container
-                && creds->base_gid < (nxt_gid_t) (m.container+m.size))
-            {
-                base_ok = 1;
-            }
-
-            if (creds->gids[i] >= (nxt_gid_t) m.container
-                && creds->gids[i] < (nxt_gid_t) (m.container+m.size))
-            {
+            if (nxt_idmap_includes_host_id(creds->gids[i], m)) {
+                creds->gids[i] = nxt_id_map_host2container(task, creds->gids[i],
+                                                           m);
                 gid_ok = 1;
                 break;
             }
@@ -400,35 +345,45 @@ nxt_clone_vldt_credential_gidmap(nxt_task_t *task,
         }
     }
 
-    if (!base_ok) {
-        for (i = 0; i < map->size; i++) {
-            m = map->map[i];
-
-            if (creds->base_gid >= (nxt_gid_t) m.container
-                && creds->base_gid < (nxt_gid_t) (m.container+m.size))
-            {
-                base_ok = 1;
-                break;
-            }
-        }
-    }
-
-    if (nxt_slow_path(!base_ok)) {
-        nxt_log(task, NXT_LOG_ERR, "\"gidmap\" field has no \"container\" "
-                "entry for gid %d.", creds->base_gid);
-
-        return NXT_ERROR;
-    }
-
     if (nxt_slow_path(gids_ok < creds->ngroups)) {
-        nxt_log(task, NXT_LOG_ERR, "\"gidmap\" field has missing "
-                "suplementary gid mappings (found %d out of %d).", gids_ok,
-                creds->ngroups);
+        nxt_log(task, NXT_LOG_ERR,
+                "\"gidmap\" field has missing suplementary gid mappings (found"
+                " %d out of %d).", gids_ok, creds->ngroups);
 
         return NXT_ERROR;
     }
 
     return NXT_OK;
+}
+
+
+static inline id_t
+nxt_id_map_host2container(nxt_task_t *task, id_t host_id,
+    const nxt_clone_map_entry_t *map)
+{
+    id_t  host_start, container_start, container_id;
+
+    host_start = map->host;
+    container_start = map->container;
+
+    container_id = host_id - host_start + container_start;
+
+    nxt_log(task, NXT_LOG_DEBUG, "mapped host id %d to container id %d.",
+            (int) host_id, (int) container_id);
+
+    return container_id;
+}
+
+
+static inline nxt_bool_t
+nxt_idmap_includes_host_id(id_t host_id, const nxt_clone_map_entry_t *map)
+{
+    id_t  host_start, map_size;
+
+    host_start = map->host;
+    map_size = map->size;
+
+    return (host_id >= host_start && host_id < host_start + map_size);
 }
 
 #endif
