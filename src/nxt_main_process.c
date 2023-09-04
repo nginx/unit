@@ -856,7 +856,7 @@ nxt_main_process_sigusr1_handler(nxt_task_t *task, void *obj, void *data)
     nxt_array_t     *new_files;
     nxt_runtime_t   *rt;
 
-    nxt_log(task, NXT_LOG_NOTICE, "signal %d (%s) recevied, %s",
+    nxt_log(task, NXT_LOG_NOTICE, "signal %d (%s) received, %s",
             (int) (uintptr_t) obj, data, "log files rotation");
 
     rt = task->thread->runtime;
@@ -1073,7 +1073,7 @@ nxt_main_process_sigchld_handler(nxt_task_t *task, void *obj, void *data)
 static void
 nxt_main_process_signal_handler(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_trace(task, "signal signo:%d (%s) recevied, ignored",
+    nxt_trace(task, "signal signo:%d (%s) received, ignored",
               (int) (uintptr_t) obj, data);
 }
 
