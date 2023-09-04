@@ -1,0 +1,73 @@
+[4mnxt_unit_sptr_get[24m(3)       Library Functions Manual       [4mnxt_unit_sptr_get[24m(3)
+
+[1mName[0m
+       nxt_unit_sptr_set,  nxt_unit_sptr_get  -  serialized pointer; offset to
+       self
+
+[1mLibrary[0m
+       NGINX Unit library ([4mlibunit[24m, [4m‐lunit[24m)
+
+[1mSynopsis[0m
+       [1m#include <nxt_unit.h>[0m
+
+       [1mvoid nxt_unit_sptr_set(nxt_unit_sptr_t *[4m[22msptr[24m[1m, void *[4m[22mptr[24m[1m);[0m
+       [1mvoid *nxt_unit_sptr_get(nxt_unit_sptr_t *[4m[22msptr[24m[1m);[0m
+
+       [1mtypedef union nxt_unit_sptr_u  nxt_unit_sptr_t;[0m
+
+       [1munion nxt_unit_sptr_u {[0m
+           [1muint8_t   base[1];[0m
+           [1muint32_t  offset;[0m
+       [1m}[0m
+
+[1mArguments[0m
+       [4msptr[24m   Serialized pointer.  It represents a memory address as an offset
+              to the address of the offset itself.
+
+       [4mptr[24m    Pointer to be serialized.
+
+[1mDescription[0m
+       This type and helper functions are useful for having dynamically struc‐
+       tured data in a single buffer.
+
+       [4mnxt_unit_sptr_t[0m
+              The [4mbase[24m array is used for representing the base  to  which  the
+              offset  applies.   It’s  not  really used for reinterpreting the
+              data in the union.  The base is the address of the first element
+              in the array, which is the same as the address of the union, and
+              thus is also the same as the address of the offset.
+
+              The [4moffset[24m is really the only field actually  accessed  in  this
+              union.  It points to the start of the data.
+
+       [4mnxt_unit_sptr_set[24m(3)
+              Set  the  offset  in the serialized pointer to point to the data
+              pointed to by [4mptr[24m.
+
+       [4mnxt_unit_sptr_get[24m(3)
+              Get a pointer to the data referenced by the  serialized  pointer
+              [4msptr[24m.
+
+       It  is necessary to store pointers as offsets when sharing a buffer via
+       inter‐process communication.
+
+[1mReturn value[0m
+       [4mnxt_unit_sptr_get[24m(3) returns a pointer to the data  previously  set  by
+       [4mnxt_unit_sptr_set[24m(3).
+
+[1mErrors[0m
+       None.
+
+[1mCopyright[0m
+       (C) 2017‐2023, NGINX, Inc.
+
+       SPDX‐License‐Identifier: Apache‐2.0
+
+[1mSee also[0m
+       Website ⟨https://unit.nginx.org⟩
+
+       Mailing list ⟨https://mailman.nginx.org/mailman/listinfo/unit⟩
+
+       GitHub ⟨https://github.com/nginx/unit⟩
+
+NGINX Unit (unreleased)             (date)                [4mnxt_unit_sptr_get[24m(3)

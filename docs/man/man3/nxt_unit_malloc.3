@@ -1,0 +1,70 @@
+.\" (C) 2023, NGINX, Inc.
+.\"
+.TH nxt_unit_malloc 3 (date) "NGINX Unit (unreleased)"
+.SH Name
+nxt_unit_malloc \-
+.MR malloc 3
+wrapper with logging
+.SH Library
+NGINX Unit library
+.RI ( libunit ", " -lunit )
+.SH Synopsis
+.nf
+.B #include <nxt_unit.h>
+.PP
+.B [[gnu::malloc(nxt_unit_free)]]
+.BI "void *_Nullable nxt_unit_malloc(nxt_unit_ctx_t *_Nullable " ctx ,
+.BI "                                size_t " size );
+.BI "void nxt_unit_free(nxt_unit_ctx_t *_Nullable " ctx ", void *_Nullable " ptr );
+.fi
+.SH Arguments
+.TP
+.I ctx
+See
+.MR nxt_unit_log 3 .
+.TP
+.I size
+See
+.MR malloc 3 .
+.TP
+.I ptr
+See
+.MR free 3 .
+.SH Description
+.MR nxt_unit_malloc 3
+and
+.MR nxt_unit_free 3
+are equivalent to
+.MR malloc 3
+and
+.MR free 3 ,
+but log in the Unit debug log.
+.SH Return value
+See
+.MR malloc 3 .
+.SH Errors
+Errors will be reported in the Unit debug log.
+.IP \[bu] 3
+.MR malloc 3
+failed.
+.SH Examples
+See
+.MR nxt_unit_init 3 .
+.SH Copyright
+(C) 2017-2023, NGINX, Inc.
+.PP
+SPDX-License-Identifier: Apache-2.0
+.SH See also
+.MR malloc 3 .
+.PP
+Website
+.UR https://unit.nginx.org
+.UE
+.PP
+Mailing list
+.UR https://mailman.nginx.org/mailman/listinfo/unit
+.UE
+.PP
+GitHub
+.UR https://github.com/nginx/unit
+.UE

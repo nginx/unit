@@ -1,0 +1,95 @@
+nxt_unit_ctx_alloc(3)      Library Functions Manual      nxt_unit_ctx_alloc(3)
+
+Name
+       nxt_unit_ctx_alloc - create context object for Unit app thread
+
+Library
+       NGINX Unit library (libunit, ‐lunit)
+
+Synopsis
+       #include <nxt_unit.h>
+
+       [[gnu::malloc(nxt_unit_done)]]
+       nxt_unit_ctx_t *_Nullable nxt_unit_ctx_alloc(nxt_unit_ctx_t *ctx,
+                                                    void *_Nullable data);
+
+Arguments
+       ctx    Main  context  object  for the application.  It should have been
+              created with nxt_unit_init(3).
+
+       data   XXX
+
+Description
+       nxt_unit_ctx_alloc(3) creates a context object that will be used for  a
+       worker thread.
+
+       The next step after creating a thread context object is running the ap‐
+       plication thread; for that, see nxt_unit_run(3).
+
+       The  context  object  created  by  this function should be destroyed by
+       passing it to nxt_unit_done(3).
+
+Return value
+       A pointer to a context object on success, or NULL on error.
+
+Errors
+       Errors will be reported in the Unit debug log.
+
+       •  pthread_mutex_init(3) failed.
+       •  socketpair(2) failed.
+       •  setsockopt(2) failed.
+       •  memfd_create(2) failed.
+       •  shm_open(2) failed.
+       •  ftruncate(2) failed.
+       •  mmap(2) failed.
+       •  sendmsg(2) failed.
+       •  nxt_unit_malloc(3) failed.
+       •  nxt_unit_init_t::callbacks.port_send failed.
+       •  Internal hash table failure.
+
+Examples
+       See nxt_unit_init(3) for an example where  this  worker()  function  is
+       used.
+
+       #include <pthread.h>
+       #include <stddef.h>
+       #include <stdint.h>
+
+       #include <nxt_unit.h>
+
+       void *
+       worker(void *main_ctx)
+       {
+           int             rc;
+           nxt_unit_ctx_t  *ctx;
+
+           ctx = nxt_unit_ctx_alloc(main_ctx, NULL);
+           if (ctx == NULL) {
+               pthread_exit(NULL);
+           }
+
+           nxt_unit_debug(ctx, "start worker");
+           rc = nxt_unit_run(ctx);
+           nxt_unit_debug(ctx, "worker finished with %d code", rc);
+
+           nxt_unit_done(ctx);
+
+           pthread_exit((void *) (intptr_t) rc);
+       }
+
+Copyright
+       (C) 2017‐2023, NGINX, Inc.
+
+       SPDX‐License‐Identifier: Apache‐2.0
+
+See also
+       nxt_unit_done(3),  nxt_unit_run(3), pthread_create(3), pthread_exit(3),
+       unitd(8)
+
+       Website ⟨https://unit.nginx.org⟩
+
+       Mailing list ⟨https://mailman.nginx.org/mailman/listinfo/unit⟩
+
+       GitHub ⟨https://github.com/nginx/unit⟩
+
+NGINX Unit (unreleased)             (date)               nxt_unit_ctx_alloc(3)

@@ -1,0 +1,98 @@
+.\" (C) 2023, NGINX, Inc.
+.\"
+.TH nxt_unit_run 3 (date) "NGINX Unit (unreleased)"
+.SH Name
+nxt_unit_run \- run Unit app or app thread
+.SH Library
+NGINX Unit library
+.RI ( libunit ", " -lunit )
+.SH Synopsis
+.nf
+.B #include <nxt_unit.h>
+.PP
+.B enum {
+.B "    NXT_UNIT_OK,"
+.B "    NXT_UNIT_ERROR,"
+.B "    NXT_UNIT_AGAIN,"
+.B };
+.PP
+.BI "int nxt_unit_run(nxt_unit_ctx_t *" ctx );
+.fi
+.SH Arguments
+.TP
+.I ctx
+Thread or main context object for the application.
+See
+.MR nxt_unit_init 3
+and
+.MR nxt_unit_ctx_alloc 3 .
+.SH Description
+.MR nxt_unit_run 3
+runs the application or application thread,
+and puts it to work.
+.SH Return value
+0 on success,
+or an error code on error.
+.SH Errors
+Errors will be reported in the Unit debug log.
+.TP
+.B NXT_UNIT_ERROR
+.RS
+.PD 0
+.IP \[bu] 3
+.MR recvmsg 2
+failed.
+.IP \[bu]
+.MR sendmsg 2
+failed.
+.IP \[bu]
+.MR poll 2
+failed.
+.IP \[bu]
+.MR dup2 2
+failed.
+.IP \[bu]
+.MR nxt_unit_malloc 3
+failed.
+.IP \[bu]
+.I nxt_unit_init_t::callbacks.port_recv()
+failed.
+.IP \[bu]
+.I nxt_unit_init_t::callbacks.port_send()
+failed.
+.IP \[bu]
+Internal communication failure.
+.IP \[bu]
+Internal hash table failure.
+.PD
+.RE
+.TP
+.B NXT_UNIT_AGAIN
+Some resource was busy;
+try again.
+.SH Examples
+See
+.MR nxt_unit_init 3
+and
+.MR nxt_unit_ctx_alloc 3 .
+.SH Copyright
+(C) 2017-2023, NGINX, Inc.
+.PP
+SPDX-License-Identifier: Apache-2.0
+.SH See also
+.MR nxt_unit_init 3 ,
+.MR nxt_unit_ctx_alloc 3 ,
+.MR nxt_unit_done 3 ,
+.MR unitd 8
+.PP
+Website
+.UR https://unit.nginx.org
+.UE
+.PP
+Mailing list
+.UR https://mailman.nginx.org/mailman/listinfo/unit
+.UE
+.PP
+GitHub
+.UR https://github.com/nginx/unit
+.UE

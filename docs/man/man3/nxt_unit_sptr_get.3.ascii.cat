@@ -1,0 +1,73 @@
+nxt_unit_sptr_get(3)       Library Functions Manual       nxt_unit_sptr_get(3)
+
+Name
+       nxt_unit_sptr_set,  nxt_unit_sptr_get  -  serialized pointer; offset to
+       self
+
+Library
+       NGINX Unit library (libunit, ‐lunit)
+
+Synopsis
+       #include <nxt_unit.h>
+
+       void nxt_unit_sptr_set(nxt_unit_sptr_t *sptr, void *ptr);
+       void *nxt_unit_sptr_get(nxt_unit_sptr_t *sptr);
+
+       typedef union nxt_unit_sptr_u  nxt_unit_sptr_t;
+
+       union nxt_unit_sptr_u {
+           uint8_t   base[1];
+           uint32_t  offset;
+       }
+
+Arguments
+       sptr   Serialized pointer.  It represents a memory address as an offset
+              to the address of the offset itself.
+
+       ptr    Pointer to be serialized.
+
+Description
+       This type and helper functions are useful for having dynamically struc‐
+       tured data in a single buffer.
+
+       nxt_unit_sptr_t
+              The base array is used for representing the base  to  which  the
+              offset  applies.   It’s  not  really used for reinterpreting the
+              data in the union.  The base is the address of the first element
+              in the array, which is the same as the address of the union, and
+              thus is also the same as the address of the offset.
+
+              The offset is really the only field actually  accessed  in  this
+              union.  It points to the start of the data.
+
+       nxt_unit_sptr_set(3)
+              Set  the  offset  in the serialized pointer to point to the data
+              pointed to by ptr.
+
+       nxt_unit_sptr_get(3)
+              Get a pointer to the data referenced by the  serialized  pointer
+              sptr.
+
+       It  is necessary to store pointers as offsets when sharing a buffer via
+       inter‐process communication.
+
+Return value
+       nxt_unit_sptr_get(3) returns a pointer to the data  previously  set  by
+       nxt_unit_sptr_set(3).
+
+Errors
+       None.
+
+Copyright
+       (C) 2017‐2023, NGINX, Inc.
+
+       SPDX‐License‐Identifier: Apache‐2.0
+
+See also
+       Website ⟨https://unit.nginx.org⟩
+
+       Mailing list ⟨https://mailman.nginx.org/mailman/listinfo/unit⟩
+
+       GitHub ⟨https://github.com/nginx/unit⟩
+
+NGINX Unit (unreleased)             (date)                nxt_unit_sptr_get(3)

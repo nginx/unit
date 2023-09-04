@@ -1,0 +1,168 @@
+nxt_unit_..._buf_alloc(3)  Library Functions Manual  nxt_unit_..._buf_alloc(3)
+
+Name
+       nxt_unit_response_buf_alloc,  nxt_unit_buf_send  -  allocate buffer for
+       response in Unit app
+
+Library
+       NGINX Unit library (libunit, ‐lunit)
+
+Synopsis
+       #include <nxt_unit.h>
+
+       [[gnu::malloc(nxt_unit_buf_send)]]
+       nxt_unit_buf_t *_Nullable
+       nxt_unit_response_buf_alloc(nxt_unit_request_info_t *req, uint32_t size);
+
+       int nxt_unit_buf_send(nxt_unit_buf_t *buf);
+
+Arguments
+       req    Request object.
+
+       size   Size of the buffer.
+
+       buf    Buffer.
+
+Description
+       nxt_unit_response_buf_alloc(3) allocates a buffer for a response  to  a
+       request, or for a chunk of it.
+
+       nxt_unit_buf_send(3)  sends and deallocates the buffer previously allo‐
+       cated with nxt_unit_response_buf_alloc(3).
+
+Return value
+       nxt_unit_response_buf_alloc(3)
+              A pointer to the allocated buffer on success, or NULL on error.
+
+       nxt_unit_buf_send(3)
+              0 on success, or a non‐zero error code on error.
+
+Errors
+       Errors will be reported in the Unit debug log.
+
+       NXT_UNIT_ERROR
+              •  size was too big.
+              •  Allocation failed.
+              •  Failed to share the buffer with unitd(8).
+
+Examples
+       Below is a request and response pair, and the source  code  to  produce
+       it.
+
+       See  nxt_unit_init(3)  for an example where the request_handler() func‐
+       tion defined below is used.
+
+   Request
+       $ echo -e 'GET / HTTP/1.1\r\nHost: _\n' | ncat localhost 80;
+       HTTP/1.1 200 OK
+       Content-Type: text/plain
+       Server: Unit/1.30.0
+       Date: Sat, 20 May 2023 19:08:22 GMT
+       Transfer-Encoding: chunked
+
+       22
+       Hello world!
+       But send this first.
+
+       15
+       Some extra contents.
+
+       e
+       And some more
+
+       0
+
+
+   C code
+       #define _GNU_SOURCE
+       #include <string.h>
+
+       #include <nxt_unit.h>
+
+       void
+       request_handler(nxt_unit_request_info_t *req)
+       {
+           int             rc;
+           nxt_unit_buf_t  *buf, *buf2;
+
+           rc = nxt_unit_response_init(req, 200, 1, strlen("Content-Type")
+                                                    + strlen("text/plain")
+                                                    + strlen("Hello world!\n"));
+           if (rc != 0) {
+               goto fail;
+           }
+
+           rc = nxt_unit_response_add_field(req, "Content-Type",
+                                                 strlen("Content-Type"),
+                                                 "text/plain",
+                                                 strlen("text/plain"));
+           if (rc != 0) {
+               goto fail;
+           }
+
+           rc = nxt_unit_response_add_content(req, "Hello world!\n",
+                                                   strlen("Hello world!\n"));
+           if (rc != 0) {
+               goto fail;
+           }
+
+           rc = nxt_unit_response_send(req);
+           if (rc != 0) {
+               goto fail;
+           }
+
+           buf = nxt_unit_response_buf_alloc(req,
+                                             strlen("Some extra contents.\n"));
+           if (buf == NULL) {
+               rc = NXT_UNIT_ERROR;
+               goto fail;
+           }
+
+           buf2 = nxt_unit_response_buf_alloc(req,
+                                              strlen("But send this first.\n"));
+           if (buf2 == NULL) {
+               rc = NXT_UNIT_ERROR;
+               goto fail;
+           }
+
+           buf2->free = mempcpy(buf2->free, "But send this first.\n",
+                                            strlen("But send this first.\n"));
+           buf->free  = mempcpy(buf->free, "Some extra contents.\n",
+                                           strlen("Some extra contents.\n"));
+
+           rc = nxt_unit_buf_send(buf2);
+           if (rc != 0) {
+               goto fail;
+           }
+
+           rc = nxt_unit_buf_send(buf);
+           if (rc != 0) {
+               goto fail;
+           }
+
+           rc = nxt_unit_response_write(req, "And some more\n",
+                                             strlen("And some more\n"));
+           if (rc != 0) {
+               goto fail;
+           }
+
+       fail:
+           nxt_unit_request_done(req, rc);
+       }
+
+Copyright
+       (C) 2017‐2023, NGINX, Inc.
+
+       SPDX‐License‐Identifier: Apache‐2.0
+
+See also
+       nxt_unit_init(3),                            nxt_unit_response_init(3),
+       nxt_unit_response_write(3), unitd(8)
+
+       Website ⟨https://unit.nginx.org⟩
+
+       Mailing list ⟨https://mailman.nginx.org/mailman/listinfo/unit⟩
+
+       GitHub ⟨https://github.com/nginx/unit⟩
+
+NGINX Unit (unreleased)             (date)           nxt_unit_..._buf_alloc(3)

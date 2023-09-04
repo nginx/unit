@@ -1,0 +1,65 @@
+nxt_unit_run(3)            Library Functions Manual            nxt_unit_run(3)
+
+Name
+       nxt_unit_run - run Unit app or app thread
+
+Library
+       NGINX Unit library (libunit, ‐lunit)
+
+Synopsis
+       #include <nxt_unit.h>
+
+       enum {
+           NXT_UNIT_OK,
+           NXT_UNIT_ERROR,
+           NXT_UNIT_AGAIN,
+       };
+
+       int nxt_unit_run(nxt_unit_ctx_t *ctx);
+
+Arguments
+       ctx    Thread   or  main  context  object  for  the  application.   See
+              nxt_unit_init(3) and nxt_unit_ctx_alloc(3).
+
+Description
+       nxt_unit_run(3) runs the application or application thread, and puts it
+       to work.
+
+Return value
+       0 on success, or an error code on error.
+
+Errors
+       Errors will be reported in the Unit debug log.
+
+       NXT_UNIT_ERROR
+              •  recvmsg(2) failed.
+              •  sendmsg(2) failed.
+              •  poll(2) failed.
+              •  dup2(2) failed.
+              •  nxt_unit_malloc(3) failed.
+              •  nxt_unit_init_t::callbacks.port_recv() failed.
+              •  nxt_unit_init_t::callbacks.port_send() failed.
+              •  Internal communication failure.
+              •  Internal hash table failure.
+
+       NXT_UNIT_AGAIN
+              Some resource was busy; try again.
+
+Examples
+       See nxt_unit_init(3) and nxt_unit_ctx_alloc(3).
+
+Copyright
+       (C) 2017‐2023, NGINX, Inc.
+
+       SPDX‐License‐Identifier: Apache‐2.0
+
+See also
+       nxt_unit_init(3), nxt_unit_ctx_alloc(3), nxt_unit_done(3), unitd(8)
+
+       Website ⟨https://unit.nginx.org⟩
+
+       Mailing list ⟨https://mailman.nginx.org/mailman/listinfo/unit⟩
+
+       GitHub ⟨https://github.com/nginx/unit⟩
+
+NGINX Unit (unreleased)             (date)                     nxt_unit_run(3)

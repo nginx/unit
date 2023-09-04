@@ -1,0 +1,162 @@
+.\" (C) 2023, NGINX, Inc.
+.\"
+.TH nxt_unit_response_add_field 3 (date) "NGINX Unit (unreleased)"
+.SH Name
+nxt_unit_response_add_field \- add field to HTTP response in Unit app
+.SH Library
+NGINX Unit library
+.RI ( libunit ", " -lunit )
+.SH Synopsis
+.nf
+.B #include <nxt_unit.h>
+.PP
+.BI "int nxt_unit_response_add_field(nxt_unit_request_info_t *" req ,
+.BI "                                const char " name [. nlen "], uint8_t " nlen ,
+.BI "                                const char " value [. vlen "], uint32_t " vlen );
+.fi
+.SH Arguments
+.TP
+.I req
+Request object.
+.TP
+.I name
+Name of the field.
+It is a character sequence of length
+.IR nlen .
+.TP
+.I value
+Value of the field.
+It is a character sequence of length
+.IR vlen .
+.SH Description
+.MR nxt_unit_response_add_field 3
+adds a field to the header of an HTTP response.
+.PP
+The response should have been initialized previously with
+.MR nxt_unit_response_init 3 .
+.PP
+If the
+.B \%Content\-Length
+header field is not sent,
+Unit will send a
+.B \%Transfer-Encoding:\ chunked
+response,
+and will produce the header if necessary.
+.SH Return value
+0 on success,
+or a non-zero error code on error.
+.SH Errors
+Errors will be reported in the Unit debug log.
+.TP
+.B NXT_UNIT_ERROR
+.RS
+.PD 0
+.IP \[bu] 3
+Response not initialized.
+.IP \[bu]
+Too many response fields.
+.IP \[bu]
+Field is longer than the response buffer.
+.PD
+.RE
+.SH Examples
+Below is a request and response pair,
+and the source code to produce it.
+.PP
+See
+.MR nxt_unit_init 3
+for an example where the
+.IR request_handler ()
+function defined below is used.
+.SS Request
+.EX
+.RB $ " echo \-e \[aq]GET / HTTP/1.1\er\enHost: _\en\[aq] | ncat localhost 80;"
+HTTP/1.1 200 OK
+Content\-Type: text/plain
+Content\-Length: 42
+Server: Unit/1.30.0
+Date: Sat, 22 May 2023 20:45:50 GMT
+\&
+Hello world!
+.EE
+.SS C code
+.EX
+#include <string.h>
+\&
+#include <nxt_unit.h>
+\&
+void
+request_handler(nxt_unit_request_info_t *req)
+{
+    int  rc;
+\&
+    rc = nxt_unit_response_init(req, 200, 2, strlen("Content\-Type")
+                                             + strlen("text/plain")
+                                             + strlen("Content\-Length")
+                                             + strlen("42")
+                                             + strlen("Hello world!\en"));
+    if (rc != 0) {
+        goto fail;
+    }
+\&
+    rc = nxt_unit_response_add_field(req, "Content\-Type",
+                                          strlen("Content\-Type"),
+                                          "text/plain",
+                                          strlen("text/plain"));
+    if (rc != 0) {
+        goto fail;
+    }
+\&
+    rc = nxt_unit_response_add_field(req, "Content\-Length",
+                                          strlen("Content\-Length"),
+                                          "42",
+                                          strlen("42"));
+    if (rc != 0) {
+        goto fail;
+    }
+\&
+    rc = nxt_unit_response_add_content(req, "Hello", strlen("Hello"));
+    if (rc != 0) {
+        goto fail;
+    }
+    rc = nxt_unit_response_add_content(req, " world!\en",
+                                            strlen(" world!\en"));
+    if (rc != 0) {
+        goto fail;
+    }
+\&
+    rc = nxt_unit_response_send(req);
+\&
+    nxt_unit_req_debug(req, "Response sent.");
+\&
+fail:
+    nxt_unit_request_done(req, rc);
+}
+.EE
+.SH Copyright
+(C) 2017-2023, NGINX, Inc.
+.PP
+SPDX-License-Identifier: Apache-2.0
+.SH See also
+.MR nxt_unit_init 3 ,
+.MR nxt_unit_response_init 3 ,
+.MR nxt_unit_response_add_content 3 ,
+.MR nxt_unit_response_send 3 ,
+.MR nxt_unit_request_done 3 ,
+.MR unitd 8
+.PP
+.UR https://www.rfc-editor.org/\:rfc/\:rfc9112\:#section-5
+RFC 9112, section 5: Field Syntax
+.UE
+.PP
+Website
+.UR https://unit.nginx.org
+.UE
+.PP
+Mailing list
+.UR https://mailman.nginx.org/\:mailman/\:listinfo/\:unit
+.UE
+.PP
+GitHub
+.UR https://github.com/\:nginx/\:unit
+.UE

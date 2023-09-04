@@ -1,0 +1,70 @@
+[4mnxt_unit_...dd_content[24m(3)  Library Functions Manual  [4mnxt_unit_...dd_content[24m(3)
+
+[1mName[0m
+       nxt_unit_response_add_content  -  add  content to HTTP response in Unit
+       app
+
+[1mLibrary[0m
+       NGINX Unit library ([4mlibunit[24m, [4m‐lunit[24m)
+
+[1mSynopsis[0m
+       [1m#include <nxt_unit.h>[0m
+
+       [1mint nxt_unit_response_add_content(nxt_unit_request_info_t *[4m[22mreq[24m[1m,[0m
+                                         [1mconst void [4m[22mcontent[24m[1m[.[4m[22msize[24m[1m],[0m
+                                         [1muint32_t [4m[22msize[24m[1m);[0m
+
+[1mArguments[0m
+       [4mreq[24m    Request object.
+
+       [4mcontent[0m
+              Content of the response.  It’s a buffer of [4msize[24m bytes.
+
+[1mDescription[0m
+       [4mnxt_unit_response_add_content[24m(3) adds content to an HTTP response.
+
+       The   response   should   have   been   initialized   previously   with
+       [4mnxt_unit_response_init[24m(3).
+
+       The  response  should  have enough remaining buffer size available.  If
+       there’s   not   enough,   more   buffer   can   be    allocated    with
+       [4mnxt_unit_response_buff_alloc[24m(3).
+
+       This  function  can  be  called several times, and all contents will be
+       merged into the (chunked) response.  After content is added to the  re‐
+       sponse, it should be sent with [4mnxt_unit_response_send[24m(3).
+
+[1mReturn value[0m
+       0 on success, or a non‐zero error code on error.
+
+[1mErrors[0m
+       Errors will be reported in the Unit debug log.
+
+       [1mNXT_UNIT_ERROR[0m
+              •  Response not initialized.
+              •  Response already sent.
+              •  Content is longer than the response buffer.
+
+[1mExamples[0m
+       See [4mnxt_unit_response_add_field[24m(3).
+
+[1mCopyright[0m
+       (C) 2017‐2023, NGINX, Inc.
+
+       SPDX‐License‐Identifier: Apache‐2.0
+
+[1mSee also[0m
+       [4mnxt_unit_init[24m(3),                            [4mnxt_unit_response_init[24m(3),
+       [4mnxt_unit_response_add_field[24m(3),         [4mnxt_unit_response_buf_alloc[24m(3),
+       [4mnxt_unit_response_send[24m(3), [4mnxt_unit_request_done[24m(3), [4munitd[24m(8)
+
+       RFC  9112,  section  5:  Field  Syntax ⟨https://www.rfc‐editor.org/rfc/
+       rfc9112#section‐5⟩
+
+       Website ⟨https://unit.nginx.org⟩
+
+       Mailing list ⟨https://mailman.nginx.org/mailman/listinfo/unit⟩
+
+       GitHub ⟨https://github.com/nginx/unit⟩
+
+NGINX Unit (unreleased)             (date)           [4mnxt_unit_...dd_content[24m(3)

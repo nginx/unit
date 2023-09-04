@@ -1,0 +1,62 @@
+[4mnxt_unit_log[24m(3)            Library Functions Manual            [4mnxt_unit_log[24m(3)
+
+[1mName[0m
+       nxt_unit_req_log,        nxt_unit_req_alert,        nxt_unit_req_error,
+       nxt_unit_req_warn, nxt_unit_req_debug - print messages to the debug log
+       related to a request in a Unit app
+
+[1mLibrary[0m
+       NGINX Unit library ([4mlibunit[24m, [4m‐lunit[24m)
+
+[1mSynopsis[0m
+       [1m#include <nxt_unit.h>[0m
+
+       [1m[[gnu::format(printf, 3, 4)]][0m
+       [1mvoid nxt_unit_req_log(nxt_unit_request_info_t *_Nullable [4m[22mreq[24m[1m,[0m
+                             [1mint [4m[22mlevel[24m[1m, const char *[4m[22mfmt[24m[1m, ...);[0m
+
+       [1m#define nxt_unit_req_alert([4m[22mreq[24m[1m, [4m[22mfmt[24m[1m, ...)  [22m/* ... */
+       [1m#define nxt_unit_req_error([4m[22mreq[24m[1m, [4m[22mfmt[24m[1m, ...)  [22m/* ... */
+       [1m#define nxt_unit_req_warn([4m[22mreq[24m[1m, [4m[22mfmt[24m[1m, ...)   [22m/* ... */
+       [1m#define nxt_unit_req_debug([4m[22mreq[24m[1m, [4m[22mfmt[24m[1m, ...)  [22m/* ... */
+
+[1mArguments[0m
+       [4mreq[24m    Request object.
+
+       [4mlevel[24m  Log level
+
+       [4mfmt[24m    See [4msnprintf[24m(3).
+
+[1mDescription[0m
+       [4mnxt_unit_req_log[24m(3) is similar to [4mnxt_unit_log[24m(3),  but  it  associates
+       the log to a specific request.
+
+[1mReturn value[0m
+       None.
+
+[1mErrors[0m
+       If  these functions fail to write to the Unit debug log, they will fall
+       back to standard error.
+
+[1mFiles[0m
+       [4m/usr/local/var/log/unit/unit.log[0m
+              Unit debug log.  See [4munitd[24m(8).
+
+[1mExamples[0m
+       See [4mnxt_unit_response_add_field[24m(3).
+
+[1mCopyright[0m
+       (C) 2017‐2023, NGINX, Inc.
+
+       SPDX‐License‐Identifier: Apache‐2.0
+
+[1mSee also[0m
+       [4mnxt_unit_log[24m(3), [4munitd[24m(8).
+
+       Website ⟨https://unit.nginx.org⟩
+
+       Mailing list ⟨https://mailman.nginx.org/mailman/listinfo/unit⟩
+
+       GitHub ⟨https://github.com/nginx/unit⟩
+
+NGINX Unit (unreleased)             (date)                     [4mnxt_unit_log[24m(3)

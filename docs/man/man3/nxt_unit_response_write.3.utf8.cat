@@ -1,0 +1,61 @@
+[4mnxt_unit_response_write[24m(3) Library Functions Manual [4mnxt_unit_response_write[24m(3)
+
+[1mName[0m
+       nxt_unit_response_write - write content of a response in Unit app
+
+[1mLibrary[0m
+       NGINX Unit library ([4mlibunit[24m, [4m‐lunit[24m)
+
+[1mSynopsis[0m
+       [1m#include <nxt_unit.h>[0m
+
+       [1mint nxt_unit_response_write(nxt_unit_request_info_t *[4m[22mreq[24m[1m,[0m
+                                   [1mconst void [4m[22mcontent[24m[1m[.[4m[22msize[24m[1m], uint32_t [4m[22msize[24m[1m);[0m
+
+[1mArguments[0m
+       [4mreq[24m    Request object.
+
+       [4mcontent[0m
+              Content of the response.  It’s a buffer of [4msize[24m bytes.
+
+[1mDescription[0m
+       [4mnxt_unit_response_buf_alloc[24m(3)  allocates  a buffer for a response to a
+       request, or for a chunk of it.
+
+       [4mnxt_unit_buf_send[24m(3) sends and deallocates the buffer previously  allo‐
+       cated with [4mnxt_unit_response_buf_alloc[24m(3).
+
+[1mReturn value[0m
+       [4mnxt_unit_response_buf_alloc[24m(3)
+              A pointer to the allocated buffer on success, or NULL on error.
+
+       [4mnxt_unit_buf_send[24m(3)
+              0 on success, or a non‐zero error code on error.
+
+[1mErrors[0m
+       Errors will be reported in the Unit debug log.
+
+       [1mNXT_UNIT_ERROR[0m
+              •  [4msize[24m was too big.
+              •  Allocation failed.
+              •  Failed to share the buffer with [4munitd[24m(8).
+
+[1mExamples[0m
+       See [4mnxt_unit_response_buf_alloc[24m(3).
+
+[1mCopyright[0m
+       (C) 2017‐2023, NGINX, Inc.
+
+       SPDX‐License‐Identifier: Apache‐2.0
+
+[1mSee also[0m
+       [4mnxt_unit_init[24m(3),                            [4mnxt_unit_response_init[24m(3),
+       [4mnxt_unit_response_write[24m(3), [4munitd[24m(8)
+
+       Website ⟨https://unit.nginx.org⟩
+
+       Mailing list ⟨https://mailman.nginx.org/mailman/listinfo/unit⟩
+
+       GitHub ⟨https://github.com/nginx/unit⟩
+
+NGINX Unit (unreleased)             (date)          [4mnxt_unit_response_write[24m(3)
