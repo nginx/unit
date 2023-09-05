@@ -9,6 +9,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <nxt_unit_bit.h>
 #include <nxt_unit_cdefs.h>
 
 #include "nxt_buf.h"
@@ -44,7 +45,10 @@ struct nxt_http_compress_gzip_ctx_s {
 
 
 static nxt_http_compress_gzip_ctx_t *nxt_http_compress_gzip_ctx(
-    nxt_task_t *task, nxt_http_request_t *r, nxt_http_compress_conf_t *conf);
+    nxt_task_t *task, nxt_http_request_t *r, nxt_http_compress_conf_t *conf,
+    size_t content_length);
+static int nxt_http_compress_gzip_memlevel(size_t content_length);
+static int nxt_http_compress_gzip_wbits(size_t content_length);
 
 static void nxt_http_compress_gzip_filter(nxt_task_t *task, void *obj,
     void *data);
@@ -95,7 +99,7 @@ nxt_http_compress_gzip(nxt_task_t *task, nxt_http_request_t *r,
         return NXT_ERROR;
     }
 
-    ctx = nxt_http_compress_gzip_ctx(task, r, conf);
+    ctx = nxt_http_compress_gzip_ctx(task, r, conf, clen);
     if (nxt_slow_path(ctx == NULL)) {
         return NXT_ERROR;
     }
@@ -111,7 +115,7 @@ nxt_http_compress_gzip(nxt_task_t *task, nxt_http_request_t *r,
 
 static nxt_http_compress_gzip_ctx_t *
 nxt_http_compress_gzip_ctx(nxt_task_t *task, nxt_http_request_t *r,
-    nxt_http_compress_conf_t *conf)
+    nxt_http_compress_conf_t *conf, size_t content_length)
 {
 #if (!NXT_WITH_ZLIB)
     return NULL;
@@ -132,7 +136,9 @@ nxt_http_compress_gzip_ctx(nxt_task_t *task, nxt_http_request_t *r,
     z->zalloc = NULL;
     z->zfree = NULL;
     z->opaque = NULL;
-    ret = deflateInit2(z, ctx->level, Z_DEFLATED, MAX_WBITS + 16, MAX_MEM_LEVEL,
+    ret = deflateInit2(z, ctx->level, Z_DEFLATED,
+                       nxt_http_compress_gzip_wbits(content_length),
+                       nxt_http_compress_gzip_memlevel(content_length),
                        Z_DEFAULT_STRATEGY);
     if (nxt_slow_path(ret != 0)) {
         return NULL;
@@ -140,6 +146,28 @@ nxt_http_compress_gzip_ctx(nxt_task_t *task, nxt_http_request_t *r,
 
     return ctx;
 #endif
+}
+
+
+static int
+nxt_http_compress_gzip_memlevel(size_t content_length)
+{
+    int  w;
+
+    w = nxt_bit_width_ul(content_length);
+
+    return nxt_min(MAX_MEM_LEVEL, nxt_max(2, w - 9));
+}
+
+
+static int
+nxt_http_compress_gzip_wbits(size_t content_length)
+{
+    int  w;
+
+    w = nxt_bit_width_ul(content_length);
+
+    return 16 + nxt_min(MAX_WBITS, nxt_max(9, w - 2));
 }
 
 
