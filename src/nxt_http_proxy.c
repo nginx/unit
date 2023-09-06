@@ -277,7 +277,9 @@ nxt_http_proxy_header_read(nxt_task_t *task, void *obj, void *data)
 
     r->state = &nxt_http_proxy_read_state;
 
-    nxt_http_request_header_send(task, r, nxt_http_proxy_send_body, peer);
+    r->body_handler = nxt_http_proxy_send_body;
+    r->body_handler_data = peer;
+    nxt_http_request_header_send(task, r);
 }
 
 

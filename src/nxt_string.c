@@ -1,10 +1,19 @@
 
 /*
  * Copyright (C) Igor Sysoev
+ * Copyright (C) Alejandro Colomar
  * Copyright (C) NGINX, Inc.
  */
 
 #include <nxt_main.h>
+
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <nxt_unit_cdefs.h>
+
+#include "nxt_string.h"
 
 
 nxt_str_t *
@@ -841,4 +850,31 @@ nxt_base64_decode(u_char *dst, u_char *src, size_t length)
     }
 
     return (p - dst);
+}
+
+
+long
+nxt_ustrtol(const nxt_str_t *s, nxt_int_t *err)
+{
+    char  *p, *endptr;
+    long  l;
+    char  buf[BUFSIZ];
+
+    if (s == NULL || s->length >= nxt_nitems(buf)) {
+        *err = NXT_ERROR;
+        return -1;
+    }
+
+    p = nxt_cpymem(buf, s->start, s->length);
+    *p = '\0';
+
+    errno = 0;
+    l = strtol(buf, &endptr, 0);
+
+    if (errno != 0 || endptr == buf) {
+        *err = NXT_ERROR;
+        return -1;
+    }
+
+    return l;
 }

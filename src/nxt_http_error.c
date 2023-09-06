@@ -57,8 +57,8 @@ nxt_http_request_error(nxt_task_t *task, nxt_http_request_t *r,
 
     r->state = &nxt_http_request_send_error_body_state;
 
-    nxt_http_request_header_send(task, r,
-                                 nxt_http_request_send_error_body, NULL);
+    r->body_handler = nxt_http_request_send_error_body;
+    nxt_http_request_header_send(task, r);
     return;
 
 fail:

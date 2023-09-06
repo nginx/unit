@@ -15,6 +15,7 @@
 #include "nxt_auto_config.h"
 #include "nxt_version.h"
 #include "nxt_unit_typedefs.h"
+#include <nxt_unit_cdefs.h>
 
 
 enum {

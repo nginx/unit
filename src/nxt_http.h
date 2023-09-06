@@ -10,6 +10,9 @@
 #include <nxt_regex.h>
 
 
+typedef struct nxt_http_compress_conf_s   nxt_http_compress_conf_t;
+
+
 typedef enum {
     NXT_HTTP_UNSET = -1,
     NXT_HTTP_INVALID = 0,
@@ -110,6 +113,7 @@ typedef struct {
     nxt_http_field_t                *content_type;
     nxt_http_field_t                *content_length;
     nxt_off_t                       content_length_n;
+    const nxt_str_t                 *mtype;
 } nxt_http_response_t;
 
 
@@ -139,6 +143,10 @@ struct nxt_http_request_s {
     nxt_buf_t                       *ws_frame;
     nxt_buf_t                       *out;
     const nxt_http_request_state_t  *state;
+
+    nxt_work_handler_t              body_handler;
+    void                            *body_handler_data;
+    nxt_list_t                      *response_filters;
 
     nxt_nsec_t                      start_time;
 
@@ -229,6 +237,7 @@ typedef struct nxt_http_route_addr_rule_s  nxt_http_route_addr_rule_t;
 typedef struct {
     nxt_conf_value_t                *rewrite;
     nxt_conf_value_t                *set_headers;
+    nxt_conf_value_t                *compress;
     nxt_conf_value_t                *pass;
     nxt_conf_value_t                *ret;
     nxt_conf_value_t                *location;
@@ -258,6 +267,7 @@ struct nxt_http_action_s {
 
     nxt_tstr_t                      *rewrite;
     nxt_array_t                     *set_headers;  /* of nxt_http_field_t */
+    nxt_http_compress_conf_t        *compress;
     nxt_http_action_t               *fallback;
 };
 
@@ -265,8 +275,7 @@ struct nxt_http_action_s {
 typedef struct {
     void (*body_read)(nxt_task_t *task, nxt_http_request_t *r);
     void (*local_addr)(nxt_task_t *task, nxt_http_request_t *r);
-    void (*header_send)(nxt_task_t *task, nxt_http_request_t *r,
-        nxt_work_handler_t body_handler, void *data);
+    void (*header_send)(nxt_task_t *task, nxt_http_request_t *r);
     void (*send)(nxt_task_t *task, nxt_http_request_t *r, nxt_buf_t *out);
     nxt_off_t (*body_bytes_sent)(nxt_task_t *task, nxt_http_proto_t proto);
     void (*discard)(nxt_task_t *task, nxt_http_request_t *r, nxt_buf_t *last);
@@ -326,8 +335,7 @@ nxt_http_request_t *nxt_http_request_create(nxt_task_t *task);
 void nxt_http_request_error(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_status_t status);
 void nxt_http_request_read_body(nxt_task_t *task, nxt_http_request_t *r);
-void nxt_http_request_header_send(nxt_task_t *task, nxt_http_request_t *r,
-    nxt_work_handler_t body_handler, void *data);
+void nxt_http_request_header_send(nxt_task_t *task, nxt_http_request_t *r);
 void nxt_http_request_ws_frame_start(nxt_task_t *task, nxt_http_request_t *r,
     nxt_buf_t *ws_frame);
 void nxt_http_request_send(nxt_task_t *task, nxt_http_request_t *r,
@@ -437,5 +445,6 @@ void nxt_h1p_complete_buffers(nxt_task_t *task, nxt_h1proto_t *h1p,
 nxt_msec_t nxt_h1p_conn_request_timer_value(nxt_conn_t *c, uintptr_t data);
 
 extern const nxt_conn_state_t  nxt_h1p_idle_close_state;
+
 
 #endif  /* _NXT_HTTP_H_INCLUDED_ */
