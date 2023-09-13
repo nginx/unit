@@ -166,8 +166,7 @@ nxt_wasm_request_handler(nxt_unit_request_info_t *req)
         goto request_done;
     }
 
-    wr->nfields = 0;
-    wr->content_off = offset = sizeof(nxt_wasm_request_t);
+    offset = sizeof(nxt_wasm_request_t);
     do {
         read_bytes = nxt_min(content_len - content_sent,
                              NXT_WASM_MEM_SIZE - offset);
@@ -177,6 +176,7 @@ nxt_wasm_request_handler(nxt_unit_request_info_t *req)
         content_sent += bytes_read;
         wr->request_size = wr->content_sent = bytes_read;
         wr->total_content_sent = content_sent;
+        wr->content_off = offset;
 
         err = nxt_wops->exec_request(&nxt_wasm_ctx);
         if (err) {
