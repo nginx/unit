@@ -59,16 +59,18 @@ struct nxt_wasm_request_s {
     uint32_t               server_name_off;
     uint32_t               server_name_len;
 
-    uint32_t               content_off;
-    uint32_t               content_len;
+    uint64_t               content_len;
+    uint64_t               total_content_sent;
     uint32_t               content_sent;
-    uint32_t               total_content_sent;
+    uint32_t               content_off;
 
     uint32_t               request_size;
 
     uint32_t               nfields;
 
     uint32_t               tls;
+
+    char                   __pad[4];
 
     nxt_wasm_http_field_t  fields[];
 };
