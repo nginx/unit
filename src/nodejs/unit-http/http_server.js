@@ -243,8 +243,11 @@ ServerResponse.prototype._writeBody = function(chunk, encoding, callback) {
     }
 
     if (chunk) {
-        if (typeof chunk !== 'string' && !(chunk instanceof Buffer)) {
-            throw new TypeError('First argument must be a string or Buffer');
+        if (typeof chunk !== 'string' && !(chunk instanceof Buffer ||
+                chunk instanceof Uint8Array)) {
+            throw new TypeError(
+                'First argument must be a string, Buffer, ' +
+                'or Uint8Array');
         }
 
         if (typeof chunk === 'string') {
