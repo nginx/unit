@@ -33,7 +33,16 @@ ServerResponse.prototype.statusMessage = undefined;
 ServerResponse.prototype.headers_len = 0;
 ServerResponse.prototype.headers_count = 0;
 ServerResponse.prototype.headersSent = false;
+ServerResponse.prototype.destroyed = false;
 ServerResponse.prototype.finished = false;
+
+ServerResponse.prototype.destroy = function destroy(error) {
+    if (!this.destroyed) {
+        this.destroyed = true;
+    }
+
+    return this;
+};
 
 ServerResponse.prototype._finish = function _finish() {
     this.headers = {};
