@@ -127,7 +127,7 @@ struct nxt_wasm_ctx_s {
 struct nxt_wasm_operations_s {
     int   (*init)(nxt_wasm_ctx_t *ctx);
     void  (*destroy)(const nxt_wasm_ctx_t *ctx);
-    int   (*exec_request)(nxt_wasm_ctx_t *ctx);
+    int   (*exec_request)(const nxt_wasm_ctx_t *ctx);
     void  (*exec_hook)(const nxt_wasm_ctx_t *ctx, nxt_wasm_fh_t hook);
 };
 

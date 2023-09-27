@@ -137,7 +137,7 @@ nxt_wasmtime_execute_hook(const nxt_wasm_ctx_t *ctx, nxt_wasm_fh_t hook)
 
 
 static int
-nxt_wasmtime_execute_request(nxt_wasm_ctx_t *ctx)
+nxt_wasmtime_execute_request(const nxt_wasm_ctx_t *ctx)
 {
     int                    i = 0;
     wasm_trap_t            *trap = NULL;
