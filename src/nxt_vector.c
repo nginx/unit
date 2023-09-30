@@ -75,12 +75,13 @@ void *
 nxt_vector_add(nxt_vector_t *vector, const nxt_mem_proto_t *proto, void *pool)
 {
     void      *item, *start, *old;
-    size_t    size;
+    size_t    old_size, size;
     uint32_t  n;
 
     n = vector->avalaible;
 
     if (n == vector->items) {
+        old_size = n * vector->item_size;
 
         if (n < 16) {
             /* Allocate new vector twice as much as current. */
@@ -102,7 +103,7 @@ nxt_vector_add(nxt_vector_t *vector, const nxt_mem_proto_t *proto, void *pool)
         old = vector->start;
         vector->start = start;
 
-        nxt_memcpy(start, old, size);
+        nxt_memcpy(start, old, old_size);
 
         if (vector->type == NXT_VECTOR_EMBEDDED) {
             vector->type = NXT_VECTOR_DESCRETE;
