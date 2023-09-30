@@ -41,7 +41,6 @@ NXT_LIB_SRCS=" \
     src/nxt_murmur_hash.c \
     src/nxt_lvlhsh.c \
     src/nxt_array.c \
-    src/nxt_vector.c \
     src/nxt_list.c \
     src/nxt_buf.c \
     src/nxt_buf_pool.c \

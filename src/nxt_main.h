@@ -104,7 +104,6 @@ typedef struct {
 #include <nxt_hash.h>
 
 #include <nxt_sort.h>
-#include <nxt_vector.h>
 #include <nxt_list.h>
 
 #include <nxt_service.h>
