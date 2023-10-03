@@ -186,7 +186,7 @@ fi
 # Choose presentation style
 #
 if [ $QUIET -eq 1 ]; then
-	OUTPUT="head -c 0" # Equivalent to >/dev/null
+	OUTPUT="tail -c 0" # Equivalent to >/dev/null
 elif hash jq 2> /dev/null; then
 	OUTPUT="jq"
 else
