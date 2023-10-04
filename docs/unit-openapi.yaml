@@ -5887,6 +5887,7 @@ components:
       description: "An object whose options define a step's action."
       oneOf:
         - $ref: "#/components/schemas/configRouteStepActionPass"
+        - $ref: "#/components/schemas/configRouteStepActionProxy"
         - $ref: "#/components/schemas/configRouteStepActionReturn"
         - $ref: "#/components/schemas/configRouteStepActionShare"
 
@@ -5902,6 +5903,20 @@ components:
           type: string
           description: "Destination to which the action passes
             incoming requests."
+
+    #/config/routes/{stepIndex}/action/proxy
+    #/config/routes/{routeName}/{stepIndex}/action/proxy
+    configRouteStepActionProxy:
+      type: object
+      description: "An object whose single option defines a step's proxy
+        action."
+      required:
+        - proxy
+      properties:
+        proxy:
+          type: string
+          description: "Socket address of an HTTP server to where the request
+            is proxied."
 
     #/config/routes/{stepIndex}/action/return
     #/config/routes/{routeName}/{stepIndex}/action/return
