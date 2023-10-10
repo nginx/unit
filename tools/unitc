@@ -10,6 +10,7 @@ REMOTE=0
 SHOW_LOG=1
 NOLOG=0
 QUIET=0
+CONVERT=0
 URI=""
 SSH_CMD=""
 METHOD=PUT
@@ -18,6 +19,30 @@ CONF_FILES=()
 while [ $# -gt 0 ]; do
 	OPTION=$(echo $1 | tr '[a-z]' '[A-Z]')
 	case $OPTION in
+		"-F" | "--FORMAT")
+			case $(echo $2 | tr '[a-z]' '[A-Z]') in
+				"YAML")
+					CONVERT=1
+					if hash yq 2> /dev/null; then
+						CONVERT_TO_JSON="yq eval -P --output-format=json"
+						CONVERT_FROM_JSON="yq eval -P --output-format=yaml"
+					else
+						echo "${0##*/}: ERROR: yq(1) is required to use YAML format; install at <https://github.com/mikefarah/yq#install>"
+						exit 1
+					fi
+					;;
+				"")
+					echo "${0##*/}: ERROR: Must specify configuration format"
+					exit 1
+					;;
+				*)
+					echo "${0##*/}: ERROR: Invalid format ($2)"
+					exit 1
+					;;
+			esac
+			shift; shift
+			;;
+
 		"-H" | "--HELP")
 			shift
 			;;
@@ -45,15 +70,22 @@ while [ $# -gt 0 ]; do
 		*)
 			if [ -f $1 ] && [ -r $1 ]; then
 				CONF_FILES+=($1)
+				if [ "${1##*.}" = "yaml" ]; then
+					echo "${0##*/}: INFO: converting $1 to JSON"
+					shift; set -- "--format" "yaml" "$@" # Apply the command line option
+				else
+					shift
+				fi
 			elif [ "${1:0:1}" = "/" ] || [ "${1:0:4}" = "http" ] && [ "$URI" = "" ]; then
 				URI=$1
+				shift
 			elif [ "${1:0:6}" = "ssh://" ]; then
 				UNIT_CTRL=$1
+				shift
 			else
 				echo "${0##*/}: ERROR: Invalid option ($1)"
 				exit 1
 			fi
-			shift
 			;;
 	esac
 done
@@ -67,16 +99,18 @@ USAGE: ${0##*/} [options] URI
 • URI is for Unit's control API target, e.g. /config
 • A local Unit control socket is detected unless a remote one is specified.
 • Configuration data is read from stdin.
+• All options are case-insensitive (excluding filenames and URIs).
 
 General options
-  filename …    # Read configuration data from files instead of stdin
-  HTTP method   # Default=GET, or PUT with config data (case-insensitive)
-  EDIT          # Opens the URI contents in \$EDITOR
-  INSERT        # Virtual HTTP method to prepend data to an existing array
-  -q | --quiet  # No output to stdout
+  filename …          # Read configuration data from files instead of stdin
+  HTTP method         # Default=GET, or PUT when config data is present
+  EDIT                # Opens the URI contents in \$EDITOR
+  INSERT              # Virtual HTTP method; prepend data to an array
+  -f | --format YAML  # Convert configuration data to/from YAML format
+  -q | --quiet        # No output to stdout
 
 Local options
-  -l | --nolog  # Do not monitor the error log after applying config changes
+  -l | --nolog        # Do not monitor the Unit log file after config changes
 
 Remote options
   ssh://[user@]remote_host[:port]/path/to/control.socket  # Remote Unix socket
@@ -187,6 +221,8 @@ fi
 #
 if [ $QUIET -eq 1 ]; then
 	OUTPUT="tail -c 0" # Equivalent to >/dev/null
+elif [ $CONVERT -eq 1 ]; then
+	OUTPUT=$CONVERT_FROM_JSON
 elif hash jq 2> /dev/null; then
 	OUTPUT="jq"
 else
@@ -224,6 +260,10 @@ if [ -t 0 ] && [ ${#CONF_FILES[@]} -eq 0 ]; then
 			$SSH_CMD curl -fsSX DELETE $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ && \
 			printf "%s" "$(< $EDIT_FILENAME.js)" | $SSH_CMD curl -fX PUT --data-binary @- $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ && \
 			$SSH_CMD curl -X PUT --data-binary @/tmp/${0##*/}.$$_js_module $UNIT_CTRL/config/settings/js_module 2> /tmp/${0##*/}.$$
+		elif [ $CONVERT -eq 1 ]; then
+			$CONVERT_FROM_JSON < $EDIT_FILENAME > $EDIT_FILENAME.yaml
+			$EDITOR $EDIT_FILENAME.yaml || exit 2
+			$CONVERT_TO_JSON < $EDIT_FILENAME.yaml | $SSH_CMD curl -X PUT --data-binary @- $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ | $OUTPUT
 		else
 			tr -d '\r' < $EDIT_FILENAME > $EDIT_FILENAME.json # Remove carriage-return from newlines
 			$EDITOR $EDIT_FILENAME.json || exit 2
@@ -249,6 +289,10 @@ else
 			exit 3
 		fi
 	else
+		if [ $CONVERT -eq 1 ]; then
+			cat ${CONF_FILES[@]} | $CONVERT_TO_JSON > /tmp/${0##*/}.$$_json
+			CONF_FILES=(/tmp/${0##*/}.$$_json)
+		fi
 		cat ${CONF_FILES[@]} | $SSH_CMD curl -X $METHOD --data-binary @- $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ | $OUTPUT
 	fi
 fi

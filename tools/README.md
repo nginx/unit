@@ -37,11 +37,15 @@ web page with NGINX Unit.
 | _HTTP method_ | It is usually not required to specify a HTTP method. `GET` is used to read the configuration. `PUT` is used when making configuration changes unless a specific method is provided.
 | `edit` | Opens **URI** in the default editor for interactive configuration. The [jq](https://stedolan.github.io/jq/) tool is required for this option.
 | `INSERT` | A _virtual_ HTTP method that prepends data when the URI specifies an existing array. The [jq](https://stedolan.github.io/jq/) tool is required for this option.
+| `-f` \| `--format YAML` | Convert configuration data to/from YAML format. The [yq](https://github.com/mikefarah/yq) tool is required for this option.
 | `-q` \| `--quiet` | No output to stdout.
 
 Options are case insensitive and can appear in any order. For example, a
 redundant part of the configuration can be identified by its URI, and
 followed by `delete` in a subsequent command.
+
+Options may be combined. For example, `edit -f yaml` will open the
+configuration URI in a text editor, in YAML format.
 
 ### Local Configuration
 For local instances of Unit, the control socket is automatically detected.
