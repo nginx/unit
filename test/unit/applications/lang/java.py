@@ -53,7 +53,7 @@ class ApplicationJava(ApplicationProto):
                 os.makedirs(classes_path)
 
             classpath = (
-                f'{option.current_dir}/build/tomcat-servlet-api-9.0.80.jar'
+                f'{option.current_dir}/build/tomcat-servlet-api-9.0.81.jar'
             )
 
             ws_jars = glob.glob(
