@@ -156,7 +156,8 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
             p = va_arg(args, const u_char *);
 
             if (nxt_slow_path(p == NULL)) {
-                goto copy;
+                buf = nxt_cpymem(buf, null, nxt_length(null));
+                continue;
             }
 
             while (*p != '\0' && buf < end) {
@@ -173,6 +174,11 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
             if (*fmt == 's') {
                 fmt++;
                 p = va_arg(args, const u_char *);
+
+                if (nxt_slow_path(p == NULL)) {
+                    buf = nxt_cpymem(buf, null, nxt_length(null));
+                    continue;
+                }
 
                 goto copy;
             }
@@ -556,14 +562,7 @@ nxt_vsprintf(u_char *buf, u_char *end, const char *fmt, va_list args)
 
     copy:
 
-        if (nxt_slow_path(p == NULL)) {
-            p = null;
-            length = nxt_length(null);
-
-        } else {
-            length = nxt_min((size_t) (end - buf), length);
-        }
-
+        length = nxt_min((size_t) (end - buf), length);
         buf = nxt_cpymem(buf, p, length);
         continue;
     }
