@@ -12,7 +12,7 @@ NOLOG=0
 QUIET=0
 CONVERT=0
 URI=""
-SSH_CMD=""
+RPC_CMD=""
 METHOD=PUT
 CONF_FILES=()
 
@@ -82,6 +82,9 @@ while [ $# -gt 0 ]; do
 			elif [ "${1:0:6}" = "ssh://" ]; then
 				UNIT_CTRL=$1
 				shift
+			elif [ "${1:0:9}" = "docker://" ]; then
+				UNIT_CTRL=$1
+				shift
 			else
 				echo "${0##*/}: ERROR: Invalid option ($1)"
 				exit 1
@@ -115,9 +118,10 @@ Local options
 Remote options
   ssh://[user@]remote_host[:port]/path/to/control.socket  # Remote Unix socket
   http://remote_host:port/URI                             # Remote TCP socket
+  docker://container_ID[/non-default/control.socket]      # Container on host
 
- A remote Unit control socket may also be defined with the \$UNIT_CTRL
- environment variable as http://remote_host:port  -OR-  ssh://… (as above)
+ A remote Unit instance may also be defined with the \$UNIT_CTRL environment
+ variable as http://remote_host:port  or  ssh://…  or  docker://…  (as above).
 
 __EOF__
 	exit 1
@@ -133,8 +137,16 @@ if [ "$UNIT_CTRL" = "" ]; then
 	fi
 elif [ "${UNIT_CTRL:0:6}" = "ssh://" ]; then
 	REMOTE=1
-	SSH_CMD="ssh $(echo $UNIT_CTRL | cut -f1-3 -d/)"
+	RPC_CMD="ssh $(echo $UNIT_CTRL | cut -f1-3 -d/)"
 	UNIT_CTRL="--unix-socket /$(echo $UNIT_CTRL | cut -f4- -d/) _"
+elif [ "${UNIT_CTRL:0:9}" = "docker://" ]; then
+	RPC_CMD="docker exec -i $(echo $UNIT_CTRL | cut -f3 -d/)"
+	DOCKSOCK=/$(echo "$UNIT_CTRL" | cut -f4- -d/)
+	if [ "$DOCKSOCK" = "/" ]; then
+		DOCKSOCK="/var/run/control.unit.sock" # Use default location if no path
+	fi
+	UNIT_CTRL="--unix-socket $DOCKSOCK _"
+	REMOTE=1
 elif [ "${URI:0:1}" = "/" ]; then
 	REMOTE=1
 fi
@@ -241,11 +253,11 @@ fi
 #
 if [ -t 0 ] && [ ${#CONF_FILES[@]} -eq 0 ]; then
 	if [ "$METHOD" = "DELETE" ]; then
-		$SSH_CMD curl -X $METHOD $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ | $OUTPUT
+		$RPC_CMD curl -X $METHOD $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ | $OUTPUT
 	elif [ "$METHOD" = "EDIT" ]; then
 		EDITOR=$(test "$EDITOR" && printf '%s' "$EDITOR" || command -v editor || command -v vim || echo vi)
 		EDIT_FILENAME=/tmp/${0##*/}.$$${URI//\//_}
-		$SSH_CMD curl -fsS $UNIT_CTRL$URI > $EDIT_FILENAME || exit 2
+		$RPC_CMD curl -fsS $UNIT_CTRL$URI > $EDIT_FILENAME || exit 2
 		if [ "${URI:0:12}" = "/js_modules/" ]; then
 			if ! hash jq 2> /dev/null; then
 				echo "${0##*/}: ERROR: jq(1) is required to edit JavaScript modules; install at <https://stedolan.github.io/jq/>"
@@ -255,23 +267,23 @@ if [ -t 0 ] && [ ${#CONF_FILES[@]} -eq 0 ]; then
 			EDIT_FILE=$EDIT_FILENAME.js
 			$EDITOR $EDIT_FILENAME.js || exit 2
 			# Remove the references, delete old config, push new config+reference
-			$SSH_CMD curl -fsS $UNIT_CTRL/config/settings/js_module > /tmp/${0##*/}.$$_js_module && \
-			$SSH_CMD curl -X DELETE $UNIT_CTRL/config/settings/js_module && \
-			$SSH_CMD curl -fsSX DELETE $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ && \
-			printf "%s" "$(< $EDIT_FILENAME.js)" | $SSH_CMD curl -fX PUT --data-binary @- $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ && \
-			$SSH_CMD curl -X PUT --data-binary @/tmp/${0##*/}.$$_js_module $UNIT_CTRL/config/settings/js_module 2> /tmp/${0##*/}.$$
+			$RPC_CMD curl -fsS $UNIT_CTRL/config/settings/js_module > /tmp/${0##*/}.$$_js_module && \
+			$RPC_CMD curl -X DELETE $UNIT_CTRL/config/settings/js_module && \
+			$RPC_CMD curl -fsSX DELETE $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ && \
+			printf "%s" "$(< $EDIT_FILENAME.js)" | $RPC_CMD curl -fX PUT --data-binary @- $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ && \
+			$RPC_CMD curl -X PUT --data-binary @/tmp/${0##*/}.$$_js_module $UNIT_CTRL/config/settings/js_module 2> /tmp/${0##*/}.$$
 		elif [ $CONVERT -eq 1 ]; then
 			$CONVERT_FROM_JSON < $EDIT_FILENAME > $EDIT_FILENAME.yaml
 			$EDITOR $EDIT_FILENAME.yaml || exit 2
-			$CONVERT_TO_JSON < $EDIT_FILENAME.yaml | $SSH_CMD curl -X PUT --data-binary @- $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ | $OUTPUT
+			$CONVERT_TO_JSON < $EDIT_FILENAME.yaml | $RPC_CMD curl -X PUT --data-binary @- $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ | $OUTPUT
 		else
 			tr -d '\r' < $EDIT_FILENAME > $EDIT_FILENAME.json # Remove carriage-return from newlines
 			$EDITOR $EDIT_FILENAME.json || exit 2
-			$SSH_CMD curl -X PUT --data-binary @$EDIT_FILENAME.json $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ | $OUTPUT
+			$RPC_CMD curl -X PUT --data-binary @$EDIT_FILENAME.json $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ | $OUTPUT
 		fi
 	else
 		SHOW_LOG=$(echo $URI | grep -c ^/control/)
-		$SSH_CMD curl $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ | $OUTPUT
+		$RPC_CMD curl $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ | $OUTPUT
 	fi
 else
 	if [ "$METHOD" = "INSERT" ]; then
@@ -281,9 +293,9 @@ else
 		fi
 		NEW_ELEMENT=$(cat ${CONF_FILES[@]})
 		echo $NEW_ELEMENT | jq > /dev/null || exit $? # Test the input is valid JSON before proceeding
-		OLD_ARRAY=$($SSH_CMD curl -s $UNIT_CTRL$URI)
+		OLD_ARRAY=$($RPC_CMD curl -s $UNIT_CTRL$URI)
 		if [ "$(echo $OLD_ARRAY | jq -r type)" = "array" ]; then
-			echo $OLD_ARRAY | jq ". |= [$NEW_ELEMENT] + ." | $SSH_CMD curl -X PUT --data-binary @- $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ | $OUTPUT
+			echo $OLD_ARRAY | jq ". |= [$NEW_ELEMENT] + ." | $RPC_CMD curl -X PUT --data-binary @- $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ | $OUTPUT
 		else
 			echo "${0##*/}: ERROR: the INSERT method expects an array"
 			exit 3
@@ -293,7 +305,7 @@ else
 			cat ${CONF_FILES[@]} | $CONVERT_TO_JSON > /tmp/${0##*/}.$$_json
 			CONF_FILES=(/tmp/${0##*/}.$$_json)
 		fi
-		cat ${CONF_FILES[@]} | $SSH_CMD curl -X $METHOD --data-binary @- $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ | $OUTPUT
+		cat ${CONF_FILES[@]} | $RPC_CMD curl -X $METHOD --data-binary @- $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ | $OUTPUT
 	fi
 fi
 

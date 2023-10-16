@@ -55,10 +55,9 @@ The error log is monitored; when changes occur, new log entries are shown.
 |---------|-|
 | `-l` \| `--nolog` | Do not monitor the error log after configuration changes.
 
-#### Examples
+#### Local Examples
 ```shell
 unitc /config
-unitc /control/applications/my_app/restart
 unitc /config < unitconf.json
 echo '{"*:8080": {"pass": "routes"}}' | unitc /config/listeners
 unitc /config/applications/my_app DELETE
@@ -68,10 +67,12 @@ unitc /certificates/bundle cert.pem key.pem
 ### Remote Configuration
 For remote instances of NGINX Unit, the control socket on the remote host can
 be set with the `$UNIT_CTRL` environment variable. The remote control socket
-can be accessed over TCP or SSH, depending on the type of control socket:
+can be accessed over TCP, SSH, or Docker containers on the host, depending on
+the type of control socket:
 
  * `ssh://[user@]remote_host[:ssh_port]/path/to/control.socket`
  * `http://remote_host:unit_control_port`
+ * `docker://container_ID[/path/to/control.socket]`
 
 > **Note:** SSH is recommended for remote confguration. Consider the
 > [security implications](https://unit.nginx.org/howto/security/#secure-socket-and-state)
@@ -81,8 +82,9 @@ can be accessed over TCP or SSH, depending on the type of control socket:
 |---------|-|
 | `ssh://…` | Specify the remote Unix control socket on the command line.
 | `http://…`*URI* | For remote TCP control sockets, the URI may include the protocol, hostname, and port.
+| `docker://…` | Specify the local container ID/name. The default Unix control socket can be overridden.
 
-#### Examples
+#### Remote Examples
 ```shell
 unitc http://192.168.0.1:8080/status
 UNIT_CTRL=http://192.168.0.1:8080 unitc /status
@@ -91,6 +93,14 @@ export UNIT_CTRL=ssh://root@unithost/var/run/control.unit.sock
 unitc /config/routes
 cat catchall_route.json | unitc POST /config/routes
 echo '{"match":{"uri":"/wp-admin/*"},"action":{"return":403}}' | unitc INSERT /config/routes
+```
+
+#### Docker Examples
+```shell
+unitc docker://d43251184c54 /config
+echo '{"http": {"log_route": true}}' | unitc docker://d43251184c54 /settings
+unitc docker://f4f3d9e918e6/root/unit.sock /control/applications/my_app/restart
+UNIT_CTRL=docker://4d0431488982 unitc /status/requests/total
 ```
 
 ---
