@@ -5,16 +5,43 @@
 <change_log title="unit">
 
 
+<changes apply="unit-jsc21" ver="1.32.0" rev="1"
+         date="2023-10-17" time="16:00:00 -0700"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change>
+<para>
+Initial release of Java 21 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-python3.12" ver="1.32.0" rev="1"
+         date="2023-10-17" time="16:00:00 -0700"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change>
+<para>
+Initial release of Python 3.12 module for NGINX Unit.
+</para>
+</change>
+
+</changes>
+
+
 <changes apply="unit-php
                 unit-python unit-python2.7
                 unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
                 unit-python3.8 unit-python3.9 unit-python3.10 unit-python3.11
+                unit-python3.12
                 unit-go
                 unit-perl
                 unit-ruby
                 unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11 unit-jsc13
                 unit-jsc14 unit-jsc15 unit-jsc16 unit-jsc17 unit-jsc18
-                unit-jsc19 unit-jsc20
+                unit-jsc19 unit-jsc20 unit-jsc21
                 unit-wasm"
          ver="1.32.0" rev="1"
          date="" time=""
