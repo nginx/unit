@@ -238,7 +238,7 @@ cat << END > $NXT_JAVA_JARS
 static const char *nxt_java_system_jars[] = {
 END
 
-NXT_TOMCAT_VERSION=9.0.81
+NXT_TOMCAT_VERSION=9.0.82
 
 NXT_JAR_VERSION=$NXT_TOMCAT_VERSION
 
