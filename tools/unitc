@@ -271,7 +271,7 @@ if [ -t 0 ] && [ ${#CONF_FILES[@]} -eq 0 ]; then
 			$RPC_CMD curl -X DELETE $UNIT_CTRL/config/settings/js_module && \
 			$RPC_CMD curl -fsSX DELETE $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ && \
 			printf "%s" "$(< $EDIT_FILENAME.js)" | $RPC_CMD curl -fX PUT --data-binary @- $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ && \
-			$RPC_CMD curl -X PUT --data-binary @/tmp/${0##*/}.$$_js_module $UNIT_CTRL/config/settings/js_module 2> /tmp/${0##*/}.$$
+			cat /tmp/${0##*/}.$$_js_module | $RPC_CMD curl -X PUT --data-binary @- $UNIT_CTRL/config/settings/js_module 2> /tmp/${0##*/}.$$
 		elif [ $CONVERT -eq 1 ]; then
 			$CONVERT_FROM_JSON < $EDIT_FILENAME > $EDIT_FILENAME.yaml
 			$EDITOR $EDIT_FILENAME.yaml || exit 2
@@ -279,7 +279,7 @@ if [ -t 0 ] && [ ${#CONF_FILES[@]} -eq 0 ]; then
 		else
 			tr -d '\r' < $EDIT_FILENAME > $EDIT_FILENAME.json # Remove carriage-return from newlines
 			$EDITOR $EDIT_FILENAME.json || exit 2
-			$RPC_CMD curl -X PUT --data-binary @$EDIT_FILENAME.json $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ | $OUTPUT
+			cat $EDIT_FILENAME.json | $RPC_CMD curl -X PUT --data-binary @- $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ | $OUTPUT
 		fi
 	else
 		SHOW_LOG=$(echo $URI | grep -c ^/control/)
