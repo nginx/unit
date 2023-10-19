@@ -33,6 +33,64 @@ NGINX Unit updated to 1.31.1.
          date="" time=""
          packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
 
+<change type="feature">
+<para>
+allow to set the HTTP response status in Wasm module.
+</para>
+</change>
+
+<change type="feature">
+<para>
+allow uploads larger than 4GiB in Wasm module.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+application process could crash while rewriting URLs with query strings.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+requests larger than about 64MiB could cause error in Wasm module.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+when using many headers in Java module some of them could be
+corrupted due to memory realocation issue.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+ServerRequest.destroy() implemented in Node.js module to make it compatible
+with some frameworks that might use it.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+chunk argument of ServerResponse.write() can now be a Uint8Array to improve
+compatibility with Node.js 15.0.0 and above.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Node.JS unit-http NPM module now has appropriate default paths for
+macOS/arm64 systems.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+build on musl libc with clang.
+</para>
+</change>
+
 </changes>
 
 
