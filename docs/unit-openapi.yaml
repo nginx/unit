@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  title: "NGINX Unit 1.30.0"
+  title: "NGINX Unit 1.31.1"
   description: "NGINX Unit is a lightweight and versatile application runtime
     that provides the essential components for your web application as a
     single open-source server: running application code, serving static assets,
@@ -5887,6 +5887,7 @@ components:
       description: "An object whose options define a step's action."
       oneOf:
         - $ref: "#/components/schemas/configRouteStepActionPass"
+        - $ref: "#/components/schemas/configRouteStepActionProxy"
         - $ref: "#/components/schemas/configRouteStepActionReturn"
         - $ref: "#/components/schemas/configRouteStepActionShare"
 
@@ -5902,6 +5903,32 @@ components:
           type: string
           description: "Destination to which the action passes
             incoming requests."
+
+        rewrite:
+          $ref: "#/components/schemas/configRouteStepActionRewrite"
+
+        response_headers:
+          $ref: "#/components/schemas/configRouteStepActionResponseHeaders"
+
+    #/config/routes/{stepIndex}/action/proxy
+    #/config/routes/{routeName}/{stepIndex}/action/proxy
+    configRouteStepActionProxy:
+      type: object
+      description: "An object whose single option defines a step's proxy
+        action."
+      required:
+        - proxy
+      properties:
+        proxy:
+          type: string
+          description: "Socket address of an HTTP server to where the request
+            is proxied."
+
+        rewrite:
+          $ref: "#/components/schemas/configRouteStepActionRewrite"
+
+        response_headers:
+          $ref: "#/components/schemas/configRouteStepActionResponseHeaders"
 
     #/config/routes/{stepIndex}/action/return
     #/config/routes/{routeName}/{stepIndex}/action/return
@@ -5921,6 +5948,12 @@ components:
         location:
           type: string
           description: "URI; used if the return value implies redirection."
+
+        rewrite:
+          $ref: "#/components/schemas/configRouteStepActionRewrite"
+
+        response_headers:
+          $ref: "#/components/schemas/configRouteStepActionResponseHeaders"
 
     #/config/routes/{stepIndex}/action/share
     #/config/routes/{routeName}/{stepIndex}/action/share
@@ -5963,6 +5996,28 @@ components:
           type: boolean
           description: "Turns on and off mount point resolution."
           default: true
+
+        rewrite:
+          $ref: "#/components/schemas/configRouteStepActionRewrite"
+
+        response_headers:
+          $ref: "#/components/schemas/configRouteStepActionResponseHeaders"
+
+    #/config/routes/{stepIndex}/action/rewrite
+    #/config/routes/{routeName}/{stepIndex}/action/rewrite
+    configRouteStepActionRewrite:
+      type: string
+      description: "Updates the URI of the incoming request before the action
+        is applied."
+
+    #/config/routes/{stepIndex}/action/response_headers
+    #/config/routes/{routeName}/{stepIndex}/action/response_headers
+    configRouteStepActionResponseHeaders:
+      type: object
+      description: "Updates the header fields of Unit’s response before the
+        action is taken."
+      additionalProperties:
+        type: string
 
     # /config/listeners/
     configListeners:

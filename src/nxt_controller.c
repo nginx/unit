@@ -510,8 +510,9 @@ nxt_controller_conf_default(void)
     nxt_mp_t          *mp;
     nxt_conf_value_t  *conf;
 
-    static const nxt_str_t json
-        = nxt_string("{ \"listeners\": {}, \"applications\": {} }");
+    static const nxt_str_t json = nxt_string(
+        "{ \"listeners\": {}, \"routes\": [], \"applications\": {} }"
+    );
 
     mp = nxt_mp_create(1024, 128, 256, 32);
 

@@ -69,6 +69,20 @@ NXT_EXPORT ssize_t nxt_recvmsg(nxt_socket_t s,
     nxt_iobuf_t *iob, nxt_uint_t niob, nxt_recv_oob_t *oob);
 
 
+nxt_inline struct cmsghdr *
+NXT_CMSG_NXTHDR(struct msghdr *msgh, struct cmsghdr *cmsg)
+{
+#if !defined(__GLIBC__) && defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wsign-compare"
+#endif
+    return CMSG_NXTHDR(msgh, cmsg);
+#if !defined(__GLIBC__) && defined(__clang__)
+#pragma clang diagnostic pop
+#endif
+}
+
+
 nxt_inline void
 nxt_socket_msg_oob_init(nxt_send_oob_t *oob, int *fds)
 {
@@ -135,7 +149,7 @@ nxt_socket_msg_oob_get_fds(nxt_recv_oob_t *oob, nxt_fd_t *fd)
 
     for (cmsg = CMSG_FIRSTHDR(&msg);
          cmsg != NULL;
-         cmsg = CMSG_NXTHDR(&msg, cmsg))
+         cmsg = NXT_CMSG_NXTHDR(&msg, cmsg))
     {
         size = cmsg->cmsg_len - CMSG_LEN(0);
 
@@ -174,7 +188,7 @@ nxt_socket_msg_oob_get(nxt_recv_oob_t *oob, nxt_fd_t *fd, nxt_pid_t *pid)
 
     for (cmsg = CMSG_FIRSTHDR(&msg);
          cmsg != NULL;
-         cmsg = CMSG_NXTHDR(&msg, cmsg))
+         cmsg = NXT_CMSG_NXTHDR(&msg, cmsg))
     {
         size = cmsg->cmsg_len - CMSG_LEN(0);
 

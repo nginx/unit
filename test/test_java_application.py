@@ -875,6 +875,23 @@ def test_java_application_get_headers():
     assert headers['X-Reply-0'] == 'blah', 'get headers'
     assert headers['X-Reply-1'] == 'blah', 'get headers 2'
 
+def test_java_application_many_headers():
+    client.load('get_headers')
+
+    value = '0123456789' * 10
+
+    headers = client.get(
+        headers={
+            'X-Header': [value] * 100,
+            'Content-Type': 'text/html',
+            'Host': 'localhost',
+            'Connection': 'close',
+        }
+    )['headers']
+
+    for i in range(0, 99):
+        assert headers[f'X-Reply-{i}'] == value, 'many headers'
+
 
 def test_java_application_get_headers_empty():
     client.load('get_headers')

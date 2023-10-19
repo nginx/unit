@@ -16,6 +16,95 @@
                 unit-jsc14 unit-jsc15 unit-jsc16 unit-jsc17 unit-jsc18
                 unit-jsc19 unit-jsc20
                 unit-wasm"
+         ver="1.31.1" rev="1"
+         date="2023-10-19" time="18:00:00 +0300"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change>
+<para>
+NGINX Unit updated to 1.31.1.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit" ver="1.31.1" rev="1"
+         date="2023-10-19" time="18:00:00 +0300"
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change type="feature">
+<para>
+allow to set the HTTP response status in Wasm module.
+</para>
+</change>
+
+<change type="feature">
+<para>
+allow uploads larger than 4GiB in Wasm module.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+application process could crash while rewriting URLs with query strings.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+requests larger than about 64MiB could cause error in Wasm module.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+when using many headers in Java module some of them could be
+corrupted due to memory realocation issue.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+ServerRequest.destroy() implemented in Node.js module to make it compatible
+with some frameworks that might use it.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+chunk argument of ServerResponse.write() can now be a Uint8Array to improve
+compatibility with Node.js 15.0.0 and above.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Node.JS unit-http NPM module now has appropriate default paths for
+macOS/arm64 systems.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+build on musl libc with clang.
+</para>
+</change>
+
+</changes>
+
+
+<changes apply="unit-php
+                unit-python unit-python2.7
+                unit-python3.4 unit-python3.5 unit-python3.6 unit-python3.7
+                unit-python3.8 unit-python3.9 unit-python3.10 unit-python3.11
+                unit-go
+                unit-perl
+                unit-ruby
+                unit-jsc-common unit-jsc8 unit-jsc10 unit-jsc11 unit-jsc13
+                unit-jsc14 unit-jsc15 unit-jsc16 unit-jsc17 unit-jsc18
+                unit-jsc19 unit-jsc20
+                unit-wasm"
          ver="1.31.0" rev="1"
          date="2023-08-31" time="18:00:00 +0300"
          packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">

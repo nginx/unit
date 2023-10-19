@@ -334,7 +334,8 @@ nxt_java_get_response_info(jlong req_info_ptr, uint32_t extra_fields,
                        - req->response->fields_count
         || extra_data > (uint32_t) (buf->end - buf->free))
     {
-        p = buf->start + req->response_max_fields * sizeof(nxt_unit_field_t);
+        p = buf->start + sizeof(nxt_unit_response_t)
+            + req->response_max_fields * sizeof(nxt_unit_field_t);
 
         max_size = 2 * (buf->end - p);
         if (max_size > nxt_unit_buf_max()) {
@@ -936,8 +937,8 @@ nxt_java_Response_reset(JNIEnv *env, jclass cls, jlong req_info_ptr)
 
         buf = req->response_buf;
 
-        buf->free = buf->start + req->response_max_fields
-                                  * sizeof(nxt_unit_field_t);
+        buf->free = buf->start + sizeof(nxt_unit_response_t)
+                    + req->response_max_fields * sizeof(nxt_unit_field_t);
     }
 }
 

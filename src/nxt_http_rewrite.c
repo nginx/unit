@@ -93,6 +93,7 @@ nxt_http_rewrite(nxt_task_t *task, nxt_http_request_t *r)
         nxt_memcpy(p, r->args->start, r->args->length);
 
         r->target = target;
+        r->args->start = p;
     }
 
     r->path = nxt_mp_alloc(r->mem_pool, sizeof(nxt_str_t));

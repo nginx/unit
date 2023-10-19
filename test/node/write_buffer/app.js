@@ -1,5 +1,5 @@
 
 require('http').createServer(function (req, res) {
     res.writeHead(200, {'Content-Type': 'text/plain'})
-       .end(new Buffer([0x62, 0x75, 0x66, 0x66, 0x65, 0x72]));
+       .end(Buffer.from('buffer', 'utf8'));
 }).listen(7080);

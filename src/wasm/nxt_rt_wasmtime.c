@@ -102,6 +102,19 @@ nxt_wasm_send_headers(void *env, wasmtime_caller_t *caller,
 }
 
 
+static wasm_trap_t *
+nxt_wasm_set_resp_status(void *env, wasmtime_caller_t *caller,
+                         const wasmtime_val_t *args, size_t nargs,
+                         wasmtime_val_t *results, size_t nresults)
+{
+    nxt_wasm_ctx_t  *ctx = env;
+
+    ctx->status = args[0].of.i32;
+
+    return NULL;
+}
+
+
 static void
 nxt_wasmtime_execute_hook(const nxt_wasm_ctx_t *ctx, nxt_wasm_fh_t hook)
 {
@@ -123,7 +136,7 @@ nxt_wasmtime_execute_hook(const nxt_wasm_ctx_t *ctx, nxt_wasm_fh_t hook)
 }
 
 
-static void
+static int
 nxt_wasmtime_execute_request(const nxt_wasm_ctx_t *ctx)
 {
     int                    i = 0;
@@ -142,7 +155,10 @@ nxt_wasmtime_execute_request(const nxt_wasm_ctx_t *ctx)
         nxt_wasmtime_err_msg(error, trap,
                              "failed to call function [->wasm_request_handler]"
                             );
+        return -1;
     }
+
+    return results[0].of.i32;
 }
 
 
@@ -181,6 +197,11 @@ nxt_wasmtime_set_function_imports(nxt_wasm_ctx_t *ctx)
         }, {
             .func_name = "nxt_wasm_send_headers",
             .func      = nxt_wasm_send_headers,
+            .params    = { WASM_I32 },
+            .ft        = NXT_WASM_FT_1_0
+        }, {
+            .func_name = "nxt_wasm_set_resp_status",
+            .func      = nxt_wasm_set_resp_status,
             .params    = { WASM_I32 },
             .ft        = NXT_WASM_FT_1_0
         },

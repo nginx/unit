@@ -149,6 +149,10 @@ def test_node_application_write_buffer():
 
     assert client.get()['body'] == 'buffer', 'write buffer'
 
+def test_node_application_write_array():
+    client.load('write_array')
+
+    assert client.get()['body'] == 'array', 'write array'
 
 def test_node_application_write_callback(temp_dir):
     client.load('write_callback')

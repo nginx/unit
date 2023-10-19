@@ -24,6 +24,11 @@ static nxt_wasm_ctx_t               nxt_wasm_ctx;
 
 static const nxt_wasm_operations_t  *nxt_wops;
 
+enum {
+    NXT_WASM_HTTP_OK     = 200,
+    NXT_WASM_HTTP_ERROR  = 500
+};
+
 
 void
 nxt_wasm_do_response_end(nxt_wasm_ctx_t *ctx)
@@ -48,7 +53,7 @@ nxt_wasm_do_send_headers(nxt_wasm_ctx_t *ctx, uint32_t offset)
         fields_len += rh->fields[i].name_len + rh->fields[i].value_len;
     }
 
-    nxt_unit_response_init(ctx->req, 200, rh->nfields, fields_len);
+    nxt_unit_response_init(ctx->req, ctx->status, rh->nfields, fields_len);
 
     for (i = 0; i < rh->nfields; i++) {
         const char  *name;
@@ -72,7 +77,7 @@ nxt_wasm_do_send_response(nxt_wasm_ctx_t *ctx, uint32_t offset)
     nxt_unit_request_info_t  *req = ctx->req;
 
     if (!nxt_unit_response_is_init(req)) {
-        nxt_unit_response_init(req, 200, 0, 0);
+        nxt_unit_response_init(req, ctx->status, 0, 0);
     }
 
     resp = (nxt_wasm_response_t *)(nxt_wasm_ctx.baddr + offset);
@@ -84,6 +89,7 @@ nxt_wasm_do_send_response(nxt_wasm_ctx_t *ctx, uint32_t offset)
 static void
 nxt_wasm_request_handler(nxt_unit_request_info_t *req)
 {
+    int                    err;
     size_t                 offset, read_bytes, content_sent, content_len;
     ssize_t                bytes_read;
     nxt_unit_field_t       *sf, *sf_end;
@@ -149,15 +155,18 @@ nxt_wasm_request_handler(nxt_unit_request_info_t *req)
 
     wr->request_size = offset + bytes_read;
 
+    nxt_wasm_ctx.status = NXT_WASM_HTTP_OK;
     nxt_wasm_ctx.req = req;
-    nxt_wops->exec_request(&nxt_wasm_ctx);
+    err = nxt_wops->exec_request(&nxt_wasm_ctx);
+    if (err) {
+        goto out_err_500;
+    }
 
     if (content_len == content_sent) {
         goto request_done;
     }
 
-    wr->nfields = 0;
-    wr->content_off = offset = sizeof(nxt_wasm_request_t);
+    offset = sizeof(nxt_wasm_request_t);
     do {
         read_bytes = nxt_min(content_len - content_sent,
                              NXT_WASM_MEM_SIZE - offset);
@@ -167,9 +176,19 @@ nxt_wasm_request_handler(nxt_unit_request_info_t *req)
         content_sent += bytes_read;
         wr->request_size = wr->content_sent = bytes_read;
         wr->total_content_sent = content_sent;
+        wr->content_off = offset;
 
-        nxt_wops->exec_request(&nxt_wasm_ctx);
+        err = nxt_wops->exec_request(&nxt_wasm_ctx);
+        if (err) {
+            goto out_err_500;
+        }
     } while (content_sent < content_len);
+
+    goto request_done;
+
+out_err_500:
+    nxt_unit_response_init(req, NXT_WASM_HTTP_ERROR, 0, 0);
+    nxt_unit_request_done(req, NXT_UNIT_OK);
 
 request_done:
     NXT_WASM_DO_HOOK(NXT_WASM_FH_REQUEST_END);

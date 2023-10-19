@@ -2148,7 +2148,8 @@ nxt_unit_response_realloc(nxt_unit_request_info_t *req,
     resp->status = req->response->status;
     resp->content_length = req->response->content_length;
 
-    p = buf->start + max_fields_count * sizeof(nxt_unit_field_t);
+    p = buf->start + sizeof(nxt_unit_response_t)
+        + max_fields_count * sizeof(nxt_unit_field_t);
     f = resp->fields;
 
     for (i = 0; i < req->response->fields_count; i++) {

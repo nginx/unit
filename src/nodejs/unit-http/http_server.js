@@ -33,7 +33,16 @@ ServerResponse.prototype.statusMessage = undefined;
 ServerResponse.prototype.headers_len = 0;
 ServerResponse.prototype.headers_count = 0;
 ServerResponse.prototype.headersSent = false;
+ServerResponse.prototype.destroyed = false;
 ServerResponse.prototype.finished = false;
+
+ServerResponse.prototype.destroy = function destroy(error) {
+    if (!this.destroyed) {
+        this.destroyed = true;
+    }
+
+    return this;
+};
 
 ServerResponse.prototype._finish = function _finish() {
     this.headers = {};
@@ -243,8 +252,11 @@ ServerResponse.prototype._writeBody = function(chunk, encoding, callback) {
     }
 
     if (chunk) {
-        if (typeof chunk !== 'string' && !(chunk instanceof Buffer)) {
-            throw new TypeError('First argument must be a string or Buffer');
+        if (typeof chunk !== 'string' && !(chunk instanceof Buffer ||
+                chunk instanceof Uint8Array)) {
+            throw new TypeError(
+                'First argument must be a string, Buffer, ' +
+                'or Uint8Array');
         }
 
         if (typeof chunk === 'string') {

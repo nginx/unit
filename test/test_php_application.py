@@ -171,6 +171,36 @@ def test_php_application_query_string_empty():
     assert resp['headers']['Query-String'] == '', 'query string empty'
 
 
+def test_php_application_query_string_rewrite():
+    assert 'success' in client.conf(
+        {
+            "listeners": {"*:7080": {"pass": "routes"}},
+            "routes": [
+                {
+                    "action": {
+                        "rewrite": "/new",
+                        "pass": "applications/query_string",
+                    },
+                },
+            ],
+            "applications": {
+                "query_string": {
+                    "type": client.get_application_type(),
+                    "processes": {"spare": 0},
+                    "root": f"{option.test_dir}/php/query_string",
+                    "script": "index.php",
+                }
+            },
+        },
+    )
+
+    assert client.get(url='/old')['status'] == 200
+
+    resp = client.get(url='/old?arg=val')
+    assert resp['status'] == 200
+    assert resp['headers']['Query-String'] == 'arg=val'
+
+
 def test_php_application_fastcgi_finish_request(findall, unit_pid):
     client.load('fastcgi_finish_request')
 
