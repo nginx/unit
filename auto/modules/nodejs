@@ -123,8 +123,8 @@ fi
 
 NXT_NODE_TMP=${NXT_BUILD_DIR}/src/${NXT_NODE}/unit-http
 NXT_NODE_TMP_G=${NXT_BUILD_DIR}/src/${NXT_NODE}/unit-http-g
-NXT_NODE_TARBALL=${NXT_BUILD_DIR}/${NXT_NODE}-unit-http.tar.gz
-NXT_NODE_TARBALL_G=${NXT_BUILD_DIR}/${NXT_NODE}-unit-http-g.tar.gz
+NXT_NODE_TARBALL=${NXT_BUILD_DIR}/src/${NXT_NODE}-unit-http.tar.gz
+NXT_NODE_TARBALL_G=${NXT_BUILD_DIR}/src/${NXT_NODE}-unit-http-g.tar.gz
 NXT_NODE_VERSION_FILE=${NXT_BUILD_DIR}/src/${NXT_NODE}/version.h
 NXT_NODE_PACKAGE_FILE=${NXT_BUILD_DIR}/src/${NXT_NODE}/package.json
 NXT_NODE_EXPORTS="export UNIT_SRC_PATH=${PWD}/src \
