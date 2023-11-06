@@ -24,6 +24,9 @@
 .Nm
 .Op Fl Fl no-daemon
 .Op Fl Fl control Ar socket
+.Op Fl Fl control-mode Ar mode
+.Op Fl Fl control-user Ar user
+.Op Fl Fl control-group Ar group
 .Op Fl Fl group Ar name
 .Op Fl Fl user Ar name
 .Op Fl Fl log Ar file
@@ -53,6 +56,12 @@ Runs Unit in non-daemon mode.
 .It Fl Fl control Ar socket
 Overrides the control API's socket address in IPv4, IPv6,
 or UNIX-domain format.
+.It Fl Fl control-mode Ar mode
+Sets the permission of the UNIX-domain control socket.
+.It Fl Fl control-user Ar user
+Sets the owner of the UNIX-domain control socket.
+.It Fl Fl control-group Ar group
+Sets the group of the UNIX-domain control socket.
 .It Fl Fl group Ar name , Fl Fl user Ar name
 Override group name and user name used to run Unit's non-privileged processes.
 .It Fl Fl log Ar file
