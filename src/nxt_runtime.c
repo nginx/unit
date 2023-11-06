@@ -956,6 +956,12 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
 
     static const char  no_control[] =
                        "option \"--control\" requires socket address\n";
+    static const char  no_control_mode[] =
+                        "option \"--control-mode\" requires a mode\n";
+    static const char  no_control_user[] =
+                        "option \"--control-user\" requires a username\n";
+    static const char  no_control_group[] =
+                        "option \"--control-group\" requires a group name\n";
     static const char  no_user[] = "option \"--user\" requires username\n";
     static const char  no_group[] = "option \"--group\" requires group name\n";
     static const char  no_pid[] = "option \"--pid\" requires filename\n";
@@ -983,6 +989,13 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
         "\n"
         "  --control ADDRESS    set address of control API socket\n"
         "                       default: \"" NXT_CONTROL_SOCK "\"\n"
+        "\n"
+        "  --control-mode MODE  set mode of the control API socket\n"
+        "                       default: 0600\n"
+        "\n"
+        "  --control-user USER    set the owner of the control API socket\n"
+        "\n"
+        "  --control-group GROUP  set the group of the control API socket\n"
         "\n"
         "  --pid FILE           set pid filename\n"
         "                       default: \"" NXT_PID "\"\n"
@@ -1028,6 +1041,48 @@ nxt_runtime_conf_read_cmd(nxt_task_t *task, nxt_runtime_t *rt)
             p = *argv++;
 
             rt->control = p;
+
+            continue;
+        }
+
+        if (nxt_strcmp(p, "--control-mode") == 0) {
+            if (*argv == NULL) {
+                write(STDERR_FILENO, no_control_mode,
+                      nxt_length(no_control_mode));
+                return NXT_ERROR;
+            }
+
+            p = *argv++;
+
+            rt->control_mode = strtoul(p, NULL, 8);
+
+            continue;
+        }
+
+        if (nxt_strcmp(p, "--control-user") == 0) {
+            if (*argv == NULL) {
+                write(STDERR_FILENO, no_control_user,
+                      nxt_length(no_control_user));
+                return NXT_ERROR;
+            }
+
+            p = *argv++;
+
+            rt->control_user = p;
+
+            continue;
+        }
+
+        if (nxt_strcmp(p, "--control-group") == 0) {
+            if (*argv == NULL) {
+                write(STDERR_FILENO, no_control_group,
+                      nxt_length(no_control_group));
+                return NXT_ERROR;
+            }
+
+            p = *argv++;
+
+            rt->control_group = p;
 
             continue;
         }
