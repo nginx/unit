@@ -326,6 +326,88 @@ nxt_file_set_access(nxt_file_name_t *name, nxt_file_access_t access)
 
 
 nxt_int_t
+nxt_file_chown(nxt_file_name_t *name, const char *owner, const char *group)
+{
+    int    err;
+    char   *buf;
+    long   bufsize;
+    gid_t  gid = ~0;
+    uid_t  uid = ~0;
+
+    if (owner == NULL && group == NULL) {
+        return NXT_OK;
+    }
+
+    if (owner != NULL) {
+        struct passwd  pwd, *result;
+
+        bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
+        if (bufsize == -1) {
+            bufsize = 32768;
+        }
+
+        buf = nxt_malloc(bufsize);
+        if (buf == NULL) {
+            return NXT_ERROR;
+        }
+
+        err = getpwnam_r(owner, &pwd, buf, bufsize, &result);
+        if (result == NULL) {
+            nxt_thread_log_alert("getpwnam_r(\"%s\", ...) failed %E %s",
+                                 owner, nxt_errno,
+                                 err == 0 ? "(User not found)" : "");
+            goto out_err_free;
+        }
+
+        uid = pwd.pw_uid;
+
+        nxt_free(buf);
+    }
+
+    if (group != NULL) {
+        struct group  grp, *result;
+
+        bufsize = sysconf(_SC_GETGR_R_SIZE_MAX);
+        if (bufsize == -1) {
+            bufsize = 32768;
+        }
+
+        buf = nxt_malloc(bufsize);
+        if (buf == NULL) {
+            return NXT_ERROR;
+        }
+
+        err = getgrnam_r(group, &grp, buf, bufsize, &result);
+        if (result == NULL) {
+            nxt_thread_log_alert("getgrnam_r(\"%s\", ...) failed %E %s",
+                                 group, nxt_errno,
+                                 err == 0 ? "(Group not found)" : "");
+            goto out_err_free;
+        }
+
+        gid = grp.gr_gid;
+
+        nxt_free(buf);
+    }
+
+    if (nxt_fast_path(chown((const char *) name, uid, gid) == 0)) {
+        return NXT_OK;
+    }
+
+    nxt_thread_log_alert("chown(\"%FN\", %l, %l) failed %E", name,
+                         owner != NULL ? (long) uid : -1,
+                         group != NULL ? (long) gid : -1, nxt_errno);
+
+    return NXT_ERROR;
+
+out_err_free:
+    nxt_free(buf);
+
+    return NXT_ERROR;
+}
+
+
+nxt_int_t
 nxt_file_rename(nxt_file_name_t *old_name, nxt_file_name_t *new_name)
 {
     int  ret;
