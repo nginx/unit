@@ -28,6 +28,8 @@ static u_char *nxt_http_log_date(u_char *buf, nxt_realtime_t *now,
     struct tm *tm, size_t size, const char *format);
 static nxt_int_t nxt_http_var_request_line(nxt_task_t *task, nxt_str_t *str,
     void *ctx, void *data);
+static nxt_int_t nxt_http_var_request_id(nxt_task_t *task, nxt_str_t *str,
+    void *ctx, void *data);
 static nxt_int_t nxt_http_var_status(nxt_task_t *task, nxt_str_t *str,
     void *ctx, void *data);
 static nxt_int_t nxt_http_var_body_bytes_sent(nxt_task_t *task, nxt_str_t *str,
@@ -88,6 +90,10 @@ static nxt_var_decl_t  nxt_http_vars[] = {
     }, {
         .name = nxt_string("request_line"),
         .handler = nxt_http_var_request_line,
+        .cacheable = 1,
+    }, {
+        .name = nxt_string("request_id"),
+        .handler = nxt_http_var_request_id,
         .cacheable = 1,
     }, {
         .name = nxt_string("status"),
@@ -390,6 +396,32 @@ nxt_http_var_request_line(nxt_task_t *task, nxt_str_t *str, void *ctx,
     r = ctx;
 
     *str = r->request_line;
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_http_var_request_id(nxt_task_t *task, nxt_str_t *str, void *ctx,
+    void *data)
+{
+    nxt_random_t        *rand;
+    nxt_http_request_t  *r;
+
+    r = ctx;
+
+    str->start = nxt_mp_nget(r->mem_pool, 32);
+    if (nxt_slow_path(str->start == NULL)) {
+        return NXT_ERROR;
+    }
+
+    str->length = 32;
+
+    rand = &task->thread->random;
+
+    (void) nxt_sprintf(str->start, str->start + 32, "%08xD%08xD%08xD%08xD",
+                       nxt_random(rand), nxt_random(rand),
+                       nxt_random(rand), nxt_random(rand));
 
     return NXT_OK;
 }

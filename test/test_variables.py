@@ -211,6 +211,26 @@ def test_variables_request_line(search_in_file, wait_for_record):
     assert wait_for_record(reg, 'access.log') is not None
 
 
+def test_variables_request_id(search_in_file, wait_for_record, findall):
+    set_format('$uri $request_id $request_id')
+
+    assert search_in_file(r'/request_id', 'access.log') is None
+    assert client.get(url='/request_id_1')['status'] == 200
+    assert client.get(url='/request_id_2')['status'] == 200
+    assert wait_for_record(r'/request_id_2', 'access.log') is not None
+
+    id1 = findall(
+        r'^\/request_id_1 ([0-9a-f]{32}) ([0-9a-f]{32})$', 'access.log'
+    )[0]
+    id2 = findall(
+        r'^\/request_id_2 ([0-9a-f]{32}) ([0-9a-f]{32})$', 'access.log'
+    )[0]
+
+    assert id1[0] == id1[1], 'same ids first'
+    assert id2[0] == id2[1], 'same ids second'
+    assert id1[0] != id2[0], 'first id != second id'
+
+
 def test_variables_status(search_in_file, wait_for_record):
     set_format('$status')
 
