@@ -455,7 +455,6 @@ nxt_http_var_body_bytes_sent(nxt_task_t *task, nxt_str_t *str, void *ctx,
 static nxt_int_t
 nxt_http_var_status(nxt_task_t *task, nxt_str_t *str, void *ctx, void *data)
 {
-    u_char              *p;
     nxt_http_request_t  *r;
 
     r = ctx;
@@ -465,9 +464,9 @@ nxt_http_var_status(nxt_task_t *task, nxt_str_t *str, void *ctx, void *data)
         return NXT_ERROR;
     }
 
-    p = nxt_sprintf(str->start, str->start + 3, "%03d", r->status);
+    (void) nxt_sprintf(str->start, str->start + 3, "%03d", r->status);
 
-    str->length = p - str->start;
+    str->length = 3;
 
     return NXT_OK;
 }
