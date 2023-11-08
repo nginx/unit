@@ -97,7 +97,7 @@ distinguished_name = req_distinguished_name
         script_path = f'{option.test_dir}/python/{script}'
         self._load_conf(
             {
-                "listeners": {"*:7080": {"pass": f"applications/{name}"}},
+                "listeners": {"*:8080": {"pass": f"applications/{name}"}},
                 "applications": {
                     name: {
                         "type": "python",

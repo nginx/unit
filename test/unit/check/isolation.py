@@ -21,7 +21,7 @@ def check_isolation():
         ApplicationGo().prepare_env('empty', 'app')
 
         conf = {
-            "listeners": {"*:7080": {"pass": "applications/empty"}},
+            "listeners": {"*:8080": {"pass": "applications/empty"}},
             "applications": {
                 "empty": {
                     "type": "external",
@@ -35,7 +35,7 @@ def check_isolation():
 
     elif 'python' in available['modules']:
         conf = {
-            "listeners": {"*:7080": {"pass": "applications/empty"}},
+            "listeners": {"*:8080": {"pass": "applications/empty"}},
             "applications": {
                 "empty": {
                     "type": "python",
@@ -50,7 +50,7 @@ def check_isolation():
 
     elif 'php' in available['modules']:
         conf = {
-            "listeners": {"*:7080": {"pass": "applications/phpinfo"}},
+            "listeners": {"*:8080": {"pass": "applications/phpinfo"}},
             "applications": {
                 "phpinfo": {
                     "type": "php",
@@ -67,7 +67,7 @@ def check_isolation():
         ApplicationRuby().prepare_env('empty')
 
         conf = {
-            "listeners": {"*:7080": {"pass": "applications/empty"}},
+            "listeners": {"*:8080": {"pass": "applications/empty"}},
             "applications": {
                 "empty": {
                     "type": "ruby",
@@ -83,7 +83,7 @@ def check_isolation():
         ApplicationJava().prepare_env('empty')
 
         conf = {
-            "listeners": {"*:7080": {"pass": "applications/empty"}},
+            "listeners": {"*:8080": {"pass": "applications/empty"}},
             "applications": {
                 "empty": {
                     "unit_jars": f"{option.current_dir}/build",
@@ -100,7 +100,7 @@ def check_isolation():
         ApplicationNode().prepare_env('basic')
 
         conf = {
-            "listeners": {"*:7080": {"pass": "applications/basic"}},
+            "listeners": {"*:8080": {"pass": "applications/basic"}},
             "applications": {
                 "basic": {
                     "type": "external",
@@ -114,7 +114,7 @@ def check_isolation():
 
     elif 'perl' in available['modules']:
         conf = {
-            "listeners": {"*:7080": {"pass": "applications/body_empty"}},
+            "listeners": {"*:8080": {"pass": "applications/body_empty"}},
             "applications": {
                 "body_empty": {
                     "type": "perl",

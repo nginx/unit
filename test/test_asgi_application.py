@@ -60,7 +60,7 @@ def test_asgi_application_ipv6():
     client.load('empty')
 
     assert 'success' in client.conf(
-        {"[::1]:7080": {"pass": "applications/empty"}}, 'listeners'
+        {"[::1]:8080": {"pass": "applications/empty"}}, 'listeners'
     )
 
     assert client.get(sock_type='ipv6')['status'] == 200
@@ -172,7 +172,7 @@ def test_asgi_application_server_port():
     client.load('server_port')
 
     assert (
-        client.get()['headers']['Server-Port'] == '7080'
+        client.get()['headers']['Server-Port'] == '8080'
     ), 'Server-Port header'
 
 

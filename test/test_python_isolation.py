@@ -151,8 +151,8 @@ def test_python_isolation_cgroup_two(require):
         assert 'success' in client.conf(
             {
                 "listeners": {
-                    "*:7080": {"pass": "applications/one"},
-                    "*:7081": {"pass": "applications/two"},
+                    "*:8080": {"pass": "applications/one"},
+                    "*:8081": {"pass": "applications/two"},
                 },
                 "applications": {
                     "one": {
@@ -193,7 +193,7 @@ def test_python_isolation_cgroup_invalid(require):
         script_path = f'{option.test_dir}/python/empty'
         assert 'error' in client.conf(
             {
-                "listeners": {"*:7080": {"pass": "applications/empty"}},
+                "listeners": {"*:8080": {"pass": "applications/empty"}},
                 "applications": {
                     "empty": {
                         "type": "python",

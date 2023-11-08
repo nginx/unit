@@ -17,8 +17,8 @@ def setup_method_fixture(temp_dir):
     assert 'success' in client.conf(
         {
             "listeners": {
-                "*:7080": {"pass": "routes"},
-                "*:7081": {"pass": "routes"},
+                "*:8080": {"pass": "routes"},
+                "*:8081": {"pass": "routes"},
             },
             "routes": [{"action": {"share": f'{temp_dir}/assets$uri'}}],
             "applications": {},
@@ -124,14 +124,14 @@ def test_static_types_fallback(temp_dir):
     assert 'success' in client.conf(
         [
             {
-                "match": {"destination": "*:7081"},
+                "match": {"destination": "*:8081"},
                 "action": {"return": 200},
             },
             {
                 "action": {
                     "share": f'{temp_dir}/assets$uri',
                     "types": ["!application/x-httpd-php"],
-                    "fallback": {"proxy": "http://127.0.0.1:7081"},
+                    "fallback": {"proxy": "http://127.0.0.1:8081"},
                 }
             },
         ],
@@ -155,7 +155,7 @@ def test_static_types_index(temp_dir):
 def test_static_types_custom_mime(temp_dir):
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": "routes"}},
+            "listeners": {"*:8080": {"pass": "routes"}},
             "routes": [{"action": {"share": f'{temp_dir}/assets$uri'}}],
             "applications": {},
             "settings": {

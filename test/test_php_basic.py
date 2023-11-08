@@ -14,7 +14,7 @@ conf_app = {
 }
 
 conf_basic = {
-    "listeners": {"*:7080": {"pass": "applications/app"}},
+    "listeners": {"*:8080": {"pass": "applications/app"}},
     "applications": conf_app,
 }
 
@@ -60,14 +60,14 @@ def test_php_get_listeners():
     assert 'success' in client.conf(conf_basic)
 
     assert client.conf_get()['listeners'] == {
-        "*:7080": {"pass": "applications/app"}
+        "*:8080": {"pass": "applications/app"}
     }, 'listeners'
 
     assert client.conf_get('listeners') == {
-        "*:7080": {"pass": "applications/app"}
+        "*:8080": {"pass": "applications/app"}
     }, 'listeners prefix'
 
-    assert client.conf_get('listeners/*:7080') == {
+    assert client.conf_get('listeners/*:8080') == {
         "pass": "applications/app"
     }, 'listeners prefix 2'
 
@@ -75,23 +75,23 @@ def test_php_get_listeners():
 def test_php_change_listener():
     assert 'success' in client.conf(conf_basic)
     assert 'success' in client.conf(
-        {"*:7081": {"pass": "applications/app"}}, 'listeners'
+        {"*:8081": {"pass": "applications/app"}}, 'listeners'
     )
 
     assert client.conf_get('listeners') == {
-        "*:7081": {"pass": "applications/app"}
+        "*:8081": {"pass": "applications/app"}
     }, 'change listener'
 
 
 def test_php_add_listener():
     assert 'success' in client.conf(conf_basic)
     assert 'success' in client.conf(
-        {"pass": "applications/app"}, 'listeners/*:7082'
+        {"pass": "applications/app"}, 'listeners/*:8082'
     )
 
     assert client.conf_get('listeners') == {
-        "*:7080": {"pass": "applications/app"},
-        "*:7082": {"pass": "applications/app"},
+        "*:8080": {"pass": "applications/app"},
+        "*:8082": {"pass": "applications/app"},
     }, 'add listener'
 
 
@@ -113,7 +113,7 @@ def test_php_delete():
     assert 'success' in client.conf(conf_basic)
 
     assert 'error' in client.conf_delete('applications/app')
-    assert 'success' in client.conf_delete('listeners/*:7080')
+    assert 'success' in client.conf_delete('listeners/*:8080')
     assert 'success' in client.conf_delete('applications/app')
     assert 'error' in client.conf_delete('applications/app')
 
@@ -126,5 +126,5 @@ def test_php_delete_blocks():
 
     assert 'success' in client.conf(conf_app, 'applications')
     assert 'success' in client.conf(
-        {"*:7081": {"pass": "applications/app"}}, 'listeners'
+        {"*:8081": {"pass": "applications/app"}}, 'listeners'
     ), 'applications restore'

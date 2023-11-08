@@ -160,7 +160,7 @@ def test_python_application_server_port():
     client.load('server_port')
 
     assert (
-        client.get()['headers']['Server-Port'] == '7080'
+        client.get()['headers']['Server-Port'] == '8080'
     ), 'Server-Port header'
 
 

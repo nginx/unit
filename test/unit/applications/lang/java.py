@@ -97,7 +97,7 @@ class ApplicationJava(ApplicationProto):
         script_path = f'{option.test_dir}/java/{script}/'
         self._load_conf(
             {
-                "listeners": {"*:7080": {"pass": f"applications/{script}"}},
+                "listeners": {"*:8080": {"pass": f"applications/{script}"}},
                 "applications": {
                     script: {
                         "unit_jars": f'{option.current_dir}/build',

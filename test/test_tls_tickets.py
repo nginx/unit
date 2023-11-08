@@ -36,9 +36,9 @@ def setup_method_fixture():
     assert 'success' in client.conf(
         {
             "listeners": {
-                "*:7080": listener_conf,
-                "*:7081": listener_conf,
-                "*:7082": listener_conf,
+                "*:8080": listener_conf,
+                "*:8081": listener_conf,
+                "*:8082": listener_conf,
             },
             "routes": [{"action": {"return": 200}}],
             "applications": {},
@@ -46,7 +46,7 @@ def setup_method_fixture():
     ), 'load application configuration'
 
 
-def connect(ctx=None, session=None, port=7080):
+def connect(ctx=None, session=None, port=8080):
     sock = socket.create_connection(('127.0.0.1', port))
 
     if ctx is None:
@@ -72,7 +72,7 @@ def has_ticket(sess):
     return _lib.SSL_SESSION_has_ticket(sess._session)
 
 
-def set_tickets(tickets=True, port=7080):
+def set_tickets(tickets=True, port=8080):
     assert 'success' in client.conf(
         {"cache_size": 0, "tickets": tickets},
         f'listeners/*:{port}/tls/session',
@@ -98,7 +98,7 @@ def test_tls_ticket():
     assert not has_ticket(sess), 'tickets False'
 
     assert 'success' in client.conf_delete(
-        'listeners/*:7080/tls/session/tickets'
+        'listeners/*:8080/tls/session/tickets'
     ), 'tickets default configure'
 
     sess, _, _ = connect()
@@ -118,13 +118,13 @@ def test_tls_ticket_string():
     assert has_ticket(sess2), 'tickets string reconnect'
     assert reused, 'tickets string reused'
 
-    sess2, _, reused = connect(ctx, sess, port=7081)
+    sess2, _, reused = connect(ctx, sess, port=8081)
     assert has_ticket(sess2), 'connect True'
     assert not reused, 'connect True not reused'
 
-    set_tickets(TICKET2, port=7081)
+    set_tickets(TICKET2, port=8081)
 
-    sess2, _, reused = connect(ctx, sess, port=7081)
+    sess2, _, reused = connect(ctx, sess, port=8081)
     assert has_ticket(sess2), 'wrong ticket'
     assert not reused, 'wrong ticket not reused'
 
@@ -137,7 +137,7 @@ def test_tls_ticket_string():
     assert has_ticket(sess2), 'tickets string 80 reconnect'
     assert reused, 'tickets string 80 reused'
 
-    sess2, _, reused = connect(ctx, sess, port=7081)
+    sess2, _, reused = connect(ctx, sess, port=8081)
     assert has_ticket(sess2), 'wrong ticket 80'
     assert not reused, 'wrong ticket 80 not reused'
 
@@ -153,34 +153,34 @@ def test_tls_ticket_array():
     assert not has_ticket(sess), 'tickets array empty'
 
     set_tickets([TICKET, TICKET2])
-    set_tickets(TICKET, port=7081)
-    set_tickets(TICKET2, port=7082)
+    set_tickets(TICKET, port=8081)
+    set_tickets(TICKET2, port=8082)
 
     sess, ctx, _ = connect()
-    _, _, reused = connect(ctx, sess, port=7081)
+    _, _, reused = connect(ctx, sess, port=8081)
     assert not reused, 'not last ticket'
-    _, _, reused = connect(ctx, sess, port=7082)
+    _, _, reused = connect(ctx, sess, port=8082)
     assert reused, 'last ticket'
 
-    sess, ctx, _ = connect(port=7081)
+    sess, ctx, _ = connect(port=8081)
     _, _, reused = connect(ctx, sess)
     assert reused, 'first ticket'
 
-    sess, ctx, _ = connect(port=7082)
+    sess, ctx, _ = connect(port=8082)
     _, _, reused = connect(ctx, sess)
     assert reused, 'second ticket'
 
     assert 'success' in client.conf_delete(
-        'listeners/*:7080/tls/session/tickets/0'
+        'listeners/*:8080/tls/session/tickets/0'
     ), 'removed first ticket'
     assert 'success' in client.conf_post(
-        f'"{TICKET}"', 'listeners/*:7080/tls/session/tickets'
+        f'"{TICKET}"', 'listeners/*:8080/tls/session/tickets'
     ), 'add new ticket to the end of array'
 
     sess, ctx, _ = connect()
-    _, _, reused = connect(ctx, sess, port=7082)
+    _, _, reused = connect(ctx, sess, port=8082)
     assert not reused, 'not last ticket 2'
-    _, _, reused = connect(ctx, sess, port=7081)
+    _, _, reused = connect(ctx, sess, port=8081)
     assert reused, 'last ticket 2'
 
 
@@ -188,7 +188,7 @@ def test_tls_ticket_invalid():
     def check_tickets(tickets):
         assert 'error' in client.conf(
             {"tickets": tickets},
-            'listeners/*:7080/tls/session',
+            'listeners/*:8080/tls/session',
         )
 
     check_tickets({})

@@ -11,7 +11,7 @@ class ApplicationPerl(ApplicationProto):
 
         self._load_conf(
             {
-                "listeners": {"*:7080": {"pass": f"applications/{script}"}},
+                "listeners": {"*:8080": {"pass": f"applications/{script}"}},
                 "applications": {
                     script: {
                         "type": self.get_application_type(),

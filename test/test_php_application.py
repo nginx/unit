@@ -174,7 +174,7 @@ def test_php_application_query_string_empty():
 def test_php_application_query_string_rewrite():
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": "routes"}},
+            "listeners": {"*:8080": {"pass": "routes"}},
             "routes": [
                 {
                     "action": {
@@ -678,7 +678,7 @@ def test_php_application_error_log(findall, wait_for_record):
 def test_php_application_script():
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": "applications/script"}},
+            "listeners": {"*:8080": {"pass": "applications/script"}},
             "applications": {
                 "script": {
                     "type": client.get_application_type(),
@@ -699,7 +699,7 @@ def test_php_application_script():
 def test_php_application_index_default():
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": "applications/phpinfo"}},
+            "listeners": {"*:8080": {"pass": "applications/phpinfo"}},
             "applications": {
                 "phpinfo": {
                     "type": client.get_application_type(),
@@ -727,7 +727,7 @@ def test_php_application_trailing_slash(temp_dir):
     assert 'success' in client.conf(
         {
             "listeners": {
-                "*:7080": {"pass": "applications/php-path"},
+                "*:8080": {"pass": "applications/php-path"},
                 f'unix:{addr}': {"pass": "applications/php-path"},
             },
             "applications": {
@@ -745,7 +745,7 @@ def test_php_application_trailing_slash(temp_dir):
     resp = client.get(url='/path?q=a')
     assert resp['status'] == 301, 'uri without trailing /'
     assert (
-        resp['headers']['Location'] == 'http://localhost:7080/path/?q=a'
+        resp['headers']['Location'] == 'http://localhost:8080/path/?q=a'
     ), 'Location with query string'
 
     resp = client.get(
@@ -767,7 +767,7 @@ def test_php_application_forbidden(temp_dir):
 
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": "applications/php-path"}},
+            "listeners": {"*:8080": {"pass": "applications/php-path"}},
             "applications": {
                 "php-path": {
                     "type": client.get_application_type(),
@@ -792,7 +792,7 @@ def test_php_application_extension_check(temp_dir):
 
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": "applications/phpinfo"}},
+            "listeners": {"*:8080": {"pass": "applications/phpinfo"}},
             "applications": {
                 "phpinfo": {
                     "type": client.get_application_type(),

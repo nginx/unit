@@ -91,7 +91,7 @@ replace unit.nginx.org/go => {replace_path}
         ApplicationGo.prepare_env(script, name, static=static_build)
 
         conf = {
-            "listeners": {"*:7080": {"pass": f"applications/{script}"}},
+            "listeners": {"*:8080": {"pass": f"applications/{script}"}},
             "applications": {
                 script: {
                     "type": "external",

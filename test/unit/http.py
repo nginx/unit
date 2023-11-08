@@ -13,7 +13,7 @@ from unit.option import option
 class HTTP1:
     def http(self, start_str, **kwargs):
         sock_type = kwargs.get('sock_type', 'ipv4')
-        port = kwargs.get('port', 7080)
+        port = kwargs.get('port', 8080)
         url = kwargs.get('url', '/')
         http = 'HTTP/1.0' if 'http_10' in kwargs else 'HTTP/1.1'
 

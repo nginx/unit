@@ -460,7 +460,7 @@ def test_settings_log_route(findall, search_in_file, wait_for_record):
 
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": "routes"}},
+            "listeners": {"*:8080": {"pass": "routes"}},
             "routes": [
                 {
                     "match": {
@@ -487,7 +487,7 @@ def test_settings_log_route(findall, search_in_file, wait_for_record):
 
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": "routes/main"}},
+            "listeners": {"*:8080": {"pass": "routes/main"}},
             "routes": {
                 "main": [
                     {
@@ -516,7 +516,7 @@ def test_settings_log_route(findall, search_in_file, wait_for_record):
 
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": "routes/first"}},
+            "listeners": {"*:8080": {"pass": "routes/first"}},
             "routes": {
                 "first": [
                     {
@@ -541,7 +541,7 @@ def test_settings_log_route(findall, search_in_file, wait_for_record):
 
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": "routes/fall"}},
+            "listeners": {"*:8080": {"pass": "routes/fall"}},
             "routes": {
                 "fall": [
                     {

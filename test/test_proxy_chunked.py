@@ -22,7 +22,7 @@ def setup_method_fixture():
     assert 'success' in client.conf(
         {
             "listeners": {
-                "*:7080": {"pass": "routes"},
+                "*:8080": {"pass": "routes"},
             },
             "routes": [
                 {"action": {"proxy": f'http://127.0.0.1:{SERVER_PORT}'}}

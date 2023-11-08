@@ -37,7 +37,7 @@ class ApplicationRuby(ApplicationProto):
 
         self._load_conf(
             {
-                "listeners": {"*:7080": {"pass": f"applications/{script}"}},
+                "listeners": {"*:8080": {"pass": f"applications/{script}"}},
                 "applications": {script: app},
             },
             **kwargs,

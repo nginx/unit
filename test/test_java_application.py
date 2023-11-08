@@ -20,7 +20,7 @@ def test_java_conf_error(temp_dir, skip_alert):
     )
     assert 'error' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": "applications/app"}},
+            "listeners": {"*:8080": {"pass": "applications/app"}},
             "applications": {
                 "app": {
                     "type": client.get_application_type(),

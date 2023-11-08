@@ -17,7 +17,7 @@ def setup_method_fixture(temp_dir):
     assert 'success' in client.conf(
         {
             "listeners": {
-                "*:7080": {"pass": "routes"},
+                "*:8080": {"pass": "routes"},
             },
             "routes": [
                 {
@@ -59,7 +59,7 @@ def test_response_last_action():
     assert 'success' in client.conf(
         {
             "listeners": {
-                "*:7080": {"pass": "routes/first"},
+                "*:8080": {"pass": "routes/first"},
             },
             "routes": {
                 "first": [
@@ -91,7 +91,7 @@ def test_response_pass(require):
     assert 'success' in client_python.conf(
         {
             "listeners": {
-                "*:7080": {"pass": "routes"},
+                "*:8080": {"pass": "routes"},
             },
             "routes": [
                 {
@@ -121,7 +121,7 @@ def test_response_pass(require):
 def test_response_fallback():
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": "routes"}},
+            "listeners": {"*:8080": {"pass": "routes"}},
             "routes": [
                 {
                     "action": {

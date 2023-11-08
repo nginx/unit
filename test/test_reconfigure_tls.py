@@ -20,7 +20,7 @@ def setup_method_fixture():
     assert 'success' in client.conf(
         {
             "listeners": {
-                "*:7080": {
+                "*:8080": {
                     "pass": "routes",
                     "tls": {"certificate": "default"},
                 }
@@ -40,7 +40,7 @@ def create_socket():
     ssl_sock = ctx.wrap_socket(
         s, server_hostname='localhost', do_handshake_on_connect=False
     )
-    ssl_sock.connect(('127.0.0.1', 7080))
+    ssl_sock.connect(('127.0.0.1', 8080))
 
     return ssl_sock
 
@@ -51,7 +51,7 @@ def clear_conf():
 
 @pytest.mark.skip('not yet')
 def test_reconfigure_tls_switch():
-    assert 'success' in client.conf_delete('listeners/*:7080/tls')
+    assert 'success' in client.conf_delete('listeners/*:8080/tls')
 
     (_, sock) = client.get(
         headers={'Host': 'localhost', 'Connection': 'keep-alive'},
@@ -61,7 +61,7 @@ def test_reconfigure_tls_switch():
 
     assert 'success' in client.conf(
         {"pass": "routes", "tls": {"certificate": "default"}},
-        'listeners/*:7080',
+        'listeners/*:8080',
     )
 
     assert client.get(sock=sock)['status'] == 200, 'reconfigure'

@@ -14,7 +14,7 @@ client = ApplicationProto()
 def setup_method_fixture(temp_dir):
     assert 'success' in client.conf(
         {
-            "listeners": {"*:7080": {"pass": "routes"}},
+            "listeners": {"*:8080": {"pass": "routes"}},
             "routes": [{"action": {"share": f"{temp_dir}/assets$uri"}}],
         }
     )

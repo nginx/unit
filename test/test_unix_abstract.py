@@ -18,7 +18,7 @@ def test_unix_abstract_source():
     assert 'success' in client.conf(
         {
             "listeners": {
-                "127.0.0.1:7080": {"pass": "routes"},
+                "127.0.0.1:8080": {"pass": "routes"},
                 f"unix:@{addr[1:]}": {"pass": "routes"},
             },
             "routes": [
@@ -44,8 +44,8 @@ def test_unix_abstract_source():
 def test_unix_abstract_client_ip():
     def get_xff(xff, sock_type='ipv4'):
         address = {
-            'ipv4': ('127.0.0.1', 7080),
-            'ipv6': ('::1', 7081),
+            'ipv4': ('127.0.0.1', 8080),
+            'ipv6': ('::1', 8081),
             'unix': ('\0sock', None),
         }
         (addr, port) = address[sock_type]
@@ -61,14 +61,14 @@ def test_unix_abstract_client_ip():
     assert 'success' in client.conf(
         {
             "listeners": {
-                "127.0.0.1:7080": {
+                "127.0.0.1:8080": {
                     "client_ip": {
                         "header": "X-Forwarded-For",
                         "source": "unix",
                     },
                     "pass": "applications/client_ip",
                 },
-                "[::1]:7081": {
+                "[::1]:8081": {
                     "client_ip": {
                         "header": "X-Forwarded-For",
                         "source": "unix",
