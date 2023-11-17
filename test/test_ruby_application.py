@@ -315,6 +315,20 @@ def test_ruby_application_header_rack():
     assert client.get()['status'] == 500, 'header rack'
 
 
+@pytest.mark.skip('not yet')
+def test_ruby_application_session():
+    client.load('session')
+
+    assert client.get()['status'] == 200
+
+
+@pytest.mark.skip('not yet')
+def test_ruby_application_multipart():
+    client.load('multipart')
+
+    assert client.get()['status'] == 200
+
+
 def test_ruby_application_body_empty():
     client.load('body_empty')
 
