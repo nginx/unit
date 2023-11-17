@@ -164,15 +164,6 @@ def test_ruby_application_input_each():
 
 
 @pytest.mark.skip('not yet')
-def test_ruby_application_input_rewind():
-    client.load('input_rewind')
-
-    body = '0123456789'
-
-    assert client.post(body=body)['body'] == body, 'input rewind'
-
-
-@pytest.mark.skip('not yet')
 def test_ruby_application_syntax_error(skip_alert):
     skip_alert(
         r'Failed to parse rack script',
