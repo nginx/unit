@@ -33,6 +33,13 @@ can be used as a unique request identifier.
 </para>
 </change>
 
+<change type="feature">
+<para>
+ServerRequest.flushHeaders() implemented in Node.js module to make it compatible
+with Next.js.
+</para>
+</change>
+
 </changes>
 
 

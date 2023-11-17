@@ -138,6 +138,10 @@ ServerResponse.prototype.removeHeader = function removeHeader(name) {
     }
 };
 
+ServerResponse.prototype.flushHeaders = function flushHeaders() {
+    this._sendHeaders();
+};
+
 ServerResponse.prototype._removeHeader = function _removeHeader(lc_name) {
     let entry = this.headers[lc_name];
     let name_len = Buffer.byteLength(entry[0] + "", 'latin1');

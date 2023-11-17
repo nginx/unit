@@ -303,6 +303,10 @@ def test_node_application_get_header_names():
         'x-header',
     ], 'get header names'
 
+def test_node_application_flush_headers():
+    client.load('flush_headers')
+
+    assert client.get()['headers']['X-Header'] == 'blah'
 
 def test_node_application_has_header():
     client.load('has_header')
