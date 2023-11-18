@@ -6,19 +6,32 @@ MODULE_SUMMARY_jsc17=	Java 17 module for NGINX Unit
 MODULE_VERSION_jsc17=	$(VERSION)
 MODULE_RELEASE_jsc17=	1
 
+ifeq ($(OSVER),amazonlinux2023)
 MODULE_CONFARGS_jsc17=	java --module=java17 --home=/usr/lib/jvm/java-17-amazon-corretto --lib-path=/usr/lib/jvm/java-17-amazon-corretto/lib --jars=/usr/share/unit-jsc-common/
+else ifeq ($(OSVER),fedora39)
+MODULE_CONFARGS_jsc17=	java --module=java17 --home=/usr/lib/jvm/java-17-openjdk --lib-path=/usr/lib/jvm/java-17-openjdk/lib --jars=/usr/share/unit-jsc-common/
+endif
 MODULE_MAKEARGS_jsc17=	java17
 MODULE_INSTARGS_jsc17=	java17-install
 
 MODULE_SOURCES_jsc17=	unit.example-jsc-app \
 			unit.example-jsc17-config
 
+ifeq ($(OSVER),amazonlinux2023)
 BUILD_DEPENDS_jsc17=	java-17-amazon-corretto-devel
+else ifeq ($(OSVER),fedora39)
+BUILD_DEPENDS_jsc17=	java-17-openjdk-devel
 BUILD_DEPENDS+=		$(BUILD_DEPENDS_jsc17)
+endif
 
 define MODULE_DEFINITIONS_jsc17
 Requires: unit-jsc-common == $(MODULE_VERSION_jsc_common)-$(MODULE_RELEASE_jsc_common)%{?dist}.ngx
+%if (0%{?amzn} == 2023)
 Requires: java-17-amazon-corretto-headless
+%endif
+%if (0%{?fedora} >= 39)
+Requires: java-17-openjdk-headless
+%endif
 endef
 export MODULE_DEFINITIONS_jsc17
 
