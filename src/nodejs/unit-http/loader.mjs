@@ -2,6 +2,7 @@
 export async function resolve(specifier, context, defaultResolver) {
     switch (specifier) {
         case "websocket":
+        case "node:websocket":
             return {
                 url: new URL("./websocket.js", import.meta.url).href,
                 format: "commonjs",
@@ -9,6 +10,7 @@ export async function resolve(specifier, context, defaultResolver) {
             }
 
         case "http":
+        case "node:http":
             return {
                 url: new URL("./http.js", import.meta.url).href,
                 format: "commonjs",
