@@ -8,6 +8,8 @@ DEFAULT_VERSION := $(NXT_VERSION)
 VERSION ?= $(DEFAULT_VERSION)
 PATCHLEVEL ?= 1
 
+MODULE   =
+
 MODULES ?= go jsc node perl php python ruby wasm
 
 VARIANT ?= bullseye
@@ -105,7 +107,7 @@ export RUST_VERSION=1.71.0 \\\n \
 endef
 
 default:
-	@echo "valid targets: all build dockerfiles library clean"
+	@echo "valid targets: all build gen-<target> dockerfiles library clean"
 
 MODVERSIONS = $(foreach module, $(MODULES), $(foreach modversion, $(shell for v in $(VERSIONS_$(module)); do echo $$v; done | sort -r), $(module)$(modversion))) wasm minimal
 
@@ -130,6 +132,27 @@ Dockerfile.%: ../../version template.Dockerfile
 build-%: Dockerfile.%
 	docker pull $(CONTAINER_$*)
 	docker build --no-cache -t unit:$(VERSION)-$* -f Dockerfile.$* .
+
+gen-%: ../../version template.Dockerfile
+ifeq ($(MODULE), )
+	@echo "MODULE not set, set it to one of the following:"
+	@echo "    $(MODULES)"
+	@false
+else
+	@echo "===> Building Dockerfile.$*"
+	cat template.Dockerfile | sed \
+		-e 's,@@VERSION@@,$(VERSION),g' \
+		-e 's,@@PATCHLEVEL@@,$(PATCHLEVEL),g' \
+		-e 's,@@CONTAINER@@,$(CONTAINER_$*),g' \
+		-e 's,@@CONFIGURE@@,$(CONFIGURE_$(MODULE)),g' \
+		-e 's,@@INSTALL@@,$(INSTALL_$(MODULE)),g' \
+		-e 's,@@RUN@@,$(RUN_$(MODULE)),g' \
+		-e 's,@@MODULE_PREBUILD@@,$(MODULE_PREBUILD_$(MODULE)),g' \
+		-e 's,@@MODULE@@,$*,g' \
+		> Dockerfile.$*
+	docker pull $(CONTAINER_$*)
+	docker build --no-cache -t unit:$(VERSION)-$* -f Dockerfile.$* .
+endif
 
 library:
 	@echo "# this file is generated via https://github.com/nginx/unit/blob/$(shell git describe --always --abbrev=0 HEAD)/pkg/docker/Makefile"
