@@ -690,6 +690,7 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_action_common_members[] = {
     {
         .name       = nxt_string("rewrite"),
         .type       = NXT_CONF_VLDT_STRING,
+        .flags      = NXT_CONF_VLDT_TSTR,
     },
     {
         .name       = nxt_string("response_headers"),
