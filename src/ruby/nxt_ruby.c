@@ -914,8 +914,12 @@ nxt_ruby_hash_info(VALUE r_key, VALUE r_value, VALUE arg)
             len += RSTRING_LEN(item) + 2;   /* +2 for '; ' */
         }
 
+        if (arr_len > 0) {
+            len -= 2;
+        }
+
         headers_info->fields++;
-        headers_info->size += RSTRING_LEN(r_key) + len - 2;
+        headers_info->size += RSTRING_LEN(r_key) + len;
 
         return ST_CONTINUE;
     }
@@ -994,7 +998,9 @@ nxt_ruby_hash_add(VALUE r_key, VALUE r_value, VALUE arg)
             p = nxt_cpymem(p, "; ", 2);
         }
 
-        len -= 2;
+        if (arr_len > 0) {
+            len -= 2;
+        }
 
         *rc = nxt_unit_response_add_field(headers_info->req,
                                           RSTRING_PTR(r_key), key_len,
