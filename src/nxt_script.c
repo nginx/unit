@@ -38,8 +38,6 @@ static nxt_lvlhsh_t  nxt_script_info;
 
 
 static njs_vm_ops_t  nxt_js_ops = {
-    NULL,
-    NULL,
     nxt_js_module_loader,
     NULL,
 };

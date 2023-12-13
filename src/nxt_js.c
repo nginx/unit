@@ -70,8 +70,6 @@ nxt_js_module_loader(njs_vm_t *vm, njs_external_ptr_t external, njs_str_t *name)
 
 
 static njs_vm_ops_t  nxt_js_ops = {
-    NULL,
-    NULL,
     nxt_js_module_loader,
     NULL,
 };
