@@ -30,12 +30,9 @@ Release: %%RELEASE%%%{?dist}.ngx
 License: ASL 2.0
 Vendor: %%PACKAGE_VENDOR%%
 URL: https://unit.nginx.org/
-Group: System Environment/Daemons
 
 Source0: unit-%{version}.tar.gz
 %%MODULE_SOURCES%%
-
-BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires: pcre2-devel
 
@@ -77,7 +74,6 @@ make %%MODULE_MAKEARGS%%
 %{__mv} build build-nodebug
 
 %install
-%{__rm} -rf %{buildroot}
 %{__mkdir} -p %{buildroot}%{_datadir}/doc/%%NAME%%
 if [ `basename %{SOURCE100}` == COPYRIGHT.%{name} ]; then
 %{__install} -m 644 -p %{SOURCE100} \
@@ -100,16 +96,12 @@ cd %{bdir}
 grep -v 'usr/src' debugfiles.list > debugfiles.list.new && mv debugfiles.list.new debugfiles.list
 cat /dev/null > debugsources.list
 
-%clean
-%{__rm} -rf %{buildroot}
-
 %post
 if [ $1 -eq 1 ]; then
 %%MODULE_POST%%
 fi
 
 %files
-%defattr(-,root,root,-)
 %dir %{_datadir}/doc/%%NAME%%
 %{_datadir}/doc/%%NAME%%/*
 %%MODULE_FILES%%
