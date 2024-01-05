@@ -33,7 +33,7 @@ web page with NGINX Unit.
 
 | Options | |
 |---------|-|
-| filename … | Read configuration data consequently from the specified files instead of stdin.
+| filename … | Read configuration data consecutively from the specified files instead of stdin.
 | _HTTP method_ | It is usually not required to specify a HTTP method. `GET` is used to read the configuration. `PUT` is used when making configuration changes unless a specific method is provided.
 | `edit` | Opens **URI** in the default editor for interactive configuration. The [jq](https://stedolan.github.io/jq/) tool is required for this option.
 | `INSERT` | A _virtual_ HTTP method that prepends data when the URI specifies an existing array. The [jq](https://stedolan.github.io/jq/) tool is required for this option.
