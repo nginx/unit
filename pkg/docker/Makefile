@@ -59,7 +59,7 @@ INSTALL_php ?=		php-install
 RUN_php ?=			ldconfig
 MODULE_PREBUILD_php ?= /bin/true
 
-VERSIONS_python ?=  3.11
+VERSIONS_python ?=  3.11 3.12
 VARIANT_python ?=	$(VARIANT)
 $(foreach pythonversion, $(VERSIONS_python), $(eval CONTAINER_python$(pythonversion) = python:$(pythonversion)-$(VARIANT_python)))
 CONFIGURE_python ?=	python --config=/usr/local/bin/python3-config
