@@ -1,4 +1,5 @@
 //go:build darwin
+// +build darwin
 
 /*
  * Copyright (C) Danielle De Leo
