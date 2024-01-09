@@ -21,7 +21,7 @@ Check out the [Quick Installation](README.md#quick-installation) and
 
 Please open an [issue](https://github.com/nginx/unit/issues/new) on GitHub with
 the label `question`.  You can also ask a question on
-[Slack](https://nginxcommunity.slack.com) or the NGINX Unit mailing list,
+[GitHub Discussions](https://github.com/nginx/unit/discussions) or the NGINX Unit mailing list,
 unit@nginx.org (subscribe
 [here](https://mailman.nginx.org/mailman3/lists/unit.nginx.org/)).
 
