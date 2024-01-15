@@ -8,9 +8,7 @@ class application:
     def __iter__(self):
         self.__i = 0
         self._skip_level = int(self.environ.get('HTTP_X_SKIP', 0))
-        self._not_skip_close = int(
-            self.environ.get('HTTP_X_NOT_SKIP_CLOSE', 0)
-        )
+        self._not_skip_close = int(self.environ.get('HTTP_X_NOT_SKIP_CLOSE', 0))
         self._is_chunked = self.environ.get('HTTP_X_CHUNKED')
 
         headers = [(('Content-Length', '10'))]

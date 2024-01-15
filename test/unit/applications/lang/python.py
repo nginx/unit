@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 import shutil
 from urllib.parse import quote
 
@@ -26,10 +26,9 @@ class ApplicationPython(ApplicationProto):
         if kwargs.get('isolation') and kwargs['isolation'].get('rootfs'):
             rootfs = kwargs['isolation']['rootfs']
 
-            if not os.path.exists(f'{rootfs}/app/python/'):
-                os.makedirs(f'{rootfs}/app/python/')
+            Path(f'{rootfs}/app/python/').mkdir(parents=True, exist_ok=True)
 
-            if not os.path.exists(f'{rootfs}/app/python/{name}'):
+            if not Path(f'{rootfs}/app/python/{name}').exists():
                 shutil.copytree(script_path, f'{rootfs}/app/python/{name}')
 
             script_path = f'/app/python/{name}'

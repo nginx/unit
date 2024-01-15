@@ -123,7 +123,7 @@ def test_go_application_command_line_arguments_type():
     client.load('command_line_arguments')
 
     assert 'error' in client.conf(
-        '' "a b c", 'applications/command_line_arguments/arguments'
+        "a b c", 'applications/command_line_arguments/arguments'
     ), 'arguments type'
 
 

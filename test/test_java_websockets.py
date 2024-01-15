@@ -2,6 +2,7 @@ import struct
 import time
 
 import pytest
+
 from unit.applications.lang.java import ApplicationJava
 from unit.applications.websockets import ApplicationWebsocket
 

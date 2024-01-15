@@ -3,6 +3,7 @@ import ssl
 import time
 
 import pytest
+
 from unit.applications.tls import ApplicationTLS
 
 prerequisites = {'modules': {'openssl': 'any'}}
@@ -92,6 +93,8 @@ def test_reconfigure_tls_2():
     time.sleep(1.5)
 
     clear_conf()
+
+    success = False
 
     try:
         ssl_sock.do_handshake()

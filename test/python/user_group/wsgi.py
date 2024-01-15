@@ -6,7 +6,12 @@ def application(environ, start_response):
     uid = os.geteuid()
     gid = os.getegid()
 
-    out = json.dumps({'UID': uid, 'GID': gid,}).encode('utf-8')
+    out = json.dumps(
+        {
+            'UID': uid,
+            'GID': gid,
+        }
+    ).encode('utf-8')
 
     start_response(
         '200 OK',

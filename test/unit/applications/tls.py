@@ -79,7 +79,7 @@ subjectAltName = @alt_names
 
 {a_names}'''
 
-        with open(conf_path, 'w') as f:
+        with open(conf_path, 'w', encoding='utf-8') as f:
             f.write(
                 f'''[ req ]
 default_bits = 2048

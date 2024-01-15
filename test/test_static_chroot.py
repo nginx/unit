@@ -2,21 +2,23 @@ import os
 from pathlib import Path
 
 import pytest
+
 from unit.applications.proto import ApplicationProto
 from unit.option import option
 
 prerequisites = {'features': {'chroot': True}}
 
 client = ApplicationProto()
+test_path = f'/{os.path.relpath(Path(__file__))}'
 
 
 @pytest.fixture(autouse=True)
 def setup_method_fixture(temp_dir):
-    os.makedirs(f'{temp_dir}/assets/dir')
-    Path(f'{temp_dir}/assets/index.html').write_text('0123456789')
-    Path(f'{temp_dir}/assets/dir/file').write_text('blah')
-
-    client.test_path = f'/{os.path.relpath(Path(__file__))}'
+    Path(f'{temp_dir}/assets/dir').mkdir(parents=True)
+    Path(f'{temp_dir}/assets/index.html').write_text(
+        '0123456789', encoding='utf-8'
+    )
+    Path(f'{temp_dir}/assets/dir/file').write_text('blah', encoding='utf-8')
 
     assert 'success' in client.conf(
         {
@@ -85,7 +87,7 @@ def test_static_chroot_empty():
     assert client.get(url='/dir/file')['status'] == 200, 'empty absolute'
 
     assert 'success' in update_action("", ".$uri")
-    assert client.get(url=client.test_path)['status'] == 200, 'empty relative'
+    assert client.get(url=test_path)['status'] == 200, 'empty relative'
 
 
 def test_static_chroot_relative(require):
@@ -95,10 +97,10 @@ def test_static_chroot_relative(require):
     assert client.get(url='/dir/file')['status'] == 403, 'relative chroot'
 
     assert 'success' in client.conf({"share": ".$uri"}, 'routes/0/action')
-    assert client.get(url=client.test_path)['status'] == 200, 'relative share'
+    assert client.get(url=test_path)['status'] == 200, 'relative share'
 
     assert 'success' in update_action(".", ".$uri")
-    assert client.get(url=client.test_path)['status'] == 200, 'relative'
+    assert client.get(url=test_path)['status'] == 200, 'relative'
 
 
 def test_static_chroot_variables(temp_dir):

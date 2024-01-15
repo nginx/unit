@@ -1,6 +1,7 @@
 import time
 
 import pytest
+
 from unit.applications.lang.python import ApplicationPython
 from unit.option import option
 
@@ -17,11 +18,11 @@ def load(script):
     ), 'access_log configure'
 
 
-def set_format(format):
+def set_format(log_format):
     assert 'success' in client.conf(
         {
             'path': f'{option.temp_dir}/access.log',
-            'format': format,
+            'format': log_format,
         },
         'access_log',
     ), 'access_log format'
@@ -283,14 +284,14 @@ def test_access_log_change(temp_dir, wait_for_record):
 def test_access_log_format(wait_for_record):
     load('empty')
 
-    def check_format(format, expect, url='/'):
-        set_format(format)
+    def check_format(log_format, expect, url='/'):
+        set_format(log_format)
 
         assert client.get(url=url)['status'] == 200
         assert wait_for_record(expect, 'access.log') is not None, 'found'
 
-    format = 'BLAH\t0123456789'
-    check_format(format, format)
+    log_format = 'BLAH\t0123456789'
+    check_format(log_format, log_format)
     check_format('$uri $status $uri $status', '/ 200 / 200')
 
 

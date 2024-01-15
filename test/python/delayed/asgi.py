@@ -33,7 +33,9 @@ async def application(scope, receive, send):
         {
             'type': 'http.response.start',
             'status': 200,
-            'headers': [(b'content-length', str(len(body)).encode()),],
+            'headers': [
+                (b'content-length', str(len(body)).encode()),
+            ],
         }
     )
 

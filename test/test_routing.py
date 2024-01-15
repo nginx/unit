@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import pytest
+
 from unit.applications.lang.python import ApplicationPython
 from unit.option import option
 
@@ -24,8 +25,8 @@ def setup_method_fixture():
     ), 'routing configure'
 
 
-def route(route):
-    return client.conf([route], 'routes')
+def route(conf_route):
+    return client.conf([conf_route], 'routes')
 
 
 def route_match(match):
@@ -40,19 +41,21 @@ def route_match_invalid(match):
     ), 'route match configure invalid'
 
 
-def host(host, status):
+def host(host_header, status):
     assert (
-        client.get(headers={'Host': host, 'Connection': 'close'})['status']
+        client.get(headers={'Host': host_header, 'Connection': 'close'})[
+            'status'
+        ]
         == status
     ), 'match host'
 
 
-def cookie(cookie, status):
+def cookie(cookie_header, status):
     assert (
         client.get(
             headers={
                 'Host': 'localhost',
-                'Cookie': cookie,
+                'Cookie': cookie_header,
                 'Connection': 'close',
             },
         )['status']

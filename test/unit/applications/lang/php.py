@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 import shutil
 
 from unit.applications.proto import ApplicationProto
@@ -15,10 +15,9 @@ class ApplicationPHP(ApplicationProto):
         if kwargs.get('isolation') and kwargs['isolation'].get('rootfs'):
             rootfs = kwargs['isolation']['rootfs']
 
-            if not os.path.exists(f'{rootfs}/app/php/'):
-                os.makedirs(f'{rootfs}/app/php/')
+            Path(f'{rootfs}/app/php/').mkdir(parents=True, exist_ok=True)
 
-            if not os.path.exists(f'{rootfs}/app/php/{script}'):
+            if not Path(f'{rootfs}/app/php/{script}').exists():
                 shutil.copytree(script_path, f'{rootfs}/app/php/{script}')
 
             script_path = f'/app/php/{script}'

@@ -1,5 +1,6 @@
 import pytest
 from packaging import version
+
 from unit.applications.lang.python import ApplicationPython
 from unit.option import option
 

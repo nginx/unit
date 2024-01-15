@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 import pytest
+
 from unit.applications.proto import ApplicationProto
 
 prerequisites = {'features': {'chroot': True}}
@@ -12,8 +13,10 @@ client = ApplicationProto()
 @pytest.fixture(autouse=True)
 def setup_method_fixture(temp_dir):
     os.makedirs(f'{temp_dir}/assets/dir/dir')
-    Path(f'{temp_dir}/assets/index.html').write_text('0123456789')
-    Path(f'{temp_dir}/assets/dir/file').write_text('blah')
+    Path(f'{temp_dir}/assets/index.html').write_text(
+        '0123456789', encoding='utf-8'
+    )
+    Path(f'{temp_dir}/assets/dir/file').write_text('blah', encoding='utf-8')
 
     assert 'success' in client.conf(
         {

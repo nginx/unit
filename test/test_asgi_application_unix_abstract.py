@@ -1,4 +1,5 @@
 from packaging import version
+
 from unit.applications.lang.python import ApplicationPython
 
 prerequisites = {

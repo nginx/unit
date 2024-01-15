@@ -1,7 +1,9 @@
 import os
 import socket
+from pathlib import Path
 
 import pytest
+
 from unit.applications.proto import ApplicationProto
 from unit.utils import waitforfiles
 
@@ -11,18 +13,13 @@ client = ApplicationProto()
 
 @pytest.fixture(autouse=True)
 def setup_method_fixture(temp_dir):
-    os.makedirs(f'{temp_dir}/assets/dir')
     assets_dir = f'{temp_dir}/assets'
 
-    with open(f'{assets_dir}/index.html', 'w') as index, open(
-        f'{assets_dir}/README', 'w'
-    ) as readme, open(f'{assets_dir}/log.log', 'w') as log, open(
-        f'{assets_dir}/dir/file', 'w'
-    ) as file:
-        index.write('0123456789')
-        readme.write('readme')
-        log.write('[debug]')
-        file.write('blah')
+    Path(f'{assets_dir}/dir').mkdir(parents=True)
+    Path(f'{assets_dir}/index.html').write_text('0123456789', encoding='utf-8')
+    Path(f'{assets_dir}/README').write_text('readme', encoding='utf-8')
+    Path(f'{assets_dir}/log.log').write_text('[debug]', encoding='utf-8')
+    Path(f'{assets_dir}/dir/file').write_text('blah', encoding='utf-8')
 
     assert 'success' in client.conf(
         {
@@ -103,7 +100,7 @@ def test_static_etag(temp_dir):
     assert etag != etag_2, 'different ETag'
     assert etag == client.get(url='/')['headers']['ETag'], 'same ETag'
 
-    with open(f'{temp_dir}/assets/index.html', 'w') as f:
+    with open(f'{temp_dir}/assets/index.html', 'w', encoding='utf-8') as f:
         f.write('blah')
 
     assert etag != client.get(url='/')['headers']['ETag'], 'new ETag'
@@ -119,18 +116,16 @@ def test_static_redirect():
 def test_static_space_in_name(temp_dir):
     assets_dir = f'{temp_dir}/assets'
 
-    os.rename(
-        f'{assets_dir}/dir/file',
-        f'{assets_dir}/dir/fi le',
-    )
+    Path(f'{assets_dir}/dir/file').rename(f'{assets_dir}/dir/fi le')
+
     assert waitforfiles(f'{assets_dir}/dir/fi le')
     assert client.get(url='/dir/fi le')['body'] == 'blah', 'file name'
 
-    os.rename(f'{assets_dir}/dir', f'{assets_dir}/di r')
+    Path(f'{assets_dir}/dir').rename(f'{assets_dir}/di r')
     assert waitforfiles(f'{assets_dir}/di r/fi le')
     assert client.get(url='/di r/fi le')['body'] == 'blah', 'dir name'
 
-    os.rename(f'{assets_dir}/di r', f'{assets_dir}/ di r ')
+    Path(f'{assets_dir}/di r').rename(f'{assets_dir}/ di r ')
     assert waitforfiles(f'{assets_dir}/ di r /fi le')
     assert (
         client.get(url='/ di r /fi le')['body'] == 'blah'
@@ -149,17 +144,14 @@ def test_static_space_in_name(temp_dir):
         == 'blah'
     ), 'encoded 2'
 
-    os.rename(
-        f'{assets_dir}/ di r /fi le',
-        f'{assets_dir}/ di r / fi le ',
-    )
+    Path(f'{assets_dir}/ di r /fi le').rename(f'{assets_dir}/ di r / fi le ')
     assert waitforfiles(f'{assets_dir}/ di r / fi le ')
     assert (
         client.get(url='/%20di%20r%20/%20fi%20le%20')['body'] == 'blah'
     ), 'file name enclosing'
 
     try:
-        open(f'{temp_dir}/ф а', 'a').close()
+        Path(f'{temp_dir}/ф а').touch()
         utf8 = True
 
     except KeyboardInterrupt:
@@ -169,17 +161,13 @@ def test_static_space_in_name(temp_dir):
         utf8 = False
 
     if utf8:
-        os.rename(
-            f'{assets_dir}/ di r / fi le ',
-            f'{assets_dir}/ di r /фа йл',
+        Path(f'{assets_dir}/ di r / fi le ').rename(
+            f'{assets_dir}/ di r /фа йл'
         )
         assert waitforfiles(f'{assets_dir}/ di r /фа йл')
         assert client.get(url='/ di r /фа йл')['body'] == 'blah'
 
-        os.rename(
-            f'{assets_dir}/ di r ',
-            f'{assets_dir}/ди ректория',
-        )
+        Path(f'{assets_dir}/ di r ').rename(f'{assets_dir}/ди ректория')
         assert waitforfiles(f'{assets_dir}/ди ректория/фа йл')
         assert (
             client.get(url='/ди ректория/фа йл')['body'] == 'blah'

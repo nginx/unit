@@ -1,6 +1,7 @@
 import re
 
 import pytest
+
 from unit.applications.lang.perl import ApplicationPerl
 
 prerequisites = {'modules': {'perl': 'all'}}

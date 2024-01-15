@@ -1,6 +1,7 @@
-import os
+from pathlib import Path
 
 import pytest
+
 from unit.applications.proto import ApplicationProto
 from unit.option import option
 from unit.utils import waitforfiles
@@ -22,9 +23,9 @@ def setup_method_fixture(temp_dir):
 
 def create_files(*files):
     assets_dir = f'{option.temp_dir}/assets/'
-    os.makedirs(assets_dir)
+    Path(assets_dir).mkdir()
 
-    [open(assets_dir + f, 'a') for f in files]
+    _ = [Path(assets_dir + f).touch() for f in files]
     waitforfiles(*[assets_dir + f for f in files])
 
 

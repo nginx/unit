@@ -4,6 +4,7 @@ import socket
 import time
 
 import pytest
+
 from conftest import run_process
 from unit.applications.lang.python import ApplicationPython
 from unit.utils import waitforsocket
@@ -52,7 +53,7 @@ def run_server(server_port):
             part = sock.recv(buff_size)
             data += part
 
-            if not len(part):
+            if not part:
                 break
 
         return data
@@ -80,7 +81,7 @@ def run_server(server_port):
                 req = f'{req}{add}\r\n'
 
         for chunk in re.split(r'([@#])', req):
-            if chunk == '@' or chunk == '#':
+            if chunk in ('@', '#'):
                 if chunk == '#':
                     time.sleep(0.1)
                 continue
@@ -90,10 +91,10 @@ def run_server(server_port):
         connection.close()
 
 
-def chunks(chunks):
+def chunks(chunks_lst):
     body = '\r\n\r\n'
 
-    for l, c in chunks:
+    for l, c in chunks_lst:
         body = f'{body}{l}\r\n{c}\r\n'
 
     return f'{body}0\r\n\r\n'

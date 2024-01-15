@@ -1,11 +1,11 @@
-import os
 import subprocess
+from pathlib import Path
 
 from unit.option import option
 
 
 def check_node():
-    if not os.path.exists(f'{option.current_dir}/node/node_modules'):
+    if not Path(f'{option.current_dir}/node/node_modules').exists():
         return False
 
     try:

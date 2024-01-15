@@ -3,6 +3,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+
 from unit.applications.proto import ApplicationProto
 
 prerequisites = {'features': {'chroot': True}, 'privileged_user': True}
@@ -15,9 +16,11 @@ def setup_method_fixture(temp_dir):
     os.makedirs(f'{temp_dir}/assets/dir/mount')
     os.makedirs(f'{temp_dir}/assets/dir/dir')
     os.makedirs(f'{temp_dir}/assets/mount')
-    Path(f'{temp_dir}/assets/index.html').write_text('index')
-    Path(f'{temp_dir}/assets/dir/dir/file').write_text('file')
-    Path(f'{temp_dir}/assets/mount/index.html').write_text('mount')
+    Path(f'{temp_dir}/assets/index.html').write_text('index', encoding='utf-8')
+    Path(f'{temp_dir}/assets/dir/dir/file').write_text('file', encoding='utf-8')
+    Path(f'{temp_dir}/assets/mount/index.html').write_text(
+        'mount', encoding='utf-8'
+    )
 
     try:
         subprocess.check_output(

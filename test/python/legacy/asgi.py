@@ -9,6 +9,8 @@ async def app_http(receive, send):
         {
             'type': 'http.response.start',
             'status': 200,
-            'headers': [(b'content-length', b'0'),],
+            'headers': [
+                (b'content-length', b'0'),
+            ],
         }
     )

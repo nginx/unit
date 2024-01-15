@@ -1,7 +1,8 @@
-import os
+from pathlib import Path
+
+from packaging import version
 
 from conftest import unit_stop
-from packaging import version
 from unit.applications.lang.python import ApplicationPython
 from unit.option import option
 
@@ -14,32 +15,26 @@ client = ApplicationPython(load_module='asgi')
 
 def assert_cookies(prefix):
     for name in ['startup', 'shutdown']:
-        path = f'{option.test_dir}/python/lifespan/empty/{prefix}{name}'
-        exists = os.path.isfile(path)
-        if exists:
-            os.remove(path)
+        path = Path(f'{option.test_dir}/python/lifespan/empty/{prefix}{name}')
+        exists = path.is_file()
+        path.unlink(missing_ok=True)
 
         assert not exists, name
 
-    path = f'{option.test_dir}/python/lifespan/empty/{prefix}version'
+    path = Path(f'{option.test_dir}/python/lifespan/empty/{prefix}version')
+    versions = path.read_text(encoding='utf-8')
+    path.unlink()
 
-    with open(path, 'r') as f:
-        version = f.read()
-
-    os.remove(path)
-
-    assert version == '3.0 2.0', 'version'
+    assert versions == '3.0 2.0', 'versions'
 
 
 def setup_cookies(prefix):
-    base_dir = f'{option.test_dir}/python/lifespan/empty'
-
-    os.chmod(base_dir, 0o777)
+    base_dir = Path(f'{option.test_dir}/python/lifespan/empty')
+    base_dir.chmod(0o777)
 
     for name in ['startup', 'shutdown', 'version']:
-        path = f'{option.test_dir}/python/lifespan/empty/{prefix}{name}'
-        open(path, 'a').close()
-        os.chmod(path, 0o777)
+        path = Path(f'{option.test_dir}/python/lifespan/empty/{prefix}{name}')
+        path.touch(0o777)
 
 
 def test_asgi_lifespan():

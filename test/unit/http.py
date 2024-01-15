@@ -7,6 +7,7 @@ import select
 import socket
 
 import pytest
+
 from unit.option import option
 
 
@@ -38,10 +39,7 @@ class HTTP1:
         if 'sock' not in kwargs:
             sock = socket.socket(sock_types[sock_type], socket.SOCK_STREAM)
 
-            if (
-                sock_type == sock_types['ipv4']
-                or sock_type == sock_types['ipv6']
-            ):
+            if sock_type in (sock_types['ipv4'], sock_types['ipv6']):
                 sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
             if 'wrapper' in kwargs:
@@ -202,7 +200,7 @@ class HTTP1:
 
             data += part
 
-            if not len(part):
+            if not part:
                 break
 
         return data
@@ -263,7 +261,7 @@ class HTTP1:
                 size = int(chunks.pop(0), 16)
 
             except ValueError:
-                pytest.fail(f'Invalid chunk size {size}')
+                pytest.fail('Invalid chunk size')
 
             if size == 0:
                 assert len(chunks) == 1, 'last zero size'

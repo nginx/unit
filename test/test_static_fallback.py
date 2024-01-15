@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 import pytest
+
 from unit.applications.proto import ApplicationProto
 
 client = ApplicationProto()
@@ -11,7 +12,7 @@ client = ApplicationProto()
 def setup_method_fixture(temp_dir):
     assets_dir = f'{temp_dir}/assets'
     os.makedirs(f'{assets_dir}/dir')
-    Path(f'{assets_dir}/index.html').write_text('0123456789')
+    Path(f'{assets_dir}/index.html').write_text('0123456789', encoding='utf-8')
 
     os.makedirs(f'{assets_dir}/403')
     os.chmod(f'{assets_dir}/403', 0o000)
