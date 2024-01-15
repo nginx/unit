@@ -309,6 +309,26 @@ def test_ruby_application_header_status():
     assert client.get()['status'] == 200, 'header status'
 
 
+def test_ruby_application_header_array():
+    client.load('header_array')
+
+    assert client.get()['headers']['x-array'] == 'name=value; ; value; av'
+
+
+def test_ruby_application_header_array_nil():
+    client.load('header_array_nil')
+
+    assert client.get()['status'] == 503
+
+
+def test_ruby_application_header_array_empty():
+    client.load('header_array_empty')
+
+    headers = client.get()['headers']
+    assert 'x-array' in headers
+    assert headers['x-array'] == ''
+
+
 @pytest.mark.skip('not yet')
 def test_ruby_application_header_rack():
     client.load('header_rack')
