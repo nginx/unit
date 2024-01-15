@@ -332,7 +332,7 @@ public class Util {
 
     public static List<DecoderEntry> getDecoders(
             List<Class<? extends Decoder>> decoderClazzes)
-                    throws DeploymentException{
+                    throws DeploymentException {
 
         List<DecoderEntry> result = new ArrayList<>();
         if (decoderClazzes != null) {

@@ -2971,7 +2971,7 @@ nxt_router_tls_rpc_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg,
 
     mp = tmcf->router_conf->mem_pool;
 
-    if (tls->socket_conf->tls == NULL){
+    if (tls->socket_conf->tls == NULL) {
         tlscf = nxt_mp_zget(mp, sizeof(nxt_tls_conf_t));
         if (nxt_slow_path(tlscf == NULL)) {
             goto fail;

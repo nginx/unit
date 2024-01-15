@@ -77,9 +77,9 @@ SYNOPSIS
     Subcommands
         ├── cmd          [-h]
         ├── ctl          [-h] [-s SOCK] SUBCOMMAND [ARGS]
-        │   ├── edit     [-h] PATH
-        │   ├── http     [-h] [-c CURLOPT] METHOD PATH
-        │   └── insert   [-h] PATH INDEX
+        │   ├── edit     [-h] PATH
+        │   ├── http     [-h] [-c CURLOPT] METHOD PATH
+        │   └── insert   [-h] PATH INDEX
         ├── freeport     [-h]
         ├── json-ins     [-hn] JSON INDEX
         ├── os-probe     [-h]
@@ -87,8 +87,8 @@ SYNOPSIS
         ├── repo-config  [-hn] [PKG-MANAGER OS-NAME OS-VERSION]
         ├── restart      [-hls]
         ├── sock         [-h] SUBCOMMAND [ARGS]
-        │   ├── filter   [-chs]
-        │   └── find     [-h]
+        │   ├── filter   [-chs]
+        │   └── find     [-h]
         └── welcome      [-hn]
 
 DESCRIPTION
