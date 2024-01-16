@@ -1,6 +1,6 @@
 #!/bin/bash
 # unitc - a curl wrapper for configuring NGINX Unit
-# https://github.com/nginx/unit/tree/master/tools
+# https://github.com/nginx/unit/tree/master/tools
 # NGINX, Inc. (c) 2023
 
 # Defaults
@@ -292,7 +292,7 @@ else
 			exit 1
 		fi
 		NEW_ELEMENT=$(cat ${CONF_FILES[@]})
-		echo $NEW_ELEMENT | jq > /dev/null || exit $? # Test the input is valid JSON before proceeding
+		echo $NEW_ELEMENT | jq > /dev/null || exit $? # Test the input is valid JSON before proceeding
 		OLD_ARRAY=$($RPC_CMD curl -s $UNIT_CTRL$URI)
 		if [ "$(echo $OLD_ARRAY | jq -r type)" = "array" ]; then
 			echo $OLD_ARRAY | jq ". |= [$NEW_ELEMENT] + ." | $RPC_CMD curl -X PUT --data-binary @- $UNIT_CTRL$URI 2> /tmp/${0##*/}.$$ | $OUTPUT

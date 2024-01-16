@@ -73,7 +73,7 @@ static nxt_int_t nxt_ssl_conf_commands(nxt_task_t *task, SSL_CTX *ctx,
 static nxt_int_t nxt_tls_ticket_keys(nxt_task_t *task, SSL_CTX *ctx,
     nxt_tls_init_t *tls_init, nxt_mp_t *mp);
 static int nxt_tls_ticket_key_callback(SSL *s, unsigned char *name,
-    unsigned char *iv, EVP_CIPHER_CTX *ectx,HMAC_CTX *hctx, int enc);
+    unsigned char *iv, EVP_CIPHER_CTX *ectx, HMAC_CTX *hctx, int enc);
 #endif
 static void nxt_ssl_session_cache(SSL_CTX *ctx, size_t cache_size,
     time_t timeout);

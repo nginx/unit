@@ -152,7 +152,7 @@ nxt_clone_credential_map_set(nxt_task_t *task, const char* mapfile, pid_t pid,
                 return NXT_ERROR;
             }
 
-            if (i+1 < map->size) {
+            if (i + 1 < map->size) {
                 *p++ = '\n';
 
             } else {
@@ -382,13 +382,13 @@ nxt_clone_vldt_credential_gidmap(nxt_task_t *task,
             m = map->map[j];
 
             if (!base_ok && creds->base_gid >= (nxt_gid_t) m.container
-                && creds->base_gid < (nxt_gid_t) (m.container+m.size))
+                && creds->base_gid < (nxt_gid_t) (m.container + m.size))
             {
                 base_ok = 1;
             }
 
             if (creds->gids[i] >= (nxt_gid_t) m.container
-                && creds->gids[i] < (nxt_gid_t) (m.container+m.size))
+                && creds->gids[i] < (nxt_gid_t) (m.container + m.size))
             {
                 gid_ok = 1;
                 break;
@@ -405,7 +405,7 @@ nxt_clone_vldt_credential_gidmap(nxt_task_t *task,
             m = map->map[i];
 
             if (creds->base_gid >= (nxt_gid_t) m.container
-                && creds->base_gid < (nxt_gid_t) (m.container+m.size))
+                && creds->base_gid < (nxt_gid_t) (m.container + m.size))
             {
                 base_ok = 1;
                 break;

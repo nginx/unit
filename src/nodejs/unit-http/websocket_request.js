@@ -247,7 +247,7 @@ WebSocketRequest.prototype.parseCookies = function(str) {
 
 WebSocketRequest.prototype.accept = function(acceptedProtocol, allowedOrigin, cookies) {
     this._verifyResolution();
-    
+
     // TODO: Handle extensions
 
     var protocolFullCase;
@@ -418,7 +418,7 @@ WebSocketRequest.prototype.accept = function(acceptedProtocol, allowedOrigin, co
     // if (negotiatedExtensions) {
     //     response += 'Sec-WebSocket-Extensions: ' + negotiatedExtensions.join(', ') + '\r\n';
     // }
-    
+
     // Mark the request resolved now so that the user can't call accept or
     // reject a second time.
     this._resolved = true;
@@ -447,12 +447,12 @@ WebSocketRequest.prototype.accept = function(acceptedProtocol, allowedOrigin, co
 
 WebSocketRequest.prototype.reject = function(status, reason, extraHeaders) {
     this._verifyResolution();
-    
+
     // Mark the request resolved now so that the user can't call accept or
     // reject a second time.
     this._resolved = true;
     this.emit('requestResolved', this);
-    
+
     if (typeof(status) !== 'number') {
         status = 403;
     }

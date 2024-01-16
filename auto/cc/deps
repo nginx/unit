@@ -3,7 +3,7 @@ case "$NXT_CC_NAME" in
 
     SunC):
         nxt_gen_dep_flags() {
-            $echo "-xMMD -xMF $NXT_BUILD_DIR/$nxt_dep.tmp" 
+            $echo "-xMMD -xMF $NXT_BUILD_DIR/$nxt_dep.tmp"
         }
 
         nxt_gen_dep_post() {
@@ -15,7 +15,7 @@ case "$NXT_CC_NAME" in
 
     *)
         nxt_gen_dep_flags() {
-            $echo "-MMD -MF $NXT_BUILD_DIR/$nxt_dep -MT $NXT_BUILD_DIR/$nxt_obj" 
+            $echo "-MMD -MF $NXT_BUILD_DIR/$nxt_dep -MT $NXT_BUILD_DIR/$nxt_obj"
         }
 
         nxt_gen_dep_post() {
