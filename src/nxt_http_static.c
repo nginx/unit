@@ -879,12 +879,7 @@ complete_buf:
 
     n = nxt_file_read(fb->file, b->mem.start, size, fb->file_pos);
 
-    if (n != size) {
-        if (n >= 0) {
-            nxt_log(task, NXT_LOG_ERR, "file \"%FN\" has changed "
-                    "while sending response to a client", fb->file->name);
-        }
-
+    if (nxt_slow_path(n == NXT_ERROR)) {
         nxt_http_request_error_handler(task, r, r->proto.any);
         goto clean;
     }
