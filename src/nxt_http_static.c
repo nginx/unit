@@ -1,6 +1,7 @@
 
 /*
  * Copyright (C) NGINX, Inc.
+ * Copyright 2021-2022, 2024, Alejandro Colomar <alx@kernel.org>
  */
 
 #include <nxt_router.h>
@@ -308,7 +309,7 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
     struct tm               tm;
     nxt_buf_t               *fb;
     nxt_int_t               ret;
-    nxt_str_t               *shr, *index, exten, *mtype;
+    nxt_str_t               *shr, *index, *path, exten, *mtype;
     nxt_uint_t              level;
     nxt_file_t              *f, file;
     nxt_file_info_t         fi;
@@ -338,22 +339,24 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
 
         length = shr->length + index->length;
 
-        fname = nxt_mp_nget(r->mem_pool, length + 1);
-        if (nxt_slow_path(fname == NULL)) {
+        path = nxt_str_alloc(r->mem_pool, length + 1);
+        if (nxt_slow_path(path == NULL)) {
             goto fail;
         }
 
-        p = fname;
+        p = path->start;
         p = nxt_cpymem(p, shr->start, shr->length);
         p = nxt_cpymem(p, index->start, index->length);
         *p = '\0';
 
     } else {
+        path = shr;
+
         if (conf->types == NULL) {
             nxt_str_null(&exten);
 
         } else {
-            nxt_http_static_extract_extension(shr, &exten);
+            nxt_http_static_extract_extension(path, &exten);
             mtype = nxt_http_static_mtype_get(&rtcf->mtypes_hash, &exten);
 
             ret = nxt_http_route_test_rule(r, conf->types, mtype->start,
@@ -367,9 +370,9 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
                 return;
             }
         }
-
-        fname = ctx->share.start;
     }
+
+    fname = path->start;
 
     nxt_memzero(&file, sizeof(nxt_file_t));
 
@@ -554,7 +557,7 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
                               - p;
 
         if (exten.start == NULL) {
-            nxt_http_static_extract_extension(shr, &exten);
+            nxt_http_static_extract_extension(path, &exten);
         }
 
         if (mtype == NULL) {
