@@ -353,20 +353,18 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
 
     nxt_http_static_extract_extension(path, &exten);
 
-    if (shr->start[shr->length - 1] != '/') {
-        if (conf->types != NULL) {
-            mtype = nxt_http_static_mtype_get(&rtcf->mtypes_hash, &exten);
+    if (conf->types != NULL) {
+        mtype = nxt_http_static_mtype_get(&rtcf->mtypes_hash, &exten);
 
-            ret = nxt_http_route_test_rule(r, conf->types, mtype->start,
-                                           mtype->length);
-            if (nxt_slow_path(ret == NXT_ERROR)) {
-                goto fail;
-            }
+        ret = nxt_http_route_test_rule(r, conf->types, mtype->start,
+                                       mtype->length);
+        if (nxt_slow_path(ret == NXT_ERROR)) {
+            goto fail;
+        }
 
-            if (ret == 0) {
-                nxt_http_static_next(task, r, ctx, NXT_HTTP_FORBIDDEN);
-                return;
-            }
+        if (ret == 0) {
+            nxt_http_static_next(task, r, ctx, NXT_HTTP_FORBIDDEN);
+            return;
         }
     }
 

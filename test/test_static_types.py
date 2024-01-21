@@ -147,8 +147,8 @@ def test_static_types_index(temp_dir):
     action_update(
         {"share": f'{temp_dir}/assets$uri', "types": "application/xml"}
     )
-    check_body('/', 'index')
     check_body('/file.xml', '.xml')
+    assert client.get(url='/')['status'] == 403, 'forbidden mtype'
     assert client.get(url='/index.html')['status'] == 403, 'forbidden mtype'
     assert client.get(url='/file.mp4')['status'] == 403, 'forbidden mtype'
 
