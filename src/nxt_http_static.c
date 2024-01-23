@@ -335,8 +335,6 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
     index = &conf->index;
 
     if (shr->start[shr->length - 1] == '/') {
-        nxt_http_static_extract_extension(index, &exten);
-
         length = shr->length + index->length;
 
         path = nxt_str_alloc(r->mem_pool, length + 1);
@@ -348,6 +346,8 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
         p = nxt_cpymem(p, shr->start, shr->length);
         p = nxt_cpymem(p, index->start, index->length);
         *p = '\0';
+
+        nxt_http_static_extract_extension(path, &exten);
 
     } else {
         path = shr;
@@ -789,7 +789,7 @@ nxt_http_static_extract_extension(nxt_str_t *path, nxt_str_t *exten)
 
 extension:
 
-    exten->length = end - p;
+    exten->length = end - p - 1;
     exten->start = p;
 }
 
