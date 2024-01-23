@@ -63,8 +63,7 @@ OPTIONS
                 Print this help.
 
         --help-more
-                Print help for more commands.  They are experimental.  Using
-                these isn't recommended, unless you know what you're doing.
+                Print help for more (advanced) commands.
 
 __EOF__
 }
