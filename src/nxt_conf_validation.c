@@ -77,6 +77,8 @@ static nxt_int_t nxt_conf_vldt_error(nxt_conf_validation_t *vldt,
     const char *fmt, ...);
 static nxt_int_t nxt_conf_vldt_var(nxt_conf_validation_t *vldt, nxt_str_t *name,
     nxt_str_t *value);
+static nxt_int_t nxt_conf_vldt_if(nxt_conf_validation_t *vldt,
+    nxt_conf_value_t *value, void *data);
 nxt_inline nxt_int_t nxt_conf_vldt_unsupported(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data)
     NXT_MAYBE_UNUSED;
@@ -1369,6 +1371,10 @@ static nxt_conf_vldt_object_t  nxt_conf_vldt_access_log_members[] = {
     }, {
         .name       = nxt_string("format"),
         .type       = NXT_CONF_VLDT_STRING,
+    }, {
+        .name       = nxt_string("if"),
+        .type       = NXT_CONF_VLDT_STRING,
+        .validator  = nxt_conf_vldt_if,
     },
 
     NXT_CONF_VLDT_END
@@ -1532,6 +1538,37 @@ nxt_conf_vldt_var(nxt_conf_validation_t *vldt, nxt_str_t *name,
     if (nxt_tstr_test(vldt->tstr_state, value, error) != NXT_OK) {
         return nxt_conf_vldt_error(vldt, "%s in the \"%V\" value.",
                                    error, name);
+    }
+
+    return NXT_OK;
+}
+
+
+static nxt_int_t
+nxt_conf_vldt_if(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
+    void *data)
+{
+    nxt_str_t  str;
+
+    static nxt_str_t  if_str = nxt_string("if");
+
+    if (nxt_conf_type(value) != NXT_CONF_STRING) {
+        return nxt_conf_vldt_error(vldt, "The \"if\" must be a string");
+    }
+
+    nxt_conf_get_string(value, &str);
+
+    if (str.length == 0) {
+        return NXT_OK;
+    }
+
+    if (str.start[0] == '!') {
+        str.start++;
+        str.length--;
+    }
+
+    if (nxt_is_tstr(&str)) {
+        return nxt_conf_vldt_var(vldt, &if_str, &str);
     }
 
     return NXT_OK;
