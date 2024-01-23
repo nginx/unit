@@ -352,10 +352,9 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
     *p = '\0';
 
     nxt_http_static_extract_extension(path, &exten);
+    mtype = nxt_http_static_mtype_get(&rtcf->mtypes_hash, &exten);
 
     if (conf->types != NULL) {
-        mtype = nxt_http_static_mtype_get(&rtcf->mtypes_hash, &exten);
-
         ret = nxt_http_route_test_rule(r, conf->types, mtype->start,
                                        mtype->length);
         if (nxt_slow_path(ret == NXT_ERROR)) {
@@ -551,10 +550,6 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
                                           nxt_file_mtime(&fi),
                                           nxt_file_size(&fi))
                               - p;
-
-        if (mtype == NULL) {
-            mtype = nxt_http_static_mtype_get(&rtcf->mtypes_hash, &exten);
-        }
 
         if (mtype->length != 0) {
             field = nxt_list_zero_add(r->resp.fields);
