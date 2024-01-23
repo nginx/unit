@@ -24,6 +24,8 @@ static void nxt_http_request_proto_info(nxt_task_t *task,
 static void nxt_http_request_mem_buf_completion(nxt_task_t *task, void *obj,
     void *data);
 static void nxt_http_request_done(nxt_task_t *task, void *obj, void *data);
+static void nxt_http_request_access_log(nxt_task_t *task, nxt_http_request_t *r,
+    nxt_router_conf_t *rtcf);
 
 static u_char *nxt_http_date_cache_handler(u_char *buf, nxt_realtime_t *now,
     struct tm *tm, size_t size, const char *format);
@@ -816,26 +818,23 @@ nxt_http_request_error_handler(nxt_task_t *task, void *obj, void *data)
 void
 nxt_http_request_close_handler(nxt_task_t *task, void *obj, void *data)
 {
-    nxt_tstr_t               *log_format;
     nxt_http_proto_t         proto;
+    nxt_router_conf_t        *rtcf;
     nxt_http_request_t       *r;
     nxt_http_protocol_t      protocol;
     nxt_socket_conf_joint_t  *conf;
-    nxt_router_access_log_t  *access_log;
 
     r = obj;
     proto.any = data;
 
     conf = r->conf;
+    rtcf = conf->socket_conf->router_conf;
 
     if (!r->logged) {
         r->logged = 1;
 
-        access_log = conf->socket_conf->router_conf->access_log;
-        log_format = conf->socket_conf->router_conf->log_format;
-
-        if (access_log != NULL) {
-            access_log->handler(task, r, access_log, log_format);
+        if (rtcf->access_log != NULL) {
+            nxt_http_request_access_log(task, r, rtcf);
             return;
         }
     }
@@ -863,6 +862,18 @@ nxt_http_request_close_handler(nxt_task_t *task, void *obj, void *data)
 
         nxt_mp_release(r->mem_pool);
     }
+}
+
+
+static void
+nxt_http_request_access_log(nxt_task_t *task, nxt_http_request_t *r,
+    nxt_router_conf_t *rtcf)
+{
+    nxt_router_access_log_t  *access_log;
+
+    access_log = rtcf->access_log;
+
+    access_log->handler(task, r, access_log, rtcf->log_format);
 }
 
 
