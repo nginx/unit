@@ -334,22 +334,22 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
     shr = &ctx->share;
     index = &conf->index;
 
+    length = shr->length + 1;
     if (shr->start[shr->length - 1] == '/') {
-        length = shr->length + index->length;
-
-        path = nxt_str_alloc(r->mem_pool, length + 1);
-        if (nxt_slow_path(path == NULL)) {
-            goto fail;
-        }
-
-        p = path->start;
-        p = nxt_cpymem(p, shr->start, shr->length);
-        p = nxt_cpymem(p, index->start, index->length);
-        *p = '\0';
-
-    } else {
-        path = shr;
+        length += index->length;
     }
+
+    path = nxt_str_alloc(r->mem_pool, length);
+    if (nxt_slow_path(path == NULL)) {
+        goto fail;
+    }
+
+    p = path->start;
+    p = nxt_cpymem(p, shr->start, shr->length);
+    if (shr->start[shr->length - 1] == '/') {
+        p = nxt_cpymem(p, index->start, index->length);
+    }
+    *p = '\0';
 
     nxt_http_static_extract_extension(path, &exten);
 
