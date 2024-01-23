@@ -3,7 +3,8 @@
 #####################################################################
 #
 # Copyright (C) NGINX, Inc.
-# Author:  NGINX Unit Team, F5 Inc.
+# Author: NGINX Unit Team, F5 Inc.
+# Copyright 2024, Alejandro Colomar <alx@kernel.org>
 #
 #####################################################################
 
@@ -117,6 +118,9 @@ COMMANDS
         repo-config
                 Configure your package manager with the NGINX Unit
                 repository for later installation.
+
+        restart
+                Restart all running unitd(8) instances.
 
         sock    Print the control API socket address.
 
