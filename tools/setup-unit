@@ -37,7 +37,7 @@ help_unit()
 {
     cat <<__EOF__ ;
 SYNOPSIS
-        $0 [-h] COMMAND [ARGS]
+        $0 [-h[h]] COMMAND [ARGS]
 
     Subcommands
         ├── repo-config  [-hn] [PKG-MANAGER OS-NAME OS-VERSION]
@@ -62,7 +62,7 @@ OPTIONS
         -h, --help
                 Print this help.
 
-        --help-more
+        -hh, --help-more
                 Print help for more (advanced) commands.
 
 __EOF__
@@ -72,7 +72,7 @@ help_more_unit()
 {
     cat <<__EOF__ ;
 SYNOPSIS
-        $0 [-h] COMMAND [ARGS]
+        $0 [-h[h]] COMMAND [ARGS]
 
     Subcommands
         ├── cmd          [-h]
@@ -131,7 +131,7 @@ OPTIONS
         -h, --help
                 Print basic help (some commands are hidden).
 
-        --help-more
+        -hh, --help-more
                 Print the hidden help with more commands.
 
 __EOF__
@@ -1637,7 +1637,7 @@ while test $# -ge 1; do
         help_unit;
         exit 0;
         ;;
-    --help-more)
+    -hh | --help-more)
         help_more_unit;
         exit 0;
         ;;
