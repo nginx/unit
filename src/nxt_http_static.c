@@ -10,7 +10,7 @@
 typedef struct {
     nxt_tstr_t                  *tstr;
 #if (NXT_HAVE_OPENAT2)
-    u_char                      *fname;
+    const u_char                *fname;
 #endif
     uint8_t                     is_const;  /* 1 bit */
 } nxt_http_static_share_t;
@@ -52,9 +52,10 @@ static void nxt_http_static_send_error(nxt_task_t *task, void *obj, void *data);
 static void nxt_http_static_next(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_static_ctx_t *ctx, nxt_http_status_t status);
 #if (NXT_HAVE_OPENAT2)
-static u_char *nxt_http_static_chroot_match(u_char *chr, u_char *shr);
+static const u_char *nxt_http_static_chroot_match(const u_char *chr,
+    const u_char *shr);
 #endif
-static void nxt_http_static_extract_extension(nxt_str_t *path,
+static void nxt_http_static_extract_extension(const nxt_str_t *path,
     nxt_str_t *exten);
 static void nxt_http_static_body_handler(nxt_task_t *task, void *obj,
     void *data);
@@ -304,13 +305,14 @@ static void
 nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
 {
     size_t                  length, encode;
-    u_char                  *p, *fname;
+    u_char                  *p;
     struct tm               tm;
     nxt_buf_t               *fb;
     nxt_int_t               ret;
     nxt_str_t               *shr, *index, exten, *mtype;
     nxt_uint_t              level;
     nxt_file_t              *f, file;
+    const u_char            *fname;
     nxt_file_info_t         fi;
     nxt_http_field_t        *field;
     nxt_http_status_t       status;
@@ -708,8 +710,8 @@ nxt_http_static_next(nxt_task_t *task, nxt_http_request_t *r,
 
 #if (NXT_HAVE_OPENAT2)
 
-static u_char *
-nxt_http_static_chroot_match(u_char *chr, u_char *shr)
+static const u_char *
+nxt_http_static_chroot_match(const u_char *chr, const u_char *shr)
 {
     if (*chr != *shr) {
         return NULL;
@@ -764,7 +766,7 @@ nxt_http_static_chroot_match(u_char *chr, u_char *shr)
 
 
 static void
-nxt_http_static_extract_extension(nxt_str_t *path, nxt_str_t *exten)
+nxt_http_static_extract_extension(const nxt_str_t *path, nxt_str_t *exten)
 {
     u_char  ch, *p, *end;
 

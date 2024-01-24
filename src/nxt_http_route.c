@@ -1429,7 +1429,7 @@ nxt_http_pass_find(nxt_mp_t *mp, nxt_router_conf_t *rtcf, nxt_str_t *pass,
 
 
 nxt_int_t
-nxt_http_pass_segments(nxt_mp_t *mp, nxt_str_t *pass, nxt_str_t *segments,
+nxt_http_pass_segments(nxt_mp_t *mp, const nxt_str_t *pass, nxt_str_t *segments,
     nxt_uint_t n)
 {
     u_char     *p;

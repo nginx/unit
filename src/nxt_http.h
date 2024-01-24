@@ -360,7 +360,7 @@ nxt_http_action_t *nxt_http_action_create(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf, nxt_str_t *pass);
 nxt_int_t nxt_http_routes_resolve(nxt_task_t *task,
     nxt_router_temp_conf_t *tmcf);
-nxt_int_t nxt_http_pass_segments(nxt_mp_t *mp, nxt_str_t *pass,
+nxt_int_t nxt_http_pass_segments(nxt_mp_t *mp, const nxt_str_t *pass,
     nxt_str_t *segments, nxt_uint_t n);
 nxt_http_action_t *nxt_http_pass_application(nxt_task_t *task,
     nxt_router_conf_t *rtcf, nxt_str_t *name);

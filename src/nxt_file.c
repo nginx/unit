@@ -298,7 +298,7 @@ nxt_file_info(nxt_file_t *file, nxt_file_info_t *fi)
 
 
 nxt_int_t
-nxt_file_delete(nxt_file_name_t *name)
+nxt_file_delete(const nxt_file_name_t *name)
 {
     nxt_thread_log_debug("unlink(\"%FN\")", name);
 
@@ -326,7 +326,8 @@ nxt_file_set_access(nxt_file_name_t *name, nxt_file_access_t access)
 
 
 nxt_int_t
-nxt_file_rename(nxt_file_name_t *old_name, nxt_file_name_t *new_name)
+nxt_file_rename(const nxt_file_name_t *old_name,
+    const nxt_file_name_t *new_name)
 {
     int  ret;
 
@@ -445,7 +446,7 @@ nxt_fd_blocking(nxt_task_t *task, nxt_fd_t fd)
 
 
 ssize_t
-nxt_fd_write(nxt_fd_t fd, u_char *buf, size_t size)
+nxt_fd_write(nxt_fd_t fd, const u_char *buf, size_t size)
 {
     ssize_t    n;
     nxt_err_t  err;
