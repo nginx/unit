@@ -232,7 +232,7 @@ nxt_js_add_module(nxt_js_conf_t *jcf, nxt_str_t *name, nxt_str_t *text)
 
 
 nxt_js_t *
-nxt_js_add_tpl(nxt_js_conf_t *jcf, nxt_str_t *str, nxt_bool_t strz)
+nxt_js_add_tpl(nxt_js_conf_t *jcf, nxt_str_t *str)
 {
     size_t     size;
     u_char     *p, *start;
@@ -243,16 +243,9 @@ nxt_js_add_tpl(nxt_js_conf_t *jcf, nxt_str_t *str, nxt_bool_t strz)
                                             "args, headers, cookies) {"
                                             "    return ");
 
-    /*
-     * Appending a terminating null character if strz is true.
-     */
     static nxt_str_t  strz_str = nxt_string(" + '\\x00'");
 
-    size = func_str.length + str->length + 1;
-
-    if (strz) {
-        size += strz_str.length;
-    }
+    size = func_str.length + str->length + 1 + strz_str.length;
 
     start = nxt_mp_nget(jcf->pool, size);
     if (nxt_slow_path(start == NULL)) {
@@ -263,10 +256,7 @@ nxt_js_add_tpl(nxt_js_conf_t *jcf, nxt_str_t *str, nxt_bool_t strz)
 
     p = nxt_cpymem(p, func_str.start, func_str.length);
     p = nxt_cpymem(p, str->start, str->length);
-
-    if (strz) {
-        p = nxt_cpymem(p, strz_str.start, strz_str.length);
-    }
+    p = nxt_cpymem(p, strz_str.start, strz_str.length);
 
     *p++ = '}';
 

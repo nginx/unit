@@ -105,7 +105,7 @@ nxt_http_static_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         cv = nxt_conf_get_array_element_or_itself(acf->share, i);
         nxt_conf_get_string(cv, &str);
 
-        tstr = nxt_tstr_compile(rtcf->tstr_state, &str, NXT_TSTR_STRZ);
+        tstr = nxt_tstr_compile(rtcf->tstr_state, &str, 0);
         if (nxt_slow_path(tstr == NULL)) {
             return NXT_ERROR;
         }
@@ -131,8 +131,7 @@ nxt_http_static_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         nxt_str_t   chr, shr;
         nxt_bool_t  is_const;
 
-        conf->chroot = nxt_tstr_compile(rtcf->tstr_state, &acf->chroot,
-                                        NXT_TSTR_STRZ);
+        conf->chroot = nxt_tstr_compile(rtcf->tstr_state, &acf->chroot, 0);
         if (nxt_slow_path(conf->chroot == NULL)) {
             return NXT_ERROR;
         }

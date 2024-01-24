@@ -32,7 +32,6 @@ typedef struct {
 
 
 typedef enum {
-    NXT_TSTR_STRZ       = 1 << 0,
     NXT_TSTR_LOGGING    = 1 << 1,
 } nxt_tstr_flags_t;
 

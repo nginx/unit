@@ -86,16 +86,13 @@ nxt_tstr_compile(nxt_tstr_state_t *state, nxt_str_t *str,
 {
     u_char      *p;
     nxt_tstr_t  *tstr;
-    nxt_bool_t  strz;
-
-    strz = (flags & NXT_TSTR_STRZ) != 0;
 
     tstr = nxt_mp_get(state->pool, sizeof(nxt_tstr_t));
     if (nxt_slow_path(tstr == NULL)) {
         return NULL;
     }
 
-    tstr->str.length = str->length + strz;
+    tstr->str.length = str->length + 1;
 
     tstr->str.start = nxt_mp_nget(state->pool, tstr->str.length);
     if (nxt_slow_path(tstr->str.start == NULL)) {
@@ -103,10 +100,7 @@ nxt_tstr_compile(nxt_tstr_state_t *state, nxt_str_t *str,
     }
 
     p = nxt_cpymem(tstr->str.start, str->start, str->length);
-
-    if (strz) {
-        *p = '\0';
-    }
+    *p = '\0';
 
     tstr->flags = flags;
 
@@ -120,7 +114,7 @@ nxt_tstr_compile(nxt_tstr_state_t *state, nxt_str_t *str,
 
         nxt_tstr_str(tstr, &tpl);
 
-        tstr->u.js = nxt_js_add_tpl(state->jcf, &tpl, strz);
+        tstr->u.js = nxt_js_add_tpl(state->jcf, &tpl);
         if (nxt_slow_path(tstr->u.js == NULL)) {
             return NULL;
         }
@@ -214,9 +208,7 @@ nxt_tstr_str(nxt_tstr_t *tstr, nxt_str_t *str)
 {
     *str = tstr->str;
 
-    if (tstr->flags & NXT_TSTR_STRZ) {
-        str->length--;
-    }
+    str->length--;  // Hide the terminating NUL.
 }
 
 
@@ -283,9 +275,7 @@ nxt_tstr_query(nxt_task_t *task, nxt_tstr_query_t *query, nxt_tstr_t *tstr,
 #endif
     }
 
-    if (tstr->flags & NXT_TSTR_STRZ) {
-        val->length--;
-    }
+    val->length--;  // Hide the terminating NUL.
 
 #if (NXT_DEBUG)
     nxt_str_t  str;
