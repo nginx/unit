@@ -1327,12 +1327,15 @@ static nxt_conf_vldt_object_t nxt_conf_vldt_app_procmap_members[] = {
     {
         .name       = nxt_string("container"),
         .type       = NXT_CONF_VLDT_INTEGER,
+        .flags      = NXT_CONF_VLDT_REQUIRED,
     }, {
         .name       = nxt_string("host"),
         .type       = NXT_CONF_VLDT_INTEGER,
+        .flags      = NXT_CONF_VLDT_REQUIRED,
     }, {
         .name       = nxt_string("size"),
         .type       = NXT_CONF_VLDT_INTEGER,
+        .flags      = NXT_CONF_VLDT_REQUIRED,
     },
 
     NXT_CONF_VLDT_END
