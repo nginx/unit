@@ -97,6 +97,16 @@ typedef struct {
 } nxt_str_t;
 
 
+typedef union {
+    struct {
+        size_t                length;
+        u_char                *start;
+    };
+    const nxt_str_t           s;
+} nxt_strz_t;
+
+
+
 #define nxt_string(str)       { nxt_length(str), (u_char *) str }
 #define nxt_string_zero(str)  { sizeof(str), (u_char *) str }
 #define nxt_null_string       { 0, NULL }

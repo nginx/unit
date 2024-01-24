@@ -53,11 +53,11 @@ nxt_var_field_t *nxt_var_field_get(nxt_array_t *fields, uint16_t index);
 nxt_var_field_t *nxt_var_field_new(nxt_mp_t *mp, nxt_str_t *name,
     uint32_t hash);
 
-nxt_var_t *nxt_var_compile(nxt_tstr_state_t *state, nxt_str_t *str);
+nxt_var_t *nxt_var_compile(nxt_tstr_state_t *state, nxt_strz_t *str);
 nxt_int_t nxt_var_test(nxt_tstr_state_t *state, nxt_str_t *str, u_char *error);
 
 nxt_int_t nxt_var_interpreter(nxt_task_t *task, nxt_tstr_state_t *state,
-    nxt_var_cache_t *cache, nxt_var_t *var, nxt_str_t *str, void *ctx,
+    nxt_var_cache_t *cache, nxt_var_t *var, nxt_strz_t *str, void *ctx,
     nxt_bool_t logging);
 nxt_str_t *nxt_var_get(nxt_task_t *task, nxt_var_cache_t *cache,
     nxt_str_t *name, void *ctx);

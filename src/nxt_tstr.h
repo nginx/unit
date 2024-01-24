@@ -44,13 +44,13 @@ nxt_int_t nxt_tstr_state_done(nxt_tstr_state_t *state, u_char *error);
 void nxt_tstr_state_release(nxt_tstr_state_t *state);
 
 nxt_bool_t nxt_tstr_is_const(nxt_tstr_t *tstr);
-void nxt_tstr_str(nxt_tstr_t *tstr, nxt_str_t *str);
+void nxt_tstr_str(nxt_tstr_t *tstr, nxt_strz_t *str);
 
 nxt_int_t nxt_tstr_query_init(nxt_tstr_query_t **query_p,
     nxt_tstr_state_t *state, nxt_tstr_cache_t *cache, void *ctx,
     nxt_mp_t *mp);
 void nxt_tstr_query(nxt_task_t *task, nxt_tstr_query_t *query, nxt_tstr_t *tstr,
-    nxt_str_t *val);
+    nxt_strz_t *val);
 nxt_bool_t nxt_tstr_query_failed(nxt_tstr_query_t *query);
 void nxt_tstr_query_resolve(nxt_task_t *task, nxt_tstr_query_t *query,
     void *data, nxt_work_handler_t ready, nxt_work_handler_t error);

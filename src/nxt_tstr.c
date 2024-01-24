@@ -16,7 +16,7 @@ typedef enum {
 
 
 struct nxt_tstr_s {
-    nxt_str_t           str;
+    nxt_strz_t          str;
 
     union {
         nxt_var_t       *var;
@@ -204,9 +204,10 @@ nxt_tstr_is_const(nxt_tstr_t *tstr)
 
 
 void
-nxt_tstr_str(nxt_tstr_t *tstr, nxt_str_t *str)
+nxt_tstr_str(nxt_tstr_t *tstr, nxt_strz_t *str)
 {
-    *str = tstr->str;
+    str->length = tstr->str.length;
+    str->start = tstr->str.start;
 }
 
 
@@ -238,7 +239,7 @@ nxt_tstr_query_init(nxt_tstr_query_t **query_p, nxt_tstr_state_t *state,
 
 void
 nxt_tstr_query(nxt_task_t *task, nxt_tstr_query_t *query, nxt_tstr_t *tstr,
-    nxt_str_t *val)
+    nxt_strz_t *val)
 {
     nxt_int_t  ret;
 
@@ -274,11 +275,11 @@ nxt_tstr_query(nxt_task_t *task, nxt_tstr_query_t *query, nxt_tstr_t *tstr,
     }
 
 #if (NXT_DEBUG)
-    nxt_str_t  str;
+    nxt_strz_t  str;
 
     nxt_tstr_str(tstr, &str);
 
-    nxt_debug(task, "tstr query: \"%V\", result: \"%V\"", &str, val);
+    nxt_debug(task, "tstr query: \"%V\", result: \"%V\"", &str.s, val);
 #endif
 }
 

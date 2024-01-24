@@ -309,7 +309,7 @@ nxt_var_index_init(void)
 
 
 nxt_var_t *
-nxt_var_compile(nxt_tstr_state_t *state, nxt_str_t *str)
+nxt_var_compile(nxt_tstr_state_t *state, nxt_strz_t *str)
 {
     u_char         *p, *end, *next, *src;
     size_t         size;
@@ -486,7 +486,7 @@ nxt_var_next_part(u_char *start, u_char *end, nxt_str_t *part)
 
 nxt_int_t
 nxt_var_interpreter(nxt_task_t *task, nxt_tstr_state_t *state,
-    nxt_var_cache_t *cache, nxt_var_t *var, nxt_str_t *str, void *ctx,
+    nxt_var_cache_t *cache, nxt_var_t *var, nxt_strz_t *str, void *ctx,
     nxt_bool_t logging)
 {
     u_char         *p, *src;

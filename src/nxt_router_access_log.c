@@ -17,7 +17,7 @@ typedef struct {
 
 
 typedef struct {
-    nxt_str_t                 text;
+    nxt_strz_t                text;
     nxt_router_access_log_t   *access_log;
 } nxt_router_access_log_ctx_t;
 

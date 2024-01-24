@@ -15,7 +15,7 @@ typedef struct {
 
 
 typedef struct {
-    nxt_str_t          location;
+    nxt_strz_t         location;
     nxt_str_t          encoded;
 } nxt_http_return_ctx_t;
 
@@ -37,6 +37,7 @@ nxt_http_return_init(nxt_router_conf_t *rtcf, nxt_http_action_t *action,
 {
     nxt_mp_t                *mp;
     nxt_str_t               str;
+    nxt_strz_t              strz;
     nxt_http_return_conf_t  *conf;
 
     mp = rtcf->mem_pool;
@@ -63,8 +64,8 @@ nxt_http_return_init(nxt_router_conf_t *rtcf, nxt_http_action_t *action,
     }
 
     if (nxt_tstr_is_const(conf->location)) {
-        nxt_tstr_str(conf->location, &str);
-        return nxt_http_return_encode(mp, &conf->encoded, &str);
+        nxt_tstr_str(conf->location, &strz);
+        return nxt_http_return_encode(mp, &conf->encoded, &strz.s);
     }
 
     return NXT_OK;
@@ -83,7 +84,7 @@ nxt_http_return(nxt_task_t *task, nxt_http_request_t *r,
     conf = action->u.conf;
 
 #if (NXT_DEBUG)
-    nxt_str_t  loc;
+    nxt_strz_t  loc;
 
     if (conf->location == NULL) {
         nxt_str_set(&loc, "");
@@ -92,7 +93,7 @@ nxt_http_return(nxt_task_t *task, nxt_http_request_t *r,
         nxt_tstr_str(conf->location, &loc);
     }
 
-    nxt_debug(task, "http return: %d (loc: \"%V\")", conf->status, &loc);
+    nxt_debug(task, "http return: %d (loc: \"%V\")", conf->status, &loc.s);
 #endif
 
     if (conf->status >= NXT_HTTP_BAD_REQUEST
@@ -187,7 +188,7 @@ nxt_http_return_send_ready(nxt_task_t *task, void *obj, void *data)
     if (ctx != NULL) {
         if (ctx->location.length > 0) {
             ret = nxt_http_return_encode(r->mem_pool, &ctx->encoded,
-                                         &ctx->location);
+                                         &ctx->location.s);
             if (nxt_slow_path(ret == NXT_ERROR)) {
                 goto fail;
             }

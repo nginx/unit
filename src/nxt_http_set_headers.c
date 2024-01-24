@@ -96,7 +96,7 @@ nxt_http_set_headers(nxt_http_request_t *r)
 {
     nxt_int_t              ret;
     nxt_uint_t             i, n;
-    nxt_str_t              *value;
+    nxt_strz_t             *value;
     nxt_http_field_t       *f;
     nxt_router_conf_t      *rtcf;
     nxt_http_action_t      *action;

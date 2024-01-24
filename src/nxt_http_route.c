@@ -196,7 +196,7 @@ static nxt_http_action_t *nxt_http_pass_var(nxt_task_t *task,
 static void nxt_http_pass_query_ready(nxt_task_t *task, void *obj, void *data);
 static void nxt_http_pass_query_error(nxt_task_t *task, void *obj, void *data);
 static nxt_int_t nxt_http_pass_find(nxt_mp_t *mp, nxt_router_conf_t *rtcf,
-    nxt_str_t *pass, nxt_http_action_t *action);
+    nxt_strz_t *pass, nxt_http_action_t *action);
 static nxt_int_t nxt_http_route_find(nxt_http_routes_t *routes, nxt_str_t *name,
     nxt_http_action_t *action);
 
@@ -1286,7 +1286,7 @@ nxt_http_action_resolve(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_http_action_t *action)
 {
     nxt_int_t  ret;
-    nxt_str_t  pass;
+    nxt_strz_t  pass;
 
     if (action->handler != NULL) {
         if (action->fallback != NULL) {
@@ -1318,7 +1318,7 @@ nxt_http_pass_var(nxt_task_t *task, nxt_http_request_t *r,
     nxt_http_action_t *action)
 {
     nxt_int_t          ret;
-    nxt_str_t          str;
+    nxt_strz_t         str;
     nxt_tstr_t         *tstr;
     nxt_router_conf_t  *rtcf;
 
@@ -1398,13 +1398,13 @@ nxt_http_pass_query_error(nxt_task_t *task, void *obj, void *data)
 
 
 static nxt_int_t
-nxt_http_pass_find(nxt_mp_t *mp, nxt_router_conf_t *rtcf, nxt_str_t *pass,
+nxt_http_pass_find(nxt_mp_t *mp, nxt_router_conf_t *rtcf, nxt_strz_t *pass,
     nxt_http_action_t *action)
 {
     nxt_int_t  ret;
     nxt_str_t  segments[3];
 
-    ret = nxt_http_pass_segments(mp, pass, segments, 3);
+    ret = nxt_http_pass_segments(mp, &pass->s, segments, 3);
     if (nxt_slow_path(ret != NXT_OK)) {
         return ret;
     }

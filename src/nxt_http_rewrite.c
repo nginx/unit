@@ -30,7 +30,8 @@ nxt_http_rewrite(nxt_task_t *task, nxt_http_request_t *r)
 {
     u_char                    *p;
     nxt_int_t                 ret;
-    nxt_str_t                 str, encoded_path, target;
+    nxt_str_t                 encoded_path, target;
+    nxt_strz_t                str;
     nxt_router_conf_t         *rtcf;
     nxt_http_action_t         *action;
     nxt_http_request_parse_t  rp;

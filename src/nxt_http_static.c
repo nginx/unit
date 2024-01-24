@@ -30,9 +30,9 @@ typedef struct {
 
 typedef struct {
     nxt_http_action_t           *action;
-    nxt_str_t                   share;
+    nxt_strz_t                  share;
 #if (NXT_HAVE_OPENAT2)
-    nxt_str_t                   chroot;
+    nxt_strz_t                  chroot;
 #endif
     uint32_t                    share_idx;
     uint8_t                     need_body;  /* 1 bit */
@@ -128,8 +128,8 @@ nxt_http_static_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 
 #if (NXT_HAVE_OPENAT2)
     if (acf->chroot.length > 0) {
-        nxt_str_t   chr, shr;
         nxt_bool_t  is_const;
+        nxt_strz_t  chr, shr;
 
         conf->chroot = nxt_tstr_compile(rtcf->tstr_state, &acf->chroot, 0);
         if (nxt_slow_path(conf->chroot == NULL)) {
@@ -241,14 +241,14 @@ nxt_http_static_iterate(nxt_task_t *task, nxt_http_request_t *r,
     share = &conf->shares[ctx->share_idx];
 
 #if (NXT_DEBUG)
-    nxt_str_t  shr;
-    nxt_str_t  idx;
+    nxt_str_t   idx;
+    nxt_strz_t  shr;
 
     nxt_tstr_str(share->tstr, &shr);
     idx = conf->index;
 
 #if (NXT_HAVE_OPENAT2)
-    nxt_str_t  chr;
+    nxt_strz_t  chr;
 
     if (conf->chroot != NULL) {
         nxt_tstr_str(conf->chroot, &chr);
@@ -258,9 +258,9 @@ nxt_http_static_iterate(nxt_task_t *task, nxt_http_request_t *r,
     }
 
     nxt_debug(task, "http static: \"%V\", index: \"%V\" (chroot: \"%V\")",
-              &shr, &idx, &chr);
+              &shr.s, &idx, &chr.s);
 #else
-    nxt_debug(task, "http static: \"%V\", index: \"%V\"", &shr, &idx);
+    nxt_debug(task, "http static: \"%V\", index: \"%V\"", &shr.s, &idx);
 #endif
 #endif /* NXT_DEBUG */
 
@@ -308,7 +308,8 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
     struct tm               tm;
     nxt_buf_t               *fb;
     nxt_int_t               ret;
-    nxt_str_t               *shr, *index, exten, *mtype;
+    nxt_str_t               *index, exten, *mtype;
+    nxt_strz_t              *shr;
     nxt_uint_t              level;
     nxt_file_t              *f, file;
     const u_char            *fname;
@@ -354,7 +355,7 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
             nxt_str_null(&exten);
 
         } else {
-            nxt_http_static_extract_extension(shr, &exten);
+            nxt_http_static_extract_extension(&shr->s, &exten);
             mtype = nxt_http_static_mtype_get(&rtcf->mtypes_hash, &exten);
 
             ret = nxt_http_route_test_rule(r, conf->types, mtype->start,
@@ -378,7 +379,7 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
 
 #if (NXT_HAVE_OPENAT2)
     if (conf->resolve != 0 || ctx->chroot.length > 0) {
-        nxt_str_t                *chr;
+        nxt_strz_t               *chr;
         nxt_uint_t               resolve;
         nxt_http_static_share_t  *share;
 
@@ -476,11 +477,11 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
 
         if (status != NXT_HTTP_NOT_FOUND) {
 #if (NXT_HAVE_OPENAT2)
-            nxt_str_t  *chr = &ctx->chroot;
+            nxt_strz_t  *chr = &ctx->chroot;
 
             if (chr->length > 0) {
                 nxt_log(task, level, "opening \"%s\" at \"%V\" failed %E",
-                        fname, chr, file.error);
+                        fname, &chr->s, file.error);
 
             } else {
                 nxt_log(task, level, "opening \"%s\" failed %E",
@@ -555,7 +556,7 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
                               - p;
 
         if (exten.start == NULL) {
-            nxt_http_static_extract_extension(shr, &exten);
+            nxt_http_static_extract_extension(&shr->s, &exten);
         }
 
         if (mtype == NULL) {

@@ -253,7 +253,7 @@ struct nxt_http_action_s {
         nxt_upstream_t              *upstream;
         uint32_t                    upstream_number;
         nxt_tstr_t                  *tstr;
-        nxt_str_t                   *pass;
+        nxt_strz_t                  *pass;
     } u;
 
     nxt_tstr_t                      *rewrite;
