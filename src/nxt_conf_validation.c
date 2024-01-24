@@ -218,8 +218,6 @@ static nxt_int_t nxt_conf_vldt_clone_namespaces(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value, void *data);
 
 #if (NXT_HAVE_CLONE_NEWUSER)
-static nxt_int_t nxt_conf_vldt_clone_procmap(nxt_conf_validation_t *vldt,
-    const char* mapfile, nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_clone_uidmap(nxt_conf_validation_t *vldt,
     nxt_conf_value_t *value);
 static nxt_int_t nxt_conf_vldt_clone_gidmap(nxt_conf_validation_t *vldt,
@@ -3091,73 +3089,6 @@ nxt_conf_vldt_isolation(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
 
 #if (NXT_HAVE_CLONE_NEWUSER)
 
-typedef struct {
-    nxt_int_t container;
-    nxt_int_t host;
-    nxt_int_t size;
-} nxt_conf_vldt_clone_procmap_conf_t;
-
-
-static nxt_conf_map_t nxt_conf_vldt_clone_procmap_conf_map[] = {
-    {
-        nxt_string("container"),
-        NXT_CONF_MAP_INT32,
-        offsetof(nxt_conf_vldt_clone_procmap_conf_t, container),
-    },
-
-    {
-        nxt_string("host"),
-        NXT_CONF_MAP_INT32,
-        offsetof(nxt_conf_vldt_clone_procmap_conf_t, host),
-    },
-
-    {
-        nxt_string("size"),
-        NXT_CONF_MAP_INT32,
-        offsetof(nxt_conf_vldt_clone_procmap_conf_t, size),
-    },
-
-};
-
-
-static nxt_int_t
-nxt_conf_vldt_clone_procmap(nxt_conf_validation_t *vldt, const char *mapfile,
-        nxt_conf_value_t *value)
-{
-    nxt_int_t                           ret;
-    nxt_conf_vldt_clone_procmap_conf_t  procmap;
-
-    procmap.container = -1;
-    procmap.host = -1;
-    procmap.size = -1;
-
-    ret = nxt_conf_map_object(vldt->pool, value,
-                              nxt_conf_vldt_clone_procmap_conf_map,
-                              nxt_nitems(nxt_conf_vldt_clone_procmap_conf_map),
-                              &procmap);
-    if (ret != NXT_OK) {
-        return ret;
-    }
-
-    if (procmap.container == -1) {
-        return nxt_conf_vldt_error(vldt, "The %s requires the "
-                "\"container\" field set.", mapfile);
-    }
-
-    if (procmap.host == -1) {
-        return nxt_conf_vldt_error(vldt, "The %s requires the "
-                "\"host\" field set.", mapfile);
-    }
-
-    if (procmap.size == -1) {
-        return nxt_conf_vldt_error(vldt, "The %s requires the "
-                "\"size\" field set.", mapfile);
-    }
-
-    return NXT_OK;
-}
-
-
 static nxt_int_t
 nxt_conf_vldt_clone_uidmap(nxt_conf_validation_t *vldt, nxt_conf_value_t *value)
 {
@@ -3174,7 +3105,7 @@ nxt_conf_vldt_clone_uidmap(nxt_conf_validation_t *vldt, nxt_conf_value_t *value)
         return ret;
     }
 
-    return nxt_conf_vldt_clone_procmap(vldt, "uid_map", value);
+    return NXT_OK;
 }
 
 
@@ -3194,7 +3125,7 @@ nxt_conf_vldt_clone_gidmap(nxt_conf_validation_t *vldt, nxt_conf_value_t *value)
         return ret;
     }
 
-    return nxt_conf_vldt_clone_procmap(vldt, "gid_map", value);
+    return NXT_OK;
 }
 
 #endif
