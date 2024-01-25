@@ -92,9 +92,9 @@ nxt_tstr_compile(nxt_tstr_state_t *state, nxt_str_t *str,
         return NULL;
     }
 
-    tstr->str.length = str->length + 1;
+    tstr->str.length = str->length;
 
-    tstr->str.start = nxt_mp_nget(state->pool, tstr->str.length);
+    tstr->str.start = nxt_mp_nget(state->pool, tstr->str.length + 1);
     if (nxt_slow_path(tstr->str.start == NULL)) {
         return NULL;
     }
@@ -207,8 +207,6 @@ void
 nxt_tstr_str(nxt_tstr_t *tstr, nxt_str_t *str)
 {
     *str = tstr->str;
-
-    str->length--;  // Hide the terminating NUL.
 }
 
 
@@ -274,8 +272,6 @@ nxt_tstr_query(nxt_task_t *task, nxt_tstr_query_t *query, nxt_tstr_t *tstr,
         }
 #endif
     }
-
-    val->length--;  // Hide the terminating NUL.
 
 #if (NXT_DEBUG)
     nxt_str_t  str;

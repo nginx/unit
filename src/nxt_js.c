@@ -373,7 +373,7 @@ fail:
 
 nxt_int_t
 nxt_js_call(nxt_task_t *task, nxt_js_conf_t *jcf, nxt_js_cache_t *cache,
-    nxt_js_t *js, nxt_str_t *str, void *ctx)
+    nxt_js_t *js, nxt_strz_t *str, void *ctx)
 {
     njs_vm_t            *vm;
     njs_int_t           ret;
@@ -464,7 +464,7 @@ nxt_js_call(nxt_task_t *task, nxt_js_conf_t *jcf, nxt_js_cache_t *cache,
 
     ret = njs_vm_value_string(vm, &res, njs_value_arg(&retval));
 
-    str->length = res.length;
+    str->length = res.length - 1;
     str->start = res.start;
 
     return NXT_OK;

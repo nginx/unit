@@ -322,7 +322,7 @@ nxt_var_compile(nxt_tstr_state_t *state, nxt_str_t *str)
     n = 0;
 
     p = str->start;
-    end = p + str->length;
+    end = p + str->length + 1;
 
     while (p < end) {
         p = nxt_var_next_part(p, end, &part);
@@ -335,20 +335,20 @@ nxt_var_compile(nxt_tstr_state_t *state, nxt_str_t *str)
         }
     }
 
-    size = sizeof(nxt_var_t) + n * sizeof(nxt_var_sub_t) + str->length;
+    size = sizeof(nxt_var_t) + n * sizeof(nxt_var_sub_t) + str->length + 1;
 
     var = nxt_mp_get(state->pool, size);
     if (nxt_slow_path(var == NULL)) {
         return NULL;
     }
 
-    var->length = str->length;
+    var->length = str->length + 1;
     var->vars = n;
 
     subs = nxt_var_subs(var);
     src = nxt_var_raw_start(var);
 
-    nxt_memcpy(src, str->start, str->length);
+    nxt_memcpy(src, str->start, str->length + 1);
 
     n = 0;
     p = str->start;
