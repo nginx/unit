@@ -40,6 +40,13 @@ with Next.js.
 </para>
 </change>
 
+<change type="bugfix">
+<para>
+ServerRequest.httpVersion variable format in Node.js module.
+</para>
+</change>
+
+
 </changes>
 
 

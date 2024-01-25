@@ -80,7 +80,7 @@ def test_node_application_variables(date_to_sec_epoch, sec_epoch):
         'Request-Method': 'POST',
         'Request-Uri': '/',
         'Http-Host': 'localhost',
-        'Server-Protocol': 'HTTP/1.1',
+        'Server-Protocol': '1.1',
         'Custom-Header': 'blah',
     }, 'headers'
     assert resp['body'] == body, 'body'
