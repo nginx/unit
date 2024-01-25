@@ -21,6 +21,12 @@ def test_node_application_basic():
 
     assert_basic_application()
 
+def test_node_application_options(wait_for_record):
+    client.load('options')
+
+    assert_basic_application()
+    assert wait_for_record(r'constructor was called with unsupported') is not None
+
 
 def test_node_application_loader_unit_http():
     client.load('loader/unit_http')
