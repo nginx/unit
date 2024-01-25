@@ -27,7 +27,7 @@ typedef struct {
 } nxt_status_report_t;
 
 
-nxt_conf_value_t *nxt_status_get(nxt_status_report_t *report, nxt_mp_t *mp);
+nxt_conf_value_t *nxt_status_get(nxt_task_t *task, nxt_status_report_t *report, nxt_mp_t *mp);
 
 
 #endif /* _NXT_STATUS_H_INCLUDED_ */
