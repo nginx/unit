@@ -92,14 +92,14 @@ nxt_tstr_compile(nxt_tstr_state_t *state, nxt_str_t *str,
         return NULL;
     }
 
-    tstr->str.length = str->length;
+    tstr->str.z.length = str->length;
 
-    tstr->str.start = nxt_mp_nget(state->pool, tstr->str.length + 1);
-    if (nxt_slow_path(tstr->str.start == NULL)) {
+    tstr->str.z.start = nxt_mp_nget(state->pool, tstr->str.z.length + 1);
+    if (nxt_slow_path(tstr->str.z.start == NULL)) {
         return NULL;
     }
 
-    p = nxt_cpymem(tstr->str.start, str->start, str->length);
+    p = nxt_cpymem(tstr->str.z.start, str->start, str->length);
     *p = '\0';
 
     tstr->flags = flags;
@@ -206,8 +206,7 @@ nxt_tstr_is_const(nxt_tstr_t *tstr)
 void
 nxt_tstr_str(nxt_tstr_t *tstr, nxt_strz_t *str)
 {
-    str->length = tstr->str.length;
-    str->start = tstr->str.start;
+    str->z = tstr->str.z;
 }
 
 

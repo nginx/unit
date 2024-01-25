@@ -183,7 +183,7 @@ nxt_router_access_log_write_ready(nxt_task_t *task, void *obj, void *data)
     r = obj;
     ctx = data;
 
-    nxt_fd_write(ctx->access_log->fd, ctx->text.start, ctx->text.length);
+    nxt_fd_write(ctx->access_log->fd, ctx->text.z.start, ctx->text.z.length);
 
     nxt_http_request_close_handler(task, r, r->proto.any);
 }

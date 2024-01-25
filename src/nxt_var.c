@@ -321,8 +321,8 @@ nxt_var_compile(nxt_tstr_state_t *state, nxt_strz_t *str)
 
     n = 0;
 
-    p = str->start;
-    end = p + str->length + 1;
+    p = str->z.start;
+    end = p + str->z.length + 1;
 
     while (p < end) {
         p = nxt_var_next_part(p, end, &part);
@@ -335,23 +335,23 @@ nxt_var_compile(nxt_tstr_state_t *state, nxt_strz_t *str)
         }
     }
 
-    size = sizeof(nxt_var_t) + n * sizeof(nxt_var_sub_t) + str->length + 1;
+    size = sizeof(nxt_var_t) + n * sizeof(nxt_var_sub_t) + str->z.length + 1;
 
     var = nxt_mp_get(state->pool, size);
     if (nxt_slow_path(var == NULL)) {
         return NULL;
     }
 
-    var->length = str->length + 1;
+    var->length = str->z.length + 1;
     var->vars = n;
 
     subs = nxt_var_subs(var);
     src = nxt_var_raw_start(var);
 
-    nxt_memcpy(src, str->start, str->length + 1);
+    nxt_memcpy(src, str->zstart, str->zlength + 1);
 
     n = 0;
-    p = str->start;
+    p = str->z.start;
 
     while (p < end) {
         next = nxt_var_next_part(p, end, &part);
@@ -364,7 +364,7 @@ nxt_var_compile(nxt_tstr_state_t *state, nxt_strz_t *str)
 
             subs[n].index = ref->index;
             subs[n].length = next - p;
-            subs[n].position = p - str->start;
+            subs[n].position = p - str->z.start;
 
             n++;
         }
@@ -528,8 +528,8 @@ nxt_var_interpreter(nxt_task_t *task, nxt_tstr_state_t *state,
         return NXT_ERROR;
     }
 
-    str->length = length;
-    str->start = p;
+    str->z.length = length;
+    str->z.start = p;
 
     part = parts.elts;
     src = nxt_var_raw_start(var);

@@ -87,7 +87,7 @@ nxt_http_return(nxt_task_t *task, nxt_http_request_t *r,
     nxt_strz_t  loc;
 
     if (conf->location == NULL) {
-        nxt_str_set(&loc, "");
+        nxt_str_set(&loc.z, "");
 
     } else {
         nxt_tstr_str(conf->location, &loc);
@@ -186,7 +186,7 @@ nxt_http_return_send_ready(nxt_task_t *task, void *obj, void *data)
     ctx = data;
 
     if (ctx != NULL) {
-        if (ctx->location.length > 0) {
+        if (ctx->location.zlength > 0) {
             ret = nxt_http_return_encode(r->mem_pool, &ctx->encoded,
                                          &ctx->location.s);
             if (nxt_slow_path(ret == NXT_ERROR)) {

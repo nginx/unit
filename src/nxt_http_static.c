@@ -145,8 +145,8 @@ nxt_http_static_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
                 nxt_tstr_str(conf->chroot, &chr);
                 nxt_tstr_str(conf->shares[i].tstr, &shr);
 
-                conf->shares[i].fname = nxt_http_static_chroot_match(chr.start,
-                                                                     shr.start);
+                conf->shares[i].fname = nxt_http_static_chroot_match(chr.zstart,
+                                                                    shr.zstart);
             }
         }
     }
@@ -254,7 +254,7 @@ nxt_http_static_iterate(nxt_task_t *task, nxt_http_request_t *r,
         nxt_tstr_str(conf->chroot, &chr);
 
     } else {
-        nxt_str_set(&chr, "");
+        nxt_str_set(&chr.z, "");
     }
 
     nxt_debug(task, "http static: \"%V\", index: \"%V\" (chroot: \"%V\")",
@@ -335,18 +335,18 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
     shr = &ctx->share;
     index = &conf->index;
 
-    if (shr->start[shr->length - 1] == '/') {
+    if (shr->zstart[shr->zlength - 1] == '/') {
         nxt_http_static_extract_extension(index, &exten);
 
-        length = shr->length + index->length;
+        length = shr->zlength + index->length;
 
-        fname = nxt_mp_nget(r->mem_pool, length + 1);
-        if (nxt_slow_path(fname == NULL)) {
+        p = nxt_mp_nget(r->mem_pool, length + 1);
+        if (nxt_slow_path(p == NULL)) {
             goto fail;
         }
 
-        p = fname;
-        p = nxt_cpymem(p, shr->start, shr->length);
+        fname = p;
+        p = nxt_cpymem(p, shr->zstart, shr->zlength);
         p = nxt_cpymem(p, index->start, index->length);
         *p = '\0';
 
@@ -370,7 +370,7 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
             }
         }
 
-        fname = ctx->share.start;
+        fname = ctx->share.zstart;
     }
 
     nxt_memzero(&file, sizeof(nxt_file_t));
@@ -378,7 +378,7 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
     file.name = fname;
 
 #if (NXT_HAVE_OPENAT2)
-    if (conf->resolve != 0 || ctx->chroot.length > 0) {
+    if (conf->resolve != 0 || ctx->chroot.zlength > 0) {
         nxt_strz_t               *chr;
         nxt_uint_t               resolve;
         nxt_http_static_share_t  *share;
@@ -388,15 +388,15 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
         resolve = conf->resolve;
         chr = &ctx->chroot;
 
-        if (chr->length > 0) {
+        if (chr->zlength > 0) {
             resolve |= RESOLVE_IN_ROOT;
 
             fname = share->is_const
                     ? share->fname
-                    : nxt_http_static_chroot_match(chr->start, file.name);
+                    : nxt_http_static_chroot_match(chr->zstart, file.name);
 
             if (fname != NULL) {
-                file.name = chr->start;
+                file.name = chr->zstart;
                 ret = nxt_file_open(task, &file, NXT_FILE_SEARCH, NXT_FILE_OPEN,
                                     0);
 
@@ -479,7 +479,7 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
 #if (NXT_HAVE_OPENAT2)
             nxt_strz_t  *chr = &ctx->chroot;
 
-            if (chr->length > 0) {
+            if (chr->zlength > 0) {
                 nxt_log(task, level, "opening \"%s\" at \"%V\" failed %E",
                         fname, &chr->s, file.error);
 
@@ -598,7 +598,7 @@ nxt_http_static_send_ready(nxt_task_t *task, void *obj, void *data)
         nxt_file_close(task, f);
 
         if (nxt_slow_path(!nxt_is_dir(&fi)
-                          || shr->start[shr->length - 1] == '/'))
+                          || shr->zstart[shr->zlength - 1] == '/'))
         {
             nxt_log(task, NXT_LOG_ERR, "\"%FN\" is not a regular file",
                     f->name);

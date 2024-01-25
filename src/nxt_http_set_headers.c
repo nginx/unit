@@ -152,7 +152,7 @@ nxt_http_set_headers(nxt_http_request_t *r)
 
         f = nxt_http_resp_header_find(r, hv->name.start, hv->name.length);
 
-        if (value[i].start != NULL) {
+        if (value[i].z.start != NULL) {
 
             if (f == NULL) {
                 f = nxt_list_zero_add(r->resp.fields);
@@ -164,8 +164,8 @@ nxt_http_set_headers(nxt_http_request_t *r)
                 f->name_length = hv->name.length;
             }
 
-            f->value = value[i].start;
-            f->value_length = value[i].length;
+            f->value = value[i].z.start;
+            f->value_length = value[i].z.length;
 
         } else if (f != NULL) {
             f->skip = 1;

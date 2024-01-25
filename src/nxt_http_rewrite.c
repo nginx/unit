@@ -65,8 +65,8 @@ nxt_http_rewrite(nxt_task_t *task, nxt_http_request_t *r)
 
     rp.mem_pool = r->mem_pool;
 
-    rp.target_start = str.start;
-    rp.target_end = str.start + str.length;
+    rp.target_start = str.z.start;
+    rp.target_end = str.z.start + str.z.length;
 
     ret = nxt_http_parse_complex_target(&rp);
     if (nxt_slow_path(ret != NXT_OK)) {

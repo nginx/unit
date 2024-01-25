@@ -101,6 +101,10 @@ typedef union {
     struct {
         size_t                length;
         u_char                *start;
+    } z;
+    struct {
+        size_t                zlength;
+        const u_char         *zstart;
     };
     const nxt_str_t           s;
 } nxt_strz_t;
