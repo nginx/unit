@@ -73,6 +73,9 @@ struct nxt_runtime_s {
     const char             *control;
     const char             *tmp;
 
+    nxt_int_t              conf_gen;
+    nxt_str_t              conf_ltime;
+
     nxt_str_t              certs;
     nxt_str_t              scripts;
 
