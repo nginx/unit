@@ -218,6 +218,14 @@ def test_asgi_application_shm_ack_handle():
     assert resp['body'] == body, 'keep-alive 1'
 
 
+def test_asgi_application_body_bytearray():
+    client.load('body_bytearray')
+
+    body = '0123456789'
+
+    assert client.post(body=body)['body'] == body
+
+
 def test_asgi_keepalive_body():
     client.load('mirror')
 

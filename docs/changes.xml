@@ -41,6 +41,12 @@ can be used as a unique request identifier.
 
 <change type="feature">
 <para>
+bytearray in response body for ASGI applications.
+</para>
+</change>
+
+<change type="feature">
+<para>
 ServerRequest.flushHeaders() implemented in Node.js module to make it compatible
 with Next.js.
 </para>
