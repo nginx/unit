@@ -495,14 +495,21 @@ impl NxtRequestInfo {
     fn request_read(&mut self, dst: &mut BytesMut) {
         unsafe {
             let rest = dst.spare_capacity_mut();
-            let amt = bindings::nxt_unit_request_read(
-                self.info,
-                rest.as_mut_ptr().cast(),
-                rest.len(),
-            );
+            let mut total_bytes_read = 0;
+            loop {
+                let amt = bindings::nxt_unit_request_read(
+                    self.info,
+                    rest.as_mut_ptr().wrapping_add(total_bytes_read).cast(),
+                    32 * 1024 * 1024,
+                );
+                total_bytes_read += amt as usize;
+                if total_bytes_read >= rest.len() {
+                    break;
+                }
+            }
             // TODO: handle failure when `amt` is negative
-            let amt: usize = amt.try_into().unwrap();
-            dst.set_len(dst.len() + amt);
+            let total_bytes_read: usize = total_bytes_read.try_into().unwrap();
+            dst.set_len(dst.len() + total_bytes_read);
         }
     }
 
