@@ -1,6 +1,6 @@
 # Copyright (C) Igor Sysoev
 # Copyright (C) Andrew Clayton
-# Copyright (C) Nginx, Inc.
+# Copyright (C) NGINX, Inc.
 
 
 nxt_feature="endianness"
