@@ -1,10 +1,16 @@
-.\" (C) 2017-2023, NGINX, Inc.
-.\" (C) 2017-2023 Andrei Zeliankou
-.\" (C) 2018-2023 Konstantin Pavlov
-.\" (C) 2021-2023 Zhidao Hong
+.\" (C) 2017-2024 NGINX, Inc.
+.\" (C) 2017-2024 Andrei Zeliankou
+.\" (C) 2018-2024 Konstantin Pavlov
+.\" (C) 2021-2024 Zhidao Hong
+.\" (C) 2022-2024 Andrew Clayton
+.\" (C) 2022-2024 Liam Crilly
+.\" (C) 2023-2024 Dan Callahan
+.\" (C) 2023-2024 Danielle De Leo
+.\" (C) 2023-2024 Dylan Arbour
+.\" (C) 2023-2024 Gabor Javorszky
+.\" (C) 2023-2024 Igor Ippolitov
+.\" (C) 2023-2024 Taryn Musgrave
 .\" (C) 2021-2023 Alejandro Colomar
-.\" (C) 2022-2023 Andrew Clayton
-.\" (C) 2022-2023 Liam Crilly
 .\" (C) 2017-2022 Valentin V. Bartenev
 .\" (C) 2017-2022 Max Romanov
 .\" (C) 2021-2022 Oisín Canty
@@ -91,13 +97,19 @@ The socket address of Unit's control API.
 .El
 .Sh Copyright
 .nf
-(C) 2017-2023, NGINX, Inc.
-(C) 2017-2023 Andrei Zeliankou
-(C) 2018-2023 Konstantin Pavlov
-(C) 2021-2023 Zhidao Hong
+(C) 2017-2024 NGINX, Inc.
+(C) 2017-2024 Andrei Zeliankou
+(C) 2018-2024 Konstantin Pavlov
+(C) 2021-2024 Zhidao Hong
+(C) 2022-2024 Andrew Clayton
+(C) 2022-2024 Liam Crilly
+(C) 2023-2024 Dan Callahan
+(C) 2023-2024 Danielle De Leo
+(C) 2023-2024 Dylan Arbour
+(C) 2023-2024 Gabor Javorszky
+(C) 2023-2024 Igor Ippolitov
+(C) 2023-2024 Taryn Musgrave
 (C) 2021-2023 Alejandro Colomar
-(C) 2022-2023 Andrew Clayton
-(C) 2022-2023 Liam Crilly
 (C) 2017-2022 Valentin V. Bartenev
 (C) 2017-2022 Max Romanov
 (C) 2021-2022 Oisín Canty
