@@ -7,12 +7,13 @@ use std::mem::MaybeUninit;
 use std::ptr;
 use std::sync::OnceLock;
 use tokio::sync::mpsc;
-use wasmtime::component::{Component, InstancePre, Linker};
+use wasmtime::component::{Component, InstancePre, Linker, ResourceTable};
 use wasmtime::{Config, Engine, Store};
 use wasmtime_wasi::preview2::{
-    DirPerms, FilePerms, Table, WasiCtx, WasiCtxBuilder, WasiView,
+    DirPerms, FilePerms, WasiCtx, WasiCtxBuilder, WasiView,
 };
 use wasmtime_wasi::{ambient_authority, Dir};
+use wasmtime_wasi_http::bindings::http::types::ErrorCode;
 use wasmtime_wasi_http::{WasiHttpCtx, WasiHttpView};
 
 #[allow(
@@ -259,7 +260,7 @@ impl GlobalState {
                 }
                 cx.build()
             },
-            table: Table::default(),
+            table: ResourceTable::default(),
             http: WasiHttpCtx,
         };
         let mut store = Store::new(&self.engine, data);
@@ -365,7 +366,7 @@ impl GlobalState {
     fn to_request_body(
         &self,
         info: &mut NxtRequestInfo,
-    ) -> BoxBody<Bytes, anyhow::Error> {
+    ) -> BoxBody<Bytes, ErrorCode> {
         // TODO: should convert the body into a form of `Stream` to become an
         // async stream of frames. The return value can represent that here
         // but for now this slurps up the entire body into memory and puts it
@@ -407,7 +408,7 @@ impl GlobalState {
     async fn send_response_body(
         &self,
         info: &mut NxtRequestInfo,
-        mut body: BoxBody<Bytes, anyhow::Error>,
+        mut body: BoxBody<Bytes, ErrorCode>,
     ) -> Result<()> {
         loop {
             // Acquire the next frame, and because nothing is actually async
@@ -415,7 +416,7 @@ impl GlobalState {
             // `Pending` case should not happen.
             let frame = match body.frame().await {
                 Some(Ok(frame)) => frame,
-                Some(Err(e)) => break Err(e),
+                Some(Err(e)) => break Err(e.into()),
                 None => break Ok(()),
             };
             match frame.data_ref() {
@@ -579,14 +580,14 @@ impl NxtRequestInfo {
 struct StoreState {
     ctx: WasiCtx,
     http: WasiHttpCtx,
-    table: Table,
+    table: ResourceTable,
 }
 
 impl WasiView for StoreState {
-    fn table(&self) -> &Table {
+    fn table(&self) -> &ResourceTable {
         &self.table
     }
-    fn table_mut(&mut self) -> &mut Table {
+    fn table_mut(&mut self) -> &mut ResourceTable {
         &mut self.table
     }
     fn ctx(&self) -> &WasiCtx {
@@ -601,7 +602,7 @@ impl WasiHttpView for StoreState {
     fn ctx(&mut self) -> &mut WasiHttpCtx {
         &mut self.http
     }
-    fn table(&mut self) -> &mut Table {
+    fn table(&mut self) -> &mut ResourceTable {
         &mut self.table
     }
 }
