@@ -148,10 +148,10 @@ nxt_random(nxt_random_t *r)
         nxt_random_stir(r);
     }
 
-    val  = nxt_random_byte(r) << 24;
-    val |= nxt_random_byte(r) << 16;
-    val |= nxt_random_byte(r) << 8;
-    val |= nxt_random_byte(r);
+    val  = (uint32_t) nxt_random_byte(r) << 24;
+    val |= (uint32_t) nxt_random_byte(r) << 16;
+    val |= (uint32_t) nxt_random_byte(r) << 8;
+    val |= (uint32_t) nxt_random_byte(r);
 
     return val;
 }
