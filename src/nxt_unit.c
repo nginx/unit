@@ -3502,6 +3502,10 @@ nxt_unit_mmap_get(nxt_unit_ctx_t *ctx, nxt_unit_port_t *port,
 
     pthread_mutex_lock(&lib->outgoing.mutex);
 
+    if (nxt_slow_path(lib->outgoing.elts == NULL)) {
+        goto skip;
+    }
+
 retry:
 
     outgoing_size = lib->outgoing.size;
@@ -3597,6 +3601,8 @@ retry:
 
         goto retry;
     }
+
+skip:
 
     *c = 0;
     hdr = nxt_unit_new_mmap(ctx, port, *n);
