@@ -54,7 +54,7 @@ static nxt_var_ref_t *nxt_var_ref_get(nxt_tstr_state_t *state, nxt_str_t *name);
 
 static nxt_int_t nxt_var_cache_test(nxt_lvlhsh_query_t *lhq, void *data);
 static nxt_str_t *nxt_var_cache_value(nxt_task_t *task, nxt_tstr_state_t *state,
-    nxt_var_cache_t *cache, uint32_t index, void *ctx);
+    nxt_var_cache_t *cache, nxt_var_ref_t *ref, void *ctx);
 
 static u_char *nxt_var_next_part(u_char *start, u_char *end, nxt_str_t *part);
 
@@ -205,15 +205,11 @@ nxt_var_cache_test(nxt_lvlhsh_query_t *lhq, void *data)
 
 static nxt_str_t *
 nxt_var_cache_value(nxt_task_t *task, nxt_tstr_state_t *state,
-    nxt_var_cache_t *cache, uint32_t index, void *ctx)
+    nxt_var_cache_t *cache, nxt_var_ref_t *ref, void *ctx)
 {
     nxt_int_t           ret;
     nxt_str_t           *value;
-    nxt_var_ref_t       *ref;
     nxt_lvlhsh_query_t  lhq;
-
-    ref = state->var_refs->elts;
-    ref = &ref[index];
 
     value = cache->spare;
 
@@ -230,10 +226,10 @@ nxt_var_cache_value(nxt_task_t *task, nxt_tstr_state_t *state,
         goto not_cached;
     }
 
-    lhq.key_hash = nxt_murmur_hash2_uint32(&index);
+    lhq.key_hash = nxt_murmur_hash2_uint32(&ref->index);
     lhq.replace = 0;
     lhq.key.length = sizeof(uint32_t);
-    lhq.key.start = (u_char *) &index;
+    lhq.key.start = (u_char *) &ref->index;
     lhq.value = value;
     lhq.proto = &nxt_var_cache_proto;
     lhq.pool = cache->pool;
@@ -493,20 +489,24 @@ nxt_var_interpreter(nxt_task_t *task, nxt_tstr_state_t *state,
 {
     u_char         *p, *src;
     size_t         length, last, next;
+    uint32_t       index;
     nxt_str_t      *value, **part;
     nxt_uint_t     i;
     nxt_array_t    parts;
+    nxt_var_ref_t  *ref;
     nxt_var_sub_t  *subs;
 
     nxt_memzero(&parts, sizeof(nxt_array_t));
     nxt_array_init(&parts, cache->pool, sizeof(nxt_str_t *));
 
+    ref = state->var_refs->elts;
     subs = nxt_var_subs(var);
 
     length = var->length;
 
     for (i = 0; i < var->vars; i++) {
-        value = nxt_var_cache_value(task, state, cache, subs[i].index, ctx);
+        index = subs[i].index;
+        value = nxt_var_cache_value(task, state, cache, &ref[index], ctx);
         if (nxt_slow_path(value == NULL)) {
             return NXT_ERROR;
         }
