@@ -132,22 +132,24 @@ nxt_var_ref_get(nxt_tstr_state_t *state, nxt_str_t *name)
 
     ref->index = state->var_refs->nelts - 1;
 
-    ref->name = nxt_str_dup(state->pool, NULL, name);
-    if (nxt_slow_path(ref->name == NULL)) {
-        return NULL;
-    }
-
     decl = nxt_var_hash_find(name);
 
     if (decl != NULL) {
         ref->handler = decl->handler;
         ref->cacheable = decl->cacheable;
 
-        return ref;
+        goto done;
     }
 
     ret = nxt_http_unknown_var_ref(state, ref, name);
     if (nxt_slow_path(ret != NXT_OK)) {
+        return NULL;
+    }
+
+done:
+
+    ref->name = nxt_str_dup(state->pool, NULL, name);
+    if (nxt_slow_path(ref->name == NULL)) {
         return NULL;
     }
 
