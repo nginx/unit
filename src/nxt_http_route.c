@@ -2134,6 +2134,10 @@ nxt_http_route_pattern(nxt_http_request_t *r, nxt_http_route_pattern_t *pattern,
         return 0;
     }
 
+    if (nxt_slow_path(start == NULL)) {
+        return 1;
+    }
+
     nxt_assert(pattern->u.pattern_slices != NULL);
 
     pattern_slices = pattern->u.pattern_slices;
