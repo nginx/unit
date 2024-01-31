@@ -240,7 +240,7 @@ nxt_js_add_tpl(nxt_js_conf_t *jcf, nxt_str_t *str, nxt_bool_t strz)
     nxt_str_t  *func;
 
     static nxt_str_t  func_str = nxt_string("function(uri, host, remoteAddr, "
-                                            "args, headers, cookies) {"
+                                            "args, headers, cookies, vars) {"
                                             "    return ");
 
     /*
@@ -391,7 +391,7 @@ nxt_js_call(nxt_task_t *task, nxt_js_conf_t *jcf, nxt_js_cache_t *cache,
     njs_uint_t          i, n;
     njs_value_t         *value;
     njs_function_t      *func;
-    njs_opaque_value_t  retval, opaque_value, arguments[6];
+    njs_opaque_value_t  retval, opaque_value, arguments[7];
 
     static const njs_str_t  js_args[] = {
         njs_str("uri"),
@@ -400,6 +400,7 @@ nxt_js_call(nxt_task_t *task, nxt_js_conf_t *jcf, nxt_js_cache_t *cache,
         njs_str("args"),
         njs_str("headers"),
         njs_str("cookies"),
+        njs_str("vars"),
     };
 
     vm = cache->vm;

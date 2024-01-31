@@ -28,6 +28,8 @@ static njs_int_t nxt_http_js_ext_get_cookie(njs_vm_t *vm,
     njs_value_t *retval);
 static njs_int_t nxt_http_js_ext_keys_cookie(njs_vm_t *vm, njs_value_t *value,
     njs_value_t *keys);
+static njs_int_t nxt_http_js_ext_get_var(njs_vm_t *vm, njs_object_prop_t *prop,
+    njs_value_t *value, njs_value_t *setval, njs_value_t *retval);
 
 
 static njs_external_t  nxt_http_js_proto[] = {
@@ -86,6 +88,14 @@ static njs_external_t  nxt_http_js_proto[] = {
             .enumerable = 1,
             .prop_handler = nxt_http_js_ext_get_cookie,
             .keys = nxt_http_js_ext_keys_cookie,
+        }
+    },
+
+    {
+        .flags = NJS_EXTERN_OBJECT,
+        .name.string = njs_str("vars"),
+        .u.object = {
+            .prop_handler = nxt_http_js_ext_get_var,
         }
     },
 };
@@ -337,4 +347,43 @@ nxt_http_js_ext_keys_cookie(njs_vm_t *vm, njs_value_t *value, njs_value_t *keys)
     }
 
     return NJS_OK;
+}
+
+
+static njs_int_t
+nxt_http_js_ext_get_var(njs_vm_t *vm, njs_object_prop_t *prop,
+    njs_value_t *value, njs_value_t *setval, njs_value_t *retval)
+{
+    njs_int_t           rc;
+    njs_str_t           key;
+    nxt_str_t           name, *vv;
+    nxt_router_conf_t   *rtcf;
+    nxt_http_request_t  *r;
+
+    r = njs_vm_external(vm, nxt_js_proto_id, value);
+    if (r == NULL) {
+        njs_value_undefined_set(retval);
+        return NJS_DECLINED;
+    }
+
+    rc = njs_vm_prop_name(vm, prop, &key);
+    if (rc != NJS_OK) {
+        njs_value_undefined_set(retval);
+        return NJS_DECLINED;
+    }
+
+    rtcf = r->conf->socket_conf->router_conf;
+
+    name.start = key.start;
+    name.length = key.length;
+
+    vv = nxt_var_get(&r->task, rtcf->tstr_state, &r->tstr_cache.var, &name, r);
+
+    if (vv != NULL) {
+        return njs_vm_value_string_set(vm, retval, vv->start, vv->length);
+    }
+
+    njs_value_undefined_set(retval);
+
+    return NJS_DECLINED;
 }
