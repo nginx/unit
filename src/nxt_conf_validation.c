@@ -2,6 +2,7 @@
 /*
  * Copyright (C) Valentin V. Bartenev
  * Copyright (C) NGINX, Inc.
+ * Copyright 2024, Alejandro Colomar <alx@kernel.org>
  */
 
 #include <nxt_main.h>
@@ -1936,10 +1937,13 @@ static nxt_int_t
 nxt_conf_vldt_proxy(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     void *data)
 {
-    nxt_str_t       name;
+    nxt_str_t       name, *ret;
     nxt_sockaddr_t  *sa;
 
-    nxt_conf_get_string(value, &name);
+    ret = nxt_conf_get_string_dup(value, vldt->pool, &name);
+    if (nxt_slow_path(ret == NULL)) {
+        return NXT_ERROR;
+    }
 
     if (nxt_str_start(&name, "http://", 7)) {
         name.length -= 7;
@@ -2913,13 +2917,11 @@ nxt_conf_vldt_object_iterator(nxt_conf_validation_t *vldt,
 
     for ( ;; ) {
         member = nxt_conf_next_object_member(value, &name, &index);
-
         if (member == NULL) {
             return NXT_OK;
         }
 
         ret = validator(vldt, &name, member);
-
         if (ret != NXT_OK) {
             return ret;
         }
@@ -3268,16 +3270,19 @@ nxt_conf_vldt_server(nxt_conf_validation_t *vldt, nxt_str_t *name,
     nxt_conf_value_t *value)
 {
     nxt_int_t       ret;
+    nxt_str_t       str;
     nxt_sockaddr_t  *sa;
 
     ret = nxt_conf_vldt_type(vldt, name, value, NXT_CONF_VLDT_OBJECT);
-
     if (ret != NXT_OK) {
         return ret;
     }
 
-    sa = nxt_sockaddr_parse(vldt->pool, name);
+    if (nxt_slow_path(nxt_str_dup(vldt->pool, &str, name) == NULL)) {
+        return NXT_ERROR;
+    }
 
+    sa = nxt_sockaddr_parse(vldt->pool, &str);
     if (sa == NULL) {
         return nxt_conf_vldt_error(vldt, "The \"%V\" is not valid "
                                    "server address.", name);
