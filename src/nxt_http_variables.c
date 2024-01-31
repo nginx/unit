@@ -135,8 +135,7 @@ nxt_http_register_variables(void)
 
 
 nxt_int_t
-nxt_http_unknown_var_ref(nxt_tstr_state_t *state, nxt_var_ref_t *ref,
-    nxt_str_t *name)
+nxt_http_unknown_var_ref(nxt_mp_t *mp, nxt_var_ref_t *ref, nxt_str_t *name)
 {
     int64_t    hash;
     nxt_str_t  str, *lower;
@@ -152,7 +151,7 @@ nxt_http_unknown_var_ref(nxt_tstr_state_t *state, nxt_var_ref_t *ref,
             return NXT_ERROR;
         }
 
-        lower = nxt_str_alloc(state->pool, str.length);
+        lower = nxt_str_alloc(mp, str.length);
         if (nxt_slow_path(lower == NULL)) {
             return NXT_ERROR;
         }
@@ -175,7 +174,7 @@ nxt_http_unknown_var_ref(nxt_tstr_state_t *state, nxt_var_ref_t *ref,
             return NXT_ERROR;
         }
 
-        hash = nxt_http_header_hash(state->pool, &str);
+        hash = nxt_http_header_hash(mp, &str);
         if (nxt_slow_path(hash == -1)) {
             return NXT_ERROR;
         }
@@ -191,7 +190,7 @@ nxt_http_unknown_var_ref(nxt_tstr_state_t *state, nxt_var_ref_t *ref,
             return NXT_ERROR;
         }
 
-        hash = nxt_http_argument_hash(state->pool, &str);
+        hash = nxt_http_argument_hash(mp, &str);
         if (nxt_slow_path(hash == -1)) {
             return NXT_ERROR;
         }
@@ -207,7 +206,7 @@ nxt_http_unknown_var_ref(nxt_tstr_state_t *state, nxt_var_ref_t *ref,
             return NXT_ERROR;
         }
 
-        hash = nxt_http_cookie_hash(state->pool, &str);
+        hash = nxt_http_cookie_hash(mp, &str);
         if (nxt_slow_path(hash == -1)) {
             return NXT_ERROR;
         }
@@ -216,7 +215,7 @@ nxt_http_unknown_var_ref(nxt_tstr_state_t *state, nxt_var_ref_t *ref,
         return NXT_ERROR;
     }
 
-    ref->data = nxt_var_field_new(state->pool, &str, (uint32_t) hash);
+    ref->data = nxt_var_field_new(mp, &str, (uint32_t) hash);
     if (nxt_slow_path(ref->data == NULL)) {
         return NXT_ERROR;
     }

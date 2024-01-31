@@ -141,7 +141,7 @@ nxt_var_ref_get(nxt_tstr_state_t *state, nxt_str_t *name)
         goto done;
     }
 
-    ret = nxt_http_unknown_var_ref(state, ref, name);
+    ret = nxt_http_unknown_var_ref(state->pool, ref, name);
     if (nxt_slow_path(ret != NXT_OK)) {
         return NULL;
     }
