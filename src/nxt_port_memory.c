@@ -454,6 +454,10 @@ nxt_port_mmap_get(nxt_task_t *task, nxt_port_mmaps_t *mmaps, nxt_chunk_id_t *c,
 
     nxt_thread_mutex_lock(&mmaps->mutex);
 
+    if (nxt_slow_path(mmaps->elts == NULL)) {
+        goto end;
+    }
+
     end_port_mmap = mmaps->elts + mmaps->size;
 
     for (port_mmap = mmaps->elts;
@@ -499,6 +503,8 @@ nxt_port_mmap_get(nxt_task_t *task, nxt_port_mmaps_t *mmaps, nxt_chunk_id_t *c,
     }
 
     /* TODO introduce port_mmap limit and release wait. */
+
+end:
 
     *c = 0;
     mmap_handler = nxt_port_new_port_mmap(task, mmaps, tracking, n);
