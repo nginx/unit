@@ -1483,9 +1483,9 @@ nxt_unit_request_check_response_port(nxt_unit_request_info_t *req,
     pthread_mutex_lock(&lib->mutex);
 
     port = nxt_unit_port_hash_find(&lib->ports, port_id, 0);
-    port_impl = nxt_container_of(port, nxt_unit_port_impl_t, port);
 
     if (nxt_fast_path(port != NULL)) {
+        port_impl = nxt_container_of(port, nxt_unit_port_impl_t, port);
         req->response_port = port;
 
         if (nxt_fast_path(port_impl->ready)) {
