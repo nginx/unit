@@ -117,9 +117,7 @@ nxt_http_static_init(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
         nxt_str_set(&conf->index, "index.html");
 
     } else {
-        nxt_conf_get_string(acf->index, &str);
-
-        ret = nxt_str_dup(mp, &conf->index, &str);
+        ret = nxt_conf_get_string_dup(acf->index, mp, &conf->index);
         if (nxt_slow_path(ret == NULL)) {
             return NXT_ERROR;
         }

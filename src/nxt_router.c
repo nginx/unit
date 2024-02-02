@@ -2275,7 +2275,7 @@ nxt_router_conf_process_static(nxt_task_t *task, nxt_router_conf_t *rtcf,
 {
     uint32_t          next, i;
     nxt_mp_t          *mp;
-    nxt_str_t         *type, exten, str;
+    nxt_str_t         *type, exten, str, *s;
     nxt_int_t         ret;
     nxt_uint_t        exts;
     nxt_conf_value_t  *mtypes_conf, *ext_conf, *value;
@@ -2311,9 +2311,8 @@ nxt_router_conf_process_static(nxt_task_t *task, nxt_router_conf_t *rtcf,
             }
 
             if (nxt_conf_type(ext_conf) == NXT_CONF_STRING) {
-                nxt_conf_get_string(ext_conf, &str);
-
-                if (nxt_slow_path(nxt_str_dup(mp, &exten, &str) == NULL)) {
+                s = nxt_conf_get_string_dup(ext_conf, mp, &exten);
+                if (nxt_slow_path(s == NULL)) {
                     return NXT_ERROR;
                 }
 
@@ -2331,9 +2330,8 @@ nxt_router_conf_process_static(nxt_task_t *task, nxt_router_conf_t *rtcf,
             for (i = 0; i < exts; i++) {
                 value = nxt_conf_get_array_element(ext_conf, i);
 
-                nxt_conf_get_string(value, &str);
-
-                if (nxt_slow_path(nxt_str_dup(mp, &exten, &str) == NULL)) {
+                s = nxt_conf_get_string_dup(value, mp, &exten);
+                if (nxt_slow_path(s == NULL)) {
                     return NXT_ERROR;
                 }
 
@@ -2425,14 +2423,11 @@ static nxt_int_t
 nxt_router_conf_forward_header(nxt_mp_t *mp, nxt_conf_value_t *conf,
     nxt_http_forward_header_t *fh)
 {
-    char       c;
-    size_t     i;
-    uint32_t   hash;
-    nxt_str_t  header;
+    char      c;
+    size_t    i;
+    uint32_t  hash;
 
-    nxt_conf_get_string(conf, &header);
-
-    fh->header = nxt_str_dup(mp, NULL, &header);
+    fh->header = nxt_conf_get_string_dup(conf, mp, NULL);
     if (nxt_slow_path(fh->header == NULL)) {
         return NXT_ERROR;
     }
