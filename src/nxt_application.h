@@ -22,6 +22,7 @@ typedef enum {
     NXT_APP_RUBY,
     NXT_APP_JAVA,
     NXT_APP_WASM,
+    NXT_APP_WASM_WC,
 
     NXT_APP_UNKNOWN,
 } nxt_app_type_t;
