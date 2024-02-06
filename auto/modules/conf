@@ -37,6 +37,10 @@ case "$nxt_module" in
        . auto/modules/wasm
    ;;
 
+   wasm-wasi-component)
+       . auto/modules/wasm-wasi-component
+   ;;
+
    *)
        echo
        echo $0: error: invalid module \"$nxt_module\".
