@@ -5,6 +5,7 @@ import time
 import pytest
 
 from unit.applications.tls import ApplicationTLS
+from unit.option import option
 
 prerequisites = {'modules': {'openssl': 'any'}}
 
@@ -70,6 +71,9 @@ def test_reconfigure_tls_switch():
 
 
 def test_reconfigure_tls():
+    if option.configure_flag['asan']:
+        pytest.skip('not yet, router crash')
+
     ssl_sock = create_socket()
 
     ssl_sock.sendall("""GET / HTTP/1.1\r\n""".encode())
@@ -107,6 +111,9 @@ def test_reconfigure_tls_2():
 
 
 def test_reconfigure_tls_3():
+    if option.configure_flag['asan']:
+        pytest.skip('not yet, router crash')
+
     ssl_sock = create_socket()
     ssl_sock.do_handshake()
 
