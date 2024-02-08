@@ -2830,7 +2830,7 @@ nxt_conf_vldt_processes(nxt_conf_validation_t *vldt, nxt_conf_value_t *value,
     nxt_int_t                       ret;
     nxt_conf_vldt_processes_conf_t  proc;
 
-    if (nxt_conf_type(value) == NXT_CONF_NUMBER) {
+    if (nxt_conf_type(value) == NXT_CONF_INTEGER) {
         int_value = nxt_conf_get_number(value);
 
         if (int_value < 1) {
