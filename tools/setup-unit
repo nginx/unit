@@ -138,6 +138,11 @@ OPTIONS
 __EOF__
 }
 
+info()
+{
+    >&2 echo "$(basename "$0"): info: $*";
+}
+
 warn()
 {
     >&2 echo "$(basename "$0"): error: $*";
@@ -430,7 +435,11 @@ unit_ctl_edit()
         || echo ed;
     ) "$tmp";
 
+    trap "info 'ctl: edit: Invalid configuration saved in <$tmp>.'" ERR
+
     unit_ctl_http ---s "$sock" PUT "$req_path" <"$tmp";
+
+    trap - ERR;
 }
 
 
