@@ -421,7 +421,12 @@ unit_ctl_edit()
     fi;
     local req_path="$1";
 
-    local tmp="$(mktemp)";
+    echo "$req_path" \
+    | sed 's%^/js_modules/.*%.js%' \
+    | sed 's%^/config\>.*%.json%' \
+    | sed 's%^/.*%.txt%' \
+    | xargs mktemp --suffix \
+    | read -r tmp;
 
     unit_ctl_http ---s "$sock" -c --no-progress-meter GET "$req_path" \
             </dev/null >"$tmp";
