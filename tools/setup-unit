@@ -417,7 +417,7 @@ unit_ctl_edit()
     done;
 
     if ! test $# -ge 1; then
-        err 'ctl: insert: PATH: Missing argument.';
+        err 'ctl: edit: PATH: Missing argument.';
     fi;
     local req_path="$1";
 
