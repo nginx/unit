@@ -29,6 +29,7 @@ test -v BASH_VERSION \
 test -v ZSH_VERSION \
 && setopt sh_word_split;
 
+
 export LC_ALL=C
 
 dry_run='no';
@@ -162,6 +163,18 @@ dry_run_eval()
     else
         eval "$*";
     fi;
+}
+
+run_trap()
+{
+    trap -p "$1" \
+    | tr -d '\n' \
+    | sed "s/[^']*'\(.*\)'[^']*/\1/" \
+    | sed "s/'\\\\''/'/g" \
+    | read -r trap_cmd;
+
+    eval $trap_cmd;
+    trap - "$1";
 }
 
 
@@ -399,14 +412,16 @@ unit_ctl_edit()
                    -o 'ExitOnForwardFailure yes' \
                    -L "$local_sock:$remote_sock" "$remote";
 
+        trap "ssh -S '$ssh_ctrl' -O exit '$remote' 2>/dev/null;
+              unlink '$local_sock'" EXIT;
+
         sock="unix:$local_sock";
     fi;
 
-    local tmp="$(mktemp ||:)";
+    local tmp="$(mktemp)";
 
     unit_ctl_http ---s "$sock" -c --no-progress-meter GET "$req_path" \
-            </dev/null >"$tmp" \
-    ||:;
+            </dev/null >"$tmp";
 
     $(
         ((test -v VISUAL && test -n "$VISUAL") && printf '%s\n' "$VISUAL") \
@@ -415,15 +430,12 @@ unit_ctl_edit()
         || command -v vi \
         || command -v vim \
         || echo ed;
-    ) "$tmp" \
-    ||:;
+    ) "$tmp";
 
-    unit_ctl_http ---s "$sock" PUT "$req_path" <"$tmp" \
-    ||:;
+    unit_ctl_http ---s "$sock" PUT "$req_path" <"$tmp";
 
     if test -v remote; then
-        ssh -S "$ssh_ctrl" -O exit "$remote" 2>/dev/null;
-        unlink "$local_sock";
+        run_trap EXIT;
     fi;
 }
 
@@ -519,16 +531,17 @@ unit_ctl_http()
                    -o 'ExitOnForwardFailure yes' \
                    -L "$local_sock:$remote_sock" "$remote";
 
+        trap "ssh -S '$ssh_ctrl' -O exit '$remote' 2>/dev/null;
+              unlink '$local_sock'" EXIT;
+
         sock="unix:$local_sock";
     fi;
 
     curl $curl_options -X $method -d@- \
-            $(echo "$sock" | unit_sock_filter -c)${req_path} \
-    ||:;
+            $(echo "$sock" | unit_sock_filter -c)${req_path};
 
     if test -v remote; then
-        ssh -S "$ssh_ctrl" -O exit "$remote" 2>/dev/null;
-        unlink "$local_sock";
+        run_trap EXIT;
     fi;
 }
 
@@ -603,22 +616,22 @@ unit_ctl_insert()
                    -o 'ExitOnForwardFailure yes' \
                    -L "$local_sock:$remote_sock" "$remote";
 
+        trap "ssh -S '$ssh_ctrl' -O exit '$remote' 2>/dev/null;
+              unlink '$local_sock'" EXIT;
+
         sock="unix:$local_sock";
     fi;
 
-    local old="$(mktemp ||:)";
+    local old="$(mktemp)";
 
     unit_ctl_http ---s "$sock" -c --no-progress-meter GET "$req_path" \
-            </dev/null >"$old" \
-    ||:;
+            </dev/null >"$old";
 
     unit_json_ins "$old" "$idx" \
-    | unit_ctl_http ---s "$sock" PUT "$req_path" \
-    ||:;
+    | unit_ctl_http ---s "$sock" PUT "$req_path";
 
     if test -v remote; then
-        ssh -S "$ssh_ctrl" -O exit "$remote" 2>/dev/null;
-        unlink "$local_sock";
+        run_trap EXIT;
     fi;
 }
 
