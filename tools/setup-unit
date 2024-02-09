@@ -510,7 +510,7 @@ unit_ctl_http()
     fi;
     local req_path="$2";
 
-    curl $curl_options -X $method -d@- \
+    curl --fail-with-body $curl_options -X $method -d@- \
             $(echo "$sock" | unit_sock_filter -c)${req_path};
 }
 
