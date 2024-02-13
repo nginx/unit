@@ -200,7 +200,8 @@ impl GlobalState {
         let component = Component::from_file(&engine, &global_config.component)
             .context("failed to compile component")?;
         let mut linker = Linker::<StoreState>::new(&engine);
-        wasmtime_wasi_http::proxy::add_to_linker(&mut linker)?;
+        wasmtime_wasi::preview2::command::add_to_linker(&mut linker)?;
+        wasmtime_wasi_http::proxy::add_only_http_to_linker(&mut linker)?;
         let component = linker
             .instantiate_pre(&component)
             .context("failed to pre-instantiate the provided component")?;
