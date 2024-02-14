@@ -67,7 +67,7 @@ INSTALL_python ?=	python3-install
 RUN_python ?=		/bin/true
 MODULE_PREBUILD_python ?= /bin/true
 
-VERSIONS_ruby ?=	3.2
+VERSIONS_ruby ?=	3.2 3.3
 VARIANT_ruby ?=		$(VARIANT)
 $(foreach rubyversion, $(VERSIONS_ruby), $(eval CONTAINER_ruby$(rubyversion) = ruby:$(rubyversion)-$(VARIANT_ruby)))
 CONFIGURE_ruby ?=	ruby
