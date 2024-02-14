@@ -5,6 +5,7 @@
 
 'use strict';
 
+const { stderr } = require('process');
 const EventEmitter = require('events');
 const http = require('http');
 const util = require('util');
@@ -413,7 +414,14 @@ ServerRequest.prototype._read = function _read(n) {
 };
 
 
-function Server(requestListener) {
+function Server(options, requestListener) {
+    if (typeof options === 'function') {
+        requestListener = options;
+        options = {};
+    } else {
+        stderr.write("http.Server constructor was called with unsupported options, using default settings\n");
+    }
+
     EventEmitter.call(this);
 
     this.unit = new unit_lib.Unit();
