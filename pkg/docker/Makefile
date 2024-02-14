@@ -19,7 +19,7 @@ INSTALL_minimal ?=	version
 RUN_minimal ?=		/bin/true
 MODULE_PREBUILD_minimal ?= /bin/true
 
-VERSIONS_go ?=		1.20 1.21
+VERSIONS_go ?=		1.21 1.22
 VARIANT_go ?=		$(VARIANT)
 $(foreach goversion, $(VERSIONS_go), $(eval CONTAINER_go$(goversion) = golang:$(goversion)-$(VARIANT_go)))
 CONFIGURE_go ?=		go --go-path=$$GOPATH

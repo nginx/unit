@@ -1,6 +1,6 @@
-FROM golang:1.20-bullseye
+FROM golang:1.22-bullseye
 
-LABEL org.opencontainers.image.title="Unit (go1.20)"
+LABEL org.opencontainers.image.title="Unit (go1.22)"
 LABEL org.opencontainers.image.description="Official build of Unit for Docker."
 LABEL org.opencontainers.image.url="https://unit.nginx.org"
 LABEL org.opencontainers.image.source="https://github.com/nginx/unit"
