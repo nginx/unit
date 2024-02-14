@@ -1,6 +1,6 @@
-FROM node:18-bullseye
+FROM node:21-bullseye
 
-LABEL org.opencontainers.image.title="Unit (node18)"
+LABEL org.opencontainers.image.title="Unit (node21)"
 LABEL org.opencontainers.image.description="Official build of Unit for Docker."
 LABEL org.opencontainers.image.url="https://unit.nginx.org"
 LABEL org.opencontainers.image.source="https://github.com/nginx/unit"
