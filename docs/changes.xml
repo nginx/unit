@@ -44,7 +44,7 @@ Initial release of Python 3.12 module for NGINX Unit.
                 unit-jsc19 unit-jsc20 unit-jsc21
                 unit-wasm"
          ver="1.32.0" rev="1"
-         date="" time=""
+         date="2024-02-27" time="18:00:00 +0000"
          packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
 
 <change>
@@ -58,7 +58,7 @@ NGINX Unit updated to 1.32.0.
 
 
 <changes apply="unit" ver="1.32.0" rev="1"
-         date="" time=""
+         date="2024-02-27" time="18:00:00 +0000"
          packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
 
 <change type="feature">
