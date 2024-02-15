@@ -53,9 +53,17 @@ NGINX Unit updated to 1.32.0.
 </para>
 </change>
 
-<change type="bugfix">
+
+</changes>
+
+
+<changes apply="unit" ver="1.32.0" rev="1"
+         date="" time=""
+         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+
+<change type="feature">
 <para>
-http.createServer() now accepts "options" argument introduced in Node.js v9.6.0, v8.12.0.
+WebAssembly Components using WASI interfaces defined in wasi:http/proxy@0.2.0.
 </para>
 </change>
 
@@ -80,11 +88,61 @@ can be used as a unique request identifier.
 
 <change type="feature">
 <para>
-bytearray in response body for ASGI applications.
+options to set control socket permissions.
 </para>
 </change>
 
 <change type="feature">
+<para>
+Ruby arrays in response headers, improving compatibility with Rack v3.0.
+</para>
+</change>
+
+<change type="feature">
+<para>
+Python bytearray response bodies for ASGI applications.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+router could crash while sending large files. Thanks to rustedsword.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+serving static files from a network filesystem could lead to error.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+"uidmap" and "gidmap" isolation options validation.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+abstract UNIX socket name could be corrupted during configuration validation.
+Thanks to Alejandro Colomar.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+HTTP header field value encoding could be misinterpreted in Python module.
+</para>
+</change>
+
+<change type="bugfix">
+<para>
+Node.js http.createServer() accepts and ignores the "options" argument,
+improving compatibility with strapi applications, among others.
+</para>
+</change>
+
+<change type="bugfix">
 <para>
 ServerRequest.flushHeaders() implemented in Node.js module to make it compatible
 with Next.js.
@@ -97,13 +155,25 @@ ServerRequest.httpVersion variable format in Node.js module.
 </para>
 </change>
 
+<change type="bugfix">
+<para>
+Node.js module handles standard library imports prefixed with "node:", making it
+possible to run newer Nuxt applications, among others.
+</para>
+</change>
 
-</changes>
+<change type="bugfix">
+<para>
+Node.js tarball location changed to avoid build/install errors.
+</para>
+</change>
 
-
-<changes apply="unit" ver="1.32.0" rev="1"
-         date="" time=""
-         packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
+<change type="bugfix">
+<para>
+Go module sets environment variables necessary for building on macOS/arm64
+systems.
+</para>
+</change>
 
 </changes>
 
@@ -182,8 +252,8 @@ compatibility with Node.js 15.0.0 and above.
 
 <change type="bugfix">
 <para>
-Node.JS unit-http NPM module now has appropriate default paths for
-macOS/arm64 systems.
+Node.JS unit-http NPM module now has appropriate default paths for macOS/arm64
+systems.
 </para>
 </change>
 
