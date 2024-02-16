@@ -34,6 +34,12 @@ NGINX Unit updated to 1.33.0.
          date="" time=""
          packager="Nginx Packaging &lt;nginx-packaging@f5.com&gt;">
 
+<change type="change">
+<para>
+if building with NJS, version 0.8.3 or later is now required.
+</para>
+</change>
+
 </changes>
 
 
