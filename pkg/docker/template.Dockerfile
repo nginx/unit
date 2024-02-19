@@ -15,7 +15,7 @@ RUN set -ex \
     && mkdir -p /usr/lib/unit/modules /usr/lib/unit/debug-modules \
     && mkdir -p /usr/src/unit \
     && cd /usr/src/unit \
-    && git clone -b @@VERSION@@-@@PATCHLEVEL@@ https://github.com/nginx/unit \
+    && git clone --depth 1 -b @@VERSION@@-@@PATCHLEVEL@@ https://github.com/nginx/unit \
     && cd unit \
     && NCPU="$(getconf _NPROCESSORS_ONLN)" \
     && DEB_HOST_MULTIARCH="$(dpkg-architecture -q DEB_HOST_MULTIARCH)" \
