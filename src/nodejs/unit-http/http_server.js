@@ -5,7 +5,6 @@
 
 'use strict';
 
-const { stderr } = require('process');
 const EventEmitter = require('events');
 const http = require('http');
 const util = require('util');
@@ -419,7 +418,7 @@ function Server(options, requestListener) {
         requestListener = options;
         options = {};
     } else {
-        stderr.write("http.Server constructor was called with unsupported options, using default settings\n");
+        console.warn("http.Server constructor was called with unsupported options, using default settings");
     }
 
     EventEmitter.call(this);
