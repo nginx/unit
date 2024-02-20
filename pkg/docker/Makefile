@@ -19,7 +19,7 @@ INSTALL_minimal ?=	version
 RUN_minimal ?=		/bin/true
 MODULE_PREBUILD_minimal ?= /bin/true
 
-VERSIONS_go ?=		1.20 1.21
+VERSIONS_go ?=		1.21 1.22
 VARIANT_go ?=		$(VARIANT)
 $(foreach goversion, $(VERSIONS_go), $(eval CONTAINER_go$(goversion) = golang:$(goversion)-$(VARIANT_go)))
 CONFIGURE_go ?=		go --go-path=$$GOPATH
@@ -35,7 +35,7 @@ INSTALL_jsc ?=		java-shared-install java-install
 RUN_jsc ?=	 		rm -rf /root/.m2
 MODULE_PREBUILD_jsc ?= /bin/true
 
-VERSIONS_node ?=	18 20
+VERSIONS_node ?=	20 21
 VARIANT_node ?=		$(VARIANT)
 $(foreach nodeversion, $(VERSIONS_node), $(eval CONTAINER_node$(nodeversion) = node:$(nodeversion)-$(VARIANT_node)))
 CONFIGURE_node ?=	nodejs --node-gyp=/usr/local/bin/node-gyp
@@ -51,7 +51,7 @@ INSTALL_perl ?=		perl-install
 RUN_perl ?=			/bin/true
 MODULE_PREBUILD_perl ?=	/bin/true
 
-VERSIONS_php ?=		8.2
+VERSIONS_php ?=		8.2 8.3
 VARIANT_php ?=		cli-$(VARIANT)
 $(foreach phpversion, $(VERSIONS_php), $(eval CONTAINER_php$(phpversion) = php:$(phpversion)-$(VARIANT_php)))
 CONFIGURE_php ?=	php
@@ -67,7 +67,7 @@ INSTALL_python ?=	python3-install
 RUN_python ?=		/bin/true
 MODULE_PREBUILD_python ?= /bin/true
 
-VERSIONS_ruby ?=	3.2
+VERSIONS_ruby ?=	3.2 3.3
 VARIANT_ruby ?=		$(VARIANT)
 $(foreach rubyversion, $(VERSIONS_ruby), $(eval CONTAINER_ruby$(rubyversion) = ruby:$(rubyversion)-$(VARIANT_ruby)))
 CONFIGURE_ruby ?=	ruby

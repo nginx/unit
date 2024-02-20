@@ -1,6 +1,6 @@
-FROM ruby:3.2-bullseye
+FROM node:21-bullseye
 
-LABEL org.opencontainers.image.title="Unit (ruby3.2)"
+LABEL org.opencontainers.image.title="Unit (node21)"
 LABEL org.opencontainers.image.description="Official build of Unit for Docker."
 LABEL org.opencontainers.image.url="https://unit.nginx.org"
 LABEL org.opencontainers.image.source="https://github.com/nginx/unit"
@@ -45,14 +45,14 @@ RUN set -ex \
     && make -j $NCPU unitd \
     && install -pm755 build/sbin/unitd /usr/sbin/unitd \
     && make clean \
-    && /bin/true \
+    && npm -g install node-gyp \
     && ./configure $CONFIGURE_ARGS_MODULES --cc-opt="$CC_OPT" --modulesdir=/usr/lib/unit/debug-modules --debug \
-    && ./configure ruby \
-    && make -j $NCPU ruby-install \
+    && ./configure nodejs --node-gyp=/usr/local/bin/node-gyp \
+    && make -j $NCPU node node-install libunit-install \
     && make clean \
     && ./configure $CONFIGURE_ARGS_MODULES --cc-opt="$CC_OPT" --modulesdir=/usr/lib/unit/modules \
-    && ./configure ruby \
-    && make -j $NCPU ruby-install \
+    && ./configure nodejs --node-gyp=/usr/local/bin/node-gyp \
+    && make -j $NCPU node node-install libunit-install \
     && cd \
     && rm -rf /usr/src/unit \
     && for f in /usr/sbin/unitd /usr/lib/unit/modules/*.unit.so; do \
@@ -60,7 +60,7 @@ RUN set -ex \
        done \
     && apt-mark showmanual | xargs apt-mark auto > /dev/null \
     && { [ -z "$savedAptMark" ] || apt-mark manual $savedAptMark; } \
-    && gem install rack && rm -rf /root/.local \
+    && rm -rf /root/.cache/ && rm -rf /root/.npm \
     && mkdir -p /var/lib/unit/ \
     && mkdir -p /docker-entrypoint.d/ \
     && groupadd --gid 999 unit \
