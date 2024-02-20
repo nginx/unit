@@ -1,6 +1,6 @@
-FROM golang:1.20-bullseye
+FROM ruby:3.3-bullseye
 
-LABEL org.opencontainers.image.title="Unit (go1.20)"
+LABEL org.opencontainers.image.title="Unit (ruby3.3)"
 LABEL org.opencontainers.image.description="Official build of Unit for Docker."
 LABEL org.opencontainers.image.url="https://unit.nginx.org"
 LABEL org.opencontainers.image.source="https://github.com/nginx/unit"
@@ -47,12 +47,12 @@ RUN set -ex \
     && make clean \
     && /bin/true \
     && ./configure $CONFIGURE_ARGS_MODULES --cc-opt="$CC_OPT" --modulesdir=/usr/lib/unit/debug-modules --debug \
-    && ./configure go --go-path=$GOPATH \
-    && make -j $NCPU go-install-src libunit-install \
+    && ./configure ruby \
+    && make -j $NCPU ruby-install \
     && make clean \
     && ./configure $CONFIGURE_ARGS_MODULES --cc-opt="$CC_OPT" --modulesdir=/usr/lib/unit/modules \
-    && ./configure go --go-path=$GOPATH \
-    && make -j $NCPU go-install-src libunit-install \
+    && ./configure ruby \
+    && make -j $NCPU ruby-install \
     && cd \
     && rm -rf /usr/src/unit \
     && for f in /usr/sbin/unitd /usr/lib/unit/modules/*.unit.so; do \
@@ -60,7 +60,7 @@ RUN set -ex \
        done \
     && apt-mark showmanual | xargs apt-mark auto > /dev/null \
     && { [ -z "$savedAptMark" ] || apt-mark manual $savedAptMark; } \
-    && /bin/true \
+    && gem install rack && rm -rf /root/.local \
     && mkdir -p /var/lib/unit/ \
     && mkdir -p /docker-entrypoint.d/ \
     && groupadd --gid 999 unit \
@@ -77,7 +77,7 @@ RUN set -ex \
     && apt-get purge -y --auto-remove build-essential \
     && rm -rf /var/lib/apt/lists/* \
     && rm -f /requirements.apt \
-    && ln -sf /dev/stdout /var/log/unit.log
+    && ln -sf /dev/stderr /var/log/unit.log
 
 COPY docker-entrypoint.sh /usr/local/bin/
 COPY welcome.* /usr/share/unit/welcome/
