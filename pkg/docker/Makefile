@@ -77,9 +77,10 @@ MODULE_PREBUILD_ruby ?=	/bin/true
 
 VERSIONS_wasm ?=
 CONTAINER_wasm ?= debian:$(VARIANT)-slim
-CONFIGURE_wasm ?= wasm --include-path=\`pwd\`/pkg/contrib/wasmtime/crates/c-api/include --lib-path=/usr/lib/\$$(dpkg-architecture -q DEB_HOST_MULTIARCH)/
-INSTALL_wasm ?=	wasm-install
-RUN_wasm ?=		/bin/true
+CONFIGURE_wasm ?= wasm --include-path=\`pwd\`/pkg/contrib/wasmtime/crates/c-api/include --lib-path=/usr/lib/\$$(dpkg-architecture -q DEB_HOST_MULTIARCH)/ \&\& ./configure wasm-wasi-component
+INSTALL_wasm ?=   wasm-install wasm-wasi-component-install
+RUN_wasm ?=       /bin/true
+
 define MODULE_PREBUILD_wasm
 apt-get install --no-install-recommends --no-install-suggests -y libclang-dev \\\n \
 \ \ \ \&\& export RUST_VERSION=1.76.0 \\\n \
