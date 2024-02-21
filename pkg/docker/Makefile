@@ -81,7 +81,8 @@ CONFIGURE_wasm ?= wasm --include-path=\`pwd\`/pkg/contrib/wasmtime/crates/c-api/
 INSTALL_wasm ?=	wasm-install
 RUN_wasm ?=		/bin/true
 define MODULE_PREBUILD_wasm
-export RUST_VERSION=1.71.0 \\\n \
+apt-get install --no-install-recommends --no-install-suggests -y libclang-dev \\\n \
+\ \ \ \&\& export RUST_VERSION=1.76.0 \\\n \
 \ \ \ \&\& export RUSTUP_HOME=/usr/src/unit/rustup \\\n \
 \ \ \ \&\& export CARGO_HOME=/usr/src/unit/cargo \\\n    \
 \ \ \ \&\& export PATH=/usr/src/unit/cargo/bin:\$$PATH \\\n \
