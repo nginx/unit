@@ -99,8 +99,7 @@ all: ${NXT_WCM_MODULE}
 
 ${NXT_WCM_MODULE}:  $NXT_BUILD_DIR/lib/unit/modules/$NXT_WCM_MOD_NAME
 
-$NXT_BUILD_DIR/lib/unit/modules/$NXT_WCM_MOD_NAME:
-	make build/src/nxt_unit.o
+$NXT_BUILD_DIR/lib/unit/modules/$NXT_WCM_MOD_NAME: build/src/nxt_unit.o
 	$NXT_CARGO_CMD
 
 install: ${NXT_WCM_MODULE}-install
