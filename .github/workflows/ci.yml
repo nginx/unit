@@ -33,6 +33,10 @@ jobs:
             os: ubuntu-latest
           - build: perl
             os: ubuntu-latest
+          - build: php-8.1
+            os: ubuntu-latest
+          - build: php-8.2
+            os: ubuntu-latest
           - build: php-8.3
             os: ubuntu-latest
           - build: python-3.11
