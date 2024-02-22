@@ -7,8 +7,8 @@ MODULE_VERSION_wasm=	$(VERSION)
 MODULE_RELEASE_wasm=	1
 
 MODULE_CONFARGS_wasm=	wasm --include-path=\$$(CURDIR)/pkg/contrib/wasmtime/crates/c-api/include --lib-path=\$$(CURDIR)/pkg/contrib/wasmtime/target/release \&\& ./configure wasm-wasi-component
-MODULE_MAKEARGS_wasm=	wasm wasm-wasi-component CFLAGS='\$$(CFLAGS) -Wno-missing-prototypes'
-MODULE_INSTARGS_wasm=	wasm-install wasm-wasi-component-install CFLAGS='\$$(CFLAGS) -Wno-missing-prototypes'
+MODULE_MAKEARGS_wasm=	wasm wasm-wasi-component CFLAGS=\"\$$(shell grep ^CFLAGS \$$(BUILDDIR_\$$*)/build/Makefile | cut -d' ' -f 3-) -Wno-missing-prototypes\"
+MODULE_INSTARGS_wasm=	wasm-install wasm-wasi-component-install
 
 MODULE_SOURCES_wasm=
 
