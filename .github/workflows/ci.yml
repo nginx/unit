@@ -136,8 +136,7 @@ jobs:
             --openssl \
             --njs \
             --cc-opt="-I njs/src/ -I njs/build"  \
-            --ld-opt="-L njs/build" \
-            --debug
+            --ld-opt="-L njs/build"
 
       - name: Make unit
         run: |
