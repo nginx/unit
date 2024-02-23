@@ -150,9 +150,10 @@ jobs:
       ## Go
       ##
 
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: '${{ steps.metadata.outputs.version }}'
+          cache: false
         if: steps.metadata.outputs.module == 'go'
 
       - name: Configure go
