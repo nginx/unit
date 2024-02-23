@@ -566,7 +566,7 @@ nxt_var_interpreter(nxt_task_t *task, nxt_tstr_state_t *state,
     }
 
     if (last != var->length) {
-        p = nxt_cpymem(p, &src[last], var->length - last);
+        nxt_cpymem(p, &src[last], var->length - last);
     }
 
     return NXT_OK;
