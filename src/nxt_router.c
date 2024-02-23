@@ -1077,14 +1077,14 @@ nxt_router_temp_conf(nxt_task_t *task)
 
     rtcf = nxt_mp_zget(mp, sizeof(nxt_router_conf_t));
     if (nxt_slow_path(rtcf == NULL)) {
-        goto fail;
+        goto out_free_mp;
     }
 
     rtcf->mem_pool = mp;
 
     rtcf->tstr_state = nxt_tstr_state_new(mp, 0);
     if (nxt_slow_path(rtcf->tstr_state == NULL)) {
-        goto fail;
+        goto out_free_mp;
     }
 
 #if (NXT_HAVE_NJS)
@@ -1093,12 +1093,12 @@ nxt_router_temp_conf(nxt_task_t *task)
 
     tmp = nxt_mp_create(1024, 128, 256, 32);
     if (nxt_slow_path(tmp == NULL)) {
-        goto fail;
+        goto out_free_tstr_state;
     }
 
     tmcf = nxt_mp_zget(tmp, sizeof(nxt_router_temp_conf_t));
     if (nxt_slow_path(tmcf == NULL)) {
-        goto temp_fail;
+        goto out_free;
     }
 
     tmcf->mem_pool = tmp;
@@ -1109,7 +1109,7 @@ nxt_router_temp_conf(nxt_task_t *task)
     tmcf->engines = nxt_array_create(tmcf->mem_pool, 4,
                                      sizeof(nxt_router_engine_conf_t));
     if (nxt_slow_path(tmcf->engines == NULL)) {
-        goto temp_fail;
+        goto out_free;
     }
 
     nxt_queue_init(&creating_sockets);
@@ -1131,15 +1131,17 @@ nxt_router_temp_conf(nxt_task_t *task)
 
     return tmcf;
 
-temp_fail:
+out_free:
 
     nxt_mp_destroy(tmp);
 
-fail:
+out_free_tstr_state:
 
     if (rtcf->tstr_state != NULL) {
         nxt_tstr_state_release(rtcf->tstr_state);
     }
+
+out_free_mp:
 
     nxt_mp_destroy(mp);
 
